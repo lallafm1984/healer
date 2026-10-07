@@ -8,6 +8,7 @@ import { ENCOUNTERS, mobGrade, type Encounter, type EncounterKey, type ScriptKey
 import { canDispel, HEROES } from '../data/heroes';
 import { SKILLS } from '../data/skills';
 import { create, type Fight, type Role } from '../engine';
+import { CHOIR } from '../engine/bosses';
 import { bossSvg } from './art';
 import { ARROW, heroSkill, ICON_COLOR, iga, josa, mmss, READ_ORDER, S, secT } from './core';
 
@@ -22,9 +23,10 @@ const GB: Record<ScriptKey, Record<string, Num>> = {
   plague: {
     auto: 60, breathPct: 5, breathMax: 4, breathDur: 60, stingDot: 15, stingDur: 12, pulse1: 150, pulse2: 180, pulse2Period: 25, pulse2Delay: 22,
     interAt: 0.6, interDur: 25, rats: 30, contDelay: 10, contDur: 8, spread: 150, p3At: 0.3,
-    targets: { breath: [2, 4], cont: [1, 2], rats: [3, 6] }, // [10인, 20인] — 엔진은 20인(big)에서 대상 수만 늘림
+    targets: { breath: 2, cont: [1, 2], rats: 3 }, // cont = [보통, 악몽] — 10인 악몽은 전염 2명 동시 (26 3-1)
     enrName: '역병 폭주', enrDmg: 180, enrPeriod: 3, enrCast: 1,
   },
+  choir: { ...CHOIR, enrName: '대합창', enrDmg: 200, enrPeriod: 3, enrCast: 1 },
 };
 interface ProbeSkill { name: string; icon: string; next: number; period: number; cast: number; dmg: number; dps: number; dur: number }
 interface Probe { sk: Record<string, ProbeSkill>; m: number; bossMax: number; hp: { tank: number; dps: number; me: number } }
@@ -56,7 +58,7 @@ const EUL: [string, string] = ['을', '를'], RO: [string, string] = ['으로', 
 const cantDispel = (type: string) => `${HEROES[S.hero].name}${josa(HEROES[S.hero].name, '은', '는')} ${type}${josa(type, '을', '를')} 못 지움. ${act('renew', EUL)} 걸고 ${act('heal', RO)} 버티기`;
 const ENRAGE_HOW = '버티는 기술이 아님. 그 전에 잡으려면 딜러가 쓰러지지 않게';
 
-interface GuideCtx { enc: Encounter; diff: DiffName; m: number; n: (x: number) => number; big: boolean; sk: Record<string, ProbeSkill>; hp: Probe['hp']; B: Record<string, Num>; hpMult: number }
+interface GuideCtx { enc: Encounter; diff: DiffName; m: number; n: (x: number) => number; mythic: boolean; sk: Record<string, ProbeSkill>; hp: Probe['hp']; B: Record<string, Num>; hpMult: number }
 export interface GuidePhase { id: string; name: string; at: string; text: string; enr?: boolean }
 export interface GuideSkill { ic: string; name: string; enr?: boolean; when?: string; what: string; how?: string; every: string; tip: (F?: Fight | null) => string[] }
 interface GuideBody { nums: Record<string, Num>; cur: (F: Fight) => string; phases: GuidePhase[]; skills: GuideSkill[] }
@@ -146,9 +148,9 @@ const GUIDE: Record<ScriptKey, (c: GuideCtx) => GuideBody> = {
     };
   },
   plague(c) {
-    const { sk, B, n, big } = c;
+    const { sk, B, n, mythic } = c;
     const br = sk.breath, st = sk.sting, pu = sk.aoe, co = sk.contagion, so = sk.storm;
-    const T = { breath: B.targets.breath[big ? 1 : 0], cont: B.targets.cont[big ? 1 : 0], rats: B.targets.rats[big ? 1 : 0] };
+    const T = { breath: B.targets.breath, cont: B.targets.cont[mythic ? 1 : 0], rats: B.targets.rats };
     const N = {
       autoLo: n(B.auto * 0.7), autoHi: n(B.auto * 1.3), sting: n(B.stingDot), stingTot: n(B.stingDot * B.stingDur), pulse1: n(B.pulse1), pulse2: n(B.pulse2),
       rats: n(B.rats), ratsTot: n(B.rats * B.interDur), spread: n(B.spread), stormDps: n(so.dps), stormTot: n(so.dps * so.dur), enr: n(B.enrDmg),
@@ -159,7 +161,7 @@ const GUIDE: Record<ScriptKey, (c: GuideCtx) => GuideBody> = {
       { id: 'inter', name: '인터미션', at: `체력 ${B.interAt * 100}%, ${B.interDur}초`, text: `보스 무적, 예고 기술 멈춤. 쥐떼가 뒷줄 ${T.rats}명 공격` },
       { id: 'p2', name: '2페이즈', at: '인터미션 뒤', text: `${st.name} 끝 · ${co.name} 시작 · 파동이 ${N.pulse2}로 세지고 ${B.pulse2Period}초마다` },
     ];
-    if (big) phases.push({ id: 'p3', name: '3페이즈', at: `체력 ${B.p3At * 100}% 아래`, text: `${iga(so.name)} 더해짐` });
+    if (mythic) phases.push({ id: 'p3', name: '3페이즈 (악몽)', at: `체력 ${B.p3At * 100}% 아래`, text: `${iga(so.name)} 더해짐` });
     phases.push({ id: 'enrage', name: '광폭화', at: mmss(c.enc.enrage), text: `${iga(B.enrName)} ${B.enrPeriod}초마다`, enr: true });
     const skills: GuideSkill[] = [
       { ic: br.icon, name: br.name,
@@ -184,15 +186,15 @@ const GUIDE: Record<ScriptKey, (c: GuideCtx) => GuideBody> = {
         every: `체력 ${B.interAt * 100}%에서 ${B.interDur}초`, tip: () => [`뒷줄 ${T.rats}명에게 초당 ${N.rats} 피해를 줍니다. 그동안 보스는 무적입니다.`] },
       { ic: co.icon, name: co.name,
         when: `2페이즈부터 · 인터미션 끝 ${secT(B.contDelay)} 뒤 첫 번째, ${secT(co.period)}마다`,
-        what: `무작위 ${T.cont}명에게 함정 질병 (점선 테두리) ${secT(B.contDur)}. 끝나면 터져 옆 칸 사람에게 <b>${N.spread}</b> 피해 + 독침. 해제하면 그 자리에서 바로 터짐${big ? '. 두 대상이 붙어 있으면 걸리자마자 터짐' : ''}`,
+        what: `무작위 ${T.cont}명에게 함정 질병 (점선 테두리) ${secT(B.contDur)}. 끝나면 터져 옆 칸 사람에게 <b>${N.spread}</b> 피해 + 독침. 해제하면 그 자리에서 바로 터짐${mythic ? '. 악몽은 2명 동시, 두 대상이 붙어 있으면 걸리자마자 터짐' : ''}`,
         how: '해제하지 말고 기다리기. 터지기 전에 옆 칸 사람 체력을 채워 두기',
         every: `2페이즈 · ${secT(co.period)}마다`, tip: () => [`${secT(B.contDur)} 뒤 터져 옆 칸에 ${N.spread} 피해와 독침을 줍니다. 해제하면 바로 터집니다.`] },
     ];
-    if (big) skills.push({ ic: so.icon, name: so.name,
-      when: `3페이즈(체력 ${B.p3At * 100}% 아래)부터 ${secT(so.period)}마다 · 예고 ${secT(so.cast)}`,
-      what: `판 바깥 1/3 (왼쪽·오른쪽 번갈아)에 ${secT(so.dur)} 장판. 안에 있으면 초당 <b>${N.stormDps}</b> (다 맞으면 ${N.stormTot})`,
-      how: '파티원(나 포함)이 알아서 옮김. 칸이 모자라 남는 사람이 생기니 장판 안 사람부터 채우기',
-      every: `3페이즈 · ${secT(so.period)}마다`, tip: () => [`판 바깥 1/3에 장판을 깔아 초당 ${N.stormDps} 피해를 줍니다.`] });
+    if (mythic) skills.push({ ic: so.icon, name: so.name,
+      when: `악몽 3페이즈(체력 ${B.p3At * 100}% 아래)부터 ${secT(so.period)}마다 · 예고 ${secT(so.cast)}`,
+      what: `판 바깥 1열 (왼쪽·오른쪽 번갈아)에 ${secT(so.dur)} 장판. 안에 있으면 초당 <b>${N.stormDps}</b> (다 맞으면 ${N.stormTot})`,
+      how: '파티원(나 포함)이 알아서 옮김. 못 피한 사람부터 채우기',
+      every: `3페이즈 · ${secT(so.period)}마다`, tip: () => [`판 바깥 1열에 장판을 깔아 초당 ${N.stormDps} 피해를 줍니다.`] });
     skills.push({ ic: '광폭', name: B.enrName, enr: true,
       when: `광폭화 ${mmss(c.enc.enrage)}부터 ${B.enrPeriod}초마다 · 예고 ${secT(B.enrCast)}`,
       what: `파티 전원에게 <b>${N.enr}</b> 피해. 몇 번이면 전멸`,
@@ -204,17 +206,66 @@ const GUIDE: Record<ScriptKey, (c: GuideCtx) => GuideBody> = {
       phases, skills,
     };
   },
+  // 무음 성가대 (26 4-3): 20인 입문. 판을 열(구역)로 나눠 읽기
+  choir(c) {
+    const { sk, B, n, hp, mythic, hpMult } = c;
+    const cr = sk.crescendo, ba = sk.baton, fo = sk.forte, so = sk.solo;
+    const N = { song: n(B.song), cresc: n(cr.dps), crescTot: n(cr.dps * cr.dur), baton: n(ba.dmg), forte: n(B.forte), solo: n(B.soloDmg), enr: n(B.enrDmg), voiceHp: Math.round(B.voiceHp * hpMult).toLocaleString('ko-KR'), bossHp: Math.round(B.bossHp * hpMult).toLocaleString('ko-KR') };
+    const pct = (a: number, b: number) => Math.round((a / b) * 100);
+    return {
+      nums: N,
+      cur: F => (F.enraged ? 'enrage' : F.phase === 2 ? 'p2' : 'p1'),
+      phases: [
+        { id: 'p1', name: '1페이즈 · 세 성부', at: '성가대원이 살아 있는 동안 (지휘자 무적)', text: `성가대원 셋 (체력 ${N.voiceHp}씩)을 왼쪽부터 잡음. 하나 잡을 때마다 그 2열이 조용해짐` },
+        { id: 'p2', name: '2페이즈 · 마지막 악장', at: '성가대원 전멸 뒤', text: `지휘자 (체력 ${N.bossHp}) · ${fo.name} · ${so.name}` },
+        { id: 'enrage', name: '광폭화', at: mmss(c.enc.enrage), text: `${iga(B.enrName)} ${B.enrPeriod}초마다`, enr: true },
+      ],
+      skills: [
+        { ic: '노래', name: '노래',
+          when: '1페이즈 내내 · 예고 없음',
+          what: `살아 있는 성가대원이 맡은 2열 (높은 성부 1·2열, 가운데 3·4열, 낮은 5·6열)에 선 사람 초당 <b>${N.song}</b>`,
+          how: `성가대원을 잡을수록 조용해짐. 그 전엔 ${act('renew', EUL)} 넓게 깔아 두기`,
+          every: '1페이즈 내내', tip: () => [`맡은 2열에 선 사람에게 초당 ${N.song} 피해를 줍니다.`] },
+        { ic: cr.icon, name: cr.name,
+          when: `${secT(cr.next + cr.cast)}에 첫 번째, ${secT(cr.period)}마다 · 예고 ${secT(cr.cast)} · 1페이즈만`,
+          what: `살아 있는 성부 하나 (왼쪽부터 차례로)의 2열에 ${secT(cr.dur)} 장판. 안에 있으면 초당 <b>${N.cresc}</b> (다 맞으면 ${N.crescTot})${mythic ? '. 악몽 「불협화음」: 두 성부 4열 동시' : ''}`,
+          how: `그 2열에 6~7명이 서 있고 빈 칸은 10개뿐이라 다 못 피함. 남은 사람이 모인 곳에 ${act('poh', RO)} 한 번에 채우기`,
+          every: `1페이즈 · ${secT(cr.period)}마다`, tip: () => [`성부 하나의 2열에 장판을 깔아 초당 ${N.cresc} 피해를 줍니다.`] },
+        { ic: ba.icon, name: ba.name,
+          when: `${secT(ba.next + ba.cast)}에 첫 타, 그 뒤 ${secT(ba.period)}마다 · 예고 ${secT(ba.cast)}`,
+          what: `탱커에게 <b>${N.baton}</b> 피해 (탱커 체력 ${hp.tank}의 ${pct(N.baton, hp.tank)}%)`,
+          how: `예고가 뜨면 탱커를 미리 채우기. 못 채우면 ${act('guardian', EUL)} 걸기`,
+          every: `${secT(ba.period)}마다`, tip: () => [`탱커에게 ${N.baton} 피해를 줍니다.`] },
+        { ic: fo.icon, name: fo.name,
+          when: `2페이즈 · 시작 ${secT(8 + fo.cast)} 뒤 첫 타, ${secT(fo.period)}마다 · 예고 ${secT(fo.cast)}`,
+          what: `파티 전원 (20명)에게 <b>${N.forte}</b> 피해 (파티원 체력 ${hp.dps}의 ${pct(N.forte, hp.dps)}%)`,
+          how: `예고 동안 ${act('renew', EUL)} 깔고, 맞은 뒤 사람이 많이 모인 칸에 ${act('poh')}. 여러 명이 절반 아래면 ${act('hymn')}`,
+          every: `2페이즈 · ${secT(fo.period)}마다`, tip: () => [`파티 전원에게 ${N.forte} 피해를 줍니다.`] },
+        { ic: so.icon, name: so.name,
+          when: `2페이즈 · 시작 5초 뒤 첫 번째, ${secT(so.period)}마다 · 예고 없음`,
+          what: `무작위 ${B.soloN}명에게 마법 「독창」 ${secT(B.soloSec)}. 끝나면 그 사람이 선 <b>열 전체</b>에 <b>${N.solo}</b>. 해제하면 바로 사라짐 (함정 아님)`,
+          how: canDispel(S.hero, '마법') ? `${act('purify', RO)} 지우기. ${B.soloN}명이라 다 못 지우니 못 지운 사람의 열을 미리 채우기` : cantDispel('마법'),
+          every: `2페이즈 · ${secT(so.period)}마다`, tip: () => [`${B.soloN}명에게 독창을 걸어 ${secT(B.soloSec)} 뒤 그 열 전체에 ${N.solo} 피해를 줍니다.`] },
+        { ic: '광폭', name: B.enrName, enr: true,
+          when: `광폭화 ${mmss(c.enc.enrage)}부터 ${B.enrPeriod}초마다 · 예고 ${secT(B.enrCast)}`,
+          what: `파티 전원에게 <b>${N.enr}</b> 피해. 몇 번이면 전멸`,
+          how: ENRAGE_HOW,
+          every: `${mmss(c.enc.enrage)}부터`, tip: () => [`${B.enrPeriod}초마다 파티 전원에게 ${N.enr} 피해를 줍니다.`] },
+      ],
+    };
+  },
 };
 export type GuideModel = GuideBody & { enc: Encounter; diff: DiffName; m: number; dodge: number; bossMax: number; hp: Probe['hp']; tier: string; B: Record<string, Num> };
 export function guideModel(encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: number): GuideModel {
   const enc = ENCOUNTERS[encKey], P = probe(encKey, diff, stageLv, heroLv);
   const m = P.m, n = (x: number) => Math.round(x * m);
-  const g = GUIDE[enc.script]({ enc, diff, m, n, big: !!enc.big, sk: P.sk, hp: P.hp, B: GB[enc.script], hpMult: P.bossMax / enc.hp });
+  const g = GUIDE[enc.script]({ enc, diff, m, n, mythic: diff === '악몽', sk: P.sk, hp: P.hp, B: GB[enc.script], hpMult: P.bossMax / enc.hp });
   return Object.assign({ enc, diff, m, dodge: DIFFS[diff].dodge, bossMax: P.bossMax, hp: P.hp, tier: enc.tier.replace(' · ', ' '), B: GB[enc.script] }, g);
 }
 // 지금 돌고 있는 기술인지 (일시정지에서 '지금' 표시): 엔진 기술 상태 그대로 읽음
 export function skillLive(F: Fight, ic: string): boolean {
   if (ic === '쥐떼') return F.phase === 0 && F.phaseName === '인터미션';
+  if (ic === '노래') return F.enc.script === 'choir' && F.phase === 1;
   return F.skills.some(s => s.icon === ic && !s.hidden && s.next !== Infinity && s.active(F));
 }
 export function guideHtml(g: GuideModel, F: Fight | null): string {

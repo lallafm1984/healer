@@ -21,7 +21,7 @@ function stars(c: ContentDef): string {
 
 function card(c: ContentDef): string {
   const lk = lockOf(c);
-  const size = c.kind === 'raid' ? '10인 · 악몽 20인' : `${c.size('보통')}인`;
+  const size = `${c.size('보통')}인`;
   const state = !c.ready ? `<em class="soon">준비 중</em>` : lk.locked ? `<em class="lock">🔒 Lv ${lk.lv}</em>` : lk.dev ? `<em class="dev">Lv ${lk.lv} 해금 · 개발 빌드라 열림</em>` : '';
   const off = !c.ready || lk.locked;
   return `<button class="ccard${off ? ' off' : ''}" type="button" data-content="${c.key}"${off ? ' aria-disabled="true"' : ''}>

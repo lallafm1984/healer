@@ -14,5 +14,5 @@ export const DIFFS: Record<DiffName, Difficulty> = {
   '악몽': { dmg: 1.4, dodge: 0.65, react: 1.4 },
 };
 
-/** 악몽 보정: 파티원 체력·딜 ×1.15, 보스 체력 ×1.3 (20인 레이드는 보스 체력 보정 없음) */
+/** 악몽 보정: 파티원 체력·딜 ×1.15, 보스 체력 ×1.3. 던전·10인·20인 모두 같음 (26 1장) */
 export const MYTHIC = { party: 1.15, bossHp: 1.3 } as const;

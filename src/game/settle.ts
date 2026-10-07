@@ -1,7 +1,7 @@
 /**
  * 전투가 끝난 뒤 정산(09 S08)·보상(S09)을 계산하고 저장에 반영한다. 화면과 분리된 순수 계산 (난수는 받아서 씀).
  */
-import { ALL_DIFFS, contentOf, isRaid, type ContentKey } from '../data/content';
+import { ALL_DIFFS, contentOf, raidSize, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HEROES, type HeroKey } from '../data/heroes';
 import { rollItem, type GearItem } from '../data/equipment';
@@ -78,9 +78,10 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number): Sett
   const overheal = tot ? r.overheal / tot : 0;
   const grade = r.win ? gradeOf(r.deaths) : null;
   const stars = starsOf({ win: r.win, deaths: r.deaths, overheal });
-  const raid = isRaid(c);
-  const gold = r.win ? clearGold(c.stageLv, r.diff, grade!, raid ? 1 : 0) : 0;
-  const xp = r.quit ? 0 : clearXp(p.level, c.stageLv, r.diff, grade, { raid, win: r.win });
+  // 따로 잠긴 난이도(10인 악몽 Lv 50 등)는 그 레벨이 단계 (26 3장)
+  const raid = raidSize(c), stage = stageOf(c, r.diff);
+  const gold = r.win ? clearGold(stage, r.diff, grade!, raid) : 0;
+  const xp = r.quit ? 0 : clearXp(p.level, stage, r.diff, grade, { raid, win: r.win });
   const levelBefore = p.level;
   p.gold += gold;
   const levelUps = addXp(p, xp);

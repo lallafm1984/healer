@@ -244,6 +244,8 @@ export interface Mob {
   id: number;
   name: string;
   elite: boolean;
+  /** 보스 전투의 보스 몸통 (무음 성가대 지휘자). 앞의 적을 다 잡아야 맞음 */
+  boss?: boolean;
   hp: number;
   max: number;
   alive: boolean;
@@ -352,6 +354,10 @@ export interface Fight {
   storm?: BossSkill;
   stormSide?: boolean;
   interEnd?: number;
+  /** 무음 성가대: 다음 크레센도를 부를 성부 차례 */
+  voice?: number;
+  forte?: BossSkill;
+  solo?: BossSkill;
 }
 
 /** 스킬·아이템 사용 결과 */

@@ -111,7 +111,13 @@ export function spread(f: Fight, u: Unit): void {
   }
 }
 
-export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, _dispelled: boolean): void {
+export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
   if (d.name === '썩은 숨결') u.max = u.base;
   if (d.name === '전염') spread(f, u);
+  // 무음 성가대 독창 (26 4-3): 안 지우고 끝나면 그 사람이 선 열 전체 200. 지우면 그냥 사라짐 (함정 아님)
+  if (d.name === '독창' && !dispelled) {
+    const col = cellOf(f, u).col;
+    for (const v of living(f)) if (cellOf(f, v).col === col) damage(f, v, 200, true);
+    emit(f, { type: 'msg', text: `독창: ${u.nick} 줄 전체 피해` });
+  }
 }

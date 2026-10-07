@@ -15,10 +15,13 @@ export const ITEM_ICON: Record<ItemKey, string> = {
 export const ITEM_HINT: Record<string, string> = {
   warden: '💡 녹슨 문지기는 탱커 강타가 셈. 보호 두루마리를 강타 직전 탱커에게 걸면 버티기 쉬움',
   plague: '💡 역병 군주의 독침은 사제가 못 지움 (드루이드·성기사는 지움). 해제 두루마리로도 지울 수 있음',
+  choir: '💡 무음 성가대의 독창은 3명이라 해제가 모자람. 해제 두루마리 한 장이면 한 번에 지움',
 };
 
 // 보스 그림 (임시)
 export function bossSvg(script: string): string {
+  // 무음 성가대: 지휘봉을 든 지휘자 (정식 그림은 22 리소스 목록에서)
+  if (script === 'choir') return `<svg viewBox="0 0 100 100" aria-hidden="true"><g stroke="#0E0E15" stroke-width="4" stroke-linejoin="round"><path d="M50 30C34 32 28 52 26 94H74C72 52 66 32 50 30Z" fill="#3B3F6B"/><circle cx="50" cy="22" r="13" fill="#C9C3B0"/><path d="M38 62L60 50" fill="none"/></g><path d="M62 49L88 22" stroke="#0E0E15" stroke-width="5" stroke-linecap="round"/><path d="M62 49L88 22" stroke="#F0C46A" stroke-width="2.5" stroke-linecap="round"/><path d="M43 23h4M53 23h4" stroke="#0E0E15" stroke-width="3" stroke-linecap="round"/><path d="M45 31h10" stroke="#0E0E15" stroke-width="3" stroke-linecap="round"/><path d="M36 70h28M34 82h32" stroke="#2A2D52" stroke-width="3"/></svg>`;
   if (script === 'warden' || script === 'scrap' || script === 'trash') return `<svg viewBox="0 0 100 100" aria-hidden="true"><g stroke="#0E0E15" stroke-width="4" stroke-linejoin="round"><rect x="6" y="46" width="16" height="34" rx="6" fill="#7E4426"/><rect x="78" y="46" width="16" height="34" rx="6" fill="#7E4426"/><rect x="14" y="40" width="72" height="52" rx="10" fill="#9C5A33"/><rect x="28" y="10" width="44" height="34" rx="8" fill="#B5683A"/><path d="M40 60h20v16H40z" fill="#6E3A20" stroke-width="3"/></g><rect x="35" y="22" width="11" height="7" rx="2" fill="#FFB347"/><rect x="54" y="22" width="11" height="7" rx="2" fill="#FFB347"/><g fill="#5E321C"><circle cx="25" cy="52" r="3"/><circle cx="75" cy="52" r="3"/><circle cx="25" cy="82" r="3"/><circle cx="75" cy="82" r="3"/></g></svg>`;
   return `<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M84 22V94" stroke="#0E0E15" stroke-width="9"/><path d="M84 22V94" stroke="#5B3B22" stroke-width="4"/><g stroke="#0E0E15" stroke-width="4" stroke-linejoin="round"><path d="M50 8C28 10 22 34 22 52L14 94H80L76 52C76 34 72 10 50 8Z" fill="#6E7233"/><path d="M50 20C38 22 34 34 34 48C40 56 60 56 66 48C66 34 62 22 50 20Z" fill="#1C1B14"/></g><circle cx="84" cy="18" r="7" fill="#C8E06A" stroke="#0E0E15" stroke-width="3"/><circle cx="43" cy="40" r="3.5" fill="#C8E06A"/><circle cx="57" cy="40" r="3.5" fill="#C8E06A"/><path d="M30 72Q50 65 70 72" stroke="#4E5124" stroke-width="4" fill="none"/></svg>`;
 }

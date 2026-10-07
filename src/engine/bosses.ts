@@ -136,8 +136,9 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
   },
   plague: {
     init(f) {
-      const big = f.enc.big;
-      const nDeb = big ? 4 : 2;
+      // 10인 악몽 전용 (26 3-1): 전염 2명 동시 + 30% 아래 역병 폭풍. 디버프 대상 수는 그대로 2명
+      const mythic = f.mythic;
+      const nDeb = 2;
       f.phase = 1; f.phaseName = '1페이즈';
       skill(f, { key: 'auto', hidden: true, next: 2, period: 2, cast: 0, fire(f) { const tk = aggroTarget(f); if (tk) autoHit(f, tk, 60); } });
       skill(f, {
@@ -162,7 +163,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
       f.contagion = skill(f, {
         key: 'contagion', name: '전염', icon: '전염', kind: 'instant', next: Infinity, period: 20, cast: 0, active: f => f.phase >= 2,
         fire(f) {
-          const ts = randomTargets(f, big ? 2 : 1, u => !u.debuffs.some(d => d.name === '전염'));
+          const ts = randomTargets(f, mythic ? 2 : 1, u => !u.debuffs.some(d => d.name === '전염'));
           for (const u of ts) addDebuff(f, u, { name: '전염', type: '질병', left: 8, trap: true });
           if (ts.length === 2 && hexDist(cellOf(f, ts[0]), cellOf(f, ts[1])) === 1) {
             emit(f, { type: 'msg', text: '전염 대상이 붙어 있어 바로 터짐' });
@@ -173,22 +174,24 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
       f.storm = skill(f, {
         key: 'storm', name: '역병 폭풍', icon: '폭풍', kind: 'zone', next: Infinity, period: 10, cast: 2.5, dps: 40, dur: 7.5, warn: 'zone', active: f => f.phase === 3,
         cellsFor(f) {
+          // 26 3-1: 판 절반이면 19칸에 10명이 피할 칸이 모자라 바깥 1열 (줄마다 맨 왼쪽 또는 맨 오른쪽 칸), 좌우 번갈아
           f.stormSide = !f.stormSide;
-          const xs = f.cells.map(c => c.px);
-          // 05 2-E는 판 절반이지만, 30칸에 20명이면 피할 칸이 모자라 바깥 1/3로 둔다 (05 오픈 이슈 6)
-          const lo = Math.min(...xs), hi = Math.max(...xs), w = (hi - lo) / 3;
-          return new Set(f.cells.filter(c => (f.stormSide ? c.px < lo + w : c.px > hi - w)).map(c => c.i));
+          const out = new Set<number>();
+          for (let r = 0; r < f.rows; r++) {
+            const row = f.cells.filter(c => c.row === r);
+            if (row.length) out.add(row.reduce((a, b) => ((f.stormSide ? b.px < a.px : b.px > a.px) ? b : a)).i);
+          }
+          return out;
         },
       });
     },
     update(f) {
-      const big = f.enc.big;
       const r = f.bossHp / f.bossMax;
       if (f.phase === 1 && r <= 0.6) {
         f.phase = 0; f.phaseName = '인터미션'; f.invuln = true; f.interEnd = f.t + 25;
         emit(f, { type: 'phase', text: '인터미션: 쥐떼가 뒷줄 공격' });
         const ranged = living(f).filter(u => u.role === 'ranged').sort((a, b) => cellOf(f, b).row - cellOf(f, a).row);
-        f.rats = ranged.slice(0, big ? 6 : 3).map(u => u.id);
+        f.rats = ranged.slice(0, 3).map(u => u.id);
         for (const u of living(f)) if (u.debuffs.length) addDebuff(f, u, { name: '독침', type: '독', left: 12, dot: 15 });
       }
       if (f.phase === 0) {
@@ -199,13 +202,69 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
           emit(f, { type: 'phase', text: '2페이즈: 전염은 해제하면 바로 퍼짐' });
         }
       }
-      if (big && f.phase === 2 && r <= 0.3) {
+      if (f.mythic && f.phase === 2 && r <= 0.3) {
         f.phase = 3; f.phaseName = '3페이즈'; f.storm!.next = f.t + 1;
-        emit(f, { type: 'phase', text: '3페이즈: 역병 폭풍이 판 바깥쪽을 번갈아 덮음' });
+        emit(f, { type: 'phase', text: '3페이즈: 역병 폭풍이 판 바깥 1열을 번갈아 덮음' });
       }
       enrageAt(f, '역병 폭주', 3, 180);
     },
   },
+  // 무음 성가대 (26 4-3): 20인 입문. 성가대원 셋이 맡은 2열에 노래, 다 잡으면 지휘자 2페이즈
+  choir: {
+    init(f) {
+      f.phase = 1; f.phaseName = '1페이즈 · 세 성부'; f.voice = 0;
+      const scale = f.bossMax / f.enc.hp;
+      for (const name of CHOIR.voices) f.mobs.push({ id: f.nextId++, name, elite: true, hp: CHOIR.voiceHp * scale, max: CHOIR.voiceHp * scale, alive: true });
+      const boss = CHOIR.bossHp * scale;
+      f.mobs.push({ id: f.nextId++, name: '지휘자', elite: true, boss: true, hp: boss, max: boss, alive: true });
+      skill(f, { key: 'auto', hidden: true, next: 2, period: 2, cast: 0, fire(f) { const tk = aggroTarget(f); if (tk) autoHit(f, tk, CHOIR.auto); } });
+      skill(f, {
+        key: 'baton', name: '지휘봉', icon: '지휘', kind: 'buster', next: 9, period: 18, cast: 2, warn: 'buster', dmg: CHOIR.baton,
+        target(f) { const tk = aggroTarget(f); return tk ? [tk.id] : []; },
+        hit(f, tel) { for (const id of tel.units) { const u = unitById(f, id); if (u) damage(f, u, tel.skill.dmg!); } },
+      });
+      skill(f, {
+        key: 'crescendo', name: '크레센도', icon: '크레', kind: 'zone', next: 12, period: 15, cast: 3, dps: CHOIR.crescDps * (f.mythic ? CHOIR.discord : 1), dur: 5, warn: 'zone',
+        active: f => f.phase === 1 && f.mobs.some((m, i) => i < 3 && m.alive),
+        // 살아 있는 성부를 왼쪽부터 차례로. 악몽 「불협화음」은 두 성부 동시 (4열, 열마다 피해 ×0.7)
+        cellsFor(f) {
+          const alive = [0, 1, 2].filter(i => f.mobs[i].alive);
+          const order = alive.filter(i => i >= f.voice!).concat(alive.filter(i => i < f.voice!));
+          const pick = order.slice(0, f.mythic ? 2 : 1);
+          f.voice = (pick[pick.length - 1] + 1) % 3;
+          const cols = new Set(pick.flatMap(i => [i * 2, i * 2 + 1]));
+          return new Set(f.cells.filter(c => cols.has(c.col)).map(c => c.i));
+        },
+      });
+      f.forte = skill(f, {
+        key: 'forte', name: '포르테', icon: '포르', kind: 'aoe', next: Infinity, period: 25, cast: 3, warn: 'aoe', active: f => f.phase === 2,
+        hit(f) { for (const u of living(f)) damage(f, u, CHOIR.forte, true); },
+      });
+      f.solo = skill(f, {
+        key: 'solo', name: '독창', icon: '독창', kind: 'instant', next: Infinity, period: 20, cast: 0, active: f => f.phase === 2,
+        fire(f) { for (const u of randomTargets(f, CHOIR.soloN, u => !u.debuffs.some(d => d.name === '독창'))) addDebuff(f, u, { name: '독창', type: '마법', left: CHOIR.soloSec }); },
+      });
+    },
+    update(f) {
+      if (f.phase === 1) {
+        // 노래: 살아 있는 성가대원이 맡은 2열에 선 사람 초당 피해 (상시)
+        const cols = new Set([0, 1, 2].filter(i => f.mobs[i].alive).flatMap(i => [i * 2, i * 2 + 1]));
+        for (const u of living(f)) if (cols.has(cellOf(f, u).col)) damage(f, u, CHOIR.song * DT, true);
+        if (!cols.size) {
+          f.phase = 2; f.phaseName = '2페이즈 · 마지막 악장';
+          f.forte!.next = f.t + 8; f.solo!.next = f.t + 5;
+          emit(f, { type: 'phase', text: '2페이즈: 지휘자가 직접 지휘' });
+        }
+      }
+      enrageAt(f, '대합창', 3, 200);
+    },
+  },
+};
+
+/** 무음 성가대 수치 (26 4-3, 보통 기준. 피해는 난이도·단계 배율을 곱함) */
+export const CHOIR = {
+  voices: ['높은 성부', '가운데 성부', '낮은 성부'], voiceHp: 4000, bossHp: 30000,
+  auto: 70, baton: 600, song: 4, crescDps: 35, discord: 0.7, forte: 170, soloN: 3, soloSec: 6, soloDmg: 200,
 };
 
 export function initBoss(f: Fight): void {

@@ -21,7 +21,7 @@ export const ROLE: Record<Role, { name: string; color: string }> = {
   healer: { name: '나', color: '#E9E1C6' },
 };
 export const DEB = DEB_COLOR;
-export const ICON_COLOR: Record<string, string> = { '숨결': '#D9A13B', '독침': '#3CC24A', '전염': '#D9A13B', '찍기': '#FF6B57', '증기': '#FF9F43', '파동': '#FF9F43', '장판': '#E0664F', '쥐떼': '#B9A38A', '폭풍': '#E0664F', '광폭': '#FF4A3D', '휘두': '#FF6B57', '쇳조': '#FF9F43' };
+export const ICON_COLOR: Record<string, string> = { '숨결': '#D9A13B', '독침': '#3CC24A', '전염': '#D9A13B', '찍기': '#FF6B57', '증기': '#FF9F43', '파동': '#FF9F43', '장판': '#E0664F', '쥐떼': '#B9A38A', '폭풍': '#E0664F', '광폭': '#FF4A3D', '휘두': '#FF6B57', '쇳조': '#FF9F43', '노래': '#8E86C9', '크레': '#B07CE8', '지휘': '#FF6B57', '포르': '#FF9F43', '독창': '#3D8BFF' };
 /** 시전 대상·장전 표시 (황토색 질병과 구분) */
 export const SEL = '#FFFFFF';
 

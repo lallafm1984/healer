@@ -1,13 +1,13 @@
 /**
  * 콘텐츠 선택 화면(09 S03)에 나오는 던전·레이드. 던전 목록·해금 레벨은 11 4장, 18 2-2.
- * P1에서 실제로 할 수 있는 건 녹슨 요새(5인)와 심연의 종탑 1층 역병 군주(10인, 악몽 20인)뿐. 나머지는 잠긴 카드로만 보여 준다.
+ * 지금 할 수 있는 건 녹슨 요새(5인), 10인 레이드 심연의 종탑 1층 역병 군주, 20인 레이드 가라앉은 대성당 1구역 무음 성가대 (26). 나머지는 잠긴 카드로만 보여 준다.
  */
 import type { DiffName } from './difficulty';
 import { DUNGEONS } from './dungeons';
 import type { EncounterKey } from './encounters';
 
 export type ContentKind = 'explore' | 'dungeon' | 'raid' | 'event';
-export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple';
+export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathedral1' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
 
@@ -31,7 +31,7 @@ export interface ContentDef {
   fights: (d: DiffName) => EncounterKey[];
   /** 난이도별 인원 (나 포함) */
   size: (d: DiffName) => number;
-  /** 이 난이도만 따로 잠금 (레이드 악몽 = Lv 70) */
+  /** 이 난이도만 따로 잠금 (10인 악몽 Lv 50, 20인 악몽 Lv 80) */
   diffUnlock?: Partial<Record<DiffName, number>>;
   /** 콘텐츠 목록에 안 보임 (튜토리얼 첫 전투) */
   hidden?: boolean;
@@ -57,15 +57,24 @@ export const CONTENT: ContentDef[] = [
   { key: 'frost', bosses: ['마력 골렘', '불안정한 마법사', '탑주의 그림자'], kind: 'dungeon', name: '서리 마탑', place: '설원 · 마도사', stageLv: 20, unlockLv: 20, ready: false, set: '별빛 서약', fights: none, size: five },
   { key: 'temple', bosses: ['침묵의 수호자', '종지기의 망령'], kind: 'dungeon', name: '깨진 신전', place: '종의 언덕 · 혼합', stageLv: 28, unlockLv: 28, ready: false, set: '종소리', fights: none, size: five },
   {
-    key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 종탑 1층', place: '납골당 · 역병 군주', stageLv: 35, unlockLv: 35, ready: true,
-    fights: d => (d === '악몽' ? ['plague20'] : ['plague']), size: d => (d === '악몽' ? 20 : 10), diffUnlock: { '악몽': 70 },
+    // 10인 레이드 (26 3장): 난이도 4개 모두 10인
+    key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 종탑 1층', place: '납골당 · 역병 군주', stageLv: 35, unlockLv: 35, ready: true, set: '종탑 순례자',
+    fights: () => ['plague'], size: () => 10, diffUnlock: { '악몽': 50 },
+  },
+  {
+    // 20인 레이드 (26 4장): 따로 된 레이드, 난이도 4개 모두 20인
+    key: 'cathedral1', bosses: ['무음 성가대'], kind: 'raid', name: '가라앉은 대성당 1구역', place: '종의 언덕 아래 · 검은 종', stageLv: 70, unlockLv: 70, ready: true, set: '대성당의 빛',
+    fights: () => ['choir'], size: () => 20, diffUnlock: { '악몽': 80 },
   },
 ];
 
 export const contentOf = (k: ContentKey) => CONTENT.find(c => c.key === k)!;
 
-/** 난이도별 단계 레벨: 따로 잠긴 난이도(레이드 악몽 = Lv 70)는 그 레벨이 단계 */
+/** 난이도별 단계 레벨: 따로 잠긴 난이도(10인 악몽 Lv 50, 20인 악몽 Lv 80)는 그 레벨이 단계 */
 export const stageOf = (c: ContentDef, d: DiffName) => c.diffUnlock?.[d] ?? c.stageLv;
 
 /** 레이드는 보스 1마리 처치마다 보상 (12 3-1) → 1층 = 보스 1 */
 export const isRaid = (c: ContentDef) => c.kind === 'raid';
+
+/** 레이드 인원 (보상 배율용): 던전·탐험 0, 10인 10, 20인 20 */
+export const raidSize = (c: ContentDef): 0 | 10 | 20 => (c.kind !== 'raid' ? 0 : c.size('보통') >= 20 ? 20 : 10);

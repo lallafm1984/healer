@@ -31,7 +31,7 @@ export function create(cfg: FightConfig): Fight {
   const stageLv = cfg.stageLv ?? 1;
   const scale = lvPower(stageLv);
   const power = lvPower(Math.max(cfg.heroLv ?? stageLv, stageLv));
-  const bossMax = enc.hp * (mythic && !enc.big ? MYTHIC.bossHp : 1) * scale;
+  const bossMax = enc.hp * (mythic ? MYTHIC.bossHp : 1) * scale;
   const f: Fight = {
     board,
     cfg, enc, diff, rng, gear, cells, rows, mythic,
@@ -161,7 +161,7 @@ export function step(f: Fight): void {
   bossTick(f);
   partyHits(f);
   const live = living(f);
-  if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', f.mobs.length ? '모두 쓰러뜨림' : '보스를 쓰러뜨림'); }
+  if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', f.mobs.length && !f.mobs.some(m => m.boss) ? '모두 쓰러뜨림' : '보스를 쓰러뜨림'); }
   else if (!f.me.alive) end(f, 'lose', '힐러가 쓰러짐');
   // 탱커가 쓰러져도 계속, 파티원이 모두 쓰러지면 전멸 (2026-10-07 Lim)
   else if (!live.some(u => !u.me)) end(f, 'lose', '파티 전멸');

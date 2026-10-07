@@ -38,7 +38,8 @@ describe('경험치·레벨 (02 부록 B)', () => {
   it('골드 = (50 + 10 × 단계) × 난이도 × 등급, 레이드 보스 ×2 (12 3-1)', () => {
     expect(clearGold(23, '보통', 'A')).toBe(308);
     expect(clearGold(1, '보통', 'B')).toBe(60);
-    expect(clearGold(35, '어려움', 'S', 1)).toBe(Math.round(400 * 1.3 * 1.2 * 2));
+    expect(clearGold(35, '어려움', 'S', 10)).toBe(Math.round(400 * 1.3 * 1.2 * 2));
+    expect(clearGold(70, '보통', 'A', 20)).toBe(Math.round(750 * 1.1 * 3));
   });
   it('등급·별·단축칸', () => {
     expect([0, 1, 2, 3, 4].map(gradeOf)).toEqual(['S', 'A', 'B', 'B', 'C']);
@@ -58,9 +59,11 @@ describe('레벨 배율 (07 4장, 18 2-1)', () => {
     expect(lvPower(150)).toBeCloseTo(8.92);
   });
 
-  it('레이드 악몽 단계 = Lv 70, 나머지는 콘텐츠 단계', () => {
-    expect(stageOf(contentOf('abyss1'), '악몽')).toBe(70);
+  it('10인 악몽 단계 = Lv 50, 20인 = Lv 70 (악몽 80), 나머지는 콘텐츠 단계 (26)', () => {
+    expect(stageOf(contentOf('abyss1'), '악몽')).toBe(50);
     expect(stageOf(contentOf('abyss1'), '보통')).toBe(35);
+    expect(stageOf(contentOf('cathedral1'), '보통')).toBe(70);
+    expect(stageOf(contentOf('cathedral1'), '악몽')).toBe(80);
     expect(stageOf(contentOf('rustfort'), '어려움')).toBe(1);
   });
 

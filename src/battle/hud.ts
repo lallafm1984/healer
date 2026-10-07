@@ -238,7 +238,7 @@ export function openTip(ic: string, qEl: HTMLElement): void {
   const F = fight(), s = guideOf(F).skills.find(x => x.ic === ic);
   if (!s) { closeTip(); return; }
   const [what] = s.tip(F);
-  popTip(tipHtml({ icon: `<span class="ic" style="background:${ICON_COLOR[ic] || '#BBB'}">${ic}</span>`, name: s.name, kind: F.mobs.length ? '적 기술' : '보스 기술', rows: [[s.every]], desc: what }), qEl, { ic, imp: +qEl.dataset.imp! });
+  popTip(tipHtml({ icon: `<span class="ic" style="background:${ICON_COLOR[ic] || '#BBB'}">${ic}</span>`, name: s.name, kind: F.mobs.length && !F.mobs.some(m => m.boss) ? '적 기술' : '보스 기술', rows: [[s.every]], desc: what }), qEl, { ic, imp: +qEl.dataset.imp! });
   ui.skillTips++;
   for (const q of $('queue').querySelectorAll<HTMLElement>('.q')) q.classList.toggle('tipon', tipMatch(q.dataset.ic!, +q.dataset.imp!));
 }
@@ -317,7 +317,7 @@ const COACH: Record<string, CoachStep[]> = {
     { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>: 모두 맞음. 맞고 나면 가장 낮은 사람부터 채우기' },
   ],
   dungeon: [
-    { when: f => f.mobs.length > 0 && f.t >= 1, freeze: false, text: '던전은 일반·정예 구간과 보스를 이어서 진행. 구간 사이엔 쉬면서 마나 회복' },
+    { when: f => f.enc.script === 'trash' && f.t >= 1, freeze: false, text: '던전은 일반·정예 구간과 보스를 이어서 진행. 구간 사이엔 쉬면서 마나 회복' },
     { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>! 맞기 전에 <b>소생</b>을 걸어 두면 덜 아픔. 위쪽 예고 칸을 누르면 설명' },
     { when: f => f.mana < 30 && Object.keys(f.items).length > 0, text: '마나 부족. 왼쪽 <b>단축칸</b>의 물약 누르기' },
     { when: f => f.zones.length > 0, freeze: false, text: '바닥 장판은 파티원이 알아서 피함. 못 피한 사람을 채우기' },

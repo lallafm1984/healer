@@ -36,8 +36,8 @@ export default async function appShell(url, shots) {
     ok(await page.isVisible('#s-lobby'), `${w}: 전투 탭 = 로비로 돌아옴`);
     await page.screenshot({ path: `${shots}/shell_lobby_${w}.png` });
 
-    // 레이드 악몽 20인: Lv 1이어도 개발 빌드는 열림 (설정 「레벨 잠금 무시」 기본 켬)
-    await toParty(page, { content: 'abyss1', tab: 'raid', diff: '악몽' });
+    // 20인 레이드 가라앉은 대성당: Lv 1이어도 개발 빌드는 열림 (설정 「레벨 잠금 무시」 기본 켬)
+    await toParty(page, { content: 'cathedral1', tab: 'raid' });
     ok(await page.isHidden('#tabs') && (await page.locator('#s-party .pcard').count()) === 19, `${w}: 20인 편성 = 나 빼고 19명, 탭 숨김`);
     await page.screenshot({ path: `${shots}/shell_party20_${w}.png` });
     await page.click('#depart'); await page.clock.runFor(3100 + 5000);

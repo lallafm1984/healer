@@ -145,7 +145,13 @@ export default async function legacyUi(url, shots) {
 
   // ---- 깃털 + 20인 판 ----
   await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
-  await toEntry(page, { content: 'abyss1', tab: 'raid', diff: '악몽' });
+  await toEntry(page, { content: 'cathedral1', tab: 'raid' });
+  ok((await page.locator('#s-content [data-content^="abyss"], #s-content [data-content^="cathedral"]').count()) === 2, '레이드 탭 = 10인·20인 카드 2장');
+  const ent = await page.textContent('#s-entry');
+  ok(/20인 \(나 포함\)/.test(ent) && /무음 성가대/.test(ent) && /노래/.test(ent), '20인 입장: 인원 20, 무음 성가대 공략');
+  await page.click('#s-entry [data-diff="악몽"]'); await page.clock.runFor(50);
+  ok(/20인 \(나 포함\)/.test(await page.textContent('#s-entry')) && /악몽 전용 기술/.test(await page.textContent('#s-entry .note')), '악몽도 20인, 악몽 안내');
+  await page.click('#s-entry [data-diff="보통"]'); await page.clock.runFor(50);
   await page.click('#entryGo'); await page.clock.runFor(100);
   await page.click('#s-party [data-item="shield"]'); await page.click('#s-party [data-item="feather"]');
   await page.click('#depart'); await page.clock.runFor(3300);

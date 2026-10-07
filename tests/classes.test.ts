@@ -24,7 +24,7 @@ describe('공개모집 직업 뽑기', () => {
   });
 
   it('같은 직업은 5인 1명 · 10인 2명 · 20인 3명까지 (자리가 모자라면 고르게)', () => {
-    const cases: [EncounterKey, number][] = [['warden', 1], ['plague', 2], ['plague20', 3]];
+    const cases: [EncounterKey, number][] = [['warden', 1], ['plague', 2], ['choir', 3]];
     for (const [enc, max] of cases) for (let s = 1; s <= 40; s++) {
       const count: Record<string, number> = {};
       for (const m of E.recruitParty(enc, s)) count[m.cls!] = (count[m.cls!] || 0) + 1;

@@ -1,5 +1,5 @@
 /** S04 난이도·입장 (09): 난이도 4단, 권장 레벨·장비(미달이면 경고만), 진행·보스 공략, 드롭·보상 미리보기 */
-import { ALL_DIFFS, contentOf, isRaid, stageOf } from '../data/content';
+import { ALL_DIFFS, contentOf, isRaid, raidSize, stageOf } from '../data/content';
 import { DIFFS, MYTHIC, type DiffName } from '../data/difficulty';
 import { ENCOUNTERS, segGrade, type EncounterKey } from '../data/encounters';
 import { avgScore, DROP_TABLE, gearSummary, GRADE_STYLE, ITEM_GRADES, LEGEND_LEVEL, RECOMMENDED } from '../data/equipment';
@@ -15,7 +15,7 @@ const s = screen('s-entry', '난이도·입장', { enter() { render(); } });
 function diffNote(d: DiffName, raid: boolean): string {
   const x = DIFFS[d];
   let t = `받는 피해 ×${x.dmg} · 파티원 회피 ${Math.round(x.dodge * 100)}%`;
-  if (d === '악몽') t += raid ? ' · 레이드 악몽은 20인' : ` · 파티원 체력·딜 ×${MYTHIC.party} · 보스 체력 ×${MYTHIC.bossHp}`;
+  if (d === '악몽') t += ` · 파티원 체력·딜 ×${MYTHIC.party} · 보스 체력 ×${MYTHIC.bossHp}${raid ? ' · 보스마다 악몽 전용 기술' : ''}`;
   return t;
 }
 
@@ -38,25 +38,25 @@ function render(): void {
   const rec = RECOMMENDED[d];
   const mine = avgScore(G.save.gear.equipped);
   const warn = rec && mine < rec.score;
-  const lvWarn = G.save.player.level < c.stageLv;
+  const lvWarn = G.save.player.level < stageOf(c, d);
   const table = DROP_TABLE[d].map((p, i) => [ITEM_GRADES[i], p] as const).filter(([, p]) => p > 0);
   const legendCut = G.save.player.level < LEGEND_LEVEL && table.some(([g]) => g === '전설');
-  const goldA = clearGold(c.stageLv, d, 'A', raid ? 1 : 0), goldS = clearGold(c.stageLv, d, 'S', raid ? 1 : 0);
-  const xpA = clearXp(G.save.player.level, c.stageLv, d, 'A', { raid, win: true });
+  const rs = raidSize(c), stage = stageOf(c, d);
+  const goldA = clearGold(stage, d, 'A', rs), goldS = clearGold(stage, d, 'S', rs);
+  const xpA = clearXp(G.save.player.level, stage, d, 'A', { raid: rs, win: true });
 
-  s.el.innerHTML = `${topBar({ back: 's-content', title: `${c.name} · 단계 Lv ${c.stageLv}` })}
+  s.el.innerHTML = `${topBar({ back: 's-content', title: `${c.name} · 단계 Lv ${stageOf(c, d)}` })}
     <div class="ns-body entry">
       <div class="chips diffs" role="radiogroup" aria-label="난이도">${ALL_DIFFS.map(x => {
         const lk = lockOf(c, x);
-        const tag = raid && x === '악몽' ? '<small>20인</small>' : '';
-        return `<button class="chip" type="button" role="radio" data-diff="${x}" aria-checked="${x === d}" aria-pressed="${x === d}"${lk.locked ? ' disabled' : ''}>${lk.locked ? '🔒 ' : ''}${x}${tag}</button>`;
+        return `<button class="chip" type="button" role="radio" data-diff="${x}" aria-checked="${x === d}" aria-pressed="${x === d}"${lk.locked ? ' disabled' : ''}>${lk.locked ? '🔒 ' : ''}${x}</button>`;
       }).join('')}</div>
       ${G.save.tut === TUT.dungeon && c.key === 'rustfort' ? '<p class="coachtip">처음엔 <b>쉬움</b> 추천. 깨고 나면 보통 도전. 아래 공략은 눌러서 펼침</p>' : ''}
       <p class="note">${esc(diffNote(d, raid))}${lockOf(c, d).dev ? ` · Lv ${lockOf(c, d).lv} 해금, 개발 빌드라 열림` : ''}</p>
 
       <section class="panel">
         <dl class="kv">
-          <div><dt>권장 레벨</dt><dd>Lv ${c.stageLv}${lvWarn ? ` <em class="warn">지금 Lv ${G.save.player.level}</em>` : ''}</dd></div>
+          <div><dt>권장 레벨</dt><dd>Lv ${stageOf(c, d)}${lvWarn ? ` <em class="warn">지금 Lv ${G.save.player.level}</em>` : ''}</dd></div>
           <div><dt>인원</dt><dd>${c.size(d)}인 (나 포함)</dd></div>
           <div><dt>권장 장비</dt><dd>${rec ? rec.label : '없음'}</dd></div>
           <div><dt>내 장비</dt><dd>${esc(gearSummary(G.save.gear.equipped))}</dd></div>

@@ -26,27 +26,30 @@ export const gradeOf = (deaths: number): Grade => (deaths === 0 ? 'S' : deaths =
 export const REWARD_DIFF: Record<DiffName, number> = { '쉬움': 0.8, '보통': 1.0, '어려움': 1.3, '악몽': 1.6 };
 export const REWARD_GRADE: Record<Grade, number> = { S: 1.2, A: 1.1, B: 1.0, C: 0.9 };
 
-/** 클리어 골드 = (50 + 10 × 레벨 단계) × 난이도 × 등급. 레이드는 보스 1마리마다 × 2 (12 3-1) */
-export function clearGold(stageLv: number, diff: DiffName, grade: Grade, raidBosses = 0): number {
+/** 레이드 보스 1마리 골드 배율 (26 6장): 10인 ×2, 20인 ×3 */
+export const RAID_GOLD = { 10: 2, 20: 3 } as const;
+
+/** 클리어 골드 = (50 + 10 × 레벨 단계) × 난이도 × 등급. 레이드는 보스 1마리마다 × RAID_GOLD (12 3-1). raid = 레이드 인원 (0 = 던전·탐험) */
+export function clearGold(stageLv: number, diff: DiffName, grade: Grade, raid: 0 | 10 | 20 = 0): number {
   const g = (50 + 10 * stageLv) * REWARD_DIFF[diff] * REWARD_GRADE[grade];
-  return Math.round(raidBosses ? g * 2 * raidBosses : g);
+  return Math.round(raid ? g * RAID_GOLD[raid] : g);
 }
 
 /** 클리어 경험치 = 지금 레벨에서 필요한 양의 이 비율 × 난이도 × 등급 */
 export const XP_SHARE = 1.0;
 /** 레벨이 콘텐츠 단계보다 이만큼 넘으면 줄기 시작 (한 레벨에 15%씩, 최저 20%) */
 export const XP_OVERLEVEL = 4;
-/** 레이드 한 판 = 던전 한 판의 1.5배 (전투가 더 김) */
-export const XP_RAID = 1.5;
+/** 레이드 한 판 = 던전 한 판의 10인 1.5배, 20인 2배 (전투가 더 김, 26 6장) */
+export const XP_RAID = { 10: 1.5, 20: 2 } as const;
 /** 지면 이만큼만 (편성·난이도 다시 고를 힘은 남게) */
 export const XP_LOSE = 0.2;
 
-export function clearXp(level: number, stageLv: number, diff: DiffName, grade: Grade | null, opts: { raid?: boolean; win: boolean }): number {
+export function clearXp(level: number, stageLv: number, diff: DiffName, grade: Grade | null, opts: { raid?: 0 | 10 | 20; win: boolean }): number {
   if (level >= MAX_LEVEL) return 0;
   const over = level - stageLv - XP_OVERLEVEL;
   const fall = over > 0 ? Math.max(0.2, 1 - 0.15 * over) : 1;
   const g = opts.win && grade ? REWARD_GRADE[grade] : 1;
-  const x = xpToNext(level) * XP_SHARE * REWARD_DIFF[diff] * g * fall * (opts.raid ? XP_RAID : 1) * (opts.win ? 1 : XP_LOSE);
+  const x = xpToNext(level) * XP_SHARE * REWARD_DIFF[diff] * g * fall * (opts.raid ? XP_RAID[opts.raid] : 1) * (opts.win ? 1 : XP_LOSE);
   return Math.max(1, Math.round(x));
 }
 
@@ -99,12 +102,12 @@ export const MILESTONES: Record<number, Milestone[]> = {
   20: [{ text: '소비 아이템 단축칸 3칸', live: true }, { text: '성기사 퀘스트 「첫 맹세」', live: true }, { text: '특성 2단', live: false }, { text: '던전 「서리 마탑」', live: false }],
   28: [{ text: '던전 「깨진 신전」', live: false }],
   30: [{ text: '특성 3단', live: false }],
-  35: [{ text: '레이드 「심연의 종탑」 10인', live: true }],
+  35: [{ text: '10인 레이드 「심연의 종탑」', live: true }],
   40: [{ text: '소비 아이템 단축칸 4칸', live: true }, { text: '특성 4단', live: false }],
-  50: [{ text: '전설 장비 드롭', live: true }, { text: '특성 5단', live: false }],
+  50: [{ text: '전설 장비 드롭', live: true }, { text: '10인 레이드 악몽', live: true }, { text: '특성 5단', live: false }],
   60: [{ text: '특성 6단', live: false }],
-  70: [{ text: '레이드 악몽 20인', live: true }, { text: '특성 7단', live: false }],
-  80: [{ text: '특성 8단', live: false }],
+  70: [{ text: '20인 레이드 「가라앉은 대성당」', live: true }, { text: '특성 7단', live: false }],
+  80: [{ text: '20인 레이드 악몽', live: true }, { text: '특성 8단', live: false }],
   90: [{ text: '특성 9단', live: false }],
   100: [{ text: '특성 10단 · 칭호', live: false }],
 };
