@@ -14,8 +14,12 @@ const s = screen('s-settings', '설정', {
   },
 });
 
-/** 지금 설정을 전투 화면에 넘김 (처음 켤 때도) */
-export function pushSettings(): void { battle().settings(G.save.settings); }
+/** 지금 설정을 전투 화면에 넘김 (처음 켤 때도). 전투 중 일시정지에서 바꾼 것은 받아서 저장 */
+export function pushSettings(): void {
+  const b = battle();
+  b.settings(G.save.settings);
+  b.onSetting = (k, v) => { (G.save.settings as unknown as Record<string, unknown>)[k] = v; commit(); };
+}
 
 function render(): void {
   const st = G.save.settings;
@@ -28,7 +32,7 @@ function render(): void {
         <button class="btn" type="button" id="toSkills">칸 탭 기본 힐 · 스킬 배치 · 단축칸 → 캐릭터</button></section>
       <section class="group"><h2>20인 판</h2>${tog('zoom', '탭한 칸 확대해 보여주기 (0.3초)')}</section>
       <section class="group dev"><h2>개발 빌드</h2>
-        ${tog('auto', '자동 힐러로 구경하기')}
+        ${tog('auto', '자동 치유 (일시정지에서도 켜고 끔)')}
         ${tog('devUnlock', '레벨 잠금 무시 (던전·레이드)')}
         ${tog('allSkills', '스킬 전부 열기 (레벨 무관)')}
         <button class="btn" type="button" id="tutAgain">${G.save.tut < TUT.done ? '튜토리얼 건너뛰기' : '튜토리얼 다시 보기 (레벨·장비는 그대로)'}</button>

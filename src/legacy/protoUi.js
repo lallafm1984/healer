@@ -47,7 +47,7 @@
   const GEAR_RANK = { none: 0, adv0: 1, rare5: 2, epic5: 3 };
 
   // 설정·편성은 새 화면이 start()/settings()로 넣어 줌
-  const S = { diff: '보통', gearStats: null, level: 100, party: null, items: [], sound: true, vibe: true, auto: false, tapKey: 'heal', hand: 'right', zoom: true, layout: Object.assign({}, DEFAULT_LAYOUT), run: null, onEnd: null, slots: 4, coach: null };
+  const S = { diff: '보통', gearStats: null, level: 100, party: null, items: [], sound: true, vibe: true, auto: false, tapKey: 'heal', hand: 'right', zoom: true, layout: Object.assign({}, DEFAULT_LAYOUT), run: null, onEnd: null, slots: 4, coach: null, onSetting: null };
   applyLayout();
   let F = null, armed = null, paused = false, overShown = false;
   const ui = { floats: [], bubbles: [], pointer: null, lastHealSnd: 0, tickSec: null, runRef: null, ratings: {}, touchSeen: false, lowFlags: {}, lastLowVibe: 0, layout: null, qAt: 0,
@@ -344,7 +344,7 @@
   const curKey = () => S.run.segs[S.run.idx];
   // 처음부터 다시 (같은 파티, 같은 콘텐츠)
   function resetRun() {
-    Object.assign(S.run, { idx: 0, carry: null, time: 0, deaths: 0, restSec: 0, healed: 0, overheal: 0, dispels: 0, dispellable: 0, itemLog: [] });
+    Object.assign(S.run, { idx: 0, carry: null, time: 0, deaths: 0, restSec: 0, healed: 0, overheal: 0, dispels: 0, dispellable: 0, itemLog: [], auto: S.auto });
   }
 
   // 새 화면(.screen)이 늘어나도 하나만 보이게
@@ -1159,8 +1159,15 @@
     $('pauseSub').textContent = `${mmss(F.t)} · ${ph ? ph.name : ''} · 보스 체력 ${Math.ceil((F.bossHp / F.bossMax) * 100)}%`;
     $('pauseGuide').innerHTML = guideHtml(g, F);
     $('pauseGuide').scrollTop = 0;
+    $('pauseAuto').checked = S.auto;
   }
   $('pauseBtn').addEventListener('click', () => setPause(true));
+  // 개발 빌드: 일시정지에서 자동 치유 켜고 끄기 (설정에도 저장). 한 번이라도 켜진 판은 자동 힐러 판
+  $('pauseAuto').addEventListener('change', e => {
+    S.auto = e.target.checked;
+    if (S.auto && S.run) S.run.auto = true;
+    if (S.onSetting) S.onSetting('auto', S.auto);
+  });
   $('resumeBtn').addEventListener('click', () => { Snd.init(); setPause(false); });
   $('restartBtn').addEventListener('click', () => { resetRun(); startBattle(); });
   $('quitBtn').addEventListener('click', () => { if (!F || F.over) return; closeTip(); paused = false; $('pause').hidden = true; finish(true); });
@@ -1185,7 +1192,7 @@
       content: R.content, diff: S.diff, win, quit: !!quit, reason: quit ? '포기했어요' : f.reason,
       segIdx: R.idx, segN: R.segs.length, time: R.time, restSec: R.restSec, deaths: R.deaths,
       healed: R.healed, overheal: R.overheal, dispels: R.dispels, dispellable: R.dispellable,
-      endMana: Math.floor(f.mana), minMana: Math.floor(st.minMana), auto: S.auto,
+      endMana: Math.floor(f.mana), minMana: Math.floor(st.minMana), auto: !!(S.auto || R.auto),
       party: f.party.filter(u => !u.me).map(u => ({ nick: u.nick, pers: u.pers, role: u.role, alive: u.alive })),
       detail,
     };
@@ -1300,6 +1307,8 @@
   window.__proto = { get F() { return F; }, center: i => center(i), guide: (enc, diff) => guideModel(enc, diff), run: () => (F ? runData(F) : null), get pullLeft() { return ui.pullLeft; }, get coach() { return ui.coach; }, get dungeon() { return S.run; }, get last() { return ui.lastResult; } }; // 테스트용 조회
   // 새 화면(src/screens)이 쓰는 입구
   window.__battle = {
+    /** 전투 화면에서 바꾼 설정을 저장하게 새 화면에 알림 (일시정지의 자동 치유) */
+    set onSetting(fn) { S.onSetting = fn; },
     // o = { content, name, segs, diff, gearStats, level, party, items, slots, seed, onEnd(result) }
     start(o) {
       closeTip();
@@ -1314,6 +1323,7 @@
     settings(s) {
       S.sound = !!s.sound; S.vibe = !!s.vibrate; S.hand = s.hand === 'left' ? 'left' : 'right'; S.tapKey = TAP_KEYS[s.tapKey] ? s.tapKey : 'heal';
       S.zoom = s.zoom !== false; S.auto = !!s.auto;
+      if (S.auto && S.run) S.run.auto = true;
       S.layout = validLayout(s.layout) ? Object.assign({}, s.layout) : Object.assign({}, DEFAULT_LAYOUT); applyLayout();
     },
     guide: (encKey, diff) => guideHtml(guideModel(encKey, diff), null),

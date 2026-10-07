@@ -88,6 +88,8 @@ export interface BattleApi {
     coach?: CoachKey | null;
   }): void;
   settings(s: object): void;
+  /** 전투 화면에서 바꾼 설정 (일시정지의 자동 치유) → 저장 */
+  onSetting: ((key: string, val: unknown) => void) | null;
   guide(encKey: string, diff: string): string;
   bossSvg(script: string): string;
   itemIcon(k: string): string;

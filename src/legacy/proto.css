@@ -173,6 +173,7 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 .phead h3 { text-align: left; }
 #pauseSub { font-size: 12px; color: var(--mute); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 #pauseGuide { background: var(--bg); border: 2px solid var(--line); border-radius: 12px; padding: 12px 10px; }
+.pdev { flex: none; padding: 0 4px; font-size: 14px; }
 .pbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: none; }
 .pbtns #resumeBtn { grid-column: 1 / -1; font-size: 20px; padding: 10px 14px; }
 
