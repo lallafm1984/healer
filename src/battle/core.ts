@@ -7,6 +7,7 @@ import type { GearStats } from '../data/gear';
 import type { ItemKey } from '../data/items';
 import type { SetFx } from '../data/sets';
 import type { TalentKey } from '../data/talents';
+import type { AffixKey } from '../data/affixes';
 import { DEB_COLOR, HEROES, type HeroKey } from '../data/heroes';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { knows, SLOT_OF, type Fight, type RosterEntry, type Role } from '../engine';
@@ -98,6 +99,16 @@ export interface StartOptions {
   talents?: (number | null)[];
   /** 세트 효과 (02 10-3) */
   setFx?: Partial<SetFx>;
+  /** 가방에 있는 소비 아이템 (19 11장). 없으면 제한 없음 (튜토리얼·시험) */
+  stock?: Partial<Record<ItemKey, number>>;
+  /** 어픽스 (07 3장, 13 3-3) */
+  affixes?: AffixKey[];
+  /** 보스·적 배율 (주간 도전 단계) */
+  bossMult?: { hp: number; dmg: number };
+  /** 제한시간 (초, 주간 도전). 휴식 뺀 전투 시간 합 */
+  limit?: number;
+  /** 주간 도전 단계 (결과에 그대로) */
+  chal?: number;
 }
 
 export interface Run {
@@ -105,12 +116,15 @@ export interface Run {
   idx: number; carry: { mana: number; g: { p: number; s: number } } | null; time: number; deaths: number; restSec: number;
   healed: number; overheal: number; dispels: number; dispellable: number; itemLog: { key: ItemKey; t: number }[]; auto: boolean;
   meter: MeterRow[];
+  /** 광고 이어하기 횟수 (등급 최대 B) */
+  cont: number;
 }
 
 export const S = {
   diff: '보통', gearStats: null as GearStats | null, level: 100, heroLv: undefined as number | undefined, stageLv: undefined as number | undefined,
   party: null as RosterEntry[] | null, items: [] as ItemKey[], slots: 4,
-  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined, setFx: undefined as Partial<SetFx> | undefined,
+  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined, setFx: undefined as Partial<SetFx> | undefined, stock: undefined as Partial<Record<ItemKey, number>> | undefined,
+  affixes: undefined as AffixKey[] | undefined, bossMult: undefined as { hp: number; dmg: number } | undefined, limit: undefined as number | undefined, chal: 0,
   layout: { ...DEFAULT_LAYOUT } as Layout,
   run: null as Run | null, onEnd: null as ((r: BattleResult) => void) | null, coach: null as CoachKey | null,
   onSetting: null as ((key: string, val: unknown) => void) | null,

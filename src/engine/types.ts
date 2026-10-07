@@ -9,6 +9,8 @@ import type { HeroKey } from '../data/heroes';
 import type { SkillKey } from '../data/skills';
 import type { SetFx } from '../data/sets';
 import type { TalentKey } from '../data/talents';
+import type { AffixKey } from '../data/affixes';
+import type { AffixState } from './affixes';
 import type { TraitKey } from '../data/traits';
 
 export type Role = 'tank' | 'melee' | 'ranged' | 'healer';
@@ -295,6 +297,12 @@ export interface FightConfig {
   talents?: (number | null)[];
   /** 세트 효과 (02 10-3, data/sets.ts). 없으면 0 */
   setFx?: Partial<SetFx>;
+  /** 가방에 남은 소비 아이템 (19 11장). 없으면 제한 없음 */
+  itemCap?: Partial<Record<ItemKey, number>>;
+  /** 어픽스 (07 3장 레벨 단계, 13 3-3 주간 도전). 없으면 어픽스 없음 */
+  affixes?: AffixKey[];
+  /** 보스·적 체력·피해 배율 (주간 도전 단계, 13 3-2). 없으면 1 */
+  bossMult?: { hp: number; dmg: number };
 }
 
 /** 보조 버튼 특성 하나의 상태 */
@@ -447,6 +455,8 @@ export interface Fight {
   /** 능력을 가진 파티원이 있음 (없으면 능력 코드를 안 탐 = 프로토타입과 같음) */
   abOn: boolean;
   ab: PartyAb;
+  /** 어픽스 (없으면 null = 프로토타입과 같음) */
+  aff: AffixState | null;
   skills: BossSkill[];
   tels: Telegraph[];
   zones: Zone[];

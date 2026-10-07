@@ -1,6 +1,7 @@
-/** S05 파티 편성 (09): 공개모집 · 길드파티(Lv 15, 02 9-2), 시작 위치 미리보기, 파티원 카드(능력·자질), 다시 뽑기, 궁합 힌트, 단축칸 고르기 */
+/** S05 파티 편성 (09): 공개모집 · 길드파티(Lv 15, 02 9-2), 시작 위치 미리보기, 파티원 카드(능력·자질), 다시 뽑기(광고 하루 2번 무료), 궁합 힌트, 단축칸 고르기. 지면 광고 이어하기 (15) */
 import { CLASSES } from '../data/classes';
-import { contentOf, stageOf } from '../data/content';
+import { contentOf } from '../data/content';
+import { AD_LIMIT } from '../data/economy';
 import { gearStatsOf } from '../data/equipment';
 import { setFxOf } from '../data/sets';
 import { ENCOUNTERS } from '../data/encounters';
@@ -10,11 +11,15 @@ import { aptOf } from '../data/guild';
 import { create, recruitParty } from '../engine';
 import { Flow, newSeed, rerollCost } from '../game/flow';
 import { autoPick, guildOpen, guildRoster, powerOf, slotsOf, togglePick } from '../game/guild';
+import { isMember, needsShard, spendShard } from '../game/economy';
+import { runMode } from '../game/runmode';
+import { askModal, showRewarded } from '../platform/ads';
+import type { BattleResult } from '../game/settle';
 import { settle } from '../game/settle';
 import { commit, G, healerLevel, heroNow, itemsNow, talentsNow, toggleItem } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { cardHtml } from './members';
-import { battle, esc, fmt, go, ROLE, screen, topBar } from './kit';
+import { battle, esc, fmt, go, itemChipsHtml, ROLE, screen, topBar } from './kit';
 
 const s = screen('s-party', '파티 편성', {
   enter() {
@@ -31,6 +36,8 @@ const s = screen('s-party', '파티 편성', {
 let msg = '', gmsg = '';
 
 const firstEnc = () => ENCOUNTERS[contentOf(Flow.content).fights(Flow.diff)[0]];
+/** 이번 판 단계 레벨·어픽스 (던전 레벨 단계, 주간 도전) */
+const modeNow = () => runMode(G.save, contentOf(Flow.content), Flow.diff, { tier: Flow.tier, chal: Flow.chal });
 const guildReady = () => guildOpen(G.save).ok && G.save.guild.members.length > 0;
 
 function roll(): void {
@@ -102,9 +109,11 @@ function render(): void {
   const go2 = guildOpen(G.save);
   const guildTab = !go2.ok ? `🔒 ${go2.why.replace('에 열림', '')}` : !G.save.guild.members.length ? '· 길드원 없음' : '';
   const isGuild = Flow.mode === 'guild' && guildReady();
-  const stage = stageOf(c, Flow.diff);
+  const stage = modeNow().stage;
   const hs = hints();
-  s.el.innerHTML = `${topBar({ back: 's-entry', title: `편성 · ${c.name} ${Flow.diff}` })}
+  const tutDone = G.save.tut >= TUT.done, adLeft = AD_LIMIT.reroll - G.save.daily.ads.reroll;
+  const title = Flow.chal ? `편성 · 주간 도전 ${Flow.chal}단계` : `편성 · ${c.name} ${Flow.diff}${Flow.tier ? ` Lv ${Flow.tier}` : ''}`;
+  s.el.innerHTML = `${topBar({ back: 's-entry', title })}
     <nav class="subtabs" role="tablist"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티 ${guildTab}</button></nav>
     <div class="ns-body pty">
       ${G.save.tut === TUT.dungeon ? '<p class="coachtip">파티는 파티 찾기로 무작위로 들어옴. 마음에 안 들면 <b>다시 뽑기</b> (처음 한 번 무료). 준비되면 「출발」.</p>' : ''}
@@ -113,8 +122,9 @@ function render(): void {
       ${isGuild ? guildPickHtml(stage) : `<ul class="pcards">${Flow.party!.map(m => (m.cls ? cardHtml({ ...m, cls: m.cls, lv: stage }, { attrs: `data-cls="${m.cls}"` }) : plainCard(m))).join('')}</ul>`}
       ${hs.length ? `<section class="panel hint"><h4>💡 이번 파티</h4><ul>${hs.map(h => `<li>${esc(h)}</li>`).join('')}</ul></section>` : ''}
       <h3 class="sec">소비 아이템 <small>단축칸 ${slots}칸${slots < 4 ? ` · Lv ${slots === 2 ? 20 : 40}에 1칸 더` : ''}</small></h3>
-      <div class="chips items">${(Object.keys(ITEMS) as ItemKey[]).map(k => `<button class="chip ichip" type="button" data-item="${k}" aria-pressed="${items.includes(k)}">${battle().itemIcon(k)}${ITEMS[k].name}</button>`).join('')}</div>
+      ${itemChipsHtml(items)}
       <p class="note${msg ? ' warn' : ''}">${msg || items.map(k => `<b>${ITEMS[k].short}</b> ${ITEMS[k].desc}`).join('<br>') || '빈 칸'}</p>
+      ${tutDone && !isGuild && cost && adLeft > 0 ? `<button class="btn mini adroll" type="button" id="adReroll">📺 광고 보고 무료로 다시 뽑기 (오늘 ${adLeft}번)</button>` : ''}
     </div>
     <footer class="ns-foot row2">
       <button class="btn" type="button" id="reroll">다시 뽑기 ${cost ? `🪙 ${fmt(cost)}` : '(무료)'}</button>
@@ -141,25 +151,55 @@ s.el.addEventListener('click', e => {
     G.save.player.gold -= cost; Flow.rerolls++; commit();
     roll(); compose(); render(); return;
   }
-  if (t.closest('#depart')) depart();
+  if (t.closest('#adReroll')) { void adReroll(); return; }
+  if (t.closest('#depart')) { msg = depart(); if (msg) render(); }
 });
 
-export function depart(): void {
+/** 광고 다시 뽑기 (15 7장): 하루 2번, 골드 대신 */
+async function adReroll(): Promise<void> {
+  const save = G.save, mem = isMember(save);
+  if (save.daily.ads.reroll >= AD_LIMIT.reroll) return;
+  if (!(await showRewarded('파티 다시 뽑기 (무료)', mem))) return;
+  save.daily.ads.reroll++; commit();
+  roll(); compose(); render();
+}
+
+/** 지면 광고 보고 진 구간부터 다시 (15 7장): 하루 3번, 등급 최대 B. 주간 도전·자동 힐러 판·스스로 포기한 판은 안 물어봄 */
+async function tryContinue(r: BattleResult): Promise<boolean> {
+  const save = G.save;
+  if (save.tut < TUT.done || r.win || r.quit || r.giveUp || r.auto || Flow.chal || save.daily.ads.cont >= AD_LIMIT.cont) return false;
+  const mem = isMember(save), left = AD_LIMIT.cont - save.daily.ads.cont;
+  const yes = await askModal(mem ? '이어하기' : '광고 보고 이어하기', `${esc(r.reason)}<br>진 구간부터 다시 (마나는 그 구간 시작 때로)<br>등급 최대 B · 오늘 ${left}번`, '정산으로', mem ? '이어하기' : '📺 이어하기');
+  if (!yes || !(await showRewarded('이어하기', mem))) return false;
+  save.daily.ads.cont++; commit();
+  battle().resume();
+  return true;
+}
+
+/** 출발. 악몽은 종 조각 1개 (12 3-4). 못 가면 이유를 돌려줌 */
+export function depart(): string {
   const c = contentOf(Flow.content);
+  const tutDone = G.save.tut >= TUT.done;
+  if (tutDone && !Flow.chal && needsShard(Flow.diff)) { const err = spendShard(G.save); if (err) return err; commit(); }
   if (Flow.mode === 'guild' && guildReady()) { G.save.guild.pick = Flow.gpick.slice(); commit(); }
   // 튜토리얼 첫 던전이면 전투 중 안내 (02 11장 4·5번)
   const coach = Flow.coach ?? (G.save.tut === TUT.dungeon && c.key === 'rustfort' ? 'dungeon' : null);
   Flow.coach = null;
   const { slots, items } = itemsNow();
+  const m = modeNow();
   battle().start({
-    content: c.key, name: c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: stageOf(c, Flow.diff), gearStats: gearStatsOf(G.save.gear.equipped),
+    content: c.key, name: Flow.chal ? `도전 ${Flow.chal}단계` : c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: m.stage, gearStats: gearStatsOf(G.save.gear.equipped),
+    affixes: m.affixes, bossMult: m.bossMult, limit: m.limit, chal: m.chal || undefined,
     party: Flow.party!, items, slots, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(), setFx: setFxOf(Object.values(G.save.gear.equipped)),
-    onEnd(r) {
+    stock: tutDone ? { ...G.save.bag } : undefined,
+    async onEnd(r) {
+      if (await tryContinue(r)) return;
       Flow.result = r;
       Flow.settle = settle(G.save, r, Math.random, Flow.party!);
       commit();
       go('s-settle');
     },
   });
+  return '';
 }
 

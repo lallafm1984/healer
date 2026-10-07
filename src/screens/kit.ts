@@ -1,5 +1,5 @@
 /** 화면 공통 도구: 화면 틀 만들기, 이동, 상단 바, 글자 이스케이프 */
-import type { ItemKey } from '../data/items';
+import { ITEMS, type ItemKey } from '../data/items';
 import type { GearStats } from '../data/gear';
 import type { HeroKey } from '../data/heroes';
 import type { SetFx } from '../data/sets';
@@ -81,6 +81,15 @@ document.addEventListener('click', e => {
   if (b && b.closest('#app')) go(b.dataset.go!, b.dataset.arg);
 });
 
+/** 단축칸 고르기 칩 (편성·캐릭터): 튜토리얼 뒤엔 가방 개수 (19 11장) */
+export function itemChipsHtml(items: ItemKey[]): string {
+  const stock = G.save.tut >= 3 ? G.save.bag : null;
+  return `<div class="chips items">${(Object.keys(ITEMS) as ItemKey[]).map(k => {
+    const n = stock ? stock[k] || 0 : null;
+    return `<button class="chip ichip${n === 0 ? ' empty' : ''}" type="button" data-item="${k}" aria-pressed="${items.includes(k)}">${battle().itemIcon(k)}${ITEMS[k].name}${n != null ? ` <small>×${n}</small>` : ''}</button>`;
+  }).join('')}</div>`;
+}
+
 // ---------- 전투 화면 입구 (battle/index.ts가 window.__battle로 엶) ----------
 export interface BattleApi {
   start(o: {
@@ -94,7 +103,13 @@ export interface BattleApi {
     talents?: (number | null)[];
     /** 세트 효과 (02 10-3) */
     setFx?: Partial<SetFx>;
+    /** 가방에 있는 소비 아이템 (19 11장) */
+    stock?: Partial<Record<ItemKey, number>>;
+    /** 어픽스·보스 배율·제한시간 (07 3장 레벨 단계, 13 3-2 주간 도전) */
+    affixes?: string[]; bossMult?: { hp: number; dmg: number }; limit?: number; chal?: number;
   }): void;
+  /** 진 구간부터 다시 (광고 이어하기, 15). 마나는 그 구간 시작 때로 */
+  resume(): void;
   settings(s: object): void;
   /** 전투 화면에서 바꾼 설정 (일시정지의 자동 치유) → 저장 */
   onSetting: ((key: string, val: unknown) => void) | null;

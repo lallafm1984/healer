@@ -3,6 +3,7 @@ import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, living, randomTargets, spread, unitById } from './core';
 import { scheduleReactions } from './movement';
 import { abCut, abOnTel } from './abilities';
+import { affChaos } from './affixes';
 import type { BossSkill, Fight, Mob, TelKind, Telegraph, Unit } from './types';
 
 type SkillSpec = Omit<BossSkill, 'active'> & { active?: BossSkill['active'] };
@@ -292,6 +293,7 @@ export function bossTick(f: Fight): void {
     const tel: Telegraph = { id: f.nextId++, skill: s, kind: s.kind, start: f.t, impact: f.t + s.cast, units: s.target ? s.target(f) : [], cells: s.cellsFor ? s.cellsFor(f) : new Set(), dps: s.dps, dur: s.dur };
     f.tels.push(tel);
     if (f.abOn) abOnTel(f, tel);
+    if (f.aff) affChaos(f, tel);
     if (s.warn) emit(f, { type: 'sound', name: s.warn });
     if (tel.kind === 'zone' && f.tels.includes(tel)) scheduleReactions(f, tel);
   }

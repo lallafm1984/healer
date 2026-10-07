@@ -10,6 +10,7 @@ import { lvPower } from '../data/progression';
 import { BULWARK, TRAIT_CHANCE, TRAITS, type TraitKey } from '../data/traits';
 import { makeCells } from './board';
 import { aggroTarget, initBoss, bossTick } from './bosses';
+import { affixTick, initAffixes } from './affixes';
 import { bark, DT, emit, living } from './core';
 import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
@@ -36,12 +37,13 @@ export function create(cfg: FightConfig): Fight {
   const stageLv = cfg.stageLv ?? 1;
   const scale = lvPower(stageLv);
   const power = lvPower(Math.max(cfg.heroLv ?? stageLv, stageLv));
-  const bossMax = enc.hp * (mythic ? MYTHIC.bossHp : 1) * scale;
+  const bm = cfg.bossMult ?? { hp: 1, dmg: 1 };
+  const bossMax = enc.hp * (mythic ? MYTHIC.bossHp : 1) * scale * bm.hp;
   const f: Fight = {
     board,
     cfg, enc, diff, rng, gear, cells, rows, mythic,
     t: 0, k: 0, over: null, reason: '',
-    dmgMult: diff.dmg * scale, scale, power,
+    dmgMult: diff.dmg * scale * bm.dmg, scale, power,
     bossMax, bossHp: bossMax, mobs: [],
     mana: 100, gcd: 0, gcdBase: 1 / (1 + gear.haste), cast: null, channel: 0, chTick: 0, queued: null,
     cd: { purify: 0, guardian: 0, hymn: 0 },
@@ -49,7 +51,7 @@ export function create(cfg: FightConfig): Fight {
     hero: cfg.hero ?? 'priest', power3: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null,
     tx: null as unknown as TalentState, // 아래 newTalents
     fx: { ...NO_SET_FX, ...cfg.setFx },
-    abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null },
+    abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
     enraged: false, rats: [],
     items: {}, potCd: 0, medit: 0, itemLog: [],
@@ -59,13 +61,14 @@ export function create(cfg: FightConfig): Fight {
     me: null as unknown as Unit, // makeParty에서 채움
   };
   f.tx = newTalents(f);
-  for (const k of (cfg.items || []).slice(0, 4)) if (ITEMS[k]) f.items[k] = ITEMS[k].uses;
+  for (const k of (cfg.items || []).slice(0, 4)) if (ITEMS[k]) f.items[k] = Math.max(0, Math.min(ITEMS[k].uses, cfg.itemCap?.[k] ?? Infinity));
   if (cfg.carry) { f.mana = cfg.carry.mana; f.stats.minMana = f.mana; f.g = { ...cfg.carry.g }; }
   if (!knowsPassive(f, 'words')) f.g = { p: 0, s: 0 };
   makeParty(f, cfg.party);
   // 성기사 봉화는 첫 탱커에게 걸고 시작 (휠 가운데로 바꿈, 25 3장)
   if (f.hero === 'paladin' && f.level >= HEROES.paladin.system.lv) { const t = f.party.find(u => u.role === 'tank'); if (t) f.beacon = t.id; }
   initBoss(f);
+  if (cfg.affixes?.length) initAffixes(f, cfg.affixes);
   return f;
 }
 
@@ -174,6 +177,7 @@ export function step(f: Fight): void {
   healerTick(f);
   for (const u of f.party) unitTick(f, u);
   if (f.abOn) abTick(f);
+  if (f.aff) affixTick(f);
   tankWatch(f);
   bossTick(f);
   partyHits(f);

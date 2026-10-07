@@ -10,6 +10,7 @@ import { Flow, newSeed } from '../game/flow';
 import { meterHtml } from '../game/meter';
 import { equip, G } from '../game/state';
 import { TUT } from '../game/tutorial';
+import { AFFIXES } from '../data/affixes';
 import { esc, fmt, go, mmss, screen, topBar } from './kit';
 import { depart } from './party';
 
@@ -23,6 +24,11 @@ function renderSettle(): void {
   const c = contentOf(r.content);
   const multi = r.segN > 1;
   const title = r.quit ? '포기' : r.win ? (multi ? '던전 클리어!' : '클리어!') : '전멸';
+  // 레벨 단계·주간 도전·어픽스 (07 3장, 13 3-2)
+  const mode = `${r.chal ? ` · 주간 도전 ${r.chal}단계` : Flow.tier ? ` · Lv ${Flow.tier}` : ''}${r.affixes?.length ? ` · ${r.affixes.map(k => AFFIXES[k].name).join('·')}` : ''}`;
+  const ch = x.chal;
+  const chalLine = !ch ? '' : ch.inTime ? `<p class="chalres ok">⏳ ${mmss(ch.time)} / 제한 ${mmss(ch.limit)} · 제한시간 안${ch.opened ? ` · <b>${ch.stage + 1}단계 열림</b>` : ''} · 이번 주 최고 ${ch.best}단계</p>`
+    : r.win ? `<p class="chalres">⏳ ${mmss(ch.time)} / 제한 ${mmss(ch.limit)} · 시간 초과 (다음 단계는 안 열림)</p>` : '<p class="chalres">⏳ 실패 · 단계는 그대로</p>';
   const n = x.stars.filter(Boolean).length;
   const metrics: [string, string][] = [
     ['클리어 시간', `${mmss(r.time)}${multi && r.restSec ? ` (휴식 ${Math.round(r.restSec)}초 따로)` : ''}`],
@@ -36,10 +42,11 @@ function renderSettle(): void {
     <div class="ns-body settle">
       <header class="res-head ${r.win ? 'win' : 'lose'}">
         <h1>${title}</h1>
-        <p>${esc(c.name)} · ${esc(r.diff)} — ${esc(r.reason)}${r.auto ? ' · 자동 힐러' : ''}</p>
+        <p>${esc(c.name)} · ${esc(r.diff)}${esc(mode)} — ${esc(r.reason)}${r.auto ? ' · 자동 힐러' : ''}</p>
         ${r.win ? `<div class="gradebox"><b class="grade">${x.grade}</b><span class="stars" aria-label="별 ${n}개">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span></div>` : ''}
         ${x.first ? '<em class="badge">첫 클리어</em>' : x.best ? '<em class="badge">최고 기록</em>' : ''}
       </header>
+      ${chalLine}${x.cont ? `<p class="note center">광고로 이어 함 ${x.cont}번 · 등급 최대 B</p>` : ''}
       ${r.win ? `<ul class="starlist">${x.stars.map((ok, i) => `<li class="${ok ? 'ok' : ''}">${ok ? '★' : '☆'} ${STAR_TEXT[i]}</li>`).join('')}</ul>` : ''}
       <dl class="metrics">${metrics.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
       ${r.meter ? meterHtml(r.meter, r.time, { title: multi ? '딜미터기 · 던전 전체' : '딜미터기', heal: r.healed }) : ''}
@@ -58,8 +65,12 @@ st.el.addEventListener('click', e => {
   else if (t.closest('#retry')) retry();
 });
 
-/** 같은 파티로 다시 (시작 위치는 새로) */
-function retry(): void { Flow.seed = newSeed(); depart(); }
+/** 같은 파티로 다시 (시작 위치는 새로). 악몽은 종 조각이 없으면 못 감 */
+function retry(): void {
+  Flow.seed = newSeed();
+  const err = depart();
+  if (err) { st.el.querySelector('.settle')?.insertAdjacentHTML('beforeend', `<p class="warnbox">${esc(err)}</p>`); }
+}
 
 // ---------- 보상 ----------
 const rw = screen('s-reward', '보상', { enter() { renderReward(); } });
@@ -104,19 +115,22 @@ function renderReward(): void {
   rw.el.innerHTML = `${topBar()}
     <div class="ns-body reward">
       ${tip}
-      ${it ? itemCard(it) : '<p class="note center">장비 없음</p>'}
+      ${it ? itemCard(it) : `<p class="note center">${x.lootLocked ? '이번 주 이 보스·난이도 장비는 이미 받음 (월요일 오전 6시에 다시)' : '장비 없음'}</p>`}
       <dl class="metrics">
-        <div><dt>골드</dt><dd>🪙 +${fmt(x.gold)}</dd></div>
+        <div><dt>골드</dt><dd>🪙 +${fmt(x.gold)}${x.pubBonus ? ` <em class="lvup">공개모집 보너스 ×2 (오늘 ${x.pubBonus}/3)</em>` : ''}${r.affixes?.includes('festival') ? ' <em class="lvup">축제 주간 +20%</em>' : ''}</dd></div>
+        ${x.merit ? `<div><dt>공훈</dt><dd>+${x.merit} <small>(보유 ${fmt(G.save.wallet.merit)})</small></dd></div>` : ''}
+        ${x.crystal ? `<div><dt>크리스탈</dt><dd>💎 +${x.crystal} <small>첫 클리어</small></dd></div>` : ''}
         ${x.mats.stone || x.mats.refined ? `<div><dt>재료</dt><dd>강화석 +${x.mats.stone}${x.mats.refined ? ` · 정제 강화석 +${x.mats.refined}` : ''}</dd></div>` : ''}
         <div><dt>경험치</dt><dd>+${fmt(x.xp)}${x.levelUps.length ? ` <em class="lvup">레벨 업! Lv ${x.levelBefore} → ${p.level}</em>` : ''}</dd></div>
       </dl>
       ${heroQuestLine(x.heroQuest)}
       ${guildLines(x.guild)}
+      ${x.missions.length ? `<p class="coachtip">임무 완료: ${x.missions.map(esc).join(' · ')} · 로비 → 임무에서 보상 받기</p>` : ''}
       <div class="xpbar" aria-label="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100}%"></i><span>Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}</span></div>
     </div>
     <footer class="ns-foot row3">
       ${canEquip ? `<button class="btn${tip && r.content === 'plateau' ? ' hi-pulse' : ''}" type="button" id="equipNow">장착</button>` : '<button class="btn" type="button" data-go="s-char">장비 보기</button>'}
-      <button class="btn" type="button" id="again">다시 도전</button>
+      <button class="btn" type="button" id="again">${x.chal?.opened ? `${x.chal.stage + 1}단계 도전` : '다시 도전'}</button>
       <button class="btn primary" type="button" data-go="s-lobby">로비</button>
     </footer>`;
   if (x.levelUps.length && !shown.has(x)) { shown.add(x); showLevelUp(rw.el, x.levelUps); }
@@ -126,7 +140,11 @@ const shown = new WeakSet<object>();
 rw.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
   if (t.closest('#equipNow') && Flow.settle?.item) { equip(Flow.settle.item.id); renderReward(); }
-  else if (t.closest('#again')) { Flow.party = null; Flow.rerolls = 0; go('s-party'); }
+  else if (t.closest('#again')) {
+    // 주간 도전에서 다음 단계가 열렸으면 그 단계로
+    if (Flow.settle?.chal?.opened) Flow.chal = Flow.settle.chal.stage + 1;
+    Flow.party = null; Flow.rerolls = 0; go('s-party');
+  }
 });
 
 // ---------- 레벨업 팝업 (P04) ----------

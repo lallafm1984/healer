@@ -86,6 +86,7 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 #bossName { flex: 1; min-width: 0; font-family: var(--font-display); font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #phase { font-size: 11px; overflow: hidden; text-overflow: ellipsis; min-width: 0; padding: 2px 7px; border-radius: 999px; background: var(--panel-2); border: 1.5px solid var(--line); color: var(--mute); white-space: nowrap; }
 #timer { margin-left: auto; font-size: 12px; color: var(--mute); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#timer.over { color: #E06C5A; }
 #pauseBtn { flex: none; width: 32px; height: 32px; border-radius: 10px; border: 2px solid var(--line); background: var(--panel-2); font-size: 14px; cursor: pointer; }
 .hpbar { position: relative; height: 18px; border-radius: 6px; background: #2A1416; border: 2px solid var(--line); overflow: hidden; }
 #bossFill { position: absolute; inset: 0 auto 0 0; width: 100%; background: linear-gradient(#D9573F, #A8352A); }

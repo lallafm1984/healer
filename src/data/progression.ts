@@ -1,6 +1,6 @@
 /**
  * 힐러 성장·보상 수치 (P1 초안). 근거: 02 부록 B(경험치 곡선), 12 3-1(골드), 18 2-2(레벨 마일스톤), 19(소비 아이템 칸).
- * 경험치 지급량은 문서에 없어 새로 정함 (24 문서): Lv 15까지 하루 1~2일(18 1장)에 맞춤. 그 뒤 곡선은 P2에서 다시 본다.
+ * 경험치 지급량은 문서에 없어 새로 정함 (24 문서). Lv 1~100 곡선은 18 1장 도달 시점에 맞춤 (xpShare, 2026-10-07).
  */
 import type { DiffName } from './difficulty';
 
@@ -35,10 +35,16 @@ export function clearGold(stageLv: number, diff: DiffName, grade: Grade, raid: 0
   return Math.round(raid ? g * RAID_GOLD[raid] : g);
 }
 
-/** 클리어 경험치 = 지금 레벨에서 필요한 양의 이 비율 × 난이도 × 등급 */
-export const XP_SHARE = 1.0;
-/** 레벨이 콘텐츠 단계보다 이만큼 넘으면 줄기 시작 (한 레벨에 15%씩, 최저 20%) */
-export const XP_OVERLEVEL = 4;
+/**
+ * 클리어 경험치 = 지금 레벨에서 필요한 양의 이 비율 × 난이도 × 등급 (18 1장 도달 시점에 맞춤).
+ * 낮은 레벨은 1판 ≈ 1레벨, 높을수록 판 수가 늘어남. Lv 70부터는 절반 (20인 레이드가 ×2라서).
+ * 시뮬 (하루 8판, 보통 A, 그 레벨에서 가장 좋은 콘텐츠): Lv 15 약 2일 · 35 약 9일 · 70 약 5주 · 100 약 13주
+ */
+export const xpShare = (level: number) => Math.min(1, 14 * level ** -1.1) * (level >= 70 ? 0.5 : 1);
+/** 레벨이 콘텐츠 단계보다 이만큼 넘으면 줄기 시작 (한 레벨에 4%씩, 최저 30%). 던전 레벨 단계(10·30·50·70·90) 사이를 메울 만큼 너그럽게 */
+export const XP_OVERLEVEL = 5;
+export const XP_FALL = 0.04;
+export const XP_FLOOR = 0.3;
 /** 레이드 한 판 = 던전 한 판의 10인 1.5배, 20인 2배 (전투가 더 김, 26 6장) */
 export const XP_RAID = { 10: 1.5, 20: 2 } as const;
 /** 지면 이만큼만 (편성·난이도 다시 고를 힘은 남게) */
@@ -47,9 +53,9 @@ export const XP_LOSE = 0.2;
 export function clearXp(level: number, stageLv: number, diff: DiffName, grade: Grade | null, opts: { raid?: 0 | 10 | 20; win: boolean }): number {
   if (level >= MAX_LEVEL) return 0;
   const over = level - stageLv - XP_OVERLEVEL;
-  const fall = over > 0 ? Math.max(0.2, 1 - 0.15 * over) : 1;
+  const fall = over > 0 ? Math.max(XP_FLOOR, 1 - XP_FALL * over) : 1;
   const g = opts.win && grade ? REWARD_GRADE[grade] : 1;
-  const x = xpToNext(level) * XP_SHARE * REWARD_DIFF[diff] * g * fall * (opts.raid ? XP_RAID[opts.raid] : 1) * (opts.win ? 1 : XP_LOSE);
+  const x = xpToNext(level) * xpShare(level) * REWARD_DIFF[diff] * g * fall * (opts.raid ? XP_RAID[opts.raid] : 1) * (opts.win ? 1 : XP_LOSE);
   return Math.max(1, Math.round(x));
 }
 
@@ -86,7 +92,7 @@ export const TALENT_LEVEL = 10;
 
 /**
  * 레벨업 팝업에 보여 줄 "새로 열림" (18 2-2). live = 이 빌드에서 실제로 바뀌는 것.
- * 스킬 해금·특성·길드는 아직 안 만들어서 live: false → 팝업에 「준비 중」으로 표시.
+ * 아직 안 만든 것(다른 던전, 공개모집 직업 단계 해금)은 live: false → 팝업에 「준비 중」으로 표시.
  */
 export interface Milestone { text: string; live: boolean }
 export const MILESTONES: Record<number, Milestone[]> = {
@@ -96,20 +102,20 @@ export const MILESTONES: Record<number, Milestone[]> = {
   5: [{ text: '스킬 「치유의 기원」', live: true }, { text: '던전 「역병 지하묘지」', live: false }],
   6: [{ text: '성언 게이지 (평온·신성화)', live: true }],
   8: [{ text: '스킬 「수호 영혼」', live: true }],
-  10: [{ text: '패시브 「상징」 (마나 30% 아래서 회복 4배)', live: true }, { text: '특성 1단', live: false }, { text: '직업 바꾸기 · 드루이드 퀘스트 「숲의 부름」', live: true }, { text: '공개모집 직업 +6종', live: false }, { text: '던전 「독안개 늪」', live: false }],
+  10: [{ text: '패시브 「상징」 (마나 30% 아래서 회복 4배)', live: true }, { text: '특성 1단 (사제)', live: true }, { text: '직업 바꾸기 · 드루이드 퀘스트 「숲의 부름」', live: true }, { text: '주간 임무 (종 조각)', live: true }, { text: '녹슨 요새 레벨 단계 Lv 10', live: true }, { text: '공개모집 직업 +6종', live: false }, { text: '던전 「독안개 늪」', live: false }],
   12: [{ text: '공대 쿨기 (사제 「천상의 찬가」, 스킬 7개 완성)', live: true }],
-  15: [{ text: '8번째 칸 고유 스킬 (드루이드·성기사)', live: true }, { text: '길드 (골드 모집·인연 스카우트)', live: false }, { text: '던전 「저주받은 장원」', live: false }],
-  20: [{ text: '소비 아이템 단축칸 3칸', live: true }, { text: '성기사 퀘스트 「첫 맹세」', live: true }, { text: '특성 2단', live: false }, { text: '던전 「서리 마탑」', live: false }],
+  15: [{ text: '8번째 칸 고유 스킬 (드루이드·성기사)', live: true }, { text: '길드 (골드 모집·인연 스카우트)', live: true }, { text: '던전 「저주받은 장원」', live: false }],
+  20: [{ text: '소비 아이템 단축칸 3칸', live: true }, { text: '성기사 퀘스트 「첫 맹세」', live: true }, { text: '특성 2단', live: true }, { text: '주간 도전 「침묵의 시계」', live: true }, { text: '던전 「서리 마탑」', live: false }],
   28: [{ text: '던전 「깨진 신전」', live: false }],
-  30: [{ text: '특성 3단', live: false }],
+  30: [{ text: '특성 3단', live: true }, { text: '녹슨 요새 레벨 단계 Lv 30 (어픽스 격노)', live: true }],
   35: [{ text: '10인 레이드 「심연의 종탑」', live: true }],
-  40: [{ text: '소비 아이템 단축칸 4칸', live: true }, { text: '특성 4단', live: false }],
-  50: [{ text: '전설 장비 드롭', live: true }, { text: '10인 레이드 악몽', live: true }, { text: '특성 5단', live: false }],
-  60: [{ text: '특성 6단', live: false }],
-  70: [{ text: '20인 레이드 「가라앉은 대성당」', live: true }, { text: '특성 7단', live: false }],
-  80: [{ text: '20인 레이드 악몽', live: true }, { text: '특성 8단', live: false }],
-  90: [{ text: '특성 9단', live: false }],
-  100: [{ text: '특성 10단 · 칭호', live: false }],
+  40: [{ text: '소비 아이템 단축칸 4칸', live: true }, { text: '특성 4단', live: true }],
+  50: [{ text: '전설 장비 드롭', live: true }, { text: '10인 레이드 악몽', live: true }, { text: '특성 5단', live: true }, { text: '녹슨 요새 레벨 단계 Lv 50 (역병 추가)', live: true }],
+  60: [{ text: '특성 6단', live: true }],
+  70: [{ text: '20인 레이드 「가라앉은 대성당」', live: true }, { text: '특성 7단', live: true }, { text: '녹슨 요새 레벨 단계 Lv 70 (불안정 추가)', live: true }],
+  80: [{ text: '20인 레이드 악몽', live: true }, { text: '특성 8단', live: true }],
+  90: [{ text: '특성 9단', live: true }, { text: '녹슨 요새 레벨 단계 Lv 90', live: true }],
+  100: [{ text: '특성 10단', live: true }, { text: '칭호', live: false }],
 };
 
 /** 다음 목표 (로비 「다음 목표」 카드, 18 3-3): 지금 레벨 다음 마일스톤 */

@@ -25,8 +25,26 @@ describe('경험치·레벨 (02 부록 B)', () => {
   it('녹슨 요새 보통 A 클리어 1번 ≈ 한 레벨 조금 넘게, 단계보다 많이 높으면 줄어듦', () => {
     const at1 = clearXp(1, 1, '보통', 'A', { win: true });
     expect(at1 / xpToNext(1)).toBeCloseTo(1.1, 2);
-    expect(clearXp(10, 1, '보통', 'A', { win: true }) / xpToNext(10)).toBeLessThan(0.3);
+    // 단계보다 5레벨 넘게 높으면 1레벨에 4%씩 줄고 최저 30% (던전 레벨 단계 사이를 메움)
+    expect(clearXp(10, 5, '보통', 'A', { win: true })).toBe(clearXp(10, 10, '보통', 'A', { win: true }));
+    expect(clearXp(30, 1, '보통', 'A', { win: true }) / clearXp(30, 30, '보통', 'A', { win: true })).toBeCloseTo(0.3, 2);
     expect(clearXp(1, 1, '보통', null, { win: false })).toBe(Math.round(at1 / 1.1 * 0.2));
+  });
+  it('Lv 1 → 100 도달 시점이 18 1장과 맞음 (하루 8판, 그 레벨에서 가장 좋은 콘텐츠, 보통 A)', () => {
+    // 녹슨 요새 기본·레벨 단계 10/30/50/70/90, 10인 레이드 Lv 35 (×1.5), 20인 레이드 Lv 70 (×2)
+    const best = (lv: number) => {
+      const t = [1, 10, 30, 50, 70, 90].filter(x => x <= lv).pop()!;
+      const opts: [number, 0 | 10 | 20][] = [[t, 0]];
+      if (lv >= 35) opts.push([35, 10]);
+      if (lv >= 70) opts.push([70, 20]);
+      return Math.max(...opts.map(([st, raid]) => clearXp(lv, st, '보통', 'A', { raid, win: true })));
+    };
+    const p = { level: 1, xp: 0 }, day: Record<number, number> = {};
+    for (let run = 1; p.level < 100 && run < 5000; run++) { for (const u of addXp(p, best(p.level))) day[u] = run / 8; }
+    expect(day[15]).toBeLessThan(3);
+    expect(day[35]).toBeGreaterThan(6); expect(day[35]).toBeLessThan(14);
+    expect(day[70]).toBeGreaterThan(25); expect(day[70]).toBeLessThan(45);
+    expect(day[100]).toBeGreaterThan(70); expect(day[100]).toBeLessThan(110);
   });
   it('Lv 1 → 15를 녹슨 요새·레이드 보통 A로 대략 12~25판 (18 1장: 하루 30~40분 1~2일)', () => {
     const p = { level: 1, xp: 0 };

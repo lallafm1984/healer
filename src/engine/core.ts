@@ -2,6 +2,7 @@ import { HEROES } from '../data/heroes';
 import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
 import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
+import { affDebuffEnd, affHeal } from './affixes';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
 
 /** 한 틱 = 0.05초 */
@@ -49,6 +50,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     if (crit) amt *= 1.5;
   }
   if (u.mods.length) amt *= healMods(f, u); // 광란 (받는 치유 +30%), 얼음 방패 (치유 없음)
+  if (f.aff) amt *= affHeal(f); // 메마름 (받는 치유 -20%)
   const eff = Math.min(amt, u.max - u.hp);
   u.hp += eff;
   u.got += eff;
@@ -148,6 +150,7 @@ export function spread(f: Fight, u: Unit): void {
 }
 
 export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
+  if (f.aff) affDebuffEnd(f, u, d, dispelled); // 어픽스 불안정·메아리
   if (d.name === '썩은 숨결') u.max = u.base;
   if (d.name === '전염') spread(f, u);
   // 무음 성가대 독창 (26 4-3): 안 지우고 끝나면 그 사람이 선 열 전체 200. 지우면 그냥 사라짐 (함정 아님)

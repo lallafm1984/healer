@@ -24,7 +24,11 @@ export const Flow: {
   pub: RosterEntry[] | null;
   /** 길드파티로 고른 길드원 id */
   gpick: number[];
-} = { content: 'rustfort', diff: '보통', party: null, seed: 1, rerolls: 0, result: null, settle: null, coach: null, mode: 'public', pub: null, gpick: [] };
+  /** 던전 레벨 단계 (07 3장, 0 = 기본) */
+  tier: number;
+  /** 주간 도전 단계 (13 3-2, 0 = 도전 아님) */
+  chal: number;
+} = { content: 'rustfort', diff: '보통', party: null, seed: 1, rerolls: 0, result: null, settle: null, coach: null, mode: 'public', pub: null, gpick: [], tier: 0, chal: 0 };
 
 export const newSeed = () => (Math.random() * 1e9) | 0;
 

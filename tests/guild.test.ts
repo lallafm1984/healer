@@ -10,7 +10,7 @@ import {
   addMemberXp, autoPick, guildAfter, guildOpen, guildRoster, hire, makeCandidate, postRecruit, release, rerollAbility, resetPoints, scoutHire, spendPoint, togglePick, train,
 } from '../src/game/guild';
 import { settle, type BattleResult } from '../src/game/settle';
-import { migrate, newSave, type SaveData } from '../src/platform/storage';
+import { migrate, newSave, SAVE_VERSION, type SaveData } from '../src/platform/storage';
 
 let seed = 1;
 const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -190,7 +190,7 @@ describe('판 뒤 (02 9장)', () => {
 describe('저장 v4', () => {
   it('옛 저장은 빈 길드, 깨진 값은 기본값', () => {
     const d = migrate({ v: 3, createdAt: 1 });
-    expect(d.v).toBe(4);
+    expect(d.v).toBe(SAVE_VERSION);
     expect(d.guild).toMatchObject({ name: '새벽의 손', members: [], scouts: [], post: null, fame: 0, nextId: 1, pick: [] });
     expect(migrate({ v: 4, guild: { members: 'x', fame: 'y', post: { cands: 1 } } }).guild).toMatchObject({ members: [], fame: 0, post: null });
     const g = migrate({ v: 4, guild: { members: [mem({ id: 3 })], nextId: 4 } }).guild;

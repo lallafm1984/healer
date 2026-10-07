@@ -8,10 +8,24 @@ import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots } from '../data/progression';
 import { heroSaveOf, load, newSave, save, type HeroSave, type SaveData } from '../platform/storage';
 import { TUT } from './tutorial';
+import { isMember, onAct, rollover, type Rollover } from './economy';
 
 export const G: { save: SaveData } = { save: load() };
 
 export function commit(): void { save(G.save); }
+
+/** 월정액이면 배너를 숨김 (15 5장) */
+export function syncMember(now = Date.now()): void {
+  if (typeof document !== 'undefined') document.body.classList.toggle('member', isMember(G.save, now));
+}
+
+/** 날·주가 바뀌었는지 보고 일일·주간을 새로 (13 1장). 접속·로비·임무·상점 화면에서 부름 */
+export function refreshDay(now = Date.now()): Rollover {
+  const r = rollover(G.save, now, Math.random);
+  if (r.day || r.week || r.season || r.banked) commit();
+  syncMember(now);
+  return r;
+}
 
 export function resetSave(): void { G.save = newSave(); commit(); }
 
@@ -75,6 +89,7 @@ export function enhance(id: number): string {
   if (m.refined < c.refined) return `정제 강화석 부족 (${c.refined}개 필요)`;
   p.gold -= c.gold; m.stone -= c.stone; m.refined -= c.refined;
   it.plus = c.to;
+  if (G.save.tut >= TUT.done) onAct(G.save, 'enhance');
   commit();
   return '';
 }

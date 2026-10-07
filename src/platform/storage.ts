@@ -6,11 +6,12 @@ import type { DiffName } from '../data/difficulty';
 import type { Equipped, GearItem } from '../data/equipment';
 import type { GuildMember, PostTier } from '../data/guild';
 import { HERO_KEYS, type HeroKey } from '../data/heroes';
+import { STARTER_BAG } from '../data/economy';
 import type { ItemKey } from '../data/items';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
@@ -76,6 +77,47 @@ export interface GuildSave {
 
 export const newGuild = (): GuildSave => ({ name: '새벽의 손', members: [], scouts: [], post: null, fame: 0, nextId: 1, pick: [] });
 
+/** 임무 하나: 진행 · 보상 받음 */
+export interface MissionSave { key: string; n: number; got: boolean }
+
+/** 매일 오전 6시에 새로 (13 1장) */
+export interface DailySave {
+  /** 리셋 기준 날짜 (YYYY-MM-DD) */
+  day: string;
+  missions: MissionSave[];
+  /** 하루 1회 무료 교체를 씀 */
+  swapped: boolean;
+  /** 오늘 완료 상자를 받음 */
+  chest: boolean;
+  /** 놓친 날 완료 상자 (최대 2, 13 7장) */
+  banked: number;
+  /** 공개모집 보너스를 쓴 판 수 (13 2-2) */
+  pub: number;
+  /** 보상형 광고를 본 횟수 (15 7장) */
+  ads: { cont: number; chest: number; reroll: number };
+  /** 오늘 완료 상자 2배 (광고) 받음 */
+  chest2: boolean;
+}
+
+/** 매주 월요일 오전 6시에 새로 */
+export interface WeeklySave {
+  week: string;
+  missions: MissionSave[];
+  /** 종 조각 제작 횟수 (주 5회) */
+  craft: number;
+  /** 레이드마다 이번 주 받은 공훈 (상한 150) */
+  merit: { 10: number; 20: number };
+  /** 이번 주 장비를 받은 레이드 보스·난이도 (13 3-4: 보스마다 난이도별 주 1회) */
+  loot: string[];
+  /** 주간 도전: 이번 주 제한시간 안에 깬 최고 단계 */
+  chalBest: number;
+  /** 길드 주간 목표 진행 · 받음 */
+  guild: { n: number; got: boolean };
+}
+
+/** 시즌 패스 (15 4장) */
+export interface PassSave { season: number; xp: number; premium: boolean; free: number[]; prem: number[] }
+
 export interface SaveData {
   v: number;
   /** 처음 만든 시각 (ms) */
@@ -100,7 +142,27 @@ export interface SaveData {
   heroes: Partial<Record<HeroKey, HeroSave>>;
   /** v4: 길드 (02 9장, 17) */
   guild: GuildSave;
+  /** v5: 재화 (12): 크리스탈 · 종 조각 (최대 5) · 공훈 · 모집권 */
+  wallet: { crystal: number; shards: number; merit: number; ticket: number };
+  /** v5: 소비 아이템 가방 (19 11장, 종류마다 최대 20) */
+  bag: Partial<Record<ItemKey, number>>;
+  daily: DailySave;
+  weekly: WeeklySave;
+  pass: PassSave;
+  /** 월정액 끝나는 시각 (ms, 0 = 없음) */
+  member: number;
+  /** 주간 도전: 열린 단계 (실패해도 안 내려감, 13 7장) */
+  chalOpen: number;
+  /** 받은 칭호·꾸미기 이름 (그림은 원화 작업 때) */
+  decos: string[];
+  /** 지난주 주간 도전 최고 단계 → 월요일 상자 (0 = 없음) */
+  chalChest: number;
+  /** 첫 구매 보너스를 받은 상품 (15 3장) */
+  firstBuy: string[];
 }
+
+export const newDaily = (day = ''): DailySave => ({ day, missions: [], swapped: false, chest: false, banked: 0, pub: 0, ads: { cont: 0, chest: 0, reroll: 0 }, chest2: false });
+export const newWeekly = (week = ''): WeeklySave => ({ week, missions: [], craft: 0, merit: { 10: 0, 20: 0 }, loot: [], chalBest: 0, guild: { n: 0, got: false } });
 
 /** 그 직업의 저장 (없으면 기본: 기본 배치, 칸 탭 = 기본 힐 칸, 사제만 처음부터 해금) */
 export function heroSaveOf(d: SaveData, h: HeroKey): HeroSave {
@@ -114,6 +176,8 @@ export function newSave(now = Date.now()): SaveData {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
     player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [] }, mats: { stone: 0, refined: 0 }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1, tut: 0,
     hero: 'priest', heroes: {}, guild: newGuild(),
+    wallet: { crystal: 0, shards: 0, merit: 0, ticket: 0 }, bag: { ...STARTER_BAG }, daily: newDaily(), weekly: newWeekly(),
+    pass: { season: 0, xp: 0, premium: false, free: [], prem: [] }, member: 0, chalOpen: 1, decos: [], chalChest: 0, firstBuy: [],
   };
 }
 
@@ -140,6 +204,17 @@ export function migrate(raw: unknown): SaveData {
     heroes: obj(o.heroes, {}),
     // v4: 길드 (옛 저장은 빈 길드)
     guild: guildOf(o.guild),
+    // v5: 재화·가방·임무·패스 (옛 저장은 처음 가방부터)
+    wallet: obj(o.wallet, base.wallet),
+    bag: obj(o.bag, base.bag),
+    daily: o.daily && typeof o.daily === 'object' ? { ...base.daily, ...o.daily, ads: obj(o.daily.ads, base.daily.ads) } : base.daily,
+    weekly: o.weekly && typeof o.weekly === 'object' ? { ...base.weekly, ...o.weekly, merit: obj(o.weekly.merit, base.weekly.merit), guild: obj(o.weekly.guild, base.weekly.guild) } : base.weekly,
+    pass: obj(o.pass, base.pass),
+    member: typeof o.member === 'number' ? o.member : 0,
+    chalOpen: typeof o.chalOpen === 'number' ? o.chalOpen : 1,
+    decos: Array.isArray(o.decos) ? o.decos : [],
+    chalChest: typeof o.chalChest === 'number' ? o.chalChest : 0,
+    firstBuy: Array.isArray(o.firstBuy) ? o.firstBuy : [],
   };
 }
 

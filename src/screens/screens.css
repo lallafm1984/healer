@@ -17,8 +17,10 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .panel h2, .panel h4 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 16px; color: var(--gold-hi); }
 .panel ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
 .panel p { margin: 0; font-size: 13px; line-height: 1.5; }
+.panel h4 small { font-family: var(--font-body); font-size: 12px; color: var(--mute); margin-left: 4px; }
 .warn { color: var(--gold-hi); font-style: normal; }
 .warnbox { margin: 0; padding: 8px 10px; border-radius: 10px; background: #3A2E12; border: 2px solid #6B5320; color: #F6DFA0; font-size: 13px; }
+.warnbox.strong { background: #4A1E18; border-color: #A2392F; color: #FFD9D2; font-weight: 700; }
 
 /* 상단 바: 레벨·경험치·골드 (전투 화면 제외) */
 .topbar { flex: none; display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 12px 0 16px; background: #15162A; border-bottom: 2px solid var(--line); font-size: 14px; }
@@ -52,6 +54,13 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .lastline { margin: 0; display: flex; align-items: baseline; gap: 8px; background: var(--panel); border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
 .lastline span { color: var(--mute); font-size: 12px; }
 .btn.primary.big { margin-top: auto; font-size: 26px; padding: 18px; }
+/* 작은 화면 (360×740 등): 임무 카드·재화 줄이 들어가도 「전투 시작」이 탭 위에 보이게 */
+@media (max-height: 780px) {
+  .lobby { gap: 10px; }
+  .hero { padding-top: 4px; }
+  .hero-art svg { width: 72px; height: 72px; }
+  .btn.primary.big { font-size: 22px; padding: 14px; }
+}
 
 /* S03 콘텐츠 선택 */
 .subtabs { flex: none; display: flex; gap: 4px; padding: 8px 12px 0; background: #15162A; border-bottom: 2px solid var(--line); overflow-x: auto; }
@@ -114,6 +123,8 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .hint ul { padding-left: 16px; }
 .ichip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px 5px 6px; }
 .ichip svg { width: 22px; height: 22px; }
+.ichip small { font-size: 11px; opacity: 0.75; }
+.ichip.empty { opacity: 0.5; }
 
 /* S08 정산 */
 .res-head { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; }
@@ -381,3 +392,64 @@ button.tpick[aria-pressed="true"] i { background: var(--gold); color: #1A1408; }
 .pcard .pick { width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--line); display: grid; place-items: center; color: #1A1408; font-weight: 700; align-self: center; }
 .pcard .pick.on { background: var(--gold); border-color: var(--gold); }
 .lvgain.guild { color: var(--mute); }
+
+/* 재화·임무·상점·패스 (12, 13, 15) */
+.wallet { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--mute); }
+.wallet span { white-space: nowrap; }
+.mission-card { flex-direction: row; align-items: center; gap: 8px; width: 100%; text-align: left; color: var(--ink); cursor: pointer; font: inherit; }
+.mission-card b { flex: 1; font-family: var(--font-display); font-weight: 400; font-size: 16px; color: var(--gold-hi); }
+.mission-card span { color: var(--mute); font-size: 18px; }
+.dot { font-style: normal; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #6B2A22; color: #FFD9D2; }
+.slist, .mlist, .plist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.srow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--panel); border: 2px solid var(--line); }
+.srow > div:not(.sbuy) { flex: 1; min-width: 0; }
+.srow b { font-size: 14px; }
+.srow small { color: var(--mute); font-size: 12px; }
+.srow .note { margin: 2px 0 0; font-size: 12px; }
+.sic { flex: none; width: 30px; text-align: center; font-size: 20px; }
+.sic svg { width: 26px; height: 26px; }
+.sbuy { flex: none; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 50%; }
+.slist.dim .srow { opacity: 0.6; }
+.mset .gbtns .btn { flex: 1 1 40%; }
+.mrow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--panel); border: 2px solid var(--line); }
+.mrow > div { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: 13px; }
+.mrow small { color: var(--mute); }
+.mrow .bar, .passhead .bar { flex: 1 1 100%; height: 6px; border-radius: 999px; background: #0B0B12; overflow: hidden; border: 1px solid #2A2C48; }
+.mrow .bar i, .passhead .bar i { display: block; height: 100%; background: linear-gradient(90deg, #8FD18B, #D9E77A); }
+.mrow.got { opacity: 0.6; }
+.done, .prow i { font-style: normal; font-size: 12px; color: var(--mute); }
+.passhead p { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.passhead .bar { flex: 1 1 120px; display: inline-block; }
+.prow { display: grid; grid-template-columns: 30px 1fr 1fr; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 10px; background: var(--panel); border: 1.5px solid var(--line); font-size: 12px; opacity: 0.55; }
+.prow.open, .prow.head { opacity: 1; }
+.prow.head { background: none; border: 0; color: var(--mute); }
+.prow b { font-family: var(--font-display); font-weight: 400; font-size: 15px; text-align: center; }
+.prow .pp { color: #E6C77A; }
+.admodal { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(5, 5, 12, 0.8); }
+.admodal .panel { width: 100%; max-width: 360px; }
+.admodal .row2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+
+/* 어픽스·던전 레벨 단계·주간 도전 (07 3장, 13 3-2) */
+.afx { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: #3A1E2A; color: #F2C6D0; border: 1px solid #6B3446; }
+.afx.good { background: #23361F; color: #CFEBC5; border-color: #3F6B36; }
+.afxlist ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.afxlist li b { color: #F2C6D0; margin-right: 4px; }
+.afxlist li.good b { color: #CFEBC5; }
+.afxlist li small { display: block; color: var(--mute); font-size: 12px; margin-top: 2px; }
+.ccard.chal { border-color: #5A4A7A; background: linear-gradient(180deg, #221D36, var(--panel)); }
+.chips.tiers .chip { font-size: 13px; }
+.chalstep { display: flex; align-items: center; justify-content: center; gap: 18px; }
+.chalstep b { font-family: var(--font-display); font-weight: 400; font-size: 30px; color: var(--gold-hi); min-width: 110px; text-align: center; }
+.chalstep .btn { width: 52px; font-size: 22px; padding: 6px 0; }
+.rules { margin: 6px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.6; }
+.chalres { margin: 0; text-align: center; font-size: 14px; padding: 8px 10px; border-radius: 12px; background: var(--panel); border: 2px solid var(--line); }
+.chalres.ok { border-color: var(--gold); color: var(--gold-hi); }
+.btn.adroll { align-self: center; }
+/* 로비 레이드 문 (18 3-3) */
+.goal h2 small { font-family: var(--font-body); font-size: 12px; color: var(--mute); margin-left: 4px; }
+.gatelist { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.gatelist li { display: flex; justify-content: space-between; gap: 8px; }
+.gatelist li.ok span { color: #8FD18B; }
+.gatelist small { color: var(--mute); }
+.gate .gbtns { display: flex; gap: 6px; margin-top: 6px; }
+.gate .gbtns .btn.mini { margin-left: 0; }

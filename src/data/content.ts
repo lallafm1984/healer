@@ -4,6 +4,7 @@
  */
 import type { DiffName } from './difficulty';
 import { DUNGEONS } from './dungeons';
+import { LEVEL_TIERS } from './affixes';
 import type { EncounterKey } from './encounters';
 
 export type ContentKind = 'explore' | 'dungeon' | 'raid' | 'event';
@@ -35,6 +36,8 @@ export interface ContentDef {
   diffUnlock?: Partial<Record<DiffName, number>>;
   /** 콘텐츠 목록에 안 보임 (튜토리얼 첫 전투) */
   hidden?: boolean;
+  /** 던전 레벨 단계 (07 3장): 같은 던전을 이 레벨들로 다시 엶. 단계 레벨이 오르고 어픽스가 붙음 */
+  tiers?: number[];
 }
 
 const none = () => [] as EncounterKey[];
@@ -49,7 +52,7 @@ export const CONTENT: ContentDef[] = [
   },
   {
     key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 1, unlockLv: 1, ready: true, set: '새벽 순례자',
-    fights: () => DUNGEONS.rustfort.segments, size: five,
+    fights: () => DUNGEONS.rustfort.segments, size: five, tiers: LEVEL_TIERS,
   },
   { key: 'crypt', bosses: ['시체 수집가', '역병 사제 말코어'], kind: 'dungeon', name: '역병 지하묘지', place: '왕도 지하 · 역병 교단', stageLv: 5, unlockLv: 5, ready: false, set: '역병 정화자', fights: none, size: five },
   { key: 'swamp', bosses: ['늪 주술사', '거대 두꺼비 부글이', '늪 족장 세레스'], kind: 'dungeon', name: '독안개 늪', place: '늪지 · 늪의 부족', stageLv: 10, unlockLv: 10, ready: false, set: '이끼 맹약', fights: none, size: five },
@@ -70,8 +73,8 @@ export const CONTENT: ContentDef[] = [
 
 export const contentOf = (k: ContentKey) => CONTENT.find(c => c.key === k)!;
 
-/** 난이도별 단계 레벨: 따로 잠긴 난이도(10인 악몽 Lv 50, 20인 악몽 Lv 80)는 그 레벨이 단계 */
-export const stageOf = (c: ContentDef, d: DiffName) => c.diffUnlock?.[d] ?? c.stageLv;
+/** 난이도별 단계 레벨: 따로 잠긴 난이도(10인 악몽 Lv 50, 20인 악몽 Lv 80)는 그 레벨이 단계. tier = 던전 레벨 단계 (0 = 기본) */
+export const stageOf = (c: ContentDef, d: DiffName, tier = 0) => tier || (c.diffUnlock?.[d] ?? c.stageLv);
 
 /** 레이드는 보스 1마리 처치마다 보상 (12 3-1) → 1층 = 보스 1 */
 export const isRaid = (c: ContentDef) => c.kind === 'raid';

@@ -18,7 +18,7 @@ export const TABS: TabDef[] = [
   { key: 'battle', name: '전투', phase: 'P1', docs: '02 · 05 · 09 S03~S09' },
   { key: 'char', name: '캐릭터', phase: 'P1', docs: '06 · 09 S10·S16·S17' },
   { key: 'guild', name: '길드', phase: 'P2', docs: '02 9장 · 17 · 09 S12~S14', lv: GUILD_LEVEL },
-  { key: 'shop', name: '상점', phase: 'P3', docs: '12 · 15' },
+  { key: 'shop', name: '상점', phase: 'P3', docs: '12 · 15 · 09 S18·S19' },
 ];
 
 const ph = screen('s-tab', '준비 중인 탭', {
@@ -45,7 +45,7 @@ export function mountTabs(nav: HTMLElement): void {
     nav.innerHTML = TABS.map(t => {
       const locked = t.lv && G.save.player.level < t.lv;
       const tl = tutLocked(t.key);
-      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${tl ? ' class="tlock" aria-disabled="true"' : ''}>${t.name}<small>${tl ? '🔒' : locked ? `🔒 Lv ${t.lv}` : t.key === 'battle' || t.key === 'char' || t.key === 'guild' ? '' : t.phase}</small></button>`;
+      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${tl ? ' class="tlock" aria-disabled="true"' : ''}>${t.name}<small>${tl ? '🔒' : locked ? `🔒 Lv ${t.lv}` : ''}</small></button>`;
     }).join('');
   };
   nav.addEventListener('click', e => {
@@ -55,6 +55,7 @@ export function mountTabs(nav: HTMLElement): void {
     if (k === 'battle') go('s-lobby');
     else if (k === 'char') go('s-char');
     else if (k === 'guild') go('s-guild');
+    else if (k === 'shop') go('s-shop');
     else go('s-tab', k);
   });
   setTabsHandler(t => {

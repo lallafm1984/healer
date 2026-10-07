@@ -9,6 +9,7 @@ import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { ITEMS, type ItemKey } from '../data/items';
 import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
+import { AFFIXES } from '../data/affixes';
 import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, setBeacon, slotKey, step, talentReady, use, useItem, useTalent, type Fight, type FightStats } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
@@ -28,7 +29,7 @@ const seed = () => (Math.random() * 1e9) | 0;
 const curKey = () => S.run!.segs[S.run!.idx] as EncounterKey;
 /** 처음부터 다시 (같은 파티, 같은 콘텐츠) */
 function resetRun(): void {
-  Object.assign(S.run!, { idx: 0, carry: null, time: 0, deaths: 0, restSec: 0, healed: 0, overheal: 0, dispels: 0, dispellable: 0, itemLog: [], auto: S.auto, meter: [] });
+  Object.assign(S.run!, { idx: 0, carry: null, time: 0, deaths: 0, restSec: 0, healed: 0, overheal: 0, dispels: 0, dispellable: 0, itemLog: [], auto: S.auto, meter: [], cont: 0 });
 }
 
 // ---------- 전투 시작 ----------
@@ -40,9 +41,13 @@ function resetRun(): void {
 function startBattle(guideSec = 0): void {
   const R = S.run!;
   const sd = R.seed0 != null ? R.seed0 : seed(); R.seed0 = null;
+  // 가방에 남은 만큼만 (앞 구간에서 쓴 것 빼고, 19 11장)
+  const used = usedItems(R);
+  const itemCap = S.stock ? Object.fromEntries(S.items.map(k => [k, Math.max(0, (S.stock![k] || 0) - (used[k] || 0))])) : undefined;
   const F = create({
     encounter: curKey(), diff: S.diff as DiffName, gearStats: S.gearStats || undefined, seed: sd, party: S.party || undefined, items: S.items,
-    carry: R.carry || undefined, level: S.level, heroLv: S.heroLv, stageLv: S.stageLv, hero: S.hero, talents: S.talents, setFx: S.setFx,
+    carry: R.carry || undefined, level: S.level, heroLv: S.heroLv, stageLv: S.stageLv, hero: S.hero, talents: S.talents, setFx: S.setFx, itemCap,
+    affixes: S.affixes, bossMult: S.bossMult,
   });
   B.F = F;
   ui.itemArmed = null; ui.talArmed = null; itemPress = null; slotPress = null; auxPress = null;
@@ -68,6 +73,8 @@ function startBattle(guideSec = 0): void {
   layoutBattle();
   if (S.auto) toast('자동 힐러가 플레이 중 (기록 안 남김)');
   else if (R.idx === 0) toast(`칸을 탭하면 ${SKILLS[tapKey()].name}`);
+  // 어픽스는 첫 구간 시작에 한 번 알림 (07 3장, 13 3-3)
+  if (S.affixes && !R.idx && !R.cont) toast(`어픽스 ${S.affixes.map(k => AFFIXES[k].name).join(' · ')}`);
   // 사제 성언 게이지는 Lv 6부터. 다른 직업은 고유 시스템 글자·링을 처음부터 (25 7장)
   const words = F.hero !== 'priest' || knowsPassive(F, 'words');
   buildGauges(F);
@@ -436,12 +443,19 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
     healed: R.healed, overheal: R.overheal, dispels: R.dispels, dispellable: R.dispellable,
     endMana: Math.floor(f.mana), minMana: Math.floor(st.minMana), auto: !!(S.auto || R.auto),
     party: f.party.filter(u => !u.me).map(u => ({ nick: u.nick, pers: u.pers, role: u.role, alive: u.alive, got: Math.round(u.got), gid: u.gid })),
-    detail, meter: R.meter.map(r => ({ ...r })),
+    detail, meter: R.meter.map(r => ({ ...r })), itemsUsed: usedItems(R),
+    stage: S.stageLv, affixes: S.affixes?.slice(), chal: S.chal || undefined, limit: S.limit, cont: R.cont || undefined, giveUp: how === 'giveUp' || undefined,
   } as BattleResult;
   ui.lastResult = result;
   Snd.play(win ? 'win' : 'lose');
   B.F = null;
   S.onEnd?.(result);
+}
+/** 던전 전체에서 쓴 소비 아이템 수 */
+function usedItems(R: Run): Partial<Record<ItemKey, number>> {
+  const n: Partial<Record<ItemKey, number>> = {};
+  for (const x of R.itemLog) n[x.key] = (n[x.key] || 0) + 1;
+  return n;
 }
 /** 아이템은 구간마다 새로 받으니 쓴 기록은 던전 전체 시간으로 모아 둠 */
 function addStats(R: Run, f: Fight, st: FightStats): void {
@@ -574,8 +588,18 @@ function frame(now: number): void {
     S.hero = o.hero && HERO_KEYS.includes(o.hero) ? o.hero : 'priest';
     S.talents = Array.isArray(o.talents) ? o.talents.slice() : undefined;
     S.setFx = o.setFx ? { ...o.setFx } : undefined;
+    S.stock = o.stock ? { ...o.stock } : undefined;
+    S.affixes = o.affixes?.length ? o.affixes.slice() : undefined; S.bossMult = o.bossMult; S.limit = o.limit; S.chal = o.chal || 0;
     applyLayout();
     resetRun();
+    Snd.init();
+    startBattle(0);
+  },
+  /** 광고 이어하기 (15): 진 구간을 그 구간 시작 상태(마나·게이지)로 다시. 앞 구간 기록은 그대로 */
+  resume() {
+    if (!S.run) return;
+    closeTip();
+    S.run.cont++;
     Snd.init();
     startBattle(0);
   },

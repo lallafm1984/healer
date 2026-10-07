@@ -223,7 +223,12 @@ export function updateStage(now: number): void {
     ph = `${R.name} ${R.idx + 1}/${R.segs.length} · ${F.phaseName || (F.mobs.length ? `남은 적 ${left}` : F.cfg.diff)}`;
   }
   setText($('phase'), ph);
-  setText($('timer'), F.enraged ? `${mmss(F.t)} · 광폭화!` : isFinite(F.enc.enrage) ? `${mmss(F.t)} / 광폭 ${mmss(F.enc.enrage)}` : mmss(F.t));
+  if (S.limit) {
+    // 주간 도전 (13 3-2): 던전 전체 제한시간 (휴식 뺀 전투 시간 합)
+    const used = R.time + F.t;
+    setText($('timer'), `⏳ ${mmss(used)} / ${mmss(S.limit)}${F.enraged ? ' · 광폭화!' : ''}`);
+    $('timer').classList.toggle('over', used > S.limit);
+  } else setText($('timer'), F.enraged ? `${mmss(F.t)} · 광폭화!` : isFinite(F.enc.enrage) ? `${mmss(F.t)} / 광폭 ${mmss(F.enc.enrage)}` : mmss(F.t));
   if (now - ui.qAt > 90) {
     ui.qAt = now;
     const q = queue(F).map(it => ({ ...it, kind: it.kind as string | undefined }));

@@ -14,7 +14,7 @@ import { castText, cdText, costText, skillTip, tipHtml } from '../game/tooltip';
 import type { TapKey } from '../platform/storage';
 import { commit, enhance, equip, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, pickTalent, salvage, switchHero, switchOpen, toggleItem } from '../game/state';
 import { bellSvg } from './art';
-import { battle, esc, fmt, josa, screen, topBar } from './kit';
+import { battle, esc, fmt, itemChipsHtml, josa, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 
 type Sub = 'gear' | 'skill' | 'talent' | 'hero';
@@ -250,7 +250,7 @@ function skillHtml(): string {
     <section class="panel"><h2>칸 탭 기본 힐</h2><div class="chips">${(Object.keys(battle().tapKeys) as TapKey[]).map(chip).join('')}</div>
       <p class="note">${esc(tapText[st.tapKey] || '')}${tapLock ? ` · Lv ${tapLock} 전까진 ${SKILLS[basic].name}로 탭` : ''}</p></section>
     <section class="panel"><h2>단축칸 <small>소비 아이템 ${slots}칸${nextSlotLv ? ` · Lv ${nextSlotLv}에 ${itemSlots(nextSlotLv)}칸` : ''}</small></h2>
-      <div class="chips items">${(Object.keys(ITEMS) as ItemKey[]).map(k => `<button class="chip ichip" type="button" data-item="${k}" aria-pressed="${items.includes(k)}">${battle().itemIcon(k)}${ITEMS[k].name}</button>`).join('')}</div>
+      ${itemChipsHtml(items)}
       <p class="note${msg ? ' warn' : ''}">${msg || items.map(k => `<b>${ITEMS[k].short}</b> ${ITEMS[k].desc}`).join('<br>') || '빈 칸'}</p></section>
     <h3 class="sec">${HEROES[h].name} 스킬 <small>배운 것 ${learned} / ${list.length}</small></h3>
     <ul class="sklist">${list.map(k => skillCard(k, lay)).join('')}</ul>
