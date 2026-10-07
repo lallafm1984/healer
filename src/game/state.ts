@@ -3,7 +3,7 @@ import type { ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HERO_SWITCH_LV, HEROES, type HeroKey } from '../data/heroes';
 import { TALENTS } from '../data/talents';
-import { SLOTS, type GearItem } from '../data/equipment';
+import { enhanceCost, MAX_PLUS, salvageOf, SLOTS, type GearItem } from '../data/equipment';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots } from '../data/progression';
 import { heroSaveOf, load, newSave, save, type HeroSave, type SaveData } from '../platform/storage';
@@ -55,6 +55,43 @@ export function equip(id: number): GearItem | null {
   g.equipped[it.slot] = it;
   commit();
   return old || null;
+}
+
+/** 장비 찾기 (착용 또는 가방) */
+export function findItem(id: number): GearItem | null {
+  const g = G.save.gear;
+  return Object.values(g.equipped).find(x => x?.id === id) || g.bag.find(x => x.id === id) || null;
+}
+
+/** 강화 한 단계 (12 3-2, 실패 없음). 모자라면 이유를 돌려줌 */
+export function enhance(id: number): string {
+  const it = findItem(id);
+  if (!it) return '장비 없음';
+  const c = enhanceCost(it);
+  if (!c) return `이미 +${MAX_PLUS}`;
+  const p = G.save.player, m = G.save.mats;
+  if (p.gold < c.gold) return `골드 부족 (${c.gold.toLocaleString()} 필요)`;
+  if (m.stone < c.stone) return `강화석 부족 (${c.stone}개 필요)`;
+  if (m.refined < c.refined) return `정제 강화석 부족 (${c.refined}개 필요)`;
+  p.gold -= c.gold; m.stone -= c.stone; m.refined -= c.refined;
+  it.plus = c.to;
+  commit();
+  return '';
+}
+
+/** 가방 장비 분해 (착용 중인 건 안 됨). 받은 골드·재료 합 */
+export function salvage(ids: number[]): { n: number; gold: number; stone: number; refined: number } {
+  const g = G.save.gear, got = { n: 0, gold: 0, stone: 0, refined: 0 };
+  for (const id of ids) {
+    const i = g.bag.findIndex(x => x.id === id);
+    if (i < 0) continue;
+    const v = salvageOf(g.bag[i]);
+    g.bag.splice(i, 1);
+    got.n++; got.gold += v.gold; got.stone += v.stone; got.refined += v.refined;
+  }
+  G.save.player.gold += got.gold; G.save.mats.stone += got.stone; G.save.mats.refined += got.refined;
+  if (got.n) commit();
+  return got;
 }
 
 export const emptySlots = () => SLOTS.filter(s => !G.save.gear.equipped[s.key]).length;

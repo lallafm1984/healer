@@ -63,6 +63,8 @@ export interface SaveData {
   settings: Settings;
   player: { level: number; xp: number; gold: number };
   gear: { equipped: Equipped; bag: GearItem[] };
+  /** 강화 재료 (12 1장): 강화석 (+1~+5), 정제 강화석 (+6~+10) */
+  mats: { stone: number; refined: number };
   /** 소비 아이템 단축칸 구성 */
   items: ItemKey[];
   /** 콘텐츠 → 난이도 → 기록 */
@@ -88,7 +90,7 @@ export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'r
 export function newSave(now = Date.now()): SaveData {
   return {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
-    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [] }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1, tut: 0,
+    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [] }, mats: { stone: 0, refined: 0 }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1, tut: 0,
     hero: 'priest', heroes: {},
   };
 }
@@ -104,6 +106,7 @@ export function migrate(raw: unknown): SaveData {
     settings: obj(o.settings, base.settings),
     player: obj(o.player, base.player),
     gear: { equipped: obj(o.gear?.equipped, {}), bag: Array.isArray(o.gear?.bag) ? o.gear!.bag : [] },
+    mats: obj(o.mats, base.mats),
     items: Array.isArray(o.items) ? o.items : base.items,
     clears: obj(o.clears, {}),
     last: o.last && typeof o.last === 'object' ? o.last : null,

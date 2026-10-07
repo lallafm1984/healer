@@ -1,9 +1,10 @@
 /**
  * 힐러 장비 아이템 (02 10장). 6부위, 등급 5단계, 클리어 때 랜덤 1개.
- * P1: 강화(+1~+10)·세트 효과·분해는 아직 없음 (P2, 09 S10·S11). 떨어지는 장비는 모두 +0.
+ * 강화 +1~+10 (실패 없음, 골드 + 강화석, 12 3-2) · 분해 (골드 + 강화석, 12 3-1) · 세트 (data/sets.ts). 떨어지는 장비는 모두 +0.
  */
 import type { DiffName } from './difficulty';
 import { GRADE, type GearStats, type GradeName } from './gear';
+import { SETS, type SetDef, type SetKey } from './sets';
 
 export type SlotKey = 'weapon' | 'head' | 'chest' | 'hands' | 'ring' | 'neck';
 
@@ -46,9 +47,11 @@ export interface GearItem {
   id: number;
   slot: SlotKey;
   grade: ItemGrade;
-  /** 강화 단계 (P1은 늘 0) */
+  /** 강화 단계 (0~10) */
   plus: number;
   name: string;
+  /** 세트 장비 (02 10-3) */
+  set?: SetKey;
 }
 
 export type Equipped = Partial<Record<SlotKey, GearItem>>;
@@ -56,8 +59,11 @@ export type Equipped = Partial<Record<SlotKey, GearItem>>;
 export const slotName = (k: SlotKey) => SLOTS.find(s => s.key === k)!.name;
 export const itemName = (slot: SlotKey, grade: ItemGrade) => `${GRADE_STYLE[grade].word} ${SLOTS.find(s => s.key === slot)!.base}`;
 
-/** 장비 1개 뽑기. r = 0~1 난수 함수 */
-export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number, id: number): GearItem {
+/** 던전 세트는 희귀 이상에서 절반, 레이드 세트는 영웅 이상이면 언제나 (세트 부위일 때) */
+export const SET_CHANCE = { dungeon: 0.5, raid: 1 };
+
+/** 장비 1개 뽑기. r = 0~1 난수 함수. set = 그 콘텐츠 세트 (세트 굴림은 마지막에 따로, 세트가 없으면 난수를 안 씀) */
+export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number, id: number, set?: SetDef | null): GearItem {
   const slot = SLOTS[Math.floor(r() * SLOTS.length)].key;
   const table = DROP_TABLE[diff];
   let x = Math.min(0.999999, r() + GRADE_BONUS[grade]);
@@ -71,7 +77,38 @@ export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B'
   gi = Math.min(gi, top);
   let g = ITEM_GRADES[gi];
   if (g === '전설' && level < LEGEND_LEVEL) g = '영웅';
-  return { id, slot, grade: g, plus: 0, name: itemName(slot, g) };
+  const it: GearItem = { id, slot, grade: g, plus: 0, name: itemName(slot, g) };
+  if (set && set.slots.includes(slot) && ITEM_GRADES.indexOf(g) >= ITEM_GRADES.indexOf(set.minGrade) && r() < (set.minGrade === '영웅' ? SET_CHANCE.raid : SET_CHANCE.dungeon)) {
+    it.set = set.key; it.name = setItemName(set.key, slot);
+  }
+  return it;
+}
+
+export const setItemName = (set: SetKey, slot: SlotKey) => `${SETS[set].name}의 ${SLOTS.find(s => s.key === slot)!.base}`;
+
+// ---------- 강화·분해 (12 3장) ----------
+export const MAX_PLUS = 10;
+/** 등급 기본값: 강화 골드 = 기본값 × 단계² */
+export const ENHANCE_BASE: Record<ItemGrade, number> = { '일반': 10, '고급': 20, '희귀': 40, '영웅': 80, '전설': 160 };
+/** 다음 단계 강화 비용: +1~+5 강화석 단계 수만큼, +6~+10 정제 강화석 (단계 - 5)개. 다 올렸으면 null */
+export function enhanceCost(it: GearItem): { gold: number; stone: number; refined: number; to: number } | null {
+  const to = it.plus + 1;
+  if (to > MAX_PLUS) return null;
+  return { gold: ENHANCE_BASE[it.grade] * to * to, stone: to <= 5 ? to : 0, refined: to > 5 ? to - 5 : 0, to };
+}
+/** 클리어 재료 (12 1장): 던전은 강화석 조금, 레이드는 정제 강화석도 (보스 처치) */
+const DIFF_STEP: Record<DiffName, number> = { '쉬움': 0, '보통': 1, '어려움': 2, '악몽': 3 };
+export function clearMats(diff: DiffName, raid: 0 | 10 | 20): { stone: number; refined: number } {
+  if (!raid) return { stone: 1 + DIFF_STEP[diff], refined: 0 };
+  return { stone: 2 + DIFF_STEP[diff], refined: (raid === 20 ? 2 : 1) + (diff === '악몽' ? 1 : 0) };
+}
+
+/** 분해: 골드 (등급값 + 강화 단계당 10%), 강화석 (등급 비례), 정제 강화석 (영웅·전설) */
+export const SALVAGE_GOLD: Record<ItemGrade, number> = { '일반': 10, '고급': 30, '희귀': 80, '영웅': 200, '전설': 500 };
+export const SALVAGE_STONE: Record<ItemGrade, number> = { '일반': 1, '고급': 2, '희귀': 4, '영웅': 6, '전설': 10 };
+export const SALVAGE_REFINED: Record<ItemGrade, number> = { '일반': 0, '고급': 0, '희귀': 0, '영웅': 1, '전설': 2 };
+export function salvageOf(it: GearItem): { gold: number; stone: number; refined: number } {
+  return { gold: Math.round(SALVAGE_GOLD[it.grade] * (1 + 0.1 * it.plus)), stone: SALVAGE_STONE[it.grade], refined: SALVAGE_REFINED[it.grade] };
 }
 
 /**

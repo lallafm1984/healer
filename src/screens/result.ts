@@ -2,6 +2,7 @@
 import { contentOf } from '../data/content';
 import { GRADE_STYLE, slotName, type GearItem } from '../data/equipment';
 import { GRADE } from '../data/gear';
+import { SETS } from '../data/sets';
 import { HEROES } from '../data/heroes';
 import { lvPower, MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { Flow, newSeed } from '../game/flow';
@@ -69,7 +70,7 @@ function itemCard(it: GearItem): string {
   const isOn = cur?.id === it.id;
   return `<div class="rw-item" style="--g:${GRADE_STYLE[it.grade].color}">
     <div class="rw-box" aria-hidden="true"><span>${it.grade[0]}</span></div>
-    <b>${it.grade} · ${esc(it.name)}</b><small>${slotName(it.slot)} · +${it.plus}</small>
+    <b>${it.grade} · ${esc(it.name)}</b><small>${slotName(it.slot)} · +${it.plus}${it.set ? ` · 세트 「${SETS[it.set].name}」` : ''}</small>
     <p class="cmp">${isOn ? '장착함' : `지금 ${cur ? `${cur.grade} ${esc(cur.name)}` : '빈칸'} → 힐량 ${pct(cur)} → ${pct(it)}, 보조 능력치 ${subs(cur)} → ${subs(it)}개`}</p>
   </div>`;
 }
@@ -97,11 +98,11 @@ function renderReward(): void {
       ${it ? itemCard(it) : '<p class="note center">장비 없음</p>'}
       <dl class="metrics">
         <div><dt>골드</dt><dd>🪙 +${fmt(x.gold)}</dd></div>
+        ${x.mats.stone || x.mats.refined ? `<div><dt>재료</dt><dd>강화석 +${x.mats.stone}${x.mats.refined ? ` · 정제 강화석 +${x.mats.refined}` : ''}</dd></div>` : ''}
         <div><dt>경험치</dt><dd>+${fmt(x.xp)}${x.levelUps.length ? ` <em class="lvup">레벨 업! Lv ${x.levelBefore} → ${p.level}</em>` : ''}</dd></div>
       </dl>
       ${heroQuestLine(x.heroQuest)}
       <div class="xpbar" aria-label="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100}%"></i><span>Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}</span></div>
-      <p class="note center">장비 강화·분해·세트 효과는 P2에서 추가</p>
     </div>
     <footer class="ns-foot row3">
       ${canEquip ? `<button class="btn${tip && r.content === 'plateau' ? ' hi-pulse' : ''}" type="button" id="equipNow">장착</button>` : '<button class="btn" type="button" data-go="s-char">장비 보기</button>'}

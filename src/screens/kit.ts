@@ -2,6 +2,7 @@
 import type { ItemKey } from '../data/items';
 import type { GearStats } from '../data/gear';
 import type { HeroKey } from '../data/heroes';
+import type { SetFx } from '../data/sets';
 import type { RosterEntry } from '../engine';
 import type { BattleResult } from '../game/settle';
 import type { CoachKey } from '../game/tutorial';
@@ -91,6 +92,8 @@ export interface BattleApi {
     hero?: HeroKey;
     /** 사제 특성 (06 6장) */
     talents?: (number | null)[];
+    /** 세트 효과 (02 10-3) */
+    setFx?: Partial<SetFx>;
   }): void;
   settings(s: object): void;
   /** 전투 화면에서 바꾼 설정 (일시정지의 자동 치유) → 저장 */

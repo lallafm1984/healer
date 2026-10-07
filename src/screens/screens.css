@@ -172,6 +172,28 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .bag small { display: block; color: var(--mute); font-size: 11px; }
 .bag em { font-style: normal; color: #8FD18B; }
 .bag .btn { padding: 8px 12px; }
+/* 장비 상세·강화·세트·분해 (09 S10·S11) */
+button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.gtile.sel, .bag li.sel { box-shadow: 0 0 0 2px var(--g); }
+.gmats { margin: 2px 0 0; font-size: 13px; color: var(--mute); }
+.gmats b { color: var(--ink); }
+.gset { background: var(--panel); border: 2px solid var(--line); border-radius: 12px; padding: 8px 10px; }
+.gset b { font-family: var(--font-display); font-weight: 400; font-size: 15px; color: var(--gold-hi); }
+.gset small { margin-left: 6px; color: var(--mute); font-size: 11px; }
+.gset p { margin: 3px 0 0; font-size: 12px; color: #8C8AA6; }
+.gset p.on { color: var(--ink); }
+.gdetail { border-color: var(--g); }
+.gdetail h2 { color: var(--g); }
+.gdetail h2 small { display: block; margin: 2px 0 0; }
+.gbtns, .salvbar { display: flex; flex-wrap: wrap; gap: 6px; }
+.gbtns .btn, .salvbar .btn { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.gbtns .btn small, .salvbar .btn small { font-family: var(--font-body); font-size: 11px; color: inherit; opacity: 0.8; }
+.gbtns .btn.primary, .salvbar .btn.primary { flex: 1; }
+.bag li { cursor: pointer; }
+.bag.picking li.on { border-color: var(--gold); background: #2A2416; }
+.bag .pick { width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--line); display: grid; place-items: center; color: #1A1408; font-weight: 700; }
+.bag .pick.on { background: var(--gold); border-color: var(--gold); }
+.sec .btn.mini { vertical-align: 2px; }
 
 /* 준비 중 탭 */
 .tabph { align-items: flex-start; }

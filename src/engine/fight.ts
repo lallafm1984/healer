@@ -15,6 +15,7 @@ import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { rngFrom } from './rng';
 import { unitDps, unitTick } from './units';
+import { NO_SET_FX } from '../data/sets';
 import { newTalents } from './talents';
 import type { Cell, Fight, FightConfig, FightResult, Role, RosterEntry, TalentState, Unit } from './types';
 
@@ -44,6 +45,7 @@ export function create(cfg: FightConfig): Fight {
     g: { p: 0, s: 0 }, symbolUsed: false, symbol: 0, level: cfg.level ?? 100,
     hero: cfg.hero ?? 'priest', power3: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null,
     tx: null as unknown as TalentState, // 아래 newTalents
+    fx: { ...NO_SET_FX, ...cfg.setFx },
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
     enraged: false, rats: [],
     items: {}, potCd: 0, medit: 0, itemLog: [],

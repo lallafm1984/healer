@@ -4,11 +4,20 @@ import { DIFFS, MYTHIC, type DiffName } from '../data/difficulty';
 import { ENCOUNTERS, segGrade, type EncounterKey } from '../data/encounters';
 import { avgScore, DROP_TABLE, gearSummary, GRADE_STYLE, ITEM_GRADES, LEGEND_LEVEL, RECOMMENDED } from '../data/equipment';
 import { canDispel, DEB_COLOR, HEROES } from '../data/heroes';
+import { setOf } from '../data/sets';
 import { clearGold, clearXp } from '../data/progression';
 import { Flow } from '../game/flow';
 import { G, heroNow, lockOf, switchOpen } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { battle, esc, fmt, go, screen, topBar } from './kit';
+
+/** 드롭 세트 한 줄 (02 10-3): 효과가 있는 세트는 2·4세트까지 */
+function setLine(key: string, name?: string): string {
+  if (!name) return '';
+  const d = setOf(key);
+  if (!d) return `<p class="note">드롭 세트 「${esc(name)}」 (효과는 콘텐츠와 함께 추가)</p>`;
+  return `<p class="note">드롭 세트 「${d.name}」 ${d.minGrade} 이상 · 2세트: ${esc(d.two.desc)} 4세트: ${esc(d.four.desc)}</p>`;
+}
 
 const s = screen('s-entry', '난이도·입장', { enter() { render(); } });
 
@@ -73,7 +82,7 @@ function render(): void {
       <section class="panel reward-pre">
         <p>장비 1개 · ${table.map(([g, p]) => `<span class="gr" style="--g:${GRADE_STYLE[g].color}">${g} ${Math.round(p * 100)}%</span>`).join(' ')}</p>
         ${legendCut ? `<p class="note">전설은 Lv ${LEGEND_LEVEL}부터 (그 전엔 영웅)</p>` : ''}
-        ${c.set ? `<p class="note">드롭 세트 「${esc(c.set)}」와 세트 효과는 P2에서 추가</p>` : ''}
+        ${setLine(c.key, c.set)}
         <p>골드 ${fmt(goldA)} (S 등급 ${fmt(goldS)}) · 경험치 약 ${fmt(xpA)}</p>
       </section>
     </div>

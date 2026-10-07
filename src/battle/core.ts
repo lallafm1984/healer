@@ -5,6 +5,7 @@
 import type { CoachKey } from '../game/tutorial';
 import type { GearStats } from '../data/gear';
 import type { ItemKey } from '../data/items';
+import type { SetFx } from '../data/sets';
 import type { TalentKey } from '../data/talents';
 import { DEB_COLOR, HEROES, type HeroKey } from '../data/heroes';
 import { SKILLS, type SkillKey } from '../data/skills';
@@ -95,6 +96,8 @@ export interface StartOptions {
   hero?: HeroKey;
   /** 사제 특성: 단마다 고른 칸 (06 6장) */
   talents?: (number | null)[];
+  /** 세트 효과 (02 10-3) */
+  setFx?: Partial<SetFx>;
 }
 
 export interface Run {
@@ -107,7 +110,7 @@ export interface Run {
 export const S = {
   diff: '보통', gearStats: null as GearStats | null, level: 100, heroLv: undefined as number | undefined, stageLv: undefined as number | undefined,
   party: null as RosterEntry[] | null, items: [] as ItemKey[], slots: 4,
-  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined,
+  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined, setFx: undefined as Partial<SetFx> | undefined,
   layout: { ...DEFAULT_LAYOUT } as Layout,
   run: null as Run | null, onEnd: null as ((r: BattleResult) => void) | null, coach: null as CoachKey | null,
   onSetting: null as ((key: string, val: unknown) => void) | null,

@@ -2,7 +2,9 @@
  * 캐릭터 탭 (Lim 2026-10-07): 내 힐러 한 곳에 모음.
  * 장비(09 S10) · 스킬(설명, 휠 배치 09 S17, 칸 탭 기본 힐, 소비 아이템 단축칸) · 특성(06 6장, 고르기) · 직업(25 7장: 직업 카드·목록·바꾸기)
  */
-import { GRADE_STYLE, gearStatsOf, gearSummary, ITEM_GRADES, itemScore, SLOTS, slotName, type GearItem } from '../data/equipment';
+import { enhanceCost, GRADE_STYLE, gearStatsOf, gearSummary, ITEM_GRADES, itemScore, MAX_PLUS, salvageOf, SLOTS, slotName, type GearItem } from '../data/equipment';
+import { GRADE } from '../data/gear';
+import { SET_KEYS, setCounts, SETS } from '../data/sets';
 import { canDispel, DEB_COLOR, HERO_KEYS, HERO_SWITCH_LV, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots, lvPower, TALENT_LEVEL } from '../data/progression';
@@ -10,7 +12,7 @@ import { PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKI
 import { TALENTS } from '../data/talents';
 import { castText, cdText, costText, skillTip, tipHtml } from '../game/tooltip';
 import type { TapKey } from '../platform/storage';
-import { commit, equip, G, healerLevel, heroSave, heroStatus, itemsNow, pickTalent, switchHero, switchOpen, toggleItem } from '../game/state';
+import { commit, enhance, equip, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, pickTalent, salvage, switchHero, switchOpen, toggleItem } from '../game/state';
 import { bellSvg } from './art';
 import { battle, esc, fmt, josa, screen, topBar } from './kit';
 import { pushSettings } from './settings';
@@ -30,7 +32,7 @@ const s = screen('s-char', '캐릭터', {
   tab: 'char',
   enter(arg) {
     if (SUBS.some(x => x.key === arg)) sub = arg as Sub;
-    sel = null; swapping = false; msg = ''; tierOpen = null;
+    sel = null; swapping = false; msg = ''; tierOpen = null; gsel = null; salv = null; salvAsk = false;
     render();
   },
 });
@@ -99,20 +101,74 @@ function heroListHtml(): string {
       <p class="hc-line">출시 뒤 시즌마다 1종. 골드 60,000 또는 크리스탈 1,500</p></section>`;
 }
 
-// ---------- 장비 ----------
+// ---------- 장비 (09 S10·S11): 착용·세트·상세(강화)·가방(장착·분해) ----------
+/** 상세를 연 장비 id */
+let gsel: number | null = null;
+/** 분해 고르는 중이면 고른 id들 */
+let salv: Set<number> | null = null;
+/** 분해 확인 (한 번 더 누르면 분해) */
+let salvAsk = false;
+
+const plusTxt = (it: GearItem) => (it.plus ? ` +${it.plus}` : '');
 const tile = (it: GearItem | undefined, label: string) => it
-  ? `<div class="gtile" style="--g:${GRADE_STYLE[it.grade].color}"><small>${label}</small><b>${esc(it.name)}</b><span>${it.grade}${it.plus ? ` +${it.plus}` : ''}</span></div>`
+  ? `<button class="gtile${gsel === it.id ? ' sel' : ''}" type="button" data-gitem="${it.id}" style="--g:${GRADE_STYLE[it.grade].color}"><small>${label}${it.set ? ' · 세트' : ''}</small><b>${esc(it.name)}</b><span>${it.grade}${plusTxt(it)}</span></button>`
   : `<div class="gtile empty"><small>${label}</small><b>빈칸</b></div>`;
 
+/** 착용 세트 진행 (2/4) */
+function setHtml(): string {
+  const eq = G.save.gear.equipped, n = setCounts(Object.values(eq));
+  const keys = SET_KEYS.filter(k => n[k]);
+  if (!keys.length) return '<p class="note">세트: 없음 · 희귀 이상 던전 장비, 영웅 이상 레이드 장비에서 나옴</p>';
+  return keys.map(k => {
+    const d = SETS[k], c = n[k]!;
+    return `<div class="gset"><b>${d.name} ${c}/4</b><small>${d.style}</small>
+      <p class="${c >= 2 ? 'on' : ''}">${c >= 2 ? '✓' : '○'} 2세트: ${esc(d.two.desc)}</p>
+      <p class="${c >= 4 ? 'on' : ''}">${c >= 4 ? '✓' : '○'} 4세트: ${esc(d.four.desc)}</p></div>`;
+  }).join('');
+}
+
+/** 고른 장비 상세·강화 (S11) */
+function detailHtml(): string {
+  const it = gsel == null ? null : findItem(gsel);
+  if (!it) return '';
+  const worn = G.save.gear.equipped[it.slot]?.id === it.id;
+  const c = enhanceCost(it), m = G.save.mats, gold = G.save.player.gold;
+  const [h] = GRADE[it.grade];
+  const set = it.set ? SETS[it.set] : null;
+  const costTxt = c ? [`골드 ${fmt(c.gold)}`, c.stone ? `강화석 ${c.stone}` : '', c.refined ? `정제 강화석 ${c.refined}` : ''].filter(Boolean).join(' · ') : '';
+  const can = !!c && gold >= c.gold && m.stone >= c.stone && m.refined >= c.refined;
+  const sv = salvageOf(it);
+  return `<section class="panel gdetail" style="--g:${GRADE_STYLE[it.grade].color}">
+      <h2>${esc(it.name)}<small>${slotName(it.slot)} · ${it.grade}${plusTxt(it)}${worn ? ' · 착용 중' : ''}</small></h2>
+      <p>힐량 +${((h + 0.005 * it.plus) * 100).toFixed(1)}% · 보조 능력치 ${GRADE[it.grade][1]}개</p>
+      ${set ? `<p class="note">세트 「${set.name}」 (${set.slots.map(slotName).join('·')})<br>2세트: ${esc(set.two.desc)}<br>4세트: ${esc(set.four.desc)}</p>` : ''}
+      <div class="gbtns">${c ? `<button class="btn primary" type="button" data-enh="${it.id}"${can ? '' : ' disabled'}>강화 +${c.to}<small>${costTxt}</small></button>` : `<button class="btn" type="button" disabled>최대 강화 +${MAX_PLUS}</button>`}
+        ${worn ? '' : `<button class="btn" type="button" data-equip="${it.id}">장착</button><button class="btn" type="button" data-salv1="${it.id}">분해<small>골드 ${fmt(sv.gold)} · 강화석 ${sv.stone}${sv.refined ? ` · 정제 ${sv.refined}` : ''}</small></button>`}</div>
+    </section>`;
+}
+
 function gearHtml(): string {
-  const eq = G.save.gear.equipped;
-  const bag = [...G.save.gear.bag].sort((a, b) => ITEM_GRADES.indexOf(b.grade) - ITEM_GRADES.indexOf(a.grade) || a.slot.localeCompare(b.slot));
-  return `<h3 class="sec">착용 <small>강화·분해·세트는 P2</small></h3>
+  const eq = G.save.gear.equipped, m = G.save.mats;
+  const bag = [...G.save.gear.bag].sort((a, b) => ITEM_GRADES.indexOf(b.grade) - ITEM_GRADES.indexOf(a.grade) || a.slot.localeCompare(b.slot) || b.plus - a.plus);
+  const picked = salv ? bag.filter(it => salv!.has(it.id)) : [];
+  const sum = picked.reduce((a, it) => { const v = salvageOf(it); return { gold: a.gold + v.gold, stone: a.stone + v.stone, refined: a.refined + v.refined }; }, { gold: 0, stone: 0, refined: 0 });
+  const salvBar = salv ? `<div class="salvbar">
+      <button class="btn" type="button" data-salvall>일반·고급 모두</button>
+      <button class="btn primary" type="button" data-salvgo${picked.length ? '' : ' disabled'}>${salvAsk ? '한 번 더 누르면 분해' : `${picked.length}개 분해`}<small>골드 ${fmt(sum.gold)} · 강화석 ${sum.stone}${sum.refined ? ` · 정제 ${sum.refined}` : ''}</small></button>
+      <button class="btn" type="button" data-salvx>취소</button></div>` : '';
+  return `<h3 class="sec">착용 <small>누르면 상세·강화</small></h3>
     <div class="gslots">${SLOTS.map(x => tile(eq[x.key], x.name)).join('')}</div>
-    <h3 class="sec">가방 <small>${bag.length}개</small></h3>
-    ${bag.length ? `<ul class="bag">${bag.map(it => {
+    ${msg ? `<p class="note warn">${esc(msg)}</p>` : ''}
+    ${detailHtml()}
+    <p class="gmats">강화석 <b>${fmt(m.stone)}</b> · 정제 강화석 <b>${fmt(m.refined)}</b></p>
+    ${setHtml()}
+    <h3 class="sec">가방 <small>${bag.length}개</small>${bag.length && !salv ? '<button class="btn mini" type="button" data-salvon>분해 선택</button>' : ''}</h3>
+    ${salvBar}
+    ${bag.length ? `<ul class="bag${salv ? ' picking' : ''}">${bag.map(it => {
       const up = itemScore(it) > itemScore(eq[it.slot]);
-      return `<li style="--g:${GRADE_STYLE[it.grade].color}"><span class="gdot">${it.grade[0]}</span><div><b>${esc(it.name)}</b><small>${slotName(it.slot)} · ${it.grade}${up ? ' · <em>더 좋음</em>' : ''}</small></div><button class="btn" type="button" data-equip="${it.id}">장착</button></li>`;
+      const on = !!salv && salv.has(it.id);
+      const right = salv ? `<span class="pick${on ? ' on' : ''}">${on ? '✓' : ''}</span>` : `<button class="btn" type="button" data-equip="${it.id}">장착</button>`;
+      return `<li data-gitem="${it.id}" class="${gsel === it.id ? 'sel' : ''}${on ? ' on' : ''}" style="--g:${GRADE_STYLE[it.grade].color}"><span class="gdot">${it.grade[0]}</span><div><b>${esc(it.name)}${plusTxt(it)}</b><small>${slotName(it.slot)} · ${it.grade}${it.set ? ' · 세트' : ''}${up ? ' · <em>더 좋음</em>' : ''}</small></div>${right}</li>`;
     }).join('')}</ul>` : '<p class="note">던전을 클리어하면 장비 1개씩 획득</p>'}`;
 }
 
@@ -236,7 +292,7 @@ function talentHtml(): string {
 s.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
   const tab = t.closest<HTMLElement>('[data-csub]');
-  if (tab) { if ((tab as HTMLButtonElement).disabled) return; sub = tab.dataset.csub as Sub; sel = null; swapping = false; msg = ''; render(); return; }
+  if (tab) { if ((tab as HTMLButtonElement).disabled) return; sub = tab.dataset.csub as Sub; sel = null; swapping = false; msg = ''; gsel = null; salv = null; salvAsk = false; render(); return; }
   const tb = t.closest<HTMLButtonElement>('[data-talent]');
   if (tb && !tb.disabled) {
     const [i, j] = tb.dataset.talent!.split(':').map(Number);
@@ -251,7 +307,33 @@ s.el.addEventListener('click', e => {
     render(); return;
   }
   const eq = t.closest<HTMLElement>('[data-equip]');
-  if (eq) { equip(Number(eq.dataset.equip)); render(); return; }
+  if (eq) { equip(Number(eq.dataset.equip)); msg = ''; render(); return; }
+  const en = t.closest<HTMLButtonElement>('[data-enh]');
+  if (en) { if (!en.disabled) { msg = enhance(Number(en.dataset.enh)); render(); } return; }
+  if (t.closest('[data-salvon]')) { salv = new Set(); salvAsk = false; gsel = null; msg = ''; render(); return; }
+  if (t.closest('[data-salvx]')) { salv = null; salvAsk = false; render(); return; }
+  if (t.closest('[data-salvall]') && salv) { for (const it of G.save.gear.bag) if (it.grade === '일반' || it.grade === '고급') salv.add(it.id); salvAsk = false; render(); return; }
+  const go = t.closest<HTMLButtonElement>('[data-salvgo]');
+  if (go && salv) {
+    if (go.disabled) return;
+    if (!salvAsk) { salvAsk = true; render(); return; }
+    const r = salvage([...salv]);
+    msg = `${r.n}개 분해: 골드 +${fmt(r.gold)} · 강화석 +${r.stone}${r.refined ? ` · 정제 강화석 +${r.refined}` : ''}`;
+    salv = null; salvAsk = false; render(); return;
+  }
+  const s1 = t.closest<HTMLElement>('[data-salv1]');
+  if (s1) {
+    const r = salvage([Number(s1.dataset.salv1)]);
+    msg = r.n ? `분해: 골드 +${fmt(r.gold)} · 강화석 +${r.stone}${r.refined ? ` · 정제 강화석 +${r.refined}` : ''}` : '';
+    gsel = null; render(); return;
+  }
+  const gi = t.closest<HTMLElement>('[data-gitem]');
+  if (gi) {
+    const id = Number(gi.dataset.gitem);
+    if (salv && gi.tagName === 'LI') { if (salv.has(id)) salv.delete(id); else salv.add(id); salvAsk = false; }
+    else { gsel = gsel === id ? null : id; msg = ''; }
+    render(); return;
+  }
   const it = t.closest<HTMLElement>('[data-item]');
   if (it) { msg = toggleItem(it.dataset.item as ItemKey); render(); return; }
   msg = '';

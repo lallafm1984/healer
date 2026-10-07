@@ -3,6 +3,7 @@ import { CLASSES } from '../data/classes';
 import { TRAITS } from '../data/traits';
 import { contentOf, stageOf } from '../data/content';
 import { gearStatsOf } from '../data/equipment';
+import { setFxOf } from '../data/sets';
 import { ENCOUNTERS } from '../data/encounters';
 import { ITEMS, type ItemKey } from '../data/items';
 import { CATS, PERS } from '../data/personalities';
@@ -103,7 +104,7 @@ export function depart(): void {
   const { slots, items } = itemsNow();
   battle().start({
     content: c.key, name: c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: stageOf(c, Flow.diff), gearStats: gearStatsOf(G.save.gear.equipped),
-    party: Flow.party!, items, slots, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(),
+    party: Flow.party!, items, slots, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(), setFx: setFxOf(Object.values(G.save.gear.equipped)),
     onEnd(r) {
       Flow.result = r;
       Flow.settle = settle(G.save, r, Math.random);

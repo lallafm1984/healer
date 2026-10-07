@@ -43,8 +43,10 @@ export function castOf(f: Fight, key: SkillKey): number {
 
 /** 재사용 대기 (쓸 때 거는 값): 빨라진 찬가 (찬가 -60초) */
 export function cdOf(f: Fight, key: SkillKey): number {
-  const cd = SKILLS[key].cd || 0;
-  return key === 'hymn' && f.tx.on.quickHymn ? cd - 60 : cd;
+  let cd = SKILLS[key].cd || 0;
+  if (key === 'hymn' && f.tx.on.quickHymn) cd -= 60;
+  if (SKILLS[key].slot === 'raid' && f.fx.raidCd) cd -= f.fx.raidCd; // 세트 「종탑 순례자」 4세트
+  return cd;
 }
 
 /** 화면의 재사용 대기 바 기준 */
@@ -74,10 +76,12 @@ export function adjLow(f: Fight, u: Unit, n: number, skipRenew = false): Unit[] 
 /** 범위 힐 반경: 넓은 원이면 기원 반경 2 */
 export const areaRadius = (f: Fight, key: SkillKey): number => (key === 'poh' && f.tx.on.wideCircle ? 2 : 1);
 
-/** 치유의 기원 (반경 r) */
-export function pohAt(f: Fight, cellIdx: number, amt: number, r: number): void {
+/** 치유의 기원 (반경 r). 치유한 사람 수 */
+export function pohAt(f: Fight, cellIdx: number, amt: number, r: number): number {
   const c = f.cells[cellIdx];
-  for (const v of living(f)) if (hexDist(cellOf(f, v), c) <= r) heal(f, v, amt, true);
+  let n = 0;
+  for (const v of living(f)) if (hexDist(cellOf(f, v), c) <= r) { heal(f, v, amt, true); n++; }
+  return n;
 }
 
 /** 소생 지속 시간: 긴 숨결 +3초 */

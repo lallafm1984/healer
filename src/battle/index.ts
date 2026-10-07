@@ -42,7 +42,7 @@ function startBattle(guideSec = 0): void {
   const sd = R.seed0 != null ? R.seed0 : seed(); R.seed0 = null;
   const F = create({
     encounter: curKey(), diff: S.diff as DiffName, gearStats: S.gearStats || undefined, seed: sd, party: S.party || undefined, items: S.items,
-    carry: R.carry || undefined, level: S.level, heroLv: S.heroLv, stageLv: S.stageLv, hero: S.hero, talents: S.talents,
+    carry: R.carry || undefined, level: S.level, heroLv: S.heroLv, stageLv: S.stageLv, hero: S.hero, talents: S.talents, setFx: S.setFx,
   });
   B.F = F;
   ui.itemArmed = null; ui.talArmed = null; itemPress = null; slotPress = null; auxPress = null;
@@ -571,6 +571,7 @@ function frame(now: number): void {
     S.coach = o.coach || null;
     S.hero = o.hero && HERO_KEYS.includes(o.hero) ? o.hero : 'priest';
     S.talents = Array.isArray(o.talents) ? o.talents.slice() : undefined;
+    S.setFx = o.setFx ? { ...o.setFx } : undefined;
     applyLayout();
     resetRun();
     Snd.init();

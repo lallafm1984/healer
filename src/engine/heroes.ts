@@ -6,7 +6,7 @@ import { HEROES, type HeroKey } from '../data/heroes';
 import { BARK, BEACON, HAND_GUARD, REBIRTH, SANCTUARY } from '../data/heroConst';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
-import { cellOf, emit, heal, living, onDebuffEnd } from './core';
+import { aoeMana, cellOf, emit, heal, living, onDebuffEnd } from './core';
 import { reviveUnit } from './items';
 import type { Fight, Hot, Unit } from './types';
 
@@ -21,7 +21,8 @@ export function putHot(u: Unit, key: SkillKey, o: { sec: number; every: number; 
   const amts = o.amts;
   const n = Math.round(o.sec / o.every);
   const per = amts ? 0 : (o.total || 0) / n;
-  const h: Hot = { key, name: SKILLS[key].name, left: o.sec, tick: o.every, every: o.every, per, amts, i: 0, rest: amts ? amts.reduce((a, b) => a + b, 0) : o.total || 0 };
+  const sum = amts ? amts.reduce((a, b) => a + b, 0) : o.total || 0;
+  const h: Hot = { key, name: SKILLS[key].name, left: o.sec, tick: o.every, every: o.every, per, amts, i: 0, rest: sum, sum };
   u.hots = u.hots.filter(x => x.key !== key);
   u.hots.push(h);
   return h;
@@ -87,7 +88,9 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
     else if (u.hot > 0) { const rest = Math.ceil(u.hot / 3) * 80; u.hot = 0; heroHeal(f, u, rest * 1.5); }
     emit(f, { type: 'sound', name: 'bell' });
   } else if (key === 'wildflower') {
-    for (const v of around(f, u)) putHot(v, 'wildflower', { sec: 7, every: 2, amts: [70, 45, 30, 15] });
+    const vs = around(f, u), m = 1 + f.fx.aoeHeal;
+    for (const v of vs) putHot(v, 'wildflower', { sec: 7, every: 2, amts: [70 * m, 45 * m, 30 * m, 15 * m] });
+    aoeMana(f, vs.length);
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'natureCleanse') {
     doDispel(f, u);
@@ -116,7 +119,9 @@ function paladin(f: Fight, key: SkillKey, u: Unit): void {
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'lightWave') {
     f.power3 = 0;
-    for (const v of around(f, u)) heroHeal(f, v, sk.amt!);
+    const vs = around(f, u);
+    for (const v of vs) heroHeal(f, v, sk.amt! * (1 + f.fx.aoeHeal));
+    aoeMana(f, vs.length);
     if (heroPassive(f, '헌신')) f.mana = Math.min(100, f.mana + 2);
     emit(f, { type: 'sound', name: 'bell' });
   } else if (key === 'handCleanse') {

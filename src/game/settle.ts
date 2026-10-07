@@ -4,7 +4,8 @@
 import { ALL_DIFFS, contentOf, raidSize, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HEROES, type HeroKey } from '../data/heroes';
-import { rollItem, type GearItem } from '../data/equipment';
+import { clearMats, rollItem, type GearItem } from '../data/equipment';
+import { setOf } from '../data/sets';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
 import { addXp, clearGold, clearXp, gradeOf, starsOf, type Grade } from '../data/progression';
@@ -50,6 +51,8 @@ export interface Settlement {
   levelBefore: number;
   levelUps: number[];
   item: GearItem | null;
+  /** 받은 강화 재료 (12 1장) */
+  mats: { stone: number; refined: number };
   /** 이 콘텐츠·난이도 첫 클리어 */
   first: boolean;
   /** 최고 기록 경신 */
@@ -87,9 +90,11 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number): Sett
   const levelUps = addXp(p, xp);
 
   let item: GearItem | null = null;
+  const mats = r.win ? clearMats(r.diff, raid) : { stone: 0, refined: 0 };
   if (r.win) {
-    item = rollItem(rng, r.diff, grade!, levelBefore, save.nextId++);
+    item = rollItem(rng, r.diff, grade!, levelBefore, save.nextId++, setOf(c.key));
     save.gear.bag.push(item);
+    save.mats.stone += mats.stone; save.mats.refined += mats.refined;
   }
 
   let first = false, best = false;
@@ -115,6 +120,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number): Sett
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    gold, xp, levelBefore, levelUps, item, first, best, heroQuest,
+    gold, xp, levelBefore, levelUps, item, mats, first, best, heroQuest,
   };
 }
