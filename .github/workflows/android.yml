@@ -1,11 +1,20 @@
 # Android 시험용 APK (고정 디버그 키 서명 → 새 빌드를 덮어 설치해도 저장이 남음). main에 푸시되거나 Actions 탭에서 직접 실행하면 만들어지고,
-# 실행 결과 페이지의 Artifacts에서 healer-debug-apk를 내려받아 폰에 설치한다.
+# 「개발판」 릴리스(태그 dev)에 같은 이름으로 덮어 올린다 (Lim 2026-10-07: 공개 링크로). 폰에서 이 주소를 누르면 바로 받아 설치:
+#   https://github.com/lallafm1984/healer/releases/download/dev/healer-dev.apk
 name: Android APK
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: write
+
+# 두 빌드가 동시에 같은 릴리스 파일을 덮어쓰지 않게
+concurrency:
+  group: android-apk
+  cancel-in-progress: false
 
 jobs:
   apk:
@@ -32,3 +41,19 @@ jobs:
           name: healer-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+      - name: Publish to 개발판 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk healer-dev.apk
+          URL="https://github.com/${{ github.repository }}/releases/download/dev/healer-dev.apk"
+          NOTES="빌드 ${{ github.run_number }} (0.1.${{ github.run_number }}) · 커밋 ${GITHUB_SHA::7} · $(TZ=Asia/Seoul date '+%m-%d %H:%M') 한국 시간
+
+          폰에서 받기: $URL
+          처음 한 번은 「알 수 없는 앱 설치」를 허용해야 해요. 빌드 4부터는 덮어 설치돼서 저장이 남아요."
+          if gh release view dev >/dev/null 2>&1; then
+            gh release edit dev --title "개발판 (빌드 ${{ github.run_number }})" --notes "$NOTES"
+          else
+            gh release create dev --prerelease --target "$GITHUB_SHA" --title "개발판 (빌드 ${{ github.run_number }})" --notes "$NOTES"
+          fi
+          gh release upload dev healer-dev.apk --clobber
