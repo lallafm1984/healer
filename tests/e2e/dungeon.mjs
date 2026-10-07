@@ -16,13 +16,13 @@ export default async function dungeon(url, shots) {
   await page.goto(url);
   await page.clock.runFor(300);
 
-  // ---- 설정: Lv 1에선 안 배운 스킬 잠금 표시 ----
+  // ---- 캐릭터 → 스킬: Lv 1에선 안 배운 스킬 잠금 표시 ----
   await pastTitle(page);
-  await page.click('#s-lobby .tb-set'); await page.clock.runFor(100);
-  ok(await page.isDisabled('#s-settings [data-set="tapKey"][data-val="renew"]') && await page.isEnabled('#s-settings [data-set="tapKey"][data-val="flash"]'), '설정 Lv 1: 칸 탭 「소생」 잠금, 「순간 치유」는 고를 수 있음');
-  ok((await page.locator('#s-settings .lslot.locked').count()) === 5, '설정 Lv 1: 스킬 배치 5칸 잠금 표시');
-  await page.screenshot({ path: `${shots}/settings_lv1.png` });
-  await page.click('#s-settings .tb-back'); await page.clock.runFor(100);
+  await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
+  await page.click('#s-char [data-csub="skill"]'); await page.clock.runFor(50);
+  ok(await page.isDisabled('#s-char [data-tap="renew"]') && await page.isEnabled('#s-char [data-tap="flash"]'), '캐릭터 Lv 1: 칸 탭 「소생」 잠금, 「순간 치유」는 고를 수 있음');
+  ok((await page.locator('#s-char .lslot.locked').count()) === 5, '캐릭터 Lv 1: 스킬 휠 5칸 잠금 표시');
+  await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
 
   // ---- 콘텐츠 선택 ----
   await page.click('#lobbyStart'); await page.clock.runFor(100);

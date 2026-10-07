@@ -2,6 +2,7 @@
 import type { ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { SLOTS, type GearItem } from '../data/equipment';
+import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots } from '../data/progression';
 import { load, newSave, save, type SaveData } from '../platform/storage';
 
@@ -26,6 +27,17 @@ export function lockOf(c: ContentDef, d?: DiffName): { lv: number; locked: boole
 export function itemsNow() {
   const n = itemSlots(G.save.player.level);
   return { slots: n, items: G.save.items.slice(0, n) };
+}
+
+/** 단축칸에 아이템 넣기/빼기 (편성·캐릭터 화면). 칸이 다 찼으면 안내 문구를 돌려줌 */
+export function toggleItem(k: ItemKey): string {
+  const { slots, items } = itemsNow();
+  let msg = '';
+  if (items.includes(k)) G.save.items = items.filter(x => x !== k);
+  else if (items.length >= slots) msg = `단축칸 ${slots}칸이 다 찼어요. 뺄 아이템을 먼저 누르세요.`;
+  else G.save.items = (Object.keys(ITEMS) as ItemKey[]).filter(x => x === k || items.includes(x));
+  commit();
+  return msg;
 }
 
 /** 가방의 장비를 착용. 원래 끼던 것은 가방으로 */

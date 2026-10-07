@@ -9,7 +9,7 @@ import './screens/content';
 import './screens/entry';
 import './screens/party';
 import './screens/result';
-import './screens/gear';
+import './screens/character';
 import './screens/tutorial';
 import { enterFullscreen } from './platform/fullscreen';
 import { commit } from './game/state';

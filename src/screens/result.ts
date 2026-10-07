@@ -93,7 +93,7 @@ function renderReward(): void {
       <p class="note center">장비 강화·분해·세트 효과는 P2에서 만들어요.</p>
     </div>
     <footer class="ns-foot row3">
-      ${canEquip ? `<button class="btn${tip && r.content === 'plateau' ? ' hi-pulse' : ''}" type="button" id="equipNow">장착</button>` : '<button class="btn" type="button" data-go="s-gear">장비 보기</button>'}
+      ${canEquip ? `<button class="btn${tip && r.content === 'plateau' ? ' hi-pulse' : ''}" type="button" id="equipNow">장착</button>` : '<button class="btn" type="button" data-go="s-char">장비 보기</button>'}
       <button class="btn" type="button" id="again">다시 도전</button>
       <button class="btn primary" type="button" data-go="s-lobby">로비</button>
     </footer>`;

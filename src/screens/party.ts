@@ -9,7 +9,7 @@ import { GUILD_LEVEL } from '../data/progression';
 import { create, recruitParty } from '../engine';
 import { Flow, newSeed, rerollCost } from '../game/flow';
 import { settle } from '../game/settle';
-import { commit, G, healerLevel, itemsNow } from '../game/state';
+import { commit, G, healerLevel, itemsNow, toggleItem } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { battle, esc, fmt, go, ROLE, screen, topBar } from './kit';
 
@@ -82,12 +82,8 @@ s.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
   const it = t.closest<HTMLElement>('[data-item]');
   if (it) {
-    const k = it.dataset.item as ItemKey;
-    const { slots, items } = itemsNow();
-    if (items.includes(k)) G.save.items = items.filter(x => x !== k);
-    else if (items.length >= slots) msg = `단축칸 ${slots}칸이 다 찼어요. 뺄 아이템을 먼저 누르세요.`;
-    else G.save.items = (Object.keys(ITEMS) as ItemKey[]).filter(x => x === k || items.includes(x));
-    commit(); render(); return;
+    msg = toggleItem(it.dataset.item as ItemKey);
+    render(); return;
   }
   if (t.closest('#reroll')) {
     const cost = rerollCost(Flow.rerolls);
