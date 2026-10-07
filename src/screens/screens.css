@@ -80,6 +80,12 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .kv div { display: flex; flex-direction: column; }
 .kv dt { color: var(--mute); font-size: 11px; }
 .kv dd { margin: 0; font-size: 14px; }
+.kv .dispel { grid-column: 1 / -1; }
+.kv .dispel dd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.kv dt small { color: var(--mute); font-size: 11px; margin-left: 4px; }
+.dbt { font-size: 13px; padding: 1px 8px; border-radius: 999px; border: 1.5px solid var(--c); color: var(--ink); }
+.dbt.no { border-style: dashed; color: #FF9F8A; }
+.btn.mini { min-height: 30px; padding: 3px 10px; font-size: 13px; margin-left: auto; }
 .segs { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; counter-reset: seg; }
 .segs li { counter-increment: seg; background: var(--panel); border: 2px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 13px; }
 .segs li::before { content: counter(seg) '. '; color: var(--mute); }
@@ -217,6 +223,32 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .cstats div { background: #15162A; border-radius: 10px; padding: 6px 2px; text-align: center; }
 .cstats dt { color: var(--mute); font-size: 10px; }
 .cstats dd { margin: 2px 0 0; font-family: var(--font-display); font-size: 15px; color: var(--ink); }
+.chero > .btn { min-height: 40px; font-size: 15px; }
+.chero > .btn small { font-family: var(--font-body); font-size: 11px; color: var(--mute); }
+/* 해제 가능 디버프 점 (25): 켜짐 = 그 직업이 지울 수 있음 */
+.ddots { display: inline-flex; gap: 3px; vertical-align: middle; }
+.ddot { width: 17px; height: 17px; border-radius: 50%; display: inline-grid; place-items: center; font-style: normal; font-size: 10px; line-height: 1; color: #10111F; background: var(--c); border: 1.5px solid rgba(255, 255, 255, 0.35); }
+.ddot.off { background: transparent; color: var(--mute); border: 1.5px dashed #3A3D5E; opacity: 0.7; }
+/* 직업 목록 */
+.hcard { background: var(--panel); border: 2px solid var(--line); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.hcard.now { border-color: var(--gold-hi); box-shadow: 0 0 0 2px rgba(240, 196, 106, 0.3); }
+.hcard.locked { border-style: dashed; border-color: #2E3050; }
+.hcard.locked .hc-top b, .hcard.locked .hc-line, .hcard.locked .hc-sys { opacity: 0.6; }
+.hcard p { margin: 0; }
+.hc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.hc-top > div { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.hc-top b { font-family: var(--font-display); font-weight: 400; font-size: 20px; color: var(--gold-hi); }
+.hc-top small { color: var(--mute); font-size: 12px; }
+.hc-line { font-size: 14px; word-break: keep-all; }
+.hc-sys { font-size: 13px; line-height: 1.45; color: #C9CCE6; word-break: keep-all; }
+.hc-sys b { color: #A9D8D2; font-weight: 700; }
+.hc-sys em { font-style: normal; font-size: 11px; color: var(--mute); margin: 0 4px; }
+.hq { font-size: 13px; color: #F2C14E; background: #2A2416; border-radius: 10px; padding: 6px 10px; word-break: keep-all; }
+.hq b { color: var(--gold-hi); white-space: nowrap; }
+.hcard .btn.primary { min-height: 42px; font-size: 16px; }
+.hcard details summary { cursor: pointer; color: var(--mute); font-size: 13px; padding: 2px 0; }
+.hc-skills { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.hc-skills .skc { padding: 8px 10px 8px 8px; }
 
 .cwheel .lwrap { align-items: flex-start; }
 .cwheel .lside { flex: 1; gap: 8px; align-items: stretch; padding-top: 2px; }

@@ -1,10 +1,12 @@
 /** 게임 진행 상태 (기기 저장 한 덩어리) + 화면들이 같이 쓰는 규칙 */
 import type { ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
+import { HERO_SWITCH_LV, HEROES, type HeroKey } from '../data/heroes';
 import { SLOTS, type GearItem } from '../data/equipment';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots } from '../data/progression';
-import { load, newSave, save, type SaveData } from '../platform/storage';
+import { heroSaveOf, load, newSave, save, type HeroSave, type SaveData } from '../platform/storage';
+import { TUT } from './tutorial';
 
 export const G: { save: SaveData } = { save: load() };
 
@@ -55,3 +57,47 @@ export function equip(id: number): GearItem | null {
 }
 
 export const emptySlots = () => SLOTS.filter(s => !G.save.gear.equipped[s.key]).length;
+
+// ---------- 힐러 직업 (25) ----------
+/** 그 직업의 저장 (없으면 기본: 기본 배치, 칸 탭 = 기본 힐 칸) */
+export const heroSave = (h: HeroKey): HeroSave => heroSaveOf(G.save, h);
+
+/** 전투에 쓸 직업: 튜토리얼은 사제로만 (25 4-1) */
+export const heroNow = (): HeroKey => (G.save.tut < TUT.done ? 'priest' : G.save.hero);
+
+/** 직업 바꾸기가 열렸는지 (Lv 10, 튜토리얼 뒤). dev = 개발 빌드 잠금 무시로 열림 */
+export function switchOpen(): { ok: boolean; dev: boolean; why: string } {
+  if (G.save.tut < TUT.done) return { ok: false, dev: false, why: '튜토리얼을 마치면 열림' };
+  const under = G.save.player.level < HERO_SWITCH_LV;
+  if (under && !G.save.settings.devUnlock) return { ok: false, dev: false, why: `Lv ${HERO_SWITCH_LV}에 열림` };
+  return { ok: true, dev: under, why: '' };
+}
+
+/**
+ * 직업 상태: now = 지금 직업 · open = 해금 · quest = 직업 퀘스트 중 (그 직업으로 해야 해서 고를 수 있음) · locked = 레벨 미달.
+ * 개발 빌드 「레벨 잠금 무시」면 레벨 미달 직업도 퀘스트 상태로 열림 (dev)
+ */
+export function heroStatus(h: HeroKey): { state: 'now' | 'open' | 'quest' | 'locked'; dev: boolean; quest: number; need: number } {
+  const def = HEROES[h], hs = heroSave(h), q = def.unlock.quest;
+  const info = { quest: hs.quest, need: q ? q.need : 0 };
+  const under = G.save.player.level < def.unlock.lv;
+  const unlocked = hs.unlocked || !q;
+  const dev = !unlocked && under && G.save.settings.devUnlock;
+  if (h === G.save.hero) return { state: 'now', dev, ...info };
+  if (unlocked && !under) return { state: 'open', dev: false, ...info };
+  if (!under || dev) return { state: unlocked ? 'open' : 'quest', dev, ...info };
+  return { state: 'locked', dev: false, ...info };
+}
+
+/** 직업 바꾸기: 지금 직업의 휠 배치·칸 탭을 넣어 두고 새 직업 것을 꺼냄 */
+export function switchHero(h: HeroKey): boolean {
+  if (h === G.save.hero || !switchOpen().ok) return false;
+  const st = heroStatus(h).state;
+  if (st === 'locked') return false;
+  const cur = heroSave(G.save.hero), next = heroSave(h), set = G.save.settings;
+  cur.layout = set.layout; cur.tapKey = set.tapKey;
+  set.layout = next.layout; set.tapKey = next.tapKey;
+  G.save.hero = h;
+  commit();
+  return true;
+}

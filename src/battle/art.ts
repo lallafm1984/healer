@@ -14,7 +14,7 @@ export const ITEM_ICON: Record<ItemKey, string> = {
 // 보스 궁합 힌트 (19 9장 등록)
 export const ITEM_HINT: Record<string, string> = {
   warden: '💡 녹슨 문지기는 탱커 강타가 셈. 보호 두루마리를 강타 직전 탱커에게 걸면 버티기 쉬움',
-  plague: '💡 역병 군주의 독침은 사제가 못 지움. 해제 두루마리로는 지울 수 있음',
+  plague: '💡 역병 군주의 독침은 사제가 못 지움 (드루이드·성기사는 지움). 해제 두루마리로도 지울 수 있음',
 };
 
 // 보스 그림 (임시)

@@ -5,6 +5,7 @@ import type { Encounter, EncounterKey } from '../data/encounters';
 import type { GearId, GearStats } from '../data/gear';
 import type { ItemKey } from '../data/items';
 import type { Personality, PersName } from '../data/personalities';
+import type { HeroKey } from '../data/heroes';
 import type { SkillKey } from '../data/skills';
 import type { TraitKey } from '../data/traits';
 
@@ -33,6 +34,24 @@ export interface Debuff {
   dot?: number;
   /** 지우면 터지는 함정 디버프 */
   trap?: boolean;
+}
+
+/**
+ * 지속 힐 (드루이드 새싹·들꽃, 성기사 빛의 서약). 사제 소생은 u.hot 그대로 (프로토타입 일치).
+ * amts가 있으면 틱마다 그 값, 없으면 per. boost = 나무껍질 같은 배율
+ */
+export interface Hot {
+  key: SkillKey;
+  name: string;
+  left: number;
+  /** 다음 틱까지 남은 시간 */
+  tick: number;
+  every: number;
+  per: number;
+  amts?: number[];
+  i: number;
+  /** 남은 회복량 (피워 내기용) */
+  rest: number;
 }
 
 /** 직접 힐 뒤 4초간 이어지는 잔향 회복 */
@@ -84,6 +103,15 @@ export interface Unit {
   home: number;
   hot: number;
   hotTick: number;
+  /** 지속 힐 (사제 밖 직업) */
+  hots: Hot[];
+  /** 받는 피해 감소: 남은 시간과 감소율 (나무껍질·성역) */
+  redu: number;
+  reduCut: number;
+  /** 희생: 이 사람이 받는 피해의 일부를 내가 대신 (남은 시간) */
+  sacr: number;
+  /** 보호의 손: 물리 피해 무시 (남은 시간). 그동안 딜 0 */
+  immune: number;
   echo: Echo[];
   guardian: number;
   shield: number;
@@ -171,6 +199,7 @@ export type FightEvent =
   | { type: 'impact'; kind?: TelKind }
   | { type: 'dispel'; id: number; trap?: boolean; item?: boolean }
   | { type: 'gauge'; which: string }
+  | { type: 'beacon'; id: number }
   | { type: 'revive'; id: number }
   | { type: 'item'; key: ItemKey; note: string }
   /** 파티원 공격 한 방 (uid = 때린 파티원) */
@@ -196,6 +225,8 @@ export interface FightConfig {
   carry?: Carry;
   /** 힐러 레벨: 이 레벨까지 배운 스킬·패시브만 씀 (06 7장). 없으면 전부 (시뮬·옛 테스트) */
   level?: number;
+  /** 힐러 직업 (25). 없으면 사제 */
+  hero?: HeroKey;
   /** 실제 힐러 레벨: 힐량·체력 배율 (lvPower). 단계보다 낮으면 단계로 봄. 없으면 단계와 같음 */
   heroLv?: number;
   /** 콘텐츠 단계 레벨: 파티원·적 체력·피해·딜 배율. 없으면 1 (배율 1) */
@@ -285,6 +316,18 @@ export interface Fight {
   symbol: number;
   /** 힐러 레벨 (스킬·패시브 해금) */
   level: number;
+  /** 힐러 직업 (25) */
+  hero: HeroKey;
+  /** 성기사 신성한 힘 (0~3) */
+  power3: number;
+  /** 성기사 봉화 대상 id */
+  beacon: number | null;
+  /** 성기사 봉화를 바꾼 뒤 남은 대기 */
+  beaconCd: number;
+  /** 드루이드 환생을 썼는지 (전투당 1회) */
+  rebirthUsed: boolean;
+  /** 성기사 빛의 성역: 칸과 끝나는 시각 */
+  sanctuary: { cells: Set<number>; end: number } | null;
   skills: BossSkill[];
   tels: Telegraph[];
   zones: Zone[];

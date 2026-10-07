@@ -1,5 +1,5 @@
 /** S21 설정 (09). 바꾸면 바로 저장하고 전투 화면에도 넘김. 칸 탭 기본 힐·스킬 배치(S17)는 캐릭터 → 스킬로 옮김 */
-import { commit, G, resetSave } from '../game/state';
+import { commit, G, heroNow, resetSave } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { battle, go, previous, screen, topBar } from './kit';
 
@@ -17,7 +17,7 @@ const s = screen('s-settings', '설정', {
 /** 지금 설정을 전투 화면에 넘김 (처음 켤 때도). 전투 중 일시정지에서 바꾼 것은 받아서 저장 */
 export function pushSettings(): void {
   const b = battle();
-  b.settings(G.save.settings);
+  b.settings({ ...G.save.settings, hero: heroNow() });
   b.onSetting = (k, v) => { (G.save.settings as unknown as Record<string, unknown>)[k] = v; commit(); };
 }
 

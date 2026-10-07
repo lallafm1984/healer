@@ -5,20 +5,21 @@
 import type { DiffName } from '../data/difficulty';
 import { REST_MANA_PER_SEC } from '../data/dungeons';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
+import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { ITEMS, type ItemKey } from '../data/items';
 import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
-import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, slotKey, step, use, useItem, type Fight, type FightStats } from '../engine';
+import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, setBeacon, slotKey, step, use, useItem, type Fight, type FightStats } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON } from './art';
 import { addBubble, boardRenderer, center, fxDeath, fxDispel, fxHeal, fxRevive, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
-  swipeDir, TAP_KEYS, tapKey, toast, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
+  swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
 } from './core';
 import { guideHtml, guideModel } from './guide';
 import {
-  bossTitle, buildItems, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTip, showPreview, tipMatch,
+  bossTitle, buildGauges, buildItems, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTip, showPreview, tipMatch,
   resetDmgNums, updateCastbar, updateItems, updateStage, updateWheel,
 } from './hud';
 
@@ -40,7 +41,7 @@ function startBattle(guideSec = 0): void {
   const sd = R.seed0 != null ? R.seed0 : seed(); R.seed0 = null;
   const F = create({
     encounter: curKey(), diff: S.diff as DiffName, gearStats: S.gearStats || undefined, seed: sd, party: S.party || undefined, items: S.items,
-    carry: R.carry || undefined, level: S.level, heroLv: S.heroLv, stageLv: S.stageLv,
+    carry: R.carry || undefined, level: S.level, heroLv: S.heroLv, stageLv: S.stageLv, hero: S.hero,
   });
   B.F = F;
   ui.itemArmed = null; itemPress = null; slotPress = null;
@@ -48,7 +49,7 @@ function startBattle(guideSec = 0): void {
   // 전투 시작 카운트다운 3초 (19 4장 6번). 자동 힐러 구경은 바로 시작
   ui.pullLeft = S.auto ? 0 : 3; ui.pullShown = null;
   $('pull').hidden = !(ui.pullLeft > 0);
-  B.armed = null; B.paused = false; B.overShown = false;
+  B.armed = null; B.paused = false; B.overShown = false; B.beacon = false;
   Object.assign(ui, {
     guideSec, skillTips: 0, lowFlags: {}, tickSec: null, busterHint: false, swipes: {}, swipeCancel: 0, swipeEmpty: 0,
     vibedTel: new Set(), debSnd: {}, tapOff: [], lastTap: null, retarget: 0, pointer: null,
@@ -66,9 +67,12 @@ function startBattle(guideSec = 0): void {
   layoutBattle();
   if (S.auto) toast('자동 힐러가 플레이 중 (기록 안 남김)');
   else if (R.idx === 0) toast(`칸을 탭하면 ${SKILLS[tapKey()].name}`);
-  const words = knowsPassive(F, 'words');
+  // 사제 성언 게이지는 Lv 6부터. 다른 직업은 고유 시스템 글자·링을 처음부터 (25 7장)
+  const words = F.hero !== 'priest' || knowsPassive(F, 'words');
+  buildGauges(F);
   $('gauges').classList.toggle('locked', !words);
   $('controls').classList.toggle('nowords', !words);
+  $('controls').classList.toggle('paladin', F.hero === 'paladin');
 }
 
 function layoutBattle(): void {
@@ -85,17 +89,18 @@ window.addEventListener('resize', () => { if (B.F && !$('battle').hidden) layout
 
 // ---------- 스킬 휠: 짧게 누르기 = 장전(또는 바로 사용), 잠긴 칸은 배우는 레벨 안내. 길게 누르기 = 스킬 설명 ----------
 interface Press { el: HTMLElement; lp: boolean; timer?: ReturnType<typeof setTimeout> }
-let slotPress: (Press & { slot: SkillKey | null; lock: SkillKey | null }) | null = null;
+let slotPress: (Press & { slot: string | null; lock: SkillKey | null }) | null = null;
 let itemPress: (Press & { key: ItemKey }) | null = null;
 const live = () => !!B.F && !B.F.over && !B.paused;
 
 $('wheel').addEventListener('pointerdown', ev => {
+  if ((ev.target as Element).closest('#core')) { ev.preventDefault(); pressCore(); return; }
   const el = (ev.target as Element).closest<HTMLElement>('.slot[data-slot], .slot[data-lock]');
   if (!el) return;
   ev.preventDefault();
   if (!live()) return;
   try { el.setPointerCapture(ev.pointerId); } catch { /* 무시 */ }
-  const P: typeof slotPress = { el, slot: (el.dataset.slot as SkillKey) || null, lock: (el.dataset.lock as SkillKey) || null, lp: false };
+  const P: typeof slotPress = { el, slot: el.dataset.slot || null, lock: (el.dataset.lock as SkillKey) || null, lp: false };
   P.timer = setTimeout(() => {
     if (slotPress !== P || !B.F) return;
     P.lp = true; openSkillTip(P.slot ? slotKey(B.F, P.slot) : P.lock!, el); vibe(10);
@@ -114,10 +119,22 @@ $('wheel').addEventListener('pointerup', () => endSlot(false));
 $('wheel').addEventListener('pointercancel', () => endSlot(true));
 $('wheel').addEventListener('contextmenu', e => e.preventDefault());
 
-function pressSlot(slot: SkillKey): void {
+/** 휠 가운데: 성기사는 봉화 지정 (누르고 칸 탭, 25 3장). 다른 직업은 아무 일 없음 */
+function pressCore(): void {
+  const F = B.F;
+  if (!F || !live() || ui.pullLeft > 0 || F.hero !== 'paladin') return;
+  const lv = HEROES.paladin.system.lv;
+  if (F.level < lv) { toast(`봉화: Lv ${lv}에 배움`); Snd.play('error'); return; }
+  if (F.beaconCd > 0) { toast(`봉화 바꾸기 대기 ${Math.ceil(F.beaconCd)}초`); Snd.play('error'); return; }
+  B.beacon = !B.beacon; B.armed = null; ui.itemArmed = null;
+  if (B.beacon) toast('봉화: 지킬 파티원 칸 선택');
+  vibe(8);
+}
+
+function pressSlot(slot: string): void {
   const F = B.F;
   if (!F || !live() || ui.pullLeft > 0) return;
-  ui.itemArmed = null;
+  ui.itemArmed = null; B.beacon = false;
   const key = slotKey(F, slot);
   if (SKILLS[key].target === 'none') { doUse(key, 0); return; }
   B.armed = B.armed === slot ? null : slot;
@@ -150,7 +167,7 @@ function pressItem(key: ItemKey): void {
   if (it.target === 'ally') {
     const r = itemReady(F, key);
     if (!r.ok) { if (r.reason) toast(r.reason); Snd.play('error'); return; }
-    ui.itemArmed = ui.itemArmed === key ? null : key; B.armed = null;
+    ui.itemArmed = ui.itemArmed === key ? null : key; B.armed = null; B.beacon = false;
     if (ui.itemArmed) toast(`${it.name}: 지킬 파티원 칸 선택`);
     vibe(8); return;
   }
@@ -213,6 +230,13 @@ function endPointer(cancelled: boolean): void {
   const F = B.F;
   if (cancelled || !F || !live()) return;
   F.stats.taps++;
+  if (B.beacon) { // 봉화 지정 중: 칸 탭 = 그 파티원
+    const u = P.idx >= 0 ? F.cells[P.idx].unit : null;
+    if (!u || !u.alive) { F.stats.emptyTaps++; return; }
+    B.beacon = false;
+    if (!setBeacon(F, u)) { Snd.play('error'); return; }
+    Snd.play('bell'); vibe(12); return;
+  }
   if (ui.itemArmed) { // 보호 두루마리 장전 중: 칸 탭 = 그 파티원에게
     if (P.idx < 0 || !F.cells[P.idx].unit) { F.stats.emptyTaps++; return; }
     const res = useItem(F, ui.itemArmed, P.idx);
@@ -291,6 +315,7 @@ function handleEvents(now: number): void {
       case 'msg': toast(ev.text); break;
       case 'phase': banner(ev.text); if (ev.text === '광폭화') vibe([60, 80, 60, 80, 60], true); else vibe(200, true); break;
       case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`); break;
+      case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now); break; }
       case 'mobDown': toast(`${ev.name} 쓰러짐`); $('bossName').innerHTML = bossTitle(); break;
     }
   }
@@ -387,7 +412,7 @@ function tapAccuracy() {
 function runData(f: Fight) {
   const st = f.stats, tot = st.healed + st.overheal, R = S.run!;
   return {
-    at: new Date().toISOString(), encounter: f.enc.key, content: R.content, segment: R.idx,
+    at: new Date().toISOString(), encounter: f.enc.key, content: R.content, segment: R.idx, hero: f.hero,
     runSeconds: Math.round(R.time), restSeconds: Math.round(R.restSec), boss: f.enc.name, tier: f.enc.tier, diff: f.cfg.diff, gear: f.gear,
     result: f.over, reason: f.reason, seconds: Math.round(f.t), bossLeftPct: Math.ceil((f.bossHp / f.bossMax) * 100),
     deaths: st.deaths, partySize: f.party.length,
@@ -501,13 +526,16 @@ function frame(now: number): void {
     S.level = o.level || 100;
     S.heroLv = o.heroLv; S.stageLv = o.stageLv;
     S.coach = o.coach || null;
+    S.hero = o.hero && HERO_KEYS.includes(o.hero) ? o.hero : 'priest';
+    applyLayout();
     resetRun();
     Snd.init();
     startBattle(0);
   },
-  settings(s: { sound?: boolean; vibrate?: boolean; hand?: string; tapKey?: string; zoom?: boolean; auto?: boolean; layout?: unknown }) {
+  settings(s: { sound?: boolean; vibrate?: boolean; hand?: string; tapKey?: string; zoom?: boolean; auto?: boolean; layout?: unknown; hero?: string }) {
     S.sound = !!s.sound; S.vibe = !!s.vibrate; S.hand = s.hand === 'left' ? 'left' : 'right';
-    S.tapKey = (s.tapKey && TAP_KEYS[s.tapKey] ? s.tapKey : 'heal') as SkillKey;
+    S.tapKey = s.tapKey && TAP_KEYS[s.tapKey] ? s.tapKey : 'heal';
+    if (s.hero && HERO_KEYS.includes(s.hero as HeroKey)) S.hero = s.hero as HeroKey;
     S.zoom = s.zoom !== false; S.auto = !!s.auto;
     if (S.auto && S.run) S.run.auto = true;
     S.layout = validLayout(s.layout) ? { ...s.layout } : { ...DEFAULT_LAYOUT };
@@ -520,6 +548,7 @@ function frame(now: number): void {
   itemHint: (script: string) => ITEM_HINT[script] || '',
   layout: { GRID, ARROW, READ_ORDER, DEFAULT_LAYOUT, LAYOUT_SKILLS, valid: validLayout, label: layoutLabel, text: layoutText },
   tapKeys: TAP_KEYS,
+  tapKeysOf: (hero: string) => tapKeysOf(HERO_KEYS.includes(hero as HeroKey) ? (hero as HeroKey) : 'priest'),
   sound: (k: string) => { Snd.init(); Snd.play(k); },
 };
 void initBoard().catch(err => console.error('전투 판 준비 실패', err));

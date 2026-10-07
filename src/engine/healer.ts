@@ -1,27 +1,46 @@
-import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
+import { HEROES } from '../data/heroes';
+import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { hexDist } from './board';
 import { cellOf, DT, emit, heal, living, onDebuffEnd, unitById } from './core';
+import { heroApply, heroChannelTick, heroTick, hotCount } from './heroes';
+import { reviveTarget } from './items';
 import type { ActionResult, Fight, Unit } from './types';
 
 /** 이 레벨에서 배운 스킬·패시브인지 (06 7장) */
 export const knows = (f: Fight, key: SkillKey) => f.level >= SKILL_LEVEL[key];
-export const knowsPassive = (f: Fight, key: PassiveKey) => f.level >= PASSIVE_LEVEL[key];
+export const knowsPassive = (f: Fight, key: PassiveKey) => f.hero === 'priest' && f.level >= PASSIVE_LEVEL[key];
 
-/** 휠 자리 → 실제 스킬 (성언 게이지가 차면 치유 → 평온, 기원 → 신성화) */
-export function slotKey(f: Fight, slot: SkillKey): SkillKey {
-  if (slot === 'heal' && f.g.p >= 100) return 'serenity';
-  if (slot === 'poh' && f.g.s >= 100) return 'sanctify';
-  return slot;
+/**
+ * 휠 자리 → 실제 스킬. 휠 자리 이름은 사제 스킬 이름을 그대로 쓴다 (heal = 기본 힐 칸, poh = 광역 힐 칸 …, unique = 8번째 칸).
+ * 사제는 성언 게이지가 차면 치유 → 평온, 기원 → 신성화. 다른 직업은 그 칸의 직업 스킬 (25 2장)
+ */
+export const SLOT_OF: Record<string, SlotName> = { heal: 'basic', flash: 'fast', renew: 'hot', poh: 'aoe', purify: 'dispel', guardian: 'ext', hymn: 'raid', unique: 'unique' };
+export function slotKey(f: Fight, slot: string): SkillKey {
+  if (f.hero === 'priest') {
+    if (slot === 'heal' && f.g.p >= 100) return 'serenity';
+    if (slot === 'poh' && f.g.s >= 100) return 'sanctify';
+    return slot as SkillKey;
+  }
+  const s = SLOT_OF[slot];
+  return (s && HEROES[f.hero].slots[s]) || (slot as SkillKey);
 }
 
 export function canTarget(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
   const sk = SKILLS[key];
+  if (sk.power && f.power3 < (sk.powerAll ? 1 : sk.power)) return { ok: false, reason: `신성한 힘 부족 (${f.power3}/${sk.powerAll ? 1 : sk.power})` };
+  if (sk.target === 'dead') {
+    if (key === 'rebirth' && f.rebirthUsed) return { ok: false, reason: '환생은 전투당 1회' };
+    const u = reviveTarget(f);
+    return u ? { ok: true, u } : { ok: false, reason: '쓰러진 파티원 없음' };
+  }
   if (sk.target === 'none') return { ok: true };
   const c = f.cells[cellIdx];
   if (!c || !c.unit) return { ok: false, reason: '빈 칸' };
   const u = c.unit;
   if (!u.alive) return { ok: false, reason: `${u.nick}은(는) 쓰러짐` };
   if (key === 'purify' && !u.debuffs.some(d => DISPELLABLE[d.type])) return { ok: false, reason: '정화로 지울 디버프 없음' };
+  if (sk.slot === 'dispel' && f.hero !== 'priest' && !u.debuffs.some(d => HEROES[f.hero].dispel.includes(d.type))) return { ok: false, reason: `${sk.name}로 지울 디버프 없음` };
+  if (key === 'bloom' && !hotCount(u)) return { ok: false, reason: '거둘 지속 힐 없음' };
   return { ok: true, u };
 }
 
@@ -36,7 +55,7 @@ export function use(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
   if (f.mana < sk.cost) { f.stats.manaFails++; return { ok: false, reason: '마나 부족' }; }
   const uid = tg.u ? tg.u.id : null;
   if (f.cast && f.cast.uid === uid && f.cast.key === key) return { ok: true, same: true };
-  if (f.channel > 0) { f.channel = 0; f.stats.hymnBroken++; emit(f, { type: 'msg', text: '천상의 찬가 끊김' }); }
+  if (f.channel > 0) { f.channel = 0; f.stats.hymnBroken++; emit(f, { type: 'msg', text: `${SKILLS[HEROES[f.hero].slots.raid!].name} 끊김` }); }
   if (f.cast) { f.cast = null; f.stats.cancels++; f.gcd = 0; } // 시전을 취소하고 새 대상으로 바꿀 때는 GCD를 돌려준다 (02 4-2)
   if (f.gcd > 0) { f.queued = { key, uid }; return { ok: true, queued: true }; }
   exec(f, key, cellIdx, tg.u);
@@ -63,6 +82,7 @@ function exec(f: Fight, key: SkillKey, cellIdx: number, u: Unit | undefined): vo
 }
 
 function apply(f: Fight, key: SkillKey, u: Unit): void {
+  if (f.hero !== 'priest') { heroApply(f, key, u); return; }
   const sk = SKILLS[key];
   if (key === 'heal' || key === 'flash' || key === 'serenity') {
     heal(f, u, sk.amt! * (u.hot > 0 && key !== 'serenity' && knowsPassive(f, 'grace') ? 1.1 : 1), true);
@@ -112,15 +132,17 @@ export function healerTick(f: Fight): void {
   if (f.gcd > 0) f.gcd -= dt;
   if (f.channel > 0) {
     f.channel -= dt; f.chTick += dt;
-    if (f.chTick >= 1 - 1e-9) { f.chTick -= 1; for (const u of living(f)) heal(f, u, 120, true); }
+    if (f.chTick >= 1 - 1e-9) { f.chTick -= 1; if (f.hero === 'priest') { for (const u of living(f)) heal(f, u, 120, true); } else heroChannelTick(f); }
   }
+  if (f.hero !== 'priest') heroTick(f, dt);
   if (f.cast) {
     f.cast.left -= dt;
     if (f.cast.left <= 1e-9) {
       const c = f.cast; f.cast = null;
       const sk = SKILLS[c.key];
       const u = unitById(f, c.uid);
-      if (!u || !u.alive) emit(f, { type: 'msg', text: '대상이 쓰러져 시전 취소' });
+      if (sk.target === 'dead') { if (u && !u.alive && f.mana >= sk.cost) { f.mana -= sk.cost; apply(f, c.key, u); } else emit(f, { type: 'msg', text: `${sk.name} 취소` }); }
+      else if (!u || !u.alive) emit(f, { type: 'msg', text: '대상이 쓰러져 시전 취소' });
       else if (f.mana < sk.cost) { f.stats.manaFails++; emit(f, { type: 'msg', text: '마나 부족' }); }
       else { f.mana -= sk.cost; apply(f, c.key, u); }
     }
@@ -129,7 +151,7 @@ export function healerTick(f: Fight): void {
     const q = f.queued; f.queued = null;
     const sk = SKILLS[q.key];
     const tu = q.uid == null ? null : unitById(f, q.uid);
-    if (q.uid != null && (!tu || !tu.alive)) { f.stats.queueLost++; emit(f, { type: 'msg', text: '대상이 쓰러져 예약한 힐 취소' }); }
+    if (q.uid != null && (!tu || !tu.alive) && sk.target !== 'dead') { f.stats.queueLost++; emit(f, { type: 'msg', text: '대상이 쓰러져 예약한 힐 취소' }); }
     else {
       const idx = tu ? tu.cell : 0;
       const tg = canTarget(f, q.key, idx);

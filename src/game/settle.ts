@@ -1,14 +1,15 @@
 /**
  * 전투가 끝난 뒤 정산(09 S08)·보상(S09)을 계산하고 저장에 반영한다. 화면과 분리된 순수 계산 (난수는 받아서 씀).
  */
-import { contentOf, isRaid, type ContentKey } from '../data/content';
+import { ALL_DIFFS, contentOf, isRaid, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
+import { HEROES, type HeroKey } from '../data/heroes';
 import { rollItem, type GearItem } from '../data/equipment';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
 import { addXp, clearGold, clearXp, gradeOf, starsOf, type Grade } from '../data/progression';
-import type { SaveData } from '../platform/storage';
-import { advanceTutorial } from './tutorial';
+import { heroSaveOf, type SaveData } from '../platform/storage';
+import { advanceTutorial, TUT } from './tutorial';
 
 /** 전투 화면이 끝날 때 넘겨주는 결과 (던전이면 구간 전체 합) */
 export interface BattleResult {
@@ -53,6 +54,21 @@ export interface Settlement {
   first: boolean;
   /** 최고 기록 경신 */
   best: boolean;
+  /** 직업 퀘스트 진행 (25 5-4): 그 판으로 퀘스트가 오른 직업, 다 채우면 unlocked */
+  heroQuest: { hero: HeroKey; n: number; need: number; unlocked: boolean } | null;
+}
+
+/** 이긴 판을 지금 직업 기록에 더하고 (숙련도, 25 4-3), 직업 퀘스트 조건에 맞으면 한 칸 채움. 다 채우면 해금 */
+export function heroWin(save: SaveData, kind: string, content: string, diff: DiffName): Settlement['heroQuest'] {
+  if (save.tut < TUT.done) return null;
+  const h = save.hero, hs = heroSaveOf(save, h), q = HEROES[h].unlock.quest;
+  hs.wins++;
+  if (!q || hs.unlocked || kind !== 'dungeon') return null;
+  if (q.content && q.content !== content) return null;
+  if (q.minDiff && ALL_DIFFS.indexOf(diff) < ALL_DIFFS.indexOf(q.minDiff)) return null;
+  hs.quest = Math.min(q.need, hs.quest + 1);
+  if (hs.quest >= q.need) hs.unlocked = true;
+  return { hero: h, n: hs.quest, need: q.need, unlocked: hs.unlocked };
 }
 
 export function settle(save: SaveData, r: BattleResult, rng: () => number): Settlement {
@@ -90,12 +106,14 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number): Sett
     };
   }
 
+  const heroQuest = r.win ? heroWin(save, c.kind, c.key, r.diff) : null;
+
   // 파티원 한마디는 넣지 않음 (Lim: 결과 채팅 연출 뺌)
   if (!r.quit) save.last = { content: r.content, diff: r.diff, win: r.win, grade };
   advanceTutorial(save, r.content, r.win && !r.quit);
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    gold, xp, levelBefore, levelUps, item, first, best,
+    gold, xp, levelBefore, levelUps, item, first, best, heroQuest,
   };
 }

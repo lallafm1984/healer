@@ -22,6 +22,23 @@ export function reviveTarget(f: Fight): Unit | null {
   return pool.reduce((a, b) => ((b.diedAt || 0) > (a.diedAt || 0) ? b : a));
 }
 
+/** 쓰러진 파티원을 체력 pct로 일으킴 (부활 깃털·드루이드 환생). 원래 칸이 차 있으면 가까운 빈 칸 */
+export function reviveUnit(f: Fight, u: Unit, pct: number): boolean {
+  let c = f.cells[u.cell];
+  if (c.unit) {
+    const free = f.cells.filter(x => !x.unit && !dangerAt(f, x.i));
+    const any = free.length ? free : f.cells.filter(x => !x.unit);
+    if (!any.length) return false;
+    c = any.reduce((a, b) => (hexDist(b, f.cells[u.cell]) < hexDist(a, f.cells[u.cell]) ? b : a));
+  }
+  u.alive = true; u.max = u.base; u.hp = u.max * pct; u.cell = c.i; c.unit = u;
+  u.debuffs = []; u.moving = null; u.react = null; u.fleeing = false; u.sulking = false; u.retryAt = f.t + 1;
+  emit(f, { type: 'revive', id: u.id });
+  emit(f, { type: 'sound', name: 'bell' });
+  bark(f, u, '살았다…! 감사', true);
+  return true;
+}
+
 /** 소비 아이템 사용 (19 2부). cellIdx는 보호 두루마리만 씀 */
 export function useItem(f: Fight, key: ItemKey, cellIdx?: number): ActionResult {
   if (f.over) return { ok: false };
@@ -63,18 +80,7 @@ export function useItem(f: Fight, key: ItemKey, cellIdx?: number): ActionResult 
   } else if (key === 'feather') {
     const u = reviveTarget(f);
     if (!u) return { ok: false, reason: '쓰러진 파티원 없음' };
-    let c = f.cells[u.cell];
-    if (c.unit) {
-      const free = f.cells.filter(x => !x.unit && !dangerAt(f, x.i));
-      const any = free.length ? free : f.cells.filter(x => !x.unit);
-      if (!any.length) return { ok: false, reason: '되살릴 빈 칸 없음' };
-      c = any.reduce((a, b) => (hexDist(b, f.cells[u.cell]) < hexDist(a, f.cells[u.cell]) ? b : a));
-    }
-    u.alive = true; u.max = u.base; u.hp = u.max * 0.3; u.cell = c.i; c.unit = u;
-    u.debuffs = []; u.moving = null; u.react = null; u.fleeing = false; u.sulking = false; u.retryAt = f.t + 1;
-    emit(f, { type: 'revive', id: u.id });
-    emit(f, { type: 'sound', name: 'bell' });
-    bark(f, u, '살았다…! 감사', true);
+    if (!reviveUnit(f, u, 0.3)) return { ok: false, reason: '되살릴 빈 칸 없음' };
     note = u.nick;
   }
   f.items[key]!--;

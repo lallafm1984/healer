@@ -2,6 +2,7 @@
 import { contentOf } from '../data/content';
 import { GRADE_STYLE, slotName, type GearItem } from '../data/equipment';
 import { GRADE } from '../data/gear';
+import { HEROES } from '../data/heroes';
 import { lvPower, MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { Flow, newSeed } from '../game/flow';
 import { meterHtml } from '../game/meter';
@@ -73,6 +74,13 @@ function itemCard(it: GearItem): string {
   </div>`;
 }
 
+/** 직업 퀘스트 한 줄 (25 5-4) */
+function heroQuestLine(q: NonNullable<typeof Flow.settle>['heroQuest']): string {
+  if (!q) return '';
+  const h = HEROES[q.hero], name = h.unlock.quest!.name;
+  return `<p class="coachtip">직업 퀘스트 「${name}」 <b>${q.n} / ${q.need}</b>${q.unlocked ? ` · <b>${h.name} 해금!</b> 캐릭터 → 직업` : ''}</p>`;
+}
+
 function renderReward(): void {
   const x = Flow.settle!;
   const p = G.save.player;
@@ -91,6 +99,7 @@ function renderReward(): void {
         <div><dt>골드</dt><dd>🪙 +${fmt(x.gold)}</dd></div>
         <div><dt>경험치</dt><dd>+${fmt(x.xp)}${x.levelUps.length ? ` <em class="lvup">레벨 업! Lv ${x.levelBefore} → ${p.level}</em>` : ''}</dd></div>
       </dl>
+      ${heroQuestLine(x.heroQuest)}
       <div class="xpbar" aria-label="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100}%"></i><span>Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}</span></div>
       <p class="note center">장비 강화·분해·세트 효과는 P2에서 추가</p>
     </div>

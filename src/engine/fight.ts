@@ -3,6 +3,7 @@ import { CLASSES, RECRUIT_CLASSES, sameClassMax, type ClassKey } from '../data/c
 import { DIFFS, MYTHIC } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { gearStats } from '../data/gear';
+import { HEROES } from '../data/heroes';
 import { ITEMS } from '../data/items';
 import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
 import { lvPower } from '../data/progression';
@@ -40,6 +41,7 @@ export function create(cfg: FightConfig): Fight {
     mana: 100, gcd: 0, gcdBase: 1 / (1 + gear.haste), cast: null, channel: 0, chTick: 0, queued: null,
     cd: { purify: 0, guardian: 0, hymn: 0 },
     g: { p: 0, s: 0 }, symbolUsed: false, symbol: 0, level: cfg.level ?? 100,
+    hero: cfg.hero ?? 'priest', power3: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
     enraged: false, rats: [],
     items: {}, potCd: 0, medit: 0, itemLog: [],
@@ -52,6 +54,8 @@ export function create(cfg: FightConfig): Fight {
   if (cfg.carry) { f.mana = cfg.carry.mana; f.stats.minMana = f.mana; f.g = { ...cfg.carry.g }; }
   if (!knowsPassive(f, 'words')) f.g = { p: 0, s: 0 };
   makeParty(f, cfg.party);
+  // 성기사 봉화는 첫 탱커에게 걸고 시작 (휠 가운데로 바꿈, 25 3장)
+  if (f.hero === 'paladin' && f.level >= HEROES.paladin.system.lv) { const t = f.party.find(u => u.role === 'tank'); if (t) f.beacon = t.id; }
   initBoss(f);
   return f;
 }
@@ -116,7 +120,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     const dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult * f.scale;
     const u: Unit = {
       id: f.nextId++, role, cls: c ? c.key : null, aim: 0, flow: 0, traits: (traits || []).filter(k => TRAITS[k]), bulwark: 0, bulwarkUsed: false, acc: 0, dealt: 0, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
-      cell: -1, home: -1, hot: 0, hotTick: 0, echo: [], guardian: 0, shield: 0, debuffs: [], moving: null, react: null,
+      cell: -1, home: -1, hot: 0, hotTick: 0, hots: [], redu: 0, reduCut: 0, sacr: 0, immune: 0, echo: [], guardian: 0, shield: 0, debuffs: [], moving: null, react: null,
       retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0, thanks: 0, flash: 0,
       barkAt: -10, ignoreZone: 0, homeAt: null, diedAt: 0, me: role === 'healer',
     };

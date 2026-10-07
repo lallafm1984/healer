@@ -1,21 +1,22 @@
 /**
- * 캐릭터 탭 (Lim 2026-10-07): 내 사제 한 곳에 모음.
- * 장비(09 S10) · 스킬(설명, 휠 배치 09 S17, 칸 탭 기본 힐, 소비 아이템 단축칸) · 특성(06 6장, P1은 미리 보기)
+ * 캐릭터 탭 (Lim 2026-10-07): 내 힐러 한 곳에 모음.
+ * 장비(09 S10) · 스킬(설명, 휠 배치 09 S17, 칸 탭 기본 힐, 소비 아이템 단축칸) · 특성(06 6장, P1은 미리 보기) · 직업(25 7장: 직업 카드·목록·바꾸기)
  */
 import { GRADE_STYLE, gearStatsOf, gearSummary, ITEM_GRADES, itemScore, SLOTS, slotName, type GearItem } from '../data/equipment';
+import { canDispel, DEB_COLOR, HERO_KEYS, HERO_SWITCH_LV, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots, lvPower, TALENT_LEVEL } from '../data/progression';
 import { PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { TALENTS } from '../data/talents';
 import { castText, cdText, costText, skillTip, tipHtml } from '../game/tooltip';
 import type { TapKey } from '../platform/storage';
-import { commit, equip, G, healerLevel, itemsNow, toggleItem } from '../game/state';
+import { commit, equip, G, healerLevel, heroSave, heroStatus, itemsNow, switchHero, switchOpen, toggleItem } from '../game/state';
 import { bellSvg } from './art';
 import { battle, esc, fmt, josa, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 
-type Sub = 'gear' | 'skill' | 'talent';
-const SUBS: { key: Sub; name: string }[] = [{ key: 'gear', name: '장비' }, { key: 'skill', name: '스킬' }, { key: 'talent', name: '특성' }];
+type Sub = 'gear' | 'skill' | 'talent' | 'hero';
+const SUBS: { key: Sub; name: string }[] = [{ key: 'gear', name: '장비' }, { key: 'skill', name: '스킬' }, { key: 'talent', name: '특성' }, { key: 'hero', name: '직업' }];
 /** 힐러 기본 체력 (06 2장) */
 const HEALER_HP = 550;
 
@@ -40,24 +41,62 @@ export function layoutNow(): Record<string, string | null> {
   return L.valid(G.save.settings.layout) ? { ...G.save.settings.layout! } : { ...L.DEFAULT_LAYOUT };
 }
 
+/** 지금 직업 (화면 표시용) */
+const hero = (): HeroKey => G.save.hero;
+/** 휠 칸 이름 → 지금 직업의 스킬. 빈 방향은 8번째 칸 (고유 스킬이 있는 직업) */
+const skillOfDir = (lay: Record<string, string | null>, d: string): SkillKey | null => skillAt(hero(), lay[d] || 'unique');
+const dots = (h: HeroKey) => Object.keys(DEB_COLOR).map(t => `<i class="ddot${canDispel(h, t) ? '' : ' off'}" style="--c:${DEB_COLOR[t]}" title="${t}">${t[0]}</i>`).join('');
+const stars = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);
+
 function render(): void {
-  const body = sub === 'gear' ? gearHtml() : sub === 'skill' ? skillHtml() : talentHtml();
+  const body = sub === 'gear' ? gearHtml() : sub === 'skill' ? skillHtml() : sub === 'hero' ? heroListHtml() : talentHtml();
   s.el.innerHTML = `${topBar({ settings: true })}
     <nav class="subtabs" role="tablist">${SUBS.map(x => `<button type="button" role="tab" data-csub="${x.key}" aria-selected="${x.key === sub}">${x.name}</button>`).join('')}</nav>
     <div class="ns-body char char-${sub}">${sub === 'gear' ? heroHtml() : ''}${body}</div>`;
 }
 
-// ---------- 위: 내 사제 ----------
+// ---------- 위: 직업 카드 (25 7장) ----------
 function heroHtml(): string {
   const st = gearStatsOf(G.save.gear.equipped);
   const lp = lvPower(G.save.player.level);
+  const h = HEROES[hero()], open = switchOpen();
   const stat = (k: string, v: string) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
   return `<section class="chero">
       <div class="chero-top"><span class="chero-art">${bellSvg}</span>
-        <div><b>사제</b><small>정통 힐러 · 입문 ★☆☆ · 장비 ${esc(gearSummary(G.save.gear.equipped))}</small></div>
+        <div><b>${h.name}</b><small>${stars(h.star)} · 해제 <span class="ddots">${dots(h.key)}</span> · 장비 ${esc(gearSummary(G.save.gear.equipped))}</small></div>
         <span class="chero-lv">Lv<b>${G.save.player.level}</b></span></div>
       <dl class="cstats">${stat('체력', fmt(Math.round(HEALER_HP * lp)))}${stat('힐량', `×${(st.heal * lp).toFixed(2)}`)}${stat('치명타', `${Math.round(st.crit * 100)}%`)}${stat('가속', `${Math.round(st.haste * 100)}%`)}${stat('마나 재생', `×${st.regen.toFixed(2)}`)}</dl>
+      <button class="btn" type="button" data-csub="hero"${open.ok ? '' : ' disabled'}>직업 바꾸기${open.ok ? '' : ` <small>🔒 ${esc(open.why)}</small>`}</button>
     </section>`;
+}
+
+// ---------- 직업 목록 (25 7장): 카드마다 고유 시스템·해제·스킬, 해금 상태와 바꾸기 ----------
+function heroCard(k: HeroKey): string {
+  const h = HEROES[k], st = heroStatus(k), open = switchOpen(), q = h.unlock.quest, wins = heroSave(k).wins;
+  const questLine = q && st.need && st.state !== 'open' && !heroSave(k).unlocked ? `<p class="hq">직업 퀘스트 「${q.name}」: ${esc(q.text)} <b>${st.quest} / ${st.need}</b></p>` : '';
+  let foot = '';
+  if (st.state === 'now') foot = `<p class="note">지금 직업 · 이 직업으로 이긴 판 ${wins}</p>`;
+  else if (st.state === 'locked') foot = `<p class="note">🔒 ${esc(h.unlock.how)}</p>`;
+  else foot = `<button class="btn primary" type="button" data-hero="${k}"${open.ok ? '' : ' disabled'}>${st.state === 'quest' ? '바꾸고 퀘스트 하기' : '이 직업으로 바꾸기'}</button>${st.dev ? `<p class="note">Lv ${h.unlock.lv} 해금, 개발 빌드라 열림</p>` : ''}`;
+  const skills = heroSkills(k).map(sk => `<li><b>${SKILLS[sk].name}</b><em>${SKILL_INFO[sk].kind} · Lv ${SKILL_LEVEL[sk]}</em><p>${esc(SKILL_INFO[sk].desc)}</p></li>`).join('');
+  const pas = (k === 'priest' ? (Object.keys(PASSIVE_LEVEL) as PassiveKey[]).filter(x => x !== 'words').map(x => ({ name: PASSIVE_NAME[x], lv: PASSIVE_LEVEL[x], desc: PASSIVE_DESC[x] })) : h.passives)
+    .map(p => `<li><b>${p.name}</b><em>패시브 · Lv ${p.lv}</em><p>${esc(p.desc)}</p></li>`).join('');
+  return `<section class="hcard${st.state === 'now' ? ' now' : ''}${st.state === 'locked' ? ' locked' : ''}" data-hcard="${k}">
+      <div class="hc-top"><div><b>${h.name}</b><small>${stars(h.star)}</small></div><span class="ddots">${dots(k)}</span></div>
+      <p class="hc-line">${esc(h.line)}</p>
+      <p class="hc-sys"><b>${h.system.name}</b> <em>Lv ${h.system.lv}</em> ${esc(h.system.desc)}</p>
+      ${questLine}${foot}
+      <details><summary>스킬 ${heroSkills(k).length} · 패시브</summary><ul class="hc-skills">${skills}${pas}</ul></details>
+    </section>`;
+}
+
+function heroListHtml(): string {
+  const open = switchOpen();
+  return `<p class="note">${open.ok ? '전투 밖에서 언제든 무료로 바꿈. 레벨·장비·골드는 같이 쓰고, 휠 배치·칸 탭은 직업마다 따로' : `직업 바꾸기 🔒 ${esc(open.why)} (Lv ${HERO_SWITCH_LV})`}</p>
+    ${msg ? `<p class="note warn">${esc(msg)}</p>` : ''}
+    ${HERO_KEYS.map(heroCard).join('')}
+    <section class="hcard locked"><div class="hc-top"><div><b>업데이트 직업</b><small>${UPDATE_HEROES.join(' · ')}</small></div></div>
+      <p class="hc-line">출시 뒤 시즌마다 1종. 골드 60,000 또는 크리스탈 1,500</p></section>`;
 }
 
 // ---------- 장비 ----------
@@ -85,15 +124,15 @@ function meta(k: SkillKey): string {
   return [castText(k), costText(k), cdText(k)].filter(Boolean).join(' · ');
 }
 
-/** 이 스킬이 휠 어디에 있는지 (성언은 바뀌는 조각 자리) */
+/** 이 스킬이 휠 어디에 있는지 (성언은 바뀌는 조각 자리, 8번째 칸은 빈 방향) */
 function dirOf(k: SkillKey, lay: Record<string, string | null>): string | null {
-  const base = k === 'serenity' ? 'heal' : k === 'sanctify' ? 'poh' : k;
-  return Object.keys(lay).find(d => lay[d] === base) || null;
+  const id = slotIdOf(k);
+  return Object.keys(lay).find(d => (lay[d] || 'unique') === id) || null;
 }
 
 function skillCard(k: SkillKey, lay: Record<string, string | null>): string {
   const L = battle().layout, lock = lockLv(k), d = dirOf(k, lay);
-  const tags = [d ? `휠 ${L.ARROW[d]}${k === 'serenity' ? ' 치유 자리' : k === 'sanctify' ? ' 기원 자리' : ''}` : '', G.save.settings.tapKey === k ? '칸 탭' : ''].filter(Boolean);
+  const tags = [d ? `휠 ${L.ARROW[d]}${k === 'serenity' ? ' 치유 자리' : k === 'sanctify' ? ' 기원 자리' : ''}` : '', skillAt(hero(), G.save.settings.tapKey) === k ? '칸 탭' : ''].filter(Boolean);
   return `<li class="skc${lock ? ' locked' : ''}${d && sel === d && !swapping ? ' on' : ''}" data-skill="${k}">
       <span class="skb${k === 'serenity' || k === 'sanctify' ? ' holy' : ''}">${SKILLS[k].short}</span>
       <div><p class="skn"><b>${SKILLS[k].name}</b><em>${SKILL_INFO[k].kind}</em>${lock ? `<i class="sklock">🔒 Lv ${lock}</i>` : tags.map(t => `<i>${t}</i>`).join('')}</p>
@@ -101,6 +140,13 @@ function skillCard(k: SkillKey, lay: Record<string, string | null>): string {
 }
 
 const PASSIVE_SHORT: Record<PassiveKey, string> = { echo: '메아리', grace: '은총', words: '성언', symbol: '상징' };
+
+/** 사제 밖 직업의 패시브·고유 시스템 카드 */
+function heroPassiveCard(p: { name: string; lv: number; desc: string }, kind: string): string {
+  const lock = p.lv > healerLevel() ? p.lv : 0;
+  return `<li class="skc pas${lock ? ' locked' : ''}"><span class="skb">${p.name.slice(0, 2)}</span>
+      <div><p class="skn"><b>${p.name}</b><em>${kind}</em>${lock ? `<i class="sklock">🔒 Lv ${lock}</i>` : ''}</p><p class="skd">${esc(p.desc)}</p></div></li>`;
+}
 
 function passiveCard(k: PassiveKey): string {
   const lock = PASSIVE_LEVEL[k] > healerLevel() ? PASSIVE_LEVEL[k] : 0;
@@ -117,7 +163,7 @@ function wheelSide(lay: Record<string, string | null>): string {
       <button class="btn" type="button" id="layReset"${changed ? '' : ' disabled'}>기본 배치로</button>
       <button class="btn primary" type="button" id="laySwap">바꾸기 끝</button>`;
   }
-  const k = sel ? (lay[sel] as SkillKey | null) : null;
+  const k = sel ? skillOfDir(lay, sel) : null;
   const info = k ? `<div class="wdet">${tipHtml({ ...skillTip(k, lockLv(k)), kind: `${L.ARROW[sel!]} · ${SKILL_INFO[k].kind}` })}</div>`
     : sel ? '<div class="wdet"><b>빈자리</b><p>특성 스킬 자리 (P2)</p></div>'
     : '<p class="note">자리를 누르면 설명. 칸에서 그 방향으로 쓸면 그 스킬 사용</p>';
@@ -125,35 +171,43 @@ function wheelSide(lay: Record<string, string | null>): string {
 }
 
 function skillHtml(): string {
-  const st = G.save.settings, L = battle().layout, lay = layoutNow(), lv = healerLevel();
-  const tapLock = lockLv(st.tapKey as SkillKey);
+  const st = G.save.settings, L = battle().layout, lay = layoutNow(), lv = healerLevel(), h = hero();
+  const tapSkill = skillAt(h, st.tapKey) || skillAt(h, 'heal')!, basic = skillAt(h, 'heal')!;
+  const tapLock = lockLv(tapSkill);
+  const tapText = battle().tapKeysOf(h);
   const { slots, items } = itemsNow();
   const nextSlotLv = [20, 40].find(x => itemSlots(x) > slots);
-  const learned = (Object.keys(SKILL_LEVEL) as SkillKey[]).filter(k => !lockLv(k)).length;
-  const chip = (k: TapKey) => { const lk = lockLv(k); return `<button class="chip" type="button" data-tap="${k}" aria-pressed="${st.tapKey === k}"${lk ? ' disabled' : ''}>${SKILLS[k].name}${lk ? ` <small>🔒 Lv ${lk}</small>` : ''}</button>`; };
+  const list = heroSkills(h);
+  const learned = list.filter(k => !lockLv(k)).length;
+  const chip = (t: TapKey) => { const k = skillAt(h, t)!, lk = lockLv(k); return `<button class="chip" type="button" data-tap="${t}" aria-pressed="${st.tapKey === t}"${lk ? ' disabled' : ''}>${SKILLS[k].name}${lk ? ` <small>🔒 Lv ${lk}</small>` : ''}</button>`; };
+  const pas = h === 'priest' ? (Object.keys(PASSIVE_LEVEL) as PassiveKey[]).map(passiveCard).join('')
+    : [heroPassiveCard(HEROES[h].system, '고유 시스템'), ...HEROES[h].passives.map(p => heroPassiveCard(p, '패시브'))].join('');
   return `<section class="panel cwheel${swapping ? ' swapping' : ''}"><h2>스킬 휠 <small>${swapping ? '배치 바꾸는 중' : '칸에서 쓸 방향'}</small></h2>
       <div class="lwrap"><div class="lgrid">${L.GRID.map(d => {
         if (!d) return '<div class="lcore" aria-hidden="true">마나</div>';
-        const k = lay[d] as SkillKey | null;
+        const k = skillOfDir(lay, d);
         const lock = k ? lockLv(k) : 0;
-        const sub = lock ? `🔒 Lv ${lock}` : lv < PASSIVE_LEVEL.words ? '' : k === 'heal' ? '평온' : k === 'poh' ? '신성화' : '';
-        return `<button class="lslot${k ? '' : ' empty'}${lock ? ' locked' : ''}" type="button" data-ldir="${d}" aria-pressed="${sel === d}" aria-label="${L.ARROW[d]} ${k ? L.label(k) : '비어 있음'}"><span class="dir">${L.ARROW[d]}</span><b>${k ? SKILLS[k].short : '비어 있음'}</b>${sub ? `<small>${sub}</small>` : ''}</button>`;
+        const sub = lock ? `🔒 Lv ${lock}` : h !== 'priest' || lv < PASSIVE_LEVEL.words ? '' : k === 'heal' ? '평온' : k === 'poh' ? '신성화' : '';
+        return `<button class="lslot${k ? '' : ' empty'}${lock ? ' locked' : ''}" type="button" data-ldir="${d}" aria-pressed="${sel === d}" aria-label="${L.ARROW[d]} ${k ? (h === 'priest' ? L.label(k) : SKILLS[k].name) : '비어 있음'}"><span class="dir">${L.ARROW[d]}</span><b>${k ? SKILLS[k].short : '비어 있음'}</b>${sub ? `<small>${sub}</small>` : ''}</button>`;
       }).join('')}</div>
       <div class="lside">${wheelSide(lay)}</div></div></section>
     <section class="panel"><h2>칸 탭 기본 힐</h2><div class="chips">${(Object.keys(battle().tapKeys) as TapKey[]).map(chip).join('')}</div>
-      <p class="note">${esc(battle().tapKeys[st.tapKey])}${tapLock ? ` · Lv ${tapLock} 전까진 치유로 탭` : ''}</p></section>
+      <p class="note">${esc(tapText[st.tapKey] || '')}${tapLock ? ` · Lv ${tapLock} 전까진 ${SKILLS[basic].name}로 탭` : ''}</p></section>
     <section class="panel"><h2>단축칸 <small>소비 아이템 ${slots}칸${nextSlotLv ? ` · Lv ${nextSlotLv}에 ${itemSlots(nextSlotLv)}칸` : ''}</small></h2>
       <div class="chips items">${(Object.keys(ITEMS) as ItemKey[]).map(k => `<button class="chip ichip" type="button" data-item="${k}" aria-pressed="${items.includes(k)}">${battle().itemIcon(k)}${ITEMS[k].name}</button>`).join('')}</div>
       <p class="note${msg ? ' warn' : ''}">${msg || items.map(k => `<b>${ITEMS[k].short}</b> ${ITEMS[k].desc}`).join('<br>') || '빈 칸'}</p></section>
-    <h3 class="sec">스킬 <small>배운 것 ${learned} / ${Object.keys(SKILL_LEVEL).length}</small></h3>
-    <ul class="sklist">${(['heal', 'flash', 'renew', 'purify', 'poh', 'guardian', 'hymn', 'serenity', 'sanctify'] as SkillKey[]).map(k => skillCard(k, lay)).join('')}</ul>
+    <h3 class="sec">${HEROES[h].name} 스킬 <small>배운 것 ${learned} / ${list.length}</small></h3>
+    <ul class="sklist">${list.map(k => skillCard(k, lay)).join('')}</ul>
     <h3 class="sec">패시브</h3>
-    <ul class="sklist">${(Object.keys(PASSIVE_LEVEL) as PassiveKey[]).map(passiveCard).join('')}</ul>`;
+    <ul class="sklist">${pas}</ul>`;
 }
 
 // ---------- 특성 (미리 보기) ----------
 function talentHtml(): string {
   const lv = G.save.player.level;
+  // 직업마다 특성 트리가 따로 (25 6장). 지금 만든 건 사제 트리뿐
+  if (hero() !== 'priest') return `<section class="panel"><h2>특성 <small>${HEROES[hero()].name}</small></h2>
+      <p>${HEROES[hero()].name} 특성 트리는 준비 중. 사제 특성을 먼저 만든 뒤 같은 틀로 추가</p></section>`;
   const open = TALENTS.filter(t => t.lv <= lv).length;
   const focus = Math.min(open, TALENTS.length - 1);
   return `<section class="panel"><h2>특성 <small>${open ? `${open}단 열림` : `🔒 Lv ${TALENT_LEVEL}에 열림 (지금 Lv ${lv})`}</small></h2>
@@ -173,7 +227,14 @@ function talentHtml(): string {
 s.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
   const tab = t.closest<HTMLElement>('[data-csub]');
-  if (tab) { sub = tab.dataset.csub as Sub; sel = null; swapping = false; msg = ''; render(); return; }
+  if (tab) { if ((tab as HTMLButtonElement).disabled) return; sub = tab.dataset.csub as Sub; sel = null; swapping = false; msg = ''; render(); return; }
+  const hb = t.closest<HTMLButtonElement>('[data-hero]');
+  if (hb && !hb.disabled) {
+    const k = hb.dataset.hero as HeroKey;
+    msg = switchHero(k) ? '' : '바꿀 수 없음';
+    if (!msg) { pushSettings(); sub = 'gear'; sel = null; swapping = false; }
+    render(); return;
+  }
   const eq = t.closest<HTMLElement>('[data-equip]');
   if (eq) { equip(Number(eq.dataset.equip)); render(); return; }
   const it = t.closest<HTMLElement>('[data-item]');

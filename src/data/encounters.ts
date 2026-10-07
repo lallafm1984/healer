@@ -53,6 +53,8 @@ export interface Encounter {
   stage: number;
   /** 일반·정예 구간이면 적 목록 (hp = 합계) */
   mobs?: MobDef[];
+  /** 거는 해제 가능 디버프 종류 (입장 화면에서 지금 직업이 지울 수 있는지 표시) */
+  debuffs?: string[];
 }
 
 const ALL: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -78,8 +80,8 @@ const TRIO = { tank: 1, melee: 0, ranged: 1 };
 
 export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
   warden: { key: 'warden', lowLevel: true, name: '녹슨 문지기', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7000, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'warden', stage: 0.25 },
-  plague: { key: 'plague', name: '역병 군주', tier: '레이드 · 10인', board: 'b19', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 22000, enrage: 390, manaCoef: 1.3, diffs: ['쉬움', '보통', '어려움'], script: 'plague', stage: 0.18 },
-  plague20: { key: 'plague20', name: '역병 군주', tier: '레이드 악몽 · 20인', board: 'b30', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 48000, enrage: 450, manaCoef: 1.6, diffs: ['악몽'], script: 'plague', big: true, stage: 0.13 },
+  plague: { key: 'plague', name: '역병 군주', tier: '레이드 · 10인', board: 'b19', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 22000, enrage: 390, manaCoef: 1.3, diffs: ['쉬움', '보통', '어려움'], script: 'plague', stage: 0.18, debuffs: ['질병', '독'] },
+  plague20: { key: 'plague20', name: '역병 군주', tier: '레이드 악몽 · 20인', board: 'b30', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 48000, enrage: 450, manaCoef: 1.6, diffs: ['악몽'], script: 'plague', big: true, stage: 0.13, debuffs: ['질병', '독'] },
   // 녹슨 요새 (23). 첫 보스 = 문지기를 순하게 줄인 판
   scrap: { key: 'scrap', lowLevel: true, name: '고철 경비병', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 2500, enrage: 150, manaCoef: 1.0, diffs: ALL, script: 'scrap', stage: 0.25 },
   gate: trash('gate', '무너진 정문', [

@@ -10,7 +10,7 @@ import { GUILD_LEVEL } from '../data/progression';
 import { create, recruitParty } from '../engine';
 import { Flow, newSeed, rerollCost } from '../game/flow';
 import { settle } from '../game/settle';
-import { commit, G, healerLevel, itemsNow, toggleItem } from '../game/state';
+import { commit, G, healerLevel, heroNow, itemsNow, toggleItem } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { battle, esc, fmt, go, ROLE, screen, topBar } from './kit';
 
@@ -103,7 +103,7 @@ export function depart(): void {
   const { slots, items } = itemsNow();
   battle().start({
     content: c.key, name: c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: stageOf(c, Flow.diff), gearStats: gearStatsOf(G.save.gear.equipped),
-    party: Flow.party!, items, slots, seed: Flow.seed, coach,
+    party: Flow.party!, items, slots, seed: Flow.seed, coach, hero: heroNow(),
     onEnd(r) {
       Flow.result = r;
       Flow.settle = settle(G.save, r, Math.random);

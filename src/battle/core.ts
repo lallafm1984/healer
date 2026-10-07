@@ -5,8 +5,10 @@
 import type { CoachKey } from '../game/tutorial';
 import type { GearStats } from '../data/gear';
 import type { ItemKey } from '../data/items';
+import { DEB_COLOR, HEROES, type HeroKey } from '../data/heroes';
 import { SKILLS, type SkillKey } from '../data/skills';
-import { knows, type Fight, type RosterEntry, type Role } from '../engine';
+import { knows, SLOT_OF, type Fight, type RosterEntry, type Role } from '../engine';
+import { castText } from '../game/tooltip';
 import type { MeterRow } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 
@@ -18,7 +20,7 @@ export const ROLE: Record<Role, { name: string; color: string }> = {
   ranged: { name: '원거리', color: '#7FA3A0' },
   healer: { name: '나', color: '#E9E1C6' },
 };
-export const DEB: Record<string, string> = { '질병': '#D9A13B', '독': '#3CC24A', '마법': '#3D8BFF', '저주': '#A050E0' };
+export const DEB = DEB_COLOR;
 export const ICON_COLOR: Record<string, string> = { '숨결': '#D9A13B', '독침': '#3CC24A', '전염': '#D9A13B', '찍기': '#FF6B57', '증기': '#FF9F43', '파동': '#FF9F43', '장판': '#E0664F', '쥐떼': '#B9A38A', '폭풍': '#E0664F', '광폭': '#FF4A3D', '휘두': '#FF6B57', '쇳조': '#FF9F43' };
 /** 시전 대상·장전 표시 (황토색 질병과 구분) */
 export const SEL = '#FFFFFF';
@@ -45,9 +47,19 @@ export const layoutLabel = (k: string) => (k === 'heal' ? '치유/평온' : k ==
 export const layoutText = (l: Record<string, string | null>) => READ_ORDER.filter(d => l[d]).map(d => `${ARROW[d]} ${layoutLabel(l[d]!)}`).join(' · ');
 export const layoutCode = (l: Layout) => READ_ORDER.map(d => `${d}:${l[d] || '-'}`).join(',');
 
-export interface DirSlot { d: Dir; arrow: string; key: SkillKey | null }
+/** key = 휠 칸 이름 (사제 스킬 이름 그대로, 8번째 칸은 unique). 실제 스킬은 engine slotKey */
+export interface DirSlot { d: Dir; arrow: string; key: string | null }
 export let DIRS: (DirSlot | null)[] = [];
-export function applyLayout(): void { DIRS = GRID.map(d => (d ? { d, arrow: ARROW[d], key: S.layout[d] || null } : null)); }
+/** 배치의 빈 방향 = 8번째 칸 (드루이드 환생·성기사 보호의 손, 25 2장). 사제는 빈 칸 그대로 */
+export function applyLayout(): void {
+  const uniq = HEROES[S.hero].slots.unique ? 'unique' : null;
+  DIRS = GRID.map(d => (d ? { d, arrow: ARROW[d], key: S.layout[d] || uniq } : null));
+}
+/** 지금 직업에서 그 칸의 스킬 (사제는 칸 이름 그대로, 성언으로 바뀌지 않음) */
+export function heroSkill(slot: string): SkillKey {
+  if (S.hero === 'priest') return slot as SkillKey;
+  return HEROES[S.hero].slots[SLOT_OF[slot]] || (slot as SkillKey);
+}
 export const dirSlot = (d: Dir) => DIRS.find(x => x && x.d === d) || null;
 /** 지금 휠 배치에서 그 스킬이 있는 방향 (칸에서 쓸 방향) */
 export const arrowOf = (k: SkillKey) => { const d = DIRS.find(x => x && x.key === k); return d ? d.arrow : ''; };
@@ -59,7 +71,14 @@ export function swipeDir(dx: number, dy: number): Dir | null {
   return SECTOR[((Math.round(a / 45) % 8) + 8) % 8];
 }
 
+/** 칸 탭 기본 힐 후보 = 기본·빠른·지속 힐 칸 */
 export const TAP_KEYS: Record<string, string> = { heal: '치유 (1.8초 시전)', flash: '순간 치유 (1초 시전)', renew: '소생 (즉시, 지속 힐)' };
+/** 그 직업의 칸 탭 후보 설명 (스킬 이름 + 시전) */
+export function tapKeysOf(hero: HeroKey): Record<string, string> {
+  const o: Record<string, string> = {};
+  for (const slot of Object.keys(TAP_KEYS)) { const k = HEROES[hero].slots[SLOT_OF[slot]]; if (k) o[slot] = `${SKILLS[k].name} (${castText(k)})`; }
+  return o;
+}
 
 // ---------- 설정·한 판 (새 화면이 start()/settings()로 넣어 줌) ----------
 export interface StartOptions {
@@ -71,6 +90,8 @@ export interface StartOptions {
   onEnd?(r: BattleResult): void;
   /** 튜토리얼 안내 묶음 (02 11장) */
   coach?: CoachKey | null;
+  /** 힐러 직업 (25) */
+  hero?: HeroKey;
 }
 
 export interface Run {
@@ -83,7 +104,7 @@ export interface Run {
 export const S = {
   diff: '보통', gearStats: null as GearStats | null, level: 100, heroLv: undefined as number | undefined, stageLv: undefined as number | undefined,
   party: null as RosterEntry[] | null, items: [] as ItemKey[], slots: 4,
-  sound: true, vibe: true, auto: false, tapKey: 'heal' as SkillKey, hand: 'right', zoom: true,
+  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, hero: 'priest' as HeroKey,
   layout: { ...DEFAULT_LAYOUT } as Layout,
   run: null as Run | null, onEnd: null as ((r: BattleResult) => void) | null, coach: null as CoachKey | null,
   onSetting: null as ((key: string, val: unknown) => void) | null,
@@ -94,9 +115,11 @@ applyLayout();
 export const B = {
   F: null as Fight | null,
   /** 휠에서 장전한 칸 (짧게 누르기) */
-  armed: null as SkillKey | null,
+  armed: null as string | null,
   paused: false,
   overShown: false,
+  /** 성기사 봉화: 휠 가운데를 누르고 칸 탭 (25 3장) */
+  beacon: false,
 };
 
 export interface Pointer { x0: number; y0: number; x: number; y: number; idx: number; lp: boolean; moved: boolean; dir?: Dir | null; timer?: ReturnType<typeof setTimeout> }
@@ -113,9 +136,10 @@ export const ui = {
   restAt: 0, restMana: null as number | null, lastResult: null as BattleResult | null,
 };
 
-/** 칸 탭 기본 힐: 아직 안 배운 스킬로 정해 뒀으면 치유 (06 7장) */
+/** 칸 탭 기본 힐: 아직 안 배운 스킬로 정해 뒀으면 기본 힐 (06 7장). 칸 이름 → 지금 직업의 스킬 */
 export function tapKey(): SkillKey {
-  return B.F && !knows(B.F, S.tapKey) ? 'heal' : S.tapKey;
+  const k = heroSkill(S.tapKey);
+  return B.F && !knows(B.F, k) ? heroSkill('heal') : k;
 }
 
 // ---------- 글자 ----------

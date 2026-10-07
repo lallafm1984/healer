@@ -43,7 +43,7 @@ function startDuo(): void {
   const { slots, items } = itemsNow();
   battle().start({
     content: c.key, name: c.name, segs: c.fights('쉬움'), diff: '쉬움', level: healerLevel(), heroLv: G.save.player.level, stageLv: c.stageLv, gearStats: gearStatsOf(G.save.gear.equipped),
-    party: DUO_PARTY, items, slots, seed: newSeed(), coach: 'duo',
+    party: DUO_PARTY, items, slots, seed: newSeed(), coach: 'duo', hero: 'priest',
     onEnd(r) {
       if (!r.win) { go('s-tut', 'lose'); return; }
       // 첫 전투를 깨면 Lv 2 (소생). 다시 보기로 하는 거면 레벨은 그대로

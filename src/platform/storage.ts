@@ -4,13 +4,27 @@
  */
 import type { DiffName } from '../data/difficulty';
 import type { Equipped, GearItem } from '../data/equipment';
+import { HERO_KEYS, type HeroKey } from '../data/heroes';
 import type { ItemKey } from '../data/items';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
+/** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
+
+/** 직업마다 따로 두는 것 (25 4-1): 휠 배치·칸 탭, 퀘스트, 클리어 수 (숙련도) */
+export interface HeroSave {
+  layout: Record<string, string | null> | null;
+  tapKey: TapKey;
+  /** 직업 퀘스트를 끝냄 (사제는 처음부터) */
+  unlocked: boolean;
+  /** 직업 퀘스트 진행 */
+  quest: number;
+  /** 이 직업으로 이긴 판 수 (숙련도, 25 4-3) */
+  wins: number;
+}
 
 export interface Settings {
   sound: boolean;
@@ -57,6 +71,14 @@ export interface SaveData {
   nextId: number;
   /** 첫 5분 튜토리얼 진행 (game/tutorial.ts TUT) */
   tut: number;
+  /** 지금 직업 (25). settings.layout·tapKey는 지금 직업 것이고, 바꿀 때 heroes에 넣고 꺼냄 */
+  hero: HeroKey;
+  heroes: Partial<Record<HeroKey, HeroSave>>;
+}
+
+/** 그 직업의 저장 (없으면 기본: 기본 배치, 칸 탭 = 기본 힐 칸, 사제만 처음부터 해금) */
+export function heroSaveOf(d: SaveData, h: HeroKey): HeroSave {
+  return (d.heroes[h] ||= { layout: null, tapKey: 'heal', unlocked: h === 'priest', quest: 0, wins: 0 });
 }
 
 export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'right', tapKey: 'heal', zoom: true, auto: false, devUnlock: true, allSkills: false, layout: null };
@@ -65,6 +87,7 @@ export function newSave(now = Date.now()): SaveData {
   return {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
     player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [] }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1, tut: 0,
+    hero: 'priest', heroes: {},
   };
 }
 
@@ -85,6 +108,9 @@ export function migrate(raw: unknown): SaveData {
     nextId: typeof o.nextId === 'number' ? o.nextId : base.nextId,
     // 튜토리얼 전에 만든 저장: 이미 해 본 사람이면 끝난 걸로 (3 = TUT.done)
     tut: typeof o.tut === 'number' ? o.tut : (o.player?.level ?? 1) > 1 || Object.keys(o.clears || {}).length ? 3 : 0,
+    // v3: 직업 (옛 저장은 사제)
+    hero: HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest',
+    heroes: obj(o.heroes, {}),
   };
 }
 

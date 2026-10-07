@@ -3,6 +3,8 @@
  * 매 프레임 바뀐 글자·클래스만 고침 (판은 board.ts가 캔버스에).
  */
 import { CLASSES } from '../data/classes';
+import { BEACON } from '../data/heroConst';
+import { canDispel, HEROES } from '../data/heroes';
 import { mobGrade } from '../data/encounters';
 import type { ItemKey } from '../data/items';
 import { ITEMS, POTION_CD } from '../data/items';
@@ -14,7 +16,7 @@ import { TRAITS } from '../data/traits';
 import { knows, queue, slotKey, type Fight, type Unit } from '../engine';
 import { ITEM_ICON } from './art';
 import { center, L } from './board';
-import { $, arrowOf, B, DIR_VEC, DIRS, ICON_COLOR, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe } from './core';
+import { $, arrowOf, B, DIR_VEC, DIRS, ICON_COLOR, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe } from './core';
 import { guideModel } from './guide';
 
 const fight = () => B.F!;
@@ -39,8 +41,9 @@ export function buildWheel(D: number): void {
     if (!it) return;
     const pos = `left:${(i % 3) * step + (step - b) / 2}px;top:${Math.floor(i / 3) * step + (step - b) / 2}px;width:${b}px;height:${b}px`;
     if (!it.key) { html += `<div class="slot empty" data-dir="${it.d}" style="${pos}"><span class="dir">${it.arrow}</span><span class="ct">비어 있음</span></div>`; return; }
-    // 아직 안 배운 스킬: 이름과 배우는 레벨만 (누르면 안내)
-    if (F && !knows(F, it.key)) { html += `<button class="slot locked" type="button" data-lock="${it.key}" data-dir="${it.d}" style="${pos}"><span class="dir">${it.arrow}</span><span><span class="nm">${SKILLS[it.key].short}</span><span class="ct">🔒 Lv ${SKILL_LEVEL[it.key]}</span></span></button>`; return; }
+    // 아직 안 배운 스킬: 이름과 배우는 레벨만 (누르면 안내). it.key = 휠 칸 → 지금 직업의 스킬
+    const k = F ? slotKey(F, it.key) : (it.key as SkillKey);
+    if (F && !knows(F, k)) { html += `<button class="slot locked" type="button" data-lock="${k}" data-dir="${it.d}" style="${pos}"><span class="dir">${it.arrow}</span><span><span class="nm">${SKILLS[k].short}</span><span class="ct">🔒 Lv ${SKILL_LEVEL[k]}</span></span></button>`; return; }
     html += `<button class="slot" type="button" data-slot="${it.key}" data-dir="${it.d}" style="${pos}"><span class="cd"></span><span class="dir">${it.arrow}</span><span><span class="nm"></span><span class="ct"></span></span><span class="cds"></span></button>`;
   });
   w.innerHTML = html;
@@ -51,7 +54,7 @@ export function updateWheel(): void {
   for (const el of $('wheel').querySelectorAll<HTMLElement>('.slot')) {
     el.classList.toggle('aim', aim === el.dataset.dir);
     if (!el.dataset.slot) continue;
-    const slot = el.dataset.slot as SkillKey, key = slotKey(F, slot), sk = SKILLS[key];
+    const slot = el.dataset.slot!, key = slotKey(F, slot), sk = SKILLS[key];
     const cd = sk.cd ? F.cd[key] || 0 : 0;
     setText(el.querySelector('.nm')!, sk.short);
     setText(el.querySelector('.ct')!, sk.cost ? `${sk.cost}%` : '무료');
@@ -60,15 +63,43 @@ export function updateWheel(): void {
     el.classList.toggle('off', cd > 0 || F.mana < sk.cost);
     el.classList.toggle('cooling', cd > 0);
     el.classList.toggle('armed', B.armed === slot);
-    el.classList.toggle('holy', key !== slot);
+    el.classList.toggle('holy', key === 'serenity' || key === 'sanctify');
   }
   const mn = $('manaNum');
   setText(mn.firstChild as Element, String(Math.floor(F.mana)));
   mn.style.color = F.mana < 20 ? '#FF8A7A' : '#9FD3FF';
-  $('ringP').setAttribute('stroke-dasharray', `${(F.g.p / 100) * 289} 289`);
-  $('ringS').setAttribute('stroke-dasharray', `${(F.g.s / 100) * 239} 239`);
-  setText($('gP'), String(Math.floor(F.g.p)));
-  setText($('gS'), String(Math.floor(F.g.s)));
+  // 휠 가운데 링 = 직업 고유 시스템 (25 7장): 사제 성언 게이지 두 개 / 드루이드 새싹 걸린 인원 / 성기사 신성한 힘 3칸
+  const r = coreRing(F);
+  $('ringP').setAttribute('stroke-dasharray', `${r.outer * 289} 289`);
+  $('ringS').setAttribute('stroke-dasharray', `${r.inner * 239} 239`);
+  setText($('gP'), r.a);
+  setText($('gS'), r.b);
+  $('core').classList.toggle('beacon', B.beacon);
+}
+
+const dispelName = (F: Fight) => { const n = SKILLS[HEROES[F.hero].slots.dispel!].name; return n + josa(n, '으로', '로'); };
+
+/** 휠 위 고유 시스템 글자 (전투 시작 때 직업에 맞게) */
+export function buildGauges(F: Fight): void {
+  const g = $('gauges');
+  g.innerHTML = F.hero === 'paladin' ? '<span>신성한 힘 <b id="gP">0/3</b></span><span>봉화 <b id="gS">없음</b></span>'
+    : F.hero === 'druid' ? '<span>새싹 <b id="gP">0</b> / <b id="gS">0</b>명</span>'
+    : '<span>평온 <b id="gP">0</b>%</span><span>신성화 <b id="gS">0</b>%</span>';
+}
+
+/** 가운데 링 두 개(0~1)와 그 아래 글자 둘 */
+function coreRing(F: Fight): { outer: number; inner: number; a: string; b: string } {
+  if (F.hero === 'paladin') {
+    const cd = F.beaconCd > 0 ? Math.ceil(F.beaconCd) : 0;
+    const sys = HEROES.paladin.system.lv;
+    const nick = F.beacon == null ? '' : F.party.find(u => u.id === F.beacon)?.nick || '';
+    return { outer: F.power3 / 3, inner: cd ? 1 - F.beaconCd / BEACON.cd : 0, a: `${F.power3}/3`, b: F.level < sys ? `Lv ${sys}` : !nick ? '없음' : cd ? `${nick} ${cd}초` : nick };
+  }
+  if (F.hero === 'druid') {
+    const live = F.party.filter(u => u.alive), n = live.filter(u => u.hots.some(h => h.key === 'sprout')).length;
+    return { outer: live.length ? n / live.length : 0, inner: 0, a: String(n), b: String(live.length) };
+  }
+  return { outer: F.g.p / 100, inner: F.g.s / 100, a: String(Math.floor(F.g.p)), b: String(Math.floor(F.g.s)) };
 }
 
 // ---------- 소비 아이템 단축칸 (19 2부): 2×2, 레벨에 따라 열린 칸 수가 다름 (18 2-2) ----------
@@ -108,8 +139,11 @@ export function updateCastbar(): void {
     label = `${SKILLS[F.cast.key].name} → ${u ? u.nick : ''}`;
     p = 1 - F.cast.left / F.cast.total;
   } else if (F.channel > 0) {
-    label = '천상의 찬가 (칸을 누르면 끊김)';
-    p = 1 - F.channel / 4;
+    const raid = SKILLS[HEROES[F.hero].slots.raid!];
+    label = `${raid.name} (칸을 누르면 끊김)`;
+    p = 1 - F.channel / (raid.channel || 4);
+  } else if (B.beacon) {
+    label = '봉화: 지킬 파티원 칸 선택';
   } else if (B.armed) {
     const k = slotKey(F, B.armed);
     label = `${SKILLS[k].name} 장전: ${SKILLS[k].target === 'area' ? '누른 채 범위를 보고 떼기' : '대상 칸 선택'}`;
@@ -240,14 +274,20 @@ export function showPreview(idx: number): void {
   const F = fight(), u = F.cells[idx].unit!;
   const lines: string[] = [];
   const cls = u.cls ? CLASSES[u.cls] : null;
-  lines.push(`<b>${u.nick}</b> · ${cls ? `${cls.name} · ` : ''}${ROLE[u.role].name}${u.me ? ' (사제)' : ''}`);
+  lines.push(`<b>${u.nick}</b> · ${cls ? `${cls.name} · ` : ''}${ROLE[u.role].name}${u.me ? ` (${HEROES[F.hero].name})` : ''}`);
   if (cls) lines.push(`<div class="cpas"><b>${cls.passive}</b> ${cls.passiveDesc}</div>`);
   for (const k of u.traits) lines.push(`<div class="cpas trait"><b>${TRAITS[k].name}</b> ${TRAITS[k].desc}</div>`);
   if (u.p.ch && u.p.cat) lines.push(`<div class="pers"><i style="background:${CATS[u.p.cat]}">${u.p.ch}</i>${u.pers}: ${u.p.desc}</div>`);
   lines.push(`<div>체력 ${Math.ceil(u.hp)} / ${Math.round(u.max)}${u.max < u.base ? ` (최대 체력 -${Math.round((1 - u.max / u.base) * 100)}%)` : ''}</div>`);
   const items: string[] = [];
-  for (const d of u.debuffs) items.push(`${d.name} (${d.type}${d.stack ? ` ${d.stack}중첩` : ''}, ${Math.ceil(d.left)}초)${d.type === '독' ? ' · 사제는 해제 불가' : d.trap ? ' · 해제하면 옆 칸으로 퍼짐' : ' · 위로 쓸어 정화'}`);
+  const hero = HEROES[F.hero];
+  for (const d of u.debuffs) items.push(`${d.name} (${d.type}${d.stack ? ` ${d.stack}중첩` : ''}, ${Math.ceil(d.left)}초)${!canDispel(F.hero, d.type) ? ` · ${hero.name} 해제 불가` : d.trap ? ' · 해제하면 옆 칸으로 퍼짐' : ` · ${dispelName(F)} 해제`}`);
   if (u.hot > 0) items.push(`소생 ${Math.ceil(u.hot)}초`);
+  for (const h of u.hots) items.push(`${h.name} ${Math.ceil(h.left)}초 (남은 회복 ${Math.round(h.rest)})`);
+  if (F.beacon === u.id) items.push('봉화: 다른 사람에게 한 직접 힐의 40%가 함께 들어감');
+  if (u.redu > 0 && !u.immune) items.push(`받는 피해 -${Math.round(u.reduCut * 100)}% ${Math.ceil(u.redu)}초`);
+  if (u.sacr > 0) items.push(`희생 ${Math.ceil(u.sacr)}초 (받는 피해 30%를 내가 대신)`);
+  if (u.immune > 0) items.push(`보호의 손 ${Math.ceil(u.immune)}초 (물리 피해 무시, 딜 멈춤)`);
   if (u.guardian > 0) items.push(`수호 영혼 ${Math.ceil(u.guardian)}초`);
   if (u.shield > 0) items.push(`보호 두루마리 ${Math.ceil(u.shield)}초 (받는 피해 -40%)`);
   if (u.bulwark > 0) items.push(`${TRAITS.bulwark.name} ${Math.ceil(u.bulwark)}초 (받는 피해 -50%)`);

@@ -1,6 +1,7 @@
 /** 화면 공통 도구: 화면 틀 만들기, 이동, 상단 바, 글자 이스케이프 */
 import type { ItemKey } from '../data/items';
 import type { GearStats } from '../data/gear';
+import type { HeroKey } from '../data/heroes';
 import type { RosterEntry } from '../engine';
 import type { BattleResult } from '../game/settle';
 import type { CoachKey } from '../game/tutorial';
@@ -76,7 +77,7 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
 /** [data-go] 버튼 = 그 화면으로 */
 document.addEventListener('click', e => {
   const b = (e.target as HTMLElement).closest<HTMLElement>('[data-go]');
-  if (b && b.closest('#app')) go(b.dataset.go!);
+  if (b && b.closest('#app')) go(b.dataset.go!, b.dataset.arg);
 });
 
 // ---------- 전투 화면 입구 (battle/index.ts가 window.__battle로 엶) ----------
@@ -86,6 +87,8 @@ export interface BattleApi {
     items: ItemKey[]; slots: number; seed: number; onEnd(r: BattleResult): void;
     /** 튜토리얼 안내 묶음 (02 11장) */
     coach?: CoachKey | null;
+    /** 힐러 직업 (25) */
+    hero?: HeroKey;
   }): void;
   settings(s: object): void;
   /** 전투 화면에서 바꾼 설정 (일시정지의 자동 치유) → 저장 */
@@ -100,6 +103,8 @@ export interface BattleApi {
     LAYOUT_SKILLS: string[]; valid(v: unknown): boolean; label(k: string): string; text(l: Record<string, string | null>): string;
   };
   tapKeys: Record<string, string>;
+  /** 그 직업의 칸 탭 후보 (스킬 이름 + 시전) */
+  tapKeysOf(hero: string): Record<string, string>;
   sound(k: string): void;
 }
 export const battle = () => (window as unknown as { __battle: BattleApi }).__battle;

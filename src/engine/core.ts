@@ -1,10 +1,13 @@
-import { DISPELLABLE } from '../data/skills';
+import { HEROES } from '../data/heroes';
 import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
 import type { Cell, Debuff, Fight, FightEvent, Unit } from './types';
 
 /** 한 틱 = 0.05초 */
 export const DT = 0.05;
+
+/** 성기사 희생: 대상이 받는 피해 중 내가 대신 받는 비율 (25 3장) */
+export const SACRIFICE_CUT = 0.3;
 
 export const living = (f: Fight): Unit[] => f.party.filter(u => u.alive);
 export const cellOf = (f: Fight, u: Unit): Cell => f.cells[u.cell];
@@ -49,6 +52,13 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
   amt *= f.dmgMult;
   if (u.shield > 0) amt *= 0.6;
   if (u.bulwark > 0) amt *= 1 - BULWARK.cut;
+  if (u.redu > 0) amt *= 1 - u.reduCut;
+  if (u.immune > 0 && !magic) return; // 보호의 손: 물리 피해 무시 (25 성기사)
+  if (u.sacr > 0 && f.me.alive && f.me !== u) { // 희생: 받는 피해의 30%를 내가 대신
+    const part = amt * SACRIFICE_CUT;
+    amt -= part;
+    damage(f, f.me, part / f.dmgMult, magic);
+  }
   if (u.cls) {
     if (magic && u.cls === 'paladin') amt *= 0.9;
     if (u.cls === 'swordsman') u.flow = 3;
@@ -66,7 +76,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
     // 쓰러지면 칸을 비운다 → 다른 파티원이 그 칸으로 이동할 수 있음 (2026-10-07 Lim)
     if (u.moving) { const to = f.cells[u.moving.to]; if (to.unit === u) to.unit = null; }
     { const here = f.cells[u.cell]; if (here.unit === u) here.unit = null; }
-    u.alive = false; u.hp = 0; u.debuffs = []; u.hot = 0; u.echo = []; u.moving = null; u.react = null; u.shield = 0; u.diedAt = f.t;
+    u.alive = false; u.hp = 0; u.debuffs = []; u.hot = 0; u.hots = []; u.echo = []; u.moving = null; u.react = null; u.shield = 0; u.redu = 0; u.sacr = 0; u.immune = 0; u.diedAt = f.t;
     if (u.max < u.base) u.max = u.base;
     f.stats.deaths++;
     emit(f, { type: 'death', id: u.id });
@@ -77,7 +87,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
 export function addDebuff(f: Fight, u: Unit, d: Omit<Debuff, 'id'>): Debuff {
   const o: Debuff = { id: f.nextId++, ...d };
   u.debuffs.push(o);
-  if (DISPELLABLE[o.type] && !o.trap) f.stats.dispellable++;
+  if (HEROES[f.hero].dispel.includes(o.type) && !o.trap) f.stats.dispellable++;
   emit(f, { type: 'debuff', id: u.id, dtype: o.type });
   return o;
 }

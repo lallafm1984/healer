@@ -1,9 +1,10 @@
 /** S02 로비 (09): 레벨·골드, 다음 목표(18 3-3), 힐러, 지난 판 한마디, 「전투 시작」 */
 import { contentOf } from '../data/content';
 import { gearSummary } from '../data/equipment';
+import { HEROES } from '../data/heroes';
 import { nextMilestone } from '../data/progression';
 import { Flow } from '../game/flow';
-import { G } from '../game/state';
+import { G, heroNow } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { esc, go, screen, topBar } from './kit';
 import { bellSvg } from './art';
@@ -35,7 +36,7 @@ const s = screen('s-lobby', '로비', {
         <section class="panel goal"><h2>다음 목표</h2><ul>${goals().map(g => `<li>${esc(g)}</li>`).join('')}</ul></section>
         <div class="hero">
           <div class="hero-art">${bellSvg}</div>
-          <b>사제 · Lv ${p.level}</b>
+          <b>${HEROES[heroNow()].name} · Lv ${p.level}</b>
           <small>장비 ${esc(gearSummary(G.save.gear.equipped))}</small>
         </div>
         ${last ? `<p class="lastline"><span>지난 판</span> ${esc(contentOf(last.content as never).name)} ${esc(last.diff)} · ${last.win ? `클리어 ${last.grade || ''}` : '실패'}</p>` : '<p class="lastline"><span>아직 깬 던전 없음</span></p>'}

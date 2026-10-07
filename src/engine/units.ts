@@ -1,5 +1,6 @@
 import { aimMult, rageMult } from '../data/classes';
 import { hexDist } from './board';
+import { BARK } from '../data/heroConst';
 import { bark, cellOf, damage, DT, heal, onDebuffEnd } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
 import type { Fight, Unit } from './types';
@@ -10,6 +11,10 @@ export function unitTick(f: Fight, u: Unit): void {
   if (u.flash > 0) u.flash -= dt;
   if (!u.alive) return;
   if (u.hot > 0) { u.hot -= dt; u.hotTick += dt; if (u.hotTick >= 3 - 1e-9) { u.hotTick -= 3; heal(f, u, 80, false); } }
+  if (u.hots.length) hotTick(f, u, dt);
+  if (u.redu > 0) u.redu -= dt;
+  if (u.sacr > 0) u.sacr -= dt;
+  if (u.immune > 0) u.immune -= dt;
   for (const e of u.echo) { heal(f, u, e.rate * dt, false); e.left -= dt; }
   u.echo = u.echo.filter(e => e.left > 0);
   if (u.guardian > 0) u.guardian -= dt;
@@ -61,6 +66,36 @@ export function unitTick(f: Fight, u: Unit): void {
   if (u.p.attention && !u.sulking && f.t - u.lastHeal > u.p.attention && f.t > 8) { u.sulking = true; bark(f, u, null, true); }
 }
 
+/** 지속 힐 틱 (드루이드·성기사). 다 차면 직업 패시브(순환)로 마나를 돌려줄 수 있게 이벤트 대신 콜백 */
+function hotTick(f: Fight, u: Unit, dt: number): void {
+  for (const h of u.hots.slice()) {
+    h.left -= dt; h.tick -= dt;
+    while (h.tick <= 1e-9 && h.rest > 0) {
+      const amt = h.amts ? (h.amts[h.i] ?? 0) : h.per;
+      h.i++; h.tick += h.every;
+      h.rest = Math.max(0, h.rest - amt);
+      heal(f, u, amt * hotMult(f, u, h), false);
+      if (!u.alive) return;
+    }
+    if (h.left <= 1e-9 || h.rest <= 1e-9) {
+      u.hots = u.hots.filter(x => x !== h);
+      if (h.key === 'sprout' && h.rest <= 1e-9) f.mana = Math.min(100, f.mana + (f.level >= 10 ? 0.4 : 0)); // 순환 (25 드루이드 패시브)
+    }
+  }
+}
+
+/** 지속 힐 배율: 나무껍질(+20%), 드루이드 군락 (붙어 있는 새싹마다 +10%, 최대 +30%) */
+function hotMult(f: Fight, u: Unit, h: { key: string }): number {
+  let m = u.redu > 0 && u.reduCut === BARK.cut ? 1 + BARK.hot : 1;
+  if (h.key === 'sprout' && f.level >= 6) {
+    const c = cellOf(f, u);
+    let n = 0;
+    for (const v of f.party) if (v !== u && v.alive && v.hots.some(x => x.key === 'sprout') && hexDist(cellOf(f, v), c) === 1) n++;
+    m *= 1 + Math.min(3, n) * 0.1;
+  }
+  return m;
+}
+
 /** 지금 파티 초당 딜 (이동·도망 중은 0, 삐짐 -25%, 감사 +10%, 직업 패시브) */
 export function partyDps(f: Fight): number {
   let s = 0;
@@ -71,6 +106,7 @@ export function partyDps(f: Fight): number {
 /** 파티원 1명 초당 딜 */
 export function unitDps(u: Unit): number {
   if (!u.alive || u.fleeing || u.me) return 0;
+  if (u.immune > 0) return 0; // 보호의 손: 그동안 딜 0
   if (u.moving && u.cls !== 'hunter') return 0;
   let d = u.dps * (u.p.dps || 1);
   if (u.sulking) d *= 0.75;

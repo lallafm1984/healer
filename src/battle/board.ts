@@ -288,6 +288,9 @@ export function addBubble(id: number, text: string, now: number): void {
 /** 20인 탭 확대 미리보기 0.3초 (02 3-1) */
 export function lensAt(idx: number, now: number): void { B2.lens = { idx, t0: now }; }
 
+/** 지속 힐 색: 새싹 초록 · 생장 연두 · 들꽃 분홍 · 빛의 서약 금색 */
+const HOT_COLOR: Record<string, number> = { sprout: 0x7bc67e, growth: 0xb7e07a, wildflower: 0xe59ac0, oath: 0xf0c46a };
+
 function predictedHeal(u: Unit): number {
   const F = B.F!;
   if (!F.cast) return 0;
@@ -318,6 +321,8 @@ export function render(now: number): void {
     hexPoly(cellsG, p.x, p.y, r).fill({ color: C.cell }).stroke({ width: 2, color: C.cellLine });
     if (zoneSet.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.zone, alpha: 0.55 });
     else if (telSet.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.tel, alpha: 0.12 + 0.2 * pulse });
+    // 성기사 빛의 성역: 금빛 바닥, 끝나기 2초 전 깜빡임
+    if (F.sanctuary && F.sanctuary.cells.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: F.sanctuary.end - F.t < 2 ? 0.08 + 0.14 * pulse : 0.2 });
   });
   // 장전된 범위 미리보기
   const armedKey = B.armed ? slotKey(F, B.armed) : null;
@@ -426,6 +431,11 @@ export function render(now: number): void {
     if (u.bulwark > 0) hexPoly(overG, x, y, r * 1.1).stroke({ width: Math.max(3, s * 0.09), color: C.gold, alpha: u.bulwark < 2 ? 0.35 + 0.6 * pulse : 0.95 });
     // 보호 두루마리: 흰 이중 테두리 (황토 질병·빨간 탱커 표시와 구분), 끝나기 2초 전 깜빡임
     if (u.shield > 0) { const a = u.shield < 2 ? 0.35 + 0.6 * pulse : 0.95; hexPoly(overG, x, y, r * 1.12).stroke({ width: 2, color: 0xedeff7, alpha: a }); hexPoly(overG, x, y, r * 1.2).stroke({ width: 2, color: 0xedeff7, alpha: a }); }
+    // 직업 스킬 표시 (25 3장): 피해 감소(나무껍질·성역) 초록 테두리, 희생 금색 점선, 보호의 손 흰 두꺼운 테두리, 봉화 금색 점선 원
+    if (u.immune > 0) hexPoly(overG, x, y, r * 1.14).stroke({ width: Math.max(3, s * 0.1), color: 0xffffff, alpha: u.immune < 2 ? 0.35 + 0.6 * pulse : 0.95 });
+    else if (u.redu > 0) hexPoly(overG, x, y, r * 1.1).stroke({ width: 2.5, color: HOT_COLOR.sprout, alpha: u.redu < 2 ? 0.35 + 0.6 * pulse : 0.9 });
+    if (u.sacr > 0) dashPoly(overG, hexPts(x, y, r * 1.16), 5, 4, 2, C.gold);
+    if (F.beacon === u.id) dashCircle(overG, x, y, r * 1.22, 3, 5, 2.5, C.gold, 0.95);
     if (castTarget === u.id) hexPoly(overG, x, y, r * 1.12).stroke({ width: 3, color: hex(SEL) });
   }
   for (const { u, x, y, deb } of over) {
@@ -437,6 +447,13 @@ export function render(now: number): void {
       const hx = x + r * 0.56, hy = y - r * 0.44, hr = Math.max(7, s * 0.19);
       overG.circle(hx, hy, hr).fill({ color: C.teal }).stroke({ width: 1.5, color: C.line });
       labels.put(`hot${u.id}`, String(Math.ceil(u.hot)), { size: hr * 1.05, fill: C.line }, hx, hy + 0.5);
+    } else if (u.hots.length) {
+      // 드루이드·성기사 지속 힐: 오른쪽 위 원 (색 = 가장 오래 남은 지속 힐, 숫자 = 남은 초), 여럿이면 아래로 작은 점
+      const hs = u.hots.slice().sort((a, b) => b.left - a.left), h0 = hs[0];
+      const hx = x + r * 0.56, hy = y - r * 0.44, hr = Math.max(7, s * 0.19);
+      overG.circle(hx, hy, hr).fill({ color: HOT_COLOR[h0.key] ?? C.teal }).stroke({ width: 1.5, color: C.line });
+      labels.put(`hot${u.id}`, String(Math.ceil(h0.left)), { size: hr * 1.05, fill: C.line }, hx, hy + 0.5);
+      hs.slice(1, 3).forEach((h, k) => overG.circle(hx, hy + hr + 3 + k * (hr * 0.9), hr * 0.42).fill({ color: HOT_COLOR[h.key] ?? C.teal }).stroke({ width: 1, color: C.line }));
     }
     if (deb) {
       const d2 = deb.name === '썩은 숨결' ? `숨결${deb.stack}` : deb.trap ? `⚠전염 ${Math.ceil(deb.left)}` : deb.name;

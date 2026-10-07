@@ -1,11 +1,12 @@
 /** S04 난이도·입장 (09): 난이도 4단, 권장 레벨·장비(미달이면 경고만), 진행·보스 공략, 드롭·보상 미리보기 */
 import { ALL_DIFFS, contentOf, isRaid, stageOf } from '../data/content';
 import { DIFFS, MYTHIC, type DiffName } from '../data/difficulty';
-import { ENCOUNTERS, segGrade } from '../data/encounters';
+import { ENCOUNTERS, segGrade, type EncounterKey } from '../data/encounters';
 import { avgScore, DROP_TABLE, gearSummary, GRADE_STYLE, ITEM_GRADES, LEGEND_LEVEL, RECOMMENDED } from '../data/equipment';
+import { canDispel, DEB_COLOR, HEROES } from '../data/heroes';
 import { clearGold, clearXp } from '../data/progression';
 import { Flow } from '../game/flow';
-import { G, lockOf } from '../game/state';
+import { G, heroNow, lockOf, switchOpen } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { battle, esc, fmt, go, screen, topBar } from './kit';
 
@@ -16,6 +17,16 @@ function diffNote(d: DiffName, raid: boolean): string {
   let t = `받는 피해 ×${x.dmg} · 파티원 회피 ${Math.round(x.dodge * 100)}%`;
   if (d === '악몽') t += raid ? ' · 레이드 악몽은 20인' : ` · 파티원 체력·딜 ×${MYTHIC.party} · 보스 체력 ×${MYTHIC.bossHp}`;
   return t;
+}
+
+/** 해제 줄 (25 7장): 이 콘텐츠가 거는 디버프를 지금 직업이 지울 수 있는지 */
+function dispelRow(segs: EncounterKey[]): string {
+  const types = [...new Set(segs.flatMap(k => ENCOUNTERS[k].debuffs || []))];
+  if (!types.length) return '';
+  const h = heroNow(), miss = types.filter(t => !canDispel(h, t));
+  const cell = types.map(t => `<span class="dbt${canDispel(h, t) ? '' : ' no'}" style="--c:${DEB_COLOR[t] || '#888'}">${t} ${canDispel(h, t) ? '✓' : '✕'}</span>`).join(' ');
+  const swap = miss.length && switchOpen().ok ? ' <button class="btn mini" type="button" data-go="s-char" data-arg="hero">직업 바꾸기</button>' : '';
+  return `<div class="dispel"><dt>해제 <small>${HEROES[h].name}</small></dt><dd>${cell}${swap}</dd></div>`;
 }
 
 function render(): void {
@@ -49,6 +60,7 @@ function render(): void {
           <div><dt>인원</dt><dd>${c.size(d)}인 (나 포함)</dd></div>
           <div><dt>권장 장비</dt><dd>${rec ? rec.label : '없음'}</dd></div>
           <div><dt>내 장비</dt><dd>${esc(gearSummary(G.save.gear.equipped))}</dd></div>
+          ${dispelRow(segs)}
         </dl>
         ${warn ? `<p class="warnbox">⚠ 권장 장비(${rec!.label})보다 낮음. 입장은 가능</p>` : ''}
       </section>

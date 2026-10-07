@@ -5,10 +5,11 @@
 import type { DiffName } from '../data/difficulty';
 import { DIFFS } from '../data/difficulty';
 import { ENCOUNTERS, mobGrade, type Encounter, type EncounterKey, type ScriptKey } from '../data/encounters';
-import { SKILLS, type SkillKey } from '../data/skills';
+import { canDispel, HEROES } from '../data/heroes';
+import { SKILLS } from '../data/skills';
 import { create, type Fight, type Role } from '../engine';
 import { bossSvg } from './art';
-import { ARROW, ICON_COLOR, iga, josa, mmss, READ_ORDER, S, secT } from './core';
+import { ARROW, heroSkill, ICON_COLOR, iga, josa, mmss, READ_ORDER, S, secT } from './core';
 
 // 숫자는 엔진에서 읽는다: 기술 이름·아이콘·첫 시각·주기·예고·탱커 피해·장판 초당 피해/지속은 시험 전투(E.create)의 skills에서,
 // 피해 배율·회피는 E.DIFFS에서, 보스·파티 체력(악몽 배율 포함)은 시험 전투에서.
@@ -41,8 +42,18 @@ function probe(encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: 
   }
   return probeCache[k];
 }
-// 대응 문구에 지금 스킬 배치의 쓸기 방향을 붙임 (로비에서 바꿀 수 있어서)
-function act(key: SkillKey) { const d = READ_ORDER.find(x => S.layout[x] === key); return d ? `${SKILLS[key].name}(${ARROW[d]} 쓸기)` : SKILLS[key].name; }
+// 대응 문구에 지금 스킬 배치의 쓸기 방향을 붙임 (로비에서 바꿀 수 있어서). slot = 휠 칸 (사제 스킬 이름), 이름은 지금 직업 스킬.
+// p = 뒤에 붙는 조사 [받침 있을 때, 없을 때] (직업마다 스킬 이름이 달라서)
+// 드루이드는 지속 힐이 기본 힐 칸(새싹)이고 지속 힐 칸은 거두기(피워 내기)라서, 공략 문구의 「지속 힐」·「기본 힐」을 옮김
+const GUIDE_SLOT: Partial<Record<string, Record<string, string>>> = { druid: { renew: 'heal', heal: 'flash' } };
+function act(key: string, p?: [string, string]) {
+  const slot = GUIDE_SLOT[S.hero]?.[key] || key;
+  const nm = SKILLS[heroSkill(slot)].name, d = READ_ORDER.find(x => S.layout[x] === slot);
+  return `${nm}${d ? `(${ARROW[d]} 쓸기)` : ''}${p ? josa(nm, p[0], p[1]) : ''}`;
+}
+const EUL: [string, string] = ['을', '를'], RO: [string, string] = ['으로', '로'];
+/** 독처럼 지금 직업이 못 지우는 디버프의 대응 */
+const cantDispel = (type: string) => `${HEROES[S.hero].name}${josa(HEROES[S.hero].name, '은', '는')} ${type}${josa(type, '을', '를')} 못 지움. ${act('renew', EUL)} 걸고 ${act('heal', RO)} 버티기`;
 const ENRAGE_HOW = '버티는 기술이 아님. 그 전에 잡으려면 딜러가 쓰러지지 않게';
 
 interface GuideCtx { enc: Encounter; diff: DiffName; m: number; n: (x: number) => number; big: boolean; sk: Record<string, ProbeSkill>; hp: Probe['hp']; B: Record<string, Num>; hpMult: number }
@@ -114,12 +125,12 @@ const GUIDE: Record<ScriptKey, (c: GuideCtx) => GuideBody> = {
         { ic: bu.icon, name: bu.name,
           when: `${secT(bu.next + bu.cast)}에 첫 타, 그 뒤 ${secT(bu.period)}마다 · 예고 ${secT(bu.cast)}`,
           what: `탱커에게 <b>${N.buster}</b> 피해 (탱커 체력 ${hp.tank}의 ${pct(N.buster, hp.tank)}%)`,
-          how: `예고가 뜨면 탱커를 미리 가득 채우기. 못 채우면 ${act('guardian')}을 걸어 한 번 버티기`,
+          how: `예고가 뜨면 탱커를 미리 가득 채우기. 못 채우면 ${act('guardian', EUL)} 걸어 한 번 버티기`,
           every: `${secT(bu.period)}마다`, tip: () => [`탱커에게 ${N.buster} 피해를 줍니다.`] },
         { ic: ao.icon, name: ao.name,
           when: `${secT(ao.next + ao.cast)}에 첫 타, 그 뒤 ${secT(ao.period)}마다 · 예고 ${secT(ao.cast)}`,
           what: `파티 전원에게 <b>${N.aoe}</b> 피해 (파티원 체력 ${hp.dps}의 ${pct(N.aoe, hp.dps)}%)`,
-          how: `예고 동안 여러 명에게 ${act('renew')}을 걸고, 맞은 뒤 ${act('poh')}으로 모인 칸을 채우기`,
+          how: `예고 동안 여러 명에게 ${act('renew', EUL)} 걸고, 맞은 뒤 ${act('poh', RO)} 모인 칸을 채우기`,
           every: `${secT(ao.period)}마다`, tip: () => [`파티 전원에게 ${N.aoe} 피해를 줍니다.`] },
         { ic: zo.icon, name: zo.name,
           when: `보스 체력 ${B.zoneAt * 100}% 아래부터 · ${secT(zo.period)}마다 · 예고 ${secT(zo.cast)}`,
@@ -154,33 +165,33 @@ const GUIDE: Record<ScriptKey, (c: GuideCtx) => GuideBody> = {
       { ic: br.icon, name: br.name,
         when: `${secT(br.next)}에 첫 번째, ${secT(br.period)}마다 · 예고 없음 · 인터미션엔 멈춤`,
         what: `무작위 ${T.breath}명에게 질병: 겹칠 때마다 최대 체력 -${B.breathPct}% (최대 ${B.breathMax}번, -${B.breathPct * B.breathMax}%) · ${B.breathDur}초`,
-        how: `${act('purify')}로 지우기. 많이 겹친 사람부터. 체력 ${B.interAt * 100}% 직전엔 다 지워 두기: 디버프가 남은 사람은 인터미션 때 독침이 더 걸림`,
+        how: `${act('purify', RO)} 지우기. 많이 겹친 사람부터. 체력 ${B.interAt * 100}% 직전엔 다 지워 두기: 디버프가 남은 사람은 인터미션 때 독침이 더 걸림`,
         every: `${secT(br.period)}마다`, tip: () => [`${T.breath}명에게 질병을 걸어 최대 체력을 ${B.breathPct}%씩 겹쳐 줄입니다.`] },
       { ic: st.icon, name: st.name,
         when: `1페이즈만 · ${secT(st.next)}에 첫 번째, ${secT(st.period)}마다 · 예고 없음`,
         what: `무작위 ${T.breath}명에게 독: ${B.stingDur}초 동안 초당 <b>${N.sting}</b> (모두 ${N.stingTot})`,
-        how: '사제는 독을 못 지움. 소생을 걸고 치유로 버티기',
+        how: canDispel(S.hero, '독') ? `${act('purify', RO)} 지우기. 해제 재사용 대기가 남으면 질병 먼저` : cantDispel('독'),
         every: `1페이즈 · ${secT(st.period)}마다`, tip: () => [`${T.breath}명에게 독을 걸어 ${B.stingDur}초 동안 초당 ${N.sting} 피해를 줍니다.`] },
       { ic: pu.icon, name: pu.name,
         when: `${secT(pu.next + pu.cast)}에 첫 타, ${secT(pu.period)}마다 · 2페이즈는 시작 ${secT(B.pulse2Delay + pu.cast)} 뒤부터 ${secT(B.pulse2Period)}마다 · 예고 ${secT(pu.cast)}`,
         what: `파티 전원에게 <b>${N.pulse1}</b> 피해 · 2페이즈부터 <b>${N.pulse2}</b>`,
-        how: `예고 동안 ${act('renew')}을 깔고, 맞은 뒤 ${act('poh')}. 여러 명이 절반 아래면 ${act('hymn')}`,
+        how: `예고 동안 ${act('renew', EUL)} 깔고, 맞은 뒤 ${act('poh')}. 여러 명이 절반 아래면 ${act('hymn')}`,
         every: `${secT(pu.period)}마다 · 2페이즈 ${secT(B.pulse2Period)}마다`, tip: F => [F && F.phase >= 2 ? `파티 전원에게 ${N.pulse2} 피해를 줍니다.` : `파티 전원에게 ${N.pulse1} 피해를 줍니다. 2페이즈부터 ${N.pulse2}입니다.`] },
       { ic: '쥐떼', name: '쥐떼 (인터미션)',
         when: `보스 체력 ${B.interAt * 100}%에서 ${B.interDur}초 동안 · 보스 무적`,
         what: `맨 뒷줄 원거리 ${T.rats}명이 초당 <b>${N.rats}</b> 피해 (${B.interDur}초면 ${N.ratsTot}). 시작할 때 디버프가 있는 사람은 독침이 하나 더`,
-        how: '‘쥐떼’ 표시가 붙은 사람에게 소생을 걸고 치유를 몰아주기',
+        how: `‘쥐떼’ 표시가 붙은 사람에게 ${act('renew', EUL)} 걸고 ${act('heal', EUL)} 몰아주기`,
         every: `체력 ${B.interAt * 100}%에서 ${B.interDur}초`, tip: () => [`뒷줄 ${T.rats}명에게 초당 ${N.rats} 피해를 줍니다. 그동안 보스는 무적입니다.`] },
       { ic: co.icon, name: co.name,
         when: `2페이즈부터 · 인터미션 끝 ${secT(B.contDelay)} 뒤 첫 번째, ${secT(co.period)}마다`,
-        what: `무작위 ${T.cont}명에게 함정 질병 (점선 테두리) ${secT(B.contDur)}. 끝나면 터져 옆 칸 사람에게 <b>${N.spread}</b> 피해 + 독침. 정화하면 그 자리에서 바로 터짐${big ? '. 두 대상이 붙어 있으면 걸리자마자 터짐' : ''}`,
-        how: '정화하지 말고 기다리기. 터지기 전에 옆 칸 사람 체력을 채워 두기',
-        every: `2페이즈 · ${secT(co.period)}마다`, tip: () => [`${secT(B.contDur)} 뒤 터져 옆 칸에 ${N.spread} 피해와 독침을 줍니다. 정화하면 바로 터집니다.`] },
+        what: `무작위 ${T.cont}명에게 함정 질병 (점선 테두리) ${secT(B.contDur)}. 끝나면 터져 옆 칸 사람에게 <b>${N.spread}</b> 피해 + 독침. 해제하면 그 자리에서 바로 터짐${big ? '. 두 대상이 붙어 있으면 걸리자마자 터짐' : ''}`,
+        how: '해제하지 말고 기다리기. 터지기 전에 옆 칸 사람 체력을 채워 두기',
+        every: `2페이즈 · ${secT(co.period)}마다`, tip: () => [`${secT(B.contDur)} 뒤 터져 옆 칸에 ${N.spread} 피해와 독침을 줍니다. 해제하면 바로 터집니다.`] },
     ];
     if (big) skills.push({ ic: so.icon, name: so.name,
       when: `3페이즈(체력 ${B.p3At * 100}% 아래)부터 ${secT(so.period)}마다 · 예고 ${secT(so.cast)}`,
       what: `판 바깥 1/3 (왼쪽·오른쪽 번갈아)에 ${secT(so.dur)} 장판. 안에 있으면 초당 <b>${N.stormDps}</b> (다 맞으면 ${N.stormTot})`,
-      how: '파티원(나 포함)이 알아서 옮김. 칸이 모자라 남는 사람이 생기니 장판 안 사람부터 치유',
+      how: '파티원(나 포함)이 알아서 옮김. 칸이 모자라 남는 사람이 생기니 장판 안 사람부터 채우기',
       every: `3페이즈 · ${secT(so.period)}마다`, tip: () => [`판 바깥 1/3에 장판을 깔아 초당 ${N.stormDps} 피해를 줍니다.`] });
     skills.push({ ic: '광폭', name: B.enrName, enr: true,
       when: `광폭화 ${mmss(c.enc.enrage)}부터 ${B.enrPeriod}초마다 · 예고 ${secT(B.enrCast)}`,
