@@ -6,9 +6,10 @@ import { gearStats } from '../data/gear';
 import { ITEMS } from '../data/items';
 import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
 import { lvPower } from '../data/progression';
+import { BULWARK, TRAIT_CHANCE, TRAITS, type TraitKey } from '../data/traits';
 import { makeCells } from './board';
-import { initBoss, bossTick } from './bosses';
-import { DT, emit, living } from './core';
+import { aggroTarget, initBoss, bossTick } from './bosses';
+import { bark, DT, emit, living } from './core';
 import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { rngFrom } from './rng';
@@ -97,19 +98,24 @@ export function recruitParty(encKey: EncounterKey, seed: number): RosterEntry[] 
     count[k] = (count[k] || 0) + 1;
     m.cls = k;
   }
+  // 특성 (02 5-2-1): 직업을 다 뽑은 뒤 같은 난수로 (직업 결과는 그대로)
+  for (const m of list) {
+    const t = (Object.keys(TRAITS) as TraitKey[]).filter(k => TRAITS[k].roles.includes(m.role));
+    if (t.length && rng() < TRAIT_CHANCE) m.traits = [t[Math.floor(rng() * t.length)]];
+  }
   return list;
 }
 
 function makeParty(f: Fight, roster?: RosterEntry[]): void {
   const mult = f.mythic ? MYTHIC.party : 1;
   const units: Unit[] = [];
-  const add = (role: Role, pers: PersName | null, nick: string, cls?: ClassKey): Unit => {
+  const add = (role: Role, pers: PersName | null, nick: string, cls?: ClassKey, traits?: TraitKey[]): Unit => {
     const c = cls ? CLASSES[cls] : null;
     const lv = role === 'healer' ? f.power : f.scale;
     const base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;
     const dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult * f.scale;
     const u: Unit = {
-      id: f.nextId++, role, cls: c ? c.key : null, aim: 0, flow: 0, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
+      id: f.nextId++, role, cls: c ? c.key : null, aim: 0, flow: 0, traits: (traits || []).filter(k => TRAITS[k]), bulwark: 0, bulwarkUsed: false, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
       cell: -1, home: -1, hot: 0, hotTick: 0, echo: [], guardian: 0, shield: 0, debuffs: [], moving: null, react: null,
       retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0, thanks: 0, flash: 0,
       barkAt: -10, ignoreZone: 0, homeAt: null, diedAt: 0, me: role === 'healer',
@@ -118,7 +124,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     return u;
   };
   const roles = roster || rollParty(f.enc.key, f.cfg.seed || 1);
-  roles.forEach(r => add(r.role, r.pers, r.nick, r.cls));
+  roles.forEach(r => add(r.role, r.pers, r.nick, r.cls, r.traits));
   add('healer', null, '나');
   f.party = units;
   f.me = units[units.length - 1];
@@ -147,6 +153,7 @@ export function step(f: Fight): void {
   f.t += DT; f.k++;
   healerTick(f);
   for (const u of f.party) unitTick(f, u);
+  tankWatch(f);
   bossTick(f);
   if (!f.invuln) {
     const d = partyDps(f) * DT;
@@ -157,8 +164,18 @@ export function step(f: Fight): void {
   const live = living(f);
   if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', f.mobs.length ? '모두 쓰러뜨림' : '보스를 쓰러뜨림'); }
   else if (!f.me.alive) end(f, 'lose', '힐러가 쓰러짐');
-  else if (!live.some(u => u.role === 'tank')) end(f, 'lose', '탱커가 모두 쓰러짐');
-  else if (live.length <= f.party.length * 0.3) end(f, 'lose', '파티원 70%가 쓰러짐');
+  // 탱커가 쓰러져도 계속, 파티원이 모두 쓰러지면 전멸 (2026-10-07 Lim)
+  else if (!live.some(u => !u.me)) end(f, 'lose', '파티 전멸');
+}
+
+/** 탱커가 모두 쓰러지면 보스는 다음 사람을 때림 (aggroTarget). 그 사람이 버팀목이면 잠깐 버팀 */
+function tankWatch(f: Fight): void {
+  if (f.party.some(u => u.role === 'tank' && u.alive)) return;
+  const u = aggroTarget(f);
+  if (!u || u.me || u.bulwarkUsed || !u.traits.includes('bulwark')) return;
+  u.bulwarkUsed = true; u.bulwark = BULWARK.sec;
+  bark(f, u, '내가 막을게!', true);
+  emit(f, { type: 'msg', text: `${u.nick} ${TRAITS.bulwark.name}: ${BULWARK.sec}초 버팀` });
 }
 
 /** 잡몹 구간: 파티 딜은 잡을 차례인 잡몹에게, 남는 딜은 다음 잡몹에게 (23 2장) */

@@ -79,7 +79,7 @@ document.addEventListener('click', e => {
   if (b && b.closest('#app')) go(b.dataset.go!);
 });
 
-// ---------- 전투 화면 입구 (legacy/protoUi.js가 window.__battle로 엶) ----------
+// ---------- 전투 화면 입구 (battle/index.ts가 window.__battle로 엶) ----------
 export interface BattleApi {
   start(o: {
     content: string; name: string; segs: string[]; diff: string; /** 힐러 레벨 (스킬 해금) */ level: number; /** 실제 레벨 (힐량·체력) */ heroLv: number; /** 단계 레벨 */ stageLv: number; gearStats: GearStats; party: RosterEntry[];
@@ -90,7 +90,8 @@ export interface BattleApi {
   settings(s: object): void;
   /** 전투 화면에서 바꾼 설정 (일시정지의 자동 치유) → 저장 */
   onSetting: ((key: string, val: unknown) => void) | null;
-  guide(encKey: string, diff: string): string;
+  /** 전투 전 공략. 단계 레벨을 주면 그 레벨 숫자로 */
+  guide(encKey: string, diff: string, stageLv?: number, heroLv?: number): string;
   bossSvg(script: string): string;
   itemIcon(k: string): string;
   itemHint(script: string): string;

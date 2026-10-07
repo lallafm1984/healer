@@ -27,15 +27,18 @@ console.log(`${DUNGEONS[dungeon].name} · ${N}판씩 · 단축칸 ${items.join('
 console.log(`구간: ${segs.map(k => ENCOUNTERS[k].name).join(' → ')}`);
 for (const diff of DIFFS) for (const gear of GEARS) {
   let wins = 0, time = 0;
+  const lost: Record<string, number> = {};
   const per = segs.map(() => ({ n: 0, win: 0, t: 0, deaths: 0, mana: 0, minMana: 0 }));
   for (let seed = 1; seed <= N; seed++) {
     const r = simulateDungeon({ dungeon, diff, gear, seed, items, level, heroLv: level, stageLv });
     if (r.win) { wins++; time += r.time; }
+    else { const f = r.fights[r.fights.length - 1]; const why = f.over ? f.reason : '시간 초과'; lost[why] = (lost[why] || 0) + 1; }
     r.fights.forEach((f, i) => {
       const p = per[i]; p.n++;
       if (f.over === 'win') { p.win++; p.t += f.t; p.deaths += f.stats.deaths; p.mana += f.mana; p.minMana += f.stats.minMana; }
     });
   }
   const cells = per.map(p => p.n ? `${Math.round((100 * p.win) / p.n)}% ${fmt(p.t / Math.max(1, p.win))} 사망${(p.deaths / Math.max(1, p.win)).toFixed(1)} 끝마나${Math.round(p.mana / Math.max(1, p.win))} 최저${Math.round(p.minMana / Math.max(1, p.win))}` : '-');
-  console.log(`${diff} ${gear.padEnd(5)} 클리어 ${String(Math.round((100 * wins) / N)).padStart(3)}% ${wins ? fmt(time / wins) : '-'} | ${cells.join(' | ')}`);
+  const why = Object.entries(lost).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(' · ');
+  console.log(`${diff} ${gear.padEnd(5)} 클리어 ${String(Math.round((100 * wins) / N)).padStart(3)}% ${wins ? fmt(time / wins) : '-'} | ${cells.join(' | ')}${why ? ` | 실패: ${why}` : ''}`);
 }

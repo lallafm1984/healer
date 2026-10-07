@@ -1,8 +1,7 @@
-import './legacy/proto.css';
+import './battle/battle.css';
 import './app.css';
 import './screens/screens.css';
-import './legacy/engineShim';
-import './legacy/protoUi.js';
+import './battle';
 import './screens/title';
 import './screens/lobby';
 import './screens/content';

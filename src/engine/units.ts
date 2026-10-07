@@ -14,6 +14,7 @@ export function unitTick(f: Fight, u: Unit): void {
   u.echo = u.echo.filter(e => e.left > 0);
   if (u.guardian > 0) u.guardian -= dt;
   if (u.shield > 0) u.shield -= dt;
+  if (u.bulwark > 0) u.bulwark -= dt;
   if (u.thanks > 0) u.thanks -= dt;
   if (u.cls) { if (u.flow > 0) u.flow -= dt; u.aim = u.moving ? 0 : u.aim + dt; }
   for (const d of u.debuffs.slice()) {

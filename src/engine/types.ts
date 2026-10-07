@@ -6,6 +6,7 @@ import type { GearId, GearStats } from '../data/gear';
 import type { ItemKey } from '../data/items';
 import type { Personality, PersName } from '../data/personalities';
 import type { SkillKey } from '../data/skills';
+import type { TraitKey } from '../data/traits';
 
 export type Role = 'tank' | 'melee' | 'ranged' | 'healer';
 
@@ -62,6 +63,11 @@ export interface Unit {
   aim: number;
   /** 검사 흐름: 남은 시간 */
   flow: number;
+  /** 특성 (02 5-2-1) */
+  traits: TraitKey[];
+  /** 버팀목: 남은 시간 (받는 피해 감소) */
+  bulwark: number;
+  bulwarkUsed: boolean;
   pers: PersName | null;
   p: Partial<Personality>;
   nick: string;
@@ -101,6 +107,8 @@ export interface RosterEntry {
   nick: string;
   /** 직업 (17). 없으면 역할 기본 체력·딜 */
   cls?: ClassKey;
+  /** 특성 (02 5-2-1) */
+  traits?: TraitKey[];
 }
 
 export type TelKind = 'buster' | 'aoe' | 'zone' | 'instant';

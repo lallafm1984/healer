@@ -123,7 +123,6 @@ export default async function legacyUi(url, shots) {
   const sh = await ev(id => ({ sh: window.__proto.F.party.find(u => u.id === id).shield, left: window.__proto.F.items.shield, cast: !!window.__proto.F.cast }), tk2.id);
   ok(sh.sh > 7 && sh.left === 0 && !sh.cast, `탱커에게 보호 8초, 힐은 안 나감 ${JSON.stringify(sh)}`);
   await page.screenshot({ path: `${shots}/v6_shield.png` });
-  ok(await ev(() => { const F = window.__proto.F, u = F.party.find(x => x.shield > 0); const h = u.hp; Engine.step(F); return true; }), 'step ok');
 
   // 기록
   const run = await ev(() => window.__proto.run());
@@ -166,6 +165,12 @@ export default async function legacyUi(url, shots) {
   const rv = await ev(id => { const F = window.__proto.F, u = F.party.find(x => x.id === id); return { alive: u.alive, pct: Math.round((u.hp / u.max) * 100), inCell: F.cells[u.cell].unit === u }; }, dead);
   ok(rv.alive && rv.pct >= 28 && rv.pct <= 31 && rv.inCell, `부활 깃털: 30%로 칸에 복귀 ${JSON.stringify(rv)}`);
   await page.screenshot({ path: `${shots}/v6_raid20_items.png` });
+  // 20인 탭 = 확대 미리보기 0.3초 (02 3-1). 판(PixiJS)이 그 순간에도 멀쩡히 그려지는지
+  const bb20 = await page.locator('#board').boundingBox();
+  const c20 = await ev(() => { const F = window.__proto.F, u = F.party.find(x => x.role === 'ranged' && x.alive); return window.__proto.center(u.cell); });
+  await page.touchscreen.tap(bb20.x + c20.x, bb20.y + c20.y); await page.clock.runFor(120);
+  await page.screenshot({ path: `${shots}/battle_raid20_lens.png` });
+  ok(await ev(() => window.__proto.renderer === 'canvas'), '자동 테스트 판 = Canvas 렌더러');
 
   // 왼손 모드 (설정)
   await page.click('#pauseBtn'); await page.click('#quitBtn'); await page.clock.runFor(100);

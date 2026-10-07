@@ -144,9 +144,18 @@ export default async function dungeon(url, shots) {
   ok(await page.evaluate(() => window.__proto.dungeon.idx === 0 && window.__proto.F.enc.key === 'gate'), '던전 처음부터');
   const lvm = await page.evaluate(() => { const F = window.__proto.F; return { power: F.power, scale: F.scale, me: Math.round(F.me.max) }; });
   ok(Math.abs(lvm.power - 1.08) < 1e-9 && lvm.scale === 1 && lvm.me === 594, `Lv 2 전투: 힐량·내 체력 ×1.08, 단계 Lv 1 그대로 ${JSON.stringify(lvm)}`);
+  // 탱커가 쓰러져도 전투는 계속, 아래에 포기 버튼 (2026-10-07 Lim)
+  ok(await page.isHidden('#giveUp'), '탱커가 살아 있으면 포기 버튼 없음');
   await page.evaluate(() => { const F = window.__proto.F; F.party.filter(u => u.role === 'tank').forEach(u => { u.hp = 1; u.guardian = 0; }); F.party.forEach(u => { if (!u.me) u.hot = 0; }); });
-  await page.clock.runFor(8000);
-  ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '전멸' && /0 \/ 4 구간/.test(await page.textContent('#s-settle')), '잡몹 구간에서 탱커가 쓰러지면 던전 실패');
+  await page.clock.runFor(3000);
+  const td = await page.evaluate(() => { const F = window.__proto.F; return { over: F.over, tank: F.party.some(u => u.role === 'tank' && u.alive), alive: F.party.filter(u => u.alive && !u.me).length }; });
+  ok(td.over === null && !td.tank && td.alive > 0, `탱커가 모두 쓰러져도 전투 계속 ${JSON.stringify(td)}`);
+  ok(await page.isVisible('#giveUp') && await page.isHidden('#hint'), '탱커 전멸 → 아래에 포기 버튼');
+  const gb = await page.evaluate(() => { const r = document.getElementById('giveUp').getBoundingClientRect(), c = document.getElementById('controls').getBoundingClientRect(), w = document.getElementById('wheel').getBoundingClientRect(); return { inside: r.top >= c.top && r.bottom <= c.bottom, overlap: !(r.right <= w.left || r.left >= w.right) }; });
+  ok(gb.inside && !gb.overlap, `포기 버튼은 하단, 휠과 안 겹침 ${JSON.stringify(gb)}`);
+  await page.screenshot({ path: `${shots}/battle_tankdown.png` });
+  await page.click('#giveUp'); await page.clock.runFor(300);
+  ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '전멸' && /0 \/ 4 구간/.test(await page.textContent('#s-settle')), '포기 버튼 = 전멸과 같은 던전 실패');
   sv = await save();
   ok(sv.player.gold === gold0 && sv.player.xp > xp0 && sv.gear.bag.length === 0, `지면 골드·장비 없음, 경험치 조금 (${xp0} → ${sv.player.xp})`);
   ok(await page.isVisible('#retry'), '실패 정산에 다시 도전');

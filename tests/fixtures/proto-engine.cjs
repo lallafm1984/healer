@@ -1,4 +1,5 @@
-// 문장 끝 「~요」를 뺀 앱 문구에 맞춰 메시지 글자만 바꿈 (동작은 프로토타입 그대로, 2026-10-07)
+// 문장 끝 「~요」를 뺀 앱 문구에 맞춰 메시지 글자만 바꿈 (2026-10-07)
+// 탱커 전멸 규칙만 본 게임에 맞춤 (2026-10-07 Lim): 탱커가 쓰러지면 보스는 근접 → 원거리 → 나를 때리고, 파티원이 모두 쓰러져야 전멸 (특성 없는 옛 파티라 버팀목은 없음)
 /* ===== 나혼자 힐러 전투 엔진 (sim/combat_sim.py 이식 + 04 파티원 AI) ===== */
 const Engine = (() => {
   const DT = 0.05;
@@ -374,7 +375,7 @@ const Engine = (() => {
 
   // ---------- 보스 스크립트 ----------
   function skill(f, s) { const o = Object.assign({ active: () => true }, s); f.skills.push(o); return o; }
-  function tankTarget(f) { return f.party.find(u => u.role === 'tank' && u.alive) || null; }
+  function tankTarget(f) { const a = f.party.filter(u => u.alive); return a.find(u => u.role === 'tank') || a.find(u => u.role === 'melee') || a.find(u => u.role === 'ranged') || a.find(u => u.me) || null; }
 
   const SCRIPTS = {
     warden: {
@@ -815,8 +816,7 @@ const Engine = (() => {
     const live = living(f);
     if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', '보스를 쓰러뜨림'); }
     else if (!f.me.alive) end(f, 'lose', '힐러가 쓰러짐');
-    else if (!live.some(u => u.role === 'tank')) end(f, 'lose', '탱커가 모두 쓰러짐');
-    else if (live.length <= f.party.length * 0.3) end(f, 'lose', '파티원 70%가 쓰러짐');
+    else if (!live.some(u => !u.me)) end(f, 'lose', '파티 전멸');
   }
   function end(f, result, reason) {
     f.over = result; f.reason = reason;

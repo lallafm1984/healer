@@ -1,4 +1,5 @@
 import { DISPELLABLE } from '../data/skills';
+import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
 import type { Cell, Debuff, Fight, FightEvent, Unit } from './types';
 
@@ -47,6 +48,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
   if (!u.alive || amt <= 0) return;
   amt *= f.dmgMult;
   if (u.shield > 0) amt *= 0.6;
+  if (u.bulwark > 0) amt *= 1 - BULWARK.cut;
   if (u.cls) {
     if (magic && u.cls === 'paladin') amt *= 0.9;
     if (u.cls === 'swordsman') u.flow = 3;

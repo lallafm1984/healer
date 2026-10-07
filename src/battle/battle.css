@@ -1,4 +1,4 @@
-/* 프로토타입 v11 화면 CSS (prototype/shell.html). P1에서 새 화면으로 교체 */
+/* 전투 화면 스타일 (프로토타입 v11 화면에서 옮김). 앱 전체 기본 색·글꼴 :root도 여기 */
 /* 레이아웃: 세로 9:19.5 한 화면 앱. 위 보스 무대 → 가운데 육각 판 → 아래 스킬 휠 (기획서 3장). 다크 단일 테마 (아트 가이드 16: 밤 남색 + 낡은 금색, 채도는 정보에만) */
 :root {
   color-scheme: dark;
@@ -305,3 +305,9 @@ textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertic
 .slot.coach-hi { box-shadow: 0 0 0 3px var(--gold-hi), 0 0 16px rgba(240, 196, 106, 0.8); animation: coachPulse 0.9s ease-in-out infinite alternate; }
 @keyframes coachPulse { from { transform: scale(1); } to { transform: scale(1.08); } }
 
+
+/* 탱커가 모두 쓰러지면 아래에 나오는 포기 버튼 (2026-10-07 Lim) */
+#giveUp { width: 100%; max-width: 132px; min-height: 36px; padding: 6px 10px; font-family: var(--font-display); font-size: 17px; color: #FFD9D4; background: #4A1C1C; border-color: var(--danger); animation: giveUpIn 0.25s ease-out; }
+#giveUp:active { transform: translateY(1px); }
+@keyframes giveUpIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+#preview .trait b { color: var(--gold-hi); }

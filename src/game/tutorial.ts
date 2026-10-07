@@ -15,7 +15,7 @@ export const TUT = {
   done: 3,
 } as const;
 
-/** 전투 중 안내 묶음 (legacy/protoUi.js COACH) */
+/** 전투 중 안내 묶음 (battle/hud.ts COACH) */
 export type CoachKey = 'duo' | 'explore' | 'dungeon';
 
 /** 첫 전투 파티: 탱커 1명. 성격은 가장 순한 신중파 */

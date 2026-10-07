@@ -1,5 +1,6 @@
 /** S05 파티 편성 (09): 공개모집(길드파티는 Lv 15·P2), 시작 위치 미리보기, 파티원 카드, 다시 뽑기, 궁합 힌트, 단축칸 고르기 */
 import { CLASSES } from '../data/classes';
+import { TRAITS } from '../data/traits';
 import { contentOf, stageOf } from '../data/content';
 import { gearStatsOf } from '../data/equipment';
 import { ENCOUNTERS } from '../data/encounters';
@@ -64,7 +65,7 @@ function render(): void {
       <ul class="pcards">${Flow.party!.map(m => {
         const p = PERS[m.pers], c = m.cls ? CLASSES[m.cls] : null;
         return `<li class="pcard" data-cls="${c ? c.key : ''}"><span class="prole${c ? ' two' : ''}" style="background:${ROLE[m.role].color}">${c ? c.short : ROLE[m.role].short}</span>
-          <div><b class="pnick">${esc(m.nick)}</b><small>${c ? `${c.name} · ` : ''}${ROLE[m.role].name} · Lv 1</small>${c ? `<p class="ppas"><b>${c.passive}</b> ${esc(c.passiveDesc)}</p>` : ''}<p><i class="pcat" style="background:${CATS[p.cat]}">${p.ch}</i>${esc(m.pers)} <span class="star">${'★'.repeat(p.star)}</span> · ${esc(p.desc)}</p></div></li>`;
+          <div><b class="pnick">${esc(m.nick)}</b><small>${c ? `${c.name} · ` : ''}${ROLE[m.role].name} · Lv 1</small>${c ? `<p class="ppas"><b>${c.passive}</b> ${esc(c.passiveDesc)}</p>` : ''}${(m.traits || []).map(k => `<p class="ppas ptrait"><b>특성 ${TRAITS[k].name}</b> ${esc(TRAITS[k].desc)}</p>`).join('')}<p><i class="pcat" style="background:${CATS[p.cat]}">${p.ch}</i>${esc(m.pers)} <span class="star">${'★'.repeat(p.star)}</span> · ${esc(p.desc)}</p></div></li>`;
       }).join('')}</ul>
       ${hs.length ? `<section class="panel hint"><h4>💡 이번 파티</h4><ul>${hs.map(h => `<li>${esc(h)}</li>`).join('')}</ul></section>` : ''}
       <h3 class="sec">소비 아이템 <small>단축칸 ${slots}칸${slots < 4 ? ` · Lv ${slots === 2 ? 20 : 40}에 1칸 더` : ''}</small></h3>

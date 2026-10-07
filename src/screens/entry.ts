@@ -1,5 +1,5 @@
 /** S04 난이도·입장 (09): 난이도 4단, 권장 레벨·장비(미달이면 경고만), 진행·보스 공략, 드롭·보상 미리보기 */
-import { ALL_DIFFS, contentOf, isRaid } from '../data/content';
+import { ALL_DIFFS, contentOf, isRaid, stageOf } from '../data/content';
 import { DIFFS, MYTHIC, type DiffName } from '../data/difficulty';
 import { ENCOUNTERS } from '../data/encounters';
 import { avgScore, DROP_TABLE, gearSummary, GRADE_STYLE, ITEM_GRADES, LEGEND_LEVEL, RECOMMENDED } from '../data/equipment';
@@ -55,7 +55,7 @@ function render(): void {
 
       <h3 class="sec">진행 <small>${segs.length > 1 ? '구간 사이에 휴식' : '보스 1'}</small></h3>
       <ol class="segs">${segs.map(k => `<li class="${ENCOUNTERS[k].script === 'trash' ? 'trash' : 'boss'}">${esc(ENCOUNTERS[k].name)}<small>${ENCOUNTERS[k].script === 'trash' ? '잡몹' : '보스'}</small></li>`).join('')}</ol>
-      <div class="guides">${segs.map((k, i) => `<details class="gdet"${i === segs.length - 1 && segs.length === 1 ? ' open' : ''}><summary>${i + 1}. ${esc(ENCOUNTERS[k].name)} 공략</summary>${battle().guide(k, d)}</details>`).join('')}</div>
+      <div class="guides">${segs.map((k, i) => `<details class="gdet"${i === segs.length - 1 && segs.length === 1 ? ' open' : ''}><summary>${i + 1}. ${esc(ENCOUNTERS[k].name)} 공략</summary>${battle().guide(k, d, stageOf(c, d), G.save.player.level)}</details>`).join('')}</div>
 
       <h3 class="sec">보상 <small>클리어하면</small></h3>
       <section class="panel reward-pre">
