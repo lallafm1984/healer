@@ -91,7 +91,11 @@ const tryUse = (f: Fight, k: SkillKey, u: Unit | null, idx: (u: Unit) => number)
   if (!canTarget(f, k, cell).ok) return false;
   return use(f, k, cell).ok;
 };
-const cleansable = (f: Fight, live: Unit[]) => live.find(u => u.debuffs.some(d => HEROES[f.hero].dispel.includes(d.type) && !d.trap)) || null;
+/** 지울 디버프가 있는 파티원: 곧 터지는 것 (독창 등 남은 시간이 짧은 것)부터 */
+const cleansable = (f: Fight, live: Unit[]) => {
+  const left = (u: Unit) => Math.min(...u.debuffs.filter(d => HEROES[f.hero].dispel.includes(d.type) && !d.trap).map(d => d.left));
+  return live.filter(u => left(u) < Infinity).sort((a, b) => left(a) - left(b))[0] || null;
+};
 
 function autoDruid(f: Fight): void {
   const c = ctx(f, 160);
@@ -101,6 +105,8 @@ function autoDruid(f: Fight): void {
   if (ready('quietwood') && live.filter(u => pct(u) < 0.5).length >= Math.max(2, Math.floor(live.length / 2))) { use(f, 'quietwood', 0); return; }
   if (ready('rebirth') && !f.rebirthUsed && reviveTarget(f) && tryUse(f, 'rebirth', null, idx)) return;
   if (c.busterOn && ready('bark') && pct(c.busterOn) < 0.8 && tryUse(f, 'bark', c.busterOn, idx)) return;
+  // 여럿이 크게 다쳤으면 들꽃 군락부터 (20인에서 한 명씩만 살리다 밀리지 않게)
+  if (ready('wildflower') && c.cluster.best && c.cluster.score > 800 * f.power && tryUse(f, 'wildflower', c.cluster.best, idx)) return;
   // 위급: 거둘 지속 힐이 있으면 피워 내기, 없으면 생장
   if (pct(low) < 0.5) {
     if (ready('bloom') && low.hots.length && tryUse(f, 'bloom', low, idx)) return;

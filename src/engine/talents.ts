@@ -2,6 +2,7 @@
  * 사제 특성 효과 (06 6장). 특성이 없으면 어느 함수도 결과를 바꾸지 않는다 (×1, +0, 난수 그대로 → 프로토타입 일치).
  * 보조 버튼 특성(기적·쉼터·정점·흩빛)은 GCD 밖에서 바로 쓰고 마나도 안 든다
  */
+import { DRUID_BIG } from '../data/heroConst';
 import { TALENT_DEF, talentKeys, type TalentKey } from '../data/talents';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
@@ -30,6 +31,7 @@ export function costOf(f: Fight, key: SkillKey): number {
   if (key === 'flash' && f.tx.on.lightTouch) c *= 0.8;
   if (f.tx.echoUntil > f.t) c *= 0.5;
   if (activeOn(f, 'zenith')) c *= 1.5;
+  if (f.standin) c *= f.standin.mana; // 특성 트리 없는 직업 임시 보정
   return c;
 }
 
@@ -74,7 +76,7 @@ export function adjLow(f: Fight, u: Unit, n: number, skipRenew = false): Unit[] 
 }
 
 /** 범위 힐 반경: 넓은 원이면 기원 반경 2 */
-export const areaRadius = (f: Fight, key: SkillKey): number => (key === 'poh' && f.tx.on.wideCircle ? 2 : 1);
+export const areaRadius = (f: Fight, key: SkillKey): number => (key === 'poh' && f.tx.on.wideCircle ? 2 : key === 'wildflower' && f.enc.big ? DRUID_BIG.wildRange : 1); // 들꽃 군락 20인 보정 (26 9-1)
 
 /** 치유의 기원 (반경 r). 치유한 사람 수 */
 export function pohAt(f: Fight, cellIdx: number, amt: number, r: number): number {

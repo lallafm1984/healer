@@ -1,6 +1,6 @@
 import { aimMult, rageMult } from '../data/classes';
 import { hexDist } from './board';
-import { BARK } from '../data/heroConst';
+import { BARK, DRUID_BIG } from '../data/heroConst';
 import { bark, cellOf, damage, DT, heal, onDebuffEnd } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
 import { calmHymn, renewEnd, renewSec } from './talents';
@@ -107,14 +107,14 @@ function hotTick(f: Fight, u: Unit, dt: number): void {
   }
 }
 
-/** 지속 힐 배율: 나무껍질(+20%), 드루이드 군락 (붙어 있는 새싹마다 +10%, 최대 +30%) */
+/** 지속 힐 배율: 나무껍질(+20%), 드루이드 군락 (붙어 있는 새싹마다 +10%, 최대 +30%. 20인은 +30%씩 최대 +90%, 들꽃 군락에도) */
 function hotMult(f: Fight, u: Unit, h: { key: string }): number {
   let m = (u.redu > 0 && u.reduCut === BARK.cut ? 1 + BARK.hot : 1) * (1 + f.fx.hotAmt);
-  if (h.key === 'sprout' && f.level >= 6) {
+  if ((h.key === 'sprout' || (h.key === 'wildflower' && f.enc.big)) && f.level >= 6) {
     const c = cellOf(f, u);
     let n = 0;
     for (const v of f.party) if (v !== u && v.alive && v.hots.some(x => x.key === 'sprout') && hexDist(cellOf(f, v), c) === 1) n++;
-    m *= 1 + Math.min(3, n) * 0.1;
+    m *= 1 + Math.min(3, n) * (f.enc.big ? DRUID_BIG.colonyStep : 0.1); // 20인 보정 (26 9-1)
   }
   return m;
 }

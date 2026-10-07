@@ -13,7 +13,8 @@
     "check": "npm run test && npm run build && npm run e2e",
     "android": "npm run build && cap sync android",
     "sim:dungeon": "rolldown scripts/sim-dungeon.ts --platform node --format esm -o .sim/sim-dungeon.mjs && node .sim/sim-dungeon.mjs",
-    "sim:heroes": "rolldown scripts/sim-heroes.ts --platform node --format esm -o .sim/sim-heroes.mjs && node .sim/sim-heroes.mjs"
+    "sim:heroes": "rolldown scripts/sim-heroes.ts --platform node --format esm -o .sim/sim-heroes.mjs && node .sim/sim-heroes.mjs",
+    "sim:raids": "rolldown scripts/sim-raids.ts --platform node --format esm -o .sim/sim-raids.mjs && node .sim/sim-raids.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2",

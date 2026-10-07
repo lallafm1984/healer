@@ -4,6 +4,8 @@ import { DIFFS, MYTHIC } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { gearStats } from '../data/gear';
 import { HEROES } from '../data/heroes';
+import { TALENT_STANDIN } from '../data/heroConst';
+import { TALENTS } from '../data/talents';
 import { ITEMS } from '../data/items';
 import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
 import { lvPower } from '../data/progression';
@@ -38,18 +40,20 @@ export function create(cfg: FightConfig): Fight {
   const scale = lvPower(stageLv);
   const power = lvPower(Math.max(cfg.heroLv ?? stageLv, stageLv));
   const bm = cfg.bossMult ?? { hp: 1, dmg: 1 };
-  const bossMax = enc.hp * (mythic ? MYTHIC.bossHp : 1) * scale * bm.hp;
+  const tn = enc.tune?.[cfg.diff];
+  const bossMax = enc.hp * (mythic ? MYTHIC.bossHp : 1) * scale * bm.hp * (tn?.hp ?? 1);
   const f: Fight = {
     board,
     cfg, enc, diff, rng, gear, cells, rows, mythic,
     t: 0, k: 0, over: null, reason: '',
-    dmgMult: diff.dmg * scale * bm.dmg, scale, power,
+    dmgMult: diff.dmg * scale * bm.dmg * (tn?.dmg ?? 1), scale, power,
     bossMax, bossHp: bossMax, mobs: [],
     mana: 100, gcd: 0, gcdBase: 1 / (1 + gear.haste), cast: null, channel: 0, chTick: 0, queued: null,
     cd: { purify: 0, guardian: 0, hymn: 0 },
     g: { p: 0, s: 0 }, symbolUsed: false, symbol: 0, level: cfg.level ?? 100,
     hero: cfg.hero ?? 'priest', power3: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null,
     tx: null as unknown as TalentState, // 아래 newTalents
+    standin: null,
     fx: { ...NO_SET_FX, ...cfg.setFx },
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
@@ -61,6 +65,11 @@ export function create(cfg: FightConfig): Fight {
     me: null as unknown as Unit, // makeParty에서 채움
   };
   f.tx = newTalents(f);
+  // 특성 트리가 없는 직업: 열린 특성 단마다 힐량 보정 (임시)
+  if (TALENT_STANDIN.heroes.includes(f.hero)) {
+    const n = TALENTS.filter(t => t.lv <= f.level).length;
+    f.standin = { heal: 1 + TALENT_STANDIN.heal * n, mana: 1 - TALENT_STANDIN.mana * n, guard: 1 - TALENT_STANDIN.guard * n };
+  }
   for (const k of (cfg.items || []).slice(0, 4)) if (ITEMS[k]) f.items[k] = Math.max(0, Math.min(ITEMS[k].uses, cfg.itemCap?.[k] ?? Infinity));
   if (cfg.carry) { f.mana = cfg.carry.mana; f.stats.minMana = f.mana; f.g = { ...cfg.carry.g }; }
   if (!knowsPassive(f, 'words')) f.g = { p: 0, s: 0 };
@@ -141,7 +150,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
       cell: -1, home: -1, hot: 0, hotTick: 0, hots: [], redu: 0, reduCut: 0, sacr: 0, immune: 0, echo: [], guardian: 0, shield: 0, debuffs: [], moving: null, react: null,
       retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0, thanks: 0, flash: 0,
       barkAt: -10, ignoreZone: 0, homeAt: null, diedAt: 0, me: role === 'healer',
-      ab: null, mods: [], got: 0, senseReact: apt ? APT.react[aptIdx(apt[2])] : 1, senseDodge: apt ? APT.dodge[aptIdx(apt[2])] : 0, gid: r?.gid,
+      ab: null, mods: [], got: 0, senseReact: apt ? APT.react[aptIdx(apt[2])] : 1, senseDodge: apt ? APT.dodge[aptIdx(apt[2])] : 0, gid: r?.gid, runs: r?.runs ?? 0,
     };
     units.push(u);
     return u;

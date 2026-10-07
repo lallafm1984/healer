@@ -43,6 +43,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   let crit = false;
   if (!raw) {
     amt *= f.gear.heal * f.power;
+    if (f.standin) amt *= f.standin.heal; // 특성 트리 없는 직업 임시 보정
     // 사제 특성 (06 6장): 슬픔의 힘 (파티원이 쓰러진 뒤 5초 +30%), 벼랑 끝 손길 (30% 이하 대상 직접 힐 +25%)
     if (f.tx.griefUntil > f.t) amt *= 1.3;
     if (direct && f.tx.on.brink && u.hp <= u.max * 0.3) amt *= 1.25;
@@ -65,11 +66,15 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   return eff;
 }
 
+/** 호감도 (06 6장 은혜 갚기): 길드원은 함께 출전한 수, 공개모집은 이번 판에 내 힐을 받은 양 (인연 스카우트와 같은 기준). 길드원이 먼저 */
+const affinity = (u: Unit): number => (u.gid != null ? 1e9 + u.runs : u.got);
+
 /** 피해. magic = 보스 광역·장판·지속 피해 (평타·버스터·적 근접은 물리, 17 수호기사) */
 export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
   if (!u.alive || amt <= 0) return;
   amt *= f.dmgMult;
   if (u.me && f.tx.on.firmWill) amt *= 0.8; // 굳은 의지 (06 6장)
+  if (u.me && f.standin) amt *= f.standin.guard; // 특성 트리 없는 직업 임시 보정
   if (u.shield > 0) amt *= 0.6;
   if (u.bulwark > 0) amt *= 1 - BULWARK.cut;
   if (u.redu > 0) amt *= 1 - u.reduCut;
@@ -84,9 +89,9 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
     if (magic && u.cls === 'paladin') amt *= 0.9;
     if (u.cls === 'swordsman') u.flow = 3;
   }
-  // 은혜 갚기 (06 6장): 내가 죽을 피해를 한 번 대신 맞아 줌. 호감도가 아직 없어서 체력 비율이 가장 높은 파티원 (50% 이상)
+  // 은혜 갚기 (06 6장): 내가 죽을 피해를 호감도가 가장 높은 파티원 (체력 50% 이상)이 한 번 대신 맞아 줌
   if (u.me && f.tx.on.repay && !f.tx.repayUsed && u.guardian <= 0 && u.hp - amt <= 0) {
-    const v = living(f).filter(x => !x.me && x.hp >= x.max * 0.5).sort((a, b) => b.hp / b.max - a.hp / a.max)[0];
+    const v = living(f).filter(x => !x.me && x.hp >= x.max * 0.5).sort((a, b) => affinity(b) - affinity(a) || b.hp / b.max - a.hp / a.max)[0];
     if (v) {
       f.tx.repayUsed = true;
       emit(f, { type: 'msg', text: `은혜 갚기: ${v.nick}이(가) 대신 맞음` });

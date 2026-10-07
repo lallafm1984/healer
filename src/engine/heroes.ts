@@ -8,6 +8,7 @@ import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
 import { aoeMana, cellOf, emit, heal, living, onDebuffEnd } from './core';
 import { reviveUnit } from './items';
+import { areaRadius } from './talents';
 import type { Fight, Hot, Unit } from './types';
 
 /** 그 직업 패시브를 배웠는지 (25 3장: 직업마다 Lv 4·10) */
@@ -70,7 +71,7 @@ export function doDispel(f: Fight, u: Unit): void {
   onDebuffEnd(f, u, d, true);
 }
 
-const around = (f: Fight, u: Unit) => { const c = cellOf(f, u); return living(f).filter(v => hexDist(cellOf(f, v), c) <= 1); };
+const around = (f: Fight, u: Unit, r = 1) => { const c = cellOf(f, u); return living(f).filter(v => hexDist(cellOf(f, v), c) <= r); };
 
 /** 드루이드 */
 function druid(f: Fight, key: SkillKey, u: Unit): void {
@@ -88,7 +89,7 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
     else if (u.hot > 0) { const rest = Math.ceil(u.hot / 3) * 80; u.hot = 0; heroHeal(f, u, rest * 1.5); }
     emit(f, { type: 'sound', name: 'bell' });
   } else if (key === 'wildflower') {
-    const vs = around(f, u), m = 1 + f.fx.aoeHeal;
+    const vs = around(f, u, areaRadius(f, 'wildflower')), m = 1 + f.fx.aoeHeal; // 20인은 2칸 (26 9-1)
     for (const v of vs) putHot(v, 'wildflower', { sec: 7, every: 2, amts: [70 * m, 45 * m, 30 * m, 15 * m] });
     aoeMana(f, vs.length);
     emit(f, { type: 'sound', name: 'renew' });

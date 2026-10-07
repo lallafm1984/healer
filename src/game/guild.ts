@@ -157,7 +157,7 @@ export function release(save: SaveData, id: number): boolean {
 // ---------- 길드파티 편성 ----------
 /** 전투에 넘기는 길드원 */
 export function memberEntry(m: GuildMember): RosterEntry {
-  return { role: CLASSES[m.cls].role, pers: m.pers, nick: m.nick, cls: m.cls, traits: m.traits.slice(), ab: m.ab, star: m.star, lv: m.lv, apt: aptOf(m), gid: m.id };
+  return { role: CLASSES[m.cls].role, pers: m.pers, nick: m.nick, cls: m.cls, traits: m.traits.slice(), ab: m.ab, star: m.star, lv: m.lv, apt: aptOf(m), gid: m.id, runs: m.runs };
 }
 
 /** 자리: 탱커 수와 딜러 수 (근접·원거리 섞어도 됨) */

@@ -177,7 +177,7 @@ export function healerTick(f: Fight): void {
       if (sk.target === 'dead') { if (u && !u.alive && f.mana >= cost) { f.mana -= cost; apply(f, c.key, u); } else emit(f, { type: 'msg', text: `${sk.name} 취소` }); }
       else if (!u || !u.alive) emit(f, { type: 'msg', text: '대상이 쓰러져 시전 취소' });
       else if (f.mana < cost) { f.stats.manaFails++; emit(f, { type: 'msg', text: '마나 부족' }); }
-      else { f.mana -= cost; apply(f, c.key, u); }
+      else { f.mana -= cost; if (sk.cd) f.cd[c.key] = cdOf(f, c.key); apply(f, c.key, u); } // 시전 스킬의 재사용 대기는 시전이 끝날 때 (들꽃 군락)
     }
   }
   if (f.queued && f.gcd <= 0 && !f.cast && f.channel <= 0) {

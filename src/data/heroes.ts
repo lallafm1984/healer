@@ -55,7 +55,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
   },
   druid: {
     key: 'druid', name: '드루이드', line: '위기 전에 미리 깔아 두는 힐러입니다.', star: 2,
-    system: { name: '군락', lv: 6, desc: '새싹이 걸린 칸끼리 붙어 있으면 붙은 칸 하나마다 새싹 회복이 10%씩, 최대 30%까지 늘어납니다.' },
+    system: { name: '군락', lv: 6, desc: '새싹이 걸린 칸끼리 붙어 있으면 붙은 칸 하나마다 새싹 회복이 10%씩, 최대 30%까지 늘어납니다. 20인 레이드에서는 30%씩 최대 90%까지 늘고, 들꽃 군락에도 붙습니다.' },
     dispel: ['마법', '저주', '독'],
     slots: slots({ basic: 'sprout', fast: 'growth', hot: 'bloom', aoe: 'wildflower', dispel: 'natureCleanse', ext: 'bark', raid: 'quietwood', unique: 'rebirth' }),
     tap: ['sprout', 'growth', 'bloom'],
@@ -76,7 +76,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
       { name: '헌신', lv: 10, desc: '신성한 힘 3칸을 한 번에 쓰면 마나를 2% 회복합니다.' },
     ],
     // 25 원안은 「던전 2곳」. 지금 만든 던전이 녹슨 요새뿐이라 2번으로 (던전이 늘면 2곳으로 되돌림)
-    unlock: { lv: 20, how: 'Lv 20 직업 퀘스트 「첫 맹세」', quest: { name: '첫 맹세', text: '성기사로 던전 2번 클리어', need: 2 } },
+    unlock: { lv: 20, how: 'Lv 20 직업 퀘스트 「첫 맹세」', quest: { name: '첫 맹세', text: '성기사로 녹슨 요새 어려움 이상 클리어', need: 1, content: 'rustfort', minDiff: '어려움' } },
   },
 };
 

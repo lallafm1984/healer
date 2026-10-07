@@ -1,6 +1,7 @@
 /** 힐러 직업 (25): 저장·직업 퀘스트·직업 바꾸기, 드루이드·성기사 고유 효과 */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { BEACON, HAND_GUARD, SANCTUARY } from '../src/data/heroConst';
+import { ENCOUNTERS } from '../src/data/encounters';
+import { BEACON, DRUID_BIG, HAND_GUARD, SANCTUARY, TALENT_STANDIN } from '../src/data/heroConst';
 import { HERO_KEYS, HEROES, heroSkills, skillAt, slotIdOf } from '../src/data/heroes';
 import * as E from '../src/engine';
 import { damage } from '../src/engine/core';
@@ -14,6 +15,7 @@ type F = ReturnType<typeof E.create>;
 const fight = (hero: 'priest' | 'druid' | 'paladin', level = 100) => {
   const f = E.create({ encounter: 'warden', diff: '보통', seed: 7, level, hero });
   f.gear.crit = 0;
+  f.standin = null; // 기술 수치만 봄 (임시 특성 보정은 아래 따로)
   return f;
 };
 const tank = (f: F) => f.party.find(u => u.role === 'tank')!;
@@ -49,10 +51,11 @@ describe('직업 퀘스트', () => {
     expect(s.heroes.druid!.wins).toBe(3);
     expect(heroWin(s, 'dungeon', 'rustfort', '보통')).toBeNull(); // 이미 해금
   });
-  it('성기사 「첫 맹세」: 아무 던전 2번', () => {
+  it('성기사 「첫 맹세」: 녹슨 요새 어려움 이상만, 1번이면 해금 (2026-10-07 정식 조건)', () => {
     const s = at('paladin');
-    expect(heroWin(s, 'dungeon', 'rustfort', '쉬움')).toEqual({ hero: 'paladin', n: 1, need: 2, unlocked: false });
-    expect(heroWin(s, 'dungeon', 'rustfort', '쉬움')).toEqual({ hero: 'paladin', n: 2, need: 2, unlocked: true });
+    expect(heroWin(s, 'dungeon', 'rustfort', '보통')).toBeNull();
+    expect(s.heroes.paladin!.unlocked).toBeFalsy();
+    expect(heroWin(s, 'dungeon', 'rustfort', '악몽')).toEqual({ hero: 'paladin', n: 1, need: 1, unlocked: true });
   });
   it('사제는 퀘스트 없이 판 수만 셈', () => {
     const s = at('priest');
@@ -199,5 +202,34 @@ describe('성기사', () => {
     t.hp = 100;
     heroTick(f, 1);
     expect(t.hp - 100).toBeCloseTo(SANCTUARY.hps * f.gear.heal * f.power, 5);
+  });
+});
+
+describe('레이드 재조정 (2026-10-07: 특성·능력 포함 기준, 26 9-1)', () => {
+  const mk = (hero: 'priest' | 'druid' | 'paladin', level: number, encounter: 'plague' | 'choir' = 'plague', diff: '보통' | '어려움' | '악몽' = '보통') =>
+    E.create({ encounter, diff, seed: 7, level, hero });
+  it('난이도별 보스 보정: 역병 군주 어려움 피해 ×1.2, 보통은 그대로', () => {
+    expect(ENCOUNTERS.plague.tune?.['보통']).toBeUndefined();
+    expect(mk('priest', 35, 'plague', '어려움').dmgMult / mk('priest', 35, 'plague', '보통').dmgMult).toBeCloseTo(1.2 * 1.2);
+  });
+  it('임시 특성 보정: 드루이드·성기사만, 열린 특성 단마다', () => {
+    expect(mk('priest', 100).standin).toBeNull();
+    expect(mk('druid', 5).standin).toEqual({ heal: 1, mana: 1, guard: 1 });
+    const s = mk('paladin', 35).standin!;
+    expect(s.heal).toBeCloseTo(1 + TALENT_STANDIN.heal * 3);
+    expect(s.mana).toBeCloseTo(1 - TALENT_STANDIN.mana * 3);
+    expect(s.guard).toBeCloseTo(1 - TALENT_STANDIN.guard * 3);
+  });
+  it('들꽃 군락: 시전이 끝나면 재사용 대기 10초', () => {
+    const f = mk('druid', 100); f.standin = null;
+    const u = f.party.find(x => x.role === 'tank')!;
+    expect(E.use(f, 'wildflower', u.cell).ok).toBe(true);
+    finish(f);
+    expect(f.cd.wildflower).toBeGreaterThan(9);
+    expect(E.use(f, 'wildflower', u.cell).ok).toBe(false);
+  });
+  it('드루이드 20인: 들꽃 군락 2칸, 10인은 1칸', () => {
+    expect(E.areaRadius(mk('druid', 100, 'choir'), 'wildflower')).toBe(DRUID_BIG.wildRange);
+    expect(E.areaRadius(mk('druid', 100, 'plague'), 'wildflower')).toBe(1);
   });
 });

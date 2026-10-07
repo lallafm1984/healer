@@ -175,6 +175,21 @@ describe('생존·위기 (Lv 60~70)', () => {
     damage(f, me, me.hp + 50);
     expect(me.alive).toBe(false);
   });
+  it('은혜 갚기 호감도: 공개모집은 내 힐을 가장 많이 받은 파티원, 길드원은 출전 수가 많은 사람이 먼저', () => {
+    const f = fight(['repay']);
+    const [a, b] = others(f);
+    a.got = 500; b.got = 900;
+    const ahp = a.hp, bhp = b.hp;
+    damage(f, f.me, f.me.hp + 50);
+    expect(b.hp).toBeLessThan(bhp);
+    expect(a.hp).toBe(ahp);
+    const g = fight(['repay']);
+    const [c, d, e] = others(g);
+    d.got = 99999; c.gid = 1; c.runs = 3; e.gid = 2; e.runs = 8;
+    const ehp = e.hp;
+    damage(g, g.me, g.me.hp + 50);
+    expect(e.hp).toBeLessThan(ehp);
+  });
   it('두 겹 수호: 2번 연달아, 충전 120초', () => {
     const f = fight(['twoGuard']);
     const [a, b] = tanks(f);

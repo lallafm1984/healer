@@ -35,8 +35,9 @@ function snapTs(f: Fight) {
 }
 
 const GEARS: GearId[] = ['none', 'adv0', 'rare5', 'epic5'];
-// 10인 역병 군주 악몽은 26 문서로 새로 만든 판 (프로토타입은 20인 강화판이었음) → 비교에서 뺌
-const CASES = PROTO_ENCOUNTERS.flatMap(enc => ENCOUNTERS[enc].diffs.filter(diff => enc !== 'plague' || diff !== '악몽').map(diff => ({ enc, diff })));
+// 10인 역병 군주 악몽은 26 문서로 새로 만든 판 (프로토타입은 20인 강화판이었음) → 비교에서 뺌.
+// 레이드 재조정 (2026-10-07, 특성·능력 포함 기준)으로 보정(tune)이 붙은 난이도도 뺌 (역병 군주 어려움)
+const CASES = PROTO_ENCOUNTERS.flatMap(enc => ENCOUNTERS[enc].diffs.filter(diff => (enc !== 'plague' || diff !== '악몽') && !ENCOUNTERS[enc].tune?.[diff]).map(diff => ({ enc, diff })));
 
 describe('자동 힐러 한 판 결과가 프로토타입과 같음', () => {
   for (const { enc, diff } of CASES) {

@@ -150,6 +150,8 @@ export interface Unit {
   senseDodge: number;
   /** 길드원이면 길드원 id */
   gid?: number;
+  /** 길드원: 함께 출전한 수 (은혜 갚기 호감도) */
+  runs: number;
 }
 
 /** 능력 효과 종류: cut 받는 피해 감소 · mcut 마법 피해 감소 · vuln 받는 피해 증가 · imm 피해 무시 · dps 딜 · nodps 딜 0 · heal 받는 치유
@@ -195,6 +197,8 @@ export interface RosterEntry {
   apt?: [number, number, number];
   /** 길드원 id */
   gid?: number;
+  /** 길드원: 함께 출전한 수 (은혜 갚기 호감도, 06 6장) */
+  runs?: number;
 }
 
 export type TelKind = 'buster' | 'aoe' | 'zone' | 'instant';
@@ -450,6 +454,8 @@ export interface Fight {
   sanctuary: { cells: Set<number>; end: number } | null;
   /** 사제 특성 (06 6장) */
   tx: TalentState;
+  /** 특성 트리가 없는 직업의 임시 보정: 힐량 배율·마나 소모 배율·내가 받는 피해 배율 (data/heroConst TALENT_STANDIN). 사제는 null */
+  standin: { heal: number; mana: number; guard: number } | null;
   /** 세트 효과 (02 10-3) */
   fx: SetFx;
   /** 능력을 가진 파티원이 있음 (없으면 능력 코드를 안 탐 = 프로토타입과 같음) */

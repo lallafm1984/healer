@@ -309,7 +309,7 @@ function predictedHeal(u: Unit): number {
   const sk = SKILLS[F.cast.key];
   const tgt = F.party.find(x => x.id === F.cast!.uid);
   if (!tgt) return 0;
-  if (sk.target === 'area') { const r = areaRadius(F, F.cast.key); return hexDist(F.cells[u.cell], F.cells[tgt.cell]) <= r ? sk.amt! * (r > 1 ? 0.8 : 1) * F.gear.heal * F.power : 0; }
+  if (sk.target === 'area') { const r = areaRadius(F, F.cast.key); return hexDist(F.cells[u.cell], F.cells[tgt.cell]) <= r ? sk.amt! * (r > 1 && F.cast.key === 'poh' ? 0.8 : 1) * F.gear.heal * F.power : 0; }
   return u === tgt ? sk.amt! * F.gear.heal * F.power * (u.hot > 0 ? 1.1 : 1) : 0;
 }
 
