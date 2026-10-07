@@ -48,16 +48,19 @@ export default async function dungeon(url, shots) {
   // ---- 편성 ----
   await page.click('#entryGo'); await page.clock.runFor(100);
   ok((await page.locator('#s-party .pcard').count()) === 4, '5인 파티 (나 빼고 4명)');
+  const cls0 = await page.evaluate(() => [...document.querySelectorAll('#s-party .pcard')].map(c => c.dataset.cls));
+  ok(cls0.every(Boolean) && new Set(cls0).size === 4, `파티원마다 직업, 5인은 같은 직업 없음 (${cls0})`);
+  ok(/단단한 몸|신성한 갑옷/.test(await page.textContent('#s-party .pcard:first-child')), '탱커 카드에 직업 패시브');
   ok(/단축칸 2칸/.test(await page.textContent('#s-party')) && await pickedItems(page) === 'mana,life', 'Lv 1 = 단축칸 2칸, 마나·생명');
   await page.click('#s-party [data-item="cleanse"]');
   ok(/다 찼어요/.test(await page.textContent('#s-party .note.warn')), '3번째는 안 들어감');
-  const nick0 = await page.textContent('#s-party .pcard b');
+  const nick0 = await page.textContent('#s-party .pcard .pnick');
   ok(/무료/.test(await page.textContent('#reroll')), '첫 다시 뽑기 = 무료');
   await page.click('#reroll'); await page.clock.runFor(50);
   ok(/10/.test(await page.textContent('#reroll')), `다시 뽑으면 다음은 10골드 (${(await page.textContent('#reroll')).trim()})`);
   await page.click('#reroll'); await page.clock.runFor(50);
   ok(/골드가 모자라요/.test(await page.textContent('#s-party .note.warn')), '골드 0이면 못 뽑음');
-  const party0 = await page.evaluate(() => [...document.querySelectorAll('#s-party .pcard b')].map(b => b.textContent).join());
+  const party0 = await page.evaluate(() => [...document.querySelectorAll('#s-party .pcard .pnick')].map(b => b.textContent).join());
   ok(party0.split(',').length === 4 && !party0.startsWith(nick0 + ','), `다시 뽑으면 다른 파티 (${nick0} → ${party0})`);
   await page.screenshot({ path: `${shots}/dungeon_party.png` });
 
@@ -66,6 +69,15 @@ export default async function dungeon(url, shots) {
   ok(/무너진 정문 · 고철 졸개/.test(await page.textContent('#bossName')), '전투 위쪽 = 구간 이름 · 지금 잡는 잡몹');
   ok(/녹슨 요새 1\/4 · 남은 잡몹 4/.test(await page.textContent('#phase')), '진행 줄 = 1/4 · 남은 잡몹');
   ok(await page.evaluate(() => window.__proto.F.party.filter(u => !u.me).map(u => u.nick).join()) === party0, '편성 화면의 파티 그대로');
+  const clsNow = await page.evaluate(() => [...document.querySelectorAll('#s-party .pcard')].map(c => c.dataset.cls).join());
+  ok(await page.evaluate(() => window.__proto.F.party.filter(u => !u.me).map(u => u.cls).join()) === clsNow, `전투 파티원 직업 = 편성 화면 (${clsNow})`);
+  // 칸을 길게 누르면 직업·패시브
+  const bb = await page.locator('#board').boundingBox();
+  const tankAt = await page.evaluate(() => { const ui = window.__proto; const t = ui.F.party.find(u => u.role === 'tank'); return ui.center(t.cell); });
+  await page.mouse.move(bb.x + tankAt.x, bb.y + tankAt.y); await page.mouse.down(); await page.clock.runFor(600);
+  const pv = await page.textContent('#preview');
+  await page.mouse.up(); await page.clock.runFor(50);
+  ok(/(전사|수호기사) · 탱커/.test(pv) && /(단단한 몸|신성한 갑옷)/.test(pv), `길게 누르면 직업·패시브 (${pv.slice(0, 40)})`);
   // Lv 1 = 치유·순간 치유만 (06 7장). 나머지 휠 칸은 잠금, 성언 게이지 숨김
   const locked = await page.evaluate(() => [...document.querySelectorAll('#wheel .slot.locked')].map(b => b.dataset.lock).sort().join());
   ok(locked === 'guardian,hymn,poh,purify,renew', `Lv 1 휠: 안 배운 스킬 잠금 (${locked})`);

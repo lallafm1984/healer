@@ -1,6 +1,6 @@
 import { DUNGEONS, REST_MANA_PER_SEC, type DungeonKey } from '../data/dungeons';
 import { autoHealer } from './auto';
-import { create, rollParty, step } from './fight';
+import { create, recruitParty, step } from './fight';
 import type { Carry, Fight, FightConfig } from './types';
 
 /** 휴식 뒤 다음 구간으로 넘길 것 (23 4장): 마나는 쉰 만큼 회복, 성언 게이지는 그대로 */
@@ -16,7 +16,7 @@ export interface DungeonRunConfig extends Omit<FightConfig, 'encounter' | 'carry
 export function segmentConfig(run: DungeonRunConfig, index: number, carry?: Carry): FightConfig {
   const segs = DUNGEONS[run.dungeon].segments;
   const { dungeon: _d, ...rest } = run;
-  return { ...rest, encounter: segs[index], party: run.party || rollParty(segs[0], run.seed || 1), seed: (run.seed || 1) + index * 7919, carry };
+  return { ...rest, encounter: segs[index], party: run.party || recruitParty(segs[0], run.seed || 1), seed: (run.seed || 1) + index * 7919, carry };
 }
 
 export interface DungeonResult {

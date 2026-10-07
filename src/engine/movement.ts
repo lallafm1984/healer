@@ -66,7 +66,8 @@ export function pickCell(f: Fight, u: Unit, opts: PickOpts): Cell | null {
 export function moveTo(f: Fight, u: Unit, c: Cell | null): boolean {
   if (!c) return false;
   const from = cellOf(f, u);
-  const time = 0.4 * Math.max(1, hexDist(from, c));
+  let time = 0.4 * Math.max(1, hexDist(from, c));
+  if (u.cls === 'rogue') time *= 0.75;
   c.unit = u;
   u.moving = { from: from.i, to: c.i, left: time, total: time };
   return true;
@@ -86,6 +87,7 @@ export function scheduleReactions(f: Fight, tel: Telegraph): void {
     const inZ = tel.cells.has(pos);
     let rt = 0.8 * f.diff.react * (u.p.react || 1);
     if (u.me) rt = 0.6 * f.diff.react;
+    else if (u.cls === 'mage') rt += 0.2;
     if (inZ) {
       let at = f.t + rt;
       if (u.p.greedy) at = Math.max(at, tel.impact - 0.3);
@@ -102,6 +104,7 @@ export function zoneThreat(f: Fight, tel: Telegraph | Zone): number {
 }
 
 export function dodgeRate(f: Fight, u: Unit): number {
+  if (u.cls === 'rogue') return Math.max(0.05, Math.min(0.98, f.diff.dodge + (u.p.dodge || 0) + 0.08));
   return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0)));
 }
 

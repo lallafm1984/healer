@@ -1,4 +1,5 @@
 import { BOARDS } from '../data/boards';
+import { CLASSES, RECRUIT_CLASSES, sameClassMax, type ClassKey } from '../data/classes';
 import { DIFFS, MYTHIC } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { gearStats } from '../data/gear';
@@ -73,14 +74,36 @@ export function rollParty(encKey: EncounterKey, seed: number): RosterEntry[] {
   return list;
 }
 
+/**
+ * 공개모집 (17 2-1): rollParty로 닉네임·성격을 뽑고, 역할마다 Lv 1 직업을 붙인다.
+ * 같은 직업은 5인 1명 · 10인 2명 · 20인 3명까지 (자리가 모자라면 가장 적은 직업부터 더 넣음).
+ * 직업은 따로 굴린 난수로 정해서 rollParty 결과(프로토타입과 같음)는 그대로 둔다.
+ */
+export function recruitParty(encKey: EncounterKey, seed: number): RosterEntry[] {
+  const list = rollParty(encKey, seed);
+  const rng = rngFrom(Math.imul(seed, 0x9e3779b1) ^ 0x85ebca6b);
+  const max = sameClassMax(list.length + 1);
+  const count: Partial<Record<ClassKey, number>> = {};
+  for (const m of list) {
+    const pool = RECRUIT_CLASSES.filter(k => CLASSES[k].role === m.role);
+    let ok = pool.filter(k => (count[k] || 0) < max);
+    if (!ok.length) { const low = Math.min(...pool.map(k => count[k] || 0)); ok = pool.filter(k => (count[k] || 0) === low); }
+    const k = ok[Math.floor(rng() * ok.length)];
+    count[k] = (count[k] || 0) + 1;
+    m.cls = k;
+  }
+  return list;
+}
+
 function makeParty(f: Fight, roster?: RosterEntry[]): void {
   const mult = f.mythic ? MYTHIC.party : 1;
   const units: Unit[] = [];
-  const add = (role: Role, pers: PersName | null, nick: string): Unit => {
-    const base = (role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult;
-    const dps = (role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult;
+  const add = (role: Role, pers: PersName | null, nick: string, cls?: ClassKey): Unit => {
+    const c = cls ? CLASSES[cls] : null;
+    const base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult;
+    const dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult;
     const u: Unit = {
-      id: f.nextId++, role, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
+      id: f.nextId++, role, cls: c ? c.key : null, aim: 0, flow: 0, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
       cell: -1, home: -1, hot: 0, hotTick: 0, echo: [], guardian: 0, shield: 0, debuffs: [], moving: null, react: null,
       retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0, thanks: 0, flash: 0,
       barkAt: -10, ignoreZone: 0, homeAt: null, diedAt: 0, me: role === 'healer',
@@ -89,7 +112,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     return u;
   };
   const roles = roster || rollParty(f.enc.key, f.cfg.seed || 1);
-  roles.forEach(r => add(r.role, r.pers, r.nick));
+  roles.forEach(r => add(r.role, r.pers, r.nick, r.cls));
   add('healer', null, '나');
   f.party = units;
   f.me = units[units.length - 1];

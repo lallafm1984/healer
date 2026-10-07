@@ -1,3 +1,4 @@
+import { aimMult, rageMult } from '../data/classes';
 import { hexDist } from './board';
 import { bark, cellOf, damage, DT, heal, onDebuffEnd } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
@@ -14,14 +15,15 @@ export function unitTick(f: Fight, u: Unit): void {
   if (u.guardian > 0) u.guardian -= dt;
   if (u.shield > 0) u.shield -= dt;
   if (u.thanks > 0) u.thanks -= dt;
+  if (u.cls) { if (u.flow > 0) u.flow -= dt; u.aim = u.moving ? 0 : u.aim + dt; }
   for (const d of u.debuffs.slice()) {
     d.left -= dt;
-    if (d.dot) damage(f, u, d.dot * dt);
+    if (d.dot) damage(f, u, d.dot * dt, true);
     if (!u.alive) return;
     if (d.left <= 0) { u.debuffs = u.debuffs.filter(x => x !== d); onDebuffEnd(f, u, d, false); }
   }
   if (!u.alive) return;
-  for (const z of f.zones) if (z.cells.has(u.cell)) damage(f, u, z.dps * dt);
+  for (const z of f.zones) if (z.cells.has(u.cell)) damage(f, u, z.dps * dt, true);
   if (!u.alive) return;
   if (u.moving) { u.moving.left -= dt; if (u.moving.left <= 0) finishMove(f, u); }
   if (u.react && f.t >= u.react.at && !u.moving) doReact(f, u);
@@ -58,15 +60,28 @@ export function unitTick(f: Fight, u: Unit): void {
   if (u.p.attention && !u.sulking && f.t - u.lastHeal > u.p.attention && f.t > 8) { u.sulking = true; bark(f, u, null, true); }
 }
 
-/** 지금 파티 초당 딜 (이동·도망 중은 0, 삐짐 -25%, 감사 +10%) */
+/** 지금 파티 초당 딜 (이동·도망 중은 0, 삐짐 -25%, 감사 +10%, 직업 패시브) */
 export function partyDps(f: Fight): number {
   let s = 0;
   for (const u of f.party) {
-    if (!u.alive || u.moving || u.fleeing || u.me) continue;
+    if (!u.alive || u.fleeing || u.me) continue;
+    if (u.moving && u.cls !== 'hunter') continue;
     let d = u.dps * (u.p.dps || 1);
     if (u.sulking) d *= 0.75;
     if (u.thanks > 0) d *= 1.1;
+    if (u.cls) d *= classDps(u);
     s += d;
   }
   return s;
+}
+
+/** 직업 패시브 딜 배율 (17 2장) */
+function classDps(u: Unit): number {
+  switch (u.cls) {
+    case 'berserker': return rageMult(u.hp / u.max);
+    case 'swordsman': return u.flow > 0 ? 1.15 : 1;
+    case 'archer': return aimMult(u.aim);
+    case 'hunter': return u.moving ? 0.6 : 1;
+    default: return 1;
+  }
 }

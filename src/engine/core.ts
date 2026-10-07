@@ -42,10 +42,15 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean): number {
   return eff;
 }
 
-export function damage(f: Fight, u: Unit, amt: number): void {
+/** 피해. magic = 보스 광역·장판·지속 피해 (평타·버스터·잡몹 근접은 물리, 17 수호기사) */
+export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
   if (!u.alive || amt <= 0) return;
   amt *= f.dmgMult;
   if (u.shield > 0) amt *= 0.6;
+  if (u.cls) {
+    if (magic && u.cls === 'paladin') amt *= 0.9;
+    if (u.cls === 'swordsman') u.flow = 3;
+  }
   u.hp -= amt;
   if (amt > u.max * 0.15) u.flash = 0.35;
   if (u.hp <= 0) {
@@ -88,7 +93,7 @@ export function spread(f: Fight, u: Unit): void {
   emit(f, { type: 'sound', name: 'burst' });
   for (const v of living(f)) {
     if (v !== u && hexDist(cellOf(f, v), c) === 1) {
-      damage(f, v, 150);
+      damage(f, v, 150, true);
       if (v.alive) addDebuff(f, v, { name: '독침', type: '독', left: 12, dot: 15 });
     }
   }

@@ -1,11 +1,12 @@
 /** S05 파티 편성 (09): 공개모집(길드파티는 Lv 15·P2), 시작 위치 미리보기, 파티원 카드, 다시 뽑기, 궁합 힌트, 단축칸 고르기 */
+import { CLASSES } from '../data/classes';
 import { contentOf } from '../data/content';
 import { gearStatsOf } from '../data/equipment';
 import { ENCOUNTERS } from '../data/encounters';
 import { ITEMS, type ItemKey } from '../data/items';
 import { CATS, PERS } from '../data/personalities';
 import { GUILD_LEVEL } from '../data/progression';
-import { create, rollParty } from '../engine';
+import { create, recruitParty } from '../engine';
 import { Flow, newSeed, rerollCost } from '../game/flow';
 import { settle } from '../game/settle';
 import { commit, G, healerLevel, itemsNow } from '../game/state';
@@ -17,7 +18,7 @@ let msg = '';
 function roll(): void {
   const segs = contentOf(Flow.content).fights(Flow.diff);
   Flow.seed = newSeed();
-  Flow.party = rollParty(segs[0], Flow.seed);
+  Flow.party = recruitParty(segs[0], Flow.seed);
 }
 
 /** 시작 위치 미리보기: 첫 전투를 같은 시드로 만들어 칸 배치를 그림 (실제 전투도 이 시드로 시작) */
@@ -30,8 +31,8 @@ function boardSvg(): string {
   const cells = f.cells.map(c => {
     const u = c.unit;
     const fill = u ? ROLE[u.role].color : '#1C1E33';
-    const label = u ? (u.me ? '나' : `${ROLE[u.role].short}${u.pers ? PERS[u.pers].ch : ''}`) : '';
-    return `<g><polygon points="${hex(c.px, c.py)}" fill="${fill}" stroke="#0B0B12" stroke-width="0.12"/>${label ? `<text x="${c.px}" y="${c.py + 0.28}" text-anchor="middle" font-size="0.8">${label}</text>` : ''}</g>`;
+    const label = u ? (u.me ? '나' : u.cls ? CLASSES[u.cls].short : `${ROLE[u.role].short}${u.pers ? PERS[u.pers].ch : ''}`) : '';
+    return `<g><polygon points="${hex(c.px, c.py)}" fill="${fill}" stroke="#0B0B12" stroke-width="0.12"/>${label ? `<text x="${c.px}" y="${c.py + 0.22}" text-anchor="middle" font-size="${label.length > 1 ? 0.62 : 0.8}">${label}</text>` : ''}</g>`;
   }).join('');
   return `<svg class="pboard" viewBox="${minX} ${minY} ${w} ${h}" role="img" aria-label="시작 위치 미리보기">${cells}</svg>`;
 }
@@ -59,9 +60,9 @@ function render(): void {
       ${boardSvg()}
       <p class="note center">시작 위치는 자동 배치예요. 옮길 수 없어요.</p>
       <ul class="pcards">${Flow.party!.map(m => {
-        const p = PERS[m.pers];
-        return `<li class="pcard"><span class="prole" style="background:${ROLE[m.role].color}">${ROLE[m.role].short}</span>
-          <div><b>${esc(m.nick)}</b><small>${ROLE[m.role].name} · Lv 1</small><p><i class="pcat" style="background:${CATS[p.cat]}">${p.ch}</i>${esc(m.pers)} <span class="star">${'★'.repeat(p.star)}</span> · ${esc(p.desc)}</p></div></li>`;
+        const p = PERS[m.pers], c = m.cls ? CLASSES[m.cls] : null;
+        return `<li class="pcard" data-cls="${c ? c.key : ''}"><span class="prole${c ? ' two' : ''}" style="background:${ROLE[m.role].color}">${c ? c.short : ROLE[m.role].short}</span>
+          <div><b class="pnick">${esc(m.nick)}</b><small>${c ? `${c.name} · ` : ''}${ROLE[m.role].name} · Lv 1</small>${c ? `<p class="ppas"><b>${c.passive}</b> ${esc(c.passiveDesc)}</p>` : ''}<p><i class="pcat" style="background:${CATS[p.cat]}">${p.ch}</i>${esc(m.pers)} <span class="star">${'★'.repeat(p.star)}</span> · ${esc(p.desc)}</p></div></li>`;
       }).join('')}</ul>
       ${hs.length ? `<section class="panel hint"><h4>💡 이번 파티</h4><ul>${hs.map(h => `<li>${esc(h)}</li>`).join('')}</ul></section>` : ''}
       <h3 class="sec">소비 아이템 <small>단축칸 ${slots}칸${slots < 4 ? ` · Lv ${slots === 2 ? 20 : 40}에 1칸 더` : ''}</small></h3>

@@ -1,4 +1,5 @@
 import type { BoardId } from '../data/boards';
+import type { ClassKey } from '../data/classes';
 import type { Difficulty, DiffName } from '../data/difficulty';
 import type { Encounter, EncounterKey } from '../data/encounters';
 import type { GearId, GearStats } from '../data/gear';
@@ -55,6 +56,12 @@ export interface Reaction {
 export interface Unit {
   id: number;
   role: Role;
+  /** 직업 (17). null = 직업 없는 옛 파티 (프로토타입·시뮬 일치 테스트) */
+  cls: ClassKey | null;
+  /** 궁수 조준: 안 움직이고 서 있은 시간 */
+  aim: number;
+  /** 검사 흐름: 남은 시간 */
+  flow: number;
   pers: PersName | null;
   p: Partial<Personality>;
   nick: string;
@@ -92,6 +99,8 @@ export interface RosterEntry {
   role: Exclude<Role, 'healer'>;
   pers: PersName;
   nick: string;
+  /** 직업 (17). 없으면 역할 기본 체력·딜 */
+  cls?: ClassKey;
 }
 
 export type TelKind = 'buster' | 'aoe' | 'zone' | 'instant';

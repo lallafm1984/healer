@@ -1072,7 +1072,9 @@
   function showPreview(idx) {
     const u = F.cells[idx].unit;
     const lines = [];
-    lines.push(`<b>${u.nick}</b> · ${ROLE[u.role].name}${u.me ? ' (사제)' : ''}`);
+    const cls = u.cls && E.CLASSES[u.cls];
+    lines.push(`<b>${u.nick}</b> · ${cls ? `${cls.name} · ` : ''}${ROLE[u.role].name}${u.me ? ' (사제)' : ''}`);
+    if (cls) lines.push(`<div class="cpas"><b>${cls.passive}</b> ${cls.passiveDesc}</div>`);
     if (u.p.ch) lines.push(`<div class="pers"><i style="background:${E.CATS[u.p.cat]}">${u.p.ch}</i>${u.pers}: ${u.p.desc}</div>`);
     lines.push(`<div>체력 ${Math.ceil(u.hp)} / ${Math.round(u.max)}${u.max < u.base ? ` (최대 체력 -${Math.round((1 - u.max / u.base) * 100)}%)` : ''}</div>`);
     const items = [];

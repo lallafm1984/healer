@@ -16,6 +16,12 @@ function tankTarget(f: Fight): Unit | null {
   return f.party.find(u => u.role === 'tank' && u.alive) || null;
 }
 
+/** 보스 평타 ±30% (전사 「단단한 몸」은 ±15%, 17) */
+function autoHit(f: Fight, tk: Unit, base: number): void {
+  const r = f.rng();
+  damage(f, tk, base * (tk.cls === 'warrior' ? 0.85 + 0.3 * r : 0.7 + 0.6 * r));
+}
+
 interface BossScript {
   init(f: Fight): void;
   update(f: Fight): void;
@@ -25,7 +31,7 @@ interface BossScript {
 function enrageAt(f: Fight, name: string, period: number, dmg: number): void {
   if (f.enraged || f.t < f.enc.enrage) return;
   f.enraged = true; emit(f, { type: 'phase', text: '광폭화' });
-  skill(f, { key: 'enrage', name, icon: '광폭', kind: 'aoe', next: f.t, period, cast: 1, hit(f) { for (const u of living(f)) damage(f, u, dmg); } });
+  skill(f, { key: 'enrage', name, icon: '광폭', kind: 'aoe', next: f.t, period, cast: 1, hit(f) { for (const u of living(f)) damage(f, u, dmg, true); } });
 }
 
 /** 잡몹 공격 대상 */
@@ -41,7 +47,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
   scrap: {
     init(f) {
       f.phaseName = '';
-      skill(f, { key: 'auto', hidden: true, next: 2, period: 2, cast: 0, fire(f) { const tk = tankTarget(f); if (tk) damage(f, tk, 75 * (0.7 + 0.6 * f.rng())); } });
+      skill(f, { key: 'auto', hidden: true, next: 2, period: 2, cast: 0, fire(f) { const tk = tankTarget(f); if (tk) autoHit(f, tk, 75); } });
       skill(f, {
         key: 'buster', name: '고철 휘두르기', icon: '휘두', kind: 'buster', next: 10, period: 16, cast: 2, warn: 'buster', dmg: 450,
         target(f) { const tk = tankTarget(f); return tk ? [tk.id] : []; },
@@ -49,7 +55,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
       });
       skill(f, {
         key: 'aoe', name: '쇳조각 비', icon: '쇳조', kind: 'aoe', next: 20, period: 22, cast: 3, warn: 'aoe',
-        hit(f) { for (const u of living(f)) damage(f, u, 170); },
+        hit(f) { for (const u of living(f)) damage(f, u, 170, true); },
       });
     },
     update(f) { enrageAt(f, '고철 폭주', 2, 150); },
@@ -70,10 +76,15 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
             next: a.first + i * 0.7, period: a.period, cast: a.cast, warn: tel ? a.kind : undefined,
             active: f => f.mobs.some(x => x.id === m.id && x.alive),
             target: a.to === 'all' ? undefined : f => mobTargets(f, a.to).map(u => u.id),
-            fire(f) { for (const u of mobTargets(f, a.to)) damage(f, u, a.dmg * (1 - (a.jitter || 0) + 2 * (a.jitter || 0) * f.rng())); },
+            fire(f) {
+              for (const u of mobTargets(f, a.to)) {
+                const j = (a.jitter || 0) * (u.cls === 'warrior' ? 0.5 : 1);
+                damage(f, u, a.dmg * (1 - j + 2 * j * f.rng()), a.to === 'all');
+              }
+            },
             hit(f, tel) {
               const us = a.to === 'all' ? living(f) : tel.units.map(id => unitById(f, id)).filter((u): u is Unit => !!u);
-              for (const u of us) damage(f, u, a.dmg);
+              for (const u of us) damage(f, u, a.dmg, a.to === 'all');
             },
           });
         }
@@ -84,7 +95,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
   warden: {
     init(f) {
       f.phaseName = '';
-      skill(f, { key: 'auto', hidden: true, next: 2, period: 2, cast: 0, fire(f) { const tk = tankTarget(f); if (tk) damage(f, tk, 70 * (0.7 + 0.6 * f.rng())); } });
+      skill(f, { key: 'auto', hidden: true, next: 2, period: 2, cast: 0, fire(f) { const tk = tankTarget(f); if (tk) autoHit(f, tk, 70); } });
       skill(f, {
         key: 'buster', name: '내려찍기', icon: '찍기', kind: 'buster', next: 12, period: 20, cast: 2, warn: 'buster', dmg: 600,
         target(f) { const tk = tankTarget(f); return tk ? [tk.id] : []; },
@@ -92,7 +103,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
       });
       skill(f, {
         key: 'aoe', name: '증기 분출', icon: '증기', kind: 'aoe', next: 25, period: 30, cast: 3, warn: 'aoe',
-        hit(f) { for (const u of living(f)) damage(f, u, 220); },
+        hit(f) { for (const u of living(f)) damage(f, u, 220, true); },
       });
       f.zoneSkill = skill(f, {
         key: 'zone', name: '녹물 웅덩이', icon: '장판', kind: 'zone', next: Infinity, period: 20, cast: 2.5, dps: 60, dur: 8, warn: 'zone',
@@ -123,7 +134,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
       const big = f.enc.big;
       const nDeb = big ? 4 : 2;
       f.phase = 1; f.phaseName = '1페이즈';
-      skill(f, { key: 'auto', hidden: true, next: 2, period: 2, cast: 0, fire(f) { const tk = tankTarget(f); if (tk) damage(f, tk, 60 * (0.7 + 0.6 * f.rng())); } });
+      skill(f, { key: 'auto', hidden: true, next: 2, period: 2, cast: 0, fire(f) { const tk = tankTarget(f); if (tk) autoHit(f, tk, 60); } });
       skill(f, {
         key: 'breath', name: '썩은 숨결', icon: '숨결', kind: 'instant', next: 6, period: 12, cast: 0, active: f => f.phase === 1 || f.phase >= 2,
         fire(f) {
@@ -141,7 +152,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
       });
       f.pulse = skill(f, {
         key: 'aoe', name: '역병 파동', icon: '파동', kind: 'aoe', next: 27, period: 30, cast: 3, warn: 'aoe', active: f => f.phase === 1 || f.phase >= 2,
-        hit(f) { const dmg = f.phase === 1 ? 150 : 180; for (const u of living(f)) damage(f, u, dmg); },
+        hit(f) { const dmg = f.phase === 1 ? 150 : 180; for (const u of living(f)) damage(f, u, dmg, true); },
       });
       f.contagion = skill(f, {
         key: 'contagion', name: '전염', icon: '전염', kind: 'instant', next: Infinity, period: 20, cast: 0, active: f => f.phase >= 2,
