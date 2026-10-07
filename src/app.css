@@ -23,12 +23,3 @@ body { background: #0B0B12; }
 }
 #tabs button[aria-current="page"] { color: #F0C46A; }
 #tabs button small { font-family: "Gowun Dodum", system-ui, sans-serif; font-size: 10px; opacity: 0.7; }
-body.tabs-on #menu { padding-bottom: calc(var(--tabs-h) + 24px); }
-
-#tabPage {
-  position: fixed; top: var(--banner-h); bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 480px; z-index: 30; box-sizing: border-box; padding: 24px 20px;
-  background: #12131F; color: #EDE6D3; font-family: "Gowun Dodum", system-ui, sans-serif;
-}
-#tabPage h2 { margin: 0 0 8px; font-family: "Jua", system-ui, sans-serif; font-weight: 400; font-size: 28px; color: #F0C46A; }
-#tabPage p { margin: 0 0 6px; color: #9C9DB8; line-height: 1.5; }

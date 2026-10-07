@@ -1,0 +1,113 @@
+/** S08 정산 · S09 보상 · P04 레벨업 팝업 (09) */
+import { contentOf } from '../data/content';
+import { GRADE_STYLE, slotName, type GearItem } from '../data/equipment';
+import { GRADE } from '../data/gear';
+import { MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
+import { Flow, newSeed } from '../game/flow';
+import { equip, G } from '../game/state';
+import { esc, fmt, go, mmss, screen, topBar } from './kit';
+import { depart } from './party';
+
+const STAR_TEXT = ['클리어', '아무도 안 쓰러짐', `오버힐 ${Math.round(STAR_OVERHEAL * 100)}% 이하`];
+
+// ---------- 정산 ----------
+const st = screen('s-settle', '정산', { enter() { renderSettle(); } });
+
+function renderSettle(): void {
+  const r = Flow.result!, x = Flow.settle!;
+  const c = contentOf(r.content);
+  const multi = r.segN > 1;
+  const title = r.quit ? '포기' : r.win ? (multi ? '던전 클리어!' : '클리어!') : '전멸';
+  const n = x.stars.filter(Boolean).length;
+  const metrics: [string, string][] = [
+    ['클리어 시간', `${mmss(r.time)}${multi && r.restSec ? ` (휴식 ${Math.round(r.restSec)}초 따로)` : ''}`],
+    ['쓰러진 파티원', `${r.deaths}명`],
+    ['오버힐', `${x.overhealPct}%`],
+    ['해제 성공률', x.dispelPct == null ? '해제할 디버프 없음' : `${x.dispelPct}% (${r.dispels}/${r.dispellable})`],
+    ['남은 마나', `${r.endMana}% (최저 ${r.minMana}%)`],
+  ];
+  if (!r.win) metrics.unshift(['진행', multi ? `${r.segIdx} / ${r.segN} 구간` : '보스 못 잡음']);
+  st.el.innerHTML = `${topBar()}
+    <div class="ns-body settle">
+      <header class="res-head ${r.win ? 'win' : 'lose'}">
+        <h1>${title}</h1>
+        <p>${esc(c.name)} · ${esc(r.diff)} — ${esc(r.reason)}${r.auto ? ' · 자동 힐러' : ''}</p>
+        ${r.win ? `<div class="gradebox"><b class="grade">${x.grade}</b><span class="stars" aria-label="별 ${n}개">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span></div>` : ''}
+        ${x.first ? '<em class="badge">첫 클리어</em>' : x.best ? '<em class="badge">최고 기록</em>' : ''}
+      </header>
+      ${r.win ? `<ul class="starlist">${x.stars.map((ok, i) => `<li class="${ok ? 'ok' : ''}">${ok ? '★' : '☆'} ${STAR_TEXT[i]}</li>`).join('')}</ul>` : ''}
+      <dl class="metrics">${metrics.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      ${!r.win && x.xp ? `<p class="note center">경험치 +${fmt(x.xp)} (진 판은 20%)</p>` : ''}
+      <details class="more"><summary>자세히</summary><dl class="metrics small">${r.detail.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></details>
+    </div>
+    <footer class="ns-foot ${r.win ? '' : 'row3'}">${r.win
+      ? '<button class="btn primary" type="button" id="toReward">다음 (보상)</button>'
+      : '<button class="btn" type="button" id="retry">다시 도전</button><button class="btn" type="button" data-go="s-party">편성 바꾸기</button><button class="btn" type="button" data-go="s-lobby">로비</button>'}</footer>`;
+  if (!r.win && x.levelUps.length) showLevelUp(st.el, x.levelUps);
+}
+
+st.el.addEventListener('click', e => {
+  const t = e.target as HTMLElement;
+  if (t.closest('#toReward')) go('s-reward');
+  else if (t.closest('#retry')) retry();
+});
+
+/** 같은 파티로 다시 (시작 위치는 새로) */
+function retry(): void { Flow.seed = newSeed(); depart(); }
+
+// ---------- 보상 ----------
+const rw = screen('s-reward', '보상', { enter() { renderReward(); } });
+
+function itemCard(it: GearItem): string {
+  const cur = G.save.gear.equipped[it.slot];
+  const pct = (g: GearItem | undefined) => (g ? `${Math.round(GRADE[g.grade][0] * 100)}%` : '0%');
+  const subs = (g: GearItem | undefined) => (g ? GRADE[g.grade][1] : 0);
+  const isOn = cur?.id === it.id;
+  return `<div class="rw-item" style="--g:${GRADE_STYLE[it.grade].color}">
+    <div class="rw-box" aria-hidden="true"><span>${it.grade[0]}</span></div>
+    <b>${it.grade} · ${esc(it.name)}</b><small>${slotName(it.slot)} · +${it.plus}</small>
+    <p class="cmp">${isOn ? '장착했어요' : `지금 ${cur ? `${cur.grade} ${esc(cur.name)}` : '빈칸'} → 힐량 ${pct(cur)} → ${pct(it)}, 보조 능력치 ${subs(cur)} → ${subs(it)}개`}</p>
+  </div>`;
+}
+
+function renderReward(): void {
+  const x = Flow.settle!;
+  const p = G.save.player;
+  const need = xpToNext(p.level);
+  const it = x.item ? G.save.gear.bag.find(b => b.id === x.item!.id) || Object.values(G.save.gear.equipped).find(b => b?.id === x.item!.id) : null;
+  rw.el.innerHTML = `${topBar()}
+    <div class="ns-body reward">
+      ${it ? itemCard(it) : '<p class="note center">장비 없음</p>'}
+      <dl class="metrics">
+        <div><dt>골드</dt><dd>🪙 +${fmt(x.gold)}</dd></div>
+        <div><dt>경험치</dt><dd>+${fmt(x.xp)}${x.levelUps.length ? ` <em class="lvup">레벨 업! Lv ${x.levelBefore} → ${p.level}</em>` : ''}</dd></div>
+      </dl>
+      <div class="xpbar" aria-label="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100}%"></i><span>Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}</span></div>
+      <p class="note center">장비 강화·분해·세트 효과는 P2에서 만들어요.</p>
+    </div>
+    <footer class="ns-foot row3">
+      ${it && G.save.gear.bag.some(b => b.id === it.id) ? '<button class="btn" type="button" id="equipNow">장착</button>' : '<button class="btn" type="button" data-go="s-gear">장비 보기</button>'}
+      <button class="btn" type="button" id="again">다시 도전</button>
+      <button class="btn primary" type="button" data-go="s-lobby">로비</button>
+    </footer>`;
+  if (x.levelUps.length && !shown.has(x)) { shown.add(x); showLevelUp(rw.el, x.levelUps); }
+}
+const shown = new WeakSet<object>();
+
+rw.el.addEventListener('click', e => {
+  const t = e.target as HTMLElement;
+  if (t.closest('#equipNow') && Flow.settle?.item) { equip(Flow.settle.item.id); renderReward(); }
+  else if (t.closest('#again')) { Flow.party = null; Flow.rerolls = 0; go('s-party'); }
+});
+
+// ---------- 레벨업 팝업 (P04) ----------
+export function showLevelUp(host: HTMLElement, ups: number[]): void {
+  const items = ups.flatMap(lv => (MILESTONES[lv] || []).map(m => ({ lv, ...m })));
+  const box = document.createElement('div');
+  box.className = 'overlay lvpop';
+  box.innerHTML = `<div class="card" role="dialog" aria-label="레벨 업"><h3>레벨 업!</h3><p class="lvnum">Lv ${ups[0] - 1} → <b>${ups[ups.length - 1]}</b></p>
+    ${items.length ? `<ul>${items.map(m => `<li class="${m.live ? '' : 'later'}">Lv ${m.lv} · ${esc(m.text)}${m.live ? '' : ' <small>준비 중</small>'}</li>`).join('')}</ul>` : '<p class="note">새로 열린 기능은 없어요. 힐량이 조금씩 오르는 건 P2에서 넣어요.</p>'}
+    <button class="btn primary" type="button">확인</button></div>`;
+  box.querySelector('button')!.addEventListener('click', () => box.remove());
+  host.appendChild(box);
+}

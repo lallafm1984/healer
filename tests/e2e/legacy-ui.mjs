@@ -1,5 +1,6 @@
-// 임시 전투 화면(프로토타입 v11 UI) 확인: 단축칸·메뉴 고르기·카운트다운·결과창·20인 판. prototype/tests/items.js에서 옮김
+// 임시 전투 화면(프로토타입 v11 UI) 확인: 편성의 단축칸 고르기·공략·카운트다운·아이템·정산·20인 판·왼손. prototype/tests/items.js에서 옮김
 import { chromium } from 'playwright';
+import { patchSave, pickedItems, toEntry, toParty } from './nav.mjs';
 
 export default async function legacyUi(url, shots) {
   const browser = await chromium.launch();
@@ -14,34 +15,39 @@ export default async function legacyUi(url, shots) {
   await page.clock.install();
   await page.goto(url);
   await page.clock.runFor(300);
-  await page.click('#encList [data-enc="warden"]'); // 메뉴 기본은 던전(녹슨 요새). 이 테스트는 보스 한 판
+  // Lv 40 = 단축칸 4칸 (18 2-2). 프로토타입처럼 4개를 골라 둔 상태에서 시작
+  await patchSave(page, { player: { level: 40 }, items: ['mana', 'life', 'cleanse', 'feather'] });
 
-  // ---- 메뉴 ----
-  ok(await page.locator('#boardChips').count() === 0, '세로형 판 선택지 없음');
-  ok(await page.locator('.mmobar, #ping, #brandImg, #shout').count() === 0, '메뉴: 서버 바·레퍼런스 그림·외침 없음');
-  const chips = await ev(() => [...document.querySelectorAll('#itemChips [data-item]')].map(b => [b.dataset.item, b.getAttribute('aria-pressed')]));
-  ok(chips.length === 6 && chips.filter(c => c[1] === 'true').map(c => c[0]).join() === 'mana,life,cleanse,feather', `아이템 6개, 기본 4개 선택 ${JSON.stringify(chips)}`);
-  await page.click('#itemChips [data-item="medit"]');
-  ok(/다 찼어요/.test(await page.textContent('#itemNote')), '5번째는 안 들어감 (안내)');
-  await page.click('#itemChips [data-item="feather"]');
-  await page.click('#itemChips [data-item="shield"]');
-  const sel = await ev(() => [...document.querySelectorAll('#itemChips [aria-pressed="true"]')].map(b => b.dataset.item).join());
-  ok(sel === 'mana,life,cleanse,shield', `깃털 빼고 보호 넣기 → ${sel}`);
-  ok(/독침/.test(await page.textContent('#itemNote')) === false && /탱커 강타/.test(await page.textContent('#itemNote')), '녹슨 문지기 궁합 힌트');
-  await page.reload(); await page.clock.runFor(300);
-  await page.click('#encList [data-enc="warden"]');
-  const sel2 = await ev(() => [...document.querySelectorAll('#itemChips [aria-pressed="true"]')].map(b => b.dataset.item).join());
-  ok(sel2 === 'mana,life,cleanse,shield', `다시 열어도 기억 (${sel2})`);
-  await page.screenshot({ path: `${shots}/v6_menu_items.png`, fullPage: false });
-  await page.evaluate(() => document.querySelector('#itemChips').scrollIntoView({ block: 'center' }));
-  await page.screenshot({ path: `${shots}/v6_menu_items2.png` });
-
-  // ---- 출발 → 파티 찾기 + 공략 ----
-  await page.click('#startBtn'); await page.clock.runFor(200);
-  const top = await ev(() => { const b = document.getElementById('guideBody'); return { chat: b.querySelectorAll('.chat').length, first: b.querySelector('.gd > *').className, note: b.querySelectorAll('.gd-note').length }; });
-  ok(top.chat === 0 && top.first === 'gd-top' && top.note === 0, `공략 화면 맨 위 = 보스 이름, 채팅창·평타 메모 없음 ${JSON.stringify(top)}`);
+  // ---- 난이도·입장: 공략 ----
+  await toEntry(page);
+  ok(await page.locator('.mmobar, #ping, #brandImg, #shout, .chat').count() === 0, '서버 바·레퍼런스 그림·외침·채팅 없음');
+  const top = await ev(() => { const b = document.querySelector('#s-entry .guides'); return { n: b.querySelectorAll('.gdet').length, chat: b.querySelectorAll('.chat').length, first: b.querySelector('.gd > *').className, note: b.querySelectorAll('.gd-note').length }; });
+  ok(top.n === 4 && top.chat === 0 && top.first === 'gd-top' && top.note === 0, `구간마다 공략, 맨 위 = 이름, 채팅·평타 메모 없음 ${JSON.stringify(top)}`);
+  await page.click('#s-entry .gdet:last-child summary');
+  ok(/녹슨 문지기/.test(await page.textContent('#s-entry .gdet:last-child')), '마지막 공략 = 녹슨 문지기');
   await page.screenshot({ path: `${shots}/v9_guide_top.png` });
-  await page.click('#guideGo'); await page.clock.runFor(100);
+
+  // ---- 편성: 소비 아이템 ----
+  await page.click('#entryGo'); await page.clock.runFor(100);
+  const chips = await ev(() => [...document.querySelectorAll('#s-party [data-item]')].map(b => [b.dataset.item, b.getAttribute('aria-pressed')]));
+  ok(chips.length === 6 && chips.filter(c => c[1] === 'true').map(c => c[0]).join() === 'mana,life,cleanse,feather', `아이템 6개 중 4개 선택 ${JSON.stringify(chips)}`);
+  ok(/단축칸 4칸/.test(await page.textContent('#s-party')), 'Lv 40 = 단축칸 4칸');
+  await page.click('#s-party [data-item="medit"]');
+  ok(/다 찼어요/.test(await page.textContent('#s-party .note.warn')), '5번째는 안 들어감 (안내)');
+  await page.click('#s-party [data-item="feather"]');
+  await page.click('#s-party [data-item="shield"]');
+  const sel = await pickedItems(page);
+  ok(sel === 'mana,life,cleanse,shield', `깃털 빼고 보호 넣기 → ${sel}`);
+  ok(/탱커 강타/.test(await page.textContent('#s-party .hint')), '녹슨 문지기 궁합 힌트');
+  await page.reload(); await page.clock.runFor(300);
+  await toParty(page);
+  const sel2 = await pickedItems(page);
+  ok(sel2 === 'mana,life,cleanse,shield', `다시 열어도 기억 (${sel2})`);
+  await page.evaluate(() => document.querySelector('#s-party .items').scrollIntoView({ block: 'center' }));
+  await page.screenshot({ path: `${shots}/v6_party_items.png` });
+
+  // ---- 출발 → 카운트다운 ----
+  await page.click('#depart'); await page.clock.runFor(100);
   ok(await page.isVisible('#pull') && (await page.textContent('#pullNum')).trim() === '3', '3초 카운트다운 보임');
   ok(await page.locator('#pullChat').count() === 0 && /^3$/.test((await page.textContent('#pull')).replace(/\s/g, '')), '카운트다운은 숫자만');
   await page.screenshot({ path: `${shots}/v6_pull.png` });
@@ -116,21 +122,22 @@ export default async function legacyUi(url, shots) {
   ok(!/자리 비움|기다려/.test(await page.textContent('#pause')), '일시정지: 기다림 문구 없음');
   await page.click('#resumeBtn'); await page.clock.runFor(100);
 
-  // 결과창 파티 채팅
-  await ev(() => { window.__proto.F.bossHp = 1; });
-  await page.clock.runFor(4000);
-  ok(await page.isVisible('#result'), '결과창');
-  const chat = await ev(() => document.querySelectorAll('#resChat, #result .chat').length);
-  ok(chat === 0, '결과창 파티 채팅 없음');
-  ok(/마나/.test(await page.textContent('#resStats')), '결과 표에 쓴 아이템');
+  // 포기 → 정산 (파티 채팅 없음, 쓴 아이템은 자세히에)
+  await page.click('#pauseBtn'); await page.clock.runFor(100);
+  ok(/포기/.test(await page.textContent('#quitBtn')), '일시정지 버튼 = 포기하고 나가기');
+  await page.click('#quitBtn'); await page.clock.runFor(200);
+  ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '포기', '포기 → 정산');
+  ok(await page.locator('#s-settle .chat, #s-settle .plines').count() === 0, '정산에 파티 채팅·한마디 없음');
+  ok(/소비 아이템\s*마나 \d/.test(await page.textContent('#s-settle details.more')), '자세히에 쓴 아이템');
+  ok(/경험치/.test(await page.textContent('#s-settle')) === false, '포기하면 경험치 없음');
   await page.screenshot({ path: `${shots}/v6_result.png` });
 
   // ---- 깃털 + 20인 판 ----
-  await page.click('#menuBtn'); await page.clock.runFor(100);
-  await page.click('#itemChips [data-item="shield"]'); await page.click('#itemChips [data-item="feather"]');
-  await page.click('#encList [data-enc="plague20"]'); await page.clock.runFor(100);
-  await page.click('#startBtn'); await page.clock.runFor(100);
-  await page.click('#guideGo'); await page.clock.runFor(3300);
+  await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
+  await toEntry(page, { content: 'abyss1', tab: 'raid', diff: '악몽' });
+  await page.click('#entryGo'); await page.clock.runFor(100);
+  await page.click('#s-party [data-item="shield"]'); await page.click('#s-party [data-item="feather"]');
+  await page.click('#depart'); await page.clock.runFor(3300);
   const b20 = await ev(() => ({ board: window.__proto.F.board, cells: window.__proto.F.cells.length }));
   ok(b20.board === 'b30' && b20.cells === 30, `20인 = 가로형 b30 ${JSON.stringify(b20)}`);
   const boxes20 = await ev(() => {
@@ -148,11 +155,15 @@ export default async function legacyUi(url, shots) {
   ok(rv.alive && rv.pct >= 28 && rv.pct <= 31 && rv.inCell, `부활 깃털: 30%로 칸에 복귀 ${JSON.stringify(rv)}`);
   await page.screenshot({ path: `${shots}/v6_raid20_items.png` });
 
-  // 왼손 모드
+  // 왼손 모드 (설정)
   await page.click('#pauseBtn'); await page.click('#quitBtn'); await page.clock.runFor(100);
-  await page.click('#handChips [data-hand="left"]');
-  await page.click('#encList [data-enc="warden"]');
-  await page.click('#startBtn'); await page.click('#guideGo'); await page.clock.runFor(3300);
+  await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
+  await page.click('#s-lobby .tb-set'); await page.clock.runFor(100);
+  await page.click('#s-settings [data-set="hand"][data-val="left"]'); await page.clock.runFor(50);
+  ok(await ev(() => JSON.parse(localStorage.getItem('healer.save')).settings.hand) === 'left', '왼손 설정 저장');
+  await page.click('#s-settings .tb-back'); await page.clock.runFor(100);
+  await toParty(page);
+  await page.click('#depart'); await page.clock.runFor(3300);
   const lh = await ev(() => { const w = document.getElementById('wheel').getBoundingClientRect(), i = document.getElementById('items').getBoundingClientRect(); return { wheelX: w.x, itemsX: i.x }; });
   ok(lh.wheelX < lh.itemsX, `왼손 모드: 휠 왼쪽, 단축칸 오른쪽 ${JSON.stringify(lh)}`);
   await page.screenshot({ path: `${shots}/v6_lefthand.png` });

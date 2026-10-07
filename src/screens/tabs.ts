@@ -1,42 +1,58 @@
-/** 하단 탭 5개 (09 2-2). 전투 탭 = 지금은 프로토타입 메뉴, 나머지는 자리만 */
+/** 하단 탭 5개 (09 2-2). 로비·장비·탭 화면에서만 보임. 아직 없는 탭은 자리 + 잠금 레벨 */
+import { GUILD_LEVEL, TALENT_LEVEL } from '../data/progression';
+import { G } from '../game/state';
+import { go, screen, setTabsHandler, topBar, type TabKey } from './kit';
+
 export interface TabDef {
-  key: 'battle' | 'gear' | 'guild' | 'talent' | 'shop';
+  key: TabKey;
   name: string;
   /** 만드는 단계 (21 문서) */
   phase: string;
   docs: string;
+  /** 해금 레벨 (09 1-1) */
+  lv?: number;
 }
 
 export const TABS: TabDef[] = [
   { key: 'battle', name: '전투', phase: 'P1', docs: '02 · 05 · 09 S03~S09' },
   { key: 'gear', name: '장비', phase: 'P2', docs: '02 10장 · 09 S10' },
-  { key: 'guild', name: '길드', phase: 'P2', docs: '02 9장 · 17 · 09 S12~S14' },
-  { key: 'talent', name: '특성', phase: 'P2', docs: '06 · 18' },
+  { key: 'guild', name: '길드', phase: 'P2', docs: '02 9장 · 17 · 09 S12~S14', lv: GUILD_LEVEL },
+  { key: 'talent', name: '특성', phase: 'P2', docs: '06 · 18', lv: TALENT_LEVEL },
   { key: 'shop', name: '상점', phase: 'P3', docs: '12 · 15' },
 ];
 
-export function mountTabs(nav: HTMLElement, page: HTMLElement, menu: HTMLElement): void {
-  let current: TabDef['key'] = 'battle';
+const ph = screen('s-tab', '준비 중인 탭', {
+  enter(arg) {
+    const t = TABS.find(x => x.key === arg) || TABS[4];
+    ph.tab = t.key;
+    const locked = t.lv && G.save.player.level < t.lv;
+    ph.el.innerHTML = `${topBar({ settings: true })}<div class="ns-body tabph"><h2 class="h">${t.name}</h2>
+      ${locked ? `<p class="lockline">🔒 Lv ${t.lv}에 열려요 (지금 Lv ${G.save.player.level})</p>` : ''}
+      <p class="note">${t.phase} 단계에서 만들어요.</p><p class="note">기획: ${t.docs}</p></div>`;
+  },
+});
+
+export function mountTabs(nav: HTMLElement): void {
+  let cur: TabKey | undefined;
   const render = () => {
-    nav.innerHTML = TABS.map(t => `<button type="button" data-tab="${t.key}"${t.key === current ? ' aria-current="page"' : ''}>${t.name}${t.key === 'battle' ? '' : `<small>${t.phase}</small>`}</button>`).join('');
-    const tab = TABS.find(t => t.key === current)!;
-    page.hidden = current === 'battle';
-    if (current !== 'battle') page.innerHTML = `<h2>${tab.name}</h2><p>${tab.phase} 단계에서 만들어요.</p><p>기획: ${tab.docs}</p>`;
+    nav.innerHTML = TABS.map(t => {
+      const locked = t.lv && G.save.player.level < t.lv;
+      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}>${t.name}<small>${locked ? `🔒 Lv ${t.lv}` : t.key === 'battle' || t.key === 'gear' ? '' : t.phase}</small></button>`;
+    }).join('');
   };
   nav.addEventListener('click', e => {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-tab]');
     if (!b) return;
-    current = b.dataset.tab as TabDef['key'];
-    render();
+    const k = b.dataset.tab as TabKey;
+    if (k === 'battle') go('s-lobby');
+    else if (k === 'gear') go('s-gear');
+    else go('s-tab', k);
   });
-  // 탭은 로비(메뉴)에서만 보임. 전투·공략·결과 화면에선 숨김
-  const sync = () => {
-    const on = !menu.hidden;
-    nav.hidden = !on;
-    document.body.classList.toggle('tabs-on', on);
-    if (!on) { current = 'battle'; page.hidden = true; }
-  };
-  new MutationObserver(sync).observe(menu, { attributes: true, attributeFilter: ['hidden'] });
-  render();
-  sync();
+  setTabsHandler(t => {
+    cur = t;
+    nav.hidden = !t;
+    document.body.classList.toggle('tabs-on', !!t);
+    if (t) render();
+  });
+  nav.hidden = true;
 }

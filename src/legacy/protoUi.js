@@ -1,4 +1,4 @@
-/* ===== 프로토타입 v11 전투 화면 (prototype/ui.js 사본, 임시). 엔진은 engineShim이 넣는 TypeScript 엔진. P1에서 새 화면으로 교체 ===== */
+/* ===== 전투 화면 (프로토타입 v11 ui.js에서 옮김, 임시). 엔진은 engineShim이 넣는 TypeScript 엔진. 메뉴·정산은 새 화면(src/screens)이 맡고, 여기는 전투·휴식·일시정지만. 새 전투 화면(PixiJS)으로 바꾸면 지움 ===== */
 (() => {
   const E = Engine;
   const $ = id => document.getElementById(id);
@@ -16,17 +16,12 @@
   const READ_ORDER = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
   const LAYOUT_SKILLS = ['heal', 'flash', 'renew', 'poh', 'purify', 'guardian', 'hymn'];
   const DEFAULT_LAYOUT = { NW: null, N: 'purify', NE: 'heal', W: 'renew', E: 'flash', SW: 'hymn', S: 'poh', SE: 'guardian' };
-  const LAYOUT_STORE = 'nhh.skillLayout.v1';
+
   function validLayout(v) {
     if (!v || typeof v !== 'object') return false;
     const keys = READ_ORDER.map(d => v[d] || null);
     return LAYOUT_SKILLS.every(k => keys.filter(x => x === k).length === 1) && keys.every(k => k === null || LAYOUT_SKILLS.includes(k));
   }
-  function loadLayout() {
-    try { const v = JSON.parse(localStorage.getItem(LAYOUT_STORE)); if (validLayout(v)) return Object.assign({}, v); } catch (e) { /* 저장소 없음 */ }
-    return Object.assign({}, DEFAULT_LAYOUT);
-  }
-  function saveLayout() { try { localStorage.setItem(LAYOUT_STORE, JSON.stringify(S.layout)); } catch (e) { /* 이번 접속에서만 유지 */ } }
   const layoutLabel = k => k === 'heal' ? '치유/평온' : k === 'poh' ? '기원/신성화' : E.SKILLS[k].name;
   const layoutText = l => READ_ORDER.filter(d => l[d]).map(d => `${ARROW[d]} ${layoutLabel(l[d])}`).join(' · ');
   const layoutCode = l => READ_ORDER.map(d => `${d}:${l[d] || '-'}`).join(',');
@@ -51,25 +46,17 @@
   const DEFAULT_GEAR = { '쉬움': 'none', '보통': 'none', '어려움': 'adv0', '악몽': 'rare5' };
   const GEAR_RANK = { none: 0, adv0: 1, rare5: 2, epic5: 3 };
 
-  const S = { enc: 'rustfort', diff: '보통', gear: 'none', partySeed: seed(), party: null, sound: true, vibe: true, auto: false, tapKey: 'heal', hand: 'right', zoom: true, layout: null, layoutPick: null, items: null };
-  S.layout = loadLayout(); applyLayout();
+  // 설정·편성은 새 화면이 start()/settings()로 넣어 줌
+  const S = { diff: '보통', gearStats: null, party: null, items: [], sound: true, vibe: true, auto: false, tapKey: 'heal', hand: 'right', zoom: true, layout: Object.assign({}, DEFAULT_LAYOUT), run: null, onEnd: null, slots: 4 };
+  applyLayout();
   let F = null, armed = null, paused = false, overShown = false;
   const ui = { floats: [], bubbles: [], pointer: null, lastHealSnd: 0, tickSec: null, runRef: null, ratings: {}, touchSeen: false, lowFlags: {}, lastLowVibe: 0, layout: null, qAt: 0,
     hitFx: {}, disp: {}, lastRender: 0, lens: null, vibeAt: 0, vibedTel: new Set(), lastHeart: 0, debSnd: {}, tapOff: [], lastTap: null, retarget: 0 };
   function seed() { return (Math.random() * 1e9) | 0; }
   // ---------- 소비 아이템 (19 2부) ----------
-  // 메뉴에서 6개 중 4개를 골라 단축칸에. 지난 구성은 이 기기에 기억 (못 쓰면 이번 접속에서만)
-  const ITEM_STORE = 'nhh.items.v1';
-  const DEFAULT_ITEMS = ['mana', 'life', 'cleanse', 'feather'];
+  // 단축칸 2×2. 레벨에 따라 열린 칸 수가 다름 (18 2-2: Lv 1 = 2칸, 20 = 3칸, 40 = 4칸). 구성은 새 화면(편성)에서 고름
   const ITEM_SLOTS = 4;
-  function loadItems() {
-    try {
-      const v = JSON.parse(localStorage.getItem(ITEM_STORE));
-      if (Array.isArray(v)) { const ok = [...new Set(v)].filter(k => E.ITEMS[k]).slice(0, ITEM_SLOTS); return ok; }
-    } catch (e) { /* 기본값 */ }
-    return DEFAULT_ITEMS.slice();
-  }
-  function saveItems() { try { localStorage.setItem(ITEM_STORE, JSON.stringify(S.items)); } catch (e) { /* 이번 접속에서만 유지 */ } }
+  const SLOT_LV = [1, 1, 20, 40];
   const potion = (c) => `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12.5 6h7v4.2a9 9 0 1 1-7 0z" fill="${c}" stroke="#0B0B12" stroke-width="2" stroke-linejoin="round"/><rect x="11.5" y="3" width="9" height="4" rx="1.2" fill="#C9923F" stroke="#0B0B12" stroke-width="1.6"/><ellipse cx="12.8" cy="20" rx="1.8" ry="3" fill="rgba(255,255,255,.5)"/></svg>`;
   const scroll = (mark) => `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="7" width="18" height="18" rx="2" fill="#E9DDBC" stroke="#0B0B12" stroke-width="2"/><rect x="5" y="4" width="22" height="5" rx="2.5" fill="#B98F4E" stroke="#0B0B12" stroke-width="1.8"/><rect x="5" y="23" width="22" height="5" rx="2.5" fill="#B98F4E" stroke="#0B0B12" stroke-width="1.8"/>${mark}</svg>`;
   const ITEM_ICON = {
@@ -140,13 +127,6 @@
     try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { /* 지원 안 함 (iOS 사파리) */ }
   }
 
-  // ---------- 기록 (db) ----------
-  let DB = null;
-  (async () => {
-    try { const c = window.claude; if (c && c.use) DB = await c.use('db'); } catch (e) { DB = null; }
-    $('dbNote').textContent = DB ? '전투 결과와 의견은 이 페이지에 기록돼 기획 검증에 쓰여요.' : '이 화면에서는 전투 기록이 저장되지 않아요.';
-  })();
-  $('dbNote').textContent = '';
 
   // ---------- 보스 그림 (임시) ----------
   function bossSvg(script) {
@@ -359,134 +339,23 @@
     return `<div class="gd">${head}${phases}${skills}</div>`;
   }
 
-  // ---------- 던전 (23): 구간을 이어서 하고 사이에 휴식 ----------
-  const isDungeon = k => !!E.DUNGEONS[k];
-  const segsOf = k => E.DUNGEONS[k].segments;
-  // 메뉴 항목: 던전이면 첫 구간의 판·난이도를 씀
-  function entry(k) {
-    if (!isDungeon(k)) return E.ENCOUNTERS[k];
-    const d = E.DUNGEONS[k], first = E.ENCOUNTERS[d.segments[0]];
-    const bosses = d.segments.filter(x => E.ENCOUNTERS[x].script !== 'trash').map(x => E.ENCOUNTERS[x].name);
-    return Object.assign({}, first, { key: k, name: d.name, tier: `던전 · 5인 · ${d.segments.length}구간`, script: 'warden', sub: `잡몹 ${d.segments.length - bosses.length} · 보스 ${bosses.join(' → ')}` });
+  // ---------- 한 판 = 전투 1개 이상. 던전은 구간을 이어서 하고 사이에 휴식 (23) ----------
+  const curKey = () => S.run.segs[S.run.idx];
+  // 처음부터 다시 (같은 파티, 같은 콘텐츠)
+  function resetRun() {
+    Object.assign(S.run, { idx: 0, carry: null, time: 0, deaths: 0, restSec: 0, healed: 0, overheal: 0, dispels: 0, dispellable: 0, itemLog: [] });
   }
-  // 던전 안에서만 나오는 구간(잡몹·첫 보스)은 따로 고르지 않음
-  const MENU_KEYS = [...Object.keys(E.DUNGEONS), ...Object.keys(E.ENCOUNTERS).filter(k => !Object.values(E.DUNGEONS).some(d => d.segments.slice(0, -1).includes(k)))];
-  const curKey = () => (S.run ? segsOf(S.run.dungeon)[S.run.idx] : S.enc);
-  function newRun() { S.run = isDungeon(S.enc) ? { dungeon: S.enc, idx: 0, carry: null, time: 0, deaths: 0, restSec: 0 } : null; }
 
-  // ---------- 메뉴 ----------
-  function renderMenu() {
-    $('encList').innerHTML = MENU_KEYS.map(entry).map(e => {
-      const n = E.BOARDS[e.board].flat().length;
-      return `<button class="enc" type="button" data-enc="${e.key}" aria-pressed="${S.enc === e.key}">${bossSvg(e.script)}<div><b>${e.name}</b><span>${e.sub || `${e.tier} · ${n}칸 판`}</span></div><em>${e.diffs.join('·')}</em></button>`;
-    }).join('');
-    const enc = entry(S.enc);
-    if (!enc.diffs.includes(S.diff)) { S.diff = enc.diffs.includes('보통') ? '보통' : enc.diffs[0]; S.gear = DEFAULT_GEAR[S.diff]; }
-    $('diffChips').innerHTML = enc.diffs.map(d => `<button class="chip" type="button" data-diff="${d}" aria-pressed="${S.diff === d}">${d}</button>`).join('');
-    let dn = DIFF_NOTE[S.diff];
-    if (S.diff === '악몽') dn += enc.big ? ' · 레이드 악몽은 20인 전용 수치' : ' · 던전 악몽은 보스 체력 ×1.3';
-    $('diffNote').textContent = dn;
-    $('gearChips').innerHTML = Object.entries(E.GEARS).map(([k, g]) => `<button class="chip" type="button" data-gear="${k}" aria-pressed="${S.gear === k}">${g.label}</button>`).join('');
-    const gs = E.gearStats(S.gear);
-    let gn = `힐량 ×${gs.heal.toFixed(2)} · 치명타 ${Math.round(gs.crit * 100)}% · 가속 ${Math.round(gs.haste * 100)}% · 마나 재생 ×${gs.regen.toFixed(2)}`;
-    const need = S.diff === '악몽' ? 'rare5' : S.diff === '어려움' ? 'adv0' : 'none';
-    const warn = GEAR_RANK[S.gear] < GEAR_RANK[need];
-    if (warn) gn = `권장 장비(${E.GEARS[need].label})보다 낮아요. 입장은 할 수 있어요. ` + gn;
-    $('gearNote').textContent = gn;
-    $('gearNote').classList.toggle('warn', warn);
-    if (!S.party) S.party = E.rollParty(isDungeon(S.enc) ? segsOf(S.enc)[0] : S.enc, S.partySeed);
-    $('tapChips').innerHTML = Object.entries(TAP_KEYS).map(([k, v]) => `<button class="chip" type="button" data-tap="${k}" aria-pressed="${S.tapKey === k}">${E.SKILLS[k].name}</button>`).join('');
-    $('howTap').textContent = TAP_KEYS[S.tapKey];
-    $('handChips').innerHTML = [['right', '오른쪽 (오른손)'], ['left', '왼쪽 (왼손)']].map(([k, v]) => `<button class="chip" type="button" data-hand="${k}" aria-pressed="${S.hand === k}">${v}</button>`).join('');
-    renderLayout();
-    renderItemsMenu();
-    $('partyCount').textContent = `${S.party.length + 1}인 · 나 포함`;
-    $('partyList').innerHTML = S.party.map(m => {
-      const p = E.PERS[m.pers];
-      return `<span class="member"><i style="background:${E.CATS[p.cat]}">${p.ch}</i>${m.nick} <span class="role">${ROLE[m.role].name} · ${m.pers} ${'★'.repeat(p.star || 1)}</span></span>`;
-    }).join('');
-  }
-  function renderItemsMenu() {
-    const full = S.items.length >= ITEM_SLOTS;
-    $('itemChips').innerHTML = Object.entries(E.ITEMS).map(([k, it]) => `<button class="chip ichip" type="button" data-item="${k}" aria-pressed="${S.items.includes(k)}">${ITEM_ICON[k]}${it.name}</button>`).join('');
-    const hint = ITEM_HINT[entry(S.enc).script] || '';
-    const desc = S.items.map(k => `${E.ITEMS[k].short}: ${E.ITEMS[k].desc}`).join(' · ');
-    $('itemNote').textContent = `${S.items.length}/${ITEM_SLOTS}칸${desc ? ` · ${desc}` : ''}. 물약은 하나를 마시면 모든 물약이 60초 재사용 대기, 두루마리·깃털은 전투당 1번. ${full ? '' : '빈 칸이 있어요. '}${hint}`;
-    $('itemNote').classList.remove('warn');
-  }
-  $('itemChips').addEventListener('click', e => {
-    const b = e.target.closest('[data-item]'); if (!b) return;
-    const k = b.dataset.item;
-    if (S.items.includes(k)) S.items = S.items.filter(x => x !== k);
-    else if (S.items.length >= ITEM_SLOTS) { $('itemNote').textContent = `단축칸 ${ITEM_SLOTS}칸이 다 찼어요. 뺄 아이템을 먼저 누르세요.`; $('itemNote').classList.add('warn'); return; }
-    else S.items = Object.keys(E.ITEMS).filter(x => x === k || S.items.includes(x));
-    saveItems(); renderItemsMenu();
-  });
-  // 스킬 배치 편집: 두 자리를 차례로 누르면 서로 바뀜 (빈자리 포함)
-  function renderLayout() {
-    const pick = S.layoutPick;
-    $('layoutGrid').innerHTML = GRID.map(d => {
-      if (!d) return `<div class="lcore" aria-hidden="true">마나</div>`;
-      const k = S.layout[d];
-      const nm = k ? E.SKILLS[k].short : '비어 있음';
-      const sub = k === 'heal' ? '평온' : k === 'poh' ? '신성화' : '';
-      return `<button class="lslot${k ? '' : ' empty'}" type="button" data-ldir="${d}" aria-pressed="${pick === d}" aria-label="${ARROW[d]} ${k ? layoutLabel(k) : '비어 있음'}"><span class="dir">${ARROW[d]}</span><b>${nm}</b>${sub ? `<small>${sub}</small>` : ''}</button>`;
-    }).join('');
-    const pw = pick ? (S.layout[pick] ? layoutLabel(S.layout[pick]) : '빈자리') : '';
-    const wa = w => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return c >= 0 && c < 11172 && c % 28 ? '과' : '와'; };
-    $('layoutNote').textContent = pick ? `${ARROW[pick]} ${pw}${wa(pw)} 바꿀 자리를 누르세요.` : '두 자리를 차례로 누르면 서로 바뀌어요. 칸에서 그 방향으로 쓸면 그 스킬이 나가요.';
-    $('layoutReset').disabled = layoutCode(S.layout) === layoutCode(DEFAULT_LAYOUT);
-    $('howSwipe').textContent = `8방향으로 쓸면 휠에서 그 방향에 놓인 스킬이 그 사람에게 나가요 (${layoutText(S.layout)}). 쓰다가 제자리로 돌아오면 취소`;
-  }
-  $('layoutGrid').addEventListener('click', e => {
-    const b = e.target.closest('[data-ldir]'); if (!b) return;
-    const d = b.dataset.ldir, p = S.layoutPick;
-    if (!p) S.layoutPick = d;
-    else if (p === d) S.layoutPick = null;
-    else { const t = S.layout[p]; S.layout[p] = S.layout[d]; S.layout[d] = t; S.layoutPick = null; applyLayout(); saveLayout(); }
-    renderLayout();
-  });
-  $('layoutReset').addEventListener('click', () => { S.layout = Object.assign({}, DEFAULT_LAYOUT); S.layoutPick = null; applyLayout(); saveLayout(); renderLayout(); });
-
-  $('encList').addEventListener('click', e => {
-    const b = e.target.closest('[data-enc]'); if (!b) return;
-    if (S.enc !== b.dataset.enc) { S.enc = b.dataset.enc; S.party = null; S.partySeed = seed(); }
-    renderMenu();
-  });
-  $('diffChips').addEventListener('click', e => { const b = e.target.closest('[data-diff]'); if (!b) return; S.diff = b.dataset.diff; S.gear = DEFAULT_GEAR[S.diff]; renderMenu(); });
-  $('gearChips').addEventListener('click', e => { const b = e.target.closest('[data-gear]'); if (!b) return; S.gear = b.dataset.gear; renderMenu(); });
-  $('rerollBtn').addEventListener('click', () => { S.partySeed = seed(); S.party = null; renderMenu(); });
-  $('tapChips').addEventListener('click', e => { const b = e.target.closest('[data-tap]'); if (!b) return; S.tapKey = b.dataset.tap; renderMenu(); });
-  $('handChips').addEventListener('click', e => { const b = e.target.closest('[data-hand]'); if (!b) return; S.hand = b.dataset.hand; renderMenu(); });
-  $('zoomOpt').addEventListener('change', e => { S.zoom = e.target.checked; });
-  $('soundOpt').addEventListener('change', e => { S.sound = e.target.checked; });
-  $('vibeOpt').addEventListener('change', e => { S.vibe = e.target.checked; });
-  $('autoOpt').addEventListener('change', e => { S.auto = e.target.checked; });
-  // 출발 → 보스 공략 화면 → 전투 시작. 자동 힐러 구경은 바로 시작
-  $('startBtn').addEventListener('click', () => { Snd.init(); newRun(); if (S.auto) startBattle(0); else openGuide(); });
-
-  function show(id) { for (const s of ['menu', 'guide', 'rest', 'battle', 'result']) $(s).hidden = s !== id; }
-
-  // ---------- 전투 전 보스 공략 ----------
-
-  function openGuide() {
-    S.layoutPick = null;
-    const g = guideModel(curKey(), S.diff);
-    if (S.run) g.tier = `${E.DUNGEONS[S.run.dungeon].name} ${S.run.idx + 1}/${segsOf(S.run.dungeon).length}`;
-    $('guideBody').innerHTML = guideHtml(g, null); // 보스 이름이 맨 위 (2026-10-07 Lim: 파티 찾기 채팅 뺌)
-    show('guide');
-    $('guideBody').scrollTop = 0; // 보이고 나서 (숨겨진 채로는 무시돼 이전 스크롤이 남음)
-    ui.guideAt = performance.now();
-  }
-  $('guideGo').addEventListener('click', () => { Snd.init(); startBattle(Math.round((performance.now() - ui.guideAt) / 1000)); });
-  $('guideBack').addEventListener('click', () => { S.run = null; show('menu'); renderMenu(); });
+  // 새 화면(.screen)이 늘어나도 하나만 보이게
+  function show(id) { document.querySelectorAll('#app > .screen').forEach(s => { s.hidden = s.id !== id; }); }
 
   // ---------- 전투 시작 ----------
   // guideSec: 이번 판 직전에 공략 화면을 본 시간 (다시 도전·처음부터 다시는 공략 없이 바로 시작 → 0)
   function startBattle(guideSec) {
-    S.layoutPick = null;
     // 던전: 같은 파티로 구간을 이어 감. 마나·성언 게이지는 앞 구간(+휴식)에서 이어받고, 아이템 횟수·재사용 대기는 구간마다 새로 (23 4장)
-    F = E.create({ encounter: curKey(), diff: S.diff, gear: S.gear, seed: seed(), party: S.party, items: S.items, carry: (S.run && S.run.carry) || undefined });
+    // 첫 판은 편성 화면 미리보기와 같은 시드 (시작 위치가 같게). 처음부터 다시·다음 구간은 새 시드
+    const sd = S.run.seed0 != null ? S.run.seed0 : seed(); S.run.seed0 = null;
+    F = E.create({ encounter: curKey(), diff: S.diff, gearStats: S.gearStats || undefined, seed: sd, party: S.party, items: S.items, carry: S.run.carry || undefined });
     ui.itemArmed = null; ui.itemPress = null; buildItems();
     // 전투 시작 카운트다운 3초 (19 4장 6번). 자동 힐러 구경은 바로 시작
     ui.pullLeft = S.auto ? 0 : 3; ui.pullShown = null;
@@ -504,7 +373,7 @@
     show('battle');
     layoutBattle();
     if (S.auto) toast('자동 힐러가 플레이해요 (기록 안 남김)');
-    else if (!S.run || S.run.idx === 0) toast(`칸을 탭하면 ${E.SKILLS[S.tapKey].name}`);
+    else if (S.run.idx === 0) toast(`칸을 탭하면 ${E.SKILLS[S.tapKey].name}`);
   }
   // 잡몹 구간은 지금 잡는 잡몹 이름을 같이
   function bossTitle() {
@@ -582,6 +451,7 @@
     let html = '';
     for (let i = 0; i < ITEM_SLOTS; i++) {
       const k = keys[i];
+      if (i >= S.slots) { html += `<div class="item empty locked" aria-label="잠긴 칸 (Lv ${SLOT_LV[i]})"><span class="nm">잠김<br>Lv ${SLOT_LV[i]}</span></div>`; continue; }
       if (!k) { html += `<div class="item empty" aria-hidden="true"><span class="nm">빈 칸</span></div>`; continue; }
       html += `<button class="item" type="button" data-item="${k}" aria-label="${E.ITEMS[k].name}">${ITEM_ICON[k]}<span class="nm">${E.ITEMS[k].short}</span><span class="n"></span><span class="cd"></span><span class="cds"></span></button>`;
     }
@@ -677,9 +547,9 @@
     $('bossFill').style.width = `${pct * 100}%`;
     $('bossHpText').textContent = `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} (${Math.ceil(pct * 100)}%)${F.invuln ? ' · 무적' : ''}`;
     let ph = F.phaseName ? `${F.enc.tier.split(' · ')[0]} · ${F.phaseName}` : `${F.enc.tier} · ${F.cfg.diff}`;
-    if (S.run) {
+    if (S.run.segs.length > 1) {
       const left = F.mobs.filter(m => m.alive).length;
-      ph = `${E.DUNGEONS[S.run.dungeon].name} ${S.run.idx + 1}/${segsOf(S.run.dungeon).length} · ${F.phaseName || (F.mobs.length ? `남은 잡몹 ${left}` : F.cfg.diff)}`;
+      ph = `${S.run.name} ${S.run.idx + 1}/${S.run.segs.length} · ${F.phaseName || (F.mobs.length ? `남은 잡몹 ${left}` : F.cfg.diff)}`;
     }
     if ($('phase').textContent !== ph) $('phase').textContent = ph;
     $('timer').textContent = F.enraged ? `${mmss(F.t)} · 광폭화!` : isFinite(F.enc.enrage) ? `${mmss(F.t)} / 광폭 ${mmss(F.enc.enrage)}` : mmss(F.t);
@@ -1226,52 +1096,40 @@
   }
   $('pauseBtn').addEventListener('click', () => setPause(true));
   $('resumeBtn').addEventListener('click', () => { Snd.init(); setPause(false); });
-  $('restartBtn').addEventListener('click', () => { newRun(); startBattle(); });
-  $('quitBtn').addEventListener('click', () => { closeTip(); F = null; S.run = null; show('menu'); renderMenu(); });
+  $('restartBtn').addEventListener('click', () => { resetRun(); startBattle(); });
+  $('quitBtn').addEventListener('click', () => { if (!F || F.over) return; closeTip(); paused = false; $('pause').hidden = true; finish(true); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && F && !F.over && !$('battle').hidden) setPause(true); });
 
-  // ---------- 결과 ----------
-  function grade(f) { const d = f.stats.deaths; return d === 0 ? 'S' : d === 1 ? 'A' : d <= 3 ? 'B' : 'C'; }
-  function showResult() {
-    const f = F, st = f.stats, win = f.over === 'win';
-    const R = S.run, segN = R ? segsOf(R.dungeon).length : 0;
-    closeTip();
-    show('result');
-    $('resTitle').textContent = win ? (R ? '던전 클리어!' : '클리어!') : '전멸';
-    $('resTitle').className = win ? 'win' : 'lose';
-    const where = R ? `${E.DUNGEONS[R.dungeon].name} ${R.idx + 1}/${segN} ${f.enc.name}` : `${f.enc.name} · ${f.enc.tier}`;
-    $('resSub').textContent = `${where} · ${f.cfg.diff} · ${E.GEARS[f.cfg.gear].label}${S.auto ? ' · 자동 힐러' : ''} — ${f.reason}`;
-    // 던전 등급은 던전 전체 쓰러짐으로
-    $('grade').hidden = !win; $('grade').textContent = R ? grade({ stats: { deaths: R.deaths } }) : grade(f);
-    const tot = st.healed + st.overheal;
-    const min = Math.max(1 / 60, f.t / 60);
-    const acc = tapAccuracy();
-    const cells = [
-      ['전투 시간', mmss(f.t)],
-      ['쓰러진 파티원', `${st.deaths} / ${f.party.length}`],
-      ['오버힐', `${tot ? Math.round((st.overheal / tot) * 100) : 0}%`],
-      ['해제 성공률', st.dispellable ? `${Math.round((st.dispels / st.dispellable) * 100)}% (${st.dispels}/${st.dispellable})${st.trapPops ? ` · 전염 터뜨림 ${st.trapPops}` : ''}` : '해제할 디버프 없음'],
-      ['남은 마나', `${Math.floor(f.mana)}% (최저 ${Math.floor(st.minMana)}%)`],
+  // ---------- 끝: 결과를 새 화면(정산)에 넘김. 던전은 구간 전체 합 ----------
+  function finish(quit) {
+    const R = S.run, f = F, st = f.stats, win = !quit && f.over === 'win';
+    const acc = tapAccuracy(), min = Math.max(1 / 60, f.t / 60);
+    if (quit) { R.time += f.t; R.deaths += st.deaths; addStats(R, st); }
+    const detail = [
+      ['마지막 전투', `${f.enc.name} ${mmss(f.t)}`],
       ['탭', `${st.taps}번 (분당 ${Math.round(st.taps / min)})`],
       ['칸 중심에서 벗어남', acc.n ? `평균 칸 크기의 ${acc.avg}%` : '-'],
       ['옆 칸 재지정 (오탭 추정)', `${ui.retarget}번 · 빈 칸 ${st.emptyTaps}번`],
       ['시전 취소 · 마나 부족', `${st.cancels}번 · ${st.manaFails}번`],
       ['쓸기 스킬', `${Object.values(ui.swipes).reduce((a, b) => a + b, 0)}번 · 취소 ${ui.swipeCancel} · 빈 방향 ${ui.swipeEmpty}`],
-      ['소비 아이템', f.itemLog.length ? f.itemLog.map(x => `${E.ITEMS[x.key].short} ${mmss(x.t)}`).join(' · ') : '안 씀'],
+      ['소비 아이템', R.itemLog.length ? R.itemLog.map(x => `${E.ITEMS[x.key].short} ${mmss(x.t)}`).join(' · ') : '안 씀'],
     ];
-    if (!win) cells.splice(1, 0, [f.mobs.length ? '잡몹 남은 체력' : '보스 남은 체력', `${Math.ceil((f.bossHp / f.bossMax) * 100)}%`]);
-    if (R) cells.unshift(['던전 진행', `${win ? segN : R.idx} / ${segN} 구간`], ['던전 전체 시간', `${mmss(R.time)} (휴식 ${Math.round(R.restSec)}초 따로)`], ['던전 전체 쓰러짐', `${R.deaths}번`]);
-    $('resStats').innerHTML = cells.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
-    document.querySelectorAll('.scale').forEach(sc => {
-      sc.innerHTML = [1, 2, 3, 4, 5].map(n => `<button type="button" data-v="${n}" aria-pressed="false">${n}</button>`).join('');
-    });
-    $('memo').value = '';
-    $('sendBtn').disabled = false;
-    $('saveNote').textContent = S.auto ? '자동 힐러 판은 기록하지 않아요.' : DB ? '전투 기록을 저장하는 중…' : '이 화면에서는 기록이 저장되지 않아요.';
+    if (!win) detail.unshift([f.mobs.length ? '잡몹 남은 체력' : '보스 남은 체력', `${Math.ceil((f.bossHp / f.bossMax) * 100)}%`]);
+    const result = {
+      content: R.content, diff: S.diff, win, quit: !!quit, reason: quit ? '포기했어요' : f.reason,
+      segIdx: R.idx, segN: R.segs.length, time: R.time, restSec: R.restSec, deaths: R.deaths,
+      healed: R.healed, overheal: R.overheal, dispels: R.dispels, dispellable: R.dispellable,
+      endMana: Math.floor(f.mana), minMana: Math.floor(st.minMana), auto: S.auto,
+      party: f.party.filter(u => !u.me).map(u => ({ nick: u.nick, pers: u.pers, role: u.role, alive: u.alive })),
+      detail,
+    };
+    ui.lastResult = result;
     Snd.play(win ? 'win' : 'lose');
-    ui.runRef = null;
-    if (!S.auto && DB) saveRun(f);
+    F = null;
+    if (S.onEnd) S.onEnd(result);
   }
+  // 아이템은 구간마다 새로 받으니 쓴 기록은 던전 전체 시간으로 모아 둠
+  function addStats(R, st) { R.healed += st.healed; R.overheal += st.overheal; R.dispels += st.dispels; R.dispellable += st.dispellable; R.itemLog.push(...F.itemLog.map(x => ({ key: x.key, t: R.time - F.t + x.t }))); }
 
   function tapAccuracy() {
     const a = ui.tapOff;
@@ -1280,10 +1138,10 @@
   function runData(f) {
     const st = f.stats, tot = st.healed + st.overheal;
     return {
-      at: new Date().toISOString(), encounter: f.enc.key, dungeon: S.run ? S.run.dungeon : null, segment: S.run ? S.run.idx : null,
-      dungeonSeconds: S.run ? Math.round(S.run.time) : null, restSeconds: S.run ? Math.round(S.run.restSec) : null, boss: f.enc.name, tier: f.enc.tier, diff: f.cfg.diff, gear: f.cfg.gear,
+      at: new Date().toISOString(), encounter: f.enc.key, content: S.run.content, segment: S.run.idx,
+      runSeconds: Math.round(S.run.time), restSeconds: Math.round(S.run.restSec), boss: f.enc.name, tier: f.enc.tier, diff: f.cfg.diff, gear: f.gear,
       result: f.over, reason: f.reason, seconds: Math.round(f.t), bossLeftPct: Math.ceil((f.bossHp / f.bossMax) * 100),
-      deaths: st.deaths, partySize: f.party.length, grade: f.over === 'win' ? grade(f) : null,
+      deaths: st.deaths, partySize: f.party.length,
       healed: Math.round(st.healed), overhealPct: tot ? Math.round((st.overheal / tot) * 100) : 0,
       minMana: Math.floor(st.minMana), endMana: Math.floor(f.mana), dispels: st.dispels, dispellable: st.dispellable, trapPops: st.trapPops, queueLost: st.queueLost,
       casts: st.casts, taps: st.taps, missTaps: st.missTaps, retarget: ui.retarget, tapOffsetAvgPct: tapAccuracy().avg, tapFar: tapAccuracy().far,
@@ -1295,49 +1153,19 @@
       device: { w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio || 1, touch: ui.touchSeen },
     };
   }
-  async function saveRun(f) {
-    try {
-      ui.runRef = await DB.collection('runs').add(runData(f));
-      $('saveNote').textContent = '전투 기록을 저장했어요. 아래 질문에 답하면 같이 저장돼요.';
-    } catch (e) {
-      ui.runRef = null;
-      $('saveNote').textContent = '기록을 저장하지 못했어요. 이 페이지를 편집할 수 있는 계정에서만 저장돼요.';
-    }
-  }
-  document.querySelectorAll('.scale').forEach(sc => sc.addEventListener('click', e => {
-    const b = e.target.closest('button[data-v]'); if (!b) return;
-    ui.ratings[sc.dataset.q] = +b.dataset.v;
-    sc.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-  }));
-  $('sendBtn').addEventListener('click', async () => {
-    const fb = { fun: ui.ratings.fun || null, touchEase: ui.ratings.touch || null, memo: $('memo').value.trim().slice(0, 500), feedbackAt: new Date().toISOString() };
-    if (!fb.fun && !fb.touchEase && !fb.memo) { $('saveNote').textContent = '점수를 고르거나 한마디를 적어 주세요.'; return; }
-    if (S.auto || !DB) { $('saveNote').textContent = '이 화면에서는 의견이 저장되지 않아요.'; return; }
-    $('sendBtn').disabled = true;
-    try {
-      if (ui.runRef) await ui.runRef.update(fb);
-      else ui.runRef = await DB.collection('runs').add(Object.assign(runData(F), fb));
-      $('saveNote').textContent = '고마워요. 의견을 저장했어요.';
-    } catch (e) {
-      $('sendBtn').disabled = false;
-      $('saveNote').textContent = '의견을 저장하지 못했어요. 이 페이지를 편집할 수 있는 계정에서만 저장돼요.';
-    }
-  });
-  $('againBtn').addEventListener('click', () => { newRun(); startBattle(); });
-  $('menuBtn').addEventListener('click', () => { F = null; S.run = null; show('menu'); renderMenu(); });
 
   // ---------- 구간 끝 · 휴식 (09 S07, 23 4장) ----------
   function endSegment() {
     const R = S.run;
-    if (R) { R.time += F.t; R.deaths += F.stats.deaths; }
-    const next = R && F.over === 'win' && R.idx < segsOf(R.dungeon).length - 1;
-    setTimeout(() => { if (F && F.over) { if (next) showRest(); else showResult(); } }, 1200);
+    R.time += F.t; R.deaths += F.stats.deaths; addStats(R, F.stats);
+    const next = F.over === 'win' && R.idx < R.segs.length - 1;
+    setTimeout(() => { if (F && F.over) { if (next) showRest(); else finish(false); } }, 1200);
   }
   function showRest() {
-    const R = S.run, segs = segsOf(R.dungeon);
+    const R = S.run, segs = R.segs;
     closeTip();
     ui.restAt = performance.now(); ui.restMana = null;
-    $('restSub').textContent = `${E.DUNGEONS[R.dungeon].name} · ${F.enc.name} 끝 (${mmss(F.t)})`;
+    $('restSub').textContent = `${R.name} · ${F.enc.name} 끝 (${mmss(F.t)})`;
     $('restSteps').innerHTML = segs.map((k, i) => `<li class="${i <= R.idx ? 'done' : i === R.idx + 1 ? 'next' : ''}">${i <= R.idx ? '✓ ' : ''}${E.ENCOUNTERS[k].name}</li>`).join('');
     const dead = F.party.filter(u => !u.alive && !u.me).length;
     $('restNote').textContent = `파티 체력이 모두 찼어요${dead ? `. 쓰러진 ${dead}명도 일어났어요` : ''}. 마나는 쉬는 동안 초당 ${E.REST_MANA_PER_SEC}%씩 차요. 「계속」은 언제든 누를 수 있어요.`;
@@ -1399,8 +1227,30 @@
     if (!$('rest').hidden) updateRest(now);
     requestAnimationFrame(frame);
   }
-  window.__proto = { get F() { return F; }, center: i => center(i), guide: (enc, diff) => guideModel(enc, diff), run: () => (F ? runData(F) : null), get pullLeft() { return ui.pullLeft; }, get dungeon() { return S.run; } }; // 테스트용 조회
-  S.items = loadItems();
-  renderMenu();
+  window.__proto = { get F() { return F; }, center: i => center(i), guide: (enc, diff) => guideModel(enc, diff), run: () => (F ? runData(F) : null), get pullLeft() { return ui.pullLeft; }, get dungeon() { return S.run; }, get last() { return ui.lastResult; } }; // 테스트용 조회
+  // 새 화면(src/screens)이 쓰는 입구
+  window.__battle = {
+    // o = { content, name, segs, diff, gearStats, party, items, seed, onEnd(result) }
+    start(o) {
+      closeTip();
+      S.diff = o.diff; S.gearStats = o.gearStats || null; S.party = o.party; S.items = (o.items || []).slice(); S.slots = o.slots || 4; S.onEnd = o.onEnd || null;
+      S.run = { content: o.content, name: o.name, segs: o.segs.slice(), seed0: o.seed != null ? o.seed : null };
+      resetRun();
+      Snd.init();
+      startBattle(0);
+    },
+    settings(s) {
+      S.sound = !!s.sound; S.vibe = !!s.vibrate; S.hand = s.hand === 'left' ? 'left' : 'right'; S.tapKey = TAP_KEYS[s.tapKey] ? s.tapKey : 'heal';
+      S.zoom = s.zoom !== false; S.auto = !!s.auto;
+      S.layout = validLayout(s.layout) ? Object.assign({}, s.layout) : Object.assign({}, DEFAULT_LAYOUT); applyLayout();
+    },
+    guide: (encKey, diff) => guideHtml(guideModel(encKey, diff), null),
+    bossSvg: script => bossSvg(script),
+    itemIcon: k => ITEM_ICON[k] || '',
+    itemHint: script => ITEM_HINT[script] || '',
+    layout: { GRID, ARROW, READ_ORDER, DEFAULT_LAYOUT, LAYOUT_SKILLS, valid: validLayout, label: layoutLabel, text: layoutText },
+    tapKeys: TAP_KEYS,
+    sound: k => { Snd.init(); Snd.play(k); },
+  };
   requestAnimationFrame(frame);
 })();

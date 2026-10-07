@@ -18,7 +18,7 @@ export function create(cfg: FightConfig): Fight {
   const enc = ENCOUNTERS[cfg.encounter];
   const diff = DIFFS[cfg.diff];
   const rng = rngFrom(cfg.seed || 1);
-  const gear = gearStats(cfg.gear || 'none');
+  const gear = cfg.gearStats ? { ...cfg.gearStats } : gearStats(cfg.gear || 'none');
   const board = cfg.board && BOARDS[cfg.board] && BOARDS[cfg.board].flat().length === BOARDS[enc.board].flat().length ? cfg.board : enc.board;
   const cells = makeCells(BOARDS[board]);
   const rows = BOARDS[board].length;

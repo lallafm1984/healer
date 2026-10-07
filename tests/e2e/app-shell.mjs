@@ -1,5 +1,6 @@
-// 앱 틀 확인: 상단 배너 영역 70dp, 하단 탭, 작은 화면에서도 전투 화면이 배너 아래에 들어가는지 (09 5장)
+// 앱 틀 확인: 상단 배너 영역 70dp, 타이틀 → 로비, 하단 탭, 작은 화면에서도 전투 화면이 배너 아래에 들어가는지 (09 1장·5장)
 import { chromium } from 'playwright';
+import { toParty } from './nav.mjs';
 
 export default async function appShell(url, shots) {
   const browser = await chromium.launch();
@@ -14,24 +15,33 @@ export default async function appShell(url, shots) {
     await page.clock.install();
     await page.goto(url);
     await page.clock.runFor(300);
-    const rect = id => page.evaluate(i => document.getElementById(i).getBoundingClientRect().toJSON(), id);
-    const banner = await rect('adBanner');
+    const rect = sel => page.evaluate(s => document.querySelector(s).getBoundingClientRect().toJSON(), sel);
+    const banner = await rect('#adBanner');
     ok(banner.top === 0 && banner.height === 70, `${w}: 배너 영역 = 맨 위 70 ${JSON.stringify({ top: banner.top, h: banner.height })}`);
-    const menu = await rect('menu');
-    ok(menu.top >= 70, `${w}: 메뉴는 배너 아래 (top ${menu.top})`);
+    ok(await page.isVisible('#s-title') && await page.isHidden('#tabs'), `${w}: 처음 = 타이틀, 탭 숨김`);
+    await page.click('#s-title'); await page.clock.runFor(100);
+    ok(await page.isVisible('#s-lobby'), `${w}: 화면을 누르면 로비`);
+    const top = await rect('#s-lobby .topbar');
+    ok(top.top >= 70, `${w}: 로비 위쪽 줄은 배너 아래 (top ${top.top})`);
     ok(await page.isVisible('#tabs') && (await page.locator('#tabs button').count()) === 5, `${w}: 하단 탭 5개`);
-    await page.click('#tabs [data-tab="gear"]');
-    ok(await page.isVisible('#tabPage') && /P2/.test(await page.textContent('#tabPage')), `${w}: 장비 탭 = 자리만 (P2)`);
-    await page.click('#tabs [data-tab="battle"]');
-    ok(await page.isHidden('#tabPage'), `${w}: 전투 탭으로 돌아옴`);
-    await page.screenshot({ path: `${shots}/shell_menu_${w}.png` });
+    const start = await rect('#lobbyStart'), tabs = await rect('#tabs');
+    ok(start.bottom <= tabs.top + 0.5, `${w}: 「전투 시작」이 탭에 안 가림 (${Math.round(start.bottom)} ≤ ${Math.round(tabs.top)})`);
+    await page.click('#tabs [data-tab="gear"]'); await page.clock.runFor(50);
+    ok(await page.isVisible('#s-gear') && (await page.locator('#s-gear .gtile').count()) === 6, `${w}: 장비 탭 = 6부위`);
+    await page.click('#tabs [data-tab="talent"]'); await page.clock.runFor(50);
+    ok(await page.isVisible('#s-tab') && /Lv 10/.test(await page.textContent('#s-tab')), `${w}: 특성 탭 = Lv 10 잠금 안내`);
+    await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(50);
+    ok(await page.isVisible('#s-lobby'), `${w}: 전투 탭 = 로비로 돌아옴`);
+    await page.screenshot({ path: `${shots}/shell_lobby_${w}.png` });
 
-    await page.click('[data-enc="plague20"]');
-    await page.click('#startBtn'); await page.clock.runFor(300);
-    await page.click('#guideGo'); await page.clock.runFor(3100 + 5000);
-    ok(await page.isHidden('#tabs'), `${w}: 전투 중엔 탭 숨김`);
-    const stage = await rect('stage');
-    const ctrl = await rect('controls');
+    // 레이드 악몽 20인: Lv 1이어도 개발 빌드는 열림 (설정 「레벨 잠금 무시」 기본 켬)
+    await toParty(page, { content: 'abyss1', tab: 'raid', diff: '악몽' });
+    ok(await page.isHidden('#tabs') && (await page.locator('#s-party .pcard').count()) === 19, `${w}: 20인 편성 = 나 빼고 19명, 탭 숨김`);
+    await page.screenshot({ path: `${shots}/shell_party20_${w}.png` });
+    await page.click('#depart'); await page.clock.runFor(3100 + 5000);
+    ok(await page.isHidden('#tabs') && await page.isVisible('#battle'), `${w}: 전투 중엔 탭 숨김`);
+    const stage = await rect('#stage');
+    const ctrl = await rect('#controls');
     ok(stage.top >= 70 && ctrl.bottom <= h + 0.5, `${w}: 전투 화면이 배너 아래~화면 안 ${JSON.stringify({ stageTop: stage.top, ctrlBottom: ctrl.bottom })}`);
     const t = await page.evaluate(() => window.__proto.F.t);
     ok(t > 4, `${w}: 20인 전투 진행 (t=${t.toFixed(1)})`);

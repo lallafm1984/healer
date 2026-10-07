@@ -163,6 +163,8 @@ export interface FightConfig {
   diff: DiffName;
   seed?: number;
   gear?: GearId;
+  /** 실제 착용 장비로 계산한 능력치 (있으면 gear 프리셋 대신 씀) */
+  gearStats?: GearStats;
   board?: BoardId;
   /** 없으면 시드로 공개모집 파티를 뽑음 */
   party?: RosterEntry[];
