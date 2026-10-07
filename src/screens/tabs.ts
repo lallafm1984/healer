@@ -1,6 +1,7 @@
 /** 하단 탭 5개 (09 2-2). 로비·장비·탭 화면에서만 보임. 아직 없는 탭은 자리 + 잠금 레벨 */
 import { GUILD_LEVEL, TALENT_LEVEL } from '../data/progression';
 import { G } from '../game/state';
+import { TUT } from '../game/tutorial';
 import { go, screen, setTabsHandler, topBar, type TabKey } from './kit';
 
 export interface TabDef {
@@ -32,17 +33,25 @@ const ph = screen('s-tab', '준비 중인 탭', {
   },
 });
 
+/** 튜토리얼 중엔 「전투」만 (09 4장). 장비 탭은 첫 장비를 얻으면 열림 */
+function tutLocked(k: TabKey): boolean {
+  if (G.save.tut >= TUT.done || k === 'battle') return false;
+  if (k === 'gear') return !G.save.gear.bag.length && !Object.keys(G.save.gear.equipped).length;
+  return true;
+}
+
 export function mountTabs(nav: HTMLElement): void {
   let cur: TabKey | undefined;
   const render = () => {
     nav.innerHTML = TABS.map(t => {
       const locked = t.lv && G.save.player.level < t.lv;
-      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}>${t.name}<small>${locked ? `🔒 Lv ${t.lv}` : t.key === 'battle' || t.key === 'gear' ? '' : t.phase}</small></button>`;
+      const tl = tutLocked(t.key);
+      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${tl ? ' class="tlock" aria-disabled="true"' : ''}>${t.name}<small>${tl ? '🔒' : locked ? `🔒 Lv ${t.lv}` : t.key === 'battle' || t.key === 'gear' ? '' : t.phase}</small></button>`;
     }).join('');
   };
   nav.addEventListener('click', e => {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-tab]');
-    if (!b) return;
+    if (!b || b.getAttribute('aria-disabled') === 'true') return;
     const k = b.dataset.tab as TabKey;
     if (k === 'battle') go('s-lobby');
     else if (k === 'gear') go('s-gear');

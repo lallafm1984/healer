@@ -1,6 +1,7 @@
 /** S21 설정 + S17 스킬 배치 (09). 바꾸면 바로 저장하고 전투 화면에도 넘김 */
 import { PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { commit, G, healerLevel, resetSave } from '../game/state';
+import { TUT } from '../game/tutorial';
 import type { TapKey } from '../platform/storage';
 import { battle, esc, go, josa, previous, screen, topBar } from './kit';
 
@@ -52,6 +53,7 @@ function render(): void {
         ${tog('auto', '자동 힐러로 구경하기')}
         ${tog('devUnlock', '레벨 잠금 무시 (던전·레이드)')}
         ${tog('allSkills', '스킬 전부 열기 (레벨 무관)')}
+        <button class="btn" type="button" id="tutAgain">${G.save.tut < TUT.done ? '튜토리얼 건너뛰기' : '튜토리얼 다시 보기 (레벨·장비는 그대로)'}</button>
         <button class="btn" type="button" id="resetSave">${confirmReset ? '정말 지울까요? 한 번 더 누르면 지워요' : '저장 지우고 처음부터'}</button>
       </section>
     </div>`;
@@ -72,6 +74,11 @@ s.el.addEventListener('click', e => {
     render(); return;
   }
   if (t.closest('#layReset')) { G.save.settings.layout = null; pick = null; saveSettings(); return; }
+  if (t.closest('#tutAgain')) {
+    const again = G.save.tut >= TUT.done;
+    G.save.tut = again ? TUT.intro : TUT.done; commit();
+    go(again ? 's-story' : 's-lobby'); return;
+  }
   if (t.closest('#resetSave')) {
     if (!confirmReset) { confirmReset = true; render(); return; }
     resetSave(); pushSettings(); go('s-title');

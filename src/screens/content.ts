@@ -2,6 +2,7 @@
 import { ALL_DIFFS, CONTENT, type ContentDef, type ContentKind } from '../data/content';
 import { Flow } from '../game/flow';
 import { G, lockOf } from '../game/state';
+import { TUT } from '../game/tutorial';
 import { esc, go, screen, topBar } from './kit';
 
 const TABS: { kind: ContentKind; name: string }[] = [
@@ -20,7 +21,7 @@ function stars(c: ContentDef): string {
 
 function card(c: ContentDef): string {
   const lk = lockOf(c);
-  const size = c.kind === 'raid' ? '10인 · 악몽 20인' : '5인';
+  const size = c.kind === 'raid' ? '10인 · 악몽 20인' : `${c.size('보통')}인`;
   const state = !c.ready ? `<em class="soon">준비 중</em>` : lk.locked ? `<em class="lock">🔒 Lv ${lk.lv}</em>` : lk.dev ? `<em class="dev">Lv ${lk.lv} 해금 · 개발 빌드라 열림</em>` : '';
   const off = !c.ready || lk.locked;
   return `<button class="ccard${off ? ' off' : ''}" type="button" data-content="${c.key}"${off ? ' aria-disabled="true"' : ''}>
@@ -30,15 +31,17 @@ function card(c: ContentDef): string {
 }
 
 const s = screen('s-content', '콘텐츠 선택', {
-  enter() { render(); },
+  enter() { if (G.save.tut === TUT.dungeon) tab = 'dungeon'; render(); },
 });
 
 function render(): void {
-  const list = CONTENT.filter(c => c.kind === tab);
-  const empty = tab === 'explore' ? '3인 탐험은 첫 5분 튜토리얼을 만들 때 같이 만들어요.' : tab === 'event' ? '이벤트는 P3에서 만들어요.' : '';
+  const list = CONTENT.filter(c => c.kind === tab && !c.hidden);
+  const empty = tab === 'event' ? '이벤트는 P3에서 만들어요.' : '';
+  const tip = G.save.tut === TUT.dungeon && tab === 'dungeon' ? '<p class="coachtip"><b>녹슨 요새</b>를 골라요. 잡몹 구간 둘, 보스 둘을 이어서 해요.</p>' : '';
   s.el.innerHTML = `${topBar({ back: 's-lobby', title: '콘텐츠' })}
     <nav class="subtabs" role="tablist">${TABS.map(t => `<button type="button" role="tab" data-ctab="${t.kind}" aria-selected="${t.kind === tab}">${t.name}${t.kind === 'raid' && G.save.player.level < 35 ? ' 🔒' : ''}</button>`).join('')}</nav>
-    <div class="ns-body clist">${list.map(card).join('') || `<p class="note center">${empty}</p>`}</div>`;
+    <div class="ns-body clist">${tip}${list.map(card).join('') || `<p class="note center">${empty}</p>`}</div>`;
+  if (tip) s.el.querySelector('[data-content="rustfort"]')?.classList.add('hi-pulse');
 }
 
 s.el.addEventListener('click', e => {
@@ -47,6 +50,8 @@ s.el.addEventListener('click', e => {
   const c = (e.target as HTMLElement).closest<HTMLElement>('[data-content]');
   if (c && c.getAttribute('aria-disabled') !== 'true') {
     Flow.content = c.dataset.content as never;
+    // 튜토리얼 첫 던전은 쉬움으로 (09 4장)
+    if (G.save.tut === TUT.dungeon && Flow.content === 'rustfort') Flow.diff = '쉬움';
     go('s-entry');
   }
 });

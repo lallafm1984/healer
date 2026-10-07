@@ -13,8 +13,14 @@ export async function patchSave(page, patch) {
   await page.clock.runFor(300);
 }
 
-export async function toEntry(page, { content = 'rustfort', tab = 'dungeon', diff } = {}) {
+/** 타이틀을 누름. 새 저장이면 튜토리얼 이야기가 나오니 건너뛰기 (개발 빌드) */
+export async function pastTitle(page) {
   if (await page.isVisible('#s-title')) { await page.click('#s-title'); await page.clock.runFor(100); }
+  if (await page.isVisible('#s-story')) { await page.click('#tutSkip'); await page.clock.runFor(100); }
+}
+
+export async function toEntry(page, { content = 'rustfort', tab = 'dungeon', diff } = {}) {
+  await pastTitle(page);
   if (!(await page.isVisible('#s-content'))) { await page.click('#lobbyStart'); await page.clock.runFor(100); }
   await page.click(`#s-content [data-ctab="${tab}"]`); await page.clock.runFor(50);
   await page.click(`#s-content [data-content="${content}"]`); await page.clock.runFor(100);

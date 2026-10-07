@@ -5,6 +5,7 @@ import { GRADE } from '../data/gear';
 import { MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { Flow, newSeed } from '../game/flow';
 import { equip, G } from '../game/state';
+import { TUT } from '../game/tutorial';
 import { esc, fmt, go, mmss, screen, topBar } from './kit';
 import { depart } from './party';
 
@@ -75,8 +76,14 @@ function renderReward(): void {
   const p = G.save.player;
   const need = xpToNext(p.level);
   const it = x.item ? G.save.gear.bag.find(b => b.id === x.item!.id) || Object.values(G.save.gear.equipped).find(b => b?.id === x.item!.id) : null;
+  const r = Flow.result!;
+  const canEquip = !!it && G.save.gear.bag.some(b => b.id === it.id);
+  // 튜토리얼: 탐험 보상 = 첫 장비 장착 유도, 녹슨 요새 첫 클리어 = 끝 (09 4장)
+  const tip = r.content === 'plateau' && G.save.tut === TUT.dungeon && canEquip ? '<p class="coachtip"><b>첫 장비</b>예요! 「장착」을 눌러 바로 써요. 힐량이 올라요.</p>'
+    : r.content === 'rustfort' && G.save.tut === TUT.done && x.first && r.diff === '쉬움' && !G.save.clears.rustfort?.['보통'] ? '<p class="coachtip">첫 던전 클리어! 튜토리얼은 여기까지예요. 다음은 녹슨 요새 <b>보통</b>. Lv 10에 특성이 열려요.</p>' : '';
   rw.el.innerHTML = `${topBar()}
     <div class="ns-body reward">
+      ${tip}
       ${it ? itemCard(it) : '<p class="note center">장비 없음</p>'}
       <dl class="metrics">
         <div><dt>골드</dt><dd>🪙 +${fmt(x.gold)}</dd></div>
@@ -86,7 +93,7 @@ function renderReward(): void {
       <p class="note center">장비 강화·분해·세트 효과는 P2에서 만들어요.</p>
     </div>
     <footer class="ns-foot row3">
-      ${it && G.save.gear.bag.some(b => b.id === it.id) ? '<button class="btn" type="button" id="equipNow">장착</button>' : '<button class="btn" type="button" data-go="s-gear">장비 보기</button>'}
+      ${canEquip ? `<button class="btn${tip && r.content === 'plateau' ? ' hi-pulse' : ''}" type="button" id="equipNow">장착</button>` : '<button class="btn" type="button" data-go="s-gear">장비 보기</button>'}
       <button class="btn" type="button" id="again">다시 도전</button>
       <button class="btn primary" type="button" data-go="s-lobby">로비</button>
     </footer>`;

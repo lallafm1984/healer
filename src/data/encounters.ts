@@ -3,7 +3,7 @@ import type { BoardId } from './boards';
 import type { DiffName } from './difficulty';
 
 /** 보스 전투 (05)와 던전 잡몹 구간 (23). 보스 기술 스크립트는 engine/bosses.ts */
-export type EncounterKey = 'warden' | 'plague' | 'plague20' | 'scrap' | 'gate' | 'boiler';
+export type EncounterKey = 'warden' | 'plague' | 'plague20' | 'scrap' | 'gate' | 'boiler' | 'duo' | 'field' | 'patrol';
 export type ScriptKey = 'warden' | 'plague' | 'scrap' | 'trash';
 
 /** 잡몹 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
@@ -58,12 +58,16 @@ const PARTY5 = { tank: 1, melee: 1, ranged: 2 };
 
 const CHAFF: MobDef = { name: '고철 졸개', hp: 400, count: 0, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] };
 
-function trash(key: EncounterKey, name: string, mobs: MobDef[]): Encounter {
+function trash(key: EncounterKey, name: string, mobs: MobDef[], o: Partial<Encounter> = {}): Encounter {
   return {
     key, name, tier: '던전 · 잡몹', board: 'b10', comp: PARTY5, lowLevel: true,
-    hp: mobs.reduce((s, m) => s + m.hp * m.count, 0), enrage: Infinity, manaCoef: 1.0, diffs: ALL, script: 'trash', stage: 0.25, mobs,
+    hp: mobs.reduce((s, m) => s + m.hp * m.count, 0), enrage: Infinity, manaCoef: 1.0, diffs: ALL, script: 'trash', stage: 0.25, mobs, ...o,
   };
 }
+
+/** 튜토리얼 2인 (탱 1 + 나), 탐험 3인 (탱 1 · 딜 1 + 나) — 02 11장 */
+const DUO = { tank: 1, melee: 0, ranged: 0 };
+const TRIO = { tank: 1, melee: 0, ranged: 1 };
 
 export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
   warden: { key: 'warden', lowLevel: true, name: '녹슨 문지기', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7000, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'warden', stage: 0.25 },
@@ -84,6 +88,14 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ]),
+  // 첫 전투 (2인): 졸개 둘이 탱커만 때림. 힐 없이는 탱커가 쓰러지지만 치유 몇 번이면 버팀
+  duo: trash('duo', '녹슨 고원 입구', [{ ...CHAFF, hp: 100, count: 2 }], { tier: '튜토리얼 · 2인', board: 'b7', comp: DUO, stage: 0.3 }),
+  // 탐험 「녹슨 고원」 3인: 잡몹 → 고철 순찰병 (경비병 기술을 작게)
+  field: trash('field', '고원 길목', [
+    { ...CHAFF, hp: 150, count: 2 },
+    { name: '잔해 투척병', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 70, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 잡몹', board: 'b7', comp: TRIO, stage: 0.3 }),
+  patrol: { key: 'patrol', lowLevel: true, name: '고철 순찰병', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1500, enrage: 150, manaCoef: 1.0, diffs: ALL, script: 'scrap', stage: 0.3 },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

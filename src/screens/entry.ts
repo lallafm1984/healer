@@ -6,6 +6,7 @@ import { avgScore, DROP_TABLE, gearSummary, GRADE_STYLE, ITEM_GRADES, LEGEND_LEV
 import { clearGold, clearXp } from '../data/progression';
 import { Flow } from '../game/flow';
 import { G, lockOf } from '../game/state';
+import { TUT } from '../game/tutorial';
 import { battle, esc, fmt, go, screen, topBar } from './kit';
 
 const s = screen('s-entry', '난이도·입장', { enter() { render(); } });
@@ -39,6 +40,7 @@ function render(): void {
         const tag = raid && x === '악몽' ? '<small>20인</small>' : '';
         return `<button class="chip" type="button" role="radio" data-diff="${x}" aria-checked="${x === d}" aria-pressed="${x === d}"${lk.locked ? ' disabled' : ''}>${lk.locked ? '🔒 ' : ''}${x}${tag}</button>`;
       }).join('')}</div>
+      ${G.save.tut === TUT.dungeon && c.key === 'rustfort' ? '<p class="coachtip">처음엔 <b>쉬움</b>을 권해요. 깨고 나면 보통에 도전해요. 아래 공략은 눌러서 펼쳐 볼 수 있어요.</p>' : ''}
       <p class="note">${esc(diffNote(d, raid))}${lockOf(c, d).dev ? ` · Lv ${lockOf(c, d).lv} 해금, 개발 빌드라 열림` : ''}</p>
 
       <section class="panel">

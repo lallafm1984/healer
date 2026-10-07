@@ -10,6 +10,7 @@ import { create, recruitParty } from '../engine';
 import { Flow, newSeed, rerollCost } from '../game/flow';
 import { settle } from '../game/settle';
 import { commit, G, healerLevel, itemsNow } from '../game/state';
+import { TUT } from '../game/tutorial';
 import { battle, esc, fmt, go, ROLE, screen, topBar } from './kit';
 
 const s = screen('s-party', '파티 편성', { enter() { if (!Flow.party) roll(); render(); } });
@@ -57,6 +58,7 @@ function render(): void {
   s.el.innerHTML = `${topBar({ back: 's-entry', title: `편성 · ${c.name} ${Flow.diff}` })}
     <nav class="subtabs" role="tablist"><button type="button" role="tab" aria-selected="true">공개모집</button><button type="button" role="tab" aria-selected="false" disabled>길드파티 ${guildLocked ? `🔒 Lv ${GUILD_LEVEL}` : '· P2'}</button></nav>
     <div class="ns-body pty">
+      ${G.save.tut === TUT.dungeon ? '<p class="coachtip">파티는 파티 찾기로 무작위로 들어와요. 마음에 안 들면 <b>다시 뽑기</b> (처음 한 번 무료). 준비되면 「출발」.</p>' : ''}
       ${boardSvg()}
       <p class="note center">시작 위치는 자동 배치예요. 옮길 수 없어요.</p>
       <ul class="pcards">${Flow.party!.map(m => {
@@ -98,10 +100,13 @@ s.el.addEventListener('click', e => {
 
 export function depart(): void {
   const c = contentOf(Flow.content);
+  // 튜토리얼 첫 던전이면 전투 중 안내 (02 11장 4·5번)
+  const coach = Flow.coach ?? (G.save.tut === TUT.dungeon && c.key === 'rustfort' ? 'dungeon' : null);
+  Flow.coach = null;
   const { slots, items } = itemsNow();
   battle().start({
     content: c.key, name: c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), gearStats: gearStatsOf(G.save.gear.equipped),
-    party: Flow.party!, items, slots, seed: Flow.seed,
+    party: Flow.party!, items, slots, seed: Flow.seed, coach,
     onEnd(r) {
       Flow.result = r;
       Flow.settle = settle(G.save, r, Math.random);

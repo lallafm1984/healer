@@ -47,7 +47,7 @@
   const GEAR_RANK = { none: 0, adv0: 1, rare5: 2, epic5: 3 };
 
   // 설정·편성은 새 화면이 start()/settings()로 넣어 줌
-  const S = { diff: '보통', gearStats: null, level: 100, party: null, items: [], sound: true, vibe: true, auto: false, tapKey: 'heal', hand: 'right', zoom: true, layout: Object.assign({}, DEFAULT_LAYOUT), run: null, onEnd: null, slots: 4 };
+  const S = { diff: '보통', gearStats: null, level: 100, party: null, items: [], sound: true, vibe: true, auto: false, tapKey: 'heal', hand: 'right', zoom: true, layout: Object.assign({}, DEFAULT_LAYOUT), run: null, onEnd: null, slots: 4, coach: null };
   applyLayout();
   let F = null, armed = null, paused = false, overShown = false;
   const ui = { floats: [], bubbles: [], pointer: null, lastHealSnd: 0, tickSec: null, runRef: null, ratings: {}, touchSeen: false, lowFlags: {}, lastLowVibe: 0, layout: null, qAt: 0,
@@ -156,7 +156,8 @@
       const f = E.create({ encounter: encKey, diff, seed: 1 });
       const sk = {};
       for (const s of f.skills) sk[s.key] = { name: s.name, icon: s.icon, next: s.next, period: s.period, cast: s.cast, dmg: s.dmg, dps: s.dps, dur: s.dur };
-      const hp = r => Math.round(f.party.find(u => u.role === r).max);
+      // 2인·3인 판엔 근접이 없을 수 있어서 딜러 아무나
+      const hp = r => Math.round((f.party.find(u => u.role === r) || f.party.find(u => u.role !== 'tank' && !u.me) || { max: 600 }).max);
       probeCache[k] = { sk, m: f.dmgMult, bossMax: f.bossMax, hp: { tank: hp('tank'), dps: hp('melee'), me: hp('healer') } };
     }
     return probeCache[k];
@@ -366,6 +367,7 @@
     ui.hitFx = {}; ui.disp = {}; ui.busterHint = false; ui.swipes = {}; ui.swipeCancel = 0; ui.swipeEmpty = 0; ui.lens = null; ui.vibedTel = new Set(); ui.debSnd = {}; ui.tapOff = []; ui.lastTap = null; ui.retarget = 0;
     $('controls').classList.toggle('wheel-left', S.hand === 'left');
     $('pause').hidden = true; $('preview').hidden = true; $('toast').innerHTML = '';
+    clearCoach();
     const enc = F.enc;
     $('bossArt').innerHTML = bossSvg(enc.script);
     $('bossName').textContent = bossTitle();
@@ -377,6 +379,55 @@
     $('gauges').classList.toggle('locked', !E.knowsPassive(F, 'words'));
     $('controls').classList.toggle('nowords', !E.knowsPassive(F, 'words'));
   }
+  // ---------- 튜토리얼 안내 (02 11장, 09 4장): 전투를 잠깐 멈추고 할 일 하나를 짚어 줌 ----------
+  // when = 띄울 때, at = 짚을 칸(파티원), slot = 짚을 휠 스킬, need = 끝내는 스킬 (없으면 「확인」), freeze = false면 멈추지 않고 4초 뒤 사라짐
+  const tankOf = f => f.party.find(u => u.role === 'tank' && u.alive);
+  const lowest = f => f.party.filter(u => u.alive).reduce((a, b) => (b.hp / b.max < a.hp / a.max ? b : a));
+  const firstTel = (f, kind) => f.tels.find(t => t.kind === kind && f.t - t.start < 0.5);
+  const COACH = {
+    duo: [
+      { when: f => { const u = tankOf(f); return f.t >= 6 || (u && u.hp / u.max < 0.92); }, text: '탱커가 맞고 있어요. <b>탱커 칸을 탭</b>하면 치유해요.', at: tankOf, need: 'heal' },
+      { when: f => f.stats.casts.heal >= 1 && f.t >= 5, freeze: false, text: '잘했어요! 아래 막대가 차면 힐이 들어가요. 체력이 줄 때마다 다시 탭해요.' },
+    ],
+    explore: [
+      { when: f => f.t >= 1 && E.knows(f, 'renew'), text: '새로 배운 <b>소생</b>: 휠에서 소생을 누른 뒤 탱커 칸을 탭해요. 9초 동안 저절로 차요.', at: tankOf, slot: 'renew', need: 'renew' },
+      { when: f => { const u = lowest(f); return u.hp / u.max < 0.5; }, text: '체력이 확 줄었어요. <b>순간 치유</b>는 1초 만에 채워요. 휠에서 누르고 칸을 탭해요 (마나 두 배).', at: lowest, slot: 'flash', need: 'flash' },
+      { when: f => !!firstTel(f, 'buster'), text: '<b>강타 예고</b>: 위에 뜬 기술이 끝나면 탱커가 크게 맞아요. 미리 채워 두세요.' },
+      { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>: 모두 맞아요. 맞고 나면 가장 낮은 사람부터 채워요.' },
+    ],
+    dungeon: [
+      { when: f => f.mobs.length > 0 && f.t >= 1, freeze: false, text: '던전은 잡몹 구간과 보스를 이어서 해요. 구간 사이엔 쉬면서 마나를 채워요.' },
+      { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>! 맞기 전에 <b>소생</b>을 걸어 두면 덜 아파요. 위쪽 예고 칸을 누르면 설명이 나와요.' },
+      { when: f => f.mana < 30 && Object.keys(f.items).length > 0, text: '마나가 모자라요. 왼쪽 <b>단축칸</b>의 물약을 눌러 보세요.' },
+      { when: f => f.zones.length > 0, freeze: false, text: '바닥 장판은 파티원이 알아서 피해요. 못 피한 사람을 채워 주세요.' },
+    ],
+  };
+  const coachEl = document.createElement('div');
+  coachEl.id = 'coach'; coachEl.hidden = true;
+  $('boardWrap').appendChild(coachEl);
+  coachEl.addEventListener('click', e => { if (e.target.closest('[data-coach-ok]')) clearCoach(); });
+  function coachCheck() {
+    if (!S.coach || S.auto || ui.coach) return;
+    const steps = COACH[S.coach] || [], done = S.run.coachDone;
+    const i = steps.findIndex((st, k) => !done.has(k) && st.when(F));
+    if (i < 0) return;
+    done.add(i);
+    const st = steps[i];
+    const u = st.at ? st.at(F) : null;
+    ui.coach = { ...st, uid: u ? u.id : null, freeze: st.freeze !== false, until: st.freeze === false ? performance.now() + 4000 : 0 };
+    coachEl.innerHTML = `<p>${st.text}</p>${st.need || st.freeze === false ? '' : '<button class="btn primary" type="button" data-coach-ok>확인</button>'}`;
+    coachEl.classList.toggle('top', !!u && center(u.cell).y > ui.layout.H / 2);
+    coachEl.hidden = false;
+    if (st.slot) { const el = $('wheel').querySelector(`.slot[data-slot="${st.slot}"]`); if (el) el.classList.add('coach-hi'); }
+    Snd.play('tick'); vibe(15);
+  }
+  function clearCoach() {
+    ui.coach = null; coachEl.hidden = true;
+    $('wheel').querySelectorAll('.coach-hi').forEach(el => el.classList.remove('coach-hi'));
+  }
+  // 안내가 바란 스킬을 쓰면 다음으로
+  function coachUsed(key) { if (ui.coach && ui.coach.need && ui.coach.need === key) clearCoach(); }
+
   // 칸 탭 기본 힐: 아직 안 배운 스킬로 정해 뒀으면 치유 (06 7장)
   function tapKey() { return F && !E.knows(F, S.tapKey) ? 'heal' : S.tapKey; }
   // 잡몹 구간은 지금 잡는 잡몹 이름을 같이
@@ -871,6 +922,11 @@
       }
     }
     if (!armedKey && ui.itemArmed) for (const u of F.party) if (u.alive) { const p = center(u.cell); hexPath(p.x, p.y, r * 1.04); ctx.lineWidth = 2.5; ctx.strokeStyle = `rgba(240,196,106,${0.35 + 0.5 * pulse})`; ctx.stroke(); }
+    // 튜토리얼 안내가 짚는 칸
+    if (ui.coach && ui.coach.uid != null) {
+      const cu = F.party.find(u => u.id === ui.coach.uid);
+      if (cu && cu.alive) { const p = unitPos(cu); ctx.save(); hexPath(p.x, p.y, r * (1.18 + 0.06 * pulse)); ctx.lineWidth = 4; ctx.strokeStyle = `rgba(240,196,106,${0.55 + 0.45 * pulse})`; ctx.stroke(); ctx.restore(); }
+    }
     // 떠오르는 숫자
     ui.floats = ui.floats.filter(fl => now - fl.t0 < 900);
     for (const fl of ui.floats) {
@@ -1004,6 +1060,7 @@
     if (armed && E.slotKey(F, armed) === key) armed = null;
     if (armed && (key === 'serenity' || key === 'sanctify')) armed = null;
     if (E.SKILLS[key].cast > 0 && !res.queued && !res.same) Snd.play('cast');
+    coachUsed(key);
     return true;
   }
   cv.addEventListener('pointerdown', e => {
@@ -1224,8 +1281,12 @@
       if (!paused && !F.over) {
         if (ui.pullLeft > 0) updatePull(dt);
         else {
-          acc += dt;
-          while (acc >= E.DT && !F.over) { if (S.auto) E.autoHealer(F); E.step(F); acc -= E.DT; }
+          coachCheck();
+          if (ui.coach && !ui.coach.freeze && now > ui.coach.until) clearCoach();
+          if (!(ui.coach && ui.coach.freeze)) {
+            acc += dt;
+            while (acc >= E.DT && !F.over) { if (S.auto) E.autoHealer(F); E.step(F); acc -= E.DT; }
+          }
         }
       }
       handleEvents(now);
@@ -1236,15 +1297,16 @@
     if (!$('rest').hidden) updateRest(now);
     requestAnimationFrame(frame);
   }
-  window.__proto = { get F() { return F; }, center: i => center(i), guide: (enc, diff) => guideModel(enc, diff), run: () => (F ? runData(F) : null), get pullLeft() { return ui.pullLeft; }, get dungeon() { return S.run; }, get last() { return ui.lastResult; } }; // 테스트용 조회
+  window.__proto = { get F() { return F; }, center: i => center(i), guide: (enc, diff) => guideModel(enc, diff), run: () => (F ? runData(F) : null), get pullLeft() { return ui.pullLeft; }, get coach() { return ui.coach; }, get dungeon() { return S.run; }, get last() { return ui.lastResult; } }; // 테스트용 조회
   // 새 화면(src/screens)이 쓰는 입구
   window.__battle = {
     // o = { content, name, segs, diff, gearStats, level, party, items, slots, seed, onEnd(result) }
     start(o) {
       closeTip();
       S.diff = o.diff; S.gearStats = o.gearStats || null; S.party = o.party; S.items = (o.items || []).slice(); S.slots = o.slots || 4; S.onEnd = o.onEnd || null;
-      S.run = { content: o.content, name: o.name, segs: o.segs.slice(), seed0: o.seed != null ? o.seed : null };
+      S.run = { content: o.content, name: o.name, segs: o.segs.slice(), seed0: o.seed != null ? o.seed : null, coachDone: new Set() };
       S.level = o.level || 100;
+      S.coach = o.coach || null;
       resetRun();
       Snd.init();
       startBattle(0);

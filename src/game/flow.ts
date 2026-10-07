@@ -2,6 +2,7 @@
 import type { ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { RosterEntry } from '../engine';
+import type { CoachKey } from './tutorial';
 import type { BattleResult, Settlement } from './settle';
 
 export const Flow: {
@@ -15,7 +16,9 @@ export const Flow: {
   rerolls: number;
   result: BattleResult | null;
   settle: Settlement | null;
-} = { content: 'rustfort', diff: '보통', party: null, seed: 1, rerolls: 0, result: null, settle: null };
+  /** 다음 출발에 띄울 튜토리얼 안내 (한 번 쓰면 비움) */
+  coach: CoachKey | null;
+} = { content: 'rustfort', diff: '보통', party: null, seed: 1, rerolls: 0, result: null, settle: null, coach: null };
 
 export const newSeed = () => (Math.random() * 1e9) | 0;
 

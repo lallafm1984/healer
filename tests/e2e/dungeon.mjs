@@ -1,6 +1,6 @@
 // 던전 흐름 (23·24): 로비 → 콘텐츠 → 난이도 → 편성 → 잡몹 구간 → 휴식 → … → 정산 → 보상 → 레벨 업. 구간은 적 체력을 깎아 빨리 넘긴다
 import { chromium } from 'playwright';
-import { killEnemies, pickedItems, toEntry } from './nav.mjs';
+import { killEnemies, pastTitle, pickedItems, toEntry } from './nav.mjs';
 
 export default async function dungeon(url, shots) {
   const browser = await chromium.launch();
@@ -17,7 +17,7 @@ export default async function dungeon(url, shots) {
   await page.clock.runFor(300);
 
   // ---- 설정: Lv 1에선 안 배운 스킬 잠금 표시 ----
-  await page.click('#s-title'); await page.clock.runFor(100);
+  await pastTitle(page);
   await page.click('#s-lobby .tb-set'); await page.clock.runFor(100);
   ok(await page.isDisabled('#s-settings [data-set="tapKey"][data-val="renew"]') && await page.isEnabled('#s-settings [data-set="tapKey"][data-val="flash"]'), '설정 Lv 1: 칸 탭 「소생」 잠금, 「순간 치유」는 고를 수 있음');
   ok((await page.locator('#s-settings .lslot.locked').count()) === 5, '설정 Lv 1: 스킬 배치 5칸 잠금 표시');
@@ -54,14 +54,15 @@ export default async function dungeon(url, shots) {
   ok(/단축칸 2칸/.test(await page.textContent('#s-party')) && await pickedItems(page) === 'mana,life', 'Lv 1 = 단축칸 2칸, 마나·생명');
   await page.click('#s-party [data-item="cleanse"]');
   ok(/다 찼어요/.test(await page.textContent('#s-party .note.warn')), '3번째는 안 들어감');
-  const nick0 = await page.textContent('#s-party .pcard .pnick');
+  const nicks = () => page.evaluate(() => [...document.querySelectorAll('#s-party .pcard .pnick')].map(b => b.textContent).join());
+  const before = await nicks();
   ok(/무료/.test(await page.textContent('#reroll')), '첫 다시 뽑기 = 무료');
   await page.click('#reroll'); await page.clock.runFor(50);
   ok(/10/.test(await page.textContent('#reroll')), `다시 뽑으면 다음은 10골드 (${(await page.textContent('#reroll')).trim()})`);
   await page.click('#reroll'); await page.clock.runFor(50);
   ok(/골드가 모자라요/.test(await page.textContent('#s-party .note.warn')), '골드 0이면 못 뽑음');
-  const party0 = await page.evaluate(() => [...document.querySelectorAll('#s-party .pcard .pnick')].map(b => b.textContent).join());
-  ok(party0.split(',').length === 4 && !party0.startsWith(nick0 + ','), `다시 뽑으면 다른 파티 (${nick0} → ${party0})`);
+  const party0 = await nicks();
+  ok(party0.split(',').length === 4 && party0 !== before, `다시 뽑으면 다른 파티 (${before} → ${party0})`);
   await page.screenshot({ path: `${shots}/dungeon_party.png` });
 
   // ---- 전투: 구간 → 휴식 → 구간 ----
@@ -103,11 +104,11 @@ export default async function dungeon(url, shots) {
     ok(Math.abs(m1 - m0 - 30) <= 1, `3초 쉬면 +30% (${m0} → ${m1})`);
     if (i === 0) await page.screenshot({ path: `${shots}/dungeon_rest.png` });
     await page.click('#restGo'); await page.clock.runFor(3100 + 500);
-    const st = await page.evaluate(() => { const F = window.__proto.F; return { name: F.enc.name, mana: F.mana, p: F.g.p, party: F.party.filter(u => !u.me).map(u => u.nick).join(), idx: window.__proto.dungeon.idx }; });
+    const st = await page.evaluate(() => { const F = window.__proto.F, R = window.__proto.dungeon; return { name: F.enc.name, mana: F.mana, carry: R.carry.mana, p: F.g.p, party: F.party.filter(u => !u.me).map(u => u.nick).join(), idx: R.idx }; });
     ok(st.name === segs[i] && st.idx === i + 1, `계속 → ${segs[i]} 시작`);
-    // 휴식 %는 내림 표시, 전투 0.5초 동안 자연 회복이 더해져 조금 높을 수 있음
+    // 「계속」을 누른 순간까지 쉰 만큼 (테스트 시계도 실제로 조금 흐름), 전투 0.5초 동안 자연 회복이 더해짐
     // Lv 1은 성언 게이지가 없어서 이어받아도 0 (Lv 6부터, 단위 테스트에서 확인)
-    ok(st.mana > m1 - 1 && st.mana < m1 + 4 && st.p === 0, `마나 이어받음, Lv 1이라 성언 게이지는 0 (휴식 ${m1}% → ${st.mana.toFixed(1)}, 평온 ${st.p})`);
+    ok(st.carry >= m1 && st.mana >= st.carry && st.mana < st.carry + 2 && st.p === 0, `마나 이어받음, Lv 1이라 성언 게이지는 0 (휴식 ${m1}% → 계속 ${st.carry.toFixed(1)} → ${st.mana.toFixed(1)}, 평온 ${st.p})`);
     ok(st.party === party0, '같은 파티');
   }
   await page.screenshot({ path: `${shots}/dungeon_boss.png` });

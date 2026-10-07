@@ -1,6 +1,6 @@
 // 앱 틀 확인: 상단 배너 영역 70dp, 타이틀 → 로비, 하단 탭, 작은 화면에서도 전투 화면이 배너 아래에 들어가는지 (09 1장·5장)
 import { chromium } from 'playwright';
-import { toParty } from './nav.mjs';
+import { pastTitle, toParty } from './nav.mjs';
 
 export default async function appShell(url, shots) {
   const browser = await chromium.launch();
@@ -20,7 +20,9 @@ export default async function appShell(url, shots) {
     ok(banner.top === 0 && banner.height === 70, `${w}: 배너 영역 = 맨 위 70 ${JSON.stringify({ top: banner.top, h: banner.height })}`);
     ok(await page.isVisible('#s-title') && await page.isHidden('#tabs'), `${w}: 처음 = 타이틀, 탭 숨김`);
     await page.click('#s-title'); await page.clock.runFor(100);
-    ok(await page.isVisible('#s-lobby'), `${w}: 화면을 누르면 로비`);
+    ok(await page.isVisible('#s-story'), `${w}: 새 저장은 화면을 누르면 튜토리얼 이야기`);
+    await pastTitle(page);
+    ok(await page.isVisible('#s-lobby'), `${w}: 튜토리얼 건너뛰기 → 로비`);
     const top = await rect('#s-lobby .topbar');
     ok(top.top >= 70, `${w}: 로비 위쪽 줄은 배너 아래 (top ${top.top})`);
     ok(await page.isVisible('#tabs') && (await page.locator('#tabs button').count()) === 5, `${w}: 하단 탭 5개`);

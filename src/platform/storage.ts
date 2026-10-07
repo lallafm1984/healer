@@ -55,6 +55,8 @@ export interface SaveData {
   last: { content: string; diff: DiffName; win: boolean; grade: string | null } | null;
   /** 장비 id 발급용 */
   nextId: number;
+  /** 첫 5분 튜토리얼 진행 (game/tutorial.ts TUT) */
+  tut: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'right', tapKey: 'heal', zoom: true, auto: false, devUnlock: true, allSkills: false, layout: null };
@@ -62,7 +64,7 @@ export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'r
 export function newSave(now = Date.now()): SaveData {
   return {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
-    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [] }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1,
+    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [] }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1, tut: 0,
   };
 }
 
@@ -81,6 +83,8 @@ export function migrate(raw: unknown): SaveData {
     clears: obj(o.clears, {}),
     last: o.last && typeof o.last === 'object' ? o.last : null,
     nextId: typeof o.nextId === 'number' ? o.nextId : base.nextId,
+    // 튜토리얼 전에 만든 저장: 이미 해 본 사람이면 끝난 걸로 (3 = TUT.done)
+    tut: typeof o.tut === 'number' ? o.tut : (o.player?.level ?? 1) > 1 || Object.keys(o.clears || {}).length ? 3 : 0,
   };
 }
 

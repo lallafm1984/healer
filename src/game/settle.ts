@@ -7,6 +7,7 @@ import { rollItem, type GearItem } from '../data/equipment';
 import type { PersName } from '../data/personalities';
 import { addXp, clearGold, clearXp, gradeOf, starsOf, type Grade } from '../data/progression';
 import type { SaveData } from '../platform/storage';
+import { advanceTutorial } from './tutorial';
 
 /** 전투 화면이 끝날 때 넘겨주는 결과 (던전이면 구간 전체 합) */
 export interface BattleResult {
@@ -88,6 +89,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number): Sett
 
   // 파티원 한마디는 넣지 않음 (Lim: 결과 채팅 연출 뺌)
   if (!r.quit) save.last = { content: r.content, diff: r.diff, win: r.win, grade };
+  advanceTutorial(save, r.content, r.win && !r.quit);
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,

@@ -3,6 +3,7 @@ import type { ItemKey } from '../data/items';
 import type { GearStats } from '../data/gear';
 import type { RosterEntry } from '../engine';
 import type { BattleResult } from '../game/settle';
+import type { CoachKey } from '../game/tutorial';
 import { G } from '../game/state';
 import { xpToNext } from '../data/progression';
 
@@ -83,6 +84,8 @@ export interface BattleApi {
   start(o: {
     content: string; name: string; segs: string[]; diff: string; /** 힐러 레벨 (스킬 해금) */ level: number; gearStats: GearStats; party: RosterEntry[];
     items: ItemKey[]; slots: number; seed: number; onEnd(r: BattleResult): void;
+    /** 튜토리얼 안내 묶음 (02 11장) */
+    coach?: CoachKey | null;
   }): void;
   settings(s: object): void;
   guide(encKey: string, diff: string): string;

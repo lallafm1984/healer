@@ -7,7 +7,7 @@ import { DUNGEONS } from './dungeons';
 import type { EncounterKey } from './encounters';
 
 export type ContentKind = 'explore' | 'dungeon' | 'raid' | 'event';
-export type ContentKey = 'rustfort' | 'abyss1' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple';
+export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
 
@@ -33,12 +33,20 @@ export interface ContentDef {
   size: (d: DiffName) => number;
   /** 이 난이도만 따로 잠금 (레이드 악몽 = Lv 70) */
   diffUnlock?: Partial<Record<DiffName, number>>;
+  /** 콘텐츠 목록에 안 보임 (튜토리얼 첫 전투) */
+  hidden?: boolean;
 }
 
 const none = () => [] as EncounterKey[];
 const five = () => 5;
 
 export const CONTENT: ContentDef[] = [
+  // 첫 전투 2인 (02 11장 1번). 튜토리얼에서만
+  { key: 'tutorial', kind: 'explore', name: '첫 전투', place: '녹슨 고원 입구', stageLv: 1, unlockLv: 1, ready: true, bosses: [], fights: () => ['duo'], size: () => 2, hidden: true },
+  {
+    key: 'plateau', kind: 'explore', name: '녹슨 고원', place: '녹슨 고원 · 골렘', stageLv: 1, unlockLv: 1, ready: true, bosses: ['고철 순찰병'],
+    fights: () => DUNGEONS.plateau.segments, size: () => 3,
+  },
   {
     key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 1, unlockLv: 1, ready: true, set: '새벽 순례자',
     fights: () => DUNGEONS.rustfort.segments, size: five,
