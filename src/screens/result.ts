@@ -4,6 +4,7 @@ import { GRADE_STYLE, slotName, type GearItem } from '../data/equipment';
 import { GRADE } from '../data/gear';
 import { lvPower, MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { Flow, newSeed } from '../game/flow';
+import { meterHtml } from '../game/meter';
 import { equip, G } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { esc, fmt, go, mmss, screen, topBar } from './kit';
@@ -38,6 +39,7 @@ function renderSettle(): void {
       </header>
       ${r.win ? `<ul class="starlist">${x.stars.map((ok, i) => `<li class="${ok ? 'ok' : ''}">${ok ? '★' : '☆'} ${STAR_TEXT[i]}</li>`).join('')}</ul>` : ''}
       <dl class="metrics">${metrics.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      ${r.meter ? meterHtml(r.meter, r.time, { title: multi ? '딜미터기 · 던전 전체' : '딜미터기', heal: r.healed }) : ''}
       ${!r.win && x.xp ? `<p class="note center">경험치 +${fmt(x.xp)} (진 판은 20%)</p>` : ''}
       <details class="more"><summary>자세히</summary><dl class="metrics small">${r.detail.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></details>
     </div>

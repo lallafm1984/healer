@@ -36,4 +36,5 @@ export async function toParty(page, opts) {
 export const pickedItems = page => page.evaluate(() => [...document.querySelectorAll('#s-party [data-item][aria-pressed="true"]')].map(b => b.dataset.item).join());
 
 /** 전투 중 남은 적 체력을 거의 0으로 → 다음 틱에 구간 끝 */
-export const killEnemies = page => page.evaluate(() => { const F = window.__proto.F; if (F.mobs.length) F.mobs.forEach(m => { m.hp = 0.01; }); F.bossHp = 0.01; });
+// 파티원 공격은 한 방씩이라 (최대 2초 간격) 체력을 0으로 바로 만듦. 다음 틱에 이김
+export const killEnemies = page => page.evaluate(() => { const F = window.__proto.F; if (F.mobs.length) F.mobs.forEach(m => { m.hp = 0; m.alive = false; }); F.bossHp = 0; });

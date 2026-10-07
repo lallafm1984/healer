@@ -3,11 +3,13 @@
  * 매 프레임 바뀐 글자·클래스만 고침 (판은 board.ts가 캔버스에).
  */
 import { CLASSES } from '../data/classes';
+import { mobGrade } from '../data/encounters';
 import type { ItemKey } from '../data/items';
 import { ITEMS, POTION_CD } from '../data/items';
 import { CATS } from '../data/personalities';
 import { itemSlots } from '../data/progression';
-import { SKILL_INFO, SKILL_LEVEL, SKILLS, type SkillDef, type SkillKey } from '../data/skills';
+import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
+import { itemTip, skillTip, tipHtml } from '../game/tooltip';
 import { TRAITS } from '../data/traits';
 import { knows, queue, slotKey, type Fight, type Unit } from '../engine';
 import { ITEM_ICON } from './art';
@@ -21,10 +23,10 @@ const setText = (el: Element, t: string) => { if (el.textContent !== t) el.textC
 /** 지금 판의 공략 (단계 레벨까지 반영한 숫자) */
 export const guideOf = (F: Fight, encKey = F.enc.key) => guideModel(encKey, F.cfg.diff, F.cfg.stageLv, F.cfg.heroLv);
 
-/** 잡몹 구간은 지금 잡는 잡몹 이름을 같이 */
+/** 일반·정예 구간은 지금 잡는 적 이름과 등급을 같이 (HTML, 이름은 데이터라 그대로) */
 export function bossTitle(): string {
   const F = fight(), m = F.mobs.find(x => x.alive);
-  return m ? `${F.enc.name} · ${m.name}` : F.enc.name;
+  return m ? `${F.enc.name} · ${m.name}<small class="grade${m.elite ? ' elite' : ''}">${mobGrade(m)}</small>` : F.enc.name;
 }
 
 // ---------- 스킬 휠 ----------
@@ -122,16 +124,40 @@ export function updateCastbar(): void {
   $('castFill').style.opacity = F.cast || F.channel > 0 ? '1' : '0.35';
 }
 
+// ---------- 파티원 공격 숫자 (2026-10-07 Lim: 합치지 않고 한 방씩) ----------
+// 보스 그림 위에 한 방씩 떠오름. 칸이 모자라면 가장 오래된 숫자를 다시 씀 (20인은 많아서 겹치지 않게)
+const DMG_POOL = 10;
+const dmg = { els: [] as HTMLSpanElement[], i: 0, avg: 0, hurtAt: 0 };
+export function resetDmgNums(): void {
+  const box = $('dmgNums');
+  if (!dmg.els.length) for (let k = 0; k < DMG_POOL; k++) { const s = document.createElement('span'); box.appendChild(s); dmg.els.push(s); }
+  for (const s of dmg.els) s.className = '';
+  dmg.avg = 0;
+}
+export function dmgNum(u: Unit | undefined, amt: number, now: number): void {
+  if (!dmg.els.length) resetDmgNums();
+  const el = dmg.els[dmg.i]; dmg.i = (dmg.i + 1) % DMG_POOL;
+  const n = Math.max(1, Math.round(amt));
+  dmg.avg = dmg.avg ? dmg.avg * 0.9 + amt * 0.1 : amt;
+  el.textContent = String(n);
+  el.className = `${u ? u.role : ''}${amt > dmg.avg * 1.6 ? ' big' : ''}`;
+  el.style.setProperty('--dx', `${Math.round((Math.random() - 0.5) * 44)}px`);
+  void el.offsetWidth;
+  el.classList.add('go');
+  if (now - dmg.hurtAt > 160) { dmg.hurtAt = now; const a = $('bossArt'); a.classList.remove('hurt'); void a.offsetWidth; a.classList.add('hurt'); }
+}
+
 // ---------- 보스 무대 ----------
 export function updateStage(now: number): void {
   const F = fight(), R = S.run!;
   const pct = F.bossHp / F.bossMax;
   $('bossFill').style.width = `${pct * 100}%`;
+  $('bossLag').style.width = `${pct * 100}%`;
   setText($('bossHpText'), `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} (${Math.ceil(pct * 100)}%)${F.invuln ? ' · 무적' : ''}`);
   let ph = F.phaseName ? `${F.enc.tier.split(' · ')[0]} · ${F.phaseName}` : `${F.enc.tier} · ${F.cfg.diff}`;
   if (R.segs.length > 1) {
     const left = F.mobs.filter(m => m.alive).length;
-    ph = `${R.name} ${R.idx + 1}/${R.segs.length} · ${F.phaseName || (F.mobs.length ? `남은 잡몹 ${left}` : F.cfg.diff)}`;
+    ph = `${R.name} ${R.idx + 1}/${R.segs.length} · ${F.phaseName || (F.mobs.length ? `남은 적 ${left}` : F.cfg.diff)}`;
   }
   setText($('phase'), ph);
   setText($('timer'), F.enraged ? `${mmss(F.t)} · 광폭화!` : isFinite(F.enc.enrage) ? `${mmss(F.t)} / 광폭 ${mmss(F.enc.enrage)}` : mmss(F.t));
@@ -178,24 +204,16 @@ export function openTip(ic: string, qEl: HTMLElement): void {
   const F = fight(), s = guideOf(F).skills.find(x => x.ic === ic);
   if (!s) { closeTip(); return; }
   const [what] = s.tip(F);
-  popTip(`<div class="t1"><span class="ic" style="background:${ICON_COLOR[ic] || '#BBB'}">${ic}</span><b>${s.name}</b><span class="tw">${what}</span></div>`, qEl, { ic, imp: +qEl.dataset.imp! });
+  popTip(tipHtml({ icon: `<span class="ic" style="background:${ICON_COLOR[ic] || '#BBB'}">${ic}</span>`, name: s.name, kind: F.mobs.length ? '적 기술' : '보스 기술', rows: [[s.every]], desc: what }), qEl, { ic, imp: +qEl.dataset.imp! });
   ui.skillTips++;
   for (const q of $('queue').querySelectorAll<HTMLElement>('.q')) q.classList.toggle('tipon', tipMatch(q.dataset.ic!, +q.dataset.imp!));
 }
-function skillMeta(sk: SkillDef): string {
-  const parts = [sk.channel ? `${sk.channel}초 정신집중` : sk.cast ? `${sk.cast}초 시전` : '즉시', sk.cost ? `마나 ${sk.cost}%` : '마나 0'];
-  if (sk.cd) parts.push(`쿨 ${sk.cd}초`);
-  return parts.join(' · ');
-}
 export function openSkillTip(key: SkillKey, el: HTMLElement): void {
-  const sk = SKILLS[key], info = SKILL_INFO[key];
-  const lock = B.F && !knows(B.F, key) ? ` · 🔒 Lv ${SKILL_LEVEL[key]}` : '';
-  popTip(`<div class="t1"><b>${sk.name}</b><span class="tw">${info ? info.kind : ''}${lock}</span></div><div class="t2"><span class="lb">${skillMeta(sk)}</span></div>${info ? `<div class="t2">${info.desc}</div>` : ''}`, el, { skill: key });
+  const lock = B.F && !knows(B.F, key) ? SKILL_LEVEL[key] : 0;
+  popTip(tipHtml(skillTip(key, lock)), el, { skill: key });
 }
 export function openItemTip(key: ItemKey, el: HTMLElement): void {
-  const it = ITEMS[key], left = fight().items[key] || 0;
-  const rule = it.kind === 'potion' ? '물약 공용 재사용 60초' : '전투당 횟수만';
-  popTip(`<div class="t1"><span class="iic">${ITEM_ICON[key]}</span><b>${it.name}</b><span class="tw">${it.desc}</span></div><div class="t2"><span class="lb">팁</span>${it.tip} · 남은 ${left}번 · ${rule}</div>`, el, { item: key });
+  popTip(tipHtml(itemTip(key, `<span class="iic">${ITEM_ICON[key]}</span>`, fight().items[key] || 0)), el, { item: key });
   ui.itemTips++;
 }
 export function closeTip(): void {
@@ -259,7 +277,7 @@ const COACH: Record<string, CoachStep[]> = {
     { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>: 모두 맞음. 맞고 나면 가장 낮은 사람부터 채우기' },
   ],
   dungeon: [
-    { when: f => f.mobs.length > 0 && f.t >= 1, freeze: false, text: '던전은 잡몹 구간과 보스를 이어서 진행. 구간 사이엔 쉬면서 마나 회복' },
+    { when: f => f.mobs.length > 0 && f.t >= 1, freeze: false, text: '던전은 일반·정예 구간과 보스를 이어서 진행. 구간 사이엔 쉬면서 마나 회복' },
     { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>! 맞기 전에 <b>소생</b>을 걸어 두면 덜 아픔. 위쪽 예고 칸을 누르면 설명' },
     { when: f => f.mana < 30 && Object.keys(f.items).length > 0, text: '마나 부족. 왼쪽 <b>단축칸</b>의 물약 누르기' },
     { when: f => f.zones.length > 0, freeze: false, text: '바닥 장판은 파티원이 알아서 피함. 못 피한 사람을 채우기' },

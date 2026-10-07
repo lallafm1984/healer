@@ -28,7 +28,8 @@ describe('잡몹 구간', () => {
     while (!f.tels.some(t => t.skill.mob === golem.id)) { E.step(f); f.events.length = 0; }
     expect(E.queue(f)[0].name).toBe('증기 폭발');
     for (const m of f.mobs) { m.hp = m === golem ? 0.01 : 0; m.alive = m === golem; }
-    E.step(f);
+    // 파티원 공격은 한 방씩 (간격 최대 2초)
+    for (let i = 0; i < 40 && golem.alive; i++) { E.step(f); f.events.length = 0; }
     expect(golem.alive).toBe(false);
     expect(f.tels.length).toBe(0);
     expect(f.over).toBe('win');

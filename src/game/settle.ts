@@ -5,6 +5,7 @@ import { contentOf, isRaid, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { rollItem, type GearItem } from '../data/equipment';
 import type { PersName } from '../data/personalities';
+import type { MeterRow } from './meter';
 import { addXp, clearGold, clearXp, gradeOf, starsOf, type Grade } from '../data/progression';
 import type { SaveData } from '../platform/storage';
 import { advanceTutorial } from './tutorial';
@@ -34,6 +35,8 @@ export interface BattleResult {
   party: { nick: string; pers: PersName | null; role: string; alive: boolean }[];
   /** 자세히 보기 (프로토타입 결과표) */
   detail: [string, string][];
+  /** 딜미터기 (구간 전체 합) */
+  meter?: MeterRow[];
 }
 
 export interface Settlement {

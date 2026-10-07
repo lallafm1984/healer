@@ -8,6 +8,7 @@ import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { ITEMS, type ItemKey } from '../data/items';
 import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, slotKey, step, use, useItem, type Fight, type FightStats } from '../engine';
+import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON } from './art';
 import { addBubble, boardRenderer, center, fxDeath, fxDispel, fxHeal, fxRevive, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard } from './board';
@@ -17,15 +18,15 @@ import {
 } from './core';
 import { guideHtml, guideModel } from './guide';
 import {
-  bossTitle, buildItems, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, guideOf, openItemTip, openSkillTip, openTip, showPreview, tipMatch,
-  updateCastbar, updateItems, updateStage, updateWheel,
+  bossTitle, buildItems, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTip, showPreview, tipMatch,
+  resetDmgNums, updateCastbar, updateItems, updateStage, updateWheel,
 } from './hud';
 
 const seed = () => (Math.random() * 1e9) | 0;
 const curKey = () => S.run!.segs[S.run!.idx] as EncounterKey;
 /** 처음부터 다시 (같은 파티, 같은 콘텐츠) */
 function resetRun(): void {
-  Object.assign(S.run!, { idx: 0, carry: null, time: 0, deaths: 0, restSec: 0, healed: 0, overheal: 0, dispels: 0, dispellable: 0, itemLog: [], auto: S.auto });
+  Object.assign(S.run!, { idx: 0, carry: null, time: 0, deaths: 0, restSec: 0, healed: 0, overheal: 0, dispels: 0, dispellable: 0, itemLog: [], auto: S.auto, meter: [] });
 }
 
 // ---------- 전투 시작 ----------
@@ -52,13 +53,14 @@ function startBattle(guideSec = 0): void {
     guideSec, skillTips: 0, lowFlags: {}, tickSec: null, busterHint: false, swipes: {}, swipeCancel: 0, swipeEmpty: 0,
     vibedTel: new Set(), debSnd: {}, tapOff: [], lastTap: null, retarget: 0, pointer: null,
   });
-  closeTip(); resetBoardFx();
+  closeTip(); resetBoardFx(); resetDmgNums();
+  const lag = $('bossLag'); lag.style.transition = 'none'; lag.style.width = '100%'; void lag.offsetWidth; lag.style.transition = '';
   $('controls').classList.toggle('wheel-left', S.hand === 'left');
   $('pause').hidden = true; $('preview').hidden = true; $('toast').innerHTML = '';
   $('giveUp').hidden = true; $('hint').hidden = false;
   clearCoach();
   $('bossArt').innerHTML = bossSvg(F.enc.script);
-  $('bossName').textContent = bossTitle();
+  $('bossName').innerHTML = bossTitle();
   $('battle').classList.toggle('compact', !!F.enc.big);
   show('battle');
   layoutBattle();
@@ -281,7 +283,7 @@ function handleEvents(now: number): void {
         if (nm && now - (ui.debSnd[nm] || 0) > 400) { ui.debSnd[nm] = now; Snd.play(nm); }
         break;
       }
-      case 'dps': { const d = $('dpsPop'); d.textContent = `-${ev.amt}`; d.classList.remove('show'); void d.offsetWidth; d.classList.add('show'); break; }
+      case 'hit': dmgNum(F.party.find(x => x.id === ev.uid), ev.amt, now); break;
       case 'death':
         if (u) fxDeath(u, now);
         if (u && !u.me) toast(`${u.nick} 쓰러짐`);
@@ -289,7 +291,7 @@ function handleEvents(now: number): void {
       case 'msg': toast(ev.text); break;
       case 'phase': banner(ev.text); if (ev.text === '광폭화') vibe([60, 80, 60, 80, 60], true); else vibe(200, true); break;
       case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`); break;
-      case 'mobDown': toast(`${ev.name} 쓰러짐`); $('bossName').textContent = bossTitle(); break;
+      case 'mobDown': toast(`${ev.name} 쓰러짐`); $('bossName').innerHTML = bossTitle(); break;
     }
   }
   if (critSnd) Snd.play('crit');
@@ -357,14 +359,14 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
     ['쓸기 스킬', `${Object.values(ui.swipes).reduce((a, b) => a + b, 0)}번 · 취소 ${ui.swipeCancel} · 빈 방향 ${ui.swipeEmpty}`],
     ['소비 아이템', R.itemLog.length ? R.itemLog.map(x => `${ITEMS[x.key].short} ${mmss(x.t)}`).join(' · ') : '안 씀'],
   ];
-  if (!win) detail.unshift([f.mobs.length ? '잡몹 남은 체력' : '보스 남은 체력', `${Math.ceil((f.bossHp / f.bossMax) * 100)}%`]);
+  if (!win) detail.unshift([f.mobs.length ? '적 남은 체력' : '보스 남은 체력', `${Math.ceil((f.bossHp / f.bossMax) * 100)}%`]);
   const result = {
     content: R.content, diff: S.diff, win, quit: quitted, reason: quitted ? '포기함' : how === 'giveUp' ? '탱커 전멸 뒤 포기' : f.reason,
     segIdx: R.idx, segN: R.segs.length, time: R.time, restSec: R.restSec, deaths: R.deaths,
     healed: R.healed, overheal: R.overheal, dispels: R.dispels, dispellable: R.dispellable,
     endMana: Math.floor(f.mana), minMana: Math.floor(st.minMana), auto: !!(S.auto || R.auto),
     party: f.party.filter(u => !u.me).map(u => ({ nick: u.nick, pers: u.pers, role: u.role, alive: u.alive })),
-    detail,
+    detail, meter: R.meter.map(r => ({ ...r })),
   } as BattleResult;
   ui.lastResult = result;
   Snd.play(win ? 'win' : 'lose');
@@ -375,6 +377,7 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
 function addStats(R: Run, f: Fight, st: FightStats): void {
   R.healed += st.healed; R.overheal += st.overheal; R.dispels += st.dispels; R.dispellable += st.dispellable;
   R.itemLog.push(...f.itemLog.map(x => ({ key: x.key, t: R.time - f.t + x.t })));
+  addMeter(R.meter, f.party);
 }
 function tapAccuracy() {
   const a = ui.tapOff;
@@ -398,6 +401,7 @@ function runData(f: Fight) {
     items: Object.keys(f.items), itemLog: f.itemLog, itemTips: ui.itemTips, itemDispels: st.itemDispels || 0, // 고른 단축칸 · 사용 시각 · 길게 눌러 설명 본 횟수
     personalities: f.party.filter(u => u.pers).map(u => u.pers),
     traits: f.party.flatMap(u => u.traits),
+    dealt: f.party.filter(u => !u.me).map(u => [u.nick, Math.round(u.dealt)]),
     device: { w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio || 1, touch: ui.touchSeen },
   };
 }
@@ -416,6 +420,7 @@ function showRest(): void {
   $('restSub').textContent = `${R.name} · ${F.enc.name} 끝 (${mmss(F.t)})`;
   $('restSteps').innerHTML = segs.map((k, i) => `<li class="${i <= R.idx ? 'done' : i === R.idx + 1 ? 'next' : ''}">${i <= R.idx ? '✓ ' : ''}${ENCOUNTERS[k as EncounterKey].name}</li>`).join('');
   const dead = F.party.filter(u => !u.alive && !u.me).length;
+  $('restMeter').innerHTML = meterHtml(addMeter([], F.party), F.t, { title: `딜미터기 · ${F.enc.name}`, heal: F.stats.healed });
   $('restNote').textContent = `파티 체력 모두 회복${dead ? `. 쓰러진 ${dead}명도 일어남` : ''}. 마나는 쉬는 동안 초당 ${REST_MANA_PER_SEC}%씩 회복. 「계속」은 언제든 가능`;
   const g = guideOf(F, segs[R.idx + 1] as EncounterKey);
   g.tier = `다음 ${R.idx + 2}/${segs.length}`;

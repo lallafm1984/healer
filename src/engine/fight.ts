@@ -13,7 +13,7 @@ import { bark, DT, emit, living } from './core';
 import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { rngFrom } from './rng';
-import { partyDps, unitTick } from './units';
+import { unitDps, unitTick } from './units';
 import type { Cell, Fight, FightConfig, FightResult, Role, RosterEntry, Unit } from './types';
 
 /** 전투 만들기 */
@@ -41,7 +41,7 @@ export function create(cfg: FightConfig): Fight {
     cd: { purify: 0, guardian: 0, hymn: 0 },
     g: { p: 0, s: 0 }, symbolUsed: false, symbol: 0, level: cfg.level ?? 100,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
-    enraged: false, dpsAcc: 0, rats: [],
+    enraged: false, rats: [],
     items: {}, potCd: 0, medit: 0, itemLog: [],
     stats: { healed: 0, overheal: 0, deaths: 0, minMana: 100, dispels: 0, dispellable: 0, trapPops: 0, queueLost: 0, casts: {}, taps: 0, missTaps: 0, emptyTaps: 0, cancels: 0, manaFails: 0, hymnBroken: 0 },
     nextId: 1,
@@ -115,7 +115,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     const base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;
     const dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult * f.scale;
     const u: Unit = {
-      id: f.nextId++, role, cls: c ? c.key : null, aim: 0, flow: 0, traits: (traits || []).filter(k => TRAITS[k]), bulwark: 0, bulwarkUsed: false, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
+      id: f.nextId++, role, cls: c ? c.key : null, aim: 0, flow: 0, traits: (traits || []).filter(k => TRAITS[k]), bulwark: 0, bulwarkUsed: false, acc: 0, dealt: 0, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
       cell: -1, home: -1, hot: 0, hotTick: 0, echo: [], guardian: 0, shield: 0, debuffs: [], moving: null, react: null,
       retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0, thanks: 0, flash: 0,
       barkAt: -10, ignoreZone: 0, homeAt: null, diedAt: 0, me: role === 'healer',
@@ -155,12 +155,7 @@ export function step(f: Fight): void {
   for (const u of f.party) unitTick(f, u);
   tankWatch(f);
   bossTick(f);
-  if (!f.invuln) {
-    const d = partyDps(f) * DT;
-    if (f.mobs.length) hitMobs(f, d); else f.bossHp -= d;
-    f.dpsAcc += d;
-  }
-  if (f.k % 20 === 0 && f.dpsAcc > 0) { emit(f, { type: 'dps', amt: Math.round(f.dpsAcc) }); f.dpsAcc = 0; }
+  partyHits(f);
   const live = living(f);
   if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', f.mobs.length ? '모두 쓰러뜨림' : '보스를 쓰러뜨림'); }
   else if (!f.me.alive) end(f, 'lose', '힐러가 쓰러짐');
@@ -178,7 +173,30 @@ function tankWatch(f: Fight): void {
   emit(f, { type: 'msg', text: `${u.nick} ${TRAITS.bulwark.name}: ${BULWARK.sec}초 버팀` });
 }
 
-/** 잡몹 구간: 파티 딜은 잡을 차례인 잡몹에게, 남는 딜은 다음 잡몹에게 (23 2장) */
+/** 파티원 공격 간격 (틱): 탱커·원거리 2초, 근접 1.5초 */
+const SWING: Record<Exclude<Role, 'healer'>, number> = { tank: 40, melee: 30, ranged: 40 };
+
+/**
+ * 파티원 공격 (2026-10-07 Lim: 딜은 합치지 않고 한 방씩 보이고, 적 체력도 그만큼 깎임).
+ * 초당 딜을 틱마다 모았다가 공격 간격마다 한 번에 넣음 (평균 딜은 전과 같음). 사람마다 박자를 조금씩 어긋나게.
+ * 보스 무적이면 모으지도 넣지도 않음. 쓰러지면 모아 둔 딜은 버림
+ */
+function partyHits(f: Fight): void {
+  for (const u of f.party) {
+    if (u.me) continue;
+    if (!u.alive) { u.acc = 0; continue; }
+    if (f.invuln) continue;
+    u.acc += unitDps(u) * DT;
+    if ((f.k + u.id * 7) % SWING[u.role as Exclude<Role, 'healer'>] !== 0 || u.acc <= 0 || f.bossHp <= 0) continue;
+    const amt = u.acc;
+    u.dealt += Math.min(amt, f.bossHp);
+    u.acc = 0;
+    if (f.mobs.length) hitMobs(f, amt); else f.bossHp -= amt;
+    emit(f, { type: 'hit', uid: u.id, amt });
+  }
+}
+
+/** 일반·정예 구간: 파티 딜은 잡을 차례인 적에게, 남는 딜은 다음 적에게 (23 2장) */
 function hitMobs(f: Fight, d: number): void {
   let left = d;
   for (const m of f.mobs) {

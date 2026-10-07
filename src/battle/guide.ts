@@ -4,7 +4,7 @@
  */
 import type { DiffName } from '../data/difficulty';
 import { DIFFS } from '../data/difficulty';
-import { ENCOUNTERS, type Encounter, type EncounterKey, type ScriptKey } from '../data/encounters';
+import { ENCOUNTERS, mobGrade, type Encounter, type EncounterKey, type ScriptKey } from '../data/encounters';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { create, type Fight, type Role } from '../engine';
 import { bossSvg } from './art';
@@ -67,17 +67,17 @@ const GUIDE: Record<ScriptKey, (c: GuideCtx) => GuideBody> = {
       skills: [
         { ic: bu.icon, name: bu.name,
           what: `탱커에게 <b>${N.buster}</b> 피해 (탱커 체력 ${hp.tank}의 ${pct(N.buster, hp.tank)}%)`,
-          every: `${secT(bu.period)}마다`, tip: () => [`탱커에게 ${N.buster} 피해`] },
+          every: `${secT(bu.period)}마다`, tip: () => [`탱커에게 ${N.buster} 피해를 줍니다.`] },
         { ic: ao.icon, name: ao.name,
           what: `파티 전원에게 <b>${N.aoe}</b> 피해`,
-          every: `${secT(ao.period)}마다`, tip: () => [`전원에게 ${N.aoe} 피해`] },
+          every: `${secT(ao.period)}마다`, tip: () => [`파티 전원에게 ${N.aoe} 피해를 줍니다.`] },
         { ic: '광폭', name: B.enrName, enr: true,
           what: `파티 전원에게 <b>${N.enr}</b> 피해`,
-          every: `${mmss(c.enc.enrage)}부터`, tip: () => [`${B.enrPeriod}초마다 전원 ${N.enr}`] },
+          every: `${mmss(c.enc.enrage)}부터`, tip: () => [`${B.enrPeriod}초마다 파티 전원에게 ${N.enr} 피해를 줍니다.`] },
       ],
     };
   },
-  // 잡몹 구간 (23 2장): 잡는 순서 = 진행, 잡몹 공격 = 기술
+  // 일반·정예 구간 (23 2장): 잡는 순서 = 진행, 적 공격 = 기술
   trash(c) {
     const { enc, n } = c;
     const mobs = enc.mobs!;
@@ -88,12 +88,12 @@ const GUIDE: Record<ScriptKey, (c: GuideCtx) => GuideBody> = {
       const each = m.count > 1 ? ' (한 마리당)' : '';
       skills.push({ ic: a.icon || m.name.slice(0, 2), name: a.name || `${m.name} 공격`,
         what: `${who}에게 <b>${amt}</b> 피해${each}${a.cast ? ` · 예고 ${secT(a.cast)}` : ''}. ${m.name}${josa(m.name, '이', '가')} 쓰러지면 멈춤`,
-        every: `${secT(a.period)}마다`, tip: () => [`${who}에게 ${amt}${each}`] });
+        every: `${secT(a.period)}마다`, tip: () => [`${who}에게 ${m.count > 1 ? '한 마리당 ' : ''}${amt} 피해를 줍니다.`] });
     }
     return {
       nums: {},
       cur: F => { const m = F.mobs.find(x => x.alive); return m ? 'm' + mobs.findIndex(d => d.name === m.name) : ''; },
-      phases: mobs.map((m, i) => ({ id: 'm' + i, name: `${m.name}${m.count > 1 ? ` ×${m.count}` : ''}`, at: `${i + 1}번째로 잡음`, text: `체력 ${Math.round(m.hp * c.hpMult).toLocaleString('ko-KR')}${m.count > 1 ? '씩' : ''}` })),
+      phases: mobs.map((m, i) => ({ id: 'm' + i, name: `${m.name}${m.count > 1 ? ` ×${m.count}` : ''}`, at: `${mobGrade(m)} · ${i + 1}번째로 잡음`, text: `체력 ${Math.round(m.hp * c.hpMult).toLocaleString('ko-KR')}${m.count > 1 ? '씩' : ''}` })),
       skills,
     };
   },
@@ -115,22 +115,22 @@ const GUIDE: Record<ScriptKey, (c: GuideCtx) => GuideBody> = {
           when: `${secT(bu.next + bu.cast)}에 첫 타, 그 뒤 ${secT(bu.period)}마다 · 예고 ${secT(bu.cast)}`,
           what: `탱커에게 <b>${N.buster}</b> 피해 (탱커 체력 ${hp.tank}의 ${pct(N.buster, hp.tank)}%)`,
           how: `예고가 뜨면 탱커를 미리 가득 채우기. 못 채우면 ${act('guardian')}을 걸어 한 번 버티기`,
-          every: `${secT(bu.period)}마다`, tip: () => [`탱커에게 ${N.buster} 피해`] },
+          every: `${secT(bu.period)}마다`, tip: () => [`탱커에게 ${N.buster} 피해를 줍니다.`] },
         { ic: ao.icon, name: ao.name,
           when: `${secT(ao.next + ao.cast)}에 첫 타, 그 뒤 ${secT(ao.period)}마다 · 예고 ${secT(ao.cast)}`,
           what: `파티 전원에게 <b>${N.aoe}</b> 피해 (파티원 체력 ${hp.dps}의 ${pct(N.aoe, hp.dps)}%)`,
           how: `예고 동안 여러 명에게 ${act('renew')}을 걸고, 맞은 뒤 ${act('poh')}으로 모인 칸을 채우기`,
-          every: `${secT(ao.period)}마다`, tip: () => [`전원에게 ${N.aoe} 피해`] },
+          every: `${secT(ao.period)}마다`, tip: () => [`파티 전원에게 ${N.aoe} 피해를 줍니다.`] },
         { ic: zo.icon, name: zo.name,
           when: `보스 체력 ${B.zoneAt * 100}% 아래부터 · ${secT(zo.period)}마다 · 예고 ${secT(zo.cast)}`,
           what: `파티원 1명 자리와 옆 칸에 ${secT(zo.dur)} 장판. 안에 있으면 초당 <b>${N.zoneDps}</b> (다 맞으면 ${N.zoneTot})`,
           how: '파티원이 알아서 피함. 고집불통·허세꾼은 잘 안 피하니 그 사람을 채우기',
-          every: `체력 ${B.zoneAt * 100}%부터 ${secT(zo.period)}마다`, tip: () => [`1명 주변 장판, 초당 ${N.zoneDps}`] },
+          every: `체력 ${B.zoneAt * 100}%부터 ${secT(zo.period)}마다`, tip: () => [`파티원 1명 주변에 장판을 깔아 초당 ${N.zoneDps} 피해를 줍니다.`] },
         { ic: '광폭', name: B.enrName, enr: true,
           when: `광폭화 ${mmss(c.enc.enrage)}부터 ${B.enrPeriod}초마다 · 예고 ${secT(B.enrCast)}`,
           what: `파티 전원에게 <b>${N.enr}</b> 피해. 몇 번이면 전멸`,
           how: ENRAGE_HOW,
-          every: `${mmss(c.enc.enrage)}부터`, tip: () => [`${B.enrPeriod}초마다 전원 ${N.enr}`] },
+          every: `${mmss(c.enc.enrage)}부터`, tip: () => [`${B.enrPeriod}초마다 파티 전원에게 ${N.enr} 피해를 줍니다.`] },
       ],
     };
   },
@@ -155,38 +155,38 @@ const GUIDE: Record<ScriptKey, (c: GuideCtx) => GuideBody> = {
         when: `${secT(br.next)}에 첫 번째, ${secT(br.period)}마다 · 예고 없음 · 인터미션엔 멈춤`,
         what: `무작위 ${T.breath}명에게 질병: 겹칠 때마다 최대 체력 -${B.breathPct}% (최대 ${B.breathMax}번, -${B.breathPct * B.breathMax}%) · ${B.breathDur}초`,
         how: `${act('purify')}로 지우기. 많이 겹친 사람부터. 체력 ${B.interAt * 100}% 직전엔 다 지워 두기: 디버프가 남은 사람은 인터미션 때 독침이 더 걸림`,
-        every: `${secT(br.period)}마다`, tip: () => [`${T.breath}명 질병, 최대 체력 -${B.breathPct}%씩 겹침`] },
+        every: `${secT(br.period)}마다`, tip: () => [`${T.breath}명에게 질병을 걸어 최대 체력을 ${B.breathPct}%씩 겹쳐 줄입니다.`] },
       { ic: st.icon, name: st.name,
         when: `1페이즈만 · ${secT(st.next)}에 첫 번째, ${secT(st.period)}마다 · 예고 없음`,
         what: `무작위 ${T.breath}명에게 독: ${B.stingDur}초 동안 초당 <b>${N.sting}</b> (모두 ${N.stingTot})`,
         how: '사제는 독을 못 지움. 소생을 걸고 치유로 버티기',
-        every: `1페이즈 · ${secT(st.period)}마다`, tip: () => [`${T.breath}명 독, ${B.stingDur}초간 초당 ${N.sting}`] },
+        every: `1페이즈 · ${secT(st.period)}마다`, tip: () => [`${T.breath}명에게 독을 걸어 ${B.stingDur}초 동안 초당 ${N.sting} 피해를 줍니다.`] },
       { ic: pu.icon, name: pu.name,
         when: `${secT(pu.next + pu.cast)}에 첫 타, ${secT(pu.period)}마다 · 2페이즈는 시작 ${secT(B.pulse2Delay + pu.cast)} 뒤부터 ${secT(B.pulse2Period)}마다 · 예고 ${secT(pu.cast)}`,
         what: `파티 전원에게 <b>${N.pulse1}</b> 피해 · 2페이즈부터 <b>${N.pulse2}</b>`,
         how: `예고 동안 ${act('renew')}을 깔고, 맞은 뒤 ${act('poh')}. 여러 명이 절반 아래면 ${act('hymn')}`,
-        every: `${secT(pu.period)}마다 · 2페이즈 ${secT(B.pulse2Period)}마다`, tip: F => [`전원에게 ${F && F.phase >= 2 ? N.pulse2 : `${N.pulse1} (2페이즈 ${N.pulse2})`} 피해`] },
+        every: `${secT(pu.period)}마다 · 2페이즈 ${secT(B.pulse2Period)}마다`, tip: F => [F && F.phase >= 2 ? `파티 전원에게 ${N.pulse2} 피해를 줍니다.` : `파티 전원에게 ${N.pulse1} 피해를 줍니다. 2페이즈부터 ${N.pulse2}입니다.`] },
       { ic: '쥐떼', name: '쥐떼 (인터미션)',
         when: `보스 체력 ${B.interAt * 100}%에서 ${B.interDur}초 동안 · 보스 무적`,
         what: `맨 뒷줄 원거리 ${T.rats}명이 초당 <b>${N.rats}</b> 피해 (${B.interDur}초면 ${N.ratsTot}). 시작할 때 디버프가 있는 사람은 독침이 하나 더`,
         how: '‘쥐떼’ 표시가 붙은 사람에게 소생을 걸고 치유를 몰아주기',
-        every: `체력 ${B.interAt * 100}%에서 ${B.interDur}초`, tip: () => [`뒷줄 ${T.rats}명 초당 ${N.rats}, 보스 무적`] },
+        every: `체력 ${B.interAt * 100}%에서 ${B.interDur}초`, tip: () => [`뒷줄 ${T.rats}명에게 초당 ${N.rats} 피해를 줍니다. 그동안 보스는 무적입니다.`] },
       { ic: co.icon, name: co.name,
         when: `2페이즈부터 · 인터미션 끝 ${secT(B.contDelay)} 뒤 첫 번째, ${secT(co.period)}마다`,
         what: `무작위 ${T.cont}명에게 함정 질병 (점선 테두리) ${secT(B.contDur)}. 끝나면 터져 옆 칸 사람에게 <b>${N.spread}</b> 피해 + 독침. 정화하면 그 자리에서 바로 터짐${big ? '. 두 대상이 붙어 있으면 걸리자마자 터짐' : ''}`,
         how: '정화하지 말고 기다리기. 터지기 전에 옆 칸 사람 체력을 채워 두기',
-        every: `2페이즈 · ${secT(co.period)}마다`, tip: () => [`${secT(B.contDur)} 뒤 터져 옆 칸 ${N.spread} + 독침. 정화하면 바로 터짐`] },
+        every: `2페이즈 · ${secT(co.period)}마다`, tip: () => [`${secT(B.contDur)} 뒤 터져 옆 칸에 ${N.spread} 피해와 독침을 줍니다. 정화하면 바로 터집니다.`] },
     ];
     if (big) skills.push({ ic: so.icon, name: so.name,
       when: `3페이즈(체력 ${B.p3At * 100}% 아래)부터 ${secT(so.period)}마다 · 예고 ${secT(so.cast)}`,
       what: `판 바깥 1/3 (왼쪽·오른쪽 번갈아)에 ${secT(so.dur)} 장판. 안에 있으면 초당 <b>${N.stormDps}</b> (다 맞으면 ${N.stormTot})`,
       how: '파티원(나 포함)이 알아서 옮김. 칸이 모자라 남는 사람이 생기니 장판 안 사람부터 치유',
-      every: `3페이즈 · ${secT(so.period)}마다`, tip: () => [`판 바깥 1/3 장판, 초당 ${N.stormDps}`] });
+      every: `3페이즈 · ${secT(so.period)}마다`, tip: () => [`판 바깥 1/3에 장판을 깔아 초당 ${N.stormDps} 피해를 줍니다.`] });
     skills.push({ ic: '광폭', name: B.enrName, enr: true,
       when: `광폭화 ${mmss(c.enc.enrage)}부터 ${B.enrPeriod}초마다 · 예고 ${secT(B.enrCast)}`,
       what: `파티 전원에게 <b>${N.enr}</b> 피해. 몇 번이면 전멸`,
       how: ENRAGE_HOW,
-      every: `${mmss(c.enc.enrage)}부터`, tip: () => [`${B.enrPeriod}초마다 전원 ${N.enr}`] });
+      every: `${mmss(c.enc.enrage)}부터`, tip: () => [`${B.enrPeriod}초마다 파티 전원에게 ${N.enr} 피해를 줍니다.`] });
     return {
       nums: N,
       cur: F => (F.enraged ? 'enrage' : F.phase === 0 ? 'inter' : F.phase === 3 ? 'p3' : F.phase === 2 ? 'p2' : 'p1'),

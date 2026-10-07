@@ -64,16 +64,19 @@ export function unitTick(f: Fight, u: Unit): void {
 /** 지금 파티 초당 딜 (이동·도망 중은 0, 삐짐 -25%, 감사 +10%, 직업 패시브) */
 export function partyDps(f: Fight): number {
   let s = 0;
-  for (const u of f.party) {
-    if (!u.alive || u.fleeing || u.me) continue;
-    if (u.moving && u.cls !== 'hunter') continue;
-    let d = u.dps * (u.p.dps || 1);
-    if (u.sulking) d *= 0.75;
-    if (u.thanks > 0) d *= 1.1;
-    if (u.cls) d *= classDps(u);
-    s += d;
-  }
+  for (const u of f.party) s += unitDps(u);
   return s;
+}
+
+/** 파티원 1명 초당 딜 */
+export function unitDps(u: Unit): number {
+  if (!u.alive || u.fleeing || u.me) return 0;
+  if (u.moving && u.cls !== 'hunter') return 0;
+  let d = u.dps * (u.p.dps || 1);
+  if (u.sulking) d *= 0.75;
+  if (u.thanks > 0) d *= 1.1;
+  if (u.cls) d *= classDps(u);
+  return d;
 }
 
 /** 직업 패시브 딜 배율 (17 2장) */

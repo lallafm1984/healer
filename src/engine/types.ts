@@ -68,6 +68,10 @@ export interface Unit {
   /** 버팀목: 남은 시간 (받는 피해 감소) */
   bulwark: number;
   bulwarkUsed: boolean;
+  /** 다음 공격에 넣을 딜 (공격 간격 동안 모음) */
+  acc: number;
+  /** 이번 전투에 넣은 딜 합 (딜미터기) */
+  dealt: number;
   pers: PersName | null;
   p: Partial<Personality>;
   nick: string;
@@ -115,7 +119,7 @@ export type TelKind = 'buster' | 'aoe' | 'zone' | 'instant';
 
 export interface BossSkill {
   key: string;
-  /** 잡몹 기술이면 그 잡몹 id (쓰러지면 멈춤) */
+  /** 적 기술이면 그 적 id (쓰러지면 멈춤) */
   mob?: number;
   name?: string;
   icon?: string;
@@ -169,7 +173,8 @@ export type FightEvent =
   | { type: 'gauge'; which: string }
   | { type: 'revive'; id: number }
   | { type: 'item'; key: ItemKey; note: string }
-  | { type: 'dps'; amt: number }
+  /** 파티원 공격 한 방 (uid = 때린 파티원) */
+  | { type: 'hit'; uid: number; amt: number }
   | { type: 'mobDown'; id: number; name: string }
   | { type: 'over'; result: FightResult };
 
@@ -203,10 +208,11 @@ export interface Carry {
   g: { p: number; s: number };
 }
 
-/** 잡몹 (23) */
+/** 보스가 아닌 적 (23). 화면 이름은 일반·정예 */
 export interface Mob {
   id: number;
   name: string;
+  elite: boolean;
   hp: number;
   max: number;
   alive: boolean;
@@ -261,9 +267,9 @@ export interface Fight {
   /** 힐러 레벨 배율 (lvPower(heroLv)): 힐량·내 체력 */
   power: number;
   bossMax: number;
-  /** 잡몹 구간은 남은 잡몹 체력 합 */
+  /** 일반·정예 구간은 남은 적 체력 합 */
   bossHp: number;
-  /** 잡몹 구간이면 잡을 차례대로 */
+  /** 일반·정예 구간이면 잡을 차례대로 */
   mobs: Mob[];
   mana: number;
   gcd: number;
@@ -287,7 +293,6 @@ export interface Fight {
   phaseName: string;
   invuln: boolean;
   enraged: boolean;
-  dpsAcc: number;
   rats: number[];
   items: Partial<Record<ItemKey, number>>;
   potCd: number;

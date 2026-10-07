@@ -43,7 +43,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean): number {
   return eff;
 }
 
-/** 피해. magic = 보스 광역·장판·지속 피해 (평타·버스터·잡몹 근접은 물리, 17 수호기사) */
+/** 피해. magic = 보스 광역·장판·지속 피해 (평타·버스터·적 근접은 물리, 17 수호기사) */
 export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
   if (!u.alive || amt <= 0) return;
   amt *= f.dmgMult;

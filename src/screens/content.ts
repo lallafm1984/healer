@@ -37,7 +37,7 @@ const s = screen('s-content', '콘텐츠 선택', {
 function render(): void {
   const list = CONTENT.filter(c => c.kind === tab && !c.hidden);
   const empty = tab === 'event' ? '이벤트는 P3에서 추가' : '';
-  const tip = G.save.tut === TUT.dungeon && tab === 'dungeon' ? '<p class="coachtip"><b>녹슨 요새</b> 선택. 잡몹 구간 둘, 보스 둘을 이어서 진행</p>' : '';
+  const tip = G.save.tut === TUT.dungeon && tab === 'dungeon' ? '<p class="coachtip"><b>녹슨 요새</b> 선택. 일반·정예 구간 둘, 보스 둘을 이어서 진행</p>' : '';
   s.el.innerHTML = `${topBar({ back: 's-lobby', title: '콘텐츠' })}
     <nav class="subtabs" role="tablist">${TABS.map(t => `<button type="button" role="tab" data-ctab="${t.kind}" aria-selected="${t.kind === tab}">${t.name}${t.kind === 'raid' && G.save.player.level < 35 ? ' 🔒' : ''}</button>`).join('')}</nav>
     <div class="ns-body clist">${tip}${list.map(card).join('') || `<p class="note center">${empty}</p>`}</div>`;

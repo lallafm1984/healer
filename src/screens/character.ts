@@ -7,6 +7,7 @@ import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots, lvPower, TALENT_LEVEL } from '../data/progression';
 import { PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { TALENTS } from '../data/talents';
+import { castText, cdText, costText, skillTip, tipHtml } from '../game/tooltip';
 import type { TapKey } from '../platform/storage';
 import { commit, equip, G, healerLevel, itemsNow, toggleItem } from '../game/state';
 import { bellSvg } from './art';
@@ -79,11 +80,9 @@ function gearHtml(): string {
 // ---------- 스킬 ----------
 const lockLv = (k: SkillKey) => (SKILL_LEVEL[k] > healerLevel() ? SKILL_LEVEL[k] : 0);
 
+/** 정보 줄: 시전 · 마나 · 재사용 대기시간 (설명 팝업과 같은 말) */
 function meta(k: SkillKey): string {
-  const sk = SKILLS[k];
-  const parts = [sk.channel ? `${sk.channel}초 정신집중` : sk.cast ? `${sk.cast}초 시전` : '즉시', `마나 ${sk.cost}%`];
-  if (sk.cd) parts.push(`쿨 ${sk.cd}초`);
-  return parts.join(' · ');
+  return [castText(k), costText(k), cdText(k)].filter(Boolean).join(' · ');
 }
 
 /** 이 스킬이 휠 어디에 있는지 (성언은 바뀌는 조각 자리) */
@@ -119,7 +118,7 @@ function wheelSide(lay: Record<string, string | null>): string {
       <button class="btn primary" type="button" id="laySwap">바꾸기 끝</button>`;
   }
   const k = sel ? (lay[sel] as SkillKey | null) : null;
-  const info = k ? `<div class="wdet"><b>${SKILLS[k].name}</b><small>${L.ARROW[sel!]} · ${SKILL_INFO[k].kind}${lockLv(k) ? ` · 🔒 Lv ${lockLv(k)}` : ''}</small><p class="skm">${meta(k)}</p><p>${esc(SKILL_INFO[k].desc)}</p></div>`
+  const info = k ? `<div class="wdet">${tipHtml({ ...skillTip(k, lockLv(k)), kind: `${L.ARROW[sel!]} · ${SKILL_INFO[k].kind}` })}</div>`
     : sel ? '<div class="wdet"><b>빈자리</b><p>특성 스킬 자리 (P2)</p></div>'
     : '<p class="note">자리를 누르면 설명. 칸에서 그 방향으로 쓸면 그 스킬 사용</p>';
   return `${info}<button class="btn" type="button" id="laySwap">배치 바꾸기</button>`;
@@ -145,7 +144,7 @@ function skillHtml(): string {
       <p class="note">${esc(battle().tapKeys[st.tapKey])}${tapLock ? ` · Lv ${tapLock} 전까진 치유로 탭` : ''}</p></section>
     <section class="panel"><h2>단축칸 <small>소비 아이템 ${slots}칸${nextSlotLv ? ` · Lv ${nextSlotLv}에 ${itemSlots(nextSlotLv)}칸` : ''}</small></h2>
       <div class="chips items">${(Object.keys(ITEMS) as ItemKey[]).map(k => `<button class="chip ichip" type="button" data-item="${k}" aria-pressed="${items.includes(k)}">${battle().itemIcon(k)}${ITEMS[k].name}</button>`).join('')}</div>
-      <p class="note${msg ? ' warn' : ''}">${msg || items.map(k => `${ITEMS[k].short}: ${ITEMS[k].desc}`).join(' · ') || '빈 칸'}</p></section>
+      <p class="note${msg ? ' warn' : ''}">${msg || items.map(k => `<b>${ITEMS[k].short}</b> ${ITEMS[k].desc}`).join('<br>') || '빈 칸'}</p></section>
     <h3 class="sec">스킬 <small>배운 것 ${learned} / ${Object.keys(SKILL_LEVEL).length}</small></h3>
     <ul class="sklist">${(['heal', 'flash', 'renew', 'purify', 'poh', 'guardian', 'hymn', 'serenity', 'sanctify'] as SkillKey[]).map(k => skillCard(k, lay)).join('')}</ul>
     <h3 class="sec">패시브</h3>

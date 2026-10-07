@@ -39,7 +39,7 @@ function enrageAt(f: Fight, name: string, period: number, dmg: number): void {
   skill(f, { key: 'enrage', name, icon: '광폭', kind: 'aoe', next: f.t, period, cast: 1, hit(f) { for (const u of living(f)) damage(f, u, dmg, true); } });
 }
 
-/** 잡몹 공격 대상 */
+/** 적 공격 대상 */
 function mobTargets(f: Fight, to: MobAttack['to']): Unit[] {
   if (to === 'tank') { const tk = aggroTarget(f); return tk ? [tk] : []; }
   if (to === 'other') { const t = randomTargets(f, 1, u => u.role !== 'tank'); return t.length ? t : randomTargets(f, 1); }
@@ -65,19 +65,19 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
     },
     update(f) { enrageAt(f, '고철 폭주', 2, 150); },
   },
-  // 잡몹 구간 (23 2장): 잡몹마다 공격을 따로 돌리고, 쓰러지면 그 잡몹 기술은 멈춘다
+  // 일반·정예 구간 (23 2장): 적마다 공격을 따로 돌리고, 쓰러지면 그 적 기술은 멈춘다
   trash: {
     init(f) {
       f.phaseName = '';
       const scale = f.bossMax / f.enc.hp;
       for (const def of f.enc.mobs!) for (let i = 0; i < def.count; i++) {
-        const m: Mob = { id: f.nextId++, name: def.name, hp: def.hp * scale, max: def.hp * scale, alive: true };
+        const m: Mob = { id: f.nextId++, name: def.name, elite: !!def.elite, hp: def.hp * scale, max: def.hp * scale, alive: true };
         f.mobs.push(m);
         for (const a of def.attacks) {
           const tel = a.cast > 0;
           skill(f, {
             key: `${a.key}${m.id}`, mob: m.id, name: a.name, icon: a.icon, kind: a.kind, hidden: !tel,
-            // 같은 잡몹 여럿이 한 틱에 같이 때리지 않게 조금씩 어긋나게
+            // 같은 적 여럿이 한 틱에 같이 때리지 않게 조금씩 어긋나게
             next: a.first + i * 0.7, period: a.period, cast: a.cast, warn: tel ? a.kind : undefined,
             active: f => f.mobs.some(x => x.id === m.id && x.alive),
             target: a.to === 'all' ? undefined : f => mobTargets(f, a.to).map(u => u.id),
@@ -95,7 +95,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
         }
       }
     },
-    update() { /* 잡몹 구간은 광폭화 없음 */ },
+    update() { /* 일반·정예 구간은 광폭화 없음 */ },
   },
   warden: {
     init(f) {

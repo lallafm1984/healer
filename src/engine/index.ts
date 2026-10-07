@@ -7,6 +7,6 @@ export { create, recruitParty, rollParty, step } from './fight';
 export { canTarget, knows, knowsPassive, slotKey, use } from './healer';
 export { itemReady, reviveTarget, useItem } from './items';
 export { rngFrom } from './rng';
-export { partyDps } from './units';
+export { partyDps, unitDps } from './units';
 export type * from './types';
 export { restCarry, segmentConfig, simulateDungeon, type DungeonResult, type DungeonRunConfig } from './dungeon';

@@ -224,7 +224,11 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .cwheel .lside .btn.primary { font-size: 17px; padding: 9px 12px; box-shadow: 0 3px 0 var(--line); }
 .cwheel.swapping { border-color: var(--gold); }
 .cwheel.swapping .lslot:not([aria-pressed="true"]) { border-color: rgba(240, 196, 106, 0.55); border-style: dashed; }
-.wdet { display: flex; flex-direction: column; gap: 3px; background: #15162A; border-radius: 12px; padding: 8px 10px; }
+.wdet { display: flex; flex-direction: column; gap: 3px; background: #0B0E1E; border: 2px solid var(--gold); border-radius: 12px; padding: 8px 10px; }
+.wdet .tt b { font-size: 16px; color: #FFFFFF; }
+.wdet .tt p { font-size: 13px; }
+.skd, .tpick p, .ppas, .pcard p { word-break: keep-all; }
+.skc .skd, .tpick p { color: #F2C14E; }
 .wdet b { font-family: var(--font-display); font-weight: 400; font-size: 17px; color: var(--gold-hi); }
 .wdet small { color: var(--mute); font-size: 11px; }
 .wdet p { margin: 0; font-size: 12px; line-height: 1.45; }
@@ -268,3 +272,22 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .tpick b { font-family: var(--font-display); font-weight: 400; font-size: 15px; }
 .tpick p { margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: #CFCBE0; }
 .tier.locked .tpick b, .tier.locked .tpick p { opacity: 0.7; }
+
+/* 딜미터기 (정산·휴식, 2026-10-07 Lim) */
+.meter { margin: 10px 0 4px; padding: 10px 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--panel); text-align: left; }
+.meter h3 { margin: 0 0 8px; font-family: var(--font-display); font-size: 15px; display: flex; align-items: baseline; gap: 8px; }
+.meter h3 small { font-family: inherit; font-size: 11px; color: var(--mute); font-weight: 400; margin-left: auto; }
+.meter ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.meter li { position: relative; display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px 0 4px; border-radius: 6px; background: #1A1B2E; overflow: hidden; font-size: 13px; }
+.meter li::before { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--c); opacity: 0.55; border-radius: 6px; }
+.meter li > * { position: relative; }
+.meter .rk { flex: none; width: 18px; font-style: normal; text-align: center; font-size: 11px; color: var(--mute); }
+.meter li b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 0 #12131F; }
+.meter li > small { flex: none; font-size: 10px; color: #D8D2C0; }
+.meter .v { margin-left: auto; flex: none; font-variant-numeric: tabular-nums; font-weight: 700; text-shadow: 0 1px 0 #12131F; }
+.meter .v small, .meter .mheal small { margin-left: 6px; font-size: 10px; font-weight: 400; color: #D8D2C0; }
+.meter .mheal { display: flex; margin: 8px 0 0; padding-top: 6px; border-top: 1px dashed var(--line); font-size: 13px; }
+.meter .mheal span { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--heal); }
+#restMeter { padding: 0 14px; }
+.segs li.elite { border-color: #8A6A2E; }
+.segs li.elite small { color: var(--gold); }

@@ -139,7 +139,7 @@ export default async function tutorial(url, shots) {
   // ---- 녹슨 요새 쉬움: 멈추지 않는 안내 → 4구간 → 끝 ----
   await page.click('#depart'); await page.clock.runFor(3100 + 1200);
   c = await coach();
-  ok(c && !c.freeze && /잡몹 구간과 보스/.test(c.text), '던전 첫 안내는 전투를 멈추지 않음');
+  ok(c && !c.freeze && /일반·정예 구간과 보스/.test(c.text), '던전 첫 안내는 전투를 멈추지 않음');
   const t1 = await t();
   await page.clock.runFor(4500);
   ok(await t() > t1 + 3 && await coach() === null, '4초 뒤 저절로 사라짐');

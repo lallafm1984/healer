@@ -90,9 +90,19 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 .hpbar { position: relative; height: 18px; border-radius: 6px; background: #2A1416; border: 2px solid var(--line); overflow: hidden; }
 #bossFill { position: absolute; inset: 0 auto 0 0; width: 100%; background: linear-gradient(#D9573F, #A8352A); }
 #bossHpText { position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; font-weight: 700; text-shadow: 0 1px 0 var(--line); font-variant-numeric: tabular-nums; }
-#dpsPop { position: absolute; left: 12px; width: 76px; text-align: center; top: 74px; font-family: var(--font-display); color: var(--ink); font-size: 14px; text-shadow: 0 2px 0 var(--line); opacity: 0; pointer-events: none; }
-#dpsPop.show { animation: pop 0.9s ease-out; }
-@keyframes pop { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+/* 보스 체력: 깎인 만큼 밝은 띠가 잠깐 남았다가 따라 줄어듦 (한 방씩 깎이는 게 보이게) */
+#bossLag { position: absolute; inset: 0 auto 0 0; width: 100%; background: #F3D9A4; transition: width 0.35s ease-in 0.3s; }
+/* 파티원 공격 숫자: 한 방씩 보스 그림 위로 (색 = 때린 파티원 역할) */
+#dmgNums { position: absolute; left: 12px; top: 8px; width: 76px; height: 76px; pointer-events: none; z-index: 2; }
+#dmgNums span { position: absolute; left: 50%; top: 46%; font-family: var(--font-display); font-size: 15px; line-height: 1; color: #FFE7C2; text-shadow: 0 0 2px #12131F, 0 2px 0 #12131F; white-space: nowrap; opacity: 0; transform: translate(-50%, 0); }
+#dmgNums span.tank { color: #C9D4E8; }
+#dmgNums span.melee { color: #FFB37A; }
+#dmgNums span.ranged { color: #9BE3D9; }
+#dmgNums span.big { font-size: 18px; }
+#dmgNums span.go { animation: dmgUp 0.85s ease-out forwards; }
+@keyframes dmgUp { 0% { opacity: 0; transform: translate(calc(-50% + var(--dx)), 6px) scale(0.7); } 15% { opacity: 1; transform: translate(calc(-50% + var(--dx)), 0) scale(1.15); } 30% { transform: translate(calc(-50% + var(--dx)), -6px) scale(1); } 100% { opacity: 0; transform: translate(calc(-50% + var(--dx) * 1.4), -34px) scale(0.95); } }
+#bossArt.hurt { animation: hurt 0.14s ease-out; }
+@keyframes hurt { 0% { transform: translateX(0); filter: brightness(1.6); } 50% { transform: translateX(-2px); } 100% { transform: translateX(0); filter: none; } }
 #queue { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; min-height: 38px; }
 #queue:empty::before { content: '예고된 기술 없음'; font-size: 12px; color: var(--mute); }
 .q { flex: 1 1 0; position: relative; display: flex; align-items: center; gap: 6px; background: var(--panel); border: 2px solid var(--line); border-radius: 10px; padding: 3px 8px 3px 3px; min-width: 0; }
@@ -107,7 +117,7 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 .q .bar { position: absolute; left: 3px; right: 3px; bottom: 1px; height: 3px; border-radius: 2px; background: var(--danger); transform-origin: left; }
 @keyframes blink { 50% { border-color: #5a1a17; } }
 .compact #bossArt { width: 56px; height: 56px; }
-.compact #dpsPop { width: 56px; top: 56px; }
+.compact #dmgNums { width: 56px; height: 56px; }
 
 #boardWrap { position: relative; flex: 1 1 auto; min-height: 0; }
 #board { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
@@ -222,11 +232,18 @@ em.now { font-style: normal; font-size: 11px; font-weight: 700; line-height: 1.6
 
 /* 전투 중 기술 설명 팝업: 터치를 통과시켜 판·휠을 막지 않음 */
 #tip { position: absolute; z-index: 4; left: 8px; top: 0; box-sizing: border-box; width: max-content; max-width: calc(100% - 16px); background: rgba(18, 19, 31, 0.97); border: 2px solid var(--gold); border-radius: 12px; padding: 6px 10px 7px; font-size: 13px; line-height: 1.4; pointer-events: none; box-shadow: 0 3px 0 var(--line); word-break: keep-all; overflow-wrap: anywhere; }
-#tip .t1 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 #tip .ic { width: 22px; height: 22px; font-size: 9px; border-width: 1.5px; }
-#tip .t1 b { font-family: var(--font-display); font-weight: 400; font-size: 15px; color: var(--gold-hi); }
-#tip .t2 { margin-top: 2px; }
-#tip .lb { font-size: 11px; font-weight: 700; color: var(--teal); margin-right: 6px; }
+#tip { min-width: min(240px, calc(100% - 16px)); background: rgba(6, 9, 22, 0.97); }
+/* 설명 팝업 (2026-10-07 Lim 첨부 형식): 이름 → 정보 줄(왼쪽·오른쪽) → 필요 조건 → 금색 설명 */
+.tt { display: flex; flex-direction: column; gap: 1px; font-size: 13px; line-height: 1.45; color: #ECE6D6; }
+.tt-name { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+.tt-name b { font-family: var(--font-display); font-weight: 400; font-size: 16px; color: #FFFFFF; }
+.tt-name small { margin-left: auto; padding-left: 10px; font-size: 11px; color: var(--mute); white-space: nowrap; }
+.tt-row { display: flex; justify-content: space-between; gap: 14px; }
+.tt-row span:last-child:not(:first-child) { text-align: right; }
+.tt-req { color: #FF6A5C; }
+.tt-desc { margin-top: 3px; color: #F2C14E; }
+.tt-note { margin-top: 2px; font-size: 12px; color: var(--mute); }
 #tip::after { content: ""; position: absolute; left: var(--ax, 50%); bottom: -7px; width: 10px; height: 10px; background: rgb(18, 19, 31); border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: translateX(-50%) rotate(45deg); }
 #tip.below::after { bottom: auto; top: -7px; border: 0; border-left: 2px solid var(--gold); border-top: 2px solid var(--gold); }
 
@@ -311,3 +328,6 @@ textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertic
 #giveUp:active { transform: translateY(1px); }
 @keyframes giveUpIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 #preview .trait b { color: var(--gold-hi); }
+/* 적 등급 (2026-10-07 Lim: 잡몹 대신 일반·정예) */
+#bossName .grade { margin-left: 6px; padding: 1px 6px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--panel-2); font-family: var(--font-body, inherit); font-size: 11px; color: var(--mute); vertical-align: 3px; }
+#bossName .grade.elite { color: #12131F; background: var(--gold); border-color: #6A4A1C; }

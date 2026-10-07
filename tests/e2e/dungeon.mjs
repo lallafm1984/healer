@@ -68,7 +68,7 @@ export default async function dungeon(url, shots) {
   // ---- 전투: 구간 → 휴식 → 구간 ----
   await page.click('#depart'); await page.clock.runFor(3100 + 4000);
   ok(/무너진 정문 · 고철 졸개/.test(await page.textContent('#bossName')), '전투 위쪽 = 구간 이름 · 지금 잡는 잡몹');
-  ok(/녹슨 요새 1\/4 · 남은 잡몹 4/.test(await page.textContent('#phase')), '진행 줄 = 1/4 · 남은 잡몹');
+  ok(/녹슨 요새 1\/4 · 남은 적 4/.test(await page.textContent('#phase')), '진행 줄 = 1/4 · 남은 적');
   ok(await page.evaluate(() => window.__proto.F.party.filter(u => !u.me).map(u => u.nick).join()) === party0, '편성 화면의 파티 그대로');
   const clsNow = await page.evaluate(() => [...document.querySelectorAll('#s-party .pcard')].map(c => c.dataset.cls).join());
   ok(await page.evaluate(() => window.__proto.F.party.filter(u => !u.me).map(u => u.cls).join()) === clsNow, `전투 파티원 직업 = 편성 화면 (${clsNow})`);
@@ -86,6 +86,17 @@ export default async function dungeon(url, shots) {
   await page.dispatchEvent('#wheel .slot[data-lock="renew"]', 'pointerdown'); await page.dispatchEvent('#wheel .slot[data-lock="renew"]', 'pointerup');
   await page.clock.runFor(50);
   ok(/소생: Lv 2에 배움/.test(await page.textContent('#toast')), '잠긴 칸을 누르면 「Lv 2에 배움」');
+  // 파티원 공격은 한 방씩 숫자로 (2026-10-07 Lim), 보스 체력 띠도 그만큼
+  await page.clock.runFor(2500);
+  const dmg = await page.evaluate(() => [...document.querySelectorAll('#dmgNums span.go')].map(s => s.textContent));
+  ok(dmg.length >= 2 && dmg.every(t => /^\d+$/.test(t)), `파티원 공격 숫자가 한 방씩 뜸 (${dmg.join(',')})`);
+  ok(await page.evaluate(() => { const F = window.__proto.F; return F.party.some(u => u.dealt > 0) && F.bossHp < F.bossMax; }), '때린 만큼 적 체력이 줄고 딜미터기에 쌓임');
+  ok((await page.locator('#bossName .grade').textContent()) === '일반', '적 등급 표시 = 일반 (잡몹 대신)');
+  // 휠 칸을 누르면 설명 팝업: 이름 → 정보 줄 → 금색 설명 (~니다)
+  await page.dispatchEvent('#wheel .slot[data-slot="flash"]', 'pointerdown'); await page.clock.runFor(500);
+  await page.dispatchEvent('#wheel .slot[data-slot="flash"]', 'pointerup'); await page.clock.runFor(30);
+  const tip = await page.evaluate(() => { const t = document.getElementById('tip'); return t.hidden ? null : { name: t.querySelector('.tt-name b')?.textContent, rows: [...t.querySelectorAll('.tt-row')].map(r => r.textContent), desc: t.querySelector('.tt-desc')?.textContent }; });
+  ok(tip && tip.name === '순간 치유' && tip.rows.some(r => /1초 시전/.test(r)) && /니다\.$/.test(tip.desc || ''), `스킬 설명 팝업 = 첨부 형식 (${JSON.stringify(tip)})`);
   await page.screenshot({ path: `${shots}/dungeon_trash.png` });
 
   const segs = ['고철 경비병', '증기 보일러실', '녹슨 문지기'];
@@ -102,7 +113,14 @@ export default async function dungeon(url, shots) {
     await page.clock.runFor(3000);
     const m1 = await pct();
     ok(Math.abs(m1 - m0 - 30) <= 1, `3초 쉬면 +30% (${m0} → ${m1})`);
-    if (i === 0) await page.screenshot({ path: `${shots}/dungeon_rest.png` });
+    if (i === 0) {
+      const rows = await page.locator('#restMeter .meter li').count();
+      ok(rows === 4 && /딜미터기/.test(await page.textContent('#restMeter')), `휴식 화면 딜미터기 (${rows}명)`);
+      await page.screenshot({ path: `${shots}/dungeon_rest.png` });
+    }
+    if (i === 1) {
+      ok((await page.locator('#bossName .grade.elite').count()) === 0, '보일러실 첫 적은 일반');
+    }
     await page.click('#restGo'); await page.clock.runFor(3100 + 500);
     const st = await page.evaluate(() => { const F = window.__proto.F, R = window.__proto.dungeon; return { name: F.enc.name, mana: F.mana, carry: R.carry.mana, p: F.g.p, party: F.party.filter(u => !u.me).map(u => u.nick).join(), idx: R.idx }; });
     ok(st.name === segs[i] && st.idx === i + 1, `계속 → ${segs[i]} 시작`);
@@ -120,6 +138,7 @@ export default async function dungeon(url, shots) {
   const res = await page.textContent('#s-settle');
   ok(/[SABC]/.test(await page.textContent('#s-settle .grade')) && /첫 클리어/.test(res) && /클리어 시간/.test(res), '정산 = 등급·별·첫 클리어·시간');
   ok((await page.locator('#s-settle .starlist li').count()) === 3, '별 조건 3개');
+  ok((await page.locator('#s-settle .meter li').count()) === 4 && /던전 전체/.test(await page.textContent('#s-settle .meter h3')), '정산 화면 딜미터기 (던전 전체)');
   await page.screenshot({ path: `${shots}/dungeon_settle.png` });
   await page.click('#toReward'); await page.clock.runFor(200);
   ok(await page.isVisible('#s-reward') && await page.isVisible('#s-reward .lvpop'), '보상 화면 + 레벨 업 팝업 (첫 클리어로 Lv 2)');

@@ -1,4 +1,5 @@
 // 문장 끝 「~요」를 뺀 앱 문구에 맞춰 메시지 글자만 바꿈 (2026-10-07)
+// 파티원 딜도 본 게임에 맞춤 (2026-10-07 Lim): 초당 딜을 모았다가 공격 간격(탱커·원거리 40틱, 근접 30틱)마다 한 방씩
 // 탱커 전멸 규칙만 본 게임에 맞춤 (2026-10-07 Lim): 탱커가 쓰러지면 보스는 근접 → 원거리 → 나를 때리고, 파티원이 모두 쓰러져야 전멸 (특성 없는 옛 파티라 버팀목은 없음)
 /* ===== 나혼자 힐러 전투 엔진 (sim/combat_sim.py 이식 + 04 파티원 AI) ===== */
 const Engine = (() => {
@@ -193,7 +194,7 @@ const Engine = (() => {
         id: f.nextId++, role, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
         cell: -1, home: -1, hot: 0, hotTick: 0, echo: [], guardian: 0, debuffs: [], moving: null, react: null,
         retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0, thanks: 0, flash: 0,
-        barkAt: -10, ignoreZone: 0, me: role === 'healer',
+        barkAt: -10, ignoreZone: 0, me: role === 'healer', acc: 0,
       };
       units.push(u);
       return u;
@@ -589,16 +590,31 @@ const Engine = (() => {
     if (u.p.attention && !u.sulking && f.t - u.lastHeal > u.p.attention && f.t > 8) { u.sulking = true; bark(f, u, null, true); }
   }
 
+  function unitDps(u) {
+    if (!u.alive || u.moving || u.fleeing || u.me) return 0;
+    let d = u.dps * (u.p.dps || 1);
+    if (u.sulking) d *= 0.75;
+    if (u.thanks > 0) d *= 1.1;
+    return d;
+  }
   function partyDps(f) {
     let s = 0;
-    for (const u of f.party) {
-      if (!u.alive || u.moving || u.fleeing || u.me) continue;
-      let d = u.dps * (u.p.dps || 1);
-      if (u.sulking) d *= 0.75;
-      if (u.thanks > 0) d *= 1.1;
-      s += d;
-    }
+    for (const u of f.party) s += unitDps(u);
     return s;
+  }
+  const SWING = { tank: 40, melee: 30, ranged: 40 };
+  function partyHits(f) {
+    for (const u of f.party) {
+      if (u.me) continue;
+      if (!u.alive) { u.acc = 0; continue; }
+      if (f.invuln) continue;
+      u.acc += unitDps(u) * DT;
+      if ((f.k + u.id * 7) % SWING[u.role] !== 0 || u.acc <= 0 || f.bossHp <= 0) continue;
+      const amt = u.acc;
+      u.acc = 0;
+      f.bossHp -= amt;
+      emit(f, { type: 'hit', uid: u.id, amt });
+    }
   }
 
   // ---------- 힐러 ----------
@@ -808,11 +824,7 @@ const Engine = (() => {
     healerTick(f);
     for (const u of f.party) unitTick(f, u);
     bossTick(f);
-    if (!f.invuln) {
-      const d = partyDps(f) * DT;
-      f.bossHp -= d; f.dpsAcc += d;
-    }
-    if (f.k % 20 === 0 && f.dpsAcc > 0) { emit(f, { type: 'dps', amt: Math.round(f.dpsAcc) }); f.dpsAcc = 0; }
+    partyHits(f);
     const live = living(f);
     if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', '보스를 쓰러뜨림'); }
     else if (!f.me.alive) end(f, 'lose', '힐러가 쓰러짐');

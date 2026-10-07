@@ -18,7 +18,7 @@ export interface TraitDef {
 export const BULWARK = { sec: 10, cut: 0.5 };
 
 export const TRAITS: Record<TraitKey, TraitDef> = {
-  bulwark: { key: 'bulwark', name: '버팀목', roles: ['melee'], desc: `탱커 전멸 시 보스 공격을 대신 받음. ${BULWARK.sec}초간 받는 피해 -${BULWARK.cut * 100}% (전투당 1회)` },
+  bulwark: { key: 'bulwark', name: '버팀목', roles: ['melee'], desc: `탱커가 모두 쓰러지면 보스 공격을 대신 받습니다. ${BULWARK.sec}초 동안 받는 피해가 ${BULWARK.cut * 100}% 줄어듭니다. 전투당 1회 발동합니다.` },
 };
 
 /** 공개모집에서 그 역할 파티원이 특성을 가질 확률 */

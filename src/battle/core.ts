@@ -7,6 +7,7 @@ import type { GearStats } from '../data/gear';
 import type { ItemKey } from '../data/items';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { knows, type Fight, type RosterEntry, type Role } from '../engine';
+import type { MeterRow } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 
 export const $ = (id: string) => document.getElementById(id)!;
@@ -76,6 +77,7 @@ export interface Run {
   content: string; name: string; segs: string[]; seed0: number | null; coachDone: Set<number>;
   idx: number; carry: { mana: number; g: { p: number; s: number } } | null; time: number; deaths: number; restSec: number;
   healed: number; overheal: number; dispels: number; dispellable: number; itemLog: { key: ItemKey; t: number }[]; auto: boolean;
+  meter: MeterRow[];
 }
 
 export const S = {
