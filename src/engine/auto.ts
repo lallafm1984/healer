@@ -80,9 +80,11 @@ function autoDruid(f: Fight): void {
   if (ready('quietwood') && live.filter(u => pct(u) < 0.5).length >= Math.max(2, Math.floor(live.length / 2))) { use(f, 'quietwood', 0); return; }
   if (ready('rebirth') && !f.rebirthUsed && reviveTarget(f) && tryUse(f, 'rebirth', null, idx)) return;
   if (c.busterOn && ready('bark') && pct(c.busterOn) < 0.8 && tryUse(f, 'bark', c.busterOn, idx)) return;
-  if (pct(low) < 0.4) {
+  // 위급: 거둘 지속 힐이 있으면 피워 내기, 없으면 생장
+  if (pct(low) < 0.5) {
     if (ready('bloom') && low.hots.length && tryUse(f, 'bloom', low, idx)) return;
-    if (f.mana > 5 && tryUse(f, 'growth', low, idx)) return;
+    if (!sprouted(low) && f.mana > 2 && tryUse(f, 'sprout', low, idx)) return;
+    if (f.mana > 4 && tryUse(f, 'growth', low, idx)) return;
   }
   if (ready('natureCleanse')) { const d = cleansable(f, live); if (d && tryUse(f, 'natureCleanse', d, idx)) return; }
   const tank = live.find(u => u.role === 'tank' && !sprouted(u));
@@ -92,7 +94,9 @@ function autoDruid(f: Fight): void {
   const aoeSoon = f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 6);
   const bare = live.filter(u => !sprouted(u) && (pct(u) < 0.9 || (aoeSoon && f.mana > 30))).sort((a, b) => pct(a) - pct(b))[0];
   if (bare && f.mana > 2 && tryUse(f, 'sprout', bare, idx)) return;
-  if (pct(low) < 0.55 && f.mana > 12 && tryUse(f, 'growth', low, idx)) return;
+  // 새싹을 다 깔았으면 남는 시간엔 생장 (마나가 넉넉할수록 일찍)
+  const cut = f.mana > 60 ? 0.85 : f.mana > 30 ? 0.7 : 0.55;
+  if (pct(low) < cut && f.mana > 6 && tryUse(f, 'growth', low, idx)) return;
 }
 
 function autoPaladin(f: Fight): void {
