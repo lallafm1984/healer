@@ -1,0 +1,194 @@
+import type { ScriptKey } from '../data/encounters';
+import { hexDist } from './board';
+import { addDebuff, cellOf, damage, DT, emit, living, randomTargets, spread, unitById } from './core';
+import { scheduleReactions } from './movement';
+import type { BossSkill, Fight, TelKind, Telegraph, Unit } from './types';
+
+type SkillSpec = Omit<BossSkill, 'active'> & { active?: BossSkill['active'] };
+
+function skill(f: Fight, s: SkillSpec): BossSkill {
+  const o: BossSkill = { active: () => true, ...s };
+  f.skills.push(o);
+  return o;
+}
+
+function tankTarget(f: Fight): Unit | null {
+  return f.party.find(u => u.role === 'tank' && u.alive) || null;
+}
+
+interface BossScript {
+  init(f: Fight): void;
+  update(f: Fight): void;
+}
+
+/** 보스 기술 스크립트 (05) */
+const SCRIPTS: Record<ScriptKey, BossScript> = {
+  warden: {
+    init(f) {
+      f.phaseName = '';
+      skill(f, { key: 'auto', hidden: true, next: 2, period: 2, cast: 0, fire(f) { const tk = tankTarget(f); if (tk) damage(f, tk, 70 * (0.7 + 0.6 * f.rng())); } });
+      skill(f, {
+        key: 'buster', name: '내려찍기', icon: '찍기', kind: 'buster', next: 12, period: 20, cast: 2, warn: 'buster', dmg: 600,
+        target(f) { const tk = tankTarget(f); return tk ? [tk.id] : []; },
+        hit(f, tel) { for (const id of tel.units) { const u = unitById(f, id); if (u) damage(f, u, tel.skill.dmg!); } },
+      });
+      skill(f, {
+        key: 'aoe', name: '증기 분출', icon: '증기', kind: 'aoe', next: 25, period: 30, cast: 3, warn: 'aoe',
+        hit(f) { for (const u of living(f)) damage(f, u, 220); },
+      });
+      f.zoneSkill = skill(f, {
+        key: 'zone', name: '녹물 웅덩이', icon: '장판', kind: 'zone', next: Infinity, period: 20, cast: 2.5, dps: 60, dur: 8, warn: 'zone',
+        active: f => f.bossHp <= f.bossMax * 0.4,
+        cellsFor(f) {
+          // 05 1-B: 던전에서는 "피할 곳이 없어!"가 나오지 않게, 범위 밖 빈 칸이 범위 안 인원 이상 남는 중심만 고른다
+          const ok = randomTargets(f, 99).map(u => {
+            const center = f.cells[u.cell];
+            const set = new Set(f.cells.filter(x => hexDist(x, center) <= 1).map(x => x.i));
+            const inside = living(f).filter(v => set.has(v.cell)).length;
+            const free = f.cells.filter(x => !x.unit && !set.has(x.i)).length;
+            return free >= inside ? set : null;
+          }).filter((s): s is Set<number> => !!s);
+          if (ok.length) return ok[0];
+          const c = randomTargets(f, 1)[0];
+          return c ? new Set([c.cell]) : new Set<number>();
+        },
+      });
+    },
+    update(f) {
+      const zs = f.zoneSkill!;
+      if (zs.next === Infinity && f.bossHp <= f.bossMax * 0.4) { zs.next = f.t + 3; emit(f, { type: 'phase', text: '녹이 흘러내린다' }); }
+      if (!f.enraged && f.t >= f.enc.enrage) {
+        f.enraged = true; emit(f, { type: 'phase', text: '광폭화' });
+        skill(f, { key: 'enrage', name: '증기 폭주', icon: '광폭', kind: 'aoe', next: f.t, period: 2, cast: 1, hit(f) { for (const u of living(f)) damage(f, u, 220); } });
+      }
+    },
+  },
+  plague: {
+    init(f) {
+      const big = f.enc.big;
+      const nDeb = big ? 4 : 2;
+      f.phase = 1; f.phaseName = '1페이즈';
+      skill(f, { key: 'auto', hidden: true, next: 2, period: 2, cast: 0, fire(f) { const tk = tankTarget(f); if (tk) damage(f, tk, 60 * (0.7 + 0.6 * f.rng())); } });
+      skill(f, {
+        key: 'breath', name: '썩은 숨결', icon: '숨결', kind: 'instant', next: 6, period: 12, cast: 0, active: f => f.phase === 1 || f.phase >= 2,
+        fire(f) {
+          for (const u of randomTargets(f, nDeb)) {
+            let d = u.debuffs.find(x => x.name === '썩은 숨결');
+            if (!d) d = addDebuff(f, u, { name: '썩은 숨결', type: '질병', left: 60, stack: 0 });
+            d.stack = Math.min(4, (d.stack || 0) + 1); d.left = 60;
+            u.max = u.base * (1 - 0.05 * d.stack); u.hp = Math.min(u.hp, u.max);
+          }
+        },
+      });
+      skill(f, {
+        key: 'sting', name: '독침', icon: '독침', kind: 'instant', next: 10, period: 15, cast: 0, active: f => f.phase === 1,
+        fire(f) { for (const u of randomTargets(f, nDeb, u => !u.debuffs.some(d => d.name === '독침'))) addDebuff(f, u, { name: '독침', type: '독', left: 12, dot: 15 }); },
+      });
+      f.pulse = skill(f, {
+        key: 'aoe', name: '역병 파동', icon: '파동', kind: 'aoe', next: 27, period: 30, cast: 3, warn: 'aoe', active: f => f.phase === 1 || f.phase >= 2,
+        hit(f) { const dmg = f.phase === 1 ? 150 : 180; for (const u of living(f)) damage(f, u, dmg); },
+      });
+      f.contagion = skill(f, {
+        key: 'contagion', name: '전염', icon: '전염', kind: 'instant', next: Infinity, period: 20, cast: 0, active: f => f.phase >= 2,
+        fire(f) {
+          const ts = randomTargets(f, big ? 2 : 1, u => !u.debuffs.some(d => d.name === '전염'));
+          for (const u of ts) addDebuff(f, u, { name: '전염', type: '질병', left: 8, trap: true });
+          if (ts.length === 2 && hexDist(cellOf(f, ts[0]), cellOf(f, ts[1])) === 1) {
+            emit(f, { type: 'msg', text: '전염 대상이 붙어 있어 바로 터졌어요' });
+            for (const u of ts) { const d = u.debuffs.find(x => x.name === '전염'); if (d) { u.debuffs = u.debuffs.filter(x => x !== d); spread(f, u); } }
+          }
+        },
+      });
+      f.storm = skill(f, {
+        key: 'storm', name: '역병 폭풍', icon: '폭풍', kind: 'zone', next: Infinity, period: 10, cast: 2.5, dps: 40, dur: 7.5, warn: 'zone', active: f => f.phase === 3,
+        cellsFor(f) {
+          f.stormSide = !f.stormSide;
+          const xs = f.cells.map(c => c.px);
+          // 05 2-E는 판 절반이지만, 30칸에 20명이면 피할 칸이 모자라 바깥 1/3로 둔다 (05 오픈 이슈 6)
+          const lo = Math.min(...xs), hi = Math.max(...xs), w = (hi - lo) / 3;
+          return new Set(f.cells.filter(c => (f.stormSide ? c.px < lo + w : c.px > hi - w)).map(c => c.i));
+        },
+      });
+    },
+    update(f) {
+      const big = f.enc.big;
+      const r = f.bossHp / f.bossMax;
+      if (f.phase === 1 && r <= 0.6) {
+        f.phase = 0; f.phaseName = '인터미션'; f.invuln = true; f.interEnd = f.t + 25;
+        emit(f, { type: 'phase', text: '인터미션: 쥐떼가 뒷줄을 공격해요' });
+        const ranged = living(f).filter(u => u.role === 'ranged').sort((a, b) => cellOf(f, b).row - cellOf(f, a).row);
+        f.rats = ranged.slice(0, big ? 6 : 3).map(u => u.id);
+        for (const u of living(f)) if (u.debuffs.length) addDebuff(f, u, { name: '독침', type: '독', left: 12, dot: 15 });
+      }
+      if (f.phase === 0) {
+        for (const id of f.rats) { const u = unitById(f, id); if (u) damage(f, u, 30 * DT); }
+        if (f.t >= f.interEnd!) {
+          f.phase = 2; f.phaseName = '2페이즈'; f.invuln = false; f.rats = [];
+          f.contagion!.next = f.t + 10; f.pulse!.next = f.t + 22; f.pulse!.period = 25;
+          emit(f, { type: 'phase', text: '2페이즈: 전염은 해제하면 바로 퍼져요' });
+        }
+      }
+      if (big && f.phase === 2 && r <= 0.3) {
+        f.phase = 3; f.phaseName = '3페이즈'; f.storm!.next = f.t + 1;
+        emit(f, { type: 'phase', text: '3페이즈: 역병 폭풍이 판 바깥쪽을 번갈아 덮어요' });
+      }
+      if (!f.enraged && f.t >= f.enc.enrage) {
+        f.enraged = true; emit(f, { type: 'phase', text: '광폭화' });
+        skill(f, { key: 'enrage', name: '역병 폭주', icon: '광폭', kind: 'aoe', next: f.t, period: 3, cast: 1, hit(f) { for (const u of living(f)) damage(f, u, 180); } });
+      }
+    },
+  },
+};
+
+export function initBoss(f: Fight): void {
+  SCRIPTS[f.enc.script].init(f);
+}
+
+/** 보스 진행: 기술 예고 → 적중 */
+export function bossTick(f: Fight): void {
+  SCRIPTS[f.enc.script].update(f);
+  for (const s of f.skills) {
+    if (f.t + 1e-9 < s.next) continue;
+    s.next += s.period;
+    if (!s.active(f)) continue;
+    if (s.cast <= 0) { s.fire!(f); continue; }
+    const tel: Telegraph = { id: f.nextId++, skill: s, kind: s.kind, start: f.t, impact: f.t + s.cast, units: s.target ? s.target(f) : [], cells: s.cellsFor ? s.cellsFor(f) : new Set(), dps: s.dps, dur: s.dur };
+    f.tels.push(tel);
+    if (s.warn) emit(f, { type: 'sound', name: s.warn });
+    if (tel.kind === 'zone') scheduleReactions(f, tel);
+  }
+  for (const tel of f.tels.filter(t => t.impact <= f.t + 1e-9)) {
+    if (tel.kind === 'zone') {
+      f.zones.push({ id: tel.id, cells: tel.cells, end: f.t + tel.dur!, dps: tel.dps! });
+    } else tel.skill.hit!(f, tel);
+    emit(f, { type: 'impact', kind: tel.kind });
+  }
+  f.tels = f.tels.filter(t => t.impact > f.t + 1e-9);
+  f.zones = f.zones.filter(z => z.end > f.t);
+}
+
+export interface QueueEntry {
+  name?: string;
+  icon?: string;
+  kind?: TelKind;
+  impact: number;
+  start?: number;
+  casting: boolean;
+}
+
+/** 화면 상단 보스 기술 예고: 다음 3개 */
+export function queue(f: Fight): QueueEntry[] {
+  const list: QueueEntry[] = [];
+  for (const t of f.tels) list.push({ name: t.skill.name, icon: t.skill.icon, kind: t.kind, impact: t.impact, start: t.start, casting: true });
+  for (const s of f.skills) {
+    if (s.hidden || s.next === Infinity) continue;
+    let n = s.next;
+    for (let i = 0; i < 3; i++) {
+      const imp = n + s.cast;
+      if (imp - f.t < 120 && s.active(f)) list.push({ name: s.name, icon: s.icon, kind: s.kind, impact: imp, casting: false });
+      n += s.period;
+    }
+  }
+  list.sort((a, b) => a.impact - b.impact);
+  return list.slice(0, 3);
+}

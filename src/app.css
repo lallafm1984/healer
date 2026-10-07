@@ -1,0 +1,34 @@
+/* 앱 바깥 틀: 전체화면 + 상단 배너 영역 70dp(노치 포함) + 하단 탭 (09 5장) */
+:root { --banner-h: 70px; --tabs-h: 64px; }
+html, body { margin: 0; height: 100%; overscroll-behavior: none; }
+body { background: #0B0B12; }
+#adBanner {
+  position: fixed; top: 0; left: 0; right: 0; height: var(--banner-h); z-index: 50;
+  display: flex; align-items: flex-end; justify-content: center;
+  box-sizing: border-box; background: #0B0B12; border-bottom: 1px dashed #2C2E48; color: #4A4C6B; font-size: 11px;
+}
+#adBanner span { padding-bottom: 8px; }
+#viewport { position: fixed; top: var(--banner-h); left: 0; right: 0; bottom: 0; }
+#viewport #app { height: calc(100% - env(safe-area-inset-bottom)); }
+
+#tabs {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: env(safe-area-inset-bottom); z-index: 40;
+  width: 100%; max-width: 480px; height: var(--tabs-h);
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  background: #15162A; border-top: 2px solid #0B0B12;
+}
+#tabs button {
+  border: 0; background: none; color: #9C9DB8; font-family: "Jua", system-ui, sans-serif; font-size: 15px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer;
+}
+#tabs button[aria-current="page"] { color: #F0C46A; }
+#tabs button small { font-family: "Gowun Dodum", system-ui, sans-serif; font-size: 10px; opacity: 0.7; }
+body.tabs-on #menu { padding-bottom: calc(var(--tabs-h) + 24px); }
+
+#tabPage {
+  position: fixed; top: var(--banner-h); bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; z-index: 30; box-sizing: border-box; padding: 24px 20px;
+  background: #12131F; color: #EDE6D3; font-family: "Gowun Dodum", system-ui, sans-serif;
+}
+#tabPage h2 { margin: 0 0 8px; font-family: "Jua", system-ui, sans-serif; font-weight: 400; font-size: 28px; color: #F0C46A; }
+#tabPage p { margin: 0 0 6px; color: #9C9DB8; line-height: 1.5; }

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#12131F">
+<title>힐러 (개발 빌드)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
+</head>
+<body>
+<!-- 전체화면: 화면 맨 위부터 노치 포함 70dp = 배너 영역 (09 5장, Lim 2026-10-07) -->
+<div id="adBanner" aria-label="배너 광고 자리"><span>배너 광고 자리 · 70dp</span></div>
+<div id="viewport">
+<div id="app">
+  <section id="menu" class="screen">
+    <header class="brand">
+      <div>
+        <h1>나혼자 힐러</h1>
+        <p>개발 빌드 · 전투는 프로토타입 v11 화면을 임시로 사용</p>
+      </div>
+    </header>
+
+    <div class="group">
+      <h2>보스 <small>공개모집 파티로 입장</small></h2>
+      <div class="enc-list" id="encList"></div>
+    </div>
+
+    <div class="group">
+      <h2>난이도</h2>
+      <div class="chips" id="diffChips"></div>
+      <p class="note" id="diffNote"></p>
+    </div>
+
+    <div class="group">
+      <h2>힐러 장비 <small>6부위 기준</small></h2>
+      <div class="chips" id="gearChips"></div>
+      <p class="note" id="gearNote"></p>
+    </div>
+
+    <div class="group">
+      <h2>소비 아이템 <small>단축칸 4칸 · 전투 화면 하단</small></h2>
+      <div class="chips" id="itemChips"></div>
+      <p class="note" id="itemNote"></p>
+    </div>
+
+    <div class="group">
+      <h2>이번 파티 <small id="partyCount"></small></h2>
+      <div class="party" id="partyList"></div>
+      <div class="row"><button class="btn" id="rerollBtn" type="button">다른 파티 뽑기</button></div>
+    </div>
+
+    <div class="group">
+      <h2>조작</h2>
+      <p class="note">칸 탭 기본 힐</p>
+      <div class="chips" id="tapChips"></div>
+      <p class="note">스킬 휠 위치</p>
+      <div class="chips" id="handChips"></div>
+      <div class="row"><label class="toggle"><input type="checkbox" id="zoomOpt" checked> 20인 판에서 탭한 칸 확대해 보여주기 (0.3초)</label></div>
+    </div>
+
+    <div class="group">
+      <h2>스킬 배치 <small>휠 자리 = 쓸기 방향</small></h2>
+      <div class="lwrap">
+        <div class="lgrid" id="layoutGrid"></div>
+        <div class="lside">
+          <p class="note" id="layoutNote"></p>
+          <button class="btn" id="layoutReset" type="button">기본 배치로</button>
+        </div>
+      </div>
+    </div>
+
+    <dl class="howto">
+      <dt>칸 탭</dt><dd id="howTap">치유 (1.8초 시전)</dd>
+      <dt>휠 → 칸</dt><dd>스킬을 장전하고 칸을 누르면 그 대상에게 사용. 기원은 누른 채 범위를 보고 손을 떼면 시전</dd>
+      <dt>칸에서 쓸기</dt><dd id="howSwipe"></dd>
+      <dt>길게 누르기</dt><dd>파티원 정보 (성격, 디버프)</dd>
+      <dt>시전 중 탭</dt><dd>다른 칸을 누르면 시전을 취소하고 새 대상에게 시전</dd>
+    </dl>
+
+    <div class="row">
+      <label class="toggle"><input type="checkbox" id="soundOpt" checked> 소리</label>
+      <label class="toggle"><input type="checkbox" id="vibeOpt" checked> 진동</label>
+      <label class="toggle"><input type="checkbox" id="autoOpt"> 자동 힐러로 구경하기</label>
+    </div>
+
+    <button class="btn primary" id="startBtn" type="button">출발</button>
+    <p class="note" id="dbNote">전투 결과와 의견은 이 페이지에 기록돼 기획 검증에 쓰여요.</p>
+  </section>
+
+  <section id="guide" class="screen" hidden aria-label="보스 공략">
+    <div class="gd-scroll" id="guideBody"></div>
+    <footer class="gd-foot">
+      <button class="btn" id="guideBack" type="button">뒤로</button>
+      <button class="btn primary" id="guideGo" type="button">전투 시작</button>
+    </footer>
+  </section>
+
+  <section id="battle" class="screen" hidden>
+    <header id="stage">
+      <div id="bossArt"></div>
+      <div class="stage-main">
+        <div class="stage-top">
+          <span id="bossName"></span>
+          <button id="pauseBtn" type="button" aria-label="일시정지">❚❚</button>
+        </div>
+        <div class="stage-meta">
+          <span id="phase"></span>
+          <span id="timer"></span>
+        </div>
+        <div class="hpbar"><div id="bossFill"></div><div id="bossHpText"></div></div>
+      </div>
+      <div id="queue"></div>
+      <div id="dpsPop"></div>
+    </header>
+    <div id="boardWrap">
+      <canvas id="board"></canvas>
+      <div id="toast"></div>
+      <div id="banner"></div>
+      <div id="preview" hidden></div>
+      <div id="pull" hidden><b id="pullNum">3</b></div>
+    </div>
+    <div id="castbar"><span id="castLabel">칸을 탭하면 치유</span><div id="castTrack"><div id="castFill"></div></div></div>
+    <footer id="controls">
+      <div id="wheel"></div>
+      <div id="side">
+        <div id="items" aria-label="소비 아이템 단축칸"></div>
+        <div id="gauges"><span>평온 <b id="gP">0</b>%</span><span>신성화 <b id="gS">0</b>%</span></div>
+        <div id="hint">아이템: 누르면 사용<br>길게 누르면 설명</div>
+      </div>
+    </footer>
+    <div id="tip" role="status" hidden></div>
+    <div id="pause" class="overlay" hidden>
+      <div class="card">
+        <div class="phead"><h3>일시정지</h3><span id="pauseSub"></span></div>
+        <div class="gd-scroll" id="pauseGuide"></div>
+        <div class="pbtns">
+          <button class="btn primary" id="resumeBtn" type="button">계속</button>
+          <button class="btn" id="restartBtn" type="button">처음부터 다시</button>
+          <button class="btn" id="quitBtn" type="button">메뉴로</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="result" class="screen" hidden>
+    <h1 id="resTitle"></h1>
+    <p id="resSub"></p>
+    <div id="grade" hidden></div>
+    <dl class="stats" id="resStats"></dl>
+    <div class="ask">
+      <h2>검증 질문</h2>
+      <p>탭 힐, 재밌었나요?</p>
+      <div class="scale" data-q="fun"></div>
+      <div class="scale-ends"><span>지루함</span><span>재밌음</span></div>
+      <p>원하는 칸을 정확히 누를 수 있었나요?</p>
+      <div class="scale" data-q="touch"></div>
+      <div class="scale-ends"><span>자주 빗나감</span><span>정확함</span></div>
+      <label for="memo" class="note">한마디 (선택)</label>
+      <textarea id="memo" placeholder="예: 20인에서 칸이 작아 원하는 사람을 못 눌렀어요"></textarea>
+      <button class="btn" id="sendBtn" type="button">의견 보내기</button>
+      <p id="saveNote"></p>
+    </div>
+    <div class="row">
+      <button class="btn" id="againBtn" type="button" style="flex:1">다시 도전</button>
+      <button class="btn" id="menuBtn" type="button" style="flex:1">메뉴로</button>
+    </div>
+  </section>
+</div>
+<nav id="tabs" aria-label="하단 메뉴"></nav>
+<section id="tabPage" hidden></section>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
