@@ -19,6 +19,8 @@ export interface MobAttack {
   first: number;
   period: number;
   cast: number;
+  /** 끊기 가능 ✋ (17 7장) */
+  cut?: boolean;
 }
 
 /** 보스가 아닌 적 한 종류. 파티는 목록 순서대로 잡는다 (앞쪽부터). 화면에는 「잡몹」 대신 일반·정예 (2026-10-07 Lim) */
@@ -95,7 +97,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     {
       name: '보일러 골렘', elite: true, hp: 700, count: 1, attacks: [
         { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
-        { key: 'burst', name: '증기 폭발', icon: '증기', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3 },
+        { key: 'burst', name: '증기 폭발', icon: '증기', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
       ],
     },
   ]),

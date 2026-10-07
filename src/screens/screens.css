@@ -352,3 +352,32 @@ button.tpick[aria-pressed="true"] i { background: var(--gold); color: #1A1408; }
 #restMeter { padding: 0 14px; }
 .segs li.elite { border-color: #8A6A2E; }
 .segs li.elite small { color: var(--gold); }
+
+/* 파티원 능력·자질 (17 11장) · 길드 (09 S12~S14) */
+.pcard p.pab { color: #DCD5C1; }
+.pcard p.pab b { font-family: var(--font-body); font-weight: 700; font-size: 12px; color: var(--gc); margin-right: 4px; }
+.pcard p.pab i { font-style: normal; font-size: 10px; padding: 0 5px; border-radius: 6px; border: 1px solid var(--gc); color: var(--gc); margin-right: 4px; }
+.pcard p.pab small, .pcard p small { margin-left: 0; }
+.pcard p.papt { color: var(--mute); font-size: 11px; }
+.pcard p.papt span { color: var(--gold-hi); letter-spacing: -1px; }
+.pcard.withbtn { grid-template-columns: 36px 1fr auto; }
+.pcard.withbtn > .btn { align-self: center; margin: 0; }
+.pcard.tap { cursor: pointer; }
+.pcard.tap.on { border-color: var(--gold); background: #22201A; }
+.mdetail { list-style: none; border-color: var(--gold); margin-top: -2px; }
+.mdetail h4 small { font-family: var(--font-body); font-size: 11px; color: var(--mute); margin-left: 4px; }
+.mdetail .mute, .ns .mute { color: var(--mute); }
+.mdetail .mxp { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--mute); }
+.mdetail .bar { flex: 1; height: 6px; border-radius: 999px; background: #0B0B12; overflow: hidden; border: 1px solid #2A2C48; }
+.mdetail .bar i { display: block; height: 100%; background: linear-gradient(90deg, #8FD18B, #D9E77A); }
+.btn.danger { background: #5A1F1C; border-color: #A2392F; color: #FFD9D2; }
+.gbtns.posts .btn { flex: 1; }
+.mdetail .gbtns { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 6px; }
+.mdetail .gbtns .btn { font-size: 14px; min-height: 0; padding: 8px 6px; }
+.pickhead { display: flex; align-items: baseline; gap: 8px; }
+.pickhead small { color: var(--mute); font-size: 12px; }
+.pcard.picked { border-color: var(--gold); background: #22201A; }
+.pcard.fill { opacity: 0.75; border-style: dashed; }
+.pcard .pick { width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--line); display: grid; place-items: center; color: #1A1408; font-weight: 700; align-self: center; }
+.pcard .pick.on { background: var(--gold); border-color: var(--gold); }
+.lvgain.guild { color: var(--mute); }

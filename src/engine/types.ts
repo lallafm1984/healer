@@ -137,6 +137,42 @@ export interface Unit {
   homeAt: number | null;
   diedAt: number;
   me: boolean;
+  /** 파티원 특수 능력 (17). 없으면 null */
+  ab: AbState | null;
+  /** 능력이 건 효과 (받는 피해·딜·반응 …). 비어 있으면 아무 영향 없음 */
+  mods: Mod[];
+  /** 내 힐로 회복한 양 (인연 스카우트, 12 1장) */
+  got: number;
+  /** 눈치 자질 (17 9-1): 반응 시간 배율, 회피 보정 */
+  senseReact: number;
+  senseDodge: number;
+  /** 길드원이면 길드원 id */
+  gid?: number;
+}
+
+/** 능력 효과 종류: cut 받는 피해 감소 · mcut 마법 피해 감소 · vuln 받는 피해 증가 · imm 피해 무시 · dps 딜 · nodps 딜 0 · heal 받는 치유
+ * react 반응 시간 감소 · move 이동 시간 감소 · dodge 장판 회피 · nofear 겁 없음 · stop 멈춤 · hp 최대 체력 · absorb 흡수막 · spell 마법 기술 막기
+ * noheal 치유 안 받음 · ahot 초당 자기 회복 · share 받는 피해 일부를 by가 대신 · aim 조준 유지 */
+export type ModKind = 'cut' | 'mcut' | 'vuln' | 'imm' | 'dps' | 'nodps' | 'heal' | 'react' | 'move' | 'dodge' | 'nofear' | 'stop' | 'hp' | 'absorb' | 'spell' | 'noheal' | 'ahot' | 'share' | 'aim';
+export interface Mod { k: ModKind; v: number; until: number; src: string; by?: number }
+
+/** 능력 상태 */
+export interface AbState {
+  key: string;
+  star: number;
+  /** 다시 쓸 수 있는 시각 */
+  ready: number;
+  uses: number;
+  /** each 능력: 쓴 쓰는 때 번호 */
+  fired: number[];
+  /** 시간 되돌리기: 1초마다 체력 */
+  hist: number[];
+  /** 덜렁이: 회복 능력을 쓰는 체력 (무작위) */
+  odd?: number;
+  /** 거합 반격 간격 */
+  lastCounter: number;
+  /** 이 능력으로 회복한 양 */
+  healed?: number;
 }
 
 export interface RosterEntry {
@@ -147,6 +183,16 @@ export interface RosterEntry {
   cls?: ClassKey;
   /** 특성 (02 5-2-1) */
   traits?: TraitKey[];
+  /** 특수 능력 (17 5장, data/abilities.ts 키). 없으면 능력 없음 */
+  ab?: string;
+  /** 능력 강화 ★ (0~5) */
+  star?: number;
+  /** 길드원: 자기 레벨 (체력·딜 배율은 이 레벨로). 없으면 콘텐츠 단계 */
+  lv?: number;
+  /** 자질 공격·맷집·눈치 ●1~5 (17 9-1). 없으면 ●3 */
+  apt?: [number, number, number];
+  /** 길드원 id */
+  gid?: number;
 }
 
 export type TelKind = 'buster' | 'aoe' | 'zone' | 'instant';
@@ -173,6 +219,10 @@ export interface BossSkill {
   target?: (f: Fight) => number[];
   hit?: (f: Fight, tel: Telegraph) => void;
   cellsFor?: (f: Fight) => Set<number>;
+  /** 끊기 가능 ✋ (17 7장): 보스당 1~2개, 작은 기술만 */
+  cut?: boolean;
+  /** 적 기술이 탱커가 아닌 사람을 때림 (도발·눈속임 판단) */
+  other?: boolean;
 }
 
 export interface Telegraph {
@@ -211,6 +261,10 @@ export type FightEvent =
   /** 파티원 공격 한 방 (uid = 때린 파티원) */
   | { type: 'hit'; uid: number; amt: number }
   | { type: 'mobDown'; id: number; name: string }
+  /** 파티원 능력 사용 (17 7장: 칸 위에 이름) */
+  | { type: 'ability'; id: number; name: string }
+  /** 파티원 능력 회복 (연두색 숫자, 내 힐과 구분) */
+  | { type: 'aheal'; id: number; amt: number }
   | { type: 'over'; result: FightResult };
 
 export type FightResult = 'win' | 'lose';
@@ -288,6 +342,8 @@ export interface Mob {
   hp: number;
   max: number;
   alive: boolean;
+  /** 능력으로 기절·얼림: 이 시각까지 기술을 안 씀 */
+  stun?: number;
 }
 
 export interface Cast {
@@ -315,6 +371,21 @@ export interface FightStats {
   manaFails: number;
   hymnBroken: number;
   itemDispels?: number;
+  /** 파티원 능력 사용 횟수 · 능력 회복량 */
+  abUses?: number;
+  abHeal?: number;
+}
+
+/** 파티 전체에 걸린 능력 효과 */
+export interface PartyAb {
+  /** 위협의 외침: 보스 피해 감소 */
+  weak: number;
+  weakUntil: number;
+  /** 도발·눈속임: 보스 아닌 적이 이 사람을 때림 */
+  taunt: number;
+  tauntUntil: number;
+  /** 칼날폭풍: 보스 아닌 적 초당 최대 체력 비율 피해 */
+  addDot: { rate: number; until: number; by: number } | null;
 }
 
 export interface Fight {
@@ -373,6 +444,9 @@ export interface Fight {
   tx: TalentState;
   /** 세트 효과 (02 10-3) */
   fx: SetFx;
+  /** 능력을 가진 파티원이 있음 (없으면 능력 코드를 안 탐 = 프로토타입과 같음) */
+  abOn: boolean;
+  ab: PartyAb;
   skills: BossSkill[];
   tels: Telegraph[];
   zones: Zone[];

@@ -2,6 +2,7 @@
  * 전투 화면의 HTML 부분: 스킬 휠 · 단축칸 · 시전 막대 · 보스 무대(예고 대기열) · 설명 팝업 · 길게 누르기 정보 · 튜토리얼 안내 · 포기 버튼.
  * 매 프레임 바뀐 글자·클래스만 고침 (판은 board.ts가 캔버스에).
  */
+import { ABILITIES, AB_KIND } from '../data/abilities';
 import { CLASSES } from '../data/classes';
 import { BEACON } from '../data/heroConst';
 import { canDispel, HEROES } from '../data/heroes';
@@ -304,6 +305,12 @@ export function showPreview(idx: number): void {
   const cls = u.cls ? CLASSES[u.cls] : null;
   lines.push(`<b>${u.nick}</b> · ${cls ? `${cls.name} · ` : ''}${ROLE[u.role].name}${u.me ? ` (${HEROES[F.hero].name})` : ''}`);
   if (cls) lines.push(`<div class="cpas"><b>${cls.passive}</b> ${cls.passiveDesc}</div>`);
+  if (u.ab) {
+    const ab = ABILITIES[u.ab.key];
+    const left = ab.cd > 0 ? Math.max(0, u.ab.ready - F.t) : 0;
+    const state = ab.cd === 0 && !ab.each ? '상시' : ab.cd < 0 ? (u.ab.uses ? '사용함' : '1회 준비') : left > 0.05 ? `${Math.ceil(left)}초 뒤` : '준비';
+    lines.push(`<div class="cpas ab"><b>${AB_KIND[ab.kind].icon} ${ab.name}${u.ab.star ? ` ${'★'.repeat(u.ab.star)}` : ''}</b> ${ab.desc} <small>(${state})</small></div>`);
+  }
   for (const k of u.traits) lines.push(`<div class="cpas trait"><b>${TRAITS[k].name}</b> ${TRAITS[k].desc}</div>`);
   if (u.p.ch && u.p.cat) lines.push(`<div class="pers"><i style="background:${CATS[u.p.cat]}">${u.p.ch}</i>${u.pers}: ${u.p.desc}</div>`);
   lines.push(`<div>체력 ${Math.ceil(u.hp)} / ${Math.round(u.max)}${u.max < u.base ? ` (최대 체력 -${Math.round((1 - u.max / u.base) * 100)}%)` : ''}</div>`);

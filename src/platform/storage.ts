@@ -4,12 +4,13 @@
  */
 import type { DiffName } from '../data/difficulty';
 import type { Equipped, GearItem } from '../data/equipment';
+import type { GuildMember, PostTier } from '../data/guild';
 import { HERO_KEYS, type HeroKey } from '../data/heroes';
 import type { ItemKey } from '../data/items';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
@@ -56,6 +57,25 @@ export interface ClearRecord {
   n: number;
 }
 
+/** 인연 스카우트 후보 (02 9-3 ②): 공개모집에서 잘 살려 줘서 호감도가 가득 찬 파티원 */
+export type Scout = Omit<GuildMember, 'id' | 'xp' | 'aptUp' | 'star' | 'runs'> & { from: string };
+
+/** 길드 (02 9장): Lv 15에 열림 */
+export interface GuildSave {
+  name: string;
+  members: GuildMember[];
+  scouts: Scout[];
+  /** 낸 공고와 지원자 3명 (고를 때까지 남음) */
+  post: { tier: PostTier; cands: GuildMember[] } | null;
+  /** 길드 명성: 길드파티로 이긴 판 (명성 지원자는 나중에) */
+  fame: number;
+  nextId: number;
+  /** 마지막 길드파티 편성 (길드원 id) */
+  pick: number[];
+}
+
+export const newGuild = (): GuildSave => ({ name: '새벽의 손', members: [], scouts: [], post: null, fame: 0, nextId: 1, pick: [] });
+
 export interface SaveData {
   v: number;
   /** 처음 만든 시각 (ms) */
@@ -78,6 +98,8 @@ export interface SaveData {
   /** 지금 직업 (25). settings.layout·tapKey는 지금 직업 것이고, 바꿀 때 heroes에 넣고 꺼냄 */
   hero: HeroKey;
   heroes: Partial<Record<HeroKey, HeroSave>>;
+  /** v4: 길드 (02 9장, 17) */
+  guild: GuildSave;
 }
 
 /** 그 직업의 저장 (없으면 기본: 기본 배치, 칸 탭 = 기본 힐 칸, 사제만 처음부터 해금) */
@@ -91,7 +113,7 @@ export function newSave(now = Date.now()): SaveData {
   return {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
     player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [] }, mats: { stone: 0, refined: 0 }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1, tut: 0,
-    hero: 'priest', heroes: {},
+    hero: 'priest', heroes: {}, guild: newGuild(),
   };
 }
 
@@ -116,6 +138,23 @@ export function migrate(raw: unknown): SaveData {
     // v3: 직업 (옛 저장은 사제)
     hero: HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest',
     heroes: obj(o.heroes, {}),
+    // v4: 길드 (옛 저장은 빈 길드)
+    guild: guildOf(o.guild),
+  };
+}
+
+function guildOf(v: unknown): GuildSave {
+  const d = newGuild();
+  if (!v || typeof v !== 'object') return d;
+  const g = v as Partial<GuildSave>;
+  return {
+    name: typeof g.name === 'string' ? g.name : d.name,
+    members: Array.isArray(g.members) ? g.members : [],
+    scouts: Array.isArray(g.scouts) ? g.scouts : [],
+    post: g.post && typeof g.post === 'object' && Array.isArray(g.post.cands) ? g.post : null,
+    fame: typeof g.fame === 'number' ? g.fame : 0,
+    nextId: typeof g.nextId === 'number' ? g.nextId : 1,
+    pick: Array.isArray(g.pick) ? g.pick : [],
   };
 }
 

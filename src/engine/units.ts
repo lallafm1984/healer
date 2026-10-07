@@ -4,6 +4,7 @@ import { BARK } from '../data/heroConst';
 import { bark, cellOf, damage, DT, heal, onDebuffEnd } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
 import { calmHymn, renewEnd, renewSec } from './talents';
+import { abFear, dpsMods, hasMod } from './abilities';
 import type { PersName } from '../data/personalities';
 import type { Cell, Fight, Unit } from './types';
 
@@ -28,7 +29,7 @@ export function unitTick(f: Fight, u: Unit): void {
   if (u.shield > 0) u.shield -= dt;
   if (u.bulwark > 0) u.bulwark -= dt;
   if (u.thanks > 0) u.thanks -= dt;
-  if (u.cls) { if (u.flow > 0) u.flow -= dt; u.aim = u.moving ? 0 : u.aim + dt; }
+  if (u.cls) { if (u.flow > 0) u.flow -= dt; u.aim = u.moving ? (u.mods.length && hasMod(u, 'aim') ? u.aim : 0) : u.aim + dt; }
   for (const d of u.debuffs.slice()) {
     d.left -= dt;
     if (d.dot) damage(f, u, d.dot * dt, true);
@@ -39,6 +40,7 @@ export function unitTick(f: Fight, u: Unit): void {
   for (const z of f.zones) if (z.cells.has(u.cell)) damage(f, u, z.dps * dt, true);
   if (!u.alive) return;
   if (u.moving) { u.moving.left -= dt; if (u.moving.left <= 0) finishMove(f, u); }
+  if (u.mods.length && hasMod(u, 'stop')) return; // 붕대 감기·명상·얼음 방패: 멈춤
   if (u.react && f.t >= u.react.at && !u.moving) doReact(f, u);
   if (f.k % 4 !== 0 || u.moving || u.react) return;
   const inZone = f.zones.find(z => z.cells.has(u.cell));
@@ -56,7 +58,7 @@ export function unitTick(f: Fight, u: Unit): void {
   const shelter = shelterFor(f);
   const fleeAt = u.p.flee || (shelter && u.pers && SHELTER_GO.includes(u.pers) ? SHELTER_GO_HP : 0);
   if (fleeAt || u.fleeing) {
-    if (!u.fleeing && fleeAt && u.hp / u.max < fleeAt && !calmHymn(f)) {
+    if (!u.fleeing && fleeAt && u.hp / u.max < fleeAt && !calmHymn(f) && !((u.ab || u.mods.length) && abFear(f, u))) {
       const c = shelter || pickCell(f, u, { safe: true, back: true });
       if (c) { moveTo(f, u, c); u.fleeing = true; bark(f, u, u.p.flee ? u.p.barks![0] : '쉼터로!', true); }
     } else if (u.fleeing && u.hp / u.max >= 0.8) {
@@ -133,6 +135,7 @@ export function unitDps(u: Unit): number {
   if (u.sulking) d *= 0.75;
   if (u.thanks > 0) d *= 1.1;
   if (u.cls) d *= classDps(u);
+  if (u.mods.length) d *= dpsMods(u); // 파티원 능력 (17)
   return d;
 }
 

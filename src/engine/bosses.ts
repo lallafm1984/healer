@@ -2,6 +2,7 @@ import type { MobAttack, ScriptKey } from '../data/encounters';
 import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, living, randomTargets, spread, unitById } from './core';
 import { scheduleReactions } from './movement';
+import { abCut, abOnTel } from './abilities';
 import type { BossSkill, Fight, Mob, TelKind, Telegraph, Unit } from './types';
 
 type SkillSpec = Omit<BossSkill, 'active'> & { active?: BossSkill['active'] };
@@ -42,7 +43,11 @@ function enrageAt(f: Fight, name: string, period: number, dmg: number): void {
 /** 적 공격 대상 */
 function mobTargets(f: Fight, to: MobAttack['to']): Unit[] {
   if (to === 'tank') { const tk = aggroTarget(f); return tk ? [tk] : []; }
-  if (to === 'other') { const t = randomTargets(f, 1, u => u.role !== 'tank'); return t.length ? t : randomTargets(f, 1); }
+  if (to === 'other') {
+    // 도발·눈속임 (17): 그동안 끌어온 사람을 때림
+    if (f.ab.tauntUntil > f.t) { const tu = f.party.find(u => u.id === f.ab.taunt && u.alive); if (tu) return [tu]; }
+    const t = randomTargets(f, 1, u => u.role !== 'tank'); return t.length ? t : randomTargets(f, 1);
+  }
   return living(f);
 }
 
@@ -59,7 +64,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
         hit(f, tel) { for (const id of tel.units) { const u = unitById(f, id); if (u) damage(f, u, tel.skill.dmg!); } },
       });
       skill(f, {
-        key: 'aoe', name: '쇳조각 비', icon: '쇳조', kind: 'aoe', next: 20, period: 22, cast: 3, warn: 'aoe',
+        key: 'aoe', name: '쇳조각 비', icon: '쇳조', kind: 'aoe', next: 20, period: 22, cast: 3, warn: 'aoe', cut: true,
         hit(f) { for (const u of living(f)) damage(f, u, 170, true); },
       });
     },
@@ -76,7 +81,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
         for (const a of def.attacks) {
           const tel = a.cast > 0;
           skill(f, {
-            key: `${a.key}${m.id}`, mob: m.id, name: a.name, icon: a.icon, kind: a.kind, hidden: !tel,
+            key: `${a.key}${m.id}`, mob: m.id, name: a.name, icon: a.icon, kind: a.kind, hidden: !tel, cut: a.cut, other: a.to === 'other',
             // 같은 적 여럿이 한 틱에 같이 때리지 않게 조금씩 어긋나게
             next: a.first + i * 0.7, period: a.period, cast: a.cast, warn: tel ? a.kind : undefined,
             active: f => f.mobs.some(x => x.id === m.id && x.alive),
@@ -111,7 +116,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
         hit(f) { for (const u of living(f)) damage(f, u, 220, true); },
       });
       f.zoneSkill = skill(f, {
-        key: 'zone', name: '녹물 웅덩이', icon: '장판', kind: 'zone', next: Infinity, period: 20, cast: 2.5, dps: 60, dur: 8, warn: 'zone',
+        key: 'zone', name: '녹물 웅덩이', icon: '장판', kind: 'zone', next: Infinity, period: 20, cast: 2.5, dps: 60, dur: 8, warn: 'zone', cut: true,
         active: f => f.bossHp <= f.bossMax * 0.4,
         cellsFor(f) {
           // 05 1-B: 던전에서는 "피할 곳이 없어!"가 나오지 않게, 범위 밖 빈 칸이 범위 안 인원 이상 남는 중심만 고른다
@@ -153,7 +158,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
         },
       });
       skill(f, {
-        key: 'sting', name: '독침', icon: '독침', kind: 'instant', next: 10, period: 15, cast: 0, active: f => f.phase === 1,
+        key: 'sting', name: '독침', icon: '독침', kind: 'instant', next: 10, period: 15, cast: 0, active: f => f.phase === 1, cut: true,
         fire(f) { for (const u of randomTargets(f, nDeb, u => !u.debuffs.some(d => d.name === '독침'))) addDebuff(f, u, { name: '독침', type: '독', left: 12, dot: 15 }); },
       });
       f.pulse = skill(f, {
@@ -241,7 +246,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
         hit(f) { for (const u of living(f)) damage(f, u, CHOIR.forte, true); },
       });
       f.solo = skill(f, {
-        key: 'solo', name: '독창', icon: '독창', kind: 'instant', next: Infinity, period: 20, cast: 0, active: f => f.phase === 2,
+        key: 'solo', name: '독창', icon: '독창', kind: 'instant', next: Infinity, period: 20, cast: 0, active: f => f.phase === 2, cut: true,
         fire(f) { for (const u of randomTargets(f, CHOIR.soloN, u => !u.debuffs.some(d => d.name === '독창'))) addDebuff(f, u, { name: '독창', type: '마법', left: CHOIR.soloSec }); },
       });
     },
@@ -278,11 +283,17 @@ export function bossTick(f: Fight): void {
     if (f.t + 1e-9 < s.next) continue;
     s.next += s.period;
     if (!s.active(f)) continue;
+    if (f.abOn) {
+      // 파티원 능력 (17 7장): 기절한 적은 기술을 안 씀, 끊기 가능 기술은 시전 시작에 끊길 수 있음
+      if (s.mob != null && (f.mobs.find(m => m.id === s.mob)?.stun || 0) > f.t) continue;
+      if (abCut(f, s)) continue;
+    }
     if (s.cast <= 0) { s.fire!(f); continue; }
     const tel: Telegraph = { id: f.nextId++, skill: s, kind: s.kind, start: f.t, impact: f.t + s.cast, units: s.target ? s.target(f) : [], cells: s.cellsFor ? s.cellsFor(f) : new Set(), dps: s.dps, dur: s.dur };
     f.tels.push(tel);
+    if (f.abOn) abOnTel(f, tel);
     if (s.warn) emit(f, { type: 'sound', name: s.warn });
-    if (tel.kind === 'zone') scheduleReactions(f, tel);
+    if (tel.kind === 'zone' && f.tels.includes(tel)) scheduleReactions(f, tel);
   }
   for (const tel of f.tels.filter(t => t.impact <= f.t + 1e-9)) {
     if (tel.kind === 'zone') {

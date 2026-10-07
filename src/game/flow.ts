@@ -18,7 +18,13 @@ export const Flow: {
   settle: Settlement | null;
   /** 다음 출발에 띄울 튜토리얼 안내 (한 번 쓰면 비움) */
   coach: CoachKey | null;
-} = { content: 'rustfort', diff: '보통', party: null, seed: 1, rerolls: 0, result: null, settle: null, coach: null };
+  /** 편성 방식 (09 S05): 공개모집 · 길드파티 */
+  mode: 'public' | 'guild';
+  /** 공개모집으로 뽑은 파티 (길드파티 빈자리도 여기서 채움) */
+  pub: RosterEntry[] | null;
+  /** 길드파티로 고른 길드원 id */
+  gpick: number[];
+} = { content: 'rustfort', diff: '보통', party: null, seed: 1, rerolls: 0, result: null, settle: null, coach: null, mode: 'public', pub: null, gpick: [] };
 
 export const newSeed = () => (Math.random() * 1e9) | 0;
 

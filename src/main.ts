@@ -9,6 +9,7 @@ import './screens/entry';
 import './screens/party';
 import './screens/result';
 import './screens/character';
+import './screens/guild';
 import './screens/tutorial';
 import { enterFullscreen } from './platform/fullscreen';
 import { commit } from './game/state';

@@ -1,7 +1,8 @@
 import { HEROES } from '../data/heroes';
 import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
-import type { Cell, Debuff, Fight, FightEvent, Unit } from './types';
+import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
+import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
 
 /** 한 틱 = 0.05초 */
 export const DT = 0.05;
@@ -47,8 +48,10 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     crit = f.rng() < f.gear.crit;
     if (crit) amt *= 1.5;
   }
+  if (u.mods.length) amt *= healMods(f, u); // 광란 (받는 치유 +30%), 얼음 방패 (치유 없음)
   const eff = Math.min(amt, u.max - u.hp);
   u.hp += eff;
+  u.got += eff;
   f.stats.healed += eff;
   f.stats.overheal += amt - eff;
   if (direct) {
@@ -68,6 +71,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
   if (u.shield > 0) amt *= 0.6;
   if (u.bulwark > 0) amt *= 1 - BULWARK.cut;
   if (u.redu > 0) amt *= 1 - u.reduCut;
+  if (f.abOn) { amt = dmgMods(f, u, amt, magic); if (amt < 0) return; } // 파티원 능력 (17)
   if (u.immune > 0 && !magic) return; // 보호의 손: 물리 피해 무시 (25 성기사)
   if (u.sacr > 0 && f.me.alive && f.me !== u) { // 희생: 받는 피해의 30%를 내가 대신
     const part = amt * SACRIFICE_CUT;
@@ -88,6 +92,10 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
       return;
     }
   }
+  if (u.ab) {
+    if (u.hp - amt <= 0 && u.guardian <= 0 && abLethal(f, u)) return; // 얼음 방패
+    abHurt(f, u); // 거합 반격
+  }
   u.hp -= amt;
   if (amt > u.max * 0.15) u.flash = 0.35;
   if (u.hp <= 0) {
@@ -102,6 +110,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
     if (u.moving) { const to = f.cells[u.moving.to]; if (to.unit === u) to.unit = null; }
     { const here = f.cells[u.cell]; if (here.unit === u) here.unit = null; }
     u.alive = false; u.hp = 0; u.debuffs = []; u.hot = 0; u.hots = []; u.echo = []; u.moving = null; u.react = null; u.shield = 0; u.redu = 0; u.sacr = 0; u.immune = 0; u.diedAt = f.t;
+    if (u.mods.length) { u.mods = []; u.max = u.base; }
     if (u.max < u.base) u.max = u.base;
     f.stats.deaths++;
     if (!u.me && f.tx.on.grief) f.tx.griefUntil = f.t + 5; // 슬픔의 힘
@@ -112,6 +121,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
 
 export function addDebuff(f: Fight, u: Unit, d: Omit<Debuff, 'id'>): Debuff {
   const o: Debuff = { id: f.nextId++, ...d };
+  if (u.mods.length && blocksDebuff(f, u, o.type)) return o; // 주문 반사·그림자 망토: 안 걸림
   u.debuffs.push(o);
   if (HEROES[f.hero].dispel.includes(o.type) && !o.trap) f.stats.dispellable++;
   emit(f, { type: 'debuff', id: u.id, dtype: o.type });
@@ -146,4 +156,16 @@ export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): v
     for (const v of living(f)) if (cellOf(f, v).col === col) damage(f, v, 200, true);
     emit(f, { type: 'msg', text: `독창: ${u.nick} 줄 전체 피해` });
   }
+}
+
+/** 보스가 아닌 적(또는 보스 몸통)에 피해. 쓰러지면 시전 중이던 기술도 끊김. 적 체력 합을 다시 셈 */
+export function damageMob(f: Fight, m: Mob, x: number): void {
+  if (!m.alive || x <= 0) return;
+  m.hp -= x;
+  if (m.hp <= 1e-9) {
+    m.hp = 0; m.alive = false;
+    f.tels = f.tels.filter(t => t.skill.mob !== m.id);
+    emit(f, { type: 'mobDown', id: m.id, name: m.name });
+  }
+  f.bossHp = f.mobs.reduce((s, q) => s + q.hp, 0);
 }

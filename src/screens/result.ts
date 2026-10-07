@@ -3,6 +3,7 @@ import { contentOf } from '../data/content';
 import { GRADE_STYLE, slotName, type GearItem } from '../data/equipment';
 import { GRADE } from '../data/gear';
 import { SETS } from '../data/sets';
+import { CLASSES } from '../data/classes';
 import { HEROES } from '../data/heroes';
 import { lvPower, MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { Flow, newSeed } from '../game/flow';
@@ -75,6 +76,14 @@ function itemCard(it: GearItem): string {
   </div>`;
 }
 
+/** 길드원 경험치·인연 스카우트 (02 9장) */
+function guildLines(gd: NonNullable<typeof Flow.settle>['guild']): string {
+  if (!gd) return '';
+  const ms = gd.members.length ? `<div><dt>길드원</dt><dd>${gd.members.map(m => `${esc(m.nick)} +${fmt(m.xp)}${m.ups.length ? ` <em class="lvup">Lv ${m.ups[m.ups.length - 1]}</em>` : ''}`).join(' · ')}${gd.fame ? ` · 명성 +${gd.fame}` : ''}</dd></div>` : '';
+  const sc = gd.scout ? `<p class="coachtip">인연: <b>${esc(gd.scout.nick)}</b>(${CLASSES[gd.scout.cls].name}) 호감도 최대 · 길드 → 영입 → 인연 스카우트</p>` : '';
+  return (ms ? `<dl class="metrics">${ms}</dl>` : '') + sc;
+}
+
 /** 직업 퀘스트 한 줄 (25 5-4) */
 function heroQuestLine(q: NonNullable<typeof Flow.settle>['heroQuest']): string {
   if (!q) return '';
@@ -102,6 +111,7 @@ function renderReward(): void {
         <div><dt>경험치</dt><dd>+${fmt(x.xp)}${x.levelUps.length ? ` <em class="lvup">레벨 업! Lv ${x.levelBefore} → ${p.level}</em>` : ''}</dd></div>
       </dl>
       ${heroQuestLine(x.heroQuest)}
+      ${guildLines(x.guild)}
       <div class="xpbar" aria-label="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100}%"></i><span>Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}</span></div>
     </div>
     <footer class="ns-foot row3">

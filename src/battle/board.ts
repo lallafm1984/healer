@@ -252,7 +252,7 @@ function glow(x: number, y: number, size: number, tint: number, alpha: number): 
 
 // ---------- 판 위 효과 ----------
 interface Fx { kind: 'heal' | 'hit' | 'dispel' | 'death' | 'revive'; id: number; t0: number; crit?: boolean; color?: number; seeds?: number[]; x?: number; y?: number }
-interface Float { x: number; y: number; text: string; crit: boolean; over: boolean; t0: number; n: number }
+interface Float { x: number; y: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean }
 interface Bubble { id: number; text: string; t0: number }
 const FX_MS = 400;
 const B2 = {
@@ -277,6 +277,18 @@ export function fxRevive(u: Unit, now: number): void {
   B2.floats.push({ x: p.x, y: p.y - L.s * 0.3, text: '부활', crit: true, over: false, t0: now, n: B2.n++ });
   B2.hitFx[u.id] = now;
   B2.fx.push({ kind: 'revive', id: u.id, t0: now });
+}
+/** 파티원 능력 회복: 연두색 + 작은 십자 (내 힐과 구분, 17 7장) */
+export function fxAllyHeal(u: Unit, amt: number, now: number): void {
+  if (!L.ok || amt < 1 || B2.floats.length >= 40) return;
+  const p = unitPos(u);
+  B2.floats.push({ x: p.x + L.s * 0.25, y: p.y - L.s * 0.1, text: `✚${amt}`, crit: false, over: false, t0: now, n: B2.n++, fill: 0xc8f07a });
+}
+/** 파티원 능력 사용: 칸 위에 능력 이름 (17 7장) */
+export function fxAbility(u: Unit, name: string, now: number): void {
+  if (!L.ok || B2.floats.length >= 40) return;
+  const p = unitPos(u);
+  B2.floats.push({ x: p.x, y: p.y - L.s * 0.55, text: name, crit: false, over: false, t0: now, n: B2.n++, fill: C.gold, label: true });
 }
 export function fxDispel(u: Unit, now: number): void { B2.fx.push({ kind: 'dispel', id: u.id, t0: now }); }
 export function fxDeath(u: Unit, now: number): void { if (!L.ok) return; const p = unitPos(u); B2.fx.push({ kind: 'death', id: u.id, t0: now, color: hex(ROLE[u.role].color), x: p.x, y: p.y }); }
@@ -506,8 +518,8 @@ export function render(now: number): void {
   B2.floats = B2.floats.filter(fl => now - fl.t0 < 900);
   for (const fl of B2.floats) {
     const k = (now - fl.t0) / 900;
-    const size = fl.crit ? fs(0.36, 14) : fl.over ? fs(0.22, 10) : fs(0.27, 11);
-    tops.put(`fl${fl.n}`, fl.text, { size, fill: fl.crit ? C.crit : fl.over ? C.over : C.heal, strokeW: 3, num: true }, fl.x, fl.y - k * s * 0.6, 1 - k * k, 1);
+    const size = fl.label ? fs(0.22, 10) : fl.crit ? fs(0.36, 14) : fl.over || fl.fill ? fs(0.22, 10) : fs(0.27, 11);
+    tops.put(`fl${fl.n}`, fl.text, { size, fill: fl.fill ?? (fl.crit ? C.crit : fl.over ? C.over : C.heal), strokeW: 3, num: !fl.fill }, fl.x, fl.y - k * s * (fl.label ? 0.3 : 0.6), 1 - k * k, 1);
   }
   // 쓸기 방향 미리보기
   if (ui.pointer && ui.pointer.dir && ui.pointer.idx >= 0) {

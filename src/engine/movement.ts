@@ -1,5 +1,6 @@
 import { hexDist } from './board';
 import { bark, cellOf, living } from './core';
+import { abMoved, dodgeMods, moveMods, reactMods } from './abilities';
 import type { Cell, Fight, Role, Telegraph, Unit, Zone } from './types';
 
 export type Zone3 = 'front' | 'mid' | 'back';
@@ -68,6 +69,7 @@ export function moveTo(f: Fight, u: Unit, c: Cell | null): boolean {
   const from = cellOf(f, u);
   let time = 0.4 * Math.max(1, hexDist(from, c));
   if (u.cls === 'rogue') time *= 0.75;
+  if (u.mods.length) time *= moveMods(u); // 치타의 상·돌진
   c.unit = u;
   u.moving = { from: from.i, to: c.i, left: time, total: time };
   return true;
@@ -78,6 +80,7 @@ export function finishMove(f: Fight, u: Unit): void {
   f.cells[m.from].unit = null;
   u.cell = m.to;
   u.moving = null;
+  if (u.ab) abMoved(f, u); // 연발 사격
 }
 
 /** 장판 예고에 대한 반응 예약 */
@@ -88,6 +91,8 @@ export function scheduleReactions(f: Fight, tel: Telegraph): void {
     let rt = 0.8 * f.diff.react * (u.p.react || 1);
     if (u.me) rt = 0.6 * f.diff.react;
     else if (u.cls === 'mage') rt += 0.2;
+    rt *= u.senseReact; // 눈치 자질 (17 9-1)
+    if (u.mods.length) rt *= reactMods(u); // 기합·매의 눈
     if (inZ) {
       let at = f.t + rt;
       if (u.p.greedy) at = Math.max(at, tel.impact - 0.3);
@@ -107,6 +112,16 @@ export function zoneThreat(f: Fight, tel: Telegraph | Zone): number {
 const calmDodge = (f: Fight): number => (f.tx.on.calmHymn && f.channel > 0 ? 0.15 : 0);
 
 export function dodgeRate(f: Fight, u: Unit): number {
+  if (u.mods.length || u.senseDodge) {
+    const m = dodgeMods(u);
+    if (m >= 1) return 1; // 연막탄
+    const base = dodgeBase(f, u);
+    return Math.max(0.05, Math.min(0.98, base + m + u.senseDodge));
+  }
+  return dodgeBase(f, u);
+}
+
+function dodgeBase(f: Fight, u: Unit): number {
   if (u.cls === 'rogue') return Math.max(0.05, Math.min(0.98, f.diff.dodge + (u.p.dodge || 0) + 0.08 + calmDodge(f)));
   return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0) + calmDodge(f)));
 }

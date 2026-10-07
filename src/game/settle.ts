@@ -11,6 +11,8 @@ import type { MeterRow } from './meter';
 import { addXp, clearGold, clearXp, gradeOf, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
+import { guildAfter, type GuildAfter } from './guild';
+import type { RosterEntry } from '../engine/types';
 
 /** 전투 화면이 끝날 때 넘겨주는 결과 (던전이면 구간 전체 합) */
 export interface BattleResult {
@@ -34,7 +36,8 @@ export interface BattleResult {
   endMana: number;
   minMana: number;
   auto: boolean;
-  party: { nick: string; pers: PersName | null; role: string; alive: boolean }[];
+  /** got = 내 힐로 회복한 양 (인연 스카우트), gid = 길드원 id */
+  party: { nick: string; pers: PersName | null; role: string; alive: boolean; got?: number; gid?: number }[];
   /** 자세히 보기 (프로토타입 결과표) */
   detail: [string, string][];
   /** 딜미터기 (구간 전체 합) */
@@ -59,6 +62,8 @@ export interface Settlement {
   best: boolean;
   /** 직업 퀘스트 진행 (25 5-4): 그 판으로 퀘스트가 오른 직업, 다 채우면 unlocked */
   heroQuest: { hero: HeroKey; n: number; need: number; unlocked: boolean } | null;
+  /** 길드원 경험치·인연 스카우트 (02 9장) */
+  guild: GuildAfter | null;
 }
 
 /** 이긴 판을 지금 직업 기록에 더하고 (숙련도, 25 4-3), 직업 퀘스트 조건에 맞으면 한 칸 채움. 다 채우면 해금 */
@@ -74,7 +79,8 @@ export function heroWin(save: SaveData, kind: string, content: string, diff: Dif
   return { hero: h, n: hs.quest, need: q.need, unlocked: hs.unlocked };
 }
 
-export function settle(save: SaveData, r: BattleResult, rng: () => number): Settlement {
+/** roster = 전투에 넘긴 편성 (길드원 경험치·인연 스카우트). 없으면 길드 정산 안 함 */
+export function settle(save: SaveData, r: BattleResult, rng: () => number, roster: RosterEntry[] = []): Settlement {
   const c = contentOf(r.content);
   const p = save.player;
   const tot = r.healed + r.overheal;
@@ -113,6 +119,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number): Sett
   }
 
   const heroQuest = r.win ? heroWin(save, c.kind, c.key, r.diff) : null;
+  const guild = roster.length && save.tut >= TUT.done ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.name, party: r.party, roster }) : null;
 
   // 파티원 한마디는 넣지 않음 (Lim: 결과 채팅 연출 뺌)
   if (!r.quit) save.last = { content: r.content, diff: r.diff, win: r.win, grade };
@@ -120,6 +127,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number): Sett
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    gold, xp, levelBefore, levelUps, item, mats, first, best, heroQuest,
+    gold, xp, levelBefore, levelUps, item, mats, first, best, heroQuest, guild,
   };
 }

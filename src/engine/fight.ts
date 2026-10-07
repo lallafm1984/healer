@@ -16,7 +16,10 @@ import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { rngFrom } from './rng';
 import { unitDps, unitTick } from './units';
 import { NO_SET_FX } from '../data/sets';
+import { APT, aptIdx } from '../data/guild';
+import { rollAbility } from '../data/abilities';
 import { newTalents } from './talents';
+import { abTick, giveAb } from './abilities';
 import type { Cell, Fight, FightConfig, FightResult, Role, RosterEntry, TalentState, Unit } from './types';
 
 /** 전투 만들기 */
@@ -46,6 +49,7 @@ export function create(cfg: FightConfig): Fight {
     hero: cfg.hero ?? 'priest', power3: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null,
     tx: null as unknown as TalentState, // 아래 newTalents
     fx: { ...NO_SET_FX, ...cfg.setFx },
+    abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null },
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
     enraged: false, rats: [],
     items: {}, potCd: 0, medit: 0, itemLog: [],
@@ -94,7 +98,7 @@ export function rollParty(encKey: EncounterKey, seed: number): RosterEntry[] {
  * 같은 직업은 5인 1명 · 10인 2명 · 20인 3명까지 (자리가 모자라면 가장 적은 직업부터 더 넣음).
  * 직업은 따로 굴린 난수로 정해서 rollParty 결과(프로토타입과 같음)는 그대로 둔다.
  */
-export function recruitParty(encKey: EncounterKey, seed: number): RosterEntry[] {
+export function recruitParty(encKey: EncounterKey, seed: number, opts: { abilities?: boolean } = {}): RosterEntry[] {
   const list = rollParty(encKey, seed);
   const rng = rngFrom(Math.imul(seed, 0x9e3779b1) ^ 0x85ebca6b);
   const max = sameClassMax(list.length + 1);
@@ -112,28 +116,35 @@ export function recruitParty(encKey: EncounterKey, seed: number): RosterEntry[] 
     const t = (Object.keys(TRAITS) as TraitKey[]).filter(k => TRAITS[k].roles.includes(m.role));
     if (t.length && rng() < TRAIT_CHANCE) m.traits = [t[Math.floor(rng() * t.length)]];
   }
+  // 특수 능력 1개 (17 3장): 특성까지 뽑은 뒤 같은 난수로 (직업·특성 결과는 그대로). 튜토리얼 파티는 능력 없음
+  if (opts.abilities) for (const m of list) m.ab = rollAbility(m.cls!, rng);
   return list;
 }
 
 function makeParty(f: Fight, roster?: RosterEntry[]): void {
   const mult = f.mythic ? MYTHIC.party : 1;
   const units: Unit[] = [];
-  const add = (role: Role, pers: PersName | null, nick: string, cls?: ClassKey, traits?: TraitKey[]): Unit => {
+  const add = (role: Role, pers: PersName | null, nick: string, cls?: ClassKey, traits?: TraitKey[], r?: RosterEntry): Unit => {
     const c = cls ? CLASSES[cls] : null;
-    const lv = role === 'healer' ? f.power : f.scale;
-    const base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;
-    const dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult * f.scale;
+    // 길드원은 자기 레벨 배율, 공개모집은 콘텐츠 단계 배율. 자질 공격·맷집 (17 9-1)
+    const own = r?.lv ? lvPower(r.lv) : f.scale;
+    const lv = role === 'healer' ? f.power : own;
+    const apt = r?.apt;
+    let base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;
+    let dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult * own;
+    if (apt) { base *= APT.tough[aptIdx(apt[1])]; dps *= APT.atk[aptIdx(apt[0])]; }
     const u: Unit = {
       id: f.nextId++, role, cls: c ? c.key : null, aim: 0, flow: 0, traits: (traits || []).filter(k => TRAITS[k]), bulwark: 0, bulwarkUsed: false, acc: 0, dealt: 0, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
       cell: -1, home: -1, hot: 0, hotTick: 0, hots: [], redu: 0, reduCut: 0, sacr: 0, immune: 0, echo: [], guardian: 0, shield: 0, debuffs: [], moving: null, react: null,
       retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0, thanks: 0, flash: 0,
       barkAt: -10, ignoreZone: 0, homeAt: null, diedAt: 0, me: role === 'healer',
+      ab: null, mods: [], got: 0, senseReact: apt ? APT.react[aptIdx(apt[2])] : 1, senseDodge: apt ? APT.dodge[aptIdx(apt[2])] : 0, gid: r?.gid,
     };
     units.push(u);
     return u;
   };
   const roles = roster || rollParty(f.enc.key, f.cfg.seed || 1);
-  roles.forEach(r => add(r.role, r.pers, r.nick, r.cls, r.traits));
+  roles.forEach(r => { const u = add(r.role, r.pers, r.nick, r.cls, r.traits, r); if (r.ab) giveAb(f, u, r.ab, r.star); });
   add('healer', null, '나');
   f.party = units;
   f.me = units[units.length - 1];
@@ -162,6 +173,7 @@ export function step(f: Fight): void {
   f.t += DT; f.k++;
   healerTick(f);
   for (const u of f.party) unitTick(f, u);
+  if (f.abOn) abTick(f);
   tankWatch(f);
   bossTick(f);
   partyHits(f);

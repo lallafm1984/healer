@@ -45,7 +45,7 @@ export function mountTabs(nav: HTMLElement): void {
     nav.innerHTML = TABS.map(t => {
       const locked = t.lv && G.save.player.level < t.lv;
       const tl = tutLocked(t.key);
-      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${tl ? ' class="tlock" aria-disabled="true"' : ''}>${t.name}<small>${tl ? '🔒' : locked ? `🔒 Lv ${t.lv}` : t.key === 'battle' || t.key === 'char' ? '' : t.phase}</small></button>`;
+      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${tl ? ' class="tlock" aria-disabled="true"' : ''}>${t.name}<small>${tl ? '🔒' : locked ? `🔒 Lv ${t.lv}` : t.key === 'battle' || t.key === 'char' || t.key === 'guild' ? '' : t.phase}</small></button>`;
     }).join('');
   };
   nav.addEventListener('click', e => {
@@ -54,6 +54,7 @@ export function mountTabs(nav: HTMLElement): void {
     const k = b.dataset.tab as TabKey;
     if (k === 'battle') go('s-lobby');
     else if (k === 'char') go('s-char');
+    else if (k === 'guild') go('s-guild');
     else go('s-tab', k);
   });
   setTabsHandler(t => {
