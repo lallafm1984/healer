@@ -4,7 +4,7 @@
  */
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
-import { ENCOUNTERS, type EncounterKey } from '../src/data/encounters';
+import { ENCOUNTERS, PROTO_ENCOUNTERS } from '../src/data/encounters';
 import type { GearId } from '../src/data/gear';
 import type { ItemKey } from '../src/data/items';
 import type { SkillKey } from '../src/data/skills';
@@ -35,7 +35,7 @@ function snapTs(f: Fight) {
 }
 
 const GEARS: GearId[] = ['none', 'adv0', 'rare5', 'epic5'];
-const CASES = (Object.keys(ENCOUNTERS) as EncounterKey[]).flatMap(enc => ENCOUNTERS[enc].diffs.map(diff => ({ enc, diff })));
+const CASES = PROTO_ENCOUNTERS.flatMap(enc => ENCOUNTERS[enc].diffs.map(diff => ({ enc, diff })));
 
 describe('자동 힐러 한 판 결과가 프로토타입과 같음', () => {
   for (const { enc, diff } of CASES) {
@@ -89,6 +89,6 @@ describe('사람 입력(탭·휠·아이템)을 섞어도 틱마다 같음', () 
 
 describe('공개모집 파티 뽑기가 같음', () => {
   it('시드 1~200', () => {
-    for (const enc of Object.keys(ENCOUNTERS) as EncounterKey[]) for (let s = 1; s <= 200; s++) expect(E.rollParty(enc, s)).toEqual(P.rollParty(enc, s));
+    for (const enc of PROTO_ENCOUNTERS) for (let s = 1; s <= 200; s++) expect(E.rollParty(enc, s)).toEqual(P.rollParty(enc, s));
   });
 });

@@ -14,6 +14,7 @@ export default async function legacyUi(url, shots) {
   await page.clock.install();
   await page.goto(url);
   await page.clock.runFor(300);
+  await page.click('#encList [data-enc="warden"]'); // 메뉴 기본은 던전(녹슨 요새). 이 테스트는 보스 한 판
 
   // ---- 메뉴 ----
   ok(await page.locator('#boardChips').count() === 0, '세로형 판 선택지 없음');
@@ -28,6 +29,7 @@ export default async function legacyUi(url, shots) {
   ok(sel === 'mana,life,cleanse,shield', `깃털 빼고 보호 넣기 → ${sel}`);
   ok(/독침/.test(await page.textContent('#itemNote')) === false && /탱커 강타/.test(await page.textContent('#itemNote')), '녹슨 문지기 궁합 힌트');
   await page.reload(); await page.clock.runFor(300);
+  await page.click('#encList [data-enc="warden"]');
   const sel2 = await ev(() => [...document.querySelectorAll('#itemChips [aria-pressed="true"]')].map(b => b.dataset.item).join());
   ok(sel2 === 'mana,life,cleanse,shield', `다시 열어도 기억 (${sel2})`);
   await page.screenshot({ path: `${shots}/v6_menu_items.png`, fullPage: false });

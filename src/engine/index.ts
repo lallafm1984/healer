@@ -9,3 +9,4 @@ export { itemReady, reviveTarget, useItem } from './items';
 export { rngFrom } from './rng';
 export { partyDps } from './units';
 export type * from './types';
+export { restCarry, segmentConfig, simulateDungeon, type DungeonResult, type DungeonRunConfig } from './dungeon';

@@ -1,8 +1,8 @@
-import type { ScriptKey } from '../data/encounters';
+import type { MobAttack, ScriptKey } from '../data/encounters';
 import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, living, randomTargets, spread, unitById } from './core';
 import { scheduleReactions } from './movement';
-import type { BossSkill, Fight, TelKind, Telegraph, Unit } from './types';
+import type { BossSkill, Fight, Mob, TelKind, Telegraph, Unit } from './types';
 
 type SkillSpec = Omit<BossSkill, 'active'> & { active?: BossSkill['active'] };
 
@@ -21,8 +21,66 @@ interface BossScript {
   update(f: Fight): void;
 }
 
-/** 보스 기술 스크립트 (05) */
+/** 광폭화: 시각이 되면 짧은 주기 광역 */
+function enrageAt(f: Fight, name: string, period: number, dmg: number): void {
+  if (f.enraged || f.t < f.enc.enrage) return;
+  f.enraged = true; emit(f, { type: 'phase', text: '광폭화' });
+  skill(f, { key: 'enrage', name, icon: '광폭', kind: 'aoe', next: f.t, period, cast: 1, hit(f) { for (const u of living(f)) damage(f, u, dmg); } });
+}
+
+/** 잡몹 공격 대상 */
+function mobTargets(f: Fight, to: MobAttack['to']): Unit[] {
+  if (to === 'tank') { const tk = tankTarget(f); return tk ? [tk] : randomTargets(f, 1); }
+  if (to === 'other') { const t = randomTargets(f, 1, u => u.role !== 'tank'); return t.length ? t : randomTargets(f, 1); }
+  return living(f);
+}
+
+/** 보스 기술 스크립트 (05, 23) */
 const SCRIPTS: Record<ScriptKey, BossScript> = {
+  // 고철 경비병 (23 3장): 문지기를 순하게 줄인 첫 보스. 탱커 버스터 + 광역만
+  scrap: {
+    init(f) {
+      f.phaseName = '';
+      skill(f, { key: 'auto', hidden: true, next: 2, period: 2, cast: 0, fire(f) { const tk = tankTarget(f); if (tk) damage(f, tk, 75 * (0.7 + 0.6 * f.rng())); } });
+      skill(f, {
+        key: 'buster', name: '고철 휘두르기', icon: '휘두', kind: 'buster', next: 10, period: 16, cast: 2, warn: 'buster', dmg: 450,
+        target(f) { const tk = tankTarget(f); return tk ? [tk.id] : []; },
+        hit(f, tel) { for (const id of tel.units) { const u = unitById(f, id); if (u) damage(f, u, tel.skill.dmg!); } },
+      });
+      skill(f, {
+        key: 'aoe', name: '쇳조각 비', icon: '쇳조', kind: 'aoe', next: 20, period: 22, cast: 3, warn: 'aoe',
+        hit(f) { for (const u of living(f)) damage(f, u, 170); },
+      });
+    },
+    update(f) { enrageAt(f, '고철 폭주', 2, 150); },
+  },
+  // 잡몹 구간 (23 2장): 잡몹마다 공격을 따로 돌리고, 쓰러지면 그 잡몹 기술은 멈춘다
+  trash: {
+    init(f) {
+      f.phaseName = '';
+      const scale = f.bossMax / f.enc.hp;
+      for (const def of f.enc.mobs!) for (let i = 0; i < def.count; i++) {
+        const m: Mob = { id: f.nextId++, name: def.name, hp: def.hp * scale, max: def.hp * scale, alive: true };
+        f.mobs.push(m);
+        for (const a of def.attacks) {
+          const tel = a.cast > 0;
+          skill(f, {
+            key: `${a.key}${m.id}`, mob: m.id, name: a.name, icon: a.icon, kind: a.kind, hidden: !tel,
+            // 같은 잡몹 여럿이 한 틱에 같이 때리지 않게 조금씩 어긋나게
+            next: a.first + i * 0.7, period: a.period, cast: a.cast, warn: tel ? a.kind : undefined,
+            active: f => f.mobs.some(x => x.id === m.id && x.alive),
+            target: a.to === 'all' ? undefined : f => mobTargets(f, a.to).map(u => u.id),
+            fire(f) { for (const u of mobTargets(f, a.to)) damage(f, u, a.dmg * (1 - (a.jitter || 0) + 2 * (a.jitter || 0) * f.rng())); },
+            hit(f, tel) {
+              const us = a.to === 'all' ? living(f) : tel.units.map(id => unitById(f, id)).filter((u): u is Unit => !!u);
+              for (const u of us) damage(f, u, a.dmg);
+            },
+          });
+        }
+      }
+    },
+    update() { /* 잡몹 구간은 광폭화 없음 */ },
+  },
   warden: {
     init(f) {
       f.phaseName = '';
@@ -57,10 +115,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
     update(f) {
       const zs = f.zoneSkill!;
       if (zs.next === Infinity && f.bossHp <= f.bossMax * 0.4) { zs.next = f.t + 3; emit(f, { type: 'phase', text: '녹이 흘러내린다' }); }
-      if (!f.enraged && f.t >= f.enc.enrage) {
-        f.enraged = true; emit(f, { type: 'phase', text: '광폭화' });
-        skill(f, { key: 'enrage', name: '증기 폭주', icon: '광폭', kind: 'aoe', next: f.t, period: 2, cast: 1, hit(f) { for (const u of living(f)) damage(f, u, 220); } });
-      }
+      enrageAt(f, '증기 폭주', 2, 220);
     },
   },
   plague: {
@@ -132,10 +187,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
         f.phase = 3; f.phaseName = '3페이즈'; f.storm!.next = f.t + 1;
         emit(f, { type: 'phase', text: '3페이즈: 역병 폭풍이 판 바깥쪽을 번갈아 덮어요' });
       }
-      if (!f.enraged && f.t >= f.enc.enrage) {
-        f.enraged = true; emit(f, { type: 'phase', text: '광폭화' });
-        skill(f, { key: 'enrage', name: '역병 폭주', icon: '광폭', kind: 'aoe', next: f.t, period: 3, cast: 1, hit(f) { for (const u of living(f)) damage(f, u, 180); } });
-      }
+      enrageAt(f, '역병 폭주', 3, 180);
     },
   },
 };

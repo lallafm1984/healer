@@ -98,6 +98,8 @@ export type TelKind = 'buster' | 'aoe' | 'zone' | 'instant';
 
 export interface BossSkill {
   key: string;
+  /** 잡몹 기술이면 그 잡몹 id (쓰러지면 멈춤) */
+  mob?: number;
   name?: string;
   icon?: string;
   kind?: TelKind;
@@ -151,6 +153,7 @@ export type FightEvent =
   | { type: 'revive'; id: number }
   | { type: 'item'; key: ItemKey; note: string }
   | { type: 'dps'; amt: number }
+  | { type: 'mobDown'; id: number; name: string }
   | { type: 'over'; result: FightResult };
 
 export type FightResult = 'win' | 'lose';
@@ -165,6 +168,23 @@ export interface FightConfig {
   party?: RosterEntry[];
   /** 단축칸 (최대 4개) */
   items?: ItemKey[];
+  /** 던전 앞 구간에서 이어받는 것 (23 4장) */
+  carry?: Carry;
+}
+
+/** 던전 구간 사이에 이어지는 것: 마나(휴식 회복 뒤), 성언 게이지 */
+export interface Carry {
+  mana: number;
+  g: { p: number; s: number };
+}
+
+/** 잡몹 (23) */
+export interface Mob {
+  id: number;
+  name: string;
+  hp: number;
+  max: number;
+  alive: boolean;
 }
 
 export interface Cast {
@@ -211,7 +231,10 @@ export interface Fight {
   reason: string;
   dmgMult: number;
   bossMax: number;
+  /** 잡몹 구간은 남은 잡몹 체력 합 */
   bossHp: number;
+  /** 잡몹 구간이면 잡을 차례대로 */
+  mobs: Mob[];
   mana: number;
   gcd: number;
   gcdBase: number;

@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import appShell from '../tests/e2e/app-shell.mjs';
+import dungeon from '../tests/e2e/dungeon.mjs';
 import legacyUi from '../tests/e2e/legacy-ui.mjs';
 
 const PORT = 4179;
@@ -19,7 +20,7 @@ if (!up) { server.kill(); console.error('preview 서버가 안 떴어요'); proc
 
 let fails = 0, errors = 0;
 try {
-  for (const [name, run] of [['앱 틀', appShell], ['임시 전투 화면', legacyUi]]) {
+  for (const [name, run] of [['앱 틀', appShell], ['임시 전투 화면', legacyUi], ['던전 흐름', dungeon]]) {
     console.log(`\n== ${name} ==`);
     const r = await run(url, shots);
     fails += r.fails; errors += r.errs.length;

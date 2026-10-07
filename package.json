@@ -11,7 +11,8 @@
     "test": "vitest run",
     "e2e": "node scripts/e2e.mjs",
     "check": "npm run test && npm run build && npm run e2e",
-    "android": "npm run build && cap sync android"
+    "android": "npm run build && cap sync android",
+    "sim:dungeon": "rolldown scripts/sim-dungeon.ts --platform node --format esm -o .sim/sim-dungeon.mjs && node .sim/sim-dungeon.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2",

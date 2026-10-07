@@ -23,7 +23,7 @@
     </header>
 
     <div class="group">
-      <h2>보스 <small>공개모집 파티로 입장</small></h2>
+      <h2>던전·보스 <small>공개모집 파티로 입장</small></h2>
       <div class="enc-list" id="encList"></div>
     </div>
 
@@ -94,6 +94,22 @@
     <footer class="gd-foot">
       <button class="btn" id="guideBack" type="button">뒤로</button>
       <button class="btn primary" id="guideGo" type="button">전투 시작</button>
+    </footer>
+  </section>
+
+  <section id="rest" class="screen" hidden aria-label="휴식">
+    <div class="gd-scroll" id="restBody">
+      <header class="rest-head">
+        <h1>휴식</h1>
+        <p id="restSub"></p>
+        <ol class="rest-steps" id="restSteps"></ol>
+        <div class="rest-mana"><span>마나</span><div class="rbar"><div id="restFill"></div></div><b id="restPct"></b></div>
+        <p class="note" id="restNote"></p>
+      </header>
+      <div id="restGuide"></div>
+    </div>
+    <footer class="gd-foot rest-foot">
+      <button class="btn primary" id="restGo" type="button">계속</button>
     </footer>
   </section>
 

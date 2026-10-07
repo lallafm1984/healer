@@ -269,3 +269,17 @@ textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertic
 .ichip svg { width: 20px; height: 20px; flex: none; }
 #tip .iic svg { width: 22px; height: 22px; display: block; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }
+
+/* 던전 구간 사이 휴식 (09 S07, 23 4장) */
+#restBody { padding: 16px 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.rest-head h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 32px; color: var(--gold-hi); text-align: center; }
+.rest-head p { margin: 4px 0 0; text-align: center; color: var(--mute); font-size: 13px; }
+.rest-steps { list-style: none; display: flex; justify-content: center; gap: 6px; margin: 10px 0 0; padding: 0; flex-wrap: wrap; }
+.rest-steps li { font-size: 12px; padding: 3px 8px; border-radius: 999px; border: 2px solid var(--line); background: var(--panel); color: var(--mute); }
+.rest-steps li.done { color: var(--ink); border-color: var(--gold); }
+.rest-steps li.next { color: #1A1308; background: var(--gold-hi); border-color: var(--gold-hi); }
+.rest-mana { display: grid; grid-template-columns: auto 1fr 44px; gap: 8px; align-items: center; margin-top: 12px; font-size: 13px; }
+.rest-mana .rbar { height: 14px; border-radius: 7px; background: #0E0F1C; border: 2px solid var(--line); overflow: hidden; }
+#restFill { height: 100%; width: 0; background: linear-gradient(90deg, #2F6FD6, #5FA8FF); }
+.rest-mana b { text-align: right; font-variant-numeric: tabular-nums; }
+.rest-foot { grid-template-columns: 1fr; }

@@ -9,7 +9,7 @@
     healer: { name: '나', color: '#E9E1C6' },
   };
   const DEB = { '질병': '#D9A13B', '독': '#3CC24A', '마법': '#3D8BFF', '저주': '#A050E0' };
-  const ICON_COLOR = { '숨결': '#D9A13B', '독침': '#3CC24A', '전염': '#D9A13B', '찍기': '#FF6B57', '증기': '#FF9F43', '파동': '#FF9F43', '장판': '#E0664F', '쥐떼': '#B9A38A', '폭풍': '#E0664F', '광폭': '#FF4A3D' };
+  const ICON_COLOR = { '숨결': '#D9A13B', '독침': '#3CC24A', '전염': '#D9A13B', '찍기': '#FF6B57', '증기': '#FF9F43', '파동': '#FF9F43', '장판': '#E0664F', '쥐떼': '#B9A38A', '폭풍': '#E0664F', '광폭': '#FF4A3D', '휘두': '#FF6B57', '쇳조': '#FF9F43' };
   // 8방향 스킬 배치 (2026-10-07 Lim): 칸에서 이 방향으로 쓸면 그 스킬. 기본은 위 = 정화(02 4-1), 로비 「스킬 배치」에서 바꿀 수 있음
   const GRID = ['NW', 'N', 'NE', 'W', null, 'E', 'SW', 'S', 'SE'];
   const ARROW = { NW: '↖', N: '↑', NE: '↗', W: '←', E: '→', SW: '↙', S: '↓', SE: '↘' };
@@ -51,7 +51,7 @@
   const DEFAULT_GEAR = { '쉬움': 'none', '보통': 'none', '어려움': 'adv0', '악몽': 'rare5' };
   const GEAR_RANK = { none: 0, adv0: 1, rare5: 2, epic5: 3 };
 
-  const S = { enc: 'warden', diff: '보통', gear: 'none', partySeed: seed(), party: null, sound: true, vibe: true, auto: false, tapKey: 'heal', hand: 'right', zoom: true, layout: null, layoutPick: null, items: null };
+  const S = { enc: 'rustfort', diff: '보통', gear: 'none', partySeed: seed(), party: null, sound: true, vibe: true, auto: false, tapKey: 'heal', hand: 'right', zoom: true, layout: null, layoutPick: null, items: null };
   S.layout = loadLayout(); applyLayout();
   let F = null, armed = null, paused = false, overShown = false;
   const ui = { floats: [], bubbles: [], pointer: null, lastHealSnd: 0, tickSec: null, runRef: null, ratings: {}, touchSeen: false, lowFlags: {}, lastLowVibe: 0, layout: null, qAt: 0,
@@ -150,7 +150,7 @@
 
   // ---------- 보스 그림 (임시) ----------
   function bossSvg(script) {
-    if (script === 'warden') return `<svg viewBox="0 0 100 100" aria-hidden="true"><g stroke="#0E0E15" stroke-width="4" stroke-linejoin="round"><rect x="6" y="46" width="16" height="34" rx="6" fill="#7E4426"/><rect x="78" y="46" width="16" height="34" rx="6" fill="#7E4426"/><rect x="14" y="40" width="72" height="52" rx="10" fill="#9C5A33"/><rect x="28" y="10" width="44" height="34" rx="8" fill="#B5683A"/><path d="M40 60h20v16H40z" fill="#6E3A20" stroke-width="3"/></g><rect x="35" y="22" width="11" height="7" rx="2" fill="#FFB347"/><rect x="54" y="22" width="11" height="7" rx="2" fill="#FFB347"/><g fill="#5E321C"><circle cx="25" cy="52" r="3"/><circle cx="75" cy="52" r="3"/><circle cx="25" cy="82" r="3"/><circle cx="75" cy="82" r="3"/></g></svg>`;
+    if (script === 'warden' || script === 'scrap' || script === 'trash') return `<svg viewBox="0 0 100 100" aria-hidden="true"><g stroke="#0E0E15" stroke-width="4" stroke-linejoin="round"><rect x="6" y="46" width="16" height="34" rx="6" fill="#7E4426"/><rect x="78" y="46" width="16" height="34" rx="6" fill="#7E4426"/><rect x="14" y="40" width="72" height="52" rx="10" fill="#9C5A33"/><rect x="28" y="10" width="44" height="34" rx="8" fill="#B5683A"/><path d="M40 60h20v16H40z" fill="#6E3A20" stroke-width="3"/></g><rect x="35" y="22" width="11" height="7" rx="2" fill="#FFB347"/><rect x="54" y="22" width="11" height="7" rx="2" fill="#FFB347"/><g fill="#5E321C"><circle cx="25" cy="52" r="3"/><circle cx="75" cy="52" r="3"/><circle cx="25" cy="82" r="3"/><circle cx="75" cy="82" r="3"/></g></svg>`;
     return `<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M84 22V94" stroke="#0E0E15" stroke-width="9"/><path d="M84 22V94" stroke="#5B3B22" stroke-width="4"/><g stroke="#0E0E15" stroke-width="4" stroke-linejoin="round"><path d="M50 8C28 10 22 34 22 52L14 94H80L76 52C76 34 72 10 50 8Z" fill="#6E7233"/><path d="M50 20C38 22 34 34 34 48C40 56 60 56 66 48C66 34 62 22 50 20Z" fill="#1C1B14"/></g><circle cx="84" cy="18" r="7" fill="#C8E06A" stroke="#0E0E15" stroke-width="3"/><circle cx="43" cy="40" r="3.5" fill="#C8E06A"/><circle cx="57" cy="40" r="3.5" fill="#C8E06A"/><path d="M30 72Q50 65 70 72" stroke="#4E5124" stroke-width="4" fill="none"/></svg>`;
   }
 
@@ -160,6 +160,8 @@
   // 기술 함수 안쪽 숫자처럼 엔진 밖으로 안 나오는 값만 GB에 옮겨 적음 → engine.js SCRIPTS를 바꾸면 여기도 같이 (guide.js가 엔진과 대조함)
   const GB = {
     warden: { auto: 70, aoe: 220, zoneAt: 0.4, enrName: '증기 폭주', enrDmg: 220, enrPeriod: 2, enrCast: 1 },
+    scrap: { auto: 75, aoe: 170, enrName: '고철 폭주', enrDmg: 150, enrPeriod: 2, enrCast: 1 },
+    trash: {},
     plague: {
       auto: 60, breathPct: 5, breathMax: 4, breathDur: 60, stingDot: 15, stingDur: 12, pulse1: 150, pulse2: 180, pulse2Period: 25, pulse2Delay: 22,
       interAt: 0.6, interDur: 25, rats: 30, contDelay: 10, contDur: 8, spread: 150, p3At: 0.3,
@@ -188,6 +190,52 @@
   const ENRAGE_HOW = '버티는 기술이 아니에요. 그 전에 잡으려면 딜러가 쓰러지지 않게';
 
   const GUIDE = {
+    // 고철 경비병 (23 3장)
+    scrap(c) {
+      const { sk, B, n, hp } = c;
+      const bu = sk.buster, ao = sk.aoe;
+      const N = { buster: n(bu.dmg), aoe: n(B.aoe), autoLo: n(B.auto * 0.7), autoHi: n(B.auto * 1.3), enr: n(B.enrDmg) };
+      const pct = (a, b) => Math.round((a / b) * 100);
+      return {
+        nums: N,
+        cur: F => (F.enraged ? 'enrage' : 'p1'),
+        phases: [
+          { id: 'p1', name: '시작', at: '처음부터', text: `${bu.name} · ${ao.name} 반복` },
+          { id: 'enrage', name: '광폭화', at: mmss(c.enc.enrage), text: `${iga(B.enrName)} ${B.enrPeriod}초마다`, enr: true },
+        ],
+        skills: [
+          { ic: bu.icon, name: bu.name,
+            what: `탱커에게 <b>${N.buster}</b> 피해 (탱커 체력 ${hp.tank}의 ${pct(N.buster, hp.tank)}%)`,
+            every: `${secT(bu.period)}마다`, tip: () => [`탱커에게 ${N.buster} 피해`] },
+          { ic: ao.icon, name: ao.name,
+            what: `파티 전원에게 <b>${N.aoe}</b> 피해`,
+            every: `${secT(ao.period)}마다`, tip: () => [`전원에게 ${N.aoe} 피해`] },
+          { ic: '광폭', name: B.enrName, enr: true,
+            what: `파티 전원에게 <b>${N.enr}</b> 피해`,
+            every: `${mmss(c.enc.enrage)}부터`, tip: () => [`${B.enrPeriod}초마다 전원 ${N.enr}`] },
+        ],
+      };
+    },
+    // 잡몹 구간 (23 2장): 잡는 순서 = 진행, 잡몹 공격 = 기술
+    trash(c) {
+      const { enc, n } = c;
+      const mobs = enc.mobs;
+      const skills = [];
+      for (const m of mobs) for (const a of m.attacks) {
+        const who = a.to === 'tank' ? '탱커' : a.to === 'other' ? '탱커 아닌 1명' : '파티 전원';
+        const amt = a.jitter ? `${n(a.dmg * (1 - a.jitter))}~${n(a.dmg * (1 + a.jitter))}` : n(a.dmg);
+        const each = m.count > 1 ? ' (한 마리당)' : '';
+        skills.push({ ic: a.icon || m.name.slice(0, 2), name: a.name || `${m.name} 공격`,
+          what: `${who}에게 <b>${amt}</b> 피해${each}${a.cast ? ` · 예고 ${secT(a.cast)}` : ''}. ${m.name}${josa(m.name, '이', '가')} 쓰러지면 멈춰요`,
+          every: `${secT(a.period)}마다`, tip: () => [`${who}에게 ${amt}${each}`] });
+      }
+      return {
+        nums: {},
+        cur: F => { const m = F.mobs.find(x => x.alive); return m ? 'm' + mobs.findIndex(d => d.name === m.name) : ''; },
+        phases: mobs.map((m, i) => ({ id: 'm' + i, name: `${m.name}${m.count > 1 ? ` ×${m.count}` : ''}`, at: `${i + 1}번째로 잡아요`, text: `체력 ${Math.round(m.hp * c.hpMult).toLocaleString('ko-KR')}${m.count > 1 ? '씩' : ''}` })),
+        skills,
+      };
+    },
     warden(c) {
       const { sk, B, n, hp } = c;
       const bu = sk.buster, ao = sk.aoe, zo = sk.zone;
@@ -288,7 +336,7 @@
   function guideModel(encKey, diff) {
     const enc = E.ENCOUNTERS[encKey], P = probe(encKey, diff);
     const m = P.m, n = x => Math.round(x * m);
-    const g = GUIDE[enc.script]({ enc, diff, m, n, big: !!enc.big, sk: P.sk, hp: P.hp, B: GB[enc.script] });
+    const g = GUIDE[enc.script]({ enc, diff, m, n, big: !!enc.big, sk: P.sk, hp: P.hp, B: GB[enc.script], hpMult: P.bossMax / enc.hp });
     return Object.assign({ enc, diff, m, dodge: E.DIFFS[diff].dodge, bossMax: P.bossMax, hp: P.hp, tier: enc.tier.replace(' · ', ' '), B: GB[enc.script] }, g);
   }
   // 지금 돌고 있는 기술인지 (일시정지에서 '지금' 표시): 엔진 기술 상태 그대로 읽음
@@ -301,7 +349,7 @@
     const now = '<em class="now">지금</em>';
     const head = `<div class="gd-top"><div class="gd-art">${bossSvg(g.enc.script)}</div><div class="gd-id">
       <b class="gd-name">${g.enc.name}</b>
-      <div class="gd-tags"><span class="tag">${g.tier}</span><span class="tag diff">${g.diff}</span><span class="tag enr">광폭화 ${mmss(g.enc.enrage)}</span></div></div></div>`;
+      <div class="gd-tags"><span class="tag">${g.tier}</span><span class="tag diff">${g.diff}</span>${isFinite(g.enc.enrage) ? `<span class="tag enr">광폭화 ${mmss(g.enc.enrage)}</span>` : ''}</div></div></div>`;
     const phases = `<h4 class="gd-h">진행</h4><ol class="gd-phases">${g.phases.map((p, i) => `<li class="${p.id === cur ? 'cur' : ''}${p.enr ? ' enr' : ''}"><i>${i + 1}</i><div><b>${p.name}</b><small>${p.at}</small><p>${p.text}</p></div>${p.id === cur ? now : ''}</li>`).join('')}</ol>`;
     const skills = `<h4 class="gd-h">보스 기술 <small>전투 중 위쪽 예고 칸을 누르면 짧은 설명</small></h4><div class="gd-skills">${g.skills.map(s => {
       const live = F && skillLive(F, s.ic);
@@ -311,14 +359,28 @@
     return `<div class="gd">${head}${phases}${skills}</div>`;
   }
 
+  // ---------- 던전 (23): 구간을 이어서 하고 사이에 휴식 ----------
+  const isDungeon = k => !!E.DUNGEONS[k];
+  const segsOf = k => E.DUNGEONS[k].segments;
+  // 메뉴 항목: 던전이면 첫 구간의 판·난이도를 씀
+  function entry(k) {
+    if (!isDungeon(k)) return E.ENCOUNTERS[k];
+    const d = E.DUNGEONS[k], first = E.ENCOUNTERS[d.segments[0]];
+    const bosses = d.segments.filter(x => E.ENCOUNTERS[x].script !== 'trash').map(x => E.ENCOUNTERS[x].name);
+    return Object.assign({}, first, { key: k, name: d.name, tier: `던전 · 5인 · ${d.segments.length}구간`, script: 'warden', sub: `잡몹 ${d.segments.length - bosses.length} · 보스 ${bosses.join(' → ')}` });
+  }
+  // 던전 안에서만 나오는 구간(잡몹·첫 보스)은 따로 고르지 않음
+  const MENU_KEYS = [...Object.keys(E.DUNGEONS), ...Object.keys(E.ENCOUNTERS).filter(k => !Object.values(E.DUNGEONS).some(d => d.segments.slice(0, -1).includes(k)))];
+  const curKey = () => (S.run ? segsOf(S.run.dungeon)[S.run.idx] : S.enc);
+  function newRun() { S.run = isDungeon(S.enc) ? { dungeon: S.enc, idx: 0, carry: null, time: 0, deaths: 0, restSec: 0 } : null; }
+
   // ---------- 메뉴 ----------
   function renderMenu() {
-    const encs = Object.values(E.ENCOUNTERS);
-    $('encList').innerHTML = encs.map(e => {
+    $('encList').innerHTML = MENU_KEYS.map(entry).map(e => {
       const n = E.BOARDS[e.board].flat().length;
-      return `<button class="enc" type="button" data-enc="${e.key}" aria-pressed="${S.enc === e.key}">${bossSvg(e.script)}<div><b>${e.name}</b><span>${e.tier} · ${n}칸 판</span></div><em>${e.diffs.join('·')}</em></button>`;
+      return `<button class="enc" type="button" data-enc="${e.key}" aria-pressed="${S.enc === e.key}">${bossSvg(e.script)}<div><b>${e.name}</b><span>${e.sub || `${e.tier} · ${n}칸 판`}</span></div><em>${e.diffs.join('·')}</em></button>`;
     }).join('');
-    const enc = E.ENCOUNTERS[S.enc];
+    const enc = entry(S.enc);
     if (!enc.diffs.includes(S.diff)) { S.diff = enc.diffs.includes('보통') ? '보통' : enc.diffs[0]; S.gear = DEFAULT_GEAR[S.diff]; }
     $('diffChips').innerHTML = enc.diffs.map(d => `<button class="chip" type="button" data-diff="${d}" aria-pressed="${S.diff === d}">${d}</button>`).join('');
     let dn = DIFF_NOTE[S.diff];
@@ -332,7 +394,7 @@
     if (warn) gn = `권장 장비(${E.GEARS[need].label})보다 낮아요. 입장은 할 수 있어요. ` + gn;
     $('gearNote').textContent = gn;
     $('gearNote').classList.toggle('warn', warn);
-    if (!S.party) S.party = E.rollParty(S.enc, S.partySeed);
+    if (!S.party) S.party = E.rollParty(isDungeon(S.enc) ? segsOf(S.enc)[0] : S.enc, S.partySeed);
     $('tapChips').innerHTML = Object.entries(TAP_KEYS).map(([k, v]) => `<button class="chip" type="button" data-tap="${k}" aria-pressed="${S.tapKey === k}">${E.SKILLS[k].name}</button>`).join('');
     $('howTap').textContent = TAP_KEYS[S.tapKey];
     $('handChips').innerHTML = [['right', '오른쪽 (오른손)'], ['left', '왼쪽 (왼손)']].map(([k, v]) => `<button class="chip" type="button" data-hand="${k}" aria-pressed="${S.hand === k}">${v}</button>`).join('');
@@ -347,7 +409,7 @@
   function renderItemsMenu() {
     const full = S.items.length >= ITEM_SLOTS;
     $('itemChips').innerHTML = Object.entries(E.ITEMS).map(([k, it]) => `<button class="chip ichip" type="button" data-item="${k}" aria-pressed="${S.items.includes(k)}">${ITEM_ICON[k]}${it.name}</button>`).join('');
-    const hint = ITEM_HINT[E.ENCOUNTERS[S.enc].script] || '';
+    const hint = ITEM_HINT[entry(S.enc).script] || '';
     const desc = S.items.map(k => `${E.ITEMS[k].short}: ${E.ITEMS[k].desc}`).join(' · ');
     $('itemNote').textContent = `${S.items.length}/${ITEM_SLOTS}칸${desc ? ` · ${desc}` : ''}. 물약은 하나를 마시면 모든 물약이 60초 재사용 대기, 두루마리·깃털은 전투당 1번. ${full ? '' : '빈 칸이 있어요. '}${hint}`;
     $('itemNote').classList.remove('warn');
@@ -401,27 +463,30 @@
   $('vibeOpt').addEventListener('change', e => { S.vibe = e.target.checked; });
   $('autoOpt').addEventListener('change', e => { S.auto = e.target.checked; });
   // 출발 → 보스 공략 화면 → 전투 시작. 자동 힐러 구경은 바로 시작
-  $('startBtn').addEventListener('click', () => { Snd.init(); if (S.auto) startBattle(0); else openGuide(); });
+  $('startBtn').addEventListener('click', () => { Snd.init(); newRun(); if (S.auto) startBattle(0); else openGuide(); });
 
-  function show(id) { for (const s of ['menu', 'guide', 'battle', 'result']) $(s).hidden = s !== id; }
+  function show(id) { for (const s of ['menu', 'guide', 'rest', 'battle', 'result']) $(s).hidden = s !== id; }
 
   // ---------- 전투 전 보스 공략 ----------
 
   function openGuide() {
     S.layoutPick = null;
-    $('guideBody').innerHTML = guideHtml(guideModel(S.enc, S.diff), null); // 보스 이름이 맨 위 (2026-10-07 Lim: 파티 찾기 채팅 뺌)
+    const g = guideModel(curKey(), S.diff);
+    if (S.run) g.tier = `${E.DUNGEONS[S.run.dungeon].name} ${S.run.idx + 1}/${segsOf(S.run.dungeon).length}`;
+    $('guideBody').innerHTML = guideHtml(g, null); // 보스 이름이 맨 위 (2026-10-07 Lim: 파티 찾기 채팅 뺌)
     show('guide');
     $('guideBody').scrollTop = 0; // 보이고 나서 (숨겨진 채로는 무시돼 이전 스크롤이 남음)
     ui.guideAt = performance.now();
   }
   $('guideGo').addEventListener('click', () => { Snd.init(); startBattle(Math.round((performance.now() - ui.guideAt) / 1000)); });
-  $('guideBack').addEventListener('click', () => { show('menu'); renderMenu(); });
+  $('guideBack').addEventListener('click', () => { S.run = null; show('menu'); renderMenu(); });
 
   // ---------- 전투 시작 ----------
   // guideSec: 이번 판 직전에 공략 화면을 본 시간 (다시 도전·처음부터 다시는 공략 없이 바로 시작 → 0)
   function startBattle(guideSec) {
     S.layoutPick = null;
-    F = E.create({ encounter: S.enc, diff: S.diff, gear: S.gear, seed: seed(), party: S.party, items: S.items });
+    // 던전: 같은 파티로 구간을 이어 감. 마나·성언 게이지는 앞 구간(+휴식)에서 이어받고, 아이템 횟수·재사용 대기는 구간마다 새로 (23 4장)
+    F = E.create({ encounter: curKey(), diff: S.diff, gear: S.gear, seed: seed(), party: S.party, items: S.items, carry: (S.run && S.run.carry) || undefined });
     ui.itemArmed = null; ui.itemPress = null; buildItems();
     // 전투 시작 카운트다운 3초 (19 4장 6번). 자동 힐러 구경은 바로 시작
     ui.pullLeft = S.auto ? 0 : 3; ui.pullShown = null;
@@ -434,12 +499,17 @@
     $('pause').hidden = true; $('preview').hidden = true; $('toast').innerHTML = '';
     const enc = F.enc;
     $('bossArt').innerHTML = bossSvg(enc.script);
-    $('bossName').textContent = enc.name;
+    $('bossName').textContent = bossTitle();
     $('battle').classList.toggle('compact', !!enc.big);
     show('battle');
     layoutBattle();
     if (S.auto) toast('자동 힐러가 플레이해요 (기록 안 남김)');
-    else toast(`칸을 탭하면 ${E.SKILLS[S.tapKey].name}`);
+    else if (!S.run || S.run.idx === 0) toast(`칸을 탭하면 ${E.SKILLS[S.tapKey].name}`);
+  }
+  // 잡몹 구간은 지금 잡는 잡몹 이름을 같이
+  function bossTitle() {
+    const m = F.mobs.find(x => x.alive);
+    return m ? `${F.enc.name} · ${m.name}` : F.enc.name;
   }
 
   function layoutBattle() {
@@ -606,9 +676,13 @@
     const pct = F.bossHp / F.bossMax;
     $('bossFill').style.width = `${pct * 100}%`;
     $('bossHpText').textContent = `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} (${Math.ceil(pct * 100)}%)${F.invuln ? ' · 무적' : ''}`;
-    const ph = F.phaseName ? `${F.enc.tier.split(' · ')[0]} · ${F.phaseName}` : `${F.enc.tier} · ${F.cfg.diff}`;
+    let ph = F.phaseName ? `${F.enc.tier.split(' · ')[0]} · ${F.phaseName}` : `${F.enc.tier} · ${F.cfg.diff}`;
+    if (S.run) {
+      const left = F.mobs.filter(m => m.alive).length;
+      ph = `${E.DUNGEONS[S.run.dungeon].name} ${S.run.idx + 1}/${segsOf(S.run.dungeon).length} · ${F.phaseName || (F.mobs.length ? `남은 잡몹 ${left}` : F.cfg.diff)}`;
+    }
     if ($('phase').textContent !== ph) $('phase').textContent = ph;
-    $('timer').textContent = F.enraged ? `${mmss(F.t)} · 광폭화!` : `${mmss(F.t)} / 광폭 ${mmss(F.enc.enrage)}`;
+    $('timer').textContent = F.enraged ? `${mmss(F.t)} · 광폭화!` : isFinite(F.enc.enrage) ? `${mmss(F.t)} / 광폭 ${mmss(F.enc.enrage)}` : mmss(F.t);
     if (now - ui.qAt > 90) {
       ui.qAt = now;
       const q = E.queue(F);
@@ -1025,6 +1099,7 @@
         case 'msg': toast(ev.text); break;
         case 'phase': banner(ev.text); if (ev.text === '광폭화') vibe([60, 80, 60, 80, 60], true); else vibe(200, true); break;
         case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 쓰세요`); break;
+        case 'mobDown': toast(`${ev.name} 쓰러짐`); $('bossName').textContent = bossTitle(); break;
         case 'over': break;
       }
     }
@@ -1151,20 +1226,23 @@
   }
   $('pauseBtn').addEventListener('click', () => setPause(true));
   $('resumeBtn').addEventListener('click', () => { Snd.init(); setPause(false); });
-  $('restartBtn').addEventListener('click', () => startBattle());
-  $('quitBtn').addEventListener('click', () => { closeTip(); F = null; show('menu'); renderMenu(); });
+  $('restartBtn').addEventListener('click', () => { newRun(); startBattle(); });
+  $('quitBtn').addEventListener('click', () => { closeTip(); F = null; S.run = null; show('menu'); renderMenu(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && F && !F.over && !$('battle').hidden) setPause(true); });
 
   // ---------- 결과 ----------
   function grade(f) { const d = f.stats.deaths; return d === 0 ? 'S' : d === 1 ? 'A' : d <= 3 ? 'B' : 'C'; }
   function showResult() {
     const f = F, st = f.stats, win = f.over === 'win';
+    const R = S.run, segN = R ? segsOf(R.dungeon).length : 0;
     closeTip();
     show('result');
-    $('resTitle').textContent = win ? '클리어!' : '전멸';
+    $('resTitle').textContent = win ? (R ? '던전 클리어!' : '클리어!') : '전멸';
     $('resTitle').className = win ? 'win' : 'lose';
-    $('resSub').textContent = `${f.enc.name} · ${f.enc.tier} · ${f.cfg.diff} · ${E.GEARS[f.cfg.gear].label}${S.auto ? ' · 자동 힐러' : ''} — ${f.reason}`;
-    $('grade').hidden = !win; $('grade').textContent = grade(f);
+    const where = R ? `${E.DUNGEONS[R.dungeon].name} ${R.idx + 1}/${segN} ${f.enc.name}` : `${f.enc.name} · ${f.enc.tier}`;
+    $('resSub').textContent = `${where} · ${f.cfg.diff} · ${E.GEARS[f.cfg.gear].label}${S.auto ? ' · 자동 힐러' : ''} — ${f.reason}`;
+    // 던전 등급은 던전 전체 쓰러짐으로
+    $('grade').hidden = !win; $('grade').textContent = R ? grade({ stats: { deaths: R.deaths } }) : grade(f);
     const tot = st.healed + st.overheal;
     const min = Math.max(1 / 60, f.t / 60);
     const acc = tapAccuracy();
@@ -1181,7 +1259,8 @@
       ['쓸기 스킬', `${Object.values(ui.swipes).reduce((a, b) => a + b, 0)}번 · 취소 ${ui.swipeCancel} · 빈 방향 ${ui.swipeEmpty}`],
       ['소비 아이템', f.itemLog.length ? f.itemLog.map(x => `${E.ITEMS[x.key].short} ${mmss(x.t)}`).join(' · ') : '안 씀'],
     ];
-    if (!win) cells.splice(1, 0, ['보스 남은 체력', `${Math.ceil((f.bossHp / f.bossMax) * 100)}%`]);
+    if (!win) cells.splice(1, 0, [f.mobs.length ? '잡몹 남은 체력' : '보스 남은 체력', `${Math.ceil((f.bossHp / f.bossMax) * 100)}%`]);
+    if (R) cells.unshift(['던전 진행', `${win ? segN : R.idx} / ${segN} 구간`], ['던전 전체 시간', `${mmss(R.time)} (휴식 ${Math.round(R.restSec)}초 따로)`], ['던전 전체 쓰러짐', `${R.deaths}번`]);
     $('resStats').innerHTML = cells.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
     document.querySelectorAll('.scale').forEach(sc => {
       sc.innerHTML = [1, 2, 3, 4, 5].map(n => `<button type="button" data-v="${n}" aria-pressed="false">${n}</button>`).join('');
@@ -1201,7 +1280,8 @@
   function runData(f) {
     const st = f.stats, tot = st.healed + st.overheal;
     return {
-      at: new Date().toISOString(), encounter: f.enc.key, boss: f.enc.name, tier: f.enc.tier, diff: f.cfg.diff, gear: f.cfg.gear,
+      at: new Date().toISOString(), encounter: f.enc.key, dungeon: S.run ? S.run.dungeon : null, segment: S.run ? S.run.idx : null,
+      dungeonSeconds: S.run ? Math.round(S.run.time) : null, restSeconds: S.run ? Math.round(S.run.restSec) : null, boss: f.enc.name, tier: f.enc.tier, diff: f.cfg.diff, gear: f.cfg.gear,
       result: f.over, reason: f.reason, seconds: Math.round(f.t), bossLeftPct: Math.ceil((f.bossHp / f.bossMax) * 100),
       deaths: st.deaths, partySize: f.party.length, grade: f.over === 'win' ? grade(f) : null,
       healed: Math.round(st.healed), overhealPct: tot ? Math.round((st.overheal / tot) * 100) : 0,
@@ -1243,8 +1323,51 @@
       $('saveNote').textContent = '의견을 저장하지 못했어요. 이 페이지를 편집할 수 있는 계정에서만 저장돼요.';
     }
   });
-  $('againBtn').addEventListener('click', () => startBattle());
-  $('menuBtn').addEventListener('click', () => { F = null; show('menu'); renderMenu(); });
+  $('againBtn').addEventListener('click', () => { newRun(); startBattle(); });
+  $('menuBtn').addEventListener('click', () => { F = null; S.run = null; show('menu'); renderMenu(); });
+
+  // ---------- 구간 끝 · 휴식 (09 S07, 23 4장) ----------
+  function endSegment() {
+    const R = S.run;
+    if (R) { R.time += F.t; R.deaths += F.stats.deaths; }
+    const next = R && F.over === 'win' && R.idx < segsOf(R.dungeon).length - 1;
+    setTimeout(() => { if (F && F.over) { if (next) showRest(); else showResult(); } }, 1200);
+  }
+  function showRest() {
+    const R = S.run, segs = segsOf(R.dungeon);
+    closeTip();
+    ui.restAt = performance.now(); ui.restMana = null;
+    $('restSub').textContent = `${E.DUNGEONS[R.dungeon].name} · ${F.enc.name} 끝 (${mmss(F.t)})`;
+    $('restSteps').innerHTML = segs.map((k, i) => `<li class="${i <= R.idx ? 'done' : i === R.idx + 1 ? 'next' : ''}">${i <= R.idx ? '✓ ' : ''}${E.ENCOUNTERS[k].name}</li>`).join('');
+    const dead = F.party.filter(u => !u.alive && !u.me).length;
+    $('restNote').textContent = `파티 체력이 모두 찼어요${dead ? `. 쓰러진 ${dead}명도 일어났어요` : ''}. 마나는 쉬는 동안 초당 ${E.REST_MANA_PER_SEC}%씩 차요. 「계속」은 언제든 누를 수 있어요.`;
+    const nk = segs[R.idx + 1];
+    const g = guideModel(nk, F.cfg.diff);
+    g.tier = `다음 ${R.idx + 2}/${segs.length}`;
+    $('restGuide').innerHTML = guideHtml(g, null);
+    show('rest');
+    $('restBody').scrollTop = 0;
+    updateRest(ui.restAt);
+  }
+  function restSec(now) { return Math.max(0, (now - ui.restAt) / 1000); }
+  function updateRest(now) {
+    const c = E.restCarry(F, restSec(now));
+    if (ui.restMana !== Math.floor(c.mana)) {
+      ui.restMana = Math.floor(c.mana);
+      $('restFill').style.width = `${c.mana}%`;
+      $('restPct').textContent = `${ui.restMana}%`;
+    }
+    if (S.auto && c.mana >= 100) $('restGo').click(); // 자동 힐러 구경은 마나가 차면 바로 다음 구간
+  }
+  $('restGo').addEventListener('click', () => {
+    if ($('rest').hidden || !S.run) return;
+    const sec = restSec(performance.now());
+    S.run.carry = E.restCarry(F, sec);
+    S.run.restSec += sec;
+    S.run.idx++;
+    Snd.init();
+    startBattle(Math.round(sec));
+  });
 
   // ---------- 루프 ----------
   function updatePull(dt) {
@@ -1271,11 +1394,12 @@
       handleEvents(now);
       updateStage(now); updateWheel(); updateItems(); updateCastbar();
       render(now);
-      if (F.over && !overShown) { overShown = true; setTimeout(() => { if (F && F.over) showResult(); }, 1200); }
+      if (F.over && !overShown) { overShown = true; endSegment(); }
     }
+    if (!$('rest').hidden) updateRest(now);
     requestAnimationFrame(frame);
   }
-  window.__proto = { get F() { return F; }, center: i => center(i), guide: (enc, diff) => guideModel(enc, diff), run: () => (F ? runData(F) : null), get pullLeft() { return ui.pullLeft; } }; // 테스트용 조회
+  window.__proto = { get F() { return F; }, center: i => center(i), guide: (enc, diff) => guideModel(enc, diff), run: () => (F ? runData(F) : null), get pullLeft() { return ui.pullLeft; }, get dungeon() { return S.run; } }; // 테스트용 조회
   S.items = loadItems();
   renderMenu();
   requestAnimationFrame(frame);
