@@ -1,4 +1,4 @@
-# Android 시험용 APK (디버그 서명). main에 푸시되거나 Actions 탭에서 직접 실행하면 만들어지고,
+# Android 시험용 APK (고정 디버그 키 서명 → 새 빌드를 덮어 설치해도 저장이 남음). main에 푸시되거나 Actions 탭에서 직접 실행하면 만들어지고,
 # 실행 결과 페이지의 Artifacts에서 healer-debug-apk를 내려받아 폰에 설치한다.
 name: Android APK
 
@@ -26,7 +26,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon -PbuildNumber=${{ github.run_number }}
       - uses: actions/upload-artifact@v4
         with:
           name: healer-debug-apk
