@@ -79,12 +79,14 @@ export const TALENT_LEVEL = 10;
  */
 export interface Milestone { text: string; live: boolean }
 export const MILESTONES: Record<number, Milestone[]> = {
-  2: [{ text: '스킬 「소생」', live: false }],
-  3: [{ text: '스킬 「정화」', live: false }],
-  5: [{ text: '스킬 「치유의 기원」', live: false }, { text: '던전 「역병 지하묘지」', live: false }],
-  8: [{ text: '스킬 「수호 영혼」', live: false }],
-  10: [{ text: '특성 1단', live: false }, { text: '공개모집 직업 +6종', live: false }, { text: '던전 「독안개 늪」', live: false }],
-  12: [{ text: '스킬 「천상의 찬가」 (스킬 7개 완성)', live: false }],
+  2: [{ text: '스킬 「소생」', live: true }],
+  3: [{ text: '스킬 「정화」', live: true }],
+  4: [{ text: '패시브 「빛의 은총」 (소생 걸린 대상 치유 +10%)', live: true }],
+  5: [{ text: '스킬 「치유의 기원」', live: true }, { text: '던전 「역병 지하묘지」', live: false }],
+  6: [{ text: '성언 게이지 (평온·신성화)', live: true }],
+  8: [{ text: '스킬 「수호 영혼」', live: true }],
+  10: [{ text: '패시브 「상징」 (마나 30% 아래서 회복 4배)', live: true }, { text: '특성 1단', live: false }, { text: '공개모집 직업 +6종', live: false }, { text: '던전 「독안개 늪」', live: false }],
+  12: [{ text: '스킬 「천상의 찬가」 (스킬 7개 완성)', live: true }],
   15: [{ text: '길드 (골드 모집·인연 스카우트)', live: false }, { text: '던전 「저주받은 장원」', live: false }],
   20: [{ text: '소비 아이템 단축칸 3칸', live: true }, { text: '특성 2단', live: false }, { text: '던전 「서리 마탑」', live: false }],
   28: [{ text: '던전 「깨진 신전」', live: false }],

@@ -1,7 +1,11 @@
-import { DISPELLABLE, SKILLS, type SkillKey } from '../data/skills';
+import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
 import { cellOf, DT, emit, heal, living, onDebuffEnd, unitById } from './core';
 import type { ActionResult, Fight, Unit } from './types';
+
+/** 이 레벨에서 배운 스킬·패시브인지 (06 7장) */
+export const knows = (f: Fight, key: SkillKey) => f.level >= SKILL_LEVEL[key];
+export const knowsPassive = (f: Fight, key: PassiveKey) => f.level >= PASSIVE_LEVEL[key];
 
 /** 휠 자리 → 실제 스킬 (성언 게이지가 차면 치유 → 평온, 기원 → 신성화) */
 export function slotKey(f: Fight, slot: SkillKey): SkillKey {
@@ -25,6 +29,7 @@ export function canTarget(f: Fight, key: SkillKey, cellIdx: number): ActionResul
 export function use(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
   if (f.over) return { ok: false };
   const sk = SKILLS[key];
+  if (!knows(f, key)) return { ok: false, reason: `${sk.name}은(는) Lv ${SKILL_LEVEL[key]}에 배워요` };
   const tg = canTarget(f, key, cellIdx);
   if (!tg.ok) return tg;
   if (sk.cd && (f.cd[key] ?? 0) > 0) return { ok: false, reason: `${sk.name} 재사용 대기 ${Math.ceil(f.cd[key]!)}초` };
@@ -60,8 +65,8 @@ function exec(f: Fight, key: SkillKey, cellIdx: number, u: Unit | undefined): vo
 function apply(f: Fight, key: SkillKey, u: Unit): void {
   const sk = SKILLS[key];
   if (key === 'heal' || key === 'flash' || key === 'serenity') {
-    heal(f, u, sk.amt! * (u.hot > 0 && key !== 'serenity' ? 1.1 : 1), true);
-    u.echo.push({ left: 4, rate: (sk.amt! * 0.15) / 4 });
+    heal(f, u, sk.amt! * (u.hot > 0 && key !== 'serenity' && knowsPassive(f, 'grace') ? 1.1 : 1), true);
+    if (knowsPassive(f, 'echo')) u.echo.push({ left: 4, rate: (sk.amt! * 0.15) / 4 });
     if (key === 'serenity') emit(f, { type: 'sound', name: 'bell' });
   } else if (key === 'renew') {
     u.hot = 9; u.hotTick = 0; u.lastHeal = f.t; if (u.sulking) u.sulking = false;
@@ -86,8 +91,10 @@ function apply(f: Fight, key: SkillKey, u: Unit): void {
   const before = { p: f.g.p, s: f.g.s };
   if (key === 'serenity') f.g.p = 0;
   if (key === 'sanctify') f.g.s = 0;
-  if (sk.gp) f.g.p = Math.min(100, f.g.p + sk.gp);
-  if (sk.gs) f.g.s = Math.min(100, f.g.s + sk.gs);
+  if (knowsPassive(f, 'words')) {
+    if (sk.gp) f.g.p = Math.min(100, f.g.p + sk.gp);
+    if (sk.gs && knows(f, 'poh')) f.g.s = Math.min(100, f.g.s + sk.gs);
+  }
   if (before.p < 100 && f.g.p >= 100) emit(f, { type: 'gauge', which: '평온' });
   if (before.s < 100 && f.g.s >= 100) emit(f, { type: 'gauge', which: '신성화' });
 }
@@ -100,7 +107,7 @@ export function healerTick(f: Fight): void {
   if (f.potCd > 0) f.potCd = Math.max(0, f.potCd - dt);
   f.mana = Math.min(100, f.mana + regen * dt);
   if (f.symbol > 0) f.symbol -= dt;
-  if (!f.symbolUsed && f.mana < 30) { f.symbolUsed = true; f.symbol = 5; emit(f, { type: 'msg', text: '상징: 5초간 마나 회복 4배' }); }
+  if (!f.symbolUsed && f.mana < 30 && knowsPassive(f, 'symbol')) { f.symbolUsed = true; f.symbol = 5; emit(f, { type: 'msg', text: '상징: 5초간 마나 회복 4배' }); }
   for (const k in f.cd) f.cd[k as SkillKey] = Math.max(0, f.cd[k as SkillKey]! - dt);
   if (f.gcd > 0) f.gcd -= dt;
   if (f.channel > 0) {

@@ -7,7 +7,7 @@ import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
 import { makeCells } from './board';
 import { initBoss, bossTick } from './bosses';
 import { DT, emit, living } from './core';
-import { healerTick } from './healer';
+import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { rngFrom } from './rng';
 import { partyDps, unitTick } from './units';
@@ -32,7 +32,7 @@ export function create(cfg: FightConfig): Fight {
     bossMax, bossHp: bossMax, mobs: [],
     mana: 100, gcd: 0, gcdBase: 1 / (1 + gear.haste), cast: null, channel: 0, chTick: 0, queued: null,
     cd: { purify: 0, guardian: 0, hymn: 0 },
-    g: { p: 0, s: 0 }, symbolUsed: false, symbol: 0,
+    g: { p: 0, s: 0 }, symbolUsed: false, symbol: 0, level: cfg.level ?? 100,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
     enraged: false, dpsAcc: 0, rats: [],
     items: {}, potCd: 0, medit: 0, itemLog: [],
@@ -43,6 +43,7 @@ export function create(cfg: FightConfig): Fight {
   };
   for (const k of (cfg.items || []).slice(0, 4)) if (ITEMS[k]) f.items[k] = ITEMS[k].uses;
   if (cfg.carry) { f.mana = cfg.carry.mana; f.stats.minMana = f.mana; f.g = { ...cfg.carry.g }; }
+  if (!knowsPassive(f, 'words')) f.g = { p: 0, s: 0 };
   makeParty(f, cfg.party);
   initBoss(f);
   return f;

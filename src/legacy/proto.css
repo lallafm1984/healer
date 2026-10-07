@@ -142,6 +142,8 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 .slot.holy .dir { color: #3A2A10; }
 .slot.empty { border-style: dashed; border-color: #3A3C5C; background: transparent; cursor: default; }
 .slot.empty .ct { margin-top: 10px; }
+.slot.locked { border-style: dashed; border-color: #3A3C5C; background: rgba(28, 30, 51, 0.6); color: var(--mute); }
+.slot.locked .nm { color: #8C8AA6; }
 .slot.aim { border-color: #FFFFFF; box-shadow: 0 0 0 3px #FFFFFF, 0 0 18px rgba(255, 255, 255, 0.7); transform: scale(1.06); }
 .slot .cds { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-display); font-size: 22px; z-index: 2; text-shadow: 0 1px 0 var(--line); }
 .slot.off { filter: saturate(0.4) brightness(0.75); }
@@ -157,6 +159,8 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 #hint { font-size: 11px; color: var(--mute); text-align: center; line-height: 1.35; }
 #gauges { display: flex; gap: 10px; font-size: 11px; color: var(--mute); font-variant-numeric: tabular-nums; }
 #gauges b { color: var(--gold-hi); font-weight: 700; }
+#gauges.locked { visibility: hidden; } /* 성언 게이지는 Lv 6부터 (06 7장) */
+#controls.nowords #ringP, #controls.nowords #ringS { visibility: hidden; }
 
 .overlay { position: absolute; inset: 0; background: rgba(8, 8, 14, 0.78); display: grid; place-items: center; padding: 16px; z-index: 5; }
 .card { width: 100%; max-width: 360px; background: var(--panel); border: 2px solid var(--gold); border-radius: 18px; padding: 18px 16px; display: flex; flex-direction: column; gap: 10px; }

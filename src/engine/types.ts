@@ -172,6 +172,8 @@ export interface FightConfig {
   items?: ItemKey[];
   /** 던전 앞 구간에서 이어받는 것 (23 4장) */
   carry?: Carry;
+  /** 힐러 레벨: 이 레벨까지 배운 스킬·패시브만 씀 (06 7장). 없으면 전부 (시뮬·옛 테스트) */
+  level?: number;
 }
 
 /** 던전 구간 사이에 이어지는 것: 마나(휴식 회복 뒤), 성언 게이지 */
@@ -249,6 +251,8 @@ export interface Fight {
   g: { p: number; s: number };
   symbolUsed: boolean;
   symbol: number;
+  /** 힐러 레벨 (스킬·패시브 해금) */
+  level: number;
   skills: BossSkill[];
   tels: Telegraph[];
   zones: Zone[];

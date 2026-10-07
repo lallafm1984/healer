@@ -8,7 +8,7 @@ import { GUILD_LEVEL } from '../data/progression';
 import { create, rollParty } from '../engine';
 import { Flow, newSeed, rerollCost } from '../game/flow';
 import { settle } from '../game/settle';
-import { commit, G, itemsNow } from '../game/state';
+import { commit, G, healerLevel, itemsNow } from '../game/state';
 import { battle, esc, fmt, go, ROLE, screen, topBar } from './kit';
 
 const s = screen('s-party', '파티 편성', { enter() { if (!Flow.party) roll(); render(); } });
@@ -99,7 +99,7 @@ export function depart(): void {
   const c = contentOf(Flow.content);
   const { slots, items } = itemsNow();
   battle().start({
-    content: c.key, name: c.name, segs: c.fights(Flow.diff), diff: Flow.diff, gearStats: gearStatsOf(G.save.gear.equipped),
+    content: c.key, name: c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), gearStats: gearStatsOf(G.save.gear.equipped),
     party: Flow.party!, items, slots, seed: Flow.seed,
     onEnd(r) {
       Flow.result = r;

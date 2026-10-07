@@ -27,5 +27,12 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   sanctify: { name: '성언: 신성화', short: '신성화', cast: 0, cost: 0, amt: 300, target: 'area' },
 };
 
+/** 배우는 레벨 (06 7장). 성언은 게이지가 Lv 6에 열리고, 신성화는 기원(Lv 5)도 있어야 함 */
+export const SKILL_LEVEL: Record<SkillKey, number> = { heal: 1, flash: 1, renew: 2, purify: 3, poh: 5, guardian: 8, hymn: 12, serenity: 6, sanctify: 6 };
+/** 패시브 (06 5장): 메아리 치유 Lv 1, 빛의 은총 Lv 4, 성언 게이지 Lv 6, 상징 Lv 10 */
+export const PASSIVE_LEVEL = { echo: 1, grace: 4, words: 6, symbol: 10 } as const;
+export type PassiveKey = keyof typeof PASSIVE_LEVEL;
+export const PASSIVE_NAME: Record<PassiveKey, string> = { echo: '메아리 치유', grace: '빛의 은총', words: '성언 게이지', symbol: '상징' };
+
 /** 사제 정화로 지울 수 있는 디버프 종류 (독은 안 됨) */
 export const DISPELLABLE: Record<string, boolean> = { '질병': true, '마법': true };

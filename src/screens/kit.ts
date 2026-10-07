@@ -81,7 +81,7 @@ document.addEventListener('click', e => {
 // ---------- 전투 화면 입구 (legacy/protoUi.js가 window.__battle로 엶) ----------
 export interface BattleApi {
   start(o: {
-    content: string; name: string; segs: string[]; diff: string; gearStats: GearStats; party: RosterEntry[];
+    content: string; name: string; segs: string[]; diff: string; /** 힐러 레벨 (스킬 해금) */ level: number; gearStats: GearStats; party: RosterEntry[];
     items: ItemKey[]; slots: number; seed: number; onEnd(r: BattleResult): void;
   }): void;
   settings(s: object): void;

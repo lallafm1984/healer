@@ -173,3 +173,10 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 
 /* 전투 단축칸: 레벨이 모자라 잠긴 칸 */
 .item.locked .nm { font-size: 10px; line-height: 1.2; text-align: center; color: #5D5F80; }
+
+/* 레벨 잠금 스킬 (06 7장): 설정 칸 탭 칩·배치 칸 */
+.settings .chip:disabled { opacity: 0.55; cursor: default; }
+.settings .chip small { font-size: 11px; color: var(--mute); }
+.settings .lslot.locked { border-style: dashed; border-color: #3A3C5C; }
+.settings .lslot.locked b { color: #8C8AA6; }
+.settings .lslot.locked small { color: var(--mute); }

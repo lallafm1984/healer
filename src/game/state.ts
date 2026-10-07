@@ -11,6 +11,9 @@ export function commit(): void { save(G.save); }
 
 export function resetSave(): void { G.save = newSave(); commit(); }
 
+/** 전투에 넘길 힐러 레벨 (스킬 해금 기준). 개발 빌드 「스킬 전부 열기」면 100 */
+export const healerLevel = () => (G.save.settings.allSkills ? 100 : G.save.player.level);
+
 /** 잠금: 콘텐츠·난이도 해금 레벨. dev = 개발 빌드 잠금 무시 */
 export function lockOf(c: ContentDef, d?: DiffName): { lv: number; locked: boolean; dev: boolean } {
   const lv = Math.max(c.unlockLv, (d && c.diffUnlock?.[d]) || 0);

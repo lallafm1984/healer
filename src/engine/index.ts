@@ -4,7 +4,7 @@ export { hexDist } from './board';
 export { bossTick, queue, type QueueEntry } from './bosses';
 export { DT, living } from './core';
 export { create, rollParty, step } from './fight';
-export { canTarget, slotKey, use } from './healer';
+export { canTarget, knows, knowsPassive, slotKey, use } from './healer';
 export { itemReady, reviveTarget, useItem } from './items';
 export { rngFrom } from './rng';
 export { partyDps } from './units';

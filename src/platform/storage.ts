@@ -23,8 +23,10 @@ export interface Settings {
   zoom: boolean;
   /** 개발 빌드: 자동 힐러로 구경 */
   auto: boolean;
-  /** 개발 빌드: 레벨 잠금 무시 (아직 레벨을 올릴 콘텐츠가 적어서) */
+  /** 개발 빌드: 콘텐츠 레벨 잠금 무시 (아직 레벨을 올릴 콘텐츠가 적어서) */
   devUnlock: boolean;
+  /** 개발 빌드: 레벨과 상관없이 스킬 전부 (06 7장 해금 무시) */
+  allSkills: boolean;
   /** 스킬 휠 8방향 배치 (09 S17). null = 기본 배치 */
   layout: Record<string, string | null> | null;
 }
@@ -55,7 +57,7 @@ export interface SaveData {
   nextId: number;
 }
 
-export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'right', tapKey: 'heal', zoom: true, auto: false, devUnlock: true, layout: null };
+export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'right', tapKey: 'heal', zoom: true, auto: false, devUnlock: true, allSkills: false, layout: null };
 
 export function newSave(now = Date.now()): SaveData {
   return {

@@ -16,8 +16,15 @@ export default async function dungeon(url, shots) {
   await page.goto(url);
   await page.clock.runFor(300);
 
-  // ---- 콘텐츠 선택 ----
+  // ---- 설정: Lv 1에선 안 배운 스킬 잠금 표시 ----
   await page.click('#s-title'); await page.clock.runFor(100);
+  await page.click('#s-lobby .tb-set'); await page.clock.runFor(100);
+  ok(await page.isDisabled('#s-settings [data-set="tapKey"][data-val="renew"]') && await page.isEnabled('#s-settings [data-set="tapKey"][data-val="flash"]'), '설정 Lv 1: 칸 탭 「소생」 잠금, 「순간 치유」는 고를 수 있음');
+  ok((await page.locator('#s-settings .lslot.locked').count()) === 5, '설정 Lv 1: 스킬 배치 5칸 잠금 표시');
+  await page.screenshot({ path: `${shots}/settings_lv1.png` });
+  await page.click('#s-settings .tb-back'); await page.clock.runFor(100);
+
+  // ---- 콘텐츠 선택 ----
   await page.click('#lobbyStart'); await page.clock.runFor(100);
   ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true', '콘텐츠 기본 탭 = 던전 5인');
   ok(await page.getAttribute('#s-content [data-content="rustfort"]', 'aria-disabled') === null, '녹슨 요새는 열림');
@@ -59,6 +66,13 @@ export default async function dungeon(url, shots) {
   ok(/무너진 정문 · 고철 졸개/.test(await page.textContent('#bossName')), '전투 위쪽 = 구간 이름 · 지금 잡는 잡몹');
   ok(/녹슨 요새 1\/4 · 남은 잡몹 4/.test(await page.textContent('#phase')), '진행 줄 = 1/4 · 남은 잡몹');
   ok(await page.evaluate(() => window.__proto.F.party.filter(u => !u.me).map(u => u.nick).join()) === party0, '편성 화면의 파티 그대로');
+  // Lv 1 = 치유·순간 치유만 (06 7장). 나머지 휠 칸은 잠금, 성언 게이지 숨김
+  const locked = await page.evaluate(() => [...document.querySelectorAll('#wheel .slot.locked')].map(b => b.dataset.lock).sort().join());
+  ok(locked === 'guardian,hymn,poh,purify,renew', `Lv 1 휠: 안 배운 스킬 잠금 (${locked})`);
+  ok(await page.evaluate(() => getComputedStyle(document.getElementById('gauges')).visibility === 'hidden'), 'Lv 1: 성언 게이지 숨김');
+  await page.dispatchEvent('#wheel .slot[data-lock="renew"]', 'pointerdown');
+  await page.clock.runFor(50);
+  ok(/소생은\(는\) Lv 2에 배워요/.test(await page.textContent('#toast')), '잠긴 칸을 누르면 「Lv 2에 배워요」');
   await page.screenshot({ path: `${shots}/dungeon_trash.png` });
 
   const segs = ['고철 경비병', '증기 보일러실', '녹슨 문지기'];
@@ -80,7 +94,8 @@ export default async function dungeon(url, shots) {
     const st = await page.evaluate(() => { const F = window.__proto.F; return { name: F.enc.name, mana: F.mana, p: F.g.p, party: F.party.filter(u => !u.me).map(u => u.nick).join(), idx: window.__proto.dungeon.idx }; });
     ok(st.name === segs[i] && st.idx === i + 1, `계속 → ${segs[i]} 시작`);
     // 휴식 %는 내림 표시, 전투 0.5초 동안 자연 회복이 더해져 조금 높을 수 있음
-    ok(st.mana > m1 - 1 && st.mana < m1 + 4 && st.p === 55, `마나·성언 게이지 이어받음 (휴식 ${m1}% → ${st.mana.toFixed(1)}, 평온 ${st.p})`);
+    // Lv 1은 성언 게이지가 없어서 이어받아도 0 (Lv 6부터, 단위 테스트에서 확인)
+    ok(st.mana > m1 - 1 && st.mana < m1 + 4 && st.p === 0, `마나 이어받음, Lv 1이라 성언 게이지는 0 (휴식 ${m1}% → ${st.mana.toFixed(1)}, 평온 ${st.p})`);
     ok(st.party === party0, '같은 파티');
   }
   await page.screenshot({ path: `${shots}/dungeon_boss.png` });
@@ -95,7 +110,8 @@ export default async function dungeon(url, shots) {
   await page.screenshot({ path: `${shots}/dungeon_settle.png` });
   await page.click('#toReward'); await page.clock.runFor(200);
   ok(await page.isVisible('#s-reward') && await page.isVisible('#s-reward .lvpop'), '보상 화면 + 레벨 업 팝업 (첫 클리어로 Lv 2)');
-  ok(/Lv 1 → 2/.test(await page.textContent('#s-reward .lvpop')) && /준비 중/.test(await page.textContent('#s-reward .lvpop')), '팝업: Lv 1 → 2, 아직 안 만든 건 준비 중');
+  const pop = await page.textContent('#s-reward .lvpop');
+  ok(/Lv 1 → 2/.test(pop) && /소생/.test(pop) && !/준비 중/.test(pop), '팝업: Lv 1 → 2, 스킬 「소생」 열림');
   await page.screenshot({ path: `${shots}/dungeon_levelup.png` });
   await page.click('#s-reward .lvpop button'); await page.clock.runFor(50);
   let sv = await save();

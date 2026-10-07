@@ -9,12 +9,12 @@ import { ENCOUNTERS } from '../data/encounters';
 import { gearStats, GEARS } from '../data/gear';
 import { ITEMS, POTION_CD } from '../data/items';
 import { CATS, PERS } from '../data/personalities';
-import { SKILLS } from '../data/skills';
+import { PASSIVE_LEVEL, SKILL_LEVEL, SKILLS } from '../data/skills';
 import * as E from '../engine';
 
 const Engine = {
-  DT: E.DT, DIFFS, GEARS, gearStats, PERS, CATS, ENCOUNTERS, SKILLS, BOARDS,
-  create: E.create, step: E.step, use: E.use, slotKey: E.slotKey, canTarget: E.canTarget, queue: E.queue, rollParty: E.rollParty,
+  DT: E.DT, DIFFS, GEARS, gearStats, PERS, CATS, ENCOUNTERS, SKILLS, SKILL_LEVEL, PASSIVE_LEVEL, BOARDS,
+  create: E.create, step: E.step, use: E.use, slotKey: E.slotKey, knows: E.knows, knowsPassive: E.knowsPassive, canTarget: E.canTarget, queue: E.queue, rollParty: E.rollParty,
   ITEMS, POTION_CD, useItem: E.useItem, itemReady: E.itemReady, reviveTarget: E.reviveTarget,
   DUNGEONS, REST_MANA_PER_SEC, restCarry: E.restCarry,
   autoHealer: E.autoHealer, simulate: E.simulate, hexDist: E.hexDist, living: E.living, partyDps: E.partyDps, rngFrom: E.rngFrom,
