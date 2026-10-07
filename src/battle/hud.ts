@@ -13,7 +13,8 @@ import { itemSlots } from '../data/progression';
 import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { itemTip, skillTip, tipHtml } from '../game/tooltip';
 import { TRAITS } from '../data/traits';
-import { knows, queue, slotKey, type Fight, type Unit } from '../engine';
+import { TALENT_DEF, type TalentKey } from '../data/talents';
+import { activeOn, cdMax, costOf, knows, queue, slotKey, type Fight, type Unit } from '../engine';
 import { ITEM_ICON } from './art';
 import { center, L } from './board';
 import { $, arrowOf, B, DIR_VEC, DIRS, ICON_COLOR, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe } from './core';
@@ -55,12 +56,12 @@ export function updateWheel(): void {
     el.classList.toggle('aim', aim === el.dataset.dir);
     if (!el.dataset.slot) continue;
     const slot = el.dataset.slot!, key = slotKey(F, slot), sk = SKILLS[key];
-    const cd = sk.cd ? F.cd[key] || 0 : 0;
+    const cd = sk.cd ? F.cd[key] || 0 : 0, cost = costOf(F, key);
     setText(el.querySelector('.nm')!, sk.short);
-    setText(el.querySelector('.ct')!, sk.cost ? `${sk.cost}%` : '무료');
-    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', cd > 0 ? `${(cd / sk.cd!) * 100}%` : '0%');
+    setText(el.querySelector('.ct')!, cost ? `${Math.round(cost * 10) / 10}%` : '무료');
+    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', cd > 0 ? `${Math.min(1, cd / cdMax(F, key)) * 100}%` : '0%');
     setText(el.querySelector('.cds')!, cd > 0 ? String(Math.ceil(cd)) : '');
-    el.classList.toggle('off', cd > 0 || F.mana < sk.cost);
+    el.classList.toggle('off', cd > 0 || F.mana < cost);
     el.classList.toggle('cooling', cd > 0);
     el.classList.toggle('armed', B.armed === slot);
     el.classList.toggle('holy', key === 'serenity' || key === 'sanctify');
@@ -99,7 +100,34 @@ function coreRing(F: Fight): { outer: number; inner: number; a: string; b: strin
     const live = F.party.filter(u => u.alive), n = live.filter(u => u.hots.some(h => h.key === 'sprout')).length;
     return { outer: live.length ? n / live.length : 0, inner: 0, a: String(n), b: String(live.length) };
   }
-  return { outer: F.g.p / 100, inner: F.g.s / 100, a: String(Math.floor(F.g.p)), b: String(Math.floor(F.g.s)) };
+  // 아껴 둔 말씀 (특성)이면 200까지 모임: 링은 100에서 가득, 숫자는 그대로
+  return { outer: Math.min(1, F.g.p / 100), inner: Math.min(1, F.g.s / 100), a: String(Math.floor(F.g.p)), b: String(Math.floor(F.g.s)) };
+}
+
+// ---------- 특성 보조 버튼 (06 9장 2번: 휠 밖 버튼, 단축칸 위) ----------
+export function buildAux(): void {
+  const keys = Object.keys(fight().tx.act) as TalentKey[];
+  $('aux').hidden = !keys.length;
+  $('controls').classList.toggle('hasaux', keys.length > 0); // 보조 버튼 자리: 아래 안내 글은 뺌
+  $('aux').innerHTML = keys.map(k => `<button class="aux" type="button" data-tal="${k}" aria-label="${TALENT_DEF[k].name}"><span class="nm">${TALENT_DEF[k].active!.short}</span><span class="cd"></span><span class="cds"></span></button>`).join('');
+}
+export function updateAux(): void {
+  const F = fight();
+  for (const el of $('aux').querySelectorAll<HTMLElement>('.aux[data-tal]')) {
+    const k = el.dataset.tal as TalentKey, a = F.tx.act[k], def = TALENT_DEF[k].active!;
+    if (!a) continue;
+    const on = activeOn(F, k), spent = !!def.once && a.used;
+    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', !on && a.cd > 0 ? `${(a.cd / def.cd) * 100}%` : '0%');
+    setText(el.querySelector('.cds')!, on ? String(Math.ceil(a.left)) : a.cd > 0 ? String(Math.ceil(a.cd)) : spent ? '✓' : '');
+    el.classList.toggle('on', on);
+    el.classList.toggle('off', !on && (a.cd > 0 || spent));
+    el.classList.toggle('armed', ui.talArmed === k);
+  }
+}
+export function openTalentTip(k: TalentKey, el: HTMLElement): void {
+  const d = TALENT_DEF[k], a = d.active!;
+  const row = a.once ? '전투당 1회' : `${a.dur}초 · 재사용 대기 ${a.cd}초`;
+  popTip(tipHtml({ name: d.name, kind: '특성', rows: [['즉시', row]], desc: d.desc, note: a.cell ? '누른 뒤 빈 칸을 탭' : 'GCD·마나 없이 바로' }), el, null);
 }
 
 // ---------- 소비 아이템 단축칸 (19 2부): 2×2, 레벨에 따라 열린 칸 수가 다름 (18 2-2) ----------

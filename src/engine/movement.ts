@@ -103,9 +103,12 @@ export function zoneThreat(f: Fight, tel: Telegraph | Zone): number {
   return (tel.dps || 0) * 2 * f.dmgMult;
 }
 
+/** 고요한 찬가 (사제 특성): 찬가 동안 파티원 장판 회피 +15% */
+const calmDodge = (f: Fight): number => (f.tx.on.calmHymn && f.channel > 0 ? 0.15 : 0);
+
 export function dodgeRate(f: Fight, u: Unit): number {
-  if (u.cls === 'rogue') return Math.max(0.05, Math.min(0.98, f.diff.dodge + (u.p.dodge || 0) + 0.08));
-  return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0)));
+  if (u.cls === 'rogue') return Math.max(0.05, Math.min(0.98, f.diff.dodge + (u.p.dodge || 0) + 0.08 + calmDodge(f)));
+  return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0) + calmDodge(f)));
 }
 
 export function doReact(f: Fight, u: Unit): void {

@@ -2,6 +2,7 @@
 import type { ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HERO_SWITCH_LV, HEROES, type HeroKey } from '../data/heroes';
+import { TALENTS } from '../data/talents';
 import { SLOTS, type GearItem } from '../data/equipment';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots } from '../data/progression';
@@ -64,6 +65,23 @@ export const heroSave = (h: HeroKey): HeroSave => heroSaveOf(G.save, h);
 
 /** 전투에 쓸 직업: 튜토리얼은 사제로만 (25 4-1) */
 export const heroNow = (): HeroKey => (G.save.tut < TUT.done ? 'priest' : G.save.hero);
+
+// ---------- 특성 (06 6장) ----------
+/** 전투에 넣을 특성: 사제만 (다른 직업 트리는 준비 중), 튜토리얼은 없음 */
+export const talentsNow = (): (number | null)[] | undefined =>
+  heroNow() === 'priest' && G.save.tut >= TUT.done ? heroSave('priest').talents : undefined;
+
+/** 특성 고르기. 같은 걸 다시 누르면 풀림. 열린 단만, 언제든 무료 */
+export function pickTalent(tier: number, pick: number): boolean {
+  const t = TALENTS[tier];
+  if (G.save.hero !== 'priest' || !t || !t.picks[pick] || t.lv > healerLevel()) return false;
+  const hs = heroSave(G.save.hero);
+  const a = (hs.talents ||= []);
+  while (a.length < TALENTS.length) a.push(null);
+  a[tier] = a[tier] === pick ? null : pick;
+  commit();
+  return true;
+}
 
 /** 직업 바꾸기가 열렸는지 (Lv 10, 튜토리얼 뒤). dev = 개발 빌드 잠금 무시로 열림 */
 export function switchOpen(): { ok: boolean; dev: boolean; why: string } {

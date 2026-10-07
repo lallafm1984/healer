@@ -275,6 +275,19 @@ textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertic
 #pullNum.go { animation: pullGo 0.9s ease-out; }
 @keyframes pullGo { from { transform: scale(1.35); opacity: 0.4; } to { transform: none; opacity: 1; } }
 
+/* ---------- 특성 보조 버튼 (06 9장 2번): 단축칸 위 한 줄 ---------- */
+#aux { display: flex; gap: 6px; width: 100%; max-width: 132px; justify-content: center; }
+#aux[hidden] { display: none; }
+#controls.hasaux #hint { display: none; }
+.aux { position: relative; flex: 1; max-width: 42px; aspect-ratio: 1; border-radius: 50%; border: 2.5px solid var(--gold); background: radial-gradient(circle at 35% 30%, #5A4A22, #2A2214); color: var(--gold-hi); font-size: 11px; font-weight: 700; display: grid; place-items: center; padding: 0; cursor: pointer; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.aux .nm { position: relative; z-index: 1; pointer-events: none; }
+.aux .cd { position: absolute; inset: 0; background: conic-gradient(rgba(8, 8, 14, 0.8) var(--p, 0%), transparent 0); z-index: 2; pointer-events: none; }
+.aux .cds { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-display); font-size: 15px; color: var(--ink); z-index: 3; text-shadow: 0 1px 0 var(--line); pointer-events: none; }
+.aux.off { filter: saturate(0.35) brightness(0.7); }
+.aux.on { border-color: var(--gold-hi); box-shadow: 0 0 0 2px var(--gold), 0 0 14px rgba(240, 196, 106, 0.8); }
+.aux.on .nm { opacity: 0.35; }
+.aux.armed { border-color: var(--gold-hi); box-shadow: 0 0 0 3px var(--gold), 0 0 14px rgba(240, 196, 106, 0.7); }
+
 /* ---------- 소비 아이템 단축칸 (19 9장): 하단 왼쪽, 힐러 그림 자리 ---------- */
 #items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 100%; max-width: 132px; }
 .item { position: relative; aspect-ratio: 1; border-radius: 12px; border: 2.5px solid var(--line); background: radial-gradient(circle at 35% 30%, #34375C, #1E2038); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 2px 0 3px; cursor: pointer; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; color: var(--ink); }

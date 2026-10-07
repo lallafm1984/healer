@@ -15,7 +15,8 @@ import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { rngFrom } from './rng';
 import { unitDps, unitTick } from './units';
-import type { Cell, Fight, FightConfig, FightResult, Role, RosterEntry, Unit } from './types';
+import { newTalents } from './talents';
+import type { Cell, Fight, FightConfig, FightResult, Role, RosterEntry, TalentState, Unit } from './types';
 
 /** 전투 만들기 */
 export function create(cfg: FightConfig): Fight {
@@ -42,6 +43,7 @@ export function create(cfg: FightConfig): Fight {
     cd: { purify: 0, guardian: 0, hymn: 0 },
     g: { p: 0, s: 0 }, symbolUsed: false, symbol: 0, level: cfg.level ?? 100,
     hero: cfg.hero ?? 'priest', power3: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null,
+    tx: null as unknown as TalentState, // 아래 newTalents
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
     enraged: false, rats: [],
     items: {}, potCd: 0, medit: 0, itemLog: [],
@@ -50,6 +52,7 @@ export function create(cfg: FightConfig): Fight {
     party: [],
     me: null as unknown as Unit, // makeParty에서 채움
   };
+  f.tx = newTalents(f);
   for (const k of (cfg.items || []).slice(0, 4)) if (ITEMS[k]) f.items[k] = ITEMS[k].uses;
   if (cfg.carry) { f.mana = cfg.carry.mana; f.stats.minMana = f.mana; f.g = { ...cfg.carry.g }; }
   if (!knowsPassive(f, 'words')) f.g = { p: 0, s: 0 };

@@ -3,14 +3,20 @@ import { hexDist } from './board';
 import { BARK } from '../data/heroConst';
 import { bark, cellOf, damage, DT, heal, onDebuffEnd } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
-import type { Fight, Unit } from './types';
+import { calmHymn, renewEnd } from './talents';
+import type { PersName } from '../data/personalities';
+import type { Cell, Fight, Unit } from './types';
 
 /** 파티원 한 틱: 지속 효과, 디버프, 장판 피해, 이동, 0.2초마다 판단 (04 4장) */
 export function unitTick(f: Fight, u: Unit): void {
   const dt = DT;
   if (u.flash > 0) u.flash -= dt;
   if (!u.alive) return;
-  if (u.hot > 0) { u.hot -= dt; u.hotTick += dt; if (u.hotTick >= 3 - 1e-9) { u.hotTick -= 3; heal(f, u, 80, false); } }
+  if (u.hot > 0) {
+    u.hot -= dt; u.hotTick += dt;
+    if (u.hotTick >= 3 - 1e-9) { u.hotTick -= 3; heal(f, u, 80, false); }
+    if (u.hot <= 0 && f.tx.on.hopRenew && u.alive) renewEnd(f, u); // 옮겨 가는 소생
+  }
   if (u.hots.length) hotTick(f, u, dt);
   if (u.redu > 0) u.redu -= dt;
   if (u.sacr > 0) u.sacr -= dt;
@@ -45,10 +51,13 @@ export function unitTick(f: Fight, u: Unit): void {
     }
     return;
   }
-  if (u.p.flee) {
-    if (!u.fleeing && u.hp / u.max < u.p.flee) {
-      const c = pickCell(f, u, { safe: true, back: true });
-      if (c) { moveTo(f, u, c); u.fleeing = true; bark(f, u, u.p.barks![0], true); }
+  // 도망: 겁쟁이 (50%). 쉼터가 있으면 신중파도 40% 아래에서 쉼터로 (사제 특성, 06 6장)
+  const shelter = shelterFor(f);
+  const fleeAt = u.p.flee || (shelter && u.pers && SHELTER_GO.includes(u.pers) ? SHELTER_GO_HP : 0);
+  if (fleeAt || u.fleeing) {
+    if (!u.fleeing && fleeAt && u.hp / u.max < fleeAt && !calmHymn(f)) {
+      const c = shelter || pickCell(f, u, { safe: true, back: true });
+      if (c) { moveTo(f, u, c); u.fleeing = true; bark(f, u, u.p.flee ? u.p.barks![0] : '쉼터로!', true); }
     } else if (u.fleeing && u.hp / u.max >= 0.8) {
       u.fleeing = false;
       const c = pickCell(f, u, { safe: true, home: true });
@@ -64,6 +73,16 @@ export function unitTick(f: Fight, u: Unit): void {
     } else u.homeAt = null;
   }
   if (u.p.attention && !u.sulking && f.t - u.lastHeal > u.p.attention && f.t > 8) { u.sulking = true; bark(f, u, null, true); }
+}
+
+/** 쉼터가 있으면 도망 대신 쉼터로 가는 성격과 체력 (06 6장. 소심이는 아직 없는 성격) */
+const SHELTER_GO: PersName[] = ['신중파'];
+const SHELTER_GO_HP = 0.4;
+
+/** 쉼터 (사제 특성): 비어 있고 위험하지 않으면 도망가는 파티원이 그리로 */
+function shelterFor(f: Fight): Cell | null {
+  const i = f.tx.shelter;
+  return i >= 0 && !f.cells[i].unit && !dangerAt(f, i) ? f.cells[i] : null;
 }
 
 /** 지속 힐 틱 (드루이드·성기사). 다 차면 직업 패시브(순환)로 마나를 돌려줄 수 있게 이벤트 대신 콜백 */

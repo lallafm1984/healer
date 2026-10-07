@@ -1,4 +1,4 @@
-// 캐릭터 탭 (Lim 2026-10-07): 내 사제 능력치 · 장비 · 스킬(설명·휠 배치·칸 탭·단축칸) · 특성 미리 보기
+// 캐릭터 탭 (Lim 2026-10-07): 내 사제 능력치 · 장비 · 스킬(설명·휠 배치·칸 탭·단축칸) · 특성
 import { chromium } from 'playwright';
 import { pastTitle, patchSave } from './nav.mjs';
 
@@ -75,8 +75,8 @@ export default async function character(url, shots) {
   await pastTitle(page);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   await page.click('#s-char [data-csub="talent"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-char .tier.locked').count()) === 8 && /2단 열림/.test(await text('#s-char')), 'Lv 25 = 2단 열림');
-  ok(await page.isVisible('#s-char .tier:nth-child(3) .tpick'), '다음에 열릴 3단이 펼쳐짐');
+  ok((await page.locator('#s-char .tier.locked').count()) === 8 && /0 \/ 2단 고름/.test(await text('#s-char')), 'Lv 25 = 2단 열림, 아직 안 고름');
+  ok(await page.isVisible('#s-char .tier:nth-child(1) .tpick') && (await page.locator('#s-char .tier.empty').count()) === 2, '고르지 않은 첫 단이 펼쳐짐');
   await page.screenshot({ path: `${shots}/char_talent.png` });
   await page.click('#s-char [data-csub="skill"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char .skc.locked').count()) === 0 && (await page.locator('#s-char .lslot.locked').count()) === 0, 'Lv 25 = 스킬·패시브 다 열림');

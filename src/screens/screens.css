@@ -304,6 +304,13 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .tpick b { font-family: var(--font-display); font-weight: 400; font-size: 15px; }
 .tpick p { margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: #CFCBE0; }
 .tier.locked .tpick b, .tier.locked .tpick p { opacity: 0.7; }
+button.tpick { width: 100%; text-align: left; border: 2px solid transparent; color: inherit; font: inherit; cursor: pointer; }
+button.tpick:disabled { cursor: default; }
+button.tpick[aria-pressed="true"] { border-color: var(--gold); background: #2A2416; }
+button.tpick[aria-pressed="true"] i { background: var(--gold); color: #1A1408; }
+.tier.empty .tlv { border-style: dashed; }
+.tier.empty .tsum span { color: var(--gold-hi); }
+.ttag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: #3A2E12; color: var(--gold-hi); font-family: var(--font-body); font-size: 10px; vertical-align: 2px; }
 
 /* 딜미터기 (정산·휴식, 2026-10-07 Lim) */
 .meter { margin: 10px 0 4px; padding: 10px 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--panel); text-align: left; }

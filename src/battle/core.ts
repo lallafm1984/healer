@@ -5,6 +5,7 @@
 import type { CoachKey } from '../game/tutorial';
 import type { GearStats } from '../data/gear';
 import type { ItemKey } from '../data/items';
+import type { TalentKey } from '../data/talents';
 import { DEB_COLOR, HEROES, type HeroKey } from '../data/heroes';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { knows, SLOT_OF, type Fight, type RosterEntry, type Role } from '../engine';
@@ -92,6 +93,8 @@ export interface StartOptions {
   coach?: CoachKey | null;
   /** 힐러 직업 (25) */
   hero?: HeroKey;
+  /** 사제 특성: 단마다 고른 칸 (06 6장) */
+  talents?: (number | null)[];
 }
 
 export interface Run {
@@ -104,7 +107,7 @@ export interface Run {
 export const S = {
   diff: '보통', gearStats: null as GearStats | null, level: 100, heroLv: undefined as number | undefined, stageLv: undefined as number | undefined,
   party: null as RosterEntry[] | null, items: [] as ItemKey[], slots: 4,
-  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, hero: 'priest' as HeroKey,
+  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined,
   layout: { ...DEFAULT_LAYOUT } as Layout,
   run: null as Run | null, onEnd: null as ((r: BattleResult) => void) | null, coach: null as CoachKey | null,
   onSetting: null as ((key: string, val: unknown) => void) | null,
@@ -132,6 +135,8 @@ export const ui = {
   touchSeen: false, pullLeft: 0, pullShown: null as number | null, guideSec: 0, skillTips: 0, itemTips: 0, busterHint: false,
   swipes: {} as Record<string, number>, swipeCancel: 0, swipeEmpty: 0,
   itemArmed: null as ItemKey | null, coach: null as Coach | null,
+  /** 쉼터 장전 중 (빈 칸 탭) */
+  talArmed: null as TalentKey | null,
   tip: null as { ic?: string; imp?: number; skill?: SkillKey; item?: ItemKey } | null, tipTimer: 0 as unknown as ReturnType<typeof setTimeout>,
   restAt: 0, restMana: null as number | null, lastResult: null as BattleResult | null,
 };

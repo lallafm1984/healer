@@ -24,6 +24,8 @@ export interface HeroSave {
   quest: number;
   /** 이 직업으로 이긴 판 수 (숙련도, 25 4-3) */
   wins: number;
+  /** 특성 (06 6장): 단마다 고른 칸 번호 (0~2, 안 고름 = null). 직업마다 따로 (25 4-1) */
+  talents?: (number | null)[];
 }
 
 export interface Settings {

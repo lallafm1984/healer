@@ -1,6 +1,6 @@
 /**
  * 캐릭터 탭 (Lim 2026-10-07): 내 힐러 한 곳에 모음.
- * 장비(09 S10) · 스킬(설명, 휠 배치 09 S17, 칸 탭 기본 힐, 소비 아이템 단축칸) · 특성(06 6장, P1은 미리 보기) · 직업(25 7장: 직업 카드·목록·바꾸기)
+ * 장비(09 S10) · 스킬(설명, 휠 배치 09 S17, 칸 탭 기본 힐, 소비 아이템 단축칸) · 특성(06 6장, 고르기) · 직업(25 7장: 직업 카드·목록·바꾸기)
  */
 import { GRADE_STYLE, gearStatsOf, gearSummary, ITEM_GRADES, itemScore, SLOTS, slotName, type GearItem } from '../data/equipment';
 import { canDispel, DEB_COLOR, HERO_KEYS, HERO_SWITCH_LV, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
@@ -10,7 +10,7 @@ import { PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKI
 import { TALENTS } from '../data/talents';
 import { castText, cdText, costText, skillTip, tipHtml } from '../game/tooltip';
 import type { TapKey } from '../platform/storage';
-import { commit, equip, G, healerLevel, heroSave, heroStatus, itemsNow, switchHero, switchOpen, toggleItem } from '../game/state';
+import { commit, equip, G, healerLevel, heroSave, heroStatus, itemsNow, pickTalent, switchHero, switchOpen, toggleItem } from '../game/state';
 import { bellSvg } from './art';
 import { battle, esc, fmt, josa, screen, topBar } from './kit';
 import { pushSettings } from './settings';
@@ -30,7 +30,7 @@ const s = screen('s-char', '캐릭터', {
   tab: 'char',
   enter(arg) {
     if (SUBS.some(x => x.key === arg)) sub = arg as Sub;
-    sel = null; swapping = false; msg = '';
+    sel = null; swapping = false; msg = ''; tierOpen = null;
     render();
   },
 });
@@ -202,23 +202,32 @@ function skillHtml(): string {
     <ul class="sklist">${pas}</ul>`;
 }
 
-// ---------- 특성 (미리 보기) ----------
+// ---------- 특성 (06 6장): 단마다 셋 중 하나, 언제든 무료로 바꿈 ----------
+/** 마지막으로 연 단 (고른 뒤에도 펼친 채로) */
+let tierOpen: number | null = null;
+
 function talentHtml(): string {
-  const lv = G.save.player.level;
+  const lv = healerLevel();
   // 직업마다 특성 트리가 따로 (25 6장). 지금 만든 건 사제 트리뿐
   if (hero() !== 'priest') return `<section class="panel"><h2>특성 <small>${HEROES[hero()].name}</small></h2>
       <p>${HEROES[hero()].name} 특성 트리는 준비 중. 사제 특성을 먼저 만든 뒤 같은 틀로 추가</p></section>`;
+  const mine = heroSave('priest').talents || [];
   const open = TALENTS.filter(t => t.lv <= lv).length;
-  const focus = Math.min(open, TALENTS.length - 1);
-  return `<section class="panel"><h2>특성 <small>${open ? `${open}단 열림` : `🔒 Lv ${TALENT_LEVEL}에 열림 (지금 Lv ${lv})`}</small></h2>
-      <p>Lv 10부터 10레벨마다 한 단씩, 셋 중 하나 선택. 언제든 무료로 변경 가능</p>
-      <p class="note">고르기와 효과는 P2. 지금은 미리 보기</p></section>
+  const picked = TALENTS.filter((t, i) => t.lv <= lv && mine[i] != null).length;
+  const firstEmpty = TALENTS.findIndex((t, i) => t.lv <= lv && mine[i] == null);
+  const focus = tierOpen ?? (firstEmpty >= 0 ? firstEmpty : Math.min(open, TALENTS.length - 1));
+  const head = open ? `${picked} / ${open}단 고름` : `🔒 Lv ${TALENT_LEVEL}에 열림 (지금 Lv ${lv})`;
+  return `<section class="panel"><h2>특성 <small>${head}</small></h2>
+      <p>Lv 10부터 10레벨마다 한 단씩 열림. 단마다 셋 중 하나를 고르고, 언제든 무료로 변경. 고른 특성을 다시 누르면 해제</p>
+      ${open > picked ? `<p class="note warn">고르지 않은 단 ${open - picked}개</p>` : ''}
+      <p class="note">보조 버튼 특성은 전투 화면 단축칸 위에 버튼으로 나옴</p></section>
     <ol class="ttree">${TALENTS.map((t, i) => {
-      const locked = t.lv > lv;
-      return `<li class="tier${locked ? ' locked' : ''}"><details${i === focus ? ' open' : ''}><summary>
+      const locked = t.lv > lv, cur = mine[i] ?? null;
+      const sum = locked ? t.picks.map(p => p.name).join(' · ') : cur != null && t.picks[cur] ? `✓ ${t.picks[cur].name}` : '고르지 않음';
+      return `<li class="tier${locked ? ' locked' : ''}${!locked && cur == null ? ' empty' : ''}"><details${i === focus ? ' open' : ''}><summary>
           <span class="tlv"><b>${i + 1}단</b><small>${locked ? '🔒 ' : ''}Lv ${t.lv}</small></span>
-          <span class="tsum"><em>${t.theme}</em><span>${t.picks.map(p => p.name).join(' · ')}</span></span></summary>
-        <div class="tpicks">${t.picks.map((p, j) => `<div class="tpick"><i>${'ABC'[j]}</i><div><b>${p.name}</b><p>${esc(p.desc)}</p></div></div>`).join('')}</div>
+          <span class="tsum"><em>${t.theme}</em><span>${sum}</span></span></summary>
+        <div class="tpicks">${t.picks.map((p, j) => `<button class="tpick" type="button" data-talent="${i}:${j}" aria-pressed="${cur === j}"${locked ? ' disabled' : ''}><i>${cur === j ? '✓' : 'ABC'[j]}</i><div><b>${p.name}${p.active ? ' <span class="ttag">보조 버튼</span>' : ''}</b><p>${esc(p.desc)}</p></div></button>`).join('')}</div>
       </details></li>`;
     }).join('')}</ol>`;
 }
@@ -228,6 +237,12 @@ s.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
   const tab = t.closest<HTMLElement>('[data-csub]');
   if (tab) { if ((tab as HTMLButtonElement).disabled) return; sub = tab.dataset.csub as Sub; sel = null; swapping = false; msg = ''; render(); return; }
+  const tb = t.closest<HTMLButtonElement>('[data-talent]');
+  if (tb && !tb.disabled) {
+    const [i, j] = tb.dataset.talent!.split(':').map(Number);
+    if (pickTalent(i, j)) { tierOpen = i; render(); }
+    return;
+  }
   const hb = t.closest<HTMLButtonElement>('[data-hero]');
   if (hb && !hb.disabled) {
     const k = hb.dataset.hero as HeroKey;

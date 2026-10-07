@@ -8,7 +8,8 @@ import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { ITEMS, type ItemKey } from '../data/items';
 import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
-import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, setBeacon, slotKey, step, use, useItem, type Fight, type FightStats } from '../engine';
+import { TALENT_DEF, type TalentKey } from '../data/talents';
+import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, setBeacon, slotKey, step, talentReady, use, useItem, useTalent, type Fight, type FightStats } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON } from './art';
@@ -19,8 +20,8 @@ import {
 } from './core';
 import { guideHtml, guideModel } from './guide';
 import {
-  bossTitle, buildGauges, buildItems, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTip, showPreview, tipMatch,
-  resetDmgNums, updateCastbar, updateItems, updateStage, updateWheel,
+  bossTitle, buildAux, buildGauges, buildItems, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
+  resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
 } from './hud';
 
 const seed = () => (Math.random() * 1e9) | 0;
@@ -41,11 +42,11 @@ function startBattle(guideSec = 0): void {
   const sd = R.seed0 != null ? R.seed0 : seed(); R.seed0 = null;
   const F = create({
     encounter: curKey(), diff: S.diff as DiffName, gearStats: S.gearStats || undefined, seed: sd, party: S.party || undefined, items: S.items,
-    carry: R.carry || undefined, level: S.level, heroLv: S.heroLv, stageLv: S.stageLv, hero: S.hero,
+    carry: R.carry || undefined, level: S.level, heroLv: S.heroLv, stageLv: S.stageLv, hero: S.hero, talents: S.talents,
   });
   B.F = F;
-  ui.itemArmed = null; itemPress = null; slotPress = null;
-  buildItems();
+  ui.itemArmed = null; ui.talArmed = null; itemPress = null; slotPress = null; auxPress = null;
+  buildItems(); buildAux();
   // 전투 시작 카운트다운 3초 (19 4장 6번). 자동 힐러 구경은 바로 시작
   ui.pullLeft = S.auto ? 0 : 3; ui.pullShown = null;
   $('pull').hidden = !(ui.pullLeft > 0);
@@ -91,6 +92,7 @@ window.addEventListener('resize', () => { if (B.F && !$('battle').hidden) layout
 interface Press { el: HTMLElement; lp: boolean; timer?: ReturnType<typeof setTimeout> }
 let slotPress: (Press & { slot: string | null; lock: SkillKey | null }) | null = null;
 let itemPress: (Press & { key: ItemKey }) | null = null;
+let auxPress: { key: TalentKey; lp: boolean; timer?: ReturnType<typeof setTimeout> } | null = null;
 const live = () => !!B.F && !B.F.over && !B.paused;
 
 $('wheel').addEventListener('pointerdown', ev => {
@@ -126,7 +128,7 @@ function pressCore(): void {
   const lv = HEROES.paladin.system.lv;
   if (F.level < lv) { toast(`봉화: Lv ${lv}에 배움`); Snd.play('error'); return; }
   if (F.beaconCd > 0) { toast(`봉화 바꾸기 대기 ${Math.ceil(F.beaconCd)}초`); Snd.play('error'); return; }
-  B.beacon = !B.beacon; B.armed = null; ui.itemArmed = null;
+  B.beacon = !B.beacon; B.armed = null; ui.itemArmed = null; ui.talArmed = null;
   if (B.beacon) toast('봉화: 지킬 파티원 칸 선택');
   vibe(8);
 }
@@ -134,7 +136,7 @@ function pressCore(): void {
 function pressSlot(slot: string): void {
   const F = B.F;
   if (!F || !live() || ui.pullLeft > 0) return;
-  ui.itemArmed = null; B.beacon = false;
+  ui.itemArmed = null; ui.talArmed = null; B.beacon = false;
   const key = slotKey(F, slot);
   if (SKILLS[key].target === 'none') { doUse(key, 0); return; }
   B.armed = B.armed === slot ? null : slot;
@@ -167,11 +169,46 @@ function pressItem(key: ItemKey): void {
   if (it.target === 'ally') {
     const r = itemReady(F, key);
     if (!r.ok) { if (r.reason) toast(r.reason); Snd.play('error'); return; }
-    ui.itemArmed = ui.itemArmed === key ? null : key; B.armed = null; B.beacon = false;
+    ui.itemArmed = ui.itemArmed === key ? null : key; B.armed = null; B.beacon = false; ui.talArmed = null;
     if (ui.itemArmed) toast(`${it.name}: 지킬 파티원 칸 선택`);
     vibe(8); return;
   }
   const res = useItem(F, key);
+  if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('error'); return; }
+  vibe(12);
+}
+
+// ---------- 특성 보조 버튼: 누르기 = 바로 (쉼터는 장전 → 빈 칸 탭), 길게 누르기 = 설명 ----------
+$('aux').addEventListener('pointerdown', e => {
+  const b = (e.target as Element).closest<HTMLElement>('.aux[data-tal]');
+  if (!b || !live() || ui.pullLeft > 0) return;
+  e.preventDefault();
+  try { b.setPointerCapture(e.pointerId); } catch { /* 무시 */ }
+  const P: NonNullable<typeof auxPress> = { key: b.dataset.tal as TalentKey, lp: false };
+  P.timer = setTimeout(() => { if (auxPress === P) { P.lp = true; openTalentTip(P.key, b); vibe(10); } }, 450);
+  auxPress = P;
+});
+function endAux(cancelled: boolean): void {
+  const P = auxPress; auxPress = null;
+  if (!P) return;
+  clearTimeout(P.timer);
+  if (P.lp || cancelled || !live()) return;
+  pressAux(P.key);
+}
+$('aux').addEventListener('pointerup', () => endAux(false));
+$('aux').addEventListener('pointercancel', () => endAux(true));
+$('aux').addEventListener('contextmenu', e => e.preventDefault());
+
+function pressAux(key: TalentKey): void {
+  const F = B.F!, def = TALENT_DEF[key];
+  if (def.active!.cell) {
+    const r = talentReady(F, key);
+    if (!r.ok) { if (r.reason) toast(r.reason); Snd.play('error'); return; }
+    ui.talArmed = ui.talArmed === key ? null : key; B.armed = null; B.beacon = false; ui.itemArmed = null;
+    if (ui.talArmed) toast(`${def.name}: 빈 칸 선택`);
+    vibe(8); return;
+  }
+  const res = useTalent(F, key);
   if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('error'); return; }
   vibe(12);
 }
@@ -236,6 +273,12 @@ function endPointer(cancelled: boolean): void {
     B.beacon = false;
     if (!setBeacon(F, u)) { Snd.play('error'); return; }
     Snd.play('bell'); vibe(12); return;
+  }
+  if (ui.talArmed) { // 쉼터 장전 중: 빈 칸 탭
+    if (P.idx < 0) { F.stats.emptyTaps++; return; }
+    const res = useTalent(F, ui.talArmed, P.idx);
+    if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('error'); return; }
+    ui.talArmed = null; vibe(12); return;
   }
   if (ui.itemArmed) { // 보호 두루마리 장전 중: 칸 탭 = 그 파티원에게
     if (P.idx < 0 || !F.cells[P.idx].unit) { F.stats.emptyTaps++; return; }
@@ -502,7 +545,7 @@ function frame(now: number): void {
       }
     }
     handleEvents(now);
-    updateStage(now); updateWheel(); updateItems(); updateCastbar();
+    updateStage(now); updateWheel(); updateItems(); updateAux(); updateCastbar();
     render(now);
     if (F.over && !B.overShown) { B.overShown = true; endSegment(); }
   }
@@ -527,6 +570,7 @@ function frame(now: number): void {
     S.heroLv = o.heroLv; S.stageLv = o.stageLv;
     S.coach = o.coach || null;
     S.hero = o.hero && HERO_KEYS.includes(o.hero) ? o.hero : 'priest';
+    S.talents = Array.isArray(o.talents) ? o.talents.slice() : undefined;
     applyLayout();
     resetRun();
     Snd.init();

@@ -89,6 +89,8 @@ export interface BattleApi {
     coach?: CoachKey | null;
     /** 힐러 직업 (25) */
     hero?: HeroKey;
+    /** 사제 특성 (06 6장) */
+    talents?: (number | null)[];
   }): void;
   settings(s: object): void;
   /** 전투 화면에서 바꾼 설정 (일시정지의 자동 치유) → 저장 */

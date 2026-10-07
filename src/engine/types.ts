@@ -7,6 +7,7 @@ import type { ItemKey } from '../data/items';
 import type { Personality, PersName } from '../data/personalities';
 import type { HeroKey } from '../data/heroes';
 import type { SkillKey } from '../data/skills';
+import type { TalentKey } from '../data/talents';
 import type { TraitKey } from '../data/traits';
 
 export type Role = 'tank' | 'melee' | 'ranged' | 'healer';
@@ -113,6 +114,8 @@ export interface Unit {
   /** 보호의 손: 물리 피해 무시 (남은 시간). 그동안 딜 0 */
   immune: number;
   echo: Echo[];
+  /** 사제 소생이 옮겨 간 것인지 (옮겨 가는 소생 특성: 한 번만) */
+  hotHop?: boolean;
   guardian: number;
   shield: number;
   debuffs: Debuff[];
@@ -231,6 +234,37 @@ export interface FightConfig {
   heroLv?: number;
   /** 콘텐츠 단계 레벨: 파티원·적 체력·피해·딜 배율. 없으면 1 (배율 1) */
   stageLv?: number;
+  /** 사제 특성: 단마다 고른 칸 번호 (06 6장). 없으면 특성 없음 */
+  talents?: (number | null)[];
+}
+
+/** 보조 버튼 특성 하나의 상태 */
+export interface TalentAct {
+  cd: number;
+  left: number;
+  used: boolean;
+}
+
+/** 사제 특성 상태 (06 6장). 특성이 없으면 on이 비어 있고 아무 효과 없음 */
+export interface TalentState {
+  on: Partial<Record<TalentKey, true>>;
+  act: Partial<Record<TalentKey, TalentAct>>;
+  /** 슬픔의 힘: 이 시각까지 힐 +30% */
+  griefUntil: number;
+  /** 말씀의 여운: 이 시각까지 마나 소모 -50% */
+  echoUntil: number;
+  /** 마지막으로 스킬을 쓴 시각 (숨 고르기) */
+  lastAct: number;
+  /** 한 사람만 본다: 이어서 치유한 대상과 횟수 */
+  focus: { uid: number; n: number } | null;
+  /** 두 겹 수호: 남은 충전, 다음 충전까지 */
+  guard: number;
+  guardRe: number;
+  repayUsed: boolean;
+  /** 쉼터 칸 (-1 = 없음) */
+  shelter: number;
+  /** 나중에 할 일 (두 번 퍼지는 기원) */
+  later: { at: number; cell: number; amt: number; r: number }[];
 }
 
 /** 던전 구간 사이에 이어지는 것: 마나(휴식 회복 뒤), 성언 게이지 */
@@ -330,6 +364,8 @@ export interface Fight {
   rebirthUsed: boolean;
   /** 성기사 빛의 성역: 칸과 끝나는 시각 */
   sanctuary: { cells: Set<number>; end: number } | null;
+  /** 사제 특성 (06 6장) */
+  tx: TalentState;
   skills: BossSkill[];
   tels: Telegraph[];
   zones: Zone[];

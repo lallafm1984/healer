@@ -8,6 +8,7 @@ export { canTarget, knows, knowsPassive, SLOT_OF, slotKey, use } from './healer'
 export { heroPassive, heroRing, hotCount, setBeacon } from './heroes';
 export { itemReady, reviveTarget, useItem } from './items';
 export { rngFrom } from './rng';
+export { activeOn, areaRadius, cdMax, costOf, talentReady, useTalent } from './talents';
 export { partyDps, unitDps } from './units';
 export type * from './types';
 export { restCarry, segmentConfig, simulateDungeon, type DungeonResult, type DungeonRunConfig } from './dungeon';

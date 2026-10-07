@@ -7,7 +7,7 @@
 import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, RenderTexture, Sprite, Text, Texture } from 'pixi.js';
 import { CLASSES } from '../data/classes';
 import { SKILLS } from '../data/skills';
-import { aggroTarget, hexDist, slotKey, type Unit } from '../engine';
+import { aggroTarget, areaRadius, hexDist, slotKey, type Unit } from '../engine';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, SEL, ui } from './core';
 
 // ---------- 색 ----------
@@ -297,7 +297,7 @@ function predictedHeal(u: Unit): number {
   const sk = SKILLS[F.cast.key];
   const tgt = F.party.find(x => x.id === F.cast!.uid);
   if (!tgt) return 0;
-  if (sk.target === 'area') return hexDist(F.cells[u.cell], F.cells[tgt.cell]) <= 1 ? sk.amt! * F.gear.heal * F.power : 0;
+  if (sk.target === 'area') { const r = areaRadius(F, F.cast.key); return hexDist(F.cells[u.cell], F.cells[tgt.cell]) <= r ? sk.amt! * (r > 1 ? 0.8 : 1) * F.gear.heal * F.power : 0; }
   return u === tgt ? sk.amt! * F.gear.heal * F.power * (u.hot > 0 ? 1.1 : 1) : 0;
 }
 
@@ -323,6 +323,12 @@ export function render(now: number): void {
     else if (telSet.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.tel, alpha: 0.12 + 0.2 * pulse });
     // 성기사 빛의 성역: 금빛 바닥, 끝나기 2초 전 깜빡임
     if (F.sanctuary && F.sanctuary.cells.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: F.sanctuary.end - F.t < 2 ? 0.08 + 0.14 * pulse : 0.2 });
+    // 사제 쉼터 (특성): 금빛 바닥 + 안쪽 테두리, 끝나기 2초 전 깜빡임
+    if (F.tx.shelter === i) {
+      const left = F.tx.act.shelter?.left ?? 0;
+      hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: left < 2 ? 0.1 + 0.16 * pulse : 0.26 });
+      hexPoly(cellsG, p.x, p.y, r * 0.72).stroke({ width: 2.5, color: C.gold, alpha: 0.8 });
+    }
   });
   // 장전된 범위 미리보기
   const armedKey = B.armed ? slotKey(F, B.armed) : null;
@@ -483,9 +489,12 @@ export function render(now: number): void {
   if (armedKey) {
     if (areaArmed && areaCenter >= 0) {
       const c0 = F.cells[areaCenter];
-      F.cells.forEach((c, i) => { if (hexDist(c, c0) <= 1) { const p = center(i); hexPoly(overG, p.x, p.y, r * 1.04).fill({ color: C.white, alpha: 0.14 }).stroke({ width: 3, color: hex(SEL) }); } });
+      const ar = areaRadius(F, armedKey);
+      F.cells.forEach((c, i) => { if (hexDist(c, c0) <= ar) { const p = center(i); hexPoly(overG, p.x, p.y, r * 1.04).fill({ color: C.white, alpha: 0.14 }).stroke({ width: 3, color: hex(SEL) }); } });
     } else for (const u of F.party) if (u.alive) { const p = center(u.cell); hexPoly(overG, p.x, p.y, r * 1.04).stroke({ width: 2, color: C.white, alpha: 0.3 + 0.4 * pulse }); }
   }
+  // 쉼터 장전: 빈 칸을 금빛 테두리로
+  if (ui.talArmed) F.cells.forEach((c, i) => { if (!c.unit) { const p = center(i); hexPoly(overG, p.x, p.y, r * 0.96).stroke({ width: 2.5, color: C.gold, alpha: 0.35 + 0.5 * pulse }); } });
   if (!armedKey && ui.itemArmed) for (const u of F.party) if (u.alive) { const p = center(u.cell); hexPoly(overG, p.x, p.y, r * 1.04).stroke({ width: 2.5, color: C.gold, alpha: 0.35 + 0.5 * pulse }); }
   // 튜토리얼 안내가 짚는 칸
   if (ui.coach && ui.coach.uid != null) {

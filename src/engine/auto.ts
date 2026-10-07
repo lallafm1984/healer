@@ -6,12 +6,15 @@ import { create, step } from './fight';
 import { canTarget, knows, use } from './healer';
 import { setBeacon } from './heroes';
 import { reviveTarget } from './items';
+import { dangerAt } from './movement';
+import { talentReady, useTalent } from './talents';
 import type { Fight, FightConfig, Unit } from './types';
 
 /** 자동 힐러 (밸런스 시뮬레이션·구경 모드용, sim decide() 이식). 아직 안 배운 스킬은 건너뜀 */
 export function autoHealer(f: Fight): void {
   if (f.hero === 'druid') { autoDruid(f); return; }
   if (f.hero === 'paladin') { autoPaladin(f); return; }
+  autoTalents(f);
   if (f.cast || f.channel > 0 || f.gcd > 0 || f.queued) return;
   const live = living(f);
   if (!live.length) return;
@@ -44,6 +47,24 @@ export function autoHealer(f: Fight): void {
   if (tanks.length && f.mana > 5 && knows(f, 'renew')) { use(f, 'renew', cellIdx(tanks[0])); return; }
   if (aoeSoon && f.mana > 20 && knows(f, 'renew')) { const n = live.find(u => u.hot <= 0); if (n) { use(f, 'renew', cellIdx(n)); return; } }
   if (pct(low) < 0.85 && f.mana > 3) use(f, 'heal', cellIdx(low));
+}
+
+/** 사제 보조 버튼 특성 (GCD 밖): 여럿이 다치면 정점·흩빛, 위급하면 기적, 도망가는 파티원이 있으면 뒤쪽 빈 칸에 쉼터 */
+function autoTalents(f: Fight): void {
+  const act = f.tx.act;
+  if (!act.miracle && !act.zenith && !act.scatter && !act.shelter) return;
+  const live = living(f);
+  if (!live.length) return;
+  const pct = (u: Unit) => u.hp / u.max;
+  const hurt = live.filter(u => pct(u) < 0.6).length;
+  const many = hurt >= Math.max(2, Math.ceil(live.length * 0.3));
+  if (act.miracle && talentReady(f, 'miracle').ok && f.g.p < 100 && (many || live.some(u => pct(u) < 0.3))) useTalent(f, 'miracle');
+  if (act.zenith && many && talentReady(f, 'zenith').ok) useTalent(f, 'zenith');
+  if (act.scatter && many && talentReady(f, 'scatter').ok) useTalent(f, 'scatter');
+  if (act.shelter && talentReady(f, 'shelter').ok && live.some(u => u.p.flee && pct(u) < u.p.flee + 0.1)) {
+    const c = f.cells.filter(x => !x.unit && !dangerAt(f, x.i)).sort((a, b) => b.row - a.row)[0];
+    if (c) useTalent(f, 'shelter', c.i);
+  }
 }
 
 // ---------- 드루이드·성기사 자동 힐러 (25 3장의 손맛대로: 드루이드는 미리 깔고, 성기사는 모았다가 씀) ----------

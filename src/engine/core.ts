@@ -27,12 +27,21 @@ export function bark(f: Fight, u: Unit, text?: string | null, force?: boolean): 
   emit(f, { type: 'bark', id: u.id, text: text || barks?.[Math.floor(f.rng() * barks.length)] || '' });
 }
 
-/** 회복. direct = 직접 힐(숫자 표시, 관심·감사 성격 반응) */
-export function heal(f: Fight, u: Unit, amt: number, direct: boolean): number {
+/**
+ * 회복. direct = 직접 힐(숫자 표시, 관심·감사 성격 반응).
+ * raw = 이미 배율이 붙은 값 (사제 흘러넘침): 장비·레벨·특성 배율과 치명타를 다시 안 붙임
+ */
+export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = false): number {
   if (!u.alive || amt <= 0) return 0;
-  amt *= f.gear.heal * f.power;
-  const crit = f.rng() < f.gear.crit;
-  if (crit) amt *= 1.5;
+  let crit = false;
+  if (!raw) {
+    amt *= f.gear.heal * f.power;
+    // 사제 특성 (06 6장): 슬픔의 힘 (파티원이 쓰러진 뒤 5초 +30%), 벼랑 끝 손길 (30% 이하 대상 직접 힐 +25%)
+    if (f.tx.griefUntil > f.t) amt *= 1.3;
+    if (direct && f.tx.on.brink && u.hp <= u.max * 0.3) amt *= 1.25;
+    crit = f.rng() < f.gear.crit;
+    if (crit) amt *= 1.5;
+  }
   const eff = Math.min(amt, u.max - u.hp);
   u.hp += eff;
   f.stats.healed += eff;
@@ -50,6 +59,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean): number {
 export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
   if (!u.alive || amt <= 0) return;
   amt *= f.dmgMult;
+  if (u.me && f.tx.on.firmWill) amt *= 0.8; // 굳은 의지 (06 6장)
   if (u.shield > 0) amt *= 0.6;
   if (u.bulwark > 0) amt *= 1 - BULWARK.cut;
   if (u.redu > 0) amt *= 1 - u.reduCut;
@@ -62,6 +72,16 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
   if (u.cls) {
     if (magic && u.cls === 'paladin') amt *= 0.9;
     if (u.cls === 'swordsman') u.flow = 3;
+  }
+  // 은혜 갚기 (06 6장): 내가 죽을 피해를 한 번 대신 맞아 줌. 호감도가 아직 없어서 체력 비율이 가장 높은 파티원 (50% 이상)
+  if (u.me && f.tx.on.repay && !f.tx.repayUsed && u.guardian <= 0 && u.hp - amt <= 0) {
+    const v = living(f).filter(x => !x.me && x.hp >= x.max * 0.5).sort((a, b) => b.hp / b.max - a.hp / a.max)[0];
+    if (v) {
+      f.tx.repayUsed = true;
+      emit(f, { type: 'msg', text: `은혜 갚기: ${v.nick}이(가) 대신 맞음` });
+      damage(f, v, amt / f.dmgMult, magic);
+      return;
+    }
   }
   u.hp -= amt;
   if (amt > u.max * 0.15) u.flash = 0.35;
@@ -79,6 +99,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
     u.alive = false; u.hp = 0; u.debuffs = []; u.hot = 0; u.hots = []; u.echo = []; u.moving = null; u.react = null; u.shield = 0; u.redu = 0; u.sacr = 0; u.immune = 0; u.diedAt = f.t;
     if (u.max < u.base) u.max = u.base;
     f.stats.deaths++;
+    if (!u.me && f.tx.on.grief) f.tx.griefUntil = f.t + 5; // 슬픔의 힘
     emit(f, { type: 'death', id: u.id });
     emit(f, { type: 'sound', name: 'death' });
   }
