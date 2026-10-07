@@ -1,6 +1,6 @@
 /** S05 파티 편성 (09): 공개모집(길드파티는 Lv 15·P2), 시작 위치 미리보기, 파티원 카드, 다시 뽑기, 궁합 힌트, 단축칸 고르기 */
 import { CLASSES } from '../data/classes';
-import { contentOf } from '../data/content';
+import { contentOf, stageOf } from '../data/content';
 import { gearStatsOf } from '../data/equipment';
 import { ENCOUNTERS } from '../data/encounters';
 import { ITEMS, type ItemKey } from '../data/items';
@@ -101,7 +101,7 @@ export function depart(): void {
   Flow.coach = null;
   const { slots, items } = itemsNow();
   battle().start({
-    content: c.key, name: c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), gearStats: gearStatsOf(G.save.gear.equipped),
+    content: c.key, name: c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: stageOf(c, Flow.diff), gearStats: gearStatsOf(G.save.gear.equipped),
     party: Flow.party!, items, slots, seed: Flow.seed, coach,
     onEnd(r) {
       Flow.result = r;

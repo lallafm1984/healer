@@ -4,13 +4,13 @@
  */
 import { GRADE_STYLE, gearStatsOf, gearSummary, ITEM_GRADES, itemScore, SLOTS, slotName, type GearItem } from '../data/equipment';
 import { ITEMS, type ItemKey } from '../data/items';
-import { itemSlots, TALENT_LEVEL } from '../data/progression';
+import { itemSlots, lvPower, TALENT_LEVEL } from '../data/progression';
 import { PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { TALENTS } from '../data/talents';
 import type { TapKey } from '../platform/storage';
 import { commit, equip, G, healerLevel, itemsNow, toggleItem } from '../game/state';
 import { bellSvg } from './art';
-import { battle, esc, josa, screen, topBar } from './kit';
+import { battle, esc, fmt, josa, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 
 type Sub = 'gear' | 'skill' | 'talent';
@@ -49,12 +49,13 @@ function render(): void {
 // ---------- 위: 내 사제 ----------
 function heroHtml(): string {
   const st = gearStatsOf(G.save.gear.equipped);
+  const lp = lvPower(G.save.player.level);
   const stat = (k: string, v: string) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
   return `<section class="chero">
       <div class="chero-top"><span class="chero-art">${bellSvg}</span>
         <div><b>사제</b><small>정통 힐러 · 입문 ★☆☆ · 장비 ${esc(gearSummary(G.save.gear.equipped))}</small></div>
         <span class="chero-lv">Lv<b>${G.save.player.level}</b></span></div>
-      <dl class="cstats">${stat('체력', String(HEALER_HP))}${stat('힐량', `×${st.heal.toFixed(2)}`)}${stat('치명타', `${Math.round(st.crit * 100)}%`)}${stat('가속', `${Math.round(st.haste * 100)}%`)}${stat('마나 재생', `×${st.regen.toFixed(2)}`)}</dl>
+      <dl class="cstats">${stat('체력', fmt(Math.round(HEALER_HP * lp)))}${stat('힐량', `×${(st.heal * lp).toFixed(2)}`)}${stat('치명타', `${Math.round(st.crit * 100)}%`)}${stat('가속', `${Math.round(st.haste * 100)}%`)}${stat('마나 재생', `×${st.regen.toFixed(2)}`)}</dl>
     </section>`;
 }
 

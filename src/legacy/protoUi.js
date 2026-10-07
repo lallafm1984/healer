@@ -47,7 +47,7 @@
   const GEAR_RANK = { none: 0, adv0: 1, rare5: 2, epic5: 3 };
 
   // 설정·편성은 새 화면이 start()/settings()로 넣어 줌
-  const S = { diff: '보통', gearStats: null, level: 100, party: null, items: [], sound: true, vibe: true, auto: false, tapKey: 'heal', hand: 'right', zoom: true, layout: Object.assign({}, DEFAULT_LAYOUT), run: null, onEnd: null, slots: 4, coach: null, onSetting: null };
+  const S = { diff: '보통', gearStats: null, level: 100, heroLv: undefined, stageLv: undefined, party: null, items: [], sound: true, vibe: true, auto: false, tapKey: 'heal', hand: 'right', zoom: true, layout: Object.assign({}, DEFAULT_LAYOUT), run: null, onEnd: null, slots: 4, coach: null, onSetting: null };
   applyLayout();
   let F = null, armed = null, paused = false, overShown = false;
   const ui = { floats: [], bubbles: [], pointer: null, lastHealSnd: 0, tickSec: null, runRef: null, ratings: {}, touchSeen: false, lowFlags: {}, lastLowVibe: 0, layout: null, qAt: 0,
@@ -356,7 +356,7 @@
     // 던전: 같은 파티로 구간을 이어 감. 마나·성언 게이지는 앞 구간(+휴식)에서 이어받고, 아이템 횟수·재사용 대기는 구간마다 새로 (23 4장)
     // 첫 판은 편성 화면 미리보기와 같은 시드 (시작 위치가 같게). 처음부터 다시·다음 구간은 새 시드
     const sd = S.run.seed0 != null ? S.run.seed0 : seed(); S.run.seed0 = null;
-    F = E.create({ encounter: curKey(), diff: S.diff, gearStats: S.gearStats || undefined, seed: sd, party: S.party, items: S.items, carry: S.run.carry || undefined, level: S.level });
+    F = E.create({ encounter: curKey(), diff: S.diff, gearStats: S.gearStats || undefined, seed: sd, party: S.party, items: S.items, carry: S.run.carry || undefined, level: S.level, heroLv: S.heroLv, stageLv: S.stageLv });
     ui.itemArmed = null; ui.itemPress = null; buildItems();
     // 전투 시작 카운트다운 3초 (19 4장 6번). 자동 힐러 구경은 바로 시작
     ui.pullLeft = S.auto ? 0 : 3; ui.pullShown = null;
@@ -823,8 +823,8 @@
     const sk = E.SKILLS[F.cast.key];
     const tgt = F.party.find(x => x.id === F.cast.uid);
     if (!tgt) return 0;
-    if (sk.target === 'area') return E.hexDist(F.cells[u.cell], F.cells[tgt.cell]) <= 1 ? sk.amt * F.gear.heal : 0;
-    return u === tgt ? sk.amt * F.gear.heal * (u.hot > 0 ? 1.1 : 1) : 0;
+    if (sk.target === 'area') return E.hexDist(F.cells[u.cell], F.cells[tgt.cell]) <= 1 ? sk.amt * F.gear.heal * F.power : 0;
+    return u === tgt ? sk.amt * F.gear.heal * F.power * (u.hot > 0 ? 1.1 : 1) : 0;
   }
 
   function render(now) {
@@ -1363,12 +1363,13 @@
   window.__battle = {
     /** 전투 화면에서 바꾼 설정을 저장하게 새 화면에 알림 (일시정지의 자동 치유) */
     set onSetting(fn) { S.onSetting = fn; },
-    // o = { content, name, segs, diff, gearStats, level, party, items, slots, seed, onEnd(result) }
+    // o = { content, name, segs, diff, gearStats, level, heroLv, stageLv, party, items, slots, seed, onEnd(result) }
     start(o) {
       closeTip();
       S.diff = o.diff; S.gearStats = o.gearStats || null; S.party = o.party; S.items = (o.items || []).slice(); S.slots = o.slots || 4; S.onEnd = o.onEnd || null;
       S.run = { content: o.content, name: o.name, segs: o.segs.slice(), seed0: o.seed != null ? o.seed : null, coachDone: new Set() };
       S.level = o.level || 100;
+      S.heroLv = o.heroLv; S.stageLv = o.stageLv;
       S.coach = o.coach || null;
       resetRun();
       Snd.init();

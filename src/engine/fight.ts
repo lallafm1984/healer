@@ -5,6 +5,7 @@ import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { gearStats } from '../data/gear';
 import { ITEMS } from '../data/items';
 import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
+import { lvPower } from '../data/progression';
 import { makeCells } from './board';
 import { initBoss, bossTick } from './bosses';
 import { DT, emit, living } from './core';
@@ -24,12 +25,16 @@ export function create(cfg: FightConfig): Fight {
   const cells = makeCells(BOARDS[board]);
   const rows = BOARDS[board].length;
   const mythic = cfg.diff === '악몽';
-  const bossMax = enc.hp * (mythic && !enc.big ? MYTHIC.bossHp : 1);
+  // 레벨 배율 (07 4장): 단계가 같으면 비율은 그대로이고 숫자만 커짐. 단계보다 높은 만큼 힐러가 세짐
+  const stageLv = cfg.stageLv ?? 1;
+  const scale = lvPower(stageLv);
+  const power = lvPower(Math.max(cfg.heroLv ?? stageLv, stageLv));
+  const bossMax = enc.hp * (mythic && !enc.big ? MYTHIC.bossHp : 1) * scale;
   const f: Fight = {
     board,
     cfg, enc, diff, rng, gear, cells, rows, mythic,
     t: 0, k: 0, over: null, reason: '',
-    dmgMult: diff.dmg,
+    dmgMult: diff.dmg * scale, scale, power,
     bossMax, bossHp: bossMax, mobs: [],
     mana: 100, gcd: 0, gcdBase: 1 / (1 + gear.haste), cast: null, channel: 0, chTick: 0, queued: null,
     cd: { purify: 0, guardian: 0, hymn: 0 },
@@ -100,8 +105,9 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
   const units: Unit[] = [];
   const add = (role: Role, pers: PersName | null, nick: string, cls?: ClassKey): Unit => {
     const c = cls ? CLASSES[cls] : null;
-    const base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult;
-    const dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult;
+    const lv = role === 'healer' ? f.power : f.scale;
+    const base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;
+    const dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult * f.scale;
     const u: Unit = {
       id: f.nextId++, role, cls: c ? c.key : null, aim: 0, flow: 0, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
       cell: -1, home: -1, hot: 0, hotTick: 0, echo: [], guardian: 0, shield: 0, debuffs: [], moving: null, react: null,

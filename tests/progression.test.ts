@@ -1,10 +1,11 @@
 /** 성장·보상 (24 문서): 경험치 곡선, 골드, 장비 드롭, 장비 능력치, 정산 */
 import { describe, expect, it } from 'vitest';
-import { contentOf } from '../src/data/content';
+import { contentOf, stageOf } from '../src/data/content';
 import { avgScore, DROP_TABLE, gearStatsOf, ITEM_GRADES, rollItem, SLOTS, type Equipped } from '../src/data/equipment';
 import { gearStats } from '../src/data/gear';
-import { addXp, clearGold, clearXp, gradeOf, itemSlots, starsOf, xpToNext } from '../src/data/progression';
+import { addXp, clearGold, clearXp, gradeOf, itemSlots, lvPower, starsOf, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
+import { heal } from '../src/engine/core';
 import { rngFrom } from '../src/engine';
 import { settle, type BattleResult } from '../src/game/settle';
 import { newSave } from '../src/platform/storage';
@@ -45,6 +46,64 @@ describe('경험치·레벨 (02 부록 B)', () => {
     expect(starsOf({ win: true, deaths: 2, overheal: 0.5 })).toEqual([true, false, false]);
     expect(starsOf({ win: false, deaths: 0, overheal: 0 })).toEqual([false, false, false]);
     expect([1, 19, 20, 39, 40].map(itemSlots)).toEqual([2, 2, 3, 3, 4]);
+  });
+});
+
+describe('레벨 배율 (07 4장, 18 2-1)', () => {
+  it('Lv 1 = 1, 레벨마다 +0.08, Lv 100 ≈ 8.9배', () => {
+    expect(lvPower(1)).toBe(1);
+    expect(lvPower(2)).toBeCloseTo(1.08);
+    expect(lvPower(100)).toBeCloseTo(8.92);
+    expect(lvPower(0)).toBe(1);
+    expect(lvPower(150)).toBeCloseTo(8.92);
+  });
+
+  it('레이드 악몽 단계 = Lv 70, 나머지는 콘텐츠 단계', () => {
+    expect(stageOf(contentOf('abyss1'), '악몽')).toBe(70);
+    expect(stageOf(contentOf('abyss1'), '보통')).toBe(35);
+    expect(stageOf(contentOf('rustfort'), '어려움')).toBe(1);
+  });
+
+  const cfg = { encounter: 'warden' as const, diff: '보통' as const, seed: 3 };
+  it('레벨을 안 주면 예전 그대로 (배율 1)', () => {
+    const f = E.create(cfg);
+    expect(f.scale).toBe(1);
+    expect(f.power).toBe(1);
+    expect(f.dmgMult).toBe(1);
+  });
+
+  it('단계 Lv 11 = 파티원·보스 체력·딜·피해 ×1.8, 같은 레벨 힐러도 ×1.8', () => {
+    const a = E.create(cfg), b = E.create({ ...cfg, stageLv: 11, heroLv: 11 });
+    expect(b.scale).toBeCloseTo(1.8);
+    expect(b.power).toBeCloseTo(1.8);
+    expect(b.bossMax).toBeCloseTo(a.bossMax * 1.8);
+    expect(b.dmgMult).toBeCloseTo(1.8);
+    b.party.forEach((u, i) => {
+      expect(u.max).toBeCloseTo(a.party[i].max * 1.8);
+      expect(u.dps).toBeCloseTo(a.party[i].dps * 1.8);
+    });
+    expect(E.partyDps(b)).toBeCloseTo(E.partyDps(a) * 1.8);
+  });
+
+  it('단계보다 높은 레벨만큼 힐량·내 체력만 커짐', () => {
+    const a = E.create({ ...cfg, stageLv: 1, heroLv: 1 }), b = E.create({ ...cfg, stageLv: 1, heroLv: 6 });
+    expect(b.power).toBeCloseTo(1.4);
+    expect(b.me.max).toBeCloseTo(a.me.max * 1.4);
+    const tank = b.party.find(u => u.role === 'tank')!;
+    expect(tank.max).toBeCloseTo(a.party.find(u => u.role === 'tank')!.max);
+    tank.hp = 1; b.gear = { ...b.gear, crit: 0 };
+    heal(b, tank, 100, false);
+    expect(tank.hp).toBeCloseTo(1 + 100 * b.gear.heal * 1.4);
+  });
+
+  it('단계보다 낮은 레벨은 단계로 봄 (개발 빌드 잠금 무시로 들어가도 힐이 줄지 않음)', () => {
+    const f = E.create({ ...cfg, stageLv: 35, heroLv: 3 });
+    expect(f.power).toBeCloseTo(f.scale);
+  });
+
+  it('자동 힐러: 단계와 레벨이 같으면 클리어율 차이 없음 (녹슨 요새 보통, 20판)', () => {
+    const wins = (lv: number) => Array.from({ length: 20 }, (_, i) => E.simulateDungeon({ dungeon: 'rustfort', diff: '보통', gear: 'adv0', seed: i + 1, items: ['mana', 'life'], level: 12, heroLv: lv, stageLv: lv }).win).filter(Boolean).length;
+    expect(Math.abs(wins(1) - wins(30))).toBeLessThanOrEqual(3);
   });
 });
 

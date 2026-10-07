@@ -26,7 +26,7 @@ export function bark(f: Fight, u: Unit, text?: string | null, force?: boolean): 
 /** 회복. direct = 직접 힐(숫자 표시, 관심·감사 성격 반응) */
 export function heal(f: Fight, u: Unit, amt: number, direct: boolean): number {
   if (!u.alive || amt <= 0) return 0;
-  amt *= f.gear.heal;
+  amt *= f.gear.heal * f.power;
   const crit = f.rng() < f.gear.crit;
   if (crit) amt *= 1.5;
   const eff = Math.min(amt, u.max - u.hp);

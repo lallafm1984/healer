@@ -42,7 +42,7 @@ function startDuo(): void {
   const c = contentOf('tutorial');
   const { slots, items } = itemsNow();
   battle().start({
-    content: c.key, name: c.name, segs: c.fights('쉬움'), diff: '쉬움', level: healerLevel(), gearStats: gearStatsOf(G.save.gear.equipped),
+    content: c.key, name: c.name, segs: c.fights('쉬움'), diff: '쉬움', level: healerLevel(), heroLv: G.save.player.level, stageLv: c.stageLv, gearStats: gearStatsOf(G.save.gear.equipped),
     party: DUO_PARTY, items, slots, seed: newSeed(), coach: 'duo',
     onEnd(r) {
       if (!r.win) { go('s-tut', 'lose'); return; }

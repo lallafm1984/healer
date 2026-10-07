@@ -145,6 +145,8 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .lvpop .card { text-align: center; }
 .lvnum { margin: 0; font-size: 18px; }
 .lvnum b { font-family: var(--font-display); font-weight: 400; font-size: 30px; color: var(--gold-hi); }
+.lvgain { margin: 0; font-size: 14px; color: var(--mute); }
+.lvgain b { color: var(--heal); font-weight: 700; }
 .lvpop ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; text-align: left; font-size: 14px; }
 .lvpop li.later { color: var(--mute); }
 .lvpop li small { font-size: 11px; border: 1px solid #3A3C5C; border-radius: 6px; padding: 0 4px; }

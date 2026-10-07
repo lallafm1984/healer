@@ -2,7 +2,7 @@
 import { contentOf } from '../data/content';
 import { GRADE_STYLE, slotName, type GearItem } from '../data/equipment';
 import { GRADE } from '../data/gear';
-import { MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
+import { lvPower, MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { Flow, newSeed } from '../game/flow';
 import { equip, G } from '../game/state';
 import { TUT } from '../game/tutorial';
@@ -113,6 +113,7 @@ export function showLevelUp(host: HTMLElement, ups: number[]): void {
   const box = document.createElement('div');
   box.className = 'overlay lvpop';
   box.innerHTML = `<div class="card" role="dialog" aria-label="레벨 업"><h3>레벨 업!</h3><p class="lvnum">Lv ${ups[0] - 1} → <b>${ups[ups.length - 1]}</b></p>
+    <p class="lvgain">힐량·체력 ×${lvPower(ups[0] - 1).toFixed(2)} → <b>×${lvPower(ups[ups.length - 1]).toFixed(2)}</b></p>
     ${items.length ? `<ul>${items.map(m => `<li class="${m.live ? '' : 'later'}">Lv ${m.lv} · ${esc(m.text)}${m.live ? '' : ' <small>준비 중</small>'}</li>`).join('')}</ul>` : '<p class="note">새로 열린 기능 없음</p>'}
     <button class="btn primary" type="button">확인</button></div>`;
   box.querySelector('button')!.addEventListener('click', () => box.remove());

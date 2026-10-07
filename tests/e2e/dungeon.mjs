@@ -125,6 +125,7 @@ export default async function dungeon(url, shots) {
   ok(await page.isVisible('#s-reward') && await page.isVisible('#s-reward .lvpop'), '보상 화면 + 레벨 업 팝업 (첫 클리어로 Lv 2)');
   const pop = await page.textContent('#s-reward .lvpop');
   ok(/Lv 1 → 2/.test(pop) && /소생/.test(pop) && !/준비 중/.test(pop), '팝업: Lv 1 → 2, 스킬 「소생」 열림');
+  ok(/힐량·체력 ×1\.00 → ×1\.08/.test(pop), '팝업: 힐량·체력 ×1.00 → ×1.08');
   await page.screenshot({ path: `${shots}/dungeon_levelup.png` });
   await page.click('#s-reward .lvpop button'); await page.clock.runFor(50);
   let sv = await save();
@@ -141,6 +142,8 @@ export default async function dungeon(url, shots) {
   ok(await page.isVisible('#s-party'), '다시 도전 = 새 파티 편성');
   await page.click('#depart'); await page.clock.runFor(3100 + 500);
   ok(await page.evaluate(() => window.__proto.dungeon.idx === 0 && window.__proto.F.enc.key === 'gate'), '던전 처음부터');
+  const lvm = await page.evaluate(() => { const F = window.__proto.F; return { power: F.power, scale: F.scale, me: Math.round(F.me.max) }; });
+  ok(Math.abs(lvm.power - 1.08) < 1e-9 && lvm.scale === 1 && lvm.me === 594, `Lv 2 전투: 힐량·내 체력 ×1.08, 단계 Lv 1 그대로 ${JSON.stringify(lvm)}`);
   await page.evaluate(() => { const F = window.__proto.F; F.party.filter(u => u.role === 'tank').forEach(u => { u.hp = 1; u.guardian = 0; }); F.party.forEach(u => { if (!u.me) u.hot = 0; }); });
   await page.clock.runFor(8000);
   ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '전멸' && /0 \/ 4 구간/.test(await page.textContent('#s-settle')), '잡몹 구간에서 탱커가 쓰러지면 던전 실패');

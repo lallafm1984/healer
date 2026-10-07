@@ -64,5 +64,8 @@ export const CONTENT: ContentDef[] = [
 
 export const contentOf = (k: ContentKey) => CONTENT.find(c => c.key === k)!;
 
+/** 난이도별 단계 레벨: 따로 잠긴 난이도(레이드 악몽 = Lv 70)는 그 레벨이 단계 */
+export const stageOf = (c: ContentDef, d: DiffName) => c.diffUnlock?.[d] ?? c.stageLv;
+
 /** 레이드는 보스 1마리 처치마다 보상 (12 3-1) → 1층 = 보스 1 */
 export const isRaid = (c: ContentDef) => c.kind === 'raid';

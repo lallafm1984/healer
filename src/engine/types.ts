@@ -183,6 +183,10 @@ export interface FightConfig {
   carry?: Carry;
   /** 힐러 레벨: 이 레벨까지 배운 스킬·패시브만 씀 (06 7장). 없으면 전부 (시뮬·옛 테스트) */
   level?: number;
+  /** 실제 힐러 레벨: 힐량·체력 배율 (lvPower). 단계보다 낮으면 단계로 봄. 없으면 단계와 같음 */
+  heroLv?: number;
+  /** 콘텐츠 단계 레벨: 파티원·적 체력·피해·딜 배율. 없으면 1 (배율 1) */
+  stageLv?: number;
 }
 
 /** 던전 구간 사이에 이어지는 것: 마나(휴식 회복 뒤), 성언 게이지 */
@@ -242,7 +246,12 @@ export interface Fight {
   k: number;
   over: FightResult | null;
   reason: string;
+  /** 난이도 피해 배율 × 단계 배율 */
   dmgMult: number;
+  /** 단계 배율 (lvPower(stageLv)): 파티원·적 체력·피해·딜 */
+  scale: number;
+  /** 힐러 레벨 배율 (lvPower(heroLv)): 힐량·내 체력 */
+  power: number;
   bossMax: number;
   /** 잡몹 구간은 남은 잡몹 체력 합 */
   bossHp: number;

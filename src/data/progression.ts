@@ -6,6 +6,14 @@ import type { DiffName } from './difficulty';
 
 export const MAX_LEVEL = 100;
 
+/**
+ * 레벨 배율 (07 4장, 18 2-1): Lv 1 = 1.0, 레벨마다 +0.08 → Lv 100 ≈ 8.9배 (선형).
+ * 힐러 힐량·체력은 내 레벨로, 파티원·적 체력·피해·딜은 콘텐츠 단계 레벨로 곱한다.
+ * 마나는 % 체계라 레벨로 늘지 않음 (18 2-1).
+ */
+export const LV_GROWTH = 0.08;
+export const lvPower = (level: number) => 1 + LV_GROWTH * (Math.max(1, Math.min(MAX_LEVEL, level)) - 1);
+
 /** 다음 레벨까지 필요한 경험치 (02 부록 B: 100 × 레벨^1.6) */
 export const xpToNext = (level: number) => (level >= MAX_LEVEL ? Infinity : Math.round(100 * level ** 1.6));
 

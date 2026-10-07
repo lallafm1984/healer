@@ -21,14 +21,16 @@ export function autoHealer(f: Fight): void {
   }
   const thrifty = f.mana < 25; // 마나가 바닥나면 무료 성언을 아끼지 않는다
   if (f.g.p >= 100 && pct(low) < (thrifty ? 0.7 : 0.45)) { use(f, 'serenity', cellIdx(low)); return; }
+  // 광역 힐 판단 기준은 힐 크기에 맞춤 (레벨 배율 f.power, 07 4장)
+  const hp = f.power;
   let best: Unit | null = null, score = 0;
   for (const c of live) {
-    let s = 0; for (const v of live) if (hexDist(cellOf(f, v), cellOf(f, c)) <= 1) s += Math.min(180, v.max - v.hp);
+    let s = 0; for (const v of live) if (hexDist(cellOf(f, v), cellOf(f, c)) <= 1) s += Math.min(180 * hp, v.max - v.hp);
     if (s > score) { best = c; score = s; }
   }
-  if (f.g.s >= 100 && score > (thrifty ? 450 : 900)) { use(f, 'sanctify', cellIdx(best!)); return; }
+  if (f.g.s >= 100 && score > (thrifty ? 450 : 900) * hp) { use(f, 'sanctify', cellIdx(best!)); return; }
   if (pct(low) < 0.35 && f.mana > 8) { use(f, 'flash', cellIdx(low)); return; }
-  if (score > 600 && f.mana > 12 && knows(f, 'poh')) { use(f, 'poh', cellIdx(best!)); return; }
+  if (score > 600 * hp && f.mana > 12 && knows(f, 'poh')) { use(f, 'poh', cellIdx(best!)); return; }
   if (knows(f, 'purify') && (f.cd.purify ?? 0) <= 0 && f.mana >= 4) {
     const c = live.filter(u => u.debuffs.some(d => DISPELLABLE[d.type] && !d.trap));
     if (c.length) { use(f, 'purify', cellIdx(c[0])); return; }

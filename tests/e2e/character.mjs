@@ -81,6 +81,10 @@ export default async function character(url, shots) {
   await page.click('#s-char [data-csub="skill"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char .skc.locked').count()) === 0 && (await page.locator('#s-char .lslot.locked').count()) === 0, 'Lv 25 = 스킬·패시브 다 열림');
   await page.screenshot({ path: `${shots}/char_skill_lv25.png`, fullPage: false });
+  await page.click('#s-char [data-csub="gear"]'); await page.clock.runFor(50);
+  const hero25 = (await text('#s-char .chero')).replace(/\s/g, '');
+  const hm = hero25.match(/힐량×(\d+\.\d\d)/);
+  ok(/체력1,606/.test(hero25) && hm && Number(hm[1]) >= 2.92, `Lv 25 = 체력 550 × 2.92, 힐량에 레벨 배율 (${hero25.slice(0, 60)})`);
   await ctx.close();
   await browser.close();
   return { fails, errs };
