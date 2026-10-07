@@ -35,7 +35,7 @@ const s = screen('s-lobby', '로비', {
         <section class="panel goal"><h2>다음 목표</h2><ul>${goals().map(g => `<li>${esc(g)}</li>`).join('')}</ul></section>
         <div class="hero">
           <div class="hero-art">${bellSvg}</div>
-          <b>성기사단 사제 · Lv ${p.level}</b>
+          <b>빛의 사제 · Lv ${p.level}</b>
           <small>장비 ${esc(gearSummary(G.save.gear.equipped))}</small>
         </div>
         ${last ? `<p class="lastline"><span>지난 판</span> ${esc(contentOf(last.content as never).name)} ${esc(last.diff)} · ${last.win ? `클리어 ${last.grade || ''}` : '실패'}</p>` : '<p class="lastline"><span>아직 깬 던전이 없어요</span></p>'}

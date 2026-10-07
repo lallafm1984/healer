@@ -22,7 +22,7 @@ export default async function character(url, shots) {
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-char') && await page.getAttribute('#s-char [data-csub="gear"]', 'aria-selected') === 'true', '캐릭터 탭 = 장비부터');
   const hero = await text('#s-char .chero');
-  ok(/성기사단 사제/.test(hero) && /체력550/.test(hero.replace(/\s/g, '')) && /힐량×1\.00/.test(hero.replace(/\s/g, '')), '위쪽 = 사제 이름·Lv·능력치 5개');
+  ok(/빛의 사제/.test(hero) && /체력550/.test(hero.replace(/\s/g, '')) && /힐량×1\.00/.test(hero.replace(/\s/g, '')), '위쪽 = 사제 이름·Lv·능력치 5개');
   ok((await page.locator('#s-char .cstats div').count()) === 5 && (await page.locator('#s-char .gtile').count()) === 6, '능력치 5칸, 장비 6부위');
   await page.screenshot({ path: `${shots}/char_gear.png` });
 

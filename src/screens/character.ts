@@ -52,7 +52,7 @@ function heroHtml(): string {
   const stat = (k: string, v: string) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
   return `<section class="chero">
       <div class="chero-top"><span class="chero-art">${bellSvg}</span>
-        <div><b>성기사단 사제</b><small>정통 힐러 · 입문 ★☆☆ · 장비 ${esc(gearSummary(G.save.gear.equipped))}</small></div>
+        <div><b>빛의 사제</b><small>정통 힐러 · 입문 ★☆☆ · 장비 ${esc(gearSummary(G.save.gear.equipped))}</small></div>
         <span class="chero-lv">Lv<b>${G.save.player.level}</b></span></div>
       <dl class="cstats">${stat('체력', String(HEALER_HP))}${stat('힐량', `×${st.heal.toFixed(2)}`)}${stat('치명타', `${Math.round(st.crit * 100)}%`)}${stat('가속', `${Math.round(st.haste * 100)}%`)}${stat('마나 재생', `×${st.regen.toFixed(2)}`)}</dl>
     </section>`;
