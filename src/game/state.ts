@@ -34,7 +34,7 @@ export function toggleItem(k: ItemKey): string {
   const { slots, items } = itemsNow();
   let msg = '';
   if (items.includes(k)) G.save.items = items.filter(x => x !== k);
-  else if (items.length >= slots) msg = `단축칸 ${slots}칸이 다 찼어요. 뺄 아이템을 먼저 누르세요.`;
+  else if (items.length >= slots) msg = `단축칸 ${slots}칸이 가득 참. 뺄 아이템부터 누르기`;
   else G.save.items = (Object.keys(ITEMS) as ItemKey[]).filter(x => x === k || items.includes(x));
   commit();
   return msg;

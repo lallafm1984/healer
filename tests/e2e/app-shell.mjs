@@ -31,7 +31,7 @@ export default async function appShell(url, shots) {
     await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(50);
     ok(await page.isVisible('#s-char') && (await page.locator('#s-char .gtile').count()) === 6, `${w}: 캐릭터 탭 = 장비 6부위부터`);
     await page.click('#s-char [data-csub="talent"]'); await page.clock.runFor(50);
-    ok(/Lv 10에 열려요/.test(await page.textContent('#s-char')), `${w}: 캐릭터 → 특성 = Lv 10 잠금 안내`);
+    ok(/Lv 10에 열림/.test(await page.textContent('#s-char')), `${w}: 캐릭터 → 특성 = Lv 10 잠금 안내`);
     await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(50);
     ok(await page.isVisible('#s-lobby'), `${w}: 전투 탭 = 로비로 돌아옴`);
     await page.screenshot({ path: `${shots}/shell_lobby_${w}.png` });

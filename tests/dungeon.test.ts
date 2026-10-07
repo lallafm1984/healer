@@ -17,7 +17,7 @@ describe('잡몹 구간', () => {
       expect(f.bossHp).toBeCloseTo(f.mobs.reduce((s, m) => s + m.hp, 0));
     }
     expect(f.over).toBe('win');
-    expect(f.reason).toBe('모두 쓰러뜨렸어요');
+    expect(f.reason).toBe('모두 쓰러뜨림');
     expect(order).toEqual(f.mobs.map(m => m.id));
   });
 

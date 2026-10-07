@@ -36,7 +36,7 @@ function render(): void {
         ${tog('devUnlock', '레벨 잠금 무시 (던전·레이드)')}
         ${tog('allSkills', '스킬 전부 열기 (레벨 무관)')}
         <button class="btn" type="button" id="tutAgain">${G.save.tut < TUT.done ? '튜토리얼 건너뛰기' : '튜토리얼 다시 보기 (레벨·장비는 그대로)'}</button>
-        <button class="btn" type="button" id="resetSave">${confirmReset ? '정말 지울까요? 한 번 더 누르면 지워요' : '저장 지우고 처음부터'}</button>
+        <button class="btn" type="button" id="resetSave">${confirmReset ? '한 번 더 누르면 삭제' : '저장 지우고 처음부터'}</button>
       </section>
     </div>`;
 }

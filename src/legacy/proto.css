@@ -221,7 +221,7 @@ em.now { font-style: normal; font-size: 11px; font-weight: 700; line-height: 1.6
 .gd-foot .btn.primary { font-size: 21px; padding: 10px 14px; }
 
 /* 전투 중 기술 설명 팝업: 터치를 통과시켜 판·휠을 막지 않음 */
-#tip { position: absolute; z-index: 4; left: 8px; top: 0; width: max-content; max-width: calc(100% - 16px); background: rgba(18, 19, 31, 0.97); border: 2px solid var(--gold); border-radius: 12px; padding: 6px 10px 7px; font-size: 13px; line-height: 1.4; pointer-events: none; box-shadow: 0 3px 0 var(--line); word-break: keep-all; overflow-wrap: anywhere; }
+#tip { position: absolute; z-index: 4; left: 8px; top: 0; box-sizing: border-box; width: max-content; max-width: calc(100% - 16px); background: rgba(18, 19, 31, 0.97); border: 2px solid var(--gold); border-radius: 12px; padding: 6px 10px 7px; font-size: 13px; line-height: 1.4; pointer-events: none; box-shadow: 0 3px 0 var(--line); word-break: keep-all; overflow-wrap: anywhere; }
 #tip .t1 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 #tip .ic { width: 22px; height: 22px; font-size: 9px; border-width: 1.5px; }
 #tip .t1 b { font-family: var(--font-display); font-weight: 400; font-size: 15px; color: var(--gold-hi); }
@@ -293,6 +293,12 @@ textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertic
 /* 튜토리얼 안내 (02 11장): 판 아래쪽 카드, 짚는 칸이 아래쪽이면 위로 */
 #coach { position: absolute; left: 12px; right: 12px; bottom: 10px; z-index: 6; background: rgba(20, 21, 36, 0.96); border: 2px solid var(--gold-hi); border-radius: 14px; padding: 10px 12px; font-size: 14px; line-height: 1.5; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45); }
 #coach.top { bottom: auto; top: 10px; }
+/* 쓸기 안내: 짚은 칸 가운데에서 쓸 방향으로 금색 화살표, 손끝 점이 그 방향으로 움직임 */
+#swipeHint { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+#swipeHint .sw { position: absolute; height: 6px; margin-top: -3px; transform-origin: 0 50%; border-radius: 3px; background: linear-gradient(90deg, rgba(240, 196, 106, 0.15), var(--gold-hi)); }
+#swipeHint .sw::after { content: ""; position: absolute; right: -10px; top: -7px; border-left: 14px solid var(--gold-hi); border-top: 10px solid transparent; border-bottom: 10px solid transparent; }
+#swipeHint .sw i { position: absolute; top: -8px; left: -11px; width: 22px; height: 22px; border-radius: 50%; background: rgba(255, 255, 255, 0.85); box-shadow: 0 0 0 3px rgba(240, 196, 106, 0.6); animation: swipeHint 1.3s ease-in-out infinite; }
+@keyframes swipeHint { 0% { left: -11px; opacity: 0; } 15% { opacity: 1; } 80% { left: calc(100% - 11px); opacity: 1; } 100% { left: calc(100% - 11px); opacity: 0; } }
 #coach p { margin: 0; }
 #coach b { color: var(--gold-hi); font-weight: 700; }
 #coach .btn { margin-top: 8px; width: 100%; min-height: 40px; }

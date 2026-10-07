@@ -69,8 +69,8 @@
   };
   // 보스 궁합 힌트 (19 9장 등록)
   const ITEM_HINT = {
-    warden: '💡 녹슨 문지기는 탱커 강타가 세요. 보호 두루마리를 강타 직전 탱커에게 걸면 버티기 쉬워요.',
-    plague: '💡 역병 군주는 독침을 걸어요. 사제는 독을 못 지우지만 해제 두루마리는 지울 수 있어요.',
+    warden: '💡 녹슨 문지기는 탱커 강타가 셈. 보호 두루마리를 강타 직전 탱커에게 걸면 버티기 쉬움',
+    plague: '💡 역병 군주의 독침은 사제가 못 지움. 해제 두루마리로는 지울 수 있음',
   };
 
 
@@ -168,7 +168,7 @@
   const iga = w => w + josa(w, '이', '가');
   // 대응 문구에 지금 스킬 배치의 쓸기 방향을 붙임 (로비에서 바꿀 수 있어서)
   function act(key) { const d = READ_ORDER.find(x => S.layout[x] === key); return d ? `${E.SKILLS[key].name}(${ARROW[d]} 쓸기)` : E.SKILLS[key].name; }
-  const ENRAGE_HOW = '버티는 기술이 아니에요. 그 전에 잡으려면 딜러가 쓰러지지 않게';
+  const ENRAGE_HOW = '버티는 기술이 아님. 그 전에 잡으려면 딜러가 쓰러지지 않게';
 
   const GUIDE = {
     // 고철 경비병 (23 3장)
@@ -207,13 +207,13 @@
         const amt = a.jitter ? `${n(a.dmg * (1 - a.jitter))}~${n(a.dmg * (1 + a.jitter))}` : n(a.dmg);
         const each = m.count > 1 ? ' (한 마리당)' : '';
         skills.push({ ic: a.icon || m.name.slice(0, 2), name: a.name || `${m.name} 공격`,
-          what: `${who}에게 <b>${amt}</b> 피해${each}${a.cast ? ` · 예고 ${secT(a.cast)}` : ''}. ${m.name}${josa(m.name, '이', '가')} 쓰러지면 멈춰요`,
+          what: `${who}에게 <b>${amt}</b> 피해${each}${a.cast ? ` · 예고 ${secT(a.cast)}` : ''}. ${m.name}${josa(m.name, '이', '가')} 쓰러지면 멈춤`,
           every: `${secT(a.period)}마다`, tip: () => [`${who}에게 ${amt}${each}`] });
       }
       return {
         nums: {},
         cur: F => { const m = F.mobs.find(x => x.alive); return m ? 'm' + mobs.findIndex(d => d.name === m.name) : ''; },
-        phases: mobs.map((m, i) => ({ id: 'm' + i, name: `${m.name}${m.count > 1 ? ` ×${m.count}` : ''}`, at: `${i + 1}번째로 잡아요`, text: `체력 ${Math.round(m.hp * c.hpMult).toLocaleString('ko-KR')}${m.count > 1 ? '씩' : ''}` })),
+        phases: mobs.map((m, i) => ({ id: 'm' + i, name: `${m.name}${m.count > 1 ? ` ×${m.count}` : ''}`, at: `${i + 1}번째로 잡음`, text: `체력 ${Math.round(m.hp * c.hpMult).toLocaleString('ko-KR')}${m.count > 1 ? '씩' : ''}` })),
         skills,
       };
     },
@@ -227,7 +227,7 @@
         cur: F => (F.enraged ? 'enrage' : F.bossHp <= F.bossMax * B.zoneAt ? 'p40' : 'p1'),
         phases: [
           { id: 'p1', name: '시작', at: `체력 100~${B.zoneAt * 100}%`, text: `${bu.name} · ${ao.name} 반복` },
-          { id: 'p40', name: '녹이 흘러내림', at: `체력 ${B.zoneAt * 100}% 아래`, text: `${iga(zo.name)} 더해져요` },
+          { id: 'p40', name: '녹이 흘러내림', at: `체력 ${B.zoneAt * 100}% 아래`, text: `${iga(zo.name)} 더해짐` },
           { id: 'enrage', name: '광폭화', at: mmss(c.enc.enrage), text: `${iga(B.enrName)} ${B.enrPeriod}초마다`, enr: true },
         ],
         skills: [
@@ -244,7 +244,7 @@
           { ic: zo.icon, name: zo.name,
             when: `보스 체력 ${B.zoneAt * 100}% 아래부터 · ${secT(zo.period)}마다 · 예고 ${secT(zo.cast)}`,
             what: `파티원 1명 자리와 옆 칸에 ${secT(zo.dur)} 장판. 안에 있으면 초당 <b>${N.zoneDps}</b> (다 맞으면 ${N.zoneTot})`,
-            how: '파티원이 알아서 피해요. 고집불통·허세꾼은 잘 안 피하니 그 사람을 채우기',
+            how: '파티원이 알아서 피함. 고집불통·허세꾼은 잘 안 피하니 그 사람을 채우기',
             every: `체력 ${B.zoneAt * 100}%부터 ${secT(zo.period)}마다`, tip: () => [`1명 주변 장판, 초당 ${N.zoneDps}`] },
           { ic: '광폭', name: B.enrName, enr: true,
             when: `광폭화 ${mmss(c.enc.enrage)}부터 ${B.enrPeriod}초마다 · 예고 ${secT(B.enrCast)}`,
@@ -265,21 +265,21 @@
       };
       const phases = [
         { id: 'p1', name: '1페이즈', at: `체력 100~${B.interAt * 100}%`, text: `${br.name} · ${st.name} · ${pu.name}` },
-        { id: 'inter', name: '인터미션', at: `체력 ${B.interAt * 100}%, ${B.interDur}초`, text: `보스 무적, 예고 기술 멈춤. 쥐떼가 뒷줄 ${T.rats}명을 물어요` },
+        { id: 'inter', name: '인터미션', at: `체력 ${B.interAt * 100}%, ${B.interDur}초`, text: `보스 무적, 예고 기술 멈춤. 쥐떼가 뒷줄 ${T.rats}명 공격` },
         { id: 'p2', name: '2페이즈', at: '인터미션 뒤', text: `${st.name} 끝 · ${co.name} 시작 · 파동이 ${N.pulse2}로 세지고 ${B.pulse2Period}초마다` },
       ];
-      if (big) phases.push({ id: 'p3', name: '3페이즈', at: `체력 ${B.p3At * 100}% 아래`, text: `${iga(so.name)} 더해져요` });
+      if (big) phases.push({ id: 'p3', name: '3페이즈', at: `체력 ${B.p3At * 100}% 아래`, text: `${iga(so.name)} 더해짐` });
       phases.push({ id: 'enrage', name: '광폭화', at: mmss(c.enc.enrage), text: `${iga(B.enrName)} ${B.enrPeriod}초마다`, enr: true });
       const skills = [
         { ic: br.icon, name: br.name,
           when: `${secT(br.next)}에 첫 번째, ${secT(br.period)}마다 · 예고 없음 · 인터미션엔 멈춤`,
           what: `무작위 ${T.breath}명에게 질병: 겹칠 때마다 최대 체력 -${B.breathPct}% (최대 ${B.breathMax}번, -${B.breathPct * B.breathMax}%) · ${B.breathDur}초`,
-          how: `${act('purify')}로 지우기. 많이 겹친 사람부터. 체력 ${B.interAt * 100}% 직전엔 다 지워 두기: 디버프가 남은 사람은 인터미션 때 독침이 더 걸려요`,
+          how: `${act('purify')}로 지우기. 많이 겹친 사람부터. 체력 ${B.interAt * 100}% 직전엔 다 지워 두기: 디버프가 남은 사람은 인터미션 때 독침이 더 걸림`,
           every: `${secT(br.period)}마다`, tip: () => [`${T.breath}명 질병, 최대 체력 -${B.breathPct}%씩 겹침`] },
         { ic: st.icon, name: st.name,
           when: `1페이즈만 · ${secT(st.next)}에 첫 번째, ${secT(st.period)}마다 · 예고 없음`,
           what: `무작위 ${T.breath}명에게 독: ${B.stingDur}초 동안 초당 <b>${N.sting}</b> (모두 ${N.stingTot})`,
-          how: '사제는 독을 못 지워요. 소생을 걸고 치유로 버티기',
+          how: '사제는 독을 못 지움. 소생을 걸고 치유로 버티기',
           every: `1페이즈 · ${secT(st.period)}마다`, tip: () => [`${T.breath}명 독, ${B.stingDur}초간 초당 ${N.sting}`] },
         { ic: pu.icon, name: pu.name,
           when: `${secT(pu.next + pu.cast)}에 첫 타, ${secT(pu.period)}마다 · 2페이즈는 시작 ${secT(B.pulse2Delay + pu.cast)} 뒤부터 ${secT(B.pulse2Period)}마다 · 예고 ${secT(pu.cast)}`,
@@ -293,14 +293,14 @@
           every: `체력 ${B.interAt * 100}%에서 ${B.interDur}초`, tip: () => [`뒷줄 ${T.rats}명 초당 ${N.rats}, 보스 무적`] },
         { ic: co.icon, name: co.name,
           when: `2페이즈부터 · 인터미션 끝 ${secT(B.contDelay)} 뒤 첫 번째, ${secT(co.period)}마다`,
-          what: `무작위 ${T.cont}명에게 함정 질병 (점선 테두리) ${secT(B.contDur)}. 끝나면 터져 옆 칸 사람에게 <b>${N.spread}</b> 피해 + 독침. 정화하면 그 자리에서 바로 터져요${big ? '. 두 대상이 붙어 있으면 걸리자마자 터져요' : ''}`,
+          what: `무작위 ${T.cont}명에게 함정 질병 (점선 테두리) ${secT(B.contDur)}. 끝나면 터져 옆 칸 사람에게 <b>${N.spread}</b> 피해 + 독침. 정화하면 그 자리에서 바로 터짐${big ? '. 두 대상이 붙어 있으면 걸리자마자 터짐' : ''}`,
           how: '정화하지 말고 기다리기. 터지기 전에 옆 칸 사람 체력을 채워 두기',
           every: `2페이즈 · ${secT(co.period)}마다`, tip: () => [`${secT(B.contDur)} 뒤 터져 옆 칸 ${N.spread} + 독침. 정화하면 바로 터짐`] },
       ];
       if (big) skills.push({ ic: so.icon, name: so.name,
         when: `3페이즈(체력 ${B.p3At * 100}% 아래)부터 ${secT(so.period)}마다 · 예고 ${secT(so.cast)}`,
         what: `판 바깥 1/3 (왼쪽·오른쪽 번갈아)에 ${secT(so.dur)} 장판. 안에 있으면 초당 <b>${N.stormDps}</b> (다 맞으면 ${N.stormTot})`,
-        how: '파티원(나 포함)이 알아서 옮겨요. 칸이 모자라 남는 사람이 생기니 장판 안 사람부터 치유',
+        how: '파티원(나 포함)이 알아서 옮김. 칸이 모자라 남는 사람이 생기니 장판 안 사람부터 치유',
         every: `3페이즈 · ${secT(so.period)}마다`, tip: () => [`판 바깥 1/3 장판, 초당 ${N.stormDps}`] });
       skills.push({ ic: '광폭', name: B.enrName, enr: true,
         when: `광폭화 ${mmss(c.enc.enrage)}부터 ${B.enrPeriod}초마다 · 예고 ${secT(B.enrCast)}`,
@@ -374,7 +374,7 @@
     $('battle').classList.toggle('compact', !!enc.big);
     show('battle');
     layoutBattle();
-    if (S.auto) toast('자동 힐러가 플레이해요 (기록 안 남김)');
+    if (S.auto) toast('자동 힐러가 플레이 중 (기록 안 남김)');
     else if (S.run.idx === 0) toast(`칸을 탭하면 ${E.SKILLS[tapKey()].name}`);
     $('gauges').classList.toggle('locked', !E.knowsPassive(F, 'words'));
     $('controls').classList.toggle('nowords', !E.knowsPassive(F, 'words'));
@@ -384,24 +384,38 @@
   const tankOf = f => f.party.find(u => u.role === 'tank' && u.alive);
   const lowest = f => f.party.filter(u => u.alive).reduce((a, b) => (b.hp / b.max < a.hp / a.max ? b : a));
   const firstTel = (f, kind) => f.tels.find(t => t.kind === kind && f.t - t.start < 0.5);
+  // 지금 휠 배치에서 그 스킬이 있는 방향 (칸에서 쓸 방향)
+  const arrowOf = k => { const d = DIRS.find(x => x && x.key === k); return d ? d.arrow : ''; };
   const COACH = {
     duo: [
-      { when: f => { const u = tankOf(f); return f.t >= 6 || (u && u.hp / u.max < 0.92); }, text: '탱커가 맞고 있어요. <b>탱커 칸을 탭</b>하면 치유해요.', at: tankOf, need: 'heal' },
-      { when: f => f.stats.casts.heal >= 1 && f.t >= 5, freeze: false, text: '잘했어요! 아래 막대가 차면 힐이 들어가요. 체력이 줄 때마다 다시 탭해요.' },
+      { when: f => { const u = tankOf(f); return f.t >= 6 || (u && u.hp / u.max < 0.92); }, text: '탱커가 맞는 중. <b>탱커 칸을 탭</b>하면 치유', at: tankOf, need: 'heal' },
+      { when: f => f.stats.casts.heal >= 1 && f.t >= 5, freeze: false, text: '좋아! 아래 막대가 차면 힐이 들어감. 체력이 줄 때마다 다시 탭' },
     ],
     explore: [
-      { when: f => f.t >= 1 && E.knows(f, 'renew'), text: '새로 배운 <b>소생</b>: 휠에서 소생을 누른 뒤 탱커 칸을 탭해요. 9초 동안 저절로 차요.', at: tankOf, slot: 'renew', need: 'renew' },
-      { when: f => { const u = lowest(f); return u.hp / u.max < 0.5; }, text: '체력이 확 줄었어요. <b>순간 치유</b>는 1초 만에 채워요. 휠에서 누르고 칸을 탭해요 (마나 두 배).', at: lowest, slot: 'flash', need: 'flash' },
-      { when: f => !!firstTel(f, 'buster'), text: '<b>강타 예고</b>: 위에 뜬 기술이 끝나면 탱커가 크게 맞아요. 미리 채워 두세요.' },
-      { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>: 모두 맞아요. 맞고 나면 가장 낮은 사람부터 채워요.' },
+      { when: f => f.t >= 1 && E.knows(f, 'renew'), text: () => `새로 배운 <b>소생</b>: <b>탱커 칸을 누른 채 ${arrowOf('renew')} 쪽으로 쓸기</b>. 휠에서 소생이 있는 방향 = 쓰는 방향`, at: tankOf, slot: 'renew', need: 'swipe:renew', swipe: 'renew' },
+      { when: f => { const u = lowest(f); return u.hp / u.max < 0.5; }, text: () => `체력이 확 줄었음. <b>순간 치유</b>: 칸에서 ${arrowOf('flash')} 쪽으로 쓸기, 또는 휠에서 누르고 칸을 탭 (마나 두 배)`, at: lowest, slot: 'flash', need: 'flash', swipe: 'flash' },
+      { when: f => !!firstTel(f, 'buster'), text: '<b>강타 예고</b>: 위에 뜬 기술이 끝나면 탱커가 크게 맞음. 미리 채워 두기' },
+      { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>: 모두 맞음. 맞고 나면 가장 낮은 사람부터 채우기' },
     ],
     dungeon: [
-      { when: f => f.mobs.length > 0 && f.t >= 1, freeze: false, text: '던전은 잡몹 구간과 보스를 이어서 해요. 구간 사이엔 쉬면서 마나를 채워요.' },
-      { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>! 맞기 전에 <b>소생</b>을 걸어 두면 덜 아파요. 위쪽 예고 칸을 누르면 설명이 나와요.' },
-      { when: f => f.mana < 30 && Object.keys(f.items).length > 0, text: '마나가 모자라요. 왼쪽 <b>단축칸</b>의 물약을 눌러 보세요.' },
-      { when: f => f.zones.length > 0, freeze: false, text: '바닥 장판은 파티원이 알아서 피해요. 못 피한 사람을 채워 주세요.' },
+      { when: f => f.mobs.length > 0 && f.t >= 1, freeze: false, text: '던전은 잡몹 구간과 보스를 이어서 진행. 구간 사이엔 쉬면서 마나 회복' },
+      { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>! 맞기 전에 <b>소생</b>을 걸어 두면 덜 아픔. 위쪽 예고 칸을 누르면 설명' },
+      { when: f => f.mana < 30 && Object.keys(f.items).length > 0, text: '마나 부족. 왼쪽 <b>단축칸</b>의 물약 누르기' },
+      { when: f => f.zones.length > 0, freeze: false, text: '바닥 장판은 파티원이 알아서 피함. 못 피한 사람을 채우기' },
     ],
   };
+  const swipeEl = document.createElement('div');
+  swipeEl.id = 'swipeHint'; swipeEl.hidden = true;
+  $('boardWrap').appendChild(swipeEl);
+  // 칸 가운데에서 쓸 방향으로 움직이는 손가락 화살표 (판 좌표 그대로)
+  const DIR_VEC = { N: [0, -1], NE: [0.71, -0.71], E: [1, 0], SE: [0.71, 0.71], S: [0, 1], SW: [-0.71, 0.71], W: [-1, 0], NW: [-0.71, -0.71] };
+  function swipeArrowHtml(u, key) {
+    const d = DIRS.find(x => x && x.key === key);
+    if (!d) return '';
+    const c = center(u.cell), v = DIR_VEC[d.d], len = Math.max(44, ui.layout.s * 1.3);
+    const ang = Math.atan2(v[1], v[0]) * 180 / Math.PI;
+    return `<div class="sw" style="left:${Math.round(c.x)}px;top:${Math.round(c.y)}px;width:${Math.round(len)}px;transform:rotate(${ang}deg)"><i></i></div>`;
+  }
   const coachEl = document.createElement('div');
   coachEl.id = 'coach'; coachEl.hidden = true;
   $('boardWrap').appendChild(coachEl);
@@ -415,14 +429,18 @@
     const st = steps[i];
     const u = st.at ? st.at(F) : null;
     ui.coach = { ...st, uid: u ? u.id : null, freeze: st.freeze !== false, until: st.freeze === false ? performance.now() + 4000 : 0 };
-    coachEl.innerHTML = `<p>${st.text}</p>${st.need || st.freeze === false ? '' : '<button class="btn primary" type="button" data-coach-ok>확인</button>'}`;
+    const text = typeof st.text === 'function' ? st.text(F) : st.text;
+    // 쓸기 안내: 짚은 칸에서 쓸 방향으로 화살표
+    const swipeHint = st.swipe && u ? swipeArrowHtml(u, st.swipe) : '';
+    coachEl.innerHTML = `<p>${text}</p>${st.need || st.freeze === false ? '' : '<button class="btn primary" type="button" data-coach-ok>확인</button>'}`;
+    $('swipeHint').innerHTML = swipeHint; $('swipeHint').hidden = !swipeHint;
     coachEl.classList.toggle('top', !!u && center(u.cell).y > ui.layout.H / 2);
     coachEl.hidden = false;
     if (st.slot) { const el = $('wheel').querySelector(`.slot[data-slot="${st.slot}"]`); if (el) el.classList.add('coach-hi'); }
     Snd.play('tick'); vibe(15);
   }
   function clearCoach() {
-    ui.coach = null; coachEl.hidden = true;
+    ui.coach = null; coachEl.hidden = true; $('swipeHint').hidden = true; $('swipeHint').innerHTML = '';
     $('wheel').querySelectorAll('.coach-hi').forEach(el => el.classList.remove('coach-hi'));
   }
   // 안내가 바란 스킬을 쓰면 다음으로
@@ -462,8 +480,43 @@
       html += `<button class="slot" type="button" data-slot="${it.key}" data-dir="${it.d}" style="left:${x}px;top:${y}px;width:${b}px;height:${b}px"><span class="cd"></span><span class="dir">${it.arrow}</span><span><span class="nm"></span><span class="ct"></span></span><span class="cds"></span></button>`;
     });
     w.innerHTML = html;
-    w.querySelectorAll('.slot[data-slot]').forEach(el => el.addEventListener('pointerdown', ev => { ev.preventDefault(); pressSlot(el.dataset.slot); }));
-    w.querySelectorAll('.slot[data-lock]').forEach(el => el.addEventListener('pointerdown', ev => { ev.preventDefault(); const k = el.dataset.lock; toast(`${E.SKILLS[k].name}은(는) Lv ${E.SKILL_LEVEL[k]}에 배워요`); Snd.play('error'); }));
+    w.querySelectorAll('.slot[data-slot], .slot[data-lock]').forEach(el => el.addEventListener('pointerdown', ev => downSlot(ev, el)));
+  }
+  // 휠 칸: 짧게 누르기 = 장전(또는 바로 사용), 잠긴 칸은 배우는 레벨 안내. 길게 누르기 = 스킬 설명 (아이템 설명과 같은 팝업)
+  function downSlot(ev, el) {
+    ev.preventDefault();
+    if (!F || F.over || paused) return;
+    try { el.setPointerCapture(ev.pointerId); } catch (err) { /* 무시 */ }
+    const P = { el, slot: el.dataset.slot || null, lock: el.dataset.lock || null, lp: false };
+    P.timer = setTimeout(() => { if (ui.slotPress === P) { P.lp = true; openSkillTip(P.slot ? E.slotKey(F, P.slot) : P.lock, el); vibe(10); } }, 450);
+    ui.slotPress = P;
+  }
+  function endSlot(cancelled) {
+    const P = ui.slotPress; ui.slotPress = null;
+    if (!P) return;
+    clearTimeout(P.timer);
+    if (P.lp || cancelled || !F || F.over || paused) return;
+    if (P.lock) { toast(`${E.SKILLS[P.lock].name}: Lv ${E.SKILL_LEVEL[P.lock]}에 배움`); Snd.play('error'); return; }
+    pressSlot(P.slot);
+  }
+  $('wheel').addEventListener('pointerup', () => endSlot(false));
+  $('wheel').addEventListener('pointercancel', () => endSlot(true));
+  $('wheel').addEventListener('contextmenu', e => e.preventDefault());
+  function skillMeta(sk) {
+    const parts = [sk.channel ? `${sk.channel}초 정신집중` : sk.cast ? `${sk.cast}초 시전` : '즉시', sk.cost ? `마나 ${sk.cost}%` : '마나 0'];
+    if (sk.cd) parts.push(`쿨 ${sk.cd}초`);
+    return parts.join(' · ');
+  }
+  function openSkillTip(key, el) {
+    const sk = E.SKILLS[key], info = E.SKILL_INFO[key];
+    const lock = F && !E.knows(F, key) ? ` · 🔒 Lv ${E.SKILL_LEVEL[key]}` : '';
+    const tip = $('tip');
+    tip.innerHTML = `<div class="t1"><b>${sk.name}</b><span class="tw">${info ? info.kind : ''}${lock}</span></div><div class="t2"><span class="lb">${skillMeta(sk)}</span></div>${info ? `<div class="t2">${info.desc}</div>` : ''}`;
+    tip.hidden = false;
+    ui.tip = { skill: key };
+    placeTip(el);
+    clearTimeout(ui.tipTimer);
+    ui.tipTimer = setTimeout(closeTip, TIP_MS);
   }
   function pressSlot(slot) {
     if (!F || F.over || paused || ui.pullLeft > 0) return;
@@ -535,7 +588,7 @@
       const r = E.itemReady(F, key);
       if (!r.ok) { toast(r.reason); Snd.play('error'); return; }
       ui.itemArmed = ui.itemArmed === key ? null : key; armed = null;
-      if (ui.itemArmed) toast(`${it.name}: 지킬 파티원 칸을 누르세요`);
+      if (ui.itemArmed) toast(`${it.name}: 지킬 파티원 칸 선택`);
       vibe(8); return;
     }
     const res = E.useItem(F, key);
@@ -581,11 +634,11 @@
       label = `${E.SKILLS[F.cast.key].name} → ${u ? u.nick : ''}`;
       p = 1 - F.cast.left / F.cast.total;
     } else if (F.channel > 0) {
-      label = '천상의 찬가 (칸을 누르면 끊겨요)';
+      label = '천상의 찬가 (칸을 누르면 끊김)';
       p = 1 - F.channel / 4;
     } else if (armed) {
       const k = E.slotKey(F, armed);
-      label = `${E.SKILLS[k].name} 장전: ${E.SKILLS[k].target === 'area' ? '누른 채 범위를 보고 떼세요' : '대상 칸을 누르세요'}`;
+      label = `${E.SKILLS[k].name} 장전: ${E.SKILLS[k].target === 'area' ? '누른 채 범위를 보고 떼기' : '대상 칸 선택'}`;
     } else if (F.queued) {
       label = `다음: ${E.SKILLS[F.queued.key].name}`;
     } else {
@@ -1031,7 +1084,7 @@
         case 'death': if (u && !u.me) toast(`${u.nick} 쓰러짐`); break;
         case 'msg': toast(ev.text); break;
         case 'phase': banner(ev.text); if (ev.text === '광폭화') vibe([60, 80, 60, 80, 60], true); else vibe(200, true); break;
-        case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 쓰세요`); break;
+        case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`); break;
         case 'mobDown': toast(`${ev.name} 쓰러짐`); $('bossName').textContent = bossTitle(); break;
         case 'over': break;
       }
@@ -1105,9 +1158,10 @@
       const d = swipeDir(dx, dy), it = d ? dirSlot(d) : null;
       if (!d) { ui.swipeCancel++; return; } // 쓸다가 제자리로 돌아오면 취소
       if (P.idx < 0 || !F.cells[P.idx].unit) { F.stats.missTaps++; return; }
-      if (!it || !it.key) { toast('이 방향은 비어 있어요'); ui.swipeEmpty++; return; }
+      if (!it || !it.key) { toast('이 방향은 비어 있음'); ui.swipeEmpty++; return; }
       ui.swipes[d] = (ui.swipes[d] || 0) + 1;
-      if (doUse(E.slotKey(F, it.key), P.idx)) vibe(8);
+      const sk = E.slotKey(F, it.key);
+      if (doUse(sk, P.idx)) { vibe(8); coachUsed('swipe:' + sk); }
       return;
     }
     if (!area && P.moved && Math.hypot(dx, dy) > 30) return;
@@ -1189,7 +1243,7 @@
     ];
     if (!win) detail.unshift([f.mobs.length ? '잡몹 남은 체력' : '보스 남은 체력', `${Math.ceil((f.bossHp / f.bossMax) * 100)}%`]);
     const result = {
-      content: R.content, diff: S.diff, win, quit: !!quit, reason: quit ? '포기했어요' : f.reason,
+      content: R.content, diff: S.diff, win, quit: !!quit, reason: quit ? '포기함' : f.reason,
       segIdx: R.idx, segN: R.segs.length, time: R.time, restSec: R.restSec, deaths: R.deaths,
       healed: R.healed, overheal: R.overheal, dispels: R.dispels, dispellable: R.dispellable,
       endMana: Math.floor(f.mana), minMana: Math.floor(st.minMana), auto: !!(S.auto || R.auto),
@@ -1241,7 +1295,7 @@
     $('restSub').textContent = `${R.name} · ${F.enc.name} 끝 (${mmss(F.t)})`;
     $('restSteps').innerHTML = segs.map((k, i) => `<li class="${i <= R.idx ? 'done' : i === R.idx + 1 ? 'next' : ''}">${i <= R.idx ? '✓ ' : ''}${E.ENCOUNTERS[k].name}</li>`).join('');
     const dead = F.party.filter(u => !u.alive && !u.me).length;
-    $('restNote').textContent = `파티 체력이 모두 찼어요${dead ? `. 쓰러진 ${dead}명도 일어났어요` : ''}. 마나는 쉬는 동안 초당 ${E.REST_MANA_PER_SEC}%씩 차요. 「계속」은 언제든 누를 수 있어요.`;
+    $('restNote').textContent = `파티 체력 모두 회복${dead ? `. 쓰러진 ${dead}명도 일어남` : ''}. 마나는 쉬는 동안 초당 ${E.REST_MANA_PER_SEC}%씩 회복. 「계속」은 언제든 가능`;
     const nk = segs[R.idx + 1];
     const g = guideModel(nk, F.cfg.diff);
     g.tier = `다음 ${R.idx + 2}/${segs.length}`;

@@ -33,7 +33,7 @@ export default async function legacyUi(url, shots) {
   ok(chips.length === 6 && chips.filter(c => c[1] === 'true').map(c => c[0]).join() === 'mana,life,cleanse,feather', `아이템 6개 중 4개 선택 ${JSON.stringify(chips)}`);
   ok(/단축칸 4칸/.test(await page.textContent('#s-party')), 'Lv 40 = 단축칸 4칸');
   await page.click('#s-party [data-item="medit"]');
-  ok(/다 찼어요/.test(await page.textContent('#s-party .note.warn')), '5번째는 안 들어감 (안내)');
+  ok(/가득 참/.test(await page.textContent('#s-party .note.warn')), '5번째는 안 들어감 (안내)');
   await page.click('#s-party [data-item="feather"]');
   await page.click('#s-party [data-item="shield"]');
   const sel = await pickedItems(page);
@@ -90,6 +90,18 @@ export default async function legacyUi(url, shots) {
   await page.screenshot({ path: `${shots}/v6_item_tip.png` });
   await page.dispatchEvent('#items [data-item="cleanse"]', 'pointerup'); await page.clock.runFor(60);
   ok(await ev(() => window.__proto.F.items.cleanse === 1), '길게 누르기는 쓰지 않음');
+  const inView = () => ev(() => { const r = document.querySelector('#tip').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; });
+
+  // 스킬 칸도 길게 누르면 설명 팝업, 화면 안, 시전 안 함
+  const casts0 = await ev(() => JSON.stringify(window.__proto.F.stats.casts || {}));
+  const slotSel = '#wheel .slot[data-slot]';
+  await page.dispatchEvent(slotSel, 'pointerdown'); await page.clock.runFor(600);
+  const sTip = await page.textContent('#tip');
+  ok(await page.isVisible('#tip') && /회복|제거|보호|마나/.test(sTip) && /쿨|즉시|시전/.test(sTip), `스킬 길게 누르면 설명 팝업 (${sTip.replace(/\s+/g, ' ').slice(0, 40)})`);
+  ok(await inView(), '스킬 설명이 화면 안');
+  await page.screenshot({ path: `${shots}/v6_skill_tip.png` });
+  await page.dispatchEvent(slotSel, 'pointerup'); await page.clock.runFor(60);
+  ok(await ev(c => JSON.stringify(window.__proto.F.stats.casts || {}) === c && !window.__proto.F.queued, casts0), '길게 누르기는 시전 안 함');
 
   // 해제 두루마리: 독 포함, 함정 제외
   const cl = await ev(() => {

@@ -19,7 +19,7 @@ describe('레벨별 스킬 해금', () => {
     expect(['renew', 'purify', 'poh', 'guardian', 'hymn'].filter(k => E.knows(f, k as never))).toEqual([]);
     const r = E.use(f, 'renew', targetIdx(f));
     expect(r.ok).toBe(false);
-    expect(r.reason).toBe('소생은(는) Lv 2에 배워요');
+    expect(r.reason).toBe('소생: Lv 2에 배움');
     expect(E.use(f, 'heal', targetIdx(f)).ok).toBe(true);
   });
 

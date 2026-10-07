@@ -160,7 +160,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
           const ts = randomTargets(f, big ? 2 : 1, u => !u.debuffs.some(d => d.name === '전염'));
           for (const u of ts) addDebuff(f, u, { name: '전염', type: '질병', left: 8, trap: true });
           if (ts.length === 2 && hexDist(cellOf(f, ts[0]), cellOf(f, ts[1])) === 1) {
-            emit(f, { type: 'msg', text: '전염 대상이 붙어 있어 바로 터졌어요' });
+            emit(f, { type: 'msg', text: '전염 대상이 붙어 있어 바로 터짐' });
             for (const u of ts) { const d = u.debuffs.find(x => x.name === '전염'); if (d) { u.debuffs = u.debuffs.filter(x => x !== d); spread(f, u); } }
           }
         },
@@ -181,7 +181,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
       const r = f.bossHp / f.bossMax;
       if (f.phase === 1 && r <= 0.6) {
         f.phase = 0; f.phaseName = '인터미션'; f.invuln = true; f.interEnd = f.t + 25;
-        emit(f, { type: 'phase', text: '인터미션: 쥐떼가 뒷줄을 공격해요' });
+        emit(f, { type: 'phase', text: '인터미션: 쥐떼가 뒷줄 공격' });
         const ranged = living(f).filter(u => u.role === 'ranged').sort((a, b) => cellOf(f, b).row - cellOf(f, a).row);
         f.rats = ranged.slice(0, big ? 6 : 3).map(u => u.id);
         for (const u of living(f)) if (u.debuffs.length) addDebuff(f, u, { name: '독침', type: '독', left: 12, dot: 15 });
@@ -191,12 +191,12 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
         if (f.t >= f.interEnd!) {
           f.phase = 2; f.phaseName = '2페이즈'; f.invuln = false; f.rats = [];
           f.contagion!.next = f.t + 10; f.pulse!.next = f.t + 22; f.pulse!.period = 25;
-          emit(f, { type: 'phase', text: '2페이즈: 전염은 해제하면 바로 퍼져요' });
+          emit(f, { type: 'phase', text: '2페이즈: 전염은 해제하면 바로 퍼짐' });
         }
       }
       if (big && f.phase === 2 && r <= 0.3) {
         f.phase = 3; f.phaseName = '3페이즈'; f.storm!.next = f.t + 1;
-        emit(f, { type: 'phase', text: '3페이즈: 역병 폭풍이 판 바깥쪽을 번갈아 덮어요' });
+        emit(f, { type: 'phase', text: '3페이즈: 역병 폭풍이 판 바깥쪽을 번갈아 덮음' });
       }
       enrageAt(f, '역병 폭주', 3, 180);
     },

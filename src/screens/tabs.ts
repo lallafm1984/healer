@@ -27,8 +27,8 @@ const ph = screen('s-tab', '준비 중인 탭', {
     ph.tab = t.key;
     const locked = t.lv && G.save.player.level < t.lv;
     ph.el.innerHTML = `${topBar({ settings: true })}<div class="ns-body tabph"><h2 class="h">${t.name}</h2>
-      ${locked ? `<p class="lockline">🔒 Lv ${t.lv}에 열려요 (지금 Lv ${G.save.player.level})</p>` : ''}
-      <p class="note">${t.phase} 단계에서 만들어요.</p><p class="note">기획: ${t.docs}</p></div>`;
+      ${locked ? `<p class="lockline">🔒 Lv ${t.lv}에 열림 (지금 Lv ${G.save.player.level})</p>` : ''}
+      <p class="note">${t.phase} 단계에서 추가</p><p class="note">기획: ${t.docs}</p></div>`;
   },
 });
 

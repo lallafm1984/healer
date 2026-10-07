@@ -1,3 +1,4 @@
+// 문장 끝 「~요」를 뺀 앱 문구에 맞춰 메시지 글자만 바꿈 (동작은 프로토타입 그대로, 2026-10-07)
 /* ===== 나혼자 힐러 전투 엔진 (sim/combat_sim.py 이식 + 04 파티원 AI) ===== */
 const Engine = (() => {
   const DT = 0.05;
@@ -40,16 +41,16 @@ const Engine = (() => {
   // 성격 (04 6장 중 10종)
   const CATS = { '회피': '#7FA3BD', '위치': '#A3B46A', '관계': '#D68FA6', '감정': '#DB9B57' };
   const PERS = {
-    '신중파': { star: 1, cat: '회피', ch: '신', react: 0.5, dodge: 0.10, dps: 0.9, desc: '가장 먼저 피함. 딜은 조금 약함', barks: ['조심!', '다음 패턴 피해요'] },
+    '신중파': { star: 1, cat: '회피', ch: '신', react: 0.5, dodge: 0.10, dps: 0.9, desc: '가장 먼저 피함. 딜은 조금 약함', barks: ['조심!', '다음 패턴 피해'] },
     '딜 욕심쟁이': { star: 2, cat: '회피', ch: '딜', react: 1.8, dodge: -0.15, dps: 1.2, greedy: true, desc: '예고가 끝나기 직전까지 딜하다 늦게 피함', barks: ['한 대만 더!', '딜 1등 찍었다 ㅋ'] },
     '고집불통': { star: 2, cat: '회피', ch: '고', stubborn: 0.4, desc: '최대 체력 40% 이상 피해가 아니면 장판을 안 피함', barks: ['안 움직여', '원래 이렇게 하는 거임'] },
     '덜렁이': { star: 3, cat: '회피', ch: '덜', dodge: -0.10, wrongWay: 0.10, noTank: true, desc: '가끔 장판 안으로 들어감', barks: ['어? 여기 아니야?', '어 이거 밟으면 안 되는 거였음?'] },
     '허세꾼': { star: 3, cat: '회피', ch: '허', brave: 0.7, desc: '체력 70% 이상이면 장판을 안 피함', barks: ['안 아파!', '이 정도쯤이야'] },
     '외톨이': { star: 1, cat: '위치', ch: '외', dist: -1, desc: '아군과 떨어진 칸에 섬. 광역 힐 범위 밖', barks: ['…'] },
-    '사교형': { star: 1, cat: '위치', ch: '사', dist: 1, desc: '아군 옆에 붙음. 광역 힐 효율 좋음', barks: ['같이 가자!', '다들 모여요~'] },
-    '관심종자': { star: 3, cat: '관계', ch: '관', attention: 12, desc: '12초 동안 힐을 못 받으면 삐져서 딜 -25%', barks: ['힐러님 저 안 보여요?', '나도 좀 봐줘…'] },
-    '감사형': { star: 1, cat: '관계', ch: '감', thanks: true, desc: '힐을 받으면 3초간 딜 +10%', barks: ['ㄱㅅㄱㅅ', '덕분에 살았어요!'] },
-    '겁쟁이': { star: 3, cat: '감정', ch: '겁', flee: 0.5, noTank: true, desc: '체력 50% 아래면 뒷줄로 도망가 딜 중단, 80%면 복귀', barks: ['으악 도망!', '저 빠질게요 무서워요'] },
+    '사교형': { star: 1, cat: '위치', ch: '사', dist: 1, desc: '아군 옆에 붙음. 광역 힐 효율 좋음', barks: ['같이 가자!', '다들 모여~'] },
+    '관심종자': { star: 3, cat: '관계', ch: '관', attention: 12, desc: '12초 동안 힐을 못 받으면 삐져서 딜 -25%', barks: ['힐러님 나 안 보여?', '나도 좀 봐줘…'] },
+    '감사형': { star: 1, cat: '관계', ch: '감', thanks: true, desc: '힐을 받으면 3초간 딜 +10%', barks: ['ㄱㅅㄱㅅ', '덕분에 살았다!'] },
+    '겁쟁이': { star: 3, cat: '감정', ch: '겁', flee: 0.5, noTank: true, desc: '체력 50% 아래면 뒷줄로 도망가 딜 중단, 80%면 복귀', barks: ['으악 도망!', '나 빠질게 무서워'] },
   };
   const NICKS = ['장판요정', '딜미터1등', '말없는탱', '칼날', '감자도적', '새벽세시', '고인물', '버스기사', '닉값함', '퇴근각', '만렙꿈나무', '냥냥펀치', '불꽃남자', '얼음공주', '컨트롤장인', '딜뽕', '오늘만산다', '회피의신', '맞고보자', '탱하기싫다', '원딜장인', '활쏘는곰', '초코우유', '늦잠왕', '야근요정', '방패든양', '도끼든토끼', '별빛궁수'];
 
@@ -261,7 +262,7 @@ const Engine = (() => {
         u.guardian = 0;
         u.hp = u.max * 0.4;
         emit(f, { type: 'sound', name: 'bell' });
-        emit(f, { type: 'msg', text: `수호 영혼이 ${u.nick}을(를) 살렸어요` });
+        emit(f, { type: 'msg', text: `수호 영혼이 ${u.nick}을(를) 살림` });
         return;
       }
       // 쓰러지면 칸을 비운다 → 다른 파티원이 그 칸으로 이동할 수 있음 (2026-10-07 Lim). 화면에는 흐린 흔적만 남김
@@ -433,7 +434,7 @@ const Engine = (() => {
             const ts = randomTargets(f, big ? 2 : 1, u => !u.debuffs.some(d => d.name === '전염'));
             for (const u of ts) addDebuff(f, u, { name: '전염', type: '질병', left: 8, trap: true });
             if (ts.length === 2 && hexDist(cellOf(f, ts[0]), cellOf(f, ts[1])) === 1) {
-              emit(f, { type: 'msg', text: '전염 대상이 붙어 있어 바로 터졌어요' });
+              emit(f, { type: 'msg', text: '전염 대상이 붙어 있어 바로 터짐' });
               for (const u of ts) { const d = u.debuffs.find(x => x.name === '전염'); if (d) { u.debuffs = u.debuffs.filter(x => x !== d); spread(f, u); } }
             }
           } });
@@ -451,7 +452,7 @@ const Engine = (() => {
         const r = f.bossHp / f.bossMax;
         if (f.phase === 1 && r <= 0.6) {
           f.phase = 0; f.phaseName = '인터미션'; f.invuln = true; f.interEnd = f.t + 25;
-          emit(f, { type: 'phase', text: '인터미션: 쥐떼가 뒷줄을 공격해요' });
+          emit(f, { type: 'phase', text: '인터미션: 쥐떼가 뒷줄 공격' });
           const ranged = living(f).filter(u => u.role === 'ranged').sort((a, b) => cellOf(f, b).row - cellOf(f, a).row);
           f.rats = ranged.slice(0, big ? 6 : 3).map(u => u.id);
           for (const u of living(f)) if (u.debuffs.length) addDebuff(f, u, { name: '독침', type: '독', left: 12, dot: 15 });
@@ -461,12 +462,12 @@ const Engine = (() => {
           if (f.t >= f.interEnd) {
             f.phase = 2; f.phaseName = '2페이즈'; f.invuln = false; f.rats = [];
             f.contagion.next = f.t + 10; f.pulse.next = f.t + 22; f.pulse.period = 25;
-            emit(f, { type: 'phase', text: '2페이즈: 전염은 해제하면 바로 퍼져요' });
+            emit(f, { type: 'phase', text: '2페이즈: 전염은 해제하면 바로 퍼짐' });
           }
         }
         if (big && f.phase === 2 && r <= 0.3) {
           f.phase = 3; f.phaseName = '3페이즈'; f.storm.next = f.t + 1;
-          emit(f, { type: 'phase', text: '3페이즈: 역병 폭풍이 판 바깥쪽을 번갈아 덮어요' });
+          emit(f, { type: 'phase', text: '3페이즈: 역병 폭풍이 판 바깥쪽을 번갈아 덮음' });
         }
         if (!f.enraged && f.t >= f.enc.enrage) {
           f.enraged = true; emit(f, { type: 'phase', text: '광폭화' });
@@ -609,10 +610,10 @@ const Engine = (() => {
     const sk = SKILLS[key];
     if (sk.target === 'none') return { ok: true };
     const c = f.cells[cellIdx];
-    if (!c || !c.unit) return { ok: false, reason: '빈 칸이에요' };
+    if (!c || !c.unit) return { ok: false, reason: '빈 칸' };
     const u = c.unit;
-    if (!u.alive) return { ok: false, reason: `${u.nick}은(는) 쓰러졌어요` };
-    if (key === 'purify' && !u.debuffs.some(d => DISPELLABLE[d.type])) return { ok: false, reason: '정화로 지울 디버프가 없어요' };
+    if (!u.alive) return { ok: false, reason: `${u.nick}은(는) 쓰러짐` };
+    if (key === 'purify' && !u.debuffs.some(d => DISPELLABLE[d.type])) return { ok: false, reason: '정화로 지울 디버프 없음' };
     return { ok: true, u };
   }
   function use(f, key, cellIdx, fromQueue) {
@@ -621,10 +622,10 @@ const Engine = (() => {
     const tg = canTarget(f, key, cellIdx);
     if (!tg.ok) return tg;
     if (sk.cd && f.cd[key] > 0) return { ok: false, reason: `${sk.name} 재사용 대기 ${Math.ceil(f.cd[key])}초` };
-    if (f.mana < sk.cost) { f.stats.manaFails++; return { ok: false, reason: '마나가 부족해요' }; }
+    if (f.mana < sk.cost) { f.stats.manaFails++; return { ok: false, reason: '마나 부족' }; }
     const uid = tg.u ? tg.u.id : null;
     if (f.cast && f.cast.uid === uid && f.cast.key === key) return { ok: true, same: true };
-    if (f.channel > 0) { f.channel = 0; f.stats.hymnBroken++; emit(f, { type: 'msg', text: '천상의 찬가가 끊겼어요' }); }
+    if (f.channel > 0) { f.channel = 0; f.stats.hymnBroken++; emit(f, { type: 'msg', text: '천상의 찬가 끊김' }); }
     if (f.cast) { f.cast = null; f.stats.cancels++; f.gcd = 0; } // 시전을 취소하고 새 대상으로 바꿀 때는 GCD를 돌려준다 (오탭 정정 비용 줄이기)
     if (f.gcd > 0) { f.queued = { key, uid }; return { ok: true, queued: true }; }
     exec(f, key, cellIdx, tg.u);
@@ -703,8 +704,8 @@ const Engine = (() => {
         const c = f.cast; f.cast = null;
         const sk = SKILLS[c.key];
         const u = f.party.find(x => x.id === c.uid);
-        if (!u || !u.alive) emit(f, { type: 'msg', text: '대상이 쓰러져 시전이 취소됐어요' });
-        else if (f.mana < sk.cost) { f.stats.manaFails++; emit(f, { type: 'msg', text: '마나가 부족해요' }); }
+        if (!u || !u.alive) emit(f, { type: 'msg', text: '대상이 쓰러져 시전 취소' });
+        else if (f.mana < sk.cost) { f.stats.manaFails++; emit(f, { type: 'msg', text: '마나 부족' }); }
         else { f.mana -= sk.cost; apply(f, c.key, u); }
       }
     }
@@ -712,7 +713,7 @@ const Engine = (() => {
       const q = f.queued; f.queued = null;
       const sk = SKILLS[q.key];
       const tu = q.uid == null ? null : f.party.find(x => x.id === q.uid);
-      if (q.uid != null && (!tu || !tu.alive)) { f.stats.queueLost++; emit(f, { type: 'msg', text: '대상이 쓰러져 예약한 힐이 취소됐어요' }); }
+      if (q.uid != null && (!tu || !tu.alive)) { f.stats.queueLost++; emit(f, { type: 'msg', text: '대상이 쓰러져 예약한 힐 취소' }); }
       else {
         const idx = tu ? tu.cell : 0;
         const tg = canTarget(f, q.key, idx);
@@ -726,8 +727,8 @@ const Engine = (() => {
   // ---------- 소비 아이템 사용 ----------
   function itemReady(f, key) {
     const it = ITEMS[key];
-    if (!it || f.items[key] == null) return { ok: false, reason: '단축칸에 없는 아이템이에요' };
-    if (f.items[key] <= 0) return { ok: false, reason: `${it.name}: 이번 전투에서 다 썼어요` };
+    if (!it || f.items[key] == null) return { ok: false, reason: '단축칸에 없는 아이템' };
+    if (f.items[key] <= 0) return { ok: false, reason: `${it.name}: 이번 전투에서 다 씀` };
     if (it.kind === 'potion' && f.potCd > 0) return { ok: false, reason: `물약 재사용 대기 ${Math.ceil(f.potCd)}초` };
     return { ok: true };
   }
@@ -745,13 +746,13 @@ const Engine = (() => {
     const it = ITEMS[key];
     let note = '';
     if (key === 'mana') {
-      if (f.mana >= 99.5) return { ok: false, reason: '마나가 가득해요' };
+      if (f.mana >= 99.5) return { ok: false, reason: '마나 가득 참' };
       f.mana = Math.min(100, f.mana + 30);
     } else if (key === 'medit') {
       f.medit = 20;
     } else if (key === 'life') {
       const me = f.me;
-      if (me.hp >= me.max - 0.5) return { ok: false, reason: '체력이 가득해요' };
+      if (me.hp >= me.max - 0.5) return { ok: false, reason: '체력 가득 참' };
       const eff = Math.min(me.max * 0.4, me.max - me.hp);
       me.hp += eff;
       emit(f, { type: 'heal', id: me.id, amt: Math.round(eff), eff: Math.round(eff), crit: false, item: true });
@@ -765,31 +766,31 @@ const Engine = (() => {
         emit(f, { type: 'dispel', id: u.id, item: true });
         n++;
       }
-      if (!n) return { ok: false, reason: '지울 디버프가 없어요 (함정 디버프는 안 지워요)' };
+      if (!n) return { ok: false, reason: '지울 디버프 없음 (함정 디버프는 못 지움)' };
       f.stats.itemDispels = (f.stats.itemDispels || 0) + n;
       note = `${n}명`;
     } else if (key === 'shield') {
       const c = f.cells[cellIdx];
       const u = c && c.unit;
-      if (!u) return { ok: false, reason: '빈 칸이에요' };
-      if (!u.alive) return { ok: false, reason: `${u.nick}은(는) 쓰러졌어요` };
+      if (!u) return { ok: false, reason: '빈 칸' };
+      if (!u.alive) return { ok: false, reason: `${u.nick}은(는) 쓰러짐` };
       u.shield = 8;
       note = u.me ? '나' : u.nick;
     } else if (key === 'feather') {
       const u = reviveTarget(f);
-      if (!u) return { ok: false, reason: '쓰러진 파티원이 없어요' };
+      if (!u) return { ok: false, reason: '쓰러진 파티원 없음' };
       let c = f.cells[u.cell];
       if (c.unit) {
         const free = f.cells.filter(x => !x.unit && !dangerAt(f, x.i));
         const any = free.length ? free : f.cells.filter(x => !x.unit);
-        if (!any.length) return { ok: false, reason: '되살릴 빈 칸이 없어요' };
+        if (!any.length) return { ok: false, reason: '되살릴 빈 칸 없음' };
         c = any.reduce((a, b) => (hexDist(b, f.cells[u.cell]) < hexDist(a, f.cells[u.cell]) ? b : a));
       }
       u.alive = true; u.max = u.base; u.hp = u.max * 0.3; u.cell = c.i; c.unit = u;
       u.debuffs = []; u.moving = null; u.react = null; u.fleeing = false; u.sulking = false; u.retryAt = f.t + 1;
       emit(f, { type: 'revive', id: u.id });
       emit(f, { type: 'sound', name: 'bell' });
-      bark(f, u, '살았다…! 감사해요', true);
+      bark(f, u, '살았다…! 감사', true);
       note = u.nick;
     }
     f.items[key]--;
@@ -812,10 +813,10 @@ const Engine = (() => {
     }
     if (f.k % 20 === 0 && f.dpsAcc > 0) { emit(f, { type: 'dps', amt: Math.round(f.dpsAcc) }); f.dpsAcc = 0; }
     const live = living(f);
-    if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', '보스를 쓰러뜨렸어요'); }
-    else if (!f.me.alive) end(f, 'lose', '힐러가 쓰러졌어요');
-    else if (!live.some(u => u.role === 'tank')) end(f, 'lose', '탱커가 모두 쓰러졌어요');
-    else if (live.length <= f.party.length * 0.3) end(f, 'lose', '파티원 70%가 쓰러졌어요');
+    if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', '보스를 쓰러뜨림'); }
+    else if (!f.me.alive) end(f, 'lose', '힐러가 쓰러짐');
+    else if (!live.some(u => u.role === 'tank')) end(f, 'lose', '탱커가 모두 쓰러짐');
+    else if (live.length <= f.party.length * 0.3) end(f, 'lose', '파티원 70%가 쓰러짐');
   }
   function end(f, result, reason) {
     f.over = result; f.reason = reason;

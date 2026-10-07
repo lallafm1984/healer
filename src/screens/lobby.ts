@@ -38,8 +38,8 @@ const s = screen('s-lobby', '로비', {
           <b>사제 · Lv ${p.level}</b>
           <small>장비 ${esc(gearSummary(G.save.gear.equipped))}</small>
         </div>
-        ${last ? `<p class="lastline"><span>지난 판</span> ${esc(contentOf(last.content as never).name)} ${esc(last.diff)} · ${last.win ? `클리어 ${last.grade || ''}` : '실패'}</p>` : '<p class="lastline"><span>아직 깬 던전이 없어요</span></p>'}
-        ${G.save.tut === TUT.dungeon ? '<p class="coachtip">이제 첫 던전 <b>녹슨 요새</b>에 갈 차례예요. 「전투 시작」을 눌러요.</p>' : ''}
+        ${last ? `<p class="lastline"><span>지난 판</span> ${esc(contentOf(last.content as never).name)} ${esc(last.diff)} · ${last.win ? `클리어 ${last.grade || ''}` : '실패'}</p>` : '<p class="lastline"><span>아직 깬 던전 없음</span></p>'}
+        ${G.save.tut === TUT.dungeon ? '<p class="coachtip">이제 첫 던전 <b>녹슨 요새</b> 차례. 「전투 시작」 누르기</p>' : ''}
         <button class="btn primary big${G.save.tut === TUT.dungeon ? ' hi-pulse' : ''}" type="button" id="lobbyStart">전투 시작</button>
       </div>`;
     s.el.querySelector('#lobbyStart')!.addEventListener('click', () => go('s-content', Flow.content));

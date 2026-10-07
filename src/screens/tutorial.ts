@@ -24,9 +24,9 @@ const story = screen('s-story', '이야기', {
     story.el.innerHTML = `<div class="ns-body story">
       <div class="t-emblem">${bellSvg}</div>
       <h2 class="h">라스트 온라인</h2>
-      <p>이 서버에는 힐러를 하는 사람이 거의 없어요.</p>
-      <p>파티 찾기에는 오늘도 「힐러 구함」이 가득해요.</p>
-      <p>당신은 이 서버에 몇 안 되는 사제예요. 첫 파티원이 기다리고 있어요.</p>
+      <p>이 서버에는 힐러를 하는 사람이 거의 없다.</p>
+      <p>파티 찾기에는 오늘도 「힐러 구함」이 가득하다.</p>
+      <p>당신은 이 서버에 몇 안 되는 사제다. 첫 파티원이 기다리고 있다.</p>
     </div>
     <footer class="ns-foot col"><button class="btn primary" type="button" id="tutGo">첫 전투 시작</button>${DEV_SKIP}</footer>`;
   },
@@ -69,17 +69,17 @@ const card = screen('s-tut', '튜토리얼', {
   enter(arg) {
     const lose = arg === 'lose';
     if (lose) {
-      card.el.innerHTML = `<div class="ns-body story"><h2 class="h">탱커가 쓰러졌어요</h2>
-        <p>탱커 칸을 자주 탭해 주세요. 탭 한 번에 치유 한 번이에요.</p>
-        <p>체력이 반쯤 줄었을 때 미리 탭하면 넉넉해요.</p></div>
+      card.el.innerHTML = `<div class="ns-body story"><h2 class="h">탱커가 쓰러짐</h2>
+        <p>탱커 칸을 자주 탭하기. 탭 한 번에 치유 한 번.</p>
+        <p>체력이 반쯤 줄었을 때 미리 탭하면 넉넉함.</p></div>
         <footer class="ns-foot col"><button class="btn primary" type="button" id="tutRetry">다시 하기</button>${DEV_SKIP}</footer>`;
       return;
     }
     card.el.innerHTML = `<div class="ns-body story">
       <h2 class="h">첫 파티 성공!</h2>
       <section class="panel learn"><h2>Lv ${G.save.player.level} · 새 스킬 「소생」</h2>
-        <p>칸에 걸어 두면 9초 동안 저절로 차는 힐이에요. 시전 없이 바로 걸려요.</p></section>
-      <p>다음은 <b>3인 탐험 「녹슨 고원」</b>이에요. 파티 찾기로 두 명이 들어와요.</p>
+        <p>칸에 걸어 두면 9초 동안 저절로 차는 힐. 칸에서 휠과 같은 방향으로 쓸어서도 쓸 수 있음.</p></section>
+      <p>다음은 <b>3인 탐험 「녹슨 고원」</b>. 파티 찾기로 두 명이 들어옴.</p>
     </div>
     <footer class="ns-foot col"><button class="btn primary" type="button" id="tutNext">탐험 출발</button>${DEV_SKIP}</footer>`;
   },

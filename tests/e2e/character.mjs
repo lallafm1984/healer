@@ -54,7 +54,7 @@ export default async function character(url, shots) {
   ok((await save()).settings.tapKey === 'flash' && await page.getAttribute('#s-char [data-tap="flash"]', 'aria-pressed') === 'true', '칸 탭 기본 힐 = 순간 치유 저장');
   await page.click('#s-char [data-tap="heal"]'); await page.clock.runFor(50);
   await page.click('#s-char [data-item="medit"]'); await page.clock.runFor(50);
-  ok(/다 찼어요/.test(await text('#s-char .note.warn')), '단축칸 2칸이 차면 안내');
+  ok(/가득 참/.test(await text('#s-char .note.warn')), '단축칸 2칸이 차면 안내');
   await page.click('#s-char [data-item="life"]'); await page.click('#s-char [data-item="medit"]'); await page.clock.runFor(50);
   ok((await save()).items.join() === 'mana,medit', '단축칸 바꾸기 저장 (생명 → 명상)');
 

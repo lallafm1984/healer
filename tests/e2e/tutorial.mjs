@@ -26,7 +26,15 @@ export default async function tutorial(url, shots) {
     await page.mouse.move(bb.x + at.x, bb.y + at.y); await page.mouse.down(); await page.clock.runFor(30); await page.mouse.up();
     await page.clock.runFor(50);
   };
-  const slot = async k => { await page.dispatchEvent(`#wheel .slot[data-slot="${k}"]`, 'pointerdown'); await page.clock.runFor(30); };
+  const slot = async k => { await page.dispatchEvent(`#wheel .slot[data-slot="${k}"]`, 'pointerdown'); await page.dispatchEvent(`#wheel .slot[data-slot="${k}"]`, 'pointerup'); await page.clock.runFor(30); };
+  /** 파티원 칸을 누른 채 쓸기 (dx, dy = 판 좌표) */
+  const swipe = async (pick, dx, dy) => {
+    const bb = await page.locator('#board').boundingBox();
+    const at = await page.evaluate(k => { const ui = window.__proto, F = ui.F; const u = k === 'tank' ? F.party.find(x => x.role === 'tank') : F.party.filter(x => x.alive).reduce((a, b) => (b.hp / b.max < a.hp / a.max ? b : a)); return ui.center(u.cell); }, pick);
+    await page.mouse.move(bb.x + at.x, bb.y + at.y); await page.mouse.down(); await page.clock.runFor(30);
+    await page.mouse.move(bb.x + at.x + dx, bb.y + at.y + dy, { steps: 5 }); await page.clock.runFor(30); await page.mouse.up();
+    await page.clock.runFor(50);
+  };
   await page.clock.install();
   await page.goto(url);
   await page.clock.runFor(300);
@@ -76,10 +84,16 @@ export default async function tutorial(url, shots) {
   await page.click('#tutNext'); await page.clock.runFor(3100 + 1200);
   ok(await page.evaluate(() => window.__proto.F.party.length === 3 && window.__proto.dungeon.segs.join() === 'field,patrol'), '탐험 = 3인, 잡몹 → 순찰병');
   c = await coach();
-  ok(c?.need === 'renew' && await page.isVisible('#wheel .slot.coach-hi[data-slot="renew"]'), '안내: 소생 (휠 소생 칸 반짝임)');
+  ok(c?.need === 'swipe:renew' && /← 쪽으로 쓸기/.test(c.text) && await page.isVisible('#wheel .slot.coach-hi[data-slot="renew"]'), '안내: 소생은 칸에서 ← 쪽으로 쓸기 (휠 소생 칸 반짝임)');
+  ok(await page.isVisible('#swipeHint .sw'), '탱커 칸에 쓸 방향 화살표');
   await page.screenshot({ path: `${shots}/tut_explore_coach.png` });
   await slot('renew'); await tap('tank');
-  ok(await coach() === null && await page.evaluate(() => window.__proto.F.party.find(u => u.role === 'tank').hot > 0), '소생을 탱커에 걸면 안내 닫힘');
+  ok((await coach())?.need === 'swipe:renew', '휠로 걸어도 쓸기 안내는 그대로 (쓸기를 꼭 해 봄)');
+  // 멈춘 동안이라 공통 재사용 대기가 안 줄어듦 → 비우고, 소생도 지워 둠
+  await page.evaluate(() => { const F = window.__proto.F; F.gcd = 0; F.queued = null; F.party.find(u => u.role === 'tank').hot = 0; });
+  await swipe('tank', -60, 0);
+  ok(await coach() === null && await page.evaluate(() => window.__proto.F.party.find(u => u.role === 'tank').hot > 0), '탱커 칸에서 ← 로 쓸면 소생 + 안내 닫힘');
+  ok(await page.isHidden('#swipeHint'), '화살표도 사라짐');
   ok((await page.locator('#wheel .coach-hi').count()) === 0, '휠 반짝임도 꺼짐');
   await page.evaluate(() => window.__proto.F.party.forEach(u => { u.hp = u.max; }));
   await killEnemies(page); await page.clock.runFor(1500);

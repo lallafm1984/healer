@@ -40,7 +40,7 @@ function render(): void {
         const tag = raid && x === '악몽' ? '<small>20인</small>' : '';
         return `<button class="chip" type="button" role="radio" data-diff="${x}" aria-checked="${x === d}" aria-pressed="${x === d}"${lk.locked ? ' disabled' : ''}>${lk.locked ? '🔒 ' : ''}${x}${tag}</button>`;
       }).join('')}</div>
-      ${G.save.tut === TUT.dungeon && c.key === 'rustfort' ? '<p class="coachtip">처음엔 <b>쉬움</b>을 권해요. 깨고 나면 보통에 도전해요. 아래 공략은 눌러서 펼쳐 볼 수 있어요.</p>' : ''}
+      ${G.save.tut === TUT.dungeon && c.key === 'rustfort' ? '<p class="coachtip">처음엔 <b>쉬움</b> 추천. 깨고 나면 보통 도전. 아래 공략은 눌러서 펼침</p>' : ''}
       <p class="note">${esc(diffNote(d, raid))}${lockOf(c, d).dev ? ` · Lv ${lockOf(c, d).lv} 해금, 개발 빌드라 열림` : ''}</p>
 
       <section class="panel">
@@ -50,7 +50,7 @@ function render(): void {
           <div><dt>권장 장비</dt><dd>${rec ? rec.label : '없음'}</dd></div>
           <div><dt>내 장비</dt><dd>${esc(gearSummary(G.save.gear.equipped))}</dd></div>
         </dl>
-        ${warn ? `<p class="warnbox">⚠ 권장 장비(${rec!.label})보다 낮아요. 입장은 할 수 있어요.</p>` : ''}
+        ${warn ? `<p class="warnbox">⚠ 권장 장비(${rec!.label})보다 낮음. 입장은 가능</p>` : ''}
       </section>
 
       <h3 class="sec">진행 <small>${segs.length > 1 ? '구간 사이에 휴식' : '보스 1'}</small></h3>
@@ -60,8 +60,8 @@ function render(): void {
       <h3 class="sec">보상 <small>클리어하면</small></h3>
       <section class="panel reward-pre">
         <p>장비 1개 · ${table.map(([g, p]) => `<span class="gr" style="--g:${GRADE_STYLE[g].color}">${g} ${Math.round(p * 100)}%</span>`).join(' ')}</p>
-        ${legendCut ? `<p class="note">전설은 Lv ${LEGEND_LEVEL}부터 나와요 (그 전엔 영웅).</p>` : ''}
-        ${c.set ? `<p class="note">드롭 세트 「${esc(c.set)}」와 세트 효과는 P2에서 넣어요.</p>` : ''}
+        ${legendCut ? `<p class="note">전설은 Lv ${LEGEND_LEVEL}부터 (그 전엔 영웅)</p>` : ''}
+        ${c.set ? `<p class="note">드롭 세트 「${esc(c.set)}」와 세트 효과는 P2에서 추가</p>` : ''}
         <p>골드 ${fmt(goldA)} (S 등급 ${fmt(goldS)}) · 경험치 약 ${fmt(xpA)}</p>
       </section>
     </div>

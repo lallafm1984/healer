@@ -40,7 +40,7 @@ export default async function dungeon(url, shots) {
   ok(/무너진 정문/.test(g) && /고철 졸개 ×3/.test(g), '첫 공략 = 무너진 정문 잡몹 (잡는 순서)');
   ok(!/Infinity|NaN|undefined/.test(await page.textContent('#s-entry')), '입장 화면에 Infinity·NaN 없음');
   await page.click('#s-entry [data-diff="어려움"]'); await page.clock.runFor(50);
-  ok(/권장 장비\(고급\)보다 낮아요/.test(await page.textContent('#s-entry .warnbox')), '어려움 + 장비 없음 = 경고만');
+  ok(/권장 장비\(고급\)보다 낮음/.test(await page.textContent('#s-entry .warnbox')), '어려움 + 장비 없음 = 경고만');
   ok(await page.isEnabled('#entryGo'), '경고여도 입장 가능');
   await page.click('#s-entry [data-diff="보통"]'); await page.clock.runFor(50);
   await page.screenshot({ path: `${shots}/dungeon_entry.png` });
@@ -53,14 +53,14 @@ export default async function dungeon(url, shots) {
   ok(/단단한 몸|신성한 갑옷/.test(await page.textContent('#s-party .pcard:first-child')), '탱커 카드에 직업 패시브');
   ok(/단축칸 2칸/.test(await page.textContent('#s-party')) && await pickedItems(page) === 'mana,life', 'Lv 1 = 단축칸 2칸, 마나·생명');
   await page.click('#s-party [data-item="cleanse"]');
-  ok(/다 찼어요/.test(await page.textContent('#s-party .note.warn')), '3번째는 안 들어감');
+  ok(/가득 참/.test(await page.textContent('#s-party .note.warn')), '3번째는 안 들어감');
   const nicks = () => page.evaluate(() => [...document.querySelectorAll('#s-party .pcard .pnick')].map(b => b.textContent).join());
   const before = await nicks();
   ok(/무료/.test(await page.textContent('#reroll')), '첫 다시 뽑기 = 무료');
   await page.click('#reroll'); await page.clock.runFor(50);
   ok(/10/.test(await page.textContent('#reroll')), `다시 뽑으면 다음은 10골드 (${(await page.textContent('#reroll')).trim()})`);
   await page.click('#reroll'); await page.clock.runFor(50);
-  ok(/골드가 모자라요/.test(await page.textContent('#s-party .note.warn')), '골드 0이면 못 뽑음');
+  ok(/골드 부족/.test(await page.textContent('#s-party .note.warn')), '골드 0이면 못 뽑음');
   const party0 = await nicks();
   ok(party0.split(',').length === 4 && party0 !== before, `다시 뽑으면 다른 파티 (${before} → ${party0})`);
   await page.screenshot({ path: `${shots}/dungeon_party.png` });
@@ -83,9 +83,9 @@ export default async function dungeon(url, shots) {
   const locked = await page.evaluate(() => [...document.querySelectorAll('#wheel .slot.locked')].map(b => b.dataset.lock).sort().join());
   ok(locked === 'guardian,hymn,poh,purify,renew', `Lv 1 휠: 안 배운 스킬 잠금 (${locked})`);
   ok(await page.evaluate(() => getComputedStyle(document.getElementById('gauges')).visibility === 'hidden'), 'Lv 1: 성언 게이지 숨김');
-  await page.dispatchEvent('#wheel .slot[data-lock="renew"]', 'pointerdown');
+  await page.dispatchEvent('#wheel .slot[data-lock="renew"]', 'pointerdown'); await page.dispatchEvent('#wheel .slot[data-lock="renew"]', 'pointerup');
   await page.clock.runFor(50);
-  ok(/소생은\(는\) Lv 2에 배워요/.test(await page.textContent('#toast')), '잠긴 칸을 누르면 「Lv 2에 배워요」');
+  ok(/소생: Lv 2에 배움/.test(await page.textContent('#toast')), '잠긴 칸을 누르면 「Lv 2에 배움」');
   await page.screenshot({ path: `${shots}/dungeon_trash.png` });
 
   const segs = ['고철 경비병', '증기 보일러실', '녹슨 문지기'];

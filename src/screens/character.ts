@@ -72,7 +72,7 @@ function gearHtml(): string {
     ${bag.length ? `<ul class="bag">${bag.map(it => {
       const up = itemScore(it) > itemScore(eq[it.slot]);
       return `<li style="--g:${GRADE_STYLE[it.grade].color}"><span class="gdot">${it.grade[0]}</span><div><b>${esc(it.name)}</b><small>${slotName(it.slot)} · ${it.grade}${up ? ' · <em>더 좋음</em>' : ''}</small></div><button class="btn" type="button" data-equip="${it.id}">장착</button></li>`;
-    }).join('')}</ul>` : '<p class="note">던전을 클리어하면 장비가 1개씩 나와요.</p>'}`;
+    }).join('')}</ul>` : '<p class="note">던전을 클리어하면 장비 1개씩 획득</p>'}`;
 }
 
 // ---------- 스킬 ----------
@@ -113,14 +113,14 @@ function wheelSide(lay: Record<string, string | null>): string {
   const changed = JSON.stringify(L.READ_ORDER.map(d => lay[d] || null)) !== JSON.stringify(L.READ_ORDER.map(d => L.DEFAULT_LAYOUT[d] || null));
   if (swapping) {
     const w = sel ? (lay[sel] ? L.label(lay[sel]!) : '빈자리') : '';
-    return `<p class="note">${sel ? `${L.ARROW[sel]} ${esc(w)}${josa(w, '과', '와')} 바꿀 자리를 누르세요.` : '두 자리를 차례로 누르면 서로 바뀌어요. 빈자리와도 바꿀 수 있어요.'}</p>
+    return `<p class="note">${sel ? `${L.ARROW[sel]} ${esc(w)}${josa(w, '과', '와')} 바꿀 자리 선택` : '두 자리를 차례로 누르면 서로 바뀜. 빈자리와도 교체 가능'}</p>
       <button class="btn" type="button" id="layReset"${changed ? '' : ' disabled'}>기본 배치로</button>
-      <button class="btn primary" type="button" id="laySwap">다 바꿨어요</button>`;
+      <button class="btn primary" type="button" id="laySwap">바꾸기 끝</button>`;
   }
   const k = sel ? (lay[sel] as SkillKey | null) : null;
   const info = k ? `<div class="wdet"><b>${SKILLS[k].name}</b><small>${L.ARROW[sel!]} · ${SKILL_INFO[k].kind}${lockLv(k) ? ` · 🔒 Lv ${lockLv(k)}` : ''}</small><p class="skm">${meta(k)}</p><p>${esc(SKILL_INFO[k].desc)}</p></div>`
-    : sel ? '<div class="wdet"><b>빈자리</b><p>특성 스킬이 들어갈 자리예요 (P2).</p></div>'
-    : '<p class="note">자리를 누르면 설명이 나와요. 칸에서 그 방향으로 쓸면 그 스킬이 나가요.</p>';
+    : sel ? '<div class="wdet"><b>빈자리</b><p>특성 스킬 자리 (P2)</p></div>'
+    : '<p class="note">자리를 누르면 설명. 칸에서 그 방향으로 쓸면 그 스킬 사용</p>';
   return `${info}<button class="btn" type="button" id="laySwap">배치 바꾸기</button>`;
 }
 
@@ -141,10 +141,10 @@ function skillHtml(): string {
       }).join('')}</div>
       <div class="lside">${wheelSide(lay)}</div></div></section>
     <section class="panel"><h2>칸 탭 기본 힐</h2><div class="chips">${(Object.keys(battle().tapKeys) as TapKey[]).map(chip).join('')}</div>
-      <p class="note">${esc(battle().tapKeys[st.tapKey])}${tapLock ? ` · Lv ${tapLock} 전까진 치유로 탭해요` : ''}</p></section>
+      <p class="note">${esc(battle().tapKeys[st.tapKey])}${tapLock ? ` · Lv ${tapLock} 전까진 치유로 탭` : ''}</p></section>
     <section class="panel"><h2>단축칸 <small>소비 아이템 ${slots}칸${nextSlotLv ? ` · Lv ${nextSlotLv}에 ${itemSlots(nextSlotLv)}칸` : ''}</small></h2>
       <div class="chips items">${(Object.keys(ITEMS) as ItemKey[]).map(k => `<button class="chip ichip" type="button" data-item="${k}" aria-pressed="${items.includes(k)}">${battle().itemIcon(k)}${ITEMS[k].name}</button>`).join('')}</div>
-      <p class="note${msg ? ' warn' : ''}">${msg || items.map(k => `${ITEMS[k].short}: ${ITEMS[k].desc}`).join(' · ') || '빈 칸이에요.'}</p></section>
+      <p class="note${msg ? ' warn' : ''}">${msg || items.map(k => `${ITEMS[k].short}: ${ITEMS[k].desc}`).join(' · ') || '빈 칸'}</p></section>
     <h3 class="sec">스킬 <small>배운 것 ${learned} / ${Object.keys(SKILL_LEVEL).length}</small></h3>
     <ul class="sklist">${(['heal', 'flash', 'renew', 'purify', 'poh', 'guardian', 'hymn', 'serenity', 'sanctify'] as SkillKey[]).map(k => skillCard(k, lay)).join('')}</ul>
     <h3 class="sec">패시브</h3>
@@ -156,9 +156,9 @@ function talentHtml(): string {
   const lv = G.save.player.level;
   const open = TALENTS.filter(t => t.lv <= lv).length;
   const focus = Math.min(open, TALENTS.length - 1);
-  return `<section class="panel"><h2>특성 <small>${open ? `${open}단 열림` : `🔒 Lv ${TALENT_LEVEL}에 열려요 (지금 Lv ${lv})`}</small></h2>
-      <p>Lv 10부터 10레벨마다 한 단씩, 셋 중 하나를 골라요. 언제든 무료로 바꿀 수 있어요.</p>
-      <p class="note">고르기와 효과는 P2에서 만들어요. 지금은 미리 보기예요.</p></section>
+  return `<section class="panel"><h2>특성 <small>${open ? `${open}단 열림` : `🔒 Lv ${TALENT_LEVEL}에 열림 (지금 Lv ${lv})`}</small></h2>
+      <p>Lv 10부터 10레벨마다 한 단씩, 셋 중 하나 선택. 언제든 무료로 변경 가능</p>
+      <p class="note">고르기와 효과는 P2. 지금은 미리 보기</p></section>
     <ol class="ttree">${TALENTS.map((t, i) => {
       const locked = t.lv > lv;
       return `<li class="tier${locked ? ' locked' : ''}"><details${i === focus ? ' open' : ''}><summary>

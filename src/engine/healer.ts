@@ -18,10 +18,10 @@ export function canTarget(f: Fight, key: SkillKey, cellIdx: number): ActionResul
   const sk = SKILLS[key];
   if (sk.target === 'none') return { ok: true };
   const c = f.cells[cellIdx];
-  if (!c || !c.unit) return { ok: false, reason: '빈 칸이에요' };
+  if (!c || !c.unit) return { ok: false, reason: '빈 칸' };
   const u = c.unit;
-  if (!u.alive) return { ok: false, reason: `${u.nick}은(는) 쓰러졌어요` };
-  if (key === 'purify' && !u.debuffs.some(d => DISPELLABLE[d.type])) return { ok: false, reason: '정화로 지울 디버프가 없어요' };
+  if (!u.alive) return { ok: false, reason: `${u.nick}은(는) 쓰러짐` };
+  if (key === 'purify' && !u.debuffs.some(d => DISPELLABLE[d.type])) return { ok: false, reason: '정화로 지울 디버프 없음' };
   return { ok: true, u };
 }
 
@@ -29,14 +29,14 @@ export function canTarget(f: Fight, key: SkillKey, cellIdx: number): ActionResul
 export function use(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
   if (f.over) return { ok: false };
   const sk = SKILLS[key];
-  if (!knows(f, key)) return { ok: false, reason: `${sk.name}은(는) Lv ${SKILL_LEVEL[key]}에 배워요` };
+  if (!knows(f, key)) return { ok: false, reason: `${sk.name}: Lv ${SKILL_LEVEL[key]}에 배움` };
   const tg = canTarget(f, key, cellIdx);
   if (!tg.ok) return tg;
   if (sk.cd && (f.cd[key] ?? 0) > 0) return { ok: false, reason: `${sk.name} 재사용 대기 ${Math.ceil(f.cd[key]!)}초` };
-  if (f.mana < sk.cost) { f.stats.manaFails++; return { ok: false, reason: '마나가 부족해요' }; }
+  if (f.mana < sk.cost) { f.stats.manaFails++; return { ok: false, reason: '마나 부족' }; }
   const uid = tg.u ? tg.u.id : null;
   if (f.cast && f.cast.uid === uid && f.cast.key === key) return { ok: true, same: true };
-  if (f.channel > 0) { f.channel = 0; f.stats.hymnBroken++; emit(f, { type: 'msg', text: '천상의 찬가가 끊겼어요' }); }
+  if (f.channel > 0) { f.channel = 0; f.stats.hymnBroken++; emit(f, { type: 'msg', text: '천상의 찬가 끊김' }); }
   if (f.cast) { f.cast = null; f.stats.cancels++; f.gcd = 0; } // 시전을 취소하고 새 대상으로 바꿀 때는 GCD를 돌려준다 (02 4-2)
   if (f.gcd > 0) { f.queued = { key, uid }; return { ok: true, queued: true }; }
   exec(f, key, cellIdx, tg.u);
@@ -120,8 +120,8 @@ export function healerTick(f: Fight): void {
       const c = f.cast; f.cast = null;
       const sk = SKILLS[c.key];
       const u = unitById(f, c.uid);
-      if (!u || !u.alive) emit(f, { type: 'msg', text: '대상이 쓰러져 시전이 취소됐어요' });
-      else if (f.mana < sk.cost) { f.stats.manaFails++; emit(f, { type: 'msg', text: '마나가 부족해요' }); }
+      if (!u || !u.alive) emit(f, { type: 'msg', text: '대상이 쓰러져 시전 취소' });
+      else if (f.mana < sk.cost) { f.stats.manaFails++; emit(f, { type: 'msg', text: '마나 부족' }); }
       else { f.mana -= sk.cost; apply(f, c.key, u); }
     }
   }
@@ -129,7 +129,7 @@ export function healerTick(f: Fight): void {
     const q = f.queued; f.queued = null;
     const sk = SKILLS[q.key];
     const tu = q.uid == null ? null : unitById(f, q.uid);
-    if (q.uid != null && (!tu || !tu.alive)) { f.stats.queueLost++; emit(f, { type: 'msg', text: '대상이 쓰러져 예약한 힐이 취소됐어요' }); }
+    if (q.uid != null && (!tu || !tu.alive)) { f.stats.queueLost++; emit(f, { type: 'msg', text: '대상이 쓰러져 예약한 힐 취소' }); }
     else {
       const idx = tu ? tu.cell : 0;
       const tg = canTarget(f, q.key, idx);

@@ -58,9 +58,9 @@ function render(): void {
   s.el.innerHTML = `${topBar({ back: 's-entry', title: `편성 · ${c.name} ${Flow.diff}` })}
     <nav class="subtabs" role="tablist"><button type="button" role="tab" aria-selected="true">공개모집</button><button type="button" role="tab" aria-selected="false" disabled>길드파티 ${guildLocked ? `🔒 Lv ${GUILD_LEVEL}` : '· P2'}</button></nav>
     <div class="ns-body pty">
-      ${G.save.tut === TUT.dungeon ? '<p class="coachtip">파티는 파티 찾기로 무작위로 들어와요. 마음에 안 들면 <b>다시 뽑기</b> (처음 한 번 무료). 준비되면 「출발」.</p>' : ''}
+      ${G.save.tut === TUT.dungeon ? '<p class="coachtip">파티는 파티 찾기로 무작위로 들어옴. 마음에 안 들면 <b>다시 뽑기</b> (처음 한 번 무료). 준비되면 「출발」.</p>' : ''}
       ${boardSvg()}
-      <p class="note center">시작 위치는 자동 배치예요. 옮길 수 없어요.</p>
+      <p class="note center">시작 위치는 자동 배치 (옮길 수 없음)</p>
       <ul class="pcards">${Flow.party!.map(m => {
         const p = PERS[m.pers], c = m.cls ? CLASSES[m.cls] : null;
         return `<li class="pcard" data-cls="${c ? c.key : ''}"><span class="prole${c ? ' two' : ''}" style="background:${ROLE[m.role].color}">${c ? c.short : ROLE[m.role].short}</span>
@@ -69,7 +69,7 @@ function render(): void {
       ${hs.length ? `<section class="panel hint"><h4>💡 이번 파티</h4><ul>${hs.map(h => `<li>${esc(h)}</li>`).join('')}</ul></section>` : ''}
       <h3 class="sec">소비 아이템 <small>단축칸 ${slots}칸${slots < 4 ? ` · Lv ${slots === 2 ? 20 : 40}에 1칸 더` : ''}</small></h3>
       <div class="chips items">${(Object.keys(ITEMS) as ItemKey[]).map(k => `<button class="chip ichip" type="button" data-item="${k}" aria-pressed="${items.includes(k)}">${battle().itemIcon(k)}${ITEMS[k].name}</button>`).join('')}</div>
-      <p class="note${msg ? ' warn' : ''}">${msg || items.map(k => `${ITEMS[k].short}: ${ITEMS[k].desc}`).join(' · ') || '빈 칸이에요.'}</p>
+      <p class="note${msg ? ' warn' : ''}">${msg || items.map(k => `${ITEMS[k].short}: ${ITEMS[k].desc}`).join(' · ') || '빈 칸'}</p>
     </div>
     <footer class="ns-foot row2">
       <button class="btn" type="button" id="reroll">다시 뽑기 ${cost ? `🪙 ${fmt(cost)}` : '(무료)'}</button>
@@ -87,7 +87,7 @@ s.el.addEventListener('click', e => {
   }
   if (t.closest('#reroll')) {
     const cost = rerollCost(Flow.rerolls);
-    if (G.save.player.gold < cost) { msg = `골드가 모자라요 (🪙 ${fmt(cost)} 필요).`; render(); return; }
+    if (G.save.player.gold < cost) { msg = `골드 부족 (🪙 ${fmt(cost)} 필요)`; render(); return; }
     G.save.player.gold -= cost; Flow.rerolls++; commit();
     roll(); render(); return;
   }

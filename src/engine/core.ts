@@ -58,7 +58,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
       u.guardian = 0;
       u.hp = u.max * 0.4;
       emit(f, { type: 'sound', name: 'bell' });
-      emit(f, { type: 'msg', text: `수호 영혼이 ${u.nick}을(를) 살렸어요` });
+      emit(f, { type: 'msg', text: `수호 영혼이 ${u.nick}을(를) 살림` });
       return;
     }
     // 쓰러지면 칸을 비운다 → 다른 파티원이 그 칸으로 이동할 수 있음 (2026-10-07 Lim)

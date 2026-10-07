@@ -67,7 +67,7 @@ function itemCard(it: GearItem): string {
   return `<div class="rw-item" style="--g:${GRADE_STYLE[it.grade].color}">
     <div class="rw-box" aria-hidden="true"><span>${it.grade[0]}</span></div>
     <b>${it.grade} · ${esc(it.name)}</b><small>${slotName(it.slot)} · +${it.plus}</small>
-    <p class="cmp">${isOn ? '장착했어요' : `지금 ${cur ? `${cur.grade} ${esc(cur.name)}` : '빈칸'} → 힐량 ${pct(cur)} → ${pct(it)}, 보조 능력치 ${subs(cur)} → ${subs(it)}개`}</p>
+    <p class="cmp">${isOn ? '장착함' : `지금 ${cur ? `${cur.grade} ${esc(cur.name)}` : '빈칸'} → 힐량 ${pct(cur)} → ${pct(it)}, 보조 능력치 ${subs(cur)} → ${subs(it)}개`}</p>
   </div>`;
 }
 
@@ -79,8 +79,8 @@ function renderReward(): void {
   const r = Flow.result!;
   const canEquip = !!it && G.save.gear.bag.some(b => b.id === it.id);
   // 튜토리얼: 탐험 보상 = 첫 장비 장착 유도, 녹슨 요새 첫 클리어 = 끝 (09 4장)
-  const tip = r.content === 'plateau' && G.save.tut === TUT.dungeon && canEquip ? '<p class="coachtip"><b>첫 장비</b>예요! 「장착」을 눌러 바로 써요. 힐량이 올라요.</p>'
-    : r.content === 'rustfort' && G.save.tut === TUT.done && x.first && r.diff === '쉬움' && !G.save.clears.rustfort?.['보통'] ? '<p class="coachtip">첫 던전 클리어! 튜토리얼은 여기까지예요. 다음은 녹슨 요새 <b>보통</b>. Lv 10에 특성이 열려요.</p>' : '';
+  const tip = r.content === 'plateau' && G.save.tut === TUT.dungeon && canEquip ? '<p class="coachtip"><b>첫 장비</b>! 「장착」을 눌러 바로 사용. 힐량 상승</p>'
+    : r.content === 'rustfort' && G.save.tut === TUT.done && x.first && r.diff === '쉬움' && !G.save.clears.rustfort?.['보통'] ? '<p class="coachtip">첫 던전 클리어! 튜토리얼은 여기까지. 다음은 녹슨 요새 <b>보통</b>. Lv 10에 특성 열림</p>' : '';
   rw.el.innerHTML = `${topBar()}
     <div class="ns-body reward">
       ${tip}
@@ -90,7 +90,7 @@ function renderReward(): void {
         <div><dt>경험치</dt><dd>+${fmt(x.xp)}${x.levelUps.length ? ` <em class="lvup">레벨 업! Lv ${x.levelBefore} → ${p.level}</em>` : ''}</dd></div>
       </dl>
       <div class="xpbar" aria-label="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100}%"></i><span>Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}</span></div>
-      <p class="note center">장비 강화·분해·세트 효과는 P2에서 만들어요.</p>
+      <p class="note center">장비 강화·분해·세트 효과는 P2에서 추가</p>
     </div>
     <footer class="ns-foot row3">
       ${canEquip ? `<button class="btn${tip && r.content === 'plateau' ? ' hi-pulse' : ''}" type="button" id="equipNow">장착</button>` : '<button class="btn" type="button" data-go="s-char">장비 보기</button>'}
@@ -113,7 +113,7 @@ export function showLevelUp(host: HTMLElement, ups: number[]): void {
   const box = document.createElement('div');
   box.className = 'overlay lvpop';
   box.innerHTML = `<div class="card" role="dialog" aria-label="레벨 업"><h3>레벨 업!</h3><p class="lvnum">Lv ${ups[0] - 1} → <b>${ups[ups.length - 1]}</b></p>
-    ${items.length ? `<ul>${items.map(m => `<li class="${m.live ? '' : 'later'}">Lv ${m.lv} · ${esc(m.text)}${m.live ? '' : ' <small>준비 중</small>'}</li>`).join('')}</ul>` : '<p class="note">새로 열린 기능은 없어요. 힐량이 조금씩 오르는 건 P2에서 넣어요.</p>'}
+    ${items.length ? `<ul>${items.map(m => `<li class="${m.live ? '' : 'later'}">Lv ${m.lv} · ${esc(m.text)}${m.live ? '' : ' <small>준비 중</small>'}</li>`).join('')}</ul>` : '<p class="note">새로 열린 기능 없음</p>'}
     <button class="btn primary" type="button">확인</button></div>`;
   box.querySelector('button')!.addEventListener('click', () => box.remove());
   host.appendChild(box);

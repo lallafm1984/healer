@@ -149,10 +149,10 @@ export function step(f: Fight): void {
   }
   if (f.k % 20 === 0 && f.dpsAcc > 0) { emit(f, { type: 'dps', amt: Math.round(f.dpsAcc) }); f.dpsAcc = 0; }
   const live = living(f);
-  if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', f.mobs.length ? '모두 쓰러뜨렸어요' : '보스를 쓰러뜨렸어요'); }
-  else if (!f.me.alive) end(f, 'lose', '힐러가 쓰러졌어요');
-  else if (!live.some(u => u.role === 'tank')) end(f, 'lose', '탱커가 모두 쓰러졌어요');
-  else if (live.length <= f.party.length * 0.3) end(f, 'lose', '파티원 70%가 쓰러졌어요');
+  if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', f.mobs.length ? '모두 쓰러뜨림' : '보스를 쓰러뜨림'); }
+  else if (!f.me.alive) end(f, 'lose', '힐러가 쓰러짐');
+  else if (!live.some(u => u.role === 'tank')) end(f, 'lose', '탱커가 모두 쓰러짐');
+  else if (live.length <= f.party.length * 0.3) end(f, 'lose', '파티원 70%가 쓰러짐');
 }
 
 /** 잡몹 구간: 파티 딜은 잡을 차례인 잡몹에게, 남는 딜은 다음 잡몹에게 (23 2장) */
