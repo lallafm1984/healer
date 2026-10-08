@@ -47,7 +47,6 @@ export function castOf(f: Fight, key: SkillKey): number {
 export function cdOf(f: Fight, key: SkillKey): number {
   let cd = SKILLS[key].cd || 0;
   if (key === 'hymn' && f.tx.on.quickHymn) cd -= 60;
-  if (SKILLS[key].slot === 'raid' && f.fx.raidCd) cd -= f.fx.raidCd; // 세트 「종탑 순례자」 4세트
   return cd;
 }
 
@@ -78,12 +77,10 @@ export function adjLow(f: Fight, u: Unit, n: number, skipRenew = false): Unit[] 
 /** 범위 힐 반경: 넓은 원이면 기원 반경 2 */
 export const areaRadius = (f: Fight, key: SkillKey): number => (key === 'poh' && f.tx.on.wideCircle ? 2 : key === 'wildflower' && f.enc.big ? DRUID_BIG.wildRange : 1); // 들꽃 군락 20인 보정 (26 9-1)
 
-/** 치유의 기원 (반경 r). 치유한 사람 수 */
-export function pohAt(f: Fight, cellIdx: number, amt: number, r: number): number {
+/** 치유의 기원 (반경 r) */
+export function pohAt(f: Fight, cellIdx: number, amt: number, r: number): void {
   const c = f.cells[cellIdx];
-  let n = 0;
-  for (const v of living(f)) if (hexDist(cellOf(f, v), c) <= r) { heal(f, v, amt, true); n++; }
-  return n;
+  for (const v of living(f)) if (hexDist(cellOf(f, v), c) <= r) heal(f, v, amt, true);
 }
 
 /** 소생 지속 시간: 긴 숨결 +3초 */

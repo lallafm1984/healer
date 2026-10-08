@@ -70,10 +70,10 @@ export default async function shop(url, shots) {
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await page.click('#tabs [data-tab="shop"]'); await page.clock.runFor(100);
   await page.click('#s-shop [data-sub="merit"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-shop .mset').count()) === 2, '레이드 세트 2종 (10인·20인)');
-  await page.click('#s-shop [data-ex="belfry"][data-slot="ring"]'); await page.clock.runFor(50);
+  ok((await page.locator('#s-shop .mgear [data-ex]').count()) === 6 && !/세트/.test(await text('#s-shop')), '공훈 = 영웅 장비 6부위 (세트 없음)');
+  await page.click('#s-shop [data-ex="ring"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.wallet.merit === 20 && sv.gear.bag.some(i => i.set === 'belfry' && i.slot === 'ring' && i.grade === '영웅'), '공훈 100 → 종탑 순례자의 반지 (영웅)');
+  ok(sv.wallet.merit === 20 && sv.gear.bag.some(i => i.slot === 'ring' && i.grade === '영웅' && i.name === '성스러운 반지' && !('set' in i)), '공훈 100 → 성스러운 반지 (영웅)');
 
   // ---- 시즌 패스 ----
   await page.click('#s-shop [data-sub="pass"]'); await page.clock.runFor(50);

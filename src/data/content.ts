@@ -25,8 +25,6 @@ export interface ContentDef {
   unlockLv: number;
   /** 아직 만들지 않은 콘텐츠 (카드만) */
   ready: boolean;
-  /** 드롭 세트 이름 (세트 효과는 P2) */
-  set?: string;
   /** 보스 (마지막 = 최종 보스, 11 4장) */
   bosses: string[];
   /** 난이도별 이어서 하는 전투 목록 */
@@ -52,22 +50,22 @@ export const CONTENT: ContentDef[] = [
     fights: () => DUNGEONS.plateau.segments, size: () => 3,
   },
   {
-    key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 1, unlockLv: 1, ready: true, set: '새벽 순례자',
+    key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 1, unlockLv: 1, ready: true,
     fights: () => DUNGEONS.rustfort.segments, size: five, tiers: LEVEL_TIERS,
   },
-  { key: 'crypt', bosses: ['시체 수집가', '역병 사제 말코어'], kind: 'dungeon', name: '역병 지하묘지', place: '왕도 지하 · 역병 교단', stageLv: 5, unlockLv: 5, ready: false, set: '역병 정화자', fights: none, size: five },
-  { key: 'swamp', bosses: ['늪 주술사', '거대 두꺼비 부글이', '늪 족장 세레스'], kind: 'dungeon', name: '독안개 늪', place: '늪지 · 늪의 부족', stageLv: 10, unlockLv: 10, ready: false, set: '이끼 맹약', fights: none, size: five },
-  { key: 'manor', bosses: ['집사 유령', '초상화 속 귀부인', '장원 주인 벨모어 경'], kind: 'dungeon', name: '저주받은 장원', place: '백합 영지 · 귀족가', stageLv: 15, unlockLv: 15, ready: false, set: '수호의 맹세', fights: none, size: five },
-  { key: 'frost', bosses: ['마력 골렘', '불안정한 마법사', '탑주의 그림자'], kind: 'dungeon', name: '서리 마탑', place: '설원 · 마도사', stageLv: 20, unlockLv: 20, ready: false, set: '별빛 서약', fights: none, size: five },
-  { key: 'temple', bosses: ['침묵의 수호자', '종지기의 망령'], kind: 'dungeon', name: '깨진 신전', place: '종의 언덕 · 혼합', stageLv: 28, unlockLv: 28, ready: false, set: '종소리', fights: none, size: five },
+  { key: 'crypt', bosses: ['시체 수집가', '역병 사제 말코어'], kind: 'dungeon', name: '역병 지하묘지', place: '왕도 지하 · 역병 교단', stageLv: 5, unlockLv: 5, ready: false, fights: none, size: five },
+  { key: 'swamp', bosses: ['늪 주술사', '거대 두꺼비 부글이', '늪 족장 세레스'], kind: 'dungeon', name: '독안개 늪', place: '늪지 · 늪의 부족', stageLv: 10, unlockLv: 10, ready: false, fights: none, size: five },
+  { key: 'manor', bosses: ['집사 유령', '초상화 속 귀부인', '장원 주인 벨모어 경'], kind: 'dungeon', name: '저주받은 장원', place: '백합 영지 · 귀족가', stageLv: 15, unlockLv: 15, ready: false, fights: none, size: five },
+  { key: 'frost', bosses: ['마력 골렘', '불안정한 마법사', '탑주의 그림자'], kind: 'dungeon', name: '서리 마탑', place: '설원 · 마도사', stageLv: 20, unlockLv: 20, ready: false, fights: none, size: five },
+  { key: 'temple', bosses: ['침묵의 수호자', '종지기의 망령'], kind: 'dungeon', name: '깨진 신전', place: '종의 언덕 · 혼합', stageLv: 28, unlockLv: 28, ready: false, fights: none, size: five },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인
-    key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 종탑 1층', place: '납골당 · 역병 군주', stageLv: 35, unlockLv: 35, ready: true, set: '종탑 순례자',
+    key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 종탑 1층', place: '납골당 · 역병 군주', stageLv: 35, unlockLv: 35, ready: true,
     fights: () => ['plague'], size: () => 10, diffUnlock: { '악몽': 50 },
   },
   {
     // 20인 레이드 (26 4장): 따로 된 레이드, 난이도 4개 모두 20인
-    key: 'cathedral1', bosses: ['무음 성가대'], kind: 'raid', name: '가라앉은 대성당 1구역', place: '종의 언덕 아래 · 검은 종', stageLv: 70, unlockLv: 70, ready: true, set: '대성당의 빛',
+    key: 'cathedral1', bosses: ['무음 성가대'], kind: 'raid', name: '가라앉은 대성당 1구역', place: '종의 언덕 아래 · 검은 종', stageLv: 70, unlockLv: 70, ready: true,
     fights: () => ['choir'], size: () => 20, diffUnlock: { '악몽': 80 },
   },
 ];

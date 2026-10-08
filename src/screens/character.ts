@@ -1,19 +1,18 @@
 /**
  * 캐릭터 탭 (27 4장, 시안 CharGear27 · GearSheet27 · CharSkill27 · CharTalent27 · CharClass27). 캐릭터 그림 없음.
  * 위 = 공통 머리 (직업 문장 · 이름 · Lv · 해제 · 장비 점수) + 폴더 탭 [장비][스킬][특성][직업].
- * 장비: 능력치 판 · 목록형 착용 6칸 · 추천 장착 · 세트 · 가방(필터·정렬·분해) + 아래 시트(상세·비교·강화·잠금)
+ * 장비: 능력치 판 · 목록형 착용 6칸 · 추천 장착 · 가방(필터·정렬·분해) + 아래 시트(상세·비교·강화·잠금)
  * 스킬: [설명 보기 | 배치 바꾸기] · 휠 3×3 · 고정 설명 칸 · 칸 탭 기본 힐 · 단축칸 · 스킬 줄 목록
  * 특성: 요약 · 프리셋 1·2·3 · 단마다 한 줄 · 고르기 시트 / 직업: 직업 카드 · 바꾸기 · 퀘스트 · 업데이트 직업
  */
 import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, MAX_PLUS, salvageOf, SLOTS, slotName, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
-import { setCounts, SET_KEYS, SETS } from '../data/sets';
 import { canDispel, DEB_COLOR, HERO_KEYS, HERO_SWITCH_LV, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots, TALENT_LEVEL } from '../data/progression';
 import { PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { TALENTS } from '../data/talents';
 import type { TapKey } from '../platform/storage';
-import { betterSlots, gearAvg, gearScore, isBetter, scoreOf, setNow, statParts, talentsLeft } from '../game/charinfo';
+import { betterSlots, gearAvg, gearScore, isBetter, scoreOf, statParts, talentsLeft } from '../game/charinfo';
 import {
   bestGearPlan, commit, enhance, equip, equipBest, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, lowGradeIds, pickTalent, salvage,
   setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleItem, toggleLock,
@@ -118,13 +117,12 @@ function sheetHtml(): string {
 let salv: Set<number> | null = null;
 /** 분해 확인 (한 번 더 누르면 분해) */
 let salvAsk = false;
-type BagFilter = 'all' | 'weapon' | 'armor' | 'acc' | 'set';
+type BagFilter = 'all' | 'weapon' | 'armor' | 'acc';
 const FILTERS: { key: BagFilter; name: string; ok: (it: GearItem) => boolean }[] = [
   { key: 'all', name: '전체', ok: () => true },
   { key: 'weapon', name: '무기', ok: it => it.slot === 'weapon' },
   { key: 'armor', name: '방어구', ok: it => it.slot === 'head' || it.slot === 'chest' || it.slot === 'hands' },
   { key: 'acc', name: '장신구', ok: it => it.slot === 'ring' || it.slot === 'neck' },
-  { key: 'set', name: '세트', ok: it => !!it.set },
 ];
 type BagSort = 'score' | 'grade' | 'new';
 const slotIdx = (it: GearItem) => SLOTS.findIndex(x => x.key === it.slot);
@@ -157,20 +155,17 @@ const gvars = (it: GearItem) => `--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE
 const plusTxt = (it: GearItem) => (it.plus ? ` +${it.plus}` : '');
 /** 비율 → 퍼센트 글자 (소수 한 자리, .0은 뺌): 0.085 → 8.5 */
 const pc = (x: number) => String(Math.round(x * 1000) / 10);
-/** 세트 이름 첫 낱말 (능력치 판 칸이 좁음): 새벽 순례자 → 새벽, 대성당의 빛 → 대성당 */
-const setShort = (name: string) => name.split(' ')[0].replace(/의$/, '');
 
-/** ① 능력치 판: 2열, 초록 = 장비 몫 (세트 포함). 누르면 출처 시트 */
+/** ① 능력치 판: 2열, 초록 = 장비 몫. 누르면 출처 시트 */
 function statsHtml(): string {
-  const p = statParts(), set = setNow();
+  const p = statParts();
   const stat = (k: string, v: string, add = '') => `<span class="c7-stat"><span>${k}</span><b>${v}</b>${add ? `<em>${add}</em>` : ''}</span>`;
-  const crit = Math.round(p.crit.total * 100), haste = Math.round(p.haste.total * 100), rg = p.regen.gear + p.regen.set;
+  const crit = Math.round(p.crit.total * 100), haste = Math.round(p.haste.total * 100), rg = p.regen.gear;
   return `<button type="button" class="pn c7-stats" data-sheet="stats" aria-label="능력치 · 누르면 출처">
       <span class="h-rule">능력치<span class="rule"></span><span class="cap">초록 = 장비 몫 · 누르면 출처</span></span>
       <span class="c7-sgrid">${stat('체력', fmt(p.hp.total))}${stat('힐량', `×${p.heal.total.toFixed(2)}`, p.heal.gear >= 0.005 ? `+${p.heal.gear.toFixed(2)}` : '')}
         ${stat('치명타', `${crit}%`, crit > 5 ? `+${crit - 5}` : '')}${stat('가속', `${haste}%`, haste ? `+${haste}` : '')}
-        ${stat('마나 재생', `×${p.regen.total.toFixed(2)}`, rg >= 0.005 ? `+${rg.toFixed(2)}` : '')}
-        <span class="c7-stat"><span>세트</span><b class="sm${set ? '' : ' none'}">${set ? `${setShort(set.name)} ${set.n}/4` : '없음'}</b></span></span></button>`;
+        ${stat('마나 재생', `×${p.regen.total.toFixed(2)}`, rg >= 0.005 ? `+${rg.toFixed(2)}` : '')}</span></button>`;
 }
 
 /** ② 착용 칸 = 목록형 타일 (부위 아이콘 + 등급 색 테두리 + 등급 첫 글자) */
@@ -181,27 +176,12 @@ function tileHtml(key: SlotKey, better: SlotKey[]): string {
     return `<button type="button" class="gtile c7-tile empty" data-gslot="${key}"${n ? '' : ' disabled'} aria-label="${name} 빈칸${n ? ` · 가방에 ${n}개` : ''}">
         <span class="c7-sl">${uiIcon(key)}</span><span class="c7-tt"><b>${name} · 빈칸</b><span${n ? ' class="ok"' : ''}>${n ? `가방에 ${n}개 ↑` : '가방에 없음'}</span></span></button>`;
   }
-  return `<button type="button" class="gtile c7-tile${it.set ? ' set' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(it.name)}${plusTxt(it)} · ${it.grade}${it.lock ? ' · 잠김' : ''}">
+  return `<button type="button" class="gtile c7-tile" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(it.name)}${plusTxt(it)} · ${it.grade}${it.lock ? ' · 잠김' : ''}">
       <span class="c7-sl">${uiIcon(key)}<span class="c7-gl">${it.grade[0]}</span></span>
-      <span class="c7-tt"><b>${it.lock ? LOCK : ''}<span>${esc(it.name)}</span>${it.plus ? `<i>+${it.plus}</i>` : ''}</b><span>${name} · 힐량 +${pc(itemStats(it).heal)}%${better.includes(key) ? ' <em>↑</em>' : ''}</span></span>
-      ${it.set ? '<span class="c7-setdot" title="세트"></span>' : ''}</button>`;
+      <span class="c7-tt"><b>${it.lock ? LOCK : ''}<span>${esc(it.name)}</span>${it.plus ? `<i>+${it.plus}</i>` : ''}</b><span>${name} · 힐량 +${pc(itemStats(it).heal)}%${better.includes(key) ? ' <em>↑</em>' : ''}</span></span></button>`;
 }
 
-/** ③ 세트: 진행 중인 세트마다 이름 + 칸 4개 + 2·4세트 효과 */
-function setsHtml(): string {
-  const n = setCounts(Object.values(G.save.gear.equipped));
-  const keys = SET_KEYS.filter(k => n[k]);
-  if (!keys.length) return '<p class="cap c7-noset">세트 없음 · 희귀 이상 던전 장비, 영웅 이상 레이드 장비에서 나옴</p>';
-  return keys.map(k => {
-    const d = SETS[k], c = n[k]!;
-    return `<section class="pn c7-set" data-set="${k}">
-        <div class="c7-seth"><h2 class="h-rule">${d.name}</h2><span class="c7-boxes" role="img" aria-label="${c}/4">${[0, 1, 2, 3].map(i => `<i class="${i < c ? 'on' : ''}"></i>`).join('')}</span><span class="sr">${c}/4</span>${fill}<span class="cap">${d.slots.map(slotName).join('·')}</span></div>
-        <p class="${c >= 2 ? 'on' : ''}">${c >= 2 ? '✓' : '○'} 2세트 · ${esc(d.two.desc)}</p>
-        <p class="${c >= 4 ? 'on' : ''}">${c >= 4 ? '✓' : '○'} 4세트 · ${esc(d.four.desc)}</p></section>`;
-  }).join('');
-}
-
-/** ④ 가방 칸: 부위 아이콘 + 등급 색 + +N + ↑(지금 장비보다 좋음) + 새 점 */
+/** ③ 가방 칸: 부위 아이콘 + 등급 색 + +N + ↑(지금 장비보다 좋음) + 새 점 */
 function bagCell(it: GearItem): string {
   const up = isBetter(it), on = !!salv?.has(it.id), nw = isNew(it);
   const label = `${it.grade} ${slotName(it.slot)} · ${it.name}${plusTxt(it)}${up ? ' · 더 좋음' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
@@ -226,7 +206,6 @@ function gearHtml(): string {
     ${statsHtml()}
     <section class="c7-sec"><div class="c7-row"><h2 class="h-rule grow">착용<span class="rule"></span></h2><button type="button" class="btn2${plan.length ? ' hot' : ''}" data-rec${plan.length ? '' : ' disabled'}>추천 장착</button></div>
       <div class="c7-tiles">${SLOTS.map(x => tileHtml(x.key, better)).join('')}</div></section>
-    ${setsHtml()}
     <section class="c7-sec c7-bagsec"><div class="c7-row"><h2 class="h-rule">가방</h2><span class="cap">${all.length}개</span>${fill}${all.length ? `<button type="button" class="btn2 c7-sort" data-bsort aria-label="정렬: ${SORTS[bagSort].name}">${SORTS[bagSort].name} ▾</button>` : ''}</div>
       ${all.length ? `<div class="c7-fcs" role="group" aria-label="가방 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div>` : ''}
       ${salvBar}${grid}
@@ -247,20 +226,9 @@ function itemSheet(id: number): string {
   // 비교 줄: 퍼센트 포인트 (소수 한 자리)
   const d1 = (x: number, y: number) => Math.round((x - y) * 1000) / 10;
   const row = (k: string, v: string, diff: string) => `<div class="c7-cmp"><span>${k}</span><b>${v}</b>${diff}</div>`;
-  const n = setCounts(Object.values(eq));
-  let setTxt = '없음', setDiff = '';
-  if (it.set) {
-    const c = n[it.set] || 0, name = SETS[it.set].name;
-    setTxt = worn ? `${name} (착용 ${c}/4)` : cur?.set === it.set ? `${name} (착용 ${c}/4 그대로)` : `${name} (착용 ${c}/4 → ${c + 1}/4)`;
-    if (!worn && cur?.set !== it.set) setDiff = '<span class="c7-up">▲</span>';
-  } else if (cur?.set) {
-    const c = n[cur.set] || 0;
-    setTxt = `없음 (${SETS[cur.set].name} ${c}/4 → ${c - 1}/4)`;
-    setDiff = '<span class="c7-dn">▼</span>';
-  }
   const rows = worn
-    ? row('힐량', `+${pc(a.heal)}%`, '') + row('치명타', `+${pc(a.crit)}%`, '') + row('가속', `+${pc(a.haste)}%`, '') + row('세트', setTxt, '')
-    : row('힐량', `+${pc(a.heal)}%`, updn(d1(a.heal, b.heal))) + row('치명타', `+${pc(a.crit)}%`, updn(d1(a.crit, b.crit))) + row('가속', `+${pc(a.haste)}%`, updn(d1(a.haste, b.haste))) + row('세트', setTxt, setDiff);
+    ? row('힐량', `+${pc(a.heal)}%`, '') + row('치명타', `+${pc(a.crit)}%`, '') + row('가속', `+${pc(a.haste)}%`, '')
+    : row('힐량', `+${pc(a.heal)}%`, updn(d1(a.heal, b.heal))) + row('치명타', `+${pc(a.crit)}%`, updn(d1(a.crit, b.crit))) + row('가속', `+${pc(a.haste)}%`, updn(d1(a.haste, b.haste)));
   const c = enhanceCost(it), m = G.save.mats, gold = G.save.player.gold;
   const can = !!c && gold >= c.gold && m.stone >= c.stone && m.refined >= c.refined;
   const lack = c && !can ? (gold < c.gold ? '골드 부족' : m.stone < c.stone ? '강화석 부족' : '정제 강화석 부족') : '';
@@ -281,18 +249,18 @@ function itemSheet(id: number): string {
       </div></section>`;
 }
 
-/** 능력치 출처 시트: 기본 · 레벨 · 장비 · 세트 · 특성 몫 */
+/** 능력치 출처 시트: 기본 · 레벨 · 장비 · 특성 몫 */
 function statsSheet(): string {
   const p = statParts(), crit = Math.round(p.crit.total * 100), haste = Math.round(p.haste.total * 100);
   const row = (k: string, v: string, parts: string[]) => `<div class="c7-src"><span>${k}</span><b>${v}</b><span class="cap">${parts.filter(Boolean).join(' · ')}</span></div>`;
   return `${dim}<section class="sheet c7-ssheet" role="dialog" aria-label="능력치 출처">${grip}
-      <h3 class="h-rule">능력치 출처<span class="rule"></span><span class="cap">레벨 · 장비 · 세트 · 특성</span></h3>
+      <h3 class="h-rule">능력치 출처<span class="rule"></span><span class="cap">레벨 · 장비 · 특성</span></h3>
       <div class="c7-srcs">
         ${row('체력', fmt(p.hp.total), [`기본 ${fmt(p.hp.base)}`, `레벨 +${fmt(p.hp.level)}`, '장비 0'])}
         ${row('힐량', `×${p.heal.total.toFixed(2)}`, ['기본 ×1.00', `레벨 +${p.heal.level.toFixed(2)}`, `장비 +${p.heal.gear.toFixed(2)}`])}
         ${row('치명타', `${crit}%`, ['기본 5%', `장비 +${crit - 5}%`])}
         ${row('가속', `${haste}%`, [`장비 +${haste}%`])}
-        ${row('마나 재생', `×${p.regen.total.toFixed(2)}`, ['기본 ×1.00', `장비 +${p.regen.gear.toFixed(2)}`, `세트 +${p.regen.set.toFixed(2)}`])}
+        ${row('마나 재생', `×${p.regen.total.toFixed(2)}`, ['기본 ×1.00', `장비 +${p.regen.gear.toFixed(2)}`])}
         ${row('특성', '0', ['상시 능력치 몫 없음'])}
       </div>
       <p class="note">레벨 배율 ×${p.lp.toFixed(2)} (Lv ${G.save.player.level}). 체력은 장비로 오르지 않습니다. 고른 특성은 전투 중 조건이 맞으면 켜집니다.</p>

@@ -6,7 +6,6 @@ import { CLASSES } from '../data/classes';
 import { contentOf } from '../data/content';
 import { AD_LIMIT } from '../data/economy';
 import { gearStatsOf } from '../data/equipment';
-import { setFxOf } from '../data/sets';
 import { ENCOUNTERS } from '../data/encounters';
 import { ITEMS, type ItemKey } from '../data/items';
 import { CATS, PERS } from '../data/personalities';
@@ -249,7 +248,7 @@ export function depart(): string {
   battle().start({
     content: c.key, name: Flow.chal ? `도전 ${Flow.chal}단계` : c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: m.stage, gearStats: gearStatsOf(G.save.gear.equipped),
     affixes: m.affixes, bossMult: m.bossMult, limit: m.limit, chal: m.chal || undefined,
-    party: Flow.party!, items, slots, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(), setFx: setFxOf(Object.values(G.save.gear.equipped)),
+    party: Flow.party!, items, slots, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(),
     stock: tutDone ? { ...G.save.bag } : undefined,
     async onEnd(r) {
       if (await tryContinue(r)) return;

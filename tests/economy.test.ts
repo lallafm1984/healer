@@ -148,14 +148,14 @@ describe('재화 (12)', () => {
     expect(spendShard(s)).toBe('');
     expect(s.wallet.shards).toBe(0);
   });
-  it('공훈 교환: 레이드 세트 원하는 부위 영웅 1개 = 100', () => {
+  it('공훈 교환: 원하는 부위 영웅 장비 1개 = 100', () => {
     const s = save(40);
     s.wallet.merit = 150;
-    expect(exchangeMerit(s, 'dawn', 'head')).toMatch(/레이드/);
-    expect(exchangeMerit(s, 'belfry', 'hands')).toMatch(/없는 부위/);
-    const it = exchangeMerit(s, 'belfry', 'ring');
-    expect(it).toMatchObject({ grade: '영웅', set: 'belfry', slot: 'ring', name: '종탑 순례자의 반지' });
-    expect(exchangeMerit(s, 'belfry', 'ring')).toMatch(/부족/);
+    expect(exchangeMerit(s, 'tail' as never)).toMatch(/없는 부위/);
+    const it = exchangeMerit(s, 'ring');
+    expect(it).toEqual({ id: expect.any(Number), grade: '영웅', slot: 'ring', plus: 0, name: '성스러운 반지' });
+    expect(s.wallet.merit).toBe(50);
+    expect(exchangeMerit(s, 'ring')).toMatch(/부족/);
   });
   it('소비 아이템: 레벨 비례 가격, 종류마다 최대 20, 깃털은 안 팖', () => {
     const s = save(20);

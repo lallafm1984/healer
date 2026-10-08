@@ -3,11 +3,10 @@
  * 결제·광고는 자리만 (platform/billing.ts). 개발 빌드는 「시험 구매」로 흐름만 확인.
  */
 import {
-  BAG_MAX, CRYSTAL_PACKS, itemPrice, MEMBER, MERIT_SET_COST, MERIT_WEEK_CAP, PASS_LEVELS, PASS_PREMIUM_CRYSTAL, PASS_XP, passPremium, SEASON, SHARD_CRAFT, SHARD_MAX,
+  BAG_MAX, CRYSTAL_PACKS, itemPrice, MEMBER, MERIT_GEAR_COST, MERIT_WEEK_CAP, PASS_LEVELS, PASS_PREMIUM_CRYSTAL, PASS_XP, passPremium, SEASON, SHARD_CRAFT, SHARD_MAX,
 } from '../data/economy';
-import { slotName, type SlotKey } from '../data/equipment';
+import { SLOTS, type SlotKey } from '../data/equipment';
 import { ITEMS, type ItemKey } from '../data/items';
-import { SETS, type SetKey } from '../data/sets';
 import { hhmm, seasonOf, untilReset } from '../game/clock';
 import { buyItem, buyPremium, claimPass, craftShard, exchangeMerit, grantMember, isMember, passGain, passLevel, type Gain } from '../game/economy';
 import { commit, G, refreshDay } from '../game/state';
@@ -76,14 +75,9 @@ function goldHtml(): string {
 
 function meritHtml(): string {
   const w = G.save.wallet, wk = G.save.weekly.merit;
-  const sets = (Object.keys(SETS) as SetKey[]).filter(k => SETS[k].minGrade === '영웅');
   return `<p class="note">레이드 보스를 잡으면 공훈. 레이드마다 주 ${MERIT_WEEK_CAP}까지 (10인 ${wk[10]}/${MERIT_WEEK_CAP} · 20인 ${wk[20]}/${MERIT_WEEK_CAP})</p>
-    ${sets.map(k => {
-      const d = SETS[k];
-      return `<section class="panel mset"><h4>${d.name} <small>영웅 · ${d.from === 'abyss1' ? '10인' : '20인'} 레이드</small></h4>
-        <p class="note">2세트: ${esc(d.two.desc)}<br>4세트: ${esc(d.four.desc)}</p>
-        <div class="gbtns">${d.slots.map(sl => `<button class="btn" type="button" data-ex="${k}" data-slot="${sl}"${w.merit < MERIT_SET_COST ? ' disabled' : ''}>${slotName(sl)}<small>공훈 ${MERIT_SET_COST}</small></button>`).join('')}</div></section>`;
-    }).join('')}`;
+    <section class="panel mgear"><h4>영웅 장비 <small>원하는 부위 1개</small></h4>
+      <div class="gbtns">${SLOTS.map(sl => `<button class="btn" type="button" data-ex="${sl.key}"${w.merit < MERIT_GEAR_COST ? ' disabled' : ''}>${sl.name}<small>공훈 ${MERIT_GEAR_COST}</small></button>`).join('')}</div></section>`;
 }
 
 function passHtml(): string {
@@ -128,7 +122,7 @@ s.el.addEventListener('click', async e => {
   if (b) { const k = b.dataset.buy as ItemKey, n = Number(b.dataset.n); const err = buyItem(save, k, n); st.msg = err || `${ITEMS[k].name} 구매 · 가방 ×${save.bag[k]}`; commit(); render(); return; }
   if (t.closest('#craft')) { st.msg = craftShard(save) || `종 조각 제작 · 보유 ${save.wallet.shards}/${SHARD_MAX}`; commit(); render(); return; }
   const ex = t.closest<HTMLElement>('[data-ex]');
-  if (ex) { const r = exchangeMerit(save, ex.dataset.ex as SetKey, ex.dataset.slot as SlotKey); st.msg = typeof r === 'string' ? r : `교환: ${r.name} (가방)`; commit(); render(); return; }
+  if (ex) { const r = exchangeMerit(save, ex.dataset.ex as SlotKey); st.msg = typeof r === 'string' ? r : `교환: ${r.name} (가방)`; commit(); render(); return; }
   const pa = t.closest<HTMLElement>('[data-pass]');
   if (pa) { const r = claimPass(save, Number(pa.dataset.pass), pa.dataset.line as 'free' | 'prem', Date.now()); st.msg = typeof r === 'string' ? r : `받음: ${gainText(r)}`; commit(); render(); return; }
   if (t.closest('#premium')) { st.msg = buyPremium(save) || '프리미엄 패스 · 지난 단계 꾸미기도 받을 수 있음'; commit(); render(); return; }

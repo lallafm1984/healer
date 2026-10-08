@@ -48,7 +48,7 @@ function startBattle(guideSec = 0): void {
   const itemCap = S.stock ? Object.fromEntries(S.items.map(k => [k, Math.max(0, (S.stock![k] || 0) - (used[k] || 0))])) : undefined;
   const F = create({
     encounter: curKey(), diff: S.diff as DiffName, gearStats: S.gearStats || undefined, seed: sd, party: S.party || undefined, items: S.items,
-    carry: R.carry || undefined, level: S.level, heroLv: S.heroLv, stageLv: S.stageLv, hero: S.hero, talents: S.talents, setFx: S.setFx, itemCap,
+    carry: R.carry || undefined, level: S.level, heroLv: S.heroLv, stageLv: S.stageLv, hero: S.hero, talents: S.talents, itemCap,
     affixes: S.affixes, bossMult: S.bossMult,
   });
   B.F = F;
@@ -627,7 +627,6 @@ function frame(now: number): void {
     S.coach = o.coach || null;
     S.hero = o.hero && HERO_KEYS.includes(o.hero) ? o.hero : 'priest';
     S.talents = Array.isArray(o.talents) ? o.talents.slice() : undefined;
-    S.setFx = o.setFx ? { ...o.setFx } : undefined;
     S.stock = o.stock ? { ...o.stock } : undefined;
     S.affixes = o.affixes?.length ? o.affixes.slice() : undefined; S.bossMult = o.bossMult; S.limit = o.limit; S.chal = o.chal || 0;
     applyLayout();

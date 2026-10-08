@@ -3,7 +3,7 @@ import { hexDist } from './board';
 import { BARK, DRUID_BIG } from '../data/heroConst';
 import { bark, cellOf, damage, DT, heal, onDebuffEnd } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
-import { calmHymn, renewEnd, renewSec } from './talents';
+import { calmHymn, renewEnd } from './talents';
 import { abFear, dpsMods, hasMod } from './abilities';
 import type { PersName } from '../data/personalities';
 import type { Cell, Fight, Unit } from './types';
@@ -15,8 +15,7 @@ export function unitTick(f: Fight, u: Unit): void {
   if (!u.alive) return;
   if (u.hot > 0) {
     u.hot -= dt; u.hotTick += dt;
-    if (u.hotTick >= 3 - 1e-9) { u.hotTick -= 3; heal(f, u, 80 * (1 + f.fx.hotAmt), false); }
-    if (u.hot <= 0 && f.fx.hotEnd && u.alive) heal(f, u, 80 * (1 + f.fx.hotAmt) * Math.floor(renewSec(f) / 3 + 1e-9) * f.fx.hotEnd, true); // 새벽 순례자 4세트
+    if (u.hotTick >= 3 - 1e-9) { u.hotTick -= 3; heal(f, u, 80, false); }
     if (u.hot <= 0 && f.tx.on.hopRenew && u.alive) renewEnd(f, u); // 옮겨 가는 소생
   }
   if (u.hots.length) hotTick(f, u, dt);
@@ -101,7 +100,6 @@ function hotTick(f: Fight, u: Unit, dt: number): void {
     }
     if (h.left <= 1e-9 || h.rest <= 1e-9) {
       u.hots = u.hots.filter(x => x !== h);
-      if (f.fx.hotEnd) heal(f, u, h.sum * (1 + f.fx.hotAmt) * f.fx.hotEnd, true); // 새벽 순례자 4세트
       if (h.key === 'sprout' && h.rest <= 1e-9) f.mana = Math.min(100, f.mana + (f.level >= 10 ? 0.4 : 0)); // 순환 (25 드루이드 패시브)
     }
   }
@@ -109,7 +107,7 @@ function hotTick(f: Fight, u: Unit, dt: number): void {
 
 /** 지속 힐 배율: 나무껍질(+20%), 드루이드 군락 (붙어 있는 새싹마다 +10%, 최대 +30%. 20인은 +30%씩 최대 +90%, 들꽃 군락에도) */
 function hotMult(f: Fight, u: Unit, h: { key: string }): number {
-  let m = (u.redu > 0 && u.reduCut === BARK.cut ? 1 + BARK.hot : 1) * (1 + f.fx.hotAmt);
+  let m = u.redu > 0 && u.reduCut === BARK.cut ? 1 + BARK.hot : 1;
   if ((h.key === 'sprout' || (h.key === 'wildflower' && f.enc.big)) && f.level >= 6) {
     const c = cellOf(f, u);
     let n = 0;

@@ -8,7 +8,6 @@ import { DIFFS, MYTHIC, type DiffName } from '../data/difficulty';
 import { ENCOUNTERS, segGrade, type EncounterKey } from '../data/encounters';
 import { avgScore, DROP_TABLE, gearSummary, GRADE_STYLE, ITEM_GRADES, LEGEND_LEVEL, RECOMMENDED } from '../data/equipment';
 import { canDispel, DEB_COLOR, HEROES } from '../data/heroes';
-import { setOf } from '../data/sets';
 import { clearGold, clearXp } from '../data/progression';
 import { MERIT, MERIT_WEEK_CAP, SHARD_MAX } from '../data/economy';
 import { Flow } from '../game/flow';
@@ -96,12 +95,6 @@ function dropBar(d: DiffName): { bar: string; small: string[] } {
   return { bar, small: table.filter(([, p]) => p < 0.15).map(([g, p]) => `${g} ${pc(p)}`) };
 }
 
-function setTxt(c: ContentDef): string {
-  if (!c.set) return '';
-  const s = setOf(c.key);
-  return s ? `세트 ${s.name} (${s.minGrade} 이상)` : `세트 ${esc(c.set)}`;
-}
-
 /** 상단 + 난이도 탭을 장소 그림 위에 (그림이 있으면 어둡게 깔림, 28 4장 입장 머리) */
 function cover(c: ContentDef, inner: string): string {
   const pa = placeArt(c.key);
@@ -147,7 +140,7 @@ function render(): void {
   }).join('')}</div>` : '';
 
   const drop = dropBar(d);
-  const rw = ['장비 1개', ...drop.small, setTxt(c), `골드 ${fmt(goldA)} (S ${fmt(goldS)})`, `경험치 약 ${fmt(xpA)}`].filter(Boolean);
+  const rw = ['장비 1개', ...drop.small, `골드 ${fmt(goldA)} (S ${fmt(goldS)})`, `경험치 약 ${fmt(xpA)}`].filter(Boolean);
   if (rs && tutDone) rw.push(`공훈 ${MERIT[rs][d]} (이번 주 ${G.save.weekly.merit[rs]}/${MERIT_WEEK_CAP})`);
   // 레이드 이번 주 장비 (보스마다 난이도별 주 1회, 13 3-4)
   const lootLine = rs && tutDone ? `<span class="cap f-lootl${lootDone ? ' done' : ''}">이번 주 이 보스 장비 ${lootDone ? '받음 · 골드·공훈만 (월요일 오전 6시에 다시)' : '아직'}</span>` : '';

@@ -7,7 +7,6 @@ import type { ItemKey } from '../data/items';
 import type { Personality, PersName } from '../data/personalities';
 import type { HeroKey } from '../data/heroes';
 import type { SkillKey } from '../data/skills';
-import type { SetFx } from '../data/sets';
 import type { TalentKey } from '../data/talents';
 import type { AffixKey } from '../data/affixes';
 import type { AffixState } from './affixes';
@@ -56,8 +55,6 @@ export interface Hot {
   i: number;
   /** 남은 회복량 (피워 내기용) */
   rest: number;
-  /** 처음 총량 (세트 「새벽 순례자」 4세트) */
-  sum: number;
 }
 
 /** 직접 힐 뒤 4초간 이어지는 잔향 회복 */
@@ -299,8 +296,6 @@ export interface FightConfig {
   stageLv?: number;
   /** 사제 특성: 단마다 고른 칸 번호 (06 6장). 없으면 특성 없음 */
   talents?: (number | null)[];
-  /** 세트 효과 (02 10-3, data/sets.ts). 없으면 0 */
-  setFx?: Partial<SetFx>;
   /** 가방에 남은 소비 아이템 (19 11장). 없으면 제한 없음 */
   itemCap?: Partial<Record<ItemKey, number>>;
   /** 어픽스 (07 3장 레벨 단계, 13 3-3 주간 도전). 없으면 어픽스 없음 */
@@ -456,8 +451,6 @@ export interface Fight {
   tx: TalentState;
   /** 특성 트리가 없는 직업의 임시 보정: 힐량 배율·마나 소모 배율·내가 받는 피해 배율 (data/heroConst TALENT_STANDIN). 사제는 null */
   standin: { heal: number; mana: number; guard: number } | null;
-  /** 세트 효과 (02 10-3) */
-  fx: SetFx;
   /** 능력을 가진 파티원이 있음 (없으면 능력 코드를 안 탐 = 프로토타입과 같음) */
   abOn: boolean;
   ab: PartyAb;

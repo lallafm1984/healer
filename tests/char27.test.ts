@@ -53,10 +53,10 @@ describe('추천 장착 (27 4-2)', () => {
       item({ id: 4, slot: 'weapon', grade: '희귀', plus: 9 }), // 3.9
       item({ id: 5, slot: 'head', grade: '고급' }), // 같으면 지금 것
       item({ id: 6, slot: 'ring', grade: '일반' }), // 빈칸
-      item({ id: 7, slot: 'ring', grade: '일반', set: 'belfry' }), // 같은 점수면 세트 먼저
+      item({ id: 7, slot: 'ring', grade: '일반' }), // 같은 점수면 앞의 것
     ];
     const plan = bestGearPlan();
-    expect(plan.map(p => [p.slot, p.now?.id ?? null, p.next.id])).toEqual([['weapon', 1, 3], ['ring', null, 7]]);
+    expect(plan.map(p => [p.slot, p.now?.id ?? null, p.next.id])).toEqual([['weapon', 1, 3], ['ring', null, 6]]);
   });
   it('한 번에 바꾸면 원래 끼던 건 가방으로, 다시 부르면 바꿀 것 없음', () => {
     G.save.gear.equipped = { weapon: item({ id: 1, slot: 'weapon', grade: '일반' }) };
@@ -132,18 +132,18 @@ describe('새것 점 기준 (gear.seen)', () => {
 
 describe('능력치 판 · 출처 (27 4-2)', () => {
   beforeEach(() => { G.save = newSave(1); G.save.player.level = 40; });
-  it('몫을 더하면 합계, 마나 재생엔 세트 효과도 (엔진과 같은 곱)', () => {
+  it('몫을 더하면 합계', () => {
     G.save.gear.equipped = {
-      weapon: item({ id: 1, slot: 'weapon', grade: '영웅', set: 'cathedral', plus: 3 }),
-      chest: item({ id: 2, slot: 'chest', grade: '영웅', set: 'cathedral' }),
+      weapon: item({ id: 1, slot: 'weapon', grade: '영웅', plus: 3 }),
+      chest: item({ id: 2, slot: 'chest', grade: '영웅' }),
       head: item({ id: 3, slot: 'head', grade: '희귀' }),
     };
     const p = statParts(), st = gearStatsOf(G.save.gear.equipped), lp = lvPower(40);
     expect(p.hp.base + p.hp.level).toBe(p.hp.total);
     expect(p.heal.base + p.heal.level + p.heal.gear).toBeCloseTo(st.heal * lp);
     expect(p.crit.base + p.crit.gear).toBeCloseTo(st.crit);
-    expect(p.regen.base + p.regen.gear + p.regen.set).toBeCloseTo(st.regen * 1.1);
-    expect(heroStats().regen).toBeCloseTo(st.regen * 1.1);
+    expect(p.regen.base + p.regen.gear).toBeCloseTo(st.regen);
+    expect(heroStats().regen).toBeCloseTo(st.regen);
   });
   it('장비 한 개 몫을 6부위 더하면 장비 능력치', () => {
     const eq = Object.fromEntries(SLOTS.map((s, i) => [s.key, item({ id: i + 1, slot: s.key, grade: (['일반', '고급', '희귀', '영웅', '전설', '희귀'] as const)[i], plus: i })]));

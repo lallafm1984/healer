@@ -2,7 +2,6 @@
 import { ITEMS, type ItemKey } from '../data/items';
 import type { GearStats } from '../data/gear';
 import { HEROES, type HeroKey } from '../data/heroes';
-import type { SetFx } from '../data/sets';
 import type { RosterEntry } from '../engine';
 import type { BattleResult } from '../game/settle';
 import { TUT, type CoachKey } from '../game/tutorial';
@@ -126,8 +125,6 @@ export interface BattleApi {
     hero?: HeroKey;
     /** 사제 특성 (06 6장) */
     talents?: (number | null)[];
-    /** 세트 효과 (02 10-3) */
-    setFx?: Partial<SetFx>;
     /** 가방에 있는 소비 아이템 (19 11장) */
     stock?: Partial<Record<ItemKey, number>>;
     /** 어픽스·보스 배율·제한시간 (07 3장 레벨 단계, 13 3-2 주간 도전) */

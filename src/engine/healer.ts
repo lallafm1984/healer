@@ -1,6 +1,6 @@
 import { HEROES } from '../data/heroes';
 import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
-import { aoeMana, DT, emit, heal, living, onDebuffEnd, unitById } from './core';
+import { DT, emit, heal, living, onDebuffEnd, unitById } from './core';
 import { heroApply, heroChannelTick, heroTick, hotCount, putHot } from './heroes';
 import { reviveTarget } from './items';
 import { adjLow, castOf, cdOf, costOf, directSpread, focusMult, has, overflow, pohAt, renewSec, spendGuard, talentTick, wordCap, wordPower, wordReady, wordSpent } from './talents';
@@ -103,10 +103,10 @@ function apply(f: Fight, key: SkillKey, u: Unit): void {
     if (has(f, 'shareRenew')) { const v = adjLow(f, u, 1, true)[0]; if (v) { v.hot = renewSec(f); v.hotTick = 0; v.hotHop = false; } }
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'poh' || key === 'sanctify') {
-    let amt = sk.amt! * (1 + f.fx.aoeHeal), r = 1;
+    let amt = sk.amt!, r = 1;
     if (key === 'sanctify') amt *= wordPower(f.g.s);
     if (key === 'poh' && has(f, 'wideCircle')) { r = 2; amt *= 0.8; }
-    aoeMana(f, pohAt(f, u.cell, amt, r));
+    pohAt(f, u.cell, amt, r);
     if (key === 'poh' && has(f, 'doublePoh')) f.tx.later.push({ at: f.t + 2, cell: u.cell, amt: amt * 0.5, r });
     if (key === 'sanctify') emit(f, { type: 'sound', name: 'bell' });
   } else if (key === 'purify') {
@@ -149,7 +149,7 @@ function cleanseOne(f: Fight, u: Unit): void {
 /** 힐러 한 틱: 마나 재생, 재사용 대기, 찬가, 시전 완료, 예약 실행 */
 export function healerTick(f: Fight): void {
   const dt = DT;
-  let regen = 1.0 * f.gear.regen * f.enc.manaCoef * (f.symbol > 0 ? 4 : 1) * (f.medit > 0 ? 2.5 : 1) * (1 + f.fx.regen);
+  let regen = 1.0 * f.gear.regen * f.enc.manaCoef * (f.symbol > 0 ? 4 : 1) * (f.medit > 0 ? 2.5 : 1);
   if (f.cast || f.channel > 0) f.tx.lastAct = f.t;
   else if (f.tx.on.breather && f.t - f.tx.lastAct >= 3 - 1e-9) regen *= 2; // 숨 고르기
   if (f.medit > 0) f.medit -= dt;

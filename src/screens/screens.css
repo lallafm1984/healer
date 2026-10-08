@@ -161,7 +161,7 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .bag small { display: block; color: var(--mute); font-size: 11px; }
 .bag em { font-style: normal; color: #8FD18B; }
 .bag .btn { padding: 8px 12px; }
-/* 장비 상세·강화·세트·분해 (09 S10·S11) */
+/* 장비 상세·강화·분해 (09 S10·S11) */
 button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .gtile.sel, .bag li.sel { box-shadow: 0 0 0 2px var(--g); }
 .gmats { margin: 2px 0 0; font-size: 13px; color: var(--mute); }
@@ -294,7 +294,7 @@ button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer;
 .sic svg { width: 26px; height: 26px; }
 .sbuy { flex: none; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 50%; }
 .slist.dim .srow { opacity: 0.6; }
-.mset .gbtns .btn { flex: 1 1 40%; }
+.mgear .gbtns .btn { flex: 1 1 40%; }
 .mrow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--panel); border: 2px solid var(--line); }
 .mrow > div { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: 13px; }
 .mrow small { color: var(--mute); }

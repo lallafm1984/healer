@@ -18,7 +18,6 @@ import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { rngFrom } from './rng';
 import { unitDps, unitTick } from './units';
-import { NO_SET_FX } from '../data/sets';
 import { APT, aptIdx } from '../data/guild';
 import { rollAbility } from '../data/abilities';
 import { newTalents } from './talents';
@@ -54,7 +53,6 @@ export function create(cfg: FightConfig): Fight {
     hero: cfg.hero ?? 'priest', power3: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null,
     tx: null as unknown as TalentState, // 아래 newTalents
     standin: null,
-    fx: { ...NO_SET_FX, ...cfg.setFx },
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
     enraged: false, rats: [],

@@ -29,11 +29,6 @@ export function bark(f: Fight, u: Unit, text?: string | null, force?: boolean): 
   emit(f, { type: 'bark', id: u.id, text: text || barks?.[Math.floor(f.rng() * barks.length)] || '' });
 }
 
-/** 세트 「대성당의 빛」 4세트: 범위 힐이 6명 이상을 치유하면 마나 */
-export function aoeMana(f: Fight, n: number): void {
-  if (n >= 6 && f.fx.aoeMana) f.mana = Math.min(100, f.mana + f.fx.aoeMana);
-}
-
 /**
  * 회복. direct = 직접 힐(숫자 표시, 관심·감사 성격 반응).
  * raw = 이미 배율이 붙은 값 (사제 흘러넘침): 장비·레벨·특성 배율과 치명타를 다시 안 붙임
