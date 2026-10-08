@@ -38,7 +38,7 @@ export default async function challenge(url, shots) {
   // ---- 콘텐츠: 주간 도전 카드 ----
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   const card = await text('#s-content [data-chal]');
-  ok(/주간 도전/.test(card) && /침묵의 시계/.test(card) && /메마름/.test(card) && /전염병/.test(card), '던전 칸 = 주간 도전 띠 (이번 주 메마름·전염병)');
+  ok(/주간 도전/.test(card) && /침묵의 시계/.test(card) && /메마름/.test(card) && /전염병/.test(card), '던전 장소 줄 맨 앞 = 주간 도전 칸 (이번 주 메마름·전염병, 화면 읽기 글)');
   ok(/단계 Lv 1/.test(await text('#s-content .b-gate')), '녹슨 요새 관문 = 단계 Lv (레벨 단계 칩은 입장 화면)');
 
   // ---- 던전 레벨 단계 (07 3장) ----

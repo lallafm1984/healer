@@ -55,6 +55,8 @@ export const PLACES: Record<PlaceKey, Place> = {
 export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   tutorial: 'plateau', plateau: 'plateau', rustfort: 'rustfort', crypt: 'crypt', swamp: 'swamp',
   manor: 'manor', frost: 'frost', temple: 'temple', abyss1: 'abyss', cathedral1: 'cathedral',
+  // 자리 표시 예시 던전 (content.ts sample): 같은 세력 장소 그림을 빌려 씀
+  belfry: 'temple', archive: 'frost', ossuary: 'manor', sewer: 'crypt',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */

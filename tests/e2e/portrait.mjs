@@ -223,6 +223,29 @@ export default async function portrait(url, shots) {
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_shop_${width}.png` });
     await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(80);
     ok(await loaded('#s-content .b-gate img') && await page.locator('#s-content .b-places .fmark').count() >= 6 && await noOverflow('#s-content .b-body'), `${width}: 전투 탭 관문 장소 그림 + 장소 문양 6곳, 가로 넘침 없음`);
+    // 관문은 분류가 바뀌어도 같은 자리·같은 크기 (주간 도전은 관문 위 띠가 아니라 장소 줄 맨 앞 칸, 이벤트는 빈 줄 자리)
+    const gates = [];
+    for (const t of ['explore', 'raid', 'event', 'dungeon']) {
+      await page.click(`#s-content [data-ctab="${t}"]`); await page.clock.runFor(60);
+      const b = await page.locator('#s-content .b-gate').boundingBox();
+      gates.push(`${Math.round(b.y)}/${Math.round(b.height)}`);
+    }
+    ok(new Set(gates).size === 1, `${width}: 관문 자리·크기가 탐험·레이드·이벤트·던전 모두 같음 (${gates.join(' ')})`);
+    const row = await page.evaluate(() => {
+      const sc = document.querySelector('#s-content .b-plr'), r = sc.getBoundingClientRect();
+      const cut = [...sc.querySelectorAll('.b-pl')].some(b => { const x = b.getBoundingClientRect(); return x.left < r.right - 8 && x.right > r.right + 8; });
+      return { chal: !!document.querySelector('#s-content .b-places > .b-chal'), over: sc.scrollWidth > sc.clientWidth + 1, cut, more: sc.parentElement.dataset.more };
+    });
+    ok(row.chal && row.over && row.cut && row.more === 'r', `${width}: 던전 장소 줄 = 맨 앞 주간 도전 고정 칸 + 넘치면 가로로 넘김 (반 칸 걸침, 오른쪽만 흐림)`);
+    if (width === 390) {
+      for (let i = 0; i < 4; i++) { await page.click('#s-content [aria-label="다음 장소"]'); await page.clock.runFor(600); }
+      const mid = await page.evaluate(() => {
+        const sc = document.querySelector('#s-content .b-plr'), r = sc.getBoundingClientRect(), b = sc.querySelector('.b-pl.on').getBoundingClientRect();
+        return Math.abs((b.left - r.left) - (r.right - b.right));
+      });
+      ok(mid <= 3, `${width}: ›로 넘기면 고른 장소가 줄 가운데로`);
+      await page.click('#s-content [data-content="rustfort"]'); await page.clock.runFor(600);
+    }
     const go = await page.locator('#contentGo').boundingBox(), tb = await page.locator('#tabs').boundingBox();
     ok(go.y + go.height <= tb.y + 1 && go.height >= 44, `${width}: 출전 버튼 항상 탭 위, 44px 이상`);
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_content_${width}.png` });
