@@ -4,7 +4,7 @@
  * 이펙트 (16 4-6): 힐 = 부드러운 빛 + 별 반짝이(사제 금·흰), 치명타 = 반짝이 2배 + 작은 종, 큰 피격 = 날카로운 빨간 자국.
  * 칸 위 이펙트는 0.4초 안에 사라지고 체력 숫자·디버프 테두리 아래에 그림.
  */
-import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, RenderTexture, Sprite, Text, Texture } from 'pixi.js';
+import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, RenderTexture, Sprite, Text, Texture, type TextStyleFontWeight } from 'pixi.js';
 import { CLASSES } from '../data/classes';
 import { SKILLS } from '../data/skills';
 import { aggroTarget, areaRadius, hexDist, slotKey, type Unit } from '../engine';
@@ -12,11 +12,15 @@ import { $, B, DEB, dirSlot, DIR_DEG, ROLE, SEL, ui } from './core';
 
 // ---------- 색 ----------
 const hex = (c: string) => parseInt(c.slice(1, 7), 16);
+// 테마 「길드 홀」 (2026-10-08): 돌색 빈칸, 청동 안쪽 테두리, 물통 빈 부분 = 돌 3. 디버프·위험 색은 그대로
 const C = {
-  cell: 0x1a1b2e, cellLine: 0x2b2d4a, line: 0x0b0b12, ink: 0xf6f0e0, dead: 0x8a8ba0, gold: 0xf0c46a, white: 0xffffff,
-  zone: 0xd6483a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xd9342b, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0xffe08a, over: 0x9c9db8,
+  cell: 0x15120e, cellLine: 0x2c241b, line: 0x080605, ink: 0xf1e4c8, dead: 0x8a7f6a, gold: 0xf0c46a, white: 0xffffff,
+  zone: 0xd6483a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0xffe08a, over: 0xa99a7e,
+  empty: 0x2c241b, dangerBg: 0x3b1514, bronze: 0x5c4424, frame: 0x9c7a3c, dark: 0x12100c,
 };
-const FONT = '"Jua", "Gowun Dodum", sans-serif';
+const FONT = '"Noto Sans KR", "Apple SD Gothic Neo", sans-serif';
+/** 글자 굵기: 이름·배지 700, 체력 숫자 900 */
+const W_TEXT: TextStyleFontWeight = '700', W_NUM: TextStyleFontWeight = '900';
 
 // ---------- Pixi 준비 ----------
 let app: Application | null = null;
@@ -181,11 +185,11 @@ const NUM = 'healer-num';
 let numFont = false;
 function installNumFont(): void {
   if (numFont) { try { BitmapFont.uninstall(NUM); } catch { /* 이미 없음 */ } }
-  BitmapFont.install({ name: NUM, style: { fontFamily: FONT, fontSize: 40, fill: 0xffffff, stroke: { color: C.line, width: 8, join: 'round' } }, chars: '0123456789+-', resolution: Math.min(2, window.devicePixelRatio || 1), padding: 4 });
+  BitmapFont.install({ name: NUM, style: { fontFamily: FONT, fontWeight: W_NUM, fontSize: 40, fill: 0xffffff, stroke: { color: C.line, width: 8, join: 'round' } }, chars: '0123456789+-', resolution: Math.min(2, window.devicePixelRatio || 1), padding: 4 });
   numFont = true;
 }
 const isNum = (t: string) => /^[+\-0-9]+$/.test(t);
-interface LabelStyle { size: number; fill: number; stroke?: number; strokeW?: number; font?: string; num?: boolean }
+interface LabelStyle { size: number; fill: number; stroke?: number; strokeW?: number; font?: string; weight?: TextStyleFontWeight; num?: boolean }
 type Label = Text | BitmapText;
 class Labels {
   private map = new Map<string, { t: Label; used: boolean; sig: string }>();
@@ -193,7 +197,7 @@ class Labels {
   begin(): void { for (const v of this.map.values()) v.used = false; }
   put(key: string, text: string, st: LabelStyle, x: number, y: number, alpha = 1, anchorY = 0.5): Label {
     const bmp = !!st.num && numFont && isNum(text);
-    const sig = bmp ? `b|${st.size.toFixed(1)}` : `${st.size.toFixed(1)}|${st.fill}|${st.stroke ?? ''}|${st.strokeW ?? 0}|${st.font ?? FONT}`;
+    const sig = bmp ? `b|${st.size.toFixed(1)}` : `${st.size.toFixed(1)}|${st.fill}|${st.stroke ?? ''}|${st.strokeW ?? 0}|${st.font ?? FONT}|${st.weight ?? W_TEXT}`;
     let e = this.map.get(key);
     if (!e || e.sig !== sig) {
       if (e) e.t.destroy();
@@ -201,7 +205,7 @@ class Labels {
         ? new BitmapText({ text, style: { fontFamily: NUM, fontSize: st.size } })
         : new Text({
           text, resolution: dpr,
-          style: { fontFamily: st.font ?? FONT, fontSize: st.size, fill: st.fill, ...(st.strokeW ? { stroke: { color: st.stroke ?? C.line, width: st.strokeW, join: 'round' as const } } : {}) },
+          style: { fontFamily: st.font ?? FONT, fontWeight: st.weight ?? W_TEXT, fontSize: st.size, fill: st.fill, ...(st.strokeW ? { stroke: { color: st.stroke ?? C.line, width: st.strokeW, join: 'round' as const } } : {}) },
         });
       t.anchor.set(0.5, anchorY);
       this.parent.addChild(t);
@@ -222,7 +226,7 @@ const tops = new Labels(topL);
 document.fonts?.addEventListener?.('loadingdone', () => { labels.clear(); tops.clear(); if (ready) installNumFont(); });
 
 const mctx = document.createElement('canvas').getContext('2d')!;
-function measure(text: string, size: number, font = FONT): number { mctx.font = `${size}px ${font}`; return mctx.measureText(text).width; }
+function measure(text: string, size: number, font = FONT, weight = W_TEXT): number { mctx.font = `${weight} ${size}px ${font}`; return mctx.measureText(text).width; }
 
 function pill(g: Graphics, lb: Labels, key: string, x: number, y: number, text: string, bg: number, fg: number, fs: number, alpha = 1): void {
   const w = measure(text, fs) + fs * 0.7, h = fs * 1.35;
@@ -374,7 +378,8 @@ export function render(now: number): void {
     B2.disp[u.id] = shown;
     const frac = Math.max(0, Math.min(1, shown / u.max));
     const top = y - r, bot = y + r;
-    hexPoly(unitsG, x, y, r).fill({ color: 0x20212f });
+    const low = frac < 0.3;
+    hexPoly(unitsG, x, y, r).fill({ color: low ? C.dangerBg : C.empty }); // 물통 빈 부분: 30% 아래면 붉게
     const pred = predictedHeal(u);
     if (pred > 0) { const pf = Math.min(1, (u.hp + pred) / u.max); fillBand(unitsG, x, y, r, bot - 2 * r * pf, bot, 0xa0ffaa, 0.35); }
     fillBand(unitsG, x, y, r, bot - 2 * r * frac, bot, hex(ROLE[u.role].color));
@@ -384,7 +389,7 @@ export function render(now: number): void {
       for (let k = -2 * r; k < 2 * r; k += 7) unitsG.moveTo(Math.max(x - r * 0.86, x - r + k), top + Math.max(0, x - r * 0.86 - (x - r + k))).lineTo(Math.min(x + r * 0.86, x - r + k + hh), top + Math.min(hh, x + r * 0.86 - (x - r + k)));
       unitsG.stroke({ width: 2, color: C.white, alpha: 0.12 });
     }
-    if (frac < 0.3) hexPoly(unitsG, x, y, r).fill({ color: C.danger, alpha: 0.15 + 0.3 * pulse });
+    if (low) hexPoly(unitsG, x, y, r).fill({ color: C.danger, alpha: 0.08 + 0.2 * pulse });
     if (u.flash > 0) hexPoly(unitsG, x, y, r).fill({ color: 0xff503c, alpha: Math.min(1, u.flash * 1.4) });
     const hk = (now - (B2.hitFx[u.id] ?? -1e9)) / 300;
     if (hk >= 0 && hk < 1) hexPoly(unitsG, x, y, r).fill({ color: 0xfff8d6, alpha: 0.4 * (1 - hk) });
@@ -394,7 +399,12 @@ export function render(now: number): void {
     B2.lastFlash[u.id] = u.flash;
     // 테두리
     if (u.moving) dashPoly(unitsG, hexPts(x, y, r), 4, 4, Math.max(2.5, s * 0.07), 0xd8d3c0);
-    else hexPoly(unitsG, x, y, r).stroke({ width: Math.max(2.5, s * 0.07), color: C.line });
+    else {
+      // 바깥 = 검은 외곽선 (30% 아래면 위험 빨강), 안쪽 = 청동 테 (나는 금테)
+      const bw = Math.max(2.5, s * 0.07);
+      hexPoly(unitsG, x, y, r).stroke({ width: bw, color: low ? C.danger : C.line });
+      hexPoly(unitsG, x, y, r - bw * 0.85).stroke({ width: Math.max(1.2, s * 0.035), color: low ? C.line : u.role === 'healer' ? C.frame : C.bronze });
+    }
     over.push({ u, x, y, deb: undefined });
   }
 
@@ -442,7 +452,6 @@ export function render(now: number): void {
       const w = Math.max(3, s * 0.13), col = hex(DEB[deb.type] || '#E5433D');
       if (deb.trap) dashPoly(overG, hexPts(x, y, r * 0.88), 6, 4, w, col); else hexPoly(overG, x, y, r * 0.88).stroke({ width: w, color: col });
     }
-    if (tank === u) hexPoly(overG, x, y, r * 1.06).stroke({ width: Math.max(2, s * 0.06), color: C.tankMark });
     if (zoneSet.has(u.cell) || telSet.has(u.cell)) hexPoly(overG, x, y, r * 1.02).stroke({ width: Math.max(2.5, s * 0.09), color: 0xff5a3d, alpha: zoneSet.has(u.cell) ? 1 : 0.4 + 0.6 * pulse });
     if (u.guardian > 0) dashCircle(overG, x, y, r * 1.1, 2, 4, 3, C.ink, 0.9);
     // 버팀목 (특성): 금색 두꺼운 테두리, 끝나기 2초 전 깜빡임
@@ -475,26 +484,39 @@ export function render(now: number): void {
     }
     if (deb) {
       const d2 = deb.name === '썩은 숨결' ? `숨결${deb.stack}` : deb.trap ? `⚠전염 ${Math.ceil(deb.left)}` : deb.name;
-      pill(overG, labels, `deb${u.id}`, x, y - r * 0.8, d2, deb.trap ? 0xf6e7b0 : hex(DEB[deb.type] || '#E5433D'), 0x12131f, fs(0.2, 9));
+      pill(overG, labels, `deb${u.id}`, x, y - r * 0.8, d2, deb.trap ? 0xf6e7b0 : hex(DEB[deb.type] || '#E5433D'), C.dark, fs(0.2, 9));
       // 다른 종류 디버프도 함께 걸려 있으면 왼쪽 위에 색 점으로 (질병+독이면 둘 다 보이게)
       const others = [...new Set(u.debuffs.filter(d => d !== deb && d.type !== deb.type).map(d => d.type))];
       others.forEach((ty, k) => overG.circle(x - r * 0.56 + k * r * 0.3, y - r * 0.44, Math.max(4, s * 0.12)).fill({ color: hex(DEB[ty] || '#E5433D') }).stroke({ width: 1.5, color: C.line }));
     }
-    if (F.rats && F.rats.includes(u.id)) pill(overG, labels, `rat${u.id}`, x - r * 0.05, y + r * 0.95, '쥐떼', 0xb9a38a, 0x12131f, fs(0.18, 9));
+    // 보스가 때리는 사람: 테두리 대신 칸 위 조준 표식 (테두리는 디버프 몫). 디버프 이름표가 있으면 그 왼쪽
+    if (tank === u) {
+      const br = Math.max(7, s * 0.2);
+      let bx = x, by = y - r * 0.98;
+      if (deb) {
+        const f = fs(0.2, 9), d2 = deb.name === '썩은 숨결' ? `숨결${deb.stack}` : deb.trap ? `⚠전염 ${Math.ceil(deb.left)}` : deb.name;
+        bx = x - (measure(d2, f) + f * 0.7) / 2 - br - 1; by = y - r * 0.8;
+      }
+      overG.circle(bx, by, br).fill({ color: C.cell }).stroke({ width: Math.max(1.5, br * 0.22), color: C.danger });
+      overG.circle(bx, by, br * 0.4).moveTo(bx, by - br * 0.8).lineTo(bx, by - br * 0.22).moveTo(bx, by + br * 0.22).lineTo(bx, by + br * 0.8)
+        .moveTo(bx - br * 0.8, by).lineTo(bx - br * 0.22, by).moveTo(bx + br * 0.22, by).lineTo(bx + br * 0.8, by)
+        .stroke({ width: Math.max(1.2, br * 0.18), color: C.tankMark, cap: 'round' });
+    }
+    if (F.rats && F.rats.includes(u.id)) pill(overG, labels, `rat${u.id}`, x - r * 0.05, y + r * 0.95, '쥐떼', 0xb9a38a, C.dark, fs(0.18, 9));
     const bt = F.tels.find(tl => tl.kind === 'buster' && tl.units.includes(u.id));
     if (bt && bt.skill.dmg) {
       const sh = u.shield > bt.impact - F.t ? 0.6 : 1; // 맞을 때까지 보호 두루마리가 남아 있으면 -40%
       const dmg = Math.round(bt.skill.dmg * F.dmgMult * sh), lethal = dmg >= u.hp + (u.guardian > 0 ? 1e9 : 0);
-      pill(overG, labels, `bus${u.id}`, x, y + r * 0.2, `-${dmg}`, lethal ? C.danger : 0xffb25b, 0x12131f, fs(0.3, 11));
+      pill(overG, labels, `bus${u.id}`, x, y + r * 0.2, `-${dmg}`, lethal ? C.danger : 0xffb25b, C.dark, fs(0.3, 11));
     }
     if (busterIds.has(u.id)) {
       overG.circle(x, y, r * 0.75).moveTo(x - r, y).lineTo(x - r * 0.4, y).moveTo(x + r * 0.4, y).lineTo(x + r, y).moveTo(x, y - r).lineTo(x, y - r * 0.4)
         .stroke({ width: 3, color: C.tel, alpha: 0.6 + 0.4 * pulse });
     }
-    if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, 0x12131f, fs(0.28, 11));
-    else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, 0x12131f, fs(0.28, 11));
+    if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
+    else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
     const st = u.bulwark > 0 ? ([`버팀 ${Math.ceil(u.bulwark)}`, '#F0C46A'] as const) : u.fleeing ? (['도망', '#DB9B57'] as const) : u.sulking ? (['삐짐', '#D68FA6'] as const) : null;
-    if (st && s >= 40) pill(overG, labels, `st${u.id}`, x, y + r * 0.95, st[0], hex(st[1]), 0x12131f, fs(0.18, 9));
+    if (st && s >= 40) pill(overG, labels, `st${u.id}`, x, y + r * 0.95, st[0], hex(st[1]), C.dark, fs(0.18, 9));
     else if (st) hexPoly(overG, x, y, r * 0.95).stroke({ width: 3, color: hex(st[1]), alpha: 0.5 + 0.5 * pulse });
   }
   // 장전 하이라이트
@@ -529,20 +551,20 @@ export function render(now: number): void {
     topG.moveTo(c.x, c.y).lineTo(ex, ey).stroke({ width: 4, color: hex(SEL), cap: 'round' });
     topG.circle(ex, ey, 5).fill({ color: hex(SEL) });
     const label = it && it.key ? SKILLS[slotKey(F, it.key)].name : '비어 있음';
-    pill(topG, tops, 'swipe', Math.max(40, Math.min(L.W - 40, ex)), Math.max(14, ey - s * 0.45), label, it && it.key ? C.ink : 0x5a5b70, 0x12131f, fs(0.28, 12));
+    pill(topG, tops, 'swipe', Math.max(40, Math.min(L.W - 40, ex)), Math.max(14, ey - s * 0.45), label, it && it.key ? C.ink : 0x5a5b70, C.dark, fs(0.28, 12));
   }
   // 말풍선 (동시에 최대 3개, 04 10장)
   B2.bubbles = B2.bubbles.filter(b => now - b.t0 < 1700);
   for (const b of B2.bubbles) {
     const u = F.party.find(x => x.id === b.id); if (!u) continue;
     const p = unitPos(u);
-    const w = Math.min(L.W - 8, measure(b.text, 12, '"Gowun Dodum", sans-serif') + 14), h = 22;
+    const w = Math.min(L.W - 8, measure(b.text, 12, FONT, '500') + 14), h = 22;
     const bx = Math.max(4, Math.min(L.W - w - 4, p.x - w / 2));
     let by = p.y - r - h - 6;
     if (by < 2) by = p.y + r + 6;
     const a = Math.min(1, (1700 - (now - b.t0)) / 300);
     topG.roundRect(bx, by, w, h, 8).fill({ color: C.ink, alpha: a }).stroke({ width: 2, color: C.line, alpha: a });
-    tops.put(`bb${b.id}`, b.text, { size: 12, fill: 0x12131f, font: '"Gowun Dodum", sans-serif' }, bx + w / 2, by + h / 2 + 0.5, a);
+    tops.put(`bb${b.id}`, b.text, { size: 12, fill: C.dark, weight: '500' }, bx + w / 2, by + h / 2 + 0.5, a);
   }
 
   for (let i = glowUsed; i < glows.length; i++) glows[i].visible = false;
@@ -576,7 +598,7 @@ function drawLens(now: number): void {
   if (!lensRT || lensRT.width !== size) { lensRT?.destroy(true); lensRT = RenderTexture.create({ width: size, height: size, resolution: dpr }); lensSprite.texture = lensRT; }
   app.renderer.render({ container: root, target: lensRT, clear: true, transform: new Matrix().translate(-(p.x - src), -(p.y - src)) });
   lensSprite.position.set(cx - R2, cy - R2); lensSprite.width = lensSprite.height = R2 * 2;
-  lensMask.clear().circle(cx, cy, R2).fill({ color: 0x12131f });
+  lensMask.clear().circle(cx, cy, R2).fill({ color: C.dark });
   lensRing.clear().circle(cx, cy, R2).stroke({ width: 3, color: hex(SEL) });
   lensL.alpha = Math.min(1, (300 - (now - B2.lens.t0)) / 80);
   lensL.visible = true;

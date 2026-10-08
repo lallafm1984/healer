@@ -11,7 +11,7 @@ import { commit, G, healerLevel, itemsNow } from '../game/state';
 import { DUO_PARTY, TUT } from '../game/tutorial';
 import { battle, go, screen } from './kit';
 import { depart } from './party';
-import { bellSvg } from './art';
+import { healerArt } from './art';
 
 const DEV_SKIP = '<button class="btn ghost" type="button" id="tutSkip">튜토리얼 건너뛰기 (개발 빌드)</button>';
 
@@ -22,7 +22,7 @@ function skip(): void { G.save.tut = TUT.done; commit(); go('s-lobby'); }
 const story = screen('s-story', '이야기', {
   enter() {
     story.el.innerHTML = `<div class="ns-body story">
-      <div class="t-emblem">${bellSvg}</div>
+      <div class="story-art">${healerArt('priest')}</div>
       <h2 class="h">라스트 온라인</h2>
       <p>이 서버에는 힐러를 하는 사람이 거의 없다.</p>
       <p>파티 찾기에는 오늘도 「힐러 구함」이 가득하다.</p>

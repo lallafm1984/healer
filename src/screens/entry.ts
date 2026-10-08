@@ -15,6 +15,7 @@ import { runMode, tierGate } from '../game/runmode';
 import { G, heroNow, lockOf, switchOpen } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { battle, esc, fmt, go, mmss, screen, topBar } from './kit';
+import { destinationArt, LOCK } from './art';
 
 /** 드롭 세트 한 줄 (02 10-3): 효과가 있는 세트는 2·4세트까지 */
 function setLine(key: string, name?: string): string {
@@ -69,7 +70,7 @@ function render(): void {
   const rs = raidSize(c), stage = mode.stage;
   const tierRow = tutDone0 && c.tiers ? `<div class="chips tiers" role="radiogroup" aria-label="레벨 단계"><button class="chip" type="button" role="radio" data-tier="0" aria-checked="${!Flow.tier}" aria-pressed="${!Flow.tier}">기본 Lv ${stageOf(c, d)}</button>${c.tiers.map(t => {
     const g = tierGate(G.save, t);
-    return `<button class="chip" type="button" role="radio" data-tier="${t}" aria-checked="${t === Flow.tier}" aria-pressed="${t === Flow.tier}"${g.ok ? '' : ' disabled'}>${g.ok ? '' : '🔒 '}Lv ${t}</button>`;
+    return `<button class="chip" type="button" role="radio" data-tier="${t}" aria-checked="${t === Flow.tier}" aria-pressed="${t === Flow.tier}"${g.ok ? '' : ' disabled'}>${g.ok ? '' : LOCK}Lv ${t}</button>`;
   }).join('')}</div>` : '';
   const goldA = clearGold(stage, d, 'A', rs), goldS = clearGold(stage, d, 'S', rs);
   const xpA = clearXp(G.save.player.level, stage, d, 'A', { raid: rs, win: true });
@@ -79,9 +80,10 @@ function render(): void {
 
   s.el.innerHTML = `${topBar({ back: 's-content', title: `${c.name} · 단계 Lv ${stage}` })}
     <div class="ns-body entry">
+      ${destinationArt(c.key) ? `<div class="entry-cover"><img src="${destinationArt(c.key)}" alt="녹슨 요새 입구" width="1536" height="1024"><div><p class="eyebrow">${esc(c.place)}</p><h2>${esc(c.name)}</h2><span>${c.size(d)}인 파티 · 보스 ${c.bosses.length}</span></div></div>` : ''}
       <div class="chips diffs" role="radiogroup" aria-label="난이도">${ALL_DIFFS.map(x => {
         const lk = lockOf(c, x);
-        return `<button class="chip" type="button" role="radio" data-diff="${x}" aria-checked="${x === d}" aria-pressed="${x === d}"${lk.locked ? ' disabled' : ''}>${lk.locked ? '🔒 ' : ''}${x}</button>`;
+        return `<button class="chip" type="button" role="radio" data-diff="${x}" aria-checked="${x === d}" aria-pressed="${x === d}"${lk.locked ? ' disabled' : ''}>${lk.locked ? LOCK : ''}${x}</button>`;
       }).join('')}</div>
       ${G.save.tut === TUT.dungeon && c.key === 'rustfort' ? '<p class="coachtip">처음엔 <b>쉬움</b> 추천. 깨고 나면 보통 도전. 아래 공략은 눌러서 펼침</p>' : ''}
       <p class="note">${esc(diffNote(d, raid))}${lockOf(c, d).dev ? ` · Lv ${lockOf(c, d).lv} 해금, 개발 빌드라 열림` : ''}</p>

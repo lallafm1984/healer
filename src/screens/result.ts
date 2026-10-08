@@ -12,6 +12,7 @@ import { equip, G } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { AFFIXES } from '../data/affixes';
 import { esc, fmt, go, mmss, screen, topBar } from './kit';
+import { uiIcon } from './art';
 import { depart } from './party';
 
 const STAR_TEXT = ['클리어', '아무도 안 쓰러짐', `오버힐 ${Math.round(STAR_OVERHEAL * 100)}% 이하`];
@@ -27,8 +28,8 @@ function renderSettle(): void {
   // 레벨 단계·주간 도전·어픽스 (07 3장, 13 3-2)
   const mode = `${r.chal ? ` · 주간 도전 ${r.chal}단계` : Flow.tier ? ` · Lv ${Flow.tier}` : ''}${r.affixes?.length ? ` · ${r.affixes.map(k => AFFIXES[k].name).join('·')}` : ''}`;
   const ch = x.chal;
-  const chalLine = !ch ? '' : ch.inTime ? `<p class="chalres ok">⏳ ${mmss(ch.time)} / 제한 ${mmss(ch.limit)} · 제한시간 안${ch.opened ? ` · <b>${ch.stage + 1}단계 열림</b>` : ''} · 이번 주 최고 ${ch.best}단계</p>`
-    : r.win ? `<p class="chalres">⏳ ${mmss(ch.time)} / 제한 ${mmss(ch.limit)} · 시간 초과 (다음 단계는 안 열림)</p>` : '<p class="chalres">⏳ 실패 · 단계는 그대로</p>';
+  const chalLine = !ch ? '' : ch.inTime ? `<p class="chalres ok">${uiIcon('hourglass', 'in')} ${mmss(ch.time)} / 제한 ${mmss(ch.limit)} · 제한시간 안${ch.opened ? ` · <b>${ch.stage + 1}단계 열림</b>` : ''} · 이번 주 최고 ${ch.best}단계</p>`
+    : r.win ? `<p class="chalres">${uiIcon('hourglass', 'in')} ${mmss(ch.time)} / 제한 ${mmss(ch.limit)} · 시간 초과 (다음 단계는 안 열림)</p>` : '<p class="chalres">⏳ 실패 · 단계는 그대로</p>';
   const n = x.stars.filter(Boolean).length;
   const metrics: [string, string][] = [
     ['클리어 시간', `${mmss(r.time)}${multi && r.restSec ? ` (휴식 ${Math.round(r.restSec)}초 따로)` : ''}`],

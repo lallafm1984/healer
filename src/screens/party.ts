@@ -20,6 +20,7 @@ import { commit, G, healerLevel, heroNow, itemsNow, talentsNow, toggleItem } fro
 import { TUT } from '../game/tutorial';
 import { cardHtml } from './members';
 import { battle, esc, fmt, go, itemChipsHtml, ROLE, screen, topBar } from './kit';
+import { LOCK } from './art';
 
 const s = screen('s-party', '파티 편성', {
   enter() {
@@ -61,9 +62,9 @@ function boardSvg(): string {
   const hex = (x: number, y: number) => Array.from({ length: 6 }, (_, k) => { const a = (Math.PI / 180) * (60 * k - 90); return `${(x + 0.94 * Math.cos(a)).toFixed(3)},${(y + 0.94 * Math.sin(a)).toFixed(3)}`; }).join(' ');
   const cells = f.cells.map(c => {
     const u = c.unit;
-    const fill = u ? ROLE[u.role].color : '#1C1E33';
+    const fill = u ? ROLE[u.role].color : '#201A14';
     const label = u ? (u.me ? '나' : u.cls ? CLASSES[u.cls].short : `${ROLE[u.role].short}${u.pers ? PERS[u.pers].ch : ''}`) : '';
-    return `<g><polygon points="${hex(c.px, c.py)}" fill="${fill}" stroke="#0B0B12" stroke-width="0.12"/>${label ? `<text x="${c.px}" y="${c.py + 0.22}" text-anchor="middle" font-size="${label.length > 1 ? 0.62 : 0.8}">${label}</text>` : ''}</g>`;
+    return `<g><polygon points="${hex(c.px, c.py)}" fill="${fill}" stroke="#080605" stroke-width="0.12"/>${label ? `<text x="${c.px}" y="${c.py + 0.22}" text-anchor="middle" font-size="${label.length > 1 ? 0.62 : 0.8}">${label}</text>` : ''}</g>`;
   }).join('');
   return `<svg class="pboard" viewBox="${minX} ${minY} ${w} ${h}" role="img" aria-label="시작 위치 미리보기">${cells}</svg>`;
 }
@@ -107,7 +108,7 @@ function render(): void {
   const { slots, items } = itemsNow();
   const cost = rerollCost(Flow.rerolls);
   const go2 = guildOpen(G.save);
-  const guildTab = !go2.ok ? `🔒 ${go2.why.replace('에 열림', '')}` : !G.save.guild.members.length ? '· 길드원 없음' : '';
+  const guildTab = !go2.ok ? `${LOCK}${go2.why.replace('에 열림', '')}` : !G.save.guild.members.length ? '· 길드원 없음' : '';
   const isGuild = Flow.mode === 'guild' && guildReady();
   const stage = modeNow().stage;
   const hs = hints();

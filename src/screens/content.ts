@@ -7,6 +7,7 @@ import { AFFIXES } from '../data/affixes';
 import { CHAL } from '../data/challenge';
 import { chalGate, weekAffixes } from '../game/runmode';
 import { esc, go, screen, topBar } from './kit';
+import { destinationArt, LOCK, uiIcon } from './art';
 
 const TABS: { kind: ContentKind; name: string }[] = [
   { kind: 'explore', name: '탐험 3인' },
@@ -25,12 +26,15 @@ function stars(c: ContentDef): string {
 function card(c: ContentDef): string {
   const lk = lockOf(c);
   const size = `${c.size('보통')}인`;
-  const state = !c.ready ? `<em class="soon">준비 중</em>` : lk.locked ? `<em class="lock">🔒 Lv ${lk.lv}</em>` : lk.dev ? `<em class="dev">Lv ${lk.lv} 해금 · 개발 빌드라 열림</em>` : '';
+  const state = !c.ready ? `<em class="soon">준비 중</em>` : lk.locked ? `<em class="lock">${LOCK}Lv ${lk.lv}</em>` : lk.dev ? `<em class="dev">Lv ${lk.lv} 해금 · 개발 빌드라 열림</em>` : '';
   const off = !c.ready || lk.locked;
-  return `<button class="ccard${off ? ' off' : ''}" type="button" data-content="${c.key}"${off ? ' aria-disabled="true"' : ''}>
+  const art = destinationArt(c.key);
+  return `<button class="ccard${off ? ' off' : ''}${art ? ' illustrated' : ''}" type="button" data-content="${c.key}"${off ? ' aria-disabled="true"' : ''}>
+    ${art ? `<div class="destination-image"><img src="${art}" alt="녹슨 요새의 철문과 안뜰" width="1536" height="1024"><span>첫 번째 던전 · ${size}</span>${uiIcon('arrow')}</div>` : ''}
+    <div class="cc-body">
     <div class="cc-head"><b>${esc(c.name)}</b><span>단계 Lv ${c.stageLv}</span></div>
     <p>${esc(c.place)} · ${size} · 보스 ${c.bosses.length}${c.set ? ` · 세트 「${esc(c.set)}」` : ''}${c.tiers && G.save.tut >= TUT.done ? ` · 레벨 단계 ${c.tiers.join('·')}` : ''}</p>
-    ${c.ready && !lk.locked ? `<div class="cc-stars">${stars(c)}</div>` : ''}${state}</button>`;
+    ${c.ready && !lk.locked ? `<div class="cc-stars">${stars(c)}</div>` : ''}${state}</div></button>`;
 }
 
 /** 주간 도전 카드 (13 3-2): 던전 탭 맨 위 */
@@ -38,9 +42,9 @@ function chalCard(): string {
   if (G.save.tut < TUT.done) return '';
   const g = chalGate(G.save), aff = weekAffixes();
   const best = G.save.weekly.chalBest;
-  const state = !g.ok ? `<em class="lock">🔒 Lv ${g.lv}</em>` : g.dev ? `<em class="dev">Lv ${g.lv} 해금 · 개발 빌드라 열림</em>` : '';
+  const state = !g.ok ? `<em class="lock">${LOCK}Lv ${g.lv}</em>` : g.dev ? `<em class="dev">Lv ${g.lv} 해금 · 개발 빌드라 열림</em>` : '';
   return `<button class="ccard chal${g.ok ? '' : ' off'}" type="button" data-chal${g.ok ? '' : ' aria-disabled="true"'}>
-    <div class="cc-head"><b>⏳ 주간 도전 「${CHAL.name}」</b><span>단계 1~${CHAL.max}</span></div>
+    <div class="cc-head"><b>${uiIcon('hourglass', 'in')} 주간 도전 「${CHAL.name}」</b><span>단계 1~${CHAL.max}</span></div>
     <p>이번 주 어픽스 ${aff.map(k => `<span class="afx${AFFIXES[k].good ? ' good' : ''}">${AFFIXES[k].name}</span>`).join(' ')}</p>
     ${g.ok ? `<p class="cc-stars"><span class="cs">이번 주 최고 ${best ? `${best}단계` : '없음'} · 열린 단계 ${G.save.chalOpen}</span></p>` : ''}${state}</button>`;
 }
@@ -51,11 +55,11 @@ const s = screen('s-content', '콘텐츠 선택', {
 
 function render(): void {
   const list = CONTENT.filter(c => c.kind === tab && !c.hidden);
-  const empty = tab === 'event' ? '이벤트는 P3에서 추가' : '';
+  const empty = tab === 'event' ? '새로운 이벤트를 준비 중입니다.' : '';
   const tip = G.save.tut === TUT.dungeon && tab === 'dungeon' ? '<p class="coachtip"><b>녹슨 요새</b> 선택. 일반·정예 구간 둘, 보스 둘을 이어서 진행</p>' : '';
-  s.el.innerHTML = `${topBar({ back: 's-lobby', title: '콘텐츠' })}
-    <nav class="subtabs" role="tablist">${TABS.map(t => `<button type="button" role="tab" data-ctab="${t.kind}" aria-selected="${t.kind === tab}">${t.name}${t.kind === 'raid' && G.save.player.level < 35 ? ' 🔒' : ''}</button>`).join('')}</nav>
-    <div class="ns-body clist">${tip}${tab === 'dungeon' ? chalCard() : ''}${list.map(card).join('') || `<p class="note center">${empty}</p>`}</div>`;
+  s.el.innerHTML = `${topBar({ back: 's-lobby', title: '모험 선택' })}
+    <nav class="subtabs" role="tablist">${TABS.map(t => `<button type="button" role="tab" data-ctab="${t.kind}" aria-selected="${t.kind === tab}">${t.name}${t.kind === 'raid' && G.save.player.level < 35 ? ` ${LOCK}` : ''}</button>`).join('')}</nav>
+    <div class="ns-body clist"><div class="page-intro"><p class="eyebrow">${tab === 'raid' ? '함께 맞서는 거대한 위협' : '한 번의 치유, 한 걸음의 모험'}</p><h2>${TABS.find(t => t.kind === tab)!.name}</h2></div>${tip}${list.filter(c => c.ready).map(card).join('')}${tab === 'dungeon' ? chalCard() : ''}${list.filter(c => !c.ready).map(card).join('')}${!list.length ? `<div class="empty-state">${uiIcon('bell')}<p>${empty}</p></div>` : ''}</div>`;
   if (tip) s.el.querySelector('[data-content="rustfort"]')?.classList.add('hi-pulse');
 }
 

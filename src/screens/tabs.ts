@@ -3,6 +3,7 @@ import { GUILD_LEVEL } from '../data/progression';
 import { G } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { go, screen, setTabsHandler, topBar, type TabKey } from './kit';
+import { LOCK, uiIcon } from './art';
 
 export interface TabDef {
   key: TabKey;
@@ -27,7 +28,7 @@ const ph = screen('s-tab', '준비 중인 탭', {
     ph.tab = t.key;
     const locked = t.lv && G.save.player.level < t.lv;
     ph.el.innerHTML = `${topBar({ settings: true })}<div class="ns-body tabph"><h2 class="h">${t.name}</h2>
-      ${locked ? `<p class="lockline">🔒 Lv ${t.lv}에 열림 (지금 Lv ${G.save.player.level})</p>` : ''}
+      ${locked ? `<p class="lockline">${LOCK}Lv ${t.lv}에 열림 (지금 Lv ${G.save.player.level})</p>` : ''}
       <p class="note">${t.phase} 단계에서 추가</p><p class="note">기획: ${t.docs}</p></div>`;
   },
 });
@@ -45,7 +46,7 @@ export function mountTabs(nav: HTMLElement): void {
     nav.innerHTML = TABS.map(t => {
       const locked = t.lv && G.save.player.level < t.lv;
       const tl = tutLocked(t.key);
-      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${tl ? ' class="tlock" aria-disabled="true"' : ''}>${t.name}<small>${tl ? '🔒' : locked ? `🔒 Lv ${t.lv}` : ''}</small></button>`;
+      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${tl ? ' class="tlock" aria-disabled="true"' : ''}>${uiIcon(t.key)}<span>${t.name}</span>${tl || locked ? `<small>${tl ? '잠금' : `Lv ${t.lv}`}</small>` : ''}</button>`;
     }).join('');
   };
   nav.addEventListener('click', e => {

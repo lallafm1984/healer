@@ -67,7 +67,7 @@ export default async function dungeon(url, shots) {
 
   // ---- 전투: 구간 → 휴식 → 구간 ----
   await page.click('#depart'); await page.clock.runFor(3100 + 4000);
-  ok(/무너진 정문 · 고철 졸개/.test(await page.textContent('#bossName')), '전투 위쪽 = 구간 이름 · 지금 잡는 잡몹');
+  ok((await page.textContent('#encounterLabel')).includes('무너진 정문') && (await page.textContent('#bossName')).includes('고철 졸개'), '전투 위쪽 = 구간 이름과 지금 잡는 잡몹 모두 표시');
   ok(/녹슨 요새 1\/4 · 남은 적 4/.test(await page.textContent('#phase')), '진행 줄 = 1/4 · 남은 적');
   ok(await page.evaluate(() => window.__proto.F.party.filter(u => !u.me).map(u => u.nick).join()) === party0, '편성 화면의 파티 그대로');
   const clsNow = await page.evaluate(() => [...document.querySelectorAll('#s-party .pcard')].map(c => c.dataset.cls).join());
@@ -165,8 +165,9 @@ export default async function dungeon(url, shots) {
   ok(Math.abs(lvm.power - 1.08) < 1e-9 && lvm.scale === 1 && lvm.me === 594, `Lv 2 전투: 힐량·내 체력 ×1.08, 단계 Lv 1 그대로 ${JSON.stringify(lvm)}`);
   // 탱커가 쓰러져도 전투는 계속, 아래에 포기 버튼 (2026-10-07 Lim)
   ok(await page.isHidden('#giveUp'), '탱커가 살아 있으면 포기 버튼 없음');
-  await page.evaluate(() => { const F = window.__proto.F; F.party.filter(u => u.role === 'tank').forEach(u => { u.hp = 1; u.guardian = 0; }); F.party.forEach(u => { if (!u.me) u.hot = 0; }); });
-  await page.clock.runFor(3000);
+  // 전멸 UI의 입력 상태를 직접 고정한다. HP 1 + 3초 대기는 무작위 회피/보호 능력에 따라 살아남아 흔들린다.
+  await page.evaluate(() => { const F = window.__proto.F; F.party.filter(u => u.role === 'tank').forEach(u => { u.hp = 0; u.alive = false; u.guardian = 0; }); F.party.forEach(u => { if (!u.me) u.hot = 0; }); });
+  await page.clock.runFor(300);
   const td = await page.evaluate(() => { const F = window.__proto.F; return { over: F.over, tank: F.party.some(u => u.role === 'tank' && u.alive), alive: F.party.filter(u => u.alive && !u.me).length }; });
   ok(td.over === null && !td.tank && td.alive > 0, `탱커가 모두 쓰러져도 전투 계속 ${JSON.stringify(td)}`);
   ok(await page.isVisible('#giveUp') && await page.isHidden('#hint'), '탱커 전멸 → 아래에 포기 버튼');

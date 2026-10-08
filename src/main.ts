@@ -1,6 +1,9 @@
 import './battle/battle.css';
 import './app.css';
 import './screens/screens.css';
+import './screens/mobile.css';
+import './battle/portrait.css';
+import './theme.css';
 import './battle';
 import './screens/title';
 import './screens/lobby';

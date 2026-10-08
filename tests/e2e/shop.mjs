@@ -21,7 +21,7 @@ export default async function shop(url, shots) {
   await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 40; s.player.gold = 50000; s.mats.stone = 20; localStorage.setItem('healer.save', JSON.stringify(s)); });
 
   // ---- 로비 → 임무 ----
-  ok(/오늘의 임무 0\/5/.test(await text('#s-lobby .mission-card')) && /종 조각 0\/5/.test(await text('#s-lobby .wallet')), '로비: 오늘의 임무 0/5 · 재화 줄');
+  ok(/오늘의 임무\s*0\s*\/\s*5/.test(await text('#s-lobby .mission-card')) && /0\/5\s*종 조각/.test(await text('#s-lobby .wallet')), '로비: 오늘의 임무 0/5 · 종 조각 수량 표시');
   await page.click('#s-lobby .mission-card'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-missions') && (await page.locator('#s-missions .mlist').first().locator('.mrow').count()) === 5, '임무 화면: 일일 5개');
   ok((await page.locator('#s-missions .mlist').nth(1).locator('.mrow').count()) === 3, 'Lv 40 = 주간 임무 3개');

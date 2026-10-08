@@ -11,6 +11,7 @@ import { capOf, guildOpen, hire, postRecruit, powerOf, release, rerollAbility, r
 import { commit, G } from '../game/state';
 import { cardHtml } from './members';
 import { esc, fmt, screen, topBar } from './kit';
+import { LOCK } from './art';
 
 type Sub = 'members' | 'recruit';
 const st: { sub: Sub; sel: number | null; msg: string; ask: number | null } = { sub: 'members', sel: null, msg: '', ask: null };
@@ -20,7 +21,7 @@ const s = screen('s-guild', '길드', { tab: 'guild', enter() { st.sel = null; s
 function render(): void {
   const open = guildOpen(G.save);
   if (!open.ok) {
-    s.el.innerHTML = `${topBar({ settings: true })}<div class="ns-body tabph"><h2 class="h">길드</h2><p class="lockline">🔒 ${esc(open.why)} (지금 Lv ${G.save.player.level})</p>
+    s.el.innerHTML = `${topBar({ settings: true })}<div class="ns-body tabph"><h2 class="h">길드</h2><p class="lockline">${LOCK}${esc(open.why)} (지금 Lv ${G.save.player.level})</p>
       <p class="note">길드원을 영입해 직접 편성 (골드 모집·인연 스카우트)</p></div>`;
     return;
   }

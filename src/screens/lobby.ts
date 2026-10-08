@@ -10,7 +10,7 @@ import { chestState, missionReady } from '../game/economy';
 import { SHARD_MAX } from '../data/economy';
 import { TUT } from '../game/tutorial';
 import { esc, fmt, go, screen, topBar } from './kit';
-import { bellSvg } from './art';
+import { healerArt, uiIcon } from './art';
 
 /** 다음 목표 줄: 녹슨 요새 아직 안 깬 난이도 → 다음 레벨 마일스톤 (이 빌드에 있는 것) */
 function goals(): string[] {
@@ -59,23 +59,27 @@ const s = screen('s-lobby', '로비', {
   tab: 'battle',
   enter() {
     refreshDay();
-    const p = G.save.player, last = G.save.last;
+    const p = G.save.player;
     const tutDone = G.save.tut >= TUT.done, d = G.save.daily, w = G.save.wallet;
     const ready = d.missions.filter(m => missionReady(m)).length + (chestState(G.save).today || chestState(G.save).banked ? 1 : 0) + G.save.weekly.missions.filter(m => missionReady(m)).length + (G.save.chalChest ? 1 : 0);
+    const got = d.missions.filter(m => m.got).length;
+    const dest = tutDone ? `${contentOf(Flow.content).name} · ${Flow.diff}` : '';
     s.el.innerHTML = `${topBar({ settings: true })}
       <div class="ns-body lobby">
-        ${gateCard() || `<section class="panel goal"><h2>다음 목표</h2><ul>${goals().map(g => `<li>${esc(g)}</li>`).join('')}</ul></section>`}
-        ${tutDone ? `<button class="panel mission-card" type="button" data-go="s-missions"><b>오늘의 임무 ${d.missions.filter(m => m.got).length}/${d.missions.length}</b>${ready ? `<em class="dot">받을 것 ${ready}</em>` : ''}<span>▸</span></button>
-        <p class="wallet"><span>💎 ${fmt(w.crystal)}</span><span>🔔 종 조각 ${w.shards}/${SHARD_MAX}</span><span>공훈 ${fmt(w.merit)}</span></p>` : ''}
-        <div class="hero">
-          <div class="hero-art">${bellSvg}</div>
-          <b>${HEROES[heroNow()].name} · Lv ${p.level}</b>
-          <small>장비 ${esc(gearSummary(G.save.gear.equipped))}</small>
-        </div>
-        ${last ? `<p class="lastline"><span>지난 판</span> ${esc(contentOf(last.content as never).name)} ${esc(last.diff)} · ${last.win ? `클리어 ${last.grade || ''}` : '실패'}</p>` : '<p class="lastline"><span>아직 깬 던전 없음</span></p>'}
+        <section class="lobby-scene" aria-label="모험의 쉼터">
+          <div class="scene-copy"><p class="eyebrow">모험의 쉼터</p><h1>작은 빛으로,<br>끝까지 함께.</h1><p>오늘도 파티를 지킬 시간.</p></div>
+          <div class="hero-art">${healerArt(heroNow())}</div>
+          <button type="button" class="pframe" data-go="s-char" aria-label="내 캐릭터 보기">
+            <span class="pf-portrait">${healerArt(heroNow())}</span><span class="pf-lv">${p.level}</span>
+            <span class="pf-plate"><span class="pf-name"><b>${HEROES[heroNow()].name}</b><small>장비 ${esc(gearSummary(G.save.gear.equipped))}</small></span><span class="pf-hp"><i></i></span><span class="pf-mp"><i></i></span></span>
+          </button>
+        </section>
+        ${gateCard() || `<section class="panel goal"><h2>다음 목표<span class="rule"></span></h2><ul>${goals().map(g => `<li>${esc(g)}</li>`).join('')}</ul></section>`}
+        ${tutDone ? `<button class="panel mission-card" type="button" data-go="s-missions"><span class="quest-mark" aria-hidden="true">!</span><span class="mc-body"><b>오늘의 임무 <small>${got} / ${d.missions.length} 완료</small></b><span class="mc-segs">${d.missions.map((_, i) => `<i${i < got ? ' class="on"' : ''}></i>`).join('')}</span></span>${ready ? `<em class="dot">받을 것 ${ready}</em>` : ''}${uiIcon('arrow')}</button>
+        <div class="wallet lobby-wallet"><span>${uiIcon('gem')} <b>${fmt(w.crystal)}</b><small>크리스탈</small></span><span>${uiIcon('bell')} <b>${w.shards}/${SHARD_MAX}</b><small>종 조각</small></span><span>${uiIcon('star')} <b>${fmt(w.merit)}</b><small>공훈</small></span></div>` : ''}
         ${G.save.tut === TUT.dungeon ? '<p class="coachtip">이제 첫 던전 <b>녹슨 요새</b> 차례. 「전투 시작」 누르기</p>' : ''}
-        <button class="btn primary big${G.save.tut === TUT.dungeon ? ' hi-pulse' : ''}" type="button" id="lobbyStart">전투 시작</button>
-      </div>`;
+      </div>
+      <footer class="lobby-action"><button class="btn primary big${G.save.tut === TUT.dungeon ? ' hi-pulse' : ''}" type="button" id="lobbyStart">${uiIcon('battle')}<span class="cta-txt">전투 시작${dest ? `<small>${esc(dest)}</small>` : ''}</span>${uiIcon('arrow')}</button></footer>`;
     s.el.querySelector('#lobbyStart')!.addEventListener('click', () => go('s-content', Flow.content));
   },
 });

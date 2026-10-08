@@ -1,0 +1,132 @@
+/* 세로형 전투: 그림은 보스 무대, 체력·위험 정보는 단순한 진형 판에. */
+#battle *, #battle *::before, #battle *::after { box-sizing: border-box; }
+#battle { background: #17130D; }
+#battle #stage {
+  grid-template-columns: 88px minmax(0, 1fr);
+  grid-template-rows: minmax(76px, 1fr) 46px;
+  gap: 8px 10px;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid #716047;
+  background: radial-gradient(ellipse at 0 25%, #3E362C, #211A14 80%);
+  isolation: isolate;
+}
+#battle.rust-stage #stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(18, 14, 10, .22), rgba(23, 19, 13, .92) 70%), url('/art/rustfort-v1.webp') center 47% / cover;
+  opacity: .72;
+  pointer-events: none;
+}
+#battle #bossArt { width: 88px; height: 100%; min-height: 76px; max-height: 132px; align-self: stretch; }
+#bossArt img, #bossArt svg { display: block; width: 100%; height: 100%; object-fit: contain; }
+.boss-illustration { object-fit: contain; filter: drop-shadow(0 5px 4px rgba(0, 0, 0, .42)); }
+#battle #dmgNums { left: 12px; top: 12px; width: 88px; height: 94px; }
+#battle .stage-main { gap: 7px; align-self: center; }
+#battle .stage-top { gap: 6px; }
+#battle .boss-heading { flex: 1; min-width: 0; }
+#battle #encounterLabel { display: block; margin: 0 0 3px; color: #c8bb9e; font-size: 10px; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#battle #bossName { display: flex; align-items: center; gap: 5px; font-size: 20px; line-height: 1.15; color: #fff3d8; }
+#battle .boss-title-text { overflow: hidden; text-overflow: ellipsis; }
+#battle #bossName .grade { flex: none; margin: 0; padding: 3px 4px; font-size: 10px; line-height: 1; border-color: #4D473F; color: #CCC5B6; }
+#battle #bossName .grade.elite { color: #251b0c; }
+#battle #pauseBtn { width: 44px; height: 44px; border: 1px solid #6a5b43; border-radius: 12px; background: rgba(32, 26, 18, .88); color: #f4dfb2; font-size: 15px; }
+#battle .stage-meta { flex-wrap: wrap; gap: 3px 6px; }
+#battle #phase { max-width: 100%; border: 0; padding: 0; border-radius: 0; background: none; color: #C6BEAC; font-size: 10px; }
+#battle #timer { margin-left: 0; color: #D0C8B6; font-size: 11px; }
+#battle #timer.over { color: #ff9f8c; }
+#battle .hpbar { height: 20px; border: 1px solid #0E0C0A; border-radius: 5px; background: #2c1b24; box-shadow: 0 0 0 1px rgba(231, 184, 104, .14); }
+#battle #bossFill { background: linear-gradient(#d2644d, #984733); }
+#battle #bossHpText { font-size: 12px; text-shadow: 0 1px 2px #18130E; }
+#battle #queue { gap: 5px; min-height: 44px; }
+#battle #queue:empty { border: 1px solid rgba(182, 157, 115, .16); border-radius: 10px; padding: 0 10px; background: rgba(25, 20, 15, .5); }
+#battle #queue:empty::before { color: #B8AD99; font-size: 11px; }
+#battle .q { min-height: 44px; padding: 4px 5px; gap: 5px; border: 1px solid #5B4E3F; background: rgba(30, 24, 16, .94); text-align: left; }
+#battle .q.first { border-color: #bb975d; background: rgba(54, 43, 30, .94); }
+#battle .q.casting { border-color: #ff715f; background: rgba(64, 30, 34, .98); }
+#battle .q .ic { width: 26px; height: 26px; font-size: 10px; border-width: 1px; }
+#battle .q .tx { gap: 3px; }
+#battle .q .nm { font-size: 10px; color: #E6DFD3; }
+#battle .q .sec { font-size: 12px; color: #f6e0b6; }
+#battle .q.casting .sec { color: #ffb3a6; }
+#partyStatus { flex: 0 0 28px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid #372E25; background: #221B14; font-size: 11px; color: #CCC0AA; }
+#partyStatus b { margin-left: 3px; color: #e9e4d7; font-variant-numeric: tabular-nums; }
+#partyCondition { color: #96b3a8; }
+#partyCondition.critical { color: #ff9b8c; font-weight: 700; }
+#partyStatus .board-instruction { margin-left: auto; color: #A5987F; font-size: 10px; }
+#battle #boardWrap { background: radial-gradient(ellipse at center, #2A2118, #1A140E 76%); }
+#battle #castbar { flex: 0 0 32px; gap: 10px; padding: 0 14px; border-top: 1px solid #41372D; background: #241D15; color: #C9BFA9; font-size: 11px; }
+#battle #castbar.is-casting, #battle #castbar.is-armed { color: #f0d4a0; }
+#battle #castTrack { height: 8px; min-width: 32px; border: 0; background: #080e19; }
+#battle #castFill { background: linear-gradient(90deg, #b58c45, #f5d691); }
+#battle #controls { position: relative; flex-shrink: 0; gap: 8px; padding: 8px 12px; border-top: 1px solid #3C3630; background: linear-gradient(160deg, #2E261C, #1A140E 75%); }
+#battle #wheel { background: radial-gradient(circle, rgba(105, 91, 62, .12), transparent 68%); }
+#battle .slot { border-color: #1D1913; background: radial-gradient(circle at 35% 25%, #5D5040, #3B2F23); box-shadow: inset 0 0 0 1px #6C5D4D, 0 2px 0 #0F0B08; }
+#battle .slot .nm { font-size: 14px; }
+#battle .slot .ct { font-size: 10px; color: #CABFA8; }
+#battle .slot .dir { color: #C2B294; }
+#battle .slot.locked, #battle .slot.empty { border-color: #51483C; box-shadow: none; background: rgba(32, 25, 17, .55); }
+#battle .slot.locked .nm { color: #A79F8D; }
+#battle .slot.holy { background: radial-gradient(circle at 35% 25%, #f6d798, #b88638); border-color: #ecd097; box-shadow: inset 0 0 0 1px #f7dfb0; }
+#battle .slot.holy .ct, #battle .slot.holy .dir { color: #544021; }
+#battle .slot.aim { border-color: #fff; box-shadow: 0 0 0 3px #fff, 0 0 18px rgba(255, 255, 255, .6); }
+#battle .slot.armed, #battle .slot.coach-hi { border-color: #f0c46a; box-shadow: 0 0 0 3px #c9923f, 0 0 16px rgba(240, 196, 106, .7); }
+#battle #core { border-color: #241D14; background: #1E1810; box-shadow: 0 0 0 2px #4A4135, inset 0 0 16px rgba(160, 136, 86, .13); }
+#battle #core.beacon { border-color: #f0c46a; box-shadow: 0 0 0 3px #c9923f, 0 0 16px rgba(240, 196, 106, .7); }
+#battle #manaNum { font-size: 24px; }
+#battle #manaNum small { margin-top: 2px; color: #BDAE91; }
+#battle #side { align-self: stretch; height: auto; justify-content: center; gap: 6px; }
+#battle #items { width: 100%; max-width: 112px; gap: 6px; }
+#battle .item { min-width: 44px; min-height: 44px; border: 1px solid #5C5246; border-radius: 10px; background: linear-gradient(145deg, #473B2F, #32281B); box-shadow: 0 2px 0 #14100B; }
+#battle .item svg { width: 46%; max-height: 27px; }
+#battle .item .nm { font-size: 10px; }
+#battle .item.empty { border-style: dashed; border-color: #4F4337; box-shadow: none; background: rgba(26, 20, 14, .36); }
+#battle .item.armed { border-color: #f0c46a; box-shadow: 0 0 0 3px #c9923f, 0 0 14px rgba(240, 196, 106, .7); }
+#battle #aux { gap: 4px; max-width: 140px; }
+#battle .aux { flex: 0 0 44px; width: 44px; height: 44px; min-width: 44px; min-height: 44px; max-width: 44px; border-width: 1px; border-color: #b18e4d; border-radius: 12px; }
+#battle .aux.on, #battle .aux.armed { border-color: #f0c46a; box-shadow: 0 0 0 2px #c9923f, 0 0 14px rgba(240, 196, 106, .7); }
+#battle #gauges { flex-wrap: wrap; justify-content: center; gap: 2px 7px; max-width: 140px; font-size: 10px; color: #C7BCA4; }
+#battle #gauges.locked { display: none; }
+#battle #hint { color: #B9AC90; font-size: 10px; line-height: 1.45; }
+#battle #giveUp { min-height: 44px; font-size: 16px; padding: 6px; }
+#battle #controls.tank-down { min-height: 220px; }
+#battle #controls.tank-down #items { max-width: 94px; gap: 6px; }
+#battle #controls.tank-down #gauges { display: none; }
+#battle #giveUp { flex-shrink: 0; animation: giveUpFade .2s ease-out; }
+@keyframes giveUpFade { from { opacity: 0; } to { opacity: 1; } }
+#battle #pause .card { border-color: #9f8150; background: #2B2319; border-radius: 20px; }
+#battle #pause .btn, #battle #coach .btn { min-height: 44px; }
+#battle #pause .phead { flex-wrap: wrap; }
+#battle #pauseSub { white-space: normal; line-height: 1.4; }
+#battle #preview, #battle #coach { border-color: #b49a66; background: rgba(33, 26, 18, .97); }
+#battle #toast { bottom: 6px; }
+#battle .toast { border-color: #7b6b4d; padding: 6px 12px; font-size: 12px; line-height: 1.35; }
+#battle.compact #stage { grid-template-columns: 68px minmax(0, 1fr); }
+#battle.compact #bossArt { width: 68px; min-height: 68px; max-height: 100px; }
+#battle.compact #dmgNums { width: 68px; height: 76px; }
+#battle.short-battle #stage { grid-template-rows: minmax(66px, 1fr) 44px; padding-top: 6px; gap: 6px 8px; }
+#battle.short-battle #bossArt { min-height: 66px; max-height: 82px; }
+#battle.short-battle #encounterLabel { display: none; }
+#battle.short-battle .stage-main { gap: 4px; }
+#battle.short-battle #bossName { font-size: 18px; }
+#battle.short-battle #items { max-width: 100px; gap: 4px; }
+#battle.short-battle #side { gap: 4px; }
+#battle.short-battle #hint { display: none; }
+#battle.short-battle #partyStatus { flex-basis: 24px; }
+#battle.short-battle #castbar { flex-basis: 28px; }
+#battle.short-battle #coach { padding: 8px 10px; font-size: 12px; line-height: 1.4; }
+.gd-art .boss-illustration { width: 60px; height: 60px; display: block; }
+.enc .boss-illustration { width: 52px; height: 52px; }
+@media (max-width: 359px) {
+  #battle #stage { grid-template-columns: 68px minmax(0, 1fr); gap: 6px 8px; padding-left: 10px; padding-right: 10px; }
+  #battle #bossArt { width: 68px; }
+  #battle #dmgNums { left: 10px; width: 68px; }
+  #battle #bossName { font-size: 17px; }
+  #battle .q { gap: 3px; padding-left: 3px; padding-right: 3px; }
+  #battle .q .ic { width: 22px; height: 22px; font-size: 9px; }
+  #battle #partyStatus { padding-inline: 10px; gap: 8px; }
+  #battle .slot .nm { font-size: 12px; }
+  #battle .slot .dir { font-size: 10px; }
+  #battle .slot .ct { font-size: 9px; }
+}

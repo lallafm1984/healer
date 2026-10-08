@@ -8,6 +8,7 @@ import type { BattleResult } from '../game/settle';
 import type { CoachKey } from '../game/tutorial';
 import { G } from '../game/state';
 import { xpToNext } from '../data/progression';
+import { uiIcon } from './art';
 
 export const $ = (id: string) => document.getElementById(id)!;
 
@@ -19,10 +20,10 @@ export const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s 
 export const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 ? a : b; };
 
 export const ROLE: Record<string, { name: string; short: string; color: string }> = {
-  tank: { name: '탱커', short: '탱', color: '#8A97AD' },
-  melee: { name: '근접', short: '근', color: '#AE8A76' },
-  ranged: { name: '원거리', short: '원', color: '#7FA3A0' },
-  healer: { name: '나', short: '나', color: '#E9E1C6' },
+  tank: { name: '탱커', short: '탱', color: '#9AA3B5' },
+  melee: { name: '근접', short: '근', color: '#C2905E' },
+  ranged: { name: '원거리', short: '원', color: '#6FA9B8' },
+  healer: { name: '나', short: '나', color: '#F1E4C8' },
 };
 
 // ---------- 화면 이동 ----------
@@ -71,8 +72,8 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
   const pct = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
   const left = opts.back
     ? `<button class="tb-back" type="button" data-go="${opts.back}" aria-label="뒤로">←</button><b class="tb-title">${esc(opts.title || '')}</b>`
-    : `<span class="tb-lv">Lv <b>${p.level}</b></span><span class="tb-xp" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${pct}%"></i></span>`;
-  return `<header class="topbar">${left}<span class="tb-gold" aria-label="골드">🪙 <b>${fmt(p.gold)}</b></span>${opts.settings ? '<button class="tb-set" type="button" data-go="s-settings" aria-label="설정">⚙</button>' : ''}</header>`;
+    : `<span class="tb-lv"><small>Lv</small> <b>${p.level}</b></span><span class="tb-xpw"><span class="tb-xp" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${pct}%"></i></span><small class="tb-xpt" aria-hidden="true" data-pct="${Math.floor(pct)}"></small></span>`;
+  return `<header class="topbar">${left}<span class="tb-gold" aria-label="골드">${uiIcon('coin')} <b>${fmt(p.gold)}</b></span>${opts.settings ? '<button class="tb-set" type="button" data-go="s-settings" aria-label="설정">⚙</button>' : ''}</header>`;
 }
 
 /** [data-go] 버튼 = 그 화면으로 */

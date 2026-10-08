@@ -22,11 +22,11 @@ export const ITEM_GRADES: ItemGrade[] = ['일반', '고급', '희귀', '영웅',
 
 /** 등급 색 (02 10-1) + 글자 표시 (색만으로 구분하지 않기, 09 5장) */
 export const GRADE_STYLE: Record<ItemGrade, { color: string; word: string }> = {
-  '일반': { color: '#E8E4D8', word: '낡은' },
-  '고급': { color: '#6CCB6A', word: '튼튼한' },
-  '희귀': { color: '#4C9BFF', word: '축복받은' },
-  '영웅': { color: '#B07CF0', word: '성스러운' },
-  '전설': { color: '#FF9F43', word: '전설의' },
+  '일반': { color: '#C8C8C8', word: '낡은' },
+  '고급': { color: '#3FD85A', word: '튼튼한' },
+  '희귀': { color: '#4A9BFF', word: '축복받은' },
+  '영웅': { color: '#BE6EFF', word: '성스러운' },
+  '전설': { color: '#FF962E', word: '전설의' },
 };
 
 /** 난이도별 등급 확률 (02 10-4 초안). 순서 = ITEM_GRADES */

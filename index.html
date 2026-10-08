@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#12131F">
+<meta name="theme-color" content="#15120E">
 <title>나혼자 힐러 (개발 빌드)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
 </head>
 <body>
 <!-- 전체화면: 화면 맨 위부터 노치 포함 70dp = 배너 영역 (09 5장, Lim 2026-10-07) -->
@@ -32,12 +32,12 @@
     </footer>
   </section>
 
-  <section id="battle" class="screen" hidden>
+  <section id="battle" class="screen" hidden aria-label="전투">
     <header id="stage">
-      <div id="bossArt"></div>
+      <div id="bossArt" aria-hidden="true"></div>
       <div class="stage-main">
         <div class="stage-top">
-          <span id="bossName"></span>
+          <div class="boss-heading"><span id="encounterLabel"></span><span id="bossName"></span></div>
           <button id="pauseBtn" type="button" aria-label="일시정지">❚❚</button>
         </div>
         <div class="stage-meta">
@@ -46,11 +46,12 @@
         </div>
         <div class="hpbar"><div id="bossLag"></div><div id="bossFill"></div><div id="bossHpText"></div></div>
       </div>
-      <div id="queue"></div>
+      <div id="queue" aria-label="적 기술 예고"></div>
       <div id="dmgNums" aria-hidden="true"></div>
     </header>
+    <div id="partyStatus"><span>파티 <b id="partyAlive"></b></span><span id="partyCondition"></span><span class="board-instruction">탭 · 쓸기로 치유</span></div>
     <div id="boardWrap">
-      <canvas id="board"></canvas>
+      <canvas id="board" aria-label="파티 체력과 진형. 칸을 탭해 치유하고 길게 눌러 파티원 정보 확인"></canvas>
       <div id="toast"></div>
       <div id="banner"></div>
       <div id="preview" hidden></div>
@@ -58,7 +59,7 @@
     </div>
     <div id="castbar"><span id="castLabel">칸을 탭하면 치유</span><div id="castTrack"><div id="castFill"></div></div></div>
     <footer id="controls">
-      <div id="wheel"></div>
+      <div id="wheel" aria-label="치유 스킬 휠"></div>
       <div id="side">
         <div id="aux" aria-label="특성 보조 버튼" hidden></div>
         <div id="items" aria-label="소비 아이템 단축칸"></div>

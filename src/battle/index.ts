@@ -68,7 +68,9 @@ function startBattle(guideSec = 0): void {
   clearCoach();
   $('bossArt').innerHTML = bossSvg(F.enc.script);
   $('bossName').innerHTML = bossTitle();
+  $('encounterLabel').textContent = F.mobs.length ? F.enc.name : F.enc.tier;
   $('battle').classList.toggle('compact', !!F.enc.big);
+  $('battle').classList.toggle('rust-stage', ['warden', 'scrap', 'trash'].includes(F.enc.script));
   show('battle');
   layoutBattle();
   if (S.auto) toast('자동 힐러가 플레이 중 (기록 안 남김)');
@@ -86,10 +88,15 @@ function startBattle(guideSec = 0): void {
 function layoutBattle(): void {
   const F = B.F!, app = $('app');
   const H = app.clientHeight, W = app.clientWidth;
-  $('stage').style.minHeight = Math.max(F.enc.big ? 96 : 110, Math.round(H * F.enc.stage)) + 'px';
-  const ch = Math.round(Math.min(250, Math.max(186, H * 0.27)));
+  const short = H < 630;
+  $('battle').classList.toggle('short-battle', short);
+  // 그림보다 진형·조작 공간을 먼저 확보. 20인 및 낮은 화면은 무대 높이를 줄임.
+  $('stage').style.minHeight = Math.round(Math.max(short || F.enc.big ? 136 : 154, Math.min(F.enc.big ? 158 : 200, H * F.enc.stage))) + 'px';
+  const auxCount = Object.keys(F.tx.act).length;
+  const ch = Math.round(Math.min(236, Math.max(auxCount ? 194 : 178, H * 0.28)));
   $('controls').style.height = ch + 'px';
-  buildWheel(Math.min(ch - 16, W * 0.6));
+  const sideWidth = auxCount >= 3 ? 140 : 96;
+  buildWheel(Math.min(ch - 16, W * 0.6, W - sideWidth - 32));
   resizeBoard();
 }
 new ResizeObserver(() => { if (B.F && !$('battle').hidden) resizeBoard(); }).observe($('boardWrap'));
@@ -226,6 +233,14 @@ $('queue').addEventListener('pointerdown', e => {
   const q = (e.target as Element).closest<HTMLElement>('.q');
   if (!q || !q.dataset.ic) { closeTip(); return; }
   if (tipMatch(q.dataset.ic, +q.dataset.imp!)) closeTip(); // 같은 칸을 다시 누르면 닫힘, 다른 칸이면 그 칸으로 옮김
+  else openTip(q.dataset.ic, q);
+});
+$('queue').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const q = (e.target as Element).closest<HTMLElement>('.q');
+  if (!live() || !q?.dataset.ic) return;
+  e.preventDefault();
+  if (tipMatch(q.dataset.ic, +q.dataset.imp!)) closeTip();
   else openTip(q.dataset.ic, q);
 });
 document.addEventListener('pointerdown', e => { if (ui.tip && !$('queue').contains(e.target as Node)) closeTip(); }, true);

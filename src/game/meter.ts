@@ -17,7 +17,7 @@ export interface MeterRow {
   abN?: number;
 }
 
-const ROLE_COLOR: Record<Role, string> = { tank: '#8A97AD', melee: '#C9875E', ranged: '#6FA8A2', healer: '#E9E1C6' };
+const ROLE_COLOR: Record<Role, string> = { tank: '#9AA3B5', melee: '#C2905E', ranged: '#6FA9B8', healer: '#F1E4C8' };
 const ROLE_NAME: Record<Role, string> = { tank: '탱커', melee: '근접', ranged: '원거리', healer: '힐러' };
 
 /** 전투 하나의 파티원 딜을 합침 (힐러 제외) */

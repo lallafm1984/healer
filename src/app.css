@@ -1,11 +1,11 @@
 /* 앱 바깥 틀: 전체화면 + 상단 배너 영역 70dp(노치 포함) + 하단 탭 (09 5장) */
 :root { --banner-h: 70px; --tabs-h: 64px; }
 html, body { margin: 0; height: 100%; overscroll-behavior: none; }
-body { background: #0B0B12; }
+body { background: #0E0B09; }
 #adBanner {
   position: fixed; top: 0; left: 0; right: 0; height: var(--banner-h); z-index: 50;
   display: flex; align-items: flex-end; justify-content: center;
-  box-sizing: border-box; background: #0B0B12; border-bottom: 1px dashed #2C2E48; color: #4A4C6B; font-size: 11px;
+  box-sizing: border-box; background: #0E0B09; border-bottom: 1px dashed #372F24; color: #574D40; font-size: 11px;
 }
 #adBanner span { padding-bottom: 8px; }
 #viewport { position: fixed; top: var(--banner-h); left: 0; right: 0; bottom: 0; }
@@ -15,10 +15,10 @@ body { background: #0B0B12; }
   position: fixed; left: 50%; transform: translateX(-50%); bottom: env(safe-area-inset-bottom); z-index: 40;
   width: 100%; max-width: 480px; height: var(--tabs-h);
   display: grid; grid-template-columns: repeat(4, 1fr);
-  background: #15162A; border-top: 2px solid #0B0B12;
+  background: #1D1710; border-top: 2px solid #0E0B09;
 }
 #tabs button {
-  border: 0; background: none; color: #9C9DB8; font-family: "Jua", system-ui, sans-serif; font-size: 15px;
+  border: 0; background: none; color: #AA9D84; font-family: "Jua", system-ui, sans-serif; font-size: 15px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer;
 }
 #tabs button[aria-current="page"] { color: #F0C46A; }

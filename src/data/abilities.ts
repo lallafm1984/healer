@@ -13,9 +13,9 @@ export type AbGrade = 'common' | 'rare' | 'epic';
 export const AB_KIND: Record<AbKind, { icon: string; name: string }> = {
   def: { icon: '🛡', name: '방어' }, heal: { icon: '✚', name: '회복' }, sup: { icon: '⚑', name: '지원' }, ctl: { icon: '✋', name: '방해' }, atk: { icon: '⚔', name: '공격' },
 };
-/** 능력 등급: 색은 장비 등급과 같은 색 (일반 흰색 · 고급 초록 · 희귀 파랑) */
+/** 능력 등급: 색은 장비 등급과 같은 색 (일반 회색 · 고급 초록 · 희귀 파랑) */
 export const AB_GRADE: Record<AbGrade, { name: string; color: string; mult: number }> = {
-  common: { name: '일반', color: '#E8E4D8', mult: 1 }, rare: { name: '고급', color: '#6CCB6A', mult: 1.03 }, epic: { name: '희귀', color: '#4C9BFF', mult: 1.06 },
+  common: { name: '일반', color: '#C8C8C8', mult: 1 }, rare: { name: '고급', color: '#3FD85A', mult: 1.03 }, epic: { name: '희귀', color: '#4A9BFF', mult: 1.06 },
 };
 
 /**
