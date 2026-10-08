@@ -30,15 +30,15 @@ export const chalLimit = (stage: number) => CHAL.time0 + CHAL.timeStep * (stage 
 
 /**
  * 주간 어픽스 순환 (8주). 같은 조합이 이어서 안 나오고, 4주마다 축제 주간.
- * 메마름 + 서두름은 시뮬에서 너무 어려워서 같이 안 나오게 함.
+ * 메마름 + 서두름, 불안정 + 서두름은 시뮬에서 너무 어려워서 같이 안 나오게 함. 불안정은 레벨 단계가 없어지며 들어옴 (32, 5·7주차)
  */
 export const CHAL_ROTA: AffixKey[][] = [
   ['dry', 'contagion'],
   ['haste', 'echo'],
   ['chaos', 'panic'],
   ['festival', 'frenzy'],
-  ['contagion', 'haste'],
+  ['unstable', 'chaos'],
   ['echo', 'dry'],
-  ['frenzy', 'chaos'],
+  ['frenzy', 'unstable'],
   ['festival', 'panic'],
 ];

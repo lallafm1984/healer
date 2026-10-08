@@ -8,7 +8,7 @@ import { clearMats, rollItem, type GearItem } from '../data/equipment';
 import type { ItemKey } from '../data/items';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
-import { addXp, clearGold, clearXp, gradeOf, starsOf, type Grade } from '../data/progression';
+import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
 import { guildAfter, type GuildAfter } from './guild';
@@ -49,7 +49,7 @@ export interface BattleResult {
   meter?: MeterRow[];
   /** 쓴 소비 아이템 (가방에서 뺌, 19 11장) */
   itemsUsed?: Partial<Record<ItemKey, number>>;
-  /** 단계 레벨 (던전 레벨 단계·주간 도전). 없으면 콘텐츠 기본 */
+  /** 적 레벨 (= 내 레벨, 32·주간 도전). 없으면 콘텐츠 기본 */
   stage?: number;
   affixes?: AffixKey[];
   /** 주간 도전 단계 · 제한시간 (초) */
@@ -125,14 +125,16 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const grade = r.win ? (cont ? capB(gradeOf(r.deaths)) : gradeOf(r.deaths)) : null;
   const stars = starsOf({ win: r.win, deaths: r.deaths, overheal });
   // 따로 잠긴 난이도(10인 악몽 Lv 50 등)는 그 레벨이 단계 (26 3장)
-  // 던전 레벨 단계·주간 도전은 전투가 넘겨준 단계 레벨 (07 3장, 13 3-2)
+  // 적 레벨은 전투가 넘겨준 값 (내 레벨, 32·13 3-2)
   const raid = raidSize(c), stage = r.stage ?? stageOf(c, r.diff);
   // 공개모집 일일 보너스: 오늘 첫 3번 (이긴 판만 셈, 13 2-2)
   const pub = !roster.some(e => e.gid != null);
   const pubBonus = play && r.win && pub && (c.kind === 'dungeon' || c.kind === 'raid') && save.daily.pub < PUB_BONUS.runs ? ++save.daily.pub : 0;
   const festival = r.affixes?.includes('festival') ? CHAL.festivalGold : 1;
-  const gold = r.win ? Math.round(clearGold(stage, r.diff, grade!, raid) * (pubBonus ? PUB_BONUS.gold : 1) * festival) : 0;
-  const xp = r.quit ? 0 : clearXp(p.level, stage, r.diff, grade, { raid, win: r.win });
+  // 탐험은 짧고 쉬워서 골드·경험치를 줄임 (튜토리얼이 끝난 뒤, 32 3-3)
+  const kind = play && c.kind === 'explore' ? EXPLORE_REWARD : 1;
+  const gold = r.win ? Math.round(clearGold(stage, r.diff, grade!, raid) * kind * (pubBonus ? PUB_BONUS.gold : 1) * festival) : 0;
+  const xp = r.quit ? 0 : Math.max(r.win ? 1 : 0, Math.round(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind));
   const levelBefore = p.level;
   p.gold += gold;
   const levelUps = addXp(p, xp);

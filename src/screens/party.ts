@@ -1,6 +1,6 @@
 /**
  * S05 편성 (27 3-3, 시안 Party27). 2026-10-08 입장 화면(S04)을 여기로 합침: 전투 탭 「출전」 → 편성 → 출발.
- * 위: 이름 · 난이도 · 단계 Lv · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스 · 아이템 힌트), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭,
+ * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스 · 아이템 힌트), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭,
  * 경고 줄 (해제 못 함 · 장비 미달일 때만), 시작 위치 육각 미리보기 (역할 아이콘만), 파티원 줄 (누르면 상세 시트).
  * 아래 고정: 단축칸 한 줄 칩 (누르면 고르기 시트) · 다시 뽑기(광고 하루 2번 무료) · 출발 (악몽은 종 조각, 없으면 눌렀을 때 얻는 곳 + 상점). 지면 광고 이어하기 (15)
  */
@@ -52,7 +52,7 @@ let openRow = -1;
 const BULB = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg>';
 
 const firstEnc = () => ENCOUNTERS[contentOf(Flow.content).fights(Flow.diff)[0]];
-/** 이번 판 단계 레벨·어픽스 (던전 레벨 단계는 자동, 주간 도전) */
+/** 이번 판 적 레벨·어픽스 (적 = 내 레벨, 어픽스는 난이도 · 주간 도전, 32) */
 const modeNow = () => runMode(G.save, contentOf(Flow.content), Flow.diff, { chal: Flow.chal });
 const guildReady = () => guildOpen(G.save).ok && G.save.guild.members.length > 0;
 
@@ -154,9 +154,9 @@ function slotSheetHtml(slots: number, items: ItemKey[]): string {
 /** 공략 시트 (입장 화면의 구간·공략·어픽스를 옮김): 난이도 수치 · 어픽스 · 구간 노드 줄 · 보스별 공략 접기 (보스 하나면 노드 줄 없이 바로 기술) · 아이템 힌트 */
 function guideSheetHtml(): string {
   const c = contentOf(Flow.content), segs = c.fights(Flow.diff), m = modeNow(), ih = itemHint();
-  return sheetBox('f-gsheet', '공략', `<h2 class="h-rule">공략<span class="rule"></span><span class="cap">${esc(c.name)} ${Flow.diff} · ${c.size(Flow.diff)}인 · 단계 Lv ${m.stage}</span></h2>
+  return sheetBox('f-gsheet', '공략', `<h2 class="h-rule">공략<span class="rule"></span><span class="cap">${esc(c.name)} ${Flow.diff} · ${c.size(Flow.diff)}인</span></h2>
     <p class="note f-dnote">${esc(diffNote(Flow.diff, isRaid(c)))}</p>
-    ${afxRows(m.affixes, Flow.chal ? '이번 주' : '단계 어픽스')}
+    ${afxRows(m.affixes, Flow.chal ? '이번 주' : Flow.diff)}
     ${segs.length > 1 ? timeline(segs) : ''}
     ${guides(segs, Flow.diff, m.stage)}
     ${ih ? `<p class="f-ih">${BULB}<span>${esc(ih)}</span></p>` : ''}`);
@@ -180,7 +180,7 @@ function render(): void {
   const tutDone = G.save.tut >= TUT.done, adLeft = AD_LIMIT.reroll - G.save.daily.ads.reroll;
   // 악몽 = 출발할 때 종 조각 1개 (12 3-4). 없으면 출발이 흐려지고, 누르면 아래에 얻는 곳 + 상점
   const shardOn = tutDone && !Flow.chal && needsShard(Flow.diff), shards = G.save.wallet.shards, noShard = shardOn && !shards;
-  const sub = Flow.chal ? `주간 도전 ${Flow.chal}단계 · 단계 Lv ${stage}` : `${Flow.diff} · 단계 Lv ${stage}${m.affixes.length ? ` <span class="f-afxs">${afxTags(m.affixes)}</span>` : ''}`;
+  const sub = Flow.chal ? `주간 도전 ${Flow.chal}단계` : `${Flow.diff}${m.affixes.length ? ` <span class="f-afxs">${afxTags(m.affixes)}</span>` : ''}`;
   const mark = Flow.chal ? `<span class="f-hg sm">${uiIcon('hourglass')}</span>` : markHtml(c, 'sm');
   const guideBtn = `<button class="f-gbtn" type="button" id="guideOpen" aria-haspopup="dialog">${BOOK}<span>공략</span></button>`;
   const rows = Flow.party!.map((p, i) => (p.cls

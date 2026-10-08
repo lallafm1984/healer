@@ -4,7 +4,7 @@ import { GRADE_STYLE, slotName, type GearItem } from '../data/equipment';
 import { GRADE } from '../data/gear';
 import { CLASSES } from '../data/classes';
 import { HEROES } from '../data/heroes';
-import { lvPower, MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
+import { MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { Flow, newSeed } from '../game/flow';
 import { meterHtml } from '../game/meter';
 import { equip, G } from '../game/state';
@@ -30,8 +30,8 @@ function renderSettle(): void {
   const c = contentOf(r.content);
   const multi = r.segN > 1;
   const title = r.quit ? '포기' : r.win ? (multi ? '던전 클리어!' : '클리어!') : '전멸';
-  // 레벨 단계·주간 도전·어픽스 (07 3장, 13 3-2)
-  const mode = `${r.chal ? ` · 주간 도전 ${r.chal}단계` : r.stage && r.stage !== c.stageLv ? ` · 단계 Lv ${r.stage}` : ''}${r.affixes?.length ? ` · ${r.affixes.map(k => AFFIXES[k].name).join('·')}` : ''}`;
+  // 주간 도전·어픽스 (32, 13 3-2)
+  const mode = `${r.chal ? ` · 주간 도전 ${r.chal}단계` : ''}${r.affixes?.length ? ` · ${r.affixes.map(k => AFFIXES[k].name).join('·')}` : ''}`;
   const ch = x.chal;
   const chalLine = !ch ? '' : ch.inTime ? `<p class="chalres ok">${uiIcon('hourglass', 'in')} ${mmss(ch.time)} / 제한 ${mmss(ch.limit)} · 제한시간 안${ch.opened ? ` · <b>${ch.stage + 1}단계 열림</b>` : ''} · 이번 주 최고 ${ch.best}단계</p>`
     : r.win ? `<p class="chalres">${uiIcon('hourglass', 'in')} ${mmss(ch.time)} / 제한 ${mmss(ch.limit)} · 시간 초과 (다음 단계는 안 열림)</p>` : '<p class="chalres">⏳ 실패 · 단계는 그대로</p>';
@@ -154,13 +154,14 @@ rw.el.addEventListener('click', e => {
 });
 
 // ---------- 레벨업 팝업 (P04) ----------
+/** 새로 열린 기능이 있을 때만 띄움. 적이 내 레벨을 따라오므로 배율은 안 보여 줌 (32 5장) */
 export function showLevelUp(host: HTMLElement, ups: number[]): void {
-  const items = ups.flatMap(lv => (MILESTONES[lv] || []).map(m => ({ lv, ...m })));
+  const items = ups.flatMap(lv => (MILESTONES[lv] || []).filter(m => m.live).map(m => ({ lv, ...m })));
+  if (!items.length) return;
   const box = document.createElement('div');
   box.className = 'overlay lvpop';
   box.innerHTML = `<div class="card" role="dialog" aria-label="레벨 업"><h3>레벨 업!</h3><p class="lvnum">Lv ${ups[0] - 1} → <b>${ups[ups.length - 1]}</b></p>
-    <p class="lvgain">힐량·체력 ×${lvPower(ups[0] - 1).toFixed(2)} → <b>×${lvPower(ups[ups.length - 1]).toFixed(2)}</b></p>
-    ${items.length ? `<ul>${items.map(m => `<li class="${m.live ? '' : 'later'}">Lv ${m.lv} · ${esc(m.text)}${m.live ? '' : ' <small>준비 중</small>'}</li>`).join('')}</ul>` : '<p class="note">새로 열린 기능 없음</p>'}
+    <ul>${items.map(m => `<li>Lv ${m.lv} · ${esc(m.text)}</li>`).join('')}</ul>
     <button class="btn primary" type="button">확인</button></div>`;
   box.querySelector('button')!.addEventListener('click', () => box.remove());
   host.appendChild(box);

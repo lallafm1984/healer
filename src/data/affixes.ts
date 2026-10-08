@@ -1,8 +1,9 @@
 /**
- * 어픽스 (07 3장 레벨 단계 어픽스, 13 3-3 주간 도전 어픽스). 수치는 초안.
- * 레벨 단계 (07 3장): 같은 던전을 Lv 10 / 30 / 50 / 70 / 90 단계로 다시 연다. 30+ 격노, 50+ 역병, 70+ 불안정.
- * (단계마다 보스 패턴 1개 추가는 보스 기획 뒤로 미룸)
+ * 어픽스 (32 2장 난이도 어픽스, 13 3-3 주간 도전 어픽스). 수치는 초안.
+ * 2026-10-08 레벨 단계를 없애고 적 레벨을 내 레벨에 맞춤 (32): 단계가 주던 어픽스는 던전 난이도로 (지금과 같은 Lv 30·50부터). 불안정은 주간 도전 순환으로.
  */
+import type { DiffName } from './difficulty';
+
 export type AffixKey = 'rage' | 'plague' | 'unstable' | 'dry' | 'contagion' | 'haste' | 'chaos' | 'frenzy' | 'echo' | 'panic' | 'festival';
 
 export interface AffixDef { name: string; desc: string; tip: string; good?: boolean }
@@ -21,11 +22,15 @@ export const AFFIXES: Record<AffixKey, AffixDef> = {
   festival: { name: '축제 주간', desc: '골드 +20%', tip: '가볍게 즐기는 주', good: true },
 };
 
-/** 레벨 단계 (07 3장) */
-export const LEVEL_TIERS = [10, 30, 50, 70, 90];
-export function tierAffixes(tier: number): AffixKey[] {
-  return tier >= 70 ? ['rage', 'plague', 'unstable'] : tier >= 50 ? ['rage', 'plague'] : tier >= 30 ? ['rage'] : [];
+/** 던전 난이도 어픽스 (32 2장): 쉬움·보통 없음. Lv 30부터 어려움·악몽 격노, Lv 50부터 악몽 역병 추가 (lv = 내 레벨) */
+export const AFFIX_LV = { rage: 30, plague: 50 } as const;
+export function diffAffixes(d: DiffName, lv: number): AffixKey[] {
+  if (d !== '어려움' && d !== '악몽') return [];
+  const out: AffixKey[] = [];
+  if (lv >= AFFIX_LV.rage) out.push('rage');
+  if (d === '악몽' && lv >= AFFIX_LV.plague) out.push('plague');
+  return out;
 }
 
-/** 주간 도전에만 붙는 순환 어픽스 8종 (13 3-3) */
-export const WEEKLY_AFFIXES: AffixKey[] = ['dry', 'contagion', 'haste', 'chaos', 'frenzy', 'echo', 'panic'];
+/** 주간 도전에 붙는 순환 어픽스 (13 3-3) + 축제. 불안정은 레벨 단계에서 옮겨 옴 (32) */
+export const WEEKLY_AFFIXES: AffixKey[] = ['dry', 'contagion', 'haste', 'chaos', 'frenzy', 'echo', 'panic', 'unstable'];

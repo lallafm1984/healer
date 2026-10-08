@@ -1,6 +1,6 @@
 /**
  * S04 입장 = 주간 도전 「침묵의 시계」만 (13 3-2): 단계 고르기 · 제한시간 · 이번 주 어픽스 · 구간 · 보상, 아래 고정 「편성으로」.
- * 던전·레이드는 2026-10-08부터 입장 화면 없이 전투 탭 「출전」 → 편성 (난이도는 전투 탭에서만, 레벨 단계는 자동, 공략은 편성의 시트).
+ * 던전·레이드는 2026-10-08부터 입장 화면 없이 전투 탭 「출전」 → 편성 (난이도는 전투 탭에서만, 적 레벨 = 내 레벨 (32), 공략은 편성의 시트).
  */
 import { contentOf } from '../data/content';
 import { clearGold, clearXp } from '../data/progression';
@@ -24,9 +24,9 @@ function render(): void {
   const segs = c.fights(d), best = G.save.weekly.chalBest, bm = m.bossMult!;
   const festival = m.affixes.includes('festival');
   const gold = Math.round(clearGold(m.stage, d, 'A') * (festival ? CHAL.festivalGold : 1));
-  const xp = clearXp(G.save.player.level, m.stage, d, 'A', { win: true });
+  const xp = clearXp(G.save.player.level, d, 'A', { win: true });
   const box = best ? chalChestOf(best) : null;
-  s.el.innerHTML = `${cover(c, flowHead('s-content', CHAL.name, `${esc(c.name)} ${d} · ${c.size(d)}인 · 단계 Lv ${m.stage}`, `<span class="f-hg sm">${uiIcon('hourglass')}</span>`))}
+  s.el.innerHTML = `${cover(c, flowHead('s-content', CHAL.name, `${esc(c.name)} ${d} · ${c.size(d)}인`, `<span class="f-hg sm">${uiIcon('hourglass')}</span>`))}
     <div class="ns-body f-ebody">
       <div class="chalstep"><button class="btn2" type="button" data-cstep="-1" aria-label="한 단계 아래"${Flow.chal <= 1 ? ' disabled' : ''}>−</button><b>${Flow.chal}단계</b><button class="btn2" type="button" data-cstep="1" aria-label="한 단계 위"${Flow.chal >= open ? ' disabled' : ''}>+</button></div>
       <p class="f-cinfo"><span>제한 <b>${mmss(m.limit!)}</b></span><span>적 체력 <b>+${Math.round((bm.hp - 1) * 100)}%</b></span><span>피해 <b>+${Math.round((bm.dmg - 1) * 100)}%</b></span></p>
@@ -40,7 +40,7 @@ function render(): void {
       </section>
       <p class="note center f-rules">제한시간 안에 깨면 다음 단계 열림 · 실패해도 단계 유지 · 광고 이어하기 없음</p>
     </div>
-    <footer class="ns-foot f-foot"><button class="f-go" type="button" id="entryGo">${uiIcon('hourglass')}<span class="cta2"><span class="f-gt">편성으로</span><small>주간 도전 ${Flow.chal}단계 · 단계 Lv ${m.stage}</small></span>${ARROW}</button></footer>`;
+    <footer class="ns-foot f-foot"><button class="f-go" type="button" id="entryGo">${uiIcon('hourglass')}<span class="cta2"><span class="f-gt">편성으로</span><small>주간 도전 ${Flow.chal}단계</small></span>${ARROW}</button></footer>`;
 }
 
 s.el.addEventListener('click', e => {
