@@ -1,7 +1,7 @@
 /**
  * S03 모험 선택 = 전투 탭 루트 (27 3-1 → 30 시안 Battle30 「B 출정 관문」).
  * 위에서부터: 분류 4칸 (탐험 3인 · 던전 5인 · 레이드 10·20인 · 이벤트) → 던전이면 주간 도전 띠 (13 3-2)
- * → 관문 = 아치 금테 안 장소 그림 (28 4장) · 세력 문양 이름표 · 추천 리본 · ‹ › · 정보 줄 · 해제 칩 · 세트 · 보상 칸 4개 (레이드는 이번 주 장비·종 조각, 13 3-4)
+ * → 관문 = 아치 금테 안 장소 그림 (28 4장) · 세력 문양 이름표 · 추천 리본 · ‹ › · 정보 줄 · 해제 칩 · 보상 칸 (레이드는 이번 주 장비·종 조각, 13 3-4)
  * → 장소 문양 줄 (고르기) → 난이도 4칸 (별) → 「출전」 = 입장 화면으로.
  * 분류마다 마지막 고른 장소, 장소마다 마지막 고른 난이도를 기억 (모듈 변수, 저장 안 함).
  */
@@ -14,7 +14,6 @@ import { avgScore, DROP_TABLE, GRADE_STYLE, ITEM_GRADES, LEGEND_LEVEL, RECOMMEND
 import { canDispel, DEB_COLOR } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
 import { clearGold } from '../data/progression';
-import { setOf } from '../data/sets';
 import { cssUrl } from '../art';
 import { RESET_HOUR, weekKey } from '../game/clock';
 import { raidLootOpen } from '../game/economy';
@@ -34,7 +33,6 @@ const ICON = {
   event: line('<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6-4.5-4.2 6.1-.7z"/>'),
   hourglass: line('<path d="M7 3h10M7 21h10M8 3v2c0 3 4 5 4 7s-4 4-4 7v2M16 3v2c0 3-4 5-4 7s4 4 4 7v2"/>', 2.2),
   gear: line('<path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12 7l5 5"/>'),
-  set: line('<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>'),
   gold: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="#E8B23A" stroke="#7A5418" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="#B9831F" stroke-width="1.6"/></svg>',
   crystal: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12l3 5-9 11L3 9z" fill="#7FC8FF" stroke="#1E4A7A" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 9h18M9 4l3 16 3-16" fill="none" stroke="#1E4A7A" stroke-width="1.2"/></svg>',
 };
@@ -177,7 +175,7 @@ function chalCard(): string {
   </button>`;
 }
 
-/** 보상 칸 4개 (입장 화면 보상 계산과 같음): 장비 등급 범위 · 세트 · 골드 (A 등급) · 첫 클리어 크리스탈 + 전설 확률 */
+/** 보상 칸 (입장 화면 보상 계산과 같음): 장비 등급 범위 · 골드 (A 등급) · 첫 클리어 크리스탈 + 전설 확률 */
 function rewards(c: ContentDef, d: DiffName): string {
   const lv = G.save.player.level, table = DROP_TABLE[d];
   const lo = table.findIndex(p => p > 0);
@@ -186,23 +184,21 @@ function rewards(c: ContentDef, d: DiffName): string {
   if (ITEM_GRADES[hi] === '전설' && lv < LEGEND_LEVEL) hi = ITEM_GRADES.indexOf('영웅');
   const gLo = ITEM_GRADES[lo], gHi = ITEM_GRADES[hi];
   const range = lo >= hi ? gHi : `${gLo}~${gHi}`;
-  const set = setOf(c.key), setOk = !!set && hi >= ITEM_GRADES.indexOf(set.minGrade);
   const gold = clearGold(stageOf(c, d), d, 'A', raidSize(c));
   const first = G.save.tut >= TUT.done && !G.save.clears[c.key]?.[d];
   const leg = table[ITEM_GRADES.indexOf('전설')];
   const legTxt = !leg ? '' : lv < LEGEND_LEVEL ? `전설 Lv ${LEGEND_LEVEL}부터` : `전설 ${Math.round(leg * 100)}%`;
-  const cell = (rc: string, icon: string, label: string, extra = '', cls = '') =>
-    `<span class="b-rw${cls}" style="--rc:${rc}"><span class="b-rb">${icon}${extra}</span><small>${label}</small></span>`;
+  const cell = (rc: string, icon: string, label: string, extra = '') =>
+    `<span class="b-rw" style="--rc:${rc}"><span class="b-rb">${icon}${extra}</span><small>${label}</small></span>`;
   return `<div class="b-rws" role="group" aria-label="${d} 보상">
     ${cell(GRADE_STYLE[gHi].color, gameIcon('gear', ICON.gear), `<span class="sr">장비 </span>${range}`)}
-    ${cell('#4A9BFF', gameIcon('set', ICON.set), setOk ? '세트' : '세트 없음', '', setOk ? '' : ' no')}
     ${cell('#C9A35C', gameIcon('gold', ICON.gold), `<span class="sr">골드 </span>${fmt(gold)}`)}
     ${first ? cell('#6FA9D8', gameIcon('crystal', ICON.crystal), `<span class="sr">크리스탈 </span>${FIRST_CLEAR_CRYSTAL}`, '<em>처음</em>') : ''}
     <span class="cap b-leg">${legTxt}</span>
   </div>`;
 }
 
-/** 관문: 아치 금테 안 장소 그림 + 이름표 · 추천 · ‹ › · 정보 · 해제 · 세트 · 보상 */
+/** 관문: 아치 금테 안 장소 그림 + 이름표 · 추천 · ‹ › · 정보 · 해제 · 보상 */
 function gate(c: ContentDef, d: DiffName, many: boolean): string {
   const pa = placeArt(c.key), f = factionOf(c), lk = lockOf(c), pl = PLACES[pa.place];
   const [region, side] = c.place.split(' · ');
@@ -218,7 +214,7 @@ function gate(c: ContentDef, d: DiffName, many: boolean): string {
     ${status ? `<span class="b-st">${status}</span>` : ''}
     <div class="b-gb">
       <span class="b-inf">${esc(region)} · ${c.size(d)}인 · 보스 ${c.bosses.length}</span>
-      <span class="b-row"><span class="cap">해제</span>${dispelChips(c)}${c.set ? `<span class="cap b-set">세트 ${esc(c.set)}</span>` : ''}</span>
+      <span class="b-row"><span class="cap">해제</span>${dispelChips(c)}</span>
       ${c.ready && lk.dev ? `<span class="f-dev">Lv ${lk.lv} 해금 · 개발 빌드라 열림</span>` : ''}
       ${c.ready ? rewards(c, d) : ''}
       ${c.ready && !lk.locked ? lootLine(c) : ''}

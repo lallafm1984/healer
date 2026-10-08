@@ -5,7 +5,6 @@ import { ALL_DIFFS, contentOf, raidSize, stageOf, type ContentKey } from '../dat
 import type { DiffName } from '../data/difficulty';
 import { HEROES, type HeroKey } from '../data/heroes';
 import { clearMats, rollItem, type GearItem } from '../data/equipment';
-import { setOf } from '../data/sets';
 import type { ItemKey } from '../data/items';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
@@ -145,7 +144,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   let merit = 0;
   if (r.win) {
     if (!lootLocked) {
-      item = rollItem(rng, pubBonus ? bonusDiff(r.diff) : r.diff, grade!, levelBefore, save.nextId++, setOf(c.key));
+      item = rollItem(rng, pubBonus ? bonusDiff(r.diff) : r.diff, grade!, levelBefore, save.nextId++);
       save.gear.bag.push(item);
       if (play && raid) save.weekly.loot.push(lootKey(c.key, r.diff));
     }

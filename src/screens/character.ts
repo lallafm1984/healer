@@ -1,21 +1,20 @@
 /**
  * 캐릭터 탭 (27 4장 기능, 31 시안 CharGear31 · CharSkill31 · CharTalent31 · CharClass31 — 30 로비·전투·길드와 같은 테마). 캐릭터 그림 없음.
  * 위 = 공통 위 줄(topBar) + 하위 탭 4칸 [장비][스킬][특성][직업] (전투 탭 분류 칸 모양, 아이콘 + 이름).
- * 장비: 무기고(ui-char) 받침대 위 큰 직업 문장 + 이름표(장비 점수) · 좌우 장비 칸 6개 · 능력치 판 · 세트 깃발 · 가방 / 추천 장착 / 분해
- *       + 아래 시트(장비 상세·비교·강화·잠금 · 가방(필터·정렬·분해) · 세트 효과 · 능력치 출처 · 추천 장착 확인)
+ * 장비: 무기고(ui-char) 받침대 위 큰 직업 문장 + 이름표(장비 점수) · 좌우 장비 칸 6개 · 능력치 판 · 가방 / 추천 장착 / 분해
+ *       + 아래 시트(장비 상세·비교·강화·잠금 · 가방(필터·정렬·분해) · 능력치 출처 · 추천 장착 확인)
  * 스킬: [설명 보기 | 배치 바꾸기] · 마법진 위 휠 3×3 금테 메달 · 양피지 설명 · 칸 탭 기본 힐 나무 팻말 · 단축칸 · 스킬 줄 목록
  * 특성: 요약 · 프리셋 1·2·3 · 나무판에 단마다 메달 3개 + 고른 길(금빛 선) · 고르기 시트 / 직업: 천 깃발 · 곧 열림 · 양피지 상세 · 바꾸기
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
  */
 import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, MAX_PLUS, salvageOf, SLOTS, slotName, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
-import { setCounts, SET_KEYS, SETS, type SetFx, type SetKey } from '../data/sets';
 import { DEB_COLOR, HERO_KEYS, HERO_SWITCH_LV, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots, TALENT_LEVEL } from '../data/progression';
 import { PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { TALENTS, type TalentKey } from '../data/talents';
 import type { TapKey } from '../platform/storage';
-import { betterSlots, gearAvg, gearScore, isBetter, scoreOf, setNow, statParts, talentsLeft } from '../game/charinfo';
+import { betterSlots, gearAvg, gearScore, isBetter, scoreOf, statParts, talentsLeft } from '../game/charinfo';
 import {
   bestGearPlan, commit, enhance, equip, equipBest, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, lowGradeIds, pickTalent, salvage,
   setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleItem, toggleLock,
@@ -28,8 +27,8 @@ import { pushSettings } from './settings';
 type Sub = 'gear' | 'skill' | 'talent' | 'hero';
 const SUBS: { key: Sub; name: string }[] = [{ key: 'gear', name: '장비' }, { key: 'skill', name: '스킬' }, { key: 'talent', name: '특성' }, { key: 'hero', name: '직업' }];
 
-/** 아래에서 올라오는 시트: 장비 상세(back = 가방에서 열어서 닫으면 가방으로) · 가방 · 세트 · 능력치 출처 · 추천 장착 확인 · 단축칸 고르기 · 특성 설명 */
-type Sheet = { k: 'item'; id: number; back?: boolean } | { k: 'bag' } | { k: 'set'; key: SetKey } | { k: 'stats' } | { k: 'rec' } | { k: 'items' } | { k: 'talent'; i: number; j: number } | null;
+/** 아래에서 올라오는 시트: 장비 상세(back = 가방에서 열어서 닫으면 가방으로) · 가방 · 능력치 출처 · 추천 장착 확인 · 단축칸 고르기 · 특성 설명 */
+type Sheet = { k: 'item'; id: number; back?: boolean } | { k: 'bag' } | { k: 'stats' } | { k: 'rec' } | { k: 'items' } | { k: 'talent'; i: number; j: number } | null;
 
 let sub: Sub = 'gear';
 /** 휠에서 고른 자리: 보기 = 설명, 바꾸기 = 첫 번째로 누른 자리 */
@@ -66,7 +65,6 @@ const fill = '<span class="c7-fill"></span>';
 const line = (d: string, w = 2) => `<svg class="c7-li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const BOOK = '<path d="M3 5c3-1 6-1 9 1 3-2 6-2 9-1v14c-3-1-6-1-9 1-3-2-6-2-9-1z"/><path d="M12 6v14"/>';
 const TREE = '<path d="M12 5v5M12 10l-5 4M12 10l5 4M7 14v4M17 14v4"/><circle cx="12" cy="3.5" r="1.8"/><circle cx="7" cy="19.5" r="1.8"/><circle cx="17" cy="19.5" r="1.8"/>';
-const CHEV = line('<path d="M9 6l6 6-6 6"/>', 2.6);
 const UP = line('<path d="M12 19V5M6 11l6-6 6 6"/>', 2.4);
 
 function render(keep = true): void {
@@ -108,7 +106,6 @@ function sheetHtml(): string {
   const g = sub === 'gear';
   if (sheet.k === 'item') return g ? itemSheet(sheet.id) : '';
   if (sheet.k === 'bag') return g ? bagSheet() : '';
-  if (sheet.k === 'set') return g ? setSheet(sheet.key) : '';
   if (sheet.k === 'stats') return g ? statsSheet() : '';
   if (sheet.k === 'rec') return g ? recSheet() : '';
   if (sheet.k === 'items') return sub === 'skill' ? itemsSheet() : '';
@@ -120,13 +117,12 @@ function sheetHtml(): string {
 let salv: Set<number> | null = null;
 /** 분해 확인 (한 번 더 누르면 분해) */
 let salvAsk = false;
-type BagFilter = 'all' | 'weapon' | 'armor' | 'acc' | 'set';
+type BagFilter = 'all' | 'weapon' | 'armor' | 'acc';
 const FILTERS: { key: BagFilter; name: string; ok: (it: GearItem) => boolean }[] = [
   { key: 'all', name: '전체', ok: () => true },
   { key: 'weapon', name: '무기', ok: it => it.slot === 'weapon' },
   { key: 'armor', name: '방어구', ok: it => it.slot === 'head' || it.slot === 'chest' || it.slot === 'hands' },
   { key: 'acc', name: '장신구', ok: it => it.slot === 'ring' || it.slot === 'neck' },
-  { key: 'set', name: '세트', ok: it => !!it.set },
 ];
 type BagSort = 'score' | 'grade' | 'new';
 const slotIdx = (it: GearItem) => SLOTS.findIndex(x => x.key === it.slot);
@@ -159,12 +155,10 @@ const gvars = (it: GearItem) => `--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE
 const plusTxt = (it: GearItem) => (it.plus ? ` +${it.plus}` : '');
 /** 비율 → 퍼센트 글자 (소수 한 자리, .0은 뺌): 0.085 → 8.5 */
 const pc = (x: number) => String(Math.round(x * 1000) / 10);
-/** 세트 이름 첫 낱말 (능력치 판 칸이 좁음): 새벽 순례자 → 새벽, 대성당의 빛 → 대성당 */
-const setShort = (name: string) => name.split(' ')[0].replace(/의$/, '');
 /** 장비 그림 (item-<부위>, 없으면 부위 선 아이콘) */
 const itemIc = (k: SlotKey) => gameIcon(k, uiIcon(k), 'item');
 
-/** 능력치 그림 (stat-<이름>, 세트는 icon-set). 없으면 선 아이콘 */
+/** 능력치 그림 (stat-<이름>). 없으면 선 아이콘 */
 const STAT_LINE = {
   hp: line('<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>', 2.2),
   heal: line('<path d="M12 5v14M5 12h14"/>', 2.4),
@@ -172,15 +166,7 @@ const STAT_LINE = {
   haste: line('<circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l3 2M10 3h4"/>', 2.2),
   regen: line('<path d="M12 3c3.5 4.5 6 7.6 6 11a6 6 0 0 1-12 0c0-3.4 2.5-6.5 6-11z"/>', 2.2),
 };
-const SET_LINE = line('<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>', 2.2);
 const statIc = (k: keyof typeof STAT_LINE) => gameIcon(k, STAT_LINE[k], 'stat');
-
-/** 세트 효과 짧은 글자 (세트 깃발): 지속 힐 +15% */
-const FX_SHORT: Record<keyof SetFx, (v: number) => string> = {
-  hotAmt: v => `지속 힐 +${pc(v)}%`, hotEnd: v => `지속 힐 끝 ${pc(v)}% 회복`, aoeHeal: v => `범위 힐 +${pc(v)}%`,
-  raidCd: v => `공대 쿨기 -${v}초`, regen: v => `마나 재생 +${pc(v)}%`, aoeMana: v => `범위 힐 마나 +${v}%`,
-};
-const fxShort = (fx: Partial<SetFx>) => (Object.keys(fx) as (keyof SetFx)[]).map(k => FX_SHORT[k](fx[k]!)).join(' · ');
 
 /** ① 장비 칸 (시안 .slot): 등급 색 테두리·빛 · 등급 글자 칩 · 강화 +n · 더 좋은 장비 초록 ↑ · 빈칸 점선 + 가방 개수 */
 function slotHtml(key: SlotKey, better: SlotKey[]): string {
@@ -191,41 +177,27 @@ function slotHtml(key: SlotKey, better: SlotKey[]): string {
     return `<button type="button" class="gtile c7-slot empty" data-gslot="${key}"${n ? '' : ' disabled'} aria-label="${name} 빈칸${n ? ` · 가방에 ${n}개` : ''}">
         <span class="c7-sq">${itemIc(key)}${up}</span><b>${name}</b><small${n ? ' class="ok"' : ''}>${n ? `가방에 ${n}개` : '빈칸'}</small></button>`;
   }
-  return `<button type="button" class="gtile c7-slot${it.set ? ' set' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(it.name)}${plusTxt(it)} · ${it.grade}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
-      <span class="c7-sq">${itemIc(key)}<i class="c7-gl">${it.grade[0]}</i>${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${up}${it.set ? '<i class="c7-setdot" title="세트"></i>' : ''}</span>
+  return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(it.name)}${plusTxt(it)} · ${it.grade}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
+      <span class="c7-sq">${itemIc(key)}<i class="c7-gl">${it.grade[0]}</i>${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${up}</span>
       <b>${it.lock ? LOCK : ''}${name}</b><small>힐 +${pc(itemStats(it).heal)}%</small></button>`;
 }
 
-/** ② 받침대 위 이름표: 장비 점수 · 평균 등급 · 세트 n/4 */
+/** ② 받침대 위 이름표: 장비 점수 · 평균 등급 */
 function plaqueHtml(): string {
-  const avg = gearAvg(), worn = SLOTS.some(x => G.save.gear.equipped[x.key]), set = setNow();
+  const avg = gearAvg(), worn = SLOTS.some(x => G.save.gear.equipped[x.key]);
   const avgTxt = avg.grade ? `<b style="color:${GRADE_INK[avg.grade]}">${avg.grade}</b>${avg.plus ? ` +${avg.plus}` : ''} 평균` : worn ? '일반 미만 평균' : '장비 없음';
-  return `<div class="c7-plq"><span class="c7-psc">장비 점수 <b>${fmt(gearScore())}</b></span><small>${avgTxt}${set ? ` · ${esc(set.name)} ${set.n}/4` : ''}</small></div>`;
+  return `<div class="c7-plq"><span class="c7-psc">장비 점수 <b>${fmt(gearScore())}</b></span><small>${avgTxt}</small></div>`;
 }
 
-/** ③ 능력치 판 3×2: 초록 = 장비 몫 (세트 포함). 누르면 출처 시트 */
+/** ③ 능력치 판 5칸: 초록 = 장비 몫. 누르면 출처 시트 */
 function statsHtml(): string {
-  const p = statParts(), set = setNow();
-  const stat = (ic: string, k: string, v: string, add = '', none = false) => `<span class="c7-stat"><span class="c7-si">${ic}</span><span class="c7-sv"><small>${k}</small><b${none ? ' class="none"' : ''}>${v}${add ? `<i>${add}</i>` : ''}</b></span></span>`;
-  const crit = Math.round(p.crit.total * 100), haste = Math.round(p.haste.total * 100), rg = p.regen.gear + p.regen.set;
+  const p = statParts();
+  const stat = (ic: string, k: string, v: string, add = '') => `<span class="c7-stat"><span class="c7-si">${ic}</span><span class="c7-sv"><small>${k}</small><b>${v}${add ? `<i>${add}</i>` : ''}</b></span></span>`;
+  const crit = Math.round(p.crit.total * 100), haste = Math.round(p.haste.total * 100), rg = p.regen.gear;
   return `<button type="button" class="c7-stats" data-sheet="stats" aria-label="능력치 · 누르면 출처">
       <span class="c7-sh">능력치<span class="rule"></span><small>초록 = 장비 몫</small></span>
       <span class="c7-sgrid">${stat(statIc('hp'), '체력', fmt(p.hp.total))}${stat(statIc('heal'), '힐량', `×${p.heal.total.toFixed(2)}`, p.heal.gear >= 0.005 ? `+${p.heal.gear.toFixed(2)}` : '')}${stat(statIc('crit'), '치명타', `${crit}%`, crit > 5 ? `+${crit - 5}` : '')}
-        ${stat(statIc('haste'), '가속', `${haste}%`, haste ? `+${haste}` : '')}${stat(statIc('regen'), '마나 재생', `×${p.regen.total.toFixed(2)}`, rg >= 0.005 ? `+${rg.toFixed(2)}` : '')}${stat(gameIcon('set', SET_LINE), '세트', set ? `${setShort(set.name)} ${set.n}/4` : '없음', '', !set)}</span></button>`;
-}
-
-/** ④ 세트 깃발: 진행 중인 세트마다 파란 띠 (이름 · 칸 4개 · 지금 켜진 효과). 누르면 세트 시트 */
-function setsHtml(): string {
-  const n = setCounts(Object.values(G.save.gear.equipped));
-  const keys = SET_KEYS.filter(k => n[k]);
-  if (!keys.length) return '<p class="c7-noset">세트 없음 · 희귀 이상 던전 장비, 영웅 이상 레이드 장비에서 나옴</p>';
-  return keys.map(k => {
-    const d = SETS[k], c = n[k]!;
-    const now = c >= 4 ? `4세트 · ${fxShort(d.four.fx)}` : c >= 2 ? `2세트 · ${fxShort(d.two.fx)}` : `2세트까지 ${2 - c}개`;
-    return `<button type="button" class="c7-set" data-set="${k}" aria-label="${d.name} ${c}/4 · 누르면 세트 효과">
-        <span class="c7-seti">${gameIcon('set', SET_LINE)}</span><b>${d.name}</b><span class="c7-boxes" aria-hidden="true">${[0, 1, 2, 3].map(i => `<i class="${i < c ? 'on' : ''}"></i>`).join('')}</span><span class="sr">${c}/4</span>
-        <span class="c7-sett">${now}</span>${CHEV}</button>`;
-  }).join('');
+        ${stat(statIc('haste'), '가속', `${haste}%`, haste ? `+${haste}` : '')}${stat(statIc('regen'), '마나 재생', `×${p.regen.total.toFixed(2)}`, rg >= 0.005 ? `+${rg.toFixed(2)}` : '')}</span></button>`;
 }
 
 function gearHtml(): string {
@@ -238,7 +210,6 @@ function gearHtml(): string {
       ${col(keys.slice(3))}</section>
     ${msg && !sheet ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
     ${statsHtml()}
-    ${setsHtml()}
     <div class="c7-acts">
       <button type="button" class="g-sign c7-bagb" data-bag aria-label="가방 ${all.length}개${better.length ? ` · 더 좋은 장비 ${better.length}부위` : ''}">가방 <small>${all.length}</small>${better.length ? `<span class="g-badge">${better.length}</span>` : ''}</button>
       <button type="button" class="c7-recb" data-rec${plan.length ? '' : ' disabled'}>${UP}추천 장착</button>
@@ -280,18 +251,6 @@ function bagSheet(): string {
       <div class="c7-bagf">${all.length && !salv ? '<button type="button" class="btn2" data-salvon>분해 고르기</button>' : ''}<span class="cap gmats">강화석 ${fmt(m.stone)} · 정제 강화석 ${fmt(m.refined)}</span>${fill}<button type="button" class="btn2" data-sheetx>닫기</button></div></section>`;
 }
 
-/** 세트 시트: 부위 4칸(착용한 칸 켜짐) · 2·4세트 효과 */
-function setSheet(k: SetKey): string {
-  const d = SETS[k], eq = G.save.gear.equipped, c = setCounts(Object.values(eq))[k] || 0;
-  if (!c) return '';
-  return `${dim}<section class="sheet c7-setsheet" role="dialog" aria-label="세트 효과">${grip}
-      <h3 class="h-rule">${d.name}<span class="rule"></span><span class="cap">${c}/4 · ${d.style}</span></h3>
-      <div class="c7-setslots">${d.slots.map(x => `<span class="${eq[x]?.set === k ? 'on' : ''}">${itemIc(x)}<small>${slotName(x)}</small></span>`).join('')}</div>
-      <p class="${c >= 2 ? 'on' : ''}">${c >= 2 ? '✓' : '○'} 2세트 · ${esc(d.two.desc)}</p>
-      <p class="${c >= 4 ? 'on' : ''}">${c >= 4 ? '✓' : '○'} 4세트 · ${esc(d.four.desc)}</p>
-      <button type="button" class="c7-cta" data-sheetx>닫기</button></section>`;
-}
-
 /** 장비 상세 시트 (27 4-3, 시안 GearSheet27): 지금 장비와 비교 ▲▼ · 강화 · 잠금 · 분해 · 장착(착용 중이면 강화) */
 function itemSheet(id: number): string {
   const it = findItem(id);
@@ -302,20 +261,9 @@ function itemSheet(id: number): string {
   // 비교 줄: 퍼센트 포인트 (소수 한 자리)
   const d1 = (x: number, y: number) => Math.round((x - y) * 1000) / 10;
   const row = (k: string, v: string, diff: string) => `<div class="c7-cmp"><span>${k}</span><b>${v}</b>${diff}</div>`;
-  const n = setCounts(Object.values(eq));
-  let setTxt = '없음', setDiff = '';
-  if (it.set) {
-    const c = n[it.set] || 0, name = SETS[it.set].name;
-    setTxt = worn ? `${name} (착용 ${c}/4)` : cur?.set === it.set ? `${name} (착용 ${c}/4 그대로)` : `${name} (착용 ${c}/4 → ${c + 1}/4)`;
-    if (!worn && cur?.set !== it.set) setDiff = '<span class="c7-up">▲</span>';
-  } else if (cur?.set) {
-    const c = n[cur.set] || 0;
-    setTxt = `없음 (${SETS[cur.set].name} ${c}/4 → ${c - 1}/4)`;
-    setDiff = '<span class="c7-dn">▼</span>';
-  }
   const rows = worn
-    ? row('힐량', `+${pc(a.heal)}%`, '') + row('치명타', `+${pc(a.crit)}%`, '') + row('가속', `+${pc(a.haste)}%`, '') + row('세트', setTxt, '')
-    : row('힐량', `+${pc(a.heal)}%`, updn(d1(a.heal, b.heal))) + row('치명타', `+${pc(a.crit)}%`, updn(d1(a.crit, b.crit))) + row('가속', `+${pc(a.haste)}%`, updn(d1(a.haste, b.haste))) + row('세트', setTxt, setDiff);
+    ? row('힐량', `+${pc(a.heal)}%`, '') + row('치명타', `+${pc(a.crit)}%`, '') + row('가속', `+${pc(a.haste)}%`, '')
+    : row('힐량', `+${pc(a.heal)}%`, updn(d1(a.heal, b.heal))) + row('치명타', `+${pc(a.crit)}%`, updn(d1(a.crit, b.crit))) + row('가속', `+${pc(a.haste)}%`, updn(d1(a.haste, b.haste)));
   const c = enhanceCost(it), m = G.save.mats, gold = G.save.player.gold;
   const can = !!c && gold >= c.gold && m.stone >= c.stone && m.refined >= c.refined;
   const lack = c && !can ? (gold < c.gold ? '골드 부족' : m.stone < c.stone ? '강화석 부족' : '정제 강화석 부족') : '';
@@ -336,18 +284,18 @@ function itemSheet(id: number): string {
       </div></section>`;
 }
 
-/** 능력치 출처 시트: 기본 · 레벨 · 장비 · 세트 · 특성 몫 */
+/** 능력치 출처 시트: 기본 · 레벨 · 장비 · 특성 몫 */
 function statsSheet(): string {
   const p = statParts(), crit = Math.round(p.crit.total * 100), haste = Math.round(p.haste.total * 100);
   const row = (k: string, v: string, parts: string[]) => `<div class="c7-src"><span>${k}</span><b>${v}</b><span class="cap">${parts.filter(Boolean).join(' · ')}</span></div>`;
   return `${dim}<section class="sheet c7-ssheet" role="dialog" aria-label="능력치 출처">${grip}
-      <h3 class="h-rule">능력치 출처<span class="rule"></span><span class="cap">레벨 · 장비 · 세트 · 특성</span></h3>
+      <h3 class="h-rule">능력치 출처<span class="rule"></span><span class="cap">레벨 · 장비 · 특성</span></h3>
       <div class="c7-srcs">
         ${row('체력', fmt(p.hp.total), [`기본 ${fmt(p.hp.base)}`, `레벨 +${fmt(p.hp.level)}`, '장비 0'])}
         ${row('힐량', `×${p.heal.total.toFixed(2)}`, ['기본 ×1.00', `레벨 +${p.heal.level.toFixed(2)}`, `장비 +${p.heal.gear.toFixed(2)}`])}
         ${row('치명타', `${crit}%`, ['기본 5%', `장비 +${crit - 5}%`])}
         ${row('가속', `${haste}%`, [`장비 +${haste}%`])}
-        ${row('마나 재생', `×${p.regen.total.toFixed(2)}`, ['기본 ×1.00', `장비 +${p.regen.gear.toFixed(2)}`, `세트 +${p.regen.set.toFixed(2)}`])}
+        ${row('마나 재생', `×${p.regen.total.toFixed(2)}`, ['기본 ×1.00', `장비 +${p.regen.gear.toFixed(2)}`])}
         ${row('특성', '0', ['상시 능력치 몫 없음'])}
       </div>
       <p class="note">레벨 배율 ×${p.lp.toFixed(2)} (Lv ${G.save.player.level}). 체력은 장비로 오르지 않습니다. 고른 특성은 전투 중 조건이 맞으면 켜집니다.</p>
@@ -726,8 +674,6 @@ function onClick(t: HTMLElement): boolean {
     return true;
   }
   if (t.closest('[data-sheet="stats"]')) { sheet = { k: 'stats' }; msg = ''; render(); return true; }
-  const st = t.closest<HTMLElement>('[data-set]');
-  if (st && st.classList.contains('c7-set')) { sheet = { k: 'set', key: st.dataset.set as SetKey }; msg = ''; render(); return true; }
   if (t.closest('[data-bag]')) { sheet = { k: 'bag' }; salv = null; salvAsk = false; msg = ''; render(); return true; }
   const sb = t.closest<HTMLButtonElement>('[data-salvbag]');
   if (sb) { if (!sb.disabled) { sheet = { k: 'bag' }; salv = new Set(); salvAsk = false; msg = ''; render(); } return true; }

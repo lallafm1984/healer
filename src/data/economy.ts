@@ -16,8 +16,8 @@ export const MERIT: Record<10 | 20, Record<DiffName, number>> = {
   20: { '쉬움': 10, '보통': 15, '어려움': 20, '악몽': 30 },
 };
 export const MERIT_WEEK_CAP = 150;
-/** 레이드 세트 원하는 부위 1개 (영웅 등급) */
-export const MERIT_SET_COST = 100;
+/** 원하는 부위 영웅 장비 1개 */
+export const MERIT_GEAR_COST = 100;
 
 // ---------- 소비 아이템 (19 11장): 골드로 사고 가방에 쌓음 ----------
 /** 한 종류 최대 */

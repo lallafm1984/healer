@@ -125,7 +125,7 @@ export const lowGradeIds = () => G.save.gear.bag.filter(it => !it.lock && (it.gr
 
 /**
  * 추천 장착 (27 4-2): 부위마다 착용·가방 중 점수(itemScore)가 가장 높은 장비. 바뀌는 부위만 돌려줌.
- * 점수가 같으면 지금 것을 그대로 두고, 가방끼리 같으면 세트 장비를 먼저
+ * 점수가 같으면 지금 것을 그대로 둠
  */
 export function bestGearPlan(): { slot: SlotKey; now: GearItem | null; next: GearItem }[] {
   const eq = G.save.gear.equipped, out: { slot: SlotKey; now: GearItem | null; next: GearItem }[] = [];
@@ -135,7 +135,7 @@ export function bestGearPlan(): { slot: SlotKey; now: GearItem | null; next: Gea
     for (const it of G.save.gear.bag) {
       if (it.slot !== s.key) continue;
       const top = itemScore(best ?? now ?? undefined);
-      if (itemScore(it) > top || (best && itemScore(it) === top && it.set && !best.set)) best = it;
+      if (itemScore(it) > top) best = it;
     }
     if (best) out.push({ slot: s.key, now, next: best });
   }

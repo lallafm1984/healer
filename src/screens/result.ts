@@ -2,7 +2,6 @@
 import { contentOf, type ContentKey } from '../data/content';
 import { GRADE_STYLE, slotName, type GearItem } from '../data/equipment';
 import { GRADE } from '../data/gear';
-import { SETS } from '../data/sets';
 import { CLASSES } from '../data/classes';
 import { HEROES } from '../data/heroes';
 import { lvPower, MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
@@ -89,7 +88,7 @@ function itemCard(it: GearItem): string {
   const isOn = cur?.id === it.id;
   return `<div class="rw-item" style="--g:${GRADE_STYLE[it.grade].color}">
     <div class="rw-box" aria-hidden="true"><span>${it.grade[0]}</span></div>
-    <b>${it.grade} · ${esc(it.name)}</b><small>${slotName(it.slot)} · +${it.plus}${it.set ? ` · 세트 「${SETS[it.set].name}」` : ''}</small>
+    <b>${it.grade} · ${esc(it.name)}</b><small>${slotName(it.slot)} · +${it.plus}</small>
     <p class="cmp">${isOn ? '장착함' : `지금 ${cur ? `${cur.grade} ${esc(cur.name)}` : '빈칸'} → 힐량 ${pct(cur)} → ${pct(it)}, 보조 능력치 ${subs(cur)} → ${subs(it)}개`}</p>
   </div>`;
 }

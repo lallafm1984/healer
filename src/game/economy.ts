@@ -4,16 +4,15 @@
 import { ALL_DIFFS } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import {
-  BAG_MAX, itemPrice, MEMBER, MERIT, MERIT_SET_COST, MERIT_WEEK_CAP, PASS_GAIN, PASS_LEVELS, PASS_PREMIUM_CRYSTAL, PASS_XP, passFree, passPremium,
+  BAG_MAX, itemPrice, MEMBER, MERIT, MERIT_GEAR_COST, MERIT_WEEK_CAP, PASS_GAIN, PASS_LEVELS, PASS_PREMIUM_CRYSTAL, PASS_XP, passFree, passPremium,
   SHARD_CRAFT, SHARD_MAX, type PassReward,
 } from '../data/economy';
-import { itemName, LEGEND_LEVEL, rollItem, setItemName, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
+import { itemName, LEGEND_LEVEL, rollItem, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
 import type { ItemKey } from '../data/items';
 import {
   CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, WEEKLY, WEEKLY_LV, WEEKLY_N, type MissionDef, type RunEvent,
 } from '../data/missions';
 import { addXp, clearGold, xpToNext } from '../data/progression';
-import { SETS, type SetKey } from '../data/sets';
 import { newDaily, newWeekly, type MissionSave, type SaveData } from '../platform/storage';
 import { dayKey, daysBetween, seasonOf, weekKey } from './clock';
 
@@ -236,15 +235,13 @@ export function craftShard(save: SaveData): string {
   return '';
 }
 
-/** 공훈 교환 (12 3-5): 레이드 세트 원하는 부위 1개, 영웅 */
-export function exchangeMerit(save: SaveData, set: SetKey, slot: SlotKey): GearItem | string {
-  const d = SETS[set];
-  if (!d || d.minGrade !== '영웅') return '레이드 세트만';
-  if (!d.slots.includes(slot)) return '그 세트에 없는 부위';
-  if (save.wallet.merit < MERIT_SET_COST) return `공훈 부족 (${MERIT_SET_COST} 필요)`;
-  save.wallet.merit -= MERIT_SET_COST;
+/** 공훈 교환 (12 3-5): 원하는 부위 영웅 장비 1개 */
+export function exchangeMerit(save: SaveData, slot: SlotKey): GearItem | string {
+  if (!SLOTS.some(s => s.key === slot)) return '없는 부위';
+  if (save.wallet.merit < MERIT_GEAR_COST) return `공훈 부족 (${MERIT_GEAR_COST} 필요)`;
+  save.wallet.merit -= MERIT_GEAR_COST;
   const g: ItemGrade = '영웅';
-  const it: GearItem = { id: save.nextId++, slot, grade: g, plus: 0, set, name: setItemName(set, slot) };
+  const it: GearItem = { id: save.nextId++, slot, grade: g, plus: 0, name: itemName(slot, g) };
   save.gear.bag.push(it);
   return it;
 }

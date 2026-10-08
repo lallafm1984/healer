@@ -1,9 +1,6 @@
-/** 장비 강화·분해·세트 (02 10장, 12 3장) */
+/** 장비 강화·분해·드롭 (02 10장, 12 3장) */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearMats, enhanceCost, rollItem, salvageOf, type GearItem } from '../src/data/equipment';
-import { NO_SET_FX, setCounts, setFxOf, SETS } from '../src/data/sets';
-import * as E from '../src/engine';
-import { cdOf } from '../src/engine/talents';
+import { clearMats, enhanceCost, itemName, rollItem, salvageOf, type GearItem } from '../src/data/equipment';
 import { settle, type BattleResult } from '../src/game/settle';
 import { enhance, G, salvage } from '../src/game/state';
 import { migrate, newSave } from '../src/platform/storage';
@@ -57,73 +54,23 @@ describe('분해 (12 3-1)', () => {
   });
 });
 
-describe('세트 (02 10-3)', () => {
-  it('세트 부위만 셈, 2세트·4세트 효과', () => {
-    const d = SETS.dawn;
-    const two = [item({ slot: d.slots[0], set: 'dawn' }), item({ slot: d.slots[1], set: 'dawn' }), item({ slot: 'weapon', set: 'dawn' })];
-    expect(setCounts(two)).toEqual({ dawn: 2 });
-    expect(setFxOf(two)).toEqual({ ...NO_SET_FX, hotAmt: 0.15 });
-    const four = d.slots.map(s => item({ slot: s, set: 'dawn' }));
-    expect(setFxOf(four)).toEqual({ ...NO_SET_FX, hotAmt: 0.15, hotEnd: 0.3 });
-  });
-  it('세트 드롭: 던전 세트는 희귀 이상·세트 부위만, 이름은 「세트의 부위」', () => {
-    let seen = 0, k = 11;
-    const r = () => ((k = (k * 16807) % 2147483647) / 2147483647);
-    for (let i = 0; i < 3000; i++) {
-      const it = rollItem(r, '어려움', 'B', 30, i, SETS.dawn);
-      if (it.set) {
-        seen++;
-        expect(['희귀', '영웅', '전설']).toContain(it.grade);
-        expect(SETS.dawn.slots).toContain(it.slot);
-        expect(it.name.startsWith('새벽 순례자의 ')).toBe(true);
-      }
-    }
-    expect(seen).toBeGreaterThan(200);
-  });
-  it('레이드 세트는 영웅 이상이면 언제나', () => {
-    let k = 3; const r = () => ((k = (k * 16807) % 2147483647) / 2147483647);
+describe('세트 없음', () => {
+  it('떨어지는 장비는 모두 등급 이름 장비, 세트 표시 없음', () => {
+    let k = 11; const r = () => ((k = (k * 16807) % 2147483647) / 2147483647);
     for (let i = 0; i < 2000; i++) {
-      const it = rollItem(r, '악몽', 'B', 60, i, SETS.belfry);
-      const eligible = SETS.belfry.slots.includes(it.slot) && it.grade !== '희귀';
-      expect(!!it.set).toBe(eligible);
+      const it = rollItem(r, '악몽', 'B', 60, i);
+      expect(it.name).toBe(itemName(it.slot, it.grade));
+      expect(Object.keys(it).sort()).toEqual(['grade', 'id', 'name', 'plus', 'slot']);
     }
   });
-});
-
-describe('세트 효과 (전투)', () => {
-  const fight = (fx: Partial<typeof NO_SET_FX>, enc: 'plague' | 'warden' = 'plague') => {
-    const f = E.create({ encounter: enc, diff: '보통', seed: 3, level: 100, setFx: fx });
-    f.gear.crit = 0; f.skills.forEach(s => { s.next = Infinity; });
-    return f;
-  };
-  const step = (f: ReturnType<typeof fight>, sec: number) => { const end = f.t + sec; while (f.t < end - 1e-9) { E.step(f); f.events.length = 0; } };
-  it('새벽 순례자: 소생 틱 +15%, 끝까지 가면 총량 30%', () => {
-    const f = fight({ hotAmt: 0.15, hotEnd: 0.3 });
-    const u = f.party[0]; u.max = 1e6; u.hp = 1;
-    E.use(f, 'renew', u.cell);
-    step(f, 9.2);
-    expect(u.hp - 1).toBeCloseTo(80 * 1.15 * 3 * 1.3, 4);
-  });
-  it('종탑 순례자: 공대 쿨기 -40초, 범위 힐 +10%', () => {
-    const f = fight({ raidCd: 40, aoeHeal: 0.1 });
-    expect(cdOf(f, 'hymn')).toBe(140);
-    for (const u of f.party) u.hp = 1;
-    const u = f.party[0];
-    E.use(f, 'poh', u.cell); step(f, 2.1);
-    expect(u.hp - 1).toBeCloseTo(198, 4);
-  });
-  it('대성당의 빛: 마나 재생 +10%, 범위 힐 6명 이상이면 마나 +2%', () => {
-    const f = fight({ regen: 0.1 }), g = fight({});
-    f.mana = g.mana = 10; step(f, 1); step(g, 1);
-    expect(f.mana - 10).toBeCloseTo((g.mana - 10) * 1.1, 6);
-    const h = fight({ aoeMana: 2 });
-    const c = h.party.find(u => h.party.filter(v => E.hexDist(h.cells[v.cell], h.cells[u.cell]) <= 1).length >= 6);
-    if (c) {
-      const k = fight({});
-      E.use(h, 'poh', c.cell); E.use(k, 'poh', c.cell);
-      step(h, 2.1); step(k, 2.1);
-      expect(h.mana - k.mana).toBeCloseTo(2, 6);
-    }
+  it('옛 저장의 세트 장비는 세트 표시를 빼고 등급 이름으로 (강화·잠금은 그대로)', () => {
+    const o = JSON.parse(JSON.stringify(newSave(1)));
+    o.gear.equipped = { head: { id: 1, slot: 'head', grade: '희귀', plus: 3, name: '새벽 순례자의 두건', set: 'dawn', lock: true }, weapon: { id: 2, slot: 'weapon', grade: '고급', plus: 0, name: '튼튼한 지팡이' } };
+    o.gear.bag = [{ id: 3, slot: 'ring', grade: '영웅', plus: 0, name: '종탑 순례자의 반지', set: 'belfry' }];
+    const g = migrate(o).gear;
+    expect(g.equipped.head).toEqual({ id: 1, slot: 'head', grade: '희귀', plus: 3, name: '축복받은 두건', lock: true });
+    expect(g.equipped.weapon).toEqual({ id: 2, slot: 'weapon', grade: '고급', plus: 0, name: '튼튼한 지팡이' });
+    expect(g.bag).toEqual([{ id: 3, slot: 'ring', grade: '영웅', plus: 0, name: '성스러운 반지' }]);
   });
 });
 

@@ -27,9 +27,9 @@ export default async function character(url, shots) {
   ok(/장비점수0/.test(plq) && /장비없음/.test(plq), `받침대 이름표 = 장비 점수 · 평균 등급 (${plq})`);
   ok((await page.locator('#s-char .c7-stage .c7-bigem .emblem').count()) === 1 && /사제/.test(await text('#s-char .topbar .tb-cls')), '받침대 위 큰 직업 문장 1개, 위 줄 = 사제');
   const stats = await flat('#s-char .c7-stats');
-  ok(/체력550/.test(stats) && /힐량×1\.00/.test(stats) && /세트없음/.test(stats), `능력치 판: 체력 550, 힐량 ×1.00, 세트 없음 (${stats})`);
-  ok((await page.locator('#s-char .c7-stat').count()) === 6 && (await page.locator('#s-char .gtile').count()) === 6 && (await page.locator('#s-char .gtile.empty').count()) === 6, '능력치 5칸 + 세트 칸, 착용 6칸 (다 빈칸)');
-  ok((await page.locator('#s-char .c7-sq img.g-ic').count()) === 6 && (await page.locator('#s-char .c7-stat .c7-si img.g-ic').count()) === 6 && (await page.locator('#s-char nav .c7-tic img.g-ic').count()) === 3, '31 그림: 장비 칸 item- 6장, 능력치 stat- 5장 + icon-set, 하위 탭 icon-gear·skills·talent');
+  ok(/체력550/.test(stats) && /힐량×1\.00/.test(stats) && !/세트/.test(stats), `능력치 판: 체력 550, 힐량 ×1.00, 세트 칸 없음 (${stats})`);
+  ok((await page.locator('#s-char .c7-stat').count()) === 5 && (await page.locator('#s-char .gtile').count()) === 6 && (await page.locator('#s-char .gtile.empty').count()) === 6, '능력치 5칸, 착용 6칸 (다 빈칸)');
+  ok((await page.locator('#s-char .c7-sq img.g-ic').count()) === 6 && (await page.locator('#s-char .c7-stat .c7-si img.g-ic').count()) === 5 && (await page.locator('#s-char nav .c7-tic img.g-ic').count()) === 3, '31 그림: 장비 칸 item- 6장, 능력치 stat- 5장, 하위 탭 icon-gear·skills·talent');
   await page.screenshot({ path: `${shots}/char_gear.png` });
 
   // ---- 스킬: Lv 1 ----
@@ -114,7 +114,7 @@ export default async function character(url, shots) {
   ok(/체력1,606/.test(st25) && hm && Number(hm[1]) >= 2.92, `Lv 25 = 체력 550 × 2.92, 힐량에 레벨 배율 (${st25.slice(0, 60)})`);
   await page.click('#s-char .c7-stats'); await page.clock.runFor(50);
   const src = await text('#s-char .c7-ssheet');
-  ok(/기본 550/.test(src) && /레벨 \+1,056/.test(src) && /특성/.test(src), '능력치 판을 누르면 출처 시트 (기본·레벨·장비·세트·특성)');
+  ok(/기본 550/.test(src) && /레벨 \+1,056/.test(src) && /특성/.test(src) && !/세트/.test(src), '능력치 판을 누르면 출처 시트 (기본·레벨·장비·특성)');
   await ctx.close();
   await browser.close();
   return { fails, errs };

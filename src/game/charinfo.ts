@@ -4,7 +4,6 @@
  */
 import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
 import { lvPower } from '../data/progression';
-import { setCounts, setFxOf, SET_KEYS, SETS, type SetKey } from '../data/sets';
 import { TALENTS } from '../data/talents';
 import { TUT } from './tutorial';
 import { G, healerLevel, heroNow, heroSave } from './state';
@@ -40,20 +39,19 @@ export function talentsLeft(): number {
   return TALENTS.filter((t, i) => t.lv <= healerLevel() && picks[i] == null).length;
 }
 
-/** 능력치 (레벨 배율 포함, 마나 재생엔 세트 효과도: 엔진 healer.ts와 같은 곱) */
+/** 능력치 (레벨 배율 포함) */
 export function heroStats(): { hp: number; heal: number; crit: number; haste: number; regen: number } {
   const p = statParts();
   return { hp: p.hp.total, heal: p.heal.total, crit: p.crit.total, haste: p.haste.total, regen: p.regen.total };
 }
 
 /**
- * 능력치 출처 (27 4-2 능력치 판을 누르면): 기본 · 레벨 · 장비 · 세트 몫. 더하면 total.
+ * 능력치 출처 (27 4-2 능력치 판을 누르면): 기본 · 레벨 · 장비 몫. 더하면 total.
  * 특성은 상시 능력치를 바꾸지 않음 (전투 중 조건으로 켜짐) → 몫 없음.
  * 체력은 장비로 오르지 않음 (gearStatsOf에 체력 없음).
  */
 export function statParts() {
   const eq = G.save.gear.equipped, st = gearStatsOf(eq), lp = lvPower(G.save.player.level);
-  const fx = setFxOf(Object.values(eq));
   const hp = Math.round(HEALER_HP * lp);
   return {
     lp,
@@ -61,13 +59,7 @@ export function statParts() {
     heal: { total: st.heal * lp, base: 1, level: lp - 1, gear: (st.heal - 1) * lp },
     crit: { total: st.crit, base: 0.05, gear: st.crit - 0.05 },
     haste: { total: st.haste, gear: st.haste },
-    regen: { total: st.regen * (1 + fx.regen), base: 1, gear: st.regen - 1, set: st.regen * fx.regen },
+    regen: { total: st.regen, base: 1, gear: st.regen - 1 },
   };
 }
 
-/** 가장 많이 모은 세트 (없으면 null) */
-export function setNow(): { key: SetKey; name: string; n: number } | null {
-  const n = setCounts(Object.values(G.save.gear.equipped));
-  const k = SET_KEYS.filter(x => n[x]).sort((a, b) => n[b]! - n[a]!)[0];
-  return k ? { key: k, name: SETS[k].name, n: n[k]! } : null;
-}

@@ -94,7 +94,6 @@
   position: absolute; right: -7px; top: -7px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%;
   background: #2E7A3A; border: 1.5px solid #B9F5C4; font: normal 900 12px/1 var(--font-body); color: #FFFFFF;
 }
-#s-char .c7-setdot { position: absolute; left: 4px; bottom: 4px; width: 7px; height: 7px; background: #7FC8FF; border: 1px solid var(--line); transform: rotate(45deg); box-shadow: 0 0 5px rgba(127, 200, 255, 0.7); }
 #s-char .c7-slot > b { margin-top: 4px; display: inline-flex; align-items: center; gap: 2px; font: 700 12px/1.2 var(--font-display); color: var(--ink); text-shadow: 0 1px 2px #000; }
 #s-char .c7-slot > b .ui-icon.in { width: 11px; height: 11px; margin: 0; }
 #s-char .c7-slot > small { font-size: 10.5px; line-height: 1.25; color: #C9BC9E; white-space: nowrap; text-shadow: 0 1px 2px #000; }
@@ -123,7 +122,7 @@
 #s-char .c7-psc b { font: 800 24px/1.1 var(--font-display); color: var(--gold-hi); text-shadow: 0 1px 0 var(--line); }
 #s-char .c7-plq small { font-size: 11px; line-height: 1.35; color: #C9BC9E; }
 
-/* ---------- 장비 ② 능력치 판 3×2 (누르면 출처) ---------- */
+/* ---------- 장비 ② 능력치 판 5칸 (누르면 출처) ---------- */
 #s-char .c7-stats { display: block; width: 100%; margin: 0; padding: 8px 10px 6px; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 #s-char .c7-sh { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font: 700 14px var(--font-display); color: var(--gold-hi); }
 #s-char .c7-sh small { font: 400 11px var(--font-body); color: var(--mute); white-space: nowrap; }
@@ -133,30 +132,14 @@
 #s-char .c7-si > svg { width: 15px; height: 15px; }
 #s-char .c7-si:has(.g-ic) { padding: 2px; }
 #s-char .c7-stat:nth-child(5) .c7-si { color: #8DB8FF; }
-#s-char .c7-stat:nth-child(6) .c7-si { color: #7FC8FF; }
+/* 5칸: 마지막(마나 재생)은 두 칸 너비 (3열이면 둘째 줄을 채우고, 2열이면 셋째 줄 전체) */
+#s-char .c7-stat:nth-child(5) { grid-column: span 2; }
 #s-char .c7-sv { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
 #s-char .c7-sv small { font-size: 10.5px; color: var(--mute); white-space: nowrap; }
 #s-char .c7-sv b { overflow: hidden; text-overflow: ellipsis; font: 900 14px/1.25 var(--font-body); color: var(--ink); white-space: nowrap; }
 #s-char .c7-sv b i { margin-left: 3px; font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--heal); }
-#s-char .c7-sv b.none { font-weight: 400; color: var(--mute); }
 
-/* ---------- 장비 ③ 세트 깃발 (파란 띠) ---------- */
-#s-char .c7-set {
-  width: 100%; height: 44px; margin: 0; padding: 0 10px 0 6px; display: flex; align-items: center; gap: 8px; border-radius: 5px;
-  background: linear-gradient(90deg, #1E2A44, #151C2E); border: 1px solid #4E7FA8; box-shadow: 0 0 0 1px var(--line), inset 0 0 0 1px rgba(201, 163, 92, 0.35);
-  color: var(--ink); font: inherit; text-align: left; cursor: pointer;
-}
-#s-char .c7-seti { flex: none; width: 32px; height: 32px; display: grid; place-items: center; color: #7FC8FF; }
-#s-char .c7-seti > svg { width: 22px; height: 22px; }
-#s-char .c7-set > b { flex: none; font: 800 14px var(--font-display); color: #BFE3FF; white-space: nowrap; }
-#s-char .c7-boxes { flex: none; display: flex; gap: 3px; }
-#s-char .c7-boxes i { width: 12px; height: 8px; background: var(--bg-0); border: 1px solid #4E7FA8; }
-#s-char .c7-boxes i.on { background: #7FC8FF; box-shadow: 0 0 6px rgba(127, 200, 255, 0.7); }
-#s-char .c7-sett { flex: 1; min-width: 0; overflow: hidden; font-size: 12px; color: var(--ink-2); white-space: nowrap; text-overflow: ellipsis; }
-#s-char .c7-set > .c7-li { flex: none; width: 14px; height: 14px; color: #7FC8FF; }
-#s-char .c7-noset { margin: 0; padding: 10px 12px; border-radius: 5px; background: rgba(13, 11, 9, 0.75); border: 1px dashed #4E7FA8; font-size: 12px; line-height: 1.45; color: var(--mute); text-align: center; }
-
-/* ---------- 장비 ④ 가방 · 추천 장착 · 분해 ---------- */
+/* ---------- 장비 ③ 가방 · 추천 장착 · 분해 ---------- */
 #s-char .c7-acts { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 8px; margin-top: 12px; }
 #s-char .c7-acts .g-sign { min-width: 0; min-height: 52px; padding: 0 14px; white-space: nowrap; }
 #s-char .c7-acts .g-sign:disabled { filter: grayscale(0.5) brightness(0.7); cursor: default; }
@@ -268,16 +251,6 @@
 #s-char .c7-salv .cap { flex-basis: 100%; }
 #s-char .c7-bagf { display: flex; align-items: center; gap: 8px; }
 #s-char .c7-bsheet .btn2, #s-char .c7-salv .btn2 { min-height: 40px; }
-/* 세트 시트 */
-#s-char .c7-setslots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-#s-char .c7-setslots > span { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0 6px; border-radius: 6px; background: rgba(13, 11, 9, 0.6); border: 1px dashed #4E7FA8; color: #4E7FA8; }
-#s-char .c7-setslots > span.on { border: 1px solid #7FC8FF; background: linear-gradient(#1E2A44, #151C2E); color: #BFE3FF; box-shadow: 0 0 8px rgba(127, 200, 255, 0.35); }
-#s-char .c7-setslots .ui-icon { width: 24px; height: 24px; }
-#s-char .c7-setslots .g-ic { width: 32px; height: 32px; }
-#s-char .c7-setslots > span:not(.on) .g-ic { opacity: 0.45; filter: grayscale(0.6); }
-#s-char .c7-setslots small { font-size: 11px; color: inherit; }
-#s-char .c7-setsheet > p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--dim); word-break: keep-all; }
-#s-char .c7-setsheet > p.on { color: var(--gold-hi); }
 /* 단축칸 고르기 */
 #s-char .c7-isheet .chips { gap: 6px; }
 
@@ -527,7 +500,4 @@
   #s-char .c7-mode button { padding: 0 12px; font-size: 13px; }
   #s-char .c7-taps > button { font-size: 13px; }
   #s-char .c7-bnrs { gap: 9px; margin-left: -10px; margin-right: -10px; padding-left: 10px; padding-right: 10px; }
-  #s-char .c7-set { gap: 6px; padding-right: 8px; }
-  #s-char .c7-seti { width: 26px; }
-  #s-char .c7-sett { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 11px; line-height: 1.25; white-space: normal; }
 }

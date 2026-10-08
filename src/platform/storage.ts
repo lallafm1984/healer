@@ -3,7 +3,7 @@
  * 지금은 localStorage. 앱에서 OS가 웹 저장소를 지울 위험이 보이면 Capacitor Preferences로 바꾼다.
  */
 import type { DiffName } from '../data/difficulty';
-import type { Equipped, GearItem } from '../data/equipment';
+import { itemName, type Equipped, type GearItem } from '../data/equipment';
 import type { GuildMember, PostTier } from '../data/guild';
 import { HERO_KEYS, type HeroKey } from '../data/heroes';
 import { STARTER_BAG } from '../data/economy';
@@ -201,7 +201,7 @@ export function migrate(raw: unknown): SaveData {
     player: obj(o.player, base.player),
     // 27: 새것 점 기준 (옛 저장은 지금 가진 장비를 다 본 것으로)
     gear: {
-      equipped: obj(o.gear?.equipped, {}), bag: Array.isArray(o.gear?.bag) ? o.gear!.bag : [],
+      equipped: noSetEq(obj(o.gear?.equipped, {})), bag: Array.isArray(o.gear?.bag) ? o.gear!.bag.map(noSet) : [],
       seen: typeof o.gear?.seen === 'number' ? o.gear.seen : (typeof o.nextId === 'number' ? o.nextId : base.nextId) - 1,
     },
     mats: obj(o.mats, base.mats),
@@ -229,6 +229,15 @@ export function migrate(raw: unknown): SaveData {
     firstBuy: Array.isArray(o.firstBuy) ? o.firstBuy : [],
   };
 }
+
+/** 세트 장비를 없앰: 옛 세트 장비는 세트 표시를 빼고 이름도 보통 장비 이름으로 */
+function noSet(it: GearItem): GearItem {
+  if (!it || typeof it !== 'object' || !('set' in it)) return it;
+  const c: GearItem & { set?: unknown } = { ...it, name: itemName(it.slot, it.grade) };
+  delete c.set;
+  return c;
+}
+const noSetEq = (eq: Equipped): Equipped => Object.fromEntries(Object.entries(eq).map(([k, it]) => [k, noSet(it)]));
 
 function guildOf(v: unknown): GuildSave {
   const d = newGuild();
