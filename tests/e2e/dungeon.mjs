@@ -147,35 +147,39 @@ export default async function dungeon(url, shots) {
   }
   await page.screenshot({ path: `${shots}/dungeon_boss.png` });
 
-  // ---- 정산 → 보상 → 레벨 업 ----
+  // ---- 결과 (정산 + 보상 한 화면, 2026-10-08) → 레벨 업 ----
   await killEnemies(page);
   await page.clock.runFor(1500);
-  ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '던전 클리어!', '마지막 보스 → 던전 클리어 정산');
-  const res = await page.textContent('#s-settle');
-  ok(/[SABC]/.test(await page.textContent('#s-settle .grade')) && /첫 클리어/.test(res) && /클리어 시간/.test(res), '정산 = 등급·별·첫 클리어·시간');
-  ok((await page.locator('#s-settle .starlist li').count()) === 3, '별 조건 3개');
-  ok((await page.locator('#s-settle .meter li').count()) === 4 && /던전 전체/.test(await page.textContent('#s-settle .meter h3')), '정산 화면 딜미터기 (던전 전체)');
+  ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '던전 클리어!첫 클리어', '마지막 보스 → 던전 클리어 + 첫 클리어 배지');
+  ok(/[SABC]/.test(await page.textContent('#s-settle .grade')) && (await page.locator('#s-settle .r-stars li').count()) === 3 && /클리어 \d+:\d\d/.test(await page.textContent('#s-settle .r-stars')), '머리 = 등급 + 별 칸 3개 (클리어 시간)');
+  ok(await page.isVisible('#s-settle .r-loot .r-item') && /골드/.test(await page.textContent('#s-settle .r-curs')) && /경험치 \+/.test(await page.textContent('#s-settle .r-xp')), '받은 것 (장비 · 골드 · 경험치)이 같은 화면에');
+  const rb = await page.evaluate(() => { const r = document.querySelector('#s-settle .r-loot').getBoundingClientRect(), f = document.querySelector('#s-settle .ns-foot').getBoundingClientRect(); return { bottom: Math.round(r.bottom), foot: Math.round(f.top) }; });
+  ok(rb.bottom <= rb.foot, `받은 것이 첫 화면에 다 보임 ${JSON.stringify(rb)}`);
+  ok((await page.locator('#s-settle .r-rec').getAttribute('open')) === null, '이기면 전투 기록은 접힘');
+  await page.click('#s-settle .r-rec summary'); await page.clock.runFor(50);
+  ok((await page.locator('#s-settle .meter li').count()) === 4 && /던전 전체/.test(await page.textContent('#s-settle .meter h3')), '전투 기록: 딜미터기 (던전 전체)');
+  await page.click('#s-settle .r-rec summary'); await page.clock.runFor(50);
   await page.screenshot({ path: `${shots}/dungeon_settle.png` });
-  await page.click('#toReward'); await page.clock.runFor(200);
-  ok(await page.isVisible('#s-reward') && await page.isVisible('#s-reward .lvpop'), '보상 화면 + 레벨 업 팝업 (첫 클리어로 Lv 2)');
-  const pop = await page.textContent('#s-reward .lvpop');
+  ok(!(await page.isVisible('#s-settle .lvpop')), '레벨 업 팝업은 연출 뒤에');
+  await page.clock.runFor(1200);
+  ok(await page.isVisible('#s-settle .lvpop'), '레벨 업 팝업 (첫 클리어로 Lv 2)');
+  const pop = await page.textContent('#s-settle .lvpop');
   ok(/Lv 1 → 2/.test(pop) && /소생/.test(pop) && !/준비 중/.test(pop), '팝업: Lv 1 → 2, 스킬 「소생」 열림');
   ok(!/힐량·체력/.test(pop), '팝업: 배율 줄 없음 (적이 내 레벨을 따라옴, 32)');
   await page.screenshot({ path: `${shots}/dungeon_levelup.png` });
-  await page.click('#s-reward .lvpop button'); await page.clock.runFor(50);
+  await page.click('#s-settle .lvpop button'); await page.clock.runFor(50);
   let sv = await save();
   ok(sv.player.level === 2 && sv.player.gold > 0 && sv.gear.bag.length === 1, `저장: Lv 2, 골드 ${sv.player.gold}, 가방에 장비 1개`);
   ok(sv.clears.rustfort['보통'].n === 1 && sv.last.win, '저장: 녹슨 요새 보통 클리어 기록');
   await page.click('#equipNow'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.gear.bag.length === 0 && Object.keys(sv.gear.equipped).length === 1, '장착 → 가방에서 장착칸으로');
+  ok(sv.gear.bag.length === 0 && Object.keys(sv.gear.equipped).length === 1 && /장착함/.test(await page.textContent('#s-settle .r-item')), '장착 → 가방에서 장착칸으로, 카드에 「장착함」');
   await page.screenshot({ path: `${shots}/dungeon_reward.png` });
 
   // ---- 잡몹 구간에서 지면 던전 실패 → 경험치 20%만 ----
   const xp0 = sv.player.xp, gold0 = sv.player.gold;
-  await page.click('#again'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-party'), '다시 도전 = 새 파티 편성');
-  await page.click('#depart'); await page.clock.runFor(3100 + 500);
+  await page.click('#again'); await page.clock.runFor(3100 + 500);
+  ok(await page.isVisible('#battle'), '다시 도전 = 같은 파티로 바로 출발');
   ok(await page.evaluate(() => window.__proto.dungeon.idx === 0 && window.__proto.F.enc.key === 'gate'), '던전 처음부터');
   const lvm = await page.evaluate(() => { const F = window.__proto.F; return { power: F.power, scale: F.scale, me: Math.round(F.me.max) }; });
   ok(Math.abs(lvm.power - 1.08) < 1e-9 && lvm.scale === 1 && lvm.me === 594, `Lv 2 전투: 힐량·내 체력 ×1.08, 적은 내 레벨 − 2 (열림 레벨 1 아래로 안 내려감) ×1 (32) ${JSON.stringify(lvm)}`);
@@ -191,10 +195,11 @@ export default async function dungeon(url, shots) {
   ok(gb.inside && !gb.overlap, `포기 버튼은 하단, 휠과 안 겹침 ${JSON.stringify(gb)}`);
   await page.screenshot({ path: `${shots}/battle_tankdown.png` });
   await page.click('#giveUp'); await page.clock.runFor(300);
-  ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '전멸' && /0 \/ 4 구간/.test(await page.textContent('#s-settle')), '포기 버튼 = 전멸과 같은 던전 실패');
+  ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '전멸' && /1구간/.test(await page.textContent('#s-settle .r-prog')) && (await page.locator('#s-settle .r-segs li').count()) === 4, '포기 버튼 = 전멸과 같은 던전 실패 (구간 점 4개 · 1구간)');
+  ok(await page.locator('#s-settle .r-rec').getAttribute('open') !== null && /경험치 \+/.test(await page.textContent('#s-settle .r-xpl')), '지면 전투 기록 펼침 · 경험치 줄');
   sv = await save();
   ok(sv.player.gold === gold0 && sv.player.xp > xp0 && sv.gear.bag.length === 0, `지면 골드·장비 없음, 경험치 조금 (${xp0} → ${sv.player.xp})`);
-  ok(await page.isVisible('#retry'), '실패 정산에 다시 도전');
+  ok((await page.textContent('#again')) === '다시 도전', '실패 결과에 다시 도전');
   await page.screenshot({ path: `${shots}/dungeon_lose.png` });
   await ctx.close();
   await browser.close();

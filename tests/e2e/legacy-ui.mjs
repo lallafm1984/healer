@@ -148,7 +148,7 @@ export default async function legacyUi(url, shots) {
   await page.click('#quitBtn'); await page.clock.runFor(200);
   ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '포기', '포기 → 정산');
   ok(await page.locator('#s-settle .chat, #s-settle .plines').count() === 0, '정산에 파티 채팅·한마디 없음');
-  ok(/소비 아이템\s*마나 \d/.test(await page.textContent('#s-settle details.more')), '자세히에 쓴 아이템');
+  ok(/소비 아이템\s*마나 \d/.test(await page.textContent('#s-settle details.r-rec')) && /보상 없음/.test(await page.textContent('#s-settle .r-why')), '포기: 「보상 없음」, 전투 기록에 쓴 아이템');
   ok(/경험치/.test(await page.textContent('#s-settle')) === false, '포기하면 경험치 없음');
   await page.screenshot({ path: `${shots}/v6_result.png` });
 

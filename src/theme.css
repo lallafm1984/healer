@@ -77,10 +77,10 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 .ns .panel, .panel { background: var(--pnl); border: 1px solid var(--edge); border-radius: 6px; box-shadow: var(--pnl-shadow); }
 .ns .panel h2, .ns .panel h4 { font-family: var(--font-display); color: var(--gold-hi); }
 .ns .panel.mdetail { border: 2px solid var(--frame-hi); }
-.ns .pcard, .ns .mrow, .ns .tier details, .ns .gdet, .ns .metrics, .ns .meter, .ns .chalres, .ns .prow {
+.ns .pcard, .ns .mrow, .ns .tier details, .ns .gdet, .ns .metrics, .ns .meter, .ns .prow {
   border-radius: 6px; border-color: var(--edge); background: var(--pnl); box-shadow: var(--pnl-shadow);
 }
-.ns .pcard.picked, .ns .pcard.tap.on, .ns .chalres.ok { border-color: var(--frame-hi); }
+.ns .pcard.picked, .ns .pcard.tap.on { border-color: var(--frame-hi); }
 .ns .prow.head { background: none; border: 0; box-shadow: none; }
 .ns .lslot:not(.empty):not(.locked) { border-color: var(--frame); }
 .ns .lslot small { color: var(--mana); }
@@ -182,11 +182,9 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 .mrow .bar i, .passhead .bar i { background: var(--bar-cast); }
 .prow .pp { color: var(--gold-hi); }
 
-/* ---------- 정산 · 보상 · 레벨 업 ---------- */
+/* ---------- 결과 · 레벨 업 ---------- */
 .xpbar { border-radius: 3px; border-color: var(--frame-dark); background: var(--bg-0); }
 .xpbar i, .mdetail .bar i { background: var(--bar-xp); }
-.lvup { color: var(--gold-hi); }
-.rw-box { border-radius: 6px; background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--g) 22%, #2E2A24), #1A1511 80%); }
 .badge { border-radius: 4px; }
 .res-head.lose h1 { color: #FF8A80; }
 

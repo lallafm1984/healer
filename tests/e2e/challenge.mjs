@@ -69,8 +69,8 @@ export default async function challenge(url, shots) {
   ok(/격노/.test(await text('#s-settle .res-head p')) && !/단계 Lv/.test(await text('#s-settle .res-head p')), '정산 머리에 어픽스 격노 (단계 Lv 없음)');
 
   // ---- 주간 도전 (13 3-2) ----
-  await page.click('#toReward'); await page.clock.runFor(100);
-  await page.click('#s-reward [data-go="s-lobby"]'); await page.clock.runFor(100);
+  await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
+  await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   await page.click('#s-content [data-chal]'); await page.clock.runFor(100);
   const ent = await text('#s-entry');
@@ -90,13 +90,14 @@ export default async function challenge(url, shots) {
   ok(cf.dry && cf.con && cf.stage === 30 && /\/ 7:00/.test(await text('#timer')), `도전 전투: 메마름·전염병, 단계 레벨 = 내 레벨, 타이머 / 7:00 (${JSON.stringify(cf)})`);
   await lose();
   ok(!(await page.isVisible('.admodal')) && await page.isVisible('#s-settle') && /단계는 그대로/.test(await text('#s-settle')), '도전은 이어하기 없음 · 실패해도 단계 그대로');
-  await page.click('#retry'); await page.clock.runFor(3100 + 300);
+  ok((await text('#again')) === '다시 도전', '실패: 다시 도전 (같은 단계)');
+  await page.click('#again'); await page.clock.runFor(3100 + 300);
   await winAll();
   sv = await save();
-  ok(/제한시간 안/.test(await text('#s-settle')) && /2단계 열림/.test(await text('#s-settle')) && sv.chalOpen === 2 && sv.weekly.chalBest === 1, '제한시간 안에 깸 → 2단계 열림, 이번 주 최고 1단계');
+  ok((await text('#s-settle h1')).startsWith('1단계 돌파') && /제한시간 안/.test(await text('#s-settle .r-chal')) && /2단계 열림/.test(await text('#s-settle .r-chal')) && sv.chalOpen === 2 && sv.weekly.chalBest === 1, '제한시간 안에 깸 → 「1단계 돌파」 · 2단계 열림');
   await page.screenshot({ path: `${shots}/challenge_settle.png`, fullPage: true });
-  await page.click('#toReward'); await page.clock.runFor(100);
-  ok((await text('#s-reward #again')) === '2단계 도전', '보상: 「2단계 도전」 버튼');
+  await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
+  ok((await text('#s-settle #again')) === '2단계 도전', '결과: 주 버튼 「2단계 도전」');
 
   await ctx.close();
   await browser.close();
