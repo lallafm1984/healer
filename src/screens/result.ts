@@ -31,7 +31,7 @@ function renderSettle(): void {
   const multi = r.segN > 1;
   const title = r.quit ? '포기' : r.win ? (multi ? '던전 클리어!' : '클리어!') : '전멸';
   // 레벨 단계·주간 도전·어픽스 (07 3장, 13 3-2)
-  const mode = `${r.chal ? ` · 주간 도전 ${r.chal}단계` : Flow.tier ? ` · Lv ${Flow.tier}` : ''}${r.affixes?.length ? ` · ${r.affixes.map(k => AFFIXES[k].name).join('·')}` : ''}`;
+  const mode = `${r.chal ? ` · 주간 도전 ${r.chal}단계` : r.stage && r.stage !== c.stageLv ? ` · 단계 Lv ${r.stage}` : ''}${r.affixes?.length ? ` · ${r.affixes.map(k => AFFIXES[k].name).join('·')}` : ''}`;
   const ch = x.chal;
   const chalLine = !ch ? '' : ch.inTime ? `<p class="chalres ok">${uiIcon('hourglass', 'in')} ${mmss(ch.time)} / 제한 ${mmss(ch.limit)} · 제한시간 안${ch.opened ? ` · <b>${ch.stage + 1}단계 열림</b>` : ''} · 이번 주 최고 ${ch.best}단계</p>`
     : r.win ? `<p class="chalres">${uiIcon('hourglass', 'in')} ${mmss(ch.time)} / 제한 ${mmss(ch.limit)} · 시간 초과 (다음 단계는 안 열림)</p>` : '<p class="chalres">⏳ 실패 · 단계는 그대로</p>';

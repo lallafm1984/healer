@@ -1,6 +1,6 @@
 /**
  * 내 힐러 요약 (27 2장 로비 힐러 카드 · 4-1 캐릭터 머리 · 4-2 능력치 판).
- * 장비 점수 = 장착 장비 itemScore 합 × 10 (입장 화면 권장 장비와 같은 기준). 「전투력」이라는 말은 쓰지 않는다.
+ * 장비 점수 = 장착 장비 itemScore 합 × 10 (편성 화면 권장 장비 경고와 같은 기준). 「전투력」이라는 말은 쓰지 않는다.
  */
 import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
 import { lvPower } from '../data/progression';

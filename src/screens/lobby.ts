@@ -71,7 +71,7 @@ function propArt(name: 'board' | 'hourglass' | 'chest', fallback: string): strin
 
 const st = { msg: '' };
 
-/** 목표 한 줄: prog = 진행 n/m, to = 누르면 그 입장 화면 */
+/** 목표 한 줄: prog = 진행 n/m, to = 누르면 그 콘텐츠의 편성 화면 */
 interface Goal { text: string; prog: string; to?: { content: ContentKey; diff: DiffName } }
 
 /** 다음 목표 줄: 녹슨 요새 아직 안 깬 난이도 → 다음 레벨 마일스톤 (이 빌드에 있는 것) */
@@ -93,7 +93,7 @@ function goals(): Goal[] {
   return out.slice(0, 2);
 }
 
-/** 권장 장비 (입장 화면과 같은 값) — 목표 줄 aria 설명용 */
+/** 권장 장비 (편성 화면 경고와 같은 값) — 목표 줄 aria 설명용 */
 const recLabel = (d: DiffName) => (RECOMMENDED[d] ? ` · 권장 ${RECOMMENDED[d]!.label}` : '');
 
 /**
@@ -125,7 +125,7 @@ function gateTracker(): string {
     : `<div class="lb-trk gate">${inner}</div>`;
 }
 
-/** 왼쪽 위 목표 추적 (마름모 줄 2개). 누르면 첫 목적지 입장 화면 */
+/** 왼쪽 위 목표 추적 (마름모 줄 2개). 누르면 첫 목적지 편성 화면 */
 function tracker(): string {
   const gate = gateTracker();
   if (gate) return gate;
@@ -148,9 +148,10 @@ function dest(): { content: ContentKey; diff: DiffName } {
   const rec = G.save.clears.rustfort || {};
   return { content: 'rustfort', diff: (['보통', '어려움', '악몽'] as const).find(d => !rec[d]) || '어려움' };
 }
-function toEntry(to: { content: ContentKey; diff: DiffName }): void {
-  Flow.content = to.content; Flow.diff = to.diff; Flow.tier = 0; Flow.chal = 0;
-  go('s-entry');
+function toParty(to: { content: ContentKey; diff: DiffName }): void {
+  Flow.content = to.content; Flow.diff = to.diff; Flow.chal = 0;
+  Flow.party = null; Flow.rerolls = 0;
+  go('s-party');
 }
 
 /** 그림 위 건물 이름표 (무대 안 %): 종탑 = 10인 레이드, 길드 회관, 잡화점 */
@@ -244,10 +245,10 @@ function render(): void {
 
 s.el.addEventListener('click', e => {
   const t = e.target as HTMLElement, save = G.save, now = Date.now();
-  if (t.closest('#lobbyStart')) { toEntry(dest()); return; }
+  if (t.closest('#lobbyStart')) { toParty(dest()); return; }
   const gr = t.closest<HTMLElement>('[data-goal]');
-  if (gr) { const g = goals()[Number(gr.dataset.goal)]; if (g?.to) toEntry(g.to); return; }
-  if (t.closest('#lbAgain') && save.last) { toEntry({ content: save.last.content as ContentKey, diff: save.last.diff }); return; }
+  if (gr) { const g = goals()[Number(gr.dataset.goal)]; if (g?.to) toParty(g.to); return; }
+  if (t.closest('#lbAgain') && save.last) { toParty({ content: save.last.content as ContentKey, diff: save.last.diff }); return; }
   if (t.closest('#lbClaim')) {
     // 받을 수 있는 임무를 한 번에 (주간은 종 조각이 가득이면 남김)
     const got: string[] = [];

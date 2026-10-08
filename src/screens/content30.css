@@ -29,7 +29,7 @@
 
 /* ---------- 관문: 아치 금테 안 장소 그림 ---------- */
 /* container = 관문 높이에 따라 ‹ › 자리를 바꿈 (아래 @container) */
-#s-content .b-gate { position: relative; flex: 1 1 282px; min-height: 230px; max-height: 360px; overflow: hidden; container: gate / size; border-radius: 46% 46% 10px 10px / 70px 70px 10px 10px; border: 3px solid #D9B26A; box-shadow: 0 0 0 2px #3A2410, 0 0 0 3px var(--line), 0 10px 24px rgba(0, 0, 0, 0.7); background: #1A140E; }
+#s-content .b-gate { position: relative; flex: 1 1 282px; min-height: 230px; max-height: 420px; overflow: hidden; container: gate / size; border-radius: 46% 46% 10px 10px / 70px 70px 10px 10px; border: 3px solid #D9B26A; box-shadow: 0 0 0 2px #3A2410, 0 0 0 3px var(--line), 0 10px 24px rgba(0, 0, 0, 0.7); background: #1A140E; }
 #s-content .b-art { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
 #s-content .b-art.floor { filter: saturate(0.85) brightness(0.8); }
 #s-content .b-art.none { background: radial-gradient(var(--t0), var(--t1)); }
@@ -57,6 +57,13 @@
   #s-content .b-arw { top: 66px; }
   #s-content .b-rib { left: 50%; top: 68px; transform: translateX(-50%); border-radius: 3px; }
   #s-content .b-st { top: 90px; }
+}
+/* 아주 낮은 관문 (320×640): ‹ ›를 이름표 양옆으로, 리본은 빼기 (장소 줄에 「추천」이 있음) */
+@container gate (max-height: 200px) {
+  #s-content .b-arw { top: 18px; }
+  #s-content .b-gt { max-width: calc(100% - 116px); }
+  #s-content .b-rib { display: none; }
+  #s-content .b-st { top: 84px; }
 }
 /* 아래 어두운 띠: 정보 · 해제 · 보상 */
 #s-content .b-gb { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; padding: 34px 12px 10px; background: linear-gradient(rgba(13, 11, 9, 0), rgba(13, 11, 9, 0.88) 38%, rgba(13, 11, 9, 0.95)); display: flex; flex-direction: column; gap: 6px; }
@@ -167,4 +174,13 @@
   #s-content .b-cat { height: 44px; }
   #s-content .b-foot { padding: 4px 16px calc(var(--tabs-h) + 8px); }
   #s-content .b-foot .g-cta { min-height: 56px; }
+}
+/* 레벨 단계 어픽스 (자동 단계, 07 3장): 해제 줄 오른쪽 */
+#s-content .b-afx { margin-left: auto; display: inline-flex; gap: 3px; }
+#s-content .b-afx .f-afx { height: 18px; padding: 0 5px; font-size: 10px; }
+/* 아주 낮은 화면 (320×640 등): 관문을 줄이고 정보 줄(지역 · 인원 · 보스 수)을 빼서 난이도 줄까지 첫 화면에 */
+@media (max-height: 700px) {
+  #s-content .b-gate { min-height: 184px; flex-basis: 184px; }
+  #s-content .b-inf { display: none; }
+  #s-content .b-body { gap: 5px; }
 }

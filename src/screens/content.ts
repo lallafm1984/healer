@@ -19,11 +19,12 @@ import { cssUrl } from '../art';
 import { RESET_HOUR, weekKey } from '../game/clock';
 import { raidLootOpen } from '../game/economy';
 import { Flow } from '../game/flow';
-import { chalGate, weekAffixes } from '../game/runmode';
+import { chalGate, runMode, weekAffixes } from '../game/runmode';
 import { G, heroNow, lockOf } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { esc, fmt, go, previous, screen, topBar } from './kit';
 import { factionMark, gameIcon, LOCK, placeArt } from './art';
+import { afxTags } from './brief';
 
 /** 선 아이콘 (시안 Battle30 임시 선그림, 정식 그림이 오면 gameIcon이 바꿈) */
 const line = (d: string, sw = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -180,8 +181,8 @@ function chalCell(): string {
   </button><i class="b-div" aria-hidden="true"></i>`;
 }
 
-/** 보상 칸 (입장 화면 보상 계산과 같음): 장비 등급 범위 · 골드 (A 등급) · 첫 클리어 크리스탈 + 전설 확률 */
-function rewards(c: ContentDef, d: DiffName): string {
+/** 보상 칸 (정산 계산과 같음, 단계 = 자동 레벨 단계): 장비 등급 범위 · 골드 (A 등급) · 첫 클리어 크리스탈 + 전설 확률 */
+function rewards(c: ContentDef, d: DiffName, stage: number): string {
   const lv = G.save.player.level, table = DROP_TABLE[d];
   const lo = table.findIndex(p => p > 0);
   let hi = table.reduce((m, p, i) => (p > 0 ? i : m), 0);
@@ -189,7 +190,7 @@ function rewards(c: ContentDef, d: DiffName): string {
   if (ITEM_GRADES[hi] === '전설' && lv < LEGEND_LEVEL) hi = ITEM_GRADES.indexOf('영웅');
   const gLo = ITEM_GRADES[lo], gHi = ITEM_GRADES[hi];
   const range = lo >= hi ? gHi : `${gLo}~${gHi}`;
-  const gold = clearGold(stageOf(c, d), d, 'A', raidSize(c));
+  const gold = clearGold(stage, d, 'A', raidSize(c));
   const first = G.save.tut >= TUT.done && !G.save.clears[c.key]?.[d];
   const leg = table[ITEM_GRADES.indexOf('전설')];
   const legTxt = !leg ? '' : lv < LEGEND_LEVEL ? `전설 Lv ${LEGEND_LEVEL}부터` : `전설 ${Math.round(leg * 100)}%`;
@@ -206,6 +207,8 @@ function rewards(c: ContentDef, d: DiffName): string {
 /** 관문: 아치 금테 안 장소 그림 + 이름표 · 추천 · ‹ › · 정보 · 해제 · 보상 */
 function gate(c: ContentDef, d: DiffName, many: boolean): string {
   const pa = placeArt(c.key), f = factionOf(c), lk = lockOf(c), pl = PLACES[pa.place];
+  // 레벨 단계는 자동 (07 3장, 2026-10-08): 내 레벨 이하 가장 높은 단계 + 그 단계 어픽스
+  const m = runMode(G.save, c, d, { chal: 0 });
   const [region, side] = c.place.split(' · ');
   const status = !c.ready ? '준비 중' : lk.locked ? `${LOCK}Lv ${lk.lv}에 열림` : '';
   const art = pa.url
@@ -213,15 +216,15 @@ function gate(c: ContentDef, d: DiffName, many: boolean): string {
     : `<span class="b-art none" style="--t0:${pl.tone[0]};--t1:${pl.tone[1]}"></span>`;
   return `<section class="b-gate${status ? ' off' : ''}" aria-label="출전할 곳 · ${esc(c.name)}">
     ${art}
-    <div class="b-gt"><span class="b-gm" style="--rim:${FACTIONS[f].mark.rim}">${factionMark(f, 'md')}</span><span class="b-gn"><b>${esc(c.name)}</b><small>단계 Lv ${stageOf(c, d)}${side ? ` · ${esc(side)}` : ''}</small></span></div>
+    <div class="b-gt"><span class="b-gm" style="--rim:${FACTIONS[f].mark.rim}">${factionMark(f, 'md')}</span><span class="b-gn"><b>${esc(c.name)}</b><small>단계 Lv ${m.stage}${side ? ` · ${esc(side)}` : ''}</small></span></div>
     ${c.key === recommended() ? '<span class="b-rib">추천</span>' : ''}
     ${many ? `<button type="button" class="b-arw prev" data-step="-1" aria-label="이전 장소">${PREV}</button><button type="button" class="b-arw next" data-step="1" aria-label="다음 장소">${NEXT}</button>` : ''}
     ${status ? `<span class="b-st">${status}</span>` : ''}
     <div class="b-gb">
       <span class="b-row"><span class="b-inf">${esc(region)} · ${c.size(d)}인 · 보스 ${c.bosses.length}</span>${c.ready && !lk.locked ? lootLine(c) : ''}</span>
-      <span class="b-row"><span class="cap">해제</span>${dispelChips(c)}</span>
+      <span class="b-row"><span class="cap">해제</span>${dispelChips(c)}${c.ready && m.affixes.length ? `<span class="b-afx" aria-label="단계 어픽스">${afxTags(m.affixes)}</span>` : ''}</span>
       ${c.ready && lk.dev ? `<span class="f-dev">Lv ${lk.lv} 해금 · 개발 빌드라 열림</span>` : ''}
-      ${c.ready ? rewards(c, d) : ''}
+      ${c.ready ? rewards(c, d, m.stage) : ''}
     </div>
   </section>`;
 }
@@ -299,8 +302,8 @@ const s = screen('s-content', '모험 선택', {
   // arg = 열 분류 (로비: 주간 도전 → dungeon, 레이드 → raid). 없으면 마지막 고른 분류
   enter(arg) {
     if (KINDS.some(t => t.kind === arg)) tab = arg as ContentKind;
-    // 입장 화면에서 돌아오면 거기서 바꾼 난이도까지 기억 (주간 도전은 따로)
-    if (previous === 's-entry' && !Flow.chal && G.save.tut >= TUT.done) {
+    // 편성에서 돌아오면 그 장소·난이도가 골라진 채로 (로비 「바로 출전」으로 갔다 와도. 주간 도전은 따로)
+    if (previous === 's-party' && !Flow.chal && G.save.tut >= TUT.done) {
       const c = contentOf(Flow.content);
       if (!c.hidden) { tab = c.kind; pick[c.kind] = c.key; diffPick[c.key] = Flow.diff; }
     }
@@ -357,7 +360,7 @@ s.el.addEventListener('click', e => {
   const ch = el.closest<HTMLElement>('[data-chal]');
   if (ch) {
     if (ch.getAttribute('aria-disabled') === 'true') return;
-    Flow.content = CHAL.content; Flow.diff = CHAL.diff; Flow.tier = 0; Flow.chal = G.save.chalOpen;
+    Flow.content = CHAL.content; Flow.diff = CHAL.diff; Flow.chal = G.save.chalOpen;
     go('s-entry'); return;
   }
   const p = el.closest<HTMLElement>('[data-content]');
@@ -380,8 +383,10 @@ s.el.addEventListener('click', e => {
     const c = current();
     if (!c) return;
     const d = diffOf(c);
-    Flow.content = c.key; Flow.diff = d; Flow.tier = 0; Flow.chal = 0;
+    Flow.content = c.key; Flow.diff = d; Flow.chal = 0;
     if (G.save.tut >= TUT.done) diffPick[c.key] = d;
-    go('s-entry');
+    // 입장 화면 없이 바로 편성 (2026-10-08): 난이도는 여기서만 고름, 공략은 편성의 시트
+    Flow.party = null; Flow.rerolls = 0;
+    go('s-party');
   }
 });

@@ -132,12 +132,11 @@ export default async function tutorial(url, shots) {
   await page.click('#s-content [data-ctab="explore"]'); await page.clock.runFor(50);
   ok(await page.isVisible('#s-content [data-content="plateau"]') && !(await page.isVisible('#s-content [data-content="tutorial"]')), '탐험 탭: 녹슨 고원 (첫 전투는 안 보임)');
   await page.click('#s-content [data-ctab="dungeon"]'); await page.clock.runFor(50);
-  // 로비 「바로 출전」 = 녹슨 요새 입장 화면으로 바로 (모험 선택 건너뜀)
+  // 로비 「바로 출전」 = 녹슨 요새 편성으로 바로 (모험 선택 건너뜀, 입장 화면 없음)
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);
   await page.click('#lobbyStart'); await page.clock.runFor(100);
-  ok(await page.getAttribute('#s-entry [data-diff="쉬움"]', 'aria-checked') === 'true' && /쉬움/.test(await page.textContent('#s-entry .coachtip')), '입장: 쉬움이 골라져 있고 안내');
-  await page.click('#entryGo'); await page.clock.runFor(100);
-  ok(/다시 뽑기/.test(await page.textContent('#s-party .coachtip')), '편성: 파티 찾기·다시 뽑기 안내');
+  ok(await page.isVisible('#s-party') && /녹슨 요새/.test(await page.textContent('#s-party .topbar')) && /쉬움/.test(await page.textContent('#s-party .topbar')), '바로 출전 = 녹슨 요새 쉬움 편성');
+  ok(/다시 뽑기/.test(await page.textContent('#s-party .coachtip')) && /공략/.test(await page.textContent('#s-party .coachtip')), '편성: 파티 찾기·다시 뽑기·공략 안내');
   await page.screenshot({ path: `${shots}/tut_party.png` });
 
   // ---- 녹슨 요새 쉬움: 멈추지 않는 안내 → 4구간 → 끝 ----

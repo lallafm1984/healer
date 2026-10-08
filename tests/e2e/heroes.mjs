@@ -1,6 +1,6 @@
 // 힐러 직업 (25, 27 4-6, 31 시안): 직업 깃발 · 양피지 상세(해제·퀘스트) · 바꾸기, 입장 화면 해제 ✓/✕, 전투 휠·봉화
 import { chromium } from 'playwright';
-import { pastTitle, patchSave, toEntry, toParty } from './nav.mjs';
+import { pastTitle, patchSave, toParty } from './nav.mjs';
 
 export default async function heroes(url, shots) {
   const browser = await chromium.launch();
@@ -68,14 +68,14 @@ export default async function heroes(url, shots) {
   ok(/준비 중/.test(await text('#s-char .ns-body')), '드루이드 특성 = 준비 중');
   await page.screenshot({ path: `${shots}/heroes_druid_skill.png` });
 
-  // ---- 입장 화면: 해제 ✓/✕ ----
+  // ---- 편성 경고 줄: 못 지우는 해제 ----
   await patchSave(page, { settings: { devUnlock: true } });
-  await toEntry(page, { content: 'abyss1', tab: 'raid' });
-  const dis = await text('#s-entry .dispel');
-  ok(/드루이드/.test(dis) && /질병 ✕/.test(dis) && /독 ✓/.test(dis), `역병 군주: 드루이드는 질병 ✕ · 독 ✓ (${dis.replace(/\s+/g, ' ').trim()})`);
+  await toParty(page, { content: 'abyss1', tab: 'raid' });
+  const dis = await text('#s-party .f-warn.dispel');
+  ok(/드루이드/.test(dis) && /질병/.test(dis) && !/독/.test(dis), `역병 군주: 드루이드는 질병만 못 지움 (${dis.replace(/\s+/g, ' ').trim()})`);
   await page.screenshot({ path: `${shots}/heroes_entry.png` });
-  await page.click('#s-entry .dispel [data-go="s-char"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-char') && await page.getAttribute('#s-char nav [data-csub="hero"]', 'aria-selected') === 'true', '입장 화면 「직업 바꾸기」 = 캐릭터 → 직업');
+  await page.click('#s-party .f-warn.dispel [data-go="s-char"]'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-char') && await page.getAttribute('#s-char nav [data-csub="hero"]', 'aria-selected') === 'true', '편성 경고 줄 「직업 바꾸기」 = 캐릭터 → 직업');
 
   // ---- 전투: 드루이드 휠 ----
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);

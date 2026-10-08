@@ -39,17 +39,17 @@ export default async function challenge(url, shots) {
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   const card = await text('#s-content [data-chal]');
   ok(/주간 도전/.test(card) && /침묵의 시계/.test(card) && /메마름/.test(card) && /전염병/.test(card), '던전 장소 줄 맨 앞 = 주간 도전 칸 (이번 주 메마름·전염병, 화면 읽기 글)');
-  ok(/단계 Lv 1/.test(await text('#s-content .b-gate')), '녹슨 요새 관문 = 단계 Lv (레벨 단계 칩은 입장 화면)');
+  ok(/단계 Lv 30/.test(await text('#s-content .b-gate')) && /격노/.test(await text('#s-content .b-gate .b-afx')), 'Lv 30 = 녹슨 요새 관문이 자동으로 단계 Lv 30 + 격노 (고르는 칩 없음)');
 
-  // ---- 던전 레벨 단계 (07 3장) ----
+  // ---- 던전 레벨 단계 (07 3장): 내 레벨로 자동 (2026-10-08) ----
   await page.click('#s-content [data-content="rustfort"]'); await page.clock.runFor(50);
   await page.click('#contentGo'); await page.clock.runFor(100);
-  ok((await page.locator('#s-entry [data-tier]').count()) === 4 && await page.isDisabled('#s-entry [data-tier="50"]') && !(await page.isDisabled('#s-entry [data-tier="30"]')), 'Lv 30 = 레벨 단계 기본·10·30 열림 + 다음 잠긴 50');
-  await page.click('#s-entry [data-tier="30"]'); await page.clock.runFor(50);
-  ok(/단계 Lv 30/.test(await text('#s-entry .topbar')) && /격노/.test(await text('#s-entry .afxlist')), 'Lv 30 단계 = 단계 레벨 30, 어픽스 격노');
-  await page.screenshot({ path: `${shots}/growth_tier.png`, fullPage: true });
-  await page.click('#entryGo'); await page.clock.runFor(100);
-  ok(/Lv 30/.test(await text('#s-party .topbar')), '편성 제목에 Lv 30');
+  ok(await page.isVisible('#s-party') && (await page.locator('[data-tier]').count()) === 0, '출전 = 바로 편성, 레벨 단계 칩 없음');
+  ok(/단계 Lv 30/.test(await text('#s-party .topbar')) && /격노/.test(await text('#s-party .topbar .f-afxs')), '편성 머리 = 단계 Lv 30 + 격노');
+  await page.click('#guideOpen'); await page.clock.runFor(50);
+  ok(/격노/.test(await text('#s-party .f-gsheet .afxlist')), '공략 시트에 단계 어픽스 격노 설명');
+  await page.screenshot({ path: `${shots}/growth_tier.png` });
+  await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
   await page.click('#depart'); await page.clock.runFor(3100 + 300);
   const fs = await F(() => { const f = window.__proto.F; return { stage: f.cfg.stageLv, rage: !!f.aff?.on.rage }; });
   ok(await page.isVisible('#battle') && fs.stage === 30 && fs.rage, `전투 = 단계 Lv 30 + 격노 (${JSON.stringify(fs)})`);

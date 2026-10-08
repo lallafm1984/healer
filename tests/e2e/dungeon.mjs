@@ -1,6 +1,6 @@
 // 던전 흐름 (23·24): 로비 → 콘텐츠 → 난이도 → 편성 → 잡몹 구간 → 휴식 → … → 정산 → 보상 → 레벨 업. 구간은 적 체력을 깎아 빨리 넘긴다
 import { chromium } from 'playwright';
-import { killEnemies, pastTitle, pickedItems, toEntry } from './nav.mjs';
+import { killEnemies, pastTitle, pickedItems, toParty } from './nav.mjs';
 
 export default async function dungeon(url, shots) {
   const browser = await chromium.launch();
@@ -35,31 +35,41 @@ export default async function dungeon(url, shots) {
   await page.click('#s-content [aria-label="이전 장소"]'); await page.clock.runFor(50);
   ok(await page.getAttribute('#s-content [data-content="rustfort"]', 'aria-pressed') === 'true', '‹ = 같은 분류의 이전 장소 (녹슨 요새)');
 
-  // ---- 난이도·입장 ----
-  await toEntry(page);
-  ok(await page.getAttribute('#s-entry [data-diff="보통"]', 'aria-checked') === 'true', '난이도 기본 = 보통');
-  ok((await page.locator('#s-entry .segs li').count()) === 4, '진행 4구간');
-  const g = await page.textContent('#s-entry .gdet:first-child');
+  // ---- 출전 → 바로 편성 (2026-10-08 입장 화면을 편성에 합침) ----
+  await toParty(page);
+  ok(/보통 · 단계 Lv 1/.test(await page.textContent('#s-party .topbar')), '편성 머리 = 전투 탭에서 고른 난이도 · 단계');
+  ok((await page.locator('#s-party [data-diff]').count()) === 0 && (await page.locator('#s-party .f-warns').count()) === 0, '난이도 다시 고르기 없음, 보통 + 물리만 = 경고 줄 없음');
+  await page.click('#guideOpen'); await page.clock.runFor(50);
+  ok((await page.locator('#s-party .f-gsheet .segs li').count()) === 4, '공략 시트: 진행 4구간');
+  const g = await page.textContent('#s-party .f-gsheet .gdet:first-child');
   ok(/무너진 정문/.test(g) && /고철 졸개 ×3/.test(g), '첫 공략 = 무너진 정문 잡몹 (잡는 순서)');
-  ok(!/Infinity|NaN|undefined/.test(await page.textContent('#s-entry')), '입장 화면에 Infinity·NaN 없음');
-  await page.click('#s-entry [data-diff="어려움"]'); await page.clock.runFor(50);
-  const gck = await page.textContent('#s-entry .f-ck.gear');
-  ok(/권장 고급/.test(gck) && /미달 · 입장은 됨/.test(gck), '어려움 + 장비 없음 = 준비 확인 장비 줄 경고만');
-  ok(await page.isEnabled('#entryGo'), '경고여도 입장 가능');
-  await page.click('#s-entry [data-diff="보통"]'); await page.clock.runFor(50);
-  await page.screenshot({ path: `${shots}/dungeon_entry.png` });
+  ok(!/Infinity|NaN|undefined/.test(await page.textContent('#s-party')), '편성·공략에 Infinity·NaN 없음');
+  await page.screenshot({ path: `${shots}/dungeon_guide.png` });
+  await page.keyboard.press('Escape'); await page.clock.runFor(50);
+  ok((await page.locator('#s-party .f-gsheet').count()) === 0, 'Esc = 공략 시트 닫힘');
+  await page.click('#s-party .tb-back'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-content') && await page.getAttribute('#s-content [data-diff="보통"]', 'aria-pressed') === 'true', '뒤로 = 전투 탭 (고른 장소·난이도 그대로)');
+  await page.click('#s-content [data-diff="어려움"]'); await page.clock.runFor(50);
+  await page.click('#contentGo'); await page.clock.runFor(100);
+  const gck = await page.textContent('#s-party .f-warn.gear');
+  ok(/권장 고급/.test(gck) && /입장은 됨/.test(gck), '어려움 + 장비 없음 = 편성 위 장비 경고 줄만');
+  ok(await page.isEnabled('#depart'), '경고여도 출발 가능');
+  await page.click('#s-party .tb-back'); await page.clock.runFor(50);
+  await page.click('#s-content [data-diff="보통"]'); await page.clock.runFor(50);
+  await page.click('#contentGo'); await page.clock.runFor(100);
 
   // ---- 편성 ----
-  await page.click('#entryGo'); await page.clock.runFor(100);
   ok((await page.locator('#s-party .pcard').count()) === 4, '5인 파티 (나 빼고 4명)');
   const cls0 = await page.evaluate(() => [...document.querySelectorAll('#s-party .pcard')].map(c => c.dataset.cls));
   ok(cls0.every(Boolean) && new Set(cls0).size === 4, `파티원마다 직업, 5인은 같은 직업 없음 (${cls0})`);
-  ok(/단단한 몸|신성한 갑옷/.test(await page.textContent('#s-party .pcard:first-child')), '탱커 카드에 직업 패시브');
+  await page.click('#s-party .pcard:first-child'); await page.clock.runFor(50);
+  ok(/단단한 몸|신성한 갑옷/.test(await page.textContent('#s-party .f-msheet')) && (await page.locator('#s-party .f-hex.on').count()) === 1, '탱커 줄을 누르면 상세 시트 (직업 패시브) + 위치판 칸 빛남');
+  await page.click('#s-party .f-msheet [data-shut]'); await page.clock.runFor(50);
   ok(/단축칸 2칸/.test(await page.textContent('#s-party')) && await pickedItems(page) === 'mana,life', 'Lv 1 = 단축칸 2칸, 마나·생명');
   await page.click('#s-party [data-slots]'); await page.clock.runFor(50);
   await page.click('#s-party [data-item="cleanse"]');
   ok(/가득 참/.test(await page.textContent('#s-party .note.warn')), '3번째는 안 들어감');
-  await page.click('#s-party [data-shut]'); await page.clock.runFor(50);
+  await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
   const nicks = () => page.evaluate(() => [...document.querySelectorAll('#s-party .pcard .pnick')].map(b => b.textContent).join());
   const before = await nicks();
   ok(/무료/.test(await page.textContent('#reroll')), '첫 다시 뽑기 = 무료');

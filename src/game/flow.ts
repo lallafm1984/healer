@@ -1,4 +1,4 @@
-/** 한 판의 흐름 (콘텐츠 선택 → 입장 → 편성 → 전투 → 정산 → 보상) 사이에 넘기는 값 */
+/** 한 판의 흐름 (콘텐츠 선택 → (주간 도전만 입장) → 편성 → 전투 → 정산 → 보상) 사이에 넘기는 값 */
 import type { ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { RosterEntry } from '../engine';
@@ -24,13 +24,11 @@ export const Flow: {
   pub: RosterEntry[] | null;
   /** 길드파티로 고른 길드원 id */
   gpick: number[];
-  /** 던전 레벨 단계 (07 3장, 0 = 기본) */
-  tier: number;
   /** 주간 도전 단계 (13 3-2, 0 = 도전 아님) */
   chal: number;
   /** 길드 탭 「길드파티로 출전」 (30): 다음 편성을 길드파티로 시작 */
   preferGuild: boolean;
-} = { content: 'rustfort', diff: '보통', party: null, seed: 1, rerolls: 0, result: null, settle: null, coach: null, mode: 'public', pub: null, gpick: [], tier: 0, chal: 0, preferGuild: false };
+} = { content: 'rustfort', diff: '보통', party: null, seed: 1, rerolls: 0, result: null, settle: null, coach: null, mode: 'public', pub: null, gpick: [], chal: 0, preferGuild: false };
 
 export const newSeed = () => (Math.random() * 1e9) | 0;
 
