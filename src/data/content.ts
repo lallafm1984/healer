@@ -5,7 +5,6 @@
  */
 import type { DiffName } from './difficulty';
 import { DUNGEONS } from './dungeons';
-import { LEVEL_TIERS } from './affixes';
 import { ENCOUNTERS, type EncounterKey } from './encounters';
 import { CONTENT_PLACE, FACTIONS, PLACES } from './places';
 
@@ -21,7 +20,7 @@ export interface ContentDef {
   name: string;
   /** 지역 · 세력 (11 4장) */
   place: string;
-  /** 레벨 단계 (보상 계산·권장 레벨) */
+  /** 최소 적 레벨 (= 열림 레벨). 들어가면 적은 내 레벨로 맞춰짐 (32), 이건 개발 빌드로 레벨 전에 들어갈 때·튜토리얼 판만 씀 */
   stageLv: number;
   /** 이 레벨부터 열림 */
   unlockLv: number;
@@ -37,8 +36,6 @@ export interface ContentDef {
   diffUnlock?: Partial<Record<DiffName, number>>;
   /** 콘텐츠 목록에 안 보임 (튜토리얼 첫 전투) */
   hidden?: boolean;
-  /** 던전 레벨 단계 (07 3장): 같은 던전을 이 레벨들로 다시 엶 (내 레벨이 되면 자동으로 올라감, runmode autoTier). 단계 레벨이 오르고 어픽스가 붙음 */
-  tiers?: number[];
   /** 기획에 없는 자리 표시 예시 (늘 준비 중, 보상·밸런스와 무관) */
   sample?: boolean;
 }
@@ -55,7 +52,7 @@ export const CONTENT: ContentDef[] = [
   },
   {
     key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 1, unlockLv: 1, ready: true,
-    fights: () => DUNGEONS.rustfort.segments, size: five, tiers: LEVEL_TIERS,
+    fights: () => DUNGEONS.rustfort.segments, size: five,
   },
   { key: 'crypt', bosses: ['시체 수집가', '역병 사제 말코어'], kind: 'dungeon', name: '역병 지하묘지', place: '왕도 지하 · 역병 교단', stageLv: 5, unlockLv: 5, ready: false, fights: none, size: five },
   { key: 'swamp', bosses: ['늪 주술사', '거대 두꺼비 부글이', '늪 족장 세레스'], kind: 'dungeon', name: '독안개 늪', place: '늪지 · 늪의 부족', stageLv: 10, unlockLv: 10, ready: false, fights: none, size: five },
@@ -81,8 +78,8 @@ export const CONTENT: ContentDef[] = [
 
 export const contentOf = (k: ContentKey) => CONTENT.find(c => c.key === k)!;
 
-/** 난이도별 단계 레벨: 따로 잠긴 난이도(10인 악몽 Lv 50, 20인 악몽 Lv 80)는 그 레벨이 단계. tier = 던전 레벨 단계 (0 = 기본) */
-export const stageOf = (c: ContentDef, d: DiffName, tier = 0) => tier || (c.diffUnlock?.[d] ?? c.stageLv);
+/** 콘텐츠 최소 레벨 = 열림 레벨 (난이도만 따로 잠긴 건 그 레벨). 실제 적 레벨은 내 레벨과 이것 중 큰 쪽 (runmode, 32) */
+export const stageOf = (c: ContentDef, d: DiffName) => c.diffUnlock?.[d] ?? c.stageLv;
 
 /** 레이드는 보스 1마리 처치마다 보상 (12 3-1) → 1층 = 보스 1 */
 export const isRaid = (c: ContentDef) => c.kind === 'raid';

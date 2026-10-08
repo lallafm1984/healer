@@ -37,7 +37,7 @@ export default async function dungeon(url, shots) {
 
   // ---- 출전 → 바로 편성 (2026-10-08 입장 화면을 편성에 합침) ----
   await toParty(page);
-  ok(/보통 · 단계 Lv 1/.test(await page.textContent('#s-party .topbar')), '편성 머리 = 전투 탭에서 고른 난이도 · 단계');
+  ok(/보통/.test(await page.textContent('#s-party .topbar')) && !/단계 Lv/.test(await page.textContent('#s-party .topbar')), '편성 머리 = 전투 탭에서 고른 난이도 (단계 Lv 없음)');
   ok((await page.locator('#s-party [data-diff]').count()) === 0 && (await page.locator('#s-party .f-warns').count()) === 0, '난이도 다시 고르기 없음, 보통 + 물리만 = 경고 줄 없음');
   await page.click('#guideOpen'); await page.clock.runFor(50);
   ok((await page.locator('#s-party .f-gsheet .segs li').count()) === 4, '공략 시트: 진행 4구간');
@@ -160,7 +160,7 @@ export default async function dungeon(url, shots) {
   ok(await page.isVisible('#s-reward') && await page.isVisible('#s-reward .lvpop'), '보상 화면 + 레벨 업 팝업 (첫 클리어로 Lv 2)');
   const pop = await page.textContent('#s-reward .lvpop');
   ok(/Lv 1 → 2/.test(pop) && /소생/.test(pop) && !/준비 중/.test(pop), '팝업: Lv 1 → 2, 스킬 「소생」 열림');
-  ok(/힐량·체력 ×1\.00 → ×1\.08/.test(pop), '팝업: 힐량·체력 ×1.00 → ×1.08');
+  ok(!/힐량·체력/.test(pop), '팝업: 배율 줄 없음 (적이 내 레벨을 따라옴, 32)');
   await page.screenshot({ path: `${shots}/dungeon_levelup.png` });
   await page.click('#s-reward .lvpop button'); await page.clock.runFor(50);
   let sv = await save();
@@ -178,7 +178,7 @@ export default async function dungeon(url, shots) {
   await page.click('#depart'); await page.clock.runFor(3100 + 500);
   ok(await page.evaluate(() => window.__proto.dungeon.idx === 0 && window.__proto.F.enc.key === 'gate'), '던전 처음부터');
   const lvm = await page.evaluate(() => { const F = window.__proto.F; return { power: F.power, scale: F.scale, me: Math.round(F.me.max) }; });
-  ok(Math.abs(lvm.power - 1.08) < 1e-9 && lvm.scale === 1 && lvm.me === 594, `Lv 2 전투: 힐량·내 체력 ×1.08, 단계 Lv 1 그대로 ${JSON.stringify(lvm)}`);
+  ok(Math.abs(lvm.power - 1.08) < 1e-9 && lvm.scale === 1 && lvm.me === 594, `Lv 2 전투: 힐량·내 체력 ×1.08, 적은 내 레벨 − 2 (열림 레벨 1 아래로 안 내려감) ×1 (32) ${JSON.stringify(lvm)}`);
   // 탱커가 쓰러져도 전투는 계속, 아래에 포기 버튼 (2026-10-07 Lim)
   ok(await page.isHidden('#giveUp'), '탱커가 살아 있으면 포기 버튼 없음');
   // 전멸 UI의 입력 상태를 직접 고정한다. HP 1 + 3초 대기는 무작위 회피/보호 능력에 따라 살아남아 흔들린다.

@@ -1,4 +1,4 @@
-// 성장 (07 3장 던전 레벨 단계·어픽스, 18 3-3 로비 레이드 문)·주간 도전 「침묵의 시계」 (13 3-2)·광고 이어하기·광고 다시 뽑기 (15 7장)
+// 성장 (32 적 레벨 = 내 레벨·난이도 어픽스, 18 3-3 로비 레이드 문)·주간 도전 「침묵의 시계」 (13 3-2)·광고 이어하기·광고 다시 뽑기 (15 7장)
 import { chromium } from 'playwright';
 import { killEnemies, pastTitle } from './nav.mjs';
 
@@ -39,20 +39,21 @@ export default async function challenge(url, shots) {
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   const card = await text('#s-content [data-chal]');
   ok(/주간 도전/.test(card) && /침묵의 시계/.test(card) && /메마름/.test(card) && /전염병/.test(card), '던전 장소 줄 맨 앞 = 주간 도전 칸 (이번 주 메마름·전염병, 화면 읽기 글)');
-  ok(/단계 Lv 30/.test(await text('#s-content .b-gate')) && /격노/.test(await text('#s-content .b-gate .b-afx')), 'Lv 30 = 녹슨 요새 관문이 자동으로 단계 Lv 30 + 격노 (고르는 칩 없음)');
-
-  // ---- 던전 레벨 단계 (07 3장): 내 레벨로 자동 (2026-10-08) ----
+  // ---- 적 레벨 = 내 레벨, 어픽스는 난이도 (32, 2026-10-08) ----
   await page.click('#s-content [data-content="rustfort"]'); await page.clock.runFor(50);
+  ok(!/단계 Lv/.test(await text('#s-content .b-gate')) && (await page.locator('#s-content .b-gate .b-afx').count()) === 0, '녹슨 요새 보통 = 관문에 「단계 Lv」·어픽스 없음');
+  await page.click('#s-content [data-diff="어려움"]'); await page.clock.runFor(50);
+  ok(/격노/.test(await text('#s-content .b-gate .b-afx')), '어려움을 고르면 관문 해제 줄에 격노');
   await page.click('#contentGo'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-party') && (await page.locator('[data-tier]').count()) === 0, '출전 = 바로 편성, 레벨 단계 칩 없음');
-  ok(/단계 Lv 30/.test(await text('#s-party .topbar')) && /격노/.test(await text('#s-party .topbar .f-afxs')), '편성 머리 = 단계 Lv 30 + 격노');
+  ok(/어려움/.test(await text('#s-party .topbar')) && !/단계 Lv/.test(await text('#s-party .topbar')) && /격노/.test(await text('#s-party .topbar .f-afxs')), '편성 머리 = 어려움 + 격노 (단계 Lv 없음)');
   await page.click('#guideOpen'); await page.clock.runFor(50);
-  ok(/격노/.test(await text('#s-party .f-gsheet .afxlist')), '공략 시트에 단계 어픽스 격노 설명');
+  ok(/어려움 · 보스 체력 30%/.test(await text('#s-party .f-gsheet .afxlist')), '공략 시트에 난이도 어픽스 격노 설명');
   await page.screenshot({ path: `${shots}/growth_tier.png` });
   await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
   await page.click('#depart'); await page.clock.runFor(3100 + 300);
   const fs = await F(() => { const f = window.__proto.F; return { stage: f.cfg.stageLv, rage: !!f.aff?.on.rage }; });
-  ok(await page.isVisible('#battle') && fs.stage === 30 && fs.rage, `전투 = 단계 Lv 30 + 격노 (${JSON.stringify(fs)})`);
+  ok(await page.isVisible('#battle') && fs.stage === 28 && fs.rage, `전투 = 적 Lv 28 (내 레벨 30 − 2) + 격노 (Lv 30부터) (${JSON.stringify(fs)})`);
 
   // ---- 광고 이어하기 (15 7장) ----
   await lose();
@@ -65,7 +66,7 @@ export default async function challenge(url, shots) {
   ok(await page.isVisible('#battle') && !rs.over && rs.cont === 1 && rs.idx === 0 && (await save()).daily.ads.cont === 1, `진 구간부터 다시 (${JSON.stringify(rs)})`);
   await winAll();
   ok(await page.isVisible('#s-settle') && /광고로 이어 함 1번/.test(await text('#s-settle')) && (await text('#s-settle .grade')) === 'B', '이어서 깬 판 = 등급 B');
-  ok(/Lv 30/.test(await text('#s-settle .res-head p')), '정산에 Lv 30 단계');
+  ok(/격노/.test(await text('#s-settle .res-head p')) && !/단계 Lv/.test(await text('#s-settle .res-head p')), '정산 머리에 어픽스 격노 (단계 Lv 없음)');
 
   // ---- 주간 도전 (13 3-2) ----
   await page.click('#toReward'); await page.clock.runFor(100);

@@ -4,7 +4,7 @@ import { ABILITIES } from '../src/data/abilities';
 import { CLASSES } from '../src/data/classes';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { guildCap, memberPower, pointsAt, type GuildMember } from '../src/data/guild';
-import { clearXp } from '../src/data/progression';
+import { clearXp, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
 import {
   addMemberXp, autoPick, guildAfter, guildOpen, guildRoster, hire, makeCandidate, postRecruit, release, rerollAbility, resetPoints, scoutHire, spendPoint, togglePick, train,
@@ -144,11 +144,17 @@ describe('길드파티 편성 (02 9-2)', () => {
 });
 
 describe('판 뒤 (02 9장)', () => {
-  it('길드원 경험치: 레벨 상한 = 내 레벨', () => {
+  it('길드원 경험치: 레벨 상한 = 내 레벨, 상한에서도 다음 레벨 바로 앞까지 모아 둠 (32)', () => {
     const m = mem({ lv: 14 });
     expect(addMemberXp(m, 1e9, 15)).toEqual([15]);
-    expect([m.lv, m.xp]).toEqual([15, 0]);
+    expect([m.lv, m.xp]).toEqual([15, xpToNext(15) - 1]);
     expect(addMemberXp(m, 100, 15)).toEqual([]);
+    expect(m.xp).toBe(xpToNext(15) - 1);
+    // 내가 Lv 16이 되면 다음 판에 바로 따라옴
+    expect(addMemberXp(m, 1, 16)).toEqual([16]);
+    const n = mem({ lv: 20, xp: 0 });
+    expect(addMemberXp(n, 50, 20)).toEqual([]);
+    expect([n.lv, n.xp]).toEqual([20, 50]);
   });
   it('길드 평균보다 낮으면 2배, 인연 = 이긴 판(S·A)에서 살아남은 공개모집 중 내 힐을 가장 많이 받은 1명', () => {
     seed = 5;
@@ -163,8 +169,8 @@ describe('판 뒤 (02 9장)', () => {
     const r = guildAfter(s, rng, { win: true, quit: false, grade: 'A', diff: '보통', stage: 25, raid: 0, content: '녹슨 요새', party, roster });
     const [a, b] = r.members;
     expect(a.nick).toBe(lo.nick);
-    expect(a.xp).toBe(Math.round(clearXp(10, 25, '보통', 'A', { raid: 0, win: true }) * 2)); // 평균(19.5)보다 낮음 → 2배
-    expect(b.xp).toBe(clearXp(29, 25, '보통', 'A', { raid: 0, win: true }));
+    expect(a.xp).toBe(Math.round(clearXp(10, '보통', 'A', { raid: 0, win: true }) * 2)); // 평균(19.5)보다 낮음 → 2배
+    expect(b.xp).toBe(clearXp(29, '보통', 'A', { raid: 0, win: true }));
     expect(r.scout!.nick).toBe(pub[1].nick);
     expect(r.scout!.lv).toBe(25);
     expect(s.guild.scouts.length).toBe(1);

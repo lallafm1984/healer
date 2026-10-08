@@ -1,14 +1,14 @@
-/** 어픽스 (07 3장 레벨 단계, 13 3-3 주간 도전)·던전 레벨 단계·주간 도전 「침묵의 시계」 (13 3-2)·광고 이어하기 (15) */
+/** 어픽스 (32 난이도 어픽스, 13 3-3 주간 도전)·적 레벨 = 내 레벨 (32)·주간 도전 「침묵의 시계」 (13 3-2)·광고 이어하기 (15) */
 import { describe, expect, it } from 'vitest';
-import { LEVEL_TIERS, tierAffixes, WEEKLY_AFFIXES } from '../src/data/affixes';
+import { diffAffixes, WEEKLY_AFFIXES } from '../src/data/affixes';
 import { CHAL, CHAL_ROTA, chalLimit, chalMult } from '../src/data/challenge';
 import { contentOf, stageOf } from '../src/data/content';
-import { clearGold, clearXp } from '../src/data/progression';
+import { clearGold, clearXp, EXPLORE_REWARD } from '../src/data/progression';
 import * as E from '../src/engine';
 import { affDebuffEnd, affixTick, affHeal } from '../src/engine/affixes';
 import { heal } from '../src/engine/core';
 import { rollover } from '../src/game/economy';
-import { autoTier, runMode, weekAffixes } from '../src/game/runmode';
+import { runMode, SYNC_GAP, weekAffixes } from '../src/game/runmode';
 import { settle, type BattleResult } from '../src/game/settle';
 import { newSave, type SaveData } from '../src/platform/storage';
 
@@ -145,49 +145,63 @@ describe('어픽스 전투 효과', () => {
   });
 });
 
-describe('던전 레벨 단계 (07 3장)', () => {
-  it('녹슨 요새 Lv 10/30/50/70/90, 30+ 격노 · 50+ 역병 · 70+ 불안정', () => {
-    expect(contentOf('rustfort').tiers).toEqual(LEVEL_TIERS);
-    expect(tierAffixes(10)).toEqual([]);
-    expect(tierAffixes(30)).toEqual(['rage']);
-    expect(tierAffixes(50)).toEqual(['rage', 'plague']);
-    expect(tierAffixes(90)).toEqual(['rage', 'plague', 'unstable']);
-    expect(stageOf(contentOf('rustfort'), '보통', 50)).toBe(50);
-    expect(stageOf(contentOf('rustfort'), '보통')).toBe(1);
+describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)', () => {
+  it('쉬움·보통 없음. 어려움·악몽 Lv 30부터 격노, 악몽 Lv 50부터 역병. 불안정은 주간 도전으로', () => {
+    for (const lv of [1, 29, 30, 50, 100]) {
+      expect(diffAffixes('쉬움', lv)).toEqual([]);
+      expect(diffAffixes('보통', lv)).toEqual([]);
+    }
+    expect(diffAffixes('어려움', 29)).toEqual([]);
+    expect(diffAffixes('어려움', 30)).toEqual(['rage']);
+    expect(diffAffixes('어려움', 80)).toEqual(['rage']);
+    expect(diffAffixes('악몽', 29)).toEqual([]);
+    expect(diffAffixes('악몽', 49)).toEqual(['rage']);
+    expect(diffAffixes('악몽', 50)).toEqual(['rage', 'plague']);
+    expect(WEEKLY_AFFIXES).toContain('unstable');
+    expect(CHAL_ROTA.some(w => w.includes('unstable'))).toBe(true);
   });
-  it('단계 레벨로 골드·경험치를 셈', () => {
-    const s = save(52), m = runMode(s, contentOf('rustfort'), '보통', { chal: 0 });
+  it('적 레벨로 골드·경험치를 셈', () => {
+    const s = save(52), m = runMode(s, contentOf('rustfort'), '어려움', { chal: 0 });
     s.daily.pub = 3; // 공개모집 보너스(×2)는 뺌
-    expect(m).toMatchObject({ stage: 50, affixes: ['rage', 'plague'], tier: 50, chal: 0 });
-    const x = settle(s, result({ stage: m.stage, affixes: m.affixes }), rng, [], T0);
-    expect(x.gold).toBe(clearGold(50, '보통', 'S'));
-    expect(x.xp).toBe(clearXp(52, 50, '보통', 'S', { win: true }));
+    expect(m).toMatchObject({ stage: 50, affixes: ['rage'], chal: 0 });
+    const x = settle(s, result({ diff: '어려움', stage: m.stage, affixes: m.affixes }), rng, [], T0);
+    expect(x.gold).toBe(clearGold(50, '어려움', 'S'));
+    expect(x.xp).toBe(clearXp(52, '어려움', 'S', { win: true }));
   });
-  it('단계는 고르지 않고 자동: 내 레벨 이하 가장 높은 단계 (2026-10-08)', () => {
+  it('어느 레벨이든 적 = 내 레벨 − 2 (단계 톱니 없음), 열림 레벨 아래로는 안 내려감', () => {
     const rf = contentOf('rustfort');
-    const at = (lv: number) => runMode(save(lv), rf, '보통', { chal: 0 });
-    expect(at(9)).toMatchObject({ tier: 0, stage: 1, affixes: [] });
-    expect(at(10)).toMatchObject({ tier: 10, stage: 10, affixes: [] });
-    expect(at(29)).toMatchObject({ tier: 10, stage: 10 });
-    expect(at(30)).toMatchObject({ tier: 30, stage: 30, affixes: ['rage'] });
-    expect(at(100)).toMatchObject({ tier: 90, stage: 90, affixes: ['rage', 'plague', 'unstable'] });
-    // 튜토리얼 전은 기본, 개발 빌드 「레벨 잠금 무시」로는 안 올라감
+    for (const lv of [1, 2, 3, 5, 9, 10, 29, 30, 49, 50, 100]) expect(runMode(save(lv), rf, '보통', { chal: 0 })).toMatchObject({ stage: Math.max(1, lv - SYNC_GAP), affixes: [] });
+    // 튜토리얼 전은 콘텐츠 기본 레벨 · 어픽스 없음
     const tut = save(40); tut.tut = 2;
-    expect(autoTier(tut, rf)).toBe(0);
-    const dev = save(5); dev.settings.devUnlock = true;
-    expect(autoTier(dev, rf)).toBe(0);
+    expect(runMode(tut, rf, '악몽', { chal: 0 })).toMatchObject({ stage: 1, affixes: [] });
   });
-  it('단계 없는 콘텐츠 (레이드)는 기본', () => {
-    expect(runMode(save(90), contentOf('abyss1'), '보통', { chal: 0 })).toMatchObject({ tier: 0, stage: 35, affixes: [] });
+  it('레이드·탐험은 어픽스 없음. 열림 레벨 전에 들어가면 (개발 빌드) 열림 레벨', () => {
+    expect(runMode(save(90), contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(88);
+    expect(runMode(save(60), contentOf('abyss1'), '악몽', { chal: 0 })).toMatchObject({ stage: 58, affixes: [] });
+    const dev = save(20); dev.settings.devUnlock = true;
+    expect(runMode(dev, contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(35);
+    expect(runMode(dev, contentOf('abyss1'), '악몽', { chal: 0 }).stage).toBe(50);
+    expect(stageOf(contentOf('rustfort'), '보통')).toBe(1);
+    const ex = contentOf('plateau');
+    expect(runMode(save(60), ex, '악몽', { chal: 0 }).affixes).toEqual([]);
+  });
+  it('탐험은 튜토리얼 뒤 골드·경험치 ×0.35', () => {
+    const ex = contentOf('plateau');
+    const s = save(30); s.daily.pub = 3;
+    const d = settle(s, result({ diff: '보통', stage: 28 }), rng, [], T0);
+    const e = settle(s, result({ content: ex.key, diff: '보통', stage: 28 }), rng, [], T0);
+    expect(e.gold).toBe(Math.round(d.gold * EXPLORE_REWARD));
+    expect(e.xp).toBe(Math.round(clearXp(30, '보통', 'S', { win: true }) * EXPLORE_REWARD));
   });
 });
 
 describe('주간 도전 「침묵의 시계」 (13 3-2)', () => {
-  it('주간 어픽스: 8주 순환, 같은 조합이 이어서 안 나오고 4주마다 축제, 메마름+서두름은 같이 안 나옴', () => {
+  it('주간 어픽스: 8주 순환, 같은 조합이 이어서 안 나오고 4주마다 축제, 메마름+서두름·불안정+서두름은 같이 안 나옴', () => {
     for (let i = 0; i < CHAL_ROTA.length; i++) {
       expect(CHAL_ROTA[i].join()).not.toBe(CHAL_ROTA[(i + 1) % CHAL_ROTA.length].join());
       expect(CHAL_ROTA[i].includes('festival')).toBe(i % 4 === 3);
       expect(CHAL_ROTA[i].includes('dry') && CHAL_ROTA[i].includes('haste')).toBe(false);
+      expect(CHAL_ROTA[i].includes('unstable') && CHAL_ROTA[i].includes('haste')).toBe(false);
       for (const k of CHAL_ROTA[i]) expect(k === 'festival' || WEEKLY_AFFIXES.includes(k)).toBe(true);
     }
     expect(weekAffixes(T0)).toEqual(CHAL_ROTA[0]);
@@ -201,7 +215,7 @@ describe('주간 도전 「침묵의 시계」 (13 3-2)', () => {
     expect(chalMult(11).dmg).toBeCloseTo(1.4);
     expect(chalLimit(1)).toBe(420);
     const m = runMode(save(45), contentOf(CHAL.content), CHAL.diff, { chal: 6 }, T0);
-    expect(m).toMatchObject({ stage: 45, chal: 6, tier: 0, limit: chalLimit(6), affixes: CHAL_ROTA[0] });
+    expect(m).toMatchObject({ stage: 45, chal: 6, limit: chalLimit(6), affixes: CHAL_ROTA[0] });
     expect(runMode(save(5), contentOf(CHAL.content), CHAL.diff, { chal: 1 }, T0).stage).toBe(20);
     expect(runMode(save(), contentOf(CHAL.content), CHAL.diff, { chal: 99 }, T0).chal).toBe(CHAL.max);
   });

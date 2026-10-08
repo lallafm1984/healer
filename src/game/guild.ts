@@ -11,7 +11,7 @@ import {
   type GuildMember, type PostTier,
 } from '../data/guild';
 import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
-import { addXp, clearXp, GUILD_LEVEL, MAX_LEVEL, type Grade } from '../data/progression';
+import { addXp, clearXp, GUILD_LEVEL, MAX_LEVEL, xpToNext, type Grade } from '../data/progression';
 import { TRAIT_CHANCE, TRAITS, type TraitKey } from '../data/traits';
 import type { RosterEntry } from '../engine/types';
 import type { SaveData, Scout } from '../platform/storage';
@@ -213,12 +213,16 @@ export interface GuildAfter {
   fame: number;
 }
 
-/** 길드원 경험치 (02 9-2): 같은 식, 길드 평균보다 낮으면 보충 2배, 레벨 상한 = 내 레벨 */
+/**
+ * 길드원 경험치 (02 9-2): 같은 식, 길드 평균보다 낮으면 보충 2배, 레벨 상한 = 내 레벨.
+ * 상한에 닿아도 다음 레벨 바로 앞까지는 모아 둠 → 내가 레벨업하면 다음 판에 바로 따라옴 (32: 적이 내 레벨에 맞춰져서 뒤처지면 약해짐)
+ */
 export function addMemberXp(m: GuildMember, amt: number, cap: number): number[] {
-  if (m.lv >= cap) { m.xp = 0; return []; }
+  const bank = (lv: number, xp: number) => (lv >= MAX_LEVEL ? 0 : Math.min(xp, xpToNext(lv) - 1));
+  if (m.lv >= cap) { m.xp = bank(m.lv, m.xp + amt); return []; }
   const p = { level: m.lv, xp: m.xp };
   const ups = addXp(p, amt);
-  m.lv = Math.min(cap, p.level); m.xp = m.lv >= cap || m.lv >= MAX_LEVEL ? 0 : p.xp;
+  if (p.level > cap) { m.lv = cap; m.xp = bank(cap, xpToNext(cap) - 1); } else { m.lv = p.level; m.xp = bank(m.lv, p.xp); }
   return ups.filter(l => l <= cap);
 }
 
@@ -237,7 +241,7 @@ export function guildAfter(
     const m = e.gid != null ? g.members.find(x => x.id === e.gid) : null;
     if (!m) continue;
     m.runs++;
-    const xp = Math.round(clearXp(m.lv, o.stage, o.diff, o.grade, { raid: o.raid, win: o.win }) * (m.lv < avg ? 2 : 1));
+    const xp = Math.round(clearXp(m.lv, o.diff, o.grade, { raid: o.raid, win: o.win }) * (m.lv < avg ? 2 : 1));
     const ups = addMemberXp(m, xp, save.player.level);
     out.members.push({ nick: m.nick, xp, ups });
   }

@@ -127,7 +127,7 @@ export interface BattleApi {
     talents?: (number | null)[];
     /** 가방에 있는 소비 아이템 (19 11장) */
     stock?: Partial<Record<ItemKey, number>>;
-    /** 어픽스·보스 배율·제한시간 (07 3장 레벨 단계, 13 3-2 주간 도전) */
+    /** 어픽스·보스 배율·제한시간 (32 난이도 어픽스, 13 3-2 주간 도전) */
     affixes?: string[]; bossMult?: { hp: number; dmg: number }; limit?: number; chal?: number;
   }): void;
   /** 진 구간부터 다시 (광고 이어하기, 15). 마나는 그 구간 시작 때로 */

@@ -143,11 +143,7 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .lvpop .card { text-align: center; }
 .lvnum { margin: 0; font-size: 18px; }
 .lvnum b { font-family: var(--font-display); font-weight: 400; font-size: 30px; color: var(--gold-hi); }
-.lvgain { margin: 0; font-size: 14px; color: var(--mute); }
-.lvgain b { color: var(--heal); font-weight: 700; }
 .lvpop ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; text-align: left; font-size: 14px; }
-.lvpop li.later { color: var(--mute); }
-.lvpop li small { font-size: 11px; border: 1px solid #473D30; border-radius: 6px; padding: 0 4px; }
 
 /* 장비 탭 */
 .gtile { background: var(--panel); border: 2px solid var(--g, var(--line)); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 2px; min-height: 72px; }
@@ -278,7 +274,6 @@ button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer;
 .pcard.fill { opacity: 0.75; border-style: dashed; }
 .pcard .pick { width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--line); display: grid; place-items: center; color: #1A1408; font-weight: 700; align-self: center; }
 .pcard .pick.on { background: var(--gold); border-color: var(--gold); }
-.lvgain.guild { color: var(--mute); }
 
 /* 재화·임무·상점·패스 (12, 13, 15) */
 .wallet { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--mute); }

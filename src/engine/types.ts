@@ -298,7 +298,7 @@ export interface FightConfig {
   talents?: (number | null)[];
   /** 가방에 남은 소비 아이템 (19 11장). 없으면 제한 없음 */
   itemCap?: Partial<Record<ItemKey, number>>;
-  /** 어픽스 (07 3장 레벨 단계, 13 3-3 주간 도전). 없으면 어픽스 없음 */
+  /** 어픽스 (32 난이도 어픽스, 13 3-3 주간 도전). 없으면 어픽스 없음 */
   affixes?: AffixKey[];
   /** 보스·적 체력·피해 배율 (주간 도전 단계, 13 3-2). 없으면 1 */
   bossMult?: { hp: number; dmg: number };

@@ -22,22 +22,20 @@ describe('경험치·레벨 (02 부록 B)', () => {
     expect(addXp(p, 100 + 303 + 5)).toEqual([2, 3]);
     expect(p).toEqual({ level: 3, xp: 5 });
   });
-  it('녹슨 요새 보통 A 클리어 1번 ≈ 한 레벨 조금 넘게, 단계보다 많이 높으면 줄어듦', () => {
-    const at1 = clearXp(1, 1, '보통', 'A', { win: true });
+  it('녹슨 요새 보통 A 클리어 1번 ≈ 한 레벨 조금 넘게, 적이 늘 내 레벨이라 넘침 감소 없음 (32)', () => {
+    const at1 = clearXp(1, '보통', 'A', { win: true });
     expect(at1 / xpToNext(1)).toBeCloseTo(1.1, 2);
-    // 단계보다 5레벨 넘게 높으면 1레벨에 4%씩 줄고 최저 30% (던전 레벨 단계 사이를 메움)
-    expect(clearXp(10, 5, '보통', 'A', { win: true })).toBe(clearXp(10, 10, '보통', 'A', { win: true }));
-    expect(clearXp(30, 1, '보통', 'A', { win: true }) / clearXp(30, 30, '보통', 'A', { win: true })).toBeCloseTo(0.3, 2);
-    expect(clearXp(1, 1, '보통', null, { win: false })).toBe(Math.round(at1 / 1.1 * 0.2));
+    expect(clearXp(15, '보통', 'A', { win: true }) / xpToNext(15)).toBeCloseTo(1.1 * 0.85 * 14 * 15 ** -1.1, 2);
+    expect(clearXp(1, '보통', null, { win: false })).toBe(Math.round(at1 / 1.1 * 0.2));
+    expect(clearXp(40, '보통', 'A', { raid: 10, win: true }) / clearXp(40, '보통', 'A', { win: true })).toBeCloseTo(1.2, 2);
   });
   it('Lv 1 → 100 도달 시점이 18 1장과 맞음 (하루 8판, 그 레벨에서 가장 좋은 콘텐츠, 보통 A)', () => {
-    // 녹슨 요새 기본·레벨 단계 10/30/50/70/90, 10인 레이드 Lv 35 (×1.5), 20인 레이드 Lv 70 (×2)
+    // 적 = 내 레벨 (32): 던전, 10인 레이드 Lv 35부터 (×1.2), 20인 레이드 Lv 70부터 (×1.4)
     const best = (lv: number) => {
-      const t = [1, 10, 30, 50, 70, 90].filter(x => x <= lv).pop()!;
-      const opts: [number, 0 | 10 | 20][] = [[t, 0]];
-      if (lv >= 35) opts.push([35, 10]);
-      if (lv >= 70) opts.push([70, 20]);
-      return Math.max(...opts.map(([st, raid]) => clearXp(lv, st, '보통', 'A', { raid, win: true })));
+      const opts: (0 | 10 | 20)[] = [0];
+      if (lv >= 35) opts.push(10);
+      if (lv >= 70) opts.push(20);
+      return Math.max(...opts.map(raid => clearXp(lv, '보통', 'A', { raid, win: true })));
     };
     const p = { level: 1, xp: 0 }, day: Record<number, number> = {};
     for (let run = 1; p.level < 100 && run < 5000; run++) { for (const u of addXp(p, best(p.level))) day[u] = run / 8; }
@@ -49,15 +47,15 @@ describe('경험치·레벨 (02 부록 B)', () => {
   it('Lv 1 → 15를 녹슨 요새·레이드 보통 A로 대략 12~25판 (18 1장: 하루 30~40분 1~2일)', () => {
     const p = { level: 1, xp: 0 };
     let runs = 0;
-    while (p.level < 15 && runs < 200) { addXp(p, clearXp(p.level, p.level <= 5 ? 1 : p.level - 4, '보통', 'A', { win: true })); runs++; }
+    while (p.level < 15 && runs < 200) { addXp(p, clearXp(p.level, '보통', 'A', { win: true })); runs++; }
     expect(runs).toBeGreaterThanOrEqual(12);
     expect(runs).toBeLessThanOrEqual(25);
   });
-  it('골드 = (50 + 10 × 단계) × 난이도 × 등급, 레이드 보스 ×2 (12 3-1)', () => {
+  it('골드 = (50 + 10 × 단계) × 난이도 × 등급, 레이드 보스 10인 ×1.5 · 20인 ×2.2 (12 3-1, 32 3장)', () => {
     expect(clearGold(23, '보통', 'A')).toBe(308);
     expect(clearGold(1, '보통', 'B')).toBe(60);
-    expect(clearGold(35, '어려움', 'S', 10)).toBe(Math.round(400 * 1.3 * 1.2 * 2));
-    expect(clearGold(70, '보통', 'A', 20)).toBe(Math.round(750 * 1.1 * 3));
+    expect(clearGold(35, '어려움', 'S', 10)).toBe(Math.round(400 * 1.3 * 1.2 * 1.5));
+    expect(clearGold(70, '보통', 'A', 20)).toBe(Math.round(750 * 1.1 * 2.2));
   });
   it('등급·별·단축칸', () => {
     expect([0, 1, 2, 3, 4].map(gradeOf)).toEqual(['S', 'A', 'B', 'B', 'C']);
@@ -198,7 +196,7 @@ describe('정산 (09 S08·S09)', () => {
     const s = newSave(1);
     const x = settle(s, result({ win: false, segIdx: 1 }), rngFrom(1));
     expect([x.grade, x.gold, x.item]).toEqual([null, 0, null]);
-    expect(x.xp).toBe(clearXp(1, 1, '보통', null, { win: false }));
+    expect(x.xp).toBe(clearXp(1, '보통', null, { win: false }));
     expect(s.clears).toEqual({});
     const q = settle(s, result({ win: false, quit: true }), rngFrom(1));
     expect(q.xp).toBe(0);

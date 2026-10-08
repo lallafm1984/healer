@@ -14,7 +14,7 @@ import { FIRST_CLEAR_CRYSTAL, SHARD_MAX } from '../data/economy';
 import { avgScore, DROP_TABLE, GRADE_STYLE, ITEM_GRADES, LEGEND_LEVEL, RECOMMENDED } from '../data/equipment';
 import { canDispel, DEB_COLOR } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
-import { clearGold } from '../data/progression';
+import { clearGold, EXPLORE_REWARD } from '../data/progression';
 import { cssUrl } from '../art';
 import { RESET_HOUR, weekKey } from '../game/clock';
 import { raidLootOpen } from '../game/economy';
@@ -104,7 +104,7 @@ function lootLine(c: ContentDef): string {
 
 /**
  * 추천 리본 (27 3-1): 내 레벨·장비로 「보통 이상 처음 깨기 좋은」 장소 1곳.
- * 콘텐츠마다 아직 안 깬 가장 낮은 난이도(보통부터)를 보고, 레벨이 단계 이상이고 권장 장비를 채우면 후보. 단계가 가장 높은 것 (같으면 탐험보다 던전·레이드)
+ * 콘텐츠마다 아직 안 깬 가장 낮은 난이도(보통부터)를 보고, 레벨이 열림 레벨 이상이고 권장 장비를 채우면 후보. 열림 레벨이 가장 높은 것 (같으면 탐험보다 던전·레이드)
  */
 function recommended(): ContentKey | null {
   const lv = G.save.player.level, mine = avgScore(G.save.gear.equipped);
@@ -181,7 +181,7 @@ function chalCell(): string {
   </button><i class="b-div" aria-hidden="true"></i>`;
 }
 
-/** 보상 칸 (정산 계산과 같음, 단계 = 자동 레벨 단계): 장비 등급 범위 · 골드 (A 등급) · 첫 클리어 크리스탈 + 전설 확률 */
+/** 보상 칸 (정산 계산과 같음, stage = 적 레벨 = 내 레벨): 장비 등급 범위 · 골드 (A 등급) · 첫 클리어 크리스탈 + 전설 확률 */
 function rewards(c: ContentDef, d: DiffName, stage: number): string {
   const lv = G.save.player.level, table = DROP_TABLE[d];
   const lo = table.findIndex(p => p > 0);
@@ -190,7 +190,7 @@ function rewards(c: ContentDef, d: DiffName, stage: number): string {
   if (ITEM_GRADES[hi] === '전설' && lv < LEGEND_LEVEL) hi = ITEM_GRADES.indexOf('영웅');
   const gLo = ITEM_GRADES[lo], gHi = ITEM_GRADES[hi];
   const range = lo >= hi ? gHi : `${gLo}~${gHi}`;
-  const gold = clearGold(stage, d, 'A', raidSize(c));
+  const gold = Math.round(clearGold(stage, d, 'A', raidSize(c)) * (c.kind === 'explore' && G.save.tut >= TUT.done ? EXPLORE_REWARD : 1));
   const first = G.save.tut >= TUT.done && !G.save.clears[c.key]?.[d];
   const leg = table[ITEM_GRADES.indexOf('전설')];
   const legTxt = !leg ? '' : lv < LEGEND_LEVEL ? `전설 Lv ${LEGEND_LEVEL}부터` : `전설 ${Math.round(leg * 100)}%`;
@@ -207,7 +207,7 @@ function rewards(c: ContentDef, d: DiffName, stage: number): string {
 /** 관문: 아치 금테 안 장소 그림 + 이름표 · 추천 · ‹ › · 정보 · 해제 · 보상 */
 function gate(c: ContentDef, d: DiffName, many: boolean): string {
   const pa = placeArt(c.key), f = factionOf(c), lk = lockOf(c), pl = PLACES[pa.place];
-  // 레벨 단계는 자동 (07 3장, 2026-10-08): 내 레벨 이하 가장 높은 단계 + 그 단계 어픽스
+  // 적 레벨 = 내 레벨, 어픽스는 난이도 (32, 2026-10-08)
   const m = runMode(G.save, c, d, { chal: 0 });
   const [region, side] = c.place.split(' · ');
   const status = !c.ready ? '준비 중' : lk.locked ? `${LOCK}Lv ${lk.lv}에 열림` : '';
@@ -216,13 +216,13 @@ function gate(c: ContentDef, d: DiffName, many: boolean): string {
     : `<span class="b-art none" style="--t0:${pl.tone[0]};--t1:${pl.tone[1]}"></span>`;
   return `<section class="b-gate${status ? ' off' : ''}" aria-label="출전할 곳 · ${esc(c.name)}">
     ${art}
-    <div class="b-gt"><span class="b-gm" style="--rim:${FACTIONS[f].mark.rim}">${factionMark(f, 'md')}</span><span class="b-gn"><b>${esc(c.name)}</b><small>단계 Lv ${m.stage}${side ? ` · ${esc(side)}` : ''}</small></span></div>
+    <div class="b-gt"><span class="b-gm" style="--rim:${FACTIONS[f].mark.rim}">${factionMark(f, 'md')}</span><span class="b-gn"><b>${esc(c.name)}</b>${side ? `<small>${esc(side)}</small>` : ''}</span></div>
     ${c.key === recommended() ? '<span class="b-rib">추천</span>' : ''}
     ${many ? `<button type="button" class="b-arw prev" data-step="-1" aria-label="이전 장소">${PREV}</button><button type="button" class="b-arw next" data-step="1" aria-label="다음 장소">${NEXT}</button>` : ''}
     ${status ? `<span class="b-st">${status}</span>` : ''}
     <div class="b-gb">
       <span class="b-row"><span class="b-inf">${esc(region)} · ${c.size(d)}인 · 보스 ${c.bosses.length}</span>${c.ready && !lk.locked ? lootLine(c) : ''}</span>
-      <span class="b-row"><span class="cap">해제</span>${dispelChips(c)}${c.ready && m.affixes.length ? `<span class="b-afx" aria-label="단계 어픽스">${afxTags(m.affixes)}</span>` : ''}</span>
+      <span class="b-row"><span class="cap">해제</span>${dispelChips(c)}${c.ready && m.affixes.length ? `<span class="b-afx" aria-label="${d} 어픽스">${afxTags(m.affixes)}</span>` : ''}</span>
       ${c.ready && lk.dev ? `<span class="f-dev">Lv ${lk.lv} 해금 · 개발 빌드라 열림</span>` : ''}
       ${c.ready ? rewards(c, d, m.stage) : ''}
     </div>
