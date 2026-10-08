@@ -1,8 +1,9 @@
 /**
  * S03 모험 선택 = 전투 탭 루트 (27 3-1 → 30 시안 Battle30 「B 출정 관문」).
- * 위에서부터: 분류 4칸 (탐험 3인 · 던전 5인 · 레이드 10·20인 · 이벤트) → 던전이면 주간 도전 띠 (13 3-2)
- * → 관문 = 아치 금테 안 장소 그림 (28 4장) · 세력 문양 이름표 · 추천 리본 · ‹ › · 정보 줄 · 해제 칩 · 보상 칸 (레이드는 이번 주 장비·종 조각, 13 3-4)
- * → 장소 문양 줄 (고르기) → 난이도 4칸 (별) → 「출전」 = 입장 화면으로.
+ * 위에서부터: 분류 4칸 (탐험 3인 · 던전 5인 · 레이드 10·20인 · 이벤트)
+ * → 관문 = 아치 금테 안 장소 그림 (28 4장) · 세력 문양 이름표 · 추천 리본 · ‹ › · 정보 줄 (레이드는 이번 주 장비·종 조각, 13 3-4) · 해제 칩 · 보상 칸
+ * → 장소 문양 줄 (고르기, 많으면 가로로 넘김. 던전이면 맨 앞에 주간 도전 고정 칸, 13 3-2) → 난이도 4칸 (별) → 「출전」 = 입장 화면으로.
+ * 관문은 어느 분류든 같은 자리·같은 크기 (2026-10-08 Lim: 주간 도전 띠를 관문 위에서 장소 줄로 옮김, 이벤트는 빈 줄 자리를 남김).
  * 분류마다 마지막 고른 장소, 장소마다 마지막 고른 난이도를 기억 (모듈 변수, 저장 안 함).
  */
 import { ALL_DIFFS, CONTENT, contentOf, dispelsOf, raidSize, stageOf, type ContentDef, type ContentKey, type ContentKind } from '../data/content';
@@ -38,7 +39,6 @@ const ICON = {
 };
 const PREV = line('<path d="M15 6l-6 6 6 6"/>', 2.6);
 const NEXT = line('<path d="M9 6l6 6-6 6"/>', 2.6);
-const CHEV = '<svg class="f-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 const ARROW = '<svg class="g-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 
 const KINDS: { kind: ContentKind; name: string }[] = [
@@ -56,6 +56,10 @@ let tab: ContentKind = 'dungeon';
 const pick: Partial<Record<ContentKind, ContentKey>> = {};
 /** 장소마다 마지막 고른 난이도 */
 const diffPick: Partial<Record<ContentKey, DiffName>> = {};
+/** 지금 그려져 있는 분류 (장소 줄 넘김 위치를 이어 갈지) */
+let drawnTab: ContentKind | null = null;
+/** 다음 그리기에서 고른 장소를 줄 가운데로 (‹ ›) */
+let centerNext = false;
 
 const listOf = (k: ContentKind) => CONTENT.filter(c => c.kind === k && !c.hidden);
 const factionOf = (c: ContentDef): FactionKey => PLACES[placeArt(c.key).place].faction;
@@ -89,12 +93,12 @@ function stars(c: ContentDef, d: DiffName): string {
   return `<span class="sr">별 ${n}개</span><span aria-hidden="true">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span>`;
 }
 
-/** 레이드: 이번 주 장비 받음 (보스마다 난이도별 주 1회) · 종 조각 (악몽 입장권) */
+/** 레이드: 이번 주 장비 받음 (보스마다 난이도별 주 1회) · 종 조각 (악몽 입장권). 정보 줄 오른쪽에 붙여서 관문 높이를 다른 분류와 맞춤 */
 function lootLine(c: ContentDef): string {
   if (c.kind !== 'raid' || G.save.tut < TUT.done) return '';
   const got = ALL_DIFFS.map(d => !raidLootOpen(G.save, c.key, d));
-  const dots = `<span class="b-loot" role="img" aria-label="${ALL_DIFFS.map((d, i) => `${d} ${got[i] ? '받음' : '아직'}`).join(', ')}" title="쉬움 · 보통 · 어려움 · 악몽">${got.map(g => `<i${g ? ' class="got"' : ''}></i>`).join('')}</span>`;
-  return `<span class="b-row b-lootrow"><span class="cap">이번 주 장비</span>${dots}<span class="f-sp"></span><span class="cap">종 조각 ${G.save.wallet.shards}/${SHARD_MAX}</span></span>`;
+  const dots = `<span class="b-loot" role="img" aria-label="이번 주 장비 ${ALL_DIFFS.map((d, i) => `${d} ${got[i] ? '받음' : '아직'}`).join(', ')}" title="이번 주 장비: 쉬움 · 보통 · 어려움 · 악몽">${got.map(g => `<i${g ? ' class="got"' : ''}></i>`).join('')}</span>`;
+  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">장비</span>${dots}<span class="cap"><span class="sr">종 </span>조각 ${G.save.wallet.shards}/${SHARD_MAX}</span></span>`;
 }
 
 /**
@@ -162,17 +166,18 @@ function cats(): string {
   }).join('')}</nav>`;
 }
 
-/** 주간 도전 띠 (13 3-2): 던전 칸 맨 위. 모래시계 · 이번 주 어픽스 · 최고 단계 · 남은 날 (좁으면 들어가는 어픽스만) */
-function chalCard(): string {
+/**
+ * 주간 도전 칸 (13 3-2): 던전 장소 줄 맨 앞에 고정 (넘기지 않음) + 금빛 구분선. 누르면 고르기가 아니라 바로 도전 입장.
+ * 보이는 건 모래시계 · 남은 날 꼬리표 · 「주간 도전」만, 어픽스·최고 단계는 입장 화면에서 (화면 읽기엔 다 넣음). 잠기면 잠긴 장소 칸처럼
+ */
+function chalCell(): string {
   if (G.save.tut < TUT.done) return '';
   const g = chalGate(G.save), aff = weekAffixes(), best = G.save.weekly.chalBest, left = weekLeft();
+  const tag = g.ok ? left.replace(' 남음', '') : `${LOCK}Lv ${g.lv}`;
+  const sr = ` 「${esc(CHAL.name)}」 · ${aff.map(k => AFFIXES[k].name).join(', ')} · ${g.ok ? `${g.dev ? '개발 빌드 · ' : ''}최고 ${best ? `${best}단` : '없음'} · ${left}` : `Lv ${g.lv}에 열림`}`;
   return `<button class="b-chal${g.ok ? '' : ' off'}" type="button" data-chal${g.ok ? '' : ' aria-disabled="true"'}>
-    <span class="b-hg">${gameIcon('challenge', ICON.hourglass)}</span>
-    <b>주간 도전<span class="sr"> 「${esc(CHAL.name)}」</span></b>
-    <span class="b-afx">${aff.map(k => `<span class="f-afx${AFFIXES[k].good ? ' good' : ''}">${AFFIXES[k].name}</span>`).join('')}</span>
-    <span class="f-sp"></span>
-    ${g.ok ? `<span class="cap b-cc">${g.dev ? '개발 빌드 · ' : ''}최고 ${best ? `${best}단` : '없음'} · ${left.replace(' 남음', '')}<span class="sr"> 남음</span></span>${CHEV}` : `<span class="b-lk">${LOCK}Lv ${g.lv}</span>`}
-  </button>`;
+    <span class="b-hg">${gameIcon('challenge', ICON.hourglass)}</span><span class="b-tg">${tag}</span><small>주간 도전</small><span class="sr">${sr}</span>
+  </button><i class="b-div" aria-hidden="true"></i>`;
 }
 
 /** 보상 칸 (입장 화면 보상 계산과 같음): 장비 등급 범위 · 골드 (A 등급) · 첫 클리어 크리스탈 + 전설 확률 */
@@ -206,31 +211,70 @@ function gate(c: ContentDef, d: DiffName, many: boolean): string {
   const art = pa.url
     ? `<img class="b-art${pa.scene ? '' : ' floor'}" src="${pa.url}" alt="${esc(pl.name)}" decoding="async" draggable="false">`
     : `<span class="b-art none" style="--t0:${pl.tone[0]};--t1:${pl.tone[1]}"></span>`;
-  return `<section class="b-gate${status ? ' off' : ''}${c.kind === 'raid' ? ' raid' : ''}" aria-label="출전할 곳 · ${esc(c.name)}">
+  return `<section class="b-gate${status ? ' off' : ''}" aria-label="출전할 곳 · ${esc(c.name)}">
     ${art}
     <div class="b-gt"><span class="b-gm" style="--rim:${FACTIONS[f].mark.rim}">${factionMark(f, 'md')}</span><span class="b-gn"><b>${esc(c.name)}</b><small>단계 Lv ${stageOf(c, d)}${side ? ` · ${esc(side)}` : ''}</small></span></div>
     ${c.key === recommended() ? '<span class="b-rib">추천</span>' : ''}
     ${many ? `<button type="button" class="b-arw prev" data-step="-1" aria-label="이전 장소">${PREV}</button><button type="button" class="b-arw next" data-step="1" aria-label="다음 장소">${NEXT}</button>` : ''}
     ${status ? `<span class="b-st">${status}</span>` : ''}
     <div class="b-gb">
-      <span class="b-inf">${esc(region)} · ${c.size(d)}인 · 보스 ${c.bosses.length}</span>
+      <span class="b-row"><span class="b-inf">${esc(region)} · ${c.size(d)}인 · 보스 ${c.bosses.length}</span>${c.ready && !lk.locked ? lootLine(c) : ''}</span>
       <span class="b-row"><span class="cap">해제</span>${dispelChips(c)}</span>
       ${c.ready && lk.dev ? `<span class="f-dev">Lv ${lk.lv} 해금 · 개발 빌드라 열림</span>` : ''}
       ${c.ready ? rewards(c, d) : ''}
-      ${c.ready && !lk.locked ? lootLine(c) : ''}
     </div>
   </section>`;
 }
 
-/** 장소 문양 줄: 그 분류의 장소들 (누르면 관문이 바뀜). 준비 중 = 회색 + 「준비」, 잠김 = 자물쇠 */
-function places(list: ContentDef[], cur: ContentDef): string {
-  return `<nav class="b-places" aria-label="장소">${list.map(x => {
+/**
+ * 장소 문양 줄: 그 분류의 장소들 (누르면 관문이 바뀜). 준비 중 = 회색 + 「준비」, 잠김 = 자물쇠, 추천 = 빨간 「추천」.
+ * 다 들어가면 가운데, 넘치면 가로로 넘김 (칸 너비는 sizePlaces: 늘 반 칸이 걸쳐 보여서 더 있는 걸 알 수 있음). lead = 맨 앞 고정 칸 (던전 = 주간 도전)
+ */
+function places(list: ContentDef[], cur: ContentDef, lead = ''): string {
+  const rec = recommended();
+  return `<nav class="b-places${lead ? ' lead' : ''}" aria-label="장소">${lead}<div class="b-plr">${list.map(x => {
     const lk = lockOf(x), on = x.key === cur.key;
     const st = !x.ready ? ' off' : lk.locked ? ' lock' : '';
-    const tag = !x.ready ? '<span class="b-tg">준비</span>' : lk.locked ? `<span class="b-tg">${LOCK}Lv ${lk.lv}</span>` : '';
-    const label = `${x.name}${!x.ready ? ' · 준비 중' : lk.locked ? ` · Lv ${lk.lv}에 열림` : ''}`;
+    const tag = !x.ready ? '<span class="b-tg">준비</span>' : lk.locked ? `<span class="b-tg">${LOCK}Lv ${lk.lv}</span>` : x.key === rec ? '<span class="b-tg rec">추천</span>' : '';
+    const label = `${x.name}${!x.ready ? ' · 준비 중' : lk.locked ? ` · Lv ${lk.lv}에 열림` : x.key === rec ? ' · 추천' : ''}`;
     return `<button type="button" class="b-pl${on ? ' on' : ''}${st}" data-content="${x.key}" aria-pressed="${on}" aria-label="${esc(label)}"><span class="b-r">${factionMark(factionOf(x), 'md')}</span>${tag}<small>${esc(SHORT[x.key] || x.name)}</small></button>`;
-  }).join('')}</nav>`;
+  }).join('')}</div></nav>`;
+}
+
+/** 칸 너비: 보이는 폭에 「n칸 반」이 들어가게 (58~64px). 넘칠 때 마지막 칸이 딱 맞게 끝나서 더 있는 줄 모르는 일을 막음 */
+function sizePlaces(): void {
+  const sc = s.el.querySelector<HTMLElement>('.b-plr');
+  if (!sc) return;
+  const vis = sc.clientWidth - parseFloat(getComputedStyle(sc).paddingLeft);
+  const w = Math.min(64, Math.max(58, vis / (Math.floor(vis / 64) + 0.5) - 4));
+  (sc.parentElement as HTMLElement).style.setProperty('--pl-w', `${w.toFixed(1)}px`);
+}
+
+/** 장소 줄 양끝 흐림: 그쪽으로 더 넘길 칸이 있을 때만 (l · r) */
+function placeFade(sc: HTMLElement): void {
+  const max = sc.scrollWidth - sc.clientWidth;
+  (sc.parentElement as HTMLElement).dataset.more = `${sc.scrollLeft > 2 ? 'l' : ''}${sc.scrollLeft < max - 2 ? 'r' : ''}`;
+}
+
+/**
+ * 장소 줄 넘김 위치. from = 다시 그리기 전 위치 (null = 들어올 때·분류를 바꿀 때 → 고른 칸을 바로 가운데로).
+ * center = ‹ ›로 넘김 → 고른 칸을 가운데로 부드럽게. 아니면 (줄에서 직접 누름·난이도) 자리 그대로, 반쯤 가려진 칸만 다 보이게
+ */
+function scrollPlaces(from: number | null, center: boolean): void {
+  const sc = s.el.querySelector<HTMLElement>('.b-plr');
+  if (!sc) return;
+  sizePlaces();
+  const it = sc.querySelector<HTMLElement>('.b-pl.on'), max = sc.scrollWidth - sc.clientWidth;
+  const clamp = (x: number) => Math.max(0, Math.min(max, x));
+  if (from !== null) sc.scrollLeft = from;
+  if (it && max > 0) {
+    const mid = clamp(it.offsetLeft - (sc.clientWidth - it.offsetWidth) / 2);
+    const pad = 12, l = it.offsetLeft - pad, r = it.offsetLeft + it.offsetWidth + pad - sc.clientWidth;
+    const to = from === null || center ? mid : l < from ? clamp(l) : r > from ? clamp(r) : from;
+    if (from === null) sc.scrollLeft = to;
+    else if (Math.abs(to - from) > 1) sc.scrollTo({ left: to, behavior: 'smooth' });
+  }
+  placeFade(sc);
 }
 
 /** 난이도 4칸: 이름 + 별. 그 난이도만 잠겼으면 자물쇠 Lv, 준비 중 장소는 못 고름 */
@@ -269,22 +313,42 @@ const s = screen('s-content', '모험 선택', {
 function render(keep = true): void {
   const body = s.el.querySelector<HTMLElement>('.b-body');
   const top = keep && body ? body.scrollTop : 0;
+  // 장소 줄 위치: 같은 분류 안에서 다시 그리면 이어서 (분류가 바뀌면 처음부터)
+  const plr = s.el.querySelector<HTMLElement>('.b-plr');
+  const plFrom = keep && plr && drawnTab === tab ? plr.scrollLeft : null;
+  const plCenter = centerNext;
+  drawnTab = tab; centerNext = false;
   const a = document.activeElement as HTMLElement | null;
   const focus = keep && a && s.el.contains(a) ? ['data-ctab', 'data-content', 'data-step', 'data-diff'].filter(n => a.hasAttribute(n)).map(n => `[${n}="${a.getAttribute(n)}"]`)[0] || (a.id ? `#${a.id}` : '') : '';
 
   const list = listOf(tab), c = current(), d = c ? diffOf(c) : '보통';
   const tut = G.save.tut === TUT.dungeon && tab === 'dungeon';
   const tip = tut ? '<p class="coachtip b-tip"><b>녹슨 요새</b> 쉬움으로 출전. 일반·정예 구간 둘, 보스 둘을 이어서 진행</p>' : '';
-  const empty = `<section class="b-gate b-empty" aria-label="이벤트"><span class="b-ei">${gameIcon('event', ICON.event)}</span><b>이벤트 준비 중</b><span class="cap">시즌 이벤트가 열리면 여기에 나옵니다.</span></section>`;
+  // 이벤트: 빈 관문 + 장소·난이도 줄 자리 (안 보이게) → 관문 크기가 다른 분류와 같음
+  const ghost = '<nav class="b-places b-ghost" aria-hidden="true"><div class="b-plr"><span class="b-pl"><span class="b-r"></span><small>&nbsp;</small></span></div></nav><div class="b-df b-ghost" aria-hidden="true"><span class="b-dc">&nbsp;<small>&nbsp;</small></span></div>';
+  const empty = `<section class="b-gate b-empty" aria-label="이벤트"><span class="b-ei">${gameIcon('event', ICON.event)}</span><b>이벤트 준비 중</b><span class="cap">시즌 이벤트가 열리면 여기에 나옵니다.</span></section>${ghost}`;
   s.el.style.setProperty('--b-bg', c ? cssUrl(placeArt(c.key).url) : 'none');
   s.el.innerHTML = `${topBar({ settings: true })}
-    <div class="ns-body b-body">${tip}${cats()}${tab === 'dungeon' ? chalCard() : ''}${c ? gate(c, d, list.length > 1) + places(list, c) + diffs(c, d) : empty}</div>
+    <div class="ns-body b-body">${tip}${cats()}${c ? gate(c, d, list.length > 1) + places(list, c, tab === 'dungeon' ? chalCell() : '') + diffs(c, d) : empty}</div>
     <footer class="b-foot">${cta(c, d)}</footer>`;
   if (tut) s.el.querySelector('#contentGo')?.classList.add('hi-pulse');
   const nb = s.el.querySelector<HTMLElement>('.b-body');
   if (nb) nb.scrollTop = top;
+  scrollPlaces(plFrom, plCenter);
   if (focus) s.el.querySelector<HTMLElement>(focus)?.focus({ preventScroll: true });
 }
+
+// 화면 크기가 바뀌면 (회전 등) 칸 너비·흐림 다시
+addEventListener('resize', () => {
+  const sc = s.el.querySelector<HTMLElement>('.b-plr');
+  if (!s.el.hidden && sc) { sizePlaces(); placeFade(sc); }
+});
+
+// 장소 줄을 넘길 때 양끝 흐림 다시 계산 (scroll은 거품이 안 올라와서 capture)
+s.el.addEventListener('scroll', e => {
+  const t = e.target as HTMLElement;
+  if (t.classList?.contains('b-plr')) placeFade(t);
+}, { capture: true, passive: true });
 
 s.el.addEventListener('click', e => {
   const el = e.target as HTMLElement;
@@ -302,6 +366,7 @@ s.el.addEventListener('click', e => {
   if (st) {
     const list = listOf(tab), c = current();
     if (c && list.length > 1) pick[tab] = list[(list.indexOf(c) + Number(st.dataset.step) + list.length) % list.length].key;
+    centerNext = true;
     render(); return;
   }
   const df = el.closest<HTMLButtonElement>('[data-diff]');
