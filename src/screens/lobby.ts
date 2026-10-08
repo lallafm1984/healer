@@ -1,11 +1,12 @@
 /**
  * S02 로비 = 마을 광장 (30 0장, 시안 「30 · 로비 A」 Lobby30). 캐릭터 그림 없음.
- * 마을 그림(scene-sanctuary) 한 장 위에 건물·물건 + 이름표:
+ * 같은 2:3 무대의 하늘·원경·전경 레이어 위에 광장 물건 + 이름표:
  *  종탑 = 10인 레이드 · 길드 회관 · 잡화점(골드 상점) · 모래시계 석상 = 주간 도전 · 임무 게시판(받을 것 있으면 노란 「!」) · 일일 상자.
  * 왼쪽 위 목표 추적 (레이드 문 앞이면 체크 목록), 아래 줄 = 「다시」 메달 · 「출전」 · 「시즌 패스」 메달.
  * 받기·열기는 그 자리에서 (게시판 「!」 = 임무 한 번에 받기, 상자 = 열기). 튜토리얼 중엔 목표 추적 + 출전 + 안내만.
- * 건물 이름표는 그림 비율 2:3 「무대」(그림과 같은 크기·위치) 안에 %로 → 화면 크기가 달라도 그 건물을 가리킴. 광장 물건은 아래 기준.
+ * 건물 이름표·광장 물건은 그림 비율 2:3 「무대」 안에 %로 → 화면 크기가 달라도 같은 지점을 가리킴.
  */
+import { art } from '../art';
 import { contentOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { ITEM_GRADES, RECOMMENDED, SLOTS, type ItemGrade } from '../data/equipment';
@@ -32,6 +33,41 @@ const CHEST_SVG = `<svg viewBox="0 0 84 70" aria-hidden="true"><g stroke="#0E0E1
 // 메달 선 아이콘 (icon-replay · icon-pass가 오면 그 그림)
 const REPLAY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v5h5"/></svg>';
 const PASS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4h11l-2 4 2 4H6"/></svg>';
+
+/** 별은 고정 좌표에서 밝기만 변화. 재렌더 때 위치가 바뀌지 않도록 난수를 쓰지 않는다. */
+function skyStars(): string {
+  const stars = [
+    [18, 5, 1, 6.2, -2.1], [41, 4, 1, 5.4, -4.2], [67, 8, 1.3, 6.8, -1.8],
+    [87, 12, 1, 5.8, -3.6], [29, 13, 1, 6.6, -5.3], [53, 16, 1.3, 5.2, -1.1],
+    [74, 18, 1, 6.4, -4.8], [38, 21, 1, 5.6, -2.7], [61, 24, 1.5, 6.9, -5.7],
+    [83, 27, 1, 5.3, -1.9], [24, 29, 1, 6.1, -4.3], [47, 32, 1.3, 5.7, -3.1],
+    [70, 34, 1, 6.7, -2.4], [33, 36, 1, 5.1, -4.1], [56, 39, 1.3, 6.3, -1.4],
+    [79, 41, 1, 5.9, -3.8], [45, 10, 1, 6.5, -5.9], [64, 30, 1, 5.5, -2.9],
+    [21, 19, 1, 6.8, -3.4], [57, 7, 1, 5.4, -1.6], [49, 26, 1, 6.6, -4.7],
+    [73, 11, 1, 5.8, -2.2], [35, 28, 1.3, 6.2, -5.1], [59, 35, 1, 5.6, -3.3],
+  ];
+  return `<div class="lb-stars">${stars.map(([x, y, size, duration, delay]) =>
+    `<span class="lb-star" style="left:${x}%;top:${y}%;--star-size:${size}px;--star-duration:${duration}s;--star-delay:${delay}s"></span>`).join('')}</div>`;
+}
+
+/** 남색 하늘 → 작은 별 → 흐르는 구름 순서. 구름 준비 전에는 기존 하늘 그림 유지. */
+function sceneLayers(): string {
+  const clouds = art('scene-lobby-clouds-v3'), sky = art('scene-lobby-sky-v2');
+  const images = (['landscape', 'foreground'] as const).map(layer => ({ layer, src: art(`scene-lobby-${layer}-v2`) }));
+  if ((!clouds && !sky) || images.some(image => !image.src)) return '';
+  const skyLayer = clouds
+    ? `<div class="lb-layer lb-layer-sky">${skyStars()}<div class="lb-cloud-track">${[0, 1].map(() => `<img class="lb-cloud-tile" src="${esc(clouds)}" width="2160" height="720" alt="" decoding="async" draggable="false">`).join('')}</div></div>`
+    : `<img class="lb-layer lb-layer-sky" src="${esc(sky)}" width="1024" height="1536" alt="" decoding="async" draggable="false">`;
+  return `<div class="lb-layers" aria-hidden="true">${skyLayer}${images.map(({ layer, src }) => `<img class="lb-layer lb-layer-${layer}" src="${esc(src)}" width="1024" height="1536" alt="" decoding="async" draggable="false">`).join('')}</div>`;
+}
+
+/** 바닥 접점에 맞춘 새 소품. 없으면 기존 그림·선그림 순으로 대체. */
+function propArt(name: 'board' | 'hourglass' | 'chest', fallback: string): string {
+  const v3 = art(`obj-${name}-v3`), src = v3 || art(`obj-${name}-v2`);
+  return src
+    ? `<img class="g-ic ${v3 ? 'lb-prop-v3' : 'lb-prop-v2'}" src="${esc(src)}" alt="" decoding="async" draggable="false">`
+    : gameIcon(name, fallback, 'obj');
+}
 
 const st = { msg: '' };
 
@@ -128,35 +164,35 @@ function buildings(): string {
     <button type="button" class="g-plate lb-shop" data-go="s-shop" data-arg="gold"><b>잡화점</b><span>골드 상점</span></button>`;
 }
 
-/** 광장 물건 (아래 기준): 모래시계 석상 = 주간 도전, 임무 게시판, 일일 상자 */
+/** 광장 물건 (전경과 같은 무대 좌표): 모래시계 석상 = 주간 도전, 임무 게시판, 일일 상자 */
 function square(): string {
   const s = G.save, d = s.daily, w = s.weekly;
   // 주간 도전: 이번 주 남은 날 (잠기면 해금 레벨). 도전 상자가 있으면 이름표 = 받기
   const cg = chalGate(s), left = 7 - daysBetween(weekKey(), dayKey());
   const chal = s.chalChest
-    ? `<span class="g-qm" aria-hidden="true">!</span><button type="button" class="lb-art" data-act="chal" aria-label="주간 도전 상자 받기">${gameIcon('hourglass', HOURGLASS_SVG, 'obj')}</button>
+    ? `<span class="g-qm" aria-hidden="true">!</span><button type="button" class="lb-art" data-act="chal" aria-label="주간 도전 상자 받기">${propArt('hourglass', HOURGLASS_SVG)}</button>
       <button type="button" class="g-plate" id="lbChal"><b>주간 도전</b><span>상자 받기</span><i class="g-badge">!</i></button>`
-    : `<button type="button" class="lb-art" data-go="s-content" data-arg="dungeon" tabindex="-1" aria-hidden="true">${gameIcon('hourglass', HOURGLASS_SVG, 'obj')}</button>
+    : `<button type="button" class="lb-art" data-go="s-content" data-arg="dungeon" tabindex="-1" aria-hidden="true">${propArt('hourglass', HOURGLASS_SVG)}</button>
       <button type="button" class="g-plate${cg.ok ? '' : ' lock'}" data-go="s-content" data-arg="dungeon"><b>주간 도전</b><span>${cg.ok ? `${esc(CHAL.name)} · ${left}일` : `Lv ${cg.lv}에 열림`}</span></button>`;
   // 임무: 받을 것이 있으면 게시판 위 노란 「!」 + 이름표 빨간 숫자. 게시판을 누르면 한 번에 받기, 이름표는 임무 화면
   const dGot = d.missions.filter(m => m.got).length, wGot = w.missions.filter(m => m.got).length;
   const ready = d.missions.filter(missionReady).length + w.missions.filter(missionReady).length;
   const mLine = `일일 ${dGot}/${d.missions.length}${w.missions.length ? ` · 주간 ${wGot}/${w.missions.length}` : ''}`;
   const board = ready
-    ? `<span class="g-qm" aria-hidden="true">!</span><button type="button" class="lb-art" id="lbClaim" aria-label="임무 보상 ${ready}개 받기">${gameIcon('board', BOARD_SVG, 'obj')}</button>`
-    : `<button type="button" class="lb-art" data-go="s-missions" tabindex="-1" aria-hidden="true">${gameIcon('board', BOARD_SVG, 'obj')}</button>`;
-  // 일일 상자: 열 수 있으면 빛 + 「열기」
+    ? `<span class="g-qm" aria-hidden="true">!</span><button type="button" class="lb-art" id="lbClaim" aria-label="임무 보상 ${ready}개 받기">${propArt('board', BOARD_SVG)}</button>`
+    : `<button type="button" class="lb-art" data-go="s-missions" tabindex="-1" aria-hidden="true">${propArt('board', BOARD_SVG)}</button>`;
+  // 일일 상자: 열 수 있으면 「열기」와 배지
   const ch = chestState(s), open = ch.today || ch.banked > 0;
   // 닫혀 있으면 여는 조건 진행 (임무 n/5 받음) 또는 「내일 다시」. 이름표가 좁아서 짧게
   const cLine = open ? `열기${ch.banked ? ` · ${ch.banked}일 쌓임` : ''}` : d.chest ? '내일 다시' : `임무 ${dGot}/${d.missions.length} 받음`;
   const chest = open
-    ? `<button type="button" class="lb-art" data-act="chest" tabindex="-1" aria-hidden="true">${gameIcon('chest', CHEST_SVG, 'obj')}</button>
+    ? `<button type="button" class="lb-art" data-act="chest" tabindex="-1" aria-hidden="true">${propArt('chest', CHEST_SVG)}</button>
       <button type="button" class="g-plate" id="lbChest"><b>일일 상자</b><span>${cLine}</span><i class="g-badge">!</i></button>`
-    : `<button type="button" class="lb-art" data-go="s-missions" tabindex="-1" aria-hidden="true">${gameIcon('chest', CHEST_SVG, 'obj')}</button>
+    : `<button type="button" class="lb-art" data-go="s-missions" tabindex="-1" aria-hidden="true">${propArt('chest', CHEST_SVG)}</button>
       <button type="button" class="g-plate lock" data-go="s-missions"><b>일일 상자</b><span>${cLine}</span></button>`;
-  return `<div class="lb-obj lb-chal${cg.ok ? '' : ' off'}"><span class="g-glow violet"></span>${chal}</div>
+  return `<div class="lb-obj lb-chal${cg.ok ? '' : ' off'}">${chal}</div>
     <div class="lb-obj lb-board lb-missions">${board}<button type="button" class="g-plate lb-rmain" data-go="s-missions"><b>임무</b><span>${mLine}</span>${ready ? `<i class="g-badge">${ready}</i>` : ''}</button></div>
-    <div class="lb-obj lb-chest${open ? '' : ' off'}">${open ? '<span class="g-glow"></span>' : ''}${chest}</div>`;
+    <div class="lb-obj lb-chest${open ? '' : ' off'}">${chest}</div>`;
 }
 
 /** 아래 줄: 「다시」 메달 (지난 판) · 「출전」 · 「시즌 패스」 메달 */
@@ -178,20 +214,31 @@ const s = screen('s-lobby', '로비', {
   enter() { refreshDay(); render(); },
 });
 
+/** 화면 전환은 [hidden]으로, 백그라운드 탭은 문서 상태로 CSS 애니메이션만 일시정지. */
+function syncSceneMotion(): void {
+  s.el.classList.toggle('lb-motion-paused', document.hidden);
+}
+document.addEventListener('visibilitychange', syncSceneMotion);
+syncSceneMotion();
+
 function render(): void {
+  // 보상 수령으로 DOM을 다시 그려도 구름이 오른쪽 처음 위치로 튀지 않게 진행 시간 유지.
+  const cloudTime = s.el.querySelector('.lb-cloud-track')?.getAnimations()[0]?.currentTime;
   const tutDone = G.save.tut >= TUT.done;
+  const layers = sceneLayers();
   s.el.innerHTML = `${topBar({ settings: true })}
     <div class="ns-body lb30${tutDone ? '' : ' tut'}">
       <div class="lb-world">
-        <div class="lb-stage">${tutDone ? buildings() : ''}</div>
+        <div class="lb-stage${layers ? ' has-layers' : ''}"><div class="lb-canvas">${layers}${tutDone ? square() : ''}</div>${tutDone ? buildings() : ''}</div>
         <div class="lb-shade" aria-hidden="true"></div>
         ${tracker()}
-        ${tutDone ? square() : ''}
         ${dock(tutDone)}
         ${G.save.tut === TUT.dungeon ? '<p class="coachtip lb-coach">이제 첫 던전 <b>녹슨 요새</b> 차례. 「출전」 누르기</p>' : ''}
         ${st.msg ? `<p class="warnbox lb-msg" role="status">${esc(st.msg)}</p>` : ''}
       </div>
     </div>`;
+  const cloudAnimation = s.el.querySelector('.lb-cloud-track')?.getAnimations()[0];
+  if (cloudAnimation && cloudTime != null) cloudAnimation.currentTime = cloudTime;
   st.msg = '';
 }
 

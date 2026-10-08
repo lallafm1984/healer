@@ -7,7 +7,7 @@ import './theme.css';
 import './screens/art.css';
 import './screens/menu27.css';
 import './screens/flow27.css';
-import './screens/char27.css';
+import './screens/char31.css';
 import './screens/game30.css';
 import './screens/lobby30.css';
 import './screens/content30.css';

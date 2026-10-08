@@ -16,6 +16,7 @@ import { itemTip, skillTip, tipHtml } from '../game/tooltip';
 import { TRAITS } from '../data/traits';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
 import { activeOn, cdMax, costOf, knows, queue, slotKey, type Fight, type Unit } from '../engine';
+import { art } from '../art';
 import { ITEM_ICON } from './art';
 import { center, L } from './board';
 import { $, arrowOf, B, DIR_VEC, DIRS, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
@@ -61,12 +62,24 @@ export function buildWheel(D: number): void {
   w.innerHTML = html;
 }
 
+/** 휠 칸마다 지금 붙인 스킬 그림의 스킬 키 (성언처럼 칸의 스킬이 바뀌면 그림도 바꿈) */
+const slotArt = new WeakMap<HTMLElement, SkillKey>();
+/** 31 문서: skill-<키> 그림이 있으면 이름 위에 작은 그림. 없으면 아무것도 넣지 않음 (지금과 똑같음) */
+function setSlotArt(el: HTMLElement, key: SkillKey): void {
+  if (slotArt.get(el) === key) return;
+  slotArt.set(el, key);
+  el.querySelector('.sic')?.remove();
+  const url = art(`skill-${key}`);
+  if (url) el.querySelector('.nm')?.insertAdjacentHTML('beforebegin', `<img class="sic" src="${url}" alt="" decoding="async" draggable="false">`);
+}
+
 export function updateWheel(): void {
   const F = fight(), aim = ui.pointer && ui.pointer.dir;
   for (const el of $('wheel').querySelectorAll<HTMLElement>('.slot')) {
     el.classList.toggle('aim', aim === el.dataset.dir);
     if (!el.dataset.slot) continue;
     const slot = el.dataset.slot!, key = slotKey(F, slot), sk = SKILLS[key];
+    setSlotArt(el, key);
     const cd = sk.cd ? F.cd[key] || 0 : 0, cost = costOf(F, key);
     setText(el.querySelector('.nm')!, sk.short);
     setText(el.querySelector('.ct')!, cost ? `${Math.round(cost * 10) / 10}%` : '무료');

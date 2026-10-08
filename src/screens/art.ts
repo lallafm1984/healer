@@ -37,10 +37,10 @@ export function uiIcon(key: keyof typeof paths, extra = ''): string {
 export const LOCK = uiIcon('lock', 'in');
 
 /**
- * 게임 그림 아이콘 (30 문서): src/art의 `<prefix>-<name>`이 있으면 그 그림, 없으면 넘겨준 선 아이콘·임시 그림.
- * 테두리(금테 원·네모 칸)는 CSS가 그림. 예: gameIcon('mission', uiIcon('quest')) → icon-mission
+ * 게임 그림 아이콘 (30·31 문서): src/art의 `<prefix>-<name>`이 있으면 그 그림, 없으면 넘겨준 선 아이콘·임시 그림.
+ * 테두리(금테 원·네모 칸)는 CSS가 그림. 예: gameIcon('mission', uiIcon('quest')) → icon-mission, gameIcon('heal', 선, 'skill') → skill-heal
  */
-export function gameIcon(name: string, fallback: string, prefix: 'icon' | 'tab' | 'obj' | 'ui' = 'icon'): string {
+export function gameIcon(name: string, fallback: string, prefix: 'icon' | 'tab' | 'obj' | 'ui' | 'item' | 'skill' | 'stat' = 'icon'): string {
   const img = art(`${prefix}-${name}`);
   return img ? `<img class="g-ic" src="${img}" alt="" decoding="async" draggable="false">` : fallback;
 }
