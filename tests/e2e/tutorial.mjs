@@ -118,19 +118,23 @@ export default async function tutorial(url, shots) {
   await page.click('#equipNow'); await page.clock.runFor(50);
   await page.click('#s-reward [data-go="s-lobby"]'); await page.clock.runFor(100);
 
-  // ---- 로비: 녹슨 요새로 안내, 탭은 전투·장비만 ----
-  ok(await page.isVisible('#s-lobby .coachtip') && await page.isVisible('#lobbyStart.hi-pulse'), '로비: 첫 던전 안내 + 「전투 시작」 반짝임');
+  // ---- 로비: 녹슨 요새로 안내, 탭은 로비·전투·캐릭터만 (27 1장) ----
+  ok(await page.isVisible('#s-lobby .coachtip') && await page.isVisible('#lobbyStart.hi-pulse'), '로비: 첫 던전 안내 + 「출전」 반짝임');
   const locks = await page.evaluate(() => [...document.querySelectorAll('#tabs button.tlock')].map(b => b.dataset.tab).join());
   ok(locks === 'guild,shop', `튜토리얼 중 탭 잠금: 길드·상점 (캐릭터는 첫 장비로 열림) (${locks})`);
   await page.click('#tabs [data-tab="shop"]', { force: true }); await page.clock.runFor(50);
   ok(await page.isVisible('#s-lobby'), '잠긴 탭은 눌러도 그대로');
   await page.screenshot({ path: `${shots}/tut_lobby.png` });
-  await page.click('#lobbyStart'); await page.clock.runFor(100);
-  ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true' && await page.isVisible('#s-content [data-content="rustfort"].hi-pulse'), '콘텐츠: 던전 탭, 녹슨 요새 반짝임');
+  // 전투 탭(모험 선택)에서도 녹슨 요새를 짚어 줌
+  await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
+  ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true' && await page.getAttribute('#s-content [data-content="rustfort"]', 'aria-pressed') === 'true'
+    && await page.getAttribute('#s-content [data-diff="쉬움"]', 'aria-pressed') === 'true' && await page.isVisible('#contentGo.hi-pulse') && /녹슨 요새/.test(await page.textContent('#s-content .coachtip')), '전투 탭: 던전 5인 · 녹슨 요새 · 쉬움이 골라져 있고 안내 + 「출전」 반짝임');
   await page.click('#s-content [data-ctab="explore"]'); await page.clock.runFor(50);
   ok(await page.isVisible('#s-content [data-content="plateau"]') && !(await page.isVisible('#s-content [data-content="tutorial"]')), '탐험 탭: 녹슨 고원 (첫 전투는 안 보임)');
   await page.click('#s-content [data-ctab="dungeon"]'); await page.clock.runFor(50);
-  await page.click('#s-content [data-content="rustfort"]'); await page.clock.runFor(100);
+  // 로비 「바로 출전」 = 녹슨 요새 입장 화면으로 바로 (모험 선택 건너뜀)
+  await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);
+  await page.click('#lobbyStart'); await page.clock.runFor(100);
   ok(await page.getAttribute('#s-entry [data-diff="쉬움"]', 'aria-checked') === 'true' && /쉬움/.test(await page.textContent('#s-entry .coachtip')), '입장: 쉬움이 골라져 있고 안내');
   await page.click('#entryGo'); await page.clock.runFor(100);
   ok(/다시 뽑기/.test(await page.textContent('#s-party .coachtip')), '편성: 파티 찾기·다시 뽑기 안내');

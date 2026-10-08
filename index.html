@@ -7,7 +7,7 @@
 <title>나혼자 힐러 (개발 빌드)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
 </head>
 <body>
 <!-- 전체화면: 화면 맨 위부터 노치 포함 70dp = 배너 영역 (09 5장, Lim 2026-10-07) -->
@@ -33,23 +33,23 @@
   </section>
 
   <section id="battle" class="screen" hidden aria-label="전투">
+    <!-- 보스 무대 (27 3-4, 시안 MmoBattle5·20): 원형 초상 · 위치 줄 · 이름 + 구간 진행 · 시간 줄 · 체력 · 예고 칸 3개 -->
     <header id="stage">
-      <div id="bossArt" aria-hidden="true"></div>
-      <div class="stage-main">
-        <div class="stage-top">
-          <div class="boss-heading"><span id="encounterLabel"></span><span id="bossName"></span></div>
-          <button id="pauseBtn" type="button" aria-label="일시정지">❚❚</button>
+      <div class="stage-head">
+        <div id="bossArt" aria-hidden="true"></div>
+        <img id="bossAdds" alt="" aria-hidden="true" decoding="async" draggable="false" hidden>
+        <div class="stage-main">
+          <span class="stage-loc"><span id="encounterLabel"></span><span id="phase"></span></span>
+          <div class="boss-heading"><span id="bossName"></span><span id="segDots" hidden></span></div>
+          <span class="stage-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M7 3h10M7 21h10M8 3v2c0 3 4 5 4 7s-4 4-4 7v2M16 3v2c0 3-4 5-4 7s4 4 4 7v2"/></svg><span id="timer"></span></span>
         </div>
-        <div class="stage-meta">
-          <span id="phase"></span>
-          <span id="timer"></span>
-        </div>
-        <div class="hpbar"><div id="bossLag"></div><div id="bossFill"></div><div id="bossHpText"></div></div>
+        <button id="pauseBtn" type="button" aria-label="일시정지"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg></button>
       </div>
+      <div class="hpbar"><div id="bossLag"></div><div id="bossFill"></div><div id="bossTicks"></div><div id="bossHpText"></div></div>
       <div id="queue" aria-label="적 기술 예고"></div>
       <div id="dmgNums" aria-hidden="true"></div>
     </header>
-    <div id="partyStatus"><span>파티 <b id="partyAlive"></b></span><span id="partyCondition"></span><span class="board-instruction">탭 · 쓸기로 치유</span></div>
+    <div id="partyStatus"><span class="ps-count">파티 <b id="partyAlive"></b></span><span id="partyCondition"></span><span class="board-instruction">탭 · 쓸기로 치유</span></div>
     <div id="boardWrap">
       <canvas id="board" aria-label="파티 체력과 진형. 칸을 탭해 치유하고 길게 눌러 파티원 정보 확인"></canvas>
       <div id="toast"></div>
@@ -57,14 +57,15 @@
       <div id="preview" hidden></div>
       <div id="pull" hidden><b id="pullNum">3</b></div>
     </div>
-    <div id="castbar"><span id="castLabel">칸을 탭하면 치유</span><div id="castTrack"><div id="castFill"></div></div></div>
+    <!-- 시전 막대 (시안): 화면 폭 금테 막대, 노란 유광 채움, 안에 「스킬 → 대상」 · 남은 초. 시전 중이 아닐 때 안내도 막대 안에 -->
+    <div id="castbar"><div id="castTrack"><div id="castFill"></div><span id="castLabel">칸을 탭하면 치유</span><span id="castTime"></span></div></div>
     <footer id="controls">
       <div id="wheel" aria-label="치유 스킬 휠"></div>
       <div id="side">
         <div id="aux" aria-label="특성 보조 버튼" hidden></div>
         <div id="items" aria-label="소비 아이템 단축칸"></div>
-        <div id="gauges"><span>평온 <b id="gP">0</b>%</span><span>신성화 <b id="gS">0</b>%</span></div>
-        <div id="hint">아이템·스킬<br>길게 누르면 설명</div>
+        <div id="gauges"></div>
+        <div id="hint">길게 누르면 설명</div>
         <button id="giveUp" class="btn" type="button" hidden>포기</button>
       </div>
     </footer>

@@ -1,4 +1,4 @@
-// 새 화면 흐름 도우미: 타이틀 → 로비 → 콘텐츠 → 난이도·입장 → 편성 (09 S01~S05)
+// 새 화면 흐름 도우미: 타이틀 → 로비 → 전투 탭(모험 선택) → 난이도·입장 → 편성 (09 S01~S05, 27 1장)
 
 /** 저장을 고쳐 넣고 다시 읽음 (레벨·단축칸 등). 화면은 타이틀부터 */
 export async function patchSave(page, patch) {
@@ -19,12 +19,14 @@ export async function pastTitle(page) {
   if (await page.isVisible('#s-story')) { await page.click('#tutSkip'); await page.clock.runFor(100); }
 }
 
+/** 전투 탭(30 출정 관문): 분류 → 장소 고르기 → (난이도) → 「출전」 = 입장 화면 */
 export async function toEntry(page, { content = 'rustfort', tab = 'dungeon', diff } = {}) {
   await pastTitle(page);
-  if (!(await page.isVisible('#s-content'))) { await page.click('#lobbyStart'); await page.clock.runFor(100); }
+  if (!(await page.isVisible('#s-content'))) { await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100); }
   await page.click(`#s-content [data-ctab="${tab}"]`); await page.clock.runFor(50);
-  await page.click(`#s-content [data-content="${content}"]`); await page.clock.runFor(100);
-  if (diff) { await page.click(`#s-entry [data-diff="${diff}"]`); await page.clock.runFor(50); }
+  await page.click(`#s-content [data-content="${content}"]`); await page.clock.runFor(50);
+  if (diff) { await page.click(`#s-content [data-diff="${diff}"]`); await page.clock.runFor(50); }
+  await page.click('#contentGo'); await page.clock.runFor(100);
 }
 
 export async function toParty(page, opts) {

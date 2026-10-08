@@ -15,7 +15,7 @@ import { art, cssUrl } from '../art';
 import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, setBeacon, slotKey, step, talentReady, use, useItem, useTalent, type Fight, type FightStats } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
-import { bossSvg, ITEM_HINT, ITEM_ICON } from './art';
+import { bossSvg, ITEM_HINT, ITEM_ICON, ratsArt } from './art';
 import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxDeath, fxDispel, fxHeal, fxRevive, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
@@ -23,7 +23,7 @@ import {
 } from './core';
 import { guideHtml, guideModel } from './guide';
 import {
-  bossTitle, buildAux, buildGauges, buildItems, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
+  bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
   resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
 } from './hud';
 
@@ -68,9 +68,14 @@ function startBattle(guideSec = 0): void {
   $('pause').hidden = true; $('preview').hidden = true; $('toast').innerHTML = '';
   $('giveUp').hidden = true; $('hint').hidden = false;
   clearCoach();
-  $('bossArt').innerHTML = bossSvg(F.enc.script);
+  $('bossArt').innerHTML = bossSvg(F.enc.script, F.enc.key);
+  // 인터미션 쥐떼 작은 그림 (29: mob-crypt-rats가 있을 때만)
+  const adds = $('bossAdds') as HTMLImageElement; adds.hidden = true;
+  if (F.enc.script === 'plague' && ratsArt()) adds.src = ratsArt(); else adds.removeAttribute('src');
   $('bossName').innerHTML = bossTitle();
-  $('encounterLabel').textContent = F.mobs.length ? F.enc.name : F.enc.tier;
+  // 위치 줄 앞 = 적 무리 구간 이름 (보스 한 마리는 이름 줄에 이미 있어 비움)
+  $('encounterLabel').textContent = F.mobs.length ? F.enc.name : '';
+  buildStage();
   $('battle').classList.toggle('compact', !!F.enc.big);
   setPlace(F.enc.key);
   show('battle');
@@ -105,13 +110,18 @@ function layoutBattle(): void {
   const H = app.clientHeight, W = app.clientWidth;
   const short = H < 630;
   $('battle').classList.toggle('short-battle', short);
-  // 그림보다 진형·조작 공간을 먼저 확보. 20인 및 낮은 화면은 무대 높이를 줄임.
-  $('stage').style.minHeight = Math.round(Math.max(short || F.enc.big ? 136 : 154, Math.min(F.enc.big ? 158 : 200, H * F.enc.stage))) + 'px';
+  // 시안 20인 크기의 작은 보스 무대 (166): 10·20인 진형 판, 또는 높이가 모자란 화면
+  $('battle').classList.toggle('stage-sm', !!F.enc.big || F.party.length >= 10 || H < 720);
+  // 보스 무대 높이는 시안대로 내용이 정함 (5인 186 · 20인 166, 낮은 화면은 hud27.css에서 줄임)
+  $('stage').style.minHeight = '';
+  // 아래 조작판: 시안 390×844에서 230. 휠 = 조작판 높이 - 14 (시안 216), 폭의 56.5% (시안 220)
   const auxCount = Object.keys(F.tx.act).length;
-  const ch = Math.round(Math.min(236, Math.max(auxCount ? 194 : 178, H * 0.28)));
+  // 특성 버튼 줄이 있으면 버튼 44 + 아이템 2줄 + 막대 2줄이 들어가게 (낮은 화면은 막대·여백을 줄여 194)
+  const ch = Math.round(Math.min(236, Math.max(auxCount ? (short ? 194 : 218) : 178, H * 0.297)));
   $('controls').style.height = ch + 'px';
-  const sideWidth = auxCount >= 3 ? 140 : 96;
-  buildWheel(Math.min(ch - 16, W * 0.6, W - sideWidth - 32));
+  // 왼쪽(단축칸 쪽) = 특성 버튼 3개면 시안 20인 폭 146, 좁은 폰은 140. 여백 16·12 + 사이 8 (좁으면 12·12)
+  const narrow = W < 360, sideWidth = auxCount >= 3 ? (narrow ? 140 : 146) : 96;
+  buildWheel(Math.min(ch - 14, W * 0.565, W - sideWidth - (narrow ? 32 : 36)));
   resizeBoard();
 }
 new ResizeObserver(() => { if (B.F && !$('battle').hidden) resizeBoard(); }).observe($('boardWrap'));
@@ -644,7 +654,7 @@ function frame(now: number): void {
   },
   /** 전투 전 공략 (단계 레벨을 주면 그 레벨 숫자로) */
   guide: (encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: number) => guideHtml(guideModel(encKey, diff, stageLv, heroLv), null),
-  bossSvg: (script: string) => bossSvg(script),
+  bossSvg: (script: string, key?: string) => bossSvg(script, key),
   itemIcon: (k: string) => ITEM_ICON[k as ItemKey] || '',
   itemHint: (script: string) => ITEM_HINT[script] || '',
   layout: { GRID, ARROW, READ_ORDER, DEFAULT_LAYOUT, LAYOUT_SKILLS, valid: validLayout, label: layoutLabel, text: layoutText },

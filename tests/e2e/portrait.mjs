@@ -31,17 +31,17 @@ export default async function portrait(url, shots) {
     ok(await bgLoaded('#s-title') && await noHeroArt(), `${width}: 타이틀 마을 그림, 힐러 그림 없음`);
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_title_${width}.png` });
     await pastTitle(page);
-    ok(await bgLoaded('#s-lobby .lobby-scene') && await page.locator('#s-lobby .lobby-scene .hero-art .emblem').count() === 1 && await noHeroArt(), `${width}: 로비 마을 그림 + 직업 문장 (힐러 그림 없음)`);
+    ok(await page.locator('#s-lobby .topbar .tb-pf .emblem').count() === 1 && await noHeroArt(), `${width}: 로비 위 줄 캐릭터 칸 = 직업 문장 (힐러 그림 없음)`);
     const button = await page.locator('#lobbyStart').boundingBox(), tabs = await page.locator('#tabs').boundingBox();
-    ok(button.y + button.height <= tabs.y + 1 && button.height >= 44, `${width}: 전투 시작 버튼 항상 탭 위, 44px 이상`);
+    ok(button.y + button.height <= tabs.y + 1 && button.height >= 44, `${width}: 바로 출전 버튼 항상 탭 위, 44px 이상`);
     ok(await noOverflow('#s-lobby .ns-body'), `${width}: 로비 가로 넘침 없음`);
     await page.screenshot({ path: `${shots}/portrait_lobby_${width}.png` });
 
     await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(80);
-    ok(await page.locator('#s-char .chero .emblem').count() === 1 && await bgLoaded('#s-char .chero .chero-art') && await noOverflow('#s-char .ns-body'), `${width}: 캐릭터 문장·장비실 그림·능력치 화면 안`);
+    ok(await page.locator('#s-char .c7-head .emblem').count() === 1 && await noOverflow('#s-char .ns-body'), `${width}: 캐릭터 머리 직업 문장·능력치 화면 안`);
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_character_${width}.png` });
     await page.click('#s-char nav [data-csub="hero"]'); await page.clock.runFor(80);
-    ok(await page.locator('#s-char .hc-portrait .emblem').count() === 3 && await noHeroArt(), `${width}: 구현된 세 직업 = 직업 문장`);
+    ok(await page.locator('#s-char [data-hcard] .emblem').count() === 3 && await noHeroArt(), `${width}: 구현된 세 직업 = 직업 문장`);
     await page.click('#s-char nav [data-csub="skill"]'); await page.clock.runFor(80);
     ok(await noOverflow('#s-char .ns-body'), `${width}: 스킬 휠 편집 가로 넘침 없음`);
     await page.click('#tabs [data-tab="shop"]'); await page.clock.runFor(80);
@@ -49,8 +49,9 @@ export default async function portrait(url, shots) {
     ok(await bgLoaded('#s-shop .shop-hero', '::before'), `${width}: 상점 선반 그림`);
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_shop_${width}.png` });
     await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(80);
-    await page.click('#lobbyStart'); await page.clock.runFor(80);
-    ok(await loaded('#s-content img') && await page.locator('#s-content .ccard .fmark').count() >= 6, `${width}: 던전 카드 장소 그림 + 세력 문양`);
+    ok(await loaded('#s-content .b-gate img') && await page.locator('#s-content .b-places .fmark').count() >= 6 && await noOverflow('#s-content .b-body'), `${width}: 전투 탭 관문 장소 그림 + 장소 문양 6곳, 가로 넘침 없음`);
+    const go = await page.locator('#contentGo').boundingBox(), tb = await page.locator('#tabs').boundingBox();
+    ok(go.y + go.height <= tb.y + 1 && go.height >= 44, `${width}: 출전 버튼 항상 탭 위, 44px 이상`);
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_content_${width}.png` });
 
     // 최고 레벨의 최대 보조 버튼 3개 + 소비 아이템 4칸 조건을 만든다.

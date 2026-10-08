@@ -24,13 +24,16 @@ export default async function dungeon(url, shots) {
   ok((await page.locator('#s-char .lslot.locked').count()) === 5, '캐릭터 Lv 1: 스킬 휠 5칸 잠금 표시');
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
 
-  // ---- 콘텐츠 선택 ----
-  await page.click('#lobbyStart'); await page.clock.runFor(100);
+  // ---- 콘텐츠 선택 (30 출정 관문: 장소 고르기 → 출전) ----
   ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true', '콘텐츠 기본 탭 = 던전 5인');
-  ok(await page.getAttribute('#s-content [data-content="rustfort"]', 'aria-disabled') === null, '녹슨 요새는 열림');
-  ok(await page.getAttribute('#s-content [data-content="crypt"]', 'aria-disabled') === 'true' && /준비 중/.test(await page.textContent('#s-content [data-content="crypt"]')), '안 만든 던전 = 준비 중 (못 누름)');
-  await page.click('#s-content [data-content="crypt"]', { force: true }); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-content'), '준비 중 카드는 눌러도 그대로');
+  ok(await page.getAttribute('#s-content [data-content="rustfort"]', 'aria-pressed') === 'true' && /녹슨 요새/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo'), '녹슨 요새가 골라져 있고 출전 가능');
+  ok(await page.getAttribute('#s-content [data-diff="보통"]', 'aria-pressed') === 'true', '난이도 기본 = 아직 안 깬 보통');
+  await page.click('#s-content [data-content="crypt"]'); await page.clock.runFor(50);
+  ok(await page.getAttribute('#s-content [data-content="crypt"]', 'aria-pressed') === 'true' && /준비 중/.test(await page.textContent('#s-content .b-gate')) && await page.isDisabled('#contentGo'), '안 만든 던전 = 관문에 준비 중, 출전 막힘');
+  await page.click('#contentGo', { force: true }); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-content'), '준비 중 장소는 출전을 눌러도 그대로');
+  await page.click('#s-content [aria-label="이전 장소"]'); await page.clock.runFor(50);
+  ok(await page.getAttribute('#s-content [data-content="rustfort"]', 'aria-pressed') === 'true', '‹ = 같은 분류의 이전 장소 (녹슨 요새)');
 
   // ---- 난이도·입장 ----
   await toEntry(page);
@@ -40,7 +43,8 @@ export default async function dungeon(url, shots) {
   ok(/무너진 정문/.test(g) && /고철 졸개 ×3/.test(g), '첫 공략 = 무너진 정문 잡몹 (잡는 순서)');
   ok(!/Infinity|NaN|undefined/.test(await page.textContent('#s-entry')), '입장 화면에 Infinity·NaN 없음');
   await page.click('#s-entry [data-diff="어려움"]'); await page.clock.runFor(50);
-  ok(/권장 장비\(고급\)보다 낮음/.test(await page.textContent('#s-entry .warnbox')), '어려움 + 장비 없음 = 경고만');
+  const gck = await page.textContent('#s-entry .f-ck.gear');
+  ok(/권장 고급/.test(gck) && /미달 · 입장은 됨/.test(gck), '어려움 + 장비 없음 = 준비 확인 장비 줄 경고만');
   ok(await page.isEnabled('#entryGo'), '경고여도 입장 가능');
   await page.click('#s-entry [data-diff="보통"]'); await page.clock.runFor(50);
   await page.screenshot({ path: `${shots}/dungeon_entry.png` });
@@ -52,8 +56,10 @@ export default async function dungeon(url, shots) {
   ok(cls0.every(Boolean) && new Set(cls0).size === 4, `파티원마다 직업, 5인은 같은 직업 없음 (${cls0})`);
   ok(/단단한 몸|신성한 갑옷/.test(await page.textContent('#s-party .pcard:first-child')), '탱커 카드에 직업 패시브');
   ok(/단축칸 2칸/.test(await page.textContent('#s-party')) && await pickedItems(page) === 'mana,life', 'Lv 1 = 단축칸 2칸, 마나·생명');
+  await page.click('#s-party [data-slots]'); await page.clock.runFor(50);
   await page.click('#s-party [data-item="cleanse"]');
   ok(/가득 참/.test(await page.textContent('#s-party .note.warn')), '3번째는 안 들어감');
+  await page.click('#s-party [data-shut]'); await page.clock.runFor(50);
   const nicks = () => page.evaluate(() => [...document.querySelectorAll('#s-party .pcard .pnick')].map(b => b.textContent).join());
   const before = await nicks();
   ok(/무료/.test(await page.textContent('#reroll')), '첫 다시 뽑기 = 무료');

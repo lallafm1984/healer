@@ -1,0 +1,86 @@
+/*
+ * 30 로비·전투·길드 「게임 느낌」 공통 부품 (기획 30, 캔버스 「30 · 로비 A · 전투 B · 길드 C」).
+ * 이름표 · 둥근 메달 · 빨간 숫자 · 노란 「!」 · 화려한 출전 버튼 · 나무 게시판 · 양피지 쪽지 · 밀랍 도장 · 나무 팻말.
+ * 화면별 배치는 lobby30 · content30 · guild30 CSS에. 그림(icon-·obj-·ui-)이 오면 .g-ic로 들어감 (screens/art.ts gameIcon).
+ */
+
+/* 그림 아이콘 (src/art의 icon-·tab-·obj-): 칸을 꽉 채움 */
+.g-ic { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+
+/* ---------- 이름표: 장면 속 건물·물건 (기본 = 위쪽 꼭지, .pr = 꼭지 오른쪽, .side = 꼭지 왼쪽) ---------- */
+.g-plate { position: absolute; z-index: 3; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 4px 11px 5px; box-sizing: border-box; border-radius: 4px; background: linear-gradient(#3E2F1E, #1E1712); border: 1px solid #D9B26A; box-shadow: 0 0 0 1px var(--line), 0 4px 10px rgba(0, 0, 0, 0.75); color: var(--ink); font: inherit; white-space: nowrap; text-align: center; text-decoration: none; cursor: pointer; }
+.g-plate::after { content: ''; position: absolute; left: 50%; top: -6px; width: 10px; height: 10px; margin-left: -6px; background: #3E2F1E; border-left: 1px solid #D9B26A; border-top: 1px solid #D9B26A; transform: rotate(45deg); }
+.g-plate.pr::after { left: auto; right: 30px; }
+.g-plate.side { align-items: flex-start; text-align: left; }
+.g-plate.side::after { left: -6px; top: 50%; margin: -6px 0 0; background: #2E2318; border-top: 0; border-bottom: 1px solid #D9B26A; }
+.g-plate b { font: 800 14px/1.2 var(--font-display); color: var(--gold-hi); }
+.g-plate span { font-size: 11px; line-height: 1.3; color: var(--ink-2); }
+.g-plate.lock b { color: var(--mute); }
+.g-plate .g-badge { font: 900 11px/1 var(--font-body); color: #FFFFFF; }
+
+/* ---------- 빨간 숫자 ---------- */
+.g-badge { position: absolute; top: -9px; right: -9px; z-index: 1; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; background: #C8281E; border: 1.5px solid #FFE7A8; display: flex; align-items: center; justify-content: center; font: 900 11px/1 var(--font-body); color: #FFFFFF; pointer-events: none; }
+
+/* ---------- 둥근 메달 (금테 원 + 아래 이름) ---------- */
+.g-med { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; width: 64px; margin: 0; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; text-decoration: none; cursor: pointer; }
+.g-ring { width: 50px; height: 50px; box-sizing: border-box; padding: 9px; border-radius: 50%; border: 2px solid var(--frame-hi); background: radial-gradient(circle at 50% 32%, #4E3D27, #1A140E 72%); box-shadow: 0 0 0 1px var(--line), inset 0 0 0 2px var(--bg), 0 4px 8px rgba(0, 0, 0, 0.65); display: flex; align-items: center; justify-content: center; color: var(--gold-hi); }
+.g-ring .ui-icon, .g-ring > svg { width: 24px; height: 24px; }
+.g-ring:has(.g-ic) { padding: 5px; }
+.g-lb { padding: 1px 6px; border-radius: 3px; background: rgba(13, 11, 9, 0.9); border: 1px solid #5C4424; font: 700 11px/1.3 var(--font-display); color: var(--ink); white-space: nowrap; }
+.g-med .g-badge { top: -3px; right: 4px; }
+.g-pbar { width: 46px; height: 5px; border-radius: 2px; background: #0D0B09; border: 1px solid #5C4424; overflow: hidden; }
+.g-pbar i { display: block; height: 100%; background: linear-gradient(#FFD36A, #E8A51E 50%, #B47712); }
+.g-med.hot .g-ring { box-shadow: 0 0 0 1px var(--line), inset 0 0 0 2px var(--bg), 0 0 14px rgba(255, 211, 77, 0.55); }
+
+/* ---------- 노란 「!」 (받을 것 있음) · 빛 ---------- */
+.g-qm { position: absolute; z-index: 3; font: 800 32px/1 var(--font-display); color: var(--gold-hi); -webkit-text-stroke: 1.5px #3A2410; text-shadow: 0 0 12px rgba(255, 211, 77, 0.95), 0 2px 0 #080605; pointer-events: none; animation: g-bob 1.6s ease-in-out infinite; }
+@keyframes g-bob { 50% { transform: translateY(-4px); } }
+.g-glow { position: absolute; z-index: 1; border-radius: 50%; pointer-events: none; background: radial-gradient(rgba(255, 196, 90, 0.55), rgba(255, 196, 90, 0) 70%); }
+.g-glow.violet { background: radial-gradient(rgba(176, 156, 255, 0.5), rgba(176, 156, 255, 0) 70%); }
+
+/* ---------- 화려한 출전 버튼 (진홍 + 금테 두 줄 + 양끝 마름모 + 세력 문양) ---------- */
+.g-cta { position: relative; z-index: 5; display: flex; align-items: center; gap: 12px; min-height: 64px; margin: 0; padding: 0 18px 0 10px; box-sizing: border-box; border-radius: 8px; background: linear-gradient(#C8402F, #86201A 52%, #5C100C); border: 2px solid #E2BE6E; box-shadow: 0 0 0 2px #3A2410, 0 0 0 3px var(--line), inset 0 1px 0 rgba(255, 226, 170, 0.5), inset 0 -4px 0 rgba(0, 0, 0, 0.3), 0 8px 16px rgba(0, 0, 0, 0.65), 0 0 26px rgba(255, 150, 70, 0.28); color: #FFE7A8; font: inherit; text-decoration: none; cursor: pointer; }
+.g-cta::before, .g-cta::after { content: ''; position: absolute; top: 50%; width: 12px; height: 12px; margin-top: -7px; background: #E2BE6E; border: 1px solid var(--line); transform: rotate(45deg); }
+.g-cta::before { left: -9px; }
+.g-cta::after { right: -9px; }
+.g-cta:active { transform: translateY(1px); }
+.g-mk { flex: none; width: 46px; height: 46px; box-sizing: border-box; padding: 3px; border-radius: 50%; background: conic-gradient(#FFE7A0, #9C7A3C 25%, #FFE7A0 50%, #9C7A3C 75%, #FFE7A0); box-shadow: 0 0 0 1px var(--line); }
+.g-mk > * { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; background: radial-gradient(circle at 50% 35%, #4E3D27, #1A140E 72%); display: flex; align-items: center; justify-content: center; color: var(--gold-hi); }
+.g-mk .fmark, .g-mk .emblem { width: 100%; height: 100%; }
+.g-ct { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.g-ct b { max-width: 100%; font: 800 clamp(20px, 6.6vw, 26px)/1.05 var(--font-display); letter-spacing: 0.12em; white-space: nowrap; color: #FFE08A; text-shadow: 0 2px 0 #3A0A08, 0 0 12px rgba(255, 200, 90, 0.4); }
+.g-ct small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: #F3D9A6; white-space: nowrap; }
+.g-cta > .g-arrow { flex: none; width: 26px; height: 26px; color: #FFE08A; }
+
+/* ---------- 나무 게시판 + 양피지 쪽지 + 밀랍 도장 ---------- */
+.g-board { position: relative; box-sizing: border-box; padding: 12px; border-radius: 6px; background: linear-gradient(#6A4527, #4A2E19); border: 3px solid #0E0E15; box-shadow: 0 0 0 2px #2A1A0E, 0 12px 26px rgba(0, 0, 0, 0.75), inset 0 0 0 2px #8A6038; }
+.g-bd { position: relative; box-sizing: border-box; border-radius: 3px; border: 2px solid #2A1A0E; background: repeating-linear-gradient(90deg, #7C5532 0 58px, #6A4629 58px 60px); box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.6); }
+.g-plq { position: absolute; left: 50%; top: -30px; z-index: 2; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; padding: 5px 20px 6px; border-radius: 5px; background: linear-gradient(#3E2F1E, #1E1712); border: 1px solid #D9B26A; box-shadow: 0 0 0 1px var(--line), 0 4px 10px rgba(0, 0, 0, 0.65); white-space: nowrap; }
+.g-plq b { font: 800 18px/1.15 var(--font-display); color: var(--gold-hi); }
+.g-plq small { font-size: 11px; color: var(--ink-2); }
+.g-cb { position: absolute; width: 18px; height: 18px; box-sizing: border-box; background: #5E5A52; border: 2px solid #0E0E15; box-shadow: inset 0 0 0 2px #8A857A; pointer-events: none; }
+.g-cb.tl { left: -8px; top: -8px; } .g-cb.tr { right: -8px; top: -8px; } .g-cb.bl { left: -8px; bottom: -8px; } .g-cb.br { right: -8px; bottom: -8px; }
+.g-note { position: absolute; box-sizing: border-box; margin: 0; padding: 17px 11px 10px; background: radial-gradient(circle at 30% 20%, #F4EBD0, #E3D4AF 70%, #D3C096); border: 1px solid #9C8456; border-radius: 0; box-shadow: 0 5px 9px rgba(0, 0, 0, 0.5); color: #2E2114; display: flex; flex-direction: column; gap: 3px; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
+.g-note::before { content: ''; position: absolute; left: 50%; top: 5px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #FF8A7A, #B3221A 60%, #6E120D); border: 1px solid #3A0A08; }
+.g-note h3 { margin: 0; display: flex; align-items: baseline; gap: 6px; font: 800 14px/1.2 var(--font-display); color: #6E1A12; }
+.g-note h3 small { font: 700 11px var(--font-body); color: #6A5838; }
+.g-note p { margin: 0; font-size: 12px; line-height: 1.4; color: #3A2A18; }
+.g-note .m { color: #6A5838; }
+.g-note .k { font: 800 16px/1.2 var(--font-display); color: #2E2114; }
+.g-nbar { display: block; height: 7px; border-radius: 2px; background: #C9B88E; border: 1px solid #8A7650; overflow: hidden; }
+.g-nbar i { display: block; height: 100%; background: linear-gradient(#E8B23A, #B47712); }
+.g-seal { align-self: flex-start; display: inline-flex; align-items: center; justify-content: center; min-height: 32px; margin-top: 4px; padding: 0 12px; box-sizing: border-box; border-radius: 16px; background: radial-gradient(circle at 40% 35%, #D4473A, #9A1E16 70%); border: 2px solid #5A0F0B; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); font: 800 13px var(--font-display); color: #FFE7C8; cursor: pointer; }
+.g-seal:disabled { opacity: 0.5; cursor: default; }
+
+/* ---------- 나무 팻말 (하위 메뉴 버튼) ---------- */
+.g-sign { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; margin: 0; padding: 0 20px; box-sizing: border-box; border-radius: 4px; background: linear-gradient(#7A5634, #56381F); border: 2px solid #0E0E15; box-shadow: 0 0 0 1px #2A1A0E, inset 0 0 0 1px #9A7048, 0 4px 8px rgba(0, 0, 0, 0.6); font: 800 16px var(--font-display); color: #FFE08A; text-shadow: 0 1px 0 #2A1A0E; text-decoration: none; cursor: pointer; }
+.g-sign::before, .g-sign::after { content: ''; position: absolute; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: #C9C3B0; border: 1px solid #0E0E15; }
+.g-sign::before { left: 8px; }
+.g-sign::after { right: 8px; }
+.g-sign small { font: 700 12px var(--font-body); color: var(--ink); }
+.g-sign[aria-selected='true'], .g-sign.on { background: linear-gradient(#9A7044, #6A4627); color: var(--gold-hi); box-shadow: 0 0 0 1px #2A1A0E, inset 0 0 0 1px #D9B26A, 0 0 12px rgba(255, 211, 77, 0.35); }
+.g-sign .g-badge { top: -8px; right: -6px; }
+
+/* ---------- 하단 탭 그림 아이콘 (tab-*): 고르지 않은 탭은 조금 어둡게 ---------- */
+#tabs button .g-ic { width: 28px; height: 28px; }
+#tabs button:not([aria-current]) .g-ic { filter: saturate(0.7) brightness(0.82); }

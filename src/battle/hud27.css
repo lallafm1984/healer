@@ -1,0 +1,280 @@
+/*
+ * 전투 화면 HUD (S06) = Design 시안 「MmoBattle5」·「MmoBattle20」 그대로 (27 3-4, 테마 「길드 홀」 16 4-7).
+ * battle.css → portrait.css → theme.css → art.css 위에 맨 마지막으로 얹는 층. 숫자는 시안 390×844 기준.
+ * 기존 규칙이 #battle .x / #battle #x 꼴이라 여기도 같은 특이성 이상으로 씀.
+ */
+#battle {
+  /* 글자 외곽선 (시안 .ol1) */
+  --ol1: 0 1.5px 0 #080605, 0 -1.5px 0 #080605, 1.5px 0 0 #080605, -1.5px 0 0 #080605, 1px 1px 0 #080605, -1px 1px 0 #080605, 1px -1px 0 #080605, -1px -1px 0 #080605;
+  background: var(--bg);
+}
+
+/* ---------- 보스 무대: 5인 높이 186 · 20인 166 ---------- */
+#battle #stage {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 10px 14px 12px;
+  border-bottom: 2px solid var(--edge);
+  background: var(--bg);
+}
+/* 뒤 풍경 = 장소 그림 위에 돌색 84% (시안) */
+#battle #stage::before { background: linear-gradient(rgba(21, 18, 14, 0.84), rgba(21, 18, 14, 0.84)), var(--stage-art, none) center 30% / cover; opacity: 1; }
+#battle .stage-head { display: flex; align-items: center; gap: 12px; min-height: 64px; margin-right: -2px; }
+/* 원형 초상 (금테 3px), 보스 그림 유지 (27 0장 1번) */
+#battle #bossArt {
+  position: relative;
+  flex: none;
+  align-self: center;
+  width: 64px;
+  height: 64px;
+  min-height: 0;
+  max-height: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-radius: 50%;
+  border: 3px solid var(--frame-hi);
+  background: #2A1C17;
+  box-shadow: 0 0 0 1px var(--line);
+  overflow: hidden;
+}
+#battle #bossArt img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; filter: none; }
+#battle #bossArt svg { width: 86%; height: 86%; }
+#battle #dmgNums { left: 14px; top: 10px; width: 64px; height: 64px; }
+/* 인터미션 쥐떼 (29 mob-crypt-rats): 원형 초상 오른쪽 아래에 작은 원 */
+#battle .stage-head { position: relative; }
+#battle #bossAdds { position: absolute; left: 38px; bottom: -4px; z-index: 2; width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--frame-hi); background: var(--panel-2); object-fit: cover; object-position: 50% 30%; box-shadow: 0 0 0 1px var(--line), 0 0 10px #D9A13B80; pointer-events: none; }
+#battle.stage-sm #bossAdds, #battle.short-battle #bossAdds { left: 32px; width: 28px; height: 28px; }
+#battle .stage-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; align-self: center; }
+/* 위치 줄 「녹슨 요새 4/4 · 보통」 */
+#battle .stage-loc { display: block; min-width: 0; font-size: 12px; line-height: 1.3; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#battle #encounterLabel { display: inline; margin: 0; font-size: inherit; letter-spacing: 0; color: inherit; overflow: visible; }
+#battle #encounterLabel:not(:empty)::after { content: ' · '; }
+#battle #phase { display: inline; max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; font-size: inherit; color: inherit; overflow: visible; }
+/* 이름 줄: 이름 + 등급 배지, 오른쪽 끝에 던전 구간 진행 ●●○○ (27 3-4) */
+#battle .boss-heading { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#battle #bossName { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; font: 800 22px/1.2 var(--font-display); color: var(--ink); text-shadow: 0 2px 0 var(--line); white-space: nowrap; overflow: hidden; }
+#battle .boss-title-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#battle #bossName .grade { flex: none; height: 19px; margin: 0; padding: 0 6px; border-radius: 3px; border: 1px solid var(--line); background: var(--panel-2); font: 900 11px/17px var(--font-body); color: var(--ink-2); text-shadow: none; vertical-align: 0; }
+#battle #bossName .grade.elite { background: linear-gradient(#E8C477, #B8903F); color: #2A1D08; }
+#battle #segDots { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
+#battle #segDots[hidden] { display: none; }
+#battle #segDots i { width: 9px; height: 9px; box-sizing: border-box; border-radius: 50%; border: 1.5px solid var(--edge); background: rgba(13, 11, 9, 0.6); }
+#battle #segDots i.done { border: 1px solid var(--line); background: var(--frame-hi); }
+#battle #segDots i.cur { border: 1px solid var(--line); background: var(--gold-hi); box-shadow: 0 0 0 2px rgba(255, 211, 77, 0.28); }
+/* 시간 줄: 모래시계 · 「0:42 · 광폭까지 3:48」 */
+#battle .stage-time { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 12px; line-height: 1.3; color: var(--ink-2); white-space: nowrap; }
+#battle .stage-time svg { flex: none; width: 12px; height: 12px; color: #D9B26A; }
+#battle #timer { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+#battle #timer.enraged, #battle #timer.over { color: #FF9A92; font-weight: 700; }
+#battle #pauseBtn { flex: none; align-self: center; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; border: 1px solid #7A5C2E; border-radius: 6px; background: linear-gradient(#3A3024, #2A221A); box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
+#battle #pauseBtn svg { width: 16px; height: 16px; fill: var(--ink); }
+/* 보스 체력: 진홍 유광 + 금테 2px, 페이즈 눈금 */
+#battle .hpbar { position: relative; flex: none; height: 24px; margin-top: 10px; border: 2px solid var(--frame); border-radius: 3px; background: #1A0B0A; box-shadow: 0 0 0 1px var(--line); overflow: hidden; }
+#battle #bossFill { background: var(--bar-boss); }
+#battle #bossLag { background: rgba(243, 217, 164, 0.75); }
+#battle #bossTicks { position: absolute; inset: 0; pointer-events: none; }
+#battle #bossTicks i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--line); }
+#battle #bossHpText { z-index: 1; font: 900 13px var(--font-body); color: #FFFFFF; text-shadow: var(--ol1); }
+
+/* ---------- 예고 대기열: 칸 3개를 늘 표시, 첫 칸이 조금 넓게 ---------- */
+#battle #queue { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 6px; min-height: 0; margin-top: 12px; }
+#battle #queue::before { content: none; }
+#battle #queue .q, #battle #queue .q-empty { position: relative; box-sizing: border-box; height: 54px; min-height: 0; min-width: 0; border-radius: 4px; box-shadow: 0 0 0 1px var(--line); }
+#battle #queue .q-empty { border: 1px solid var(--edge-dim); background: rgba(21, 18, 14, 0.55); }
+#battle #queue .q { display: flex; align-items: center; gap: 6px; padding: 0 8px; border: 1px solid var(--edge-dim); background: #15120E; color: var(--ink); font-family: var(--font-body); text-align: left; overflow: hidden; cursor: pointer; animation: none; }
+/* 남은 시간만큼 줄어드는 채움 (DBM 막대처럼) */
+#battle #queue .q .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(rgba(156, 122, 60, 0.18), rgba(92, 68, 36, 0.18)); pointer-events: none; }
+#battle #queue .q .ic { position: relative; flex: none; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 4px; border: 2px solid var(--line); background: #201A14; color: var(--ink-2); font-size: 0; }
+#battle #queue .q .ic svg { width: 15px; height: 15px; }
+#battle #queue .q .tx { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; line-height: 1.3; }
+#battle #queue .q .nm { font-size: 12px; font-weight: 700; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#battle #queue .q .kd { font-size: 11px; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#battle #queue .q .sec { position: relative; flex: none; font-size: 17px; font-weight: 900; line-height: 1; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+/* 2·3번째 칸은 좁아 (390 폭에서 글자 자리 약 32px) 이름을 두 줄로 다 보이게. 종류는 네모 아이콘이 알려 줌 */
+#battle #queue .q:not(.first) .kd { display: none; }
+#battle #queue .q:not(.first) .nm { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; white-space: normal; line-height: 1.2; word-break: keep-all; overflow-wrap: anywhere; }
+/* 다음 칸: 청동 테 (맨 앞이면 금테), 채움 진하게 */
+#battle #queue .q.next { border-color: var(--edge); }
+#battle #queue .q.next .fill { background: linear-gradient(rgba(156, 122, 60, 0.35), rgba(92, 68, 36, 0.35)); }
+#battle #queue .q.next .ic { background: var(--panel-2); color: var(--ink); }
+#battle #queue .q.next .nm, #battle #queue .q.next .sec { color: var(--ink); }
+#battle #queue .q.first:not(.hot) { border: 2px solid var(--frame); }
+/* 곧 떨어지는 칸 (시전 중 · 5초 이하): 빨강 테두리 · 빨강 아이콘 · 빨강 채움 */
+#battle #queue .q.hot { gap: 7px; border: 2px solid #FF3B30; background: #2A0F0D; }
+#battle #queue .q.hot .fill { background: linear-gradient(rgba(255, 59, 48, 0.55), rgba(160, 30, 24, 0.55)); }
+#battle #queue .q.hot .ic { width: 30px; height: 30px; background: #FF3B30; color: #12100C; }
+#battle #queue .q.hot .ic svg { width: 16px; height: 16px; stroke-width: 2.6; }
+#battle #queue .q.hot .nm { font-size: 13px; color: var(--ink); }
+#battle #queue .q.hot .kd { color: #FFB3AD; }
+#battle #queue .q.hot .sec { font-size: 22px; color: #FF9A92; text-shadow: var(--ol1); }
+#battle #queue .q.casting { animation: blink 0.5s steps(2) infinite; }
+#battle #queue .q.tipon { box-shadow: 0 0 0 1px var(--line), 0 0 0 3px #FFFFFF; }
+#battle #queue .q:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+/* 설명 팝업의 기술 아이콘도 같은 네모 */
+#tip .ic.qk { border-radius: 4px; background: var(--panel-2); color: var(--ink); }
+#tip .ic.qk svg { width: 13px; height: 13px; }
+
+/* ---------- 파티 상태 줄: 「파티 5/5」 함렛 노랑 + 상태 색 ---------- */
+#battle #partyStatus { flex: 0 0 auto; height: 22px; display: flex; align-items: center; gap: 6px; margin: 10px 16px 4px; padding: 0; border: 0; background: none; font-size: 12px; color: var(--mute); }
+#battle #partyStatus .ps-count { font: 700 15px var(--font-display); color: var(--gold-hi); white-space: nowrap; }
+#battle #partyStatus b { margin: 0; font: inherit; color: inherit; font-variant-numeric: tabular-nums; }
+#battle #partyCondition { font: 500 12px var(--font-body); color: var(--heal); white-space: nowrap; }
+#battle #partyCondition.critical, #battle #partyCondition.down { color: #FF9A92; }
+#battle #partyCondition.critical { font-weight: 700; }
+#battle #partyStatus .board-instruction { margin-left: auto; font-size: 12px; color: var(--mute); white-space: nowrap; }
+/* 진형 판: 바닥 그림 위아래를 화면 바탕색으로 흐리게 (위 파티 줄 · 아래 시전 막대와 이어지게) */
+#battle.has-floor #boardWrap { background: linear-gradient(#15120E, rgba(21, 18, 14, 0) 9%, rgba(21, 18, 14, 0) 91%, #15120E), radial-gradient(ellipse at center, rgba(16, 13, 10, 0.3) 30%, rgba(12, 10, 8, 0.7) 100%), var(--floor) center / cover, #15120E; }
+
+/* ---------- 시전 막대: 화면 폭, 금테 #5C4424 2px + 검은 외곽선, 노란 유광 채움 + 끝에 밝은 선 ---------- */
+#battle #castbar { flex: 0 0 auto; display: block; height: auto; padding: 4px 16px 12px; border: 0; background: none; font-size: 13px; }
+#battle #castTrack { position: relative; height: 34px; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 10px; border: 2px solid var(--frame-dark); border-radius: 3px; background: var(--bg-0); box-shadow: 0 0 0 1px var(--line); overflow: hidden; }
+#battle #castFill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--bar-cast); opacity: 1; }
+#battle #castFill::after { content: ''; position: absolute; right: -2px; top: 0; bottom: 0; width: 2px; background: #FFF4C8; }
+#battle #castbar:not(.is-casting) #castFill::after { display: none; }
+#battle #castbar.is-gcd #castFill { opacity: 0.35; }
+#battle #castLabel { position: relative; z-index: 1; flex: 1; min-width: 0; max-width: none; font-size: 13px; font-weight: 500; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#battle #castTime { position: relative; z-index: 1; flex: none; font-size: 13px; font-weight: 700; color: #FFFFFF; text-shadow: var(--ol1); font-variant-numeric: tabular-nums; }
+#battle #castbar.is-casting #castLabel { font-size: 14px; font-weight: 700; color: #FFFFFF; text-shadow: var(--ol1); }
+#battle #castbar.is-armed #castLabel { font-weight: 700; color: var(--gold-hi); }
+
+/* ---------- 아래 조작판 ---------- */
+#battle #controls { gap: 8px; padding: 0 12px 0 16px; border-top: 2px solid var(--edge); background: linear-gradient(#211B15, #15120E); box-shadow: 0 -1px 0 var(--line); }
+#battle #controls.wheel-left { padding: 0 16px 0 12px; }
+/* 왼쪽 줄: 특성 버튼 → 아이템 2×2 → 고유 시스템 막대 2줄 → 안내 / 포기 */
+#battle #side { flex: 1; min-width: 0; align-self: stretch; height: auto; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 8px; padding: 13px 0 6px; }
+#battle #side > * { width: 100%; max-width: 146px; align-self: center; }
+#battle #aux { flex: none; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(44px, 1fr); gap: 5px; justify-content: stretch; }
+#battle #aux[hidden] { display: none; }
+#battle .aux { flex: none; width: auto; min-width: 44px; max-width: none; height: 44px; min-height: 44px; aspect-ratio: auto; border: 2px solid var(--frame-hi); border-radius: 4px; background: linear-gradient(#4A3A1E, #2E2412); box-shadow: 0 0 0 1px var(--line), inset 0 1px 0 rgba(255, 220, 160, 0.3); font: 700 14px var(--font-display); color: var(--gold-hi); }
+#battle .aux .cds { font: 900 17px var(--font-body); color: #FFFFFF; text-shadow: var(--ol1); }
+#battle .aux.on, #battle .aux.armed { border-color: var(--gold-hi); }
+/* 아이템 칸: 네모 4px, 청동 테 2px, 그림 · 이름 · 오른쪽 아래 개수. 높이는 남는 만큼 44~60 */
+#battle #items { flex: 0 1 auto; min-height: 96px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(44px, 60px); gap: 8px; }
+#battle #controls.hasaux #items { gap: 6px; min-height: 94px; grid-auto-rows: minmax(44px, 54px); }
+#battle .item { height: auto; min-width: 44px; min-height: 44px; aspect-ratio: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 0; border: 2px solid #7A5C2E; border-radius: 4px; background: linear-gradient(#3A3024, #211B15); box-shadow: 0 0 0 1px var(--line), inset 0 1px 0 rgba(217, 178, 106, 0.3); color: var(--ink); }
+#battle .item svg { width: 28px; height: 28px; max-height: none; }
+#battle #controls.hasaux .item svg { width: 24px; height: 24px; }
+#battle .item .nm { font-size: 11px; line-height: 1.3; color: var(--ink-2); }
+#battle .item .n { top: auto; right: 5px; bottom: 2px; font-size: 13px; font-weight: 900; line-height: 1.2; color: #FFFFFF; text-shadow: var(--ol1); }
+#battle .item.used .n { color: var(--mute); }
+#battle .item .cds { font: 900 20px var(--font-body); color: var(--gold-hi); text-shadow: var(--ol1); }
+/* 잠긴 칸 · 빈 칸: 평평한 어두운 칸 + 자물쇠 + Lv */
+#battle .item.empty { gap: 2px; border: 1px solid var(--edge-dim); background: var(--bg); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6); cursor: default; }
+#battle .item.empty .lk { width: 14px; height: 14px; color: var(--dim); }
+#battle .item.empty .nm { font-size: 11px; color: var(--mute); }
+/* 고유 시스템 = 작은 막대 2줄 (시안 20인 평온 · 신성화) */
+#battle #gauges { flex: none; display: flex; flex-direction: column; flex-wrap: nowrap; justify-content: flex-start; gap: 7px; font-size: 12px; line-height: 1.2; color: var(--ink-2); }
+#battle #gauges .gr { display: flex; align-items: center; gap: 6px; min-width: 0; }
+#battle #gauges .gl { flex: none; min-width: 40px; white-space: nowrap; }
+#battle #gauges .gt { flex: 1; min-width: 16px; height: 7px; border-radius: 2px; border: 1px solid var(--edge-dim); background: var(--bg-0); overflow: hidden; }
+#battle #gauges .gt i { display: block; width: 0; height: 100%; background: linear-gradient(#E6DCC4, #B8AC92); }
+#battle #gauges .gold .gt i { background: var(--bar-cast); }
+#battle #gauges .leaf .gt i { background: linear-gradient(#B7E07A, #7BC67E 50%, #4E8F52); }
+#battle #gauges .gv { flex: none; min-width: 28px; max-width: 70px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+#battle #gauges b { font-weight: 400; color: inherit; }
+#battle #hint { flex: none; font-size: 12px; line-height: 1.4; color: var(--mute); text-align: center; }
+#battle #giveUp { flex: none; min-height: 44px; }
+/* 탱커 전멸: 아이템 칸은 그대로 두고 아래에 포기 버튼 (높이만 줄어듦) */
+#battle #controls.tank-down #items { max-width: 146px; }
+/* 스킬 휠 칸: 청동 3px 링, 안쪽 방사 그라데이션, 화살표(금) · 이름(굵게) · 마나 비용(파랑) */
+#battle #wheel { --slot: 68px; flex: none; background: none; }
+#battle .slot { display: flex; align-items: center; justify-content: center; padding: 0; border: 3px solid var(--frame); background: radial-gradient(circle at 50% 35%, #3E3326, #1E1813 75%); box-shadow: 0 0 0 1px var(--line), 0 3px 0 var(--line), inset 0 0 0 1px #3A2C1C; color: var(--ink); overflow: hidden; }
+#battle .slot .in { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; pointer-events: none; }
+#battle .slot .dir { position: static; flex: none; width: clamp(8px, calc(var(--slot) * 0.15), 10px); height: clamp(8px, calc(var(--slot) * 0.15), 10px); transform: none; color: #D9B26A; }
+#battle .slot .nm { font: 900 clamp(11px, calc(var(--slot) * 0.22), 15px)/1.15 var(--font-body); color: var(--ink); opacity: 1; }
+#battle .slot .ct { display: block; margin: 0; font-size: clamp(9px, calc(var(--slot) * 0.162), 11px); font-weight: 700; line-height: 1.25; color: var(--mana); opacity: 1; }
+#battle .slot .cds { position: static; display: none; inset: auto; font: 900 clamp(15px, calc(var(--slot) * 0.29), 20px)/1 var(--font-body); color: var(--gold-hi); text-shadow: var(--ol1); }
+/* 재사용 대기: 부채꼴 + 이름 + 노란 초 */
+#battle .slot .cd { background: conic-gradient(rgba(8, 6, 5, 0.78) var(--p, 0%), transparent 0); }
+#battle .slot.cooling { filter: none; }
+#battle .slot.cooling .dir, #battle .slot.cooling .ct { display: none; }
+#battle .slot.cooling .nm { font-size: clamp(10px, calc(var(--slot) * 0.19), 13px); font-weight: 700; color: var(--ink-2); }
+#battle .slot.cooling .cds { display: block; }
+/* 잠긴 칸: 평평한 어두운 칸 + 자물쇠 + Lv */
+#battle .slot.locked { border: 2px solid var(--edge-dim); background: var(--bg); box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.7); }
+#battle .slot.locked .in { gap: 1px; }
+#battle .slot.locked .nm { font-size: clamp(10px, calc(var(--slot) * 0.176), 12px); font-weight: 700; color: var(--mute); }
+#battle .slot.locked .ct { display: flex; align-items: center; gap: 2px; font-size: clamp(9px, calc(var(--slot) * 0.162), 11px); font-weight: 400; color: var(--mute); }
+#battle .slot.locked .lk { width: 10px; height: 10px; }
+/* 빈 칸: 점선 */
+#battle .slot.empty { border: 1.5px dashed var(--frame-dark); background: transparent; box-shadow: none; }
+#battle .slot.empty .ct { margin: 0; font-size: clamp(9px, calc(var(--slot) * 0.162), 11px); font-weight: 400; color: var(--mute); }
+/* 성언 (평온·신성화 준비됨): 금빛 칸 */
+#battle .slot.holy { color: #1A1308; }
+#battle .slot.holy .nm { color: #1A1308; }
+#battle .slot.holy .ct, #battle .slot.holy .dir { color: #544021; }
+/* 가운데 = 마나 링 (금테 + 파랑 링, 숫자 파랑). 마나가 모자라면 빨강 */
+#battle #core { display: flex; align-items: center; justify-content: center; padding: 0; border: 3px solid var(--frame-hi); border-radius: 50%; background: conic-gradient(#3F7FEA 0 var(--m, 100%), #1A1510 var(--m, 100%) 100%); box-shadow: 0 0 0 1px var(--line); }
+#battle #core.low { background: conic-gradient(#E5433D 0 var(--m, 100%), #1A1510 var(--m, 100%) 100%); }
+#battle #core .core-in { width: 72%; height: 72%; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg); box-shadow: 0 0 0 1px var(--line); }
+#battle #manaNum { font: 900 clamp(16px, calc(var(--slot) * 0.31), 21px)/1 var(--font-body); color: var(--mana); text-align: center; }
+#battle #core.low #manaNum { color: #FF8A7A; }
+#battle #manaNum small { display: block; margin-top: 1px; font: 400 10px/1.2 var(--font-body); color: var(--ink-2); }
+
+/* ---------- 작은 무대 = 시안 20인 (MmoBattle20): 무대 166 · 초상 58 · 체력 22 · 예고 48. 10·20인과 높이 720 아래에 씀 ---------- */
+#battle.stage-sm .stage-head { min-height: 58px; }
+#battle.stage-sm #bossArt { width: 58px; height: 58px; min-height: 0; max-height: none; background: var(--panel-2); }
+#battle.stage-sm #dmgNums { width: 58px; height: 58px; }
+#battle.stage-sm #bossName { font-size: 21px; }
+#battle.stage-sm .hpbar { height: 22px; margin-top: 8px; }
+#battle.stage-sm #bossHpText { font-size: 12px; }
+#battle.stage-sm #queue { margin-top: 10px; }
+#battle.stage-sm #queue .q, #battle.stage-sm #queue .q-empty { height: 48px; }
+#battle.stage-sm #queue .q .ic { width: 26px; height: 26px; }
+#battle.stage-sm #queue .q .ic svg { width: 14px; height: 14px; }
+#battle.stage-sm #queue .q.hot .ic { width: 28px; height: 28px; }
+#battle.stage-sm #queue .q.hot .ic svg { width: 15px; height: 15px; }
+#battle.stage-sm #queue .q.hot .sec { font-size: 21px; }
+#battle.stage-sm #partyStatus { height: 24px; }
+#battle.stage-sm #castTrack { height: 32px; }
+#battle.stage-sm #castbar.is-casting #castLabel { font-size: 13px; }
+
+/* ---------- 낮은 화면 (높이 630 아래): 진형 판 120px 이상을 먼저 ---------- */
+#battle.short-battle #stage { gap: 0; padding: 6px 12px 8px; }
+#battle.short-battle .stage-head { gap: 10px; min-height: 52px; }
+#battle.short-battle #bossArt { width: 52px; height: 52px; min-height: 0; max-height: none; }
+#battle.short-battle #dmgNums { left: 12px; top: 6px; width: 52px; height: 52px; }
+#battle.short-battle .stage-main { gap: 0; }
+#battle.short-battle #bossName { font-size: 18px; }
+#battle.short-battle .hpbar { height: 20px; margin-top: 6px; }
+#battle.short-battle #bossHpText { font-size: 12px; }
+#battle.short-battle #queue { margin-top: 8px; }
+#battle.short-battle #queue .q, #battle.short-battle #queue .q-empty { height: 44px; }
+#battle.short-battle #partyStatus { height: 20px; margin: 6px 12px 2px; }
+#battle.short-battle #castbar { padding: 2px 12px 6px; }
+#battle.short-battle #castTrack { height: 28px; }
+#battle.short-battle #side { gap: 6px; padding: 6px 0 4px; }
+#battle.short-battle #controls #items { max-width: 146px; gap: 4px; min-height: 92px; grid-auto-rows: minmax(44px, 50px); }
+#battle.short-battle #gauges { gap: 4px; font-size: 11px; }
+#battle.short-battle #gauges .gr { height: 13px; line-height: 13px; }
+
+/* ---------- 시안(390)보다 좁은 폰: 예고 칸 안 여백·아이콘을 줄여 이름 자리 확보 ---------- */
+@media (max-width: 389px) {
+  #battle #queue .q, #battle #queue .q.hot { gap: 4px; padding: 0 5px; }
+  #battle #queue .q .ic, #battle.stage-sm #queue .q .ic { width: 22px; height: 22px; }
+  #battle #queue .q .ic svg, #battle.stage-sm #queue .q .ic svg { width: 12px; height: 12px; }
+  #battle #queue .q.hot .ic, #battle.stage-sm #queue .q.hot .ic { width: 24px; height: 24px; }
+  #battle #queue .q.hot .ic svg, #battle.stage-sm #queue .q.hot .ic svg { width: 13px; height: 13px; }
+  #battle #queue .q .nm, #battle #queue .q.hot .nm { font-size: 11px; }
+  #battle #queue .q .kd { font-size: 10px; }
+  #battle #queue .q .sec { font-size: 15px; }
+  #battle #queue .q.hot .sec, #battle.stage-sm #queue .q.hot .sec { font-size: 18px; }
+}
+
+/* ---------- 좁은 폰 (폭 360 아래) ---------- */
+@media (max-width: 359px) {
+  #battle #stage { padding-left: 10px; padding-right: 10px; }
+  #battle .stage-head { gap: 8px; }
+  #battle #bossArt, #battle.stage-sm #bossArt { width: 52px; height: 52px; }
+  #battle #dmgNums, #battle.stage-sm #dmgNums { left: 10px; width: 52px; height: 52px; }
+  #battle #bossName, #battle.stage-sm #bossName { font-size: 18px; }
+  #battle #queue { gap: 4px; }
+  #battle #partyStatus { margin-left: 12px; margin-right: 12px; gap: 5px; }
+  #battle #partyStatus .board-instruction { font-size: 11px; }
+  #battle #castbar { padding-left: 12px; padding-right: 12px; }
+  #battle #controls, #battle #controls.wheel-left { padding-left: 12px; padding-right: 12px; }
+  #battle #aux { gap: 4px; }
+}

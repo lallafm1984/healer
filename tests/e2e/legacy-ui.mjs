@@ -32,10 +32,13 @@ export default async function legacyUi(url, shots) {
   const chips = await ev(() => [...document.querySelectorAll('#s-party [data-item]')].map(b => [b.dataset.item, b.getAttribute('aria-pressed')]));
   ok(chips.length === 6 && chips.filter(c => c[1] === 'true').map(c => c[0]).join() === 'mana,life,cleanse,feather', `아이템 6개 중 4개 선택 ${JSON.stringify(chips)}`);
   ok(/단축칸 4칸/.test(await page.textContent('#s-party')), 'Lv 40 = 단축칸 4칸');
+  // 단축칸 고르기는 아래 시트 안 (처음엔 닫힘): 열고 고른 뒤 닫아야 출발 버튼이 보임
+  await page.click('#s-party [data-slots]'); await page.clock.runFor(50);
   await page.click('#s-party [data-item="medit"]');
   ok(/가득 참/.test(await page.textContent('#s-party .note.warn')), '5번째는 안 들어감 (안내)');
   await page.click('#s-party [data-item="feather"]');
   await page.click('#s-party [data-item="shield"]');
+  await page.click('#s-party [data-shut]'); await page.clock.runFor(50);
   const sel = await pickedItems(page);
   ok(sel === 'mana,life,cleanse,shield', `깃털 빼고 보호 넣기 → ${sel}`);
   ok(/탱커 강타/.test(await page.textContent('#s-party .hint')), '녹슨 문지기 궁합 힌트');
@@ -43,8 +46,10 @@ export default async function legacyUi(url, shots) {
   await toParty(page);
   const sel2 = await pickedItems(page);
   ok(sel2 === 'mana,life,cleanse,shield', `다시 열어도 기억 (${sel2})`);
+  await page.click('#s-party [data-slots]'); await page.clock.runFor(50);
   await page.evaluate(() => document.querySelector('#s-party .items').scrollIntoView({ block: 'center' }));
   await page.screenshot({ path: `${shots}/v6_party_items.png` });
+  await page.click('#s-party [data-shut]'); await page.clock.runFor(50);
 
   // ---- 출발 → 카운트다운 ----
   await page.click('#depart'); await page.clock.runFor(100);
@@ -146,14 +151,16 @@ export default async function legacyUi(url, shots) {
   // ---- 깃털 + 20인 판 ----
   await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
   await toEntry(page, { content: 'cathedral1', tab: 'raid' });
-  ok((await page.locator('#s-content [data-content^="abyss"], #s-content [data-content^="cathedral"]').count()) === 2, '레이드 탭 = 10인·20인 카드 2장');
+  ok((await page.locator('#s-content [data-content^="abyss"], #s-content [data-content^="cathedral"]').count()) === 2, '레이드 칸 = 10인·20인 장소 2곳');
   const ent = await page.textContent('#s-entry');
-  ok(/20인 \(나 포함\)/.test(ent) && /무음 성가대/.test(ent) && /노래/.test(ent), '20인 입장: 인원 20, 무음 성가대 공략');
+  ok(/20인 · 보스 1/.test(await page.textContent('#s-entry .topbar')) && /무음 성가대/.test(ent) && /노래/.test(ent), '20인 입장: 인원 20, 무음 성가대 공략');
   await page.click('#s-entry [data-diff="악몽"]'); await page.clock.runFor(50);
-  ok(/20인 \(나 포함\)/.test(await page.textContent('#s-entry')) && /악몽 전용 기술/.test(await page.textContent('#s-entry .note')), '악몽도 20인, 악몽 안내');
+  ok(/20인 · 보스 1/.test(await page.textContent('#s-entry .topbar')) && /악몽 전용 기술/.test(await page.textContent('#s-entry .note')), '악몽도 20인, 악몽 안내');
   await page.click('#s-entry [data-diff="보통"]'); await page.clock.runFor(50);
   await page.click('#entryGo'); await page.clock.runFor(100);
+  await page.click('#s-party [data-slots]'); await page.clock.runFor(50);
   await page.click('#s-party [data-item="shield"]'); await page.click('#s-party [data-item="feather"]');
+  await page.click('#s-party [data-shut]'); await page.clock.runFor(50);
   await page.click('#depart'); await page.clock.runFor(3300);
   const b20 = await ev(() => ({ board: window.__proto.F.board, cells: window.__proto.F.cells.length }));
   ok(b20.board === 'b30' && b20.cells === 30, `20인 = 가로형 b30 ${JSON.stringify(b20)}`);

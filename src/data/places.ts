@@ -12,16 +12,23 @@ export interface Faction {
   name: string;
   /** 세력 색 = 해제 유형 색 (16 4-3) */
   color: string;
+  /** 문양 테두리·선 색 (27 시안 Parts27 「세력 문양 · 모험 카드」). dark = 검은 바탕 (심연) */
+  mark: { rim: string; glyph: string; dark?: boolean };
+  /** 이 세력이 거는 해제 유형 (11 3장 대표 디버프). 골렘 = 물리·녹이라 없음, 종의 언덕 = 혼합 (11 4장 깨진 신전), 심연 = 전 유형 */
+  dispel: string[];
 }
 
+const ALL_DISPEL = ['질병', '독', '저주', '마법'];
+
 export const FACTIONS: Record<FactionKey, Faction> = {
-  golem: { name: '버려진 골렘', color: '#C47A45' },
-  plague: { name: '역병 교단', color: '#D9A13B' },
-  swamp: { name: '늪의 부족', color: '#3CC24A' },
-  noble: { name: '몰락한 귀족가', color: '#A050E0' },
-  mage: { name: '폭주한 마도사', color: '#3D8BFF' },
-  bell: { name: '종의 언덕', color: '#C9A35C' },
-  abyss: { name: '심연', color: '#E6D3A0' },
+  golem: { name: '버려진 골렘', color: '#C47A45', mark: { rim: '#C9763A', glyph: '#E39A5C' }, dispel: [] },
+  plague: { name: '역병 교단', color: '#D9A13B', mark: { rim: '#A8963E', glyph: '#C9B45A' }, dispel: ['질병'] },
+  swamp: { name: '늪의 부족', color: '#3CC24A', mark: { rim: '#6E9A3C', glyph: '#8FBF57' }, dispel: ['독'] },
+  noble: { name: '몰락한 귀족가', color: '#A050E0', mark: { rim: '#8C6FA8', glyph: '#B79AD3' }, dispel: ['저주'] },
+  mage: { name: '폭주한 마도사', color: '#3D8BFF', mark: { rim: '#6F95C9', glyph: '#9DBDE6' }, dispel: ['마법'] },
+  // 종의 언덕은 시안에 없어서 테마 금테 색
+  bell: { name: '종의 언덕', color: '#C9A35C', mark: { rim: '#9C7A3C', glyph: '#D9B26A' }, dispel: ALL_DISPEL },
+  abyss: { name: '심연', color: '#E6D3A0', mark: { rim: '#E6E0D0', glyph: '#E6E0D0', dark: true }, dispel: ALL_DISPEL },
 };
 
 export interface Place {

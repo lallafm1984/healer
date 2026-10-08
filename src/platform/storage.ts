@@ -26,8 +26,15 @@ export interface HeroSave {
   quest: number;
   /** 이 직업으로 이긴 판 수 (숙련도, 25 4-3) */
   wins: number;
-  /** 특성 (06 6장): 단마다 고른 칸 번호 (0~2, 안 고름 = null). 직업마다 따로 (25 4-1) */
+  /** 특성 (06 6장): 단마다 고른 칸 번호 (0~2, 안 고름 = null). 직업마다 따로 (25 4-1). 지금 프리셋의 고름 */
   talents?: (number | null)[];
+  /**
+   * 특성 프리셋 3벌 (27 4-5). 지금 프리셋 칸은 바꿀 때 talents에서 넣어 두고, 다른 칸을 talents로 꺼냄.
+   * 옛 저장엔 없음 = 프리셋 1 하나 (지금 talents)
+   */
+  presets?: (number | null)[][];
+  /** 지금 프리셋 (0~2, 없으면 0) */
+  preset?: number;
 }
 
 export interface Settings {
@@ -124,7 +131,8 @@ export interface SaveData {
   createdAt: number;
   settings: Settings;
   player: { level: number; xp: number; gold: number };
-  gear: { equipped: Equipped; bag: GearItem[] };
+  /** seen = 캐릭터 › 장비에서 마지막으로 본 장비 id (이보다 큰 id = 새것 점, 27 4-2). 옛 저장엔 없어서 migrate가 채움 */
+  gear: { equipped: Equipped; bag: GearItem[]; seen?: number };
   /** 강화 재료 (12 1장): 강화석 (+1~+5), 정제 강화석 (+6~+10) */
   mats: { stone: number; refined: number };
   /** 소비 아이템 단축칸 구성 */
@@ -174,7 +182,7 @@ export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'r
 export function newSave(now = Date.now()): SaveData {
   return {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
-    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [] }, mats: { stone: 0, refined: 0 }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1, tut: 0,
+    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0 }, mats: { stone: 0, refined: 0 }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1, tut: 0,
     hero: 'priest', heroes: {}, guild: newGuild(),
     wallet: { crystal: 0, shards: 0, merit: 0, ticket: 0 }, bag: { ...STARTER_BAG }, daily: newDaily(), weekly: newWeekly(),
     pass: { season: 0, xp: 0, premium: false, free: [], prem: [] }, member: 0, chalOpen: 1, decos: [], chalChest: 0, firstBuy: [],
@@ -191,7 +199,11 @@ export function migrate(raw: unknown): SaveData {
     ...base, ...o, v: SAVE_VERSION,
     settings: obj(o.settings, base.settings),
     player: obj(o.player, base.player),
-    gear: { equipped: obj(o.gear?.equipped, {}), bag: Array.isArray(o.gear?.bag) ? o.gear!.bag : [] },
+    // 27: 새것 점 기준 (옛 저장은 지금 가진 장비를 다 본 것으로)
+    gear: {
+      equipped: obj(o.gear?.equipped, {}), bag: Array.isArray(o.gear?.bag) ? o.gear!.bag : [],
+      seen: typeof o.gear?.seen === 'number' ? o.gear.seen : (typeof o.nextId === 'number' ? o.nextId : base.nextId) - 1,
+    },
     mats: obj(o.mats, base.mats),
     items: Array.isArray(o.items) ? o.items : base.items,
     clears: obj(o.clears, {}),

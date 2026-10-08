@@ -13,7 +13,7 @@ import { esc, fmt, screen, topBar } from './kit';
 import { gainText } from './shop';
 
 const st = { msg: '' };
-const s = screen('s-missions', '임무', { tab: 'battle', enter() { refreshDay(); st.msg = ''; render(); } });
+const s = screen('s-missions', '임무', { enter() { refreshDay(); st.msg = ''; render(); } });
 
 function row(kind: 'daily' | 'weekly', i: number): string {
   const m = (kind === 'daily' ? G.save.daily : G.save.weekly).missions[i], d = missionDef(m.key);

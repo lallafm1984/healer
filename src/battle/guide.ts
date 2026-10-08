@@ -271,7 +271,7 @@ export function skillLive(F: Fight, ic: string): boolean {
 export function guideHtml(g: GuideModel, F: Fight | null): string {
   const cur = F ? g.cur(F) : null;
   const now = '<em class="now">지금</em>';
-  const head = `<div class="gd-top"><div class="gd-art">${bossSvg(g.enc.script)}</div><div class="gd-id">
+  const head = `<div class="gd-top"><div class="gd-art">${bossSvg(g.enc.script, g.enc.key)}</div><div class="gd-id">
     <b class="gd-name">${g.enc.name}</b>
     <div class="gd-tags"><span class="tag">${g.tier}</span><span class="tag diff">${g.diff}</span>${isFinite(g.enc.enrage) ? `<span class="tag enr">광폭화 ${mmss(g.enc.enrage)}</span>` : ''}</div></div></div>`;
   const phases = `<h4 class="gd-h">진행</h4><ol class="gd-phases">${g.phases.map((p, i) => `<li class="${p.id === cur ? 'cur' : ''}${p.enr ? ' enr' : ''}"><i>${i + 1}</i><div><b>${p.name}</b><small>${p.at}</small><p>${p.text}</p></div>${p.id === cur ? now : ''}</li>`).join('')}</ol>`;

@@ -46,26 +46,11 @@
 .fmark-lg { width: 56px; height: 56px; border-width: 3px; }
 
 /* ---------- 모험 카드 · 입장 (28 4장) ---------- */
-.destination-image { height: 120px; }
-.destination-image img { object-position: center 50%; }
-.destination-image.floor img { filter: saturate(0.85) brightness(0.8); }
-.destination-image .fmark { position: absolute; left: 12px; bottom: 10px; z-index: 1; }
-.destination-image span { left: 62px; bottom: 21px; }
-.ccard.off .destination-image { height: 76px; }
-.ccard.off .destination-image img { filter: grayscale(0.75) brightness(0.55); }
-.ccard.off .destination-image .fmark { opacity: 0.6; }
-.ns .ccard.illustrated.off { border-color: var(--edge-dim); background: var(--pnl); box-shadow: var(--pnl-shadow); }
-.entry-cover .fmark { position: absolute; right: 14px; top: 14px; z-index: 1; }
-.entry-cover.floor img { filter: saturate(0.85) brightness(0.8); }
 
 /* ---------- 타이틀 · 이야기 · 로비 · 캐릭터: 힐러 그림 자리 → 문장 ---------- */
 .t-space { flex: 1; min-height: 120px; }
 .story-art { display: grid; place-items: center; }
 .story-art .emblem { width: 132px; height: 132px; }
-.lobby-scene .hero-art .emblem { width: 112px; height: 112px; box-shadow: 0 0 0 1px var(--line), inset 0 0 0 2px #0D0B09, inset 0 0 0 3px rgba(201, 163, 92, 0.32), 0 0 36px rgba(255, 211, 77, 0.22), 0 6px 14px rgba(0, 0, 0, 0.55); }
-.pf-portrait .emblem { width: 100%; height: 100%; border: 0; box-shadow: none; }
-.ns .chero .chero-art .emblem { position: absolute; inset: 0 0 18px; margin: auto; }
-.ns .hc-portrait { display: grid; place-items: center; }
 
 /* ---------- 메뉴 머리 그림 (28 6장) ---------- */
 .art-hero {
@@ -86,16 +71,9 @@
 .art-hero .ah-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .art-hero h2 { margin: 0; font-family: var(--font-display); font-size: 22px; color: var(--gold-hi); text-shadow: 0 2px 0 var(--line), 0 0 10px rgba(0, 0, 0, 0.8); }
 .art-hero small, .art-hero .eyebrow { display: block; margin: 0; font-family: var(--font-body); font-size: 11px; color: var(--ink-2); text-shadow: 0 1px 2px var(--line); }
-.hall-hero { --hero-art: var(--art-ui-guild, none); min-height: 138px; }
-.hall-hero .hh-crest { position: absolute; left: 50%; top: 30px; transform: translateX(-50%); display: grid; place-items: center; width: 44px; height: 44px; color: var(--gold-hi); filter: drop-shadow(0 2px 0 var(--line)); }
-.hall-hero .hh-crest .ui-icon { width: 36px; height: 36px; stroke-width: 2; }
-.hall-hero .ah-copy { width: 100%; align-items: center; text-align: center; }
 .shop-hero { --hero-art: var(--art-ui-shop, none); }
 
 /* 캐릭터: 문장 뒤 장비실 벽감 · 직업 카드 머리 */
-.ns .chero .chero-art { background: radial-gradient(ellipse at 50% 40%, rgba(255, 196, 110, 0.12), transparent 60%), var(--art-ui-char, none) center 30% / cover, #1A1510; }
-.ns .hc-portrait { background: linear-gradient(0deg, rgba(13, 11, 9, 0.75), transparent 55%), var(--art-ui-char, none) center 35% / cover, #1A1510; }
-.ns .hcard.locked .hc-portrait { filter: grayscale(0.6) brightness(0.75); }
 
 /* 정산 머리: 장소 그림을 어둡게 */
 .res-head { position: relative; isolation: isolate; margin: 0 -16px; padding: 18px 16px 14px; overflow: hidden; }
@@ -104,7 +82,6 @@
 /* 이야기 화면: 마을 그림이 위에서 비치게 */
 #s-story { background: linear-gradient(rgba(28, 22, 15, 0.3), rgba(28, 22, 15, 0.88) 58%, #1C160F 78%), var(--art-scene-sanctuary, none) center 28% / cover; }
 /* 레벨 세 자리 */
-.pf-lv { width: auto; min-width: 22px; padding: 0 4px; border-radius: 11px; white-space: nowrap; }
 
 @media (max-width: 359px) {
   .art-hero, .res-head { margin-left: -12px; margin-right: -12px; }

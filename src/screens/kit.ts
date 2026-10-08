@@ -1,14 +1,15 @@
 /** 화면 공통 도구: 화면 틀 만들기, 이동, 상단 바, 글자 이스케이프 */
 import { ITEMS, type ItemKey } from '../data/items';
 import type { GearStats } from '../data/gear';
-import type { HeroKey } from '../data/heroes';
+import { HEROES, type HeroKey } from '../data/heroes';
 import type { SetFx } from '../data/sets';
 import type { RosterEntry } from '../engine';
 import type { BattleResult } from '../game/settle';
-import type { CoachKey } from '../game/tutorial';
-import { G } from '../game/state';
+import { TUT, type CoachKey } from '../game/tutorial';
+import { G, heroNow } from '../game/state';
+import { betterSlots, talentsLeft } from '../game/charinfo';
 import { xpToNext } from '../data/progression';
-import { uiIcon } from './art';
+import { classEmblem, gameIcon, uiIcon } from './art';
 
 export const $ = (id: string) => document.getElementById(id)!;
 
@@ -27,7 +28,7 @@ export const ROLE: Record<string, { name: string; short: string; color: string }
 };
 
 // ---------- 화면 이동 ----------
-export type TabKey = 'battle' | 'char' | 'guild' | 'shop';
+export type TabKey = 'lobby' | 'battle' | 'char' | 'guild' | 'shop';
 
 export interface Screen {
   el: HTMLElement;
@@ -66,14 +67,37 @@ export function go(id: string, arg?: unknown): void {
 export function setTabsHandler(fn: (t: TabKey | undefined) => void): void { onTabs = fn; }
 
 // ---------- 상단 바 (09 5장: 레벨·골드 고정, 전투 화면 제외) ----------
+/** 위 줄 재화 그림 (30 3장 icon-gold · icon-crystal이 오면 그 그림) */
+const COIN_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#E8B23A" stroke="#7A5418" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="#B9831F" stroke-width="1.6"/></svg>';
+const GEM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12l3 5-9 11L3 9z" fill="#7FC8FF" stroke="#1E4A7A" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 9h18M9 4l3 16 3-16" fill="none" stroke="#1E4A7A" stroke-width="1.2"/></svg>';
+const GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="6.6"/><path d="M12 2.5v2.9M12 18.6v2.9M2.5 12h2.9M18.6 12h2.9M5.3 5.3l2 2M16.7 16.7l2 2M5.3 18.7l2-2M16.7 7.3l2-2"/></svg>';
+
+/**
+ * 상단 바. back이 있으면 「← 제목」 줄, 없으면 MMO 캐릭터 칸 (30 0장 공통 위 줄, 시안 Lobby30 .hud):
+ * 금테 원 직업 문장 + 진홍 Lv 띠 + 알림 빨간 점 (특성 남음·더 좋은 장비) → 캐릭터 탭 · 직업 이름 + 경험치 막대 · 골드·크리스탈 · 설정.
+ * 캐릭터 칸은 탭 루트(settings)에서만 누름. 튜토리얼 중 캐릭터 탭이 잠겼으면(첫 장비 전) 누르지 않음.
+ */
 export function topBar(opts: { back?: string; title?: string; settings?: boolean } = {}): string {
-  const p = G.save.player;
+  const s = G.save, p = s.player;
+  const set = opts.settings ? `<button class="tb-set" type="button" data-go="s-settings" aria-label="설정"><span class="tb-ring2">${GEAR_SVG}</span></button>` : '';
+  if (opts.back) {
+    return `<header class="topbar"><button class="tb-back" type="button" data-go="${opts.back}" aria-label="뒤로">←</button><b class="tb-title">${esc(opts.title || '')}</b><span class="tb-gold" aria-label="골드">${uiIcon('coin')} <b>${fmt(p.gold)}</b></span>${set}</header>`;
+  }
   const need = xpToNext(p.level);
   const pct = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
-  const left = opts.back
-    ? `<button class="tb-back" type="button" data-go="${opts.back}" aria-label="뒤로">←</button><b class="tb-title">${esc(opts.title || '')}</b>`
-    : `<span class="tb-lv"><small>Lv</small> <b>${p.level}</b></span><span class="tb-xpw"><span class="tb-xp" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${pct}%"></i></span><small class="tb-xpt" aria-hidden="true" data-pct="${Math.floor(pct)}"></small></span>`;
-  return `<header class="topbar">${left}<span class="tb-gold" aria-label="골드">${uiIcon('coin')} <b>${fmt(p.gold)}</b></span>${opts.settings ? '<button class="tb-set" type="button" data-go="s-settings" aria-label="설정">⚙</button>' : ''}</header>`;
+  const tutDone = s.tut >= TUT.done;
+  const left = tutDone ? talentsLeft() : 0, better = tutDone ? betterSlots().length : 0;
+  const charOk = tutDone || s.gear.bag.length > 0 || Object.keys(s.gear.equipped).length > 0;
+  const hero = HEROES[heroNow()];
+  const note = [left ? `특성 ${left} 남음` : '', better ? `더 좋은 장비 ${better}` : ''].filter(Boolean).join(' · ');
+  const pfIn = `<span class="tb-em">${classEmblem(heroNow(), 'lg')}</span><span class="tb-lv"><b>${p.level}</b></span>${note ? '<i class="tb-dot"></i>' : ''}`;
+  const pf = opts.settings && charOk
+    ? `<button class="tb-pf" type="button" data-go="s-char"${better ? ' data-arg="gear"' : left ? ' data-arg="talent"' : ''} aria-label="캐릭터 · ${esc(hero.name)} Lv ${p.level}${note ? ` · ${note}` : ''}">${pfIn}</button>`
+    : `<span class="tb-pf" role="img" aria-label="${esc(hero.name)} Lv ${p.level}">${pfIn}</span>`;
+  return `<header class="topbar tb-mmo">${pf}
+    <span class="tb-nm"><b class="tb-cls">${esc(hero.name)}</b><span class="tb-xp" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${pct.toFixed(1)}%"></i></span><small class="tb-xpt" aria-hidden="true" data-pct="${Math.floor(pct)}"></small></span>
+    <span class="tb-wal"><span class="tb-cur tb-gold" aria-label="골드">${gameIcon('gold', COIN_SVG)}<b>${fmt(p.gold)}</b></span><span class="tb-cur tb-cr" aria-label="크리스탈">${gameIcon('crystal', GEM_SVG)}<b>${fmt(s.wallet.crystal)}</b></span></span>
+    ${set}</header>`;
 }
 
 /** [data-go] 버튼 = 그 화면으로 */
@@ -116,7 +140,7 @@ export interface BattleApi {
   onSetting: ((key: string, val: unknown) => void) | null;
   /** 전투 전 공략. 단계 레벨을 주면 그 레벨 숫자로 */
   guide(encKey: string, diff: string, stageLv?: number, heroLv?: number): string;
-  bossSvg(script: string): string;
+  bossSvg(script: string, key?: string): string;
   itemIcon(k: string): string;
   itemHint(script: string): string;
   layout: {

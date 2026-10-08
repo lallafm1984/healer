@@ -21,8 +21,8 @@ export default async function shop(url, shots) {
   await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 40; s.player.gold = 50000; s.mats.stone = 20; localStorage.setItem('healer.save', JSON.stringify(s)); });
 
   // ---- 로비 → 임무 ----
-  ok(/오늘의 임무\s*0\s*\/\s*5/.test(await text('#s-lobby .mission-card')) && /0\/5\s*종 조각/.test(await text('#s-lobby .wallet')), '로비: 오늘의 임무 0/5 · 종 조각 수량 표시');
-  await page.click('#s-lobby .mission-card'); await page.clock.runFor(100);
+  ok(/일일 0\/5/.test(await text('#s-lobby .lb-missions')) && /10인 레이드 · 조각 0\/5/.test(await text('#s-lobby .lb-raid')), '로비 이름표: 임무 일일 0/5 · 종탑 = 10인 레이드 종 조각 수량');
+  await page.click('#s-lobby .lb-missions .lb-rmain'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-missions') && (await page.locator('#s-missions .mlist').first().locator('.mrow').count()) === 5, '임무 화면: 일일 5개');
   ok((await page.locator('#s-missions .mlist').nth(1).locator('.mrow').count()) === 3, 'Lv 40 = 주간 임무 3개');
   const keys0 = (await save()).daily.missions.map(m => m.key).join();
@@ -32,7 +32,8 @@ export default async function shop(url, shots) {
   // 임무를 다 채운 상태로 만들고 받기
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.daily.missions.forEach(m => { m.n = 99; }); s.weekly.missions[0].n = 99; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
-  await page.click('#s-lobby .mission-card'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-lobby .lb-missions .g-qm') && await page.isVisible('#lbClaim') && (await text('#s-lobby .lb-missions .g-badge')) === '6', '로비 게시판: 받을 것 있음 = 노란 「!」 + 빨간 숫자 6');
+  await page.click('#s-lobby .lb-missions .lb-rmain'); await page.clock.runFor(100);
   ok((await page.locator('#s-missions [data-claim]').count()) === 6, '받을 임무 6개 (일일 5 + 주간 1)');
   const g0 = (await save()).player.gold;
   for (let i = 0; i < 5; i++) { await page.click('#s-missions [data-claim="daily"]'); await page.clock.runFor(30); }
@@ -99,7 +100,7 @@ export default async function shop(url, shots) {
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.wallet.shards = 0; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await toEntry(page, { diff: '악몽' });
-  ok(/종 조각 1개 소모 · 보유 0\/5/.test(await text('#s-entry')), '악몽 입장 화면: 종 조각 1개 소모 · 보유 0/5');
+  ok(/종 조각 1개 씀 · 가진 것 0\/5/.test(await text('#s-entry')), '악몽 입장 화면: 종 조각 1개 씀 · 가진 것 0/5');
   await page.click('#entryGo'); await page.clock.runFor(100);
   await page.click('#depart'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-party') && /종 조각이 없음/.test(await text('#s-party')), '종 조각이 없으면 출발 안 됨');

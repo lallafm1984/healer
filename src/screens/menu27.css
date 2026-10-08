@@ -1,0 +1,70 @@
+/*
+ * 27 메뉴 다듬기 공통 부품 (기획 27, Design 캔버스 「27 · 메뉴 다듬기」 줄). 테마 「길드 홀」 위에 얹음.
+ * 화면별 꾸밈은 lobby27 · flow27 · char27 · battle hud27 CSS에, 여기는 여러 화면이 같이 쓰는 것만.
+ */
+
+/* ---------- 제목 + 금빛 줄 ---------- */
+.h-rule { display: flex; align-items: center; gap: 8px; margin: 0; font: 700 16px var(--font-display); color: var(--gold-hi); }
+.h-rule > .rule, .rule { flex: 1; height: 1px; background: linear-gradient(90deg, var(--frame), rgba(156, 122, 60, 0)); }
+.h-rule > .cap { font-family: var(--font-body); font-weight: 400; }
+.cap { font-size: 12px; color: var(--mute); }
+
+/* ---------- 패널 변형 ---------- */
+.pn { box-sizing: border-box; border-radius: 6px; background: var(--pnl); border: 1px solid var(--edge); box-shadow: 0 0 0 1px var(--line), inset 0 1px 0 rgba(217, 178, 106, 0.18); }
+.pn.gold { border: 2px solid var(--frame); background: var(--gold-pnl); }
+
+/* ---------- 줄 목록 (로비 「오늘」, 스킬 목록 등) ---------- */
+
+/* ---------- 작은 버튼 (받기·열기·다시) ---------- */
+.btn2 { flex: none; min-height: 34px; padding: 0 12px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border-radius: 4px; background: var(--panel-2); border: 1px solid var(--edge); box-shadow: 0 0 0 1px var(--line); color: var(--ink); font: 700 13px var(--font-body); text-decoration: none; cursor: pointer; }
+.btn2.hot { border-color: var(--frame-hi); background: linear-gradient(#3A2E1F, #2A2118); color: var(--gold-hi); box-shadow: 0 0 0 1px var(--line), 0 0 10px rgba(255, 211, 77, 0.35); }
+.btn2:disabled { opacity: 0.5; cursor: default; box-shadow: 0 0 0 1px var(--line); }
+
+/* ---------- 알림 칩 · 빨간 점 ---------- */
+.rdot { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #E0402F; border: 1px solid var(--line); pointer-events: none; }
+
+/* ---------- 해제 칩 (세력 색 = 해제 유형 색) ---------- */
+.dsp { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 3px; background: var(--c, #888); font: 900 11px var(--font-body); color: #12100C; white-space: nowrap; }
+.dsp.off { height: 18px; background: none; border: 1px solid var(--edge-dim); color: var(--dim); font-weight: 400; }
+.dsp.none { background: none; border: 1px solid rgba(255, 255, 255, 0.2); color: var(--ink); font-weight: 700; }
+.dsp.cant { background-image: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.45) 0 3px, transparent 3px 6px); }
+
+/* ---------- 두세 칸 스위치 ---------- */
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); overflow: hidden; border-radius: 6px; border: 1px solid var(--edge); box-shadow: 0 0 0 1px var(--line); }
+.seg > button { min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 4px; border: 0; border-left: 1px solid var(--edge-dim); background: #201A14; color: var(--mute); font: 700 13px var(--font-body); cursor: pointer; }
+.seg > button:first-child { border-left: 0; }
+.seg > button[aria-pressed="true"] { background: linear-gradient(#3A2E1F, #2A2118); color: var(--gold-hi); box-shadow: inset 0 -2px 0 var(--gold-hi); }
+.seg > button:disabled { color: var(--dim); cursor: default; }
+
+/* ---------- 폴더 탭 (시안 ftabs): 금테 밑줄, 고른 탭만 솟음 ---------- */
+.ns .subtabs { gap: 4px; padding: 8px 12px 0; border-bottom: 2px solid var(--frame); background: var(--bg); }
+.ns .subtabs button { position: relative; flex: 1; min-height: 38px; border: 1px solid var(--edge-dim); border-bottom: 0; border-radius: 6px 6px 0 0; background: #201A14; color: var(--mute); font: 700 14px var(--font-display); }
+.ns .subtabs button[aria-selected="true"] { min-height: 42px; margin-bottom: -2px; padding-bottom: 2px; border: 2px solid var(--frame); border-bottom: 0; background: linear-gradient(#3A2E1F, #2A2118); color: var(--gold-hi); }
+.ns .subtabs button .rdot { top: 6px; right: 10px; width: 7px; height: 7px; }
+
+/* ---------- 아래에서 올라오는 시트 (장비 상세·특성 고르기) ---------- */
+.sheet-dim { position: fixed; inset: 0; z-index: 60; background: rgba(8, 6, 5, 0.6); }
+.sheet {
+  position: fixed; left: 50%; bottom: 0; z-index: 61; width: 100%; max-width: 480px; max-height: 82%; overflow-y: auto; box-sizing: border-box; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 12px; padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+  border-radius: 14px 14px 0 0; background: linear-gradient(#2A221A, #1A1511 40%); border-top: 2px solid var(--frame);
+  box-shadow: 0 -1px 0 var(--line), 0 -12px 30px rgba(0, 0, 0, 0.6); animation: sheetUp 0.18s ease-out;
+}
+.sheet .grip { align-self: center; flex: none; width: 44px; height: 4px; border-radius: 2px; background: var(--edge); }
+@keyframes sheetUp { from { transform: translate(-50%, 24px); opacity: 0; } }
+
+/* ---------- 큰 주 버튼 안 두 줄 글자 ---------- */
+.cta2 { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
+.cta2 small { font: 500 12px var(--font-body); color: #F3D9A6; text-shadow: none; }
+
+/* ---------- 하단 탭 5개 (27 1장) ---------- */
+#tabs { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+#tabs button { font-size: 12px; }
+#tabs button .rdot { top: 7px; right: calc(50% - 20px); }
+#tabs button .emblem.emblem-sm { width: 23px; height: 23px; border-width: 1px; box-shadow: 0 0 0 1px var(--line); }
+#tabs button > small { top: 4px; right: 4px; }
+
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+
+/* 레벨로 잠긴 탭 (누르면 그 탭의 잠금 안내) */
+#tabs button.llock { color: var(--dim); }

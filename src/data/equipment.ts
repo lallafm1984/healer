@@ -52,6 +52,8 @@ export interface GearItem {
   name: string;
   /** 세트 장비 (02 10-3) */
   set?: SetKey;
+  /** 잠금 (27 4-3): 분해 고르기·일괄 분해에서 빠짐. 옛 저장엔 없음 = 안 잠김 */
+  lock?: boolean;
 }
 
 export type Equipped = Partial<Record<SlotKey, GearItem>>;
@@ -127,6 +129,16 @@ export function gearStatsOf(eq: Equipped): GearStats {
   }
   const n = sub / 3;
   return { heal: any ? 1 + heal : 1, regen: 1 + 0.03 * n, haste: 0.02 * n, crit: 0.05 + 0.02 * n };
+}
+
+/**
+ * 장비 한 개가 보태는 능력치 (gearStatsOf를 부위 하나로 나눈 것). 장비 상세 시트의 「지금 장비와 비교」용.
+ * heal = 힐량 보정, crit·haste = 비율, regen = 마나 재생 배율에 더하는 값. 없으면 모두 0
+ */
+export function itemStats(it: GearItem | null | undefined): { heal: number; crit: number; haste: number; regen: number } {
+  if (!it) return { heal: 0, crit: 0, haste: 0, regen: 0 };
+  const [h, n] = GRADE[it.grade];
+  return { heal: h + 0.005 * it.plus, crit: (0.02 * n) / 3, haste: (0.02 * n) / 3, regen: (0.03 * n) / 3 };
 }
 
 /** 장비 점수 (등급 순위 + 강화/10). 권장 장비 비교·더 좋은 장비 표시용 */

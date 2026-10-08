@@ -3,7 +3,7 @@ import type { ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HERO_SWITCH_LV, HEROES, type HeroKey } from '../data/heroes';
 import { TALENTS } from '../data/talents';
-import { enhanceCost, MAX_PLUS, salvageOf, SLOTS, type GearItem } from '../data/equipment';
+import { enhanceCost, itemScore, MAX_PLUS, salvageOf, SLOTS, type GearItem, type SlotKey } from '../data/equipment';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots } from '../data/progression';
 import { heroSaveOf, load, newSave, save, type HeroSave, type SaveData } from '../platform/storage';
@@ -94,12 +94,12 @@ export function enhance(id: number): string {
   return '';
 }
 
-/** 가방 장비 분해 (착용 중인 건 안 됨). 받은 골드·재료 합 */
+/** 가방 장비 분해 (착용 중인 것·잠긴 것은 안 됨). 받은 골드·재료 합 */
 export function salvage(ids: number[]): { n: number; gold: number; stone: number; refined: number } {
   const g = G.save.gear, got = { n: 0, gold: 0, stone: 0, refined: 0 };
   for (const id of ids) {
     const i = g.bag.findIndex(x => x.id === id);
-    if (i < 0) continue;
+    if (i < 0 || g.bag[i].lock) continue;
     const v = salvageOf(g.bag[i]);
     g.bag.splice(i, 1);
     got.n++; got.gold += v.gold; got.stone += v.stone; got.refined += v.refined;
@@ -110,6 +110,44 @@ export function salvage(ids: number[]): { n: number; gold: number; stone: number
 }
 
 export const emptySlots = () => SLOTS.filter(s => !G.save.gear.equipped[s.key]).length;
+
+/** 장비 잠금 켜기·끄기 (27 4-3). 바뀐 뒤 잠김 여부 */
+export function toggleLock(id: number): boolean {
+  const it = findItem(id);
+  if (!it) return false;
+  if (it.lock) delete it.lock; else it.lock = true;
+  commit();
+  return !!it.lock;
+}
+
+/** 「일반·고급 모두」로 고를 가방 장비 (잠긴 것 빼고) */
+export const lowGradeIds = () => G.save.gear.bag.filter(it => !it.lock && (it.grade === '일반' || it.grade === '고급')).map(it => it.id);
+
+/**
+ * 추천 장착 (27 4-2): 부위마다 착용·가방 중 점수(itemScore)가 가장 높은 장비. 바뀌는 부위만 돌려줌.
+ * 점수가 같으면 지금 것을 그대로 두고, 가방끼리 같으면 세트 장비를 먼저
+ */
+export function bestGearPlan(): { slot: SlotKey; now: GearItem | null; next: GearItem }[] {
+  const eq = G.save.gear.equipped, out: { slot: SlotKey; now: GearItem | null; next: GearItem }[] = [];
+  for (const s of SLOTS) {
+    const now = eq[s.key] ?? null;
+    let best: GearItem | null = null;
+    for (const it of G.save.gear.bag) {
+      if (it.slot !== s.key) continue;
+      const top = itemScore(best ?? now ?? undefined);
+      if (itemScore(it) > top || (best && itemScore(it) === top && it.set && !best.set)) best = it;
+    }
+    if (best) out.push({ slot: s.key, now, next: best });
+  }
+  return out;
+}
+
+/** 추천 장착 한 번에. 바꾼 부위 수 */
+export function equipBest(): number {
+  const plan = bestGearPlan();
+  for (const p of plan) equip(p.next.id);
+  return plan.length;
+}
 
 // ---------- 힐러 직업 (25) ----------
 /** 그 직업의 저장 (없으면 기본: 기본 배치, 칸 탭 = 기본 힐 칸) */
@@ -131,6 +169,29 @@ export function pickTalent(tier: number, pick: number): boolean {
   const a = (hs.talents ||= []);
   while (a.length < TALENTS.length) a.push(null);
   a[tier] = a[tier] === pick ? null : pick;
+  if (hs.presets) hs.presets[hs.preset ?? 0] = [...a];
+  commit();
+  return true;
+}
+
+/** 특성 프리셋 수 (27 4-5) */
+export const TALENT_PRESETS = 3;
+/** 지금 특성 프리셋 (0~2) */
+export const talentPreset = (h: HeroKey = G.save.hero): number => heroSave(h).preset ?? 0;
+
+/**
+ * 특성 프리셋 바꾸기 (27 4-5, 언제든 무료). 지금 고름은 지금 프리셋 칸에 넣어 두고, 고른 칸을 꺼냄.
+ * 옛 저장은 지금 고름이 프리셋 1. 직업마다 따로
+ */
+export function setTalentPreset(i: number, h: HeroKey = G.save.hero): boolean {
+  if (!Number.isInteger(i) || i < 0 || i >= TALENT_PRESETS) return false;
+  const hs = heroSave(h), cur = hs.preset ?? 0;
+  if (i === cur) return false;
+  const ps = (hs.presets ||= []);
+  while (ps.length < TALENT_PRESETS) ps.push([]);
+  ps[cur] = [...(hs.talents || [])];
+  hs.talents = [...ps[i]];
+  hs.preset = i;
   commit();
   return true;
 }

@@ -1,5 +1,9 @@
-/** S04 난이도·입장 (09): 난이도 4단, 던전 레벨 단계 (07 3장), 권장 레벨·장비(미달이면 경고만), 진행·보스 공략, 드롭·보상 미리보기. 주간 도전은 단계·어픽스·제한시간 (13 3-2) */
-import { ALL_DIFFS, contentOf, isRaid, raidSize, stageOf } from '../data/content';
+/**
+ * S04 입장 (27 3-2, 시안 Entry27): 상단 = 세력 문양 · 이름 · 인원·보스, 난이도 폴더 탭, 레벨 단계 칩 (07 3장),
+ * 준비 확인 (레벨 · 장비 · 해제 · 입장권, 미달이면 경고만), 구간 (노드 줄 + 보스별 공략 접기 + 단계 어픽스), 보상 (등급 색 막대), 아래 고정 「편성으로」.
+ * 주간 도전은 단계 고르기 · 어픽스 · 제한시간 (13 3-2).
+ */
+import { ALL_DIFFS, contentOf, isRaid, raidSize, stageOf, type ContentDef } from '../data/content';
 import { DIFFS, MYTHIC, type DiffName } from '../data/difficulty';
 import { ENCOUNTERS, segGrade, type EncounterKey } from '../data/encounters';
 import { avgScore, DROP_TABLE, gearSummary, GRADE_STYLE, ITEM_GRADES, LEGEND_LEVEL, RECOMMENDED } from '../data/equipment';
@@ -14,19 +18,97 @@ import { CHAL } from '../data/challenge';
 import { runMode, tierGate } from '../game/runmode';
 import { G, heroNow, lockOf, switchOpen } from '../game/state';
 import { TUT } from '../game/tutorial';
-import { battle, esc, fmt, go, mmss, screen, topBar } from './kit';
-import { factionMark, LOCK, placeArt } from './art';
-import { FACTIONS, PLACES } from '../data/places';
+import { battle, esc, fmt, go, mmss, screen } from './kit';
+import { LOCK, placeArt, uiIcon } from './art';
+import { markHtml } from './content';
 
-/** 드롭 세트 한 줄 (02 10-3): 효과가 있는 세트는 2·4세트까지 */
-function setLine(key: string, name?: string): string {
-  if (!name) return '';
-  const d = setOf(key);
-  if (!d) return `<p class="note">드롭 세트 「${esc(name)}」 (효과는 콘텐츠와 함께 추가)</p>`;
-  return `<p class="note">드롭 세트 「${d.name}」 ${d.minGrade} 이상 · 2세트: ${esc(d.two.desc)} 4세트: ${esc(d.four.desc)}</p>`;
+const svg = (d: string, sw = 2.2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const BACK = svg('<path d="M19 12H5M11 6l-6 6 6 6"/>');
+export const ARROW = svg('<path d="M5 12h14M13 6l6 6-6 6"/>');
+/** 종 조각 (악몽 입장권) */
+const BELL = svg('<path d="M6.5 16v-4.5a5.5 5.5 0 0 1 11 0V16l1.5 2h-14z"/><path d="M10 20.5h4"/>', 2);
+const CHEV = '<svg class="f-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+
+/** 흐름 화면 상단 (입장·편성 공통, 시안 .hd): 뒤로 · (문양) · 제목 · 오른쪽 작은 글 */
+export function flowHead(back: string, title: string, cap: string[], mark = ''): string {
+  return `<header class="topbar f-hd"><button class="tb-back" type="button" data-go="${back}" aria-label="뒤로">${BACK}</button>${mark}<b class="f-ttl">${esc(title)}</b><span class="f-sp"></span><span class="cap f-hcap">${cap.map(x => `<span>${x}</span>`).join('')}</span></header>`;
 }
 
-const s = screen('s-entry', '난이도·입장', { enter() { render(); } });
+/** 장비 점수 → 등급 + 강화 글 (itemScore = 등급 순위 + 강화/10, 평균이라 섞인 장비는 중간값) */
+function gradeOf(score: number): string {
+  const i = Math.floor(score + 1e-6) - 1;
+  if (i < 0) return '';
+  const g = ITEM_GRADES[Math.min(i, ITEM_GRADES.length - 1)], plus = Math.round((score - Math.min(i, ITEM_GRADES.length - 1) - 1) * 10);
+  return `<b class="f-g" style="color:${GRADE_STYLE[g].color}">${g}</b>${plus > 0 ? ` +${plus}` : ''}`;
+}
+function myGear(): string {
+  const avg = avgScore(G.save.gear.equipped);
+  return avg >= 1 ? gradeOf(avg) : avg > 0 ? esc(gearSummary(G.save.gear.equipped)) : '장비 없음';
+}
+
+/** 준비 확인 한 줄: ✓ / ! (mark 없으면 정보 줄) */
+function ck(mark: 'ok' | 'warn' | null, label: string, v: string, cls: string, right = ''): string {
+  const m = mark ? `<span class="f-mark ${mark}" role="img" aria-label="${mark === 'ok' ? '충족' : '주의'}">${mark === 'ok' ? '✓' : '!'}</span>` : '<span class="f-mark info" aria-hidden="true"></span>';
+  return `<div class="f-ck ${cls}${mark ? '' : ' info'}">${m}<b>${label}</b><span class="v">${v}</span>${right}</div>`;
+}
+
+/** 해제 줄 (25 7장): 이 콘텐츠가 거는 디버프를 지금 직업이 지울 수 있는지. 못 지우면 ! + 직업 바꾸기 */
+function dispelCk(segs: EncounterKey[]): string {
+  const types = [...new Set(segs.flatMap(k => ENCOUNTERS[k].debuffs || []))];
+  if (!types.length) return ck('ok', '해제', '물리만 · 해제 필요 없음', 'dispel');
+  const h = heroNow(), miss = types.filter(t => !canDispel(h, t));
+  const chips = types.map(t => { const ok = canDispel(h, t); return `<span class="dsp${ok ? '' : ' cant'}" style="--c:${DEB_COLOR[t] || '#888'}">${t} ${ok ? '✓' : '✕'}</span>`; }).join('');
+  const swap = miss.length && switchOpen().ok ? '<button class="btn2" type="button" data-go="s-char" data-arg="hero">직업 바꾸기</button>' : '';
+  return ck(miss.length ? 'warn' : 'ok', '해제', `<span class="cap">${HEROES[h].name}</span>${chips}`, 'dispel', swap);
+}
+
+/** 구간 노드 줄: 일반·정예 ● · 보스 ◆ */
+function timeline(segs: EncounterKey[]): string {
+  return `<ol class="segs f-tl" aria-label="구간 ${segs.length}개">${segs.map(k => {
+    const e = ENCOUNTERS[k], g = segGrade(e);
+    return `<li class="${e.script === 'trash' ? 'trash' : 'boss'}${g === '정예' ? ' elite' : ''}"><span class="f-ndw"><i class="f-nd"></i></span><span class="f-nl">${g === '보스' ? esc(e.name) : g}</span></li>`;
+  }).join('')}</ol>`;
+}
+
+/** 구간별 공략 접기: 누르면 기술 목록 (전투 공략 데이터 그대로) */
+function guides(segs: EncounterKey[], d: DiffName, stage: number): string {
+  return `<div class="guides">${segs.map((k, i) => {
+    const html = battle().guide(k, d, stage, G.save.player.level);
+    const n = (html.match(/class="gs[ "]/g) || []).length, g = segGrade(ENCOUNTERS[k]);
+    return `<details class="gdet f-acc"${segs.length === 1 && i === 0 ? ' open' : ''}><summary>${CHEV}<span class="f-an">${esc(ENCOUNTERS[k].name)}</span><span class="f-sp"></span><span class="cap">${g === '보스' ? '' : `${g} · `}기술 ${n}</span></summary>${html}</details>`;
+  }).join('')}</div>`;
+}
+
+/** 어픽스 줄 (07 3장, 13 3-3): 빨간 이름 칸 + 설명 */
+function afxRows(keys: AffixKey[], label = ''): string {
+  if (!keys.length) return '';
+  return `<div class="afxlist">${keys.map(k => {
+    const a = AFFIXES[k];
+    return `<div class="f-afr"><span class="f-afx${a.good ? ' good' : ''}">${a.name}</span><span class="f-afd">${label ? `${label} · ` : ''}${esc(a.desc)}<small>${esc(a.tip)}</small></span></div>`;
+  }).join('')}</div>`;
+}
+
+/** 드롭 확률 막대 (등급 색 한 줄, 좁은 칸은 글자를 설명 줄로) */
+function dropBar(d: DiffName): { bar: string; small: string[] } {
+  const table = DROP_TABLE[d].map((p, i) => [ITEM_GRADES[i], p] as const).filter(([, p]) => p > 0);
+  const pc = (p: number) => `${Math.round(p * 100)}%`;
+  const bar = `<div class="f-drop" role="img" aria-label="장비 등급 확률 ${table.map(([g, p]) => `${g} ${pc(p)}`).join(', ')}">${table.map(([g, p]) => `<span style="width:${(p * 100).toFixed(1)}%;background:${GRADE_STYLE[g].color}">${p >= 0.15 ? `${g} ${pc(p)}` : ''}</span>`).join('')}</div>`;
+  return { bar, small: table.filter(([, p]) => p < 0.15).map(([g, p]) => `${g} ${pc(p)}`) };
+}
+
+function setTxt(c: ContentDef): string {
+  if (!c.set) return '';
+  const s = setOf(c.key);
+  return s ? `세트 ${s.name} (${s.minGrade} 이상)` : `세트 ${esc(c.set)}`;
+}
+
+/** 상단 + 난이도 탭을 장소 그림 위에 (그림이 있으면 어둡게 깔림, 28 4장 입장 머리) */
+function cover(c: ContentDef, inner: string): string {
+  const pa = placeArt(c.key);
+  return `<div class="f-cover${pa.url ? ' art' : ''}"${pa.url ? ` style="--cv:url('${pa.url}')"` : ''}>${inner}</div>`;
+}
+
+const s = screen('s-entry', '입장', { enter() { render(); } });
 
 function diffNote(d: DiffName, raid: boolean): string {
   const x = DIFFS[d];
@@ -35,90 +117,76 @@ function diffNote(d: DiffName, raid: boolean): string {
   return t;
 }
 
-/** 해제 줄 (25 7장): 이 콘텐츠가 거는 디버프를 지금 직업이 지울 수 있는지 */
-function dispelRow(segs: EncounterKey[]): string {
-  const types = [...new Set(segs.flatMap(k => ENCOUNTERS[k].debuffs || []))];
-  if (!types.length) return '';
-  const h = heroNow(), miss = types.filter(t => !canDispel(h, t));
-  const cell = types.map(t => `<span class="dbt${canDispel(h, t) ? '' : ' no'}" style="--c:${DEB_COLOR[t] || '#888'}">${t} ${canDispel(h, t) ? '✓' : '✕'}</span>`).join(' ');
-  const swap = miss.length && switchOpen().ok ? ' <button class="btn mini" type="button" data-go="s-char" data-arg="hero">직업 바꾸기</button>' : '';
-  return `<div class="dispel"><dt>해제 <small>${HEROES[h].name}</small></dt><dd>${cell}${swap}</dd></div>`;
-}
-
-/** 어픽스 목록 (07 3장, 13 3-3) */
-function affixPanel(keys: AffixKey[], title: string, sub = ''): string {
-  if (!keys.length) return '';
-  return `<section class="panel afxlist"><h4>${title}${sub ? ` <small>${sub}</small>` : ''}</h4><ul>${keys.map(k => `<li${AFFIXES[k].good ? ' class="good"' : ''}><b>${AFFIXES[k].name}</b> ${esc(AFFIXES[k].desc)}<small>💡 ${esc(AFFIXES[k].tip)}</small></li>`).join('')}</ul></section>`;
-}
-
 function render(): void {
   if (Flow.chal) { renderChal(); return; }
   const c = contentOf(Flow.content);
   const raid = isRaid(c);
   if (lockOf(c, Flow.diff).locked) Flow.diff = '보통';
   const d = Flow.diff;
-  const tutDone0 = G.save.tut >= TUT.done;
+  const tutDone = G.save.tut >= TUT.done;
   // 던전 레벨 단계 (07 3장): 튜토리얼 뒤, 레벨이 되면 (개발 빌드는 전부)
-  if (!tutDone0 || !c.tiers?.includes(Flow.tier) || !tierGate(G.save, Flow.tier).ok) Flow.tier = 0;
+  if (!tutDone || !c.tiers?.includes(Flow.tier) || !tierGate(G.save, Flow.tier).ok) Flow.tier = 0;
   const mode = runMode(G.save, c, d, { tier: Flow.tier, chal: 0 });
   const segs = c.fights(d);
   const rec = RECOMMENDED[d];
-  const mine = avgScore(G.save.gear.equipped);
-  const warn = rec && mine < rec.score;
-  const lvWarn = G.save.player.level < mode.stage;
-  const table = DROP_TABLE[d].map((p, i) => [ITEM_GRADES[i], p] as const).filter(([, p]) => p > 0);
-  const legendCut = G.save.player.level < LEGEND_LEVEL && table.some(([g]) => g === '전설');
-  const rs = raidSize(c), stage = mode.stage;
-  const tierRow = tutDone0 && c.tiers ? `<div class="chips tiers" role="radiogroup" aria-label="레벨 단계"><button class="chip" type="button" role="radio" data-tier="0" aria-checked="${!Flow.tier}" aria-pressed="${!Flow.tier}">기본 Lv ${stageOf(c, d)}</button>${c.tiers.map(t => {
-    const g = tierGate(G.save, t);
-    return `<button class="chip" type="button" role="radio" data-tier="${t}" aria-checked="${t === Flow.tier}" aria-pressed="${t === Flow.tier}"${g.ok ? '' : ' disabled'}>${g.ok ? '' : LOCK}Lv ${t}</button>`;
-  }).join('')}</div>` : '';
+  const warn = !!rec && avgScore(G.save.gear.equipped) < rec.score;
+  const lv = G.save.player.level, stage = mode.stage, rs = raidSize(c);
+  const legendCut = lv < LEGEND_LEVEL && DROP_TABLE[d][ITEM_GRADES.indexOf('전설')] > 0;
   const goldA = clearGold(stage, d, 'A', rs), goldS = clearGold(stage, d, 'S', rs);
-  const xpA = clearXp(G.save.player.level, stage, d, 'A', { raid: rs, win: true });
-  const tutDone = G.save.tut >= TUT.done;
-  const shardOn = tutDone && needsShard(d);
+  const xpA = clearXp(lv, stage, d, 'A', { raid: rs, win: true });
+  const shardOn = tutDone && needsShard(d), shards = G.save.wallet.shards;
   const lootDone = tutDone && !!rs && !raidLootOpen(G.save, c.key, d);
+  const lk = lockOf(c, d);
 
-  const pa = placeArt(c.key), fac = PLACES[pa.place].faction;
-  s.el.innerHTML = `${topBar({ back: 's-content', title: `${c.name} · 단계 Lv ${stage}` })}
-    <div class="ns-body entry">
-      <div class="entry-cover${pa.scene ? '' : ' floor'}">${pa.url ? `<img src="${pa.url}" alt="${esc(PLACES[pa.place].name)}" decoding="async">` : ''}${factionMark(fac)}<div><p class="eyebrow">${esc(c.place)}</p><h2>${esc(c.name)}</h2><span>${c.size(d)}인 파티 · 보스 ${c.bosses.length} · ${FACTIONS[fac].name}</span></div></div>
-      <div class="chips diffs" role="radiogroup" aria-label="난이도">${ALL_DIFFS.map(x => {
-        const lk = lockOf(c, x);
-        return `<button class="chip" type="button" role="radio" data-diff="${x}" aria-checked="${x === d}" aria-pressed="${x === d}"${lk.locked ? ' disabled' : ''}>${lk.locked ? LOCK : ''}${x}</button>`;
-      }).join('')}</div>
+  // 레벨 단계 칩: 열린 단계 + 다음 잠긴 단계 하나 (시안)
+  let more = true;
+  const tiers = tutDone && c.tiers ? c.tiers.filter(t => { if (!more) return false; if (!tierGate(G.save, t).ok) more = false; return true; }) : [];
+  const tierRow = tiers.length ? `<div class="f-tiers" role="radiogroup" aria-label="레벨 단계"><span class="cap">레벨 단계</span><button class="f-tier" type="button" role="radio" data-tier="0" aria-checked="${!Flow.tier}">Lv ${stageOf(c, d)}</button>${tiers.map(t => {
+    const g = tierGate(G.save, t);
+    return `<button class="f-tier" type="button" role="radio" data-tier="${t}" aria-checked="${t === Flow.tier}"${g.ok ? '' : ' disabled'}>${g.ok ? '' : LOCK}Lv ${t}</button>`;
+  }).join('')}</div>` : '';
+
+  const drop = dropBar(d);
+  const rw = ['장비 1개', ...drop.small, setTxt(c), `골드 ${fmt(goldA)} (S ${fmt(goldS)})`, `경험치 약 ${fmt(xpA)}`].filter(Boolean);
+  if (rs && tutDone) rw.push(`공훈 ${MERIT[rs][d]} (이번 주 ${G.save.weekly.merit[rs]}/${MERIT_WEEK_CAP})`);
+  // 레이드 이번 주 장비 (보스마다 난이도별 주 1회, 13 3-4)
+  const lootLine = rs && tutDone ? `<span class="cap f-lootl${lootDone ? ' done' : ''}">이번 주 이 보스 장비 ${lootDone ? '받음 · 골드·공훈만 (월요일 오전 6시에 다시)' : '아직'}</span>` : '';
+
+  const ticket = shardOn
+    ? ck(shards ? 'ok' : 'warn', '입장권', `종 조각 1개 씀 · 가진 것 ${shards}/${SHARD_MAX} <span class="cap${shards ? '' : ' f-sub'}">${shards ? '져도 안 돌아옴' : '상점에서 제작 · 주간 임무'}</span>`, 'ticket', shards ? '' : '<span class="f-under">없음</span>')
+    : '';
+
+  s.el.innerHTML = `${cover(c, `${flowHead('s-content', c.name, [`${c.size(d)}인 · 보스 ${c.bosses.length}`, `단계 Lv ${stage}`], markHtml(c, 'sm'))}
+      <nav class="subtabs f-dtabs" role="radiogroup" aria-label="난이도">${ALL_DIFFS.map(x => {
+        const l = lockOf(c, x);
+        return `<button type="button" role="radio" data-diff="${x}" aria-checked="${x === d}"${l.locked ? ' disabled' : ''}>${x}${l.locked ? `<small>${LOCK}${l.lv}</small>` : ''}</button>`;
+      }).join('')}</nav>`)}
+    <div class="ns-body f-ebody">
       ${G.save.tut === TUT.dungeon && c.key === 'rustfort' ? '<p class="coachtip">처음엔 <b>쉬움</b> 추천. 깨고 나면 보통 도전. 아래 공략은 눌러서 펼침</p>' : ''}
-      <p class="note">${esc(diffNote(d, raid))}${lockOf(c, d).dev ? ` · Lv ${lockOf(c, d).lv} 해금, 개발 빌드라 열림` : ''}</p>
       ${tierRow}
-      ${Flow.tier ? `<p class="note">레벨 단계 Lv ${Flow.tier}: 적 체력·피해·보상이 Lv ${Flow.tier} 기준${tierGate(G.save, Flow.tier).dev ? ' · 개발 빌드라 열림' : ''}</p>` : ''}
-      ${affixPanel(mode.affixes, '어픽스')}
+      <p class="note f-dnote">${esc(diffNote(d, raid))}${lk.dev ? ` · Lv ${lk.lv} 해금, 개발 빌드라 열림` : ''}${Flow.tier && tierGate(G.save, Flow.tier).dev ? ` · 레벨 단계 Lv ${Flow.tier}, 개발 빌드라 열림` : ''}</p>
 
-      <section class="panel">
-        <dl class="kv">
-          <div><dt>권장 레벨</dt><dd>Lv ${stage}${lvWarn ? ` <em class="warn">지금 Lv ${G.save.player.level}</em>` : ''}</dd></div>
-          <div><dt>인원</dt><dd>${c.size(d)}인 (나 포함)</dd></div>
-          <div><dt>권장 장비</dt><dd>${rec ? rec.label : '없음'}</dd></div>
-          <div><dt>내 장비</dt><dd>${esc(gearSummary(G.save.gear.equipped))}</dd></div>
-          ${dispelRow(segs)}
-        </dl>
-        ${warn ? `<p class="warnbox${shardOn ? ' strong' : ''}">⚠ 권장 장비(${rec!.label})보다 낮음. 입장은 가능</p>` : ''}
-        ${shardOn ? `<p class="warnbox">🔔 출발할 때 종 조각 1개 소모 · 보유 ${G.save.wallet.shards}/${SHARD_MAX}${G.save.wallet.shards ? ' (져도 안 돌아옴)' : ' · 없음: 상점에서 제작 또는 주간 임무'}</p>` : ''}
-        ${lootDone ? '<p class="note">이번 주 이 보스·난이도 장비는 이미 받음 · 골드·공훈만 (월요일 오전 6시에 다시)</p>' : ''}
+      <section class="pn gold f-sec f-ready"><h2 class="h-rule">준비 확인<span class="rule"></span></h2>
+        ${ck(lv >= stage ? 'ok' : 'warn', '레벨', `권장 ${stage} · 내 ${lv}`, 'lv')}
+        ${ck(warn ? 'warn' : 'ok', '장비', `권장 ${rec ? gradeOf(rec.score) : '없음'} · 내 ${myGear()}`, 'gear', warn ? '<span class="f-under">미달 · 입장은 됨</span>' : '')}
+        ${dispelCk(segs)}
+        ${ticket}
       </section>
 
-      <h3 class="sec">진행 <small>${segs.length > 1 ? '구간 사이에 휴식' : '보스 1'}</small></h3>
-      <ol class="segs">${segs.map(k => `<li class="${ENCOUNTERS[k].script === 'trash' ? 'trash' : 'boss'}${segGrade(ENCOUNTERS[k]) === '정예' ? ' elite' : ''}">${esc(ENCOUNTERS[k].name)}<small>${segGrade(ENCOUNTERS[k])}</small></li>`).join('')}</ol>
-      <div class="guides">${segs.map((k, i) => `<details class="gdet"${i === segs.length - 1 && segs.length === 1 ? ' open' : ''}><summary>${i + 1}. ${esc(ENCOUNTERS[k].name)} 공략</summary>${battle().guide(k, d, stage, G.save.player.level)}</details>`).join('')}</div>
+      <section class="pn f-sec"><h2 class="h-rule">구간<span class="rule"></span><span class="cap">${segs.length > 1 ? '구간 사이 휴식' : '보스 1'}</span></h2>
+        ${timeline(segs)}
+        ${guides(segs, d, stage)}
+        ${afxRows(mode.affixes, '단계 어픽스')}
+      </section>
 
-      <h3 class="sec">보상 <small>클리어하면</small></h3>
-      <section class="panel reward-pre">
-        <p>장비 1개 · ${table.map(([g, p]) => `<span class="gr" style="--g:${GRADE_STYLE[g].color}">${g} ${Math.round(p * 100)}%</span>`).join(' ')}</p>
-        ${legendCut ? `<p class="note">전설은 Lv ${LEGEND_LEVEL}부터 (그 전엔 영웅)</p>` : ''}
-        ${setLine(c.key, c.set)}
-        <p>골드 ${fmt(goldA)} (S 등급 ${fmt(goldS)}) · 경험치 약 ${fmt(xpA)}${rs && tutDone ? ` · 공훈 ${MERIT[rs][d]} (이번 주 ${G.save.weekly.merit[rs]}/${MERIT_WEEK_CAP})` : ''}</p>
+      <section class="pn f-sec f-rw"><h2 class="h-rule">보상<span class="rule"></span></h2>
+        ${drop.bar}
+        <span class="cap">${rw.map(x => `<span class="f-nw">${x}</span>`).join(' · ')}</span>
+        ${legendCut ? `<span class="cap">전설은 Lv ${LEGEND_LEVEL}부터 (그 전엔 영웅)</span>` : ''}
+        ${lootLine}
       </section>
     </div>
-    <footer class="ns-foot"><button class="btn primary" type="button" id="entryGo">입장 (편성으로)</button></footer>`;
+    <footer class="ns-foot f-foot"><button class="f-go" type="button" id="entryGo">${shardOn ? BELL : uiIcon('battle')}<span class="cta2"><span class="f-gt">편성으로</span><small>${shardOn ? '종 조각 1개 씀 · ' : ''}${d} · 단계 Lv ${stage}</small></span>${ARROW}</button></footer>`;
 }
 
 /** 주간 도전 (13 3-2): 단계 고르기, 이번 주 어픽스, 제한시간, 월요일 상자 */
@@ -131,32 +199,28 @@ function renderChal(): void {
   const gold = Math.round(clearGold(m.stage, d, 'A') * (festival ? CHAL.festivalGold : 1));
   const xp = clearXp(G.save.player.level, m.stage, d, 'A', { win: true });
   const box = best ? chalChestOf(best) : null;
-  s.el.innerHTML = `${topBar({ back: 's-content', title: `주간 도전 · ${CHAL.name}` })}
-    <div class="ns-body entry">
-      <div class="chalstep"><button class="btn" type="button" data-cstep="-1"${Flow.chal <= 1 ? ' disabled' : ''}>−</button><b>${Flow.chal}단계</b><button class="btn" type="button" data-cstep="1"${Flow.chal >= open ? ' disabled' : ''}>+</button></div>
+  s.el.innerHTML = `${cover(c, flowHead('s-content', CHAL.name, [`주간 도전 · ${esc(c.name)} ${d}`, `단계 Lv ${m.stage}`], `<span class="f-hg sm">${uiIcon('hourglass')}</span>`))}
+    <div class="ns-body f-ebody">
+      <div class="chalstep"><button class="btn2" type="button" data-cstep="-1" aria-label="한 단계 아래"${Flow.chal <= 1 ? ' disabled' : ''}>−</button><b>${Flow.chal}단계</b><button class="btn2" type="button" data-cstep="1" aria-label="한 단계 위"${Flow.chal >= open ? ' disabled' : ''}>+</button></div>
       <p class="note center">열린 단계 ${open}/${CHAL.max} · 이번 주 최고 ${best ? `${best}단계` : '없음'}</p>
-      <section class="panel">
-        <dl class="kv">
-          <div><dt>던전</dt><dd>${esc(c.name)} ${d} · ${c.size(d)}인</dd></div>
-          <div><dt>단계 레벨</dt><dd>Lv ${m.stage} (내 레벨 기준)</dd></div>
-          <div><dt>제한시간</dt><dd>${mmss(m.limit!)} <small>(휴식 뺀 전투 시간 합)</small></dd></div>
-          <div><dt>보스·적</dt><dd>체력 +${Math.round((bm.hp - 1) * 100)}% · 피해 +${Math.round((bm.dmg - 1) * 100)}%</dd></div>
-          <div><dt>내 장비</dt><dd>${esc(gearSummary(G.save.gear.equipped))}</dd></div>
-          ${dispelRow(segs)}
-        </dl>
+      <section class="pn gold f-sec f-ready"><h2 class="h-rule">준비 확인<span class="rule"></span></h2>
+        ${ck(null, '던전', `${esc(c.name)} ${d} · ${c.size(d)}인`, 'run')}
+        ${ck(null, '단계', `Lv ${m.stage} (내 레벨 기준)`, 'lv')}
+        ${ck(null, '제한', `${mmss(m.limit!)} <span class="cap">휴식 뺀 전투 시간 합</span>`, 'limit')}
+        ${ck(null, '적', `체력 +${Math.round((bm.hp - 1) * 100)}% · 피해 +${Math.round((bm.dmg - 1) * 100)}%`, 'foe')}
+        ${ck(null, '장비', `내 ${myGear()}`, 'gear')}
+        ${dispelCk(segs)}
       </section>
-      ${affixPanel(m.affixes, '이번 주 어픽스', '월요일 오전 6시에 바뀜')}
-      <section class="panel"><h4>규칙</h4><ul class="rules"><li>제한시간 안에 깨면 다음 단계 열림</li><li>실패해도 단계 유지 · 종 조각 소모 없음</li><li>광고 이어하기 없음</li></ul></section>
-      <h3 class="sec">진행</h3>
-      <ol class="segs">${segs.map(k => `<li class="${ENCOUNTERS[k].script === 'trash' ? 'trash' : 'boss'}${segGrade(ENCOUNTERS[k]) === '정예' ? ' elite' : ''}">${esc(ENCOUNTERS[k].name)}<small>${segGrade(ENCOUNTERS[k])}</small></li>`).join('')}</ol>
-      <h3 class="sec">보상</h3>
-      <section class="panel reward-pre">
-        <p>판마다: 장비 1개 · 골드 ${fmt(gold)}${festival ? ' (축제 주간 +20%)' : ''} · 경험치 약 ${fmt(xp)}</p>
-        <p>월요일 도전 상자: 이번 주 최고 단계 기준 · 5단계 희귀 · 10단계 영웅 · 15단계 영웅 2개 · 20단계 전설 확률</p>
-        ${box ? `<p class="note">지금 기록이면 ${box.grades.join(' · ')}${box.legend ? ' · 전설 확률' : ''}</p>` : ''}
+      <section class="pn f-sec"><h2 class="h-rule">이번 주 어픽스<span class="rule"></span><span class="cap">월요일 오전 6시에 바뀜</span></h2>${afxRows(m.affixes)}</section>
+      <section class="pn f-sec"><h2 class="h-rule">규칙<span class="rule"></span></h2><ul class="f-rules"><li>제한시간 안에 깨면 다음 단계 열림</li><li>실패해도 단계 유지 · 종 조각 소모 없음</li><li>광고 이어하기 없음</li></ul></section>
+      <section class="pn f-sec"><h2 class="h-rule">구간<span class="rule"></span></h2>${timeline(segs)}</section>
+      <section class="pn f-sec f-rw"><h2 class="h-rule">보상<span class="rule"></span></h2>
+        <span class="cap">판마다: 장비 1개 · 골드 ${fmt(gold)}${festival ? ' (축제 주간 +20%)' : ''} · 경험치 약 ${fmt(xp)}</span>
+        <span class="cap">월요일 도전 상자: 이번 주 최고 단계 기준 · 5단계 희귀 · 10단계 영웅 · 15단계 영웅 2개 · 20단계 전설 확률</span>
+        ${box ? `<span class="cap">지금 기록이면 ${box.grades.join(' · ')}${box.legend ? ' · 전설 확률' : ''}</span>` : ''}
       </section>
     </div>
-    <footer class="ns-foot"><button class="btn primary" type="button" id="entryGo">입장 (편성으로)</button></footer>`;
+    <footer class="ns-foot f-foot"><button class="f-go" type="button" id="entryGo">${uiIcon('hourglass')}<span class="cta2"><span class="f-gt">편성으로</span><small>주간 도전 ${Flow.chal}단계 · 단계 Lv ${m.stage}</small></span>${ARROW}</button></footer>`;
 }
 
 s.el.addEventListener('click', e => {

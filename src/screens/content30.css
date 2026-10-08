@@ -1,0 +1,168 @@
+/*
+ * content30: 전투 탭 루트 (시안 Battle30 「B 출정 관문」). 모두 #s-content 아래.
+ * 공통 부품(.g-cta 출전 버튼 · .g-mk · .g-ct · .g-ic)은 game30.css, 어픽스 칸 .f-afx · .f-sp · .f-dev · .f-chev는 flow27.css, .cap · .dsp는 menu27.css.
+ * 390×844 시안의 절대 위치를 flex로: 위 줄 → 본문 (분류 · 도전 띠 · 관문 · 장소 · 난이도, 넘치면 세로 스크롤) → 아래 고정 「출전」 → 하단 탭.
+ * 관문은 남는 높이를 받아 늘고 줄어듦 (시안 282px, 낮은 화면은 줄이고 그래도 넘치면 스크롤).
+ */
+
+/* 바탕: 고른 장소 그림을 흐리고 어둡게 깔기 (시안: 흐림 12 · 밝기 0.28 · 채도 0.7) */
+#s-content { isolation: isolate; }
+#s-content::before { content: ''; position: absolute; inset: -30px; z-index: -1; background: var(--b-bg, none) center 30% / cover no-repeat; filter: blur(12px) brightness(0.28) saturate(0.7); pointer-events: none; }
+
+#s-content .b-body { padding: 4px 10px 10px; gap: 10px; }
+#s-content .b-tip { margin: 0; }
+
+/* ---------- 분류 4칸 (고른 칸 = 금테 + 아래 마름모) ---------- */
+#s-content .b-cats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+#s-content .b-cat { position: relative; min-width: 0; height: 50px; margin: 0; padding: 0 2px; border-radius: 5px; background: linear-gradient(#2A2219, #1A1510); border: 1px solid #5C4424; box-shadow: 0 0 0 1px var(--line); display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--mute); font: inherit; cursor: pointer; }
+#s-content .b-ci { flex: none; width: 20px; height: 20px; display: grid; place-items: center; }
+#s-content .b-ci > svg { width: 20px; height: 20px; }
+#s-content .b-ci:has(.g-ic) { width: 28px; height: 28px; }
+#s-content .b-cat > span:last-child { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+#s-content .b-cat b { font: 700 14px/1.15 var(--font-display); white-space: nowrap; }
+#s-content .b-cat small { display: inline-flex; align-items: center; font-size: 10px; color: var(--dim); white-space: nowrap; }
+#s-content .b-cat small .ui-icon.in { width: 10px; height: 10px; margin-right: 1px; }
+#s-content .b-cat[aria-selected="true"] { background: linear-gradient(#4A3A24, #2A2118); border: 2px solid #D9B26A; color: var(--gold-hi); box-shadow: 0 0 0 1px var(--line), 0 0 12px rgba(255, 211, 77, 0.3); }
+#s-content .b-cat[aria-selected="true"] small { color: var(--ink-2); }
+#s-content .b-cat[aria-selected="true"]::after { content: ''; position: absolute; left: 50%; bottom: -8px; width: 12px; height: 12px; margin-left: -6px; background: #D9B26A; border: 1px solid var(--line); transform: rotate(45deg); }
+
+/* ---------- 주간 도전 띠 (던전 칸) ---------- */
+#s-content .b-chal { width: 100%; height: 46px; margin: 0; padding: 0 10px 0 4px; border-radius: 23px; background: linear-gradient(90deg, #3A1A12, #22160F); border: 1px solid #B0302A; box-shadow: 0 0 0 1px var(--line); display: flex; align-items: center; gap: 8px; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+#s-content .b-hg { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--frame-hi); background: radial-gradient(circle at 50% 32%, #4E3D27, #1A140E 72%); display: grid; place-items: center; color: #C9B4FF; }
+#s-content .b-hg > svg { width: 20px; height: 20px; }
+#s-content .b-hg .g-ic { width: 30px; height: 30px; }
+#s-content .b-chal > b { flex: none; font: 800 14px var(--font-display); color: var(--gold-hi); white-space: nowrap; }
+/* 어픽스: 들어가지 않는 칸은 다음 줄로 넘겨 숨김 (반쯤 잘린 칸 없음) */
+#s-content .b-afx { flex: 0 1 auto; min-width: 0; height: 20px; overflow: hidden; display: flex; flex-wrap: wrap; gap: 4px; }
+#s-content .b-cc { flex: none; white-space: nowrap; }
+#s-content .b-chal .f-chev { width: 14px; height: 14px; color: #D9B26A; }
+#s-content .b-chal.off { background: linear-gradient(90deg, #241C15, #1A1510); border-color: var(--edge-dim); cursor: default; }
+#s-content .b-chal.off .b-hg, #s-content .b-chal.off .f-afx { opacity: 0.55; }
+#s-content .b-chal.off > b { color: var(--mute); }
+#s-content .b-lk { flex: none; display: inline-flex; align-items: center; font: 700 12px var(--font-body); color: var(--mute); white-space: nowrap; }
+
+/* ---------- 관문: 아치 금테 안 장소 그림 ---------- */
+/* container = 관문 높이에 따라 ‹ › 자리를 바꿈 (아래 @container) */
+#s-content .b-gate { position: relative; flex: 1 1 282px; min-height: 230px; max-height: 360px; overflow: hidden; container: gate / size; border-radius: 46% 46% 10px 10px / 70px 70px 10px 10px; border: 3px solid #D9B26A; box-shadow: 0 0 0 2px #3A2410, 0 0 0 3px var(--line), 0 10px 24px rgba(0, 0, 0, 0.7); background: #1A140E; }
+#s-content .b-gate.raid { min-height: 256px; }
+#s-content .b-art { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+#s-content .b-art.floor { filter: saturate(0.85) brightness(0.8); }
+#s-content .b-art.none { background: radial-gradient(var(--t0), var(--t1)); }
+#s-content .b-gate.off .b-art { filter: grayscale(0.8) brightness(0.5); }
+/* 이름표: 세력 문양 + 이름 + 단계 Lv · 세력 */
+#s-content .b-gt { position: absolute; left: 50%; top: 20px; z-index: 2; max-width: calc(100% - 24px); transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 4px 14px 4px 4px; border-radius: 22px; background: rgba(13, 11, 9, 0.85); border: 1px solid #D9B26A; box-shadow: 0 0 0 1px var(--line), 0 4px 10px rgba(0, 0, 0, 0.6); white-space: nowrap; }
+#s-content .b-gm .fmark { width: 34px; height: 34px; border: 2px solid var(--rim); background: #1A140E; box-shadow: none; }
+#s-content .b-gm .fmark img { width: 88%; height: 88%; }
+#s-content .b-gn { min-width: 0; }
+#s-content .b-gn b { display: block; overflow: hidden; text-overflow: ellipsis; font: 800 20px/1.1 var(--font-display); color: var(--gold-hi); text-shadow: 0 1px 0 var(--line); }
+#s-content .b-gn small { display: block; overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: #C9BC9E; }
+#s-content .b-gate.off .b-gn b { color: var(--mute); }
+#s-content .b-gate.off .b-gm .fmark { filter: grayscale(0.6); opacity: 0.7; }
+/* 추천 리본 (이름표 아래 왼쪽) · ‹ › (이름표와 정보 줄 사이) */
+#s-content .b-rib { position: absolute; left: 0; top: 72px; z-index: 2; padding: 3px 12px 4px 10px; border-radius: 0 3px 3px 0; background: linear-gradient(#B0302A, #6E1414); box-shadow: 0 0 0 1px var(--line), 0 3px 6px rgba(0, 0, 0, 0.5); font: 700 12px var(--font-display); color: #FFE08A; }
+#s-content .b-arw { position: absolute; top: max(100px, calc(50% - 45px)); z-index: 3; width: 44px; height: 44px; margin: 0; padding: 0; border-radius: 50%; border: 2px solid var(--frame-hi); background: rgba(13, 11, 9, 0.8); box-shadow: 0 0 0 1px var(--line); display: grid; place-items: center; color: var(--gold-hi); cursor: pointer; }
+#s-content .b-arw > svg { width: 20px; height: 20px; }
+#s-content .b-arw.prev { left: 8px; }
+#s-content .b-arw.next { right: 8px; }
+#s-content .b-arw:active { transform: translateY(1px); }
+/* 준비 중 · 잠김 */
+#s-content .b-st { position: absolute; left: 50%; top: max(122px, calc(50% - 23px)); z-index: 2; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 2px; padding: 6px 14px; border-radius: 4px; background: rgba(13, 11, 9, 0.9); border: 1px solid var(--edge); box-shadow: 0 0 0 1px var(--line); font: 800 16px var(--font-display); color: var(--ink-2); white-space: nowrap; }
+/* 낮은 관문: ‹ ›를 이름표 바로 아래로 올리고 리본은 이름표 아래 가운데로 (정보 줄을 가리지 않게. 레이드는 이번 주 장비 줄만큼 더 높음) */
+@container gate (max-height: 262px) {
+  #s-content .b-arw { top: 66px; }
+  #s-content .b-rib { left: 50%; top: 68px; transform: translateX(-50%); border-radius: 3px; }
+  #s-content .b-st { top: 90px; }
+}
+@container gate (max-height: 288px) {
+  #s-content .b-gate.raid .b-arw { top: 66px; }
+  #s-content .b-gate.raid .b-rib { left: 50%; top: 68px; transform: translateX(-50%); border-radius: 3px; }
+}
+/* 아래 어두운 띠: 정보 · 해제 · 세트 · 보상 */
+#s-content .b-gb { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; padding: 34px 12px 10px; background: linear-gradient(rgba(13, 11, 9, 0), rgba(13, 11, 9, 0.88) 38%, rgba(13, 11, 9, 0.95)); display: flex; flex-direction: column; gap: 6px; }
+#s-content .b-inf { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; color: var(--ink-2); }
+#s-content .b-row { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
+#s-content .b-row > * { flex: none; }
+#s-content .b-row > .b-set { flex: 0 1 auto; min-width: 0; margin-left: 4px; overflow: hidden; text-overflow: ellipsis; }
+#s-content .b-row > .f-sp { flex: 1; }
+#s-content .b-gb .f-dev { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* 보상 칸: 40px 네모 + 아래 글 (테두리 = 등급·재화 색) */
+#s-content .b-rws { display: flex; align-items: flex-end; gap: 8px; }
+#s-content .b-rw { flex: none; width: 52px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+#s-content .b-rb { position: relative; width: 40px; height: 40px; border-radius: 5px; border: 2px solid var(--rc); background: radial-gradient(circle at 50% 35%, #3A2E20, #15120E 75%); box-shadow: 0 0 0 1px var(--line); display: grid; place-items: center; color: color-mix(in srgb, var(--rc) 55%, #FFFFFF); }
+#s-content .b-rb > svg { width: 22px; height: 22px; }
+#s-content .b-rb .g-ic { width: 30px; height: 30px; }
+#s-content .b-rw small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 10px; color: #C9BC9E; white-space: nowrap; }
+#s-content .b-rw em { position: absolute; top: -7px; right: -9px; height: 15px; padding: 0 4px; border-radius: 3px; background: #C8281E; border: 1px solid #FFE7A8; font: normal 900 9px/13px var(--font-body); color: #FFFFFF; white-space: nowrap; }
+#s-content .b-rw.no .b-rb { filter: grayscale(1) brightness(0.6); }
+#s-content .b-rw.no small { color: var(--dim); }
+#s-content .b-leg { flex: 1; min-width: 0; padding-bottom: 14px; line-height: 1.25; text-align: right; }
+/* 레이드: 이번 주 장비 점 4개 (쉬움 · 보통 · 어려움 · 악몽) · 종 조각 */
+#s-content .b-loot { display: inline-flex; gap: 3px; }
+#s-content .b-loot i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--frame); }
+#s-content .b-loot i.got { background: var(--gold-hi); border-color: var(--gold-hi); }
+
+/* 이벤트: 빈 관문 */
+#s-content .b-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; text-align: center; background: radial-gradient(circle at 50% 40%, #2A2118, #120E0A 75%); }
+#s-content .b-ei { width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--frame-hi); background: radial-gradient(circle at 50% 32%, #4E3D27, #1A140E 72%); box-shadow: 0 0 0 1px var(--line); display: grid; place-items: center; color: var(--gold-hi); }
+#s-content .b-ei > svg { width: 30px; height: 30px; }
+#s-content .b-ei .g-ic { width: 46px; height: 46px; }
+#s-content .b-empty b { font: 800 20px var(--font-display); color: var(--gold-hi); }
+
+/* ---------- 장소 문양 줄 (고른 곳 = 금빛 링 + 빛, 준비 중 = 회색 + 「준비」, 잠김 = 자물쇠) ---------- */
+#s-content .b-places { margin: 0 -4px; display: flex; justify-content: space-evenly; gap: 2px; }
+#s-content .b-pl { position: relative; flex: 0 1 64px; min-width: 0; margin: 0; padding: 0; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--ink-2); font: inherit; cursor: pointer; }
+#s-content .b-r { width: 42px; height: 42px; border-radius: 50%; border: 2px solid var(--edge); background: #1A140E; box-shadow: 0 0 0 1px var(--line); overflow: hidden; display: grid; place-items: center; }
+#s-content .b-r .fmark { width: 100%; height: 100%; border: 0; box-shadow: none; }
+#s-content .b-r .fmark img { width: 86%; height: 86%; }
+#s-content .b-pl small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font: 700 10px/1.3 var(--font-display); white-space: nowrap; }
+#s-content .b-pl.on .b-r { border-color: var(--gold-hi); box-shadow: 0 0 0 1px var(--line), 0 0 12px rgba(255, 211, 77, 0.55); }
+#s-content .b-pl.on small { color: var(--gold-hi); }
+#s-content .b-pl.off .b-r .fmark, #s-content .b-pl.lock .b-r .fmark { filter: grayscale(0.8) brightness(0.55); }
+#s-content .b-pl.off:not(.on) small, #s-content .b-pl.lock:not(.on) small { color: var(--dim); }
+#s-content .b-tg { position: absolute; top: -4px; left: 50%; z-index: 1; transform: translateX(-50%); height: 14px; padding: 0 4px; border-radius: 3px; background: var(--panel-2); border: 1px solid #5C4424; display: inline-flex; align-items: center; font: 700 9px/12px var(--font-body); color: var(--mute); white-space: nowrap; }
+#s-content .b-tg .ui-icon.in { width: 9px; height: 9px; margin-right: 1px; }
+
+/* ---------- 난이도 4칸 ---------- */
+#s-content .b-df { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+#s-content .b-dc { min-width: 0; height: 46px; margin: 0; padding: 0; border-radius: 4px; background: linear-gradient(#2A2219, #1A1510); border: 1px solid #5C4424; box-shadow: 0 0 0 1px var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font: 700 13px var(--font-display); color: var(--ink-2); cursor: pointer; }
+#s-content .b-dc small { display: inline-flex; align-items: center; font: 700 11px var(--font-body); letter-spacing: 1px; color: var(--gold-hi); white-space: nowrap; }
+#s-content .b-dc.on { border: 2px solid var(--gold-hi); background: linear-gradient(#5A2616, #2A1A10); box-shadow: 0 0 0 1px var(--line), 0 0 12px rgba(255, 211, 77, 0.4); color: var(--gold-hi); }
+#s-content .b-dc:disabled { color: var(--dim); cursor: default; }
+#s-content .b-dc:disabled small { letter-spacing: 0; color: var(--dim); }
+#s-content .b-dc small .ui-icon.in { width: 10px; height: 10px; margin-right: 1px; }
+
+/* ---------- 아래 고정 「출전」 (하단 탭 위) ---------- */
+#s-content .b-foot { flex: none; padding: 8px 16px calc(var(--tabs-h) + 12px); }
+#s-content .b-foot .g-cta { width: 100%; }
+#s-content .g-mk .fmark { border: 0; box-shadow: none; }
+#s-content .g-mk .fmark img { width: 88%; height: 88%; }
+#s-content .g-mk > span > svg { width: 24px; height: 24px; }
+#s-content .g-cta:disabled { filter: grayscale(0.75) brightness(0.7); cursor: default; }
+#s-content .g-cta:disabled:active { transform: none; }
+
+/* 좁은 화면 (320~359) */
+@media (max-width: 359px) {
+  #s-content .b-cat { gap: 4px; }
+  #s-content .b-ci, #s-content .b-ci > svg { width: 18px; height: 18px; }
+  #s-content .b-ci:has(.g-ic) { width: 24px; height: 24px; }
+  #s-content .b-cat b { font-size: 13px; }
+  #s-content .b-chal { gap: 6px; }
+  #s-content .b-gn b { font-size: 18px; }
+  #s-content .b-rws { gap: 5px; }
+  #s-content .b-rw { width: 48px; }
+}
+/* 낮은 화면 (높이 780 이하, 360×740 등): 칸·버튼·간격을 줄임. 관문은 남는 높이만큼, 그래도 넘치면 스크롤 */
+@media (max-height: 780px) {
+  #s-content .b-body { padding: 2px 10px 4px; gap: 7px; }
+  #s-content .b-gate { min-height: 226px; }
+  #s-content .b-gate.raid { min-height: 252px; }
+  #s-content .b-gb { padding-top: 30px; }
+  #s-content .b-rb { width: 36px; height: 36px; }
+  #s-content .b-rb .g-ic { width: 28px; height: 28px; }
+  #s-content .b-cat { height: 44px; }
+  #s-content .b-chal { height: 42px; }
+  #s-content .b-hg { width: 34px; height: 34px; }
+  #s-content .b-hg .g-ic { width: 27px; height: 27px; }
+  #s-content .b-foot { padding: 4px 16px calc(var(--tabs-h) + 8px); }
+  #s-content .b-foot .g-cta { min-height: 56px; }
+}

@@ -1,6 +1,6 @@
 /**
  * 전투 판 그리기 (PixiJS, WebGL → 안 되면 Canvas). 20 4-1: 전투 화면은 캔버스에만 그리고 매 프레임 HTML은 안 고침.
- * 칸 = 체력 물통 · 역할 아이콘 · 닉네임 · 체력 숫자 · 디버프 테두리 (16 9장 2번: 파티원 그림 없음).
+ * 칸 = 체력 물통 · 역할 아이콘 · 닉네임 · 체력 숫자 · 디버프 테두리 (16 9장 2번: 파티원 그림 없음). 「나」 칸은 역할 아이콘 대신 직업 문장 (27 3-4).
  * 이펙트 (16 4-6): 힐 = 부드러운 빛 + 별 반짝이(사제 금·흰), 치명타 = 반짝이 2배 + 작은 종, 큰 피격 = 날카로운 빨간 자국.
  * 칸 위 이펙트는 0.4초 안에 사라지고 체력 숫자·디버프 테두리 아래에 그림.
  */
@@ -8,6 +8,8 @@ import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, Rende
 import { CLASSES } from '../data/classes';
 import { SKILLS } from '../data/skills';
 import { aggroTarget, areaRadius, hexDist, slotKey, type Unit } from '../engine';
+import { emblemColor } from '../screens/art';
+import { emblemSrc } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, SEL, ui } from './core';
 
 // ---------- 색 ----------
@@ -15,7 +17,7 @@ const hex = (c: string) => parseInt(c.slice(1, 7), 16);
 // 테마 「길드 홀」 (2026-10-08): 돌색 빈칸, 청동 안쪽 테두리, 물통 빈 부분 = 돌 3. 디버프·위험 색은 그대로
 const C = {
   cell: 0x15120e, cellLine: 0x2c241b, line: 0x080605, ink: 0xf1e4c8, dead: 0x8a7f6a, gold: 0xf0c46a, white: 0xffffff,
-  zone: 0xd6483a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0xffe08a, over: 0xa99a7e,
+  zone: 0xe2402e, zoneHi: 0xff6a4a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0xffe08a, over: 0xa99a7e,
   empty: 0x2c241b, dangerBg: 0x3b1514, bronze: 0x5c4424, frame: 0x9c7a3c, dark: 0x12100c,
 };
 const FONT = '"Noto Sans KR", "Apple SD Gothic Neo", sans-serif';
@@ -36,7 +38,8 @@ const labelsL = new Container();
 const topG = new Graphics();
 const topL = new Container();
 const lensL = new Container();
-root.addChild(cellsG, unitsG, glowL, fxG, overG, labelsL, topG, topL, lensL);
+const emblemL = new Container();
+root.addChild(cellsG, unitsG, glowL, fxG, overG, emblemL, labelsL, topG, topL, lensL);
 
 let dpr = 1;
 export const L = { s: 40, W: 0, H: 0, ox: 0, oy: 0, ok: false };
@@ -124,6 +127,25 @@ function fillBand(g: Graphics, x: number, y: number, r: number, yMin: number, yM
   const pts = clipY(hexPts(x, y, r), yMin, yMax);
   if (pts.length >= 3) g.poly(flat(pts), true).fill({ color, alpha });
 }
+/** 장판 빗금 (칸 모양 안쪽만, 45°): 바닥 그림 위에서도 장판이 읽히게. 그린 뒤 .stroke() */
+function hatchHex(g: Graphics, x: number, y: number, r: number, gap: number): Graphics {
+  const pts = hexPts(x, y, r), u = Math.SQRT1_2;
+  for (let d = -r + gap / 2; d < r; d += gap) {
+    const ox = x + u * d, oy = y - u * d; // 줄 = o + s·(u, u)
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < 6; i++) {
+      const [ax, ay] = pts[i], [bx, by] = pts[(i + 1) % 6];
+      const ex = bx - ax, ey = by - ay, den = u * ey - u * ex;
+      if (Math.abs(den) < 1e-9) continue;
+      const k = ((ax - ox) * u - (ay - oy) * u) / den;
+      if (k < 0 || k > 1) continue;
+      const sv = ((ax - ox) * ey - (ay - oy) * ex) / den;
+      lo = Math.min(lo, sv); hi = Math.max(hi, sv);
+    }
+    if (hi > lo) g.moveTo(ox + u * lo, oy + u * lo).lineTo(ox + u * hi, oy + u * hi);
+  }
+  return g;
+}
 /** 점선 (Pixi에는 점선이 없어 직접 나눔) */
 function dashPoly(g: Graphics, pts: Pt[], dash: number, gap: number, width: number, color: number, alpha = 1): void {
   for (let i = 0; i < pts.length; i++) {
@@ -166,6 +188,38 @@ function roleIcon(g: Graphics, role: Unit['role'], x: number, y: number, k: numb
     g.rect(x - t + 1, y - t + 1, t * 2 - 2, t * 2 - 2).fill({ color: C.gold });
   }
 }
+// ---------- 「나」 칸 직업 문장 (27 3-4·5장): 원형 금테 + 돌 바탕 + 문장. 한 번 그려 텍스처로 ----------
+const emblemTex = new Map<string, Texture | null>(); // null = 그림 읽는 중 (그동안은 ✚)
+const meEmblem = new Sprite();
+meEmblem.anchor.set(0.5);
+emblemL.addChild(meEmblem);
+function emblemTexture(hero: string): Texture | null {
+  if (emblemTex.has(hero)) return emblemTex.get(hero)!;
+  emblemTex.set(hero, null);
+  const { src, painted } = emblemSrc(hero, emblemColor(hero));
+  const img = new Image();
+  img.decoding = 'async';
+  img.onload = () => {
+    const N = 128, m = N / 2, c = document.createElement('canvas');
+    c.width = c.height = N;
+    const x = c.getContext('2d')!;
+    const disc = (r: number, fill: string | CanvasGradient) => { x.beginPath(); x.arc(m, m, r, 0, Math.PI * 2); x.fillStyle = fill; x.fill(); };
+    disc(m, '#080605'); // 바깥 외곽선
+    disc(m - 5, '#C9A35C'); // 금테
+    disc(m - 14, '#0D0B09'); // 금테 안쪽 어두운 줄
+    const g = x.createRadialGradient(m, m * 0.72, 0, m, m, m - 17);
+    g.addColorStop(0, '#3D3125'); g.addColorStop(1, '#1A1510');
+    disc(m - 17, g); // 돌 바탕
+    const k = (N - 34) * (painted ? 0.86 : 0.66);
+    x.save(); x.beginPath(); x.arc(m, m, m - 17, 0, Math.PI * 2); x.clip();
+    x.drawImage(img, m - k / 2, m - k / 2, k, k);
+    x.restore();
+    emblemTex.set(hero, Texture.from(c));
+  };
+  img.src = src;
+  return null;
+}
+
 /** 작은 종 (치명타 힐, 16 4-6) */
 function bellShape(g: Graphics, x: number, y: number, k: number, alpha: number): void {
   g.moveTo(x - k * 0.5, y + k * 0.35).quadraticCurveTo(x - k * 0.42, y - k * 0.45, x, y - k * 0.5).quadraticCurveTo(x + k * 0.42, y - k * 0.45, x + k * 0.5, y + k * 0.35).closePath()
@@ -323,6 +377,7 @@ export function render(now: number): void {
   if (!ready || !app || !F || !L.ok) return;
   const t = now / 1000, s = L.s, r = s * 0.93;
   const pulse = 0.5 + 0.5 * Math.sin(t * 8);
+  const zpulse = 0.5 + 0.5 * Math.sin(t * 4); // 장판은 천천히
   const rdt = Math.min(0.1, Math.max(0, (now - (B2.lastRender || now)) / 1000)); B2.lastRender = now;
   for (const g of [cellsG, unitsG, fxG, overG, topG]) g.clear();
   labels.begin(); tops.begin(); glowUsed = 0;
@@ -335,8 +390,15 @@ export function render(now: number): void {
   F.cells.forEach((_, i) => {
     const p = center(i);
     hexPoly(cellsG, p.x, p.y, r).fill({ color: C.cell, alpha: 0.5 }).stroke({ width: 2, color: C.bronze, alpha: 0.75 }); // 빈칸은 비쳐서 장소 바닥이 보임, 진형 선은 청동 (28 5장)
-    if (zoneSet.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.zone, alpha: 0.55 });
-    else if (telSet.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.tel, alpha: 0.12 + 0.2 * pulse });
+    // 장판: 바닥 그림(28 5장)에 묻히지 않게 밝은 빨강 + 빗금 + 안쪽 테. 예고 = 깜빡이는 빨강 + 점선 테
+    if (zoneSet.has(i)) {
+      hexPoly(cellsG, p.x, p.y, r).fill({ color: C.zone, alpha: 0.5 + 0.12 * zpulse });
+      hatchHex(cellsG, p.x, p.y, r * 0.96, Math.max(7, s * 0.2)).stroke({ width: Math.max(2, s * 0.05), color: C.zoneHi, alpha: 0.6 });
+      hexPoly(cellsG, p.x, p.y, r * 0.9).stroke({ width: Math.max(2, s * 0.06), color: C.zoneHi, alpha: 0.95 });
+    } else if (telSet.has(i)) {
+      hexPoly(cellsG, p.x, p.y, r).fill({ color: C.tel, alpha: 0.14 + 0.24 * pulse });
+      dashPoly(cellsG, hexPts(p.x, p.y, r * 0.9), 6, 4, Math.max(2, s * 0.05), C.zoneHi, 0.5 + 0.5 * pulse);
+    }
     // 성기사 빛의 성역: 금빛 바닥, 끝나기 2초 전 깜빡임
     if (F.sanctuary && F.sanctuary.cells.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: F.sanctuary.end - F.t < 2 ? 0.08 + 0.14 * pulse : 0.2 });
     // 사제 쉼터 (특성): 금빛 바닥 + 안쪽 테두리, 끝나기 2초 전 깜빡임
@@ -390,6 +452,11 @@ export function render(now: number): void {
       unitsG.stroke({ width: 2, color: C.white, alpha: 0.12 });
     }
     if (low) hexPoly(unitsG, x, y, r).fill({ color: C.danger, alpha: 0.08 + 0.2 * pulse });
+    // 장판 위에 선 사람: 칸 전체에 붉은 빛 + 빗금 (체력 위험 깜빡임과 구분)
+    if (zoneSet.has(u.cell)) {
+      hexPoly(unitsG, x, y, r).fill({ color: C.zone, alpha: 0.2 + 0.08 * zpulse });
+      hatchHex(unitsG, x, y, r * 0.94, Math.max(7, s * 0.22)).stroke({ width: Math.max(1.5, s * 0.04), color: C.zoneHi, alpha: 0.4 });
+    }
     if (u.flash > 0) hexPoly(unitsG, x, y, r).fill({ color: 0xff503c, alpha: Math.min(1, u.flash * 1.4) });
     const hk = (now - (B2.hitFx[u.id] ?? -1e9)) / 300;
     if (hk >= 0 && hk < 1) hexPoly(unitsG, x, y, r).fill({ color: 0xfff8d6, alpha: 0.4 * (1 - hk) });
@@ -465,9 +532,17 @@ export function render(now: number): void {
     if (F.beacon === u.id) dashCircle(overG, x, y, r * 1.22, 3, 5, 2.5, C.gold, 0.95);
     if (castTarget === u.id) hexPoly(overG, x, y, r * 1.12).stroke({ width: 3, color: hex(SEL) });
   }
+  let meShown = false;
   for (const { u, x, y, deb } of over) {
-    // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만)
-    roleIcon(overG, u.role, x, y - r * 0.38, s * 0.34);
+    // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만). 「나」 = 직업 문장 (27 3-4)
+    const em = u.me ? emblemTexture(F.hero) : null;
+    if (em) {
+      const d = Math.max(14, s * 0.5);
+      if (meEmblem.texture !== em) meEmblem.texture = em;
+      meEmblem.width = meEmblem.height = d;
+      meEmblem.position.set(x, y - r * 0.4);
+      meShown = true;
+    } else roleIcon(overG, u.role, x, y - r * 0.38, s * 0.34);
     nick(u, x, y + r * 0.13, r);
     labels.put(`hp${u.id}`, String(Math.ceil(u.hp)), { size: fs(0.28, 10), fill: C.white, strokeW: 3, num: true }, x, y + r * 0.6);
     if (u.hot > 0) {
@@ -519,6 +594,7 @@ export function render(now: number): void {
     if (st && s >= 40) pill(overG, labels, `st${u.id}`, x, y + r * 0.95, st[0], hex(st[1]), C.dark, fs(0.18, 9));
     else if (st) hexPoly(overG, x, y, r * 0.95).stroke({ width: 3, color: hex(st[1]), alpha: 0.5 + 0.5 * pulse });
   }
+  meEmblem.visible = meShown;
   // 장전 하이라이트
   if (armedKey) {
     if (areaArmed && areaCenter >= 0) {

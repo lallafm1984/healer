@@ -1,0 +1,142 @@
+/* guild30: 30 시안 화면별 배치 (공통 부품은 game30.css)
+ * 길드 탭 (시안 Guild30 「길드 게시판」): 길드 홀 벽(ui-guild, 어둡게) 위 나무 게시판 + 양피지 쪽지, 아래 나무 팻말 2개, 「길드파티로 출전」.
+ * 하위 화면(길드원 · 영입)도 같은 벽 + 게시판 틀 안에 목록. 쪽지 배치는 390 기준 시안 비율을 grid로 (좁으면 2열).
+ */
+
+/* ---------- 길드 홀 벽 (탭 막대 위까지, 아래로 어둡게) ---------- */
+#s-guild.g30 { z-index: 0; background: #15120E; }
+#s-guild.g30::before {
+  content: ''; position: absolute; inset: 0 0 var(--tabs-h); z-index: -1; pointer-events: none;
+  background-color: #15120E;
+  background-image: linear-gradient(rgba(13, 11, 9, 0) 62%, rgba(13, 11, 9, 0.75) 86%, #15120E), linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), var(--art-ui-guild, none);
+  background-size: 100% 100%, 100% 100%, cover;
+  background-position: 0 0, 0 0, 50% 0;
+  background-repeat: no-repeat;
+}
+
+/* ---------- 본문 ---------- */
+#s-guild .ns-body.g-home, #s-guild .ns-body.g-sub { gap: 10px; padding: 32px 12px 12px; }
+#s-guild .ns-body.g-sub { padding-top: 12px; }
+/* home은 아래 출전 버튼 줄(.g-foot)이 탭 막대 자리를 맡음 */
+body.tabs-on #s-guild .ns-body.g-home { padding-bottom: 8px; }
+body.tabs-on #s-guild .ns-body.g-lock, body.tabs-on #s-guild .ns-body.g-sub { padding-bottom: calc(var(--tabs-h) + 20px); }
+#s-guild .g-dev { margin: 0; font-size: 11px; line-height: 1.4; color: var(--mute); text-align: center; text-shadow: 0 1px 2px #000; }
+#s-guild .warnbox { position: relative; }
+
+/* ---------- 게시판 ---------- */
+#s-guild .g-board { margin: 0; }
+#s-guild .g-plq { margin: 0; font-weight: 400; }
+#s-guild .g-hboard { flex: 1 0 auto; display: flex; flex-direction: column; }
+#s-guild .g-hboard > .g-bd { flex: 1 0 auto; display: flex; flex-direction: column; padding: 14px 8px 8px; }
+#s-guild .g-sboard { margin-top: 30px; }
+#s-guild .g-sboard > .g-bd { display: flex; flex-direction: column; gap: 10px; padding: 22px 8px 12px; }
+
+/* 정식 그림이 오면 (.art, guild.ts): 9칸 늘리기. 그림 둘레의 빈 곳은 outset으로 밀어내 보이는 틀 = 상자 가장자리.
+ * 판(ui-board)은 길이가 화면마다 달라(하위 화면은 길게 늘어남) 통째로 늘리면 쇠 모서리·틀이 뭉개져서 9칸으로 나눔. 그림이 없으면 CSS 게시판 그대로.
+ * 자르는 곳 = 그림 크기에 대한 비율 (ui-board: 틀 바깥 5.2·6.8·94.7·93%, 판자 시작 14·15%, 쇠 모서리 22% 안 / ui-note: 종이 14·13.5·88.5·86%) */
+#s-guild .g-board.art {
+  padding: 24px 20px 16px; background: none; border: 0; box-shadow: none;
+  border-image-source: var(--art-ui-board);
+  border-image-slice: 18.75% 22.85% 31.25% 22.46% fill;
+  border-image-width: 62px 61px 104px 60px;
+  border-image-outset: 23px 14px 43px 14px;
+  border-image-repeat: stretch;
+}
+#s-guild .g-board.art > .g-bd { background: none; border: 0; box-shadow: none; }
+#s-guild .g-hboard.art > .g-bd { padding: 10px 2px 2px; }
+#s-guild .g-sboard.art > .g-bd { padding: 18px 2px 6px; }
+#s-guild .g-note.art, #s-guild .g-memo.art {
+  background: none; border: 0; box-shadow: none; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.45));
+  border-image-source: var(--art-ui-note);
+  border-image-slice: 26% fill;
+  border-image-width: 45px;
+  border-image-outset: 24px 20px 24px 25px;
+  border-image-repeat: stretch;
+}
+#s-guild .g-note.art { padding: 16px 12px 9px 15px; }
+#s-guild .g-memo.art { padding: 11px 13px; }
+/* 밀랍 도장 그림(ui-seal)이 오면 글자 앞 둥근 도장 */
+#s-guild .g-seal { gap: 4px; white-space: nowrap; }
+#s-guild .g-seal > .g-ic { flex: none; width: 24px; height: 24px; margin-left: -6px; }
+
+/* ---------- 쪽지 배치 (시안: 길드원 | 모집 공고 / 주간 목표, 인연 스카우트, 정원 | 안내) ---------- */
+#s-guild .g-notes {
+  flex: 1 0 auto; display: grid; gap: 6px 8px; align-content: space-evenly;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1fr) minmax(0, 3fr);
+  grid-template-areas: "mem mem post" "mem mem goal" "scout scout goal" "cap info info";
+}
+#s-guild .g-notes .g-note { position: relative; min-width: 0; }
+#s-guild .g-note:not([role="button"]) { cursor: default; }
+#s-guild .g-note[role="button"]:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+#s-guild .n-mem { grid-area: mem; transform: rotate(-1.5deg); }
+#s-guild .n-post { grid-area: post; transform: rotate(3deg); }
+#s-guild .n-goal { grid-area: goal; transform: rotate(-2.5deg); }
+#s-guild .n-scout { grid-area: scout; transform: rotate(1.5deg); }
+#s-guild .n-cap { grid-area: cap; transform: rotate(-2deg); }
+#s-guild .n-info { grid-area: info; transform: rotate(1deg); }
+#s-guild .g-note h3 { flex-wrap: wrap; row-gap: 0; }
+#s-guild .g-note .g-nbar { margin: 2px 0 1px; }
+
+/* 길드원 줄: 역할 색 네모 + 닉네임 + 직업 · Lv + 초록 육성 포인트 (시안 한 줄).
+ * 쪽지가 좁으면 초록 숫자를 역할 네모 귀퉁이로, 더 좁으면 닉네임 / 직업 두 줄 */
+#s-guild .n-mem { container-type: inline-size; }
+#s-guild .g-mrow { position: relative; display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 0; border-top: 1px dashed #B9A57C; }
+#s-guild .g-mrow:first-of-type { border-top: 0; }
+#s-guild .g-mrow .ri { flex: none; width: 22px; height: 22px; border-radius: 4px; border: 1.5px solid #2E2114; display: flex; align-items: center; justify-content: center; color: #2E2114; }
+#s-guild .g-mrow .ri svg { width: 13px; height: 13px; stroke-width: 2.6; }
+#s-guild .g-mt { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 5px; }
+#s-guild .g-mt b { flex: none; font: 800 13px/1.2 var(--font-display); color: #2E2114; white-space: nowrap; }
+#s-guild .g-mt span { flex: 1 1 auto; min-width: 0; overflow: hidden; font-size: 11px; line-height: 1.25; color: #6A5838; white-space: nowrap; text-overflow: ellipsis; }
+#s-guild .g-mrow i { flex: none; font-style: normal; font-size: 11px; font-weight: 700; color: #2E7A3A; }
+#s-guild .n-mem > p.m { margin-top: 2px; font-size: 11px; }
+@container (max-width: 187px) {
+  #s-guild .g-mrow i { position: absolute; left: -7px; top: -1px; min-width: 17px; height: 15px; padding: 0 3px; box-sizing: border-box; border-radius: 8px; background: #2E7A3A; border: 1px solid #F4EBD0; display: flex; align-items: center; justify-content: center; font: 900 10px/1 var(--font-body); color: #FFFFFF; }
+}
+@container (max-width: 167px) {
+  #s-guild .g-mt { flex-direction: column; align-items: stretch; gap: 0; }
+  #s-guild .g-mt b { overflow: hidden; text-overflow: ellipsis; }
+  #s-guild .g-mrow i { position: static; min-width: 0; height: auto; padding: 0; border: 0; background: none; font: 700 11px var(--font-body); color: #2E7A3A; }
+}
+
+/* 밀랍 도장: 그림은 30px, 누르는 칸은 44px */
+#s-guild .g-seal { position: relative; }
+#s-guild .g-seal::after { content: ''; position: absolute; inset: -7px -4px; }
+
+/* ---------- 나무 팻말 ---------- */
+#s-guild .g-signs { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+#s-guild .g-sign { width: 100%; padding: 0 16px; white-space: nowrap; }
+#s-guild .g-subnav { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+#s-guild .g-subnav .g-sign { gap: 5px; padding: 0 14px; font-size: 15px; }
+#s-guild .g-sign.home { color: var(--ink); }
+#s-guild .g-sign.home svg { flex: none; width: 16px; height: 16px; }
+
+/* ---------- 「길드파티로 출전」 (탭 막대 바로 위) ---------- */
+#s-guild .g-foot { position: relative; flex: none; padding: 2px 16px 10px; margin-bottom: var(--tabs-h); }
+#s-guild .g-foot .g-cta { width: 100%; }
+#s-guild .g-ct b { font-size: clamp(18px, 5.6vw, 22px); letter-spacing: 0.06em; }
+#s-guild .g-mk svg { width: 22px; height: 22px; }
+
+/* ---------- 하위 화면 (길드원 · 영입): 게시판 안 목록 ---------- */
+#s-guild .g-paper { position: relative; padding: 17px 12px 12px; transform: rotate(-0.6deg); }
+#s-guild .g-paper .gbtns { margin: 4px 0 2px; }
+#s-guild .g-paper .btn { background: linear-gradient(#4A3826, #2E2216); border-color: #2A1A0E; color: #FFE7C8; }
+#s-guild .g-paper .btn small { color: #E8D3A8; }
+#s-guild .g-paper p.m b { color: #2E2114; }
+#s-guild .g-tag { align-self: flex-start; display: flex; align-items: baseline; gap: 6px; margin: 4px 0 0; padding: 4px 12px 5px; border-radius: 4px; background: linear-gradient(#3E2F1E, #1E1712); border: 1px solid #D9B26A; box-shadow: 0 0 0 1px var(--line), 0 3px 6px rgba(0, 0, 0, 0.6); font: 800 15px/1.2 var(--font-display); color: var(--gold-hi); }
+#s-guild .g-tag small { font: 700 11px var(--font-body); color: var(--ink-2); }
+#s-guild .g-memo { margin: 0; padding: 9px 12px; background: radial-gradient(circle at 30% 20%, #F4EBD0, #E3D4AF 70%, #D3C096); border: 1px solid #9C8456; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.45); color: #3A2A18; font-size: 12px; line-height: 1.5; transform: rotate(-0.5deg); }
+#s-guild .g-sboard .pcards { gap: 8px; }
+
+/* ---------- 잠김 (Lv 15 전): 쪽지 1장 ---------- */
+#s-guild .g-locknotes { flex: 1 0 auto; display: flex; justify-content: center; align-items: flex-start; padding-top: 16px; }
+#s-guild .n-lock { width: min(250px, 100%); transform: rotate(-1.5deg); }
+#s-guild .n-lock h3.lockline { align-items: center; font-size: 16px; }
+
+/* ---------- 좁은 화면: 쪽지 2열 ---------- */
+@media (max-width: 374px) {
+  #s-guild .g-notes { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "mem mem" "post goal" "scout scout" "cap info"; }
+  #s-guild .g-subnav .g-sign { padding: 0 12px; }
+  #s-guild .g-subnav .g-sign small { display: none; }
+  #s-guild .g-subnav .g-sign::before, #s-guild .g-subnav .g-sign::after { display: none; }
+  #s-guild .g-posts .btn { padding-left: 4px; padding-right: 4px; font-size: 14px; }
+}

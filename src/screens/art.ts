@@ -37,6 +37,15 @@ export function uiIcon(key: keyof typeof paths, extra = ''): string {
 export const LOCK = uiIcon('lock', 'in');
 
 /**
+ * 게임 그림 아이콘 (30 문서): src/art의 `<prefix>-<name>`이 있으면 그 그림, 없으면 넘겨준 선 아이콘·임시 그림.
+ * 테두리(금테 원·네모 칸)는 CSS가 그림. 예: gameIcon('mission', uiIcon('quest')) → icon-mission
+ */
+export function gameIcon(name: string, fallback: string, prefix: 'icon' | 'tab' | 'obj' | 'ui' = 'icon'): string {
+  const img = art(`${prefix}-${name}`);
+  return img ? `<img class="g-ic" src="${img}" alt="" decoding="async" draggable="false">` : fallback;
+}
+
+/**
  * 직업 문장 (27 5장): 힐러 그림 대신. 원형 금테 + 돌 바탕 + 선 아이콘, 색은 16 4-1 포인트 색.
  * 업데이트 직업 4종도 미리 둠 (직업 목록·상점).
  */

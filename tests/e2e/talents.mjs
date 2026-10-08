@@ -1,4 +1,4 @@
-// 사제 특성 (06 6장): 고르기·풀기·저장, 전투 보조 버튼 (정점 바로 / 쉼터 장전 → 빈 칸)
+// 사제 특성 (06 6장, 27 4-5): 칸 → 아래 시트에서 고르기·풀기·저장, 프리셋 1·2·3, 전투 보조 버튼 (정점 바로 / 쉼터 장전 → 빈 칸)
 import { chromium } from 'playwright';
 import { pastTitle, patchSave, toParty } from './nav.mjs';
 
@@ -13,9 +13,11 @@ export default async function talents(url, shots) {
   page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
   const mine = () => page.evaluate(() => JSON.parse(localStorage.getItem('healer.save')).heroes?.priest?.talents || []);
   const text = sel => page.textContent(sel);
+  const save = () => page.evaluate(() => JSON.parse(localStorage.getItem('healer.save')));
+  /** 칸을 눌러 시트를 열고 「고르기」(고른 칸이면 「풀기」) */
   const pick = async (tier, j) => {
-    if (!(await page.isVisible(`#s-char [data-talent="${tier}:${j}"]`))) { await page.click(`#s-char .tier:nth-child(${tier + 1}) summary`); await page.clock.runFor(50); }
-    await page.click(`#s-char [data-talent="${tier}:${j}"]`); await page.clock.runFor(50);
+    await page.click(`#s-char [data-tcell="${tier}:${j}"]`); await page.clock.runFor(50);
+    await page.click(`#s-char .c7-tsheet [data-talent="${tier}:${j}"]`); await page.clock.runFor(50);
   };
   /** 전투 판에서 그 칸 탭 */
   const tapCell = async i => {
@@ -33,21 +35,34 @@ export default async function talents(url, shots) {
   await pastTitle(page);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   await page.click('#s-char nav [data-csub="talent"]'); await page.clock.runFor(50);
-  ok(/0 \/ 10단 고름/.test(await text('#s-char')) && /고르지 않은 단 10개/.test(await text('#s-char')), 'Lv 100: 10단 열림, 아무것도 안 고름');
+  ok(/10단 열림 · 0개 고름 · 10개 남음/.test(await text('#s-char .c7-tsum')) && (await page.locator('#s-char .c7-tier.pending').count()) === 10, 'Lv 100: 10단 열림, 아무것도 안 고름 (줄마다 금테)');
   await pick(0, 0);
-  ok((await mine())[0] === 0 && await page.getAttribute('#s-char [data-talent="0:0"]', 'aria-pressed') === 'true' && /✓ 긴 숨결/.test(await text('#s-char .tier:first-child summary')), '1단 긴 숨결 고름 → 저장, ✓ 표시');
+  ok((await mine())[0] === 0 && await page.getAttribute('#s-char [data-tcell="0:0"]', 'aria-pressed') === 'true' && /✓ 긴 숨결/.test(await text('#s-char .c7-tier:first-child')) && !(await page.isVisible('#s-char .c7-tsheet')), '1단 긴 숨결 고름 → 저장, ✓ 표시, 시트 닫힘');
   await pick(0, 1);
-  ok((await mine())[0] === 1 && await page.getAttribute('#s-char [data-talent="0:0"]', 'aria-pressed') === 'false', '같은 단 다른 특성 = 바꿈 (무료)');
-  await pick(0, 1);
+  ok((await mine())[0] === 1 && await page.getAttribute('#s-char [data-tcell="0:0"]', 'aria-pressed') === 'false', '같은 단 다른 특성 = 바꿈 (무료)');
+  await page.click('#s-char [data-tcell="0:1"]'); await page.clock.runFor(50);
+  ok(/풀기/.test(await text('#s-char .c7-tsheet [data-talent="0:1"]')), '고른 특성의 시트 = 「풀기」');
+  await page.click('#s-char .c7-tsheet [data-talent="0:1"]'); await page.clock.runFor(50);
   ok((await mine())[0] === null, '고른 특성을 다시 누르면 해제');
   await pick(6, 1); // 쉼터
   await pick(9, 0); // 기도의 정점
   ok((await mine())[6] === 1 && (await mine())[9] === 0, '쉼터 · 기도의 정점 고름');
-  ok(/보조 버튼/.test(await text('#s-char .tier:nth-child(10)')), '보조 버튼 특성 표시');
+  await page.click('#s-char [data-tcell="9:0"]'); await page.clock.runFor(50);
+  ok(/보조 버튼/.test(await text('#s-char .c7-tsheet')), '보조 버튼 특성 표시 (시트)');
   await page.screenshot({ path: `${shots}/talent_pick.png` });
+  await page.click('#s-char .c7-tsum'); await page.clock.runFor(50);
+
+  // ---- 프리셋 ----
+  await page.click('#s-char [data-preset="1"]'); await page.clock.runFor(50);
+  let sv = await save();
+  ok(sv.heroes.priest.preset === 1 && (sv.heroes.priest.talents || []).every(x => x == null) && sv.heroes.priest.presets[0][6] === 1 && /0개 고름/.test(await text('#s-char .c7-tsum')), '프리셋 2 = 빈 특성, 프리셋 1은 넣어 둠');
+  await pick(0, 2);
+  await page.click('#s-char [data-preset="0"]'); await page.clock.runFor(50);
+  sv = await save();
+  ok(sv.heroes.priest.preset === 0 && (await mine())[6] === 1 && (await mine())[9] === 0 && sv.heroes.priest.presets[1][0] === 2 && await page.getAttribute('#s-char [data-preset="0"]', 'aria-pressed') === 'true', '프리셋 1로 돌아오면 쉼터·정점 그대로, 프리셋 2 고름도 저장');
 
   // ---- 전투: 보조 버튼 ----
-  await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
+  await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);
   await toParty(page, { content: 'rustfort' });
   await page.click('#depart'); await page.clock.runFor(3100 + 1000);
   ok(await page.evaluate(() => { const on = window.__proto.F.tx.on; return on.shelter && on.zenith && Object.keys(on).length === 2; }), '전투 = 고른 특성 2개만 켜짐');

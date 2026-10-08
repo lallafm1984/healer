@@ -5,7 +5,8 @@
 import type { DiffName } from './difficulty';
 import { DUNGEONS } from './dungeons';
 import { LEVEL_TIERS } from './affixes';
-import type { EncounterKey } from './encounters';
+import { ENCOUNTERS, type EncounterKey } from './encounters';
+import { CONTENT_PLACE, FACTIONS, PLACES } from './places';
 
 export type ContentKind = 'explore' | 'dungeon' | 'raid' | 'event';
 export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathedral1' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple';
@@ -81,3 +82,13 @@ export const isRaid = (c: ContentDef) => c.kind === 'raid';
 
 /** 레이드 인원 (보상 배율용): 던전·탐험 0, 10인 10, 20인 20 */
 export const raidSize = (c: ContentDef): 0 | 10 | 20 => (c.kind !== 'raid' ? 0 : c.size('보통') >= 20 ? 20 : 10);
+
+/**
+ * 이 콘텐츠에 나오는 해제 유형 (27 3-1 모험 카드 해제 칩). 만든 전투는 그 전투들이 거는 디버프 (난이도 모두),
+ * 아직 전투가 없는 던전은 세력의 대표 디버프 (11 3장: 세력 = 해제 유형). 빈 배열 = 물리만
+ */
+export function dispelsOf(c: ContentDef): string[] {
+  const segs = ALL_DIFFS.flatMap(d => c.fights(d));
+  if (segs.length) return [...new Set(segs.flatMap(k => ENCOUNTERS[k].debuffs || []))];
+  return FACTIONS[PLACES[CONTENT_PLACE[c.key]].faction].dispel.slice();
+}

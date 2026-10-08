@@ -25,15 +25,15 @@ export default async function appShell(url, shots) {
     ok(await page.isVisible('#s-lobby'), `${w}: 튜토리얼 건너뛰기 → 로비`);
     const top = await rect('#s-lobby .topbar');
     ok(top.top >= 70, `${w}: 로비 위쪽 줄은 배너 아래 (top ${top.top})`);
-    ok(await page.isVisible('#tabs') && (await page.locator('#tabs button').count()) === 4, `${w}: 하단 탭 4개 (전투·캐릭터·길드·상점)`);
+    ok(await page.isVisible('#tabs') && (await page.locator('#tabs button').count()) === 5, `${w}: 하단 탭 5개 (로비·전투·캐릭터·길드·상점)`);
     const start = await rect('#lobbyStart'), tabs = await rect('#tabs');
-    ok(start.bottom <= tabs.top + 0.5, `${w}: 「전투 시작」이 탭에 안 가림 (${Math.round(start.bottom)} ≤ ${Math.round(tabs.top)})`);
+    ok(start.bottom <= tabs.top + 0.5, `${w}: 「바로 출전」이 탭에 안 가림 (${Math.round(start.bottom)} ≤ ${Math.round(tabs.top)})`);
     await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(50);
     ok(await page.isVisible('#s-char') && (await page.locator('#s-char .gtile').count()) === 6, `${w}: 캐릭터 탭 = 장비 6부위부터`);
     await page.click('#s-char [data-csub="talent"]'); await page.clock.runFor(50);
     ok(/Lv 10에 열림/.test(await page.textContent('#s-char')), `${w}: 캐릭터 → 특성 = Lv 10 잠금 안내`);
-    await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(50);
-    ok(await page.isVisible('#s-lobby'), `${w}: 전투 탭 = 로비로 돌아옴`);
+    await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(50);
+    ok(await page.isVisible('#s-lobby'), `${w}: 로비 탭 = 로비로 돌아옴`);
     await page.screenshot({ path: `${shots}/shell_lobby_${w}.png` });
 
     // 20인 레이드 가라앉은 대성당: Lv 1이어도 개발 빌드는 열림 (설정 「레벨 잠금 무시」 기본 켬)

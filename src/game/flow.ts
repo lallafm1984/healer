@@ -28,7 +28,9 @@ export const Flow: {
   tier: number;
   /** 주간 도전 단계 (13 3-2, 0 = 도전 아님) */
   chal: number;
-} = { content: 'rustfort', diff: '보통', party: null, seed: 1, rerolls: 0, result: null, settle: null, coach: null, mode: 'public', pub: null, gpick: [], tier: 0, chal: 0 };
+  /** 길드 탭 「길드파티로 출전」 (30): 다음 편성을 길드파티로 시작 */
+  preferGuild: boolean;
+} = { content: 'rustfort', diff: '보통', party: null, seed: 1, rerolls: 0, result: null, settle: null, coach: null, mode: 'public', pub: null, gpick: [], tier: 0, chal: 0, preferGuild: false };
 
 export const newSeed = () => (Math.random() * 1e9) | 0;
 

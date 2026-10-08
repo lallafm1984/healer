@@ -32,18 +32,19 @@ export default async function challenge(url, shots) {
 
   // ---- 로비: 레이드 문 (18 3-3) ----
   const gate = await text('#s-lobby .gate');
-  ok(/심연의 종탑/.test(gate) && /○ 레벨 35/.test(gate) && /0 \/ 6/.test(gate) && /0 \/ 6 부위/.test(gate), `로비 다음 목표 = 10인 레이드 문 (레벨·길드원·장비)`);
+  ok(/심연의 종탑/.test(gate) && /레벨 35/.test(gate) && /0 \/ 6/.test(gate) && /0 \/ 6 부위/.test(gate) && (await page.locator('#s-lobby .gate .obj.ok').count()) === 0, `로비 다음 목표 = 10인 레이드 문 (레벨·길드원·장비, 아직 다 안 됨)`);
   await page.screenshot({ path: `${shots}/growth_gate.png` });
 
   // ---- 콘텐츠: 주간 도전 카드 ----
-  await page.click('#lobbyStart'); await page.clock.runFor(100);
+  await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   const card = await text('#s-content [data-chal]');
-  ok(/침묵의 시계/.test(card) && /메마름/.test(card) && /전염병/.test(card), '던전 탭 맨 위 = 주간 도전 (이번 주 메마름·전염병)');
-  ok(/레벨 단계 10·30·50·70·90/.test(await text('#s-content [data-content="rustfort"]')), '녹슨 요새 카드 = 레벨 단계 표시');
+  ok(/주간 도전/.test(card) && /침묵의 시계/.test(card) && /메마름/.test(card) && /전염병/.test(card), '던전 칸 = 주간 도전 띠 (이번 주 메마름·전염병)');
+  ok(/단계 Lv 1/.test(await text('#s-content .b-gate')), '녹슨 요새 관문 = 단계 Lv (레벨 단계 칩은 입장 화면)');
 
   // ---- 던전 레벨 단계 (07 3장) ----
-  await page.click('#s-content [data-content="rustfort"]'); await page.clock.runFor(100);
-  ok((await page.locator('#s-entry [data-tier]').count()) === 6 && await page.isDisabled('#s-entry [data-tier="50"]') && !(await page.isDisabled('#s-entry [data-tier="30"]')), 'Lv 30 = 레벨 단계 기본·10·30 열림, 50부터 잠김');
+  await page.click('#s-content [data-content="rustfort"]'); await page.clock.runFor(50);
+  await page.click('#contentGo'); await page.clock.runFor(100);
+  ok((await page.locator('#s-entry [data-tier]').count()) === 4 && await page.isDisabled('#s-entry [data-tier="50"]') && !(await page.isDisabled('#s-entry [data-tier="30"]')), 'Lv 30 = 레벨 단계 기본·10·30 열림 + 다음 잠긴 50');
   await page.click('#s-entry [data-tier="30"]'); await page.clock.runFor(50);
   ok(/단계 Lv 30/.test(await text('#s-entry .topbar')) && /격노/.test(await text('#s-entry .afxlist')), 'Lv 30 단계 = 단계 레벨 30, 어픽스 격노');
   await page.screenshot({ path: `${shots}/growth_tier.png`, fullPage: true });
@@ -69,7 +70,7 @@ export default async function challenge(url, shots) {
   // ---- 주간 도전 (13 3-2) ----
   await page.click('#toReward'); await page.clock.runFor(100);
   await page.click('#s-reward [data-go="s-lobby"]'); await page.clock.runFor(100);
-  await page.click('#lobbyStart'); await page.clock.runFor(100);
+  await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   await page.click('#s-content [data-chal]'); await page.clock.runFor(100);
   const ent = await text('#s-entry');
   ok((await text('#s-entry .chalstep b')) === '1단계' && await page.isDisabled('#s-entry [data-cstep="1"]') && /7:00/.test(ent) && /메마름/.test(ent) && /광고 이어하기 없음/.test(ent), '도전 입장: 1단계 · 제한 7:00 · 이번 주 어픽스 · 규칙');
