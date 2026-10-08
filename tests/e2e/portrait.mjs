@@ -249,6 +249,18 @@ export default async function portrait(url, shots) {
     const go = await page.locator('#contentGo').boundingBox(), tb = await page.locator('#tabs').boundingBox();
     ok(go.y + go.height <= tb.y + 1 && go.height >= 44, `${width}: 출전 버튼 항상 탭 위, 44px 이상`);
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_content_${width}.png` });
+    // 출전 = 바로 편성 (입장 화면 합침): 가로 넘침 없음, 공략·단축칸·출발 44px 이상, 파티원 4줄이 첫 화면에서 시작
+    await page.click('#contentGo'); await page.clock.runFor(100);
+    const pty = await page.evaluate(() => {
+      const r = el => el.getBoundingClientRect();
+      const foot = r(document.querySelector('#s-party .f-foot2')), rows = [...document.querySelectorAll('#s-party .pcard')].map(r);
+      const taps = [...document.querySelectorAll('#guideOpen, #s-party .f-item, #reroll, #depart, #s-party .tb-back')].map(e => Math.round(Math.min(r(e).height, r(e).width)));
+      return { taps, rows: rows.length, lastTop: Math.round(rows[rows.length - 1].top), foot: Math.round(foot.top), ttl: document.querySelector('#s-party .f-ttl').scrollWidth <= document.querySelector('#s-party .f-ttl').clientWidth };
+    });
+    ok(await noOverflow('#s-party .f-pty') && await noOverflow('#s-party .f-foot2') && await noOverflow('#s-party .topbar') && pty.ttl, `${width}: 편성 가로 넘침·제목 잘림 없음`);
+    ok(pty.taps.every(x => x >= 44), `${width}: 편성 공략·단축칸·다시 뽑기·출발·뒤로 44px 이상 (${pty.taps.join(',')})`);
+    ok(pty.rows === 4 && pty.lastTop < pty.foot, `${width}: 5인 편성 = 파티원 4줄이 첫 화면에서 보이기 시작 (마지막 줄 ${pty.lastTop} < 아래 ${pty.foot})`);
+    if (width === 320 || width === 390) await page.screenshot({ path: `${shots}/portrait_party_${width}.png` });
 
     // 최고 레벨의 최대 보조 버튼 3개 + 소비 아이템 4칸 조건을 만든다.
     await page.evaluate(() => {

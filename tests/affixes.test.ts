@@ -8,7 +8,7 @@ import * as E from '../src/engine';
 import { affDebuffEnd, affixTick, affHeal } from '../src/engine/affixes';
 import { heal } from '../src/engine/core';
 import { rollover } from '../src/game/economy';
-import { runMode, weekAffixes } from '../src/game/runmode';
+import { autoTier, runMode, weekAffixes } from '../src/game/runmode';
 import { settle, type BattleResult } from '../src/game/settle';
 import { newSave, type SaveData } from '../src/platform/storage';
 
@@ -156,15 +156,29 @@ describe('던전 레벨 단계 (07 3장)', () => {
     expect(stageOf(contentOf('rustfort'), '보통')).toBe(1);
   });
   it('단계 레벨로 골드·경험치를 셈', () => {
-    const s = save(52), m = runMode(s, contentOf('rustfort'), '보통', { tier: 50, chal: 0 });
+    const s = save(52), m = runMode(s, contentOf('rustfort'), '보통', { chal: 0 });
     s.daily.pub = 3; // 공개모집 보너스(×2)는 뺌
     expect(m).toMatchObject({ stage: 50, affixes: ['rage', 'plague'], tier: 50, chal: 0 });
     const x = settle(s, result({ stage: m.stage, affixes: m.affixes }), rng, [], T0);
     expect(x.gold).toBe(clearGold(50, '보통', 'S'));
     expect(x.xp).toBe(clearXp(52, 50, '보통', 'S', { win: true }));
   });
-  it('없는 단계는 기본으로', () => {
-    expect(runMode(save(), contentOf('abyss1'), '보통', { tier: 30, chal: 0 }).tier).toBe(0);
+  it('단계는 고르지 않고 자동: 내 레벨 이하 가장 높은 단계 (2026-10-08)', () => {
+    const rf = contentOf('rustfort');
+    const at = (lv: number) => runMode(save(lv), rf, '보통', { chal: 0 });
+    expect(at(9)).toMatchObject({ tier: 0, stage: 1, affixes: [] });
+    expect(at(10)).toMatchObject({ tier: 10, stage: 10, affixes: [] });
+    expect(at(29)).toMatchObject({ tier: 10, stage: 10 });
+    expect(at(30)).toMatchObject({ tier: 30, stage: 30, affixes: ['rage'] });
+    expect(at(100)).toMatchObject({ tier: 90, stage: 90, affixes: ['rage', 'plague', 'unstable'] });
+    // 튜토리얼 전은 기본, 개발 빌드 「레벨 잠금 무시」로는 안 올라감
+    const tut = save(40); tut.tut = 2;
+    expect(autoTier(tut, rf)).toBe(0);
+    const dev = save(5); dev.settings.devUnlock = true;
+    expect(autoTier(dev, rf)).toBe(0);
+  });
+  it('단계 없는 콘텐츠 (레이드)는 기본', () => {
+    expect(runMode(save(90), contentOf('abyss1'), '보통', { chal: 0 })).toMatchObject({ tier: 0, stage: 35, affixes: [] });
   });
 });
 
@@ -186,10 +200,10 @@ describe('주간 도전 「침묵의 시계」 (13 3-2)', () => {
     expect(chalMult(1)).toEqual({ hp: 1, dmg: 1 });
     expect(chalMult(11).dmg).toBeCloseTo(1.4);
     expect(chalLimit(1)).toBe(420);
-    const m = runMode(save(45), contentOf(CHAL.content), CHAL.diff, { tier: 30, chal: 6 }, T0);
+    const m = runMode(save(45), contentOf(CHAL.content), CHAL.diff, { chal: 6 }, T0);
     expect(m).toMatchObject({ stage: 45, chal: 6, tier: 0, limit: chalLimit(6), affixes: CHAL_ROTA[0] });
-    expect(runMode(save(5), contentOf(CHAL.content), CHAL.diff, { tier: 0, chal: 1 }, T0).stage).toBe(20);
-    expect(runMode(save(), contentOf(CHAL.content), CHAL.diff, { tier: 0, chal: 99 }, T0).chal).toBe(CHAL.max);
+    expect(runMode(save(5), contentOf(CHAL.content), CHAL.diff, { chal: 1 }, T0).stage).toBe(20);
+    expect(runMode(save(), contentOf(CHAL.content), CHAL.diff, { chal: 99 }, T0).chal).toBe(CHAL.max);
   });
 
   it('제한시간 안에 깨면 기록·다음 단계, 넘기면 안 열림, 지면 단계 유지', () => {

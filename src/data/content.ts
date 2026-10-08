@@ -37,7 +37,7 @@ export interface ContentDef {
   diffUnlock?: Partial<Record<DiffName, number>>;
   /** 콘텐츠 목록에 안 보임 (튜토리얼 첫 전투) */
   hidden?: boolean;
-  /** 던전 레벨 단계 (07 3장): 같은 던전을 이 레벨들로 다시 엶. 단계 레벨이 오르고 어픽스가 붙음 */
+  /** 던전 레벨 단계 (07 3장): 같은 던전을 이 레벨들로 다시 엶 (내 레벨이 되면 자동으로 올라감, runmode autoTier). 단계 레벨이 오르고 어픽스가 붙음 */
   tiers?: number[];
   /** 기획에 없는 자리 표시 예시 (늘 준비 중, 보상·밸런스와 무관) */
   sample?: boolean;

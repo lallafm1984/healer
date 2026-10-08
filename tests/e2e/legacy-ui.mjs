@@ -1,6 +1,6 @@
 // 임시 전투 화면(프로토타입 v11 UI) 확인: 편성의 단축칸 고르기·공략·카운트다운·아이템·정산·20인 판·왼손. prototype/tests/items.js에서 옮김
 import { chromium } from 'playwright';
-import { patchSave, pickedItems, toEntry, toParty } from './nav.mjs';
+import { patchSave, pickedItems, toParty } from './nav.mjs';
 
 export default async function legacyUi(url, shots) {
   const browser = await chromium.launch();
@@ -18,17 +18,19 @@ export default async function legacyUi(url, shots) {
   // Lv 40 = 단축칸 4칸 (18 2-2). 프로토타입처럼 4개를 골라 둔 상태에서 시작
   await patchSave(page, { player: { level: 40 }, items: ['mana', 'life', 'cleanse', 'feather'] });
 
-  // ---- 난이도·입장: 공략 ----
-  await toEntry(page);
+  // ---- 편성 「공략」 시트 ----
+  await toParty(page);
   ok(await page.locator('.mmobar, #ping, #brandImg, #shout, .chat').count() === 0, '서버 바·레퍼런스 그림·외침·채팅 없음');
-  const top = await ev(() => { const b = document.querySelector('#s-entry .guides'); return { n: b.querySelectorAll('.gdet').length, chat: b.querySelectorAll('.chat').length, first: b.querySelector('.gd > *').className, note: b.querySelectorAll('.gd-note').length }; });
+  await page.click('#guideOpen'); await page.clock.runFor(50);
+  const top = await ev(() => { const b = document.querySelector('#s-party .f-gsheet .guides'); return { n: b.querySelectorAll('.gdet').length, chat: b.querySelectorAll('.chat').length, first: b.querySelector('.gd > *').className, note: b.querySelectorAll('.gd-note').length }; });
   ok(top.n === 4 && top.chat === 0 && top.first === 'gd-top' && top.note === 0, `구간마다 공략, 맨 위 = 이름, 채팅·평타 메모 없음 ${JSON.stringify(top)}`);
-  await page.click('#s-entry .gdet:last-child summary');
-  ok(/녹슨 문지기/.test(await page.textContent('#s-entry .gdet:last-child')), '마지막 공략 = 녹슨 문지기');
+  await page.click('#s-party .f-gsheet .gdet:last-child summary');
+  ok(/녹슨 문지기/.test(await page.textContent('#s-party .f-gsheet .gdet:last-child')), '마지막 공략 = 녹슨 문지기');
+  ok(/탱커 강타/.test(await page.textContent('#s-party .f-gsheet .f-ih')), '공략 시트 맨 아래 = 녹슨 문지기 아이템 힌트');
   await page.screenshot({ path: `${shots}/v9_guide_top.png` });
+  await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
 
   // ---- 편성: 소비 아이템 ----
-  await page.click('#entryGo'); await page.clock.runFor(100);
   const chips = await ev(() => [...document.querySelectorAll('#s-party [data-item]')].map(b => [b.dataset.item, b.getAttribute('aria-pressed')]));
   ok(chips.length === 6 && chips.filter(c => c[1] === 'true').map(c => c[0]).join() === 'mana,life,cleanse,feather', `아이템 6개 중 4개 선택 ${JSON.stringify(chips)}`);
   ok(/단축칸 4칸/.test(await page.textContent('#s-party')), 'Lv 40 = 단축칸 4칸');
@@ -38,10 +40,10 @@ export default async function legacyUi(url, shots) {
   ok(/가득 참/.test(await page.textContent('#s-party .note.warn')), '5번째는 안 들어감 (안내)');
   await page.click('#s-party [data-item="feather"]');
   await page.click('#s-party [data-item="shield"]');
-  await page.click('#s-party [data-shut]'); await page.clock.runFor(50);
+  await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
   const sel = await pickedItems(page);
   ok(sel === 'mana,life,cleanse,shield', `깃털 빼고 보호 넣기 → ${sel}`);
-  ok(/탱커 강타/.test(await page.textContent('#s-party .hint')), '녹슨 문지기 궁합 힌트');
+  ok(/탱커 강타/.test(await page.textContent('#s-party .f-isheet .f-ih')), '단축칸 시트에도 녹슨 문지기 아이템 힌트');
   await page.reload(); await page.clock.runFor(300);
   await toParty(page);
   const sel2 = await pickedItems(page);
@@ -49,7 +51,7 @@ export default async function legacyUi(url, shots) {
   await page.click('#s-party [data-slots]'); await page.clock.runFor(50);
   await page.evaluate(() => document.querySelector('#s-party .items').scrollIntoView({ block: 'center' }));
   await page.screenshot({ path: `${shots}/v6_party_items.png` });
-  await page.click('#s-party [data-shut]'); await page.clock.runFor(50);
+  await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
 
   // ---- 출발 → 카운트다운 ----
   await page.click('#depart'); await page.clock.runFor(100);
@@ -150,17 +152,21 @@ export default async function legacyUi(url, shots) {
 
   // ---- 깃털 + 20인 판 ----
   await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
-  await toEntry(page, { content: 'cathedral1', tab: 'raid' });
+  await toParty(page, { content: 'cathedral1', tab: 'raid', diff: '악몽' });
   ok((await page.locator('#s-content [data-content^="abyss"], #s-content [data-content^="cathedral"]').count()) === 2, '레이드 칸 = 10인·20인 장소 2곳');
-  const ent = await page.textContent('#s-entry');
-  ok(/20인 · 보스 1/.test(await page.textContent('#s-entry .topbar')) && /무음 성가대/.test(ent) && /노래/.test(ent), '20인 입장: 인원 20, 무음 성가대 공략');
-  await page.click('#s-entry [data-diff="악몽"]'); await page.clock.runFor(50);
-  ok(/20인 · 보스 1/.test(await page.textContent('#s-entry .topbar')) && /악몽 전용 기술/.test(await page.textContent('#s-entry .note')), '악몽도 20인, 악몽 안내');
-  await page.click('#s-entry [data-diff="보통"]'); await page.clock.runFor(50);
-  await page.click('#entryGo'); await page.clock.runFor(100);
+  await page.click('#guideOpen'); await page.clock.runFor(50);
+  ok(/20인/.test(await page.textContent('#s-party .f-gsheet .h-rule')) && /악몽 전용 기술/.test(await page.textContent('#s-party .f-gsheet .f-dnote')), '20인 악몽: 공략 시트에 인원 20, 악몽 안내');
+  await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
+  await page.click('#s-party .tb-back'); await page.clock.runFor(50);
+  await page.click('#s-content [data-diff="보통"]'); await page.clock.runFor(50);
+  await page.click('#contentGo'); await page.clock.runFor(100);
+  await page.click('#guideOpen'); await page.clock.runFor(50);
+  const ent = await page.textContent('#s-party .f-gsheet');
+  ok(/20인/.test(ent) && /무음 성가대/.test(ent) && /노래/.test(ent), '20인 보통: 무음 성가대 공략');
+  await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
   await page.click('#s-party [data-slots]'); await page.clock.runFor(50);
   await page.click('#s-party [data-item="shield"]'); await page.click('#s-party [data-item="feather"]');
-  await page.click('#s-party [data-shut]'); await page.clock.runFor(50);
+  await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
   await page.click('#depart'); await page.clock.runFor(3300);
   const b20 = await ev(() => ({ board: window.__proto.F.board, cells: window.__proto.F.cells.length }));
   ok(b20.board === 'b30' && b20.cells === 30, `20인 = 가로형 b30 ${JSON.stringify(b20)}`);

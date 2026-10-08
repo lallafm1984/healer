@@ -205,7 +205,7 @@ function recruitHtml(): string {
 s.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
   const save = G.save;
-  // 「길드파티로 출전」: 전투 탭(모험 고르기) → 입장 → 편성이 길드파티로 시작 (30, game/flow.ts)
+  // 「길드파티로 출전」: 전투 탭(모험 고르기) → 편성이 길드파티로 시작 (30, game/flow.ts)
   if (t.closest('#guildGo') && save.guild.members.length) { Flow.preferGuild = true; go('s-content'); return; }
   const sub = t.closest<HTMLElement>('[data-sub]');
   if (sub) { st.sub = sub.dataset.sub as Sub; st.sel = null; st.ask = null; render(); return; }

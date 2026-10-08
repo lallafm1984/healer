@@ -84,11 +84,10 @@ export default async function guild(url, shots) {
   await page.click('#guildGo'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-content'), '「길드파티로 출전」 = 전투 탭 (모험 고르기)');
   await toParty(page);
-  ok(await page.getAttribute('#s-party [data-mode="guild"]', 'aria-selected') === 'true' && (await page.locator(`#s-party [data-gpick="${m0.id}"].picked`).count()) === 1, '입장 → 편성이 길드파티로 시작 (길드원 들어감)');
+  ok(await page.getAttribute('#s-party [data-mode="guild"]', 'aria-selected') === 'true' && (await page.locator(`#s-party [data-gpick="${m0.id}"].picked`).count()) === 1, '출전 → 편성이 길드파티로 시작 (길드원 들어감)');
 
-  // 뒤로 → 입장 → 전투 탭 (출발 안 했으니 길드 편성은 저장 안 됨)
+  // 뒤로 → 전투 탭 (출발 안 했으니 길드 편성은 저장 안 됨)
   await page.click('#s-party .tb-back'); await page.clock.runFor(50);
-  await page.click('#s-entry .tb-back'); await page.clock.runFor(50);
 
   // ---- 편성: 길드파티 ----
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);

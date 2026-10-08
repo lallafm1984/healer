@@ -1,6 +1,6 @@
 // 재화·임무·상점 (12, 13, 15, 09 S18·S19·S22): 로비 임무 카드 → 임무 받기·교체·완료 상자 → 상점 골드·공훈·패스·크리스탈 → 악몽 종 조각
 import { chromium } from 'playwright';
-import { pastTitle, toEntry } from './nav.mjs';
+import { pastTitle, toParty } from './nav.mjs';
 
 export default async function shop(url, shots) {
   const browser = await chromium.launch();
@@ -99,15 +99,16 @@ export default async function shop(url, shots) {
   // ---- 악몽 입장 = 종 조각 1개 ----
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.wallet.shards = 0; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
-  await toEntry(page, { diff: '악몽' });
-  ok(/종 조각 1개 씀 · 가진 것 0\/5/.test(await text('#s-entry')), '악몽 입장 화면: 종 조각 1개 씀 · 가진 것 0/5');
-  await page.click('#entryGo'); await page.clock.runFor(100);
-  await page.click('#depart'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-party') && /종 조각이 없음/.test(await text('#s-party')), '종 조각이 없으면 출발 안 됨');
+  await toParty(page, { diff: '악몽' });
+  ok(await page.getAttribute('#depart', 'aria-disabled') === 'true' && /종 조각 없음/.test(await text('#depart')) && !(await page.isVisible('#s-party .f-warn.ticket')), '악몽 편성: 종 조각이 없으면 출발이 흐려짐 (경고 줄은 아직 없음)');
+  await page.click('#depart', { force: true }); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-party') && /종 조각이 없음/.test(await text('#s-party .f-warn.ticket')) && (await save()).wallet.shards === 0, '악몽 출발을 누르면 전투 대신 아래에 얻는 곳 + 상점');
+  await page.click('#s-party .f-warn.ticket [data-go="s-shop"]'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-shop') && /종 조각 제작/.test(await text('#s-shop')), '「상점」 = 종 조각 제작이 있는 골드 상점');
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.wallet.shards = 2; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
-  await toEntry(page, { diff: '악몽' });
-  await page.click('#entryGo'); await page.clock.runFor(100);
+  await toParty(page, { diff: '악몽' });
+  ok(/종 조각 1개 씀 · 2\/5/.test(await text('#depart')), '악몽 출발 버튼: 종 조각 1개 씀 · 2/5');
   await page.click('#depart'); await page.clock.runFor(3100 + 300);
   ok(await page.isVisible('#battle') && (await save()).wallet.shards === 1, '출발 = 종 조각 2 → 1');
 

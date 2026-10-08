@@ -40,22 +40,27 @@ export const ROLE_ICON: Record<string, string> = {
 };
 
 /**
- * 파티원 줄 (27 3-3 편성): 역할 칸 · 닉네임 · 직업 · Lv · 성격(색 글자 칸 + 이름) · ★ / 능력 「이름」 · 효과 + 특성 칩.
- * open = 아래에 상세 (능력·직업 패시브·특성·성격 설명). 닫혀 있어도 글은 줄 안에 있음 (읽기 프로그램·검색용)
+ * 파티원 줄 (27 3-3 편성, 2026-10-08 줄임): 역할 칸 · 닉네임 · 직업 · Lv · 성격 칩 / 능력 「이름」 + 특성 칩. 설명은 누르면 시트 (memDetailHtml).
+ * 다루기 ★★★ 성격만 칩에 「!」 (★ 개수는 시트에). 능력 ★는 그대로
  */
-export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; open?: boolean; note?: string } = {}): string {
+export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; note?: string; on?: boolean } = {}): string {
   const c = CLASSES[m.cls], p = PERS[m.pers], a = m.ab ? ABILITIES[m.ab] : null;
   const ab = a
-    ? `능력 「<b style="color:${AB_GRADE[a.grade].color}">${esc(a.name)}</b>」${m.star ? `<span class="f-star"> ${'★'.repeat(m.star)}</span>` : ''} · ${esc(a.desc)}`
-    : `직업 「${esc(c.passive)}」 · ${esc(c.passiveDesc)}`;
+    ? `「<b style="color:${AB_GRADE[a.grade].color}">${esc(a.name)}</b>」${m.star ? `<span class="f-star"> ${'★'.repeat(m.star)}</span>` : ''}`
+    : `직업 「${esc(c.passive)}」`;
   const tr = (m.traits || []).map(k => `<span class="f-tr">${TRAITS[k].name}</span>`).join('');
-  const det = `${abHtml(m.ab, m.star || 0)}${m.apt ? aptHtml(m.apt) : ''}<p class="ppas"><b>${c.passive}</b> ${esc(c.passiveDesc)}</p>
+  const hard = p.star >= 3;
+  return `<li class="pcard f-mem${o.cls ? ` ${o.cls}` : ''}${o.on ? ' on' : ''}" ${o.attrs || ''}><span class="f-ri" style="background:${ROLE[c.role].color}">${ROLE_ICON[c.role] || ''}</span>
+    <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${c.name}${m.lv ? ` · Lv ${m.lv}` : ''}${o.note ? ` · ${o.note}` : ''}</span><span class="f-sp"></span><span class="f-ps${hard ? ' hard' : ''}"><i style="background:${CATS[p.cat]}" aria-hidden="true">${p.ch}</i>${hard ? '<span class="sr">다루기 어려움 </span>' : ''}${esc(m.pers)}${hard ? '<em aria-hidden="true">!</em>' : ''}</span></span>
+    <span class="f-l2"><span class="f-ab">${ab}</span>${tr}</span></div>${o.extra || ''}</li>`;
+}
+
+/** 파티원 상세 (편성의 줄을 누르면 시트): 능력 · 자질 · 직업 패시브 · 특성 · 성격 (다루기 ★) */
+export function memDetailHtml(m: CardData): string {
+  const c = CLASSES[m.cls], p = PERS[m.pers];
+  return `<div class="f-det">${abHtml(m.ab, m.star || 0)}${m.apt ? aptHtml(m.apt) : ''}<p class="ppas"><b>${c.passive}</b> ${esc(c.passiveDesc)}</p>
     ${(m.traits || []).map(k => `<p class="ppas ptrait"><b>특성 ${TRAITS[k].name}</b> ${esc(TRAITS[k].desc)}</p>`).join('')}
-    <p><i class="pcat" style="background:${CATS[p.cat]}">${p.ch}</i>${esc(m.pers)} · ${esc(p.desc)}</p>`;
-  return `<li class="pcard f-mem${o.cls ? ` ${o.cls}` : ''}" ${o.attrs || ''}><span class="f-ri" style="background:${ROLE[c.role].color}">${ROLE_ICON[c.role] || ''}</span>
-    <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${c.name}${m.lv ? ` · Lv ${m.lv}` : ''}${o.note ? ` · ${o.note}` : ''}</span><span class="f-sp"></span><span class="f-ps"><i style="background:${CATS[p.cat]}">${p.ch}</i>${esc(m.pers)}</span><span class="f-star">${'★'.repeat(p.star)}</span></span>
-    <span class="f-l2"><span class="f-ab">${ab}</span>${tr}</span>
-    <div class="f-det"${o.open ? '' : ' hidden'}>${det}</div></div>${o.extra || ''}</li>`;
+    <p><i class="pcat" style="background:${CATS[p.cat]}">${p.ch}</i><b>${esc(m.pers)}</b> <span class="f-star"><span class="sr">다루기 난이도 </span>${'★'.repeat(p.star)}</span> · ${esc(p.desc)}</p></div>`;
 }
 
 /** 카드 본문 (역할 원 + 글). extra = 오른쪽 끝 버튼 등 */
