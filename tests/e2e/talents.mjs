@@ -37,7 +37,8 @@ export default async function talents(url, shots) {
   await page.click('#s-char nav [data-csub="talent"]'); await page.clock.runFor(50);
   ok(/10단 열림 · 0개 고름 · 10개 남음/.test(await text('#s-char .c7-tsum')) && (await page.locator('#s-char .c7-tier.pending').count()) === 10, 'Lv 100: 10단 열림, 아무것도 안 고름 (줄마다 금테)');
   await pick(0, 0);
-  ok((await mine())[0] === 0 && await page.getAttribute('#s-char [data-tcell="0:0"]', 'aria-pressed') === 'true' && /✓ 긴 숨결/.test(await text('#s-char .c7-tier:first-child')) && !(await page.isVisible('#s-char .c7-tsheet')), '1단 긴 숨결 고름 → 저장, ✓ 표시, 시트 닫힘');
+  ok((await mine())[0] === 0 && await page.getAttribute('#s-char [data-tcell="0:0"]', 'aria-pressed') === 'true' && /✓\s*긴 숨결/.test(await text('#s-char .c7-tier:first-child')) && !(await page.isVisible('#s-char .c7-tsheet')), '1단 긴 숨결 고름 → 저장, ✓ 표시, 시트 닫힘');
+  ok((await page.locator('#s-char .c7-tpath path.d').count()) === 1 && (await page.locator('#s-char .c7-tpath path.s').count()) === 0, '고른 메달에서 다음 고를 단 메달로 점선 (고른 길 SVG)');
   await pick(0, 1);
   ok((await mine())[0] === 1 && await page.getAttribute('#s-char [data-tcell="0:0"]', 'aria-pressed') === 'false', '같은 단 다른 특성 = 바꿈 (무료)');
   await page.click('#s-char [data-tcell="0:1"]'); await page.clock.runFor(50);

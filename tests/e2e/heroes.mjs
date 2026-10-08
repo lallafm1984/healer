@@ -1,4 +1,4 @@
-// 힐러 직업 (25, 27 4-6): 캐릭터 머리 · 직업 카드·바꾸기, 입장 화면 해제 ✓/✕, 전투 휠·봉화
+// 힐러 직업 (25, 27 4-6, 31 시안): 직업 깃발 · 양피지 상세(해제·퀘스트) · 바꾸기, 입장 화면 해제 ✓/✕, 전투 휠·봉화
 import { chromium } from 'playwright';
 import { pastTitle, patchSave, toEntry, toParty } from './nav.mjs';
 
@@ -38,22 +38,29 @@ export default async function heroes(url, shots) {
   await patchSave(page, { player: { level: 10 }, settings: { devUnlock: false } });
   await pastTitle(page);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
-  ok(/사제/.test(await text('#s-char .c7-head .c7-hname')) && (await page.locator('#s-char .c7-head .dsp:not(.off)').count()) === 2, '캐릭터 머리 = 사제, 해제 칩 2개 (마법·질병)');
+  ok(/사제/.test(await text('#s-char .topbar .tb-cls')), '위 줄 = 사제');
   await page.click('#s-char nav [data-csub="hero"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-char nav [data-csub="hero"]', 'aria-selected') === 'true' && (await page.locator('#s-char .c7-hc[data-hcard]').count()) === 3 && (await page.locator('#s-char [data-hcard] .emblem').count()) === 3, '직업 하위 탭 = 직업 3종, 카드마다 직업 문장');
-  ok(await page.isVisible('#s-char .c7-hc.now[data-hcard="priest"]') && /지금 직업/.test(await text('#s-char [data-hcard="priest"]')) && /이긴 판/.test(await text('#s-char [data-hcard="priest"]')), '지금 직업 = 사제 표시 (배지 · 이긴 판)');
+  ok(await page.getAttribute('#s-char nav [data-csub="hero"]', 'aria-selected') === 'true' && (await page.locator('#s-char .c7-hc[data-hcard]').count()) === 3 && (await page.locator('#s-char [data-hcard] .emblem').count()) === 3, '직업 하위 탭 = 직업 깃발 3장, 깃발마다 직업 문장');
+  ok(await page.isVisible('#s-char .c7-hc.now.sel[data-hcard="priest"]') && /지금 직업/.test(await text('#s-char [data-hcard="priest"]')) && /이긴 판/.test(await text('#s-char .c7-hdet[data-hdet="priest"]')), '지금 직업 = 사제 (깃발 「지금 직업」, 처음 고른 깃발 = 지금 직업, 상세에 이긴 판)');
+  ok((await page.locator('#s-char .c7-hdet .dsp').count()) === 2 && /마법/.test(await text('#s-char .c7-hdet .c7-hchips')) && /질병/.test(await text('#s-char .c7-hdet .c7-hchips')), '양피지 상세 = 해제 칩 2개 (마법·질병)');
   await page.click('#s-char [data-hsk="priest"]'); await page.clock.runFor(50);
-  ok(/수호 영혼/.test(await text('#s-char [data-hcard="priest"] .c7-pas')) && /상징/.test(await text('#s-char [data-hcard="priest"] .c7-pas')), '「스킬 · 패시브 ▾」 = 펼침');
-  ok(/숲의 부름/.test(await text('#s-char [data-hcard="druid"] .hq')) && /0 \/ 1/.test(await text('#s-char [data-hcard="druid"] .hq')), '드루이드: 직업 퀘스트 0 / 1');
-  ok(await page.isVisible('#s-char .c7-hc.locked[data-hcard="paladin"]') && /Lv 20/.test(await text('#s-char [data-hcard="paladin"]')) && (await page.locator('#s-char [data-hero="paladin"]').count()) === 0, '성기사: Lv 20 잠김');
-  ok(/업데이트 직업/.test(await text('#s-char')) && /주술사/.test(await text('#s-char')) && (await page.locator('#s-char .c7-upc .emblem').count()) === 4, '업데이트 직업 4종 문장 안내');
+  ok(/수호 영혼/.test(await text('#s-char .c7-hdet .c7-pas')) && /상징/.test(await text('#s-char .c7-hdet .c7-pas')), '「스킬 · 패시브 ▾」 = 펼침');
+  ok(/퀘스트 0\/1/.test(await text('#s-char [data-hcard="druid"]')), '드루이드 깃발 = 퀘스트 0/1');
+  await page.click('#s-char [data-hcard="druid"]'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-char .c7-hc.sel[data-hcard="druid"]') && /숲의 부름/.test(await text('#s-char .c7-hdet[data-hdet="druid"] .hq')) && /0 \/ 1/.test(await text('#s-char .c7-hdet .hq')) && /바꾸고 퀘스트/.test(await text('#s-char [data-hero="druid"]')), '드루이드 깃발을 누르면 상세: 직업 퀘스트 0 / 1, 「드루이드로 바꾸고 퀘스트」');
+  ok(await page.isVisible('#s-char .c7-hc.locked[data-hcard="paladin"]') && /Lv 20/.test(await text('#s-char [data-hcard="paladin"]')) && (await page.locator('#s-char [data-hcard="paladin"] .c7-lkic').count()) === 1, '성기사 깃발: Lv 20 잠김 + 자물쇠');
+  await page.click('#s-char [data-hcard="paladin"]'); await page.clock.runFor(50);
+  ok((await page.locator('#s-char [data-hero="paladin"]').count()) === 0 && await page.isDisabled('#s-char .c7-hcta') && /첫 맹세/.test(await text('#s-char .c7-hcta')), '성기사 상세: 바꾸기 없음, 잠긴 버튼에 해금 방법');
+  ok(/곧 열림/.test(await text('#s-char .c7-soon')) && /주술사/.test(await text('#s-char .c7-soon')) && (await page.locator('#s-char .c7-upc .emblem').count()) === 4, '「곧 열림」 업데이트 직업 4종 문장');
+  await page.click('#s-char [data-hcard="druid"]'); await page.clock.runFor(50);
   await page.screenshot({ path: `${shots}/heroes_list.png` });
 
   // ---- 드루이드로 바꾸기 ----
   await page.click('#s-char [data-hero="druid"]'); await page.clock.runFor(50);
-  ok((await save()).hero === 'druid' && /드루이드/.test(await text('#s-char .c7-head')) && await page.isVisible('#s-char .c7-hc.now[data-hcard="druid"]'), '드루이드로 바꿈 → 저장, 머리·지금 직업 카드');
+  ok((await save()).hero === 'druid' && /드루이드/.test(await text('#s-char .topbar .tb-cls')) && await page.isVisible('#s-char .c7-hc.now[data-hcard="druid"]'), '드루이드로 바꿈 → 저장, 위 줄·지금 직업 깃발');
+  ok((await page.locator('#s-char .c7-hdet[data-hdet="druid"] .dsp').count()) === 3 && (await page.locator('#s-char [data-hero]').count()) === 0, '드루이드 상세 해제 칩 3개 (마법·저주·독), 지금 직업이라 바꾸기 버튼 없음');
   await page.click('#s-char nav [data-csub="gear"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-char .c7-head .dsp:not(.off)').count()) === 3, '드루이드 해제 칩 3개 (마법·저주·독)');
+  ok(/드루이드/.test(await page.getAttribute('#s-char .c7-bigem .emblem', 'aria-label')), '장비 받침대 문장 = 드루이드');
   await page.click('#s-char nav [data-csub="skill"]'); await page.clock.runFor(50);
   ok(await page.isVisible('#s-char .c7-sk[data-skill="sprout"]') && (await page.locator('#s-char .c7-sk[data-skill="heal"]').count()) === 0, '스킬 탭 = 드루이드 스킬');
   ok(/새싹/.test(await text('#s-char [data-tap="heal"]')), '칸 탭 기본 힐 = 새싹');
@@ -77,6 +84,10 @@ export default async function heroes(url, shots) {
   ok(await page.evaluate(() => window.__proto.F.hero) === 'druid', '전투 = 드루이드');
   const wheel = await page.evaluate(() => [...document.querySelectorAll('#wheel .slot')].map(b => b.textContent).join(' '));
   ok(/새싹/.test(wheel) && /환생|환/.test(wheel), `휠에 드루이드 스킬 (${wheel.replace(/\s+/g, ' ').slice(0, 60)})`);
+  ok(await page.evaluate(() => {
+    const slots = [...document.querySelectorAll('#wheel .slot[data-slot]')];
+    return slots.length > 0 && slots.every(s => !!s.querySelector('img.sic')?.getAttribute('src'));
+  }), '31 그림: 전투 휠 배운 칸마다 skill- 그림 (이름 위)');
   const tid = await tapUnit("u.role === 'tank'");
   ok(await page.evaluate(id => window.__proto.F.party.find(u => u.id === id).hots.some(h => h.key === 'sprout'), tid), '칸 탭 = 새싹 (지속 힐)');
   await page.screenshot({ path: `${shots}/heroes_druid_battle.png` });

@@ -1,4 +1,4 @@
-// 장비 (27 4-2·4-3, 09 S10·S11): 목록형 착용 칸, 상세 시트(비교·강화·잠금), 분해 고르기 (두 번 눌러 분해), 추천 장착. 세트 없음 (옛 저장의 세트 장비도 보통 장비로)
+// 장비 (27 4-2·4-3, 09 S10·S11, 31 시안): 받침대 좌우 장비 칸, 상세 시트(비교·강화·잠금), 가방 시트(필터·정렬·분해 고르기, 두 번 눌러 분해), 추천 장착. 세트 없음 (옛 저장의 세트 장비도 보통 장비로)
 import { chromium } from 'playwright';
 import { pastTitle } from './nav.mjs';
 
@@ -31,14 +31,19 @@ export default async function gear(url, shots) {
   });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
-  ok((await page.locator('#s-char .c7-set, #s-char .c7-setdot, #s-char .c7-boxes').count()) === 0 && !/세트|순례자/.test(await text('#s-char')), '세트 없음: 세트 칸·세트 점 없음, 옛 세트 장비 이름도 안 보임');
-  ok(/축복받은 두건/.test(await text('#s-char .gtile[data-gitem="101"]')) && !('set' in (await save()).gear.equipped.head), '옛 세트 장비 = 등급 이름 장비 (저장에서도 세트 표시 빠짐)');
-  ok(/강화석 3/.test(await text('#s-char .gmats')), '재료 표시');
-  ok(/장비 점수\s*80/.test(await text('#s-char .c7-head')) && (await page.locator('#s-char .c7-stat').count()) === 5, '머리 장비 점수 80 (희귀 30 · 희귀 30 · 고급 20), 능력치 판 5칸');
+  ok((await page.locator('#s-char .c7-set, #s-char .c7-setdot, #s-char .c7-boxes, #s-char .c7-noset').count()) === 0 && !/세트|순례자/.test(await text('#s-char')), '세트 없음: 세트 깃발·세트 표시 없음, 옛 세트 장비 이름도 안 보임');
+  ok(/축복받은 두건/.test(await page.getAttribute('#s-char .gtile[data-gitem="101"]', 'aria-label')) && !('set' in (await save()).gear.equipped.head), '옛 세트 장비 = 등급 이름 장비 (저장에서도 세트 표시 빠짐)');
+  ok(/장비 점수\s*80/.test(await text('#s-char .c7-plq')) && (await page.locator('#s-char .c7-stat').count()) === 5, '받침대 이름표 장비 점수 80 (희귀 30 · 희귀 30 · 고급 20), 능력치 판 5칸');
 
-  // ---- 목록형 착용 칸 ----
-  ok((await page.locator('#s-char .gtile').count()) === 6 && /희/.test(await text('#s-char .gtile[data-gitem="101"] .c7-gl')) && /머리 · 힐량/.test(await text('#s-char .gtile[data-gitem="101"]')), '착용 칸 6개: 부위 아이콘 + 등급 첫 글자 + 부위·대표 능력치');
-  ok(/가방에 1개 ↑/.test(await text('#s-char .gtile[data-gslot="hands"]')) && await page.isVisible('#s-char [data-csub="gear"] .rdot'), '빈칸 = 가방 개수 + ↑, 장비 탭 빨간 점');
+  // ---- 받침대 좌우 장비 칸 ----
+  const t101 = await text('#s-char .gtile[data-gitem="101"]');
+  ok((await page.locator('#s-char .gtile').count()) === 6 && /희/.test(await text('#s-char .gtile[data-gitem="101"] .c7-gl')) && /머리/.test(t101) && /힐 \+/.test(t101), '장비 칸 6개: 장비 그림(없으면 부위 아이콘) + 등급 글자 칩 + 부위 · 힐량');
+  ok(/가방에 1개/.test(await text('#s-char .gtile[data-gslot="hands"]')) && (await page.locator('#s-char .gtile[data-gslot="hands"] .c7-better').count()) === 1 && await page.isVisible('#s-char [data-csub="gear"] .rdot'), '빈칸 = 가방 개수 + 초록 ↑, 장비 탭 빨간 점');
+  ok(/가방\s*3/.test(await text('#s-char [data-bag]')) && (await text('#s-char [data-bag] .g-badge')).trim() === '3', '「가방」 팻말 = 개수 + 빨간 숫자 (더 좋은 장비 부위 3)');
+
+  // ---- 가방 시트 ----
+  await page.click('#s-char [data-bag]'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-char .c7-bsheet') && /강화석 3/.test(await text('#s-char .gmats')), '「가방」 = 가방 시트, 재료 표시');
   ok((await page.locator('#s-char .c7-bag').count()) === 3 && (await page.locator('#s-char .c7-bag .nw').count()) === 3 && (await page.locator('#s-char .c7-bag .up').count()) === 3, '가방 5열 격자: 새것 점 · ↑');
   await page.click('#s-char [data-bfilter="acc"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char .c7-bag').count()) === 2, '필터 「장신구」 = 반지·목걸이');
@@ -50,6 +55,7 @@ export default async function gear(url, shots) {
   ok(await page.getAttribute('#s-char .c7-bag:first-child', 'data-gitem') === '203', '새것순 = 최근 장비 먼저');
   await page.click('#s-char [data-bsort]'); await page.clock.runFor(50);
   await page.screenshot({ path: `${shots}/gear_list.png` });
+  await closeSheet();
 
   // ---- 상세 시트 · 강화 ----
   await page.click('#s-char .gtile[data-gitem="101"]'); await page.clock.runFor(50);
@@ -66,6 +72,7 @@ export default async function gear(url, shots) {
   ok(!(await page.isVisible('#s-char .sheet')), '시트 바깥을 누르면 닫힘');
 
   // ---- 가방 장비: 비교 · 잠금 ----
+  await page.click('#s-char [data-bag]'); await page.clock.runFor(50);
   await page.click('#s-char .c7-bag[data-gitem="203"]'); await page.clock.runFor(50);
   sh = await text('#s-char .c7-gsheet');
   ok(/지금 장비와 비교/.test(sh) && /빈칸/.test(sh) && !/세트/.test(sh) && /새로 얻음/.test(sh) && (await text('#s-char .c7-gsheet .c7-cta')).trim() === '장착', '가방 장비 = 비교 ▲ · 새로 얻음 (세트 줄 없음), 주 버튼 「장착」');
@@ -73,7 +80,7 @@ export default async function gear(url, shots) {
   await page.click('#s-char [data-lock="203"]'); await page.clock.runFor(50);
   ok((await save()).gear.bag.find(x => x.id === 203).lock === true && await page.getAttribute('#s-char [data-lock="203"]', 'aria-pressed') === 'true' && await page.isDisabled('#s-char [data-salv1="203"]'), '잠금 → 저장, 분해 버튼 꺼짐');
   await closeSheet();
-  ok((await page.locator('#s-char .c7-bag[data-gitem="203"] .lk').count()) === 1, '가방 칸에 자물쇠');
+  ok(await page.isVisible('#s-char .c7-bsheet') && (await page.locator('#s-char .c7-bag[data-gitem="203"] .lk').count()) === 1, '가방에서 연 상세를 닫으면 가방으로, 가방 칸에 자물쇠');
 
   // ---- 분해 ----
   await page.click('#s-char [data-salvon]'); await page.clock.runFor(50);
@@ -91,6 +98,10 @@ export default async function gear(url, shots) {
   sv = await save();
   ok(sv.gear.bag.length === 1 && sv.gear.bag[0].id === 203 && sv.player.gold === 800 + 40 && sv.mats.stone === 0 + 3, `두 번째 = 분해: 골드 +40, 강화석 +3 (${sv.player.gold}, ${sv.mats.stone})`);
   ok(/2개 분해/.test(await text('#s-char')), '분해 결과 안내');
+  await closeSheet();
+  await page.click('#s-char [data-salvbag]'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-char .c7-bsheet .c7-bags.picking') && await page.isVisible('#s-char [data-salvgo]'), '아래 「분해」 팻말 = 가방 시트를 분해 고르기로 엶');
+  await closeSheet();
 
   // ---- 추천 장착 ----
   await page.click('#s-char [data-rec]'); await page.clock.runFor(50);

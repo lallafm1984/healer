@@ -1,4 +1,4 @@
-// 캐릭터 탭 (27 4장): 공통 머리 · 장비(능력치 판·목록형 6칸) · 스킬(설명·휠 배치·칸 탭·단축칸·줄 목록) · 특성
+// 캐릭터 탭 (27 4장, 31 시안): 하위 탭 4칸 · 장비(받침대 문장·이름표·장비 칸 6개·능력치 판) · 스킬(설명·휠 배치·칸 탭·단축칸·줄 목록) · 특성(나무판)
 import { chromium } from 'playwright';
 import { pastTitle, patchSave } from './nav.mjs';
 
@@ -19,20 +19,24 @@ export default async function character(url, shots) {
   await page.clock.runFor(300);
   await pastTitle(page);
 
-  // ---- 공통 머리 · 장비 (기본) ----
+  // ---- 하위 탭 · 장비 (기본) ----
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-char') && await page.getAttribute('#s-char [data-csub="gear"]', 'aria-selected') === 'true', '캐릭터 탭 = 장비부터');
-  const head = await flat('#s-char .c7-head');
-  ok(/^사제Lv1/.test(head) && /해제질병마법독저주/.test(head) && /장비점수0/.test(head), `머리 = 사제 · Lv · 해제 · 장비 점수 (${head})`);
-  ok((await page.locator('#s-char .c7-head .emblem').count()) === 1 && (await page.locator('#s-char .c7-head .dsp.off').count()) === 2, '머리: 직업 문장 1개, 못 지우는 해제 2개 (독·저주)');
+  ok((await page.locator('#s-char nav .c7-tab .c7-tic').count()) === 4 && (await page.locator('#s-char nav [data-csub="hero"] .emblem').count()) === 1, '하위 탭 4칸 = 아이콘 + 이름 (직업 칸 = 직업 문장)');
+  const plq = await flat('#s-char .c7-plq');
+  ok(/장비점수0/.test(plq) && /장비없음/.test(plq), `받침대 이름표 = 장비 점수 · 평균 등급 (${plq})`);
+  ok((await page.locator('#s-char .c7-stage .c7-bigem .emblem').count()) === 1 && /사제/.test(await text('#s-char .topbar .tb-cls')), '받침대 위 큰 직업 문장 1개, 위 줄 = 사제');
   const stats = await flat('#s-char .c7-stats');
   ok(/체력550/.test(stats) && /힐량×1\.00/.test(stats) && !/세트/.test(stats), `능력치 판: 체력 550, 힐량 ×1.00, 세트 칸 없음 (${stats})`);
   ok((await page.locator('#s-char .c7-stat').count()) === 5 && (await page.locator('#s-char .gtile').count()) === 6 && (await page.locator('#s-char .gtile.empty').count()) === 6, '능력치 5칸, 착용 6칸 (다 빈칸)');
+  ok((await page.locator('#s-char .c7-sq img.g-ic').count()) === 6 && (await page.locator('#s-char .c7-stat .c7-si img.g-ic').count()) === 5 && (await page.locator('#s-char nav .c7-tic img.g-ic').count()) === 3, '31 그림: 장비 칸 item- 6장, 능력치 stat- 5장, 하위 탭 icon-gear·skills·talent');
   await page.screenshot({ path: `${shots}/char_gear.png` });
 
   // ---- 스킬: Lv 1 ----
   await page.click('#s-char [data-csub="skill"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char .c7-sk').count()) === 9, '스킬 줄 7 + 성언 줄 + 패시브 줄');
+  ok((await page.locator('#s-char .c7-wheel .c7-wh .c7-si').count()) === 7 && (await page.locator('#s-char .c7-wh.core').count()) === 1 && (await page.locator('#s-char .c7-mcircle').count()) === 1, '휠 = 메달 7개에 스킬 그림(없으면 선 아이콘) + 가운데 마나 구슬 + 마법진');
+  ok((await page.locator('#s-char .c7-wheel .c7-si img.g-ic').count()) === 7 && (await page.locator('#s-char .c7-mcircle img.g-ic').count()) === 1 && (await page.locator('#s-char .c7-ski img.g-ic').count()) === 8, '31 그림: 휠 메달 skill- 7장, 마법진 ui-magic-circle, 스킬 줄 그림 (패시브 줄은 선 아이콘)');
   ok((await page.locator('#s-char .c7-sk.locked').count()) === 6 && (await page.locator('#s-char .lslot.locked').count()) === 5, 'Lv 1: 치유·순간 치유만 열림 (휠 5칸·성언 잠김)');
   ok(/Lv 2/.test(await text('#s-char .c7-sk[data-skill="renew"]')), '잠긴 스킬엔 배우는 레벨');
   ok(await page.getAttribute('#s-char [data-smode="view"]', 'aria-pressed') === 'true', '처음은 「설명 보기」');
@@ -84,7 +88,8 @@ export default async function character(url, shots) {
   // ---- 특성: Lv 1 / Lv 25 ----
   await page.click('#s-char [data-csub="talent"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char .c7-tier').count()) === 10 && (await page.locator('#s-char .c7-tier.locked').count()) === 10, '특성 10단, Lv 1은 다 잠김');
-  ok(/긴 숨결 · 가벼운 손끝 · 넓은 원/.test(await text('#s-char .c7-tier:first-child')) && /Lv 10에 열림/.test(await text('#s-char .c7-tsum')), '잠긴 단 = 자물쇠 + 이름 나열, Lv 10에 열림');
+  const t1 = await text('#s-char .c7-tier:first-child');
+  ok(/긴 숨결/.test(t1) && /넓은 원/.test(t1) && (await page.locator('#s-char .c7-tier:first-child .c7-pk.off .ui-icon').count()) === 3 && (await page.locator('#s-char [data-tcell]').count()) === 0 && /Lv 10에 열림/.test(await text('#s-char .c7-tsum')), '잠긴 단 = 메달마다 자물쇠 + 이름 (누를 수 없음), Lv 10에 열림');
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(50);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(50);
   ok(await page.getAttribute('#s-char [data-csub="talent"]', 'aria-selected') === 'true', '다른 탭에 갔다 와도 보던 하위 탭');

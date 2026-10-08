@@ -53,10 +53,35 @@
 body.tabs-on #s-lobby .lb30, #s-lobby .lb30 { position: relative; z-index: 0; display: block; flex: 1 1 auto; padding: 0; overflow: hidden; }
 .lb-world { position: absolute; inset: 0 0 var(--tabs-h) 0; overflow: hidden; container-type: size; background: #15120E; }
 
-/* 무대 = 그림과 같은 2:3 상자 (오른쪽·위 고정, cover). 건물 이름표는 이 안에 %로 → 종 아래를 가리킴 */
+/* 무대 = 그림과 같은 2:3 상자. 왼쪽 광장도 보이도록 확대는 화면 폭의 110%까지. */
 .lb-stage { position: absolute; top: 0; right: 0; width: 100%; height: 100%; background: var(--art-scene-sanctuary, none) right top / cover no-repeat; }
 @supports (width: 1cqh) {
-  .lb-stage { width: max(100cqw, 66.667cqh); height: auto; aspect-ratio: 2 / 3; }
+  .lb-stage { width: min(max(100cqw, 66.667cqh), 110cqw); height: auto; aspect-ratio: 2 / 3; }
+}
+/* 전경과 소품 모두 같은 2:3 좌표. 공통 여유 폭 6px/높이 9px로 원경 이동 중 가장자리 틈 방지. */
+.lb-stage.has-layers { background: transparent; }
+.lb-canvas { position: absolute; left: -6px; top: -9px; width: calc(100% + 12px); height: calc(100% + 18px); }
+/* 긴 화면에서 장면 아래가 남으면 바닥을 자연스럽게 어둡게 이어 출전 영역과 연결. */
+.lb-layers { position: absolute; inset: 0; pointer-events: none; mask-image: linear-gradient(#000 78%, transparent); }
+.lb-layer { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: fill; user-select: none; }
+/* 첨부 시안의 구름 없는 하늘에서 추출한 남색. 별과 구름은 이 안에서만 겹친다. */
+.lb-layer-sky { overflow: hidden; isolation: isolate; background: linear-gradient(#0D1D3D, #142545 28%, #1B2C4F 48%); }
+.lb-stars { position: absolute; z-index: 0; inset: 0; pointer-events: none; }
+.lb-star { position: absolute; display: block; width: var(--star-size); height: var(--star-size); border-radius: 50%; background: #BFD9FF; box-shadow: 0 0 3px rgba(126, 184, 255, 0.45); opacity: 0.35; animation: lb-star-twinkle var(--star-duration) ease-in-out var(--star-delay) infinite; }
+@keyframes lb-star-twinkle { 0%, 100% { opacity: 0.18; } 45% { opacity: 0.7; } 75% { opacity: 0.3; } }
+/* 3:1 구름 타일: 상단 투명 여백을 12% 위로 올림. 두 타일 450%를 225초에 절반만큼 우→좌 이동. */
+.lb-cloud-track { position: absolute; z-index: 1; left: 0; top: -12%; display: flex; width: 450%; height: 50%; opacity: 0.65; animation: lb-cloud-flow 225s linear infinite; }
+.lb-cloud-tile { flex: 0 0 50%; display: block; width: 50%; height: 100%; max-width: none; object-fit: fill; user-select: none; }
+.lb-layer-landscape { animation: lb-landscape-drift 36s ease-in-out -9s infinite; }
+/* 앞쪽 바닥과 소품은 함께 고정: 발밑이 미끄러지지 않음. */
+.lb-layer-foreground { transform: none; }
+@keyframes lb-cloud-flow { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
+@keyframes lb-landscape-drift { 0%, 100% { transform: translate3d(-1.5px, 0, 0); } 50% { transform: translate3d(1.5px, 0, 0); } }
+#s-lobby:is([hidden], .lb-motion-paused) .lb-world *,
+#s-lobby:is([hidden], .lb-motion-paused) .lb-world *::before,
+#s-lobby:is([hidden], .lb-motion-paused) .lb-world *::after { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  #s-lobby .lb-layer, #s-lobby .lb-cloud-track, #s-lobby .lb-star { animation: none; transform: none; }
 }
 .lb-shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(rgba(13, 11, 9, 0) 58%, rgba(13, 11, 9, 0.7) 86%, #15120E); }
 
@@ -67,6 +92,9 @@ body.tabs-on #s-lobby .lb30, #s-lobby .lb30 { position: relative; z-index: 0; di
 /* 건물 (시안 좌표 ÷ 그림 473×710): 종탑 right 6 top 156 · 길드 회관 left 113 top 260 · 잡화점 right 6 top 348. 목표 추적과 안 겹치게 최소 높이 */
 .lb-stage .lb-raid { right: 1.27%; top: max(21.97%, 156px); }
 .lb-stage .lb-guild { left: 23.94%; top: max(36.62%, 200px); }
+@supports (width: 1cqw) {
+  .lb-stage .lb-guild { left: max(23.94%, calc(100% - 100cqw + 8px)); }
+}
 .lb-stage .lb-shop { right: 1.27%; top: 49.01%; }
 
 /* 왼쪽 위 목표 추적 */
@@ -84,26 +112,25 @@ button.lb-trk { cursor: pointer; }
 .lb-trk .obj.ok { color: var(--heal); }
 .lb-trk .obj.ok > i { background: var(--heal); border-color: var(--heal); }
 
-/* 광장 물건 (아래 기준): 물건 그림 + 아래 이름표 (꼭지가 물건을 가리킴). 크기 = 시안 선그림 (--aw×--ah), 정식 그림(1:1)이면 --sq 정사각 */
-.lb-obj { position: absolute; z-index: 3; display: flex; flex-direction: column; align-items: center; }
-#s-lobby .lb-obj > .g-plate { position: relative; margin-top: 8px; }
-.lb-art { position: relative; z-index: 2; display: block; width: var(--aw); height: var(--ah); margin: 0; padding: 0; border: 0; background: none; cursor: pointer; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.55)); }
-.lb-art:has(.g-ic) { width: var(--sq); height: var(--sq); }
-.lb-art > svg, .lb-art > .g-ic { display: block; width: 100%; height: 100%; }
+/* 소품의 아래 가운데 = 배경의 고정 접점. 크기와 위치는 공통 캔버스 비율, 이름표만 접점 아래에 분리. */
+.lb-obj { position: absolute; z-index: 3; left: var(--anchor-x); top: var(--anchor-y); width: var(--prop-size); aspect-ratio: 1; transform: translate(-50%, -100%); }
+#s-lobby .lb-obj > .g-plate { position: absolute; left: 50%; top: calc(100% + 8px); margin: 0; transform: translateX(-50%); }
+.lb-art { position: relative; z-index: 2; display: block; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+.lb-art > svg, .lb-art > .g-ic { position: relative; z-index: 1; display: block; width: 100%; height: 100%; }
 .lb-art > .g-ic { object-position: 50% 100%; }
-.lb-obj.off .lb-art { filter: saturate(0.6) brightness(0.8) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.55)); }
-.lb-obj > .g-qm { top: -34px; left: 50%; margin-left: -8px; }
-.lb-obj > .g-glow { z-index: 1; left: 50%; }
-/* 모래시계 석상 = 주간 도전 (가운데) */
-.lb-chal { --aw: 64px; --ah: 102px; --sq: 102px; left: 50%; bottom: 234px; transform: translateX(-50%); }
-.lb-chal > .g-glow { top: -16px; width: 134px; height: 150px; margin-left: -67px; }
-.lb-chal.off > .g-glow { display: none; }
-/* 임무 게시판 (왼쪽) */
-.lb-board { --aw: 112px; --ah: 124px; --sq: 124px; left: 8px; bottom: 132px; }
-/* 일일 상자 (오른쪽) */
-.lb-chest { --aw: 84px; --ah: 70px; --sq: 92px; right: 16px; bottom: 110px; }
-.lb-chest > .g-glow { top: -28px; width: 130px; height: 124px; margin-left: -65px; }
-.lb-chest:has(.g-ic) > .g-glow { top: -14px; }
+.lb-obj.off .lb-art > svg, .lb-obj.off .lb-art > .g-ic { filter: saturate(0.6) brightness(0.8); }
+.lb-obj > .g-qm { top: -8px; right: 0; left: auto; margin: 0; font-size: 28px; }
+/* 주간 도전은 왼쪽 광장, 임무는 중앙 난간 아래. 전경과 같은 고정 접점 유지. */
+.lb-chal { --anchor-x: 22%; --anchor-y: 70%; --prop-size: 22%; }
+/* 모래시계 본체와 세로 터치 영역을 40% 확대. 바닥 접점과 이름표는 유지한다. */
+.lb-chal .lb-art { position: absolute; left: 0; top: -40%; height: 140%; }
+.lb-chal .lb-art > svg, .lb-chal .lb-art > .g-ic { width: 140%; max-width: none; margin-left: -20%; }
+.lb-board { --anchor-x: 54%; --anchor-y: 59%; --prop-size: 22%; }
+.lb-chest { --anchor-x: 88%; --anchor-y: 70%; --prop-size: 18%; }
+/* 좁은 광장에서도 이름표가 이웃 물건을 덮지 않게, 폭과 높이를 고정하고 긴 문구만 말줄임. */
+#s-lobby .lb-obj > .g-plate { box-sizing: border-box; width: 100%; min-width: 0; height: 44px; padding: 5px; }
+#s-lobby .lb-obj > .g-plate b { font-size: 12px; white-space: nowrap; }
+#s-lobby .lb-obj > .g-plate > span { max-width: 100%; overflow: hidden; font-size: 10px; white-space: nowrap; text-overflow: ellipsis; }
 
 /* 아래 줄: 「다시」 메달 · 출전 · 「시즌 패스」 메달 */
 #s-lobby .lb-again, #s-lobby .lb-pass { position: absolute; z-index: 5; bottom: 12px; }
@@ -124,22 +151,3 @@ button.lb-trk { cursor: pointer; }
 #s-lobby .lb-coach { position: absolute; z-index: 6; left: 16px; right: 16px; bottom: 96px; margin: 0; }
 #s-lobby .lb-msg { position: absolute; z-index: 7; left: 8px; right: 8px; top: 88px; margin: 0; pointer-events: none; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6); animation: lb-msg 4.5s ease forwards; }
 @keyframes lb-msg { 0%, 85% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
-
-/*
- * 낮은 화면: 건물 이름표는 그림(높이 비례)을 따라 올라오고 광장 물건은 아래 기준이라 서로 가까워짐 → 물건을 줄이고 「!」는 게시판 오른쪽 위로.
- * ① 높이 760 이하 (360×740 등) ② 680 이하 (375×667 · 320×640): 석상을 조금 오른쪽으로 (길드 회관 이름표 피함)
- */
-@media (max-height: 760px) {
-  .lb-chal { --aw: 52px; --ah: 83px; --sq: 83px; bottom: 196px; }
-  .lb-chal > .g-glow { top: -14px; width: 110px; height: 122px; margin-left: -55px; }
-  .lb-board { --aw: 90px; --ah: 100px; --sq: 100px; }
-  .lb-chest { --aw: 70px; --ah: 58px; --sq: 76px; }
-  .lb-board > .g-qm { top: 4px; left: auto; right: 0; margin: 0; font-size: 28px; }
-}
-@media (max-height: 680px) {
-  .lb-chal { --aw: 42px; --ah: 66px; --sq: 66px; left: 55%; bottom: 166px; }
-  .lb-chal > .g-glow { top: -12px; width: 90px; height: 96px; margin-left: -45px; }
-  .lb-board { --aw: 72px; --ah: 80px; --sq: 80px; bottom: 116px; }
-  .lb-chest { --aw: 60px; --ah: 50px; --sq: 64px; bottom: 96px; }
-  .lb-chest > .g-glow { top: -24px; width: 100px; height: 96px; margin-left: -50px; }
-}
