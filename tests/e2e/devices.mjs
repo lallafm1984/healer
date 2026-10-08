@@ -1,4 +1,4 @@
-// 대상 폰 크기 (2026-10-08 Lim): 갤럭시 S25 · S25 울트라 · Z 플립 펼침. 전투 탭 → 편성 → 시트 · 주간 도전 입장이 첫 화면에 다 들어오는지
+// 대상 폰 크기 (2026-10-08 Lim): 갤럭시 S25 · S25 울트라 · Z 플립 펼침. 전투 탭 → 편성 → 시트 · 주간 도전 입장 · 결과 화면이 첫 화면에 다 들어오는지
 import { chromium } from 'playwright';
 import { pastTitle, toParty } from './nav.mjs';
 
@@ -58,6 +58,21 @@ export default async function devices(url, shots) {
     await page.click('#s-content [data-chal]'); await page.clock.runFor(150);
     const rw = await box('#s-entry .f-rw'), eg = await box('#entryGo');
     ok(rw.bottom <= eg.top && eg.bottom <= height + 1, `${tag}: 주간 도전 입장 보상까지 첫 화면, 편성으로 화면 안`);
+
+    // 결과 (정산 + 보상 한 화면): 등급·별 · 받은 것이 첫 화면에, 가로 넘침 없음
+    await page.click('#s-entry .tb-back'); await page.clock.runFor(80);
+    await toParty(page, { tab: 'dungeon', content: 'rustfort', diff: '어려움' });
+    await page.click('#depart'); await page.clock.runFor(3100 + 300);
+    for (let i = 0; i < 6; i++) {
+      await page.evaluate(() => { const f = window.__proto.F; f.mobs.forEach(m => { m.hp = 0; m.alive = false; }); f.bossHp = 0; });
+      await page.clock.runFor(1500);
+      if (!(await page.isVisible('#rest'))) break;
+      await page.click('#restGo'); await page.clock.runFor(3100 + 300);
+    }
+    const loot = await box('#s-settle .r-loot'), rfoot = await box('#s-settle .ns-foot'), rec = await box('#s-settle .r-rec');
+    ok(await noOverflow('#s-settle .res') && loot.bottom <= rfoot.top && rfoot.bottom <= height + 1, `${tag}: 결과 화면 받은 것까지 첫 화면 (${Math.round(loot.bottom)} ≤ ${Math.round(rfoot.top)})`);
+    ok(rec.top < rfoot.top, `${tag}: 결과 화면 「전투 기록」 줄이 보임 (${Math.round(rec.top)})`);
+    await page.screenshot({ path: `${shots}/device_result_${width}x${height}.png` });
     await ctx.close();
   }
   await browser.close();

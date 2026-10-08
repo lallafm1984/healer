@@ -12,6 +12,7 @@ import './screens/game30.css';
 import './screens/lobby30.css';
 import './screens/content30.css';
 import './screens/guild30.css';
+import './screens/result30.css';
 import './battle/hud27.css';
 import './battle';
 import './screens/title';

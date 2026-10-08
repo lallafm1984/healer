@@ -469,21 +469,23 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
   if (how !== 'end') { R.time += f.t; R.deaths += st.deaths; addStats(R, f, st); }
   const detail: [string, string][] = [
     ['마지막 전투', `${f.enc.name} ${mmss(f.t)}`],
+    ['소비 아이템', R.itemLog.length ? R.itemLog.map(x => `${ITEMS[x.key].short} ${mmss(x.t)}`).join(' · ') : '안 씀'],
+  ];
+  const dev: [string, string][] = [
     ['탭', `${st.taps}번 (분당 ${Math.round(st.taps / min)})`],
     ['칸 중심에서 벗어남', acc.n ? `평균 칸 크기의 ${acc.avg}%` : '-'],
     ['옆 칸 재지정 (오탭 추정)', `${ui.retarget}번 · 빈 칸 ${st.emptyTaps}번`],
     ['시전 취소 · 마나 부족', `${st.cancels}번 · ${st.manaFails}번`],
     ['쓸기 스킬', `${Object.values(ui.swipes).reduce((a, b) => a + b, 0)}번 · 취소 ${ui.swipeCancel} · 빈 방향 ${ui.swipeEmpty}`],
-    ['소비 아이템', R.itemLog.length ? R.itemLog.map(x => `${ITEMS[x.key].short} ${mmss(x.t)}`).join(' · ') : '안 씀'],
   ];
-  if (!win) detail.unshift([f.mobs.length ? '적 남은 체력' : '보스 남은 체력', `${Math.ceil((f.bossHp / f.bossMax) * 100)}%`]);
+  const left = win ? undefined : { pct: Math.ceil((f.bossHp / f.bossMax) * 100), mobs: f.mobs.length > 0 };
   const result = {
     content: R.content, diff: S.diff, win, quit: quitted, reason: quitted ? '포기함' : how === 'giveUp' ? '탱커 전멸 뒤 포기' : f.reason,
     segIdx: R.idx, segN: R.segs.length, time: R.time, restSec: R.restSec, deaths: R.deaths,
     healed: R.healed, overheal: R.overheal, dispels: R.dispels, dispellable: R.dispellable,
     endMana: Math.floor(f.mana), minMana: Math.floor(st.minMana), auto: !!(S.auto || R.auto),
     party: f.party.filter(u => !u.me).map(u => ({ nick: u.nick, pers: u.pers, role: u.role, alive: u.alive, got: Math.round(u.got), gid: u.gid })),
-    detail, meter: R.meter.map(r => ({ ...r })), itemsUsed: usedItems(R),
+    detail, dev, left, segNames: R.segs.map(k => ENCOUNTERS[k as EncounterKey].name), meter: R.meter.map(r => ({ ...r })), itemsUsed: usedItems(R),
     stage: S.stageLv, affixes: S.affixes?.slice(), chal: S.chal || undefined, limit: S.limit, cont: R.cont || undefined, giveUp: how === 'giveUp' || undefined,
   } as BattleResult;
   ui.lastResult = result;

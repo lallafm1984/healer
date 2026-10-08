@@ -43,8 +43,13 @@ export interface BattleResult {
   auto: boolean;
   /** got = 내 힐로 회복한 양 (인연 스카우트), gid = 길드원 id */
   party: { nick: string; pers: PersName | null; role: string; alive: boolean; got?: number; gid?: number }[];
-  /** 자세히 보기 (프로토타입 결과표) */
+  /** 전투 기록에 보이는 줄 (마지막 전투 · 소비 아이템) */
   detail: [string, string][];
+  /** 플레이 테스트 기록 (탭 · 오탭 · 쓸기 등): 레벨 잠금 무시(개발 빌드)를 켰을 때만 보여 줌 */
+  dev?: [string, string][];
+  /** 구간 이름 (던전 진행 점) · 진 구간 적 남은 체력 % (잡몹 구간이면 mobs) */
+  segNames?: string[];
+  left?: { pct: number; mobs: boolean };
   /** 딜미터기 (구간 전체 합) */
   meter?: MeterRow[];
   /** 쓴 소비 아이템 (가방에서 뺌, 19 11장) */

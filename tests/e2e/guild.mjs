@@ -113,10 +113,9 @@ export default async function guild(url, shots) {
   }
   await killEnemies(page); await page.clock.runFor(1500);
   ok(await page.isVisible('#s-settle'), '던전 클리어');
-  await page.click('#toReward'); await page.clock.runFor(200);
-  if (await page.isVisible('#s-reward .lvpop')) { await page.click('#s-reward .lvpop button'); await page.clock.runFor(50); }
-  const rw = await text('#s-reward');
-  ok(new RegExp(`길드원.*${m0.nick} \\+\\d`).test(rw) && /명성 \+1/.test(rw), '보상 화면: 길드원 경험치 · 명성 +1');
+  await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
+  const rw = await text('#s-settle .r-notes');
+  ok(/길드원 경험치 \+\d/.test(rw) && /명성 \+1/.test(rw), '결과 화면: 길드원 경험치 · 명성 +1 (한 줄)');
   sv = await save();
   ok(sv.guild.members[0].runs === 1 && sv.guild.fame === 1, `저장: 출전 1번, 명성 1`);
   await page.screenshot({ path: `${shots}/guild_reward.png` });

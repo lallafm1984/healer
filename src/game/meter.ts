@@ -34,16 +34,24 @@ export function addMeter(rows: MeterRow[], party: { nick: string; role: Role; cl
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const num = (n: number) => Math.round(n).toLocaleString('ko-KR');
 
-/** 피해량 순 막대. sec = 전투 시간 합 (초당 피해 계산), heal = 내 치유량 (맨 아래 한 줄) */
-export function meterHtml(rows: MeterRow[], sec: number, o: { title?: string; heal?: number } = {}): string {
+/**
+ * 피해량 순 막대. sec = 전투 시간 합 (초당 피해 계산), heal = 내 치유량.
+ * compact = 결과 화면 「전투 기록」용: 내 치유를 맨 위로, 초당 값 없이 비율만, 6번째부터는 「전체 n명」을 눌러야 보임
+ */
+export function meterHtml(rows: MeterRow[], sec: number, o: { title?: string; heal?: number; compact?: boolean } = {}): string {
   const list = rows.filter(r => r.dmg > 0 || rows.length < 8).slice().sort((a, b) => b.dmg - a.dmg);
   if (!list.length) return '';
   const top = Math.max(1, list[0].dmg), total = list.reduce((s, r) => s + r.dmg, 0) || 1, t = Math.max(1, sec);
   const li = list.map((r, i) => {
     const ab = r.ab && ABILITIES[r.ab];
-    const sub = `${r.cls ? CLASSES[r.cls].name : ROLE_NAME[r.role]}${ab && r.abN ? ` · ${esc(ab.name)} ${r.abN}회` : ''}`;
-    return `<li style="--w:${((r.dmg / top) * 100).toFixed(1)}%;--c:${ROLE_COLOR[r.role]}"><i class="rk">${i + 1}</i><b>${esc(r.nick)}</b><small>${sub}</small><span class="v">${num(r.dmg)}<small>${num(r.dmg / t)}/초 · ${Math.round((r.dmg / total) * 100)}%</small></span></li>`;
+    const sub = `${r.cls ? CLASSES[r.cls].name : ROLE_NAME[r.role]}${ab && r.abN && !o.compact ? ` · ${esc(ab.name)} ${r.abN}회` : ''}`;
+    const pct = `${Math.round((r.dmg / total) * 100)}%`;
+    return `<li style="--w:${((r.dmg / top) * 100).toFixed(1)}%;--c:${ROLE_COLOR[r.role]}"><i class="rk">${i + 1}</i><b>${esc(r.nick)}</b><small>${sub}</small><span class="v">${num(r.dmg)}<small>${o.compact ? pct : `${num(r.dmg / t)}/초 · ${pct}`}</small></span></li>`;
   }).join('');
   const heal = o.heal != null ? `<p class="mheal"><b>내 치유</b><span>${num(o.heal)}<small>${num(o.heal / t)}/초</small></span></p>` : '';
+  if (o.compact) {
+    const more = list.length > 5 ? `<button type="button" class="m-all">전체 ${list.length}명</button>` : '';
+    return `<section class="meter compact"><h3>${o.title || '피해량'}</h3>${heal}<ol>${li}</ol>${more}</section>`;
+  }
   return `<section class="meter"><h3>${o.title || '딜미터기'}<small>피해량 · 초당 · 비율</small></h3><ol>${li}</ol>${heal}</section>`;
 }

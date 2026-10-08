@@ -111,12 +111,11 @@ export default async function tutorial(url, shots) {
   ok(await page.isVisible('#s-settle'), '탐험 끝 → 정산');
   sv = await save();
   ok(sv.tut === 2 && sv.clears.plateau, `저장: 탐험 클리어, 튜토리얼 던전 단계 (tut ${sv.tut})`);
-  await page.click('#toReward'); await page.clock.runFor(200);
-  if (await page.isVisible('#s-reward .lvpop')) { await page.click('#s-reward .lvpop button'); await page.clock.runFor(50); }
-  ok(/첫 장비/.test(await page.textContent('#s-reward .coachtip')) && await page.isVisible('#equipNow.hi-pulse'), '보상: 첫 장비 안내 + 「장착」 반짝임');
+  await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
+  ok(/첫 장비/.test(await page.textContent('#s-settle .coachtip')) && await page.isVisible('#equipNow.hi-pulse') && (await page.locator('#s-settle .ns-foot .btn').count()) === 1, '결과: 첫 장비 안내 + 「장착」 반짝임, 튜토리얼 중엔 로비 버튼 하나');
   await page.screenshot({ path: `${shots}/tut_reward.png` });
   await page.click('#equipNow'); await page.clock.runFor(50);
-  await page.click('#s-reward [data-go="s-lobby"]'); await page.clock.runFor(100);
+  await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
 
   // ---- 로비: 녹슨 요새로 안내, 탭은 로비·전투·캐릭터만 (27 1장) ----
   ok(await page.isVisible('#s-lobby .coachtip') && await page.isVisible('#lobbyStart.hi-pulse'), '로비: 첫 던전 안내 + 「출전」 반짝임');
@@ -152,13 +151,12 @@ export default async function tutorial(url, shots) {
     await killEnemies(page); await page.clock.runFor(1500);
     if (i < 3) { await page.click('#restGo'); await page.clock.runFor(3100 + 500); }
   }
-  ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '던전 클리어!', '녹슨 요새 쉬움 클리어');
+  ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')).startsWith('던전 클리어!'), '녹슨 요새 쉬움 클리어');
   sv = await save();
   ok(sv.tut === 3, `저장: 튜토리얼 끝 (tut ${sv.tut})`);
-  await page.click('#toReward'); await page.clock.runFor(200);
-  if (await page.isVisible('#s-reward .lvpop')) { await page.click('#s-reward .lvpop button'); await page.clock.runFor(50); }
-  ok(/튜토리얼은 여기까지/.test(await page.textContent('#s-reward .coachtip')), '보상: 튜토리얼 끝 안내');
-  await page.click('#s-reward [data-go="s-lobby"]'); await page.clock.runFor(100);
+  await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
+  ok(/튜토리얼은 여기까지/.test(await page.textContent('#s-settle .coachtip')), '결과: 튜토리얼 끝 안내');
+  await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
   ok((await page.locator('#tabs button.tlock').count()) === 0 && !(await page.isVisible('#s-lobby .coachtip')), '로비: 탭 잠금·안내 없음');
   await page.reload(); await page.clock.runFor(300);
   await page.click('#s-title'); await page.clock.runFor(100);
