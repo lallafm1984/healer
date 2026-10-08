@@ -110,15 +110,17 @@ export default async function legacyUi(url, shots) {
   await page.dispatchEvent(slotSel, 'pointerup'); await page.clock.runFor(60);
   ok(await ev(c => JSON.stringify(window.__proto.F.stats.casts || {}) === c && !window.__proto.F.queued, casts0), '길게 누르기는 시전 안 함');
 
-  // 해제 두루마리: 독 포함, 함정 제외
+  // 해제 두루마리: 독 포함, 함정 제외. 장판·토스트를 먼저 정리하고, 시계가 실제로 흐르므로 디버프 걸기와 누르기는 한 번에 (사이에 파티원 독소 정화가 독을 먼저 지우면 두루마리를 안 씀)
+  await page.clock.runFor(1500);
   const cl = await ev(() => {
     const F = window.__proto.F, alive = F.party.filter(u => u.alive && !u.me);
     alive[0].debuffs.push({ id: 900, name: '독침', type: '독', left: 12, dot: 15 });
     alive[1].debuffs.push({ id: 901, name: '전염', type: '질병', left: 8, trap: true });
+    const b = document.querySelector('#items [data-item="cleanse"]');
+    for (const type of ['pointerdown', 'pointerup']) b.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1 }));
     return alive.slice(0, 2).map(u => u.id);
   });
-  await page.clock.runFor(1500); // 장판·토스트 정리
-  await page.dispatchEvent('#items [data-item="cleanse"]', 'pointerdown'); await page.dispatchEvent('#items [data-item="cleanse"]', 'pointerup'); await page.clock.runFor(60);
+  await page.clock.runFor(60);
   const cr = await ev(ids => { const F = window.__proto.F; return ids.map(id => F.party.find(u => u.id === id).debuffs.map(d => d.name).join('+') || '-'); }, cl);
   ok(!/독침/.test(cr[0]) && /전염/.test(cr[1]), `해제: 독 지움, 전염(함정)은 남김 ${JSON.stringify(cr)}`);
 
@@ -175,14 +177,16 @@ export default async function legacyUi(url, shots) {
     return { items: [...document.querySelectorAll('#items .item')].map(r), wheel: r(document.getElementById('wheel')), controls: r(document.getElementById('controls')) };
   });
   ok(boxes20.items.every(b => b.y >= boxes20.controls.y - 1 && b.b <= boxes20.controls.b + 1 && (b.r <= boxes20.wheel.x + 1 || b.x >= boxes20.wheel.r - 1)), '20인에서도 단축칸이 하단 안');
-  const dead = await ev(() => {
+  // 쓰러뜨리기·깃털·체력 읽기를 한 번에 (시계가 실제로 흐르므로 사이에 다른 치유가 들어가면 30%가 아니게 됨)
+  const rv = await ev(() => {
     const F = window.__proto.F, u = F.party.find(x => x.role === 'ranged' && x.alive);
     F.cells[u.cell].unit = null; u.alive = false; u.hp = 0; u.diedAt = F.t; u.debuffs = [];
-    return u.id;
+    const b = document.querySelector('#items [data-item="feather"]');
+    for (const type of ['pointerdown', 'pointerup']) b.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1 }));
+    return { alive: u.alive, pct: Math.round((u.hp / u.max) * 100), inCell: F.cells[u.cell].unit === u };
   });
-  await page.dispatchEvent('#items [data-item="feather"]', 'pointerdown'); await page.dispatchEvent('#items [data-item="feather"]', 'pointerup'); await page.clock.runFor(60);
-  const rv = await ev(id => { const F = window.__proto.F, u = F.party.find(x => x.id === id); return { alive: u.alive, pct: Math.round((u.hp / u.max) * 100), inCell: F.cells[u.cell].unit === u }; }, dead);
   ok(rv.alive && rv.pct >= 28 && rv.pct <= 31 && rv.inCell, `부활 깃털: 30%로 칸에 복귀 ${JSON.stringify(rv)}`);
+  await page.clock.runFor(60);
   await page.screenshot({ path: `${shots}/v6_raid20_items.png` });
   // 20인 탭 = 확대 미리보기 0.3초 (02 3-1). 판(PixiJS)이 그 순간에도 멀쩡히 그려지는지
   const bb20 = await page.locator('#board').boundingBox();
