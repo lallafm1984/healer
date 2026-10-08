@@ -4,6 +4,7 @@ import './screens/screens.css';
 import './screens/mobile.css';
 import './battle/portrait.css';
 import './theme.css';
+import './screens/art.css';
 import './battle';
 import './screens/title';
 import './screens/lobby';
@@ -21,7 +22,9 @@ import { commit, refreshDay, syncMember } from './game/state';
 import { go } from './screens/kit';
 import { pushSettings } from './screens/settings';
 import { mountTabs } from './screens/tabs';
+import { applyArtVars } from './art';
 
+applyArtVars();
 mountTabs(document.getElementById('tabs')!);
 pushSettings();
 commit(); // 저장 형식 확인용 (첫 실행이면 새로 만듦, 옛 저장은 새 형식으로)

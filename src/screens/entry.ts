@@ -15,7 +15,8 @@ import { runMode, tierGate } from '../game/runmode';
 import { G, heroNow, lockOf, switchOpen } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { battle, esc, fmt, go, mmss, screen, topBar } from './kit';
-import { destinationArt, LOCK } from './art';
+import { factionMark, LOCK, placeArt } from './art';
+import { FACTIONS, PLACES } from '../data/places';
 
 /** 드롭 세트 한 줄 (02 10-3): 효과가 있는 세트는 2·4세트까지 */
 function setLine(key: string, name?: string): string {
@@ -78,9 +79,10 @@ function render(): void {
   const shardOn = tutDone && needsShard(d);
   const lootDone = tutDone && !!rs && !raidLootOpen(G.save, c.key, d);
 
+  const pa = placeArt(c.key), fac = PLACES[pa.place].faction;
   s.el.innerHTML = `${topBar({ back: 's-content', title: `${c.name} · 단계 Lv ${stage}` })}
     <div class="ns-body entry">
-      ${destinationArt(c.key) ? `<div class="entry-cover"><img src="${destinationArt(c.key)}" alt="녹슨 요새 입구" width="1536" height="1024"><div><p class="eyebrow">${esc(c.place)}</p><h2>${esc(c.name)}</h2><span>${c.size(d)}인 파티 · 보스 ${c.bosses.length}</span></div></div>` : ''}
+      <div class="entry-cover${pa.scene ? '' : ' floor'}">${pa.url ? `<img src="${pa.url}" alt="${esc(PLACES[pa.place].name)}" decoding="async">` : ''}${factionMark(fac)}<div><p class="eyebrow">${esc(c.place)}</p><h2>${esc(c.name)}</h2><span>${c.size(d)}인 파티 · 보스 ${c.bosses.length} · ${FACTIONS[fac].name}</span></div></div>
       <div class="chips diffs" role="radiogroup" aria-label="난이도">${ALL_DIFFS.map(x => {
         const lk = lockOf(c, x);
         return `<button class="chip" type="button" role="radio" data-diff="${x}" aria-checked="${x === d}" aria-pressed="${x === d}"${lk.locked ? ' disabled' : ''}>${lk.locked ? LOCK : ''}${x}</button>`;

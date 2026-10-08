@@ -1,3 +1,7 @@
+import { art } from '../art';
+import type { ContentKey } from '../data/content';
+import { CONTENT_PLACE, FACTIONS, floorArtName, sceneArtName, type FactionKey, type PlaceKey } from '../data/places';
+
 /** 화면 장식 그림 (정식 아트 전까지 임시, 16 문서) */
 export const bellSvg = `<svg viewBox="0 0 120 120" aria-hidden="true"><g stroke="#0E0E15" stroke-width="5" stroke-linejoin="round"><path d="M60 14c-6 0-9 4-9 8v4C34 30 28 46 28 62v18l-10 12h84l-10-12V62c0-16-6-32-23-36v-4c0-4-3-8-9-8z" fill="#C9923F"/><path d="M60 26l-6 18 8 10-5 16" fill="none" stroke-width="4"/><circle cx="60" cy="100" r="9" fill="#F0C46A"/></g><path d="M40 62c0-10 4-18 12-22" stroke="#F6DFA0" stroke-width="5" stroke-linecap="round" fill="none"/></svg>`;
 
@@ -32,13 +36,47 @@ export function uiIcon(key: keyof typeof paths, extra = ''): string {
 /** 잠금 표시 (🔒 대신, 테마 색을 따름) */
 export const LOCK = uiIcon('lock', 'in');
 
-export function healerArt(hero: string): string {
-  const names: Record<string, string> = { priest: '종 지팡이를 든 사제', druid: '잎 지팡이를 든 드루이드', paladin: '방패와 등불을 든 성기사' };
-  if (names[hero]) return `<img class="healer-illustration" src="/art/healer-${hero}-v1.webp" alt="${names[hero]}" width="1254" height="1254" draggable="false">`;
-  return `<span class="hero-sigil hero-sigil-${hero}">${uiIcon(hero === 'druid' ? 'leaf' : 'battle')}</span>`;
+/**
+ * 직업 문장 (27 5장): 힐러 그림 대신. 원형 금테 + 돌 바탕 + 선 아이콘, 색은 16 4-1 포인트 색.
+ * 업데이트 직업 4종도 미리 둠 (직업 목록·상점).
+ */
+const EMBLEM: Record<string, { name: string; color: string; path: string }> = {
+  priest: { name: '사제 문장 · 금 간 종', color: '#F6E7B8', path: '<path d="M6.5 16v-4.5a5.5 5.5 0 0 1 11 0V16l1.5 2h-14z"/><path d="M12 4v2"/><path d="M12.6 9.4l-1.4 2.4 1.8 1.4-1 2.3"/><path d="M10 20.5h4"/>' },
+  druid: { name: '드루이드 문장 · 뿔 지팡이와 잎', color: '#9BD66A', path: '<path d="M12 21V10"/><path d="M12 10C11 7.5 9 6 6.5 6M12 10c1-2.5 3-4 5.5-4M7.5 6V3.5M16.5 6V3.5"/><path d="M12 15.5c2.6 0 4.6-1.6 5.2-4.2-2.6 0-4.6 1.6-5.2 4.2z"/>' },
+  paladin: { name: '성기사 문장 · 둥근 방패', color: '#F0A848', path: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3.5v6M12 14.5v6M3.5 12h6M14.5 12h6"/>' },
+  shaman: { name: '주술사 문장 · 토템', color: '#7EC8F0', path: '<path d="M8 3h8v6H8zM9 9h6v6H9zM8 15h8v6H8z"/><path d="M5 12h4M15 12h4"/>' },
+  monk: { name: '수도사 문장 · 찻주전자', color: '#6FD0B0', path: '<path d="M6 10h11v4a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M17 11h1.5a2 2 0 0 1 0 4H17"/><path d="M6 12L3.5 9.5"/><path d="M10 7h3M11.5 5v2"/>' },
+  astrologer: { name: '점성술사 문장 · 망원경과 별', color: '#D19A5E', path: '<path d="M4 15l11-6 2 3.5-11 6z"/><path d="M9 17l-2 4M11 16l2 5"/><path d="M19 2.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z"/>' },
+  warder: { name: '결계사 문장 · 빛나는 방패', color: '#E6D3A0', path: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M12 8l3 3-3 3-3-3z"/>' },
+};
+export const emblemColor = (hero: string): string => (EMBLEM[hero] || EMBLEM.priest).color;
+/** size: 아이콘 크기 클래스 (sm 24 · md 40 · lg 64 · xl 96) */
+export function classEmblem(hero: string, size: 'sm' | 'md' | 'lg' | 'xl' = 'md'): string {
+  const e = EMBLEM[hero] || EMBLEM.priest, img = art(`emblem-${hero}`);
+  // 그린 문장(emblem-<직업>)이 있으면 그 그림, 없으면 선 아이콘 (28 7장)
+  const inner = img ? `<img src="${img}" alt="" decoding="async" draggable="false">` : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${e.path}</svg>`;
+  return `<span class="emblem emblem-${size}${hero === 'warder' ? ' dark' : ''}" style="--em:${e.color}" role="img" aria-label="${e.name}">${inner}</span>`;
 }
 
-/** 장소가 다른 콘텐츠에는 요새 이미지를 재사용하지 않는다. */
-export function destinationArt(key: string): string {
-  return key === 'rustfort' ? '/art/rustfort-v1.webp' : '';
+/** 세력 문양 (27 3-1): 골렘 톱니 · 역병 플라스크 · 늪 잎 · 귀족가 백합 · 마도사 눈꽃 · 종의 언덕 금 간 종 · 심연 거꾸로 종 */
+const FACTION_PATH: Record<FactionKey, string> = {
+  golem: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/><circle cx="12" cy="12" r="6.5"/>',
+  plague: '<path d="M9.5 3h5M10 3v5.5L5 18a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9.5V3"/><path d="M7.5 15h9"/><circle cx="10.5" cy="17.5" r=".6"/><circle cx="13.5" cy="18.5" r=".6"/>',
+  swamp: '<path d="M5 19C-1 8 10 3 21 3c0 11-5 20-16 16Z"/><path d="M5 19l10-10"/>',
+  noble: '<path d="M12 21v-7"/><path d="M12 14c-1.5-2.5-1.5-6 0-10 1.5 4 1.5 7.5 0 10z"/><path d="M12 14c-2-1-5-1.5-7.5-5 3.5-.5 6 1.5 7.5 5zM12 14c2-1 5-1.5 7.5-5-3.5-.5-6 1.5-7.5 5z"/><path d="M8.5 21h7"/>',
+  mage: '<path d="M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6"/><path d="M10 4.5l2 2 2-2M10 19.5l2-2 2 2M4.6 10l2.7.8-.7 2.7M19.4 14l-2.7-.8.7-2.7"/>',
+  bell: '<path d="M6.5 16v-4.5a5.5 5.5 0 0 1 11 0V16l1.5 2h-14z"/><path d="M12 4v2"/><path d="M12.6 9.4l-1.4 2.4 1.8 1.4-1 2.3"/>',
+  abyss: '<path d="M6.5 8v4.5a5.5 5.5 0 0 0 11 0V8l1.5-2h-14z"/><path d="M12 20v-2"/><circle cx="12" cy="12.5" r="1.6"/>',
+};
+export function factionMark(f: FactionKey, size: 'sm' | 'md' | 'lg' = 'md'): string {
+  const img = art(`mark-${f}`);
+  const inner = img ? `<img src="${img}" alt="" decoding="async" draggable="false">` : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${FACTION_PATH[f]}</svg>`;
+  return `<span class="fmark fmark-${size}" style="--fc:${FACTIONS[f].color}" role="img" aria-label="${FACTIONS[f].name} 문양">${inner}</span>`;
+}
+
+/** 장소 그림: 풍경이 있으면 풍경, 없으면 바닥 그림 (28 4장) */
+export function placeArt(c: ContentKey): { url: string; scene: boolean; place: PlaceKey } {
+  const place = CONTENT_PLACE[c];
+  const scene = art(sceneArtName(place));
+  return { url: scene || art(floorArtName(place)), scene: !!scene, place };
 }

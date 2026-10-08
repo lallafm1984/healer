@@ -45,6 +45,7 @@ function render(): void {
   s.el.innerHTML = `${topBar({ settings: true })}
     <nav class="subtabs" role="tablist">${SUBS.map(([k, n]) => `<button type="button" role="tab" data-sub="${k}" aria-selected="${st.sub === k}">${n}</button>`).join('')}</nav>
     <div class="ns-body shop">
+      <header class="art-hero shop-hero"><div class="ah-copy"><p class="eyebrow">모험가 상점</p><h2>${SUBS.find(([k]) => k === st.sub)![1]}</h2></div></header>
       ${wallet()}
       ${st.msg ? `<p class="warnbox">${esc(st.msg)}</p>` : ''}
       ${st.sub === 'gold' ? goldHtml() : st.sub === 'merit' ? meritHtml() : st.sub === 'pass' ? passHtml() : crystalHtml()}

@@ -11,7 +11,7 @@ import { capOf, guildOpen, hire, postRecruit, powerOf, release, rerollAbility, r
 import { commit, G } from '../game/state';
 import { cardHtml } from './members';
 import { esc, fmt, screen, topBar } from './kit';
-import { LOCK } from './art';
+import { LOCK, uiIcon } from './art';
 
 type Sub = 'members' | 'recruit';
 const st: { sub: Sub; sel: number | null; msg: string; ask: number | null } = { sub: 'members', sel: null, msg: '', ask: null };
@@ -32,7 +32,7 @@ function render(): void {
       <button type="button" role="tab" data-sub="recruit" aria-selected="${st.sub === 'recruit'}">영입${g.post ? ' ●' : ''}</button>
     </nav>
     <div class="ns-body guild">
-      <h2 class="h">「${esc(g.name)}」<small>길드 Lv ${cap.lv} · 정원 ${g.members.length}/${cap.cap} · 명성 ${fmt(g.fame)}</small></h2>
+      <header class="art-hero hall-hero"><span class="hh-crest">${uiIcon('bell')}</span><h2 class="ah-copy">「${esc(g.name)}」<small>길드 Lv ${cap.lv} · 정원 ${g.members.length}/${cap.cap} · 명성 ${fmt(g.fame)}</small></h2></header>
       ${open.dev ? `<p class="note">개발 빌드: 레벨 잠금 무시로 열림 (원래 Lv ${GUILD_LEVEL})</p>` : ''}
       ${st.msg ? `<p class="warnbox">${esc(st.msg)}</p>` : ''}
       ${st.sub === 'members' ? membersHtml() : recruitHtml()}

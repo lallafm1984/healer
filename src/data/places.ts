@@ -1,0 +1,61 @@
+/**
+ * 장소 (11 4장 던전·레이드 지역)와 세력 (11 3장, 16 4-3). 그림 자리는 28 문서.
+ * 장소마다 바닥 그림 floor-<장소>(전투 진형 판 뒤)와 풍경 그림 scene-<장소>(카드·입장·보스 무대). 풍경이 없으면 바닥 그림을 대신 쓴다.
+ */
+import type { ContentKey } from './content';
+import type { EncounterKey } from './encounters';
+
+export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'bell' | 'abyss';
+export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple' | 'abyss' | 'cathedral';
+
+export interface Faction {
+  name: string;
+  /** 세력 색 = 해제 유형 색 (16 4-3) */
+  color: string;
+}
+
+export const FACTIONS: Record<FactionKey, Faction> = {
+  golem: { name: '버려진 골렘', color: '#C47A45' },
+  plague: { name: '역병 교단', color: '#D9A13B' },
+  swamp: { name: '늪의 부족', color: '#3CC24A' },
+  noble: { name: '몰락한 귀족가', color: '#A050E0' },
+  mage: { name: '폭주한 마도사', color: '#3D8BFF' },
+  bell: { name: '종의 언덕', color: '#C9A35C' },
+  abyss: { name: '심연', color: '#E6D3A0' },
+};
+
+export interface Place {
+  key: PlaceKey;
+  name: string;
+  faction: FactionKey;
+  /** 그림이 없을 때 바닥 색 (가운데 → 가장자리) */
+  tone: [string, string];
+}
+
+export const PLACES: Record<PlaceKey, Place> = {
+  plateau: { key: 'plateau', name: '녹슨 고원', faction: 'golem', tone: ['#3A3226', '#18130E'] },
+  rustfort: { key: 'rustfort', name: '녹슨 요새', faction: 'golem', tone: ['#34302E', '#151210'] },
+  crypt: { key: 'crypt', name: '역병 지하묘지', faction: 'plague', tone: ['#353124', '#14120C'] },
+  swamp: { key: 'swamp', name: '독안개 늪', faction: 'swamp', tone: ['#26331F', '#0F140C'] },
+  manor: { key: 'manor', name: '저주받은 장원', faction: 'noble', tone: ['#30263A', '#130F16'] },
+  frost: { key: 'frost', name: '서리 마탑', faction: 'mage', tone: ['#24334A', '#0E131C'] },
+  temple: { key: 'temple', name: '깨진 신전', faction: 'bell', tone: ['#3A3322', '#16130C'] },
+  abyss: { key: 'abyss', name: '심연의 종탑', faction: 'abyss', tone: ['#262A22', '#0C0D0B'] },
+  cathedral: { key: 'cathedral', name: '가라앉은 대성당', faction: 'abyss', tone: ['#1F2A33', '#0B0F13'] },
+};
+
+/** 콘텐츠 → 장소 */
+export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
+  tutorial: 'plateau', plateau: 'plateau', rustfort: 'rustfort', crypt: 'crypt', swamp: 'swamp',
+  manor: 'manor', frost: 'frost', temple: 'temple', abyss1: 'abyss', cathedral1: 'cathedral',
+};
+
+/** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
+export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
+  duo: 'plateau', field: 'plateau', patrol: 'plateau',
+  gate: 'rustfort', scrap: 'rustfort', boiler: 'rustfort', warden: 'rustfort',
+  plague: 'abyss', choir: 'cathedral',
+};
+
+export const floorArtName = (p: PlaceKey) => `floor-${p}`;
+export const sceneArtName = (p: PlaceKey) => `scene-${p}`;

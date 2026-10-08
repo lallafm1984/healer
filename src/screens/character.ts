@@ -13,7 +13,7 @@ import { TALENTS } from '../data/talents';
 import { castText, cdText, costText, skillTip, tipHtml } from '../game/tooltip';
 import type { TapKey } from '../platform/storage';
 import { commit, enhance, equip, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, pickTalent, salvage, switchHero, switchOpen, toggleItem } from '../game/state';
-import { healerArt, LOCK, uiIcon } from './art';
+import { classEmblem, LOCK, uiIcon } from './art';
 import { battle, esc, fmt, itemChipsHtml, josa, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 
@@ -68,7 +68,7 @@ function heroHtml(): string {
   return `<section class="chero">
       <div class="chero-top"><b>${h.name}</b><span class="chero-lv">Lv <b>${G.save.player.level}</b></span><span class="star" aria-label="난이도 ${h.star}">${stars(h.star)}</span></div>
       <p class="chero-dispel">해제 <span class="ddots">${dots(h.key)}</span></p>
-      <div class="doll">${col(['head', 'neck', 'chest'])}<div class="chero-art">${healerArt(hero())}<small>장비 ${esc(gearSummary(eq))}</small></div>${col(['hands', 'ring', 'weapon'])}</div>
+      <div class="doll">${col(['head', 'neck', 'chest'])}<div class="chero-art">${classEmblem(hero(), 'xl')}<small>장비 ${esc(gearSummary(eq))}</small></div>${col(['hands', 'ring', 'weapon'])}</div>
       <p class="doll-hint">칸을 누르면 상세·강화</p>
       <dl class="cstats">${stat('체력', fmt(Math.round(HEALER_HP * lp)))}${stat('힐량', `×${(st.heal * lp).toFixed(2)}`)}${stat('치명타', `${Math.round(st.crit * 100)}%`)}${stat('가속', `${Math.round(st.haste * 100)}%`)}${stat('마나 재생', `×${st.regen.toFixed(2)}`)}</dl>
       <button class="btn" type="button" data-csub="hero"${open.ok ? '' : ' disabled'}>직업 바꾸기${open.ok ? '' : ` <small>${LOCK}${esc(open.why)}</small>`}</button>
@@ -87,7 +87,7 @@ function heroCard(k: HeroKey): string {
   const pas = (k === 'priest' ? (Object.keys(PASSIVE_LEVEL) as PassiveKey[]).filter(x => x !== 'words').map(x => ({ name: PASSIVE_NAME[x], lv: PASSIVE_LEVEL[x], desc: PASSIVE_DESC[x] })) : h.passives)
     .map(p => `<li><b>${p.name}</b><em>패시브 · Lv ${p.lv}</em><p>${esc(p.desc)}</p></li>`).join('');
   return `<section class="hcard${st.state === 'now' ? ' now' : ''}${st.state === 'locked' ? ' locked' : ''}" data-hcard="${k}">
-      <div class="hc-portrait">${healerArt(k)}</div>
+      <div class="hc-portrait">${classEmblem(k, 'lg')}</div>
       <div class="hc-top"><div><b>${h.name}</b><small>${stars(h.star)}</small></div><span class="ddots">${dots(k)}</span></div>
       <p class="hc-line">${esc(h.line)}</p>
       <p class="hc-sys"><b>${h.system.name}</b> <em>Lv ${h.system.lv}</em> ${esc(h.system.desc)}</p>

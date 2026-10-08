@@ -7,7 +7,8 @@ import { AFFIXES } from '../data/affixes';
 import { CHAL } from '../data/challenge';
 import { chalGate, weekAffixes } from '../game/runmode';
 import { esc, go, screen, topBar } from './kit';
-import { destinationArt, LOCK, uiIcon } from './art';
+import { factionMark, LOCK, placeArt, uiIcon } from './art';
+import { FACTIONS, PLACES } from '../data/places';
 
 const TABS: { kind: ContentKind; name: string }[] = [
   { kind: 'explore', name: '탐험 3인' },
@@ -28,9 +29,10 @@ function card(c: ContentDef): string {
   const size = `${c.size('보통')}인`;
   const state = !c.ready ? `<em class="soon">준비 중</em>` : lk.locked ? `<em class="lock">${LOCK}Lv ${lk.lv}</em>` : lk.dev ? `<em class="dev">Lv ${lk.lv} 해금 · 개발 빌드라 열림</em>` : '';
   const off = !c.ready || lk.locked;
-  const art = destinationArt(c.key);
-  return `<button class="ccard${off ? ' off' : ''}${art ? ' illustrated' : ''}" type="button" data-content="${c.key}"${off ? ' aria-disabled="true"' : ''}>
-    ${art ? `<div class="destination-image"><img src="${art}" alt="녹슨 요새의 철문과 안뜰" width="1536" height="1024"><span>첫 번째 던전 · ${size}</span>${uiIcon('arrow')}</div>` : ''}
+  // 카드 그림 (28 4장): 장소 풍경, 없으면 바닥 그림 + 세력 문양
+  const pa = placeArt(c.key), fac = PLACES[pa.place].faction;
+  return `<button class="ccard illustrated${off ? ' off' : ''}" type="button" data-content="${c.key}"${off ? ' aria-disabled="true"' : ''}>
+    <div class="destination-image${pa.scene ? '' : ' floor'}">${pa.url ? `<img src="${pa.url}" alt="${esc(PLACES[pa.place].name)}" decoding="async">` : ''}${factionMark(fac)}<span>${esc(FACTIONS[fac].name)} · ${size}</span>${off ? '' : uiIcon('arrow')}</div>
     <div class="cc-body">
     <div class="cc-head"><b>${esc(c.name)}</b><span>단계 Lv ${c.stageLv}</span></div>
     <p>${esc(c.place)} · ${size} · 보스 ${c.bosses.length}${c.set ? ` · 세트 「${esc(c.set)}」` : ''}${c.tiers && G.save.tut >= TUT.done ? ` · 레벨 단계 ${c.tiers.join('·')}` : ''}</p>

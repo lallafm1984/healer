@@ -1,5 +1,5 @@
 /** S08 정산 · S09 보상 · P04 레벨업 팝업 (09) */
-import { contentOf } from '../data/content';
+import { contentOf, type ContentKey } from '../data/content';
 import { GRADE_STYLE, slotName, type GearItem } from '../data/equipment';
 import { GRADE } from '../data/gear';
 import { SETS } from '../data/sets';
@@ -12,13 +12,19 @@ import { equip, G } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { AFFIXES } from '../data/affixes';
 import { esc, fmt, go, mmss, screen, topBar } from './kit';
-import { uiIcon } from './art';
+import { placeArt, uiIcon } from './art';
 import { depart } from './party';
 
 const STAR_TEXT = ['클리어', '아무도 안 쓰러짐', `오버힐 ${Math.round(STAR_OVERHEAL * 100)}% 이하`];
 
 // ---------- 정산 ----------
 const st = screen('s-settle', '정산', { enter() { renderSettle(); } });
+
+/** 정산 머리 뒤에 장소 그림 (28 4장) */
+function resArt(k: ContentKey): string {
+  const u = placeArt(k).url;
+  return u ? ` style="--res-art:url('${u}')"` : '';
+}
 
 function renderSettle(): void {
   const r = Flow.result!, x = Flow.settle!;
@@ -41,7 +47,7 @@ function renderSettle(): void {
   if (!r.win) metrics.unshift(['진행', multi ? `${r.segIdx} / ${r.segN} 구간` : '보스 못 잡음']);
   st.el.innerHTML = `${topBar()}
     <div class="ns-body settle">
-      <header class="res-head ${r.win ? 'win' : 'lose'}">
+      <header class="res-head ${r.win ? 'win' : 'lose'}"${resArt(c.key)}>
         <h1>${title}</h1>
         <p>${esc(c.name)} · ${esc(r.diff)}${esc(mode)} — ${esc(r.reason)}${r.auto ? ' · 자동 힐러' : ''}</p>
         ${r.win ? `<div class="gradebox"><b class="grade">${x.grade}</b><span class="stars" aria-label="별 ${n}개">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span></div>` : ''}

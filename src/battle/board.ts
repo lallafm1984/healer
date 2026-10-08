@@ -334,7 +334,7 @@ export function render(now: number): void {
   for (const tl of F.tels) if (tl.kind === 'zone') tl.cells.forEach(i => telSet.add(i));
   F.cells.forEach((_, i) => {
     const p = center(i);
-    hexPoly(cellsG, p.x, p.y, r).fill({ color: C.cell }).stroke({ width: 2, color: C.cellLine });
+    hexPoly(cellsG, p.x, p.y, r).fill({ color: C.cell, alpha: 0.5 }).stroke({ width: 2, color: C.bronze, alpha: 0.75 }); // 빈칸은 비쳐서 장소 바닥이 보임, 진형 선은 청동 (28 5장)
     if (zoneSet.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.zone, alpha: 0.55 });
     else if (telSet.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.tel, alpha: 0.12 + 0.2 * pulse });
     // 성기사 빛의 성역: 금빛 바닥, 끝나기 2초 전 깜빡임

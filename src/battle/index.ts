@@ -10,6 +10,8 @@ import { ITEMS, type ItemKey } from '../data/items';
 import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
 import { AFFIXES } from '../data/affixes';
+import { ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
+import { art, cssUrl } from '../art';
 import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, setBeacon, slotKey, step, talentReady, use, useItem, useTalent, type Fight, type FightStats } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
@@ -70,7 +72,7 @@ function startBattle(guideSec = 0): void {
   $('bossName').innerHTML = bossTitle();
   $('encounterLabel').textContent = F.mobs.length ? F.enc.name : F.enc.tier;
   $('battle').classList.toggle('compact', !!F.enc.big);
-  $('battle').classList.toggle('rust-stage', ['warden', 'scrap', 'trash'].includes(F.enc.script));
+  setPlace(F.enc.key);
   show('battle');
   layoutBattle();
   if (S.auto) toast('자동 힐러가 플레이 중 (기록 안 남김)');
@@ -83,6 +85,19 @@ function startBattle(guideSec = 0): void {
   $('gauges').classList.toggle('locked', !words);
   $('controls').classList.toggle('nowords', !words);
   $('controls').classList.toggle('paladin', F.hero === 'paladin');
+}
+
+/** 장소 그림 (28 2-3장): 진형 판 뒤 바닥, 보스 무대 뒤 풍경 (없으면 바닥) */
+function setPlace(enc: EncounterKey): void {
+  const place = ENCOUNTER_PLACE[enc] || 'rustfort', el = $('battle');
+  const floor = art(floorArtName(place)), scene = art(sceneArtName(place));
+  el.dataset.place = place;
+  el.style.setProperty('--floor', cssUrl(floor));
+  el.style.setProperty('--stage-art', cssUrl(scene || floor));
+  el.style.setProperty('--tone-a', PLACES[place].tone[0]);
+  el.style.setProperty('--tone-b', PLACES[place].tone[1]);
+  el.classList.toggle('has-floor', !!floor);
+  el.classList.toggle('has-scene', !!scene);
 }
 
 function layoutBattle(): void {

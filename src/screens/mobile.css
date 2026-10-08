@@ -50,7 +50,7 @@ body { background: #0F0C08; }
 .page-intro h2 { margin: 5px 0 0; font: 27px var(--font-display); }
 
 /* 타이틀 */
-#s-title { background: #241C14 url('/art/sanctuary-v1.webp') center 48% / cover no-repeat; }
+#s-title { background: #241C14 var(--art-scene-sanctuary, none) center 48% / cover no-repeat; }
 #s-title::before { content: ''; position: absolute; inset: 0; background: linear-gradient(#1A140E48, transparent 38%, #0b1424b0 85%, #0b1424); pointer-events: none; }
 .t-wrap { position: relative; isolation: isolate; width: 100%; height: 100%; padding: 26px 28px 20px; margin: 0; justify-content: space-between; gap: 0; overflow-y: auto; }
 .t-brand { position: relative; z-index: 2; flex: none; }
@@ -59,8 +59,6 @@ body { background: #0F0C08; }
 .t-name { margin: 8px 0; color: #faf1dc; font-size: 49px; letter-spacing: -.05em; text-shadow: 0 3px 0 #271E15, 0 0 30px #14100B; }
 .t-name span { color: #f0cb81; }
 .t-sub { font-size: 12px; color: #E4E2DF; text-shadow: 0 2px 6px #000; }
-.t-character { flex: 1; min-height: 170px; width: 100%; position: relative; }
-.t-character .healer-illustration { position: absolute; width: 100%; height: 116%; bottom: -13%; left: 0; object-fit: contain; filter: drop-shadow(0 12px 12px #050c1c80); }
 .t-bottom { width: 100%; z-index: 2; flex: none; padding-top: 14px; }
 #titleStart { min-height: 56px; display: flex; align-items: center; justify-content: center; gap: 18px; font-size: 22px; }
 .t-tap { margin: 14px 0 0; font-size: 11px; }
@@ -68,23 +66,18 @@ body { background: #0F0C08; }
 
 /* 로비: 스크롤하는 정보와 고정된 출발 동작을 분리한다. */
 body.tabs-on #s-lobby .lobby { padding: 0 16px 12px; gap: 12px; }
-.lobby-scene { position: relative; height: clamp(235px, 34vh, 325px); margin: 0 -16px 2px; isolation: isolate; overflow: hidden; background: #3B3023 url('/art/sanctuary-v1.webp') center 58% / cover; }
+.lobby-scene { position: relative; height: clamp(235px, 34vh, 325px); margin: 0 -16px 2px; isolation: isolate; overflow: hidden; background: #3B3023 var(--art-scene-sanctuary, none) center 58% / cover; }
 .lobby-scene::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #0c172be6 0%, #101d344d 50%, transparent), linear-gradient(0deg, #1B160F 0%, transparent 48%); }
 .scene-copy { position: absolute; top: 25px; left: 22px; z-index: 2; pointer-events: none; }
 .scene-copy h1 { margin: 10px 0 8px; font: 28px/1.25 var(--font-display); letter-spacing: -.02em; text-shadow: 0 2px 8px #0008; }
 .scene-copy > p:last-child { margin: 0; color: #D0C6B0; font-size: 11px; }
 .lobby-scene .hero-art { position: absolute; right: -16px; top: 0; width: 62%; height: calc(100% - 30px); display: grid; place-items: center; }
-.healer-illustration { width: 100%; height: 100%; object-fit: contain; display: block; }
-.lobby-scene .healer-illustration { filter: drop-shadow(0 8px 10px #080f2180); }
 .hero-caption { position: absolute; bottom: 13px; left: 22px; right: 22px; display: flex; align-items: center; gap: 10px; }
 .class-seal { width: 42px; height: 42px; display: grid; place-items: center; background: #2E2419D9; border: 1px solid #ac874d; border-radius: 13px; color: #edc77f; }
 .hero-caption b { font: 19px var(--font-display); }
 .hero-caption b small { margin-left: 8px; font: 12px var(--font-body); color: #f1cd8a; }
 .hero-caption p { margin: 2px 0 0; font-size: 11px; color: #CABEA4; }
 .hero-detail { margin-left: auto; width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid #817868; border-radius: 50%; background: #292016C9; cursor: pointer; }
-.hero-sigil { display: grid; place-items: center; width: 140px; height: 140px; border: 2px solid #cda464; border-radius: 50%; color: #dfb975; background: #102a36ba; box-shadow: 0 0 45px #deb77226; }
-.hero-sigil .ui-icon { width: 80px; height: 80px; }
-.hero-sigil-druid { color: #a8ceb0; border-color: #a8ceb0; }
 .lobby .goal { gap: 8px; background: linear-gradient(110deg, #372F27, #2C2419); }
 .goal h2 { display: flex; align-items: center; gap: 7px; }
 .goal h2 .ui-icon { width: 17px; height: 17px; }
@@ -142,9 +135,6 @@ body.tabs-on #s-lobby .lobby { padding: 0 16px 12px; gap: 12px; }
 /* 캐릭터·편성·길드·상점 공통 정보 밀도 */
 .chero { border: 1px solid #6e674f; background: radial-gradient(at 5% 0%, #36535488, transparent 65%), #2D2419; gap: 14px; }
 .chero-art { width: 86px; height: 96px; border: 0; border-radius: 14px; background: #23383c; overflow: hidden; }
-.chero-art .healer-illustration { width: 172%; height: auto; max-width: none; object-position: top; align-self: start; transform: translateY(-3%); }
-.chero-art .hero-sigil { width: 64px; height: 64px; }
-.chero-art .hero-sigil svg { width: 42px; height: 42px; }
 .chero-top small { font-size: 11px; line-height: 1.7; }
 .cstats { gap: 5px; }
 .cstats div { padding: 9px 2px; background: #231C13; border: 1px solid #4B4134; }
@@ -155,7 +145,6 @@ body.tabs-on #s-lobby .lobby { padding: 0 16px 12px; gap: 12px; }
 .ns .hcard, .ns .pcard, .ns .skc, .ns .srow, .ns .mrow, .ns .tier details { border-color: #4E4336; }
 .ns .hcard.now { border-color: #d5ad67; }
 .hc-portrait { height: 142px; margin: -12px -14px 3px; border-radius: 15px 15px 0 0; background: radial-gradient(ellipse at 50% 90%, #d9ba7529, transparent 65%), linear-gradient(140deg, #483D2F, #292016); overflow: hidden; }
-.hc-portrait .healer-illustration { height: 190px; object-position: top; }
 .ns .skc, .ns .pcard { padding: 12px; }
 .ns .mdetail .gbtns .btn { min-height: 48px; }
 .ns .srow { padding: 14px 12px; gap: 12px; }
@@ -167,7 +156,7 @@ body.tabs-on #s-lobby .lobby { padding: 0 16px 12px; gap: 12px; }
 .ns .settings .toggle { min-height: 44px; }
 .ns .settings .group { gap: 10px; }
 .story-art { width: 100%; height: clamp(150px, 29vh, 245px); flex: none; margin: 0 auto 2px; }
-#s-story { background: linear-gradient(#211A12BB, #1C160F 65%), url('/art/sanctuary-v1.webp') center / cover; }
+#s-story { background: linear-gradient(#211A12BB, #1C160F 65%), var(--art-scene-sanctuary, none) center / cover; }
 .story { padding: 22px; }
 .story p { font-size: 14px; line-height: 1.7; }
 .story .h { color: #f3d394; }
