@@ -10,7 +10,7 @@ import type { HeroKey } from '../data/heroes';
 import type { SkillKey } from '../data/skills';
 import type { TalentKey } from '../data/talents';
 import type { AffixKey } from '../data/affixes';
-import type { AddDown, AddJob, DebuffEnd } from '../data/bosses';
+import type { AddDown, AddJob, DebuffEnd, SoulFail, SoulWin } from '../data/bosses';
 import type { AffixState } from './affixes';
 import type { TraitKey } from '../data/traits';
 
@@ -27,8 +27,8 @@ export interface Cell {
   px: number;
   py: number;
   unit: Unit | null;
-  /** 못 서는 칸: hole = 무너진 바닥 (P-HOLE), add = 쫄(토템)이 차지 */
-  block?: 'hole' | 'add';
+  /** 못 서는 칸: hole = 무너진 바닥 (P-HOLE), add = 쫄(토템)이 차지, soul = 헤매는 영혼 (P-SOUL, 칸 탭으로 힐) */
+  block?: 'hole' | 'add' | 'soul';
 }
 
 export interface Debuff {
@@ -72,6 +72,10 @@ export interface Debuff {
   drain?: number;
   charm?: { every: number; dmg: number; heal: number; free: number };
   charmAt?: number;
+  /** 넘치는 빛 과부하 (P-OVER): 이 사람에게 넘친 치유 × over만큼 이웃 칸 아군 피해 */
+  over?: number;
+  /** 생명 사슬 (P-LINK): 사슬 반대쪽 파티원 id. 실제 판정은 Fight.links */
+  link?: { to: number; kind: LinkKind };
 }
 
 /**
@@ -173,6 +177,8 @@ export interface Unit {
   pulled?: { until: number; cell: number; dmg: number } | null;
   /** 받침 (P-TOWER): 이 시각까지 발판에 머묾 (제자리로 안 돌아감) */
   padUntil?: number;
+  /** 헤매는 영혼 (P-SOUL): 파티원이 아닌 영혼 칸 (Fight.souls). 파티 목록에는 없음 */
+  soul?: SoulState;
   diedAt: number;
   me: boolean;
   /** 파티원 특수 능력 (17). 없으면 null */
@@ -579,6 +585,43 @@ export interface Fight {
   watch: { fill: number; max: number; rate: number; until: number; next: number; sec: number; every: number; dmg: number } | null;
   /** 걸어오는 쫄이 흡수되어 보스가 주는 피해가 커진 몫 (P-MARCH, 0.1 = +10%). 화면 표시용, 실제 배율은 dmgMult에 곱함 */
   empower: number;
+  /** 헤매는 영혼 (P-SOUL): 판 빈 칸에 나온 영혼. 칸 탭으로 단일 힐을 받음 */
+  souls: Unit[];
+  /** 생명 사슬 (P-LINK): 이어진 두 파티원 */
+  links: LinkState[];
+  /** 넘치는 빛 그릇 (P-OVER): 넘친 치유를 모음 / 가득 / 끝 시각. 차면 전원 shield초 보호막 */
+  vessel: { name: string; fill: number; need: number; until: number; shield: number } | null;
+  /** 영혼 축복: until까지 받는 치유 × heal (정화의 물) */
+  bless: { heal: number; until: number } | null;
+  /** 영혼 축복: until까지 보스가 주는 피해 × (1 − cut). dmgMult에 곱했다가 끝나면 되돌림 */
+  weak: { cut: number; until: number } | null;
+}
+
+export type LinkKind = 'balance' | 'share';
+
+/** 생명 사슬 (P-LINK): balance = 체력 비율 차이가 gap을 넘으면 끊어지며 둘 다 dmg, share = 받는 피해·치유를 반씩 나눔 */
+export interface LinkState {
+  name: string;
+  kind: LinkKind;
+  a: number;
+  b: number;
+  /** 걸린 시각 (2초는 안 끊어짐) · 끝 시각 */
+  at: number;
+  until: number;
+  gap: number;
+  dmg: number;
+  aim: 'tank' | 'party';
+}
+
+/** 헤매는 영혼 (P-SOUL): 끝 시각 · 처음 초. cleansed = 해제로 바로 성공 */
+export interface SoulState {
+  name: string;
+  short: string;
+  until: number;
+  total: number;
+  cleansed?: boolean;
+  win: SoulWin;
+  fail: SoulFail;
 }
 
 export interface OrderState {

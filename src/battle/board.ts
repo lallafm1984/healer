@@ -703,6 +703,36 @@ export function render(now: number): void {
     if (prey) { const q = unitPos(prey); overG.moveTo(p.x, p.y).lineTo(q.x, q.y).stroke({ width: Math.max(2, s * 0.05), color: C.danger, alpha: 0.45 + 0.4 * pulse }); }
   }
 
+  // 헤매는 영혼 (P-SOUL, 35 8장): 반투명 칸 + 체력 물통 + 남은 초. 파티원 칸처럼 탭하면 힐
+  for (const u of F.souls) {
+    const p = center(u.cell), frac = Math.max(0, Math.min(1, u.hp / u.max)), rr = r * 0.92;
+    hexPoly(cellsG, p.x, p.y, rr).fill({ color: 0x8fd8e0, alpha: 0.16 + 0.1 * pulse });
+    fillBand(cellsG, p.x, p.y, rr, p.y + rr - 2 * rr * frac, p.y + rr, 0xbff3f0, 0.5);
+    dashPoly(cellsG, hexPts(p.x, p.y, rr), 5, 4, Math.max(2, s * 0.06), 0xd8fbff, 0.9);
+    if (castTarget === u.id) hexPoly(overG, p.x, p.y, r * 1.04).stroke({ width: 3, color: hex(SEL) });
+    labels.put(`soul${u.id}`, u.soul!.short, { size: typography.nick, fill: 0xe6fbff, strokeW: 2 }, p.x, p.y + r * (compact ? -0.29 : 0.13));
+    labels.put(`soulp${u.id}`, `${Math.floor(frac * 100)}%`, { size: typography.hp, fill: C.white, weight: W_NUM, strokeW: compact ? 1.5 : 2.5 }, p.x, p.y + r * (compact ? 0.25 : 0.6));
+    pill(overG, labels, `soult${u.id}`, p.x, p.y - r * (compact ? 0.85 : 0.8), `${Math.max(0, Math.ceil(u.soul!.until - F.t))}`, 0x8fd8e0, C.dark, fs(0.26, 11));
+  }
+
+  // 생명 사슬 (P-LINK, 35 8장): 두 칸 가운데를 잇는 선. 균형형 = 보라 실 (끊어지기 직전 빨갛게 깜빡), 나눔형 = 금 사슬 (끊긴 선)
+  for (const l of F.links) {
+    const a = F.party.find(x => x.id === l.a), b = F.party.find(x => x.id === l.b);
+    if (!a?.alive || !b?.alive) continue;
+    const pa = unitPos(a), pb = unitPos(b), w = Math.max(2.5, s * 0.07);
+    if (l.kind === 'share') {
+      const len = Math.hypot(pb.x - pa.x, pb.y - pa.y), n = Math.max(1, Math.floor(len / (w * 3)));
+      for (let i = 0; i < n; i += 2) {
+        const t0 = i / n, t1 = Math.min(1, (i + 1) / n);
+        fxG.moveTo(pa.x + (pb.x - pa.x) * t0, pa.y + (pb.y - pa.y) * t0).lineTo(pa.x + (pb.x - pa.x) * t1, pa.y + (pb.y - pa.y) * t1);
+      }
+      fxG.stroke({ width: w, color: C.gold, alpha: 0.9 });
+      continue;
+    }
+    const near = Math.abs(a.hp / a.max - b.hp / b.max) > l.gap * 0.75;
+    fxG.moveTo(pa.x, pa.y).lineTo(pb.x, pb.y).stroke({ width: w, color: near ? C.danger : 0xb48be8, alpha: near ? 0.5 + 0.5 * pulse : 0.85 });
+  }
+
   // 테두리 표시 · 배지
   for (const o of over) {
     const { u, x, y } = o;

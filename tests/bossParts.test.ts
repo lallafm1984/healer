@@ -1054,3 +1054,147 @@ describe('디버프 부품 2 (35 3장): 마나 갈취 · 매혹 · 옮겨붙음'
     expect(h.dmgMult / mult).toBeCloseTo(1.05);
   });
 });
+
+describe('부품 10 (35 3장·4-7): 헤매는 영혼 · 생명 사슬 · 넘치는 빛', () => {
+  const SPIRIT: SkillEffect = {
+    p: 'soul', name: '오염된 늪 정령', short: '정령', hp: 0.25, sec: 12, type: '질병',
+    win: { text: '정화의 물', cure: '독', heal: { pct: 0.15, sec: 8 } },
+    fail: { text: '오염 분출', dmg: 180, near: true, debuff: { name: '늪독', type: '독', left: 10, dot: 5 } },
+  };
+
+  it('영혼: 빈 칸에 나오고 파티원이 아님. 칸 탭으로 단일 힐만, 가득 채우면 축복', () => {
+    const f = fight();
+    const free0 = f.cells.filter(c => !c.unit && !c.block).length;
+    run(f, SPIRIT);
+    expect(f.souls).toHaveLength(1);
+    const s = f.souls[0];
+    expect(f.party.includes(s)).toBe(false);
+    expect(f.cells[s.cell].block).toBe('soul');
+    expect(f.cells.filter(c => !c.unit && !c.block).length).toBe(free0 - 1);
+    expect(s.hp / s.max).toBeCloseTo(0.25);
+    expect(E.canTarget(f, 'heal', s.cell).ok).toBe(true);
+    expect(E.canTarget(f, 'renew', s.cell).ok).toBe(true);
+    expect(E.canTarget(f, 'poh', s.cell).ok).toBe(false);
+    // 소생(지속 힐)도 영혼에서 틱이 돎
+    E.use(f, 'renew', s.cell);
+    const hp0 = s.hp;
+    steps(f, 3.05);
+    expect(s.hp).toBeGreaterThan(hp0);
+    // 독 하나씩 지움 + 받는 치유 +15%
+    const u = dealer(f);
+    applyDebuff(f, u, { name: '독침', type: '독', left: 20, dot: 1 });
+    heal(f, s, s.max, true, true);
+    E.step(f);
+    expect(f.souls).toHaveLength(0);
+    expect(f.cells[s.cell].block).toBeUndefined();
+    expect(u.debuffs.some(d => d.name === '독침')).toBe(false);
+    u.hp = u.max / 2;
+    expect(heal(f, u, 50, false, true)).toBeCloseTo(57.5);
+    steps(f, 8);
+    expect(f.bless).toBeNull();
+  });
+
+  it('영혼: 유형이 맞는 해제는 바로 성공, 못 채우면 이웃 칸 피해 + 디버프', () => {
+    const f = E.create({ encounter: 'warden', diff: '보통', seed: 1, level: 10 });
+    quiet(f);
+    run(f, SPIRIT);
+    const s = f.souls[0];
+    expect(E.use(f, 'purify', s.cell).ok).toBe(true);
+    E.step(f);
+    expect(f.souls).toHaveLength(0);
+    // 시간이 다 되면 이웃 칸만
+    const g = fight();
+    run(g, SPIRIT);
+    const t = g.souls[0], at = g.cells[t.cell];
+    g.party.forEach(v => { v.hp = v.max; });
+    steps(g, 12.1);
+    expect(g.souls).toHaveLength(0);
+    for (const v of g.party) {
+      const near = hexDist(g.cells[v.cell], at) === 1;
+      expect(v.debuffs.some(d => d.name === '늪독')).toBe(near);
+    }
+  });
+
+  it('영혼: 보스 피해 감소 축복은 시간이 다 되면 되돌아옴', () => {
+    const f = fight();
+    const m0 = f.dmgMult;
+    run(f, { p: 'soul', name: '꼬마 오토의 기억', short: '오토', hp: 0.3, sec: 10, win: { text: '기분이 풀림', weak: { pct: 0.25, sec: 10 } }, fail: { text: '전원 피해', dmg: 90 } });
+    heal(f, f.souls[0], 1e6, true, true);
+    E.step(f);
+    expect(f.dmgMult / m0).toBeCloseTo(0.75);
+    steps(f, 10.1);
+    expect(f.dmgMult / m0).toBeCloseTo(1);
+    expect(f.weak).toBeNull();
+  });
+
+  it('생명 사슬 균형형: 체력 비율 차이가 30%p를 넘으면 끊어지며 둘 다 피해 (걸린 뒤 2초는 안 끊어짐)', () => {
+    const f = fight();
+    f.party.forEach(v => { v.hp = v.max; });
+    run(f, { p: 'link', kind: 'balance', name: '저주 실', sec: 12, gap: 0.3, dmg: 100 });
+    expect(f.links).toHaveLength(1);
+    const l = f.links[0];
+    const a = f.party.find(v => v.id === l.a)!, b = f.party.find(v => v.id === l.b)!;
+    expect(a.role).not.toBe('tank');
+    expect(a.debuffs.some(d => d.link?.to === b.id)).toBe(true);
+    a.hp = a.max * 0.6;
+    steps(f, 1);
+    expect(f.links).toHaveLength(1);
+    const hb = b.hp;
+    steps(f, 1.1);
+    expect(f.links).toHaveLength(0);
+    expect(b.hp).toBeLessThan(hb);
+    expect(a.debuffs.some(d => d.link) || b.debuffs.some(d => d.link)).toBe(false);
+    // 시간이 다 되면 그냥 풀림
+    const g = fight();
+    run(g, { p: 'link', kind: 'balance', name: '자매의 실', sec: 4, pick: 'tanks', dmg: 100, aim: 'tank' });
+    // 5인은 탱커가 하나라 두 탱커 사슬 대신 탱커 아닌 둘
+    expect(g.party.filter(v => v.debuffs.some(d => d.link)).map(v => v.role)).not.toContain('tank');
+    steps(g, 4.1);
+    expect(g.links).toHaveLength(0);
+    expect(g.party.some(v => v.debuffs.some(d => d.link))).toBe(false);
+    // 10인은 두 탱커
+    const r = E.create({ encounter: 'plague', diff: '보통', seed: 1 });
+    quiet(r);
+    run(r, { p: 'link', kind: 'balance', name: '자매의 실', sec: 4, pick: 'tanks', dmg: 100, aim: 'tank' });
+    expect(r.party.filter(v => v.debuffs.some(d => d.link)).map(v => v.role)).toEqual(['tank', 'tank']);
+  });
+
+  it('생명 사슬 나눔형: 받는 피해·치유를 반씩 나눔', () => {
+    const f = fight();
+    f.armor = false;
+    run(f, { p: 'link', kind: 'share', name: '가문의 사슬', sec: 10 });
+    const l = f.links[0];
+    const a = f.party.find(v => v.id === l.a)!, b = f.party.find(v => v.id === l.b)!;
+    a.hp = a.max; b.hp = b.max;
+    damage(f, a, 200, true);
+    expect(a.max - a.hp).toBeCloseTo(100 * f.dmgMult);
+    expect(b.max - b.hp).toBeCloseTo(100 * f.dmgMult);
+    const ha = a.hp, hb = b.hp;
+    heal(f, a, 50, true, true);
+    expect(a.hp - ha).toBeCloseTo(25);
+    expect(b.hp - hb).toBeCloseTo(25);
+  });
+
+  it('넘치는 빛: 그릇은 넘친 치유로 차서 전원 보호막, 과부하 표식은 넘친 만큼 이웃 피해', () => {
+    const f = fight();
+    run(f, { p: 'vessel', name: '백합 꽃병', need: 0.1, sec: 15, shield: 6 });
+    const need = f.vessel!.need;
+    const u = dealer(f);
+    u.hp = u.max;
+    heal(f, u, need / 2, true, true);
+    expect(f.vessel!.fill).toBeCloseTo(need / 2);
+    heal(f, u, need / 2, true, true);
+    E.step(f);
+    expect(f.vessel).toBeNull();
+    expect(f.party.every(v => v.shield > 5)).toBe(true);
+    // 과부하: 넘친 치유 × over
+    const g = fight();
+    const v = g.party.find(x => !x.me && g.party.some(w => w !== x && hexDist(g.cells[w.cell], g.cells[x.cell]) === 1))!;
+    const near = g.party.filter(w => w !== v && hexDist(g.cells[w.cell], g.cells[v.cell]) === 1);
+    g.party.forEach(w => { w.hp = w.max; });
+    applyDebuff(g, v, { name: '넘치는 빛', type: '마법', left: 10, lock: true, over: 0.5 });
+    v.hp = v.max - 40;
+    heal(g, v, 140, true, true);
+    for (const w of near) expect(w.max - w.hp).toBeCloseTo(50, 0);
+  });
+});

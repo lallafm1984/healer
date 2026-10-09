@@ -7,7 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abOnTel } from './abilities';
 import { affChaos } from './affixes';
-import { addsTick, aggroTarget, backTargets, flowNext, orderTick, padCells, padsGo, runEffect, runFlow, staggerTick, stunBoss, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, backTargets, flowNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soulsTick, staggerTick, stunBoss, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import type { BossSkill, Fight, Mob, TelKind, Telegraph, Unit } from './types';
@@ -126,6 +126,10 @@ function bossUpdate(f: Fight): void {
   if (f.order) orderTick(f);
   if (f.watch) watchTick(f);
   if (f.stagger) staggerTick(f);
+  if (f.souls.length) soulsTick(f);
+  if (f.links.length) linksTick(f);
+  if (f.vessel) vesselTick(f);
+  if (f.bless || f.weak) boonTick(f);
   if (f.daze && f.t >= f.daze.until) f.daze = null;
   enrageAt(f, def.enrage.name, def.enrage.period, def.enrage.dmg);
 }

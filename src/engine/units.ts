@@ -97,7 +97,7 @@ function shelterFor(f: Fight): Cell | null {
 }
 
 /** 지속 힐 틱 (드루이드·성기사). 다 차면 직업 패시브(순환)로 마나를 돌려줄 수 있게 이벤트 대신 콜백 */
-function hotTick(f: Fight, u: Unit, dt: number): void {
+export function hotTick(f: Fight, u: Unit, dt: number): void {
   for (const h of u.hots.slice()) {
     h.left -= dt; h.tick -= dt;
     while (h.tick <= 1e-9 && h.rest > 0) {
