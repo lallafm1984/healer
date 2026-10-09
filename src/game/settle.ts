@@ -4,7 +4,10 @@
 import { ALL_DIFFS, contentOf, raidSize, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HEROES, type HeroKey } from '../data/heroes';
-import { clearMats, rollItem, type GearItem } from '../data/equipment';
+import { clearMats, rollItem, type GearItem, type ItemGrade } from '../data/equipment';
+
+/** 탐험 장비는 고급까지 (34 6-7) */
+export const EXPLORE_CAP: ItemGrade = '고급';
 import type { ItemKey } from '../data/items';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
@@ -76,7 +79,8 @@ export interface Settlement {
   xp: number;
   levelBefore: number;
   levelUps: number[];
-  item: GearItem | null;
+  /** 받은 장비 (34 6-7): 던전 · 레이드는 보스마다 1개, 탐험 1개 (튜토리얼 중엔 1개) */
+  items: GearItem[];
   /** 그 장비로 처음 얻은 특수능력 · 이름 있는 장신구 키 (결과 화면 「새 특수능력!」, 42 1-6) */
   newSpecs: string[];
   /** 받은 강화 재료 (12 1장) */
@@ -148,17 +152,19 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   p.gold += gold;
   const levelUps = addXp(p, xp);
 
-  let item: GearItem | null = null, newSpecs: string[] = [];
+  const items: GearItem[] = [];
+  let newSpecs: string[] = [];
   const mats = r.win ? clearMats(r.diff, raid) : { stone: 0, refined: 0 };
   // 레이드 장비는 보스마다 난이도별 주 1회 (13 3-4). 그 뒤엔 골드·공훈만
   const lootLocked = play && r.win && !!raid && !raidLootOpen(save, c.key, r.diff);
   let merit = 0;
   if (r.win) {
     if (!lootLocked) {
-      // 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장)
-      item = rollItem(rng, pubBonus ? bonusDiff(r.diff) : r.diff, grade!, levelBefore, save.nextId++, { hero: save.hero, place: c.key });
-      save.gear.bag.push(item);
-      newSpecs = noteSpecs(save, [item]);
+      // 보스마다 1개 (34 6-7), 탐험은 1개 · 고급까지. 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장)
+      const n = play && c.kind !== 'explore' ? Math.max(1, c.bosses.length) : 1;
+      for (let i = 0; i < n; i++) items.push(rollItem(rng, pubBonus ? bonusDiff(r.diff) : r.diff, grade!, levelBefore, save.nextId++, { hero: save.hero, place: c.key, cap: c.kind === 'explore' ? EXPLORE_CAP : undefined }));
+      save.gear.bag.push(...items);
+      newSpecs = noteSpecs(save, items);
       if (play && raid) save.weekly.loot.push(lootKey(c.key, r.diff));
     }
     save.mats.stone += mats.stone; save.mats.refined += mats.refined;
@@ -213,6 +219,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    gold, xp, levelBefore, levelUps, item, newSpecs, mats, first, best, heroQuest, guild, merit, crystal, lootLocked, pubBonus, missions, chal, cont,
+    gold, xp, levelBefore, levelUps, items, newSpecs, mats, first, best, heroQuest, guild, merit, crystal, lootLocked, pubBonus, missions, chal, cont,
   };
 }

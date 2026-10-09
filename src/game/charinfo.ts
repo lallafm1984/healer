@@ -24,7 +24,7 @@ export const gearScore = () => SLOTS.reduce((a, s) => a + scoreOf(G.save.gear.eq
 export const specName = (key: string) => SPECS[key]?.name ?? namedOf(key)?.name ?? key;
 
 /** 장비 상세 특수능력 한 줄: 묶음 (이름 있는 장신구 고유 효과는 'named') · 효과 글 · 굴림 (값 고정이면 null) · 꺼진 이유 */
-export interface SpecRow { key: string; name: string; group: SpecGroup | 'named'; badge: string; text: string; roll: number | null; off: string }
+export interface SpecRow { key: string; name: string; group: SpecGroup | 'named'; badge: string; text: string; roll: number | null; off: string; /** it.specs 안 번호 (고유 효과는 null, 재설정 안 됨) */ i: number | null }
 /** 같은 특수능력을 여러 장비에 껴도 하나만 켜지는 것 (재사용 대기 · 고정 값 · 고유 효과, 42 1-3) */
 const single = (key: string) => !SPECS[key] || !!SPECS[key].cd || !!SPECS[key].fixed;
 
@@ -42,12 +42,12 @@ export function specRows(it: GearItem): SpecRow[] {
   const dup = (key: string) => (worn && single(key) && best[key] && best[key].id !== it.id ? '겹치지 않음' : '');
   const out: SpecRow[] = [];
   const nm = namedOf(it.named);
-  if (nm) out.push({ key: nm.key, name: nm.name, group: 'named', badge: '고유', text: specText(nm, nm.val), roll: null, off: dup(nm.key) });
-  for (const l of it.specs ?? []) {
+  if (nm) out.push({ key: nm.key, name: nm.name, group: 'named', badge: '고유', text: specText(nm, nm.val), roll: null, off: dup(nm.key), i: null });
+  for (const [i, l] of (it.specs ?? []).entries()) {
     const d = SPECS[l.key];
     if (!d) continue;
     const off = d.hero && d.hero !== hero ? `${HEROES[d.hero].name} 전용` : dup(d.key);
-    out.push({ key: d.key, name: d.name, group: d.group, badge: SPEC_GROUPS[d.group].name, text: specText(d, specValue(d.key, it.grade, l.roll)), roll: d.fixed ? null : l.roll, off });
+    out.push({ key: d.key, name: d.name, group: d.group, badge: SPEC_GROUPS[d.group].name, text: specText(d, specValue(d.key, it.grade, l.roll)), roll: d.fixed ? null : l.roll, off, i });
   }
   return out;
 }

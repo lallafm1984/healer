@@ -14,11 +14,11 @@ export const SPEC_GROUPS: Record<SpecGroup, { name: string; icon: string }> = {
   proc: { name: '발동', icon: 'spec-proc' },
   guard: { name: '보호', icon: 'spec-guard' },
   mana: { name: '마나', icon: 'spec-mana' },
-  dispel: { name: '해제', icon: 'spec-dispel' },
+  dispel: { name: '해제', icon: 'spec-cleanse' },
   cd: { name: '쿨기', icon: 'spec-cd' },
   ally: { name: '지원', icon: 'spec-ally' },
   gimmick: { name: '기믹', icon: 'spec-gimmick' },
-  hero: { name: '직업', icon: 'spec-hero' },
+  hero: { name: '직업', icon: 'spec-class' },
 };
 
 /**

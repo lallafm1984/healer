@@ -534,3 +534,65 @@
 #s-char .c7-spec.unk .c7-spg { border-style: dashed; opacity: 0.6; }
 #s-char .c7-spec.unk b { color: var(--mute); }
 #s-char .c7-codex .c7-bagf .cap { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 재설정 (34 6-8): 옵션 머리의 「재설정」 → 줄마다 ↻, 비용 줄, Lv 60 둘째 후보 */
+#s-char .c7-rrb { margin-left: 8px; min-height: 30px; height: 30px; padding: 0 10px; font-size: 12px; }
+#s-char .c7-rrb[aria-pressed="true"] { border-color: #D9B26A; color: var(--gold-hi); }
+#s-char .c7-rr { flex: none; width: 32px; height: 32px; margin-left: 6px; border-radius: 50%; border: 1px solid #D9B26A; background: #201A14; color: var(--gold-hi); font: 700 15px/1 var(--font-body); cursor: pointer; }
+#s-char .c7-rrcost { margin: 0 0 4px; }
+#s-char .c7-rralt { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 8px; border: 1px dashed #D9B26A; border-radius: 6px; }
+#s-char .c7-rralt b { flex: 1; min-width: 0; font-size: 13px; }
+#s-char .c7-rralt .btn2 { min-height: 32px; height: 32px; }
+/* 특수능력 점 (34 10장): 장비 칸 · 가방 칸 아래 가운데, 한 줄 = 점 하나, 다른 직업 전용 = 회색 */
+#s-char .c7-dots { position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%); display: flex; gap: 2px; pointer-events: none; }
+#s-char .c7-dots > i { width: 6px; height: 6px; border-radius: 50%; background: var(--gold-hi); box-shadow: 0 0 0 1px #0D0B09, 0 0 4px color-mix(in srgb, var(--gold-hi) 60%, transparent); }
+#s-char .c7-dots > i.off { background: #6E6658; box-shadow: 0 0 0 1px #0D0B09; }
+/* ---------- 강화 연출 (34 7장): 움직임은 transform만, 끝난 뒤 모양은 연출 없는 모양과 같음 ---------- */
+#s-char .c7-gsheet { --fxd: 1.5s; }
+#s-char .c7-gsheet.fx-quick { --fxd: 0.5s; }
+#s-char .fx .c7-gic { z-index: 2; animation: efxLift var(--fxd) ease-out both; }
+#s-char .fx-fail .c7-gic, #s-char .fx-drop .c7-gic { animation: efxLift var(--fxd) ease-out both, efxShake calc(var(--fxd) * 0.25) calc(var(--fxd) * 0.75) linear both; }
+#s-char .fx-drop .c7-gic { filter: grayscale(0.8); transition: filter 0.3s; }
+#s-char .c7-fxring {
+  position: absolute; inset: -6px; border-radius: 50%; border: 3px solid #FFF6D8; box-shadow: 0 0 18px #FFE7A8; pointer-events: none;
+  transform: scale(0); animation: efxRing var(--fxd) ease-out both;
+}
+#s-char .fx-fail .c7-fxring, #s-char .fx-drop .c7-fxring { display: none; }
+#s-char .c7-fxspark {
+  position: absolute; inset: -14px; pointer-events: none; transform: scale(0);
+  background: radial-gradient(circle at 20% 30%, #FFE7A8 0 2px, transparent 3px), radial-gradient(circle at 80% 25%, #FFD27A 0 2px, transparent 3px),
+    radial-gradient(circle at 70% 80%, #FFF6D8 0 2px, transparent 3px), radial-gradient(circle at 25% 75%, #FFB86B 0 2px, transparent 3px);
+  animation: efxSpark var(--fxd) linear both;
+}
+#s-char .fx-quick .c7-fxspark { display: none; }
+#s-char .c7-fxres {
+  position: absolute; left: 50%; top: -14px; z-index: 3; white-space: nowrap; pointer-events: none; transform: translateX(-50%) scale(0);
+  font: 900 18px/1 var(--font-display); color: var(--gold-hi); text-shadow: 0 0 6px #000, 0 1px 0 #000;
+  animation: efxPop var(--fxd) ease-out both;
+}
+#s-char .fx-fail .c7-fxres, #s-char .fx-drop .c7-fxres { color: #FF8A7A; font-size: 14px; animation-name: efxDrop; }
+/* 옵션 각성 룰렛: 줄이 차례로 빛나다 각성한 줄에서 멈춤 */
+#s-char .fx-aw .c7-cmp.roul { animation: efxRoul 0.3s calc(var(--fxd)) steps(1) 3; }
+#s-char .fx-aw .c7-cmp.roul:nth-of-type(3n+1) { animation-delay: calc(var(--fxd) + 0.1s); }
+#s-char .fx-aw .c7-cmp.roul:nth-of-type(3n+2) { animation-delay: calc(var(--fxd) + 0.2s); }
+#s-char .fx-aw .c7-cmp.aw { animation: efxAw 0.6s calc(var(--fxd) + 0.9s) ease-out both; }
+#s-char .c7-awt { flex: none; margin-left: 6px; padding: 1px 6px; border-radius: 8px; border: 1px solid var(--gold-hi); font-size: 10.5px; font-weight: 700; color: var(--gold-hi); }
+/* +10: 테두리에 등급 색 빛이 남음 */
+#s-char .c7-gic.max, #s-char .c7-sq.max { box-shadow: 0 0 0 1px var(--line), 0 0 18px color-mix(in srgb, var(--g) 70%, transparent), 0 0 4px var(--g); }
+@keyframes efxLift { 0% { transform: none; } 23% { transform: translateY(-6px) scale(1.2); } 27% { transform: translateY(-6px) scale(1.2) rotate(-4deg); } 33% { transform: translateY(-6px) scale(1.2); } 47% { transform: translateY(-6px) scale(1.2) rotate(4deg); } 53% { transform: translateY(-6px) scale(1.2); } 67% { transform: translateY(-6px) scale(1.2) rotate(-4deg); } 73% { transform: translateY(-6px) scale(1.2); } 100% { transform: none; } }
+@keyframes efxShake { 0%, 100% { translate: 0; } 20% { translate: -7px 0; } 40% { translate: 7px 0; } 60% { translate: -5px 0; } 80% { translate: 4px 0; } }
+@keyframes efxRing { 0%, 74% { transform: scale(0); } 86% { transform: scale(1.6); } 100% { transform: scale(0); } }
+@keyframes efxSpark { 0%, 25% { transform: scale(0); } 28% { transform: scale(1); } 34% { transform: scale(0); } 46% { transform: scale(0); } 48% { transform: scale(1.1) rotate(40deg); } 54% { transform: scale(0); } 66% { transform: scale(0); } 68% { transform: scale(1.2) rotate(80deg); } 74%, 100% { transform: scale(0); } }
+@keyframes efxPop { 0%, 74% { transform: translateX(-50%) scale(0); } 82% { transform: translateX(-50%) scale(1.6); } 92%, 100% { transform: translateX(-50%) scale(1); } }
+@keyframes efxDrop { 0%, 74% { transform: translateX(-50%) translateY(-10px) scale(0); } 80% { transform: translateX(-50%) translateY(-10px) scale(1); } 92%, 100% { transform: translateX(-50%) translateY(6px) scale(1); } }
+@keyframes efxRoul { 0% { background: color-mix(in srgb, var(--gold-hi) 22%, transparent); } 100% { background: none; } }
+@keyframes efxAw { 0% { transform: scale(1); background: color-mix(in srgb, var(--gold-hi) 30%, transparent); } 50% { transform: scale(1.03); } 100% { transform: none; background: color-mix(in srgb, var(--gold-hi) 12%, transparent); } }
+/* 목표까지 강화 */
+#s-char .c7-autob { flex: none; min-height: 36px; height: 36px; padding: 0 10px; font-size: 12px; }
+#s-char .c7-auto { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 6px; border: 1px dashed #D9B26A; background: var(--bg-0); }
+#s-char .c7-auto.run { flex-direction: row; align-items: center; }
+#s-char .c7-auto .cap { margin: 0; }
+#s-char .c7-autof { display: flex; align-items: center; gap: 8px; }
+#s-char .c7-autowhy { margin: 0; }
+@media (prefers-reduced-motion: reduce) { #s-char .fx .c7-gic, #s-char .c7-fxring, #s-char .c7-fxspark { animation: none; } #s-char .c7-fxres { animation-duration: 0.01s; } }
+#s-char .c7-spg .g-ic { display: block; width: 22px; height: 22px; }
+#s-char .c7-spg:has(.g-ic) { min-width: 0; padding: 0; border: 0; }

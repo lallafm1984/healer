@@ -11,7 +11,7 @@ import { mobGrade } from '../data/encounters';
 import type { ItemKey } from '../data/items';
 import { ITEMS, POTION_CD } from '../data/items';
 import { CATS } from '../data/personalities';
-import { itemSlots } from '../data/progression';
+import { ITEM_SLOT_LV, itemSlots } from '../data/progression';
 import { INT_BASE } from '../data/rules';
 import { healText, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { itemTip, skillTip, tipHtml } from '../game/tooltip';
@@ -222,7 +222,7 @@ export function openTalentTip(k: TalentKey, el: HTMLElement): void {
 
 // ---------- 소비 아이템 단축칸 (19 2부): 2×2, 레벨에 따라 열린 칸 수가 다름 (18 2-2) ----------
 const ITEM_SLOTS = 4;
-const slotLv = (i: number) => [1, 20, 40].find(lv => itemSlots(lv) > i) ?? 40;
+const slotLv = (i: number) => ITEM_SLOT_LV.find(lv => itemSlots(lv) > i) ?? ITEM_SLOT_LV[2];
 export function buildItems(): void {
   const keys = Object.keys(fight().items) as ItemKey[];
   let html = '';

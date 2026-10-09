@@ -58,18 +58,18 @@ describe('강화 (34 6-5: 확률, +2 이상 실패 시 1단계 하락, 12 3-2)',
 
 describe('분해 (12 3-1)', () => {
   beforeEach(() => { G.save = newSave(1); });
-  it('골드 = 등급값 + 강화 단계당 10%, 영웅·전설은 정제 강화석', () => {
-    expect(salvageOf(item({ grade: '일반' }))).toEqual({ gold: 10, stone: 1, refined: 0 });
-    expect(salvageOf(item({ grade: '영웅', plus: 5 }))).toEqual({ gold: 300, stone: 6, refined: 1 });
+  it('골드 = 등급값 + 강화 단계당 10%, 영웅·전설은 정제 강화석 (보스마다 드롭이라 골드 · 강화석 절반, 34 6-9)', () => {
+    expect(salvageOf(item({ grade: '일반' }))).toEqual({ gold: 5, stone: 1, refined: 0 });
+    expect(salvageOf(item({ grade: '영웅', plus: 5 }))).toEqual({ gold: 150, stone: 3, refined: 1 });
   });
   it('가방 장비만, 여러 개 한 번에', () => {
     G.save.gear.bag = [item({ id: 1, grade: '일반' }), item({ id: 2, grade: '고급' }), item({ id: 3 })];
     G.save.gear.equipped.head = item({ id: 9 });
     const r = salvage([1, 2, 9]);
-    expect(r).toEqual({ n: 2, gold: 40, stone: 3, refined: 0 });
+    expect(r).toEqual({ n: 2, gold: 20, stone: 2, refined: 0 });
     expect(G.save.gear.bag.map(x => x.id)).toEqual([3]);
     expect(G.save.gear.equipped.head?.id).toBe(9);
-    expect([G.save.player.gold, G.save.mats.stone]).toEqual([40, 3]);
+    expect([G.save.player.gold, G.save.mats.stone]).toEqual([20, 2]);
   });
   it('옛 저장은 재료 0', () => {
     const o = newSave(1) as Partial<ReturnType<typeof newSave>>;
@@ -104,11 +104,11 @@ describe('클리어 재료', () => {
     content: 'rustfort', diff: '보통', win: true, quit: false, reason: '', segIdx: 3, segN: 4, time: 360, restSec: 30, deaths: 0,
     healed: 7000, overheal: 1000, dispels: 0, dispellable: 0, endMana: 20, minMana: 5, auto: false, party: [], detail: [], ...o,
   });
-  it('던전 강화석 (난이도마다 +1), 레이드는 정제 강화석도', () => {
+  it('던전 강화석 (난이도마다 +1), 레이드는 정제 강화석도 (34 6-9로 2배)', () => {
     expect(clearMats('쉬움', 0)).toEqual({ stone: 1, refined: 0 });
     expect(clearMats('악몽', 0)).toEqual({ stone: 4, refined: 0 });
-    expect(clearMats('보통', 10)).toEqual({ stone: 3, refined: 1 });
-    expect(clearMats('악몽', 20)).toEqual({ stone: 5, refined: 3 });
+    expect(clearMats('보통', 10)).toEqual({ stone: 3, refined: 2 });
+    expect(clearMats('악몽', 20)).toEqual({ stone: 5, refined: 6 });
   });
   it('정산에 들어가고 저장됨, 지면 없음', () => {
     const s = newSave(1);

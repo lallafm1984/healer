@@ -169,15 +169,15 @@ export default async function dungeon(url, shots) {
   await page.screenshot({ path: `${shots}/dungeon_levelup.png` });
   await page.click('#s-settle .lvpop button'); await page.clock.runFor(50);
   let sv = await save();
-  ok(sv.player.level === 2 && sv.player.gold > 0 && sv.gear.bag.length === 1, `저장: Lv 2, 골드 ${sv.player.gold}, 가방에 장비 1개`);
+  ok(sv.player.level === 2 && sv.player.gold > 0 && sv.gear.bag.length === 2, `저장: Lv 2, 골드 ${sv.player.gold}, 가방에 장비 2개 (보스마다 1개, 34 6-7)`);
   ok(sv.clears.rustfort['보통'].n === 1 && sv.last.win, '저장: 녹슨 요새 보통 클리어 기록');
   await page.click('#equipNow'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.gear.bag.length === 0 && Object.keys(sv.gear.equipped).length === 1 && /장착함/.test(await page.textContent('#s-settle .r-item')), '장착 → 가방에서 장착칸으로, 카드에 「장착함」');
+  ok(sv.gear.bag.length === 1 && Object.keys(sv.gear.equipped).length === 1 && /장착함/.test(await page.textContent('#s-settle .r-item')), '장착 → 가방에서 장착칸으로, 카드에 「장착함」');
   await page.screenshot({ path: `${shots}/dungeon_reward.png` });
 
   // ---- 잡몹 구간에서 지면 던전 실패 → 경험치 20%만 ----
-  const xp0 = sv.player.xp, gold0 = sv.player.gold;
+  const xp0 = sv.player.xp, gold0 = sv.player.gold, bag0 = sv.gear.bag.length;
   await page.click('#again'); await page.clock.runFor(3100 + 500);
   ok(await page.isVisible('#battle'), '다시 도전 = 같은 파티로 바로 출발');
   ok(await page.evaluate(() => window.__proto.dungeon.idx === 0 && window.__proto.F.enc.key === 'gate'), '던전 처음부터');
@@ -201,7 +201,7 @@ export default async function dungeon(url, shots) {
   ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '전멸' && /1구간/.test(await page.textContent('#s-settle .r-prog')) && (await page.locator('#s-settle .r-segs li').count()) === 4, '포기 버튼 = 전멸과 같은 던전 실패 (구간 점 4개 · 1구간)');
   ok(await page.locator('#s-settle .r-rec').getAttribute('open') !== null && /경험치 \+/.test(await page.textContent('#s-settle .r-xpl')), '지면 전투 기록 펼침 · 경험치 줄');
   sv = await save();
-  ok(sv.player.gold === gold0 && sv.player.xp > xp0 && sv.gear.bag.length === 0, `지면 골드·장비 없음, 경험치 조금 (${xp0} → ${sv.player.xp})`);
+  ok(sv.player.gold === gold0 && sv.player.xp > xp0 && sv.gear.bag.length === bag0, `지면 골드·장비 없음, 경험치 조금 (${xp0} → ${sv.player.xp})`);
   ok((await page.textContent('#again')) === '다시 도전', '실패 결과에 다시 도전');
   await page.screenshot({ path: `${shots}/dungeon_lose.png` });
   await ctx.close();

@@ -88,13 +88,13 @@ const firstGear = () => Flow.result?.content === 'plateau' && G.save.tut === TUT
 
 /** 튜토리얼 안내 (09 4장): 탐험 보상 = 첫 장비 장착 유도, 녹슨 요새 쉬움 첫 클리어 = 끝 */
 function tipHtml(r: BattleResult, x: Settlement): string {
-  const it = x.item, inBag = !!it && G.save.gear.bag.some(b => b.id === it.id);
+  const it = x.items[0], inBag = !!it && G.save.gear.bag.some(b => b.id === it.id);
   if (firstGear() && inBag) return '<p class="coachtip"><b>첫 장비</b>! 「장착」을 눌러 바로 사용. 지능 상승</p>';
   if (r.content === 'rustfort' && G.save.tut === TUT.done && x.first && r.diff === '쉬움' && !G.save.clears.rustfort?.['보통']) return '<p class="coachtip">첫 던전 클리어! 튜토리얼은 여기까지. 다음은 녹슨 요새 <b>보통</b>. Lv 10에 특성 열림</p>';
   return '';
 }
 
-/** 받은 것: 장비 한 줄 · 재화 칸 · 경험치 줄 */
+/** 받은 것: 장비 줄 (보스마다 1개) · 재화 칸 · 경험치 줄 */
 function lootHtml(r: BattleResult, x: Settlement): string {
   const tiles: string[] = [];
   const tile = (k: CurrencyIconKey, label: string, v: number, tag = '', sr = '') => `<span class="r-cur"${sr ? ` aria-label="${label} +${fmt(v)} · ${sr}"` : ''}><span class="r-ci">${currencyIcon(k)}${tag}</span><b>+${fmt(v)}</b><small>${label}</small></span>`;
@@ -105,33 +105,46 @@ function lootHtml(r: BattleResult, x: Settlement): string {
   if (x.mats.stone) tiles.push(tile('stone', '강화석', x.mats.stone));
   if (x.mats.refined) tiles.push(tile('refined', '정제 강화석', x.mats.refined));
   if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
-  return `<section class="r-loot" aria-label="받은 것">
-      ${itemRow(x)}
+  return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
+      ${itemsHtml(x)}
       ${tiles.length ? `<div class="r-curs">${tiles.join('')}</div>` : ''}
       ${xpRow(x)}
     </section>`;
 }
 
+/** 받은 장비 줄들 (34 6-7 보스마다 1개). 「장착」 첫 버튼은 #equipNow */
+function itemsHtml(x: Settlement): string {
+  if (!x.items.length) return x.lootLocked ? '<p class="r-item none">이번 주 이 보스·난이도 장비는 받음 · 월요일 오전 6시에 다시</p>' : '';
+  let first = true;
+  const rows = x.items.map(it0 => {
+    const h = itemRow(it0.id, first);
+    if (h.includes('data-eqnow')) first = false;
+    return h;
+  }).join('');
+  // 처음 얻은 특수능력은 장비가 여럿이어도 띠 하나로 (42 1-6)
+  const fresh = x.newSpecs ?? [];
+  return rows + (fresh.length ? `<p class="r-newsp"><b>새 특수능력!</b> ${fresh.map(k => esc(specName(k))).join(' · ')} <span>도감에 적었습니다</span></p>` : '');
+}
+
 /** 장비 한 줄: 부위 그림(등급 색 테두리) · 이름 · 부위·종류·등급·점수 (지금 장비보다 ▲▼) · 장착 버튼 (지금보다 좋을 때만) */
-function itemRow(x: Settlement): string {
-  if (!x.item) return x.lootLocked ? '<p class="r-item none">이번 주 이 보스·난이도 장비는 받음 · 월요일 오전 6시에 다시</p>' : '';
-  const id = x.item.id, eq = G.save.gear.equipped;
+function itemRow(id: number, first: boolean): string {
+  const eq = G.save.gear.equipped;
   const it = G.save.gear.bag.find(b => b.id === id) || Object.values(eq).find(b => b?.id === id);
   if (!it) return '';
   const worn = eq[it.slot]?.id === it.id, cur = worn ? null : eq[it.slot] ?? null;
   const sc = scoreOf(it), d = sc - scoreOf(cur);
   const act = worn ? '<span class="r-on">장착함</span>'
-    : isBetter(it) ? `<button class="btn r-eq${firstGear() ? ' hi-pulse' : ''}" type="button" id="equipNow">장착</button>`
+    : isBetter(it) ? `<button class="btn r-eq${firstGear() ? ' hi-pulse' : ''}" type="button"${first ? ' id="equipNow"' : ''} data-eqnow="${it.id}">장착</button>`
     : '<span class="r-on dim">가방에</span>';
   const delta = worn ? '' : !cur ? ' <em class="up">빈칸</em>' : d > 0 ? ` <em class="up">▲${d}</em>` : d < 0 ? ` <em class="dn">▼${-d}</em>` : '';
-  // 특수능력 이름 (42), 처음 얻은 것은 「새 특수능력!」 띠 (42 1-6)
-  const sp = specKeysOf(it), fresh = (x.newSpecs ?? []).filter(k => sp.includes(k));
+  // 특수능력 이름 (42)
+  const sp = specKeysOf(it);
   const spTxt = sp.length ? `<small class="r-sp">${sp.map(k => esc(specName(k))).join(' · ')}</small>` : '';
   return `<div class="r-item" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
       <span class="r-ic">${gameIcon(it.slot, uiIcon(it.slot), 'item')}</span>
       <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><small>${slotName(it.slot)} · ${esc(kindOf(it).name)} · ${it.grade} · 점수 ${sc}${delta}</small>${spTxt}</span>
       ${act}
-    </div>${fresh.length ? `<p class="r-newsp"><b>새 특수능력!</b> ${fresh.map(k => esc(specName(k))).join(' · ')} <span>도감에 적었습니다</span></p>` : ''}`;
+    </div>`;
 }
 
 /** 경험치 줄: 바 + 받은 양 + 지금 레벨 (오르면 강조) */
@@ -210,7 +223,8 @@ function footHtml(x: Settlement, tut: boolean): string {
 
 st.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
-  if (t.closest('#equipNow') && Flow.settle?.item) { equip(Flow.settle.item.id); render(); }
+  const eqb = t.closest<HTMLElement>('[data-eqnow]');
+  if (eqb) { equip(Number(eqb.dataset.eqnow)); render(); }
   else if (t.closest('#again')) again();
   else if (t.closest('.m-all')) t.closest('.meter')?.classList.add('all');
 });

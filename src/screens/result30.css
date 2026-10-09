@@ -42,6 +42,13 @@
 .r-newsp { margin: 0; padding: 6px 10px; border-radius: 6px; font-size: 13px; color: var(--ink-2); background: color-mix(in srgb, var(--gold-hi) 14%, transparent); border: 1px solid color-mix(in srgb, var(--gold-hi) 45%, transparent); animation: rup 0.35s 0.6s ease-out both; }
 .r-newsp b { color: var(--gold-hi); margin-right: 4px; }
 .r-newsp span { color: var(--mute); font-size: 12px; margin-left: 4px; }
+/* 보스마다 장비 (34 6-7): 여럿이면 줄을 조금 좁혀 「전투 기록」까지 첫 화면에 */
+.r-loot.many { gap: 8px; }
+.r-loot.many .r-item { min-height: 48px; }
+.r-loot.many .r-ic { width: 48px; height: 48px; }
+.r-loot.many .r-ic img { width: 40px; height: 40px; }
+.r-loot.many .r-nm { gap: 1px; }
+.r-loot.many .r-nm b { font-size: 16px; }
 .r-nm .up { color: var(--heal); }
 .r-nm .dn { color: #E07A6A; }
 .ns .r-eq { flex: none; min-width: 64px; min-height: 44px; padding: 0 12px; font-size: 15px; }
