@@ -137,8 +137,6 @@ function layoutBattle(): void {
   // 왼쪽(단축칸 쪽) = 특성 버튼 3개면 시안 20인 폭 146, 좁은 폰은 140. 여백 16·12 + 사이 8 (좁으면 12·12)
   const narrow = W < 360, sideWidth = auxCount >= 3 ? (narrow ? 140 : 146) : 96;
   buildWheel(Math.min(ch - 14, W * 0.565, W - sideWidth - (narrow ? 32 : 36)));
-  const actions = S.compactSkills ? $('partyActions') : $('castbar');
-  actions.append($('targetsBtn'));
   // 시전 여부와 관계없이 판과 조작판 사이의 독립 행을 예약한다.
   $('controlsFrame').before($('castbar'));
   // 일시정지 중 부모가 바뀌어도 이전 직계 자식의 inert가 남지 않게 한다.
@@ -594,17 +592,10 @@ const dialogs = initBattleDialogs({
   getFight: () => B.F, getPaused: () => B.paused, setPaused: v => { B.paused = v; },
   getUsedItems: () => (S.run?.itemLog.length || 0) + (B.F?.itemLog.length || 0),
   act: kind => { if (kind === 'restart') { resetRun(); startBattle(); } else quit(kind); },
-  selectCell: idx => {
-    if (!B.F || ui.pullLeft > 0) return;
-    const c = center(idx);
-    ui.pointer = { x0: c.x, y0: c.y, x: c.x, y: c.y, idx, lp: false, moved: false };
-    endPointer(false);
-  },
 });
-$('targetsBtn').addEventListener('click', () => { if (live() && ui.pullLeft <= 0) { endSlot(true); endItem(true); endAux(true); endPointer(true); closeTip(); dialogs.showTargets(); } });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && B.F && !B.F.over && !$('battle').hidden) {
-    // 목록을 연 때의 pause 복원이 앱 전환에 의한 일시정지를 덮어쓰지 않게 먼저 닫는다.
+    // 확인 창을 연 때의 pause 복원이 앱 전환에 의한 일시정지를 덮어쓰지 않게 먼저 닫는다.
     dialogs.closeAll(); setPause(true);
   }
 });

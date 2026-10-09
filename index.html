@@ -49,7 +49,7 @@
       <div id="queue" aria-label="적 기술 예고"></div>
       <div id="dmgNums" aria-hidden="true"></div>
     </header>
-    <div id="partyStatus"><span class="ps-count">파티 <b id="partyAlive"></b></span><span id="partyCondition"></span><span class="board-instruction">탭: 치유 · 길게: 정보</span><span id="partyActions"></span></div>
+    <div id="partyStatus"><span class="ps-count">파티 <b id="partyAlive"></b></span><span id="partyCondition"></span><span class="board-instruction">탭: 치유 · 길게: 정보</span></div>
     <div id="boardWrap">
       <canvas id="board" aria-label="파티 체력과 진형. 칸을 탭해 치유하고 길게 눌러 파티원 정보 확인"></canvas>
       <div id="toast"></div>
@@ -58,7 +58,7 @@
       <div id="pull" hidden><b id="pullNum">3</b></div>
     </div>
     <!-- 시전 막대 (시안): 화면 폭 금테 막대, 노란 유광 채움, 안에 「스킬 → 대상」 · 남은 초. 시전 중이 아닐 때 안내도 막대 안에 -->
-    <div id="castbar"><div id="castTrack"><div id="castFill"></div><span id="castLabel">칸을 탭하면 치유</span><span id="castTime"></span></div><button id="targetsBtn" type="button" aria-label="대상 목록" aria-haspopup="dialog">대상</button></div>
+    <div id="castbar"><div id="castTrack"><div id="castFill"></div><span id="castLabel">칸을 탭하면 치유</span><span id="castTime"></span></div></div>
     <div id="controlsFrame"><footer id="controls">
       <div id="wheel" aria-label="치유 스킬 휠"></div>
       <div id="side">
@@ -89,12 +89,6 @@
 <nav id="tabs" aria-label="하단 메뉴"></nav>
 </div>
 <script type="module" src="/src/main.ts"></script>
-<dialog id="partyTargets" class="battle-dialog" aria-labelledby="targetsHeading" aria-describedby="targetsHelp">
-  <h2 id="targetsHeading">대상 목록</h2>
-  <p id="targetsHelp">대상을 고르면 장전한 기술 또는 기본 치유를 사용합니다.</p>
-  <div id="targetList"></div>
-  <div class="dialog-actions"><button id="targetsClose" type="button">닫기</button></div>
-</dialog>
 <dialog id="battleConfirm" class="battle-dialog" aria-labelledby="confirmHeading" aria-describedby="confirmMessage">
   <h2 id="confirmHeading"></h2><p id="confirmMessage"></p>
   <div class="dialog-actions"><button id="confirmCancel" type="button">취소</button><button id="confirmApply" type="button"></button></div>

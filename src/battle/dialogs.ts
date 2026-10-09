@@ -1,6 +1,5 @@
-/** 전투용 native dialog. 대상을 읽는 동안 멈추고, 닫으면 열기 전 pause 상태로 돌아간다. */
-import type { Fight, Role } from '../engine';
-import { debuffDisplay, healthDisplay } from './party-display';
+/** 전투용 native dialog. 확인 창을 읽는 동안 멈추고, 닫으면 열기 전 pause 상태로 돌아간다. */
+import type { Fight } from '../engine';
 
 export type BattleConfirmKind = 'restart' | 'quit' | 'giveUp';
 export interface BattleDialogCallbacks {
@@ -8,18 +7,13 @@ export interface BattleDialogCallbacks {
   getPaused(): boolean;
   /** 일시정지 메뉴를 열지 않는 raw pause setter. */
   setPaused(value: boolean): void;
-  /** 캔버스 칸 선택과 같은 경로로 장전/기본 스킬을 사용한다. */
-  selectCell(index: number): void;
   act(kind: BattleConfirmKind): void;
   getUsedItems(): number;
 }
 export interface BattleDialogs {
-  showTargets(): void;
   confirm(kind: BattleConfirmKind): void;
   closeAll(): void;
 }
-
-const roleName: Record<Role, string> = { tank: '탱커', melee: '근접', ranged: '원거리', healer: '힐러' };
 
 export function battleConfirmation(kind: BattleConfirmKind, usedItems: number): { title: string; message: string; action: string } {
   const used = Math.max(0, Math.floor(usedItems));
@@ -45,9 +39,6 @@ function element<T extends HTMLElement>(id: string): T {
 }
 
 export function initBattleDialogs(callbacks: BattleDialogCallbacks): BattleDialogs {
-  const targets = element<HTMLDialogElement>('partyTargets');
-  const targetList = element<HTMLDivElement>('targetList');
-  const targetsClose = element<HTMLButtonElement>('targetsClose');
   const confirmDialog = element<HTMLDialogElement>('battleConfirm');
   const confirmTitle = element<HTMLElement>('confirmHeading');
   const confirmMessage = element<HTMLElement>('confirmMessage');
@@ -55,7 +46,7 @@ export function initBattleDialogs(callbacks: BattleDialogCallbacks): BattleDialo
   const apply = element<HTMLButtonElement>('confirmApply');
   type Session = {
     dialog: HTMLDialogElement; fight: Fight; wasPaused: boolean; opener: HTMLElement | null;
-    kind: 'targets' | BattleConfirmKind; targets: Map<number, Fight['party'][number]>;
+    kind: BattleConfirmKind;
   };
   let active: Session | null = null;
   let acting = false;
@@ -86,7 +77,6 @@ export function initBattleDialogs(callbacks: BattleDialogCallbacks): BattleDialo
     const session: Session = {
       dialog, fight, kind, wasPaused: callbacks.getPaused(),
       opener: document.activeElement instanceof HTMLElement ? document.activeElement : null,
-      targets: new Map(),
     };
     active = session;
     callbacks.setPaused(true);
@@ -103,51 +93,6 @@ export function initBattleDialogs(callbacks: BattleDialogCallbacks): BattleDialo
     }
   }
 
-  function showTargets(): void {
-    const session = open(targets, 'targets');
-    if (!session) return;
-    const fragment = document.createDocumentFragment();
-    for (const unit of session.fight.party) {
-      const health = healthDisplay(unit.hp, unit.max);
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.dataset.cell = String(unit.cell);
-      button.dataset.unitId = String(unit.id);
-      button.style.minHeight = '44px';
-      // 쓰러진 아군도 부활 기술의 대상이 된다. 사용 가능 여부는 캔버스와 같은 엔진 경로가 판단한다.
-      const selectable = session.fight.cells[unit.cell]?.unit === unit;
-      button.disabled = !selectable;
-      if (selectable) session.targets.set(unit.cell, unit);
-      const name = document.createElement('span');
-      name.className = 'target-name';
-      name.textContent = `${unit.nick}${unit.me && unit.nick !== '나' ? ' (나)' : ''} · ${roleName[unit.role]}`;
-      const hp = document.createElement('span');
-      hp.className = 'target-health';
-      hp.textContent = `${!unit.alive ? '쓰러짐 · ' : health.critical ? '위험 · ' : ''}HP ${Math.max(0, Math.ceil(unit.hp)).toLocaleString('ko-KR')} / ${Math.ceil(unit.max).toLocaleString('ko-KR')} · ${health.percent}%`;
-      const debuffs = document.createElement('span');
-      debuffs.className = 'target-debuffs';
-      debuffs.textContent = unit.debuffs.length ? unit.debuffs.map(d => debuffDisplay(d, session.fight.hero).detail).join(' / ') : '디버프 없음';
-      const hots = document.createElement('span');
-      hots.className = 'target-hots';
-      const hotDetails = [
-        ...(unit.hot > 0 ? [`소생 · ${Math.ceil(unit.hot)}초`] : []),
-        ...unit.hots.filter(h => h.left > 0).map(h => `${h.name} · ${Math.ceil(h.left)}초`),
-      ];
-      hots.textContent = hotDetails.length ? `지속 치유: ${hotDetails.join(' / ')}` : '지속 치유 없음';
-      button.append(name, hp, debuffs, hots);
-      fragment.append(button);
-    }
-    if (!session.targets.size) {
-      const empty = document.createElement('p');
-      empty.className = 'target-empty';
-      empty.textContent = '현재 선택할 수 있는 파티원이 없습니다.';
-      fragment.append(empty);
-    }
-    targetList.replaceChildren(fragment);
-    targetList.scrollTop = 0;
-    show(session, targetsClose);
-  }
-
   function confirm(kind: BattleConfirmKind): void {
     const session = open(confirmDialog, kind);
     if (!session) return;
@@ -159,25 +104,10 @@ export function initBattleDialogs(callbacks: BattleDialogCallbacks): BattleDialo
     show(session, cancel); // 기본 선택은 항상 취소다.
   }
 
-  targetList.addEventListener('click', event => {
-    const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('button[data-cell]') : null;
-    const session = active;
-    if (!button || !targetList.contains(button) || button.disabled || !session || session.kind !== 'targets' || acting) return;
-    const index = Number(button.dataset.cell), unit = session.targets.get(index);
-    const sameFight = callbacks.getFight() === session.fight && !session.fight.over;
-    const valid = sameFight && !!unit && session.fight.cells[index]?.unit === unit && String(unit.id) === button.dataset.unitId;
-    // 먼저 닫고 원래 pause를 복구한 뒤 캔버스와 같은 선택 경로를 호출한다.
-    closeActive();
-    if (valid) {
-      acting = true;
-      try { callbacks.selectCell(index); } finally { acting = false; }
-    }
-  });
-  targetsClose.addEventListener('click', () => { if (active?.dialog === targets) closeActive(); });
   cancel.addEventListener('click', () => { if (active?.dialog === confirmDialog) closeActive(); });
   apply.addEventListener('click', () => {
     const session = active;
-    if (!session || session.dialog !== confirmDialog || session.kind === 'targets' || acting) return;
+    if (!session || session.dialog !== confirmDialog || acting) return;
     const valid = callbacks.getFight() === session.fight && !session.fight.over;
     apply.disabled = true;
     closeActive(false);
@@ -187,33 +117,32 @@ export function initBattleDialogs(callbacks: BattleDialogCallbacks): BattleDialo
     } else restoreOpener(session);
   });
 
-  for (const dialog of [targets, confirmDialog]) {
-    dialog.addEventListener('cancel', event => {
-      event.preventDefault();
-      if (active?.dialog === dialog) closeActive();
-    });
-    dialog.addEventListener('close', () => {
-      // 이전 close 이벤트가 늦게 도착해 같은 dialog의 새 세션을 닫지 않게 한다.
-      if (!dialog.open && active?.dialog === dialog) closeActive();
-    });
-    dialog.addEventListener('keydown', event => {
-      if (active?.dialog !== dialog) return;
-      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeActive(); return; }
-      if (event.key !== 'Tab') return;
-      const stops = Array.from(dialog.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]'))
-        .filter(el => el.tabIndex >= 0 && !el.matches(':disabled') && !el.closest('[hidden]') && el.getClientRects().length);
-      const first = stops[0], last = stops[stops.length - 1];
-      if (!first) { event.preventDefault(); dialog.focus({ preventScroll: true }); }
-      else if (!dialog.contains(document.activeElement) || event.shiftKey && document.activeElement === first || !event.shiftKey && document.activeElement === last) {
-        event.preventDefault(); (event.shiftKey ? last : first).focus({ preventScroll: true });
-      }
-    });
-  }
+  confirmDialog.addEventListener('cancel', event => {
+    event.preventDefault();
+    if (active?.dialog === confirmDialog) closeActive();
+  });
+  confirmDialog.addEventListener('close', () => {
+    // 이전 close 이벤트가 늦게 도착해 같은 dialog의 새 세션을 닫지 않게 한다.
+    if (!confirmDialog.open && active?.dialog === confirmDialog) closeActive();
+  });
+  confirmDialog.addEventListener('keydown', event => {
+    if (active?.dialog !== confirmDialog) return;
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeActive(); return; }
+    if (event.key !== 'Tab') return;
+    const stops = Array.from(confirmDialog.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]'))
+      .filter(el => el.tabIndex >= 0 && !el.matches(':disabled') && !el.closest('[hidden]') && el.getClientRects().length);
+    const first = stops[0], last = stops[stops.length - 1];
+    if (!first) { event.preventDefault(); confirmDialog.focus({ preventScroll: true }); }
+    else if (!confirmDialog.contains(document.activeElement) || event.shiftKey && document.activeElement === first || !event.shiftKey && document.activeElement === last) {
+      event.preventDefault(); (event.shiftKey ? last : first).focus({ preventScroll: true });
+    }
+  });
+
   return {
-    showTargets, confirm,
+    confirm,
     closeAll() {
       closeActive();
-      for (const dialog of [targets, confirmDialog]) if (dialog.open) dialog.close();
+      if (confirmDialog.open) confirmDialog.close();
     },
   };
 }

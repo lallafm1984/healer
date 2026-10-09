@@ -1,4 +1,4 @@
-/** 전투 판과 선택 대상 보조 UI가 공유하는 표시 계산. 전투 상태는 변경하지 않는다. */
+/** 전투 판의 파티원 칸 표시 계산. 전투 상태는 변경하지 않는다. */
 import { canDispel, type HeroKey } from '../data/heroes';
 import type { Debuff } from '../engine/types';
 
@@ -20,7 +20,7 @@ export function healthDisplay(hp: number, max: number): { ratio: number; percent
   return { ratio, percent, critical: ratio > 0 && ratio < 0.3 };
 }
 
-/** 글꼴 크기를 줄이지 않고 이름을 말줄임한다. 전체 이름은 선택 대상 정보에서 제공한다. */
+/** 글꼴 크기를 줄이지 않고 이름을 말줄임한다. 전체 이름은 길게 누르기 정보에서 제공한다. */
 export function fitPartyName(name: string, maxWidth: number, measure: (text: string) => number): string {
   if (measure(name) <= maxWidth) return name;
   const chars = Array.from(name);
