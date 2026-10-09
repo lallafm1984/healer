@@ -216,8 +216,8 @@ describe('레이드 재조정 (2026-10-07: 특성·능력 포함 기준, 26 9-1)
   });
   it('임시 특성 보정: 드루이드·성기사만, 열린 특성 단마다', () => {
     expect(mk('priest', 100).standin).toBeNull();
-    expect(mk('druid', 5).standin).toEqual({ heal: 1, mana: 1, guard: 1 });
-    const s = mk('paladin', 35).standin!;
+    expect(mk('druid', 4).standin).toEqual({ heal: 1, mana: 1, guard: 1 });
+    const s = mk('paladin', 17).standin!;
     expect(s.heal).toBeCloseTo(1 + TALENT_STANDIN.heal * 3);
     expect(s.mana).toBeCloseTo(1 - TALENT_STANDIN.mana * 3);
     expect(s.guard).toBeCloseTo(1 - TALENT_STANDIN.guard * 3);

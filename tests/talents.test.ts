@@ -42,10 +42,11 @@ const hurt = (f: F, pct = 0.5) => { for (const u of f.party) u.hp = u.max * pct;
 const withAdj = (f: F, n = 1) => others(f).find(u => adj(f, u).length >= n)!;
 
 describe('특성 켜기', () => {
-  it('Lv에 따라 열린 단만 켜짐 (Lv 10마다 한 단)', () => {
+  it('Lv에 따라 열린 단만 켜짐 (Lv 5마다 한 단, Lv 50 완성, 34 2-1)', () => {
     const p = picks('longBreath', 'brink', 'overflow', 'fullHeart');
-    expect(talentKeys(p, 35)).toEqual(['longBreath', 'brink', 'overflow']);
-    expect(talentKeys(p, 9)).toEqual([]);
+    expect(talentKeys(p, 17)).toEqual(['longBreath', 'brink', 'overflow']);
+    expect(talentKeys(p, 4)).toEqual([]);
+    expect(TALENTS.map(t => t.lv)).toEqual([5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
     expect(talentKeys(undefined, 100)).toEqual([]);
   });
   it('특성 없음 = 상태 비어 있음, 사제 밖 직업은 특성을 넘겨도 무시', () => {
