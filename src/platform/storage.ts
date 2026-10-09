@@ -58,6 +58,8 @@ export interface Settings {
   compactSkills: boolean;
   /** 전투 정보는 유지하고 흔들림·부유 숫자 등 시각 효과를 줄임 */
   reducedEffects: boolean;
+  /** 강화 연출 짧게 (0.5초, 34 7-3). 옛 저장엔 없음 = 꺼짐 */
+  quickEnhance?: boolean;
   /** 개발 빌드: 자동 힐러로 구경 */
   auto: boolean;
   /** 개발 빌드: 콘텐츠 레벨 잠금 무시 (아직 레벨을 올릴 콘텐츠가 적어서) */

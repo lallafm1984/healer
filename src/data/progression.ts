@@ -85,8 +85,10 @@ export function starsOf(r: { win: boolean; deaths: number; overheal: number }): 
   return [r.win, r.win && r.deaths === 0, r.win && r.overheal <= STAR_OVERHEAL];
 }
 
-/** 소비 아이템 단축칸 수 (18 2-2, 19): Lv 1 = 2칸, Lv 20 = 3칸, Lv 40 = 4칸 */
-export const itemSlots = (level: number) => (level >= 40 ? 4 : level >= 20 ? 3 : 2);
+/** 단축칸이 하나씩 열리는 레벨 (34 8장: 특성이 Lv 50에 끝나서 당김): Lv 1 = 2칸, Lv 15 = 3칸, Lv 30 = 4칸. 지금 직업 레벨 기준 */
+export const ITEM_SLOT_LV = [1, 15, 30] as const;
+/** 소비 아이템 단축칸 수 (18 2-2, 19, 34 8장) */
+export const itemSlots = (level: number) => (level >= ITEM_SLOT_LV[2] ? 4 : level >= ITEM_SLOT_LV[1] ? 3 : 2);
 
 /** 길드 탭 해금 (09 1-1, 18) */
 export const GUILD_LEVEL = 15;
@@ -111,17 +113,17 @@ export const MILESTONES: Record<number, Milestone[]> = {
   8: [{ text: '스킬 「수호 영혼」', live: true }],
   10: [{ text: '패시브 「상징」 (마나 30% 아래서 회복 4배)', live: true }, { text: '특성 2단', live: true }, { text: '직업 바꾸기 · 드루이드 퀘스트 「숲의 부름」', live: true }, { text: '주간 임무 (악몽 열쇠)', live: true }, { text: '공개모집 직업 +6종', live: false }, { text: '던전 「독안개 늪」', live: false }],
   12: [{ text: '공대 쿨기 (사제 「천상의 찬가」, 스킬 7개 완성)', live: true }],
-  15: [{ text: '8번째 칸 고유 스킬 (드루이드·성기사)', live: true }, { text: '특성 3단', live: true }, ...(FEATURES.guild ? [{ text: '길드 (골드 모집·인연 스카우트)', live: true }] : []), { text: '던전 「저주받은 장원」', live: false }],
-  20: [{ text: '소비 아이템 단축칸 3칸', live: true }, { text: '성기사 퀘스트 「첫 맹세」', live: true }, { text: '특성 4단', live: true }, { text: '주간 도전 「모래시계 시련」', live: true }, { text: '던전 「서리 마탑」', live: false }],
+  15: [{ text: '8번째 칸 고유 스킬 (드루이드·성기사)', live: true }, { text: '소비 아이템 단축칸 3칸', live: true }, { text: '특성 3단', live: true }, ...(FEATURES.guild ? [{ text: '길드 (골드 모집·인연 스카우트)', live: true }] : []), { text: '던전 「저주받은 장원」', live: false }],
+  20: [{ text: '성기사 퀘스트 「첫 맹세」', live: true }, { text: '특성 4단', live: true }, { text: '주간 도전 「모래시계 시련」', live: true }, { text: '던전 「서리 마탑」', live: false }],
   25: [{ text: '특성 5단', live: true }],
   28: [{ text: '던전 「깨진 신전」', live: false }],
-  30: [{ text: '특성 6단', live: true }, { text: '어려움·악몽 던전에 어픽스 「격노」', live: true }],
+  30: [{ text: '특성 6단', live: true }, { text: '소비 아이템 단축칸 4칸', live: true }, { text: '어려움·악몽 던전에 어픽스 「격노」', live: true }],
   35: [{ text: '10인 레이드 「심연의 탑」', live: true }, { text: '특성 7단', live: true }],
-  40: [{ text: '소비 아이템 단축칸 4칸', live: true }, { text: '특성 8단', live: true }],
+  40: [{ text: '특성 8단', live: true }],
   45: [{ text: '특성 9단', live: true }],
-  50: [{ text: '특성 10단 (완성)', live: true }, { text: '전설 장비 드롭', live: true }, { text: '10인 레이드 악몽', live: true }, { text: '악몽 던전에 어픽스 「역병」', live: true }, { text: '직업 칭호', live: false }],
+  50: [{ text: '특성 10단 (완성)', live: true }, { text: '전설 장비 드롭', live: true }, { text: '장비 재설정 (옵션 · 특수능력 한 줄)', live: true }, { text: '10인 레이드 악몽', live: true }, { text: '악몽 던전에 어픽스 「역병」', live: true }, { text: '직업 칭호', live: false }],
   51: [{ text: '정점 수련 (레벨마다 지능·체력 +0.3%)', live: true }],
-  60: [{ text: '장신구 둘째 칸', live: false }],
+  60: [{ text: '장비 재설정 후보 2개 중 고르기', live: true }],
   70: [{ text: '20인 레이드 「가라앉은 대성당」', live: true }],
   80: [{ text: '20인 레이드 악몽', live: true }],
   100: [{ text: '직업 색 힐 이펙트 · 칭호', live: false }],

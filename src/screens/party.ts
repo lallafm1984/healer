@@ -12,6 +12,7 @@ import { gearStatsOf, specsOf } from '../data/equipment';
 import { FEATURES } from '../data/features';
 import { ENCOUNTERS } from '../data/encounters';
 import { ITEMS, type ItemKey } from '../data/items';
+import { ITEM_SLOT_LV } from '../data/progression';
 import { CATS, PERS } from '../data/personalities';
 import { aptOf } from '../data/guild';
 import { create, recruitParty } from '../engine';
@@ -147,7 +148,7 @@ const sheetBox = (cls: string, label: string, inner: string) =>
 function slotSheetHtml(slots: number, items: ItemKey[]): string {
   const hid = sheet === 'slots' ? '' : ' hidden', ih = itemHint();
   return `<div class="sheet-dim" data-shut${hid}></div><section class="sheet f-isheet" role="dialog" aria-modal="true" aria-label="단축칸 고르기" tabindex="-1"${hid}><span class="grip"></span>
-    <h2 class="h-rule">단축칸 ${slots}칸<span class="rule"></span><span class="cap">${slots < 4 ? `Lv ${slots === 2 ? 20 : 40}에 1칸 더` : '최대'}</span></h2>
+    <h2 class="h-rule">단축칸 ${slots}칸<span class="rule"></span><span class="cap">${slots < 4 ? `Lv ${ITEM_SLOT_LV[slots - 1]}에 1칸 더` : '최대'}</span></h2>
     ${ih ? `<p class="f-ih">${BULB}<span>${esc(ih)}</span></p>` : ''}
     ${itemChipsHtml(items)}
     <p class="note${sheet === 'slots' && msg ? ' warn' : ''}">${sheet === 'slots' && msg ? esc(msg) : items.map(k => `<b>${ITEMS[k].short}</b> ${ITEMS[k].desc}`).join('<br>') || '빈 칸'}</p>

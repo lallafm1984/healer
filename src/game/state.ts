@@ -3,7 +3,7 @@ import type { ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HERO_KEYS, HERO_SWITCH_LV, HEROES, type HeroKey } from '../data/heroes';
 import { TALENTS } from '../data/talents';
-import { enhanceCost, itemName, itemScore, MAX_PLUS, REROLL_LEVEL, REROLL_PICK_LEVEL, rerollCost, rerollLine, rerollSpec, salvageOf, SLOTS, type GearItem, type GearLine, type SlotKey } from '../data/equipment';
+import { AWAKEN_AT, awakenValue, enhanceCost, itemName, itemScore, MAX_PLUS, REROLL_LEVEL, REROLL_PICK_LEVEL, rerollCost, rerollLine, rerollSpec, salvageOf, SLOTS, type GearItem, type GearLine, type SlotKey } from '../data/equipment';
 import type { SpecLine } from '../data/specials';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots } from '../data/progression';
@@ -94,21 +94,45 @@ export function findItem(id: number): GearItem | null {
  * 결과는 누른 순간 저장 (껐다 켜서 다시 굴리지 못하게). roll은 테스트에서 성공·실패를 고정할 때
  */
 export function enhance(id: number, roll: () => number = Math.random): string {
-  const it = findItem(id);
-  if (!it) return '장비 없음';
+  const o = enhanceTry(id, roll);
+  return typeof o === 'string' ? o : enhanceMsg(o);
+}
+/** 강화 한 번의 결과 (연출용): 각성 = 옵션 각성한 줄 번호 (34 6-5) */
+export interface EnhanceOutcome { id: number; ok: boolean; from: number; to: number; awaken: number | null }
+export const enhanceMsg = (o: EnhanceOutcome) => (o.ok ? '' : o.to < o.from ? `강화 실패 · +${o.from} → +${o.to}` : `강화 실패 · +${o.from} 그대로`);
+/** 모자란 재료 (없으면 '') */
+export function enhanceLack(it: GearItem): string {
   const c = enhanceCost(it);
   if (!c) return `이미 +${MAX_PLUS}`;
   const p = G.save.player, m = G.save.mats;
   if (p.gold < c.gold) return `골드 부족 (${c.gold.toLocaleString()} 필요)`;
   if (m.stone < c.stone) return `강화석 부족 (${c.stone}개 필요)`;
   if (m.refined < c.refined) return `정제 강화석 부족 (${c.refined}개 필요)`;
+  return '';
+}
+/**
+ * 강화 한 번 (34 6-5): 누른 순간 굴려서 저장에 먼저 넣음 (연출은 보여 주기만, 7-4). 실패하면 +2 이상은 1단계 떨어짐.
+ * +3 · +6 · +9에 처음 닿으면 추가 옵션 한 줄 각성. 못 하면 이유 글
+ */
+export function enhanceTry(id: number, roll: () => number = Math.random): EnhanceOutcome | string {
+  const it = findItem(id);
+  if (!it) return '장비 없음';
+  const lack = enhanceLack(it);
+  if (lack) return lack;
+  const c = enhanceCost(it)!, p = G.save.player, m = G.save.mats;
   p.gold -= c.gold; m.stone -= c.stone; m.refined -= c.refined;
-  const from = it.plus, ok = roll() < c.rate;
+  const from = it.plus, ok = roll() < c.rate, top = it.top ?? it.plus;
   it.plus = ok ? c.to : c.fail;
+  let awaken: number | null = null;
+  if (ok && c.to > top && (AWAKEN_AT as readonly number[]).includes(c.to) && it.lines?.length) {
+    awaken = Math.min(it.lines.length - 1, Math.floor(roll() * it.lines.length));
+    const l = it.lines[awaken];
+    l.up = (l.up ?? 0) + awakenValue(l);
+  }
+  it.top = Math.max(top, it.plus);
   if (G.save.tut >= TUT.done) onAct(G.save, 'enhance');
   commit();
-  if (ok) return '';
-  return it.plus < from ? `강화 실패 · +${from} → +${it.plus}` : `강화 실패 · +${from} 그대로`;
+  return { id, ok, from, to: it.plus, awaken };
 }
 
 /** 재설정할 줄: 추가 옵션 (line) · 특수능력 (spec, 이름 있는 장신구 고유 효과는 안 됨) */

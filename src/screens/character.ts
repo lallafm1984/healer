@@ -7,18 +7,18 @@
  * 특성: 요약 · 프리셋 1·2·3 · 나무판에 단마다 메달 3개 + 고른 길(금빛 선) · 고르기 시트 / 직업: 천 깃발 · 곧 열림 · 양피지 상세 · 바꾸기
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
  */
-import { enhanceCost, fixedOf, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, kindOf, lineValue, mainOf, MAX_PLUS, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, type GearItem, type GearLine, type ItemGrade, type SlotKey } from '../data/equipment';
+import { enhanceCost, fixedOf, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, enhanceForecast, kindOf, lineValue, mainOf, MAX_PLUS, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, type GearItem, type GearLine, type ItemGrade, type SlotKey } from '../data/equipment';
 import { DEB_COLOR, HERO_KEYS, HERO_SWITCH_LV, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
 import { ITEMS, type ItemKey } from '../data/items';
-import { itemSlots, TALENT_LEVEL } from '../data/progression';
+import { ITEM_SLOT_LV, itemSlots, TALENT_LEVEL } from '../data/progression';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { TALENTS, type TalentKey } from '../data/talents';
 import { heroLevelOf, type TapKey } from '../platform/storage';
 import { betterSlots, codexRows, gearAvg, gearScore, isBetter, scoreOf, specRows, statParts, talentsLeft } from '../game/charinfo';
 import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, specText, specValue, type CodexGroup, type SpecGroup, type SpecLine } from '../data/specials';
 import {
-  bestGearPlan, commit, enhance, equip, equipBest, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, lowGradeIds, pickReroll, pickTalent, reroll, rerollOpen, salvage,
-  setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleItem, toggleLock, type RerollKind,
+  bestGearPlan, commit, enhanceLack, enhanceMsg, enhanceTry, equip, equipBest, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, lowGradeIds, pickReroll, pickTalent, reroll, rerollOpen, salvage,
+  setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleItem, toggleLock, type EnhanceOutcome, type RerollKind,
 } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { classEmblem, gameIcon, LOCK, uiIcon } from './art';
@@ -35,6 +35,11 @@ type Sheet = { k: 'item'; id: number; back?: boolean } | { k: 'bag' } | { k: 'co
 let codexG: CodexGroup = 'heal';
 /** 장비 상세의 재설정 모드 (34 6-8): 줄마다 ↻ 버튼. rrAlt = Lv 60 둘째 후보 (시트를 닫으면 사라짐) */
 let rrOn = false;
+/** 강화 연출 (34 7장): 결과는 누른 순간 저장됨, 연출은 보여 주기만. 아무 데나 누르면 끝 (누른 버튼은 그대로 동작) */
+let efx: (EnhanceOutcome & { quick: boolean }) | null = null;
+let efxTimer: ReturnType<typeof setTimeout> | undefined;
+/** 목표까지 강화 (34 7-3): 목표 · 떨어지면 멈춤 (기본 켬) · 도는 중 · 시도 수 · 멈춘 까닭 */
+let auto: { id: number; target: number; stopDrop: boolean; run: boolean; n: number; why: string } | null = null;
 let rrAlt: { id: number; kind: RerollKind; i: number; alt: GearLine | SpecLine } | null = null;
 
 let sub: Sub = 'gear';
@@ -50,7 +55,7 @@ const s = screen('s-char', '캐릭터', {
   tab: 'char',
   enter(arg) {
     if (SUBS.some(x => x.key === arg)) sub = arg as Sub;
-    sel = null; swapping = false; msg = ''; sheet = null; salv = null; salvAsk = false; skOpen = null; hskOpen = null; hsel = null; seenMarked = false; rrOn = false; rrAlt = null;
+    sel = null; swapping = false; msg = ''; sheet = null; salv = null; salvAsk = false; skOpen = null; hskOpen = null; hsel = null; seenMarked = false; rrOn = false; rrAlt = null; auto = null; efx = null;
     render(false);
   },
 });
@@ -183,6 +188,14 @@ const STAT_LINE = {
 const statIc = (k: keyof typeof STAT_LINE) => gameIcon(k, STAT_LINE[k], 'stat');
 
 /** ① 장비 칸 (시안 .slot): 등급 색 테두리·빛 · 등급 글자 칩 · 강화 +n · 더 좋은 장비 초록 ↑ · 빈칸 점선 + 가방 개수 */
+/** 특수능력 점 (34 10장): 한 줄 = 점 하나 (고유 효과 포함), 지금 직업에 안 맞는 직업 전용은 회색 */
+function specDots(it: GearItem): string {
+  const rows = specRows(it);
+  if (!rows.length) return '';
+  return `<i class="c7-dots" aria-hidden="true">${rows.map(r => `<i${/전용$/.test(r.off) ? ' class="off"' : ''}></i>`).join('')}</i>`;
+}
+const specLabel = (it: GearItem) => { const n = specRows(it).length; return n ? ` · 특수능력 ${n}줄` : ''; };
+
 function slotHtml(key: SlotKey, better: SlotKey[]): string {
   const it = G.save.gear.equipped[key], name = slotName(key);
   const up = better.includes(key) ? '<i class="c7-better" aria-hidden="true">↑</i>' : '';
@@ -191,8 +204,8 @@ function slotHtml(key: SlotKey, better: SlotKey[]): string {
     return `<button type="button" class="gtile c7-slot empty" data-gslot="${key}"${n ? '' : ' disabled'} aria-label="${name} 빈칸${n ? ` · 가방에 ${n}개` : ''}">
         <span class="c7-sq">${itemIc(key)}${up}</span><b>${name}</b><small${n ? ' class="ok"' : ''}>${n ? `가방에 ${n}개` : '빈칸'}</small></button>`;
   }
-  return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(it.name)}${plusTxt(it)} · ${it.grade}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
-      <span class="c7-sq">${itemIc(key)}<i class="c7-gl">${it.grade[0]}</i>${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${up}</span>
+  return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(it.name)}${plusTxt(it)} · ${it.grade}${specLabel(it)}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
+      <span class="c7-sq${it.plus >= MAX_PLUS ? ' max' : ''}">${itemIc(key)}<i class="c7-gl">${it.grade[0]}</i>${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${specDots(it)}${up}</span>
       <b>${it.lock ? LOCK : ''}${name}</b><small>${esc(kindOf(it).name)}</small></button>`;
 }
 
@@ -235,8 +248,8 @@ function gearHtml(): string {
 /** 가방 칸: 장비 그림 + 등급 색 + +N + ↑(지금 장비보다 좋음) + 새 점 */
 function bagCell(it: GearItem): string {
   const up = isBetter(it), on = !!salv?.has(it.id), nw = isNew(it);
-  const label = `${it.grade} ${slotName(it.slot)} · ${it.name}${plusTxt(it)}${up ? ' · 더 좋음' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
-  return `<button type="button" class="c7-bag${on ? ' on' : ''}${it.lock ? ' lock' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}"${salv ? ` aria-pressed="${on}"` : ''}>${itemIc(it.slot)}${it.plus ? `<em>+${it.plus}</em>` : ''}${up ? '<span class="up">↑</span>' : ''}${nw ? '<span class="nw"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}${on ? '<span class="ck">✓</span>' : ''}</button>`;
+  const label = `${it.grade} ${slotName(it.slot)} · ${it.name}${plusTxt(it)}${specLabel(it)}${up ? ' · 더 좋음' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
+  return `<button type="button" class="c7-bag${on ? ' on' : ''}${it.lock ? ' lock' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}"${salv ? ` aria-pressed="${on}"` : ''}>${itemIc(it.slot)}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${up ? '<span class="up">↑</span>' : ''}${nw ? '<span class="nw"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}${on ? '<span class="ck">✓</span>' : ''}</button>`;
 }
 
 const grip = '<span class="grip" aria-hidden="true"></span>';
@@ -303,6 +316,57 @@ function rrAltHtml(it: GearItem, kind: RerollKind): string {
   return `<div class="c7-rralt"><span class="cap">다른 후보</span><b>${esc(txt)}</b><button type="button" class="btn2" data-rrpick>이걸로</button></div>`;
 }
 
+/** 목표까지 강화 판 (34 7-3): 목표 칩 · 평균 예상 · 떨어지면 멈춤 · 시작 / 도는 중 · 멈춤 / 끝난 까닭 */
+function autoHtml(it: GearItem): string {
+  if (!auto || auto.id !== it.id) return '';
+  if (auto.run) return `<div class="c7-auto run" role="status"><b>+${auto.target}까지 강화 중 · ${auto.n}번째</b><span class="c7-fill"></span><button type="button" class="btn2" data-autostop>멈춤</button></div>`;
+  const tg = Math.max(auto.target, it.plus + 1);
+  const chips = Array.from({ length: MAX_PLUS - it.plus }, (_, k) => it.plus + 1 + k).map(n => `<button type="button" class="c7-fc" data-autot="${n}" aria-pressed="${n === tg}">+${n}</button>`).join('');
+  const e = enhanceForecast(it, tg), r1 = (x: number) => (x >= 10 ? fmt(Math.round(x)) : String(Math.round(x * 10) / 10));
+  const est = `평균 ${r1(e.tries)}번 · 골드 약 ${fmt(Math.round(e.gold / 10) * 10)}${e.stone ? ` · 강화석 약 ${r1(e.stone)}` : ''}${e.refined ? ` · 정제 강화석 약 ${r1(e.refined)}` : ''}`;
+  return `<div class="c7-auto">
+      ${auto.why ? `<p class="note c7-autowhy">${esc(auto.why)} · ${auto.n}번 시도</p>` : ''}
+      <div class="c7-fcs" role="group" aria-label="목표 단계">${chips}</div>
+      <p class="cap">${est}</p>
+      <div class="c7-autof"><label class="toggle"><input type="checkbox" data-autodrop${auto.stopDrop ? ' checked' : ''}> 떨어지면 멈춤</label><span class="c7-fill"></span><button type="button" class="btn2" data-autox>닫기</button><button type="button" class="btn2 hot" data-autogo>+${tg}까지 시작</button></div></div>`;
+}
+
+/** 강화 한 번 눌렀을 때: 저장은 끝났고 연출만 (각성은 룰렛 1초 더) */
+function playFx(o: EnhanceOutcome, quick: boolean): void {
+  efx = { ...o, quick };
+  clearTimeout(efxTimer);
+  efxTimer = setTimeout(endFx, (quick ? 500 : 1500) + (o.awaken != null ? 1000 : 0));
+  vibe(o.ok ? [15] : [30, 40, 30]);
+}
+function endFx(): void {
+  clearTimeout(efxTimer);
+  if (!efx) return;
+  efx = null;
+  if (auto?.run) autoStep();
+  else render();
+}
+/** 목표까지 강화 한 단계: 목표 · 재료 부족 · (떨어지면 멈춤) 떨어짐이면 멈춤. 각성 단계는 긴 연출로 룰렛을 보여 줌 */
+function autoStep(): void {
+  if (!auto?.run) { render(); return; }
+  // 화면을 떠났거나 시트를 닫았으면 멈춤 (보이지 않는 데서 강화하지 않음)
+  if (s.el.hidden || sheet?.k !== 'item' || sheet.id !== auto.id) { auto = null; efx = null; return; }
+  const it = findItem(auto.id);
+  const stop = (why: string) => { auto!.run = false; auto!.why = why; render(); };
+  if (!it) { auto = null; render(); return; }
+  if (it.plus >= auto.target) return stop(`+${auto.target} 도달`);
+  const lack = enhanceLack(it);
+  if (lack) return stop(lack);
+  const o = enhanceTry(auto.id);
+  if (typeof o === 'string') return stop(o);
+  auto.n++;
+  msg = enhanceMsg(o);
+  if (!o.ok && o.to < o.from && auto.stopDrop) auto.run = false, auto.why = `+${o.from} → +${o.to} 떨어져서 멈춤`;
+  else if (o.to >= auto.target) auto.run = false, auto.why = `+${auto.target} 도달`;
+  playFx(o, o.awaken == null);
+  render();
+}
+const vibe = (p: number[]) => { if (G.save.settings.vibrate && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(p); };
+
 function itemSheet(id: number): string {
   const it = findItem(id);
   if (!it) return '';
@@ -311,13 +375,16 @@ function itemSheet(id: number): string {
   const sub2 = [slotName(it.slot), esc(kindOf(it).name), it.grade, worn ? '착용 중' : isNew(it) ? '새로 얻음' : '', it.lock ? '잠김' : ''].filter(Boolean).join(' · ');
   // 비교 줄: 퍼센트 포인트 (소수 한 자리)
   const d1 = (x: number, y: number) => Math.round((x - y) * 1000) / 10;
-  const row = (k: string, v: string, diff: string) => `<div class="c7-cmp"><span>${k}</span><b>${v}</b>${diff}</div>`;
+  const row = (k: string, v: string, diff: string, cls = '') => `<div class="c7-cmp${cls}"><span>${k}</span><b>${v}</b>${diff}</div>`;
+  // 옵션 각성 룰렛 (34 7-2): 추가 옵션 줄이 차례로 빛나다 각성한 줄에서 멈춤
+  const aw = efx && efx.id === it.id && efx.awaken != null ? efx.awaken : null;
+  const lineCls = (i: number) => (aw == null ? '' : ` roul${i === aw ? ' aw' : ''}`);
   // 이 장비의 줄 (34 10장): 주 능력치 · 고정 옵션 (종류) · 추가 옵션 (굴림 막대)
   const fx = fixedOf(it);
   const own = [
     ...mainOf(it).map(x => row(STATS[x.stat].name, `+${pc(x.v)}%`, '<span class="cap">주 능력치</span>')),
     row(STATS[fx.stat].name, `+${pc(fx.v)}%`, `<span class="cap">${esc(kindOf(it).name)} 고정</span>`),
-    ...(it.lines ?? []).map((l, i) => row(STATS[l.stat].name, `+${pc(lineValue(it, l))}%`, `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(l.roll * 100)}%"><i style="width:${Math.round(rollFill(l.roll) * 100)}%"></i></span>${rrBtn('line', i, STATS[l.stat].name)}`)),
+    ...(it.lines ?? []).map((l, i) => row(STATS[l.stat].name, `+${pc(lineValue(it, l))}%`, `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(l.roll * 100)}%"><i style="width:${Math.round(rollFill(l.roll) * 100)}%"></i></span>${l.up ? '<span class="c7-awt">각성</span>' : ''}${rrBtn('line', i, STATS[l.stat].name)}`, lineCls(i))),
   ].join('');
   // 특수능력 (42 1-3 · 1-5): 묶음 표식 · 이름 · 효과 · 굴림 막대, 꺼진 줄은 회색 + 이유
   const sp = specRows(it);
@@ -330,21 +397,27 @@ function itemSheet(id: number): string {
   const costTxt = c ? [`골드 ${fmt(c.gold)}`, c.stone ? `강화석 ${c.stone} (가진 것 ${fmt(m.stone)})` : '', c.refined ? `정제 강화석 ${c.refined} (가진 것 ${fmt(m.refined)})` : ''].filter(Boolean).join(' · ') : '더 올릴 수 없음';
   const sv = salvageOf(it);
   const cmpCap = worn ? '착용 중' : cur ? `${esc(cur.name)}${plusTxt(cur)}` : '빈칸';
-  return `${dim}<section class="sheet c7-gsheet" role="dialog" aria-labelledby="gearSheetTitle" aria-describedby="gearSheetSave" style="${gvars(it)}">${grip}
+  // 강화 연출 (34 7장): 성공 = 번쩍 + 「+6」, 떨어짐 = 흔들림 + 「+5 → +4」, 그대로 = 「실패 · +1 그대로」. 짧게 = 0.5초
+  const f = efx && efx.id === it.id ? efx : null;
+  const fxCls = f ? ` fx ${f.ok ? 'fx-ok' : f.to < f.from ? 'fx-drop' : 'fx-fail'}${f.quick ? ' fx-quick' : ''}${f.awaken != null ? ' fx-aw' : ''}` : '';
+  const fxRes = f ? `<b class="c7-fxres" aria-live="polite">${f.ok ? `+${f.to}` : f.to < f.from ? `+${f.from} → +${f.to}` : `실패 · +${f.from} 그대로`}</b>` : '';
+  const max10 = it.plus >= MAX_PLUS ? ' max' : '';
+  return `${dim}<section class="sheet c7-gsheet${fxCls}" role="dialog" aria-labelledby="gearSheetTitle" aria-describedby="gearSheetSave" style="${gvars(it)}">${grip}
       <div class="c7-dialog-head"><h3 id="gearSheetTitle">장비 상세</h3><button type="button" class="btn2 c7-dialog-close" data-sheetx aria-label="장비 상세 닫기">닫기</button></div>
-      <div class="c7-ghead"><span class="c7-gic">${itemIc(it.slot)}<span class="c7-gl">${it.grade[0]}</span></span>
+      <div class="c7-ghead"><span class="c7-gic${max10}">${itemIc(it.slot)}<span class="c7-gl">${it.grade[0]}</span>${f ? '<span class="c7-fxring" aria-hidden="true"></span><span class="c7-fxspark" aria-hidden="true"></span>' : ''}${fxRes}</span>
         <span class="c7-gname"><b>${esc(it.name)}${it.plus ? ` <i>+${it.plus}</i>` : ''}</b><span class="cap">${sub2}</span></span>
         <span class="c7-gscore"><span class="cap">점수</span><b>${sc}</b>${worn ? '' : updn(sc - scoreOf(cur))}</span></div>
       <div class="c7-cmpw"><h3 class="h-rule c7-h3">옵션<span class="rule"></span><span class="cap">${it.lines?.length ?? 0}줄 추가</span>${rerollOpen() ? `<button type="button" class="btn2 c7-rrb" data-rrmode aria-pressed="${rrOn}">재설정</button>` : ''}</h3>${rrOn ? rrCostHtml(it) : ''}${own}${rrAltHtml(it, 'line')}</div>
       ${spec}
       ${worn ? '' : `<div class="c7-cmpw"><h3 class="h-rule c7-h3">지금 장비와 비교<span class="rule"></span><span class="cap">${cmpCap}</span></h3>${cmp}</div>`}
-      <div class="c7-enh"><span><b>${c ? `강화 +${it.plus} → +${c.to}` : `최대 강화 +${MAX_PLUS}`}</b><span class="cap">${costTxt}</span>${c ? `<span class="cap c7-rate">성공 ${Math.round(c.rate * 100)}%${c.rate >= 1 ? '' : c.fail < it.plus ? ` · <em class="c7-lack">실패하면 +${c.fail}${c.fail % 10 === 3 || c.fail % 10 === 6 || c.fail % 10 === 0 ? '으로' : '로'} 떨어짐</em>` : ' · 실패해도 그대로'}</span>` : ''}</span><span class="cap${lack ? ' c7-lack' : ''}">${worn ? lack : c ? '장착 뒤 강화 추천' : ''}</span></div>
+      <div class="c7-enh"><span><b>${c ? `강화 +${it.plus} → +${c.to}` : `최대 강화 +${MAX_PLUS}`}</b><span class="cap">${costTxt}</span>${c ? `<span class="cap c7-rate">성공 ${Math.round(c.rate * 100)}%${c.rate >= 1 ? '' : c.fail < it.plus ? ` · <em class="c7-lack">실패하면 +${c.fail}${c.fail % 10 === 3 || c.fail % 10 === 6 || c.fail % 10 === 0 ? '으로' : '로'} 떨어짐</em>` : ' · 실패해도 그대로'}</span>` : ''}</span><span class="cap${lack ? ' c7-lack' : ''}">${worn ? lack : c ? '장착 뒤 강화 추천' : ''}</span>${worn && c && !(auto && auto.id === it.id) ? '<button type="button" class="btn2 c7-autob" data-autoopen>목표까지</button>' : ''}</div>
+      ${autoHtml(it)}
       <p class="note c7-save-note" id="gearSheetSave">장착·강화·잠금은 즉시 저장됩니다.</p>
       ${msg ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
       <div class="c7-sbtns">
         <button type="button" class="c7-sb c7-lockb" data-lock="${it.id}" aria-pressed="${!!it.lock}">${uiIcon('lock')}<small>${it.lock ? '잠김' : '잠금'}</small></button>
         <button type="button" class="c7-sb c7-salvb" data-salv1="${it.id}"${worn || it.lock ? ' disabled' : ''}>분해<small>${worn ? '착용 중' : it.lock ? '잠김' : `강화석 +${sv.stone}`}</small></button>
-        ${worn ? `<button type="button" class="c7-cta" data-enh="${it.id}"${can ? '' : ' disabled'}>${c ? '강화' : '최대 강화'}</button>` : `<button type="button" class="c7-cta" data-equip="${it.id}">장착</button>`}
+        ${worn ? `<button type="button" class="c7-cta" data-enh="${it.id}"${can && !auto?.run ? '' : ' disabled'}>${c ? '강화' : '최대 강화'}</button>` : `<button type="button" class="c7-cta" data-equip="${it.id}">장착</button>`}
       </div></section>`;
 }
 
@@ -519,7 +592,7 @@ function skillHtml(): string {
   const tapSkill = skillAt(h, st.tapKey) || skillAt(h, 'heal')!, basic = skillAt(h, 'heal')!;
   const tapLock = lockLv(tapSkill);
   const { slots, items } = itemsNow();
-  const nextSlotLv = [20, 40].find(x => itemSlots(x) > slots);
+  const nextSlotLv = ITEM_SLOT_LV.find(x => itemSlots(x) > slots);
   const stock = G.save.tut >= TUT.done ? G.save.bag : null;
   const taps = (Object.keys(battle().tapKeys) as TapKey[]).map(t => {
     const k = skillAt(h, t)!, lk = lockLv(k);
@@ -717,15 +790,17 @@ function heroListHtml(): string {
 /** 시트 닫기: 가방에서 연 장비 상세는 가방으로 돌아감, 가방을 닫으면 분해 고르기도 끝 */
 function closeSheet(): void {
   if (sheet?.k === 'bag') { salv = null; salvAsk = false; }
-  rrOn = false; rrAlt = null;
+  rrOn = false; rrAlt = null; auto = null; efx = null; clearTimeout(efxTimer);
   sheet = (sheet?.k === 'item' && sheet.back) || sheet?.k === 'codex' ? { k: 'bag' } : null;
   msg = ''; render();
 }
 
 /** 처리했으면 true (그렸음) */
 function onClick(t: HTMLElement): boolean {
+  // 강화 연출 중 아무 데나 누르면 연출 끝 (누른 것은 그대로 처리, 34 7-3)
+  if (efx && !t.closest('[data-enh], [data-autostop]')) endFx();
   const tab = t.closest<HTMLElement>('[data-csub]');
-  if (tab) { sub = tab.dataset.csub as Sub; sel = null; swapping = false; msg = ''; sheet = null; salv = null; salvAsk = false; skOpen = null; hskOpen = null; hsel = null; render(false); return true; }
+  if (tab) { auto = null; efx = null; sub = tab.dataset.csub as Sub; sel = null; swapping = false; msg = ''; sheet = null; salv = null; salvAsk = false; skOpen = null; hskOpen = null; hsel = null; render(false); return true; }
   if (t.closest('[data-sheetx]')) { closeSheet(); return true; }
 
   // ---- 장비 ----
@@ -736,7 +811,7 @@ function onClick(t: HTMLElement): boolean {
       if (findItem(id)?.lock) msg = '잠긴 장비는 분해 안 됨';
       else { if (salv.has(id)) salv.delete(id); else salv.add(id); msg = ''; }
       salvAsk = false;
-    } else { sheet = { k: 'item', id, ...(inBag ? { back: true } : {}) }; msg = ''; rrOn = false; rrAlt = null; }
+    } else { sheet = { k: 'item', id, ...(inBag ? { back: true } : {}) }; msg = ''; rrOn = false; rrAlt = null; auto = null; }
     render(); return true;
   }
   const gs = t.closest<HTMLButtonElement>('[data-gslot]');
@@ -757,7 +832,21 @@ function onClick(t: HTMLElement): boolean {
   const eq = t.closest<HTMLElement>('[data-equip]');
   if (eq) { equip(Number(eq.dataset.equip)); msg = ''; render(); return true; }
   const en = t.closest<HTMLButtonElement>('[data-enh]');
-  if (en) { if (!en.disabled) { msg = enhance(Number(en.dataset.enh)); render(); } return true; }
+  if (en) {
+    if (en.disabled) return true;
+    const o = enhanceTry(Number(en.dataset.enh));
+    if (typeof o === 'string') msg = o;
+    else { msg = enhanceMsg(o); playFx(o, !!G.save.settings.quickEnhance || !!G.save.settings.reducedEffects); }
+    render(); return true;
+  }
+  if (t.closest('[data-autoopen]') && sheet?.k === 'item') { const it = findItem(sheet.id); if (it) auto = { id: it.id, target: [3, 6, 9, MAX_PLUS].find(n => n > it.plus) ?? MAX_PLUS, stopDrop: true, run: false, n: 0, why: '' }; render(); return true; }
+  const at = t.closest<HTMLElement>('[data-autot]');
+  if (at && auto) { auto.target = Number(at.dataset.autot); auto.why = ''; render(); return true; }
+  if (t.closest('[data-autox]')) { auto = null; render(); return true; }
+  if (t.closest('[data-autogo]') && auto) { auto.run = true; auto.n = 0; auto.why = ''; autoStep(); return true; }
+  const ad = t.closest<HTMLInputElement>('input[data-autodrop]');
+  if (ad && auto) { auto.stopDrop = ad.checked; return true; }
+  if (t.closest('[data-autostop]') && auto) { auto.run = false; auto.why = '멈춤'; render(); return true; }
   const s1 = t.closest<HTMLButtonElement>('[data-salv1]');
   if (s1) {
     if (s1.disabled) return true;

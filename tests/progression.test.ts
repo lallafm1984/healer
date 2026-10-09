@@ -63,7 +63,7 @@ describe('경험치·레벨 (02 부록 B)', () => {
     expect(starsOf({ win: true, deaths: 0, overheal: 0.3 })).toEqual([true, true, true]);
     expect(starsOf({ win: true, deaths: 2, overheal: 0.5 })).toEqual([true, false, false]);
     expect(starsOf({ win: false, deaths: 0, overheal: 0 })).toEqual([false, false, false]);
-    expect([1, 19, 20, 39, 40].map(itemSlots)).toEqual([2, 2, 3, 3, 4]);
+    expect([1, 14, 15, 29, 30].map(itemSlots)).toEqual([2, 2, 3, 3, 4]);
   });
 });
 
