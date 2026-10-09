@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { bossHpFor, U, UNIT, type DebuffDef, type SkillEffect } from '../src/data/bosses';
 import { CLASSES } from '../src/data/classes';
 import * as E from '../src/engine';
-import { backTargets, lowestTargets, runEffect } from '../src/engine/bossParts';
-import { moveTo } from '../src/engine/movement';
+import { applyDebuff, backTargets, lowestTargets, runEffect } from '../src/engine/bossParts';
+import { moveTo, pickCell } from '../src/engine/movement';
+import { unitDps } from '../src/engine/units';
 import { hexDist } from '../src/engine/board';
 import { fromDef } from '../src/engine/bosses';
 import { addDebuff, damageMob } from '../src/engine/core';
@@ -273,5 +274,102 @@ describe('흐르는 장판 (향로 연기)', () => {
     }
     const all = [...new Set(f.cells.map(c => c.col))].sort((a, b) => a - b);
     expect(cols).toEqual(all);
+  });
+});
+
+describe('피난처 (P-SAFE) · 한 번 맞는 장판', () => {
+  const BELLY = { key: 'belly', name: '배치기', kind: 'zone', first: 0, period: 999, cast: 4, hitDmg: 360, cells: { p: 'safe', at: 'edge', n: 6 } } as const;
+  it('5인 판: 가운데 4칸이 맞는 칸, 바깥 6칸이 안전 칸 (금빛)', () => {
+    const f = fight();
+    const s = fromDef(f, BELLY);
+    s.next = f.t; E.step(f);
+    const tel = f.tels.find(t => t.skill === s)!;
+    expect(tel.cells.size).toBe(4);
+    expect(tel.safe!.size).toBe(6);
+    expect([...tel.cells].some(i => tel.safe!.has(i))).toBe(false);
+  });
+  it('4초 예고 동안 파티원이 안전 칸으로 비키고, 남은 사람·배 속(hide)은 따로', () => {
+    const f = fight();
+    const s = fromDef(f, BELLY);
+    s.next = f.t; E.step(f);
+    const tel = f.tels.find(t => t.skill === s)!;
+    const inside = f.party.filter(u => tel.cells.has(u.cell));
+    const swallowed = dealer(f);
+    swallowed.debuffs.push({ id: 999, name: '삼키기', type: '물리', left: 99, lock: true, hide: true, noMove: true, noDps: true });
+    const hp = new Map(f.party.map(u => [u.id, u.hp]));
+    steps(f, 4.1);
+    expect(f.tels.includes(tel)).toBe(false);
+    for (const u of f.party) {
+      const hit = hp.get(u.id)! - u.hp > 100;
+      if (u === swallowed) expect(hit).toBe(false);
+      else if (hit) expect(tel.cells.has(u.cell)).toBe(true);
+    }
+    expect(inside.length).toBeGreaterThan(0);
+    expect(f.party.filter(u => u !== swallowed && tel.cells.has(u.cell)).length).toBeLessThan(inside.filter(u => u !== swallowed).length);
+  });
+  it('center + tank: 가운데에서 가까운 칸 n개와 탱커 칸이 안전', () => {
+    const f = fight();
+    const tank = f.party.find(u => u.role === 'tank')!;
+    const s = fromDef(f, { ...BELLY, key: 'roof', cells: { p: 'safe', at: 'center', n: 4, tank: true } });
+    s.next = f.t; E.step(f);
+    const tel = f.tels.find(t => t.skill === s)!;
+    expect(tel.safe!.has(tank.cell)).toBe(true);
+    expect(tel.safe!.size).toBeGreaterThanOrEqual(4);
+  });
+  it('악몽에서만 도는 기술 (when mythic)', () => {
+    const f = E.create({ encounter: 'warden', diff: '악몽', seed: 1 });
+    const g = fight();
+    for (const x of [f, g]) { x.skills.forEach(s => { s.next = Infinity; }); fromDef(x, { ...BELLY, key: 'm', when: { mythic: true } }).next = x.t; E.step(x); }
+    expect(f.tels.length).toBe(1);
+    expect(g.tels.length).toBe(0);
+  });
+});
+
+describe('무너지는 바닥 (P-HOLE) · 칸을 차지하는 쫄 (토템)', () => {
+  it('가장자리 빈 칸부터 구멍, 최대 개수까지, 빈 칸은 1개 이상 남김, 아무도 구멍으로 안 감', () => {
+    const f = fight();
+    for (let i = 0; i < 6; i++) run(f, { p: 'hole', n: 1, max: 3 });
+    const holes = f.cells.filter(c => c.block === 'hole');
+    expect(holes).toHaveLength(3);
+    expect(f.cells.filter(c => !c.unit && !c.block).length).toBeGreaterThanOrEqual(1);
+    const g = fight();
+    for (let i = 0; i < 20; i++) run(g, { p: 'hole', n: 1, max: 20 });
+    expect(g.cells.filter(c => !c.unit && !c.block)).toHaveLength(1);
+    const u = dealer(f);
+    for (let i = 0; i < 20; i++) { const c = pickCell(f, u, { safe: true }); expect(c?.block).toBeUndefined(); }
+  });
+  it('토템: 빈 칸 하나를 막고 이웃 칸에 오라 장판, 부수면 칸과 오라가 사라짐', () => {
+    const f = fight();
+    run(f, { p: 'adds', n: 1, add: { name: '진흙 토템', short: '토템', hp: 0.05, dmg: 0, every: 99, cell: { aura: 9 } } });
+    const m = f.mobs.find(x => x.add)!;
+    const c = f.cells[m.add!.cell!];
+    expect(c.block).toBe('add');
+    const z = f.zones.find(x => x.id === m.add!.zone)!;
+    expect([...z.cells].every(i => hexDist(f.cells[i], c) === 1)).toBe(true);
+    expect(m.add!.on).toBe(0);
+    damageMob(f, m, m.max);
+    E.step(f);
+    expect(c.block).toBeUndefined();
+    expect(f.zones.some(x => x.id === z.id)).toBe(false);
+  });
+});
+
+describe('상태 디버프: 딜 0 · 못 움직임 · 보스를 깎으면 풀림 (삼키기)', () => {
+  const SWALLOW: DebuffDef = { name: '삼키기', type: '물리', left: 8, dot: 30, lock: true, noDps: true, noMove: true, hide: true, untilBossLoss: 0.04 };
+  it('삼켜진 사람은 딜 0, 장판에 안 맞고, 보스 체력 4%를 더 깎으면 풀림', () => {
+    const f = fight();
+    const u = dealer(f);
+    u.dps = 10;
+    expect(unitDps(u)).toBeGreaterThan(0);
+    applyDebuff(f, u, SWALLOW);
+    expect(unitDps(u)).toBe(0);
+    f.zones.push({ id: 1, cells: new Set([u.cell]), end: Infinity, dps: 50 });
+    const hp = u.hp;
+    steps(f, 1);
+    expect(hp - u.hp).toBeCloseTo(30 * f.dmgMult, 0); // 위산만
+    expect(f.cells.findIndex(c => c.unit === u)).toBe(u.cell); // 제자리
+    f.bossHp -= f.bossMax * 0.04;
+    E.step(f);
+    expect(u.debuffs.some(d => d.name === '삼키기')).toBe(false);
   });
 });

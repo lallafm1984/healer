@@ -43,7 +43,8 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
   const state: DispelState = debuff.lock || !canDispel(hero, debuff.type) ? 'unavailable' : debuff.trap ? 'dangerous' : 'available';
   const marker = state === 'unavailable' ? '×' : state === 'dangerous' ? '!' : '';
   const kind = compact ? TYPE_SHORT[debuff.type] ?? '?' : debuff.type;
-  const action = debuff.lock ? (debuff.cureAt != null ? `해제 불가, 체력 ${Math.round(debuff.cureAt * 100)}% 이상이면 사라짐` : '해제 불가')
+  const action = debuff.lock ? (debuff.cureAt != null ? `해제 불가, 체력 ${Math.round(debuff.cureAt * 100)}% 이상이면 사라짐`
+    : debuff.untilBossLoss != null ? `해제 불가, 보스 체력 ${Math.round(debuff.untilBossLoss * 100)}% 깎으면 풀림` : '해제 불가')
     : state === 'unavailable' ? '이 직업으로 해제 불가' : state === 'dangerous' ? '해제 시 전염 폭발' : '해제 가능';
   const stack = (debuff.stack ?? 0) > 1 ? `, ${debuff.stack}중첩` : '';
   return {

@@ -50,7 +50,7 @@ export function pickCell(f: Fight, u: Unit, opts: PickOpts): Cell | null {
   let best: Cell | null = null, bs = -Infinity;
   for (const c of f.cells) {
     if (c.unit && c.unit !== u) continue;
-    if (c.i === u.cell) continue;
+    if (c.i === u.cell || c.block) continue;
     if (opts.safe && dangerAt(f, c.i, opts.extra)) continue;
     let s = 100;
     s += ZONE_PREF[u.role][zoneOf(f, c.row)] * (u.role === 'tank' ? 1 : 0.8);
@@ -131,7 +131,7 @@ export function doReact(f: Fight, u: Unit): void {
   const tel: Telegraph | Zone | undefined = f.tels.find(t => t.id === r.tel) || f.zones.find(z => z.id === r.tel);
   if (!tel) return;
   if (r.wrong) {
-    const free = f.cells.filter(c => !c.unit && tel.cells.has(c.i));
+    const free = f.cells.filter(c => !c.unit && !c.block && tel.cells.has(c.i));
     if (free.length) { moveTo(f, u, free[Math.floor(f.rng() * free.length)]); bark(f, u, u.p.barks![1], true); }
     return;
   }

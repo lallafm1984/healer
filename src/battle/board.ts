@@ -508,9 +508,17 @@ export function render(now: number): void {
   const zoneSet = new Set<number>(), telSet = new Set<number>();
   for (const z of F.zones) z.cells.forEach(i => zoneSet.add(i));
   for (const tl of F.tels) if (tl.kind === 'zone') tl.cells.forEach(i => telSet.add(i));
-  F.cells.forEach((_, i) => {
+  const safeSet = new Set<number>(); for (const tl of F.tels) tl.safe?.forEach(i => safeSet.add(i)); // 피난처 (35 3-E)
+  F.cells.forEach((c, i) => {
     const p = center(i);
     hexPoly(cellsG, p.x, p.y, r).fill({ color: C.cell, alpha: 0.5 }).stroke({ width: 2, color: C.bronze, alpha: 0.75 }); // 빈칸은 비쳐서 장소 바닥이 보임, 진형 선은 청동 (28 5장)
+    // 무너진 바닥 (P-HOLE): 검은 칸, 테두리만 남음
+    if (c.block === 'hole') { hexPoly(cellsG, p.x, p.y, r * 0.94).fill({ color: 0x07070b, alpha: 0.9 }); return; }
+    // 피난처 안전 칸: 금빛 바닥 + 안쪽 테 (맞는 칸은 아래 예고 빨강)
+    if (safeSet.has(i)) {
+      hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: 0.2 + 0.16 * pulse });
+      hexPoly(cellsG, p.x, p.y, r * 0.86).stroke({ width: Math.max(2, s * 0.05), color: C.gold, alpha: 0.85 });
+    }
     // 장판: 바닥 그림(28 5장)에 묻히지 않게 밝은 빨강 + 빗금 + 안쪽 테. 예고 = 깜빡이는 빨강 + 점선 테
     if (zoneSet.has(i)) {
       hexPoly(cellsG, p.x, p.y, r).fill({ color: C.zone, alpha: 0.5 + 0.12 * zpulse });
@@ -654,6 +662,13 @@ export function render(now: number): void {
       hexPoly(fxG, dp.x, dp.y, radius).fill({ color: e.color!, alpha: 0.6 * (1 - k) });
       recordBound(`death${e.id}-${e.t0}`, 'fx', 'hex', dp.x, dp.y, radius * COS30 * 2, radius * 2, { radius });
     }
+  }
+
+  // 칸을 차지한 쫄 (진흙 토템): 이름과 남은 체력
+  for (const m of F.mobs) if (m.alive && m.add?.cell != null) {
+    const p = center(m.add.cell);
+    hexPoly(cellsG, p.x, p.y, r * 0.7).fill({ color: 0x6b5a3a, alpha: 0.85 }).stroke({ width: 2, color: 0xb9a38a });
+    pill(overG, labels, `tot${m.id}`, p.x, p.y, `${m.add.short} ${Math.ceil((m.hp / m.max) * 100)}%`, 0xb9a38a, C.dark, fs(0.2, 10));
   }
 
   // 테두리 표시 · 배지

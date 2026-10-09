@@ -139,7 +139,7 @@ export function useTalent(f: Fight, key: TalentKey, cellIdx?: number): ActionRes
   if (def.active!.cell) {
     const c = cellIdx == null ? undefined : f.cells[cellIdx];
     if (!c) return { ok: false, reason: '쉼터로 만들 빈 칸 선택' };
-    if (c.unit) return { ok: false, reason: '빈 칸만 고를 수 있음' };
+    if (c.unit || c.block) return { ok: false, reason: '빈 칸만 고를 수 있음' };
   }
   a.cd = def.active!.cd; a.left = def.active!.dur; a.used = true;
   f.tx.lastAct = f.t;

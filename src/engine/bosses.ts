@@ -34,10 +34,18 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
     fire: e ? g => runEffect(g, s, e) : undefined,
     hit: e ? (g, tel) => runEffect(g, s, e, tel) : undefined,
     cellsFor: z ? g => zoneCells(g, s, z) : undefined,
-    flowEvery: z?.p === 'flow' ? z.every : undefined,
+    flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg, safe: z?.p === 'safe' || undefined,
   });
   f.bs[d.key] = s;
   return s;
+}
+
+/** 장판 예고가 맞는 순간 그 칸에 선 사람 (옮겨 가는 중이면 가는 칸) 한 번 피해. 두꺼비 배 속(hide)은 안 맞음 (피난처) */
+function cellHit(f: Fight, tel: Telegraph, dmg: number): void {
+  for (const u of living(f)) {
+    const pos = u.moving ? u.moving.to : u.cell;
+    if (tel.cells.has(pos) && !u.debuffs.some(d => d.hide)) damage(f, u, dmg, true);
+  }
 }
 
 /** 광폭화: 시각이 되거나 레이드 탱커 공백 (35 6-4)이면 짧은 주기 전원 광역 */
@@ -131,6 +139,7 @@ export function bossTick(f: Fight): void {
     if (s.cast <= 0) { s.fire!(f); continue; }
     const tel: Telegraph = { id: f.nextId++, skill: s, kind: s.kind, start: f.t, impact: f.t + s.cast, units: s.target ? s.target(f) : [], cells: s.cellsFor ? s.cellsFor(f) : new Set(), dps: s.dps, dur: s.dur };
     if (s.flowEvery && tel.cells.size) tel.flow = { col: f.cells[[...tel.cells][0]].col, dir: s.st.dir === -1 ? -1 : 1, every: s.flowEvery };
+    if (s.safe) tel.safe = new Set(f.cells.filter(c => !c.block && !tel.cells.has(c.i)).map(c => c.i));
     f.tels.push(tel);
     if (f.abOn) abOnTel(f, tel);
     if (f.aff) affChaos(f, tel);
@@ -139,7 +148,8 @@ export function bossTick(f: Fight): void {
   }
   for (const tel of f.tels.filter(t => t.impact <= f.t + 1e-9)) {
     if (tel.kind === 'zone') {
-      f.zones.push({ id: tel.id, cells: tel.cells, end: f.t + tel.dur!, dps: tel.dps! });
+      if (tel.skill.hitDmg) cellHit(f, tel, tel.skill.hitDmg);
+      if (tel.dur) f.zones.push({ id: tel.id, cells: tel.cells, end: f.t + tel.dur, dps: tel.dps! });
       if (tel.flow) flowNext(f, tel); // 흐르는 장판: 다음 열 예고
     } else tel.skill.hit!(f, tel);
     emit(f, { type: 'impact', kind: tel.kind });

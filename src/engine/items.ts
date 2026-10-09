@@ -25,9 +25,9 @@ export function reviveTarget(f: Fight): Unit | null {
 /** 쓰러진 파티원을 체력 pct로 일으킴 (부활 깃털·드루이드 환생). 원래 칸이 차 있으면 가까운 빈 칸 */
 export function reviveUnit(f: Fight, u: Unit, pct: number): boolean {
   let c = f.cells[u.cell];
-  if (c.unit) {
-    const free = f.cells.filter(x => !x.unit && !dangerAt(f, x.i));
-    const any = free.length ? free : f.cells.filter(x => !x.unit);
+  if (c.unit || c.block) {
+    const free = f.cells.filter(x => !x.unit && !x.block && !dangerAt(f, x.i));
+    const any = free.length ? free : f.cells.filter(x => !x.unit && !x.block);
     if (!any.length) return false;
     c = any.reduce((a, b) => (hexDist(b, f.cells[u.cell]) < hexDist(a, f.cells[u.cell]) ? b : a));
   }

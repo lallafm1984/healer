@@ -1,7 +1,7 @@
 import { aimMult, rageMult } from '../data/classes';
 import { hexDist } from './board';
 import { BARK, DRUID_BIG } from '../data/heroConst';
-import { bark, cellOf, damage, DT, heal, hpLineTick, onDebuffEnd } from './core';
+import { bark, cellOf, damage, DT, emit, heal, hpLineTick, onDebuffEnd } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
 import { calmHymn, renewEnd } from './talents';
 import { pullTick } from './bossParts';
@@ -33,16 +33,20 @@ export function unitTick(f: Fight, u: Unit): void {
   for (const d of u.debuffs.slice()) {
     d.left -= dt;
     if ((d.cureAt != null || d.grow) && hpLineTick(f, u, d, dt)) continue;
+    if (d.untilBossLoss != null && f.bossHp <= d.bossAt! - f.bossMax * d.untilBossLoss + 1e-9) { // 삼키기: 보스를 그만큼 깎으면 풀림
+      u.debuffs = u.debuffs.filter(x => x !== d); emit(f, { type: 'cure', id: u.id, name: d.name }); continue;
+    }
     if (d.grow) { if (d.stack) damage(f, u, d.stack * d.grow.dot * dt, true); }
     else if (d.dot) damage(f, u, d.stackMax ? d.dot * (d.stack ?? 1) * dt : d.dot * dt, true);
     if (!u.alive) return;
     if (d.left <= 0) { u.debuffs = u.debuffs.filter(x => x !== d); onDebuffEnd(f, u, d, false); }
   }
   if (!u.alive) return;
-  for (const z of f.zones) if (z.cells.has(u.cell)) damage(f, u, z.dps * dt, true);
+  for (const z of f.zones) if (z.cells.has(u.cell) && !(u.debuffs.length && u.debuffs.some(d => d.hide))) damage(f, u, z.dps * dt, true);
   if (!u.alive) return;
   if (u.moving) { u.moving.left -= dt; if (u.moving.left <= 0) finishMove(f, u); }
   if (u.pulled) pullTick(f, u);
+  if (u.debuffs.length && u.debuffs.some(d => d.noMove)) return; // 얼림·삼킴: 제자리
   if (u.mods.length && hasMod(u, 'stop')) return; // 붕대 감기·명상·얼음 방패: 멈춤
   if (u.react && f.t >= u.react.at && !u.moving) doReact(f, u);
   if (f.k % 4 !== 0 || u.moving || u.react) return;
@@ -73,7 +77,7 @@ export function unitTick(f: Fight, u: Unit): void {
   // 회피가 끝나면 원래 자리로 복귀 (04 3장 상태 머신). 신중파는 1초 더 기다림
   if (!u.fleeing && !u.pulled && u.home >= 0 && u.cell !== u.home) {
     const h = f.cells[u.home];
-    if (!h.unit && !dangerAt(f, u.home)) {
+    if (!h.unit && !h.block && !dangerAt(f, u.home)) {
       if (u.homeAt == null) u.homeAt = f.t + 1 + (u.p.react && u.p.react < 1 ? 1 : 0);
       else if (f.t >= u.homeAt) { u.homeAt = null; moveTo(f, u, h); return; }
     } else u.homeAt = null;
@@ -131,6 +135,7 @@ export function partyDps(f: Fight): number {
 /** 파티원 1명 초당 딜 */
 export function unitDps(u: Unit): number {
   if (!u.alive || u.fleeing || u.me) return 0;
+  if (u.debuffs.length && u.debuffs.some(d => d.noDps)) return 0; // 얼림·침묵·삼킴
   if (u.immune > 0) return 0; // 보호의 손: 그동안 딜 0
   if (u.moving && u.cls !== 'hunter') return 0;
   let d = u.dps * (u.p.dps || 1);

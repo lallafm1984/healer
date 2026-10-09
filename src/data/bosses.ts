@@ -63,6 +63,14 @@ export interface DebuffDef {
   stackMax?: number;
   /** 걸려 있는 동안 최대 체력 −비율 (부패). 끝나면 end restoreMax로 돌아옴 */
   maxCut?: number;
+  /** 딜 0 (얼림·침묵·삼킴) */
+  noDps?: boolean;
+  /** 움직이지 못함: 장판을 못 피하고 제자리 (얼림·삼킴) */
+  noMove?: boolean;
+  /** 판 기술(장판·피난처 한 방)에 안 맞음 (두꺼비 배 속, 35 4-2 삼키기) */
+  hide?: boolean;
+  /** 걸린 때보다 보스 체력이 이 비율(보스 최대 체력 기준)만큼 깎이면 풀림 (삼키기 4%). 풀릴 때 end는 안 함 */
+  untilBossLoss?: number;
   end?: DebuffEnd;
 }
 
@@ -83,9 +91,12 @@ export interface AddDef {
   short: string;
   /** 체력 = 보스 최대 체력 × hp */
   hp: number;
+  /** 맡은 사람에게 every초마다 (0이면 안 때림: 토템) */
   dmg: number;
   every: number;
   down?: AddDown;
+  /** 판의 빈 칸 하나를 차지 (아무도 못 섬). aura = 이웃 칸에 선 사람 초당 피해 (진흙 토템 독 오라, 파티원이 장판처럼 피함) */
+  cell?: { aura: number };
 }
 
 /** 기술이 맞을 때 하는 일 */
@@ -113,7 +124,9 @@ export type SkillEffect =
    */
   | { p: 'pull'; sec: number; dmg: number }
   /** 쫄 n마리 (P-ADD). 악몽은 nMythic */
-  | { p: 'adds'; n: number; nMythic?: number; add: AddDef };
+  | { p: 'adds'; n: number; nMythic?: number; add: AddDef }
+  /** 무너지는 바닥 (P-HOLE): 가장자리 빈 칸 n개가 끝까지 못 서는 칸이 됨 (전투 전체 max개까지). 빈 칸은 늘 1개 이상 남김 */
+  | { p: 'hole'; n: number; max: number };
 
 /** 장판 칸 고르기 */
 export type ZoneCells =
@@ -127,7 +140,12 @@ export type ZoneCells =
    * 흐르는 장판 (향로 연기, 35 4-1): 한쪽 끝 열에서 시작해 every초마다 한 열씩 옆으로. 다음 열은 every초 전에 예고되어 파티원이 미리 비킨다.
    * 열마다 장판은 skill.dur초 남음. from: left (기본) / right / alt = 쓸 때마다 번갈아
    */
-  | { p: 'flow'; every: number; from?: 'left' | 'right' | 'alt' };
+  | { p: 'flow'; every: number; from?: 'left' | 'right' | 'alt' }
+  /**
+   * 피난처 (P-SAFE): 안전 칸을 뺀 모든 칸. 안전 칸 n개 (악몽 nMythic): edge = 판 가운데에서 먼 칸부터 (배치기),
+   * center = 가운데에 가까운 칸부터 + tank면 탱커 칸도 (천장 무너짐). 화면은 안전 칸을 금빛으로. 던전은 안전 칸 ≥ 인원 (35 3-E)
+   */
+  | { p: 'safe'; at: 'edge' | 'center'; n: number; nMythic?: number; tank?: boolean };
 
 /** 기술이 도는 조건. 타이머는 조건과 상관없이 흐르고, 조건이 안 맞으면 그 차례는 건너뜀 */
 export interface SkillWhen {
@@ -137,6 +155,8 @@ export interface SkillWhen {
   hpBelow?: number;
   /** 이 몸통(bodies 순번) 중 하나라도 살아 있을 때 */
   bodyAlive?: number[];
+  /** 악몽에서만 (true) / 악몽이 아닐 때만 (false): 「악몽 변화」로 기술을 바꿀 때 (35 10장 1번) */
+  mythic?: boolean;
 }
 
 export interface SkillDef {
@@ -158,9 +178,11 @@ export interface SkillDef {
   cut?: boolean;
   /** 버스터 피해 (탱커 기준) */
   dmg?: number;
-  /** 장판 초당 피해 · 지속 */
+  /** 장판 초당 피해 · 지속 (없으면 남는 장판 없음) */
   dps?: number;
   dur?: number;
+  /** 장판 예고가 맞는 순간 그 칸에 선 사람 한 번 피해 (피난처 배치기·천장 무너짐) */
+  hitDmg?: number;
   /** 악몽 장판 피해 배율 (불협화음 0.7) */
   dpsMythic?: number;
   when?: SkillWhen;
