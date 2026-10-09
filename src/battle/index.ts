@@ -16,7 +16,7 @@ import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, se
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON, ratsArt } from './art';
-import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxDeath, fxDispel, fxHeal, fxHurt, fxRevive, fxShake, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard } from './board';
+import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxDeath, fxDispel, fxGim, fxHeal, fxHurt, fxRevive, fxShake, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard, setBoardFaction } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
@@ -25,7 +25,7 @@ import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
 import {
-  bossHealNum, bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
+  bossFx, bossHealNum, bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
   resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
 } from './hud';
 
@@ -105,6 +105,7 @@ function setPlace(enc: EncounterKey): void {
   const place = ENCOUNTER_PLACE[enc] || 'rustfort', el = $('battle');
   const floor = art(floorArtName(place)), scene = art(sceneArtName(place));
   el.dataset.place = place;
+  setBoardFaction(PLACES[place].faction);
   el.style.setProperty('--floor', cssUrl(floor));
   el.style.setProperty('--stage-art', cssUrl(scene || floor));
   el.style.setProperty('--tone-a', PLACES[place].tone[0]);
@@ -503,6 +504,7 @@ function handleEvents(now: number): void {
         const it = ITEMS[ev.key];
         toast(`${it.name}${ev.note ? ` → ${ev.note}` : ''}`);
         Snd.play(it.kind === 'potion' ? 'potion' : 'scroll');
+        if (ev.key === 'mana' || ev.key === 'medit') fxGim('mana-drop', now, { id: F.me.id });
         const el = $('items').querySelector(`[data-item="${ev.key}"]`);
         if (el) { el.classList.remove('flash'); void (el as HTMLElement).offsetWidth; el.classList.add('flash'); }
         break;
@@ -519,14 +521,22 @@ function handleEvents(now: number): void {
         if (u && !u.me) toast(`${u.nick} 쓰러짐`);
         break;
       case 'msg': toast(ev.text); break;
-      case 'phase': banner(ev.text); if (ev.text === '광폭화') vibe([60, 80, 60, 80, 60], true); else vibe(200, true); break;
+      case 'phase': banner(ev.text); if (ev.text === '광폭화') { vibe([60, 80, 60, 80, 60], true); bossFx('rage'); } else vibe(200, true); break;
       case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`); break;
       case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now, '봉화 지정'); break; }
-      case 'mobDown': toast(`${ev.name} 쓰러짐`); $('bossName').innerHTML = bossTitle(); break;
+      case 'mobDown': {
+        toast(`${ev.name} 쓰러짐`); $('bossName').innerHTML = bossTitle();
+        // 판 위 적 처치 (37 4장 F-1): 감옥은 깨지고, 칸에 선 적은 연기로
+        const a = F.mobs.find(m => m.id === ev.id)?.add;
+        if (a?.hold != null) fxGim('jail-break', now, { id: a.on }); else if (a?.cell != null) fxGim('poof', now, { cell: a.cell });
+        break;
+      }
       case 'ability': if (u) fxAbility(u, ev.name, now); break;
       case 'aheal': if (u) fxAllyHeal(u, ev.amt, now); break;
       case 'hurt': if (u) fxHurt(u, ev.amt, now); break; // 뒤집힌 축복
-      case 'bossHeal': bossHealNum(ev.amt); break; // 치유하는 쫄
+      case 'bossHeal': bossHealNum(ev.amt); bossFx('mend'); break; // 치유하는 쫄
+      // 기믹 연출 (37 4장 F-1): 칸·사람이 없으면 보스 그림 위
+      case 'fx': if (ev.cell == null && ev.id == null && !ev.all) bossFx(ev.name); else fxGim(ev.name, now, ev); break;
       case 'shake': if (u) { fxShake(u, now); vibe([20, 40, 20]); } break;
     }
   }

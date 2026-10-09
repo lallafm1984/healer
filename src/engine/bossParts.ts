@@ -99,7 +99,9 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         if (free.length <= 1) break;
         const far = Math.max(...free.map(c => fromMid(f, c)));
         const pick = free.filter(c => fromMid(f, c) > far - 1e-6);
-        pick[Math.floor(f.rng() * pick.length)].block = 'hole';
+        const c = pick[Math.floor(f.rng() * pick.length)];
+        c.block = 'hole';
+        emit(f, { type: 'fx', name: 'crumble', cell: c.i });
         emit(f, { type: 'msg', text: '바닥이 무너짐' });
       }
       return;
@@ -123,6 +125,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         if (!d) continue;
         d.jail = true;
         got.push(u);
+        emit(f, { type: 'fx', name: 'spawn', id: u.id });
         f.mobs.push({ id: f.nextId++, name: e.name, elite: false, hp: f.bossMax * e.hp, max: f.bossMax * e.hp, alive: true,
           add: { short: e.short, on: u.id, dmg: 0, every: 0, next: Infinity, job: { p: 'jail' }, jobAt: Infinity, hold: d.id } });
       }
@@ -198,11 +201,12 @@ function spawnSoul(f: Fight, e: Extract<SkillEffect, { p: 'soul' }>): void {
     base: max, max, hp: max * e.hp, dps: 0, alive: true, cell: c.i, home: c.i, hot: 0, hotTick: 0, hots: [], redu: 0, reduCut: 0, sacr: 0, immune: 0, echo: [],
     guardian: 0, shield: 0, debuffs: [], moving: null, react: null, retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0,
     thanks: 0, flash: 0, barkAt: 0, ignoreZone: 0, homeAt: null, diedAt: 0, me: false, ab: null, mods: [], got: 0, senseReact: 1, senseDodge: 0, runs: 0,
-    soul: { name: e.name, short: e.short, until: f.t + e.sec, total: e.sec, win: e.win, fail: e.fail },
+    soul: { name: e.name, short: e.short, until: f.t + e.sec, total: e.sec, win: e.win, fail: e.fail, art: e.art },
   };
   if (e.type) u.debuffs.push({ id: f.nextId++, name: e.name, type: e.type, left: e.sec }); // 이 유형을 지우는 해제가 바로 성공
   c.block = 'soul';
   f.souls.push(u);
+  emit(f, { type: 'fx', name: 'spawn', cell: c.i });
   emit(f, { type: 'msg', text: `${e.name} 등장: ${e.sec}초 안에 가득 채우기` });
 }
 
@@ -228,6 +232,7 @@ function soulEnd(f: Fight, u: Unit, ok: boolean): void {
   if (ok) {
     const w = s.win;
     emit(f, { type: 'sound', name: 'gauge' });
+    emit(f, { type: 'fx', name: 'soul-purify', cell: at.i });
     emit(f, { type: 'msg', text: `${s.name} 채움: ${w.text}` });
     if (w.cure) for (const v of living(f)) {
       const d = v.debuffs.find(x => x.type === w.cure && !x.lock && !x.trap);
@@ -245,6 +250,7 @@ function soulEnd(f: Fight, u: Unit, ok: boolean): void {
     return;
   }
   emit(f, { type: 'sound', name: 'aoe' });
+  emit(f, { type: 'fx', name: 'splash', cell: at.i });
   emit(f, { type: 'msg', text: `${s.name} 놓침: ${s.fail.text}` });
   const hit = s.fail.near ? living(f).filter(v => hexDist(cellOf(f, v), at) === 1) : living(f);
   for (const v of hit) { damage(f, v, s.fail.dmg, true); if (s.fail.debuff && v.alive) applyDebuff(f, v, s.fail.debuff); }
@@ -257,6 +263,7 @@ export function vesselTick(f: Fight): void {
     f.vessel = null;
     for (const u of living(f)) u.shield = Math.max(u.shield, v.shield);
     emit(f, { type: 'sound', name: 'gauge' });
+    emit(f, { type: 'fx', name: 'bubble', all: true });
     emit(f, { type: 'msg', text: `${v.name} 가득: 전원 보호막 ${v.shield}초` });
   } else if (f.t + 1e-9 >= v.until) {
     f.vessel = null;
@@ -299,6 +306,7 @@ export function linksTick(f: Fight): void {
     for (const u of [a, b]) if (u) u.debuffs = u.debuffs.filter(d => !(d.link && (d.link.to === l.a || d.link.to === l.b)));
     if (!snap) continue;
     emit(f, { type: 'sound', name: 'aoe' });
+    emit(f, { type: 'fx', name: 'link-snap', id: l.a, to: l.b });
     emit(f, { type: 'msg', text: `${l.name} 끊어짐: ${a!.nick} · ${b!.nick} 피해` });
     damage(f, a!, l.dmg, true, l.aim);
     damage(f, b!, l.dmg, true, l.aim);
@@ -312,12 +320,14 @@ export function staggerTick(f: Fight): void {
     f.stagger = null;
     f.daze = { until: f.t + g.win.sec, vuln: g.win.vuln, name: '무방비' };
     emit(f, { type: 'sound', name: 'gauge' });
+    emit(f, { type: 'fx', name: 'chain-break' });
     emit(f, { type: 'msg', text: `${g.name} 막음: 보스 ${g.win.sec}초 무방비 (받는 피해 +${Math.round((g.win.vuln - 1) * 100)}%)` });
     return;
   }
   if (f.t + 1e-9 < g.until) return;
   f.stagger = null;
   emit(f, { type: 'sound', name: 'aoe' });
+  emit(f, { type: 'fx', name: 'shockwave', all: true });
   emit(f, { type: 'msg', text: `${g.name} 못 막음: 땅 울림, 시전 ${g.fail.lock}초 못 함` });
   for (const u of living(f)) damage(f, u, g.fail.dmg, false);
   const casts = Object.values(HEROES[f.hero].slots).filter((k): k is SkillKey => !!k && (f.R.cast?.[k] ?? SKILLS[k].cast) > 0);
@@ -329,6 +339,7 @@ export function staggerTick(f: Fight): void {
 export function stunBoss(f: Fight, sec: number): void {
   f.daze = { until: f.t + sec, vuln: 1, name: '기절' };
   emit(f, { type: 'sound', name: 'gauge' });
+  emit(f, { type: 'fx', name: 'dizzy' });
   emit(f, { type: 'msg', text: `반격 성공: 보스 ${sec}초 기절` });
 }
 
@@ -373,6 +384,7 @@ function quake(f: Fight, e: Extract<SkillEffect, { p: 'quake' }>): void {
     emit(f, { type: 'shake', id: f.me.id });
     emit(f, { type: 'msg', text: `진동: ${SKILLS[key].name} 끊김, ${e.lock}초 잠김` });
   }
+  emit(f, { type: 'fx', name: 'shockwave', all: true });
   for (const u of living(f)) damage(f, u, e.dmg, true);
 }
 
@@ -393,6 +405,7 @@ export function watchTick(f: Fight): void {
   if (w.fill < w.max) return;
   w.fill = 0; w.until = f.t + w.sec; w.next = f.t;
   emit(f, { type: 'sound', name: 'buster' });
+  emit(f, { type: 'fx', name: 'warn', id: f.me.id });
   emit(f, { type: 'msg', text: `주시: 보스가 ${w.sec}초 동안 나를 노림` });
 }
 
@@ -445,6 +458,7 @@ function orderDone(f: Fight, ok: boolean): void {
   if (!ok) { emit(f, { type: 'msg', text: `${o.name}: 시간이 다 됨` }); return; }
   f.daze = { until: f.t + o.daze.sec, vuln: o.daze.vuln };
   emit(f, { type: 'sound', name: 'gauge' });
+  emit(f, { type: 'fx', name: 'dizzy' });
   emit(f, { type: 'msg', text: `${o.name} 성공: 보스 ${o.daze.sec}초 멍함 (받는 피해 +${Math.round((o.daze.vuln - 1) * 100)}%)` });
 }
 
@@ -488,6 +502,7 @@ function pull(f: Fight, u: Unit, sec: number, dmg: number): void {
     u.moving = { from: u.cell, to: c.i, left: 0.3, total: 0.3 };
   }
   u.pulled = { until: f.t + sec, cell: c && u.moving ? c.i : u.cell, dmg };
+  emit(f, { type: 'fx', name: 'hook', id: u.id });
   emit(f, { type: 'msg', text: `${u.nick} 끌려옴` });
 }
 
@@ -509,7 +524,7 @@ function spawnAdd(f: Fight, a: AddDef): void {
   const c = prey && j?.p === 'fixate' ? cellNear(f, prey, j.from ?? 3) : addCell(f, a.at ?? (a.dmg > 0 ? 'front' : j?.p === 'march' ? 'back' : 'random'));
   if (!c) return;
   const m: Mob = { id: f.nextId++, name: a.name, elite: false, hp: f.bossMax * a.hp, max: f.bossMax * a.hp, alive: true,
-    add: { short: a.short, on: prey?.id ?? 0, dmg: a.dmg, every: a.every, next: f.t + a.every, down: a.down, cell: c.i, job: j, cleave: a.cleave } };
+    add: { short: a.short, on: prey?.id ?? 0, dmg: a.dmg, every: a.every, next: f.t + a.every, down: a.down, cell: c.i, job: j, cleave: a.cleave, art: a.art } };
   const u = a.dmg > 0 || j?.p === 'smash' ? addTarget(f) : undefined;
   if (u) m.add!.on = u.id;
   c.block = 'add';
@@ -521,6 +536,7 @@ function spawnAdd(f: Fight, a: AddDef): void {
   if (j) m.add!.jobAt = f.t + (j.p === 'bomb' ? j.sec : 'every' in j ? j.every : Infinity);
   if (j?.p === 'march') m.add!.steps = c.row + 1; // 앞줄(0)까지 걸어와서 한 번 더 걸으면 흡수
   f.mobs.push(m);
+  emit(f, { type: 'fx', name: 'spawn', cell: c.i });
   if (u && u.role === 'tank') offTankTo(f, u, c);
 }
 
@@ -609,7 +625,7 @@ export function addsTick(f: Fight): void {
     if (a.hold != null && !unitById(f, a.on)?.debuffs.some(d => d.id === a.hold)) { vanish(m); continue; } // 갇힌 사람이 쓰러짐
     if (a.job && f.t + 1e-9 >= a.jobAt!) { addJob(f, m); if (!m.alive) continue; }
     if (a.job?.p === 'drain') f.mana = Math.max(0, f.mana - a.job.pct * DT); // 마나 갈취 쫄 (P-DRAIN)
-    if (a.job?.p === 'smash' && !a.warned && f.t + 1e-9 >= a.jobAt! - a.job.warn) { a.warned = true; emit(f, { type: 'sound', name: 'buster' }); }
+    if (a.job?.p === 'smash' && !a.warned && f.t + 1e-9 >= a.jobAt! - a.job.warn) { a.warned = true; emit(f, { type: 'sound', name: 'buster' }); emit(f, { type: 'fx', name: 'warn', id: a.on }); }
     if (a.dmg <= 0 || f.t + 1e-9 < a.next) continue;
     a.next += a.every;
     if ((m.stun || 0) > f.t) continue;
@@ -633,6 +649,7 @@ function addJob(f: Fight, m: Mob): void {
     a.jobAt = Infinity;
     vanish(m);
     emit(f, { type: 'sound', name: 'burst' });
+    emit(f, { type: 'fx', name: 'explode', cell: a.cell });
     emit(f, { type: 'msg', text: `${m.name}이(가) 터짐` });
     for (const u of living(f)) damage(f, u, j.dmg, true);
   } else if (j.p === 'smash') {
@@ -642,6 +659,7 @@ function addJob(f: Fight, m: Mob): void {
     let u = unitById(f, a.on);
     if (!u || !u.alive) { u = addTarget(f); if (!u) return; a.on = u.id; }
     damage(f, u, j.dmg, false, 'tank');
+    emit(f, { type: 'fx', name: 'slam', id: u.id });
     emit(f, { type: 'shake', id: u.id });
   } else if (j.p === 'march') {
     // 걸어오는 쫄 (P-MARCH): 한 줄 앞으로. 걸음이 다 되면 보스에게 흡수
@@ -660,6 +678,7 @@ function addJob(f: Fight, m: Mob): void {
     if (d0 > 2) return;
     vanish(m);
     emit(f, { type: 'sound', name: 'burst' });
+    emit(f, { type: 'fx', name: 'explode', id: u.id });
     emit(f, { type: 'msg', text: `${m.name}이(가) ${u.nick} 곁에서 터짐` });
     for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), at) === 1) damage(f, v, j.splash, true);
     damage(f, u, j.dmg, true);

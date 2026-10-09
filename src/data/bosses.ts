@@ -112,6 +112,8 @@ export interface AddDef {
   name: string;
   /** 칸 이름표 글자 (한두 글자) */
   short: string;
+  /** 칸 그림 (src/art의 mob-…, 37 4장 C). 없으면 하는 일에 맞는 공용 그림 (37 4장 E), 그것도 없으면 글자 */
+  art?: string;
   /** 체력 = 보스 최대 체력 × hp */
   hp: number;
   /** 맡은 사람에게 every초마다 (0이면 안 때림: 토템·오브젝트) */
@@ -222,7 +224,7 @@ export type SkillEffect =
    * 칸 탭으로 단일 힐(기본·빠른·지속)만 들어감. sec초 안에 가득 채우면 win, 못 채우면 fail. type이 있으면 그 유형을 지우는 직업이
    * 영혼에 해제를 쓰면 바로 성공. 빈 칸이 1개뿐이면 안 나옴
    */
-  | { p: 'soul'; name: string; short: string; hp: number; sec: number; type?: string; win: SoulWin; fail: SoulFail }
+  | { p: 'soul'; name: string; short: string; hp: number; sec: number; type?: string; win: SoulWin; fail: SoulFail; art?: string }
   /**
    * 생명 사슬 (P-LINK, 35 3장): 두 사람을 sec초 잇는 사슬 (pick tanks = 두 탱커, 없으면 탱커 아닌 사람 둘. 나도 걸릴 수 있음).
    * balance = 두 사람 체력 비율 차이가 gap(기본 0.3)을 넘으면 끊어지며 둘 다 dmg (aim 기준, 기본 party).

@@ -1,6 +1,8 @@
 /** 전투 아트. 보스·잡몹은 생성 원화(src/art의 boss-·mob-, 29 문서), 없으면 벡터 그림. 소비 아이템은 벡터 그림. */
 import { art } from '../art';
 import type { ItemKey } from '../data/items';
+import type { FactionKey } from '../data/places';
+import type { Mob, Unit } from '../engine/types';
 import { SKILLS, type SkillKey, type SlotName } from '../data/skills';
 
 /** 작은 스킬 칸에서도 구분되는 기능 문양. 원화·직업 색에 의존하지 않는 공통 실루엣. */
@@ -84,3 +86,25 @@ export function emblemSrc(hero: string, color: string): { src: string; painted: 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="96" height="96" fill="none" stroke="${color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${EMBLEM_LINE[hero] || EMBLEM_LINE.priest}</svg>`;
   return { src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, painted: false };
 }
+
+/**
+ * 판 위 그림 이름 (37 v0.2). 있는 그림 이름을 돌려주고, 없으면 '' (그러면 판은 지금처럼 글자·색으로 그림).
+ * 판 위 적: 데이터에 정한 고유 그림 (37 4장 C) → 하는 일에 맞는 공용 그림 (37 4장 E)
+ */
+const ADD_ART: Record<string, string> = {
+  mend: 'mob-imp-mender', bomb: 'mob-bomb', pylon: 'mob-pylon', jail: 'mob-jail', march: 'mob-slime-march', fixate: 'mob-spark-fixate',
+  smash: 'mob-brute', drain: 'mob-mana-leech', swarm: 'mob-imp-swarm', aura: 'mob-totem', hit: 'mob-imp',
+};
+const firstArt = (...names: (string | undefined)[]): string => names.find(n => n && art(n)) ?? '';
+export function addArtName(m: Mob): string {
+  const a = m.add!;
+  return firstArt(a.art, ADD_ART[a.job?.p ?? (a.cleave ? 'swarm' : a.zone != null ? 'aura' : 'hit')]);
+}
+/** 헤매는 영혼 칸 (37 4장 C-3·5 고유, E-21 공용) */
+export const soulArtName = (u: Unit): string => firstArt(u.soul?.art, 'mob-soul-wisp');
+/** 장판 칸 무늬 (37 4장 B-8~14): 세력 장판 → 공용. 예고는 B-9 */
+const ZONE_TAIL: Partial<Record<FactionKey, string>> = { plague: 'plague', swamp: 'swamp', noble: 'noble', mage: 'frost', hill: 'hill' };
+export const zoneArtName = (fac: FactionKey | null): string => firstArt(fac && ZONE_TAIL[fac] ? `fx-cell-zone-${ZONE_TAIL[fac]}` : undefined, 'fx-cell-zone');
+/** 무너진 바닥 칸 (37 4장 B-3~5): 늪 = 물, 마탑 = 얼음 기둥, 그 밖 = 돌 구덩이 */
+const HOLE_TAIL: Partial<Record<FactionKey, string>> = { swamp: 'swamp', mage: 'ice' };
+export const holeArtName = (fac: FactionKey | null): string => firstArt(fac && HOLE_TAIL[fac] ? `fx-cell-hole-${HOLE_TAIL[fac]}` : undefined, 'fx-cell-hole-stone');
