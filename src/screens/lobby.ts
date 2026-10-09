@@ -7,7 +7,7 @@
  * 건물 이름표·광장 물건은 그림 비율 2:3 「무대」 안에 %로 → 화면 크기가 달라도 같은 지점을 가리킴.
  */
 import { art } from '../art';
-import { contentOf, type ContentKey } from '../data/content';
+import { CONTENT, contentOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { ITEM_GRADES, RECOMMENDED, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
@@ -21,7 +21,7 @@ import { chestState, claimChalChest, claimChest, claimMission, missionReady, pas
 import { Flow } from '../game/flow';
 import { capOf, guildOpen } from '../game/guild';
 import { chalGate } from '../game/runmode';
-import { commit, G, lockOf, refreshDay } from '../game/state';
+import { commit, firstDungeonNow, G, lockOf, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { esc, go, screen, topBar } from './kit';
 import { factionMark, gameIcon } from './art';
@@ -75,12 +75,20 @@ const st = { msg: '' };
 /** 목표 한 줄: prog = 진행 n/m, to = 누르면 그 콘텐츠의 편성 화면 */
 interface Goal { text: string; prog: string; to?: { content: ContentKey; diff: DiffName } }
 
-/** 다음 목표 줄: 녹슨 요새 아직 안 깬 난이도 → 다음 레벨 마일스톤 (이 빌드에 있는 것) */
+/** 아직 한 번도 안 깬 열린 장소 (탐험 · 던전, 낮은 레벨부터, 34 5-2). 첫 던전 녹슨 요새는 쉬움, 나머지는 보통 */
+function freshPlace(): { content: ContentKey; diff: DiffName } | null {
+  const c = CONTENT.filter(x => x.ready && !x.hidden && x.kind !== 'raid' && !lockOf(x).locked && !G.save.clears[x.key])
+    .sort((a, b) => a.unlockLv - b.unlockLv)[0];
+  return c ? { content: c.key, diff: c.key === 'rustfort' ? '쉬움' : '보통' } : null;
+}
+
+/** 다음 목표 줄: 안 깬 열린 장소 → 녹슨 요새 아직 안 깬 난이도 → 다음 레벨 마일스톤 (이 빌드에 있는 것) */
 function goals(): Goal[] {
   const out: Goal[] = [];
-  const rec = G.save.clears.rustfort || {}, lvNow = G.save.player.level;
-  if (G.save.tut < TUT.done) out.push({ text: '녹슨 요새 「쉬움」 클리어', prog: '0/1', to: { content: 'rustfort', diff: '쉬움' } });
-  const diff = G.save.tut < TUT.done ? null : (['보통', '어려움', '악몽'] as const).find(d => !rec[d]);
+  const rec = G.save.clears.rustfort, lvNow = G.save.player.level;
+  const fresh = freshPlace();
+  if (fresh) out.push({ text: `${contentOf(fresh.content).name} 「${fresh.diff}」 클리어`, prog: '0/1', to: fresh });
+  const diff = rec && (['보통', '어려움', '악몽'] as const).find(d => !rec[d]);
   if (diff) out.push({ text: `녹슨 요새 「${diff}」 클리어`, prog: '0/1', to: { content: 'rustfort', diff } });
   let lv = lvNow;
   for (let i = 0; i < 20; i++) {
@@ -138,14 +146,16 @@ function tracker(): string {
     : `<div class="lb-trk">${inner}</div>`;
 }
 
-/** 「출전」 목적지: 지난 판의 콘텐츠·난이도, 처음이면 추천 (녹슨 요새의 아직 안 깬 난이도). 튜토리얼 던전 차례면 녹슨 요새 쉬움 */
+/** 「출전」 목적지: 첫 던전 차례면 녹슨 요새 쉬움 → 지난 판의 콘텐츠·난이도 → 안 깬 열린 장소 → 녹슨 요새의 아직 안 깬 난이도 */
 function dest(): { content: ContentKey; diff: DiffName } {
-  if (G.save.tut < TUT.done) return { content: 'rustfort', diff: '쉬움' };
+  if (firstDungeonNow()) return { content: 'rustfort', diff: '쉬움' };
   const last = G.save.last;
   if (last) {
     const c = contentOf(last.content as ContentKey);
     if (c && c.ready && !lockOf(c, last.diff).locked) return { content: c.key, diff: last.diff };
   }
+  const fresh = freshPlace();
+  if (fresh) return fresh;
   const rec = G.save.clears.rustfort || {};
   return { content: 'rustfort', diff: (['보통', '어려움', '악몽'] as const).find(d => !rec[d]) || '어려움' };
 }
@@ -200,7 +210,7 @@ function square(): string {
 /** 아래 줄: 「다시」 메달 (지난 판) · 「출전」 · 「시즌 패스」 메달 */
 function dock(tutDone: boolean): string {
   const to = dest(), c = contentOf(to.content), f = PLACES[CONTENT_PLACE[to.content]].faction;
-  const cta = `<button type="button" class="g-cta lb-cta${G.save.tut === TUT.dungeon ? ' hi-pulse' : ''}" id="lobbyStart" aria-label="출전 · ${esc(c.name)} ${esc(to.diff)}"><span class="g-mk">${factionMark(f)}</span><span class="g-ct"><b>출전</b><small>${esc(c.name)} · ${esc(to.diff)}</small></span></button>`;
+  const cta = `<button type="button" class="g-cta lb-cta${firstDungeonNow() ? ' hi-pulse' : ''}" id="lobbyStart" aria-label="출전 · ${esc(c.name)} ${esc(to.diff)}"><span class="g-mk">${factionMark(f)}</span><span class="g-ct"><b>출전</b><small>${esc(c.name)} · ${esc(to.diff)}</small></span></button>`;
   if (!tutDone) return cta;
   const last = G.save.last, lastC = last ? contentOf(last.content as ContentKey) : null;
   const again = last && lastC
@@ -235,7 +245,7 @@ function render(): void {
         <div class="lb-shade" aria-hidden="true"></div>
         ${tracker()}
         ${dock(tutDone)}
-        ${G.save.tut === TUT.dungeon ? '<p class="coachtip lb-coach">이제 첫 던전 <b>녹슨 요새</b> 차례. 「출전」 누르기</p>' : ''}
+        ${firstDungeonNow() ? '<p class="coachtip lb-coach">첫 던전 <b>녹슨 요새</b>가 열림. 「출전」 누르기</p>' : ''}
         ${st.msg ? `<p class="warnbox lb-msg" role="status">${esc(st.msg)}</p>` : ''}
       </div>
     </div>`;

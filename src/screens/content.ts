@@ -20,7 +20,7 @@ import { weekRemaining } from '../game/clock';
 import { raidLootOpen } from '../game/economy';
 import { Flow } from '../game/flow';
 import { chalGate, runMode, weekAffixes } from '../game/runmode';
-import { G, heroNow, lockOf, otherHeroFor } from '../game/state';
+import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { esc, fmt, go, josa, previous, screen, topBar } from './kit';
 import { factionMark, gameIcon, LOCK, placeArt } from './art';
@@ -139,11 +139,11 @@ function current(): ContentDef | null {
   return c;
 }
 
-/** 고른 난이도: 기억한 것 → (튜토리얼 첫 던전은 쉬움, 09 4장) → 아직 안 깬 가장 낮은 난이도 (보통부터) → 다 깼으면 열린 가장 높은 난이도 */
+/** 고른 난이도: 기억한 것 → (첫 던전 녹슨 요새는 쉬움, 09 4장) → 아직 안 깬 가장 낮은 난이도 (보통부터) → 다 깼으면 열린 가장 높은 난이도 */
 function diffOf(c: ContentDef): DiffName {
   const m = diffPick[c.key];
   if (m && !diffLocked(c, m).locked) return m;
-  if (G.save.tut === TUT.dungeon && c.key === 'rustfort') return '쉬움';
+  if (c.key === 'rustfort' && firstDungeonNow()) return '쉬움';
   const rec = G.save.clears[c.key] || {};
   let last: DiffName = '보통';
   for (const d of ['보통', '어려움', '악몽'] as DiffName[]) {
@@ -313,7 +313,8 @@ const s = screen('s-content', '모험 선택', {
       const c = contentOf(Flow.content);
       if (!c.hidden) { tab = tabOf(c); pick[tab] = c.key; diffPick[c.key] = Flow.diff; }
     }
-    if (G.save.tut === TUT.dungeon) { tab = 'dungeon'; pick.dungeon = 'rustfort'; }
+    // 첫 던전 안내 차례면 녹슨 요새를 짚어 줌 (분류를 골라 들어왔거나 편성에서 돌아오면 그대로)
+    else if (!arg && firstDungeonNow()) { tab = 'dungeon'; pick.dungeon = 'rustfort'; }
     render(false);
   },
 });
@@ -331,7 +332,7 @@ function render(keep = true): void {
   const focus = keep && a && s.el.contains(a) ? ['data-ctab', 'data-content', 'data-step', 'data-diff'].filter(n => a.hasAttribute(n)).map(n => `[${n}="${a.getAttribute(n)}"]`)[0] || (a.id ? `#${a.id}` : '') : '';
 
   const list = listOf(tab), c = current(), d = c ? diffOf(c) : '보통';
-  const tut = G.save.tut === TUT.dungeon && tab === 'dungeon';
+  const tut = tab === 'dungeon' && c?.key === 'rustfort' && firstDungeonNow();
   const tip = tut ? '<p class="coachtip b-tip"><b>녹슨 요새</b> 쉬움으로 출전. 일반·정예 구간 둘, 보스 둘을 이어서 진행</p>' : '';
   s.el.style.setProperty('--b-bg', c ? cssUrl(placeArt(c.key).url) : 'none');
   s.el.innerHTML = `${topBar({ settings: true })}

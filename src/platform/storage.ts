@@ -234,8 +234,8 @@ export function migrate(raw: unknown): SaveData {
     clears: obj(o.clears, {}),
     last: o.last && typeof o.last === 'object' ? o.last : null,
     nextId: typeof o.nextId === 'number' ? o.nextId : base.nextId,
-    // 튜토리얼 전에 만든 저장: 이미 해 본 사람이면 끝난 걸로 (3 = TUT.done)
-    tut: typeof o.tut === 'number' ? o.tut : (o.player?.level ?? 1) > 1 || Object.keys(o.clears || {}).length ? 3 : 0,
+    // 튜토리얼 전에 만든 저장: 이미 해 본 사람이면 끝난 걸로 (3 = TUT.done). 2 = 예전 「녹슨 요새 첫 클리어」 단계 → 끝 (34 5-2)
+    tut: typeof o.tut === 'number' ? (o.tut === 2 ? 3 : o.tut) : (o.player?.level ?? 1) > 1 || Object.keys(o.clears || {}).length ? 3 : 0,
     // v3: 직업 (옛 저장은 사제)
     hero: HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest',
     heroes: heroesOf(o),

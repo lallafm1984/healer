@@ -5,7 +5,7 @@
 import { HERO_KEYS, type HeroKey } from '../src/data/heroes';
 import type { DiffName } from '../src/data/difficulty';
 import type { EncounterKey } from '../src/data/encounters';
-import type { GearId } from '../src/data/gear';
+import { presetSpecs, type GearId } from '../src/data/gear';
 import type { ItemKey } from '../src/data/items';
 import { TALENTS } from '../src/data/talents';
 import { recruitParty, simulate } from '../src/engine';
@@ -31,6 +31,7 @@ export function winRate(enc: EncounterKey, diff: DiffName, lv: number, gear: Gea
       encounter: enc, diff, gear, seed: s, items, hero, level: lv, heroLv: lv, stageLv: lv,
       talents: hero === 'priest' ? build(lv, s % 3) : undefined,
       party: recruitParty(enc, s, { abilities: true }),
+      specs: presetSpecs(gear, hero),
     });
     if (f.over === 'win') w++;
   }

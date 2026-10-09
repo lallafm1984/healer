@@ -23,7 +23,9 @@ const PLAGUE = (() => {
     ...enr('plague'),
   };
 })();
-export const GB: Record<ScriptKey, Record<string, any>> = {
+/** 손으로 쓴 공략이 없는 보스 (데이터 공략, guide.ts dataGuide): 광폭화 숫자만 */
+export const bossNums = (k: ScriptKey): Record<string, any> => GB[k] ?? (k === 'trash' ? {} : enr(k));
+export const GB: Partial<Record<ScriptKey, Record<string, any>>> = {
   warden: { auto: eff('warden', 'auto', 'auto').dmg, aoe: eff('warden', 'aoe', 'all').dmg, zoneAt: bossSkill('warden', 'zone').when!.hpBelow, ...enr('warden') },
   scrap: { auto: eff('scrap', 'auto', 'auto').dmg, aoe: eff('scrap', 'aoe', 'all').dmg, ...enr('scrap') },
   trash: {},

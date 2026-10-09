@@ -8,6 +8,7 @@ import { codexKeys, FEATURED, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS,
 import { rngFrom } from '../src/engine/rng';
 import { migrate, newSave, noteSpecs } from '../src/platform/storage';
 import { exchangeMerit } from '../src/game/economy';
+import { GEAR_SPECS, GEARS, presetSpecs, type GearId } from '../src/data/gear';
 
 const gi = (g: ItemGrade) => ITEM_GRADES.indexOf(g);
 const many = (n: number, f: (r: () => number, i: number) => GearItem) => {
@@ -108,6 +109,27 @@ describe('착용 장비 → 전투 특수능력 값 (42 1-3 · 1-5)', () => {
   });
   it('장비가 없으면 빈 값', () => {
     expect(specsOf({}, 'priest')).toEqual({});
+  });
+});
+
+describe('시뮬 프리셋 대표 특수능력 (42 1-7)', () => {
+  it('장비 없음은 빈 값, 고급 1줄, 희귀 · 영웅은 부위마다 1줄 (공통 특수능력, 그 부위 · 등급에 나오는 것)', () => {
+    expect(presetSpecs('none', 'priest')).toEqual({});
+    expect(GEAR_SPECS.adv0.length).toBe(1);
+    for (const id of ['rare5', 'epic5'] as GearId[]) expect(GEAR_SPECS[id].length).toBe(SLOTS.length);
+    for (const id of Object.keys(GEARS) as GearId[]) {
+      const g = GEARS[id].g;
+      GEAR_SPECS[id].forEach((k, i) => {
+        const d = SPECS[k];
+        expect(d.hero).toBeUndefined();
+        if (g !== '없음') expect(gi(d.min)).toBeLessThanOrEqual(gi(g));
+        if (GEAR_SPECS[id].length === SLOTS.length) expect(d.slots).toContain(SLOTS[i].key);
+      });
+    }
+  });
+  it('값 = 그 등급 · 가운데 굴림, 등급이 오르면 커짐', () => {
+    expect(presetSpecs('adv0', 'priest').warmTouch).toBeCloseTo(0.06 * 0.6 * 0.8);
+    expect(presetSpecs('epic5', 'druid').wideEmbrace).toBeGreaterThan(presetSpecs('rare5', 'druid').wideEmbrace);
   });
 });
 

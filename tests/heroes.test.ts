@@ -39,7 +39,7 @@ describe('직업 저장', () => {
 describe('직업 퀘스트', () => {
   const at = (hero: 'priest' | 'druid' | 'paladin') => { const s = newSave(1); s.tut = TUT.done; s.hero = hero; return s; };
   it('튜토리얼 중엔 세지 않음', () => {
-    const s = at('druid'); s.tut = TUT.dungeon;
+    const s = at('druid'); s.tut = TUT.explore;
     expect(heroWin(s, 'dungeon', 'rustfort', '보통')).toBeNull();
   });
   it('드루이드 「숲의 부름」: 녹슨 요새 보통 이상만, 1번이면 해금', () => {
@@ -74,7 +74,7 @@ describe('직업 바꾸기', () => {
     G.save.player.level = 9;
     expect(switchOpen().ok).toBe(false);
     expect(switchHero('druid')).toBe(false);
-    G.save.tut = TUT.dungeon; G.save.hero = 'druid';
+    G.save.tut = TUT.explore; G.save.hero = 'druid';
     expect(heroNow()).toBe('priest');
   });
   it('Lv 10: 드루이드는 퀘스트 상태로 고를 수 있고, 성기사(Lv 20)는 잠김', () => {

@@ -4,7 +4,7 @@ import { CLASSES } from '../src/data/classes';
 import { contentOf } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import * as E from '../src/engine';
-import { advanceTutorial, DUO_PARTY, TUT } from '../src/game/tutorial';
+import { advanceTutorial, DUO_PARTY, firstDungeonDue, TUT } from '../src/game/tutorial';
 import { migrate, newSave } from '../src/platform/storage';
 
 describe('2인 첫 전투', () => {
@@ -57,15 +57,24 @@ describe('3인 탐험 「녹슨 고원」', () => {
 });
 
 describe('튜토리얼 단계', () => {
-  it('탐험 클리어 → 던전 안내 → 녹슨 요새 클리어 → 끝 (지면 그대로)', () => {
+  it('녹슨 고원 클리어 → 끝 (지면 · 다른 곳은 그대로), 끝난 판만 true', () => {
     const s = newSave(1);
     expect(s.tut).toBe(TUT.intro);
     s.tut = TUT.explore;
-    advanceTutorial(s, 'plateau', false); expect(s.tut).toBe(TUT.explore);
-    advanceTutorial(s, 'rustfort', true); expect(s.tut).toBe(TUT.explore);
-    advanceTutorial(s, 'plateau', true); expect(s.tut).toBe(TUT.dungeon);
-    advanceTutorial(s, 'plateau', true); expect(s.tut).toBe(TUT.dungeon);
-    advanceTutorial(s, 'rustfort', true); expect(s.tut).toBe(TUT.done);
+    expect(advanceTutorial(s, 'plateau', false)).toBe(false); expect(s.tut).toBe(TUT.explore);
+    expect(advanceTutorial(s, 'rustfort', true)).toBe(false); expect(s.tut).toBe(TUT.explore);
+    expect(advanceTutorial(s, 'plateau', true)).toBe(true); expect(s.tut).toBe(TUT.done);
+    expect(advanceTutorial(s, 'plateau', true)).toBe(false); expect(s.tut).toBe(TUT.done);
+  });
+
+  it('첫 던전 안내: 튜토리얼 뒤 · 녹슨 요새가 열림 · 아직 못 깸', () => {
+    const s = newSave(1);
+    expect(firstDungeonDue(s, true)).toBe(false);
+    s.tut = TUT.done;
+    expect(firstDungeonDue(s, false)).toBe(false);
+    expect(firstDungeonDue(s, true)).toBe(true);
+    s.clears.rustfort = { 쉬움: { n: 1 } } as typeof s.clears.rustfort;
+    expect(firstDungeonDue(s, true)).toBe(false);
   });
 
   it('튜토리얼 전 저장: 이미 레벨이 올랐거나 깬 던전이 있으면 건너뜀', () => {
@@ -73,5 +82,7 @@ describe('튜토리얼 단계', () => {
     expect(migrate({ v: 2, createdAt: 1, player: { level: 3, xp: 0, gold: 0 } }).tut).toBe(TUT.done);
     expect(migrate({ v: 2, createdAt: 1, player: { level: 1, xp: 0, gold: 0 }, clears: { rustfort: { 보통: { n: 1 } } } }).tut).toBe(TUT.done);
     expect(migrate({ ...newSave(1), tut: TUT.explore }).tut).toBe(TUT.explore);
+    // 예전 「녹슨 요새 첫 클리어」 단계(2)는 끝으로
+    expect(migrate({ ...newSave(1), tut: 2 }).tut).toBe(TUT.done);
   });
 });

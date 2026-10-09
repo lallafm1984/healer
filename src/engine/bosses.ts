@@ -82,20 +82,22 @@ function initTrash(f: Fight): void {
     const m: Mob = { id: f.nextId++, name: def.name, elite: !!def.elite, hp: def.hp * scale, max: def.hp * scale, alive: true };
     f.mobs.push(m);
     for (const a of def.attacks) {
-      const tel = a.cast > 0;
-      skill(f, {
+      const tel = a.cast > 0, e = a.effect;
+      const s: BossSkill = skill(f, {
         key: `${a.key}${m.id}`, mob: m.id, name: a.name, icon: a.icon, kind: a.kind, hidden: !tel, cut: a.cut, other: a.to === 'other',
         // 같은 적 여럿이 한 틱에 같이 때리지 않게 조금씩 어긋나게
         next: a.first + i * 0.7, period: a.period, cast: a.cast, warn: tel ? a.kind : undefined,
         active: f => f.mobs.some(x => x.id === m.id && x.alive),
         target: a.to === 'all' ? undefined : f => mobTargets(f, a.to).map(u => u.id),
         fire(f) {
+          if (e) { runEffect(f, s, e); return; } // 졸개 디버프 (39 2장 ③): 대상은 부품이 고름
           for (const u of mobTargets(f, a.to)) {
             const j = (a.jitter || 0) * (u.cls === 'warrior' ? 0.5 : 1);
             damage(f, u, a.dmg * (1 - j + 2 * j * f.rng()), a.to === 'all', a.to === 'tank' ? 'tank' : 'party');
           }
         },
         hit(f, tel) {
+          if (e) { runEffect(f, s, e, tel); return; }
           const us = a.to === 'all' ? living(f) : tel.units.map(id => unitById(f, id)).filter((u): u is Unit => !!u);
           for (const u of us) damage(f, u, a.dmg, a.to === 'all', a.to === 'tank' ? 'tank' : 'party');
         },

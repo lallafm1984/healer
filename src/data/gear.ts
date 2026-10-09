@@ -1,5 +1,7 @@
 /** 힐러 장비 등급 이름과 시뮬 프리셋 (08 4-2, 34 6장). 장비 한 개의 모양은 data/equipment */
-import { presetStats, statsToGear } from './equipment';
+import { ROLL_MIN, presetStats, statsToGear } from './equipment';
+import type { HeroKey } from './heroes';
+import { specTotals, specValue } from './specials';
 
 export type GradeName = '없음' | '일반' | '고급' | '희귀' | '영웅' | '전설';
 
@@ -19,6 +21,24 @@ export const GEARS: Record<GearId, GearPreset> = {
   rare5: { label: '희귀 +5', g: '희귀', u: 5 },
   epic5: { label: '영웅 +5', g: '영웅', u: 5 },
 };
+
+/**
+ * 프리셋의 대표 특수능력 (42 1-7 「시뮬 장비 프리셋에 등급별 대표 특수능력 조합」): 부위마다 줄 수 기댓값만큼, 흔한 공통 특수능력,
+ * 굴림은 가운데 값. 고급은 20%로 1줄이라 6부위 ≈ 1줄, 희귀 · 영웅은 부위마다 1줄. 직업 전용 · 이름 있는 장신구는 넣지 않음.
+ */
+export const GEAR_SPECS: Record<GearId, readonly string[]> = {
+  none: [],
+  adv0: ['warmTouch'],
+  rare5: ['wideEmbrace', 'brimming', 'sturdyBack', 'pouch', 'cheerFlag', 'springSip'],
+  epic5: ['wideEmbrace', 'brimming', 'sturdyBack', 'pouch', 'cheerFlag', 'springSip'],
+};
+/** 프리셋 특수능력 값 (전투 시작 specs). 장비 없음이면 빈 값 */
+export function presetSpecs(id: GearId, hero: HeroKey): Record<string, number> {
+  const { g } = GEARS[id];
+  if (g === '없음') return {};
+  const mid = (ROLL_MIN + 1) / 2;
+  return specTotals(GEAR_SPECS[id].map(key => ({ key, v: specValue(key, g, mid) })), hero);
+}
 
 export interface GearStats {
   /** 치유 회복량 배율 (1 + 지능) */

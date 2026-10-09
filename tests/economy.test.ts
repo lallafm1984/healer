@@ -179,7 +179,7 @@ describe('정산 연결', () => {
   it('공개모집 일일 보너스: 이긴 판 첫 3번 골드 ×2', () => {
     const s = save(20);
     const golds = [0, 1, 2, 3].map(() => settle(s, result(), rng, [], T0).gold);
-    const base = clearGold(1, '보통', 'S');
+    const base = clearGold(5, '보통', 'S'); // 녹슨 요새 열림 레벨 (34 5-2)
     expect(golds).toEqual([base * 2, base * 2, base * 2, base]);
     expect(settle(s, result(), rng, [], T0).pubBonus).toBe(0);
   });

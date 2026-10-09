@@ -56,7 +56,7 @@ describe('tune 표', () => {
     const t = applyRows(TUNE, [row(1.2)]);
     for (const k of ['gate', 'scrap', 'boiler', 'warden'] as const) expect(t[k]?.['어려움']).toEqual({ dmg: 1.2 });
     expect(t.plague).toEqual(TUNE.plague);
-    expect(applyRows(t, [row(1)]).gate).toBeUndefined();
+    expect(applyRows(t, [row(1)]).gate?.['어려움']).toBeUndefined();
   });
   it('data/tune.ts를 다시 써도 지금 내용 그대로 (위 설명은 남김)', () => {
     const src = readFileSync('src/data/tune.ts', 'utf8');

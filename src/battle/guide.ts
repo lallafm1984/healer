@@ -9,7 +9,8 @@ import { canDispel, HEROES } from '../data/heroes';
 import { SKILLS } from '../data/skills';
 import { create, type Fight, type Role } from '../engine';
 import { bossSvg } from './art';
-import { GB } from './guideNums';
+import { BOSSES, type DebuffDef, type SkillDef, type SkillEffect } from '../data/bosses';
+import { bossNums } from './guideNums';
 import { ARROW, heroSkill, ICON_COLOR, iga, josa, mmss, READ_ORDER, S, secT } from './core';
 
 // 숫자는 엔진에서 읽는다: 기술 이름·아이콘·첫 시각·주기·예고·탱커 피해·장판 초당 피해/지속은 시험 전투(E.create)의 skills에서,
@@ -51,7 +52,7 @@ export interface GuidePhase { id: string; name: string; at: string; text: string
 export interface GuideSkill { ic: string; name: string; enr?: boolean; when?: string; what: string; how?: string; every: string; tip: (F?: Fight | null) => string[] }
 interface GuideBody { nums: Record<string, Num>; cur: (F: Fight) => string; phases: GuidePhase[]; skills: GuideSkill[] }
 
-const GUIDE: Record<ScriptKey, (c: GuideCtx) => GuideBody> = {
+const GUIDE: Partial<Record<ScriptKey, (c: GuideCtx) => GuideBody>> = {
   // 고철 경비병 (23 3장)
   scrap(c) {
     const { sk, B, n, hp } = c;
@@ -243,12 +244,93 @@ const GUIDE: Record<ScriptKey, (c: GuideCtx) => GuideBody> = {
     };
   },
 };
+// ---------- 데이터 공략 (38 0-2): 손으로 쓴 공략이 없는 보스는 보스 데이터의 기술 · 페이즈에서 글을 만듦 ----------
+/** 대기열 · 공략 아이콘 색: 손으로 정한 색이 없으면 기술 종류 · 디버프 유형 색 */
+const KIND_COLOR: Record<string, string> = { buster: '#FF6B57', aoe: '#FF9F43', zone: '#E0664F', instant: '#B9A38A' };
+const TYPE_COLOR: Record<string, string> = { '질병': '#D9A13B', '독': '#3CC24A', '저주': '#A050E0', '마법': '#3D8BFF' };
+for (const def of Object.values(BOSSES)) for (const d of def.skills) {
+  if (!d.icon || ICON_COLOR[d.icon]) continue;
+  const e = d.effect, type = e?.p === 'debuff' || e?.p === 'rot' ? e.debuff.type : undefined;
+  ICON_COLOR[d.icon] = (type && TYPE_COLOR[type]) || KIND_COLOR[d.kind ?? 'instant'];
+}
+const pctT = (x: number) => `${Math.round(x * 100)}%`;
+/** 디버프 한 줄: 「부패」 질병 20초 · 최대 체력 −10% */
+function debuffText(d: DebuffDef, n: (x: number) => number): string {
+  const fx = [d.dot ? `초당 ${n(d.dot)}` : '', d.maxCut ? `최대 체력 −${pctT(d.maxCut)}` : '', d.healCut ? `받는 치유 −${pctT(d.healCut)}` : '',
+    d.noDps ? '딜 0' : '', d.invert ? '받는 치유가 피해로' : '', d.trap ? '지우면 터짐' : '', d.lock ? '해제 안 됨' : '',
+    d.cureAt ? `체력 ${pctT(d.cureAt)} 채우면 떨어짐` : '', d.end?.p === 'hit' ? `시간 끝에 <b>${n(d.end.dmg)}</b>` : ''].filter(Boolean);
+  return `「${d.name}」 (${d.type}, ${secT(d.left)}${fx.length ? ` · ${fx.join(' · ')}` : ''})`;
+}
+/** 디버프 대응: 지울 수 있으면 해제, 아니면 버티기 */
+const debuffHow = (d: DebuffDef) => (d.lock || d.trap ? '' : canDispel(S.hero, d.type) ? `${act('purify', RO)} 지우기` : cantDispel(d.type));
+/** 기술 효과 → [무엇, 어떻게] */
+function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: ProbeSkill | undefined): [string, string] {
+  const { n } = c;
+  if (!e) return d.cells ? [`장판${d.dps ? `: 안에 있으면 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}${d.dur ? ` (${secT(d.dur)})` : ''}`, '파티원이 알아서 피함. 늦게 피하는 사람을 채우기'] : ['', ''];
+  switch (e.p) {
+    case 'tank': return [`탱커에게 <b>${n(ps?.dmg ?? d.dmg ?? 0)}</b> 피해`, '예고가 뜨면 탱커를 미리 가득 채우기'];
+    case 'all': return [`파티 전원에게 <b>${n(e.dmg)}</b> 피해`, `예고 동안 ${act('renew', EUL)} 미리 걸고, 맞은 뒤 ${act('poh', RO)} 채우기`];
+    case 'debuff': return [`${e.n === 'all' ? '모두' : `${c.mythic && e.nMythic ? e.nMythic : e.n}명`}에게 ${debuffText(e.debuff, n)}`, debuffHow(e.debuff)];
+    case 'rot': return [`${e.n}명 최대 체력 −${pctT(e.pct)} 중첩 (최대 ${e.max}) ${debuffText(e.debuff, n)}`, debuffHow(e.debuff)];
+    case 'pull': return [`뒷줄 1명을 보스 앞으로 끌어옴. ${secT(e.sec)} 동안 평타를 탱커와 번갈아 맞음 (한 대에 <b>${n(e.dmg)}</b>)`, `끌려온 사람이 탱커 옆이라 ${act('poh', RO)} 둘을 한 번에 채우기`];
+    case 'adds': return [`「${e.add.name}」 ${c.mythic && e.nMythic ? e.nMythic : e.n}마리 등장`, '딜러가 잡음. 맞는 사람을 채우기'];
+    case 'hole': return [`가장자리 바닥 ${e.n}칸이 무너짐`, '파티원이 알아서 비킴'];
+    case 'order': return [`${c.mythic && e.nMythic ? e.nMythic : e.n}명 칸에 번호. ${secT(e.sec)} 안에 번호 순서대로 단일 힐 → 보스 ${secT(e.daze.sec)} 멍함`, '번호 순서대로 한 번씩 힐 넣기'];
+    case 'jail': return [`${c.mythic && e.nMythic ? e.nMythic : e.n}명을 「${e.name}」에 가둠 (딜 0 · 초당 ${n(e.dot)})`, '딜러가 감옥을 깰 때까지 갇힌 사람을 채우기'];
+    case 'quake': return [`시전 중인 힐이 끊기고 그 스킬 ${secT(e.lock)} 잠김 + 전원 <b>${n(e.dmg)}</b>`, '예고가 뜨면 새 시전을 시작하지 않기 (즉시 스킬 · 지속 힐)'];
+    case 'rest': return [`${secT(e.sec)} 동안 기술을 쉼`, '그동안 마나를 아끼며 채우기'];
+    case 'stagger': return [`${secT(e.sec)} 안에 게이지 채우기: 체력 ${pctT(e.hp)} 이상인 파티원의 딜만 셈`, '딜러 체력을 높게 유지'];
+    case 'counter': return [`끊기 능력으로 끊으면 보스 ${secT(e.stun)} 기절, 못 끊으면 앞줄 <b>${n(e.dmg)}</b>`, '앞줄을 미리 채우기'];
+    case 'tower': return [`발판 ${e.n}곳: 위 사람 <b>${n(e.dmg)}</b>, 빈 발판마다 전원 <b>${n(e.empty)}</b>`, '발판에 선 사람을 채워 끝까지 세워 두기'];
+    case 'cycle': return [`${e.n}명에게 디버프를 차례로 (${e.debuffs.map(x => x.type).join(' → ')})`, '지울 수 있는 것부터 지우기'];
+    case 'soul': return [`빈 칸에 「${e.name}」. ${secT(e.sec)} 안에 단일 힐로 가득 채우면 ${e.win.text}`, `영혼 칸에 ${act('heal', EUL)} 넣기`];
+    case 'link': return [`두 사람을 「${e.name}」으로 ${secT(e.sec)} 이음`, e.kind === 'balance' ? '두 사람 체력 비율을 비슷하게' : '둘이 피해 · 치유를 나눔'];
+    case 'vessel': return [`「${e.name}」: 넘친 치유를 모아 가득 차면 전원 보호막`, '일부러 넘치게 힐하기'];
+    case 'auto': return [`탱커에게 ${n(e.dmg)}`, ''];
+  }
+}
+/** 기술이 도는 때 (페이즈 · 체력 문턱) */
+function whenText(d: SkillDef): string {
+  const w = d.when;
+  if (w?.hpBelow != null) return `체력 ${pctT(w.hpBelow)} 아래`;
+  if (w?.phase && !w.phase.includes(1)) return `${w.phase.join('·')}페이즈`;
+  return '';
+}
+function dataGuide(c: GuideCtx): GuideBody {
+  const def = BOSSES[c.enc.script as Exclude<ScriptKey, 'trash'>], { sk, B, n } = c;
+  const shown = def.skills.filter(d => !d.hidden && (d.when?.mythic == null || d.when.mythic === c.mythic));
+  const phases: GuidePhase[] = [{ id: 'p1', name: '시작', at: '처음부터', text: shown.filter(d => !whenText(d)).map(d => d.name).join(' · ') }];
+  // 체력 문턱 · 페이즈 흐름: 문턱마다 한 줄
+  const marks = new Map<number, string[]>();
+  for (const d of shown) if (d.when?.hpBelow != null) marks.set(d.when.hpBelow, [...(marks.get(d.when.hpBelow) ?? []), `${iga(d.name!)} 더해짐`]);
+  for (const st of def.flow ?? []) if (st.p === 'when' && st.if.hpBelow != null && (st.if.mythic == null || st.if.mythic === c.mythic)) {
+    const t = st.do.find(x => x.p === 'text') as { text: string } | undefined;
+    if (t) marks.set(st.if.hpBelow, [t.text]);
+  }
+  for (const [at, txt] of [...marks].sort((a, b) => b[0] - a[0])) phases.push({ id: `h${at}`, name: txt[0].split(':')[0], at: `체력 ${pctT(at)} 아래`, text: txt.join(' · ') });
+  if (isFinite(c.enc.enrage)) phases.push({ id: 'enrage', name: '광폭화', at: mmss(c.enc.enrage), text: `${iga(B.enrName)} ${B.enrPeriod}초마다`, enr: true });
+  const skills: GuideSkill[] = shown.map(d => {
+    const ps = sk[d.key], [what, how0] = effectText(d, d.effect, c, ps), wt = whenText(d);
+    const every = `${wt ? `${wt} · ` : ''}${secT(d.period)}마다`;
+    return { ic: d.icon ?? d.name!.slice(0, 2), name: d.name!, when: `${wt ? `${wt}부터 · ` : `${secT((d.first ?? 0) + d.cast)}에 첫 타, 그 뒤 `}${secT(d.period)}마다${d.cast ? ` · 예고 ${secT(d.cast)}` : ''}${d.cut ? ' · 끊기 ✋' : ''}`,
+      what, how: d.how ?? (how0 || undefined), every, tip: () => [what.replace(/<\/?b>/g, '')] };
+  });
+  skills.push({ ic: '광폭', name: B.enrName, enr: true, when: `광폭화 ${mmss(c.enc.enrage)}부터 ${B.enrPeriod}초마다 · 예고 ${secT(B.enrCast)}`,
+    what: `파티 전원에게 <b>${n(B.enrDmg)}</b> 피해. 몇 번이면 전멸`, how: ENRAGE_HOW, every: `${mmss(c.enc.enrage)}부터`, tip: () => [`${B.enrPeriod}초마다 파티 전원에게 ${n(B.enrDmg)} 피해를 줍니다.`] });
+  const thresholds = [...marks.keys()].sort((a, b) => a - b);
+  return {
+    nums: {}, phases, skills,
+    cur: F => { if (F.enraged) return 'enrage'; const r = F.bossHp / F.bossMax, at = thresholds.find(x => r <= x); return at != null ? `h${at}` : 'p1'; },
+  };
+}
+
 export type GuideModel = GuideBody & { enc: Encounter; diff: DiffName; m: number; dodge: number; bossMax: number; hp: Probe['hp']; tier: string; B: Record<string, Num> };
 export function guideModel(encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: number): GuideModel {
   const enc = ENCOUNTERS[encKey], P = probe(encKey, diff, stageLv, heroLv);
   const m = P.m, n = (x: number) => Math.round(x * m);
-  const g = GUIDE[enc.script]({ enc, diff, m, n, mythic: diff === '악몽', sk: P.sk, hp: P.hp, B: GB[enc.script], hpMult: P.bossMax / enc.hp });
-  return Object.assign({ enc, diff, m, dodge: DIFFS[diff].dodge, bossMax: P.bossMax, hp: P.hp, tier: enc.tier.replace(' · ', ' '), B: GB[enc.script] }, g);
+  const B = bossNums(enc.script);
+  const g = (GUIDE[enc.script] ?? dataGuide)({ enc, diff, m, n, mythic: diff === '악몽', sk: P.sk, hp: P.hp, B, hpMult: P.bossMax / enc.hp });
+  return Object.assign({ enc, diff, m, dodge: DIFFS[diff].dodge, bossMax: P.bossMax, hp: P.hp, tier: enc.tier.replace(' · ', ' '), B }, g);
 }
 // 지금 돌고 있는 기술인지 (일시정지에서 '지금' 표시): 엔진 기술 상태 그대로 읽음
 export function skillLive(F: Fight, ic: string): boolean {

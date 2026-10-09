@@ -23,7 +23,7 @@ import { runMode } from '../game/runmode';
 import { askModal, showRewarded } from '../platform/ads';
 import type { BattleResult } from '../game/settle';
 import { settle } from '../game/settle';
-import { commit, G, healerLevel, heroNow, itemsNow, talentsNow, toggleItem } from '../game/state';
+import { commit, firstDungeonNow, G, healerLevel, heroNow, itemsNow, talentsNow, toggleItem } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { memDetailHtml, memRowHtml, ROLE_ICON } from './members';
 import { battle, esc, fmt, go, itemChipsHtml, ROLE, screen } from './kit';
@@ -195,7 +195,7 @@ function render(keepScroll = true): void {
   s.el.innerHTML = `${flowHead(Flow.chal ? 's-entry' : 's-content', Flow.chal ? CHAL.name : c.name, sub, mark, guideBtn)}
     ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="파티 모집"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티${guildTab}</button></nav>` : ''}
     <div class="ns-body f-pty">
-      ${G.save.tut === TUT.dungeon ? '<p class="coachtip">파티는 파티 찾기로 무작위로 들어옴. 마음에 안 들면 <b>다시 뽑기</b> (처음 한 번 무료). 보스 기술은 「공략」. 준비되면 「출발」.</p>' : ''}
+      ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">파티는 파티 찾기로 무작위로 들어옴. 마음에 안 들면 <b>다시 뽑기</b> (처음 한 번 무료). 보스 기술은 「공략」. 준비되면 「출발」.</p>' : ''}
       ${tutDone ? warnings(segs, Flow.diff, stage, { gear: !Flow.chal }) : ''}
       ${boardHtml()}
       ${isGuild ? guildPickHtml(stage) : `<section class="pn f-mems"><ul class="pcards">${rows}</ul></section>`}
@@ -291,7 +291,7 @@ export function depart(): string {
   if (tutDone && !Flow.chal && needsShard(Flow.diff)) { const err = spendShard(G.save); if (err) return err; commit(); }
   if (Flow.mode === 'guild' && guildReady()) { G.save.guild.pick = Flow.gpick.slice(); commit(); }
   // 튜토리얼 첫 던전이면 전투 중 안내 (02 11장 4·5번)
-  const coach = Flow.coach ?? (G.save.tut === TUT.dungeon && c.key === 'rustfort' ? 'dungeon' : null);
+  const coach = Flow.coach ?? (c.key === 'rustfort' && firstDungeonNow() ? 'dungeon' : null);
   Flow.coach = null;
   const { slots, items } = itemsNow();
   const m = modeNow();

@@ -3,6 +3,7 @@
  * 경험치 지급량은 문서에 없어 새로 정함 (24 문서). Lv 1~100 곡선은 18 1장 도달 시점에 맞춤 (xpShare, 2026-10-07).
  */
 import type { DiffName } from './difficulty';
+import { CONTENT } from './content';
 import { FEATURES } from './features';
 
 export const MAX_LEVEL = 100;
@@ -104,19 +105,18 @@ export const apexOf = (level: number) => 1 + APEX_STEP * Math.max(0, lvClamp(lev
  * 아직 안 만든 것(다른 던전, 공개모집 직업 단계 해금)은 live: false → 팝업에 「준비 중」으로 표시.
  */
 export interface Milestone { text: string; live: boolean }
-export const MILESTONES: Record<number, Milestone[]> = {
+const BASE: Record<number, Milestone[]> = {
   2: [{ text: '스킬 「소생」', live: true }],
   3: [{ text: '스킬 「정화」', live: true }],
   4: [{ text: '패시브 「빛의 은총」 (소생 걸린 대상 치유 +10%)', live: true }],
-  5: [{ text: '스킬 「치유의 기원」', live: true }, { text: '특성 1단 (사제)', live: true }, { text: '던전 「역병 지하묘지」', live: false }],
+  5: [{ text: '스킬 「치유의 기원」', live: true }, { text: '특성 1단 (사제)', live: true }],
   6: [{ text: '성언 게이지 (평온·신성화)', live: true }],
   8: [{ text: '스킬 「수호 영혼」', live: true }],
-  10: [{ text: '패시브 「상징」 (마나 30% 아래서 회복 4배)', live: true }, { text: '특성 2단', live: true }, { text: '직업 바꾸기 · 드루이드 퀘스트 「숲의 부름」', live: true }, { text: '주간 임무 (악몽 열쇠)', live: true }, { text: '공개모집 직업 +6종', live: false }, { text: '던전 「독안개 늪」', live: false }],
+  10: [{ text: '패시브 「상징」 (마나 30% 아래서 회복 4배)', live: true }, { text: '특성 2단', live: true }, { text: '직업 바꾸기 · 드루이드 퀘스트 「숲의 부름」', live: true }, { text: '주간 임무 (악몽 열쇠)', live: true }, { text: '공개모집 직업 +6종', live: false }],
   12: [{ text: '공대 쿨기 (사제 「천상의 찬가」, 스킬 7개 완성)', live: true }],
-  15: [{ text: '8번째 칸 고유 스킬 (드루이드·성기사)', live: true }, { text: '소비 아이템 단축칸 3칸', live: true }, { text: '특성 3단', live: true }, ...(FEATURES.guild ? [{ text: '길드 (골드 모집·인연 스카우트)', live: true }] : []), { text: '던전 「저주받은 장원」', live: false }],
-  20: [{ text: '성기사 퀘스트 「첫 맹세」', live: true }, { text: '특성 4단', live: true }, { text: '주간 도전 「모래시계 시련」', live: true }, { text: '던전 「서리 마탑」', live: false }],
+  15: [{ text: '8번째 칸 고유 스킬 (드루이드·성기사)', live: true }, { text: '소비 아이템 단축칸 3칸', live: true }, { text: '특성 3단', live: true }, ...(FEATURES.guild ? [{ text: '길드 (골드 모집·인연 스카우트)', live: true }] : [])],
+  20: [{ text: '성기사 퀘스트 「첫 맹세」', live: true }, { text: '특성 4단', live: true }, { text: '주간 도전 「모래시계 시련」', live: true }],
   25: [{ text: '특성 5단', live: true }],
-  28: [{ text: '던전 「깨진 신전」', live: false }],
   30: [{ text: '특성 6단', live: true }, { text: '소비 아이템 단축칸 4칸', live: true }, { text: '어려움·악몽 던전에 어픽스 「격노」', live: true }],
   35: [{ text: '10인 레이드 「심연의 탑」', live: true }, { text: '특성 7단', live: true }],
   40: [{ text: '특성 8단', live: true }],
@@ -128,6 +128,13 @@ export const MILESTONES: Record<number, Milestone[]> = {
   80: [{ text: '20인 레이드 악몽', live: true }],
   100: [{ text: '직업 색 힐 이펙트 · 칭호', live: false }],
 };
+/** 탐험 · 던전 열림 (34 5-2 열림 레벨 표)은 CONTENT에서 만들어 맨 앞에. 아직 안 만든 곳은 「준비 중」. 레이드는 위에 따로 */
+export const MILESTONES: Record<number, Milestone[]> = { ...BASE };
+for (const c of CONTENT) {
+  if (c.hidden || c.kind === 'raid' || c.unlockLv <= 1) continue;
+  const text = c.key === 'rustfort' ? `첫 던전 「${c.name}」` : `${c.kind === 'explore' ? '탐험' : '던전'} 「${c.name}」`;
+  MILESTONES[c.unlockLv] = [{ text, live: c.ready }, ...(MILESTONES[c.unlockLv] ?? [])];
+}
 
 /** 다음 목표 (로비 「다음 목표」 카드, 18 3-3): 지금 레벨 다음 마일스톤 */
 export function nextMilestone(level: number): { level: number; items: Milestone[] } | null {

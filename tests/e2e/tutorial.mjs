@@ -1,5 +1,5 @@
-// 첫 5분 튜토리얼 (02 11장, 09 4장): 이야기 → 2인 첫 전투(탭 힐 안내) → Lv 2 소생 → 3인 탐험(소생·순간 치유 안내) → 첫 장비
-// → 로비 → 녹슨 요새 쉬움 → 끝. 탭은 튜토리얼 동안 잠금. 구간은 적 체력을 깎아 빨리 넘긴다
+// 첫 5분 튜토리얼 (02 11장, 09 4장, 34 5-2): 이야기 → 2인 첫 전투(탭 힐 안내) → Lv 2 소생 → 3인 탐험(소생·순간 치유 안내) → 첫 장비 = 끝
+// → Lv 5에 첫 던전 녹슨 요새 안내 → 쉬움 클리어. 탭은 튜토리얼 동안 잠금. 구간은 적 체력을 깎아 빨리 넘긴다
 import { chromium } from 'playwright';
 import { killEnemies } from './nav.mjs';
 
@@ -110,27 +110,31 @@ export default async function tutorial(url, shots) {
   await killEnemies(page); await page.clock.runFor(1500);
   ok(await page.isVisible('#s-settle'), '탐험 끝 → 정산');
   sv = await save();
-  ok(sv.tut === 2 && sv.clears.plateau, `저장: 탐험 클리어, 튜토리얼 던전 단계 (tut ${sv.tut})`);
+  ok(sv.tut === 3 && sv.clears.plateau, `저장: 탐험 클리어 = 튜토리얼 끝 (tut ${sv.tut})`);
   await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
-  ok(/첫 장비/.test(await page.textContent('#s-settle .coachtip')) && await page.isVisible('#equipNow.hi-pulse') && (await page.locator('#s-settle .ns-foot .btn').count()) === 1, '결과: 첫 장비 안내 + 「장착」 반짝임, 튜토리얼 중엔 로비 버튼 하나');
+  const tip = await page.textContent('#s-settle .coachtip');
+  ok(/첫 장비/.test(tip) && /튜토리얼은 여기까지/.test(tip) && await page.isVisible('#equipNow.hi-pulse') && (await page.locator('#s-settle .ns-foot .btn').count()) === 1, '결과: 첫 장비 · 튜토리얼 끝 안내 + 「장착」 반짝임, 로비 버튼 하나');
   await page.screenshot({ path: `${shots}/tut_reward.png` });
   await page.click('#equipNow'); await page.clock.runFor(50);
   await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
 
-  // ---- 로비: 녹슨 요새로 안내, 탭은 로비·전투·캐릭터만 (27 1장) ----
-  ok(await page.isVisible('#s-lobby .coachtip') && await page.isVisible('#lobbyStart.hi-pulse'), '로비: 첫 던전 안내 + 「출전」 반짝임');
-  const locks = await page.evaluate(() => [...document.querySelectorAll('#tabs button.tlock')].map(b => b.dataset.tab).join());
-  ok(locks === 'shop', `튜토리얼 중 탭 잠금: 상점 (캐릭터는 첫 장비로 열림, 길드는 빼 둠) (${locks})`);
-  await page.click('#tabs [data-tab="shop"]', { force: true }); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-lobby'), '잠긴 탭은 눌러도 그대로');
+  // ---- 로비: 튜토리얼 끝 = 탭 잠금 없음, 녹슨 요새(Lv 5)는 아직 → 던전 안내 없음 ----
+  ok((await page.locator('#tabs button.tlock').count()) === 0, '튜토리얼 끝: 탭 잠금 없음');
+  ok(!(await page.isVisible('#s-lobby .coachtip')) && !(await page.isVisible('#lobbyStart.hi-pulse')), `Lv ${(await save()).player.level}: 첫 던전 안내 없음 (녹슨 요새는 Lv 5)`);
   await page.screenshot({ path: `${shots}/tut_lobby.png` });
+  await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
+  await page.click('#s-content [data-ctab="explore"]'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-content [data-content="plateau"]') && await page.isVisible('#s-content [data-content="cemetery"]') && !(await page.isVisible('#s-content [data-content="tutorial"]')), '탐험 탭: 녹슨 고원 · 잿빛 공동묘지 (첫 전투는 안 보임)');
+
+  // ---- Lv 5: 첫 던전 녹슨 요새 안내 (로비 · 전투 탭 · 편성) ----
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 5; s.player.xp = 0; localStorage.setItem('healer.save', JSON.stringify(s)); });
+  await page.reload(); await page.clock.runFor(300);
+  await page.click('#s-title'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-lobby .coachtip') && /녹슨 요새/.test(await page.textContent('#s-lobby .coachtip')) && await page.isVisible('#lobbyStart.hi-pulse'), 'Lv 5 로비: 첫 던전 안내 + 「출전」 반짝임');
   // 전투 탭(모험 선택)에서도 녹슨 요새를 짚어 줌
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true' && await page.getAttribute('#s-content [data-content="rustfort"]', 'aria-pressed') === 'true'
     && await page.getAttribute('#s-content [data-diff="쉬움"]', 'aria-pressed') === 'true' && await page.isVisible('#contentGo.hi-pulse') && /녹슨 요새/.test(await page.textContent('#s-content .coachtip')), '전투 탭: 던전 5인 · 녹슨 요새 · 쉬움이 골라져 있고 안내 + 「출전」 반짝임');
-  await page.click('#s-content [data-ctab="explore"]'); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-content [data-content="plateau"]') && !(await page.isVisible('#s-content [data-content="tutorial"]')), '탐험 탭: 녹슨 고원 (첫 전투는 안 보임)');
-  await page.click('#s-content [data-ctab="dungeon"]'); await page.clock.runFor(50);
   // 로비 「바로 출전」 = 녹슨 요새 편성으로 바로 (모험 선택 건너뜀, 입장 화면 없음)
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);
   await page.click('#lobbyStart'); await page.clock.runFor(100);
@@ -153,11 +157,11 @@ export default async function tutorial(url, shots) {
   }
   ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')).startsWith('던전 클리어!'), '녹슨 요새 쉬움 클리어');
   sv = await save();
-  ok(sv.tut === 3, `저장: 튜토리얼 끝 (tut ${sv.tut})`);
+  ok(sv.clears.rustfort?.['쉬움'], '저장: 녹슨 요새 쉬움 클리어');
   await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
-  ok(/튜토리얼은 여기까지/.test(await page.textContent('#s-settle .coachtip')), '결과: 튜토리얼 끝 안내');
+  ok(/첫 던전 클리어/.test(await page.textContent('#s-settle .coachtip')) && /보통/.test(await page.textContent('#s-settle .coachtip')), '결과: 첫 던전 클리어 · 다음은 보통');
   await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
-  ok((await page.locator('#tabs button.tlock').count()) === 0 && !(await page.isVisible('#s-lobby .coachtip')), '로비: 탭 잠금·안내 없음');
+  ok(!(await page.isVisible('#s-lobby .coachtip')) && !(await page.isVisible('#lobbyStart.hi-pulse')), '로비: 첫 던전 안내 끝');
   await page.reload(); await page.clock.runFor(300);
   await page.click('#s-title'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-lobby'), '다시 켜면 타이틀 → 바로 로비');
