@@ -594,3 +594,5 @@
 #s-char .c7-autof { display: flex; align-items: center; gap: 8px; }
 #s-char .c7-autowhy { margin: 0; }
 @media (prefers-reduced-motion: reduce) { #s-char .fx .c7-gic, #s-char .c7-fxring, #s-char .c7-fxspark { animation: none; } #s-char .c7-fxres { animation-duration: 0.01s; } }
+#s-char .c7-spg .g-ic { display: block; width: 22px; height: 22px; }
+#s-char .c7-spg:has(.g-ic) { min-width: 0; padding: 0; border: 0; }

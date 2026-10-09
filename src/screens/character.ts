@@ -188,6 +188,9 @@ const STAT_LINE = {
 const statIc = (k: keyof typeof STAT_LINE) => gameIcon(k, STAT_LINE[k], 'stat');
 
 /** ① 장비 칸 (시안 .slot): 등급 색 테두리·빛 · 등급 글자 칩 · 강화 +n · 더 좋은 장비 초록 ↑ · 빈칸 점선 + 가방 개수 */
+/** 특수능력 묶음 표식 (36 I `spec-*`): 그림이 있으면 그림, 없으면 묶음 글자 */
+const specBadge = (g: CodexGroup, label: string) => (g === 'named' ? label : gameIcon(SPEC_GROUPS[g].icon.replace(/^spec-/, ''), label, 'spec'));
+
 /** 특수능력 점 (34 10장): 한 줄 = 점 하나 (고유 효과 포함), 지금 직업에 안 맞는 직업 전용은 회색 */
 function specDots(it: GearItem): string {
   const rows = specRows(it);
@@ -294,7 +297,7 @@ function codexSheet(): string {
       <div class="c7-row"><h3 class="h-rule">특수능력 도감</h3><span class="cap">${codexHave(SPEC_GROUP_KEYS)}/${SPEC_KEYS.length} · 고유 ${codexHave(['named'])}/${NAMED.length}</span></div>
       <div class="c7-fcs" role="group" aria-label="도감 묶음">${groups.map(g => `<button type="button" class="c7-fc" data-codexg="${g}" aria-pressed="${codexG === g}">${label(g)} <small>${codexHave([g])}/${codexKeys(g).length}</small></button>`).join('')}</div>
       <p class="cap c7-ctitle">${done ? `칭호 「${esc(title)}」 받음` : `다 모으면 칭호 「${esc(title)}」 (${have}/${rows.length})`}</p>
-      <div class="c7-clist">${rows.map(r => `<div class="c7-spec${r.got ? '' : ' unk'}" data-g="${codexG}"><span class="c7-spg">${label(codexG)}</span><span class="c7-spt"><b>${r.got ? esc(r.name) : '?'}</b><span class="cap">${esc(r.got ? r.text : r.hint)}</span></span></div>`).join('')}</div>
+      <div class="c7-clist">${rows.map(r => `<div class="c7-spec${r.got ? '' : ' unk'}" data-g="${codexG}"><span class="c7-spg">${specBadge(codexG, label(codexG))}</span><span class="c7-spt"><b>${r.got ? esc(r.name) : '?'}</b><span class="cap">${esc(r.got ? r.text : r.hint)}</span></span></div>`).join('')}</div>
       <div class="c7-bagf">${titles.length ? `<span class="cap">받은 칭호 ${titles.map(t => `「${esc(t)}」`).join(' ')}</span>` : '<span class="cap">효과는 영웅 장비 최대값</span>'}${fill}<button type="button" class="btn2" data-sheetx>닫기</button></div></section>`;
 }
 
@@ -388,7 +391,7 @@ function itemSheet(id: number): string {
   ].join('');
   // 특수능력 (42 1-3 · 1-5): 묶음 표식 · 이름 · 효과 · 굴림 막대, 꺼진 줄은 회색 + 이유
   const sp = specRows(it);
-  const spec = sp.length ? `<div class="c7-cmpw"><h3 class="h-rule c7-h3">특수능력<span class="rule"></span><span class="cap">${sp.length}줄</span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${s.badge}</span><span class="c7-spt"><b>${esc(s.name)}</b><span class="cap">${esc(s.text)}</span></span>${s.off ? `<span class="cap c7-spoff">${s.off}</span>` : s.roll != null ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(s.roll * 100)}%"><i style="width:${Math.round(rollFill(s.roll) * 100)}%"></i></span>` : ''}${s.i != null ? rrBtn('spec', s.i, s.name) : ''}</div>`).join('')}${rrAltHtml(it, 'spec')}</div>` : '';
+  const spec = sp.length ? `<div class="c7-cmpw"><h3 class="h-rule c7-h3">특수능력<span class="rule"></span><span class="cap">${sp.length}줄</span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${specBadge(s.group, s.badge)}</span><span class="c7-spt"><b>${esc(s.name)}</b><span class="cap">${esc(s.text)}</span></span>${s.off ? `<span class="cap c7-spoff">${s.off}</span>` : s.roll != null ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(s.roll * 100)}%"><i style="width:${Math.round(rollFill(s.roll) * 100)}%"></i></span>` : ''}${s.i != null ? rrBtn('spec', s.i, s.name) : ''}</div>`).join('')}${rrAltHtml(it, 'spec')}</div>` : '';
   // 지금 장비와 비교: 둘 중 하나라도 있는 능력치만
   const cmp = STAT_KEYS.filter(k => a[k] || b[k]).map(k => row(STATS[k].name, `+${pc(a[k])}%`, updn(d1(a[k], b[k])))).join('');
   const c = enhanceCost(it), m = G.save.mats, gold = G.save.player.gold;
