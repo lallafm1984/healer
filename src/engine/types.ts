@@ -64,6 +64,8 @@ export interface Debuff {
   invert?: boolean;
   /** 끝날 때 하는 일 (부품) */
   end?: DebuffEnd;
+  /** 감옥 (P-JAIL): 시간으로 안 끝나고 감옥이 깨지면 풀림 */
+  jail?: boolean;
 }
 
 /**
@@ -408,8 +410,10 @@ export interface Mob {
     short: string; on: number; dmg: number; every: number; next: number; down?: AddDown; done?: boolean;
     /** 차지한 칸 · 오라 장판 id */
     cell?: number; zone?: number;
-    /** 하는 일과 다음 시각 (치유하는 쫄) · 터지는 시각 (폭탄) */
+    /** 하는 일과 다음 시각 (치유하는 쫄 · 큰 쫄 강타 · 걸음) · 터지는 시각 (폭탄) */
     job?: AddJob; jobAt?: number;
+    /** 감옥이 건 디버프 id (P-JAIL) · 흡수까지 남은 걸음 (P-MARCH) · 강타 예고 소리를 냈나 (P-ELITE) · 쫄 떼 (P-SWARM) */
+    hold?: number; steps?: number; warned?: boolean; cleave?: boolean;
   };
 }
 
@@ -553,6 +557,8 @@ export interface Fight {
   daze: { until: number; vuln: number } | null;
   /** 쉬움·보통 뒤집힌 축복 실수 방지: 이 디버프 칸을 한 번 눌렀음 (두 번째부터 힐이 나감) */
   invertTap: number | null;
+  /** 걸어오는 쫄이 흡수되어 보스가 주는 피해가 커진 몫 (P-MARCH, 0.1 = +10%). 화면 표시용, 실제 배율은 dmgMult에 곱함 */
+  empower: number;
 }
 
 export interface OrderState {

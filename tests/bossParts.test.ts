@@ -8,7 +8,7 @@ import { moveTo, pickCell } from '../src/engine/movement';
 import { unitDps } from '../src/engine/units';
 import { hexDist } from '../src/engine/board';
 import { fromDef } from '../src/engine/bosses';
-import { addDebuff, damageMob, heal } from '../src/engine/core';
+import { addDebuff, damage, damageMob, heal } from '../src/engine/core';
 import { doDispel } from '../src/engine/heroes';
 import type { BossSkill, Fight, Unit } from '../src/engine';
 
@@ -512,7 +512,7 @@ describe('판에 나오는 적 (35 3-I): 빈 칸 차지 · 부탱커 · 일점�
   it('빈 칸에 나와 칸을 막고, 때리는 쫄은 탱커 가까이. 빈 칸은 1개 이상 남김', () => {
     const f = fight();
     const before = free(f);
-    run(f, { p: 'adds', n: 9, add: IMP });
+    run(f, { p: 'adds', n: 99, add: IMP }); // 판 크기와 상관없이 빈 칸이 1개 남을 때까지
     const adds = f.mobs.filter(m => m.add);
     expect(adds).toHaveLength(before - 1);
     expect(free(f)).toBe(1);
@@ -597,5 +597,150 @@ describe('판에 나오는 적 (35 3-I): 빈 칸 차지 · 부탱커 · 일점�
     steps(f, 2);
     expect(hp - f.bossHp).toBeGreaterThan(0);
     expect(hp - f.bossHp).toBeCloseTo(tk.dealt * 0.1, 0); // 탱커 딜은 보스로, 그중 10%만 들어감
+  });
+});
+
+describe('판에 나오는 적 2 (35 3-I): 감옥 · 걸어오는 쫄 · 자폭 쫄 · 큰 쫄 · 쫄 떼', () => {
+  const IMP = { name: '꼬마 악마', short: '악마', hp: 0.03, dmg: 20, every: 2 };
+  const JAIL: SkillEffect = { p: 'jail', n: 1, name: '심연 감옥', short: '감옥', hp: 0.04, dot: 10 };
+  const raid = () => { const f = E.create({ encounter: 'plague', diff: '보통', seed: 1 }); quiet(f); return f; };
+
+  it('감옥: 탱커·나 아닌 1명이 갇힘 (딜 0 · 못 움직임 · 해제 안 됨 · 초당 피해), 칸은 안 차지', () => {
+    const f = fight();
+    const free = f.cells.filter(c => !c.unit && !c.block).length;
+    run(f, JAIL);
+    const m = f.mobs.find(x => x.add?.job?.p === 'jail')!;
+    const u = f.party.find(x => x.id === m.add!.on)!;
+    expect(u.role).not.toBe('tank');
+    expect(u.me).toBeFalsy();
+    const d = u.debuffs.find(x => x.id === m.add!.hold)!;
+    expect(d).toMatchObject({ name: '심연 감옥', noDps: true, noMove: true, lock: true, dot: 10 });
+    expect(m.max).toBeCloseTo(f.bossMax * 0.04);
+    expect(f.cells.filter(c => !c.unit && !c.block).length).toBe(free);
+    const hp = u.hp;
+    steps(f, 1);
+    expect(hp - u.hp).toBeGreaterThan(0);
+  });
+
+  it('감옥을 깨면 풀리고, 갇힌 사람이 쓰러지면 감옥도 사라짐', () => {
+    const f = fight();
+    run(f, JAIL);
+    const m = f.mobs.find(x => x.add?.job?.p === 'jail')!;
+    const u = f.party.find(x => x.id === m.add!.on)!;
+    damageMob(f, m, m.max);
+    E.step(f);
+    expect(u.debuffs.some(x => x.name === '심연 감옥')).toBe(false);
+    expect(f.events.some(e => e.type === 'cure' && e.id === u.id)).toBe(true);
+    const g = fight();
+    run(g, JAIL);
+    const j = g.mobs.find(x => x.add?.job?.p === 'jail')!;
+    const v = g.party.find(x => x.id === j.add!.on)!;
+    damage(g, v, 1e9, false, 'fixed');
+    steps(g, 0.2);
+    expect(j.alive).toBe(false);
+  });
+
+  it('일점사 순서: 치유 쫄 → 폭탄 → 감옥 → 보호막 수정 → 그 밖', () => {
+    const f = raid();
+    run(f, { p: 'adds', n: 1, add: IMP });
+    run(f, { p: 'adds', n: 1, add: { ...IMP, name: '수정', dmg: 0, job: { p: 'pylon', cut: 0.9 } } });
+    run(f, JAIL);
+    run(f, { p: 'adds', n: 1, add: { ...IMP, name: '폭탄', dmg: 0, job: { p: 'bomb', sec: 99, dmg: 1 } } });
+    run(f, { p: 'adds', n: 1, add: { ...IMP, name: '치유사', dmg: 0, job: { p: 'mend', every: 99, pct: 0.01 } } });
+    expect(focusOrder(f).map(m => m.name)).toEqual(['치유사', '폭탄', '심연 감옥', '수정', '꼬마 악마']);
+  });
+
+  it('걸어오는 쫄: 뒷줄에 나와 every초마다 한 줄씩 앞으로, 걸음이 다 되면 흡수 → 보스 피해 +10%씩 (더함)', () => {
+    const f = raid();
+    const mult = f.dmgMult;
+    const MARCH = { ...IMP, name: '진흙 덩이', short: '진흙', dmg: 0, job: { p: 'march' as const, every: 3, boost: 0.1 } };
+    run(f, { p: 'adds', n: 1, add: MARCH });
+    const m = f.mobs[f.mobs.length - 1];
+    const row0 = f.cells[m.add!.cell!].row;
+    const freeRows = f.cells.filter(c => (!c.unit && !c.block) || c.i === m.add!.cell).map(c => c.row);
+    expect(row0).toBe(Math.max(...freeRows));
+    expect(m.add!.steps).toBe(row0 + 1);
+    let last = row0;
+    for (let k = 1; k <= row0; k++) {
+      steps(f, 3);
+      const r = f.cells[m.add!.cell!].row;
+      expect(r).toBeLessThanOrEqual(last);
+      expect(r).toBeGreaterThanOrEqual(row0 - k);
+      last = r;
+      expect(m.alive).toBe(true);
+    }
+    steps(f, 3);
+    expect(m.alive).toBe(false);
+    expect(f.empower).toBeCloseTo(0.1);
+    expect(f.dmgMult / mult).toBeCloseTo(1.1);
+    run(f, { p: 'adds', n: 1, add: MARCH });
+    steps(f, 3 * (f.cells[f.mobs[f.mobs.length - 1].add!.cell!].row + 1) + 0.1);
+    expect(f.empower).toBeCloseTo(0.2);
+    expect(f.dmgMult / mult).toBeCloseTo(1.2);
+    // 잡으면 흡수 안 됨
+    const g = raid();
+    run(g, { p: 'adds', n: 1, add: MARCH });
+    const w = g.mobs[g.mobs.length - 1];
+    damageMob(g, w, w.max);
+    steps(g, 30);
+    expect(g.empower).toBe(0);
+  });
+
+  it('자폭 쫄: 노린 사람에게서 떨어져 나와 한 칸씩 다가가고, 붙으면 그 사람 + 이웃 칸 피해', () => {
+    const f = raid();
+    const FIX = { ...IMP, name: '불씨', short: '불씨', dmg: 0, job: { p: 'fixate' as const, every: 2, dmg: 60, splash: 20 } };
+    run(f, { p: 'adds', n: 1, add: FIX });
+    const m = f.mobs[f.mobs.length - 1];
+    const u = f.party.find(x => x.id === m.add!.on)!;
+    expect(u.role).not.toBe('tank');
+    u.dps = 0;
+    const dist = () => hexDist(f.cells[m.add!.cell!], f.cells[u.cell]);
+    const d0 = dist();
+    expect(d0).toBeGreaterThanOrEqual(2);
+    steps(f, 2.05);
+    expect(dist()).toBeLessThanOrEqual(d0);
+    const hp = u.hp;
+    const nb = f.party.filter(v => v !== u && v.alive && hexDist(f.cells[v.cell], f.cells[u.cell]) === 1);
+    const nbHp = nb.map(v => v.hp);
+    steps(f, 2 * (d0 + 1));
+    expect(m.alive).toBe(false);
+    expect(hp - u.hp).toBeGreaterThan(0);
+    nb.forEach((v, i) => expect(v.hp).toBeLessThan(nbHp[i]));
+    // 잡으면 안 터짐
+    const g = raid();
+    run(g, { p: 'adds', n: 1, add: FIX });
+    const x = g.mobs[g.mobs.length - 1];
+    const t = g.party.find(y => y.id === x.add!.on)!, th = t.hp;
+    damageMob(g, x, x.max);
+    steps(g, 12);
+    expect(t.hp).toBe(th);
+  });
+
+  it('큰 쫄: 부탱커에게 예고(소리) 뒤 강타 (탱커 기준)', () => {
+    const f = raid();
+    const off = offTank(f)!;
+    run(f, { p: 'adds', n: 1, add: { ...IMP, name: '거한', short: '거한', hp: 0.1, dmg: 0, job: { p: 'smash', every: 6, warn: 2, dmg: 300 } } });
+    const m = f.mobs[f.mobs.length - 1];
+    expect(m.add!.on).toBe(off.id);
+    off.hp = off.max;
+    let warned = false;
+    const end = f.t + 5.9;
+    while (f.t < end) { E.step(f); if (f.events.some(e => e.type === 'sound' && e.name === 'buster')) warned = true; f.events.length = 0; }
+    expect(warned).toBe(true);
+    expect(off.hp).toBe(off.max);
+    steps(f, 0.2);
+    expect(off.max - off.hp).toBeCloseTo(300 * f.dmgMult);
+  });
+
+  it('쫄 떼: 딜러 딜이 떼 모두에게 같이 들어감', () => {
+    const f = raid();
+    run(f, { p: 'adds', n: 5, add: { ...IMP, name: '해골', short: '해골', hp: 0.005, cleave: true } });
+    const swarm = f.mobs.filter(m => m.add?.cleave);
+    expect(swarm).toHaveLength(5);
+    f.party.forEach(u => { u.dps = 10; });
+    steps(f, 1);
+    expect(swarm.every(m => m.hp < m.max)).toBe(true);
+    steps(f, 20);
+    expect(swarm.every(m => !m.alive)).toBe(true);
   });
 });

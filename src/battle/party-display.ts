@@ -43,6 +43,7 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
   const state: DispelState = debuff.lock || !canDispel(hero, debuff.type) ? 'unavailable' : debuff.trap ? 'dangerous' : 'available';
   const marker = state === 'unavailable' ? '×' : state === 'dangerous' ? '!' : '';
   const kind = compact ? TYPE_SHORT[debuff.type] ?? '?' : debuff.type;
+  if (debuff.jail) return { text: `${marker}${compact ? '감옥' : debuff.name}`, detail: `${debuff.name} · 딜 0 · 못 움직임 · 딜러가 감옥을 깨면 풀림 · 해제 불가`, state, seconds: 0 };
   const action = debuff.lock ? (debuff.cureAt != null ? `해제 불가, 체력 ${Math.round(debuff.cureAt * 100)}% 이상이면 사라짐`
     : debuff.untilBossLoss != null ? `해제 불가, 보스 체력 ${Math.round(debuff.untilBossLoss * 100)}% 깎으면 풀림` : '해제 불가')
     : state === 'unavailable' ? '이 직업으로 해제 불가' : state === 'dangerous' ? '해제 시 전염 폭발' : '해제 가능';
@@ -59,6 +60,6 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
 
 /** 기존 판의 함정 → 독 이외의 알려진 종류 → 나머지 순서를 보존한다. */
 export function primaryDebuff(debuffs: readonly Debuff[]): Debuff | undefined {
-  const priority = (d: Debuff) => d.trap ? 2 : TYPE_SHORT[d.type] && d.type !== '독' ? 1 : 0;
+  const priority = (d: Debuff) => d.jail ? 3 : d.trap ? 2 : TYPE_SHORT[d.type] && d.type !== '독' ? 1 : 0;
   return debuffs.reduce<Debuff | undefined>((best, d) => !best || priority(d) > priority(best) ? d : best, undefined);
 }

@@ -61,7 +61,7 @@ export function create(cfg: FightConfig): Fight {
     standin: null,
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
-    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null,
+    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null, empower: 0,
     items: {}, potCd: 0, medit: 0, itemLog: [],
     stats: { healed: 0, overheal: 0, deaths: 0, minMana: 100, dispels: 0, dispellable: 0, trapPops: 0, queueLost: 0, casts: {}, taps: 0, missTaps: 0, emptyTaps: 0, cancels: 0, manaFails: 0, hymnBroken: 0 },
     nextId: 1,
@@ -246,11 +246,16 @@ function partyHits(f: Fight): void {
   }
 }
 
-/** 보스 전투의 쫄 (P-ADD): 딜러는 먼저 나온 쫄부터, 쫄이 다 쓰러지면 남는 딜은 보스에게 */
+/** 보스 전투의 쫄 (P-ADD): 딜러는 먼저 나온 쫄부터, 쫄이 다 쓰러지면 남는 딜은 보스에게. 쫄 떼는 범위 딜로 같이 맞음 */
 function hitAdds(f: Fight, d: number): void {
-  let left = d;
+  let left = d, cleaved = false;
   for (const m of focusOrder(f)) { // 일점사 (P-FOCUS): 먼저 잡을 것부터
     if (left <= 1e-9) break;
+    if (m.add!.cleave) { // 쫄 떼 (P-SWARM): 떼 전체에 한 번, 남는 딜은 일점사 대상 몫만 넘김
+      if (cleaved) continue;
+      cleaved = true;
+      for (const o of f.mobs) if (o !== m && o.alive && o.add?.cleave) damageMob(f, o, Math.min(o.hp, left));
+    }
     const x = Math.min(m.hp, left);
     left -= x;
     damageMob(f, m, x);

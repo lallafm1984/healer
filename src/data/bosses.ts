@@ -102,20 +102,36 @@ export interface AddDef {
   down?: AddDown;
   /** 이웃 칸에 선 사람 초당 피해 (진흙 토템 독 오라, 파티원이 장판처럼 피함) */
   aura?: number;
-  /** 나오는 칸: front = 보스가 때리는 사람(탱커) 가까이 (때리는 쫄 기본), back = 뒷줄, center = 가운데, edge = 가장자리, random (오브젝트 기본) */
+  /** 나오는 칸: front = 보스가 때리는 사람(탱커) 가까이 (때리는 쫄 기본), back = 뒷줄, center = 가운데, edge = 가장자리, random (오브젝트 기본). 걸어오는 쫄은 back, 자폭 쫄은 노린 사람에게서 from칸 떨어진 곳 */
   at?: 'front' | 'back' | 'center' | 'edge' | 'random';
   /** 하는 일 (35 3-I) */
   job?: AddJob;
+  /** 쫄 떼 (P-SWARM): 딜러 딜이 살아 있는 떼 모두에게 같이 들어감 (범위 딜). 일점사 대상만 남는 딜을 넘김 */
+  cleave?: boolean;
 }
 
-/** 판 위 적이 하는 일. 딜러는 mend → bomb → pylon → 그 밖 순서로, 같으면 먼저 나온 것부터 잡는다 */
+/** 판 위 적이 하는 일. 딜러는 mend → bomb → jail → pylon → 그 밖 순서로, 같으면 먼저 나온 것부터 잡는다 */
 export type AddJob =
   /** 치유하는 쫄 (P-MENDER): every초마다 보스 체력 pct 회복 */
   | { p: 'mend'; every: number; pct: number }
   /** 폭탄 (P-BOMB): sec초 안에 못 깨면 터져서 살아 있는 모두에게 dmg (마법) */
   | { p: 'bomb'; sec: number; dmg: number }
   /** 보호막 수정 (P-PYLON): 서 있는 동안 보스가 받는 피해 −cut */
-  | { p: 'pylon'; cut: number };
+  | { p: 'pylon'; cut: number }
+  /** 감옥 (P-JAIL): 기술 효과 jail이 만듦. 갇힌 사람 칸에 겹쳐 나오고, 깨지면 그 사람이 풀림 */
+  | { p: 'jail' }
+  /** 큰 쫄 (P-ELITE): every초마다 맡은 사람(부탱커)에게 warn초 예고 뒤 dmg (탱커 기준, 물리). 예고 동안 칸 위에 남은 초 */
+  | { p: 'smash'; every: number; warn: number; dmg: number }
+  /**
+   * 걸어오는 쫄 (P-MARCH): 뒷줄에 나와 every초마다 한 줄씩 앞으로 (앞 칸이 막혀 있어도 걸음은 셈). 앞줄에서 한 번 더 걸으면
+   * 보스에게 흡수 → 보스가 주는 피해 ×(1+boost), 전투 끝까지 겹침
+   */
+  | { p: 'march'; every: number; boost: number }
+  /**
+   * 자폭 쫄 (P-FIXATE): 탱커 아닌 1명(나 포함)을 노려 from칸 떨어진 곳(기본 3)에 나오고 every초마다 한 칸씩 다가감.
+   * 붙은 채로 차례가 오면 터져 그 사람 dmg + 이웃 칸 splash (마법, 원거리 기준). 노린 사람이 쓰러지면 다른 사람을 노림
+   */
+  | { p: 'fixate'; every: number; dmg: number; splash: number; from?: number };
 
 /** 기술이 맞을 때 하는 일 */
 export type SkillEffect =
@@ -150,7 +166,12 @@ export type SkillEffect =
    * 한 번씩 넣으면 성공 → 보스 daze.sec초 멍함 (기술을 안 쓰고, 받는 피해 × daze.vuln). 순서가 틀리면 그 사람 wrong 피해 + 처음부터
    * (쉬움은 피해 없이 처음부터). 시간이 다 되면 아직 못 받은 사람마다 miss 피해. 받는 치유가 깎인 사람도 횟수로 셈
    */
-  | { p: 'order'; n: number; nMythic?: number; sec: number; wrong: number; miss: number; daze: { sec: number; vuln: number } };
+  | { p: 'order'; n: number; nMythic?: number; sec: number; wrong: number; miss: number; daze: { sec: number; vuln: number } }
+  /**
+   * 감옥 (P-JAIL): 탱커·나 아닌 n명(악몽 nMythic)을 가둠 (딜 0 · 못 움직임 · 초당 dot, 해제 안 됨). 그 칸에 감옥(체력 = 보스 최대 × hp)이
+   * 겹쳐 나오고 딜러가 일점사로 깨면 풀림. 갇힌 사람이 쓰러지면 감옥도 사라짐
+   */
+  | { p: 'jail'; n: number; nMythic?: number; name: string; short: string; hp: number; dot: number };
 
 /** 장판 칸 고르기 */
 export type ZoneCells =

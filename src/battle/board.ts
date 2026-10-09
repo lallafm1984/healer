@@ -690,8 +690,16 @@ export function render(now: number): void {
       overG.circle(p.x, p.y, r * 0.8).moveTo(p.x - ro, p.y).lineTo(p.x - ri, p.y).moveTo(p.x + ri, p.y).lineTo(p.x + ro, p.y).moveTo(p.x, p.y - ro).lineTo(p.x, p.y - ri)
         .stroke({ width: Math.max(2.5, s * 0.06), color: C.gold, alpha: 0.6 + 0.4 * pulse });
     }
-    pill(overG, labels, `tot${m.id}`, p.x, p.y + r * 0.35, `${a.short} ${Math.ceil((m.hp / m.max) * 100)}%`, 0xe8b4a8, C.dark, fs(0.2, 10));
-    if (a.job?.p === 'bomb' && isFinite(a.jobAt!)) pill(overG, labels, `bomb${m.id}`, p.x, p.y - r * 0.45, `${Math.max(0, Math.ceil(a.jobAt! - F.t))}`, C.danger, C.white, fs(0.26, 11));
+    // 이름 · 체력 %는 파티원 칸과 같은 자리 (이웃한 적 칸끼리 글자가 겹치지 않게 알약 대신 글자만)
+    labels.put(`tot${m.id}`, a.short, { size: typography.nick, fill: 0xf3cfc6, strokeW: 2 }, p.x, p.y + r * (compact ? -0.29 : 0.13));
+    labels.put(`totp${m.id}`, `${Math.ceil((m.hp / m.max) * 100)}%`, { size: typography.hp, fill: C.white, weight: W_NUM, strokeW: compact ? 1.5 : 2.5 }, p.x, p.y + r * (compact ? 0.25 : 0.6));
+    const j = a.job;
+    // 남은 초: 폭탄 = 터질 때까지, 걸어오는 쫄 = 보스에게 닿을 때까지, 큰 쫄 = 강타 예고
+    const left = j?.p === 'bomb' && isFinite(a.jobAt!) ? a.jobAt! - F.t : j?.p === 'march' ? (a.steps! - 1) * j.every + a.jobAt! - F.t : j?.p === 'smash' && a.warned ? a.jobAt! - F.t : null;
+    if (left != null) pill(overG, labels, `bomb${m.id}`, p.x, p.y - r * (compact ? 0.85 : 0.8), `${Math.max(0, Math.ceil(left))}`, j!.p === 'bomb' ? C.danger : 0xffb25b, j!.p === 'bomb' ? C.white : C.dark, fs(0.26, 11));
+    // 자폭 쫄: 노린 사람까지 붉은 줄
+    const prey = j?.p === 'fixate' ? F.party.find(u => u.id === a.on && u.alive) : undefined;
+    if (prey) { const q = unitPos(prey); overG.moveTo(p.x, p.y).lineTo(q.x, q.y).stroke({ width: Math.max(2, s * 0.05), color: C.danger, alpha: 0.45 + 0.4 * pulse }); }
   }
 
   // 테두리 표시 · 배지
@@ -789,8 +797,9 @@ export function render(now: number): void {
     }
     if (deb) {
       const summary = debuffDisplay(deb, F.hero, compact);
+      if (deb.jail) { const j = F.mobs.find(m => m.alive && m.add?.hold === deb.id); if (j) summary.text = `${j.add!.short} ${Math.ceil((j.hp / j.max) * 100)}%`; }
       const adjust = !compact && hasHot ? (box: PillBox) => badgeBesideHot(box, x + r * 0.56, y - r * 0.44, Math.max(7, s * 0.19) + 0.75, nameBox.y - nameBox.h / 2) : undefined;
-      debBadge = pill(overG, labels, `deb${u.id}`, x, y - r * (compact ? 0.85 : 0.8), summary.text, deb.trap ? 0xf6e7b0 : hex(DEB[deb.type] || '#E5433D'), C.dark, typography.debuff, 1, adjust);
+      debBadge = pill(overG, labels, `deb${u.id}`, x, y - r * (compact ? 0.85 : 0.8), summary.text, deb.jail ? 0xd8c7a8 : deb.trap ? 0xf6e7b0 : hex(DEB[deb.type] || '#E5433D'), C.dark, typography.debuff, 1, adjust);
     }
     if (!compact && u.hot > 0) {
       const hr = Math.max(7, s * 0.19), hp = hotCenter(x + r * 0.56, y - r * 0.44, hr + 0.75, hr + 0.75, nameBox.y - nameBox.h / 2, debBadge);
@@ -850,9 +859,19 @@ export function render(now: number): void {
       recordBound(`aggro${u.id}`, 'aggro', 'circle', bx, by, br * 2 + bw, br * 2 + bw);
     }
     if (F.rats && F.rats.includes(u.id)) pill(overG, labels, `rat${u.id}`, x - r * 0.05, y + r * 0.95, '쥐떼', 0xb9a38a, C.dark, fs(0.18, 9));
-    // 판 위 적이 때리는 사람 (부탱커·딜러): 그 적 이름 (35 3-I)
-    const add = F.mobs.find(m => m.alive && m.add && m.add.dmg > 0 && m.add.on === u.id);
-    if (add) pill(overG, labels, `add${u.id}`, x - r * 0.05, y + r * 0.95, add.add!.short, 0xe8b4a8, C.dark, fs(0.18, 9));
+    // 판 위 적이 때리는 사람 (부탱커·딜러) · 자폭 쫄이 노리는 사람: 그 적 이름 (35 3-I)
+    const add = F.mobs.find(m => m.alive && m.add && m.add.on === u.id && (m.add.dmg > 0 || m.add.job?.p === 'smash' || m.add.job?.p === 'fixate'));
+    if (add) pill(overG, labels, `add${u.id}`, x - r * 0.05, y + r * 0.95, add.add!.short, add.add!.job?.p === 'fixate' ? C.danger : 0xe8b4a8, add.add!.job?.p === 'fixate' ? C.white : C.dark, fs(0.18, 9));
+    // 감옥 (P-JAIL): 갇힌 사람 칸에 창살 (감옥 체력은 디버프 배지). 딜러가 깨는 중이면 금빛 과녁
+    const jail = F.mobs.find(m => m.alive && m.add?.hold != null && m.add.on === u.id);
+    if (jail) {
+      const w = Math.max(2.5, s * 0.07);
+      hexPoly(overG, x, y, r * 0.96).fill({ color: 0x4a3f33, alpha: 0.45 });
+      for (let k = -2; k <= 2; k++) { const h = k === -2 || k === 2 ? 0.5 : 0.84; overG.moveTo(x + k * r * 0.3, y - r * h).lineTo(x + k * r * 0.3, y + r * h); }
+      overG.stroke({ width: w, color: 0xd8c7a8, alpha: 0.75 });
+      hexPoly(overG, x, y, r * 0.96).stroke({ width: w * 1.3, color: 0xd8c7a8, alpha: 0.95 });
+      if (jail === focusOrder(F)[0]) overG.circle(x, y, r * 0.8).stroke({ width: Math.max(2.5, s * 0.06), color: C.gold, alpha: 0.6 + 0.4 * pulse });
+    }
     const bt = F.tels.find(tl => tl.kind === 'buster' && tl.units.includes(u.id));
     if (bt && bt.skill.dmg) {
       const sh = u.shield > bt.impact - F.t ? 0.6 : 1; // 맞을 때까지 보호 두루마리가 남아 있으면 -40%
