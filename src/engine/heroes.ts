@@ -87,7 +87,7 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
     const h = u.hots.slice().sort((a, b) => b.rest - a.rest)[0];
     if (h) { u.hots = u.hots.filter(x => x !== h); heroHeal(f, u, h.rest * 1.5); }
     else if (u.hot > 0) { const rest = Math.ceil(u.hot / 3) * 80; u.hot = 0; heroHeal(f, u, rest * 1.5); }
-    emit(f, { type: 'sound', name: 'bell' });
+    emit(f, { type: 'sound', name: 'chime' });
   } else if (key === 'wildflower') {
     const vs = around(f, u, areaRadius(f, 'wildflower')); // 20인은 2칸 (26 9-1)
     for (const v of vs) putHot(v, 'wildflower', { sec: 7, every: 2, amts: [70, 45, 30, 15] });
@@ -122,7 +122,7 @@ function paladin(f: Fight, key: SkillKey, u: Unit): void {
     const vs = around(f, u);
     for (const v of vs) heroHeal(f, v, sk.amt!);
     if (heroPassive(f, '헌신')) f.mana = Math.min(100, f.mana + 2);
-    emit(f, { type: 'sound', name: 'bell' });
+    emit(f, { type: 'sound', name: 'chime' });
   } else if (key === 'handCleanse') {
     doDispel(f, u);
   } else if (key === 'sacrifice') {
@@ -131,11 +131,11 @@ function paladin(f: Fight, key: SkillKey, u: Unit): void {
   } else if (key === 'sanctuary') {
     const c = cellOf(f, u);
     f.sanctuary = { cells: new Set(f.cells.filter(x => hexDist(x, c) <= 1).map(x => x.i)), end: f.t + SANCTUARY.sec };
-    emit(f, { type: 'sound', name: 'bell' });
+    emit(f, { type: 'sound', name: 'chime' });
     emit(f, { type: 'msg', text: `빛의 성역: ${SANCTUARY.sec}초` });
   } else if (key === 'handGuard') {
     u.immune = HAND_GUARD.sec;
-    emit(f, { type: 'sound', name: 'bell' });
+    emit(f, { type: 'sound', name: 'chime' });
     emit(f, { type: 'msg', text: `보호의 손: ${u.nick}` });
   }
 }

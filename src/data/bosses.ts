@@ -322,7 +322,7 @@ export type FlowStep =
 export interface BossDef {
   /** 시작 페이즈 [번호, 이름]. 이름 '' = 페이즈 표시 없음 */
   phase: [number, string];
-  /** 보스 전투 안의 적 몸통 (무음 성가대 성부·지휘자). hp는 enc.hp 기준이라 체력 배율이 그대로 붙음 */
+  /** 보스 전투 안의 적 몸통 (유령 성가대 성부·지휘자). hp는 enc.hp 기준이라 체력 배율이 그대로 붙음 */
   bodies?: { name: string; hp: number; elite?: boolean; boss?: boolean }[];
   skills: SkillDef[];
   flow?: FlowStep[];
@@ -339,7 +339,7 @@ const AUTO = (dmg: number): SkillDef => ({ key: 'auto', hidden: true, first: 2, 
 const BUSTER = (name: string, icon: string, first: number, period: number, dmg: number): SkillDef =>
   ({ key: 'buster', name, icon, kind: 'buster', first, period, cast: 2, warn: 'buster', dmg, target: 'tank', effect: { p: 'tank' } });
 
-/** 무음 성가대 수치 (26 4-3, 보통 기준. 피해는 난이도·단계 배율을 곱함) */
+/** 유령 성가대 수치 (26 4-3, 보통 기준. 피해는 난이도·단계 배율을 곱함) */
 export const CHOIR = {
   voices: ['높은 성부', '가운데 성부', '낮은 성부'], voiceHp: 4000, bossHp: 30000,
   auto: 70, baton: 600, song: 4, crescDps: 35, discord: 0.7, forte: 170, soloN: 3, soloSec: 6, soloDmg: 200,
@@ -404,7 +404,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     ],
     enrage: { name: '역병 폭주', period: 3, dmg: 180 },
   },
-  // 무음 성가대 (26 4-3): 20인 입문. 성가대원 셋이 맡은 2열에 노래, 다 잡으면 지휘자 2페이즈
+  // 유령 성가대 (26 4-3): 20인 입문. 성가대원 셋이 맡은 2열에 노래, 다 잡으면 지휘자 2페이즈
   choir: {
     phase: [1, '1페이즈 · 세 성부'],
     bodies: [...CHOIR.voices.map(name => ({ name, hp: CHOIR.voiceHp, elite: true })), { name: '지휘자', hp: CHOIR.bossHp, elite: true, boss: true }],

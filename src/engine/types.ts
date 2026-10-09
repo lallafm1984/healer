@@ -412,7 +412,7 @@ export interface Mob {
   id: number;
   name: string;
   elite: boolean;
-  /** 보스 전투의 보스 몸통 (무음 성가대 지휘자). 앞의 적을 다 잡아야 맞음 */
+  /** 보스 전투의 보스 몸통 (유령 성가대 지휘자). 앞의 적을 다 잡아야 맞음 */
   boss?: boolean;
   hp: number;
   max: number;
@@ -550,7 +550,7 @@ export interface Fight {
   R: Rules;
   /** 레이드에서 탱커가 모두 쓰러진 시각 (35 6-4). 탱커가 일어나면 null */
   noTankAt: number | null;
-  /** 보스 체력 = 몸통(보스가 아닌 적 포함) 체력 합 (일반·정예 구간, 무음 성가대). 쫄(add)은 빼고 셈 */
+  /** 보스 체력 = 몸통(보스가 아닌 적 포함) 체력 합 (일반·정예 구간, 유령 성가대). 쫄(add)은 빼고 셈 */
   bodyHp: boolean;
   rats: number[];
   items: Partial<Record<ItemKey, number>>;

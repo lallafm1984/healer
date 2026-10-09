@@ -263,7 +263,7 @@ const Engine = (() => {
       if (u.guardian > 0) {
         u.guardian = 0;
         u.hp = u.max * 0.4;
-        emit(f, { type: 'sound', name: 'bell' });
+        emit(f, { type: 'sound', name: 'chime' });
         emit(f, { type: 'msg', text: `수호 영혼이 ${u.nick}을(를) 살림` });
         return;
       }
@@ -671,14 +671,14 @@ const Engine = (() => {
     if (key === 'heal' || key === 'flash' || key === 'serenity') {
       heal(f, u, sk.amt * (u.hot > 0 && key !== 'serenity' ? 1.1 : 1), true);
       u.echo.push({ left: 4, rate: (sk.amt * 0.15) / 4 });
-      if (key === 'serenity') emit(f, { type: 'sound', name: 'bell' });
+      if (key === 'serenity') emit(f, { type: 'sound', name: 'chime' });
     } else if (key === 'renew') {
       u.hot = 9; u.hotTick = 0; u.lastHeal = f.t; if (u.sulking) u.sulking = false;
       emit(f, { type: 'sound', name: 'renew' });
     } else if (key === 'poh' || key === 'sanctify') {
       const c = cellOf(f, u);
       for (const v of living(f)) if (hexDist(cellOf(f, v), c) <= 1) heal(f, v, sk.amt, true);
-      if (key === 'sanctify') emit(f, { type: 'sound', name: 'bell' });
+      if (key === 'sanctify') emit(f, { type: 'sound', name: 'chime' });
     } else if (key === 'purify') {
       const ds = u.debuffs.filter(d => DISPELLABLE[d.type]).sort((a, b) => (a.trap ? 1 : 0) - (b.trap ? 1 : 0) || (b.stack || 0) - (a.stack || 0));
       const d = ds[0];
@@ -806,7 +806,7 @@ const Engine = (() => {
       u.alive = true; u.max = u.base; u.hp = u.max * 0.3; u.cell = c.i; c.unit = u;
       u.debuffs = []; u.moving = null; u.react = null; u.fleeing = false; u.sulking = false; u.retryAt = f.t + 1;
       emit(f, { type: 'revive', id: u.id });
-      emit(f, { type: 'sound', name: 'bell' });
+      emit(f, { type: 'sound', name: 'chime' });
       bark(f, u, '살았다…! 감사', true);
       note = u.nick;
     }
