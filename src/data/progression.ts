@@ -54,8 +54,6 @@ export const xpShare = (level: number) => Math.min(1, 14 * level ** -1.1) * (lev
 export const XP_RAID = { 10: 1.2, 20: 1.4 } as const;
 /** 지면 이만큼만 (편성·난이도 다시 고를 힘은 남게) */
 export const XP_LOSE = 0.2;
-/** 따라잡기 (34 3-2): 지금 직업 레벨이 가장 높은 직업 레벨보다 낮으면 경험치 ×3. 따라잡으면 끝 */
-export const CATCH_UP_XP = 3;
 
 export function clearXp(level: number, diff: DiffName, grade: Grade | null, opts: { raid?: 0 | 10 | 20; win: boolean }): number {
   if (level >= MAX_LEVEL) return 0;

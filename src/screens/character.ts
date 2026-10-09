@@ -13,7 +13,7 @@ import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots, TALENT_LEVEL } from '../data/progression';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { TALENTS, type TalentKey } from '../data/talents';
-import { heroLevelOf, topLevel, type TapKey } from '../platform/storage';
+import { heroLevelOf, type TapKey } from '../platform/storage';
 import { betterSlots, gearAvg, gearScore, isBetter, scoreOf, statParts, talentsLeft } from '../game/charinfo';
 import {
   bestGearPlan, commit, enhance, equip, equipBest, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, lowGradeIds, pickTalent, salvage,
@@ -284,7 +284,7 @@ function itemSheet(id: number): string {
         <span class="c7-gname"><b>${esc(it.name)}${it.plus ? ` <i>+${it.plus}</i>` : ''}</b><span class="cap">${sub2}</span></span>
         <span class="c7-gscore"><span class="cap">점수</span><b>${sc}</b>${worn ? '' : updn(sc - scoreOf(cur))}</span></div>
       <div class="c7-cmpw"><h3 class="h-rule c7-h3">${worn ? '능력치' : '지금 장비와 비교'}<span class="rule"></span><span class="cap">${cmpCap}</span></h3>${rows}</div>
-      <div class="c7-enh"><span><b>${c ? `강화 +${it.plus} → +${c.to}` : `최대 강화 +${MAX_PLUS}`}</b><span class="cap">${costTxt}</span></span><span class="cap${lack ? ' c7-lack' : ''}">${worn ? lack : c ? '장착 뒤 강화 추천' : ''}</span></div>
+      <div class="c7-enh"><span><b>${c ? `강화 +${it.plus} → +${c.to}` : `최대 강화 +${MAX_PLUS}`}</b><span class="cap">${costTxt}</span>${c ? `<span class="cap c7-rate">성공 ${Math.round(c.rate * 100)}%${c.rate >= 1 ? '' : c.fail < it.plus ? ` · <em class="c7-lack">실패하면 +${c.fail}${c.fail % 10 === 3 || c.fail % 10 === 6 || c.fail % 10 === 0 ? '으로' : '로'} 떨어짐</em>` : ' · 실패해도 그대로'}</span>` : ''}</span><span class="cap${lack ? ' c7-lack' : ''}">${worn ? lack : c ? '장착 뒤 강화 추천' : ''}</span></div>
       <p class="note c7-save-note" id="gearSheetSave">장착·강화·잠금은 즉시 저장됩니다.</p>
       ${msg ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
       <div class="c7-sbtns">
@@ -637,7 +637,6 @@ function heroDetail(k: HeroKey): string {
   const quest = q && st.need && st.state !== 'open' && !hs.unlocked ? `<div class="c7-hq hq"><p><b>직업 퀘스트 「${q.name}」</b><br>${esc(q.text)}</p><strong>${st.quest} / ${st.need}</strong></div>` : '';
   const notes = [
     st.state === 'now' ? `직업 레벨 Lv ${heroLevelOf(G.save, k)} · 이 직업으로 이긴 판 ${fmt(hs.wins)}` : '',
-    (st.state === 'now' || st.state === 'open') && heroLevelOf(G.save, k) < topLevel(G.save) ? `따라잡기: Lv ${topLevel(G.save)}까지 경험치 ×3` : '',
     st.state === 'locked' ? `${LOCK}${esc(h.unlock.how)}` : '',
     st.dev ? `Lv ${h.unlock.lv} 해금, 개발 빌드라 열림` : '',
   ].filter(Boolean).map(t => `<p class="m">${t}</p>`).join('');

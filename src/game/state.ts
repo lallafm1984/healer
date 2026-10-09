@@ -88,8 +88,11 @@ export function findItem(id: number): GearItem | null {
   return Object.values(g.equipped).find(x => x?.id === id) || g.bag.find(x => x.id === id) || null;
 }
 
-/** 강화 한 단계 (12 3-2, 실패 없음). 모자라면 이유를 돌려줌 */
-export function enhance(id: number): string {
+/**
+ * 강화 한 번 (34 6-5: 확률, +2 이상에서 실패하면 1단계 떨어짐). 성공은 빈 문자열, 실패·모자람은 보여 줄 글.
+ * 결과는 누른 순간 저장 (껐다 켜서 다시 굴리지 못하게). roll은 테스트에서 성공·실패를 고정할 때
+ */
+export function enhance(id: number, roll: () => number = Math.random): string {
   const it = findItem(id);
   if (!it) return '장비 없음';
   const c = enhanceCost(it);
@@ -99,10 +102,12 @@ export function enhance(id: number): string {
   if (m.stone < c.stone) return `강화석 부족 (${c.stone}개 필요)`;
   if (m.refined < c.refined) return `정제 강화석 부족 (${c.refined}개 필요)`;
   p.gold -= c.gold; m.stone -= c.stone; m.refined -= c.refined;
-  it.plus = c.to;
+  const from = it.plus, ok = roll() < c.rate;
+  it.plus = ok ? c.to : c.fail;
   if (G.save.tut >= TUT.done) onAct(G.save, 'enhance');
   commit();
-  return '';
+  if (ok) return '';
+  return it.plus < from ? `강화 실패 · +${from} → +${it.plus}` : `강화 실패 · +${from} 그대로`;
 }
 
 /** 가방 장비 분해 (착용 중인 것·잠긴 것은 안 됨). 받은 골드·재료 합 */

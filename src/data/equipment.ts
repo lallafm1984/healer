@@ -1,6 +1,6 @@
 /**
  * 힐러 장비 아이템 (02 10장). 6부위, 등급 5단계, 클리어 때 랜덤 1개.
- * 강화 +1~+10 (실패 없음, 골드 + 강화석, 12 3-2) · 분해 (골드 + 강화석, 12 3-1). 떨어지는 장비는 모두 +0.
+ * 강화 +1~+10 (확률, +2 이상에서 실패하면 1단계 떨어짐, 34 6-5 · 12 3-2) · 분해 (골드 + 강화석, 12 3-1). 떨어지는 장비는 모두 +0.
  */
 import type { DiffName } from './difficulty';
 import { GRADE, type GearStats, type GradeName } from './gear';
@@ -78,13 +78,29 @@ export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B'
 
 // ---------- 강화·분해 (12 3장) ----------
 export const MAX_PLUS = 10;
-/** 등급 기본값: 강화 골드 = 기본값 × 단계² */
-export const ENHANCE_BASE: Record<ItemGrade, number> = { '일반': 10, '고급': 20, '희귀': 40, '영웅': 80, '전설': 160 };
-/** 다음 단계 강화 비용: +1~+5 강화석 단계 수만큼, +6~+10 정제 강화석 (단계 - 5)개. 다 올렸으면 null */
-export function enhanceCost(it: GearItem): { gold: number; stone: number; refined: number; to: number } | null {
+/** 등급 기본값: 시도 한 번의 골드 = 기본값 × 목표 단계². 확률 강화라 실패 없을 때 값(10/20/40/80/160)의 ¼ (34 6-5) */
+export const ENHANCE_BASE: Record<ItemGrade, number> = { '일반': 3, '고급': 5, '희귀': 10, '영웅': 20, '전설': 40 };
+/** 목표 단계별 성공 확률 (34 6-5, Lim 2026-10-09: 확률 강화 · 대성공 없음). 칸 번호 = 목표 단계 */
+export const ENHANCE_RATE = [0, 1, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5, 0.45, 0.4, 0.35];
+/** 이 단계 이상인 장비가 실패하면 1단계 떨어짐 (+1에서 실패하면 그대로) */
+export const ENHANCE_DROP_FROM = 2;
+export interface EnhanceCost {
+  gold: number; stone: number; refined: number;
+  /** 성공하면 이 단계 */
+  to: number;
+  /** 성공 확률 (0~1) */
+  rate: number;
+  /** 실패하면 이 단계 (+2 이상이면 1 낮음, 아니면 그대로) */
+  fail: number;
+}
+/** 다음 단계 강화 한 번의 비용·확률: +1~+5 강화석 목표 단계만큼, +6~+10 정제 강화석 1개. 다 올렸으면 null */
+export function enhanceCost(it: GearItem): EnhanceCost | null {
   const to = it.plus + 1;
   if (to > MAX_PLUS) return null;
-  return { gold: ENHANCE_BASE[it.grade] * to * to, stone: to <= 5 ? to : 0, refined: to > 5 ? to - 5 : 0, to };
+  return {
+    gold: ENHANCE_BASE[it.grade] * to * to, stone: to <= 5 ? to : 0, refined: to > 5 ? 1 : 0, to,
+    rate: ENHANCE_RATE[to], fail: it.plus >= ENHANCE_DROP_FROM ? it.plus - 1 : it.plus,
+  };
 }
 /** 클리어 재료 (12 1장): 던전은 강화석 조금, 레이드는 정제 강화석도 (보스 처치) */
 const DIFF_STEP: Record<DiffName, number> = { '쉬움': 0, '보통': 1, '어려움': 2, '악몽': 3 };
