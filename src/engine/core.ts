@@ -1,3 +1,4 @@
+import { armorFactor, type DamageAim } from '../data/armor';
 import { HEROES } from '../data/heroes';
 import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
@@ -64,10 +65,14 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
 /** 호감도 (06 6장 은혜 갚기): 길드원은 함께 출전한 수, 공개모집은 이번 판에 내 힐을 받은 양 (인연 스카우트와 같은 기준). 길드원이 먼저 */
 const affinity = (u: Unit): number => (u.gid != null ? 1e9 + u.runs : u.got);
 
-/** 피해. magic = 보스 광역·장판·지속 피해 (평타·버스터·적 근접은 물리, 17 수호기사) */
-export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
+/**
+ * 피해. magic = 보스 광역·장판·지속 피해 (평타·버스터·적 근접은 물리, 17 수호기사).
+ * aim = 수치를 누구 기준으로 적었나 (data/armor.ts). 직업군 방어력은 둘 다 줄이고, fixed는 무시 (34 9-3)
+ */
+export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: DamageAim = 'party'): void {
   if (!u.alive || amt <= 0) return;
   amt *= f.dmgMult;
+  if (f.armor) amt *= armorFactor(u.role, aim);
   if (u.me && f.tx.on.firmWill) amt *= 0.8; // 굳은 의지 (06 6장)
   if (u.me && f.standin) amt *= f.standin.guard; // 특성 트리 없는 직업 임시 보정
   if (u.shield > 0) amt *= 0.6;
@@ -78,7 +83,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
   if (u.sacr > 0 && f.me.alive && f.me !== u) { // 희생: 받는 피해의 30%를 내가 대신
     const part = amt * SACRIFICE_CUT;
     amt -= part;
-    damage(f, f.me, part / f.dmgMult, magic);
+    damage(f, f.me, part / f.dmgMult, magic, 'fixed');
   }
   if (u.cls) {
     if (magic && u.cls === 'paladin') amt *= 0.9;
@@ -90,7 +95,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false): void {
     if (v) {
       f.tx.repayUsed = true;
       emit(f, { type: 'msg', text: `은혜 갚기: ${v.nick}이(가) 대신 맞음` });
-      damage(f, v, amt / f.dmgMult, magic);
+      damage(f, v, amt / f.dmgMult, magic, 'fixed');
       return;
     }
   }

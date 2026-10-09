@@ -62,7 +62,7 @@ export function dmgMods(f: Fight, u: Unit, amt: number, magic: boolean): number 
   }
   if (share && amt > 0) {
     const by = f.party.find(x => x.id === share!.by);
-    if (by && by.alive && by !== u) { const part = amt * share.v; amt -= part; damage(f, by, part / f.dmgMult, magic); }
+    if (by && by.alive && by !== u) { const part = amt * share.v; amt -= part; damage(f, by, part / f.dmgMult, magic, 'fixed'); }
   }
   return amt;
 }

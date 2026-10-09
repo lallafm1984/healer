@@ -1,3 +1,4 @@
+import { NO_TANK_MIN_PARTY, NO_TANK_SEC } from '../data/armor';
 import { BOARDS } from '../data/boards';
 import { CLASSES, RECRUIT_CLASSES, sameClassMax, type ClassKey } from '../data/classes';
 import { DIFFS, MYTHIC } from '../data/difficulty';
@@ -55,7 +56,7 @@ export function create(cfg: FightConfig): Fight {
     standin: null,
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
-    enraged: false, rats: [],
+    enraged: false, armor: cfg.armor !== false, noTankAt: null, rats: [],
     items: {}, potCd: 0, medit: 0, itemLog: [],
     stats: { healed: 0, overheal: 0, deaths: 0, minMana: 100, dispels: 0, dispellable: 0, trapPops: 0, queueLost: 0, casts: {}, taps: 0, missTaps: 0, emptyTaps: 0, cancels: 0, manaFails: 0, hymnBroken: 0 },
     nextId: 1,
@@ -195,9 +196,19 @@ export function step(f: Fight): void {
   else if (!live.some(u => !u.me)) end(f, 'lose', '파티 전멸');
 }
 
-/** 탱커가 모두 쓰러지면 보스는 다음 사람을 때림 (aggroTarget). 그 사람이 버팀목이면 잠깐 버팀 */
+/**
+ * 탱커가 모두 쓰러지면 보스는 다음 사람을 때림 (aggroTarget). 그 사람이 버팀목이면 잠깐 버팀.
+ * 레이드(10인·20인)는 「탱커 없음」 카운트다운이 끝나면 보스가 바로 광폭화 (35 6-4, bosses.ts enrageAt). 탱커를 일으키면 사라짐
+ */
 function tankWatch(f: Fight): void {
-  if (f.party.some(u => u.role === 'tank' && u.alive)) return;
+  if (f.party.some(u => u.role === 'tank' && u.alive)) {
+    if (f.noTankAt != null) { f.noTankAt = null; if (!f.enraged) emit(f, { type: 'msg', text: '탱커가 일어남: 광폭화 카운트다운 멈춤' }); }
+    return;
+  }
+  if (f.armor && f.noTankAt == null && !f.enraged && f.party.length >= NO_TANK_MIN_PARTY && f.party.some(u => u.role === 'tank')) {
+    f.noTankAt = f.t;
+    emit(f, { type: 'msg', text: `탱커 없음: ${NO_TANK_SEC}초 뒤 보스 광폭화` });
+  }
   const u = aggroTarget(f);
   if (!u || u.me || u.bulwarkUsed || !u.traits.includes('bulwark')) return;
   u.bulwarkUsed = true; u.bulwark = BULWARK.sec;

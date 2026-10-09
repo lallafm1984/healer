@@ -1,6 +1,7 @@
 /**
  * 프로토타입 엔진(tests/fixtures/proto-engine.cjs, prototype/engine.js 사본)과
  * TypeScript 엔진이 같은 시드·같은 입력에서 똑같이 움직이는지 확인한다.
+ * 직업군 방어력(34 9-2)은 프로토타입에 없어서 끄고 비교한다 (armor: false).
  */
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
@@ -43,7 +44,7 @@ describe('자동 힐러 한 판 결과가 프로토타입과 같음', () => {
   for (const { enc, diff } of CASES) {
     it(`${enc} ${diff}`, () => {
       for (const gear of GEARS) for (const seed of [1, 7, 42, 1234, 99991]) {
-        const cfg = { encounter: enc, diff, gear, seed, items: ['mana', 'life', 'cleanse', 'feather'] as ItemKey[] };
+        const cfg = { encounter: enc, diff, gear, seed, items: ['mana', 'life', 'cleanse', 'feather'] as ItemKey[], armor: false };
         const a = P.simulate(cfg);
         const b = E.simulate(cfg);
         expect(snapTs(b), `${enc} ${diff} ${gear} seed ${seed}`).toEqual(snap(a));
@@ -59,7 +60,7 @@ describe('사람 입력(탭·휠·아이템)을 섞어도 틱마다 같음', () 
     it(`${enc} ${diff}`, () => {
       for (const seed of [3, 11, 2026]) {
         const items = [ITEMS[seed % 6], ITEMS[(seed + 1) % 6], ITEMS[(seed + 3) % 6], 'feather'] as ItemKey[];
-        const cfg = { encounter: enc, diff, gear: 'adv0' as GearId, seed, items };
+        const cfg = { encounter: enc, diff, gear: 'adv0' as GearId, seed, items, armor: false };
         const a = P.create(cfg);
         const b = E.create(cfg);
         const input = E.rngFrom(seed * 31 + 5); // 입력용 난수 (전투 난수와 따로)
