@@ -7,7 +7,7 @@
 import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, RenderTexture, Sprite, Text, Texture, type TextStyleFontWeight } from 'pixi.js';
 import { CLASSES } from '../data/classes';
 import { SKILLS } from '../data/skills';
-import { aggroTarget, areaRadius, hexDist, ORDER_NUM, slotKey, type Unit } from '../engine';
+import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type Unit } from '../engine';
 import { emblemColor } from '../screens/art';
 import { emblemSrc } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
@@ -677,11 +677,19 @@ export function render(now: number): void {
     }
   }
 
-  // 칸을 차지한 쫄 (진흙 토템): 이름과 남은 체력
+  // 판에 나온 적 (35 3-I): 붉은 테 칸 + 이름 · 남은 체력. 딜러가 때리는 적(일점사)에 금빛 과녁, 폭탄은 남은 초
+  const focus = focusOrder(F)[0];
   for (const m of F.mobs) if (m.alive && m.add?.cell != null) {
-    const p = center(m.add.cell);
-    hexPoly(cellsG, p.x, p.y, r * 0.7).fill({ color: 0x6b5a3a, alpha: 0.85 }).stroke({ width: 2, color: 0xb9a38a });
-    pill(overG, labels, `tot${m.id}`, p.x, p.y, `${m.add.short} ${Math.ceil((m.hp / m.max) * 100)}%`, 0xb9a38a, C.dark, fs(0.2, 10));
+    const a = m.add, p = center(a.cell!);
+    hexPoly(cellsG, p.x, p.y, r * 0.92).fill({ color: 0x3b1514, alpha: 0.92 }).stroke({ width: Math.max(2.5, s * 0.07), color: C.danger, alpha: 0.9 });
+    fillBand(cellsG, p.x, p.y, r * 0.92, p.y + r * 0.92 - 2 * r * 0.92 * (m.hp / m.max), p.y + r * 0.92, C.danger, 0.28);
+    if (m === focus) {
+      const ro = r * 0.98, ri = r * 0.62;
+      overG.circle(p.x, p.y, r * 0.8).moveTo(p.x - ro, p.y).lineTo(p.x - ri, p.y).moveTo(p.x + ri, p.y).lineTo(p.x + ro, p.y).moveTo(p.x, p.y - ro).lineTo(p.x, p.y - ri)
+        .stroke({ width: Math.max(2.5, s * 0.06), color: C.gold, alpha: 0.6 + 0.4 * pulse });
+    }
+    pill(overG, labels, `tot${m.id}`, p.x, p.y + r * 0.35, `${a.short} ${Math.ceil((m.hp / m.max) * 100)}%`, 0xe8b4a8, C.dark, fs(0.2, 10));
+    if (a.job?.p === 'bomb' && isFinite(a.jobAt!)) pill(overG, labels, `bomb${m.id}`, p.x, p.y - r * 0.45, `${Math.max(0, Math.ceil(a.jobAt! - F.t))}`, C.danger, C.white, fs(0.26, 11));
   }
 
   // 테두리 표시 · 배지
@@ -840,9 +848,9 @@ export function render(now: number): void {
       recordBound(`aggro${u.id}`, 'aggro', 'circle', bx, by, br * 2 + bw, br * 2 + bw);
     }
     if (F.rats && F.rats.includes(u.id)) pill(overG, labels, `rat${u.id}`, x - r * 0.05, y + r * 0.95, '쥐떼', 0xb9a38a, C.dark, fs(0.18, 9));
-    // 쫄 (P-ADD): 이 사람을 때리는 쫄 이름과 남은 체력. 쓰러질 때 파열이 오므로 거의 다 깎인 쫄을 미리 보게
-    const add = F.mobs.find(m => m.alive && m.add?.on === u.id);
-    if (add) pill(overG, labels, `add${u.id}`, x - r * 0.05, y + r * 0.95, `${add.add!.short} ${Math.ceil((add.hp / add.max) * 100)}%`, 0xb9a38a, C.dark, fs(0.18, 9));
+    // 판 위 적이 때리는 사람 (부탱커·딜러): 그 적 이름 (35 3-I)
+    const add = F.mobs.find(m => m.alive && m.add && m.add.dmg > 0 && m.add.on === u.id);
+    if (add) pill(overG, labels, `add${u.id}`, x - r * 0.05, y + r * 0.95, add.add!.short, 0xe8b4a8, C.dark, fs(0.18, 9));
     const bt = F.tels.find(tl => tl.kind === 'buster' && tl.units.includes(u.id));
     if (bt && bt.skill.dmg) {
       const sh = u.shield > bt.impact - F.t ? 0.6 : 1; // 맞을 때까지 보호 두루마리가 남아 있으면 -40%

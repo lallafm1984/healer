@@ -10,7 +10,7 @@ import type { HeroKey } from '../data/heroes';
 import type { SkillKey } from '../data/skills';
 import type { TalentKey } from '../data/talents';
 import type { AffixKey } from '../data/affixes';
-import type { AddDown, DebuffEnd } from '../data/bosses';
+import type { AddDown, AddJob, DebuffEnd } from '../data/bosses';
 import type { AffixState } from './affixes';
 import type { TraitKey } from '../data/traits';
 
@@ -309,6 +309,8 @@ export type FightEvent =
   /** 뒤집힌 축복: 치유가 피해로 (빨간 숫자) · 실수 방지로 칸만 흔들림 */
   | { type: 'hurt'; id: number; amt: number }
   | { type: 'shake'; id: number }
+  /** 치유하는 쫄이 보스를 회복 */
+  | { type: 'bossHeal'; amt: number; name: string }
   | { type: 'mobDown'; id: number; name: string }
   /** 파티원 능력 사용 (17 7장: 칸 위에 이름) */
   | { type: 'ability'; id: number; name: string }
@@ -402,7 +404,13 @@ export interface Mob {
   /** 능력으로 기절·얼림: 이 시각까지 기술을 안 씀 */
   stun?: number;
   /** 보스 전투 중에 나온 쫄 (P-ADD): 맡은 사람(on)을 every초마다 때림. 보스 체력 합에는 안 들어감 */
-  add?: { short: string; on: number; dmg: number; every: number; next: number; down?: AddDown; done?: boolean; cell?: number; zone?: number };
+  add?: {
+    short: string; on: number; dmg: number; every: number; next: number; down?: AddDown; done?: boolean;
+    /** 차지한 칸 · 오라 장판 id */
+    cell?: number; zone?: number;
+    /** 하는 일과 다음 시각 (치유하는 쫄) · 터지는 시각 (폭탄) */
+    job?: AddJob; jobAt?: number;
+  };
 }
 
 export interface Cast {

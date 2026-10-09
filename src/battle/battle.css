@@ -100,6 +100,7 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 #dmgNums span.melee { color: #FFB37A; }
 #dmgNums span.ranged { color: #9BE3D9; }
 #dmgNums span.big { font-size: 18px; }
+#dmgNums span.bossheal { color: #8CF29C; font-size: 17px; }
 #dmgNums span.go { animation: dmgUp 0.85s ease-out forwards; }
 @keyframes dmgUp { 0% { opacity: 0; transform: translate(calc(-50% + var(--dx)), 6px) scale(0.7); } 15% { opacity: 1; transform: translate(calc(-50% + var(--dx)), 0) scale(1.15); } 30% { transform: translate(calc(-50% + var(--dx)), -6px) scale(1); } 100% { opacity: 0; transform: translate(calc(-50% + var(--dx) * 1.4), -34px) scale(0.95); } }
 #bossArt.hurt { animation: hurt 0.14s ease-out; }

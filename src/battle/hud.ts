@@ -17,7 +17,7 @@ import { healText, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { itemTip, skillTip, tipHtml } from '../game/tooltip';
 import { TRAITS } from '../data/traits';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
-import { activeOn, cdMax, costOf, knows, queue, slotKey, type Fight, type Unit } from '../engine';
+import { activeOn, bossTaken, cdMax, costOf, knows, queue, slotKey, type Fight, type Unit } from '../engine';
 import { art } from '../art';
 import { ITEM_ICON, skillMark } from './art';
 import { center, L } from './board';
@@ -284,6 +284,17 @@ export function dmgNum(u: Unit | undefined, amt: number, now: number): void {
   if (now - dmg.hurtAt > 160) { dmg.hurtAt = now; const a = $('bossArt'); a.classList.remove('hurt'); void a.offsetWidth; a.classList.add('hurt'); }
 }
 
+/** 치유하는 쫄이 보스를 회복 (35 3-I): 보스 그림 옆 초록 +숫자 */
+export function bossHealNum(amt: number): void {
+  if (S.reducedEffects) return;
+  if (!dmg.els.length) resetDmgNums();
+  const el = dmg.els[dmg.i]; dmg.i = (dmg.i + 1) % DMG_POOL;
+  el.textContent = `+${Math.max(1, Math.round(amt))}`;
+  el.className = 'bossheal';
+  void el.offsetWidth;
+  el.classList.add('go');
+}
+
 // ---------- 보스 무대 (27 3-4, 시안 MmoBattle5·20) ----------
 /** 예고 칸 채움: 이만큼(초) 남았으면 가득. DBM 막대처럼 남은 시간만큼 줄어듦 */
 const QWIN = 30;
@@ -337,7 +348,7 @@ export function updateStage(now: number): void {
   const pct = F.bossHp / F.bossMax;
   setBar($('bossFill'), pct);
   setBar($('bossLag'), pct);
-  setText($('bossHpText'), `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · 멍함 ${Math.ceil(F.daze.until - F.t)}` : ''}`);
+  setText($('bossHpText'), `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · 멍함 ${Math.ceil(F.daze.until - F.t)}` : F.mobs.length && bossTaken(F) < 1 ? ' · 보호막' : ''}`);
   // 위치 줄 (시안 「녹슨 요새 4/4 · 보통」): 던전 = 이름 n/전체 · 페이즈·남은 적·난이도, 한 판 = 등급 · 페이즈·난이도
   let ph = F.phaseName ? `${F.enc.tier.split(' · ')[0]} · ${F.phaseName}` : `${F.enc.tier} · ${F.cfg.diff}`;
   if (R.segs.length > 1) {

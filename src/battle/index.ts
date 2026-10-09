@@ -24,7 +24,7 @@ import {
 import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
 import {
-  bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
+  bossHealNum, bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
   resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
 } from './hud';
 
@@ -521,6 +521,7 @@ function handleEvents(now: number): void {
       case 'ability': if (u) fxAbility(u, ev.name, now); break;
       case 'aheal': if (u) fxAllyHeal(u, ev.amt, now); break;
       case 'hurt': if (u) fxHurt(u, ev.amt, now); break; // 뒤집힌 축복
+      case 'bossHeal': bossHealNum(ev.amt); break; // 치유하는 쫄
       case 'shake': if (u) { fxShake(u, now); vibe([20, 40, 20]); } break;
     }
   }

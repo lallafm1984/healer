@@ -13,6 +13,7 @@ import { PROTO_RULES, RULES } from '../data/rules';
 import { BULWARK, TRAIT_CHANCE, TRAITS, type TraitKey } from '../data/traits';
 import { makeCells } from './board';
 import { aggroTarget, initBoss, bossTick } from './bosses';
+import { bossTaken, focusOrder } from './bossParts';
 import { affixTick, initAffixes } from './affixes';
 import { bark, damageMob, DT, emit, living } from './core';
 import { healerTick, knowsPassive } from './healer';
@@ -235,12 +236,12 @@ function partyHits(f: Fight): void {
     if (f.invuln) continue;
     u.acc += unitDps(u) * DT;
     if ((f.k + u.id * 7) % SWING[u.role as Exclude<Role, 'healer'>] !== 0 || u.acc <= 0 || f.bossHp <= 0) continue;
-    const amt = f.daze ? u.acc * f.daze.vuln : u.acc; // 멍한 보스는 더 아프게 맞음 (차례 성공)
+    const amt = u.acc;
     u.dealt += Math.min(amt, f.bossHp);
     u.acc = 0;
     if (f.bodyHp) hitMobs(f, amt);
     else if (u.role !== 'tank' && f.mobs.length) hitAdds(f, amt);
-    else f.bossHp -= amt;
+    else f.bossHp -= amt * (f.daze || f.mobs.length ? bossTaken(f) : 1); // 멍함 · 보호막 수정 (35 3-I)
     emit(f, { type: 'hit', uid: u.id, amt });
   }
 }
@@ -248,13 +249,13 @@ function partyHits(f: Fight): void {
 /** 보스 전투의 쫄 (P-ADD): 딜러는 먼저 나온 쫄부터, 쫄이 다 쓰러지면 남는 딜은 보스에게 */
 function hitAdds(f: Fight, d: number): void {
   let left = d;
-  for (const m of f.mobs) {
-    if (!m.alive || !m.add || left <= 1e-9) continue;
+  for (const m of focusOrder(f)) { // 일점사 (P-FOCUS): 먼저 잡을 것부터
+    if (left <= 1e-9) break;
     const x = Math.min(m.hp, left);
     left -= x;
     damageMob(f, m, x);
   }
-  if (left > 1e-9) f.bossHp -= left;
+  if (left > 1e-9) f.bossHp -= left * bossTaken(f);
 }
 
 /** 일반·정예 구간: 파티 딜은 잡을 차례인 적에게, 남는 딜은 다음 적에게 (23 2장) */

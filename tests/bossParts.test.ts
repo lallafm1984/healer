@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { bossHpFor, U, UNIT, type DebuffDef, type SkillEffect } from '../src/data/bosses';
 import { CLASSES } from '../src/data/classes';
 import * as E from '../src/engine';
-import { applyDebuff, backTargets, lowestTargets, orderHeal, runEffect } from '../src/engine/bossParts';
+import { applyDebuff, backTargets, bossTaken, focusOrder, lowestTargets, offTank, orderHeal, runEffect } from '../src/engine/bossParts';
 import { moveTo, pickCell } from '../src/engine/movement';
 import { unitDps } from '../src/engine/units';
 import { hexDist } from '../src/engine/board';
@@ -340,7 +340,7 @@ describe('무너지는 바닥 (P-HOLE) · 칸을 차지하는 쫄 (토템)', () 
   });
   it('토템: 빈 칸 하나를 막고 이웃 칸에 오라 장판, 부수면 칸과 오라가 사라짐', () => {
     const f = fight();
-    run(f, { p: 'adds', n: 1, add: { name: '진흙 토템', short: '토템', hp: 0.05, dmg: 0, every: 99, cell: { aura: 9 } } });
+    run(f, { p: 'adds', n: 1, add: { name: '진흙 토템', short: '토템', hp: 0.05, dmg: 0, every: 99, aura: 9 } });
     const m = f.mobs.find(x => x.add)!;
     const c = f.cells[m.add!.cell!];
     expect(c.block).toBe('add');
@@ -502,5 +502,100 @@ describe('차례 (P-ORDER) · 보스 멍함', () => {
     expect(b.hp).toBeLessThan(hb);
     expect(c.hp).toBeLessThan(hc);
     expect(a.hp).toBeGreaterThanOrEqual(ha);
+  });
+});
+
+describe('판에 나오는 적 (35 3-I): 빈 칸 차지 · 부탱커 · 일점사 · 치유 쫄 · 폭탄 · 보호막 수정', () => {
+  const IMP = { name: '꼬마 악마', short: '악마', hp: 0.03, dmg: 20, every: 2 };
+  const free = (f: Fight) => f.cells.filter(c => !c.unit && !c.block).length;
+
+  it('빈 칸에 나와 칸을 막고, 때리는 쫄은 탱커 가까이. 빈 칸은 1개 이상 남김', () => {
+    const f = fight();
+    const before = free(f);
+    run(f, { p: 'adds', n: 9, add: IMP });
+    const adds = f.mobs.filter(m => m.add);
+    expect(adds).toHaveLength(before - 1);
+    expect(free(f)).toBe(1);
+    expect(adds.every(m => f.cells[m.add!.cell!].block === 'add')).toBe(true);
+    const f2 = fight();
+    run(f2, { p: 'adds', n: 1, add: IMP });
+    const c = f2.cells[f2.mobs[f2.mobs.length - 1].add!.cell!];
+    const tk = f2.party.find(u => u.role === 'tank')!;
+    const nearest = Math.min(...f2.cells.filter(x => (!x.unit && !x.block) || x === c).map(x => hexDist(x, f2.cells[tk.cell])));
+    expect(hexDist(c, f2.cells[tk.cell])).toBe(nearest);
+  });
+
+  it('레이드: 부탱커가 쫄 옆 칸으로 가서 끌고, 쫄은 부탱커만 때림. 부탱커가 쓰러지면 딜러에게', () => {
+    const f = E.create({ encounter: 'plague', diff: '보통', seed: 1 });
+    quiet(f);
+    const off = offTank(f)!;
+    expect(off.role).toBe('tank');
+    run(f, { p: 'adds', n: 2, add: IMP });
+    const adds = f.mobs.filter(m => m.add);
+    expect(adds.every(m => m.add!.on === off.id)).toBe(true);
+    steps(f, 1);
+    expect(hexDist(f.cells[off.cell], f.cells[adds[0].add!.cell!])).toBe(1);
+    expect(off.home).toBe(off.cell);
+    const hp = off.hp;
+    steps(f, 1.1);
+    expect(off.hp).toBeLessThan(hp);
+    off.hp = 0.1; (off as Unit).alive = false;
+    steps(f, 2.1);
+    expect(adds.every(m => { const u = f.party.find(x => x.id === m.add!.on)!; return u.role === 'melee' || u.role === 'ranged'; })).toBe(true);
+  });
+
+  it('일점사: 치유 쫄 → 폭탄 → 보호막 수정 → 그 밖 (같으면 먼저 나온 것), 딜러 딜은 맨 앞 적에게', () => {
+    const f = fight();
+    run(f, { p: 'adds', n: 1, add: IMP });
+    run(f, { p: 'adds', n: 1, add: { ...IMP, name: '수정', short: '수정', dmg: 0, job: { p: 'pylon', cut: 0.9 } } });
+    run(f, { p: 'adds', n: 1, add: { ...IMP, name: '치유사', short: '치유', dmg: 0, job: { p: 'mend', every: 99, pct: 0.01 } } });
+    expect(focusOrder(f).map(m => m.name)).toEqual(['치유사', '수정', '꼬마 악마']);
+    f.party.forEach(u => { u.dps = 10; });
+    const [mender, pylon, imp] = focusOrder(f);
+    steps(f, 2);
+    expect(mender.hp).toBeLessThan(mender.max);
+    expect(pylon.hp).toBe(pylon.max);
+    expect(imp.hp).toBe(imp.max);
+  });
+
+  it('치유하는 쫄: every초마다 보스 체력 회복 (최대 넘지 않음)', () => {
+    const f = fight();
+    f.bossHp = f.bossMax * 0.5;
+    run(f, { p: 'adds', n: 1, add: { ...IMP, dmg: 0, job: { p: 'mend', every: 3, pct: 0.02 } } });
+    steps(f, 3.05);
+    expect(f.bossHp).toBeCloseTo(f.bossMax * 0.52);
+  });
+
+  it('폭탄: 시간 안에 못 깨면 모두 피해, 사라지고 칸이 빔. 깨면 안 터짐', () => {
+    const f = fight();
+    run(f, { p: 'adds', n: 1, add: { ...IMP, name: '폭탄', dmg: 0, job: { p: 'bomb', sec: 4, dmg: 50 } } });
+    const m = f.mobs[f.mobs.length - 1], c = f.cells[m.add!.cell!];
+    const v = dealer(f), hp = v.hp;
+    steps(f, 3.9);
+    expect(v.hp).toBe(hp);
+    steps(f, 0.2);
+    expect(m.alive).toBe(false);
+    expect(hp - v.hp).toBeCloseTo(50 * f.dmgMult);
+    expect(c.block).toBeUndefined();
+    const g = fight();
+    run(g, { p: 'adds', n: 1, add: { ...IMP, name: '폭탄', dmg: 0, job: { p: 'bomb', sec: 4, dmg: 50 } } });
+    const b = g.mobs[g.mobs.length - 1];
+    damageMob(g, b, b.max);
+    const w = dealer(g), hw = w.hp;
+    steps(g, 5);
+    expect(w.hp).toBe(hw);
+  });
+
+  it('보호막 수정: 서 있는 동안 보스가 받는 피해 −90%', () => {
+    const f = fight();
+    expect(bossTaken(f)).toBe(1);
+    run(f, { p: 'adds', n: 1, add: { ...IMP, dmg: 0, job: { p: 'pylon', cut: 0.9 } } });
+    expect(bossTaken(f)).toBeCloseTo(0.1);
+    const tk = f.party.find(u => u.role === 'tank')!;
+    tk.dps = 50;
+    const hp = f.bossHp;
+    steps(f, 2);
+    expect(hp - f.bossHp).toBeGreaterThan(0);
+    expect(hp - f.bossHp).toBeCloseTo(tk.dealt * 0.1, 0); // 탱커 딜은 보스로, 그중 10%만 들어감
   });
 });
