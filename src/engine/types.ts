@@ -378,6 +378,8 @@ export interface FightConfig {
   affixes?: AffixKey[];
   /** 보스·적 체력·피해 배율 (주간 도전 단계, 13 3-2). 없으면 1 */
   bossMult?: { hp: number; dmg: number };
+  /** 난이도 보정을 data/tune 대신 이 값으로 (자동 밸런스가 배율을 찾을 때, 38 0-6) */
+  tune?: { dmg?: number; hp?: number };
 }
 
 /** 보조 버튼 특성 하나의 상태 */
