@@ -56,11 +56,13 @@ interface UState {
   addOn: boolean;
   /** 자폭 쫄이 노리는 중 */
   fixed: boolean;
-  /** 감옥 디버프 id → 이름 */
-  jails: Map<number, string>;
+  /** 풀릴 때 말하는 디버프 (감옥 · 매혹) id → 이름·종류 */
+  held: Map<number, { name: string; kind: 'jail' | 'charm' }>;
+  /** 금빛 발판에 들어가 있음 */
+  pad: boolean;
 }
 
-interface TelSeen { kind?: string; cells: Set<number>; safe: boolean; was: Set<number> }
+interface TelSeen { kind?: string; cells: Set<number>; safe: boolean; was: Set<number>; pads: boolean }
 
 /*
  * 정신없지 않게 (Lim 2026-10-09 「너무 정신없게 자주 나오지 않게」): 대사 종류는 많이, 나오는 횟수는 절제.
@@ -101,6 +103,7 @@ export function createTalk(rand: () => number = Math.random) {
   function fresh() {
     return {
       phase: 1, enraged: false, noTank: false, invuln: false, rats: false, adds: new Set<number>(), liveAdds: new Set<number>(), holes: 0,
+      meDebs: new Set<number>(), stagger: false, watch: false,
       order: false, orderWrong: 0, daze: false, mana: { low: false, empty: false }, healerLow: false,
       boss: new Set<number>(), long: false, enrageSoon: false, partyLowAt: -1e9, fullSince: null as number | null, allFullAt: -1e9,
       threatAt: 0, idleAt: 0, leader: 0, leaderAt: 0, lastStand: false, raidCasts: 0, over: false, pulling: true, startAt: 0,
@@ -116,7 +119,8 @@ export function createTalk(rand: () => number = Math.random) {
       ratio: ratio(u), alive: u.alive, low: ratio(u), marks: { 50: false, 25: false, 10: false }, hist: [[now, ratio(u)]], hurtAt: -1e9,
       shield: u.shield > 0, guard: u.guardian > 0 || u.redu > 0 || u.sacr > 0, immune: u.immune > 0, hots: hotCount(u), pulled: !!u.pulled,
       sulking: u.sulking, fleeing: u.fleeing, moving: !!u.moving, cell: u.cell, debs: new Map(u.debuffs.map(d => [d.id, 0])), debLong: new Set(),
-      lastHeal: 0, noHealAt: -1e9, aimFull: false, zoneSince: null, addOn: false, fixed: false, jails: new Map(u.debuffs.filter(d => d.jail).map(d => [d.id, d.name])),
+      lastHeal: 0, noHealAt: -1e9, aimFull: false, zoneSince: null, addOn: false, fixed: false, pad: u.padUntil != null,
+      held: new Map(u.debuffs.filter(d => d.jail || d.charm).map(d => [d.id, { name: d.name, kind: d.jail ? 'jail' as const : 'charm' as const }])),
     };
   }
 
@@ -306,7 +310,13 @@ export function createTalk(rand: () => number = Math.random) {
           break;
         case 'revive': if (u && !u.me) add('allyRevived', u, u); break;
         case 'dispel': if (u && !u.me) add(ev.trap ? 'trapPop' : 'dispelled', ev.trap ? undefined : u); break;
-        case 'cure': if (u && !u.me && ![...(us.get(u.id)?.jails.values() ?? [])].includes(ev.name)) add('cured', u); break; // 감옥이 깨진 건 jailFree
+        case 'cure': {
+          // 감옥·매혹이 풀린 건 jailFree·charmFree, 숨 고르기로 지워진 건 bossRest
+          if (!u || u.me || [...(us.get(u.id)?.held.values() ?? [])].some(h => h.name === ev.name)) break;
+          if (f.daze?.name && !st.daze) break;
+          add('cured', u);
+          break;
+        }
         case 'bossHeal': add('bossHeal'); break;
         case 'beacon': if (u && !u.me) add('beaconOn', u); break;
         case 'gauge': add('gauge'); break;
@@ -361,15 +371,19 @@ export function createTalk(rand: () => number = Math.random) {
     for (const tel of f.tels) {
       if (tels.has(tel.id)) continue;
       const was = new Set(f.party.filter(u => u.alive && !u.me && tel.cells.has(u.cell)).map(u => u.id));
-      tels.set(tel.id, { kind: tel.kind, cells: tel.cells, safe: !!tel.safe, was });
-      if (tel.kind === 'buster') add('buster');
+      const sk = tel.skill, pads = !!sk?.pads;
+      tels.set(tel.id, { kind: tel.kind, cells: tel.cells, safe: !!tel.safe && !pads, was, pads });
+      if (pads) add('padsCall'); // 받침: 금빛 발판 (safe 칸이지만 피난처가 아님)
+      else if (sk?.quake) add('quakeWarn');
+      else if (sk?.stunOnCut) add('counterWarn'); // 반격 틈: 시전 시작에 못 끊어서 예고가 생김
+      else if (tel.kind === 'buster') add('buster');
       else if (tel.kind === 'aoe') add('aoeWarn');
-      if (tel.safe) add('safeCall');
+      if (tel.safe && !pads) add('safeCall');
     }
     for (const [id, seen] of tels) {
       if (nowTels.has(id)) continue;
       tels.delete(id);
-      if (seen.kind === 'zone' || seen.safe) {
+      if (!seen.pads && (seen.kind === 'zone' || seen.safe)) {
         for (const u of f.party) {
           if (u.me || !u.alive) continue;
           if (seen.cells.has(u.cell)) add('zoneHit', u);
@@ -437,7 +451,8 @@ export function createTalk(rand: () => number = Math.random) {
       for (const d of u.debuffs) {
         if (!s.debs.has(d.id)) {
           s.debs.set(d.id, t);
-          if (d.jail) { s.jails.set(d.id, d.name); add('jailed', u); add('jailOther', u, u); }
+          if (d.jail) { s.held.set(d.id, { name: d.name, kind: 'jail' }); add('jailed', u); add('jailOther', u, u); }
+          else if (d.charm) { s.held.set(d.id, { name: d.name, kind: 'charm' }); add('charmed', u); add('charmOther', u, u); }
           else if (d.invert) add('invertOn', u);
           else if (d.trap) add('trapMark', u);
           else if (d.cureAt != null && d.cureAt >= 1) add('fullMark', u);
@@ -451,9 +466,18 @@ export function createTalk(rand: () => number = Math.random) {
             if (k) add(k, u);
           }
         } else if (d.stackMax && (d.stack ?? 1) >= 3 && !s.debLong.has(-d.id)) { s.debLong.add(-d.id); add('burstStack', u); }
-        else if (!d.lock && !d.trap && t - s.debs.get(d.id)! > 7 && !s.debLong.has(d.id)) { s.debLong.add(d.id); add('debLong', u); }
+        else if (!d.lock && !d.trap && !s.held.has(d.id) && t - s.debs.get(d.id)! > 7 && !s.debLong.has(d.id)) { s.debLong.add(d.id); add('debLong', u); }
       }
-      for (const id of s.debs.keys()) if (!u.debuffs.some(d => d.id === id)) { s.debs.delete(id); if (s.jails.delete(id)) add('jailFree', u); }
+      for (const id of s.debs.keys()) {
+        if (u.debuffs.some(d => d.id === id)) continue;
+        s.debs.delete(id);
+        const h = s.held.get(id);
+        if (h) { s.held.delete(id); add(h.kind === 'jail' ? 'jailFree' : 'charmFree', u); }
+      }
+      // 금빛 발판에 들어감
+      const pad = u.padUntil != null && u.padUntil > t;
+      if (pad && !s.pad) add('padGo', u);
+      s.pad = pad;
       Object.assign(s, { ratio: r, alive: true, shield, guard, immune, hots, pulled: !!u.pulled, sulking: u.sulking, fleeing: u.fleeing, moving: !!u.moving, cell: u.cell });
     }
 
@@ -475,6 +499,7 @@ export function createTalk(rand: () => number = Math.random) {
         else if (p === 'pylon') add('pylon');
         else if (p === 'smash') add('eliteAdd', on);
         else if (p === 'march') add('marchAdd');
+        else if (p === 'drain') add('drainAdd');
         else if (a.cleave) add('swarm');
         else if (on?.role === 'tank') add('offTank', on); // 레이드: 부탱커가 끌고 감
         else plain = true;
@@ -494,9 +519,27 @@ export function createTalk(rand: () => number = Math.random) {
     if (f.order && !st.order) { const o = f.order.ids.map(byId).filter((x): x is Unit => !!x && x.alive); if (o.length) add('orderStart', o[Math.floor(rand() * o.length)]); st.orderWrong = 0; }
     if (f.order && f.order.wrong > st.orderWrong) { st.orderWrong = f.order.wrong; const w = byId(f.order.ids[f.order.i]); if (w) add('orderWrong', w); }
     st.order = !!f.order;
+    // 보스가 쉬는 때: 차례 성공 멍함 · 무력화 성공 무방비 · 반격 기절 · 숨 고르기
     const daze = !!f.daze && f.daze.until > t;
-    if (daze && !st.daze) add('daze');
+    if (daze && !st.daze) {
+      const n = f.daze!.name;
+      add(!n ? 'daze' : n === '무방비' ? 'staggerWin' : n === '기절' ? 'counterOk' : 'bossRest');
+    }
     st.daze = daze;
+    // 무력화 게이지 · 주시
+    if (f.stagger && !st.stagger) add('staggerStart');
+    if (!f.stagger && st.stagger && f.daze?.name !== '무방비') add('staggerFail');
+    st.stagger = !!f.stagger;
+    const watch = !!f.watch && f.watch.until > t;
+    if (watch && !st.watch) add('watchOn');
+    st.watch = watch;
+    // 힐러에게 걸린 마나 갈취 · 마력 역류
+    for (const d of f.me.debuffs) {
+      if (st.meDebs.has(d.id)) continue;
+      st.meDebs.add(d.id);
+      if (d.drain) add('drainOn');
+      else if (d.count) add('recoilOn');
+    }
     const noTank = f.noTankAt != null;
     if (noTank && !st.noTank) add('noTank');
     if (!noTank && st.noTank) add('tankUp');
