@@ -167,6 +167,8 @@ export interface Unit {
   homeAt: number | null;
   /** 끌어당김 (P-PULL): 이 시각까지 cell에서 보스 평타를 탱커와 번갈아 맞음 (한 대 dmg) */
   pulled?: { until: number; cell: number; dmg: number } | null;
+  /** 받침 (P-TOWER): 이 시각까지 발판에 머묾 (제자리로 안 돌아감) */
+  padUntil?: number;
   diedAt: number;
   me: boolean;
   /** 파티원 특수 능력 (17). 없으면 null */
@@ -267,6 +269,10 @@ export interface BossSkill {
   safe?: boolean;
   /** 진동 (P-QUAKE): 예고 동안 휠 가장자리가 떨림 */
   quake?: boolean;
+  /** 반격 틈 (P-COUNTER): 끊기면 보스가 이만큼 기절 */
+  stunOnCut?: number;
+  /** 받침 (P-TOWER): 예고 칸이 금빛 발판이고 파티원이 들어감 */
+  pads?: boolean;
   /** 부품 상태 (장판 좌우 번갈아·성부 차례 등, engine/bossParts.ts) */
   st: Record<string, number | boolean>;
 }
@@ -561,6 +567,8 @@ export interface Fight {
   daze: { until: number; vuln: number; name?: string } | null;
   /** 쉬움·보통 뒤집힌 축복 실수 방지: 이 디버프 칸을 한 번 눌렀음 (두 번째부터 힐이 나감) */
   invertTap: number | null;
+  /** 무력화 (P-STAGGER): 게이지를 채울 끝 시각 · 모은 딜 / 끝 · 체력 기준 · 탱커 배율 · 성공/실패 */
+  stagger: { name: string; until: number; fill: number; need: number; hp: number; tank: number; win: { sec: number; vuln: number }; fail: { dmg: number; lock: number } } | null;
   /** 진동 (P-QUAKE)으로 잠긴 스킬: 남은 초 / 처음 초 */
   lock: Partial<Record<SkillKey, { left: number; total: number }>>;
   /** 주시 (P-AGGRO): 눈 게이지 (넣은 치유량) / 가득 / 보스가 나를 노리는 끝 시각 / 다음 한 대 */

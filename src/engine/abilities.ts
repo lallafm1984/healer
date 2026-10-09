@@ -293,6 +293,7 @@ export function abCut(f: Fight, s: BossSkill): boolean {
   if (!s.cut && !snipeable) return false;
   for (const u of f.party) {
     if (!u.ab || !u.alive || hasMod(u, 'stop')) continue;
+    if (u.debuffs.length && u.debuffs.some(d => d.noDps)) continue; // 침묵·기절·얼림이면 못 끊음 (35 4-5 반격 틈)
     const a = DEF(u);
     if (a.fx.e !== 'interrupt' || !ready(f, u, a, 0)) continue;
     const any = a.trig.some(t => t.t === 'castAny');

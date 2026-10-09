@@ -182,7 +182,25 @@ export type SkillEffect =
    */
   | { p: 'quake'; dmg: number; lock: number }
   /** 숨 고르기 (35 4-4 탑주의 그림자): sec초 동안 보스가 기술을 쉼 (받는 피해는 그대로). clear 이름의 디버프가 모두에게서 사라짐 */
-  | { p: 'rest'; sec: number; clear?: string };
+  | { p: 'rest'; sec: number; clear?: string }
+  /**
+   * 무력화 (P-STAGGER, 35 4-5): sec초 동안 체력이 hp(악몽 hpMythic) 이상인 파티원의 딜만 게이지를 채움 (탱커는 tank배).
+   * 게이지 끝 = 그 조건으로 파티 전원이 need초 때린 양. 채우면 win.sec초 「무방비」 (보스가 기술을 쉬고 받는 피해 × win.vuln).
+   * 못 채우면 전원 fail.dmg (물리) + 시전 시간이 있는 내 스킬이 fail.lock초 잠김
+   */
+  | { p: 'stagger'; sec: number; need: number; hp: number; hpMythic?: number; tank: number; win: { sec: number; vuln: number }; fail: { dmg: number; lock: number } }
+  /**
+   * 반격 틈 (P-COUNTER, 35 4-5): 끊기 ✋ 능력이 있는 파티원이 시전 시작에 끊으면(능력 성공 확률) 보스가 stun초 기절.
+   * 못 끊으면 맞을 때 앞줄(판 앞쪽 3분의 1)에 선 사람 모두 dmg (물리). 기술은 저절로 「끊기 가능」이 됨
+   */
+  | { p: 'counter'; stun: number; dmg: number }
+  /**
+   * 받침 (P-TOWER, 35 4-5): 예고 때 빈 칸 n개에 금빛 발판, 갈 수 있는 파티원(탱커·나·겁쟁이 빼고)이 발판으로 감.
+   * 맞을 때 발판 위 사람은 dmg, 빈 발판 하나마다 전원 empty (마법)
+   */
+  | { p: 'tower'; n: number; dmg: number; empty: number }
+  /** 디버프를 차례로 돌려 가며 n명에게 (네 가지 청소약: 질병 → 독 → 저주 → 마법) */
+  | { p: 'cycle'; n: number; debuffs: DebuffDef[] };
 
 /** 장판 칸 고르기 */
 export type ZoneCells =

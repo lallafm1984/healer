@@ -352,3 +352,10 @@ textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertic
 #battle #wheel.quake .slot { animation: quakeRim 0.18s linear infinite alternate; }
 @keyframes quakeRim { from { border-color: #FFB25B; translate: -1px 0; } to { border-color: #7A3D12; translate: 1px 0; } }
 #battle.reduced-effects #wheel.quake .slot { animation: none; border-color: #FFB25B; }
+/* 보스 체력바 아래 게이지 (35 4-4 주시 · 4-5 무력화) */
+#bossGauge { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(0, 0, 0, 0.55); pointer-events: none; }
+#bossGauge[hidden] { display: none; }
+#bossGauge::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--g, 0%); background: #F0B04A; }
+#bossGauge.stagger { height: 5px; }
+#bossGauge.stagger::after { background: #5AB4FF; }
+

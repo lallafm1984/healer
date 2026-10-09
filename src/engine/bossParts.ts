@@ -5,10 +5,11 @@
 import { ABILITIES } from '../data/abilities';
 import type { AddDef, AddJob, BossDef, DebuffDef, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
 import { HEROES } from '../data/heroes';
+import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, living, randomTargets, setMax, spread, unitById } from './core';
-import { moveTo, scheduleReactions } from './movement';
+import { moveTo, scheduleReactions, zoneOf } from './movement';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
@@ -141,7 +142,97 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       emit(f, { type: 'msg', text: `${f.daze.name}: 보스가 ${e.sec}초 쉼` });
       return;
     }
+    case 'stagger': {
+      // 무력화 (P-STAGGER, 35 4-5): 게이지 끝 = 조건을 채운 파티 전원이 need초 때린 양 (탱커는 tank배)
+      if (f.stagger) return;
+      const hp = f.mythic && e.hpMythic != null ? e.hpMythic : e.hp;
+      const rate = f.party.reduce((a, u) => a + (u.alive && !u.me ? u.dps * (u.p.dps || 1) * (u.role === 'tank' ? e.tank : 1) : 0), 0);
+      const name = s.name ?? '힘 모으기';
+      f.stagger = { name, until: f.t + e.sec, fill: 0, need: rate * e.need, hp, tank: e.tank, win: e.win, fail: e.fail };
+      emit(f, { type: 'msg', text: `${name}: ${e.sec}초 안에 체력 ${Math.round(hp * 100)}% 이상인 파티원 딜로 게이지를 채움` });
+      return;
+    }
+    case 'counter':
+      // 반격 틈 (P-COUNTER): 못 끊었으면 앞줄에 선 사람 모두
+      for (const u of living(f)) if (zoneOf(f, cellOf(f, u).row) === 'front') damage(f, u, e.dmg, false);
+      return;
+    case 'tower': {
+      // 받침 (P-TOWER): 발판 위 사람은 dmg, 빈 발판마다 전원 empty
+      for (const i of tel?.cells ?? []) {
+        const on = living(f).find(u => (u.moving ? u.moving.to : u.cell) === i);
+        if (on) damage(f, on, e.dmg, true);
+        else { emit(f, { type: 'msg', text: '빈 발판: 전원 피해' }); for (const u of living(f)) damage(f, u, e.empty, true); }
+      }
+      for (const u of f.party) u.padUntil = undefined;
+      return;
+    }
+    case 'cycle': {
+      // 네 가지 청소약: 쓸 때마다 다음 디버프
+      const k = (s.st.k as number | undefined) ?? 0;
+      s.st.k = k + 1;
+      const d = e.debuffs[k % e.debuffs.length];
+      for (const u of randomTargets(f, e.n, x => !x.debuffs.some(y => y.name === d.name))) applyDebuff(f, u, d);
+      return;
+    }
   }
+}
+
+/** 매 틱 무력화: 게이지를 채우면 무방비, 시간이 다 되면 땅 울림 (전원 피해 + 시전 스킬 잠김) */
+export function staggerTick(f: Fight): void {
+  const g = f.stagger!;
+  if (g.fill >= g.need - 1e-9) {
+    f.stagger = null;
+    f.daze = { until: f.t + g.win.sec, vuln: g.win.vuln, name: '무방비' };
+    emit(f, { type: 'sound', name: 'gauge' });
+    emit(f, { type: 'msg', text: `${g.name} 막음: 보스 ${g.win.sec}초 무방비 (받는 피해 +${Math.round((g.win.vuln - 1) * 100)}%)` });
+    return;
+  }
+  if (f.t + 1e-9 < g.until) return;
+  f.stagger = null;
+  emit(f, { type: 'sound', name: 'aoe' });
+  emit(f, { type: 'msg', text: `${g.name} 못 막음: 땅 울림, 시전 ${g.fail.lock}초 못 함` });
+  for (const u of living(f)) damage(f, u, g.fail.dmg, false);
+  const casts = Object.values(HEROES[f.hero].slots).filter((k): k is SkillKey => !!k && (f.R.cast?.[k] ?? SKILLS[k].cast) > 0);
+  if (f.cast && casts.includes(f.cast.key)) f.cast = null;
+  for (const k of casts) f.lock[k] = { left: g.fail.lock, total: g.fail.lock };
+}
+
+/** 보스 기절 (반격 성공): 그동안 기술을 쉼 */
+export function stunBoss(f: Fight, sec: number): void {
+  f.daze = { until: f.t + sec, vuln: 1, name: '기절' };
+  emit(f, { type: 'sound', name: 'gauge' });
+  emit(f, { type: 'msg', text: `반격 성공: 보스 ${sec}초 기절` });
+}
+
+/** 받침 발판: 빈 칸 n개 (빈 칸이 n개 이하면 그만큼 덜) */
+export function padCells(f: Fight, n: number): Set<number> {
+  const free = randomOrder(f, f.cells.filter(c => !c.unit && !c.block));
+  return new Set(free.slice(0, Math.min(n, Math.max(0, free.length - 1))).map(c => c.i));
+}
+
+/** 발판에 먼저 가는 성격 (영웅 같은 사람). 겁쟁이는 안 감 (35 4-5) */
+const PAD_EAGER: PersName[] = ['허세꾼', '관심종자', '신중파'];
+/** 받침 예고: 발판마다 갈 수 있는 파티원 중 먼저 가는 성격 → 가까운 사람이 들어가 맞을 때까지 머묾 */
+export function padsGo(f: Fight, tel: Telegraph): void {
+  const used = new Set<Unit>();
+  for (const i of tel.cells) {
+    const c = f.cells[i];
+    const ok = living(f).filter(u => u.role !== 'tank' && !u.me && u.pers !== '겁쟁이' && !u.moving && !u.pulled && !u.fleeing && !used.has(u)
+      && !u.debuffs.some(d => d.noMove));
+    if (!ok.length) break;
+    const eager = (u: Unit) => (u.pers && PAD_EAGER.includes(u.pers) ? 0 : 1);
+    ok.sort((a, b) => eager(a) - eager(b) || hexDist(cellOf(f, a), c) - hexDist(cellOf(f, b), c));
+    const u = ok[0];
+    used.add(u);
+    moveTo(f, u, c);
+    u.padUntil = tel.impact + 0.2; u.homeAt = null;
+  }
+}
+
+function randomOrder<T>(f: Fight, xs: T[]): T[] {
+  const c = xs.slice();
+  for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(f.rng() * (i + 1)); [c[i], c[j]] = [c[j], c[i]]; }
+  return c;
 }
 
 /** 진동 (P-QUAKE): 시전 중인 힐이나 채널(찬가)이 끊기고 그 스킬이 잠김. 그다음 전원 피해 */
