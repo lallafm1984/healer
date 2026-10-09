@@ -10,7 +10,7 @@ import * as E from '../src/engine';
 import { applyDebuff, runEffect, watchInit } from '../src/engine/bossParts';
 import { fromDef } from '../src/engine/bosses';
 import { ABILITIES } from '../src/data/abilities';
-import { damageMob } from '../src/engine/core';
+import { damageMob, heal } from '../src/engine/core';
 import type { AddDef, DebuffDef, SkillDef, SkillEffect } from '../src/data/bosses';
 import type { BossSkill, Fight } from '../src/engine';
 
@@ -302,6 +302,49 @@ describe('전투 중 말풍선', () => {
       }, 3);
       expect(f.daze?.name).toBe('기절');
       expect([...sits]).toEqual(['counterOk']);
+    });
+  });
+
+  describe('헤매는 영혼 · 생명 사슬 · 넘치는 빛 (35 3장 · 4-7)마다 맞는 말', () => {
+    const seq = (out: TalkBubble[]) => out.map(b => b.sit);
+    const SPIRIT: SkillEffect = {
+      p: 'soul', name: '오염된 늪 정령', short: '정령', hp: 0.25, sec: 12, type: '질병',
+      win: { text: '정화의 물', cure: '독', heal: { pct: 0.15, sec: 8 } }, fail: { text: '오염 분출', dmg: 30, near: true },
+    };
+
+    it('영혼: 나오면 한마디, 채우면 축복 (축복으로 지워진 디버프는 해제 대사 아님)', () => {
+      const { out } = talkAfter('warden', g => {
+        g.party.filter(u => !u.me).forEach(u => applyDebuff(g, u, { name: '독침', type: '독', left: 60, dot: 1 }));
+        runEffect(g, {} as BossSkill, SPIRIT);
+      }, 4, g => { heal(g, g.souls[0], 1e6, true, true); }, 2);
+      expect(seq(out)).toEqual(['soulOn', 'soulWin']);
+    });
+    it('영혼: 못 채우면 벌', () => {
+      expect(seq(talkAfter('warden', SPIRIT, 13).out)).toEqual(['soulOn', 'soulFail']);
+    });
+    it('생명 사슬 균형형: 묶인 사람이 말하고, 체력이 벌어져 끊어지면 묶였던 사람이 아파함', () => {
+      let ids: number[] = [];
+      const { out } = talkAfter('warden', g => {
+        g.party.forEach(v => { v.hp = v.max; });
+        runEffect(g, {} as BossSkill, { p: 'link', kind: 'balance', name: '저주 실', sec: 30, gap: 0.3, dmg: 10 });
+        ids = [g.links[0].a, g.links[0].b];
+      }, 11, g => { const a = g.party.find(v => v.id === ids[0])!; a.hp = a.max * 0.69; }, 2); // 35% 넘게 한 번에 깎이면 「큰 한 방」이 이김
+      expect(seq(out)).toEqual(['linkOn', 'linkSnap']);
+      for (const b of out) expect(ids).toContain(b.id);
+    });
+    it('생명 사슬: 나눔형은 걸릴 때 한마디, 시간이 다 돼 풀리면 끊어짐 대사 없음', () => {
+      expect(seq(talkAfter('warden', { p: 'link', kind: 'share', name: '가문의 사슬', sec: 5 }, 7).out)).toEqual(['linkShare']);
+      expect(seq(talkAfter('warden', { p: 'link', kind: 'balance', name: '저주 실', sec: 5, dmg: 10 }, 7).out)).toEqual(['linkOn']);
+    });
+    it('넘치는 빛 그릇: 나오면 한마디, 차면 보호막 (보호막 받음 대사 아님), 못 채우면 말 없음', () => {
+      const VESSEL: SkillEffect = { p: 'vessel', name: '백합 꽃병', need: 0.1, sec: 15, shield: 6 };
+      const { out } = talkAfter('warden', VESSEL, 4, g => { const u = g.party.find(x => x.role === 'ranged')!; u.hp = u.max; heal(g, u, g.vessel!.need, true, true); }, 2);
+      expect(seq(out)).toEqual(['vesselOn', 'vesselFull']);
+      expect(seq(talkAfter('warden', { ...VESSEL, sec: 3 } as SkillEffect, 6).out)).toEqual(['vesselOn']);
+    });
+    it('과부하 표식: 걸린 사람이 딱 맞게 힐해 달라고 함', () => {
+      const { f, out } = talkAfter('warden', g => { applyDebuff(g, g.party.find(u => u.role === 'ranged')!, { name: '넘치는 빛', type: '마법', left: 10, lock: true, over: 0.5 }); }, 4);
+      expect(out.map(b => [b.sit, b.id])).toEqual([['overMark', f.party.find(u => u.role === 'ranged')!.id]]);
     });
   });
 

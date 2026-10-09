@@ -104,6 +104,7 @@ export function createTalk(rand: () => number = Math.random) {
     return {
       phase: 1, enraged: false, noTank: false, invuln: false, rats: false, adds: new Set<number>(), liveAdds: new Set<number>(), holes: 0,
       meDebs: new Set<number>(), stagger: false, watch: false,
+      souls: new Map<number, Unit>(), links: new Set<Fight['links'][number]>(), vessel: null as number | null,
       order: false, orderWrong: 0, daze: false, mana: { low: false, empty: false }, healerLow: false,
       boss: new Set<number>(), long: false, enrageSoon: false, partyLowAt: -1e9, fullSince: null as number | null, allFullAt: -1e9,
       threatAt: 0, idleAt: 0, leader: 0, leaderAt: 0, lastStand: false, raidCasts: 0, over: false, pulling: true, startAt: 0,
@@ -298,6 +299,9 @@ export function createTalk(rand: () => number = Math.random) {
     const byId = (id: number) => f.party.find(x => x.id === id);
     const healedNow = new Map<number, Extract<FightEvent, { type: 'heal' }>>();
     const barked = new Set(f.events.filter(e => e.type === 'bark').map(e => (e as { id: number }).id));
+    // 헤매는 영혼이 끝남: 채웠나(해제로 바로 성공 포함) 놓쳤나
+    const soulEnd: boolean[] = [];
+    for (const [id, s] of st.souls) if (!f.souls.includes(s)) { st.souls.delete(id); soulEnd.push(!!s.soul?.cleansed || s.hp >= s.max - 1e-6); }
 
     for (const ev of f.events) {
       const u = 'id' in ev ? byId(ev.id) : undefined;
@@ -311,9 +315,9 @@ export function createTalk(rand: () => number = Math.random) {
         case 'revive': if (u && !u.me) add('allyRevived', u, u); break;
         case 'dispel': if (u && !u.me) add(ev.trap ? 'trapPop' : 'dispelled', ev.trap ? undefined : u); break;
         case 'cure': {
-          // 감옥·매혹이 풀린 건 jailFree·charmFree, 숨 고르기로 지워진 건 bossRest
+          // 감옥·매혹이 풀린 건 jailFree·charmFree, 숨 고르기로 지워진 건 bossRest, 영혼 축복으로 지워진 건 soulWin
           if (!u || u.me || [...(us.get(u.id)?.held.values() ?? [])].some(h => h.name === ev.name)) break;
-          if (f.daze?.name && !st.daze) break;
+          if ((f.daze?.name && !st.daze) || soulEnd.includes(true)) break;
           add('cured', u);
           break;
         }
@@ -453,6 +457,8 @@ export function createTalk(rand: () => number = Math.random) {
           s.debs.set(d.id, t);
           if (d.jail) { s.held.set(d.id, { name: d.name, kind: 'jail' }); add('jailed', u); add('jailOther', u, u); }
           else if (d.charm) { s.held.set(d.id, { name: d.name, kind: 'charm' }); add('charmed', u); add('charmOther', u, u); }
+          else if (d.link) add(d.link.kind === 'share' ? 'linkShare' : 'linkOn', u);
+          else if (d.over) add('overMark', u);
           else if (d.invert) add('invertOn', u);
           else if (d.trap) add('trapMark', u);
           else if (d.cureAt != null && d.cureAt >= 1) add('fullMark', u);
@@ -533,6 +539,19 @@ export function createTalk(rand: () => number = Math.random) {
     const watch = !!f.watch && f.watch.until > t;
     if (watch && !st.watch) add('watchOn');
     st.watch = watch;
+    // 헤매는 영혼 · 생명 사슬(균형형이 시간 전에 끊어짐) · 넘치는 빛 그릇
+    for (const s of f.souls) if (!st.souls.has(s.id)) { st.souls.set(s.id, s); add('soulOn'); }
+    for (const ok of soulEnd) add(ok ? 'soulWin' : 'soulFail');
+    for (const l of st.links) {
+      if (f.links.includes(l)) continue;
+      st.links.delete(l);
+      const two = [byId(l.a), byId(l.b)];
+      if (l.kind === 'balance' && t + 1e-9 < l.until && two.every(u => u?.alive)) for (const u of two) if (!u!.me) add('linkSnap', u);
+    }
+    for (const l of f.links) st.links.add(l);
+    if (f.vessel && st.vessel == null) add('vesselOn');
+    if (!f.vessel && st.vessel != null && t + 1e-9 < st.vessel) add('vesselFull'); // 시간 전에 사라짐 = 가득 참
+    st.vessel = f.vessel?.until ?? null;
     // 힐러에게 걸린 마나 갈취 · 마력 역류
     for (const d of f.me.debuffs) {
       if (st.meDebs.has(d.id)) continue;
