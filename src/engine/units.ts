@@ -1,7 +1,7 @@
 import { aimMult, rageMult } from '../data/classes';
 import { hexDist } from './board';
 import { BARK, DRUID_BIG } from '../data/heroConst';
-import { bark, cellOf, damage, DT, heal, onDebuffEnd } from './core';
+import { bark, cellOf, damage, DT, heal, hpLineTick, onDebuffEnd } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
 import { calmHymn, renewEnd } from './talents';
 import { abFear, dpsMods, hasMod } from './abilities';
@@ -31,7 +31,9 @@ export function unitTick(f: Fight, u: Unit): void {
   if (u.cls) { if (u.flow > 0) u.flow -= dt; u.aim = u.moving ? (u.mods.length && hasMod(u, 'aim') ? u.aim : 0) : u.aim + dt; }
   for (const d of u.debuffs.slice()) {
     d.left -= dt;
-    if (d.dot) damage(f, u, d.dot * dt, true);
+    if ((d.cureAt != null || d.grow) && hpLineTick(f, u, d, dt)) continue;
+    if (d.grow) { if (d.stack) damage(f, u, d.stack * d.grow.dot * dt, true); }
+    else if (d.dot) damage(f, u, d.dot * dt, true);
     if (!u.alive) return;
     if (d.left <= 0) { u.debuffs = u.debuffs.filter(x => x !== d); onDebuffEnd(f, u, d, false); }
   }

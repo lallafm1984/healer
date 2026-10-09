@@ -60,7 +60,7 @@ export function useItem(f: Fight, key: ItemKey, cellIdx?: number): ActionResult 
   } else if (key === 'cleanse') {
     let n = 0;
     for (const u of living(f)) {
-      const d = u.debuffs.find(x => !x.trap);
+      const d = u.debuffs.find(x => !x.trap && !x.lock);
       if (!d) continue;
       u.debuffs = u.debuffs.filter(x => x !== d);
       onDebuffEnd(f, u, d, true);

@@ -61,7 +61,7 @@ export const dispellable = (f: Fight, type: string) => HEROES[f.hero].dispel.inc
 
 /** 해제 한 번 (직업 공통): 함정은 뒤로, 많이 겹친 것 먼저 */
 export function doDispel(f: Fight, u: Unit): void {
-  const ds = u.debuffs.filter(d => HEROES[f.hero].dispel.includes(d.type)).sort((a, b) => (a.trap ? 1 : 0) - (b.trap ? 1 : 0) || (b.stack || 0) - (a.stack || 0));
+  const ds = u.debuffs.filter(d => HEROES[f.hero].dispel.includes(d.type) && !d.lock).sort((a, b) => (a.trap ? 1 : 0) - (b.trap ? 1 : 0) || (b.stack || 0) - (a.stack || 0));
   const d = ds[0];
   if (!d) return;
   u.debuffs = u.debuffs.filter(x => x !== d);

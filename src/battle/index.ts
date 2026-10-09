@@ -495,6 +495,7 @@ function handleEvents(now: number): void {
         if (u) fxDispel(u, now, ev.trap);
         if (!ev.trap && !ev.item) vibe([12, 60, 12]);
         break;
+      case 'cure': if (u) fxDispel(u, now, false, `${ev.name} 사라짐`); break; // 체력을 채워 쇠약·완치 표식이 사라짐
       case 'item': {
         const it = ITEMS[ev.key];
         toast(`${it.name}${ev.note ? ` → ${ev.note}` : ''}`);

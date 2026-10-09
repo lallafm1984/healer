@@ -157,14 +157,47 @@ export function spread(f: Fight, u: Unit): void {
 
 export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
   if (f.aff) affDebuffEnd(f, u, d, dispelled); // 어픽스 불안정·메아리
-  if (d.name === '썩은 숨결') u.max = u.base;
-  if (d.name === '전염') spread(f, u);
-  // 무음 성가대 독창 (26 4-3): 안 지우고 끝나면 그 사람이 선 열 전체 200. 지우면 그냥 사라짐 (함정 아님)
-  if (d.name === '독창' && !dispelled) {
-    const col = cellOf(f, u).col;
-    for (const v of living(f)) if (cellOf(f, v).col === col) damage(f, v, 200, true);
-    emit(f, { type: 'msg', text: `독창: ${u.nick} 줄 전체 피해` });
+  if (d.end) debuffEnd(f, u, d, dispelled);
+}
+
+/** 디버프 끝 부품 (data/bosses.ts DebuffEnd) */
+function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
+  const e = d.end!;
+  switch (e.p) {
+    case 'restoreMax': u.max = u.base; return;
+    case 'spread': spread(f, u); return;
+    case 'colDmg': {
+      // 무음 성가대 독창 (26 4-3): 안 지우고 끝나면 그 사람이 선 열 전체. 지우면 그냥 사라짐 (함정 아님)
+      if (dispelled) return;
+      const col = cellOf(f, u).col;
+      for (const v of living(f)) if (cellOf(f, v).col === col) damage(f, v, e.dmg, true);
+      emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 줄 전체 피해` });
+      return;
+    }
+    case 'hit':
+      if (dispelled) return;
+      damage(f, u, e.dmg, true);
+      emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 시간 끝` });
+      return;
   }
+}
+
+/**
+ * 체력 선 디버프 (35 3-A): grow = cureAt 아래인 동안 중첩이 쌓임 (쇠약 P-WOUND),
+ * cureAt = 그 체력 비율 이상이면 바로 사라짐 (쇠약 · 완치 표식 P-FULL). 사라질 때 end는 안 함
+ */
+export function hpLineTick(f: Fight, u: Unit, d: Debuff, dt: number): boolean {
+  const above = d.cureAt != null && u.hp >= u.max * d.cureAt - 1e-6;
+  if (above) {
+    u.debuffs = u.debuffs.filter(x => x !== d);
+    emit(f, { type: 'cure', id: u.id, name: d.name });
+    return true;
+  }
+  if (d.grow) {
+    d.growT = (d.growT ?? 0) + dt;
+    if (d.growT >= d.grow.every - 1e-9) { d.growT -= d.grow.every; d.stack = Math.min(d.grow.max, (d.stack ?? 0) + 1); }
+  }
+  return false;
 }
 
 /** 보스가 아닌 적(또는 보스 몸통)에 피해. 쓰러지면 시전 중이던 기술도 끊김. 적 체력 합을 다시 셈 */

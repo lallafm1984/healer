@@ -34,7 +34,7 @@ export function addMod(u: Unit, m: Mod): void {
 }
 function endHp(u: Unit, m: Mod): void {
   u.max -= m.v;
-  if (u.max < u.base && !u.debuffs.some(d => d.name === '썩은 숨결')) u.max = u.base;
+  if (u.max < u.base && !u.debuffs.some(d => d.end?.p === 'restoreMax')) u.max = u.base;
   u.hp = Math.min(u.hp, u.max);
 }
 
