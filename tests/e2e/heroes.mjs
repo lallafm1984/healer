@@ -70,7 +70,7 @@ export default async function heroes(url, shots) {
 
   // ---- 편성 경고 줄: 못 지우는 해제 ----
   await patchSave(page, { settings: { devUnlock: true } });
-  await toParty(page, { content: 'abyss1', tab: 'raid' });
+  await toParty(page, { content: 'abyss1', tab: 'raid10' });
   const dis = await text('#s-party .f-warn.dispel');
   ok(/드루이드/.test(dis) && /질병/.test(dis) && !/독/.test(dis), `역병 군주: 드루이드는 질병만 못 지움 (${dis.replace(/\s+/g, ' ').trim()})`);
   await page.screenshot({ path: `${shots}/heroes_entry.png` });

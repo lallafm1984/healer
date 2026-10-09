@@ -161,7 +161,7 @@ function buildings(): string {
   const raid = contentOf('abyss1'), raidLock = lockOf(raid).locked;
   const gOpen = guildOpen(s), apps = (s.guild.post?.cands.length || 0) + s.guild.scouts.length;
   const gLine = !gOpen.ok ? gOpen.why : apps ? `지원자 ${apps}명` : `길드원 ${s.guild.members.length}/${capOf(s).cap}`;
-  return `<button type="button" class="g-plate pr lb-raid${raidLock ? ' lock' : ''}" data-go="s-content" data-arg="raid"><b>종탑</b>${raidLock ? `<span>10인 레이드</span><span>Lv ${raid.unlockLv}에 열림</span>` : `<span>10인 레이드 · 조각 ${s.wallet.shards}/${SHARD_MAX}</span>`}</button>
+  return `<button type="button" class="g-plate pr lb-raid${raidLock ? ' lock' : ''}" data-go="s-content" data-arg="raid10"><b>종탑</b>${raidLock ? `<span>10인 레이드</span><span>Lv ${raid.unlockLv}에 열림</span>` : `<span>10인 레이드 · 조각 ${s.wallet.shards}/${SHARD_MAX}</span>`}</button>
     ${FEATURES.guild ? `<button type="button" class="g-plate lb-guild${gOpen.ok ? '' : ' lock'}" data-go="s-guild"><b>길드 회관</b><span>${esc(gLine)}</span>${gOpen.ok && apps ? `<i class="g-badge">${apps}</i>` : ''}</button>` : ''}
     <button type="button" class="g-plate lb-shop" data-go="s-shop" data-arg="gold"><b>잡화점</b><span>골드 상점</span></button>`;
 }

@@ -88,12 +88,6 @@
 #s-content .b-loot i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--frame); }
 #s-content .b-loot i.got { background: var(--gold-hi); border-color: var(--gold-hi); }
 
-/* 이벤트: 빈 관문 */
-#s-content .b-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; text-align: center; background: radial-gradient(circle at 50% 40%, #2A2118, #120E0A 75%); }
-#s-content .b-ei { width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--frame-hi); background: radial-gradient(circle at 50% 32%, #4E3D27, #1A140E 72%); box-shadow: 0 0 0 1px var(--line); display: grid; place-items: center; color: var(--gold-hi); }
-#s-content .b-ei > svg { width: 30px; height: 30px; }
-#s-content .b-ei .g-ic { width: 46px; height: 46px; }
-#s-content .b-empty b { font: 800 20px var(--font-display); color: var(--gold-hi); }
 
 /* ---------- 장소 문양 줄 (고른 곳 = 금빛 링 + 빛, 준비 중 = 회색 + 「준비」, 잠김 = 자물쇠) ---------- */
 /* 화면 끝까지 닿는 가로 넘김 줄. 칸 너비 = 한 화면에 5칸 반 (반쯤 보이는 칸 = 더 있음), 적으면 가운데. 넘길 쪽 끝만 흐림 (data-more = l · r, content.ts) */
@@ -133,8 +127,6 @@
 #s-content .b-chal.off .b-tg { background: var(--panel-2); border-color: #5C4424; color: var(--mute); }
 #s-content .b-chal.off:active .b-hg { transform: none; }
 #s-content .b-div { flex: none; width: 1px; height: 46px; margin: 6px 4px 0 2px; background: linear-gradient(transparent, #9C7A3C, transparent); }
-/* 이벤트: 장소·난이도 줄 자리만 (관문 크기를 맞춤) */
-#s-content .b-ghost { visibility: hidden; }
 
 /* ---------- 난이도 4칸 ---------- */
 #s-content .b-df { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }

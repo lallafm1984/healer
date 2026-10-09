@@ -1,12 +1,12 @@
 /**
  * S03 모험 선택 = 전투 탭 루트 (27 3-1 → 30 시안 Battle30 「B 출정 관문」).
- * 위에서부터: 분류 4칸 (탐험 3인 · 던전 5인 · 레이드 10·20인 · 이벤트)
+ * 위에서부터: 분류 4칸 (탐험 3인 · 던전 5인 · 10인 레이드 · 20인 레이드. 2026-10-09 Lim: 이벤트 탭을 빼고 레이드를 인원으로 나눔)
  * → 관문 = 아치 금테 안 장소 그림 (28 4장) · 세력 문양 이름표 · 추천 리본 · ‹ › · 정보 줄 (레이드는 이번 주 장비·종 조각, 13 3-4) · 해제 칩 · 보상 칸
  * → 장소 문양 줄 (고르기, 많으면 가로로 넘김. 던전이면 맨 앞에 주간 도전 고정 칸, 13 3-2) → 난이도 4칸 (별) → 「출전」 = 입장 화면으로.
- * 관문은 어느 분류든 같은 자리·같은 크기 (2026-10-08 Lim: 주간 도전 띠를 관문 위에서 장소 줄로 옮김, 이벤트는 빈 줄 자리를 남김).
+ * 관문은 어느 분류든 같은 자리·같은 크기 (2026-10-08 Lim: 주간 도전 띠를 관문 위에서 장소 줄로 옮김).
  * 분류마다 마지막 고른 장소, 장소마다 마지막 고른 난이도를 기억 (모듈 변수, 저장 안 함).
  */
-import { ALL_DIFFS, CONTENT, contentOf, dispelsOf, raidSize, stageOf, type ContentDef, type ContentKey, type ContentKind } from '../data/content';
+import { ALL_DIFFS, CONTENT, contentOf, dispelsOf, raidSize, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { AFFIXES } from '../data/affixes';
 import { CHAL } from '../data/challenge';
@@ -15,7 +15,7 @@ import { avgScore, DROP_TABLE, GRADE_STYLE, ITEM_GRADES, LEGEND_LEVEL, RECOMMEND
 import { canDispel, DEB_COLOR } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
 import { clearGold, EXPLORE_REWARD } from '../data/progression';
-import { cssUrl } from '../art';
+import { art, cssUrl } from '../art';
 import { weekRemaining } from '../game/clock';
 import { raidLootOpen } from '../game/economy';
 import { Flow } from '../game/flow';
@@ -32,7 +32,6 @@ const ICON = {
   explore: line('<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>'),
   dungeon: line('<path d="M4 21V8l3-2 3 2V5h4v3l3-2 3 2v13"/><path d="M10 21v-5a2 2 0 0 1 4 0v5"/>'),
   raid: line('<path d="M6.5 16v-4.5a5.5 5.5 0 0 1 11 0V16l1.5 2h-14z"/><path d="M10 20.5h4"/>'),
-  event: line('<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6-4.5-4.2 6.1-.7z"/>'),
   hourglass: line('<path d="M7 3h10M7 21h10M8 3v2c0 3 4 5 4 7s-4 4-4 7v2M16 3v2c0 3-4 5-4 7s4 4 4 7v2"/>', 2.2),
   gear: line('<path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12 7l5 5"/>'),
   gold: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="#E8B23A" stroke="#7A5418" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="#B9831F" stroke-width="1.6"/></svg>',
@@ -42,27 +41,33 @@ const PREV = line('<path d="M15 6l-6 6 6 6"/>', 2.6);
 const NEXT = line('<path d="M9 6l6 6-6 6"/>', 2.6);
 const ARROW = '<svg class="g-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 
-const KINDS: { kind: ContentKind; name: string }[] = [
-  { kind: 'explore', name: '탐험' },
-  { kind: 'dungeon', name: '던전' },
-  { kind: 'raid', name: '레이드' },
-  { kind: 'event', name: '이벤트' },
+/** 분류 탭. 레이드는 인원(10·20인)으로 나눔 (콘텐츠 종류는 그대로 raid) */
+type Tab = 'explore' | 'dungeon' | 'raid10' | 'raid20';
+const KINDS: { kind: Tab; name: string; icon: keyof typeof ICON }[] = [
+  { kind: 'explore', name: '탐험', icon: 'explore' },
+  { kind: 'dungeon', name: '던전', icon: 'dungeon' },
+  { kind: 'raid10', name: '10인 레이드', icon: 'raid' },
+  { kind: 'raid20', name: '20인 레이드', icon: 'raid' },
 ];
+/** 탭 그림. 20인 레이드는 icon-raid20이 오면 그것, 없으면 10인과 같은 종 (그림 요청 33 RS-4) */
+const catIcon = (k: (typeof KINDS)[number]) => (k.kind === 'raid20' && art('icon-raid20') ? gameIcon('raid20', '') : gameIcon(k.icon, ICON[k.icon]));
+/** 그 장소가 들어가는 탭 */
+const tabOf = (c: ContentDef): Tab => (c.kind === 'raid' ? (raidSize(c) === 20 ? 'raid20' : 'raid10') : c.kind === 'explore' ? 'explore' : 'dungeon');
 /** 장소 문양 줄의 짧은 이름 (칸이 좁아서. 관문 이름표엔 전체 이름) */
 const SHORT: Partial<Record<ContentKey, string>> = { crypt: '지하묘지', manor: '장원', abyss1: '종탑 1층', cathedral1: '대성당 1구역' };
 
 /** 마지막으로 고른 분류 (27 3-1) */
-let tab: ContentKind = 'dungeon';
+let tab: Tab = 'dungeon';
 /** 분류마다 마지막 고른 장소 */
-const pick: Partial<Record<ContentKind, ContentKey>> = {};
+const pick: Partial<Record<Tab, ContentKey>> = {};
 /** 장소마다 마지막 고른 난이도 */
 const diffPick: Partial<Record<ContentKey, DiffName>> = {};
 /** 지금 그려져 있는 분류 (장소 줄 넘김 위치를 이어 갈지) */
-let drawnTab: ContentKind | null = null;
+let drawnTab: Tab | null = null;
 /** 다음 그리기에서 고른 장소를 줄 가운데로 (‹ ›) */
 let centerNext = false;
 
-const listOf = (k: ContentKind) => CONTENT.filter(c => c.kind === k && !c.hidden);
+const listOf = (k: Tab) => CONTENT.filter(c => !c.hidden && tabOf(c) === k);
 const factionOf = (c: ContentDef): FactionKey => PLACES[placeArt(c.key).place].faction;
 /** 준비 중이거나 레벨이 모자라 못 들어가는 장소 */
 const isOff = (c: ContentDef) => !c.ready || lockOf(c).locked;
@@ -110,7 +115,7 @@ function recommended(): ContentKey | null {
   const lv = G.save.player.level, mine = avgScore(G.save.gear.equipped);
   let best: { k: ContentKey; s: number } | null = null;
   for (const c of CONTENT) {
-    if (c.hidden || !c.ready || c.kind === 'event' || lockOf(c).locked) continue;
+    if (c.hidden || !c.ready || lockOf(c).locked) continue;
     const rec = G.save.clears[c.key] || {};
     for (const d of ['보통', '어려움', '악몽'] as DiffName[]) {
       if (rec[d]) continue;
@@ -124,7 +129,7 @@ function recommended(): ContentKey | null {
   return best ? best.k : null;
 }
 
-/** 지금 고른 장소: 기억한 것 → 추천 → 들어갈 수 있는 첫 장소 → 첫 장소 (이벤트처럼 없으면 null) */
+/** 지금 고른 장소: 기억한 것 → 추천 → 들어갈 수 있는 첫 장소 → 첫 장소 (장소가 없는 분류면 null) */
 function current(): ContentDef | null {
   const list = listOf(tab);
   if (!list.length) return null;
@@ -149,14 +154,20 @@ function diffOf(c: ContentDef): DiffName {
   return last;
 }
 
-/** 분류 4칸: 아이콘 + 이름 + 인원 (레이드가 다 잠겼으면 자물쇠 Lv, 장소가 없으면 준비 중) */
+/**
+ * 분류 4칸: 아이콘 + 이름 + 인원 (다 잠겼으면 자물쇠 Lv, 장소가 없으면 준비 중).
+ * 레이드는 칸이 좁아서 「10인 / 레이드」처럼 인원을 위 줄에 (잠겼으면 아래 줄이 자물쇠 Lv)
+ */
 function cats(): string {
   return `<nav class="b-cats" role="tablist" aria-label="콘텐츠 분류">${KINDS.map(k => {
     const list = listOf(k.kind);
     const sizes = [...new Set(list.map(c => c.size('보통')))].sort((a, b) => a - b);
     const lv = Math.min(...list.map(c => c.unlockLv));
-    const sub = !list.length ? '준비 중' : list.every(c => lockOf(c).locked) ? `${LOCK}Lv ${lv}` : `${sizes.join('·')}인`;
-    return `<button type="button" class="b-cat" role="tab" data-ctab="${k.kind}" aria-selected="${k.kind === tab}"><span class="b-ci">${gameIcon(k.kind, ICON[k.kind])}</span><span><b>${k.name}</b><small>${sub}</small></span></button>`;
+    const lock = list.length > 0 && list.every(c => lockOf(c).locked);
+    const raid = k.icon === 'raid', [top, cap] = raid ? k.name.split(' ') : [k.name, `${sizes.join('·')}인`];
+    const sub = !list.length ? '준비 중' : lock ? `${LOCK}Lv ${lv}` : cap;
+    const label = `${k.name}${!list.length ? ' · 준비 중' : lock ? ` · Lv ${lv}에 열림` : raid ? '' : ` · ${cap}`}`;
+    return `<button type="button" class="b-cat" role="tab" data-ctab="${k.kind}" aria-selected="${k.kind === tab}" aria-label="${label}"><span class="b-ci">${catIcon(k)}</span><span aria-hidden="true"><b>${top}</b><small>${sub}</small></span></button>`;
   }).join('')}</nav>`;
 }
 
@@ -285,20 +296,20 @@ function diffs(c: ContentDef, d: DiffName): string {
 function cta(c: ContentDef | null, d: DiffName): string {
   const lk = c ? lockOf(c, d) : null;
   const ok = !!c && c.ready && !lk!.locked;
-  const sub = !c ? '이벤트 준비 중' : !c.ready ? `${c.name} · 준비 중` : lk!.locked ? `${c.name} · Lv ${lk!.lv}에 열림` : `${c.name} · ${d}`;
-  const mk = c ? factionMark(factionOf(c), 'md') : `<span>${line('<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6-4.5-4.2 6.1-.7z"/>')}</span>`;
+  const sub = !c ? '준비 중' : !c.ready ? `${c.name} · 준비 중` : lk!.locked ? `${c.name} · Lv ${lk!.lv}에 열림` : `${c.name} · ${d}`;
+  const mk = c ? factionMark(factionOf(c), 'md') : '';
   return `<button type="button" class="g-cta" id="contentGo"${ok ? '' : ' disabled'}><span class="g-mk">${mk}</span><span class="g-ct"><b>출전</b><small>${esc(sub)}</small></span>${ARROW}</button>`;
 }
 
 const s = screen('s-content', '모험 선택', {
   tab: 'battle',
-  // arg = 열 분류 (로비: 주간 도전 → dungeon, 레이드 → raid). 없으면 마지막 고른 분류
+  // arg = 열 분류 (로비: 주간 도전 → dungeon, 종탑 → raid10). 없으면 마지막 고른 분류
   enter(arg) {
-    if (KINDS.some(t => t.kind === arg)) tab = arg as ContentKind;
+    if (KINDS.some(t => t.kind === arg)) tab = arg as Tab;
     // 편성에서 돌아오면 그 장소·난이도가 골라진 채로 (로비 「바로 출전」으로 갔다 와도. 주간 도전은 따로)
     if (previous === 's-party' && !Flow.chal && G.save.tut >= TUT.done) {
       const c = contentOf(Flow.content);
-      if (!c.hidden) { tab = c.kind; pick[c.kind] = c.key; diffPick[c.key] = Flow.diff; }
+      if (!c.hidden) { tab = tabOf(c); pick[tab] = c.key; diffPick[c.key] = Flow.diff; }
     }
     if (G.save.tut === TUT.dungeon) { tab = 'dungeon'; pick.dungeon = 'rustfort'; }
     render(false);
@@ -320,12 +331,9 @@ function render(keep = true): void {
   const list = listOf(tab), c = current(), d = c ? diffOf(c) : '보통';
   const tut = G.save.tut === TUT.dungeon && tab === 'dungeon';
   const tip = tut ? '<p class="coachtip b-tip"><b>녹슨 요새</b> 쉬움으로 출전. 일반·정예 구간 둘, 보스 둘을 이어서 진행</p>' : '';
-  // 이벤트: 빈 관문 + 장소·난이도 줄 자리 (안 보이게) → 관문 크기가 다른 분류와 같음
-  const ghost = '<nav class="b-places b-ghost" aria-hidden="true"><div class="b-plr"><span class="b-pl"><span class="b-r"></span><small>&nbsp;</small></span></div></nav><div class="b-df b-ghost" aria-hidden="true"><span class="b-dc">&nbsp;<small>&nbsp;</small></span></div>';
-  const empty = `<section class="b-gate b-empty" aria-label="이벤트"><span class="b-ei">${gameIcon('event', ICON.event)}</span><b>이벤트 준비 중</b><span class="cap">시즌 이벤트가 열리면 여기에 나옵니다.</span></section>${ghost}`;
   s.el.style.setProperty('--b-bg', c ? cssUrl(placeArt(c.key).url) : 'none');
   s.el.innerHTML = `${topBar({ settings: true })}
-    <div class="ns-body b-body">${tip}${cats()}${c ? gate(c, d, list.length > 1) + places(list, c, tab === 'dungeon' ? chalCell() : '') + diffs(c, d) : empty}</div>
+    <div class="ns-body b-body">${tip}${cats()}${c ? gate(c, d, list.length > 1) + places(list, c, tab === 'dungeon' ? chalCell() : '') + diffs(c, d) : ''}</div>
     <footer class="b-foot">${cta(c, d)}</footer>`;
   if (tut) s.el.querySelector('#contentGo')?.classList.add('hi-pulse');
   const nb = s.el.querySelector<HTMLElement>('.b-body');
@@ -349,7 +357,7 @@ s.el.addEventListener('scroll', e => {
 s.el.addEventListener('click', e => {
   const el = e.target as HTMLElement;
   const t = el.closest<HTMLElement>('[data-ctab]');
-  if (t) { tab = t.dataset.ctab as ContentKind; render(); return; }
+  if (t) { tab = t.dataset.ctab as Tab; render(); return; }
   const ch = el.closest<HTMLElement>('[data-chal]');
   if (ch) {
     if (ch.getAttribute('aria-disabled') === 'true') return;
