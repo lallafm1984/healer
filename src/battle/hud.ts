@@ -345,14 +345,15 @@ export function updateStage(now: number): void {
   setText($('phase'), ph);
   const adds = $('bossAdds'), ratsOn = F.rats.length > 0 && adds.hasAttribute('src');
   if (adds.hidden === ratsOn) adds.hidden = !ratsOn;
-  // 시간 줄 (시안 「0:42 · 광폭까지 3:48」)
+  // 시간 줄 (시안 「0:42 · 광폭까지 3:48」). 레이드 탱커 공백 (35 6-4)이면 광폭까지 남은 초를 빨갛게
+  const noTank = F.noTankAt != null && !F.enraged ? Math.max(0, Math.ceil(NO_TANK_SEC - (F.t - F.noTankAt))) : null;
   if (S.limit) {
     // 주간 도전 (13 3-2): 던전 전체 제한시간 (휴식 뺀 전투 시간 합)
     const used = R.time + F.t;
-    setText($('timer'), `${mmss(used)} / ${mmss(S.limit)}${F.enraged ? ' · 광폭화!' : ''}`);
+    setText($('timer'), `${mmss(used)} / ${mmss(S.limit)}${F.enraged ? ' · 광폭화!' : noTank != null ? ` · 탱커 없음 ${noTank}` : ''}`);
     $('timer').classList.toggle('over', used > S.limit);
-  } else setText($('timer'), F.enraged ? `${mmss(F.t)} · 광폭화!` : isFinite(F.enc.enrage) ? `${mmss(F.t)} · 광폭까지 ${mmss(Math.ceil(F.enc.enrage - F.t))}` : mmss(F.t));
-  $('timer').classList.toggle('enraged', F.enraged);
+  } else setText($('timer'), F.enraged ? `${mmss(F.t)} · 광폭화!` : noTank != null ? `${mmss(F.t)} · 탱커 없음 · 광폭까지 ${mmss(noTank)}` : isFinite(F.enc.enrage) ? `${mmss(F.t)} · 광폭까지 ${mmss(Math.ceil(F.enc.enrage - F.t))}` : mmss(F.t));
+  $('timer').classList.toggle('enraged', F.enraged || noTank != null);
   if (now - ui.qAt > 90) {
     ui.qAt = now;
     const q = queue(F).map(it => ({ ...it, kind: it.kind as string | undefined }));
@@ -400,10 +401,6 @@ export function updateStage(now: number): void {
   const down = !F.over && F.party.some(u => u.role === 'tank') && !F.party.some(u => u.role === 'tank' && u.alive);
   if ($('giveUp').hidden === down) { $('giveUp').hidden = !down; $('hint').hidden = down; }
   $('controls').classList.toggle('tank-down', down);
-  // 레이드 탱커 공백 (35 6-4): 포기 버튼 위에 광폭화까지 남은 초
-  const nt = $('noTank');
-  const ntTxt = F.noTankAt != null && !F.enraged ? `탱커 없음 ${Math.max(0, Math.ceil(NO_TANK_SEC - (F.t - F.noTankAt)))}` : '';
-  if (nt.textContent !== ntTxt) { nt.textContent = ntTxt; nt.hidden = !ntTxt; }
 }
 
 // ---------- 설명 팝업 (보스 기술 · 스킬 · 아이템 같은 모양) ----------

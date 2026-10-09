@@ -321,6 +321,8 @@ export default async function portrait(url, shots) {
     await page.clock.runFor(100);
     const down = await geometry(), giveUp = await page.locator('#giveUp').boundingBox();
     ok(giveUp && giveUp.y + giveUp.height <= height + 1 && down.board.h >= 120, `${width}: 탱커 전멸 포기 버튼 및 판 유지 (${Math.round(down.board.h)}px)`);
+    const timerTxt = await page.locator('#timer').textContent();
+    ok(/탱커 없음 · 광폭까지 0:1\d/.test(timerTxt || ''), `${width}: 20인 탱커 전멸 뒤 시간 줄에 광폭화 카운트다운 (${timerTxt})`);
     await page.screenshot({ path: `${shots}/portrait_tankdown_${width}.png` });
     await ctx.close();
   }
