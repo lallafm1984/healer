@@ -5,7 +5,7 @@ import { heroApply, heroChannelTick, heroTick, hotCount, putHot } from './heroes
 import { orderHeal } from './bossParts';
 import { reviveTarget } from './items';
 import { adjLow, castOf, cdOf, costOf, directSpread, focusMult, has, overflow, pohAt, renewSec, spendGuard, talentTick, wordCap, wordPower, wordReady, wordSpent } from './talents';
-import type { ActionResult, Fight, Unit } from './types';
+import type { ActionResult, Debuff, Fight, Unit } from './types';
 
 /** 이 레벨에서 배운 스킬·패시브인지 (06 7장) */
 export const knows = (f: Fight, key: SkillKey) => f.level >= SKILL_LEVEL[key];
@@ -54,6 +54,7 @@ export function use(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
   if (!tg.ok) return tg;
   if (tg.u && tg.u.debuffs.length && invertTap(f, key, tg.u)) return { ok: false, reason: '뒤집힌 축복: 힐이 피해가 됨 (한 번 더 누르면 사용)' };
   if (sk.cd && (f.cd[key] ?? 0) > 0) return { ok: false, reason: `${sk.name} 재사용 대기 ${Math.ceil(f.cd[key]!)}초` };
+  if (f.lock[key]) return { ok: false, reason: `${sk.name} 잠김 ${Math.ceil(f.lock[key]!.left)}초 (진동)` };
   if (f.mana < costOf(f, key)) { f.stats.manaFails++; return { ok: false, reason: '마나 부족' }; }
   const uid = tg.u ? tg.u.id : null;
   if (f.cast && f.cast.uid === uid && f.cast.key === key) return { ok: true, same: true };
@@ -77,6 +78,7 @@ function exec(f: Fight, key: SkillKey, cellIdx: number, u: Unit | undefined): vo
   if (sk.channel) {
     f.mana -= costOf(f, key); f.cd[key] = cdOf(f, key); f.channel = sk.channel; f.chTick = 0;
     emit(f, { type: 'sound', name: 'hymn' });
+    if (f.me.debuffs.length) countUse(f, undefined);
     return;
   }
   f.mana -= costOf(f, key);
@@ -103,7 +105,19 @@ function invertTap(f: Fight, key: SkillKey, u: Unit): boolean {
   return true;
 }
 
+/** 마력 역류 (P-RECOIL): 스킬이 나갈 때마다 1중첩. 해제로 그 디버프를 지운 한 번은 안 셈 (지운 순간 그때까지 중첩만큼 터짐) */
+function countUse(f: Fight, rc: Debuff | undefined): void {
+  const d = rc ?? f.me.debuffs.find(x => x.count);
+  if (d && f.me.debuffs.includes(d)) d.stack = (d.stack ?? 0) + 1;
+}
+
 function apply(f: Fight, key: SkillKey, u: Unit): void {
+  const rc = f.me.debuffs.length ? f.me.debuffs.find(d => d.count) : undefined;
+  applySkill(f, key, u);
+  if (rc) countUse(f, rc);
+}
+
+function applySkill(f: Fight, key: SkillKey, u: Unit): void {
   if (f.order && singleHeal(key)) orderHeal(f, u); // 차례 (P-ORDER)
   if (f.hero !== 'priest') { heroApply(f, key, u); return; }
   const sk = SKILLS[key];
@@ -179,6 +193,8 @@ export function healerTick(f: Fight): void {
   if (f.symbol > 0) f.symbol -= dt;
   if (!f.symbolUsed && f.mana < 30 && knowsPassive(f, 'symbol')) { f.symbolUsed = true; f.symbol = 5; emit(f, { type: 'msg', text: '상징: 5초간 마나 회복 4배' }); }
   for (const k in f.cd) f.cd[k as SkillKey] = Math.max(0, f.cd[k as SkillKey]! - dt);
+  if (f.me.debuffs.length) for (const d of f.me.debuffs) if (d.drain) f.mana = Math.max(0, f.mana - d.drain * dt); // 마나 갈취 표식 (P-DRAIN)
+  for (const k in f.lock) { const l = f.lock[k as SkillKey]!; l.left -= dt; if (l.left <= 1e-9) delete f.lock[k as SkillKey]; } // 진동 잠김
   if (f.gcd > 0) f.gcd -= dt;
   if (f.channel > 0) {
     f.channel -= dt; f.chTick += dt;
@@ -209,7 +225,7 @@ export function healerTick(f: Fight): void {
     else {
       const idx = tu ? tu.cell : 0;
       const tg = canTarget(f, q.key, idx);
-      if (tg.ok && !(sk.cd && (f.cd[q.key] ?? 0) > 0) && f.mana >= costOf(f, q.key)) exec(f, q.key, idx, tg.u);
+      if (tg.ok && !(sk.cd && (f.cd[q.key] ?? 0) > 0) && !f.lock[q.key] && f.mana >= costOf(f, q.key)) exec(f, q.key, idx, tg.u);
       else { f.stats.queueLost++; if (!tg.ok && tg.reason) emit(f, { type: 'msg', text: tg.reason }); }
     }
   }

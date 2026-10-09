@@ -43,6 +43,8 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
   const state: DispelState = debuff.lock || !canDispel(hero, debuff.type) ? 'unavailable' : debuff.trap ? 'dangerous' : 'available';
   const marker = state === 'unavailable' ? '×' : state === 'dangerous' ? '!' : '';
   const kind = compact ? TYPE_SHORT[debuff.type] ?? '?' : debuff.type;
+  // 마력 역류 (P-RECOIL): 배지에 중첩 수 (내 칸의 숫자)
+  if (debuff.count) return { text: `${marker}${compact ? '' : '역류 '}${debuff.stack ?? 0}중`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초, ${debuff.stack ?? 0}중첩 · 스킬을 쓸 때마다 1중첩, 끝나거나 지우면 중첩만큼 피해 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (일찍 지울수록 덜 아픔)'}`, state, seconds };
   if (debuff.jail) return { text: `${marker}${compact ? '감옥' : debuff.name}`, detail: `${debuff.name} · 딜 0 · 못 움직임 · 딜러가 감옥을 깨면 풀림 · 해제 불가`, state, seconds: 0 };
   const action = debuff.lock ? (debuff.cureAt != null ? `해제 불가, 체력 ${Math.round(debuff.cureAt * 100)}% 이상이면 사라짐`
     : debuff.untilBossLoss != null ? `해제 불가, 보스 체력 ${Math.round(debuff.untilBossLoss * 100)}% 깎으면 풀림` : '해제 불가')
@@ -50,9 +52,13 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
   const stack = (debuff.stack ?? 0) > 1 ? `, ${debuff.stack}중첩` : '';
   // 받는 치유가 바뀌는 디버프 (35 4-3): 뒤집힌 축복 · 얼룩진 장갑 · 먼지 범벅
   const heal = debuff.invert ? ' · 받는 치유가 피해로' : debuff.healCut ? ` · 받는 치유 -${Math.round(debuff.healCut * (debuff.stack ?? 1) * 100)}%` : '';
+  // 매혹 · 옮겨붙음 · 마나 갈취 (35 3장): 길게 눌렀을 때 판단 근거
+  const more = debuff.charm ? ` · 이웃을 때림, 힐하면 길어짐, 체력 ${Math.round(debuff.charm.free * 100)}% 아래면 풀림`
+    : debuff.end?.p === 'jump' ? ' · 지우면 옆 사람에게 옮겨붙음 (혼자면 사라짐), 두면 보스가 강해짐'
+    : debuff.drain ? ` · 마나 초당 -${debuff.drain}` : '';
   return {
     text: `${marker}${kind}${compact ? '' : ' '}${seconds}`,
-    detail: `${debuff.name} · ${debuff.type} · ${seconds}초${stack}${heal} · ${action}`,
+    detail: `${debuff.name} · ${debuff.type} · ${seconds}초${stack}${heal}${more} · ${action}`,
     state,
     seconds,
   };

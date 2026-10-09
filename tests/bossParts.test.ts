@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { bossHpFor, U, UNIT, type DebuffDef, type SkillEffect } from '../src/data/bosses';
 import { CLASSES } from '../src/data/classes';
 import * as E from '../src/engine';
-import { applyDebuff, backTargets, bossTaken, focusOrder, lowestTargets, offTank, orderHeal, runEffect } from '../src/engine/bossParts';
-import { moveTo, pickCell } from '../src/engine/movement';
+import { applyDebuff, backTargets, bossTaken, focusOrder, lowestTargets, offTank, orderHeal, runEffect, watchInit } from '../src/engine/bossParts';
+import { moveTo, pickCell, zoneOf } from '../src/engine/movement';
+import { ABILITIES } from '../src/data/abilities';
 import { unitDps } from '../src/engine/units';
 import { hexDist } from '../src/engine/board';
 import { fromDef } from '../src/engine/bosses';
@@ -743,5 +744,313 @@ describe('판에 나오는 적 2 (35 3-I): 감옥 · 걸어오는 쫄 · 자폭 
     expect(swarm.every(m => m.hp < m.max)).toBe(true);
     steps(f, 20);
     expect(swarm.every(m => !m.alive)).toBe(true);
+  });
+});
+
+describe('서리 마탑 부품 (35 4-4): 진동 · 숨 고르기 · 커지는 광역 · 마력 역류 · 주시', () => {
+  const ally = (f: Fight) => f.party.find(u => u.role === 'melee')!;
+
+  it('진동: 시전 중인 힐이 끊기고 그 스킬이 잠김, 전원 피해. 시간이 지나면 풀림', () => {
+    const f = fight();
+    const u = ally(f);
+    u.hp = u.max * 0.5;
+    expect(E.use(f, 'heal', u.cell).ok).toBe(true);
+    expect(f.cast?.key).toBe('heal');
+    const hp = dealer(f).hp;
+    run(f, { p: 'quake', dmg: 40, lock: 3 });
+    expect(f.cast).toBeNull();
+    expect(f.lock.heal).toEqual({ left: 3, total: 3 });
+    expect(hp - dealer(f).hp).toBeCloseTo(40 * f.dmgMult);
+    f.gcd = 0;
+    const r = E.use(f, 'heal', u.cell);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toContain('잠김');
+    expect(E.use(f, 'flash', u.cell).ok).toBe(true); // 다른 스킬은 됨
+    steps(f, 3.1);
+    expect(f.lock.heal).toBeUndefined();
+  });
+
+  it('진동: 찬가(채널)도 끊기고 잠김, 시전 중이 아니면 피해만', () => {
+    const f = fight();
+    expect(E.use(f, 'hymn', ally(f).cell).ok).toBe(true);
+    expect(f.channel).toBeGreaterThan(0);
+    run(f, { p: 'quake', dmg: 40, lock: 3 });
+    expect(f.channel).toBe(0);
+    expect(f.lock.hymn).toBeDefined();
+    const g = fight();
+    run(g, { p: 'quake', dmg: 40, lock: 3 });
+    expect(Object.keys(g.lock)).toHaveLength(0);
+  });
+
+  it('진동 기술은 예고에 quake 표시 (휠 떨림)', () => {
+    const f = fight();
+    const s = fromDef(f, { key: 'rune', name: '룬 진동', kind: 'aoe', first: 0, period: 15, cast: 2, effect: { p: 'quake', dmg: 40, lock: 3 } });
+    expect(s.quake).toBe(true);
+    steps(f, 0.1);
+    expect(f.tels.some(t => t.skill.quake)).toBe(true);
+  });
+
+  it('숨 고르기: 보스가 쉬고 (체력바 이름), 그 이름의 디버프가 모두 사라짐', () => {
+    const f = fight();
+    const tk = f.party.find(u => u.role === 'tank')!;
+    const FROST: DebuffDef = { name: '서리', type: '마법', left: 99, healCut: 0.1, stackMax: 5 };
+    applyDebuff(f, tk, FROST); applyDebuff(f, tk, FROST);
+    expect(tk.debuffs.find(d => d.name === '서리')!.stack).toBe(2);
+    runEffect(f, { name: '숨 고르기', st: {} } as unknown as BossSkill, { p: 'rest', sec: 6, clear: '서리' });
+    expect(f.daze).toMatchObject({ until: f.t + 6, vuln: 1, name: '숨 고르기' });
+    expect(tk.debuffs.some(d => d.name === '서리')).toBe(false);
+    const auto = f.skills.find(s => s.key === 'auto')!;
+    auto.next = f.t;
+    const hp = tk.hp;
+    steps(f, 5.9);
+    expect(tk.hp).toBe(hp);
+  });
+
+  it('커지는 광역: 쓸 때마다 grow만큼 더 아픔', () => {
+    const f = fight();
+    const s = fromDef(f, { key: 'core', first: Infinity, period: 60, cast: 0, effect: { p: 'all', dmg: 100, grow: 30 } });
+    const v = dealer(f);
+    const hits: number[] = [];
+    for (let i = 0; i < 3; i++) { v.hp = v.max; s.fire!(f); hits.push(v.max - v.hp); }
+    expect(hits[1] - hits[0]).toBeCloseTo(30 * f.dmgMult);
+    expect(hits[2] - hits[1]).toBeCloseTo(30 * f.dmgMult);
+  });
+
+  it('마력 역류: 스킬이 나갈 때마다 1중첩, 끝나면 중첩 × 피해', () => {
+    const f = fight();
+    const RECOIL: DebuffDef = { name: '마력 역류', type: '마법', left: 10, count: true, end: { p: 'stackHit', dmg: 30 } };
+    const d = applyDebuff(f, f.me, RECOIL)!;
+    expect(d.stack).toBe(0);
+    for (const u of [ally(f), dealer(f)]) { f.gcd = 0; expect(E.use(f, 'renew', u.cell).ok).toBe(true); } // 즉시 스킬 2번
+    expect(d.stack).toBe(2);
+    f.me.hp = f.me.max;
+    steps(f, 10.1);
+    expect(f.me.debuffs.includes(d)).toBe(false);
+    expect(f.me.max - f.me.hp).toBeGreaterThanOrEqual(60 * f.dmgMult - 1);
+  });
+
+  it('마력 역류: 지우면 그때까지 중첩만큼 바로 터지고, 지운 그 한 번은 안 셈', () => {
+    const f = fight();
+    const RECOIL: DebuffDef = { name: '마력 역류', type: '마법', left: 10, count: true, end: { p: 'stackHit', dmg: 30 } };
+    const d = applyDebuff(f, f.me, RECOIL)!;
+    f.gcd = 0; E.use(f, 'renew', ally(f).cell);
+    expect(d.stack).toBe(1);
+    f.me.hp = f.me.max;
+    f.gcd = 0;
+    expect(E.use(f, 'purify', f.me.cell).ok).toBe(true);
+    expect(f.me.debuffs.includes(d)).toBe(false);
+    expect(f.me.max - f.me.hp).toBeCloseTo(30 * f.dmgMult);
+    // 0중첩에 지우면 피해 없음
+    const g = fight();
+    applyDebuff(g, g.me, RECOIL);
+    g.me.hp = g.me.max;
+    expect(E.use(g, 'purify', g.me.cell).ok).toBe(true);
+    expect(g.me.hp).toBe(g.me.max);
+  });
+
+  it('주시: 넣은 치유(넘친 치유 포함)로 게이지가 차고, 가득 차면 보스가 sec초 동안 나를 every초마다 때림', () => {
+    const f = fight();
+    watchInit(f, { cap: 0.5, sec: 6, every: 1.5, dmg: 50 });
+    const w = f.watch!;
+    expect(w.max).toBeCloseTo(f.party.reduce((a, u) => a + u.max, 0) * 0.5);
+    const tk = f.party.find(u => u.role === 'tank')!;
+    tk.hp = tk.max;
+    heal(f, tk, w.max * 0.6, true, true); // 전부 넘친 치유여도 참
+    expect(w.fill).toBeCloseTo(w.max * 0.6);
+    heal(f, tk, w.max * 0.5, true, true);
+    f.me.hp = f.me.max;
+    steps(f, 0.05);
+    expect(w.until).toBeCloseTo(f.t + 6, 0);
+    expect(w.fill).toBe(0);
+    steps(f, 6);
+    const lost = f.me.max - f.me.hp;
+    expect(lost).toBeGreaterThan(3.5 * 50 * f.dmgMult);
+    expect(lost).toBeLessThan(4.5 * 50 * f.dmgMult + 1);
+    // 노리는 동안은 게이지가 안 참
+    const g = fight();
+    watchInit(g, { cap: 0.5, sec: 6, every: 1.5, dmg: 50 });
+    g.watch!.until = g.t + 5;
+    heal(g, g.party[0], 999, true, true);
+    expect(g.watch!.fill).toBe(0);
+  });
+
+  it('주시: 도발 능력이 있는 파티원이 있으면 tauntSec, 악몽은 게이지가 mythicRate배', () => {
+    const f = E.create({ encounter: 'warden', diff: '악몽', seed: 1, party: E.recruitParty('warden', 1, { abilities: true }) });
+    const hasTaunt = f.abOn && f.party.some(u => u.ab && ['taunt', 'wrath'].includes(u.ab.key));
+    watchInit(f, { cap: 1, sec: 6, tauntSec: 3, every: 1.5, dmg: 50, mythicRate: 1.3 });
+    expect(f.watch!.rate).toBe(1.3);
+    expect(f.watch!.sec).toBe(hasTaunt ? 3 : 6);
+  });
+
+  it('판 위 쫄도 파티원 도발에 끌려감', () => {
+    const f = fight();
+    run(f, { p: 'adds', n: 1, add: { name: '꼬마 악마', short: '악마', hp: 0.03, dmg: 20, every: 2 } });
+    const m = f.mobs[f.mobs.length - 1];
+    const tk = f.party.find(u => u.role === 'tank')!;
+    expect(m.add!.on).not.toBe(tk.id);
+    f.ab.taunt = tk.id; f.ab.tauntUntil = f.t + 10;
+    tk.hp = tk.max;
+    const on = f.party.find(u => u.id === m.add!.on)!, hp = on.hp;
+    steps(f, 2.1);
+    expect(tk.hp).toBeLessThan(tk.max);
+    expect(on.hp).toBe(hp);
+  });
+});
+
+describe('깨진 신전 부품 (35 4-5): 무력화 · 반격 틈 · 받침 · 청소약', () => {
+  const STAG: SkillEffect = { p: 'stagger', sec: 10, need: 4, hp: 0.7, tank: 2, win: { sec: 8, vuln: 1.3 }, fail: { dmg: 100, lock: 3 } };
+
+  it('무력화: 체력 70% 이상인 파티원 딜로 게이지가 차면 보스 무방비 (기술 쉼, 받는 피해 +30%)', () => {
+    const f = fight();
+    f.party.forEach(u => { if (!u.me) u.dps = 20; u.hp = u.max; });
+    run(f, STAG);
+    const g = f.stagger!;
+    expect(g.need).toBeGreaterThan(0);
+    steps(f, 9.5);
+    expect(f.stagger).toBeNull();
+    expect(f.daze).toMatchObject({ vuln: 1.3, name: '무방비' });
+  });
+
+  it('무력화: 체력이 기준 아래인 사람 딜은 안 셈 → 못 채우면 전원 피해 + 시전 스킬 잠김', () => {
+    const f = fight();
+    f.party.forEach(u => { if (!u.me) { u.dps = 20; u.hp = u.max * 0.5; } });
+    run(f, STAG);
+    steps(f, 5);
+    expect(f.stagger!.fill).toBe(0);
+    const v = dealer(f), hp = v.hp;
+    steps(f, 5.1);
+    expect(f.stagger).toBeNull();
+    expect(f.daze).toBeNull();
+    expect(hp - v.hp).toBeGreaterThanOrEqual(100 * f.dmgMult * 0.99);
+    expect(f.lock.heal).toBeDefined(); // 치유는 시전 스킬
+    expect(f.lock.renew).toBeUndefined(); // 소생은 즉시
+  });
+
+  it('반격 틈: 끊기 가능 기술이 되고, 끊으면 보스 기절. 못 끊으면 앞줄만 맞음', () => {
+    const f = fight();
+    const s = fromDef(f, { key: 'gleam', name: '수정 반짝임', kind: 'aoe', first: 0, period: 25, cast: 1.5, effect: { p: 'counter', stun: 4, dmg: 200 } });
+    expect(s.cut).toBe(true);
+    expect(s.stunOnCut).toBe(4);
+    // 끊기 능력 없는 파티: 맞을 때 앞줄 (판 앞쪽 3분의 1)만
+    const front = f.party.filter(u => zoneOf(f, f.cells[u.cell].row) === 'front' && !u.me), back = f.party.filter(u => zoneOf(f, f.cells[u.cell].row) !== 'front');
+    const hp0 = f.party.map(u => u.hp);
+    steps(f, 1.6);
+    expect(front.length).toBeGreaterThan(0);
+    front.forEach(u => expect(u.hp).toBeLessThan(hp0[f.party.indexOf(u)]));
+    back.forEach(u => expect(u.hp).toBe(hp0[f.party.indexOf(u)]));
+  });
+
+  it('반격 틈: 끊기 능력자가 끊으면 기절, 침묵(딜 0)이면 못 끊음', () => {
+    const mk = (silenced: boolean) => {
+      const f = fight();
+      f.abOn = true;
+      const u = dealer(f);
+      const kick = Object.values(ABILITIES).find(a => a.fx.e === 'interrupt')!;
+      u.ab = { key: kick.key, star: 5, ready: 0, uses: 0, fired: [], hist: [], lastCounter: 0 };
+      if (silenced) u.debuffs.push({ id: 900, name: '돌가루', type: '마법', left: 6, noDps: true });
+      f.rng = () => 0;
+      const s = fromDef(f, { key: 'gleam', name: '수정 반짝임', kind: 'aoe', first: 0, period: 25, cast: 1.5, effect: { p: 'counter', stun: 4, dmg: 200 } });
+      s.next = f.t;
+      E.step(f);
+      return f;
+    };
+    expect(mk(false).daze).toMatchObject({ name: '기절' });
+    expect(mk(true).daze).toBeNull();
+  });
+
+  it('받침: 빈 칸에 금빛 발판, 갈 수 있는 사람이 들어가 맞고, 빈 발판은 전원 피해', () => {
+    const f = fight();
+    const s = fromDef(f, { key: 'pads', name: '제단 발판', kind: 'aoe', first: 0, period: 30, cast: 2.5, effect: { p: 'tower', n: 2, dmg: 120, empty: 60 } });
+    expect(s.pads).toBe(true);
+    s.next = f.t; E.step(f);
+    const tel = f.tels.find(t => t.skill === s)!;
+    expect(tel.cells.size).toBe(2);
+    expect([...tel.safe!]).toEqual([...tel.cells]);
+    const go = f.party.filter(u => u.padUntil != null);
+    expect(go.length).toBe(2);
+    expect(go.every(u => u.role !== 'tank' && !u.me && u.pers !== '겁쟁이')).toBe(true);
+    go.forEach(u => { u.hp = u.max; });
+    steps(f, 2.6);
+    go.forEach(u => expect(u.hp).toBeLessThan(u.max));
+    expect(f.party.every(u => u.padUntil == null)).toBe(true);
+    // 아무도 안 가면 (모두 겁쟁이) 빈 발판 2개 = 전원 피해 2번
+    const g = fight();
+    g.party.forEach(u => { u.pers = '겁쟁이'; });
+    const t = fromDef(g, { key: 'pads', name: '제단 발판', kind: 'aoe', first: 0, period: 30, cast: 2.5, effect: { p: 'tower', n: 2, dmg: 120, empty: 60 } });
+    t.next = g.t;
+    const v = dealer(g), hp = v.hp;
+    steps(g, 2.6);
+    expect(hp - v.hp).toBeCloseTo(120 * g.dmgMult);
+  });
+
+  it('청소약: 쓸 때마다 다음 디버프 (질병 → 독 → 저주 → 마법)', () => {
+    const f = fight();
+    const types = ['질병', '독', '저주', '마법'];
+    const s = fromDef(f, { key: 'soap', first: Infinity, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: types.map(t => ({ name: `${t} 청소약`, type: t, left: 8, dot: 5 })) } });
+    const got: string[] = [];
+    for (let i = 0; i < 4; i++) { s.fire!(f); got.push(f.party.flatMap(u => u.debuffs).sort((a, b) => b.id - a.id)[0].type); }
+    expect(got).toEqual(types);
+  });
+});
+
+describe('디버프 부품 2 (35 3장): 마나 갈취 · 매혹 · 옮겨붙음', () => {
+  it('마나 갈취: 표식은 내 마나 초당 -drain (지우면 멈춤), 쫄은 살아 있는 동안', () => {
+    const f = fight();
+    f.mana = 80;
+    const d = applyDebuff(f, f.me, { name: '마나 흡수', type: '마법', left: 20, drain: 2 })!;
+    const regen = (() => { const g = fight(); g.mana = 80; steps(g, 5); return g.mana - 80; })();
+    steps(f, 5);
+    expect(f.mana).toBeCloseTo(80 + regen - 10, 0);
+    f.me.debuffs = f.me.debuffs.filter(x => x !== d);
+    const g = fight();
+    g.mana = 80;
+    run(g, { p: 'adds', n: 1, add: { name: '마나 공허', short: '공허', hp: 0.03, dmg: 0, every: 9, job: { p: 'drain', pct: 3 } } });
+    steps(g, 5);
+    expect(g.mana).toBeCloseTo(80 + regen - 15, 0);
+    expect(focusOrder(g)[0].name).toBe('마나 공허');
+  });
+
+  it('매혹: 딜 0, 이웃 칸 아군을 때림, 힐하면 길어지고 체력 50% 아래면 풀림', () => {
+    const f = fight();
+    const u = dealer(f);
+    const d = applyDebuff(f, u, { name: '매혹', type: '마법', left: 8, noDps: true, charm: { every: 2, dmg: 40, heal: 1, free: 0.5 } })!;
+    const at = f.cells[u.cell];
+    const near = f.party.filter(v => v !== u && hexDist(f.cells[v.cell], at) === 1);
+    f.party.forEach(v => { v.hp = v.max; });
+    steps(f, 2.05);
+    near.forEach(v => expect(v.hp).toBeLessThan(v.max));
+    const left = d.left;
+    heal(f, u, 10, true, true);
+    expect(d.left).toBeCloseTo(left + 1);
+    u.hp = u.max * 0.4;
+    E.step(f);
+    expect(u.debuffs.includes(d)).toBe(false);
+  });
+
+  it('옮겨붙음: 지우면 이웃 칸 1명에게 더 세게, 혼자면 사라짐, 시간이 다 되면 보스 강해짐', () => {
+    const PLAGUE: DebuffDef = { name: '괴저 역병', type: '질병', left: 10, dot: 10, end: { p: 'jump', sec: 10, mult: 1.5, boost: 0.05 } };
+    const f = fight();
+    const u = f.party.find(v => !v.me && f.party.some(w => w !== v && hexDist(f.cells[w.cell], f.cells[v.cell]) === 1))!;
+    applyDebuff(f, u, PLAGUE);
+    doDispel(f, u);
+    const moved = f.party.filter(v => v.debuffs.some(d => d.name === '괴저 역병'));
+    expect(moved).toHaveLength(1);
+    expect(moved[0]).not.toBe(u);
+    expect(hexDist(f.cells[moved[0].cell], f.cells[u.cell])).toBe(1);
+    expect(moved[0].debuffs.find(d => d.name === '괴저 역병')!.dot).toBeCloseTo(15);
+    // 이웃이 없으면 사라짐
+    const g = fight();
+    const v = dealer(g);
+    for (const w of g.party) if (w !== v && hexDist(g.cells[w.cell], g.cells[v.cell]) === 1) { const far = g.cells.find(c => !c.unit && !c.block && hexDist(c, g.cells[v.cell]) > 1)!; g.cells[w.cell].unit = null; far.unit = w; w.cell = far.i; w.home = far.i; }
+    applyDebuff(g, v, PLAGUE);
+    doDispel(g, v);
+    expect(g.party.some(w => w.debuffs.some(d => d.name === '괴저 역병'))).toBe(false);
+    // 시간이 다 되면 보스 +5%
+    const h = fight();
+    const mult = h.dmgMult;
+    applyDebuff(h, dealer(h), { ...PLAGUE, left: 1 });
+    steps(h, 1.1);
+    expect(h.empower).toBeCloseTo(0.05);
+    expect(h.dmgMult / mult).toBeCloseTo(1.05);
   });
 });

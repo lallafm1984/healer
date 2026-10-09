@@ -7,7 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abOnTel } from './abilities';
 import { affChaos } from './affixes';
-import { addsTick, aggroTarget, backTargets, flowNext, orderTick, runEffect, runFlow, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, backTargets, flowNext, orderTick, padCells, padsGo, runEffect, runFlow, staggerTick, stunBoss, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import type { BossSkill, Fight, Mob, TelKind, Telegraph, Unit } from './types';
@@ -27,14 +27,15 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
   const e = d.effect, z = d.cells;
   const s = skill(f, {
     key: d.key, name: d.name, icon: d.icon, kind: d.kind, hidden: d.hidden, next: d.first ?? Infinity, period: d.period, cast: d.cast,
-    warn: d.warn, cut: d.cut, dmg: d.dmg, dps: d.dps != null ? d.dps * (f.mythic && d.dpsMythic ? d.dpsMythic : 1) : undefined, dur: d.dur,
+    warn: d.warn, cut: d.cut || e?.p === 'counter', dmg: d.dmg, dps: d.dps != null ? d.dps * (f.mythic && d.dpsMythic ? d.dpsMythic : 1) : undefined, dur: d.dur,
     active: whenFn(d.when),
     target: d.target === 'tank' ? g => { const tk = aggroTarget(g); return tk ? [tk.id] : []; }
       : d.target ? g => { const t = d.target as Exclude<SkillDef['target'], 'tank' | undefined>; return backTargets(g, g.mythic && t.nMythic ? t.nMythic : t.n).map(u => u.id); } : undefined,
     fire: e ? g => runEffect(g, s, e) : undefined,
     hit: e ? (g, tel) => runEffect(g, s, e, tel) : undefined,
-    cellsFor: z ? g => zoneCells(g, s, z) : undefined,
-    flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg, safe: z?.p === 'safe' || undefined,
+    cellsFor: z ? g => zoneCells(g, s, z) : e?.p === 'tower' ? g => padCells(g, e.n) : undefined,
+    flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg, safe: z?.p === 'safe' || undefined, quake: e?.p === 'quake' || undefined,
+    stunOnCut: e?.p === 'counter' ? e.stun : undefined, pads: e?.p === 'tower' || undefined,
   });
   f.bs[d.key] = s;
   return s;
@@ -113,6 +114,7 @@ export function initBoss(f: Fight): void {
     for (const b of def.bodies) f.mobs.push({ id: f.nextId++, name: b.name, elite: !!b.elite, boss: b.boss, hp: b.hp * scale, max: b.hp * scale, alive: true });
   }
   for (const d of def.skills) fromDef(f, d);
+  if (def.watch) watchInit(f, def.watch);
 }
 
 /** 매 틱 보스 쪽: 페이즈 흐름 → 광폭화 */
@@ -122,6 +124,8 @@ function bossUpdate(f: Fight): void {
   if (def.flow) runFlow(f, def.flow);
   if (f.mobs.length) addsTick(f);
   if (f.order) orderTick(f);
+  if (f.watch) watchTick(f);
+  if (f.stagger) staggerTick(f);
   if (f.daze && f.t >= f.daze.until) f.daze = null;
   enrageAt(f, def.enrage.name, def.enrage.period, def.enrage.dmg);
 }
@@ -137,13 +141,14 @@ export function bossTick(f: Fight): void {
     if (f.abOn) {
       // 파티원 능력 (17 7장): 기절한 적은 기술을 안 씀, 끊기 가능 기술은 시전 시작에 끊길 수 있음
       if (s.mob != null && (f.mobs.find(m => m.id === s.mob)?.stun || 0) > f.t) continue;
-      if (abCut(f, s)) continue;
+      if (abCut(f, s)) { if (s.stunOnCut) stunBoss(f, s.stunOnCut); continue; } // 반격 틈 (P-COUNTER)
     }
     if (s.cast <= 0) { s.fire!(f); continue; }
     const tel: Telegraph = { id: f.nextId++, skill: s, kind: s.kind, start: f.t, impact: f.t + s.cast, units: s.target ? s.target(f) : [], cells: s.cellsFor ? s.cellsFor(f) : new Set(), dps: s.dps, dur: s.dur };
     if (s.flowEvery && tel.cells.size) tel.flow = { col: f.cells[[...tel.cells][0]].col, dir: s.st.dir === -1 ? -1 : 1, every: s.flowEvery };
     if (s.safe) tel.safe = new Set(f.cells.filter(c => !c.block && !tel.cells.has(c.i)).map(c => c.i));
     f.tels.push(tel);
+    if (s.pads) { tel.safe = new Set(tel.cells); padsGo(f, tel); } // 받침: 금빛 발판으로 파티원이 들어감
     if (f.abOn) abOnTel(f, tel);
     if (f.aff) affChaos(f, tel);
     if (s.warn) emit(f, { type: 'sound', name: s.warn });

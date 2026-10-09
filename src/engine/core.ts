@@ -50,10 +50,13 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   if (u.mods.length) amt *= healMods(f, u); // 광란 (받는 치유 +30%), 얼음 방패 (치유 없음)
   if (f.aff) amt *= affHeal(f); // 메마름 (받는 치유 -20%)
   if (u.debuffs.length) {
+    const ch = u.debuffs.find(d => d.charm);
+    if (ch) ch.left += ch.charm!.heal; // 매혹 (P-CHARM): 힐하면 지배가 길어짐
     const cut = u.debuffs.reduce((s, d) => s + (d.healCut ?? 0) * (d.stack ?? 1), 0); // 얼룩진 장갑·먼지 범벅 (35 4-3·4-5)
     if (cut) amt *= Math.max(0, 1 - cut);
     if (u.debuffs.some(d => d.invert)) { invertHeal(f, u, amt); return 0; } // 뒤집힌 축복 (P-INVERT)
   }
+  if (f.watch && f.t >= f.watch.until) f.watch.fill += amt * f.watch.rate; // 주시 (P-AGGRO): 넘친 치유까지 게이지에
   const eff = Math.min(amt, u.max - u.hp);
   u.hp += eff;
   u.got += eff;
@@ -173,6 +176,14 @@ export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): v
   if (d.end) debuffEnd(f, u, d, dispelled);
 }
 
+/** 보스가 주는 피해 +boost (걸어오는 쫄 흡수 · 옮겨붙음 시간 끝). 겹치면 더함 (+10% · +20% …), 체력바에 「강해짐」 */
+export function empowerBoss(f: Fight, boost: number, why: string): void {
+  f.dmgMult *= (1 + f.empower + boost) / (1 + f.empower);
+  f.empower += boost;
+  emit(f, { type: 'sound', name: 'aoe' });
+  emit(f, { type: 'msg', text: `${why}: 보스 피해 +${Math.round(f.empower * 100)}%` });
+}
+
 /** 디버프 끝 부품 (data/bosses.ts DebuffEnd) */
 function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
   const e = d.end!;
@@ -192,6 +203,27 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       damage(f, u, e.dmg, true);
       emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 시간 끝` });
       return;
+    case 'jump': {
+      // 옮겨붙음 (P-JUMP): 지우면 이웃 칸 1명에게 더 세게, 혼자면 사라짐. 시간이 다 되면 보스가 강해짐
+      if (!dispelled) { empowerBoss(f, e.boost, `${d.name} 시간 끝`); return; }
+      const c = cellOf(f, u);
+      const near = living(f).filter(v => v !== u && hexDist(cellOf(f, v), c) === 1);
+      if (!near.length) { emit(f, { type: 'msg', text: `${d.name}: 옆에 아무도 없어 사라짐` }); return; }
+      const v = near[Math.floor(f.rng() * near.length)];
+      const { id: _id, ...rest } = d;
+      addDebuff(f, v, { ...rest, left: e.sec, dot: (d.dot ?? 0) * e.mult });
+      emit(f, { type: 'msg', text: `${d.name}이(가) ${v.nick}에게 옮겨붙음` });
+      return;
+    }
+    case 'stackHit': {
+      // 마력 역류 (P-RECOIL): 끝나도 지워도 그때까지 중첩만큼
+      const n = d.stack ?? 0;
+      if (n <= 0) return;
+      damage(f, u, e.dmg * n, true);
+      emit(f, { type: 'sound', name: 'burst' });
+      emit(f, { type: 'msg', text: `${d.name} ${n}중첩 터짐` });
+      return;
+    }
   }
 }
 
