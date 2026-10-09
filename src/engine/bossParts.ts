@@ -8,8 +8,9 @@ import { HEROES } from '../data/heroes';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
-import { addDebuff, cellOf, damage, DT, emit, empowerBoss, living, randomTargets, setMax, spread, unitById } from './core';
+import { addDebuff, cellOf, damage, DT, emit, empowerBoss, heal, living, randomTargets, setMax, spread, unitById } from './core';
 import { moveTo, scheduleReactions, zoneOf } from './movement';
+import { hotTick } from './units';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
@@ -174,6 +175,133 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       for (const u of randomTargets(f, e.n, x => !x.debuffs.some(y => y.name === d.name))) applyDebuff(f, u, d);
       return;
     }
+    case 'soul': spawnSoul(f, e); return;
+    case 'link': linkUp(f, e); return;
+    case 'vessel':
+      // 넘치는 빛 그릇형 (P-OVER): 끝 = 파티 최대 체력 합 × need
+      if (f.vessel) return;
+      f.vessel = { name: e.name, fill: 0, need: f.party.reduce((a, u) => a + u.max, 0) * e.need, until: f.t + e.sec, shield: e.shield };
+      emit(f, { type: 'msg', text: `${e.name}: ${e.sec}초 안에 넘친 치유로 채우면 전원 보호막` });
+      return;
+  }
+}
+
+/** 헤매는 영혼 (P-SOUL): 빈 칸 하나에 영혼 칸. 파티원이 아니라 Fight.souls에만 있고, 칸 탭으로 단일 힐을 받음. 빈 칸은 1개 이상 남김 */
+function spawnSoul(f: Fight, e: Extract<SkillEffect, { p: 'soul' }>): void {
+  const free = f.cells.filter(c => !c.unit && !c.block);
+  if (free.length <= 1) return;
+  const c = free[Math.floor(f.rng() * free.length)];
+  const ref = f.party.filter(u => u.role !== 'tank' && !u.me);
+  const max = ref.length ? ref.reduce((a, u) => a + u.base, 0) / ref.length : f.me.base;
+  const u: Unit = {
+    id: f.nextId++, role: 'ranged', cls: null, aim: 0, flow: 0, traits: [], bulwark: 0, bulwarkUsed: false, acc: 0, dealt: 0, pers: null, p: {}, nick: e.short,
+    base: max, max, hp: max * e.hp, dps: 0, alive: true, cell: c.i, home: c.i, hot: 0, hotTick: 0, hots: [], redu: 0, reduCut: 0, sacr: 0, immune: 0, echo: [],
+    guardian: 0, shield: 0, debuffs: [], moving: null, react: null, retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0,
+    thanks: 0, flash: 0, barkAt: 0, ignoreZone: 0, homeAt: null, diedAt: 0, me: false, ab: null, mods: [], got: 0, senseReact: 1, senseDodge: 0, runs: 0,
+    soul: { name: e.name, short: e.short, until: f.t + e.sec, total: e.sec, win: e.win, fail: e.fail },
+  };
+  if (e.type) u.debuffs.push({ id: f.nextId++, name: e.name, type: e.type, left: e.sec }); // 이 유형을 지우는 해제가 바로 성공
+  c.block = 'soul';
+  f.souls.push(u);
+  emit(f, { type: 'msg', text: `${e.name} 등장: ${e.sec}초 안에 가득 채우기` });
+}
+
+/** 매 틱 헤매는 영혼: 지속 힐, 가득 차거나 해제로 지우면 축복, 시간이 다 되면 벌 */
+export function soulsTick(f: Fight): void {
+  for (const u of f.souls.slice()) {
+    if (u.hot > 0) { u.hot -= DT; u.hotTick += DT; if (u.hotTick >= 3 - 1e-9) { u.hotTick -= 3; heal(f, u, 80, false); } }
+    if (u.hots.length) hotTick(f, u, DT);
+    for (const x of u.echo) { heal(f, u, x.rate * DT, false); x.left -= DT; }
+    u.echo = u.echo.filter(x => x.left > 0);
+    if (u.soul!.cleansed || u.hp >= u.max - 1e-6) soulEnd(f, u, true);
+    else if (f.t + 1e-9 >= u.soul!.until) soulEnd(f, u, false);
+  }
+}
+
+function soulEnd(f: Fight, u: Unit, ok: boolean): void {
+  const s = u.soul!, at = f.cells[u.cell];
+  f.souls = f.souls.filter(x => x !== u);
+  u.alive = false;
+  if (at.block === 'soul') at.block = undefined;
+  if (f.cast?.uid === u.id) { f.cast = null; f.gcd = 0; } // 영혼에 걸던 시전은 그냥 멈춤 (마나는 안 씀)
+  if (f.queued?.uid === u.id) f.queued = null;
+  if (ok) {
+    const w = s.win;
+    emit(f, { type: 'sound', name: 'gauge' });
+    emit(f, { type: 'msg', text: `${s.name} 채움: ${w.text}` });
+    if (w.cure) for (const v of living(f)) {
+      const d = v.debuffs.find(x => x.type === w.cure && !x.lock && !x.trap);
+      if (!d) continue;
+      v.debuffs = v.debuffs.filter(x => x !== d);
+      if (d.maxCut) setMax(v);
+      emit(f, { type: 'cure', id: v.id, name: d.name });
+    }
+    if (w.heal) f.bless = { heal: 1 + w.heal.pct, until: f.t + w.heal.sec };
+    if (w.weak) {
+      if (f.weak) f.dmgMult /= 1 - f.weak.cut;
+      f.dmgMult *= 1 - w.weak.pct;
+      f.weak = { cut: w.weak.pct, until: f.t + w.weak.sec };
+    }
+    return;
+  }
+  emit(f, { type: 'sound', name: 'aoe' });
+  emit(f, { type: 'msg', text: `${s.name} 놓침: ${s.fail.text}` });
+  const hit = s.fail.near ? living(f).filter(v => hexDist(cellOf(f, v), at) === 1) : living(f);
+  for (const v of hit) { damage(f, v, s.fail.dmg, true); if (s.fail.debuff && v.alive) applyDebuff(f, v, s.fail.debuff); }
+}
+
+/** 매 틱 넘치는 빛 그릇: 가득 차면 전원 보호막, 시간이 다 되면 그냥 사라짐 */
+export function vesselTick(f: Fight): void {
+  const v = f.vessel!;
+  if (v.fill >= v.need - 1e-9) {
+    f.vessel = null;
+    for (const u of living(f)) u.shield = Math.max(u.shield, v.shield);
+    emit(f, { type: 'sound', name: 'gauge' });
+    emit(f, { type: 'msg', text: `${v.name} 가득: 전원 보호막 ${v.shield}초` });
+  } else if (f.t + 1e-9 >= v.until) {
+    f.vessel = null;
+    emit(f, { type: 'msg', text: `${v.name} 사라짐` });
+  }
+}
+
+/** 영혼 축복이 끝나면 되돌림 (받는 치유 · 보스 피해 감소) */
+export function boonTick(f: Fight): void {
+  if (f.bless && f.t + 1e-9 >= f.bless.until) f.bless = null;
+  if (f.weak && f.t + 1e-9 >= f.weak.until) { f.dmgMult /= 1 - f.weak.cut; f.weak = null; }
+}
+
+/** 생명 사슬이 걸린 뒤 이만큼은 안 끊어짐 (차이를 맞출 틈) */
+const LINK_GRACE = 2;
+
+/** 생명 사슬 (P-LINK): 두 사람에게 해제 안 되는 사슬 표시 디버프 + Fight.links. 주문 반사로 한쪽이라도 안 걸리면 사슬도 없음 */
+function linkUp(f: Fight, e: Extract<SkillEffect, { p: 'link' }>): void {
+  const free = (u: Unit) => !u.debuffs.some(d => d.link);
+  const tanks = randomTargets(f, 2, u => u.role === 'tank' && free(u));
+  const two = e.pick === 'tanks' && tanks.length === 2 ? tanks : randomTargets(f, 2, u => u.role !== 'tank' && free(u));
+  if (two.length < 2) return;
+  const [a, b] = two;
+  const da = applyDebuff(f, a, { name: e.name, type: '마법', left: e.sec, lock: true });
+  const db = applyDebuff(f, b, { name: e.name, type: '마법', left: e.sec, lock: true });
+  if (!da || !db) { a.debuffs = a.debuffs.filter(d => d !== da); b.debuffs = b.debuffs.filter(d => d !== db); return; }
+  da.link = { to: b.id, kind: e.kind }; db.link = { to: a.id, kind: e.kind };
+  f.links.push({ name: e.name, kind: e.kind, a: a.id, b: b.id, at: f.t, until: f.t + e.sec, gap: e.gap ?? 0.3, dmg: e.dmg ?? 0, aim: e.aim ?? 'party' });
+  emit(f, { type: 'msg', text: `${e.name}: ${a.nick} · ${b.nick} 이어짐` });
+}
+
+/** 매 틱 생명 사슬: 한쪽이 쓰러지거나 시간이 다 되면 풀림. 균형형은 두 사람 체력 비율 차이가 gap을 넘으면 끊어지며 둘 다 피해 */
+export function linksTick(f: Fight): void {
+  for (const l of f.links.slice()) {
+    const a = unitById(f, l.a), b = unitById(f, l.b);
+    const done = !a?.alive || !b?.alive || f.t + 1e-9 >= l.until;
+    const snap = !done && l.kind === 'balance' && f.t + 1e-9 >= l.at + LINK_GRACE && Math.abs(a!.hp / a!.max - b!.hp / b!.max) > l.gap + 1e-9;
+    if (!done && !snap) continue;
+    f.links = f.links.filter(x => x !== l);
+    for (const u of [a, b]) if (u) u.debuffs = u.debuffs.filter(d => !(d.link && (d.link.to === l.a || d.link.to === l.b)));
+    if (!snap) continue;
+    emit(f, { type: 'sound', name: 'aoe' });
+    emit(f, { type: 'msg', text: `${l.name} 끊어짐: ${a!.nick} · ${b!.nick} 피해` });
+    damage(f, a!, l.dmg, true, l.aim);
+    damage(f, b!, l.dmg, true, l.aim);
   }
 }
 

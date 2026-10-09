@@ -342,6 +342,7 @@ export default async function compactUi(url, shots) {
           }
           if (party.n === 20) await skillCircleStates(page, ok, shots);
           if (party.n === 20 && height !== 880) await noticeCases(page, ok);
+          if (party.n === 20 && (width === 320 || width === 360 && height === 780)) await bossStatusTextCases(page, ok);
           await leave(page);
         }
         if (width === 360 && height === 780) {
@@ -484,6 +485,71 @@ async function noticeCases(page, ok) {
     await page.click('#resumeBtn');
   }
   if (await mode(page) !== originalMode) { await toggleMode(page); await page.clock.runFor(40); }
+}
+
+async function bossStatusTextCases(page, ok) {
+  // 유효한 치유 목표+약화 상태를 함께 넣고 실제 updateStage 문구/Range를 검사한다.
+  // DOM 글자나 CSS를 주입하지 않으며, 자연 플레이 검증이라고 주장하지 않는다.
+  const originalMode = await mode(page);
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    const f = window.__proto.F;
+    window.__bossStatusFixture = { fight: f, bossHp: f.bossHp, bossMax: f.bossMax,
+      vessel: f.vessel, weak: f.weak, stagger: f.stagger, watch: f.watch,
+      invuln: f.invuln, daze: f.daze, empower: f.empower, dmgMult: f.dmgMult,
+      abOn: f.abOn, dps: f.party.map(u => [u.id, u.dps, u.acc]) };
+    // 직전 판정에서 모아 둔 공격과 파티원 능력이 고정 HP 문구를 바꾸지 않도록 격리한다.
+    f.abOn = false; f.party.forEach(u => { u.dps = 0; u.acc = 0; });
+    f.bossHp = 359934; f.bossMax = 363570;
+    f.invuln = false; f.daze = null; f.empower = 0; f.stagger = null; f.watch = null;
+  });
+  const sample = () => page.evaluate(() => {
+    const el = document.querySelector('#bossHpText'), range = document.createRange();
+    range.selectNodeContents(el);
+    const box = r => ({ x: r.x, y: r.y, right: r.right, bottom: r.bottom, w: r.width, h: r.height });
+    const style = getComputedStyle(el);
+    return { sameFight: window.__proto.F === window.__bossStatusFixture.fight, width: innerWidth,
+      text: el.textContent, font: parseFloat(style.fontSize), lineHeight: parseFloat(style.lineHeight),
+      overflow: style.textOverflow, clip: style.clipPath, visible: !!el.getClientRects().length && style.visibility !== 'hidden',
+      hp: box(el.parentElement.getBoundingClientRect()), label: box(el.getBoundingClientRect()),
+      textRects: [...range.getClientRects()].map(box) };
+  });
+  const fits = s => s.visible && s.font >= 12 && s.lineHeight === 17 && s.overflow !== 'ellipsis' && s.clip === 'none'
+    && s.textRects.length === 1 && s.textRects.every(r => r.w > 0 && r.h > 0
+      && r.x >= s.hp.x - .1 && r.right <= s.hp.right + .1 && r.y >= s.hp.y - .1 && r.bottom <= s.hp.bottom + .1);
+  try {
+    for (const compact of [false, true]) {
+      if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
+      await page.evaluate(() => {
+        const f = window.__proto.F, saved = window.__bossStatusFixture;
+        f.vessel = { name: '백합 꽃병', fill: 50, need: 100, until: f.t + 15, shield: .5 };
+        f.weak = { cut: .25, until: f.t + 10 }; f.dmgMult = saved.dmgMult * .75;
+      });
+      await page.clock.runFor(80);
+      const combined = await sample();
+      ok(combined.sameFight && fits(combined)
+        && combined.text === '359,934 · 99% · 약해짐 10 · 백합 꽃병 50% 15',
+      `${combined.width}: ${compact ? '축소' : '일반'} 보스 체력·약화·치유 목표 전체 문구는 12px 이상 한 줄로 HP 박스 내부`, combined);
+      await page.evaluate(() => {
+        const f = window.__proto.F;
+        f.vessel = null; f.weak = null; f.dmgMult = window.__bossStatusFixture.dmgMult;
+      });
+      await page.clock.runFor(80);
+      const cleared = await sample();
+      ok(cleared.sameFight && fits(cleared) && cleared.text === '359,934 · 99%'
+        && ['x', 'y', 'w', 'h'].every(k => Math.abs(cleared.hp[k] - combined.hp[k]) <= .1),
+      `${cleared.width}: ${compact ? '축소' : '일반'} 기믹 해제 후 전체 체력 문구·HP 박스 크기 복구`, cleared);
+    }
+  } finally {
+    await page.evaluate(() => {
+      const saved = window.__bossStatusFixture, f = window.__proto.F;
+      for (const key of ['bossHp', 'bossMax', 'vessel', 'weak', 'stagger', 'watch', 'invuln', 'daze', 'empower', 'dmgMult', 'abOn']) f[key] = saved[key];
+      for (const [id, dps, acc] of saved.dps) { const u = f.party.find(u => u.id === id); if (u) { u.dps = dps; u.acc = acc; } }
+      delete window.__bossStatusFixture;
+    });
+    await page.clock.runFor(80);
+    if (await mode(page) !== originalMode) { await toggleMode(page); await page.clock.runFor(40); }
+  }
 }
 
 async function quakeWarningCases(page, ok) {

@@ -36,6 +36,7 @@ export function canTarget(f: Fight, key: SkillKey, cellIdx: number): ActionResul
   }
   if (sk.target === 'none') return { ok: true };
   const c = f.cells[cellIdx];
+  if (c && !c.unit && c.block === 'soul') return soulTarget(f, key, c.i);
   if (!c || !c.unit) return { ok: false, reason: '빈 칸' };
   const u = c.unit;
   if (!u.alive) return { ok: false, reason: `${u.nick}은(는) 쓰러짐` };
@@ -43,6 +44,19 @@ export function canTarget(f: Fight, key: SkillKey, cellIdx: number): ActionResul
   if (sk.slot === 'dispel' && f.hero !== 'priest' && !u.debuffs.some(d => HEROES[f.hero].dispel.includes(d.type) && !d.lock)) return { ok: false, reason: `${sk.name}로 지울 디버프 없음` };
   if (key === 'bloom' && !hotCount(u)) return { ok: false, reason: '거둘 지속 힐 없음' };
   return { ok: true, u };
+}
+
+/** 헤매는 영혼 칸 (P-SOUL): 단일 힐(기본·빠른·지속)과, 영혼의 유형을 지우는 해제만 */
+function soulTarget(f: Fight, key: SkillKey, i: number): ActionResult {
+  const u = f.souls.find(x => x.cell === i);
+  if (!u) return { ok: false, reason: '빈 칸' };
+  const sk = SKILLS[key];
+  if (singleHeal(key)) return { ok: true, u };
+  if (sk.slot === 'dispel') {
+    const can = (t: string) => (f.hero === 'priest' ? !!DISPELLABLE[t] : HEROES[f.hero].dispel.includes(t));
+    return u.debuffs.some(d => can(d.type)) ? { ok: true, u } : { ok: false, reason: `${u.soul!.name}: ${sk.name}로 못 지움` };
+  }
+  return { ok: false, reason: `${u.soul!.name}: 단일 힐만 들어감` };
 }
 
 /** 스킬 사용 (칸 탭·휠). 시전 중 다른 대상 = 취소 후 새 대상, GCD 중이면 예약 */
@@ -118,7 +132,7 @@ function apply(f: Fight, key: SkillKey, u: Unit): void {
 }
 
 function applySkill(f: Fight, key: SkillKey, u: Unit): void {
-  if (f.order && singleHeal(key)) orderHeal(f, u); // 차례 (P-ORDER)
+  if (f.order && singleHeal(key) && !u.soul) orderHeal(f, u); // 차례 (P-ORDER)
   if (f.hero !== 'priest') { heroApply(f, key, u); return; }
   const sk = SKILLS[key];
   if (key === 'heal' || key === 'flash' || key === 'serenity') {
@@ -131,7 +145,7 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     if (knowsPassive(f, 'echo')) u.echo.push({ left: 4, rate: (sk.amt! * 0.15) / 4 });
     directSpread(f, key, u, amt);
     if (key === 'serenity' && has(f, 'cleansingWord')) cleanseOne(f, u);
-    if (key === 'serenity') emit(f, { type: 'sound', name: 'bell' });
+    if (key === 'serenity') emit(f, { type: 'sound', name: 'chime' });
   } else if (key === 'renew') {
     u.hot = renewSec(f); u.hotTick = 0; u.lastHeal = f.t; if (u.sulking) u.sulking = false;
     if (has(f, 'hopRenew')) u.hotHop = false;
@@ -143,7 +157,7 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     if (key === 'poh' && has(f, 'wideCircle')) { r = 2; amt *= 0.8; }
     pohAt(f, u.cell, amt, r);
     if (key === 'poh' && has(f, 'doublePoh')) f.tx.later.push({ at: f.t + 2, cell: u.cell, amt: amt * 0.5, r });
-    if (key === 'sanctify') emit(f, { type: 'sound', name: 'bell' });
+    if (key === 'sanctify') emit(f, { type: 'sound', name: 'chime' });
   } else if (key === 'purify') {
     const ds = u.debuffs.filter(d => DISPELLABLE[d.type] && !d.lock).sort((a, b) => (a.trap ? 1 : 0) - (b.trap ? 1 : 0) || (b.stack || 0) - (a.stack || 0));
     const d = ds[0];

@@ -154,3 +154,8 @@
   #battle #queue .q .nm, #battle #queue .q.hot .nm { font-size: 11px; }
   #battle #queue .q .sec, #battle #queue .q.hot .sec, #battle.stage-sm #queue .q.hot .sec { font-size: 14px; }
 }
+
+@media (max-width: 359px) {
+  /* 기믹이 겹쳐도 체력·약화·치유 목표의 전체 문구를 기존 작은 화면 크기로 유지한다. */
+  #battle #bossHpText, #battle.stage-sm #bossHpText, #battle.short-battle #bossHpText { font-size: 12px; line-height: 17px; }
+}

@@ -15,7 +15,8 @@ export const SACRIFICE_CUT = 0.3;
 
 export const living = (f: Fight): Unit[] => f.party.filter(u => u.alive);
 export const cellOf = (f: Fight, u: Unit): Cell => f.cells[u.cell];
-export const unitById = (f: Fight, id: number): Unit | undefined => f.party.find(x => x.id === id);
+/** 파티원 (없으면 헤매는 영혼 칸, P-SOUL) */
+export const unitById = (f: Fight, id: number): Unit | undefined => f.party.find(x => x.id === id) ?? (f.souls.length ? f.souls.find(x => x.id === id) : undefined);
 
 export function emit(f: Fight, ev: FightEvent): void {
   f.events.push(ev);
@@ -47,6 +48,8 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     crit = f.rng() < f.gear.crit;
     if (crit) amt *= 1.5;
   }
+  if (f.links.length && !sharing) { const o = shareWith(f, u); if (o) return shared(() => heal(f, u, amt / 2, direct, true) + heal(f, o, amt / 2, direct, true)); } // 생명 사슬 나눔형
+  if (f.bless && f.t < f.bless.until) amt *= f.bless.heal; // 영혼 축복 (P-SOUL): 받는 치유 증가
   if (u.mods.length) amt *= healMods(f, u); // 광란 (받는 치유 +30%), 얼음 방패 (치유 없음)
   if (f.aff) amt *= affHeal(f); // 메마름 (받는 치유 -20%)
   if (u.debuffs.length) {
@@ -62,6 +65,10 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   u.got += eff;
   f.stats.healed += eff;
   f.stats.overheal += amt - eff;
+  if (amt - eff > 1e-9) { // 넘치는 빛 (P-OVER): 그릇에 모이고, 과부하 표식이면 이웃이 아픔
+    if (f.vessel && f.t < f.vessel.until) f.vessel.fill += amt - eff;
+    if (u.debuffs.length) overload(f, u, amt - eff);
+  }
   if (direct) {
     emit(f, { type: 'heal', id: u.id, amt: Math.round(amt), eff: Math.round(eff), crit });
     u.lastHeal = f.t;
@@ -69,6 +76,29 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     if (u.p.thanks) { u.thanks = 3; if (f.rng() < 0.35) bark(f, u); }
   }
   return eff;
+}
+
+/** 생명 사슬 나눔형 (P-LINK): 나눠 받는 중에는 다시 나누지 않음 */
+let sharing = false;
+function shared<T>(fn: () => T): T {
+  sharing = true;
+  try { return fn(); } finally { sharing = false; }
+}
+function shareWith(f: Fight, u: Unit): Unit | null {
+  for (const l of f.links) {
+    if (l.kind !== 'share' || (l.a !== u.id && l.b !== u.id)) continue;
+    const o = f.party.find(x => x.id === (l.a === u.id ? l.b : l.a));
+    return o && o.alive ? o : null;
+  }
+  return null;
+}
+
+/** 넘치는 빛 과부하형 (P-OVER): 넘친 치유 × over만큼 이웃 칸 아군 피해 (방어력·보스 배율 무시) */
+function overload(f: Fight, u: Unit, over: number): void {
+  const d = u.debuffs.find(x => x.over);
+  if (!d) return;
+  const c = cellOf(f, u);
+  for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), c) === 1) damage(f, v, (over * d.over!) / f.dmgMult, true, 'fixed');
 }
 
 /** 뒤집힌 축복 (P-INVERT, 35 4-3): 들어올 치유량만큼 피해. 보호막·피해 감소·보호의 손(물리 취급)은 통함 */
@@ -88,6 +118,7 @@ const affinity = (u: Unit): number => (u.gid != null ? 1e9 + u.runs : u.got);
  */
 export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: DamageAim = 'party'): void {
   if (!u.alive || amt <= 0) return;
+  if (f.links.length && !sharing) { const o = shareWith(f, u); if (o) { shared(() => { damage(f, u, amt / 2, magic, aim); damage(f, o, amt / 2, magic, aim); }); return; } } // 생명 사슬 나눔형
   amt *= f.dmgMult;
   if (f.armor) amt *= armorFactor(u.role, aim);
   if (u.me && f.tx.on.firmWill) amt *= 0.8; // 굳은 의지 (06 6장)
@@ -126,7 +157,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     if (u.guardian > 0) {
       u.guardian = 0;
       u.hp = u.max * 0.4;
-      emit(f, { type: 'sound', name: 'bell' });
+      emit(f, { type: 'sound', name: 'chime' });
       emit(f, { type: 'msg', text: `수호 영혼이 ${u.nick}을(를) 살림` });
       return;
     }
@@ -172,6 +203,7 @@ export function spread(f: Fight, u: Unit): void {
 }
 
 export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
+  if (u.soul) { u.soul.cleansed = dispelled; return; } // 헤매는 영혼: 해제로 바로 성공 (P-SOUL)
   if (f.aff) affDebuffEnd(f, u, d, dispelled); // 어픽스 불안정·메아리
   if (d.end) debuffEnd(f, u, d, dispelled);
 }
@@ -191,7 +223,7 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
     case 'restoreMax': setMax(u); return;
     case 'spread': spread(f, u); return;
     case 'colDmg': {
-      // 무음 성가대 독창 (26 4-3): 안 지우고 끝나면 그 사람이 선 열 전체. 지우면 그냥 사라짐 (함정 아님)
+      // 유령 성가대 독창 (26 4-3): 안 지우고 끝나면 그 사람이 선 열 전체. 지우면 그냥 사라짐 (함정 아님)
       if (dispelled) return;
       const col = cellOf(f, u).col;
       for (const v of living(f)) if (cellOf(f, v).col === col) damage(f, v, e.dmg, true);

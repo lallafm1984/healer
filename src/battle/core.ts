@@ -199,7 +199,7 @@ export const Snd = {
       case 'crit': this.tone(1047, 0.22, 'sine', 0.05); this.tone(1319, 0.22, 'sine', 0.04, 0, 0.03); break;
       case 'renew': this.tone(660, 0.18, 'triangle', 0.04, 990); break;
       case 'dispel': this.tone(1568, 0.12, 'triangle', 0.05); this.tone(2093, 0.1, 'sine', 0.03, 0, 0.05); break;
-      case 'bell': [1320, 2640, 1980].forEach((f, i) => this.tone(f, 1.2, 'sine', 0.05 / (i + 1))); break;
+      case 'chime': [1320, 2640, 1980].forEach((f, i) => this.tone(f, 1.2, 'sine', 0.05 / (i + 1))); break;
       case 'buster': this.tone(110, 0.35, 'sine', 0.14, 70); break;
       case 'aoe': this.tone(300, 0.6, 'sawtooth', 0.03, 900); break;
       case 'tick': this.tone(620, 0.05, 'square', 0.03); break;
