@@ -7,8 +7,12 @@ import { CLASS_LINES, COMMON_LINES, lineCount, PERS_LINES, pickLine, ROLE_LINES,
 import { PERS_NAMES } from '../src/data/personalities';
 import type { EncounterKey } from '../src/data/encounters';
 import * as E from '../src/engine';
+import { runEffect } from '../src/engine/bossParts';
+import { damageMob } from '../src/engine/core';
+import type { AddDef, SkillEffect } from '../src/data/bosses';
+import type { BossSkill, Fight } from '../src/engine';
 
-const ALLY_SITS: TalkSit[] = ['allyDown', 'tankDown', 'allyRevived', 'swallowedOther'];
+const ALLY_SITS: TalkSit[] = ['allyDown', 'tankDown', 'allyRevived', 'swallowedOther', 'jailOther'];
 const sources: [string, TalkLines][] = [
   ...Object.entries(PERS_LINES).map(([k, v]) => [`성격 ${k}`, v] as [string, TalkLines]),
   ...Object.entries(CLASS_LINES).map(([k, v]) => [`직업 ${k}`, v] as [string, TalkLines]),
@@ -140,6 +144,84 @@ describe('전투 중 말풍선', () => {
       for (const b of free) expect(free.filter(x => x.t <= b.t && x.t + x.life > b.t).length).toBeLessThanOrEqual(3);
       expect(free.length, `${enc} 전투 중 말이 너무 적음`).toBeGreaterThan(f.t / 60);
     }
+  });
+
+  describe('판에 나오는 적 (35 3-I)마다 맞는 말', () => {
+    const IMP: AddDef = { name: '꼬마 악마', short: '악마', hp: 0.03, dmg: 20, every: 2 };
+    /** 판 위 적 상황만 봄 (잡담·체력 반응 빼고) */
+    const ADD_SITS = new Set<string>([...SIT_KEYS.filter(k => SITS[k].when.includes('P-') || ['jailOther', 'jailFree', 'bossHeal', 'bombBoom', 'marchIn'].includes(k)), 'adds', 'addOnMe', 'addDown', 'cured', 'noDps']);
+    /** 보스 기술을 끄고 한 부품만 써서, 그 뒤 sec초 동안 나온 말풍선 (난수 0 = 확률은 늘 통과, 빈도 제한은 그대로) */
+    function talkAfter(enc: EncounterKey, e: SkillEffect, sec: number, then?: (f: Fight) => void, sec2 = 0, hp = 1) {
+      const f = E.create({ encounter: enc, diff: '보통', seed: 1 });
+      f.skills.forEach(s => { s.next = Infinity; }); f.party.forEach(u => { u.dps = 0; });
+      f.bossHp = f.bossMax * hp; // 체력 선 페이즈(인터미션 …)가 안 오게 기본은 가득
+      const talk = createTalk(() => 0);
+      talk.start(f, { seg: 0, segN: 1, cont: 0, affix: false, chal: false }, 0);
+      const out: TalkBubble[] = [];
+      const go = (s: number, pulling = false) => {
+        const end = f.t + s;
+        while (!f.over && f.t < end - 1e-9) {
+          f.party.forEach(u => { u.lastHeal = f.t; }); // 관심종자 삐짐 안 나게
+          E.step(f);
+          out.push(...talk.frame(f, 3000 + f.t * 1000, { pulling, paused: false }).filter(b => b.sit && ADD_SITS.has(b.sit)));
+          f.events.length = 0;
+        }
+      };
+      go(3, true); go(10); out.length = 0; // 시작 인사한 사람도 다시 말할 수 있게
+      runEffect(f, {} as BossSkill, e);
+      go(sec);
+      if (then) { then(f); go(sec2); }
+      return { f, out, sits: new Set(out.map(b => b.sit)) };
+    }
+    const adds = (add: AddDef): SkillEffect => ({ p: 'adds', n: 1, add });
+
+    it('감옥: 갇힌 사람 · 다른 사람이 말하고, 깨지면 풀린 사람이 고마워함 (해제 대사·쫄 잡음 대사 아님)', () => {
+      const { f, out, sits } = talkAfter('warden', { p: 'jail', n: 1, name: '심연 감옥', short: '감옥', hp: 0.04, dot: 1 }, 11,
+        g => { const m = g.mobs.find(x => x.add?.job?.p === 'jail')!; damageMob(g, m, m.max); }, 10);
+      // 갇힌 사람 또는 다른 사람 하나 (한 사건에 한마디)
+      expect(out.map(b => b.sit)).toEqual([sits.has('jailed') ? 'jailed' : 'jailOther', 'jailFree']);
+      const m = f.mobs.find(x => x.add?.job?.p === 'jail')!, nick = f.party.find(u => u.id === m.add!.on)!.nick;
+      if (sits.has('jailed')) expect(out[0].id).toBe(m.add!.on);
+      else expect(out[0].id !== m.add!.on && out[0].text.includes(nick)).toBe(true);
+      expect(out[1].id).toBe(m.add!.on);
+    });
+    it('치유하는 쫄 → 보스 회복', () => {
+      expect(talkAfter('warden', adds({ ...IMP, dmg: 0, job: { p: 'mend', every: 3, pct: 0.01 } }), 14, undefined, 0, 0.95).sits).toEqual(new Set(['mendAdd', 'bossHeal']));
+    });
+    it('폭탄 → 못 깨면 터짐', () => {
+      expect(talkAfter('warden', adds({ ...IMP, dmg: 0, job: { p: 'bomb', sec: 8, dmg: 5 } }), 10).sits).toEqual(new Set(['bomb', 'bombBoom']));
+    });
+    it('폭탄을 깨면 터짐 대사 없음', () => {
+      const { sits } = talkAfter('warden', adds({ ...IMP, dmg: 0, job: { p: 'bomb', sec: 8, dmg: 5 } }), 1, g => { const m = g.mobs.find(x => x.add)!; damageMob(g, m, m.max); }, 10);
+      expect(sits.has('bomb')).toBe(true);
+      expect(sits.has('bombBoom')).toBe(false);
+    });
+    it('보호막 수정', () => {
+      expect(talkAfter('warden', adds({ ...IMP, dmg: 0, job: { p: 'pylon', cut: 0.5 } }), 6).sits).toEqual(new Set(['pylon']));
+    });
+    it('레이드 큰 쫄 · 때리는 쫄: 쫄을 맡은 부탱커가 말함', () => {
+      for (const add of [{ ...IMP, dmg: 0, job: { p: 'smash', every: 99, warn: 1, dmg: 1 } } as AddDef, IMP]) {
+        const { f, out } = talkAfter('plague', adds(add), 8);
+        const m = f.mobs.find(x => x.add)!;
+        const b = out.find(x => x.sit === (add.job ? 'eliteAdd' : 'offTank'))!;
+        expect(b, add.name).toBeTruthy();
+        expect(b.id).toBe(m.add!.on);
+        expect(f.party.find(u => u.id === b.id)!.role).toBe('tank');
+        expect(out.some(x => x.sit === 'addOnMe')).toBe(false);
+      }
+    });
+    it('걸어오는 쫄 → 보스에 흡수', () => {
+      expect(talkAfter('warden', adds({ ...IMP, dmg: 0, job: { p: 'march', every: 2, boost: 0.1 } }), 30).sits).toEqual(new Set(['marchAdd', 'marchIn']));
+    });
+    it('자폭 쫄: 노린 파티원이 말함 (힐러를 노리면 쫄 등장 대사)', () => {
+      const { f, out } = talkAfter('warden', adds({ ...IMP, dmg: 0, job: { p: 'fixate', every: 99, dmg: 1, splash: 1 } }), 6);
+      const m = f.mobs.find(x => x.add)!;
+      if (m.add!.on === f.me.id) expect(out.map(b => b.sit)).toEqual(['adds']);
+      else expect(out.map(b => [b.sit, b.id])).toEqual([['fixate', m.add!.on]]);
+    });
+    it('쫄 떼', () => {
+      expect(talkAfter('warden', adds({ ...IMP, cleave: true }), 6).sits.has('swarm')).toBe(true);
+    });
   });
 
   it('프로토타입 규칙 판에는 상황 이름을 안 붙임 (parity)', () => {

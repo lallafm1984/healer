@@ -32,8 +32,8 @@ export interface Speaker { pers: PersName | null; cls: ClassKey | null; role: Ro
 
 /** 대사 출처별 비중: 성격이 말투의 중심, 직업·역할은 가끔 섞임 */
 const W = { pers: 0.65, cls: 0.2, role: 0.15 };
-/** 탱커가 말하는 버스터·쫄은 탱커 1인칭 대사를 더 자주 */
-const TANK_SITS: TalkSit[] = ['buster', 'busterOk', 'adds'];
+/** 탱커가 말하는 버스터·쫄·큰 쫄·부탱커는 탱커 1인칭 대사를 더 자주 */
+const TANK_SITS: TalkSit[] = ['buster', 'busterOk', 'adds', 'eliteAdd', 'offTank'];
 
 /** 이 사람이 이 상황에서 쓸 대사 묶음과 비중. 성격·직업·역할 대사가 하나도 없으면 공통 대사 */
 export function talkSources(sit: TalkSit, s: Speaker): { lines: readonly string[]; w: number }[] {
