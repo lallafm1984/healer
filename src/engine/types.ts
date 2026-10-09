@@ -10,7 +10,7 @@ import type { HeroKey } from '../data/heroes';
 import type { SkillKey } from '../data/skills';
 import type { TalentKey } from '../data/talents';
 import type { AffixKey } from '../data/affixes';
-import type { DebuffEnd } from '../data/bosses';
+import type { AddDown, DebuffEnd } from '../data/bosses';
 import type { AffixState } from './affixes';
 import type { TraitKey } from '../data/traits';
 
@@ -46,6 +46,10 @@ export interface Debuff {
   /** cureAt 아래인 동안 쌓이는 중첩 (쇠약). growT = 다음 중첩까지 모은 시간 */
   grow?: { every: number; dot: number; max: number };
   growT?: number;
+  /** 같은 디버프가 또 걸리면 중첩 (파열). 초당 피해 = dot × 중첩 */
+  stackMax?: number;
+  /** 걸려 있는 동안 최대 체력 −비율 (썩은 숨결·부패) */
+  maxCut?: number;
   /** 끝날 때 하는 일 (부품) */
   end?: DebuffEnd;
 }
@@ -145,6 +149,8 @@ export interface Unit {
   barkAt: number;
   ignoreZone: number;
   homeAt: number | null;
+  /** 끌어당김 (P-PULL): 이 시각까지 cell에서 보스 평타를 탱커와 번갈아 맞음 (한 대 dmg) */
+  pulled?: { until: number; cell: number; dmg: number } | null;
   diedAt: number;
   me: boolean;
   /** 파티원 특수 능력 (17). 없으면 null */
@@ -237,6 +243,8 @@ export interface BossSkill {
   cut?: boolean;
   /** 적 기술이 탱커가 아닌 사람을 때림 (도발·눈속임 판단) */
   other?: boolean;
+  /** 흐르는 장판: 다음 열까지 초 (예고 = 이 시간) */
+  flowEvery?: number;
   /** 부품 상태 (장판 좌우 번갈아·성부 차례 등, engine/bossParts.ts) */
   st: Record<string, number | boolean>;
 }
@@ -251,6 +259,8 @@ export interface Telegraph {
   cells: Set<number>;
   dps?: number;
   dur?: number;
+  /** 흐르는 장판: 이 열이 맞으면 dir 쪽 다음 열을 every초 예고 */
+  flow?: { col: number; dir: 1 | -1; every: number };
 }
 
 export interface Zone {
@@ -370,6 +380,8 @@ export interface Mob {
   alive: boolean;
   /** 능력으로 기절·얼림: 이 시각까지 기술을 안 씀 */
   stun?: number;
+  /** 보스 전투 중에 나온 쫄 (P-ADD): 맡은 사람(on)을 every초마다 때림. 보스 체력 합에는 안 들어감 */
+  add?: { short: string; on: number; dmg: number; every: number; next: number; down?: AddDown; done?: boolean };
 }
 
 export interface Cast {
@@ -489,6 +501,8 @@ export interface Fight {
   R: Rules;
   /** 레이드에서 탱커가 모두 쓰러진 시각 (35 6-4). 탱커가 일어나면 null */
   noTankAt: number | null;
+  /** 보스 체력 = 몸통(보스가 아닌 적 포함) 체력 합 (일반·정예 구간, 무음 성가대). 쫄(add)은 빼고 셈 */
+  bodyHp: boolean;
   rats: number[];
   items: Partial<Record<ItemKey, number>>;
   potCd: number;

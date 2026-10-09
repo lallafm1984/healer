@@ -32,7 +32,7 @@ export const guideOf = (F: Fight, encKey = F.enc.key) => guideModel(encKey, F.cf
 
 /** 일반·정예 구간은 지금 잡는 적 이름과 등급을 같이 (HTML, 이름은 데이터라 그대로) */
 export function bossTitle(): string {
-  const F = fight(), m = F.mobs.find(x => x.alive);
+  const F = fight(), m = F.mobs.find(x => x.alive && !x.add); // 쫄(P-ADD)은 이름 줄에 안 씀
   return m ? `<span class="boss-title-text">${m.name}</span><small class="grade${m.elite ? ' elite' : ''}">${mobGrade(m)}</small>` : F.enc.name;
 }
 
@@ -341,8 +341,8 @@ export function updateStage(now: number): void {
   // 위치 줄 (시안 「녹슨 요새 4/4 · 보통」): 던전 = 이름 n/전체 · 페이즈·남은 적·난이도, 한 판 = 등급 · 페이즈·난이도
   let ph = F.phaseName ? `${F.enc.tier.split(' · ')[0]} · ${F.phaseName}` : `${F.enc.tier} · ${F.cfg.diff}`;
   if (R.segs.length > 1) {
-    const left = F.mobs.filter(m => m.alive).length;
-    ph = `${R.name} ${R.idx + 1}/${R.segs.length} · ${F.phaseName || (F.mobs.length ? `남은 적 ${left}` : F.cfg.diff)}`;
+    const left = F.mobs.filter(m => m.alive && !m.add).length;
+    ph = `${R.name} ${R.idx + 1}/${R.segs.length} · ${F.phaseName || (F.bodyHp ? `남은 적 ${left}` : F.cfg.diff)}`;
   }
   setText($('phase'), ph);
   const adds = $('bossAdds'), ratsOn = F.rats.length > 0 && adds.hasAttribute('src');
@@ -423,7 +423,7 @@ export function openTip(ic: string, qEl: HTMLElement): void {
   const F = fight(), s = guideOf(F).skills.find(x => x.ic === ic);
   if (!s) { closeTip(); return; }
   const [what] = s.tip(F);
-  popTip(tipHtml({ icon: `<span class="ic qk">${qIcon(qEl.dataset.kind)}</span>`, name: s.name, kind: F.mobs.length && !F.mobs.some(m => m.boss) ? '적 기술' : '보스 기술', rows: [[s.every]], desc: what }), qEl, { ic, imp: +qEl.dataset.imp! });
+  popTip(tipHtml({ icon: `<span class="ic qk">${qIcon(qEl.dataset.kind)}</span>`, name: s.name, kind: F.enc.script === 'trash' ? '적 기술' : '보스 기술', rows: [[s.every]], desc: what }), qEl, { ic, imp: +qEl.dataset.imp! });
   ui.skillTips++;
   for (const q of $('queue').querySelectorAll<HTMLElement>('.q')) q.classList.toggle('tipon', tipMatch(q.dataset.ic!, +q.dataset.imp!));
 }

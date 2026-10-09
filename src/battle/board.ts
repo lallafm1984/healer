@@ -812,6 +812,9 @@ export function render(now: number): void {
       recordBound(`aggro${u.id}`, 'aggro', 'circle', bx, by, br * 2 + bw, br * 2 + bw);
     }
     if (F.rats && F.rats.includes(u.id)) pill(overG, labels, `rat${u.id}`, x - r * 0.05, y + r * 0.95, '쥐떼', 0xb9a38a, C.dark, fs(0.18, 9));
+    // 쫄 (P-ADD): 이 사람을 때리는 쫄 이름과 남은 체력. 쓰러질 때 파열이 오므로 거의 다 깎인 쫄을 미리 보게
+    const add = F.mobs.find(m => m.alive && m.add?.on === u.id);
+    if (add) pill(overG, labels, `add${u.id}`, x - r * 0.05, y + r * 0.95, `${add.add!.short} ${Math.ceil((add.hp / add.max) * 100)}%`, 0xb9a38a, C.dark, fs(0.18, 9));
     const bt = F.tels.find(tl => tl.kind === 'buster' && tl.units.includes(u.id));
     if (bt && bt.skill.dmg) {
       const sh = u.shield > bt.impact - F.t ? 0.6 : 1; // 맞을 때까지 보호 두루마리가 남아 있으면 -40%
@@ -826,7 +829,7 @@ export function render(now: number): void {
     }
     if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
     else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
-    const st = u.bulwark > 0 ? ([`버팀 ${Math.ceil(u.bulwark)}`, '#F0C46A'] as const) : u.fleeing ? (['도망', '#DB9B57'] as const) : u.sulking ? (['삐짐', '#D68FA6'] as const) : null;
+    const st = u.bulwark > 0 ? ([`버팀 ${Math.ceil(u.bulwark)}`, '#F0C46A'] as const) : u.pulled ? ([`끌림 ${Math.ceil(u.pulled.until - F.t)}`, '#C98B5A'] as const) : u.fleeing ? (['도망', '#DB9B57'] as const) : u.sulking ? (['삐짐', '#D68FA6'] as const) : null;
     if (st && s >= 40) pill(overG, labels, `st${u.id}`, x, y + r * 0.95, st[0], hex(st[1]), C.dark, fs(0.18, 9));
     else if (st) hexPoly(overG, x, y, ringRadius(`status${u.id}`, 'hex', x, y, r * 0.95, 3)).stroke({ width: 3, color: hex(st[1]), alpha: 0.5 + 0.5 * pulse });
   }

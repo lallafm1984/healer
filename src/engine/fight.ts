@@ -14,7 +14,7 @@ import { BULWARK, TRAIT_CHANCE, TRAITS, type TraitKey } from '../data/traits';
 import { makeCells } from './board';
 import { aggroTarget, initBoss, bossTick } from './bosses';
 import { affixTick, initAffixes } from './affixes';
-import { bark, DT, emit, living } from './core';
+import { bark, damageMob, DT, emit, living } from './core';
 import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { rngFrom } from './rng';
@@ -60,7 +60,7 @@ export function create(cfg: FightConfig): Fight {
     standin: null,
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
-    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, rats: [], bs: {},
+    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {},
     items: {}, potCd: 0, medit: 0, itemLog: [],
     stats: { healed: 0, overheal: 0, deaths: 0, minMana: 100, dispels: 0, dispellable: 0, trapPops: 0, queueLost: 0, casts: {}, taps: 0, missTaps: 0, emptyTaps: 0, cancels: 0, manaFails: 0, hymnBroken: 0 },
     nextId: 1,
@@ -194,7 +194,7 @@ export function step(f: Fight): void {
   bossTick(f);
   partyHits(f);
   const live = living(f);
-  if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', f.mobs.length && !f.mobs.some(m => m.boss) ? '모두 쓰러뜨림' : '보스를 쓰러뜨림'); }
+  if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', f.mobs.some(m => !m.add) && !f.mobs.some(m => m.boss) ? '모두 쓰러뜨림' : '보스를 쓰러뜨림'); }
   else if (!f.me.alive) end(f, 'lose', '힐러가 쓰러짐');
   // 탱커가 쓰러져도 계속, 파티원이 모두 쓰러지면 전멸 (2026-10-07 Lim)
   else if (!live.some(u => !u.me)) end(f, 'lose', '파티 전멸');
@@ -238,16 +238,30 @@ function partyHits(f: Fight): void {
     const amt = u.acc;
     u.dealt += Math.min(amt, f.bossHp);
     u.acc = 0;
-    if (f.mobs.length) hitMobs(f, amt); else f.bossHp -= amt;
+    if (f.bodyHp) hitMobs(f, amt);
+    else if (u.role !== 'tank' && f.mobs.length) hitAdds(f, amt);
+    else f.bossHp -= amt;
     emit(f, { type: 'hit', uid: u.id, amt });
   }
+}
+
+/** 보스 전투의 쫄 (P-ADD): 딜러는 먼저 나온 쫄부터, 쫄이 다 쓰러지면 남는 딜은 보스에게 */
+function hitAdds(f: Fight, d: number): void {
+  let left = d;
+  for (const m of f.mobs) {
+    if (!m.alive || !m.add || left <= 1e-9) continue;
+    const x = Math.min(m.hp, left);
+    left -= x;
+    damageMob(f, m, x);
+  }
+  if (left > 1e-9) f.bossHp -= left;
 }
 
 /** 일반·정예 구간: 파티 딜은 잡을 차례인 적에게, 남는 딜은 다음 적에게 (23 2장) */
 function hitMobs(f: Fight, d: number): void {
   let left = d;
   for (const m of f.mobs) {
-    if (!m.alive) continue;
+    if (!m.alive || m.add) continue;
     const x = Math.min(m.hp, left);
     m.hp -= x; left -= x;
     if (m.hp <= 1e-9) {
@@ -257,7 +271,7 @@ function hitMobs(f: Fight, d: number): void {
     }
     if (left <= 1e-9) break;
   }
-  f.bossHp = f.mobs.reduce((s, m) => s + m.hp, 0);
+  f.bossHp = f.mobs.reduce((s, m) => s + (m.add ? 0 : m.hp), 0);
 }
 
 function end(f: Fight, result: FightResult, reason: string): void {

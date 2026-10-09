@@ -7,7 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abOnTel } from './abilities';
 import { affChaos } from './affixes';
-import { aggroTarget, runEffect, runFlow, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, backTargets, flowNext, runEffect, runFlow, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import type { BossSkill, Fight, Mob, TelKind, Telegraph, Unit } from './types';
@@ -22,17 +22,19 @@ function skill(f: Fight, s: SkillSpec): BossSkill {
   return o;
 }
 
-/** 데이터의 기술 하나를 전투 기술로 */
-function fromDef(f: Fight, d: SkillDef): BossSkill {
+/** 데이터의 기술 하나를 전투 기술로 (테스트에서 부품을 따로 돌릴 때도) */
+export function fromDef(f: Fight, d: SkillDef): BossSkill {
   const e = d.effect, z = d.cells;
   const s = skill(f, {
     key: d.key, name: d.name, icon: d.icon, kind: d.kind, hidden: d.hidden, next: d.first ?? Infinity, period: d.period, cast: d.cast,
     warn: d.warn, cut: d.cut, dmg: d.dmg, dps: d.dps != null ? d.dps * (f.mythic && d.dpsMythic ? d.dpsMythic : 1) : undefined, dur: d.dur,
     active: whenFn(d.when),
-    target: d.target === 'tank' ? g => { const tk = aggroTarget(g); return tk ? [tk.id] : []; } : undefined,
+    target: d.target === 'tank' ? g => { const tk = aggroTarget(g); return tk ? [tk.id] : []; }
+      : d.target ? g => { const t = d.target as Exclude<SkillDef['target'], 'tank' | undefined>; return backTargets(g, g.mythic && t.nMythic ? t.nMythic : t.n).map(u => u.id); } : undefined,
     fire: e ? g => runEffect(g, s, e) : undefined,
     hit: e ? (g, tel) => runEffect(g, s, e, tel) : undefined,
     cellsFor: z ? g => zoneCells(g, s, z) : undefined,
+    flowEvery: z?.p === 'flow' ? z.every : undefined,
   });
   f.bs[d.key] = s;
   return s;
@@ -64,6 +66,7 @@ function mobTargets(f: Fight, to: MobAttack['to']): Unit[] {
 /** 일반·정예 구간 (23 2장): 적마다 공격을 따로 돌리고, 쓰러지면 그 적 기술은 멈춘다 */
 function initTrash(f: Fight): void {
   f.phaseName = '';
+  f.bodyHp = true;
   const scale = f.bossMax / f.enc.hp;
   for (const def of f.enc.mobs!) for (let i = 0; i < def.count; i++) {
     const m: Mob = { id: f.nextId++, name: def.name, elite: !!def.elite, hp: def.hp * scale, max: def.hp * scale, alive: true };
@@ -97,6 +100,7 @@ export function initBoss(f: Fight): void {
   const def = BOSSES[f.enc.script];
   [f.phase, f.phaseName] = def.phase;
   if (def.bodies) {
+    f.bodyHp = true;
     const scale = f.bossMax / f.enc.hp;
     for (const b of def.bodies) f.mobs.push({ id: f.nextId++, name: b.name, elite: !!b.elite, boss: b.boss, hp: b.hp * scale, max: b.hp * scale, alive: true });
   }
@@ -108,6 +112,7 @@ function bossUpdate(f: Fight): void {
   if (f.enc.script === 'trash') return; // 일반·정예 구간은 광폭화 없음
   const def = BOSSES[f.enc.script];
   if (def.flow) runFlow(f, def.flow);
+  if (f.mobs.length) addsTick(f);
   enrageAt(f, def.enrage.name, def.enrage.period, def.enrage.dmg);
 }
 
@@ -125,6 +130,7 @@ export function bossTick(f: Fight): void {
     }
     if (s.cast <= 0) { s.fire!(f); continue; }
     const tel: Telegraph = { id: f.nextId++, skill: s, kind: s.kind, start: f.t, impact: f.t + s.cast, units: s.target ? s.target(f) : [], cells: s.cellsFor ? s.cellsFor(f) : new Set(), dps: s.dps, dur: s.dur };
+    if (s.flowEvery && tel.cells.size) tel.flow = { col: f.cells[[...tel.cells][0]].col, dir: s.st.dir === -1 ? -1 : 1, every: s.flowEvery };
     f.tels.push(tel);
     if (f.abOn) abOnTel(f, tel);
     if (f.aff) affChaos(f, tel);
@@ -134,6 +140,7 @@ export function bossTick(f: Fight): void {
   for (const tel of f.tels.filter(t => t.impact <= f.t + 1e-9)) {
     if (tel.kind === 'zone') {
       f.zones.push({ id: tel.id, cells: tel.cells, end: f.t + tel.dur!, dps: tel.dps! });
+      if (tel.flow) flowNext(f, tel); // 흐르는 장판: 다음 열 예고
     } else tel.skill.hit!(f, tel);
     emit(f, { type: 'impact', kind: tel.kind });
   }

@@ -77,7 +77,7 @@ function startBattle(guideSec = 0): void {
   if (F.enc.script === 'plague' && ratsArt()) adds.src = ratsArt(); else adds.removeAttribute('src');
   $('bossName').innerHTML = bossTitle();
   // 위치 줄 앞 = 적 무리 구간 이름 (보스 한 마리는 이름 줄에 이미 있어 비움)
-  $('encounterLabel').textContent = F.mobs.length ? F.enc.name : '';
+  $('encounterLabel').textContent = F.bodyHp ? F.enc.name : '';
   buildStage();
   $('battle').classList.toggle('compact', !!F.enc.big);
   setPlace(F.enc.key);
@@ -627,7 +627,7 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
     ['시전 취소 · 마나 부족', `${st.cancels}번 · ${st.manaFails}번`],
     ['쓸기 스킬', `${Object.values(ui.swipes).reduce((a, b) => a + b, 0)}번 · 취소 ${ui.swipeCancel} · 빈 방향 ${ui.swipeEmpty}`],
   ];
-  const left = win ? undefined : { pct: Math.ceil((f.bossHp / f.bossMax) * 100), mobs: f.mobs.length > 0 };
+  const left = win ? undefined : { pct: Math.ceil((f.bossHp / f.bossMax) * 100), mobs: f.bodyHp };
   const result = {
     content: R.content, diff: S.diff, win, quit: quitted, reason: quitted ? '포기함' : how === 'giveUp' ? '탱커 전멸 뒤 포기' : f.reason,
     segIdx: R.idx, segN: R.segs.length, time: R.time, restSec: R.restSec, deaths: R.deaths,
