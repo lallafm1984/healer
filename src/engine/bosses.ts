@@ -7,7 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abOnTel } from './abilities';
 import { affChaos } from './affixes';
-import { addsTick, aggroTarget, backTargets, flowNext, runEffect, runFlow, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, backTargets, flowNext, orderTick, runEffect, runFlow, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import type { BossSkill, Fight, Mob, TelKind, Telegraph, Unit } from './types';
@@ -121,6 +121,8 @@ function bossUpdate(f: Fight): void {
   const def = BOSSES[f.enc.script];
   if (def.flow) runFlow(f, def.flow);
   if (f.mobs.length) addsTick(f);
+  if (f.order) orderTick(f);
+  if (f.daze && f.t >= f.daze.until) f.daze = null;
   enrageAt(f, def.enrage.name, def.enrage.period, def.enrage.dmg);
 }
 
@@ -131,6 +133,7 @@ export function bossTick(f: Fight): void {
     if (f.t + 1e-9 < s.next) continue;
     s.next += s.period;
     if (!s.active(f)) continue;
+    if (f.daze && s.mob == null) continue; // 멍한 보스는 그 차례를 건너뜀 (차례 성공)
     if (f.abOn) {
       // 파티원 능력 (17 7장): 기절한 적은 기술을 안 씀, 끊기 가능 기술은 시전 시작에 끊길 수 있음
       if (s.mob != null && (f.mobs.find(m => m.id === s.mob)?.stun || 0) > f.t) continue;

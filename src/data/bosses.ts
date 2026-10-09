@@ -71,6 +71,10 @@ export interface DebuffDef {
   hide?: boolean;
   /** 걸린 때보다 보스 체력이 이 비율(보스 최대 체력 기준)만큼 깎이면 풀림 (삼키기 4%). 풀릴 때 end는 안 함 */
   untilBossLoss?: number;
+  /** 받는 치유 −비율. 중첩 디버프면 × 중첩 (얼룩진 장갑 0.5, 먼지 범벅 0.08 × 최대 5) */
+  healCut?: number;
+  /** 받는 치유가 피해로 (뒤집힌 축복 P-INVERT): 들어올 치유량만큼 피해. 보호막·피해 감소·보호의 손은 통함 */
+  invert?: boolean;
   end?: DebuffEnd;
 }
 
@@ -126,7 +130,13 @@ export type SkillEffect =
   /** 쫄 n마리 (P-ADD). 악몽은 nMythic */
   | { p: 'adds'; n: number; nMythic?: number; add: AddDef }
   /** 무너지는 바닥 (P-HOLE): 가장자리 빈 칸 n개가 끝까지 못 서는 칸이 됨 (전투 전체 max개까지). 빈 칸은 늘 1개 이상 남김 */
-  | { p: 'hole'; n: number; max: number };
+  | { p: 'hole'; n: number; max: number }
+  /**
+   * 차례 (P-ORDER): 탱커 아닌 n명(나 포함, 악몽 nMythic) 칸에 번호 ①②③. sec초 안에 번호 순서대로 단일 대상 힐(기본·빠른·지속 힐 칸)을
+   * 한 번씩 넣으면 성공 → 보스 daze.sec초 멍함 (기술을 안 쓰고, 받는 피해 × daze.vuln). 순서가 틀리면 그 사람 wrong 피해 + 처음부터
+   * (쉬움은 피해 없이 처음부터). 시간이 다 되면 아직 못 받은 사람마다 miss 피해. 받는 치유가 깎인 사람도 횟수로 셈
+   */
+  | { p: 'order'; n: number; nMythic?: number; sec: number; wrong: number; miss: number; daze: { sec: number; vuln: number } };
 
 /** 장판 칸 고르기 */
 export type ZoneCells =

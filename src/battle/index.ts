@@ -16,7 +16,7 @@ import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, se
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON, ratsArt } from './art';
-import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxDeath, fxDispel, fxHeal, fxRevive, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard } from './board';
+import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxDeath, fxDispel, fxHeal, fxHurt, fxRevive, fxShake, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
@@ -522,6 +522,8 @@ function handleEvents(now: number): void {
       case 'mobDown': toast(`${ev.name} 쓰러짐`); $('bossName').innerHTML = bossTitle(); break;
       case 'ability': if (u) fxAbility(u, ev.name, now); break;
       case 'aheal': if (u) fxAllyHeal(u, ev.amt, now); break;
+      case 'hurt': if (u) fxHurt(u, ev.amt, now); break; // 뒤집힌 축복
+      case 'shake': if (u) { fxShake(u, now); vibe([20, 40, 20]); } break;
     }
   }
   if (critSnd) Snd.play('crit');

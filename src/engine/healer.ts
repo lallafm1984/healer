@@ -2,6 +2,7 @@ import { HEROES } from '../data/heroes';
 import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { DT, emit, heal, living, onDebuffEnd, unitById } from './core';
 import { heroApply, heroChannelTick, heroTick, hotCount, putHot } from './heroes';
+import { orderHeal } from './bossParts';
 import { reviveTarget } from './items';
 import { adjLow, castOf, cdOf, costOf, directSpread, focusMult, has, overflow, pohAt, renewSec, spendGuard, talentTick, wordCap, wordPower, wordReady, wordSpent } from './talents';
 import type { ActionResult, Fight, Unit } from './types';
@@ -51,6 +52,7 @@ export function use(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
   if (!knows(f, key)) return { ok: false, reason: `${sk.name}: Lv ${SKILL_LEVEL[key]}에 배움` };
   const tg = canTarget(f, key, cellIdx);
   if (!tg.ok) return tg;
+  if (tg.u && tg.u.debuffs.length && invertTap(f, key, tg.u)) return { ok: false, reason: '뒤집힌 축복: 힐이 피해가 됨 (한 번 더 누르면 사용)' };
   if (sk.cd && (f.cd[key] ?? 0) > 0) return { ok: false, reason: `${sk.name} 재사용 대기 ${Math.ceil(f.cd[key]!)}초` };
   if (f.mana < costOf(f, key)) { f.stats.manaFails++; return { ok: false, reason: '마나 부족' }; }
   const uid = tg.u ? tg.u.id : null;
@@ -83,7 +85,26 @@ function exec(f: Fight, key: SkillKey, cellIdx: number, u: Unit | undefined): vo
   apply(f, key, u!);
 }
 
+/** 차례·뒤집힌 축복에서 「그 사람을 힐한다」로 치는 휠 칸: 단일 대상 힐 (기본·빠른·지속) */
+const SINGLE_HEAL = new Set<SlotName>(['basic', 'fast', 'hot']);
+export const singleHeal = (key: SkillKey): boolean => SINGLE_HEAL.has(SKILLS[key].slot) && SKILLS[key].target === 'ally';
+
+const HEAL_TAP = new Set<SlotName>(['basic', 'fast', 'hot', 'aoe']);
+/**
+ * 뒤집힌 축복 실수 방지 (35 4-3): 쉬움·보통은 그 칸에 힐을 처음 누르면 칸만 흔들리고 안 나감. 같은 디버프에 두 번째부터 나감.
+ * 해제·외부 생존기는 그대로 나감
+ */
+function invertTap(f: Fight, key: SkillKey, u: Unit): boolean {
+  if (!HEAL_TAP.has(SKILLS[key].slot) || (f.cfg.diff !== '쉬움' && f.cfg.diff !== '보통')) return false;
+  const d = u.debuffs.find(x => x.invert);
+  if (!d || f.invertTap === d.id) return false;
+  f.invertTap = d.id;
+  emit(f, { type: 'shake', id: u.id });
+  return true;
+}
+
 function apply(f: Fight, key: SkillKey, u: Unit): void {
+  if (f.order && singleHeal(key)) orderHeal(f, u); // 차례 (P-ORDER)
   if (f.hero !== 'priest') { heroApply(f, key, u); return; }
   const sk = SKILLS[key];
   if (key === 'heal' || key === 'flash' || key === 'serenity') {

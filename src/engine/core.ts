@@ -49,6 +49,11 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   }
   if (u.mods.length) amt *= healMods(f, u); // 광란 (받는 치유 +30%), 얼음 방패 (치유 없음)
   if (f.aff) amt *= affHeal(f); // 메마름 (받는 치유 -20%)
+  if (u.debuffs.length) {
+    const cut = u.debuffs.reduce((s, d) => s + (d.healCut ?? 0) * (d.stack ?? 1), 0); // 얼룩진 장갑·먼지 범벅 (35 4-3·4-5)
+    if (cut) amt *= Math.max(0, 1 - cut);
+    if (u.debuffs.some(d => d.invert)) { invertHeal(f, u, amt); return 0; } // 뒤집힌 축복 (P-INVERT)
+  }
   const eff = Math.min(amt, u.max - u.hp);
   u.hp += eff;
   u.got += eff;
@@ -61,6 +66,14 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     if (u.p.thanks) { u.thanks = 3; if (f.rng() < 0.35) bark(f, u); }
   }
   return eff;
+}
+
+/** 뒤집힌 축복 (P-INVERT, 35 4-3): 들어올 치유량만큼 피해. 보호막·피해 감소·보호의 손(물리 취급)은 통함 */
+function invertHeal(f: Fight, u: Unit, amt: number): void {
+  if (amt <= 0) return;
+  f.stats.inverted = (f.stats.inverted ?? 0) + amt;
+  emit(f, { type: 'hurt', id: u.id, amt: Math.round(amt) });
+  damage(f, u, amt / f.dmgMult, false, 'fixed');
 }
 
 /** 호감도 (06 6장 은혜 갚기): 길드원은 함께 출전한 수, 공개모집은 이번 판에 내 힐을 받은 양 (인연 스카우트와 같은 기준). 길드원이 먼저 */
