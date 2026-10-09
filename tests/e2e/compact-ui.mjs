@@ -337,6 +337,7 @@ export default async function compactUi(url, shots) {
             await pauseModeReparenting(page, ok);
             await castSpaceCases(page, ok);
             await gestureCases(page, ok, shots);
+            await quakeWarningCases(page, ok);
             await reducedEffectsCase(page, ok, shots);
           }
           if (party.n === 20) await skillCircleStates(page, ok, shots);
@@ -483,6 +484,76 @@ async function noticeCases(page, ok) {
     await page.click('#resumeBtn');
   }
   if (await mode(page) !== originalMode) { await toggleMode(page); await page.clock.runFor(40); }
+}
+
+async function quakeWarningCases(page, ok) {
+  // 새 보스 기믹은 명시적 예고 fixture로 만든다. DOM의 quake/holy class를 직접 바꾸지 않는다.
+  // updateWheel이 실제 F.tels와 사제 게이지로 경고·성언 칸을 갱신하는 경로를 검사한다.
+  const originalMode = await mode(page);
+  await page.evaluate(() => {
+    const f = window.__proto.F;
+    window.__quakeWarningFixture = { fight: f, gauges: { ...f.g }, tels: f.tels,
+      settings: JSON.parse(localStorage.getItem('healer.save')).settings };
+    f.g.p = 100; f.g.s = 100;
+  });
+  const warning = async (on, reduced) => {
+    await page.evaluate(({ on, reduced }) => {
+      const f = window.__proto.F;
+      f.tels = f.tels.filter(t => t.id !== -73001);
+      if (on) {
+        const skill = { ...f.skills[0], name: '진동 경고 검사', kind: 'aoe', quake: true };
+        f.tels.push({ id: -73001, skill, kind: 'aoe', start: f.t, impact: f.t + 60, units: [], cells: new Set() });
+      }
+      const settings = JSON.parse(localStorage.getItem('healer.save')).settings;
+      window.__battle.settings({ ...settings, compactSkills: document.querySelector('#controls').classList.contains('compact-controls'), reducedEffects: reduced });
+    }, { on, reduced });
+    await page.clock.runFor(80);
+  };
+  const sample = () => page.evaluate(() => ({
+    sameFight: window.__proto.F === window.__quakeWarningFixture.fight,
+    quake: document.querySelector('#wheel').classList.contains('quake'),
+    reduced: document.querySelector('#battle').classList.contains('reduced-effects'),
+    slots: [...document.querySelectorAll('#wheel button[data-slot]')].map(el => {
+      const style = getComputedStyle(el), img = el.querySelector('img.sic');
+      return { slot: el.dataset.slot, holy: el.classList.contains('holy'), label: el.getAttribute('aria-label'),
+        art: img?.getAttribute('src'), animation: style.animationName, duration: style.animationDuration,
+        runningQuake: el.getAnimations().some(a => a.animationName === 'quakeRim' && a.playState === 'running'),
+        border: style.borderTopColor };
+    }),
+  }));
+  try {
+    for (const compact of [false, true]) {
+      if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
+      const tag = `360: ${compact ? '축소' : '일반'}`;
+      await warning(true, false);
+      const active = await sample(), holy = active.slots.filter(s => s.holy), ordinary = active.slots.filter(s => !s.holy);
+      ok(active.sameFight && active.quake && !active.reduced && holy.length === 2 && ordinary.length > 0
+        && holy.some(s => /성언: 평온/.test(s.label)) && holy.some(s => /성언: 신성화/.test(s.label))
+        && active.slots.every(s => s.art && s.animation === 'quakeRim' && s.duration === '0.18s' && s.runningQuake),
+      `${tag} 진동 예고는 배운 성언 2칸·일반 스킬 모두 실제 경고 애니메이션 유지`, active);
+
+      await warning(true, true);
+      const reduced = await sample();
+      ok(reduced.sameFight && reduced.quake && reduced.reduced && reduced.slots.length === active.slots.length
+        && reduced.slots.every(s => s.animation === 'none' && !s.runningQuake && s.border === 'rgb(255, 178, 91)'),
+      `${tag} 효과 줄이기는 진동을 멈추고 성언·일반 스킬의 경고색 유지`, reduced);
+
+      await warning(false, false);
+      const cleared = await sample(), clearedHoly = cleared.slots.filter(s => s.holy);
+      ok(cleared.sameFight && !cleared.quake && !cleared.reduced && clearedHoly.length === 2
+        && clearedHoly.every(s => s.animation === 'none' && !s.runningQuake && s.art === holy.find(h => h.slot === s.slot)?.art),
+      `${tag} 진동 예고 해제 뒤 성언 원화 유지·장식 애니메이션 정지 복구`, cleared);
+    }
+  } finally {
+    await page.evaluate(() => {
+      const saved = window.__quakeWarningFixture, f = window.__proto.F;
+      Object.assign(f.g, saved.gauges); f.tels = saved.tels;
+      window.__battle.settings(saved.settings);
+      delete window.__quakeWarningFixture;
+    });
+    await page.clock.runFor(80);
+    if (await mode(page) !== originalMode) { await toggleMode(page); await page.clock.runFor(40); }
+  }
 }
 
 async function reducedEffectsCase(page, ok, shots) {

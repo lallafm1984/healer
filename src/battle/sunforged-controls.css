@@ -124,7 +124,8 @@
 #battle #controls .slot.armed,
 #battle #controls .slot.aim,
 #battle #controls .slot.coach-hi { outline: 2px solid #fff1aa; outline-offset: -5px; box-shadow: none; }
-#battle #controls .slot.holy { animation: none; }
+/* 성언의 장식 맥동만 멈춘다. 보스 진동 예고는 성언 칸에도 전달한다. */
+#battle #controls #wheel:not(.quake) .slot.holy { animation: none; }
 #battle #controls .slot.resource-low .ct { color: #ffaaa0; }
 #battle #controls .slot.empty { filter: brightness(.68) saturate(.55); }
 #battle #controls .slot.empty .ct { top: 50%; color: #aa9e82; font-weight: 500; }

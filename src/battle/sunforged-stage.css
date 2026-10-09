@@ -88,11 +88,13 @@
   border-width: 5px 16px; border-image: none;
 }
 #battle .hpbar::after {
-  content: ''; position: absolute; inset: -5px -16px; z-index: 2;
+  content: ''; position: absolute; inset: -5px -16px; z-index: 1;
   border: 8px solid transparent;
   border-image: var(--sf-cast) 44 128 / 10px 30px / 0 stretch;
   pointer-events: none;
 }
+/* 보스 기믹 게이지는 황동 프레임 위, 체력·기믹 문구 아래에 그린다. */
+#battle #bossGauge { z-index: 2; }
 #battle #bossFill { background: linear-gradient(#ee6650, #d52118 32%, #9d130d 78%, #5c0b07); }
 #battle #queue, #battle.stage-sm #queue, #battle.short-battle #queue { margin-top: 6px; gap: 3px; }
 #battle #queue .q, #battle #queue .q-empty,
