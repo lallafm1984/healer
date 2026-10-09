@@ -13,7 +13,7 @@ import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots, TALENT_LEVEL } from '../data/progression';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { TALENTS, type TalentKey } from '../data/talents';
-import type { TapKey } from '../platform/storage';
+import { heroLevelOf, topLevel, type TapKey } from '../platform/storage';
 import { betterSlots, gearAvg, gearScore, isBetter, scoreOf, statParts, talentsLeft } from '../game/charinfo';
 import {
   bestGearPlan, commit, enhance, equip, equipBest, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, lowGradeIds, pickTalent, salvage,
@@ -612,13 +612,14 @@ const CLOTH: Record<HeroKey, string> = {
   paladin: 'linear-gradient(#6A2A1E, #3A1410)',
 };
 
+/** 깃발 꼬리표: 지금·열린 직업은 그 직업 레벨 (34 3-1: 직업 레벨은 직업 목록에만), 잠긴 직업은 해금 레벨 */
 function heroBanner(k: HeroKey, pick: HeroKey): string {
-  const h = HEROES[k], st = heroStatus(k);
-  const cs = st.state === 'now' ? '<span class="c7-cs now">지금 직업</span>'
-    : st.state === 'locked' ? `<span class="c7-cs">Lv ${h.unlock.lv}</span>`
+  const h = HEROES[k], st = heroStatus(k), lv = heroLevelOf(G.save, k);
+  const cs = st.state === 'now' ? `<span class="c7-cs now">지금 Lv ${lv}</span>`
+    : st.state === 'locked' ? `<span class="c7-cs">Lv ${h.unlock.lv} 해금</span>`
     : st.state === 'quest' && st.need ? `<span class="c7-cs">퀘스트 ${st.quest}/${st.need}</span>`
-    : '<span class="c7-cs">열림</span>';
-  const word = st.state === 'now' ? '지금 직업' : st.state === 'locked' ? `Lv ${h.unlock.lv}에 열림` : st.state === 'quest' ? `직업 퀘스트 ${st.quest}/${st.need}` : '열림';
+    : `<span class="c7-cs">Lv ${lv}</span>`;
+  const word = st.state === 'now' ? `지금 직업 · Lv ${lv}` : st.state === 'locked' ? `Lv ${h.unlock.lv}에 열림` : st.state === 'quest' ? `직업 퀘스트 ${st.quest}/${st.need}` : `Lv ${lv}`;
   return `<button type="button" class="c7-hc c7-bnr${st.state === 'now' ? ' now' : ''}${st.state === 'locked' ? ' locked' : ''}${k === pick ? ' sel' : ''}" data-hcard="${k}" aria-pressed="${k === pick}" aria-label="${h.name} · 난이도 ${h.star} · ${word}" style="--c:${CLOTH[k]}">
       <span class="c7-rod"></span><span class="c7-cloth"><span class="c7-cem">${classEmblem(k, 'lg')}</span><b>${h.name}</b><span class="c7-stars">${stars(h.star)}</span>${cs}</span>${st.state === 'locked' ? `<span class="c7-lkic">${uiIcon('lock')}</span>` : ''}</button>`;
 }
@@ -633,7 +634,8 @@ function heroDetail(k: HeroKey): string {
   const list = ex ? `<ul class="c7-pas">${heroSkills(k).map(sk => `<li><b>${SKILLS[sk].name}</b><span class="cap">${SKILL_INFO[sk].kind} · Lv ${SKILL_LEVEL[sk]}</span><p>${esc(healText(SKILL_INFO[sk].desc))}</p></li>`).join('')}${pas.map(p => `<li><b>${p.name}</b><span class="cap">${p.kind} · Lv ${p.lv}</span><p>${esc(p.desc)}</p></li>`).join('')}</ul>` : '';
   const quest = q && st.need && st.state !== 'open' && !hs.unlocked ? `<div class="c7-hq hq"><p><b>직업 퀘스트 「${q.name}」</b><br>${esc(q.text)}</p><strong>${st.quest} / ${st.need}</strong></div>` : '';
   const notes = [
-    st.state === 'now' ? `이 직업으로 이긴 판 ${fmt(hs.wins)}` : '',
+    st.state === 'now' ? `직업 레벨 Lv ${heroLevelOf(G.save, k)} · 이 직업으로 이긴 판 ${fmt(hs.wins)}` : '',
+    (st.state === 'now' || st.state === 'open') && heroLevelOf(G.save, k) < topLevel(G.save) ? `따라잡기: Lv ${topLevel(G.save)}까지 경험치 ×3` : '',
     st.state === 'locked' ? `${LOCK}${esc(h.unlock.how)}` : '',
     st.dev ? `Lv ${h.unlock.lv} 해금, 개발 빌드라 열림` : '',
   ].filter(Boolean).map(t => `<p class="m">${t}</p>`).join('');
@@ -644,7 +646,7 @@ function heroDetail(k: HeroKey): string {
   return `<section class="c7-hdet c7-parch" data-hdet="${k}"><h3>${h.name}<span class="c7-hst" aria-label="난이도 ${h.star}">${stars(h.star)}</span></h3>
       <p>${esc(h.line)}</p>
       <div class="c7-hchips"><span>해제</span>${chips}<span class="c7-sys">고유 「${h.system.name}」 Lv ${h.system.lv}</span></div>
-      <p class="m c7-hm"><button type="button" class="c7-hsk" data-hsk="${k}" aria-expanded="${ex}">스킬 ${nSk} · 패시브 ${pas.length} ${ex ? '▴' : '▾'}</button><span>레벨·장비·골드는 같이 씀</span></p>
+      <p class="m c7-hm"><button type="button" class="c7-hsk" data-hsk="${k}" aria-expanded="${ex}">스킬 ${nSk} · 패시브 ${pas.length} ${ex ? '▴' : '▾'}</button><span>장비·골드는 같이 씀, 레벨은 직업마다</span></p>
       ${list}${quest}${notes}${intro}</section>${cta}`;
 }
 

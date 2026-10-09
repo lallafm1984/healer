@@ -11,6 +11,7 @@ import { betterSlots, talentsLeft } from '../game/charinfo';
 import { chestState, missionReady, passLevel } from '../game/economy';
 import { Flow } from '../game/flow';
 import { G, heroNow } from '../game/state';
+import { topLevel } from '../platform/storage';
 import { TUT } from '../game/tutorial';
 import { go, screen, setTabsHandler, topBar, type TabKey } from './kit';
 import { classEmblem, gameIcon, LOCK, uiIcon } from './art';
@@ -39,9 +40,9 @@ const ph = screen('s-tab', '준비 중인 탭', {
   enter(arg) {
     const t = TABS.find(x => x.key === arg) || TABS[TABS.length - 1];
     ph.tab = t.key;
-    const locked = t.lv && G.save.player.level < t.lv;
+    const locked = t.lv && topLevel(G.save) < t.lv;
     ph.el.innerHTML = `${topBar({ settings: true })}<div class="ns-body tabph"><h2 class="h">${t.name}</h2>
-      ${locked ? `<p class="lockline">${LOCK}Lv ${t.lv}에 열림 (지금 Lv ${G.save.player.level})</p>` : '<p class="note">준비 중</p>'}</div>`;
+      ${locked ? `<p class="lockline">${LOCK}Lv ${t.lv}에 열림 (지금 Lv ${topLevel(G.save)})</p>` : '<p class="note">준비 중</p>'}</div>`;
   },
 });
 
@@ -79,7 +80,7 @@ export function mountTabs(nav: HTMLElement): void {
   let cur: TabKey | undefined;
   const render = () => {
     nav.innerHTML = TABS.map(t => {
-      const locked = !!t.lv && G.save.player.level < t.lv;
+      const locked = !!t.lv && topLevel(G.save) < t.lv;
       const tl = tutLocked(t.key);
       const icon = locked || tl ? uiIcon('lock') : iconOf(t.key);
       const cls = tl ? ' class="tlock"' : locked ? ' class="llock"' : '';

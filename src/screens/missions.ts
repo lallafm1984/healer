@@ -9,6 +9,7 @@ import { GUILD_LEVEL } from '../data/progression';
 import { hhmm, untilReset } from '../game/clock';
 import { chalChestOf, chestState, claimChalChest, claimChest, claimGuildGoal, claimMission, isMember, missionDef, missionReady, runGold, swapMission } from '../game/economy';
 import { commit, G, refreshDay } from '../game/state';
+import { topLevel } from '../platform/storage';
 import { showRewarded } from '../platform/ads';
 import { esc, fmt, screen, topBar } from './kit';
 import { gainText } from './shop';
@@ -26,7 +27,7 @@ function row(kind: 'daily' | 'weekly', i: number): string {
 }
 
 function render(): void {
-  const d = G.save.daily, w = G.save.weekly, lv = G.save.player.level;
+  const d = G.save.daily, w = G.save.weekly, lv = topLevel(G.save);
   const ch = chestState(G.save), gotN = d.missions.filter(m => m.got).length;
   const gold = Math.round(runGold(lv) * MISSION_REWARD.goldShare);
   const g = w.guild;

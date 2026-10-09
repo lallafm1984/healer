@@ -10,6 +10,7 @@ import { ITEMS, type ItemKey } from '../data/items';
 import { hhmm, seasonOf, untilReset } from '../game/clock';
 import { buyItem, buyPremium, claimPass, craftShard, exchangeMerit, grantMember, isMember, passGain, passLevel, type Gain } from '../game/economy';
 import { commit, G, refreshDay } from '../game/state';
+import { topLevel } from '../platform/storage';
 import { purchase, STORE_WHY } from '../platform/billing';
 import { battle, esc, fmt, screen, topBar } from './kit';
 import { currencyIcon, uiIcon } from './art';
@@ -56,7 +57,7 @@ function render(): void {
 }
 
 function goldHtml(): string {
-  const lv = G.save.player.level, gold = G.save.player.gold, w = G.save.weekly;
+  const lv = topLevel(G.save), gold = G.save.player.gold, w = G.save.weekly;
   const rows = (Object.keys(ITEMS) as ItemKey[]).map(k => {
     const price = itemPrice(k, lv), have = G.save.bag[k] || 0;
     // 가격은 버튼 안에 (살 수 있는 만큼). 가방이 가득이면 「가득」

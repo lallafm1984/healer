@@ -12,7 +12,7 @@ import { AFFIXES } from '../data/affixes';
 import { CHAL } from '../data/challenge';
 import { FIRST_CLEAR_CRYSTAL, SHARD_MAX } from '../data/economy';
 import { avgScore, DROP_TABLE, GRADE_STYLE, ITEM_GRADES, LEGEND_LEVEL, RECOMMENDED } from '../data/equipment';
-import { canDispel, DEB_COLOR } from '../data/heroes';
+import { canDispel, DEB_COLOR, HEROES } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
 import { clearGold, EXPLORE_REWARD } from '../data/progression';
 import { art, cssUrl } from '../art';
@@ -20,9 +20,9 @@ import { weekRemaining } from '../game/clock';
 import { raidLootOpen } from '../game/economy';
 import { Flow } from '../game/flow';
 import { chalGate, runMode, weekAffixes } from '../game/runmode';
-import { G, heroNow, lockOf } from '../game/state';
+import { G, heroNow, lockOf, otherHeroFor } from '../game/state';
 import { TUT } from '../game/tutorial';
-import { esc, fmt, go, previous, screen, topBar } from './kit';
+import { esc, fmt, go, josa, previous, screen, topBar } from './kit';
 import { factionMark, gameIcon, LOCK, placeArt } from './art';
 import { afxTags } from './brief';
 
@@ -214,7 +214,9 @@ function gate(c: ContentDef, d: DiffName, many: boolean): string {
   // 적 레벨 = 내 레벨, 어픽스는 난이도 (32, 2026-10-08)
   const m = runMode(G.save, c, d, { chal: 0 });
   const [region, side] = c.place.split(' · ');
-  const status = !c.ready ? '준비 중' : lk.locked ? `${LOCK}Lv ${lk.lv}에 열림` : '';
+  // 다른 직업으로는 들어갈 수 있으면 자물쇠 대신 그 직업 (34 4장 1번)
+  const other = lk.locked ? otherHeroFor(lk.lv) : null;
+  const status = !c.ready ? '준비 중' : other ? `${HEROES[other.hero].name}${josa(HEROES[other.hero].name, '으로', '로')} 열림 · Lv ${other.lv}` : lk.locked ? `${LOCK}Lv ${lk.lv}에 열림` : '';
   const art = pa.url
     ? `<img class="b-art${pa.scene ? '' : ' floor'}" src="${pa.url}" alt="${esc(pl.name)}" decoding="async" draggable="false">`
     : `<span class="b-art none" style="--t0:${pl.tone[0]};--t1:${pl.tone[1]}"></span>`;

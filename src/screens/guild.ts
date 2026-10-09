@@ -15,6 +15,7 @@ import { GUILD_LEVEL, MAX_LEVEL, xpToNext } from '../data/progression';
 import { Flow } from '../game/flow';
 import { capOf, guildOpen, hire, postRecruit, powerOf, release, rerollAbility, resetPoints, scoutHire, spendPoint, train } from '../game/guild';
 import { commit, G, refreshDay } from '../game/state';
+import { topLevel } from '../platform/storage';
 import { cardHtml, memDetailHtml, ROLE_ICON, type CardData } from './members';
 import { esc, fmt, go, ROLE, screen, topBar } from './kit';
 import { currencyIcon, gameIcon, LOCK } from './art';
@@ -70,7 +71,7 @@ function render(): void {
   if (!open.ok) {
     s.el.innerHTML = `${topBar({ settings: true })}<div class="ns-body g-home g-lock">
       ${board('g-hboard', '<h2 class="g-plq"><b>길드</b><small>길드 홀</small></h2>', `<div class="g-notes g-locknotes">${note('n-lock', `<h3 class="lockline">${LOCK}${esc(open.why)}</h3>
-        <p>지금 Lv ${G.save.player.level}</p>
+        <p>지금 Lv ${topLevel(G.save)}</p>
         <p class="m">길드원을 영입해 직접 편성합니다. 골드 모집 공고와 인연 스카우트로 모읍니다.</p>`)}</div>`)}
     </div>`;
     return;
@@ -86,7 +87,7 @@ const ptsLeft = (m: GuildMember) => Math.max(0, pointsAt(m.lv) - pointsUsed(m));
 
 /** 정원: 지금 단계 (몇 레벨에 몇 명) · 다음 단계 */
 function capSteps(): { now: { lv: number; cap: number }; next: { lv: number; cap: number } | null } {
-  const P = G.save.player.level, cap = capOf(G.save).cap;
+  const P = topLevel(G.save), cap = capOf(G.save).cap;
   let lv = P;
   while (lv > 1 && guildCap(lv - 1).cap === cap) lv--;
   let next: { lv: number; cap: number } | null = null;
@@ -168,7 +169,7 @@ function detailHtml(m: GuildMember): string {
   const a = ABILITIES[m.ab], apt = aptOf(m), pts = pointsAt(m.lv) - pointsUsed(m), pc = pointCost(m.lv);
   const fx = starFx(a, m.star);
   const need = xpToNext(m.lv), xpPct = isFinite(need) ? Math.min(100, (m.xp / need) * 100) : 100;
-  const atCap = m.lv >= G.save.player.level;
+  const atCap = m.lv >= topLevel(G.save);
   const gold = G.save.player.gold;
   const btn = (attr: string, label: string, sub: string, dis: boolean, cls = '') => `<button class="btn${cls ? ` ${cls}` : ''}" type="button" ${attr}${dis ? ' disabled' : ''}>${label}<small>${sub}</small></button>`;
   return `<li class="panel mdetail">

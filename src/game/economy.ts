@@ -14,7 +14,7 @@ import {
   CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, WEEKLY, WEEKLY_LV, WEEKLY_N, type MissionDef, type RunEvent,
 } from '../data/missions';
 import { addXp, clearGold, xpToNext } from '../data/progression';
-import { newDaily, newWeekly, type MissionSave, type SaveData } from '../platform/storage';
+import { newDaily, newWeekly, topLevel, type MissionSave, type SaveData } from '../platform/storage';
 import { dayKey, daysBetween, seasonOf, weekKey } from './clock';
 
 // ---------- 리셋 ----------
@@ -35,7 +35,7 @@ export interface Rollover { day: boolean; week: boolean; memberCrystal: number; 
 /** 접속·화면 진입 때 부름. 날이 바뀌었으면 일일 임무 새로, 주가 바뀌었으면 주간 새로 (13 1장) */
 export function rollover(save: SaveData, now: number, r: () => number): Rollover {
   const out: Rollover = { day: false, week: false, memberCrystal: 0, banked: 0, season: false, fixed: 0 };
-  const day = dayKey(now), week = weekKey(now), lv = save.player.level;
+  const day = dayKey(now), week = weekKey(now), lv = topLevel(save);
   const d = save.daily;
   if (d.day !== day) {
     // 접속 안 한 날의 완료 상자는 2일까지 쌓임 (13 7장). 접속했는데 못 깬 날은 없음
@@ -127,7 +127,7 @@ export function claimMission(save: SaveData, kind: 'daily' | 'weekly', i: number
   if (kind === 'weekly' && save.wallet.shards >= SHARD_MAX) return `종 조각이 가득 참 (최대 ${SHARD_MAX})`;
   s.got = true;
   return kind === 'daily'
-    ? give(save, { gold: Math.round(runGold(save.player.level) * MISSION_REWARD.goldShare), stone: MISSION_REWARD.stone, pass: PASS_GAIN.daily }, now)
+    ? give(save, { gold: Math.round(runGold(topLevel(save)) * MISSION_REWARD.goldShare), stone: MISSION_REWARD.stone, pass: PASS_GAIN.daily }, now)
     : give(save, { shards: 1, pass: PASS_GAIN.weekly }, now);
 }
 
@@ -147,7 +147,7 @@ export function claimChest(save: SaveData, r: () => number, now: number, double 
     save.daily.chest2 = true;
   } else if (st.today) save.daily.chest = true;
   else save.daily.banked--;
-  const lv = save.player.level;
+  const lv = topLevel(save);
   const it = rollItem(r, chestDiff(lv), 'A', lv, save.nextId++);
   if (!double) onAct(save, 'chest');
   return give(save, { gold: runGold(lv), stone: CHEST_REWARD.stone, pass: double ? 0 : PASS_GAIN.chest, items: [it] }, now);
@@ -159,7 +159,7 @@ export function swapMission(save: SaveData, i: number, r: () => number): string 
   if (!s || s.got) return '바꿀 수 없음';
   if (d.swapped) return '오늘 교체를 이미 씀';
   const basic = d.missions.filter((m, j) => j !== i && DAILY_BASIC.includes(m.key)).length;
-  const nw = pick(DAILY, 1, save.player.level, r, 2 - basic, d.missions.map(m => m.key))[0];
+  const nw = pick(DAILY, 1, topLevel(save), r, 2 - basic, d.missions.map(m => m.key))[0];
   if (!nw) return '바꿀 임무가 없음';
   d.missions[i] = nw; d.swapped = true;
   return '';
@@ -174,7 +174,7 @@ export function claimGuildGoal(save: SaveData): string {
   for (const m of save.guild.members) {
     const p = { level: m.lv, xp: m.xp };
     addXp(p, Math.round(xpToNext(m.lv) * GUILD_GOAL.xpShare));
-    m.lv = Math.min(p.level, save.player.level); m.xp = m.lv < p.level ? 0 : p.xp;
+    m.lv = Math.min(p.level, topLevel(save)); m.xp = m.lv < p.level ? 0 : p.xp;
   }
   return '';
 }
@@ -188,7 +188,7 @@ export function claimChalChest(save: SaveData, r: () => number, now: number): Ga
   const stage = save.chalChest;
   if (!stage) return '받을 상자 없음';
   save.chalChest = 0;
-  const c = chalChestOf(stage), lv = save.player.level;
+  const c = chalChestOf(stage), lv = topLevel(save);
   const items = c.grades.map((g, i) => {
     const slot = SLOTS[Math.floor(r() * SLOTS.length)].key;
     const grade: ItemGrade = i === 0 && lv >= LEGEND_LEVEL && r() < c.legend ? '전설' : g;
@@ -207,7 +207,7 @@ export function addPassXp(save: SaveData, amt: number, now: number): number {
 }
 export function passGain(save: SaveData, lv: number): Gain {
   const f: PassReward = passFree(lv);
-  return { gold: f.gold ? f.gold * runGold(save.player.level) : 0, stone: f.stone, refined: f.refined, crystal: f.crystal, ticket: f.ticket, deco: f.deco || f.title };
+  return { gold: f.gold ? f.gold * runGold(topLevel(save)) : 0, stone: f.stone, refined: f.refined, crystal: f.crystal, ticket: f.ticket, deco: f.deco || f.title };
 }
 export function claimPass(save: SaveData, lv: number, line: 'free' | 'prem', now: number): Gain | string {
   if (lv < 1 || lv > passLevel(save.pass.xp)) return '아직 못 올라감';
@@ -227,7 +227,7 @@ export function buyPremium(save: SaveData): string {
 // ---------- 상점 ----------
 /** 소비 아이템 사기 (19 11장, 15 6-4) */
 export function buyItem(save: SaveData, k: ItemKey, n = 1): string {
-  const price = itemPrice(k, save.player.level);
+  const price = itemPrice(k, topLevel(save));
   if (price == null) return '상점에서 안 팖';
   const have = save.bag[k] || 0;
   n = Math.min(n, BAG_MAX - have);

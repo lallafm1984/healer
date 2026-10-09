@@ -15,19 +15,19 @@ import { addXp, clearXp, GUILD_LEVEL, MAX_LEVEL, xpToNext, type Grade } from '..
 import { TRAIT_CHANCE, TRAITS, type TraitKey } from '../data/traits';
 import type { RosterEntry } from '../engine/types';
 import { FEATURES } from '../data/features';
-import type { SaveData, Scout } from '../platform/storage';
+import { topLevel, type SaveData, type Scout } from '../platform/storage';
 import { TUT } from './tutorial';
 
 /** 길드가 열렸는지 (Lv 15, 튜토리얼 뒤). dev = 개발 빌드 「레벨 잠금 무시」로 열림. 출시판에서 빼 두면 늘 닫힘 (features.ts) */
 export function guildOpen(save: SaveData): { ok: boolean; dev: boolean; why: string } {
   if (!FEATURES.guild) return { ok: false, dev: false, why: '' };
   if (save.tut < TUT.done) return { ok: false, dev: false, why: '튜토리얼을 마치면 열림' };
-  const under = save.player.level < GUILD_LEVEL;
+  const under = topLevel(save) < GUILD_LEVEL;
   if (under && !save.settings.devUnlock) return { ok: false, dev: false, why: `Lv ${GUILD_LEVEL}에 열림` };
   return { ok: true, dev: under, why: '' };
 }
 
-export const capOf = (save: SaveData) => guildCap(save.player.level);
+export const capOf = (save: SaveData) => guildCap(topLevel(save));
 export const powerOf = (m: GuildMember) => memberPower({ ...m, apt: aptOf(m) });
 
 /** 길드원 닉네임: 공개모집 닉네임 중 길드에 없는 것, 다 쓰면 뒤에 숫자 */
@@ -51,7 +51,7 @@ export function makeCandidate(save: SaveData, r: () => number, tier: PostTier, t
   const chance = tier === 'best' ? 0.6 : tier === 'better' ? 0.45 : TRAIT_CHANCE;
   const traits = tr.length && r() < chance ? [tr[Math.floor(r() * tr.length)]] : [];
   const [lo, hi] = POSTS[tier].lv;
-  const P = save.player.level;
+  const P = topLevel(save);
   const lv = Math.max(1, Math.min(P, P + lo + Math.floor(r() * (hi - lo + 1))));
   const best = tier === 'best';
   const apt0: [number, number, number] = [rollApt(r, best), rollApt(r, best), rollApt(r, best)];
@@ -105,11 +105,11 @@ export function scoutHire(save: SaveData, i: number): string {
 
 const memberOf = (save: SaveData, id: number) => save.guild.members.find(m => m.id === id) || null;
 
-/** 훈련 1레벨 (12 3-3: 길드원 레벨 × 30). 길드원 레벨 상한 = 내 레벨 */
+/** 훈련 1레벨 (12 3-3: 길드원 레벨 × 30). 길드원 레벨 상한 = 가장 높은 직업 레벨 (34 4장 8번) */
 export function train(save: SaveData, id: number): string {
   const m = memberOf(save, id);
   if (!m) return '길드원 없음';
-  if (m.lv >= save.player.level) return '내 레벨까지만';
+  if (m.lv >= topLevel(save)) return '내 레벨까지만';
   const c = trainCost(m.lv);
   if (save.player.gold < c) return `골드 부족 (${c.toLocaleString()} 필요)`;
   save.player.gold -= c; m.lv++; m.xp = 0;
@@ -244,7 +244,7 @@ export function guildAfter(
     if (!m) continue;
     m.runs++;
     const xp = Math.round(clearXp(m.lv, o.diff, o.grade, { raid: o.raid, win: o.win }) * (m.lv < avg ? 2 : 1));
-    const ups = addMemberXp(m, xp, save.player.level);
+    const ups = addMemberXp(m, xp, topLevel(save));
     out.members.push({ nick: m.nick, xp, ups });
   }
   if (o.win && out.members.length) { out.fame = o.raid === 20 ? 3 : o.raid ? 2 : 1; g.fame += out.fame; }

@@ -13,7 +13,8 @@ export default async function heroes(url, shots) {
   page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
   const save = () => page.evaluate(() => JSON.parse(localStorage.getItem('healer.save')));
   const text = sel => page.textContent(sel);
-  const setHero = async h => { await page.evaluate(h => { const s = JSON.parse(localStorage.getItem('healer.save')); s.hero = h; localStorage.setItem('healer.save', JSON.stringify(s)); }, h); await page.reload(); await page.clock.runFor(300); await pastTitle(page); };
+  // 저장을 바로 고쳐 직업을 바꿈 (직업별 레벨이라 그 직업 레벨도 Lv 10으로, 34 3장)
+  const setHero = async h => { await page.evaluate(h => { const s = JSON.parse(localStorage.getItem('healer.save')); s.hero = h; s.player.level = 10; localStorage.setItem('healer.save', JSON.stringify(s)); }, h); await page.reload(); await page.clock.runFor(300); await pastTitle(page); };
   /** 전투 판에서 그 파티원 칸 탭 */
   const tapUnit = async pick => {
     const bb = await page.locator('#board').boundingBox();
@@ -41,7 +42,7 @@ export default async function heroes(url, shots) {
   ok(/사제/.test(await text('#s-char .topbar .tb-cls')), '위 줄 = 사제');
   await page.click('#s-char nav [data-csub="hero"]'); await page.clock.runFor(50);
   ok(await page.getAttribute('#s-char nav [data-csub="hero"]', 'aria-selected') === 'true' && (await page.locator('#s-char .c7-hc[data-hcard]').count()) === 3 && (await page.locator('#s-char [data-hcard] .emblem').count()) === 3, '직업 하위 탭 = 직업 깃발 3장, 깃발마다 직업 문장');
-  ok(await page.isVisible('#s-char .c7-hc.now.sel[data-hcard="priest"]') && /지금 직업/.test(await text('#s-char [data-hcard="priest"]')) && /이긴 판/.test(await text('#s-char .c7-hdet[data-hdet="priest"]')), '지금 직업 = 사제 (깃발 「지금 직업」, 처음 고른 깃발 = 지금 직업, 상세에 이긴 판)');
+  ok(await page.isVisible('#s-char .c7-hc.now.sel[data-hcard="priest"]') && /지금 Lv 10/.test(await text('#s-char [data-hcard="priest"]')) && /직업 레벨 Lv 10/.test(await text('#s-char .c7-hdet[data-hdet="priest"]')), '지금 직업 = 사제 (깃발 「지금 Lv 10」, 처음 고른 깃발 = 지금 직업, 상세에 직업 레벨)');
   ok((await page.locator('#s-char .c7-hdet .dsp').count()) === 2 && /마법/.test(await text('#s-char .c7-hdet .c7-hchips')) && /질병/.test(await text('#s-char .c7-hdet .c7-hchips')), '양피지 상세 = 해제 칩 2개 (마법·질병)');
   await page.click('#s-char [data-hsk="priest"]'); await page.clock.runFor(50);
   ok(/수호 영혼/.test(await text('#s-char .c7-hdet .c7-pas')) && /상징/.test(await text('#s-char .c7-hdet .c7-pas')), '「스킬 · 패시브 ▾」 = 펼침');
@@ -58,6 +59,8 @@ export default async function heroes(url, shots) {
   // ---- 드루이드로 바꾸기 ----
   await page.click('#s-char [data-hero="druid"]'); await page.clock.runFor(50);
   ok((await save()).hero === 'druid' && /드루이드/.test(await text('#s-char .topbar .tb-cls')) && await page.isVisible('#s-char .c7-hc.now[data-hcard="druid"]'), '드루이드로 바꿈 → 저장, 위 줄·지금 직업 깃발');
+  const sv = await save();
+  ok(sv.player.level === 1 && sv.heroes.priest.level === 10 && /지금 Lv 1/.test(await text('#s-char [data-hcard="druid"]')) && /Lv 10/.test(await text('#s-char [data-hcard="priest"]')) && /따라잡기: Lv 10까지 경험치 ×3/.test(await text('#s-char .c7-hdet[data-hdet="druid"]')), `직업별 레벨: 드루이드는 Lv 1부터, 사제 깃발 Lv 10, 따라잡기 ×3 안내 (${sv.player.level} / ${sv.heroes.priest?.level})`);
   ok((await page.locator('#s-char .c7-hdet[data-hdet="druid"] .dsp').count()) === 3 && (await page.locator('#s-char [data-hero]').count()) === 0, '드루이드 상세 해제 칩 3개 (마법·저주·독), 지금 직업이라 바꾸기 버튼 없음');
   await page.click('#s-char nav [data-csub="gear"]'); await page.clock.runFor(50);
   ok(/드루이드/.test(await page.getAttribute('#s-char .c7-bigem .emblem', 'aria-label')), '장비 받침대 문장 = 드루이드');
