@@ -1,5 +1,6 @@
 /** 공개모집 직업 8종 (17 2장): 뽑기 규칙, 체력·딜, 패시브 */
 import { describe, expect, it } from 'vitest';
+import { armorFactor } from '../src/data/armor';
 import { aimMult, CLASSES, rageMult, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS, type EncounterKey } from '../src/data/encounters';
 import * as E from '../src/engine';
@@ -98,8 +99,9 @@ describe('직업 패시브', () => {
   it('수호기사: 마법 피해(광역·장판·지속)만 -10%', () => {
     const f = fightWith(roster('paladin'));
     const p = unit(f, 'paladin');
-    damage(f, p, 100); expect(p.max - p.hp).toBeCloseTo(100);
-    damage(f, p, 100, true); expect(p.max - p.hp).toBeCloseTo(190);
+    const a = armorFactor(p.role, 'party'); // 직업군 방어력 (34 9-2) 위에 곱함
+    damage(f, p, 100); expect(p.max - p.hp).toBeCloseTo(100 * a);
+    damage(f, p, 100, true); expect(p.max - p.hp).toBeCloseTo(190 * a);
   });
 
   it('검사: 맞으면 3초간 딜 +15%', () => {

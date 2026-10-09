@@ -1,6 +1,8 @@
+import { armorFactor } from '../data/armor';
 import { HEROES } from '../data/heroes';
 import { DISPELLABLE, SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
+import { aggroTarget } from './bosses';
 import { cellOf, living, unitById } from './core';
 import { create, step } from './fight';
 import { canTarget, knows, use } from './healer';
@@ -9,6 +11,35 @@ import { reviveTarget } from './items';
 import { dangerAt } from './movement';
 import { talentReady, useTalent } from './talents';
 import type { Fight, FightConfig, Unit } from './types';
+
+/**
+ * 버스터를 맞을 사람이 버틸 만큼 차 있지 않으면 그 사람 (직업군 방어력이 있을 때만).
+ * 방어력이 생기면 광역이 탱커를 덜 깎아서 탱커가 「가장 낮은 사람」에서 밀리기 쉬움 → 버스터 전에 먼저 채움.
+ * 예고가 짧아서(2초) 예고가 뜨기 4초 전부터 본다 (대기열에 다음 기술이 보이는 것과 같음)
+ */
+function busterShort(f: Fight): { u: Unit; soon: boolean } | null {
+  if (!f.armor) return null;
+  const short = (u: Unit | null | undefined, dmg: number) => !!u && u.alive && u.guardian <= 0 && u.hp < Math.min(u.max * 0.95, dmg * f.dmgMult * armorFactor(u.role, 'tank') * 1.1 + u.max * 0.15); // 그 사이 평타 한두 대 여유. 가득 차도 못 버티는 버스터면 거의 가득까지만
+  for (const t of f.tels) {
+    if (t.kind !== 'buster' || !t.skill.dmg) continue;
+    const u = unitById(f, t.units[0]);
+    if (short(u, t.skill.dmg)) return { u: u!, soon: t.impact - f.t < 2 };
+  }
+  for (const s of f.skills) {
+    if (s.kind !== 'buster' || !s.dmg || s.mob != null || s.next - f.t > 4 || !s.active(f)) continue;
+    const u = aggroTarget(f);
+    if (short(u, s.dmg)) return { u: u!, soon: false };
+  }
+  return null;
+}
+
+/**
+ * 가장 낮은 사람. 직업군 방어력이 있으면 힐러(나)가 가장 약한 쪽이라, 나도 거의 같이 낮으면 나부터 (내가 쓰러지면 끝)
+ */
+function lowest(f: Fight, live: Unit[], pct: (u: Unit) => number): Unit {
+  const low = live.reduce((a, b) => (pct(b) < pct(a) ? b : a));
+  return f.armor && f.me.alive && pct(f.me) < 0.6 && pct(f.me) < pct(low) + 0.15 ? f.me : low;
+}
 
 /** 자동 힐러 (밸런스 시뮬레이션·구경 모드용, sim decide() 이식). 아직 안 배운 스킬은 건너뜀 */
 export function autoHealer(f: Fight): void {
@@ -19,7 +50,7 @@ export function autoHealer(f: Fight): void {
   const live = living(f);
   if (!live.length) return;
   const pct = (u: Unit) => u.hp / u.max;
-  const low = live.reduce((a, b) => (pct(b) < pct(a) ? b : a));
+  const low = lowest(f, live, pct);
   const aoeSoon = f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 3.5);
   const cellIdx = (u: Unit) => (u.moving ? u.moving.from : u.cell);
   if (knows(f, 'hymn') && (f.cd.hymn ?? 0) <= 0 && live.filter(u => pct(u) < 0.5).length >= Math.max(2, Math.floor(live.length / 2)) && f.mana >= 15) { use(f, 'hymn', 0); return; }
@@ -27,6 +58,8 @@ export function autoHealer(f: Fight): void {
     const tk = unitById(f, t.units[0]);
     if (tk && tk.alive && pct(tk) < 0.75) { use(f, 'guardian', cellIdx(tk)); return; }
   }
+  const bs = busterShort(f);
+  if (bs && f.mana > 6) { use(f, bs.soon || !knows(f, 'heal') ? 'flash' : 'heal', cellIdx(bs.u)); return; }
   const thrifty = f.mana < 25; // 마나가 바닥나면 무료 성언을 아끼지 않는다
   if (f.g.p >= 100 && pct(low) < (thrifty ? 0.7 : 0.45)) { use(f, 'serenity', cellIdx(low)); return; }
   // 광역 힐 판단 기준은 힐 크기에 맞춤 (레벨 배율 f.power, 07 4장)
@@ -74,7 +107,7 @@ function ctx(f: Fight, amt: number): Ctx | null {
   const live = living(f);
   if (!live.length) return null;
   const pct = (u: Unit) => u.hp / u.max;
-  const low = live.reduce((a, b) => (pct(b) < pct(a) ? b : a));
+  const low = lowest(f, live, pct);
   const idx = (u: Unit) => (u.moving ? u.moving.from : u.cell);
   const ready = (k: SkillKey) => knows(f, k) && (f.cd[k] ?? 0) <= 0 && f.mana >= SKILLS[k].cost;
   let best: Unit | null = null, score = 0;
@@ -105,6 +138,7 @@ function autoDruid(f: Fight): void {
   if (ready('quietwood') && live.filter(u => pct(u) < 0.5).length >= Math.max(2, Math.floor(live.length / 2))) { use(f, 'quietwood', 0); return; }
   if (ready('rebirth') && !f.rebirthUsed && reviveTarget(f) && tryUse(f, 'rebirth', null, idx)) return;
   if (c.busterOn && ready('bark') && pct(c.busterOn) < 0.8 && tryUse(f, 'bark', c.busterOn, idx)) return;
+  { const bs = busterShort(f); if (bs && f.mana > 4 && tryUse(f, 'growth', bs.u, idx)) return; }
   // 여럿이 크게 다쳤으면 들꽃 군락부터 (20인에서 한 명씩만 살리다 밀리지 않게)
   if (ready('wildflower') && c.cluster.best && c.cluster.score > 800 * f.power && tryUse(f, 'wildflower', c.cluster.best, idx)) return;
   // 위급: 거둘 지속 힐이 있으면 피워 내기, 없으면 생장
@@ -135,6 +169,7 @@ function autoPaladin(f: Fight): void {
   if (ready('sanctuary') && c.cluster.best && live.filter(u => pct(u) < 0.5).length >= Math.max(2, Math.floor(live.length / 2)) && tryUse(f, 'sanctuary', c.cluster.best, idx)) return;
   if (c.busterOn && ready('sacrifice') && tryUse(f, 'sacrifice', c.busterOn, idx)) return;
   if (c.busterOn && ready('handGuard') && pct(c.busterOn) < 0.35 && c.busterOn.role !== 'tank' && tryUse(f, 'handGuard', c.busterOn, idx)) return;
+  { const bs = busterShort(f); if (bs && ((ready('holyStrike') && tryUse(f, 'holyStrike', bs.u, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', bs.u, idx)))) return; }
   if (f.power3 >= 3) {
     if (knows(f, 'lightWave') && c.cluster.best && c.cluster.score > 600 * f.power && tryUse(f, 'lightWave', c.cluster.best, idx)) return;
     const tank = live.find(u => u.role === 'tank' && !u.hots.some(h => h.key === 'oath'));

@@ -3,6 +3,7 @@
  * 매 프레임 바뀐 글자·클래스만 고침 (판은 board.ts가 캔버스에).
  */
 import { ABILITIES, AB_KIND } from '../data/abilities';
+import { NO_TANK_SEC } from '../data/armor';
 import { CLASSES } from '../data/classes';
 import { BEACON } from '../data/heroConst';
 import { canDispel, HEROES } from '../data/heroes';
@@ -399,6 +400,10 @@ export function updateStage(now: number): void {
   const down = !F.over && F.party.some(u => u.role === 'tank') && !F.party.some(u => u.role === 'tank' && u.alive);
   if ($('giveUp').hidden === down) { $('giveUp').hidden = !down; $('hint').hidden = down; }
   $('controls').classList.toggle('tank-down', down);
+  // 레이드 탱커 공백 (35 6-4): 포기 버튼 위에 광폭화까지 남은 초
+  const nt = $('noTank');
+  const ntTxt = F.noTankAt != null && !F.enraged ? `탱커 없음 ${Math.max(0, Math.ceil(NO_TANK_SEC - (F.t - F.noTankAt)))}` : '';
+  if (nt.textContent !== ntTxt) { nt.textContent = ntTxt; nt.hidden = !ntTxt; }
 }
 
 // ---------- 설명 팝업 (보스 기술 · 스킬 · 아이템 같은 모양) ----------

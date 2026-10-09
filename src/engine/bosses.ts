@@ -1,4 +1,5 @@
 import type { MobAttack, ScriptKey } from '../data/encounters';
+import { NO_TANK_SEC } from '../data/armor';
 import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, living, randomTargets, spread, unitById } from './core';
 import { scheduleReactions } from './movement';
@@ -26,7 +27,7 @@ export function aggroTarget(f: Fight): Unit | null {
 /** 보스 평타 ±30% (전사 「단단한 몸」은 ±15%, 17) */
 function autoHit(f: Fight, tk: Unit, base: number): void {
   const r = f.rng();
-  damage(f, tk, base * (tk.cls === 'warrior' ? 0.85 + 0.3 * r : 0.7 + 0.6 * r));
+  damage(f, tk, base * (tk.cls === 'warrior' ? 0.85 + 0.3 * r : 0.7 + 0.6 * r), false, 'tank');
 }
 
 interface BossScript {
@@ -36,8 +37,10 @@ interface BossScript {
 
 /** 광폭화: 시각이 되면 짧은 주기 광역 */
 function enrageAt(f: Fight, name: string, period: number, dmg: number): void {
-  if (f.enraged || f.t < f.enc.enrage) return;
+  const noTank = f.noTankAt != null && f.t >= f.noTankAt + NO_TANK_SEC; // 레이드 탱커 공백 (35 6-4)
+  if (f.enraged || (f.t < f.enc.enrage && !noTank)) return;
   f.enraged = true; emit(f, { type: 'phase', text: '광폭화' });
+  if (f.t < f.enc.enrage) emit(f, { type: 'msg', text: '탱커가 없어 보스가 광폭화' });
   skill(f, { key: 'enrage', name, icon: '광폭', kind: 'aoe', next: f.t, period, cast: 1, hit(f) { for (const u of living(f)) damage(f, u, dmg, true); } });
 }
 
@@ -62,7 +65,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
       skill(f, {
         key: 'buster', name: '고철 휘두르기', icon: '휘두', kind: 'buster', next: 10, period: 16, cast: 2, warn: 'buster', dmg: 450,
         target(f) { const tk = aggroTarget(f); return tk ? [tk.id] : []; },
-        hit(f, tel) { for (const id of tel.units) { const u = unitById(f, id); if (u) damage(f, u, tel.skill.dmg!); } },
+        hit(f, tel) { for (const id of tel.units) { const u = unitById(f, id); if (u) damage(f, u, tel.skill.dmg!, false, 'tank'); } },
       });
       skill(f, {
         key: 'aoe', name: '쇳조각 비', icon: '쇳조', kind: 'aoe', next: 20, period: 22, cast: 3, warn: 'aoe', cut: true,
@@ -90,12 +93,12 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
             fire(f) {
               for (const u of mobTargets(f, a.to)) {
                 const j = (a.jitter || 0) * (u.cls === 'warrior' ? 0.5 : 1);
-                damage(f, u, a.dmg * (1 - j + 2 * j * f.rng()), a.to === 'all');
+                damage(f, u, a.dmg * (1 - j + 2 * j * f.rng()), a.to === 'all', a.to === 'tank' ? 'tank' : 'party');
               }
             },
             hit(f, tel) {
               const us = a.to === 'all' ? living(f) : tel.units.map(id => unitById(f, id)).filter((u): u is Unit => !!u);
-              for (const u of us) damage(f, u, a.dmg, a.to === 'all');
+              for (const u of us) damage(f, u, a.dmg, a.to === 'all', a.to === 'tank' ? 'tank' : 'party');
             },
           });
         }
@@ -110,7 +113,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
       skill(f, {
         key: 'buster', name: '내려찍기', icon: '찍기', kind: 'buster', next: 12, period: 20, cast: 2, warn: 'buster', dmg: 600,
         target(f) { const tk = aggroTarget(f); return tk ? [tk.id] : []; },
-        hit(f, tel) { for (const id of tel.units) { const u = unitById(f, id); if (u) damage(f, u, tel.skill.dmg!); } },
+        hit(f, tel) { for (const id of tel.units) { const u = unitById(f, id); if (u) damage(f, u, tel.skill.dmg!, false, 'tank'); } },
       });
       skill(f, {
         key: 'aoe', name: '증기 분출', icon: '증기', kind: 'aoe', next: 25, period: 30, cast: 3, warn: 'aoe',
@@ -227,7 +230,7 @@ const SCRIPTS: Record<ScriptKey, BossScript> = {
       skill(f, {
         key: 'baton', name: '지휘봉', icon: '지휘', kind: 'buster', next: 9, period: 18, cast: 2, warn: 'buster', dmg: CHOIR.baton,
         target(f) { const tk = aggroTarget(f); return tk ? [tk.id] : []; },
-        hit(f, tel) { for (const id of tel.units) { const u = unitById(f, id); if (u) damage(f, u, tel.skill.dmg!); } },
+        hit(f, tel) { for (const id of tel.units) { const u = unitById(f, id); if (u) damage(f, u, tel.skill.dmg!, false, 'tank'); } },
       });
       skill(f, {
         key: 'crescendo', name: '크레센도', icon: '크레', kind: 'zone', next: 12, period: 15, cast: 3, dps: CHOIR.crescDps * (f.mythic ? CHOIR.discord : 1), dur: 5, warn: 'zone',

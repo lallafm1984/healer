@@ -342,6 +342,8 @@ textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertic
 /* 탱커가 모두 쓰러지면 아래에 나오는 포기 버튼 (2026-10-07 Lim) */
 #giveUp { width: 100%; max-width: 132px; min-height: 36px; padding: 6px 10px; font-family: var(--font-display); font-size: 17px; color: #FFD9D4; background: #4A1C1C; border-color: var(--danger); animation: giveUpIn 0.25s ease-out; }
 #giveUp:active { transform: translateY(1px); }
+#giveUp #noTank { display: block; font-size: 12px; line-height: 1.2; color: #FF8A80; font-variant-numeric: tabular-nums; }
+#giveUp #noTank[hidden] { display: none; }
 @keyframes giveUpIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 #preview .trait b { color: var(--gold-hi); }
 /* 적 등급 (2026-10-07 Lim: 잡몹 대신 일반·정예) */

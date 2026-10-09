@@ -298,6 +298,8 @@ export interface FightConfig {
   talents?: (number | null)[];
   /** 가방에 남은 소비 아이템 (19 11장). 없으면 제한 없음 */
   itemCap?: Partial<Record<ItemKey, number>>;
+  /** 직업군 방어력 (34 9-2). false면 끔 = 프로토타입과 같음 (parity 테스트) */
+  armor?: boolean;
   /** 어픽스 (32 난이도 어픽스, 13 3-3 주간 도전). 없으면 어픽스 없음 */
   affixes?: AffixKey[];
   /** 보스·적 체력·피해 배율 (주간 도전 단계, 13 3-2). 없으면 1 */
@@ -464,6 +466,10 @@ export interface Fight {
   phaseName: string;
   invuln: boolean;
   enraged: boolean;
+  /** 직업군 방어력을 쓰는가 (cfg.armor) */
+  armor: boolean;
+  /** 레이드에서 탱커가 모두 쓰러진 시각 (35 6-4). 탱커가 일어나면 null */
+  noTankAt: number | null;
   rats: number[];
   items: Partial<Record<ItemKey, number>>;
   potCd: number;

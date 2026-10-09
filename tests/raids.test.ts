@@ -1,5 +1,6 @@
 /** 레이드 10인·20인 분리 (26): 콘텐츠 카드, 10인 악몽 전용 기술, 20인 무음 성가대 */
 import { describe, expect, it } from 'vitest';
+import { armorFactor } from '../src/data/armor';
 import { ALL_DIFFS, contentOf, raidSize } from '../src/data/content';
 import { MYTHIC } from '../src/data/difficulty';
 import * as E from '../src/engine';
@@ -114,7 +115,7 @@ describe('20인 무음 성가대 (26 4-3)', () => {
     f.phase = 2;
     addDebuff(f, u, { name: '독창', type: '마법', left: 0.01 });
     steps(f, 0.1);
-    expect(same.every(v => v.max - v.hp >= 200 * f.dmgMult - 1e-6)).toBe(true);
+    expect(same.every(v => v.max - v.hp >= 200 * f.dmgMult * armorFactor(v.role, 'party') - 1e-6)).toBe(true);
   });
   it('보통 자동 힐러 (영웅 장비)로 깰 수 있음', () => {
     let win = 0;

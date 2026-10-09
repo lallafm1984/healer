@@ -1,6 +1,7 @@
 /** 파티원 특수 능력 (17 3~7장): 데이터 80개, 쓰는 때, 효과, 자질·레벨, 프로토타입 일치 */
 import { describe, expect, it } from 'vitest';
 import { ABILITIES, abilitiesOf, rollAbility, starFx } from '../src/data/abilities';
+import { armorFactor } from '../src/data/armor';
 import { RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
 import { lvPower } from '../src/data/progression';
 import * as E from '../src/engine';
@@ -184,7 +185,7 @@ describe('쓰는 때와 효과', () => {
     expect(E.unitDps(u) / raw).toBeCloseTo(1.5, 5);
     expect(d0).toBeGreaterThan(0);
     const hp = u.hp; damage(f, u, 10);
-    expect(hp - u.hp).toBeCloseTo(10 * f.dmgMult * 1.1, 5);
+    expect(hp - u.hp).toBeCloseTo(10 * f.dmgMult * armorFactor(u.role, 'party') * 1.1, 5);
   });
 });
 

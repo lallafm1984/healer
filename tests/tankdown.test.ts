@@ -1,5 +1,6 @@
 /** 탱커 전멸 규칙과 특성 「버팀목」 (2026-10-07 Lim) */
 import { describe, expect, it } from 'vitest';
+import { armorFactor } from '../src/data/armor';
 import { BULWARK, TRAIT_CHANCE } from '../src/data/traits';
 import * as E from '../src/engine';
 import type { Fight, RosterEntry } from '../src/engine';
@@ -35,7 +36,7 @@ describe('탱커가 모두 쓰러져도 전투는 계속', () => {
       const u = g.party.find(x => x.nick === '버팀')!;
       if (on) u.bulwark = 5;
       const full = u.hp; aoe(g);
-      expect(full - u.hp).toBeCloseTo(170 * g.dmgMult * (on ? 1 - BULWARK.cut : 1));
+      expect(full - u.hp).toBeCloseTo(170 * g.dmgMult * armorFactor(u.role, 'party') * (on ? 1 - BULWARK.cut : 1));
     }
     // 끝나면 다시 켜지지 않음
     run(f, BULWARK.sec + 1);
