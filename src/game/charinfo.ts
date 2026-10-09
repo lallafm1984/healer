@@ -2,9 +2,10 @@
  * 내 힐러 요약 (27 2장 로비 힐러 카드 · 4-1 캐릭터 머리 · 4-2 능력치 판).
  * 장비 점수 = 장착 장비 itemScore 합 × 10 (편성 화면 권장 장비 경고와 같은 기준). 「전투력」이라는 말은 쓰지 않는다.
  */
-import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, itemSpecs, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
+import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, itemSpecs, SLOTS, slotName, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
 import { HEROES } from '../data/heroes';
-import { namedOf, SPEC_GROUPS, SPECS, specText, specValue, type SpecGroup } from '../data/specials';
+import { codexKeys, FEATURED, namedOf, SPEC_GROUPS, SPECS, specText, specValue, type CodexGroup, type SpecGroup } from '../data/specials';
+import { contentOf, type ContentKey } from '../data/content';
 import { lvPower } from '../data/progression';
 import { INT_BASE, RULES } from '../data/rules';
 import { TALENTS } from '../data/talents';
@@ -49,6 +50,21 @@ export function specRows(it: GearItem): SpecRow[] {
     out.push({ key: d.key, name: d.name, group: d.group, badge: SPEC_GROUPS[d.group].name, text: specText(d, specValue(d.key, it.grade, l.roll)), roll: d.fixed ? null : l.roll, off });
   }
   return out;
+}
+
+/** 도감 한 칸 (42 1-6): 얻은 것은 이름 · 효과 (영웅 최대값), 못 얻은 것은 「?」 + 나오는 곳 힌트 */
+export interface CodexRow { key: string; got: boolean; name: string; text: string; hint: string }
+export function codexRows(g: CodexGroup): CodexRow[] {
+  const have = G.save.gear.codex;
+  return codexKeys(g).map(key => {
+    const got = have.includes(key), nm = namedOf(key);
+    if (nm) return { key, got, name: nm.name, text: specText(nm, nm.val), hint: `${nm.placeName}에서 · ${slotName(nm.slot)}` };
+    const d = SPECS[key];
+    const where = d.slots.length === SLOTS.length ? '모든 부위' : d.slots.map(slotName).join(' · ');
+    const feat = Object.keys(FEATURED).filter(p => FEATURED[p].includes(key)).map(p => contentOf(p as ContentKey).name);
+    const hint = [where, `${d.min} 이상`, d.hero ? `${HEROES[d.hero].name}로 돌 때` : '', feat.length ? `${feat.join(' · ')}에서 자주` : ''].filter(Boolean).join(' · ');
+    return { key, got, name: d.name, text: specText(d, d.fixed ? d.val : specValue(key, '영웅', 1)), hint };
+  });
 }
 
 /** 장착 평균 등급·강화 (빈칸은 0점으로 셈): 희귀 +3 → { grade: '희귀', plus: 3 } */

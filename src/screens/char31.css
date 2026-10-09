@@ -526,3 +526,11 @@
 #s-char .c7-spec[data-g="gimmick"] { --spc: #8FE3D9; }
 #s-char .c7-spec[data-g="hero"] { --spc: #F2C46B; }
 #s-char .c7-spec[data-g="named"] { --spc: #FF8A3D; }
+/* 특수능력 도감 (42 1-6): 묶음 칩 · 칸 목록 (못 얻은 칸 = 「?」 + 나오는 곳) */
+#s-char .c7-codex .c7-fc small { margin-left: 4px; font-weight: 400; color: var(--mute); }
+#s-char .c7-codex .c7-fc[aria-pressed="true"] small { color: inherit; }
+#s-char .c7-ctitle { margin: 0; }
+#s-char .c7-clist { display: flex; flex-direction: column; }
+#s-char .c7-spec.unk .c7-spg { border-style: dashed; opacity: 0.6; }
+#s-char .c7-spec.unk b { color: var(--mute); }
+#s-char .c7-codex .c7-bagf .cap { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

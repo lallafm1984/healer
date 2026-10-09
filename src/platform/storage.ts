@@ -5,6 +5,7 @@
 import type { DiffName } from '../data/difficulty';
 import { EXTRA_LINES, itemName, kindOf, rollLines, rollSpecs, specCount, specKeysOf, SLOTS, type Equipped, type GearItem } from '../data/equipment';
 import { rngFrom } from '../engine/rng';
+import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import type { GuildMember, PostTier } from '../data/guild';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { STARTER_BAG } from '../data/economy';
@@ -286,10 +287,17 @@ function gearOf(o: Partial<SaveData>, hero: HeroKey, nextId: number): SaveData['
   return { equipped, bag, seen: typeof g?.seen === 'number' ? g.seen : (typeof o.nextId === 'number' ? o.nextId : nextId) - 1, codex };
 }
 
-/** 새 장비의 특수능력을 도감에 적고, 처음 얻은 것만 돌려줌 (결과 화면 「새 특수능력!」, 42 1-6) */
+/**
+ * 새 장비의 특수능력을 도감에 적고, 처음 얻은 것만 돌려줌 (결과 화면 「새 특수능력!」, 42 1-6).
+ * 그걸로 도감 묶음 하나를 다 모으면 칭호를 decos에 넣음
+ */
 export function noteSpecs(d: SaveData, items: readonly (GearItem | null | undefined)[]): string[] {
   const out: string[] = [];
   for (const it of items) if (it) for (const k of specKeysOf(it)) if (!d.gear.codex.includes(k)) { d.gear.codex.push(k); out.push(k); }
+  for (const k of out) {
+    const g = codexGroupOf(k), t = g && SPEC_TITLES[g];
+    if (t && !d.decos.includes(t) && codexKeys(g).every(x => d.gear.codex.includes(x))) d.decos.push(t);
+  }
   return out;
 }
 

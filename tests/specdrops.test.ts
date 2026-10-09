@@ -4,7 +4,7 @@ import {
   FEATURED_WEIGHT, ITEM_GRADES, itemName, itemScore, makeItem, NAMED_CHANCE, rollItem, rollSpecs, SLOTS, SPEC_ADV, SPEC_LINES, specKeysOf, specsOf,
   type GearItem, type ItemGrade, type SlotKey,
 } from '../src/data/equipment';
-import { FEATURED, NAMED, SPECS } from '../src/data/specials';
+import { codexKeys, FEATURED, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, type CodexGroup } from '../src/data/specials';
 import { rngFrom } from '../src/engine/rng';
 import { migrate, newSave, noteSpecs } from '../src/platform/storage';
 import { exchangeMerit } from '../src/game/economy';
@@ -127,6 +127,24 @@ describe('저장 · 도감 (42 1-6)', () => {
     expect(noteSpecs(s, [it]).sort()).toEqual(['rustyCog', 'warmTouch']);
     expect(noteSpecs(s, [{ ...it, id: 2 }])).toEqual([]);
     expect(s.gear.codex.sort()).toEqual(['rustyCog', 'warmTouch']);
+  });
+  it('도감 묶음은 특수능력 118종 + 이름 있는 장신구, 묶음마다 칭호 하나', () => {
+    const gs = [...Object.keys(SPEC_GROUPS), 'named'] as CodexGroup[];
+    expect(gs.flatMap(codexKeys).length).toBe(SPEC_KEYS.length + NAMED.length);
+    expect(new Set(gs.map(g => SPEC_TITLES[g])).size).toBe(gs.length);
+  });
+  it('묶음 하나를 다 모으면 칭호를 받음 (한 번만)', () => {
+    const s = newSave(1);
+    const keys = codexKeys('mana');
+    const it = (id: number, ks: string[]): GearItem => ({ id, slot: 'ring', kind: 'ring', grade: '영웅', plus: 0, name: '', lines: [], specs: ks.map(key => ({ key, roll: 1 })) });
+    noteSpecs(s, [it(1, keys.slice(0, -1))]);
+    expect(s.decos).not.toContain(SPEC_TITLES.mana);
+    noteSpecs(s, [it(2, keys.slice(-1))]);
+    expect(s.decos.filter(d => d === SPEC_TITLES.mana).length).toBe(1);
+    noteSpecs(s, [it(3, keys)]);
+    expect(s.decos.filter(d => d === SPEC_TITLES.mana).length).toBe(1);
+    noteSpecs(s, NAMED.map((n, i) => ({ ...it(10 + i, []), slot: n.slot, named: n.key })));
+    expect(s.decos).toContain(SPEC_TITLES.named);
   });
   it('공훈 교환 장비도 직업 맞춤 굴림 · 도감에 적힘', () => {
     const s = newSave(1);
