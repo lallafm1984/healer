@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fitBoard, type BoardInsets, type BoardPoint } from '../src/battle/board-layout';
 import { BOARDS } from '../src/data/boards';
+import { ENCOUNTERS } from '../src/data/encounters';
 import { makeCells } from '../src/engine/board';
 
 type Layout = ReturnType<typeof fitBoard>;
@@ -89,7 +90,7 @@ describe('전투판의 같은 비율 확대와 표시 경계', () => {
 
   it('짧은 320×640 일반 영역은 세로, 충분히 높은 360 폭 20인 판은 가로가 제한한다', () => {
     for (const board of boards) expect(fitBoard(board.cells, 320, 169.21875).axis).toBe('vertical');
-    expect(fitBoard(makeCells(BOARDS.b30), 360, 471.625, { footer: 26 }).axis).toBe('horizontal');
+    expect(fitBoard(makeCells(BOARDS.b36), 360, 471.625, { footer: 26 }).axis).toBe('horizontal');
   });
 
   it('작은 판의 최소 2.5px 선과 큰 판의 배율 비례 선 모두를 포함한다', () => {
@@ -109,7 +110,7 @@ describe('safe inset과 좌표계 변경', () => {
     { name: '양쪽 비대칭', left: 19.5, right: 41.25, footer: 26 },
     { name: '절반보다 큰 왼쪽 inset', left: 170, right: 5, footer: 26 },
   ])('$name: 절대 경계와 남은 영역의 중심을 보존한다', insets => {
-    const cells = makeCells(BOARDS.b30), layout = fitBoard(cells, 320, 390, insets);
+    const cells = makeCells(BOARDS.b36), layout = fitBoard(cells, 320, 390, insets);
     expect(layout.left).toBe(insets.left + 2);
     expect(layout.right).toBe(320 - insets.right - 2);
     expect(layout.bottom).toBe(390 - insets.footer - 2);
@@ -138,12 +139,12 @@ describe('safe inset과 좌표계 변경', () => {
   });
 
   it('입력 순서를 뒤집어도 배치가 같다', () => {
-    const cells = makeCells(BOARDS.b30);
+    const cells = makeCells(BOARDS.b36);
     expect(fitBoard(cells, 360, 371.625)).toEqual(fitBoard([...cells].reverse(), 360, 371.625));
   });
 
   it('리사이즈·모드 왕복 뒤 첫 배치가 정확히 복구되고 입력도 바뀌지 않는다', () => {
-    const cells = Object.freeze(makeCells(BOARDS.b30).map(c => Object.freeze({ px: c.px, py: c.py })));
+    const cells = Object.freeze(makeCells(BOARDS.b36).map(c => Object.freeze({ px: c.px, py: c.py })));
     const insets = Object.freeze({ left: 13, right: 7, footer: 26 });
     const before = JSON.stringify(cells), first = fitBoard(cells, 360, 371.625, insets);
     for (let pass = 0; pass < 3; pass++) {
@@ -163,7 +164,7 @@ describe('초기화·극소 영역의 수치 안정성', () => {
     { width: 16, height: 12, insets: { left: 30, right: 30, footer: 26 } },
   ];
   it.each(cases)('$width×$height: 빈 판과 실제 판 모두 NaN/Infinity를 만들지 않는다', ({ width, height, insets }) => {
-    for (const cells of [[], [{ px: -100, py: 80 }], makeCells(BOARDS.b30)]) {
+    for (const cells of [[], [{ px: -100, py: 80 }], makeCells(BOARDS.b36)]) {
       const layout = fitBoard(cells, width, height, insets);
       for (const [key, value] of Object.entries(layout)) {
         if (key !== 'axis') expect(Number.isFinite(value), key).toBe(true);
@@ -171,6 +172,20 @@ describe('초기화·극소 영역의 수치 안정성', () => {
       expect(layout.s).toBeGreaterThan(0);
       expect(layout.right).toBeGreaterThan(layout.left);
       expect(layout.bottom).toBeGreaterThan(layout.top);
+    }
+  });
+});
+
+describe('보스전 판 (Lim 2026-10-09: 모든 보스전 6줄로 일정하게)', () => {
+  it('던전 5인 · 10인 · 20인은 같은 6열 × 6줄 판, 탐험·튜토리얼은 7칸', () => {
+    for (const enc of Object.values(ENCOUNTERS)) {
+      const rows = BOARDS[enc.board];
+      if (enc.board === 'b7') expect(enc.comp.tank + enc.comp.melee + enc.comp.ranged, enc.key).toBeLessThanOrEqual(2);
+      else {
+        expect(enc.board, enc.key).toBe('b36');
+        expect(rows).toHaveLength(6);
+        expect(rows.every(r => r.join() === '0,1,2,3,4,5'), enc.key).toBe(true);
+      }
     }
   });
 });

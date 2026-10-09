@@ -340,11 +340,6 @@ export function buildStage(): void {
 export function updateStage(now: number): void {
   const F = fight(), R = S.run!;
   $('battle').classList.toggle('reduced-effects', S.reducedEffects);
-  const alive = F.party.filter(u => u.alive), critical = alive.filter(u => u.hp / u.max < 0.3).length;
-  setText($('partyAlive'), `${alive.length}/${F.party.length}`);
-  setText($('partyCondition'), critical ? `${critical}명 위험` : alive.length < F.party.length ? `쓰러짐 ${F.party.length - alive.length}` : '모두 생존');
-  $('partyCondition').classList.toggle('critical', critical > 0);
-  $('partyCondition').classList.toggle('down', !critical && alive.length < F.party.length);
   const pct = F.bossHp / F.bossMax;
   setBar($('bossFill'), pct);
   setBar($('bossLag'), pct);

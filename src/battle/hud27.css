@@ -121,13 +121,6 @@
 #tip .ic.qk svg { width: 13px; height: 13px; }
 
 /* ---------- 파티 상태 줄: 「파티 5/5」 함렛 노랑 + 상태 색 ---------- */
-#battle #partyStatus { flex: 0 0 auto; height: 22px; display: flex; align-items: center; gap: 6px; margin: 10px 16px 4px; padding: 0; border: 0; background: none; font-size: 12px; color: var(--mute); }
-#battle #partyStatus .ps-count { font: 700 15px var(--font-display); color: var(--gold-hi); white-space: nowrap; }
-#battle #partyStatus b { margin: 0; font: inherit; color: inherit; font-variant-numeric: tabular-nums; }
-#battle #partyCondition { font: 500 12px var(--font-body); color: var(--heal); white-space: nowrap; }
-#battle #partyCondition.critical, #battle #partyCondition.down { color: #FF9A92; }
-#battle #partyCondition.critical { font-weight: 700; }
-#battle #partyStatus .board-instruction { margin-left: auto; font-size: 12px; color: var(--mute); white-space: nowrap; }
 /* 진형 판: 바닥 그림 위아래를 화면 바탕색으로 흐리게 (위 파티 줄 · 아래 시전 막대와 이어지게) */
 #battle.has-floor #boardWrap { background: linear-gradient(#15120E, rgba(21, 18, 14, 0) 9%, rgba(21, 18, 14, 0) 91%, #15120E), radial-gradient(ellipse at center, rgba(16, 13, 10, 0.3) 30%, rgba(12, 10, 8, 0.7) 100%), var(--floor) center / cover, #15120E; }
 
@@ -242,7 +235,6 @@
 #battle.stage-sm #queue .q.hot .ic { width: 22px; height: 24px; }
 #battle.stage-sm #queue .q.hot .ic svg { width: 15px; height: 15px; }
 #battle.stage-sm #queue .q.hot .sec { font-size: 18px; }
-#battle.stage-sm #partyStatus { height: 24px; }
 #battle.stage-sm #castTrack { height: 32px; }
 #battle.stage-sm #castbar.is-casting #castLabel { font-size: 13px; }
 
@@ -257,7 +249,6 @@
 #battle.short-battle #bossHpText { font-size: 12px; }
 #battle.short-battle #queue { margin-top: 8px; }
 #battle.short-battle #queue .q, #battle.short-battle #queue .q-empty { height: 44px; }
-#battle.short-battle #partyStatus { height: 20px; margin: 6px 12px 2px; }
 #battle.short-battle #castbar { padding: 2px 12px 6px; }
 #battle.short-battle #castTrack { height: 28px; }
 #battle.short-battle #side { gap: 6px; padding: 6px 0 4px; }
@@ -299,8 +290,6 @@
   #battle #dmgNums, #battle.stage-sm #dmgNums { left: 10px; width: 52px; height: 52px; }
   #battle #bossName, #battle.stage-sm #bossName { font-size: 18px; }
   #battle #queue { gap: 4px; }
-  #battle #partyStatus { margin-left: 12px; margin-right: 12px; gap: 5px; }
-  #battle #partyStatus .board-instruction { font-size: 11px; }
   #battle #castbar { padding-left: 12px; padding-right: 12px; }
   #battle #controls, #battle #controls.wheel-left { padding-left: 12px; padding-right: 12px; }
   #battle #aux { gap: 4px; }

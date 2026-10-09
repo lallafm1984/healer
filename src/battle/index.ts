@@ -142,7 +142,6 @@ function layoutBattle(): void {
   // 일시정지 중 부모가 바뀌어도 이전 직계 자식의 inert가 남지 않게 한다.
   $('castbar').inert = false;
   setPauseInert(!$('pause').hidden);
-  $('battle').querySelector<HTMLElement>('.board-instruction')!.textContent = '탭: 치유 · 길게: 정보';
   if (F.hero === 'paladin') {
     $('core').setAttribute('role', 'button'); $('core').tabIndex = 0;
     $('core').setAttribute('aria-label', '마나 · 봉화 지정');

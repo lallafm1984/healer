@@ -52,11 +52,6 @@
 #battle .q .nm { font-size: 10px; color: #E6DFD3; }
 #battle .q .sec { font-size: 12px; color: #f6e0b6; }
 #battle .q.casting .sec { color: #ffb3a6; }
-#partyStatus { flex: 0 0 28px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid #372E25; background: #221B14; font-size: 11px; color: #CCC0AA; }
-#partyStatus b { margin-left: 3px; color: #e9e4d7; font-variant-numeric: tabular-nums; }
-#partyCondition { color: #96b3a8; }
-#partyCondition.critical { color: #ff9b8c; font-weight: 700; }
-#partyStatus .board-instruction { margin-left: auto; color: #A5987F; font-size: 10px; }
 #battle #boardWrap { background: radial-gradient(ellipse at center, var(--tone-a, #2A2118), var(--tone-b, #1A140E) 76%); }
 #battle.has-floor #boardWrap { background: radial-gradient(ellipse at center, rgba(16, 13, 10, .34) 30%, rgba(12, 10, 8, .72) 100%), var(--floor) center / cover, #15120E; }
 #battle #castbar { flex: 0 0 32px; gap: 10px; padding: 0 14px; border-top: 1px solid #41372D; background: #241D15; color: #C9BFA9; font-size: 11px; }
@@ -116,7 +111,6 @@
 #battle.short-battle #items { max-width: 100px; gap: 4px; }
 #battle.short-battle #side { gap: 4px; }
 #battle.short-battle #hint { display: none; }
-#battle.short-battle #partyStatus { flex-basis: 24px; }
 #battle.short-battle #castbar { flex-basis: 28px; }
 #battle.short-battle #coach { padding: 8px 10px; font-size: 12px; line-height: 1.4; }
 .gd-art .boss-illustration { width: 60px; height: 60px; display: block; }
@@ -128,7 +122,6 @@
   #battle #bossName { font-size: 17px; }
   #battle .q { gap: 3px; padding-left: 3px; padding-right: 3px; }
   #battle .q .ic { width: 22px; height: 22px; font-size: 9px; }
-  #battle #partyStatus { padding-inline: 10px; gap: 8px; }
   #battle .slot .nm { font-size: 12px; }
   #battle .slot .dir { font-size: 10px; }
   #battle .slot .ct { font-size: 9px; }
