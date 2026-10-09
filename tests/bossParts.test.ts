@@ -992,3 +992,65 @@ describe('깨진 신전 부품 (35 4-5): 무력화 · 반격 틈 · 받침 · �
     expect(got).toEqual(types);
   });
 });
+
+describe('디버프 부품 2 (35 3장): 마나 갈취 · 매혹 · 옮겨붙음', () => {
+  it('마나 갈취: 표식은 내 마나 초당 -drain (지우면 멈춤), 쫄은 살아 있는 동안', () => {
+    const f = fight();
+    f.mana = 80;
+    const d = applyDebuff(f, f.me, { name: '마나 흡수', type: '마법', left: 20, drain: 2 })!;
+    const regen = (() => { const g = fight(); g.mana = 80; steps(g, 5); return g.mana - 80; })();
+    steps(f, 5);
+    expect(f.mana).toBeCloseTo(80 + regen - 10, 0);
+    f.me.debuffs = f.me.debuffs.filter(x => x !== d);
+    const g = fight();
+    g.mana = 80;
+    run(g, { p: 'adds', n: 1, add: { name: '마나 공허', short: '공허', hp: 0.03, dmg: 0, every: 9, job: { p: 'drain', pct: 3 } } });
+    steps(g, 5);
+    expect(g.mana).toBeCloseTo(80 + regen - 15, 0);
+    expect(focusOrder(g)[0].name).toBe('마나 공허');
+  });
+
+  it('매혹: 딜 0, 이웃 칸 아군을 때림, 힐하면 길어지고 체력 50% 아래면 풀림', () => {
+    const f = fight();
+    const u = dealer(f);
+    const d = applyDebuff(f, u, { name: '매혹', type: '마법', left: 8, noDps: true, charm: { every: 2, dmg: 40, heal: 1, free: 0.5 } })!;
+    const at = f.cells[u.cell];
+    const near = f.party.filter(v => v !== u && hexDist(f.cells[v.cell], at) === 1);
+    f.party.forEach(v => { v.hp = v.max; });
+    steps(f, 2.05);
+    near.forEach(v => expect(v.hp).toBeLessThan(v.max));
+    const left = d.left;
+    heal(f, u, 10, true, true);
+    expect(d.left).toBeCloseTo(left + 1);
+    u.hp = u.max * 0.4;
+    E.step(f);
+    expect(u.debuffs.includes(d)).toBe(false);
+  });
+
+  it('옮겨붙음: 지우면 이웃 칸 1명에게 더 세게, 혼자면 사라짐, 시간이 다 되면 보스 강해짐', () => {
+    const PLAGUE: DebuffDef = { name: '괴저 역병', type: '질병', left: 10, dot: 10, end: { p: 'jump', sec: 10, mult: 1.5, boost: 0.05 } };
+    const f = fight();
+    const u = f.party.find(v => !v.me && f.party.some(w => w !== v && hexDist(f.cells[w.cell], f.cells[v.cell]) === 1))!;
+    applyDebuff(f, u, PLAGUE);
+    doDispel(f, u);
+    const moved = f.party.filter(v => v.debuffs.some(d => d.name === '괴저 역병'));
+    expect(moved).toHaveLength(1);
+    expect(moved[0]).not.toBe(u);
+    expect(hexDist(f.cells[moved[0].cell], f.cells[u.cell])).toBe(1);
+    expect(moved[0].debuffs.find(d => d.name === '괴저 역병')!.dot).toBeCloseTo(15);
+    // 이웃이 없으면 사라짐
+    const g = fight();
+    const v = dealer(g);
+    for (const w of g.party) if (w !== v && hexDist(g.cells[w.cell], g.cells[v.cell]) === 1) { const far = g.cells.find(c => !c.unit && !c.block && hexDist(c, g.cells[v.cell]) > 1)!; g.cells[w.cell].unit = null; far.unit = w; w.cell = far.i; w.home = far.i; }
+    applyDebuff(g, v, PLAGUE);
+    doDispel(g, v);
+    expect(g.party.some(w => w.debuffs.some(d => d.name === '괴저 역병'))).toBe(false);
+    // 시간이 다 되면 보스 +5%
+    const h = fight();
+    const mult = h.dmgMult;
+    applyDebuff(h, dealer(h), { ...PLAGUE, left: 1 });
+    steps(h, 1.1);
+    expect(h.empower).toBeCloseTo(0.05);
+    expect(h.dmgMult / mult).toBeCloseTo(1.05);
+  });
+});

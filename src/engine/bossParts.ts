@@ -8,7 +8,7 @@ import { HEROES } from '../data/heroes';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
-import { addDebuff, cellOf, damage, DT, emit, living, randomTargets, setMax, spread, unitById } from './core';
+import { addDebuff, cellOf, damage, DT, emit, empowerBoss, living, randomTargets, setMax, spread, unitById } from './core';
 import { moveTo, scheduleReactions, zoneOf } from './movement';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
@@ -268,6 +268,25 @@ export function watchTick(f: Fight): void {
   emit(f, { type: 'msg', text: `주시: 보스가 ${w.sec}초 동안 나를 노림` });
 }
 
+/** 매혹 (P-CHARM): 체력이 free 아래면 풀림, 아니면 every초마다 이웃 칸 아군을 때림. 풀렸으면 true */
+export function charmTick(f: Fight, u: Unit, d: Debuff): boolean {
+  const c = d.charm!;
+  if (u.hp < u.max * c.free) {
+    u.debuffs = u.debuffs.filter(x => x !== d);
+    emit(f, { type: 'cure', id: u.id, name: d.name });
+    emit(f, { type: 'msg', text: `${u.nick} 정신이 돌아옴` });
+    return true;
+  }
+  if (d.charmAt == null) d.charmAt = f.t + c.every;
+  if (f.t + 1e-9 < d.charmAt) return false;
+  d.charmAt += c.every;
+  const at = cellOf(f, u);
+  const near = living(f).filter(v => v !== u && hexDist(cellOf(f, v), at) === 1);
+  for (const v of near) damage(f, v, c.dmg, false);
+  if (near.length) emit(f, { type: 'shake', id: u.id });
+  return false;
+}
+
 /** 차례 번호표 */
 export const ORDER_NUM = '①②③④⑤⑥';
 
@@ -432,8 +451,8 @@ function offTankTo(f: Fight, u: Unit, c: Cell): void {
   u.home = near.i; u.homeAt = null;
 }
 
-/** 일점사 순서 (P-FOCUS): 치유하는 쫄 → 폭탄 → 감옥 → 보호막 수정 → 그 밖, 같으면 먼저 나온 것 */
-const FOCUS: Partial<Record<AddJob['p'], number>> = { mend: 0, bomb: 1, jail: 2, pylon: 3 };
+/** 일점사 순서 (P-FOCUS): 치유하는 쫄 → 폭탄 → 감옥 → 보호막 수정 → 마나 갈취 쫄 → 그 밖, 같으면 먼저 나온 것 */
+const FOCUS: Partial<Record<AddJob['p'], number>> = { mend: 0, bomb: 1, jail: 2, pylon: 3, drain: 4 };
 const focusRank = (m: Mob): number => (m.add!.job && FOCUS[m.add!.job.p]) ?? 9;
 export function focusOrder(f: Fight): Mob[] {
   return f.mobs.filter(m => m.alive && m.add).sort((a, b) => focusRank(a) - focusRank(b) || a.id - b.id);
@@ -461,6 +480,7 @@ export function addsTick(f: Fight): void {
     }
     if (a.hold != null && !unitById(f, a.on)?.debuffs.some(d => d.id === a.hold)) { vanish(m); continue; } // 갇힌 사람이 쓰러짐
     if (a.job && f.t + 1e-9 >= a.jobAt!) { addJob(f, m); if (!m.alive) continue; }
+    if (a.job?.p === 'drain') f.mana = Math.max(0, f.mana - a.job.pct * DT); // 마나 갈취 쫄 (P-DRAIN)
     if (a.job?.p === 'smash' && !a.warned && f.t + 1e-9 >= a.jobAt! - a.job.warn) { a.warned = true; emit(f, { type: 'sound', name: 'buster' }); }
     if (a.dmg <= 0 || f.t + 1e-9 < a.next) continue;
     a.next += a.every;
@@ -501,10 +521,7 @@ function addJob(f: Fight, m: Mob): void {
     a.steps = (a.steps ?? 1) - 1;
     if (a.steps > 0) { stepTo(f, m, x => x.row === f.cells[a.cell!].row - 1); return; }
     vanish(m);
-    f.dmgMult *= (1 + f.empower + j.boost) / (1 + f.empower); // 겹칠수록 +10% · +20% · … (곱하지 않고 더함)
-    f.empower += j.boost;
-    emit(f, { type: 'sound', name: 'aoe' });
-    emit(f, { type: 'msg', text: `${m.name}이(가) 보스에게 닿음: 보스 피해 +${Math.round(f.empower * 100)}%` });
+    empowerBoss(f, j.boost, `${m.name}이(가) 보스에게 닿음`); // 겹칠수록 +10% · +20% · … (곱하지 않고 더함)
   } else if (j.p === 'fixate') {
     // 자폭 쫄 (P-FIXATE): 붙어 있으면 터지고, 아니면 한 칸 다가감. 더 다가갈 칸이 없는데 두 칸 안이면 터짐
     a.jobAt! += j.every;

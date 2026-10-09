@@ -4,7 +4,7 @@ import { BARK, DRUID_BIG } from '../data/heroConst';
 import { bark, cellOf, damage, DT, emit, heal, hpLineTick, onDebuffEnd } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
 import { calmHymn, renewEnd } from './talents';
-import { pullTick } from './bossParts';
+import { charmTick, pullTick } from './bossParts';
 import { abFear, dpsMods, hasMod } from './abilities';
 import type { PersName } from '../data/personalities';
 import type { Cell, Fight, Unit } from './types';
@@ -33,6 +33,7 @@ export function unitTick(f: Fight, u: Unit): void {
   for (const d of u.debuffs.slice()) {
     d.left -= dt;
     if ((d.cureAt != null || d.grow) && hpLineTick(f, u, d, dt)) continue;
+    if (d.charm && charmTick(f, u, d)) continue; // 매혹 (P-CHARM)
     if (d.untilBossLoss != null && f.bossHp <= d.bossAt! - f.bossMax * d.untilBossLoss + 1e-9) { // 삼키기: 보스를 그만큼 깎으면 풀림
       u.debuffs = u.debuffs.filter(x => x !== d); emit(f, { type: 'cure', id: u.id, name: d.name }); continue;
     }

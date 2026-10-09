@@ -43,7 +43,12 @@ export type DebuffEnd =
   /** 지우지 않고 끝나면 그 사람에게 피해 (완치 표식 P-FULL의 시간 끝) */
   | { p: 'hit'; dmg: number }
   /** 끝나거나 지워지면 그때까지 중첩 × dmg 피해 (마력 역류 P-RECOIL, 중첩 0이면 없음) */
-  | { p: 'stackHit'; dmg: number };
+  | { p: 'stackHit'; dmg: number }
+  /**
+   * 옮겨붙음 (P-JUMP): 지우면 이웃 칸 아군 1명에게 sec초로 옮겨붙고 초당 피해 × mult. 이웃 칸이 비어 있으면 그대로 사라짐.
+   * 지우지 않고 시간이 다 되면 보스가 주는 피해 +boost (전투 끝까지 더해짐)
+   */
+  | { p: 'jump'; sec: number; mult: number; boost: number };
 
 /** 걸 디버프 (02 5-5 해제 유형) */
 export interface DebuffDef {
@@ -79,6 +84,13 @@ export interface DebuffDef {
   invert?: boolean;
   /** 나(힐러)에게 걸린 동안 스킬을 쓸 때마다 1중첩 (마력 역류 P-RECOIL). 해제 스킬로 이 디버프를 지우는 그 한 번은 안 셈 */
   count?: boolean;
+  /** 나(힐러)에게 걸린 동안 내 마나 초당 −drain (%p, 마나 갈취 P-DRAIN) */
+  drain?: number;
+  /**
+   * 매혹 (P-CHARM): 걸린 사람이 딜을 멈추고 every초마다 이웃 칸 아군을 dmg로 때림 (물리). 이 사람에게 치유가 들어갈 때마다 지속 +heal초,
+   * 체력이 free 아래가 되면 정신이 돌아옴 (풀림). noDps를 같이 적음
+   */
+  charm?: { every: number; dmg: number; heal: number; free: number };
   end?: DebuffEnd;
 }
 
@@ -122,6 +134,8 @@ export type AddJob =
   | { p: 'bomb'; sec: number; dmg: number }
   /** 보호막 수정 (P-PYLON): 서 있는 동안 보스가 받는 피해 −cut */
   | { p: 'pylon'; cut: number }
+  /** 마나 갈취 쫄 (P-DRAIN): 살아 있는 동안 내 마나 초당 −pct (%p) */
+  | { p: 'drain'; pct: number }
   /** 감옥 (P-JAIL): 기술 효과 jail이 만듦. 갇힌 사람 칸에 겹쳐 나오고, 깨지면 그 사람이 풀림 */
   | { p: 'jail' }
   /** 큰 쫄 (P-ELITE): every초마다 맡은 사람(부탱커)에게 warn초 예고 뒤 dmg (탱커 기준, 물리). 예고 동안 칸 위에 남은 초 */

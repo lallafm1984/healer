@@ -607,6 +607,7 @@ export function render(now: number): void {
     }
     if (low) hexPoly(unitsG, x, y, r).fill({ color: C.danger, alpha: 0.08 + 0.2 * pulse });
     if (u.debuffs.some(d => d.invert)) hexPoly(unitsG, x, y, r).fill({ color: 0x7fa88c, alpha: 0.45 }); // 뒤집힌 축복: 회녹색 칸 (35 8장)
+    if (u.debuffs.some(d => d.charm)) hexPoly(unitsG, x, y, r).fill({ color: 0x9a6bd1, alpha: 0.45 }); // 매혹: 보라 칸 (적이 됨)
     // 장판 위에 선 사람: 칸 전체에 붉은 빛 + 빗금 (체력 위험 깜빡임과 구분)
     if (zoneSet.has(u.cell)) {
       hexPoly(unitsG, x, y, r).fill({ color: C.zone, alpha: 0.2 + 0.08 * zpulse });

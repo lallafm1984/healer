@@ -68,6 +68,10 @@ export interface Debuff {
   jail?: boolean;
   /** 마력 역류 (P-RECOIL): 내가 스킬을 쓸 때마다 1중첩 */
   count?: boolean;
+  /** 마나 갈취 (P-DRAIN) · 매혹 (P-CHARM) (data/bosses.ts DebuffDef). charmAt = 다음에 이웃을 때리는 시각 */
+  drain?: number;
+  charm?: { every: number; dmg: number; heal: number; free: number };
+  charmAt?: number;
 }
 
 /**

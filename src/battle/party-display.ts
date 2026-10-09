@@ -52,9 +52,13 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
   const stack = (debuff.stack ?? 0) > 1 ? `, ${debuff.stack}중첩` : '';
   // 받는 치유가 바뀌는 디버프 (35 4-3): 뒤집힌 축복 · 얼룩진 장갑 · 먼지 범벅
   const heal = debuff.invert ? ' · 받는 치유가 피해로' : debuff.healCut ? ` · 받는 치유 -${Math.round(debuff.healCut * (debuff.stack ?? 1) * 100)}%` : '';
+  // 매혹 · 옮겨붙음 · 마나 갈취 (35 3장): 길게 눌렀을 때 판단 근거
+  const more = debuff.charm ? ` · 이웃을 때림, 힐하면 길어짐, 체력 ${Math.round(debuff.charm.free * 100)}% 아래면 풀림`
+    : debuff.end?.p === 'jump' ? ' · 지우면 옆 사람에게 옮겨붙음 (혼자면 사라짐), 두면 보스가 강해짐'
+    : debuff.drain ? ` · 마나 초당 -${debuff.drain}` : '';
   return {
     text: `${marker}${kind}${compact ? '' : ' '}${seconds}`,
-    detail: `${debuff.name} · ${debuff.type} · ${seconds}초${stack}${heal} · ${action}`,
+    detail: `${debuff.name} · ${debuff.type} · ${seconds}초${stack}${heal}${more} · ${action}`,
     state,
     seconds,
   };
