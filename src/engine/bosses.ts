@@ -1,5 +1,5 @@
 import type { MobAttack, ScriptKey } from '../data/encounters';
-import { NO_TANK_SEC } from '../data/armor';
+import { NO_TANK_RAMP, NO_TANK_SEC } from '../data/armor';
 import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, living, randomTargets, spread, unitById } from './core';
 import { scheduleReactions } from './movement';
@@ -37,11 +37,14 @@ interface BossScript {
 
 /** 광폭화: 시각이 되면 짧은 주기 광역 */
 function enrageAt(f: Fight, name: string, period: number, dmg: number): void {
-  const noTank = f.noTankAt != null && f.t >= f.noTankAt + NO_TANK_SEC; // 레이드 탱커 공백 (35 6-4)
+  const noTank = f.noTankAt != null && f.t >= f.noTankAt + NO_TANK_SEC; // 탱커 공백 (35 6-4)
   if (f.enraged || (f.t < f.enc.enrage && !noTank)) return;
   f.enraged = true; emit(f, { type: 'phase', text: '광폭화' });
-  if (f.t < f.enc.enrage) emit(f, { type: 'msg', text: '탱커가 없어 보스가 광폭화' });
-  skill(f, { key: 'enrage', name, icon: '광폭', kind: 'aoe', next: f.t, period, cast: 1, hit(f) { for (const u of living(f)) damage(f, u, dmg, true); } });
+  const tankless = f.t < f.enc.enrage;
+  if (tankless) emit(f, { type: 'msg', text: '탱커가 없어 보스가 광폭화' });
+  // 탱커 없음 광폭화는 맞을 때마다 세짐: 탱커 대신 막는 사람이 버텨도 오래 못 감 (35 6-4)
+  let n = 0;
+  skill(f, { key: 'enrage', name, icon: '광폭', kind: 'aoe', next: f.t, period, cast: 1, hit(f) { const m = tankless ? 1 + NO_TANK_RAMP * n++ : 1; for (const u of living(f)) damage(f, u, dmg * m, true); } });
 }
 
 /** 적 공격 대상 */

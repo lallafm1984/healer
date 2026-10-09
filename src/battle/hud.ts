@@ -347,7 +347,7 @@ export function updateStage(now: number): void {
   setText($('phase'), ph);
   const adds = $('bossAdds'), ratsOn = F.rats.length > 0 && adds.hasAttribute('src');
   if (adds.hidden === ratsOn) adds.hidden = !ratsOn;
-  // 시간 줄 (시안 「0:42 · 광폭까지 3:48」). 레이드 탱커 공백 (35 6-4)이면 광폭까지 남은 초를 빨갛게
+  // 시간 줄 (시안 「0:42 · 광폭까지 3:48」). 탱커 공백 (35 6-4)이면 광폭까지 남은 초를 빨갛게
   const noTank = F.noTankAt != null && !F.enraged ? Math.max(0, Math.ceil(NO_TANK_SEC - (F.t - F.noTankAt))) : null;
   if (S.limit) {
     // 주간 도전 (13 3-2): 던전 전체 제한시간 (휴식 뺀 전투 시간 합)
