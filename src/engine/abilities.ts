@@ -214,7 +214,9 @@ function addsN(f: Fight): number { return f.mobs.filter(m => m.alive && !m.boss)
 function addsHit(f: Fight): boolean {
   if (f.ab.tauntUntil > f.t) return false;
   if (f.rats.some(id => { const v = f.party.find(x => x.id === id); return v && v.alive && v.role !== 'tank'; })) return true;
-  return f.skills.some(s => s.other && f.mobs.some(m => m.id === s.mob && m.alive && !((m.stun || 0) > f.t)));
+  if (f.skills.some(s => s.other && f.mobs.some(m => m.id === s.mob && m.alive && !((m.stun || 0) > f.t)))) return true;
+  // 판에 나온 쫄 (35 3-I)이 탱커 아닌 사람을 맡아 때리는 중 (5인은 부탱커가 없어서)
+  return f.mobs.some(m => m.alive && m.add && m.add.dmg > 0 && !((m.stun || 0) > f.t) && f.party.some(v => v.id === m.add!.on && v.alive && v.role !== 'tank'));
 }
 
 /** 상시 능력: 0.2초마다 짧게 다시 걸어 둠 */

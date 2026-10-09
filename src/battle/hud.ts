@@ -83,6 +83,13 @@ function setSlotArt(el: HTMLElement, key: SkillKey): void {
   else el.querySelector('.nm')?.insertAdjacentHTML('beforebegin', skillMark(key));
 }
 
+/** 주시 (P-AGGRO, 35 4-4): 눈 게이지 % 또는 노리는 남은 초 */
+function watchText(F: Fight): string {
+  const w = F.watch;
+  if (!w) return '';
+  return F.t < w.until ? ` · 주시 중 ${Math.ceil(w.until - F.t)}` : ` · 주시 ${Math.min(99, Math.floor((w.fill / w.max) * 100))}%`;
+}
+
 export function updateWheel(): void {
   const F = fight(), aim = ui.pointer && ui.pointer.dir;
   for (const el of $('wheel').querySelectorAll<HTMLElement>('.slot')) {
@@ -90,16 +97,16 @@ export function updateWheel(): void {
     if (!el.dataset.slot) continue;
     const slot = el.dataset.slot!, key = slotKey(F, slot), sk = SKILLS[key];
     setSlotArt(el, key);
-    const cd = sk.cd ? F.cd[key] || 0 : 0, cost = costOf(F, key);
+    const lk = F.lock[key], cdv = sk.cd ? F.cd[key] || 0 : 0, cd = Math.max(cdv, lk?.left ?? 0), cost = costOf(F, key); // 진동 잠김도 재사용 대기처럼
     const lowMana = F.mana < cost, lowPower = !!sk.power && F.power3 < (sk.powerAll ? 1 : sk.power);
     const resource = sk.power ? `힘 ${sk.powerAll ? '1~3' : sk.power}` : cost ? `마나 ${Math.round(cost * 10) / 10}%` : '마나 0';
     setText(el.querySelector('.nm')!, sk.short);
     // 일반·축소는 같은 내용과 순서를 사용한다. 패널 바깥 배율만 바뀐다.
     const visibleCost = sk.power ? (sk.powerAll ? '힘1+' : `힘${sk.power}`) : `${Math.round(cost * 10) / 10}%`;
     setText(el.querySelector('.ct')!, visibleCost);
-    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', cd > 0 ? `${Math.min(1, cd / cdMax(F, key)) * 100}%` : '0%');
+    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', cd > 0 ? `${Math.min(1, cd / (lk && lk.left >= cdv ? lk.total : cdMax(F, key))) * 100}%` : '0%');
     setText(el.querySelector('.cds')!, cd > 0 ? `${Math.ceil(cd)}초` : '');
-    const label = `${sk.name}, ${cd > 0 ? `재사용 대기 ${Math.ceil(cd)}초` : resource}${lowMana ? ', 마나 부족' : lowPower ? ', 신성한 힘 부족' : ''}${B.armed === slot ? ', 선택됨. 대상 선택 또는 다시 눌러 취소' : ''}`;
+    const label = `${sk.name}, ${lk ? `진동으로 잠김 ${Math.ceil(cd)}초` : cd > 0 ? `재사용 대기 ${Math.ceil(cd)}초` : resource}${lowMana ? ', 마나 부족' : lowPower ? ', 신성한 힘 부족' : ''}${B.armed === slot ? ', 선택됨. 대상 선택 또는 다시 눌러 취소' : ''}`;
     if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
     el.setAttribute('aria-pressed', String(B.armed === slot));
     el.classList.toggle('off', cd > 0 || lowMana || lowPower);
@@ -108,6 +115,7 @@ export function updateWheel(): void {
     el.classList.toggle('armed', B.armed === slot);
     el.classList.toggle('holy', key === 'serenity' || key === 'sanctify');
   }
+  $('wheel').classList.toggle('quake', F.tels.some(t => t.skill.quake)); // 진동 예고: 휠 테두리가 떨림 (35 4-4)
   // 휠 가운데 = 마나 링 (시안). 마나가 모자라면 링·숫자가 빨강 (27 3-4: 위기 신호를 마나 테두리로)
   const mn = $('manaNum'), core = $('core'), m = `${Math.max(0, Math.min(100, F.mana)).toFixed(1)}%`;
   setText(mn.firstChild as Element, String(Math.floor(F.mana)));
@@ -343,7 +351,7 @@ export function updateStage(now: number): void {
   const pct = F.bossHp / F.bossMax;
   setBar($('bossFill'), pct);
   setBar($('bossLag'), pct);
-  setText($('bossHpText'), `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · 멍함 ${Math.ceil(F.daze.until - F.t)}` : F.mobs.length && bossTaken(F) < 1 ? ' · 보호막' : ''}${F.empower ? ` · 강해짐 +${Math.round(F.empower * 100)}%` : ''}`);
+  setText($('bossHpText'), `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · ${F.daze.name ?? '멍함'} ${Math.ceil(F.daze.until - F.t)}` : F.mobs.length && bossTaken(F) < 1 ? ' · 보호막' : ''}${F.empower ? ` · 강해짐 +${Math.round(F.empower * 100)}%` : ''}${watchText(F)}`);
   // 위치 줄 (시안 「녹슨 요새 4/4 · 보통」): 던전 = 이름 n/전체 · 페이즈·남은 적·난이도, 한 판 = 등급 · 페이즈·난이도
   let ph = F.phaseName ? `${F.enc.tier.split(' · ')[0]} · ${F.phaseName}` : `${F.enc.tier} · ${F.cfg.diff}`;
   if (R.segs.length > 1) {

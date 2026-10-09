@@ -171,7 +171,7 @@ function ctx(f: Fight, amt: number): Ctx | null {
   const pct = (u: Unit) => u.hp / u.max;
   const low = lowest(f, live, pct);
   const idx = (u: Unit) => (u.moving ? u.moving.from : u.cell);
-  const ready = (k: SkillKey) => knows(f, k) && (f.cd[k] ?? 0) <= 0 && f.mana >= SKILLS[k].cost;
+  const ready = (k: SkillKey) => knows(f, k) && (f.cd[k] ?? 0) <= 0 && !f.lock[k] && f.mana >= SKILLS[k].cost;
   let best: Unit | null = null, score = 0;
   for (const c of live) {
     let s = 0;

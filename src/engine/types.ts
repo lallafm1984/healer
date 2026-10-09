@@ -66,6 +66,8 @@ export interface Debuff {
   end?: DebuffEnd;
   /** 감옥 (P-JAIL): 시간으로 안 끝나고 감옥이 깨지면 풀림 */
   jail?: boolean;
+  /** 마력 역류 (P-RECOIL): 내가 스킬을 쓸 때마다 1중첩 */
+  count?: boolean;
 }
 
 /**
@@ -263,6 +265,8 @@ export interface BossSkill {
   hitDmg?: number;
   /** 예고에 안전 칸을 붙임 (피난처) */
   safe?: boolean;
+  /** 진동 (P-QUAKE): 예고 동안 휠 가장자리가 떨림 */
+  quake?: boolean;
   /** 부품 상태 (장판 좌우 번갈아·성부 차례 등, engine/bossParts.ts) */
   st: Record<string, number | boolean>;
 }
@@ -553,10 +557,14 @@ export interface Fight {
   interEnd?: number;
   /** 차례 (P-ORDER): 번호 순서의 파티원 id, 다음 차례 i, 끝나는 시각 */
   order: OrderState | null;
-  /** 보스 멍함: until까지 새 기술을 안 쓰고 받는 피해 × vuln (차례 성공) */
-  daze: { until: number; vuln: number } | null;
+  /** 보스 멍함: until까지 새 기술을 안 쓰고 받는 피해 × vuln (차례 성공). name = 체력바에 보일 이름 (숨 고르기), 없으면 멍함 */
+  daze: { until: number; vuln: number; name?: string } | null;
   /** 쉬움·보통 뒤집힌 축복 실수 방지: 이 디버프 칸을 한 번 눌렀음 (두 번째부터 힐이 나감) */
   invertTap: number | null;
+  /** 진동 (P-QUAKE)으로 잠긴 스킬: 남은 초 / 처음 초 */
+  lock: Partial<Record<SkillKey, { left: number; total: number }>>;
+  /** 주시 (P-AGGRO): 눈 게이지 (넣은 치유량) / 가득 / 보스가 나를 노리는 끝 시각 / 다음 한 대 */
+  watch: { fill: number; max: number; rate: number; until: number; next: number; sec: number; every: number; dmg: number } | null;
   /** 걸어오는 쫄이 흡수되어 보스가 주는 피해가 커진 몫 (P-MARCH, 0.1 = +10%). 화면 표시용, 실제 배율은 dmgMult에 곱함 */
   empower: number;
 }

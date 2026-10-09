@@ -2,7 +2,10 @@
  * 보스 기믹 부품 (38 0-4): data/bosses.ts에 이름(p)으로 적은 부품이 실제로 하는 일.
  * 새 기믹은 여기에 부품 하나를 더하고, 보스 데이터에서 이름과 값으로 부른다.
  */
-import type { AddDef, AddJob, DebuffDef, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
+import { ABILITIES } from '../data/abilities';
+import type { AddDef, AddJob, BossDef, DebuffDef, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
+import { HEROES } from '../data/heroes';
+import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, living, randomTargets, setMax, spread, unitById } from './core';
 import { moveTo, scheduleReactions } from './movement';
@@ -52,7 +55,8 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       for (const id of tel?.units ?? []) { const u = unitById(f, id); if (u) damage(f, u, s.dmg!, false, 'tank'); }
       return;
     case 'all': {
-      const dmg = e.phaseDmg?.[f.phase] ?? e.dmg;
+      let dmg = e.phaseDmg?.[f.phase] ?? e.dmg;
+      if (e.grow) { const n = (s.st.n as number | undefined) ?? 0; dmg += e.grow * n; s.st.n = n + 1; } // 커지는 광역 (수정 핵 과열)
       for (const u of living(f)) damage(f, u, dmg, true);
       return;
     }
@@ -123,7 +127,54 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       if (got.length) emit(f, { type: 'msg', text: `${e.name}: ${got.map(u => u.nick).join(' · ')} 갇힘` });
       return;
     }
+    case 'quake': quake(f, e); return;
+    case 'rest': {
+      // 숨 고르기 (35 4-4): 보스가 쉬는 동안 그 이름의 디버프가 모두 사라짐 (서리 중첩)
+      f.daze = { until: f.t + e.sec, vuln: 1, name: s.name ?? '숨 고르기' };
+      if (e.clear) for (const u of living(f)) {
+        const ds = u.debuffs.filter(d => d.name === e.clear);
+        if (!ds.length) continue;
+        u.debuffs = u.debuffs.filter(d => !ds.includes(d));
+        if (ds.some(d => d.maxCut)) setMax(u);
+        emit(f, { type: 'cure', id: u.id, name: e.clear });
+      }
+      emit(f, { type: 'msg', text: `${f.daze.name}: 보스가 ${e.sec}초 쉼` });
+      return;
+    }
   }
+}
+
+/** 진동 (P-QUAKE): 시전 중인 힐이나 채널(찬가)이 끊기고 그 스킬이 잠김. 그다음 전원 피해 */
+function quake(f: Fight, e: Extract<SkillEffect, { p: 'quake' }>): void {
+  let key: SkillKey | null = null;
+  if (f.cast) { key = f.cast.key; f.cast = null; }
+  else if (f.channel > 0) { key = HEROES[f.hero].slots.raid ?? null; f.channel = 0; f.stats.hymnBroken++; }
+  if (key) {
+    f.lock[key] = { left: e.lock, total: e.lock };
+    emit(f, { type: 'shake', id: f.me.id });
+    emit(f, { type: 'msg', text: `진동: ${SKILLS[key].name} 끊김, ${e.lock}초 잠김` });
+  }
+  for (const u of living(f)) damage(f, u, e.dmg, true);
+}
+
+/** 주시 (P-AGGRO) 시작: 파티 최대 체력 합 × cap이 게이지 끝. 도발 능력이 있는 파티원이 있으면 노리는 시간이 짧음 */
+export function watchInit(f: Fight, w: NonNullable<BossDef['watch']>): void {
+  const taunt = f.abOn && f.party.some(u => u.ab && ABILITIES[u.ab.key]?.fx.e === 'taunt');
+  f.watch = { fill: 0, max: f.party.reduce((a, u) => a + u.max, 0) * w.cap, rate: f.mythic ? w.mythicRate ?? 1 : 1, until: 0, next: 0,
+    sec: taunt && w.tauntSec != null ? w.tauntSec : w.sec, every: w.every, dmg: w.dmg };
+}
+
+/** 매 틱 주시: 게이지가 차면 sec초 동안 보스가 every초마다 나를 때림 (보스가 쉬는 동안은 안 때림). 끝나면 0부터 다시 참 */
+export function watchTick(f: Fight): void {
+  const w = f.watch!;
+  if (f.t < w.until - 1e-9) {
+    if (f.t + 1e-9 >= w.next) { w.next += w.every; if (!f.daze) { damage(f, f.me, w.dmg, false); emit(f, { type: 'shake', id: f.me.id }); } }
+    return;
+  }
+  if (w.fill < w.max) return;
+  w.fill = 0; w.until = f.t + w.sec; w.next = f.t;
+  emit(f, { type: 'sound', name: 'buster' });
+  emit(f, { type: 'msg', text: `주시: 보스가 ${w.sec}초 동안 나를 노림` });
 }
 
 /** 차례 번호표 */
@@ -165,7 +216,7 @@ export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
     const old = u.debuffs.find(x => x.name === def.name);
     if (old) { old.stack = Math.min(def.stackMax, (old.stack ?? 1) + 1); old.left = def.left; return old; }
   }
-  const d = addDebuff(f, u, { ...def, stack: def.stackMax ? 1 : undefined });
+  const d = addDebuff(f, u, { ...def, stack: def.stackMax ? 1 : def.count ? 0 : undefined });
   if (!u.debuffs.includes(d)) return null; // 주문 반사 등으로 안 걸림
   if (d.maxCut) setMax(u);
   if (d.untilBossLoss != null) d.bossAt = f.bossHp;
@@ -325,6 +376,8 @@ export function addsTick(f: Fight): void {
     if ((m.stun || 0) > f.t) continue;
     let u = unitById(f, a.on);
     if (!u || !u.alive) { u = addTarget(f); if (!u) continue; a.on = u.id; }
+    // 파티원 도발·정의의 분노 (17): 그동안 끌어온 사람을 때림
+    if (f.ab.tauntUntil > f.t) { const tu = unitById(f, f.ab.taunt); if (tu && tu.alive) u = tu; }
     damage(f, u, a.dmg, false, 'party');
   }
 }

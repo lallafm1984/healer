@@ -41,7 +41,9 @@ export type DebuffEnd =
   /** 지우지 않고 끝나면 그 사람이 선 열 전체에 피해 (독창, 26 4-3). 지우면 그냥 사라짐 */
   | { p: 'colDmg'; dmg: number }
   /** 지우지 않고 끝나면 그 사람에게 피해 (완치 표식 P-FULL의 시간 끝) */
-  | { p: 'hit'; dmg: number };
+  | { p: 'hit'; dmg: number }
+  /** 끝나거나 지워지면 그때까지 중첩 × dmg 피해 (마력 역류 P-RECOIL, 중첩 0이면 없음) */
+  | { p: 'stackHit'; dmg: number };
 
 /** 걸 디버프 (02 5-5 해제 유형) */
 export interface DebuffDef {
@@ -75,6 +77,8 @@ export interface DebuffDef {
   healCut?: number;
   /** 받는 치유가 피해로 (뒤집힌 축복 P-INVERT): 들어올 치유량만큼 피해. 보호막·피해 감소·보호의 손은 통함 */
   invert?: boolean;
+  /** 나(힐러)에게 걸린 동안 스킬을 쓸 때마다 1중첩 (마력 역류 P-RECOIL). 해제 스킬로 이 디버프를 지우는 그 한 번은 안 셈 */
+  count?: boolean;
   end?: DebuffEnd;
 }
 
@@ -139,8 +143,8 @@ export type SkillEffect =
   | { p: 'auto'; dmg: number }
   /** 탱커 버스터: 예고 때 고른 사람에게 skill.dmg (탱커 기준, 물리) */
   | { p: 'tank' }
-  /** 전원 광역 (마법). phaseDmg = 그 페이즈에서는 이 피해 */
-  | { p: 'all'; dmg: number; phaseDmg?: Partial<Record<number, number>> }
+  /** 전원 광역 (마법). phaseDmg = 그 페이즈에서는 이 피해. grow = 쓸 때마다 이만큼 더 커짐 (수정 핵 과열) */
+  | { p: 'all'; dmg: number; phaseDmg?: Partial<Record<number, number>>; grow?: number }
   /**
    * n명에게 디버프 (이미 같은 디버프가 있는 사람은 뺌). n = 'all'이면 살아 있는 모두. nMythic = 악몽 인원.
    * pick: random (기본) / lowest = 체력 비율이 가장 낮은 사람부터, 탱커 빼고 (사냥 P-HUNT).
@@ -171,7 +175,14 @@ export type SkillEffect =
    * 감옥 (P-JAIL): 탱커·나 아닌 n명(악몽 nMythic)을 가둠 (딜 0 · 못 움직임 · 초당 dot, 해제 안 됨). 그 칸에 감옥(체력 = 보스 최대 × hp)이
    * 겹쳐 나오고 딜러가 일점사로 깨면 풀림. 갇힌 사람이 쓰러지면 감옥도 사라짐
    */
-  | { p: 'jail'; n: number; nMythic?: number; name: string; short: string; hp: number; dot: number };
+  | { p: 'jail'; n: number; nMythic?: number; name: string; short: string; hp: number; dot: number }
+  /**
+   * 진동 (P-QUAKE, 35 4-4): 맞는 순간 내가 시전 중인 힐(찬가 같은 채널 포함)이 끊기고 그 스킬이 lock초 잠김. 전원 dmg (마법).
+   * 화면은 예고 동안 휠 가장자리가 떨림. 즉시 스킬·지속 힐은 안 끊김
+   */
+  | { p: 'quake'; dmg: number; lock: number }
+  /** 숨 고르기 (35 4-4 탑주의 그림자): sec초 동안 보스가 기술을 쉼 (받는 피해는 그대로). clear 이름의 디버프가 모두에게서 사라짐 */
+  | { p: 'rest'; sec: number; clear?: string };
 
 /** 장판 칸 고르기 */
 export type ZoneCells =
@@ -285,6 +296,11 @@ export interface BossDef {
   flow?: FlowStep[];
   /** 광폭화: 시각(enc.enrage)이 되거나 레이드 탱커 공백 (35 6-4)이면 짧은 주기 전원 광역 */
   enrage: { name: string; period: number; dmg: number };
+  /**
+   * 주시 (P-AGGRO, 35 4-4): 내가 넣은 치유량(넘친 치유 포함)으로 눈 게이지가 참. 파티 최대 체력 합 × cap이 되면 sec초 동안
+   * 보스가 every초마다 나를 dmg로 때림 (파티원 중 도발 능력이 있으면 tauntSec초). 끝나면 0부터. 악몽은 게이지가 mythicRate배 빨리 참
+   */
+  watch?: { cap: number; sec: number; tauntSec?: number; every: number; dmg: number; mythicRate?: number };
 }
 
 const AUTO = (dmg: number): SkillDef => ({ key: 'auto', hidden: true, first: 2, period: 2, cast: 0, effect: { p: 'auto', dmg } });
