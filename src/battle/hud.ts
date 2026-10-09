@@ -337,7 +337,7 @@ export function updateStage(now: number): void {
   const pct = F.bossHp / F.bossMax;
   setBar($('bossFill'), pct);
   setBar($('bossLag'), pct);
-  setText($('bossHpText'), `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : ''}`);
+  setText($('bossHpText'), `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · 멍함 ${Math.ceil(F.daze.until - F.t)}` : ''}`);
   // 위치 줄 (시안 「녹슨 요새 4/4 · 보통」): 던전 = 이름 n/전체 · 페이즈·남은 적·난이도, 한 판 = 등급 · 페이즈·난이도
   let ph = F.phaseName ? `${F.enc.tier.split(' · ')[0]} · ${F.phaseName}` : `${F.enc.tier} · ${F.cfg.diff}`;
   if (R.segs.length > 1) {

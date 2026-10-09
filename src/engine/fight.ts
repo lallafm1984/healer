@@ -60,7 +60,7 @@ export function create(cfg: FightConfig): Fight {
     standin: null,
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
-    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {},
+    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null,
     items: {}, potCd: 0, medit: 0, itemLog: [],
     stats: { healed: 0, overheal: 0, deaths: 0, minMana: 100, dispels: 0, dispellable: 0, trapPops: 0, queueLost: 0, casts: {}, taps: 0, missTaps: 0, emptyTaps: 0, cancels: 0, manaFails: 0, hymnBroken: 0 },
     nextId: 1,
@@ -235,7 +235,7 @@ function partyHits(f: Fight): void {
     if (f.invuln) continue;
     u.acc += unitDps(u) * DT;
     if ((f.k + u.id * 7) % SWING[u.role as Exclude<Role, 'healer'>] !== 0 || u.acc <= 0 || f.bossHp <= 0) continue;
-    const amt = u.acc;
+    const amt = f.daze ? u.acc * f.daze.vuln : u.acc; // 멍한 보스는 더 아프게 맞음 (차례 성공)
     u.dealt += Math.min(amt, f.bossHp);
     u.acc = 0;
     if (f.bodyHp) hitMobs(f, amt);

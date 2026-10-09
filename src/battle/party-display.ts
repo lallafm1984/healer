@@ -47,9 +47,11 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
     : debuff.untilBossLoss != null ? `해제 불가, 보스 체력 ${Math.round(debuff.untilBossLoss * 100)}% 깎으면 풀림` : '해제 불가')
     : state === 'unavailable' ? '이 직업으로 해제 불가' : state === 'dangerous' ? '해제 시 전염 폭발' : '해제 가능';
   const stack = (debuff.stack ?? 0) > 1 ? `, ${debuff.stack}중첩` : '';
+  // 받는 치유가 바뀌는 디버프 (35 4-3): 뒤집힌 축복 · 얼룩진 장갑 · 먼지 범벅
+  const heal = debuff.invert ? ' · 받는 치유가 피해로' : debuff.healCut ? ` · 받는 치유 -${Math.round(debuff.healCut * (debuff.stack ?? 1) * 100)}%` : '';
   return {
     text: `${marker}${kind}${compact ? '' : ' '}${seconds}`,
-    detail: `${debuff.name} · ${debuff.type} · ${seconds}초${stack} · ${action}`,
+    detail: `${debuff.name} · ${debuff.type} · ${seconds}초${stack}${heal} · ${action}`,
     state,
     seconds,
   };

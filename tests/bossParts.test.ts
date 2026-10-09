@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { bossHpFor, U, UNIT, type DebuffDef, type SkillEffect } from '../src/data/bosses';
 import { CLASSES } from '../src/data/classes';
 import * as E from '../src/engine';
-import { applyDebuff, backTargets, lowestTargets, runEffect } from '../src/engine/bossParts';
+import { applyDebuff, backTargets, lowestTargets, orderHeal, runEffect } from '../src/engine/bossParts';
 import { moveTo, pickCell } from '../src/engine/movement';
 import { unitDps } from '../src/engine/units';
 import { hexDist } from '../src/engine/board';
 import { fromDef } from '../src/engine/bosses';
-import { addDebuff, damageMob } from '../src/engine/core';
+import { addDebuff, damageMob, heal } from '../src/engine/core';
 import { doDispel } from '../src/engine/heroes';
 import type { BossSkill, Fight, Unit } from '../src/engine';
 
@@ -371,5 +371,136 @@ describe('상태 디버프: 딜 0 · 못 움직임 · 보스를 깎으면 풀림
     f.bossHp -= f.bossMax * 0.04;
     E.step(f);
     expect(u.debuffs.some(d => d.name === '삼키기')).toBe(false);
+  });
+});
+
+describe('치유 훅: 받는 치유 감소 · 뒤집힌 축복 (P-INVERT)', () => {
+  const GLOVE: DebuffDef = { name: '얼룩진 장갑', type: '저주', left: 12, healCut: 0.5 };
+  const DUST: DebuffDef = { name: '먼지 범벅', type: '마법', left: 20, healCut: 0.08, stackMax: 5 };
+  const INVERT: DebuffDef = { name: '뒤집힌 축복', type: '저주', left: 8, invert: true };
+
+  it('받는 치유 −비율, 중첩 디버프는 × 중첩', () => {
+    const f = fight();
+    const u = dealer(f);
+    u.hp = u.max * 0.3;
+    applyDebuff(f, u, GLOVE);
+    let h0 = u.hp;
+    expect(heal(f, u, 40, true, true)).toBeCloseTo(20);
+    expect(u.hp - h0).toBeCloseTo(20);
+    u.debuffs = [];
+    for (let i = 0; i < 3; i++) applyDebuff(f, u, DUST);
+    h0 = u.hp;
+    heal(f, u, 40, true, true);
+    expect(u.hp - h0).toBeCloseTo(30.4);
+  });
+
+  it('뒤집힌 축복: 들어올 치유만큼 피해 (빨간 숫자), 보호막은 통함', () => {
+    const f = fight();
+    const u = dealer(f);
+    u.hp = u.max * 0.8;
+    applyDebuff(f, u, INVERT);
+    f.events.length = 0;
+    let h0 = u.hp;
+    expect(heal(f, u, 40, true, true)).toBe(0);
+    expect(h0 - u.hp).toBeCloseTo(40);
+    expect(f.events).toContainEqual({ type: 'hurt', id: u.id, amt: 40 });
+    expect(f.stats.inverted).toBeCloseTo(40);
+    u.shield = 5;
+    h0 = u.hp;
+    heal(f, u, 40, false, true); // 지속·광역 힐도 피해가 됨
+    expect(h0 - u.hp).toBeCloseTo(24);
+  });
+
+  it('쉬움·보통은 그 칸 첫 힐이 안 나가고 칸만 흔들림, 두 번째부터 나감. 어려움은 바로', () => {
+    for (const diff of ['보통', '어려움'] as const) {
+      const f = E.create({ encounter: 'warden', diff, seed: 1 });
+      quiet(f);
+      const u = dealer(f);
+      applyDebuff(f, u, INVERT);
+      const r1 = E.use(f, 'flash', u.cell);
+      if (diff === '보통') {
+        expect(r1.ok).toBe(false);
+        expect(r1.reason).toContain('뒤집힌 축복');
+        expect(f.events).toContainEqual({ type: 'shake', id: u.id });
+        expect(f.cast).toBeNull();
+        expect(E.use(f, 'flash', u.cell).ok).toBe(true);
+      } else expect(r1.ok).toBe(true);
+      expect(f.cast?.uid).toBe(u.id);
+    }
+  });
+});
+
+describe('차례 (P-ORDER) · 보스 멍함', () => {
+  const ORDER: SkillEffect = { p: 'order', n: 3, sec: 8, wrong: 180, miss: 150, daze: { sec: 4, vuln: 1.2 } };
+  const ordered = (f: Fight) => f.order!.ids.map(id => f.party.find(u => u.id === id)!);
+
+  it('탱커 아닌 3명에게 번호, 순서대로 힐하면 보스 4초 멍함 (기술 안 씀, 받는 피해 +20%)', () => {
+    const f = fight();
+    run(f, ORDER);
+    expect(f.order!.ids).toHaveLength(3);
+    const us = ordered(f);
+    expect(us.every(u => u.role !== 'tank')).toBe(true);
+    for (const u of us) orderHeal(f, u);
+    expect(f.order).toBeNull();
+    expect(f.daze).toEqual({ until: f.t + 4, vuln: 1.2 });
+    // 멍한 동안 평타가 안 들어옴
+    const tk = f.party.find(u => u.role === 'tank')!;
+    const auto = f.skills.find(s => s.key === 'auto')!;
+    auto.next = f.t;
+    const hp = tk.hp;
+    steps(f, 3.9);
+    expect(tk.hp).toBe(hp);
+    steps(f, 0.3);
+    expect(f.daze).toBeNull();
+  });
+
+  it('멍한 보스는 같은 딜에 20% 더 깎임', () => {
+    const loss = (daze: boolean) => {
+      const f = E.create({ encounter: 'warden', diff: '보통', seed: 3 });
+      f.skills.forEach(s => { s.next = Infinity; });
+      if (daze) f.daze = { until: 99, vuln: 1.2 };
+      const hp = f.bossHp;
+      steps(f, 6);
+      return hp - f.bossHp;
+    };
+    expect(loss(true) / loss(false)).toBeCloseTo(1.2, 1);
+  });
+
+  it('순서가 틀리면 그 사람 피해 + 처음부터 (쉬움은 피해 없이), 받은 번호에 또 힐하면 그대로', () => {
+    for (const diff of ['보통', '쉬움'] as const) {
+      const f = E.create({ encounter: 'warden', diff, seed: 1 });
+      quiet(f);
+      run(f, ORDER);
+      const [a, b, c] = ordered(f);
+      orderHeal(f, a);
+      orderHeal(f, a);
+      expect(f.order!.i).toBe(1);
+      const hp = c.hp;
+      orderHeal(f, c);
+      expect(f.order!.i).toBe(0);
+      if (diff === '보통') expect(c.hp).toBeLessThan(hp); else expect(c.hp).toBe(hp);
+      orderHeal(f, a); orderHeal(f, b);
+      expect(f.order!.i).toBe(2);
+    }
+  });
+
+  it('스킬로 셈: 단일 대상 힐만 (지속 힐 소생 포함), 시간이 다 되면 못 받은 사람마다 피해', () => {
+    const f = E.create({ encounter: 'warden', diff: '보통', seed: 1, level: 10 });
+    quiet(f);
+    run(f, ORDER);
+    const [a, b, c] = ordered(f);
+    expect(E.use(f, 'renew', a.cell).ok).toBe(true);
+    expect(f.order!.i).toBe(1);
+    f.gcd = 0;
+    expect(E.use(f, 'poh', b.cell).ok).toBe(true); // 광역 힐은 안 셈
+    f.cast = null; f.gcd = 0;
+    expect(f.order!.i).toBe(1);
+    const hb = b.hp, hc = c.hp, ha = a.hp;
+    steps(f, 8.1);
+    expect(f.order).toBeNull();
+    expect(f.daze).toBeNull();
+    expect(b.hp).toBeLessThan(hb);
+    expect(c.hp).toBeLessThan(hc);
+    expect(a.hp).toBeGreaterThanOrEqual(ha);
   });
 });

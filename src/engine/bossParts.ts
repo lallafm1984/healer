@@ -98,7 +98,50 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       }
       return;
     }
+    case 'order': {
+      // 차례 (P-ORDER, 35 4-3): 탱커 아닌 n명 (나 포함)에게 번호. 이미 차례 중이면 건너뜀
+      if (f.order) return;
+      const ids = randomTargets(f, f.mythic && e.nMythic ? e.nMythic : e.n, u => u.role !== 'tank').map(u => u.id);
+      if (!ids.length) return;
+      const name = s.name ?? '차례';
+      f.order = { name, ids, i: 0, until: f.t + e.sec, wrong: e.wrong, miss: e.miss, daze: e.daze };
+      emit(f, { type: 'msg', text: `${name}: ${ORDER_NUM.slice(0, ids.length).split('').join(' → ')} 차례로 힐` });
+      return;
+    }
   }
+}
+
+/** 차례 번호표 */
+export const ORDER_NUM = '①②③④⑤⑥';
+
+/** 차례 중 단일 대상 힐 (healer.ts가 스킬을 쓸 때): 다음 번호면 하나 넘어가고, 앞 번호를 건너뛰면 그 사람 피해 + 처음부터 */
+export function orderHeal(f: Fight, u: Unit): void {
+  const o = f.order!;
+  const k = o.ids.indexOf(u.id);
+  if (k < o.i) return; // 번호 없는 사람 · 이미 받은 사람
+  if (k === o.i) { o.i++; if (o.i >= o.ids.length) orderDone(f, true); return; }
+  if (f.cfg.diff !== '쉬움') damage(f, u, o.wrong, true); // 쉬움은 피해 없이 처음부터
+  o.i = 0;
+  emit(f, { type: 'msg', text: `${o.name}: 순서가 틀려 처음부터` });
+}
+
+/** 매 틱 차례: 쓰러진 번호는 건너뜀, 시간이 다 되면 아직 못 받은 사람마다 피해 */
+export function orderTick(f: Fight): void {
+  const o = f.order!;
+  while (o.i < o.ids.length && !unitById(f, o.ids[o.i])?.alive) o.i++;
+  if (o.i >= o.ids.length) { orderDone(f, true); return; }
+  if (f.t + 1e-9 < o.until) return;
+  for (const id of o.ids.slice(o.i)) { const u = unitById(f, id); if (u) damage(f, u, o.miss, true); }
+  orderDone(f, false);
+}
+
+function orderDone(f: Fight, ok: boolean): void {
+  const o = f.order!;
+  f.order = null;
+  if (!ok) { emit(f, { type: 'msg', text: `${o.name}: 시간이 다 됨` }); return; }
+  f.daze = { until: f.t + o.daze.sec, vuln: o.daze.vuln };
+  emit(f, { type: 'sound', name: 'gauge' });
+  emit(f, { type: 'msg', text: `${o.name} 성공: 보스 ${o.daze.sec}초 멍함 (받는 피해 +${Math.round((o.daze.vuln - 1) * 100)}%)` });
 }
 
 /** 디버프 걸기: 중첩 디버프(stackMax)는 이미 있으면 1중첩 더함, 최대 체력 깎는 디버프(maxCut)는 바로 반영 */

@@ -59,6 +59,9 @@ export interface Debuff {
   /** 보스 체력이 bossAt − 최대 × untilBossLoss 아래가 되면 풀림 (삼키기) */
   untilBossLoss?: number;
   bossAt?: number;
+  /** 받는 치유 −비율 (× 중첩) · 받는 치유가 피해로 (data/bosses.ts DebuffDef) */
+  healCut?: number;
+  invert?: boolean;
   /** 끝날 때 하는 일 (부품) */
   end?: DebuffEnd;
 }
@@ -303,6 +306,9 @@ export type FightEvent =
   | { type: 'item'; key: ItemKey; note: string }
   /** 파티원 공격 한 방 (uid = 때린 파티원) */
   | { type: 'hit'; uid: number; amt: number }
+  /** 뒤집힌 축복: 치유가 피해로 (빨간 숫자) · 실수 방지로 칸만 흔들림 */
+  | { type: 'hurt'; id: number; amt: number }
+  | { type: 'shake'; id: number }
   | { type: 'mobDown'; id: number; name: string }
   /** 파티원 능력 사용 (17 7장: 칸 위에 이름) */
   | { type: 'ability'; id: number; name: string }
@@ -427,6 +433,8 @@ export interface FightStats {
   /** 파티원 능력 사용 횟수 · 능력 회복량 */
   abUses?: number;
   abHeal?: number;
+  /** 뒤집힌 축복으로 피해가 된 치유량 */
+  inverted?: number;
 }
 
 /** 파티 전체에 걸린 능력 효과 */
@@ -531,6 +539,22 @@ export interface Fight {
   bs: Record<string, BossSkill>;
   /** 인터미션이 끝나는 시각 */
   interEnd?: number;
+  /** 차례 (P-ORDER): 번호 순서의 파티원 id, 다음 차례 i, 끝나는 시각 */
+  order: OrderState | null;
+  /** 보스 멍함: until까지 새 기술을 안 쓰고 받는 피해 × vuln (차례 성공) */
+  daze: { until: number; vuln: number } | null;
+  /** 쉬움·보통 뒤집힌 축복 실수 방지: 이 디버프 칸을 한 번 눌렀음 (두 번째부터 힐이 나감) */
+  invertTap: number | null;
+}
+
+export interface OrderState {
+  name: string;
+  ids: number[];
+  i: number;
+  until: number;
+  wrong: number;
+  miss: number;
+  daze: { sec: number; vuln: number };
 }
 
 /** 스킬·아이템 사용 결과 */

@@ -7,7 +7,7 @@
 import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, RenderTexture, Sprite, Text, Texture, type TextStyleFontWeight } from 'pixi.js';
 import { CLASSES } from '../data/classes';
 import { SKILLS } from '../data/skills';
-import { aggroTarget, areaRadius, hexDist, slotKey, type Unit } from '../engine';
+import { aggroTarget, areaRadius, hexDist, ORDER_NUM, slotKey, type Unit } from '../engine';
 import { emblemColor } from '../screens/art';
 import { emblemSrc } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
@@ -425,11 +425,11 @@ interface Float { x: number; y: number; text: string; crit: boolean; over: boole
 interface Bubble { id: number; text: string; t0: number }
 const FX_MS = 400;
 const B2 = {
-  floats: [] as Float[], bubbles: [] as Bubble[], fx: [] as Fx[], disp: {} as Record<number, number>, hitFx: {} as Record<number, number>,
+  floats: [] as Float[], bubbles: [] as Bubble[], fx: [] as Fx[], disp: {} as Record<number, number>, hitFx: {} as Record<number, number>, shake: {} as Record<number, number>,
   lastFlash: {} as Record<number, number>, lens: null as { idx: number; t0: number } | null, lastRender: 0, n: 0,
 };
 export function resetBoardFx(): void {
-  B2.floats = []; B2.bubbles = []; B2.fx = []; B2.disp = {}; B2.hitFx = {}; B2.lastFlash = {}; B2.lens = null;
+  B2.floats = []; B2.bubbles = []; B2.fx = []; B2.disp = {}; B2.hitFx = {}; B2.shake = {}; B2.lastFlash = {}; B2.lens = null;
 }
 const rnd = () => Math.random();
 export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: number): void {
@@ -447,6 +447,16 @@ export function fxRevive(u: Unit, now: number, label = '부활'): void {
   B2.floats.push({ x: p.x, y: p.y - L.s * 0.3, text: label, crit: true, over: false, t0: now, n: B2.n++ });
   B2.hitFx[u.id] = now;
   B2.fx.push({ kind: 'revive', id: u.id, t0: now });
+}
+/** 뒤집힌 축복 (35 8장 「치유 반전」): 이 칸에 들어간 치유가 빨간 피해 숫자로 */
+export function fxHurt(u: Unit, amt: number, now: number): void {
+  if (!L.ok || S.reducedEffects || amt < 1 || B2.floats.length >= 40) return;
+  const p = unitPos(u);
+  B2.floats.push({ x: p.x + (rnd() - 0.5) * L.s * 0.5, y: p.y - L.s * 0.3, text: `-${amt}`, crit: false, over: false, t0: now, n: B2.n++, fill: 0xff5a3d });
+}
+/** 실수 방지로 힐이 안 나감: 칸만 흔들림 */
+export function fxShake(u: Unit, now: number): void {
+  B2.shake[u.id] = now;
 }
 /** 파티원 능력 회복: 연두색 + 작은 십자 (내 힐과 구분, 17 7장) */
 export function fxAllyHeal(u: Unit, amt: number, now: number): void {
@@ -565,6 +575,8 @@ export function render(now: number): void {
     let { x, y } = unitPos(u);
     if (!S.reducedEffects && F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) x += Math.sin(t * 70) * s * 0.07;
     if (!S.reducedEffects && u.fleeing) x += Math.sin(t * 40) * s * 0.03;
+    const shk = (now - (B2.shake[u.id] ?? -1e9)) / 400;
+    if (!S.reducedEffects && shk >= 0 && shk < 1) x += Math.sin(shk * 40) * s * 0.08 * (1 - shk);
     // 가장자리 몸체는 진동만 안쪽으로 제한한다. 육각 크기/비율과 판 좌표는 바꾸지 않는다.
     const bodyStroke = Math.max(2.5, s * 0.07);
     ({ x, y } = fitCenter(x, y, r * COS30 + bodyStroke / 2, r + bodyStroke / Math.sqrt(3)));
@@ -592,6 +604,7 @@ export function render(now: number): void {
       unitsG.stroke({ width: 2, color: C.white, alpha: 0.12 });
     }
     if (low) hexPoly(unitsG, x, y, r).fill({ color: C.danger, alpha: 0.08 + 0.2 * pulse });
+    if (u.debuffs.some(d => d.invert)) hexPoly(unitsG, x, y, r).fill({ color: 0x7fa88c, alpha: 0.45 }); // 뒤집힌 축복: 회녹색 칸 (35 8장)
     // 장판 위에 선 사람: 칸 전체에 붉은 빛 + 빗금 (체력 위험 깜빡임과 구분)
     if (zoneSet.has(u.cell)) {
       hexPoly(unitsG, x, y, r).fill({ color: C.zone, alpha: 0.2 + 0.08 * zpulse });
@@ -842,6 +855,10 @@ export function render(now: number): void {
         .stroke({ width: 3, color: C.tel, alpha: 0.6 + 0.4 * pulse });
       recordBound(`buster${u.id}`, 'ring', 'target', x, y, mark * 2 + 3, mark * 2 + 3);
     }
+    // 차례 (P-ORDER): 은쟁반 번호표, 받은 번호는 꺼지고 다음 번호는 금빛. 직업 그림 왼쪽 (이름을 안 가리게)
+    const ok = F.order ? F.order.ids.indexOf(u.id) : -1;
+    if (F.order && ok >= F.order.i) pill(overG, labels, `ord${u.id}`, x - r * 0.55, y - r * 0.42, ORDER_NUM[ok], ok === F.order.i ? C.gold : 0xd9dde6, C.dark, fs(0.3, 12), ok === F.order.i ? 0.75 + 0.25 * pulse : 1);
+    else if (u.debuffs.some(d => d.invert)) pill(overG, labels, `inv${u.id}`, x - r * 0.55, y - r * 0.42, '✕', 0x7fa88c, C.dark, fs(0.28, 11));
     if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
     else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
     const st = u.bulwark > 0 ? ([`버팀 ${Math.ceil(u.bulwark)}`, '#F0C46A'] as const) : u.pulled ? ([`끌림 ${Math.ceil(u.pulled.until - F.t)}`, '#C98B5A'] as const) : u.fleeing ? (['도망', '#DB9B57'] as const) : u.sulking ? (['삐짐', '#D68FA6'] as const) : null;
