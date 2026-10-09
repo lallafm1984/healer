@@ -112,6 +112,7 @@ describe('전투 중 말풍선', () => {
         const u = f.party.find(x => x.id === b.id)!;
         expect(u && !u.me).toBe(true);
         expect(b.life).toBeGreaterThanOrEqual(1700);
+        if (!u.alive && b.t > 3000 + f.t * 1000) expect(b.kind).toBe('chat'); // 끝난 뒤 쓰러진 사람 말은 회색 파티 채팅
       }
       expect(new Set(out.map(b => b.text)).size).toBeGreaterThan(out.length * 0.7); // 같은 말 되풀이 적음
     });
@@ -126,7 +127,9 @@ describe('전투 중 말풍선', () => {
         expect(b.sit, '엔진 말풍선에 상황이 없음').toBeTruthy();
         if (b.sit === 'thanks' || b.sit === 'dodge') continue;
         signals++;
-        expect(out.some(o => o.t === b.t && o.id === b.id), `${b.sit} t=${b.t}`).toBe(true);
+        const o = out.find(x => x.t === b.t && x.id === b.id);
+        expect(o, `${b.sit} t=${b.t}`).toBeTruthy();
+        expect(['call', 'alert'], `${b.sit} 말풍선 테두리`).toContain(o!.kind); // 신호는 금테·붉은 테로 눈에 띄게
       }
     }
     expect(signals).toBeGreaterThan(0);

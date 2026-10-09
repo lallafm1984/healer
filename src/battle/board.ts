@@ -424,7 +424,15 @@ function glow(x: number, y: number, size: number, tint: number, alpha: number, k
 // ---------- 판 위 효과 ----------
 interface Fx { kind: 'heal' | 'hit' | 'dispel' | 'death' | 'revive'; id: number; t0: number; crit?: boolean; color?: number; seeds?: number[]; x?: number; y?: number }
 interface Float { x: number; y: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean }
-interface Bubble { id: number; text: string; t0: number; life: number }
+/** 말풍선 종류 (41·43 문서): talk 반응·잡담 · call 기믹·신호 (금테) · alert 위기 (붉은 테, 흔들림) · chat 쓰러진 사람의 파티 채팅 (회색) */
+export type BubbleKind = 'talk' | 'call' | 'alert' | 'chat';
+interface Bubble { id: number; text: string; t0: number; life: number; kind: BubbleKind }
+const BUBBLE: Record<BubbleKind, { fill: number; fillA: number; line: number; lw: number }> = {
+  talk: { fill: C.ink, fillA: 1, line: C.line, lw: 2 },
+  call: { fill: C.ink, fillA: 1, line: C.gold, lw: 2.5 },
+  alert: { fill: C.ink, fillA: 1, line: C.danger, lw: 2.5 },
+  chat: { fill: C.dead, fillA: 0.85, line: C.line, lw: 2 },
+};
 const FX_MS = 400;
 const B2 = {
   floats: [] as Float[], bubbles: [] as Bubble[], fx: [] as Fx[], disp: {} as Record<number, number>, hitFx: {} as Record<number, number>, shake: {} as Record<number, number>,
@@ -482,10 +490,10 @@ export function fxDeath(u: Unit, now: number): void {
   if (S.reducedEffects) { addBubble(u.id, '쓰러짐', now); return; }
   const p = unitPos(u); B2.fx.push({ kind: 'death', id: u.id, t0: now, color: hex(ROLE[u.role].color), x: p.x, y: p.y });
 }
-/** 말풍선. life = 보이는 시간 (ms, 긴 대사는 조금 더 오래, battle/talk.ts) */
-export function addBubble(id: number, text: string, now: number, life = 1700): void {
+/** 말풍선. life = 보이는 시간 (ms, 긴 대사는 조금 더 오래, battle/talk.ts) · kind = 테두리 종류 */
+export function addBubble(id: number, text: string, now: number, life = 1700, kind: BubbleKind = 'talk'): void {
   B2.bubbles = B2.bubbles.filter(b => b.id !== id);
-  B2.bubbles.push({ id, text, t0: now, life });
+  B2.bubbles.push({ id, text, t0: now, life, kind });
   if (B2.bubbles.length > 3) B2.bubbles.shift();
 }
 /** 20인 탭 확대 미리보기 0.3초 (02 3-1) */
@@ -1008,11 +1016,19 @@ export function render(now: number): void {
     const text = fitPartyName(b.text, Math.max(1, L.right - L.left - 16), value => measure(value, 12, FONT, '500'));
     const w = measure(text, 12, FONT, '500') + 14, h = 22;
     let by = p.y - r - h - 6;
-    if (by < L.top + 1) by = p.y + r + 6;
-    const bp = fitCenter(p.x, by + h / 2, w / 2 + 1, h / 2 + 1), bx = bp.x - w / 2;
+    const below = by < L.top + 1;
+    if (below) by = p.y + r + 6;
+    const bp = fitCenter(p.x, by + h / 2, w / 2 + 1, h / 2 + 1);
+    const age = now - b.t0, st = BUBBLE[b.kind];
+    // 위기 말풍선은 처음 0.3초 살짝 흔들림
+    const bx = bp.x - w / 2 + (b.kind === 'alert' && !S.reducedEffects && age < 300 ? Math.sin(age / 25) * 1.5 : 0);
     by = bp.y - h / 2;
-    const a = S.reducedEffects ? 1 : Math.min(1, (b.life - (now - b.t0)) / 300);
-    topG.roundRect(bx, by, w, h, 8).fill({ color: C.ink, alpha: a }).stroke({ width: 2, color: C.line, alpha: a });
+    const a = S.reducedEffects ? 1 : Math.min(1, (b.life - age) / 300);
+    topG.roundRect(bx, by, w, h, 8).fill({ color: st.fill, alpha: a * st.fillA }).stroke({ width: st.lw, color: st.line, alpha: a });
+    // 꼬리: 말한 사람 칸 쪽으로 (말풍선이 칸 아래면 위로)
+    const tx = Math.max(bx + 9, Math.min(bx + w - 9, p.x)), ty = below ? by : by + h, td = below ? -5 : 5;
+    topG.poly([tx - 4.5, ty, tx + 4.5, ty, tx, ty + td]).fill({ color: st.fill, alpha: a * st.fillA });
+    topG.moveTo(tx - 4.5, ty).lineTo(tx, ty + td).lineTo(tx + 4.5, ty).stroke({ width: st.lw, color: st.line, alpha: a });
     fitLabel(tops.put(`bb${b.id}`, text, { size: 12, fill: C.dark, weight: '500' }, bx + w / 2, by + h / 2 + 0.5, a), `bubble-text${b.id}`, 'bubble');
     recordBound(`bubble${b.id}`, 'bubble', 'rect', bp.x, bp.y, w + 2, h + 2);
   }

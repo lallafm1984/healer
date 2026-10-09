@@ -6,8 +6,10 @@
 import { ABILITIES } from '../data/abilities';
 import { hasOwnLines, pickLine, SITS, type Speaker, type TalkSit } from '../data/talk';
 import { hotCount, type Fight, type FightEvent, type Unit } from '../engine';
+import type { BubbleKind } from './board';
 
-export interface TalkBubble { id: number; text: string; life: number; sit: TalkSit | null }
+/** kind = 말풍선 테두리 (위기 · 기믹·신호 · 반응 · 쓰러진 사람) */
+export interface TalkBubble { id: number; text: string; life: number; sit: TalkSit | null; kind: BubbleKind }
 
 /** 전투를 시작할 때 화면이 알려 주는 것 */
 export interface TalkStart {
@@ -200,7 +202,9 @@ export function createTalk(rand: () => number = Math.random) {
 
   function say(out: TalkBubble[], u: Unit, text: string, sit: TalkSit | null, now: number): void {
     const life = Math.max(1700, Math.min(2800, 1200 + 75 * [...text].length));
-    out.push({ id: u.id, text, life, sit });
+    const def = sit ? SITS[sit] : null;
+    const kind: BubbleKind = !u.alive ? 'chat' : !def ? 'call' : def.group === '시작' || def.group === '끝' ? 'talk' : def.prio === 3 ? 'alert' : def.prio === 2 ? 'call' : 'talk';
+    out.push({ id: u.id, text, life, sit, kind });
     spoke.set(u.id, now); lastAny = now;
     live = live.filter(t => t > now); live.push(now + life);
     if (sit) count[sit] = (count[sit] ?? 0) + 1;

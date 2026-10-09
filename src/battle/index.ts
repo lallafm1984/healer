@@ -530,7 +530,7 @@ function handleEvents(now: number): void {
       case 'shake': if (u) { fxShake(u, now); vibe([20, 40, 20]); } break;
     }
   }
-  for (const b of talk.frame(F, now, { pulling: ui.pullLeft > 0, paused: B.paused })) addBubble(b.id, b.text, now, b.life);
+  for (const b of talk.frame(F, now, { pulling: ui.pullLeft > 0, paused: B.paused })) addBubble(b.id, b.text, now, b.life, b.kind);
   if (critSnd) Snd.play('crit');
   else if (healSnd && now - ui.lastHealSnd > 90) { Snd.play('heal'); ui.lastHealSnd = now; }
   F.events.length = 0;
