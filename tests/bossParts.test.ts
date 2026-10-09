@@ -3,8 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { bossHpFor, U, UNIT, type DebuffDef, type SkillEffect } from '../src/data/bosses';
 import { CLASSES } from '../src/data/classes';
 import * as E from '../src/engine';
-import { lowestTargets, runEffect } from '../src/engine/bossParts';
-import { addDebuff } from '../src/engine/core';
+import { backTargets, lowestTargets, runEffect } from '../src/engine/bossParts';
+import { moveTo } from '../src/engine/movement';
+import { hexDist } from '../src/engine/board';
+import { fromDef } from '../src/engine/bosses';
+import { addDebuff, damageMob } from '../src/engine/core';
 import { doDispel } from '../src/engine/heroes';
 import type { BossSkill, Fight, Unit } from '../src/engine';
 
@@ -150,5 +153,125 @@ describe('최대 체력 깎기 (P-HPDOWN · 썩은 축복)', () => {
     const f = fight();
     for (let i = 0; i < 12; i++) run(f, { ...ROT, again: 0 });
     expect(f.party.filter((x: Unit) => x.debuffs.length).length).toBeGreaterThan(1);
+  });
+});
+
+describe('끌어당김 (P-PULL)', () => {
+  const PULL = { p: 'pull', sec: 6, dmg: 60 } as const;
+  const setup = () => {
+    const f = fight();
+    const tank = f.party.find(u => u.role === 'tank')!;
+    const [u] = backTargets(f, 1);
+    return { f, tank, u, home: u.cell };
+  };
+  it('뒷줄부터 고름 (탱커·나 빼고)', () => {
+    const f = fight();
+    const ts = backTargets(f, 2);
+    expect(ts.every(u => u.role !== 'tank' && !u.me)).toBe(true);
+    const rows = ts.map(u => f.cells[u.cell].row);
+    const others = f.party.filter(u => u.role !== 'tank' && !u.me && !ts.includes(u)).map(u => f.cells[u.cell].row);
+    for (const r of others) expect(r).toBeLessThanOrEqual(Math.min(...rows));
+  });
+  it('탱커 옆 빈 칸으로 끌려와 평타를 탱커와 번갈아 맞고, 시간이 다 되면 제자리로', () => {
+    const { f, tank, u, home } = setup();
+    runEffect(f, {} as BossSkill, PULL, { units: [u.id] } as never);
+    expect(u.pulled).toBeTruthy();
+    steps(f, 0.5);
+    expect(hexDist(f.cells[u.cell], f.cells[tank.cell])).toBe(1);
+    const auto = { st: {} } as BossSkill;
+    const hp = [tank.hp, u.hp];
+    for (let i = 0; i < 4; i++) runEffect(f, auto, { p: 'auto', dmg: 70 });
+    expect(tank.hp).toBeLessThan(hp[0]);
+    expect(hp[1] - u.hp).toBeCloseTo(2 * 60 * f.dmgMult);
+    steps(f, 6);
+    expect(u.pulled).toBeNull();
+    steps(f, 3);
+    expect(u.cell).toBe(home);
+  });
+  it('끌려온 칸을 벗어나면 (도망·장판 피하기) 바로 끝', () => {
+    const { f, u } = setup();
+    runEffect(f, {} as BossSkill, PULL, { units: [u.id] } as never);
+    steps(f, 0.5);
+    const c = f.cells.find(x => !x.unit)!;
+    moveTo(f, u, c);
+    steps(f, 0.1);
+    expect(u.pulled).toBeNull();
+  });
+});
+
+describe('쫄 (P-ADD) · 쓰러질 때 (P-BURST)', () => {
+  const ROT_DUST: DebuffDef = { name: '부패', type: '질병', left: 20, maxCut: 0.1, end: { p: 'restoreMax' } };
+  const BONES = { name: '되살아난 뼈', short: '뼈', hp: 0.04, dmg: 18, every: 2, down: { p: 'debuff', debuff: ROT_DUST } } as const;
+  it('딜러를 1명씩 맡아 때리고, 보스 체력에는 안 들어감', () => {
+    const f = fight();
+    run(f, { p: 'adds', n: 2, add: BONES });
+    const adds = f.mobs.filter(m => m.add);
+    expect(adds).toHaveLength(2);
+    expect(adds.every(m => m.max === f.bossMax * 0.04)).toBe(true);
+    const on = adds.map(m => f.party.find(u => u.id === m.add!.on)!);
+    expect(new Set(on).size).toBe(2);
+    expect(on.every(u => u.role === 'melee' || u.role === 'ranged')).toBe(true);
+    expect(f.bossHp).toBe(f.bossMax);
+    const hp = on[0].hp;
+    steps(f, 2.05);
+    expect(hp - on[0].hp).toBeCloseTo(18 * f.dmgMult);
+  });
+  it('딜러 딜은 쫄부터, 탱커 딜은 보스로. 쓰러지면 맡던 사람에게 부패 (최대 체력 -10%), 지우면 돌아옴', () => {
+    const f = E.create({ encounter: 'warden', diff: '보통', seed: 1 });
+    f.skills.forEach(s => { s.next = Infinity; });
+    run(f, { p: 'adds', n: 1, add: BONES });
+    const m = f.mobs.find(x => x.add)!;
+    const u = f.party.find(x => x.id === m.add!.on)!;
+    let bossDealt = 0, tankHits = 0;
+    // 쫄이 살아 있는 동안 보스는 탱커 딜만 맞음 (쫄을 쓰러뜨린 한 방의 남는 딜은 보스로)
+    for (let i = 0; i < 400 && m.alive; i++) {
+      const b = f.bossHp; E.step(f);
+      if (m.alive) { bossDealt += b - f.bossHp; for (const ev of f.events) if (ev.type === 'hit' && f.party.find(x => x.id === ev.uid)?.role === 'tank') tankHits += ev.amt; }
+      f.events.length = 0;
+    }
+    expect(m.alive).toBe(false);
+    expect(tankHits).toBeGreaterThan(0);
+    expect(bossDealt).toBeCloseTo(tankHits, 0);
+    E.step(f);
+    const d = u.debuffs.find(x => x.name === '부패')!;
+    expect(d).toBeTruthy();
+    expect(u.max).toBeCloseTo(u.base * 0.9);
+    doDispel(f, u);
+    expect(u.max).toBe(u.base);
+  });
+  it('파열: 쫄이 쓰러질 때마다 모두 1중첩, 지속 피해 = 중첩만큼', () => {
+    const f = fight();
+    const BURST: DebuffDef = { name: '파열', type: '물리', left: 4, dot: 6, stackMax: 10 };
+    run(f, { p: 'adds', n: 2, add: { ...BONES, down: { p: 'burst', debuff: BURST } } });
+    for (const m of f.mobs) damageMob(f, m, m.max);
+    E.step(f);
+    for (const u of f.party) expect(u.debuffs.find(d => d.name === '파열')?.stack).toBe(2);
+    const v = dealer(f), hp = v.hp;
+    steps(f, 1);
+    expect(hp - v.hp).toBeCloseTo(2 * 6 * f.dmgMult, 1);
+  });
+  it('쫄이 남아 있어도 보스가 쓰러지면 「보스를 쓰러뜨림」', () => {
+    const f = fight();
+    run(f, { p: 'adds', n: 1, add: BONES });
+    f.bossHp = 0;
+    E.step(f);
+    expect(f.over).toBe('win');
+    expect(f.reason).toBe('보스를 쓰러뜨림');
+  });
+});
+
+describe('흐르는 장판 (향로 연기)', () => {
+  it('왼쪽 끝 열에서 every초마다 한 열씩 오른쪽으로, 다음 열은 미리 예고', () => {
+    const f = fight();
+    const s = fromDef(f, { key: 'smoke', name: '향로 연기', kind: 'zone', first: 0, period: 999, cast: 2.5, dps: 24, dur: 2, cells: { p: 'flow', every: 2 } });
+    s.next = f.t;
+    const cols: number[] = [];
+    const seen = new Set<number>();
+    for (let i = 0; i < 300; i++) {
+      E.step(f); f.events.length = 0;
+      for (const z of f.zones) if (!seen.has(z.id)) { seen.add(z.id); cols.push(f.cells[[...z.cells][0]].col); }
+    }
+    const all = [...new Set(f.cells.map(c => c.col))].sort((a, b) => a - b);
+    expect(cols).toEqual(all);
   });
 });

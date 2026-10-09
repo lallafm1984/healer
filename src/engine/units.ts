@@ -4,6 +4,7 @@ import { BARK, DRUID_BIG } from '../data/heroConst';
 import { bark, cellOf, damage, DT, heal, hpLineTick, onDebuffEnd } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
 import { calmHymn, renewEnd } from './talents';
+import { pullTick } from './bossParts';
 import { abFear, dpsMods, hasMod } from './abilities';
 import type { PersName } from '../data/personalities';
 import type { Cell, Fight, Unit } from './types';
@@ -33,7 +34,7 @@ export function unitTick(f: Fight, u: Unit): void {
     d.left -= dt;
     if ((d.cureAt != null || d.grow) && hpLineTick(f, u, d, dt)) continue;
     if (d.grow) { if (d.stack) damage(f, u, d.stack * d.grow.dot * dt, true); }
-    else if (d.dot) damage(f, u, d.dot * dt, true);
+    else if (d.dot) damage(f, u, d.stackMax ? d.dot * (d.stack ?? 1) * dt : d.dot * dt, true);
     if (!u.alive) return;
     if (d.left <= 0) { u.debuffs = u.debuffs.filter(x => x !== d); onDebuffEnd(f, u, d, false); }
   }
@@ -41,6 +42,7 @@ export function unitTick(f: Fight, u: Unit): void {
   for (const z of f.zones) if (z.cells.has(u.cell)) damage(f, u, z.dps * dt, true);
   if (!u.alive) return;
   if (u.moving) { u.moving.left -= dt; if (u.moving.left <= 0) finishMove(f, u); }
+  if (u.pulled) pullTick(f, u);
   if (u.mods.length && hasMod(u, 'stop')) return; // 붕대 감기·명상·얼음 방패: 멈춤
   if (u.react && f.t >= u.react.at && !u.moving) doReact(f, u);
   if (f.k % 4 !== 0 || u.moving || u.react) return;
@@ -69,7 +71,7 @@ export function unitTick(f: Fight, u: Unit): void {
     }
   }
   // 회피가 끝나면 원래 자리로 복귀 (04 3장 상태 머신). 신중파는 1초 더 기다림
-  if (!u.fleeing && u.home >= 0 && u.cell !== u.home) {
+  if (!u.fleeing && !u.pulled && u.home >= 0 && u.cell !== u.home) {
     const h = f.cells[u.home];
     if (!h.unit && !dangerAt(f, u.home)) {
       if (u.homeAt == null) u.homeAt = f.t + 1 + (u.p.react && u.p.react < 1 ? 1 : 0);

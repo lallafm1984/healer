@@ -59,7 +59,33 @@ export interface DebuffDef {
   cureAt?: number;
   /** 체력이 cureAt 아래인 동안 every초마다 1중첩 (최대 max), 초당 피해 = 중첩 × dot (P-WOUND) */
   grow?: { every: number; dot: number; max: number };
+  /** 같은 디버프가 또 걸리면 1중첩 더하고 지속은 처음으로 (최대 stackMax). 초당 피해 = dot × 중첩 (파열 P-BURST) */
+  stackMax?: number;
+  /** 걸려 있는 동안 최대 체력 −비율 (부패). 끝나면 end restoreMax로 돌아옴 */
+  maxCut?: number;
   end?: DebuffEnd;
+}
+
+/** 쫄이 쓰러질 때 (P-BURST) */
+export type AddDown =
+  /** 살아 있는 모두에게 이 디버프 1중첩 (stackMax 디버프). 여럿이 한꺼번에 쓰러지면 겹침 (파열) */
+  | { p: 'burst'; debuff: DebuffDef }
+  /** 그 쫄이 때리던 사람에게 디버프 (뼈 먼지). 그 사람이 없으면 무작위 1명 */
+  | { p: 'debuff'; debuff: DebuffDef };
+
+/**
+ * 쫄 (P-ADD): 보스 전투 중에 나오는 적. 딜러(근접·원거리)가 먼저 잡고, 탱커는 보스를 계속 때린다.
+ * 쫄마다 딜러 1명을 맡아 every초마다 dmg (물리, 원거리 기준). 판 위에는 맡은 사람 칸 아래 이름표로 보임
+ */
+export interface AddDef {
+  name: string;
+  /** 칸 이름표 글자 (한두 글자) */
+  short: string;
+  /** 체력 = 보스 최대 체력 × hp */
+  hp: number;
+  dmg: number;
+  every: number;
+  down?: AddDown;
 }
 
 /** 기술이 맞을 때 하는 일 */
@@ -80,7 +106,14 @@ export type SkillEffect =
    * 최대 체력을 깎는 중첩 디버프 (썩은 숨결 · 썩은 축복 P-HPDOWN): 무작위 n명, 중첩마다 pct, max 중첩, 다시 걸리면 지속이 처음으로.
    * again = 이미 걸린 사람이 있으면 그 확률로 그중에서 고름 (썩은 축복 0.6). 지우면 최대 체력이 돌아옴 (end restoreMax)
    */
-  | { p: 'rot'; n: number; debuff: DebuffDef; pct: number; max: number; again?: number };
+  | { p: 'rot'; n: number; debuff: DebuffDef; pct: number; max: number; again?: number }
+  /**
+   * 끌어당김 (P-PULL): 예고 때 고른 사람(target back)을 탱커 옆 앞줄 빈 칸으로 끌어옴. sec초 동안 보스 평타를 탱커와 번갈아 맞음
+   * (끌려온 사람은 한 대에 dmg, 원거리 기준). 끌려온 칸을 벗어나면 (도망·장판 피하기) 바로 끝나고, 끝나면 제자리로 돌아감
+   */
+  | { p: 'pull'; sec: number; dmg: number }
+  /** 쫄 n마리 (P-ADD). 악몽은 nMythic */
+  | { p: 'adds'; n: number; nMythic?: number; add: AddDef };
 
 /** 장판 칸 고르기 */
 export type ZoneCells =
@@ -89,7 +122,12 @@ export type ZoneCells =
   /** 판 바깥 1열: 줄마다 맨 왼쪽 또는 맨 오른쪽 칸, 쓸 때마다 좌우 번갈아 (역병 폭풍, 26 3-1) */
   | { p: 'edge' }
   /** 살아 있는 몸통(bodies 앞 n개)이 맡은 열 (몸통마다 per열)을 왼쪽부터 차례로. 악몽은 nMythic개 동시 (크레센도, 26 4-3) */
-  | { p: 'bodyCols'; bodies: number; per: number; nMythic: number };
+  | { p: 'bodyCols'; bodies: number; per: number; nMythic: number }
+  /**
+   * 흐르는 장판 (향로 연기, 35 4-1): 한쪽 끝 열에서 시작해 every초마다 한 열씩 옆으로. 다음 열은 every초 전에 예고되어 파티원이 미리 비킨다.
+   * 열마다 장판은 skill.dur초 남음. from: left (기본) / right / alt = 쓸 때마다 번갈아
+   */
+  | { p: 'flow'; every: number; from?: 'left' | 'right' | 'alt' };
 
 /** 기술이 도는 조건. 타이머는 조건과 상관없이 흐르고, 조건이 안 맞으면 그 차례는 건너뜀 */
 export interface SkillWhen {
@@ -126,8 +164,8 @@ export interface SkillDef {
   /** 악몽 장판 피해 배율 (불협화음 0.7) */
   dpsMythic?: number;
   when?: SkillWhen;
-  /** 예고 때 맞을 사람을 고름: tank = 보스가 때릴 사람 */
-  target?: 'tank';
+  /** 예고 때 맞을 사람을 고름: tank = 보스가 때릴 사람, back = 뒷줄부터 n명 (탱커·나 빼고, 끌어당김). 악몽은 nMythic */
+  target?: 'tank' | { p: 'back'; n: number; nMythic?: number };
   /** 맞을 때 (장판은 없음) */
   effect?: SkillEffect;
   /** 장판 칸 */

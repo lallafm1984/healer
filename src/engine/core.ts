@@ -164,7 +164,7 @@ export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): v
 function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
   const e = d.end!;
   switch (e.p) {
-    case 'restoreMax': u.max = u.base; return;
+    case 'restoreMax': setMax(u); return;
     case 'spread': spread(f, u); return;
     case 'colDmg': {
       // 무음 성가대 독창 (26 4-3): 안 지우고 끝나면 그 사람이 선 열 전체. 지우면 그냥 사라짐 (함정 아님)
@@ -200,7 +200,13 @@ export function hpLineTick(f: Fight, u: Unit, d: Debuff, dt: number): boolean {
   return false;
 }
 
-/** 보스가 아닌 적(또는 보스 몸통)에 피해. 쓰러지면 시전 중이던 기술도 끊김. 적 체력 합을 다시 셈 */
+/** 최대 체력 = 기본 × (1 − 걸려 있는 디버프의 maxCut 합) (썩은 숨결·부패). 체력은 새 최대를 넘지 않게 */
+export function setMax(u: Unit): void {
+  u.max = u.base * (1 - u.debuffs.reduce((s, d) => s + (d.maxCut ?? 0), 0));
+  u.hp = Math.min(u.hp, u.max);
+}
+
+/** 보스가 아닌 적(또는 보스 몸통)에 피해. 쓰러지면 시전 중이던 기술도 끊김. 몸통 전투면 적 체력 합을 다시 셈 (쫄은 빼고) */
 export function damageMob(f: Fight, m: Mob, x: number): void {
   if (!m.alive || x <= 0) return;
   m.hp -= x;
@@ -209,5 +215,5 @@ export function damageMob(f: Fight, m: Mob, x: number): void {
     f.tels = f.tels.filter(t => t.skill.mob !== m.id);
     emit(f, { type: 'mobDown', id: m.id, name: m.name });
   }
-  f.bossHp = f.mobs.reduce((s, q) => s + q.hp, 0);
+  if (f.bodyHp) f.bossHp = f.mobs.reduce((s, q) => s + (q.add ? 0 : q.hp), 0);
 }
