@@ -3,7 +3,7 @@ import { BOARDS, PROTO_BOARDS } from '../data/boards';
 import { CLASSES, RECRUIT_CLASSES, sameClassMax, type ClassKey } from '../data/classes';
 import { DIFFS, MYTHIC } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
-import { gearStats } from '../data/gear';
+import { gearStats, protoGearStats } from '../data/gear';
 import { HEROES } from '../data/heroes';
 import { TALENT_STANDIN } from '../data/heroConst';
 import { TALENTS } from '../data/talents';
@@ -32,7 +32,7 @@ export function create(cfg: FightConfig): Fight {
   const enc = ENCOUNTERS[cfg.encounter];
   const diff = DIFFS[cfg.diff];
   const rng = rngFrom(cfg.seed || 1);
-  const gear = cfg.gearStats ? { ...cfg.gearStats } : gearStats(cfg.gear || 'none');
+  const gear = cfg.gearStats ? { ...cfg.gearStats } : (cfg.proto ? protoGearStats : gearStats)(cfg.gear || 'none');
   const encBoard = (cfg.proto && PROTO_BOARDS[enc.key]) || enc.board;
   const board = cfg.board && BOARDS[cfg.board] && BOARDS[cfg.board].flat().length === BOARDS[encBoard].flat().length ? cfg.board : encBoard;
   const cells = makeCells(BOARDS[board]);
@@ -151,6 +151,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     let base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;
     let dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult * own;
     if (apt) { base *= APT.tough[aptIdx(apt[1])]; dps *= APT.atk[aptIdx(apt[0])]; }
+    if (role === 'healer' && f.gear.hp) base *= 1 + f.gear.hp; // 장비 체력 (34 6-5)
     const u: Unit = {
       id: f.nextId++, role, cls: c ? c.key : null, aim: 0, flow: 0, traits: (traits || []).filter(k => TRAITS[k]), bulwark: 0, bulwarkUsed: false, acc: 0, dealt: 0, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
       cell: -1, home: -1, hot: 0, hotTick: 0, hots: [], redu: 0, reduCut: 0, sacr: 0, immune: 0, echo: [], guardian: 0, shield: 0, debuffs: [], moving: null, react: null,

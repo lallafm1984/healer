@@ -8,7 +8,7 @@ import {
   SHARD_CRAFT, SHARD_MAX, type PassReward,
 } from '../data/economy';
 import { FEATURES } from '../data/features';
-import { itemName, LEGEND_LEVEL, rollItem, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
+import { LEGEND_LEVEL, makeItem, rollItem, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
 import type { ItemKey } from '../data/items';
 import {
   CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, WEEKLY, WEEKLY_LV, WEEKLY_N, type MissionDef, type RunEvent,
@@ -192,7 +192,7 @@ export function claimChalChest(save: SaveData, r: () => number, now: number): Ga
   const items = c.grades.map((g, i) => {
     const slot = SLOTS[Math.floor(r() * SLOTS.length)].key;
     const grade: ItemGrade = i === 0 && lv >= LEGEND_LEVEL && r() < c.legend ? '전설' : g;
-    return { id: save.nextId++, slot, grade, plus: 0, name: itemName(slot, grade) } as GearItem;
+    return makeItem(r, slot, grade, save.nextId++);
   });
   return give(save, { gold: c.goldRuns * runGold(lv), items, pass: PASS_GAIN.challenge }, now);
 }
@@ -248,12 +248,12 @@ export function craftShard(save: SaveData): string {
 }
 
 /** 공훈 교환 (12 3-5): 원하는 부위 영웅 장비 1개 */
-export function exchangeMerit(save: SaveData, slot: SlotKey): GearItem | string {
+export function exchangeMerit(save: SaveData, slot: SlotKey, r: () => number = Math.random): GearItem | string {
   if (!SLOTS.some(s => s.key === slot)) return '없는 부위';
   if (save.wallet.merit < MERIT_GEAR_COST) return `공훈 부족 (${MERIT_GEAR_COST} 필요)`;
   save.wallet.merit -= MERIT_GEAR_COST;
   const g: ItemGrade = '영웅';
-  const it: GearItem = { id: save.nextId++, slot, grade: g, plus: 0, name: itemName(slot, g) };
+  const it = makeItem(r, slot, g, save.nextId++);
   save.gear.bag.push(it);
   return it;
 }

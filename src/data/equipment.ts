@@ -1,19 +1,22 @@
 /**
- * 힐러 장비 아이템 (02 10장). 6부위, 등급 5단계, 클리어 때 랜덤 1개.
+ * 힐러 장비 아이템 (02 10장, 34 6장 v0.2). 6부위, 부위마다 종류 2~3개 (종류마다 고정 옵션 1개), 등급 5단계, 클리어 때 랜덤 1개.
+ * 한 장비 = 주 능력치 (무기 지능 · 방어구 지능과 체력 · 장신구 없음) + 고정 옵션 + 추가 옵션 1~3줄 (등급 최대값의 60~100% 굴림).
  * 강화 +1~+10 (확률, +2 이상에서 실패하면 1단계 떨어짐, 34 6-5 · 12 3-2) · 분해 (골드 + 강화석, 12 3-1). 떨어지는 장비는 모두 +0.
  */
 import type { DiffName } from './difficulty';
-import { GRADE, type GearStats, type GradeName } from './gear';
+import type { GearStats, GradeName } from './gear';
 
 export type SlotKey = 'weapon' | 'head' | 'chest' | 'hands' | 'ring' | 'neck';
 
-export const SLOTS: { key: SlotKey; name: string; base: string }[] = [
-  { key: 'weapon', name: '무기', base: '지팡이' },
-  { key: 'head', name: '머리', base: '두건' },
-  { key: 'chest', name: '몸통', base: '로브' },
-  { key: 'hands', name: '손', base: '장갑' },
-  { key: 'ring', name: '반지', base: '반지' },
-  { key: 'neck', name: '목걸이', base: '목걸이' },
+/** 부위 묶음 (34 6-1): 무기 · 방어구 (머리·몸통·손) · 장신구 (목걸이·반지) */
+export type SlotGroup = 'weapon' | 'armor' | 'acc';
+export const SLOTS: { key: SlotKey; name: string; group: SlotGroup }[] = [
+  { key: 'weapon', name: '무기', group: 'weapon' },
+  { key: 'head', name: '머리', group: 'armor' },
+  { key: 'chest', name: '몸통', group: 'armor' },
+  { key: 'hands', name: '손', group: 'armor' },
+  { key: 'ring', name: '반지', group: 'acc' },
+  { key: 'neck', name: '목걸이', group: 'acc' },
 ];
 
 export type ItemGrade = Exclude<GradeName, '없음'>;
@@ -27,6 +30,58 @@ export const GRADE_STYLE: Record<ItemGrade, { color: string; word: string }> = {
   '영웅': { color: '#BE6EFF', word: '성스러운' },
   '전설': { color: '#FF962E', word: '전설의' },
 };
+
+// ---------- 능력치 · 종류 · 옵션 (34 6-2 ~ 6-5) ----------
+/** 장비 능력치 6가지: 지능 (치유 회복량) · 체력 (내 최대 체력) · 치명타 · 가속 · 정신력 (마나 재생) · 인내 (내가 받는 피해 감소) */
+export type StatKey = 'int' | 'hp' | 'crit' | 'haste' | 'spirit' | 'endure';
+export const STAT_KEYS: StatKey[] = ['int', 'hp', 'crit', 'haste', 'spirit', 'endure'];
+/** 추가 옵션 한 줄의 영웅 최대값 (34 6-4) · 합 상한 */
+export const STATS: Record<StatKey, { name: string; max: number; cap?: number }> = {
+  int: { name: '지능', max: 0.05 },
+  hp: { name: '체력', max: 0.07 },
+  crit: { name: '치명타', max: 0.04, cap: 0.5 },
+  haste: { name: '가속', max: 0.05, cap: 0.5 },
+  spirit: { name: '정신력', max: 0.08 },
+  endure: { name: '인내', max: 0.03, cap: 0.3 },
+};
+/** 등급 값 배율 (34 6-3): 주 능력치 · 고정 옵션 · 추가 옵션 · 특수능력 모두 */
+export const GRADE_MULT: Record<ItemGrade, number> = { '일반': 0.4, '고급': 0.6, '희귀': 0.8, '영웅': 1, '전설': 1.2 };
+/** 등급별 추가 옵션 줄 수 (34 6-3) */
+export const EXTRA_LINES: Record<ItemGrade, number> = { '일반': 1, '고급': 2, '희귀': 2, '영웅': 3, '전설': 3 };
+/** 추가 옵션 굴림: 등급 최대값의 ROLL_MIN ~ 100% */
+export const ROLL_MIN = 0.6;
+/** 강화 1단계마다 주 능력치 (장신구는 고정 옵션) +8% (34 6-5, +10 = ×1.8) */
+export const PLUS_STEP = 0.08;
+/** 주 능력치 (영웅 +0, 34 6-5): 무기 지능 12% · 방어구 칸마다 지능 7% + 체력 5% · 장신구 없음 */
+export const MAIN: Record<SlotGroup, Partial<Record<StatKey, number>>> = { weapon: { int: 0.12 }, armor: { int: 0.07, hp: 0.05 }, acc: {} };
+
+/** 장비 종류 (34 6-2): 부위마다 2~3종, 종류마다 고정 옵션 1개 (값 = 그 옵션의 등급 최대값). 부위의 첫 종류 = 옛 장비가 받는 종류 */
+export interface KindDef { key: string; slot: SlotKey; name: string; fixed: StatKey }
+export const KINDS: KindDef[] = [
+  { key: 'staff', slot: 'weapon', name: '지팡이', fixed: 'haste' },
+  { key: 'scepter', slot: 'weapon', name: '홀', fixed: 'crit' },
+  { key: 'mace', slot: 'weapon', name: '메이스', fixed: 'endure' },
+  { key: 'hood', slot: 'head', name: '두건', fixed: 'spirit' },
+  { key: 'crown', slot: 'head', name: '관', fixed: 'crit' },
+  { key: 'helm', slot: 'head', name: '투구', fixed: 'endure' },
+  { key: 'robe', slot: 'chest', name: '로브', fixed: 'spirit' },
+  { key: 'vestment', slot: 'chest', name: '법복', fixed: 'int' },
+  { key: 'mail', slot: 'chest', name: '사슬 조끼', fixed: 'endure' },
+  { key: 'gloves', slot: 'hands', name: '장갑', fixed: 'haste' },
+  { key: 'wraps', slot: 'hands', name: '손싸개', fixed: 'crit' },
+  { key: 'gauntlet', slot: 'hands', name: '건틀릿', fixed: 'endure' },
+  { key: 'ring', slot: 'ring', name: '반지', fixed: 'crit' },
+  { key: 'signet', slot: 'ring', name: '인장 반지', fixed: 'haste' },
+  { key: 'beads', slot: 'neck', name: '구슬 목걸이', fixed: 'spirit' },
+  { key: 'pendant', slot: 'neck', name: '펜던트', fixed: 'int' },
+];
+export const kindsOf = (slot: SlotKey) => KINDS.filter(k => k.slot === slot);
+/** 종류 정의 (모르는 종류면 그 부위 첫 종류) */
+export const kindOf = (it: { slot: SlotKey; kind?: string }): KindDef => KINDS.find(k => k.key === it.kind && k.slot === it.slot) ?? kindsOf(it.slot)[0];
+export const groupOf = (slot: SlotKey): SlotGroup => SLOTS.find(s => s.key === slot)!.group;
+
+/** 추가 옵션 한 줄. roll = 등급 최대값 대비 굴림 (0.6~1), up = 옵션 각성으로 더해진 값 (34 6-5, 비율) */
+export interface GearLine { stat: StatKey; roll: number; up?: number }
 
 /** 난이도별 등급 확률 (02 10-4 초안). 순서 = ITEM_GRADES */
 export const DROP_TABLE: Record<DiffName, number[]> = {
@@ -45,10 +100,14 @@ export const LEGEND_LEVEL = 50;
 export interface GearItem {
   id: number;
   slot: SlotKey;
+  /** 종류 키 (KINDS). 옛 저장엔 없음 → migrate가 그 부위 첫 종류로 */
+  kind: string;
   grade: ItemGrade;
   /** 강화 단계 (0~10) */
   plus: number;
   name: string;
+  /** 추가 옵션 (등급만큼 줄, 고정 옵션과 겹치지 않음) */
+  lines: GearLine[];
   /** 잠금 (27 4-3): 분해 고르기·일괄 분해에서 빠짐. 옛 저장엔 없음 = 안 잠김 */
   lock?: boolean;
 }
@@ -56,11 +115,27 @@ export interface GearItem {
 export type Equipped = Partial<Record<SlotKey, GearItem>>;
 
 export const slotName = (k: SlotKey) => SLOTS.find(s => s.key === k)!.name;
-export const itemName = (slot: SlotKey, grade: ItemGrade) => `${GRADE_STYLE[grade].word} ${SLOTS.find(s => s.key === slot)!.base}`;
+/** 이름: 등급 말 + 종류 (「축복받은 두건」) */
+export const itemName = (it: { slot: SlotKey; kind?: string; grade: ItemGrade }) => `${GRADE_STYLE[it.grade].word} ${kindOf(it).name}`;
 
-/** 장비 1개 뽑기. r = 0~1 난수 함수 */
-export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number, id: number): GearItem {
-  const slot = SLOTS[Math.floor(r() * SLOTS.length)].key;
+/** 추가 옵션 n줄: 고정 옵션과 다른 능력치에서 서로 다르게, 값은 ROLL_MIN~1 굴림 */
+export function rollLines(r: () => number, n: number, fixed: StatKey): GearLine[] {
+  const pool = STAT_KEYS.filter(k => k !== fixed), out: GearLine[] = [];
+  for (let i = 0; i < n && pool.length; i++) {
+    const stat = pool.splice(Math.floor(r() * pool.length), 1)[0];
+    out.push({ stat, roll: Math.round((ROLL_MIN + (1 - ROLL_MIN) * r()) * 100) / 100 });
+  }
+  return out;
+}
+
+/** 부위 · 등급이 정해진 장비 1개 (종류 · 추가 옵션 굴림). kind를 주면 그 종류 */
+export function makeItem(r: () => number, slot: SlotKey, grade: ItemGrade, id: number, kind?: string): GearItem {
+  const ks = kindsOf(slot), k = ks.find(x => x.key === kind) ?? ks[Math.floor(r() * ks.length)];
+  return { id, slot, kind: k.key, grade, plus: 0, name: itemName({ slot, kind: k.key, grade }), lines: rollLines(r, EXTRA_LINES[grade], k.fixed) };
+}
+
+/** 등급 굴림 (02 10-4): 클리어 등급만큼 위로 밀고, 표에 있는 가장 높은 등급까지만. 전설은 Lv 50부터 */
+export function rollGrade(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number): ItemGrade {
   const table = DROP_TABLE[diff];
   let x = Math.min(0.999999, r() + GRADE_BONUS[grade]);
   let gi = 0;
@@ -68,12 +143,80 @@ export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B'
     if (x < table[gi]) break;
     x -= table[gi];
   }
-  // 확률 0인 등급으로 밀려 올라가지 않게: 표에 있는 가장 높은 등급까지만
   const top = table.reduce((m, p, i) => (p > 0 ? i : m), 0);
-  gi = Math.min(gi, top);
-  let g = ITEM_GRADES[gi];
-  if (g === '전설' && level < LEGEND_LEVEL) g = '영웅';
-  return { id, slot, grade: g, plus: 0, name: itemName(slot, g) };
+  const g = ITEM_GRADES[Math.min(gi, top)];
+  return g === '전설' && level < LEGEND_LEVEL ? '영웅' : g;
+}
+
+/** 장비 1개 뽑기 (부위 → 등급 → 종류 · 옵션). r = 0~1 난수 함수 */
+export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number, id: number): GearItem {
+  const slot = SLOTS[Math.floor(r() * SLOTS.length)].key;
+  return makeItem(r, slot, rollGrade(r, diff, grade, level), id);
+}
+
+/** 능력치 6가지 (비율) */
+export type StatSet = Record<StatKey, number>;
+export const noStats = (): StatSet => ({ int: 0, hp: 0, crit: 0, haste: 0, spirit: 0, endure: 0 });
+
+/** 고정 옵션 값: 그 능력치의 등급 최대값. 장신구는 강화로 오름 (34 6-5) */
+export function fixedOf(it: GearItem): { stat: StatKey; v: number } {
+  const k = kindOf(it), up = groupOf(it.slot) === 'acc' ? 1 + PLUS_STEP * it.plus : 1;
+  return { stat: k.fixed, v: STATS[k.fixed].max * GRADE_MULT[it.grade] * up };
+}
+/** 주 능력치 줄 (무기 지능 · 방어구 지능과 체력, 강화 반영). 장신구는 없음 */
+export function mainOf(it: GearItem): { stat: StatKey; v: number }[] {
+  const m = GRADE_MULT[it.grade], up = 1 + PLUS_STEP * it.plus, main = MAIN[groupOf(it.slot)];
+  return STAT_KEYS.filter(k => main[k]).map(k => ({ stat: k, v: main[k]! * m * up }));
+}
+/** 굴림 막대 채움 (0~1): 최소 굴림 = 0, 최대 = 1 */
+export const rollFill = (roll: number) => Math.max(0, Math.min(1, (roll - ROLL_MIN) / (1 - ROLL_MIN)));
+/** 추가 옵션 한 줄의 값 */
+export const lineValue = (it: GearItem, l: GearLine) => STATS[l.stat].max * GRADE_MULT[it.grade] * l.roll + (l.up ?? 0);
+
+/** 장비 한 개가 보태는 능력치 (주 능력치 × 강화 + 고정 옵션 + 추가 옵션). 없으면 모두 0 */
+export function itemStats(it: GearItem | null | undefined): StatSet {
+  const s = noStats();
+  if (!it) return s;
+  for (const x of mainOf(it)) s[x.stat] += x.v;
+  const fx = fixedOf(it);
+  s[fx.stat] += fx.v;
+  for (const l of it.lines ?? []) s[l.stat] += lineValue(it, l);
+  return s;
+}
+
+/** 능력치 합 → 전투 능력치 (치명타 · 가속 · 인내는 합 상한까지, 34 6-4) */
+export function statsToGear(s: StatSet): GearStats {
+  const cap = (k: StatKey) => Math.min(s[k], STATS[k].cap ?? Infinity);
+  return { heal: 1 + s.int, regen: 1 + s.spirit, haste: cap('haste'), crit: cap('crit'), hp: s.hp, endure: cap('endure') };
+}
+
+/** 착용 장비 능력치 합 (상한 전) */
+export function equippedStats(eq: Equipped): StatSet {
+  const s = noStats();
+  for (const x of SLOTS) { const v = itemStats(eq[x.key]); for (const k of STAT_KEYS) s[k] += v[k]; }
+  return s;
+}
+
+/** 착용 장비 → 전투 능력치 */
+export const gearStatsOf = (eq: Equipped): GearStats => statsToGear(equippedStats(eq));
+
+/**
+ * 시뮬 장비 프리셋 (data/gear GEARS)의 능력치: 6부위 모두 그 등급 · 강화의 「기댓값」 장비.
+ * 종류는 부위의 종류를 고르게, 추가 옵션은 고정 옵션이 아닌 능력치에 고르게, 굴림은 가운데 (0.8)
+ */
+export function presetStats(grade: ItemGrade, plus: number): StatSet {
+  const s = noStats(), m = GRADE_MULT[grade], mid = (ROLL_MIN + 1) / 2;
+  for (const x of SLOTS) {
+    const ks = kindsOf(x.key), up = 1 + PLUS_STEP * plus, main = MAIN[x.group];
+    for (const k of STAT_KEYS) if (main[k]) s[k] += main[k]! * m * up;
+    for (const kd of ks) {
+      const w = 1 / ks.length;
+      s[kd.fixed] += w * STATS[kd.fixed].max * m * (x.group === 'acc' ? up : 1);
+      const others = STAT_KEYS.filter(k => k !== kd.fixed);
+      for (const k of others) s[k] += (w * EXTRA_LINES[grade] * STATS[k].max * m * mid) / others.length;
+    }
+  }
+  return s;
 }
 
 // ---------- 강화·분해 (12 3장) ----------
@@ -118,35 +261,9 @@ export function salvageOf(it: GearItem): { gold: number; stone: number; refined:
 }
 
 /**
- * 착용 장비 → 전투 능력치. data/gear의 프리셋 계산(6부위 같은 등급)을 부위별로 나눈 것이라,
- * 6부위가 모두 같으면 gearStats(프리셋)과 같은 값이 나온다.
+ * 장비 점수 (34 6-7): 등급 순위 + 강화/10 + 추가 옵션 굴림 (줄마다 최소 굴림을 넘은 만큼 ¼). 권장 장비 비교·더 좋은 장비 · 추천 장착용
  */
-export function gearStatsOf(eq: Equipped): GearStats {
-  let heal = 0, sub = 0, any = false;
-  for (const s of SLOTS) {
-    const it = eq[s.key];
-    if (!it) continue;
-    any = true;
-    const [h, n] = GRADE[it.grade];
-    heal += h + 0.005 * it.plus;
-    sub += n;
-  }
-  const n = sub / 3;
-  return { heal: any ? 1 + heal : 1, regen: 1 + 0.03 * n, haste: 0.02 * n, crit: 0.02 * n };
-}
-
-/**
- * 장비 한 개가 보태는 능력치 (gearStatsOf를 부위 하나로 나눈 것). 장비 상세 시트의 「지금 장비와 비교」용.
- * heal = 힐량 보정, crit·haste = 비율, regen = 마나 재생 배율에 더하는 값. 없으면 모두 0
- */
-export function itemStats(it: GearItem | null | undefined): { heal: number; crit: number; haste: number; regen: number } {
-  if (!it) return { heal: 0, crit: 0, haste: 0, regen: 0 };
-  const [h, n] = GRADE[it.grade];
-  return { heal: h + 0.005 * it.plus, crit: (0.02 * n) / 3, haste: (0.02 * n) / 3, regen: (0.03 * n) / 3 };
-}
-
-/** 장비 점수 (등급 순위 + 강화/10). 권장 장비 비교·더 좋은 장비 표시용 */
-export const itemScore = (it: GearItem | undefined) => (it ? ITEM_GRADES.indexOf(it.grade) + 1 + it.plus / 10 : 0);
+export const itemScore = (it: GearItem | undefined) => (it ? ITEM_GRADES.indexOf(it.grade) + 1 + it.plus / 10 + (it.lines ?? []).reduce((a, l) => a + (l.roll - ROLL_MIN) / 4, 0) : 0);
 export const avgScore = (eq: Equipped) => SLOTS.reduce((a, s) => a + itemScore(eq[s.key]), 0) / SLOTS.length;
 
 /** 권장 장비 (02 2-2, 13): 어려움 = 고급, 악몽 = 희귀 +5. 미달이면 경고만 (입장은 허용) */

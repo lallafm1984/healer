@@ -48,25 +48,25 @@ export function heroStats(): { hp: number; int: number; crit: number; haste: num
 
 /**
  * 능력치 판 6칸과 출처 (34 1-2 · 10장, 27 4-2 능력치 판을 누르면): 기본 · 레벨 (정점 수련 포함) · 장비 몫. 더하면 total.
- * 지능 = 치유 회복량 (스킬 회복량은 지능의 비율), 정신력 = 마나 재생에 더하는 비율, 인내 = 받는 피해 감소 (장비 옵션, 아직 없음).
- * 특성은 상시 능력치를 바꾸지 않음 (전투 중 조건으로 켜짐) → 몫 없음. 체력은 장비로 오르지 않음.
+ * 지능 = 치유 회복량 (스킬 회복량은 지능의 비율), 정신력 = 마나 재생에 더하는 비율, 인내 = 받는 피해 감소 (장비 옵션, 34 6-4).
+ * 특성은 상시 능력치를 바꾸지 않음 (전투 중 조건으로 켜짐) → 몫 없음. 체력은 방어구 주 능력치 · 체력 옵션으로 오름.
  */
 export function statParts() {
   const lv = G.save.player.level, apex = RULES.apex(lv);
   const eq = G.save.gear.equipped, st = gearStatsOf(eq), lp = lvPower(lv) * apex, l1 = lvPower(1);
-  const hp = Math.round(HEALER_HP * lp), hp1 = Math.round(HEALER_HP * l1);
+  const hpLv = Math.round(HEALER_HP * lp), hp = Math.round(HEALER_HP * lp * (1 + (st.hp ?? 0))), hp1 = Math.round(HEALER_HP * l1);
   const int = Math.round(INT_BASE * lp * st.heal), intLv = Math.round(INT_BASE * lp), int1 = Math.round(INT_BASE * l1);
   return {
     lp,
     /** 정점 수련 몫 (34 2-2, Lv 51부터 레벨마다 +0.3%). 레벨 몫에 들어 있음 */
     apex: apex - 1,
-    hp: { total: hp, base: hp1, level: hp - hp1 },
+    hp: { total: hp, base: hp1, level: hpLv - hp1, gear: hp - hpLv },
     int: { total: int, base: int1, level: intLv - int1, gear: int - intLv },
     crit: { total: RULES.baseCrit + st.crit, base: RULES.baseCrit, gear: st.crit },
     haste: { total: Math.min(RULES.hasteCap, st.haste), gear: Math.min(RULES.hasteCap, st.haste), cap: RULES.hasteCap },
     /** 마나 재생 = 초당 regen% × (1 + 정신력) */
     spirit: { total: st.regen - 1, gear: st.regen - 1, regen: RULES.regen },
-    endure: { total: 0, gear: 0 },
+    endure: { total: st.endure ?? 0, gear: st.endure ?? 0 },
   };
 }
 

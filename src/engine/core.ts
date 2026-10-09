@@ -130,6 +130,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
   amt *= f.dmgMult;
   if (f.armor) amt *= armorFactor(u.role, aim);
   if (u.me && f.tx.on.firmWill) amt *= 0.8; // 굳은 의지 (06 6장)
+  if (u.me && f.gear.endure) amt *= 1 - f.gear.endure; // 장비 인내 (34 6-4)
   if (u.me && f.standin) amt *= f.standin.guard; // 특성 트리 없는 직업 임시 보정
   if (u.shield > 0) amt *= 0.6;
   if (u.bulwark > 0) amt *= 1 - BULWARK.cut;

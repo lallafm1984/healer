@@ -152,8 +152,9 @@ describe('재화 (12)', () => {
     const s = save(40);
     s.wallet.merit = 150;
     expect(exchangeMerit(s, 'tail' as never)).toMatch(/없는 부위/);
-    const it = exchangeMerit(s, 'ring');
-    expect(it).toEqual({ id: expect.any(Number), grade: '영웅', slot: 'ring', plus: 0, name: '성스러운 반지' });
+    const it = exchangeMerit(s, 'ring', () => 0); // 첫 종류 (반지)
+    expect(it).toMatchObject({ id: expect.any(Number), grade: '영웅', slot: 'ring', kind: 'ring', plus: 0, name: '성스러운 반지' });
+    expect(typeof it === 'object' && it.lines).toHaveLength(3);
     expect(s.wallet.merit).toBe(50);
     expect(exchangeMerit(s, 'ring')).toMatch(/부족/);
   });

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { apexOf, lvPower } from '../src/data/progression';
 import { PROTO_RULES, RULES } from '../src/data/rules';
 import { healText, SKILLS } from '../src/data/skills';
+import { gearStats } from '../src/data/gear';
 import * as E from '../src/engine';
 import { heal } from '../src/engine/core';
 import { castOf } from '../src/engine/talents';
@@ -27,7 +28,7 @@ describe('34 1-2 바꾼 값', () => {
   });
   it('기본 치명타 0% (치명은 장비·특성에서만), 프로토타입 규칙은 5%', () => {
     expect(E.create(cfg).gear.crit).toBe(0);
-    expect(E.create({ ...cfg, gear: 'adv0' }).gear.crit).toBeCloseTo(0.04);
+    expect(E.create({ ...cfg, gear: 'adv0' }).gear.crit).toBeCloseTo(gearStats('adv0').crit); // 장비 몫만 (34 6장 기댓값 프리셋)
     expect(E.create({ ...cfg, proto: true }).gear.crit).toBeCloseTo(0.05);
   });
   it('마나 재생 초당 0.7% (프로토타입 1%)', () => {
