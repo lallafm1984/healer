@@ -202,14 +202,14 @@ export function step(f: Fight): void {
 
 /**
  * 탱커가 모두 쓰러지면 보스는 다음 사람을 때림 (aggroTarget). 그 사람이 버팀목이면 잠깐 버팀.
- * 레이드(10인·20인)는 「탱커 없음」 카운트다운이 끝나면 보스가 바로 광폭화 (35 6-4, bosses.ts enrageAt). 탱커를 일으키면 사라짐
+ * 5인 이상 보스전은 「탱커 없음」 카운트다운이 끝나면 보스가 바로 광폭화 (35 6-4, bosses.ts enrageAt). 탱커를 일으키면 사라짐
  */
 function tankWatch(f: Fight): void {
   if (f.party.some(u => u.role === 'tank' && u.alive)) {
     if (f.noTankAt != null) { f.noTankAt = null; if (!f.enraged) emit(f, { type: 'msg', text: '탱커가 일어남: 광폭화 카운트다운 멈춤' }); }
     return;
   }
-  if (f.armor && f.noTankAt == null && !f.enraged && f.party.length >= NO_TANK_MIN_PARTY && f.party.some(u => u.role === 'tank')) {
+  if (f.armor && f.noTankAt == null && !f.enraged && f.enc.script !== 'trash' && f.party.length >= NO_TANK_MIN_PARTY && f.party.some(u => u.role === 'tank')) {
     f.noTankAt = f.t;
     emit(f, { type: 'msg', text: `탱커 없음: ${NO_TANK_SEC}초 뒤 보스 광폭화` });
   }
