@@ -7,7 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abOnTel } from './abilities';
 import { affChaos } from './affixes';
-import { addsTick, aggroTarget, backTargets, flowNext, orderTick, runEffect, runFlow, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, backTargets, flowNext, orderTick, runEffect, runFlow, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import type { BossSkill, Fight, Mob, TelKind, Telegraph, Unit } from './types';
@@ -34,7 +34,7 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
     fire: e ? g => runEffect(g, s, e) : undefined,
     hit: e ? (g, tel) => runEffect(g, s, e, tel) : undefined,
     cellsFor: z ? g => zoneCells(g, s, z) : undefined,
-    flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg, safe: z?.p === 'safe' || undefined,
+    flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg, safe: z?.p === 'safe' || undefined, quake: e?.p === 'quake' || undefined,
   });
   f.bs[d.key] = s;
   return s;
@@ -113,6 +113,7 @@ export function initBoss(f: Fight): void {
     for (const b of def.bodies) f.mobs.push({ id: f.nextId++, name: b.name, elite: !!b.elite, boss: b.boss, hp: b.hp * scale, max: b.hp * scale, alive: true });
   }
   for (const d of def.skills) fromDef(f, d);
+  if (def.watch) watchInit(f, def.watch);
 }
 
 /** 매 틱 보스 쪽: 페이즈 흐름 → 광폭화 */
@@ -122,6 +123,7 @@ function bossUpdate(f: Fight): void {
   if (def.flow) runFlow(f, def.flow);
   if (f.mobs.length) addsTick(f);
   if (f.order) orderTick(f);
+  if (f.watch) watchTick(f);
   if (f.daze && f.t >= f.daze.until) f.daze = null;
   enrageAt(f, def.enrage.name, def.enrage.period, def.enrage.dmg);
 }

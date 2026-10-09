@@ -54,6 +54,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     if (cut) amt *= Math.max(0, 1 - cut);
     if (u.debuffs.some(d => d.invert)) { invertHeal(f, u, amt); return 0; } // 뒤집힌 축복 (P-INVERT)
   }
+  if (f.watch && f.t >= f.watch.until) f.watch.fill += amt * f.watch.rate; // 주시 (P-AGGRO): 넘친 치유까지 게이지에
   const eff = Math.min(amt, u.max - u.hp);
   u.hp += eff;
   u.got += eff;
@@ -192,6 +193,15 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       damage(f, u, e.dmg, true);
       emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 시간 끝` });
       return;
+    case 'stackHit': {
+      // 마력 역류 (P-RECOIL): 끝나도 지워도 그때까지 중첩만큼
+      const n = d.stack ?? 0;
+      if (n <= 0) return;
+      damage(f, u, e.dmg * n, true);
+      emit(f, { type: 'sound', name: 'burst' });
+      emit(f, { type: 'msg', text: `${d.name} ${n}중첩 터짐` });
+      return;
+    }
   }
 }
 

@@ -348,3 +348,7 @@ textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertic
 /* 적 등급 (2026-10-07 Lim: 잡몹 대신 일반·정예) */
 #bossName .grade { margin-left: 6px; padding: 1px 6px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--panel-2); font-family: var(--font-body, inherit); font-size: 11px; color: var(--mute); vertical-align: 3px; }
 #bossName .grade.elite { color: #17130F; background: var(--gold); border-color: #6A4A1C; }
+/* 진동 예고 (35 4-4 P-QUAKE): 휠 테두리가 떨림. 시전 힐을 새로 시작하지 말라는 신호 */
+#battle #wheel.quake .slot { animation: quakeRim 0.18s linear infinite alternate; }
+@keyframes quakeRim { from { border-color: #FFB25B; translate: -1px 0; } to { border-color: #7A3D12; translate: 1px 0; } }
+#battle.reduced-effects #wheel.quake .slot { animation: none; border-color: #FFB25B; }
