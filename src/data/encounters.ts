@@ -59,7 +59,8 @@ export interface Encounter {
   debuffs?: string[];
   /**
    * 난이도별 보스 피해·체력 보정 (레이드 재조정, 2026-10-08 Lim: 특성·능력 포함 기준).
-   * 기준 = 그 레벨에서 열린 특성 + 공개모집 능력 + 권장 장비로 자동 힐러 어려움 약 85%, 악몽 약 75% (scripts/sim-raids.ts)
+   * 기준 = 그 레벨에서 열린 특성 + 공개모집 능력 + 권장 장비로 자동 힐러 어려움 약 85%, 악몽 약 75% (scripts/sim-raids.ts).
+   * 2026-10-09 직업군 방어력(34 9장)과 34 1장 숫자·시전·GCD로 다시 맞춤 (세 직업 평균, 30판)
    */
   tune?: Partial<Record<DiffName, { dmg?: number; hp?: number }>>;
 }
@@ -88,9 +89,9 @@ const TRIO = { tank: 1, melee: 0, ranged: 1 };
 export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
   warden: { key: 'warden', lowLevel: true, name: '녹슨 문지기', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7000, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'warden', stage: 0.25 },
   // 10인 레이드 「심연의 종탑」 1층 (05 2장). 악몽 = 공통 악몽 규칙 + 전용 패턴 (26 3-1)
-  plague: { key: 'plague', name: '역병 군주', tier: '레이드 · 10인', board: 'b19', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 22000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'plague', stage: 0.18, debuffs: ['질병', '독'], tune: { '어려움': { dmg: 1.2 }, '악몽': { dmg: 1.02 } } },
+  plague: { key: 'plague', name: '역병 군주', tier: '레이드 · 10인', board: 'b19', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 22000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'plague', stage: 0.18, debuffs: ['질병', '독'], tune: { '어려움': { dmg: 1.38 }, '악몽': { dmg: 1.17 } } },
   // 20인 레이드 「가라앉은 대성당」 1구역 (26 4-3): 성가대원 4,000 × 3 + 지휘자 30,000
-  choir: { key: 'choir', name: '무음 성가대', tier: '대규모 레이드 · 20인', board: 'b30', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 42000, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'choir', big: true, stage: 0.13, debuffs: ['마법'], tune: { '어려움': { dmg: 1.12 }, '악몽': { dmg: 1.09 } } },
+  choir: { key: 'choir', name: '무음 성가대', tier: '대규모 레이드 · 20인', board: 'b30', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 42000, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'choir', big: true, stage: 0.13, debuffs: ['마법'], tune: { '어려움': { dmg: 1.09 }, '악몽': { dmg: 1.12 } } },
   // 녹슨 요새 (23). 첫 보스 = 문지기를 순하게 줄인 판
   scrap: { key: 'scrap', lowLevel: true, name: '고철 경비병', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 2500, enrage: 150, manaCoef: 1.0, diffs: ALL, script: 'scrap', stage: 0.25 },
   gate: trash('gate', '무너진 정문', [

@@ -90,7 +90,7 @@ const firstGear = () => Flow.result?.content === 'plateau' && G.save.tut === TUT
 /** 튜토리얼 안내 (09 4장): 탐험 보상 = 첫 장비 장착 유도, 녹슨 요새 쉬움 첫 클리어 = 끝 */
 function tipHtml(r: BattleResult, x: Settlement): string {
   const it = x.item, inBag = !!it && G.save.gear.bag.some(b => b.id === it.id);
-  if (firstGear() && inBag) return '<p class="coachtip"><b>첫 장비</b>! 「장착」을 눌러 바로 사용. 힐량 상승</p>';
+  if (firstGear() && inBag) return '<p class="coachtip"><b>첫 장비</b>! 「장착」을 눌러 바로 사용. 지능 상승</p>';
   if (r.content === 'rustfort' && G.save.tut === TUT.done && x.first && r.diff === '쉬움' && !G.save.clears.rustfort?.['보통']) return '<p class="coachtip">첫 던전 클리어! 튜토리얼은 여기까지. 다음은 녹슨 요새 <b>보통</b>. Lv 10에 특성 열림</p>';
   return '';
 }
@@ -113,7 +113,7 @@ function lootHtml(r: BattleResult, x: Settlement): string {
     </section>`;
 }
 
-/** 장비 한 줄: 부위 그림(등급 색 테두리) · 이름 · 부위·등급·힐량 · 장착 버튼 (지금보다 좋을 때만) */
+/** 장비 한 줄: 부위 그림(등급 색 테두리) · 이름 · 부위·등급·지능 · 장착 버튼 (지금보다 좋을 때만) */
 function itemRow(x: Settlement): string {
   if (!x.item) return x.lootLocked ? '<p class="r-item none">이번 주 이 보스·난이도 장비는 받음 · 월요일 오전 6시에 다시</p>' : '';
   const id = x.item.id, eq = G.save.gear.equipped;
@@ -127,7 +127,7 @@ function itemRow(x: Settlement): string {
   const delta = worn ? '' : !cur ? ' <em class="up">빈칸</em>' : d > 0 ? ` <em class="up">▲${d}%</em>` : d < 0 ? ` <em class="dn">▼${-d}%</em>` : '';
   return `<div class="r-item" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
       <span class="r-ic">${gameIcon(it.slot, uiIcon(it.slot), 'item')}</span>
-      <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><small>${slotName(it.slot)} · ${it.grade} · 힐량 +${pc(a)}%${delta}</small></span>
+      <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><small>${slotName(it.slot)} · ${it.grade} · 지능 +${pc(a)}%${delta}</small></span>
       ${act}
     </div>`;
 }

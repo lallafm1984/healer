@@ -12,7 +12,8 @@ import type { ItemKey } from '../data/items';
 import { ITEMS, POTION_CD } from '../data/items';
 import { CATS } from '../data/personalities';
 import { itemSlots } from '../data/progression';
-import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
+import { INT_BASE } from '../data/rules';
+import { healText, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { itemTip, skillTip, tipHtml } from '../game/tooltip';
 import { TRAITS } from '../data/traits';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
@@ -183,7 +184,8 @@ export function updateAux(): void {
 export function openTalentTip(k: TalentKey, el: HTMLElement): void {
   const d = TALENT_DEF[k], a = d.active!;
   const row = a.once ? '전투당 1회' : `${a.dur}초 · 재사용 대기 ${a.cd}초`;
-  popTip(tipHtml({ name: d.name, kind: '특성', rows: [['즉시', row]], desc: d.desc, note: a.cell ? '누른 뒤 빈 칸을 탭' : 'GCD·마나 없이 바로' }), el, null);
+  const F = fight();
+  popTip(tipHtml({ name: d.name, kind: '특성', rows: [['즉시', row]], desc: healText(d.desc, INT_BASE * F.power * F.gear.heal), note: a.cell ? '누른 뒤 빈 칸을 탭' : 'GCD·마나 없이 바로' }), el, null);
 }
 
 // ---------- 소비 아이템 단축칸 (19 2부): 2×2, 레벨에 따라 열린 칸 수가 다름 (18 2-2) ----------
@@ -427,7 +429,7 @@ export function openTip(ic: string, qEl: HTMLElement): void {
 }
 export function openSkillTip(key: SkillKey, el: HTMLElement): void {
   const lock = B.F && !knows(B.F, key) ? SKILL_LEVEL[key] : 0;
-  popTip(tipHtml(skillTip(key, lock)), el, { skill: key });
+  popTip(tipHtml(skillTip(key, lock, B.F ? INT_BASE * B.F.power * B.F.gear.heal : undefined)), el, { skill: key });
 }
 export function openItemTip(key: ItemKey, el: HTMLElement): void {
   popTip(tipHtml(itemTip(key, `<span class="iic">${ITEM_ICON[key]}</span>`, fight().items[key] || 0)), el, { item: key });

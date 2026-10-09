@@ -4,11 +4,12 @@
  */
 import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
 import { lvPower } from '../data/progression';
+import { INT_BASE, RULES } from '../data/rules';
 import { TALENTS } from '../data/talents';
 import { TUT } from './tutorial';
 import { G, healerLevel, heroNow, heroSave } from './state';
 
-/** 힐러 기본 체력 (06 2장) */
+/** 힐러 기본 체력 (06 2장). 레벨 배율(lvPower)을 곱하기 전 값이라 Lv 1은 220 (34 1-2) */
 export const HEALER_HP = 550;
 
 /** 장비 한 개 점수 (보여 주는 값) */
@@ -39,27 +40,30 @@ export function talentsLeft(): number {
   return TALENTS.filter((t, i) => t.lv <= healerLevel() && picks[i] == null).length;
 }
 
-/** 능력치 (레벨 배율 포함) */
-export function heroStats(): { hp: number; heal: number; crit: number; haste: number; regen: number } {
+/** 능력치 (레벨 배율 포함): 체력 · 지능 · 치명타 · 가속 · 정신력(마나 재생 배율) · 인내(받는 피해 감소) */
+export function heroStats(): { hp: number; int: number; crit: number; haste: number; regen: number; endure: number } {
   const p = statParts();
-  return { hp: p.hp.total, heal: p.heal.total, crit: p.crit.total, haste: p.haste.total, regen: p.regen.total };
+  return { hp: p.hp.total, int: p.int.total, crit: p.crit.total, haste: p.haste.total, regen: 1 + p.spirit.total, endure: p.endure.total };
 }
 
 /**
- * 능력치 출처 (27 4-2 능력치 판을 누르면): 기본 · 레벨 · 장비 몫. 더하면 total.
- * 특성은 상시 능력치를 바꾸지 않음 (전투 중 조건으로 켜짐) → 몫 없음.
- * 체력은 장비로 오르지 않음 (gearStatsOf에 체력 없음).
+ * 능력치 판 6칸과 출처 (34 1-2 · 10장, 27 4-2 능력치 판을 누르면): 기본 · 레벨 · 장비 몫. 더하면 total.
+ * 지능 = 치유 회복량 (스킬 회복량은 지능의 비율), 정신력 = 마나 재생에 더하는 비율, 인내 = 받는 피해 감소 (장비 옵션, 아직 없음).
+ * 특성은 상시 능력치를 바꾸지 않음 (전투 중 조건으로 켜짐) → 몫 없음. 체력은 장비로 오르지 않음.
  */
 export function statParts() {
-  const eq = G.save.gear.equipped, st = gearStatsOf(eq), lp = lvPower(G.save.player.level);
-  const hp = Math.round(HEALER_HP * lp);
+  const eq = G.save.gear.equipped, st = gearStatsOf(eq), lp = lvPower(G.save.player.level), l1 = lvPower(1);
+  const hp = Math.round(HEALER_HP * lp), hp1 = Math.round(HEALER_HP * l1);
+  const int = Math.round(INT_BASE * lp * st.heal), intLv = Math.round(INT_BASE * lp), int1 = Math.round(INT_BASE * l1);
   return {
     lp,
-    hp: { total: hp, base: HEALER_HP, level: hp - HEALER_HP },
-    heal: { total: st.heal * lp, base: 1, level: lp - 1, gear: (st.heal - 1) * lp },
-    crit: { total: st.crit, base: 0.05, gear: st.crit - 0.05 },
-    haste: { total: st.haste, gear: st.haste },
-    regen: { total: st.regen, base: 1, gear: st.regen - 1 },
+    hp: { total: hp, base: hp1, level: hp - hp1 },
+    int: { total: int, base: int1, level: intLv - int1, gear: int - intLv },
+    crit: { total: RULES.baseCrit + st.crit, base: RULES.baseCrit, gear: st.crit },
+    haste: { total: Math.min(RULES.hasteCap, st.haste), gear: Math.min(RULES.hasteCap, st.haste), cap: RULES.hasteCap },
+    /** 마나 재생 = 초당 regen% × (1 + 정신력) */
+    spirit: { total: st.regen - 1, gear: st.regen - 1, regen: RULES.regen },
+    endure: { total: 0, gear: 0 },
   };
 }
 

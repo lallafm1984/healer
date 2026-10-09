@@ -5,6 +5,7 @@ import type { Encounter, EncounterKey } from '../data/encounters';
 import type { GearId, GearStats } from '../data/gear';
 import type { ItemKey } from '../data/items';
 import type { Personality, PersName } from '../data/personalities';
+import type { Rules } from '../data/rules';
 import type { HeroKey } from '../data/heroes';
 import type { SkillKey } from '../data/skills';
 import type { TalentKey } from '../data/talents';
@@ -300,6 +301,8 @@ export interface FightConfig {
   itemCap?: Partial<Record<ItemKey, number>>;
   /** 직업군 방어력 (34 9-2). false면 끔 = 프로토타입과 같음 (parity 테스트) */
   armor?: boolean;
+  /** 프로토타입 규칙 (34 이전 숫자·시전·GCD, data/rules PROTO_RULES). 난이도 보정(tune)도 안 씀. parity 테스트 전용 */
+  proto?: boolean;
   /** 어픽스 (32 난이도 어픽스, 13 3-3 주간 도전). 없으면 어픽스 없음 */
   affixes?: AffixKey[];
   /** 보스·적 체력·피해 배율 (주간 도전 단계, 13 3-2). 없으면 1 */
@@ -414,9 +417,9 @@ export interface Fight {
   reason: string;
   /** 난이도 피해 배율 × 단계 배율 */
   dmgMult: number;
-  /** 단계 배율 (lvPower(stageLv)): 파티원·적 체력·피해·딜 */
+  /** 단계 배율 (R.lv(stageLv) × 적 세기 0.95): 파티원·적 체력·피해·딜 */
   scale: number;
-  /** 힐러 레벨 배율 (lvPower(heroLv)): 힐량·내 체력 */
+  /** 힐러 레벨 배율 (R.lv(heroLv)): 힐량·내 체력 */
   power: number;
   bossMax: number;
   /** 일반·정예 구간은 남은 적 체력 합 */
@@ -468,6 +471,8 @@ export interface Fight {
   enraged: boolean;
   /** 직업군 방어력을 쓰는가 (cfg.armor) */
   armor: boolean;
+  /** 전투 기본 규칙 (34 1장, cfg.proto면 프로토타입 규칙) */
+  R: Rules;
   /** 레이드에서 탱커가 모두 쓰러진 시각 (35 6-4). 탱커가 일어나면 null */
   noTankAt: number | null;
   rats: number[];

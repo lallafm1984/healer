@@ -149,7 +149,7 @@ function cleanseOne(f: Fight, u: Unit): void {
 /** 힐러 한 틱: 마나 재생, 재사용 대기, 찬가, 시전 완료, 예약 실행 */
 export function healerTick(f: Fight): void {
   const dt = DT;
-  let regen = 1.0 * f.gear.regen * f.enc.manaCoef * (f.symbol > 0 ? 4 : 1) * (f.medit > 0 ? 2.5 : 1);
+  let regen = f.R.regen * f.gear.regen * f.enc.manaCoef * (f.symbol > 0 ? 4 : 1) * (f.medit > 0 ? 2.5 : 1);
   if (f.cast || f.channel > 0) f.tx.lastAct = f.t;
   else if (f.tx.on.breather && f.t - f.tx.lastAct >= 3 - 1e-9) regen *= 2; // 숨 고르기
   if (f.medit > 0) f.medit -= dt;

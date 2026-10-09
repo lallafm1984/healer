@@ -53,7 +53,7 @@ export default async function challenge(url, shots) {
   await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
   await page.click('#depart'); await page.clock.runFor(3100 + 300);
   const fs = await F(() => { const f = window.__proto.F; return { stage: f.cfg.stageLv, rage: !!f.aff?.on.rage }; });
-  ok(await page.isVisible('#battle') && fs.stage === 28 && fs.rage, `전투 = 적 Lv 28 (내 레벨 30 − 2) + 격노 (Lv 30부터) (${JSON.stringify(fs)})`);
+  ok(await page.isVisible('#battle') && fs.stage === 30 && fs.rage, `전투 = 적 Lv 30 (내 레벨과 같음) + 격노 (Lv 30부터) (${JSON.stringify(fs)})`);
 
   // ---- 광고 이어하기 (15 7장) ----
   await lose();

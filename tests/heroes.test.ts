@@ -188,7 +188,7 @@ describe('성기사', () => {
   it('보호의 손: 물리 피해 무시, 마법 피해는 받음', () => {
     const f = fight('paladin'), d = dps(f);
     E.use(f, 'handGuard', d.cell); finish(f);
-    expect(d.immune).toBeGreaterThan(HAND_GUARD.sec - 1);
+    expect(d.immune).toBeGreaterThan(HAND_GUARD.sec - f.gcdBase - 0.1);
     const hp = d.hp;
     damage(f, d, 200);
     expect(d.hp).toBe(hp);
@@ -208,9 +208,11 @@ describe('성기사', () => {
 describe('레이드 재조정 (2026-10-07: 특성·능력 포함 기준, 26 9-1)', () => {
   const mk = (hero: 'priest' | 'druid' | 'paladin', level: number, encounter: 'plague' | 'choir' = 'plague', diff: '보통' | '어려움' | '악몽' = '보통') =>
     E.create({ encounter, diff, seed: 7, level, hero });
-  it('난이도별 보스 보정: 역병 군주 어려움 피해 ×1.2, 보통은 그대로', () => {
+  it('난이도별 보스 보정: 역병 군주 어려움은 난이도 ×1.2에 보정이 더 붙고, 보통은 그대로', () => {
     expect(ENCOUNTERS.plague.tune?.['보통']).toBeUndefined();
-    expect(mk('priest', 35, 'plague', '어려움').dmgMult / mk('priest', 35, 'plague', '보통').dmgMult).toBeCloseTo(1.2 * 1.2);
+    const tn = ENCOUNTERS.plague.tune!['어려움']!.dmg!;
+    expect(tn).toBeGreaterThan(1);
+    expect(mk('priest', 35, 'plague', '어려움').dmgMult / mk('priest', 35, 'plague', '보통').dmgMult).toBeCloseTo(1.2 * tn);
   });
   it('임시 특성 보정: 드루이드·성기사만, 열린 특성 단마다', () => {
     expect(mk('priest', 100).standin).toBeNull();
