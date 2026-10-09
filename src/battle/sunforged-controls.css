@@ -1,0 +1,293 @@
+/* WoW3 · 성기사 황동/붉은 가죽. 버튼 좌표와 조작판 배율은 기존 layoutBattle이 소유한다.
+ * 장식은 독립 생성 이미지로 구성하고, ::before 터치 확장 영역을 덮어쓰지 않는다.
+ * 시전 행의 44/26px 예약·판 크기·controlsFrame 높이는 이 파일에서 변경하지 않는다. */
+#battle #controlsFrame { background: #140907; }
+#battle #controls {
+  border-top-color: transparent;
+  background: #2b0907 url('../art/ui-sunforged-leather-tile.webp') repeat;
+  background-size: 192px 192px;
+  box-shadow: none;
+  isolation: isolate;
+}
+#battle #controls::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border: 0;
+  background: url('../art/ui-sunforged-footer-chassis.webp') center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+#battle #controls #side { position: relative; z-index: 1; }
+#battle #controls #wheel { z-index: 1; }
+#battle #controls #side::after { content: none; }
+#battle #controls.wheel-left::after { transform: scaleX(-1); }
+/* 특성 칸으로 좌측 폭이 넓어지는 기존 편성은 구획선을 고정 좌표로 그리지 않는다. */
+#battle #controls.hasaux::after {
+  border: 16px solid transparent;
+  border-image: url('../art/ui-sunforged-panel-frame.webp') 104 / 14px 22px 10px 22px / 0 stretch;
+  background: none;
+  transform: none;
+}
+
+/* 둥근 검은 스킬판과 금속 테는 하나의 원화다. 원본의 투명 여백 5%를 보정한다. */
+#battle #controls .slot,
+#battle #controls .slot.empty,
+#battle #controls .slot.locked,
+#battle #controls .slot.holy {
+  border: 3px solid transparent;
+  background: transparent url('../art/ui-sunforged-spell-socket.webp') center / 111.12% 111.12% no-repeat border-box;
+  box-shadow: none;
+  color: #fff5d8;
+}
+#battle #controls .slot {
+  --skill-name-size: calc(clamp(11.5px, calc(var(--slot) * .2 * var(--controls-scale, 1)), 13px) / var(--controls-scale, 1));
+  --skill-cost-size: calc(clamp(11.5px, calc(var(--slot) * .19 * var(--controls-scale, 1)), 12px) / var(--controls-scale, 1));
+  --skill-state-size: calc(clamp(11.5px, calc(var(--slot) * .19 * var(--controls-scale, 1)), 12px) / var(--controls-scale, 1));
+  /* Expanded touch bounds live on the button; only its visual content is clipped. */
+  filter: none;
+}
+#battle #controls .slot .in {
+  position: absolute;
+  inset: 1%;
+  width: auto;
+  height: auto;
+  gap: 0;
+  transform: none;
+  border-radius: 50%;
+  overflow: hidden;
+  clip-path: circle(50%);
+  isolation: isolate;
+  background: #100b05;
+}
+#battle #controls .slot .dir { display: none; }
+#battle #controls .slot .sic,
+#battle #controls .slot .skill-mark {
+  display: block;
+  position: absolute;
+  inset: -8%;
+  z-index: 0;
+  width: 116%;
+  height: 116%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  object-fit: cover;
+  object-position: center;
+  color: #ffd363;
+  opacity: 1;
+  pointer-events: none;
+}
+#battle #controls .slot .nm,
+#battle #controls .slot .ct,
+#battle #controls .slot .cds {
+  position: absolute;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  width: max-content;
+  max-width: 90%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  white-space: nowrap;
+  text-shadow: -1px -1px 1px #080605, 1px -1px 1px #080605, -1px 1px 1px #080605, 1px 1px 1px #080605, 0 1px 3px #080605;
+}
+#battle #controls .slot .nm,
+#battle #controls .slot.cooling .nm,
+#battle #controls .slot.holy .nm {
+  top: 43%;
+  font: 700 var(--skill-name-size)/1 var(--font-body);
+  color: #fff5d8;
+  opacity: 1;
+}
+#battle #controls .slot .ct,
+#battle #controls .slot.holy .ct {
+  display: block;
+  top: calc(43% + var(--skill-name-size));
+  font: 600 var(--skill-cost-size)/1 var(--font-body);
+  color: #84c6ff;
+  opacity: 1;
+}
+#battle #controls .slot .cd { inset: 8%; z-index: 2; pointer-events: none; opacity: .42; }
+#battle #controls .slot.cooling .sic { opacity: 1; filter: brightness(.28) saturate(.35); }
+#battle #controls .slot.cooling .nm { top: calc(50% - var(--skill-state-size)); font-size: var(--skill-state-size); }
+#battle #controls .slot.cooling .ct { top: calc(50% + var(--skill-state-size) - .5px / var(--controls-scale, 1)); font-size: var(--skill-state-size); }
+#battle #controls .slot.cooling .cds {
+  display: block;
+  top: 50%;
+  font: 700 var(--skill-state-size)/1 var(--font-body);
+  color: #c4e8ff;
+}
+#battle #controls .slot.armed::after { content: none; }
+#battle #controls .slot.armed,
+#battle #controls .slot.aim,
+#battle #controls .slot.coach-hi { outline: 2px solid #fff1aa; outline-offset: -5px; box-shadow: none; }
+#battle #controls .slot.holy { animation: none; }
+#battle #controls .slot.resource-low .ct { color: #ffaaa0; }
+#battle #controls .slot.empty { filter: brightness(.68) saturate(.55); }
+#battle #controls .slot.empty .ct { top: 50%; color: #aa9e82; font-weight: 500; }
+#battle #controls .slot.locked .sic { opacity: .55; filter: grayscale(1) brightness(.55); }
+#battle #controls .slot.resource-low:not(.cooling) .sic { filter: saturate(.45) brightness(.6); }
+#battle #controls .slot.locked .nm { top: 50%; font-size: var(--skill-state-size); }
+#battle #controls .slot.locked .ct { top: calc(50% + var(--skill-state-size) - 1.8px / var(--controls-scale, 1)); font-size: var(--skill-state-size); font-weight: 700; }
+#battle #controls .slot .slot-lock {
+  position: absolute;
+  top: calc(50% - var(--skill-state-size));
+  left: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  width: var(--skill-state-size);
+  height: var(--skill-state-size);
+  color: #eee9de;
+  filter: drop-shadow(0 1px 1px #080706);
+  pointer-events: none;
+}
+#battle #controls .slot .slot-lock .lk { display: block; width: 100%; height: 100%; }
+
+/* 시안의 12시 백청색 반사와 푸른 유리 구체. 수치와 바깥 마나량 arc는 실시간이다. */
+#battle #controls #core {
+  border: 3px solid transparent;
+  background: none;
+  box-shadow: none;
+  isolation: isolate;
+}
+#battle #controls #core::after {
+  content: '';
+  position: absolute;
+  inset: -12%;
+  z-index: 0;
+  background: url('../art/ui-sunforged-mana-frame.webp') center / contain no-repeat;
+  pointer-events: none;
+}
+#battle #controls #core .core-in {
+  position: relative;
+  z-index: 1;
+  width: 92%;
+  height: 92%;
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+}
+#battle #controls #core .core-in::before {
+  content: '';
+  position: absolute;
+  inset: -9%;
+  border-radius: 50%;
+  background: url('../art/ui-sunforged-mana-orb.webp') center / contain no-repeat;
+  pointer-events: none;
+}
+/* 장식 구체의 발광 윤곽 바깥에 별도 홈과 실제 마나량을 둔다. 12시에서 시계 방향. */
+#battle #controls #core .mana-meter {
+  position: absolute;
+  inset: -1%;
+  z-index: 2;
+  border-radius: 50%;
+  --mana-band: 3.5px;
+  --mana-fill: #43a6fa;
+  pointer-events: none;
+}
+#battle #controls #core .mana-meter::before,
+#battle #controls #core .mana-meter::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  mask-image: radial-gradient(farthest-side, transparent calc(100% - var(--mana-band)), #000 calc(100% - var(--mana-band) + .4px));
+}
+#battle #controls #core .mana-meter::before { background: #142238; }
+#battle #controls #core .mana-meter::after {
+  background: conic-gradient(from 0deg, var(--mana-fill) 0 var(--m, 100%), transparent var(--m, 100%) 100%);
+  filter: drop-shadow(0 0 .6px var(--mana-fill));
+}
+#battle #controls #core.low .mana-meter { --mana-fill: #ed6554; }
+#battle #controls #core.mana-empty .mana-meter::after { opacity: 0; }
+#battle #controls #core.mana-full .mana-meter::after { background: var(--mana-fill); }
+#battle #controls #core.beacon { outline: 2px solid #fff1aa; outline-offset: -5px; box-shadow: none; }
+#battle #controls #manaNum {
+  position: relative;
+  z-index: 2;
+  padding-top: 3%;
+  font: 700 clamp(16px, calc(var(--slot) * .34), 25px)/1 var(--font-body);
+  color: #91c8ff;
+  text-shadow: -1px -1px 0 #031020, 1px -1px 0 #031020, -1px 1px 0 #031020, 1px 1px 0 #031020;
+}
+#battle #controls #manaNum small {
+  display: block;
+  margin-top: 2px;
+  font: 700 clamp(9.5px, calc(var(--slot) * .16), 11px)/1.1 var(--font-body);
+  color: #fff9e9;
+}
+#battle #controls #core.low #manaNum { color: #ff9789; }
+
+/* 아이템의 검은 판·황동 모서리도 이미지로 유지한다. 실시간 수량/재사용 대기층은 기존 DOM이다. */
+#battle #controls .item,
+#battle #controls .item.empty,
+#battle #controls .aux,
+#battle #controls #giveUp {
+  border: 2px solid transparent;
+  border-radius: 0;
+  background: transparent url('../art/ui-sunforged-item-socket.webp') center / 100% 100% no-repeat border-box;
+  box-shadow: none;
+  color: #f7ebcc;
+}
+#battle #controls .item > svg,
+#battle #controls .item > .item-art {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  max-height: none;
+  object-fit: contain;
+  pointer-events: none;
+}
+#battle #controls .item > .item-art { width: 38px; height: 38px; }
+#battle #controls.hasaux .item > svg,
+#battle #controls.hasaux .item > .item-art { width: 30px; height: 30px; }
+#battle #controls .item .nm { font: 600 12px/1.1 var(--font-body); color: #f8edcf; text-shadow: 0 1px 1px #080605; }
+#battle #controls .item .n { right: 5px; bottom: 3px; font-size: 14px; font-weight: 700; color: #fff9e9; text-shadow: 0 1px 1px #080605; }
+#battle #controls .item .cd,
+#battle #controls .aux .cd { inset: 7%; pointer-events: none; }
+#battle #controls .item .cds,
+#battle #controls .aux .cds { color: #92cfff; }
+#battle #controls .item.empty { background: none; filter: none; isolation: isolate; }
+/* 비활성 소켓만 어둡게 한다. ::before는 축소 모드 터치 영역의 소유이므로 사용하지 않는다. */
+#battle #controls .item.empty::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  background: url('../art/ui-sunforged-item-socket.webp') center / 100% 100% no-repeat;
+  filter: brightness(.6) saturate(.4);
+  pointer-events: none;
+}
+#battle #controls .item.empty .nm { font-size: calc(12px / var(--controls-scale, 1)); color: #eadfc3; }
+#battle #controls .item.empty > .lk { width: 26px; height: 26px; filter: grayscale(1) brightness(.6); }
+#battle #controls .item.empty > .empty-slot-art { width: 27px; height: 27px; opacity: .38; filter: grayscale(1) brightness(.6); }
+#battle #controls.hasaux .item.empty > .lk,
+#battle #controls.hasaux .item.empty > .empty-slot-art { width: 24px; height: 24px; }
+#battle #controls .item.used .n { color: #b8aa92; }
+#battle #controls .item.armed,
+#battle #controls .aux.on,
+#battle #controls .aux.armed { outline: 2px solid #fff1aa; outline-offset: -4px; box-shadow: none; }
+#battle #controls .aux .nm { color: #fff0cb; text-shadow: var(--ol1); }
+
+/* 수치와 막대는 편집 가능한 게임 데이터이며, 테두리만 그림으로 입힌다. */
+#battle #controls #gauges { color: #f3e9c8; text-shadow: var(--ol1); }
+#battle #controls #gauges .gt {
+  border: 1px solid transparent;
+  border-radius: 0;
+  border-image: url('../art/ui-sunforged-item-socket.webp') 36 / 2px / 0 stretch;
+  background: #080b09;
+}
+#battle #controls #gauges .gt i { background: #cec5a1; }
+#battle #controls #gauges .gold .gt i { background: #deb654; }
+#battle #controls #gauges .leaf .gt i { background: #9cbd68; }
+#battle #controls #hint { color: #cabaa0; }
+#battle.short-battle #controls .item > .item-art { width: 28px; height: 28px; }
+#battle.short-battle #controls.hasaux .item > .item-art { width: 26px; height: 26px; }
+
+@media (max-width: 359px) {
+  #battle #controls .item .nm { font-size: 11px; }
+  #battle #controls .item .n { right: 4px; font-size: 13px; }
+}

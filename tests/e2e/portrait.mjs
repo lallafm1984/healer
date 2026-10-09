@@ -298,12 +298,20 @@ export default async function portrait(url, shots) {
     ok(g.stage.y >= 70 && g.controls.bottom <= height + 1 && g.board.h >= 120, `${width}: 20인 무대·판·조작 화면 안 (판 ${Math.round(g.board.h)}px)`);
     ok(g.buttons.every(r => r.w >= 44 && r.h >= 44 && r.x >= 0 && r.right <= width + 1 && r.bottom <= height + 1), `${width}: 최대 특성·아이템 버튼 44px 및 화면 경계`);
     ok(g.buttons.filter(r => r.y >= g.controls.y).every(r => r.right <= g.wheel.x + 1 || r.x >= g.wheel.right - 1), `${width}: 특성·아이템과 휠 겹침 없음`);
-    // 31 스킬 그림(img.sic)이 들어가도 그림·이름·마나 % 가 둥근 칸(테두리 안) 밖으로 잘리지 않음. 글자는 위아래 1/4 지점의 원 폭으로 잼
+    // 원화는 내부 원을 가득 채워 크롭한다. 그림의 사각형 전체를 원 안에 요구하지 않고
+    // 실제 원형 마스크와 cover를 확인한다. 글자는 위아래 1/4 지점의 원 폭으로 잼.
     const wheelFit = await page.evaluate(() => [...document.querySelectorAll('#wheel .slot[data-slot]')].map(s => {
       const r = s.getBoundingClientRect(), R = r.width / 2 - 3, cx = r.left + r.width / 2, cy = r.top + r.height / 2;
       const bad = [...s.querySelectorAll('.sic, .nm, .ct')].filter(e => e.getClientRects().length && e.textContent !== '' || e.tagName === 'IMG').filter(e => {
+        if (e.tagName === 'IMG') {
+          const inner = e.closest('.in'), a = e.getBoundingClientRect(), b = inner?.getBoundingClientRect();
+          const style = inner && getComputedStyle(inner);
+          return !b || !style.clipPath.startsWith('circle(') || style.overflow !== 'hidden'
+            || getComputedStyle(e).objectFit !== 'cover' || !e.complete || e.naturalWidth <= 0
+            || a.left > b.left + 1 || a.top > b.top + 1 || a.right < b.right - 1 || a.bottom < b.bottom - 1;
+        }
         const rg = document.createRange(); rg.selectNodeContents(e);
-        const b = e.tagName === 'IMG' ? e.getBoundingClientRect() : rg.getBoundingClientRect();
+        const b = rg.getBoundingClientRect();
         const y = Math.max(Math.abs(b.top + b.height / 4 - cy), Math.abs(b.bottom - b.height / 4 - cy)), half = Math.sqrt(Math.max(0, R * R - y * y));
         return b.left < cx - half - 1 || b.right > cx + half + 1;
       });
@@ -323,6 +331,20 @@ export default async function portrait(url, shots) {
     ok(giveUp && giveUp.y + giveUp.height <= height + 1 && down.board.h >= 120, `${width}: 탱커 전멸 포기 버튼 및 판 유지 (${Math.round(down.board.h)}px)`);
     const timerTxt = await page.locator('#timer').textContent();
     ok(/탱커 없음 · 광폭까지 0:1\d/.test(timerTxt || ''), `${width}: 20인 탱커 전멸 뒤 시간 줄에 광폭화 카운트다운 (${timerTxt})`);
+    for (const elapsed of [0, 150, 300]) {
+      if (elapsed) await page.clock.runFor(150);
+      const feedback = await page.evaluate(() => {
+        const bounds = JSON.parse(document.querySelector('#board').dataset.decorationBounds || '[]');
+        const text = bounds.filter(b => ['hp', 'nick'].includes(b.kind));
+        const effects = bounds.filter(b => ['float', 'bubble'].includes(b.kind));
+        const separate = (a, b) => a.x + a.w / 2 <= b.x - b.w / 2 + .05 || b.x + b.w / 2 <= a.x - a.w / 2 + .05
+          || a.y + a.h / 2 <= b.y - b.h / 2 + .05 || b.y + b.h / 2 <= a.y - a.h / 2 + .05;
+        return { textCount: text.length, effectCount: effects.length,
+          collisions: effects.flatMap(effect => text.filter(t => !separate(effect, t)).map(t => ({ effect: effect.key, text: t.key }))) };
+      });
+      ok(feedback.textCount > 0 && feedback.collisions.length === 0,
+        `${width}: 전멸 후 ${100 + elapsed}ms 부유 문구·말풍선과 HP/이름 비겹침 (${JSON.stringify(feedback)})`);
+    }
     await page.screenshot({ path: `${shots}/portrait_tankdown_${width}.png` });
     await ctx.close();
   }

@@ -23,6 +23,7 @@ import { ITEM_ICON, skillMark } from './art';
 import { center, L } from './board';
 import { $, arrowOf, B, DIR_VEC, DIRS, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
 import { guideModel } from './guide';
+import { manaMeter } from './mana-meter';
 
 const fight = () => B.F!;
 const setText = (el: Element, t: string) => { if (el.textContent !== t) el.textContent = t; };
@@ -49,9 +50,9 @@ export function buildWheel(D: number): void {
   const w = $('wheel'), F = B.F;
   w.style.width = w.style.height = D + 'px';
   // 시안 5인: 칸 68 · 가운데 72 (휠 폭 216 기준)
-  const step = D / 3, b = step * 0.93, core = step * 0.98;
+  const step = D / 3, b = step * 0.965, core = step * 0.98;
   w.style.setProperty('--slot', `${b}px`);
-  let html = `<div id="core" style="left:${(D - core) / 2}px;top:${(D - core) / 2}px;width:${core}px;height:${core}px"><div class="core-in"><div id="manaNum">100<small>마나 %</small></div></div></div>`;
+  let html = `<div id="core" style="left:${(D - core) / 2}px;top:${(D - core) / 2}px;width:${core}px;height:${core}px"><div class="core-in"><div id="manaNum">100<small>마나 %</small></div></div><div class="mana-meter" role="meter" aria-label="마나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"></div></div>`;
   DIRS.forEach((it, i) => {
     if (!it) return;
     const pos = `left:${(i % 3) * step + (step - b) / 2}px;top:${Math.floor(i / 3) * step + (step - b) / 2}px;width:${b}px;height:${b}px`;
@@ -59,10 +60,10 @@ export function buildWheel(D: number): void {
       html += `<div class="slot empty" data-dir="${it.d}" style="${pos}"><span class="ct">빈 칸</span></div>`;
       return;
     }
-    // 아직 안 배운 스킬: 이름과 배우는 레벨만 (누르면 안내). it.key = 휠 칸 → 지금 직업의 스킬
+    // 아직 안 배운 스킬: 흐린 원화·이름·잠금·배우는 레벨 (누르면 안내). it.key = 휠 칸 → 지금 직업의 스킬
     const k = F ? slotKey(F, it.key) : (it.key as SkillKey);
     if (F && !knows(F, k)) {
-      html += `<button class="slot locked" type="button" data-lock="${k}" data-dir="${it.d}" style="${pos}" aria-label="${SKILLS[k].name}, 잠김, Lv ${SKILL_LEVEL[k]}에 배움"><span class="in"><span class="nm">${SKILLS[k].short}</span><span class="ct">${LOCK_SVG}Lv ${SKILL_LEVEL[k]}</span></span></button>`;
+      html += `<button class="slot locked" type="button" data-lock="${k}" data-dir="${it.d}" style="${pos}" aria-label="${SKILLS[k].name}, 잠김, Lv ${SKILL_LEVEL[k]}에 배움"><span class="in"><span class="slot-lock" aria-hidden="true">${LOCK_SVG}</span><span class="nm">${SKILLS[k].short}</span><span class="ct">Lv ${SKILL_LEVEL[k]}</span></span></button>`;
       return;
     }
     html += `<button class="slot" type="button" data-slot="${it.key}" data-dir="${it.d}" style="${pos}"><span class="cd"></span><span class="in">${dirSvg(it.d)}<span class="nm"></span><span class="ct"></span><span class="cds"></span></span></button>`;
@@ -87,6 +88,7 @@ export function updateWheel(): void {
   const F = fight(), aim = ui.pointer && ui.pointer.dir;
   for (const el of $('wheel').querySelectorAll<HTMLElement>('.slot')) {
     el.classList.toggle('aim', aim === el.dataset.dir);
+    if (el.dataset.lock) { setSlotArt(el, el.dataset.lock as SkillKey); continue; }
     if (!el.dataset.slot) continue;
     const slot = el.dataset.slot!, key = slotKey(F, slot), sk = SKILLS[key];
     setSlotArt(el, key);
@@ -109,11 +111,15 @@ export function updateWheel(): void {
     el.classList.toggle('holy', key === 'serenity' || key === 'sanctify');
   }
   // 휠 가운데 = 마나 링 (시안). 마나가 모자라면 링·숫자가 빨강 (27 3-4: 위기 신호를 마나 테두리로)
-  const mn = $('manaNum'), core = $('core'), m = `${Math.max(0, Math.min(100, F.mana)).toFixed(1)}%`;
-  setText(mn.firstChild as Element, String(Math.floor(F.mana)));
+  const mn = $('manaNum'), core = $('core'), mana = manaMeter(F.mana);
+  setText(mn.firstChild as Element, String(mana.percent));
   setText(mn.querySelector('small')!, '마나 %');
-  if (core.style.getPropertyValue('--m') !== m) core.style.setProperty('--m', m);
-  core.classList.toggle('low', F.mana < 20);
+  if (core.style.getPropertyValue('--m') !== mana.fill) core.style.setProperty('--m', mana.fill);
+  core.classList.toggle('low', mana.low);
+  core.classList.toggle('mana-empty', mana.percent === 0);
+  core.classList.toggle('mana-full', mana.percent === 100);
+  const meter = core.querySelector('.mana-meter')!;
+  if (meter.getAttribute('aria-valuenow') !== String(mana.percent)) meter.setAttribute('aria-valuenow', String(mana.percent));
   core.classList.toggle('beacon', B.beacon);
   // 직업 고유 시스템 = 단축칸 아래 작은 막대 2줄 (시안 20인): 사제 평온·신성화 / 드루이드 새싹 걸린 인원 / 성기사 신성한 힘 · 봉화
   const r = coreRing(F);
@@ -198,8 +204,14 @@ export function buildItems(): void {
     const k = keys[i];
     // 시안: 잠긴 칸 = 평평한 어두운 칸 + 자물쇠 + Lv, 아이템 칸 = 네모 청동 테 + 그림 + 이름 + 오른쪽 아래 개수
     if (i >= S.slots) { html += `<div class="item empty locked" role="img" aria-label="잠긴 칸 (Lv ${slotLv(i)})">${LOCK_SVG}<span class="nm">Lv ${slotLv(i)}</span></div>`; continue; }
-    if (!k) { html += '<div class="item empty" aria-hidden="true"><span class="nm">빈 칸</span></div>'; continue; }
-    html += `<button class="item" type="button" data-item="${k}" aria-label="${ITEMS[k].name}">${ITEM_ICON[k]}<span class="nm">${ITEMS[k].short}</span><span class="n"></span><span class="cd"></span><span class="cds"></span></button>`;
+    if (!k) {
+      const emptyArt = art('skill-heal');
+      html += `<div class="item empty" aria-hidden="true">${emptyArt ? `<img class="item-art empty-slot-art" src="${emptyArt}" alt="" aria-hidden="true" decoding="async" draggable="false">` : ''}<span class="nm">빈 칸</span></div>`;
+      continue;
+    }
+    const painted = art(`ui-sunforged-potion-${k}`);
+    const icon = painted ? `<img class="item-art" src="${painted}" alt="" aria-hidden="true" decoding="async" draggable="false">` : ITEM_ICON[k];
+    html += `<button class="item" type="button" data-item="${k}" aria-label="${ITEMS[k].name}">${icon}<span class="nm">${ITEMS[k].short}</span><span class="n"></span><span class="cd"></span><span class="cds"></span></button>`;
   }
   $('items').innerHTML = html;
 }

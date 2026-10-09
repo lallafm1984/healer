@@ -15,6 +15,8 @@ import './screens/guild30.css';
 import './screens/result30.css';
 import './battle/hud27.css';
 import './battle/compact.css';
+import './battle/sunforged-stage.css';
+import './battle/sunforged-controls.css';
 import './battle';
 import './screens/title';
 import './screens/lobby';

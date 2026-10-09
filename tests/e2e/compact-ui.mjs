@@ -26,11 +26,15 @@ const geometry = page => page.evaluate(() => {
     board: box(cv), controls: box(controls), frame: box(document.querySelector('#controlsFrame')), cast: box(cast),
     scale: Number(controls.dataset.uiScale), baseHeight: Number(controls.dataset.baseControlHeight),
     effectiveTouchMin: Number(controls.dataset.effectiveTouchMin), layoutParts,
+    minSkillText: Math.min(...[...controls.querySelectorAll('.slot .nm,.slot .ct,.slot.cooling .cds')]
+      .filter(visible).map(el => parseFloat(getComputedStyle(el).fontSize) * Number(controls.dataset.uiScale))),
     directToggles: document.querySelectorAll('#compactToggle,#compactReturn').length,
     castState: { parent: cast.parentElement.id, position: style.position, pointerEvents: style.pointerEvents,
       visible: visible(cast), active: cast.classList.contains('is-casting'), track: box(track), trackVisible: visible(track) },
     stage: box(document.querySelector('#stage')),
     targetsGone: !document.querySelector('#targetsBtn,#partyTargets,#partyActions'),
+    targetUiNodes: document.querySelectorAll('#targetsBtn,#partyTargets,#targetList,#targetsClose').length,
+    toolbarButtons: document.querySelectorAll('#partyActions button,#castbar button').length,
     slots: [...document.querySelectorAll('#wheel button')].filter(visible).map(el => ({ ...box(el),
       hitW: Number(el.dataset.hitWidth), hitH: Number(el.dataset.hitHeight) })),
     cellW: Number(cv.dataset.cellWidth), cellH: Number(cv.dataset.cellHeight),
@@ -60,18 +64,19 @@ const hpBoundsValid = g => g.hpTextBounds.length === g.party
   && g.hpTextBounds.every((a, i) => a.w > 0 && a.h > 0 && g.hpTextBounds.slice(i + 1).every(b =>
     Math.abs(a.x - b.x) >= (a.w + b.w) / 2 || Math.abs(a.y - b.y) >= (a.h + b.h) / 2));
 const apart = (a, b) => a.right <= b.x + 1 || b.right <= a.x + 1 || a.bottom <= b.y + 1 || b.bottom <= a.y + 1;
-// 대상 목록 버튼은 없앴다 (2026-10-09 Lim). 칸 탭으로 치유, 길게 눌러 정보.
-const toolbarValid = g => !g.directToggles && g.targetsGone;
+const toolbarValid = g => g.directToggles === 0 && g.targetsGone && g.targetUiNodes === 0 && g.toolbarButtons === 0;
 // 배율은 터치 44px을 지키기 위해 1일 수 있다. 순서·방향·부모·상대좌표는 같은 기본 배치여야 한다.
 const uniformLayout = (normal, compact) => {
   const k = compact.scale, near = (a, b) => Math.abs(a - b) <= 1;
   return normal.scale === 1 && k >= .9 && k <= 1 && compact.effectiveTouchMin >= 44 - .1
+    && normal.minSkillText >= 11.4 && compact.minSkillText >= 11.4
     && near(compact.controls.w, normal.controls.w * k) && near(compact.controls.h, normal.controls.h * k)
     && near(compact.frame.h, compact.baseHeight * k) && near(compact.baseHeight, normal.baseHeight)
     && normal.layoutParts.length === compact.layoutParts.length
     && normal.layoutParts.every((a, i) => {
       const b = compact.layoutParts[i];
-      return a.key === b.key && a.tag === b.tag && a.parent === b.parent && a.dir === b.dir && a.art === b.art && a.fonts === b.fonts
+      // 같은 구조/좌표를 축소하되 보조 글자는 실효 최소 크기로 읽기 가능하게 유지한다.
+      return a.key === b.key && a.tag === b.tag && a.parent === b.parent && a.dir === b.dir && a.art === b.art
         && near(b.w, a.w * k) && near(b.h, a.h * k)
         && near(b.x - compact.controls.x, (a.x - normal.controls.x) * k)
         && near(b.y - compact.controls.y, (a.y - normal.controls.y) * k);
@@ -85,6 +90,7 @@ const castSpaceValid = g => g.cast.h === (g.compact ? 26 : 44) && g.castState.tr
 
 // 원화와 그 위의 작은 SVG 배지를 구분한다. decode 완료를 확인해 이미지 로딩 중을 시각 실패로 오인하지 않는다.
 const skillVisuals = page => page.evaluate(async () => {
+  await document.fonts.ready;
   await Promise.all([...document.querySelectorAll('#wheel img.sic')].map(img => img.decode().catch(() => undefined)));
   const box = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; };
   const visible = el => !!el && !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden'
@@ -94,31 +100,109 @@ const skillVisuals = page => page.evaluate(async () => {
     const a = box(el), b = box(parent);
     return a.w > 0 && a.h > 0 && a.x >= b.x - 1 && a.right <= b.right + 1 && a.y >= b.y - 1 && a.bottom <= b.bottom + 1;
   };
+  // 버튼의 사각 bounds 안이어도 원의 모서리에서 글자가 잘릴 수 있다.
+  // Range의 높이는 폰트의 빈 leading까지 포함한다(Noto Sans KR 11px의 Range는 16px).
+  // Range는 가로 시작 위치에만 쓰고, 실제 baseline과 Canvas glyph metrics로 잉크를 측정한다.
+  const inkContext = document.createElement('canvas').getContext('2d');
+  const inkBox = el => {
+    if (!el) return null;
+    if (el.tagName.toLowerCase() === 'svg') return box(el);
+    const style = getComputedStyle(el), text = el.textContent;
+    const range = document.createRange(); range.selectNodeContents(el);
+    const r = range.getBoundingClientRect();
+    inkContext.font = style.font;
+    inkContext.textBaseline = 'alphabetic';
+    inkContext.textAlign = 'left';
+    inkContext.letterSpacing = style.letterSpacing === 'normal' ? '0px' : style.letterSpacing;
+    inkContext.wordSpacing = style.wordSpacing === 'normal' ? '0px' : style.wordSpacing;
+    inkContext.fontKerning = style.fontKerning;
+    const metrics = inkContext.measureText(text);
+    if (!metrics.width) return { x: r.x, y: r.y, w: 0, h: 0, right: r.x, bottom: r.y };
+    const probe = document.createElement('span');
+    probe.style.cssText = 'all:initial;display:inline-block;width:0;height:0;padding:0;border:0;margin:0;font-size:0;line-height:0;vertical-align:baseline;';
+    el.append(probe);
+    const baseline = probe.getBoundingClientRect().top;
+    probe.remove();
+    // 폰트의 실제 advance와 DOM Range의 비율은 compact/aim의 가로 transform을 포함한다.
+    const scaleX = r.width / metrics.width;
+    let scaleY = 1;
+    for (let part = el; part; part = part.parentElement) {
+      const transform = getComputedStyle(part).transform;
+      if (transform !== 'none') { const m = new DOMMatrixReadOnly(transform); scaleY *= Math.hypot(m.c, m.d); }
+    }
+    const x = r.x - metrics.actualBoundingBoxLeft * scaleX;
+    const right = r.x + metrics.actualBoundingBoxRight * scaleX;
+    const y = baseline - metrics.actualBoundingBoxAscent * scaleY;
+    const bottom = baseline + metrics.actualBoundingBoxDescent * scaleY;
+    return { x, y, w: right - x, h: bottom - y, right, bottom };
+  };
+  const separated = (a, b) => {
+    if (!a || !b) return false;
+    const first = inkBox(a), second = inkBox(b);
+    return first.right <= second.x + .5 || second.right <= first.x + .5
+      || first.bottom <= second.y + .5 || second.bottom <= first.y + .5;
+  };
+  const inCircle = (r, circle) => !!r && !!circle && r.w > 0 && r.h > 0
+    && [[r.x, r.y], [r.right, r.y], [r.x, r.bottom], [r.right, r.bottom]].every(([x, y]) =>
+      Math.hypot(x - circle.cx, y - circle.cy) <= circle.radius + 1);
+  const paintWeight = (el, slot) => {
+    let weight = 1;
+    for (let part = el; part; part = part.parentElement) {
+      const s = getComputedStyle(part); weight *= Number(s.opacity);
+      for (const match of s.filter.matchAll(/brightness\(([\d.]+)(%)?\)/g)) weight *= Number(match[1]) / (match[2] ? 100 : 1);
+      if (part === slot) break;
+    }
+    return weight;
+  };
   return [...document.querySelectorAll('#wheel button[data-slot],#wheel button[data-lock]')].map(el => {
     const img = el.querySelector('img.sic'), mark = el.querySelector('.skill-mark'), name = el.querySelector('.nm');
-    const cost = el.querySelector('.ct'), timer = el.querySelector('.cds'), lock = el.querySelector('.lk');
+    const cost = el.querySelector('.ct'), timer = el.querySelector('.cds'), lock = el.querySelector('.slot-lock .lk');
+    const inner = el.querySelector('.in'), ib = inner && box(inner), innerStyle = inner && getComputedStyle(inner);
+    const circle = ib && { cx: ib.x + ib.w / 2, cy: ib.y + ib.h / 2, radius: Math.min(ib.w, ib.h) / 2 };
+    const imageBox = img && box(img), imageStyle = img && getComputedStyle(img);
+    const roundClipped = !!innerStyle && (innerStyle.clipPath.startsWith('circle(')
+      || ['hidden', 'clip'].includes(innerStyle.overflowX) && ['hidden', 'clip'].includes(innerStyle.overflowY)
+        && [innerStyle.borderTopLeftRadius, innerStyle.borderTopRightRadius, innerStyle.borderBottomLeftRadius, innerStyle.borderBottomRightRadius]
+          .every(r => r === '50%' || !r.includes('%') && parseFloat(r) >= inner.clientWidth / 2 - 1));
+    const textParts = [name, cost, ...(visible(timer) && timer.textContent.trim() ? [timer] : []), ...(visible(lock) ? [lock] : [])]
+      .filter(Boolean).map(part => ({ part: part.classList.contains('lk') ? 'lock' : part.className,
+        ink: inkBox(part), insideCircle: inCircle(inkBox(part), circle) }));
     const cooling = el.classList.contains('cooling'), locked = !!el.dataset.lock;
-    const lower = cooling ? timer : cost;
     return {
       slot: el.dataset.slot || el.dataset.lock, locked, cooling, label: el.getAttribute('aria-label'),
+      resourceLow: el.classList.contains('resource-low'), circle, roundClipped, textParts,
+      textInsideCircle: textParts.length >= 2 && textParts.every(part => part.insideCircle),
+      costColor: cost && getComputedStyle(cost).color,
       artCount: el.querySelectorAll('img.sic').length, markCount: el.querySelectorAll('.skill-mark').length,
       art: img ? { src: img.getAttribute('src'), loaded: img.complete && img.naturalWidth > 0 && img.naturalHeight > 0,
-        naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight, visible: visible(img), inside: contained(img, el) } : null,
+        // cover 원화의 원래 사각형은 커도 된다. 실제 보이는 원형 마스크가 버튼 안이어야 한다.
+        naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight, visible: visible(img), inside: roundClipped && contained(inner, el),
+        opacity: Number(imageStyle.opacity), paintWeight: paintWeight(img, el), filter: imageStyle.filter,
+        cover: imageStyle.objectFit === 'cover', fillsInner: !!ib && imageBox.x <= ib.x + 1 && imageBox.y <= ib.y + 1
+          && imageBox.right >= ib.right - 1 && imageBox.bottom >= ib.bottom - 1 } : null,
       fallback: !!mark && mark.tagName.toLowerCase() === 'svg' && visible(mark) && contained(mark, el),
       name: name?.textContent || '', cost: cost?.textContent || '', seconds: timer?.textContent || '',
-      nameVisible: visible(name) && contained(name, el), lowerVisible: visible(lower) && contained(lower, el),
-      distinctRows: !!name && !!lower && box(name).bottom <= box(lower).y + 1,
+      nameVisible: visible(name) && contained(name, el), lowerVisible: visible(cost) && contained(cost, el),
+      // 상태에 따라 행 순서는 달라도 이름·비용·초·잠금의 실제 글자가 서로 가리면 안 된다.
+      distinctRows: separated(name, cost),
+      timerVisible: visible(timer) && contained(timer, el),
+      timerDistinct: separated(timer, name) && separated(timer, cost),
+      timerPaintWeight: timer ? paintWeight(timer, el) : 0,
       lockVisible: visible(lock) && contained(lock, el),
+      lockDistinct: separated(lock, name) && separated(lock, cost),
     };
   });
 });
 // 현재 제공된 25개 스킬은 모두 원화가 있다. 누락 원화의 fallback 분기는 소스 보존으로 별도 확인한다.
 const learnedArtValid = rows => rows.length > 0 && rows.every(r => !r.locked && r.artCount === 1 && r.markCount === 0
-  && r.art?.loaded && r.art.visible && r.art.inside && r.name.trim() && r.nameVisible && r.lowerVisible && r.distinctRows
-  && (r.cooling ? /^\d+초$/.test(r.seconds) && /재사용 대기/.test(r.label)
-    : /^(?:\d+(?:\.\d+)?%|힘\d\+?)$/.test(r.cost)));
-const lockedArtValid = rows => rows.length > 0 && rows.every(r => r.locked && r.artCount === 0 && r.markCount === 0
-  && r.name.trim() && r.nameVisible && r.lowerVisible && r.distinctRows && r.lockVisible
+  && r.art?.loaded && r.art.visible && r.art.inside && r.art.cover && r.art.fillsInner && r.roundClipped && r.textInsideCircle
+  && r.name.trim() && r.nameVisible && r.lowerVisible && r.distinctRows
+  && /^(?:\d+(?:\.\d+)?%|힘\d\+?)$/.test(r.cost)
+  && (!r.cooling || r.timerVisible && r.timerDistinct && /^\d+초$/.test(r.seconds) && /재사용 대기/.test(r.label)));
+const lockedArtValid = rows => rows.length > 0 && rows.every(r => r.locked && r.artCount === 1 && r.markCount === 0
+  && r.art?.loaded && r.art.visible && r.art.inside && r.art.opacity > 0 && r.art.opacity < 1
+  && r.art.cover && r.art.fillsInner && r.roundClipped && r.textInsideCircle
+  && r.name.trim() && r.nameVisible && r.lowerVisible && r.distinctRows && r.lockVisible && r.lockDistinct
   && /Lv \d+/.test(r.cost) && /잠김.*Lv \d+/.test(r.label));
 
 async function enter(page, party, level = 100, compactSkills = false) {
@@ -193,7 +277,7 @@ export default async function compactUi(url, shots) {
             && inViewport(normal.stage, normal) && inViewport(normal.board, normal) && inViewport(normal.controls, normal)
             && normal.board.bottom <= normal.cast.y + 1 && normal.cast.bottom <= normal.controls.y + 1
             && toolbarValid(normal) && castSpaceValid(normal) && usableControls(normalControls),
-          `${tag}: 일반 모드 광고·판/HUD 경계·HP 12px/이름 11px·대상 버튼 없음`, normal);
+          `${tag}: 일반 모드 광고·판/HUD 경계·HP 12px/이름 11px·대상 버튼 없이 시전행 예약`, normal);
 
           const takeShot = party.n === 20 || (width === 360 && height === 780 && party.n === 5);
           if (takeShot) await page.screenshot({ path: `${shots}/compact_normal_${width}x${height}_${party.n}.png` });
@@ -222,6 +306,31 @@ export default async function compactUi(url, shots) {
           { normal: normalArt, compact: compactArt });
           if (takeShot) await page.screenshot({ path: `${shots}/compact_small_${width}x${height}_${party.n}.png` });
 
+          // 대상 전용 UI는 제거되어야 한다. 상태만 준비하고 실제 board touch로 기본 치유 경로를 검사한다.
+          const target = await page.evaluate(() => {
+            const f = window.__proto.F, u = f.party.find(x => !x.me && x.alive);
+            f.cast = null; f.queued = null; f.gcd = 0; f.g.p = 0; f.mana = 75;
+            u.hp = u.max * 0.55;
+            window.__directTargetFight = f;
+            return { id: u.id, cell: u.cell, nick: u.nick, taps: f.stats.taps,
+              point: window.__proto.center(u.cell), t: f.t };
+          });
+          ok(normal.targetUiNodes === 0 && compact.targetUiNodes === 0
+            && normal.toolbarButtons === 0 && compact.toolbarButtons === 0,
+          `${tag}: 일반/축소 대상 버튼·목록 없음, 빈자리에 대체 버튼 없음`);
+          const board = await page.locator('#board').boundingBox();
+          await page.touchscreen.tap(board.x + target.point.x, board.y + target.point.y);
+          await page.clock.runFor(80);
+          const chosen = await page.evaluate(t => ({
+            sameFight: window.__proto.F === window.__directTargetFight,
+            selected: window.__proto.F.cast?.key === 'heal' && window.__proto.F.cast?.uid === t.id,
+            taps: window.__proto.F.stats.taps, t: window.__proto.F.t,
+            noModal: !document.querySelector('dialog:modal'), pauseHidden: document.querySelector('#pause').hidden,
+          }), target);
+          ok(chosen.sameFight && chosen.selected && chosen.taps === target.taps + 1
+            && chosen.t > target.t && chosen.noModal && chosen.pauseHidden,
+          `${tag}: 보드 실제 탭 한 번이 같은 전투의 선택 대상에게 기본 치유 1회 시전`, chosen);
+
           // 대표 크기에서 상태·취소·재진입을 추가 검사. 행렬 전체를 불필요하게 반복하지 않는다.
           if (width === 360 && height === 780 && party.n === 5) {
             await featureCases(page, ok);
@@ -230,6 +339,8 @@ export default async function compactUi(url, shots) {
             await gestureCases(page, ok, shots);
             await reducedEffectsCase(page, ok, shots);
           }
+          if (party.n === 20) await skillCircleStates(page, ok, shots);
+          if (party.n === 20 && height !== 880) await noticeCases(page, ok);
           await leave(page);
         }
         if (width === 360 && height === 780) {
@@ -242,6 +353,136 @@ export default async function compactUi(url, shots) {
     }
   } finally { await browser.close(); }
   return { fails, errs, geometry: measurements, variants };
+}
+
+// 원형 경계의 최솟값과 세 자리 CD를 실제 모바일 크기의 두 모드에서 검사한다.
+// 준비/대기/부족/잠김은 독립 테스트 전투 상태 주입이며 자연 플레이로 주장하지 않는다.
+async function skillCircleStates(page, ok, shots) {
+  const originalMode = await mode(page);
+  const saved = await page.evaluate(() => ({ level: window.__proto.F.level, width: innerWidth, height: innerHeight }));
+  const fixture = async state => {
+    await page.evaluate(state => {
+      const f = window.__proto.F;
+      f.cast = null; f.queued = null; f.channel = 0; f.gcd = 0; f.g.p = 0; f.g.s = 0;
+      f.mana = state === 'low' ? 0 : 100;
+      f.cd.purify = state === 'cooling' ? 6 : 0;
+      f.cd.guardian = state === 'cooling' ? 90 : 0;
+      f.cd.hymn = state === 'cooling' ? 180 : 0;
+    }, state);
+    await page.clock.runFor(120);
+  };
+  for (const compact of [false, true]) {
+    if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
+    const tag = `${saved.width}×${saved.height} ${compact ? '축소' : '일반'}`;
+    await fixture('ready');
+    const ready = await skillVisuals(page);
+    ok(learnedArtValid(ready) && ready.every(r => !r.cooling && !r.resourceLow),
+      `${tag}: 준비 스킬 원화는 내부 원 전체 cover·원형 마스크·모든 글자 실제 bounds 원 안`, ready);
+
+    await fixture('cooling');
+    const cooling = await skillVisuals(page), coolingRows = cooling.filter(r => r.cooling);
+    const dimmed = coolingRows.length === 3 && coolingRows.every(r => {
+      const before = ready.find(b => b.slot === r.slot);
+      return before && r.art.src === before.art.src && r.art.paintWeight <= before.art.paintWeight * .55
+        && r.timerPaintWeight >= .9 && r.timerVisible && r.timerDistinct;
+    });
+    ok(learnedArtValid(cooling) && dimmed && coolingRows.some(r => /^\d{3}초$/.test(r.seconds)),
+      `${tag}: 1/2/3자리 쿨다운은 같은 원화가 준비보다 45% 이상 어둡고 초·이름·비용은 겹치거나 원 밖 잘림 없음`,
+      { ready, cooling });
+    await page.screenshot({ path: `${shots}/skill_circle_cooling_${saved.width}x${saved.height}_${compact ? 'small' : 'normal'}.png` });
+
+    await fixture('low');
+    const low = await skillVisuals(page), lowRows = low.filter(r => r.resourceLow);
+    ok(learnedArtValid(low) && lowRows.length > 0 && lowRows.every(r => !r.cooling && !r.seconds
+      && /마나 부족/.test(r.label) && r.costColor !== ready.find(b => b.slot === r.slot)?.costColor),
+      `${tag}: 마나 부족은 비용 색·접근성 이름으로 구분, 쿨다운 숫자 없음·원화/필수 글자 원 안`, low);
+
+    await page.evaluate(() => { window.__proto.F.level = 1; window.dispatchEvent(new Event('resize')); });
+    await fixture('locked');
+    const locked = await skillVisuals(page);
+    ok(learnedArtValid(locked.filter(r => !r.locked)) && lockedArtValid(locked.filter(r => r.locked)),
+      `${tag}: 잠김 원화/자물쇠/이름/Lv 전체가 원 안·자물쇠와 글자 비겹침`, locked);
+    await page.screenshot({ path: `${shots}/skill_circle_locked_${saved.width}x${saved.height}_${compact ? 'small' : 'normal'}.png` });
+    await page.evaluate(level => { window.__proto.F.level = level; window.dispatchEvent(new Event('resize')); }, saved.level);
+    await fixture('ready');
+  }
+  if (await mode(page) !== originalMode) { await toggleMode(page); await page.clock.runFor(40); }
+}
+
+async function noticeCases(page, ok) {
+  // 기존 msg 사건만 주입한다. 알림 DOM/수명은 실제 handleEvents → toast 경로가 만든다.
+  // 최신 main은 파티 요약 줄을 제거하고 boardWrap 위의 비차단 알림을 유지한다.
+  // 자연 전투 사건이 수명 검사를 대체하지 않도록 만료 구간만 기존 일시정지 UI를 사용한다.
+  const originalMode = await mode(page);
+  const noticeGeometry = () => page.evaluate(() => {
+    const box = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; };
+    const visible = el => !!el && !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden'
+      && Number(getComputedStyle(el).opacity) > 0;
+    const host = document.querySelector('#toast'), board = document.querySelector('#board');
+    return {
+      width: innerWidth, height: innerHeight, compact: document.querySelector('#controls').classList.contains('compact-controls'),
+      board: box(board), cast: box(document.querySelector('#castbar')), frame: box(document.querySelector('#controlsFrame')),
+      summaryNodes: document.querySelectorAll('#partyStatus,#partyAlive,#partyCondition,.board-instruction').length,
+      host: { ...box(host), parent: host.parentElement.id, live: host.getAttribute('aria-live'),
+        atomic: host.getAttribute('aria-atomic'), role: host.getAttribute('role'), pointerEvents: getComputedStyle(host).pointerEvents },
+      notices: [...host.children].map(el => {
+        const rect = box(el), point = { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 };
+        return { ...rect, text: el.textContent, title: el.title, visible: visible(el),
+          font: parseFloat(getComputedStyle(el).fontSize), pointerEvents: getComputedStyle(el).pointerEvents,
+          point, boardReceivesPoint: document.elementFromPoint(point.x, point.y) === board };
+      }),
+    };
+  });
+  const nearBox = (a, b) => ['x', 'y', 'w', 'h'].every(k => Math.abs(a[k] - b[k]) <= .1);
+  const inside = (r, bounds) => r.x >= bounds.x - .1 && r.right <= bounds.right + .1
+    && r.y >= bounds.y - .1 && r.bottom <= bounds.bottom + .1;
+  for (const compact of [false, true]) {
+    if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
+    await page.click('#pauseBtn');
+    await page.clock.runFor(2301);
+    const before = await noticeGeometry();
+    await page.click('#resumeBtn');
+    const fullText = '어둠의 집행자: 탱커에게 12345 피해 · 강력한 연속 공격에 대비하여 체력을 회복하세요';
+    await page.evaluate(text => {
+      window.__noticeFight = window.__proto.F;
+      window.__proto.F.events.push({ type: 'msg', text: '첫 번째 알림' }, { type: 'msg', text: '두 번째 알림' }, { type: 'msg', text });
+    }, fullText);
+    await page.waitForFunction(text => window.__proto.F === window.__noticeFight
+      && document.querySelector('#toast .toast:last-child')?.textContent === text,
+    fullText, { polling: 'raf', timeout: 8000 });
+    const shown = await noticeGeometry(), notices = shown.notices;
+    const stable = ['board', 'cast', 'frame'].every(key => nearBox(before[key], shown[key]));
+    ok(before.notices.length === 0 && shown.summaryNodes === 0 && stable
+      && shown.host.parent === 'boardWrap' && shown.host.live === 'polite' && shown.host.atomic === 'true' && shown.host.role === 'status'
+      && shown.host.pointerEvents === 'none' && notices.length === 2
+      && notices[0].text === '두 번째 알림' && notices[1].text === fullText
+      && notices.every(n => n.visible && n.title === n.text && n.font >= 12 && n.font <= 13
+        && n.pointerEvents === 'none' && n.boardReceivesPoint && inside(n, shown.board)
+        && inside(n, { x: 0, y: 70, right: shown.width, bottom: shown.height }))
+      && notices[0].bottom <= notices[1].y + .1,
+    `${shown.width}: ${compact ? '축소' : '일반'} 최신 알림 2개·전체 문구/접근성 유지·판/화면 안 비차단 겹침·배치 고정`, { before, shown });
+
+    // 알림 중앙의 실제 touch가 가려진 canvas까지 전달되는지 확인한다.
+    await page.evaluate(() => {
+      const board = document.querySelector('#board');
+      window.__noticeBoardInput = { down: 0, up: 0 };
+      board.addEventListener('pointerdown', () => { window.__noticeBoardInput.down++; }, { capture: true, once: true });
+      board.addEventListener('pointerup', () => { window.__noticeBoardInput.up++; }, { capture: true, once: true });
+    });
+    const point = notices.at(-1).point;
+    await page.touchscreen.tap(point.x, point.y); await page.clock.runFor(40);
+    const input = await page.evaluate(() => window.__noticeBoardInput);
+    ok(input.down === 1 && input.up === 1,
+      `${shown.width}: ${compact ? '축소' : '일반'} 알림 중앙 touch는 전투판에 down/up 각 1회 전달`, input);
+    await page.click('#pauseBtn');
+    await page.clock.runFor(2301);
+    const after = await noticeGeometry();
+    ok(after.notices.length === 0 && after.summaryNodes === 0
+      && ['board', 'cast', 'frame'].every(key => nearBox(before[key], after[key])),
+    `${shown.width}: ${compact ? '축소' : '일반'} 알림 2.3초 만료 뒤 전투판/시전/하단 위치 유지`, { before, after });
+    await page.click('#resumeBtn');
+  }
+  if (await mode(page) !== originalMode) { await toggleMode(page); await page.clock.runFor(40); }
 }
 
 async function reducedEffectsCase(page, ok, shots) {
@@ -407,9 +648,11 @@ async function heroVariants(page, ok, shots) {
     }
     const normal = await controlGeometry(page);
     const normalLayout = await geometry(page);
+    const normalArt = await skillVisuals(page);
     await toggleMode(page); await page.clock.runFor(40);
     const compact = await controlGeometry(page);
     const compactLayout = await geometry(page);
+    const compactArt = await skillVisuals(page);
     await page.screenshot({ path: `${shots}/compact_hero_${c.hero}${c.synthetic ? '_synthetic' : ''}_320x640.png` });
     await page.evaluate(() => {
       const settings = JSON.parse(localStorage.getItem('healer.save')).settings;
@@ -430,7 +673,7 @@ async function heroVariants(page, ok, shots) {
     await toggleMode(page); await page.clock.runFor(40);
     const label = c.synthetic ? '성기사+3보조 synthetic' : { priest: '사제', druid: '드루이드', paladin: '성기사' }[c.hero];
     const tools = await inspectDirectControls(page, ok, `320: ${label} 탱커 전멸`, true);
-    const g = { ...c, normal, compact, left, down, normalDown, tools, normalLayout, compactLayout };
+    const g = { ...c, normal, compact, left, down, normalDown, tools, normalLayout, compactLayout, normalArt, compactArt };
     out.push(g);
     const gauge = c.synthetic || (c.hero === 'priest' ? /평온/.test(compact.gaugeText) && /신성화/.test(compact.gaugeText)
       : c.hero === 'druid' ? /새싹/.test(compact.gaugeText)
@@ -443,6 +686,8 @@ async function heroVariants(page, ok, shots) {
       && gauge && left.left && left.wheel.x < left.side.x
       && down.giveUp && down.giveUpVisible && directControls && uniformLayout(normalLayout, compactLayout),
     `320: ${label} 같은 배치 균등 축소·왼손·탱커전멸 44px hit/비겹침/자원·직접 버튼 유지`, g);
+    ok(learnedArtValid(normalArt) && learnedArtValid(compactArt),
+      `320: ${label} 일반/축소 최소 스킬도 원화 전체 채움·모든 이름/비용 원형 내부 유지`, { normalArt, compactArt });
     await leave(page);
   }
   // 다음 fixture에 영향을 주지 않는다.
@@ -455,7 +700,34 @@ async function heroVariants(page, ok, shots) {
 }
 
 async function featureCases(page, ok) {
-  // 앱 전환은 진행 중 전투를 일시정지 메뉴로 멈추고, 계속을 눌러야 시간이 흐른다.
+  // 남아 있는 일시정지 설정은 keyboard 진입·취소 뒤 같은 전투와 초점을 복구한다.
+  await page.locator('#pauseBtn').focus();
+  await page.keyboard.press('Enter');
+  const opened = await page.evaluate(() => {
+    window.__escapePauseFight = window.__proto.F;
+    const pause = document.querySelector('#pause');
+    return { t: window.__proto.F.t, open: !pause.hidden,
+      modal: pause.getAttribute('role') === 'dialog' && pause.getAttribute('aria-modal') === 'true' };
+  });
+  const t0 = opened.t;
+  await page.clock.runFor(120);
+  const stopped = await time(page);
+  await page.keyboard.press('Escape');
+  const closed = await page.evaluate(() => ({ closed: document.querySelector('#pause').hidden,
+    focus: document.activeElement?.id, sameFight: window.__proto.F === window.__escapePauseFight,
+    t: window.__proto.F.t }));
+  // 가상 시간 경과를 앱 tick 완료로 취급하지 않는다. 같은 판이 실제로 진행한 뒤 재개를 판정한다.
+  const resumeError = await page.waitForFunction(t => window.__proto.F === window.__escapePauseFight
+    && window.__proto.F.t > t, t0, { polling: 'raf', timeout: 8000 }).then(() => null, error => error.message);
+  const resumedTime = await time(page);
+  ok(opened.open && opened.modal && stopped === t0 && closed.closed && closed.sameFight
+    && closed.focus === 'pauseBtn' && resumeError === null && resumedTime > t0,
+  '360: 일시정지 Escape 취소는 동일 전투 재개·호출 버튼 초점 복구',
+  { opened, stopped, closed, resumedTime, resumeError });
+
+  await page.click('#pauseBtn');
+  await page.click('#restartBtn');
+  const nativeOpen = await page.locator('#battleConfirm').evaluate(el => el.open && el.matches(':modal'));
   await page.evaluate(() => {
     // 이 독립 페이지에서만 백그라운드 진입 이벤트를 만든 뒤 document.hidden 원래 getter를 즉시 복원한다.
     const original = Object.getOwnPropertyDescriptor(document, 'hidden');
@@ -469,10 +741,11 @@ async function featureCases(page, ok) {
   });
   const backgroundTime = await time(page);
   await page.clock.runFor(200);
-  const backgroundPaused = await page.isVisible('#pause') && await time(page) === backgroundTime;
+  const backgroundPaused = await page.locator('#battleConfirm').evaluate(el => !el.open)
+    && await page.isVisible('#pause') && await time(page) === backgroundTime;
   await page.click('#resumeBtn'); await page.clock.runFor(80);
-  ok(backgroundPaused && await time(page) > backgroundTime,
-    '360: 백그라운드 진입은 일시정지 유지, 계속에서만 시간 재개');
+  ok(nativeOpen && backgroundPaused && await time(page) > backgroundTime,
+    '360: 재시작 확인 중 백그라운드 진입은 native 창 닫기·일시정지 유지, 계속에서만 시간 재개');
 
   await page.evaluate(() => { const f = window.__proto.F; f.cast = null; f.queued = null; f.gcd = 0; f.mana = 80; f.g.p = 0; });
   await tapSlot(page, '#wheel [data-slot="heal"]');
@@ -560,9 +833,9 @@ async function pauseModeReparenting(page, ok) {
     });
     await page.keyboard.press('Space'); await page.clock.runFor(80);
     const changed = await page.evaluate(() => {
-      const cast = document.querySelector('#castbar'), slot = document.querySelector('#wheel button');
+      const cast = document.querySelector('#castbar'), skill = document.querySelector('#wheel [data-slot="heal"]');
       const before = document.activeElement?.id;
-      slot.focus(); // 일시정지 중 직접 focus도 배경으로 빠져나갈 수 없다.
+      skill.focus(); // 일시정지 중 직접 focus도 배경으로 빠져나갈 수 없다.
       return { compact: document.querySelector('#controls').classList.contains('compact-controls'), before,
         after: document.activeElement?.id, paused: !document.querySelector('#pause').hidden,
         castParent: cast.parentElement.id, castInert: !!cast.closest('[inert]'),
@@ -583,9 +856,16 @@ async function pauseModeReparenting(page, ok) {
       focus: document.activeElement?.id, paused: !document.querySelector('#pause').hidden,
       directToggles: document.querySelectorAll('#compactToggle,#compactReturn').length,
     }));
+    await page.evaluate(() => { const f = window.__proto.F; f.cast = null; f.queued = null; f.gcd = 0; f.mana = 80; f.g.p = 0; });
+    await page.locator('#wheel [data-slot="heal"]').focus();
+    await page.keyboard.press('Enter'); await page.clock.runFor(40);
+    const armed = await page.getAttribute('#wheel [data-slot="heal"]', 'aria-pressed') === 'true';
+    await page.keyboard.press('Space'); await page.clock.runFor(40);
+    const cancelled = await page.getAttribute('#wheel [data-slot="heal"]', 'aria-pressed') === 'false';
     ok(!resumed.castInert && !resumed.controlsInert && !resumed.paused && resumed.focus === 'pauseBtn'
-      && resumed.directToggles === 0,
-    '360: ' + (compact ? '축소' : '일반') + ' 복귀 뒤 inert 해제·직접 크기 버튼 제거', resumed);
+      && resumed.directToggles === 0 && armed && cancelled
+      && await page.locator('#targetsBtn,#partyTargets,#targetList,#targetsClose').count() === 0,
+    '360: ' + (compact ? '축소' : '일반') + ' 복귀 뒤 inert 해제·스킬 키보드 장전/취소·대상 UI 없음', { ...resumed, armed, cancelled });
   }
 }
 
@@ -725,7 +1005,7 @@ async function persistenceAndLocks(page, ok) {
     const visuals = await skillVisuals(page), g = await geometry(page);
     ok(learnedArtValid(visuals.filter(r => !r.locked)) && lockedArtValid(visuals.filter(r => r.locked))
       && g.slots.every(r => r.hitW >= 44 - .1 && r.hitH >= 44 - .1 && inViewport(r, g)),
-    `360: ${compact ? '축소' : '일반'} Lv 1 원화는 유지·기능 배지는 없음, 잠긴 칸은 이름/자물쇠/Lv·44px hit 유지`, visuals);
+    `360: ${compact ? '축소' : '일반'} Lv 1 잠긴 칸도 흐린 원화 1개 로드·영역 유지, 기능 배지 없이 이름/자물쇠/Lv·44px hit 유지`, visuals);
   }
   const before = await page.evaluate(() => { const f = window.__proto.F; return { mana: f.mana, casts: JSON.stringify(f.stats.casts) }; });
   await tapSlot(page, '#wheel [data-lock="purify"]');

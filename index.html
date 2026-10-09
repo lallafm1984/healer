@@ -51,12 +51,12 @@
     </header>
     <div id="boardWrap">
       <canvas id="board" aria-label="파티 체력과 진형. 칸을 탭해 치유하고 길게 눌러 파티원 정보 확인"></canvas>
-      <div id="toast"></div>
+      <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
       <div id="banner"></div>
       <div id="preview" hidden></div>
       <div id="pull" hidden><b id="pullNum">3</b></div>
     </div>
-    <!-- 시전 막대 (시안): 화면 폭 금테 막대, 노란 유광 채움, 안에 「스킬 → 대상」 · 남은 초. 시전 중이 아닐 때 안내도 막대 안에 -->
+    <!-- 시전 중 생성한 황동 틀 안에 진행률·기술·대상·남은 초 표시. 일반 44px / 축소 26px 공간은 항상 예약. -->
     <div id="castbar"><div id="castTrack"><div id="castFill"></div><span id="castLabel">칸을 탭하면 치유</span><span id="castTime"></span></div></div>
     <div id="controlsFrame"><footer id="controls">
       <div id="wheel" aria-label="치유 스킬 휠"></div>

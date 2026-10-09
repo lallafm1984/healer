@@ -13,6 +13,7 @@ import { emblemSrc } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebuff } from './party-display';
 import { CELL_RADIUS, fitBoard } from './board-layout';
+import { art } from '../art';
 
 // ---------- 색 ----------
 const hex = (c: string) => parseInt(c.slice(1, 7), 16);
@@ -35,13 +36,14 @@ const cellsG = new Graphics();
 const unitsG = new Graphics();
 const glowL = new Container();
 const fxG = new Graphics();
+const frameL = new Container();
 const overG = new Graphics();
 const labelsL = new Container();
 const topG = new Graphics();
 const topL = new Container();
 const lensL = new Container();
 const emblemL = new Container();
-root.addChild(cellsG, unitsG, glowL, fxG, overG, emblemL, labelsL, topG, topL, lensL);
+root.addChild(cellsG, unitsG, glowL, fxG, frameL, overG, emblemL, labelsL, topG, topL, lensL);
 
 let dpr = 1;
 export const L = { s: 40, W: 0, H: 0, ox: 0, oy: 0, left: 2, right: 2, top: 2, bottom: 2, ok: false };
@@ -54,6 +56,7 @@ export async function initBoard(): Promise<void> {
   const want = new URLSearchParams(location.search).get('renderer');
   const preference: ('webgl' | 'canvas')[] = want === 'webgl' || want === 'canvas' ? [want] : navigator.webdriver ? ['canvas'] : ['webgl', 'canvas'];
   const a = new Application();
+  const frameReady = loadHexFrame();
   await a.init({
     canvas: cv, width: Math.max(1, cv.clientWidth), height: Math.max(1, cv.clientHeight), resolution: Math.min(3, window.devicePixelRatio || 1),
     autoDensity: false, antialias: true, backgroundAlpha: 0, preference, autoStart: false, sharedTicker: false,
@@ -65,9 +68,41 @@ export async function initBoard(): Promise<void> {
   glowTex = makeGlow();
   if (B.F) resizeBoard();
   await document.fonts?.ready;
+  await frameReady;
   installNumFont();
 }
 export const boardRenderer = () => (app ? app.renderer.name : '');
+
+// 같은 투명 래스터를 Pixi의 WebGL/Canvas 양쪽에서 사용한다. 읽기 실패 시 기존 선 테두리를 유지한다.
+let hexFrameTexture: Texture | null = null;
+const hexFrames: Sprite[] = [];
+let hexFramesUsed = 0;
+async function loadHexFrame(): Promise<void> {
+  const url = art('ui-sunforged-hex-frame');
+  cv.dataset.hexFrameReady = 'false';
+  if (!url) return;
+  const img = new Image();
+  img.decoding = 'async'; img.src = url;
+  try {
+    await img.decode();
+    hexFrameTexture = Texture.from(img);
+    cv.dataset.hexFrameReady = 'true';
+  } catch { /* 원화 로드 실패가 전투판 초기화를 막지 않게 한다. */ }
+}
+function hexFrame(id: number, x: number, y: number, r: number, strokeWidth: number): void {
+  if (!hexFrameTexture) return;
+  let sprite = hexFrames[hexFramesUsed];
+  if (!sprite) {
+    sprite = new Sprite(hexFrameTexture); sprite.anchor.set(0.5); sprite.eventMode = 'none';
+    hexFrames.push(sprite); frameL.addChild(sprite);
+  }
+  hexFramesUsed++;
+  // 기존 위험 빨간 외곽선 안쪽에만 올린다. 바깥 크기·히트 영역·두 축 비율은 바꾸지 않는다.
+  const radius = Math.max(0, r - strokeWidth * 0.65);
+  const scale = Math.min(radius * Math.sqrt(3) / hexFrameTexture.width, radius * 2 / hexFrameTexture.height);
+  sprite.scale.set(scale); sprite.position.set(x, y); sprite.visible = true;
+  recordBound(`frame${id}`, 'frame', 'hex', x, y, sprite.width, sprite.height);
+}
 
 export function resizeBoard(): void {
   const r = $('boardWrap').getBoundingClientRect();
@@ -339,6 +374,30 @@ function fitLabel(label: Label, key: string, kind: string): { x: number; y: numb
   return { ...p, w, h };
 }
 interface PillBox { x: number; y: number; w: number; h: number }
+/** 보조 연출만 실제 글자/상태 bounds를 피한다. 빈 자리가 없으면 해당 프레임에서 생략한다. */
+function transientSpot(box: PillBox, occupied: readonly PillBox[]): PillBox | null {
+  const { w, h } = box;
+  if (w > L.right - L.left || h > L.bottom - L.top) return null;
+  const origin = fitCenter(box.x, box.y, w / 2, h / 2);
+  const clear = (x: number, y: number) => occupied.every(b =>
+    Math.abs(x - b.x) >= (w + b.w) / 2 + 1 || Math.abs(y - b.y) >= (h + b.h) / 2 + 1);
+  if (clear(origin.x, origin.y)) return { ...origin, w, h };
+  let best: PillBox | null = null, distance = Infinity;
+  const consider = (x: number, y: number) => {
+    const p = fitCenter(x, y, w / 2, h / 2);
+    const d = (p.x - origin.x) ** 2 + (p.y - origin.y) ** 2;
+    if (d < distance && clear(p.x, p.y)) { best = { ...p, w, h }; distance = d; }
+  };
+  // 글자 외곽의 네 면/모서리와 캔버스 경계에서 가장 가까운 안전 후보를 고른다.
+  for (const b of occupied) {
+    const left = b.x - (b.w + w) / 2 - 1, right = b.x + (b.w + w) / 2 + 1;
+    const top = b.y - (b.h + h) / 2 - 1, bottom = b.y + (b.h + h) / 2 + 1;
+    consider(left, origin.y); consider(right, origin.y); consider(origin.x, top); consider(origin.x, bottom);
+    consider(left, top); consider(left, bottom); consider(right, top); consider(right, bottom);
+  }
+  consider(L.left, origin.y); consider(L.right, origin.y); consider(origin.x, L.top); consider(origin.x, L.bottom);
+  return best;
+}
 function pill(g: Graphics, lb: Labels, key: string, x: number, y: number, text: string, bg: number, fg: number, fs: number, alpha = 1, adjust?: (box: PillBox) => PillBox): PillBox {
   const kind = key.startsWith('deb') ? 'debuff' : key === 'swipe' ? 'swipe' : 'pill';
   const content = fitPartyName(text, Math.max(1, L.right - L.left - fs * 0.7 - 1.5), value => measure(value, fs));
@@ -513,7 +572,7 @@ export function render(now: number): void {
   const typography = cellTypography(s), compact = typography.compact;
   const rdt = Math.min(0.1, Math.max(0, (now - (B2.lastRender || now)) / 1000)); B2.lastRender = now;
   for (const g of [cellsG, unitsG, fxG, overG, topG]) g.clear();
-  labels.begin(); tops.begin(); glowUsed = 0; decorationBounds.length = 0;
+  labels.begin(); tops.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0;
   const fs = (k: number, min: number) => Math.max(min, s * k);
 
   // 영역 (장판 예고·활성 장판)
@@ -626,6 +685,7 @@ export function render(now: number): void {
       const bw = Math.max(2.5, s * 0.07);
       hexPoly(unitsG, x, y, r).stroke({ width: bw, color: low ? C.danger : C.line });
       hexPoly(unitsG, x, y, r - bw * 0.85).stroke({ width: Math.max(1.2, s * 0.035), color: low ? C.line : u.role === 'healer' ? C.frame : C.bronze });
+      hexFrame(u.id, x, y, r, bw);
     }
     over.push({ u, x, y, deb: undefined });
   }
@@ -773,27 +833,13 @@ export function render(now: number): void {
     if (hpLabel.width > r * 1.56) hpLabel.scale.x = r * 1.56 / hpLabel.width;
     const hpBox = fitLabel(hpLabel, `hp${u.id}`, 'hp');
     hpBounds.push({ id: u.id, cell: u.cell, text: hpText, ...hpBox, sx: hpLabel.scale.x });
-    // 작은 셀의 HP 눈금은 일반 패널에서만 표시한다. 축소 패널도 숫자와 위험 !는 유지한다.
-    if (compact) {
-      const gw = r * 1.08, gh = 4, gx = x - gw / 2, gy = y + r * 0.68 - gh / 2;
-      const trackBottom = gy + gh + 1.5;
-      const hotBelowTrack = trackBottom + 4.25;
-      // 아주 낮은 칸에서는 눈금과 +를 함께 쌓을 공간이 없다. 중복 눈금 대신 HP 숫자와 HoT를 보존한다.
-      const showTrack = !S.compactSkills && (!hasHot || hotBelowTrack + 3.25 <= Math.min(L.bottom, y + r + 1));
-      if (showTrack) {
-        overG.roundRect(gx, gy, gw, gh, 1).fill({ color: C.line }).stroke({ width: 1, color: C.ink });
-        const trackW = gw - 2;
-        if (health.ratio > 0) overG.rect(gx + 1, gy + 1, Math.max(1, trackW * health.ratio), gh - 2).fill({ color: health.critical ? C.white : C.heal });
-        overG.moveTo(gx + 1 + trackW * 0.3, gy - 1).lineTo(gx + 1 + trackW * 0.3, gy + gh + 1).stroke({ width: 1, color: C.ink });
-        recordBound(`hp-track${u.id}`, 'hp', 'track', gx + gw / 2, gy + gh / 2, gw + 1, gh + 3);
-      }
-      if (hasHot) {
-        // 지속 치유 +는 HP 눈금과 독립적으로 유지한다. 정확한 종류/잔여 초는 길게 누르기 정보에 보존한다.
-        // 양쪽 패널 모두 중앙 하단에 둔다. 오른쪽 아래는 다음 행 디버프 배지가 덮을 수 있다.
-        // HP의 실제 높이 아래에 간격을 두어 숫자/위험 !를 가리지 않는다.
-        const hp = fitCenter(x, Math.max(showTrack ? hotBelowTrack : gy + gh / 2, hpBox.y + hpBox.h / 2 + 4.25), 3.25);
-        smallHots.push({ id: u.id, x: hp.x, y: hp.y });
-      }
+    // 양쪽 패널 모두 숫자 HP와 육각형 내부 채움만 사용하고 중복 HP 눈금은 그리지 않는다.
+    if (compact && hasHot) {
+      // 지속 치유 +의 정확한 종류/잔여 초는 길게 누르기 정보에 보존한다.
+      // 양쪽 패널 모두 중앙 하단에 둔다. 오른쪽 아래는 다음 행 디버프 배지가 덮을 수 있다.
+      // 기존 눈금 없는 배치를 사용해 HP의 실제 높이 아래 간격을 유지한다.
+      const hp = fitCenter(x, Math.max(y + r * 0.68, hpBox.y + hpBox.h / 2 + 4.25), 3.25);
+      smallHots.push({ id: u.id, x: hp.x, y: hp.y });
     }
     if (deb) {
       const summary = debuffDisplay(deb, F.hero, compact);
@@ -879,10 +925,9 @@ export function render(now: number): void {
       pill(overG, labels, `bus${u.id}`, x, y + r * 0.2, `-${dmg}`, lethal ? C.danger : 0xffb25b, C.dark, fs(0.3, 11));
     }
     if (busterIds.has(u.id)) {
-      const mark = safeRadius(x, y, r, 'circle', 3);
-      overG.circle(x, y, mark * 0.75).moveTo(x - mark, y).lineTo(x - mark * 0.4, y).moveTo(x + mark * 0.4, y).lineTo(x + mark, y).moveTo(x, y - mark).lineTo(x, y - mark * 0.4)
-        .stroke({ width: 3, color: C.tel, alpha: 0.6 + 0.4 * pulse });
-      recordBound(`buster${u.id}`, 'ring', 'target', x, y, mark * 2 + 3, mark * 2 + 3);
+      // 중앙 십자선은 이름과 HP를 지나지 않는다. 상단 타깃 표식과 바깥 위험 링으로 예고한다.
+      const mark = ringRadius(`buster${u.id}`, 'hex', x, y, r * 1.02, 3);
+      hexPoly(overG, x, y, mark).stroke({ width: 3, color: C.tel, alpha: 0.6 + 0.4 * pulse });
     }
     // 차례 (P-ORDER): 은쟁반 번호표, 받은 번호는 꺼지고 다음 번호는 금빛. 직업 그림 왼쪽 (이름을 안 가리게)
     const ok = F.order ? F.order.ids.indexOf(u.id) : -1;
@@ -945,12 +990,20 @@ export function render(now: number): void {
     if (cu && cu.alive) { const p = unitPos(cu); hexPoly(overG, p.x, p.y, ringRadius(`coach${cu.id}`, 'hex', p.x, p.y, r * (1.18 + 0.06 * pulse), 4)).stroke({ width: 4, color: C.gold, alpha: 0.55 + 0.45 * pulse }); }
   }
 
+  // 실제 최종 HP·이름·상태 표시를 먼저 보호한다. 일시 연출은 다른 연출과도 겹치지 않는다.
+  const transientOccupied: PillBox[] = decorationBounds.filter(b => ['hp', 'nick', 'hot', 'debuff', 'role', 'aggro', 'pill'].includes(b.kind));
   // 떠오르는 숫자
   B2.floats = B2.floats.filter(fl => now - fl.t0 < 900 && (!S.reducedEffects || fl.label));
   for (const fl of B2.floats) {
     const k = (now - fl.t0) / 900;
     const size = fl.label ? fs(0.22, 10) : fl.crit ? fs(0.36, 14) : fl.over || fl.fill ? fs(0.22, 10) : fs(0.27, 11);
-    fitLabel(tops.put(`fl${fl.n}`, fl.text, { size, fill: fl.fill ?? (fl.crit ? C.crit : fl.over ? C.over : C.heal), strokeW: 3, num: !fl.fill }, fl.x, S.reducedEffects ? fl.y : fl.y - k * s * (fl.label ? 0.3 : 0.6), S.reducedEffects ? 1 : 1 - k * k, 1), `float${fl.n}`, 'float');
+    const label = tops.put(`fl${fl.n}`, fl.text, { size, fill: fl.fill ?? (fl.crit ? C.crit : fl.over ? C.over : C.heal), strokeW: 3, num: !fl.fill }, fl.x, S.reducedEffects ? fl.y : fl.y - k * s * (fl.label ? 0.3 : 0.6), S.reducedEffects ? 1 : 1 - k * k, 1);
+    const b = label.getBounds(), x = (b.minX + b.maxX) / 2, y = (b.minY + b.maxY) / 2;
+    const p = transientSpot({ x, y, w: b.maxX - b.minX, h: b.maxY - b.minY }, transientOccupied);
+    if (!p) { label.visible = false; continue; }
+    label.position.set(label.x + p.x - x, label.y + p.y - y);
+    recordBound(`float${fl.n}`, 'float', 'text', p.x, p.y, p.w, p.h);
+    transientOccupied.push(p);
   }
   // 쓸기 방향 미리보기
   if (ui.pointer && ui.pointer.dir && ui.pointer.idx >= 0) {
@@ -974,18 +1027,25 @@ export function render(now: number): void {
     const u = F.party.find(x => x.id === b.id); if (!u) continue;
     const p = unitPos(u);
     const text = fitPartyName(b.text, Math.max(1, L.right - L.left - 16), value => measure(value, 12, FONT, '500'));
-    const w = measure(text, 12, FONT, '500') + 14, h = 22;
+    const a = S.reducedEffects ? 1 : Math.min(1, (1700 - (now - b.t0)) / 300);
+    const label = tops.put(`bb${b.id}`, text, { size: 12, fill: C.dark, weight: '500' }, 0, 0, a);
+    const textBounds = label.getBounds();
+    const w = Math.max(measure(text, 12, FONT, '500'), label.width) + 14, h = Math.max(22, label.height + 3);
     let by = p.y - r - h - 6;
     if (by < L.top + 1) by = p.y + r + 6;
-    const bp = fitCenter(p.x, by + h / 2, w / 2 + 1, h / 2 + 1), bx = bp.x - w / 2;
+    const bp = transientSpot({ x: p.x, y: by + h / 2, w: w + 2, h: h + 2 }, transientOccupied);
+    if (!bp) { label.visible = false; continue; }
+    const bx = bp.x - w / 2;
     by = bp.y - h / 2;
-    const a = S.reducedEffects ? 1 : Math.min(1, (1700 - (now - b.t0)) / 300);
     topG.roundRect(bx, by, w, h, 8).fill({ color: C.ink, alpha: a }).stroke({ width: 2, color: C.line, alpha: a });
-    fitLabel(tops.put(`bb${b.id}`, text, { size: 12, fill: C.dark, weight: '500' }, bx + w / 2, by + h / 2 + 0.5, a), `bubble-text${b.id}`, 'bubble');
+    label.position.set(bp.x - (textBounds.minX + textBounds.maxX) / 2, bp.y + 0.5 - (textBounds.minY + textBounds.maxY) / 2);
+    recordBound(`bubble-text${b.id}`, 'bubble', 'text', bp.x, bp.y + 0.5, textBounds.maxX - textBounds.minX, textBounds.maxY - textBounds.minY);
     recordBound(`bubble${b.id}`, 'bubble', 'rect', bp.x, bp.y, w + 2, h + 2);
+    transientOccupied.push(bp);
   }
 
   for (let i = glowUsed; i < glows.length; i++) glows[i].visible = false;
+  for (let i = hexFramesUsed; i < hexFrames.length; i++) hexFrames[i].visible = false;
   labels.end(); tops.end();
   lensL.visible = false;
   app.renderer.render(app.stage);

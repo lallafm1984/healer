@@ -136,12 +136,20 @@ function checkGeometry(g, ok, label) {
 
 function checkDecorations(g, ok, label, risk = false) {
   const bounds = g.decorations.map(rectOf);
+  const hpTracks = bounds.filter(b => b.key.startsWith('hp-track') || b.kind === 'hp' && b.shape === 'track');
+  ok(hpTracks.length === 0 && bounds.some(b => b.kind === 'hp' && b.shape === 'text'),
+    `${label}: 일반/축소 HP 아래 중복 막대 없음·숫자 HP 유지`, { hpTracks });
   const outside = bounds.filter(b => !finite(b.left, b.right, b.top, b.bottom) || b.left < g.safe.left - EPS
     || b.right > g.safe.right + EPS || b.top < g.safe.top - EPS || b.bottom > g.safe.bottom + EPS);
   ok(bounds.length >= g.party && bounds.some(b => b.kind === 'hp') && outside.length === 0,
     `${label}: 실제 글자·아이콘·표식 paint bounds가 safe canvas 안`, { count: bounds.length, outside });
   const circles = bounds.filter(b => b.kind === 'ring' && b.shape === 'circle');
   ok(circles.every(b => Math.abs(b.w - b.h) < EPS), `${label}: 원형 링의 가로·세로 배율 유지`, circles);
+  const feedback = bounds.filter(b => ['float', 'bubble'].includes(b.kind));
+  const partyText = bounds.filter(b => ['hp', 'nick'].includes(b.kind));
+  const feedbackOverlaps = feedback.flatMap(effect => partyText.filter(text => !separated(effect, text)).map(text => ({ effect, text })));
+  ok(partyText.length > 0 && feedbackOverlaps.length === 0,
+    `${label}: 일시 숫자·말풍선이 실제 HP·이름을 가리지 않음`, feedbackOverlaps);
   if (!risk) return;
   // 빈 육각 디버프 테두리의 AABB는 내부 HOT를 감싼다. 가림은 채운 배지와 실제 글자로 검사한다.
   const hots = bounds.filter(b => b.kind === 'hot'), debuffs = bounds.filter(b => b.kind === 'debuff' && /^(deb\d|debuff-extra)/.test(b.key));

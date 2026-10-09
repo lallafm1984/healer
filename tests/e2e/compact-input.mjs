@@ -169,11 +169,14 @@ async function inputs(page, check, label) {
   await haloInputs(page, ok);
   await reset(page);
   await touch(page, 'renew');
+  // 실제 입력의 장전 상태는 다음 HUD 갱신에서 aria-pressed에 반영된다.
+  // 40ms만 진행하면 갱신 주기에 따라 엔진은 장전됐지만 DOM은 직전 값일 수 있다.
+  await page.clock.runFor(120);
   const armed = await page.getAttribute('#wheel [data-slot="renew"]', 'aria-pressed') === 'true';
   await touch(page, 'board:0');
   let s = await state(page);
   ok(armed && s.casts.renew === 1 && !s.casts.heal && !s.cast && !s.queued && s.hot.some(v => v > 0),
-    '실제 touch 스킬 버튼 장전 → 대상 탭은 소생 1회, 기본 치유/후속 click 중복 없음', s);
+    '실제 touch 스킬 버튼 장전 → 대상 탭은 소생 1회, 기본 치유/후속 click 중복 없음', { armed, ...s });
 
   await reset(page); await touch(page, 'hymn'); s = await state(page);
   ok(s.casts.hymn === 1 && s.channel > 3.8 && !s.queued && !s.cast,
@@ -274,6 +277,30 @@ async function inputs(page, check, label) {
       q.send(name, 'pointerup'); q.send(name, 'click', 1, { detail: 1 }); return { before, after: q.snap() };
     }, name);
     ok(showed && unchanged(r.before, r.after), `${name} 길게 누른 뒤 release/click은 설명만 표시하고 사용 없음`, r);
+  }
+
+  for (const name of ['renew', 'mana', 'zenith', 'board:0']) {
+    await reset(page);
+    const before = await page.evaluate(name => {
+      const q = window.__inputFixture, before = q.snap();
+      q.send(name, 'pointerdown');
+      document.querySelector('#pauseBtn').click();
+      document.querySelector('#restartBtn').click();
+      return before;
+    }, name);
+    await page.clock.runFor(500);
+    const noTip = await page.isHidden('#tip') && await page.isHidden('#preview');
+    const after = await page.evaluate(name => {
+      document.querySelector('#confirmCancel').click();
+      document.querySelector('#resumeBtn').click();
+      const q = window.__inputFixture;
+      q.send(name, 'pointerup'); q.send(name, 'click', 1, { detail: 1 }); return q.snap();
+    }, name);
+    await page.clock.runFor(40);
+    const notArmed = await page.getAttribute('#wheel [data-slot="renew"]', 'aria-pressed') !== 'true';
+    const noTargetUi = await page.locator('#targetsBtn,#partyTargets,#targetList,#targetsClose').count() === 0;
+    ok(noTip && notArmed && unchanged(before, after) && noTargetUi,
+      `${name} 누른 채 일시정지·재시작 확인 취소는 타이머·늦은 release 취소, 대상 UI 없음`, { before, after });
   }
 
   for (const name of ['renew', 'mana', 'zenith', 'board:0']) {

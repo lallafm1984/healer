@@ -232,7 +232,7 @@ export function vibe(ms: number | number[], important?: boolean): void {
 
 // ---------- 알림 ----------
 export function toast(text: string): void {
-  const el = document.createElement('div'); el.className = 'toast'; el.textContent = text;
+  const el = document.createElement('div'); el.className = 'toast'; el.textContent = text; el.title = text;
   const box = $('toast'); box.appendChild(el);
   while (box.children.length > 2) box.firstChild!.remove();
   setTimeout(() => el.remove(), 2300);
