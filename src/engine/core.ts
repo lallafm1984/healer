@@ -5,6 +5,7 @@ import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
 import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
+import type { BarkSit } from '../data/talk/sits';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
 
 /** 한 틱 = 0.05초 */
@@ -22,14 +23,19 @@ export function emit(f: Fight, ev: FightEvent): void {
   f.events.push(ev);
 }
 
-/** 파티원 말풍선. force가 아니면 4초 간격 + 60% 확률 */
-export function bark(f: Fight, u: Unit, text?: string | null, force?: boolean): void {
+/**
+ * 파티원 말풍선. force가 아니면 4초 간격 + 60% 확률.
+ * sit = 무슨 상황인지 (41 문서). 화면(battle/talk.ts)이 상황·성격·직업에 맞는 대사로 바꿔 보여 줌. 프로토타입 규칙에서는 안 붙임 (parity)
+ */
+export function bark(f: Fight, u: Unit, text: string | null, force: boolean, sit: BarkSit): void {
   if (!u.alive || u.me) return;
   if (!force && f.t - u.barkAt < 4) return;
   if (!force && f.rng() > 0.6) return;
   u.barkAt = f.t;
   const barks = u.p.barks;
-  emit(f, { type: 'bark', id: u.id, text: text || barks?.[Math.floor(f.rng() * barks.length)] || '' });
+  const ev: FightEvent = { type: 'bark', id: u.id, text: text || barks?.[Math.floor(f.rng() * barks.length)] || '' };
+  if (!f.cfg.proto) ev.sit = sit;
+  emit(f, ev);
 }
 
 /**
@@ -73,7 +79,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     emit(f, { type: 'heal', id: u.id, amt: Math.round(amt), eff: Math.round(eff), crit });
     u.lastHeal = f.t;
     if (u.sulking) u.sulking = false;
-    if (u.p.thanks) { u.thanks = 3; if (f.rng() < 0.35) bark(f, u); }
+    if (u.p.thanks) { u.thanks = 3; if (f.rng() < 0.35) bark(f, u, null, false, 'thanks'); }
   }
   return eff;
 }

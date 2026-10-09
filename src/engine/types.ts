@@ -13,6 +13,7 @@ import type { AffixKey } from '../data/affixes';
 import type { AddDown, AddJob, DebuffEnd, SoulFail, SoulWin } from '../data/bosses';
 import type { AffixState } from './affixes';
 import type { TraitKey } from '../data/traits';
+import type { BarkSit } from '../data/talk/sits';
 
 export type Role = 'tank' | 'melee' | 'ranged' | 'healer';
 
@@ -311,7 +312,8 @@ export interface Zone {
 }
 
 export type FightEvent =
-  | { type: 'bark'; id: number; text: string }
+  /** 파티원 말풍선. sit = 상황 (41 문서, 프로토타입 규칙이면 없음) */
+  | { type: 'bark'; id: number; text: string; sit?: BarkSit }
   | { type: 'heal'; id: number; amt: number; eff: number; crit: boolean; item?: boolean }
   | { type: 'sound'; name: string }
   | { type: 'msg'; text: string }
