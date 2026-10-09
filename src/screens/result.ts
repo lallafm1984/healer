@@ -105,7 +105,7 @@ function lootHtml(r: BattleResult, x: Settlement): string {
   if (x.mats.stone) tiles.push(tile('stone', '강화석', x.mats.stone));
   if (x.mats.refined) tiles.push(tile('refined', '정제 강화석', x.mats.refined));
   if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
-  return `<section class="r-loot" aria-label="받은 것">
+  return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
       ${itemsHtml(x)}
       ${tiles.length ? `<div class="r-curs">${tiles.join('')}</div>` : ''}
       ${xpRow(x)}
