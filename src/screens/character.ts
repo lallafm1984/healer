@@ -298,12 +298,14 @@ function itemSheet(id: number): string {
 function statsSheet(): string {
   const p = statParts(), pc0 = (x: number) => Math.round(x * 100);
   const crit = pc0(p.crit.total), haste = pc0(p.haste.total), spirit = pc0(p.spirit.total);
+  // 정점 수련 (34 2-2): Lv 51부터 레벨 몫 옆에 작게
+  const apexTxt = p.apex > 0 ? ` (수련 +${(p.apex * 100).toFixed(1)}%)` : '';
   const row = (k: string, v: string, parts: string[]) => `<div class="c7-src"><span>${k}</span><b>${v}</b><span class="cap">${parts.filter(Boolean).join(' · ')}</span></div>`;
   return `${dim}<section class="sheet c7-ssheet" role="dialog" aria-label="능력치 출처">${grip}
       <h3 class="h-rule">능력치 출처<span class="rule"></span><span class="cap">레벨 · 장비 · 특성</span></h3>
       <div class="c7-srcs">
-        ${row('체력', fmt(p.hp.total), [`기본 ${fmt(p.hp.base)}`, `레벨 +${fmt(p.hp.level)}`, '장비 0'])}
-        ${row('지능', fmt(p.int.total), [`기본 ${fmt(p.int.base)}`, `레벨 +${fmt(p.int.level)}`, `장비 +${fmt(p.int.gear)}`])}
+        ${row('체력', fmt(p.hp.total), [`기본 ${fmt(p.hp.base)}`, `레벨 +${fmt(p.hp.level)}${apexTxt}`, '장비 0'])}
+        ${row('지능', fmt(p.int.total), [`기본 ${fmt(p.int.base)}`, `레벨 +${fmt(p.int.level)}${apexTxt}`, `장비 +${fmt(p.int.gear)}`])}
         ${row('치명타', `${crit}%`, [`기본 ${pc0(p.crit.base)}%`, `장비 +${pc0(p.crit.gear)}%`])}
         ${row('가속', `${haste}%`, [`장비 +${haste}%`, `최대 ${pc0(p.haste.cap)}%`])}
         ${row('정신력', `+${spirit}%`, [`장비 +${spirit}%`, `마나 재생 초당 ${(p.spirit.regen * (1 + p.spirit.total)).toFixed(2)}%`])}

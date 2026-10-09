@@ -1,6 +1,6 @@
 /** 전투 기본 규칙 (34 1장): 숫자 ÷2.5, 적 세기 0.95, GCD 1.5, 시전 ×1.4, 기본 치명 0%, 마나 재생 0.7%, 가속 상한 50% */
 import { describe, expect, it } from 'vitest';
-import { lvPower } from '../src/data/progression';
+import { apexOf, lvPower } from '../src/data/progression';
 import { PROTO_RULES, RULES } from '../src/data/rules';
 import { healText, SKILLS } from '../src/data/skills';
 import * as E from '../src/engine';
@@ -40,10 +40,16 @@ describe('34 1-2 바꾼 값', () => {
   it('같은 레벨이면 적·파티원 = 내 세기 × 0.95, 적 피해 × 0.85', () => {
     for (const lv of [1, 20, 70]) {
       const f = E.create({ ...cfg, stageLv: lv, heroLv: lv });
-      expect(f.power).toBeCloseTo(lvPower(lv));
+      expect(f.power).toBeCloseTo(lvPower(lv) * apexOf(lv));
       expect(f.scale).toBeCloseTo(lvPower(lv) * 0.95);
       expect(f.dmgMult).toBeCloseTo(lvPower(lv) * 0.95 * 0.85);
     }
+  });
+  it('정점 수련: Lv 50까지 없음, Lv 51부터 레벨마다 내 지능·체력 +0.3% (Lv 70 +6%, Lv 100 +15%), 적은 그대로 (34 2-2)', () => {
+    expect([apexOf(1), apexOf(50), apexOf(51), apexOf(70), apexOf(100)].map(x => +x.toFixed(3))).toEqual([1, 1, 1.003, 1.06, 1.15]);
+    const f = E.create({ ...cfg, stageLv: 100, heroLv: 100 });
+    expect(f.power / f.scale).toBeCloseTo(1.15 / 0.95);
+    expect(E.create({ ...cfg, stageLv: 100, heroLv: 100, proto: true }).power).toBeCloseTo(PROTO_RULES.lv(100));
   });
   it('Lv 1 맨몸 힐러 체력 220 · 치유 120 (34 1-3)', () => {
     const f = E.create({ ...cfg, stageLv: 1, heroLv: 1 });

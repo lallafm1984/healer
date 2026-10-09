@@ -42,7 +42,7 @@ export function create(cfg: FightConfig): Fight {
   // 레벨 배율 (34 1-2): 단계가 같으면 비율은 그대로이고 숫자만 커짐. 적·파티원은 내 레벨 세기 × 0.95, 단계보다 높은 만큼 힐러가 세짐
   const stageLv = cfg.stageLv ?? 1;
   const scale = R.lv(stageLv) * R.enemy;
-  const power = R.lv(Math.max(cfg.heroLv ?? stageLv, stageLv));
+  const power = R.lv(Math.max(cfg.heroLv ?? stageLv, stageLv)) * R.apex(cfg.heroLv ?? stageLv);
   const bm = cfg.bossMult ?? { hp: 1, dmg: 1 };
   const tn = cfg.proto ? undefined : enc.tune?.[cfg.diff];
   const bossMax = enc.hp * (mythic ? MYTHIC.bossHp : 1) * scale * bm.hp * (tn?.hp ?? 1);

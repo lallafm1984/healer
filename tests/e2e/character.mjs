@@ -89,7 +89,7 @@ export default async function character(url, shots) {
   await page.click('#s-char [data-csub="talent"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char .c7-tier').count()) === 10 && (await page.locator('#s-char .c7-tier.locked').count()) === 10, '특성 10단, Lv 1은 다 잠김');
   const t1 = await text('#s-char .c7-tier:first-child');
-  ok(/긴 숨결/.test(t1) && /넓은 원/.test(t1) && (await page.locator('#s-char .c7-tier:first-child .c7-pk.off .ui-icon').count()) === 3 && (await page.locator('#s-char [data-tcell]').count()) === 0 && /Lv 10에 열림/.test(await text('#s-char .c7-tsum')), '잠긴 단 = 메달마다 자물쇠 + 이름 (누를 수 없음), Lv 10에 열림');
+  ok(/긴 숨결/.test(t1) && /넓은 원/.test(t1) && (await page.locator('#s-char .c7-tier:first-child .c7-pk.off .ui-icon').count()) === 3 && (await page.locator('#s-char [data-tcell]').count()) === 0 && /Lv 5에 열림/.test(await text('#s-char .c7-tsum')), '잠긴 단 = 메달마다 자물쇠 + 이름 (누를 수 없음), Lv 5에 열림');
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(50);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(50);
   ok(await page.getAttribute('#s-char [data-csub="talent"]', 'aria-selected') === 'true', '다른 탭에 갔다 와도 보던 하위 탭');
@@ -97,11 +97,11 @@ export default async function character(url, shots) {
   await pastTitle(page);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   await page.click('#s-char [data-csub="talent"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-char .c7-tier.locked').count()) === 8 && /2단 열림 · 0개 고름 · 2개 남음/.test(await text('#s-char .c7-tsum')), 'Lv 25 = 2단 열림, 아직 안 고름');
-  ok((await page.locator('#s-char .c7-tier.pending').count()) === 2 && (await page.locator('#s-char .c7-tier:first-child [data-tcell]').count()) === 3, '안 고른 열린 단 = 줄 금테 + 칸 3개');
+  ok((await page.locator('#s-char .c7-tier.locked').count()) === 5 && /5단 열림 · 0개 고름 · 5개 남음/.test(await text('#s-char .c7-tsum')), 'Lv 25 = 5단 열림 (5레벨마다 한 단), 아직 안 고름');
+  ok((await page.locator('#s-char .c7-tier.pending').count()) === 5 && (await page.locator('#s-char .c7-tier:first-child [data-tcell]').count()) === 3, '안 고른 열린 단 = 줄 금테 + 칸 3개');
   ok(await page.isVisible('#s-char [data-csub="talent"] .rdot') && (await page.locator('#s-char .c7-pre').count()) === 3, '남은 특성 = 특성 탭 빨간 점, 프리셋 3칸');
   await page.click('#s-char [data-tcell="1:0"]'); await page.clock.runFor(50);
-  ok(/벼랑 끝 손길/.test(await text('#s-char .c7-tsheet')) && /Lv 20/.test(await text('#s-char .c7-tsheet')) && /고르기/.test(await text('#s-char .c7-tsheet [data-talent="1:0"]')), '칸을 누르면 아래 시트 (이름·Lv·주제·설명·고르기)');
+  ok(/벼랑 끝 손길/.test(await text('#s-char .c7-tsheet')) && /Lv 10/.test(await text('#s-char .c7-tsheet')) && /고르기/.test(await text('#s-char .c7-tsheet [data-talent="1:0"]')), '칸을 누르면 아래 시트 (이름·Lv·주제·설명·고르기)');
   await page.screenshot({ path: `${shots}/char_talent.png` });
   await page.click('#s-char .c7-tsum'); await page.clock.runFor(50);
   ok(!(await page.isVisible('#s-char .c7-tsheet')), '시트 밖을 누르면 닫힘');

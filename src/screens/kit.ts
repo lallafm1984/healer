@@ -7,7 +7,7 @@ import type { BattleResult } from '../game/settle';
 import { TUT, type CoachKey } from '../game/tutorial';
 import { G, heroNow } from '../game/state';
 import { betterSlots, talentsLeft } from '../game/charinfo';
-import { xpToNext } from '../data/progression';
+import { apexOf, xpToNext } from '../data/progression';
 import { classEmblem, currencyIcon } from './art';
 import { releaseSheetDialogs, resetShellScroll } from './dialog';
 
@@ -97,7 +97,7 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
     ? `<button class="tb-pf" type="button" data-go="s-char"${better ? ' data-arg="gear"' : left ? ' data-arg="talent"' : ''} aria-label="캐릭터 · ${esc(hero.name)} Lv ${p.level}${note ? ` · ${note}` : ''}">${pfIn}</button>`
     : `<span class="tb-pf" role="img" aria-label="${esc(hero.name)} Lv ${p.level}">${pfIn}</span>`;
   return `<header class="topbar tb-mmo">${pf}
-    <span class="tb-nm"><b class="tb-cls">${esc(hero.name)}</b><span class="tb-xp" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${pct.toFixed(1)}%"></i></span><small class="tb-xpt" aria-hidden="true" data-pct="${Math.floor(pct)}"></small></span>
+    <span class="tb-nm"><b class="tb-cls">${esc(hero.name)}</b><span class="tb-xp" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}${apexOf(p.level) > 1 ? ` · 수련 +${((apexOf(p.level) - 1) * 100).toFixed(1)}%` : ''}"><i style="width:${pct.toFixed(1)}%"></i></span><small class="tb-xpt" aria-hidden="true" data-pct="${Math.floor(pct)}"></small></span>
     <span class="tb-wal"><span class="tb-cur tb-gold" aria-label="골드">${currencyIcon('gold')}<b>${fmt(p.gold)}</b></span><span class="tb-cur tb-cr" aria-label="크리스탈">${currencyIcon('crystal')}<b>${fmt(s.wallet.crystal)}</b></span></span>
     ${set}</header>`;
 }
