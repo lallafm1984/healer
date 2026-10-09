@@ -1,34 +1,52 @@
 /** 장비 강화·분해·드롭 (02 10장, 12 3장) */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearMats, enhanceCost, itemName, rollItem, salvageOf, type GearItem } from '../src/data/equipment';
+import { clearMats, ENHANCE_RATE, enhanceCost, itemName, rollItem, salvageOf, type GearItem } from '../src/data/equipment';
 import { settle, type BattleResult } from '../src/game/settle';
 import { enhance, G, salvage } from '../src/game/state';
 import { migrate, newSave } from '../src/platform/storage';
 
 const item = (o: Partial<GearItem> = {}): GearItem => ({ id: 1, slot: 'head', grade: '희귀', plus: 0, name: '', ...o });
 
-describe('강화 (12 3-2)', () => {
+describe('강화 (34 6-5: 확률, +2 이상 실패 시 1단계 하락, 12 3-2)', () => {
   beforeEach(() => { G.save = newSave(1); });
-  it('비용: 골드 = 등급 기본값 × 단계², +1~+5 강화석, +6~+10 정제 강화석', () => {
-    expect(enhanceCost(item())).toEqual({ gold: 40, stone: 1, refined: 0, to: 1 });
-    expect(enhanceCost(item({ plus: 4 }))).toEqual({ gold: 40 * 25, stone: 5, refined: 0, to: 5 });
-    expect(enhanceCost(item({ plus: 5, grade: '영웅' }))).toEqual({ gold: 80 * 36, stone: 0, refined: 1, to: 6 });
+  it('비용 (시도 한 번): 골드 = 등급 기본값 × 목표 단계², +1~+5 강화석 단계만큼, +6~+10 정제 강화석 1개', () => {
+    expect(enhanceCost(item())).toEqual({ gold: 10, stone: 1, refined: 0, to: 1, rate: 1, fail: 0 });
+    expect(enhanceCost(item({ plus: 4 }))).toEqual({ gold: 10 * 25, stone: 5, refined: 0, to: 5, rate: 0.7, fail: 3 });
+    expect(enhanceCost(item({ plus: 5, grade: '영웅' }))).toEqual({ gold: 20 * 36, stone: 0, refined: 1, to: 6, rate: 0.6, fail: 4 });
+    expect(enhanceCost(item({ plus: 9, grade: '전설' }))).toMatchObject({ gold: 40 * 100, refined: 1, rate: 0.35, fail: 8 });
     expect(enhanceCost(item({ plus: 10 }))).toBeNull();
   });
-  it('희귀 0 → +5 = 골드 2,200 (12 문서 예시)', () => {
-    let g = 0; const it = item();
-    for (let i = 0; i < 5; i++) { g += enhanceCost(it)!.gold; it.plus++; }
-    expect(g).toBe(2200);
+  it('성공 확률은 단계가 오를수록 낮아지고, +1은 늘 성공 · 실패하면 +1까지는 그대로', () => {
+    expect(ENHANCE_RATE.slice(1)).toEqual([1, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5, 0.45, 0.4, 0.35]);
+    for (let i = 2; i < ENHANCE_RATE.length; i++) expect(ENHANCE_RATE[i]).toBeLessThan(ENHANCE_RATE[i - 1]);
+    expect(enhanceCost(item({ plus: 0 }))!.fail).toBe(0);
+    expect(enhanceCost(item({ plus: 1 }))!.fail).toBe(1);
+    expect(enhanceCost(item({ plus: 2 }))!.fail).toBe(1);
   });
-  it('착용·가방 장비 모두 강화, 모자라면 이유, 실패 없음', () => {
+  it('모자라면 이유, 성공하면 한 단계 오름 (재료 씀)', () => {
     const it = item({ id: 7 });
     G.save.gear.equipped.head = it;
-    expect(enhance(7)).toMatch(/골드 부족/);
+    expect(enhance(7, () => 0)).toMatch(/골드 부족/);
     G.save.player.gold = 100;
-    expect(enhance(7)).toMatch(/강화석 부족/);
+    expect(enhance(7, () => 0)).toMatch(/강화석 부족/);
     G.save.mats.stone = 1;
-    expect(enhance(7)).toBe('');
-    expect([it.plus, G.save.player.gold, G.save.mats.stone]).toEqual([1, 60, 0]);
+    expect(enhance(7, () => 0)).toBe('');
+    expect([it.plus, G.save.player.gold, G.save.mats.stone]).toEqual([1, 90, 0]);
+  });
+  it('실패: +2 이상이면 1단계 떨어지고, +1에서는 그대로. 재료는 실패해도 씀, 대성공 없음', () => {
+    const it = item({ id: 7, plus: 4 });
+    G.save.gear.bag = [it];
+    G.save.player.gold = 10000; G.save.mats.stone = 20;
+    expect(enhance(7, () => 0.99)).toBe('강화 실패 · +4 → +3');
+    expect([it.plus, G.save.player.gold, G.save.mats.stone]).toEqual([3, 10000 - 250, 15]);
+    it.plus = 1;
+    expect(enhance(7, () => 0.99)).toBe('강화 실패 · +1 그대로');
+    expect(it.plus).toBe(1);
+    // 성공 확률 바로 아래 굴림은 성공 (90% → 0.899)
+    it.plus = 2;
+    expect(enhance(7, () => 0.899)).toBe('');
+    expect(it.plus).toBe(3);
+    expect(enhance(7, () => 0.8)).toBe('강화 실패 · +3 → +2');
   });
 });
 

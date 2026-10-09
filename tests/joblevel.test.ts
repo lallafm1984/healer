@@ -1,7 +1,7 @@
-/** 직업별 레벨 (34 3·4장): 레벨·경험치는 직업마다, 해금·길드·상점·임무는 가장 높은 직업 레벨, 따라잡기 ×3 */
+/** 직업별 레벨 (34 3·4장): 레벨·경험치는 직업마다, 해금·길드·상점·임무는 가장 높은 직업 레벨. 따라잡기 경험치는 없음 (34 v0.2) */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { contentOf } from '../src/data/content';
-import { CATCH_UP_XP, clearXp, gradeOf } from '../src/data/progression';
+import { clearXp, gradeOf } from '../src/data/progression';
 import * as E from '../src/engine';
 import { raidLootOpen } from '../src/game/economy';
 import { capOf } from '../src/game/guild';
@@ -71,16 +71,12 @@ describe('직업 바꾸기와 레벨 (34 3-1 · 3-2)', () => {
     expect(otherHeroFor(lockOf(c).lv)).toEqual({ hero: 'priest', lv: 25 });
     expect(otherHeroFor(26)).toBeNull();
   });
-  it('따라잡기: 다른 직업보다 낮으면 경험치 ×3, 같아지면 끝', () => {
+  it('따라잡기 없음: 다른 직업보다 낮아도 경험치는 그 레벨 그대로 (34 v0.2)', () => {
     switchHero('druid');
     G.save.player.level = 10;
     const x = settle(G.save, result(), () => 0.5);
-    expect(x.catchUp).toBe(true);
-    expect(x.xp).toBe(Math.round(clearXp(10, '보통', gradeOf(0), { win: true }) * CATCH_UP_XP));
-    G.save.player.level = 25; G.save.player.xp = 0;
-    const y = settle(G.save, result(), () => 0.5);
-    expect(y.catchUp).toBe(false);
-    expect(y.xp).toBe(clearXp(25, '보통', gradeOf(0), { win: true }));
+    expect(x.xp).toBe(clearXp(10, '보통', gradeOf(0), { win: true }));
+    expect('catchUp' in x).toBe(false);
   });
   it('레이드 주 1회 장비는 계정에 한 번 (직업을 바꿔도 다시 안 줌, 34 4장 4번)', () => {
     G.save.player.level = 40;
