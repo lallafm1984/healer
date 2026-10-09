@@ -150,7 +150,7 @@ export function useTalent(f: Fight, key: TalentKey, cellIdx?: number): ActionRes
     if (b.s < 100) emit(f, { type: 'gauge', which: '신성화' });
   }
   if (key === 'shelter') f.tx.shelter = cellIdx!;
-  emit(f, { type: 'sound', name: 'bell' });
+  emit(f, { type: 'sound', name: 'chime' });
   emit(f, { type: 'msg', text: def.active!.dur ? `${def.name}: ${def.active!.dur}초` : def.name });
   return { ok: true };
 }

@@ -126,7 +126,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     if (u.guardian > 0) {
       u.guardian = 0;
       u.hp = u.max * 0.4;
-      emit(f, { type: 'sound', name: 'bell' });
+      emit(f, { type: 'sound', name: 'chime' });
       emit(f, { type: 'msg', text: `수호 영혼이 ${u.nick}을(를) 살림` });
       return;
     }
@@ -191,7 +191,7 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
     case 'restoreMax': setMax(u); return;
     case 'spread': spread(f, u); return;
     case 'colDmg': {
-      // 무음 성가대 독창 (26 4-3): 안 지우고 끝나면 그 사람이 선 열 전체. 지우면 그냥 사라짐 (함정 아님)
+      // 유령 성가대 독창 (26 4-3): 안 지우고 끝나면 그 사람이 선 열 전체. 지우면 그냥 사라짐 (함정 아님)
       if (dispelled) return;
       const col = cellOf(f, u).col;
       for (const v of living(f)) if (cellOf(f, v).col === col) damage(f, v, e.dmg, true);

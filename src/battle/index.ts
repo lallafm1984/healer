@@ -427,7 +427,7 @@ function endPointer(cancelled: boolean, e?: PointerEvent): void {
     if (!u || !u.alive) { F.stats.emptyTaps++; return; }
     B.beacon = false;
     if (!setBeacon(F, u)) { Snd.play('error'); return; }
-    Snd.play('bell'); vibe(12); return;
+    Snd.play('chime'); vibe(12); return;
   }
   if (ui.talArmed) { // 쉼터 장전 중: 빈 칸 탭
     if (P.idx < 0) { F.stats.emptyTaps++; return; }

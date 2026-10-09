@@ -131,7 +131,7 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     if (knowsPassive(f, 'echo')) u.echo.push({ left: 4, rate: (sk.amt! * 0.15) / 4 });
     directSpread(f, key, u, amt);
     if (key === 'serenity' && has(f, 'cleansingWord')) cleanseOne(f, u);
-    if (key === 'serenity') emit(f, { type: 'sound', name: 'bell' });
+    if (key === 'serenity') emit(f, { type: 'sound', name: 'chime' });
   } else if (key === 'renew') {
     u.hot = renewSec(f); u.hotTick = 0; u.lastHeal = f.t; if (u.sulking) u.sulking = false;
     if (has(f, 'hopRenew')) u.hotHop = false;
@@ -143,7 +143,7 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     if (key === 'poh' && has(f, 'wideCircle')) { r = 2; amt *= 0.8; }
     pohAt(f, u.cell, amt, r);
     if (key === 'poh' && has(f, 'doublePoh')) f.tx.later.push({ at: f.t + 2, cell: u.cell, amt: amt * 0.5, r });
-    if (key === 'sanctify') emit(f, { type: 'sound', name: 'bell' });
+    if (key === 'sanctify') emit(f, { type: 'sound', name: 'chime' });
   } else if (key === 'purify') {
     const ds = u.debuffs.filter(d => DISPELLABLE[d.type] && !d.lock).sort((a, b) => (a.trap ? 1 : 0) - (b.trap ? 1 : 0) || (b.stack || 0) - (a.stack || 0));
     const d = ds[0];
