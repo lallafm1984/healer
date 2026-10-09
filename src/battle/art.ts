@@ -52,6 +52,9 @@ const ENC_ART: Record<string, string[]> = {
   duo: ['mob-scrap-minion', 'boss-rust-guardian'],
   trash: ['mob-scrap-minion', 'boss-rust-guardian'],
   plague: ['boss-plague-lord'],
+  // 묶음 A (그림 요청 44): 그림이 올 때까지 벡터 그림
+  collector3: ['boss-bone-collector'],
+  ashyard: ['mob-risen-bones', 'mob-cult-acolyte'],
   choir: ['boss-ghost-choir', 'boss-silent-choir'], // 40: 새 이름 boss-ghost-choir
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */

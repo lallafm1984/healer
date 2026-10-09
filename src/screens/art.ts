@@ -1,6 +1,6 @@
 import { art } from '../art';
 import type { ContentKey } from '../data/content';
-import { CONTENT_PLACE, FACTIONS, floorArtName, sceneArtName, type FactionKey, type PlaceKey } from '../data/places';
+import { artPlaces, CONTENT_PLACE, FACTIONS, floorArtName, sceneArtName, type FactionKey, type PlaceKey } from '../data/places';
 
 /** 화면 장식 그림 (정식 아트 전까지 임시, 16 문서) */
 export const sunSvg = `<svg viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke-linecap="round"><path d="M60 6v15M60 99v15M6 60h15M99 60h15M22 22l11 11M87 87l11 11M22 98l11-11M87 33l11-11" stroke="#0E0E15" stroke-width="12"/><path d="M60 6v15M60 99v15M6 60h15M99 60h15M22 22l11 11M87 87l11 11M22 98l11-11M87 33l11-11" stroke="#F0C46A" stroke-width="5"/></g><circle cx="60" cy="60" r="31" fill="#C9923F" stroke="#0E0E15" stroke-width="5"/><path d="M60 76c-10-6.5-16-12-16-19a8 8 0 0 1 16-3 8 8 0 0 1 16 3c0 7-6 12.5-16 19z" fill="#FFF3C8" stroke="#0E0E15" stroke-width="4" stroke-linejoin="round"/><path d="M41 48c2.5-6 7-10 13-11.5" stroke="#F6DFA0" stroke-width="4" stroke-linecap="round" fill="none"/></svg>`;
@@ -87,8 +87,12 @@ export function factionMark(f: FactionKey, size: 'sm' | 'md' | 'lg' = 'md'): str
 /** 장소 그림: 풍경이 있으면 풍경, 없으면 바닥 그림 (28 4장) */
 export function placeArt(c: ContentKey): { url: string; scene: boolean; place: PlaceKey } {
   const place = CONTENT_PLACE[c];
-  const scene = art(sceneArtName(place));
-  return { url: scene || art(floorArtName(place)), scene: !!scene, place };
+  // 새 장소는 그림이 올 때까지 같은 세력 장소 그림 (풍경 → 바닥 순서로, 자기 것 먼저)
+  for (const p of artPlaces(place)) {
+    const scene = art(sceneArtName(p)), url = scene || art(floorArtName(p));
+    if (url) return { url, scene: !!scene, place };
+  }
+  return { url: '', scene: false, place };
 }
 
 // 재화 그림: 그림(icon-<이름>)이 오면 그 그림, 없으면 임시 그림 (33 그림 요청)

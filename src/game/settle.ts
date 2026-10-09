@@ -106,6 +106,8 @@ export interface Settlement {
   chal: { stage: number; inTime: boolean; time: number; limit: number; opened: boolean; best: number } | null;
   /** 광고 이어하기 횟수 (등급 최대 B) */
   cont: number;
+  /** 이 판으로 튜토리얼이 끝남 (녹슨 고원 탐험 클리어, 34 5-2) */
+  tutEnd: boolean;
 }
 
 /** 광고로 이어 한 판은 등급 최대 B (15 4장) */
@@ -215,10 +217,10 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   // 파티원 한마디는 넣지 않음 (Lim: 결과 채팅 연출 뺌)
   if (!r.quit) save.last = { content: r.content, diff: r.diff, win: r.win, grade };
-  advanceTutorial(save, r.content, r.win && !r.quit);
+  const tutEnd = advanceTutorial(save, r.content, r.win && !r.quit);
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    gold, xp, levelBefore, levelUps, items, newSpecs, mats, first, best, heroQuest, guild, merit, crystal, lootLocked, pubBonus, missions, chal, cont,
+    gold, xp, levelBefore, levelUps, items, newSpecs, mats, first, best, heroQuest, guild, merit, crystal, lootLocked, pubBonus, missions, chal, cont, tutEnd,
   };
 }

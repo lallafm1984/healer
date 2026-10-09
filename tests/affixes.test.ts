@@ -170,10 +170,12 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
   });
   it('어느 레벨이든 적 = 내 레벨 (단계 톱니 없음, 세기 × 0.95는 엔진, 34 1-2), 열림 레벨 아래로는 안 내려감', () => {
     const rf = contentOf('rustfort');
-    for (const lv of [1, 2, 3, 5, 9, 10, 29, 30, 49, 50, 100]) expect(runMode(save(lv), rf, '보통', { chal: 0 })).toMatchObject({ stage: lv, affixes: [] });
+    for (const lv of [5, 9, 10, 29, 30, 49, 50, 100]) expect(runMode(save(lv), rf, '보통', { chal: 0 })).toMatchObject({ stage: lv, affixes: [] });
+    // 열림 레벨 (녹슨 요새 Lv 5, 34 5-2) 아래로는 안 내려감
+    for (const lv of [1, 2, 3]) expect(runMode(save(lv), rf, '보통', { chal: 0 }).stage).toBe(5);
     // 튜토리얼 전은 콘텐츠 기본 레벨 · 어픽스 없음
-    const tut = save(40); tut.tut = 2;
-    expect(runMode(tut, rf, '악몽', { chal: 0 })).toMatchObject({ stage: 1, affixes: [] });
+    const tut = save(40); tut.tut = 1;
+    expect(runMode(tut, rf, '악몽', { chal: 0 })).toMatchObject({ stage: 5, affixes: [] });
   });
   it('레이드·탐험은 어픽스 없음. 열림 레벨 전에 들어가면 (개발 빌드) 열림 레벨', () => {
     expect(runMode(save(90), contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(90);
@@ -181,7 +183,7 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
     const dev = save(20); dev.settings.devUnlock = true;
     expect(runMode(dev, contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(35);
     expect(runMode(dev, contentOf('abyss1'), '악몽', { chal: 0 }).stage).toBe(50);
-    expect(stageOf(contentOf('rustfort'), '보통')).toBe(1);
+    expect(stageOf(contentOf('rustfort'), '보통')).toBe(5);
     const ex = contentOf('plateau');
     expect(runMode(save(60), ex, '악몽', { chal: 0 }).affixes).toEqual([]);
   });

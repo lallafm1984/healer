@@ -317,6 +317,8 @@ export interface SkillDef {
   effect?: SkillEffect;
   /** 장판 칸 */
   cells?: ZoneCells;
+  /** 공략 「어떻게」 글 (없으면 효과 종류의 기본 글, battle/guide.ts dataGuide) */
+  how?: string;
 }
 
 /** 페이즈 흐름 조건 (모두 맞아야) */
@@ -396,6 +398,16 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'aoe', name: '쇳조각 비', icon: '쇳조', kind: 'aoe', first: 20, period: 22, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 170 } },
     ],
     enrage: { name: '고철 폭주', period: 2, dmg: 150 },
+  },
+  // 뼈다귀 수집가 탐험판 (35 4-8, 탐험 ② 잿빛 공동묘지 Lv 3): 던전 ② 보스 (35 4-1)의 평타 · 갈고리 끌기 · 등불 흔들기만. 끌어당김 예습. 세기는 고철 순찰병보다 조금 위
+  collector3: {
+    phase: [1, ''],
+    skills: [
+      AUTO(80),
+      { key: 'pull', name: '갈고리 끌기', icon: '끌기', kind: 'buster', first: 12, period: 22, cast: 2, warn: 'buster', target: { p: 'back', n: 1 }, effect: { p: 'pull', sec: 6, dmg: 260 } },
+      { key: 'aoe', name: '등불 흔들기', icon: '등불', kind: 'aoe', first: 20, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 190 } },
+    ],
+    enrage: { name: '뼈다귀 폭주', period: 2, dmg: 150 },
   },
   // 녹슨 문지기 (05 1장): 40% 아래 녹물 웅덩이
   warden: {

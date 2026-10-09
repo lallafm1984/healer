@@ -1,5 +1,5 @@
 /** 게임 진행 상태 (기기 저장 한 덩어리) + 화면들이 같이 쓰는 규칙 */
-import type { ContentDef } from '../data/content';
+import { contentOf, type ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HERO_KEYS, HERO_SWITCH_LV, HEROES, type HeroKey } from '../data/heroes';
 import { TALENTS } from '../data/talents';
@@ -8,7 +8,7 @@ import type { SpecLine } from '../data/specials';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots } from '../data/progression';
 import { heroLevelOf, heroSaveOf, load, newSave, noteSpecs, save, topLevel, type HeroSave, type SaveData } from '../platform/storage';
-import { TUT } from './tutorial';
+import { firstDungeonDue, TUT } from './tutorial';
 import { isMember, onAct, rollover, type Rollover } from './economy';
 
 export const G: { save: SaveData } = { save: load() };
@@ -39,6 +39,15 @@ export function lockOf(c: ContentDef, d?: DiffName): { lv: number; locked: boole
   const under = G.save.player.level < lv;
   const dev = under && G.save.settings.devUnlock && c.ready;
   return { lv, locked: under && !dev, dev };
+}
+
+/**
+ * 첫 던전 안내 차례 (34 5-2): 튜토리얼 뒤 녹슨 요새 레벨(Lv 5)이 됐는데 아직 못 깸 → 로비 · 모험 · 편성 화면이 안내.
+ * 다음 던전(역병 지하묘지 Lv 10)이 열리면 안내 끝. 개발 빌드 「전부 열기」와 상관없이 실제 레벨로
+ */
+export function firstDungeonNow(): boolean {
+  const lv = G.save.player.level;
+  return firstDungeonDue(G.save, lv >= contentOf('rustfort').unlockLv && lv < contentOf('crypt').unlockLv);
 }
 
 /** 지금 직업으론 잠겼지만 다른 직업으로는 들어갈 수 있으면 그 직업 (34 4장 1번: 「사제 Lv 42로 열림」). 레벨이 가장 높은 직업 */

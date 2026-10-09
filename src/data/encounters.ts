@@ -1,10 +1,12 @@
 import type { TelKind } from '../engine/types';
 import type { BoardId } from './boards';
+import type { SkillEffect } from './bosses';
 import type { DiffName } from './difficulty';
 
 /** 보스 전투 (05)와 던전 일반·정예 구간 (23). 보스 기술 스크립트는 engine/bosses.ts */
-export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'boiler' | 'duo' | 'field' | 'patrol';
-export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash';
+export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'boiler' | 'duo' | 'field' | 'patrol'
+  | 'ashyard' | 'collector3';
+export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -21,6 +23,8 @@ export interface MobAttack {
   cast: number;
   /** 끊기 가능 ✋ (17 7장) */
   cut?: boolean;
+  /** 맞을 때 하는 일 (보스 부품, data/bosses). 있으면 dmg 대신 이것: 세력 졸개 ③의 디버프 (39 2장) */
+  effect?: SkillEffect;
 }
 
 /** 보스가 아닌 적 한 종류. 파티는 목록 순서대로 잡는다 (앞쪽부터). 화면에는 「잡몹」 대신 일반·정예 (2026-10-07 Lim) */
@@ -109,6 +113,16 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '잔해 투척병', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 70, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
   patrol: { key: 'patrol', lowLevel: true, name: '고철 순찰병', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1500, enrage: 150, manaCoef: 1.0, diffs: ALL, script: 'scrap', stage: 0.3 },
+  // 탐험 ② 「잿빛 공동묘지」 (39 1-1, Lv 3): 되살아난 뼈 ×2 + 교단 신도 (부패, 첫 해제) → 뼈다귀 수집가 (끌어당김 예습, 35 4-8)
+  ashyard: trash('ashyard', '잿빛 묘역', [
+    { name: '되살아난 뼈', hp: 150, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'rot', name: '부패', icon: '부패', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '부패', type: '질병', left: 20, maxCut: 0.1, end: { p: 'restoreMax' } } } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['질병'] }),
+  collector3: { key: 'collector3', lowLevel: true, name: '뼈다귀 수집가', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1700, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'collector3', stage: 0.3 },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

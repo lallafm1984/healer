@@ -38,7 +38,8 @@ export default async function dungeon(url, shots) {
   // ---- 출전 → 바로 편성 (2026-10-08 입장 화면을 편성에 합침) ----
   await toParty(page);
   ok(/보통/.test(await page.textContent('#s-party .topbar')) && !/단계 Lv/.test(await page.textContent('#s-party .topbar')), '편성 머리 = 전투 탭에서 고른 난이도 (단계 Lv 없음)');
-  ok((await page.locator('#s-party [data-diff]').count()) === 0 && (await page.locator('#s-party .f-warns').count()) === 0, '난이도 다시 고르기 없음, 보통 + 물리만 = 경고 줄 없음');
+  // 개발 빌드는 Lv 1로 녹슨 요새(Lv 5)에 먼저 들어감 → 레벨 경고 한 줄만 (34 5-2). 해제 · 장비 경고는 없음
+  ok((await page.locator('#s-party [data-diff]').count()) === 0 && (await page.locator('#s-party .f-warns .f-warn').count()) === 1 && await page.isVisible('#s-party .f-warn.lv') && /레벨 권장 5/.test(await page.textContent('#s-party .f-warns')), '난이도 다시 고르기 없음, 보통 + 물리만 = 해제 · 장비 경고 없음 (레벨 경고만)');
   await page.click('#guideOpen'); await page.clock.runFor(50);
   ok((await page.locator('#s-party .f-gsheet .segs li').count()) === 4, '공략 시트: 진행 4구간');
   const g = await page.textContent('#s-party .f-gsheet .gdet:first-child');
@@ -182,7 +183,7 @@ export default async function dungeon(url, shots) {
   ok(await page.isVisible('#battle'), '다시 도전 = 같은 파티로 바로 출발');
   ok(await page.evaluate(() => window.__proto.dungeon.idx === 0 && window.__proto.F.enc.key === 'gate'), '던전 처음부터');
   const lvm = await page.evaluate(() => { const F = window.__proto.F; return { power: F.power, scale: F.scale, me: Math.round(F.me.max), gearHp: F.gear.hp || 0 }; });
-  ok(Math.abs(lvm.power - 0.488) < 1e-9 && Math.abs(lvm.scale - 0.488 * 0.95) < 1e-9 && lvm.me === Math.round(550 * 0.488 * (1 + lvm.gearHp)), `Lv 2 전투: 힐량·내 체력 ×0.488 (34 1-2, 체력은 장비 체력까지), 적 = 내 레벨 세기 × 0.95 ${JSON.stringify(lvm)}`);
+  ok(Math.abs(lvm.power - 0.752) < 1e-9 && Math.abs(lvm.scale - 0.752 * 0.95) < 1e-9 && lvm.me === Math.round(550 * 0.752 * (1 + lvm.gearHp)), `Lv 2로 Lv 5 녹슨 요새 (개발 빌드로 먼저): 힐량·내 체력 = 열림 레벨 5 세기 ×0.752 (34 1-2 · 5-2, 체력은 장비 체력까지), 적 = 그 세기 × 0.95 ${JSON.stringify(lvm)}`);
   // 탱커가 쓰러져도 전투는 계속, 아래에 포기 버튼 (2026-10-07 Lim)
   ok(await page.isHidden('#giveUp'), '탱커가 살아 있으면 포기 버튼 없음');
   // 전멸 UI의 입력 상태를 직접 고정한다. HP 1 + 3초 대기는 무작위 회피/보호 능력에 따라 살아남아 흔들린다.

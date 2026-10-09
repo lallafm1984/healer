@@ -84,7 +84,8 @@ describe('레벨 배율 (07 4장, 18 2-1)', () => {
     expect(stageOf(contentOf('abyss1'), '보통')).toBe(35);
     expect(stageOf(contentOf('cathedral1'), '보통')).toBe(70);
     expect(stageOf(contentOf('cathedral1'), '악몽')).toBe(80);
-    expect(stageOf(contentOf('rustfort'), '어려움')).toBe(1);
+    expect(stageOf(contentOf('rustfort'), '어려움')).toBe(5);
+    expect(stageOf(contentOf('cemetery'), '보통')).toBe(3);
   });
 
   const cfg = { encounter: 'warden' as const, diff: '보통' as const, seed: 3 };

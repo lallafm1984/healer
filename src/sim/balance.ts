@@ -38,8 +38,8 @@ const MAX_T = 700;
 /** 찾는 배율 범위 */
 const LO = 0.4, HI = 3;
 
-/** 맞출 장소: 만든 것만 (튜토리얼 첫 전투·자리 표시 예시는 뺌) */
-export const balanceable = (c: ContentDef) => c.ready && !c.hidden && !c.sample && c.fights('보통').length > 0;
+/** 맞출 장소: 만든 것만 (튜토리얼 첫 전투는 뺌) */
+export const balanceable = (c: ContentDef) => c.ready && !c.hidden && c.fights('보통').length > 0;
 
 export interface Std { lv: number; gear: GearId; affixes: AffixKey[] }
 export function standard(c: ContentDef, d: DiffName): Std {

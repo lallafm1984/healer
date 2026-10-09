@@ -257,6 +257,8 @@ export const namedFor = (place: string, slot: SlotKey) => NAMED.find(n => n.plac
  */
 export const FEATURED: Record<string, readonly string[]> = {
   plateau: ['warmTouch', 'sunHandful', 'pouch'],
+  // 잿빛 공동묘지 (탐험 ②, 39 1-1): 첫 해제 (질병) 자리라 해제 쪽
+  cemetery: ['brushOff', 'coldMedicine', 'thankHand'],
   rustfort: ['shieldFriend', 'firstWord', 'springSip'],
   abyss1: ['coldMedicine', 'cleanHands', 'bounceLight'],
   cathedral1: ['spellWard', 'strongChorus', 'goldEcho'],

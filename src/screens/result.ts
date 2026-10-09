@@ -34,7 +34,7 @@ function render(): void {
   const r = Flow.result!, x = Flow.settle!;
   const c = contentOf(r.content);
   const won = r.win && !r.quit;
-  const tut = G.save.tut < TUT.done;
+  const tut = G.save.tut < TUT.done || x.tutEnd;
   st.el.innerHTML = `${topBar()}
     <div class="ns-body res">
       ${head(r, x, c.key, c.name)}
@@ -84,13 +84,14 @@ function head(r: BattleResult, x: Settlement, key: ContentKey, name: string): st
 }
 
 /** 튜토리얼 탐험 보상 = 첫 장비 (장착 버튼 반짝임) */
-const firstGear = () => Flow.result?.content === 'plateau' && G.save.tut === TUT.dungeon;
+const firstGear = () => Flow.result?.content === 'plateau' && !!Flow.settle?.tutEnd;
 
-/** 튜토리얼 안내 (09 4장): 탐험 보상 = 첫 장비 장착 유도, 녹슨 요새 쉬움 첫 클리어 = 끝 */
+/** 튜토리얼 안내 (09 4장 · 34 5-2): 녹슨 고원 클리어 = 끝 (첫 장비 장착 유도), 녹슨 요새 쉬움 첫 클리어 = 다음은 보통 */
 function tipHtml(r: BattleResult, x: Settlement): string {
   const it = x.items[0], inBag = !!it && G.save.gear.bag.some(b => b.id === it.id);
-  if (firstGear() && inBag) return '<p class="coachtip"><b>첫 장비</b>! 「장착」을 눌러 바로 사용. 지능 상승</p>';
-  if (r.content === 'rustfort' && G.save.tut === TUT.done && x.first && r.diff === '쉬움' && !G.save.clears.rustfort?.['보통']) return '<p class="coachtip">첫 던전 클리어! 튜토리얼은 여기까지. 다음은 녹슨 요새 <b>보통</b>. Lv 10에 특성 열림</p>';
+  if (firstGear() && inBag) return '<p class="coachtip"><b>첫 장비</b>! 「장착」을 눌러 바로 사용. 튜토리얼은 여기까지</p>';
+  if (x.tutEnd) return '<p class="coachtip">튜토리얼은 여기까지! Lv 3에 탐험 <b>잿빛 공동묘지</b>, Lv 5에 첫 던전 <b>녹슨 요새</b></p>';
+  if (r.content === 'rustfort' && x.first && r.diff === '쉬움' && !G.save.clears.rustfort?.['보통']) return '<p class="coachtip">첫 던전 클리어! 다음은 녹슨 요새 <b>보통</b></p>';
   return '';
 }
 

@@ -6,7 +6,8 @@ import type { ContentKey } from './content';
 import type { EncounterKey } from './encounters';
 
 export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'hill' | 'abyss';
-export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple' | 'abyss' | 'cathedral';
+export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple' | 'abyss' | 'cathedral'
+  | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge' | 'watchtower';
 
 export interface Faction {
   name: string;
@@ -37,6 +38,8 @@ export interface Place {
   faction: FactionKey;
   /** 그림이 없을 때 바닥 색 (가운데 → 가장자리) */
   tone: [string, string];
+  /** 이 장소 그림이 아직 없으면 빌려 쓸 같은 세력 장소 (묶음 A 새 장소, 그림 요청 44) */
+  borrow?: PlaceKey;
 }
 
 export const PLACES: Record<PlaceKey, Place> = {
@@ -49,14 +52,24 @@ export const PLACES: Record<PlaceKey, Place> = {
   temple: { key: 'temple', name: '깨진 신전', faction: 'hill', tone: ['#3A3322', '#16130C'] },
   abyss: { key: 'abyss', name: '심연의 탑', faction: 'abyss', tone: ['#262A22', '#0C0D0B'] },
   cathedral: { key: 'cathedral', name: '가라앉은 대성당', faction: 'abyss', tone: ['#1F2A33', '#0B0F13'] },
+  // 묶음 A 탐험 ②~⑧ · 던전 ⑦ (39 1장)
+  cemetery: { key: 'cemetery', name: '잿빛 공동묘지', faction: 'plague', tone: ['#34322A', '#13120E'], borrow: 'crypt' },
+  marsh: { key: 'marsh', name: '늪지 어귀', faction: 'swamp', tone: ['#28331F', '#0F140C'], borrow: 'swamp' },
+  lily: { key: 'lily', name: '백합 정원', faction: 'noble', tone: ['#322A38', '#130F16'], borrow: 'manor' },
+  snowpass: { key: 'snowpass', name: '눈보라 고개', faction: 'mage', tone: ['#2A3646', '#0E131C'], borrow: 'frost' },
+  hillpath: { key: 'hillpath', name: '해바라기 언덕길', faction: 'hill', tone: ['#3A3524', '#16130C'], borrow: 'temple' },
+  pilgrim: { key: 'pilgrim', name: '무너진 순례길', faction: 'hill', tone: ['#36311F', '#16130C'], borrow: 'temple' },
+  abyssedge: { key: 'abyssedge', name: '심연 가장자리', faction: 'abyss', tone: ['#262A22', '#0C0D0B'], borrow: 'abyss' },
+  watchtower: { key: 'watchtower', name: '무너진 망루', faction: 'hill', tone: ['#383222', '#16130C'], borrow: 'temple' },
 };
 
 /** 콘텐츠 → 장소 */
 export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   tutorial: 'plateau', plateau: 'plateau', rustfort: 'rustfort', crypt: 'crypt', swamp: 'swamp',
   manor: 'manor', frost: 'frost', temple: 'temple', abyss1: 'abyss', cathedral1: 'cathedral',
-  // 자리 표시 예시 던전 (content.ts sample): 같은 세력 장소 그림을 빌려 씀
-  watchtower: 'temple', archive: 'frost', ossuary: 'manor', sewer: 'crypt',
+  cemetery: 'cemetery', marsh: 'marsh', lily: 'lily', snowpass: 'snowpass', hillpath: 'hillpath', pilgrim: 'pilgrim', abyssedge: 'abyssedge', watchtower: 'watchtower',
+  // 던전 ⑧~⑩ (묶음 B, 아직 카드만): 같은 세력 장소 그림을 빌려 씀
+  archive: 'frost', ossuary: 'manor', sewer: 'crypt',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -64,7 +77,10 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   duo: 'plateau', field: 'plateau', patrol: 'plateau',
   gate: 'rustfort', scrap: 'rustfort', boiler: 'rustfort', warden: 'rustfort',
   plague: 'abyss', choir: 'cathedral',
+  ashyard: 'cemetery', collector3: 'cemetery',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;
 export const sceneArtName = (p: PlaceKey) => `scene-${p}`;
+/** 그림을 찾을 장소 순서: 자기 장소 → 빌려 쓸 장소 */
+export const artPlaces = (p: PlaceKey): PlaceKey[] => [p, ...(PLACES[p].borrow ? [PLACES[p].borrow!] : [])];

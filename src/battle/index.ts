@@ -10,7 +10,7 @@ import { ITEMS, type ItemKey } from '../data/items';
 import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
 import { AFFIXES } from '../data/affixes';
-import { ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
+import { artPlaces, ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
 import { art, cssUrl } from '../art';
 import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, setBeacon, slotKey, step, talentReady, use, useItem, useTalent, type Fight, type FightStats } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
@@ -103,7 +103,8 @@ function startBattle(guideSec = 0): void {
 /** 장소 그림 (28 2-3장): 진형 판 뒤 바닥, 보스 무대 뒤 풍경 (없으면 바닥) */
 function setPlace(enc: EncounterKey): void {
   const place = ENCOUNTER_PLACE[enc] || 'rustfort', el = $('battle');
-  const floor = art(floorArtName(place)), scene = art(sceneArtName(place));
+  // 새 장소는 그림이 올 때까지 같은 세력 장소 그림 (places.ts borrow)
+  const ps = artPlaces(place), floor = ps.map(p => art(floorArtName(p))).find(Boolean) ?? '', scene = ps.map(p => art(sceneArtName(p))).find(Boolean) ?? '';
   el.dataset.place = place;
   setBoardFaction(PLACES[place].faction);
   el.style.setProperty('--floor', cssUrl(floor));
