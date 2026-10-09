@@ -1,7 +1,7 @@
 /**
  * S03 모험 선택 = 전투 탭 루트 (27 3-1 → 30 시안 Battle30 「B 출정 관문」).
  * 위에서부터: 분류 4칸 (탐험 3인 · 던전 5인 · 10인 레이드 · 20인 레이드. 2026-10-09 Lim: 이벤트 탭을 빼고 레이드를 인원으로 나눔)
- * → 관문 = 아치 금테 안 장소 그림 (28 4장) · 세력 문양 이름표 · 추천 리본 · ‹ › · 정보 줄 (레이드는 이번 주 장비·종 조각, 13 3-4) · 해제 칩 · 보상 칸
+ * → 관문 = 아치 금테 안 장소 그림 (28 4장) · 세력 문양 이름표 · 추천 리본 · ‹ › · 정보 줄 (레이드는 이번 주 장비·악몽 열쇠, 13 3-4) · 해제 칩 · 보상 칸
  * → 장소 문양 줄 (고르기, 많으면 가로로 넘김. 던전이면 맨 앞에 주간 도전 고정 칸, 13 3-2) → 난이도 4칸 (별) → 「출전」 = 입장 화면으로.
  * 관문은 어느 분류든 같은 자리·같은 크기 (2026-10-08 Lim: 주간 도전 띠를 관문 위에서 장소 줄로 옮김).
  * 분류마다 마지막 고른 장소, 장소마다 마지막 고른 난이도를 기억 (모듈 변수, 저장 안 함).
@@ -49,12 +49,12 @@ const KINDS: { kind: Tab; name: string; icon: keyof typeof ICON }[] = [
   { kind: 'raid10', name: '10인 레이드', icon: 'raid' },
   { kind: 'raid20', name: '20인 레이드', icon: 'raid' },
 ];
-/** 탭 그림. 20인 레이드는 icon-raid20이 오면 그것, 없으면 10인과 같은 종 (그림 요청 33 RS-4) */
+/** 탭 그림. 20인 레이드는 icon-raid20이 오면 그것, 없으면 10인과 같은 탑 (그림 요청 33 RS-4 · 40) */
 const catIcon = (k: (typeof KINDS)[number]) => (k.kind === 'raid20' && art('icon-raid20') ? gameIcon('raid20', '') : gameIcon(k.icon, ICON[k.icon]));
 /** 그 장소가 들어가는 탭 */
 const tabOf = (c: ContentDef): Tab => (c.kind === 'raid' ? (raidSize(c) === 20 ? 'raid20' : 'raid10') : c.kind === 'explore' ? 'explore' : 'dungeon');
 /** 장소 문양 줄의 짧은 이름 (칸이 좁아서. 관문 이름표엔 전체 이름) */
-const SHORT: Partial<Record<ContentKey, string>> = { crypt: '지하묘지', manor: '장원', abyss1: '종탑 1층', cathedral1: '대성당 1구역' };
+const SHORT: Partial<Record<ContentKey, string>> = { crypt: '지하묘지', manor: '장원', abyss1: '탑 1층', cathedral1: '대성당 1구역' };
 
 /** 마지막으로 고른 분류 (27 3-1) */
 let tab: Tab = 'dungeon';
@@ -99,12 +99,12 @@ function stars(c: ContentDef, d: DiffName): string {
   return `<span class="sr">별 ${n}개</span><span aria-hidden="true">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span>`;
 }
 
-/** 레이드: 이번 주 장비 받음 (보스마다 난이도별 주 1회) · 종 조각 (악몽 입장권). 정보 줄 오른쪽에 붙여서 관문 높이를 다른 분류와 맞춤 */
+/** 레이드: 이번 주 장비 받음 (보스마다 난이도별 주 1회) · 악몽 열쇠 (악몽 입장권). 정보 줄 오른쪽에 붙여서 관문 높이를 다른 분류와 맞춤 */
 function lootLine(c: ContentDef): string {
   if (c.kind !== 'raid' || G.save.tut < TUT.done) return '';
   const got = ALL_DIFFS.map(d => !raidLootOpen(G.save, c.key, d));
   const dots = `<span class="b-loot" role="img" aria-label="이번 주 장비 ${ALL_DIFFS.map((d, i) => `${d} ${got[i] ? '받음' : '아직'}`).join(', ')}" title="이번 주 장비: 쉬움 · 보통 · 어려움 · 악몽">${got.map(g => `<i${g ? ' class="got"' : ''}></i>`).join('')}</span>`;
-  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">장비</span>${dots}<span class="cap"><span class="sr">종 </span>조각 ${G.save.wallet.shards}/${SHARD_MAX}</span></span>`;
+  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">장비</span>${dots}<span class="cap"><span class="sr">악몽 </span>열쇠 ${G.save.wallet.shards}/${SHARD_MAX}</span></span>`;
 }
 
 /**
@@ -305,7 +305,7 @@ function cta(c: ContentDef | null, d: DiffName): string {
 
 const s = screen('s-content', '모험 선택', {
   tab: 'battle',
-  // arg = 열 분류 (로비: 주간 도전 → dungeon, 종탑 → raid10). 없으면 마지막 고른 분류
+  // arg = 열 분류 (로비: 주간 도전 → dungeon, 첨탑 → raid10). 없으면 마지막 고른 분류
   enter(arg) {
     if (KINDS.some(t => t.kind === arg)) tab = arg as Tab;
     // 편성에서 돌아오면 그 장소·난이도가 골라진 채로 (로비 「바로 출전」으로 갔다 와도. 주간 도전은 따로)

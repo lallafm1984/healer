@@ -1,4 +1,4 @@
-// 성장 (32 적 레벨 = 내 레벨·난이도 어픽스, 18 3-3 로비 레이드 문)·주간 도전 「침묵의 시계」 (13 3-2)·광고 이어하기·광고 다시 뽑기 (15 7장)
+// 성장 (32 적 레벨 = 내 레벨·난이도 어픽스, 18 3-3 로비 레이드 문)·주간 도전 「모래시계 시련」 (13 3-2)·광고 이어하기·광고 다시 뽑기 (15 7장)
 import { chromium } from 'playwright';
 import { killEnemies, pastTitle } from './nav.mjs';
 
@@ -32,13 +32,13 @@ export default async function challenge(url, shots) {
 
   // ---- 로비: 레이드 문 (18 3-3) ----
   const gate = await text('#s-lobby .gate');
-  ok(/심연의 종탑/.test(gate) && /레벨 35/.test(gate) && !/길드원/.test(gate) && /0 \/ 6 부위/.test(gate) && (await page.locator('#s-lobby .gate .obj.ok').count()) === 0, `로비 다음 목표 = 10인 레이드 문 (레벨·장비, 길드원 줄 없음, 아직 다 안 됨)`);
+  ok(/심연의 탑/.test(gate) && /레벨 35/.test(gate) && !/길드원/.test(gate) && /0 \/ 6 부위/.test(gate) && (await page.locator('#s-lobby .gate .obj.ok').count()) === 0, `로비 다음 목표 = 10인 레이드 문 (레벨·장비, 길드원 줄 없음, 아직 다 안 됨)`);
   await page.screenshot({ path: `${shots}/growth_gate.png` });
 
   // ---- 콘텐츠: 주간 도전 카드 ----
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   const card = await text('#s-content [data-chal]');
-  ok(/주간 도전/.test(card) && /침묵의 시계/.test(card) && /메마름/.test(card) && /전염병/.test(card), '던전 장소 줄 맨 앞 = 주간 도전 칸 (이번 주 메마름·전염병, 화면 읽기 글)');
+  ok(/주간 도전/.test(card) && /모래시계 시련/.test(card) && /메마름/.test(card) && /전염병/.test(card), '던전 장소 줄 맨 앞 = 주간 도전 칸 (이번 주 메마름·전염병, 화면 읽기 글)');
   // ---- 적 레벨 = 내 레벨, 어픽스는 난이도 (32, 2026-10-08) ----
   await page.click('#s-content [data-content="rustfort"]'); await page.clock.runFor(50);
   ok(!/단계 Lv/.test(await text('#s-content .b-gate')) && (await page.locator('#s-content .b-gate .b-afx').count()) === 0, '녹슨 요새 보통 = 관문에 「단계 Lv」·어픽스 없음');

@@ -52,7 +52,7 @@ export const DAILY: MissionDef[] = [
 export const DAILY_BASIC = ['clear3', 'pub2'];
 export const DAILY_N = 5;
 
-/** 주간 임무 3개 = 종 조각 3개 (12 3-4). Lv 35 전에는 레이드 대신 던전 임무 (13 3-1) */
+/** 주간 임무 3개 = 악몽 열쇠 3개 (12 3-4). Lv 35 전에는 레이드 대신 던전 임무 (13 3-1) */
 export const WEEKLY: MissionDef[] = [
   { key: 'w_raid3', text: '레이드 보스 처치', need: 3, lv: 35, run: e => (e.win && e.raid ? 1 : 0) },
   { key: 'w_hard5', text: '어려움 이상 던전 클리어', need: 5, lv: 10, run: e => (won(e) && !e.raid && e.diffIdx >= 2 ? 1 : 0) },

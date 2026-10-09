@@ -105,7 +105,7 @@ describe('일일 임무 (13 2-1)', () => {
 });
 
 describe('주간 (13 3장)', () => {
-  it('Lv 10부터 3개, Lv 35 전엔 레이드 임무 없음, 1개 = 종 조각 1 (최대 5)', () => {
+  it('Lv 10부터 3개, Lv 35 전엔 레이드 임무 없음, 1개 = 악몽 열쇠 1 (최대 5)', () => {
     expect(save(9).weekly.missions).toEqual([]);
     for (let i = 0; i < 20; i++) { seed = i + 3; expect(save(20).weekly.missions.some(m => m.key === 'w_raid3')).toBe(false); }
     const s = save(40);
@@ -135,7 +135,7 @@ describe('주간 (13 3장)', () => {
 });
 
 describe('재화 (12)', () => {
-  it('종 조각: 제작 골드 1,000 + 강화석 5, 주 5회, 최대 5개. 악몽 입장에 1개', () => {
+  it('악몽 열쇠: 제작 골드 1,000 + 강화석 5, 주 5회, 최대 5개. 악몽 입장에 1개', () => {
     const s = save(30);
     s.mats.stone = 100;
     for (let i = 0; i < 5; i++) expect(craftShard(s)).toBe('');

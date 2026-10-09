@@ -120,7 +120,7 @@ export interface DailySave {
 export interface WeeklySave {
   week: string;
   missions: MissionSave[];
-  /** 종 조각 제작 횟수 (주 5회) */
+  /** 악몽 열쇠 제작 횟수 (주 5회) */
   craft: number;
   /** 레이드마다 이번 주 받은 공훈 (상한 150) */
   merit: { 10: number; 20: number };
@@ -161,7 +161,7 @@ export interface SaveData {
   heroes: Partial<Record<HeroKey, HeroSave>>;
   /** v4: 길드 (02 9장, 17) */
   guild: GuildSave;
-  /** v5: 재화 (12): 크리스탈 · 종 조각 (최대 5) · 공훈 · 모집권 */
+  /** v5: 재화 (12): 크리스탈 · 악몽 열쇠 (최대 5) · 공훈 · 모집권 */
   wallet: { crystal: number; shards: number; merit: number; ticket: number };
   /** v5: 소비 아이템 가방 (19 11장, 종류마다 최대 20) */
   bag: Partial<Record<ItemKey, number>>;

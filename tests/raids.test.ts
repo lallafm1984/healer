@@ -1,4 +1,4 @@
-/** 레이드 10인·20인 분리 (26): 콘텐츠 카드, 10인 악몽 전용 기술, 20인 무음 성가대 */
+/** 레이드 10인·20인 분리 (26): 콘텐츠 카드, 10인 악몽 전용 기술, 20인 유령 성가대 */
 import { describe, expect, it } from 'vitest';
 import { armorFactor } from '../src/data/armor';
 import { ALL_DIFFS, contentOf, raidSize } from '../src/data/content';
@@ -12,7 +12,7 @@ type F = ReturnType<typeof E.create>;
 const steps = (f: F, sec: number) => { const end = f.t + sec; while (f.t < end - 1e-9 && !f.over) { E.step(f); f.events.length = 0; } };
 
 describe('콘텐츠', () => {
-  it('10인 심연의 종탑: 난이도 4개 모두 10인 역병 군주, 악몽 Lv 50', () => {
+  it('10인 심연의 탑: 난이도 4개 모두 10인 역병 군주, 악몽 Lv 50', () => {
     const c = contentOf('abyss1');
     for (const d of ALL_DIFFS) { expect(c.size(d)).toBe(10); expect(c.fights(d)).toEqual(['plague']); }
     expect(c.diffUnlock).toEqual({ '악몽': 50 });
@@ -61,7 +61,7 @@ describe('10인 역병 군주 악몽 (26 3-1)', () => {
   });
 });
 
-describe('20인 무음 성가대 (26 4-3)', () => {
+describe('20인 유령 성가대 (26 4-3)', () => {
   const fight = (diff: '보통' | '악몽' = '보통') => E.create({ encounter: 'choir', diff, seed: 5 });
   it('성가대원 3 + 지휘자, 파티 딜은 왼쪽 성부부터 (지휘자는 마지막)', () => {
     const f = fight();

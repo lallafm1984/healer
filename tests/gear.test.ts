@@ -66,7 +66,7 @@ describe('세트 없음', () => {
   it('옛 저장의 세트 장비는 세트 표시를 빼고 등급 이름으로 (강화·잠금은 그대로)', () => {
     const o = JSON.parse(JSON.stringify(newSave(1)));
     o.gear.equipped = { head: { id: 1, slot: 'head', grade: '희귀', plus: 3, name: '새벽 순례자의 두건', set: 'dawn', lock: true }, weapon: { id: 2, slot: 'weapon', grade: '고급', plus: 0, name: '튼튼한 지팡이' } };
-    o.gear.bag = [{ id: 3, slot: 'ring', grade: '영웅', plus: 0, name: '종탑 순례자의 반지', set: 'belfry' }];
+    o.gear.bag = [{ id: 3, slot: 'ring', grade: '영웅', plus: 0, name: '순례자의 반지', set: 'dawn' }];
     const g = migrate(o).gear;
     expect(g.equipped.head).toEqual({ id: 1, slot: 'head', grade: '희귀', plus: 3, name: '축복받은 두건', lock: true });
     expect(g.equipped.weapon).toEqual({ id: 2, slot: 'weapon', grade: '고급', plus: 0, name: '튼튼한 지팡이' });

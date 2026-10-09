@@ -5,7 +5,7 @@
 import type { ContentKey } from './content';
 import type { EncounterKey } from './encounters';
 
-export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'bell' | 'abyss';
+export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'hill' | 'abyss';
 export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple' | 'abyss' | 'cathedral';
 
 export interface Faction {
@@ -14,7 +14,7 @@ export interface Faction {
   color: string;
   /** 문양 테두리·선 색 (27 시안 Parts27 「세력 문양 · 모험 카드」). dark = 검은 바탕 (심연) */
   mark: { rim: string; glyph: string; dark?: boolean };
-  /** 이 세력이 거는 해제 유형 (11 3장 대표 디버프). 골렘 = 물리·녹이라 없음, 종의 언덕 = 혼합 (11 4장 깨진 신전), 심연 = 전 유형 */
+  /** 이 세력이 거는 해제 유형 (11 3장 대표 디버프). 골렘 = 물리·녹이라 없음, 해바라기 언덕 = 혼합 (11 4장 깨진 신전), 심연 = 전 유형 */
   dispel: string[];
 }
 
@@ -26,8 +26,8 @@ export const FACTIONS: Record<FactionKey, Faction> = {
   swamp: { name: '늪의 부족', color: '#3CC24A', mark: { rim: '#6E9A3C', glyph: '#8FBF57' }, dispel: ['독'] },
   noble: { name: '몰락한 귀족가', color: '#A050E0', mark: { rim: '#8C6FA8', glyph: '#B79AD3' }, dispel: ['저주'] },
   mage: { name: '폭주한 마도사', color: '#3D8BFF', mark: { rim: '#6F95C9', glyph: '#9DBDE6' }, dispel: ['마법'] },
-  // 종의 언덕은 시안에 없어서 테마 금테 색
-  bell: { name: '종의 언덕', color: '#C9A35C', mark: { rim: '#9C7A3C', glyph: '#D9B26A' }, dispel: ALL_DISPEL },
+  // 해바라기 언덕은 시안에 없어서 테마 금테 색
+  hill: { name: '해바라기 언덕', color: '#C9A35C', mark: { rim: '#9C7A3C', glyph: '#D9B26A' }, dispel: ALL_DISPEL },
   abyss: { name: '심연', color: '#E6D3A0', mark: { rim: '#E6E0D0', glyph: '#E6E0D0', dark: true }, dispel: ALL_DISPEL },
 };
 
@@ -46,8 +46,8 @@ export const PLACES: Record<PlaceKey, Place> = {
   swamp: { key: 'swamp', name: '독안개 늪', faction: 'swamp', tone: ['#26331F', '#0F140C'] },
   manor: { key: 'manor', name: '저주받은 장원', faction: 'noble', tone: ['#30263A', '#130F16'] },
   frost: { key: 'frost', name: '서리 마탑', faction: 'mage', tone: ['#24334A', '#0E131C'] },
-  temple: { key: 'temple', name: '깨진 신전', faction: 'bell', tone: ['#3A3322', '#16130C'] },
-  abyss: { key: 'abyss', name: '심연의 종탑', faction: 'abyss', tone: ['#262A22', '#0C0D0B'] },
+  temple: { key: 'temple', name: '깨진 신전', faction: 'hill', tone: ['#3A3322', '#16130C'] },
+  abyss: { key: 'abyss', name: '심연의 탑', faction: 'abyss', tone: ['#262A22', '#0C0D0B'] },
   cathedral: { key: 'cathedral', name: '가라앉은 대성당', faction: 'abyss', tone: ['#1F2A33', '#0B0F13'] },
 };
 
@@ -56,7 +56,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   tutorial: 'plateau', plateau: 'plateau', rustfort: 'rustfort', crypt: 'crypt', swamp: 'swamp',
   manor: 'manor', frost: 'frost', temple: 'temple', abyss1: 'abyss', cathedral1: 'cathedral',
   // 자리 표시 예시 던전 (content.ts sample): 같은 세력 장소 그림을 빌려 씀
-  belfry: 'temple', archive: 'frost', ossuary: 'manor', sewer: 'crypt',
+  watchtower: 'temple', archive: 'frost', ossuary: 'manor', sewer: 'crypt',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */

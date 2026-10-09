@@ -1,4 +1,4 @@
-// 재화·임무·상점 (12, 13, 15, 09 S18·S19·S22): 로비 임무 카드 → 임무 받기·교체·완료 상자 → 상점 골드·공훈·패스·크리스탈 → 악몽 종 조각
+// 재화·임무·상점 (12, 13, 15, 09 S18·S19·S22): 로비 임무 카드 → 임무 받기·교체·완료 상자 → 상점 골드·공훈·패스·크리스탈 → 악몽 악몽 열쇠
 import { chromium } from 'playwright';
 import { pastTitle, toParty } from './nav.mjs';
 
@@ -21,7 +21,7 @@ export default async function shop(url, shots) {
   await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 40; s.player.gold = 50000; s.mats.stone = 20; localStorage.setItem('healer.save', JSON.stringify(s)); });
 
   // ---- 로비 → 임무 ----
-  ok(/일일 0\/5/.test(await text('#s-lobby .lb-missions')) && /10인 레이드 · 조각 0\/5/.test(await text('#s-lobby .lb-raid')), '로비 이름표: 임무 일일 0/5 · 종탑 = 10인 레이드 종 조각 수량');
+  ok(/일일 0\/5/.test(await text('#s-lobby .lb-missions')) && /10인 레이드 · 열쇠 0\/5/.test(await text('#s-lobby .lb-raid')), '로비 이름표: 임무 일일 0/5 · 첨탑 = 10인 레이드 악몽 열쇠 수량');
   await page.click('#s-lobby .lb-missions .lb-rmain'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-missions') && (await page.locator('#s-missions .mlist').first().locator('.mrow').count()) === 5, '임무 화면: 일일 5개');
   ok((await page.locator('#s-missions .mlist').nth(1).locator('.mrow').count()) === 3, 'Lv 40 = 주간 임무 3개');
@@ -48,13 +48,13 @@ export default async function shop(url, shots) {
   sv = await save();
   ok(sv.daily.chest2 && sv.daily.ads.chest === 1, '광고 끝 → 한 번 더 받음');
   await page.click('#s-missions [data-claim="weekly"]'); await page.clock.runFor(50);
-  ok((await save()).wallet.shards === 1, '주간 임무 = 종 조각 1');
+  ok((await save()).wallet.shards === 1, '주간 임무 = 악몽 열쇠 1');
   await page.screenshot({ path: `${shots}/shop_missions.png`, fullPage: true });
 
   // ---- 상점: 골드 ----
   await page.click('#s-missions .tb-back'); await page.clock.runFor(50);
   await page.click('#tabs [data-tab="shop"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-shop') && (await page.locator('#s-shop .srow').count()) >= 7, '상점 탭: 소비 아이템 6 + 종 조각 제작');
+  ok(await page.isVisible('#s-shop') && (await page.locator('#s-shop .srow').count()) >= 7, '상점 탭: 소비 아이템 6 + 악몽 열쇠 제작');
   const b0 = await save();
   await page.click('#s-shop [data-buy="mana"][data-n="1"]'); await page.clock.runFor(50);
   sv = await save();
@@ -62,7 +62,7 @@ export default async function shop(url, shots) {
   ok(await page.locator('#s-shop [data-buy="feather"]').count() === 0, '부활 깃털은 안 팖');
   await page.click('#s-shop #craft'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.wallet.shards === 2 && sv.weekly.craft === 1 && sv.mats.stone === b0.mats.stone - 5, '종 조각 제작 (골드 1,000 + 강화석 5)');
+  ok(sv.wallet.shards === 2 && sv.weekly.craft === 1 && sv.mats.stone === b0.mats.stone - 5, '악몽 열쇠 제작 (골드 1,000 + 강화석 5)');
   await page.screenshot({ path: `${shots}/shop_gold.png` });
 
   // ---- 공훈 ----
@@ -96,21 +96,21 @@ export default async function shop(url, shots) {
   ok(sv.wallet.crystal === 500 && sv.member > Date.now() && await page.evaluate(() => document.body.classList.contains('member')), '월정액: 💎 300 · 배너 숨김');
   await page.screenshot({ path: `${shots}/shop_crystal.png` });
 
-  // ---- 악몽 입장 = 종 조각 1개 ----
+  // ---- 악몽 입장 = 악몽 열쇠 1개 ----
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.wallet.shards = 0; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await toParty(page, { diff: '악몽' });
-  ok(await page.getAttribute('#depart', 'aria-disabled') === 'true' && /종 조각 없음/.test(await text('#depart')) && !(await page.isVisible('#s-party .f-warn.ticket')), '악몽 편성: 종 조각이 없으면 출발이 흐려짐 (경고 줄은 아직 없음)');
+  ok(await page.getAttribute('#depart', 'aria-disabled') === 'true' && /악몽 열쇠 없음/.test(await text('#depart')) && !(await page.isVisible('#s-party .f-warn.ticket')), '악몽 편성: 악몽 열쇠가 없으면 출발이 흐려짐 (경고 줄은 아직 없음)');
   await page.click('#depart', { force: true }); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-party') && /종 조각이 없음/.test(await text('#s-party .f-warn.ticket')) && (await save()).wallet.shards === 0, '악몽 출발을 누르면 전투 대신 아래에 얻는 곳 + 상점');
+  ok(await page.isVisible('#s-party') && /악몽 열쇠가 없음/.test(await text('#s-party .f-warn.ticket')) && (await save()).wallet.shards === 0, '악몽 출발을 누르면 전투 대신 아래에 얻는 곳 + 상점');
   await page.click('#s-party .f-warn.ticket [data-go="s-shop"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-shop') && /종 조각 제작/.test(await text('#s-shop')), '「상점」 = 종 조각 제작이 있는 골드 상점');
+  ok(await page.isVisible('#s-shop') && /악몽 열쇠 제작/.test(await text('#s-shop')), '「상점」 = 악몽 열쇠 제작이 있는 골드 상점');
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.wallet.shards = 2; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await toParty(page, { diff: '악몽' });
-  ok(/종 조각 1개 씀 · 2\/5/.test(await text('#depart')), '악몽 출발 버튼: 종 조각 1개 씀 · 2/5');
+  ok(/악몽 열쇠 1개 씀 · 2\/5/.test(await text('#depart')), '악몽 출발 버튼: 악몽 열쇠 1개 씀 · 2/5');
   await page.click('#depart'); await page.clock.runFor(3100 + 300);
-  ok(await page.isVisible('#battle') && (await save()).wallet.shards === 1, '출발 = 종 조각 2 → 1');
+  ok(await page.isVisible('#battle') && (await save()).wallet.shards === 1, '출발 = 악몽 열쇠 2 → 1');
 
   await ctx.close();
   await browser.close();

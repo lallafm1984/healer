@@ -28,7 +28,7 @@ export function gainText(g: Gain): string {
   if (g.stone) out.push(`강화석 +${g.stone}`);
   if (g.refined) out.push(`정제 강화석 +${g.refined}`);
   if (g.crystal) out.push(`크리스탈 +${g.crystal}`);
-  if (g.shards) out.push(`종 조각 +${g.shards}`);
+  if (g.shards) out.push(`악몽 열쇠 +${g.shards}`);
   if (g.ticket) out.push(`모집권 +${g.ticket}`);
   if (g.items?.length) out.push(g.items.map(i => i.name).join(', '));
   if (g.deco) out.push(`「${g.deco}」`);
@@ -38,7 +38,7 @@ export function gainText(g: Gain): string {
 
 const wallet = () => {
   const w = G.save.wallet;
-  return `<p class="wallet shop-wallet"><span>${currencyIcon('crystal')}<b>${fmt(w.crystal)}</b><small>크리스탈</small></span><span>${uiIcon('bell')}<b>${w.shards}/${SHARD_MAX}</b><small>종 조각</small></span><span>${currencyIcon('merit')}<b>${fmt(w.merit)}</b><small>공훈</small></span><span>${currencyIcon('stone')}<b>${G.save.mats.stone}</b><small>강화석</small></span></p>`;
+  return `<p class="wallet shop-wallet"><span>${currencyIcon('crystal')}<b>${fmt(w.crystal)}</b><small>크리스탈</small></span><span>${uiIcon('key')}<b>${w.shards}/${SHARD_MAX}</b><small>악몽 열쇠</small></span><span>${currencyIcon('merit')}<b>${fmt(w.merit)}</b><small>공훈</small></span><span>${currencyIcon('stone')}<b>${G.save.mats.stone}</b><small>강화석</small></span></p>`;
 };
 
 function render(): void {
@@ -72,8 +72,8 @@ function goldHtml(): string {
   const sh = G.save.wallet.shards;
   const can = sh < SHARD_MAX && w.craft < SHARD_CRAFT.weekly && gold >= SHARD_CRAFT.gold && G.save.mats.stone >= SHARD_CRAFT.stone;
   return `<h3 class="sec">소비 아이템 <small>레벨 비례 가격 · 종류마다 최대 ${BAG_MAX}</small></h3><ul class="slist">${rows}</ul>
-    <h3 class="sec">종 조각 제작 <small>이번 주 ${w.craft}/${SHARD_CRAFT.weekly}</small></h3>
-    <div class="srow solo"><span class="sic">${uiIcon('bell')}</span><div><b>종 조각</b> <small>보유 ${sh}/${SHARD_MAX}</small><p class="note">악몽 입장권. 출발할 때 1개 소모</p></div>
+    <h3 class="sec">악몽 열쇠 제작 <small>이번 주 ${w.craft}/${SHARD_CRAFT.weekly}</small></h3>
+    <div class="srow solo"><span class="sic">${uiIcon('key')}</span><div><b>악몽 열쇠</b> <small>보유 ${sh}/${SHARD_MAX}</small><p class="note">악몽 입장권. 출발할 때 1개 소모</p></div>
       <div class="sbuy"><small>${currencyIcon('gold')}${fmt(SHARD_CRAFT.gold)} + 강화석 ${SHARD_CRAFT.stone}</small><button class="btn mini primary" type="button" id="craft"${can ? '' : ' disabled'}>제작</button></div></div>`;
 }
 
@@ -136,7 +136,7 @@ s.el.addEventListener('click', async e => {
   if (sub) { st.sub = sub.dataset.sub as Sub; render(); return; }
   const b = t.closest<HTMLElement>('[data-buy]');
   if (b) { const k = b.dataset.buy as ItemKey, n = Number(b.dataset.n); const err = buyItem(save, k, n); st.msg = err || `${ITEMS[k].name} 구매 · 가방 ×${save.bag[k]}`; commit(); render(); return; }
-  if (t.closest('#craft')) { st.msg = craftShard(save) || `종 조각 제작 · 보유 ${save.wallet.shards}/${SHARD_MAX}`; commit(); render(); return; }
+  if (t.closest('#craft')) { st.msg = craftShard(save) || `악몽 열쇠 제작 · 보유 ${save.wallet.shards}/${SHARD_MAX}`; commit(); render(); return; }
   const ex = t.closest<HTMLElement>('[data-ex]');
   if (ex) { const r = exchangeMerit(save, ex.dataset.ex as SlotKey); st.msg = typeof r === 'string' ? r : `교환: ${r.name} (가방)`; commit(); render(); return; }
   const pa = t.closest<HTMLElement>('[data-pass]');

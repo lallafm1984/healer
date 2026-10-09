@@ -90,7 +90,7 @@ body.tabs-on #s-lobby .lb30, #s-lobby .lb30 { position: relative; z-index: 0; di
 #s-lobby .g-plate > span { font-size: 13px; color: #E4D6B8; }
 #s-lobby .g-plate.lock { background: linear-gradient(#2E2418, #17120D); border-color: #8A6E42; }
 #s-lobby .g-plate .g-badge { font-style: normal; }
-/* 건물 (시안 좌표 ÷ 그림 473×710): 종탑 right 6 top 156 · 길드 회관 left 113 top 260 · 잡화점 right 6 top 348. 목표 추적과 안 겹치게 최소 높이 */
+/* 건물 (시안 좌표 ÷ 그림 473×710): 첨탑 right 6 top 156 · 길드 회관 left 113 top 260 · 잡화점 right 6 top 348. 목표 추적과 안 겹치게 최소 높이 */
 .lb-stage .lb-raid { right: 1.27%; top: max(21.97%, 156px); }
 .lb-stage .lb-guild { left: 23.94%; top: max(36.62%, 200px); }
 @supports (width: 1cqw) {

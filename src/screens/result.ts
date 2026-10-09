@@ -213,7 +213,7 @@ st.el.addEventListener('click', e => {
   else if (t.closest('.m-all')) t.closest('.meter')?.classList.add('all');
 });
 
-/** 같은 파티로 바로 다시 (시작 위치는 새로). 주간 도전에서 다음 단계가 열렸으면 그 단계로. 악몽은 종 조각이 없으면 못 감 */
+/** 같은 파티로 바로 다시 (시작 위치는 새로). 주간 도전에서 다음 단계가 열렸으면 그 단계로. 악몽은 악몽 열쇠가 없으면 못 감 */
 function again(): void {
   if (Flow.settle?.chal?.opened) Flow.chal = Flow.settle.chal.stage + 1;
   Flow.seed = newSeed();
