@@ -227,6 +227,8 @@ export interface BossSkill {
   cut?: boolean;
   /** 적 기술이 탱커가 아닌 사람을 때림 (도발·눈속임 판단) */
   other?: boolean;
+  /** 부품 상태 (장판 좌우 번갈아·성부 차례 등, engine/bossParts.ts) */
+  st: Record<string, number | boolean>;
 }
 
 export interface Telegraph {
@@ -484,17 +486,10 @@ export interface Fight {
   nextId: number;
   party: Unit[];
   me: Unit;
-  // 보스 스크립트 상태
-  zoneSkill?: BossSkill;
-  pulse?: BossSkill;
-  contagion?: BossSkill;
-  storm?: BossSkill;
-  stormSide?: boolean;
+  /** 보스 기술을 key로 (페이즈 흐름이 시작·주기를 바꿈, data/bosses.ts) */
+  bs: Record<string, BossSkill>;
+  /** 인터미션이 끝나는 시각 */
   interEnd?: number;
-  /** 무음 성가대: 다음 크레센도를 부를 성부 차례 */
-  voice?: number;
-  forte?: BossSkill;
-  solo?: BossSkill;
 }
 
 /** 스킬·아이템 사용 결과 */

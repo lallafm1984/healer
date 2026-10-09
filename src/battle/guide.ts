@@ -8,26 +8,14 @@ import { ENCOUNTERS, mobGrade, type Encounter, type EncounterKey, type ScriptKey
 import { canDispel, HEROES } from '../data/heroes';
 import { SKILLS } from '../data/skills';
 import { create, type Fight, type Role } from '../engine';
-import { CHOIR } from '../engine/bosses';
 import { bossSvg } from './art';
+import { GB } from './guideNums';
 import { ARROW, heroSkill, ICON_COLOR, iga, josa, mmss, READ_ORDER, S, secT } from './core';
 
 // 숫자는 엔진에서 읽는다: 기술 이름·아이콘·첫 시각·주기·예고·탱커 피해·장판 초당 피해/지속은 시험 전투(E.create)의 skills에서,
 // 피해 배율·회피는 E.DIFFS에서, 보스·파티 체력(악몽 배율 포함)은 시험 전투에서.
-// 기술 함수 안쪽 숫자처럼 엔진 밖으로 안 나오는 값만 GB에 옮겨 적음 → engine.js SCRIPTS를 바꾸면 여기도 같이 (guide.js가 엔진과 대조함)
+// 기술 안쪽 숫자 (평타·광역 피해, 디버프, 페이즈 문턱)는 보스 데이터(data/bosses.ts)에서 읽어 GB로 모음
 type Num = any;
-const GB: Record<ScriptKey, Record<string, Num>> = {
-  warden: { auto: 70, aoe: 220, zoneAt: 0.4, enrName: '증기 폭주', enrDmg: 220, enrPeriod: 2, enrCast: 1 },
-  scrap: { auto: 75, aoe: 170, enrName: '고철 폭주', enrDmg: 150, enrPeriod: 2, enrCast: 1 },
-  trash: {},
-  plague: {
-    auto: 60, breathPct: 5, breathMax: 4, breathDur: 60, stingDot: 15, stingDur: 12, pulse1: 150, pulse2: 180, pulse2Period: 25, pulse2Delay: 22,
-    interAt: 0.6, interDur: 25, rats: 30, contDelay: 10, contDur: 8, spread: 150, p3At: 0.3,
-    targets: { breath: 2, cont: [1, 2], rats: 3 }, // cont = [보통, 악몽] — 10인 악몽은 전염 2명 동시 (26 3-1)
-    enrName: '역병 폭주', enrDmg: 180, enrPeriod: 3, enrCast: 1,
-  },
-  choir: { ...CHOIR, enrName: '대합창', enrDmg: 200, enrPeriod: 3, enrCast: 1 },
-};
 interface ProbeSkill { name: string; icon: string; next: number; period: number; cast: number; dmg: number; dps: number; dur: number }
 interface Probe { sk: Record<string, ProbeSkill>; m: number; bossMax: number; hp: { tank: number; dps: number; me: number } }
 const probeCache: Record<string, Probe> = {};

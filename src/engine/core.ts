@@ -1,4 +1,5 @@
 import { armorFactor, type DamageAim } from '../data/armor';
+import { SPREAD } from '../data/bosses';
 import { HEROES } from '../data/heroes';
 import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
@@ -148,8 +149,8 @@ export function spread(f: Fight, u: Unit): void {
   emit(f, { type: 'sound', name: 'burst' });
   for (const v of living(f)) {
     if (v !== u && hexDist(cellOf(f, v), c) === 1) {
-      damage(f, v, 150, true);
-      if (v.alive) addDebuff(f, v, { name: '독침', type: '독', left: 12, dot: 15 });
+      damage(f, v, SPREAD.dmg, true);
+      if (v.alive) addDebuff(f, v, { ...SPREAD.debuff });
     }
   }
 }
