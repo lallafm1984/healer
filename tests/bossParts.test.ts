@@ -512,7 +512,7 @@ describe('판에 나오는 적 (35 3-I): 빈 칸 차지 · 부탱커 · 일점�
   it('빈 칸에 나와 칸을 막고, 때리는 쫄은 탱커 가까이. 빈 칸은 1개 이상 남김', () => {
     const f = fight();
     const before = free(f);
-    run(f, { p: 'adds', n: 9, add: IMP });
+    run(f, { p: 'adds', n: 99, add: IMP }); // 판 크기와 상관없이 빈 칸이 1개 남을 때까지
     const adds = f.mobs.filter(m => m.add);
     expect(adds).toHaveLength(before - 1);
     expect(free(f)).toBe(1);
