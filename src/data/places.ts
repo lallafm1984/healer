@@ -77,7 +77,7 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   duo: 'plateau', field: 'plateau', patrol: 'plateau',
   gate: 'rustfort', scrap: 'rustfort', boiler: 'rustfort', warden: 'rustfort',
   plague: 'abyss', choir: 'cathedral',
-  ashyard: 'cemetery', collector3: 'cemetery',
+  ashyard: 'cemetery', collector3: 'cemetery', reedbank: 'marsh', shaman8: 'marsh',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

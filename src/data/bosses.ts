@@ -409,6 +409,20 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     ],
     enrage: { name: '뼈다귀 폭주', period: 2, dmg: 150 },
   },
+  // 늪 주술사 탐험판 (35 4-8, 탐험 ③ 늪지 어귀 Lv 8): 던전 ③ 보스 (35 4-2)의 평타 · 늪 거머리 · 조롱박 독침만. 완치 표식 예습 (채워서 떼어 냄)
+  shaman8: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'leech', name: '늪 거머리', icon: '거머', kind: 'instant', first: 8, period: 20, cast: 0,
+        how: '가장 다친 사람에게 붙음. 해제 불가, 체력을 100%까지 채우면 떨어짐, 15초 두면 크게 아픔',
+        effect: { p: 'debuff', n: 1, pick: 'lowest', debuff: { name: '늪 거머리', type: '독', left: 15, dot: 25, lock: true, cureAt: 1, end: { p: 'hit', dmg: 200 } } } },
+      { key: 'dart', name: '조롱박 독침', icon: '독침', kind: 'instant', first: 14, period: 15, cast: 0, cut: true,
+        effect: { p: 'debuff', n: 2, debuff: { name: '조롱박 독침', type: '독', left: 10, dot: 22 } } },
+      { key: 'aoe', name: '독안개 숨', icon: '안개', kind: 'aoe', first: 22, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 170 } },
+    ],
+    enrage: { name: '늪의 분노', period: 2, dmg: 150 },
+  },
   // 녹슨 문지기 (05 1장): 40% 아래 녹물 웅덩이
   warden: {
     phase: [1, ''],

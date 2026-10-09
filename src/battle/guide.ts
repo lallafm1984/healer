@@ -257,7 +257,8 @@ const pctT = (x: number) => `${Math.round(x * 100)}%`;
 /** 디버프 한 줄: 「부패」 질병 20초 · 최대 체력 −10% */
 function debuffText(d: DebuffDef, n: (x: number) => number): string {
   const fx = [d.dot ? `초당 ${n(d.dot)}` : '', d.maxCut ? `최대 체력 −${pctT(d.maxCut)}` : '', d.healCut ? `받는 치유 −${pctT(d.healCut)}` : '',
-    d.noDps ? '딜 0' : '', d.invert ? '받는 치유가 피해로' : '', d.trap ? '지우면 터짐' : '', d.lock ? '해제 안 됨' : ''].filter(Boolean);
+    d.noDps ? '딜 0' : '', d.invert ? '받는 치유가 피해로' : '', d.trap ? '지우면 터짐' : '', d.lock ? '해제 안 됨' : '',
+    d.cureAt ? `체력 ${pctT(d.cureAt)} 채우면 떨어짐` : '', d.end?.p === 'hit' ? `시간 끝에 <b>${n(d.end.dmg)}</b>` : ''].filter(Boolean);
   return `「${d.name}」 (${d.type}, ${secT(d.left)}${fx.length ? ` · ${fx.join(' · ')}` : ''})`;
 }
 /** 디버프 대응: 지울 수 있으면 해제, 아니면 버티기 */

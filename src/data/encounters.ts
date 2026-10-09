@@ -5,8 +5,8 @@ import type { DiffName } from './difficulty';
 
 /** 보스 전투 (05)와 던전 일반·정예 구간 (23). 보스 기술 스크립트는 engine/bosses.ts */
 export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'boiler' | 'duo' | 'field' | 'patrol'
-  | 'ashyard' | 'collector3';
-export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3';
+  | 'ashyard' | 'collector3' | 'reedbank' | 'shaman8';
+export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -123,6 +123,12 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     ] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['질병'] }),
   collector3: { key: 'collector3', lowLevel: true, name: '뼈다귀 수집가', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1700, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'collector3', stage: 0.3 },
+  // 탐험 ③ 「늪지 어귀」 (39 1-1, Lv 8): 늪 창병 ×2 + 진흙 투석꾼 → 늪 주술사 (완치 표식 예습, 35 4-8). 독은 사제가 못 지움 → 힐로 버팀
+  reedbank: trash('reedbank', '갈대 물가', [
+    { name: '늪 창병', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 85, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  shaman8: { key: 'shaman8', lowLevel: true, name: '늪 주술사', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1800, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'shaman8', stage: 0.3, debuffs: ['독'] },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

@@ -54,7 +54,10 @@ export const CONTENT: ContentDef[] = [
     key: 'cemetery', kind: 'explore', name: '잿빛 공동묘지', place: '왕도 변두리 · 역병 교단', stageLv: 3, unlockLv: 3, ready: true, bosses: ['뼈다귀 수집가'],
     fights: () => DUNGEONS.cemetery.segments, size: three,
   },
-  { key: 'marsh', kind: 'explore', name: '늪지 어귀', place: '늪지 · 늪의 부족', stageLv: 8, unlockLv: 8, ready: false, bosses: ['늪 주술사'], fights: none, size: three },
+  {
+    key: 'marsh', kind: 'explore', name: '늪지 어귀', place: '늪지 · 늪의 부족', stageLv: 8, unlockLv: 8, ready: true, bosses: ['늪 주술사'],
+    fights: () => DUNGEONS.marsh.segments, size: three,
+  },
   { key: 'lily', kind: 'explore', name: '백합 정원', place: '백합 영지 · 귀족가', stageLv: 13, unlockLv: 13, ready: false, bosses: ['집사 유령'], fights: none, size: three },
   { key: 'snowpass', kind: 'explore', name: '눈보라 고개', place: '설원 · 마도사', stageLv: 18, unlockLv: 18, ready: false, bosses: ['마력 골렘'], fights: none, size: three },
   { key: 'hillpath', kind: 'explore', name: '해바라기 언덕길', place: '해바라기 언덕 · 혼합', stageLv: 23, unlockLv: 23, ready: false, bosses: ['신전 수호상'], fights: none, size: three },

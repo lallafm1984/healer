@@ -259,6 +259,8 @@ export const FEATURED: Record<string, readonly string[]> = {
   plateau: ['warmTouch', 'sunHandful', 'pouch'],
   // 잿빛 공동묘지 (탐험 ②, 39 1-1): 첫 해제 (질병) 자리라 해제 쪽
   cemetery: ['brushOff', 'coldMedicine', 'thankHand'],
+  // 늪지 어귀 (탐험 ③): 완치 표식 · 독을 힐로 버팀
+  marsh: ['antidote', 'warmCloak', 'lingerLight'],
   rustfort: ['shieldFriend', 'firstWord', 'springSip'],
   abyss1: ['coldMedicine', 'cleanHands', 'bounceLight'],
   cathedral1: ['spellWard', 'strongChorus', 'goldEcho'],
