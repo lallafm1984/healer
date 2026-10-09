@@ -188,9 +188,9 @@ describe('정산 연결', () => {
     s.daily.pub = 3;
     const raid = () => settle(s, result({ content: 'abyss1', diff: '어려움', segN: 1, segIdx: 0 }), rng, [], T0);
     const a = raid();
-    expect([a.merit, !!a.item, a.lootLocked]).toEqual([MERIT[10]['어려움'], true, false]);
+    expect([a.merit, a.items.length, a.lootLocked]).toEqual([MERIT[10]['어려움'], 1, false]);
     const b = raid();
-    expect([b.merit, b.item, b.lootLocked]).toEqual([15, null, true]);
+    expect([b.merit, b.items, b.lootLocked]).toEqual([15, [], true]);
     for (let i = 0; i < 10; i++) raid();
     expect(s.weekly.merit[10]).toBe(150);
     expect(raid().merit).toBe(0);

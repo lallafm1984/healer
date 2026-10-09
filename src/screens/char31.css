@@ -534,3 +534,11 @@
 #s-char .c7-spec.unk .c7-spg { border-style: dashed; opacity: 0.6; }
 #s-char .c7-spec.unk b { color: var(--mute); }
 #s-char .c7-codex .c7-bagf .cap { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 재설정 (34 6-8): 옵션 머리의 「재설정」 → 줄마다 ↻, 비용 줄, Lv 60 둘째 후보 */
+#s-char .c7-rrb { margin-left: 8px; min-height: 30px; height: 30px; padding: 0 10px; font-size: 12px; }
+#s-char .c7-rrb[aria-pressed="true"] { border-color: #D9B26A; color: var(--gold-hi); }
+#s-char .c7-rr { flex: none; width: 32px; height: 32px; margin-left: 6px; border-radius: 50%; border: 1px solid #D9B26A; background: #201A14; color: var(--gold-hi); font: 700 15px/1 var(--font-body); cursor: pointer; }
+#s-char .c7-rrcost { margin: 0 0 4px; }
+#s-char .c7-rralt { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 8px; border: 1px dashed #D9B26A; border-radius: 6px; }
+#s-char .c7-rralt b { flex: 1; min-width: 0; font-size: 13px; }
+#s-char .c7-rralt .btn2 { min-height: 32px; height: 32px; }

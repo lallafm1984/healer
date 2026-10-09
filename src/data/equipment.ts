@@ -116,6 +116,8 @@ export interface GearItem {
   named?: string;
   /** 잠금 (27 4-3): 분해 고르기·일괄 분해에서 빠짐. 옛 저장엔 없음 = 안 잠김 */
   lock?: boolean;
+  /** 이 장비에서 재설정한 횟수 (34 6-8, 할수록 비쌈). 옛 저장엔 없음 = 0 */
+  rr?: number;
 }
 
 export type Equipped = Partial<Record<SlotKey, GearItem>>;
@@ -144,8 +146,8 @@ export const FEATURED_WEIGHT = 4;
 export const NAMED_CHANCE = 0.25;
 export const NAMED_MIN: ItemGrade = '희귀';
 
-/** 드롭 맥락: 지금 직업 (직업 전용은 그 직업 것만, 42 1-4) · 장소 (자주 나오는 특수능력 · 이름 있는 장신구) */
-export interface DropCtx { hero?: HeroKey; place?: string }
+/** 드롭 맥락: 지금 직업 (직업 전용은 그 직업 것만, 42 1-4) · 장소 (자주 나오는 특수능력 · 이름 있는 장신구) · 등급 상한 (탐험 = 고급, 34 6-7) */
+export interface DropCtx { hero?: HeroKey; place?: string; cap?: ItemGrade }
 
 /**
  * 특수능력 n줄 굴림: 그 부위 · 최소 등급 이하 · (직업 전용은 그 직업) 중에서, 장소의 자주 나오는 3개는 4배.
@@ -220,7 +222,37 @@ export function rollGrade(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B
 /** 장비 1개 뽑기 (부위 → 등급 → 종류 · 옵션 · 특수능력). r = 0~1 난수 함수, o = 드롭 맥락 (직업 · 장소) */
 export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number, id: number, o: DropCtx = {}): GearItem {
   const slot = SLOTS[Math.floor(r() * SLOTS.length)].key;
-  return makeItem(r, slot, rollGrade(r, diff, grade, level), id, undefined, o);
+  const g = rollGrade(r, diff, grade, level);
+  return makeItem(r, slot, o.cap && ITEM_GRADES.indexOf(g) > ITEM_GRADES.indexOf(o.cap) ? o.cap : g, id, undefined, o);
+}
+
+// ---------- 재설정 (34 6-8 · 42 1-6) ----------
+/** 재설정이 열리는 레벨 (계정 최고 직업 레벨), 후보 2개 중 고르기 */
+export const REROLL_LEVEL = 50;
+export const REROLL_PICK_LEVEL = 60;
+/** 추가 옵션 한 줄 재설정 골드 (등급 기본값 = 강화 기본값 × 25). 같은 장비에서 할 때마다 기본값만큼 더 비쌈 */
+export const REROLL_GOLD: Record<ItemGrade, number> = { '일반': 75, '고급': 125, '희귀': 250, '영웅': 500, '전설': 1000 };
+/** 특수능력 재설정은 골드 · 정제 강화석 3배 (42 1-6) */
+export const SPEC_REROLL_MULT = 3;
+export function rerollCost(it: GearItem, spec: boolean): { gold: number; refined: number } {
+  const m = spec ? SPEC_REROLL_MULT : 1;
+  return { gold: REROLL_GOLD[it.grade] * (1 + (it.rr ?? 0)) * m, refined: m };
+}
+/** 추가 옵션 i번 줄 다시 굴림: 고정 옵션 · 다른 줄과 다른 능력치 (지금 능력치도 나올 수 있음), 각성 값은 사라짐 */
+export function rerollLine(r: () => number, it: GearItem, i: number): GearLine {
+  const fx = kindOf(it).fixed, others = it.lines.filter((_, j) => j !== i).map(l => l.stat);
+  const pool = STAT_KEYS.filter(k => k !== fx && !others.includes(k));
+  return { stat: pool[Math.floor(r() * pool.length)], roll: Math.round((ROLL_MIN + (1 - ROLL_MIN) * r()) * 100) / 100 };
+}
+/** 특수능력 i번 줄 다시 굴림: 같은 묶음 · 그 부위 · 등급 안에서 (직업 전용은 같은 직업), 다른 줄과 겹치지 않게. 지금 특수능력도 나올 수 있음 (값만 바뀜) */
+export function rerollSpec(r: () => number, it: GearItem, i: number): SpecLine {
+  const cur = SPECS[it.specs![i].key], gi = ITEM_GRADES.indexOf(it.grade), others = it.specs!.filter((_, j) => j !== i).map(l => l.key);
+  const pool = SPEC_KEYS.filter(k => {
+    const d = SPECS[k];
+    return d.group === cur.group && d.hero === cur.hero && d.slots.includes(it.slot) && ITEM_GRADES.indexOf(d.min) <= gi && !others.includes(k);
+  });
+  const d = SPECS[pool[Math.floor(r() * pool.length)]];
+  return { key: d.key, roll: d.fixed ? 1 : Math.round((ROLL_MIN + (1 - ROLL_MIN) * r()) * 100) / 100 };
 }
 
 /** 능력치 6가지 (비율) */
@@ -314,16 +346,16 @@ export function enhanceCost(it: GearItem): EnhanceCost | null {
     rate: ENHANCE_RATE[to], fail: it.plus >= ENHANCE_DROP_FROM ? it.plus - 1 : it.plus,
   };
 }
-/** 클리어 재료 (12 1장): 던전은 강화석 조금, 레이드는 정제 강화석도 (보스 처치) */
+/** 클리어 재료 (12 1장): 던전은 강화석 조금, 레이드는 정제 강화석도 (보스 처치). 레이드 정제 강화석은 확률 강화 · 재설정 때문에 2배 (34 6-9) */
 const DIFF_STEP: Record<DiffName, number> = { '쉬움': 0, '보통': 1, '어려움': 2, '악몽': 3 };
 export function clearMats(diff: DiffName, raid: 0 | 10 | 20): { stone: number; refined: number } {
   if (!raid) return { stone: 1 + DIFF_STEP[diff], refined: 0 };
-  return { stone: 2 + DIFF_STEP[diff], refined: (raid === 20 ? 2 : 1) + (diff === '악몽' ? 1 : 0) };
+  return { stone: 2 + DIFF_STEP[diff], refined: 2 * ((raid === 20 ? 2 : 1) + (diff === '악몽' ? 1 : 0)) };
 }
 
-/** 분해: 골드 (등급값 + 강화 단계당 10%), 강화석 (등급 비례), 정제 강화석 (영웅·전설) */
-export const SALVAGE_GOLD: Record<ItemGrade, number> = { '일반': 10, '고급': 30, '희귀': 80, '영웅': 200, '전설': 500 };
-export const SALVAGE_STONE: Record<ItemGrade, number> = { '일반': 1, '고급': 2, '희귀': 4, '영웅': 6, '전설': 10 };
+/** 분해: 골드 (등급값 + 강화 단계당 10%), 강화석 (등급 비례), 정제 강화석 (영웅·전설). 장비가 보스마다 나와서 골드 · 강화석은 절반 (34 6-9) */
+export const SALVAGE_GOLD: Record<ItemGrade, number> = { '일반': 5, '고급': 15, '희귀': 40, '영웅': 100, '전설': 250 };
+export const SALVAGE_STONE: Record<ItemGrade, number> = { '일반': 1, '고급': 1, '희귀': 2, '영웅': 3, '전설': 5 };
 export const SALVAGE_REFINED: Record<ItemGrade, number> = { '일반': 0, '고급': 0, '희귀': 0, '영웅': 1, '전설': 2 };
 export function salvageOf(it: GearItem): { gold: number; stone: number; refined: number } {
   return { gold: Math.round(SALVAGE_GOLD[it.grade] * (1 + 0.1 * it.plus)), stone: SALVAGE_STONE[it.grade], refined: SALVAGE_REFINED[it.grade] };

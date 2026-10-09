@@ -3,10 +3,11 @@ import type { ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HERO_KEYS, HERO_SWITCH_LV, HEROES, type HeroKey } from '../data/heroes';
 import { TALENTS } from '../data/talents';
-import { enhanceCost, itemScore, MAX_PLUS, salvageOf, SLOTS, type GearItem, type SlotKey } from '../data/equipment';
+import { enhanceCost, itemName, itemScore, MAX_PLUS, REROLL_LEVEL, REROLL_PICK_LEVEL, rerollCost, rerollLine, rerollSpec, salvageOf, SLOTS, type GearItem, type GearLine, type SlotKey } from '../data/equipment';
+import type { SpecLine } from '../data/specials';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots } from '../data/progression';
-import { heroLevelOf, heroSaveOf, load, newSave, save, topLevel, type HeroSave, type SaveData } from '../platform/storage';
+import { heroLevelOf, heroSaveOf, load, newSave, noteSpecs, save, topLevel, type HeroSave, type SaveData } from '../platform/storage';
 import { TUT } from './tutorial';
 import { isMember, onAct, rollover, type Rollover } from './economy';
 
@@ -108,6 +109,49 @@ export function enhance(id: number, roll: () => number = Math.random): string {
   commit();
   if (ok) return '';
   return it.plus < from ? `강화 실패 · +${from} → +${it.plus}` : `강화 실패 · +${from} 그대로`;
+}
+
+/** 재설정할 줄: 추가 옵션 (line) · 특수능력 (spec, 이름 있는 장신구 고유 효과는 안 됨) */
+export type RerollKind = 'line' | 'spec';
+/** 재설정 결과: err = 못 한 이유, alt = Lv 60부터 둘째 후보 (pickReroll로 바꿀 수 있음, 시트를 닫으면 사라짐) */
+export interface RerollResult { err: string; alt?: GearLine | SpecLine }
+export const rerollOpen = () => topLevel(G.save) >= REROLL_LEVEL;
+/**
+ * 재설정 (34 6-8 · 42 1-6): 그 줄 하나를 다시 굴림. 비용 = 골드 + 정제 강화석 (특수능력 3배, 이 장비에서 할수록 비쌈).
+ * Lv 60부터 후보 2개: 첫 후보를 바로 넣고 둘째를 돌려줌
+ */
+export function reroll(id: number, kind: RerollKind, i: number, r: () => number = Math.random): RerollResult {
+  const it = findItem(id);
+  if (!it) return { err: '장비 없음' };
+  if (!rerollOpen()) return { err: `재설정은 Lv ${REROLL_LEVEL}부터` };
+  if (kind === 'line' ? !it.lines?.[i] : !it.specs?.[i]) return { err: '없는 줄' };
+  const c = rerollCost(it, kind === 'spec'), p = G.save.player, m = G.save.mats;
+  if (p.gold < c.gold) return { err: `골드 부족 (${c.gold.toLocaleString()} 필요)` };
+  if (m.refined < c.refined) return { err: `정제 강화석 부족 (${c.refined}개 필요)` };
+  p.gold -= c.gold; m.refined -= c.refined; it.rr = (it.rr ?? 0) + 1;
+  const pick = topLevel(G.save) >= REROLL_PICK_LEVEL;
+  let alt: GearLine | SpecLine | undefined;
+  if (kind === 'line') {
+    it.lines[i] = rerollLine(r, it, i);
+    if (pick) alt = rerollLine(r, it, i);
+  } else {
+    it.specs![i] = rerollSpec(r, it, i);
+    if (pick) alt = rerollSpec(r, it, i);
+    noteSpecs(G.save, [it]);
+  }
+  it.name = itemName(it);
+  commit();
+  return { err: '', alt };
+}
+/** Lv 60 재설정의 둘째 후보로 바꿈 (비용 없음) */
+export function pickReroll(id: number, kind: RerollKind, i: number, alt: GearLine | SpecLine): boolean {
+  const it = findItem(id);
+  if (!it) return false;
+  if (kind === 'line' && it.lines?.[i]) it.lines[i] = alt as GearLine;
+  else if (kind === 'spec' && it.specs?.[i]) { it.specs[i] = alt as SpecLine; noteSpecs(G.save, [it]); }
+  else return false;
+  commit();
+  return true;
 }
 
 /** 가방 장비 분해 (착용 중인 것·잠긴 것은 안 됨). 받은 골드·재료 합 */

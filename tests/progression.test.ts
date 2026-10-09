@@ -9,6 +9,7 @@ import { heal } from '../src/engine/core';
 import { rngFrom } from '../src/engine';
 import { settle, type BattleResult } from '../src/game/settle';
 import { newSave } from '../src/platform/storage';
+import { TUT } from '../src/game/tutorial';
 
 describe('경험치·레벨 (02 부록 B)', () => {
   it('필요 경험치 = 100 × 레벨^1.6', () => {
@@ -180,12 +181,24 @@ describe('정산 (09 S08·S09)', () => {
     expect(s.player.gold).toBe(x.gold);
     expect(x.levelUps).toEqual([2]); // 첫 클리어로 Lv 2
     expect(s.player.xp).toBe(x.xp - 100);
-    expect(x.item).not.toBeNull();
-    expect(s.gear.bag).toEqual([x.item]);
+    expect(x.items.length).toBe(1); // 튜토리얼 중엔 1개
+    expect(s.gear.bag).toEqual(x.items);
     expect(s.nextId).toBe(2);
     expect(s.clears.rustfort!['보통']).toEqual({ stars: 2, grade: 'A', best: 360, n: 1 });
     expect(x.first).toBe(true);
     expect(s.last).toEqual({ content: 'rustfort', diff: '보통', win: true, grade: 'A' });
+  });
+  it('튜토리얼 뒤 던전은 보스마다 장비 1개, 탐험은 1개 · 고급까지 (34 6-7)', () => {
+    const s = newSave(1);
+    s.tut = TUT.done;
+    const x = settle(s, result(), rngFrom(1));
+    expect(x.items.length).toBe(contentOf('rustfort').bosses.length);
+    expect(s.gear.bag).toEqual(x.items);
+    for (let i = 0; i < 40; i++) {
+      const e = settle(s, result({ content: 'plateau', diff: '악몽', deaths: 0 }), rngFrom(i));
+      expect(e.items.length).toBe(1);
+      expect(['일반', '고급']).toContain(e.items[0].grade);
+    }
   });
   it('다시 깨면 별·등급·최고 기록은 좋은 쪽을 남김', () => {
     const s = newSave(1);
@@ -198,7 +211,7 @@ describe('정산 (09 S08·S09)', () => {
   it('지면 골드·장비 없음, 경험치 20%. 포기하면 경험치도 없음', () => {
     const s = newSave(1);
     const x = settle(s, result({ win: false, segIdx: 1 }), rngFrom(1));
-    expect([x.grade, x.gold, x.item]).toEqual([null, 0, null]);
+    expect([x.grade, x.gold, x.items]).toEqual([null, 0, []]);
     expect(x.xp).toBe(clearXp(1, '보통', null, { win: false }));
     expect(s.clears).toEqual({});
     const q = settle(s, result({ win: false, quit: true }), rngFrom(1));

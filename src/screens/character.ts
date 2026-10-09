@@ -7,7 +7,7 @@
  * 특성: 요약 · 프리셋 1·2·3 · 나무판에 단마다 메달 3개 + 고른 길(금빛 선) · 고르기 시트 / 직업: 천 깃발 · 곧 열림 · 양피지 상세 · 바꾸기
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
  */
-import { enhanceCost, fixedOf, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, kindOf, lineValue, mainOf, MAX_PLUS, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
+import { enhanceCost, fixedOf, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, kindOf, lineValue, mainOf, MAX_PLUS, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, type GearItem, type GearLine, type ItemGrade, type SlotKey } from '../data/equipment';
 import { DEB_COLOR, HERO_KEYS, HERO_SWITCH_LV, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots, TALENT_LEVEL } from '../data/progression';
@@ -15,10 +15,10 @@ import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_
 import { TALENTS, type TalentKey } from '../data/talents';
 import { heroLevelOf, type TapKey } from '../platform/storage';
 import { betterSlots, codexRows, gearAvg, gearScore, isBetter, scoreOf, specRows, statParts, talentsLeft } from '../game/charinfo';
-import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, type CodexGroup, type SpecGroup } from '../data/specials';
+import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, specText, specValue, type CodexGroup, type SpecGroup, type SpecLine } from '../data/specials';
 import {
-  bestGearPlan, commit, enhance, equip, equipBest, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, lowGradeIds, pickTalent, salvage,
-  setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleItem, toggleLock,
+  bestGearPlan, commit, enhance, equip, equipBest, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, lowGradeIds, pickReroll, pickTalent, reroll, rerollOpen, salvage,
+  setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleItem, toggleLock, type RerollKind,
 } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { classEmblem, gameIcon, LOCK, uiIcon } from './art';
@@ -33,6 +33,9 @@ const SUBS: { key: Sub; name: string }[] = [{ key: 'gear', name: '장비' }, { k
 type Sheet = { k: 'item'; id: number; back?: boolean } | { k: 'bag' } | { k: 'codex' } | { k: 'stats' } | { k: 'rec' } | { k: 'items' } | { k: 'talent'; i: number; j: number } | null;
 /** 도감에서 펼친 묶음 */
 let codexG: CodexGroup = 'heal';
+/** 장비 상세의 재설정 모드 (34 6-8): 줄마다 ↻ 버튼. rrAlt = Lv 60 둘째 후보 (시트를 닫으면 사라짐) */
+let rrOn = false;
+let rrAlt: { id: number; kind: RerollKind; i: number; alt: GearLine | SpecLine } | null = null;
 
 let sub: Sub = 'gear';
 /** 휠에서 고른 자리: 보기 = 설명, 바꾸기 = 첫 번째로 누른 자리 */
@@ -47,7 +50,7 @@ const s = screen('s-char', '캐릭터', {
   tab: 'char',
   enter(arg) {
     if (SUBS.some(x => x.key === arg)) sub = arg as Sub;
-    sel = null; swapping = false; msg = ''; sheet = null; salv = null; salvAsk = false; skOpen = null; hskOpen = null; hsel = null; seenMarked = false;
+    sel = null; swapping = false; msg = ''; sheet = null; salv = null; salvAsk = false; skOpen = null; hskOpen = null; hsel = null; seenMarked = false; rrOn = false; rrAlt = null;
     render(false);
   },
 });
@@ -283,6 +286,23 @@ function codexSheet(): string {
 }
 
 /** 장비 상세 시트 (27 4-3, 시안 GearSheet27): 지금 장비와 비교 ▲▼ · 강화 · 잠금 · 분해 · 장착(착용 중이면 강화) */
+/** 재설정 ↻ 버튼 (재설정 모드일 때만) */
+const rrBtn = (kind: RerollKind, i: number, name: string) => (rrOn ? `<button type="button" class="c7-rr" data-rr="${kind}:${i}" aria-label="${esc(name)} 다시 굴림">↻</button>` : '');
+/** 재설정 비용 줄 (34 6-8): 옵션 한 줄 · 특수능력 한 줄 (3배), 가진 정제 강화석 · 각성 값이 사라진다는 경고 */
+function rrCostHtml(it: GearItem): string {
+  const a = rerollCost(it, false), b = rerollCost(it, true);
+  const up = (it.lines ?? []).some(l => l.up) ? ' · 각성으로 오른 값은 재설정하면 사라집니다' : '';
+  return `<p class="cap c7-rrcost">한 줄 다시 굴림 · 옵션 골드 ${fmt(a.gold)} + 정제 강화석 ${a.refined} · 특수능력 골드 ${fmt(b.gold)} + 정제 강화석 ${b.refined} (가진 것 ${fmt(G.save.mats.refined)})${up}</p>`;
+}
+/** Lv 60 재설정 둘째 후보: 「이걸로」 누르면 바꿈 */
+function rrAltHtml(it: GearItem, kind: RerollKind): string {
+  if (!rrAlt || rrAlt.id !== it.id || rrAlt.kind !== kind) return '';
+  let txt: string;
+  if (kind === 'line') { const l = rrAlt.alt as GearLine; txt = `${STATS[l.stat].name} +${pc(lineValue(it, l))}%`; }
+  else { const l = rrAlt.alt as SpecLine, d = SPECS[l.key]; txt = `${d.name} · ${specText(d, specValue(l.key, it.grade, l.roll))}`; }
+  return `<div class="c7-rralt"><span class="cap">다른 후보</span><b>${esc(txt)}</b><button type="button" class="btn2" data-rrpick>이걸로</button></div>`;
+}
+
 function itemSheet(id: number): string {
   const it = findItem(id);
   if (!it) return '';
@@ -297,11 +317,11 @@ function itemSheet(id: number): string {
   const own = [
     ...mainOf(it).map(x => row(STATS[x.stat].name, `+${pc(x.v)}%`, '<span class="cap">주 능력치</span>')),
     row(STATS[fx.stat].name, `+${pc(fx.v)}%`, `<span class="cap">${esc(kindOf(it).name)} 고정</span>`),
-    ...(it.lines ?? []).map(l => row(STATS[l.stat].name, `+${pc(lineValue(it, l))}%`, `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(l.roll * 100)}%"><i style="width:${Math.round(rollFill(l.roll) * 100)}%"></i></span>`)),
+    ...(it.lines ?? []).map((l, i) => row(STATS[l.stat].name, `+${pc(lineValue(it, l))}%`, `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(l.roll * 100)}%"><i style="width:${Math.round(rollFill(l.roll) * 100)}%"></i></span>${rrBtn('line', i, STATS[l.stat].name)}`)),
   ].join('');
   // 특수능력 (42 1-3 · 1-5): 묶음 표식 · 이름 · 효과 · 굴림 막대, 꺼진 줄은 회색 + 이유
   const sp = specRows(it);
-  const spec = sp.length ? `<div class="c7-cmpw"><h3 class="h-rule c7-h3">특수능력<span class="rule"></span><span class="cap">${sp.length}줄</span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${s.badge}</span><span class="c7-spt"><b>${esc(s.name)}</b><span class="cap">${esc(s.text)}</span></span>${s.off ? `<span class="cap c7-spoff">${s.off}</span>` : s.roll != null ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(s.roll * 100)}%"><i style="width:${Math.round(rollFill(s.roll) * 100)}%"></i></span>` : ''}</div>`).join('')}</div>` : '';
+  const spec = sp.length ? `<div class="c7-cmpw"><h3 class="h-rule c7-h3">특수능력<span class="rule"></span><span class="cap">${sp.length}줄</span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${s.badge}</span><span class="c7-spt"><b>${esc(s.name)}</b><span class="cap">${esc(s.text)}</span></span>${s.off ? `<span class="cap c7-spoff">${s.off}</span>` : s.roll != null ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(s.roll * 100)}%"><i style="width:${Math.round(rollFill(s.roll) * 100)}%"></i></span>` : ''}${s.i != null ? rrBtn('spec', s.i, s.name) : ''}</div>`).join('')}${rrAltHtml(it, 'spec')}</div>` : '';
   // 지금 장비와 비교: 둘 중 하나라도 있는 능력치만
   const cmp = STAT_KEYS.filter(k => a[k] || b[k]).map(k => row(STATS[k].name, `+${pc(a[k])}%`, updn(d1(a[k], b[k])))).join('');
   const c = enhanceCost(it), m = G.save.mats, gold = G.save.player.gold;
@@ -315,7 +335,7 @@ function itemSheet(id: number): string {
       <div class="c7-ghead"><span class="c7-gic">${itemIc(it.slot)}<span class="c7-gl">${it.grade[0]}</span></span>
         <span class="c7-gname"><b>${esc(it.name)}${it.plus ? ` <i>+${it.plus}</i>` : ''}</b><span class="cap">${sub2}</span></span>
         <span class="c7-gscore"><span class="cap">점수</span><b>${sc}</b>${worn ? '' : updn(sc - scoreOf(cur))}</span></div>
-      <div class="c7-cmpw"><h3 class="h-rule c7-h3">옵션<span class="rule"></span><span class="cap">${it.lines?.length ?? 0}줄 추가</span></h3>${own}</div>
+      <div class="c7-cmpw"><h3 class="h-rule c7-h3">옵션<span class="rule"></span><span class="cap">${it.lines?.length ?? 0}줄 추가</span>${rerollOpen() ? `<button type="button" class="btn2 c7-rrb" data-rrmode aria-pressed="${rrOn}">재설정</button>` : ''}</h3>${rrOn ? rrCostHtml(it) : ''}${own}${rrAltHtml(it, 'line')}</div>
       ${spec}
       ${worn ? '' : `<div class="c7-cmpw"><h3 class="h-rule c7-h3">지금 장비와 비교<span class="rule"></span><span class="cap">${cmpCap}</span></h3>${cmp}</div>`}
       <div class="c7-enh"><span><b>${c ? `강화 +${it.plus} → +${c.to}` : `최대 강화 +${MAX_PLUS}`}</b><span class="cap">${costTxt}</span>${c ? `<span class="cap c7-rate">성공 ${Math.round(c.rate * 100)}%${c.rate >= 1 ? '' : c.fail < it.plus ? ` · <em class="c7-lack">실패하면 +${c.fail}${c.fail % 10 === 3 || c.fail % 10 === 6 || c.fail % 10 === 0 ? '으로' : '로'} 떨어짐</em>` : ' · 실패해도 그대로'}</span>` : ''}</span><span class="cap${lack ? ' c7-lack' : ''}">${worn ? lack : c ? '장착 뒤 강화 추천' : ''}</span></div>
@@ -697,6 +717,7 @@ function heroListHtml(): string {
 /** 시트 닫기: 가방에서 연 장비 상세는 가방으로 돌아감, 가방을 닫으면 분해 고르기도 끝 */
 function closeSheet(): void {
   if (sheet?.k === 'bag') { salv = null; salvAsk = false; }
+  rrOn = false; rrAlt = null;
   sheet = (sheet?.k === 'item' && sheet.back) || sheet?.k === 'codex' ? { k: 'bag' } : null;
   msg = ''; render();
 }
@@ -715,7 +736,7 @@ function onClick(t: HTMLElement): boolean {
       if (findItem(id)?.lock) msg = '잠긴 장비는 분해 안 됨';
       else { if (salv.has(id)) salv.delete(id); else salv.add(id); msg = ''; }
       salvAsk = false;
-    } else { sheet = { k: 'item', id, ...(inBag ? { back: true } : {}) }; msg = ''; }
+    } else { sheet = { k: 'item', id, ...(inBag ? { back: true } : {}) }; msg = ''; rrOn = false; rrAlt = null; }
     render(); return true;
   }
   const gs = t.closest<HTMLButtonElement>('[data-gslot]');
@@ -744,6 +765,15 @@ function onClick(t: HTMLElement): boolean {
     msg = r.n ? `분해: 골드 +${fmt(r.gold)} · 강화석 +${r.stone}${r.refined ? ` · 정제 강화석 +${r.refined}` : ''}` : '';
     sheet = sheet?.k === 'item' && sheet.back ? { k: 'bag' } : null; render(); return true;
   }
+  if (t.closest('[data-rrmode]')) { rrOn = !rrOn; rrAlt = null; msg = ''; render(); return true; }
+  const rb = t.closest<HTMLElement>('[data-rr]');
+  if (rb && sheet?.k === 'item') {
+    const [kind, n] = rb.dataset.rr!.split(':') as [RerollKind, string], i = Number(n);
+    const res = reroll(sheet.id, kind, i);
+    msg = res.err; rrAlt = res.alt ? { id: sheet.id, kind, i, alt: res.alt } : null;
+    render(); return true;
+  }
+  if (t.closest('[data-rrpick]') && rrAlt) { pickReroll(rrAlt.id, rrAlt.kind, rrAlt.i, rrAlt.alt); rrAlt = null; msg = ''; render(); return true; }
   if (t.closest('[data-codex]')) { sheet = { k: 'codex' }; msg = ''; render(); return true; }
   const cg = t.closest<HTMLElement>('[data-codexg]');
   if (cg) { codexG = cg.dataset.codexg as CodexGroup; render(); return true; }
