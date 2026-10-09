@@ -7,12 +7,14 @@ import { CLASS_LINES, COMMON_LINES, lineCount, PERS_LINES, pickLine, ROLE_LINES,
 import { PERS_NAMES } from '../src/data/personalities';
 import type { EncounterKey } from '../src/data/encounters';
 import * as E from '../src/engine';
-import { runEffect } from '../src/engine/bossParts';
-import { damageMob } from '../src/engine/core';
-import type { AddDef, SkillEffect } from '../src/data/bosses';
+import { applyDebuff, runEffect, watchInit } from '../src/engine/bossParts';
+import { fromDef } from '../src/engine/bosses';
+import { ABILITIES } from '../src/data/abilities';
+import { damageMob, heal } from '../src/engine/core';
+import type { AddDef, DebuffDef, SkillDef, SkillEffect } from '../src/data/bosses';
 import type { BossSkill, Fight } from '../src/engine';
 
-const ALLY_SITS: TalkSit[] = ['allyDown', 'tankDown', 'allyRevived', 'swallowedOther', 'jailOther'];
+const ALLY_SITS: TalkSit[] = ['allyDown', 'tankDown', 'allyRevived', 'swallowedOther', 'jailOther', 'charmOther'];
 const sources: [string, TalkLines][] = [
   ...Object.entries(PERS_LINES).map(([k, v]) => [`성격 ${k}`, v] as [string, TalkLines]),
   ...Object.entries(CLASS_LINES).map(([k, v]) => [`직업 ${k}`, v] as [string, TalkLines]),
@@ -149,35 +151,35 @@ describe('전투 중 말풍선', () => {
     }
   });
 
-  describe('판에 나오는 적 (35 3-I)마다 맞는 말', () => {
-    const IMP: AddDef = { name: '꼬마 악마', short: '악마', hp: 0.03, dmg: 20, every: 2 };
-    /** 판 위 적 상황만 봄 (잡담·체력 반응 빼고) */
-    const ADD_SITS = new Set<string>([...SIT_KEYS.filter(k => SITS[k].when.includes('P-') || ['jailOther', 'jailFree', 'bossHeal', 'bombBoom', 'marchIn'].includes(k)), 'adds', 'addOnMe', 'addDown', 'cured', 'noDps']);
-    /** 보스 기술을 끄고 한 부품만 써서, 그 뒤 sec초 동안 나온 말풍선 (난수 0 = 확률은 늘 통과, 빈도 제한은 그대로) */
-    function talkAfter(enc: EncounterKey, e: SkillEffect, sec: number, then?: (f: Fight) => void, sec2 = 0, hp = 1) {
-      const f = E.create({ encounter: enc, diff: '보통', seed: 1 });
-      f.skills.forEach(s => { s.next = Infinity; }); f.party.forEach(u => { u.dps = 0; });
-      f.bossHp = f.bossMax * hp; // 체력 선 페이즈(인터미션 …)가 안 오게 기본은 가득
-      const talk = createTalk(() => 0);
-      talk.start(f, { seg: 0, segN: 1, cont: 0, affix: false, chal: false }, 0);
-      const out: TalkBubble[] = [];
-      const go = (s: number, pulling = false) => {
-        const end = f.t + s;
-        while (!f.over && f.t < end - 1e-9) {
-          f.party.forEach(u => { u.lastHeal = f.t; }); // 관심종자 삐짐 안 나게
-          E.step(f);
-          out.push(...talk.frame(f, 3000 + f.t * 1000, { pulling, paused: false }).filter(b => b.sit && ADD_SITS.has(b.sit)));
-          f.events.length = 0;
-        }
-      };
-      go(3, true); go(10); out.length = 0; // 시작 인사한 사람도 다시 말할 수 있게
-      runEffect(f, {} as BossSkill, e);
-      go(sec);
-      if (then) { then(f); go(sec2); }
-      return { f, out, sits: new Set(out.map(b => b.sit)) };
-    }
-    const adds = (add: AddDef): SkillEffect => ({ p: 'adds', n: 1, add });
+  const IMP: AddDef = { name: '꼬마 악마', short: '악마', hp: 0.03, dmg: 20, every: 2 };
+  /** 판 위 적·기믹 상황만 봄 (잡담·체력 반응 빼고) */
+  const ADD_SITS = new Set<string>([...SIT_KEYS.filter(k => SITS[k].when.includes('P-') || SITS[k].group === '기믹' || ['jailOther', 'jailFree', 'bossHeal', 'bombBoom', 'marchIn'].includes(k)), 'adds', 'addOnMe', 'addDown', 'cured', 'noDps', 'debLong', 'aoeWarn', 'buster', 'safeCall', 'zoneHit', 'safeOk', 'dodgeOk']);
+  /** 보스 기술을 끄고 한 부품만 써서 (또는 setup), 그 뒤 sec초 동안 나온 말풍선 (난수 0 = 확률은 늘 통과, 빈도 제한은 그대로) */
+  function talkAfter(enc: EncounterKey, e: SkillEffect | ((f: Fight) => void), sec: number, then?: (f: Fight) => void, sec2 = 0, hp = 1) {
+    const f = E.create({ encounter: enc, diff: '보통', seed: 1 });
+    f.skills.forEach(s => { s.next = Infinity; }); f.party.forEach(u => { u.dps = 0; });
+    f.bossHp = f.bossMax * hp; // 체력 선 페이즈(인터미션 …)가 안 오게 기본은 가득
+    const talk = createTalk(() => 0);
+    talk.start(f, { seg: 0, segN: 1, cont: 0, affix: false, chal: false }, 0);
+    const out: TalkBubble[] = [];
+    const go = (s: number, pulling = false) => {
+      const end = f.t + s;
+      while (!f.over && f.t < end - 1e-9) {
+        f.party.forEach(u => { u.lastHeal = f.t; }); // 관심종자 삐짐 안 나게
+        E.step(f);
+        out.push(...talk.frame(f, 3000 + f.t * 1000, { pulling, paused: false }).filter(b => b.sit && ADD_SITS.has(b.sit)));
+        f.events.length = 0;
+      }
+    };
+    go(3, true); go(10); out.length = 0; // 시작 인사한 사람도 다시 말할 수 있게
+    if (typeof e === 'function') e(f); else runEffect(f, {} as BossSkill, e);
+    go(sec);
+    if (then) { then(f); go(sec2); }
+    return { f, out, sits: new Set(out.map(b => b.sit)) };
+  }
+  const adds = (add: AddDef): SkillEffect => ({ p: 'adds', n: 1, add });
 
+  describe('판에 나오는 적 (35 3-I)마다 맞는 말', () => {
     it('감옥: 갇힌 사람 · 다른 사람이 말하고, 깨지면 풀린 사람이 고마워함 (해제 대사·쫄 잡음 대사 아님)', () => {
       const { f, out, sits } = talkAfter('warden', { p: 'jail', n: 1, name: '심연 감옥', short: '감옥', hp: 0.04, dot: 1 }, 11,
         g => { const m = g.mobs.find(x => x.add?.job?.p === 'jail')!; damageMob(g, m, m.max); }, 10);
@@ -224,6 +226,125 @@ describe('전투 중 말풍선', () => {
     });
     it('쫄 떼', () => {
       expect(talkAfter('warden', adds({ ...IMP, cleave: true }), 6).sits.has('swarm')).toBe(true);
+    });
+  });
+
+  describe('서리 마탑 · 깨진 신전 부품 (35 4-4 · 4-5)마다 맞는 말', () => {
+    const dealer = (f: Fight) => f.party.find(u => u.role === 'ranged')!;
+    const at = (f: Fight, d: Omit<SkillDef, 'first' | 'period'>): SkillDef => ({ first: f.t, period: 99, ...d });
+    const STAG: SkillEffect = { p: 'stagger', sec: 10, need: 4, hp: 0.7, tank: 2, win: { sec: 8, vuln: 1.3 }, fail: { dmg: 100, lock: 3 } };
+    const COUNTER = { key: 'gleam', name: '수정 반짝임', kind: 'aoe', cast: 1.5, effect: { p: 'counter', stun: 4, dmg: 200 } } as const;
+    const seq = (out: TalkBubble[]) => out.map(b => b.sit);
+
+    it('매혹: 걸린 사람 · 다른 사람이 말하고, 풀리면 걸렸던 사람이 미안해함 (해제·오래 남은 디버프 대사 아님)', () => {
+      const CHARM: DebuffDef = { name: '매혹', type: '마법', left: 60, noDps: true, charm: { every: 2, dmg: 40, heal: 1, free: 0.5 } };
+      let id = 0;
+      // 체력이 50% 아래로 가면 풀림 (한 번에 35% 넘게 깎이면 「큰 한 방」이 이겨서 두 번에 나눠 깎음)
+      const { f, out, sits } = talkAfter('warden', g => { const u = dealer(g); id = u.id; u.hp = u.max * 0.7; applyDebuff(g, u, CHARM); }, 11,
+        g => { const u = g.party.find(x => x.id === id)!; u.hp = u.max * 0.45; }, 3);
+      expect(seq(out)).toEqual([sits.has('charmed') ? 'charmed' : 'charmOther', 'charmFree']);
+      if (sits.has('charmed')) expect(out[0].id).toBe(id);
+      else expect(out[0].id !== id && out[0].text.includes(f.party.find(u => u.id === id)!.nick)).toBe(true);
+      expect(out[1].id).toBe(id);
+    });
+    it('힐러에게 마나 갈취 · 마력 역류', () => {
+      expect(seq(talkAfter('warden', g => { applyDebuff(g, g.me, { name: '마나 흡수', type: '마법', left: 20, drain: 2 }); }, 4).out)).toEqual(['drainOn']);
+      expect(seq(talkAfter('warden', g => { applyDebuff(g, g.me, { name: '마력 역류', type: '마법', left: 20, count: true }); }, 4).out)).toEqual(['recoilOn']);
+    });
+    it('마나 갈취 쫄 (쫄 등장 대사 아님)', () => {
+      expect(seq(talkAfter('warden', adds({ ...IMP, dmg: 0, job: { p: 'drain', pct: 3 } }), 6).out)).toEqual(['drainAdd']);
+    });
+    it('진동 예고 (광역 예고 대사 아님)', () => {
+      expect(seq(talkAfter('warden', g => { fromDef(g, at(g, { key: 'rune', name: '룬 진동', kind: 'aoe', cast: 2, effect: { p: 'quake', dmg: 40, lock: 3 } })); }, 4).out)).toEqual(['quakeWarn']);
+    });
+    it('숨 고르기: 디버프가 사라져도 해제 대사 없이 보스가 쉰다는 말', () => {
+      const FROST: DebuffDef = { name: '서리', type: '마법', left: 99, healCut: 0.1, stackMax: 5 };
+      const { out } = talkAfter('warden', g => {
+        g.party.filter(u => !u.me).forEach(u => applyDebuff(g, u, FROST));
+        runEffect(g, { name: '숨 고르기', st: {} } as unknown as BossSkill, { p: 'rest', sec: 6, clear: '서리' });
+      }, 4);
+      expect(seq(out)).toEqual(['bossRest']);
+    });
+    it('무력화: 시작 → 채우면 무방비', () => {
+      const { f, out } = talkAfter('warden', g => { g.party.forEach(u => { if (!u.me) u.dps = 20; u.hp = u.max; }); runEffect(g, {} as BossSkill, STAG); }, 10);
+      expect(f.daze?.name).toBe('무방비');
+      expect(seq(out)).toEqual(['staggerStart', 'staggerWin']);
+    });
+    it('무력화: 못 채우면 땅 울림', () => {
+      const { out } = talkAfter('warden', g => { g.party.forEach(u => { if (!u.me) { u.dps = 20; u.hp = u.max * 0.69; } }); runEffect(g, {} as BossSkill, { ...STAG, sec: 5 } as SkillEffect); }, 6); // 20초 딜미터 1등 대사 전에 끝나게
+      expect(seq(out)).toEqual(['staggerStart', 'staggerFail']);
+    });
+    it('주시: 눈 게이지가 차서 보스가 힐러를 노림', () => {
+      const { out } = talkAfter('warden', g => { watchInit(g, { cap: 0.5, sec: 6, every: 1.5, dmg: 50 }); g.watch!.fill = g.watch!.max; }, 4);
+      expect(seq(out)).toEqual(['watchOn']);
+    });
+    it('받침: 발판 예고 또는 들어간 사람이 한마디 (피난처 대사 아님)', () => {
+      let pads: number[] = [];
+      const { out } = talkAfter('warden', g => {
+        const s = fromDef(g, at(g, { key: 'pads', name: '제단 발판', kind: 'aoe', cast: 2.5, effect: { p: 'tower', n: 2, dmg: 120, empty: 60 } }));
+        E.step(g);
+        expect(g.tels.some(t => t.skill === s)).toBe(true);
+        pads = g.party.filter(u => u.padUntil != null).map(u => u.id);
+      }, 5);
+      expect(pads).toHaveLength(2);
+      expect(out).toHaveLength(1);
+      if (out[0].sit === 'padGo') expect(pads).toContain(out[0].id);
+      else expect(out[0].sit).toBe('padsCall');
+    });
+    it('반격 틈: 못 끊으면 앞줄 조심, 끊으면 기절 성공', () => {
+      expect(seq(talkAfter('warden', g => { fromDef(g, at(g, COUNTER)); }, 3).out)).toEqual(['counterWarn']);
+      const { f, sits } = talkAfter('warden', g => {
+        g.abOn = true;
+        const kick = Object.values(ABILITIES).find(a => a.fx.e === 'interrupt')!;
+        dealer(g).ab = { key: kick.key, star: 5, ready: 0, uses: 0, fired: [], hist: [], lastCounter: 0 };
+        g.rng = () => 0;
+        fromDef(g, at(g, COUNTER));
+      }, 3);
+      expect(f.daze?.name).toBe('기절');
+      expect([...sits]).toEqual(['counterOk']);
+    });
+  });
+
+  describe('헤매는 영혼 · 생명 사슬 · 넘치는 빛 (35 3장 · 4-7)마다 맞는 말', () => {
+    const seq = (out: TalkBubble[]) => out.map(b => b.sit);
+    const SPIRIT: SkillEffect = {
+      p: 'soul', name: '오염된 늪 정령', short: '정령', hp: 0.25, sec: 12, type: '질병',
+      win: { text: '정화의 물', cure: '독', heal: { pct: 0.15, sec: 8 } }, fail: { text: '오염 분출', dmg: 30, near: true },
+    };
+
+    it('영혼: 나오면 한마디, 채우면 축복 (축복으로 지워진 디버프는 해제 대사 아님)', () => {
+      const { out } = talkAfter('warden', g => {
+        g.party.filter(u => !u.me).forEach(u => applyDebuff(g, u, { name: '독침', type: '독', left: 60, dot: 1 }));
+        runEffect(g, {} as BossSkill, SPIRIT);
+      }, 4, g => { heal(g, g.souls[0], 1e6, true, true); }, 2);
+      expect(seq(out)).toEqual(['soulOn', 'soulWin']);
+    });
+    it('영혼: 못 채우면 벌', () => {
+      expect(seq(talkAfter('warden', SPIRIT, 13).out)).toEqual(['soulOn', 'soulFail']);
+    });
+    it('생명 사슬 균형형: 묶인 사람이 말하고, 체력이 벌어져 끊어지면 묶였던 사람이 아파함', () => {
+      let ids: number[] = [];
+      const { out } = talkAfter('warden', g => {
+        g.party.forEach(v => { v.hp = v.max; });
+        runEffect(g, {} as BossSkill, { p: 'link', kind: 'balance', name: '저주 실', sec: 30, gap: 0.3, dmg: 10 });
+        ids = [g.links[0].a, g.links[0].b];
+      }, 11, g => { const a = g.party.find(v => v.id === ids[0])!; a.hp = a.max * 0.69; }, 2); // 35% 넘게 한 번에 깎이면 「큰 한 방」이 이김
+      expect(seq(out)).toEqual(['linkOn', 'linkSnap']);
+      for (const b of out) expect(ids).toContain(b.id);
+    });
+    it('생명 사슬: 나눔형은 걸릴 때 한마디, 시간이 다 돼 풀리면 끊어짐 대사 없음', () => {
+      expect(seq(talkAfter('warden', { p: 'link', kind: 'share', name: '가문의 사슬', sec: 5 }, 7).out)).toEqual(['linkShare']);
+      expect(seq(talkAfter('warden', { p: 'link', kind: 'balance', name: '저주 실', sec: 5, dmg: 10 }, 7).out)).toEqual(['linkOn']);
+    });
+    it('넘치는 빛 그릇: 나오면 한마디, 차면 보호막 (보호막 받음 대사 아님), 못 채우면 말 없음', () => {
+      const VESSEL: SkillEffect = { p: 'vessel', name: '백합 꽃병', need: 0.1, sec: 15, shield: 6 };
+      const { out } = talkAfter('warden', VESSEL, 4, g => { const u = g.party.find(x => x.role === 'ranged')!; u.hp = u.max; heal(g, u, g.vessel!.need, true, true); }, 2);
+      expect(seq(out)).toEqual(['vesselOn', 'vesselFull']);
+      expect(seq(talkAfter('warden', { ...VESSEL, sec: 3 } as SkillEffect, 6).out)).toEqual(['vesselOn']);
+    });
+    it('과부하 표식: 걸린 사람이 딱 맞게 힐해 달라고 함', () => {
+      const { f, out } = talkAfter('warden', g => { applyDebuff(g, g.party.find(u => u.role === 'ranged')!, { name: '넘치는 빛', type: '마법', left: 10, lock: true, over: 0.5 }); }, 4);
+      expect(out.map(b => [b.sit, b.id])).toEqual([['overMark', f.party.find(u => u.role === 'ranged')!.id]]);
     });
   });
 
