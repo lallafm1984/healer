@@ -4,7 +4,7 @@ import { armorFactor } from '../src/data/armor';
 import { ALL_DIFFS, contentOf, raidSize } from '../src/data/content';
 import { MYTHIC } from '../src/data/difficulty';
 import * as E from '../src/engine';
-import { CHOIR } from '../src/engine/bosses';
+import { CHOIR } from '../src/data/bosses';
 import { addDebuff } from '../src/engine/core';
 import { doDispel } from '../src/engine/heroes';
 
@@ -38,7 +38,7 @@ describe('10인 역병 군주 악몽 (26 3-1)', () => {
     for (const [diff, n] of [['어려움', 1], ['악몽', 2]] as const) {
       const f = E.create({ encounter: 'plague', diff, seed: 3 });
       f.phase = 2;
-      f.contagion!.fire!(f);
+      f.bs.contagion.fire!(f);
       const hit = f.party.filter(u => u.debuffs.some(d => d.name === '전염')).length;
       // 두 대상이 붙어 있으면 걸리자마자 터져서 남는 사람이 없음
       const popped = f.events.some(e => /바로 터짐/.test((e as { text?: string }).text || ''));
@@ -52,7 +52,7 @@ describe('10인 역병 군주 악몽 (26 3-1)', () => {
     const f = E.create({ encounter: 'plague', diff: '악몽', seed: 1 });
     f.phase = 2; f.bossHp = f.bossMax * 0.2; steps(f, 0.1);
     expect(f.phase).toBe(3);
-    const a = f.storm!.cellsFor!(f), b = f.storm!.cellsFor!(f);
+    const a = f.bs.storm.cellsFor!(f), b = f.bs.storm.cellsFor!(f);
     expect(a.size).toBe(f.rows);
     expect(b.size).toBe(f.rows);
     expect([...a].some(i => b.has(i))).toBe(false);
@@ -98,8 +98,8 @@ describe('20인 무음 성가대 (26 4-3)', () => {
     for (let i = 0; i < 3; i++) { f.mobs[i].alive = false; f.mobs[i].hp = 0; }
     steps(f, 0.1);
     expect(f.phase).toBe(2);
-    expect(f.forte!.next).toBeLessThan(Infinity);
-    expect(f.solo!.next).toBeLessThan(Infinity);
+    expect(f.bs.forte.next).toBeLessThan(Infinity);
+    expect(f.bs.solo.next).toBeLessThan(Infinity);
   });
   it('독창: 지우면 그냥 사라지고, 끝나면 그 사람이 선 열 전체 피해', () => {
     const f = fight();
