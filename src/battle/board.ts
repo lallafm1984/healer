@@ -483,7 +483,15 @@ function glow(x: number, y: number, size: number, tint: number, alpha: number, k
 // ---------- 판 위 효과 ----------
 interface Fx { kind: 'heal' | 'hit' | 'dispel' | 'death' | 'revive'; id: number; t0: number; crit?: boolean; color?: number; seeds?: number[]; x?: number; y?: number }
 interface Float { x: number; y: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean }
-interface Bubble { id: number; text: string; t0: number }
+/** 말풍선 종류 (41·43 문서): talk 반응·잡담 · call 기믹·신호 (금테) · alert 위기 (붉은 테, 흔들림) · chat 쓰러진 사람의 파티 채팅 (회색) */
+export type BubbleKind = 'talk' | 'call' | 'alert' | 'chat';
+interface Bubble { id: number; text: string; t0: number; life: number; kind: BubbleKind }
+const BUBBLE: Record<BubbleKind, { fill: number; fillA: number; line: number; lw: number }> = {
+  talk: { fill: C.ink, fillA: 1, line: C.line, lw: 2 },
+  call: { fill: C.ink, fillA: 1, line: C.gold, lw: 2.5 },
+  alert: { fill: C.ink, fillA: 1, line: C.danger, lw: 2.5 },
+  chat: { fill: C.dead, fillA: 0.85, line: C.line, lw: 2 },
+};
 const FX_MS = 400;
 const B2 = {
   floats: [] as Float[], bubbles: [] as Bubble[], fx: [] as Fx[], disp: {} as Record<number, number>, hitFx: {} as Record<number, number>, shake: {} as Record<number, number>,
@@ -541,9 +549,10 @@ export function fxDeath(u: Unit, now: number): void {
   if (S.reducedEffects) { addBubble(u.id, '쓰러짐', now); return; }
   const p = unitPos(u); B2.fx.push({ kind: 'death', id: u.id, t0: now, color: hex(ROLE[u.role].color), x: p.x, y: p.y });
 }
-export function addBubble(id: number, text: string, now: number): void {
+/** 말풍선. life = 보이는 시간 (ms, 긴 대사는 조금 더 오래, battle/talk.ts) · kind = 테두리 종류 */
+export function addBubble(id: number, text: string, now: number, life = 1700, kind: BubbleKind = 'talk'): void {
   B2.bubbles = B2.bubbles.filter(b => b.id !== id);
-  B2.bubbles.push({ id, text, t0: now });
+  B2.bubbles.push({ id, text, t0: now, life, kind });
   if (B2.bubbles.length > 3) B2.bubbles.shift();
 }
 /** 20인 탭 확대 미리보기 0.3초 (02 3-1) */
@@ -1053,25 +1062,36 @@ export function render(now: number): void {
     pill(topG, tops, 'swipe', ex, ey - s * 0.45, label, it && it.key ? C.ink : 0x5a5b70, C.dark, fs(0.28, 12));
   }
   // 말풍선 (동시에 최대 3개, 04 10장)
-  B2.bubbles = B2.bubbles.filter(b => now - b.t0 < 1700);
+  B2.bubbles = B2.bubbles.filter(b => now - b.t0 < b.life);
   for (const b of B2.bubbles) {
     const u = F.party.find(x => x.id === b.id); if (!u) continue;
     const p = unitPos(u);
     const text = fitPartyName(b.text, Math.max(1, L.right - L.left - 16), value => measure(value, 12, FONT, '500'));
-    const a = S.reducedEffects ? 1 : Math.min(1, (1700 - (now - b.t0)) / 300);
+    const age = now - b.t0, st = BUBBLE[b.kind];
+    const a = S.reducedEffects ? 1 : Math.max(0, Math.min(1, (b.life - age) / 300));
     const label = tops.put(`bb${b.id}`, text, { size: 12, fill: C.dark, weight: '500' }, 0, 0, a);
     const textBounds = label.getBounds();
     const w = Math.max(measure(text, 12, FONT, '500'), label.width) + 14, h = Math.max(22, label.height + 3);
     let by = p.y - r - h - 6;
     if (by < L.top + 1) by = p.y + r + 6;
-    const bp = transientSpot({ x: p.x, y: by + h / 2, w: w + 2, h: h + 2 }, transientOccupied);
+    // 몸체뿐 아니라 꼬리·stroke와 위기 흔들림의 전체 이동 폭을 먼저 확보한다.
+    // 꼬리는 회피로 옮겨진 최종 위치에서 화자 쪽을 향하므로 위·아래 양쪽 여유를 둔다.
+    const tail = 5, strokePad = st.lw, shakeRange = b.kind === 'alert' && !S.reducedEffects && age < 300 ? 1.5 : 0;
+    const bp = transientSpot({ x: p.x, y: by + h / 2,
+      w: w + 2 * (strokePad + shakeRange), h: h + 2 * (tail + strokePad) }, transientOccupied);
     if (!bp) { label.visible = false; continue; }
-    const bx = bp.x - w / 2;
+    const shake = shakeRange ? Math.sin(age / 25) * shakeRange : 0;
+    const bx = bp.x - w / 2 + shake;
     by = bp.y - h / 2;
-    topG.roundRect(bx, by, w, h, 8).fill({ color: C.ink, alpha: a }).stroke({ width: 2, color: C.line, alpha: a });
-    label.position.set(bp.x - (textBounds.minX + textBounds.maxX) / 2, bp.y + 0.5 - (textBounds.minY + textBounds.maxY) / 2);
-    recordBound(`bubble-text${b.id}`, 'bubble', 'text', bp.x, bp.y + 0.5, textBounds.maxX - textBounds.minX, textBounds.maxY - textBounds.minY);
-    recordBound(`bubble${b.id}`, 'bubble', 'rect', bp.x, bp.y, w + 2, h + 2);
+    topG.roundRect(bx, by, w, h, 8).fill({ color: st.fill, alpha: a * st.fillA }).stroke({ width: st.lw, color: st.line, alpha: a });
+    // 말한 사람 칸 쪽 꼬리. strokePad는 V 꼭짓점의 miter와 끝점까지 포함한다.
+    const below = bp.y >= p.y;
+    const tx = Math.max(bx + 9, Math.min(bx + w - 9, p.x)), ty = below ? by : by + h, td = below ? -tail : tail;
+    topG.poly([tx - 4.5, ty, tx + 4.5, ty, tx, ty + td]).fill({ color: st.fill, alpha: a * st.fillA });
+    topG.moveTo(tx - 4.5, ty).lineTo(tx, ty + td).lineTo(tx + 4.5, ty).stroke({ width: st.lw, color: st.line, alpha: a });
+    label.position.set(bp.x + shake - (textBounds.minX + textBounds.maxX) / 2, bp.y + 0.5 - (textBounds.minY + textBounds.maxY) / 2);
+    recordBound(`bubble-text${b.id}`, 'bubble', 'text', bp.x + shake, bp.y + 0.5, textBounds.maxX - textBounds.minX, textBounds.maxY - textBounds.minY);
+    recordBound(`bubble${b.id}`, 'bubble', 'rect', bp.x + shake, bp.y + td / 2, w + 2 * strokePad, h + tail + 2 * strokePad);
     transientOccupied.push(bp);
   }
 

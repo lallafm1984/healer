@@ -23,12 +23,15 @@ import {
 } from './core';
 import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
+import { createTalk } from './talk';
 import {
   bossHealNum, bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
   resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
 } from './hud';
 
 const seed = () => (Math.random() * 1e9) | 0;
+/** 파티원 말풍선 감독 (41) */
+const talk = createTalk();
 const curKey = () => S.run!.segs[S.run!.idx] as EncounterKey;
 /** 처음부터 다시 (같은 파티, 같은 콘텐츠) */
 function resetRun(): void {
@@ -60,6 +63,7 @@ function startBattle(guideSec = 0): void {
   // 전투 시작 카운트다운 3초 (19 4장 6번). 자동 힐러 구경은 바로 시작
   ui.pullLeft = S.auto ? 0 : 3; ui.pullShown = null;
   $('pull').hidden = !(ui.pullLeft > 0);
+  talk.start(F, { seg: R.idx, segN: R.segs.length, cont: R.cont || 0, affix: !!S.affixes?.length, chal: !!S.chal }, performance.now());
   B.armed = null; B.paused = false; B.overShown = false; B.beacon = false;
   Object.assign(ui, {
     guideSec, skillTips: 0, lowFlags: {}, tickSec: null, busterHint: false, swipes: {}, swipeCancel: 0, swipeEmpty: 0,
@@ -485,7 +489,7 @@ function handleEvents(now: number): void {
         fxHeal(u, ev.eff, ev.amt, ev.crit, now);
         if (ev.crit) critSnd = true; else healSnd = true;
         break;
-      case 'bark': if (ev.text) addBubble(ev.id, ev.text, now); break;
+      case 'bark': break; // 말풍선은 아래 talk.frame이 상황에 맞는 대사로 (41)
       case 'sound':
         Snd.play(ev.name);
         if (ev.name === 'death') vibe(90, true);
@@ -526,6 +530,7 @@ function handleEvents(now: number): void {
       case 'shake': if (u) { fxShake(u, now); vibe([20, 40, 20]); } break;
     }
   }
+  for (const b of talk.frame(F, now, { pulling: ui.pullLeft > 0, paused: B.paused })) addBubble(b.id, b.text, now, b.life, b.kind);
   if (critSnd) Snd.play('crit');
   else if (healSnd && now - ui.lastHealSnd > 90) { Snd.play('heal'); ui.lastHealSnd = now; }
   F.events.length = 0;

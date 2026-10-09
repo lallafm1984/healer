@@ -132,20 +132,20 @@ export function doReact(f: Fight, u: Unit): void {
   if (!tel) return;
   if (r.wrong) {
     const free = f.cells.filter(c => !c.unit && !c.block && tel.cells.has(c.i));
-    if (free.length) { moveTo(f, u, free[Math.floor(f.rng() * free.length)]); bark(f, u, u.p.barks![1], true); }
+    if (free.length) { moveTo(f, u, free[Math.floor(f.rng() * free.length)]); bark(f, u, u.p.barks![1], true, 'wrongStep'); }
     return;
   }
-  if (u.p.stubborn && zoneThreat(f, tel) < u.p.stubborn * u.max) { u.ignoreZone = tel.id; bark(f, u, u.p.barks![0]); return; }
-  if (u.p.brave && u.hp / u.max >= u.p.brave) { u.retryAt = f.t + 1; bark(f, u, u.p.barks![0]); return; }
+  if (u.p.stubborn && zoneThreat(f, tel) < u.p.stubborn * u.max) { u.ignoreZone = tel.id; bark(f, u, u.p.barks![0], false, 'stubborn'); return; }
+  if (u.p.brave && u.hp / u.max >= u.p.brave) { u.retryAt = f.t + 1; bark(f, u, u.p.barks![0], false, 'brave'); return; }
   const rate = dodgeRate(f, u);
   const impact = 'impact' in tel ? tel.impact : 0;
   if (f.rng() < rate) {
     const c = pickCell(f, u, { safe: true, extra: tel.cells });
-    if (c) { moveTo(f, u, c); if (u.pers === '신중파') bark(f, u); }
-    else { bark(f, u, '피할 곳이 없어!', true); u.retryAt = f.t + 1.5; }
+    if (c) { moveTo(f, u, c); if (u.pers === '신중파') bark(f, u, null, false, 'dodge'); }
+    else { bark(f, u, '피할 곳이 없어!', true, 'noEscape'); u.retryAt = f.t + 1.5; }
   } else {
     u.mistakeUntil = Math.max(f.t, (impact || f.t) - 0.5) + 0.5;
     u.retryAt = (impact || f.t) + 1.5 + f.rng() * 2.5;
-    bark(f, u, null, true);
+    bark(f, u, null, true, 'mistake'); // 실수 신호 (04 6-1)
   }
 }
