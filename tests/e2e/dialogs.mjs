@@ -45,6 +45,8 @@ export default async function dialogs(url, shots) {
       ok(lockedGear === await page.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('healer.save')).gear)), `${label} 닫기는 저장된 장비 상태를 되돌리지 않음`);
 
       await page.click(charOpen); await page.clock.runFor(50);
+      // 시트가 올라오는 중(sheetUp)에 재면 소수점 이동 때문에 높이가 43.99px로 잡힌다. 다 올라온 뒤에 잰다.
+      await page.locator('#s-char .c7-gsheet').evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
       await page.locator('#s-char .c7-gsheet').evaluate(el => { el.scrollTop = el.scrollHeight; });
       const closeRect = await page.locator('#s-char .c7-dialog-close').boundingBox();
       ok(closeRect && closeRect.y >= 70 && closeRect.y + closeRect.height <= viewport.height && closeRect.height >= 44, `${label} 스크롤 후에도 44px 닫기 노출`);
