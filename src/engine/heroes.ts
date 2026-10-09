@@ -9,6 +9,7 @@ import { hexDist } from './board';
 import { cellOf, emit, heal, living, onDebuffEnd } from './core';
 import { reviveUnit } from './items';
 import { areaRadius } from './talents';
+import { aoeCount, aoeDone, guardSec, raidSec, specDispel, sv, twin, under } from './specials';
 import type { Fight, Hot, Unit } from './types';
 
 /** 그 직업 패시브를 배웠는지 (25 3장: 직업마다 Lv 4·10) */
@@ -38,11 +39,18 @@ export function heroHeal(f: Fight, u: Unit, amt: number): number {
   if (f.hero === 'druid' && heroPassive(f, '뿌리 깊음') && hotCount(u) >= 2) m = 1.1;
   if (f.hero === 'paladin' && heroPassive(f, '굳건한 손') && u.role === 'tank') m = 1.1;
   const done = heal(f, u, amt * m, true);
-  if (f.hero === 'paladin' && f.beacon != null && f.beacon !== u.id) {
-    const b = f.party.find(x => x.id === f.beacon);
-    if (b && b.alive) heal(f, b, amt * m * BEACON.share, false);
+  if (f.hero === 'paladin' && f.beacon != null) {
+    const share = BEACON.share + sv(f, 'bigBeacon'); // 큰 봉화 (42 성기 01)
+    const b = f.beacon !== u.id ? f.party.find(x => x.id === f.beacon) : undefined;
+    if (b && b.alive) heal(f, b, amt * m * share, false);
+    if (sv(f, 'secondBeacon')) { const b2 = secondBeacon(f); if (b2 && b2 !== u) heal(f, b2, amt * m * share * 0.5, false); } // 두 번째 봉화 (42 성기 02)
   }
   return done;
+}
+
+/** 두 번째 봉화 대상: 봉화가 아닌 다른 탱커, 없으면 나 (봉화가 나면 없음) */
+function secondBeacon(f: Fight): Unit | undefined {
+  return f.party.find(x => x.alive && x.role === 'tank' && x.id !== f.beacon) ?? (f.me.alive && f.me.id !== f.beacon ? f.me : undefined);
 }
 
 /** 봉화 지정 (휠 가운데를 누르고 칸 탭). 전투 중 바꾸기는 10초 대기 */
@@ -69,7 +77,13 @@ export function doDispel(f: Fight, u: Unit): void {
   emit(f, { type: 'sound', name: 'dispel' });
   emit(f, { type: 'dispel', id: u.id, trap: !!d.trap });
   onDebuffEnd(f, u, d, true);
+  if (f.sp) specDispel(f, u, d);
 }
+
+/** 나무껍질 피해 감소 (굵은 껍질 42 드루 05 더함). 지속 힐 배율이 나무껍질인지 알아볼 때도 같은 값 */
+export const barkCut = (f: Fight): number => BARK.cut + sv(f, 'thickBark');
+/** 성기사 신성한 힘 최대 (넘치는 신성한 힘 42 성기 05) */
+export const powerMax = (f: Fight): number => 3 + sv(f, 'morePower');
 
 const around = (f: Fight, u: Unit, r = 1) => { const c = cellOf(f, u); return living(f).filter(v => hexDist(cellOf(f, v), c) <= r); };
 
@@ -90,15 +104,17 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
     emit(f, { type: 'sound', name: 'chime' });
   } else if (key === 'wildflower') {
     const vs = around(f, u, areaRadius(f, 'wildflower')); // 20인은 2칸 (26 9-1)
+    if (f.sp) aoeCount(f, vs.length);
     for (const v of vs) putHot(v, 'wildflower', { sec: 7, every: 2, amts: [70, 45, 30, 15] });
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'natureCleanse') {
     doDispel(f, u);
   } else if (key === 'bark') {
-    u.redu = BARK.sec; u.reduCut = BARK.cut;
+    u.redu = guardSec(f, BARK.sec); u.reduCut = barkCut(f); // 수호의 깃 · 굵은 껍질 (42)
+    if (f.sp) twin(f, u, v => { v.redu = guardSec(f, BARK.sec) / 2; v.reduCut = barkCut(f); }); // 쌍둥이 방패
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'rebirth') {
-    if (u.alive || !reviveUnit(f, u, REBIRTH.hp)) { emit(f, { type: 'msg', text: '환생 실패: 되살릴 빈 칸 없음' }); return; }
+    if (u.alive || !reviveUnit(f, u, REBIRTH.hp + sv(f, 'quickRebirth'))) { emit(f, { type: 'msg', text: '환생 실패: 되살릴 빈 칸 없음' }); return; } // 빠른 환생 (42 드루 08)
     f.rebirthUsed = true;
     emit(f, { type: 'msg', text: `환생: ${u.nick}` });
   }
@@ -109,30 +125,35 @@ function paladin(f: Fight, key: SkillKey, u: Unit): void {
   const sk = SKILLS[key];
   if (key === 'holyLight' || key === 'holyStrike') {
     heroHeal(f, u, sk.amt!);
-    f.power3 = Math.min(3, f.power3 + 1);
+    f.power3 = Math.min(powerMax(f), f.power3 + 1);
   } else if (key === 'oath') {
     const n = Math.max(1, f.power3);
     f.power3 = 0;
     putHot(u, 'oath', { sec: 4 * n, every: 2, total: sk.amt! * n });
     u.lastHeal = f.t; if (u.sulking) u.sulking = false;
-    if (n === 3 && heroPassive(f, '헌신')) f.mana = Math.min(100, f.mana + 2);
+    if (n >= 3 && heroPassive(f, '헌신')) f.mana = Math.min(100, f.mana + 2);
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'lightWave') {
     f.power3 = 0;
-    const vs = around(f, u);
+    const r = 1 + sv(f, 'wideWave'); // 퍼지는 파도 (42 성기 06)
+    const vs = around(f, u, r);
+    if (f.sp) aoeCount(f, vs.length);
     for (const v of vs) heroHeal(f, v, sk.amt!);
+    if (f.sp) aoeDone(f, u.cell, sk.amt!, r);
     if (heroPassive(f, '헌신')) f.mana = Math.min(100, f.mana + 2);
     emit(f, { type: 'sound', name: 'chime' });
   } else if (key === 'handCleanse') {
     doDispel(f, u);
   } else if (key === 'sacrifice') {
-    u.sacr = 12;
+    u.sacr = guardSec(f, 12); // 수호의 깃 (42 보호 07)
+    if (f.sp) twin(f, u, v => { v.sacr = Math.max(v.sacr, guardSec(f, 12) / 2); }); // 쌍둥이 방패
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'sanctuary') {
     const c = cellOf(f, u);
-    f.sanctuary = { cells: new Set(f.cells.filter(x => hexDist(x, c) <= 1).map(x => x.i)), end: f.t + SANCTUARY.sec };
+    const sec = raidSec(f, 'sanctuary', SANCTUARY.sec); // 길어진 노래 · 긴 성역 (42)
+    f.sanctuary = { cells: new Set(f.cells.filter(x => hexDist(x, c) <= 1).map(x => x.i)), end: f.t + sec };
     emit(f, { type: 'sound', name: 'chime' });
-    emit(f, { type: 'msg', text: `빛의 성역: ${SANCTUARY.sec}초` });
+    emit(f, { type: 'msg', text: `빛의 성역: ${sec}초` });
   } else if (key === 'handGuard') {
     u.immune = HAND_GUARD.sec;
     emit(f, { type: 'sound', name: 'chime' });
@@ -156,7 +177,7 @@ export function heroTick(f: Fight, dt: number): void {
   for (const u of living(f)) {
     if (!s.cells.has(u.cell)) { if (u.reduCut === SANCTUARY.cut) u.redu = 0; continue; }
     u.redu = Math.max(u.redu, dt * 2); u.reduCut = SANCTUARY.cut;
-    heal(f, u, SANCTUARY.hps * dt, false);
+    if (f.sp) under('sanctuary', false, () => heal(f, u, SANCTUARY.hps * dt, false)); else heal(f, u, SANCTUARY.hps * dt, false);
   }
 }
 
@@ -175,7 +196,7 @@ export function heroChannelTick(f: Fight): void {
 
 /** 전투 시작 때 직업별 안내 (전투 화면 위쪽 문구) */
 export const heroRing = (f: Fight): { label: string; value: string } => {
-  if (f.hero === 'paladin') return { label: '신성한 힘', value: `${f.power3}/3` };
+  if (f.hero === 'paladin') return { label: '신성한 힘', value: `${f.power3}/${powerMax(f)}` };
   if (f.hero === 'druid') return { label: '새싹', value: String(f.party.filter(u => u.alive && u.hots.some(h => h.key === 'sprout')).length) };
   return { label: '마나', value: String(Math.floor(f.mana)) };
 };

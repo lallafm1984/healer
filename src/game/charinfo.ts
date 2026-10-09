@@ -2,7 +2,10 @@
  * 내 힐러 요약 (27 2장 로비 힐러 카드 · 4-1 캐릭터 머리 · 4-2 능력치 판).
  * 장비 점수 = 장착 장비 itemScore 합 × 10 (편성 화면 권장 장비 경고와 같은 기준). 「전투력」이라는 말은 쓰지 않는다.
  */
-import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
+import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, itemSpecs, SLOTS, slotName, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
+import { HEROES } from '../data/heroes';
+import { codexKeys, FEATURED, namedOf, SPEC_GROUPS, SPECS, specText, specValue, type CodexGroup, type SpecGroup } from '../data/specials';
+import { contentOf, type ContentKey } from '../data/content';
 import { lvPower } from '../data/progression';
 import { INT_BASE, RULES } from '../data/rules';
 import { TALENTS } from '../data/talents';
@@ -16,6 +19,53 @@ export const HEALER_HP = 550;
 export const scoreOf = (it?: GearItem | null) => Math.round(itemScore(it ?? undefined) * 10);
 /** 장착 장비 점수 합 */
 export const gearScore = () => SLOTS.reduce((a, s) => a + scoreOf(G.save.gear.equipped[s.key]), 0);
+
+/** 특수능력 · 이름 있는 장신구 이름 (도감 키 → 이름) */
+export const specName = (key: string) => SPECS[key]?.name ?? namedOf(key)?.name ?? key;
+
+/** 장비 상세 특수능력 한 줄: 묶음 (이름 있는 장신구 고유 효과는 'named') · 효과 글 · 굴림 (값 고정이면 null) · 꺼진 이유 */
+export interface SpecRow { key: string; name: string; group: SpecGroup | 'named'; badge: string; text: string; roll: number | null; off: string }
+/** 같은 특수능력을 여러 장비에 껴도 하나만 켜지는 것 (재사용 대기 · 고정 값 · 고유 효과, 42 1-3) */
+const single = (key: string) => !SPECS[key] || !!SPECS[key].cd || !!SPECS[key].fixed;
+
+/**
+ * 장비 상세의 특수능력 줄 (42 1-3 · 1-5): 고유 효과 → 굴린 줄. 다른 직업 전용이면 「사제 전용」,
+ * 낀 장비 중 같은 겹치지 않는 효과가 더 좋은 게 있으면 「겹치지 않음」 (끼고 있는 장비만)
+ */
+export function specRows(it: GearItem): SpecRow[] {
+  const hero = heroNow(), eq = G.save.gear.equipped, worn = eq[it.slot]?.id === it.id;
+  const best: Record<string, { id: number; v: number }> = {};
+  for (const s of SLOTS) {
+    const e = eq[s.key];
+    if (e) for (const o of itemSpecs(e)) if (single(o.key) && (!best[o.key] || o.v > best[o.key].v)) best[o.key] = { id: e.id, v: o.v };
+  }
+  const dup = (key: string) => (worn && single(key) && best[key] && best[key].id !== it.id ? '겹치지 않음' : '');
+  const out: SpecRow[] = [];
+  const nm = namedOf(it.named);
+  if (nm) out.push({ key: nm.key, name: nm.name, group: 'named', badge: '고유', text: specText(nm, nm.val), roll: null, off: dup(nm.key) });
+  for (const l of it.specs ?? []) {
+    const d = SPECS[l.key];
+    if (!d) continue;
+    const off = d.hero && d.hero !== hero ? `${HEROES[d.hero].name} 전용` : dup(d.key);
+    out.push({ key: d.key, name: d.name, group: d.group, badge: SPEC_GROUPS[d.group].name, text: specText(d, specValue(d.key, it.grade, l.roll)), roll: d.fixed ? null : l.roll, off });
+  }
+  return out;
+}
+
+/** 도감 한 칸 (42 1-6): 얻은 것은 이름 · 효과 (영웅 최대값), 못 얻은 것은 「?」 + 나오는 곳 힌트 */
+export interface CodexRow { key: string; got: boolean; name: string; text: string; hint: string }
+export function codexRows(g: CodexGroup): CodexRow[] {
+  const have = G.save.gear.codex;
+  return codexKeys(g).map(key => {
+    const got = have.includes(key), nm = namedOf(key);
+    if (nm) return { key, got, name: nm.name, text: specText(nm, nm.val), hint: `${nm.placeName}에서 · ${slotName(nm.slot)}` };
+    const d = SPECS[key];
+    const where = d.slots.length === SLOTS.length ? '모든 부위' : d.slots.map(slotName).join(' · ');
+    const feat = Object.keys(FEATURED).filter(p => FEATURED[p].includes(key)).map(p => contentOf(p as ContentKey).name);
+    const hint = [where, `${d.min} 이상`, d.hero ? `${HEROES[d.hero].name}로 돌 때` : '', feat.length ? `${feat.join(' · ')}에서 자주` : ''].filter(Boolean).join(' · ');
+    return { key, got, name: d.name, text: specText(d, d.fixed ? d.val : specValue(key, '영웅', 1)), hint };
+  });
+}
 
 /** 장착 평균 등급·강화 (빈칸은 0점으로 셈): 희귀 +3 → { grade: '희귀', plus: 3 } */
 export function gearAvg(): { grade: ItemGrade | null; plus: number } {

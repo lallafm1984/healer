@@ -14,7 +14,8 @@ import { itemSlots, TALENT_LEVEL } from '../data/progression';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { TALENTS, type TalentKey } from '../data/talents';
 import { heroLevelOf, type TapKey } from '../platform/storage';
-import { betterSlots, gearAvg, gearScore, isBetter, scoreOf, statParts, talentsLeft } from '../game/charinfo';
+import { betterSlots, codexRows, gearAvg, gearScore, isBetter, scoreOf, specRows, statParts, talentsLeft } from '../game/charinfo';
+import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, type CodexGroup, type SpecGroup } from '../data/specials';
 import {
   bestGearPlan, commit, enhance, equip, equipBest, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, lowGradeIds, pickTalent, salvage,
   setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleItem, toggleLock,
@@ -28,8 +29,10 @@ import { sheetDialog } from './dialog';
 type Sub = 'gear' | 'skill' | 'talent' | 'hero';
 const SUBS: { key: Sub; name: string }[] = [{ key: 'gear', name: '장비' }, { key: 'skill', name: '스킬' }, { key: 'talent', name: '특성' }, { key: 'hero', name: '직업' }];
 
-/** 아래에서 올라오는 시트: 장비 상세(back = 가방에서 열어서 닫으면 가방으로) · 가방 · 능력치 출처 · 추천 장착 확인 · 단축칸 고르기 · 특성 설명 */
-type Sheet = { k: 'item'; id: number; back?: boolean } | { k: 'bag' } | { k: 'stats' } | { k: 'rec' } | { k: 'items' } | { k: 'talent'; i: number; j: number } | null;
+/** 아래에서 올라오는 시트: 장비 상세(back = 가방에서 열어서 닫으면 가방으로) · 가방 · 특수능력 도감(닫으면 가방으로) · 능력치 출처 · 추천 장착 확인 · 단축칸 고르기 · 특성 설명 */
+type Sheet = { k: 'item'; id: number; back?: boolean } | { k: 'bag' } | { k: 'codex' } | { k: 'stats' } | { k: 'rec' } | { k: 'items' } | { k: 'talent'; i: number; j: number } | null;
+/** 도감에서 펼친 묶음 */
+let codexG: CodexGroup = 'heal';
 
 let sub: Sub = 'gear';
 /** 휠에서 고른 자리: 보기 = 설명, 바꾸기 = 첫 번째로 누른 자리 */
@@ -91,7 +94,7 @@ function render(keep = true): void {
   const nb = s.el.querySelector<HTMLElement>('.ns-body');
   if (nb && top) nb.scrollTop = top;
   const path = !sheet || sheet.k === 'talent' ? []
-    : sheet.k === 'item' ? [...(sheet.back ? ['bag'] : []), `item:${sheet.id}`] : [sheet.k];
+    : sheet.k === 'item' ? [...(sheet.back ? ['bag'] : []), `item:${sheet.id}`] : sheet.k === 'codex' ? ['bag', 'codex'] : [sheet.k];
   modal.sync(path.length ? s.el.querySelector<HTMLElement>('.sheet') : null, path);
 }
 
@@ -112,6 +115,7 @@ function sheetHtml(): string {
   const g = sub === 'gear';
   if (sheet.k === 'item') return g ? itemSheet(sheet.id) : '';
   if (sheet.k === 'bag') return g ? bagSheet() : '';
+  if (sheet.k === 'codex') return g ? codexSheet() : '';
   if (sheet.k === 'stats') return g ? statsSheet() : '';
   if (sheet.k === 'rec') return g ? recSheet() : '';
   if (sheet.k === 'items') return sub === 'skill' ? itemsSheet() : '';
@@ -256,7 +260,26 @@ function bagSheet(): string {
       ${all.length ? `<div class="c7-fcs" role="group" aria-label="가방 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div>` : ''}
       ${msg ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
       ${salvBar}${grid}
-      <div class="c7-bagf">${all.length && !salv ? '<button type="button" class="btn2" data-salvon>분해 고르기</button>' : ''}<span class="cap gmats">강화석 ${fmt(m.stone)} · 정제 강화석 ${fmt(m.refined)}</span>${fill}<button type="button" class="btn2" data-sheetx>닫기</button></div></section>`;
+      <div class="c7-bagf">${all.length && !salv ? '<button type="button" class="btn2" data-salvon>분해 고르기</button>' : ''}<span class="cap gmats">강화석 ${fmt(m.stone)} · 정제 강화석 ${fmt(m.refined)}</span>${fill}${salv ? '' : `<button type="button" class="btn2" data-codex>도감 ${codexHave(SPEC_GROUP_KEYS)}/${SPEC_KEYS.length}</button>`}<button type="button" class="btn2" data-sheetx>닫기</button></div></section>`;
+}
+
+/** 묶음들에서 얻은 칸 수 */
+const codexHave = (gs: readonly CodexGroup[]) => gs.reduce((a, g) => a + codexKeys(g).filter(k => G.save.gear.codex.includes(k)).length, 0);
+const SPEC_GROUP_KEYS = Object.keys(SPEC_GROUPS) as SpecGroup[];
+
+/** 특수능력 도감 시트 (42 1-6): 묶음 칩 (얻은 수/전체) · 칸 목록 (얻은 것 = 이름 · 효과, 아닌 것 = 「?」 + 나오는 곳) · 받은 칭호 */
+function codexSheet(): string {
+  const groups: CodexGroup[] = [...SPEC_GROUP_KEYS, 'named'];
+  const label = (g: CodexGroup) => (g === 'named' ? '고유' : SPEC_GROUPS[g].name);
+  const rows = codexRows(codexG);
+  const have = rows.filter(r => r.got).length, title = SPEC_TITLES[codexG], done = G.save.decos.includes(title);
+  const titles = groups.map(g => SPEC_TITLES[g]).filter(t => G.save.decos.includes(t));
+  return `${dim}<section class="sheet c7-bsheet c7-codex" role="dialog" aria-label="특수능력 도감">${grip}
+      <div class="c7-row"><h3 class="h-rule">특수능력 도감</h3><span class="cap">${codexHave(SPEC_GROUP_KEYS)}/${SPEC_KEYS.length} · 고유 ${codexHave(['named'])}/${NAMED.length}</span></div>
+      <div class="c7-fcs" role="group" aria-label="도감 묶음">${groups.map(g => `<button type="button" class="c7-fc" data-codexg="${g}" aria-pressed="${codexG === g}">${label(g)} <small>${codexHave([g])}/${codexKeys(g).length}</small></button>`).join('')}</div>
+      <p class="cap c7-ctitle">${done ? `칭호 「${esc(title)}」 받음` : `다 모으면 칭호 「${esc(title)}」 (${have}/${rows.length})`}</p>
+      <div class="c7-clist">${rows.map(r => `<div class="c7-spec${r.got ? '' : ' unk'}" data-g="${codexG}"><span class="c7-spg">${label(codexG)}</span><span class="c7-spt"><b>${r.got ? esc(r.name) : '?'}</b><span class="cap">${esc(r.got ? r.text : r.hint)}</span></span></div>`).join('')}</div>
+      <div class="c7-bagf">${titles.length ? `<span class="cap">받은 칭호 ${titles.map(t => `「${esc(t)}」`).join(' ')}</span>` : '<span class="cap">효과는 영웅 장비 최대값</span>'}${fill}<button type="button" class="btn2" data-sheetx>닫기</button></div></section>`;
 }
 
 /** 장비 상세 시트 (27 4-3, 시안 GearSheet27): 지금 장비와 비교 ▲▼ · 강화 · 잠금 · 분해 · 장착(착용 중이면 강화) */
@@ -276,6 +299,9 @@ function itemSheet(id: number): string {
     row(STATS[fx.stat].name, `+${pc(fx.v)}%`, `<span class="cap">${esc(kindOf(it).name)} 고정</span>`),
     ...(it.lines ?? []).map(l => row(STATS[l.stat].name, `+${pc(lineValue(it, l))}%`, `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(l.roll * 100)}%"><i style="width:${Math.round(rollFill(l.roll) * 100)}%"></i></span>`)),
   ].join('');
+  // 특수능력 (42 1-3 · 1-5): 묶음 표식 · 이름 · 효과 · 굴림 막대, 꺼진 줄은 회색 + 이유
+  const sp = specRows(it);
+  const spec = sp.length ? `<div class="c7-cmpw"><h3 class="h-rule c7-h3">특수능력<span class="rule"></span><span class="cap">${sp.length}줄</span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${s.badge}</span><span class="c7-spt"><b>${esc(s.name)}</b><span class="cap">${esc(s.text)}</span></span>${s.off ? `<span class="cap c7-spoff">${s.off}</span>` : s.roll != null ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(s.roll * 100)}%"><i style="width:${Math.round(rollFill(s.roll) * 100)}%"></i></span>` : ''}</div>`).join('')}</div>` : '';
   // 지금 장비와 비교: 둘 중 하나라도 있는 능력치만
   const cmp = STAT_KEYS.filter(k => a[k] || b[k]).map(k => row(STATS[k].name, `+${pc(a[k])}%`, updn(d1(a[k], b[k])))).join('');
   const c = enhanceCost(it), m = G.save.mats, gold = G.save.player.gold;
@@ -290,6 +316,7 @@ function itemSheet(id: number): string {
         <span class="c7-gname"><b>${esc(it.name)}${it.plus ? ` <i>+${it.plus}</i>` : ''}</b><span class="cap">${sub2}</span></span>
         <span class="c7-gscore"><span class="cap">점수</span><b>${sc}</b>${worn ? '' : updn(sc - scoreOf(cur))}</span></div>
       <div class="c7-cmpw"><h3 class="h-rule c7-h3">옵션<span class="rule"></span><span class="cap">${it.lines?.length ?? 0}줄 추가</span></h3>${own}</div>
+      ${spec}
       ${worn ? '' : `<div class="c7-cmpw"><h3 class="h-rule c7-h3">지금 장비와 비교<span class="rule"></span><span class="cap">${cmpCap}</span></h3>${cmp}</div>`}
       <div class="c7-enh"><span><b>${c ? `강화 +${it.plus} → +${c.to}` : `최대 강화 +${MAX_PLUS}`}</b><span class="cap">${costTxt}</span>${c ? `<span class="cap c7-rate">성공 ${Math.round(c.rate * 100)}%${c.rate >= 1 ? '' : c.fail < it.plus ? ` · <em class="c7-lack">실패하면 +${c.fail}${c.fail % 10 === 3 || c.fail % 10 === 6 || c.fail % 10 === 0 ? '으로' : '로'} 떨어짐</em>` : ' · 실패해도 그대로'}</span>` : ''}</span><span class="cap${lack ? ' c7-lack' : ''}">${worn ? lack : c ? '장착 뒤 강화 추천' : ''}</span></div>
       <p class="note c7-save-note" id="gearSheetSave">장착·강화·잠금은 즉시 저장됩니다.</p>
@@ -670,7 +697,7 @@ function heroListHtml(): string {
 /** 시트 닫기: 가방에서 연 장비 상세는 가방으로 돌아감, 가방을 닫으면 분해 고르기도 끝 */
 function closeSheet(): void {
   if (sheet?.k === 'bag') { salv = null; salvAsk = false; }
-  sheet = sheet?.k === 'item' && sheet.back ? { k: 'bag' } : null;
+  sheet = (sheet?.k === 'item' && sheet.back) || sheet?.k === 'codex' ? { k: 'bag' } : null;
   msg = ''; render();
 }
 
@@ -717,6 +744,9 @@ function onClick(t: HTMLElement): boolean {
     msg = r.n ? `분해: 골드 +${fmt(r.gold)} · 강화석 +${r.stone}${r.refined ? ` · 정제 강화석 +${r.refined}` : ''}` : '';
     sheet = sheet?.k === 'item' && sheet.back ? { k: 'bag' } : null; render(); return true;
   }
+  if (t.closest('[data-codex]')) { sheet = { k: 'codex' }; msg = ''; render(); return true; }
+  const cg = t.closest<HTMLElement>('[data-codexg]');
+  if (cg) { codexG = cg.dataset.codexg as CodexGroup; render(); return true; }
   const bf = t.closest<HTMLElement>('[data-bfilter]');
   if (bf) { bagFilter = bf.dataset.bfilter as BagFilter; render(); return true; }
   if (t.closest('[data-bsort]')) { bagSort = SORTS[bagSort].next; render(); return true; }

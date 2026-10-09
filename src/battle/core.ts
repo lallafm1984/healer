@@ -96,6 +96,8 @@ export interface StartOptions {
   hero?: HeroKey;
   /** 사제 특성: 단마다 고른 칸 (06 6장) */
   talents?: (number | null)[];
+  /** 착용 장비 특수능력 값 (42). 없으면 특수능력 없음 */
+  specs?: Record<string, number>;
   /** 가방에 있는 소비 아이템 (19 11장). 없으면 제한 없음 (튜토리얼·시험) */
   stock?: Partial<Record<ItemKey, number>>;
   /** 어픽스 (07 3장, 13 3-3) */
@@ -120,7 +122,7 @@ export interface Run {
 export const S = {
   diff: '보통', gearStats: null as GearStats | null, level: 100, heroLv: undefined as number | undefined, stageLv: undefined as number | undefined,
   party: null as RosterEntry[] | null, items: [] as ItemKey[], slots: 4,
-  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, compactSkills: false, reducedEffects: false, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined, stock: undefined as Partial<Record<ItemKey, number>> | undefined,
+  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, compactSkills: false, reducedEffects: false, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined, specs: undefined as Record<string, number> | undefined, stock: undefined as Partial<Record<ItemKey, number>> | undefined,
   affixes: undefined as AffixKey[] | undefined, bossMult: undefined as { hp: number; dmg: number } | undefined, limit: undefined as number | undefined, chal: 0,
   layout: { ...DEFAULT_LAYOUT } as Layout,
   run: null as Run | null, onEnd: null as ((r: BattleResult) => void) | null, coach: null as CoachKey | null,

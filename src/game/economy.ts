@@ -14,7 +14,7 @@ import {
   CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, WEEKLY, WEEKLY_LV, WEEKLY_N, type MissionDef, type RunEvent,
 } from '../data/missions';
 import { addXp, clearGold, xpToNext } from '../data/progression';
-import { newDaily, newWeekly, topLevel, type MissionSave, type SaveData } from '../platform/storage';
+import { newDaily, newWeekly, noteSpecs, topLevel, type MissionSave, type SaveData } from '../platform/storage';
 import { dayKey, daysBetween, seasonOf, weekKey } from './clock';
 
 // ---------- 리셋 ----------
@@ -105,7 +105,7 @@ export const missionReady = (s: MissionSave) => !s.got && s.n >= defOf(s.key).ne
 /** 이 레벨 「클리어 골드 1판」 (보통 A) */
 export const runGold = (lv: number) => clearGold(lv, '보통', 'A');
 
-export interface Gain { gold?: number; stone?: number; refined?: number; crystal?: number; shards?: number; ticket?: number; pass?: number; items?: GearItem[]; deco?: string }
+export interface Gain { gold?: number; stone?: number; refined?: number; crystal?: number; shards?: number; ticket?: number; pass?: number; items?: GearItem[]; deco?: string; /** 처음 얻은 특수능력 (42 1-6) */ newSpecs?: string[] }
 
 function give(save: SaveData, g: Gain, now: number): Gain {
   save.player.gold += g.gold || 0;
@@ -115,6 +115,7 @@ function give(save: SaveData, g: Gain, now: number): Gain {
   save.wallet.shards = Math.min(SHARD_MAX, save.wallet.shards + (g.shards || 0));
   save.wallet.ticket += g.ticket || 0;
   for (const it of g.items || []) save.gear.bag.push(it);
+  if (g.items?.length) g.newSpecs = noteSpecs(save, g.items);
   if (g.deco && !save.decos.includes(g.deco)) save.decos.push(g.deco);
   if (g.pass) g.pass = addPassXp(save, g.pass, now);
   return g;
@@ -148,7 +149,7 @@ export function claimChest(save: SaveData, r: () => number, now: number, double 
   } else if (st.today) save.daily.chest = true;
   else save.daily.banked--;
   const lv = topLevel(save);
-  const it = rollItem(r, chestDiff(lv), 'A', lv, save.nextId++);
+  const it = rollItem(r, chestDiff(lv), 'A', lv, save.nextId++, { hero: save.hero });
   if (!double) onAct(save, 'chest');
   return give(save, { gold: runGold(lv), stone: CHEST_REWARD.stone, pass: double ? 0 : PASS_GAIN.chest, items: [it] }, now);
 }
@@ -192,7 +193,7 @@ export function claimChalChest(save: SaveData, r: () => number, now: number): Ga
   const items = c.grades.map((g, i) => {
     const slot = SLOTS[Math.floor(r() * SLOTS.length)].key;
     const grade: ItemGrade = i === 0 && lv >= LEGEND_LEVEL && r() < c.legend ? '전설' : g;
-    return makeItem(r, slot, grade, save.nextId++);
+    return makeItem(r, slot, grade, save.nextId++, undefined, { hero: save.hero });
   });
   return give(save, { gold: c.goldRuns * runGold(lv), items, pass: PASS_GAIN.challenge }, now);
 }
@@ -253,8 +254,9 @@ export function exchangeMerit(save: SaveData, slot: SlotKey, r: () => number = M
   if (save.wallet.merit < MERIT_GEAR_COST) return `공훈 부족 (${MERIT_GEAR_COST} 필요)`;
   save.wallet.merit -= MERIT_GEAR_COST;
   const g: ItemGrade = '영웅';
-  const it = makeItem(r, slot, g, save.nextId++);
+  const it = makeItem(r, slot, g, save.nextId++, undefined, { hero: save.hero });
   save.gear.bag.push(it);
+  noteSpecs(save, [it]);
   return it;
 }
 

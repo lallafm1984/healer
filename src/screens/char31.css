@@ -508,3 +508,29 @@
 /* 추가 옵션 굴림 막대 (34 6-3): 최소 굴림 = 빈 막대, 최대 = 꽉 찬 막대 */
 #s-char .c7-roll { display: inline-block; width: 44px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); overflow: hidden; justify-self: end; align-self: center; }
 #s-char .c7-roll i { display: block; height: 100%; border-radius: 3px; background: var(--gi, #8BEA9C); }
+/* 특수능력 줄 (42 1-3 · 1-5): 묶음 표식 · 이름 · 효과 · 굴림 막대. 회색 = 겹치지 않음 · 다른 직업 전용 */
+#s-char .c7-spec { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 0; border-top: 1px solid var(--panel-2); }
+#s-char .c7-spg { flex: none; min-width: 34px; padding: 2px 6px; border: 1px solid var(--spc, #FFD27A); border-radius: 9px; font-size: 11px; font-weight: 700; text-align: center; color: var(--spc, #FFD27A); }
+#s-char .c7-spt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#s-char .c7-spt b { font-size: 14px; font-weight: 700; }
+#s-char .c7-spt .cap { font-size: 12px; line-height: 1.35; }
+#s-char .c7-spec.off { opacity: 0.45; }
+#s-char .c7-spoff { flex: none; font-size: 11px; }
+#s-char .c7-spec[data-g="heal"] { --spc: #8BEA9C; }
+#s-char .c7-spec[data-g="proc"] { --spc: #FFB86B; }
+#s-char .c7-spec[data-g="guard"] { --spc: #9CC8FF; }
+#s-char .c7-spec[data-g="mana"] { --spc: #7FB2FF; }
+#s-char .c7-spec[data-g="dispel"] { --spc: #C9A2FF; }
+#s-char .c7-spec[data-g="cd"] { --spc: #FFE07A; }
+#s-char .c7-spec[data-g="ally"] { --spc: #FF9DB0; }
+#s-char .c7-spec[data-g="gimmick"] { --spc: #8FE3D9; }
+#s-char .c7-spec[data-g="hero"] { --spc: #F2C46B; }
+#s-char .c7-spec[data-g="named"] { --spc: #FF8A3D; }
+/* 특수능력 도감 (42 1-6): 묶음 칩 · 칸 목록 (못 얻은 칸 = 「?」 + 나오는 곳) */
+#s-char .c7-codex .c7-fc small { margin-left: 4px; font-weight: 400; color: var(--mute); }
+#s-char .c7-codex .c7-fc[aria-pressed="true"] small { color: inherit; }
+#s-char .c7-ctitle { margin: 0; }
+#s-char .c7-clist { display: flex; flex-direction: column; }
+#s-char .c7-spec.unk .c7-spg { border-style: dashed; opacity: 0.6; }
+#s-char .c7-spec.unk b { color: var(--mute); }
+#s-char .c7-codex .c7-bagf .cap { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -1,6 +1,7 @@
 import { hexDist } from './board';
 import { bark, cellOf, living } from './core';
 import { abMoved, dodgeMods, moveMods, reactMods } from './abilities';
+import { sv } from './specials';
 import type { Cell, Fight, Role, Telegraph, Unit, Zone } from './types';
 
 export type Zone3 = 'front' | 'mid' | 'back';
@@ -70,6 +71,7 @@ export function moveTo(f: Fight, u: Unit, c: Cell | null): boolean {
   let time = 0.4 * Math.max(1, hexDist(from, c));
   if (u.cls === 'rogue') time *= 0.75;
   if (u.mods.length) time *= moveMods(u); // 치타의 상·돌진
+  if (f.sp && !u.me) time *= 1 - sv(f, 'march'); // 신나는 행진 (42 지원 07)
   c.unit = u;
   u.moving = { from: from.i, to: c.i, left: time, total: time };
   return true;
@@ -93,6 +95,7 @@ export function scheduleReactions(f: Fight, tel: Telegraph): void {
     else if (u.cls === 'mage') rt += 0.2;
     rt *= u.senseReact; // 눈치 자질 (17 9-1)
     if (u.mods.length) rt *= reactMods(u); // 기합·매의 눈
+    if (f.sp && !u.me) rt = Math.max(0.1, rt - sv(f, 'quickPeer')); // 눈치 빠른 동료 (42 지원 09)
     if (inZ) {
       let at = f.t + rt;
       if (u.p.greedy) at = Math.max(at, tel.impact - 0.3);

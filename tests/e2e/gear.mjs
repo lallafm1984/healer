@@ -33,7 +33,7 @@ export default async function gear(url, shots) {
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   ok((await page.locator('#s-char .c7-set, #s-char .c7-setdot, #s-char .c7-boxes, #s-char .c7-noset').count()) === 0 && !/세트|순례자/.test(await text('#s-char')), '세트 없음: 세트 깃발·세트 표시 없음, 옛 세트 장비 이름도 안 보임');
   ok(/축복받은 두건/.test(await page.getAttribute('#s-char .gtile[data-gitem="101"]', 'aria-label')) && !('set' in (await save()).gear.equipped.head), '옛 세트 장비 = 등급 이름 장비 (저장에서도 세트 표시 빠짐)');
-  ok(/장비 점수\s*83/.test(await text('#s-char .c7-plq')) && (await page.locator('#s-char .c7-stat').count()) === 6, '받침대 이름표 장비 점수 83 (희귀 31 · 희귀 31 · 고급 21: 등급 + 옛 장비 이전 때 굴린 추가 옵션), 능력치 판 6칸');
+  ok(/장비 점수\s*85/.test(await text('#s-char .c7-plq')) && (await page.locator('#s-char .c7-stat').count()) === 6, '받침대 이름표 장비 점수 85 (희귀 32 · 희귀 32 · 고급 21: 등급 + 옛 장비 이전 때 굴린 추가 옵션 · 특수능력), 능력치 판 6칸');
 
   // ---- 받침대 좌우 장비 칸 ----
   const t101 = await text('#s-char .gtile[data-gitem="101"]');
@@ -55,13 +55,24 @@ export default async function gear(url, shots) {
   ok(await page.getAttribute('#s-char .c7-bag:first-child', 'data-gitem') === '203', '새것순 = 최근 장비 먼저');
   await page.click('#s-char [data-bsort]'); await page.clock.runFor(50);
   await page.screenshot({ path: `${shots}/gear_list.png` });
+  // ---- 특수능력 도감 (42 1-6) ----
+  ok(/도감 3\/118/.test(await text('#s-char [data-codex]')), '가방 아래 「도감 3/118」 (옛 장비 이전 때 굴린 특수능력 3개)');
+  await page.click('#s-char [data-codex]'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-char .c7-codex') && (await page.locator('#s-char [data-codexg]').count()) === 10 && (await page.locator('#s-char .c7-codex .c7-spec').count()) === 16, '도감 = 묶음 칩 10개 (9묶음 + 고유), 치유 16칸');
+  ok((await page.locator('#s-char .c7-codex .c7-spec.unk').count()) === 16 && /다 모으면 칭호/.test(await text('#s-char .c7-codex')), '못 얻은 칸 = 「?」 + 나오는 곳, 칭호 안내');
+  await page.click('#s-char [data-codexg="dispel"]'); await page.clock.runFor(50);
+  ok(/해독초/.test(await text('#s-char .c7-codex')) && (await page.locator('#s-char .c7-codex .c7-spec:not(.unk)').count()) === 1, '해제 묶음: 얻은 「해독초」는 이름 · 효과');
+  await page.screenshot({ path: `${shots}/gear_codex.png` });
+  await closeSheet();
+  ok(await page.isVisible('#s-char .c7-bsheet') && !(await page.isVisible('#s-char .c7-codex')), '도감을 닫으면 가방으로');
   await closeSheet();
 
   // ---- 상세 시트 · 강화 ----
   await page.click('#s-char .gtile[data-gitem="101"]'); await page.clock.runFor(50);
   let sh = await text('#s-char .c7-gsheet');
   ok(await page.isVisible('#s-char .c7-gsheet') && /\+0 → \+1/.test(sh) && /골드 10/.test(sh) && /가진 것 8/.test(sh) && /성공 100%/.test(sh) && (await text('#s-char .c7-gsheet .c7-cta')).trim() === '강화', '착용 장비 누르면 아래 시트: 강화 비용·가진 강화석·성공 확률, 주 버튼 「강화」');
-  ok(/주 능력치/.test(sh) && /두건 고정/.test(sh) && (await page.locator('#s-char .c7-gsheet .c7-roll').count()) === 2, '상세 시트 옵션: 주 능력치 · 종류 고정 옵션 · 추가 옵션 2줄 (굴림 막대)');
+  ok(/주 능력치/.test(sh) && /두건 고정/.test(sh) && (await page.locator('#s-char .c7-gsheet .c7-cmp .c7-roll').count()) === 2, '상세 시트 옵션: 주 능력치 · 종류 고정 옵션 · 추가 옵션 2줄 (굴림 막대)');
+  ok((await page.locator('#s-char .c7-gsheet .c7-spec').count()) === 1 && /특수능력/.test(sh) && /해독초/.test(sh), '옛 희귀 장비 = 특수능력 1줄 (옛 장비 이전 때 굴림, 42 1-1): 묶음 표식 · 이름 · 효과');
   // 확률 강화 (34 6-5): 굴림을 고정해서 누름 (0 = 성공, 0.99 = 실패)
   const enh = async r => { await page.evaluate(v => { window.__rnd = Math.random; Math.random = () => v; }, r); await page.click('#s-char [data-enh="101"]'); await page.clock.runFor(50); await page.evaluate(() => { Math.random = window.__rnd; }); };
   await enh(0);
@@ -114,7 +125,7 @@ export default async function gear(url, shots) {
 
   // ---- 추천 장착 ----
   await page.click('#s-char [data-rec]'); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-char .c7-rsheet') && /목걸이/.test(await text('#s-char .c7-rsheet')) && /85 → 116/.test(await text('#s-char .c7-rsheet')), '추천 장착 = 바뀌는 칸을 먼저 보여 줌 (장비 점수 → 바꾼 뒤)');
+  ok(await page.isVisible('#s-char .c7-rsheet') && /목걸이/.test(await text('#s-char .c7-rsheet')) && /87 → 119/.test(await text('#s-char .c7-rsheet')), '추천 장착 = 바뀌는 칸을 먼저 보여 줌 (장비 점수 → 바꾼 뒤)');
   await page.click('#s-char [data-recgo]'); await page.clock.runFor(50);
   sv = await save();
   ok(sv.gear.equipped.neck?.id === 203 && sv.gear.bag.length === 0, '「바꾸기」 = 목걸이 장착');

@@ -3,8 +3,9 @@
  * 지금은 localStorage. 앱에서 OS가 웹 저장소를 지울 위험이 보이면 Capacitor Preferences로 바꾼다.
  */
 import type { DiffName } from '../data/difficulty';
-import { EXTRA_LINES, itemName, kindOf, rollLines, type Equipped, type GearItem } from '../data/equipment';
+import { EXTRA_LINES, itemName, kindOf, rollLines, rollSpecs, specCount, specKeysOf, SLOTS, type Equipped, type GearItem } from '../data/equipment';
 import { rngFrom } from '../engine/rng';
+import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import type { GuildMember, PostTier } from '../data/guild';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { STARTER_BAG } from '../data/economy';
@@ -12,7 +13,7 @@ import type { ItemKey } from '../data/items';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
@@ -143,8 +144,11 @@ export interface SaveData {
   settings: Settings;
   /** level·xp = 지금 직업 레벨 (34 3장, 다른 직업 것은 heroes에). gold는 계정 */
   player: { level: number; xp: number; gold: number };
-  /** seen = 캐릭터 › 장비에서 마지막으로 본 장비 id (이보다 큰 id = 새것 점, 27 4-2). 옛 저장엔 없어서 migrate가 채움 */
-  gear: { equipped: Equipped; bag: GearItem[]; seen?: number };
+  /**
+   * seen = 캐릭터 › 장비에서 마지막으로 본 장비 id (이보다 큰 id = 새것 점, 27 4-2). 옛 저장엔 없어서 migrate가 채움.
+   * codex = 얻은 적 있는 특수능력 · 이름 있는 장신구 키 (도감, 42 1-6). v8부터, 옛 저장은 가진 장비로 채움
+   */
+  gear: { equipped: Equipped; bag: GearItem[]; seen?: number; codex: string[] };
   /** 강화 재료 (12 1장): 강화석 (+1~+5), 정제 강화석 (+6~+10) */
   mats: { stone: number; refined: number };
   /** 소비 아이템 단축칸 구성 */
@@ -204,7 +208,7 @@ export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'r
 export function newSave(now = Date.now()): SaveData {
   return {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
-    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0 }, mats: { stone: 0, refined: 0 }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1, tut: 0,
+    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0, codex: [] }, mats: { stone: 0, refined: 0 }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1, tut: 0,
     hero: 'priest', heroes: {}, guild: newGuild(),
     wallet: { crystal: 0, shards: 0, merit: 0, ticket: 0 }, bag: { ...STARTER_BAG }, daily: newDaily(), weekly: newWeekly(),
     pass: { season: 0, xp: 0, premium: false, free: [], prem: [] }, member: 0, chalOpen: 1, decos: [], chalChest: 0, firstBuy: [],
@@ -222,10 +226,7 @@ export function migrate(raw: unknown): SaveData {
     settings: obj(o.settings, base.settings),
     player: obj(o.player, base.player),
     // 27: 새것 점 기준 (옛 저장은 지금 가진 장비를 다 본 것으로)
-    gear: {
-      equipped: upgradeEq(obj(o.gear?.equipped, {})), bag: Array.isArray(o.gear?.bag) ? o.gear!.bag.map(upgradeItem) : [],
-      seen: typeof o.gear?.seen === 'number' ? o.gear.seen : (typeof o.nextId === 'number' ? o.nextId : base.nextId) - 1,
-    },
+    gear: gearOf(o, HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest', base.nextId),
     mats: obj(o.mats, base.mats),
     items: Array.isArray(o.items) ? o.items : base.items,
     clears: obj(o.clears, {}),
@@ -253,10 +254,11 @@ export function migrate(raw: unknown): SaveData {
 }
 
 /**
- * 옛 장비를 지금 모양으로: 세트 표시를 빼고 (세트 장비 제거), 종류가 없으면 그 부위 첫 종류 + 등급만큼 추가 옵션 굴림 (v7, 34 12장 6번).
+ * 옛 장비를 지금 모양으로: 세트 표시를 빼고 (세트 장비 제거), 종류가 없으면 그 부위 첫 종류 + 등급만큼 추가 옵션 굴림 (v7, 34 12장 6번),
+ * 특수능력 줄이 없으면 등급만큼 굴림 (v8, 42 1-1, 직업 전용은 그 저장의 지금 직업 것).
  * 굴림은 장비 id로 정해서 몇 번 불러도 같음. 이름은 등급 말 + 종류
  */
-function upgradeItem(it: GearItem): GearItem {
+function upgradeItem(it: GearItem, hero: HeroKey): GearItem {
   if (!it || typeof it !== 'object') return it;
   const c: GearItem & { set?: unknown } = { ...it };
   delete c.set;
@@ -265,10 +267,39 @@ function upgradeItem(it: GearItem): GearItem {
     c.kind = k.key;
     c.lines = rollLines(rngFrom(Math.imul(c.id || 1, 0x2545f491) ^ 0x6a09e667), EXTRA_LINES[c.grade] ?? 1, k.fixed);
   }
+  if (!Array.isArray(c.specs)) {
+    const r = rngFrom(Math.imul(c.id || 1, 0x9e3779b1) ^ 0x3c6ef372);
+    c.specs = rollSpecs(r, c.slot, c.grade, specCount(r, c.grade), { hero });
+  }
   c.name = itemName(c);
   return c;
 }
-const upgradeEq = (eq: Equipped): Equipped => Object.fromEntries(Object.entries(eq).map(([k, it]) => [k, upgradeItem(it)]));
+
+/** 장비 칸 (v8: 옛 장비 특수능력 굴림, 도감에 가진 장비의 특수능력을 채움) */
+function gearOf(o: Partial<SaveData>, hero: HeroKey, nextId: number): SaveData['gear'] {
+  const g = o.gear;
+  const equipped: Equipped = {};
+  if (g?.equipped && typeof g.equipped === 'object') for (const [k, it] of Object.entries(g.equipped)) if (it) equipped[k as keyof Equipped] = upgradeItem(it, hero);
+  const bag = Array.isArray(g?.bag) ? g!.bag.map(it => upgradeItem(it, hero)) : [];
+  // 가진 장비의 특수능력은 늘 도감에 (옛 저장 · migrate가 굴린 줄 포함)
+  const codex = Array.isArray(g?.codex) ? g!.codex.filter(k => typeof k === 'string') : [];
+  for (const it of [...SLOTS.map(s => equipped[s.key]), ...bag]) if (it) for (const k of specKeysOf(it)) if (!codex.includes(k)) codex.push(k);
+  return { equipped, bag, seen: typeof g?.seen === 'number' ? g.seen : (typeof o.nextId === 'number' ? o.nextId : nextId) - 1, codex };
+}
+
+/**
+ * 새 장비의 특수능력을 도감에 적고, 처음 얻은 것만 돌려줌 (결과 화면 「새 특수능력!」, 42 1-6).
+ * 그걸로 도감 묶음 하나를 다 모으면 칭호를 decos에 넣음
+ */
+export function noteSpecs(d: SaveData, items: readonly (GearItem | null | undefined)[]): string[] {
+  const out: string[] = [];
+  for (const it of items) if (it) for (const k of specKeysOf(it)) if (!d.gear.codex.includes(k)) { d.gear.codex.push(k); out.push(k); }
+  for (const k of out) {
+    const g = codexGroupOf(k), t = g && SPEC_TITLES[g];
+    if (t && !d.decos.includes(t) && codexKeys(g).every(x => d.gear.codex.includes(x))) d.decos.push(t);
+  }
+  return out;
+}
 
 /**
  * v6 직업별 레벨 (34 3-4): 옛 저장의 레벨·경험치를 열린 모든 직업에 넣음 (손해 없음). 지금 직업 것은 player 그대로.

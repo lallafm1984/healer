@@ -2,6 +2,7 @@ import { ITEMS, POTION_CD, type ItemKey } from '../data/items';
 import { hexDist } from './board';
 import { bark, emit, living, onDebuffEnd } from './core';
 import { dangerAt } from './movement';
+import { specRevive, sv } from './specials';
 import type { ActionResult, Fight, Unit } from './types';
 
 export function itemReady(f: Fight, key: ItemKey): ActionResult {
@@ -33,6 +34,7 @@ export function reviveUnit(f: Fight, u: Unit, pct: number): boolean {
   }
   u.alive = true; u.max = u.base; u.hp = u.max * pct; u.cell = c.i; c.unit = u;
   u.debuffs = []; u.moving = null; u.react = null; u.fleeing = false; u.sulking = false; u.retryAt = f.t + 1;
+  if (f.sp) specRevive(f, u); // 일어서는 빛 (42 보호 09)
   emit(f, { type: 'revive', id: u.id });
   emit(f, { type: 'sound', name: 'chime' });
   bark(f, u, '살았다…! 감사', true, 'revived');
@@ -48,7 +50,7 @@ export function useItem(f: Fight, key: ItemKey, cellIdx?: number): ActionResult 
   let note = '';
   if (key === 'mana') {
     if (f.mana >= 99.5) return { ok: false, reason: '마나 가득 참' };
-    f.mana = Math.min(100, f.mana + 30);
+    f.mana = Math.min(100, f.mana + 30 * (1 + sv(f, 'potionRegular'))); // 물약 단골 (42 마나 09)
   } else if (key === 'medit') {
     f.medit = 20;
   } else if (key === 'life') {

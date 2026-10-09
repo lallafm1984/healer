@@ -5,6 +5,8 @@
  */
 import type { DiffName } from './difficulty';
 import type { GearStats, GradeName } from './gear';
+import type { HeroKey } from './heroes';
+import { FEATURED, namedFor, namedOf, SPEC_KEYS, SPECS, specTotals, specValue, type SpecLine, type SpecOn } from './specials';
 
 export type SlotKey = 'weapon' | 'head' | 'chest' | 'hands' | 'ring' | 'neck';
 
@@ -108,6 +110,10 @@ export interface GearItem {
   name: string;
   /** 추가 옵션 (등급만큼 줄, 고정 옵션과 겹치지 않음) */
   lines: GearLine[];
+  /** 특수능력 줄 (42): 일반 0 · 고급 0~1 · 희귀 1 · 영웅 1 · 전설 2. 옛 저장엔 없음 → migrate가 굴림 */
+  specs?: SpecLine[];
+  /** 이름 있는 장신구 (42 3장): 고유 효과 키. 이름도 그 장신구 이름 */
+  named?: string;
   /** 잠금 (27 4-3): 분해 고르기·일괄 분해에서 빠짐. 옛 저장엔 없음 = 안 잠김 */
   lock?: boolean;
 }
@@ -115,8 +121,8 @@ export interface GearItem {
 export type Equipped = Partial<Record<SlotKey, GearItem>>;
 
 export const slotName = (k: SlotKey) => SLOTS.find(s => s.key === k)!.name;
-/** 이름: 등급 말 + 종류 (「축복받은 두건」) */
-export const itemName = (it: { slot: SlotKey; kind?: string; grade: ItemGrade }) => `${GRADE_STYLE[it.grade].word} ${kindOf(it).name}`;
+/** 이름: 등급 말 + 종류 (「축복받은 두건」). 이름 있는 장신구는 그 이름 (「녹슨 톱니」) */
+export const itemName = (it: { slot: SlotKey; kind?: string; grade: ItemGrade; named?: string }) => namedOf(it.named)?.name ?? `${GRADE_STYLE[it.grade].word} ${kindOf(it).name}`;
 
 /** 추가 옵션 n줄: 고정 옵션과 다른 능력치에서 서로 다르게, 값은 ROLL_MIN~1 굴림 */
 export function rollLines(r: () => number, n: number, fixed: StatKey): GearLine[] {
@@ -128,11 +134,74 @@ export function rollLines(r: () => number, n: number, fixed: StatKey): GearLine[
   return out;
 }
 
-/** 부위 · 등급이 정해진 장비 1개 (종류 · 추가 옵션 굴림). kind를 주면 그 종류 */
-export function makeItem(r: () => number, slot: SlotKey, grade: ItemGrade, id: number, kind?: string): GearItem {
-  const ks = kindsOf(slot), k = ks.find(x => x.key === kind) ?? ks[Math.floor(r() * ks.length)];
-  return { id, slot, kind: k.key, grade, plus: 0, name: itemName({ slot, kind: k.key, grade }), lines: rollLines(r, EXTRA_LINES[grade], k.fixed) };
+// ---------- 특수능력 줄 (42 1장) ----------
+/** 등급마다 특수능력 줄 수 (42 1-1). 고급은 SPEC_ADV 확률로 1줄 */
+export const SPEC_LINES: Record<ItemGrade, number> = { '일반': 0, '고급': 1, '희귀': 1, '영웅': 1, '전설': 2 };
+export const SPEC_ADV = 0.2;
+/** 장소마다 자주 나오는 특수능력은 이만큼 잘 나옴 (42 1-4) */
+export const FEATURED_WEIGHT = 4;
+/** 이름 있는 장신구: 그 장소에서 그 부위 희귀 이상 장비가 나오면 이 확률로 (42 3장) */
+export const NAMED_CHANCE = 0.25;
+export const NAMED_MIN: ItemGrade = '희귀';
+
+/** 드롭 맥락: 지금 직업 (직업 전용은 그 직업 것만, 42 1-4) · 장소 (자주 나오는 특수능력 · 이름 있는 장신구) */
+export interface DropCtx { hero?: HeroKey; place?: string }
+
+/**
+ * 특수능력 n줄 굴림: 그 부위 · 최소 등급 이하 · (직업 전용은 그 직업) 중에서, 장소의 자주 나오는 3개는 4배.
+ * 한 장비에 같은 묶음은 한 번만 (같은 특수능력 · 직업 전용 2줄도 안 나옴). 값 고정이면 굴림 1
+ */
+export function rollSpecs(r: () => number, slot: SlotKey, grade: ItemGrade, n: number, o: DropCtx = {}, taken: string[] = []): SpecLine[] {
+  const gi = ITEM_GRADES.indexOf(grade), feat = (o.place && FEATURED[o.place]) || [];
+  const out: SpecLine[] = [], groups = new Set(taken.map(k => SPECS[k]?.group));
+  for (let i = 0; i < n; i++) {
+    const pool = SPEC_KEYS.filter(k => {
+      const d = SPECS[k];
+      return d.slots.includes(slot) && ITEM_GRADES.indexOf(d.min) <= gi && (!d.hero || d.hero === o.hero) && !groups.has(d.group);
+    });
+    if (!pool.length) break;
+    const w = pool.map(k => (feat.includes(k) ? FEATURED_WEIGHT : 1));
+    let x = r() * w.reduce((a, b) => a + b, 0), j = 0;
+    while (j < pool.length - 1 && x >= w[j]) { x -= w[j]; j++; }
+    const d = SPECS[pool[j]];
+    groups.add(d.group);
+    out.push({ key: d.key, roll: d.fixed ? 1 : Math.round((ROLL_MIN + (1 - ROLL_MIN) * r()) * 100) / 100 });
+  }
+  return out;
 }
+
+/** 등급만큼 특수능력 줄 수 (고급은 확률) */
+export const specCount = (r: () => number, grade: ItemGrade): number => (grade === '고급' ? (r() < SPEC_ADV ? 1 : 0) : SPEC_LINES[grade]);
+
+/** 부위 · 등급이 정해진 장비 1개 (종류 · 추가 옵션 · 특수능력 굴림). kind를 주면 그 종류. o = 드롭 맥락 (직업 · 장소) */
+export function makeItem(r: () => number, slot: SlotKey, grade: ItemGrade, id: number, kind?: string, o: DropCtx = {}): GearItem {
+  const ks = kindsOf(slot), k = ks.find(x => x.key === kind) ?? ks[Math.floor(r() * ks.length)];
+  const it: GearItem = { id, slot, kind: k.key, grade, plus: 0, name: '', lines: rollLines(r, EXTRA_LINES[grade], k.fixed), specs: [] };
+  // 이름 있는 장신구 (42 3장): 고유 효과 1줄 + 전설이면 무작위 1줄
+  const nm = o.place ? namedFor(o.place, slot) : undefined;
+  if (nm && ITEM_GRADES.indexOf(grade) >= ITEM_GRADES.indexOf(NAMED_MIN) && r() < NAMED_CHANCE) {
+    it.named = nm.key;
+    it.specs = rollSpecs(r, slot, grade, SPEC_LINES[grade] - 1, o);
+  } else it.specs = rollSpecs(r, slot, grade, specCount(r, grade), o);
+  it.name = itemName(it);
+  return it;
+}
+
+/** 장비 한 개의 특수능력 값 (이름 있는 장신구 고유 효과 + 줄마다 값) */
+export function itemSpecs(it: GearItem | null | undefined): SpecOn[] {
+  if (!it) return [];
+  const out: SpecOn[] = [];
+  const nm = namedOf(it.named);
+  if (nm) out.push({ key: nm.key, v: nm.val });
+  for (const l of it.specs ?? []) out.push({ key: l.key, v: specValue(l.key, it.grade, l.roll) });
+  return out;
+}
+
+/** 장비 한 개의 특수능력 · 이름 있는 장신구 키 (도감용) */
+export const specKeysOf = (it: GearItem): string[] => [...(it.named ? [it.named] : []), ...(it.specs ?? []).map(l => l.key)];
+
+/** 착용 장비 → 전투에서 켜지는 특수능력 값 (42 1-3 · 1-5) */
+export const specsOf = (eq: Equipped, hero: HeroKey): Record<string, number> => specTotals(SLOTS.flatMap(s => itemSpecs(eq[s.key])), hero);
 
 /** 등급 굴림 (02 10-4): 클리어 등급만큼 위로 밀고, 표에 있는 가장 높은 등급까지만. 전설은 Lv 50부터 */
 export function rollGrade(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number): ItemGrade {
@@ -148,10 +217,10 @@ export function rollGrade(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B
   return g === '전설' && level < LEGEND_LEVEL ? '영웅' : g;
 }
 
-/** 장비 1개 뽑기 (부위 → 등급 → 종류 · 옵션). r = 0~1 난수 함수 */
-export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number, id: number): GearItem {
+/** 장비 1개 뽑기 (부위 → 등급 → 종류 · 옵션 · 특수능력). r = 0~1 난수 함수, o = 드롭 맥락 (직업 · 장소) */
+export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number, id: number, o: DropCtx = {}): GearItem {
   const slot = SLOTS[Math.floor(r() * SLOTS.length)].key;
-  return makeItem(r, slot, rollGrade(r, diff, grade, level), id);
+  return makeItem(r, slot, rollGrade(r, diff, grade, level), id, undefined, o);
 }
 
 /** 능력치 6가지 (비율) */
@@ -263,7 +332,9 @@ export function salvageOf(it: GearItem): { gold: number; stone: number; refined:
 /**
  * 장비 점수 (34 6-7): 등급 순위 + 강화/10 + 추가 옵션 굴림 (줄마다 최소 굴림을 넘은 만큼 ¼). 권장 장비 비교·더 좋은 장비 · 추천 장착용
  */
-export const itemScore = (it: GearItem | undefined) => (it ? ITEM_GRADES.indexOf(it.grade) + 1 + it.plus / 10 + (it.lines ?? []).reduce((a, l) => a + (l.roll - ROLL_MIN) / 4, 0) : 0);
+/** 장비 점수: 등급 + 강화 + 추가 옵션 굴림 + 특수능력 줄 (줄마다 SPEC_SCORE) */
+export const SPEC_SCORE = 0.15;
+export const itemScore = (it: GearItem | undefined) => (it ? ITEM_GRADES.indexOf(it.grade) + 1 + it.plus / 10 + (it.lines ?? []).reduce((a, l) => a + (l.roll - ROLL_MIN) / 4, 0) + SPEC_SCORE * ((it.specs?.length ?? 0) + (it.named ? 1 : 0)) : 0);
 export const avgScore = (eq: Equipped) => SLOTS.reduce((a, s) => a + itemScore(eq[s.key]), 0) / SLOTS.length;
 
 /** 권장 장비 (02 2-2, 13): 어려움 = 고급, 악몽 = 희귀 +5. 미달이면 경고만 (입장은 허용) */

@@ -84,7 +84,7 @@ describe('세트 없음', () => {
     for (let i = 0; i < 2000; i++) {
       const it = rollItem(r, '악몽', 'B', 60, i);
       expect(it.name).toBe(itemName(it));
-      expect(Object.keys(it).sort()).toEqual(['grade', 'id', 'kind', 'lines', 'name', 'plus', 'slot']);
+      expect(Object.keys(it).sort()).toEqual(['grade', 'id', 'kind', 'lines', 'name', 'plus', 'slot', 'specs']);
     }
   });
   it('옛 저장의 세트 장비는 세트 표시를 빼고 등급 이름으로 (강화·잠금은 그대로)', () => {

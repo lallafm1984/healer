@@ -5,6 +5,7 @@ import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
 import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
+import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, specDeath, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
 
@@ -51,8 +52,9 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     // 사제 특성 (06 6장): 슬픔의 힘 (파티원이 쓰러진 뒤 5초 +30%), 벼랑 끝 손길 (30% 이하 대상 직접 힐 +25%)
     if (f.tx.griefUntil > f.t) amt *= 1.3;
     if (direct && f.tx.on.brink && u.hp <= u.max * 0.3) amt *= 1.25;
-    crit = f.rng() < f.gear.crit;
-    if (crit) amt *= 1.5;
+    if (f.sp) amt *= healSpec(f, u, direct); // 장비 특수능력 (42)
+    crit = f.rng() < f.gear.crit + (f.sp ? critBonus(f) : 0);
+    if (crit) amt *= f.sp ? critMult(f) : 1.5;
   }
   if (f.links.length && !sharing) { const o = shareWith(f, u); if (o) return shared(() => heal(f, u, amt / 2, direct, true) + heal(f, o, amt / 2, direct, true)); } // 생명 사슬 나눔형
   if (f.bless && f.t < f.bless.until) amt *= f.bless.heal; // 영혼 축복 (P-SOUL): 받는 치유 증가
@@ -62,11 +64,11 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     const ch = u.debuffs.find(d => d.charm);
     if (ch) ch.left += ch.charm!.heal; // 매혹 (P-CHARM): 힐하면 지배가 길어짐
     const cut = u.debuffs.reduce((s, d) => s + (d.healCut ?? 0) * (d.stack ?? 1), 0); // 얼룩진 장갑·먼지 범벅 (35 4-3·4-5)
-    if (cut) amt *= Math.max(0, 1 - cut);
+    if (cut) amt *= Math.max(0, 1 - cut * (1 - sv(f, 'holdingHand'))); // 받치는 손 (42 기믹 08)
     if (u.debuffs.some(d => d.invert)) { invertHeal(f, u, amt); return 0; } // 뒤집힌 축복 (P-INVERT)
   }
   if (f.watch && f.t >= f.watch.until) f.watch.fill += amt * f.watch.rate; // 주시 (P-AGGRO): 넘친 치유까지 게이지에
-  const eff = Math.min(amt, u.max - u.hp);
+  const hp0 = u.hp, eff = Math.min(amt, u.max - u.hp);
   u.hp += eff;
   u.got += eff;
   f.stats.healed += eff;
@@ -81,6 +83,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     if (u.sulking) u.sulking = false;
     if (u.p.thanks) { u.thanks = 3; if (f.rng() < 0.35) bark(f, u, null, false, 'thanks'); }
   }
+  if (f.sp && !raw) afterHeal(f, u, amt, eff, crit, direct, hp0);
   return eff;
 }
 
@@ -111,6 +114,7 @@ function overload(f: Fight, u: Unit, over: number): void {
 
 /** 뒤집힌 축복 (P-INVERT, 35 4-3): 들어올 치유량만큼 피해. 보호막·피해 감소·보호의 손(물리 취급)은 통함 */
 function invertHeal(f: Fight, u: Unit, amt: number): void {
+  amt *= 1 - sv(f, 'clearEye'); // 맑은 눈 (42 기믹 01)
   if (amt <= 0) return;
   f.stats.inverted = (f.stats.inverted ?? 0) + amt;
   emit(f, { type: 'hurt', id: u.id, amt: Math.round(amt) });
@@ -129,18 +133,20 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
   if (f.links.length && !sharing) { const o = shareWith(f, u); if (o) { shared(() => { damage(f, u, amt / 2, magic, aim); damage(f, o, amt / 2, magic, aim); }); return; } } // 생명 사슬 나눔형
   amt *= f.dmgMult;
   if (f.armor) amt *= armorFactor(u.role, aim);
+  if (f.sp) amt *= dmgSpec(f, u); // 장비 특수능력 (42 보호 · 지원 · 기믹)
   if (u.me && f.tx.on.firmWill) amt *= 0.8; // 굳은 의지 (06 6장)
   if (u.me && f.gear.endure) amt *= 1 - f.gear.endure; // 장비 인내 (34 6-4)
   if (u.me && f.standin) amt *= f.standin.guard; // 특성 트리 없는 직업 임시 보정
   if (u.shield > 0) amt *= 0.6;
   if (u.bulwark > 0) amt *= 1 - BULWARK.cut;
   if (u.redu > 0) amt *= 1 - u.reduCut;
-  if (f.abOn) { amt = dmgMods(f, u, amt, magic); if (amt < 0) return; } // 파티원 능력 (17)
+  if (f.abOn || u.mods.length) { amt = dmgMods(f, u, amt, magic); if (amt < 0) return; } // 파티원 능력 (17) · 특수능력 보호막 · 피해 감소 (42)
   if (u.immune > 0 && !magic) return; // 보호의 손: 물리 피해 무시 (25 성기사)
-  if (u.sacr > 0 && f.me.alive && f.me !== u) { // 희생: 받는 피해의 30%를 내가 대신
-    const part = amt * SACRIFICE_CUT;
+  if (u.sacr > 0 && f.me.alive && f.me !== u) { // 희생: 받는 피해의 30%를 내가 대신. 기도하는 희생 (42 성기 08): 몫 +, 내가 받는 것 −20%
+    const pray = sv(f, 'prayingSacrifice');
+    const part = amt * (SACRIFICE_CUT + pray);
     amt -= part;
-    damage(f, f.me, part / f.dmgMult, magic, 'fixed');
+    damage(f, f.me, (part * (pray ? 0.8 : 1)) / f.dmgMult, magic, 'fixed');
   }
   if (u.cls) {
     if (magic && u.cls === 'paladin') amt *= 0.9;
@@ -161,6 +167,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     abHurt(f, u); // 거합 반격
   }
   u.hp -= amt;
+  if (f.sp) afterHurt(f, u, u.hp + amt);
   if (amt > u.max * 0.15) u.flash = 0.35;
   if (u.hp <= 0) {
     if (u.guardian > 0) {
@@ -168,8 +175,10 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
       u.hp = u.max * 0.4;
       emit(f, { type: 'sound', name: 'chime' });
       emit(f, { type: 'msg', text: `수호 영혼이 ${u.nick}을(를) 살림` });
+      if (sv(f, 'wakeGuard')) heal(f, u, intAmt(f, sv(f, 'wakeGuard')), true, true); // 깨어 있는 수호 (42 사제 06)
       return;
     }
+    if (f.sp && lastBreath(f, u)) return; // 마지막 숨 (42 보호 06)
     // 쓰러지면 칸을 비운다 → 다른 파티원이 그 칸으로 이동할 수 있음 (2026-10-07 Lim)
     if (u.moving) { const to = f.cells[u.moving.to]; if (to.unit === u) to.unit = null; }
     { const here = f.cells[u.cell]; if (here.unit === u) here.unit = null; }
@@ -178,6 +187,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     if (u.max < u.base) u.max = u.base;
     f.stats.deaths++;
     if (!u.me && f.tx.on.grief) f.tx.griefUntil = f.t + 5; // 슬픔의 힘
+    if (!u.me && f.sp) specDeath(f); // 굳센 결의 · 되감기 (42)
     emit(f, { type: 'death', id: u.id });
     emit(f, { type: 'sound', name: 'death' });
   }
@@ -186,6 +196,10 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
 export function addDebuff(f: Fight, u: Unit, d: Omit<Debuff, 'id'>): Debuff {
   const o: Debuff = { id: f.nextId++, ...d };
   if (u.mods.length && blocksDebuff(f, u, o.type)) return o; // 주문 반사·그림자 망토: 안 걸림
+  if (f.sp) { // 면역 향 · 줄어드는 독기 (42 해제 04 · 05)
+    if (immune(f, u, o.name)) return o;
+    if (!o.lock && !o.trap && HEROES[f.hero].dispel.includes(o.type)) o.left *= debuffSec(f, true);
+  }
   u.debuffs.push(o);
   if (HEROES[f.hero].dispel.includes(o.type) && !o.trap) f.stats.dispellable++;
   emit(f, { type: 'debuff', id: u.id, dtype: o.type });
@@ -214,6 +228,7 @@ export function spread(f: Fight, u: Unit): void {
 
 export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
   if (u.soul) { u.soul.cleansed = dispelled; return; } // 헤매는 영혼: 해제로 바로 성공 (P-SOUL)
+  if (f.sp && dispelled && d.trap) { during(f, 'trap', () => { if (f.aff) affDebuffEnd(f, u, d, dispelled); if (d.end) debuffEnd(f, u, d, dispelled); }); return; } // 함정 감지 (42 해제 06)
   if (f.aff) affDebuffEnd(f, u, d, dispelled); // 어픽스 불안정·메아리
   if (d.end) debuffEnd(f, u, d, dispelled);
 }

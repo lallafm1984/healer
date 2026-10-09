@@ -8,7 +8,7 @@ import { CLASSES } from '../data/classes';
 import { contentOf, isRaid } from '../data/content';
 import { CHAL } from '../data/challenge';
 import { AD_LIMIT, SHARD_MAX } from '../data/economy';
-import { gearStatsOf } from '../data/equipment';
+import { gearStatsOf, specsOf } from '../data/equipment';
 import { FEATURES } from '../data/features';
 import { ENCOUNTERS } from '../data/encounters';
 import { ITEMS, type ItemKey } from '../data/items';
@@ -297,7 +297,7 @@ export function depart(): string {
   battle().start({
     content: c.key, name: Flow.chal ? `도전 ${Flow.chal}단계` : c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: m.stage, gearStats: gearStatsOf(G.save.gear.equipped),
     affixes: m.affixes, bossMult: m.bossMult, limit: m.limit, chal: m.chal || undefined,
-    party: Flow.party!, items, slots, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(),
+    party: Flow.party!, items, slots, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(), specs: specsOf(G.save.gear.equipped, heroNow()),
     stock: tutDone ? { ...G.save.bag } : undefined,
     async onEnd(r) {
       if (await tryContinue(r)) return;

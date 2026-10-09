@@ -128,6 +128,8 @@ export interface BattleApi {
     hero?: HeroKey;
     /** 사제 특성 (06 6장) */
     talents?: (number | null)[];
+    /** 착용 장비 특수능력 값 (42, data/equipment specsOf) */
+    specs?: Record<string, number>;
     /** 가방에 있는 소비 아이템 (19 11장) */
     stock?: Partial<Record<ItemKey, number>>;
     /** 어픽스·보스 배율·제한시간 (32 난이도 어픽스, 13 3-2 주간 도전) */
