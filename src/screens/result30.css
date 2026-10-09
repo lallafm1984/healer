@@ -37,6 +37,11 @@
 .r-nm b { font: 400 17px/1.25 var(--font-display); color: var(--gi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .r-nm small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--ink-2); }
 .r-nm em { font-style: normal; font-weight: 700; }
+.r-nm small.r-sp { color: var(--gold-hi); }
+/* 처음 얻은 특수능력 (42 1-6) */
+.r-newsp { margin: 0; padding: 6px 10px; border-radius: 6px; font-size: 13px; color: var(--ink-2); background: color-mix(in srgb, var(--gold-hi) 14%, transparent); border: 1px solid color-mix(in srgb, var(--gold-hi) 45%, transparent); animation: rup 0.35s 0.6s ease-out both; }
+.r-newsp b { color: var(--gold-hi); margin-right: 4px; }
+.r-newsp span { color: var(--mute); font-size: 12px; margin-left: 4px; }
 .r-nm .up { color: var(--heal); }
 .r-nm .dn { color: #E07A6A; }
 .ns .r-eq { flex: none; min-width: 64px; min-height: 44px; padding: 0 12px; font-size: 15px; }

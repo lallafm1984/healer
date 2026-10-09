@@ -10,7 +10,8 @@ import { MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { Flow, newSeed } from '../game/flow';
 import { meterHtml } from '../game/meter';
 import { equip, G } from '../game/state';
-import { isBetter, scoreOf } from '../game/charinfo';
+import { isBetter, scoreOf, specName } from '../game/charinfo';
+import { specKeysOf } from '../data/equipment';
 import { TUT } from '../game/tutorial';
 import { AFFIXES } from '../data/affixes';
 import type { BattleResult, Settlement } from '../game/settle';
@@ -123,11 +124,14 @@ function itemRow(x: Settlement): string {
     : isBetter(it) ? `<button class="btn r-eq${firstGear() ? ' hi-pulse' : ''}" type="button" id="equipNow">장착</button>`
     : '<span class="r-on dim">가방에</span>';
   const delta = worn ? '' : !cur ? ' <em class="up">빈칸</em>' : d > 0 ? ` <em class="up">▲${d}</em>` : d < 0 ? ` <em class="dn">▼${-d}</em>` : '';
+  // 특수능력 이름 (42), 처음 얻은 것은 「새 특수능력!」 띠 (42 1-6)
+  const sp = specKeysOf(it), fresh = (x.newSpecs ?? []).filter(k => sp.includes(k));
+  const spTxt = sp.length ? `<small class="r-sp">${sp.map(k => esc(specName(k))).join(' · ')}</small>` : '';
   return `<div class="r-item" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
       <span class="r-ic">${gameIcon(it.slot, uiIcon(it.slot), 'item')}</span>
-      <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><small>${slotName(it.slot)} · ${esc(kindOf(it).name)} · ${it.grade} · 점수 ${sc}${delta}</small></span>
+      <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><small>${slotName(it.slot)} · ${esc(kindOf(it).name)} · ${it.grade} · 점수 ${sc}${delta}</small>${spTxt}</span>
       ${act}
-    </div>`;
+    </div>${fresh.length ? `<p class="r-newsp"><b>새 특수능력!</b> ${fresh.map(k => esc(specName(k))).join(' · ')} <span>도감에 적었습니다</span></p>` : ''}`;
 }
 
 /** 경험치 줄: 바 + 받은 양 + 지금 레벨 (오르면 강조) */

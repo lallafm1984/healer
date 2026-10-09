@@ -237,6 +237,19 @@ export const NAMED: NamedDef[] = [
   { key: 'templeVial', name: '신전 성수병', slot: 'neck', place: 'temple', placeName: '깨진 신전', text: '광역 힐이 4명 이상 회복하면 6초 동안 치명타 +{v}', val: 0.1, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
+/** 그 장소 · 부위에서 나오는 이름 있는 장신구 */
+export const namedFor = (place: string, slot: SlotKey) => NAMED.find(n => n.place === place && n.slot === slot);
+
+/**
+ * 장소마다 자주 나오는 특수능력 3개 (42 1-4, 4배). 입장 화면 「나오는 장비」에 이름이 보임.
+ * 장소 기획 표 (38 0-10)의 드롭 목록 열과 같게. 아직 없는 장소는 만들 때 더함
+ */
+export const FEATURED: Record<string, readonly string[]> = {
+  plateau: ['warmTouch', 'sunHandful', 'pouch'],
+  rustfort: ['shieldFriend', 'firstWord', 'springSip'],
+  abyss1: ['coldMedicine', 'cleanHands', 'bounceLight'],
+  cathedral1: ['spellWard', 'strongChorus', 'goldEcho'],
+};
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */
 export function fmtSpec(v: number, unit: SpecUnit): string {

@@ -2,7 +2,9 @@
  * 내 힐러 요약 (27 2장 로비 힐러 카드 · 4-1 캐릭터 머리 · 4-2 능력치 판).
  * 장비 점수 = 장착 장비 itemScore 합 × 10 (편성 화면 권장 장비 경고와 같은 기준). 「전투력」이라는 말은 쓰지 않는다.
  */
-import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
+import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, itemSpecs, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
+import { HEROES } from '../data/heroes';
+import { namedOf, SPEC_GROUPS, SPECS, specText, specValue, type SpecGroup } from '../data/specials';
 import { lvPower } from '../data/progression';
 import { INT_BASE, RULES } from '../data/rules';
 import { TALENTS } from '../data/talents';
@@ -16,6 +18,38 @@ export const HEALER_HP = 550;
 export const scoreOf = (it?: GearItem | null) => Math.round(itemScore(it ?? undefined) * 10);
 /** 장착 장비 점수 합 */
 export const gearScore = () => SLOTS.reduce((a, s) => a + scoreOf(G.save.gear.equipped[s.key]), 0);
+
+/** 특수능력 · 이름 있는 장신구 이름 (도감 키 → 이름) */
+export const specName = (key: string) => SPECS[key]?.name ?? namedOf(key)?.name ?? key;
+
+/** 장비 상세 특수능력 한 줄: 묶음 (이름 있는 장신구 고유 효과는 'named') · 효과 글 · 굴림 (값 고정이면 null) · 꺼진 이유 */
+export interface SpecRow { key: string; name: string; group: SpecGroup | 'named'; badge: string; text: string; roll: number | null; off: string }
+/** 같은 특수능력을 여러 장비에 껴도 하나만 켜지는 것 (재사용 대기 · 고정 값 · 고유 효과, 42 1-3) */
+const single = (key: string) => !SPECS[key] || !!SPECS[key].cd || !!SPECS[key].fixed;
+
+/**
+ * 장비 상세의 특수능력 줄 (42 1-3 · 1-5): 고유 효과 → 굴린 줄. 다른 직업 전용이면 「사제 전용」,
+ * 낀 장비 중 같은 겹치지 않는 효과가 더 좋은 게 있으면 「겹치지 않음」 (끼고 있는 장비만)
+ */
+export function specRows(it: GearItem): SpecRow[] {
+  const hero = heroNow(), eq = G.save.gear.equipped, worn = eq[it.slot]?.id === it.id;
+  const best: Record<string, { id: number; v: number }> = {};
+  for (const s of SLOTS) {
+    const e = eq[s.key];
+    if (e) for (const o of itemSpecs(e)) if (single(o.key) && (!best[o.key] || o.v > best[o.key].v)) best[o.key] = { id: e.id, v: o.v };
+  }
+  const dup = (key: string) => (worn && single(key) && best[key] && best[key].id !== it.id ? '겹치지 않음' : '');
+  const out: SpecRow[] = [];
+  const nm = namedOf(it.named);
+  if (nm) out.push({ key: nm.key, name: nm.name, group: 'named', badge: '고유', text: specText(nm, nm.val), roll: null, off: dup(nm.key) });
+  for (const l of it.specs ?? []) {
+    const d = SPECS[l.key];
+    if (!d) continue;
+    const off = d.hero && d.hero !== hero ? `${HEROES[d.hero].name} 전용` : dup(d.key);
+    out.push({ key: d.key, name: d.name, group: d.group, badge: SPEC_GROUPS[d.group].name, text: specText(d, specValue(d.key, it.grade, l.roll)), roll: d.fixed ? null : l.roll, off });
+  }
+  return out;
+}
 
 /** 장착 평균 등급·강화 (빈칸은 0점으로 셈): 희귀 +3 → { grade: '희귀', plus: 3 } */
 export function gearAvg(): { grade: ItemGrade | null; plus: number } {

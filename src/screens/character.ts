@@ -14,7 +14,7 @@ import { itemSlots, TALENT_LEVEL } from '../data/progression';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { TALENTS, type TalentKey } from '../data/talents';
 import { heroLevelOf, type TapKey } from '../platform/storage';
-import { betterSlots, gearAvg, gearScore, isBetter, scoreOf, statParts, talentsLeft } from '../game/charinfo';
+import { betterSlots, gearAvg, gearScore, isBetter, scoreOf, specRows, statParts, talentsLeft } from '../game/charinfo';
 import {
   bestGearPlan, commit, enhance, equip, equipBest, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, lowGradeIds, pickTalent, salvage,
   setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleItem, toggleLock,
@@ -276,6 +276,9 @@ function itemSheet(id: number): string {
     row(STATS[fx.stat].name, `+${pc(fx.v)}%`, `<span class="cap">${esc(kindOf(it).name)} 고정</span>`),
     ...(it.lines ?? []).map(l => row(STATS[l.stat].name, `+${pc(lineValue(it, l))}%`, `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(l.roll * 100)}%"><i style="width:${Math.round(rollFill(l.roll) * 100)}%"></i></span>`)),
   ].join('');
+  // 특수능력 (42 1-3 · 1-5): 묶음 표식 · 이름 · 효과 · 굴림 막대, 꺼진 줄은 회색 + 이유
+  const sp = specRows(it);
+  const spec = sp.length ? `<div class="c7-cmpw"><h3 class="h-rule c7-h3">특수능력<span class="rule"></span><span class="cap">${sp.length}줄</span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${s.badge}</span><span class="c7-spt"><b>${esc(s.name)}</b><span class="cap">${esc(s.text)}</span></span>${s.off ? `<span class="cap c7-spoff">${s.off}</span>` : s.roll != null ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(s.roll * 100)}%"><i style="width:${Math.round(rollFill(s.roll) * 100)}%"></i></span>` : ''}</div>`).join('')}</div>` : '';
   // 지금 장비와 비교: 둘 중 하나라도 있는 능력치만
   const cmp = STAT_KEYS.filter(k => a[k] || b[k]).map(k => row(STATS[k].name, `+${pc(a[k])}%`, updn(d1(a[k], b[k])))).join('');
   const c = enhanceCost(it), m = G.save.mats, gold = G.save.player.gold;
@@ -290,6 +293,7 @@ function itemSheet(id: number): string {
         <span class="c7-gname"><b>${esc(it.name)}${it.plus ? ` <i>+${it.plus}</i>` : ''}</b><span class="cap">${sub2}</span></span>
         <span class="c7-gscore"><span class="cap">점수</span><b>${sc}</b>${worn ? '' : updn(sc - scoreOf(cur))}</span></div>
       <div class="c7-cmpw"><h3 class="h-rule c7-h3">옵션<span class="rule"></span><span class="cap">${it.lines?.length ?? 0}줄 추가</span></h3>${own}</div>
+      ${spec}
       ${worn ? '' : `<div class="c7-cmpw"><h3 class="h-rule c7-h3">지금 장비와 비교<span class="rule"></span><span class="cap">${cmpCap}</span></h3>${cmp}</div>`}
       <div class="c7-enh"><span><b>${c ? `강화 +${it.plus} → +${c.to}` : `최대 강화 +${MAX_PLUS}`}</b><span class="cap">${costTxt}</span>${c ? `<span class="cap c7-rate">성공 ${Math.round(c.rate * 100)}%${c.rate >= 1 ? '' : c.fail < it.plus ? ` · <em class="c7-lack">실패하면 +${c.fail}${c.fail % 10 === 3 || c.fail % 10 === 6 || c.fail % 10 === 0 ? '으로' : '로'} 떨어짐</em>` : ' · 실패해도 그대로'}</span>` : ''}</span><span class="cap${lack ? ' c7-lack' : ''}">${worn ? lack : c ? '장착 뒤 강화 추천' : ''}</span></div>
       <p class="note c7-save-note" id="gearSheetSave">장착·강화·잠금은 즉시 저장됩니다.</p>

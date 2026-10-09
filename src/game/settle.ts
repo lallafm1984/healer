@@ -9,7 +9,7 @@ import type { ItemKey } from '../data/items';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
 import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, starsOf, type Grade } from '../data/progression';
-import { heroSaveOf, type SaveData } from '../platform/storage';
+import { heroSaveOf, noteSpecs, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
 import { guildAfter, type GuildAfter } from './guild';
 import { bonusDiff, lootKey, meritFor, onRun, raidLootOpen, rollover } from './economy';
@@ -77,6 +77,8 @@ export interface Settlement {
   levelBefore: number;
   levelUps: number[];
   item: GearItem | null;
+  /** 그 장비로 처음 얻은 특수능력 · 이름 있는 장신구 키 (결과 화면 「새 특수능력!」, 42 1-6) */
+  newSpecs: string[];
   /** 받은 강화 재료 (12 1장) */
   mats: { stone: number; refined: number };
   /** 이 콘텐츠·난이도 첫 클리어 */
@@ -146,15 +148,17 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   p.gold += gold;
   const levelUps = addXp(p, xp);
 
-  let item: GearItem | null = null;
+  let item: GearItem | null = null, newSpecs: string[] = [];
   const mats = r.win ? clearMats(r.diff, raid) : { stone: 0, refined: 0 };
   // 레이드 장비는 보스마다 난이도별 주 1회 (13 3-4). 그 뒤엔 골드·공훈만
   const lootLocked = play && r.win && !!raid && !raidLootOpen(save, c.key, r.diff);
   let merit = 0;
   if (r.win) {
     if (!lootLocked) {
-      item = rollItem(rng, pubBonus ? bonusDiff(r.diff) : r.diff, grade!, levelBefore, save.nextId++);
+      // 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장)
+      item = rollItem(rng, pubBonus ? bonusDiff(r.diff) : r.diff, grade!, levelBefore, save.nextId++, { hero: save.hero, place: c.key });
       save.gear.bag.push(item);
+      newSpecs = noteSpecs(save, [item]);
       if (play && raid) save.weekly.loot.push(lootKey(c.key, r.diff));
     }
     save.mats.stone += mats.stone; save.mats.refined += mats.refined;
@@ -209,6 +213,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    gold, xp, levelBefore, levelUps, item, mats, first, best, heroQuest, guild, merit, crystal, lootLocked, pubBonus, missions, chal, cont,
+    gold, xp, levelBefore, levelUps, item, newSpecs, mats, first, best, heroQuest, guild, merit, crystal, lootLocked, pubBonus, missions, chal, cont,
   };
 }
