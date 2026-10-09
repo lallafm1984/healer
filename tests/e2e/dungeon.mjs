@@ -181,8 +181,8 @@ export default async function dungeon(url, shots) {
   await page.click('#again'); await page.clock.runFor(3100 + 500);
   ok(await page.isVisible('#battle'), '다시 도전 = 같은 파티로 바로 출발');
   ok(await page.evaluate(() => window.__proto.dungeon.idx === 0 && window.__proto.F.enc.key === 'gate'), '던전 처음부터');
-  const lvm = await page.evaluate(() => { const F = window.__proto.F; return { power: F.power, scale: F.scale, me: Math.round(F.me.max) }; });
-  ok(Math.abs(lvm.power - 0.488) < 1e-9 && Math.abs(lvm.scale - 0.488 * 0.95) < 1e-9 && lvm.me === 268, `Lv 2 전투: 힐량·내 체력 ×0.488 (34 1-2), 적 = 내 레벨 세기 × 0.95 ${JSON.stringify(lvm)}`);
+  const lvm = await page.evaluate(() => { const F = window.__proto.F; return { power: F.power, scale: F.scale, me: Math.round(F.me.max), gearHp: F.gear.hp || 0 }; });
+  ok(Math.abs(lvm.power - 0.488) < 1e-9 && Math.abs(lvm.scale - 0.488 * 0.95) < 1e-9 && lvm.me === Math.round(550 * 0.488 * (1 + lvm.gearHp)), `Lv 2 전투: 힐량·내 체력 ×0.488 (34 1-2, 체력은 장비 체력까지), 적 = 내 레벨 세기 × 0.95 ${JSON.stringify(lvm)}`);
   // 탱커가 쓰러져도 전투는 계속, 아래에 포기 버튼 (2026-10-07 Lim)
   ok(await page.isHidden('#giveUp'), '탱커가 살아 있으면 포기 버튼 없음');
   // 전멸 UI의 입력 상태를 직접 고정한다. HP 1 + 3초 대기는 무작위 회피/보호 능력에 따라 살아남아 흔들린다.
