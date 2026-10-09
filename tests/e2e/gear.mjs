@@ -23,7 +23,7 @@ export default async function gear(url, shots) {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     // set = 옛 저장의 세트 장비 (세트를 없앤 뒤엔 불러올 때 보통 장비로 바뀜)
     const it = (id, slot, grade, set, plus = 0) => ({ id, slot, grade, plus, name: set ? `새벽 순례자의 ${slot}` : `${grade} ${slot}`, ...(set ? { set: 'dawn' } : {}) });
-    s.player.level = 30; s.player.gold = 1000; s.mats = { stone: 3, refined: 0 };
+    s.player.level = 30; s.player.gold = 1000; s.mats = { stone: 8, refined: 0 };
     s.gear.equipped = { head: it(101, 'head', '희귀', true), chest: it(102, 'chest', '희귀', true), weapon: it(103, 'weapon', '고급', false) };
     s.gear.bag = [it(201, 'hands', '일반', false), it(202, 'ring', '고급', false), it(203, 'neck', '희귀', true)];
     s.gear.seen = 0;
@@ -43,7 +43,7 @@ export default async function gear(url, shots) {
 
   // ---- 가방 시트 ----
   await page.click('#s-char [data-bag]'); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-char .c7-bsheet') && /강화석 3/.test(await text('#s-char .gmats')), '「가방」 = 가방 시트, 재료 표시');
+  ok(await page.isVisible('#s-char .c7-bsheet') && /강화석 8/.test(await text('#s-char .gmats')), '「가방」 = 가방 시트, 재료 표시');
   ok((await page.locator('#s-char .c7-bag').count()) === 3 && (await page.locator('#s-char .c7-bag .nw').count()) === 3 && (await page.locator('#s-char .c7-bag .up').count()) === 3, '가방 5열 격자: 새것 점 · ↑');
   await page.click('#s-char [data-bfilter="acc"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char .c7-bag').count()) === 2, '필터 「장신구」 = 반지·목걸이');
@@ -60,13 +60,21 @@ export default async function gear(url, shots) {
   // ---- 상세 시트 · 강화 ----
   await page.click('#s-char .gtile[data-gitem="101"]'); await page.clock.runFor(50);
   let sh = await text('#s-char .c7-gsheet');
-  ok(await page.isVisible('#s-char .c7-gsheet') && /\+0 → \+1/.test(sh) && /골드 40/.test(sh) && /가진 것 3/.test(sh) && (await text('#s-char .c7-gsheet .c7-cta')).trim() === '강화', '착용 장비 누르면 아래 시트: 강화 비용·가진 강화석, 주 버튼 「강화」');
-  await page.click('#s-char [data-enh="101"]'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-char .c7-gsheet') && /\+0 → \+1/.test(sh) && /골드 10/.test(sh) && /가진 것 8/.test(sh) && /성공 100%/.test(sh) && (await text('#s-char .c7-gsheet .c7-cta')).trim() === '강화', '착용 장비 누르면 아래 시트: 강화 비용·가진 강화석·성공 확률, 주 버튼 「강화」');
+  // 확률 강화 (34 6-5): 굴림을 고정해서 누름 (0 = 성공, 0.99 = 실패)
+  const enh = async r => { await page.evaluate(v => { window.__rnd = Math.random; Math.random = () => v; }, r); await page.click('#s-char [data-enh="101"]'); await page.clock.runFor(50); await page.evaluate(() => { Math.random = window.__rnd; }); };
+  await enh(0);
   let sv = await save();
-  ok(sv.gear.equipped.head.plus === 1 && sv.player.gold === 960 && sv.mats.stone === 2, '강화 +1: 골드 40·강화석 1 씀');
-  await page.click('#s-char [data-enh="101"]'); await page.clock.runFor(50);
+  ok(sv.gear.equipped.head.plus === 1 && sv.player.gold === 990 && sv.mats.stone === 7, '강화 +1: 골드 10·강화석 1 씀');
+  await enh(0);
+  sv = await save(); sh = await text('#s-char .c7-gsheet');
+  ok(sv.gear.equipped.head.plus === 2 && sv.player.gold === 950 && /성공 90%/.test(sh) && /실패하면 \+1로 떨어짐/.test(sh), '+2 (골드 40·강화석 2), 다음 단계 성공 90% · 실패하면 떨어진다는 경고');
+  await enh(0.99);
   sv = await save();
-  ok(sv.gear.equipped.head.plus === 2 && sv.player.gold === 800 && await page.isDisabled('#s-char [data-enh="101"]') && /강화석 부족/.test(await text('#s-char .c7-gsheet')), '+2 (골드 160·강화석 2), 강화석이 모자라면 버튼 꺼짐 + 이유');
+  ok(sv.gear.equipped.head.plus === 1 && sv.player.gold === 860 && sv.mats.stone === 2 && /강화 실패 · \+2 → \+1/.test(await text('#s-char .c7-gsheet')), '+3 실패: +2 → +1로 떨어지고 재료는 씀');
+  await enh(0);
+  sv = await save();
+  ok(sv.gear.equipped.head.plus === 2 && sv.player.gold === 820 && await page.isDisabled('#s-char [data-enh="101"]') && /강화석 부족/.test(await text('#s-char .c7-gsheet')), '다시 +2, 강화석이 모자라면 버튼 꺼짐 + 이유');
   await page.locator('#s-char .c7-gsheet').screenshot({ path: `${shots}/gear_detail.png` });
   await closeSheet();
   ok(!(await page.isVisible('#s-char .sheet')), '시트 바깥을 누르면 닫힘');
@@ -96,7 +104,7 @@ export default async function gear(url, shots) {
   await page.locator('#s-char .c7-bagsec').screenshot({ path: `${shots}/gear_salvage.png` });
   await page.click('#s-char [data-salvgo]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.gear.bag.length === 1 && sv.gear.bag[0].id === 203 && sv.player.gold === 800 + 40 && sv.mats.stone === 0 + 3, `두 번째 = 분해: 골드 +40, 강화석 +3 (${sv.player.gold}, ${sv.mats.stone})`);
+  ok(sv.gear.bag.length === 1 && sv.gear.bag[0].id === 203 && sv.player.gold === 820 + 40 && sv.mats.stone === 0 + 3, `두 번째 = 분해: 골드 +40, 강화석 +3 (${sv.player.gold}, ${sv.mats.stone})`);
   ok(/2개 분해/.test(await text('#s-char')), '분해 결과 안내');
   await closeSheet();
   await page.click('#s-char [data-salvbag]'); await page.clock.runFor(50);

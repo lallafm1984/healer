@@ -60,7 +60,7 @@ export default async function heroes(url, shots) {
   await page.click('#s-char [data-hero="druid"]'); await page.clock.runFor(50);
   ok((await save()).hero === 'druid' && /드루이드/.test(await text('#s-char .topbar .tb-cls')) && await page.isVisible('#s-char .c7-hc.now[data-hcard="druid"]'), '드루이드로 바꿈 → 저장, 위 줄·지금 직업 깃발');
   const sv = await save();
-  ok(sv.player.level === 1 && sv.heroes.priest.level === 10 && /지금 Lv 1/.test(await text('#s-char [data-hcard="druid"]')) && /Lv 10/.test(await text('#s-char [data-hcard="priest"]')) && /따라잡기: Lv 10까지 경험치 ×3/.test(await text('#s-char .c7-hdet[data-hdet="druid"]')), `직업별 레벨: 드루이드는 Lv 1부터, 사제 깃발 Lv 10, 따라잡기 ×3 안내 (${sv.player.level} / ${sv.heroes.priest?.level})`);
+  ok(sv.player.level === 1 && sv.heroes.priest.level === 10 && /지금 Lv 1/.test(await text('#s-char [data-hcard="druid"]')) && /Lv 10/.test(await text('#s-char [data-hcard="priest"]')) && !/따라잡기/.test(await text('#s-char .c7-hdet[data-hdet="druid"]')), `직업별 레벨: 드루이드는 Lv 1부터, 사제 깃발 Lv 10, 따라잡기 안내 없음 (${sv.player.level} / ${sv.heroes.priest?.level})`);
   ok((await page.locator('#s-char .c7-hdet[data-hdet="druid"] .dsp').count()) === 3 && (await page.locator('#s-char [data-hero]').count()) === 0, '드루이드 상세 해제 칩 3개 (마법·저주·독), 지금 직업이라 바꾸기 버튼 없음');
   await page.click('#s-char nav [data-csub="gear"]'); await page.clock.runFor(50);
   ok(/드루이드/.test(await page.getAttribute('#s-char .c7-bigem .emblem', 'aria-label')), '장비 받침대 문장 = 드루이드');
