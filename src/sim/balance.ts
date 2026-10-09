@@ -2,7 +2,8 @@
  * 자동 밸런스 (38 0-6): 장소 × 난이도마다 기준 조건으로 자동 힐러를 돌려 클리어율을 재고, 목표 밖이면
  * 피해 배율(tune.dmg)을 찾아 data/tune.ts에 적는다. 명령줄은 scripts/balance.ts (npm run balance).
  * 기준 조건 (26 9-2, Lim 2026-10-07 「추천으로 모두」): 열림 레벨 (난이도만 잠긴 건 그 레벨), 그 레벨에서 열린 특성
- * (사제는 빌드 A·B·C 번갈아, 드루이드·성기사는 임시 보정), 공개모집 파티원 능력 1개, 권장 장비 (쉬움·보통 없음, 어려움 고급, 악몽 희귀 +5),
+ * (사제는 빌드 A·B·C 번갈아, 드루이드·성기사는 임시 보정), 공개모집 파티원 능력 1개, 권장 장비 (쉬움·보통 없음, 어려움 고급, 악몽 희귀 +5)와
+ * 그 등급의 대표 특수능력 (data/gear GEAR_SPECS, 42 1-7),
  * 단축칸 마나·생명 물약, 던전은 그 레벨의 난이도 어픽스. 세 직업 평균.
  * 목표 (26 9-2): 보통 거의 100% (95% 아래면 낮춤), 어려움 약 85%, 악몽 약 75%. 38 0-6에 처음 적은 「보통 85 · 어려움 60~70」은
  * 악몽보다 어려움이 어려워지는 숫자라 9-2로 맞춤 (2026-10-09).
@@ -11,7 +12,7 @@ import { diffAffixes, type AffixKey } from '../data/affixes';
 import { ALL_DIFFS, CONTENT, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
-import type { GearId } from '../data/gear';
+import { presetSpecs, type GearId } from '../data/gear';
 import { HERO_KEYS, type HeroKey } from '../data/heroes';
 import type { ItemKey } from '../data/items';
 import { TALENTS } from '../data/talents';
@@ -59,6 +60,7 @@ export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number,
     const f = create({
       encounter: segs[i], diff: d, gear: s.gear, seed: seed + i * 7919, items: ITEMS, hero, level: s.lv, heroLv: s.lv, stageLv: s.lv,
       talents: hero === 'priest' ? build(s.lv, seed % 3) : undefined, party, affixes: s.affixes.length ? s.affixes : undefined, carry, tune,
+      specs: presetSpecs(s.gear, hero),
     });
     while (!f.over && f.t < MAX_T) { autoHealer(f); step(f); f.events.length = 0; }
     time += f.t;
