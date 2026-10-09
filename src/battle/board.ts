@@ -424,7 +424,7 @@ function glow(x: number, y: number, size: number, tint: number, alpha: number, k
 // ---------- 판 위 효과 ----------
 interface Fx { kind: 'heal' | 'hit' | 'dispel' | 'death' | 'revive'; id: number; t0: number; crit?: boolean; color?: number; seeds?: number[]; x?: number; y?: number }
 interface Float { x: number; y: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean }
-interface Bubble { id: number; text: string; t0: number }
+interface Bubble { id: number; text: string; t0: number; life: number }
 const FX_MS = 400;
 const B2 = {
   floats: [] as Float[], bubbles: [] as Bubble[], fx: [] as Fx[], disp: {} as Record<number, number>, hitFx: {} as Record<number, number>, shake: {} as Record<number, number>,
@@ -482,9 +482,10 @@ export function fxDeath(u: Unit, now: number): void {
   if (S.reducedEffects) { addBubble(u.id, '쓰러짐', now); return; }
   const p = unitPos(u); B2.fx.push({ kind: 'death', id: u.id, t0: now, color: hex(ROLE[u.role].color), x: p.x, y: p.y });
 }
-export function addBubble(id: number, text: string, now: number): void {
+/** 말풍선. life = 보이는 시간 (ms, 긴 대사는 조금 더 오래, battle/talk.ts) */
+export function addBubble(id: number, text: string, now: number, life = 1700): void {
   B2.bubbles = B2.bubbles.filter(b => b.id !== id);
-  B2.bubbles.push({ id, text, t0: now });
+  B2.bubbles.push({ id, text, t0: now, life });
   if (B2.bubbles.length > 3) B2.bubbles.shift();
 }
 /** 20인 탭 확대 미리보기 0.3초 (02 3-1) */
@@ -1000,7 +1001,7 @@ export function render(now: number): void {
     pill(topG, tops, 'swipe', ex, ey - s * 0.45, label, it && it.key ? C.ink : 0x5a5b70, C.dark, fs(0.28, 12));
   }
   // 말풍선 (동시에 최대 3개, 04 10장)
-  B2.bubbles = B2.bubbles.filter(b => now - b.t0 < 1700);
+  B2.bubbles = B2.bubbles.filter(b => now - b.t0 < b.life);
   for (const b of B2.bubbles) {
     const u = F.party.find(x => x.id === b.id); if (!u) continue;
     const p = unitPos(u);
@@ -1010,7 +1011,7 @@ export function render(now: number): void {
     if (by < L.top + 1) by = p.y + r + 6;
     const bp = fitCenter(p.x, by + h / 2, w / 2 + 1, h / 2 + 1), bx = bp.x - w / 2;
     by = bp.y - h / 2;
-    const a = S.reducedEffects ? 1 : Math.min(1, (1700 - (now - b.t0)) / 300);
+    const a = S.reducedEffects ? 1 : Math.min(1, (b.life - (now - b.t0)) / 300);
     topG.roundRect(bx, by, w, h, 8).fill({ color: C.ink, alpha: a }).stroke({ width: 2, color: C.line, alpha: a });
     fitLabel(tops.put(`bb${b.id}`, text, { size: 12, fill: C.dark, weight: '500' }, bx + w / 2, by + h / 2 + 0.5, a), `bubble-text${b.id}`, 'bubble');
     recordBound(`bubble${b.id}`, 'bubble', 'rect', bp.x, bp.y, w + 2, h + 2);

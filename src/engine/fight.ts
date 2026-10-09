@@ -218,7 +218,7 @@ function tankWatch(f: Fight): void {
   const u = aggroTarget(f);
   if (!u || u.me || u.bulwarkUsed || !u.traits.includes('bulwark')) return;
   u.bulwarkUsed = true; u.bulwark = BULWARK.sec;
-  bark(f, u, '내가 막을게!', true);
+  bark(f, u, '내가 막을게!', true, 'bulwark');
   emit(f, { type: 'msg', text: `${u.nick} ${TRAITS.bulwark.name}: ${BULWARK.sec}초 버팀` });
 }
 

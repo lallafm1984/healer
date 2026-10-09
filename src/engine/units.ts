@@ -68,7 +68,7 @@ export function unitTick(f: Fight, u: Unit): void {
   if (fleeAt || u.fleeing) {
     if (!u.fleeing && fleeAt && u.hp / u.max < fleeAt && !calmHymn(f) && !((u.ab || u.mods.length) && abFear(f, u))) {
       const c = shelter || pickCell(f, u, { safe: true, back: true });
-      if (c) { moveTo(f, u, c); u.fleeing = true; bark(f, u, u.p.flee ? u.p.barks![0] : '쉼터로!', true); }
+      if (c) { moveTo(f, u, c); u.fleeing = true; bark(f, u, u.p.flee ? u.p.barks![0] : '쉼터로!', true, u.p.flee ? 'flee' : 'shelter'); }
     } else if (u.fleeing && u.hp / u.max >= 0.8) {
       u.fleeing = false;
       const c = pickCell(f, u, { safe: true, home: true });
@@ -83,7 +83,7 @@ export function unitTick(f: Fight, u: Unit): void {
       else if (f.t >= u.homeAt) { u.homeAt = null; moveTo(f, u, h); return; }
     } else u.homeAt = null;
   }
-  if (u.p.attention && !u.sulking && f.t - u.lastHeal > u.p.attention && f.t > 8) { u.sulking = true; bark(f, u, null, true); }
+  if (u.p.attention && !u.sulking && f.t - u.lastHeal > u.p.attention && f.t > 8) { u.sulking = true; bark(f, u, null, true, 'sulk'); }
 }
 
 /** 쉼터가 있으면 도망 대신 쉼터로 가는 성격과 체력 (06 6장. 소심이는 아직 없는 성격) */

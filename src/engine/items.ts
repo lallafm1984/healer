@@ -35,7 +35,7 @@ export function reviveUnit(f: Fight, u: Unit, pct: number): boolean {
   u.debuffs = []; u.moving = null; u.react = null; u.fleeing = false; u.sulking = false; u.retryAt = f.t + 1;
   emit(f, { type: 'revive', id: u.id });
   emit(f, { type: 'sound', name: 'chime' });
-  bark(f, u, '살았다…! 감사', true);
+  bark(f, u, '살았다…! 감사', true, 'revived');
   return true;
 }
 
