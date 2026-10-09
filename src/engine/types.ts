@@ -27,6 +27,8 @@ export interface Cell {
   px: number;
   py: number;
   unit: Unit | null;
+  /** 못 서는 칸: hole = 무너진 바닥 (P-HOLE), add = 쫄(토템)이 차지 */
+  block?: 'hole' | 'add';
 }
 
 export interface Debuff {
@@ -50,6 +52,13 @@ export interface Debuff {
   stackMax?: number;
   /** 걸려 있는 동안 최대 체력 −비율 (썩은 숨결·부패) */
   maxCut?: number;
+  /** 딜 0 · 못 움직임 · 판 기술에 안 맞음 (data/bosses.ts DebuffDef) */
+  noDps?: boolean;
+  noMove?: boolean;
+  hide?: boolean;
+  /** 보스 체력이 bossAt − 최대 × untilBossLoss 아래가 되면 풀림 (삼키기) */
+  untilBossLoss?: number;
+  bossAt?: number;
   /** 끝날 때 하는 일 (부품) */
   end?: DebuffEnd;
 }
@@ -245,6 +254,10 @@ export interface BossSkill {
   other?: boolean;
   /** 흐르는 장판: 다음 열까지 초 (예고 = 이 시간) */
   flowEvery?: number;
+  /** 장판 예고가 맞는 순간 한 번 피해 (피난처) */
+  hitDmg?: number;
+  /** 예고에 안전 칸을 붙임 (피난처) */
+  safe?: boolean;
   /** 부품 상태 (장판 좌우 번갈아·성부 차례 등, engine/bossParts.ts) */
   st: Record<string, number | boolean>;
 }
@@ -261,6 +274,8 @@ export interface Telegraph {
   dur?: number;
   /** 흐르는 장판: 이 열이 맞으면 dir 쪽 다음 열을 every초 예고 */
   flow?: { col: number; dir: 1 | -1; every: number };
+  /** 피난처: 안전 칸 (화면 금빛). cells = 맞는 칸 */
+  safe?: Set<number>;
 }
 
 export interface Zone {
@@ -381,7 +396,7 @@ export interface Mob {
   /** 능력으로 기절·얼림: 이 시각까지 기술을 안 씀 */
   stun?: number;
   /** 보스 전투 중에 나온 쫄 (P-ADD): 맡은 사람(on)을 every초마다 때림. 보스 체력 합에는 안 들어감 */
-  add?: { short: string; on: number; dmg: number; every: number; next: number; down?: AddDown; done?: boolean };
+  add?: { short: string; on: number; dmg: number; every: number; next: number; down?: AddDown; done?: boolean; cell?: number; zone?: number };
 }
 
 export interface Cast {

@@ -6,7 +6,7 @@ import type { AddDef, DebuffDef, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhe
 import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, living, randomTargets, setMax, spread, unitById } from './core';
 import { scheduleReactions } from './movement';
-import type { BossSkill, Debuff, Fight, Mob, Telegraph, Unit } from './types';
+import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
  * 보스가 때릴 사람: 살아 있는 탱커. 탱커가 모두 쓰러지면 대신 막는 사람
@@ -27,6 +27,7 @@ export function autoHit(f: Fight, tk: Unit, base: number): void {
 export function whenFn(w: SkillWhen | undefined): BossSkill['active'] {
   if (!w) return () => true;
   return f => (!w.phase || w.phase.includes(f.phase))
+    && (w.mythic == null || f.mythic === w.mythic)
     && (w.hpBelow == null || f.bossHp <= f.bossMax * w.hpBelow)
     && (!w.bodyAlive || w.bodyAlive.some(i => f.mobs[i]?.alive));
 }
@@ -85,6 +86,18 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       emit(f, { type: 'msg', text: `${e.add.name} ${n}마리 등장` });
       return;
     }
+    case 'hole': {
+      // 무너지는 바닥 (P-HOLE): 판 가운데에서 먼 빈 칸부터. 빈 칸은 늘 1개 이상 남김 (35 1-1 원칙 6)
+      for (let i = 0; i < e.n && f.cells.filter(c => c.block === 'hole').length < e.max; i++) {
+        const free = f.cells.filter(c => !c.unit && !c.block);
+        if (free.length <= 1) break;
+        const far = Math.max(...free.map(c => fromMid(f, c)));
+        const pick = free.filter(c => fromMid(f, c) > far - 1e-6);
+        pick[Math.floor(f.rng() * pick.length)].block = 'hole';
+        emit(f, { type: 'msg', text: '바닥이 무너짐' });
+      }
+      return;
+    }
   }
 }
 
@@ -97,7 +110,15 @@ export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
   const d = addDebuff(f, u, { ...def, stack: def.stackMax ? 1 : undefined });
   if (!u.debuffs.includes(d)) return null; // 주문 반사 등으로 안 걸림
   if (d.maxCut) setMax(u);
+  if (d.untilBossLoss != null) d.bossAt = f.bossHp;
   return d;
+}
+
+/** 판 가운데에서 떨어진 거리 (피난처·구멍) */
+function fromMid(f: Fight, c: Cell): number {
+  const n = f.cells.length;
+  const mx = f.cells.reduce((s, x) => s + x.px, 0) / n, my = f.cells.reduce((s, x) => s + x.py, 0) / n;
+  return Math.hypot(c.px - mx, c.py - my);
 }
 
 /** 뒷줄부터 n명 (탱커·나·이미 끌려온 사람 빼고). 같은 줄이면 무작위 */
@@ -111,7 +132,7 @@ function pull(f: Fight, u: Unit, sec: number, dmg: number): void {
   if (!u.alive) return;
   const tk = aggroTarget(f);
   const at = tk ? cellOf(f, tk) : null;
-  const free = f.cells.filter(c => !c.unit);
+  const free = f.cells.filter(c => !c.unit && !c.block);
   const c = free.sort((a, b) => (at ? hexDist(a, at) - hexDist(b, at) : 0) || a.row - b.row)[0];
   if (u.moving) { const to = f.cells[u.moving.to]; if (to.unit === u) to.unit = null; u.moving = null; }
   u.react = null; u.fleeing = false; u.homeAt = null;
@@ -130,11 +151,22 @@ export function pullTick(f: Fight, u: Unit): void {
   if (f.t >= p.until || !there) u.pulled = null;
 }
 
-/** 쫄 하나: 아직 쫄이 붙지 않은 딜러를 맡음 */
+/** 쫄 하나: 아직 쫄이 붙지 않은 딜러를 맡음. 칸을 차지하는 쫄(토템)은 빈 칸 하나를 막고 이웃 칸에 오라 */
 function spawnAdd(f: Fight, a: AddDef): void {
   const m: Mob = { id: f.nextId++, name: a.name, elite: false, hp: f.bossMax * a.hp, max: f.bossMax * a.hp, alive: true,
     add: { short: a.short, on: 0, dmg: a.dmg, every: a.every, next: f.t + a.every, down: a.down } };
-  m.add!.on = addTarget(f)?.id ?? 0;
+  if (a.dmg > 0) m.add!.on = addTarget(f)?.id ?? 0;
+  if (a.cell) {
+    const free = f.cells.filter(c => !c.unit && !c.block);
+    if (free.length <= 1) return; // 설 칸을 남김
+    const c = free[Math.floor(f.rng() * free.length)];
+    c.block = 'add'; m.add!.cell = c.i;
+    if (a.cell.aura) {
+      const id = f.nextId++;
+      f.zones.push({ id, cells: new Set(f.cells.filter(x => hexDist(x, c) === 1 && !x.block).map(x => x.i)), end: Infinity, dps: a.cell.aura });
+      m.add!.zone = id;
+    }
+  }
   f.mobs.push(m);
 }
 
@@ -150,8 +182,14 @@ export function addsTick(f: Fight): void {
   for (const m of f.mobs) {
     const a = m.add;
     if (!a) continue;
-    if (!m.alive) { if (!a.done) { a.done = true; addDown(f, m); } continue; }
-    if (f.t + 1e-9 < a.next) continue;
+    if (!m.alive) {
+      if (a.done) continue;
+      a.done = true;
+      if (a.cell != null) { f.cells[a.cell].block = undefined; f.zones = f.zones.filter(z => z.id !== a.zone); }
+      addDown(f, m);
+      continue;
+    }
+    if (a.dmg <= 0 || f.t + 1e-9 < a.next) continue;
     a.next += a.every;
     if ((m.stun || 0) > f.t) continue;
     let u = unitById(f, a.on);
@@ -200,6 +238,15 @@ function rotTargets(f: Fight, e: Extract<SkillEffect, { p: 'rot' }>): Unit[] {
 /** 장판 칸 고르기 */
 export function zoneCells(f: Fight, s: BossSkill, z: ZoneCells): Set<number> {
   switch (z.p) {
+    case 'safe': {
+      // 안전 칸 n개: edge = 가운데에서 먼 칸부터, center = 가까운 칸부터 (+ 탱커 칸). 나머지가 맞는 칸
+      const open = f.cells.filter(c => !c.block);
+      const n = f.mythic && z.nMythic ? z.nMythic : z.n;
+      const order = open.slice().sort((a, b) => (z.at === 'edge' ? fromMid(f, b) - fromMid(f, a) : fromMid(f, a) - fromMid(f, b)));
+      const safe = new Set(order.slice(0, n).map(c => c.i));
+      if (z.tank) { const tk = aggroTarget(f); if (tk) safe.add(tk.moving ? tk.moving.to : tk.cell); }
+      return new Set(open.filter(c => !safe.has(c.i)).map(c => c.i));
+    }
     case 'flow': {
       // 흐르는 장판의 첫 열: 맨 왼쪽(또는 오른쪽) 열. 방향은 s.st.dir (bossTick이 예고에 flow로 붙임)
       const left = z.from === 'right' ? false : z.from === 'alt' ? !(s.st.left as boolean | undefined) : true;
@@ -214,7 +261,7 @@ export function zoneCells(f: Fight, s: BossSkill, z: ZoneCells): Set<number> {
         const center = f.cells[u.cell];
         const set = new Set(f.cells.filter(x => hexDist(x, center) <= 1).map(x => x.i));
         const inside = living(f).filter(v => set.has(v.cell)).length;
-        const free = f.cells.filter(x => !x.unit && !set.has(x.i)).length;
+        const free = f.cells.filter(x => !x.unit && !x.block && !set.has(x.i)).length;
         return free >= inside ? set : null;
       }).filter((x): x is Set<number> => !!x);
       if (ok.length) return ok[0];
