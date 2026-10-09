@@ -278,24 +278,6 @@ async function inputs(page, check, label) {
 
   for (const name of ['renew', 'mana', 'zenith', 'board:0']) {
     await reset(page);
-    const before = await page.evaluate(name => {
-      const q = window.__inputFixture, before = q.snap();
-      q.send(name, 'pointerdown'); document.querySelector('#targetsBtn').click(); return before;
-    }, name);
-    await page.clock.runFor(500);
-    const noTip = await page.isHidden('#tip') && await page.isHidden('#preview');
-    const after = await page.evaluate(name => {
-      document.querySelector('#targetsClose').click();
-      const q = window.__inputFixture;
-      q.send(name, 'pointerup'); q.send(name, 'click', 1, { detail: 1 }); return q.snap();
-    }, name);
-    await page.clock.runFor(40);
-    const notArmed = await page.getAttribute('#wheel [data-slot="renew"]', 'aria-pressed') !== 'true';
-    ok(noTip && notArmed && unchanged(before, after), `${name} 누른 채 대상 목록 열기/닫기는 타이머·늦은 release 취소`, { before, after });
-  }
-
-  for (const name of ['renew', 'mana', 'zenith', 'board:0']) {
-    await reset(page);
     r = await page.evaluate(name => {
       const q = window.__inputFixture, before = q.snap();
       q.send(name, 'pointerdown'); q.toggleMode();

@@ -742,7 +742,7 @@ export function render(now: number): void {
         recordBound(`hp-track${u.id}`, 'hp', 'track', gx + gw / 2, gy + gh / 2, gw + 1, gh + 3);
       }
       if (hasHot) {
-        // 지속 치유 +는 HP 눈금과 독립적으로 유지한다. 정확한 종류/잔여 초는 대상 목록에 보존한다.
+        // 지속 치유 +는 HP 눈금과 독립적으로 유지한다. 정확한 종류/잔여 초는 길게 누르기 정보에 보존한다.
         // 양쪽 패널 모두 중앙 하단에 둔다. 오른쪽 아래는 다음 행 디버프 배지가 덮을 수 있다.
         // HP의 실제 높이 아래에 간격을 두어 숫자/위험 !를 가리지 않는다.
         const hp = fitCenter(x, Math.max(showTrack ? hotBelowTrack : gy + gh / 2, hpBox.y + hpBox.h / 2 + 4.25), 3.25);
@@ -936,7 +936,7 @@ export function render(now: number): void {
 }
 
 function nick(u: Unit, x: number, y: number, r: number): { x: number; y: number; w: number; h: number } {
-  // 글자 크기를 11px 아래로 축소하지 않는다. 전체 이름은 선택 대상 정보에도 남는다.
+  // 글자 크기를 11px 아래로 축소하지 않는다. 전체 이름은 길게 누르기 정보에도 남는다.
   const maxW = r * 1.45;
   const size = cellTypography(L.s).nick;
   const text = fitPartyName(u.nick, maxW, text => measure(text, size));

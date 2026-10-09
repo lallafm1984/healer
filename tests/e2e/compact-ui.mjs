@@ -30,9 +30,7 @@ const geometry = page => page.evaluate(() => {
     castState: { parent: cast.parentElement.id, position: style.position, pointerEvents: style.pointerEvents,
       visible: visible(cast), active: cast.classList.contains('is-casting'), track: box(track), trackVisible: visible(track) },
     stage: box(document.querySelector('#stage')),
-    actions: box(document.querySelector('#partyActions')),
-    actionButtons: [...document.querySelectorAll('#partyActions button')].filter(visible).map(box),
-    targets: box(document.querySelector('#targetsBtn')),
+    targetsGone: !document.querySelector('#targetsBtn,#partyTargets,#partyActions'),
     slots: [...document.querySelectorAll('#wheel button')].filter(visible).map(el => ({ ...box(el),
       hitW: Number(el.dataset.hitWidth), hitH: Number(el.dataset.hitHeight) })),
     cellW: Number(cv.dataset.cellWidth), cellH: Number(cv.dataset.cellHeight),
@@ -61,16 +59,9 @@ const hpBoundsValid = g => g.hpTextBounds.length === g.party
   && (g.hpTextGap === null || (Number.isFinite(g.hpTextGap) && g.hpTextGap >= 0))
   && g.hpTextBounds.every((a, i) => a.w > 0 && a.h > 0 && g.hpTextBounds.slice(i + 1).every(b =>
     Math.abs(a.x - b.x) >= (a.w + b.w) / 2 || Math.abs(a.y - b.y) >= (a.h + b.h) / 2));
-const inside = (r, parent) => r.x >= parent.x - 1 && r.right <= parent.right + 1
-  && r.y >= parent.y - 1 && r.bottom <= parent.bottom + 1;
 const apart = (a, b) => a.right <= b.x + 1 || b.right <= a.x + 1 || a.bottom <= b.y + 1 || b.bottom <= a.y + 1;
-const toolbarValid = g => {
-  if (g.directToggles || g.targets.w < 44 || g.targets.h < 44 || !inViewport(g.targets, g)) return false;
-  if (!g.compact) return inside(g.targets, g.cast) && g.targets.y >= g.board.bottom - 1;
-  return inside(g.targets, g.actions) && g.targets.bottom <= g.board.y + 1
-    && g.actionButtons.every(r => r.w >= 44 && r.h >= 44 && inViewport(r, g) && inside(r, g.actions) && r.bottom <= g.board.y + 1)
-    && g.actionButtons.every((a, i) => g.actionButtons.slice(i + 1).every(b => apart(a, b)));
-};
+// 대상 목록 버튼은 없앴다 (2026-10-09 Lim). 칸 탭으로 치유, 길게 눌러 정보.
+const toolbarValid = g => !g.directToggles && g.targetsGone;
 // 배율은 터치 44px을 지키기 위해 1일 수 있다. 순서·방향·부모·상대좌표는 같은 기본 배치여야 한다.
 const uniformLayout = (normal, compact) => {
   const k = compact.scale, near = (a, b) => Math.abs(a - b) <= 1;
@@ -202,7 +193,7 @@ export default async function compactUi(url, shots) {
             && inViewport(normal.stage, normal) && inViewport(normal.board, normal) && inViewport(normal.controls, normal)
             && normal.board.bottom <= normal.cast.y + 1 && normal.cast.bottom <= normal.controls.y + 1
             && toolbarValid(normal) && castSpaceValid(normal) && usableControls(normalControls),
-          `${tag}: 일반 모드 광고·판/HUD 경계·HP 12px/이름 11px·44px 버튼의 시전행 내부 배치`, normal);
+          `${tag}: 일반 모드 광고·판/HUD 경계·HP 12px/이름 11px·대상 버튼 없음`, normal);
 
           const takeShot = party.n === 20 || (width === 360 && height === 780 && party.n === 5);
           if (takeShot) await page.screenshot({ path: `${shots}/compact_normal_${width}x${height}_${party.n}.png` });
@@ -230,36 +221,6 @@ export default async function compactUi(url, shots) {
           `${tag}: 일반/축소 원화 로드·영역 유지, 원화 위 기능 배지 없음·이름/비용 구분·버튼 hit 유지`,
           { normal: normalArt, compact: compactArt });
           if (takeShot) await page.screenshot({ path: `${shots}/compact_small_${width}x${height}_${party.n}.png` });
-
-          // 대상 목록은 작은 육각 칸을 대신하는 44px 조작 경로다. 모달 내부에서 게임 시간이 멈춰야 한다.
-          const target = await page.evaluate(() => {
-            const f = window.__proto.F, u = f.party.find(x => !x.me && x.alive);
-            f.cast = null; f.queued = null; f.gcd = 0; f.g.p = 0; f.mana = 75;
-            u.hp = u.max * 0.55;
-            return { id: u.id, cell: u.cell, nick: u.nick };
-          });
-          await page.click('#targetsBtn');
-          const stopped = await time(page);
-          await page.clock.runFor(240);
-          const targetUi = await page.locator('#partyTargets').evaluate(el => {
-            const r = el.getBoundingClientRect();
-            return { native: el instanceof HTMLDialogElement, modal: el.matches(':modal'), open: el.open,
-              within: r.x >= 0 && r.right <= innerWidth + 1 && r.y >= 0 && r.bottom <= innerHeight + 1,
-              buttons: [...el.querySelectorAll('#targetList button[data-cell]')].map(b => {
-                const r = b.getBoundingClientRect(); return { w: r.width, h: r.height };
-              }) };
-          });
-          ok(targetUi.native && targetUi.modal && targetUi.open && targetUi.within && await time(page) === stopped
-            && targetUi.buttons.length === party.n && targetUi.buttons.every(r => r.w >= 44 && r.h >= 44),
-          `${tag}: 대상 native dialog에서 시간 정지·파티 ${party.n}명·44px 목록`, targetUi);
-          await page.click(`#targetList button[data-cell="${target.cell}"]`);
-          await page.clock.runFor(80);
-          const chosen = await page.evaluate(t => ({
-            closed: !document.querySelector('#partyTargets').open,
-            selected: window.__proto.F.cast?.uid === t.id || document.querySelector('#castLabel').textContent.includes(t.nick),
-          }), target);
-          ok(chosen.closed && chosen.selected && await time(page) > stopped,
-            `${tag}: 목록 대상 선택이 적용되고 창 닫힘·전투 재개`, chosen);
 
           // 대표 크기에서 상태·취소·재진입을 추가 검사. 행렬 전체를 불필요하게 반복하지 않는다.
           if (width === 360 && height === 780 && party.n === 5) {
@@ -494,31 +455,7 @@ async function heroVariants(page, ok, shots) {
 }
 
 async function featureCases(page, ok) {
-  // 목록을 취소해도 게임과 초점이 복구된다. keyboard path도 별도로 확인한다.
-  await page.locator('#targetsBtn').focus();
-  await page.keyboard.press('Enter');
-  const opened = await page.evaluate(() => {
-    window.__escapeTargetFight = window.__proto.F;
-    return { t: window.__proto.F.t, open: document.querySelector('#partyTargets').open,
-      modal: document.querySelector('#partyTargets').matches(':modal') };
-  });
-  const t0 = opened.t;
-  await page.clock.runFor(120);
-  const stopped = await time(page);
-  await page.keyboard.press('Escape');
-  const closed = await page.evaluate(() => ({ closed: !document.querySelector('#partyTargets').open,
-    focus: document.activeElement?.id, sameFight: window.__proto.F === window.__escapeTargetFight,
-    t: window.__proto.F.t }));
-  // 가상 시간 경과를 앱 tick 완료로 취급하지 않는다. 같은 판이 실제로 진행한 뒤 재개를 판정한다.
-  const resumeError = await page.waitForFunction(t => window.__proto.F === window.__escapeTargetFight
-    && window.__proto.F.t > t, t0, { polling: 'raf', timeout: 8000 }).then(() => null, error => error.message);
-  const resumedTime = await time(page);
-  ok(opened.open && opened.modal && stopped === t0 && closed.closed && closed.sameFight
-    && closed.focus === 'targetsBtn' && resumeError === null && resumedTime > t0,
-  '360: 대상 목록 Escape 취소는 동일 전투 재개·호출 버튼 초점 복구',
-  { opened, stopped, closed, resumedTime, resumeError });
-
-  await page.click('#targetsBtn');
+  // 앱 전환은 진행 중 전투를 일시정지 메뉴로 멈추고, 계속을 눌러야 시간이 흐른다.
   await page.evaluate(() => {
     // 이 독립 페이지에서만 백그라운드 진입 이벤트를 만든 뒤 document.hidden 원래 getter를 즉시 복원한다.
     const original = Object.getOwnPropertyDescriptor(document, 'hidden');
@@ -532,11 +469,10 @@ async function featureCases(page, ok) {
   });
   const backgroundTime = await time(page);
   await page.clock.runFor(200);
-  const backgroundPaused = await page.locator('#partyTargets').evaluate(el => !el.open)
-    && await page.isVisible('#pause') && await time(page) === backgroundTime;
+  const backgroundPaused = await page.isVisible('#pause') && await time(page) === backgroundTime;
   await page.click('#resumeBtn'); await page.clock.runFor(80);
   ok(backgroundPaused && await time(page) > backgroundTime,
-    '360: 대상 목록 중 백그라운드 진입은 native 창 닫기·일시정지 유지, 계속에서만 시간 재개');
+    '360: 백그라운드 진입은 일시정지 유지, 계속에서만 시간 재개');
 
   await page.evaluate(() => { const f = window.__proto.F; f.cast = null; f.queued = null; f.gcd = 0; f.mana = 80; f.g.p = 0; });
   await tapSlot(page, '#wheel [data-slot="heal"]');
@@ -624,9 +560,9 @@ async function pauseModeReparenting(page, ok) {
     });
     await page.keyboard.press('Space'); await page.clock.runFor(80);
     const changed = await page.evaluate(() => {
-      const cast = document.querySelector('#castbar'), targets = document.querySelector('#targetsBtn');
+      const cast = document.querySelector('#castbar'), slot = document.querySelector('#wheel button');
       const before = document.activeElement?.id;
-      targets.focus(); // 일시정지 중 직접 focus도 배경으로 빠져나갈 수 없다.
+      slot.focus(); // 일시정지 중 직접 focus도 배경으로 빠져나갈 수 없다.
       return { compact: document.querySelector('#controls').classList.contains('compact-controls'), before,
         after: document.activeElement?.id, paused: !document.querySelector('#pause').hidden,
         castParent: cast.parentElement.id, castInert: !!cast.closest('[inert]'),
@@ -647,12 +583,9 @@ async function pauseModeReparenting(page, ok) {
       focus: document.activeElement?.id, paused: !document.querySelector('#pause').hidden,
       directToggles: document.querySelectorAll('#compactToggle,#compactReturn').length,
     }));
-    await page.click('#targetsBtn');
-    const opened = await page.locator('#partyTargets').evaluate(el => el.open && el.matches(':modal'));
-    await page.keyboard.press('Escape'); await page.clock.runFor(40);
     ok(!resumed.castInert && !resumed.controlsInert && !resumed.paused && resumed.focus === 'pauseBtn'
-      && resumed.directToggles === 0 && opened && await page.locator('#partyTargets').evaluate(el => !el.open),
-    '360: ' + (compact ? '축소' : '일반') + ' 복귀 뒤 inert 해제·대상 창 열기/닫기·직접 크기 버튼 제거', resumed);
+      && resumed.directToggles === 0,
+    '360: ' + (compact ? '축소' : '일반') + ' 복귀 뒤 inert 해제·직접 크기 버튼 제거', resumed);
   }
 }
 
