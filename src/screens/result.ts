@@ -116,15 +116,18 @@ function lootHtml(r: BattleResult, x: Settlement): string {
 function itemsHtml(x: Settlement): string {
   if (!x.items.length) return x.lootLocked ? '<p class="r-item none">이번 주 이 보스·난이도 장비는 받음 · 월요일 오전 6시에 다시</p>' : '';
   let first = true;
-  return x.items.map(it0 => {
-    const h = itemRow(x, it0.id, first);
+  const rows = x.items.map(it0 => {
+    const h = itemRow(it0.id, first);
     if (h.includes('data-eqnow')) first = false;
     return h;
   }).join('');
+  // 처음 얻은 특수능력은 장비가 여럿이어도 띠 하나로 (42 1-6)
+  const fresh = x.newSpecs ?? [];
+  return rows + (fresh.length ? `<p class="r-newsp"><b>새 특수능력!</b> ${fresh.map(k => esc(specName(k))).join(' · ')} <span>도감에 적었습니다</span></p>` : '');
 }
 
 /** 장비 한 줄: 부위 그림(등급 색 테두리) · 이름 · 부위·종류·등급·점수 (지금 장비보다 ▲▼) · 장착 버튼 (지금보다 좋을 때만) */
-function itemRow(x: Settlement, id: number, first: boolean): string {
+function itemRow(id: number, first: boolean): string {
   const eq = G.save.gear.equipped;
   const it = G.save.gear.bag.find(b => b.id === id) || Object.values(eq).find(b => b?.id === id);
   if (!it) return '';
@@ -134,14 +137,14 @@ function itemRow(x: Settlement, id: number, first: boolean): string {
     : isBetter(it) ? `<button class="btn r-eq${firstGear() ? ' hi-pulse' : ''}" type="button"${first ? ' id="equipNow"' : ''} data-eqnow="${it.id}">장착</button>`
     : '<span class="r-on dim">가방에</span>';
   const delta = worn ? '' : !cur ? ' <em class="up">빈칸</em>' : d > 0 ? ` <em class="up">▲${d}</em>` : d < 0 ? ` <em class="dn">▼${-d}</em>` : '';
-  // 특수능력 이름 (42), 처음 얻은 것은 「새 특수능력!」 띠 (42 1-6)
-  const sp = specKeysOf(it), fresh = (x.newSpecs ?? []).filter(k => sp.includes(k));
+  // 특수능력 이름 (42)
+  const sp = specKeysOf(it);
   const spTxt = sp.length ? `<small class="r-sp">${sp.map(k => esc(specName(k))).join(' · ')}</small>` : '';
   return `<div class="r-item" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
       <span class="r-ic">${gameIcon(it.slot, uiIcon(it.slot), 'item')}</span>
       <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><small>${slotName(it.slot)} · ${esc(kindOf(it).name)} · ${it.grade} · 점수 ${sc}${delta}</small>${spTxt}</span>
       ${act}
-    </div>${fresh.length ? `<p class="r-newsp"><b>새 특수능력!</b> ${fresh.map(k => esc(specName(k))).join(' · ')} <span>도감에 적었습니다</span></p>` : ''}`;
+    </div>`;
 }
 
 /** 경험치 줄: 바 + 받은 양 + 지금 레벨 (오르면 강조) */

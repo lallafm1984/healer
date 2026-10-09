@@ -116,7 +116,7 @@ export default async function gear(url, shots) {
   await page.locator('#s-char .c7-bagsec').screenshot({ path: `${shots}/gear_salvage.png` });
   await page.click('#s-char [data-salvgo]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.gear.bag.length === 1 && sv.gear.bag[0].id === 203 && sv.player.gold === 820 + 40 && sv.mats.stone === 0 + 3, `두 번째 = 분해: 골드 +40, 강화석 +3 (${sv.player.gold}, ${sv.mats.stone})`);
+  ok(sv.gear.bag.length === 1 && sv.gear.bag[0].id === 203 && sv.player.gold === 820 + 20 && sv.mats.stone === 0 + 2, `두 번째 = 분해: 골드 +20, 강화석 +2 (34 6-8 절반) (${sv.player.gold}, ${sv.mats.stone})`);
   ok(/2개 분해/.test(await text('#s-char')), '분해 결과 안내');
   await closeSheet();
   await page.click('#s-char [data-salvbag]'); await page.clock.runFor(50);
