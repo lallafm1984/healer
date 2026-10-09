@@ -108,6 +108,21 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       emit(f, { type: 'msg', text: `${name}: ${ORDER_NUM.slice(0, ids.length).split('').join(' → ')} 차례로 힐` });
       return;
     }
+    case 'jail': {
+      // 감옥 (P-JAIL, 35 3-I): 갇힌 사람 칸에 감옥이 겹쳐 나옴 (칸은 안 차지). 딜러가 깨면 풀림
+      const ts = randomTargets(f, f.mythic && e.nMythic ? e.nMythic : e.n, u => u.role !== 'tank' && !u.me && !u.debuffs.some(d => d.name === e.name));
+      const got: Unit[] = [];
+      for (const u of ts) {
+        const d = applyDebuff(f, u, { name: e.name, type: '물리', left: 600, lock: true, noDps: true, noMove: true, dot: e.dot });
+        if (!d) continue;
+        d.jail = true;
+        got.push(u);
+        f.mobs.push({ id: f.nextId++, name: e.name, elite: false, hp: f.bossMax * e.hp, max: f.bossMax * e.hp, alive: true,
+          add: { short: e.short, on: u.id, dmg: 0, every: 0, next: Infinity, job: { p: 'jail' }, jobAt: Infinity, hold: d.id } });
+      }
+      if (got.length) emit(f, { type: 'msg', text: `${e.name}: ${got.map(u => u.nick).join(' · ')} 갇힘` });
+      return;
+    }
   }
 }
 
@@ -196,14 +211,17 @@ export function pullTick(f: Fight, u: Unit): void {
 
 /**
  * 판에 나오는 적 하나 (35 3-I): 빈 칸 하나를 차지 (빈 칸이 1개뿐이면 안 나옴). 때리는 쫄은 부탱커가 옆 칸으로 와서 끌고,
- * 부탱커가 없으면 아직 쫄이 붙지 않은 딜러를 맡음. 오라가 있으면 이웃 칸에 끝나지 않는 장판
+ * 부탱커가 없으면 아직 쫄이 붙지 않은 딜러를 맡음. 오라가 있으면 이웃 칸에 끝나지 않는 장판. 자폭 쫄은 노린 사람에게서 from칸 떨어져 나옴
  */
 function spawnAdd(f: Fight, a: AddDef): void {
-  const c = addCell(f, a.at ?? (a.dmg > 0 ? 'front' : 'random'));
+  const j = a.job;
+  const prey = j?.p === 'fixate' ? fixateTarget(f) : undefined;
+  if (j?.p === 'fixate' && !prey) return;
+  const c = prey && j?.p === 'fixate' ? cellNear(f, prey, j.from ?? 3) : addCell(f, a.at ?? (a.dmg > 0 ? 'front' : j?.p === 'march' ? 'back' : 'random'));
   if (!c) return;
   const m: Mob = { id: f.nextId++, name: a.name, elite: false, hp: f.bossMax * a.hp, max: f.bossMax * a.hp, alive: true,
-    add: { short: a.short, on: 0, dmg: a.dmg, every: a.every, next: f.t + a.every, down: a.down, cell: c.i, job: a.job } };
-  const u = a.dmg > 0 ? addTarget(f) : undefined;
+    add: { short: a.short, on: prey?.id ?? 0, dmg: a.dmg, every: a.every, next: f.t + a.every, down: a.down, cell: c.i, job: j, cleave: a.cleave } };
+  const u = a.dmg > 0 || j?.p === 'smash' ? addTarget(f) : undefined;
   if (u) m.add!.on = u.id;
   c.block = 'add';
   if (a.aura) {
@@ -211,9 +229,27 @@ function spawnAdd(f: Fight, a: AddDef): void {
     f.zones.push({ id, cells: new Set(f.cells.filter(x => hexDist(x, c) === 1 && !x.block).map(x => x.i)), end: Infinity, dps: a.aura });
     m.add!.zone = id;
   }
-  if (a.job) m.add!.jobAt = f.t + (a.job.p === 'mend' ? a.job.every : a.job.p === 'bomb' ? a.job.sec : 0);
+  if (j) m.add!.jobAt = f.t + (j.p === 'bomb' ? j.sec : 'every' in j ? j.every : Infinity);
+  if (j?.p === 'march') m.add!.steps = c.row + 1; // 앞줄(0)까지 걸어와서 한 번 더 걸으면 흡수
   f.mobs.push(m);
   if (u && u.role === 'tank') offTankTo(f, u, c);
+}
+
+/** 자폭 쫄이 노릴 사람: 탱커 아닌 사람 (나 포함), 아직 다른 자폭 쫄이 노리지 않는 사람부터 */
+function fixateTarget(f: Fight): Unit | undefined {
+  const taken = new Set(f.mobs.filter(m => m.alive && m.add?.job?.p === 'fixate').map(m => m.add!.on));
+  return randomTargets(f, 1, u => u.role !== 'tank' && !taken.has(u.id))[0] || randomTargets(f, 1, u => u.role !== 'tank')[0];
+}
+
+/** u에게서 d칸에 가장 가까운 빈 칸 (자폭 쫄이 나올 곳). 빈 칸은 1개 이상 남김 */
+function cellNear(f: Fight, u: Unit, d: number): Cell | null {
+  const free = f.cells.filter(c => !c.unit && !c.block);
+  if (free.length <= 1) return null;
+  const at = f.cells[u.moving ? u.moving.to : u.cell];
+  const score = (c: Cell): number => Math.abs(hexDist(c, at) - d);
+  const best = Math.min(...free.map(score));
+  const pick = free.filter(c => score(c) === best);
+  return pick[Math.floor(f.rng() * pick.length)];
 }
 
 /** 적이 나올 빈 칸: 자리 규칙에 가장 맞는 칸들 가운데 무작위. 빈 칸은 1개 이상 남김 */
@@ -254,10 +290,11 @@ function offTankTo(f: Fight, u: Unit, c: Cell): void {
   u.home = near.i; u.homeAt = null;
 }
 
-/** 일점사 순서 (P-FOCUS): 치유하는 쫄 → 폭탄 → 보호막 수정 → 그 밖, 같으면 먼저 나온 것 */
-const FOCUS: Record<AddJob['p'], number> = { mend: 0, bomb: 1, pylon: 2 };
+/** 일점사 순서 (P-FOCUS): 치유하는 쫄 → 폭탄 → 감옥 → 보호막 수정 → 그 밖, 같으면 먼저 나온 것 */
+const FOCUS: Partial<Record<AddJob['p'], number>> = { mend: 0, bomb: 1, jail: 2, pylon: 3 };
+const focusRank = (m: Mob): number => (m.add!.job && FOCUS[m.add!.job.p]) ?? 9;
 export function focusOrder(f: Fight): Mob[] {
-  return f.mobs.filter(m => m.alive && m.add).sort((a, b) => (FOCUS[a.add!.job?.p as AddJob['p']] ?? 9) - (FOCUS[b.add!.job?.p as AddJob['p']] ?? 9) || a.id - b.id);
+  return f.mobs.filter(m => m.alive && m.add).sort((a, b) => focusRank(a) - focusRank(b) || a.id - b.id);
 }
 
 /** 보스가 받는 피해 배율: 보호막 수정 (P-PYLON) × 멍함 (차례 성공) */
@@ -267,7 +304,7 @@ export function bossTaken(f: Fight): number {
   return m;
 }
 
-/** 매 틱 쫄: 맡은 사람 때리기 (그 사람이 쓰러지면 다른 딜러), 쓰러진 쫄은 한 번 down (파열) */
+/** 매 틱 쫄: 맡은 사람 때리기 (그 사람이 쓰러지면 다른 딜러), 쓰러진 쫄은 한 번 down (파열), 깨진 감옥은 그 사람을 풂 */
 export function addsTick(f: Fight): void {
   for (const m of f.mobs) {
     const a = m.add;
@@ -276,10 +313,13 @@ export function addsTick(f: Fight): void {
       if (a.done) continue;
       a.done = true;
       if (a.cell != null) { f.cells[a.cell].block = undefined; f.zones = f.zones.filter(z => z.id !== a.zone); }
+      if (a.hold != null) unjail(f, m);
       addDown(f, m);
       continue;
     }
+    if (a.hold != null && !unitById(f, a.on)?.debuffs.some(d => d.id === a.hold)) { vanish(m); continue; } // 갇힌 사람이 쓰러짐
     if (a.job && f.t + 1e-9 >= a.jobAt!) { addJob(f, m); if (!m.alive) continue; }
+    if (a.job?.p === 'smash' && !a.warned && f.t + 1e-9 >= a.jobAt! - a.job.warn) { a.warned = true; emit(f, { type: 'sound', name: 'buster' }); }
     if (a.dmg <= 0 || f.t + 1e-9 < a.next) continue;
     a.next += a.every;
     if ((m.stun || 0) > f.t) continue;
@@ -299,11 +339,69 @@ function addJob(f: Fight, m: Mob): void {
     if (amt > 0) { f.bossHp += amt; emit(f, { type: 'bossHeal', amt: Math.round(amt), name: m.name }); }
   } else if (j.p === 'bomb') {
     a.jobAt = Infinity;
-    m.hp = 0; m.alive = false; a.down = undefined; // 터진 폭탄은 쓰러짐 효과 없음
+    vanish(m);
     emit(f, { type: 'sound', name: 'burst' });
     emit(f, { type: 'msg', text: `${m.name}이(가) 터짐` });
     for (const u of living(f)) damage(f, u, j.dmg, true);
+  } else if (j.p === 'smash') {
+    // 큰 쫄 (P-ELITE): 예고한 강타. 맡은 사람(부탱커)이 쓰러졌으면 다음 사람
+    a.jobAt! += j.every; a.warned = false;
+    if ((m.stun || 0) > f.t) return;
+    let u = unitById(f, a.on);
+    if (!u || !u.alive) { u = addTarget(f); if (!u) return; a.on = u.id; }
+    damage(f, u, j.dmg, false, 'tank');
+    emit(f, { type: 'shake', id: u.id });
+  } else if (j.p === 'march') {
+    // 걸어오는 쫄 (P-MARCH): 한 줄 앞으로. 걸음이 다 되면 보스에게 흡수
+    a.jobAt! += j.every;
+    a.steps = (a.steps ?? 1) - 1;
+    if (a.steps > 0) { stepTo(f, m, x => x.row === f.cells[a.cell!].row - 1); return; }
+    vanish(m);
+    f.dmgMult *= (1 + f.empower + j.boost) / (1 + f.empower); // 겹칠수록 +10% · +20% · … (곱하지 않고 더함)
+    f.empower += j.boost;
+    emit(f, { type: 'sound', name: 'aoe' });
+    emit(f, { type: 'msg', text: `${m.name}이(가) 보스에게 닿음: 보스 피해 +${Math.round(f.empower * 100)}%` });
+  } else if (j.p === 'fixate') {
+    // 자폭 쫄 (P-FIXATE): 붙어 있으면 터지고, 아니면 한 칸 다가감. 더 다가갈 칸이 없는데 두 칸 안이면 터짐
+    a.jobAt! += j.every;
+    let u = unitById(f, a.on);
+    if (!u || !u.alive) { u = fixateTarget(f); if (!u) return; a.on = u.id; }
+    const at = f.cells[u.moving ? u.moving.to : u.cell], d0 = hexDist(f.cells[a.cell!], at);
+    if (d0 > 1 && stepTo(f, m, x => hexDist(x, at) < d0, x => hexDist(x, at))) return;
+    if (d0 > 2) return;
+    vanish(m);
+    emit(f, { type: 'sound', name: 'burst' });
+    emit(f, { type: 'msg', text: `${m.name}이(가) ${u.nick} 곁에서 터짐` });
+    for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), at) === 1) damage(f, v, j.splash, true);
+    damage(f, u, j.dmg, true);
   }
+}
+
+/** 판 위 적이 이웃 빈 칸으로 한 칸 (ok인 칸 중 by가 가장 작은 곳, 같으면 무작위). 갈 칸이 없으면 제자리 */
+function stepTo(f: Fight, m: Mob, ok: (c: Cell) => boolean, by: (c: Cell) => number = () => 0): boolean {
+  const a = m.add!, from = f.cells[a.cell!];
+  const near = f.cells.filter(c => !c.unit && !c.block && hexDist(c, from) === 1 && ok(c));
+  if (!near.length) return false;
+  const best = Math.min(...near.map(by));
+  const pick = near.filter(c => by(c) === best);
+  const to = pick[Math.floor(f.rng() * pick.length)];
+  from.block = undefined; to.block = 'add'; a.cell = to.i;
+  return true;
+}
+
+/** 칸에서 사라짐 (터짐 · 흡수 · 갇힌 사람이 쓰러진 감옥): 쓰러짐 효과 없음. 칸은 다음 틱 addsTick이 비움 */
+function vanish(m: Mob): void {
+  m.hp = 0; m.alive = false; m.add!.down = undefined;
+}
+
+/** 감옥이 깨짐: 갇힌 사람을 풂 */
+function unjail(f: Fight, m: Mob): void {
+  const u = unitById(f, m.add!.on);
+  if (!u || !u.alive) return;
+  const d = u.debuffs.find(x => x.id === m.add!.hold);
+  if (!d) return;
+  u.debuffs = u.debuffs.filter(x => x !== d);
+  emit(f, { type: 'cure', id: u.id, name: d.name });
 }
 
 function addDown(f: Fight, m: Mob): void {
