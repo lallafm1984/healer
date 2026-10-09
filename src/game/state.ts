@@ -22,7 +22,7 @@ export function syncMember(now = Date.now()): void {
 /** 날·주가 바뀌었는지 보고 일일·주간을 새로 (13 1장). 접속·로비·임무·상점 화면에서 부름 */
 export function refreshDay(now = Date.now()): Rollover {
   const r = rollover(G.save, now, Math.random);
-  if (r.day || r.week || r.season || r.banked) commit();
+  if (r.day || r.week || r.season || r.banked || r.fixed) commit();
   syncMember(now);
   return r;
 }

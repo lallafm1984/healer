@@ -3,6 +3,7 @@
  * 경험치 지급량은 문서에 없어 새로 정함 (24 문서). Lv 1~100 곡선은 18 1장 도달 시점에 맞춤 (xpShare, 2026-10-07).
  */
 import type { DiffName } from './difficulty';
+import { FEATURES } from './features';
 
 export const MAX_LEVEL = 100;
 
@@ -100,7 +101,7 @@ export const MILESTONES: Record<number, Milestone[]> = {
   8: [{ text: '스킬 「수호 영혼」', live: true }],
   10: [{ text: '패시브 「상징」 (마나 30% 아래서 회복 4배)', live: true }, { text: '특성 1단 (사제)', live: true }, { text: '직업 바꾸기 · 드루이드 퀘스트 「숲의 부름」', live: true }, { text: '주간 임무 (종 조각)', live: true }, { text: '공개모집 직업 +6종', live: false }, { text: '던전 「독안개 늪」', live: false }],
   12: [{ text: '공대 쿨기 (사제 「천상의 찬가」, 스킬 7개 완성)', live: true }],
-  15: [{ text: '8번째 칸 고유 스킬 (드루이드·성기사)', live: true }, { text: '길드 (골드 모집·인연 스카우트)', live: true }, { text: '던전 「저주받은 장원」', live: false }],
+  15: [{ text: '8번째 칸 고유 스킬 (드루이드·성기사)', live: true }, ...(FEATURES.guild ? [{ text: '길드 (골드 모집·인연 스카우트)', live: true }] : []), { text: '던전 「저주받은 장원」', live: false }],
   20: [{ text: '소비 아이템 단축칸 3칸', live: true }, { text: '성기사 퀘스트 「첫 맹세」', live: true }, { text: '특성 2단', live: true }, { text: '주간 도전 「침묵의 시계」', live: true }, { text: '던전 「서리 마탑」', live: false }],
   28: [{ text: '던전 「깨진 신전」', live: false }],
   30: [{ text: '특성 3단', live: true }, { text: '어려움·악몽 던전에 어픽스 「격노」', live: true }],

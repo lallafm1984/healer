@@ -25,7 +25,7 @@ export default async function appShell(url, shots) {
     ok(await page.isVisible('#s-lobby'), `${w}: 튜토리얼 건너뛰기 → 로비`);
     const top = await rect('#s-lobby .topbar');
     ok(top.top >= 70, `${w}: 로비 위쪽 줄은 배너 아래 (top ${top.top})`);
-    ok(await page.isVisible('#tabs') && (await page.locator('#tabs button').count()) === 5, `${w}: 하단 탭 5개 (로비·전투·캐릭터·길드·상점)`);
+    ok(await page.isVisible('#tabs') && (await page.locator('#tabs button').count()) === 4, `${w}: 하단 탭 4개 (로비·전투·캐릭터·상점, 길드는 빼 둠)`);
     const start = await rect('#lobbyStart'), tabs = await rect('#tabs');
     ok(start.bottom <= tabs.top + 0.5, `${w}: 「바로 출전」이 탭에 안 가림 (${Math.round(start.bottom)} ≤ ${Math.round(tabs.top)})`);
     await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(50);

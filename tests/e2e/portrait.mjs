@@ -95,8 +95,9 @@ export default async function portrait(url, shots) {
       const separate = r => g.dock.every(d => r.right <= d.x + 1 || r.x >= d.right - 1 || r.bottom <= d.y + 1 || r.y >= d.bottom - 1);
       const boxes = g && g.props.every(Boolean) ? [...g.props, ...g.labels] : [];
       const outside = boxes.filter(b => !inside(b.rect)), overlaps = boxes.filter(b => !separate(b.rect));
-      ok(boxes.length === 9 && !outside.length, `${label}: 소품 3개·이름표 6개 모두 잘림 없이 광장 안`);
-      ok(boxes.length === 9 && !overlaps.length, `${label}: 소품·이름표와 출전·패스·다시 버튼 겹침 없음`);
+      // 이름표 5개 = 종탑·잡화점·주간 도전·임무·일일 상자 (길드 회관은 길드를 빼 두어 없음)
+      ok(boxes.length === 8 && !outside.length, `${label}: 소품 3개·이름표 5개 모두 잘림 없이 광장 안`);
+      ok(boxes.length === 8 && !overlaps.length, `${label}: 소품·이름표와 출전·패스·다시 버튼 겹침 없음`);
       if (outside.length || overlaps.length) console.log(JSON.stringify({ label, outside, overlaps, world: g.world, cta: g.cta }));
     };
     const initialLobby = await settleLobby();

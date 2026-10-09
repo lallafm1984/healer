@@ -3,6 +3,7 @@
  * 원칙 (12, 15 1장): 유료 재화로 골드·재료·장비·종 조각·공훈·경험치를 사지 않는다.
  */
 import type { DiffName } from './difficulty';
+import { FEATURES } from './features';
 import type { ItemKey } from './items';
 
 // ---------- 종 조각 (12 3-4): 악몽 입장권, 입장할 때 1개 소모 ----------
@@ -68,7 +69,7 @@ export function passFree(lv: number): PassReward {
 export function passPremium(lv: number): string {
   const fixed: Record<number, string> = {
     1: '시즌 애드온 (기본형)', 5: '프로필 아이콘', 10: '시즌 힐 이펙트', 15: '닉네임 프레임', 20: '파티 채팅 이모트 팩',
-    25: '길드 휘장 장식', 30: '시즌 힐러 의상', 35: '시즌 힐 사운드팩', 40: '정산 미터기 스킨', 45: '의상 색 변형', 50: '시즌 애드온 (완성형) · 금색 칭호',
+    25: FEATURES.guild ? '길드 휘장 장식' : '프로필 휘장 장식', 30: '시즌 힐러 의상', 35: '시즌 힐 사운드팩', 40: '정산 미터기 스킨', 45: '의상 색 변형', 50: '시즌 애드온 (완성형) · 금색 칭호',
   };
   return fixed[lv] || (lv % 2 ? '이모트 단품' : '프로필 꾸미기');
 }

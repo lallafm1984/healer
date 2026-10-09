@@ -1,6 +1,6 @@
 /**
  * S05 편성 (27 3-3, 시안 Party27). 2026-10-08 입장 화면(S04)을 여기로 합침: 전투 탭 「출전」 → 편성 → 출발.
- * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스 · 아이템 힌트), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭,
+ * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스 · 아이템 힌트), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭 (길드를 빼 두면 없음),
  * 경고 줄 (해제 못 함 · 장비 미달일 때만), 시작 위치 육각 미리보기 (역할 아이콘만), 파티원 줄 (누르면 상세 시트).
  * 아래 고정: 단축칸 한 줄 칩 (누르면 고르기 시트) · 다시 뽑기(광고 하루 2번 무료) · 출발 (악몽은 종 조각, 없으면 눌렀을 때 얻는 곳 + 상점). 지면 광고 이어하기 (15)
  */
@@ -9,6 +9,7 @@ import { contentOf, isRaid } from '../data/content';
 import { CHAL } from '../data/challenge';
 import { AD_LIMIT, SHARD_MAX } from '../data/economy';
 import { gearStatsOf } from '../data/equipment';
+import { FEATURES } from '../data/features';
 import { ENCOUNTERS } from '../data/encounters';
 import { ITEMS, type ItemKey } from '../data/items';
 import { CATS, PERS } from '../data/personalities';
@@ -187,7 +188,7 @@ function render(): void {
     ? memRowHtml({ ...p, cls: p.cls }, { attrs: `data-cls="${p.cls}" data-prow="${i}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on: sheet === 'mem' && openRow === i })
     : plainRow(p))).join('');
   s.el.innerHTML = `${flowHead(Flow.chal ? 's-entry' : 's-content', Flow.chal ? CHAL.name : c.name, sub, mark, guideBtn)}
-    <nav class="subtabs" role="tablist" aria-label="파티 모집"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티${guildTab}</button></nav>
+    ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="파티 모집"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티${guildTab}</button></nav>` : ''}
     <div class="ns-body f-pty">
       ${G.save.tut === TUT.dungeon ? '<p class="coachtip">파티는 파티 찾기로 무작위로 들어옴. 마음에 안 들면 <b>다시 뽑기</b> (처음 한 번 무료). 보스 기술은 「공략」. 준비되면 「출발」.</p>' : ''}
       ${tutDone ? warnings(segs, Flow.diff, stage, { gear: !Flow.chal }) : ''}

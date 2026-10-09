@@ -31,6 +31,8 @@ export interface MissionDef {
   run?: (e: RunEvent) => number;
   /** 다른 행동 (강화 등) */
   act?: 'enhance' | 'chest';
+  /** 길드가 있어야 함 (길드를 빼 두면 안 뽑힘, features.ts) */
+  guild?: true;
 }
 
 const won = (e: RunEvent) => e.win && e.dungeon;
@@ -44,7 +46,7 @@ export const DAILY: MissionDef[] = [
   { key: 'mana20', text: '남은 마나 20% 이상으로 클리어', need: 1, lv: 1, run: e => (won(e) && e.endManaPct >= 20 ? 1 : 0) },
   { key: 'clumsy', text: '「덜렁이」·「허세꾼」이 있는 파티로 클리어', need: 1, lv: 15, run: e => (won(e) && e.pers.some(p => p === '덜렁이' || p === '허세꾼') ? 1 : 0) },
   { key: 'enhance2', text: '장비 강화', need: 2, lv: 1, act: 'enhance' },
-  { key: 'guild2', text: '길드파티로 클리어', need: 2, lv: 15, run: e => (won(e) && !e.pub ? 1 : 0) },
+  { key: 'guild2', text: '길드파티로 클리어', need: 2, lv: 15, guild: true, run: e => (won(e) && !e.pub ? 1 : 0) },
 ];
 /** 한 판 수만 세는 기본 임무는 2개까지 (13 2-1) */
 export const DAILY_BASIC = ['clear3', 'pub2'];

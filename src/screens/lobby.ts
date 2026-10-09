@@ -1,7 +1,7 @@
 /**
  * S02 로비 = 마을 광장 (30 0장, 시안 「30 · 로비 A」 Lobby30). 캐릭터 그림 없음.
  * 같은 2:3 무대의 하늘·원경·전경 레이어 위에 광장 물건 + 이름표:
- *  종탑 = 10인 레이드 · 길드 회관 · 잡화점(골드 상점) · 모래시계 석상 = 주간 도전 · 임무 게시판(받을 것 있으면 노란 「!」) · 일일 상자.
+ *  종탑 = 10인 레이드 · 길드 회관(길드를 빼 두면 이름표 없음) · 잡화점(골드 상점) · 모래시계 석상 = 주간 도전 · 임무 게시판(받을 것 있으면 노란 「!」) · 일일 상자.
  * 왼쪽 위 목표 추적 (레이드 문 앞이면 체크 목록), 아래 줄 = 「다시」 메달 · 「출전」 · 「시즌 패스」 메달.
  * 받기·열기는 그 자리에서 (게시판 「!」 = 임무 한 번에 받기, 상자 = 열기). 튜토리얼 중엔 목표 추적 + 출전 + 안내만.
  * 건물 이름표·광장 물건은 그림 비율 2:3 「무대」 안에 %로 → 화면 크기가 달라도 같은 지점을 가리킴.
@@ -12,6 +12,7 @@ import type { DiffName } from '../data/difficulty';
 import { ITEM_GRADES, RECOMMENDED, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
 import { PASS_LEVELS, SHARD_MAX } from '../data/economy';
+import { FEATURES } from '../data/features';
 import { guildCap } from '../data/guild';
 import { CONTENT_PLACE, PLACES } from '../data/places';
 import { nextMilestone } from '../data/progression';
@@ -97,7 +98,7 @@ function goals(): Goal[] {
 const recLabel = (d: DiffName) => (RECOMMENDED[d] ? ` · 권장 ${RECOMMENDED[d]!.label}` : '');
 
 /**
- * 레이드 문 (18 3-3): 레벨이 가까워지면 남은 조건을 체크 목록으로. 길드원 수는 그 전 레벨에서 둘 수 있는 최대 (6명·12명).
+ * 레이드 문 (18 3-3): 레벨이 가까워지면 남은 조건을 체크 목록으로. 길드원 수는 그 전 레벨에서 둘 수 있는 최대 (6명·12명), 길드를 빼 두면 그 줄 없음.
  * 권장 파티 전투력 줄은 17 9-3 식이 정해지면 추가
  */
 const GATES: { lv: number; from: number; name: string; grade: ItemGrade }[] = [
@@ -114,7 +115,7 @@ function gateTracker(): string {
   const gear = SLOTS.filter(sl => { const it = G.save.gear.equipped[sl.key]; return it && ITEM_GRADES.indexOf(it.grade) >= gi; }).length;
   const rows: [boolean, string, string, string][] = [
     [lv >= g.lv, `레벨 ${g.lv}`, `${lv} / ${g.lv}`, ''],
-    [have >= need, `길드원 ${need}명`, `${have} / ${need}`, 's-guild'],
+    ...(FEATURES.guild ? [[have >= need, `길드원 ${need}명`, `${have} / ${need}`, 's-guild'] as [boolean, string, string, string]] : []),
     [gear >= SLOTS.length, `장비 ${g.grade} 이상`, `${gear} / ${SLOTS.length} 부위`, 's-char'],
   ];
   const to = rows.find(r => !r[0] && r[3])?.[3];
@@ -154,14 +155,14 @@ function toParty(to: { content: ContentKey; diff: DiffName }): void {
   go('s-party');
 }
 
-/** 그림 위 건물 이름표 (무대 안 %): 종탑 = 10인 레이드, 길드 회관, 잡화점 */
+/** 그림 위 건물 이름표 (무대 안 %): 종탑 = 10인 레이드, 길드 회관 (길드를 빼 두면 없음), 잡화점 */
 function buildings(): string {
   const s = G.save;
   const raid = contentOf('abyss1'), raidLock = lockOf(raid).locked;
   const gOpen = guildOpen(s), apps = (s.guild.post?.cands.length || 0) + s.guild.scouts.length;
   const gLine = !gOpen.ok ? gOpen.why : apps ? `지원자 ${apps}명` : `길드원 ${s.guild.members.length}/${capOf(s).cap}`;
   return `<button type="button" class="g-plate pr lb-raid${raidLock ? ' lock' : ''}" data-go="s-content" data-arg="raid"><b>종탑</b>${raidLock ? `<span>10인 레이드</span><span>Lv ${raid.unlockLv}에 열림</span>` : `<span>10인 레이드 · 조각 ${s.wallet.shards}/${SHARD_MAX}</span>`}</button>
-    <button type="button" class="g-plate lb-guild${gOpen.ok ? '' : ' lock'}" data-go="s-guild"><b>길드 회관</b><span>${esc(gLine)}</span>${gOpen.ok && apps ? `<i class="g-badge">${apps}</i>` : ''}</button>
+    ${FEATURES.guild ? `<button type="button" class="g-plate lb-guild${gOpen.ok ? '' : ' lock'}" data-go="s-guild"><b>길드 회관</b><span>${esc(gLine)}</span>${gOpen.ok && apps ? `<i class="g-badge">${apps}</i>` : ''}</button>` : ''}
     <button type="button" class="g-plate lb-shop" data-go="s-shop" data-arg="gold"><b>잡화점</b><span>골드 상점</span></button>`;
 }
 

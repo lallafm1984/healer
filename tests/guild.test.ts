@@ -1,11 +1,17 @@
-/** 길드 (02 9장, 12 3-3, 17 8~9장): 열림, 영입, 육성, 편성, 판 뒤 경험치·인연 스카우트, 저장 */
-import { beforeEach, describe, expect, it } from 'vitest';
+/**
+ * 길드 (02 9장, 12 3-3, 17 8~9장): 열림, 영입, 육성, 편성, 판 뒤 경험치·인연 스카우트, 저장.
+ * 출시판은 길드를 빼 두므로 (features.ts) 맨 위 「빼 둠」 말고는 길드를 켜고 검사한다.
+ */
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/data/abilities';
 import { CLASSES } from '../src/data/classes';
 import { ENCOUNTERS } from '../src/data/encounters';
+import { FEATURES } from '../src/data/features';
 import { guildCap, memberPower, pointsAt, type GuildMember } from '../src/data/guild';
+import { DAILY } from '../src/data/missions';
 import { clearXp, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
+import { rollover } from '../src/game/economy';
 import {
   addMemberXp, autoPick, guildAfter, guildOpen, guildRoster, hire, makeCandidate, postRecruit, release, rerollAbility, resetPoints, scoutHire, spendPoint, togglePick, train,
 } from '../src/game/guild';
@@ -28,6 +34,43 @@ function add(s: SaveData, o: Partial<GuildMember> = {}): GuildMember {
   s.guild.members.push(m);
   return m;
 }
+
+beforeAll(() => { FEATURES.guild = true; });
+
+describe('출시판: 길드 빼 둠 (Lim 2026-10-09)', () => {
+  beforeAll(() => { FEATURES.guild = false; });
+  afterAll(() => { FEATURES.guild = true; });
+  it('Lv 30이어도 안 열리고, 판 뒤 길드 정산 없음', () => {
+    const s = save(30);
+    s.settings.devUnlock = true;
+    expect(guildOpen(s).ok).toBe(false);
+    const m = add(s, { lv: 25 });
+    const r: BattleResult = {
+      content: 'rustfort', diff: '보통', win: true, quit: false, reason: '', segIdx: 3, segN: 3, time: 200, restSec: 0, deaths: 0, healed: 1000, overheal: 100,
+      dispels: 0, dispellable: 0, endMana: 50, minMana: 20, auto: false, party: [{ nick: '가', pers: '신중파', role: 'tank', alive: true, got: 10 }], detail: [],
+    };
+    const x = settle(s, r, rng, [{ role: 'tank', cls: 'warrior', pers: '신중파', nick: '가' }]);
+    expect(x.guild).toBeNull();
+    expect([m.xp, m.runs, s.guild.scouts.length, s.guild.fame]).toEqual([0, 0, 0, 0]);
+  });
+  it('일일 임무에 「길드파티로 클리어」가 안 뽑히고, 이미 뽑힌 것은 교체 횟수 없이 다른 임무로', () => {
+    const T = new Date(2026, 9, 7, 12).getTime();
+    for (let i = 0; i < 40; i++) {
+      const s = save(30);
+      rollover(s, T + i * 864e5, rng);
+      expect(s.daily.missions.some(m => m.key === 'guild2')).toBe(false);
+    }
+    const s = save(30);
+    rollover(s, T, rng);
+    s.daily.missions[4] = { key: 'guild2', n: 1, got: false };
+    expect(rollover(s, T, rng).fixed).toBe(1);
+    const keys = s.daily.missions.map(m => m.key);
+    expect(keys).not.toContain('guild2');
+    expect(new Set(keys).size).toBe(5);
+    expect(keys.every(k => DAILY.find(d => d.key === k)!.lv <= 30)).toBe(true);
+    expect(s.daily.swapped).toBe(false);
+  });
+});
 
 describe('열림 · 정원 (02 9-2, 18)', () => {
   it('Lv 15에 열림, 튜토리얼 전엔 닫힘, 개발 빌드 잠금 무시면 미리 열림', () => {
