@@ -11,6 +11,7 @@ import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, empowerBoss, heal, living, randomTargets, setMax, spread, unitById } from './core';
 import { moveTo, scheduleReactions, zoneOf } from './movement';
 import { hotTick } from './units';
+import { during, immune, specPhase, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
@@ -126,7 +127,8 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         d.jail = true;
         got.push(u);
         emit(f, { type: 'fx', name: 'spawn', on: u.id });
-        f.mobs.push({ id: f.nextId++, name: e.name, elite: false, hp: f.bossMax * e.hp, max: f.bossMax * e.hp, alive: true,
+        const hp = f.bossMax * e.hp * (1 - sv(f, 'chainBreaker')); // 사슬 끊는 손 (42 기믹 03)
+        f.mobs.push({ id: f.nextId++, name: e.name, elite: false, hp, max: hp, alive: true,
           add: { short: e.short, on: u.id, dmg: 0, every: 0, next: Infinity, job: { p: 'jail' }, jobAt: Infinity, hold: d.id } });
       }
       if (got.length) emit(f, { type: 'msg', text: `${e.name}: ${got.map(u => u.nick).join(' · ')} 갇힘` });
@@ -456,7 +458,7 @@ function orderDone(f: Fight, ok: boolean): void {
   const o = f.order!;
   f.order = null;
   if (!ok) { emit(f, { type: 'msg', text: `${o.name}: 시간이 다 됨` }); return; }
-  f.daze = { until: f.t + o.daze.sec, vuln: o.daze.vuln };
+  f.daze = { until: f.t + o.daze.sec + sv(f, 'numberSense'), vuln: o.daze.vuln }; // 숫자 감각 (42 기믹 02)
   emit(f, { type: 'sound', name: 'gauge' });
   emit(f, { type: 'fx', name: 'dizzy' });
   emit(f, { type: 'msg', text: `${o.name} 성공: 보스 ${o.daze.sec}초 멍함 (받는 피해 +${Math.round((o.daze.vuln - 1) * 100)}%)` });
@@ -464,6 +466,7 @@ function orderDone(f: Fight, ok: boolean): void {
 
 /** 디버프 걸기: 중첩 디버프(stackMax)는 이미 있으면 1중첩 더함, 최대 체력 깎는 디버프(maxCut)는 바로 반영 */
 export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
+  if (f.sp && immune(f, u, def.name)) return null; // 면역 향 (42 해제 04)
   if (def.stackMax) {
     const old = u.debuffs.find(x => x.name === def.name);
     if (old) { old.stack = Math.min(def.stackMax, (old.stack ?? 1) + 1); old.left = def.left; return old; }
@@ -651,7 +654,7 @@ function addJob(f: Fight, m: Mob): void {
     emit(f, { type: 'sound', name: 'burst' });
     emit(f, { type: 'fx', name: 'explode', cell: a.cell });
     emit(f, { type: 'msg', text: `${m.name}이(가) 터짐` });
-    for (const u of living(f)) damage(f, u, j.dmg, true);
+    during(f, 'bomb', () => { for (const u of living(f)) damage(f, u, j.dmg, true); }); // 폭탄 해체반 (42 기믹 04)
   } else if (j.p === 'smash') {
     // 큰 쫄 (P-ELITE): 예고한 강타. 맡은 사람(부탱커)이 쓰러졌으면 다음 사람
     a.jobAt! += j.every; a.warned = false;
@@ -680,8 +683,10 @@ function addJob(f: Fight, m: Mob): void {
     emit(f, { type: 'sound', name: 'burst' });
     emit(f, { type: 'fx', name: 'explode', on: u.id });
     emit(f, { type: 'msg', text: `${m.name}이(가) ${u.nick} 곁에서 터짐` });
-    for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), at) === 1) damage(f, v, j.splash, true);
-    damage(f, u, j.dmg, true);
+    during(f, 'bomb', () => {
+      for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), at) === 1) damage(f, v, j.splash, true);
+      damage(f, u, j.dmg, true);
+    });
   }
 }
 
@@ -814,7 +819,7 @@ const flowIf = (f: Fight, c: FlowIf): boolean =>
 
 function flowDo(f: Fight, d: FlowDo): void {
   switch (d.p) {
-    case 'phase': f.phase = d.n; f.phaseName = d.name; return;
+    case 'phase': f.phase = d.n; f.phaseName = d.name; if (f.sp) specPhase(f); return;
     case 'text': emit(f, { type: 'phase', text: d.text }); return;
     case 'start': f.bs[d.skill].next = f.t + d.in; return;
     case 'period': f.bs[d.skill].period = d.sec; return;

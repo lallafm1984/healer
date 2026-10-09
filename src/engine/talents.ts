@@ -7,6 +7,7 @@ import { TALENT_DEF, talentKeys, type TalentKey } from '../data/talents';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
 import { cellOf, emit, heal, living } from './core';
+import { aoeCount, aoeDone, castCut, cdSpec, costSpec, freeCast, hasteOf, sv } from './specials';
 import type { ActionResult, Fight, TalentState, Unit } from './types';
 
 /** 두 겹 수호 충전 시간, 쉼터 초당 회복 */
@@ -25,28 +26,32 @@ export const has = (f: Fight, k: TalentKey): boolean => !!f.tx.on[k];
 /** 보조 버튼 특성이 지금 켜져 있는지 (정점·흩빛) */
 export const activeOn = (f: Fight, k: TalentKey): boolean => (f.tx.act[k]?.left ?? 0) > 0;
 
-/** 마나 소모: 가벼운 손끝 (순간 ×0.8), 말씀의 여운 (×0.5), 기도의 정점 (×1.5) */
-export function costOf(f: Fight, key: SkillKey): number {
+/** 마나 소모: 가벼운 손끝 (순간 ×0.8), 말씀의 여운 (×0.5), 기도의 정점 (×1.5), 장비 특수능력 (42, u = 대상을 알 때) */
+export function costOf(f: Fight, key: SkillKey, u?: Unit): number {
   let c = SKILLS[key].cost;
   if (key === 'flash' && f.tx.on.lightTouch) c *= 0.8;
   if (f.tx.echoUntil > f.t) c *= 0.5;
   if (activeOn(f, 'zenith')) c *= 1.5;
   if (f.standin) c *= f.standin.mana; // 특성 트리 없는 직업 임시 보정
+  if (f.sp) c *= costSpec(f, key, u);
   return c;
 }
 
-/** 시전 시간: 손에 익은 치유 (치유 -0.3초), 기도의 정점 (즉시) */
+/** 시전 시간: 손에 익은 치유 (치유 -0.3초), 기도의 정점 (즉시), 장비 특수능력 (42: 바람 탄 발걸음 즉시 · 직업 전용 −초 · 발동 가속) */
 export function castOf(f: Fight, key: SkillKey): number {
   const base = f.R.cast?.[key] ?? SKILLS[key].cast;
   if (!(base > 0)) return 0;
   if (activeOn(f, 'zenith')) return 0;
-  return (key === 'heal' && f.tx.on.practiced ? base - 0.3 : base) / (1 + f.gear.haste);
+  if (f.sp && freeCast(f, key)) return 0;
+  const b = (key === 'heal' && f.tx.on.practiced ? base - 0.3 : base) - (f.sp ? castCut(f, key) : 0);
+  return Math.max(0.5, b) / (1 + hasteOf(f));
 }
 
-/** 재사용 대기 (쓸 때 거는 값): 빨라진 찬가 (찬가 -60초) */
+/** 재사용 대기 (쓸 때 거는 값): 빨라진 찬가 (찬가 -60초), 장비 특수능력 (42 쿨기 · 해제 · 직업 전용) */
 export function cdOf(f: Fight, key: SkillKey): number {
   let cd = SKILLS[key].cd || 0;
   if (key === 'hymn' && f.tx.on.quickHymn) cd -= 60;
+  if (f.sp) cd = cdSpec(f, key, cd);
   return cd;
 }
 
@@ -75,12 +80,15 @@ export function adjLow(f: Fight, u: Unit, n: number, skipRenew = false): Unit[] 
 }
 
 /** 범위 힐 반경: 넓은 원이면 기원 반경 2 */
-export const areaRadius = (f: Fight, key: SkillKey): number => (key === 'poh' && f.tx.on.wideCircle ? 2 : key === 'wildflower' && f.enc.big ? DRUID_BIG.wildRange : 1); // 들꽃 군락 20인 보정 (26 9-1)
+export const areaRadius = (f: Fight, key: SkillKey): number => (key === 'poh' && f.tx.on.wideCircle ? 2 : key === 'wildflower' && f.enc.big ? DRUID_BIG.wildRange : 1) + (key === 'wildflower' ? sv(f, 'flowerSea') : 0); // 들꽃 군락 20인 보정 (26 9-1) · 들꽃 바다 (42 드루 04)
 
 /** 치유의 기원 (반경 r) */
 export function pohAt(f: Fight, cellIdx: number, amt: number, r: number): void {
   const c = f.cells[cellIdx];
-  for (const v of living(f)) if (hexDist(cellOf(f, v), c) <= r) heal(f, v, amt, true);
+  const vs = living(f).filter(v => hexDist(cellOf(f, v), c) <= r);
+  if (f.sp) aoeCount(f, vs.length); // 큰 그릇 · 신전 성수병 (42)
+  for (const v of vs) heal(f, v, amt, true);
+  if (f.sp) aoeDone(f, cellIdx, amt, r); // 금빛 메아리 (42 발동 11)
 }
 
 /** 소생 지속 시간: 긴 숨결 +3초 */

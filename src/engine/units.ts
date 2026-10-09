@@ -1,11 +1,14 @@
 import { aimMult, rageMult } from '../data/classes';
 import { hexDist } from './board';
 import { BARK, DRUID_BIG } from '../data/heroConst';
+import { SKILLS } from '../data/skills';
 import { bark, cellOf, damage, DT, emit, heal, hpLineTick, onDebuffEnd } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
 import { calmHymn, renewEnd } from './talents';
 import { charmTick, pullTick } from './bossParts';
 import { abFear, dpsMods, hasMod } from './abilities';
+import { dotSpec, dpsSpec, sv, under } from './specials';
+import { barkCut } from './heroes';
 import type { PersName } from '../data/personalities';
 import type { Cell, Fight, Unit } from './types';
 
@@ -16,7 +19,7 @@ export function unitTick(f: Fight, u: Unit): void {
   if (!u.alive) return;
   if (u.hot > 0) {
     u.hot -= dt; u.hotTick += dt;
-    if (u.hotTick >= 3 - 1e-9) { u.hotTick -= 3; heal(f, u, 80, false); }
+    if (u.hotTick >= 3 - 1e-9) { u.hotTick -= 3; if (f.sp) under('renew', true, () => heal(f, u, 80 * (1 + sv(f, 'quickRenew')), false)); else heal(f, u, 80, false); } // 짙은 소생 (42 사제 04)
     if (u.hot <= 0 && f.tx.on.hopRenew && u.alive) renewEnd(f, u); // 옮겨 가는 소생
   }
   if (u.hots.length) hotTick(f, u, dt);
@@ -37,8 +40,8 @@ export function unitTick(f: Fight, u: Unit): void {
     if (d.untilBossLoss != null && f.bossHp <= d.bossAt! - f.bossMax * d.untilBossLoss + 1e-9) { // 삼키기: 보스를 그만큼 깎으면 풀림
       u.debuffs = u.debuffs.filter(x => x !== d); emit(f, { type: 'cure', id: u.id, name: d.name }); continue;
     }
-    if (d.grow) { if (d.stack) damage(f, u, d.stack * d.grow.dot * dt, true); }
-    else if (d.dot) damage(f, u, d.stackMax ? d.dot * (d.stack ?? 1) * dt : d.dot * dt, true);
+    if (d.grow) { if (d.stack) damage(f, u, d.stack * d.grow.dot * dt * (f.sp ? dotSpec(f, d) : 1), true); }
+    else if (d.dot) damage(f, u, (d.stackMax ? d.dot * (d.stack ?? 1) * dt : d.dot * dt) * (f.sp ? dotSpec(f, d) : 1), true); // 감기약 · 해독초 · 상처 소독 … (42 2-5 · 2-8)
     if (!u.alive) return;
     if (d.left <= 0) { u.debuffs = u.debuffs.filter(x => x !== d); onDebuffEnd(f, u, d, false); }
   }
@@ -104,37 +107,50 @@ export function hotTick(f: Fight, u: Unit, dt: number): void {
       const amt = h.amts ? (h.amts[h.i] ?? 0) : h.per;
       h.i++; h.tick += h.every;
       h.rest = Math.max(0, h.rest - amt);
-      heal(f, u, amt * hotMult(f, u, h), false);
+      if (f.sp) under(h.key, true, () => heal(f, u, amt * hotMult(f, u, h), false));
+      else heal(f, u, amt * hotMult(f, u, h), false);
       if (!u.alive) return;
     }
     if (h.left <= 1e-9 || h.rest <= 1e-9) {
       u.hots = u.hots.filter(x => x !== h);
-      if (h.key === 'sprout' && h.rest <= 1e-9) f.mana = Math.min(100, f.mana + (f.level >= 10 ? 0.4 : 0)); // 순환 (25 드루이드 패시브)
+      if (h.key === 'sprout' && h.rest <= 1e-9) {
+        f.mana = Math.min(100, f.mana + (f.level >= 10 ? 0.4 : 0)); // 순환 (25 드루이드 패시브)
+        if (!h.hop && sv(f, 'sproutHop')) sproutHop(f, u);
+      }
     }
   }
 }
 
 /** 지속 힐 배율: 나무껍질(+20%), 드루이드 군락 (붙어 있는 새싹마다 +10%, 최대 +30%. 20인은 +30%씩 최대 +90%, 들꽃 군락에도) */
 function hotMult(f: Fight, u: Unit, h: { key: string }): number {
-  let m = u.redu > 0 && u.reduCut === BARK.cut ? 1 + BARK.hot : 1;
+  let m = u.redu > 0 && u.reduCut === barkCut(f) ? 1 + BARK.hot : 1;
   if ((h.key === 'sprout' || (h.key === 'wildflower' && f.enc.big)) && f.level >= 6) {
     const c = cellOf(f, u);
     let n = 0;
     for (const v of f.party) if (v !== u && v.alive && v.hots.some(x => x.key === 'sprout') && hexDist(cellOf(f, v), c) === 1) n++;
-    m *= 1 + Math.min(3, n) * (f.enc.big ? DRUID_BIG.colonyStep : 0.1); // 20인 보정 (26 9-1)
+    m *= 1 + Math.min(3, n) * ((f.enc.big ? DRUID_BIG.colonyStep : 0.1) + sv(f, 'wideGrove')); // 20인 보정 (26 9-1) · 넓은 군락 (42 드루 01)
   }
   return m;
+}
+
+/** 옮겨 가는 새싹 (42 드루 02): 끝까지 간 새싹이 새싹 없는 옆 칸 1명 (체력 비율이 가장 낮은)에게 절반 시간 · 절반 회복량으로 */
+function sproutHop(f: Fight, u: Unit): void {
+  const c = cellOf(f, u);
+  const v = f.party.filter(x => x !== u && x.alive && !x.hots.some(h => h.key === 'sprout') && hexDist(cellOf(f, x), c) === 1).sort((a, b) => a.hp / a.max - b.hp / b.max)[0];
+  if (!v) return;
+  const per = SKILLS.sprout.amt! / 4;
+  v.hots.push({ key: 'sprout', name: '새싹', left: 6, tick: 3, every: 3, per, i: 0, rest: per * 2, hop: true });
 }
 
 /** 지금 파티 초당 딜 (이동·도망 중은 0, 삐짐 -25%, 감사 +10%, 직업 패시브) */
 export function partyDps(f: Fight): number {
   let s = 0;
-  for (const u of f.party) s += unitDps(u);
+  for (const u of f.party) s += unitDps(u, f);
   return s;
 }
 
-/** 파티원 1명 초당 딜 */
-export function unitDps(u: Unit): number {
+/** 파티원 1명 초당 딜. f가 있으면 장비 특수능력 (42 2-7 지원)까지 */
+export function unitDps(u: Unit, f?: Fight): number {
   if (!u.alive || u.fleeing || u.me) return 0;
   if (u.debuffs.length && u.debuffs.some(d => d.noDps)) return 0; // 얼림·침묵·삼킴
   if (u.immune > 0) return 0; // 보호의 손: 그동안 딜 0
@@ -144,6 +160,7 @@ export function unitDps(u: Unit): number {
   if (u.thanks > 0) d *= 1.1;
   if (u.cls) d *= classDps(u);
   if (u.mods.length) d *= dpsMods(u); // 파티원 능력 (17)
+  if (f?.sp) d *= dpsSpec(f, u);
   return d;
 }
 

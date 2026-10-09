@@ -532,6 +532,7 @@ function handleEvents(now: number): void {
         break;
       }
       case 'ability': if (u) fxAbility(u, ev.name, now); break;
+      case 'spec': if (u) fxAbility(u, ev.name, now); break; // 장비 특수능력이 켜짐 (42): 칸 위 금색 이름
       case 'aheal': if (u) fxAllyHeal(u, ev.amt, now); break;
       case 'hurt': if (u) fxHurt(u, ev.amt, now); break; // 뒤집힌 축복
       case 'bossHeal': bossHealNum(ev.amt); bossFx('mend'); break; // 치유하는 쫄

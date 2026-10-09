@@ -25,6 +25,7 @@ import { APT, aptIdx } from '../data/guild';
 import { rollAbility } from '../data/abilities';
 import { newTalents } from './talents';
 import { abTick, giveAb } from './abilities';
+import { newSpecs, sv } from './specials';
 import type { Cell, Fight, FightConfig, FightResult, Role, RosterEntry, TalentState, Unit } from './types';
 
 /** 전투 만들기 */
@@ -63,7 +64,7 @@ export function create(cfg: FightConfig): Fight {
     standin: null,
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
-    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null, empower: 0, lock: {}, watch: null, stagger: null, souls: [], links: [], vessel: null, bless: null, weak: null,
+    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null, empower: 0, lock: {}, watch: null, stagger: null, souls: [], links: [], vessel: null, bless: null, weak: null, sp: cfg.proto ? null : newSpecs(cfg.specs),
     items: {}, potCd: 0, medit: 0, itemLog: [],
     stats: { healed: 0, overheal: 0, deaths: 0, minMana: 100, dispels: 0, dispellable: 0, trapPops: 0, queueLost: 0, casts: {}, taps: 0, missTaps: 0, emptyTaps: 0, cancels: 0, manaFails: 0, hymnBroken: 0 },
     nextId: 1,
@@ -237,7 +238,7 @@ function partyHits(f: Fight): void {
     if (u.me) continue;
     if (!u.alive) { u.acc = 0; continue; }
     if (f.invuln) continue;
-    u.acc += unitDps(u) * DT;
+    u.acc += unitDps(u, f) * DT;
     if ((f.k + u.id * 7) % SWING[u.role as Exclude<Role, 'healer'>] !== 0 || u.acc <= 0 || f.bossHp <= 0) continue;
     const amt = u.acc;
     if (f.stagger && u.hp >= u.max * f.stagger.hp - 1e-9) f.stagger.fill += amt * (u.role === 'tank' ? f.stagger.tank : 1); // 무력화 게이지 (P-STAGGER)
@@ -260,8 +261,9 @@ function hitAdds(f: Fight, d: number): void {
       cleaved = true;
       for (const o of f.mobs) if (o !== m && o.alive && o.add?.cleave) damageMob(f, o, Math.min(o.hp, left));
     }
-    const x = Math.min(m.hp, left);
-    left -= x;
+    const boost = f.sp && (m.add!.job?.p === 'pylon' || m.add!.job?.p === 'mend') ? 1 + sv(f, 'crystalBreak') : 1; // 수정 깨기 (42 기믹 05)
+    const x = Math.min(m.hp, left * boost);
+    left -= x / boost;
     damageMob(f, m, x);
   }
   if (left > 1e-9) f.bossHp -= left * bossTaken(f);

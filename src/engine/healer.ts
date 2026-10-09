@@ -2,6 +2,7 @@ import { HEROES } from '../data/heroes';
 import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { DT, emit, heal, living, onDebuffEnd, unitById } from './core';
 import { heroApply, heroChannelTick, heroTick, hotCount, putHot } from './heroes';
+import { crisis, freeCast, gcdNow, guardSec, later, raidSec, regenSpec, specApply, specDispel, specExec, specTick, sv, twiceBrush, twin, under } from './specials';
 import { orderHeal } from './bossParts';
 import { reviveTarget } from './items';
 import { adjLow, castOf, cdOf, costOf, directSpread, focusMult, has, overflow, pohAt, renewSec, spendGuard, talentTick, wordCap, wordPower, wordReady, wordSpent } from './talents';
@@ -69,7 +70,7 @@ export function use(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
   if (tg.u && tg.u.debuffs.length && invertTap(f, key, tg.u)) return { ok: false, reason: '뒤집힌 축복: 힐이 피해가 됨 (한 번 더 누르면 사용)' };
   if (sk.cd && (f.cd[key] ?? 0) > 0) return { ok: false, reason: `${sk.name} 재사용 대기 ${Math.ceil(f.cd[key]!)}초` };
   if (f.lock[key]) return { ok: false, reason: `${sk.name} 잠김 ${Math.ceil(f.lock[key]!.left)}초 (진동)` };
-  if (f.mana < costOf(f, key)) { f.stats.manaFails++; return { ok: false, reason: '마나 부족' }; }
+  if (f.mana < costOf(f, key, tg.u)) { f.stats.manaFails++; return { ok: false, reason: '마나 부족' }; }
   const uid = tg.u ? tg.u.id : null;
   if (f.cast && f.cast.uid === uid && f.cast.key === key) return { ok: true, same: true };
   if (f.channel > 0) { f.channel = 0; f.stats.hymnBroken++; emit(f, { type: 'msg', text: `${SKILLS[HEROES[f.hero].slots.raid!].name} 끊김` }); }
@@ -81,22 +82,25 @@ export function use(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
 
 function exec(f: Fight, key: SkillKey, cellIdx: number, u: Unit | undefined): void {
   const sk = SKILLS[key];
+  if (f.sp) f.gcdBase = gcdNow(f); // 발동 가속 (42)
   f.gcd = f.gcdBase;
   f.stats.casts[key] = (f.stats.casts[key] || 0) + 1;
   f.tx.lastAct = f.t;
   const tm = castOf(f, key);
+  if (f.sp) { if (tm === 0 && freeCast(f, key)) f.sp.free = false; specExec(f, key, tm); } // 바람 탄 발걸음 · 시전 발동 (42)
   if (tm > 0) {
     f.cast = { key, cell: cellIdx, uid: u!.id, left: tm, total: tm };
     return;
   }
   if (sk.channel) {
-    f.mana -= costOf(f, key); f.cd[key] = cdOf(f, key); f.channel = sk.channel; f.chTick = 0;
+    f.mana -= costOf(f, key); f.cd[key] = cdOf(f, key); f.channel = f.sp ? raidSec(f, key, sk.channel) : sk.channel; f.chTick = 0; // 길어진 노래 · 숲의 숨결 (42)
     emit(f, { type: 'sound', name: 'hymn' });
     if (f.me.debuffs.length) countUse(f, undefined);
     return;
   }
-  f.mana -= costOf(f, key);
+  f.mana -= costOf(f, key, u);
   if (sk.cd) f.cd[key] = cdOf(f, key);
+  if (sk.slot === 'dispel' && f.sp && twiceBrush(f)) f.cd[key] = 0; // 두 번 털기 (42 해제 03)
   if (key === 'guardian' && has(f, 'twoGuard')) spendGuard(f);
   apply(f, key, u!);
 }
@@ -127,7 +131,8 @@ function countUse(f: Fight, rc: Debuff | undefined): void {
 
 function apply(f: Fight, key: SkillKey, u: Unit): void {
   const rc = f.me.debuffs.length ? f.me.debuffs.find(d => d.count) : undefined;
-  applySkill(f, key, u);
+  if (f.sp) specApply(f, key, u, () => applySkill(f, key, u)); // 치유 문맥 (42)
+  else applySkill(f, key, u);
   if (rc) countUse(f, rc);
 }
 
@@ -142,6 +147,7 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     const over0 = f.stats.overheal;
     heal(f, u, amt, true);
     if (key === 'heal' && has(f, 'overflow')) overflow(f, u, f.stats.overheal - over0);
+    if (key === 'serenity' && sv(f, 'serenityEcho') && f.stats.overheal > over0) putHot(u, 'serenity', { sec: 4, every: 1, total: (f.stats.overheal - over0) / (f.gear.heal * f.power) }); // 평온의 여운 (42 사제 02)
     if (knowsPassive(f, 'echo')) u.echo.push({ left: 4, rate: (sk.amt! * 0.15) / 4 });
     directSpread(f, key, u, amt);
     if (key === 'serenity' && has(f, 'cleansingWord')) cleanseOne(f, u);
@@ -153,10 +159,11 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'poh' || key === 'sanctify') {
     let amt = sk.amt!, r = 1;
-    if (key === 'sanctify') amt *= wordPower(f.g.s);
+    if (key === 'sanctify') { amt *= wordPower(f.g.s); r += sv(f, 'wideSanctify'); } // 넓은 신성화 (42 사제 03)
     if (key === 'poh' && has(f, 'wideCircle')) { r = 2; amt *= 0.8; }
     pohAt(f, u.cell, amt, r);
     if (key === 'poh' && has(f, 'doublePoh')) f.tx.later.push({ at: f.t + 2, cell: u.cell, amt: amt * 0.5, r });
+    if (key === 'poh' && f.sp && sv(f, 'pohEcho') && f.rng() < sv(f, 'pohEcho')) later(f, f.t + 2, u.cell, amt * 0.5, r); // 기원의 메아리 (42 사제 05)
     if (key === 'sanctify') emit(f, { type: 'sound', name: 'chime' });
   } else if (key === 'purify') {
     const ds = u.debuffs.filter(d => DISPELLABLE[d.type] && !d.lock).sort((a, b) => (a.trap ? 1 : 0) - (b.trap ? 1 : 0) || (b.stack || 0) - (a.stack || 0));
@@ -167,8 +174,10 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     emit(f, { type: 'dispel', id: u.id, trap: !!d.trap });
     onDebuffEnd(f, u, d, true);
     if (!d.trap && has(f, 'washed')) heal(f, u, 150, true); // 씻어낸 자리
+    if (f.sp) specDispel(f, u, d);
   } else if (key === 'guardian') {
-    u.guardian = 10;
+    u.guardian = guardSec(f, 10); // 수호의 깃 (42 보호 07)
+    if (f.sp) twin(f, u, v => { v.guardian = Math.max(v.guardian, guardSec(f, 10) / 2); }); // 쌍둥이 방패
     emit(f, { type: 'sound', name: 'renew' });
   }
   // 성언 게이지
@@ -177,7 +186,7 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
   if (key === 'sanctify') f.g.s = wordSpent(f.g.s);
   if ((key === 'serenity' || key === 'sanctify') && has(f, 'echoWord')) f.tx.echoUntil = f.t + 5; // 말씀의 여운
   if (knowsPassive(f, 'words')) {
-    const cap = wordCap(f), gm = has(f, 'fullHeart') ? 1.3 : 1;
+    const cap = wordCap(f), gm = (has(f, 'fullHeart') ? 1.3 : 1) * (1 + sv(f, 'deepWord')); // 깊은 성언 (42 사제 01)
     if (sk.gp) f.g.p = Math.min(cap, f.g.p + sk.gp * gm);
     if (sk.gs && knows(f, 'poh')) f.g.s = Math.min(cap, f.g.s + sk.gs * gm);
   }
@@ -198,7 +207,8 @@ function cleanseOne(f: Fight, u: Unit): void {
 /** 힐러 한 틱: 마나 재생, 재사용 대기, 찬가, 시전 완료, 예약 실행 */
 export function healerTick(f: Fight): void {
   const dt = DT;
-  let regen = f.R.regen * f.gear.regen * f.enc.manaCoef * (f.symbol > 0 ? 4 : 1) * (f.medit > 0 ? 2.5 : 1);
+  let regen = f.R.regen * f.gear.regen * f.enc.manaCoef * (f.symbol > 0 ? 4 : 1) * (f.medit > 0 ? 1 + 1.5 * (1 + sv(f, 'potionRegular')) : 1); // 물약 단골 (42 마나 09)
+  if (f.sp) regen *= regenSpec(f); // 샘물 한 모금 · 고요한 순간 · 두꺼비 부적 (42)
   if (f.cast || f.channel > 0) f.tx.lastAct = f.t;
   else if (f.tx.on.breather && f.t - f.tx.lastAct >= 3 - 1e-9) regen *= 2; // 숨 고르기
   if (f.medit > 0) f.medit -= dt;
@@ -206,13 +216,19 @@ export function healerTick(f: Fight): void {
   f.mana = Math.min(100, f.mana + regen * dt);
   if (f.symbol > 0) f.symbol -= dt;
   if (!f.symbolUsed && f.mana < 30 && knowsPassive(f, 'symbol')) { f.symbolUsed = true; f.symbol = 5; emit(f, { type: 'msg', text: '상징: 5초간 마나 회복 4배' }); }
-  for (const k in f.cd) f.cd[k as SkillKey] = Math.max(0, f.cd[k as SkillKey]! - dt);
+  const cr = f.sp ? crisis(f) : false; // 위기의 직감 (42 쿨기 06): 공대 쿨기 2배 빨리
+  for (const k in f.cd) f.cd[k as SkillKey] = Math.max(0, f.cd[k as SkillKey]! - (cr && SKILLS[k as SkillKey].slot === 'raid' ? 2 * dt : dt));
   if (f.me.debuffs.length) for (const d of f.me.debuffs) if (d.drain) f.mana = Math.max(0, f.mana - d.drain * dt); // 마나 갈취 표식 (P-DRAIN)
   for (const k in f.lock) { const l = f.lock[k as SkillKey]!; l.left -= dt; if (l.left <= 1e-9) delete f.lock[k as SkillKey]; } // 진동 잠김
   if (f.gcd > 0) f.gcd -= dt;
   if (f.channel > 0) {
     f.channel -= dt; f.chTick += dt;
-    if (f.chTick >= 1 - 1e-9) { f.chTick -= 1; if (f.hero === 'priest') { for (const u of living(f)) heal(f, u, 120, true); } else heroChannelTick(f); }
+    if (f.chTick >= 1 - 1e-9) {
+      f.chTick -= 1;
+      const tick = () => { if (f.hero === 'priest') { for (const u of living(f)) heal(f, u, 120, true); } else heroChannelTick(f); };
+      if (f.sp) under(HEROES[f.hero].slots.raid!, false, tick); else tick();
+    }
+    if (f.channel <= 1e-9 && f.sp && f.hero === 'priest' && sv(f, 'hymnBreath')) { f.channel = 0; f.mana = Math.min(100, f.mana + sv(f, 'hymnBreath')); } // 찬가의 숨결 (42 사제 07)
     // 찬가의 끝자락: 끊기지 않고 끝나면 전원 6초 지속 힐 120
     if (f.channel <= 1e-9 && has(f, 'hymnTail')) { f.channel = 0; for (const u of living(f)) putHot(u, 'hymn', { sec: 6, every: 2, total: 120 }); }
   }
@@ -224,7 +240,7 @@ export function healerTick(f: Fight): void {
       const c = f.cast; f.cast = null;
       const sk = SKILLS[c.key];
       const u = unitById(f, c.uid);
-      const cost = costOf(f, c.key);
+      const cost = costOf(f, c.key, u);
       if (sk.target === 'dead') { if (u && !u.alive && f.mana >= cost) { f.mana -= cost; apply(f, c.key, u); } else emit(f, { type: 'msg', text: `${sk.name} 취소` }); }
       else if (!u || !u.alive) emit(f, { type: 'msg', text: '대상이 쓰러져 시전 취소' });
       else if (f.mana < cost) { f.stats.manaFails++; emit(f, { type: 'msg', text: '마나 부족' }); }
@@ -239,9 +255,10 @@ export function healerTick(f: Fight): void {
     else {
       const idx = tu ? tu.cell : 0;
       const tg = canTarget(f, q.key, idx);
-      if (tg.ok && !(sk.cd && (f.cd[q.key] ?? 0) > 0) && !f.lock[q.key] && f.mana >= costOf(f, q.key)) exec(f, q.key, idx, tg.u);
+      if (tg.ok && !(sk.cd && (f.cd[q.key] ?? 0) > 0) && !f.lock[q.key] && f.mana >= costOf(f, q.key, tg.u)) exec(f, q.key, idx, tg.u);
       else { f.stats.queueLost++; if (!tg.ok && tg.reason) emit(f, { type: 'msg', text: tg.reason }); }
     }
   }
+  if (f.sp) specTick(f, dt, pohAt);
   f.stats.minMana = Math.min(f.stats.minMana, f.mana);
 }

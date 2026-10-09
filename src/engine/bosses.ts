@@ -10,6 +10,7 @@ import { affChaos } from './affixes';
 import { addsTick, aggroTarget, backTargets, flowNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soulsTick, staggerTick, stunBoss, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
+import { specCut, specTel } from './specials';
 import type { BossSkill, Fight, Mob, TelKind, Telegraph, Unit } from './types';
 
 export { aggroTarget } from './bossParts';
@@ -145,7 +146,7 @@ export function bossTick(f: Fight): void {
     if (f.abOn) {
       // 파티원 능력 (17 7장): 기절한 적은 기술을 안 씀, 끊기 가능 기술은 시전 시작에 끊길 수 있음
       if (s.mob != null && (f.mobs.find(m => m.id === s.mob)?.stun || 0) > f.t) continue;
-      if (abCut(f, s)) { if (s.stunOnCut) stunBoss(f, s.stunOnCut); continue; } // 반격 틈 (P-COUNTER)
+      if (abCut(f, s)) { if (s.stunOnCut) stunBoss(f, s.stunOnCut); if (f.sp) specCut(f); continue; } // 반격 틈 (P-COUNTER) · 끊기 박자 (42 지원 05)
     }
     if (s.cast <= 0) { s.fire!(f); continue; }
     const tel: Telegraph = { id: f.nextId++, skill: s, kind: s.kind, start: f.t, impact: f.t + s.cast, units: s.target ? s.target(f) : [], cells: s.cellsFor ? s.cellsFor(f) : new Set(), dps: s.dps, dur: s.dur };
@@ -154,6 +155,7 @@ export function bossTick(f: Fight): void {
     f.tels.push(tel);
     if (s.pads) { tel.safe = new Set(tel.cells); padsGo(f, tel); } // 받침: 금빛 발판으로 파티원이 들어감
     if (f.abOn) abOnTel(f, tel);
+    if (f.sp) specTel(f, tel); // 북소리 (42 발동 13)
     if (f.aff) affChaos(f, tel);
     if (s.warn) emit(f, { type: 'sound', name: s.warn });
     if (tel.kind === 'zone' && f.tels.includes(tel)) scheduleReactions(f, tel);

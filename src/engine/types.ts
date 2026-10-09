@@ -14,6 +14,7 @@ import type { AddDown, AddJob, DebuffEnd, SoulFail, SoulWin } from '../data/boss
 import type { AffixState } from './affixes';
 import type { TraitKey } from '../data/traits';
 import type { BarkSit } from '../data/talk/sits';
+import type { SpecRun } from './specials';
 
 export type Role = 'tank' | 'melee' | 'ranged' | 'healer';
 
@@ -95,6 +96,8 @@ export interface Hot {
   i: number;
   /** 남은 회복량 (피워 내기용) */
   rest: number;
+  /** 옮겨 가는 새싹으로 옮겨 온 것 (다시 안 옮겨 감, 42 드루 02) */
+  hop?: boolean;
 }
 
 /** 직접 힐 뒤 4초간 이어지는 잔향 회복 */
@@ -342,6 +345,8 @@ export type FightEvent =
   | { type: 'aheal'; id: number; amt: number }
   /** 기믹 순간 연출 (37 4장 F, 그림 fx-<name>). cell = 그 칸, on = 그 사람·영혼 (to = 날아가는 곳. id라 하지 않음: 'id' in ev 로 사람을 찾는 곳이 많음), all = 살아 있는 모두, 아무것도 없으면 보스 */
   | { type: 'fx'; name: FxName; cell?: number; on?: number; to?: number; all?: boolean }
+  /** 장비 특수능력이 켜짐 (42: 칸 위에 이름, 발동 · 보호막) */
+  | { type: 'spec'; id: number; name: string }
   | { type: 'over'; result: FightResult };
 
 /** 기믹 연출 이름 = 그림 fx-<이름> (37 4장 F-1) */
@@ -386,6 +391,8 @@ export interface FightConfig {
   bossMult?: { hp: number; dmg: number };
   /** 난이도 보정을 data/tune 대신 이 값으로 (자동 밸런스가 배율을 찾을 때, 38 0-6) */
   tune?: { dmg?: number; hp?: number };
+  /** 장비 특수능력 (42): 켜지는 값 (data/specials specTotals). 없으면 특수능력 없음 = 옛 결과 그대로 */
+  specs?: Record<string, number>;
 }
 
 /** 보조 버튼 특성 하나의 상태 */
@@ -607,6 +614,8 @@ export interface Fight {
   bless: { heal: number; until: number } | null;
   /** 영혼 축복: until까지 보스가 주는 피해 × (1 − cut). dmgMult에 곱했다가 끝나면 되돌림 */
   weak: { cut: number; until: number } | null;
+  /** 장비 특수능력 (42, engine/specials). 없으면 null */
+  sp: SpecRun | null;
 }
 
 export type LinkKind = 'balance' | 'share';
