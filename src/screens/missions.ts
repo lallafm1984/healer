@@ -1,6 +1,6 @@
 /**
  * S22 일일·주간 임무 (09, 13). 로비 「오늘의 임무」에서 들어옴.
- * 일일 5개 + 완료 상자 (놓친 날 2일까지) + 하루 1회 무료 교체, 주간 3개 (종 조각), 길드 주간 목표 (길드를 빼 두면 없음), 주간 도전 월요일 상자.
+ * 일일 5개 + 완료 상자 (놓친 날 2일까지) + 하루 1회 무료 교체, 주간 3개 (악몽 열쇠), 길드 주간 목표 (길드를 빼 두면 없음), 주간 도전 월요일 상자.
  */
 import { AD_LIMIT } from '../data/economy';
 import { GUILD_GOAL, MISSION_REWARD, WEEKLY_LV } from '../data/missions';
@@ -46,8 +46,8 @@ function render(): void {
           ${d.chest && !d.chest2 ? `<button class="btn" type="button" id="chest2"${adLeft > 0 || isMember(G.save) ? '' : ' disabled'}>${isMember(G.save) ? '회원 · 한 번 더' : '광고 보고 한 번 더'}</button>` : ''}
         </div>
       </section>
-      ${lv >= WEEKLY_LV ? `<h3 class="sec">주간 임무 <small>1개마다 종 조각 1 · 월요일 오전 6시 리셋</small></h3>
-        <ul class="mlist">${w.missions.map((_, i) => row('weekly', i)).join('')}</ul>` : `<p class="note">주간 임무는 Lv ${WEEKLY_LV}부터 (종 조각)</p>`}
+      ${lv >= WEEKLY_LV ? `<h3 class="sec">주간 임무 <small>1개마다 악몽 열쇠 1 · 월요일 오전 6시 리셋</small></h3>
+        <ul class="mlist">${w.missions.map((_, i) => row('weekly', i)).join('')}</ul>` : `<p class="note">주간 임무는 Lv ${WEEKLY_LV}부터 (악몽 열쇠)</p>`}
       ${FEATURES.guild && lv >= GUILD_LEVEL ? `<section class="panel"><h4>길드 주간 목표 <small>길드파티로 클리어 ${g.n}/${GUILD_GOAL.need}</small></h4>
         <p class="note">명성 +${GUILD_GOAL.fame} · 길드원 전원 경험치 (다음 레벨까지의 절반)</p>
         <button class="btn" type="button" id="guildGoal"${g.got || g.n < GUILD_GOAL.need ? ' disabled' : ''}>${g.got ? '받음' : '받기'}</button></section>` : ''}

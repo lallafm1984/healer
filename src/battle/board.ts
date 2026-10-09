@@ -234,11 +234,13 @@ function emblemTexture(hero: string): Texture | null {
   return null;
 }
 
-/** 작은 종 (치명타 힐, 16 4-6) */
-function bellShape(g: Graphics, x: number, y: number, k: number, alpha: number): void {
-  g.moveTo(x - k * 0.5, y + k * 0.35).quadraticCurveTo(x - k * 0.42, y - k * 0.45, x, y - k * 0.5).quadraticCurveTo(x + k * 0.42, y - k * 0.45, x + k * 0.5, y + k * 0.35).closePath()
-    .fill({ color: C.gold, alpha }).stroke({ width: Math.max(1.2, k * 0.1), color: C.line, alpha });
-  g.circle(x, y + k * 0.45, k * 0.12).fill({ color: C.gold, alpha }).stroke({ width: 1, color: C.line, alpha });
+/** 큰 별 (치명타 힐, 16 4-6): 검은 테 금별 + 가운데 흰 별 */
+function critStar(g: Graphics, x: number, y: number, k: number, alpha: number): void {
+  const r = k * 0.62, w = r * 0.32;
+  g.moveTo(x, y - r).quadraticCurveTo(x + w * 0.3, y - w * 0.3, x + r, y).quadraticCurveTo(x + w * 0.3, y + w * 0.3, x, y + r)
+    .quadraticCurveTo(x - w * 0.3, y + w * 0.3, x - r, y).quadraticCurveTo(x - w * 0.3, y - w * 0.3, x, y - r).closePath()
+    .fill({ color: C.gold, alpha }).stroke({ width: Math.max(1.2, k * 0.08), color: C.line, alpha });
+  star(g, x, y, r * 0.45, C.white, alpha);
 }
 /** 손그림 느낌 4각 별 */
 function star(g: Graphics, x: number, y: number, k: number, color: number, alpha: number): void {
@@ -626,8 +628,8 @@ export function render(now: number): void {
       if (e.crit) {
         const size = r * 0.3, half = size * 0.65 + 1;
         const bp = fitCenter(p.x + r * 0.5, p.y - r * (0.42 + 0.3 * k), half);
-        bellShape(fxG, bp.x, bp.y, size, 1 - k); // 직업 아이콘을 안 가리게 오른쪽 위
-        recordBound(`heal-bell${e.id}-${e.t0}`, 'fx', 'bell', bp.x, bp.y, half * 2, half * 2);
+        critStar(fxG, bp.x, bp.y, size, 1 - k); // 직업 아이콘을 안 가리게 오른쪽 위
+        recordBound(`heal-crit${e.id}-${e.t0}`, 'fx', 'star', bp.x, bp.y, half * 2, half * 2);
       }
     } else if (e.kind === 'hit') {
       const kk = Math.min(1, k * 1.6), a = 1 - kk;

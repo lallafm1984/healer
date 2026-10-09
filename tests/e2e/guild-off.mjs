@@ -56,7 +56,7 @@ export default async function guildOff(url, shots) {
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 25; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   const gate = await text('#s-lobby .gate');
-  ok(/심연의 종탑/.test(gate) && !/길드원/.test(gate) && (await page.locator('#s-lobby .gate .obj').count()) === 2, `레이드 문 목표 = 레벨·장비 2줄 (${gate.replace(/\s+/g, ' ').trim()})`);
+  ok(/심연의 탑/.test(gate) && !/길드원/.test(gate) && (await page.locator('#s-lobby .gate .obj').count()) === 2, `레이드 문 목표 = 레벨·장비 2줄 (${gate.replace(/\s+/g, ' ').trim()})`);
 
   await browser.close();
   return { fails, errs };

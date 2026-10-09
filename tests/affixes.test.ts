@@ -1,4 +1,4 @@
-/** 어픽스 (32 난이도 어픽스, 13 3-3 주간 도전)·적 레벨 = 내 레벨 (32)·주간 도전 「침묵의 시계」 (13 3-2)·광고 이어하기 (15) */
+/** 어픽스 (32 난이도 어픽스, 13 3-3 주간 도전)·적 레벨 = 내 레벨 (32)·주간 도전 「모래시계 시련」 (13 3-2)·광고 이어하기 (15) */
 import { describe, expect, it } from 'vitest';
 import { diffAffixes, WEEKLY_AFFIXES } from '../src/data/affixes';
 import { CHAL, CHAL_ROTA, chalLimit, chalMult } from '../src/data/challenge';
@@ -195,7 +195,7 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
   });
 });
 
-describe('주간 도전 「침묵의 시계」 (13 3-2)', () => {
+describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
   it('주간 어픽스: 8주 순환, 같은 조합이 이어서 안 나오고 4주마다 축제, 메마름+서두름·불안정+서두름은 같이 안 나옴', () => {
     for (let i = 0; i < CHAL_ROTA.length; i++) {
       expect(CHAL_ROTA[i].join()).not.toBe(CHAL_ROTA[(i + 1) % CHAL_ROTA.length].join());

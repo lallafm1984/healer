@@ -1,7 +1,7 @@
 /**
  * S02 로비 = 마을 광장 (30 0장, 시안 「30 · 로비 A」 Lobby30). 캐릭터 그림 없음.
  * 같은 2:3 무대의 하늘·원경·전경 레이어 위에 광장 물건 + 이름표:
- *  종탑 = 10인 레이드 · 길드 회관(길드를 빼 두면 이름표 없음) · 잡화점(골드 상점) · 모래시계 석상 = 주간 도전 · 임무 게시판(받을 것 있으면 노란 「!」) · 일일 상자.
+ *  첨탑 = 10인 레이드 · 길드 회관(길드를 빼 두면 이름표 없음) · 잡화점(골드 상점) · 모래시계 석상 = 주간 도전 · 임무 게시판(받을 것 있으면 노란 「!」) · 일일 상자.
  * 왼쪽 위 목표 추적 (레이드 문 앞이면 체크 목록), 아래 줄 = 「다시」 메달 · 「출전」 · 「시즌 패스」 메달.
  * 받기·열기는 그 자리에서 (게시판 「!」 = 임무 한 번에 받기, 상자 = 열기). 튜토리얼 중엔 목표 추적 + 출전 + 안내만.
  * 건물 이름표·광장 물건은 그림 비율 2:3 「무대」 안에 %로 → 화면 크기가 달라도 같은 지점을 가리킴.
@@ -102,7 +102,7 @@ const recLabel = (d: DiffName) => (RECOMMENDED[d] ? ` · 권장 ${RECOMMENDED[d]
  * 권장 파티 전투력 줄은 17 9-3 식이 정해지면 추가
  */
 const GATES: { lv: number; from: number; name: string; grade: ItemGrade }[] = [
-  { lv: 35, from: 25, name: '심연의 종탑', grade: '희귀' },
+  { lv: 35, from: 25, name: '심연의 탑', grade: '희귀' },
   { lv: 70, from: 55, name: '가라앉은 대성당', grade: '영웅' },
 ];
 /** 레이드 문 시기면 목표 추적 = 체크 목록. 누르면 아직 안 된 첫 줄의 화면 (길드·캐릭터) */
@@ -155,13 +155,13 @@ function toParty(to: { content: ContentKey; diff: DiffName }): void {
   go('s-party');
 }
 
-/** 그림 위 건물 이름표 (무대 안 %): 종탑 = 10인 레이드, 길드 회관 (길드를 빼 두면 없음), 잡화점 */
+/** 그림 위 건물 이름표 (무대 안 %): 첨탑 = 10인 레이드, 길드 회관 (길드를 빼 두면 없음), 잡화점 */
 function buildings(): string {
   const s = G.save;
   const raid = contentOf('abyss1'), raidLock = lockOf(raid).locked;
   const gOpen = guildOpen(s), apps = (s.guild.post?.cands.length || 0) + s.guild.scouts.length;
   const gLine = !gOpen.ok ? gOpen.why : apps ? `지원자 ${apps}명` : `길드원 ${s.guild.members.length}/${capOf(s).cap}`;
-  return `<button type="button" class="g-plate pr lb-raid${raidLock ? ' lock' : ''}" data-go="s-content" data-arg="raid10"><b>종탑</b>${raidLock ? `<span>10인 레이드</span><span>Lv ${raid.unlockLv}에 열림</span>` : `<span>10인 레이드 · 조각 ${s.wallet.shards}/${SHARD_MAX}</span>`}</button>
+  return `<button type="button" class="g-plate pr lb-raid${raidLock ? ' lock' : ''}" data-go="s-content" data-arg="raid10"><b>첨탑</b>${raidLock ? `<span>10인 레이드</span><span>Lv ${raid.unlockLv}에 열림</span>` : `<span>10인 레이드 · 열쇠 ${s.wallet.shards}/${SHARD_MAX}</span>`}</button>
     ${FEATURES.guild ? `<button type="button" class="g-plate lb-guild${gOpen.ok ? '' : ' lock'}" data-go="s-guild"><b>길드 회관</b><span>${esc(gLine)}</span>${gOpen.ok && apps ? `<i class="g-badge">${apps}</i>` : ''}</button>` : ''}
     <button type="button" class="g-plate lb-shop" data-go="s-shop" data-arg="gold"><b>잡화점</b><span>골드 상점</span></button>`;
 }
@@ -251,7 +251,7 @@ s.el.addEventListener('click', e => {
   if (gr) { const g = goals()[Number(gr.dataset.goal)]; if (g?.to) toParty(g.to); return; }
   if (t.closest('#lbAgain') && save.last) { toParty({ content: save.last.content as ContentKey, diff: save.last.diff }); return; }
   if (t.closest('#lbClaim')) {
-    // 받을 수 있는 임무를 한 번에 (주간은 종 조각이 가득이면 남김)
+    // 받을 수 있는 임무를 한 번에 (주간은 악몽 열쇠가 가득이면 남김)
     const got: string[] = [];
     for (const kind of ['daily', 'weekly'] as const) (kind === 'daily' ? save.daily : save.weekly).missions.forEach((m, i) => {
       if (!missionReady(m)) return;

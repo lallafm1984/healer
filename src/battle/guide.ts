@@ -194,7 +194,7 @@ const GUIDE: Record<ScriptKey, (c: GuideCtx) => GuideBody> = {
       phases, skills,
     };
   },
-  // 무음 성가대 (26 4-3): 20인 입문. 판을 열(구역)로 나눠 읽기
+  // 유령 성가대 (26 4-3): 20인 입문. 판을 열(구역)로 나눠 읽기
   choir(c) {
     const { sk, B, n, hp, mythic, hpMult } = c;
     const cr = sk.crescendo, ba = sk.baton, fo = sk.forte, so = sk.solo;

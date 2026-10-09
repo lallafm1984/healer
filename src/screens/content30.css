@@ -82,7 +82,7 @@
 #s-content .b-rw small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 10px; color: #C9BC9E; white-space: nowrap; }
 #s-content .b-rw em { position: absolute; top: -7px; right: -9px; height: 15px; padding: 0 4px; border-radius: 3px; background: #C8281E; border: 1px solid #FFE7A8; font: normal 900 9px/13px var(--font-body); color: #FFFFFF; white-space: nowrap; }
 #s-content .b-leg { flex: 1; min-width: 0; padding-bottom: 14px; line-height: 1.25; text-align: right; }
-/* 레이드: 정보 줄 오른쪽 이번 주 「장비」 점 4개 (쉬움 · 보통 · 어려움 · 악몽) · 종 조각 */
+/* 레이드: 정보 줄 오른쪽 이번 주 「장비」 점 4개 (쉬움 · 보통 · 어려움 · 악몽) · 악몽 열쇠 */
 #s-content .b-lootrow { margin-left: auto; padding-left: 6px; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 #s-content .b-loot { display: inline-flex; gap: 3px; margin-right: 3px; }
 #s-content .b-loot i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--frame); }

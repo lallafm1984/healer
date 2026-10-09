@@ -120,11 +120,11 @@ function give(save: SaveData, g: Gain, now: number): Gain {
   return g;
 }
 
-/** 임무 보상 받기 (13 2-1, 12 3-4): 일일 = 골드 20% + 강화석 2, 주간 = 종 조각 1 */
+/** 임무 보상 받기 (13 2-1, 12 3-4): 일일 = 골드 20% + 강화석 2, 주간 = 악몽 열쇠 1 */
 export function claimMission(save: SaveData, kind: 'daily' | 'weekly', i: number, now: number): Gain | string {
   const s = (kind === 'daily' ? save.daily : save.weekly).missions[i];
   if (!s || !missionReady(s)) return '아직 못 채움';
-  if (kind === 'weekly' && save.wallet.shards >= SHARD_MAX) return `종 조각이 가득 참 (최대 ${SHARD_MAX})`;
+  if (kind === 'weekly' && save.wallet.shards >= SHARD_MAX) return `악몽 열쇠가 가득 참 (최대 ${SHARD_MAX})`;
   s.got = true;
   return kind === 'daily'
     ? give(save, { gold: Math.round(runGold(topLevel(save)) * MISSION_REWARD.goldShare), stone: MISSION_REWARD.stone, pass: PASS_GAIN.daily }, now)
@@ -237,9 +237,9 @@ export function buyItem(save: SaveData, k: ItemKey, n = 1): string {
   return '';
 }
 
-/** 종 조각 제작 (12 3-4) */
+/** 악몽 열쇠 제작 (12 3-4) */
 export function craftShard(save: SaveData): string {
-  if (save.wallet.shards >= SHARD_MAX) return `종 조각이 가득 참 (최대 ${SHARD_MAX})`;
+  if (save.wallet.shards >= SHARD_MAX) return `악몽 열쇠가 가득 참 (최대 ${SHARD_MAX})`;
   if (save.weekly.craft >= SHARD_CRAFT.weekly) return `이번 주 제작 ${SHARD_CRAFT.weekly}번을 다 씀`;
   if (save.player.gold < SHARD_CRAFT.gold) return `골드 부족 (${SHARD_CRAFT.gold.toLocaleString()} 필요)`;
   if (save.mats.stone < SHARD_CRAFT.stone) return `강화석 부족 (${SHARD_CRAFT.stone} 필요)`;
@@ -268,10 +268,10 @@ export const lootKey = (content: string, diff: DiffName) => `${content}|${diff}`
 /** 이번 주 이 보스·난이도 장비를 아직 안 받음 (13 3-4) */
 export const raidLootOpen = (save: SaveData, content: string, diff: DiffName) => !save.weekly.loot.includes(lootKey(content, diff));
 
-/** 악몽 입장 = 종 조각 1개 (12 3-4) */
+/** 악몽 입장 = 악몽 열쇠 1개 (12 3-4) */
 export const needsShard = (diff: DiffName) => diff === '악몽';
 export function spendShard(save: SaveData): string {
-  if (save.wallet.shards < 1) return '종 조각이 없음 (상점에서 제작하거나 주간 임무로)';
+  if (save.wallet.shards < 1) return '악몽 열쇠가 없음 (상점에서 제작하거나 주간 임무로)';
   save.wallet.shards--;
   return '';
 }

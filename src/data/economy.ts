@@ -1,12 +1,12 @@
 /**
  * 재화 (12)·상점 (15 6장, 19 11장)·시즌 패스 (15 4장) 수치. 전부 초안.
- * 원칙 (12, 15 1장): 유료 재화로 골드·재료·장비·종 조각·공훈·경험치를 사지 않는다.
+ * 원칙 (12, 15 1장): 유료 재화로 골드·재료·장비·악몽 열쇠·공훈·경험치를 사지 않는다.
  */
 import type { DiffName } from './difficulty';
 import { FEATURES } from './features';
 import type { ItemKey } from './items';
 
-// ---------- 종 조각 (12 3-4): 악몽 입장권, 입장할 때 1개 소모 ----------
+// ---------- 악몽 열쇠 (12 3-4): 악몽 입장권, 입장할 때 1개 소모 ----------
 export const SHARD_MAX = 5;
 /** 제작 = 골드 1,000 + 강화석 5, 주 5회 */
 export const SHARD_CRAFT = { gold: 1000, stone: 5, weekly: 5 };
@@ -49,8 +49,8 @@ export const FIRST_CLEAR_CRYSTAL = 10;
 // ---------- 시즌 패스 (15 4장) ----------
 export const PASS_LEVELS = 50;
 export const PASS_XP = 1000;
-/** 시즌 1 「깨진 종」: 2026-10-05 (월) 오전 6시부터 13주. 마지막 3주는 패스 경험치 +50% */
-export const SEASON = { n: 1, name: '깨진 종', start: '2026-10-05', weeks: 13, catchUpWeeks: 3 };
+/** 시즌 1 「해바라기 원정」: 2026-10-05 (월) 오전 6시부터 13주. 마지막 3주는 패스 경험치 +50% */
+export const SEASON = { n: 1, name: '해바라기 원정', start: '2026-10-05', weeks: 13, catchUpWeeks: 3 };
 export const PASS_PREMIUM_CRYSTAL = 1000;
 /** 패스 경험치 (15 4-2) */
 export const PASS_GAIN = { daily: 60, chest: 100, weekly: 800, challenge: 400 };
@@ -61,7 +61,7 @@ export function passFree(lv: number): PassReward {
   const fixed: Record<number, PassReward> = {
     1: { stone: 5 }, 5: { gold: 3 }, 10: { crystal: 60 }, 15: { refined: 2, ticket: 1 }, 20: { crystal: 60 },
     25: { deco: '시즌 테두리 (무료형)' }, 30: { crystal: 60, ticket: 1 }, 35: { refined: 3 }, 40: { crystal: 60 },
-    45: { gold: 3, ticket: 1 }, 50: { crystal: 60, title: '깨진 종의 힐러' },
+    45: { gold: 3, ticket: 1 }, 50: { crystal: 60, title: '모두의 힐러' },
   };
   return fixed[lv] || (lv % 2 ? { stone: 3 } : { gold: 1 });
 }

@@ -1,13 +1,13 @@
 /** S01 타이틀 (09). 게임 이름은 아직 가제 (21 6장) */
-import { bellSvg, uiIcon } from './art';
+import { sunSvg, uiIcon } from './art';
 import { battle, screen } from './kit';
 import { afterTitle } from './tutorial';
 
 const s = screen('s-title', '타이틀', {
   enter() {
     s.el.innerHTML = `<div class="t-wrap">
-      <div class="t-brand"><div class="t-emblem">${bellSvg}</div>
-      <p class="eyebrow">빛이 침묵한 세계</p>
+      <div class="t-brand"><div class="t-emblem">${sunSvg}</div>
+      <p class="eyebrow">오늘도 힐러 구함</p>
       <h1 class="t-name">나혼자 <span>힐러</span></h1>
       <p class="t-sub">당신의 작은 빛이, 파티를 지킨다.</p></div>
       <div class="t-space" aria-hidden="true"></div>

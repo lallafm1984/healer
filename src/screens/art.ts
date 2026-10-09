@@ -3,7 +3,7 @@ import type { ContentKey } from '../data/content';
 import { CONTENT_PLACE, FACTIONS, floorArtName, sceneArtName, type FactionKey, type PlaceKey } from '../data/places';
 
 /** 화면 장식 그림 (정식 아트 전까지 임시, 16 문서) */
-export const bellSvg = `<svg viewBox="0 0 120 120" aria-hidden="true"><g stroke="#0E0E15" stroke-width="5" stroke-linejoin="round"><path d="M60 14c-6 0-9 4-9 8v4C34 30 28 46 28 62v18l-10 12h84l-10-12V62c0-16-6-32-23-36v-4c0-4-3-8-9-8z" fill="#C9923F"/><path d="M60 26l-6 18 8 10-5 16" fill="none" stroke-width="4"/><circle cx="60" cy="100" r="9" fill="#F0C46A"/></g><path d="M40 62c0-10 4-18 12-22" stroke="#F6DFA0" stroke-width="5" stroke-linecap="round" fill="none"/></svg>`;
+export const sunSvg = `<svg viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke-linecap="round"><path d="M60 6v15M60 99v15M6 60h15M99 60h15M22 22l11 11M87 87l11 11M22 98l11-11M87 33l11-11" stroke="#0E0E15" stroke-width="12"/><path d="M60 6v15M60 99v15M6 60h15M99 60h15M22 22l11 11M87 87l11 11M22 98l11-11M87 33l11-11" stroke="#F0C46A" stroke-width="5"/></g><circle cx="60" cy="60" r="31" fill="#C9923F" stroke="#0E0E15" stroke-width="5"/><path d="M60 76c-10-6.5-16-12-16-19a8 8 0 0 1 16-3 8 8 0 0 1 16 3c0 7-6 12.5-16 19z" fill="#FFF3C8" stroke="#0E0E15" stroke-width="4" stroke-linejoin="round"/><path d="M41 48c2.5-6 7-10 13-11.5" stroke="#F6DFA0" stroke-width="4" stroke-linecap="round" fill="none"/></svg>`;
 
 /** 작은 메뉴 기호는 기존 SVG처럼 벡터로 유지. 그림 자산과 역할을 분리한다. */
 const paths = {
@@ -15,7 +15,7 @@ const paths = {
   arrow: '<path d="M4 12h16m-6-6 6 6-6 6"/>',
   gem: '<path d="m3 8 4-5h10l4 5-9 13zM3 8h18M7 3l5 18 5-18"/>',
   coin: '<circle cx="12" cy="12" r="9"/><path d="m12 7 4 5-4 5-4-5z"/>',
-  bell: '<path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5zM10 20h4M12 2v2"/>',
+  key: '<circle cx="7.5" cy="12" r="3.5"/><path d="M11 12h9.5M16.5 12v3.2M19.5 12v2.6"/>',
   star: '<path d="m12 3 3 6 6 1-4 5 1 6-6-3-6 3 1-6-4-5 6-1z"/>',
   leaf: '<path d="M5 19C-1 8 10 3 21 3c0 11-5 20-16 16ZM5 19l10-10"/>',
   // 장비 부위 (캐릭터 장비 칸)
@@ -51,7 +51,7 @@ export function gameIcon(name: string, fallback: string, prefix: 'icon' | 'tab' 
  * 업데이트 직업 4종도 미리 둠 (직업 목록·상점).
  */
 const EMBLEM: Record<string, { name: string; color: string; path: string }> = {
-  priest: { name: '사제 문장 · 금 간 종', color: '#F6E7B8', path: '<path d="M6.5 16v-4.5a5.5 5.5 0 0 1 11 0V16l1.5 2h-14z"/><path d="M12 4v2"/><path d="M12.6 9.4l-1.4 2.4 1.8 1.4-1 2.3"/><path d="M10 20.5h4"/>' },
+  priest: { name: '사제 문장 · 햇살 성표', color: '#F6E7B8', path: '<circle cx="12" cy="12" r="5.2"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7"/><path d="M12 14.4c-1.7-1.1-2.7-2-2.7-3.2a1.35 1.35 0 0 1 2.7-.5 1.35 1.35 0 0 1 2.7.5c0 1.2-1 2.1-2.7 3.2z"/>' },
   druid: { name: '드루이드 문장 · 뿔 지팡이와 잎', color: '#9BD66A', path: '<path d="M12 21V10"/><path d="M12 10C11 7.5 9 6 6.5 6M12 10c1-2.5 3-4 5.5-4M7.5 6V3.5M16.5 6V3.5"/><path d="M12 15.5c2.6 0 4.6-1.6 5.2-4.2-2.6 0-4.6 1.6-5.2 4.2z"/>' },
   paladin: { name: '성기사 문장 · 둥근 방패', color: '#F0A848', path: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.5"/><path d="M12 3.5v6M12 14.5v6M3.5 12h6M14.5 12h6"/>' },
   shaman: { name: '주술사 문장 · 토템', color: '#7EC8F0', path: '<path d="M8 3h8v6H8zM9 9h6v6H9zM8 15h8v6H8z"/><path d="M5 12h4M15 12h4"/>' },
@@ -68,15 +68,15 @@ export function classEmblem(hero: string, size: 'sm' | 'md' | 'lg' | 'xl' = 'md'
   return `<span class="emblem emblem-${size}${hero === 'warder' ? ' dark' : ''}" style="--em:${e.color}" role="img" aria-label="${e.name}">${inner}</span>`;
 }
 
-/** 세력 문양 (27 3-1): 골렘 톱니 · 역병 플라스크 · 늪 잎 · 귀족가 백합 · 마도사 눈꽃 · 종의 언덕 금 간 종 · 심연 거꾸로 종 */
+/** 세력 문양 (27 3-1): 골렘 톱니 · 역병 플라스크 · 늪 잎 · 귀족가 백합 · 마도사 눈꽃 · 해바라기 언덕 해바라기 · 심연 소용돌이 눈 (10 4장) */
 const FACTION_PATH: Record<FactionKey, string> = {
   golem: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/><circle cx="12" cy="12" r="6.5"/>',
   plague: '<path d="M9.5 3h5M10 3v5.5L5 18a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9.5V3"/><path d="M7.5 15h9"/><circle cx="10.5" cy="17.5" r=".6"/><circle cx="13.5" cy="18.5" r=".6"/>',
   swamp: '<path d="M5 19C-1 8 10 3 21 3c0 11-5 20-16 16Z"/><path d="M5 19l10-10"/>',
   noble: '<path d="M12 21v-7"/><path d="M12 14c-1.5-2.5-1.5-6 0-10 1.5 4 1.5 7.5 0 10z"/><path d="M12 14c-2-1-5-1.5-7.5-5 3.5-.5 6 1.5 7.5 5zM12 14c2-1 5-1.5 7.5-5-3.5-.5-6 1.5-7.5 5z"/><path d="M8.5 21h7"/>',
   mage: '<path d="M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6"/><path d="M10 4.5l2 2 2-2M10 19.5l2-2 2 2M4.6 10l2.7.8-.7 2.7M19.4 14l-2.7-.8.7-2.7"/>',
-  bell: '<path d="M6.5 16v-4.5a5.5 5.5 0 0 1 11 0V16l1.5 2h-14z"/><path d="M12 4v2"/><path d="M12.6 9.4l-1.4 2.4 1.8 1.4-1 2.3"/>',
-  abyss: '<path d="M6.5 8v4.5a5.5 5.5 0 0 0 11 0V8l1.5-2h-14z"/><path d="M12 20v-2"/><circle cx="12" cy="12.5" r="1.6"/>',
+  hill: '<circle cx="12" cy="9" r="2.4"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(0 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(45 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(90 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(135 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(180 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(225 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(270 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(315 12 9)"/><path d="M12 13.6V21.5M12 18.5c1.4-1.7 3-2.3 4.8-2.1"/>',
+  abyss: '<path d="M2.5 12C5 7.6 8.3 5.5 12 5.5s7 2.1 9.5 6.5c-2.5 4.4-5.8 6.5-9.5 6.5S5 16.4 2.5 12z"/><path d="M12 9a3 3 0 1 1-3 3c0-1.1.9-1.9 1.9-1.9s1.5.7 1.5 1.4"/>',
 };
 export function factionMark(f: FactionKey, size: 'sm' | 'md' | 'lg' = 'md'): string {
   const img = art(`mark-${f}`);

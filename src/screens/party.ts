@@ -2,7 +2,7 @@
  * S05 편성 (27 3-3, 시안 Party27). 2026-10-08 입장 화면(S04)을 여기로 합침: 전투 탭 「출전」 → 편성 → 출발.
  * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스 · 아이템 힌트), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭 (길드를 빼 두면 없음),
  * 경고 줄 (해제 못 함 · 장비 미달일 때만), 시작 위치 육각 미리보기 (역할 아이콘만), 파티원 줄 (누르면 상세 시트).
- * 아래 고정: 단축칸 한 줄 칩 (누르면 고르기 시트) · 다시 뽑기(광고 하루 2번 무료) · 출발 (악몽은 종 조각, 없으면 눌렀을 때 얻는 곳 + 상점). 지면 광고 이어하기 (15)
+ * 아래 고정: 단축칸 한 줄 칩 (누르면 고르기 시트) · 다시 뽑기(광고 하루 2번 무료) · 출발 (악몽은 악몽 열쇠, 없으면 눌렀을 때 얻는 곳 + 상점). 지면 광고 이어하기 (15)
  */
 import { CLASSES } from '../data/classes';
 import { contentOf, isRaid } from '../data/content';
@@ -27,7 +27,7 @@ import { TUT } from '../game/tutorial';
 import { memDetailHtml, memRowHtml, ROLE_ICON } from './members';
 import { battle, esc, fmt, go, itemChipsHtml, ROLE, screen } from './kit';
 import { classEmblem, currencyIcon, LOCK, uiIcon } from './art';
-import { afxRows, afxTags, ARROW, BELL, BOOK, diffNote, flowHead, guides, timeline, warnings } from './brief';
+import { afxRows, afxTags, ARROW, BOOK, diffNote, flowHead, guides, KEY, timeline, warnings } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
 
@@ -183,7 +183,7 @@ function render(keepScroll = true): void {
   const isGuild = Flow.mode === 'guild' && guildReady();
   const m = modeNow(), stage = m.stage, segs = c.fights(Flow.diff);
   const tutDone = G.save.tut >= TUT.done, adLeft = AD_LIMIT.reroll - G.save.daily.ads.reroll;
-  // 악몽 = 출발할 때 종 조각 1개 (12 3-4). 없으면 출발이 흐려지고, 누르면 아래에 얻는 곳 + 상점
+  // 악몽 = 출발할 때 악몽 열쇠 1개 (12 3-4). 없으면 출발이 흐려지고, 누르면 아래에 얻는 곳 + 상점
   const shardOn = tutDone && !Flow.chal && needsShard(Flow.diff), shards = G.save.wallet.shards, noShard = shardOn && !shards;
   const sub = Flow.chal ? `주간 도전 ${Flow.chal}단계` : `${Flow.diff}${m.affixes.length ? ` <span class="f-afxs">${afxTags(m.affixes)}</span>` : ''}`;
   const mark = Flow.chal ? `<span class="f-hg sm">${uiIcon('hourglass')}</span>` : markHtml(c, 'sm');
@@ -202,11 +202,11 @@ function render(keepScroll = true): void {
       ${tutDone && !isGuild && cost && adLeft > 0 ? `<button class="btn2 f-adrr" type="button" id="adReroll">광고 보고 무료로 다시 뽑기 · 오늘 ${adLeft}번</button>` : ''}
     </div>
     <footer class="ns-foot f-foot2">
-      ${noShard && msg ? `<p class="f-warn ticket" role="alert"><span class="f-mark warn" aria-hidden="true">!</span><span class="v">종 조각이 없음 <span class="cap">상점에서 제작하거나 주간 임무로</span></span><button class="btn2" type="button" data-go="s-shop" data-arg="gold">상점</button></p>` : ''}
+      ${noShard && msg ? `<p class="f-warn ticket" role="alert"><span class="f-mark warn" aria-hidden="true">!</span><span class="v">악몽 열쇠가 없음 <span class="cap">상점에서 제작하거나 주간 임무로</span></span><button class="btn2" type="button" data-go="s-shop" data-arg="gold">상점</button></p>` : ''}
       ${slotRow(slots, items)}
       <div class="f-btns">
         <button class="f-rr" type="button" id="reroll"><span class="f-rrt">다시 뽑기</span>${cost ? `<small aria-label="골드 ${fmt(cost)}">${currencyIcon('gold')}${fmt(cost)}</small>` : '<small class="free">무료 1회</small>'}</button>
-        <button class="f-go" type="button" id="depart"${noShard ? ' aria-disabled="true"' : ''}>${shardOn ? BELL : ''}<span class="cta2"><span class="f-gt">출발</span>${shardOn ? `<small>${shards ? `종 조각 1개 씀 · ${shards}/${SHARD_MAX}` : '종 조각 없음'}</small>` : ''}</span>${ARROW}</button>
+        <button class="f-go" type="button" id="depart"${noShard ? ' aria-disabled="true"' : ''}>${shardOn ? KEY : ''}<span class="cta2"><span class="f-gt">출발</span>${shardOn ? `<small>${shards ? `악몽 열쇠 1개 씀 · ${shards}/${SHARD_MAX}` : '악몽 열쇠 없음'}</small>` : ''}</span>${ARROW}</button>
       </div>
     </footer>
     ${slotSheetHtml(slots, items)}
@@ -283,7 +283,7 @@ async function tryContinue(r: BattleResult): Promise<boolean> {
   return true;
 }
 
-/** 출발. 악몽은 종 조각 1개 (12 3-4). 못 가면 이유를 돌려줌 */
+/** 출발. 악몽은 악몽 열쇠 1개 (12 3-4). 못 가면 이유를 돌려줌 */
 export function depart(): string {
   const c = contentOf(Flow.content);
   const tutDone = G.save.tut >= TUT.done;
