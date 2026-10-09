@@ -45,9 +45,24 @@ export default async function dialogs(url, shots) {
       ok(lockedGear === await page.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('healer.save')).gear)), `${label} 닫기는 저장된 장비 상태를 되돌리지 않음`);
 
       await page.click(charOpen); await page.clock.runFor(50);
+      // The mocked JS clock does not finish the CSS sheetUp animation. A translated
+      // 44px border quad can report 43.999969px mid-animation; measure the settled
+      // sheet without relaxing the touch-size requirement or disabling its motion.
+      await page.locator('#s-char .c7-gsheet').evaluate(async el => {
+        await Promise.all(el.getAnimations().map(animation => animation.finished));
+      });
       await page.locator('#s-char .c7-gsheet').evaluate(el => { el.scrollTop = el.scrollHeight; });
       const closeRect = await page.locator('#s-char .c7-dialog-close').boundingBox();
-      ok(closeRect && closeRect.y >= 70 && closeRect.y + closeRect.height <= viewport.height && closeRect.height >= 44, `${label} 스크롤 후에도 44px 닫기 노출`);
+      const closeState = await page.locator('#s-char .c7-gsheet').evaluate(el => {
+        const button = el.querySelector('.c7-dialog-close');
+        return { scrollTop: el.scrollTop, scrollHeight: el.scrollHeight, clientHeight: el.clientHeight,
+          cssHeight: getComputedStyle(button).height, offsetHeight: button.offsetHeight,
+          animations: el.getAnimations().map(animation => ({ playState: animation.playState, currentTime: animation.currentTime })) };
+      });
+      const closeChecks = { present: !!closeRect, aboveAd: !!closeRect && closeRect.y >= 70,
+        withinViewport: !!closeRect && closeRect.y + closeRect.height <= viewport.height,
+        touchHeight: !!closeRect && closeRect.height >= 44 };
+      ok(Object.values(closeChecks).every(Boolean), `${label} 시트 열림 완료 후 44px 닫기 노출 ${JSON.stringify({ closeRect, closeChecks, ...closeState })}`);
       await page.screenshot({ path: `${shots}/dialog-gear-${viewport.width}x${viewport.height}.png`, animations: 'disabled' });
       await page.click('#s-char .c7-dialog-close'); await page.clock.runFor(50);
       ok(!(await page.locator('#s-char .c7-gsheet').count()), `${label} 명시 닫기`);
