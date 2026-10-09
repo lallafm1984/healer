@@ -120,7 +120,7 @@ export default async function tutorial(url, shots) {
   // ---- 로비: 녹슨 요새로 안내, 탭은 로비·전투·캐릭터만 (27 1장) ----
   ok(await page.isVisible('#s-lobby .coachtip') && await page.isVisible('#lobbyStart.hi-pulse'), '로비: 첫 던전 안내 + 「출전」 반짝임');
   const locks = await page.evaluate(() => [...document.querySelectorAll('#tabs button.tlock')].map(b => b.dataset.tab).join());
-  ok(locks === 'guild,shop', `튜토리얼 중 탭 잠금: 길드·상점 (캐릭터는 첫 장비로 열림) (${locks})`);
+  ok(locks === 'shop', `튜토리얼 중 탭 잠금: 상점 (캐릭터는 첫 장비로 열림, 길드는 빼 둠) (${locks})`);
   await page.click('#tabs [data-tab="shop"]', { force: true }); await page.clock.runFor(50);
   ok(await page.isVisible('#s-lobby'), '잠긴 탭은 눌러도 그대로');
   await page.screenshot({ path: `${shots}/tut_lobby.png` });

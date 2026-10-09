@@ -57,8 +57,8 @@
 .cta2 { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
 .cta2 small { font: 500 12px var(--font-body); color: #F3D9A6; text-shadow: none; }
 
-/* ---------- 하단 탭 5개 (27 1장) ---------- */
-#tabs { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+/* ---------- 하단 탭 (27 1장): 탭 수만큼 같은 너비 (길드를 빼 두면 4개) ---------- */
+#tabs { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
 #tabs button { font-size: 12px; }
 #tabs button .rdot { top: 7px; right: calc(50% - 20px); }
 #tabs button .emblem.emblem-sm { width: 23px; height: 23px; border-width: 1px; box-shadow: 0 0 0 1px var(--line); }

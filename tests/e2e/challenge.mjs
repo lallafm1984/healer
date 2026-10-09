@@ -32,7 +32,7 @@ export default async function challenge(url, shots) {
 
   // ---- 로비: 레이드 문 (18 3-3) ----
   const gate = await text('#s-lobby .gate');
-  ok(/심연의 종탑/.test(gate) && /레벨 35/.test(gate) && /0 \/ 6/.test(gate) && /0 \/ 6 부위/.test(gate) && (await page.locator('#s-lobby .gate .obj.ok').count()) === 0, `로비 다음 목표 = 10인 레이드 문 (레벨·길드원·장비, 아직 다 안 됨)`);
+  ok(/심연의 종탑/.test(gate) && /레벨 35/.test(gate) && !/길드원/.test(gate) && /0 \/ 6 부위/.test(gate) && (await page.locator('#s-lobby .gate .obj.ok').count()) === 0, `로비 다음 목표 = 10인 레이드 문 (레벨·장비, 길드원 줄 없음, 아직 다 안 됨)`);
   await page.screenshot({ path: `${shots}/growth_gate.png` });
 
   // ---- 콘텐츠: 주간 도전 카드 ----

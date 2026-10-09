@@ -7,6 +7,7 @@ import {
   BAG_MAX, itemPrice, MEMBER, MERIT, MERIT_GEAR_COST, MERIT_WEEK_CAP, PASS_GAIN, PASS_LEVELS, PASS_PREMIUM_CRYSTAL, PASS_XP, passFree, passPremium,
   SHARD_CRAFT, SHARD_MAX, type PassReward,
 } from '../data/economy';
+import { FEATURES } from '../data/features';
 import { itemName, LEGEND_LEVEL, rollItem, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
 import type { ItemKey } from '../data/items';
 import {
@@ -18,7 +19,7 @@ import { dayKey, daysBetween, seasonOf, weekKey } from './clock';
 
 // ---------- 리셋 ----------
 function pick(pool: MissionDef[], n: number, lv: number, r: () => number, basicMax = n, skip: string[] = []): MissionSave[] {
-  const can = pool.filter(m => m.lv <= lv && !skip.includes(m.key));
+  const can = pool.filter(m => m.lv <= lv && !skip.includes(m.key) && (!m.guild || FEATURES.guild));
   const out: MissionSave[] = [];
   while (out.length < n && can.length) {
     const i = Math.floor(r() * can.length), m = can.splice(i, 1)[0];
@@ -28,11 +29,12 @@ function pick(pool: MissionDef[], n: number, lv: number, r: () => number, basicM
   return out;
 }
 
-export interface Rollover { day: boolean; week: boolean; memberCrystal: number; banked: number; season: boolean }
+/** fixed = 길드를 빼 두어서 바꾼 일일 임무 수 */
+export interface Rollover { day: boolean; week: boolean; memberCrystal: number; banked: number; season: boolean; fixed: number }
 
 /** 접속·화면 진입 때 부름. 날이 바뀌었으면 일일 임무 새로, 주가 바뀌었으면 주간 새로 (13 1장) */
 export function rollover(save: SaveData, now: number, r: () => number): Rollover {
-  const out: Rollover = { day: false, week: false, memberCrystal: 0, banked: 0, season: false };
+  const out: Rollover = { day: false, week: false, memberCrystal: 0, banked: 0, season: false, fixed: 0 };
   const day = dayKey(now), week = weekKey(now), lv = save.player.level;
   const d = save.daily;
   if (d.day !== day) {
@@ -43,6 +45,16 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
     save.daily = { ...newDaily(day), banked, missions: pick(DAILY, DAILY_N, lv, r, 2) };
     out.day = true;
     if (isMember(save, now)) { save.wallet.crystal += MEMBER.daily; out.memberCrystal = MEMBER.daily; }
+  }
+  // 길드를 빼기 전에 뽑힌 길드 임무 (못 채움) → 다른 임무로. 하루 교체 횟수는 안 씀
+  if (!FEATURES.guild) {
+    const ms = save.daily.missions;
+    ms.forEach((m, i) => {
+      if (m.got || !DAILY.find(x => x.key === m.key)?.guild) return;
+      const basic = ms.filter((x, j) => j !== i && DAILY_BASIC.includes(x.key)).length;
+      const nw = pick(DAILY, 1, lv, r, 2 - basic, ms.map(x => x.key))[0];
+      if (nw) { ms[i] = nw; out.fixed++; }
+    });
   }
   if (save.weekly.week !== week) {
     // 지난주 주간 도전 기록 → 월요일 상자 (13 3-2)

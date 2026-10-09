@@ -14,6 +14,7 @@ import { advanceTutorial, TUT } from './tutorial';
 import { guildAfter, type GuildAfter } from './guild';
 import { bonusDiff, lootKey, meritFor, onRun, raidLootOpen, rollover } from './economy';
 import { FIRST_CLEAR_CRYSTAL } from '../data/economy';
+import { FEATURES } from '../data/features';
 import { PUB_BONUS } from '../data/missions';
 import { CHAL } from '../data/challenge';
 import type { RosterEntry } from '../engine/types';
@@ -180,7 +181,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   save.wallet.crystal += crystal;
 
   const heroQuest = r.win ? heroWin(save, c.kind, c.key, r.diff) : null;
-  const guild = roster.length && save.tut >= TUT.done ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.name, party: r.party, roster }) : null;
+  const guild = FEATURES.guild && roster.length && save.tut >= TUT.done ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.name, party: r.party, roster }) : null;
 
   // 주간 도전: 제한시간 안에 깨면 기록·다음 단계 (실패해도 단계 유지)
   let chal: Settlement['chal'] = null;

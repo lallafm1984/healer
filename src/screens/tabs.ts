@@ -1,9 +1,11 @@
 /**
  * 하단 탭 5개 (27 1장, Lim 2026-10-08): 로비 · 전투 · 캐릭터 · 길드 · 상점. 앱을 켜면 로비.
- * 탭 막대는 탭 루트 5곳(로비 S02 · 모험 선택 S03 · 캐릭터 · 길드 · 상점)에서만 보인다. 고른 탭을 다시 누르면 그 루트 맨 위로.
+ * 출시판은 길드를 빼 두어 4개 (Lim 2026-10-09, features.ts).
+ * 탭 막대는 탭 루트(로비 S02 · 모험 선택 S03 · 캐릭터 · 길드 · 상점)에서만 보인다. 고른 탭을 다시 누르면 그 루트 맨 위로.
  * 아이콘: 로비 등불, 전투 방패, 캐릭터 = 지금 직업 문장, 길드 깃발, 상점 주머니 (그림 tab-*, 30 문서. 없으면 선 아이콘). 잠긴 탭은 자물쇠 + Lv. 빨간 점 = 받을 것·볼 것.
  */
 import { PASS_LEVELS } from '../data/economy';
+import { FEATURES } from '../data/features';
 import { GUILD_LEVEL } from '../data/progression';
 import { betterSlots, talentsLeft } from '../game/charinfo';
 import { chestState, missionReady, passLevel } from '../game/economy';
@@ -22,13 +24,14 @@ export interface TabDef {
   lv?: number;
 }
 
-export const TABS: TabDef[] = [
+const ALL_TABS: TabDef[] = [
   { key: 'lobby', name: '로비', root: 's-lobby' },
   { key: 'battle', name: '전투', root: 's-content' },
   { key: 'char', name: '캐릭터', root: 's-char' },
   { key: 'guild', name: '길드', root: 's-guild', lv: GUILD_LEVEL },
   { key: 'shop', name: '상점', root: 's-shop' },
 ];
+export const TABS = ALL_TABS.filter(t => t.key !== 'guild' || FEATURES.guild);
 
 const HOME = '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/></svg>';
 

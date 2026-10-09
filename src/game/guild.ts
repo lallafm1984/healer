@@ -14,11 +14,13 @@ import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
 import { addXp, clearXp, GUILD_LEVEL, MAX_LEVEL, xpToNext, type Grade } from '../data/progression';
 import { TRAIT_CHANCE, TRAITS, type TraitKey } from '../data/traits';
 import type { RosterEntry } from '../engine/types';
+import { FEATURES } from '../data/features';
 import type { SaveData, Scout } from '../platform/storage';
 import { TUT } from './tutorial';
 
-/** 길드가 열렸는지 (Lv 15, 튜토리얼 뒤). dev = 개발 빌드 「레벨 잠금 무시」로 열림 */
+/** 길드가 열렸는지 (Lv 15, 튜토리얼 뒤). dev = 개발 빌드 「레벨 잠금 무시」로 열림. 출시판에서 빼 두면 늘 닫힘 (features.ts) */
 export function guildOpen(save: SaveData): { ok: boolean; dev: boolean; why: string } {
+  if (!FEATURES.guild) return { ok: false, dev: false, why: '' };
   if (save.tut < TUT.done) return { ok: false, dev: false, why: '튜토리얼을 마치면 열림' };
   const under = save.player.level < GUILD_LEVEL;
   if (under && !save.settings.devUnlock) return { ok: false, dev: false, why: `Lv ${GUILD_LEVEL}에 열림` };
