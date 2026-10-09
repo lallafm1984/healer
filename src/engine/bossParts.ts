@@ -44,7 +44,9 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
     }
     case 'debuff': {
       const d = e.debuff;
-      const ts = randomTargets(f, f.mythic && e.nMythic ? e.nMythic : e.n, u => !u.debuffs.some(x => x.name === d.name));
+      const n = f.mythic && e.nMythic ? e.nMythic : e.n === 'all' ? Infinity : e.n;
+      const free = (u: Unit) => !u.debuffs.some(x => x.name === d.name);
+      const ts = e.pick === 'lowest' ? lowestTargets(f, n, u => free(u) && u.role !== 'tank') : randomTargets(f, n, free);
       for (const u of ts) addDebuff(f, u, { ...d });
       // 전염 (26 3-1): 두 대상이 붙어 서 있으면 걸리자마자 둘 다 터짐
       if (e.burstAdjacent && ts.length === 2 && hexDist(cellOf(f, ts[0]), cellOf(f, ts[1])) === 1) {
@@ -54,7 +56,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       return;
     }
     case 'rot':
-      for (const u of randomTargets(f, e.n)) {
+      for (const u of rotTargets(f, e)) {
         let d = u.debuffs.find(x => x.name === e.debuff.name);
         if (!d) d = addDebuff(f, u, { ...e.debuff, stack: 0 });
         d.stack = Math.min(e.max, (d.stack || 0) + 1); d.left = e.debuff.left;
@@ -62,6 +64,24 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       }
       return;
   }
+}
+
+/** 체력 비율이 가장 낮은 사람부터 n명 (사냥 P-HUNT, 35 9-1 「대상 고르기」). 같으면 먼저 선 사람 */
+export function lowestTargets(f: Fight, n: number, filter: (u: Unit) => boolean = () => true): Unit[] {
+  return living(f).filter(filter).sort((a, b) => a.hp / a.max - b.hp / b.max).slice(0, n);
+}
+
+/** 최대 체력 깎기 대상: again 확률로 이미 걸린 사람 중에서 (썩은 축복), 아니면 무작위 */
+function rotTargets(f: Fight, e: Extract<SkillEffect, { p: 'rot' }>): Unit[] {
+  if (e.again == null) return randomTargets(f, e.n);
+  const out: Unit[] = [];
+  for (let i = 0; i < e.n; i++) {
+    const has = (u: Unit) => u.debuffs.some(x => x.name === e.debuff.name) && !out.includes(u);
+    const pool = f.rng() < e.again && living(f).some(has) ? has : (u: Unit) => !out.includes(u);
+    const u = randomTargets(f, 1, pool)[0];
+    if (u) out.push(u);
+  }
+  return out;
 }
 
 /** 장판 칸 고르기 */

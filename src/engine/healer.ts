@@ -38,8 +38,8 @@ export function canTarget(f: Fight, key: SkillKey, cellIdx: number): ActionResul
   if (!c || !c.unit) return { ok: false, reason: '빈 칸' };
   const u = c.unit;
   if (!u.alive) return { ok: false, reason: `${u.nick}은(는) 쓰러짐` };
-  if (key === 'purify' && !u.debuffs.some(d => DISPELLABLE[d.type])) return { ok: false, reason: '정화로 지울 디버프 없음' };
-  if (sk.slot === 'dispel' && f.hero !== 'priest' && !u.debuffs.some(d => HEROES[f.hero].dispel.includes(d.type))) return { ok: false, reason: `${sk.name}로 지울 디버프 없음` };
+  if (key === 'purify' && !u.debuffs.some(d => DISPELLABLE[d.type] && !d.lock)) return { ok: false, reason: '정화로 지울 디버프 없음' };
+  if (sk.slot === 'dispel' && f.hero !== 'priest' && !u.debuffs.some(d => HEROES[f.hero].dispel.includes(d.type) && !d.lock)) return { ok: false, reason: `${sk.name}로 지울 디버프 없음` };
   if (key === 'bloom' && !hotCount(u)) return { ok: false, reason: '거둘 지속 힐 없음' };
   return { ok: true, u };
 }
@@ -110,7 +110,7 @@ function apply(f: Fight, key: SkillKey, u: Unit): void {
     if (key === 'poh' && has(f, 'doublePoh')) f.tx.later.push({ at: f.t + 2, cell: u.cell, amt: amt * 0.5, r });
     if (key === 'sanctify') emit(f, { type: 'sound', name: 'bell' });
   } else if (key === 'purify') {
-    const ds = u.debuffs.filter(d => DISPELLABLE[d.type]).sort((a, b) => (a.trap ? 1 : 0) - (b.trap ? 1 : 0) || (b.stack || 0) - (a.stack || 0));
+    const ds = u.debuffs.filter(d => DISPELLABLE[d.type] && !d.lock).sort((a, b) => (a.trap ? 1 : 0) - (b.trap ? 1 : 0) || (b.stack || 0) - (a.stack || 0));
     const d = ds[0];
     u.debuffs = u.debuffs.filter(x => x !== d);
     if (d.trap) f.stats.trapPops++; else f.stats.dispels++;
@@ -136,9 +136,9 @@ function apply(f: Fight, key: SkillKey, u: Unit): void {
   if (before.s < 100 && f.g.s >= 100) emit(f, { type: 'gauge', which: '신성화' });
 }
 
-/** 씻는 말씀: 종류와 상관없이 디버프 1개 (지우면 터지는 함정은 빼고) */
+/** 씻는 말씀: 종류와 상관없이 디버프 1개 (지우면 터지는 함정·해제 불가는 빼고) */
 function cleanseOne(f: Fight, u: Unit): void {
-  const d = u.debuffs.filter(x => !x.trap).sort((a, b) => (b.stack || 0) - (a.stack || 0))[0];
+  const d = u.debuffs.filter(x => !x.trap && !x.lock).sort((a, b) => (b.stack || 0) - (a.stack || 0))[0];
   if (!d) return;
   u.debuffs = u.debuffs.filter(x => x !== d);
   f.stats.dispels++;

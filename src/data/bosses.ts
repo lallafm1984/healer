@@ -5,7 +5,43 @@
  * 피해 수치는 맞을 대상이 실제로 받는 양 (35 1-2, 34 9-3): tank = 탱커 기준, 그 밖은 원거리·힐러 기준.
  */
 import type { TelKind } from '../engine/types';
+import { CLASSES } from './classes';
 import type { ScriptKey } from './encounters';
+import { SKILLS } from './skills';
+
+/**
+ * 수치 단위 (35 1-2, 38 0-3): 레벨 1 · 보통 기준 값. 엔진이 레벨(R.lv × R.enemy)·난이도·적 피해 배율을 곱하므로
+ * 새 보스는 「탱체 50%」처럼 비율로 적으면 레벨과 상관없이 같은 느낌이 된다. 값은 엔진의 기본 파티원과 같음 (fight.ts makeParty)
+ */
+export const UNIT = { tank: 1000, dps: 600, me: 550, heal: SKILLS.heal.amt! };
+/** 비율 → 데이터 값: U.tank(0.5) = 탱체 50% (탱커가 받는 양), U.dps(0.25) = 딜체 25% (원거리·힐러가 받는 양) */
+export const U = {
+  tank: (x: number) => Math.round(x * UNIT.tank),
+  dps: (x: number) => Math.round(x * UNIT.dps),
+  me: (x: number) => Math.round(x * UNIT.me),
+  heal: (x: number) => Math.round(x * UNIT.heal),
+};
+
+const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+const roleDps = (role: 'tank' | 'melee' | 'ranged') => avg(Object.values(CLASSES).filter(c => c.role === role).map(c => c.dps * 10));
+/**
+ * 보스 체력 = 파티 딜 × 목표 시간 (35 1-2). 파티 딜은 레벨 1 공개모집 직업 평균 (이동·도망으로 빠지는 딜은 안 셈).
+ * 시작값이고, 클리어율에 맞춘 최종값은 자동 밸런스(38 0-6)가 tune에 적는다
+ */
+export function bossHpFor(sec: number, comp: { tank: number; melee: number; ranged: number }): number {
+  return Math.round((comp.tank * roleDps('tank') + comp.melee * roleDps('melee') + comp.ranged * roleDps('ranged')) * sec / 100) * 100;
+}
+
+/** 디버프가 끝날 때 (시간이 다 되거나 지워져서) 하는 일 */
+export type DebuffEnd =
+  /** 깎인 최대 체력을 되돌림 (썩은 숨결) */
+  | { p: 'restoreMax' }
+  /** 이웃 칸에 피해 + 독침 (전염, SPREAD) */
+  | { p: 'spread' }
+  /** 지우지 않고 끝나면 그 사람이 선 열 전체에 피해 (독창, 26 4-3). 지우면 그냥 사라짐 */
+  | { p: 'colDmg'; dmg: number }
+  /** 지우지 않고 끝나면 그 사람에게 피해 (완치 표식 P-FULL의 시간 끝) */
+  | { p: 'hit'; dmg: number };
 
 /** 걸 디버프 (02 5-5 해제 유형) */
 export interface DebuffDef {
@@ -17,6 +53,13 @@ export interface DebuffDef {
   dot?: number;
   /** 지우면 터지는 함정 (지울 수 없음 표시) */
   trap?: boolean;
+  /** 해제로 안 지워짐 (쇠약·완치 표식). 정화 두루마리도 못 지움 */
+  lock?: boolean;
+  /** 체력 비율이 이 값 이상이 되면 바로 사라짐 (P-WOUND 0.9, P-FULL 1). end는 안 함 */
+  cureAt?: number;
+  /** 체력이 cureAt 아래인 동안 every초마다 1중첩 (최대 max), 초당 피해 = 중첩 × dot (P-WOUND) */
+  grow?: { every: number; dot: number; max: number };
+  end?: DebuffEnd;
 }
 
 /** 기술이 맞을 때 하는 일 */
@@ -27,10 +70,17 @@ export type SkillEffect =
   | { p: 'tank' }
   /** 전원 광역 (마법). phaseDmg = 그 페이즈에서는 이 피해 */
   | { p: 'all'; dmg: number; phaseDmg?: Partial<Record<number, number>> }
-  /** 무작위 n명에게 디버프 (이미 같은 디버프가 있는 사람은 뺌). nMythic = 악몽 인원. burstAdjacent = 걸린 둘이 붙어 서 있으면 바로 터짐 (전염) */
-  | { p: 'debuff'; n: number; nMythic?: number; debuff: DebuffDef; burstAdjacent?: boolean }
-  /** 최대 체력을 깎는 중첩 디버프 (썩은 숨결): 무작위 n명, 중첩마다 pct, max 중첩, 다시 걸리면 지속이 처음으로 */
-  | { p: 'rot'; n: number; debuff: DebuffDef; pct: number; max: number };
+  /**
+   * n명에게 디버프 (이미 같은 디버프가 있는 사람은 뺌). n = 'all'이면 살아 있는 모두. nMythic = 악몽 인원.
+   * pick: random (기본) / lowest = 체력 비율이 가장 낮은 사람부터, 탱커 빼고 (사냥 P-HUNT).
+   * burstAdjacent = 걸린 둘이 붙어 서 있으면 바로 터짐 (전염)
+   */
+  | { p: 'debuff'; n: number | 'all'; nMythic?: number; pick?: 'random' | 'lowest'; debuff: DebuffDef; burstAdjacent?: boolean }
+  /**
+   * 최대 체력을 깎는 중첩 디버프 (썩은 숨결 · 썩은 축복 P-HPDOWN): 무작위 n명, 중첩마다 pct, max 중첩, 다시 걸리면 지속이 처음으로.
+   * again = 이미 걸린 사람이 있으면 그 확률로 그중에서 고름 (썩은 축복 0.6). 지우면 최대 체력이 돌아옴 (end restoreMax)
+   */
+  | { p: 'rot'; n: number; debuff: DebuffDef; pct: number; max: number; again?: number };
 
 /** 장판 칸 고르기 */
 export type ZoneCells =
@@ -175,13 +225,13 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     skills: [
       AUTO(60),
       { key: 'breath', name: '썩은 숨결', icon: '숨결', kind: 'instant', first: 6, period: 12, cast: 0, when: { phase: [1, 2, 3] },
-        effect: { p: 'rot', n: 2, debuff: { name: '썩은 숨결', type: '질병', left: 60 }, pct: 0.05, max: 4 } },
+        effect: { p: 'rot', n: 2, debuff: { name: '썩은 숨결', type: '질병', left: 60, end: { p: 'restoreMax' } }, pct: 0.05, max: 4 } },
       { key: 'sting', name: '독침', icon: '독침', kind: 'instant', first: 10, period: 15, cast: 0, cut: true, when: { phase: [1] },
         effect: { p: 'debuff', n: 2, debuff: { name: '독침', type: '독', left: 12, dot: 15 } } },
       { key: 'aoe', name: '역병 파동', icon: '파동', kind: 'aoe', first: 27, period: 30, cast: 3, warn: 'aoe', when: { phase: [1, 2, 3] },
         effect: { p: 'all', dmg: 180, phaseDmg: { 1: 150 } } },
       { key: 'contagion', name: '전염', icon: '전염', kind: 'instant', first: null, period: 20, cast: 0, when: { phase: [2, 3] },
-        effect: { p: 'debuff', n: 1, nMythic: 2, debuff: { name: '전염', type: '질병', left: 8, trap: true }, burstAdjacent: true } },
+        effect: { p: 'debuff', n: 1, nMythic: 2, debuff: { name: '전염', type: '질병', left: 8, trap: true, end: { p: 'spread' } }, burstAdjacent: true } },
       { key: 'storm', name: '역병 폭풍', icon: '폭풍', kind: 'zone', first: null, period: 10, cast: 2.5, dps: 40, dur: 7.5, warn: 'zone', when: { phase: [3] }, cells: { p: 'edge' } },
     ],
     flow: [
@@ -212,7 +262,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         when: { phase: [1], bodyAlive: [0, 1, 2] }, cells: { p: 'bodyCols', bodies: 3, per: 2, nMythic: 2 } },
       { key: 'forte', name: '포르테', icon: '포르', kind: 'aoe', first: null, period: 25, cast: 3, warn: 'aoe', when: { phase: [2] }, effect: { p: 'all', dmg: CHOIR.forte } },
       { key: 'solo', name: '독창', icon: '독창', kind: 'instant', first: null, period: 20, cast: 0, cut: true, when: { phase: [2] },
-        effect: { p: 'debuff', n: CHOIR.soloN, debuff: { name: '독창', type: '마법', left: CHOIR.soloSec } } },
+        effect: { p: 'debuff', n: CHOIR.soloN, debuff: { name: '독창', type: '마법', left: CHOIR.soloSec, end: { p: 'colDmg', dmg: CHOIR.soloDmg } } } },
     ],
     flow: [
       { p: 'song', phase: 1, bodies: 3, per: 2, dps: CHOIR.song },

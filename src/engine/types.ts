@@ -10,6 +10,7 @@ import type { HeroKey } from '../data/heroes';
 import type { SkillKey } from '../data/skills';
 import type { TalentKey } from '../data/talents';
 import type { AffixKey } from '../data/affixes';
+import type { DebuffEnd } from '../data/bosses';
 import type { AffixState } from './affixes';
 import type { TraitKey } from '../data/traits';
 
@@ -38,6 +39,15 @@ export interface Debuff {
   dot?: number;
   /** 지우면 터지는 함정 디버프 */
   trap?: boolean;
+  /** 해제로 안 지워짐 (data/bosses.ts DebuffDef) */
+  lock?: boolean;
+  /** 체력 비율이 이 값 이상이면 바로 사라짐 */
+  cureAt?: number;
+  /** cureAt 아래인 동안 쌓이는 중첩 (쇠약). growT = 다음 중첩까지 모은 시간 */
+  grow?: { every: number; dot: number; max: number };
+  growT?: number;
+  /** 끝날 때 하는 일 (부품) */
+  end?: DebuffEnd;
 }
 
 /**
@@ -260,6 +270,8 @@ export type FightEvent =
   | { type: 'phase'; text: string }
   | { type: 'impact'; kind?: TelKind }
   | { type: 'dispel'; id: number; trap?: boolean; item?: boolean }
+  /** 체력 선 디버프가 채워져서 사라짐 (쇠약·완치 표식, 35 3-A) */
+  | { type: 'cure'; id: number; name: string }
   | { type: 'gauge'; which: string }
   | { type: 'beacon'; id: number }
   | { type: 'revive'; id: number }

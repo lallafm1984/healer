@@ -73,7 +73,7 @@ export function autoHealer(f: Fight): void {
   if (pct(low) < 0.35 && f.mana > 8) { use(f, 'flash', cellIdx(low)); return; }
   if (score > 600 * hp && f.mana > 12 && knows(f, 'poh')) { use(f, 'poh', cellIdx(best!)); return; }
   if (knows(f, 'purify') && (f.cd.purify ?? 0) <= 0 && f.mana >= 4) {
-    const c = live.filter(u => u.debuffs.some(d => DISPELLABLE[d.type] && !d.trap));
+    const c = live.filter(u => u.debuffs.some(d => DISPELLABLE[d.type] && !d.trap && !d.lock));
     if (c.length) { use(f, 'purify', cellIdx(c[0])); return; }
   }
   const tanks = live.filter(u => u.role === 'tank' && u.hot <= 1);
@@ -126,7 +126,7 @@ const tryUse = (f: Fight, k: SkillKey, u: Unit | null, idx: (u: Unit) => number)
 };
 /** 지울 디버프가 있는 파티원: 곧 터지는 것 (독창 등 남은 시간이 짧은 것)부터 */
 const cleansable = (f: Fight, live: Unit[]) => {
-  const left = (u: Unit) => Math.min(...u.debuffs.filter(d => HEROES[f.hero].dispel.includes(d.type) && !d.trap).map(d => d.left));
+  const left = (u: Unit) => Math.min(...u.debuffs.filter(d => HEROES[f.hero].dispel.includes(d.type) && !d.trap && !d.lock).map(d => d.left));
   return live.filter(u => left(u) < Infinity).sort((a, b) => left(a) - left(b))[0] || null;
 };
 

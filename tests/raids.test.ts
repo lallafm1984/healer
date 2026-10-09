@@ -4,7 +4,7 @@ import { armorFactor } from '../src/data/armor';
 import { ALL_DIFFS, contentOf, raidSize } from '../src/data/content';
 import { MYTHIC } from '../src/data/difficulty';
 import * as E from '../src/engine';
-import { CHOIR } from '../src/data/bosses';
+import { bossSkill, CHOIR, type SkillEffect } from '../src/data/bosses';
 import { addDebuff } from '../src/engine/core';
 import { doDispel } from '../src/engine/heroes';
 
@@ -107,13 +107,14 @@ describe('20인 무음 성가대 (26 4-3)', () => {
     const col = f.cells[u.cell].col;
     const same = f.party.filter(v => f.cells[v.cell].col === col);
     for (const v of f.party) v.hp = v.max;
-    addDebuff(f, u, { name: '독창', type: '마법', left: 0.01 });
+    const solo = (bossSkill('choir', 'solo').effect as Extract<SkillEffect, { p: 'debuff' }>).debuff;
+    addDebuff(f, u, { ...solo, left: 0.01 });
     doDispel(f, u);
     expect(same.every(v => v.hp === v.max)).toBe(true);
     f.skills.forEach(s => { s.next = Infinity; });
     f.mobs.forEach(m => { m.alive = m.boss!; if (!m.boss) m.hp = 0; }); // 노래 끔
     f.phase = 2;
-    addDebuff(f, u, { name: '독창', type: '마법', left: 0.01 });
+    addDebuff(f, u, { ...solo, left: 0.01 });
     steps(f, 0.1);
     expect(same.every(v => v.max - v.hp >= 200 * f.dmgMult * armorFactor(v.role, 'party') - 1e-6)).toBe(true);
   });

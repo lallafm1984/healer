@@ -461,8 +461,8 @@ export function fxAbility(u: Unit, name: string, now: number): void {
   const p = unitPos(u);
   B2.floats.push({ x: p.x, y: p.y - L.s * 0.55, text: name, crit: false, over: false, t0: now, n: B2.n++, fill: C.gold, label: true });
 }
-export function fxDispel(u: Unit, now: number, trap = false): void {
-  if (S.reducedEffects) { addBubble(u.id, trap ? '전염 폭발' : '해제', now); return; }
+export function fxDispel(u: Unit, now: number, trap = false, label?: string): void {
+  if (S.reducedEffects) { addBubble(u.id, label ?? (trap ? '전염 폭발' : '해제'), now); return; }
   B2.fx.push({ kind: 'dispel', id: u.id, t0: now });
 }
 export function fxDeath(u: Unit, now: number): void {
@@ -567,6 +567,13 @@ export function render(now: number): void {
     const top = y - r, bot = y + r;
     const low = frac < 0.3;
     hexPoly(unitsG, x, y, r).fill({ color: low ? C.dangerBg : C.empty }); // 물통 빈 부분: 30% 아래면 붉게
+    // 쇠약 (35 3-A, 8장 「90% 선」): 이 높이까지 채우면 사라지는 디버프 = 채울 부분을 디버프 색으로 (선 높이는 배지에 가려 띠로 보여 줌)
+    const line = u.debuffs.find(d => d.cureAt != null && d.cureAt < 1);
+    if (line && frac < line.cureAt!) {
+      const ly = bot - 2 * r * line.cureAt!, col = hex(DEB[line.type] || '#D9A13B');
+      fillBand(unitsG, x, y, r, ly, bot - 2 * r * frac, col, 0.3);
+      fillBand(unitsG, x, y, r, ly, ly + Math.max(2, s * 0.05), col, 0.95);
+    }
     const pred = predictedHeal(u);
     if (pred > 0) { const pf = Math.min(1, (u.hp + pred) / u.max); fillBand(unitsG, x, y, r, bot - 2 * r * pf, bot, 0xa0ffaa, 0.35); }
     fillBand(unitsG, x, y, r, bot - 2 * r * frac, bot, hex(ROLE[u.role].color));
