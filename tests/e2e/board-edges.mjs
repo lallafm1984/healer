@@ -14,8 +14,8 @@ const PROFILES = [
 const PARTIES = [
   { n: 3, tab: 'explore', content: 'plateau' },
   { n: 5, tab: 'dungeon', content: 'rustfort' },
-  { n: 10, tab: 'raid', content: 'abyss1' },
-  { n: 20, tab: 'raid', content: 'cathedral1' },
+  { n: 10, tab: 'raid10', content: 'abyss1' },
+  { n: 20, tab: 'raid20', content: 'cathedral1' },
 ];
 const EPS = 0.16;
 const finite = (...values) => values.every(Number.isFinite);

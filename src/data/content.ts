@@ -8,7 +8,7 @@ import { DUNGEONS } from './dungeons';
 import { ENCOUNTERS, type EncounterKey } from './encounters';
 import { CONTENT_PLACE, FACTIONS, PLACES } from './places';
 
-export type ContentKind = 'explore' | 'dungeon' | 'raid' | 'event';
+export type ContentKind = 'explore' | 'dungeon' | 'raid';
 export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathedral1' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple'
   | 'belfry' | 'archive' | 'ossuary' | 'sewer';
 

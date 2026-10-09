@@ -79,7 +79,7 @@ export default async function dialogs(url, shots) {
 
       const shell = () => page.evaluate(() => ({ top: document.querySelector('#s-party .topbar').getBoundingClientRect().top, app: document.querySelector('#app').scrollTop, viewport: document.querySelector('#viewport').scrollTop }));
       for (let attempt = 0; attempt < 2; attempt++) {
-        await toParty(page, { tab: 'raid', content: 'cathedral1', diff: '쉬움' });
+        await toParty(page, { tab: 'raid20', content: 'cathedral1', diff: '쉬움' });
         let state = await shell();
         ok(state.top >= 70 && state.app === 0 && state.viewport === 0, `${label} 20인 편성 진입${attempt + 1}: 헤더와 상위 스크롤 정상`);
         await page.click('#guideOpen'); await page.clock.runFor(50);
@@ -99,7 +99,7 @@ export default async function dialogs(url, shots) {
         ok(state.top >= 70 && state.app === 0 && state.viewport === 0, `${label} 시트 복귀 뒤 광고 아래 헤더 전체 유지`);
         await page.click('#s-party .tb-back'); await page.clock.runFor(50);
       }
-      await toParty(page, { tab: 'raid', content: 'cathedral1', diff: '쉬움' });
+      await toParty(page, { tab: 'raid20', content: 'cathedral1', diff: '쉬움' });
       await page.screenshot({ path: `${shots}/dialog-party-${viewport.width}x${viewport.height}.png`, animations: 'disabled' });
       await context.close();
     }

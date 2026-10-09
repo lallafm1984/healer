@@ -224,14 +224,23 @@ export default async function portrait(url, shots) {
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_shop_${width}.png` });
     await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(80);
     ok(await loaded('#s-content .b-gate img') && await page.locator('#s-content .b-places .fmark').count() >= 6 && await noOverflow('#s-content .b-body'), `${width}: 전투 탭 관문 장소 그림 + 장소 문양 6곳, 가로 넘침 없음`);
-    // 관문은 분류가 바뀌어도 같은 자리·같은 크기 (주간 도전은 관문 위 띠가 아니라 장소 줄 맨 앞 칸, 이벤트는 빈 줄 자리)
-    const gates = [];
-    for (const t of ['explore', 'raid', 'event', 'dungeon']) {
+    // 로비 종탑 이름표 → 전투 탭 10인 레이드
+    await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(80);
+    await page.click('#s-lobby .lb-raid'); await page.clock.runFor(80);
+    ok(await page.getAttribute('#s-content [data-ctab="raid10"]', 'aria-selected') === 'true', `${width}: 로비 종탑 → 10인 레이드 탭`);
+    // 분류 = 탐험 · 던전 · 10인 레이드 · 20인 레이드 (2026-10-09 이벤트 탭 뺌). 레이드 탭엔 그 인원 레이드만
+    const cats = await page.evaluate(() => [...document.querySelectorAll('#s-content [data-ctab]')].map(b => `${b.dataset.ctab}:${b.getAttribute('aria-label')}`).join());
+    ok(/^explore:탐험[^,]*,dungeon:던전[^,]*,raid10:10인 레이드[^,]*,raid20:20인 레이드[^,]*$/.test(cats) && !/이벤트/.test(await page.textContent('#s-content .b-cats')), `${width}: 분류 4칸 = 탐험·던전·10인 레이드·20인 레이드, 이벤트 없음 (${cats})`);
+    // 관문은 분류가 바뀌어도 같은 자리·같은 크기 (주간 도전은 관문 위 띠가 아니라 장소 줄 맨 앞 칸)
+    const gates = [], raids = {};
+    for (const t of ['explore', 'raid10', 'raid20', 'dungeon']) {
       await page.click(`#s-content [data-ctab="${t}"]`); await page.clock.runFor(60);
       const b = await page.locator('#s-content .b-gate').boundingBox();
       gates.push(`${Math.round(b.y)}/${Math.round(b.height)}`);
+      if (t.startsWith('raid')) raids[t] = await page.evaluate(() => [...document.querySelectorAll('#s-content .b-pl[data-content]')].map(b => b.dataset.content).join());
     }
-    ok(new Set(gates).size === 1, `${width}: 관문 자리·크기가 탐험·레이드·이벤트·던전 모두 같음 (${gates.join(' ')})`);
+    ok(new Set(gates).size === 1, `${width}: 관문 자리·크기가 탐험·10인·20인 레이드·던전 모두 같음 (${gates.join(' ')})`);
+    ok(raids.raid10 === 'abyss1' && raids.raid20 === 'cathedral1', `${width}: 10인 탭 = 종탑, 20인 탭 = 대성당 ${JSON.stringify(raids)}`);
     const row = await page.evaluate(() => {
       const sc = document.querySelector('#s-content .b-plr'), r = sc.getBoundingClientRect();
       const cut = [...sc.querySelectorAll('.b-pl')].some(b => { const x = b.getBoundingClientRect(); return x.left < r.right - 8 && x.right > r.right + 8; });
@@ -274,7 +283,7 @@ export default async function portrait(url, shots) {
       localStorage.setItem('healer.save', JSON.stringify(s));
     });
     await page.reload(); await page.clock.runFor(300); await pastTitle(page);
-    await toParty(page, { content: 'cathedral1', tab: 'raid' });
+    await toParty(page, { content: 'cathedral1', tab: 'raid20' });
     await page.click('#depart'); await page.clock.runFor(3400);
     const geometry = () => page.evaluate(() => {
       const rect = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; };

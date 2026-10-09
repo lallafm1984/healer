@@ -7,8 +7,8 @@ const VIEWPORTS = [[320, 640], [360, 780], [412, 915], [360, 880]];
 const PARTIES = [
   { n: 3, tab: 'explore', content: 'plateau' },
   { n: 5, tab: 'dungeon', content: 'rustfort' },
-  { n: 10, tab: 'raid', content: 'abyss1' },
-  { n: 20, tab: 'raid', content: 'cathedral1' },
+  { n: 10, tab: 'raid10', content: 'abyss1' },
+  { n: 20, tab: 'raid20', content: 'cathedral1' },
 ];
 
 const geometry = page => page.evaluate(() => {

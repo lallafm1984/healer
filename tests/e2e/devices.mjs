@@ -48,7 +48,7 @@ export default async function devices(url, shots) {
 
     // 레이드 10인: 파티원 첫 줄이 첫 화면에
     await page.click('#s-party .tb-back'); await page.clock.runFor(80);
-    await toParty(page, { tab: 'raid', content: 'abyss1', diff: '보통' });
+    await toParty(page, { tab: 'raid10', content: 'abyss1', diff: '보통' });
     const r0 = await box('#s-party .pcard'), foot2 = await box('#s-party .f-foot2');
     ok(await noOverflow('#s-party .f-pty') && r0.bottom <= foot2.top, `${tag}: 레이드 10인 편성 첫 파티원 줄이 첫 화면에`);
     await page.click('#s-party .tb-back'); await page.clock.runFor(80);
