@@ -43,6 +43,13 @@ export interface SpecRun {
   /** 지금 들어가는 피해가 함정 터짐 (함정 감지) · 폭탄 (폭탄 해체반) */
   trap: boolean;
   bomb: boolean;
+  /** 최근 4초 직접 힐 대상 (백합 코사지) · 다음 직접 힐 마나 0 */
+  near: { id: number; t: number }[];
+  lilyFree: boolean;
+  /** 바로 앞에 해제한 유형 (닳은 묵주) */
+  dtype: string | null;
+  /** 아군마다 최근 2초 잃은 체력 (밧줄 매듭) */
+  hurt: Record<number, { t: number; d: number }[]>;
 }
 
 export function newSpecs(v: Record<string, number> | undefined): SpecRun | null {
@@ -50,7 +57,7 @@ export function newSpecs(v: Record<string, number> | undefined): SpecRun | null 
   const on: Record<string, number> = {};
   for (const k in v) if (v[k] > 0) on[k] = v[k];
   if (!Object.keys(on).length) return null;
-  return { v: on, until: {}, ready: {}, used: {}, last: null, chain: [], inst: 0, free: false, bee: 0, beeOn: false, busy: 0, quilt: {}, imm: [], later: [], trap: false, bomb: false };
+  return { v: on, until: {}, ready: {}, used: {}, last: null, chain: [], inst: 0, free: false, bee: 0, beeOn: false, busy: 0, quilt: {}, imm: [], later: [], trap: false, bomb: false, near: [], lilyFree: false, dtype: null, hurt: {} };
 }
 
 /** 켜진 값 (없으면 0) */
@@ -119,7 +126,13 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
       if (c === 0) m += v.quickAid ?? 0;
     }
   }
-  if (u.role === 'tank') { m += v.shieldFriend ?? 0; if (v.braveSong && on(f, 'braveSong')) m += v.braveSong; }
+  if (u.role === 'tank') {
+    m += v.shieldFriend ?? 0;
+    if (v.braveSong && on(f, 'braveSong')) m += v.braveSong;
+    if (v.scrapWhistle && on(f, 'scrapWhistle')) m += v.scrapWhistle;
+  }
+  if (v.blackStone && alone(f, u)) m += v.blackStone;
+  if (v.lordIncense && u.debuffs.filter(d => !d.hide).length >= 2) m += v.lordIncense;
   if (f.t < 20) m += v.firstWord ?? 0;
   if (bossPct(f) < 0.3) m += v.secondWind ?? 0;
   if (f.mana > 90) m += v.brimming ?? 0;
@@ -133,6 +146,12 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (k === 'serenity') m += v.serenityEcho ?? 0;
   if (k === 'oath') m += v.firmOath ?? 0;
   return 1 + m;
+}
+
+/** 옆 칸에 살아 있는 아군이 없음 (검은 돌 부적) */
+function alone(f: Fight, u: Unit): boolean {
+  const c = cellOf(f, u);
+  return !living(f).some(x => x !== u && hexDist(cellOf(f, x), c) === 1);
 }
 
 /** 치명타 확률 + (별똥별 소원 · 신전 성수병) */
@@ -183,6 +202,7 @@ export function afterHeal(f: Fight, u: Unit, amt: number, eff: number, crit: boo
     if (v.holdTogether && k && SKILLS[k].slot === 'aoe') addMod(u, { k: 'mcut', v: v.holdTogether, until: f.t + 4, src: 'holdTogether' });
   }
   if (hc.tick && v.fireflies && f.rng() < 0.03) heal(f, u, intAmt(f, v.fireflies), true, true);
+  if (v.leechJar && hp0 < u.max - 1e-9 && u.hp >= u.max - 1e-9) proc(f, 'leechJar', 4, 10);
 }
 
 // ---------- 시전 ----------
@@ -221,13 +241,22 @@ function cdCut(f: Fight, slots: SlotName[], sec: number): void {
 export function specApply(f: Fight, key: SkillKey, u: Unit, fn: () => void): void {
   const s = f.sp!, v = s.v, sk = SKILLS[key];
   under(key, false, () => {
-    if (isSingle(key)) { hc.same = s.last == null ? null : s.last === u.id; s.last = u.id; }
+    if (isSingle(key)) { hc.same = s.last == null ? null : s.last === u.id; s.last = u.id; if (v.lilyCorsage) lily(f, u); }
     if (v.beeDance && HEAL_SLOT.has(sk.slot)) {
       if (s.beeOn) { hc.bee = true; s.beeOn = false; }
       if (++s.bee % 5 === 0) s.beeOn = true;
     }
     fn();
   });
+}
+
+/** 백합 코사지: 4초 안에 서로 다른 3명에게 직접 힐 → 다음 직접 힐 마나 0. 공짜로 나간 힐은 세지 않고 처음부터 */
+function lily(f: Fight, u: Unit): void {
+  const s = f.sp!;
+  if (s.lilyFree) { s.lilyFree = false; s.near = []; return; }
+  s.near = s.near.filter(x => x.t > f.t - 4 - 1e-9 && x.id !== u.id);
+  s.near.push({ id: u.id, t: f.t });
+  if (s.near.length >= 3 && (s.ready.lilyCorsage ?? 0) <= f.t + 1e-9) { s.near = []; s.lilyFree = true; s.ready.lilyCorsage = f.t + 15; shout(f, 'lilyCorsage'); }
 }
 
 /** 광역 힐이 몇 명에게 들어가는지 (큰 그릇 · 신전 성수병). 광역 힐 칸 문맥에서 힐 전에 부름 */
@@ -253,7 +282,7 @@ export function hasteOf(f: Fight): number {
   if (!f.sp) return f.gear.haste;
   const v = f.sp.v;
   let h = f.gear.haste;
-  for (const k of ['sunHandful', 'resolve', 'drumbeat', 'rustyCog']) if (v[k] && on(f, k)) h += v[k];
+  for (const k of ['sunHandful', 'resolve', 'drumbeat', 'rustyCog', 'leechJar']) if (v[k] && on(f, k)) h += v[k];
   if (v.busyHands) h += (v.busyHands * Math.min(5, Math.floor(f.sp.busy / 2))) / 5;
   return Math.min(f.R.hasteCap, h);
 }
@@ -263,6 +292,7 @@ export const gcdNow = (f: Fight): number => f.R.gcd / (1 + hasteOf(f));
 /** 마나 소모 배율 (u = 대상, 알 때만) */
 export function costSpec(f: Fight, key: SkillKey, u?: Unit): number {
   const v = f.sp!.v, sk = SKILLS[key];
+  if (f.sp!.lilyFree && isSingle(key)) return 0;
   let cut = 0;
   if (baseCast(f, key) === 0 && !sk.channel && sk.slot !== 'raid') cut += v.pouch ?? 0;
   if (u && u.hp > u.max * 0.8 && HEAL_SLOT.has(sk.slot)) cut += v.thrifty ?? 0;
@@ -301,6 +331,7 @@ export function regenSpec(f: Fight): number {
   if (f.mana < 30) m += v.springSip ?? 0;
   if (v.stillMoment && !f.cast && f.channel <= 0 && f.t - f.tx.lastAct >= 3 - 1e-9) m += v.stillMoment;
   if (v.toadCharm && on(f, 'toadCharm')) m += v.toadCharm;
+  if (v.pilgrimCharm && living(f).every(u => u.hp >= u.max * 0.7 - 1e-9)) m += v.pilgrimCharm;
   return m;
 }
 
@@ -325,6 +356,7 @@ export function specDispel(f: Fight, u: Unit, d: Debuff): void {
   if (v.immuneIncense) s.imm.push({ id: u.id, name: d.name, until: f.t + v.immuneIncense });
   if (v.busyDay) cdCut(f, ['ext'], v.busyDay);
   if (v.plagueCenser && (s.ready.plagueCenser ?? 0) <= f.t) { s.ready.plagueCenser = f.t + 15; shield(f, u, intAmt(f, v.plagueCenser), 8, 'plagueCenser'); }
+  if (v.wornRosary) { if (s.dtype && s.dtype !== d.type) { cdCut(f, ['dispel'], v.wornRosary); shout(f, 'wornRosary'); } s.dtype = d.type; }
 }
 /** 두 번 털기: 해제가 그 확률로 재사용 대기 없이 */
 export const twiceBrush = (f: Fight): boolean => !!f.sp?.v.twiceBrush && f.rng() < f.sp.v.twiceBrush;
@@ -385,6 +417,17 @@ export function afterHurt(f: Fight, u: Unit, hp0: number): void {
     addMod(u, { k: 'cut', v: v.lastStand, until: f.t + 8, src: 'lastStand' });
     shout(f, 'lastStand');
   }
+  if (v.ropeKnot && u.hp > 0) rope(f, u, hp0 - u.hp);
+}
+
+/** 밧줄 매듭: 2초 안에 최대 체력 30% 넘게 잃으면 그 아군에게 보호막 (재사용 20초) */
+function rope(f: Fight, u: Unit, d: number): void {
+  const s = f.sp!, h = (s.hurt[u.id] = (s.hurt[u.id] ?? []).filter(x => x.t > f.t - 2 - 1e-9));
+  h.push({ t: f.t, d });
+  if ((s.ready.ropeKnot ?? 0) > f.t + 1e-9 || h.reduce((a, x) => a + x.d, 0) <= u.max * 0.3) return;
+  s.ready.ropeKnot = f.t + 20;
+  s.hurt[u.id] = [];
+  shield(f, u, intAmt(f, s.v.ropeKnot), 8, 'ropeKnot');
 }
 
 /** 마지막 숨: 파티원이 쓰러질 피해를 받으면 체력 1로 버팀 (전투당 1번). 버텼으면 true */
@@ -416,6 +459,26 @@ export function specRevive(f: Fight, u: Unit): void {
 /** 보스 예고가 뜨면 (북소리: 버스터 · 광역) */
 export function specTel(f: Fight, tel: Telegraph): void {
   if (tel.kind === 'buster' || tel.kind === 'aoe') proc(f, 'drumbeat', 4, 20);
+}
+/** 버스터가 들어가면 (고철 호루라기: 탱커가 맞으면 3초) */
+export function specBuster(f: Fight, tel: Telegraph): void {
+  if (!f.sp!.v.scrapWhistle || !tel.units.some(id => f.party.some(u => u.id === id && u.alive && u.role === 'tank'))) return;
+  f.sp!.until.scrapWhistle = f.t + 3;
+  shout(f, 'scrapWhistle');
+}
+/** 보스 기술에 시전 · 채널이 끊기면 (눈꽃 결정) */
+export function specBroken(f: Fight): void {
+  const v = f.sp!.v.snowCrystal;
+  if (!v) return;
+  f.mana = Math.min(100, f.mana + v);
+  shout(f, 'snowCrystal');
+}
+/** 지속 힐이 끝까지 가면 (묘지기 등불, 2초에 한 번) */
+export function hotDone(f: Fight): void {
+  const s = f.sp!, v = s.v.graveLantern;
+  if (!v || (s.ready.graveLantern ?? 0) > f.t + 1e-9) return;
+  s.ready.graveLantern = f.t + 2;
+  f.mana = Math.min(100, f.mana + v);
 }
 /** 페이즈가 바뀌면 (해돋이) */
 export function specPhase(f: Fight): void {

@@ -1,10 +1,12 @@
 /** 특수능력이 붙는 장비 (42 1장 · 3장): 등급별 줄 수 · 부위 · 최소 등급 · 직업 전용 · 자주 나오는 것 · 이름 있는 장신구 · 저장 · 도감 */
 import { describe, expect, it } from 'vitest';
 import {
-  FEATURED_WEIGHT, ITEM_GRADES, itemName, itemScore, makeItem, NAMED_CHANCE, rollItem, rollSpecs, SLOTS, SPEC_ADV, SPEC_LINES, specKeysOf, specsOf,
+  FEATURED_WEIGHT, ITEM_GRADES, itemName, itemScore, KIND_WEIGHT, KINDS, makeItem, NAMED_CHANCE, PLACE_KINDS, rollItem, rollSpecs, SLOTS, SPEC_ADV, SPEC_LINES, specKeysOf, specsOf,
   type GearItem, type ItemGrade, type SlotKey,
 } from '../src/data/equipment';
-import { codexKeys, FEATURED, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, type CodexGroup } from '../src/data/specials';
+import { codexKeys, FEATURED, NAMED, namedFor, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, type CodexGroup } from '../src/data/specials';
+import { CONTENT, contentOf, type ContentKey } from '../src/data/content';
+import { EXPLORE_CAP, exploreCap } from '../src/game/settle';
 import { rngFrom } from '../src/engine/rng';
 import { migrate, newSave, noteSpecs } from '../src/platform/storage';
 import { exchangeMerit } from '../src/game/economy';
@@ -88,7 +90,55 @@ describe('이름 있는 장신구 (42 3장)', () => {
     const cog = NAMED.find(n => n.key === 'rustyCog')!;
     expect(many(2000, (r, i) => makeItem(r, cog.slot, '고급', i, undefined, { place: cog.place })).some(it => it.named)).toBe(false);
     expect(many(2000, (r, i) => makeItem(r, 'ring', '영웅', i, undefined, { place: cog.place })).some(it => it.named)).toBe(false);
-    expect(many(2000, (r, i) => makeItem(r, cog.slot, '영웅', i, undefined, { place: 'plateau' })).some(it => it.named)).toBe(false);
+    expect(many(2000, (r, i) => makeItem(r, cog.slot, '영웅', i, undefined, { place: 'marsh' })).some(it => it.named)).toBe(false);
+  });
+  it('장소마다 목걸이 · 반지 중 하나만, 떨어지는 장소는 모두 있는 장소, 탐험 것은 고급부터', () => {
+    for (const n of NAMED) {
+      const c = contentOf(n.place as ContentKey);
+      expect(c.ready, n.key).toBe(true);
+      expect(c.name.startsWith(n.placeName) || n.placeName === c.name, n.key).toBe(true);
+      expect(namedFor(n.place, n.slot)).toBe(n);
+      expect(n.min, n.key).toBe(c.kind === 'explore' ? '고급' : undefined);
+    }
+    const whistle = NAMED.find(n => n.key === 'scrapWhistle')!;
+    const adv = many(4000, (r, i) => makeItem(r, whistle.slot, '고급', i, undefined, { place: whistle.place })).filter(it => it.named);
+    expect(adv.length / 4000).toBeCloseTo(NAMED_CHANCE, 1);
+    expect(adv.every(it => it.named === 'scrapWhistle' && it.specs!.length === 0)).toBe(true);
+    expect(many(2000, (r, i) => makeItem(r, whistle.slot, '일반', i, undefined, { place: whistle.place })).some(it => it.named)).toBe(false);
+  });
+});
+
+describe('장소마다 잘 나오는 장비 종류 (39 4장)', () => {
+  it('있는 종류 · 있는 장소, 던전 3 · 탐험 2 · 레이드 층 1, 같은 레벨대 같은 조합 없음', () => {
+    const keys = new Set(KINDS.map(k => k.key));
+    for (const [place, ks] of Object.entries(PLACE_KINDS)) {
+      const c = contentOf(place as ContentKey);
+      expect(ks.every(k => keys.has(k)), place).toBe(true);
+      expect(ks.length, place).toBe(c.kind === 'dungeon' ? 3 : c.kind === 'explore' ? 2 : 1);
+    }
+    const combos = Object.values(PLACE_KINDS).map(ks => [...ks].sort().join());
+    expect(new Set(combos).size).toBe(combos.length);
+    // 지금 열린 탐험 · 던전은 모두 표가 있음
+    for (const c of CONTENT) if (c.ready && !c.hidden && (c.kind === 'explore' || c.kind === 'dungeon')) expect(PLACE_KINDS[c.key], c.key).toBeDefined();
+  });
+  it('그 장소 목록 종류가 KIND_WEIGHT배로 잘 나옴, 목록에 없는 종류도 나옴', () => {
+    const its = many(8000, (r, i) => rollItem(r, '보통', 'B', 30, i, { place: 'plateau' }));
+    const share = its.filter(it => PLACE_KINDS.plateau.includes(it.kind)).length / its.length;
+    const n = PLACE_KINDS.plateau.length;
+    expect(share).toBeCloseTo((KIND_WEIGHT * n) / (KINDS.length - n + KIND_WEIGHT * n), 1);
+    expect(new Set(its.map(it => it.kind)).size).toBe(KINDS.length);
+    for (const it of its) expect(KINDS.find(k => k.key === it.kind)!.slot).toBe(it.slot);
+    // 장소 표가 없으면 부위 고르게 (옛 굴림)
+    const old = many(6000, (r, i) => rollItem(r, '보통', 'B', 30, i));
+    for (const s of SLOTS) expect(old.filter(it => it.slot === s.key).length / old.length).toBeCloseTo(1 / 6, 1);
+  });
+  it('탐험 장비 상한: 고급, Lv 30부터 여는 탐험은 희귀', () => {
+    expect(EXPLORE_CAP).toBe('고급');
+    expect(exploreCap(contentOf('pilgrim').unlockLv)).toBe('고급');
+    expect(exploreCap(contentOf('abyssedge').unlockLv)).toBe('희귀');
+    const its = many(3000, (r, i) => rollItem(r, '악몽', 'S', 40, i, { place: 'abyssedge', cap: exploreCap(33) }));
+    expect(its.some(it => it.grade === '희귀')).toBe(true);
+    expect(its.every(it => gi(it.grade) <= gi('희귀'))).toBe(true);
   });
 });
 

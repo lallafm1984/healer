@@ -78,7 +78,12 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   gate: 'rustfort', scrap: 'rustfort', boiler: 'rustfort', warden: 'rustfort',
   plague: 'abyss', choir: 'cathedral',
   ashyard: 'cemetery', collector3: 'cemetery', reedbank: 'marsh', shaman8: 'marsh',
-  bonepass: 'crypt', collector: 'crypt', censerhall: 'crypt', malchor: 'crypt',
+  bonepass: 'crypt', collector: 'crypt', censerhall: 'crypt', malchor: 'crypt', flowerbed: 'lily', butler13: 'lily',
+  rotbridge: 'swamp', shaman: 'swamp', toad: 'swamp', toadnest: 'swamp', seres: 'swamp', snowslope: 'snowpass', golem18: 'snowpass',
+  parlor: 'manor', butler: 'manor', lady: 'manor', kennel: 'manor', belmore: 'manor', restyard: 'hillpath', guardian23: 'hillpath',
+  icehall: 'frost', frostgolem: 'frost', mage: 'frost', frostlab: 'frost', shadow: 'frost', brokenbridge: 'pilgrim', keeper28: 'pilgrim',
+  templeyard: 'temple', guardian: 'temple', nave: 'temple', keeper: 'temple', riftground: 'abyssedge', plague33: 'abyssedge',
+  rubblestair: 'watchtower', sentinel: 'watchtower', blackrift: 'watchtower', crystal: 'watchtower',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

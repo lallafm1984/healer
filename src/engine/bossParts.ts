@@ -3,7 +3,7 @@
  * 새 기믹은 여기에 부품 하나를 더하고, 보스 데이터에서 이름과 값으로 부른다.
  */
 import { ABILITIES } from '../data/abilities';
-import type { AddDef, AddJob, BossDef, DebuffDef, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
+import type { AddDef, AddJob, BossDef, DebuffDef, DebuffEnd, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
 import { HEROES } from '../data/heroes';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
@@ -11,7 +11,7 @@ import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, empowerBoss, heal, living, randomTargets, setMax, spread, unitById } from './core';
 import { moveTo, scheduleReactions, zoneOf } from './movement';
 import { hotTick } from './units';
-import { during, immune, specPhase, sv } from './specials';
+import { during, immune, specBroken, specPhase, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
@@ -57,6 +57,11 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
     case 'tank':
       for (const id of tel?.units ?? []) { const u = unitById(f, id); if (u) damage(f, u, s.dmg!, false, 'tank'); }
       return;
+    case 'hunt': {
+      const u = lowestTargets(f, 1, x => x.role !== 'tank')[0];
+      if (u) { emit(f, { type: 'msg', text: `${s.name ?? '사냥'}: ${u.nick}` }); emit(f, { type: 'fx', name: 'slam', on: u.id }); damage(f, u, e.dmg, false, 'party'); }
+      return;
+    }
     case 'all': {
       let dmg = e.phaseDmg?.[f.phase] ?? e.dmg;
       if (e.grow) { const n = (s.st.n as number | undefined) ?? 0; dmg += e.grow * n; s.st.n = n + 1; } // 커지는 광역 (수정 핵 과열)
@@ -67,7 +72,11 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       const d = e.debuff;
       const n = f.mythic && e.nMythic ? e.nMythic : e.n === 'all' ? Infinity : e.n;
       const free = (u: Unit) => !u.debuffs.some(x => x.name === d.name);
-      const ts = e.pick === 'lowest' ? lowestTargets(f, n, u => free(u) && u.role !== 'tank') : randomTargets(f, n, free);
+      const one = (u: Unit | null | undefined) => (u && u.alive && (free(u) || d.stackMax) ? [u] : []);
+      const ts = e.pick === 'me' ? one(f.party.find(u => u.me)) : e.pick === 'tank' ? one(aggroTarget(f))
+        : e.pick === 'tel' ? (tel?.units ?? []).map(id => unitById(f, id)).filter((u): u is Unit => !!u && u.alive && free(u)).slice(0, n)
+        : e.pick === 'lowest' ? lowestTargets(f, n, u => free(u) && u.role !== 'tank')
+        : randomTargets(f, n, e.pick === 'others' ? u => free(u) && u.role !== 'tank' && !u.me : free);
       for (const u of ts) applyDebuff(f, u, d);
       // 전염 (26 3-1): 두 대상이 붙어 서 있으면 걸리자마자 둘 다 터짐
       if (e.burstAdjacent && ts.length === 2 && hexDist(cellOf(f, ts[0]), cellOf(f, ts[1])) === 1) {
@@ -85,7 +94,17 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       }
       return;
     case 'pull':
-      for (const id of tel?.units ?? []) { const u = unitById(f, id); if (u) pull(f, u, e.sec, e.dmg); }
+      if (tel?.ring) { padHit(f, tel.cells, e.pad!.dmg, e.pad!.empty); return; }
+      for (const id of tel?.units ?? []) {
+        const u = unitById(f, id);
+        if (!u) continue;
+        pull(f, u, e.sec, e.dmg);
+        // 끌려온 칸에 받침: sec초 뒤 울림 (화면은 그 칸이 금빛)
+        if (e.pad && u.pulled) {
+          const cells = new Set([u.pulled.cell]);
+          f.tels.push({ id: f.nextId++, skill: s, kind: 'aoe', start: f.t, impact: f.t + e.sec, units: [u.id], cells, safe: cells, ring: true });
+        }
+      }
       return;
     case 'adds': {
       const n = f.mythic && e.nMythic ? e.nMythic : e.n;
@@ -138,16 +157,11 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
     case 'rest': {
       // 숨 고르기 (35 4-4): 보스가 쉬는 동안 그 이름의 디버프가 모두 사라짐 (서리 중첩)
       f.daze = { until: f.t + e.sec, vuln: 1, name: s.name ?? '숨 고르기' };
-      if (e.clear) for (const u of living(f)) {
-        const ds = u.debuffs.filter(d => d.name === e.clear);
-        if (!ds.length) continue;
-        u.debuffs = u.debuffs.filter(d => !ds.includes(d));
-        if (ds.some(d => d.maxCut)) setMax(u);
-        emit(f, { type: 'cure', id: u.id, name: e.clear });
-      }
+      if (e.clear) clearNamed(f, e.clear);
       emit(f, { type: 'msg', text: `${f.daze.name}: 보스가 ${e.sec}초 쉼` });
       return;
     }
+    case 'clear': clearNamed(f, e.name); return;
     case 'stagger': {
       // 무력화 (P-STAGGER, 35 4-5): 게이지 끝 = 조건을 채운 파티 전원이 need초 때린 양 (탱커는 tank배)
       if (f.stagger) return;
@@ -164,11 +178,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       return;
     case 'tower': {
       // 받침 (P-TOWER): 발판 위 사람은 dmg, 빈 발판마다 전원 empty
-      for (const i of tel?.cells ?? []) {
-        const on = living(f).find(u => (u.moving ? u.moving.to : u.cell) === i);
-        if (on) damage(f, on, e.dmg, true);
-        else { emit(f, { type: 'msg', text: '빈 발판: 전원 피해' }); for (const u of living(f)) damage(f, u, e.empty, true); }
-      }
+      padHit(f, tel?.cells ?? new Set(), e.dmg, e.empty);
       for (const u of f.party) u.padUntil = undefined;
       return;
     }
@@ -333,7 +343,7 @@ export function staggerTick(f: Fight): void {
   emit(f, { type: 'msg', text: `${g.name} 못 막음: 땅 울림, 시전 ${g.fail.lock}초 못 함` });
   for (const u of living(f)) damage(f, u, g.fail.dmg, false);
   const casts = Object.values(HEROES[f.hero].slots).filter((k): k is SkillKey => !!k && (f.R.cast?.[k] ?? SKILLS[k].cast) > 0);
-  if (f.cast && casts.includes(f.cast.key)) f.cast = null;
+  if (f.cast && casts.includes(f.cast.key)) { f.cast = null; if (f.sp) specBroken(f); } // 눈꽃 결정 (42 3장)
   for (const k of casts) f.lock[k] = { left: g.fail.lock, total: g.fail.lock };
 }
 
@@ -343,6 +353,15 @@ export function stunBoss(f: Fight, sec: number): void {
   emit(f, { type: 'sound', name: 'gauge' });
   emit(f, { type: 'fx', name: 'dizzy' });
   emit(f, { type: 'msg', text: `반격 성공: 보스 ${sec}초 기절` });
+}
+
+/** 받침이 울림: 발판마다 위에 선 사람 (옮겨 가는 중이면 가는 칸) dmg, 비어 있으면 전원 empty (마법) */
+function padHit(f: Fight, cells: Set<number>, dmg: number, empty: number): void {
+  for (const i of cells) {
+    const on = living(f).find(u => (u.moving ? u.moving.to : u.cell) === i);
+    if (on) damage(f, on, dmg, true);
+    else { emit(f, { type: 'msg', text: '빈 발판: 전원 피해' }); for (const u of living(f)) damage(f, u, empty, true); }
+  }
 }
 
 /** 받침 발판: 빈 칸 n개 (빈 칸이 n개 이하면 그만큼 덜) */
@@ -385,9 +404,31 @@ function quake(f: Fight, e: Extract<SkillEffect, { p: 'quake' }>): void {
     f.lock[key] = { left: e.lock, total: e.lock };
     emit(f, { type: 'shake', id: f.me.id });
     emit(f, { type: 'msg', text: `진동: ${SKILLS[key].name} 끊김, ${e.lock}초 잠김` });
+    if (f.sp) specBroken(f); // 눈꽃 결정 (42 3장)
   }
   emit(f, { type: 'fx', name: 'shockwave', all: true });
   for (const u of living(f)) damage(f, u, e.dmg, true);
+  quakeJump(f);
+}
+
+/** 진동에 옮겨붙는 디버프 (메아리, P-JUMP on quake): 이웃 칸 아군 1명 (악몽 nMythic명)에게 남은 시간 그대로 · 초당 피해 × mult. 이웃이 없으면 사라짐 */
+function quakeJump(f: Fight): void {
+  const moves: [Unit, Debuff][] = [];
+  for (const u of living(f)) for (const d of u.debuffs) if (d.end?.p === 'jump' && d.end.on === 'quake') moves.push([u, d]);
+  for (const [u, d] of moves) {
+    const e = d.end as Extract<DebuffEnd, { p: 'jump' }>;
+    u.debuffs = u.debuffs.filter(x => x !== d);
+    const c = cellOf(f, u);
+    const near = randomOrder(f, living(f).filter(v => v !== u && hexDist(cellOf(f, v), c) === 1 && !v.debuffs.some(x => x.name === d.name)));
+    const to = near.slice(0, f.mythic && e.nMythic ? e.nMythic : 1);
+    if (!to.length) { emit(f, { type: 'msg', text: `${d.name}: 옆에 아무도 없어 사라짐` }); continue; }
+    const { id: _id, ...rest } = d;
+    for (const v of to) {
+      addDebuff(f, v, { ...rest, dot: (d.dot ?? 0) * e.mult });
+      emit(f, { type: 'fx', name: 'fireball-green', on: u.id, to: v.id });
+    }
+    emit(f, { type: 'msg', text: `${d.name}이(가) ${to.map(v => v.nick).join(' · ')}에게 옮겨붙음` });
+  }
 }
 
 /** 주시 (P-AGGRO) 시작: 파티 최대 체력 합 × cap이 게이지 끝. 도발 능력이 있는 파티원이 있으면 노리는 시간이 짧음 */
@@ -462,6 +503,17 @@ function orderDone(f: Fight, ok: boolean): void {
   emit(f, { type: 'sound', name: 'gauge' });
   emit(f, { type: 'fx', name: 'dizzy' });
   emit(f, { type: 'msg', text: `${o.name} 성공: 보스 ${o.daze.sec}초 멍함 (받는 피해 +${Math.round((o.daze.vuln - 1) * 100)}%)` });
+}
+
+/** 그 이름의 디버프를 모두에게서 지움 (숨 고르기 서리 · 천장 무너짐 뒤 먼지 범벅) */
+function clearNamed(f: Fight, name: string): void {
+  for (const u of living(f)) {
+    const ds = u.debuffs.filter(d => d.name === name);
+    if (!ds.length) continue;
+    u.debuffs = u.debuffs.filter(d => !ds.includes(d));
+    if (ds.some(d => d.maxCut)) setMax(u);
+    emit(f, { type: 'cure', id: u.id, name });
+  }
 }
 
 /** 디버프 걸기: 중첩 디버프(stackMax)는 이미 있으면 1중첩 더함, 최대 체력 깎는 디버프(maxCut)는 바로 반영 */
@@ -766,6 +818,8 @@ export function zoneCells(f: Fight, s: BossSkill, z: ZoneCells): Set<number> {
       if (z.tank) { const tk = aggroTarget(f); if (tk) safe.add(tk.moving ? tk.moving.to : tk.cell); }
       return new Set(open.filter(c => !safe.has(c.i)).map(c => c.i));
     }
+    case 'line':
+      return new Set(f.cells.filter(c => !c.block && zoneOf(f, c.row) === z.at).map(c => c.i));
     case 'flow': {
       // 흐르는 장판의 첫 열: 맨 왼쪽(또는 오른쪽) 열. 방향은 s.st.dir (bossTick이 예고에 flow로 붙임)
       const left = z.from === 'right' ? false : z.from === 'alt' ? !(s.st.left as boolean | undefined) : true;

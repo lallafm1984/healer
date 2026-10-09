@@ -6,7 +6,7 @@
  */
 import type { TelKind } from '../engine/types';
 import { CLASSES } from './classes';
-import type { ScriptKey } from './encounters';
+import { soaps, type ScriptKey } from './encounters';
 import { SKILLS } from './skills';
 
 /**
@@ -42,13 +42,19 @@ export type DebuffEnd =
   | { p: 'colDmg'; dmg: number }
   /** 지우지 않고 끝나면 그 사람에게 피해 (완치 표식 P-FULL의 시간 끝) */
   | { p: 'hit'; dmg: number }
+  /** 함정 (P-TRAP, 가문의 반지): 지우지 않고 끝나면 그 사람 dmg, 지우면 이웃 칸 아군 burst (마법) */
+  | { p: 'trapHit'; dmg: number; burst: number }
+  /** 터지는 마력 (P-TRAP, 불안정한 마력 · 서리 표식): 시간이 다 되거나 지우면 (바로) 이웃 칸 아군 dmg (마법) */
+  | { p: 'blast'; dmg: number }
   /** 끝나거나 지워지면 그때까지 중첩 × dmg 피해 (마력 역류 P-RECOIL, 중첩 0이면 없음) */
   | { p: 'stackHit'; dmg: number }
   /**
    * 옮겨붙음 (P-JUMP): 지우면 이웃 칸 아군 1명에게 sec초로 옮겨붙고 초당 피해 × mult. 이웃 칸이 비어 있으면 그대로 사라짐.
-   * 지우지 않고 시간이 다 되면 보스가 주는 피해 +boost (전투 끝까지 더해짐)
+   * 지우지 않고 시간이 다 되면 보스가 주는 피해 +boost (전투 끝까지 더해짐).
+   * on: quake = 약한 판 (메아리, 39 3-2): 진동이 울릴 때 이웃 칸 아군 1명 (악몽 nMythic명까지 갈라져)에게 남은 시간 그대로 옮겨붙음.
+   * 지우거나 시간이 다 되면 그냥 사라짐 (sec · boost는 안 씀)
    */
-  | { p: 'jump'; sec: number; mult: number; boost: number };
+  | { p: 'jump'; sec: number; mult: number; boost: number; on?: 'quake'; nMythic?: number };
 
 /** 걸 디버프 (02 5-5 해제 유형) */
 export interface DebuffDef {
@@ -80,6 +86,8 @@ export interface DebuffDef {
   untilBossLoss?: number;
   /** 받는 치유 −비율. 중첩 디버프면 × 중첩 (얼룩진 장갑 0.5, 먼지 범벅 0.08 × 최대 5) */
   healCut?: number;
+  /** 지속 피해 × feed만큼 보스 체력 회복 (젊음의 갈망 흡수, 35 4-3) */
+  feed?: number;
   /** 받는 치유가 피해로 (뒤집힌 축복 P-INVERT): 들어올 치유량만큼 피해. 보호막·피해 감소·보호의 손은 통함 */
   invert?: boolean;
   /** 나(힐러)에게 걸린 동안 스킬을 쓸 때마다 1중첩 (마력 역류 P-RECOIL). 해제 스킬로 이 디버프를 지우는 그 한 번은 안 셈 */
@@ -165,10 +173,11 @@ export type SkillEffect =
   | { p: 'all'; dmg: number; phaseDmg?: Partial<Record<number, number>>; grow?: number }
   /**
    * n명에게 디버프 (이미 같은 디버프가 있는 사람은 뺌). n = 'all'이면 살아 있는 모두. nMythic = 악몽 인원.
-   * pick: random (기본) / lowest = 체력 비율이 가장 낮은 사람부터, 탱커 빼고 (사냥 P-HUNT).
+   * pick: random (기본) / lowest = 체력 비율이 가장 낮은 사람부터, 탱커 빼고 (사냥 P-HUNT) / tel = 예고 때 고른 사람 (skill.target, 삼키기) /
+   * others = 탱커 · 나 빼고 무작위 (매혹 · 뒤집힌 축복) / me = 나 (마력 역류) / tank = 보스가 때리는 사람 (서리 손길).
    * burstAdjacent = 걸린 둘이 붙어 서 있으면 바로 터짐 (전염)
    */
-  | { p: 'debuff'; n: number | 'all'; nMythic?: number; pick?: 'random' | 'lowest'; debuff: DebuffDef; burstAdjacent?: boolean }
+  | { p: 'debuff'; n: number | 'all'; nMythic?: number; pick?: 'random' | 'lowest' | 'tel' | 'others' | 'me' | 'tank'; debuff: DebuffDef; burstAdjacent?: boolean }
   /**
    * 최대 체력을 깎는 중첩 디버프 (썩은 숨결 · 썩은 축복 P-HPDOWN): 무작위 n명, 중첩마다 pct, max 중첩, 다시 걸리면 지속이 처음으로.
    * again = 이미 걸린 사람이 있으면 그 확률로 그중에서 고름 (썩은 축복 0.6). 지우면 최대 체력이 돌아옴 (end restoreMax)
@@ -176,9 +185,12 @@ export type SkillEffect =
   | { p: 'rot'; n: number; debuff: DebuffDef; pct: number; max: number; again?: number }
   /**
    * 끌어당김 (P-PULL): 예고 때 고른 사람(target back)을 탱커 옆 앞줄 빈 칸으로 끌어옴. sec초 동안 보스 평타를 탱커와 번갈아 맞음
-   * (끌려온 사람은 한 대에 dmg, 원거리 기준). 끌려온 칸을 벗어나면 (도망·장판 피하기) 바로 끝나고, 끝나면 제자리로 돌아감
+   * (끌려온 사람은 한 대에 dmg, 원거리 기준). 끌려온 칸을 벗어나면 (도망·장판 피하기) 바로 끝나고, 끝나면 제자리로 돌아감.
+   * pad = 끌려온 칸에 금빛 받침 (망루 파수꾼, 39 3-1): sec초 끝에 울려 받침 위 사람 dmg, 비어 있으면 (도망 · 쓰러짐) 전원 empty (마법)
    */
-  | { p: 'pull'; sec: number; dmg: number }
+  | { p: 'pull'; sec: number; dmg: number; pad?: { dmg: number; empty: number } }
+  /** 사냥 (P-HUNT, 35 4-2 사냥 창): 맞는 순간 체력 비율이 가장 낮은 탱커 아닌 1명에게 dmg (물리, 원거리 기준) */
+  | { p: 'hunt'; dmg: number }
   /** 쫄 n마리 (P-ADD). 악몽은 nMythic */
   | { p: 'adds'; n: number; nMythic?: number; add: AddDef }
   /** 무너지는 바닥 (P-HOLE): 가장자리 빈 칸 n개가 끝까지 못 서는 칸이 됨 (전투 전체 max개까지). 빈 칸은 늘 1개 이상 남김 */
@@ -201,6 +213,8 @@ export type SkillEffect =
   | { p: 'quake'; dmg: number; lock: number }
   /** 숨 고르기 (35 4-4 탑주의 그림자): sec초 동안 보스가 기술을 쉼 (받는 피해는 그대로). clear 이름의 디버프가 모두에게서 사라짐 */
   | { p: 'rest'; sec: number; clear?: string }
+  /** 그 이름의 디버프가 모두에게서 사라짐 (신전지기 유령: 천장 무너짐 뒤 먼지 범벅, 35 4-5) */
+  | { p: 'clear'; name: string }
   /**
    * 무력화 (P-STAGGER, 35 4-5): sec초 동안 체력이 hp(악몽 hpMythic) 이상인 파티원의 딜만 게이지를 채움 (탱커는 tank배).
    * 게이지 끝 = 그 조건으로 파티 전원이 need초 때린 양. 채우면 win.sec초 「무방비」 (보스가 기술을 쉬고 받는 피해 × win.vuln).
@@ -257,6 +271,8 @@ export interface SoulFail {
 export type ZoneCells =
   /** 무작위 파티원 칸 둘레 1칸. 범위 밖 빈 칸이 범위 안 인원 이상 남는 곳만 (05 1-B: 던전에서 「피할 곳이 없어!」가 안 나오게) */
   | { p: 'around' }
+  /** 판의 한 줄 묶음 (앞줄 · 가운데 · 뒷줄, 3분의 1씩): 등 뒤 인사 (P-ROW, 35 4-3)는 뒷줄 */
+  | { p: 'line'; at: 'front' | 'mid' | 'back' }
   /** 판 바깥 1열: 줄마다 맨 왼쪽 또는 맨 오른쪽 칸, 쓸 때마다 좌우 번갈아 (역병 폭풍, 26 3-1) */
   | { p: 'edge' }
   /** 살아 있는 몸통(bodies 앞 n개)이 맡은 열 (몸통마다 per열)을 왼쪽부터 차례로. 악몽은 nMythic개 동시 (크레센도, 26 4-3) */
@@ -423,6 +439,18 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     ],
     enrage: { name: '늪의 분노', period: 2, dmg: 150 },
   },
+  // 집사 유령 탐험판 (35 4-8, 탐험 ④ 백합 정원 Lv 13): 던전 ④ 보스 (35 4-3 ①)의 평타 · 은쟁반 · 차례대로 모시기 (①② 두 칸: 원거리 · 나). 차례 예습
+  butler13: {
+    phase: [1, ''],
+    skills: [
+      AUTO(80),
+      BUSTER('은쟁반', '쟁반', 8, 18, 350),
+      { key: 'order', name: '차례대로 모시기', icon: '차례', kind: 'instant', first: 15, period: 30, cast: 2,
+        how: '번호 순서대로 직접 힐을 한 번씩. 빠른 힐로 순서를 빨리',
+        effect: { p: 'order', n: 2, sec: 8, wrong: 130, miss: 105, daze: { sec: 4, vuln: 1.2 } } },
+    ],
+    enrage: { name: '접대 끝', period: 2, dmg: 160 },
+  },
   // 뼈다귀 수집가 (35 4-1 ①, 던전 ② 역병 지하묘지): 끌어당김 처음 · 자루 쏟기 (되살아난 뼈, 쓰러지면 맡던 사람에게 부패). 목표 2:00 · 광폭화 2:45
   collector: {
     phase: [1, ''],
@@ -455,6 +483,313 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     ],
     flow: [{ p: 'when', if: { idle: 'pulse', hpBelow: 0.5 }, do: [{ p: 'start', skill: 'pulse', in: 3 }, { p: 'text', text: '병든 맥박: 체력 90% 위로 채우면 나음' }] }],
     enrage: { name: '역병 폭주', period: 2, dmg: 220 },
+  },
+  // 마력 골렘 탐험판 (35 4-8, 탐험 ⑤ 눈보라 고개 Lv 18): 던전 ⑤ 보스 (35 4-4 ①)의 평타 · 룬 주먹 · 룬 진동만. 진동 예습 (울릴 때 새 시전 멈추기)
+  golem18: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('룬 주먹', '주먹', 8, 16, 385),
+      { key: 'quake', name: '룬 진동', icon: '진동', kind: 'aoe', first: 12, period: 15, cast: 2, warn: 'aoe', effect: { p: 'quake', dmg: 50, lock: 3 } },
+    ],
+    enrage: { name: '룬 폭주', period: 2, dmg: 170 },
+  },
+  // 신전 수호상 탐험판 (35 4-8, 탐험 ⑥ 해바라기 언덕길 Lv 23): 던전 ⑥ 보스 (35 4-5 ①)의 평타 · 돌가루 · 우르릉 힘 모으기만. 무력화 예습 (게이지는 파티 딜에 맞춰 3인으로)
+  guardian23: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'dust', name: '돌가루', icon: '돌가', kind: 'instant', first: 16, period: 22.5, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '돌가루', type: '마법', left: 6, noDps: true } } },
+      { key: 'stagger', name: '우르릉 힘 모으기', icon: '우르', kind: 'instant', first: 20, period: 45, cast: 0,
+        how: '10초 동안 체력 70% 이상인 파티원의 딜만 게이지를 채움. 광역 · 지속 힐로 전원을 70% 위로, 돌가루 (침묵)는 지우기',
+        effect: { p: 'stagger', sec: 10, need: 7, hp: 0.7, hpMythic: 0.8, tank: 2, win: { sec: 8, vuln: 1.3 }, fail: { dmg: 275, lock: 3 } } },
+    ],
+    enrage: { name: '돌 폭주', period: 2, dmg: 180 },
+  },
+  // 늪 주술사 (35 4-2 ①, 던전 ③ 독안개 늪): 완치 표식 처음 (늪 거머리, 악몽 2명) · 진흙 토템 (독 오라). 목표 2:00 · 광폭화 2:45
+  shaman: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.05)),
+      { key: 'dart', name: '조롱박 독침', icon: '독침', kind: 'instant', first: 10, period: 15, cast: 0, cut: true,
+        effect: { p: 'debuff', n: 2, debuff: { name: '조롱박 독침', type: '독', left: 10, dot: U.dps(0.025) } } },
+      { key: 'leech', name: '늪 거머리', icon: '거머', kind: 'instant', first: 6, period: 20, cast: 0,
+        how: '가장 다친 사람에게 붙음. 해제 불가, 체력을 100%까지 채우면 떨어짐, 15초 두면 크게 아픔',
+        effect: { p: 'debuff', n: 1, nMythic: 2, pick: 'lowest', debuff: { name: '늪 거머리', type: '독', left: 15, dot: U.dps(0.03), lock: true, cureAt: 1, end: { p: 'hit', dmg: U.dps(0.2) } } } },
+      { key: 'totem', name: '진흙 토템', icon: '토템', kind: 'instant', first: 18, period: 30, cast: 2,
+        effect: { p: 'adds', n: 1, add: { name: '진흙 토템', short: '토템', art: 'mob-mud-totem', hp: 0.05, dmg: 0, every: 2, aura: U.dps(0.015), at: 'random' } } },
+    ],
+    enrage: { name: '늪의 분노', period: 2, dmg: 200 },
+  },
+  // 거대 두꺼비 부글이 (35 4-2 ②): 피난처 처음 (배치기) · 삼키기 (딜 0 · 위산, 힐은 들어감, 보스 4% 깎거나 8초면 뱉음). 목표 2:30 · 광폭화 3:15
+  toad: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('혀 채찍', '혀채', 8, 16, U.tank(0.55)),
+      { key: 'swallow', name: '삼키기', icon: '삼킴', kind: 'buster', first: 14, period: 30, cast: 2, warn: 'buster', target: { p: 'back', n: 1 },
+        how: '삼켜진 사람은 딜 0 · 위산 피해. 힐은 들어가니 단일 힐로 버티게. 보스를 4% 깎거나 8초면 나옴',
+        effect: { p: 'debuff', n: 1, pick: 'tel', debuff: { name: '삼키기', type: '물리', left: 8, dot: U.dps(0.05), lock: true, hide: true, noMove: true, noDps: true, untilBossLoss: 0.04 } } },
+      { key: 'belly', name: '배치기', icon: '배치', kind: 'zone', first: 25, period: 35, cast: 4, warn: 'zone', hitDmg: U.dps(0.6), cells: { p: 'safe', at: 'edge', n: 6 },
+        how: '파티원이 금빛 바깥 칸으로 피함. 늦는 사람 (칸 흔들림)에게 미리 보호막 · 지속 힐' },
+      { key: 'aoe', name: '독 혹 터뜨리기', icon: '독혹', kind: 'aoe', first: 20, period: 28, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+      { key: 'boil', name: '독 혹', hidden: true, first: 23, period: 28, cast: 0,
+        effect: { p: 'debuff', n: 'all', debuff: { name: '독 혹', type: '독', left: 8, dot: U.dps(0.015), stackMax: 3 } } },
+    ],
+    enrage: { name: '부글부글', period: 2, dmg: 220 },
+  },
+  // 늪 족장 세레스 (35 4-2 ③, 최종): 헤매는 영혼 (오염된 늪 정령, 악몽 2마리) · 사냥 창 처음 · 50% 아래 가라앉는 섬. 목표 3:00 · 광폭화 4:00
+  seres: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('나무창 찌르기', '찌르', 8, 18, U.tank(0.5)),
+      { key: 'hunt', name: '사냥 창', icon: '사냥', kind: 'instant', first: 12, period: 20, cast: 2, effect: { p: 'hunt', dmg: U.dps(0.45) } },
+      { key: 'venom', name: '늪의 맹독', icon: '맹독', kind: 'instant', first: 6, period: 14, cast: 0, cut: true,
+        effect: { p: 'debuff', n: 2, debuff: { name: '늪의 맹독', type: '독', left: 12, dot: U.dps(0.015), stackMax: 3 } } },
+      ...(['spirit', 'spirit2'] as const).map((key, i): SkillDef => ({
+        key, name: '오염된 늪 정령', icon: '정령', kind: 'instant', first: 25, period: 35, cast: 0, when: i ? { mythic: true } : undefined,
+        effect: { p: 'soul', name: '오염된 늪 정령', short: '정령', art: 'mob-swamp-spirit', hp: 0.25, sec: 12, type: '독',
+          win: { text: '정화의 물: 독 하나씩 지움 · 받는 치유 +15%', cure: '독', heal: { pct: 0.15, sec: 8 } },
+          fail: { text: '오염 분출', dmg: U.dps(0.3), near: true, debuff: { name: '늪의 맹독', type: '독', left: 12, dot: U.dps(0.015), stackMax: 3 } } },
+      })),
+      { key: 'sink', name: '가라앉는 섬', icon: '섬', kind: 'instant', first: null, period: 30, cast: 2, effect: { p: 'hole', n: 1, max: 3 } },
+    ],
+    flow: [{ p: 'when', if: { idle: 'sink', hpBelow: 0.5 }, do: [{ p: 'start', skill: 'sink', in: 2 }, { p: 'text', text: '가라앉는 섬: 가장자리 칸이 늪에 잠김' }] }],
+    enrage: { name: '족장의 분노', period: 2, dmg: 240 },
+  },
+  // 집사 유령 (35 4-3 ①, 던전 ④ 저주받은 장원): 차례 (①②③, 악몽 ④) · 촛불 · 등 뒤 인사 (뒷줄) · 얼룩진 장갑 ✋. 목표 2:15 · 광폭화 3:00
+  butler: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('은쟁반', '쟁반', 8, 18, U.tank(0.5)),
+      { key: 'order', name: '차례대로 모시기', icon: '차례', kind: 'instant', first: 15, period: 30, cast: 2,
+        how: '번호 순서대로 직접 힐을 한 번씩. 빠른 힐로 순서를 빨리, 받는 치유가 깎인 사람도 횟수로 셈',
+        effect: { p: 'order', n: 3, nMythic: 4, sec: 8, wrong: U.dps(0.3), miss: U.dps(0.25), daze: { sec: 4, vuln: 1.2 } } },
+      { key: 'candle', name: '촛불', icon: '촛불', kind: 'zone', first: 10, period: 20, cast: 2.5, warn: 'zone', dps: U.dps(0.05), dur: 6, cells: { p: 'around' } },
+      { key: 'bow', name: '등 뒤 인사', icon: '인사', kind: 'zone', first: 22, period: 25, cast: 3, warn: 'zone', hitDmg: U.dps(0.3), cells: { p: 'line', at: 'back' },
+        how: '집사가 판 아래로 사라졌다가 뒷줄을 침. 파티원이 앞으로 비키니 늦는 사람을 채우기' },
+      { key: 'glove', name: '얼룩진 장갑', icon: '장갑', kind: 'instant', first: 8, period: 18, cast: 0, cut: true,
+        effect: { p: 'debuff', n: 1, debuff: { name: '얼룩진 장갑', type: '저주', left: 12, healCut: 0.5 } } },
+    ],
+    enrage: { name: '접대 끝', period: 2, dmg: 220 },
+  },
+  // 초상화 속 귀부인 (35 4-3 ②): 매혹 (힐하면 길어짐, 악몽 2명) · 저주 실 (균형형) · 초상화의 눈 ✋ · 50%에 액자로 (12초 무적, 빈 액자 2개). 목표 2:30 · 광폭화 3:15
+  lady: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.05)),
+      { key: 'charm', name: '매혹', icon: '매혹', kind: 'instant', first: 10, period: 25, cast: 2, when: { phase: [1, 2] },
+        how: '매혹된 사람은 이웃을 때림. 힐하면 지배가 길어지니 저주를 못 지우면 그 사람 힐을 멈추고 이웃을 채우기 (체력 50% 아래면 풀림)',
+        effect: { p: 'debuff', n: 1, nMythic: 2, pick: 'others', debuff: { name: '매혹', type: '저주', left: 8, noDps: true, charm: { every: 2, dmg: U.dps(0.1), heal: 1, free: 0.5 } } } },
+      { key: 'thread', name: '저주 실', icon: '실', kind: 'instant', first: 22, period: 30, cast: 0, when: { phase: [1, 2] },
+        effect: { p: 'link', kind: 'balance', name: '저주 실', sec: 12, gap: 0.3, dmg: U.dps(0.35) } },
+      { key: 'aoe', name: '초상화의 눈', icon: '눈', kind: 'aoe', first: 16, period: 30, cast: 3, warn: 'aoe', cut: true, when: { phase: [1, 2] }, effect: { p: 'all', dmg: U.dps(0.2) } },
+      { key: 'gaze', name: '초상화의 눈', hidden: true, first: 19, period: 30, cast: 0, when: { phase: [1, 2] },
+        effect: { p: 'debuff', n: 'all', debuff: { name: '초상화의 눈', type: '저주', left: 4, healCut: 0.25 } } },
+      { key: 'frames', name: '빈 액자', icon: '액자', kind: 'instant', first: null, period: 999, cast: 0, when: { phase: [0] },
+        effect: { p: 'adds', n: 2, add: { name: '빈 액자', short: '액자', art: 'mob-empty-frame', hp: 0.03, dmg: 0, every: 2, at: 'random', job: { p: 'pylon', cut: 0.5 } } } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [
+        { p: 'phase', n: 0, name: '액자로' }, { p: 'inter', sec: 12 }, { p: 'start', skill: 'frames', in: 0 }, { p: 'text', text: '액자로: 귀부인이 초상화로 돌아감. 빈 액자를 깨기' },
+      ] },
+      { p: 'when', if: { phase: 0, interOver: true }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'interEnd' }] },
+    ],
+    enrage: { name: '그림 밖으로', period: 2, dmg: 220 },
+  },
+  // 장원 주인 벨모어 경 (35 4-3 ③, 최종): 뒤집힌 축복 (받는 치유가 피해로) · 가문의 반지 ⚠ (지우면 이웃 칸 폭발) · 젊음의 갈망 ✋ (가장 낮은 사람에게서 흡수 → 보스 회복). 30%부터 축복 2명. 목표 3:00 · 광폭화 4:00
+  belmore: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('지팡이 칼', '지팡', 8, 18, U.tank(0.6)),
+      ...([[1, 1, 10, 20], [2, 2, null, 15]] as const).map(([ph, n, first, period]): SkillDef => ({
+        key: ph === 1 ? 'invert' : 'invert2', name: '뒤집힌 축복', icon: '뒤집', kind: 'instant', first, period, cast: 0, when: { phase: [ph] },
+        how: '받는 치유가 피해로. 지울 수 있으면 지우고, 못 지우면 그 사람에게 힐하지 말고 보호막 · 생존기',
+        effect: { p: 'debuff', n, pick: 'others', debuff: { name: '뒤집힌 축복', type: '저주', left: 8, invert: true } },
+      })),
+      { key: 'ring', name: '가문의 반지', icon: '반지', kind: 'instant', first: 16, period: 22, cast: 0,
+        how: '함정. 지우면 이웃 칸이 터지니 두고 그 사람을 채워 버티기',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '가문의 반지', type: '저주', left: 10, trap: true, end: { p: 'trapHit', dmg: U.dps(0.4), burst: U.dps(0.3) } } } },
+      { key: 'youth', name: '젊음의 갈망', icon: '갈망', kind: 'instant', first: 20, period: 25, cast: 3, cut: true,
+        how: '체력 비율이 가장 낮은 사람에게서 빨아들여 보스가 회복. 예고 동안 낮은 사람을 채우기',
+        effect: { p: 'debuff', n: 1, pick: 'lowest', debuff: { name: '젊음의 갈망', type: '물리', left: 4, dot: U.dps(0.08), lock: true, feed: 0.5 } } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'invert2', in: 2 }, { p: 'text', text: '무너지는 젊음: 뒤집힌 축복 2명' }] }],
+    enrage: { name: '젊음의 폭주', period: 2, dmg: 240 },
+  },
+  // 마력 골렘 (35 4-4 ①, 던전 ⑤ 서리 마탑): 진동 처음 (악몽 2초 간격 두 번) · 얼음 룬 감옥 ✋ · 수정 핵 과열 (쓸 때마다 커짐). 목표 2:15 · 광폭화 3:00
+  frostgolem: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('룬 주먹', '주먹', 19.5, 15, U.tank(0.48)), // 진동 (14 + 15k초) 사이 가운데에 맞음
+      ...([['quake', 12, undefined], ['quake2', 14, true]] as const).map(([key, first, mythic]): SkillDef => ({
+        key, name: '룬 진동', icon: '진동', kind: 'aoe', first, period: 15, cast: 2, warn: 'aoe', when: mythic ? { mythic: true } : undefined,
+        effect: { p: 'quake', dmg: U.dps(0.12), lock: 3 },
+      })),
+      { key: 'jail', name: '얼음 룬 감옥', icon: '감옥', kind: 'instant', first: 8, period: 18, cast: 0, cut: true,
+        effect: { p: 'debuff', n: 1, debuff: { name: '얼음 룬 감옥', type: '마법', left: 6, noDps: true, noMove: true } } },
+      { key: 'core', name: '수정 핵 과열', icon: '과열', kind: 'aoe', first: 34, period: 60, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.35), grow: U.dps(0.1) } },
+    ],
+    enrage: { name: '룬 폭주', period: 2, dmg: 220 },
+  },
+  // 불안정한 마법사 (35 4-4 ②): 역류 처음 (내 스킬마다 중첩, 지우면 그때까지 터짐) · 불안정한 마력 ⚠ (두든 지우든 이웃 칸) · 얼음 파편 연사 (사냥) · 50% 폭주. 목표 2:30 · 광폭화 3:15
+  mage: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.05)),
+      { key: 'unstable', name: '불안정한 마력', icon: '마력', kind: 'instant', first: 10, period: 20, cast: 0,
+        how: '함정. 8초 뒤 이웃 칸이 터지고 지우면 바로 터짐. 두고 이웃 칸 사람을 채우기',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '불안정한 마력', type: '마법', left: 8, trap: true, end: { p: 'blast', dmg: U.dps(0.35) } } } },
+      ...([['recoil', U.me(0.07), false], ['recoil2', U.me(0.09), true]] as const).map(([key, dmg, mythic]): SkillDef => ({
+        key, name: '마력 역류', icon: '역류', kind: 'instant', first: 15, period: 30, cast: 0, when: { mythic },
+        how: '내 스킬마다 1중첩, 끝날 때 중첩만큼 나에게 피해. 0~1중첩일 때 바로 지우기',
+        effect: { p: 'debuff', n: 1, pick: 'me', debuff: { name: '마력 역류', type: '마법', left: 10, count: true, end: { p: 'stackHit', dmg } } },
+      })),
+      { key: 'shards', name: '얼음 파편 연사', icon: '파편', kind: 'instant', first: 20, period: 18, cast: 2, effect: { p: 'hunt', dmg: U.dps(0.35) } },
+      ...(['storm', 'storm2'] as const).map((key, i): SkillDef => ({
+        key, name: '폭주', icon: '폭주', kind: 'zone', first: null, period: 20, cast: 2.5, warn: 'zone', dps: U.dps(0.05), dur: 6, cells: { p: 'around' },
+        ...(i ? { hidden: true } : {}),
+      })),
+    ],
+    flow: [{ p: 'when', if: { idle: 'storm', hpBelow: 0.5 }, do: [
+      { p: 'start', skill: 'storm', in: 2 }, { p: 'start', skill: 'storm2', in: 2.5 }, { p: 'period', skill: 'recoil', sec: 22 }, { p: 'period', skill: 'recoil2', sec: 22 },
+      { p: 'text', text: '폭주: 서리 장판 두 곳, 역류가 잦아짐' },
+    ] }],
+    enrage: { name: '마력 폭발', period: 2, dmg: 220 },
+  },
+  // 탑주의 그림자 (35 4-4 ③, 최종): 주시 처음 (내 치유량으로 눈 게이지, 악몽 1.3배) · 서리 손길 (탱커 받는 치유 −10% 중첩, 숨 고르기에 사라짐) · 얼어붙는 바닥 → 얼음 기둥 · 침묵의 서리 / 서리 표식. 목표 3:00 · 광폭화 4:00
+  shadow: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('서리 손길', '손길', 8, 14, U.tank(0.55)),
+      { key: 'frost', name: '서리', hidden: true, first: 10, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, pick: 'tank', debuff: { name: '서리', type: '마법', left: 60, healCut: 0.1, stackMax: 5, lock: true } } },
+      { key: 'rest', name: '숨 고르기', icon: '숨', kind: 'instant', first: 50, period: 50, cast: 0, effect: { p: 'rest', sec: 6, clear: '서리' } },
+      { key: 'floor', name: '얼어붙는 바닥', icon: '바닥', kind: 'zone', first: 15, period: 30, cast: 2.5, warn: 'zone', dps: U.dps(0.05), dur: 6, cells: { p: 'around' } },
+      { key: 'pillar', name: '얼음 기둥', icon: '기둥', kind: 'instant', first: 23.5, period: 30, cast: 0, effect: { p: 'hole', n: 1, max: 3 } },
+      { key: 'silence', name: '침묵의 서리', icon: '침묵', kind: 'instant', first: 12, period: 32, cast: 0,
+        effect: { p: 'debuff', n: 2, debuff: { name: '침묵의 서리', type: '마법', left: 6, noDps: true } } },
+      { key: 'mark', name: '서리 표식', icon: '표식', kind: 'instant', first: 28, period: 32, cast: 0,
+        how: '함정. 끝나거나 지우면 이웃 칸이 터짐. 두고 이웃 칸 사람을 채우기',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '서리 표식', type: '마법', left: 8, trap: true, end: { p: 'blast', dmg: U.dps(0.3) } } } },
+    ],
+    watch: { cap: 1.5, sec: 6, tauntSec: 3, every: 1.5, dmg: U.me(0.15), mythicRate: 1.3 },
+    enrage: { name: '서리 폭풍', period: 2, dmg: 240 },
+  },
+  // 신전지기 유령 탐험판 (35 4-8 ⑦, 탐험 ⑦ 무너진 순례길): 평타 · 제단 발판 1곳 · 네 가지 청소약 (받침 · 해제 4유형 예습). 수치는 던전판의 70%
+  keeper28: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'soap', name: '네 가지 청소약', icon: '청소', kind: 'instant', first: 6, period: 12, cast: 0,
+        how: '질병 → 독 → 저주 → 마법 차례로 한 명씩. 지울 수 있는 유형은 지우고, 못 지우는 유형은 힐로 버티기',
+        effect: { p: 'cycle', n: 1, debuffs: soaps(0.7) } },
+      { key: 'pads', name: '제단 발판', icon: '발판', kind: 'aoe', first: 20, period: 30, cast: 2.5,
+        how: '금빛 발판에 들어간 사람이 맞고, 빈 발판이면 전원이 맞음. 들어간 사람을 바로 채우기',
+        effect: { p: 'tower', n: 1, dmg: U.dps(0.28), empty: U.dps(0.14) } },
+    ],
+    enrage: { name: '대청소', period: 2, dmg: 180 },
+  },
+  // 신전 수호상 (35 4-5 ①, 던전 ⑥ 깨진 신전): 무력화 (전원 70% 위, 악몽 80%) · 반격 틈 ✋ 처음 · 돌가루 (무력화 4초 전에 꼭). 목표 2:45 · 광폭화 3:45
+  guardian: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.08)),
+      BUSTER('돌 주먹', '주먹', 8, 18, U.tank(0.6)),
+      { key: 'dust', name: '돌가루', icon: '돌가', kind: 'instant', first: 16, period: 22.5, cast: 0,
+        effect: { p: 'debuff', n: 2, debuff: { name: '돌가루', type: '마법', left: 6, noDps: true } } },
+      { key: 'stagger', name: '우르릉 힘 모으기', icon: '우르', kind: 'instant', first: 20, period: 45, cast: 0,
+        how: '10초 동안 체력 70% 이상인 파티원의 딜만 게이지를 채움. 광역 · 지속 힐로 전원을 70% 위로, 돌가루 (침묵)는 지우기',
+        effect: { p: 'stagger', sec: 10, need: 7, hp: 0.7, hpMythic: 0.8, tank: 2, win: { sec: 8, vuln: 1.3 }, fail: { dmg: U.dps(0.65), lock: 3 } } },
+      { key: 'gleam', name: '수정 반짝임', icon: '반짝', kind: 'aoe', first: 37, period: 25, cast: 1.5,
+        how: '반격 틈. 끊기 ✋ 능력자가 끊으면 보스가 기절, 못 끊으면 앞줄이 맞음. 끊기 담당의 침묵 · 기절부터 지우기',
+        effect: { p: 'counter', stun: 4, dmg: U.dps(0.45) } },
+    ],
+    enrage: { name: '돌 폭주', period: 2, dmg: 240 },
+  },
+  // 신전지기 유령 (35 4-5 ②, 깨진 신전 최종): 받침 처음 (발판 2곳) · 네 가지 청소약 · 먼지 범벅 (천장 무너짐 뒤 사라짐) · 천장 무너짐 (가운데 피난처 + 탱커 칸, 악몽 1칸 줄임)
+  // · 꼬마 오토의 기억 (50% 아래 영혼, 채우면 보스 피해 −25%). 목표 3:30 · 광폭화 4:45
+  keeper: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('빗자루 휘두르기', '빗자', 8, 14, U.tank(0.55)),
+      { key: 'grime', name: '먼지 범벅', hidden: true, first: 10, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, pick: 'tank', debuff: { name: '먼지 범벅', type: '물리', left: 60, healCut: 0.08, stackMax: 5, lock: true } } },
+      { key: 'soap', name: '네 가지 청소약', icon: '청소', kind: 'instant', first: 6, period: 12, cast: 0,
+        how: '질병 → 독 → 저주 → 마법 차례로 한 명씩. 지울 수 있는 유형은 지우고, 못 지우는 유형은 힐로 버티기',
+        effect: { p: 'cycle', n: 1, debuffs: soaps() } },
+      { key: 'pads', name: '제단 발판', icon: '발판', kind: 'aoe', first: 20, period: 30, cast: 2.5,
+        how: '금빛 발판에 들어간 사람이 맞고, 빈 발판마다 전원이 맞음. 들어간 사람을 바로 채우기',
+        effect: { p: 'tower', n: 2, dmg: U.dps(0.4), empty: U.dps(0.2) } },
+      { key: 'roof', name: '천장 무너짐', icon: '천장', kind: 'zone', first: 42, period: 55, cast: 5, warn: 'zone', hitDmg: U.dps(0.85),
+        cells: { p: 'safe', at: 'center', n: 5, nMythic: 4, tank: true },
+        how: '파티원이 가운데 금빛 기둥 그늘로 모임. 늦을 사람 (칸 흔들림)을 미리 채우기' },
+      { key: 'shake', name: '먼지 털기', hidden: true, first: 47.5, period: 55, cast: 0, effect: { p: 'clear', name: '먼지 범벅' } },
+      { key: 'otto', name: '꼬마 오토의 기억', icon: '오토', kind: 'instant', first: null, period: 40, cast: 0,
+        effect: { p: 'soul', name: '꼬마 오토의 기억', short: '오토', art: 'mob-keeper-child', hp: 0.3, sec: 10,
+          win: { text: '오토가 기분이 풀림: 보스 피해 −25%', weak: { pct: 0.25, sec: 10 } },
+          fail: { text: '투덜투덜 먼지바람', dmg: U.dps(0.15) } } },
+    ],
+    flow: [{ p: 'when', if: { idle: 'otto', hpBelow: 0.5 }, do: [{ p: 'start', skill: 'otto', in: 2 }, { p: 'text', text: '꼬마 오토의 기억: 영혼을 채우면 유령이 잠시 누그러짐' }] }],
+    enrage: { name: '대청소', period: 2, dmg: 260 },
+  },
+  // 역병 군주 탐험판 (35 4-8 ⑧, 탐험 ⑧ 심연 가장자리): 평타 · 썩은 숨결 (질병) · 독침 · 전염 (함정: 떨어진 칸이 안전). 10인 1층 예습
+  plague33: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'breath', name: '썩은 숨결', icon: '숨결', kind: 'instant', first: 6, period: 12, cast: 0,
+        effect: { p: 'rot', n: 1, debuff: { name: '썩은 숨결', type: '질병', left: 60, end: { p: 'restoreMax' } }, pct: 0.05, max: 4 } },
+      { key: 'sting', name: '독침', icon: '독침', kind: 'instant', first: 10, period: 15, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '독침', type: '독', left: 12, dot: 15 } } },
+      { key: 'contagion', name: '전염', icon: '전염', kind: 'instant', first: 20, period: 24, cast: 0,
+        how: '함정. 끝나거나 지우면 이웃 칸 사람에게 퍼짐. 떨어져 서 있을 때 지우거나 끝날 때까지 채우기',
+        effect: { p: 'debuff', n: 1, debuff: { name: '전염', type: '질병', left: 8, trap: true, end: { p: 'spread' } } } },
+    ],
+    enrage: { name: '역병 폭발', period: 2, dmg: 190 },
+  },
+  // 망루 파수꾼 (39 3-1, 던전 ⑦ 무너진 망루): 끌어당김 × 받침 (끌려온 사람이 받침을 맡음, 겁쟁이가 도망치면 빈 받침 = 전원 피해) · 경고 함성 ✋.
+  // 50% 아래 끌기 28 → 20초. 악몽은 끌기 2명 · 받침 2곳. 목표 2:45 · 광폭화 3:45
+  sentinel: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('청동 망치', '망치', 8, 16, U.tank(0.55)),
+      { key: 'chain', name: '갈고리 사슬', icon: '사슬', kind: 'buster', first: 14, period: 28, cast: 2, warn: 'buster', target: { p: 'back', n: 1, nMythic: 2 },
+        how: '뒷줄 사람을 끌어와 그 칸에 받침. 6초 동안 평타를 탱커와 번갈아 맞고, 끝에 받침이 울림 (비어 있으면 전원 피해). 끌려온 사람을 끝까지 세워 두기',
+        effect: { p: 'pull', sec: 6, dmg: U.dps(0.1), pad: { dmg: U.dps(0.3), empty: U.dps(0.25) } } },
+      { key: 'shout', name: '경고 함성', icon: '함성', kind: 'aoe', first: 24, period: 30, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.25) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'chain', sec: 20 }, { p: 'text', text: '망루가 기운다: 갈고리 사슬이 잦아짐' }] }],
+    enrage: { name: '망루 붕괴', period: 2, dmg: 260 },
+  },
+  // 금 간 공명 수정 (39 3-2, 무너진 망루 최종): 진동 × 옮겨붙음 약한 판 (메아리는 진동 때 이웃 1명에게 옮겨붙고 +50%, 해제하면 사라짐) · 어긋난 공명 ✋.
+  // 40% 아래 진동 15 → 11초 · 메아리 2명. 악몽은 메아리가 이웃 2명까지 갈라짐. 목표 3:15 · 광폭화 4:30
+  crystal: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('금 간 울림', '울림', 19.5, 15, U.tank(0.5)), // 진동 (14 + 15k초) 사이 가운데에 맞음
+      ...([['echo', 1, 1, 6], ['echo2', 2, 2, null]] as const).map(([key, n, phase, first]): SkillDef => ({
+        key, name: '메아리', icon: '메아', kind: 'instant', first, period: 20, cast: 0, when: { phase: [phase] },
+        how: '진동이 울리면 이웃 칸 아군에게 옮겨붙고 세짐. 진동 직전에 지우거나, 못 지우면 옆 사람을 미리 채우기. 혼자 선 사람은 둠',
+        effect: { p: 'debuff', n, pick: 'others', debuff: { name: '메아리', type: '저주', left: 20, dot: U.dps(0.02), end: { p: 'jump', sec: 20, mult: 1.5, boost: 0, on: 'quake', nMythic: 2 } } },
+      })),
+      { key: 'quake', name: '수정 진동', icon: '진동', kind: 'aoe', first: 12, period: 15, cast: 2, warn: 'aoe', effect: { p: 'quake', dmg: U.dps(0.12), lock: 3 } },
+      { key: 'detune', name: '어긋난 공명', icon: '공명', kind: 'instant', first: 18, period: 22, cast: 2, cut: true,
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '어긋난 공명', type: '마법', left: 6, noDps: true } } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'quake', sec: 11 }, { p: 'start', skill: 'echo2', in: 2 }, { p: 'text', text: '마지막 울림: 진동이 잦아지고 메아리 2명' },
+    ] }],
+    enrage: { name: '공명 폭주', period: 2, dmg: 260 },
   },
   // 녹슨 문지기 (05 1장): 40% 아래 녹물 웅덩이
   warden: {

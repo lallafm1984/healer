@@ -148,7 +148,39 @@ export const FEATURED_WEIGHT = 4;
 export const NAMED_CHANCE = 0.25;
 export const NAMED_MIN: ItemGrade = '희귀';
 
-/** 드롭 맥락: 지금 직업 (직업 전용은 그 직업 것만, 42 1-4) · 장소 (자주 나오는 특수능력 · 이름 있는 장신구) · 등급 상한 (탐험 = 고급, 34 6-7) */
+/**
+ * 장소마다 잘 나오는 장비 종류 (39 4장): 던전 3 · 탐험 2 · 레이드 층마다 1. 목록에 없는 종류도 나오지만 목록이 KIND_WEIGHT배.
+ * 같은 세력 탐험 · 던전은 노리는 고정 옵션이 같음. 아직 없는 장소는 만들 때 더함
+ */
+export const PLACE_KINDS: Record<string, readonly string[]> = {
+  plateau: ['mace', 'helm'],
+  cemetery: ['hood', 'robe'],
+  rustfort: ['mace', 'helm', 'gauntlet'],
+  marsh: ['gloves', 'signet'],
+  crypt: ['hood', 'robe', 'beads'],
+  lily: ['scepter', 'crown'],
+  swamp: ['staff', 'gloves', 'signet'],
+  snowpass: ['staff', 'pendant'],
+  manor: ['scepter', 'crown', 'wraps'],
+  hillpath: ['beads', 'ring'],
+  frost: ['staff', 'vestment', 'pendant'],
+  pilgrim: ['helm', 'mail'],
+  temple: ['beads', 'ring', 'wraps'],
+  abyssedge: ['vestment', 'gauntlet'],
+  watchtower: ['helm', 'mail', 'gauntlet'],
+  abyss1: ['vestment'],
+};
+export const KIND_WEIGHT = 3;
+
+/** 장소 목록이 있으면 16종류 중에서 (목록 KIND_WEIGHT배) 부위 · 종류를 함께 고름 */
+export function pickKind(r: () => number, place: string): KindDef {
+  const list = PLACE_KINDS[place] ?? [], w = KINDS.map(k => (list.includes(k.key) ? KIND_WEIGHT : 1));
+  let x = r() * w.reduce((a, b) => a + b, 0), j = 0;
+  while (j < KINDS.length - 1 && x >= w[j]) { x -= w[j]; j++; }
+  return KINDS[j];
+}
+
+/** 드롭 맥락: 지금 직업 (직업 전용은 그 직업 것만, 42 1-4) · 장소 (잘 나오는 종류 · 자주 나오는 특수능력 · 이름 있는 장신구) · 등급 상한 (탐험 = 고급 · Lv 30부터 희귀, 34 6-7) */
 export interface DropCtx { hero?: HeroKey; place?: string; cap?: ItemGrade }
 
 /**
@@ -183,7 +215,7 @@ export function makeItem(r: () => number, slot: SlotKey, grade: ItemGrade, id: n
   const it: GearItem = { id, slot, kind: k.key, grade, plus: 0, name: '', lines: rollLines(r, EXTRA_LINES[grade], k.fixed), specs: [] };
   // 이름 있는 장신구 (42 3장): 고유 효과 1줄 + 전설이면 무작위 1줄
   const nm = o.place ? namedFor(o.place, slot) : undefined;
-  if (nm && ITEM_GRADES.indexOf(grade) >= ITEM_GRADES.indexOf(NAMED_MIN) && r() < NAMED_CHANCE) {
+  if (nm && ITEM_GRADES.indexOf(grade) >= ITEM_GRADES.indexOf(nm.min ?? NAMED_MIN) && r() < NAMED_CHANCE) {
     it.named = nm.key;
     it.specs = rollSpecs(r, slot, grade, SPEC_LINES[grade] - 1, o);
   } else it.specs = rollSpecs(r, slot, grade, specCount(r, grade), o);
@@ -221,11 +253,12 @@ export function rollGrade(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B
   return g === '전설' && level < LEGEND_LEVEL ? '영웅' : g;
 }
 
-/** 장비 1개 뽑기 (부위 → 등급 → 종류 · 옵션 · 특수능력). r = 0~1 난수 함수, o = 드롭 맥락 (직업 · 장소) */
+/** 장비 1개 뽑기 (부위 → 등급 → 종류 · 옵션 · 특수능력, 장소에 잘 나오는 종류가 있으면 부위 · 종류 함께). r = 0~1 난수 함수, o = 드롭 맥락 (직업 · 장소) */
 export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number, id: number, o: DropCtx = {}): GearItem {
-  const slot = SLOTS[Math.floor(r() * SLOTS.length)].key;
+  const k = o.place && PLACE_KINDS[o.place] ? pickKind(r, o.place) : undefined;
+  const slot = k ? k.slot : SLOTS[Math.floor(r() * SLOTS.length)].key;
   const g = rollGrade(r, diff, grade, level);
-  return makeItem(r, slot, o.cap && ITEM_GRADES.indexOf(g) > ITEM_GRADES.indexOf(o.cap) ? o.cap : g, id, undefined, o);
+  return makeItem(r, slot, o.cap && ITEM_GRADES.indexOf(g) > ITEM_GRADES.indexOf(o.cap) ? o.cap : g, id, k?.key, o);
 }
 
 // ---------- 재설정 (34 6-8 · 42 1-6) ----------

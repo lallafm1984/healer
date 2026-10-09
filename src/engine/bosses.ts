@@ -10,7 +10,7 @@ import { affChaos } from './affixes';
 import { addsTick, aggroTarget, backTargets, flowNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soulsTick, staggerTick, stunBoss, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
-import { specCut, specTel } from './specials';
+import { specBuster, specCut, specTel } from './specials';
 import type { BossSkill, Fight, Mob, TelKind, Telegraph, Unit } from './types';
 
 export { aggroTarget } from './bossParts';
@@ -168,6 +168,7 @@ export function bossTick(f: Fight): void {
       if (tel.dur) f.zones.push({ id: tel.id, cells: tel.cells, end: f.t + tel.dur, dps: tel.dps! });
       if (tel.flow) flowNext(f, tel); // 흐르는 장판: 다음 열 예고
     } else tel.skill.hit!(f, tel);
+    if (f.sp && tel.kind === 'buster') specBuster(f, tel); // 고철 호루라기 (42 3장)
     emit(f, { type: 'impact', kind: tel.kind });
   }
   f.tels = f.tels.filter(t => t.impact > f.t + 1e-9);

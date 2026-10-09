@@ -227,7 +227,11 @@ for (const [group, rows] of Object.entries(TABLE) as [SpecGroup, Row[]][]) {
  * 이름 있는 장신구 (42 3장): 장소 고유 목걸이 · 반지. 고유 효과 1줄은 고정이고 나머지 줄은 등급대로 굴림.
  * place = 떨어지는 장소 (content 키, 아직 없는 장소는 이름만). 같은 이름 있는 장신구는 하나만 낄 수 있음
  */
-export interface NamedDef { key: string; name: string; slot: 'neck' | 'ring'; place: string; placeName: string; text: string; val: number; unit: SpecUnit; cd?: number }
+export interface NamedDef {
+  key: string; name: string; slot: 'neck' | 'ring'; place: string; placeName: string; text: string; val: number; unit: SpecUnit; cd?: number;
+  /** 이 등급부터 나옴 (없으면 data/equipment NAMED_MIN). 탐험은 고급까지 나와서 탐험 것은 고급 */
+  min?: ItemGrade;
+}
 export const NAMED: NamedDef[] = [
   { key: 'rustyCog', name: '녹슨 톱니', slot: 'neck', place: 'rustfort', placeName: '녹슨 요새', text: '치유를 시전하면 10% 확률로 10초 동안 가속 +{v} (재사용 20초)', val: 0.15, unit: 'pct', cd: 20 },
   { key: 'plagueCenser', name: '역병 향로', slot: 'neck', place: 'crypt', placeName: '역병 지하묘지', text: '해제하면 대상에게 지능 {v} 보호막 (재사용 15초)', val: 0.6, unit: 'pct', cd: 15 },
@@ -235,6 +239,17 @@ export const NAMED: NamedDef[] = [
   { key: 'ladyPortrait', name: '귀부인의 초상', slot: 'neck', place: 'manor', placeName: '저주받은 장원', text: '체력 30% 아래 아군에게 하는 직접 힐 +{v}', val: 0.2, unit: 'pct' },
   { key: 'frozenHourglass', name: '얼어붙은 모래시계', slot: 'ring', place: 'frost', placeName: '서리 마탑', text: '공대 쿨기를 쓰면 15초 동안 마나 소모 −{v}', val: 0.3, unit: 'pct' },
   { key: 'templeVial', name: '신전 성수병', slot: 'neck', place: 'temple', placeName: '깨진 신전', text: '광역 힐이 4명 이상 회복하면 6초 동안 치명타 +{v}', val: 0.1, unit: 'pct' },
+  // 묶음 A (39 4장, 이름 임시 · 그림 44 G)
+  { key: 'scrapWhistle', name: '고철 호루라기', slot: 'neck', place: 'plateau', placeName: '녹슨 고원', text: '탱커가 버스터를 맞으면 3초 동안 탱커에게 하는 힐 +{v}', val: 0.25, unit: 'pct', min: '고급' },
+  { key: 'graveLantern', name: '묘지기 등불', slot: 'neck', place: 'cemetery', placeName: '잿빛 공동묘지', text: '지속 힐이 끝까지 가면 마나 {v} 돌려받음 (2초에 한 번)', val: 1, unit: 'mana', min: '고급' },
+  { key: 'leechJar', name: '거머리 병', slot: 'ring', place: 'marsh', placeName: '늪지 어귀', text: '아군을 체력 100%까지 채우면 4초 동안 가속 +{v} (재사용 10초)', val: 0.1, unit: 'pct', cd: 10, min: '고급' },
+  { key: 'lilyCorsage', name: '백합 코사지', slot: 'neck', place: 'lily', placeName: '백합 정원', text: '4초 안에 서로 다른 3명에게 직접 힐하면 다음 직접 힐 마나 소모 −{v} (재사용 15초)', val: 1, unit: 'pct', cd: 15, min: '고급' },
+  { key: 'snowCrystal', name: '눈꽃 결정', slot: 'neck', place: 'snowpass', placeName: '눈보라 고개', text: '보스 기술에 시전이 끊기면 마나 {v} 돌려받음', val: 3, unit: 'mana', min: '고급' },
+  { key: 'pilgrimCharm', name: '순례자 부적', slot: 'neck', place: 'hillpath', placeName: '해바라기 언덕길', text: '파티 전원이 체력 70% 이상이면 정신력 +{v}', val: 0.3, unit: 'pct', min: '고급' },
+  { key: 'wornRosary', name: '닳은 묵주', slot: 'neck', place: 'pilgrim', placeName: '무너진 순례길', text: '바로 앞에 해제한 것과 다른 유형을 해제하면 해제 재사용 대기 −{v}', val: 2, unit: 'sec', min: '고급' },
+  { key: 'blackStone', name: '검은 돌 부적', slot: 'neck', place: 'abyssedge', placeName: '심연 가장자리', text: '옆 칸에 아군이 없는 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
+  { key: 'ropeKnot', name: '밧줄 매듭', slot: 'ring', place: 'watchtower', placeName: '무너진 망루', text: '아군이 2초 안에 최대 체력의 30% 넘게 잃으면 그 아군에게 지능 {v} 보호막 (재사용 20초)', val: 0.5, unit: 'pct', cd: 20 },
+  { key: 'lordIncense', name: '군주의 향 주머니', slot: 'neck', place: 'abyss1', placeName: '심연의 탑 1층', text: '디버프가 2개 이상 보이는 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -261,7 +276,27 @@ export const FEATURED: Record<string, readonly string[]> = {
   cemetery: ['brushOff', 'coldMedicine', 'thankHand'],
   // 늪지 어귀 (탐험 ③): 완치 표식 · 독을 힐로 버팀
   marsh: ['antidote', 'warmCloak', 'lingerLight'],
+  // 백합 정원 (탐험 ④): 차례 = 빠른 직접 힐, 받는 치유 −50% 저주
+  lily: ['curseBreak', 'warmTouch', 'firstCup'],
+  // 눈보라 고개 (탐험 ⑤): 진동 = 즉시 스킬 · 지속 힐로 넘기기, 침묵 (마법)
+  snowpass: ['spellWard', 'lingerLight', 'pouch'],
+  // 해바라기 언덕길 (탐험 ⑥): 무력화 = 전원 70% 위로 (광역 · 딜러 지원)
+  hillpath: ['wideEmbrace', 'cheerFlag', 'spellWard'],
+  // 무너진 순례길 (탐험 ⑦): 해제 4유형 차례 · 발판에 들어간 사람 바로 채우기
+  pilgrim: ['brushOff', 'thankHand', 'warmTouch'],
+  // 심연 가장자리 (탐험 ⑧): 질병 · 독 · 전염 (함정은 끝날 때까지 채우기)
+  abyssedge: ['coldMedicine', 'antidote', 'lingerLight'],
   rustfort: ['shieldFriend', 'firstWord', 'springSip'],
+  // 서리 마탑 (던전 ⑤): 진동 · 역류 = 시전 아끼기, 주시 = 넘친 치유 줄이기
+  frost: ['spellWard', 'pouch', 'twiceBrush'],
+  // 무너진 망루 (던전 ⑦): 끌려온 사람 세워 두기 (단일 힐) · 진동 = 즉시 스킬 · 함정
+  watchtower: ['warmTouch', 'pouch', 'trapSense'],
+  // 깨진 신전 (던전 ⑥): 해제 4유형 · 천장 무너짐 피난처 · 무력화 = 전원 70% 위로
+  temple: ['cleanHands', 'shelterMap', 'wideEmbrace'],
+  // 저주받은 장원 (던전 ④): 저주 · 힐하지 말아야 할 사람 · 차례
+  manor: ['curseBreak', 'hardShell', 'regular'],
+  // 독안개 늪 (던전 ③): 독 버티기 · 정령 · 피난처 늦는 사람에게 보호막
+  swamp: ['antidote', 'fadingMiasma', 'hardShell'],
   // 역병 지하묘지 (던전 ②): 질병 해제 · 끌려온 사람과 탱커를 광역으로
   crypt: ['coldMedicine', 'immuneIncense', 'wideEmbrace'],
   abyss1: ['coldMedicine', 'cleanHands', 'bounceLight'],

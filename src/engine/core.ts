@@ -261,8 +261,26 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       damage(f, u, e.dmg, true);
       emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 시간 끝` });
       return;
+    case 'blast': {
+      // 불안정한 마력 · 서리 표식 (P-TRAP): 두든 지우든 이웃 칸이 터짐. 지우면 바로
+      const c = cellOf(f, u);
+      emit(f, { type: 'sound', name: 'burst' });
+      for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), c) === 1) damage(f, v, e.dmg, true);
+      emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 이웃 칸이 터짐` });
+      return;
+    }
+    case 'trapHit': {
+      // 가문의 반지 (P-TRAP, 35 4-3): 두면 그 사람만, 지우면 이웃 칸이 터짐
+      if (!dispelled) { damage(f, u, e.dmg, true); emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 시간 끝` }); return; }
+      const c = cellOf(f, u);
+      emit(f, { type: 'sound', name: 'burst' });
+      for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), c) === 1) damage(f, v, e.burst, true);
+      emit(f, { type: 'msg', text: `${d.name}: 지워서 이웃 칸이 터짐` });
+      return;
+    }
     case 'jump': {
-      // 옮겨붙음 (P-JUMP): 지우면 이웃 칸 1명에게 더 세게, 혼자면 사라짐. 시간이 다 되면 보스가 강해짐
+      // 옮겨붙음 (P-JUMP): 지우면 이웃 칸 1명에게 더 세게, 혼자면 사라짐. 시간이 다 되면 보스가 강해짐. 약한 판 (진동에 옮김)은 그냥 사라짐
+      if (e.on === 'quake') return;
       if (!dispelled) { empowerBoss(f, e.boost, `${d.name} 시간 끝`); return; }
       const c = cellOf(f, u);
       const near = living(f).filter(v => v !== u && hexDist(cellOf(f, v), c) === 1);

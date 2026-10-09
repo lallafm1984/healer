@@ -23,8 +23,8 @@ describe('보스 데이터', () => {
       for (const s of def.skills) if (s.first === null) expect(dos.some(d => d.p === 'start' && d.skill === s.key), `${k}.${s.key}`).toBe(true);
       const nb = def.bodies?.length ?? 0;
       for (const s of def.skills) for (const i of s.when?.bodyAlive ?? []) expect(i).toBeLessThan(nb);
-      // 장판은 칸 규칙, 나머지는 하는 일이 있음
-      for (const s of def.skills) expect(s.kind === 'zone' ? !!s.cells && !!s.dps && !!s.dur : !!s.effect, `${k}.${s.key}`).toBe(true);
+      // 장판은 칸 규칙 + 남는 장판 (초당 피해 · 시간) 또는 맞는 순간 한 방 (피난처 hitDmg), 나머지는 하는 일이 있음
+      for (const s of def.skills) expect(s.kind === 'zone' ? !!s.cells && ((!!s.dps && !!s.dur) || !!s.hitDmg) : !!s.effect, `${k}.${s.key}`).toBe(true);
     });
   }
   it('전투에 들어가면 기술이 데이터 순서대로, key로도 찾힘', () => {
