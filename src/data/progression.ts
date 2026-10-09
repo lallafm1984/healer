@@ -7,13 +7,19 @@ import { FEATURES } from './features';
 
 export const MAX_LEVEL = 100;
 
+const lvClamp = (level: number) => Math.max(1, Math.min(MAX_LEVEL, level));
+
 /**
- * 레벨 배율 (07 4장, 18 2-1): Lv 1 = 1.0, 레벨마다 +0.08 → Lv 100 ≈ 8.9배 (선형).
- * 힐러 힐량·체력과 파티원·적 체력·피해·딜 모두 적 레벨(= 내 레벨, 32)로 곱한다. 세기 차이는 장비·특성·난이도.
+ * 레벨 배율 (34 1-2): 숫자를 작게 시작해서 크게 키움. Lv 1 = 0.4 (예전 숫자 ÷2.5: 힐러 체력 220 · 치유 120),
+ * 레벨마다 Lv 1 값의 +22% → Lv 100 ≈ 9.1 (예전 Lv 100 숫자와 비슷).
+ * 힐러 힐량·체력과 파티원·적 체력·피해·딜 모두 이 배율로 곱한다. 세기 차이는 적 세기 0.95 (rules.ts) · 장비 · 특성 · 난이도.
  * 마나는 % 체계라 레벨로 늘지 않음 (18 2-1).
  */
-export const LV_GROWTH = 0.08;
-export const lvPower = (level: number) => 1 + LV_GROWTH * (Math.max(1, Math.min(MAX_LEVEL, level)) - 1);
+export const NUM_SCALE = 0.4;
+export const LV_GROWTH = 0.22;
+export const lvPower = (level: number) => NUM_SCALE * (1 + LV_GROWTH * (lvClamp(level) - 1));
+/** 프로토타입 레벨 배율 (34 이전, parity 테스트): Lv 1 = 1.0, 레벨마다 +0.08 */
+export const lvPowerProto = (level: number) => 1 + 0.08 * (lvClamp(level) - 1);
 
 /** 다음 레벨까지 필요한 경험치 (02 부록 B: 100 × 레벨^1.6) */
 export const xpToNext = (level: number) => (level >= MAX_LEVEL ? Infinity : Math.round(100 * level ** 1.6));

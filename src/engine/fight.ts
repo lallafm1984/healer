@@ -9,7 +9,7 @@ import { TALENT_STANDIN } from '../data/heroConst';
 import { TALENTS } from '../data/talents';
 import { ITEMS } from '../data/items';
 import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
-import { lvPower } from '../data/progression';
+import { PROTO_RULES, RULES } from '../data/rules';
 import { BULWARK, TRAIT_CHANCE, TRAITS, type TraitKey } from '../data/traits';
 import { makeCells } from './board';
 import { aggroTarget, initBoss, bossTick } from './bosses';
@@ -35,20 +35,24 @@ export function create(cfg: FightConfig): Fight {
   const cells = makeCells(BOARDS[board]);
   const rows = BOARDS[board].length;
   const mythic = cfg.diff === '악몽';
-  // 레벨 배율 (07 4장): 단계가 같으면 비율은 그대로이고 숫자만 커짐. 단계보다 높은 만큼 힐러가 세짐
+  const R = cfg.proto ? PROTO_RULES : RULES;
+  // 장비 가속은 상한까지 (34 1-2: 50% = GCD 1.0초 바닥), 치명타는 기본값 + 장비
+  gear.haste = Math.min(gear.haste, R.hasteCap);
+  gear.crit += R.baseCrit;
+  // 레벨 배율 (34 1-2): 단계가 같으면 비율은 그대로이고 숫자만 커짐. 적·파티원은 내 레벨 세기 × 0.95, 단계보다 높은 만큼 힐러가 세짐
   const stageLv = cfg.stageLv ?? 1;
-  const scale = lvPower(stageLv);
-  const power = lvPower(Math.max(cfg.heroLv ?? stageLv, stageLv));
+  const scale = R.lv(stageLv) * R.enemy;
+  const power = R.lv(Math.max(cfg.heroLv ?? stageLv, stageLv));
   const bm = cfg.bossMult ?? { hp: 1, dmg: 1 };
-  const tn = enc.tune?.[cfg.diff];
+  const tn = cfg.proto ? undefined : enc.tune?.[cfg.diff];
   const bossMax = enc.hp * (mythic ? MYTHIC.bossHp : 1) * scale * bm.hp * (tn?.hp ?? 1);
   const f: Fight = {
     board,
     cfg, enc, diff, rng, gear, cells, rows, mythic,
     t: 0, k: 0, over: null, reason: '',
-    dmgMult: diff.dmg * scale * bm.dmg * (tn?.dmg ?? 1), scale, power,
+    dmgMult: diff.dmg * scale * R.enemyDmg * bm.dmg * (tn?.dmg ?? 1), scale, power,
     bossMax, bossHp: bossMax, mobs: [],
-    mana: 100, gcd: 0, gcdBase: 1 / (1 + gear.haste), cast: null, channel: 0, chTick: 0, queued: null,
+    mana: 100, gcd: 0, gcdBase: R.gcd / (1 + gear.haste), cast: null, channel: 0, chTick: 0, queued: null,
     cd: { purify: 0, guardian: 0, hymn: 0 },
     g: { p: 0, s: 0 }, symbolUsed: false, symbol: 0, level: cfg.level ?? 100,
     hero: cfg.hero ?? 'priest', power3: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null,
@@ -56,7 +60,7 @@ export function create(cfg: FightConfig): Fight {
     standin: null,
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
-    enraged: false, armor: cfg.armor !== false, noTankAt: null, rats: [],
+    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, rats: [],
     items: {}, potCd: 0, medit: 0, itemLog: [],
     stats: { healed: 0, overheal: 0, deaths: 0, minMana: 100, dispels: 0, dispellable: 0, trapPops: 0, queueLost: 0, casts: {}, taps: 0, missTaps: 0, emptyTaps: 0, cancels: 0, manaFails: 0, hymnBroken: 0 },
     nextId: 1,
@@ -138,7 +142,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
   const add = (role: Role, pers: PersName | null, nick: string, cls?: ClassKey, traits?: TraitKey[], r?: RosterEntry): Unit => {
     const c = cls ? CLASSES[cls] : null;
     // 길드원은 자기 레벨 배율, 공개모집은 콘텐츠 단계 배율. 자질 공격·맷집 (17 9-1)
-    const own = r?.lv ? lvPower(r.lv) : f.scale;
+    const own = r?.lv ? f.R.lv(r.lv) * f.R.enemy : f.scale;
     const lv = role === 'healer' ? f.power : own;
     const apt = r?.apt;
     let base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;

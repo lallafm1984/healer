@@ -46,17 +46,17 @@ describe('공개모집 직업 뽑기', () => {
 
 describe('직업 체력·딜', () => {
   it('직업 체력, 딜 = 직업 배율 × 10', () => {
-    const f = fightWith(roster('paladin', ['berserker', 'mage', 'hunter']));
-    expect(unit(f, 'paladin').max).toBe(950);
-    expect(unit(f, 'mage').max).toBe(520);
-    expect(unit(f, 'mage').dps).toBeCloseTo(12);
-    expect(unit(f, 'paladin').dps).toBeCloseTo(4.5);
+    const f = fightWith(roster('paladin', ['berserker', 'mage', 'hunter'])), s = f.scale; // 레벨 배율 (34 1-2)
+    expect(unit(f, 'paladin').max / s).toBeCloseTo(950);
+    expect(unit(f, 'mage').max / s).toBeCloseTo(520);
+    expect(unit(f, 'mage').dps / s).toBeCloseTo(12);
+    expect(unit(f, 'paladin').dps / s).toBeCloseTo(4.5);
   });
 
   it('악몽은 직업 체력·딜에도 ×1.15', () => {
     const f = E.create({ encounter: 'warden', diff: '악몽', seed: 1, party: roster('warrior') });
-    expect(unit(f, 'warrior').max).toBeCloseTo(1000 * 1.15);
-    expect(unit(f, 'rogue').dps).toBeCloseTo(11 * 1.15);
+    expect(unit(f, 'warrior').max / f.scale).toBeCloseTo(1000 * 1.15);
+    expect(unit(f, 'rogue').dps / f.scale).toBeCloseTo(11 * 1.15);
   });
 });
 
@@ -100,8 +100,8 @@ describe('직업 패시브', () => {
     const f = fightWith(roster('paladin'));
     const p = unit(f, 'paladin');
     const a = armorFactor(p.role, 'party'); // 직업군 방어력 (34 9-2) 위에 곱함
-    damage(f, p, 100); expect(p.max - p.hp).toBeCloseTo(100 * a);
-    damage(f, p, 100, true); expect(p.max - p.hp).toBeCloseTo(190 * a);
+    damage(f, p, 100); expect(p.max - p.hp).toBeCloseTo(100 * a * f.dmgMult);
+    damage(f, p, 100, true); expect(p.max - p.hp).toBeCloseTo(190 * a * f.dmgMult);
   });
 
   it('검사: 맞으면 3초간 딜 +15%', () => {
@@ -130,7 +130,7 @@ describe('직업 패시브', () => {
       const f = fightWith(roster(tank), s + 1);
       const t = f.party.find(u => u.role === 'tank')!;
       while (f.t < 2.01) { E.step(f); f.events.length = 0; }
-      return (t.max - t.hp) / 70;
+      return (t.max - t.hp) / (70 * f.dmgMult);
     });
     const w = hits('warrior'), p = hits('paladin');
     expect(Math.min(...w)).toBeGreaterThanOrEqual(0.85 - 1e-9);

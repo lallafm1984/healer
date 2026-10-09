@@ -8,7 +8,7 @@ describe('잡몹 구간', () => {
   it('잡몹을 목록 순서대로 잡고, 다 잡으면 이김', () => {
     const f = E.create({ encounter: 'gate', diff: '보통', seed: 3 });
     expect(f.mobs.map(m => m.name)).toEqual(['고철 졸개', '고철 졸개', '고철 졸개', '잔해 투척병']);
-    expect(f.bossMax).toBe(ENCOUNTERS.gate.hp);
+    expect(f.bossMax).toBeCloseTo(ENCOUNTERS.gate.hp * f.scale);
     const order: number[] = [];
     while (!f.over && f.t < 300) {
       E.autoHealer(f); E.step(f);
@@ -37,8 +37,8 @@ describe('잡몹 구간', () => {
 
   it('악몽은 잡몹 체력도 ×1.3', () => {
     const f = E.create({ encounter: 'boiler', diff: '악몽', seed: 1 });
-    expect(f.mobs[0].max).toBeCloseTo(400 * 1.3);
-    expect(f.bossMax).toBeCloseTo(ENCOUNTERS.boiler.hp * 1.3);
+    expect(f.mobs[0].max).toBeCloseTo(400 * 1.3 * f.scale);
+    expect(f.bossMax).toBeCloseTo(ENCOUNTERS.boiler.hp * 1.3 * f.scale);
   });
 });
 

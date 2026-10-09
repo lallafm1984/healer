@@ -112,7 +112,7 @@ export default async function dungeon(url, shots) {
   await page.dispatchEvent('#wheel .slot[data-slot="flash"]', 'pointerdown'); await page.clock.runFor(500);
   await page.dispatchEvent('#wheel .slot[data-slot="flash"]', 'pointerup'); await page.clock.runFor(30);
   const tip = await page.evaluate(() => { const t = document.getElementById('tip'); return t.hidden ? null : { name: t.querySelector('.tt-name b')?.textContent, rows: [...t.querySelectorAll('.tt-row')].map(r => r.textContent), desc: t.querySelector('.tt-desc')?.textContent }; });
-  ok(tip && tip.name === '순간 치유' && tip.rows.some(r => /1초 시전/.test(r)) && /니다\.$/.test(tip.desc || ''), `스킬 설명 팝업 = 첨부 형식 (${JSON.stringify(tip)})`);
+  ok(tip && tip.name === '순간 치유' && tip.rows.some(r => /1\.5초 시전/.test(r)) && /니다\.$/.test(tip.desc || ''), `스킬 설명 팝업 = 첨부 형식 (${JSON.stringify(tip)})`);
   await page.screenshot({ path: `${shots}/dungeon_trash.png` });
 
   const segs = ['고철 경비병', '증기 보일러실', '녹슨 문지기'];
@@ -182,7 +182,7 @@ export default async function dungeon(url, shots) {
   ok(await page.isVisible('#battle'), '다시 도전 = 같은 파티로 바로 출발');
   ok(await page.evaluate(() => window.__proto.dungeon.idx === 0 && window.__proto.F.enc.key === 'gate'), '던전 처음부터');
   const lvm = await page.evaluate(() => { const F = window.__proto.F; return { power: F.power, scale: F.scale, me: Math.round(F.me.max) }; });
-  ok(Math.abs(lvm.power - 1.08) < 1e-9 && lvm.scale === 1 && lvm.me === 594, `Lv 2 전투: 힐량·내 체력 ×1.08, 적은 내 레벨 − 2 (열림 레벨 1 아래로 안 내려감) ×1 (32) ${JSON.stringify(lvm)}`);
+  ok(Math.abs(lvm.power - 0.488) < 1e-9 && Math.abs(lvm.scale - 0.488 * 0.95) < 1e-9 && lvm.me === 268, `Lv 2 전투: 힐량·내 체력 ×0.488 (34 1-2), 적 = 내 레벨 세기 × 0.95 ${JSON.stringify(lvm)}`);
   // 탱커가 쓰러져도 전투는 계속, 아래에 포기 버튼 (2026-10-07 Lim)
   ok(await page.isHidden('#giveUp'), '탱커가 살아 있으면 포기 버튼 없음');
   // 전멸 UI의 입력 상태를 직접 고정한다. HP 1 + 3초 대기는 무작위 회피/보호 능력에 따라 살아남아 흔들린다.

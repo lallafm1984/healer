@@ -31,6 +31,7 @@ export interface GearStats {
   heal: number;
   regen: number;
   haste: number;
+  /** 장비 치명타 몫. 기본 치명타는 엔진이 더함 (data/rules baseCrit) */
   crit: number;
 }
 
@@ -38,5 +39,5 @@ export function gearStats(id: GearId): GearStats {
   const { g, u } = GEARS[id];
   const [h, s] = GRADE[g];
   const n = (6 * s) / 3;
-  return { heal: g === '없음' ? 1 : 1 + 6 * (h + 0.005 * u), regen: 1 + 0.03 * n, haste: 0.02 * n, crit: 0.05 + 0.02 * n };
+  return { heal: g === '없음' ? 1 : 1 + 6 * (h + 0.005 * u), regen: 1 + 0.03 * n, haste: 0.02 * n, crit: 0.02 * n };
 }

@@ -4,6 +4,7 @@ import { TALENT_TIER, TALENTS, talentKeys, type TalentKey } from '../src/data/ta
 import * as E from '../src/engine';
 import { addDebuff, damage, heal } from '../src/engine/core';
 import { castOf, cdOf, costOf, talentReady, useTalent } from '../src/engine/talents';
+import { SKILLS } from '../src/data/skills';
 import { dodgeRate } from '../src/engine/movement';
 
 type F = ReturnType<typeof E.create>;
@@ -17,6 +18,7 @@ const picks = (...keys: TalentKey[]) => {
 const fight = (keys: TalentKey[], o: { enc?: 'warden' | 'plague' | 'choir'; hero?: 'priest' | 'druid'; level?: number } = {}) => {
   const f = E.create({ encounter: o.enc ?? 'plague', diff: '보통', seed: 7, level: o.level ?? 100, hero: o.hero, talents: picks(...keys) });
   f.gear.crit = 0;
+  f.power = 1; f.dmgMult = 1; // 힐·피해를 기본 단위로 (레벨 배율 1, 34 1-2): 특성 효과만 봄
   f.skills.forEach(s => { s.next = Infinity; }); // 보스 기술은 끔
   return f;
 };
@@ -57,7 +59,7 @@ describe('기본 강화 (Lv 10~30)', () => {
   it('긴 숨결: 소생 12초', () => {
     const f = fight(['longBreath']), u = tanks(f)[0];
     cast(f, 'renew', u);
-    expect(u.hot).toBeGreaterThan(10.5);
+    expect(u.hot).toBeGreaterThan(12 - f.gcdBase - 0.1); // 기본 9초보다 김
   });
   it('가벼운 손끝: 순간 치유 마나 ×0.8', () => {
     expect(costOf(fight(['lightTouch']), 'flash')).toBeCloseTo(4.8, 9);
@@ -86,7 +88,7 @@ describe('기본 강화 (Lv 10~30)', () => {
   });
   it('손에 익은 치유: 치유 시전 -0.3초', () => {
     const f = fight(['practiced']);
-    expect(castOf(f, 'heal')).toBeCloseTo(1.5 / (1 + f.gear.haste), 9);
+    expect(castOf(f, 'heal')).toBeCloseTo((SKILLS.heal.cast - 0.3) / (1 + f.gear.haste), 9);
   });
   it('흘러넘침: 치유로 넘친 힐량의 50%가 옆에서 가장 다친 아군에게', () => {
     const f = fight(['overflow']);
@@ -254,7 +256,7 @@ describe('생존·위기 (Lv 60~70)', () => {
     const d = others(f)[3];
     damage(f, d, d.max * 10);
     expect(Math.round(heal(f, tanks(f)[0], 100, true))).toBe(130);
-    step(f, 5.1);
+    step(f, 5.1); hurt(f);
     expect(Math.round(heal(f, tanks(f)[0], 100, true))).toBe(100);
   });
 });

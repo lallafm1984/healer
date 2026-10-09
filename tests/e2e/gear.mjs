@@ -33,11 +33,11 @@ export default async function gear(url, shots) {
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   ok((await page.locator('#s-char .c7-set, #s-char .c7-setdot, #s-char .c7-boxes, #s-char .c7-noset').count()) === 0 && !/세트|순례자/.test(await text('#s-char')), '세트 없음: 세트 깃발·세트 표시 없음, 옛 세트 장비 이름도 안 보임');
   ok(/축복받은 두건/.test(await page.getAttribute('#s-char .gtile[data-gitem="101"]', 'aria-label')) && !('set' in (await save()).gear.equipped.head), '옛 세트 장비 = 등급 이름 장비 (저장에서도 세트 표시 빠짐)');
-  ok(/장비 점수\s*80/.test(await text('#s-char .c7-plq')) && (await page.locator('#s-char .c7-stat').count()) === 5, '받침대 이름표 장비 점수 80 (희귀 30 · 희귀 30 · 고급 20), 능력치 판 5칸');
+  ok(/장비 점수\s*80/.test(await text('#s-char .c7-plq')) && (await page.locator('#s-char .c7-stat').count()) === 6, '받침대 이름표 장비 점수 80 (희귀 30 · 희귀 30 · 고급 20), 능력치 판 6칸');
 
   // ---- 받침대 좌우 장비 칸 ----
   const t101 = await text('#s-char .gtile[data-gitem="101"]');
-  ok((await page.locator('#s-char .gtile').count()) === 6 && /희/.test(await text('#s-char .gtile[data-gitem="101"] .c7-gl')) && /머리/.test(t101) && /힐 \+/.test(t101), '장비 칸 6개: 장비 그림(없으면 부위 아이콘) + 등급 글자 칩 + 부위 · 힐량');
+  ok((await page.locator('#s-char .gtile').count()) === 6 && /희/.test(await text('#s-char .gtile[data-gitem="101"] .c7-gl')) && /머리/.test(t101) && /지능 \+/.test(t101), '장비 칸 6개: 장비 그림(없으면 부위 아이콘) + 등급 글자 칩 + 부위 · 지능');
   ok(/가방에 1개/.test(await text('#s-char .gtile[data-gslot="hands"]')) && (await page.locator('#s-char .gtile[data-gslot="hands"] .c7-better').count()) === 1 && await page.isVisible('#s-char [data-csub="gear"] .rdot'), '빈칸 = 가방 개수 + 초록 ↑, 장비 탭 빨간 점');
   ok(/가방\s*3/.test(await text('#s-char [data-bag]')) && (await text('#s-char [data-bag] .g-badge')).trim() === '3', '「가방」 팻말 = 개수 + 빨간 숫자 (더 좋은 장비 부위 3)');
 

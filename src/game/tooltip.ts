@@ -4,7 +4,7 @@
  * 정보 줄은 지금처럼 짧은 명사형, 설명만 문장. 전투 팝업(#tip)과 캐릭터 탭이 같이 씀
  */
 import { ITEMS, POTION_CD, type ItemKey } from '../data/items';
-import { SKILL_INFO, SKILLS, type SkillKey } from '../data/skills';
+import { healText, SKILL_INFO, SKILLS, type SkillKey } from '../data/skills';
 
 export interface TipSpec {
   /** 이름 앞 아이콘 (HTML) */
@@ -32,10 +32,10 @@ export function castText(k: SkillKey): string {
 export const cdText = (k: SkillKey) => (SKILLS[k].cd ? `${SKILLS[k].cd}초 재사용 대기시간` : '');
 export const costText = (k: SkillKey) => (SKILLS[k].cost ? `마나 ${SKILLS[k].cost}%` : '마나 없음');
 
-/** 스킬: lockLv = 아직 못 배웠으면 배우는 레벨 */
-export function skillTip(k: SkillKey, lockLv = 0): TipSpec {
+/** 스킬: lockLv = 아직 못 배웠으면 배우는 레벨, int = 지금 지능 (설명에 지금 회복량, 34 1-2) */
+export function skillTip(k: SkillKey, lockLv = 0, int?: number): TipSpec {
   const info = SKILL_INFO[k];
-  return { name: SKILLS[k].name, kind: info?.kind, rows: [[costText(k)], [castText(k), cdText(k)]], req: lockLv ? `레벨 ${lockLv} 필요` : '', desc: info?.desc };
+  return { name: SKILLS[k].name, kind: info?.kind, rows: [[costText(k)], [castText(k), cdText(k)]], req: lockLv ? `레벨 ${lockLv} 필요` : '', desc: info && healText(info.desc, int) };
 }
 
 /** 소비 아이템: left = 이번 전투에 남은 횟수 (전투 밖이면 없음) */

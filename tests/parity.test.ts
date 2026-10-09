@@ -1,7 +1,7 @@
 /**
  * 프로토타입 엔진(tests/fixtures/proto-engine.cjs, prototype/engine.js 사본)과
  * TypeScript 엔진이 같은 시드·같은 입력에서 똑같이 움직이는지 확인한다.
- * 직업군 방어력(34 9-2)은 프로토타입에 없어서 끄고 비교한다 (armor: false).
+ * 직업군 방어력(34 9-2)은 프로토타입에 없어서 끄고 (armor: false), 숫자·시전·GCD는 프로토타입 규칙으로 (proto: true, 34 1장 이전 값) 비교한다.
  */
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
@@ -37,14 +37,14 @@ function snapTs(f: Fight) {
 
 const GEARS: GearId[] = ['none', 'adv0', 'rare5', 'epic5'];
 // 10인 역병 군주 악몽은 26 문서로 새로 만든 판 (프로토타입은 20인 강화판이었음) → 비교에서 뺌.
-// 레이드 재조정 (2026-10-07, 특성·능력 포함 기준)으로 보정(tune)이 붙은 난이도도 뺌 (역병 군주 어려움)
-const CASES = PROTO_ENCOUNTERS.flatMap(enc => ENCOUNTERS[enc].diffs.filter(diff => (enc !== 'plague' || diff !== '악몽') && !ENCOUNTERS[enc].tune?.[diff]).map(diff => ({ enc, diff })));
+// 난이도 보정(tune)은 프로토타입 규칙에서 쓰지 않아서 그 난이도도 비교함
+const CASES = PROTO_ENCOUNTERS.flatMap(enc => ENCOUNTERS[enc].diffs.filter(diff => enc !== 'plague' || diff !== '악몽').map(diff => ({ enc, diff })));
 
 describe('자동 힐러 한 판 결과가 프로토타입과 같음', () => {
   for (const { enc, diff } of CASES) {
     it(`${enc} ${diff}`, () => {
       for (const gear of GEARS) for (const seed of [1, 7, 42, 1234, 99991]) {
-        const cfg = { encounter: enc, diff, gear, seed, items: ['mana', 'life', 'cleanse', 'feather'] as ItemKey[], armor: false };
+        const cfg = { encounter: enc, diff, gear, seed, items: ['mana', 'life', 'cleanse', 'feather'] as ItemKey[], armor: false, proto: true };
         const a = P.simulate(cfg);
         const b = E.simulate(cfg);
         expect(snapTs(b), `${enc} ${diff} ${gear} seed ${seed}`).toEqual(snap(a));
@@ -60,7 +60,7 @@ describe('사람 입력(탭·휠·아이템)을 섞어도 틱마다 같음', () 
     it(`${enc} ${diff}`, () => {
       for (const seed of [3, 11, 2026]) {
         const items = [ITEMS[seed % 6], ITEMS[(seed + 1) % 6], ITEMS[(seed + 3) % 6], 'feather'] as ItemKey[];
-        const cfg = { encounter: enc, diff, gear: 'adv0' as GearId, seed, items, armor: false };
+        const cfg = { encounter: enc, diff, gear: 'adv0' as GearId, seed, items, armor: false, proto: true };
         const a = P.create(cfg);
         const b = E.create(cfg);
         const input = E.rngFrom(seed * 31 + 5); // 입력용 난수 (전투 난수와 따로)

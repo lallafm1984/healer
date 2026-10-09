@@ -116,7 +116,7 @@ export function gearStatsOf(eq: Equipped): GearStats {
     sub += n;
   }
   const n = sub / 3;
-  return { heal: any ? 1 + heal : 1, regen: 1 + 0.03 * n, haste: 0.02 * n, crit: 0.05 + 0.02 * n };
+  return { heal: any ? 1 + heal : 1, regen: 1 + 0.03 * n, haste: 0.02 * n, crit: 0.02 * n };
 }
 
 /**

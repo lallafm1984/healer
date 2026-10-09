@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { contentOf, stageOf } from '../src/data/content';
 import { avgScore, DROP_TABLE, gearStatsOf, ITEM_GRADES, rollItem, SLOTS, type Equipped } from '../src/data/equipment';
 import { gearStats } from '../src/data/gear';
-import { addXp, clearGold, clearXp, gradeOf, itemSlots, lvPower, starsOf, xpToNext } from '../src/data/progression';
+import { addXp, clearGold, clearXp, gradeOf, itemSlots, lvPower, lvPowerProto, starsOf, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
 import { heal } from '../src/engine/core';
 import { rngFrom } from '../src/engine';
@@ -68,11 +68,14 @@ describe('경험치·레벨 (02 부록 B)', () => {
 
 describe('레벨 배율 (07 4장, 18 2-1)', () => {
   it('Lv 1 = 1, 레벨마다 +0.08, Lv 100 ≈ 8.9배', () => {
-    expect(lvPower(1)).toBe(1);
-    expect(lvPower(2)).toBeCloseTo(1.08);
-    expect(lvPower(100)).toBeCloseTo(8.92);
-    expect(lvPower(0)).toBe(1);
-    expect(lvPower(150)).toBeCloseTo(8.92);
+    // 34 1-2: Lv 1 = 0.4 (숫자 ÷2.5), 레벨마다 Lv 1 값의 +22% → Lv 100 ≈ 9.1
+    expect(lvPower(1)).toBeCloseTo(0.4);
+    expect(lvPower(2)).toBeCloseTo(0.488);
+    expect(lvPower(100) / lvPower(1)).toBeCloseTo(22.78);
+    expect(lvPower(0)).toBeCloseTo(0.4);
+    expect(lvPower(150)).toBeCloseTo(lvPower(100));
+    expect(lvPowerProto(1)).toBe(1);
+    expect(lvPowerProto(100)).toBeCloseTo(8.92);
   });
 
   it('10인 악몽 단계 = Lv 50, 20인 = Lv 70 (악몽 80), 나머지는 콘텐츠 단계 (26)', () => {
@@ -84,40 +87,43 @@ describe('레벨 배율 (07 4장, 18 2-1)', () => {
   });
 
   const cfg = { encounter: 'warden' as const, diff: '보통' as const, seed: 3 };
-  it('레벨을 안 주면 예전 그대로 (배율 1)', () => {
+  it('레벨을 안 주면 Lv 1: 숫자 ÷2.5, 적·파티원은 내 세기 × 0.95, 적 피해 × 0.85 (34 1-2 · 1-4)', () => {
     const f = E.create(cfg);
-    expect(f.scale).toBe(1);
-    expect(f.power).toBe(1);
-    expect(f.dmgMult).toBe(1);
+    expect(f.power).toBeCloseTo(0.4);
+    expect(f.scale).toBeCloseTo(0.4 * 0.95);
+    expect(f.dmgMult).toBeCloseTo(0.4 * 0.95 * 0.85);
+    expect(f.me.max).toBeCloseTo(220);
+    const p = E.create({ ...cfg, proto: true });
+    expect([p.scale, p.power, p.dmgMult]).toEqual([1, 1, 1]);
   });
 
-  it('단계 Lv 11 = 파티원·보스 체력·딜·피해 ×1.8, 같은 레벨 힐러도 ×1.8', () => {
+  it('단계 Lv 11 = 파티원·보스 체력·딜·피해 ×3.2, 같은 레벨 힐러도 ×3.2', () => {
     const a = E.create(cfg), b = E.create({ ...cfg, stageLv: 11, heroLv: 11 });
-    expect(b.scale).toBeCloseTo(1.8);
-    expect(b.power).toBeCloseTo(1.8);
-    expect(b.bossMax).toBeCloseTo(a.bossMax * 1.8);
-    expect(b.dmgMult).toBeCloseTo(1.8);
+    expect(b.scale / a.scale).toBeCloseTo(3.2);
+    expect(b.power / a.power).toBeCloseTo(3.2);
+    expect(b.bossMax).toBeCloseTo(a.bossMax * 3.2);
+    expect(b.dmgMult).toBeCloseTo(a.dmgMult * 3.2);
     b.party.forEach((u, i) => {
-      expect(u.max).toBeCloseTo(a.party[i].max * 1.8);
-      expect(u.dps).toBeCloseTo(a.party[i].dps * 1.8);
+      expect(u.max).toBeCloseTo(a.party[i].max * 3.2);
+      expect(u.dps).toBeCloseTo(a.party[i].dps * 3.2);
     });
-    expect(E.partyDps(b)).toBeCloseTo(E.partyDps(a) * 1.8);
+    expect(E.partyDps(b)).toBeCloseTo(E.partyDps(a) * 3.2);
   });
 
   it('단계보다 높은 레벨만큼 힐량·내 체력만 커짐', () => {
     const a = E.create({ ...cfg, stageLv: 1, heroLv: 1 }), b = E.create({ ...cfg, stageLv: 1, heroLv: 6 });
-    expect(b.power).toBeCloseTo(1.4);
-    expect(b.me.max).toBeCloseTo(a.me.max * 1.4);
+    expect(b.power / a.power).toBeCloseTo(2.1);
+    expect(b.me.max).toBeCloseTo(a.me.max * 2.1);
     const tank = b.party.find(u => u.role === 'tank')!;
     expect(tank.max).toBeCloseTo(a.party.find(u => u.role === 'tank')!.max);
     tank.hp = 1; b.gear = { ...b.gear, crit: 0 };
     heal(b, tank, 100, false);
-    expect(tank.hp).toBeCloseTo(1 + 100 * b.gear.heal * 1.4);
+    expect(tank.hp).toBeCloseTo(1 + 100 * b.gear.heal * b.power);
   });
 
   it('단계보다 낮은 레벨은 단계로 봄 (개발 빌드 잠금 무시로 들어가도 힐이 줄지 않음)', () => {
     const f = E.create({ ...cfg, stageLv: 35, heroLv: 3 });
-    expect(f.power).toBeCloseTo(f.scale);
+    expect(f.power * 0.95).toBeCloseTo(f.scale);
   });
 
   it('자동 힐러: 단계와 레벨이 같으면 클리어율 차이 없음 (녹슨 요새 보통, 20판)', () => {

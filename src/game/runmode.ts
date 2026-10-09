@@ -1,7 +1,8 @@
 /**
  * 이번 판 설정: 적 레벨 · 어픽스 (32 레벨 맞춤), 주간 도전 「침묵의 시계」 (13 3-2).
  * 적 레벨·어픽스·보스 배율·제한시간을 한곳에서 정해 전투 탭·편성·정산이 같은 값을 씀.
- * 2026-10-08 레벨 단계를 없앰: 적 레벨은 늘 내 레벨에 맞춰짐 (2레벨 아래), 고르는 건 난이도 하나 (어픽스도 난이도에 붙음).
+ * 2026-10-08 레벨 단계를 없앰: 적 레벨은 늘 내 레벨에 맞춰짐, 고르는 건 난이도 하나 (어픽스도 난이도에 붙음).
+ * 2026-10-09 (34 1-2): 「2레벨 아래」 대신 적 레벨 = 내 레벨, 세기만 × 0.95 (data/rules RULES.enemy). 새 레벨 곡선은 경사가 커서 비율로 고정.
  */
 import { diffAffixes, type AffixKey } from '../data/affixes';
 import { CHAL, CHAL_ROTA, chalLimit, chalMult } from '../data/challenge';
@@ -29,11 +30,8 @@ export interface RunMode {
   chal: number;
 }
 
-/** 적 레벨 = 내 레벨 − 이만큼 (32 2장). 튜토리얼 직후 완충 · 덜 키운 길드원·인연 스카우트도 적 레벨에 맞음 */
-export const SYNC_GAP = 2;
-
 /**
- * 적 레벨 = 내 레벨 − 2 (32 2장). 콘텐츠 열림 레벨보다 낮으면 열림 레벨 (개발 빌드로 먼저 들어가도 열림 레벨).
+ * 적 레벨 = 내 레벨 (34 1-2, 세기는 엔진이 × 0.95). 콘텐츠 열림 레벨보다 낮으면 열림 레벨 (개발 빌드로 먼저 들어가도 열림 레벨).
  * 어픽스는 던전만 (레이드는 악몽 전용 기술, 탐험은 없음). 튜토리얼이 끝나기 전엔 콘텐츠 기본 레벨 · 어픽스 없음
  */
 export function runMode(save: SaveData, c: ContentDef, d: DiffName, o: { chal: number }, now = Date.now()): RunMode {
@@ -43,7 +41,7 @@ export function runMode(save: SaveData, c: ContentDef, d: DiffName, o: { chal: n
   }
   if (save.tut < TUT.done) return { stage: stageOf(c, d), affixes: [], chal: 0 };
   const lv = save.player.level;
-  return { stage: Math.max(lv - SYNC_GAP, stageOf(c, d)), affixes: c.kind === 'dungeon' ? diffAffixes(d, lv) : [], chal: 0 };
+  return { stage: Math.max(lv, stageOf(c, d)), affixes: c.kind === 'dungeon' ? diffAffixes(d, lv) : [], chal: 0 };
 }
 
 /** 레벨로 열림. 개발 빌드(레벨 잠금 무시)는 열림 표시만 */

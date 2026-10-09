@@ -140,16 +140,20 @@ describe('능력치 판 · 출처 (27 4-2)', () => {
     };
     const p = statParts(), st = gearStatsOf(G.save.gear.equipped), lp = lvPower(40);
     expect(p.hp.base + p.hp.level).toBe(p.hp.total);
-    expect(p.heal.base + p.heal.level + p.heal.gear).toBeCloseTo(st.heal * lp);
+    expect(p.hp.base).toBe(220); // Lv 1 = 550 ÷ 2.5 (34 1-2)
+    expect(p.int.base).toBe(120);
+    expect(p.int.base + p.int.level + p.int.gear).toBe(p.int.total);
+    expect(p.int.total).toBe(Math.round(300 * lp * st.heal));
+    expect(p.crit.base).toBe(0); // 기본 치명 0% (34 1-2)
     expect(p.crit.base + p.crit.gear).toBeCloseTo(st.crit);
-    expect(p.regen.base + p.regen.gear).toBeCloseTo(st.regen);
+    expect(1 + p.spirit.total).toBeCloseTo(st.regen);
     expect(heroStats().regen).toBeCloseTo(st.regen);
   });
   it('장비 한 개 몫을 6부위 더하면 장비 능력치', () => {
     const eq = Object.fromEntries(SLOTS.map((s, i) => [s.key, item({ id: i + 1, slot: s.key, grade: (['일반', '고급', '희귀', '영웅', '전설', '희귀'] as const)[i], plus: i })]));
     const st = gearStatsOf(eq), sum = SLOTS.reduce((a, s) => { const x = itemStats(eq[s.key]); return { heal: a.heal + x.heal, crit: a.crit + x.crit, haste: a.haste + x.haste, regen: a.regen + x.regen }; }, { heal: 0, crit: 0, haste: 0, regen: 0 });
     expect(1 + sum.heal).toBeCloseTo(st.heal);
-    expect(0.05 + sum.crit).toBeCloseTo(st.crit);
+    expect(sum.crit).toBeCloseTo(st.crit);
     expect(sum.haste).toBeCloseTo(st.haste);
     expect(1 + sum.regen).toBeCloseTo(st.regen);
     expect(itemStats(null)).toEqual({ heal: 0, crit: 0, haste: 0, regen: 0 });

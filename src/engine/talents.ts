@@ -37,10 +37,10 @@ export function costOf(f: Fight, key: SkillKey): number {
 
 /** 시전 시간: 손에 익은 치유 (치유 -0.3초), 기도의 정점 (즉시) */
 export function castOf(f: Fight, key: SkillKey): number {
-  const sk = SKILLS[key];
-  if (!(sk.cast > 0)) return 0;
+  const base = f.R.cast?.[key] ?? SKILLS[key].cast;
+  if (!(base > 0)) return 0;
   if (activeOn(f, 'zenith')) return 0;
-  return (key === 'heal' && f.tx.on.practiced ? sk.cast - 0.3 : sk.cast) / (1 + f.gear.haste);
+  return (key === 'heal' && f.tx.on.practiced ? base - 0.3 : base) / (1 + f.gear.haste);
 }
 
 /** 재사용 대기 (쓸 때 거는 값): 빨라진 찬가 (찬가 -60초) */

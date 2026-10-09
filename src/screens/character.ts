@@ -11,7 +11,7 @@ import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, MAX_PLUS, 
 import { DEB_COLOR, HERO_KEYS, HERO_SWITCH_LV, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots, TALENT_LEVEL } from '../data/progression';
-import { PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
+import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { TALENTS, type TalentKey } from '../data/talents';
 import type { TapKey } from '../platform/storage';
 import { betterSlots, gearAvg, gearScore, isBetter, scoreOf, statParts, talentsLeft } from '../game/charinfo';
@@ -171,6 +171,7 @@ const STAT_LINE = {
   crit: line('<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6-4.5-4.2 6.1-.7z"/>'),
   haste: line('<circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l3 2M10 3h4"/>', 2.2),
   regen: line('<path d="M12 3c3.5 4.5 6 7.6 6 11a6 6 0 0 1-12 0c0-3.4 2.5-6.5 6-11z"/>', 2.2),
+  stamina: line('<path d="M12 3l7 3v5c0 5-3.2 8.4-7 10-3.8-1.6-7-5-7-10V6z"/>', 2.2),
 };
 const statIc = (k: keyof typeof STAT_LINE) => gameIcon(k, STAT_LINE[k], 'stat');
 
@@ -185,7 +186,7 @@ function slotHtml(key: SlotKey, better: SlotKey[]): string {
   }
   return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(it.name)}${plusTxt(it)} · ${it.grade}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
       <span class="c7-sq">${itemIc(key)}<i class="c7-gl">${it.grade[0]}</i>${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${up}</span>
-      <b>${it.lock ? LOCK : ''}${name}</b><small>힐 +${pc(itemStats(it).heal)}%</small></button>`;
+      <b>${it.lock ? LOCK : ''}${name}</b><small>지능 +${pc(itemStats(it).heal)}%</small></button>`;
 }
 
 /** ② 받침대 위 이름표: 장비 점수 · 평균 등급 */
@@ -195,15 +196,16 @@ function plaqueHtml(): string {
   return `<div class="c7-plq"><span class="c7-psc">장비 점수 <b>${fmt(gearScore())}</b></span><small>${avgTxt}</small></div>`;
 }
 
-/** ③ 능력치 판 5칸: 초록 = 장비 몫. 누르면 출처 시트 */
+/** ③ 능력치 판 6칸 (34 1-2 · 10장): 체력 · 지능 · 치명타 / 가속 · 정신력 · 인내. 초록 = 장비 몫. 누르면 출처 시트 */
 function statsHtml(): string {
   const p = statParts();
   const stat = (ic: string, k: string, v: string, add = '') => `<span class="c7-stat"><span class="c7-si">${ic}</span><span class="c7-sv"><small>${k}</small><b>${v}${add ? `<i>${add}</i>` : ''}</b></span></span>`;
-  const crit = Math.round(p.crit.total * 100), haste = Math.round(p.haste.total * 100), rg = p.regen.gear;
+  const pc0 = (x: number) => Math.round(x * 100);
+  const crit = pc0(p.crit.total), critG = pc0(p.crit.gear), haste = pc0(p.haste.total), spirit = pc0(p.spirit.total), endure = pc0(p.endure.total);
   return `<button type="button" class="c7-stats" data-sheet="stats" aria-label="능력치 · 누르면 출처">
       <span class="c7-sh">능력치<span class="rule"></span><small>초록 = 장비 몫</small></span>
-      <span class="c7-sgrid">${stat(statIc('hp'), '체력', fmt(p.hp.total))}${stat(statIc('heal'), '힐량', `×${p.heal.total.toFixed(2)}`, p.heal.gear >= 0.005 ? `+${p.heal.gear.toFixed(2)}` : '')}${stat(statIc('crit'), '치명타', `${crit}%`, crit > 5 ? `+${crit - 5}` : '')}
-        ${stat(statIc('haste'), '가속', `${haste}%`, haste ? `+${haste}` : '')}${stat(statIc('regen'), '마나 재생', `×${p.regen.total.toFixed(2)}`, rg >= 0.005 ? `+${rg.toFixed(2)}` : '')}</span></button>`;
+      <span class="c7-sgrid">${stat(statIc('hp'), '체력', fmt(p.hp.total))}${stat(statIc('heal'), '지능', fmt(p.int.total), p.int.gear ? `+${fmt(p.int.gear)}` : '')}${stat(statIc('crit'), '치명타', `${crit}%`, critG ? `+${critG}` : '')}
+        ${stat(statIc('haste'), '가속', `${haste}%`, haste ? `+${haste}` : '')}${stat(statIc('regen'), '정신력', `+${spirit}%`, spirit ? `+${spirit}` : '')}${stat(statIc('stamina'), '인내', `${endure}%`, endure ? `+${endure}` : '')}</span></button>`;
 }
 
 function gearHtml(): string {
@@ -268,8 +270,8 @@ function itemSheet(id: number): string {
   const d1 = (x: number, y: number) => Math.round((x - y) * 1000) / 10;
   const row = (k: string, v: string, diff: string) => `<div class="c7-cmp"><span>${k}</span><b>${v}</b>${diff}</div>`;
   const rows = worn
-    ? row('힐량', `+${pc(a.heal)}%`, '') + row('치명타', `+${pc(a.crit)}%`, '') + row('가속', `+${pc(a.haste)}%`, '')
-    : row('힐량', `+${pc(a.heal)}%`, updn(d1(a.heal, b.heal))) + row('치명타', `+${pc(a.crit)}%`, updn(d1(a.crit, b.crit))) + row('가속', `+${pc(a.haste)}%`, updn(d1(a.haste, b.haste)));
+    ? row('지능', `+${pc(a.heal)}%`, '') + row('치명타', `+${pc(a.crit)}%`, '') + row('가속', `+${pc(a.haste)}%`, '')
+    : row('지능', `+${pc(a.heal)}%`, updn(d1(a.heal, b.heal))) + row('치명타', `+${pc(a.crit)}%`, updn(d1(a.crit, b.crit))) + row('가속', `+${pc(a.haste)}%`, updn(d1(a.haste, b.haste)));
   const c = enhanceCost(it), m = G.save.mats, gold = G.save.player.gold;
   const can = !!c && gold >= c.gold && m.stone >= c.stone && m.refined >= c.refined;
   const lack = c && !can ? (gold < c.gold ? '골드 부족' : m.stone < c.stone ? '강화석 부족' : '정제 강화석 부족') : '';
@@ -294,19 +296,21 @@ function itemSheet(id: number): string {
 
 /** 능력치 출처 시트: 기본 · 레벨 · 장비 · 특성 몫 */
 function statsSheet(): string {
-  const p = statParts(), crit = Math.round(p.crit.total * 100), haste = Math.round(p.haste.total * 100);
+  const p = statParts(), pc0 = (x: number) => Math.round(x * 100);
+  const crit = pc0(p.crit.total), haste = pc0(p.haste.total), spirit = pc0(p.spirit.total);
   const row = (k: string, v: string, parts: string[]) => `<div class="c7-src"><span>${k}</span><b>${v}</b><span class="cap">${parts.filter(Boolean).join(' · ')}</span></div>`;
   return `${dim}<section class="sheet c7-ssheet" role="dialog" aria-label="능력치 출처">${grip}
       <h3 class="h-rule">능력치 출처<span class="rule"></span><span class="cap">레벨 · 장비 · 특성</span></h3>
       <div class="c7-srcs">
         ${row('체력', fmt(p.hp.total), [`기본 ${fmt(p.hp.base)}`, `레벨 +${fmt(p.hp.level)}`, '장비 0'])}
-        ${row('힐량', `×${p.heal.total.toFixed(2)}`, ['기본 ×1.00', `레벨 +${p.heal.level.toFixed(2)}`, `장비 +${p.heal.gear.toFixed(2)}`])}
-        ${row('치명타', `${crit}%`, ['기본 5%', `장비 +${crit - 5}%`])}
-        ${row('가속', `${haste}%`, [`장비 +${haste}%`])}
-        ${row('마나 재생', `×${p.regen.total.toFixed(2)}`, ['기본 ×1.00', `장비 +${p.regen.gear.toFixed(2)}`])}
+        ${row('지능', fmt(p.int.total), [`기본 ${fmt(p.int.base)}`, `레벨 +${fmt(p.int.level)}`, `장비 +${fmt(p.int.gear)}`])}
+        ${row('치명타', `${crit}%`, [`기본 ${pc0(p.crit.base)}%`, `장비 +${pc0(p.crit.gear)}%`])}
+        ${row('가속', `${haste}%`, [`장비 +${haste}%`, `최대 ${pc0(p.haste.cap)}%`])}
+        ${row('정신력', `+${spirit}%`, [`장비 +${spirit}%`, `마나 재생 초당 ${(p.spirit.regen * (1 + p.spirit.total)).toFixed(2)}%`])}
+        ${row('인내', `${pc0(p.endure.total)}%`, ['받는 피해 감소', `장비 +${pc0(p.endure.gear)}%`])}
         ${row('특성', '0', ['상시 능력치 몫 없음'])}
       </div>
-      <p class="note">레벨 배율 ×${p.lp.toFixed(2)} (Lv ${G.save.player.level}). 체력은 장비로 오르지 않습니다. 고른 특성은 전투 중 조건이 맞으면 켜집니다.</p>
+      <p class="note">지능은 치유 회복량입니다. 스킬 회복량은 지능의 비율입니다. 가속은 시전과 GCD를 함께 줄입니다. 체력은 장비로 오르지 않습니다. 고른 특성은 전투 중 조건이 맞으면 켜집니다.</p>
       <button type="button" class="c7-cta" data-sheetx>닫기</button></section>`;
 }
 
@@ -399,9 +403,11 @@ function descBox(lay: Record<string, string | null>): string {
   const lock = lockLv(k), sk = SKILLS[k];
   const meta = [costShort(k), castShort(k), sk.cd ? `재사용 ${sk.cd}초` : '', `Lv ${SKILL_LEVEL[k]}`].filter(Boolean).join(' · ');
   return `<section class="c7-sdesc c7-parch" aria-live="polite"><h3>${sk.name}<small>${meta}</small></h3>
-      <p class="c7-sdt">${esc(SKILL_INFO[k].desc)}</p>
+      <p class="c7-sdt">${esc(skDesc(k))}</p>
       <p class="m c7-sdm">${descHint(k, sel, h)}${lock ? ` ${LOCK}Lv ${lock}에 배웁니다.` : ''}</p></section>`;
 }
+/** 스킬 설명: 회복량은 「지능의 n% (지금 값)」 (34 1-2) */
+const skDesc = (k: SkillKey) => healText(SKILL_INFO[k].desc, statParts().int.total);
 /** 설명 아래 한 줄: 종류 · 쓰는 방향 · 칸 탭 */
 const descHint = (k: SkillKey, d: string, h: HeroKey) => `${SKILL_INFO[k].kind} · 휠에서 ${battle().layout.ARROW[d]} 쪽으로 쓸면 씁니다.${skillAt(h, G.save.settings.tapKey) === k ? ' 칸 탭 기본 힐입니다.' : ''}`;
 
@@ -420,7 +426,7 @@ function fitDesc(): void {
   // 낱말 단위로 줄이 바뀌어(keep-all) 끝에 남는 자리만큼 넉넉히 1.1배
   const lines = (t: string, font: string) => { measure!.font = font; return Math.ceil((measure!.measureText(t).width * 1.1) / w); };
   const ks = heroSkills(hero()).filter(k => k !== 'serenity' && k !== 'sanctify');
-  const body = Math.max(2, ...ks.map(k => lines(SKILL_INFO[k].desc, `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`)));
+  const body = Math.max(2, ...ks.map(k => lines(skDesc(k), `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`)));
   const small = `400 12px ${cs.fontFamily}`;
   const hint = Math.max(1, ...ks.map(k => lines(`${descHint(k, 'NE', hero())} 칸 탭 기본 힐입니다. Lv 15에 배웁니다.`, small)));
   box.style.height = `${112 + (body - 2) * 19 + (hint - 1) * 17}px`;
@@ -439,12 +445,12 @@ function skillRows(lay: Record<string, string | null>): string {
     const meta = [SKILL_INFO[k].kind, castShort(k), costShort(k), sk.cd ? `${sk.cd}초` : ''].filter(Boolean).join(' · ');
     return `<button type="button" class="c7-sk${lock ? ' locked' : ''}${d && sel === d && !swapping ? ' on' : ''}" data-skill="${k}" aria-expanded="${open}">
         <span class="c7-ski">${skillIc(k)}</span><span class="c7-skn"><b>${sk.name}</b><span>${lock ? `${LOCK}Lv ${lock}에 배움 · ` : ''}${meta}</span></span><span class="c7-dir">${d ? L.ARROW[d] : ''}</span></button>
-      ${open ? `<p class="c7-skd">${esc(SKILL_INFO[k].desc)}</p>` : ''}`;
+      ${open ? `<p class="c7-skd">${esc(skDesc(k))}</p>` : ''}`;
   });
   if (h === 'priest') {
     const lock = lv < PASSIVE_LEVEL.words ? PASSIVE_LEVEL.words : 0, open = skOpen === 'words';
     rows.push(`<button type="button" class="c7-sk holy${lock ? ' locked' : ''}" data-skrow="words" aria-expanded="${open}"><span class="c7-ski">${skillIc('serenity')}</span><span class="c7-skn"><b>${SKILLS.serenity.name} · ${SKILLS.sanctify.name}</b><span>${lock ? `${LOCK}Lv ${lock}에 배움 · ` : ''}게이지 100%에서 휠 조각이 바뀜 · 마나 0</span></span><span class="c7-dir"></span></button>
-      ${open ? `<p class="c7-skd"><b>${SKILLS.serenity.name}</b> ${esc(SKILL_INFO.serenity.desc)}<br><b>${SKILLS.sanctify.name}</b> ${esc(SKILL_INFO.sanctify.desc)}</p>` : ''}`);
+      ${open ? `<p class="c7-skd"><b>${SKILLS.serenity.name}</b> ${esc(skDesc('serenity'))}<br><b>${SKILLS.sanctify.name}</b> ${esc(skDesc('sanctify'))}</p>` : ''}`);
   }
   const pas = passivesOf(h), open = skOpen === 'pas';
   rows.push(`<button type="button" class="c7-sk pas" data-skrow="pas" aria-expanded="${open}"><span class="c7-ski">${line('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/>')}</span><span class="c7-skn"><b>패시브 ${pas.length}</b><span>${pas.map(p => p.name).join(' · ')}</span></span><span class="c7-dir">${open ? '▴' : '▾'}</span></button>
@@ -588,7 +594,7 @@ function talentSheet(i: number, j: number): string {
   return `<section class="sheet c7-tsheet" role="dialog" aria-label="특성 설명">
       <span class="c7-tsi">${line(TALENT_LINE[p.key])}</span>
       <span class="c7-tst"><span class="c7-tsh"><b>${p.name}</b><span class="cap">Lv ${t.lv} · ${t.theme}${p.active ? ' · 보조 버튼' : ''}</span></span>
-        <span class="c7-tsd">${esc(p.desc)}</span>${p.active ? '<span class="cap">보조 버튼 특성은 전투 화면 단축칸 위에 버튼으로 나옴</span>' : ''}</span>
+        <span class="c7-tsd">${esc(healText(p.desc, statParts().int.total))}</span>${p.active ? '<span class="cap">보조 버튼 특성은 전투 화면 단축칸 위에 버튼으로 나옴</span>' : ''}</span>
       <button type="button" class="c7-cta c7-tgo" data-talent="${i}:${j}">${cur === j ? '풀기' : '고르기'}</button></section>`;
 }
 
@@ -624,7 +630,7 @@ function heroDetail(k: HeroKey): string {
   // 스킬 = 휠 스킬 수 (사제 성언 둘은 휠 조각이 바뀌는 것이라 빼고 셈), 패시브 = 고유 시스템 포함 (스킬 탭 「패시브 N」과 같은 수)
   const pas = passivesOf(k), nSk = heroSkills(k).filter(x => x !== 'serenity' && x !== 'sanctify').length;
   const ex = hskOpen === k;
-  const list = ex ? `<ul class="c7-pas">${heroSkills(k).map(sk => `<li><b>${SKILLS[sk].name}</b><span class="cap">${SKILL_INFO[sk].kind} · Lv ${SKILL_LEVEL[sk]}</span><p>${esc(SKILL_INFO[sk].desc)}</p></li>`).join('')}${pas.map(p => `<li><b>${p.name}</b><span class="cap">${p.kind} · Lv ${p.lv}</span><p>${esc(p.desc)}</p></li>`).join('')}</ul>` : '';
+  const list = ex ? `<ul class="c7-pas">${heroSkills(k).map(sk => `<li><b>${SKILLS[sk].name}</b><span class="cap">${SKILL_INFO[sk].kind} · Lv ${SKILL_LEVEL[sk]}</span><p>${esc(healText(SKILL_INFO[sk].desc))}</p></li>`).join('')}${pas.map(p => `<li><b>${p.name}</b><span class="cap">${p.kind} · Lv ${p.lv}</span><p>${esc(p.desc)}</p></li>`).join('')}</ul>` : '';
   const quest = q && st.need && st.state !== 'open' && !hs.unlocked ? `<div class="c7-hq hq"><p><b>직업 퀘스트 「${q.name}」</b><br>${esc(q.text)}</p><strong>${st.quest} / ${st.need}</strong></div>` : '';
   const notes = [
     st.state === 'now' ? `이 직업으로 이긴 판 ${fmt(hs.wins)}` : '',

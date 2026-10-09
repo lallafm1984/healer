@@ -8,7 +8,7 @@ import * as E from '../src/engine';
 import { affDebuffEnd, affixTick, affHeal } from '../src/engine/affixes';
 import { heal } from '../src/engine/core';
 import { rollover } from '../src/game/economy';
-import { runMode, SYNC_GAP, weekAffixes } from '../src/game/runmode';
+import { runMode, weekAffixes } from '../src/game/runmode';
 import { settle, type BattleResult } from '../src/game/settle';
 import { newSave, type SaveData } from '../src/platform/storage';
 
@@ -163,21 +163,21 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
   it('적 레벨로 골드·경험치를 셈', () => {
     const s = save(52), m = runMode(s, contentOf('rustfort'), '어려움', { chal: 0 });
     s.daily.pub = 3; // 공개모집 보너스(×2)는 뺌
-    expect(m).toMatchObject({ stage: 50, affixes: ['rage'], chal: 0 });
+    expect(m).toMatchObject({ stage: 52, affixes: ['rage'], chal: 0 });
     const x = settle(s, result({ diff: '어려움', stage: m.stage, affixes: m.affixes }), rng, [], T0);
-    expect(x.gold).toBe(clearGold(50, '어려움', 'S'));
+    expect(x.gold).toBe(clearGold(52, '어려움', 'S'));
     expect(x.xp).toBe(clearXp(52, '어려움', 'S', { win: true }));
   });
-  it('어느 레벨이든 적 = 내 레벨 − 2 (단계 톱니 없음), 열림 레벨 아래로는 안 내려감', () => {
+  it('어느 레벨이든 적 = 내 레벨 (단계 톱니 없음, 세기 × 0.95는 엔진, 34 1-2), 열림 레벨 아래로는 안 내려감', () => {
     const rf = contentOf('rustfort');
-    for (const lv of [1, 2, 3, 5, 9, 10, 29, 30, 49, 50, 100]) expect(runMode(save(lv), rf, '보통', { chal: 0 })).toMatchObject({ stage: Math.max(1, lv - SYNC_GAP), affixes: [] });
+    for (const lv of [1, 2, 3, 5, 9, 10, 29, 30, 49, 50, 100]) expect(runMode(save(lv), rf, '보통', { chal: 0 })).toMatchObject({ stage: lv, affixes: [] });
     // 튜토리얼 전은 콘텐츠 기본 레벨 · 어픽스 없음
     const tut = save(40); tut.tut = 2;
     expect(runMode(tut, rf, '악몽', { chal: 0 })).toMatchObject({ stage: 1, affixes: [] });
   });
   it('레이드·탐험은 어픽스 없음. 열림 레벨 전에 들어가면 (개발 빌드) 열림 레벨', () => {
-    expect(runMode(save(90), contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(88);
-    expect(runMode(save(60), contentOf('abyss1'), '악몽', { chal: 0 })).toMatchObject({ stage: 58, affixes: [] });
+    expect(runMode(save(90), contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(90);
+    expect(runMode(save(60), contentOf('abyss1'), '악몽', { chal: 0 })).toMatchObject({ stage: 60, affixes: [] });
     const dev = save(20); dev.settings.devUnlock = true;
     expect(runMode(dev, contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(35);
     expect(runMode(dev, contentOf('abyss1'), '악몽', { chal: 0 }).stage).toBe(50);

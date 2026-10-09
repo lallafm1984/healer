@@ -27,9 +27,9 @@ export default async function character(url, shots) {
   ok(/장비점수0/.test(plq) && /장비없음/.test(plq), `받침대 이름표 = 장비 점수 · 평균 등급 (${plq})`);
   ok((await page.locator('#s-char .c7-stage .c7-bigem .emblem').count()) === 1 && /사제/.test(await text('#s-char .topbar .tb-cls')), '받침대 위 큰 직업 문장 1개, 위 줄 = 사제');
   const stats = await flat('#s-char .c7-stats');
-  ok(/체력550/.test(stats) && /힐량×1\.00/.test(stats) && !/세트/.test(stats), `능력치 판: 체력 550, 힐량 ×1.00, 세트 칸 없음 (${stats})`);
-  ok((await page.locator('#s-char .c7-stat').count()) === 5 && (await page.locator('#s-char .gtile').count()) === 6 && (await page.locator('#s-char .gtile.empty').count()) === 6, '능력치 5칸, 착용 6칸 (다 빈칸)');
-  ok((await page.locator('#s-char .c7-sq img.g-ic').count()) === 6 && (await page.locator('#s-char .c7-stat .c7-si img.g-ic').count()) === 5 && (await page.locator('#s-char nav .c7-tic img.g-ic').count()) === 3, '31 그림: 장비 칸 item- 6장, 능력치 stat- 5장, 하위 탭 icon-gear·skills·talent');
+  ok(/체력220/.test(stats) && /지능120/.test(stats) && /정신력/.test(stats) && /인내/.test(stats) && !/세트/.test(stats), `능력치 판: 체력 220 · 지능 120 (34 1-2: 숫자 ÷2.5), 정신력 · 인내, 세트 칸 없음 (${stats})`);
+  ok((await page.locator('#s-char .c7-stat').count()) === 6 && (await page.locator('#s-char .gtile').count()) === 6 && (await page.locator('#s-char .gtile.empty').count()) === 6, '능력치 6칸, 착용 6칸 (다 빈칸)');
+  ok((await page.locator('#s-char .c7-sq img.g-ic').count()) === 6 && (await page.locator('#s-char .c7-stat .c7-si img.g-ic').count()) === 5 && (await page.locator('#s-char nav .c7-tic img.g-ic').count()) === 3, '31 그림: 장비 칸 item- 6장, 능력치 stat- 5장 (인내 stat-stamina는 그림 전까지 선 아이콘), 하위 탭 icon-gear·skills·talent');
   await page.screenshot({ path: `${shots}/char_gear.png` });
 
   // ---- 스킬: Lv 1 ----
@@ -43,11 +43,11 @@ export default async function character(url, shots) {
   const h0 = await page.evaluate(() => document.querySelector('#s-char .c7-sdesc').getBoundingClientRect().height);
   await page.click('#s-char [data-ldir="NE"]'); await page.clock.runFor(50);
   const desc = await text('#s-char .c7-sdesc');
-  ok(/치유/.test(desc) && /시전 1\.8초/.test(desc) && /칸 탭/.test(desc) && await page.isVisible('#s-char .c7-sk.on[data-skill="heal"]'), '휠 칸을 누르면 아래 설명 칸 + 줄 목록 표시');
+  ok(/치유/.test(desc) && /시전 2\.5초/.test(desc) && /칸 탭/.test(desc) && await page.isVisible('#s-char .c7-sk.on[data-skill="heal"]'), '휠 칸을 누르면 아래 설명 칸 + 줄 목록 표시');
   const h1 = await page.evaluate(() => document.querySelector('#s-char .c7-sdesc').getBoundingClientRect().height);
   ok(h0 === h1 && h1 >= 112, `설명 칸 높이 고정 (${h0} / ${h1})`);
   await page.click('#s-char .c7-sk[data-skill="flash"]'); await page.clock.runFor(50);
-  ok(/250 회복/.test(await text('#s-char .c7-skd')) && await page.getAttribute('#s-char .c7-sk[data-skill="flash"]', 'aria-expanded') === 'true', '스킬 줄을 누르면 설명 펼침');
+  ok(/지능의 83% \(100\) 회복/.test(await text('#s-char .c7-skd')) && await page.getAttribute('#s-char .c7-sk[data-skill="flash"]', 'aria-expanded') === 'true', '스킬 줄을 누르면 설명 펼침');
   await page.screenshot({ path: `${shots}/char_skill_lv1.png` });
 
   // ---- 스킬: 배치 바꾸기 ----
@@ -110,11 +110,10 @@ export default async function character(url, shots) {
   await page.screenshot({ path: `${shots}/char_skill_lv25.png`, fullPage: false });
   await page.click('#s-char [data-csub="gear"]'); await page.clock.runFor(50);
   const st25 = await flat('#s-char .c7-stats');
-  const hm = st25.match(/힐량×(\d+\.\d\d)/);
-  ok(/체력1,606/.test(st25) && hm && Number(hm[1]) >= 2.92, `Lv 25 = 체력 550 × 2.92, 힐량에 레벨 배율 (${st25.slice(0, 60)})`);
+  ok(/체력1,382/.test(st25) && /지능754/.test(st25), `Lv 25 = 체력 220 × 6.28 · 지능 120 × 6.28 (34 1-2 레벨 배율) (${st25.slice(0, 60)})`);
   await page.click('#s-char .c7-stats'); await page.clock.runFor(50);
   const src = await text('#s-char .c7-ssheet');
-  ok(/기본 550/.test(src) && /레벨 \+1,056/.test(src) && /특성/.test(src) && !/세트/.test(src), '능력치 판을 누르면 출처 시트 (기본·레벨·장비·특성)');
+  ok(/기본 220/.test(src) && /레벨 \+1,162/.test(src) && /지능/.test(src) && /특성/.test(src) && !/세트/.test(src), '능력치 판을 누르면 출처 시트 (기본·레벨·장비·특성)');
   await ctx.close();
   await browser.close();
   return { fails, errs };
