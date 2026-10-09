@@ -217,12 +217,6 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 #battle .q .sec { font-weight: 900; color: var(--ink); }
 #battle .q.casting .sec { color: #FF9A92; }
 #battle .q .bar { left: 0; right: 0; bottom: 0; height: 3px; border-radius: 0; background: #FF3B30; }
-#partyStatus { background: #17130F; border-bottom: 1px solid var(--edge-dim); color: var(--ink-2); }
-#partyStatus > span:first-child { font: 700 14px var(--font-display); color: var(--gold-hi); }
-#partyStatus b { color: var(--gold-hi); }
-#partyCondition { color: var(--heal); }
-#partyCondition.critical, #partyCondition.down { color: #FF9A92; }
-#partyStatus .board-instruction { color: var(--mute); }
 #battle #boardWrap { background: radial-gradient(ellipse at center, var(--tone-a, #211B15), var(--tone-b, #110E0B) 76%); }
 #battle.has-floor #boardWrap { background: radial-gradient(ellipse at center, rgba(16, 13, 10, 0.34) 30%, rgba(12, 10, 8, 0.72) 100%), var(--floor) center / cover, #15120E; }
 #battle #castbar { border-top: 1px solid var(--edge-dim); background: #17130F; color: var(--ink-2); }

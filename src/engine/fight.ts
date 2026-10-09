@@ -1,5 +1,5 @@
 import { NO_TANK_MIN_PARTY, NO_TANK_SEC } from '../data/armor';
-import { BOARDS } from '../data/boards';
+import { BOARDS, PROTO_BOARDS } from '../data/boards';
 import { CLASSES, RECRUIT_CLASSES, sameClassMax, type ClassKey } from '../data/classes';
 import { DIFFS, MYTHIC } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
@@ -32,7 +32,8 @@ export function create(cfg: FightConfig): Fight {
   const diff = DIFFS[cfg.diff];
   const rng = rngFrom(cfg.seed || 1);
   const gear = cfg.gearStats ? { ...cfg.gearStats } : gearStats(cfg.gear || 'none');
-  const board = cfg.board && BOARDS[cfg.board] && BOARDS[cfg.board].flat().length === BOARDS[enc.board].flat().length ? cfg.board : enc.board;
+  const encBoard = (cfg.proto && PROTO_BOARDS[enc.key]) || enc.board;
+  const board = cfg.board && BOARDS[cfg.board] && BOARDS[cfg.board].flat().length === BOARDS[encBoard].flat().length ? cfg.board : encBoard;
   const cells = makeCells(BOARDS[board]);
   const rows = BOARDS[board].length;
   const mythic = cfg.diff === '악몽';

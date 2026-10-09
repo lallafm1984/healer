@@ -213,9 +213,10 @@ describe('쫄 (P-ADD) · 쓰러질 때 (P-BURST)', () => {
     expect(new Set(on).size).toBe(2);
     expect(on.every(u => u.role === 'melee' || u.role === 'ranged')).toBe(true);
     expect(f.bossHp).toBe(f.bossMax);
-    const hp = on[0].hp;
+    // 쫄 피해 기준 = 원거리 (근접은 직업군 방어력 차이만큼 덜 맞음)
+    const r = on.find(u => u.role === 'ranged')!, hp = r.hp;
     steps(f, 2.05);
-    expect(hp - on[0].hp).toBeCloseTo(18 * f.dmgMult);
+    expect(hp - r.hp).toBeCloseTo(18 * f.dmgMult);
   });
   it('딜러 딜은 쫄부터, 탱커 딜은 보스로. 쓰러지면 맡던 사람에게 부패 (최대 체력 -10%), 지우면 돌아옴', () => {
     const f = E.create({ encounter: 'warden', diff: '보통', seed: 1 });
@@ -279,12 +280,12 @@ describe('흐르는 장판 (향로 연기)', () => {
 
 describe('피난처 (P-SAFE) · 한 번 맞는 장판', () => {
   const BELLY = { key: 'belly', name: '배치기', kind: 'zone', first: 0, period: 999, cast: 4, hitDmg: 360, cells: { p: 'safe', at: 'edge', n: 6 } } as const;
-  it('5인 판: 가운데 4칸이 맞는 칸, 바깥 6칸이 안전 칸 (금빛)', () => {
+  it('바깥 6칸이 안전 칸 (금빛), 나머지 칸은 모두 맞는 칸', () => {
     const f = fight();
     const s = fromDef(f, BELLY);
     s.next = f.t; E.step(f);
     const tel = f.tels.find(t => t.skill === s)!;
-    expect(tel.cells.size).toBe(4);
+    expect(tel.cells.size).toBe(f.cells.length - 6);
     expect(tel.safe!.size).toBe(6);
     expect([...tel.cells].some(i => tel.safe!.has(i))).toBe(false);
   });
@@ -333,7 +334,7 @@ describe('무너지는 바닥 (P-HOLE) · 칸을 차지하는 쫄 (토템)', () 
     expect(holes).toHaveLength(3);
     expect(f.cells.filter(c => !c.unit && !c.block).length).toBeGreaterThanOrEqual(1);
     const g = fight();
-    for (let i = 0; i < 20; i++) run(g, { p: 'hole', n: 1, max: 20 });
+    for (let i = 0; i < g.cells.length; i++) run(g, { p: 'hole', n: 1, max: g.cells.length });
     expect(g.cells.filter(c => !c.unit && !c.block)).toHaveLength(1);
     const u = dealer(f);
     for (let i = 0; i < 20; i++) { const c = pickCell(f, u, { safe: true }); expect(c?.block).toBeUndefined(); }

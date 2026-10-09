@@ -174,7 +174,10 @@ export default async function legacyUi(url, shots) {
   await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
   await page.click('#depart'); await page.clock.runFor(3300);
   const b20 = await ev(() => ({ board: window.__proto.F.board, cells: window.__proto.F.cells.length }));
-  ok(b20.board === 'b30' && b20.cells === 30, `20인 = 가로형 b30 ${JSON.stringify(b20)}`);
+  ok(b20.board === 'b36' && b20.cells === 36, `20인 = 6열 × 6줄 b36 ${JSON.stringify(b20)}`);
+  // 파티 요약 줄 「파티 20/20 · 모두 생존」은 뺐다 (2026-10-09 Lim). 판이 보스 무대 바로 아래에서 시작
+  const top20 = await ev(() => ({ gone: !document.querySelector('#partyStatus,#partyAlive,#partyCondition'), stage: document.getElementById('stage').getBoundingClientRect().bottom, board: document.getElementById('boardWrap').getBoundingClientRect().top }));
+  ok(top20.gone && Math.abs(top20.board - top20.stage) <= 1, `파티 요약 줄 없음, 판이 무대 바로 아래 ${JSON.stringify(top20)}`);
   const boxes20 = await ev(() => {
     const r = el => { const b = el.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, r: b.right, b: b.bottom }; };
     return { items: [...document.querySelectorAll('#items .item')].map(r), wheel: r(document.getElementById('wheel')), controls: r(document.getElementById('controls')) };

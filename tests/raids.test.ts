@@ -67,7 +67,7 @@ describe('20인 유령 성가대 (26 4-3)', () => {
     const f = fight();
     expect(f.mobs.map(m => m.name)).toEqual([...CHOIR.voices, '지휘자']);
     expect(f.mobs[3].boss).toBe(true);
-    expect(f.board).toBe('b30');
+    expect(f.board).toBe('b36');
     expect(f.party.length).toBe(20);
     steps(f, 20);
     expect(f.mobs[0].hp).toBeLessThan(f.mobs[0].max);
@@ -83,14 +83,14 @@ describe('20인 유령 성가대 (26 4-3)', () => {
     expect(hurt.length).toBeGreaterThan(0);
     expect(hurt.every(u => f.cells[u.cell].col >= 4)).toBe(true);
   });
-  it('크레센도는 성부 하나의 2열 (10칸), 악몽 불협화음은 두 성부 4열 (20칸)', () => {
+  it('크레센도는 성부 하나의 2열 (12칸), 악몽 불협화음은 두 성부 4열 (24칸)', () => {
     const f = fight(), cr = f.skills.find(s => s.key === 'crescendo')!;
     const a = cr.cellsFor!(f), b = cr.cellsFor!(f);
-    expect(a.size).toBe(10);
+    expect(a.size).toBe(12);
     expect(new Set([...a].map(i => f.cells[i].col))).toEqual(new Set([0, 1]));
     expect(new Set([...b].map(i => f.cells[i].col))).toEqual(new Set([2, 3]));
     const m = fight('악몽'), mc = m.skills.find(s => s.key === 'crescendo')!;
-    expect(mc.cellsFor!(m).size).toBe(20);
+    expect(mc.cellsFor!(m).size).toBe(24);
     expect(mc.dps).toBeCloseTo(CHOIR.crescDps * CHOIR.discord, 5);
   });
   it('성가대원을 다 잡으면 2페이즈 (포르테·독창)', () => {
