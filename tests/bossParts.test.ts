@@ -4,7 +4,8 @@ import { bossHpFor, U, UNIT, type DebuffDef, type SkillEffect } from '../src/dat
 import { CLASSES } from '../src/data/classes';
 import * as E from '../src/engine';
 import { applyDebuff, backTargets, bossTaken, focusOrder, lowestTargets, offTank, orderHeal, runEffect, watchInit } from '../src/engine/bossParts';
-import { moveTo, pickCell } from '../src/engine/movement';
+import { moveTo, pickCell, zoneOf } from '../src/engine/movement';
+import { ABILITIES } from '../src/data/abilities';
 import { unitDps } from '../src/engine/units';
 import { hexDist } from '../src/engine/board';
 import { fromDef } from '../src/engine/bosses';
@@ -893,5 +894,101 @@ describe('서리 마탑 부품 (35 4-4): 진동 · 숨 고르기 · 커지는 �
     steps(f, 2.1);
     expect(tk.hp).toBeLessThan(tk.max);
     expect(on.hp).toBe(hp);
+  });
+});
+
+describe('깨진 신전 부품 (35 4-5): 무력화 · 반격 틈 · 받침 · 청소약', () => {
+  const STAG: SkillEffect = { p: 'stagger', sec: 10, need: 4, hp: 0.7, tank: 2, win: { sec: 8, vuln: 1.3 }, fail: { dmg: 100, lock: 3 } };
+
+  it('무력화: 체력 70% 이상인 파티원 딜로 게이지가 차면 보스 무방비 (기술 쉼, 받는 피해 +30%)', () => {
+    const f = fight();
+    f.party.forEach(u => { if (!u.me) u.dps = 20; u.hp = u.max; });
+    run(f, STAG);
+    const g = f.stagger!;
+    expect(g.need).toBeGreaterThan(0);
+    steps(f, 9.5);
+    expect(f.stagger).toBeNull();
+    expect(f.daze).toMatchObject({ vuln: 1.3, name: '무방비' });
+  });
+
+  it('무력화: 체력이 기준 아래인 사람 딜은 안 셈 → 못 채우면 전원 피해 + 시전 스킬 잠김', () => {
+    const f = fight();
+    f.party.forEach(u => { if (!u.me) { u.dps = 20; u.hp = u.max * 0.5; } });
+    run(f, STAG);
+    steps(f, 5);
+    expect(f.stagger!.fill).toBe(0);
+    const v = dealer(f), hp = v.hp;
+    steps(f, 5.1);
+    expect(f.stagger).toBeNull();
+    expect(f.daze).toBeNull();
+    expect(hp - v.hp).toBeGreaterThanOrEqual(100 * f.dmgMult * 0.99);
+    expect(f.lock.heal).toBeDefined(); // 치유는 시전 스킬
+    expect(f.lock.renew).toBeUndefined(); // 소생은 즉시
+  });
+
+  it('반격 틈: 끊기 가능 기술이 되고, 끊으면 보스 기절. 못 끊으면 앞줄만 맞음', () => {
+    const f = fight();
+    const s = fromDef(f, { key: 'gleam', name: '수정 반짝임', kind: 'aoe', first: 0, period: 25, cast: 1.5, effect: { p: 'counter', stun: 4, dmg: 200 } });
+    expect(s.cut).toBe(true);
+    expect(s.stunOnCut).toBe(4);
+    // 끊기 능력 없는 파티: 맞을 때 앞줄 (판 앞쪽 3분의 1)만
+    const front = f.party.filter(u => zoneOf(f, f.cells[u.cell].row) === 'front' && !u.me), back = f.party.filter(u => zoneOf(f, f.cells[u.cell].row) !== 'front');
+    const hp0 = f.party.map(u => u.hp);
+    steps(f, 1.6);
+    expect(front.length).toBeGreaterThan(0);
+    front.forEach(u => expect(u.hp).toBeLessThan(hp0[f.party.indexOf(u)]));
+    back.forEach(u => expect(u.hp).toBe(hp0[f.party.indexOf(u)]));
+  });
+
+  it('반격 틈: 끊기 능력자가 끊으면 기절, 침묵(딜 0)이면 못 끊음', () => {
+    const mk = (silenced: boolean) => {
+      const f = fight();
+      f.abOn = true;
+      const u = dealer(f);
+      const kick = Object.values(ABILITIES).find(a => a.fx.e === 'interrupt')!;
+      u.ab = { key: kick.key, star: 5, ready: 0, uses: 0, fired: [], hist: [], lastCounter: 0 };
+      if (silenced) u.debuffs.push({ id: 900, name: '돌가루', type: '마법', left: 6, noDps: true });
+      f.rng = () => 0;
+      const s = fromDef(f, { key: 'gleam', name: '수정 반짝임', kind: 'aoe', first: 0, period: 25, cast: 1.5, effect: { p: 'counter', stun: 4, dmg: 200 } });
+      s.next = f.t;
+      E.step(f);
+      return f;
+    };
+    expect(mk(false).daze).toMatchObject({ name: '기절' });
+    expect(mk(true).daze).toBeNull();
+  });
+
+  it('받침: 빈 칸에 금빛 발판, 갈 수 있는 사람이 들어가 맞고, 빈 발판은 전원 피해', () => {
+    const f = fight();
+    const s = fromDef(f, { key: 'pads', name: '제단 발판', kind: 'aoe', first: 0, period: 30, cast: 2.5, effect: { p: 'tower', n: 2, dmg: 120, empty: 60 } });
+    expect(s.pads).toBe(true);
+    s.next = f.t; E.step(f);
+    const tel = f.tels.find(t => t.skill === s)!;
+    expect(tel.cells.size).toBe(2);
+    expect([...tel.safe!]).toEqual([...tel.cells]);
+    const go = f.party.filter(u => u.padUntil != null);
+    expect(go.length).toBe(2);
+    expect(go.every(u => u.role !== 'tank' && !u.me && u.pers !== '겁쟁이')).toBe(true);
+    go.forEach(u => { u.hp = u.max; });
+    steps(f, 2.6);
+    go.forEach(u => expect(u.hp).toBeLessThan(u.max));
+    expect(f.party.every(u => u.padUntil == null)).toBe(true);
+    // 아무도 안 가면 (모두 겁쟁이) 빈 발판 2개 = 전원 피해 2번
+    const g = fight();
+    g.party.forEach(u => { u.pers = '겁쟁이'; });
+    const t = fromDef(g, { key: 'pads', name: '제단 발판', kind: 'aoe', first: 0, period: 30, cast: 2.5, effect: { p: 'tower', n: 2, dmg: 120, empty: 60 } });
+    t.next = g.t;
+    const v = dealer(g), hp = v.hp;
+    steps(g, 2.6);
+    expect(hp - v.hp).toBeCloseTo(120 * g.dmgMult);
+  });
+
+  it('청소약: 쓸 때마다 다음 디버프 (질병 → 독 → 저주 → 마법)', () => {
+    const f = fight();
+    const types = ['질병', '독', '저주', '마법'];
+    const s = fromDef(f, { key: 'soap', first: Infinity, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: types.map(t => ({ name: `${t} 청소약`, type: t, left: 8, dot: 5 })) } });
+    const got: string[] = [];
+    for (let i = 0; i < 4; i++) { s.fire!(f); got.push(f.party.flatMap(u => u.debuffs).sort((a, b) => b.id - a.id)[0].type); }
+    expect(got).toEqual(types);
   });
 });

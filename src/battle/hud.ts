@@ -83,11 +83,26 @@ function setSlotArt(el: HTMLElement, key: SkillKey): void {
   else el.querySelector('.nm')?.insertAdjacentHTML('beforebegin', skillMark(key));
 }
 
-/** 주시 (P-AGGRO, 35 4-4): 눈 게이지 % 또는 노리는 남은 초 */
+/** 주시 (P-AGGRO, 35 4-4): 눈 게이지 % 또는 노리는 남은 초. 무력화 (P-STAGGER, 35 4-5): 힘 모으기 남은 초 */
 function watchText(F: Fight): string {
+  if (F.stagger) return ` · ${F.stagger.name} ${Math.ceil(F.stagger.until - F.t)}`;
   const w = F.watch;
   if (!w) return '';
   return F.t < w.until ? ` · 주시 중 ${Math.ceil(w.until - F.t)}` : ` · 주시 ${Math.min(99, Math.floor((w.fill / w.max) * 100))}%`;
+}
+
+/** 보스 체력바 아래 게이지: 무력화 = 파랑 (채울수록 좋음), 주시 = 호박색 (차면 나를 노림) */
+function bossGauge(F: Fight): void {
+  const bar = $('bossFill').parentElement!;
+  let g = bar.querySelector<HTMLElement>('#bossGauge');
+  const st = F.stagger, w = F.watch;
+  const v = st ? st.fill / st.need : w ? (F.t < w.until ? 1 : w.fill / w.max) : -1;
+  if (v < 0) { if (g) g.hidden = true; return; }
+  if (!g) { g = document.createElement('div'); g.id = 'bossGauge'; g.setAttribute('aria-hidden', 'true'); bar.appendChild(g); }
+  g.hidden = false;
+  g.classList.toggle('stagger', !!st);
+  const p = `${Math.max(0, Math.min(1, v)) * 100}%`;
+  if (g.style.getPropertyValue('--g') !== p) g.style.setProperty('--g', p);
 }
 
 export function updateWheel(): void {
@@ -352,6 +367,7 @@ export function updateStage(now: number): void {
   setBar($('bossFill'), pct);
   setBar($('bossLag'), pct);
   setText($('bossHpText'), `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · ${F.daze.name ?? '멍함'} ${Math.ceil(F.daze.until - F.t)}` : F.mobs.length && bossTaken(F) < 1 ? ' · 보호막' : ''}${F.empower ? ` · 강해짐 +${Math.round(F.empower * 100)}%` : ''}${watchText(F)}`);
+  bossGauge(F);
   // 위치 줄 (시안 「녹슨 요새 4/4 · 보통」): 던전 = 이름 n/전체 · 페이즈·남은 적·난이도, 한 판 = 등급 · 페이즈·난이도
   let ph = F.phaseName ? `${F.enc.tier.split(' · ')[0]} · ${F.phaseName}` : `${F.enc.tier} · ${F.cfg.diff}`;
   if (R.segs.length > 1) {

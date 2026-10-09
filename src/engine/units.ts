@@ -75,7 +75,7 @@ export function unitTick(f: Fight, u: Unit): void {
     }
   }
   // 회피가 끝나면 원래 자리로 복귀 (04 3장 상태 머신). 신중파는 1초 더 기다림
-  if (!u.fleeing && !u.pulled && u.home >= 0 && u.cell !== u.home) {
+  if (!u.fleeing && !u.pulled && !(u.padUntil != null && u.padUntil > f.t) && u.home >= 0 && u.cell !== u.home) {
     const h = f.cells[u.home];
     if (!h.unit && !h.block && !dangerAt(f, u.home)) {
       if (u.homeAt == null) u.homeAt = f.t + 1 + (u.p.react && u.p.react < 1 ? 1 : 0);
