@@ -54,7 +54,7 @@ export const CONTENT: ContentDef[] = [
     key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 1, unlockLv: 1, ready: true,
     fights: () => DUNGEONS.rustfort.segments, size: five,
   },
-  { key: 'crypt', bosses: ['시체 수집가', '역병 사제 말코어'], kind: 'dungeon', name: '역병 지하묘지', place: '왕도 지하 · 역병 교단', stageLv: 5, unlockLv: 5, ready: false, fights: none, size: five },
+  { key: 'crypt', bosses: ['뼈다귀 수집가', '역병 사제 말코어'], kind: 'dungeon', name: '역병 지하묘지', place: '왕도 지하 · 역병 교단', stageLv: 5, unlockLv: 5, ready: false, fights: none, size: five },
   { key: 'swamp', bosses: ['늪 주술사', '거대 두꺼비 부글이', '늪 족장 세레스'], kind: 'dungeon', name: '독안개 늪', place: '늪지 · 늪의 부족', stageLv: 10, unlockLv: 10, ready: false, fights: none, size: five },
   { key: 'manor', bosses: ['집사 유령', '초상화 속 귀부인', '장원 주인 벨모어 경'], kind: 'dungeon', name: '저주받은 장원', place: '백합 영지 · 귀족가', stageLv: 15, unlockLv: 15, ready: false, fights: none, size: five },
   { key: 'frost', bosses: ['마력 골렘', '불안정한 마법사', '탑주의 그림자'], kind: 'dungeon', name: '서리 마탑', place: '설원 · 마도사', stageLv: 20, unlockLv: 20, ready: false, fights: none, size: five },
