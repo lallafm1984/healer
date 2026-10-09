@@ -7,6 +7,7 @@ import { gearStats } from '../data/gear';
 import { HEROES } from '../data/heroes';
 import { TALENT_STANDIN } from '../data/heroConst';
 import { TALENTS } from '../data/talents';
+import { TUNE } from '../data/tune';
 import { ITEMS } from '../data/items';
 import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
 import { PROTO_RULES, RULES } from '../data/rules';
@@ -46,7 +47,7 @@ export function create(cfg: FightConfig): Fight {
   const scale = R.lv(stageLv) * R.enemy;
   const power = R.lv(Math.max(cfg.heroLv ?? stageLv, stageLv)) * R.apex(cfg.heroLv ?? stageLv);
   const bm = cfg.bossMult ?? { hp: 1, dmg: 1 };
-  const tn = cfg.proto ? undefined : enc.tune?.[cfg.diff];
+  const tn = cfg.proto ? undefined : (cfg.tune ?? TUNE[enc.key]?.[cfg.diff]);
   const bossMax = enc.hp * (mythic ? MYTHIC.bossHp : 1) * scale * bm.hp * (tn?.hp ?? 1);
   const f: Fight = {
     board,
