@@ -86,8 +86,9 @@ export type AddDown =
   | { p: 'debuff'; debuff: DebuffDef };
 
 /**
- * 쫄 (P-ADD): 보스 전투 중에 나오는 적. 딜러(근접·원거리)가 먼저 잡고, 탱커는 보스를 계속 때린다.
- * 쫄마다 딜러 1명을 맡아 every초마다 dmg (물리, 원거리 기준). 판 위에는 맡은 사람 칸 아래 이름표로 보임
+ * 판에 나오는 적 (P-ADD, 35 3-I): 보스가 부른 쫄·오브젝트. 판의 빈 칸 하나를 차지하고 (빈 칸은 1개 이상 남김, 모자라면 덜 나옴),
+ * 딜러(근접·원거리)가 「먼저 잡기」 순서대로 한 마리씩 일점사한다. 탱커는 보스를 계속 때린다.
+ * 때리는 쫄은 탱커가 2명이면 보스를 맞지 않는 탱커(부탱커)가 옆 칸으로 가서 끌고, 아니면 딜러 1명을 맡는다. every초마다 dmg (물리, 원거리 기준)
  */
 export interface AddDef {
   name: string;
@@ -95,13 +96,26 @@ export interface AddDef {
   short: string;
   /** 체력 = 보스 최대 체력 × hp */
   hp: number;
-  /** 맡은 사람에게 every초마다 (0이면 안 때림: 토템) */
+  /** 맡은 사람에게 every초마다 (0이면 안 때림: 토템·오브젝트) */
   dmg: number;
   every: number;
   down?: AddDown;
-  /** 판의 빈 칸 하나를 차지 (아무도 못 섬). aura = 이웃 칸에 선 사람 초당 피해 (진흙 토템 독 오라, 파티원이 장판처럼 피함) */
-  cell?: { aura: number };
+  /** 이웃 칸에 선 사람 초당 피해 (진흙 토템 독 오라, 파티원이 장판처럼 피함) */
+  aura?: number;
+  /** 나오는 칸: front = 보스가 때리는 사람(탱커) 가까이 (때리는 쫄 기본), back = 뒷줄, center = 가운데, edge = 가장자리, random (오브젝트 기본) */
+  at?: 'front' | 'back' | 'center' | 'edge' | 'random';
+  /** 하는 일 (35 3-I) */
+  job?: AddJob;
 }
+
+/** 판 위 적이 하는 일. 딜러는 mend → bomb → pylon → 그 밖 순서로, 같으면 먼저 나온 것부터 잡는다 */
+export type AddJob =
+  /** 치유하는 쫄 (P-MENDER): every초마다 보스 체력 pct 회복 */
+  | { p: 'mend'; every: number; pct: number }
+  /** 폭탄 (P-BOMB): sec초 안에 못 깨면 터져서 살아 있는 모두에게 dmg (마법) */
+  | { p: 'bomb'; sec: number; dmg: number }
+  /** 보호막 수정 (P-PYLON): 서 있는 동안 보스가 받는 피해 −cut */
+  | { p: 'pylon'; cut: number };
 
 /** 기술이 맞을 때 하는 일 */
 export type SkillEffect =

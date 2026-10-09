@@ -2,10 +2,10 @@
  * 보스 기믹 부품 (38 0-4): data/bosses.ts에 이름(p)으로 적은 부품이 실제로 하는 일.
  * 새 기믹은 여기에 부품 하나를 더하고, 보스 데이터에서 이름과 값으로 부른다.
  */
-import type { AddDef, DebuffDef, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
+import type { AddDef, AddJob, DebuffDef, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
 import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, living, randomTargets, setMax, spread, unitById } from './core';
-import { scheduleReactions } from './movement';
+import { moveTo, scheduleReactions } from './movement';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
@@ -194,30 +194,77 @@ export function pullTick(f: Fight, u: Unit): void {
   if (f.t >= p.until || !there) u.pulled = null;
 }
 
-/** 쫄 하나: 아직 쫄이 붙지 않은 딜러를 맡음. 칸을 차지하는 쫄(토템)은 빈 칸 하나를 막고 이웃 칸에 오라 */
+/**
+ * 판에 나오는 적 하나 (35 3-I): 빈 칸 하나를 차지 (빈 칸이 1개뿐이면 안 나옴). 때리는 쫄은 부탱커가 옆 칸으로 와서 끌고,
+ * 부탱커가 없으면 아직 쫄이 붙지 않은 딜러를 맡음. 오라가 있으면 이웃 칸에 끝나지 않는 장판
+ */
 function spawnAdd(f: Fight, a: AddDef): void {
+  const c = addCell(f, a.at ?? (a.dmg > 0 ? 'front' : 'random'));
+  if (!c) return;
   const m: Mob = { id: f.nextId++, name: a.name, elite: false, hp: f.bossMax * a.hp, max: f.bossMax * a.hp, alive: true,
-    add: { short: a.short, on: 0, dmg: a.dmg, every: a.every, next: f.t + a.every, down: a.down } };
-  if (a.dmg > 0) m.add!.on = addTarget(f)?.id ?? 0;
-  if (a.cell) {
-    const free = f.cells.filter(c => !c.unit && !c.block);
-    if (free.length <= 1) return; // 설 칸을 남김
-    const c = free[Math.floor(f.rng() * free.length)];
-    c.block = 'add'; m.add!.cell = c.i;
-    if (a.cell.aura) {
-      const id = f.nextId++;
-      f.zones.push({ id, cells: new Set(f.cells.filter(x => hexDist(x, c) === 1 && !x.block).map(x => x.i)), end: Infinity, dps: a.cell.aura });
-      m.add!.zone = id;
-    }
+    add: { short: a.short, on: 0, dmg: a.dmg, every: a.every, next: f.t + a.every, down: a.down, cell: c.i, job: a.job } };
+  const u = a.dmg > 0 ? addTarget(f) : undefined;
+  if (u) m.add!.on = u.id;
+  c.block = 'add';
+  if (a.aura) {
+    const id = f.nextId++;
+    f.zones.push({ id, cells: new Set(f.cells.filter(x => hexDist(x, c) === 1 && !x.block).map(x => x.i)), end: Infinity, dps: a.aura });
+    m.add!.zone = id;
   }
+  if (a.job) m.add!.jobAt = f.t + (a.job.p === 'mend' ? a.job.every : a.job.p === 'bomb' ? a.job.sec : 0);
   f.mobs.push(m);
+  if (u && u.role === 'tank') offTankTo(f, u, c);
 }
 
+/** 적이 나올 빈 칸: 자리 규칙에 가장 맞는 칸들 가운데 무작위. 빈 칸은 1개 이상 남김 */
+function addCell(f: Fight, at: NonNullable<AddDef['at']>): Cell | null {
+  const free = f.cells.filter(c => !c.unit && !c.block);
+  if (free.length <= 1) return null;
+  const tk = aggroTarget(f);
+  const t = tk ? f.cells[tk.moving ? tk.moving.to : tk.cell] : f.cells[0];
+  const score = (c: Cell): number => at === 'front' ? hexDist(c, t) * 10 + c.row : at === 'back' ? -c.row : at === 'center' ? fromMid(f, c) : at === 'edge' ? -fromMid(f, c) : 0;
+  const best = Math.min(...free.map(score));
+  const pick = free.filter(c => score(c) < best + 1e-6);
+  return pick[Math.floor(f.rng() * pick.length)];
+}
+
+/** 부탱커 (P-OFFTANK): 보스를 맞지 않는 살아 있는 탱커 (10인·20인). 없으면 null */
+export function offTank(f: Fight): Unit | null {
+  const tk = aggroTarget(f);
+  return f.party.find(u => u.alive && u.role === 'tank' && u !== tk) ?? null;
+}
+
+/** 쫄이 맡을 사람: 부탱커 → 아직 쫄이 붙지 않은 딜러 → 딜러 → 나 아닌 사람 */
 function addTarget(f: Fight): Unit | undefined {
+  const off = offTank(f);
+  if (off) return off;
   const taken = new Set(f.mobs.filter(m => m.alive && m.add).map(m => m.add!.on));
   return randomTargets(f, 1, u => (u.role === 'melee' || u.role === 'ranged') && !taken.has(u.id))[0]
     || randomTargets(f, 1, u => u.role === 'melee' || u.role === 'ranged')[0]
     || randomTargets(f, 1, u => !u.me)[0];
+}
+
+/** 부탱커가 쫄 옆 빈 칸으로 감 (이미 붙어 있으면 그대로). 그 칸이 새 제자리 */
+function offTankTo(f: Fight, u: Unit, c: Cell): void {
+  if (u.moving || u.pulled || hexDist(f.cells[u.cell], c) <= 1) return;
+  const from = f.cells[u.cell];
+  const near = f.cells.filter(x => !x.unit && !x.block && hexDist(x, c) === 1).sort((a, b) => hexDist(a, from) - hexDist(b, from))[0];
+  if (!near) return;
+  moveTo(f, u, near);
+  u.home = near.i; u.homeAt = null;
+}
+
+/** 일점사 순서 (P-FOCUS): 치유하는 쫄 → 폭탄 → 보호막 수정 → 그 밖, 같으면 먼저 나온 것 */
+const FOCUS: Record<AddJob['p'], number> = { mend: 0, bomb: 1, pylon: 2 };
+export function focusOrder(f: Fight): Mob[] {
+  return f.mobs.filter(m => m.alive && m.add).sort((a, b) => (FOCUS[a.add!.job?.p as AddJob['p']] ?? 9) - (FOCUS[b.add!.job?.p as AddJob['p']] ?? 9) || a.id - b.id);
+}
+
+/** 보스가 받는 피해 배율: 보호막 수정 (P-PYLON) × 멍함 (차례 성공) */
+export function bossTaken(f: Fight): number {
+  let m = f.daze ? f.daze.vuln : 1;
+  for (const x of f.mobs) if (x.alive && x.add?.job?.p === 'pylon') m *= 1 - x.add.job.cut;
+  return m;
 }
 
 /** 매 틱 쫄: 맡은 사람 때리기 (그 사람이 쓰러지면 다른 딜러), 쓰러진 쫄은 한 번 down (파열) */
@@ -232,12 +279,30 @@ export function addsTick(f: Fight): void {
       addDown(f, m);
       continue;
     }
+    if (a.job && f.t + 1e-9 >= a.jobAt!) { addJob(f, m); if (!m.alive) continue; }
     if (a.dmg <= 0 || f.t + 1e-9 < a.next) continue;
     a.next += a.every;
     if ((m.stun || 0) > f.t) continue;
     let u = unitById(f, a.on);
     if (!u || !u.alive) { u = addTarget(f); if (!u) continue; a.on = u.id; }
     damage(f, u, a.dmg, false, 'party');
+  }
+}
+
+/** 치유하는 쫄은 보스 체력 회복, 폭탄은 터지고 사라짐 (35 3-I) */
+function addJob(f: Fight, m: Mob): void {
+  const a = m.add!, j = a.job!;
+  if (j.p === 'mend') {
+    a.jobAt! += j.every;
+    if (f.bodyHp || f.invuln) return;
+    const amt = Math.min(f.bossMax * j.pct, f.bossMax - f.bossHp);
+    if (amt > 0) { f.bossHp += amt; emit(f, { type: 'bossHeal', amt: Math.round(amt), name: m.name }); }
+  } else if (j.p === 'bomb') {
+    a.jobAt = Infinity;
+    m.hp = 0; m.alive = false; a.down = undefined; // 터진 폭탄은 쓰러짐 효과 없음
+    emit(f, { type: 'sound', name: 'burst' });
+    emit(f, { type: 'msg', text: `${m.name}이(가) 터짐` });
+    for (const u of living(f)) damage(f, u, j.dmg, true);
   }
 }
 
