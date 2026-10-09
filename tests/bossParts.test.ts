@@ -1229,7 +1229,7 @@ describe('기믹 연출 신호 (37 4장 F-1): 화면이 그림을 붙일 순간'
     steps(f, 2.1);
     a.hp = a.max * 0.3;
     E.step(f);
-    expect(fxOf(f)).toContainEqual({ type: 'fx', name: 'link-snap', id: l.a, to: l.b });
+    expect(fxOf(f)).toContainEqual({ type: 'fx', name: 'link-snap', on: l.a, to: l.b });
     run(f, { p: 'vessel', name: '빛 그릇', need: 0.5, sec: 10, shield: 3 });
     f.vessel!.fill = f.vessel!.need;
     f.events.length = 0;

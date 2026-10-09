@@ -125,7 +125,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         if (!d) continue;
         d.jail = true;
         got.push(u);
-        emit(f, { type: 'fx', name: 'spawn', id: u.id });
+        emit(f, { type: 'fx', name: 'spawn', on: u.id });
         f.mobs.push({ id: f.nextId++, name: e.name, elite: false, hp: f.bossMax * e.hp, max: f.bossMax * e.hp, alive: true,
           add: { short: e.short, on: u.id, dmg: 0, every: 0, next: Infinity, job: { p: 'jail' }, jobAt: Infinity, hold: d.id } });
       }
@@ -306,7 +306,7 @@ export function linksTick(f: Fight): void {
     for (const u of [a, b]) if (u) u.debuffs = u.debuffs.filter(d => !(d.link && (d.link.to === l.a || d.link.to === l.b)));
     if (!snap) continue;
     emit(f, { type: 'sound', name: 'aoe' });
-    emit(f, { type: 'fx', name: 'link-snap', id: l.a, to: l.b });
+    emit(f, { type: 'fx', name: 'link-snap', on: l.a, to: l.b });
     emit(f, { type: 'msg', text: `${l.name} 끊어짐: ${a!.nick} · ${b!.nick} 피해` });
     damage(f, a!, l.dmg, true, l.aim);
     damage(f, b!, l.dmg, true, l.aim);
@@ -405,7 +405,7 @@ export function watchTick(f: Fight): void {
   if (w.fill < w.max) return;
   w.fill = 0; w.until = f.t + w.sec; w.next = f.t;
   emit(f, { type: 'sound', name: 'buster' });
-  emit(f, { type: 'fx', name: 'warn', id: f.me.id });
+  emit(f, { type: 'fx', name: 'warn', on: f.me.id });
   emit(f, { type: 'msg', text: `주시: 보스가 ${w.sec}초 동안 나를 노림` });
 }
 
@@ -502,7 +502,7 @@ function pull(f: Fight, u: Unit, sec: number, dmg: number): void {
     u.moving = { from: u.cell, to: c.i, left: 0.3, total: 0.3 };
   }
   u.pulled = { until: f.t + sec, cell: c && u.moving ? c.i : u.cell, dmg };
-  emit(f, { type: 'fx', name: 'hook', id: u.id });
+  emit(f, { type: 'fx', name: 'hook', on: u.id });
   emit(f, { type: 'msg', text: `${u.nick} 끌려옴` });
 }
 
@@ -625,7 +625,7 @@ export function addsTick(f: Fight): void {
     if (a.hold != null && !unitById(f, a.on)?.debuffs.some(d => d.id === a.hold)) { vanish(m); continue; } // 갇힌 사람이 쓰러짐
     if (a.job && f.t + 1e-9 >= a.jobAt!) { addJob(f, m); if (!m.alive) continue; }
     if (a.job?.p === 'drain') f.mana = Math.max(0, f.mana - a.job.pct * DT); // 마나 갈취 쫄 (P-DRAIN)
-    if (a.job?.p === 'smash' && !a.warned && f.t + 1e-9 >= a.jobAt! - a.job.warn) { a.warned = true; emit(f, { type: 'sound', name: 'buster' }); emit(f, { type: 'fx', name: 'warn', id: a.on }); }
+    if (a.job?.p === 'smash' && !a.warned && f.t + 1e-9 >= a.jobAt! - a.job.warn) { a.warned = true; emit(f, { type: 'sound', name: 'buster' }); emit(f, { type: 'fx', name: 'warn', on: a.on }); }
     if (a.dmg <= 0 || f.t + 1e-9 < a.next) continue;
     a.next += a.every;
     if ((m.stun || 0) > f.t) continue;
@@ -659,7 +659,7 @@ function addJob(f: Fight, m: Mob): void {
     let u = unitById(f, a.on);
     if (!u || !u.alive) { u = addTarget(f); if (!u) return; a.on = u.id; }
     damage(f, u, j.dmg, false, 'tank');
-    emit(f, { type: 'fx', name: 'slam', id: u.id });
+    emit(f, { type: 'fx', name: 'slam', on: u.id });
     emit(f, { type: 'shake', id: u.id });
   } else if (j.p === 'march') {
     // 걸어오는 쫄 (P-MARCH): 한 줄 앞으로. 걸음이 다 되면 보스에게 흡수
@@ -678,7 +678,7 @@ function addJob(f: Fight, m: Mob): void {
     if (d0 > 2) return;
     vanish(m);
     emit(f, { type: 'sound', name: 'burst' });
-    emit(f, { type: 'fx', name: 'explode', id: u.id });
+    emit(f, { type: 'fx', name: 'explode', on: u.id });
     emit(f, { type: 'msg', text: `${m.name}이(가) ${u.nick} 곁에서 터짐` });
     for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), at) === 1) damage(f, v, j.splash, true);
     damage(f, u, j.dmg, true);

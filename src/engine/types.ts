@@ -340,8 +340,8 @@ export type FightEvent =
   | { type: 'ability'; id: number; name: string }
   /** 파티원 능력 회복 (연두색 숫자, 내 힐과 구분) */
   | { type: 'aheal'; id: number; amt: number }
-  /** 기믹 순간 연출 (37 4장 F, 그림 fx-<name>). cell = 그 칸, id = 그 사람·영혼 (to = 날아가는 곳), all = 살아 있는 모두, 아무것도 없으면 보스 */
-  | { type: 'fx'; name: FxName; cell?: number; id?: number; to?: number; all?: boolean }
+  /** 기믹 순간 연출 (37 4장 F, 그림 fx-<name>). cell = 그 칸, on = 그 사람·영혼 (to = 날아가는 곳. id라 하지 않음: 'id' in ev 로 사람을 찾는 곳이 많음), all = 살아 있는 모두, 아무것도 없으면 보스 */
+  | { type: 'fx'; name: FxName; cell?: number; on?: number; to?: number; all?: boolean }
   | { type: 'over'; result: FightResult };
 
 /** 기믹 연출 이름 = 그림 fx-<이름> (37 4장 F-1) */
