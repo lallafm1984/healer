@@ -12,7 +12,7 @@ import { buyItem, buyPremium, claimPass, craftShard, exchangeMerit, grantMember,
 import { commit, G, refreshDay } from '../game/state';
 import { purchase, STORE_WHY } from '../platform/billing';
 import { battle, esc, fmt, screen, topBar } from './kit';
-import { uiIcon } from './art';
+import { currencyIcon, uiIcon } from './art';
 
 type Sub = 'gold' | 'merit' | 'pass' | 'crystal';
 const SUBS: [Sub, string][] = [['gold', '골드'], ['merit', '공훈'], ['pass', '시즌 패스'], ['crystal', '크리스탈']];
@@ -37,10 +37,11 @@ export function gainText(g: Gain): string {
 
 const wallet = () => {
   const w = G.save.wallet;
-  return `<p class="wallet shop-wallet"><span>${uiIcon('gem')}<b>${fmt(w.crystal)}</b><small>크리스탈</small></span><span>${uiIcon('bell')}<b>${w.shards}/${SHARD_MAX}</b><small>종 조각</small></span><span>${uiIcon('star')}<b>${fmt(w.merit)}</b><small>공훈</small></span><span><b>${G.save.mats.stone}</b><small>강화석</small></span></p>`;
+  return `<p class="wallet shop-wallet"><span>${currencyIcon('crystal')}<b>${fmt(w.crystal)}</b><small>크리스탈</small></span><span>${uiIcon('bell')}<b>${w.shards}/${SHARD_MAX}</b><small>종 조각</small></span><span>${currencyIcon('merit')}<b>${fmt(w.merit)}</b><small>공훈</small></span><span>${currencyIcon('stone')}<b>${G.save.mats.stone}</b><small>강화석</small></span></p>`;
 };
 
 function render(): void {
+  const passOpen = s.el.querySelector<HTMLDetailsElement>('.pass-archive')?.open || false;
   s.el.innerHTML = `${topBar({ settings: true })}
     <nav class="subtabs" role="tablist">${SUBS.map(([k, n]) => `<button type="button" role="tab" data-sub="${k}" aria-selected="${st.sub === k}">${n}</button>`).join('')}</nav>
     <div class="ns-body shop">
@@ -49,6 +50,8 @@ function render(): void {
       ${st.msg ? `<p class="warnbox">${esc(st.msg)}</p>` : ''}
       ${st.sub === 'gold' ? goldHtml() : st.sub === 'merit' ? meritHtml() : st.sub === 'pass' ? passHtml() : crystalHtml()}
     </div>`;
+  const archive = s.el.querySelector<HTMLDetailsElement>('.pass-archive');
+  if (archive) archive.open = passOpen;
   st.msg = '';
 }
 
@@ -59,7 +62,7 @@ function goldHtml(): string {
     // 가격은 버튼 안에 (살 수 있는 만큼). 가방이 가득이면 「가득」
     const btn = (n: number) => {
       const m = Math.min(n, BAG_MAX - have);
-      return `<button class="btn mini buy" type="button" data-buy="${k}" data-n="${n}"${price == null || have >= BAG_MAX || gold < price! * m ? ' disabled' : ''}>${n}개<small>${have >= BAG_MAX ? '가득' : `${uiIcon('coin')}${fmt(price! * m)}`}</small></button>`;
+      return `<button class="btn mini buy" type="button" data-buy="${k}" data-n="${n}"${price == null || have >= BAG_MAX || gold < price! * m ? ' disabled' : ''}>${n}개<small>${have >= BAG_MAX ? '가득' : `${currencyIcon('gold')}${fmt(price! * m)}`}</small></button>`;
     };
     // 위 줄 = 아이콘·이름·구매 버튼, 아래 줄 = 설명 (좁은 화면에서도 설명이 한 줄을 다 씀)
     return `<li class="srow itemrow"><div class="ir-top"><span class="sic">${battle().itemIcon(k)}${have ? `<i class="stack">${have}</i>` : ''}</span><div class="ir-name"><b>${ITEMS[k].name}</b><small${have >= BAG_MAX ? ' class="full"' : ''}>가방 ${have}/${BAG_MAX}${have >= BAG_MAX ? ' · 가득' : ''}</small></div>
@@ -70,7 +73,7 @@ function goldHtml(): string {
   return `<h3 class="sec">소비 아이템 <small>레벨 비례 가격 · 종류마다 최대 ${BAG_MAX}</small></h3><ul class="slist">${rows}</ul>
     <h3 class="sec">종 조각 제작 <small>이번 주 ${w.craft}/${SHARD_CRAFT.weekly}</small></h3>
     <div class="srow solo"><span class="sic">${uiIcon('bell')}</span><div><b>종 조각</b> <small>보유 ${sh}/${SHARD_MAX}</small><p class="note">악몽 입장권. 출발할 때 1개 소모</p></div>
-      <div class="sbuy"><small>${uiIcon('coin')}${fmt(SHARD_CRAFT.gold)} + 강화석 ${SHARD_CRAFT.stone}</small><button class="btn mini primary" type="button" id="craft"${can ? '' : ' disabled'}>제작</button></div></div>`;
+      <div class="sbuy"><small>${currencyIcon('gold')}${fmt(SHARD_CRAFT.gold)} + 강화석 ${SHARD_CRAFT.stone}</small><button class="btn mini primary" type="button" id="craft"${can ? '' : ' disabled'}>제작</button></div></div>`;
 }
 
 function meritHtml(): string {
@@ -92,9 +95,21 @@ function passHtml(): string {
   };
   return `<section class="panel passhead"><h4>시즌 ${p.season || SEASON.n} 「${SEASON.name}」 <small>${se.week + 1}/${SEASON.weeks}주${se.catchUp ? ' · 따라잡기 경험치 +50%' : ''}</small></h4>
       <p>패스 Lv <b>${lv}</b>/${PASS_LEVELS} <span class="bar"><i style="width:${Math.min(100, (into / PASS_XP) * 100)}%"></i></span> ${fmt(into)}/${fmt(PASS_XP)}</p>
-      <p class="note">패스 경험치는 일일·주간 임무에서만 (판 수로는 안 줌). 프리미엄 라인은 꾸미기만 (그림은 원화 작업 때)</p>
-      ${p.premium ? '<p class="note">프리미엄 패스 있음</p>' : `<button class="btn primary" type="button" id="premium"${G.save.wallet.crystal < PASS_PREMIUM_CRYSTAL ? ' disabled' : ''}>프리미엄 패스 ${uiIcon('gem')}${fmt(PASS_PREMIUM_CRYSTAL)}</button>`}</section>
-    <ul class="plist"><li class="prow head"><b>Lv</b><span class="pf">무료</span><span class="pp">프리미엄</span></li>${Array.from({ length: PASS_LEVELS }, (_, i) => row(i + 1)).join('')}</ul>`;
+      <p class="note">일일·주간 임무로 패스 경험치를 얻습니다. 프리미엄 보상은 꾸미기 전용입니다.</p>
+      ${p.premium ? '<p class="note">프리미엄 패스 있음</p>' : `<button class="btn primary" type="button" id="premium"${G.save.wallet.crystal < PASS_PREMIUM_CRYSTAL ? ' disabled' : ''}>프리미엄 패스 ${currencyIcon('crystal')}${fmt(PASS_PREMIUM_CRYSTAL)}</button>`}</section>
+    ${passRewards(lv, row)}`;
+}
+
+/** 받을 보상과 바로 다음 단계부터. 나머지 50단계 표는 필요할 때 펼친다. */
+function passRewards(lv: number, row: (level: number) => string): string {
+  const p = G.save.pass;
+  const levels = Array.from({ length: PASS_LEVELS }, (_, i) => i + 1);
+  const ready = levels.filter(l => l <= lv && (!p.free.includes(l) || (p.premium && !p.prem.includes(l))));
+  const priority = new Set([...ready, ...(lv < PASS_LEVELS ? [lv + 1] : [])]);
+  const rest = levels.filter(l => !priority.has(l));
+  return `<h3 class="sec">${ready.length ? `받을 보상 ${ready.length}단계` : lv < PASS_LEVELS ? '다음 보상' : '보상 수령 완료'}</h3>
+    <ul class="plist"><li class="prow head"><b>Lv</b><span class="pf">무료</span><span class="pp">프리미엄</span></li>${levels.filter(l => priority.has(l)).map(row).join('')}</ul>
+    ${rest.length ? `<details class="pass-archive"><summary>다른 보상 ${rest.length}단계 보기</summary><ul class="plist">${rest.map(row).join('')}</ul></details>` : ''}`;
 }
 
 function crystalHtml(): string {
@@ -102,16 +117,16 @@ function crystalHtml(): string {
   const left = mem ? Math.ceil((G.save.member - Date.now()) / 864e5) : 0;
   return `<p class="note">${dev ? '개발 빌드: 「시험 구매」는 실제 결제 없이 바로 받음' : esc(STORE_WHY)}. 크리스탈은 골드·장비·재료로 안 바뀜</p>
     <section class="panel member"><h4>프리미엄 회원 <small>${MEMBER.price} / ${MEMBER.days}일</small></h4>
-      <p>${uiIcon('gem')} ${MEMBER.now} 바로 + 매일 ${MEMBER.daily} · 상단 배너 없음 · 보상형 광고 없이 바로 보상</p>
+      <p>${currencyIcon('crystal')} ${MEMBER.now} 바로 + 매일 ${MEMBER.daily} · 상단 배너 없음 · 보상형 광고 없이 바로 보상</p>
       ${mem ? `<p class="note">회원 · ${left}일 남음 (다음 리셋까지 ${hhmm(untilReset())})</p>` : ''}
       <button class="btn primary" type="button" data-iap="${MEMBER.id}">${mem ? '30일 연장' : '가입'}${dev ? ' (시험 구매)' : ''}</button></section>
     <h3 class="sec">크리스탈 <small>첫 구매는 2배</small></h3>
     <ul class="slist">${CRYSTAL_PACKS.map(c => {
       const first = !G.save.firstBuy.includes(c.id);
-      return `<li class="srow"><span class="sic">${uiIcon('gem')}</span><div><b>${c.name}</b> <small>${fmt(c.crystal)}${first ? ` + 첫 구매 ${fmt(c.crystal)}` : ''}</small></div><div class="sbuy"><button class="btn mini" type="button" data-iap="${c.id}">${c.price}${dev ? ' 시험' : ''}</button></div></li>`;
+      return `<li class="srow"><span class="sic">${currencyIcon('crystal')}</span><div><b>${c.name}</b> <small>${fmt(c.crystal)}${first ? ` + 첫 구매 ${fmt(c.crystal)}` : ''}</small></div><div class="sbuy"><button class="btn mini" type="button" data-iap="${c.id}">${c.price}${dev ? ' 시험' : ''}</button></div></li>`;
     }).join('')}</ul>
     <h3 class="sec">꾸미기 <small>원화 작업 때 · 정보 색은 못 바꿈</small></h3>
-    <ul class="slist dim">${[['파티창 애드온', 600], ['애드온 풀세트', 1200], ['힐 이펙트', 400], ['힐 사운드팩', 400], ['힐러 의상', 800], ['정산 미터기 스킨', 300]].map(([n, c]) => `<li class="srow"><span class="sic">✦</span><div><b>${n}</b></div><div class="sbuy"><small>${uiIcon('gem')}${c}</small><button class="btn mini" type="button" disabled>준비 중</button></div></li>`).join('')}</ul>`;
+    <ul class="slist dim">${[['파티창 애드온', 600], ['애드온 풀세트', 1200], ['힐 이펙트', 400], ['힐 사운드팩', 400], ['힐러 의상', 800], ['정산 미터기 스킨', 300]].map(([n, c]) => `<li class="srow"><span class="sic">${uiIcon('star')}</span><div><b>${n}</b></div><div class="sbuy"><small>${currencyIcon('crystal')}${c}</small><button class="btn mini" type="button" disabled>준비 중</button></div></li>`).join('')}</ul>`;
 }
 
 s.el.addEventListener('click', async e => {
@@ -131,13 +146,13 @@ s.el.addEventListener('click', async e => {
     const id = iap.dataset.iap!;
     const r = await purchase(id, save.settings.devUnlock);
     if (!r.ok) { st.msg = r.why || '구매 안 됨'; render(); return; }
-    if (id === MEMBER.id) { grantMember(save, Date.now()); st.msg = `프리미엄 회원 · 💎 +${MEMBER.now}${r.test ? ' (시험 구매)' : ''}`; document.body.classList.add('member'); }
+    if (id === MEMBER.id) { grantMember(save, Date.now()); st.msg = `프리미엄 회원 · 크리스탈 +${MEMBER.now}${r.test ? ' (시험 구매)' : ''}`; document.body.classList.add('member'); }
     else {
       const c = CRYSTAL_PACKS.find(x => x.id === id)!;
       const first = !save.firstBuy.includes(id);
       save.wallet.crystal += c.crystal * (first ? 2 : 1);
       if (first) save.firstBuy.push(id);
-      st.msg = `💎 +${fmt(c.crystal * (first ? 2 : 1))}${first ? ' (첫 구매 2배)' : ''}${r.test ? ' · 시험 구매' : ''}`;
+      st.msg = `크리스탈 +${fmt(c.crystal * (first ? 2 : 1))}${first ? ' (첫 구매 2배)' : ''}${r.test ? ' · 시험 구매' : ''}`;
     }
     commit(); render();
   }

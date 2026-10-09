@@ -16,6 +16,10 @@ import talents from '../tests/e2e/talents.mjs';
 import tutorial from '../tests/e2e/tutorial.mjs';
 import portrait from '../tests/e2e/portrait.mjs';
 import devices from '../tests/e2e/devices.mjs';
+import compactUi from '../tests/e2e/compact-ui.mjs';
+import compactInput from '../tests/e2e/compact-input.mjs';
+import boardEdges from '../tests/e2e/board-edges.mjs';
+import dialogs from '../tests/e2e/dialogs.mjs';
 
 const PORT = 4179;
 const url = `http://localhost:${PORT}/`;
@@ -31,7 +35,7 @@ if (!up) { server.kill(); console.error('preview 서버가 안 떴어요'); proc
 
 let fails = 0, errors = 0;
 try {
-  for (const [name, run] of [['세로 UI·이미지', portrait], ['대상 폰 크기 (S25·울트라·플립)', devices], ['앱 틀', appShell], ['임시 전투 화면', legacyUi], ['던전 흐름', dungeon], ['첫 5분 튜토리얼', tutorial], ['캐릭터 탭', character], ['장비 강화·분해', gear], ['힐러 직업', heroes], ['사제 특성', talents], ['길드 빼 둠', guildOff], ['재화·임무·상점', shop], ['성장·주간 도전·이어하기', challenge], ['자동 치유 (개발)', devauto]]) {
+  for (const [name, run] of [['세로 UI·이미지', portrait], ['대상 폰 크기 (S25·울트라·플립)', devices], ['축소 전투·대상 선택·취소 복구', compactUi], ['탭·스와이프 입력 소유권', compactInput], ['전투판 가장자리·균등 확대·resize 복구', boardEdges], ['상세 시트·포커스 복구', dialogs], ['앱 틀', appShell], ['임시 전투 화면', legacyUi], ['던전 흐름', dungeon], ['첫 5분 튜토리얼', tutorial], ['캐릭터 탭', character], ['장비 강화·분해', gear], ['힐러 직업', heroes], ['사제 특성', talents], ['길드 빼 둠', guildOff], ['재화·임무·상점', shop], ['성장·주간 도전·이어하기', challenge], ['자동 치유 (개발)', devauto]]) {
     console.log(`\n== ${name} ==`);
     const r = await run(url, shots);
     fails += r.fails; errors += r.errs.length;

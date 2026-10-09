@@ -46,6 +46,10 @@ export interface Settings {
   tapKey: TapKey;
   /** 20인 판에서 탭한 칸 확대 */
   zoom: boolean;
+  /** 하단 스킬 단축 패널. 옛 저장과 첫 실행은 기존 휠 유지 */
+  compactSkills: boolean;
+  /** 전투 정보는 유지하고 흔들림·부유 숫자 등 시각 효과를 줄임 */
+  reducedEffects: boolean;
   /** 개발 빌드: 자동 힐러로 구경 */
   auto: boolean;
   /** 개발 빌드: 콘텐츠 레벨 잠금 무시 (아직 레벨을 올릴 콘텐츠가 적어서) */
@@ -177,7 +181,7 @@ export function heroSaveOf(d: SaveData, h: HeroKey): HeroSave {
   return (d.heroes[h] ||= { layout: null, tapKey: 'heal', unlocked: h === 'priest', quest: 0, wins: 0 });
 }
 
-export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'right', tapKey: 'heal', zoom: true, auto: false, devUnlock: true, allSkills: false, layout: null };
+export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'right', tapKey: 'heal', zoom: true, compactSkills: false, reducedEffects: false, auto: false, devUnlock: true, allSkills: false, layout: null };
 
 export function newSave(now = Date.now()): SaveData {
   return {

@@ -49,7 +49,10 @@ export default async function devauto(url, shots) {
 
   // 한 번이라도 켠 판은 자동 힐러 판
   await page.click('#pauseBtn'); await page.clock.runFor(50);
-  await page.click('#quitBtn'); await page.clock.runFor(300);
+  await page.click('#quitBtn');
+  await page.locator('#battleConfirm').waitFor({ state: 'visible' });
+  ok(await page.isVisible('#battle') && await page.isHidden('#s-settle'), '포기 확인 전에는 전투 유지');
+  await page.click('#confirmApply'); await page.clock.runFor(300);
   ok(await page.evaluate(() => window.__proto.last.auto) === true, '켰던 판은 결과에 자동 힐러 표시');
   await ctx.close();
   await browser.close();

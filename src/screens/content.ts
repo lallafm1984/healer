@@ -16,7 +16,7 @@ import { canDispel, DEB_COLOR } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
 import { clearGold, EXPLORE_REWARD } from '../data/progression';
 import { cssUrl } from '../art';
-import { RESET_HOUR, weekKey } from '../game/clock';
+import { weekRemaining } from '../game/clock';
 import { raidLootOpen } from '../game/economy';
 import { Flow } from '../game/flow';
 import { chalGate, runMode, weekAffixes } from '../game/runmode';
@@ -149,13 +149,6 @@ function diffOf(c: ContentDef): DiffName {
   return last;
 }
 
-/** 주간 도전이 바뀌기까지 (월요일 오전 6시, 13 1장) */
-function weekLeft(now = Date.now()): string {
-  const [y, m, d] = weekKey(now).split('-').map(Number);
-  const ms = new Date(y, m - 1, d + 7, RESET_HOUR).getTime() - now, day = 864e5;
-  return ms >= day ? `${Math.floor(ms / day)}일 남음` : `${Math.max(1, Math.ceil(ms / 36e5))}시간 남음`;
-}
-
 /** 분류 4칸: 아이콘 + 이름 + 인원 (레이드가 다 잠겼으면 자물쇠 Lv, 장소가 없으면 준비 중) */
 function cats(): string {
   return `<nav class="b-cats" role="tablist" aria-label="콘텐츠 분류">${KINDS.map(k => {
@@ -173,7 +166,7 @@ function cats(): string {
  */
 function chalCell(): string {
   if (G.save.tut < TUT.done) return '';
-  const g = chalGate(G.save), aff = weekAffixes(), best = G.save.weekly.chalBest, left = weekLeft();
+  const g = chalGate(G.save), aff = weekAffixes(), best = G.save.weekly.chalBest, left = `${weekRemaining()} 남음`;
   const tag = g.ok ? left.replace(' 남음', '') : `${LOCK}Lv ${g.lv}`;
   const sr = ` 「${esc(CHAL.name)}」 · ${aff.map(k => AFFIXES[k].name).join(', ')} · ${g.ok ? `${g.dev ? '개발 빌드 · ' : ''}최고 ${best ? `${best}단` : '없음'} · ${left}` : `Lv ${g.lv}에 열림`}`;
   return `<button class="b-chal${g.ok ? '' : ' off'}" type="button" data-chal${g.ok ? '' : ' aria-disabled="true"'}>

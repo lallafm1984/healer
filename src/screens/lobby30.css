@@ -25,13 +25,13 @@
 .ns .tb-mmo .tb-xp { flex: none; display: block; width: 100%; max-width: none; height: 7px; margin: 0; border-radius: 2px; background: var(--bg-0); border: 1px solid var(--edge); overflow: hidden; }
 .ns .tb-mmo .tb-xp i { display: block; height: 100%; background: linear-gradient(#C49AF0, #8E4FD0 50%, #6A35A3); }
 /* 글은 ::before (theme.css) → 화면 글(textContent)에 「경험치」가 안 섞임 (정산 테스트) */
-.tb-mmo .tb-xpt { font-size: 11px; line-height: 1.2; color: #C9BC9E; white-space: nowrap; text-shadow: 0 1px 2px #000; }
+.tb-mmo .tb-xpt { font-size: 13px; line-height: 1.2; color: #E0D2B3; white-space: nowrap; text-shadow: 0 1px 2px #000; }
 
 /* 골드·크리스탈 알약 */
 .tb-mmo .tb-wal { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin: 2px 0 0 auto; }
 .ns .tb-mmo .tb-cur { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px 0 5px; border-radius: 12px; background: rgba(13, 11, 9, 0.85); border: 1px solid var(--frame); box-shadow: 0 0 0 1px var(--line); white-space: nowrap; }
 .ns .tb-mmo .tb-cur > svg, .ns .tb-mmo .tb-cur > .g-ic { flex: none; width: 16px; height: 16px; }
-.ns .tb-mmo .tb-cur b { font: 900 13px/1 var(--font-body); color: var(--gold-hi); }
+.ns .tb-mmo .tb-cur b { font: 900 14px/1 var(--font-body); color: var(--gold-hi); }
 .ns .tb-mmo .tb-cur.tb-cr { border-color: #4E7FA8; }
 .ns .tb-mmo .tb-cur.tb-cr b { color: #BFE3FF; }
 
@@ -87,6 +87,7 @@ body.tabs-on #s-lobby .lb30, #s-lobby .lb30 { position: relative; z-index: 0; di
 
 /* 이름표: 터치 44px */
 #s-lobby .g-plate { min-height: 44px; justify-content: center; }
+#s-lobby .g-plate > span { font-size: 13px; color: #E4D6B8; }
 #s-lobby .g-plate.lock { background: linear-gradient(#2E2418, #17120D); border-color: #8A6E42; }
 #s-lobby .g-plate .g-badge { font-style: normal; }
 /* 건물 (시안 좌표 ÷ 그림 473×710): 종탑 right 6 top 156 · 길드 회관 left 113 top 260 · 잡화점 right 6 top 348. 목표 추적과 안 겹치게 최소 높이 */
@@ -101,12 +102,12 @@ body.tabs-on #s-lobby .lb30, #s-lobby .lb30 { position: relative; z-index: 0; di
 .lb-trk { position: absolute; z-index: 4; left: 8px; top: 88px; width: min(228px, calc(100% - 142px)); margin: 0; padding: 6px 10px 8px; border: 0; border-radius: 4px; background: linear-gradient(90deg, rgba(13, 11, 9, 0.86), rgba(13, 11, 9, 0.55) 72%, rgba(13, 11, 9, 0)); display: flex; flex-direction: column; align-items: stretch; gap: 3px; color: var(--ink); font: inherit; text-align: left; text-shadow: 0 1px 2px #000; }
 button.lb-trk { cursor: pointer; }
 .lb-trk .trk-h { font: 700 13px/1.3 var(--font-display); color: var(--gold-hi); }
-.lb-trk .trk-sub { margin-top: -2px; font-size: 11px; line-height: 1.3; color: var(--ink-2); }
-.lb-trk .obj { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.35; }
+.lb-trk .trk-sub { margin-top: -2px; font-size: 13px; line-height: 1.3; color: var(--ink-2); }
+.lb-trk .obj { display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 1.35; }
 .lb-trk .obj > i { flex: none; width: 7px; height: 7px; box-sizing: border-box; border: 1px solid var(--gold-hi); transform: rotate(45deg); }
 .lb-trk .obj.cur > i { background: var(--gold-hi); box-shadow: 0 0 6px rgba(255, 211, 77, 0.8); }
 .lb-trk .obj > span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.lb-trk .obj > small { flex: none; font-size: 11px; color: #C9BC9E; }
+.lb-trk .obj > small { flex: none; font-size: 13px; color: #E0D2B3; }
 .lb-trk .obj.dim { color: #C9BC9E; }
 .lb-trk .obj.dim > i { border-color: var(--mute); }
 .lb-trk .obj.ok { color: var(--heal); }
@@ -128,9 +129,11 @@ button.lb-trk { cursor: pointer; }
 .lb-board { --anchor-x: 54%; --anchor-y: 59%; --prop-size: 22%; }
 .lb-chest { --anchor-x: 88%; --anchor-y: 70%; --prop-size: 18%; }
 /* 좁은 광장에서도 이름표가 이웃 물건을 덮지 않게, 폭과 높이를 고정하고 긴 문구만 말줄임. */
-#s-lobby .lb-obj > .g-plate { box-sizing: border-box; width: 100%; min-width: 0; height: 44px; padding: 5px; }
-#s-lobby .lb-obj > .g-plate b { font-size: 12px; white-space: nowrap; }
-#s-lobby .lb-obj > .g-plate > span { max-width: 100%; overflow: hidden; font-size: 10px; white-space: nowrap; text-overflow: ellipsis; }
+#s-lobby .lb-obj > .g-plate { box-sizing: border-box; width: max(100%, 92px); min-width: 0; min-height: 48px; padding: 5px; }
+#s-lobby .lb-obj > .g-plate b { font-size: 14px; white-space: nowrap; }
+#s-lobby .lb-obj > .g-plate > span { max-width: 100%; font-size: 13px; white-space: normal; line-height: 1.3; }
+#s-lobby .lb-chal > .g-plate { left: 0; transform: none; }
+#s-lobby .lb-chest > .g-plate { left: auto; right: 0; transform: none; }
 
 /* 아래 줄: 「다시」 메달 · 출전 · 「시즌 패스」 메달 */
 #s-lobby .lb-again, #s-lobby .lb-pass { position: absolute; z-index: 5; bottom: 12px; }
@@ -144,7 +147,7 @@ button.lb-trk { cursor: pointer; }
 #s-lobby .lb-cta::before { left: -8px; width: 11px; height: 11px; }
 #s-lobby .lb-cta::after { right: -8px; width: 11px; height: 11px; }
 #s-lobby .lb-cta .g-mk { width: 44px; height: 44px; }
-#s-lobby .lb-cta .g-ct small { font-size: 11px; }
+#s-lobby .lb-cta .g-ct small { font-size: 13px; }
 #s-lobby .lb30.tut .lb-cta { left: 40px; right: 40px; }
 
 /* 튜토리얼 안내 · 받기 결과 */

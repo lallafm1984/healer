@@ -16,7 +16,7 @@ import { FEATURES } from '../data/features';
 import { guildCap } from '../data/guild';
 import { CONTENT_PLACE, PLACES } from '../data/places';
 import { nextMilestone } from '../data/progression';
-import { dayKey, daysBetween, weekKey } from '../game/clock';
+import { weekRemaining } from '../game/clock';
 import { chestState, claimChalChest, claimChest, claimMission, missionReady, passLevel } from '../game/economy';
 import { Flow } from '../game/flow';
 import { capOf, guildOpen } from '../game/guild';
@@ -132,7 +132,7 @@ function tracker(): string {
   if (gate) return gate;
   const gs = goals(), to = gs.findIndex(g => g.to);
   const inner = `<span class="trk-h">다음 목표</span>
-    ${gs.map((g, i) => `<span class="obj${i ? ' dim' : ' cur'}"><i></i><span>${esc(g.text)}</span><small>${g.prog}</small></span>`).join('')}`;
+    ${gs.map((g, i) => `<span class="obj${i ? ' dim' : ' cur'}"><i></i><span>${esc(g.to ? g.text.replace(/「([^」]+)」 클리어$/, '· $1') : g.text)}</span><small>${g.prog}</small></span>`).join('')}`;
   return to >= 0
     ? `<button type="button" class="lb-trk" data-goal="${to}" aria-label="다음 목표: ${esc(gs[to].text)}${recLabel(gs[to].to!.diff)}">${inner}</button>`
     : `<div class="lb-trk">${inner}</div>`;
@@ -170,12 +170,12 @@ function buildings(): string {
 function square(): string {
   const s = G.save, d = s.daily, w = s.weekly;
   // 주간 도전: 이번 주 남은 날 (잠기면 해금 레벨). 도전 상자가 있으면 이름표 = 받기
-  const cg = chalGate(s), left = 7 - daysBetween(weekKey(), dayKey());
+  const cg = chalGate(s), left = weekRemaining();
   const chal = s.chalChest
     ? `<span class="g-qm" aria-hidden="true">!</span><button type="button" class="lb-art" data-act="chal" aria-label="주간 도전 상자 받기">${propArt('hourglass', HOURGLASS_SVG)}</button>
       <button type="button" class="g-plate" id="lbChal"><b>주간 도전</b><span>상자 받기</span><i class="g-badge">!</i></button>`
     : `<button type="button" class="lb-art" data-go="s-content" data-arg="dungeon" tabindex="-1" aria-hidden="true">${propArt('hourglass', HOURGLASS_SVG)}</button>
-      <button type="button" class="g-plate${cg.ok ? '' : ' lock'}" data-go="s-content" data-arg="dungeon"><b>주간 도전</b><span>${cg.ok ? `${esc(CHAL.name)} · ${left}일` : `Lv ${cg.lv}에 열림`}</span></button>`;
+      <button type="button" class="g-plate${cg.ok ? '' : ' lock'}" data-go="s-content" data-arg="dungeon" aria-label="주간 도전 · ${esc(CHAL.name)} · ${cg.ok ? `${left} 남음` : `Lv ${cg.lv}에 열림`}"><b>주간 도전</b><span>${cg.ok ? `${left} 남음` : `Lv ${cg.lv}에 열림`}</span></button>`;
   // 임무: 받을 것이 있으면 게시판 위 노란 「!」 + 이름표 빨간 숫자. 게시판을 누르면 한 번에 받기, 이름표는 임무 화면
   const dGot = d.missions.filter(m => m.got).length, wGot = w.missions.filter(m => m.got).length;
   const ready = d.missions.filter(missionReady).length + w.missions.filter(missionReady).length;
@@ -186,7 +186,7 @@ function square(): string {
   // 일일 상자: 열 수 있으면 「열기」와 배지
   const ch = chestState(s), open = ch.today || ch.banked > 0;
   // 닫혀 있으면 여는 조건 진행 (임무 n/5 받음) 또는 「내일 다시」. 이름표가 좁아서 짧게
-  const cLine = open ? `열기${ch.banked ? ` · ${ch.banked}일 쌓임` : ''}` : d.chest ? '내일 다시' : `임무 ${dGot}/${d.missions.length} 받음`;
+  const cLine = open ? `열기${ch.banked ? ` · ${ch.banked}일 쌓임` : ''}` : d.chest ? '내일 다시' : `임무 ${dGot}/${d.missions.length}`;
   const chest = open
     ? `<button type="button" class="lb-art" data-act="chest" tabindex="-1" aria-hidden="true">${propArt('chest', CHEST_SVG)}</button>
       <button type="button" class="g-plate" id="lbChest"><b>일일 상자</b><span>${cLine}</span><i class="g-badge">!</i></button>`

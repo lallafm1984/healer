@@ -8,7 +8,8 @@ import { TUT, type CoachKey } from '../game/tutorial';
 import { G, heroNow } from '../game/state';
 import { betterSlots, talentsLeft } from '../game/charinfo';
 import { xpToNext } from '../data/progression';
-import { classEmblem, gameIcon, uiIcon } from './art';
+import { classEmblem, currencyIcon } from './art';
+import { releaseSheetDialogs, resetShellScroll } from './dialog';
 
 export const $ = (id: string) => document.getElementById(id)!;
 
@@ -55,20 +56,22 @@ export function screen(id: string, label: string, def: Omit<Screen, 'el'> = {}):
 export function go(id: string, arg?: unknown): void {
   const s = screens.get(id);
   if (!s) throw new Error(`화면 없음: ${id}`);
+  releaseSheetDialogs();
   if (id !== current) previous = current;
   current = id;
   document.querySelectorAll<HTMLElement>('#app > .screen').forEach(x => { x.hidden = x.id !== id; });
   s.enter?.(arg);
   s.el.scrollTop = 0;
   onTabs?.(s.tab);
+  // overflow:hidden ancestors can still be scrolled by focus/scrollIntoView.
+  // Only the active screen's inner list may scroll; never carry this offset to a new screen.
+  resetShellScroll();
 }
 
 export function setTabsHandler(fn: (t: TabKey | undefined) => void): void { onTabs = fn; }
 
 // ---------- 상단 바 (09 5장: 레벨·골드 고정, 전투 화면 제외) ----------
 /** 위 줄 재화 그림 (30 3장 icon-gold · icon-crystal이 오면 그 그림) */
-const COIN_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#E8B23A" stroke="#7A5418" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="#B9831F" stroke-width="1.6"/></svg>';
-const GEM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12l3 5-9 11L3 9z" fill="#7FC8FF" stroke="#1E4A7A" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 9h18M9 4l3 16 3-16" fill="none" stroke="#1E4A7A" stroke-width="1.2"/></svg>';
 const GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="6.6"/><path d="M12 2.5v2.9M12 18.6v2.9M2.5 12h2.9M18.6 12h2.9M5.3 5.3l2 2M16.7 16.7l2 2M5.3 18.7l2-2M16.7 7.3l2-2"/></svg>';
 
 /**
@@ -80,7 +83,7 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
   const s = G.save, p = s.player;
   const set = opts.settings ? `<button class="tb-set" type="button" data-go="s-settings" aria-label="설정"><span class="tb-ring2">${GEAR_SVG}</span></button>` : '';
   if (opts.back) {
-    return `<header class="topbar"><button class="tb-back" type="button" data-go="${opts.back}" aria-label="뒤로">←</button><b class="tb-title">${esc(opts.title || '')}</b><span class="tb-gold" aria-label="골드">${uiIcon('coin')} <b>${fmt(p.gold)}</b></span>${set}</header>`;
+    return `<header class="topbar"><button class="tb-back" type="button" data-go="${opts.back}" aria-label="뒤로">←</button><b class="tb-title">${esc(opts.title || '')}</b><span class="tb-gold" aria-label="골드">${currencyIcon('gold')} <b>${fmt(p.gold)}</b></span>${set}</header>`;
   }
   const need = xpToNext(p.level);
   const pct = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
@@ -95,7 +98,7 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
     : `<span class="tb-pf" role="img" aria-label="${esc(hero.name)} Lv ${p.level}">${pfIn}</span>`;
   return `<header class="topbar tb-mmo">${pf}
     <span class="tb-nm"><b class="tb-cls">${esc(hero.name)}</b><span class="tb-xp" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${pct.toFixed(1)}%"></i></span><small class="tb-xpt" aria-hidden="true" data-pct="${Math.floor(pct)}"></small></span>
-    <span class="tb-wal"><span class="tb-cur tb-gold" aria-label="골드">${gameIcon('gold', COIN_SVG)}<b>${fmt(p.gold)}</b></span><span class="tb-cur tb-cr" aria-label="크리스탈">${gameIcon('crystal', GEM_SVG)}<b>${fmt(s.wallet.crystal)}</b></span></span>
+    <span class="tb-wal"><span class="tb-cur tb-gold" aria-label="골드">${currencyIcon('gold')}<b>${fmt(p.gold)}</b></span><span class="tb-cur tb-cr" aria-label="크리스탈">${currencyIcon('crystal')}<b>${fmt(s.wallet.crystal)}</b></span></span>
     ${set}</header>`;
 }
 

@@ -20,10 +20,21 @@ describe('기기 저장', () => {
     const kv = mem();
     const s = newSave(123);
     s.settings.hand = 'left';
+    s.settings.compactSkills = true;
+    s.settings.reducedEffects = true;
     s.player.gold = 500;
     s.gear.bag.push({ id: 1, slot: 'ring', grade: '희귀', plus: 0, name: '축복받은 반지' });
     expect(save(s, kv)).toBe(true);
     expect(load(kv)).toEqual(s);
+  });
+  it('기존 저장은 기본 휠과 기존 효과로 유지한다', () => {
+    const s = newSave(123);
+    const old = JSON.parse(JSON.stringify(s));
+    delete old.settings.compactSkills; delete old.settings.reducedEffects;
+    const migrated = migrate(old);
+    expect(migrated.settings.compactSkills).toBe(false);
+    expect(migrated.settings.reducedEffects).toBe(false);
+    expect(migrated.player).toEqual(s.player);
   });
   it('깨진 저장이면 새 저장', () => {
     expect(load(mem({ [SAVE_KEY]: '{깨짐' })).v).toBe(SAVE_VERSION);

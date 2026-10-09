@@ -17,7 +17,7 @@ import { TRAITS } from '../data/traits';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
 import { activeOn, cdMax, costOf, knows, queue, slotKey, type Fight, type Unit } from '../engine';
 import { art } from '../art';
-import { ITEM_ICON } from './art';
+import { ITEM_ICON, skillMark } from './art';
 import { center, L } from './board';
 import { $, arrowOf, B, DIR_VEC, DIRS, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
 import { guideModel } from './guide';
@@ -49,14 +49,20 @@ export function buildWheel(D: number): void {
   // 시안 5인: 칸 68 · 가운데 72 (휠 폭 216 기준)
   const step = D / 3, b = step * 0.93, core = step * 0.98;
   w.style.setProperty('--slot', `${b}px`);
-  let html = `<div id="core" style="left:${(D - core) / 2}px;top:${(D - core) / 2}px;width:${core}px;height:${core}px"><div class="core-in"><div id="manaNum">100<small>마나</small></div></div></div>`;
+  let html = `<div id="core" style="left:${(D - core) / 2}px;top:${(D - core) / 2}px;width:${core}px;height:${core}px"><div class="core-in"><div id="manaNum">100<small>마나 %</small></div></div></div>`;
   DIRS.forEach((it, i) => {
     if (!it) return;
     const pos = `left:${(i % 3) * step + (step - b) / 2}px;top:${Math.floor(i / 3) * step + (step - b) / 2}px;width:${b}px;height:${b}px`;
-    if (!it.key) { html += `<div class="slot empty" data-dir="${it.d}" style="${pos}"><span class="ct">비어 있음</span></div>`; return; }
+    if (!it.key) {
+      html += `<div class="slot empty" data-dir="${it.d}" style="${pos}"><span class="ct">빈 칸</span></div>`;
+      return;
+    }
     // 아직 안 배운 스킬: 이름과 배우는 레벨만 (누르면 안내). it.key = 휠 칸 → 지금 직업의 스킬
     const k = F ? slotKey(F, it.key) : (it.key as SkillKey);
-    if (F && !knows(F, k)) { html += `<button class="slot locked" type="button" data-lock="${k}" data-dir="${it.d}" style="${pos}" aria-label="${SKILLS[k].name}, Lv ${SKILL_LEVEL[k]}에 배움"><span class="in"><span class="nm">${SKILLS[k].short}</span><span class="ct">${LOCK_SVG}Lv ${SKILL_LEVEL[k]}</span></span></button>`; return; }
+    if (F && !knows(F, k)) {
+      html += `<button class="slot locked" type="button" data-lock="${k}" data-dir="${it.d}" style="${pos}" aria-label="${SKILLS[k].name}, 잠김, Lv ${SKILL_LEVEL[k]}에 배움"><span class="in"><span class="nm">${SKILLS[k].short}</span><span class="ct">${LOCK_SVG}Lv ${SKILL_LEVEL[k]}</span></span></button>`;
+      return;
+    }
     html += `<button class="slot" type="button" data-slot="${it.key}" data-dir="${it.d}" style="${pos}"><span class="cd"></span><span class="in">${dirSvg(it.d)}<span class="nm"></span><span class="ct"></span><span class="cds"></span></span></button>`;
   });
   w.innerHTML = html;
@@ -64,13 +70,15 @@ export function buildWheel(D: number): void {
 
 /** 휠 칸마다 지금 붙인 스킬 그림의 스킬 키 (성언처럼 칸의 스킬이 바뀌면 그림도 바꿈) */
 const slotArt = new WeakMap<HTMLElement, SkillKey>();
-/** 31 문서: skill-<키> 그림이 있으면 이름 위에 작은 그림. 없으면 아무것도 넣지 않음 (지금과 똑같음) */
+/** 원화가 없을 때만 기능 실루엣을 사용한다. 축소 모드도 같은 이름·방향을 유지한다. */
 function setSlotArt(el: HTMLElement, key: SkillKey): void {
   if (slotArt.get(el) === key) return;
   slotArt.set(el, key);
   el.querySelector('.sic')?.remove();
+  el.querySelector('.skill-mark')?.remove();
   const url = art(`skill-${key}`);
   if (url) el.querySelector('.nm')?.insertAdjacentHTML('beforebegin', `<img class="sic" src="${url}" alt="" decoding="async" draggable="false">`);
+  else el.querySelector('.nm')?.insertAdjacentHTML('beforebegin', skillMark(key));
 }
 
 export function updateWheel(): void {
@@ -81,13 +89,19 @@ export function updateWheel(): void {
     const slot = el.dataset.slot!, key = slotKey(F, slot), sk = SKILLS[key];
     setSlotArt(el, key);
     const cd = sk.cd ? F.cd[key] || 0 : 0, cost = costOf(F, key);
+    const lowMana = F.mana < cost, lowPower = !!sk.power && F.power3 < (sk.powerAll ? 1 : sk.power);
+    const resource = sk.power ? `힘 ${sk.powerAll ? '1~3' : sk.power}` : cost ? `마나 ${Math.round(cost * 10) / 10}%` : '마나 0';
     setText(el.querySelector('.nm')!, sk.short);
-    setText(el.querySelector('.ct')!, cost ? `${Math.round(cost * 10) / 10}%` : '무료');
+    // 일반·축소는 같은 내용과 순서를 사용한다. 패널 바깥 배율만 바뀐다.
+    const visibleCost = sk.power ? (sk.powerAll ? '힘1+' : `힘${sk.power}`) : `${Math.round(cost * 10) / 10}%`;
+    setText(el.querySelector('.ct')!, visibleCost);
     el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', cd > 0 ? `${Math.min(1, cd / cdMax(F, key)) * 100}%` : '0%');
-    setText(el.querySelector('.cds')!, cd > 0 ? String(Math.ceil(cd)) : '');
-    const label = `${sk.name}, ${cd > 0 ? `재사용 대기 ${Math.ceil(cd)}초` : cost ? `마나 ${Math.round(cost * 10) / 10}%` : '무료'}`;
+    setText(el.querySelector('.cds')!, cd > 0 ? `${Math.ceil(cd)}초` : '');
+    const label = `${sk.name}, ${cd > 0 ? `재사용 대기 ${Math.ceil(cd)}초` : resource}${lowMana ? ', 마나 부족' : lowPower ? ', 신성한 힘 부족' : ''}${B.armed === slot ? ', 선택됨. 대상 선택 또는 다시 눌러 취소' : ''}`;
     if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
-    el.classList.toggle('off', cd > 0 || F.mana < cost);
+    el.setAttribute('aria-pressed', String(B.armed === slot));
+    el.classList.toggle('off', cd > 0 || lowMana || lowPower);
+    el.classList.toggle('resource-low', lowMana || lowPower);
     el.classList.toggle('cooling', cd > 0);
     el.classList.toggle('armed', B.armed === slot);
     el.classList.toggle('holy', key === 'serenity' || key === 'sanctify');
@@ -95,11 +109,16 @@ export function updateWheel(): void {
   // 휠 가운데 = 마나 링 (시안). 마나가 모자라면 링·숫자가 빨강 (27 3-4: 위기 신호를 마나 테두리로)
   const mn = $('manaNum'), core = $('core'), m = `${Math.max(0, Math.min(100, F.mana)).toFixed(1)}%`;
   setText(mn.firstChild as Element, String(Math.floor(F.mana)));
+  setText(mn.querySelector('small')!, '마나 %');
   if (core.style.getPropertyValue('--m') !== m) core.style.setProperty('--m', m);
   core.classList.toggle('low', F.mana < 20);
   core.classList.toggle('beacon', B.beacon);
   // 직업 고유 시스템 = 단축칸 아래 작은 막대 2줄 (시안 20인): 사제 평온·신성화 / 드루이드 새싹 걸린 인원 / 성기사 신성한 힘 · 봉화
   const r = coreRing(F);
+  const gaugeLabels = $('gauges').querySelectorAll<HTMLElement>('.gl');
+  if (F.hero === 'paladin' && gaugeLabels[0]) setText(gaugeLabels[0], '신성한 힘');
+  $('gauges').setAttribute('aria-label', F.hero === 'paladin' ? `신성한 힘 ${r.a}, 봉화 ${r.b}`
+    : F.hero === 'druid' ? `새싹 ${r.a}명 / ${r.b}명` : `평온 ${r.a}%, 신성화 ${r.b}%`);
   setText($('gP'), r.a);
   setText($('gS'), r.b);
   setBar($('gPb'), r.outer);
@@ -200,7 +219,7 @@ export function updateItems(): void {
 // ---------- 시전 막대 (시안: 화면 폭 막대 안에 「스킬 → 대상」 · 남은 초, 채움 끝에 밝은 선) ----------
 export function updateCastbar(): void {
   const F = fight();
-  let label: string, p = 0, left = '';
+  let label: string, detail = '', p = 0, left = '';
   if (F.cast) {
     const u = F.party.find(x => x.id === F.cast!.uid);
     label = `${SKILLS[F.cast.key].short} → ${u ? u.nick : ''}`;
@@ -219,11 +238,19 @@ export function updateCastbar(): void {
   } else if (F.queued) {
     label = `다음: ${SKILLS[F.queued.key].name}`;
   } else {
-    label = F.gcd > 0 ? '공통 재사용 대기' : `칸을 탭하면 ${SKILLS[tapKey()].name}`;
+    const selected = F.party.find(u => u.id === ui.selectedUnitId);
+    if (selected) {
+      const hp = `${Math.ceil(selected.hp)}/${Math.ceil(selected.max)} (${Math.ceil(selected.hp / selected.max * 100)}%)`;
+      const types = [...new Set(selected.debuffs.map(d => d.type))];
+      label = `${selected.nick} · ${selected.alive ? `HP ${hp}` : '쓰러짐'}${types.length ? ` · ${types.join('/')}` : ''}`;
+      detail = `${selected.nick}, ${selected.alive ? `체력 ${hp}` : '쓰러짐'}. ${selected.debuffs.length ? selected.debuffs.map(d => `${d.name} (${d.type}), ${Math.ceil(d.left)}초${d.stack ? `, ${d.stack}중첩` : ''}, ${!canDispel(F.hero, d.type) ? '해제 불가' : d.trap ? '해제 주의: 옆 칸으로 전파' : '해제 가능'}`).join('. ') : '디버프 없음'}`;
+    } else label = F.gcd > 0 ? '공통 재사용 대기' : `칸을 탭하면 ${SKILLS[tapKey()].name}`;
     p = F.gcd > 0 ? F.gcd / F.gcdBase : 0;
   }
   const casting = !!F.cast || F.channel > 0;
   setText($('castLabel'), label);
+  $('castLabel').title = detail || label;
+  $('castLabel').setAttribute('aria-label', detail || label);
   setText($('castTime'), left);
   $('castbar').classList.toggle('is-casting', casting);
   $('castbar').classList.toggle('is-armed', !casting && (!!B.armed || B.beacon));
@@ -232,23 +259,23 @@ export function updateCastbar(): void {
 }
 
 // ---------- 파티원 공격 숫자 (2026-10-07 Lim: 합치지 않고 한 방씩) ----------
-// 보스 그림 위에 한 방씩 떠오름. 칸이 모자라면 가장 오래된 숫자를 다시 씀 (20인은 많아서 겹치지 않게)
-const DMG_POOL = 10;
+// 한 방씩 유지하되 동시 표시를 서로 겹치지 않는 세 줄로 제한한다.
+const DMG_POOL = 3;
 const dmg = { els: [] as HTMLSpanElement[], i: 0, avg: 0, hurtAt: 0 };
 export function resetDmgNums(): void {
   const box = $('dmgNums');
-  if (!dmg.els.length) for (let k = 0; k < DMG_POOL; k++) { const s = document.createElement('span'); box.appendChild(s); dmg.els.push(s); }
+  if (!dmg.els.length) for (let k = 0; k < DMG_POOL; k++) { const s = document.createElement('span'); s.style.setProperty('--row', String(k)); box.appendChild(s); dmg.els.push(s); }
   for (const s of dmg.els) s.className = '';
-  dmg.avg = 0;
+  dmg.avg = 0; dmg.i = 0; dmg.hurtAt = 0;
 }
 export function dmgNum(u: Unit | undefined, amt: number, now: number): void {
+  if (S.reducedEffects) return;
   if (!dmg.els.length) resetDmgNums();
   const el = dmg.els[dmg.i]; dmg.i = (dmg.i + 1) % DMG_POOL;
   const n = Math.max(1, Math.round(amt));
   dmg.avg = dmg.avg ? dmg.avg * 0.9 + amt * 0.1 : amt;
   el.textContent = String(n);
   el.className = `${u ? u.role : ''}${amt > dmg.avg * 1.6 ? ' big' : ''}`;
-  el.style.setProperty('--dx', `${Math.round((Math.random() - 0.5) * 44)}px`);
   void el.offsetWidth;
   el.classList.add('go');
   if (now - dmg.hurtAt > 160) { dmg.hurtAt = now; const a = $('bossArt'); a.classList.remove('hurt'); void a.offsetWidth; a.classList.add('hurt'); }
@@ -259,6 +286,13 @@ export function dmgNum(u: Unit | undefined, amt: number, now: number): void {
 const QWIN = 30;
 /** 곧 떨어지는 칸 (빨강): 시전 중이거나 이 초 이하 */
 const QSOON = 5;
+/** 예고 전용 이름. 긴 정식 이름은 설명·접근성 이름에 유지한다. */
+const QSHORT: Record<string, string> = {
+  '고철 휘두르기': '휘두', '쇳조각 비': '쇳비', '내려찍기': '강타', '증기 분출': '분출', '증기 폭발': '폭발',
+  '녹물 웅덩이': '녹물', '썩은 숨결': '숨결', '독침': '독침', '역병 파동': '파동', '전염': '전염', '역병 폭풍': '폭풍',
+  '지휘봉': '지휘', '크레센도': '크레', '포르테': '포르', '독창': '독창', '인터미션 끝': '복귀',
+  '고철 폭주': '폭주', '증기 폭주': '폭주', '역병 폭주': '폭주', '대합창': '합창',
+};
 /** 예고 칸 종류: 작은 글자 + 네모 아이콘 (시안: 버스터 = 방패에 번개, 광역 = 퍼지는 빛) */
 const QKIND: Record<string, { name: string; path: string }> = {
   buster: { name: '버스터', path: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M13 6.5l-2.5 5h3.5l-2 5"/>' },
@@ -291,6 +325,7 @@ export function buildStage(): void {
 
 export function updateStage(now: number): void {
   const F = fight(), R = S.run!;
+  $('battle').classList.toggle('reduced-effects', S.reducedEffects);
   const alive = F.party.filter(u => u.alive), critical = alive.filter(u => u.hp / u.max < 0.3).length;
   setText($('partyAlive'), `${alive.length}/${F.party.length}`);
   setText($('partyCondition'), critical ? `${critical}명 위험` : alive.length < F.party.length ? `쓰러짐 ${F.party.length - alive.length}` : '모두 생존');
@@ -330,7 +365,7 @@ export function updateStage(now: number): void {
     if (changed) {
       const focused = document.activeElement instanceof HTMLElement && queueEl.contains(document.activeElement) ? { ...document.activeElement.dataset } : null;
       // 예고 칸 3개를 늘 표시 (27 3-4): 기술이 없으면 빈 테두리 칸
-      queueEl.innerHTML = q.map(it => `<button type="button" class="q" data-ic="${it.icon || ''}" data-imp="${it.impact.toFixed(2)}" data-kind="${it.kind || ''}"><span class="fill"></span><span class="ic">${qIcon(it.kind)}</span><span class="tx"><span class="nm"></span><span class="kd">${qKind(it.kind).name}</span></span><span class="sec"></span></button>`).join('')
+      queueEl.innerHTML = q.map(it => `<button type="button" class="q" data-ic="${it.icon || ''}" data-imp="${it.impact.toFixed(2)}" data-kind="${it.kind || ''}"><span class="fill"></span><span class="ic">${qIcon(it.kind)}</span><span class="tx"><span class="nm"></span><span class="kd">${qKind(it.kind).name}</span></span><span class="sec"><b class="sec-num"></b><small>초</small></span></button>`).join('')
         + '<span class="q-empty" aria-hidden="true"></span>'.repeat(3 - q.length);
       cards = Array.from(queueEl.querySelectorAll<HTMLElement>('.q'));
       // 순서가 바뀌었을 때만, 여전히 예고 중인 같은 기술로 포커스를 이어 준다.
@@ -342,9 +377,9 @@ export function updateStage(now: number): void {
       const sec = Math.max(0, it.impact - F.t), icon = it.icon || '', hot = it.casting || sec <= QSOON;
       const el = cards[i], cls = `q${i === 0 ? ' first' : ''}${hot ? ' hot' : i === firstCool ? ' next' : ' later'}${it.casting ? ' casting' : ''}${tipMatch(icon, it.impact) ? ' tipon' : ''}`;
       if (el.className !== cls) el.className = cls;
-      setText(el.querySelector('.nm')!, it.name || '기술');
-      setText(el.querySelector('.sec')!, String(Math.ceil(sec)));
-      const label = `${it.name || '기술'}, ${Math.ceil(sec)}초 뒤. 기술 설명`;
+      setText(el.querySelector('.nm')!, QSHORT[it.name || ''] || it.icon || it.name || '기술');
+      setText(el.querySelector('.sec-num')!, String(Math.ceil(sec)));
+      const label = `${it.name || '기술'}, ${qKind(it.kind).name}, ${Math.ceil(sec)}초 뒤${it.casting ? ', 시전 중' : ''}. 기술 설명`;
       if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
       setBar(el.querySelector<HTMLElement>('.fill'), sec / QWIN);
     });

@@ -45,7 +45,7 @@ function startDuo(): void {
     content: c.key, name: c.name, segs: c.fights('쉬움'), diff: '쉬움', level: healerLevel(), heroLv: G.save.player.level, stageLv: c.stageLv, gearStats: gearStatsOf(G.save.gear.equipped),
     party: DUO_PARTY, items, slots, seed: newSeed(), coach: 'duo', hero: 'priest',
     onEnd(r) {
-      if (!r.win) { go('s-tut', 'lose'); return; }
+      if (!r.win) { go('s-tut', r.quit ? 'quit' : 'lose'); return; }
       // 첫 전투를 깨면 Lv 2 (소생). 다시 보기로 하는 거면 레벨은 그대로
       const p = G.save.player;
       if (p.level < 2) addXp(p, xpToNext(1) - p.xp);
@@ -67,11 +67,10 @@ function startExplore(): void {
 // ---------- 단계 사이 카드 ----------
 const card = screen('s-tut', '튜토리얼', {
   enter(arg) {
-    const lose = arg === 'lose';
+    const lose = arg === 'lose' || arg === 'quit';
     if (lose) {
-      card.el.innerHTML = `<div class="ns-body story"><h2 class="h">탱커가 쓰러짐</h2>
-        <p>탱커 칸을 자주 탭하기. 탭 한 번에 치유 한 번.</p>
-        <p>체력이 반쯤 줄었을 때 미리 탭하면 넉넉함.</p></div>
+      card.el.innerHTML = `<div class="ns-body story"><h2 class="h">${arg === 'quit' ? '튜토리얼 중단' : '탱커가 쓰러짐'}</h2>
+        ${arg === 'quit' ? '<p>첫 전투를 중단했습니다. 같은 단계에서 다시 시작할 수 있습니다.</p>' : '<p>탱커 칸을 자주 탭하기. 탭 한 번에 치유 한 번.</p><p>체력이 반쯤 줄었을 때 미리 탭하면 넉넉함.</p>'}</div>
         <footer class="ns-foot col"><button class="btn primary" type="button" id="tutRetry">다시 하기</button>${DEV_SKIP}</footer>`;
       return;
     }

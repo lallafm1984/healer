@@ -22,6 +22,7 @@ import {
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
 } from './core';
 import { guideHtml, guideModel } from './guide';
+import { initBattleDialogs } from './dialogs';
 import {
   bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
   resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
@@ -41,6 +42,8 @@ function resetRun(): void {
  * 첫 판은 편성 화면 미리보기와 같은 시드 (시작 위치가 같게). 처음부터 다시·다음 구간은 새 시드
  */
 function startBattle(guideSec = 0): void {
+  dialogs.closeAll();
+  setPauseInert(false);
   const R = S.run!;
   const sd = R.seed0 != null ? R.seed0 : seed(); R.seed0 = null;
   // 가방에 남은 만큼만 (앞 구간에서 쓴 것 빼고, 19 11장)
@@ -60,7 +63,7 @@ function startBattle(guideSec = 0): void {
   B.armed = null; B.paused = false; B.overShown = false; B.beacon = false;
   Object.assign(ui, {
     guideSec, skillTips: 0, lowFlags: {}, tickSec: null, busterHint: false, swipes: {}, swipeCancel: 0, swipeEmpty: 0,
-    vibedTel: new Set(), debSnd: {}, tapOff: [], lastTap: null, retarget: 0, pointer: null,
+    vibedTel: new Set(), debSnd: {}, tapOff: [], lastTap: null, retarget: 0, pointer: null, selectedUnitId: null,
   });
   closeTip(); resetBoardFx(); resetDmgNums();
   const lag = $('bossLag'); lag.style.transition = 'none'; lag.style.width = '100%'; void lag.offsetWidth; lag.style.transition = '';
@@ -79,7 +82,6 @@ function startBattle(guideSec = 0): void {
   $('battle').classList.toggle('compact', !!F.enc.big);
   setPlace(F.enc.key);
   show('battle');
-  layoutBattle();
   if (S.auto) toast('자동 힐러가 플레이 중 (기록 안 남김)');
   else if (R.idx === 0) toast(`칸을 탭하면 ${SKILLS[tapKey()].name}`);
   // 어픽스는 첫 구간 시작에 한 번 알림 (07 3장, 13 3-3)
@@ -90,6 +92,8 @@ function startBattle(guideSec = 0): void {
   $('gauges').classList.toggle('locked', !words);
   $('controls').classList.toggle('nowords', !words);
   $('controls').classList.toggle('paladin', F.hero === 'paladin');
+  // 최종 고유 게이지와 잠금 상태가 정해진 뒤 한 번만 크기·터치 영역을 측정한다.
+  layoutBattle();
 }
 
 /** 장소 그림 (28 2-3장): 진형 판 뒤 바닥, 보스 무대 뒤 풍경 (없으면 바닥) */
@@ -106,6 +110,7 @@ function setPlace(enc: EncounterKey): void {
 }
 
 function layoutBattle(): void {
+  endSlot(true); endItem(true); endAux(true); endPointer(true);
   const F = B.F!, app = $('app');
   const H = app.clientHeight, W = app.clientWidth;
   const short = H < 630;
@@ -117,47 +122,119 @@ function layoutBattle(): void {
   // 아래 조작판: 시안 390×844에서 230. 휠 = 조작판 높이 - 14 (시안 216), 폭의 56.5% (시안 220)
   const auxCount = Object.keys(F.tx.act).length;
   // 특성 버튼 줄이 있으면 버튼 44 + 아이템 2줄 + 막대 2줄이 들어가게 (낮은 화면은 막대·여백을 줄여 194)
+  const down = F.party.some(u => u.role === 'tank') && !F.party.some(u => u.role === 'tank' && u.alive);
+  const controls = $('controls');
+  controls.classList.toggle('compact-controls', S.compactSkills);
+  $('battle').classList.toggle('compact-panel', S.compactSkills);
+  controls.classList.toggle('paladin', F.hero === 'paladin');
+  controls.classList.toggle('wheel-left', S.hand === 'left');
   const ch = Math.round(Math.min(236, Math.max(auxCount ? (short ? 194 : 218) : 178, H * 0.297)));
+  layoutState = `${S.compactSkills}:${down}`;
+  ($('pauseCompact') as HTMLInputElement).checked = S.compactSkills;
+  $('wheel').setAttribute('aria-label', '치유 스킬 휠');
+  controls.style.setProperty('--controls-scale', '1');
   $('controls').style.height = ch + 'px';
   // 왼쪽(단축칸 쪽) = 특성 버튼 3개면 시안 20인 폭 146, 좁은 폰은 140. 여백 16·12 + 사이 8 (좁으면 12·12)
   const narrow = W < 360, sideWidth = auxCount >= 3 ? (narrow ? 140 : 146) : 96;
   buildWheel(Math.min(ch - 14, W * 0.565, W - sideWidth - (narrow ? 32 : 36)));
+  const actions = S.compactSkills ? $('partyActions') : $('castbar');
+  actions.append($('targetsBtn'));
+  // 시전 여부와 관계없이 판과 조작판 사이의 독립 행을 예약한다.
+  $('controlsFrame').before($('castbar'));
+  // 일시정지 중 부모가 바뀌어도 이전 직계 자식의 inert가 남지 않게 한다.
+  $('castbar').inert = false;
+  setPauseInert(!$('pause').hidden);
+  $('battle').querySelector<HTMLElement>('.board-instruction')!.textContent = '탭: 치유 · 길게: 정보';
+  if (F.hero === 'paladin') {
+    $('core').setAttribute('role', 'button'); $('core').tabIndex = 0;
+    $('core').setAttribute('aria-label', '마나 · 봉화 지정');
+  }
+  scaleControls();
   resizeBoard();
 }
+/** 같은 조작판을 90%부터 축소하되, 44px 터치 영역 사이에 1px 여유가 남게 배율을 올린다. */
+function scaleControls(): void {
+  const controls = $('controls'), frame = $('controlsFrame'), base = controls.getBoundingClientRect();
+  const targets = Array.from(controls.querySelectorAll<HTMLElement>('button, #core[role="button"]'))
+    .map(el => ({ el, rect: el.getBoundingClientRect() }))
+    .filter(({ el, rect }) => rect.width > 0 && rect.height > 0 && !el.closest('[hidden]') && getComputedStyle(el).visibility !== 'hidden');
+  const boxes = (scale: number) => targets.map(({ rect }) => ({
+    x: (rect.left + rect.width / 2 - base.left) * scale, y: (rect.top + rect.height / 2 - base.top) * scale,
+    w: Math.max(44, rect.width * scale), h: Math.max(44, rect.height * scale),
+  }));
+  const overlap = (scale: number, gap = 0) => {
+    const bounds = boxes(scale);
+    return bounds.some((a, i) => bounds.slice(i + 1).some(b => Math.abs(a.x - b.x) < (a.w + b.w) / 2 + gap - 0.01 && Math.abs(a.y - b.y) < (a.h + b.h) / 2 + gap - 0.01));
+  };
+  let scale = S.compactSkills ? 0.9 : 1;
+  // 서브픽셀 경계에서 뒤쪽 형제의 투명 영역이 먼저 잡히지 않도록 간격을 둔다.
+  while (scale < 1 && overlap(scale, 1)) scale = Math.min(1, +(scale + 0.005).toFixed(3));
+  controls.style.setProperty('--controls-scale', String(scale));
+  controls.style.setProperty('--touch-min', `${44 / scale}px`);
+  frame.style.height = `${base.height * scale}px`;
+  const visualMin = targets.length ? Math.min(...targets.flatMap(({ rect }) => [rect.width * scale, rect.height * scale])) : 0;
+  for (const { el, rect } of targets) {
+    el.dataset.hitWidth = String(S.compactSkills ? Math.max(44, rect.width * scale) : rect.width);
+    el.dataset.hitHeight = String(S.compactSkills ? Math.max(44, rect.height * scale) : rect.height);
+  }
+  Object.assign(controls.dataset, { uiScale: String(scale), baseControlHeight: String(base.height), visualTouchMin: visualMin.toFixed(3),
+    effectiveTouchMin: (S.compactSkills ? Math.max(44, visualMin) : visualMin).toFixed(3), hitAreasOverlap: String(overlap(scale)) });
+}
+let layoutState = '';
+function setCompact(value: boolean): void {
+  endSlot(true); endItem(true); endAux(true); endPointer(true); closeTip();
+  S.compactSkills = value; S.onSetting?.('compactSkills', value);
+  if (B.F && !$('battle').hidden) {
+    layoutBattle(); updateWheel();
+  }
+}
+$('pauseCompact').addEventListener('change', e => setCompact((e.target as HTMLInputElement).checked));
 new ResizeObserver(() => { if (B.F && !$('battle').hidden) resizeBoard(); }).observe($('boardWrap'));
 window.addEventListener('resize', () => { if (B.F && !$('battle').hidden) layoutBattle(); });
 
 // ---------- 스킬 휠: 짧게 누르기 = 장전(또는 바로 사용), 잠긴 칸은 배우는 레벨 안내. 길게 누르기 = 스킬 설명 ----------
-interface Press { el: HTMLElement; lp: boolean; timer?: ReturnType<typeof setTimeout> }
-let slotPress: (Press & { slot: string | null; lock: SkillKey | null }) | null = null;
+interface Press { id: number; el: HTMLElement; lp: boolean; timer?: ReturnType<typeof setTimeout> }
+let slotPress: (Press & { slot: string | null; lock: SkillKey | null; core: boolean }) | null = null;
 let itemPress: (Press & { key: ItemKey }) | null = null;
-let auxPress: { key: TalentKey; lp: boolean; timer?: ReturnType<typeof setTimeout> } | null = null;
+let auxPress: (Press & { key: TalentKey }) | null = null;
 const live = () => !!B.F && !B.F.over && !B.paused;
+// 판과 조작 버튼 사이에서도 먼저 누른 포인터만 입력을 소유한다.
+const pointerBusy = () => !!(slotPress || itemPress || auxPress || ui.pointer);
+const ownsPress = (p: { id?: number } | null, e?: PointerEvent) => !!p && (!e || p.id === e.pointerId);
+const outsidePress = (p: Press, e: PointerEvent) => {
+  const r = p.el.getBoundingClientRect();
+  const w = Math.max(r.width, Number(p.el.dataset.hitWidth) || 0), h = Math.max(r.height, Number(p.el.dataset.hitHeight) || 0);
+  const dx = (w - r.width) / 2, dy = (h - r.height) / 2;
+  return e.clientX < r.left - dx || e.clientX > r.right + dx || e.clientY < r.top - dy || e.clientY > r.bottom + dy;
+};
 
 $('wheel').addEventListener('pointerdown', ev => {
-  if ((ev.target as Element).closest('#core')) { ev.preventDefault(); pressCore(); return; }
-  const el = (ev.target as Element).closest<HTMLElement>('.slot[data-slot], .slot[data-lock]');
+  const el = (ev.target as Element).closest<HTMLElement>('.slot[data-slot], .slot[data-lock], #core');
   if (!el) return;
   ev.preventDefault();
-  if (!live()) return;
+  if (!live() || ui.pullLeft > 0 || pointerBusy() || ev.button !== 0) return;
   try { el.setPointerCapture(ev.pointerId); } catch { /* 무시 */ }
-  const P: typeof slotPress = { el, slot: el.dataset.slot || null, lock: (el.dataset.lock as SkillKey) || null, lp: false };
-  P.timer = setTimeout(() => {
+  const P: typeof slotPress = { id: ev.pointerId, el, slot: el.dataset.slot || null, lock: (el.dataset.lock as SkillKey) || null, core: el.id === 'core', lp: false };
+  if (!P.core) P.timer = setTimeout(() => {
     if (slotPress !== P || !B.F) return;
     P.lp = true; openSkillTip(P.slot ? slotKey(B.F, P.slot) : P.lock!, el); vibe(10);
   }, 450);
   slotPress = P;
 });
-function endSlot(cancelled: boolean): void {
+function endSlot(cancelled: boolean, e?: PointerEvent): void {
+  if (!ownsPress(slotPress, e)) return;
   const P = slotPress; slotPress = null;
   if (!P) return;
   clearTimeout(P.timer);
   if (P.lp || cancelled || !live()) return;
+  if (P.core) { pressCore(); return; }
   if (P.lock) { toast(`${SKILLS[P.lock].name}: Lv ${SKILL_LEVEL[P.lock]}에 배움`); Snd.play('error'); return; }
   pressSlot(P.slot!);
 }
-$('wheel').addEventListener('pointerup', () => endSlot(false));
-$('wheel').addEventListener('pointercancel', () => endSlot(true));
+$('wheel').addEventListener('pointermove', e => { if (slotPress && ownsPress(slotPress, e) && outsidePress(slotPress, e)) endSlot(true, e); });
+$('wheel').addEventListener('pointerup', e => endSlot(false, e));
+$('wheel').addEventListener('pointercancel', e => endSlot(true, e));
+$('wheel').addEventListener('lostpointercapture', e => endSlot(true, e));
 $('wheel').addEventListener('contextmenu', e => e.preventDefault());
 
 /** 휠 가운데: 성기사는 봉화 지정 (누르고 칸 탭, 25 3장). 다른 직업은 아무 일 없음 */
@@ -185,22 +262,25 @@ function pressSlot(slot: string): void {
 // ---------- 소비 아이템: 누르기 = 나에게 바로 / 대상이 필요한 보호 두루마리는 장전 → 칸 탭. 길게 누르기 = 설명 ----------
 $('items').addEventListener('pointerdown', e => {
   const b = (e.target as Element).closest<HTMLElement>('.item[data-item]');
-  if (!b || !live() || ui.pullLeft > 0) return;
+  if (!b || !live() || ui.pullLeft > 0 || pointerBusy() || e.button !== 0) return;
   e.preventDefault();
   try { b.setPointerCapture(e.pointerId); } catch { /* 무시 */ }
-  const P: typeof itemPress = { el: b, key: b.dataset.item as ItemKey, lp: false };
+  const P: typeof itemPress = { id: e.pointerId, el: b, key: b.dataset.item as ItemKey, lp: false };
   P.timer = setTimeout(() => { if (itemPress === P) { P.lp = true; openItemTip(P.key, b); vibe(10); } }, 450);
   itemPress = P;
 });
-function endItem(cancelled: boolean): void {
+function endItem(cancelled: boolean, e?: PointerEvent): void {
+  if (!ownsPress(itemPress, e)) return;
   const P = itemPress; itemPress = null;
   if (!P) return;
   clearTimeout(P.timer);
   if (P.lp || cancelled || !live()) return;
   pressItem(P.key);
 }
-$('items').addEventListener('pointerup', () => endItem(false));
-$('items').addEventListener('pointercancel', () => endItem(true));
+$('items').addEventListener('pointermove', e => { if (itemPress && ownsPress(itemPress, e) && outsidePress(itemPress, e)) endItem(true, e); });
+$('items').addEventListener('pointerup', e => endItem(false, e));
+$('items').addEventListener('pointercancel', e => endItem(true, e));
+$('items').addEventListener('lostpointercapture', e => endItem(true, e));
 $('items').addEventListener('contextmenu', e => e.preventDefault());
 
 function pressItem(key: ItemKey): void {
@@ -220,23 +300,51 @@ function pressItem(key: ItemKey): void {
 // ---------- 특성 보조 버튼: 누르기 = 바로 (쉼터는 장전 → 빈 칸 탭), 길게 누르기 = 설명 ----------
 $('aux').addEventListener('pointerdown', e => {
   const b = (e.target as Element).closest<HTMLElement>('.aux[data-tal]');
-  if (!b || !live() || ui.pullLeft > 0) return;
+  if (!b || !live() || ui.pullLeft > 0 || pointerBusy() || e.button !== 0) return;
   e.preventDefault();
   try { b.setPointerCapture(e.pointerId); } catch { /* 무시 */ }
-  const P: NonNullable<typeof auxPress> = { key: b.dataset.tal as TalentKey, lp: false };
+  const P: NonNullable<typeof auxPress> = { id: e.pointerId, el: b, key: b.dataset.tal as TalentKey, lp: false };
   P.timer = setTimeout(() => { if (auxPress === P) { P.lp = true; openTalentTip(P.key, b); vibe(10); } }, 450);
   auxPress = P;
 });
-function endAux(cancelled: boolean): void {
+function endAux(cancelled: boolean, e?: PointerEvent): void {
+  if (!ownsPress(auxPress, e)) return;
   const P = auxPress; auxPress = null;
   if (!P) return;
   clearTimeout(P.timer);
   if (P.lp || cancelled || !live()) return;
   pressAux(P.key);
 }
-$('aux').addEventListener('pointerup', () => endAux(false));
-$('aux').addEventListener('pointercancel', () => endAux(true));
+$('aux').addEventListener('pointermove', e => { if (auxPress && ownsPress(auxPress, e) && outsidePress(auxPress, e)) endAux(true, e); });
+$('aux').addEventListener('pointerup', e => endAux(false, e));
+$('aux').addEventListener('pointercancel', e => endAux(true, e));
+$('aux').addEventListener('lostpointercapture', e => endAux(true, e));
 $('aux').addEventListener('contextmenu', e => e.preventDefault());
+
+// 키보드/보조 기술이 만드는 click은 pointer 경로와 한 번만 실행한다.
+function assistiveClick(e: MouseEvent): boolean {
+  const capabilities = (e as MouseEvent & { sourceCapabilities?: { firesTouchEvents?: boolean } }).sourceCapabilities;
+  return e.detail === 0 && !('pointerType' in e && e.pointerType) && !capabilities?.firesTouchEvents;
+}
+$('wheel').addEventListener('click', e => {
+  if (!assistiveClick(e) || !live() || ui.pullLeft > 0 || pointerBusy()) return;
+  const el = (e.target as Element).closest<HTMLElement>('[data-slot],[data-lock],#core');
+  if (!el) return;
+  if (el.id === 'core') { pressCore(); return; }
+  if (el.dataset.lock) { const k = el.dataset.lock as SkillKey; toast(`${SKILLS[k].name}: Lv ${SKILL_LEVEL[k]}에 배움`); return; }
+  if (el.dataset.slot) pressSlot(el.dataset.slot);
+});
+$('wheel').addEventListener('keydown', e => {
+  if ((e.target as HTMLElement).id === 'core' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); if (!pointerBusy()) pressCore(); }
+});
+$('items').addEventListener('click', e => {
+  const key = (e.target as Element).closest<HTMLElement>('[data-item]')?.dataset.item as ItemKey | undefined;
+  if (assistiveClick(e) && key && live() && ui.pullLeft <= 0 && !pointerBusy()) pressItem(key);
+});
+$('aux').addEventListener('click', e => {
+  const key = (e.target as Element).closest<HTMLElement>('[data-tal]')?.dataset.tal as TalentKey | undefined;
+  if (assistiveClick(e) && key && live() && ui.pullLeft <= 0 && !pointerBusy()) pressAux(key);
+});
 
 function pressAux(key: TalentKey): void {
   const F = B.F!, def = TALENT_DEF[key];
@@ -275,6 +383,7 @@ const cv = $('board') as HTMLCanvasElement;
 function pt(e: PointerEvent) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 function doUse(key: SkillKey, idx: number): boolean {
   const F = B.F!, res = use(F, key, idx);
+  if (F.cells[idx]?.unit) ui.selectedUnitId = F.cells[idx].unit!.id;
   if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('error'); return false; }
   if (B.armed && slotKey(F, B.armed) === key) B.armed = null;
   if (B.armed && (key === 'serenity' || key === 'sanctify')) B.armed = null;
@@ -284,12 +393,12 @@ function doUse(key: SkillKey, idx: number): boolean {
 }
 cv.addEventListener('pointerdown', e => {
   const F = B.F;
-  if (!F || !live() || ui.pullLeft > 0) return;
+  if (!F || !live() || ui.pullLeft > 0 || pointerBusy() || e.button !== 0) return;
   e.preventDefault();
   try { cv.setPointerCapture(e.pointerId); } catch { /* 무시 */ }
   const p = pt(e);
   if (e.pointerType === 'touch') ui.touchSeen = true;
-  const P: Pointer = { x0: p.x, y0: p.y, x: p.x, y: p.y, idx: hit(p.x, p.y), lp: false, moved: false };
+  const P: Pointer = { id: e.pointerId, x0: p.x, y0: p.y, x: p.x, y: p.y, idx: hit(p.x, p.y), lp: false, moved: false };
   const areaArmed = !!B.armed && SKILLS[slotKey(F, B.armed)].target === 'area';
   // 광역 장전 중에는 누른 채 범위를 보는 것이 기본 동작이라 길게 누르기 정보를 끔 (02 4-1 6번)
   if (!areaArmed) P.timer = setTimeout(() => {
@@ -299,20 +408,22 @@ cv.addEventListener('pointerdown', e => {
 });
 cv.addEventListener('pointermove', e => {
   const P = ui.pointer, F = B.F;
-  if (!P || !F) return;
+  if (!P || !F || !ownsPress(P, e)) return;
   const p = pt(e); P.x = p.x; P.y = p.y;
   if (Math.hypot(P.x - P.x0, P.y - P.y0) > 12) { P.moved = true; clearTimeout(P.timer); }
   // 장전한 스킬이 없을 때, 파티원 칸에서 시작한 쓸기는 방향 스킬 (쓰는 동안 휠과 칸에 미리 보여줌)
   const nd = !B.armed && !ui.itemArmed && P.idx >= 0 && F.cells[P.idx].unit ? swipeDir(P.x - P.x0, P.y - P.y0) : null;
   if (nd !== P.dir) { P.dir = nd; if (nd) vibe(5); }
 });
-function endPointer(cancelled: boolean): void {
+function endPointer(cancelled: boolean, e?: PointerEvent): void {
+  if (!ownsPress(ui.pointer, e)) return;
   const P = ui.pointer; ui.pointer = null;
   if (!P) return;
   clearTimeout(P.timer);
   if (P.lp) { $('preview').hidden = true; return; }
   const F = B.F;
   if (cancelled || !F || !live()) return;
+  if (F.cells[P.idx]?.unit) ui.selectedUnitId = F.cells[P.idx].unit!.id;
   F.stats.taps++;
   if (B.beacon) { // 봉화 지정 중: 칸 탭 = 그 파티원
     const u = P.idx >= 0 ? F.cells[P.idx].unit : null;
@@ -358,8 +469,9 @@ function endPointer(cancelled: boolean): void {
   if (F.enc.big && S.zoom) lensAt(idx, nowT);
   if (doUse(key, idx)) vibe(8);
 }
-cv.addEventListener('pointerup', () => endPointer(false));
-cv.addEventListener('pointercancel', () => endPointer(true));
+cv.addEventListener('pointerup', e => endPointer(false, e));
+cv.addEventListener('pointercancel', e => endPointer(true, e));
+cv.addEventListener('lostpointercapture', e => endPointer(true, e));
 cv.addEventListener('contextmenu', e => e.preventDefault());
 
 // ---------- 전투 사건 → 소리·진동·알림·판 효과 ----------
@@ -380,7 +492,7 @@ function handleEvents(now: number): void {
         if (ev.name === 'death') vibe(90, true);
         break;
       case 'dispel':
-        if (u) fxDispel(u, now);
+        if (u) fxDispel(u, now, ev.trap);
         if (!ev.trap && !ev.item) vibe([12, 60, 12]);
         break;
       case 'item': {
@@ -405,7 +517,7 @@ function handleEvents(now: number): void {
       case 'msg': toast(ev.text); break;
       case 'phase': banner(ev.text); if (ev.text === '광폭화') vibe([60, 80, 60, 80, 60], true); else vibe(200, true); break;
       case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`); break;
-      case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now); break; }
+      case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now, '봉화 지정'); break; }
       case 'mobDown': toast(`${ev.name} 쓰러짐`); $('bossName').innerHTML = bossTitle(); break;
       case 'ability': if (u) fxAbility(u, ev.name, now); break;
       case 'aheal': if (u) fxAllyHeal(u, ev.amt, now); break;
@@ -433,7 +545,9 @@ function setPause(v: boolean): void {
   const F = B.F;
   if (!F || F.over) return;
   B.paused = v; $('pause').hidden = !v;
-  if (!v) return;
+  setPauseInert(v);
+  if (!v) { $('pauseBtn').focus({ preventScroll: true }); return; }
+  endSlot(true); endItem(true); endAux(true); endPointer(true);
   closeTip();
   const g = guideOf(F);
   const ph = g.phases.find(p => p.id === g.cur(F));
@@ -441,7 +555,22 @@ function setPause(v: boolean): void {
   $('pauseGuide').innerHTML = guideHtml(g, F);
   $('pauseGuide').scrollTop = 0;
   ($('pauseAuto') as HTMLInputElement).checked = S.auto;
+  ($('pauseCompact') as HTMLInputElement).checked = S.compactSkills;
+  $('resumeBtn').focus({ preventScroll: true });
 }
+function setPauseInert(value: boolean): void {
+  for (const el of Array.from($('battle').children)) {
+    if (el instanceof HTMLElement && el.id !== 'pause') el.inert = value;
+  }
+}
+$('pause').addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); setPause(false); }
+  if (e.key !== 'Tab') return;
+  const nodes = [...$('pause').querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled)')].filter(el => el.getClientRects().length);
+  const first = nodes[0], last = nodes[nodes.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+});
 $('pauseBtn').addEventListener('click', () => setPause(true));
 // 개발 빌드: 일시정지에서 자동 치유 켜고 끄기 (설정에도 저장). 한 번이라도 켜진 판은 자동 힐러 판
 $('pauseAuto').addEventListener('change', e => {
@@ -450,20 +579,39 @@ $('pauseAuto').addEventListener('change', e => {
   S.onSetting?.('auto', S.auto);
 });
 $('resumeBtn').addEventListener('click', () => { Snd.init(); setPause(false); });
-$('restartBtn').addEventListener('click', () => { resetRun(); startBattle(); });
+$('restartBtn').addEventListener('click', () => dialogs.confirm('restart'));
 function quit(how: 'quit' | 'giveUp'): void {
   if (!B.F || B.F.over) return;
   closeTip(); B.paused = false; $('pause').hidden = true;
+  setPauseInert(false);
   finish(how);
 }
-$('quitBtn').addEventListener('click', () => quit('quit'));
+$('quitBtn').addEventListener('click', () => dialogs.confirm('quit'));
 // 탱커가 모두 쓰러지면 나오는 포기 버튼 (2026-10-07 Lim): 전멸과 같은 실패로 셈 (일시정지의 「포기하고 나가기」는 보상 없음)
-$('giveUp').addEventListener('click', () => quit('giveUp'));
-document.addEventListener('visibilitychange', () => { if (document.hidden && B.F && !B.F.over && !$('battle').hidden) setPause(true); });
+$('giveUp').addEventListener('click', () => dialogs.confirm('giveUp'));
+const dialogs = initBattleDialogs({
+  getFight: () => B.F, getPaused: () => B.paused, setPaused: v => { B.paused = v; },
+  getUsedItems: () => (S.run?.itemLog.length || 0) + (B.F?.itemLog.length || 0),
+  act: kind => { if (kind === 'restart') { resetRun(); startBattle(); } else quit(kind); },
+  selectCell: idx => {
+    if (!B.F || ui.pullLeft > 0) return;
+    const c = center(idx);
+    ui.pointer = { x0: c.x, y0: c.y, x: c.x, y: c.y, idx, lp: false, moved: false };
+    endPointer(false);
+  },
+});
+$('targetsBtn').addEventListener('click', () => { if (live() && ui.pullLeft <= 0) { endSlot(true); endItem(true); endAux(true); endPointer(true); closeTip(); dialogs.showTargets(); } });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && B.F && !B.F.over && !$('battle').hidden) {
+    // 목록을 연 때의 pause 복원이 앱 전환에 의한 일시정지를 덮어쓰지 않게 먼저 닫는다.
+    dialogs.closeAll(); setPause(true);
+  }
+});
 
 // ---------- 끝: 결과를 새 화면(정산)에 넘김. 던전은 구간 전체 합 ----------
 /** end = 전투가 끝남(endSegment가 합산함) · quit = 일시정지에서 포기 · giveUp = 탱커 전멸 뒤 포기 버튼 (전멸로 셈) */
 function finish(how: 'end' | 'quit' | 'giveUp'): void {
+  dialogs.closeAll(); setPauseInert(false);
   const R = S.run!, f = B.F!, st = f.stats, quitted = how === 'quit', win = how === 'end' && f.over === 'win';
   const acc = tapAccuracy(), min = Math.max(1 / 60, f.t / 60);
   if (how !== 'end') { R.time += f.t; R.deaths += st.deaths; addStats(R, f, st); }
@@ -604,6 +752,7 @@ function frame(now: number): void {
     }
     handleEvents(now);
     updateStage(now); updateWheel(); updateItems(); updateAux(); updateCastbar();
+    if (layoutState !== `${S.compactSkills}:${$('controls').classList.contains('tank-down')}`) layoutBattle();
     render(now);
     if (F.over && !B.overShown) { B.overShown = true; endSegment(); }
   }
@@ -644,11 +793,14 @@ function frame(now: number): void {
     Snd.init();
     startBattle(0);
   },
-  settings(s: { sound?: boolean; vibrate?: boolean; hand?: string; tapKey?: string; zoom?: boolean; auto?: boolean; layout?: unknown; hero?: string }) {
+  settings(s: { sound?: boolean; vibrate?: boolean; hand?: string; tapKey?: string; zoom?: boolean; auto?: boolean; layout?: unknown; hero?: string; compactSkills?: boolean; reducedEffects?: boolean }) {
     S.sound = !!s.sound; S.vibe = !!s.vibrate; S.hand = s.hand === 'left' ? 'left' : 'right';
     S.tapKey = s.tapKey && TAP_KEYS[s.tapKey] ? s.tapKey : 'heal';
     if (s.hero && HERO_KEYS.includes(s.hero as HeroKey)) S.hero = s.hero as HeroKey;
     S.zoom = s.zoom !== false; S.auto = !!s.auto;
+    S.compactSkills = !!s.compactSkills;
+    S.reducedEffects = !!s.reducedEffects || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    $('battle').classList.toggle('reduced-effects', S.reducedEffects);
     if (S.auto && S.run) S.run.auto = true;
     S.layout = validLayout(s.layout) ? { ...s.layout } : { ...DEFAULT_LAYOUT };
     applyLayout();

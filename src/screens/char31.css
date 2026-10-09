@@ -162,6 +162,10 @@
 #s-char .sheet.still { animation: none; }
 #s-char .sheet .h-rule.c7-h3 { font-size: 14px; }
 #s-char .sheet .h-rule .cap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#s-char .c7-dialog-head { position: sticky; top: 0; z-index: 2; flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #2E2419; border-bottom: 1px solid var(--edge-dim); }
+#s-char .c7-dialog-head h3 { margin: 0; font: 800 16px var(--font-display); color: var(--gold-hi); }
+#s-char .c7-dialog-close { min-width: 64px; min-height: 44px; margin: 0 0 6px; }
+#s-char .c7-save-note { margin: 0; color: var(--ink-2); font-size: 12px; }
 /* 장비 상세 */
 #s-char .c7-ghead { display: flex; align-items: center; gap: 12px; }
 #s-char .c7-gic {

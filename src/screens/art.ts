@@ -27,6 +27,7 @@ const paths = {
   neck: '<path d="M5 3c0 7 3 11 7 11s7-4 7-11"/><path d="m12 14-2.5 3 2.5 3.5 2.5-3.5z"/>',
   lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   hourglass: '<path d="M7 3h10M7 21h10M8 3v2c0 3 4 5 4 7s-4 4-4 7v2M16 3v2c0 3-4 5-4 7s4 4 4 7v2"/>',
+  ad: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/>',
 } as const;
 export type UiIconKey = keyof typeof paths;
 /** extra = 'in': 글자 안에 끼우는 크기 (글자 높이에 맞춤) */
@@ -88,4 +89,19 @@ export function placeArt(c: ContentKey): { url: string; scene: boolean; place: P
   const place = CONTENT_PLACE[c];
   const scene = art(sceneArtName(place));
   return { url: scene || art(floorArtName(place)), scene: !!scene, place };
+}
+
+// 재화 그림: 그림(icon-<이름>)이 오면 그 그림, 없으면 임시 그림 (33 그림 요청)
+const svg = (body: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
+const CURRENCY_ART = {
+  gold: svg('<circle cx="12" cy="12" r="8" fill="#E8B23A" stroke="#7A5418" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="#B9831F" stroke-width="1.6"/>'),
+  crystal: svg('<path d="M6 4h12l3 5-9 11L3 9z" fill="#7FC8FF" stroke="#1E4A7A" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 9h18M9 4l3 16 3-16" fill="none" stroke="#1E4A7A" stroke-width="1.2"/>'),
+  stone: svg('<path d="M12 3l7.5 4.5v9L12 21l-7.5-4.5v-9z" fill="#8C8577" stroke="#3B352C" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9" stroke="#5E574B" stroke-width="1"/>'),
+  refined: svg('<path d="M12 3l7.5 4.5v9L12 21l-7.5-4.5v-9z" fill="#BFE3F2" stroke="#2F5568" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9" stroke="#7FAFC4" stroke-width="1"/>'),
+  merit: svg('<path d="M8 2h8l-2 7h-4z" fill="#B23A2E" stroke="#4A1712" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="15" r="6" fill="#D9A441" stroke="#6B4A14" stroke-width="1.6"/><path d="M12 11.5l1 2.2 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.3-1.7-1.6 2.3-.3z" fill="#FFF0C2"/>'),
+};
+export type CurrencyIconKey = keyof typeof CURRENCY_ART;
+/** 모든 메뉴가 같은 재화 그림과 SVG 대체 그림을 공유한다. */
+export function currencyIcon(key: CurrencyIconKey): string {
+  return `<span class="currency-icon" aria-hidden="true">${gameIcon(key, CURRENCY_ART[key])}</span>`;
 }

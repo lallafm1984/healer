@@ -15,7 +15,7 @@ import { TUT } from '../game/tutorial';
 import { AFFIXES } from '../data/affixes';
 import type { BattleResult, Settlement } from '../game/settle';
 import { esc, fmt, mmss, screen, topBar } from './kit';
-import { gameIcon, placeArt, uiIcon } from './art';
+import { currencyIcon, gameIcon, placeArt, uiIcon, type CurrencyIconKey } from './art';
 import { depart } from './party';
 
 const st = screen('s-settle', '전투 결과', { enter() { render(); } });
@@ -25,17 +25,6 @@ function resArt(k: ContentKey): string {
   const u = placeArt(k).url;
   return u ? ` style="--res-art:url('${u}')"` : '';
 }
-
-// 재화 그림: 그림(icon-<이름>)이 오면 그 그림, 없으면 임시 그림 (33 그림 요청)
-const svg = (body: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
-const CUR = {
-  gold: svg('<circle cx="12" cy="12" r="8" fill="#E8B23A" stroke="#7A5418" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="#B9831F" stroke-width="1.6"/>'),
-  crystal: svg('<path d="M6 4h12l3 5-9 11L3 9z" fill="#7FC8FF" stroke="#1E4A7A" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 9h18M9 4l3 16 3-16" fill="none" stroke="#1E4A7A" stroke-width="1.2"/>'),
-  stone: svg('<path d="M12 3l7.5 4.5v9L12 21l-7.5-4.5v-9z" fill="#8C8577" stroke="#3B352C" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9" stroke="#5E574B" stroke-width="1"/>'),
-  refined: svg('<path d="M12 3l7.5 4.5v9L12 21l-7.5-4.5v-9z" fill="#BFE3F2" stroke="#2F5568" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9" stroke="#7FAFC4" stroke-width="1"/>'),
-  merit: svg('<path d="M8 2h8l-2 7h-4z" fill="#B23A2E" stroke="#4A1712" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="15" r="6" fill="#D9A441" stroke="#6B4A14" stroke-width="1.6"/><path d="M12 11.5l1 2.2 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.3-1.7-1.6 2.3-.3z" fill="#FFF0C2"/>'),
-};
-const curIc = (k: keyof typeof CUR) => gameIcon(k, CUR[k]);
 
 /** 이름 글자 색 (캐릭터 탭과 같음) */
 const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#8BEA9C', '희귀': '#8DBEFF', '영웅': '#D7A6FF', '전설': '#FFC07A' };
@@ -67,7 +56,8 @@ const shown = new WeakSet<object>();
 /** 머리: 제목 · 장소·난이도·어픽스 · (이기면) 등급 + 별 칸 3개, (지면) 원인 */
 function head(r: BattleResult, x: Settlement, key: ContentKey, name: string): string {
   const ch = x.chal, won = r.win && !r.quit;
-  const title = r.quit ? '포기' : !r.win ? '전멸' : ch ? (ch.inTime ? `${ch.stage}단계 돌파` : '시간 초과') : r.segN > 1 ? '던전 클리어!' : '클리어!';
+  const kindName = { explore: '탐험', dungeon: '던전', raid: '레이드', event: '이벤트' }[contentOf(key).kind];
+  const title = r.quit ? '포기' : !r.win ? '전멸' : ch ? (ch.inTime ? `${ch.stage}단계 돌파` : '시간 초과') : `${kindName} 클리어!`;
   const afx = r.affixes?.length ? ` · ${r.affixes.map(k => AFFIXES[k].name).join('·')}` : '';
   const sub = `${esc(name)} · ${ch ? '주간 도전' : esc(r.diff)}${esc(afx)}${r.auto ? ' · 자동 힐러' : ''}`;
   const badge = x.first ? '<em class="badge">첫 클리어</em>' : x.best ? '<em class="badge">최고 기록</em>' : '';
@@ -108,7 +98,7 @@ function tipHtml(r: BattleResult, x: Settlement): string {
 /** 받은 것: 장비 한 줄 · 재화 칸 · 경험치 줄 */
 function lootHtml(r: BattleResult, x: Settlement): string {
   const tiles: string[] = [];
-  const tile = (k: keyof typeof CUR, label: string, v: number, tag = '', sr = '') => `<span class="r-cur"${sr ? ` aria-label="${label} +${fmt(v)} · ${sr}"` : ''}><span class="r-ci">${curIc(k)}${tag}</span><b>+${fmt(v)}</b><small>${label}</small></span>`;
+  const tile = (k: CurrencyIconKey, label: string, v: number, tag = '', sr = '') => `<span class="r-cur"${sr ? ` aria-label="${label} +${fmt(v)} · ${sr}"` : ''}><span class="r-ci">${currencyIcon(k)}${tag}</span><b>+${fmt(v)}</b><small>${label}</small></span>`;
   // 공개모집 일일 보너스(×2, 오늘 n/3) · 축제 주간(+20%)은 골드 칸 꼬리표로
   const fest = r.affixes?.includes('festival');
   if (x.gold) tiles.push(tile('gold', '골드', x.gold, x.pubBonus ? '<em>×2</em>' : fest ? '<em>+20%</em>' : '', x.pubBonus ? `공개모집 보너스 오늘 ${x.pubBonus}/3` : fest ? '축제 주간' : ''));

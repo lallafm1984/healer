@@ -97,11 +97,11 @@ export default async function heroes(url, shots) {
   await toParty(page, { content: 'rustfort' });
   await page.click('#depart'); await page.clock.runFor(3100 + 4000);
   ok(await page.evaluate(() => { const F = window.__proto.F; return F.hero === 'paladin' && F.beacon === F.party.find(u => u.role === 'tank').id; }), '성기사: 봉화는 처음에 탱커');
-  await page.dispatchEvent('#core', 'pointerdown'); await page.clock.runFor(50);
+  await page.dispatchEvent('#core', 'pointerdown'); await page.dispatchEvent('#core', 'pointerup'); await page.clock.runFor(50);
   ok(await page.isVisible('#core.beacon'), '휠 가운데 = 봉화 지정 모드');
   const did = await tapUnit("u.role !== 'tank' && !u.me");
   ok(await page.evaluate(id => window.__proto.F.beacon === id, did) && !(await page.isVisible('#core.beacon')), '칸 탭 = 그 파티원에게 봉화');
-  await page.dispatchEvent('#core', 'pointerdown'); await page.clock.runFor(50);
+  await page.dispatchEvent('#core', 'pointerdown'); await page.dispatchEvent('#core', 'pointerup'); await page.clock.runFor(50);
   ok(/봉화 바꾸기 대기/.test(await text('#toast')), '바로 다시 바꾸면 대기 안내');
   await page.screenshot({ path: `${shots}/heroes_paladin_battle.png` });
 

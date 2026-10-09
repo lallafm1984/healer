@@ -145,7 +145,10 @@ export default async function legacyUi(url, shots) {
   // 포기 → 정산 (파티 채팅 없음, 쓴 아이템은 자세히에)
   await page.click('#pauseBtn'); await page.clock.runFor(100);
   ok(/포기/.test(await page.textContent('#quitBtn')), '일시정지 버튼 = 포기하고 나가기');
-  await page.click('#quitBtn'); await page.clock.runFor(200);
+  await page.click('#quitBtn');
+  await page.locator('#battleConfirm').waitFor({ state: 'visible' });
+  ok(await page.isVisible('#battle') && await page.isHidden('#s-settle'), '포기는 확인창에서 확정 전까지 전투 유지');
+  await page.click('#confirmApply'); await page.clock.runFor(200);
   ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '포기', '포기 → 정산');
   ok(await page.locator('#s-settle .chat, #s-settle .plines').count() === 0, '정산에 파티 채팅·한마디 없음');
   ok(/소비 아이템\s*마나 \d/.test(await page.textContent('#s-settle details.r-rec')) && /보상 없음/.test(await page.textContent('#s-settle .r-why')), '포기: 「보상 없음」, 전투 기록에 쓴 아이템');
@@ -196,7 +199,9 @@ export default async function legacyUi(url, shots) {
   ok(await ev(() => window.__proto.renderer === 'canvas'), '자동 테스트 판 = Canvas 렌더러');
 
   // 왼손 모드 (설정)
-  await page.click('#pauseBtn'); await page.click('#quitBtn'); await page.clock.runFor(100);
+  await page.click('#pauseBtn'); await page.click('#quitBtn');
+  await page.locator('#battleConfirm').waitFor({ state: 'visible' });
+  await page.click('#confirmApply'); await page.clock.runFor(100);
   await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
   await page.click('#s-lobby .tb-set'); await page.clock.runFor(100);
   await page.click('#s-settings [data-set="hand"][data-val="left"]'); await page.clock.runFor(50);

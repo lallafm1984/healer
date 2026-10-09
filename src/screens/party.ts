@@ -26,9 +26,10 @@ import { commit, G, healerLevel, heroNow, itemsNow, talentsNow, toggleItem } fro
 import { TUT } from '../game/tutorial';
 import { memDetailHtml, memRowHtml, ROLE_ICON } from './members';
 import { battle, esc, fmt, go, itemChipsHtml, ROLE, screen } from './kit';
-import { classEmblem, LOCK, uiIcon } from './art';
+import { classEmblem, currencyIcon, LOCK, uiIcon } from './art';
 import { afxRows, afxTags, ARROW, BELL, BOOK, diffNote, flowHead, guides, timeline, warnings } from './brief';
 import { markHtml } from './content';
+import { sheetDialog } from './dialog';
 
 const s = screen('s-party', '파티 편성', {
   enter() {
@@ -41,9 +42,10 @@ const s = screen('s-party', '파티 편성', {
       compose();
     }
     sheet = null; openRow = -1;
-    render();
+    render(false);
   },
 });
+const modal = sheetDialog(s.el, shut);
 let msg = '', gmsg = '';
 /** 열린 시트: 단축칸 고르기 · 공략 · 파티원 상세 */
 let sheet: 'slots' | 'guide' | 'mem' | null = null;
@@ -170,7 +172,9 @@ function memSheetHtml(stage: number): string {
   return sheetBox('f-msheet', `${m.nick} 상세`, `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${CLASSES[m.cls].name} · Lv ${m.lv ?? stage}</span></h2>${memDetailHtml({ ...m, cls: m.cls })}`);
 }
 
-function render(): void {
+function render(keepScroll = true): void {
+  modal.beforeRender();
+  const scroll = keepScroll ? s.el.querySelector<HTMLElement>('.ns-body')?.scrollTop || 0 : 0;
   const c = contentOf(Flow.content);
   const { slots, items } = itemsNow();
   const cost = rerollCost(Flow.rerolls);
@@ -201,22 +205,26 @@ function render(): void {
       ${noShard && msg ? `<p class="f-warn ticket" role="alert"><span class="f-mark warn" aria-hidden="true">!</span><span class="v">종 조각이 없음 <span class="cap">상점에서 제작하거나 주간 임무로</span></span><button class="btn2" type="button" data-go="s-shop" data-arg="gold">상점</button></p>` : ''}
       ${slotRow(slots, items)}
       <div class="f-btns">
-        <button class="f-rr" type="button" id="reroll"><span class="f-rrt">다시 뽑기</span>${cost ? `<small>${uiIcon('coin', 'in')}${fmt(cost)}</small>` : '<small class="free">무료 1회</small>'}</button>
+        <button class="f-rr" type="button" id="reroll"><span class="f-rrt">다시 뽑기</span>${cost ? `<small aria-label="골드 ${fmt(cost)}">${currencyIcon('gold')}${fmt(cost)}</small>` : '<small class="free">무료 1회</small>'}</button>
         <button class="f-go" type="button" id="depart"${noShard ? ' aria-disabled="true"' : ''}>${shardOn ? BELL : ''}<span class="cta2"><span class="f-gt">출발</span>${shardOn ? `<small>${shards ? `종 조각 1개 씀 · ${shards}/${SHARD_MAX}` : '종 조각 없음'}</small>` : ''}</span>${ARROW}</button>
       </div>
     </footer>
     ${slotSheetHtml(slots, items)}
     ${sheet === 'guide' ? guideSheetHtml() : sheet === 'mem' ? memSheetHtml(stage) : ''}`;
   msg = '';
-  if (sheet) s.el.querySelector<HTMLElement>('.sheet:not([hidden])')?.focus();
+  const body = s.el.querySelector<HTMLElement>('.ns-body');
+  if (body) body.scrollTop = scroll;
+  modal.sync(sheet ? s.el.querySelector<HTMLElement>('.sheet:not([hidden])') : null, sheet ? [`${sheet}:${sheet === 'mem' ? openRow : ''}`] : []);
 }
 
 /** 시트 열기·닫기. 닫으면 연 버튼으로 초점을 돌려줌 */
-let opener = '';
-function openSheet(k: typeof sheet, from: string): void { sheet = k; opener = from; render(); }
+function openSheet(k: typeof sheet, from: string): void {
+  // Keyboard and pointer openings use the same non-scrolling return target.
+  s.el.querySelector<HTMLElement>(from)?.focus({ preventScroll: true });
+  sheet = k; render();
+}
 function shut(): void {
   sheet = null; render();
-  if (opener) s.el.querySelector<HTMLElement>(opener)?.focus();
 }
 
 s.el.addEventListener('click', e => {
@@ -268,7 +276,7 @@ async function tryContinue(r: BattleResult): Promise<boolean> {
   const save = G.save;
   if (save.tut < TUT.done || r.win || r.quit || r.giveUp || r.auto || Flow.chal || save.daily.ads.cont >= AD_LIMIT.cont) return false;
   const mem = isMember(save), left = AD_LIMIT.cont - save.daily.ads.cont;
-  const yes = await askModal(mem ? '이어하기' : '광고 보고 이어하기', `${esc(r.reason)}<br>진 구간부터 다시 (마나는 그 구간 시작 때로)<br>등급 최대 B · 오늘 ${left}번`, '정산으로', mem ? '이어하기' : '📺 이어하기');
+  const yes = await askModal(mem ? '이어하기' : '광고 보고 이어하기', `${esc(r.reason)}<br>진 구간부터 다시 (마나는 그 구간 시작 때로)<br>등급 최대 B · 오늘 ${left}번`, '정산으로', mem ? '이어하기' : `${uiIcon('ad', 'in')} 이어하기`);
   if (!yes || !(await showRewarded('이어하기', mem))) return false;
   save.daily.ads.cont++; commit();
   battle().resume();

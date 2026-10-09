@@ -15,9 +15,9 @@ import { GUILD_LEVEL, MAX_LEVEL, xpToNext } from '../data/progression';
 import { Flow } from '../game/flow';
 import { capOf, guildOpen, hire, postRecruit, powerOf, release, rerollAbility, resetPoints, scoutHire, spendPoint, train } from '../game/guild';
 import { commit, G, refreshDay } from '../game/state';
-import { cardHtml, ROLE_ICON } from './members';
+import { cardHtml, memDetailHtml, ROLE_ICON, type CardData } from './members';
 import { esc, fmt, go, ROLE, screen, topBar } from './kit';
-import { gameIcon, LOCK } from './art';
+import { currencyIcon, gameIcon, LOCK } from './art';
 
 type Sub = 'home' | 'members' | 'recruit';
 const st: { sub: Sub; sel: number | null; msg: string; ask: number | null } = { sub: 'home', sel: null, msg: '', ask: null };
@@ -30,6 +30,7 @@ const svg = (d: string, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="
 const FLAG = svg('<path d="M6 21V4"/><path d="M6 4h11l-2 4 2 4H6"/>');
 const ARROW = svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 2.4).replace('<svg', '<svg class="g-arrow"');
 const BACK = svg('<path d="M19 12H5M11 6l-6 6 6 6"/>', 2.4);
+const goldCost = (value: number) => `${currencyIcon('gold')}<span class="sr">골드 </span>${fmt(value)}`;
 
 /**
  * 정식 그림 (30 문서 3장): ui-board 게시판 나무틀 · ui-note 양피지가 있으면 .art = 9칸 늘리기(border-image)로 그림,
@@ -176,13 +177,13 @@ function detailHtml(m: GuildMember): string {
     <p class="mute">능력 ★${m.star}/5${m.star ? ` · 효과 ×${fx.eff.toFixed(2)}${fx.cd < 1 ? ` · 쿨 ×${fx.cd.toFixed(1)}` : ''}${fx.early ? ' · 조금 일찍 씀' : ''}` : ''}${m.star >= 5 ? ` · ★5: ${STAR5[a.kind]}` : ''}</p>
     <h4>육성 포인트 <small>남은 ${pts}점 · Lv 20부터 10레벨마다 1점 (최대 9)</small></h4>
     <div class="gbtns">
-      ${[0, 1, 2].map(i => btn(`data-pt="${i}"`, `${APT_NAMES[i]} +1`, apt[i] >= 5 ? '최대' : `🪙 ${fmt(pc)}`, !pts || apt[i] >= 5 || gold < pc)).join('')}
-      ${btn('data-pt="star"', '능력 ★+1', m.star >= 5 ? '최대' : `🪙 ${fmt(pc)}`, !pts || m.star >= 5 || gold < pc)}
+      ${[0, 1, 2].map(i => btn(`data-pt="${i}"`, `${APT_NAMES[i]} +1`, apt[i] >= 5 ? '최대' : goldCost(pc), !pts || apt[i] >= 5 || gold < pc)).join('')}
+      ${btn('data-pt="star"', '능력 ★+1', m.star >= 5 ? '최대' : goldCost(pc), !pts || m.star >= 5 || gold < pc)}
     </div>
     <div class="gbtns">
-      ${btn('data-train', '훈련 +1 Lv', atCap ? '내 레벨까지' : `🪙 ${fmt(trainCost(m.lv))}`, atCap || gold < trainCost(m.lv), 'primary')}
-      ${btn('data-reroll', '능력 다시 뽑기', `🪙 ${fmt(REROLL_GOLD)}`, gold < REROLL_GOLD)}
-      ${btn('data-reset', '포인트 초기화', `🪙 ${fmt(RESET_GOLD)}`, !pointsUsed(m) || gold < RESET_GOLD)}
+      ${btn('data-train', '훈련 +1 Lv', atCap ? '내 레벨까지' : goldCost(trainCost(m.lv)), atCap || gold < trainCost(m.lv), 'primary')}
+      ${btn('data-reroll', '능력 다시 뽑기', goldCost(REROLL_GOLD), gold < REROLL_GOLD)}
+      ${btn('data-reset', '포인트 초기화', goldCost(RESET_GOLD), !pointsUsed(m) || gold < RESET_GOLD)}
       ${btn('data-release', st.ask === m.id ? '한 번 더 누르면 방출' : '방출', st.ask === m.id ? '되돌릴 수 없음' : '길드에서 내보냄', false, st.ask === m.id ? 'danger' : 'ghost')}
     </div>
   </li>`;
@@ -193,13 +194,23 @@ function recruitHtml(): string {
   const tiers = Object.keys(POSTS) as PostTier[];
   const post = g.post;
   return `${note('g-paper g-posts', `<h3>골드 모집<small>정원 ${g.members.length}/${cap.cap}</small></h3>
-      <div class="gbtns posts">${tiers.map(t => `<button class="btn" type="button" data-post="${t}"${full || gold < POSTS[t].gold ? ' disabled' : ''}>${POSTS[t].name} 공고<small>🪙 ${fmt(POSTS[t].gold)}</small></button>`).join('')}</div>
-      <p class="m">${tiers.map(t => `<b>${POSTS[t].name}</b> ${POSTS[t].desc}`).join('<br>')}${full ? '<br>정원이 다 참 (Lv 35에 12명, Lv 70에 25명)' : ''}</p>`)}
+      <div class="gbtns posts">${tiers.map(t => `<button class="btn" type="button" data-post="${t}"${full || gold < POSTS[t].gold ? ' disabled' : ''}>${POSTS[t].name} 공고<small>${goldCost(POSTS[t].gold)}</small></button>`).join('')}</div>
+      <p class="g-recruit-status">${full ? '정원이 다 찼습니다.' : gold < POSTS.normal.gold ? `골드 부족 · 보유 ${fmt(gold)}` : '지원자 3명 중 1명 영입 · 추가 비용 없음'}</p>
+      <details class="g-recruit-info"><summary>공고별 지원자 차이</summary><p class="m">${tiers.map(t => `<b>${POSTS[t].name}</b> ${POSTS[t].desc}`).join('<br>')}</p></details>`)}
     ${post ? `<h3 class="g-tag">지원자 ${post.cands.length}명 <small>${POSTS[post.tier].name} 공고 · 1명만 영입</small></h3>
-      <ul class="pcards">${post.cands.map((c, i) => cardHtml({ ...c, apt: aptOf(c), power: powerOf(c) }, { cls: 'withbtn', extra: `<button class="btn mini primary" type="button" data-hire="${i}"${full ? ' disabled' : ''}>영입</button>` })).join('')}</ul>` : ''}
-    <h3 class="g-tag">인연 스카우트 <small>🪙 ${SCOUT_GOLD}</small></h3>
-    ${g.scouts.length ? `<ul class="pcards">${g.scouts.map((c, i) => cardHtml({ ...c, apt: c.apt0 }, { cls: 'withbtn', extra: `<button class="btn mini primary" type="button" data-scout="${i}"${full || gold < SCOUT_GOLD ? ' disabled' : ''}>영입</button>` }).replace('</small>', ` · ${esc(c.from)}에서</small>`)).join('')}</ul>`
+      <ul class="pcards">${post.cands.map((c, i) => recruitCard({ ...c, apt: aptOf(c), power: powerOf(c) }, `data-hire="${i}"`, full, '추가 비용 없음')).join('')}</ul>` : ''}
+    <h3 class="g-tag">인연 스카우트 <small>${goldCost(SCOUT_GOLD)}</small></h3>
+    ${g.scouts.length ? `<ul class="pcards">${g.scouts.map((c, i) => recruitCard({ ...c, apt: c.apt0 }, `data-scout="${i}"`, full || gold < SCOUT_GOLD, `${esc(c.from)}에서<br>${full ? '정원 가득' : gold < SCOUT_GOLD ? `골드 부족 · 보유 ${fmt(gold)}` : `골드 ${fmt(SCOUT_GOLD)}`}`)).join('')}</ul>`
       : memo('공개모집으로 S·A 등급 클리어를 하면, 살아남은 파티원 중 내 힐을 가장 많이 받은 사람이 호감도가 가득 차 여기 남음.')}`;
+}
+
+/** 영입 결정에 필요한 이름·역할·능력부터 보여 주고 세부 설명은 펼친다. */
+function recruitCard(m: CardData, action: string, disabled: boolean, cost: string): string {
+  const c = CLASSES[m.cls], ability = m.ab ? ABILITIES[m.ab] : null;
+  return `<li class="pcard recruit-card"><span class="prole two" style="background:${ROLE[c.role].color}">${c.short}</span>
+    <div class="g-candidate-head"><b class="pnick">${esc(m.nick)}</b><small>${c.name} · ${ROLE[c.role].name}${m.lv ? ` · Lv ${m.lv}` : ''}${m.power ? ` · 전투력 ${fmt(m.power)}` : ''}</small><p>${ability ? esc(ability.name) : esc(c.passive)} · ${esc(m.pers)}</p></div>
+    <details class="g-candidate-details"><summary>능력·성격·자질 보기</summary>${memDetailHtml(m)}</details>
+    <div class="g-candidate-action"><small>${cost}</small><button class="btn mini primary" type="button" ${action}${disabled ? ' disabled' : ''}>영입</button></div></li>`;
 }
 
 s.el.addEventListener('click', e => {

@@ -194,7 +194,10 @@ export default async function dungeon(url, shots) {
   const gb = await page.evaluate(() => { const r = document.getElementById('giveUp').getBoundingClientRect(), c = document.getElementById('controls').getBoundingClientRect(), w = document.getElementById('wheel').getBoundingClientRect(); return { inside: r.top >= c.top && r.bottom <= c.bottom, overlap: !(r.right <= w.left || r.left >= w.right) }; });
   ok(gb.inside && !gb.overlap, `포기 버튼은 하단, 휠과 안 겹침 ${JSON.stringify(gb)}`);
   await page.screenshot({ path: `${shots}/battle_tankdown.png` });
-  await page.click('#giveUp'); await page.clock.runFor(300);
+  await page.click('#giveUp');
+  await page.locator('#battleConfirm').waitFor({ state: 'visible' });
+  ok(await page.isVisible('#battle') && await page.isHidden('#s-settle'), '탱커 전멸 뒤 포기도 확인 전에는 전투 유지');
+  await page.click('#confirmApply'); await page.clock.runFor(300);
   ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '전멸' && /1구간/.test(await page.textContent('#s-settle .r-prog')) && (await page.locator('#s-settle .r-segs li').count()) === 4, '포기 버튼 = 전멸과 같은 던전 실패 (구간 점 4개 · 1구간)');
   ok(await page.locator('#s-settle .r-rec').getAttribute('open') !== null && /경험치 \+/.test(await page.textContent('#s-settle .r-xpl')), '지면 전투 기록 펼침 · 경험치 줄');
   sv = await save();

@@ -6,6 +6,26 @@
 
 /* 그림 아이콘 (src/art의 icon-·tab-·obj-): 칸을 꽉 채움 */
 .g-ic { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.currency-icon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; vertical-align: -0.2em; }
+.currency-icon > svg, .currency-icon > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+/* 상점: 숫자·가격을 읽을 수 있는 크기로, 시즌의 긴 표는 선택해서 펼친다. */
+#s-shop .shop-wallet { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+#s-shop .shop-wallet > span { min-width: 0; display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: center; gap: 2px 6px; padding: 8px; }
+#s-shop .shop-wallet > span > :first-child { grid-row: 1 / 3; }
+#s-shop .shop-wallet .currency-icon { width: 20px; height: 20px; }
+#s-shop .shop-wallet b { grid-column: 2; font-size: 16px; }
+#s-shop .shop-wallet small { grid-column: 2; font-size: 13px; color: var(--ink-2); }
+#s-shop .note, #s-shop .srow small, #s-shop .srow .note, #s-shop .btn small { font-size: 14px; line-height: 1.5; }
+#s-shop .srow small, #s-shop .note { color: var(--ink-2); }
+#s-shop .btn.mini.buy:disabled small { color: var(--ink-2); }
+#s-shop .prow { grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr); font-size: 14px; line-height: 1.5; opacity: 1; padding: 10px 8px; }
+#s-shop .prow:not(.open):not(.head) { color: var(--ink-2); border-style: dashed; }
+#s-shop .prow .pf, #s-shop .prow .pp { min-width: 0; overflow-wrap: anywhere; }
+#s-shop .prow .btn { margin-top: 6px; }
+#s-shop .prow i { display: block; font-size: 13px; color: var(--heal); }
+#s-shop .pass-archive { border-top: 1px solid var(--edge); }
+#s-shop .pass-archive > summary { min-height: 48px; box-sizing: border-box; padding: 14px 8px; font-size: 14px; line-height: 1.4; color: var(--gold-hi); cursor: pointer; }
 
 /* ---------- 이름표: 장면 속 건물·물건 (기본 = 위쪽 꼭지, .pr = 꼭지 오른쪽, .side = 꼭지 왼쪽) ---------- */
 .g-plate { position: absolute; z-index: 3; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 4px 11px 5px; box-sizing: border-box; border-radius: 4px; background: linear-gradient(#3E2F1E, #1E1712); border: 1px solid #D9B26A; box-shadow: 0 0 0 1px var(--line), 0 4px 10px rgba(0, 0, 0, 0.75); color: var(--ink); font: inherit; white-space: nowrap; text-align: center; text-decoration: none; cursor: pointer; }

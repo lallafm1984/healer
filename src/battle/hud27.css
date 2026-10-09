@@ -80,22 +80,24 @@
 #battle #bossHpText { z-index: 1; font: 900 13px var(--font-body); color: #FFFFFF; text-shadow: var(--ol1); }
 
 /* ---------- 예고 대기열: 칸 3개를 늘 표시, 첫 칸이 조금 넓게 ---------- */
-#battle #queue { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 6px; min-height: 0; margin-top: 12px; }
+#battle #queue { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; min-height: 0; margin-top: 12px; }
 #battle #queue::before { content: none; }
 #battle #queue .q, #battle #queue .q-empty { position: relative; box-sizing: border-box; height: 54px; min-height: 0; min-width: 0; border-radius: 4px; box-shadow: 0 0 0 1px var(--line); }
 #battle #queue .q-empty { border: 1px solid var(--edge-dim); background: rgba(21, 18, 14, 0.55); }
-#battle #queue .q { display: flex; align-items: center; gap: 6px; padding: 0 8px; border: 1px solid var(--edge-dim); background: #15120E; color: var(--ink); font-family: var(--font-body); text-align: left; overflow: hidden; cursor: pointer; animation: none; }
+#battle #queue .q { display: flex; align-items: center; gap: 4px; padding: 0 5px; border: 1px solid var(--edge-dim); background: #15120E; color: var(--ink); font-family: var(--font-body); text-align: left; overflow: hidden; cursor: pointer; animation: none; }
 /* 남은 시간만큼 줄어드는 채움 (DBM 막대처럼) */
 #battle #queue .q .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(rgba(156, 122, 60, 0.18), rgba(92, 68, 36, 0.18)); pointer-events: none; }
-#battle #queue .q .ic { position: relative; flex: none; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 4px; border: 2px solid var(--line); background: #201A14; color: var(--ink-2); font-size: 0; }
+#battle #queue .q .ic { position: relative; flex: none; width: 22px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 4px; border: 2px solid var(--line); background: #201A14; color: var(--ink-2); font-size: 0; }
 #battle #queue .q .ic svg { width: 15px; height: 15px; }
 #battle #queue .q .tx { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; line-height: 1.3; }
 #battle #queue .q .nm { font-size: 12px; font-weight: 700; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #battle #queue .q .kd { font-size: 11px; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#battle #queue .q .sec { position: relative; flex: none; font-size: 17px; font-weight: 900; line-height: 1; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-/* 2·3번째 칸은 좁아 (390 폭에서 글자 자리 약 32px) 이름을 두 줄로 다 보이게. 종류는 네모 아이콘이 알려 줌 */
+#battle #queue .q .sec { position: relative; flex: none; font-size: 16px; font-weight: 900; line-height: 1; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+/* 이름은 예고 전용 짧은 이름, 정식 이름·유형은 상세와 접근성 이름에 유지. */
 #battle #queue .q:not(.first) .kd { display: none; }
-#battle #queue .q:not(.first) .nm { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; white-space: normal; line-height: 1.2; word-break: keep-all; overflow-wrap: anywhere; }
+#battle #queue .q .sec { display: inline-flex; align-items: baseline; gap: 1px; }
+#battle #queue .q .sec b { font: inherit; }
+#battle #queue .q .sec small { font: 700 10px/1 var(--font-body); }
 /* 다음 칸: 청동 테 (맨 앞이면 금테), 채움 진하게 */
 #battle #queue .q.next { border-color: var(--edge); }
 #battle #queue .q.next .fill { background: linear-gradient(rgba(156, 122, 60, 0.35), rgba(92, 68, 36, 0.35)); }
@@ -103,14 +105,15 @@
 #battle #queue .q.next .nm, #battle #queue .q.next .sec { color: var(--ink); }
 #battle #queue .q.first:not(.hot) { border: 2px solid var(--frame); }
 /* 곧 떨어지는 칸 (시전 중 · 5초 이하): 빨강 테두리 · 빨강 아이콘 · 빨강 채움 */
-#battle #queue .q.hot { gap: 7px; border: 2px solid #FF3B30; background: #2A0F0D; }
+#battle #queue .q.hot { gap: 4px; border: 2px solid #FF3B30; background: #2A0F0D; }
 #battle #queue .q.hot .fill { background: linear-gradient(rgba(255, 59, 48, 0.55), rgba(160, 30, 24, 0.55)); }
-#battle #queue .q.hot .ic { width: 30px; height: 30px; background: #FF3B30; color: #12100C; }
+#battle #queue .q.hot .ic { width: 22px; height: 24px; background: #FF3B30; color: #12100C; }
 #battle #queue .q.hot .ic svg { width: 16px; height: 16px; stroke-width: 2.6; }
 #battle #queue .q.hot .nm { font-size: 13px; color: var(--ink); }
 #battle #queue .q.hot .kd { color: #FFB3AD; }
-#battle #queue .q.hot .sec { font-size: 22px; color: #FF9A92; text-shadow: var(--ol1); }
-#battle #queue .q.casting { animation: blink 0.5s steps(2) infinite; }
+#battle #queue .q.hot .sec { font-size: 18px; color: #FF9A92; text-shadow: var(--ol1); }
+#battle #queue .q.casting { animation: none; }
+#battle #queue .q.hot .ic::after { content: '!'; position: absolute; top: -6px; right: -5px; width: 12px; height: 12px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--ink); color: var(--line); font: 900 10px/1 var(--font-body); }
 #battle #queue .q.tipon { box-shadow: 0 0 0 1px var(--line), 0 0 0 3px #FFFFFF; }
 #battle #queue .q:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
 /* 설명 팝업의 기술 아이콘도 같은 네모 */
@@ -187,12 +190,16 @@
 #battle .slot .nm { font: 900 clamp(11px, calc(var(--slot) * 0.22), 15px)/1.15 var(--font-body); color: var(--ink); opacity: 1; }
 /* 31: skill-<키> 그림이 있으면 이름 위 작은 그림 (hud.ts setSlotArt, 그림이 없으면 이 요소가 없음) */
 #battle .slot .sic { display: block; flex: none; width: clamp(16px, calc(var(--slot) * 0.6 - 12px), 30px); height: clamp(16px, calc(var(--slot) * 0.6 - 12px), 30px); margin: 0 0 calc(var(--slot) * -0.03); object-fit: contain; pointer-events: none; }
+#battle .slot .skill-mark { position: static; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 3px; background: none; color: var(--gold-hi); pointer-events: none; }
+#battle .slot.armed::after { content: '✓'; position: absolute; z-index: 3; top: 2px; left: 4px; color: #FFFFFF; font: 900 12px/1 var(--font-body); text-shadow: var(--ol1); }
+#battle .slot.resource-low:not(.cooling) { border-style: dashed; }
+#battle .slot.resource-low .ct { color: #FFB3AD; }
 #battle .slot.cooling .sic { opacity: 0.25; }
-/* 그림이 있으면 둥근 칸 안에 들어가게: 화살표를 그림 위쪽에 살짝 겹치고 글줄 간격을 줄임 (마나 % 가 칸 아래에서 잘리지 않게) */
-#battle .slot:has(.sic) .dir { position: relative; inset: auto; z-index: 1; margin-bottom: calc(var(--slot) * -0.08); filter: drop-shadow(0 0 1.5px #0D0B09); }
+/* 화살표는 원화 위에 겹침: 이름/비용 글자 크기를 줄이지 않고 원 안의 세로 공간 확보. */
+#battle #controls:not(.compact-controls) .slot:has(.sic) .dir { position: absolute; top: -2px; left: 50%; z-index: 1; margin: 0; transform: translateX(-50%); filter: drop-shadow(0 0 1.5px #0D0B09); }
 #battle .slot:has(.sic) .nm { line-height: 1.05; }
 #battle .slot:has(.sic) .ct { line-height: 1.15; }
-#battle .slot .ct { display: block; margin: 0; font-size: clamp(9px, calc(var(--slot) * 0.162), 11px); font-weight: 700; line-height: 1.25; color: var(--mana); opacity: 1; }
+#battle .slot .ct { display: block; margin: 0; font-size: clamp(10px, calc(var(--slot) * 0.162), 11px); font-weight: 700; line-height: 1.25; color: var(--mana); opacity: 1; white-space: nowrap; }
 #battle .slot .cds { position: static; display: none; inset: auto; font: 900 clamp(15px, calc(var(--slot) * 0.29), 20px)/1 var(--font-body); color: var(--gold-hi); text-shadow: var(--ol1); }
 /* 재사용 대기: 부채꼴 + 이름 + 노란 초 */
 #battle .slot .cd { background: conic-gradient(rgba(8, 6, 5, 0.78) var(--p, 0%), transparent 0); }
@@ -230,11 +237,11 @@
 #battle.stage-sm #bossHpText { font-size: 12px; }
 #battle.stage-sm #queue { margin-top: 10px; }
 #battle.stage-sm #queue .q, #battle.stage-sm #queue .q-empty { height: 48px; }
-#battle.stage-sm #queue .q .ic { width: 26px; height: 26px; }
+#battle.stage-sm #queue .q .ic { width: 22px; height: 24px; }
 #battle.stage-sm #queue .q .ic svg { width: 14px; height: 14px; }
-#battle.stage-sm #queue .q.hot .ic { width: 28px; height: 28px; }
+#battle.stage-sm #queue .q.hot .ic { width: 22px; height: 24px; }
 #battle.stage-sm #queue .q.hot .ic svg { width: 15px; height: 15px; }
-#battle.stage-sm #queue .q.hot .sec { font-size: 21px; }
+#battle.stage-sm #queue .q.hot .sec { font-size: 18px; }
 #battle.stage-sm #partyStatus { height: 24px; }
 #battle.stage-sm #castTrack { height: 32px; }
 #battle.stage-sm #castbar.is-casting #castLabel { font-size: 13px; }
@@ -260,15 +267,28 @@
 
 /* ---------- 시안(390)보다 좁은 폰: 예고 칸 안 여백·아이콘을 줄여 이름 자리 확보 ---------- */
 @media (max-width: 389px) {
-  #battle #queue .q, #battle #queue .q.hot { gap: 4px; padding: 0 5px; }
-  #battle #queue .q .ic, #battle.stage-sm #queue .q .ic { width: 22px; height: 22px; }
-  #battle #queue .q .ic svg, #battle.stage-sm #queue .q .ic svg { width: 12px; height: 12px; }
-  #battle #queue .q.hot .ic, #battle.stage-sm #queue .q.hot .ic { width: 24px; height: 24px; }
-  #battle #queue .q.hot .ic svg, #battle.stage-sm #queue .q.hot .ic svg { width: 13px; height: 13px; }
-  #battle #queue .q .nm, #battle #queue .q.hot .nm { font-size: 11px; }
-  #battle #queue .q .kd { font-size: 10px; }
-  #battle #queue .q .sec { font-size: 15px; }
-  #battle #queue .q.hot .sec, #battle.stage-sm #queue .q.hot .sec { font-size: 18px; }
+  #battle #queue .q, #battle #queue .q.hot { gap: 3px; padding: 0 3px; }
+  #battle #queue .q .ic, #battle.stage-sm #queue .q .ic,
+  #battle #queue .q.hot .ic, #battle.stage-sm #queue .q.hot .ic { width: 16px; height: 20px; border-width: 1px; }
+  #battle #queue .q .ic svg, #battle.stage-sm #queue .q .ic svg,
+  #battle #queue .q.hot .ic svg, #battle.stage-sm #queue .q.hot .ic svg { width: 14px; height: 14px; }
+  #battle #queue .q .nm, #battle #queue .q.hot .nm { font-size: 12px; }
+  #battle #queue .q .kd { display: none; }
+  #battle #queue .q .sec, #battle #queue .q.hot .sec, #battle.stage-sm #queue .q.hot .sec { font-size: 14px; text-shadow: none; }
+}
+
+/* 고정된 세 줄에서 한 방씩 표시. 숫자 이동 경로가 겹치거나 보스 이름으로 튀지 않음. */
+#battle #dmgNums span { top: calc(2px + var(--row) * 16px); left: 50%; font-size: 13px; transform: translateX(-50%); }
+#battle #dmgNums span.big { font-size: 15px; }
+#battle #dmgNums span.go { animation: dmgReadable 0.7s ease-out forwards; }
+@keyframes dmgReadable { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
+#battle.reduced-effects #dmgNums { display: none; }
+#battle.reduced-effects #bossArt.hurt { animation: none; }
+#battle.reduced-effects .slot.aim { transform: none; }
+#battle.reduced-effects #bossLag { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  #battle #dmgNums { display: none; }
+  #battle #bossArt.hurt { animation: none; }
 }
 
 /* ---------- 좁은 폰 (폭 360 아래) ---------- */

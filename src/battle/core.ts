@@ -120,7 +120,7 @@ export interface Run {
 export const S = {
   diff: '보통', gearStats: null as GearStats | null, level: 100, heroLv: undefined as number | undefined, stageLv: undefined as number | undefined,
   party: null as RosterEntry[] | null, items: [] as ItemKey[], slots: 4,
-  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined, stock: undefined as Partial<Record<ItemKey, number>> | undefined,
+  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, compactSkills: false, reducedEffects: false, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined, stock: undefined as Partial<Record<ItemKey, number>> | undefined,
   affixes: undefined as AffixKey[] | undefined, bossMult: undefined as { hp: number; dmg: number } | undefined, limit: undefined as number | undefined, chal: 0,
   layout: { ...DEFAULT_LAYOUT } as Layout,
   run: null as Run | null, onEnd: null as ((r: BattleResult) => void) | null, coach: null as CoachKey | null,
@@ -139,11 +139,12 @@ export const B = {
   beacon: false,
 };
 
-export interface Pointer { x0: number; y0: number; x: number; y: number; idx: number; lp: boolean; moved: boolean; dir?: Dir | null; timer?: ReturnType<typeof setTimeout> }
+export interface Pointer { id?: number; x0: number; y0: number; x: number; y: number; idx: number; lp: boolean; moved: boolean; dir?: Dir | null; timer?: ReturnType<typeof setTimeout> }
 export interface Coach { uid: number | null; freeze: boolean; until: number; need?: string; slot?: SkillKey; swipe?: SkillKey }
 
 /** 화면 상태 (한 판마다 초기화) */
 export const ui = {
+  selectedUnitId: null as number | null,
   pointer: null as Pointer | null, lastHealSnd: 0, tickSec: null as number | null, lowFlags: {} as Record<number, boolean>, lastLowVibe: 0, qAt: 0,
   vibeAt: 0, vibedTel: new Set<number>(), lastHeart: 0, debSnd: {} as Record<string, number>, tapOff: [] as number[], lastTap: null as { idx: number; t: number } | null, retarget: 0,
   touchSeen: false, pullLeft: 0, pullShown: null as number | null, guideSec: 0, skillTips: 0, itemTips: 0, busterHint: false,
@@ -236,7 +237,19 @@ export function toast(text: string): void {
   while (box.children.length > 2) box.firstChild!.remove();
   setTimeout(() => el.remove(), 2300);
 }
-export function banner(text: string): void { const b = $('banner'); b.textContent = text; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
+let bannerTimer: ReturnType<typeof setTimeout> | undefined;
+export function banner(text: string): void {
+  const b = $('banner');
+  clearTimeout(bannerTimer);
+  b.textContent = text; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+  // 효과를 끈 때도 경고를 정적으로 보여 주고 같은 수명 뒤 숨긴다.
+  bannerTimer = setTimeout(() => b.classList.remove('show'), 2600);
+}
 
 /** 새 화면(.screen)이 늘어나도 하나만 보이게 */
-export function show(id: string): void { document.querySelectorAll<HTMLElement>('#app > .screen').forEach(s => { s.hidden = s.id !== id; }); }
+export function show(id: string): void {
+  document.querySelectorAll<HTMLElement>('#app > .screen').forEach(s => { s.hidden = s.id !== id; });
+  // focus/scrollIntoView가 남긴 상위 offset이 다음 화면을 광고 뒤로 밀지 않게 함.
+  $('app').scrollTop = 0; $('app').scrollLeft = 0;
+  $('viewport').scrollTop = 0; $('viewport').scrollLeft = 0;
+}

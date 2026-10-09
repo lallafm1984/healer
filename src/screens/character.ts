@@ -23,6 +23,7 @@ import { TUT } from '../game/tutorial';
 import { classEmblem, gameIcon, LOCK, uiIcon } from './art';
 import { battle, esc, fmt, itemChipsHtml, josa, screen, topBar } from './kit';
 import { pushSettings } from './settings';
+import { sheetDialog } from './dialog';
 
 type Sub = 'gear' | 'skill' | 'talent' | 'hero';
 const SUBS: { key: Sub; name: string }[] = [{ key: 'gear', name: '장비' }, { key: 'skill', name: '스킬' }, { key: 'talent', name: '특성' }, { key: 'hero', name: '직업' }];
@@ -47,6 +48,7 @@ const s = screen('s-char', '캐릭터', {
     render(false);
   },
 });
+const modal = sheetDialog(s.el, closeSheet);
 
 /** 지금 휠 배치 (저장이 없거나 틀리면 기본) */
 export function layoutNow(): Record<string, string | null> {
@@ -68,6 +70,7 @@ const TREE = '<path d="M12 5v5M12 10l-5 4M12 10l5 4M7 14v4M17 14v4"/><circle cx=
 const UP = line('<path d="M12 19V5M6 11l6-6 6 6"/>', 2.4);
 
 function render(keep = true): void {
+  modal.beforeRender();
   const old = s.el.querySelector<HTMLElement>('.ns-body');
   const top = keep && old ? old.scrollTop : 0;
   if (sub === 'gear') markSeen();
@@ -87,6 +90,9 @@ function render(keep = true): void {
   if (sub === 'talent') watchTree();
   const nb = s.el.querySelector<HTMLElement>('.ns-body');
   if (nb && top) nb.scrollTop = top;
+  const path = !sheet || sheet.k === 'talent' ? []
+    : sheet.k === 'item' ? [...(sheet.back ? ['bag'] : []), `item:${sheet.id}`] : [sheet.k];
+  modal.sync(path.length ? s.el.querySelector<HTMLElement>('.sheet') : null, path);
 }
 
 /** 하위 탭 4칸 (전투 탭 분류 칸 모양): 더 좋은 장비 = 장비 빨간 점, 남은 특성 = 특성 빨간 점 */
@@ -270,12 +276,14 @@ function itemSheet(id: number): string {
   const costTxt = c ? [`골드 ${fmt(c.gold)}`, c.stone ? `강화석 ${c.stone} (가진 것 ${fmt(m.stone)})` : '', c.refined ? `정제 강화석 ${c.refined} (가진 것 ${fmt(m.refined)})` : ''].filter(Boolean).join(' · ') : '더 올릴 수 없음';
   const sv = salvageOf(it);
   const cmpCap = worn ? '착용 중' : cur ? `${esc(cur.name)}${plusTxt(cur)}` : '빈칸';
-  return `${dim}<section class="sheet c7-gsheet" role="dialog" aria-label="장비 상세" style="${gvars(it)}">${grip}
+  return `${dim}<section class="sheet c7-gsheet" role="dialog" aria-labelledby="gearSheetTitle" aria-describedby="gearSheetSave" style="${gvars(it)}">${grip}
+      <div class="c7-dialog-head"><h3 id="gearSheetTitle">장비 상세</h3><button type="button" class="btn2 c7-dialog-close" data-sheetx aria-label="장비 상세 닫기">닫기</button></div>
       <div class="c7-ghead"><span class="c7-gic">${itemIc(it.slot)}<span class="c7-gl">${it.grade[0]}</span></span>
         <span class="c7-gname"><b>${esc(it.name)}${it.plus ? ` <i>+${it.plus}</i>` : ''}</b><span class="cap">${sub2}</span></span>
         <span class="c7-gscore"><span class="cap">점수</span><b>${sc}</b>${worn ? '' : updn(sc - scoreOf(cur))}</span></div>
       <div class="c7-cmpw"><h3 class="h-rule c7-h3">${worn ? '능력치' : '지금 장비와 비교'}<span class="rule"></span><span class="cap">${cmpCap}</span></h3>${rows}</div>
       <div class="c7-enh"><span><b>${c ? `강화 +${it.plus} → +${c.to}` : `최대 강화 +${MAX_PLUS}`}</b><span class="cap">${costTxt}</span></span><span class="cap${lack ? ' c7-lack' : ''}">${worn ? lack : c ? '장착 뒤 강화 추천' : ''}</span></div>
+      <p class="note c7-save-note" id="gearSheetSave">장착·강화·잠금은 즉시 저장됩니다.</p>
       ${msg ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
       <div class="c7-sbtns">
         <button type="button" class="c7-sb c7-lockb" data-lock="${it.id}" aria-pressed="${!!it.lock}">${uiIcon('lock')}<small>${it.lock ? '잠김' : '잠금'}</small></button>

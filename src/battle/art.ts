@@ -1,6 +1,23 @@
 /** 전투 아트. 보스·잡몹은 생성 원화(src/art의 boss-·mob-, 29 문서), 없으면 벡터 그림. 소비 아이템은 벡터 그림. */
 import { art } from '../art';
 import type { ItemKey } from '../data/items';
+import { SKILLS, type SkillKey, type SlotName } from '../data/skills';
+
+/** 작은 스킬 칸에서도 구분되는 기능 문양. 원화·직업 색에 의존하지 않는 공통 실루엣. */
+const SKILL_MARK: Record<SlotName, string> = {
+  basic: '<path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/>',
+  fast: '<path d="M14 2L4 14h7l-1 8 10-13h-7z"/>',
+  hot: '<path d="M5 19C1 9 9 3 20 3c1 11-5 19-15 16zM5 19L16 8M8 15v-4M11 12h5"/>',
+  aoe: '<circle cx="12" cy="5" r="3"/><circle cx="5" cy="16" r="3"/><circle cx="19" cy="16" r="3"/><path d="M10 8L7 13m7-5 3 5M8 16h8"/>',
+  dispel: '<path d="M12 2C8 8 5 11 5 15a7 7 0 0 0 14 0c0-4-3-7-7-13zM7 19L17 9"/>',
+  ext: '<path d="M12 2l8 3v6c0 5-4 9-8 11-4-2-8-6-8-11V5zM8 12l3 3 5-6"/>',
+  raid: '<path d="M9 17V5l11-3v13M9 7l11-3"/><ellipse cx="6" cy="18" rx="3" ry="3"/><ellipse cx="17" cy="16" rx="3" ry="3"/>',
+  unique: '<path d="M12 3v15M7 8l5-5 5 5M4 15v6h16v-6"/>',
+};
+export function skillMark(key: SkillKey): string {
+  const path = key === 'handGuard' ? '<path d="M7 12V6a1.5 1.5 0 0 1 3 0v5-8a1.5 1.5 0 0 1 3 0v8-6a1.5 1.5 0 0 1 3 0v7-3a1.5 1.5 0 0 1 3 0v6c0 4-3 7-7 7-3 0-5-2-6-4L3 13a1.5 1.5 0 0 1 2-2z"/>' : SKILL_MARK[SKILLS[key].slot];
+  return `<svg class="skill-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+}
 
 const potion = (c: string) => `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12.5 6h7v4.2a9 9 0 1 1-7 0z" fill="${c}" stroke="#0B0B12" stroke-width="2" stroke-linejoin="round"/><rect x="11.5" y="3" width="9" height="4" rx="1.2" fill="#C9923F" stroke="#0B0B12" stroke-width="1.6"/><ellipse cx="12.8" cy="20" rx="1.8" ry="3" fill="rgba(255,255,255,.5)"/></svg>`;
 const scroll = (mark: string) => `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="7" width="18" height="18" rx="2" fill="#E9DDBC" stroke="#0B0B12" stroke-width="2"/><rect x="5" y="4" width="22" height="5" rx="2.5" fill="#B98F4E" stroke="#0B0B12" stroke-width="1.8"/><rect x="5" y="23" width="22" height="5" rx="2.5" fill="#B98F4E" stroke="#0B0B12" stroke-width="1.8"/>${mark}</svg>`;
