@@ -423,6 +423,39 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     ],
     enrage: { name: '늪의 분노', period: 2, dmg: 150 },
   },
+  // 뼈다귀 수집가 (35 4-1 ①, 던전 ② 역병 지하묘지): 끌어당김 처음 · 자루 쏟기 (되살아난 뼈, 쓰러지면 맡던 사람에게 부패). 목표 2:00 · 광폭화 2:45
+  collector: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('갈고리 내려치기', '내려', 8, 18, U.tank(0.5)),
+      { key: 'pull', name: '갈고리 끌기', icon: '끌기', kind: 'buster', first: 14, period: 25, cast: 2, warn: 'buster', target: { p: 'back', n: 1, nMythic: 2 },
+        effect: { p: 'pull', sec: 6, dmg: U.dps(0.1) } },
+      { key: 'adds', name: '자루 쏟기', icon: '자루', kind: 'instant', first: 20, period: 35, cast: 0,
+        effect: { p: 'adds', n: 2, add: { name: '되살아난 뼈', short: '뼈', art: 'mob-risen-bones', hp: 0.04, dmg: U.dps(0.03), every: 2,
+          down: { p: 'debuff', debuff: { name: '부패', type: '질병', left: 20, maxCut: 0.1, end: { p: 'restoreMax' } } } } } },
+      { key: 'aoe', name: '등불 흔들기', icon: '등불', kind: 'aoe', first: 26, period: 30, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.25) } },
+    ],
+    enrage: { name: '뼈다귀 폭주', period: 2, dmg: 200 },
+  },
+  // 역병 사제 말코어 (35 4-1 ②, 최종): 쇠약 처음 (50% 아래 병든 맥박). 썩은 축복은 두면 최대 체력이 줄어 90% 선을 넘기 쉬워짐. 목표 2:40 · 광폭화 3:30
+  malchor: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      { key: 'bless', name: '썩은 축복', icon: '축복', kind: 'instant', first: 5, period: 10, cast: 0, when: { mythic: false },
+        effect: { p: 'rot', n: 1, debuff: { name: '썩은 축복', type: '질병', left: 30, end: { p: 'restoreMax' } }, pct: 0.08, max: 4, again: 0.6 } },
+      { key: 'bless2', name: '썩은 축복', icon: '축복', kind: 'instant', first: 5, period: 10, cast: 0, when: { mythic: true },
+        effect: { p: 'rot', n: 2, debuff: { name: '썩은 축복', type: '질병', left: 30, end: { p: 'restoreMax' } }, pct: 0.08, max: 4, again: 0.6 } },
+      { key: 'smoke', name: '향로 연기', icon: '연기', kind: 'zone', first: 12, period: 25, cast: 2.5, warn: 'zone', dps: U.dps(0.04), dur: 2, cells: { p: 'flow', every: 2 } },
+      { key: 'aoe', name: '교단의 기도', icon: '기도', kind: 'aoe', first: 20, period: 28, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.3) } },
+      { key: 'pulse', name: '병든 맥박', icon: '맥박', kind: 'aoe', first: null, period: 40, cast: 3, warn: 'aoe',
+        how: '해제 불가. 체력 90% 이상이면 바로 사라짐. 썩은 축복을 두면 최대 체력이 줄어 채우기 쉬움',
+        effect: { p: 'debuff', n: 'all', debuff: { name: '쇠약', type: '질병', left: 20, lock: true, cureAt: 0.9, grow: { every: 3, dot: U.dps(0.01), max: 5 } } } },
+    ],
+    flow: [{ p: 'when', if: { idle: 'pulse', hpBelow: 0.5 }, do: [{ p: 'start', skill: 'pulse', in: 3 }, { p: 'text', text: '병든 맥박: 체력 90% 위로 채우면 나음' }] }],
+    enrage: { name: '역병 폭주', period: 2, dmg: 220 },
+  },
   // 녹슨 문지기 (05 1장): 40% 아래 녹물 웅덩이
   warden: {
     phase: [1, ''],

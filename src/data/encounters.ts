@@ -5,8 +5,8 @@ import type { DiffName } from './difficulty';
 
 /** 보스 전투 (05)와 던전 일반·정예 구간 (23). 보스 기술 스크립트는 engine/bosses.ts */
 export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'boiler' | 'duo' | 'field' | 'patrol'
-  | 'ashyard' | 'collector3' | 'reedbank' | 'shaman8';
-export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8';
+  | 'ashyard' | 'collector3' | 'reedbank' | 'shaman8' | 'bonepass' | 'collector' | 'censerhall' | 'malchor';
+export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -129,6 +129,27 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '진흙 투석꾼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 85, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
   shaman8: { key: 'shaman8', lowLevel: true, name: '늪 주술사', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1800, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'shaman8', stage: 0.3, debuffs: ['독'] },
+  // 던전 ② 「역병 지하묘지」 (39 1-2, Lv 10, 35 4-1): 일반 뼈 쌓인 통로 → 뼈다귀 수집가 → 정예 향로 예배실 → 역병 사제 말코어
+  bonepass: trash('bonepass', '뼈 쌓인 통로', [
+    { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  collector: { key: 'collector', lowLevel: true, name: '뼈다귀 수집가', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 3400, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'collector', stage: 0.25, debuffs: ['질병'] },
+  censerhall: trash('censerhall', '향로 예배실', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'rot', name: '부패', icon: '부패', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '부패', type: '질병', left: 20, maxCut: 0.1, end: { p: 'restoreMax' } } } },
+    ] },
+    {
+      name: '부리 가면 집행자', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'shout', name: '병든 외침', icon: '외침', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['질병'] }),
+  malchor: { key: 'malchor', lowLevel: true, name: '역병 사제 말코어', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 5900, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'malchor', stage: 0.25, debuffs: ['질병'] },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

@@ -78,6 +78,7 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   gate: 'rustfort', scrap: 'rustfort', boiler: 'rustfort', warden: 'rustfort',
   plague: 'abyss', choir: 'cathedral',
   ashyard: 'cemetery', collector3: 'cemetery', reedbank: 'marsh', shaman8: 'marsh',
+  bonepass: 'crypt', collector: 'crypt', censerhall: 'crypt', malchor: 'crypt',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

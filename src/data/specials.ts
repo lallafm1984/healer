@@ -262,6 +262,8 @@ export const FEATURED: Record<string, readonly string[]> = {
   // 늪지 어귀 (탐험 ③): 완치 표식 · 독을 힐로 버팀
   marsh: ['antidote', 'warmCloak', 'lingerLight'],
   rustfort: ['shieldFriend', 'firstWord', 'springSip'],
+  // 역병 지하묘지 (던전 ②): 질병 해제 · 끌려온 사람과 탱커를 광역으로
+  crypt: ['coldMedicine', 'immuneIncense', 'wideEmbrace'],
   abyss1: ['coldMedicine', 'cleanHands', 'bounceLight'],
   cathedral1: ['spellWard', 'strongChorus', 'goldEcho'],
 };

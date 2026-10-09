@@ -57,6 +57,10 @@ const ENC_ART: Record<string, string[]> = {
   ashyard: ['mob-risen-bones', 'mob-cult-acolyte'],
   shaman8: ['boss-swamp-shaman'],
   reedbank: ['mob-swamp-spearman', 'mob-mud-slinger'],
+  collector: ['boss-bone-collector'],
+  malchor: ['boss-malchor'],
+  bonepass: ['mob-risen-bones', 'mob-crypt-rats'],
+  censerhall: ['mob-beak-enforcer', 'mob-cult-acolyte', 'mob-risen-bones'],
   choir: ['boss-ghost-choir', 'boss-silent-choir'], // 40: 새 이름 boss-ghost-choir
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
