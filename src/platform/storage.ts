@@ -3,7 +3,8 @@
  * 지금은 localStorage. 앱에서 OS가 웹 저장소를 지울 위험이 보이면 Capacitor Preferences로 바꾼다.
  */
 import type { DiffName } from '../data/difficulty';
-import { itemName, type Equipped, type GearItem } from '../data/equipment';
+import { EXTRA_LINES, itemName, kindOf, rollLines, type Equipped, type GearItem } from '../data/equipment';
+import { rngFrom } from '../engine/rng';
 import type { GuildMember, PostTier } from '../data/guild';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { STARTER_BAG } from '../data/economy';
@@ -11,7 +12,7 @@ import type { ItemKey } from '../data/items';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
@@ -222,7 +223,7 @@ export function migrate(raw: unknown): SaveData {
     player: obj(o.player, base.player),
     // 27: 새것 점 기준 (옛 저장은 지금 가진 장비를 다 본 것으로)
     gear: {
-      equipped: noSetEq(obj(o.gear?.equipped, {})), bag: Array.isArray(o.gear?.bag) ? o.gear!.bag.map(noSet) : [],
+      equipped: upgradeEq(obj(o.gear?.equipped, {})), bag: Array.isArray(o.gear?.bag) ? o.gear!.bag.map(upgradeItem) : [],
       seen: typeof o.gear?.seen === 'number' ? o.gear.seen : (typeof o.nextId === 'number' ? o.nextId : base.nextId) - 1,
     },
     mats: obj(o.mats, base.mats),
@@ -251,14 +252,23 @@ export function migrate(raw: unknown): SaveData {
   };
 }
 
-/** 세트 장비를 없앰: 옛 세트 장비는 세트 표시를 빼고 이름도 보통 장비 이름으로 */
-function noSet(it: GearItem): GearItem {
-  if (!it || typeof it !== 'object' || !('set' in it)) return it;
-  const c: GearItem & { set?: unknown } = { ...it, name: itemName(it.slot, it.grade) };
+/**
+ * 옛 장비를 지금 모양으로: 세트 표시를 빼고 (세트 장비 제거), 종류가 없으면 그 부위 첫 종류 + 등급만큼 추가 옵션 굴림 (v7, 34 12장 6번).
+ * 굴림은 장비 id로 정해서 몇 번 불러도 같음. 이름은 등급 말 + 종류
+ */
+function upgradeItem(it: GearItem): GearItem {
+  if (!it || typeof it !== 'object') return it;
+  const c: GearItem & { set?: unknown } = { ...it };
   delete c.set;
+  if (!c.kind || !Array.isArray(c.lines)) {
+    const k = kindOf(c);
+    c.kind = k.key;
+    c.lines = rollLines(rngFrom(Math.imul(c.id || 1, 0x2545f491) ^ 0x6a09e667), EXTRA_LINES[c.grade] ?? 1, k.fixed);
+  }
+  c.name = itemName(c);
   return c;
 }
-const noSetEq = (eq: Equipped): Equipped => Object.fromEntries(Object.entries(eq).map(([k, it]) => [k, noSet(it)]));
+const upgradeEq = (eq: Equipped): Equipped => Object.fromEntries(Object.entries(eq).map(([k, it]) => [k, upgradeItem(it)]));
 
 /**
  * v6 직업별 레벨 (34 3-4): 옛 저장의 레벨·경험치를 열린 모든 직업에 넣음 (손해 없음). 지금 직업 것은 player 그대로.

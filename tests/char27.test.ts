@@ -1,6 +1,6 @@
 /** 캐릭터 탭 다듬기 (27 4장): 장비 잠금 · 추천 장착 · 특성 프리셋 · 새것 점 저장 · 능력치 출처 */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { gearStatsOf, itemStats, SLOTS, type GearItem } from '../src/data/equipment';
+import { gearStatsOf, itemStats, noStats, SLOTS, STAT_KEYS, type GearItem } from '../src/data/equipment';
 import { lvPower } from '../src/data/progression';
 import { heroStats, statParts } from '../src/game/charinfo';
 import {
@@ -8,7 +8,7 @@ import {
 } from '../src/game/state';
 import { load, migrate, newSave, save, type KV } from '../src/platform/storage';
 
-const item = (o: Partial<GearItem> = {}): GearItem => ({ id: 1, slot: 'head', grade: '희귀', plus: 0, name: '', ...o });
+const item = (o: Partial<GearItem> = {}): GearItem => ({ id: 1, slot: 'head', kind: '', grade: '희귀', plus: 0, name: '', lines: [], ...o });
 const mem = (): KV & { data: Record<string, string> } => ({
   data: {},
   getItem(k) { return this.data[k] ?? null; },
@@ -139,7 +139,9 @@ describe('능력치 판 · 출처 (27 4-2)', () => {
       head: item({ id: 3, slot: 'head', grade: '희귀' }),
     };
     const p = statParts(), st = gearStatsOf(G.save.gear.equipped), lp = lvPower(40);
-    expect(p.hp.base + p.hp.level).toBe(p.hp.total);
+    expect(p.hp.base + p.hp.level + p.hp.gear).toBe(p.hp.total);
+    expect(p.hp.gear).toBeGreaterThan(0); // 방어구 주 능력치 체력 (34 6-5)
+    expect(p.endure.total).toBeCloseTo(st.endure!);
     expect(p.hp.base).toBe(220); // Lv 1 = 550 ÷ 2.5 (34 1-2)
     expect(p.int.base).toBe(120);
     expect(p.int.base + p.int.level + p.int.gear).toBe(p.int.total);
@@ -151,11 +153,14 @@ describe('능력치 판 · 출처 (27 4-2)', () => {
   });
   it('장비 한 개 몫을 6부위 더하면 장비 능력치', () => {
     const eq = Object.fromEntries(SLOTS.map((s, i) => [s.key, item({ id: i + 1, slot: s.key, grade: (['일반', '고급', '희귀', '영웅', '전설', '희귀'] as const)[i], plus: i })]));
-    const st = gearStatsOf(eq), sum = SLOTS.reduce((a, s) => { const x = itemStats(eq[s.key]); return { heal: a.heal + x.heal, crit: a.crit + x.crit, haste: a.haste + x.haste, regen: a.regen + x.regen }; }, { heal: 0, crit: 0, haste: 0, regen: 0 });
-    expect(1 + sum.heal).toBeCloseTo(st.heal);
+    const st = gearStatsOf(eq), sum = noStats();
+    for (const s of SLOTS) { const x = itemStats(eq[s.key]); for (const k of STAT_KEYS) sum[k] += x[k]; }
+    expect(1 + sum.int).toBeCloseTo(st.heal);
     expect(sum.crit).toBeCloseTo(st.crit);
     expect(sum.haste).toBeCloseTo(st.haste);
-    expect(1 + sum.regen).toBeCloseTo(st.regen);
-    expect(itemStats(null)).toEqual({ heal: 0, crit: 0, haste: 0, regen: 0 });
+    expect(1 + sum.spirit).toBeCloseTo(st.regen);
+    expect(sum.hp).toBeCloseTo(st.hp!);
+    expect(sum.endure).toBeCloseTo(st.endure!);
+    expect(itemStats(null)).toEqual(noStats());
   });
 });

@@ -505,3 +505,6 @@
   #s-char .c7-taps > button { font-size: 13px; }
   #s-char .c7-bnrs { gap: 9px; margin-left: -10px; margin-right: -10px; padding-left: 10px; padding-right: 10px; }
 }
+/* 추가 옵션 굴림 막대 (34 6-3): 최소 굴림 = 빈 막대, 최대 = 꽉 찬 막대 */
+#s-char .c7-roll { display: inline-block; width: 44px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); overflow: hidden; justify-self: end; align-self: center; }
+#s-char .c7-roll i { display: block; height: 100%; border-radius: 3px; background: var(--gi, #8BEA9C); }

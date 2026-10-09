@@ -23,7 +23,7 @@ describe('기기 저장', () => {
     s.settings.compactSkills = true;
     s.settings.reducedEffects = true;
     s.player.gold = 500;
-    s.gear.bag.push({ id: 1, slot: 'ring', grade: '희귀', plus: 0, name: '축복받은 반지' });
+    s.gear.bag.push({ id: 1, slot: 'ring', kind: 'ring', grade: '희귀', plus: 0, name: '축복받은 반지', lines: [{ stat: 'int', roll: 0.8 }, { stat: 'hp', roll: 0.7 }] });
     expect(save(s, kv)).toBe(true);
     expect(load(kv)).toEqual(s);
   });

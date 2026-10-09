@@ -133,12 +133,9 @@ describe('레벨 배율 (07 4장, 18 2-1)', () => {
 });
 
 describe('장비 (02 10장)', () => {
-  it('6부위가 같은 등급이면 프리셋 계산과 같은 능력치', () => {
-    const all = (grade: '고급' | '희귀' | '영웅', plus: number): Equipped => Object.fromEntries(SLOTS.map((s, i) => [s.key, { id: i, slot: s.key, grade, plus, name: '' }]));
+  it('장비 없음 = 프리셋 none, 평균 점수 = 등급 + 강화/10 (추가 옵션 굴림 없을 때)', () => {
+    const all = (grade: '고급' | '희귀' | '영웅', plus: number): Equipped => Object.fromEntries(SLOTS.map((s, i) => [s.key, { id: i, slot: s.key, kind: '', grade, plus, name: '', lines: [] }]));
     expect(gearStatsOf({})).toEqual(gearStats('none'));
-    expect(gearStatsOf(all('고급', 0))).toEqual(gearStats('adv0'));
-    const r5 = gearStatsOf(all('희귀', 5)), p5 = gearStats('rare5');
-    for (const k of ['heal', 'regen', 'haste', 'crit'] as const) expect(r5[k]).toBeCloseTo(p5[k], 10);
     expect(avgScore(all('희귀', 5))).toBeCloseTo(3.5);
   });
   it('드롭 등급 비율이 표를 따름, 전설은 Lv 50부터', () => {
@@ -158,7 +155,7 @@ describe('장비 (02 10장)', () => {
     expect(avg('S')).toBeGreaterThan(avg('C') + 0.03);
   });
   it('전투에 착용 장비 능력치가 들어감', () => {
-    const st = gearStatsOf({ weapon: { id: 1, slot: 'weapon', grade: '영웅', plus: 0, name: '' } });
+    const st = gearStatsOf({ weapon: { id: 1, slot: 'weapon', kind: 'staff', grade: '영웅', plus: 0, name: '', lines: [{ stat: 'hp', roll: 1 }] } });
     const f = E.create({ encounter: 'warden', diff: '보통', seed: 1, gearStats: st });
     expect(f.gear).toEqual(st);
   });

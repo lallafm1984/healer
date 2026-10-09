@@ -3,14 +3,14 @@
  * 이기면 첫 화면에 등급·별·받은 것, 지면 어디서 졌는지·힌트. 지표·딜미터기는 「전투 기록」에 접어 둠 (지면 펼침)
  */
 import { contentOf, type ContentKey } from '../data/content';
-import { avgScore, GRADE_STYLE, itemStats, RECOMMENDED, slotName, type ItemGrade } from '../data/equipment';
+import { avgScore, GRADE_STYLE, kindOf, RECOMMENDED, slotName, type ItemGrade } from '../data/equipment';
 import { CLASSES } from '../data/classes';
 import { HEROES } from '../data/heroes';
 import { MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { Flow, newSeed } from '../game/flow';
 import { meterHtml } from '../game/meter';
 import { equip, G } from '../game/state';
-import { isBetter } from '../game/charinfo';
+import { isBetter, scoreOf } from '../game/charinfo';
 import { TUT } from '../game/tutorial';
 import { AFFIXES } from '../data/affixes';
 import type { BattleResult, Settlement } from '../game/settle';
@@ -28,8 +28,6 @@ function resArt(k: ContentKey): string {
 
 /** 이름 글자 색 (캐릭터 탭과 같음) */
 const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#8BEA9C', '희귀': '#8DBEFF', '영웅': '#D7A6FF', '전설': '#FFC07A' };
-/** 비율 → 퍼센트 글자 (소수 한 자리, .0은 뺌) */
-const pc = (x: number) => String(Math.round(x * 1000) / 10);
 
 function render(): void {
   const r = Flow.result!, x = Flow.settle!;
@@ -113,21 +111,21 @@ function lootHtml(r: BattleResult, x: Settlement): string {
     </section>`;
 }
 
-/** 장비 한 줄: 부위 그림(등급 색 테두리) · 이름 · 부위·등급·지능 · 장착 버튼 (지금보다 좋을 때만) */
+/** 장비 한 줄: 부위 그림(등급 색 테두리) · 이름 · 부위·종류·등급·점수 (지금 장비보다 ▲▼) · 장착 버튼 (지금보다 좋을 때만) */
 function itemRow(x: Settlement): string {
   if (!x.item) return x.lootLocked ? '<p class="r-item none">이번 주 이 보스·난이도 장비는 받음 · 월요일 오전 6시에 다시</p>' : '';
   const id = x.item.id, eq = G.save.gear.equipped;
   const it = G.save.gear.bag.find(b => b.id === id) || Object.values(eq).find(b => b?.id === id);
   if (!it) return '';
   const worn = eq[it.slot]?.id === it.id, cur = worn ? null : eq[it.slot] ?? null;
-  const a = itemStats(it).heal, d = Math.round((a - itemStats(cur).heal) * 1000) / 10;
+  const sc = scoreOf(it), d = sc - scoreOf(cur);
   const act = worn ? '<span class="r-on">장착함</span>'
     : isBetter(it) ? `<button class="btn r-eq${firstGear() ? ' hi-pulse' : ''}" type="button" id="equipNow">장착</button>`
     : '<span class="r-on dim">가방에</span>';
-  const delta = worn ? '' : !cur ? ' <em class="up">빈칸</em>' : d > 0 ? ` <em class="up">▲${d}%</em>` : d < 0 ? ` <em class="dn">▼${-d}%</em>` : '';
+  const delta = worn ? '' : !cur ? ' <em class="up">빈칸</em>' : d > 0 ? ` <em class="up">▲${d}</em>` : d < 0 ? ` <em class="dn">▼${-d}</em>` : '';
   return `<div class="r-item" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
       <span class="r-ic">${gameIcon(it.slot, uiIcon(it.slot), 'item')}</span>
-      <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><small>${slotName(it.slot)} · ${it.grade} · 지능 +${pc(a)}%${delta}</small></span>
+      <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><small>${slotName(it.slot)} · ${esc(kindOf(it).name)} · ${it.grade} · 점수 ${sc}${delta}</small></span>
       ${act}
     </div>`;
 }
