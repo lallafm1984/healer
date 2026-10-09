@@ -104,7 +104,9 @@ function overload(f: Fight, u: Unit, over: number): void {
   const d = u.debuffs.find(x => x.over);
   if (!d) return;
   const c = cellOf(f, u);
-  for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), c) === 1) damage(f, v, (over * d.over!) / f.dmgMult, true, 'fixed');
+  const near = living(f).filter(v => v !== u && hexDist(cellOf(f, v), c) === 1);
+  if (near.length) emit(f, { type: 'fx', name: 'overflow', on: u.id });
+  for (const v of near) damage(f, v, (over * d.over!) / f.dmgMult, true, 'fixed');
 }
 
 /** 뒤집힌 축복 (P-INVERT, 35 4-3): 들어올 치유량만큼 피해. 보호막·피해 감소·보호의 손(물리 취급)은 통함 */
@@ -186,6 +188,7 @@ export function addDebuff(f: Fight, u: Unit, d: Omit<Debuff, 'id'>): Debuff {
   u.debuffs.push(o);
   if (HEROES[f.hero].dispel.includes(o.type) && !o.trap) f.stats.dispellable++;
   emit(f, { type: 'debuff', id: u.id, dtype: o.type });
+  if (o.charm) emit(f, { type: 'fx', name: 'hearts', on: u.id });
   return o;
 }
 
@@ -219,6 +222,7 @@ export function empowerBoss(f: Fight, boost: number, why: string): void {
   f.dmgMult *= (1 + f.empower + boost) / (1 + f.empower);
   f.empower += boost;
   emit(f, { type: 'sound', name: 'aoe' });
+  emit(f, { type: 'fx', name: 'rage' });
   emit(f, { type: 'msg', text: `${why}: 보스 피해 +${Math.round(f.empower * 100)}%` });
 }
 
@@ -250,6 +254,7 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       const v = near[Math.floor(f.rng() * near.length)];
       const { id: _id, ...rest } = d;
       addDebuff(f, v, { ...rest, left: e.sec, dot: (d.dot ?? 0) * e.mult });
+      emit(f, { type: 'fx', name: 'fireball-green', on: u.id, to: v.id });
       emit(f, { type: 'msg', text: `${d.name}이(가) ${v.nick}에게 옮겨붙음` });
       return;
     }
@@ -259,6 +264,7 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       if (n <= 0) return;
       damage(f, u, e.dmg * n, true);
       emit(f, { type: 'sound', name: 'burst' });
+      emit(f, { type: 'fx', name: 'recoil', on: u.id });
       emit(f, { type: 'msg', text: `${d.name} ${n}중첩 터짐` });
       return;
     }

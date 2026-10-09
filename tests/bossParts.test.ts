@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { bossHpFor, U, UNIT, type DebuffDef, type SkillEffect } from '../src/data/bosses';
 import { CLASSES } from '../src/data/classes';
 import * as E from '../src/engine';
-import { applyDebuff, backTargets, bossTaken, focusOrder, lowestTargets, offTank, orderHeal, runEffect, watchInit } from '../src/engine/bossParts';
+import { applyDebuff, backTargets, bossTaken, focusOrder, lowestTargets, offTank, orderHeal, runEffect, stunBoss, watchInit } from '../src/engine/bossParts';
 import { moveTo, pickCell, zoneOf } from '../src/engine/movement';
 import { ABILITIES } from '../src/data/abilities';
 import { unitDps } from '../src/engine/units';
@@ -1196,5 +1196,47 @@ describe('부품 10 (35 3장·4-7): 헤매는 영혼 · 생명 사슬 · 넘치�
     v.hp = v.max - 40;
     heal(g, v, 140, true, true);
     for (const w of near) expect(w.max - w.hp).toBeCloseTo(50, 0);
+  });
+});
+
+describe('기믹 연출 신호 (37 4장 F-1): 화면이 그림을 붙일 순간', () => {
+  const fxOf = (f: Fight) => f.events.filter((e): e is Extract<typeof e, { type: 'fx' }> => e.type === 'fx');
+
+  it('쫄 등장은 그 칸, 폭탄은 그 칸에서 터지고, 무너진 바닥은 그 칸', () => {
+    const f = fight();
+    run(f, { p: 'adds', n: 1, add: { name: '폭탄', short: '폭탄', hp: 0.03, dmg: 0, every: 1, job: { p: 'bomb', sec: 2, dmg: 10 } } });
+    const bomb = f.mobs[f.mobs.length - 1];
+    expect(fxOf(f)).toEqual([{ type: 'fx', name: 'spawn', cell: bomb.add!.cell }]);
+    f.events.length = 0;
+    while (f.t < 2.05) E.step(f);
+    expect(fxOf(f)).toContainEqual({ type: 'fx', name: 'explode', cell: bomb.add!.cell });
+    f.events.length = 0;
+    run(f, { p: 'hole', n: 1, max: 3 });
+    const hole = f.cells.find(c => c.block === 'hole')!;
+    expect(fxOf(f)).toEqual([{ type: 'fx', name: 'crumble', cell: hole.i }]);
+  });
+
+  it('영혼 정화 · 사슬 끊어짐 · 그릇 가득 · 반격 성공', () => {
+    const f = fight();
+    run(f, { p: 'soul', name: '정령', short: '정령', hp: 0.25, sec: 12, win: { text: '정화' }, fail: { text: '벌', dmg: 10 } });
+    const s = f.souls[0];
+    heal(f, s, s.max, true, true);
+    f.events.length = 0;
+    E.step(f);
+    expect(fxOf(f)).toContainEqual({ type: 'fx', name: 'soul-purify', cell: s.cell });
+    run(f, { p: 'link', kind: 'balance', name: '저주 실', sec: 20, gap: 0.2, dmg: 10 });
+    const l = f.links[0], a = f.party.find(u => u.id === l.a)!;
+    steps(f, 2.1);
+    a.hp = a.max * 0.3;
+    E.step(f);
+    expect(fxOf(f)).toContainEqual({ type: 'fx', name: 'link-snap', on: l.a, to: l.b });
+    run(f, { p: 'vessel', name: '빛 그릇', need: 0.5, sec: 10, shield: 3 });
+    f.vessel!.fill = f.vessel!.need;
+    f.events.length = 0;
+    E.step(f);
+    expect(fxOf(f)).toContainEqual({ type: 'fx', name: 'bubble', all: true });
+    f.events.length = 0;
+    stunBoss(f, 3);
+    expect(fxOf(f)).toEqual([{ type: 'fx', name: 'dizzy' }]);
   });
 });

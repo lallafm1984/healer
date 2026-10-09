@@ -120,6 +120,18 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 @keyframes blink { 50% { border-color: #5a1a17; } }
 .compact #bossArt { width: 56px; height: 56px; }
 .compact #dmgNums { width: 56px; height: 56px; }
+/* 보스 그림 위 연출 (37 4장 F-1): 원형 초상 안에 겹침. 그림이 있으면 그 그림, 없으면 색 빛 (--c) */
+#bossArt .bfx-box, #bossArt .baura { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+#battle #bossArt .bfx { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; animation: bossFx 0.6s ease-out forwards; }
+#bossArt i.bfx { border-radius: 50%; background: radial-gradient(circle, var(--c, #FFFFFF) 0%, transparent 70%); }
+.bfx-dizzy { --c: #FFE08A; } .bfx-chain-break { --c: #8FC8FF; } .bfx-rage { --c: #FF5A3D; } .bfx-mend { --c: #8CF29C; }
+@keyframes bossFx { 0% { opacity: 0; transform: scale(0.6); } 20% { opacity: 1; } 100% { opacity: 0; transform: scale(1.15); } }
+/* 계속 붙는 표시: 보호막 수정 · 반격 틈 */
+#bossArt .baura { border-radius: 50%; background: center / contain no-repeat; }
+#bossArt .baura.crystal-shield:not(.art) { box-shadow: inset 0 0 0 3px #8FD0FF, inset 0 0 14px rgba(143, 208, 255, 0.8); }
+#bossArt .baura.counter:not(.art) { box-shadow: inset 0 0 0 3px #5AB0FF, inset 0 0 16px rgba(90, 176, 255, 0.9); animation: auraPulse 0.6s ease-in-out infinite alternate; }
+@keyframes auraPulse { from { opacity: 0.55; } to { opacity: 1; } }
+.reduced-effects #bossArt .baura { animation: none; }
 
 #boardWrap { position: relative; flex: 1 1 auto; min-height: 0; --board-safe-left: env(safe-area-inset-left, 0px); --board-safe-right: env(safe-area-inset-right, 0px); }
 #board { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }

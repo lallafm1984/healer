@@ -1,19 +1,21 @@
 /**
  * 전투 판 그리기 (PixiJS, WebGL → 안 되면 Canvas). 20 4-1: 전투 화면은 캔버스에만 그리고 매 프레임 HTML은 안 고침.
  * 칸 = 체력 물통 · 역할 아이콘 · 닉네임 · 체력 숫자 · 디버프 테두리 (16 9장 2번: 파티원 그림 없음). 「나」 칸은 역할 아이콘 대신 직업 문장 (27 3-4).
- * 이펙트 (16 4-6): 힐 = 부드러운 빛 + 별 반짝이(사제 금·흰), 치명타 = 반짝이 2배 + 작은 종, 큰 피격 = 날카로운 빨간 자국.
+ * 이펙트 (16 4-6): 힐 = 부드러운 빛 + 별 반짝이(사제 금·흰), 치명타 = 반짝이 2배 + 큰 별, 큰 피격 = 날카로운 빨간 자국.
  * 칸 위 이펙트는 0.4초 안에 사라지고 체력 숫자·디버프 테두리 아래에 그림.
+ * 그림 (37 v0.2): 판 위 적·영혼 칸 그림(mob-), 칸 무늬(fx-cell-), 사슬 띠(fx-link-), 이펙트(fx-)가 src/art에 있으면 그 그림을, 없으면 지금 벡터 그림을 씀.
  */
-import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, RenderTexture, Sprite, Text, Texture, type TextStyleFontWeight } from 'pixi.js';
+import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
+import { art } from '../art';
 import { CLASSES } from '../data/classes';
 import { SKILLS } from '../data/skills';
 import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type Unit } from '../engine';
 import { emblemColor } from '../screens/art';
-import { emblemSrc } from './art';
+import type { FactionKey } from '../data/places';
+import { addArtName, emblemSrc, holeArtName, soulArtName, zoneArtName } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebuff } from './party-display';
 import { CELL_RADIUS, fitBoard } from './board-layout';
-import { art } from '../art';
 
 // ---------- 색 ----------
 const hex = (c: string) => parseInt(c.slice(1, 7), 16);
@@ -43,7 +45,10 @@ const topG = new Graphics();
 const topL = new Container();
 const lensL = new Container();
 const emblemL = new Container();
-root.addChild(cellsG, unitsG, glowL, fxG, frameL, overG, emblemL, labelsL, topG, topL, lensL);
+/** 칸 무늬 · 판 위 적 그림 (칸 채움 위, 파티원 칸 아래) · 그림 이펙트 (파티원 칸 위, 테두리·글자 아래) */
+const decalL = new Container();
+const fxArtL = new Container();
+root.addChild(cellsG, decalL, unitsG, glowL, fxG, fxArtL, frameL, overG, emblemL, labelsL, topG, topL, lensL);
 
 let dpr = 1;
 export const L = { s: 40, W: 0, H: 0, ox: 0, oy: 0, left: 2, right: 2, top: 2, bottom: 2, ok: false };
@@ -269,6 +274,56 @@ function emblemTexture(hero: string): Texture | null {
   return null;
 }
 
+// ---------- 그림 (37 v0.2): 파일이 있으면 텍스처로 한 번 읽어 둠. 없거나 읽는 중이면 null → 벡터 그림 ----------
+const artTex = new Map<string, Texture | null>();
+function artTexture(name: string): Texture | null {
+  if (!name) return null;
+  if (artTex.has(name)) return artTex.get(name)!;
+  artTex.set(name, null);
+  const src = art(name);
+  if (!src) return null;
+  const img = new Image();
+  img.decoding = 'async';
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    c.getContext('2d')!.drawImage(img, 0, 0);
+    artTex.set(name, Texture.from(c));
+  };
+  img.src = src;
+  return null;
+}
+/** 프레임마다 다시 쓰는 그림 칸 (안 쓴 것은 숨김) */
+class SpritePool {
+  private list: Sprite[] = [];
+  private used = 0;
+  constructor(private layer: Container) {}
+  begin(): void { this.used = 0; }
+  put(tex: Texture, x: number, y: number, w: number, h: number, alpha = 1, tint = 0xffffff, rot = 0): void {
+    let sp = this.list[this.used];
+    if (!sp) { sp = new Sprite(); sp.anchor.set(0.5); this.list.push(sp); this.layer.addChild(sp); }
+    this.used++;
+    sp.texture = tex; sp.visible = true; sp.position.set(x, y); sp.scale.set(w / tex.width, h / tex.height);
+    sp.rotation = rot; sp.alpha = alpha; sp.tint = tint;
+  }
+  end(): void { for (let i = this.used; i < this.list.length; i++) this.list[i].visible = false; }
+}
+const decals = new SpritePool(decalL), fxArt = new SpritePool(fxArtL);
+/** 생명 사슬 띠 (fx-link-*): 가로로 이어 붙이는 그림을 두 칸 사이에 깔아 돌림 */
+const strips: TilingSprite[] = [];
+let stripUsed = 0;
+function strip(tex: Texture, ax: number, ay: number, bx: number, by: number, h: number, alpha: number): void {
+  let sp = strips[stripUsed];
+  if (!sp) { sp = new TilingSprite({ texture: tex, width: 1, height: 1 }); sp.anchor.set(0.5); strips.push(sp); fxArtL.addChild(sp); }
+  stripUsed++;
+  const len = Math.hypot(bx - ax, by - ay), k = h / tex.height;
+  sp.texture = tex; sp.visible = true; sp.position.set((ax + bx) / 2, (ay + by) / 2); sp.rotation = Math.atan2(by - ay, bx - ax);
+  sp.width = len; sp.height = h; sp.tileScale.set(k, k); sp.tilePosition.set(len / 2, 0); sp.alpha = alpha;
+}
+/** 지금 장소의 세력 (칸 무늬 고르기) */
+let boardFaction: FactionKey | null = null;
+export function setBoardFaction(f: FactionKey | null): void { boardFaction = f; }
+
 /** 큰 별 (치명타 힐, 16 4-6): 검은 테 금별 + 가운데 흰 별 */
 function critStar(g: Graphics, x: number, y: number, k: number, alpha: number): void {
   const r = k * 0.62, w = r * 0.32;
@@ -481,7 +536,11 @@ function glow(x: number, y: number, size: number, tint: number, alpha: number, k
 }
 
 // ---------- 판 위 효과 ----------
-interface Fx { kind: 'heal' | 'hit' | 'dispel' | 'death' | 'revive'; id: number; t0: number; crit?: boolean; color?: number; seeds?: number[]; x?: number; y?: number }
+interface Fx {
+  kind: 'heal' | 'hit' | 'dispel' | 'death' | 'revive' | 'art'; id: number; t0: number; crit?: boolean; color?: number; seeds?: number[]; x?: number; y?: number;
+  /** 기믹 연출 (kind 'art'): 그림 fx-<name>, 칸 · 날아갈 사람 · 판 전체 · 길이(ms) */
+  name?: string; cell?: number; to?: number; wide?: boolean; dur?: number;
+}
 interface Float { x: number; y: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean }
 /** 말풍선 종류 (41·43 문서): talk 반응·잡담 · call 기믹·신호 (금테) · alert 위기 (붉은 테, 흔들림) · chat 쓰러진 사람의 파티 채팅 (회색) */
 export type BubbleKind = 'talk' | 'call' | 'alert' | 'chat';
@@ -498,7 +557,42 @@ const B2 = {
   lastFlash: {} as Record<number, number>, lens: null as { idx: number; t0: number } | null, lastRender: 0, n: 0,
 };
 export function resetBoardFx(): void {
-  B2.floats = []; B2.bubbles = []; B2.fx = []; B2.disp = {}; B2.hitFx = {}; B2.shake = {}; B2.lastFlash = {}; B2.lens = null;
+  B2.floats = []; B2.bubbles = []; B2.fx = []; B2.disp = {}; B2.hitFx = {}; B2.shake = {}; B2.lastFlash = {}; B2.lens = null; seenZones.clear();
+}
+/**
+ * 기믹 연출 (37 4장 F-1): 칸 반지름 배 크기 · 그림이 없을 때 빛 색 · 길이(ms).
+ * tint = 흰 그림을 이 색으로 칠함, fly = to에게 날아감 (top = 판 위쪽 보스 자리에서), up = 칸 위로 띄움
+ */
+const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?: boolean; fly?: boolean; top?: boolean; up?: number }> = {
+  spawn: { size: 1.7, color: 0xb06bff, ms: 500 },
+  poof: { size: 1.6, color: 0xd8d0c0 },
+  explode: { size: 2.6, color: 0xff8a3d, ms: 600 },
+  slam: { size: 1.9, color: 0xffd166 },
+  warn: { size: 0.8, color: 0xff5a3d, ms: 700, up: 0.95 },
+  shockwave: { size: 2.6, color: 0xd9a66b, ms: 600 },
+  crumble: { size: 1.7, color: 0x9a8f80, ms: 500 },
+  'soul-purify': { size: 2.1, color: 0x8fe3e0, ms: 600 },
+  splash: { size: 1.9, color: 0x9a7fc4, tint: true },
+  'link-snap': { size: 1.5, color: 0xc04ad8, ms: 500 },
+  bubble: { size: 1.9, color: 0xffe08a, ms: 600, tint: true },
+  overflow: { size: 1.3, color: 0xffe08a },
+  'fireball-green': { size: 0.8, color: 0x7dff6a, ms: 450, fly: true },
+  hearts: { size: 1.3, color: 0xd08bff, ms: 600, up: 0.4 },
+  hook: { size: 0.9, color: 0xc98b5a, ms: 350, fly: true, top: true },
+  recoil: { size: 1.7, color: 0x7fc8ff },
+  'zone-burst': { size: 1.6, color: 0xff5a3d },
+  'jail-break': { size: 1.8, color: 0xd8c7a8, ms: 500 },
+  'mana-drop': { size: 1.0, color: 0x5aa8ff, ms: 600, up: 0.6 },
+};
+/** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
+const seenZones = new Set<number>();
+/** 기믹 연출 하나 (엔진 fx 사건 · 쫄 처치 · 새 장판). all = 살아 있는 모두 (진동·땅 울림은 판 가운데 크게 한 번) */
+export function fxGim(name: string, now: number, at: { cell?: number; id?: number; to?: number; all?: boolean }): void {
+  const F = B.F;
+  if (!F || !L.ok || S.reducedEffects || B2.fx.length >= 90) return;
+  const dur = FX_LOOK[name]?.ms ?? FX_MS;
+  if (at.all && name !== 'shockwave') { for (const u of F.party) if (u.alive) B2.fx.push({ kind: 'art', name, id: u.id, t0: now, dur }); return; }
+  B2.fx.push({ kind: 'art', name, id: at.id ?? -1, cell: at.cell, to: at.to, t0: now, dur, wide: at.all });
 }
 const rnd = () => Math.random();
 export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: number): void {
@@ -571,6 +665,50 @@ function predictedHeal(u: Unit): number {
   return u === tgt ? sk.amt! * F.gear.heal * F.power * (u.hot > 0 ? 1.1 : 1) : 0;
 }
 
+/** 그림 이펙트 한 장: 판 밖으로 안 나가게 크기를 줄여 그림 */
+function spriteFx(tex: Texture, key: string, x: number, y: number, size: number, alpha: number, tint = 0xffffff, rot = 0): void {
+  const half = safeRadius(x, y, size / 2, 'circle');
+  if (half <= 0 || alpha <= 0) return;
+  fxArt.put(tex, x, y, half * 2, half * 2, alpha, tint, rot);
+  recordBound(key, 'fx', 'circle', x, y, half * 2, half * 2, { diameter: half * 2, requestedDiameter: size });
+}
+const fxPos = (F: NonNullable<typeof B.F>, id: number): { x: number; y: number } | null => {
+  const u = F.party.find(x => x.id === id) ?? F.souls.find(x => x.id === id);
+  return u ? unitPos(u) : null;
+};
+/** 기믹 연출 한 프레임 (37 4장 F-1): 그림 fx-<이름>, 없으면 그 색의 빛과 고리 */
+function artFx(F: NonNullable<typeof B.F>, e: Fx, now: number, r: number, s: number): void {
+  const look = FX_LOOK[e.name!] ?? { size: 1.4, color: C.white };
+  const k = Math.min(1, (now - e.t0) / (e.dur ?? FX_MS)), key = `fx-${e.name}-${e.t0}-${e.id}-${e.cell ?? ''}`;
+  let p = e.wide ? { x: (L.left + L.right) / 2, y: (L.top + L.bottom) / 2 } : e.cell != null ? center(e.cell) : fxPos(F, e.id);
+  if (!p) return;
+  let rot = 0;
+  if (look.fly) {
+    const from = look.top ? { x: p.x, y: L.top } : p, to = look.top ? p : e.to != null ? fxPos(F, e.to) : null;
+    if (!to) return;
+    const kk = k * k * (3 - 2 * k);
+    rot = Math.atan2(to.y - from.y, to.x - from.x);
+    p = { x: from.x + (to.x - from.x) * kk, y: from.y + (to.y - from.y) * kk };
+  } else if (e.to != null) {
+    const q = fxPos(F, e.to); // 두 사람 사이 (사슬 끊어짐)
+    if (q) p = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+  }
+  if (look.up) p = { x: p.x, y: p.y - r * look.up * (0.7 + 0.3 * k) };
+  const size = e.wide ? Math.min(L.right - L.left, L.bottom - L.top) * (0.45 + 0.55 * k) : r * look.size * (look.fly ? 1 : 0.7 + 0.4 * Math.sin((k * Math.PI) / 2));
+  const alpha = look.fly ? (k < 0.85 ? 1 : (1 - k) / 0.15) : 1 - k * k;
+  const tex = artTexture(`fx-${e.name}`);
+  if (tex) { spriteFx(tex, key, p.x, p.y, size, alpha, look.tint ? look.color : 0xffffff, rot); return; }
+  if (look.fly) {
+    const half = safeRadius(p.x, p.y, r * 0.22, 'circle');
+    fxG.circle(p.x, p.y, half).fill({ color: look.color, alpha });
+    recordBound(key, 'fx', 'circle', p.x, p.y, half * 2, half * 2);
+    return;
+  }
+  glow(p.x, p.y, size, look.color, 0.45 * alpha, `${key}-glow`);
+  const w = Math.max(2, s * 0.07) * (1 - k);
+  if (w > 0.2) fxG.circle(p.x, p.y, ringRadius(key, 'circle', p.x, p.y, size * 0.42, w, 'fx')).stroke({ width: w, color: look.color, alpha });
+}
+
 // ---------- 한 프레임 ----------
 export function render(now: number): void {
   const F = B.F;
@@ -581,7 +719,7 @@ export function render(now: number): void {
   const typography = cellTypography(s), compact = typography.compact;
   const rdt = Math.min(0.1, Math.max(0, (now - (B2.lastRender || now)) / 1000)); B2.lastRender = now;
   for (const g of [cellsG, unitsG, fxG, overG, topG]) g.clear();
-  labels.begin(); tops.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0;
+  labels.begin(); tops.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); stripUsed = 0;
   const fs = (k: number, min: number) => Math.max(min, s * k);
 
   // 영역 (장판 예고·활성 장판)
@@ -589,24 +727,42 @@ export function render(now: number): void {
   for (const z of F.zones) z.cells.forEach(i => zoneSet.add(i));
   for (const tl of F.tels) if (tl.kind === 'zone') tl.cells.forEach(i => telSet.add(i));
   const safeSet = new Set<number>(); for (const tl of F.tels) tl.safe?.forEach(i => safeSet.add(i)); // 피난처 (35 3-E)
+  const padSet = new Set<number>(); for (const tl of F.tels) if (tl.skill.pads) tl.cells.forEach(i => padSet.add(i)); // 받침 발판 (35 4-5)
+  // 새로 깔린 장판: 칸마다 한 번 터지는 연출 (쫄 오라처럼 끝나지 않는 장판은 빼고)
+  for (const z of F.zones) if (!seenZones.has(z.id)) { seenZones.add(z.id); if (isFinite(z.end)) z.cells.forEach(i => fxGim('zone-burst', now, { cell: i })); }
+  // 칸 무늬 그림 (37 4장 B). 없으면 아래 벡터 그림
+  const zoneTex = artTexture(zoneArtName(boardFaction)), warnTex = artTexture('fx-cell-zone-warn'), holeTex = artTexture(holeArtName(boardFaction));
+  const safeTex = artTexture('fx-cell-safe'), padTex = artTexture('fx-cell-tower'), cellArt = r * 1.96;
   F.cells.forEach((c, i) => {
     const p = center(i);
     hexPoly(cellsG, p.x, p.y, r).fill({ color: C.cell, alpha: 0.5 }).stroke({ width: 2, color: C.bronze, alpha: 0.75 }); // 빈칸은 비쳐서 장소 바닥이 보임, 진형 선은 청동 (28 5장)
     // 무너진 바닥 (P-HOLE): 검은 칸, 테두리만 남음
-    if (c.block === 'hole') { hexPoly(cellsG, p.x, p.y, r * 0.94).fill({ color: 0x07070b, alpha: 0.9 }); return; }
-    // 피난처 안전 칸: 금빛 바닥 + 안쪽 테 (맞는 칸은 아래 예고 빨강)
+    if (c.block === 'hole') {
+      if (holeTex) decals.put(holeTex, p.x, p.y, cellArt, cellArt);
+      else hexPoly(cellsG, p.x, p.y, r * 0.94).fill({ color: 0x07070b, alpha: 0.9 });
+      return;
+    }
+    // 피난처 안전 칸: 금빛 바닥 + 안쪽 테 (맞는 칸은 아래 예고 빨강). 받침 발판도 금빛
     if (safeSet.has(i)) {
-      hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: 0.2 + 0.16 * pulse });
-      hexPoly(cellsG, p.x, p.y, r * 0.86).stroke({ width: Math.max(2, s * 0.05), color: C.gold, alpha: 0.85 });
+      const t = padSet.has(i) ? padTex : safeTex;
+      if (t) decals.put(t, p.x, p.y, cellArt, cellArt, 0.75 + 0.25 * pulse);
+      else {
+        hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: 0.2 + 0.16 * pulse });
+        hexPoly(cellsG, p.x, p.y, r * 0.86).stroke({ width: Math.max(2, s * 0.05), color: C.gold, alpha: 0.85 });
+      }
     }
     // 장판: 바닥 그림(28 5장)에 묻히지 않게 밝은 빨강 + 빗금 + 안쪽 테. 예고 = 깜빡이는 빨강 + 점선 테
     if (zoneSet.has(i)) {
-      hexPoly(cellsG, p.x, p.y, r).fill({ color: C.zone, alpha: 0.5 + 0.12 * zpulse });
-      hatchHex(cellsG, p.x, p.y, r * 0.96, Math.max(7, s * 0.2)).stroke({ width: Math.max(2, s * 0.05), color: C.zoneHi, alpha: 0.6 });
-      hexPoly(cellsG, p.x, p.y, r * 0.9).stroke({ width: Math.max(2, s * 0.06), color: C.zoneHi, alpha: 0.95 });
+      if (zoneTex) decals.put(zoneTex, p.x, p.y, cellArt, cellArt, 0.82 + 0.18 * zpulse);
+      else {
+        hexPoly(cellsG, p.x, p.y, r).fill({ color: C.zone, alpha: 0.5 + 0.12 * zpulse });
+        hatchHex(cellsG, p.x, p.y, r * 0.96, Math.max(7, s * 0.2)).stroke({ width: Math.max(2, s * 0.05), color: C.zoneHi, alpha: 0.6 });
+        hexPoly(cellsG, p.x, p.y, r * 0.9).stroke({ width: Math.max(2, s * 0.06), color: C.zoneHi, alpha: 0.95 });
+      }
     } else if (telSet.has(i)) {
       hexPoly(cellsG, p.x, p.y, r).fill({ color: C.tel, alpha: 0.14 + 0.24 * pulse });
-      dashPoly(cellsG, hexPts(p.x, p.y, r * 0.9), 6, 4, Math.max(2, s * 0.05), C.zoneHi, 0.5 + 0.5 * pulse);
+      if (warnTex) decals.put(warnTex, p.x, p.y, cellArt, cellArt, 0.5 + 0.5 * pulse);
+      else dashPoly(cellsG, hexPts(p.x, p.y, r * 0.9), 6, 4, Math.max(2, s * 0.05), C.zoneHi, 0.5 + 0.5 * pulse);
     }
     // 성기사 빛의 성역: 금빛 바닥, 끝나기 2초 전 깜빡임
     if (F.sanctuary && F.sanctuary.cells.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: F.sanctuary.end - F.t < 2 ? 0.08 + 0.14 * pulse : 0.2 });
@@ -701,27 +857,40 @@ export function render(now: number): void {
   }
 
   // 효과 (칸 채움 위, 글자·테두리 아래)
-  B2.fx = S.reducedEffects ? [] : B2.fx.filter(e => now - e.t0 < FX_MS);
+  B2.fx = S.reducedEffects ? [] : B2.fx.filter(e => now - e.t0 < (e.dur ?? FX_MS));
   for (const e of B2.fx) {
+    if (e.kind === 'art') { artFx(F, e, now, r, s); continue; }
     const k = (now - e.t0) / FX_MS;
     const u = F.party.find(x => x.id === e.id);
     const p = e.x != null ? { x: e.x, y: e.y! } : u ? unitPos(u) : null;
     if (!p) continue;
+    // 공용 이펙트 그림 (37 4장 F-2)이 있으면 그 그림, 없으면 벡터
+    const tex = artTexture(e.kind === 'heal' ? 'fx-heal' : e.kind === 'death' ? 'fx-down' : `fx-${e.kind}`);
     if (e.kind === 'heal') {
-      glow(p.x, p.y, r * (1.6 + 0.6 * k), e.crit ? 0xfff1b8 : 0xfff8e6, 0.55 * (1 - k), `heal-glow${e.id}-${e.t0}`);
-      e.seeds!.forEach((sd, i) => {
-        const a = sd * Math.PI * 2, dist = r * (0.25 + 0.45 * k) * (0.6 + 0.4 * ((i * 0.37) % 1));
-        const sr = r * (0.09 + 0.05 * ((i * 0.61) % 1)) * (1 - 0.3 * k);
-        const sp = fitCenter(p.x + Math.cos(a) * dist * 0.9, p.y + Math.sin(a) * dist * 0.6 - r * 0.5 * k, sr);
-        star(fxG, sp.x, sp.y, sr, i % 2 ? C.white : C.gold, 1 - k * k);
-        recordBound(`heal-star${e.id}-${e.t0}-${i}`, 'fx', 'star', sp.x, sp.y, sr * 2, sr * 2);
-      });
-      if (e.crit) {
-        const size = r * 0.3, half = size * 0.65 + 1;
-        const bp = fitCenter(p.x + r * 0.5, p.y - r * (0.42 + 0.3 * k), half);
-        critStar(fxG, bp.x, bp.y, size, 1 - k); // 직업 아이콘을 안 가리게 오른쪽 위
-        recordBound(`heal-crit${e.id}-${e.t0}`, 'fx', 'star', bp.x, bp.y, half * 2, half * 2);
+      if (tex) spriteFx(tex, `heal${e.id}-${e.t0}`, p.x, p.y - r * 0.25 * k, r * (1.5 + 0.4 * k), 1 - k * k, hex(emblemColor(F.hero)));
+      else {
+        glow(p.x, p.y, r * (1.6 + 0.6 * k), e.crit ? 0xfff1b8 : 0xfff8e6, 0.55 * (1 - k), `heal-glow${e.id}-${e.t0}`);
+        e.seeds!.forEach((sd, i) => {
+          const a = sd * Math.PI * 2, dist = r * (0.25 + 0.45 * k) * (0.6 + 0.4 * ((i * 0.37) % 1));
+          const sr = r * (0.09 + 0.05 * ((i * 0.61) % 1)) * (1 - 0.3 * k);
+          const sp = fitCenter(p.x + Math.cos(a) * dist * 0.9, p.y + Math.sin(a) * dist * 0.6 - r * 0.5 * k, sr);
+          star(fxG, sp.x, sp.y, sr, i % 2 ? C.white : C.gold, 1 - k * k);
+          recordBound(`heal-star${e.id}-${e.t0}-${i}`, 'fx', 'star', sp.x, sp.y, sr * 2, sr * 2);
+        });
       }
+      if (e.crit) {
+        const size = r * 0.3, half = size * 0.65 + 1, ct = artTexture('fx-crit');
+        const bp = fitCenter(p.x + r * 0.5, p.y - r * (0.42 + 0.3 * k), ct ? half * 1.6 : half);
+        if (ct) spriteFx(ct, `heal-crit${e.id}-${e.t0}`, bp.x, bp.y, half * 3.2, 1 - k);
+        else {
+          critStar(fxG, bp.x, bp.y, size, 1 - k); // 직업 아이콘을 안 가리게 오른쪽 위
+          recordBound(`heal-crit${e.id}-${e.t0}`, 'fx', 'star', bp.x, bp.y, half * 2, half * 2);
+        }
+      }
+    } else if (tex) {
+      // 맞음 · 해제 · 부활 · 쓰러짐
+      const kk = e.kind === 'hit' ? Math.min(1, k * 1.6) : k;
+      if (kk < 1) spriteFx(tex, `${e.kind}${e.id}-${e.t0}`, p.x, p.y, r * (e.kind === 'hit' ? 1 + 0.4 * kk : 1.2 + 0.8 * kk), 1 - kk * kk);
     } else if (e.kind === 'hit') {
       const kk = Math.min(1, k * 1.6), a = 1 - kk;
       if (a > 0) {
@@ -760,8 +929,10 @@ export function render(now: number): void {
       overG.circle(p.x, p.y, r * 0.8).moveTo(p.x - ro, p.y).lineTo(p.x - ri, p.y).moveTo(p.x + ri, p.y).lineTo(p.x + ro, p.y).moveTo(p.x, p.y - ro).lineTo(p.x, p.y - ri)
         .stroke({ width: Math.max(2.5, s * 0.06), color: C.gold, alpha: 0.6 + 0.4 * pulse });
     }
-    // 이름 · 체력 %는 파티원 칸과 같은 자리 (이웃한 적 칸끼리 글자가 겹치지 않게 알약 대신 글자만)
-    labels.put(`tot${m.id}`, a.short, { size: typography.nick, fill: 0xf3cfc6, strokeW: 2 }, p.x, p.y + r * (compact ? -0.29 : 0.13));
+    // 이름 · 체력 %는 파티원 칸과 같은 자리 (이웃한 적 칸끼리 글자가 겹치지 않게 알약 대신 글자만). 칸 그림(37 4장 E)이 있으면 이름 대신 그림
+    const mt = artTexture(addArtName(m));
+    if (mt) decals.put(mt, p.x, p.y - r * (compact ? 0.26 : 0.18), r * (compact ? 0.85 : 1.15), r * (compact ? 0.85 : 1.15));
+    else labels.put(`tot${m.id}`, a.short, { size: typography.nick, fill: 0xf3cfc6, strokeW: 2 }, p.x, p.y + r * (compact ? -0.29 : 0.13));
     labels.put(`totp${m.id}`, `${Math.ceil((m.hp / m.max) * 100)}%`, { size: typography.hp, fill: C.white, weight: W_NUM, strokeW: compact ? 1.5 : 2.5 }, p.x, p.y + r * (compact ? 0.25 : 0.6));
     const j = a.job;
     // 남은 초: 폭탄 = 터질 때까지, 걸어오는 쫄 = 보스에게 닿을 때까지, 큰 쫄 = 강타 예고
@@ -779,7 +950,9 @@ export function render(now: number): void {
     fillBand(cellsG, p.x, p.y, rr, p.y + rr - 2 * rr * frac, p.y + rr, 0xbff3f0, 0.5);
     dashPoly(cellsG, hexPts(p.x, p.y, rr), 5, 4, Math.max(2, s * 0.06), 0xd8fbff, 0.9);
     if (castTarget === u.id) hexPoly(overG, p.x, p.y, r * 1.04).stroke({ width: 3, color: hex(SEL) });
-    labels.put(`soul${u.id}`, u.soul!.short, { size: typography.nick, fill: 0xe6fbff, strokeW: 2 }, p.x, p.y + r * (compact ? -0.29 : 0.13));
+    const st = artTexture(soulArtName(u));
+    if (st) decals.put(st, p.x, p.y - r * (compact ? 0.26 : 0.18), r * (compact ? 0.85 : 1.15), r * (compact ? 0.85 : 1.15), 0.7 + 0.15 * pulse);
+    else labels.put(`soul${u.id}`, u.soul!.short, { size: typography.nick, fill: 0xe6fbff, strokeW: 2 }, p.x, p.y + r * (compact ? -0.29 : 0.13));
     labels.put(`soulp${u.id}`, `${Math.floor(frac * 100)}%`, { size: typography.hp, fill: C.white, weight: W_NUM, strokeW: compact ? 1.5 : 2.5 }, p.x, p.y + r * (compact ? 0.25 : 0.6));
     pill(overG, labels, `soult${u.id}`, p.x, p.y - r * (compact ? 0.85 : 0.8), `${Math.max(0, Math.ceil(u.soul!.until - F.t))}`, 0x8fd8e0, C.dark, fs(0.26, 11));
   }
@@ -789,6 +962,9 @@ export function render(now: number): void {
     const a = F.party.find(x => x.id === l.a), b = F.party.find(x => x.id === l.b);
     if (!a?.alive || !b?.alive) continue;
     const pa = unitPos(a), pb = unitPos(b), w = Math.max(2.5, s * 0.07);
+    const near = l.kind === 'balance' && Math.abs(a.hp / a.max - b.hp / b.max) > l.gap * 0.75;
+    const lt = artTexture(l.kind === 'share' ? 'fx-link-chain' : 'fx-link-thread');
+    if (lt) { strip(lt, pa.x, pa.y, pb.x, pb.y, w * 3, near ? 0.5 + 0.5 * pulse : 0.95); if (!near) continue; }
     if (l.kind === 'share') {
       const len = Math.hypot(pb.x - pa.x, pb.y - pa.y), n = Math.max(1, Math.floor(len / (w * 3)));
       for (let i = 0; i < n; i += 2) {
@@ -798,7 +974,6 @@ export function render(now: number): void {
       fxG.stroke({ width: w, color: C.gold, alpha: 0.9 });
       continue;
     }
-    const near = Math.abs(a.hp / a.max - b.hp / b.max) > l.gap * 0.75;
     fxG.moveTo(pa.x, pa.y).lineTo(pb.x, pb.y).stroke({ width: w, color: near ? C.danger : 0xb48be8, alpha: near ? 0.5 + 0.5 * pulse : 0.85 });
   }
 
@@ -951,10 +1126,13 @@ export function render(now: number): void {
     // 감옥 (P-JAIL): 갇힌 사람 칸에 창살 (감옥 체력은 디버프 배지). 딜러가 깨는 중이면 금빛 과녁
     const jail = F.mobs.find(m => m.alive && m.add?.hold != null && m.add.on === u.id);
     if (jail) {
-      const w = Math.max(2.5, s * 0.07);
-      hexPoly(overG, x, y, r * 0.96).fill({ color: 0x4a3f33, alpha: 0.45 });
-      for (let k = -2; k <= 2; k++) { const h = k === -2 || k === 2 ? 0.5 : 0.84; overG.moveTo(x + k * r * 0.3, y - r * h).lineTo(x + k * r * 0.3, y + r * h); }
-      overG.stroke({ width: w, color: 0xd8c7a8, alpha: 0.75 });
+      const w = Math.max(2.5, s * 0.07), jt = artTexture(addArtName(jail));
+      if (jt) fxArt.put(jt, x, y, r * 1.9, r * 1.9); // 감옥 그림 (37 4장 E-14): 가운데가 비어 파티원 칸이 보임
+      else {
+        hexPoly(overG, x, y, r * 0.96).fill({ color: 0x4a3f33, alpha: 0.45 });
+        for (let k = -2; k <= 2; k++) { const h = k === -2 || k === 2 ? 0.5 : 0.84; overG.moveTo(x + k * r * 0.3, y - r * h).lineTo(x + k * r * 0.3, y + r * h); }
+        overG.stroke({ width: w, color: 0xd8c7a8, alpha: 0.75 });
+      }
       hexPoly(overG, x, y, r * 0.96).stroke({ width: w * 1.3, color: 0xd8c7a8, alpha: 0.95 });
       if (jail === focusOrder(F)[0]) overG.circle(x, y, r * 0.8).stroke({ width: Math.max(2.5, s * 0.06), color: C.gold, alpha: 0.6 + 0.4 * pulse });
     }
@@ -1097,7 +1275,8 @@ export function render(now: number): void {
 
   for (let i = glowUsed; i < glows.length; i++) glows[i].visible = false;
   for (let i = hexFramesUsed; i < hexFrames.length; i++) hexFrames[i].visible = false;
-  labels.end(); tops.end();
+  labels.end(); tops.end(); decals.end(); fxArt.end();
+  for (let i = stripUsed; i < strips.length; i++) strips[i].visible = false;
   lensL.visible = false;
   app.renderer.render(app.stage);
   // 20인 탭 확대 미리보기 0.3초 (02 3-1): 손가락에 가리지 않게 칸 위쪽에 1.8배로
