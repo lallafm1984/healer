@@ -378,6 +378,8 @@ document.addEventListener('pointerdown', e => { if (ui.tip && !$('queue').contai
 // ---------- 판 입력: 탭 = 기본 힐, 칸에서 8방향 쓸기 = 그 방향 스킬, 길게 누르기 = 정보 ----------
 const cv = $('board') as HTMLCanvasElement;
 function pt(e: PointerEvent) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+/** 스킬을 걸 수 있는 칸: 파티원 또는 헤매는 영혼 (P-SOUL) */
+const aimable = (F: Fight, idx: number): boolean => !!F.cells[idx]?.unit || F.cells[idx]?.block === 'soul';
 function doUse(key: SkillKey, idx: number): boolean {
   const F = B.F!, res = use(F, key, idx);
   if (F.cells[idx]?.unit) ui.selectedUnitId = F.cells[idx].unit!.id;
@@ -409,7 +411,7 @@ cv.addEventListener('pointermove', e => {
   const p = pt(e); P.x = p.x; P.y = p.y;
   if (Math.hypot(P.x - P.x0, P.y - P.y0) > 12) { P.moved = true; clearTimeout(P.timer); }
   // 장전한 스킬이 없을 때, 파티원 칸에서 시작한 쓸기는 방향 스킬 (쓰는 동안 휠과 칸에 미리 보여줌)
-  const nd = !B.armed && !ui.itemArmed && P.idx >= 0 && F.cells[P.idx].unit ? swipeDir(P.x - P.x0, P.y - P.y0) : null;
+  const nd = !B.armed && !ui.itemArmed && P.idx >= 0 && aimable(F, P.idx) ? swipeDir(P.x - P.x0, P.y - P.y0) : null;
   if (nd !== P.dir) { P.dir = nd; if (nd) vibe(5); }
 });
 function endPointer(cancelled: boolean, e?: PointerEvent): void {
@@ -447,7 +449,7 @@ function endPointer(cancelled: boolean, e?: PointerEvent): void {
   if (!B.armed && P.moved) {
     const d = swipeDir(dx, dy), it = d ? dirSlot(d) : null;
     if (!d) { ui.swipeCancel++; return; } // 쓸다가 제자리로 돌아오면 취소
-    if (P.idx < 0 || !F.cells[P.idx].unit) { F.stats.missTaps++; return; }
+    if (P.idx < 0 || !aimable(F, P.idx)) { F.stats.missTaps++; return; }
     if (!it || !it.key) { toast('이 방향은 비어 있음'); ui.swipeEmpty++; return; }
     ui.swipes[d] = (ui.swipes[d] || 0) + 1;
     const sk = slotKey(F, it.key);
@@ -457,7 +459,7 @@ function endPointer(cancelled: boolean, e?: PointerEvent): void {
   if (!area && P.moved && Math.hypot(dx, dy) > 30) return;
   const idx = area ? hit(P.x, P.y) : P.idx;
   if (idx < 0) { F.stats.missTaps++; return; }
-  if (!F.cells[idx].unit) { F.stats.emptyTaps++; return; }
+  if (!aimable(F, idx)) { F.stats.emptyTaps++; return; }
   // 터치 정확도: 칸 중심에서 떨어진 정도(칸 크기 대비), 0.7초 안에 옆 칸으로 다시 지정 = 오탭 추정
   const c = center(idx), nowT = performance.now();
   ui.tapOff.push(Math.hypot(P.x - c.x, P.y - c.y) / L.s);
@@ -476,7 +478,7 @@ function handleEvents(now: number): void {
   const F = B.F!;
   let healSnd = false, critSnd = false;
   for (const ev of F.events) {
-    const u = 'id' in ev ? F.party.find(x => x.id === ev.id) : undefined;
+    const u = 'id' in ev ? F.party.find(x => x.id === ev.id) ?? F.souls.find(x => x.id === ev.id) : undefined;
     switch (ev.type) {
       case 'heal':
         if (!u) break;
