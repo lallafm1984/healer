@@ -5,18 +5,18 @@
 import type { DiffName } from '../data/difficulty';
 import { itemName, type Equipped, type GearItem } from '../data/equipment';
 import type { GuildMember, PostTier } from '../data/guild';
-import { HERO_KEYS, type HeroKey } from '../data/heroes';
+import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { STARTER_BAG } from '../data/economy';
 import type { ItemKey } from '../data/items';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
 
-/** 직업마다 따로 두는 것 (25 4-1): 휠 배치·칸 탭, 퀘스트, 클리어 수 (숙련도) */
+/** 직업마다 따로 두는 것 (25 4-1, 34 3-1): 휠 배치·칸 탭, 레벨·경험치, 퀘스트, 클리어 수 */
 export interface HeroSave {
   layout: Record<string, string | null> | null;
   tapKey: TapKey;
@@ -24,8 +24,14 @@ export interface HeroSave {
   unlocked: boolean;
   /** 직업 퀘스트 진행 */
   quest: number;
-  /** 이 직업으로 이긴 판 수 (숙련도, 25 4-3) */
+  /** 이 직업으로 이긴 판 수 */
   wins: number;
+  /**
+   * 직업 레벨·경험치 (34 3장). 지금 직업 것은 player.level·xp에 있고, 바꿀 때 여기에 넣고 꺼냄.
+   * 없으면 아직 이 직업으로 안 해 봄 = Lv 1
+   */
+  level?: number;
+  xp?: number;
   /** 특성 (06 6장): 단마다 고른 칸 번호 (0~2, 안 고름 = null). 직업마다 따로 (25 4-1). 지금 프리셋의 고름 */
   talents?: (number | null)[];
   /**
@@ -134,6 +140,7 @@ export interface SaveData {
   /** 처음 만든 시각 (ms) */
   createdAt: number;
   settings: Settings;
+  /** level·xp = 지금 직업 레벨 (34 3장, 다른 직업 것은 heroes에). gold는 계정 */
   player: { level: number; xp: number; gold: number };
   /** seen = 캐릭터 › 장비에서 마지막으로 본 장비 id (이보다 큰 id = 새것 점, 27 4-2). 옛 저장엔 없어서 migrate가 채움 */
   gear: { equipped: Equipped; bag: GearItem[]; seen?: number };
@@ -181,6 +188,16 @@ export function heroSaveOf(d: SaveData, h: HeroKey): HeroSave {
   return (d.heroes[h] ||= { layout: null, tapKey: 'heal', unlocked: h === 'priest', quest: 0, wins: 0 });
 }
 
+/** 그 직업 레벨 (지금 직업은 player, 안 해 본 직업은 1) */
+export function heroLevelOf(d: SaveData, h: HeroKey): number {
+  return h === d.hero ? d.player.level : d.heroes[h]?.level ?? 1;
+}
+
+/** 가장 높은 직업 레벨 (34 3-1): 직업 해금 · 직업 바꾸기 · 길드 · 상점 물약 · 임무 보상 같은 계정 것의 기준 */
+export function topLevel(d: SaveData): number {
+  return Math.max(d.player.level, ...HERO_KEYS.map(h => d.heroes[h]?.level ?? 1));
+}
+
 export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'right', tapKey: 'heal', zoom: true, compactSkills: false, reducedEffects: false, auto: false, devUnlock: true, allSkills: false, layout: null };
 
 export function newSave(now = Date.now()): SaveData {
@@ -217,7 +234,7 @@ export function migrate(raw: unknown): SaveData {
     tut: typeof o.tut === 'number' ? o.tut : (o.player?.level ?? 1) > 1 || Object.keys(o.clears || {}).length ? 3 : 0,
     // v3: 직업 (옛 저장은 사제)
     hero: HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest',
-    heroes: obj(o.heroes, {}),
+    heroes: heroesOf(o),
     // v4: 길드 (옛 저장은 빈 길드)
     guild: guildOf(o.guild),
     // v5: 재화·가방·임무·패스 (옛 저장은 처음 가방부터)
@@ -242,6 +259,23 @@ function noSet(it: GearItem): GearItem {
   return c;
 }
 const noSetEq = (eq: Equipped): Equipped => Object.fromEntries(Object.entries(eq).map(([k, it]) => [k, noSet(it)]));
+
+/**
+ * v6 직업별 레벨 (34 3-4): 옛 저장의 레벨·경험치를 열린 모든 직업에 넣음 (손해 없음). 지금 직업 것은 player 그대로.
+ * 아직 안 연 직업 (퀘스트 중 포함)은 열 때 Lv 1
+ */
+function heroesOf(o: Partial<SaveData>): SaveData['heroes'] {
+  const hs: SaveData['heroes'] = o.heroes && typeof o.heroes === 'object' ? { ...o.heroes } : {};
+  if ((o.v ?? 0) >= 6) return hs;
+  const level = typeof o.player?.level === 'number' ? o.player.level : 1, xp = typeof o.player?.xp === 'number' ? o.player.xp : 0;
+  const cur = HERO_KEYS.includes(o.hero as HeroKey) ? o.hero : 'priest';
+  for (const h of HERO_KEYS) {
+    const s = hs[h], open = !HEROES[h].unlock.quest || !!s?.unlocked;
+    if (!open || h === cur) continue;
+    hs[h] = { layout: null, tapKey: 'heal', unlocked: h === 'priest', quest: 0, wins: 0, ...s, level, xp };
+  }
+  return hs;
+}
 
 function guildOf(v: unknown): GuildSave {
   const d = newGuild();

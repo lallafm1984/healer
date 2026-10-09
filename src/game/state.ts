@@ -1,12 +1,12 @@
 /** 게임 진행 상태 (기기 저장 한 덩어리) + 화면들이 같이 쓰는 규칙 */
 import type { ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
-import { HERO_SWITCH_LV, HEROES, type HeroKey } from '../data/heroes';
+import { HERO_KEYS, HERO_SWITCH_LV, HEROES, type HeroKey } from '../data/heroes';
 import { TALENTS } from '../data/talents';
 import { enhanceCost, itemScore, MAX_PLUS, salvageOf, SLOTS, type GearItem, type SlotKey } from '../data/equipment';
 import { ITEMS, type ItemKey } from '../data/items';
 import { itemSlots } from '../data/progression';
-import { heroSaveOf, load, newSave, save, type HeroSave, type SaveData } from '../platform/storage';
+import { heroLevelOf, heroSaveOf, load, newSave, save, topLevel, type HeroSave, type SaveData } from '../platform/storage';
 import { TUT } from './tutorial';
 import { isMember, onAct, rollover, type Rollover } from './economy';
 
@@ -32,12 +32,23 @@ export function resetSave(): void { G.save = newSave(); commit(); }
 /** 전투에 넘길 힐러 레벨 (스킬 해금 기준). 개발 빌드 「스킬 전부 열기」면 100 */
 export const healerLevel = () => (G.save.settings.allSkills ? 100 : G.save.player.level);
 
-/** 잠금: 콘텐츠·난이도 해금 레벨. dev = 개발 빌드 잠금 무시 */
+/** 잠금: 콘텐츠·난이도 해금 레벨 (지금 직업 레벨 기준, 34 4장 1번). dev = 개발 빌드 잠금 무시 */
 export function lockOf(c: ContentDef, d?: DiffName): { lv: number; locked: boolean; dev: boolean } {
   const lv = Math.max(c.unlockLv, (d && c.diffUnlock?.[d]) || 0);
   const under = G.save.player.level < lv;
   const dev = under && G.save.settings.devUnlock && c.ready;
   return { lv, locked: under && !dev, dev };
+}
+
+/** 지금 직업으론 잠겼지만 다른 직업으로는 들어갈 수 있으면 그 직업 (34 4장 1번: 「사제 Lv 42로 열림」). 레벨이 가장 높은 직업 */
+export function otherHeroFor(lv: number): { hero: HeroKey; lv: number } | null {
+  let best: { hero: HeroKey; lv: number } | null = null;
+  for (const h of HERO_KEYS) {
+    if (h === G.save.hero || heroStatus(h).state !== 'open') continue;
+    const l = heroLevelOf(G.save, h);
+    if (l >= lv && (!best || l > best.lv)) best = { hero: h, lv: l };
+  }
+  return best;
 }
 
 /** 지금 쓸 수 있는 단축칸 구성 (열린 칸 수만큼) */
@@ -196,22 +207,22 @@ export function setTalentPreset(i: number, h: HeroKey = G.save.hero): boolean {
   return true;
 }
 
-/** 직업 바꾸기가 열렸는지 (Lv 10, 튜토리얼 뒤). dev = 개발 빌드 잠금 무시로 열림 */
+/** 직업 바꾸기가 열렸는지 (가장 높은 직업 Lv 10, 튜토리얼 뒤). dev = 개발 빌드 잠금 무시로 열림 */
 export function switchOpen(): { ok: boolean; dev: boolean; why: string } {
   if (G.save.tut < TUT.done) return { ok: false, dev: false, why: '튜토리얼을 마치면 열림' };
-  const under = G.save.player.level < HERO_SWITCH_LV;
+  const under = topLevel(G.save) < HERO_SWITCH_LV;
   if (under && !G.save.settings.devUnlock) return { ok: false, dev: false, why: `Lv ${HERO_SWITCH_LV}에 열림` };
   return { ok: true, dev: under, why: '' };
 }
 
 /**
- * 직업 상태: now = 지금 직업 · open = 해금 · quest = 직업 퀘스트 중 (그 직업으로 해야 해서 고를 수 있음) · locked = 레벨 미달.
+ * 직업 상태: now = 지금 직업 · open = 해금 · quest = 직업 퀘스트 중 (그 직업으로 해야 해서 고를 수 있음) · locked = 레벨 미달 (가장 높은 직업 레벨, 34 3-2).
  * 개발 빌드 「레벨 잠금 무시」면 레벨 미달 직업도 퀘스트 상태로 열림 (dev)
  */
 export function heroStatus(h: HeroKey): { state: 'now' | 'open' | 'quest' | 'locked'; dev: boolean; quest: number; need: number } {
   const def = HEROES[h], hs = heroSave(h), q = def.unlock.quest;
   const info = { quest: hs.quest, need: q ? q.need : 0 };
-  const under = G.save.player.level < def.unlock.lv;
+  const under = topLevel(G.save) < def.unlock.lv;
   const unlocked = hs.unlocked || !q;
   const dev = !unlocked && under && G.save.settings.devUnlock;
   if (h === G.save.hero) return { state: 'now', dev, ...info };
@@ -220,14 +231,16 @@ export function heroStatus(h: HeroKey): { state: 'now' | 'open' | 'quest' | 'loc
   return { state: 'locked', dev: false, ...info };
 }
 
-/** 직업 바꾸기: 지금 직업의 휠 배치·칸 탭을 넣어 두고 새 직업 것을 꺼냄 */
+/** 직업 바꾸기: 지금 직업의 휠 배치·칸 탭·레벨을 넣어 두고 새 직업 것을 꺼냄 (처음 하는 직업은 Lv 1, 34 3-2) */
 export function switchHero(h: HeroKey): boolean {
   if (h === G.save.hero || !switchOpen().ok) return false;
   const st = heroStatus(h).state;
   if (st === 'locked') return false;
-  const cur = heroSave(G.save.hero), next = heroSave(h), set = G.save.settings;
+  const cur = heroSave(G.save.hero), next = heroSave(h), set = G.save.settings, p = G.save.player;
   cur.layout = set.layout; cur.tapKey = set.tapKey;
   set.layout = next.layout; set.tapKey = next.tapKey;
+  cur.level = p.level; cur.xp = p.xp;
+  p.level = next.level ?? 1; p.xp = next.xp ?? 0;
   G.save.hero = h;
   commit();
   return true;

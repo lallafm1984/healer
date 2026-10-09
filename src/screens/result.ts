@@ -136,7 +136,7 @@ function itemRow(x: Settlement): string {
 function xpRow(x: Settlement): string {
   const p = G.save.player, need = xpToNext(p.level), up = x.levelUps.length > 0;
   const w = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
-  return `<div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${fmt(x.xp)}</b><em>${up ? `Lv ${x.levelBefore} → ${p.level}` : `Lv ${p.level}`}</em></span></div>`;
+  return `<div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${fmt(x.xp)}${x.catchUp ? ' <small>따라잡기 ×3</small>' : ''}</b><em>${up ? `Lv ${x.levelBefore} → ${p.level}` : `Lv ${p.level}`}</em></span></div>`;
 }
 
 /** 진 판: 어디서 졌는지 (구간 점 · 적 남은 체력) · 힌트 (있을 때만) · 경험치 */
@@ -155,7 +155,7 @@ function loseHtml(r: BattleResult, x: Settlement): string {
   if (rec && avgScore(G.save.gear.equipped) < rec.score) hints.push(warn(`장비가 권장(${rec.label})보다 낮음`, '<button class="btn2" type="button" data-go="s-char" data-arg="gear">장비</button>'));
   return `<section class="r-prog" aria-label="진행">${dots}<p>${where}${left}</p></section>
     ${hints.length ? `<div class="f-warns">${hints.join('')}</div>` : ''}
-    ${x.xp ? `<p class="r-xpl">경험치 +${fmt(x.xp)} <small>진 판은 20%</small>${x.levelUps.length ? ` <em>Lv ${G.save.player.level}</em>` : ''}</p>` : ''}`;
+    ${x.xp ? `<p class="r-xpl">경험치 +${fmt(x.xp)} <small>진 판은 20%${x.catchUp ? ' · 따라잡기 ×3' : ''}</small>${x.levelUps.length ? ` <em>Lv ${G.save.player.level}</em>` : ''}</p>` : ''}`;
 }
 
 /** 알림 줄 (누르면 그 화면): 길드원 · 직업 퀘스트 · 인연 · 임무 */

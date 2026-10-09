@@ -141,8 +141,8 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
   const units: Unit[] = [];
   const add = (role: Role, pers: PersName | null, nick: string, cls?: ClassKey, traits?: TraitKey[], r?: RosterEntry): Unit => {
     const c = cls ? CLASSES[cls] : null;
-    // 길드원은 자기 레벨 배율, 공개모집은 콘텐츠 단계 배율. 자질 공격·맷집 (17 9-1)
-    const own = r?.lv ? f.R.lv(r.lv) * f.R.enemy : f.scale;
+    // 길드원은 자기 레벨 배율 (적 레벨 위로는 안 감, 34 4장 8번), 공개모집은 콘텐츠 단계 배율. 자질 공격·맷집 (17 9-1)
+    const own = r?.lv ? f.R.lv(Math.min(r.lv, f.cfg.stageLv ?? r.lv)) * f.R.enemy : f.scale;
     const lv = role === 'healer' ? f.power : own;
     const apt = r?.apt;
     let base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;

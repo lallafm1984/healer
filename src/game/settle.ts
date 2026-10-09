@@ -8,8 +8,8 @@ import { clearMats, rollItem, type GearItem } from '../data/equipment';
 import type { ItemKey } from '../data/items';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
-import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, starsOf, type Grade } from '../data/progression';
-import { heroSaveOf, type SaveData } from '../platform/storage';
+import { addXp, CATCH_UP_XP, clearGold, clearXp, EXPLORE_REWARD, gradeOf, starsOf, type Grade } from '../data/progression';
+import { heroSaveOf, topLevel, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
 import { guildAfter, type GuildAfter } from './guild';
 import { bonusDiff, lootKey, meritFor, onRun, raidLootOpen, rollover } from './economy';
@@ -74,6 +74,8 @@ export interface Settlement {
   dispelPct: number | null;
   gold: number;
   xp: number;
+  /** 따라잡기 경험치 ×3을 받음 (34 3-2) */
+  catchUp: boolean;
   levelBefore: number;
   levelUps: number[];
   item: GearItem | null;
@@ -140,7 +142,9 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   // 탐험은 짧고 쉬워서 골드·경험치를 줄임 (튜토리얼이 끝난 뒤, 32 3-3)
   const kind = play && c.kind === 'explore' ? EXPLORE_REWARD : 1;
   const gold = r.win ? Math.round(clearGold(stage, r.diff, grade!, raid) * kind * (pubBonus ? PUB_BONUS.gold : 1) * festival) : 0;
-  const xp = r.quit ? 0 : Math.max(r.win ? 1 : 0, Math.round(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind));
+  // 따라잡기: 다른 직업이 더 높으면 ×3 (34 3-2)
+  const catchUp = !r.quit && p.level < topLevel(save);
+  const xp = r.quit ? 0 : Math.max(r.win ? 1 : 0, Math.round(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind * (catchUp ? CATCH_UP_XP : 1)));
   const levelBefore = p.level;
   p.gold += gold;
   const levelUps = addXp(p, xp);
@@ -208,6 +212,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    gold, xp, levelBefore, levelUps, item, mats, first, best, heroQuest, guild, merit, crystal, lootLocked, pubBonus, missions, chal, cont,
+    gold, xp, catchUp, levelBefore, levelUps, item, mats, first, best, heroQuest, guild, merit, crystal, lootLocked, pubBonus, missions, chal, cont,
   };
 }
