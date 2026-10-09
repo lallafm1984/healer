@@ -97,7 +97,8 @@
 #battle #controls .slot .nm,
 #battle #controls .slot.cooling .nm,
 #battle #controls .slot.holy .nm {
-  top: 43%;
+  /* 한글 glyph가 line-height보다 높아도 비용과 분리되도록 위쪽 여백을 쓴다. */
+  top: calc(43% - 1.5px / var(--controls-scale, 1));
   font: 700 var(--skill-name-size)/1 var(--font-body);
   color: #fff5d8;
   opacity: 1;
@@ -131,11 +132,11 @@
 #battle #controls .slot.empty .ct { top: 50%; color: #aa9e82; font-weight: 500; }
 #battle #controls .slot.locked .sic { opacity: .55; filter: grayscale(1) brightness(.55); }
 #battle #controls .slot.resource-low:not(.cooling) .sic { filter: saturate(.45) brightness(.6); }
-#battle #controls .slot.locked .nm { top: 50%; font-size: var(--skill-state-size); }
-#battle #controls .slot.locked .ct { top: calc(50% + var(--skill-state-size) - 1.8px / var(--controls-scale, 1)); font-size: var(--skill-state-size); font-weight: 700; }
+#battle #controls .slot.locked .nm { top: calc(50% - 1.5px / var(--controls-scale, 1)); font-size: var(--skill-state-size); }
+#battle #controls .slot.locked .ct { top: calc(50% + var(--skill-state-size) - 1px / var(--controls-scale, 1)); font-size: var(--skill-state-size); font-weight: 700; }
 #battle #controls .slot .slot-lock {
   position: absolute;
-  top: calc(50% - var(--skill-state-size));
+  top: calc(50% - var(--skill-state-size) - 1.5px / var(--controls-scale, 1));
   left: 50%;
   z-index: 2;
   transform: translate(-50%, -50%);
