@@ -11,7 +11,7 @@ import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, empowerBoss, heal, living, randomTargets, setMax, spread, unitById } from './core';
 import { moveTo, scheduleReactions, zoneOf } from './movement';
 import { hotTick } from './units';
-import { during, immune, specPhase, sv } from './specials';
+import { during, immune, specBroken, specPhase, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
@@ -343,7 +343,7 @@ export function staggerTick(f: Fight): void {
   emit(f, { type: 'msg', text: `${g.name} 못 막음: 땅 울림, 시전 ${g.fail.lock}초 못 함` });
   for (const u of living(f)) damage(f, u, g.fail.dmg, false);
   const casts = Object.values(HEROES[f.hero].slots).filter((k): k is SkillKey => !!k && (f.R.cast?.[k] ?? SKILLS[k].cast) > 0);
-  if (f.cast && casts.includes(f.cast.key)) f.cast = null;
+  if (f.cast && casts.includes(f.cast.key)) { f.cast = null; if (f.sp) specBroken(f); } // 눈꽃 결정 (42 3장)
   for (const k of casts) f.lock[k] = { left: g.fail.lock, total: g.fail.lock };
 }
 
@@ -404,6 +404,7 @@ function quake(f: Fight, e: Extract<SkillEffect, { p: 'quake' }>): void {
     f.lock[key] = { left: e.lock, total: e.lock };
     emit(f, { type: 'shake', id: f.me.id });
     emit(f, { type: 'msg', text: `진동: ${SKILLS[key].name} 끊김, ${e.lock}초 잠김` });
+    if (f.sp) specBroken(f); // 눈꽃 결정 (42 3장)
   }
   emit(f, { type: 'fx', name: 'shockwave', all: true });
   for (const u of living(f)) damage(f, u, e.dmg, true);

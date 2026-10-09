@@ -1,4 +1,4 @@
-/** 장비 특수능력 118종 + 이름 있는 장신구 6개 (42): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
+/** 장비 특수능력 118종 + 이름 있는 장신구 16개 (42): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { NAMED, SPEC_GROUPS, SPEC_KEYS, SPECS, specText, specTotals, specValue } from '../src/data/specials';
@@ -6,10 +6,11 @@ import { SKILLS } from '../src/data/skills';
 import * as E from '../src/engine';
 import { addDebuff, damage, heal } from '../src/engine/core';
 import { areaRadius, castOf, cdOf, costOf } from '../src/engine/talents';
-import { critBonus, during, hasteOf, intAmt, specCut, specPhase, specTel } from '../src/engine/specials';
+import { critBonus, during, hasteOf, hotDone, intAmt, specBuster, specCut, specPhase, specTel } from '../src/engine/specials';
 import { moveTo, scheduleReactions } from '../src/engine/movement';
 import { reviveUnit } from '../src/engine/items';
 import { orderHeal, runEffect } from '../src/engine/bossParts';
+import type { BossSkill, Telegraph } from '../src/engine';
 import { putHot } from '../src/engine/heroes';
 
 type F = ReturnType<typeof E.create>;
@@ -54,14 +55,14 @@ const absorb = (u: U) => u.mods.find(m => m.k === 'absorb')?.v ?? 0;
 const healOn = (f: F, id: number) => { for (const e of f.events) if (e.type === 'heal' && e.id === id) return e.amt; return 0; };
 
 describe('데이터', () => {
-  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 6개', () => {
+  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 16개', () => {
     expect(SPEC_KEYS.length).toBe(118);
     expect(new Set(SPEC_KEYS).size).toBe(118);
     const by = (g: string) => SPEC_KEYS.filter(k => SPECS[k].group === g).length;
     expect(Object.keys(SPEC_GROUPS).map(by)).toEqual([16, 16, 14, 12, 10, 8, 10, 8, 24]);
     expect(SPEC_KEYS.filter(k => SPECS[k].hero).length).toBe(24);
-    expect(NAMED.length).toBe(6);
-    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(124);
+    expect(NAMED.length).toBe(16);
+    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(134);
   });
   it('직업 전용은 영웅 이상, 효과 글에 값이 들어감', () => {
     for (const k of SPEC_KEYS) {
@@ -797,6 +798,98 @@ describe('3 이름 있는 장신구', () => {
     const [a] = pair('templeVial', 0.1); hurt(a);
     cast(a, 'poh', withAdj(a, 3));
     expect(critBonus(a)).toBeCloseTo(0.1, 9);
+  });
+  const buster = (f: F, u: U) => ({ kind: 'buster', units: [u.id] }) as unknown as Telegraph;
+  it('고철 호루라기: 탱커가 버스터를 맞으면 3초 동안 탱커 힐 +, 탱커 아닌 사람이 맞으면 없음', () => {
+    const [a, b] = pair('scrapWhistle', 0.25); both([a, b], f => hurt(f));
+    specBuster(a, buster(a, dealer(a)));
+    expect(a.sp!.until.scrapWhistle).toBeUndefined();
+    specBuster(a, buster(a, tank(a)));
+    expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1.25, 2);
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1, 6);
+    step(a, 3); step(b, 3);
+    expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1, 6);
+  });
+  it('묘지기 등불: 지속 힐이 끝까지 가면 마나 + (2초에 한 번)', () => {
+    const [a, b] = pair('graveLantern', 1); both([a, b], f => { hurt(f); f.mana = 50; cast(f, 'renew', tank(f)); });
+    both([a, b], f => step(f, 20));
+    expect(a.mana - b.mana).toBeCloseTo(1, 6);
+    const m = a.mana; hotDone(a); hotDone(a);
+    expect(a.mana - m).toBeCloseTo(1, 9);
+    step(a, 2); a.mana = 50; hotDone(a);
+    expect(a.mana).toBeCloseTo(51, 9);
+  });
+  it('거머리 병: 아군을 100%까지 채우면 4초 동안 가속 + (재사용 10초)', () => {
+    const [a, b] = pair('leechJar', 0.1);
+    tank(a).hp = tank(a).max - 1;
+    heal(a, tank(a), 50, true);
+    expect(hasteOf(a) - hasteOf(b)).toBeCloseTo(0.1, 9);
+    step(a, 4.1);
+    expect(hasteOf(a) - hasteOf(b)).toBeCloseTo(0, 9);
+    tank(a).hp = tank(a).max - 1; heal(a, tank(a), 50, true);
+    expect(hasteOf(a) - hasteOf(b)).toBeCloseTo(0, 9);
+  });
+  it('백합 코사지: 4초 안에 서로 다른 3명에게 직접 힐하면 다음 직접 힐 마나 0 (한 번)', () => {
+    const [a] = pair('lilyCorsage', 1); hurt(a);
+    const ts = [tank(a), dealer(a), dealer(a, 1)];
+    cast(a, 'renew', ts[0]); cast(a, 'renew', ts[0]); cast(a, 'renew', ts[1]);
+    expect(costOf(a, 'flash', tank(a))).toBe(6);
+    cast(a, 'renew', ts[2]);
+    expect(costOf(a, 'flash', tank(a))).toBe(0);
+    expect(costOf(a, 'poh')).toBe(10);
+    const m = a.mana; cast(a, 'flash', tank(a));
+    expect(a.mana).toBeGreaterThanOrEqual(m);
+    expect(costOf(a, 'flash', tank(a))).toBe(6);
+  });
+  it('눈꽃 결정: 진동에 시전이 끊기면 마나 +', () => {
+    const [a, b] = pair('snowCrystal', 3);
+    both([a, b], f => { hurt(f); f.mana = 50; E.use(f, 'heal', tank(f).cell); E.step(f); runEffect(f, { name: '진동' } as BossSkill, { p: 'quake', dmg: 0, lock: 2 }); });
+    expect(a.cast).toBeNull();
+    expect(a.mana - b.mana).toBeCloseTo(3, 6);
+  });
+  it('순례자 부적: 파티 전원이 체력 70% 이상이면 정신력 +', () => {
+    const [a, b] = pair('pilgrimCharm', 0.3);
+    const g = (f: F) => { f.mana = 50; const m = f.mana; step(f, 1); return f.mana - m; };
+    expect(ratio(g(a), g(b))).toBeCloseTo(1.3, 6);
+    both([a, b], f => { dealer(f).hp = dealer(f).max * 0.6; });
+    expect(ratio(g(a), g(b))).toBeCloseTo(1, 6);
+  });
+  it('닳은 묵주: 바로 앞과 다른 유형을 해제하면 해제 재사용 대기 −', () => {
+    const [a, b] = pair('wornRosary', 2);
+    const purify = (f: F, u: U, type: '마법' | '질병') => { addDebuff(f, u, { name: type, type, left: 30 }); cast(f, 'purify', u); };
+    both([a, b], f => purify(f, tank(f), '마법'));
+    expect(a.cd.purify).toBeCloseTo(b.cd.purify!, 6);
+    both([a, b], f => step(f, 8.1));
+    both([a, b], f => purify(f, dealer(f), '마법'));
+    expect(a.cd.purify).toBeCloseTo(b.cd.purify!, 6);
+    both([a, b], f => step(f, 8.1));
+    both([a, b], f => purify(f, dealer(f), '질병'));
+    expect(b.cd.purify! - a.cd.purify!).toBeCloseTo(2, 6);
+  });
+  it('검은 돌 부적: 옆 칸에 아군이 없는 아군 힐 +', () => {
+    const [a, b] = pair('blackStone', 0.15); both([a, b], f => hurt(f));
+    expect(ratio(amtOn(a, 'flash', withAdj(a)), amtOn(b, 'flash', withAdj(b)))).toBeCloseTo(1, 6);
+    both([a, b], f => { const u = withAdj(f); for (const v of adj(f, u)) { v.alive = false; v.hp = 0; } f.party.find(x => x.id === u.id)!.hp = u.max * 0.5; });
+    const lone = (f: F) => f.party.find(u => u.alive && !u.me && !adj(f, u).some(v => v.alive))!;
+    expect(ratio(amtOn(a, 'flash', lone(a)), amtOn(b, 'flash', lone(b)))).toBeCloseTo(1.15, 2);
+  });
+  it('밧줄 매듭: 2초 안에 최대 체력 30% 넘게 잃으면 그 아군에게 보호막 (재사용 20초)', () => {
+    const [a] = pair('ropeKnot', 0.5);
+    const d = dealer(a), t = tank(a);
+    damage(a, d, d.max * 0.2, false, 'fixed');
+    expect(absorb(d)).toBe(0);
+    step(a, 1);
+    damage(a, d, d.max * 0.15, false, 'fixed');
+    expect(absorb(d)).toBeCloseTo(Math.min(d.max * 0.5, 0.5 * 300), 4); // 보호막은 최대 체력 절반까지
+    damage(a, t, t.max * 0.4, false, 'fixed');
+    expect(absorb(t)).toBe(0);
+  });
+  it('군주의 향 주머니: 보이는 디버프가 2개 이상인 아군 힐 +', () => {
+    const [a, b] = pair('lordIncense', 0.15); both([a, b], f => hurt(f));
+    both([a, b], f => { addDebuff(f, tank(f), { name: '하나', type: '물리', left: 30 }); addDebuff(f, tank(f), { name: '숨은 것', type: '물리', left: 30, hide: true }); });
+    expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1, 6);
+    both([a, b], f => addDebuff(f, tank(f), { name: '둘', type: '물리', left: 30 }));
+    expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1.15, 2);
   });
 });
 

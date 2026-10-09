@@ -6,8 +6,10 @@ import type { DiffName } from '../data/difficulty';
 import { HEROES, type HeroKey } from '../data/heroes';
 import { clearMats, rollItem, type GearItem, type ItemGrade } from '../data/equipment';
 
-/** 탐험 장비는 고급까지 (34 6-7) */
+/** 탐험 장비는 고급까지, Lv 30부터 여는 탐험은 희귀까지 (34 6-7 · 39 4장) */
 export const EXPLORE_CAP: ItemGrade = '고급';
+export const EXPLORE_RARE_LV = 30;
+export const exploreCap = (unlockLv: number): ItemGrade => (unlockLv >= EXPLORE_RARE_LV ? '희귀' : EXPLORE_CAP);
 import type { ItemKey } from '../data/items';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
@@ -162,9 +164,9 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   let merit = 0;
   if (r.win) {
     if (!lootLocked) {
-      // 보스마다 1개 (34 6-7), 탐험은 1개 · 고급까지. 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장)
+      // 보스마다 1개 (34 6-7), 탐험은 1개 · 고급까지 (Lv 30 탐험은 희귀). 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장)
       const n = play && c.kind !== 'explore' ? Math.max(1, c.bosses.length) : 1;
-      for (let i = 0; i < n; i++) items.push(rollItem(rng, pubBonus ? bonusDiff(r.diff) : r.diff, grade!, levelBefore, save.nextId++, { hero: save.hero, place: c.key, cap: c.kind === 'explore' ? EXPLORE_CAP : undefined }));
+      for (let i = 0; i < n; i++) items.push(rollItem(rng, pubBonus ? bonusDiff(r.diff) : r.diff, grade!, levelBefore, save.nextId++, { hero: save.hero, place: c.key, cap: c.kind === 'explore' ? exploreCap(c.unlockLv) : undefined }));
       save.gear.bag.push(...items);
       newSpecs = noteSpecs(save, items);
       if (play && raid) save.weekly.loot.push(lootKey(c.key, r.diff));
