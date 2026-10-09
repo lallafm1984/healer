@@ -258,7 +258,10 @@ const pctT = (x: number) => `${Math.round(x * 100)}%`;
 function debuffText(d: DebuffDef, n: (x: number) => number): string {
   const fx = [d.dot ? `초당 ${n(d.dot)}` : '', d.maxCut ? `최대 체력 −${pctT(d.maxCut)}` : '', d.healCut ? `받는 치유 −${pctT(d.healCut)}` : '',
     d.noDps ? '딜 0' : '', d.invert ? '받는 치유가 피해로' : '', d.trap ? '지우면 터짐' : '', d.lock ? '해제 안 됨' : '',
-    d.cureAt ? `체력 ${pctT(d.cureAt)} 채우면 떨어짐` : '', d.end?.p === 'hit' ? `시간 끝에 <b>${n(d.end.dmg)}</b>` : ''].filter(Boolean);
+    d.cureAt ? `체력 ${pctT(d.cureAt)} 채우면 떨어짐` : '', d.end?.p === 'hit' ? `시간 끝에 <b>${n(d.end.dmg)}</b>` : '',
+    d.feed ? `빨아들인 만큼 × ${d.feed} 보스 회복` : '', d.end?.p === 'trapHit' ? `두면 시간 끝에 <b>${n(d.end.dmg)}</b>, 지우면 이웃 칸 <b>${n(d.end.burst)}</b>` : '',
+    d.end?.p === 'blast' ? `끝나거나 지우면 이웃 칸 <b>${n(d.end.dmg)}</b>` : '',
+    d.end?.p === 'jump' && d.end.on === 'quake' ? `진동이 울리면 이웃 칸 아군에게 옮겨붙고 ×${d.end.mult}, 지우면 사라짐` : ''].filter(Boolean);
   return `「${d.name}」 (${d.type}, ${secT(d.left)}${fx.length ? ` · ${fx.join(' · ')}` : ''})`;
 }
 /** 디버프 대응: 지울 수 있으면 해제, 아니면 버티기 */
@@ -269,16 +272,19 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
   if (!e) return d.cells ? [`장판${d.dps ? `: 안에 있으면 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}${d.dur ? ` (${secT(d.dur)})` : ''}`, '파티원이 알아서 피함. 늦게 피하는 사람을 채우기'] : ['', ''];
   switch (e.p) {
     case 'tank': return [`탱커에게 <b>${n(ps?.dmg ?? d.dmg ?? 0)}</b> 피해`, '예고가 뜨면 탱커를 미리 가득 채우기'];
+    case 'hunt': return [`그 순간 체력 비율이 가장 낮은 탱커 아닌 1명에게 <b>${n(e.dmg)}</b> 피해`, '예고 동안 가장 낮은 사람을 먼저 채우기'];
     case 'all': return [`파티 전원에게 <b>${n(e.dmg)}</b> 피해`, `예고 동안 ${act('renew', EUL)} 미리 걸고, 맞은 뒤 ${act('poh', RO)} 채우기`];
     case 'debuff': return [`${e.n === 'all' ? '모두' : `${c.mythic && e.nMythic ? e.nMythic : e.n}명`}에게 ${debuffText(e.debuff, n)}`, debuffHow(e.debuff)];
     case 'rot': return [`${e.n}명 최대 체력 −${pctT(e.pct)} 중첩 (최대 ${e.max}) ${debuffText(e.debuff, n)}`, debuffHow(e.debuff)];
-    case 'pull': return [`뒷줄 1명을 보스 앞으로 끌어옴. ${secT(e.sec)} 동안 평타를 탱커와 번갈아 맞음 (한 대에 <b>${n(e.dmg)}</b>)`, `끌려온 사람이 탱커 옆이라 ${act('poh', RO)} 둘을 한 번에 채우기`];
+    case 'pull': return [`뒷줄 1명을 보스 앞으로 끌어옴. ${secT(e.sec)} 동안 평타를 탱커와 번갈아 맞음 (한 대에 <b>${n(e.dmg)}</b>)${e.pad ? `. 그 칸에 받침: 끝에 위 사람 <b>${n(e.pad.dmg)}</b>, 비어 있으면 전원 <b>${n(e.pad.empty)}</b>` : ''}`,
+      e.pad ? '끌려온 사람을 받침 끝까지 세워 두기 (탱커와 묶어 광역, 울림 직전 단일 힐)' : `끌려온 사람이 탱커 옆이라 ${act('poh', RO)} 둘을 한 번에 채우기`];
     case 'adds': return [`「${e.add.name}」 ${c.mythic && e.nMythic ? e.nMythic : e.n}마리 등장`, '딜러가 잡음. 맞는 사람을 채우기'];
     case 'hole': return [`가장자리 바닥 ${e.n}칸이 무너짐`, '파티원이 알아서 비킴'];
     case 'order': return [`${c.mythic && e.nMythic ? e.nMythic : e.n}명 칸에 번호. ${secT(e.sec)} 안에 번호 순서대로 단일 힐 → 보스 ${secT(e.daze.sec)} 멍함`, '번호 순서대로 한 번씩 힐 넣기'];
     case 'jail': return [`${c.mythic && e.nMythic ? e.nMythic : e.n}명을 「${e.name}」에 가둠 (딜 0 · 초당 ${n(e.dot)})`, '딜러가 감옥을 깰 때까지 갇힌 사람을 채우기'];
     case 'quake': return [`시전 중인 힐이 끊기고 그 스킬 ${secT(e.lock)} 잠김 + 전원 <b>${n(e.dmg)}</b>`, '예고가 뜨면 새 시전을 시작하지 않기 (즉시 스킬 · 지속 힐)'];
     case 'rest': return [`${secT(e.sec)} 동안 기술을 쉼`, '그동안 마나를 아끼며 채우기'];
+    case 'clear': return [`「${e.name}」이 모두에게서 사라짐`, ''];
     case 'stagger': return [`${secT(e.sec)} 안에 게이지 채우기: 체력 ${pctT(e.hp)} 이상인 파티원의 딜만 셈`, '딜러 체력을 높게 유지'];
     case 'counter': return [`끊기 능력으로 끊으면 보스 ${secT(e.stun)} 기절, 못 끊으면 앞줄 <b>${n(e.dmg)}</b>`, '앞줄을 미리 채우기'];
     case 'tower': return [`발판 ${e.n}곳: 위 사람 <b>${n(e.dmg)}</b>, 빈 발판마다 전원 <b>${n(e.empty)}</b>`, '발판에 선 사람을 채워 끝까지 세워 두기'];

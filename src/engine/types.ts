@@ -76,6 +76,8 @@ export interface Debuff {
   charmAt?: number;
   /** 넘치는 빛 과부하 (P-OVER): 이 사람에게 넘친 치유 × over만큼 이웃 칸 아군 피해 */
   over?: number;
+  /** 지속 피해 × feed만큼 보스 회복 (젊음의 갈망) */
+  feed?: number;
   /** 생명 사슬 (P-LINK): 사슬 반대쪽 파티원 id. 실제 판정은 Fight.links */
   link?: { to: number; kind: LinkKind };
 }
@@ -305,6 +307,8 @@ export interface Telegraph {
   flow?: { col: number; dir: 1 | -1; every: number };
   /** 피난처: 안전 칸 (화면 금빛). cells = 맞는 칸 */
   safe?: Set<number>;
+  /** 끌려온 칸의 받침이 울리는 예고 (P-PULL pad): 맞을 때 끌기 대신 받침 피해 */
+  ring?: boolean;
 }
 
 export interface Zone {

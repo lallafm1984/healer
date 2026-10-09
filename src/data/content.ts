@@ -58,11 +58,26 @@ export const CONTENT: ContentDef[] = [
     key: 'marsh', kind: 'explore', name: '늪지 어귀', place: '늪지 · 늪의 부족', stageLv: 8, unlockLv: 8, ready: true, bosses: ['늪 주술사'],
     fights: () => DUNGEONS.marsh.segments, size: three,
   },
-  { key: 'lily', kind: 'explore', name: '백합 정원', place: '백합 영지 · 귀족가', stageLv: 13, unlockLv: 13, ready: false, bosses: ['집사 유령'], fights: none, size: three },
-  { key: 'snowpass', kind: 'explore', name: '눈보라 고개', place: '설원 · 마도사', stageLv: 18, unlockLv: 18, ready: false, bosses: ['마력 골렘'], fights: none, size: three },
-  { key: 'hillpath', kind: 'explore', name: '해바라기 언덕길', place: '해바라기 언덕 · 혼합', stageLv: 23, unlockLv: 23, ready: false, bosses: ['신전 수호상'], fights: none, size: three },
-  { key: 'pilgrim', kind: 'explore', name: '무너진 순례길', place: '해바라기 언덕 · 혼합', stageLv: 28, unlockLv: 28, ready: false, bosses: ['신전지기 유령'], fights: none, size: three },
-  { key: 'abyssedge', kind: 'explore', name: '심연 가장자리', place: '심연의 탑 아래 · 심연', stageLv: 33, unlockLv: 33, ready: false, bosses: ['역병 군주'], fights: none, size: three },
+  {
+    key: 'lily', kind: 'explore', name: '백합 정원', place: '백합 영지 · 귀족가', stageLv: 13, unlockLv: 13, ready: true, bosses: ['집사 유령'],
+    fights: () => DUNGEONS.lily.segments, size: three,
+  },
+  {
+    key: 'snowpass', kind: 'explore', name: '눈보라 고개', place: '설원 · 마도사', stageLv: 18, unlockLv: 18, ready: true, bosses: ['마력 골렘'],
+    fights: () => DUNGEONS.snowpass.segments, size: three,
+  },
+  {
+    key: 'hillpath', kind: 'explore', name: '해바라기 언덕길', place: '해바라기 언덕 · 혼합', stageLv: 23, unlockLv: 23, ready: true, bosses: ['신전 수호상'],
+    fights: () => DUNGEONS.hillpath.segments, size: three,
+  },
+  {
+    key: 'pilgrim', kind: 'explore', name: '무너진 순례길', place: '해바라기 언덕 · 혼합', stageLv: 28, unlockLv: 28, ready: true, bosses: ['신전지기 유령'],
+    fights: () => DUNGEONS.pilgrim.segments, size: three,
+  },
+  {
+    key: 'abyssedge', kind: 'explore', name: '심연 가장자리', place: '심연의 탑 아래 · 심연', stageLv: 33, unlockLv: 33, ready: true, bosses: ['역병 군주'],
+    fights: () => DUNGEONS.abyssedge.segments, size: three,
+  },
   // 던전 ①~⑩ (5인, 5레벨마다). ⑧~⑩은 묶음 B
   {
     key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 5, unlockLv: 5, ready: true,
@@ -72,11 +87,26 @@ export const CONTENT: ContentDef[] = [
     key: 'crypt', bosses: ['뼈다귀 수집가', '역병 사제 말코어'], kind: 'dungeon', name: '역병 지하묘지', place: '왕도 지하 · 역병 교단', stageLv: 10, unlockLv: 10, ready: true,
     fights: () => DUNGEONS.crypt.segments, size: five,
   },
-  { key: 'swamp', bosses: ['늪 주술사', '거대 두꺼비 부글이', '늪 족장 세레스'], kind: 'dungeon', name: '독안개 늪', place: '늪지 · 늪의 부족', stageLv: 15, unlockLv: 15, ready: false, fights: none, size: five },
-  { key: 'manor', bosses: ['집사 유령', '초상화 속 귀부인', '장원 주인 벨모어 경'], kind: 'dungeon', name: '저주받은 장원', place: '백합 영지 · 귀족가', stageLv: 20, unlockLv: 20, ready: false, fights: none, size: five },
-  { key: 'frost', bosses: ['마력 골렘', '불안정한 마법사', '탑주의 그림자'], kind: 'dungeon', name: '서리 마탑', place: '설원 · 마도사', stageLv: 25, unlockLv: 25, ready: false, fights: none, size: five },
-  { key: 'temple', bosses: ['신전 수호상', '신전지기 유령'], kind: 'dungeon', name: '깨진 신전', place: '해바라기 언덕 · 혼합', stageLv: 30, unlockLv: 30, ready: false, fights: none, size: five },
-  { key: 'watchtower', bosses: ['망루 파수꾼', '금 간 공명 수정'], kind: 'dungeon', name: '무너진 망루', place: '해바라기 언덕 · 혼합', stageLv: 35, unlockLv: 35, ready: false, fights: none, size: five },
+  {
+    key: 'swamp', bosses: ['늪 주술사', '거대 두꺼비 부글이', '늪 족장 세레스'], kind: 'dungeon', name: '독안개 늪', place: '늪지 · 늪의 부족', stageLv: 15, unlockLv: 15, ready: true,
+    fights: () => DUNGEONS.swamp.segments, size: five,
+  },
+  {
+    key: 'manor', bosses: ['집사 유령', '초상화 속 귀부인', '장원 주인 벨모어 경'], kind: 'dungeon', name: '저주받은 장원', place: '백합 영지 · 귀족가', stageLv: 20, unlockLv: 20, ready: true,
+    fights: () => DUNGEONS.manor.segments, size: five,
+  },
+  {
+    key: 'frost', bosses: ['마력 골렘', '불안정한 마법사', '탑주의 그림자'], kind: 'dungeon', name: '서리 마탑', place: '설원 · 마도사', stageLv: 25, unlockLv: 25, ready: true,
+    fights: () => DUNGEONS.frost.segments, size: five,
+  },
+  {
+    key: 'temple', bosses: ['신전 수호상', '신전지기 유령'], kind: 'dungeon', name: '깨진 신전', place: '해바라기 언덕 · 혼합', stageLv: 30, unlockLv: 30, ready: true,
+    fights: () => DUNGEONS.temple.segments, size: five,
+  },
+  {
+    key: 'watchtower', bosses: ['망루 파수꾼', '금 간 공명 수정'], kind: 'dungeon', name: '무너진 망루', place: '해바라기 언덕 · 혼합', stageLv: 35, unlockLv: 35, ready: true,
+    fights: () => DUNGEONS.watchtower.segments, size: five,
+  },
   { key: 'sewer', bosses: ['수로 쥐왕', '역병 운반자'], kind: 'dungeon', name: '역병 수로', place: '왕도 지하 · 역병 교단', stageLv: 40, unlockLv: 40, ready: false, fights: none, size: five },
   { key: 'archive', bosses: ['서고 사서', '얼어붙은 대학자'], kind: 'dungeon', name: '얼음 서고', place: '설원 · 마도사', stageLv: 45, unlockLv: 45, ready: false, fights: none, size: five },
   { key: 'ossuary', bosses: ['백합 여사제', '잠든 가주'], kind: 'dungeon', name: '백합 납골당', place: '백합 영지 · 귀족가', stageLv: 50, unlockLv: 50, ready: false, fights: none, size: five },

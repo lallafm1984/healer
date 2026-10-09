@@ -123,7 +123,7 @@ function gim(f: Fight): Gim {
   }
   const hold = new Set<Debuff>();
   for (const u of f.party) for (const d of u.debuffs) {
-    if (d.end?.p === 'jump' && u.alive && f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1)) hold.add(d);
+    if (d.end?.p === 'jump' && d.end.on !== 'quake' && u.alive && f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1)) hold.add(d);
   }
   return {
     order, hit, pre, cure,
@@ -144,22 +144,30 @@ function gim(f: Fight): Gim {
 const topUp = (f: Fight, g: Gim, base: number) => (g.spill && f.mana > 30 ? 1.01 : g.few ? 0.6 : g.save ? 0.7 : base);
 
 /**
- * 해제 순서 (35 3-D·3-I·3장 표): 뒤집힌 축복(힐을 막음)·나의 마력 역류(일찍 지울수록 적게 터짐) → 매혹·마나 갈취 표식,
+ * 해제 순서 (35 3-D·3-I·3장 표): 뒤집힌 축복(힐을 막음)·나의 마력 역류(일찍 지울수록 적게 터짐) → 매혹·마나 갈취 표식·메아리 (진동에 옮겨붙음),
  * 판에 적이 있으면 딜러의 딜 0, 반격 틈이 있으면 끊기 능력자의 딜 0 → 그 밖. 같은 순위는 넘겨받은 순서 그대로
  */
 function byDispel(g: Gim, cands: Unit[], ok: (d: Debuff) => boolean): Unit[] {
   const rank = (u: Unit) => {
     const ds = u.debuffs.filter(ok);
     if (ds.some(d => d.invert || d.count)) return 0;
-    if (ds.some(d => d.charm || d.drain)) return 1;
+    if (ds.some(d => d.charm || d.drain || (d.end?.p === 'jump' && d.end.on === 'quake'))) return 1;
     if (ds.some(d => d.noDps) && ((g.adds && (u.role === 'melee' || u.role === 'ranged')) || (g.counter && cutter(u)))) return 1;
     return 2;
   };
   return cands.map((u, i) => ({ u, i, r: rank(u) })).sort((a, b) => a.r - b.r || a.i - b.i).map(x => x.u);
 }
 
+/** 시전 중 대상에게 뒤집힌 축복이 걸리면 그 힐을 취소 (사람이 다른 칸을 눌러 끊는 것과 같음, GCD는 돌려받음) */
+function dropInverted(f: Fight): void {
+  const bad = (uid: number | null) => uid != null && !!unitById(f, uid)?.debuffs.some(d => d.invert);
+  if (f.cast && bad(f.cast.uid)) { f.cast = null; f.stats.cancels++; f.gcd = 0; }
+  if (f.queued && bad(f.queued.uid)) f.queued = null;
+}
+
 /** 자동 힐러 (밸런스 시뮬레이션·구경 모드용, sim decide() 이식). 아직 안 배운 스킬은 건너뜀 */
 export function autoHealer(f: Fight): void {
+  dropInverted(f);
   if (f.hero === 'druid') { autoDruid(f); return; }
   if (f.hero === 'paladin') { autoPaladin(f); return; }
   autoTalents(f);

@@ -41,7 +41,12 @@ export function unitTick(f: Fight, u: Unit): void {
       u.debuffs = u.debuffs.filter(x => x !== d); emit(f, { type: 'cure', id: u.id, name: d.name }); continue;
     }
     if (d.grow) { if (d.stack) damage(f, u, d.stack * d.grow.dot * dt * (f.sp ? dotSpec(f, d) : 1), true); }
-    else if (d.dot) damage(f, u, (d.stackMax ? d.dot * (d.stack ?? 1) * dt : d.dot * dt) * (f.sp ? dotSpec(f, d) : 1), true); // 감기약 · 해독초 · 상처 소독 … (42 2-5 · 2-8)
+    else if (d.dot) {
+      const x = (d.stackMax ? d.dot * (d.stack ?? 1) * dt : d.dot * dt) * (f.sp ? dotSpec(f, d) : 1); // 감기약 · 해독초 · 상처 소독 … (42 2-5 · 2-8)
+      const hp0 = u.hp;
+      damage(f, u, x, true);
+      if (d.feed && !f.over) f.bossHp = Math.min(f.bossMax, f.bossHp + Math.max(0, hp0 - u.hp) * d.feed); // 젊음의 갈망: 빨아들인 만큼 보스 회복
+    }
     if (!u.alive) return;
     if (d.left <= 0) { u.debuffs = u.debuffs.filter(x => x !== d); onDebuffEnd(f, u, d, false); }
   }

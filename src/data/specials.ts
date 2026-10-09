@@ -261,7 +261,27 @@ export const FEATURED: Record<string, readonly string[]> = {
   cemetery: ['brushOff', 'coldMedicine', 'thankHand'],
   // 늪지 어귀 (탐험 ③): 완치 표식 · 독을 힐로 버팀
   marsh: ['antidote', 'warmCloak', 'lingerLight'],
+  // 백합 정원 (탐험 ④): 차례 = 빠른 직접 힐, 받는 치유 −50% 저주
+  lily: ['curseBreak', 'warmTouch', 'firstCup'],
+  // 눈보라 고개 (탐험 ⑤): 진동 = 즉시 스킬 · 지속 힐로 넘기기, 침묵 (마법)
+  snowpass: ['spellWard', 'lingerLight', 'pouch'],
+  // 해바라기 언덕길 (탐험 ⑥): 무력화 = 전원 70% 위로 (광역 · 딜러 지원)
+  hillpath: ['wideEmbrace', 'cheerFlag', 'spellWard'],
+  // 무너진 순례길 (탐험 ⑦): 해제 4유형 차례 · 발판에 들어간 사람 바로 채우기
+  pilgrim: ['brushOff', 'thankHand', 'warmTouch'],
+  // 심연 가장자리 (탐험 ⑧): 질병 · 독 · 전염 (함정은 끝날 때까지 채우기)
+  abyssedge: ['coldMedicine', 'antidote', 'lingerLight'],
   rustfort: ['shieldFriend', 'firstWord', 'springSip'],
+  // 서리 마탑 (던전 ⑤): 진동 · 역류 = 시전 아끼기, 주시 = 넘친 치유 줄이기
+  frost: ['spellWard', 'pouch', 'twiceBrush'],
+  // 무너진 망루 (던전 ⑦): 끌려온 사람 세워 두기 (단일 힐) · 진동 = 즉시 스킬 · 함정
+  watchtower: ['warmTouch', 'pouch', 'trapSense'],
+  // 깨진 신전 (던전 ⑥): 해제 4유형 · 천장 무너짐 피난처 · 무력화 = 전원 70% 위로
+  temple: ['cleanHands', 'shelterMap', 'wideEmbrace'],
+  // 저주받은 장원 (던전 ④): 저주 · 힐하지 말아야 할 사람 · 차례
+  manor: ['curseBreak', 'hardShell', 'regular'],
+  // 독안개 늪 (던전 ③): 독 버티기 · 정령 · 피난처 늦는 사람에게 보호막
+  swamp: ['antidote', 'fadingMiasma', 'hardShell'],
   // 역병 지하묘지 (던전 ②): 질병 해제 · 끌려온 사람과 탱커를 광역으로
   crypt: ['coldMedicine', 'immuneIncense', 'wideEmbrace'],
   abyss1: ['coldMedicine', 'cleanHands', 'bounceLight'],

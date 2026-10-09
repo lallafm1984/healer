@@ -727,7 +727,7 @@ export function render(now: number): void {
   for (const z of F.zones) z.cells.forEach(i => zoneSet.add(i));
   for (const tl of F.tels) if (tl.kind === 'zone') tl.cells.forEach(i => telSet.add(i));
   const safeSet = new Set<number>(); for (const tl of F.tels) tl.safe?.forEach(i => safeSet.add(i)); // 피난처 (35 3-E)
-  const padSet = new Set<number>(); for (const tl of F.tels) if (tl.skill.pads) tl.cells.forEach(i => padSet.add(i)); // 받침 발판 (35 4-5)
+  const padSet = new Set<number>(); for (const tl of F.tels) if (tl.skill.pads || tl.ring) tl.cells.forEach(i => padSet.add(i)); // 받침 발판 (35 4-5) · 끌려온 칸 받침 (39 3-1)
   // 새로 깔린 장판: 칸마다 한 번 터지는 연출 (쫄 오라처럼 끝나지 않는 장판은 빼고)
   for (const z of F.zones) if (!seenZones.has(z.id)) { seenZones.add(z.id); if (isFinite(z.end)) z.cells.forEach(i => fxGim('zone-burst', now, { cell: i })); }
   // 칸 무늬 그림 (37 4장 B). 없으면 아래 벡터 그림
