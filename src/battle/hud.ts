@@ -127,7 +127,9 @@ export function updateWheel(): void {
     // 일반·축소는 같은 내용과 순서를 사용한다. 패널 바깥 배율만 바뀐다.
     const visibleCost = sk.power ? (sk.powerAll ? '힘1+' : `힘${sk.power}`) : `${Math.round(cost * 10) / 10}%`;
     setText(el.querySelector('.ct')!, visibleCost);
-    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', cd > 0 ? `${Math.min(1, cd / (lk && lk.left >= cdv ? lk.total : cdMax(F, key))) * 100}%` : '0%');
+    // 공통 재사용 대기: 자기 재사용 대기보다 길면 연한 부채꼴로 (시전 중에는 누르면 시전을 끊고 바로 나가므로 안 그림)
+    const gcd = !F.cast && F.gcd > cd ? F.gcd / F.gcdBase : 0;
+    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', cd > 0 && !gcd ? `${Math.min(1, cd / (lk && lk.left >= cdv ? lk.total : cdMax(F, key))) * 100}%` : gcd > 0 ? `${Math.min(1, gcd) * 100}%` : '0%');
     setText(el.querySelector('.cds')!, cd > 0 ? `${Math.ceil(cd)}초` : '');
     const label = `${sk.name}, ${lk ? `진동으로 잠김 ${Math.ceil(cd)}초` : cd > 0 ? `재사용 대기 ${Math.ceil(cd)}초` : resource}${lowMana ? ', 마나 부족' : lowPower ? ', 신성한 힘 부족' : ''}${B.armed === slot ? ', 선택됨. 대상 선택 또는 다시 눌러 취소' : ''}`;
     if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
@@ -135,6 +137,7 @@ export function updateWheel(): void {
     el.classList.toggle('off', cd > 0 || lowMana || lowPower);
     el.classList.toggle('resource-low', lowMana || lowPower);
     el.classList.toggle('cooling', cd > 0);
+    el.classList.toggle('gcd', gcd > 0);
     el.classList.toggle('armed', B.armed === slot);
     el.classList.toggle('holy', key === 'serenity' || key === 'sanctify');
   }
@@ -288,6 +291,13 @@ export function updateCastbar(): void {
     label = `${SKILLS[k].name} 장전: ${SKILLS[k].target === 'area' ? '누른 채 범위를 보고 떼기' : '대상 칸 선택'}`;
   } else if (F.queued) {
     label = `다음: ${SKILLS[F.queued.key].name}`;
+    p = F.gcd > 0 ? F.gcd / F.gcdBase : 0;
+    left = F.gcd > 0 ? F.gcd.toFixed(1) : '';
+  } else if (F.gcd > 0) {
+    // 공통 재사용 대기 (2026-10-10 Lim: 소생 같은 즉시 스킬 뒤에 안 보였음): 시전 막대 자리에 줄어드는 막대 + 남은 초
+    label = '공통 재사용 대기';
+    p = F.gcd / F.gcdBase;
+    left = F.gcd.toFixed(1);
   } else {
     const selected = F.party.find(u => u.id === ui.selectedUnitId);
     if (selected) {
@@ -295,8 +305,7 @@ export function updateCastbar(): void {
       const types = [...new Set(selected.debuffs.map(d => d.type))];
       label = `${selected.nick} · ${selected.alive ? `HP ${hp}` : '쓰러짐'}${types.length ? ` · ${types.join('/')}` : ''}`;
       detail = `${selected.nick}, ${selected.alive ? `체력 ${hp}` : '쓰러짐'}. ${selected.debuffs.length ? selected.debuffs.map(d => `${d.name} (${d.type}), ${Math.ceil(d.left)}초${d.stack ? `, ${d.stack}중첩` : ''}, ${!canDispel(F.hero, d.type) ? '해제 불가' : d.trap ? '해제 주의: 옆 칸으로 전파' : '해제 가능'}`).join('. ') : '디버프 없음'}`;
-    } else label = F.gcd > 0 ? '공통 재사용 대기' : `칸을 탭하면 ${SKILLS[tapKey()].name}`;
-    p = F.gcd > 0 ? F.gcd / F.gcdBase : 0;
+    } else label = `칸을 탭하면 ${SKILLS[tapKey()].name}`;
   }
   const casting = !!F.cast || F.channel > 0;
   setText($('castLabel'), label);

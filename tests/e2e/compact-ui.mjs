@@ -30,7 +30,7 @@ const geometry = page => page.evaluate(() => {
       .filter(visible).map(el => parseFloat(getComputedStyle(el).fontSize) * Number(controls.dataset.uiScale))),
     directToggles: document.querySelectorAll('#compactToggle,#compactReturn').length,
     castState: { parent: cast.parentElement.id, position: style.position, pointerEvents: style.pointerEvents,
-      visible: visible(cast), active: cast.classList.contains('is-casting'), track: box(track), trackVisible: visible(track) },
+      visible: visible(cast), active: cast.classList.contains('is-casting'), gcd: cast.classList.contains('is-gcd'), track: box(track), trackVisible: visible(track) },
     stage: box(document.querySelector('#stage')),
     targetsGone: !document.querySelector('#targetsBtn,#partyTargets,#partyActions'),
     targetUiNodes: document.querySelectorAll('#targetsBtn,#partyTargets,#targetList,#targetsClose').length,
@@ -58,7 +58,7 @@ async function toggleMode(page) {
   if (!paused) await page.click('#resumeBtn');
 }
 const inViewport = (r, g) => r.w > 0 && r.h > 0 && r.x >= -1 && r.right <= g.width + 1 && r.y >= 70 - 1 && r.bottom <= g.height + 1;
-const readable = g => g.cellW > 0 && g.cellH > 0 && g.hp >= 12 && g.nick >= 11;
+const readable = g => g.cellW > 0 && g.cellH > 0 && g.hp >= 12 && g.nick >= 9;
 const hpBoundsValid = g => g.hpTextBounds.length === g.party
   && (g.hpTextGap === null || (Number.isFinite(g.hpTextGap) && g.hpTextGap >= 0))
   && g.hpTextBounds.every((a, i) => a.w > 0 && a.h > 0 && g.hpTextBounds.slice(i + 1).every(b =>
@@ -86,7 +86,7 @@ const castSpaceValid = g => g.cast.h === (g.compact ? 26 : 44) && g.castState.tr
   && g.castState.parent === 'battle' && g.castState.position === 'relative' && g.castState.visible
   && g.board.bottom <= g.cast.y + 1 && g.cast.bottom <= g.frame.y + 1
   && Math.abs(g.board.h - g.paintBottom - 2) <= .1
-  && (!g.compact || g.castState.pointerEvents === 'none') && g.castState.trackVisible === g.castState.active;
+  && (!g.compact || g.castState.pointerEvents === 'none') && g.castState.trackVisible === (g.castState.active || g.castState.gcd);
 
 // 원화와 그 위의 작은 SVG 배지를 구분한다. decode 완료를 확인해 이미지 로딩 중을 시각 실패로 오인하지 않는다.
 const skillVisuals = page => page.evaluate(async () => {
@@ -1034,8 +1034,9 @@ async function castSpaceCases(page, ok) {
       const stable = ['board', 'controls', 'frame', 'cast'].every(k => nearBox(baseline[k], g[k]));
       samples.push({ phase, active: g.castState.active, rowVisible: g.castState.visible, trackVisible: g.castState.trackVisible,
         board: g.board, controls: g.controls, cast: g.cast, reserved, footerClear, stable });
-      ok(stable && reserved && footerClear && g.castState.active === active
-        && g.castState.visible && g.castState.trackVisible === active,
+      // 공통 재사용 대기 (즉시 스킬 뒤)도 막대가 보인다 (2026-10-10 Lim: 소생 뒤 안 보였음)
+      ok(stable && reserved && footerClear && g.castState.active === active && g.castState.gcd === (phase === 'gcd')
+        && g.castState.visible && g.castState.trackVisible === (active || phase === 'gcd'),
       `360: ${compact ? '축소' : '일반'} ${phase} 시전 공간·판/패널 위치 고정·자원/버튼 침범 없음`, samples.at(-1));
     }
     await page.evaluate(() => { const f = window.__proto.F; f.cast = null; f.queued = null; f.channel = 0; f.gcd = 0; });

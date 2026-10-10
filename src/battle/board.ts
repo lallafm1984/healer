@@ -49,6 +49,9 @@ const fxG = new Graphics();
 const frameL = new Container();
 const overG = new Graphics();
 const labelsL = new Container();
+/** 디버프 배지 바탕·글자: 이름·체력 글자보다 위 (2026-10-10 Lim: 이름이 배지 위로 보여 배지가 안 읽힘) */
+const badgeG = new Graphics();
+const badgeL = new Container();
 const topG = new Graphics();
 const topL = new Container();
 const lensL = new Container();
@@ -59,7 +62,7 @@ const fxArtL = new Container();
 /** 말풍선 그림 (43 5장): 틀 뒤 이펙트 띠 · 틀 9조각 · 꼬리·감정 아이콘·앞 이펙트 띠. 대사 글자(topL)는 그 위 */
 const bubbleL = new Container(), bubbleBackL = new Container(), sliceL = new Container(), bubbleFrontL = new Container();
 bubbleL.addChild(bubbleBackL, sliceL, bubbleFrontL);
-root.addChild(cellsG, decalL, unitsG, glowL, fxG, fxArtL, frameL, overG, emblemL, labelsL, topG, bubbleL, topL, lensL);
+root.addChild(cellsG, decalL, unitsG, glowL, fxG, fxArtL, frameL, overG, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL);
 
 let dpr = 1;
 export const L = { s: 40, W: 0, H: 0, ox: 0, oy: 0, left: 2, right: 2, top: 2, bottom: 2, ok: false };
@@ -436,9 +439,10 @@ class Labels {
   clear(): void { for (const v of this.map.values()) v.t.destroy(); this.map.clear(); }
 }
 const labels = new Labels(labelsL);
+const badgeLabels = new Labels(badgeL);
 const tops = new Labels(topL);
 // 웹 글꼴이 늦게 오면 글자·숫자 글꼴을 다시 만듦
-document.fonts?.addEventListener?.('loadingdone', () => { labels.clear(); tops.clear(); if (ready) installNumFont(); });
+document.fonts?.addEventListener?.('loadingdone', () => { labels.clear(); badgeLabels.clear(); tops.clear(); if (ready) installNumFont(); });
 
 const mctx = document.createElement('canvas').getContext('2d')!;
 function measure(text: string, size: number, font = FONT, weight = W_TEXT): number { mctx.font = `${weight} ${size}px ${font}`; return mctx.measureText(text).width; }
@@ -448,6 +452,8 @@ interface DecorationBound {
   key: string; kind: string; shape: string; x: number; y: number; w: number; h: number;
   left: number; right: number; top: number; bottom: number;
   radius?: number; requestedRadius?: number; diameter?: number; requestedDiameter?: number;
+  /** 떠오르는 숫자가 가리키는 파티원 */
+  uid?: number;
 }
 const decorationBounds: DecorationBound[] = [];
 const clamp = (value: number, min: number, max: number) => min > max ? (min + max) / 2 : Math.max(min, Math.min(max, value));
@@ -483,19 +489,22 @@ function fitLabel(label: Label, key: string, kind: string): { x: number; y: numb
   return { ...p, w, h };
 }
 interface PillBox { x: number; y: number; w: number; h: number }
-/** 보조 연출만 실제 글자/상태 bounds를 피한다. 빈 자리가 없으면 해당 프레임에서 생략한다. */
-function transientSpot(box: PillBox, occupied: readonly PillBox[]): PillBox | null {
+/**
+ * 보조 연출만 실제 글자/상태 bounds를 피한다. 빈 자리가 없으면 해당 프레임에서 생략한다.
+ * near = 받아 줄 자리 (떠오르는 숫자는 자기 칸 근처만: 멀리 밀려나면 다른 사람 숫자로 읽힘)
+ */
+function transientSpot(box: PillBox, occupied: readonly PillBox[], near?: (x: number, y: number) => boolean): PillBox | null {
   const { w, h } = box;
   if (w > L.right - L.left || h > L.bottom - L.top) return null;
   const origin = fitCenter(box.x, box.y, w / 2, h / 2);
   const clear = (x: number, y: number) => occupied.every(b =>
     Math.abs(x - b.x) >= (w + b.w) / 2 + 1 || Math.abs(y - b.y) >= (h + b.h) / 2 + 1);
-  if (clear(origin.x, origin.y)) return { ...origin, w, h };
+  if ((!near || near(origin.x, origin.y)) && clear(origin.x, origin.y)) return { ...origin, w, h };
   let best: PillBox | null = null, distance = Infinity;
   const consider = (x: number, y: number) => {
     const p = fitCenter(x, y, w / 2, h / 2);
     const d = (p.x - origin.x) ** 2 + (p.y - origin.y) ** 2;
-    if (d < distance && clear(p.x, p.y)) { best = { ...p, w, h }; distance = d; }
+    if (d < distance && (!near || near(p.x, p.y)) && clear(p.x, p.y)) { best = { ...p, w, h }; distance = d; }
   };
   // 글자 외곽의 네 면/모서리와 캔버스 경계에서 가장 가까운 안전 후보를 고른다.
   for (const b of occupied) {
@@ -507,47 +516,24 @@ function transientSpot(box: PillBox, occupied: readonly PillBox[]): PillBox | nu
   consider(L.left, origin.y); consider(L.right, origin.y); consider(origin.x, L.top); consider(origin.x, L.bottom);
   return best;
 }
-function pill(g: Graphics, lb: Labels, key: string, x: number, y: number, text: string, bg: number, fg: number, fs: number, alpha = 1, adjust?: (box: PillBox) => PillBox): PillBox {
+function pill(g: Graphics, lb: Labels, key: string, x: number, y: number, text: string, bg: number, fg: number, fs: number, alpha = 1): PillBox {
   const kind = key.startsWith('deb') ? 'debuff' : key === 'swipe' ? 'swipe' : 'pill';
   const content = fitPartyName(text, Math.max(1, L.right - L.left - fs * 0.7 - 1.5), value => measure(value, fs));
-  const label = lb.put(key, content, { size: fs, fill: fg }, x, y + 0.5, alpha);
-  const w = Math.max(measure(content, fs), label.width) + fs * 0.7, h = Math.max(fs * 1.35, label.height + 2);
-  let p = fitCenter(x, y, w / 2 + 0.75, h / 2 + 0.75);
-  if (adjust) { const moved = adjust({ ...p, w: w + 1.5, h: h + 1.5 }); p = fitCenter(moved.x, moved.y, w / 2 + 0.75, h / 2 + 0.75); }
+  const label = lb.put(key, content, { size: fs, fill: fg }, x, y, alpha);
+  // 높이는 글자 줄 상자(약 1.45em)가 아니라 실제 글자 높이에 맞춤: 작은 칸에서 배지가 이름·위 칸 체력에 닿지 않게 (2026-10-10)
+  const tw = Math.max(measure(content, fs), label.width), w = tw + fs * 0.7, h = fs * 1.32;
+  const p = fitCenter(x, y, w / 2 + 0.75, h / 2 + 0.75);
   g.roundRect(p.x - w / 2, p.y - h / 2, w, h, h / 2).fill({ color: bg, alpha }).stroke({ width: 1.5, color: C.line, alpha });
-  label.position.set(p.x, p.y + 0.5);
-  fitLabel(label, `${key}-text`, kind);
+  label.position.set(p.x, p.y);
+  recordBound(`${key}-text`, kind, 'text', p.x, p.y, tw, fs);
   recordBound(key, kind, 'pill', p.x, p.y, w + 1.5, h + 1.5);
   return { ...p, w: w + 1.5, h: h + 1.5 };
 }
-/** 캡슐의 빈 모서리는 남겨 두고, HoT 원과 실제 외곽 사이에 1px만 확보한다. */
-function hotCenter(x: number, y: number, radius: number, lower: number, nameTop: number, badge?: ReturnType<typeof pill>): { x: number; y: number } {
+/** 지속 힐 원 (디버프 배지가 없을 때 오른쪽 위). 배지가 있으면 배지 줄 오른쪽 (hotSpot) */
+function hotCenter(x: number, y: number, radius: number, lower: number): { x: number; y: number } {
   const p = fitCenter(x, y, radius);
-  if (badge) {
-    const capRadius = badge.h / 2, segmentHalf = Math.max(0, (badge.w - badge.h) / 2);
-    const dx = p.x - clamp(p.x, badge.x - segmentHalf, badge.x + segmentHalf);
-    const separation = capRadius + radius + 1;
-    if (Math.abs(dx) < separation) p.y = Math.max(p.y, badge.y + Math.sqrt(separation ** 2 - dx ** 2));
-    // 36px 표시 경계에서는 아래 이동만 하면 이름에 닿는다. 이름 위를 유지하고 원을 조금 오른쪽으로 분리한다.
-    const aboveName = nameTop - radius - 1;
-    if (p.y > aboveName) {
-      p.y = Math.min(p.y, aboveName);
-      const dy = p.y - badge.y;
-      if (Math.abs(dy) < separation) p.x = Math.max(p.x, badge.x + segmentHalf + Math.sqrt(separation ** 2 - dy ** 2));
-      p.x = clamp(p.x, L.left + radius, L.right - radius);
-    }
-  }
   p.y = clamp(p.y, L.top + radius, L.bottom - lower);
   return p;
-}
-/** 오른쪽 끝에서 HoT를 더 옮길 수 없으면 배지만 필요한 만큼 위로 분리한다. */
-function badgeBesideHot(box: PillBox, x: number, y: number, radius: number, nameTop: number): PillBox {
-  const p = hotCenter(x, y, radius, radius, nameTop, box);
-  const segmentHalf = Math.max(0, (box.w - box.h) / 2);
-  const dx = p.x - clamp(p.x, box.x - segmentHalf, box.x + segmentHalf);
-  const separation = box.h / 2 + radius + 1;
-  if (Math.abs(dx) < separation) box.y = Math.min(box.y, p.y - Math.sqrt(separation ** 2 - dx ** 2));
-  return box;
 }
 /** 최대 HP 감소 빗금도 실제 상단 band 다각형 안의 선분만 그린다. */
 function hatchReducedHp(g: Graphics, x: number, y: number, r: number, height: number): void {
@@ -595,7 +581,8 @@ interface Fx {
   /** 기믹 연출 (kind 'art'): 그림 fx-<name>, 칸 · 날아갈 사람 · 판 전체 · 길이(ms) */
   name?: string; cell?: number; to?: number; wide?: boolean; dur?: number;
 }
-interface Float { x: number; y: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean }
+/** id = 숫자가 가리키는 파티원 (그 칸 근처에만 뜸) */
+interface Float { x: number; y: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean; id?: number }
 /** 말풍선 종류 (41·43 문서): talk 반응·잡담 · call 기믹·신호 (금테) · alert 위기 (붉은 테, 흔들림) · chat 쓰러진 사람의 파티 채팅 (회색) */
 export type BubbleKind = 'talk' | 'call' | 'alert' | 'chat';
 /** emote = 왼쪽 감정 아이콘 emote-<이름> (43 4장 B) · cheer = 승리 한마디 (fx-talk-cheer) */
@@ -784,7 +771,7 @@ export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: nu
   if (!L.ok || S.reducedEffects) return;
   const p = unitPos(u);
   const over = eff < amt * 0.25; // 거의 다 넘친 힐은 회색으로 작게
-  if (B2.floats.length < 40) B2.floats.push({ x: p.x + (rnd() - 0.5) * L.s * 0.5, y: p.y - L.s * 0.3, text: `+${eff}`, crit: crit && !over, over, t0: now, n: B2.n++ });
+  if (B2.floats.length < 40) B2.floats.push({ x: p.x + (rnd() - 0.5) * L.s * 0.5, y: p.y - L.s * 0.3, text: `+${eff}`, crit: crit && !over, over, t0: now, n: B2.n++, id: u.id });
   B2.hitFx[u.id] = now;
   if (B2.fx.length < 60 && !over) B2.fx.push({ kind: 'heal', id: u.id, t0: now, crit, seeds: Array.from({ length: crit ? 8 : 4 }, rnd) });
 }
@@ -792,7 +779,7 @@ export function fxRevive(u: Unit, now: number, label = '부활'): void {
   if (!L.ok) return;
   if (S.reducedEffects) { addBubble(u.id, label, now); return; }
   const p = unitPos(u);
-  B2.floats.push({ x: p.x, y: p.y - L.s * 0.3, text: label, crit: true, over: false, t0: now, n: B2.n++ });
+  B2.floats.push({ x: p.x, y: p.y - L.s * 0.3, text: label, crit: true, over: false, t0: now, n: B2.n++, id: u.id });
   B2.hitFx[u.id] = now;
   B2.fx.push({ kind: 'revive', id: u.id, t0: now });
 }
@@ -800,7 +787,7 @@ export function fxRevive(u: Unit, now: number, label = '부활'): void {
 export function fxHurt(u: Unit, amt: number, now: number): void {
   if (!L.ok || S.reducedEffects || amt < 1 || B2.floats.length >= 40) return;
   const p = unitPos(u);
-  B2.floats.push({ x: p.x + (rnd() - 0.5) * L.s * 0.5, y: p.y - L.s * 0.3, text: `-${amt}`, crit: false, over: false, t0: now, n: B2.n++, fill: 0xff5a3d });
+  B2.floats.push({ x: p.x + (rnd() - 0.5) * L.s * 0.5, y: p.y - L.s * 0.3, text: `-${amt}`, crit: false, over: false, t0: now, n: B2.n++, fill: 0xff5a3d, id: u.id });
 }
 /** 실수 방지로 힐이 안 나감: 칸만 흔들림 */
 export function fxShake(u: Unit, now: number): void {
@@ -810,14 +797,14 @@ export function fxShake(u: Unit, now: number): void {
 export function fxAllyHeal(u: Unit, amt: number, now: number): void {
   if (!L.ok || S.reducedEffects || amt < 1 || B2.floats.length >= 40) return;
   const p = unitPos(u);
-  B2.floats.push({ x: p.x + L.s * 0.25, y: p.y - L.s * 0.1, text: `✚${amt}`, crit: false, over: false, t0: now, n: B2.n++, fill: 0xc8f07a });
+  B2.floats.push({ x: p.x + L.s * 0.25, y: p.y - L.s * 0.1, text: `✚${amt}`, crit: false, over: false, t0: now, n: B2.n++, fill: 0xc8f07a, id: u.id });
 }
 /** 파티원 능력 사용: 칸 위에 능력 이름 (17 7장) */
 export function fxAbility(u: Unit, name: string, now: number): void {
   if (S.reducedEffects) { addBubble(u.id, name, now); return; }
   if (!L.ok || B2.floats.length >= 40) return;
   const p = unitPos(u);
-  B2.floats.push({ x: p.x, y: p.y - L.s * 0.55, text: name, crit: false, over: false, t0: now, n: B2.n++, fill: C.gold, label: true });
+  B2.floats.push({ x: p.x, y: p.y - L.s * 0.55, text: name, crit: false, over: false, t0: now, n: B2.n++, fill: C.gold, label: true, id: u.id });
 }
 export function fxDispel(u: Unit, now: number, trap = false, label?: string): void {
   if (S.reducedEffects) { addBubble(u.id, label ?? (trap ? '전염 폭발' : '해제'), now); return; }
@@ -904,8 +891,8 @@ export function render(now: number): void {
   const zpulse = S.reducedEffects ? 0.65 : 0.5 + 0.5 * Math.sin(t * 4); // 장판은 천천히
   const typography = cellTypography(s), compact = typography.compact;
   const rdt = Math.min(0.1, Math.max(0, (now - (B2.lastRender || now)) / 1000)); B2.lastRender = now;
-  for (const g of [cellsG, unitsG, fxG, overG, topG]) g.clear();
-  labels.begin(); tops.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); stripUsed = 0;
+  for (const g of [cellsG, unitsG, fxG, overG, badgeG, topG]) g.clear();
+  labels.begin(); badgeLabels.begin(); tops.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); stripUsed = 0;
   bubbleBack.begin(); bubbleFront.begin(); sliceUsed = 0;
   telsSeen = F.tels.slice(); // 다음 impact 사건이 어느 기술인지 (fxImpact)
   const fs = (k: number, min: number) => Math.max(min, s * k);
@@ -1166,7 +1153,7 @@ export function render(now: number): void {
     // 이름 · 체력 %는 파티원 칸과 같은 자리 (이웃한 적 칸끼리 글자가 겹치지 않게 알약 대신 글자만). 칸 그림(37 4장 E)이 있으면 이름 대신 그림
     const mt = artTexture(addArtName(m));
     if (mt) decals.put(mt, p.x, p.y - r * (compact ? 0.26 : 0.18), r * (compact ? 0.85 : 1.15), r * (compact ? 0.85 : 1.15));
-    else labels.put(`tot${m.id}`, a.short, { size: typography.nick, fill: 0xf3cfc6, strokeW: 2 }, p.x, p.y + r * (compact ? -0.29 : 0.13));
+    else labels.put(`tot${m.id}`, a.short, { size: typography.nick, fill: 0xf3cfc6, strokeW: typography.nick < 11 ? 1.5 : 2 }, p.x, p.y + r * (compact ? -0.29 : 0.13));
     labels.put(`totp${m.id}`, `${Math.ceil((m.hp / m.max) * 100)}%`, { size: typography.hp, fill: C.white, weight: W_NUM, strokeW: compact ? 1.5 : 2.5 }, p.x, p.y + r * (compact ? 0.25 : 0.6));
     const j = a.job;
     // 남은 초: 폭탄 = 터질 때까지 (부화하는 알 = 깨질 때까지), 걸어오는 쫄 = 보스에게 닿을 때까지, 큰 쫄 = 강타 예고
@@ -1186,7 +1173,7 @@ export function render(now: number): void {
     if (castTarget === u.id) hexPoly(overG, p.x, p.y, r * 1.04).stroke({ width: 3, color: hex(SEL) });
     const st = artTexture(soulArtName(u));
     if (st) decals.put(st, p.x, p.y - r * (compact ? 0.26 : 0.18), r * (compact ? 0.85 : 1.15), r * (compact ? 0.85 : 1.15), 0.7 + 0.15 * pulse);
-    else labels.put(`soul${u.id}`, u.soul!.short, { size: typography.nick, fill: 0xe6fbff, strokeW: 2 }, p.x, p.y + r * (compact ? -0.29 : 0.13));
+    else labels.put(`soul${u.id}`, u.soul!.short, { size: typography.nick, fill: 0xe6fbff, strokeW: typography.nick < 11 ? 1.5 : 2 }, p.x, p.y + r * (compact ? -0.29 : 0.13));
     labels.put(`soulp${u.id}`, `${Math.floor(frac * 100)}%`, { size: typography.hp, fill: C.white, weight: W_NUM, strokeW: compact ? 1.5 : 2.5 }, p.x, p.y + r * (compact ? 0.25 : 0.6));
     pill(overG, labels, `soult${u.id}`, p.x, p.y - r * (compact ? 0.85 : 0.8), `${Math.max(0, Math.ceil(u.soul!.until - F.t))}`, 0x8fd8e0, C.dark, fs(0.26, 11));
   }
@@ -1212,15 +1199,11 @@ export function render(now: number): void {
   }
 
   // 테두리 표시 · 배지
+  // 바깥 테두리 (1.02~1.22r)는 이웃 칸까지 닿으니 모두 먼저 그리고, 칸 안쪽 디버프 테두리 (0.88r)는 그 위에 따로 그린다.
+  // 한 번에 그리면 파티 순서에 따라 이웃의 보호막·봉화·수호 테두리가 디버프 테두리를 덮기도 했다 (2026-10-10 검수)
   for (const o of over) {
     const { u, x, y } = o;
-    const deb = primaryDebuff(u.debuffs);
-    o.deb = deb;
-    if (deb) {
-      const w = Math.max(3, s * 0.13), col = hex(DEB[deb.type] || '#E5433D');
-      const dr = ringRadius(`debuff-ring${u.id}`, 'hex', x, y, r * 0.88, w, 'debuff');
-      if (deb.trap) dashPoly(overG, hexPts(x, y, dr), 6, 4, w, col); else hexPoly(overG, x, y, dr).stroke({ width: w, color: col });
-    }
+    o.deb = primaryDebuff(u.debuffs);
     if (zoneSet.has(u.cell) || telSet.has(u.cell)) { const w = Math.max(2.5, s * 0.09); hexPoly(overG, x, y, ringRadius(`zone${u.id}`, 'hex', x, y, r * 1.02, w)).stroke({ width: w, color: 0xff5a3d, alpha: zoneSet.has(u.cell) ? 1 : 0.4 + 0.6 * pulse }); }
     if (u.guardian > 0) dashCircle(overG, x, y, ringRadius(`guardian${u.id}`, 'circle', x, y, r * 1.1, 3), 2, 4, 3, melting ? MELT : C.ink, 0.9);
     // 버팀목 (특성): 금색 두꺼운 테두리, 끝나기 2초 전 깜빡임
@@ -1246,15 +1229,23 @@ export function render(now: number): void {
       recordBound(`selected-marker${u.id}`, 'ring', 'triangle', p.x, p.y, 8, 5);
     }
   }
+  for (const { u, x, y, deb } of over) if (deb) {
+    const w = Math.max(3, s * 0.13), col = hex(DEB[deb.type] || '#E5433D');
+    const dr = ringRadius(`debuff-ring${u.id}`, 'hex', x, y, r * 0.88, w, 'debuff');
+    if (deb.trap) dashPoly(overG, hexPts(x, y, dr), 6, 4, w, col); else hexPoly(overG, x, y, dr).stroke({ width: w, color: col });
+  }
   let meShown = false;
+  const hotR = Math.max(7, s * 0.19);
+  // 보통 칸 배지 글자: 가장 긴 「×저주 12」와 지속 힐 원이 칸 폭 한 줄에 안 들어가는 판은 전부 짧은 글자 「×저12」 (작은 칸과 같음)
+  const shortBadge = compact || measure('×저주 12', typography.debuff) + typography.debuff * 0.7 + 1.5 > r * COS30 * 2 - 2 * (hotR + 0.75) - 1;
   const hpBounds: { id: number; cell: number; text: string; x: number; y: number; w: number; h: number; sx: number }[] = [];
   const smallHots: { id: number; x: number; y: number }[] = [];
   for (const { u, x, y, deb } of over) {
     let debBadge: ReturnType<typeof pill> | undefined;
     // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만). 「나」 = 직업 문장 (27 3-4)
     const em = u.me ? emblemTexture(F.hero) : null;
-    // 작은 칸은 위쪽 한 줄을 역할/디버프에, 중앙 두 줄을 이름과 HP에 배분한다.
-    if (em && !(compact && deb)) {
+    // 위쪽 한 줄은 직업 아이콘 또는 디버프 배지 (디버프가 있으면 배지가 그 자리를 씀, 칸 색이 직업을 보여 줌)
+    if (em && !deb) {
       const d = Math.max(14, s * 0.5);
       if (meEmblem.texture !== em) meEmblem.texture = em;
       meEmblem.width = meEmblem.height = d;
@@ -1262,13 +1253,14 @@ export function render(now: number): void {
       meEmblem.position.set(ep.x, ep.y);
       recordBound(`role${u.id}`, 'role', 'circle', ep.x, ep.y, d, d);
       meShown = true;
-    } else if (!(compact && deb)) {
+    } else if (!deb) {
       const k = s * 0.34, half = k * 0.6 + Math.max(1.5, k * 0.12) / 2;
       const ep = fitCenter(x, y - r * (compact ? 0.79 : 0.38), half);
       roleIcon(overG, u.role, ep.x, ep.y, k);
       recordBound(`role${u.id}`, 'role', 'icon', ep.x, ep.y, half * 2, half * 2);
     }
-    const nameBox = nick(u, x, y + r * (compact ? -0.29 : 0.13), r);
+    // 작은 칸: 배지 · 이름 · 체력 세 줄이 서로와 위 칸 체력에 닿지 않게 (배지 0.81 · 이름 0.24, 2026-10-10)
+    nick(u, x, y + r * (compact ? -0.24 : 0.13), r);
     const health = healthDisplay(u.hp, u.max);
     const hasHot = u.hot > 0 || u.hots.length > 0;
     // 영원한 저녁 (05 6-G): 숫자 없이 채움 색만
@@ -1291,14 +1283,29 @@ export function render(now: number): void {
       const hp = fitCenter(x, Math.max(y + r * 0.68, hpBox.y + hpBox.h / 2 + 4.25), 3.25);
       smallHots.push({ id: u.id, x: hp.x, y: hp.y });
     }
+    let hotSpot: { x: number; y: number } | null = null;
     if (deb) {
-      const summary = debuffDisplay(deb, F.hero, compact);
-      if (deb.jail) { const j = F.mobs.find(m => m.alive && m.add?.hold === deb.id); if (j) summary.text = `${j.add!.short} ${Math.ceil((j.hp / j.max) * 100)}%`; }
-      const adjust = !compact && hasHot ? (box: PillBox) => badgeBesideHot(box, x + r * 0.56, y - r * 0.44, Math.max(7, s * 0.19) + 0.75, nameBox.y - nameBox.h / 2) : undefined;
-      debBadge = pill(overG, labels, `deb${u.id}`, x, y - r * (compact ? 0.85 : 0.8), summary.text, deb.jail ? 0xd8c7a8 : deb.trap ? 0xf6e7b0 : hex(DEB[deb.type] || '#E5433D'), C.dark, typography.debuff, 1, adjust);
+      const jail = deb.jail ? F.mobs.find(m => m.alive && m.add?.hold === deb.id) : undefined;
+      // 다른 종류 디버프도 함께 걸려 있으면 배지 글자 끝에 + (종류는 길게 누르기 정보에). 배지 밖에 따로 그리면 작은 칸에서 위 칸 체력 숫자에 닿는다
+      const more = u.debuffs.some(d => d !== deb && d.type !== deb.type) ? '+' : '';
+      const badgeText = (short: boolean) => (jail ? `${jail.add!.short} ${Math.ceil((jail.hp / jail.max) * 100)}%` : debuffDisplay(deb, F.hero, short).text) + more;
+      const color = deb.jail ? 0xd8c7a8 : deb.trap ? 0xf6e7b0 : hex(DEB[deb.type] || '#E5433D'), fsD = typography.debuff;
+      if (compact) debBadge = pill(badgeG, badgeLabels, `deb${u.id}`, x, y - r * 0.81, badgeText(true), color, C.dark, fsD);
+      else {
+        // 보통 칸 (2026-10-10): 배지를 직업 아이콘 자리 (윗줄)에. 꼭짓점에 두면 위 칸 체력 숫자와 겹친다 (10인 울트라·플립은 거의 다 가림).
+        // 윗변은 위 칸 체력 숫자 아래 (글자 상자의 위아래 여백 2px는 겹쳐도 안 보임)
+        const h = fsD * 1.32 + 1.5, below = hpBox.y + hpBox.h / 2 - 1.5 * s - 1 + h / 2;
+        const hr = hasHot ? hotR + 0.75 : 0, half = r * COS30;
+        let text = badgeText(shortBadge), w = measure(text, fsD) + fsD * 0.7 + 1.5;
+        if (w > half * 2 - (hr ? hr * 2 + 1 : 0)) { text = badgeText(true); w = measure(text, fsD) + fsD * 0.7 + 1.5; }
+        const hx = Math.min(x + r * 0.56, x + half - hr);
+        debBadge = pill(badgeG, badgeLabels, `deb${u.id}`, hr ? Math.min(x, hx - hr - 1 - w / 2) : x, Math.max(y - r * 0.4, below), text, color, C.dark, fsD);
+        // 지속 힐 원은 배지 오른쪽 같은 줄
+        if (hr) hotSpot = fitCenter(Math.max(hx, debBadge.x + debBadge.w / 2 + 1 + hr), debBadge.y, hr);
+      }
     }
     if (!compact && u.hot > 0) {
-      const hr = Math.max(7, s * 0.19), hp = hotCenter(x + r * 0.56, y - r * 0.44, hr + 0.75, hr + 0.75, nameBox.y - nameBox.h / 2, debBadge);
+      const hr = Math.max(7, s * 0.19), hp = hotSpot ?? hotCenter(x + r * 0.56, y - r * 0.44, hr + 0.75, hr + 0.75);
       const hx = hp.x, hy = hp.y;
       overG.circle(hx, hy, hr).fill({ color: C.teal }).stroke({ width: 1.5, color: C.line });
       fitLabel(labels.put(`hot${u.id}`, String(Math.ceil(u.hot)), { size: hr * 1.05, fill: C.line }, hx, hy + 0.5), `hot-text${u.id}`, 'hot');
@@ -1308,7 +1315,7 @@ export function render(now: number): void {
       // 보조 지속 힐은 원의 위쪽 테두리 두 구간에 표시한다. 숫자와 원 밖의 이름을 가리지 않는다.
       const hs = u.hots.slice().sort((a, b) => b.left - a.left), h0 = hs[0];
       const hr = Math.max(7, s * 0.19), dots = hs.slice(1, 3);
-      const { x: hx, y: hy } = hotCenter(x + r * 0.56, y - r * 0.44, hr + 0.75, hr + 0.75, nameBox.y - nameBox.h / 2, debBadge);
+      const { x: hx, y: hy } = hotSpot ?? hotCenter(x + r * 0.56, y - r * 0.44, hr + 0.75, hr + 0.75);
       overG.circle(hx, hy, hr).fill({ color: HOT_COLOR[h0.key] ?? C.teal }).stroke({ width: 1.5, color: C.line });
       fitLabel(labels.put(`hot${u.id}`, String(Math.ceil(h0.left)), { size: hr * 1.05, fill: C.line }, hx, hy + 0.5), `hot-text${u.id}`, 'hot');
       recordBound(`hot${u.id}`, 'hot', 'circle', hx, hy, hr * 2 + 1.5, hr * 2 + 1.5);
@@ -1320,29 +1327,15 @@ export function render(now: number): void {
         recordBound(`hot-extra${u.id}-${k}`, 'hot', 'arc', (ax + bx) / 2, (ay + by) / 2, Math.abs(bx - ax) + width, Math.abs(by - ay) + width);
       });
     }
-    if (deb) {
-      // 다른 종류 디버프도 함께 걸려 있으면 왼쪽 위에 색 점으로 (질병+독이면 둘 다 보이게)
-      const others = [...new Set(u.debuffs.filter(d => d !== deb && d.type !== deb.type).map(d => d.type))];
-      if (compact && others.length) {
-        // 이름 옆에 붙이면 20인 작은 칸에서 글자를 덮는다. 배지 위에 작은 +로 추가 상태를 알린다.
-        const mp = fitCenter(debBadge!.x + debBadge!.w / 2 - 4, debBadge!.y - debBadge!.h / 2 - 3, 4);
-        const mx = mp.x, my = mp.y;
-        overG.moveTo(mx - 2.5, my).lineTo(mx + 2.5, my).moveTo(mx, my - 2.5).lineTo(mx, my + 2.5).stroke({ width: 3, color: C.line });
-        overG.moveTo(mx - 2.5, my).lineTo(mx + 2.5, my).moveTo(mx, my - 2.5).lineTo(mx, my + 2.5).stroke({ width: 1.5, color: C.white });
-        recordBound(`debuff-extra${u.id}`, 'debuff', 'cross', mx, my, 8, 8);
-      }
-      else others.forEach((ty, k) => {
-        const radius = Math.max(4, s * 0.12), dp = fitCenter(x - r * 0.56 + k * r * 0.3, y - r * 0.44, radius + 0.75);
-        overG.circle(dp.x, dp.y, radius).fill({ color: hex(DEB[ty] || '#E5433D') }).stroke({ width: 1.5, color: C.line });
-        recordBound(`debuff-extra${u.id}-${k}`, 'debuff', 'circle', dp.x, dp.y, radius * 2 + 1.5, radius * 2 + 1.5);
-      });
-    }
-    // 보스가 때리는 사람: 테두리 대신 칸 위 조준 표식 (테두리는 디버프 몫). 디버프 이름표가 있으면 그 왼쪽
+    // 보스가 때리는 사람: 테두리 대신 칸 위 조준 표식 (테두리는 디버프 몫). 작은 칸은 디버프 이름표 왼쪽, 보통 칸은 윗줄 배지 위 꼭짓점
+    const aimR = Math.max(7, s * 0.2), aimW = Math.max(1.5, aimR * 0.22);
+    /** 보통 칸 배지 위 꼭짓점 줄 (조준 표식 · 차례 번호표) */
+    const peakY = debBadge && !compact ? Math.min(y - r * 0.98, debBadge.y - debBadge.h / 2 - 1 - aimR - aimW / 2) : 0;
     if (tank === u) {
-      const br = Math.max(7, s * 0.2);
-      const bw = Math.max(1.5, br * 0.22);
+      const br = aimR, bw = aimW;
       let bx = x, by = y - r * 0.98;
-      if (debBadge) {
+      if (debBadge && !compact) by = peakY;
+      else if (debBadge) {
         bx = debBadge.x - debBadge.w / 2 - br - bw / 2 - 1;
         if (bx - br - bw / 2 < L.left) bx = debBadge.x + debBadge.w / 2 + br + bw / 2 + 1;
         by = debBadge.y;
@@ -1386,8 +1379,11 @@ export function render(now: number): void {
     // 차례 (P-ORDER): 은쟁반 번호표, 받은 번호는 꺼지고 다음 번호는 금빛. 직업 그림 왼쪽 (이름을 안 가리게)
     // 신기루 숫자 (54 4-1): 걷히기 전까지 진짜 번호와 똑같이 보임
     const ok = F.order ? (F.order.fake && F.order.fake.id === u.id && F.t < F.order.fake.until ? F.order.fake.num : F.order.ids.indexOf(u.id)) : -1;
-    if (F.order && ok >= F.order.i) pill(overG, labels, `ord${u.id}`, x - r * 0.55, y - r * 0.42, ORDER_NUM[ok], ok === F.order.i ? C.gold : 0xd9dde6, C.dark, fs(0.3, 12), ok === F.order.i ? 0.75 + 0.25 * pulse : 1);
-    else if (u.debuffs.some(d => d.invert)) pill(overG, labels, `inv${u.id}`, x - r * 0.55, y - r * 0.42, '✕', 0x7fa88c, C.dark, fs(0.28, 11));
+    // 보통 칸에 배지가 있으면 윗줄 왼쪽이 배지 자리라 꼭짓점 줄로 (조준 표식이 있으면 그 왼쪽)
+    const markAt = (text: string, size: number) => !peakY ? { x: x - r * 0.55, y: y - r * 0.42 }
+      : { x: tank === u ? x - aimR - aimW / 2 - 1 - (measure(text, size) + size * 0.7) / 2 : x, y: peakY };
+    if (F.order && ok >= F.order.i) { const m = markAt(ORDER_NUM[ok], fs(0.3, 12)); pill(overG, labels, `ord${u.id}`, m.x, m.y, ORDER_NUM[ok], ok === F.order.i ? C.gold : 0xd9dde6, C.dark, fs(0.3, 12), ok === F.order.i ? 0.75 + 0.25 * pulse : 1); }
+    else if (u.debuffs.some(d => d.invert)) { const m = markAt('✕', fs(0.28, 11)); pill(overG, labels, `inv${u.id}`, m.x, m.y, '✕', 0x7fa88c, C.dark, fs(0.28, 11)); }
     if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
     else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
     const st = u.bulwark > 0 ? ([`버팀 ${Math.ceil(u.bulwark)}`, '#F0C46A'] as const) : u.pulled ? ([`끌림 ${Math.ceil(u.pulled.until - F.t)}`, '#C98B5A'] as const) : u.fleeing ? (['도망', '#DB9B57'] as const) : u.sulking ? (['삐짐', '#D68FA6'] as const) : null;
@@ -1449,15 +1445,27 @@ export function render(now: number): void {
   const transientOccupied: PillBox[] = decorationBounds.filter(b => ['hp', 'nick', 'hot', 'debuff', 'role', 'aggro', 'pill'].includes(b.kind));
   // 떠오르는 숫자
   B2.floats = B2.floats.filter(fl => now - fl.t0 < 900 && (!S.reducedEffects || fl.label));
+  // 자기 칸 근처 = 원래 자리에서 0.9r 안 + 다른 파티원 칸보다 자기 칸에 가까움. 10·20인 작은 칸은 칸 안이 이름·체력으로 차서
+  // 예전에는 숫자가 판 아래 빈칸이나 다른 사람 칸 옆까지 밀려났다 (2026-10-10 검수, 20인 S25 최대 12.8r)
+  const partyAt = F.party.filter(u => u.alive).map(u => ({ id: u.id, ...unitPos(u) }));
   for (const fl of B2.floats) {
     const k = (now - fl.t0) / 900;
     const size = fl.label ? fs(0.22, 10) : fl.crit ? fs(0.36, 14) : fl.over || fl.fill ? fs(0.22, 10) : fs(0.27, 11);
     const label = tops.put(`fl${fl.n}`, fl.text, { size, fill: fl.fill ?? (fl.crit ? C.crit : fl.over ? C.over : C.heal), strokeW: 3, num: !fl.fill }, fl.x, S.reducedEffects ? fl.y : fl.y - k * s * (fl.label ? 0.3 : 0.6), S.reducedEffects ? 1 : 1 - k * k, 1);
     const b = label.getBounds(), x = (b.minX + b.maxX) / 2, y = (b.minY + b.maxY) / 2;
-    const p = transientSpot({ x, y, w: b.maxX - b.minX, h: b.maxY - b.minY }, transientOccupied);
+    const own = partyAt.find(q => q.id === fl.id), others = own ? partyAt.filter(q => q !== own && Math.hypot(q.x - own.x, q.y - own.y) < s * 4) : [];
+    const near = own ? (px: number, py: number) => {
+      if ((px - x) ** 2 + (py - y) ** 2 > (r * 0.9) ** 2) return false;
+      const d = (px - own.x) ** 2 + (py - own.y) ** 2;
+      return others.every(q => (px - q.x) ** 2 + (py - q.y) ** 2 > d);
+    } : undefined;
+    const box = { x, y, w: b.maxX - b.minX, h: b.maxY - b.minY };
+    // 자리가 없으면 자기 직업 아이콘 위는 덮어도 됨 (칸 색이 직업을 보여 줌). 작은 칸 가운데 사람은 이 자리뿐
+    const p = transientSpot(box, transientOccupied, near)
+      ?? (own ? transientSpot(box, transientOccupied.filter(o => (o as DecorationBound).key !== `role${own.id}`), near) : null);
     if (!p) { label.visible = false; continue; }
     label.position.set(label.x + p.x - x, label.y + p.y - y);
-    recordBound(`float${fl.n}`, 'float', 'text', p.x, p.y, p.w, p.h);
+    recordBound(`float${fl.n}`, 'float', 'text', p.x, p.y, p.w, p.h, fl.id != null ? { uid: fl.id } : {});
     transientOccupied.push(p);
   }
   // 쓸기 방향 미리보기
@@ -1537,7 +1545,7 @@ export function render(now: number): void {
   for (let i = glowUsed; i < glows.length; i++) glows[i].visible = false;
   for (let i = hexFramesUsed; i < hexFrames.length; i++) hexFrames[i].visible = false;
   for (let i = sliceUsed; i < slices.length; i++) slices[i].visible = false;
-  labels.end(); tops.end(); decals.end(); fxArt.end(); bubbleBack.end(); bubbleFront.end();
+  labels.end(); badgeLabels.end(); tops.end(); decals.end(); fxArt.end(); bubbleBack.end(); bubbleFront.end();
   for (let i = stripUsed; i < strips.length; i++) strips[i].visible = false;
   lensL.visible = false;
   app.renderer.render(app.stage);
@@ -1549,11 +1557,11 @@ export function render(now: number): void {
 }
 
 function nick(u: Unit, x: number, y: number, r: number): { x: number; y: number; w: number; h: number } {
-  // 글자 크기를 11px 아래로 축소하지 않는다. 전체 이름은 길게 누르기 정보에도 남는다.
+  // 글자 크기는 칸 크기를 따름 (cellTypography, 9px 이상). 넘치면 말줄임, 전체 이름은 길게 누르기 정보에도 남는다.
   const maxW = r * 1.45;
   const size = cellTypography(L.s).nick;
   const text = fitPartyName(u.nick, maxW, text => measure(text, size));
-  return fitLabel(labels.put(`nk${u.id}`, text, { size, fill: C.ink, strokeW: 2 }, x, y), `nick${u.id}`, 'nick');
+  return fitLabel(labels.put(`nk${u.id}`, text, { size, fill: C.ink, strokeW: size < 11 ? 1.5 : 2 }, x, y), `nick${u.id}`, 'nick');
 }
 
 let lensRT: RenderTexture | null = null;

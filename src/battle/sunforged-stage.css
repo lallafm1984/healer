@@ -125,7 +125,7 @@
 #battle #queue .q:focus-visible, #battle #queue .q.tipon { outline: 2px solid #fff0ba; outline-offset: -3px; }
 
 /* 대상 메뉴가 없는 시안의 상태 줄. 빈 위치에 새 버튼을 넣지 않는다. */
-/* 시전 유무에 관계없이 44/26px 예약. 장식과 텍스트는 시전 중에만 보인다. */
+/* 시전 유무에 관계없이 44/26px 예약. 장식과 텍스트는 시전 중과 공통 재사용 대기 중에만 보인다. */
 #battle #castbar, #battle.short-battle #castbar { grid-template-columns: minmax(0, 1fr); }
 #battle #castbar #castTrack {
   border: 6px solid transparent; border-image: var(--sf-cast) 44 128 / 10px 28px / 0 stretch;

@@ -1,7 +1,8 @@
 /* 축소는 일반 조작판을 같은 비율로 표시한다. 시전 공간은 별도로 보존한다. */
 #battle #castbar, #battle.short-battle #castbar { position: relative; flex: 0 0 44px; height: 44px; min-height: 44px; display: grid; grid-template-columns: minmax(0,1fr); align-items: center; padding: 0 8px; }
 #battle #castbar #castTrack { min-width: 0; width: 100%; height: 32px; }
-#battle #castbar:not(.is-casting) #castTrack { visibility: hidden; }
+/* 시전 중과 공통 재사용 대기 중(즉시 스킬 뒤)에만 막대가 보인다 (2026-10-10 Lim: 소생 뒤 공통 대기가 안 보였음). */
+#battle #castbar:not(.is-casting):not(.is-gcd) #castTrack { visibility: hidden; }
 /* 기존 판 하단의 26px 예약을 독립 행으로 옮겨 시전 표시가 판을 덮지 않게 한다. */
 #battle.compact-panel #castbar { flex-basis: 26px; height: 26px; min-height: 26px; display: flex; align-items: center; padding: 0 8px; pointer-events: none; }
 #battle.compact-panel #castbar #castTrack { height: 24px; padding: 0 7px; border-width: 1px; box-shadow: none; }

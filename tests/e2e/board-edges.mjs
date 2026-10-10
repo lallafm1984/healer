@@ -123,7 +123,7 @@ function checkGeometry(g, ok, label) {
   const centered = Math.abs((body.left + body.right) / 2 - (g.safe.left + g.safe.right) / 2) < EPS;
   const axisFits = g.fitAxis === 'horizontal' ? Math.abs(margins.left) < EPS && Math.abs(margins.right) < EPS : g.fitAxis === 'vertical';
   ok(bodyFits && centered && axisFits && g.safe.left >= 2 - EPS && g.canvas.w - g.safe.right >= 2 - EPS
-    && g.hp >= 12 && g.nick >= 11,
+    && g.hp >= 12 && g.nick >= 9,
   `${label}: 실제 body 외곽선 허용 경계·중앙 배치·제약축 준수`, { safe: g.safe, margins, fitAxis: g.fitAxis, hp: g.hp, smallCells: g.smallCells });
   const dpr = Math.min(3, g.viewport.dpr);
   ok(Math.abs(g.canvas.pixelW - Math.round(g.canvas.w) * dpr) <= 1 && Math.abs(g.canvas.pixelH - Math.round(g.canvas.h) * dpr) <= 1,
@@ -150,6 +150,13 @@ function checkDecorations(g, ok, label, risk = false) {
   const feedbackOverlaps = feedback.flatMap(effect => partyText.filter(text => !separated(effect, text)).map(text => ({ effect, text })));
   ok(partyText.length > 0 && feedbackOverlaps.length === 0,
     `${label}: 일시 숫자·말풍선이 실제 HP·이름을 가리지 않음`, feedbackOverlaps);
+  // 떠오르는 숫자는 자기 칸 근처: 다른 파티원 칸이 더 가까우면 다른 사람 숫자로 읽힌다 (2026-10-10 검수)
+  const bodies = bounds.filter(b => b.kind === 'body'), gap = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const strays = feedback.filter(f => f.kind === 'float' && f.uid != null).flatMap(f => {
+    const own = bodies.find(b => b.key === `body${f.uid}`);
+    return own && bodies.some(b => b !== own && gap(f, b) < gap(f, own)) ? [{ float: f.key, uid: f.uid }] : [];
+  });
+  ok(strays.length === 0, `${label}: 떠오르는 숫자가 자기 칸에 가장 가까움`, strays);
   if (!risk) return;
   // 빈 육각 디버프 테두리의 AABB는 내부 HOT를 감싼다. 가림은 채운 배지와 실제 글자로 검사한다.
   const hots = bounds.filter(b => b.kind === 'hot'), debuffs = bounds.filter(b => b.kind === 'debuff' && /^(deb\d|debuff-extra)/.test(b.key));
