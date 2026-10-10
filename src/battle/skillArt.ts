@@ -65,6 +65,16 @@ const BSK: Partial<Record<BossKey, Record<string, string>>> = {
   uga: { buster: 'icon-bsk-uga-1', leech: 'icon-bsk-uga-2', aoe: 'icon-bsk-uga-3' },
   shellgod: { buster: 'icon-bsk-shellgod-1', spit: 'icon-bsk-shellgod-2', spit2: 'icon-bsk-shellgod-2', roll0: 'icon-bsk-shellgod-3', roll1: 'icon-bsk-shellgod-3', roll2: 'icon-bsk-shellgod-3' },
   kobold60: { buster: 'icon-bsk-kobold-1', smoke: 'icon-bsk-kobold-2' },
+  queen56: { buster: 'icon-bsk-amanita-1' },
+  songi: { buster: 'icon-bsk-songi-1', ticket: 'icon-bsk-songi-2', cough: 'icon-bsk-songi-3' },
+  pililli: { buster: 'icon-bsk-pililli-1', band: 'icon-bsk-pililli-2' },
+  ponga: { buster: 'icon-bsk-ponga-1', cloud: 'icon-bsk-ponga-2' },
+  mungge: { buster: 'icon-bsk-mungge-1', rain: 'icon-bsk-mungge-2' },
+  gaegul: { buster: 'icon-bsk-gaegul-1', croak: 'icon-bsk-gaegul-2', splash: 'icon-bsk-gaegul-3' },
+  morak: { buster: 'icon-bsk-morak-1', water: 'icon-bsk-morak-2', storm: 'icon-bsk-morak-3' },
+  bungbung: { buster: 'icon-bsk-bungbung-1', wind: 'icon-bsk-bungbung-2' },
+  ppyong: { buster: 'icon-bsk-ppyong-1', vanish: 'icon-bsk-ppyong-2' },
+  amanita: { buster: 'icon-bsk-amanita-1', waltz: 'icon-bsk-amanita-2' },
 };
 /** 데이터 부품만으로는 안 보이는 기믹 (35 4장 표): 서리 손길 · 빗자루 = 버스터 + 썩는 상처 (서리 · 먼지 범벅), 얼어붙는 바닥 · 바닥이 언다 = 장판 → 무너지는 바닥 */
 const GIM_KEY: Partial<Record<BossKey, Record<string, Gim>>> = {
@@ -92,7 +102,7 @@ const MOB: Record<string, string> = {
 };
 
 /** 판 위 적이 하는 일 → 기믹 (37 4장 E 1~10) */
-const ADD_GIM: Record<AddJob['p'], Gim> = { mend: 'mender', bomb: 'bomb', pylon: 'pylon', drain: 'drain', jail: 'jail', smash: 'elite', march: 'march', fixate: 'fixate' };
+const ADD_GIM: Record<AddJob['p'], Gim> = { mend: 'mender', bomb: 'bomb', pylon: 'pylon', drain: 'drain', jail: 'jail', smash: 'elite', march: 'march', fixate: 'fixate', sting: 'add' }; // 꿀벌 떼 (sting, 48 4장)는 판 위 쫄
 function addGim(a: AddDef, tanks: number): Gim {
   if (a.job) return ADD_GIM[a.job.p];
   if (a.down?.p === 'burst') return 'burst'; // 쓰러질 때 파열 (쥐떼 · 늪 머리)

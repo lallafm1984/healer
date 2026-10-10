@@ -1,11 +1,11 @@
 /** 자동 힐러의 기믹 대응 (38 0-5, 35 3장 표의 「힐러 판단」): 부품마다 자동 힐러가 알맞게 고르는지 */
 import { describe, expect, it, vi } from 'vitest';
-import type { AddDef, SkillEffect } from '../src/data/bosses';
+import type { AddDef, DebuffDef, SkillEffect } from '../src/data/bosses';
 import type { EncounterKey } from '../src/data/encounters';
 import { HERO_KEYS, type HeroKey } from '../src/data/heroes';
 import * as E from '../src/engine';
 import { autoHealer } from '../src/engine/auto';
-import { runEffect } from '../src/engine/bossParts';
+import { applyDebuff, runEffect } from '../src/engine/bossParts';
 import { addDebuff, cellOf, unitById } from '../src/engine/core';
 import type { BossSkill, Fight, Unit } from '../src/engine';
 
@@ -374,5 +374,39 @@ describe('주시 (P-AGGRO) · 반격 틈 (P-COUNTER)', () => {
     };
     expect(pick(false)).toBe('a');
     expect(pick(true)).toBe('b');
+  });
+});
+
+describe('요정 고리 (P-GROW, 48 5장)', () => {
+  it('고리 안 사람은 35% 아래가 아니면 힐하지 않음 (안에서 치유를 받으면 고리가 자람)', () => {
+    const f = make();
+    f.party.forEach(u => { u.hp = u.max; });
+    runEffect(f, { name: '요정 고리', st: {} } as unknown as BossSkill, { p: 'ring', n: 1, sec: 18, dps: 30, every: 2, max: 2 });
+    const z = f.zones.find(x => x.ring)!;
+    const u = f.party.find(x => z.cells.has(x.cell))!;
+    u.hp = u.max * 0.6;
+    expect(act(f)?.who).not.toBe(u);
+    u.hp = u.max * 0.3;
+    f.cast = null; f.queued = null; f.gcd = 0;
+    expect(act(f)?.who).toBe(u);
+  });
+});
+
+describe('넘어가는 포자 (P-PASS, 48 5장)', () => {
+  const SPORE: DebuffDef = { name: '포자 솜뭉치', type: '질병', left: 14, dot: 6, absorb: 240, end: { p: 'pass', sec: 14 } };
+  it('붙은 사람이 50% 위면 안 지우고 힐로 막을 녹임, 50% 아래이고 70% 위 사람이 있으면 지워 넘김', () => {
+    const f = make();
+    f.party.forEach(u => { u.hp = u.max; });
+    const u = dealers(f).find(x => x.role === 'ranged')!;
+    applyDebuff(f, u, SPORE);
+    u.hp = u.max * 0.8;
+    const r = act(f);
+    expect(r?.key).not.toBe('purify');
+    expect(u.debuffs.some(d => d.name === SPORE.name)).toBe(true);
+    u.hp = u.max * 0.4;
+    f.cast = null; f.queued = null; f.gcd = 0; f.cd.purify = 0;
+    auto(f, 0.1);
+    expect(u.debuffs.some(d => d.name === SPORE.name)).toBe(false);
+    expect(f.party.some(x => x !== u && x.debuffs.some(d => d.name === SPORE.name))).toBe(true);
   });
 });

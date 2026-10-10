@@ -268,6 +268,10 @@ export const NAMED: NamedDef[] = [
   { key: 'chippedCup', name: '이 빠진 찻잔', slot: 'ring', place: 'teaparty', placeName: '끝없는 다과회', text: '치유 흡수 막이 걸린 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
   { key: 'dragonScale', name: '용 비늘 조각', slot: 'ring', place: 'emberfoot', placeName: '불꽃 봉우리 기슭', text: '독이 걸린 아군에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
   { key: 'turtleCharm', name: '거북 등딱지 부적', slot: 'neck', place: 'mossroot', placeName: '이끼 뿌리 사원', text: '내 마나 30% 아래에서 내가 받는 피해 −{v}', val: 0.15, unit: 'pct' },
+  { key: 'festInvite', name: '축제 초대장', slot: 'neck', place: 'fest3', placeName: '요정 축제 마당 모닥불', text: '딜을 못 하는 아군 (춤바람 · 감옥 · 삼키기 · 침묵)에게 하는 직접 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'rainbowSpore', name: '무지개 포자', slot: 'neck', place: 'rainbow', placeName: '무지개 버섯밭', text: '사람 칸 (헤매는 영혼 · 등대지기 · 숲 할아버지)에게 하는 힐 +{v}', val: 0.25, unit: 'pct', min: '고급' },
+  { key: 'mossBrooch', name: '이끼 브로치', slot: 'neck', place: 'cave3', placeName: '포자 동굴 정원 뿌리방', text: '무력화 게이지가 모이는 동안 광역 힐 +{v}', val: 0.12, unit: 'pct' },
+  { key: 'amanitaShard', name: '광대버섯 왕관 조각', slot: 'neck', place: 'palace3', placeName: '버섯 여왕의 궁전 왕좌', text: '해제하면 {v} 확률로 이웃 칸 아군 1명의 같은 유형 디버프도 함께 지움', val: 0.3, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -351,6 +355,17 @@ export const FEATURED: Record<string, readonly string[]> = {
   teaparty: ['firstCup', 'coldMedicine', 'holdingHand'],
   emberfoot: ['antidote', 'bombSquad', 'hardShell'],
   mossroot: ['antidote', 'holdTogether', 'numberSense'],
+  // 묶음 C2 (48 6장): 무지개 버섯밭 (사람 칸 · 질병) / 10인 ⑤ 고리 · 춤 · 피난처 / ⑥ 무력화 · 사슬 · 치유하는 쫄 / ⑦ 쇠약 · 차례 · 수장
+  rainbow: ['rainbow', 'coldMedicine', 'layer'],
+  fest1: ['shelterMap', 'coldMedicine', 'prop'],
+  fest2: ['cutBeat', 'eliteHunter', 'wideEmbrace'],
+  fest3: ['shelterMap', 'bombSquad', 'starVeil'],
+  cave1: ['coldMedicine', 'holdTogether', 'numberSense'],
+  cave2: ['holdingHand', 'shieldFriend', 'twinShield'],
+  cave3: ['eliteHunter', 'spellWard', 'evenly'],
+  palace1: ['woundClean', 'evenly', 'coldMedicine'],
+  palace2: ['numberSense', 'spellWard', 'quickAid'],
+  palace3: ['sunrise', 'bigBowl', 'coldMedicine'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

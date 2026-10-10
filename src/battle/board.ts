@@ -699,6 +699,11 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   proc: { size: 1.5, color: 0xffd166, ms: 500, tint: true },
   bounce: { size: 0.7, color: 0xffd166, ms: 400, fly: true },
   endure: { size: 1.9, color: 0xffd166, ms: 700 },
+  // 묶음 C2 (48 4장, 그림 49 E): 모자가 씌워짐 · 춤바람 음표 · 꿀벌이 쏨 · 숲 할아버지가 깨어남 (판 전체)
+  'hat-drop': { size: 1.0, color: 0xc9a2ff, ms: 500 },
+  dance: { size: 1.3, color: 0xf29cb7, ms: 700, up: 0.4 },
+  'bee-sting': { size: 0.8, color: 0xffc94a, ms: 400 },
+  'tree-wake': { size: 3.2, color: 0x8fd36a, ms: 900 },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();

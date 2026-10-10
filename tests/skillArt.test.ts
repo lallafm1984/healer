@@ -24,8 +24,8 @@ const DOC_MOB = ['rot', 'sick-shout', 'dart', 'veil', 'howl', 'silence', 'frost-
 /** 모자 뽑기 모자 (37 4장 H 3~5): 칸 위 표식 (대기열 기믹 표에는 없음) */
 const DOC_HAT = ['full', 'invert', 'cap'].map(n => `icon-gim-hat-${n}`);
 const DOC = new Set([...DOC_GIM, ...DOC_HAT, ...DOC_BSK, ...DOC_MOB]);
-/** 아직 데이터에 없는 보스 · 적 (47 4장 D 45 닻 든 거한, 49 묶음 C2 이후) */
-const NOT_IN_DATA = /^icon-(mob-anchor-spin|bsk-(songi|pililli|ponga|mungge|gaegul|morak|bungbung|ppyong|amanita)-\d)$/;
+/** 아직 데이터에 없는 적 (47 4장 D 45 닻 든 거한은 다음 해적 장소 몫) */
+const NOT_IN_DATA = /^icon-mob-anchor-spin$/;
 
 type BossKey = Exclude<ScriptKey, 'trash'>;
 const OK_NAME =/^icon-(gim|bsk|mob)-[a-z0-9-]+$/;

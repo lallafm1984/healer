@@ -240,7 +240,7 @@ export default async function portrait(url, shots) {
       if (t.startsWith('raid')) raids[t] = await page.evaluate(() => [...document.querySelectorAll('#s-content .b-pl[data-content]')].map(b => b.dataset.content).join());
     }
     ok(new Set(gates).size === 1, `${width}: 관문 자리·크기가 탐험·10인·20인 레이드·던전 모두 같음 (${gates.join(' ')})`);
-    ok(/^abyss1(,abyss\d)*(,gull\d)*(,queen\d)*(,isle\d)*$/.test(raids.raid10) && raids.raid20 === 'cathedral1', `${width}: 10인 탭 = 탑 (1층부터) · 항구 · 여왕호 · 요새 순, 20인 탭 = 대성당 ${JSON.stringify(raids)}`);
+    ok(/^abyss1(,abyss\d)*(,gull\d)*(,queen\d)*(,isle\d)*(,fest\d)*(,cave\d)*(,palace\d)*$/.test(raids.raid10) && raids.raid20 === 'cathedral1', `${width}: 10인 탭 = 탑 (1층부터) · 항구 · 여왕호 · 요새 · 축제 마당 · 동굴 정원 · 궁전 순, 20인 탭 = 대성당 ${JSON.stringify(raids)}`);
     const row = await page.evaluate(() => {
       const sc = document.querySelector('#s-content .b-plr'), r = sc.getBoundingClientRect();
       const cut = [...sc.querySelectorAll('.b-pl')].some(b => { const x = b.getBoundingClientRect(); return x.left < r.right - 8 && x.right > r.right + 8; });
