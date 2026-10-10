@@ -133,6 +133,8 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   }
   if (v.blackStone && alone(f, u)) m += v.blackStone;
   if (v.lordIncense && u.debuffs.filter(d => !d.hide).length >= 2) m += v.lordIncense;
+  if (v.heirSeal && u.debuffs.some(d => d.link)) m += v.heirSeal; // 가주의 인장 (46 6장)
+  if (v.roseBrooch && on(f, 'roseBrooch')) m += v.roseBrooch;
   if (u.me && v.brokenChain && on(f, 'brokenChain')) m += v.brokenChain;
   if (f.t < 20) m += v.firstWord ?? 0;
   if (bossPct(f) < 0.3) m += v.secondWind ?? 0;
@@ -196,6 +198,7 @@ export function afterHeal(f: Fight, u: Unit, amt: number, eff: number, crit: boo
     }
     if (direct && v.bubble) shield(f, u, over * v.bubble, 6, 'bubble');
     if (v.lightBreath && over > amt * 0.5 && (s.ready.lightBreath ?? 0) <= f.t) { s.ready.lightBreath = f.t + 2; f.mana = Math.min(100, f.mana + v.lightBreath); }
+    if (v.roseBrooch && over > amt * 0.5) proc(f, 'roseBrooch', 4, 8); // 장미 브로치 (46 6장)
   }
   if (direct && !hc.tick) {
     if (v.featherQuilt && hp0 < u.max * 0.25 && (s.quilt[u.id] ?? 0) <= f.t) { s.quilt[u.id] = f.t + 20; shield(f, u, intAmt(f, v.featherQuilt), 8, 'featherQuilt'); }
@@ -301,6 +304,7 @@ export function costSpec(f: Fight, key: SkillKey, u?: Unit): number {
   if (bossPct(f) < 0.2) cut += v.dusk ?? 0;
   if (sk.slot === 'raid') cut += v.raidBreath ?? 0;
   if (v.frozenHourglass && on(f, 'frozenHourglass')) cut += v.frozenHourglass;
+  if (v.silverBookmark && f.mana < 50 && isSingle(key)) cut += v.silverBookmark; // 은빛 책갈피 (46 6장)
   if (key === 'hymn' && v.hymnBreath) cut += 0.5;
   return Math.max(0, 1 - cut);
 }
@@ -333,6 +337,7 @@ export function regenSpec(f: Fight): number {
   if (v.stillMoment && !f.cast && f.channel <= 0 && f.t - f.tx.lastAct >= 3 - 1e-9) m += v.stillMoment;
   if (v.toadCharm && on(f, 'toadCharm')) m += v.toadCharm;
   if (v.pilgrimCharm && living(f).every(u => u.hp >= u.max * 0.7 - 1e-9)) m += v.pilgrimCharm;
+  if (v.frozenQuill && f.me.debuffs.length) m += v.frozenQuill; // 얼어붙은 깃펜 (46 6장)
   return m;
 }
 
@@ -349,6 +354,14 @@ export function twin(f: Fight, u: Unit, give: (v: Unit) => void): void {
 }
 
 // ---------- 해제 · 디버프 ----------
+/** 녹슨 수문 열쇠 (46 6장): 해제한 디버프가 이웃에게 옮겨붙으면 옮겨 간 아군 회복 */
+export function specJump(f: Fight, to: Unit): void {
+  const x = f.sp!.v.sluiceKey;
+  if (!x) return;
+  heal(f, to, intAmt(f, x), true, true);
+  shout(f, 'sluiceKey', to);
+}
+
 /** 해제를 하면 (함정이 아니어도 · 함정이어도) */
 export function specDispel(f: Fight, u: Unit, d: Debuff): void {
   const s = f.sp!, v = s.v;

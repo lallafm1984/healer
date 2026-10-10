@@ -3,7 +3,7 @@
  * 새 기믹은 여기에 부품 하나를 더하고, 보스 데이터에서 이름과 값으로 부른다.
  */
 import { ABILITIES } from '../data/abilities';
-import type { AddDef, AddJob, BossDef, DebuffDef, DebuffEnd, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
+import type { AddDef, AddDown, AddJob, BossDef, DebuffDef, DebuffEnd, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
 import { HEROES } from '../data/heroes';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
@@ -63,11 +63,11 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         if (e.debuff && u.alive) applyDebuff(f, u, e.debuff); // 물어뜯기 독 · 공허 중첩
       }
       return;
-    case 'hunt': {
-      const u = lowestTargets(f, 1, x => x.role !== 'tank')[0];
-      if (u) { emit(f, { type: 'msg', text: `${s.name ?? '사냥'}: ${u.nick}` }); emit(f, { type: 'fx', name: 'slam', on: u.id }); damage(f, u, e.dmg, false, 'party'); }
+    case 'hunt':
+      for (const u of lowestTargets(f, f.mythic && e.nMythic ? e.nMythic : 1, x => x.role !== 'tank')) {
+        emit(f, { type: 'msg', text: `${s.name ?? '사냥'}: ${u.nick}` }); emit(f, { type: 'fx', name: 'slam', on: u.id }); damage(f, u, e.dmg, false, 'party');
+      }
       return;
-    }
     case 'all': {
       let dmg = e.phaseDmg?.[f.phase] ?? e.dmg;
       if (e.grow) { const n = (s.st.n as number | undefined) ?? 0; dmg += e.grow * n; s.st.n = n + 1; } // 커지는 광역 (수정 핵 과열)
@@ -83,6 +83,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       const ts = e.pick === 'me' ? one(f.party.find(u => u.me)) : e.pick === 'tank' ? one(aggroTarget(f))
         : e.pick === 'tel' ? (tel?.units ?? []).map(id => unitById(f, id)).filter((u): u is Unit => !!u && u.alive && free(u)).slice(0, n)
         : e.pick === 'lowest' ? lowestTargets(f, n, u => free(u) && u.role !== 'tank')
+        : e.pick === 'linked' ? linkedTargets(f, n, free)
         : randomTargets(f, n, e.pick === 'others' ? u => free(u) && u.role !== 'tank' && !u.me : free);
       for (const u of ts) applyDebuff(f, u, d);
       // 전염 (26 3-1) · 불안정한 마력 둘 (05 5-C): 두 대상이 붙어 서 있으면 걸리자마자 둘 다 터짐
@@ -611,11 +612,12 @@ export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
       return old;
     }
   }
-  const d = addDebuff(f, u, { ...def, stack: def.stackMax ? 1 : def.count ? 0 : undefined });
+  const d = addDebuff(f, u, { ...def, stack: def.stackMax || def.swell ? 1 : def.count ? 0 : undefined });
   if (!u.debuffs.includes(d)) return null; // 주문 반사 등으로 안 걸림
   if (d.maxCut) setMax(u);
   if (d.untilBossLoss != null) d.bossAt = f.bossHp;
   if (d.absorb) { d.absorbLeft = d.absorb * f.dmgMult; emit(f, { type: 'fx', name: 'absorb', on: u.id }); } // 치유 흡수 막 (P-ABSORB)
+  if (d.cap != null) emit(f, { type: 'fx', name: 'ink', on: u.id }); // 치유 상한 (P-CAP)
   return d;
 }
 
@@ -859,12 +861,23 @@ function unjail(f: Fight, m: Mob): void {
 }
 
 function addDown(f: Fight, m: Mob): void {
-  const d = m.add!.down;
-  if (!d) return;
+  if (m.add!.down) downDo(f, m.add!.down, unitById(f, m.add!.on));
+}
+
+/** 쓰러질 때 (파열 · 뼈 먼지): burst = 살아 있는 모두에게 1중첩, debuff = 때리던 사람 (없으면 무작위 1명) */
+function downDo(f: Fight, d: AddDown, on: Unit | undefined): void {
   if (d.p === 'burst') { for (const u of living(f)) applyDebuff(f, u, d.debuff); return; }
-  const on = unitById(f, m.add!.on);
   const u = on && on.alive ? on : randomTargets(f, 1)[0];
   if (u) applyDebuff(f, u, d.debuff);
+}
+
+/** 매 틱 일반 · 정예 구간: 새로 쓰러진 적의 down (먼지 유령 → 먼지 파열, 46 5장 「정예 구간 쫄이 쓰러질 때」) */
+export function trashDown(f: Fight): void {
+  for (const m of f.mobs) {
+    if (m.alive || !m.down || m.downDone) continue;
+    m.downDone = true;
+    downDo(f, m.down, undefined);
+  }
 }
 
 /** 흐르는 장판: 이 열이 맞을 때 다음 열을 예고 (예고 = every초, 파티원이 미리 비킴) */
@@ -875,6 +888,12 @@ export function flowNext(f: Fight, tel: Telegraph): void {
   const next: Telegraph = { id: f.nextId++, skill: tel.skill, kind: 'zone', start: f.t, impact: f.t + every, units: [], cells, dps: tel.dps, dur: tel.dur, flow: { col: col + dir, dir, every } };
   f.tels.push(next);
   scheduleReactions(f, next);
+}
+
+/** 사슬 짝 고르기 (46 5장): 생명 사슬에 묶인 사람 먼저 (무작위), 모자라면 탱커 · 나 빼고 무작위 */
+function linkedTargets(f: Fight, n: number, ok: (u: Unit) => boolean): Unit[] {
+  const tied = randomTargets(f, n, u => ok(u) && u.debuffs.some(d => d.link));
+  return tied.concat(randomTargets(f, n - tied.length, u => ok(u) && !tied.includes(u) && u.role !== 'tank' && !u.me));
 }
 
 /** 체력 비율이 가장 낮은 사람부터 n명 (사냥 P-HUNT, 35 9-1 「대상 고르기」). 같으면 먼저 선 사람 */

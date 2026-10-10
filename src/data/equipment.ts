@@ -168,6 +168,12 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   temple: ['beads', 'ring', 'wraps'],
   abyssedge: ['vestment', 'gauntlet'],
   watchtower: ['helm', 'mail', 'gauntlet'],
+  // 묶음 B 옛 세력 (46 6장)
+  bookfield: ['vestment', 'signet'],
+  rosemaze: ['scepter', 'beads'],
+  sewer: ['hood', 'robe', 'pendant'],
+  archive: ['staff', 'vestment', 'signet'],
+  ossuary: ['scepter', 'ring', 'beads'],
   abyss1: ['vestment'], abyss2: ['mail'], abyss3: ['wraps'], abyss4: ['gloves'], abyss5: ['pendant'],
 };
 export const KIND_WEIGHT = 3;

@@ -251,6 +251,12 @@ export const NAMED: NamedDef[] = [
   { key: 'ropeKnot', name: '밧줄 매듭', slot: 'ring', place: 'watchtower', placeName: '무너진 망루', text: '아군이 2초 안에 최대 체력의 30% 넘게 잃으면 그 아군에게 지능 {v} 보호막 (재사용 20초)', val: 0.5, unit: 'pct', cd: 20 },
   { key: 'lordIncense', name: '군주의 향 주머니', slot: 'neck', place: 'abyss1', placeName: '심연의 탑 1층', text: '디버프가 2개 이상 보이는 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct' },
   { key: 'brokenChain', name: '끊어진 사슬', slot: 'ring', place: 'abyss5', placeName: '심연의 탑 꼭대기', text: '내 체력이 50% 아래가 되면 8초 동안 내게 하는 힐 +{v} (재사용 60초)', val: 0.3, unit: 'pct', cd: 60 },
+  // 묶음 B 옛 세력 (46 6장, 이름 임시 · 그림 47)
+  { key: 'silverBookmark', name: '은빛 책갈피', slot: 'ring', place: 'bookfield', placeName: '책갈피 설원', text: '마나 50% 아래에서 단일 힐 마나 소모 −{v}', val: 0.15, unit: 'pct', min: '고급' },
+  { key: 'sluiceKey', name: '녹슨 수문 열쇠', slot: 'ring', place: 'sewer', placeName: '역병 수로', text: '해제한 디버프가 이웃에게 옮겨붙으면 옮겨 간 아군에게 지능 {v} 회복', val: 0.4, unit: 'pct' },
+  { key: 'frozenQuill', name: '얼어붙은 깃펜', slot: 'ring', place: 'archive', placeName: '얼음 서고', text: '내게 디버프가 걸려 있는 동안 정신력 +{v}', val: 0.3, unit: 'pct' },
+  { key: 'roseBrooch', name: '장미 브로치', slot: 'neck', place: 'rosemaze', placeName: '장미 울타리 미로', text: '넘친 치유가 그 힐의 절반을 넘으면 4초 동안 회복량 +{v} (재사용 8초)', val: 0.08, unit: 'pct', cd: 8, min: '고급' },
+  { key: 'heirSeal', name: '가주의 인장', slot: 'ring', place: 'ossuary', placeName: '백합 납골당', text: '사슬로 묶인 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -287,6 +293,9 @@ export const FEATURED: Record<string, readonly string[]> = {
   pilgrim: ['brushOff', 'thankHand', 'warmTouch'],
   // 심연 가장자리 (탐험 ⑧): 질병 · 독 · 전염 (함정은 끝날 때까지 채우기)
   abyssedge: ['coldMedicine', 'antidote', 'lingerLight'],
+  // 묶음 B (46 6장): 책갈피 설원 = 마나 갈취 · 침묵 / 장미 울타리 미로 = 넘치는 빛
+  bookfield: ['springSip', 'potionRegular', 'spellWard'],
+  rosemaze: ['bubble', 'overflowKind', 'lightBreath'],
   rustfort: ['shieldFriend', 'firstWord', 'springSip'],
   // 서리 마탑 (던전 ⑤): 진동 · 역류 = 시전 아끼기, 주시 = 넘친 치유 줄이기
   frost: ['spellWard', 'pouch', 'twiceBrush'],
@@ -300,6 +309,10 @@ export const FEATURED: Record<string, readonly string[]> = {
   swamp: ['antidote', 'fadingMiasma', 'hardShell'],
   // 역병 지하묘지 (던전 ②): 질병 해제 · 끌려온 사람과 탱커를 광역으로
   crypt: ['coldMedicine', 'immuneIncense', 'wideEmbrace'],
+  // 역병 수로 (던전 ⑧): 질병 옮겨붙음 · 지속 피해 / 얼음 서고 (⑨): 역류 · 마나 갈취 · 차례 / 백합 납골당 (⑩): 뒤집힌 축복 · 저주 · 넘치는 빛
+  sewer: ['coldMedicine', 'immuneIncense', 'warmCloak'],
+  archive: ['stillMoment', 'cleanHands', 'numberSense'],
+  ossuary: ['clearEye', 'curseBreak', 'bigBowl'],
   abyss1: ['coldMedicine', 'cleanHands', 'bounceLight'],
   // 심연의 탑 2층 ~ 꼭대기: 못 지우는 독 · 머리 파열 / 탱커 교대 · 저주 / 함정 · 마법 · 즉시 스킬 / 감옥 · 탱커 막 · 해제 4유형
   abyss2: ['antidote', 'warmCloak', 'eliteHunter'],

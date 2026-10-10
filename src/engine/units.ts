@@ -12,6 +12,23 @@ import { barkCut } from './heroes';
 import type { PersName } from '../data/personalities';
 import type { Cell, Fight, Unit } from './types';
 
+/** 비켜 서기: 사교형은 그대로, 눈치 (회피율)에 따라 놓침. 옆에 아무도 없는 안전한 칸 중 가장 가까운 곳, 디버프가 끝날 때까지 머묾 */
+function stepAway(f: Fight, u: Unit, sec: number): boolean {
+  for (const d of u.debuffs) if (d.end?.p === 'jump') d.stepped = true;
+  if ((u.p.dist ?? 0) > 0 || f.rng() >= dodgeRate(f, u)) return false;
+  if (!f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1)) return false;
+  const cur = cellOf(f, u);
+  let best: Cell | null = null;
+  for (const c of f.cells) {
+    if (c.block || (c.unit && c.unit !== u) || dangerAt(f, c.i)) continue;
+    if (f.party.some(v => v !== u && v.alive && (hexDist(f.cells[v.moving ? v.moving.to : v.cell], c) <= 1))) continue;
+    if (!best || hexDist(cur, c) < hexDist(cur, best)) best = c;
+  }
+  if (!best || !moveTo(f, u, best)) return false;
+  u.awayUntil = f.t + sec + 0.5; u.homeAt = null;
+  return true;
+}
+
 /** 파티원 한 틱: 지속 효과, 디버프, 장판 피해, 이동, 0.2초마다 판단 (04 4장) */
 export function unitTick(f: Fight, u: Unit): void {
   const dt = DT;
@@ -38,6 +55,10 @@ export function unitTick(f: Fight, u: Unit): void {
     d.left -= dt;
     if ((d.cureAt != null || d.grow) && hpLineTick(f, u, d, dt)) continue;
     if (d.charm && charmTick(f, u, d)) continue; // 매혹 (P-CHARM)
+    if (d.swell) { // 부풀기 (P-SWELL): every초마다 1중첩
+      d.swellT = (d.swellT ?? 0) + dt;
+      if (d.swellT >= d.swell.every - 1e-9) { d.swellT -= d.swell.every; d.stack = Math.min(d.swell.max, (d.stack ?? 1) + 1); }
+    }
     if (d.untilBossLoss != null && f.bossHp <= d.bossAt! - f.bossMax * d.untilBossLoss + 1e-9) { // 삼키기: 보스를 그만큼 깎으면 풀림
       u.debuffs = u.debuffs.filter(x => x !== d); emit(f, { type: 'cure', id: u.id, name: d.name }); continue;
     }
@@ -84,8 +105,10 @@ export function unitTick(f: Fight, u: Unit): void {
       if (c && hexDist(c, cellOf(f, u)) >= 1) moveTo(f, u, c);
     }
   }
+  // 옮겨붙음 본판 (P-JUMP, 46 3-1): 보스를 키우는 옮겨붙음을 들면 옆에 아무도 없는 칸으로 비켜 섬 (지우면 그냥 사라지게)
+  if (u.debuffs.length && !u.me) { const d = u.debuffs.find(x => x.end?.p === 'jump' && x.end.boost > 0 && !x.stepped); if (d && stepAway(f, u, d.left)) return; }
   // 회피가 끝나면 원래 자리로 복귀 (04 3장 상태 머신). 신중파는 1초 더 기다림
-  if (!u.fleeing && !u.pulled && !(u.padUntil != null && u.padUntil > f.t) && u.home >= 0 && u.cell !== u.home) {
+  if (!u.fleeing && !u.pulled && !(u.padUntil != null && u.padUntil > f.t) && !(u.awayUntil != null && u.awayUntil > f.t) && u.home >= 0 && u.cell !== u.home) {
     const h = f.cells[u.home];
     if (!h.unit && !h.block && !dangerAt(f, u.home)) {
       if (u.homeAt == null) u.homeAt = f.t + 1 + (u.p.react && u.p.react < 1 ? 1 : 0);
