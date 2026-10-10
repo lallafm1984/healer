@@ -175,6 +175,12 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   archive: ['staff', 'vestment', 'signet'],
   ossuary: ['scepter', 'ring', 'beads'],
   abyss1: ['vestment'], abyss2: ['mail'], abyss3: ['wraps'], abyss4: ['gloves'], abyss5: ['pendant'],
+  // 묶음 B 짠물 해적단 (46 6장): 탐험은 종류 2, 레이드는 칸마다 1. 탑 칸 · 늪지 어귀와 같은 조합이 되지 않게 해변 · 부두 · 등대 · 갑판 · 창고 · 꼭대기를 46 표에서 바꿈
+  shellbeach: ['staff', 'gloves'],
+  wreck: ['ring', 'wraps'],
+  gull1: ['signet'], gull2: ['ring'], gull3: ['robe'],
+  queen1: ['scepter'], queen2: ['beads'], queen3: ['hood'],
+  isle1: ['staff'], isle2: ['crown'], isle3: ['mace'],
 };
 export const KIND_WEIGHT = 3;
 

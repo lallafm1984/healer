@@ -5,7 +5,7 @@ import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
 import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
-import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, specDeath, specJump, sv } from './specials';
+import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, specDeath, specDebuffEnd, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
 
@@ -244,6 +244,7 @@ export function spread(f: Fight, u: Unit): void {
 
 export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
   if (u.soul) { u.soul.cleansed = dispelled; return; } // 헤매는 영혼: 해제로 바로 성공 (P-SOUL)
+  if (f.sp) specDebuffEnd(f, u, d); // 금빛수염 단추
   if (f.sp && dispelled && d.trap) { during(f, 'trap', () => { if (f.aff) affDebuffEnd(f, u, d, dispelled); if (d.end) debuffEnd(f, u, d, dispelled); }); return; } // 함정 감지 (42 해제 06)
   if (f.aff) affDebuffEnd(f, u, d, dispelled); // 어픽스 불안정·메아리
   if (d.end) debuffEnd(f, u, d, dispelled);
@@ -314,7 +315,7 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       const n = d.stack ?? 1, c = cellOf(f, u);
       const near = living(f).filter(v => v !== u && hexDist(cellOf(f, v), c) === 1);
       emit(f, { type: 'sound', name: 'burst' });
-      emit(f, { type: 'fx', name: 'bubble-pop', on: u.id });
+      emit(f, { type: 'fx', name: dispelled ? 'swell-pop' : 'explode', on: u.id }); // 지우면 퐁 (37 G), 두면 펑 (37 F)
       for (const v of near) damage(f, v, (dispelled ? e.pop : e.near) * n, true);
       if (!dispelled) damage(f, u, e.self * n, true);
       emit(f, { type: 'msg', text: dispelled ? `${d.name} ${n}중첩: 지워서 이웃 칸이 터짐` : `${d.name} ${n}중첩: ${u.nick} 터짐` });

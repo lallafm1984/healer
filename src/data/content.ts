@@ -11,7 +11,8 @@ export type ContentKind = 'explore' | 'dungeon' | 'raid';
 export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathedral1' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple'
   | 'watchtower' | 'archive' | 'ossuary' | 'sewer'
   | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge'
-  | 'bookfield' | 'rosemaze'
+  | 'bookfield' | 'rosemaze' | 'shellbeach' | 'wreck'
+  | 'gull1' | 'gull2' | 'gull3' | 'queen1' | 'queen2' | 'queen3' | 'isle1' | 'isle2' | 'isle3'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -80,9 +81,18 @@ export const CONTENT: ContentDef[] = [
     fights: () => DUNGEONS.abyssedge.segments, size: three,
   },
   // 탐험 ⑨~⑫ (46 1-1, 묶음 B): ⑩ ⑫는 옛 세력 던전 보스를 빌려 다음 던전 예습
+  // 묶음 B 탐험 ⑨ ⑪ (46 1-1): 짠물 해적단 10인 레이드 예습
+  {
+    key: 'shellbeach', kind: 'explore', name: '조개껍데기 해변', place: '산호 해안 · 짠물 해적단', stageLv: 36, unlockLv: 36, ready: true, bosses: ['집게발 갑판장'],
+    fights: () => DUNGEONS.shellbeach.segments, size: three,
+  },
   {
     key: 'bookfield', kind: 'explore', name: '책갈피 설원', place: '설원 · 마도사', stageLv: 40, unlockLv: 40, ready: true, bosses: ['서고 사서'],
     fights: () => DUNGEONS.bookfield.segments, size: three,
+  },
+  {
+    key: 'wreck', kind: 'explore', name: '난파선 모래톱', place: '산호 해안 · 짠물 해적단', stageLv: 44, unlockLv: 44, ready: true, bosses: ['해적 선장 금빛수염'],
+    fights: () => DUNGEONS.wreck.segments, size: three,
   },
   {
     key: 'rosemaze', kind: 'explore', name: '장미 울타리 미로', place: '백합 영지 · 귀족가', stageLv: 48, unlockLv: 48, ready: true, bosses: ['백합 여사제'],
@@ -143,6 +153,20 @@ export const CONTENT: ContentDef[] = [
     ['abyss5', '심연의 탑 꼭대기', '첨탑 · 심연의 군주', '심연의 군주', 'abysslord'],
   ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: 35, unlockLv: 35, ready: true, fights: () => [enc], size: () => 10, diffUnlock: { '악몽': 50 },
+  })),
+  // 묶음 B 10인 ②~④ (46 1-3): 짠물 해적단, 칸마다 보스 1. 악몽 = 열림 + 15 (34 5-2)
+  ...([
+    ['gull1', '갈매기 항구 부두', '갈매기 항구 · 집게발 갑판장', '집게발 갑판장', 'crab', 39],
+    ['gull2', '갈매기 항구 주방', '생선 시장 주방 · 해적 요리사 왕솥', '해적 요리사 왕솥', 'cook', 39],
+    ['gull3', '갈매기 항구 등대', '등대 아래 부두 · 부선장 갈고리 모렐', '부선장 갈고리 모렐', 'morel', 39],
+    ['queen1', '짠물 여왕호 갑판', '짠물 여왕호 · 포수장 쾅쾅', '포수장 쾅쾅', 'gunner', 43],
+    ['queen2', '짠물 여왕호 창고', '갑판 밑 창고 · 문어 꾸물이', '문어 꾸물이', 'octo', 43],
+    ['queen3', '짠물 여왕호 뱃머리', '뱃머리 · 바다 마녀 미역 할멈', '바다 마녀 미역 할멈', 'seawitch', 43],
+    ['isle1', '보물섬 요새 동굴', '보물 동굴 · 보물 상자 덥석이', '보물 상자 덥석이', 'mimic', 47],
+    ['isle2', '보물섬 요새 망루', '앵무새 망루 · 앵무새 대장 깍깍', '앵무새 대장 깍깍', 'parrot', 47],
+    ['isle3', '보물섬 요새 꼭대기', '꼭대기 보물 더미 · 해적 선장 금빛수염', '해적 선장 금빛수염', 'goldbeard', 47],
+  ] as const).map(([key, name, place, boss, enc, lv]): ContentDef => ({
+    key, bosses: [boss], kind: 'raid', name, place, stageLv: lv, unlockLv: lv, ready: true, fights: () => [enc], size: () => 10, diffUnlock: { '악몽': lv + 15 },
   })),
   {
     // 20인 레이드 (26 4장): 따로 된 레이드, 난이도 4개 모두 20인

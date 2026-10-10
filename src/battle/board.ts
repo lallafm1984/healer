@@ -589,9 +589,9 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   slow: { size: 1.6, color: 0x8fd3ff, ms: 700 },
   absorb: { size: 1.5, color: 0xb48be8, ms: 600 },
   cheer: { size: 1.4, color: 0xffd166, ms: 700, up: 0.4 },
-  // 묶음 B (46 5장, 그림 요청 47): 부풀기 거품 터짐 · 치유 상한 먹물 · 뒤집힘 금화
-  'bubble-pop': { size: 2.2, color: 0x7ee36a, ms: 550 },
-  ink: { size: 1.4, color: 0x3a3550, ms: 600 },
+  // 묶음 B (46 5장, 그림 37 G · 47 E): 부풀기 지워서 퐁 · 치유 상한 먹물 · 뒤집힘 금화
+  'swell-pop': { size: 2.2, color: 0x7ee36a, ms: 550 },
+  'ink-splat': { size: 1.4, color: 0x3a3550, ms: 600 },
   'coin-flip': { size: 1.2, color: 0xffd166, ms: 650, up: 0.5 },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */

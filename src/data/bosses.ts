@@ -442,6 +442,38 @@ export interface BossDef {
 const AUTO = (dmg: number): SkillDef => ({ key: 'auto', hidden: true, first: 2, period: 2, cast: 0, effect: { p: 'auto', dmg } });
 const BUSTER = (name: string, icon: string, first: number, period: number, dmg: number): SkillDef =>
   ({ key: 'buster', name, icon, kind: 'buster', first, period, cast: 2, warn: 'buster', dmg, target: 'tank', effect: { p: 'tank' } });
+/** 탱커 교대 버스터 (P-TANK + P-SWAP, 46 4장): 12초마다 2초 예고, 맞은 탱커에게 받는 피해 +12% 자국 (20초), 3중첩이면 다른 탱커가 가져감 */
+const SWAP_BUSTER = (name: string, icon: string, mark: string, dmg: number): SkillDef =>
+  ({ key: 'buster', name, icon, kind: 'buster', first: 8, period: 12, cast: 2, warn: 'buster', dmg, target: 'tank',
+    effect: { p: 'tank', debuff: { name: mark, type: '물리', left: 20, lock: true, stackMax: 3, vuln: 0.12, swap: 3 } } });
+/** 독 거품 (P-SWELL, 46 4-1): left초, 4초마다 1중첩 (최대 max). 지우면 이웃 중첩 × 딜체 6%, 두면 본인 × 12% + 이웃 × 8%. x = 탐험판 배율 */
+const bubble = (left: number, max: number, x = 1): DebuffDef =>
+  ({ name: '독 거품', type: '독', left, swell: { every: 4, max }, end: { p: 'pop', pop: U.dps(0.06 * x), self: U.dps(0.12 * x), near: U.dps(0.08 * x) } });
+const BUBBLE_HOW = '시간이 갈수록 거품이 커짐. 지우면 옆 칸 사람만 조금, 두면 본인과 옆 칸이 크게 터짐. 1~2중첩이고 옆이 비었을 때 지우기';
+/** 독 거품 페이즈 · 악몽 변화 (페이즈마다 인원, 악몽은 5중첩 20초 · 중첩당 피해 80%: 못 지우는 사제도 5중첩을 버팀): 같은 타이머라 [페이즈, 인원] × 악몽 아님/악몽 */
+const bubbles = (byPhase: [number, number][], first: number, period: number): SkillDef[] => byPhase.flatMap(([phase, n]) =>
+  ([false, true] as const).map((mythic): SkillDef => ({
+    key: `bubble${phase}${mythic ? 'm' : ''}`, name: '독 거품', icon: '거품', kind: 'instant', first, period, cast: 0, when: { phase: [phase], mythic }, how: BUBBLE_HOW,
+    effect: { p: 'debuff', n, pick: 'others', debuff: mythic ? bubble(20, 5, 0.8) : bubble(16, 4) },
+  })));
+/**
+ * 동전 뒤집기 (P-FLIP, 46 4-3): 10초 뒤 체력 비율이 뒤집힘 (가장 낮아도 5%), 지우면 사라짐.
+ * 걸린 동안 초당 딜체 4%가 빠져 (10초에 40%) 힐을 멈추면 가득 찬 사람도 60%쯤 → 40%로 뒤집힘. 계속 채우면 5%까지 떨어짐
+ */
+const COIN: DebuffDef = { name: '동전 뒤집기', type: '저주', left: 10, dot: U.dps(0.04), end: { p: 'flip' } };
+const COIN_HOW = '끝날 때 체력 비율이 뒤집힘 (90% → 10%). 걸린 동안 체력이 조금씩 빠지니 힐을 멈추고 두면 반쯤에서 뒤집힘. 저주를 지우는 직업은 지움';
+const INK_HOW = '체력이 일정 비율까지만 참 (물통에 먹물 선). 상한까지는 채워 두고, 큰 피해가 오기 전에 보호막 · 해제';
+/** 못 피하는 줄 피해 (P-ROW): 뒷줄 → 가운데 → 앞줄을 period초마다 번갈아. two = 2페이즈부터 다른 한 줄을 같이 */
+const rows = (key: string, name: string, icon: string, first: number, period: number, dmg: number, two: boolean): SkillDef[] => {
+  const at = ['back', 'mid', 'front'] as const;
+  return [0, 1, 2].flatMap((i): SkillDef[] => {
+    const one = (k: string, line: (typeof at)[number], when?: SkillWhen): SkillDef => ({
+      key: k, name, icon, kind: 'zone', first: first + period * i, period: period * 3, cast: 3, warn: 'zone', fixed: true, hitDmg: dmg, cells: { p: 'line', at: line }, when,
+      how: '그 줄에 선 사람이 맞음 (못 피함). 예고된 줄을 미리 채우기',
+    });
+    return two ? [one(`${key}${i}`, at[i]), one(`${key}${i}b`, at[(i + 1) % 3], { phase: [2] })] : [one(`${key}${i}`, at[i])];
+  });
+};
 
 /** 유령 성가대 수치 (26 4-3, 보통 기준. 피해는 난이도·단계 배율을 곱함) */
 export const CHOIR = {
@@ -985,6 +1017,219 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'storm', name: '꽃잎 폭풍', icon: '폭풍', kind: 'aoe', first: 23, period: 36, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.21) } },
     ],
     enrage: { name: '꽃잎 폭주', period: 2, dmg: 195 },
+  },
+  // ---------- 묶음 B 짠물 해적단 (46 4장, 해제 독 + 저주: 사제는 힐로, 성기사는 독, 드루이드는 둘 다) ----------
+  // 집게발 갑판장 탐험판 (46 1-1, 탐험 ⑨ 조개껍데기 해변 Lv 36): 평타 · 집게 조이기 · 독 거품 1명 (3중첩까지). 부풀기 예습 (10인 ②)
+  crab36: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('집게 조이기', '집게', 8, 14, 350),
+      { key: 'bubble', name: '독 거품', icon: '거품', kind: 'instant', first: 10, period: 20, cast: 0, how: BUBBLE_HOW,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: bubble(12, 3, 0.7) } },
+    ],
+    enrage: { name: '갑판 청소 끝', period: 2, dmg: 190 },
+  },
+  // 해적 선장 금빛수염 탐험판 (46 1-1, 탐험 ⑪ 난파선 모래톱 Lv 44): 평타 · 금도끼 · 동전 뒤집기 1명. 뒤집힘 저주 예습 (10인 ④)
+  goldbeard44: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('금도끼', '도끼', 8, 16, 385),
+      { key: 'coin', name: '동전 뒤집기', icon: '동전', kind: 'instant', first: 12, period: 25, cast: 0, how: COIN_HOW,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: COIN } },
+    ],
+    enrage: { name: '보물 사수', period: 2, dmg: 195 },
+  },
+  // 집게발 갑판장 (46 4-1 부두, 10인 ② 갈매기 항구): 부풀기 × 탱커 교대. 50% 아래 독 거품 3명 · 집게 10초. 악몽은 거품 5중첩 (20초). 목표 4:30 · 광폭화 6:00
+  crab: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('집게 조이기', '집게', '집게 자국', U.tank(0.5)),
+      ...bubbles([[1, 2], [2, 3]], 10, 20),
+      { key: 'wave', name: '거품 파도', icon: '파도', kind: 'aoe', first: 20, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'buster', sec: 10 }, { p: 'text', text: '껍데기 벗기: 독 거품 3명, 집게가 잦아짐' }] }],
+    enrage: { name: '갑판 청소 끝', period: 3, dmg: 180 },
+  },
+  // 해적 요리사 왕솥 (46 4-1 주방): 등대지기 구하기 (사람 칸) × 큰 쫄 (주방 보조 바다코끼리). 30% 아래 보조 2마리. 악몽은 등대지기 20초. 목표 5:00 · 광폭화 6:30
+  cook: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('국자 내려치기', '국자', 8, 16, U.tank(0.55)),
+      ...([['helper', 1, 1], ['helper2', 2, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '주방 보조 부르기', icon: '보조', kind: 'instant', first: 20, period: 45, cast: 0, when: { phase: [phase] },
+        how: '바다코끼리를 부탱커가 끌고, 10초마다 부탱커에게 국자 강타. 보스 국자와 겹치는 순간 두 탱커를 같이 채우기',
+        effect: { p: 'adds', n, add: { name: '주방 보조 바다코끼리', short: '보조', art: 'mob-walrus-helper', hp: 0.04, dmg: 0, every: 0, at: 'front', job: { p: 'smash', every: 10, warn: 2, dmg: U.tank(0.5) } } },
+      })),
+      ...([['keeper', 25, false], ['keeper2', 20, true]] as const).map(([key, sec, mythic]): SkillDef => ({
+        key, name: '그물에 묶인 등대지기', icon: '등대', kind: 'instant', first: 30, period: 50, cast: 0, when: { mythic },
+        how: '등대지기 칸을 단일 힐로 가득 채우면 등대가 켜져 보스가 약해짐. 파티 힐을 잠깐 멈추고 투자할지',
+        effect: { p: 'soul', name: '등대지기 할아버지', short: '등대', art: 'mob-lighthouse-keeper', hp: 0.3, sec,
+          win: { text: '등대가 켜짐: 보스 피해 −25% · 받는 치유 +20%', weak: { pct: 0.25, sec: 15 }, heal: { pct: 0.2, sec: 15 } },
+          fail: { text: '수프 넘침', dmg: U.dps(0.3) } },
+      })),
+      { key: 'soup', name: '끓어 넘치는 수프', icon: '수프', kind: 'zone', first: 15, period: 30, cast: 2.5, warn: 'zone', dps: U.dps(0.08), dur: 4, cells: { p: 'flow', every: 2, from: 'alt' } },
+      { key: 'pepper', name: '매운 고추 가루', icon: '고추', kind: 'instant', first: 10, period: 20, cast: 0,
+        effect: { p: 'debuff', n: 3, debuff: { name: '매운 고추 가루', type: '독', left: 10, dot: U.dps(0.02) } } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '마지막 요리: 주방 보조 2마리' }] }],
+    enrage: { name: '수프 폭발', period: 3, dmg: 180 },
+  },
+  // 부선장 갈고리 모렐 (46 4-1 등대, 10인 ② 최종): 피난처 × 부풀기 (큰 파도에 모이기 전에 거품을 터뜨림) · 갈고리 낚기. 30% 아래 큰 파도 30초.
+  // 악몽은 독 거품 3명. 목표 5:30 · 광폭화 7:00
+  morel: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('갈고리 베기', '갈고', '갈고리 상처', U.tank(0.5)),
+      { key: 'pull', name: '갈고리 낚기', icon: '낚기', kind: 'buster', first: 14, period: 26, cast: 2, warn: 'buster', target: { p: 'back', n: 1 }, effect: { p: 'pull', sec: 6, dmg: U.dps(0.1) } },
+      ...([['bubble', 2, false], ['bubble3', 3, true]] as const).map(([key, n, mythic]): SkillDef => ({
+        key, name: '독 거품', icon: '거품', kind: 'instant', first: 10, period: 22, cast: 0, when: { mythic }, how: `${BUBBLE_HOW}. 큰 파도로 모이기 전에 터뜨려 두기`,
+        effect: { p: 'debuff', n, pick: 'others', debuff: bubble(16, 4) },
+      })),
+      { key: 'wave', name: '큰 파도', icon: '파도', kind: 'zone', first: 35, period: 40, cast: 4.5, warn: 'zone', hitDmg: U.dps(0.7), cells: { p: 'safe', at: 'center', n: 6, tank: true },
+        how: '파티원이 가운데 돛대 옆 금빛 칸으로 모임. 늦을 사람에게 미리 보호막, 거품은 모이기 전에 지우기' },
+      { key: 'song', name: '해적의 노래', icon: '노래', kind: 'aoe', first: 22, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'wave', sec: 30 }, { p: 'text', text: '「선장님 오신다!」: 큰 파도가 잦아짐' }] }],
+    enrage: { name: '허세 폭발', period: 3, dmg: 190 },
+  },
+  // 포수장 쾅쾅 (46 4-2 갑판, 10인 ③ 짠물 여왕호): 줄 피해 (못 피함) × 자폭 쫄 (화약통) · 폭탄. 40% 아래 포격 두 줄. 악몽은 화약통 2개. 목표 4:45 · 광폭화 6:15
+  gunner: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('꽂을대 찌르기', '꽂을', '화약 자국', U.tank(0.5)),
+      ...rows('broadside', '옆구리 포격', '포격', 15, 20, U.dps(0.35), true),
+      { key: 'barrel', name: '굴러오는 화약통', icon: '화약', kind: 'instant', first: 18, period: 25, cast: 0,
+        how: '노린 사람에게 한 칸씩 굴러감. 붙으면 그 사람과 이웃이 크게 아프니 노린 사람을 미리 가득 채우기',
+        effect: { p: 'adds', n: 1, nMythic: 2, add: { name: '굴러오는 화약통', short: '통', art: 'mob-powder-barrel', hp: 0.01, dmg: 0, every: 2, job: { p: 'fixate', every: 2, dmg: U.dps(0.6), splash: U.dps(0.2), from: 3 } } } },
+      { key: 'keg', name: '불붙은 화약통', icon: '폭탄', kind: 'instant', first: 30, period: 35, cast: 0,
+        how: '8초 안에 딜러가 못 깨면 전원이 아픔. 폭탄을 깰 딜러의 침묵 (안 들려!)부터 지우고, 못 깰 것 같으면 광역 선힐',
+        effect: { p: 'adds', n: 2, add: { name: '불붙은 화약통', short: '폭', art: 'mob-lit-keg', hp: 0.012, dmg: 0, every: 0, job: { p: 'bomb', sec: 8, dmg: U.dps(0.3) } } } },
+      { key: 'deaf', name: '안 들려!', icon: '귀막', kind: 'instant', first: 10, period: 22, cast: 2, cut: true,
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '안 들려!', type: '저주', left: 8, noDps: true } } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '일제 사격: 옆구리 포격 두 줄' }] }],
+    enrage: { name: '전 포문 발사', period: 3, dmg: 180 },
+  },
+  // 문어 꾸물이 (46 4-2 창고): 치유 상한 (먹물) × 감옥 (꼭 껴안기) · 꿈틀 촉수. 40% 아래 먹물 4명 · 상한 50%. 악몽은 꼭 껴안기 2명. 목표 5:00 · 광폭화 6:30
+  octo: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('촉수 후려치기', '촉수', '빨판 자국', U.tank(0.5)),
+      ...([['ink', 3, 0.6, 1], ['ink2', 4, 0.5, 2]] as const).map(([key, n, cap, phase]): SkillDef => ({
+        key, name: '먹물 뿜기', icon: '먹물', kind: 'instant', first: 10, period: 22, cast: 0, when: { phase: [phase] }, how: INK_HOW,
+        effect: { p: 'debuff', n, pick: 'others', debuff: { name: '먹물', type: '독', left: 15, cap } },
+      })),
+      { key: 'hug', name: '꼭 껴안기', icon: '껴안', kind: 'instant', first: 20, period: 30, cast: 0,
+        how: '갇힌 사람은 딜 0 · 초당 피해. 딜러가 감옥을 깰 때까지 단일 힐. 먹물이 걸린 사람이 갇히면 상한부터 지우기',
+        effect: { p: 'jail', n: 1, nMythic: 2, name: '촉수 감옥', short: '촉수', hp: 0.02, dot: U.dps(0.03) } },
+      { key: 'arms', name: '꿈틀 촉수', icon: '꿈틀', kind: 'instant', first: 25, period: 40, cast: 0,
+        effect: { p: 'adds', n: 2, add: { name: '꿈틀 촉수', short: '촉수', art: 'mob-tentacle', hp: 0.015, dmg: U.dps(0.05), every: 2 } } },
+      { key: 'wave', name: '먹물 파도', icon: '파도', kind: 'aoe', first: 24, period: 26, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '신난 문어: 먹물 4명, 상한 50%' }] }],
+    enrage: { name: '먹물 폭풍', period: 3, dmg: 180 },
+  },
+  // 바다 마녀 미역 할멈 (46 4-2 뱃머리, 10인 ③ 최종): 사슬 균형 × 치유 상한 (소금물 저주가 사슬 짝에게 먼저). 35% 아래 사슬 3쌍.
+  // 악몽은 사슬 차이 25%p. 목표 5:45 · 광폭화 7:15
+  seawitch: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('미역 채찍', '미역', '짠물 자국', U.tank(0.5)),
+      ...([['chain', 1, false], ['chainB', 1, false], ['chainC', 2, false], ['chainM', 1, true], ['chainBM', 1, true], ['chainCM', 2, true]] as const).map(([key, phase, mythic]): SkillDef => ({
+        key, name: '미역 사슬', icon: '사슬', kind: 'instant', first: 12, period: 30, cast: 0, when: phase === 1 ? { mythic } : { phase: [2], mythic },
+        how: '두 사람 체력 비율 차이가 벌어지면 끊어지며 둘 다 아픔. 둘을 같이 채우기 (한쪽에 소금물 저주가 걸리면 다른 쪽을 너무 채우지 않기)',
+        effect: { p: 'link', kind: 'balance', name: '미역 사슬', sec: 15, pick: 'others', gap: mythic ? 0.25 : 0.3, dmg: U.dps(0.35) },
+      })),
+      { key: 'brine', name: '소금물 저주', icon: '소금', kind: 'instant', first: 15, period: 30, cast: 0, how: INK_HOW,
+        effect: { p: 'debuff', n: 2, pick: 'linked', debuff: { name: '소금물 저주', type: '저주', left: 12, cap: 0.6 } } },
+      { key: 'tide', name: '밀물', icon: '밀물', kind: 'zone', first: 18, period: 24, cast: 3, warn: 'zone', dps: U.dps(0.08), dur: 8, cells: { p: 'line', at: 'back' } },
+      { key: 'foam', name: '거품 점괘', icon: '점괘', kind: 'aoe', first: 22, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.24) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.35 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '큰 물때: 미역 사슬 3쌍' }] }],
+    enrage: { name: '대해일', period: 3, dmg: 190 },
+  },
+  // 보물 상자 덥석이 (46 4-3 동굴, 10인 ④ 보물섬 요새): 삼키기 × 마나 갈취 (금화 더미). 40% 아래 덥석 2명. 악몽은 금화 더미 3. 목표 4:45 · 광폭화 6:15
+  mimic: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('뚜껑 쾅', '뚜껑', '뚜껑 자국', U.tank(0.5)),
+      ...([['gulp', 1, 1], ['gulp2', 2, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '덥석!', icon: '덥석', kind: 'buster', first: 14, period: 30, cast: 2, warn: 'buster', target: { p: 'back', n }, when: { phase: [phase] },
+        how: '삼켜진 사람은 딜 0 · 초당 피해, 보스를 4% 깎으면 나옴. 삼켜진 사람에게 지속 힐, 딜러를 살려 두기',
+        effect: { p: 'debuff', n, pick: 'tel', debuff: { name: '덥석!', type: '물리', left: 10, dot: U.dps(0.03), lock: true, hide: true, noMove: true, noDps: true, untilBossLoss: 0.04 } },
+      })),
+      { key: 'gold', name: '금화 더미', icon: '금화', kind: 'instant', first: 19, period: 35, cast: 0,
+        how: '금화 더미가 살아 있는 동안 한 개마다 내 마나가 샘. 마나 물약 · 아끼는 힐로 버티기',
+        effect: { p: 'adds', n: 2, nMythic: 3, add: { name: '금화 더미', short: '금화', art: 'mob-gold-pile', hp: 0.015, dmg: 0, every: 2, at: 'random', job: { p: 'drain', pct: 0.4 } } } },
+      { key: 'rain', name: '금화 비', icon: '금비', kind: 'aoe', first: 22, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '배고픈 상자: 덥석 2명' }] }],
+    enrage: { name: '금화 폭식', period: 3, dmg: 180 },
+  },
+  // 앵무새 대장 깍깍 (46 4-3 망루): 차례 × 느린 시전 (깃털 회오리가 차례 1초 앞). 40% 아래 차례 5명. 악몽은 회오리 시전 ×2.5. 목표 5:00 · 광폭화 6:30
+  parrot: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('부리 쪼기', '부리', '깃털 자국', U.tank(0.5)),
+      ...([['order', 4, 1], ['order2', 5, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '깍! 순서대로!', icon: '차례', kind: 'instant', first: 25, period: 35, cast: 0, when: { phase: [phase] },
+        how: '번호 순서대로 직접 힐을 한 번씩. 깃털 회오리로 시전이 느린 동안이면 즉시 힐 · 빠른 힐로',
+        effect: { p: 'order', n, sec: 10, wrong: U.dps(0.2), miss: U.dps(0.25), daze: { sec: 5, vuln: 1.2 } },
+      })),
+      ...([['gust', 2, false], ['gust2', 2.5, true]] as const).map(([key, mult, mythic]): SkillDef => ({
+        key, name: '깃털 회오리', icon: '회오', kind: 'instant', first: 22, period: 35, cast: 2, warn: 'aoe', when: { mythic },
+        how: '6초 동안 내 시전 시간이 느려짐. 곧 올 차례는 즉시 힐 · 빠른 힐로', effect: { p: 'slow', sec: 6, mult },
+      })),
+      { key: 'mimicry', name: '앵무새 흉내', icon: '흉내', kind: 'instant', first: 10, period: 20, cast: 0,
+        effect: { p: 'debuff', n: 2, debuff: { name: '앵무새 흉내', type: '저주', left: 10, dot: U.dps(0.02), healCut: 0.25 } } },
+      { key: 'flap', name: '날갯짓', icon: '날개', kind: 'aoe', first: 15, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '「깍깍깍!」: 차례 5명' }] }],
+    enrage: { name: '깃털 폭풍', period: 3, dmg: 180 },
+  },
+  // 해적 선장 금빛수염 (46 4-3 꼭대기, 10인 ④ 최종 · 해적단 수장): 뒤집힘 저주. 60% 「선원들, 덤벼!」 (갑판 청소부 · 금화 비) → 30% 「내 보물!」 (10초마다 보스 +5%,
+  // 동전 뒤집기 18초). 악몽은 동전 뒤집기 3명. 목표 6:00 · 광폭화 7:30
+  goldbeard: {
+    phase: [1, '1페이즈'],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('금도끼', '도끼', '금도끼 자국', U.tank(0.55)),
+      ...([['coin', 2, false], ['coin3', 3, true]] as const).map(([key, n, mythic]): SkillDef => ({
+        key, name: '동전 뒤집기', icon: '동전', kind: 'instant', first: 12, period: 25, cast: 0, when: { mythic }, how: COIN_HOW,
+        effect: { p: 'debuff', n, pick: 'others', debuff: COIN },
+      })),
+      ...rows('cannon', '보물 지도 포격', '포격', 16, 22, U.dps(0.3), false),
+      { key: 'roar', name: '해적의 함성', icon: '함성', kind: 'aoe', first: 14, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
+      { key: 'crew', name: '선원들, 덤벼!', icon: '선원', kind: 'instant', first: null, period: 30, cast: 0, when: { phase: [2] },
+        how: '갑판 청소부를 부탱커가 끌고 딜러가 잡음. 두 탱커를 같이 채우기',
+        effect: { p: 'adds', n: 3, add: { name: '갑판 청소부', short: '청소', art: 'mob-deck-swab', hp: 0.02, dmg: U.dps(0.04), every: 2 } } },
+      { key: 'goldrain', name: '금화 비', icon: '금비', kind: 'aoe', first: null, period: 30, cast: 3, warn: 'aoe', when: { phase: [2, 3] }, effect: { p: 'all', dmg: U.dps(0.18) } },
+      { key: 'raincoin', name: '동전 뒤집기', icon: '동전', kind: 'instant', first: null, period: 30, cast: 0, when: { phase: [2, 3] }, how: COIN_HOW,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: COIN } },
+      { key: 'treasure', name: '내 보물!', icon: '보물', kind: 'instant', first: null, period: 10, cast: 0, when: { phase: [3] },
+        how: '10초마다 보스가 주는 피해 +5% (끝까지). 마나를 3페이즈에 남겨 두기', effect: { p: 'empower', boost: 0.05 } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.6 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 선원들, 덤벼!' }, { p: 'start', skill: 'crew', in: 2 }, { p: 'start', skill: 'goldrain', in: 8 }, { p: 'start', skill: 'raincoin', in: 11 },
+        { p: 'text', text: '선원들, 덤벼!: 갑판 청소부 3 · 금화 비에 동전 뒤집기 1명 더' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.3 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 내 보물!' }, { p: 'start', skill: 'treasure', in: 10 }, { p: 'period', skill: 'coin', sec: 18 }, { p: 'period', skill: 'coin3', sec: 18 },
+        { p: 'text', text: '내 보물!: 10초마다 보스 피해 +5%, 동전 뒤집기가 잦아짐' },
+      ] },
+    ],
+    enrage: { name: '보물 사수', period: 3, dmg: 200 },
   },
   // 녹슨 문지기 (05 1장): 40% 아래 녹물 웅덩이
   warden: {

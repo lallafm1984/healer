@@ -617,7 +617,7 @@ export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
   if (d.maxCut) setMax(u);
   if (d.untilBossLoss != null) d.bossAt = f.bossHp;
   if (d.absorb) { d.absorbLeft = d.absorb * f.dmgMult; emit(f, { type: 'fx', name: 'absorb', on: u.id }); } // 치유 흡수 막 (P-ABSORB)
-  if (d.cap != null) emit(f, { type: 'fx', name: 'ink', on: u.id }); // 치유 상한 (P-CAP)
+  if (d.cap != null) emit(f, { type: 'fx', name: 'ink-splat', on: u.id }); // 치유 상한 (P-CAP, 그림 47 E)
   return d;
 }
 

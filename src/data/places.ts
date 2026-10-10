@@ -5,11 +5,12 @@
 import type { ContentKey } from './content';
 import type { EncounterKey } from './encounters';
 
-export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'hill' | 'abyss';
+export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'hill' | 'abyss' | 'pirate';
 export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple' | 'abyss' | 'cathedral'
   | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge' | 'watchtower'
   | 'abyss-garden' | 'abyss-gallery' | 'abyss-observatory' | 'abyss-spire'
-  | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary';
+  | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary'
+  | 'shellbeach' | 'wreck' | 'gull' | 'gull-kitchen' | 'gull-lighthouse' | 'queen' | 'queen-hold' | 'queen-bow' | 'isle' | 'isle-lookout' | 'isle-summit';
 
 export interface Faction {
   name: string;
@@ -32,6 +33,8 @@ export const FACTIONS: Record<FactionKey, Faction> = {
   // 해바라기 언덕은 시안에 없어서 테마 금테 색
   hill: { name: '해바라기 언덕', color: '#C9A35C', mark: { rim: '#9C7A3C', glyph: '#D9B26A' }, dispel: ALL_DISPEL },
   abyss: { name: '심연', color: '#E6D3A0', mark: { rim: '#E6E0D0', glyph: '#E6E0D0', dark: true }, dispel: ALL_DISPEL },
+  // 묶음 B 새 세력 (46 0-2): 산호 해안의 짠물 해적단, 바다 청록
+  pirate: { name: '짠물 해적단', color: '#2BB5B0', mark: { rim: '#3A9C98', glyph: '#6FD0C8' }, dispel: ['독', '저주'] },
 };
 
 export interface Place {
@@ -74,6 +77,18 @@ export const PLACES: Record<PlaceKey, Place> = {
   sewer: { key: 'sewer', name: '역병 수로', faction: 'plague', tone: ['#2E3326', '#12140E'], borrow: 'crypt' },
   archive: { key: 'archive', name: '얼음 서고', faction: 'mage', tone: ['#26344A', '#0E131C'], borrow: 'frost' },
   ossuary: { key: 'ossuary', name: '백합 납골당', faction: 'noble', tone: ['#2E2838', '#120F16'], borrow: 'manor' },
+  // 묶음 B 짠물 해적단 (46 1장, 그림 요청 47): 레이드 칸은 그 레이드 첫 칸 그림을, 난파선 모래톱은 조개껍데기 해변 그림을 빌림
+  shellbeach: { key: 'shellbeach', name: '조개껍데기 해변', faction: 'pirate', tone: ['#24383A', '#0C1617'] },
+  wreck: { key: 'wreck', name: '난파선 모래톱', faction: 'pirate', tone: ['#2E3634', '#111614'], borrow: 'shellbeach' },
+  gull: { key: 'gull', name: '갈매기 항구', faction: 'pirate', tone: ['#22343A', '#0B1417'] },
+  'gull-kitchen': { key: 'gull-kitchen', name: '생선 시장 주방', faction: 'pirate', tone: ['#36302A', '#15120F'], borrow: 'gull' },
+  'gull-lighthouse': { key: 'gull-lighthouse', name: '등대 아래 부두', faction: 'pirate', tone: ['#26323E', '#0D1218'], borrow: 'gull' },
+  queen: { key: 'queen', name: '짠물 여왕호', faction: 'pirate', tone: ['#30302C', '#121210'] },
+  'queen-hold': { key: 'queen-hold', name: '갑판 밑 창고', faction: 'pirate', tone: ['#2A2632', '#100E13'], borrow: 'queen' },
+  'queen-bow': { key: 'queen-bow', name: '뱃머리', faction: 'pirate', tone: ['#203440', '#0B1418'], borrow: 'queen' },
+  isle: { key: 'isle', name: '보물섬 요새', faction: 'pirate', tone: ['#2E3226', '#12140E'] },
+  'isle-lookout': { key: 'isle-lookout', name: '앵무새 망루', faction: 'pirate', tone: ['#28362C', '#0E1510'], borrow: 'isle' },
+  'isle-summit': { key: 'isle-summit', name: '꼭대기 보물 더미', faction: 'pirate', tone: ['#3A3424', '#16130C'], borrow: 'isle' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -83,6 +98,8 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   cemetery: 'cemetery', marsh: 'marsh', lily: 'lily', snowpass: 'snowpass', hillpath: 'hillpath', pilgrim: 'pilgrim', abyssedge: 'abyssedge', watchtower: 'watchtower',
   abyss2: 'abyss-garden', abyss3: 'abyss-gallery', abyss4: 'abyss-observatory', abyss5: 'abyss-spire',
   bookfield: 'bookfield', rosemaze: 'rosemaze', archive: 'archive', ossuary: 'ossuary', sewer: 'sewer',
+  shellbeach: 'shellbeach', wreck: 'wreck', gull1: 'gull', gull2: 'gull-kitchen', gull3: 'gull-lighthouse',
+  queen1: 'queen', queen2: 'queen-hold', queen3: 'queen-bow', isle1: 'isle', isle2: 'isle-lookout', isle3: 'isle-summit',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -102,6 +119,9 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   leakyway: 'sewer', ratking: 'sewer', sludgegrate: 'sewer', carrier: 'sewer',
   iceread: 'archive', librarian: 'archive', forbidden: 'archive', scholar: 'archive',
   petalstair: 'ossuary', priestess: 'ossuary', keeperhall: 'ossuary', sleeper: 'ossuary',
+  gullsand: 'shellbeach', crab36: 'shellbeach', wreckage: 'wreck', goldbeard44: 'wreck',
+  crab: 'gull', cook: 'gull-kitchen', morel: 'gull-lighthouse', gunner: 'queen', octo: 'queen-hold', seawitch: 'queen-bow',
+  mimic: 'isle', parrot: 'isle-lookout', goldbeard: 'isle-summit',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

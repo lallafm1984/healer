@@ -17,6 +17,7 @@ const fight = (hero: 'priest' | 'druid' | 'paladin' = 'druid', encounter: E.Figh
 const run = (f: Fight, e: SkillEffect) => runEffect(f, {} as BossSkill, e);
 /** u 옆 칸에 vs를 세우고 나머지는 u에게서 떨어뜨림 */
 function place(f: Fight, u: Unit, vs: Unit[]): void {
+  u.p = { ...u.p, dist: 1 }; // 사교형: 부풀기를 들어도 비켜 서지 않음
   const free = (c: Fight['cells'][number]) => !c.block && !f.party.some(w => w.cell === c.i);
   for (const w of f.party) if (w !== u && !vs.includes(w) && hexDist(f.cells[w.cell], f.cells[u.cell]) <= 1) {
     const far = f.cells.find(c => free(c) && hexDist(c, f.cells[u.cell]) >= 3)!;

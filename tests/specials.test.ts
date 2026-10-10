@@ -1,4 +1,4 @@
-/** 장비 특수능력 118종 + 이름 있는 장신구 22개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
+/** 장비 특수능력 118종 + 이름 있는 장신구 27개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { NAMED, SPEC_GROUPS, SPEC_KEYS, SPECS, specText, specTotals, specValue } from '../src/data/specials';
@@ -55,14 +55,14 @@ const absorb = (u: U) => u.mods.find(m => m.k === 'absorb')?.v ?? 0;
 const healOn = (f: F, id: number) => { for (const e of f.events) if (e.type === 'heal' && e.id === id) return e.amt; return 0; };
 
 describe('데이터', () => {
-  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 22개 (묶음 B 옛 세력 +5)', () => {
+  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 27개 (묶음 B 옛 세력 +5 · 해적단 +5)', () => {
     expect(SPEC_KEYS.length).toBe(118);
     expect(new Set(SPEC_KEYS).size).toBe(118);
     const by = (g: string) => SPEC_KEYS.filter(k => SPECS[k].group === g).length;
     expect(Object.keys(SPEC_GROUPS).map(by)).toEqual([16, 16, 14, 12, 10, 8, 10, 8, 24]);
     expect(SPEC_KEYS.filter(k => SPECS[k].hero).length).toBe(24);
-    expect(NAMED.length).toBe(22);
-    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(140);
+    expect(NAMED.length).toBe(27);
+    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(145);
   });
   it('직업 전용은 영웅 이상, 효과 글에 값이 들어감', () => {
     for (const k of SPEC_KEYS) {
@@ -935,6 +935,48 @@ describe('3 이름 있는 장신구', () => {
     const free = (f: F) => f.party.find(u => !u.debuffs.some(d => d.link) && u.role !== 'tank' && !u.me)!;
     expect(ratio(amtOn(a, 'flash', tied(a)), amtOn(b, 'flash', tied(b)))).toBeCloseTo(1.15, 2);
     expect(ratio(amtOn(a, 'flash', free(a)), amtOn(b, 'flash', free(b)))).toBeCloseTo(1, 6);
+  });
+  // 묶음 B 짠물 해적단 (46 6장)
+  it('소라 껍데기: 터지는 디버프를 지우면 대상과 이웃 칸 아군에게 보호막, 보통 디버프는 없음 (재사용 15초)', () => {
+    const [a] = pair('conchShell', 0.3);
+    const u = withAdj(a), near = adj(a, u);
+    addDebuff(a, u, { name: '보통', type: '마법', left: 30 });
+    cast(a, 'purify', u);
+    expect(absorb(u)).toBe(0);
+    step(a, 8.1);
+    addDebuff(a, u, { name: '모래 함정', type: '마법', left: 30, trap: true });
+    cast(a, 'purify', u);
+    expect(absorb(u)).toBeCloseTo(0.3 * 300, 4);
+    for (const v of near) expect(absorb(v)).toBeCloseTo(0.3 * 300, 4);
+    expect(a.party.filter(v => v !== u && !near.includes(v)).every(v => absorb(v) === 0)).toBe(true);
+  });
+  it('앞면 금화: 체력 40~60% 아군 직접 힐 +', () => {
+    const [a, b] = pair('luckyCoin', 0.12); both([a, b], f => hurt(f, 0.3));
+    expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1, 6);
+    both([a, b], f => hurt(f, 0.5));
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1.12, 2);
+  });
+  it('등대 불씨: 보스 큰 기술 예고가 떠 있는 동안 광역 힐 +, 단일 힐은 그대로', () => {
+    const [a, b] = pair('lighthouseEmber', 0.15); both([a, b], f => hurt(f));
+    expect(ratio(amtOn(a, 'poh', tank(a)), amtOn(b, 'poh', tank(b)))).toBeCloseTo(1, 6);
+    both([a, b], f => { hurt(f); f.tels.push({ kind: 'aoe', impact: 99 } as never); });
+    expect(ratio(amtOn(a, 'poh', tank(a)), amtOn(b, 'poh', tank(b)))).toBeCloseTo(1.15, 2);
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1, 6);
+  });
+  it('선원의 나침반: 치유 상한 · 받는 치유 감소가 걸린 아군 힐 +', () => {
+    const [a, b] = pair('sailorCompass', 0.2); both([a, b], f => hurt(f));
+    expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1, 6);
+    both([a, b], f => { addDebuff(f, tank(f), { name: '흉내 저주', type: '저주', left: 30, healCut: 0.25 }); addDebuff(f, dealer(f), { name: '먹물', type: '독', left: 30, cap: 0.95 }); });
+    expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1.2, 2);
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1.2, 2);
+  });
+  it('금빛수염 단추: 디버프가 끝난 아군의 다음 직접 힐 한 번만 +, 숨은 디버프는 안 셈', () => {
+    const [a, b] = pair('goldButton', 0.25); both([a, b], f => hurt(f));
+    both([a, b], f => { addDebuff(f, dealer(f), { name: '짧은 저주', type: '저주', left: 0.5 }); step(f, 1); });
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1.25, 2);
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1, 6);
+    both([a, b], f => { hurt(f); addDebuff(f, tank(f), { name: '삼킴', type: '물리', left: 0.5, hide: true }); step(f, 1); });
+    expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1, 6);
   });
 });
 
