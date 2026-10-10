@@ -61,6 +61,8 @@ export interface Debuff {
   /** 보스 체력이 bossAt − 최대 × untilBossLoss 아래가 되면 풀림 (삼키기) */
   untilBossLoss?: number;
   bossAt?: number;
+  /** 걸린 동안 딜 −비율 (하품, data/bosses.ts DebuffDef) */
+  dpsCut?: number;
   /** 받는 치유 −비율 (× 중첩) · 받는 치유가 피해로 (data/bosses.ts DebuffDef) */
   healCut?: number;
   invert?: boolean;
@@ -324,6 +326,10 @@ export interface BossSkill {
   mirage?: { n?: number; nMythic?: number; chance?: number; reveal?: number };
   /** 모래시계 (P-GLASS): 이 기술이 맞으면 모래시계를 뒤집음 (자동 힐러가 예고 동안 모두 채움) */
   glass?: boolean;
+  /** 가짜 반격 틈 (54 3-2): 틈이 gap초 간격으로 두 번, 하나는 신기루 (data SkillEffect counter.decoy) */
+  decoy?: { gap: number; stunMythic?: number };
+  /** 신기루 피난처 (54 4-3): 가짜 안전 칸 묶음 = 진짜와 반대쪽 끝 (맞는 칸을 돌려줌) */
+  mirrorCells?: (f: Fight) => Set<number>;
   /** 부품 상태 (장판 좌우 번갈아·성부 차례 등, engine/bossParts.ts) */
   st: Record<string, number | boolean>;
 }
@@ -348,6 +354,8 @@ export interface Telegraph {
   veil?: number;
   /** 신기루 가짜: veil에 일렁이며 사라지고 맞지 않음. 화면 · 자동 힐러는 veil 전에 이 값을 보지 않음 */
   fake?: boolean;
+  /** 가짜 반격 틈: 걷힐 때 신중파가 끊을지 이미 봄 */
+  seen?: boolean;
 }
 
 export interface Zone {
@@ -748,6 +756,8 @@ export interface GlassState {
   rec: Map<number, number>;
   /** 되돌릴 때 치유 흡수 막이 남은 사람 이만큼 (악몽 둘둘이) */
   absorbHit?: number;
+  /** 되돌릴 때 체력 비율이 below 아래인 사람 dmg 더 (악몽 째깍이). 악몽이 아니면 없음 */
+  lowHit?: { below: number; dmg: number };
 }
 
 /** 스킬·아이템 사용 결과 */

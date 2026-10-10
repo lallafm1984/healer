@@ -156,7 +156,7 @@ export const slotName = (k: SlotKey) => SLOTS.find(s => s.key === k)!.name;
 // ---------- 세력 생김새 (34 6-10 ②) ----------
 /** 세력 말: 이름 = 등급 말 + 세력 말 + 종류 (「축복받은 산호 로브」) */
 export const LOOK_WORD: Record<FactionKey, string> = {
-  golem: '톱니', plague: '잿빛', swamp: '이끼', noble: '백합', mage: '서리', hill: '해바라기', abyss: '별밤', pirate: '산호', fairy: '버섯', dragon: '불꽃', sand: '노을',
+  golem: '톱니', plague: '잿빛', swamp: '이끼', noble: '백합', mage: '서리', hill: '해바라기', abyss: '별밤', pirate: '산호', fairy: '버섯', dragon: '불꽃', sand: '노을', storm: '깃털',
 };
 /** 그 장소 (콘텐츠 키)의 세력. 장소가 없으면 없음 */
 export const lookOf = (place: string | undefined): FactionKey | undefined => {
@@ -257,6 +257,11 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   dusk1: ['wreath'], dusk2: ['medal'], dusk3: ['relic'],
   caravan: ['coat', 'twin'],
   rootwood1: ['gauntlet'], rootwood2: ['stone'], rootwood3: ['mace'],
+  // 묶음 E3 (54 6장): 폭풍 깃털단 가속 · 치명타 (바람개비 언덕 하나), 해바라기 언덕 치명타 · 인내
+  pyramid1: ['habit'], pyramid2: ['bracer'], pyramid3: ['staff'],
+  reservoir1: ['mail'], reservoir2: ['twin'], reservoir3: ['scepter'],
+  pinwheel: ['plume', 'starneck'],
+  observatory: ['crown', 'sleeve', 'jade'],
 };
 export const KIND_WEIGHT = 3;
 

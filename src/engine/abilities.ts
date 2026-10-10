@@ -5,7 +5,7 @@
  */
 import { ABILITIES, starFx, type AbilityDef, type Fx, type Trig } from '../data/abilities';
 import { hexDist } from './board';
-import { cellOf, damage, damageMob, DT, emit, living, onDebuffEnd } from './core';
+import { addDebuff, cellOf, damage, damageMob, DT, emit, living, onDebuffEnd } from './core';
 import { moveTo, pickCell } from './movement';
 import type { AbState, BossSkill, Fight, Mod, ModKind, Telegraph, Unit } from './types';
 
@@ -306,12 +306,39 @@ export function abCut(f: Fight, s: BossSkill): boolean {
     if (a.fx.e !== 'interrupt' || !ready(f, u, a, 0)) continue;
     const any = a.trig.some(t => t.t === 'castAny');
     if (any ? !snipeable : !s.cut) continue;
-    const st = starFx(a, u.ab.star);
-    const p = Math.min(1, a.fx.v * st.eff + (u.ab.star >= 5 ? 0.15 : 0));
-    const ok = p >= 1 || f.rng() < p;
+    return tryCut(f, u, a, s); // 한 기술에 한 사람만 시도 (실패하면 그대로 맞음)
+  }
+  return false;
+}
+
+/** 끊기 능력을 쓰고 성공 확률 (능력 · ★)로 굴림 */
+function tryCut(f: Fight, u: Unit, a: AbilityDef, s: BossSkill): boolean {
+  const st = starFx(a, u.ab!.star);
+  const p = Math.min(1, (a.fx as { v: number }).v * st.eff + (u.ab!.star >= 5 ? 0.15 : 0));
+  const ok = p >= 1 || f.rng() < p;
+  use(f, u, a, {});
+  emit(f, { type: 'msg', text: `${u.nick} ${a.name}: ${s.name || '기술'} ${ok ? '끊음' : '끊기 실패'}` });
+  return ok;
+}
+
+/**
+ * 가짜 반격 틈 (54 3-2 별바라기, 반격 틈 × 신기루): 틈이 열릴 때 (reveal false)는 신중파가 아닌 끊기 담당이 바로 끊고,
+ * 신기루가 걷힐 때 (reveal true)는 기다리던 신중파가 남은 진짜 틈을 끊음. 가짜를 끊으면 능력만 쓰고 진짜를 놓침 (악몽은 stunMythic초 기절).
+ * 진짜를 끊으면 true. 한 틈에 한 사람만
+ */
+export function abDecoy(f: Fight, s: BossSkill, fake: boolean, reveal: boolean): boolean {
+  for (const u of f.party) {
+    if (!u.ab || !u.alive || hasMod(u, 'stop') || (u.pers === '신중파') !== reveal) continue;
+    if (u.debuffs.length && u.debuffs.some(d => d.noDps)) continue;
+    const a = DEF(u);
+    if (a.fx.e !== 'interrupt' || !ready(f, u, a, 0)) continue;
+    if (!fake) return tryCut(f, u, a, s);
     use(f, u, a, {});
-    emit(f, { type: 'msg', text: `${u.nick} ${a.name}: ${s.name || '기술'} ${ok ? '끊음' : '끊기 실패'}` });
-    return ok; // 한 기술에 한 사람만 시도 (실패하면 그대로 맞음)
+    emit(f, { type: 'fx', name: 'mirage-shimmer', on: u.id });
+    emit(f, { type: 'msg', text: `${u.nick} ${a.name}: ${s.name || '틈'}은 신기루였음, 끊기를 써 버림` });
+    const stun = f.mythic ? s.decoy?.stunMythic : undefined;
+    if (stun) { addDebuff(f, u, { name: '별빛 어지럼', type: '물리', left: stun, noDps: true, noMove: true, lock: true }); emit(f, { type: 'fx', name: 'dizzy', on: u.id }); }
+    return false;
   }
   return false;
 }

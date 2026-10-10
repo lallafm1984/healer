@@ -22,6 +22,7 @@ const DOC_BSK_N: Record<string, number> = {
   whelps: 1, dandani: 2, rubina: 4, knights: 1, uwoong: 1, ormal: 3,
   degul: 2, dooldool: 3, hokdol: 2, nyanx: 1, heumul: 1, bichumi: 2, gipeun: 2,
   solsal: 1, eonggeum: 3, sarasha: 4, ttubeok: 2, toktok: 1, kungkung: 1,
+  stargazer: 2, geuneul: 2, poksin: 2, jjaekkak: 1, hapum: 3, ttakttak: 1, jjirit: 2, doeul: 2, hwirik: 2,
 };
 /** 55 4장 D 1~2: 모래 왕국 공용 (모래 기침 · 천 년 졸음) */
 const DOC_BSK = [...Object.entries(DOC_BSK_N).flatMap(([b, n]) => Array.from({ length: n }, (_, i) => `icon-bsk-${b}-${i + 1}`)), 'icon-bsk-sand-cough', 'icon-bsk-sand-sleepy'];

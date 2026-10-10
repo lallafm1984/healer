@@ -153,6 +153,8 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.jellyLight && (f.zones.some(z => z.cells.has(u.cell)) || f.tels.some(t => t.kind === 'zone' && !t.fake && t.cells.has(u.cell)))) m += v.jellyLight; // 해파리 불빛
   if (v.prayerKnot && u.debuffs.some(d => d.cureAt != null && d.cureAt >= 1)) m += v.prayerKnot; // 깊은잠의 기도 매듭
   if (v.featherBrooch && f.tels.some(t => t.skill.glass)) m += v.featherBrooch; // 사라샤의 깃털 브로치 (모래시계 뒤집기 예고 동안)
+  if (v.nightcapTassel && f.tels.some(t => t.skill.safe && !t.fake && t.safe && !t.safe.has(u.cell))) m += v.nightcapTassel; // 하품호텝의 수면 모자 술 (54 6장)
+  if (v.pinwheelPin && u.pulled) m += v.pinwheelPin; // 바람개비 핀
   if (v.festInvite && direct && !tick && u.debuffs.some(d => d.noDps)) m += v.festInvite; // 축제 초대장 (48 6장)
   if (v.rainbowSpore && u.soul) m += v.rainbowSpore; // 무지개 포자
   if (v.mossBrooch && aoe && f.stagger) m += v.mossBrooch; // 이끼 브로치
@@ -468,6 +470,7 @@ export function dmgSpec(f: Fight, u: Unit): number {
   if (u.me && v.turtleCharm && f.mana < 30) m *= 1 - v.turtleCharm; // 거북 등딱지 부적 (48 6장)
   if (v.coldAnvil && f.stagger) m *= 1 - v.coldAnvil; // 식은 모루 조각 (51 6장)
   if (v.heartShard && u.debuffs.some(d => d.end?.p === 'flip') && u.hp >= u.max * 0.4 - 1e-9 && u.hp <= u.max * 0.6 + 1e-9) m *= 1 - v.heartShard; // 심장뿌리 조각 (54 6장)
+  if (v.starMap && on(f, 'starMap')) m *= 1 - v.starMap; // 별 지도 조각 (54 6장)
   return m;
 }
 
@@ -564,6 +567,15 @@ export function hotDone(f: Fight): void {
 /** 신기루가 걷히면 (냥크스의 수수께끼 쪽지: 1초 동안 직접 힐 +) */
 export function specReveal(f: Fight): void {
   if (f.sp!.v.riddleNote) f.sp!.until.riddleNote = f.t + 1;
+  echoDrop(f);
+}
+/** 되울림의 물방울 (54 6장): 신기루가 걷히거나 모래시계가 되돌리면 가장 낮은 아군 2명 작은 힐 */
+function echoDrop(f: Fight): void {
+  const v = f.sp!.v.echoDrop;
+  if (!v) return;
+  const low = living(f).filter(u => u.hp < u.max).sort((a, b) => a.hp / a.max - b.hp / b.max).slice(0, 2);
+  for (const u of low) heal(f, u, intAmt(f, v), true, true);
+  if (low.length) shout(f, 'echoDrop');
 }
 /** 진동이 울리면 (낙타 털실 반지: 2초 동안 시전 시간 −) */
 export function specQuake(f: Fight): void {
@@ -571,6 +583,7 @@ export function specQuake(f: Fight): void {
 }
 /** 모래시계가 체력을 되돌리면 (거꾸로 모래알: 마나 회복) */
 export function specRewind(f: Fight): void {
+  echoDrop(f);
   const v = f.sp!.v.backSand;
   if (!v) return;
   f.mana = Math.min(100, f.mana + v);
@@ -583,6 +596,7 @@ export function specPhase(f: Fight): void {
 /** 파티원이 보스 시전을 끊으면 (끊기 박자) */
 export function specCut(f: Fight): void {
   if (f.sp!.v.cutBeat) f.sp!.until.cutBeat = f.t + 6;
+  if (f.sp!.v.starMap) f.sp!.until.starMap = f.t + 6; // 별 지도 조각
 }
 
 /** 파티원 딜 배율 (응원 깃발 · 사기 진작 · 끊기 박자 · 앞장서기 · 정예 사냥꾼 · 활기찬 아침 · 보호막 수정 깨기) */
