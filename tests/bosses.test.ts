@@ -19,8 +19,11 @@ describe('보스 데이터', () => {
       const dos: FlowDo[] = (def.flow || []).flatMap(st => (st.p === 'when' ? st.do : []));
       for (const d of dos) if (d.p === 'start' || d.p === 'period') expect(keys, `${k} ${d.p} ${d.skill}`).toContain(d.skill);
       for (const st of def.flow || []) if (st.p === 'when' && st.if.idle) expect(keys).toContain(st.if.idle);
-      // 처음엔 꺼진 기술 (first: null)은 흐름 어딘가에서 열림
-      for (const s of def.skills) if (s.first === null) expect(dos.some(d => d.p === 'start' && d.skill === s.key), `${k}.${s.key}`).toBe(true);
+      // 모래시계 (P-GLASS)가 뒤집은 뒤 여는 기술
+      const thens = def.skills.flatMap(s => (s.effect?.p === 'glass' ? s.effect.then ?? [] : []).map(t => t.skill));
+      for (const t of thens) expect(keys, `${k} then ${t}`).toContain(t);
+      // 처음엔 꺼진 기술 (first: null)은 흐름 어딘가에서 (또는 모래시계 뒤에) 열림
+      for (const s of def.skills) if (s.first === null) expect(dos.some(d => d.p === 'start' && d.skill === s.key) || thens.includes(s.key), `${k}.${s.key}`).toBe(true);
       const nb = def.bodies?.length ?? 0;
       for (const s of def.skills) for (const i of s.when?.bodyAlive ?? []) expect(i).toBeLessThan(nb);
       // 장판은 칸 규칙 + 남는 장판 (초당 피해 · 시간) 또는 맞는 순간 한 방 (피난처 hitDmg), 나머지는 하는 일이 있음

@@ -5,7 +5,7 @@
 import type { ContentKey } from './content';
 import type { EncounterKey } from './encounters';
 
-export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'hill' | 'abyss' | 'pirate' | 'fairy' | 'dragon';
+export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'hill' | 'abyss' | 'pirate' | 'fairy' | 'dragon' | 'sand';
 export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple' | 'abyss' | 'cathedral'
   | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge' | 'watchtower'
   | 'abyss-garden' | 'abyss-gallery' | 'abyss-observatory' | 'abyss-spire'
@@ -14,7 +14,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'lampway' | 'teaparty' | 'mossroot' | 'emberfoot' | 'rainbow'
   | 'fest' | 'fest-stage' | 'fest-bonfire' | 'sporecave' | 'sporecave-pond' | 'sporecave-root' | 'palace' | 'palace-hall' | 'palace-throne'
   | 'ashpass' | 'hotspring' | 'forge' | 'den' | 'den-cart' | 'den-vault'
-  | 'nest' | 'nest-bridge' | 'nest-hoard' | 'lakeshore' | 'cathedral-hall' | 'cathedral-organ' | 'cathedral-sanctum';
+  | 'nest' | 'nest-bridge' | 'nest-hoard' | 'lakeshore' | 'cathedral-hall' | 'cathedral-organ' | 'cathedral-sanctum'
+  | 'bazaar' | 'bazaar-alley' | 'bazaar-gate' | 'deepstairs' | 'abbey' | 'abbey-library' | 'abbey-altar' | 'hourglass';
 
 export interface Faction {
   name: string;
@@ -42,6 +43,8 @@ export const FACTIONS: Record<FactionKey, Faction> = {
   // 묶음 C (48 0장): 반딧불 버섯숲의 버섯 요정단 (연분홍) · 다음 지역 불꽃 봉우리의 붉은 용 일가 (탐험 ⑮에서 첫 등장, D에서 계속)
   fairy: { name: '버섯 요정단', color: '#F29CB7', mark: { rim: '#C9718F', glyph: '#F8C4D5' }, dispel: ['질병', '마법'] },
   dragon: { name: '붉은 용 일가', color: '#E0673C', mark: { rim: '#B5502E', glyph: '#F29466' }, dispel: ['독', '마법'] },
+  // 묶음 E (54 0장): 노을 사막의 모래 왕국. 금모래 (역병 교단 호박색보다 밝고 노랗게), 문양 = 반쯤 뜬 해 + 모래시계
+  sand: { name: '모래 왕국', color: '#E9C46A', mark: { rim: '#B8913E', glyph: '#F2D58A' }, dispel: ['질병', '저주'] },
 };
 
 export interface Place {
@@ -127,6 +130,16 @@ export const PLACES: Record<PlaceKey, Place> = {
   'cathedral-hall': { key: 'cathedral-hall', name: '회랑', faction: 'abyss', tone: ['#1F2833', '#0B0E13'], borrow: 'cathedral' },
   'cathedral-organ': { key: 'cathedral-organ', name: '물오르간', faction: 'abyss', tone: ['#1F2E36', '#0B1114'], borrow: 'cathedral' },
   'cathedral-sanctum': { key: 'cathedral-sanctum', name: '성소', faction: 'abyss', tone: ['#26223A', '#0E0C16'], borrow: 'cathedral' },
+  // 묶음 E1 (54 1장, 그림 요청 55): 모래 왕국 그림이 아직 없어 노을 시장 · 모래시계 궁전은 색 배경 (골목 · 성문은 입구 그림을 빌림),
+  // 물밑 계단 · 수도원 칸은 대성당 1구역 그림을 빌림 (잠긴 호숫가 그림도 아직 없음)
+  bazaar: { key: 'bazaar', name: '노을 시장', faction: 'sand', tone: ['#3E3226', '#18130D'] },
+  'bazaar-alley': { key: 'bazaar-alley', name: '향신료 골목', faction: 'sand', tone: ['#3E2E26', '#18110D'], borrow: 'bazaar' },
+  'bazaar-gate': { key: 'bazaar-gate', name: '시장 성문', faction: 'sand', tone: ['#3A3428', '#16130E'], borrow: 'bazaar' },
+  deepstairs: { key: 'deepstairs', name: '물밑 계단', faction: 'abyss', tone: ['#1F2A36', '#0B0F14'], borrow: 'cathedral' },
+  abbey: { key: 'abbey', name: '물밑 수도원', faction: 'abyss', tone: ['#1F2E36', '#0B1114'], borrow: 'cathedral' },
+  'abbey-library': { key: 'abbey-library', name: '거울 서고', faction: 'abyss', tone: ['#222A38', '#0C0F15'], borrow: 'cathedral' },
+  'abbey-altar': { key: 'abbey-altar', name: '잠의 제단', faction: 'abyss', tone: ['#26223A', '#0E0C16'], borrow: 'cathedral' },
+  hourglass: { key: 'hourglass', name: '모래시계 궁전', faction: 'sand', tone: ['#3A3226', '#16130D'] },
 };
 
 /** 콘텐츠 → 장소 */
@@ -143,6 +156,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   palace1: 'palace', palace2: 'palace-hall', palace3: 'palace-throne',
   ashpass: 'ashpass', hotspring: 'hotspring', forge: 'forge', den1: 'den', den2: 'den-cart', den3: 'den-vault',
   lakeshore: 'lakeshore', nest1: 'nest', nest2: 'nest-bridge', nest3: 'nest-hoard', cathedral2: 'cathedral-hall', cathedral3: 'cathedral-organ', cathedral4: 'cathedral-sanctum',
+  bazaar1: 'bazaar', bazaar2: 'bazaar-alley', bazaar3: 'bazaar-gate', deepstairs: 'deepstairs', abbey1: 'abbey', abbey2: 'abbey-library', abbey3: 'abbey-altar', hourglass: 'hourglass',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -173,6 +187,9 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   warmash: 'ashpass', mungsil64: 'ashpass', steamroom: 'hotspring', mungsil: 'hotspring', lavabath: 'hotspring', bulttung: 'hotspring',
   coldhearth: 'forge', huggeun: 'forge', anvilbridge: 'forge', ttangttang: 'forge', kkojil: 'den', deolkeong: 'den-cart', beonjjeok: 'den-vault',
   whelps: 'nest', dandani: 'nest-bridge', rubina: 'nest-hoard', shoretrash: 'lakeshore', knights68: 'lakeshore', knights: 'cathedral-hall', uwoong: 'cathedral-organ', ormal: 'cathedral-sanctum',
+  kkubeok: 'bazaar', hokdol: 'bazaar-alley', nyanx: 'bazaar-gate', stairtrash: 'deepstairs', heumul72: 'deepstairs',
+  heumul: 'abbey', bichumi: 'abbey-library', gipeun: 'abbey-altar',
+  sandhall: 'hourglass', degul: 'hourglass', backgarden: 'hourglass', dooldool: 'hourglass',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

@@ -65,7 +65,7 @@ export function create(cfg: FightConfig): Fight {
     standin: null,
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
-    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null, empower: 0, lock: {}, watch: null, stagger: null, souls: [], links: [], vessel: null, melt: null, bless: null, weak: null, expose: null, sp: cfg.proto ? null : newSpecs(cfg.specs), hold: null, sub: null, slow: null, cheer: null, dark: false, split: false,
+    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null, empower: 0, lock: {}, watch: null, stagger: null, souls: [], links: [], vessel: null, melt: null, glass: [], bless: null, weak: null, expose: null, sp: cfg.proto ? null : newSpecs(cfg.specs), hold: null, sub: null, slow: null, cheer: null, dark: false, split: false,
     items: {}, potCd: 0, medit: 0, itemLog: [],
     stats: { healed: 0, overheal: 0, deaths: 0, minMana: 100, dispels: 0, dispellable: 0, trapPops: 0, queueLost: 0, casts: {}, taps: 0, missTaps: 0, emptyTaps: 0, cancels: 0, manaFails: 0, hymnBroken: 0 },
     nextId: 1,

@@ -9,9 +9,9 @@ import { BOSSES, type AddDef, type AddJob, type DebuffDef, type SkillDef } from 
 import type { Encounter, ScriptKey } from '../data/encounters';
 import type { BossSkill, Fight } from '../engine/types';
 
-/** 기믹 아이콘 41장 (37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2, 52 보물 욕심 · 녹는 보호막 · 부화하는 알): icon-gim-<이름>. 모자 뽑기 모자 (H 3~5)는 칸 위 표식이라 대기열에 안 씀 */
+/** 기믹 아이콘 43장 (37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2, 52 보물 욕심 · 녹는 보호막 · 부화하는 알, 55 G 신기루 · 모래시계): icon-gim-<이름>. 모자 뽑기 모자 (H 3~5)는 칸 위 표식이라 대기열에 안 씀 */
 export const GIMS = ['full', 'wound', 'hunt', 'link', 'invert', 'over', 'quake', 'recoil', 'gaze', 'drain', 'charm', 'order', 'jump', 'safe', 'tower', 'pull', 'hole',
-  'stagger', 'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass', 'greed', 'melt', 'hatch'] as const;
+  'stagger', 'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass', 'greed', 'melt', 'hatch', 'mirage', 'glass'] as const;
 export type Gim = (typeof GIMS)[number];
 type BossKey = Exclude<ScriptKey, 'trash'>;
 
@@ -98,6 +98,15 @@ const BSK: Partial<Record<BossKey, Record<string, string>>> = {
   knights: { wave: 'icon-bsk-knights-1' },
   uwoong: { drops: 'icon-bsk-uwoong-1' },
   ormal: { buster: 'icon-bsk-ormal-1', touch: 'icon-bsk-ormal-2', wave: 'icon-bsk-ormal-3' },
+  // 묶음 E1 (55 4장 D). 모래 기침 · 천 년 졸음은 모래 왕국 공용, 깊은잠 그림자 손길은 오르말 그림을 같이 씀
+  kkubeok: { cough: 'icon-bsk-sand-cough' },
+  hokdol: { buster: 'icon-bsk-hokdol-1', haggle: 'icon-bsk-hokdol-2' },
+  nyanx: { buster: 'icon-bsk-nyanx-1', sleepy: 'icon-bsk-sand-sleepy' },
+  heumul: { tentacle: 'icon-bsk-heumul-1' },
+  bichumi: { dust: 'icon-bsk-bichumi-1', fine: 'icon-bsk-bichumi-2' },
+  gipeun: { buster: 'icon-bsk-gipeun-1', touch: 'icon-bsk-ormal-2', beat: 'icon-bsk-gipeun-2' },
+  degul: { buster: 'icon-bsk-degul-1', roll: 'icon-bsk-degul-2', roll2: 'icon-bsk-degul-2', rollm: 'icon-bsk-degul-2', rollm2: 'icon-bsk-degul-2', cough: 'icon-bsk-sand-cough' },
+  dooldool: { buster: 'icon-bsk-dooldool-1', wrap: 'icon-bsk-dooldool-2', wrap2: 'icon-bsk-dooldool-2', hush: 'icon-bsk-dooldool-3', sleepy: 'icon-bsk-sand-sleepy' },
 };
 /** 데이터 부품만으로는 안 보이는 기믹 (35 4장 표): 서리 손길 · 빗자루 = 버스터 + 썩는 상처 (서리 · 먼지 범벅), 얼어붙는 바닥 · 바닥이 언다 = 장판 → 무너지는 바닥 */
 const GIM_KEY: Partial<Record<BossKey, Record<string, Gim>>> = {
@@ -105,6 +114,7 @@ const GIM_KEY: Partial<Record<BossKey, Record<string, Gim>>> = {
   keeper: { buster: 'rot' },
   scholar: { floor: 'hole', floor2: 'hole' },
   mungsil: { meltm: 'melt' }, // 악몽 「김 서림」 = 받는 치유 감소지만 녹는 보호막과 같이 옴
+  gipeun: { deep0: 'hole' }, // 깊은 물 장판이 끝나면 가장자리가 구멍 (54 4-4)
 };
 /** 구간 적 기술 (44 4장 D 5~15, 47 4장 D 46): 「적 이름:공격 키」 → 그림. 독 혹 두꺼비는 부글이 그림을 같이 씀 (44 0장) */
 const MOB: Record<string, string> = {
@@ -124,6 +134,7 @@ const MOB: Record<string, string> = {
   '해파리 점쟁이:fortune': 'icon-mob-jelly', // 47 4장 D 44 (닻 든 거한 닻 돌리기 45는 아직 데이터에 없음)
   '독 혹 두꺼비:burst': 'icon-bsk-toad-3',
   '용 비늘 경비병:tail': 'icon-mob-tail-sweep', // 52 4장 D 26
+  '스핑크스 석상:storm': 'icon-mob-sandstorm', // 55 4장 D 45
 };
 
 /** 판 위 적이 하는 일 → 기믹 (37 4장 E 1~10) */
@@ -152,6 +163,8 @@ function debuffGim(d: DebuffDef): Gim | undefined {
 /** 기술 데이터 → 기믹 (35 3장 22종 · 3-I · 3-J). tanks = 탱커 수 (부탱커 끌기) */
 export function gimOf(d: SkillDef, tanks = 1): Gim | undefined {
   const e = d.effect;
+  if (d.mirage && e?.p !== 'order') return 'mirage'; // 신기루 (55 G 1). 수수께끼 (차례 × 신기루)는 차례 아이콘
+  if (e?.p === 'glass') return 'glass'; // 모래시계 (55 G 2)
   if (!e) return d.cells?.p === 'safe' ? 'safe' : undefined;
   switch (e.p) {
     case 'hunt': case 'quake': case 'pull': case 'order': case 'link': case 'hole': case 'tower': case 'stagger': case 'counter': case 'soul': case 'jail': return e.p;

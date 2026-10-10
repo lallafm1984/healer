@@ -4,7 +4,8 @@ import type { EncounterKey } from './encounters';
 export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt' | 'lily' | 'swamp' | 'snowpass' | 'manor' | 'hillpath' | 'frost' | 'pilgrim' | 'temple' | 'abyssedge' | 'watchtower'
   | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary' | 'shellbeach' | 'wreck'
   | 'lampway' | 'emberfoot' | 'teaparty' | 'mossroot' | 'rainbow'
-  | 'ashpass' | 'hotspring' | 'forge' | 'lakeshore';
+  | 'ashpass' | 'hotspring' | 'forge' | 'lakeshore'
+  | 'deepstairs' | 'hourglass';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -45,6 +46,9 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   // 묶음 D (51 1장): 탐험 ⑯ · 던전 ⑬ ⑭
   ashpass: { key: 'ashpass', name: '화산재 고갯길', segments: ['warmash', 'mungsil64'] },
   lakeshore: { key: 'lakeshore', name: '잠긴 호숫가', segments: ['shoretrash', 'knights68'] },
+  // 묶음 E1 (54 1장): 탐험 ⑱ · 던전 ⑮
+  deepstairs: { key: 'deepstairs', name: '물밑 계단', segments: ['stairtrash', 'heumul72'] },
+  hourglass: { key: 'hourglass', name: '모래시계 궁전', segments: ['sandhall', 'degul', 'backgarden', 'dooldool'] },
   hotspring: { key: 'hotspring', name: '용암 온천장', segments: ['steamroom', 'mungsil', 'lavabath', 'bulttung'] },
   forge: { key: 'forge', name: '용암 대장간', segments: ['coldhearth', 'huggeun', 'anvilbridge', 'ttangttang'] },
   emberfoot: { key: 'emberfoot', name: '불꽃 봉우리 기슭', segments: ['hotgravel', 'kobold60'] },

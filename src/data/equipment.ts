@@ -156,7 +156,7 @@ export const slotName = (k: SlotKey) => SLOTS.find(s => s.key === k)!.name;
 // ---------- 세력 생김새 (34 6-10 ②) ----------
 /** 세력 말: 이름 = 등급 말 + 세력 말 + 종류 (「축복받은 산호 로브」) */
 export const LOOK_WORD: Record<FactionKey, string> = {
-  golem: '톱니', plague: '잿빛', swamp: '이끼', noble: '백합', mage: '서리', hill: '해바라기', abyss: '별밤', pirate: '산호', fairy: '버섯', dragon: '불꽃',
+  golem: '톱니', plague: '잿빛', swamp: '이끼', noble: '백합', mage: '서리', hill: '해바라기', abyss: '별밤', pirate: '산호', fairy: '버섯', dragon: '불꽃', sand: '노을',
 };
 /** 그 장소 (콘텐츠 키)의 세력. 장소가 없으면 없음 */
 export const lookOf = (place: string | undefined): FactionKey | undefined => {
@@ -248,6 +248,11 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   // 심연 (51 6장): 잠긴 호숫가 지능 · 정신력, 대성당 2~4구역 칸마다 1
   lakeshore: ['vestment', 'amulet'],
   cathedral2: ['mail'], cathedral3: ['crown'], cathedral4: ['staff'],
+  // 묶음 E1 (54 6장): 모래 왕국 정신력 · 가속, 심연 지능 · 정신력
+  bazaar1: ['helm'], bazaar2: ['wraps'], bazaar3: ['signet'],
+  deepstairs: ['hood', 'pendant'],
+  abbey1: ['vestment'], abbey2: ['wand'], abbey3: ['amulet'],
+  hourglass: ['robe', 'gloves', 'beads'],
 };
 export const KIND_WEIGHT = 3;
 

@@ -253,9 +253,11 @@ export type SkillEffect =
   /**
    * 차례 (P-ORDER): 탱커 아닌 n명(나 포함, 악몽 nMythic) 칸에 번호 ①②③. sec초 안에 번호 순서대로 단일 대상 힐(기본·빠른·지속 힐 칸)을
    * 한 번씩 넣으면 성공 → 보스 daze.sec초 멍함 (기술을 안 쓰고, 받는 피해 × daze.vuln). 순서가 틀리면 그 사람 wrong 피해 + 처음부터
-   * (쉬움은 피해 없이 처음부터). 시간이 다 되면 아직 못 받은 사람마다 miss 피해. 받는 치유가 깎인 사람도 횟수로 셈
+   * (쉬움은 피해 없이 처음부터). 시간이 다 되면 아직 못 받은 사람마다 miss 피해. 받는 치유가 깎인 사람도 횟수로 셈.
+   * fake = 신기루 숫자 (54 4-1 냥크스): 번호 없는 사람 하나에 ① 아닌 번호가 하나 더 보이다가 시작 at초 뒤 걷힘. 그 전에 가짜에게 힐하면 틀림.
+   * wrongAll = 틀리면 전원 피해 (악몽)
    */
-  | { p: 'order'; n: number; nMythic?: number; sec: number; wrong: number; miss: number; daze: { sec: number; vuln: number } }
+  | { p: 'order'; n: number; nMythic?: number; sec: number; wrong: number; miss: number; daze: { sec: number; vuln: number }; fake?: { at: number }; wrongAll?: number }
   /**
    * 감옥 (P-JAIL): 탱커·나 아닌 n명(악몽 nMythic)을 가둠 (딜 0 · 못 움직임 · 초당 dot, 해제 안 됨). 그 칸에 감옥(체력 = 보스 최대 × hp)이
    * 겹쳐 나오고 딜러가 일점사로 깨면 풀림. 갇힌 사람이 쓰러지면 감옥도 사라짐
@@ -324,7 +326,15 @@ export type SkillEffect =
   /** 깨진 시간 (05 5-E): sec초 동안 내 시전 시간 × mult (이미 시전 중인 힐은 그대로) */
   | { p: 'slow'; sec: number; mult: number }
   /** 보스가 주는 피해 +boost, 전투 끝까지 더해짐 (소프트 광폭화 P-ENRAGE, 05 6-E) */
-  | { p: 'empower'; boost: number };
+  | { p: 'empower'; boost: number }
+  /** 예고 때 고른 사람 (target)에게 dmg (물리, 원거리 기준). debuff = 맞은 사람에게. 신기루 창 · 거울 책장 (54 4장) */
+  | { p: 'strike'; dmg: number; debuff?: DebuffDef }
+  /**
+   * 모래시계 (P-GLASS, 54 5장): 뒤집는 순간 살아 있는 파티원의 체력 비율을 기록하고 sec초 뒤 모두 그 비율로 되돌림 (체력만, 그 사이 쓰러진 사람은 그대로).
+   * then = 뒤집은 뒤 in초에 그 기술을 엶 (창 안 광역 데굴데굴. 그 기술은 first null · 긴 주기로 적어 한 번만 쓰게).
+   * absorbHit = 되돌릴 때 치유 흡수 막이 남은 사람 이만큼 피해 (악몽 둘둘이)
+   */
+  | { p: 'glass'; sec: number; then?: { skill: string; in: number }[]; absorbHit?: number };
 
 /** 영혼을 채웠을 때: cure 유형 디버프를 모두에게서 1개씩 지움 · 받는 치유 +heal 비율 · 보스가 주는 피해 −weak 비율 · 보스가 받는 피해 +vuln 비율 (sec초) */
 export interface SoulWin {
@@ -424,6 +434,11 @@ export interface SkillDef {
   effect?: SkillEffect;
   /** 장판 칸 */
   cells?: ZoneCells;
+  /**
+   * 신기루 (P-MIRAGE, 54 5장): 예고를 띄울 때 가짜 예고 n개 (악몽 nMythic)를 함께 띄움. 사람을 고르는 기술은 다른 사람을 (탱커 기술은 다른 탱커),
+   * 장판은 다른 칸을 고름. chance = 예고 자체가 그 확률로 가짜 (광역 반은 신기루). 가짜는 맞기 reveal초 전 (기본 1초)에 일렁이며 걷히고 아무 일도 안 함
+   */
+  mirage?: { n?: number; nMythic?: number; chance?: number; reveal?: number };
   /** 공략 「어떻게」 글 (없으면 효과 종류의 기본 글, battle/guide.ts dataGuide) */
   how?: string;
 }
@@ -570,6 +585,14 @@ const SHADOW_TOUCH: DebuffDef[] = [
   { name: '무거운 그림자', type: '저주', left: 10, healCut: 0.4 },
   { name: '차가운 그림자', type: '마법', left: 8, dot: U.dps(0.02) },
 ];
+/** 졸린 모래 병정 꾸벅 · 끄덕 (54 4-1): 몸통 둘, 체력은 encounters kkubeok hp를 둘로 나눔 */
+const GUARDS = ['꾸벅', '끄덕'];
+const GUARD_HP = 12000;
+/** 모래 왕국 (54 0장) 해제 짝: 모래 기침 (질병, 초당 딜체 2%) · 천 년 졸음 (저주, 받는 치유 −30%) */
+const SAND_COUGH: DebuffDef = { name: '모래 기침', type: '질병', left: 12, dot: U.dps(0.02) };
+const SLEEPY: DebuffDef = { name: '천 년 졸음', type: '저주', left: 8, healCut: 0.3, fx: 'yawn' };
+const MIRAGE_HOW = '표시 가운데 하나는 신기루 (끝 1초에 일렁이며 걷힘). 걷히기 전에는 지속 힐 · 작은 힐만, 걷히면 남은 진짜에게 바로 보호막 · 큰 힐';
+const GLASS_HOW = '뒤집는 순간의 체력으로 8초 뒤 모두 되돌아감. 예고 3초 안에 모두 채우고, 창 안에서는 쓰러질 사람만 힐 (붕대 벗기기 · 해제는 남음)';
 /** 벌침 (P-WOUND, 48 4-3): 꿀벌이 쏜 사람이 90% 아래인 동안 3초마다 1중첩 (중첩당 초당 딜체 1%), 못 지움 */
 const sting = (max: number): DebuffDef => ({ name: '벌침', type: '물리', left: 20, lock: true, cureAt: 0.9, grow: { every: 3, dot: U.dps(0.01), max }, fx: 'bee-sting' });
 /** 못 피하는 줄 피해 (P-ROW): 뒷줄 → 가운데 → 앞줄을 period초마다 번갈아. two = 2페이즈부터 다른 한 줄을 같이 (조건을 주면 그때: 악몽 단단이 { mythic: true }) */
@@ -1962,6 +1985,180 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ] },
     ],
     enrage: { name: '심연의 문', period: 3, dmg: 220 },
+  },
+  // ---------- 묶음 E1 10인 ⑩ 노을 시장 (54 4-1, Lv 71 · 악몽 86 · 모래 왕국 · 질병 + 저주): 꾸벅 · 끄덕 · 혹돌이 · 냥크스 ----------
+  // 졸린 모래 병정 꾸벅 · 끄덕 (입구): 몸통 둘 (고르게 깎음, 하나가 쓰러지면 남은 쪽 +30%) × 신기루 창 (신기루 쉬운 판, 진짜 1 + 가짜 1).
+  // 악몽은 신기루 창 진짜 2 (표시 3명). 목표 4:30 · 광폭화 6:00
+  kkubeok: {
+    phase: [1, ''],
+    bodies: GUARDS.map(name => ({ name, hp: GUARD_HP, boss: true })),
+    split: true,
+    skills: [
+      ...GUARDS.map((_, i): SkillDef => ({ ...AUTO(U.tank(0.04)), key: `auto${i}`, first: 2 + i * 0.8, when: { bodyAlive: [i] } })),
+      { key: 'spear', name: '신기루 창', icon: '창', kind: 'buster', first: 10, period: 14, cast: 2.5, warn: 'buster', target: { p: 'random', n: 1, nMythic: 2 }, mirage: { n: 1 },
+        how: MIRAGE_HOW, effect: { p: 'strike', dmg: U.dps(0.45) } },
+      { key: 'cough', name: '모래 기침', icon: '기침', kind: 'instant', first: 6, period: 16, cast: 0, effect: { p: 'debuff', n: 3, debuff: SAND_COUGH } },
+      ...GUARDS.map((_, i): SkillDef => ({ key: `wake${i}`, name: '깜짝 기상', icon: '기상', hidden: true, first: null, period: 9999, cast: 0,
+        how: '하나가 먼저 쓰러지면 남은 병정 피해 +30% (끝까지). 둘을 고르게 깎기', effect: { p: 'empower', boost: 0.3 } })),
+    ],
+    flow: GUARDS.map((_, i): FlowStep => ({ p: 'when', if: { idle: `wake${1 - i}`, bodiesDead: [i] }, do: [{ p: 'start', skill: `wake${1 - i}`, in: 0 }] })),
+    enrage: { name: '병정 형제 깜짝 기상', period: 3, dmg: 190 },
+  },
+  // 향신료 낙타 상인 혹돌이 (골목): 옮겨붙는 질병 (매운 재채기, 지우면 이웃 칸으로 +50%) × 신기루 짐더미 (장판 진짜 1 + 가짜 1) · 흥정 실패 (저주).
+  // 악몽은 매운 재채기 3명. 목표 4:30 · 광폭화 6:00
+  hokdol: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('낙타 침 퉤', '침', 8, 15, U.tank(0.45)),
+      { key: 'sneeze', name: '매운 재채기', icon: '재채', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '지우면 옆 칸 아군에게 옮겨붙어 세지고 (혼자면 사라짐), 두면 끝날 때 보스가 조금 강해짐. 짐더미를 피해 흩어진 뒤 혼자 선 사람부터 지우기',
+        effect: { p: 'debuff', n: 2, nMythic: 3, pick: 'others', debuff: { name: '매운 재채기', type: '질병', left: 12, dot: U.dps(0.025), end: { p: 'jump', sec: 12, mult: 1.5, boost: 0.02 } } } },
+      { key: 'pile', name: '신기루 짐더미', icon: '짐', kind: 'zone', first: 12, period: 18, cast: 3, warn: 'zone', hitDmg: U.dps(0.4), cells: { p: 'around' }, mirage: { n: 1 },
+        how: '두 곳 중 한 곳은 신기루 (끝 1초에 걷힘). 파티원이 알아서 피함. 못 피한 사람부터 채우기' },
+      { key: 'haggle', name: '흥정 실패', icon: '흥정', kind: 'instant', first: 15, period: 20, cast: 0, effect: { p: 'debuff', n: 2, debuff: { name: '흥정 실패', type: '저주', left: 8, healCut: 0.25 } } },
+    ],
+    enrage: { name: '낙타 떼 돌진', period: 3, dmg: 190 },
+  },
+  // 수수께끼 고양이 냥크스 (성문, 10인 ⑩ 최종): 차례 × 신기루 (숫자 하나는 신기루 숫자, 시작 5초 뒤 걷힘) · 신기루 꼬리 (광역 반은 신기루) · 천 년 졸음.
+  // 40% 아래 마지막 수수께끼 (진짜 4). 악몽은 틀리면 전원 딜체 15%. 목표 5:00 · 광폭화 6:30
+  nyanx: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('앞발', '앞발', 8, 15, U.tank(0.5)), cast: 2.5 },
+      ...([['riddle', 3, 1], ['riddle2', 4, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '수수께끼', icon: '수수', kind: 'instant', first: phase === 1 ? 20 : null, period: 30, cast: 2, when: { phase: [phase] },
+        how: '번호 순서대로 직접 힐을 한 번씩. 번호 하나는 신기루 숫자 (시작 5초 뒤 걷힘): ①부터 시작하고 겹친 숫자는 걷힐 때까지 기다리기',
+        effect: { p: 'order', n, sec: 12, wrong: U.dps(0.25), miss: U.dps(0.4), daze: { sec: 5, vuln: 1.2 }, fake: { at: 5 }, wrongAll: U.dps(0.15) },
+      })),
+      { key: 'tail', name: '신기루 꼬리', icon: '꼬리', kind: 'aoe', first: 14, period: 20, cast: 3, warn: 'aoe', mirage: { chance: 0.5 },
+        how: '반은 신기루 (끝 1초에 걷히면 아무 일도 없음). 걷히기 전에는 지속 힐만 깔고, 진짜면 맞은 뒤 광역 힐', effect: { p: 'all', dmg: U.dps(0.3) } },
+      { key: 'sleepy', name: '천 년 졸음', icon: '졸음', kind: 'instant', first: 10, period: 18, cast: 0, effect: { p: 'debuff', n: 2, debuff: SLEEPY } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'riddle2', in: 4 }, { p: 'text', text: '마지막 수수께끼: 숫자 넷 + 신기루 숫자 하나' },
+    ] }],
+    enrage: { name: '고양이 심술', period: 3, dmg: 200 },
+  },
+  // ---------- 묶음 E1 20인 ② 물밑 수도원 (54 4-4, Lv 73 · 악몽 83 · 심연 · 모든 유형): 흐물이 · 비추미 · 깊은잠 ----------
+  // 해파리 정원사 흐물이 탐험판 (54 1-1, 탐험 ⑱ 물밑 계단 Lv 72): 평타 · 빛 고리 (1명) · 물방울 진동. 20인 수도원 연못 예습
+  heumul72: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'ring', name: '빛 고리', icon: '고리', kind: 'instant', first: 8, period: 20, cast: 0, how: RING_HOW,
+        effect: { p: 'ring', n: 1, sec: 18, dps: 15, every: 2, max: 2 } },
+      { key: 'quake', name: '물방울 진동', icon: '진동', kind: 'aoe', first: 12, period: 20, cast: 1.5, warn: 'aoe', effect: { p: 'quake', dmg: 60, lock: 3 } },
+    ],
+    enrage: { name: '해파리 떼', period: 2, dmg: 200 },
+  },
+  // 해파리 정원사 흐물이 (연못): 20인 요정 고리 (3명, 악몽 5명) × 진동 · 촉수 쓰다듬기 (5명 · 마법 받는 치유 −20%). 목표 4:30 · 광폭화 6:00
+  heumul: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { key: 'ring', name: '빛 고리', icon: '고리', kind: 'instant', first: 8, period: 22, cast: 0, how: RING_HOW,
+        effect: { p: 'ring', n: 3, nMythic: 5, sec: 20, dps: U.dps(0.03), every: 2, max: 2 } },
+      { key: 'quake', name: '물방울 진동', icon: '진동', kind: 'aoe', first: 12, period: 20, cast: 1.5, warn: 'aoe', effect: { p: 'quake', dmg: U.dps(0.12), lock: 3 } },
+      { key: 'tentacle', name: '촉수 쓰다듬기', icon: '촉수', kind: 'instant', first: 5, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 5, debuff: { name: '촉수 자국', type: '마법', left: 6, healCut: 0.2, drop: U.dps(0.18) } } },
+    ],
+    enrage: { name: '해파리 정원 폭주', period: 3, dmg: 200 },
+  },
+  // 거울 사서 비추미 (서고): 20인 신기루 (거울 책장 = 진짜 1 + 거울 둘) × 진동 (조용히! 는 걷히기 0.5초 전에 맞음) · 책 먼지 (질병) · 연체료 (저주).
+  // 악몽은 거울 책장 진짜 2 (표시 4명). 목표 5:00 · 광폭화 6:30
+  bichumi: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { key: 'shelf', name: '거울 책장', icon: '책장', kind: 'buster', first: 10, period: 13, cast: 3, warn: 'buster', target: { p: 'random', n: 1, nMythic: 2 }, mirage: { n: 2 },
+        how: '셋 가운데 둘은 거울 (끝 1초에 걷힘). 바로 앞에 진동이 와서 긴 시전은 끊김: 걷히면 즉시 스킬 · 보호막으로', effect: { p: 'strike', dmg: U.dps(0.6) } },
+      { key: 'hush', name: '조용히!', icon: '쉿', kind: 'aoe', first: 10, period: 13, cast: 1.5, warn: 'aoe', effect: { p: 'quake', dmg: U.dps(0.1), lock: 3 } },
+      { key: 'dust', name: '책 먼지', icon: '먼지', kind: 'instant', first: 6, period: 16, cast: 0, effect: { p: 'debuff', n: 4, debuff: { name: '책 먼지', type: '질병', left: 12, dot: U.dps(0.02) } } },
+      { key: 'fine', name: '연체료', icon: '연체', kind: 'instant', first: 15, period: 20, cast: 0, effect: { p: 'debuff', n: 3, debuff: { name: '연체료', type: '저주', left: 8, healCut: 0.3 } } },
+    ],
+    enrage: { name: '도서관 대소동', period: 3, dmg: 210 },
+  },
+  // 심연 수도원장 깊은잠 (제단, 20인 ② 최종): 1페이즈 잠의 기도 (잠의 표식 3명 · 그림자 손길) → 65% 무너지는 제단 (깊은 물 장판 3곳, 끝난 뒤 가장자리 구멍 · 표식 4명)
+  // → 35% 깨어나는 심장 (모두 + 심장 박동, 박동마다 +3%). 악몽은 표식 10초 (보통 12초, 치유 배율 0.6 뒤 54 4-4의 4 · 5명 · 10초에서 줄임). 목표 6:00 · 광폭화 8:00
+  gipeun: {
+    phase: [1, '1페이즈 · 잠의 기도'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('지팡이 내려치기', '지팡', 8, 15, U.tank(0.55)), cast: 2.5 },
+      ...([['mark', 3, [1]], ['mark2', 4, [2, 3]]] as const).flatMap(([key, n, phase]) => ([false, true] as const).map((mythic): SkillDef => ({
+        key: `${key}${mythic ? 'm' : ''}`, name: '잠의 표식', icon: '표식', kind: 'instant', first: phase[0] === 1 ? 12 : null, period: 25, cast: 0, when: { phase: [...phase], mythic },
+        how: `${n}명에게 표식. ${mythic ? 10 : 12}초 안에 100%까지 채우면 사라지고, 못 채우면 크게 아픔 (못 지움). 광역이 겹치기 전에 몰아서`,
+        effect: { p: 'debuff', n, pick: 'others', debuff: { name: '잠의 표식', type: '마법', left: mythic ? 10 : 12, lock: true, cureAt: 1, drop: U.dps(0.25), end: { p: 'hit', dmg: U.dps(0.5) } } },
+      }))),
+      { key: 'touch', name: '그림자 손길', icon: '손길', kind: 'instant', first: 16, period: 16, cast: 0, when: { phase: [1, 3] },
+        how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
+      ...[0, 1, 2].map((i): SkillDef => ({
+        key: `deep${i}`, name: '깊은 물 장판', icon: '깊은', kind: 'zone', first: null, period: 20, cast: 3, warn: 'zone', hitDmg: U.dps(0.25), cells: { p: 'around' }, when: { phase: [2, 3] },
+        ...(i ? { hidden: true } : { how: '세 곳에 깊은 물. 파티원이 알아서 피하고, 끝나면 가장자리 칸이 구멍이 되어 판이 좁아짐. 못 피한 사람부터 채우기' }),
+      })),
+      { key: 'sink', name: '무너지는 제단', icon: '구멍', hidden: true, first: null, period: 20, cast: 0, when: { phase: [2, 3] }, effect: { p: 'hole', n: 2, max: 6 } },
+      { key: 'beat', name: '심장 박동', icon: '박동', kind: 'aoe', first: null, period: 18, cast: 3, warn: 'aoe', when: { phase: [3] },
+        how: '박동마다 조금씩 세짐. 지속 힐을 미리 깔고, 표식 대상을 먼저 채워 두기', effect: { p: 'all', dmg: U.dps(0.2), grow: U.dps(0.03) } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 무너지는 제단' }, { p: 'start', skill: 'mark2', in: 6 }, { p: 'start', skill: 'mark2m', in: 6 },
+        { p: 'start', skill: 'deep0', in: 3 }, { p: 'start', skill: 'deep1', in: 3 }, { p: 'start', skill: 'deep2', in: 3 }, { p: 'start', skill: 'sink', in: 6.5 },
+        { p: 'text', text: '무너지는 제단: 깊은 물이 빠진 칸이 구멍이 됨, 표식 5명' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.35 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 깨어나는 심장' }, { p: 'start', skill: 'beat', in: 5 }, { p: 'start', skill: 'touch', in: 8 },
+        { p: 'text', text: '깨어나는 심장: 심장 박동이 점점 세짐' },
+      ] },
+    ],
+    enrage: { name: '심장이 깸', period: 3, dmg: 220 },
+  },
+  // ---------- 묶음 E1 던전 ⑮ 모래시계 궁전 (54 3-1, Lv 75 · 모래 왕국 · 질병 + 저주): 데굴이 · 둘둘이 ----------
+  // 시간지기 풍뎅이 데굴이 (①): 모래시계 (새 부품, 8초 뒤 뒤집은 순간의 체력으로 모두 되돌림) × 창 안 데굴데굴 두 번 · 모래 기침 (질병).
+  // 악몽은 창 안 데굴데굴 딜체 30 → 45%. 목표 3:00 · 광폭화 4:00
+  degul: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('뿔 박치기', '뿔', 8, 14, U.tank(0.5)),
+      { key: 'glass', name: '모래시계 뒤집기', icon: '모래', kind: 'aoe', first: 16, period: 30, cast: 3, warn: 'aoe', how: GLASS_HOW,
+        effect: { p: 'glass', sec: 8, then: ['roll', 'rollm'].flatMap(k => [{ skill: k, in: 0.5 }, { skill: `${k}2`, in: 4.5 }]) } },
+      ...(['roll', 'roll2', 'rollm', 'rollm2'] as const).map((key): SkillDef => ({
+        key, name: '데굴데굴', icon: '데굴', kind: 'aoe', first: null, period: 9999, cast: 1.5, warn: 'aoe', when: { mythic: key.startsWith('rollm') },
+        ...(key === 'roll2' || key === 'rollm2' ? { hidden: true } : { how: '모래시계 창 안에서 두 번. 맞은 피해는 창이 끝나면 되돌아가니 쓰러질 사람만 힐' }),
+        effect: { p: 'all', dmg: U.dps(key.startsWith('rollm') ? 0.45 : 0.3) },
+      })),
+      { key: 'cough', name: '모래 기침', icon: '기침', kind: 'instant', first: 6, period: 15, cast: 0, effect: { p: 'debuff', n: 2, pick: 'others', debuff: SAND_COUGH } },
+    ],
+    enrage: { name: '기상 시간 초과', period: 2, dmg: 270 },
+  },
+  // 붕대 집사 둘둘이 (최종): 모래시계 × 치유 흡수 (칭칭 붕대는 되돌림 뒤에도 남음) · 창 안 조용히 하세요 · 천 년 졸음 (저주). 40% 아래 붕대 3명 · 모래시계 24초마다.
+  // 악몽은 되돌릴 때 붕대가 남은 사람 딜체 20%. 목표 3:30 · 광폭화 5:00
+  dooldool: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('다리미 내려치기', '다리', 8, 15, U.tank(0.55)), cast: 2.5 },
+      ...([['wrap', 2, 1], ['wrap2', 3, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '칭칭 붕대', icon: '붕대', kind: 'instant', first: phase === 1 ? 10 : null, period: 16, cast: 0, when: { phase: [phase] },
+        how: '힐을 먼저 빨아들이는 붕대. 붕대는 모래시계가 되돌려도 남으니 창 안에서도 붕대 벗기는 힐은 헛되지 않음',
+        effect: { p: 'debuff', n, pick: 'others', debuff: { name: '칭칭 붕대', type: '물리', left: 16, lock: true, absorb: U.dps(0.3), dot: U.dps(0.01) } },
+      })),
+      ...([false, true] as const).map((mythic): SkillDef => ({
+        key: `glass${mythic ? 'm' : ''}`, name: '집사의 모래시계', icon: '모래', kind: 'aoe', first: 18, period: 32, cast: 3, warn: 'aoe', when: { mythic }, how: GLASS_HOW,
+        effect: { p: 'glass', sec: 8, then: [{ skill: 'hush', in: 1.5 }], ...(mythic ? { absorbHit: U.dps(0.2) } : {}) },
+      })),
+      { key: 'hush', name: '조용히 하세요', icon: '조용', kind: 'aoe', first: null, period: 9999, cast: 1.5, warn: 'aoe',
+        how: '모래시계 창 안 3초에 맞음. 맞은 피해는 되돌아가니 쓰러질 사람만 힐', effect: { p: 'all', dmg: U.dps(0.35) } },
+      { key: 'sleepy', name: '천 년 졸음', icon: '졸음', kind: 'instant', first: 12, period: 18, cast: 0, effect: { p: 'debuff', n: 2, debuff: SLEEPY } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'wrap2', in: 3 }, { p: 'period', skill: 'glass', sec: 24 }, { p: 'period', skill: 'glassm', sec: 24 },
+      { p: 'text', text: '다림질 끝!: 붕대 3명, 모래시계가 잦아짐' },
+    ] }],
+    enrage: { name: '집사의 잔소리', period: 2, dmg: 270 },
   },
   warden: {
     phase: [1, ''],

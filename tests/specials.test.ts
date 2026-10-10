@@ -1,4 +1,4 @@
-/** 장비 특수능력 118종 + 이름 있는 장신구 42개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
+/** 장비 특수능력 118종 + 이름 있는 장신구 46개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { NAMED, SPEC_GROUPS, SPEC_KEYS, SPECS, specText, specTotals, specValue } from '../src/data/specials';
@@ -6,7 +6,7 @@ import { SKILLS } from '../src/data/skills';
 import * as E from '../src/engine';
 import { addDebuff, damage, heal } from '../src/engine/core';
 import { areaRadius, castOf, cdOf, costOf } from '../src/engine/talents';
-import { critBonus, during, hasteOf, hotDone, intAmt, specBuster, specCut, specPhase, specTel } from '../src/engine/specials';
+import { critBonus, during, hasteOf, healSpec, hotDone, intAmt, specBuster, specCut, specPhase, specTel } from '../src/engine/specials';
 import { moveTo, scheduleReactions } from '../src/engine/movement';
 import { reviveUnit } from '../src/engine/items';
 import { orderHeal, runEffect } from '../src/engine/bossParts';
@@ -56,14 +56,14 @@ const absorb = (u: U) => u.mods.find(m => m.k === 'absorb')?.v ?? 0;
 const healOn = (f: F, id: number) => { for (const e of f.events) if (e.type === 'heal' && e.id === id) return e.amt; return 0; };
 
 describe('데이터', () => {
-  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 42개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C +8 · 묶음 D1 +4 · D2 +3)', () => {
+  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 46개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C +8 · 묶음 D1 +4 · D2 +3 · E1 +4)', () => {
     expect(SPEC_KEYS.length).toBe(118);
     expect(new Set(SPEC_KEYS).size).toBe(118);
     const by = (g: string) => SPEC_KEYS.filter(k => SPECS[k].group === g).length;
     expect(Object.keys(SPEC_GROUPS).map(by)).toEqual([16, 16, 14, 12, 10, 8, 10, 8, 24]);
     expect(SPEC_KEYS.filter(k => SPECS[k].hero).length).toBe(24);
-    expect(NAMED.length).toBe(42);
-    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(160);
+    expect(NAMED.length).toBe(46);
+    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(164);
   });
   it('직업 전용은 영웅 이상, 효과 글에 값이 들어감', () => {
     for (const k of SPEC_KEYS) {
@@ -1077,6 +1077,35 @@ describe('3 이름 있는 장신구', () => {
     expect(ratio(hit(a), hit(b))).toBeCloseTo(1, 6);
     both([a, b], f => runEffect(f, { name: '담금질', st: {} } as unknown as BossSkill, { p: 'stagger', sec: 30, need: 99, hp: 0.7, tank: 2, win: { sec: 6, vuln: 1.3 }, fail: { dmg: 0, lock: 0 } }));
     expect(ratio(hit(a), hit(b))).toBeCloseTo(0.9, 6);
+  });
+  it('냥크스의 수수께끼 쪽지: 신기루가 걷힌 뒤 1초 동안 직접 힐 +', () => {
+    const [a] = pair('riddleNote', 0.2);
+    expect(healSpec(a, tank(a), true)).toBeCloseTo(1, 6);
+    a.tels.push({ id: 901, skill: { name: '신기루 창', st: {}, hit() {} } as unknown as BossSkill, kind: 'buster', start: a.t, impact: a.t + 1, veil: a.t, fake: true, units: [dealer(a).id], cells: new Set() });
+    E.step(a);
+    expect(a.tels.some(t => t.id === 901)).toBe(false);
+    expect(healSpec(a, tank(a), true)).toBeCloseTo(1.2, 6);
+    expect(healSpec(a, tank(a), false)).toBeCloseTo(1, 6);
+    step(a, 1.1);
+    expect(healSpec(a, tank(a), true)).toBeCloseTo(1, 6);
+  });
+  it('해파리 불빛: 고리 · 장판 안 아군 힐 +', () => {
+    const [a, b] = pair('jellyLight', 0.12); both([a, b], f => hurt(f));
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1, 6);
+    both([a, b], f => { hurt(f); f.zones.push({ id: 900, cells: new Set(f.cells.map((_, i) => i)), end: f.t + 60, dps: 0 }); }); // 판 전체 (피하러 움직여도 안)
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1.12, 2);
+  });
+  it('깊은잠의 기도 매듭: 완치 표식 대상 힐 +', () => {
+    const [a, b] = pair('prayerKnot', 0.2); both([a, b], f => hurt(f));
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1, 6);
+    both([a, b], f => { hurt(f); addDebuff(f, dealer(f), { name: '잠의 표식', type: '마법', left: 30, lock: true, cureAt: 1 }); });
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1.2, 2);
+  });
+  it('거꾸로 모래알: 모래시계가 체력을 되돌릴 때 마나 회복', () => {
+    const [a, b] = pair('backSand', 3);
+    both([a, b], f => { f.mana = 50; runEffect(f, { name: '모래시계', st: {} } as unknown as BossSkill, { p: 'glass', sec: 1 }); });
+    step(a, 1.05); step(b, 1.05);
+    expect(a.mana - b.mana).toBeCloseTo(3, 4);
   });
   it('광대버섯 왕관 조각: 해제하면 이웃 칸 아군의 같은 유형 디버프도 지움 (다른 유형 · 못 지우는 것은 그대로)', () => {
     const [a, b] = pair('amanitaShard', 1);

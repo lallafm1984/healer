@@ -11,7 +11,7 @@ import { setBeacon } from './heroes';
 import { reviveTarget } from './items';
 import { dangerAt } from './movement';
 import { castOf, talentReady, useTalent } from './talents';
-import type { Debuff, Fight, FightConfig, Unit } from './types';
+import type { Debuff, Fight, FightConfig, Telegraph, Unit } from './types';
 
 /**
  * 버스터를 맞을 사람이 버틸 만큼 차 있지 않으면 그 사람 (직업군 방어력이 있을 때만).
@@ -22,7 +22,7 @@ function busterShort(f: Fight): { u: Unit; soon: boolean } | null {
   if (!f.armor) return null;
   const short = (u: Unit | null | undefined, dmg: number) => !!u && u.alive && u.guardian <= 0 && u.hp < Math.min(healTop(u) * 0.95, dmg * f.dmgMult * armorFactor(u.role, 'tank') * 1.1 + u.max * 0.15); // 그 사이 평타 한두 대 여유. 가득 차도 못 버티는 버스터면 거의 가득까지만
   for (const t of f.tels) {
-    if (t.kind !== 'buster' || !t.skill.dmg) continue;
+    if (t.kind !== 'buster' || !t.skill.dmg || veiled(f, t)) continue;
     const u = unitById(f, t.units[0]);
     if (short(u, t.skill.dmg)) return { u: u!, soon: t.impact - f.t < 2 };
   }
@@ -81,6 +81,10 @@ const calmFor = (f: Fight, k: SkillKey, calm: number) => !f.lock[k] && busy(f, k
 /** 녹는 보호막 (P-MELT, 51 5장): 열기 동안 외부 생존기는 맞기 MELT_EXT초 안에만 (일찍 걸면 녹아서 맞기 전에 끝남) */
 const meltWait = (f: Fight, impact: number) => !!f.melt && f.t < f.melt.until && impact - f.t > MELT_EXT;
 const MELT_EXT = 1.5;
+/** 신기루 (P-MIRAGE, 54 5장): 가짜가 아직 안 걷힌 예고 (진짜 · 가짜 모두). 걷히기 전에는 어느 쪽인지 모르니 생존기 · 큰 힐을 아낌 */
+const veiled = (f: Fight, t: Telegraph) => t.veil != null && f.t < t.veil;
+/** 모래시계 (P-GLASS, 54 5장) 창 안에서 다시 채울 체력 선: 광역 예고가 떠 있으면 조금 위 (이번 광역에 쓰러질 사람) */
+const glassLow = (f: Fight) => (f.tels.some(t => t.kind === 'aoe') ? 0.4 : 0.3);
 /** 끊기 ✋ 능력이 있는 파티원 (반격 틈 P-COUNTER) */
 const cutter = (u: Unit) => !!u.ab && ABILITIES[u.ab.key]?.fx.e === 'interrupt';
 
@@ -119,11 +123,21 @@ interface Gim {
   hold: Set<Debuff>;
   /** 큰 피해 예고 (광역 · 버스터)가 곧 맞음: 치유 상한 (P-CAP)을 먼저 지움 */
   big: boolean;
+  /** 신기루 (P-MIRAGE): 아직 안 걷힌 예고에 찍힌 사람 (진짜인지 모름) → 지속 힐만 미리 */
+  veil: Unit[];
+  /** 모래시계 (P-GLASS): 뒤집기 예고 중 (기록될 체력을 채움) · 창 안 (넣은 힐이 사라지니 쓰러질 사람 · 남는 일만) */
+  glassFill: boolean;
+  inGlass: boolean;
 }
 
 function gim(f: Fight): Gim {
   let order: Unit | null = null;
-  if (f.order) { const u = unitById(f, f.order.ids[f.order.i]); if (u && u.alive && !off(f, u)) order = u; }
+  if (f.order) {
+    // 신기루 숫자 (54 4-1): 다음 번호가 둘로 보이면 걷힐 때까지 기다림
+    const o = f.order, wait = !!o.fake && f.t < o.fake.until && o.i === o.fake.num;
+    const u = unitById(f, o.ids[o.i]);
+    if (!wait && u && u.alive && !off(f, u)) order = u;
+  }
   const adds = f.mobs.filter(m => m.alive && m.add);
   const watched = !!f.watch && f.t < f.watch.until;
   const hit = f.party.filter(u => u.alive && u.role !== 'tank' && !off(f, u)
@@ -155,6 +169,14 @@ function gim(f: Fight): Gim {
   }
   // 부풀기 (P-SWELL): 못 지운 채 곧 터지면 본인을 미리 가득
   if (!pre) pre = f.party.find(u => u.alive && !off(f, u) && u.hp < healTop(u) * 0.95 && u.debuffs.some(d => d.swell && d.left < 3)) ?? null;
+  // 신기루가 걷힌 진짜 예고: 찍힌 사람을 바로 가득 (걷히기 전에는 지속 힐만)
+  const veil: Unit[] = [];
+  for (const t of f.tels) {
+    if (t.veil == null || t.kind !== 'buster') continue;
+    const us = t.units.map(id => unitById(f, id)).filter((u): u is Unit => !!u && u.alive && !off(f, u));
+    if (veiled(f, t)) veil.push(...us);
+    else if (!pre) pre = us.find(u => u.hp < healTop(u) * 0.95) ?? null;
+  }
   return {
     order, hit, pre, cure,
     aoe: adds.some(m => (m.add!.job?.p === 'bomb' && m.add!.jobAt! - f.t < 3) || (m.add!.down?.p === 'burst' && m.hp < m.max * 0.25)),
@@ -168,11 +190,28 @@ function gim(f: Fight): Gim {
     counter: f.abOn && f.skills.some(s => s.stunOnCut),
     hold,
     big: f.tels.some(t => (t.kind === 'aoe' || t.kind === 'buster') && t.impact - f.t < 3.5),
+    veil,
+    glassFill: f.tels.some(t => t.skill.glass),
+    inGlass: f.glass.some(x => x.until - f.t > 0.3),
   };
 }
 
 /** 채우기 힐을 넣는 체력 선: 그릇이 있으면 가득 찬 사람에게도 (넘치게), 역류 중이면 낮게, 아낄 때 0.7 */
-const topUp = (f: Fight, g: Gim, base: number) => (g.spill && f.mana > 30 ? 1.01 : g.few ? 0.6 : g.save ? 0.7 : base);
+const topUp = (f: Fight, g: Gim, base: number) => (g.spill && f.mana > 30 ? 1.01 : g.glassFill && f.mana > 15 ? 0.97 : g.few ? 0.6 : g.save ? 0.7 : base);
+/**
+ * 모래시계 창 안 (54 5장): 넣은 힐이 되돌아가니 남는 일만. 해제 → 체력 선 (완치 표식) → 치유 흡수 막 벗기기 → 쓰러질 사람.
+ * one(u, hurry) = 단일 힐 하나 (썼으면 true), cleanse() = 해제 하나. 창 안이면 무엇을 했든 true (평소 판단을 건너뜀)
+ */
+function glassWindow(f: Fight, g: Gim, live: Unit[], one: (u: Unit, hurry: boolean) => boolean, cleanse: () => boolean): boolean {
+  if (!g.inGlass) return false;
+  if (cleanse()) return true;
+  if (g.cure && one(g.cure, false)) return true;
+  const bandaged = live.filter(u => u.debuffs.some(d => (d.absorbLeft ?? 0) > 0)).sort((a, b) => a.hp / a.max - b.hp / b.max)[0];
+  if (bandaged && f.mana > 10 && one(bandaged, false)) return true;
+  const low = live.filter(u => pctOf(u) < glassLow(f)).sort((a, b) => pctOf(a) - pctOf(b))[0];
+  if (low) one(low, true);
+  return true;
+}
 
 /**
  * 해제 순서 (35 3-D·3-I·3장 표): 뒤집힌 축복(힐을 막음)·나의 마력 역류(일찍 지울수록 적게 터짐) → 매혹·마나 갈취 표식·메아리 (진동에 옮겨붙음),
@@ -214,9 +253,19 @@ export function autoHealer(f: Fight): void {
   const can = (k: SkillKey) => knows(f, k) && calmFor(f, k, g.calm);
   /** 큰 단일 힐: 급하거나 치유를 못 쓰면 순간 치유 */
   const big = (hurry: boolean): SkillKey | null => (hurry || !can('heal') ? (can('flash') ? 'flash' : null) : 'heal');
+  const purifyOk = can('purify') && (f.cd.purify ?? 0) <= 0 && f.mana >= 4;
+  const purifyNow = (): boolean => {
+    if (!purifyOk) return false;
+    const ok = (d: Debuff) => !!DISPELLABLE[d.type] && !d.trap && !d.lock && !g.hold.has(d);
+    const c = byDispel(g, all.filter(u => u.debuffs.some(ok)), ok);
+    if (c.length) use(f, 'purify', cellIdx(c[0]));
+    return c.length > 0;
+  };
+  // 모래시계 창 안 (54 5장): 남는 일만
+  if (glassWindow(f, g, live, (u, hurry) => { const k = big(hurry); return !!k && f.mana > 3 && use(f, k, cellIdx(u)).ok; }, purifyNow)) return;
   // 찬가는 모두를 채우니 힐하면 손해인 사람이 있으면 안 씀
   if (can('hymn') && (f.cd.hymn ?? 0) <= 0 && live.length === all.length && live.filter(u => pct(u) < 0.5).length >= Math.max(2, Math.floor(live.length / 2)) && f.mana >= 15) { use(f, 'hymn', 0); return; }
-  for (const t of f.tels) if (t.kind === 'buster' && !meltWait(f, t.impact) && knows(f, 'guardian') && (f.cd.guardian ?? 0) <= 0 && f.mana >= 2) {
+  for (const t of f.tels) if (t.kind === 'buster' && !meltWait(f, t.impact) && !veiled(f, t) && knows(f, 'guardian') && (f.cd.guardian ?? 0) <= 0 && f.mana >= 2) {
     const tk = unitById(f, t.units[0]);
     if (tk && tk.alive && pct(tk) < 0.75) { use(f, 'guardian', cellIdx(tk)); return; }
   }
@@ -230,6 +279,8 @@ export function autoHealer(f: Fight): void {
   }
   // 생명 사슬이 곧 끊어지면 낮은 쪽부터
   if (g.link?.near && f.mana > 6) { const k = big(pct(g.link.u) < 0.5); if (k) { use(f, k, cellIdx(g.link.u)); return; } }
+  // 신기루가 안 걷힌 예고에 찍힌 사람: 지속 힐만 미리 (진짜인지 모름)
+  if (g.veil.length && f.mana > 15 && can('renew')) { const v = g.veil.find(u => u.hot <= 0); if (v) { use(f, 'renew', cellIdx(v)); return; } }
   const thrifty = f.mana < 25 || g.save; // 마나가 바닥나거나 아껴야 하면 무료 성언을 아끼지 않는다
   if (f.g.p >= 100 && pct(low) < (thrifty ? 0.7 : 0.45)) { use(f, 'serenity', cellIdx(low)); return; }
   // 광역 힐 판단 기준은 힐 크기에 맞춤 (레벨 배율 · 치유 배율, 07 4장 · 34 1-6). 힐하면 손해인 사람이 범위에 들면 그 자리는 안 씀
@@ -243,12 +294,7 @@ export function autoHealer(f: Fight): void {
   if (f.g.s >= 100 && score > (thrifty ? 450 : 900) * hp) { use(f, 'sanctify', cellIdx(best!)); return; }
   if (pct(low) < 0.35 && f.mana > 8 && can('flash')) { use(f, 'flash', cellIdx(low)); return; }
   if (score > 600 * hp && f.mana > 12 && can('poh')) { use(f, 'poh', cellIdx(best!)); return; }
-  const purifyOk = can('purify') && (f.cd.purify ?? 0) <= 0 && f.mana >= 4;
-  if (purifyOk) {
-    const ok = (d: Debuff) => !!DISPELLABLE[d.type] && !d.trap && !d.lock && !g.hold.has(d);
-    const c = byDispel(g, all.filter(u => u.debuffs.some(ok)), ok);
-    if (c.length) { use(f, 'purify', cellIdx(c[0])); return; }
-  }
+  if (purifyNow()) return;
   // 체력 선: 채우면 풀리는 사람을 선 위로
   if (g.cure && pct(low) > 0.4 && f.mana > 3) { const k = big(pct(g.cure) < 0.5); if (k) { use(f, k, cellIdx(g.cure)); return; } }
   // 헤매는 영혼: 위급한 사람이 없으면 해제로 바로, 아니면 소생을 깔고 단일 힐 (시간이 모자라면 순간 치유)
@@ -305,7 +351,7 @@ function ctx(f: Fight, amt: number): Ctx | null {
     for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= 1) s = off(f, v) ? -Infinity : s + Math.min(amt * healUnit(f), Math.max(0, healTop(v) - v.hp));
     if (s > score) { best = c; score = s; }
   }
-  const bt = f.tels.find(t => t.kind === 'buster' && !meltWait(f, t.impact));
+  const bt = f.tels.find(t => t.kind === 'buster' && !meltWait(f, t.impact) && !veiled(f, t));
   const on = bt ? unitById(f, bt.units[0]) || null : null;
   return { live, all, g: gim(f), pct, low, idx, ready, cluster: { best, score }, busterOn: on && !off(f, on) ? on : null };
 }
@@ -327,6 +373,8 @@ function autoDruid(f: Fight): void {
   if (!c) return;
   const { live, pct, low, idx, ready, g } = c;
   const sprouted = (u: Unit) => u.hots.some(h => h.key === 'sprout' && h.left > 2);
+  // 모래시계 창 안 (54 5장): 남는 일만
+  if (glassWindow(f, g, live, u => f.mana > 4 && tryUse(f, 'growth', u, idx), () => { if (!ready('natureCleanse')) return false; const d = cleansable(f, c); return !!d && tryUse(f, 'natureCleanse', d, idx); })) return;
   if (ready('quietwood') && live.length === c.all.length && live.filter(u => pct(u) < 0.5).length >= Math.max(2, Math.floor(live.length / 2))) { use(f, 'quietwood', 0); return; }
   if (ready('rebirth') && !f.rebirthUsed && reviveTarget(f) && tryUse(f, 'rebirth', null, idx)) return;
   if (c.busterOn && ready('bark') && pct(c.busterOn) < 0.8 && tryUse(f, 'bark', c.busterOn, idx)) return;
@@ -336,6 +384,8 @@ function autoDruid(f: Fight): void {
   if (g.order && pct(low) > 0.3 && tryUse(f, 'sprout', g.order, idx)) return;
   // 생명 사슬이 곧 끊어지면 낮은 쪽부터
   if (g.link?.near && ((!sprouted(g.link.u) && tryUse(f, 'sprout', g.link.u, idx)) || (f.mana > 4 && tryUse(f, 'growth', g.link.u, idx)))) return;
+  // 신기루가 안 걷힌 예고에 찍힌 사람: 새싹만 미리
+  { const v = g.veil.find(u => !sprouted(u)); if (v && f.mana > 10 && tryUse(f, 'sprout', v, idx)) return; }
   // 여럿이 크게 다쳤으면 들꽃 군락부터 (20인에서 한 명씩만 살리다 밀리지 않게)
   if (ready('wildflower') && c.cluster.best && c.cluster.score > 800 * healUnit(f) && tryUse(f, 'wildflower', c.cluster.best, idx)) return;
   // 위급: 거둘 지속 힐이 있으면 피워 내기, 없으면 생장
@@ -358,7 +408,7 @@ function autoDruid(f: Fight): void {
   const bare = g.few ? undefined : live.filter(u => !sprouted(u) && (pct(u) < 0.9 || (aoeSoon && f.mana > 30))).sort((a, b) => pct(a) - pct(b))[0];
   if (bare && f.mana > 2 && tryUse(f, 'sprout', bare, idx)) return;
   // 새싹을 다 깔았으면 남는 시간엔 생장 (마나가 넉넉할수록 일찍, 보호막 수정이 서 있으면 아낌, 그릇이 있으면 넘치게)
-  const cut = g.spill || g.few ? topUp(f, g, 0.55) : f.mana > 60 && !g.save ? 0.85 : f.mana > 30 ? 0.7 : 0.55;
+  const cut = g.spill || g.few || g.glassFill ? topUp(f, g, 0.55) : f.mana > 60 && !g.save ? 0.85 : f.mana > 30 ? 0.7 : 0.55;
   if (pct(low) < cut && f.mana > 6 && tryUse(f, 'growth', low, idx)) return;
 }
 
@@ -368,6 +418,9 @@ function autoPaladin(f: Fight): void {
   const c = ctx(f, 260);
   if (!c) return;
   const { live, pct, low, idx, ready, g } = c;
+  // 모래시계 창 안 (54 5장): 남는 일만
+  if (glassWindow(f, g, live, u => (ready('holyStrike') && tryUse(f, 'holyStrike', u, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', u, idx)),
+    () => { if (!ready('handCleanse')) return false; const d = cleansable(f, c); return !!d && tryUse(f, 'handCleanse', d, idx); })) return;
   if (ready('sanctuary') && c.cluster.best && live.filter(u => pct(u) < 0.5).length >= Math.max(2, Math.floor(live.length / 2)) && tryUse(f, 'sanctuary', c.cluster.best, idx)) return;
   if (c.busterOn && ready('sacrifice') && tryUse(f, 'sacrifice', c.busterOn, idx)) return;
   if (c.busterOn && ready('handGuard') && pct(c.busterOn) < 0.35 && c.busterOn.role !== 'tank' && tryUse(f, 'handGuard', c.busterOn, idx)) return;

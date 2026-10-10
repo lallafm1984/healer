@@ -14,7 +14,7 @@ import { NAMED, SPECS, type SpecGroup } from '../data/specials';
 import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
 import { emblemColor } from '../screens/art';
 import { FACTIONS, type FactionKey } from '../data/places';
-import { addArtName, emblemSrc, holeArtName, soulArtName, zoneArtName } from './art';
+import { addArtName, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebuff } from './party-display';
 import { CELL_RADIUS, fitBoard } from './board-layout';
@@ -26,6 +26,8 @@ const hex = (c: string) => parseInt(c.slice(1, 7), 16);
 const RING = 0xf29cb7, RING_HI = 0xd9577f;
 /** 녹는 보호막 (P-MELT, 51 5장): 열기 동안 판이 주황빛으로 일렁이고 보호막 · 외부 생존기 테두리가 주황 */
 const MELT = 0xff8a3d;
+/** 모래시계 되돌림 선 (모래 왕국 금모래, 54 0장) */
+const SAND = 0xe9c46a;
 const C = {
   cell: 0x15120e, cellLine: 0x2c241b, line: 0x080605, ink: 0xf1e4c8, dead: 0x8a7f6a, gold: 0xf0c46a, white: 0xffffff,
   zone: 0xe2402e, zoneHi: 0xff6a4a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0xffe08a, over: 0xa99a7e,
@@ -714,6 +716,12 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   // 묶음 D2: 용의 숨결이 줄을 지나감 (줄 가운데 칸에서 크게) · 성소 문이 한 칸 열림 (판 전체)
   'dragon-breath': { size: 2.8, color: 0xff9a3d, ms: 600 },
   'door-open': { size: 3.2, color: 0xb06bff, ms: 900, wide: true },
+  // 묶음 E (54 5장, 그림 55 E): 신기루가 걷힘 (가짜 칸 위, 작게) · 체력이 되감김 (칸마다) · 모래 폭풍 (판 전체, 오른쪽으로) · 하품 (칸 위로) · 심장 박동 (판 전체)
+  'mirage-shimmer': { size: 1.5, color: 0xffe3a3, ms: 600 },
+  'sand-rewind': { size: 1.5, color: 0xe9c46a, ms: 700 },
+  sandstorm: { size: 3.2, color: 0xe9c46a, ms: 900, wide: true },
+  yawn: { size: 1.0, color: 0xf4e3b5, ms: 700, up: 0.5 },
+  heartbeat: { size: 3.2, color: 0xa66bff, ms: 800, wide: true },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();
@@ -914,7 +922,7 @@ export function render(now: number): void {
   for (const z of F.zones) if (!seenZones.has(z.id)) { seenZones.add(z.id); if (isFinite(z.end)) z.cells.forEach(i => fxGim(burst, now, { cell: i })); }
   // 칸 무늬 그림 (37 4장 B). 없으면 아래 벡터 그림
   const zoneTex = artTexture(zoneArtName(boardFaction)), warnTex = artTexture('fx-cell-zone-warn'), holeTex = artTexture(holeArtName(boardFaction));
-  const safeTex = artTexture('fx-cell-safe'), padTex = artTexture('fx-cell-tower'), ringTex = artTexture('fx-cell-ring'), cellArt = r * 1.96;
+  const safeTex = artTexture('fx-cell-safe'), padTex = artTexture('fx-cell-tower'), ringTex = artTexture(ringArtName(boardFaction)), cellArt = r * 1.96;
   const melting = !!F.melt && F.t < F.melt.until;
   F.cells.forEach((c, i) => {
     const p = center(i);
@@ -1031,6 +1039,13 @@ export function render(now: number): void {
       const ly = bot - 2 * r * cap.cap!;
       fillBand(unitsG, x, y, r, top, ly, 0x2c2a44, 0.55);
       fillBand(unitsG, x, y, r, ly - Math.max(1, s * 0.025), ly + Math.max(1, s * 0.025), 0x15131f, 0.95);
+    }
+    // 모래시계 (P-GLASS, 54 5장): 창이 끝나면 돌아갈 체력 = 금빛 모래 선, 끝나기 1초 전 깜빡임
+    for (const g of F.glass) {
+      const g0 = g.rec.get(u.id);
+      if (g0 == null) continue;
+      const ly = bot - 2 * r * Math.max(0.02, Math.min(1, g0)), th = Math.max(1.5, s * 0.035);
+      fillBand(unitsG, x, y, r, ly - th, ly + th, SAND, g.until - F.t < 1 ? 0.55 + 0.45 * pulse : 0.95);
     }
     const swell = u.debuffs.find(d => d.swell);
     if (swell) unitsG.circle(x, y + r * 0.1, r * Math.min(0.85, 0.3 + 0.12 * (swell.stack ?? 1))).fill({ color: 0x7ee36a, alpha: 0.16 }).stroke({ width: Math.max(1.5, s * 0.04), color: 0x7ee36a, alpha: 0.75 });
@@ -1369,7 +1384,8 @@ export function render(now: number): void {
       hexPoly(overG, x, y, mark).stroke({ width: 3, color: C.tel, alpha: 0.6 + 0.4 * pulse });
     }
     // 차례 (P-ORDER): 은쟁반 번호표, 받은 번호는 꺼지고 다음 번호는 금빛. 직업 그림 왼쪽 (이름을 안 가리게)
-    const ok = F.order ? F.order.ids.indexOf(u.id) : -1;
+    // 신기루 숫자 (54 4-1): 걷히기 전까지 진짜 번호와 똑같이 보임
+    const ok = F.order ? (F.order.fake && F.order.fake.id === u.id && F.t < F.order.fake.until ? F.order.fake.num : F.order.ids.indexOf(u.id)) : -1;
     if (F.order && ok >= F.order.i) pill(overG, labels, `ord${u.id}`, x - r * 0.55, y - r * 0.42, ORDER_NUM[ok], ok === F.order.i ? C.gold : 0xd9dde6, C.dark, fs(0.3, 12), ok === F.order.i ? 0.75 + 0.25 * pulse : 1);
     else if (u.debuffs.some(d => d.invert)) pill(overG, labels, `inv${u.id}`, x - r * 0.55, y - r * 0.42, '✕', 0x7fa88c, C.dark, fs(0.28, 11));
     if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));

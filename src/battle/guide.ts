@@ -309,7 +309,8 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
       e.pad ? '끌려온 사람을 받침 끝까지 세워 두기 (탱커와 묶어 광역, 울림 직전 단일 힐)' : `끌려온 사람이 탱커 옆이라 ${act('poh', RO)} 둘을 한 번에 채우기`];
     case 'adds': return [`「${e.add.name}」 ${c.mythic && e.nMythic ? e.nMythic : e.n}마리 등장`, '딜러가 잡음. 맞는 사람을 채우기'];
     case 'hole': return [`가장자리 바닥 ${e.n}칸이 무너짐`, '파티원이 알아서 비킴'];
-    case 'order': return [`${c.mythic && e.nMythic ? e.nMythic : e.n}명 칸에 번호. ${secT(e.sec)} 안에 번호 순서대로 단일 힐 → 보스 ${secT(e.daze.sec)} 멍함`, '번호 순서대로 한 번씩 힐 넣기'];
+    case 'order': return [`${c.mythic && e.nMythic ? e.nMythic : e.n}명 칸에 번호. ${secT(e.sec)} 안에 번호 순서대로 단일 힐 → 보스 ${secT(e.daze.sec)} 멍함${e.fake ? `. 🌫 하나는 신기루 숫자 (시작 ${secT(e.fake.at)} 뒤 걷힘, 그 전에 힐하면 틀림)` : ''}${c.mythic && e.wrongAll ? `. 틀리면 전원 <b>${n(e.wrongAll)}</b>` : ''}`,
+      e.fake ? '①부터 시작하고, 같은 번호가 둘이면 걷힐 때까지 기다렸다가 진짜에게' : '번호 순서대로 한 번씩 힐 넣기'];
     case 'jail': return [`${c.mythic && e.nMythic ? e.nMythic : e.n}명을 「${e.name}」에 가둠 (딜 0 · 초당 ${n(e.dot)})`, '딜러가 감옥을 깰 때까지 갇힌 사람을 채우기'];
     case 'quake': return [`시전 중인 힐이 끊기고 그 스킬 ${secT(e.lock)} 잠김 + 전원 <b>${n(e.dmg)}</b>`, '예고가 뜨면 새 시전을 시작하지 않기 (즉시 스킬 · 지속 힐)'];
     case 'rest': return [`${secT(e.sec)} 동안 기술을 쉼`, '그동안 마나를 아끼며 채우기'];
@@ -330,7 +331,17 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
     case 'trade': return [`두 탱커의 「${e.name}」 중첩이 서로 바뀜`, '바뀐 뒤 바로 교대가 오니 두 탱커 모두 채워 두기'];
     case 'slow': return [`${secT(e.sec)} 동안 내 시전 시간 ×${e.mult}`, '그동안 즉시 스킬 · 지속 힐로 버티기'];
     case 'empower': return [`보스 피해 +${pctT(e.boost)} (끝까지 쌓임)`, '오래 끌수록 아파짐. 쿨기를 이때 쓰기'];
+    case 'strike': return [`🎯 예고 때 고른 ${typeof d.target === 'object' ? (c.mythic && d.target.nMythic ? d.target.nMythic : d.target.n) : 1}명에게 <b>${n(e.dmg)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, '예고된 사람을 미리 채우기'];
+    case 'glass': return [`모래시계를 뒤집음: 그 순간 체력으로 ${secT(e.sec)} 뒤 모두 되돌아감 (그 사이 받은 피해도 넣은 힐도 사라짐)${e.absorbHit ? `. 그때 치유 흡수 막이 남은 사람은 <b>${n(e.absorbHit)}</b>` : ''}`,
+      `뒤집기 전에 모두 채우기. 창 안에서는 쓰러질 사람만 힐 (막 벗기기 · 해제는 남음)`];
   }
+}
+/** 신기루 (P-MIRAGE, 54 5장) 한 줄 */
+function mirageText(d: SkillDef, c: GuideCtx): string {
+  const m = d.mirage!, at = secT(m.reveal ?? 1);
+  if (m.chance != null) return `🌫 ${pctT(m.chance)}는 신기루: 맞기 ${at} 전에 걷히면 안 맞음`;
+  const k = c.mythic && m.nMythic ? m.nMythic : m.n ?? 1;
+  return `🌫 신기루: 가짜 ${k}${d.target ? '명' : '곳'}이 함께 보이다가 맞기 ${at} 전에 걷힘`;
 }
 /** 기술이 도는 때 (페이즈 · 체력 문턱) */
 function whenText(d: SkillDef): string {
@@ -354,7 +365,8 @@ function dataGuide(c: GuideCtx): GuideBody {
   for (const [at, txt] of [...marks].sort((a, b) => b[0] - a[0])) phases.push({ id: `h${at}`, name: txt[0].split(':')[0], at: `체력 ${pctT(at)} 아래`, text: txt.join(' · ') });
   if (isFinite(c.enc.enrage)) phases.push({ id: 'enrage', name: '광폭화', at: mmss(c.enc.enrage), text: `${iga(B.enrName)} ${B.enrPeriod}초마다`, enr: true });
   const skills: GuideSkill[] = shown.map(d => {
-    const ps = sk[d.key], [what, how0] = effectText(d, d.effect, c, ps), wt = whenText(d);
+    const ps = sk[d.key], [what0, how0] = effectText(d, d.effect, c, ps), wt = whenText(d);
+    const what = d.mirage ? `${what0}. ${mirageText(d, c)}` : what0;
     const every = `${wt ? `${wt} · ` : ''}${secT(d.period)}마다`;
     return { ic: d.icon ?? d.name!.slice(0, 2), name: d.name!, art: bossSkillArt(c.enc, d), when: `${wt ? `${wt}부터 · ` : `${secT((d.first ?? 0) + d.cast)}에 첫 타, 그 뒤 `}${secT(d.period)}마다${d.cast ? ` · 예고 ${secT(d.cast)}` : ''}${d.cut ? ' · 끊기 ✋' : ''}`,
       what, how: d.how ?? (how0 || undefined), every, tip: () => [what.replace(/<\/?b>/g, '')] };
