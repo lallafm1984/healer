@@ -100,6 +100,12 @@ export const UNIQUES: UniqueDef[] = [
   { key: 'fletchSleeve', name: '슝슝이 화살깃 토시', slot: 'hands', kind: 'sleeve', place: 'shadow2', placeName: '그림자 성벽 성벽길', spec: 'evenly' },
   { key: 'upsideVestment', name: '뒤죽박죽의 거꾸로 법복', slot: 'chest', kind: 'vestment', place: 'school', placeName: '구름 마법학교', spec: 'lingerLight' },
   { key: 'lanceWraps', name: '쌩쌩이 번개 창 손싸개', slot: 'hands', kind: 'wraps', place: 'fort2', placeName: '폭풍 성채 무기고', spec: 'shieldFriend' },
+  // 묶음 G1 (59 6장): 10인 ⑮ 입구 · 회랑, 20인 ⑧ 막사 · 훈련장, 던전 ⑲
+  { key: 'tollHelm', name: '그믐 통행세 투구', slot: 'head', kind: 'helm', place: 'maze1', placeName: '그림자 미궁 입구', spec: 'numberSense' },
+  { key: 'webGloves', name: '실타래 거미줄 장갑', slot: 'hands', kind: 'gloves', place: 'maze2', placeName: '그림자 미궁 회랑', spec: 'layer' },
+  { key: 'galeLance', name: '질풍 기병창', slot: 'weapon', kind: 'staff', place: 'camp1', placeName: '그림자 진영 막사', spec: 'bounceLight' },
+  { key: 'hornSleeve', name: '우레발 뿔 토시', slot: 'hands', kind: 'sleeve', place: 'camp2', placeName: '그림자 진영 훈련장', spec: 'sturdyBack' },
+  { key: 'valenRapier', name: '발렌의 은빛 레이피어', slot: 'weapon', kind: 'scepter', place: 'ballroom', placeName: '가라앉은 무도회장', spec: 'bounceLight' },
 ];
 
 export const uniqueOf = (key: string | undefined) => (key ? UNIQUES.find(u => u.key === key) : undefined);

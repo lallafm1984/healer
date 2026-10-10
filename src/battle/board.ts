@@ -30,6 +30,8 @@ const MELT = 0xff8a3d;
 const SAND = 0xe9c46a;
 /** 묶음 F (56 5장): 띄워 올리기 하늘색 · 연쇄 번개 노랑 */
 const SKY = 0x9fd8f5, BOLT = 0xffe066;
+/** 묶음 G (59 5장): 어둠물 검보라 · 물결 · 빌린 생명 보라 (심연의 정예 #8A7CFF) */
+const TIDE = 0x241a4d, TIDE_HI = 0x8a7cff, DEBT = 0x8a7cff, DEBT_HI = 0xd6ceff;
 const C = {
   cell: 0x15120e, cellLine: 0x2c241b, line: 0x080605, ink: 0xf1e4c8, dead: 0x8a7f6a, gold: 0xf0c46a, white: 0xffffff,
   zone: 0xe2402e, zoneHi: 0xff6a4a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0x4dff7c, over: 0xa99a7e,
@@ -200,6 +202,16 @@ function fillBand(g: Graphics, x: number, y: number, r: number, yMin: number, yM
   const pts = clipY(hexPts(x, y, r), yMin, yMax);
   if (pts.length >= 3) g.poly(flat(pts), true).fill({ color, alpha });
 }
+/** 어둠물 물결 두 줄 (칸 안, 천천히 흐름) */
+function waves(g: Graphics, x: number, y: number, r: number, t: number, w: number, color: number, alpha: number): void {
+  for (const k of [-0.18, 0.28]) {
+    const yy = y + r * k, n = 8, x0 = x - r * 0.7, dx = (r * 1.4) / n;
+    g.moveTo(x0, yy + Math.sin(t * 2 + k * 9) * r * 0.06);
+    for (let q = 1; q <= n; q++) g.lineTo(x0 + dx * q, yy + Math.sin(t * 2 + k * 9 + q * 1.3) * r * 0.06);
+    g.stroke({ width: w, color, alpha });
+  }
+}
+
 /** 장판 빗금 (칸 모양 안쪽만, 45°): 바닥 그림 위에서도 장판이 읽히게. 그린 뒤 .stroke() */
 function hatchHex(g: Graphics, x: number, y: number, r: number, gap: number): Graphics {
   const pts = hexPts(x, y, r), u = Math.SQRT1_2;
@@ -718,6 +730,12 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   'chain-bolt': { size: 0.8, color: BOLT, ms: 350, fly: true },
   'chain-rod': { size: 1.4, color: BOLT, ms: 500 },
   'island-tilt': { size: 3.2, color: SKY, ms: 900, wide: true }, // 묶음 F2 기우는 섬 (그림 57 E)
+  // 묶음 G (59 5장, 그림 60 E): 어둠물이 차오름 · 빠짐 (칸마다) · 생명을 빌려줌 (보랏빛 손) · 빚을 갚음 (금빛 동전이 빠져나감) · 남은 빚을 거둬 감
+  'tide-rise': { size: 1.5, color: TIDE_HI, ms: 700, up: 0.2 },
+  'tide-ebb': { size: 1.2, color: TIDE_HI, ms: 600 },
+  'debt-lend': { size: 1.6, color: DEBT, ms: 700 },
+  'debt-pay': { size: 0.9, color: 0xffd166, ms: 450, up: 0.5 },
+  'debt-collect': { size: 1.9, color: DEBT, ms: 700 },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();
@@ -921,17 +939,20 @@ export function render(now: number): void {
 
   // 영역 (장판 예고·활성 장판)
   const zoneSet = new Set<number>(), telSet = new Set<number>();
-  for (const z of F.zones) z.cells.forEach(i => zoneSet.add(i));
+  const tideSet = new Set<number>(), tideTel = new Set<number>(); // 어둠물 (P-TIDE, 59 5장 화면): 빨간 장판 대신 검보랏빛 물결
+  for (const z of F.zones) z.cells.forEach(i => (z.tide ? tideSet : zoneSet).add(i));
+  for (const tl of F.tels) if (tl.skill.tide && !tl.fake) tl.cells.forEach(i => tideTel.add(i));
   const ringSet = new Set<number>(); for (const z of F.zones) if (z.ring) z.cells.forEach(i => ringSet.add(i)); // 요정 고리 (P-GROW, 48 5장)
-  for (const tl of F.tels) if (tl.kind === 'zone') tl.cells.forEach(i => telSet.add(i));
+  for (const tl of F.tels) if (tl.kind === 'zone' && !tl.skill.tide) tl.cells.forEach(i => telSet.add(i));
   const safeSet = new Set<number>(); for (const tl of F.tels) tl.safe?.forEach(i => safeSet.add(i)); // 피난처 (35 3-E)
   const padSet = new Set<number>(); for (const tl of F.tels) if (tl.skill.pads || tl.ring) tl.cells.forEach(i => padSet.add(i)); // 받침 발판 (35 4-5) · 끌려온 칸 받침 (39 3-1)
   // 새로 깔린 장판: 칸마다 한 번 터지는 연출 (쫄 오라처럼 끝나지 않는 장판은 빼고). 해바라기 언덕은 떨어지는 돌 (44 E-10, 그림이 있을 때)
   const burst = boardFaction === 'hill' && art('fx-rockfall') ? 'rockfall' : 'zone-burst';
-  for (const z of F.zones) if (!seenZones.has(z.id)) { seenZones.add(z.id); if (isFinite(z.end)) z.cells.forEach(i => fxGim(burst, now, { cell: i })); }
+  for (const z of F.zones) if (!seenZones.has(z.id)) { seenZones.add(z.id); if (isFinite(z.end) && !z.tide) z.cells.forEach(i => fxGim(burst, now, { cell: i })); }
   // 칸 무늬 그림 (37 4장 B). 없으면 아래 벡터 그림
   const zoneTex = artTexture(zoneArtName(boardFaction)), warnTex = artTexture('fx-cell-zone-warn'), holeTex = artTexture(holeArtName(boardFaction));
   const safeTex = artTexture('fx-cell-safe'), padTex = artTexture('fx-cell-tower'), ringTex = artTexture(ringArtName(boardFaction)), cellArt = r * 1.96;
+  const tideTex = artTexture('fx-cell-tide'), tideWarnTex = artTexture('fx-cell-tide-warn');
   const melting = !!F.melt && F.t < F.melt.until;
   F.cells.forEach((c, i) => {
     const p = center(i);
@@ -967,6 +988,18 @@ export function render(now: number): void {
         hatchHex(cellsG, p.x, p.y, r * 0.96, Math.max(7, s * 0.2)).stroke({ width: Math.max(2, s * 0.05), color: C.zoneHi, alpha: 0.6 });
         hexPoly(cellsG, p.x, p.y, r * 0.9).stroke({ width: Math.max(2, s * 0.06), color: C.zoneHi, alpha: 0.95 });
       }
+    } else if (tideSet.has(i)) {
+      // 어둠물에 잠긴 칸: 검보랏빛 물 + 물결 두 줄 (그림 60 fx-cell-tide)
+      if (tideTex) decals.put(tideTex, p.x, p.y, cellArt, cellArt, 0.85 + 0.15 * zpulse);
+      else {
+        hexPoly(cellsG, p.x, p.y, r).fill({ color: TIDE, alpha: 0.72 });
+        waves(cellsG, p.x, p.y, r, t, Math.max(2, s * 0.05), TIDE_HI, 0.75);
+      }
+    } else if (tideTel.has(i)) {
+      // 어둠물 예고: 아래 줄이 검게 출렁 (그림 60 fx-cell-tide-warn)
+      hexPoly(cellsG, p.x, p.y, r).fill({ color: TIDE, alpha: 0.2 + 0.3 * pulse });
+      if (tideWarnTex) decals.put(tideWarnTex, p.x, p.y, cellArt, cellArt, 0.5 + 0.5 * pulse);
+      else dashPoly(cellsG, hexPts(p.x, p.y, r * 0.9), 6, 4, Math.max(2, s * 0.05), TIDE_HI, 0.5 + 0.5 * pulse);
     } else if (telSet.has(i)) {
       hexPoly(cellsG, p.x, p.y, r).fill({ color: C.tel, alpha: 0.14 + 0.24 * pulse });
       if (warnTex) decals.put(warnTex, p.x, p.y, cellArt, cellArt, 0.5 + 0.5 * pulse);
@@ -1061,6 +1094,13 @@ export function render(now: number): void {
       fillBand(unitsG, x, y, r, top, ly, 0x2c2a44, 0.55);
       fillBand(unitsG, x, y, r, ly - Math.max(1, s * 0.025), ly + Math.max(1, s * 0.025), 0x15131f, 0.95);
     }
+    // 빌린 생명 (P-DEBT, 59 5장 화면): 거둬 갈 빚만큼 칸 위쪽이 보랏빛 (불어나면 띠가 내려옴), 4초 아래면 깜빡임
+    const debt = u.debuffs.length ? u.debuffs.find(d => (d.debtLeft ?? 0) > 0) : undefined;
+    if (debt) {
+      const ly = top + 2 * r * Math.min(1, debt.debtLeft! / u.max), th = Math.max(1.5, s * 0.035);
+      fillBand(unitsG, x, y, r, top, ly, DEBT, debt.left < 4 ? 0.3 + 0.3 * pulse : 0.42);
+      fillBand(unitsG, x, y, r, ly - th, ly + th, DEBT_HI, 0.95);
+    }
     // 모래시계 (P-GLASS, 54 5장): 창이 끝나면 돌아갈 체력 = 금빛 모래 선, 끝나기 1초 전 깜빡임
     for (const g of F.glass) {
       const g0 = g.rec.get(u.id);
@@ -1082,6 +1122,12 @@ export function render(now: number): void {
     // 모자 뽑기 (48 5장): 칸 위에 모자 그림 (뒤집힘 실크해트 · 상한 고깔모자 · 완치 왕관 모자)
     const hat = u.debuffs.find(d => d.art), hatTex = hat ? artTexture(hat.art!) : null;
     if (hatTex) fxArt.put(hatTex, x, y - r * 0.6, r * 0.95, r * 0.95);
+    // 어둠물에 잠긴 사람: 칸 아래 40%가 물에 잠김 (물 높이가 출렁) · 받는 치유 −50%
+    if (tideSet.has(u.cell)) {
+      const wy = bot - 2 * r * 0.4 + (S.reducedEffects ? 0 : Math.sin(t * 3 + u.id) * s * 0.03), th = Math.max(1.5, s * 0.035);
+      fillBand(unitsG, x, y, r, wy, bot, TIDE, 0.55);
+      fillBand(unitsG, x, y, r, wy - th, wy + th, TIDE_HI, 0.9);
+    }
     // 장판 위에 선 사람: 칸 전체에 붉은 빛 + 빗금 (체력 위험 깜빡임과 구분)
     if (zoneSet.has(u.cell)) {
       hexPoly(unitsG, x, y, r).fill({ color: C.zone, alpha: 0.2 + 0.08 * zpulse });
@@ -1328,7 +1374,7 @@ export function render(now: number): void {
       // 다른 종류 디버프도 함께 걸려 있으면 배지 글자 끝에 + (종류는 길게 누르기 정보에). 배지 밖에 따로 그리면 작은 칸에서 위 칸 체력 숫자에 닿는다
       const more = u.debuffs.some(d => d !== deb && d.type !== deb.type) ? '+' : '';
       const badgeText = (short: boolean) => (jail ? `${jail.add!.short} ${Math.ceil((jail.hp / jail.max) * 100)}%` : debuffDisplay(deb, F.hero, short).text) + more;
-      const color = deb.jail ? 0xd8c7a8 : deb.trap ? 0xf6e7b0 : hex(DEB[deb.type] || '#E5433D'), fsD = typography.debuff;
+      const color = deb.jail ? 0xd8c7a8 : deb.trap ? 0xf6e7b0 : deb.debt ? DEBT_HI : hex(DEB[deb.type] || '#E5433D'), fsD = typography.debuff; // 빌린 생명은 보랏빛 「빚」 배지
       if (compact) debBadge = pill(badgeG, badgeLabels, `deb${u.id}`, x, y - r * 0.81, badgeText(true), color, C.dark, fsD);
       else {
         // 보통 칸 (2026-10-10): 배지를 직업 아이콘 자리 (윗줄)에. 꼭짓점에 두면 위 칸 체력 숫자와 겹친다 (10인 울트라·플립은 거의 다 가림).

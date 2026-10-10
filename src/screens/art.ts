@@ -76,6 +76,7 @@ export const TRINKET_ART: Record<string, string> = {
   nightcapTassel: 'nightcaptassel', echoDrop: 'echodrop', pinwheelPin: 'pinwheelpin', starMap: 'starmap', // 55 4장 I 8 ~ 11
   breathFlask: 'breathflask', postStamp: 'poststamp', fleeceRing: 'fleecering', millVane: 'millvane', // 57 장신구 1 ~ 4
   prism: 'prism', stormWedge: 'stormwedge', broomTicket: 'broomticket', shadowVeil: 'shadowveil', diploma: 'diploma', // 57 장신구 5 ~ 9
+  mazeMap: 'mazemap', knightBanner: 'knightbanner', wetGlove: 'wetglove', wetScore: 'wetscore', // 60 장신구 1 ~ 4
 };
 /** 이름 있는 장신구 그림 주소 (없으면 '') */
 export const trinketArt = (named?: string): string => (named && TRINKET_ART[named] ? art(`item-trinket-${TRINKET_ART[named]}`) : '');
@@ -130,6 +131,8 @@ const FACTION_PATH: Record<FactionKey, string> = {
   sand: '<path d="M3 11.5a9 9 0 0 1 18 0z"/><path d="M12 2.5V1M5.6 5.1 4.5 4M18.4 5.1 19.5 4"/><path d="M8.5 14h7M8.5 22h7M9.5 14c0 2.5 2.5 2.8 2.5 4s-2.5 1.5-2.5 4M14.5 14c0 2.5-2.5 2.8-2.5 4s2.5 1.5 2.5 4"/>',
   // 폭풍 깃털단 (54 2장): 깃털 + 바람 소용돌이
   storm: '<path d="M5 20.5C8 13 12.5 7 19.5 3.5c-1 6.5-5 12-12 15.5z"/><path d="M5 20.5l7.5-9.5M9.5 13.5l-2.3-.6M12 10.5l-2-.9"/><path d="M14.5 21c2.2 0 4-1.5 4-3.4 0-1.5-1.1-2.6-2.5-2.6-1 0-1.8.7-1.8 1.6"/>',
+  // 심연의 정예 (59 0장): 뛰는 심장 + 뿌리 고리
+  deep: '<circle cx="12" cy="12" r="9.5"/><path d="M12 17.5s-4.8-3-4.8-6.6a2.6 2.6 0 0 1 4.8-1.4 2.6 2.6 0 0 1 4.8 1.4c0 3.6-4.8 6.6-4.8 6.6z"/><path d="M12 2.5v2.8M12 18.7v2.8M2.5 12h2.8M18.7 12h2.8"/>',
 };
 export function factionMark(f: FactionKey, size: 'sm' | 'md' | 'lg' = 'md'): string {
   const img = art(`mark-${f}`);

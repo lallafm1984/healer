@@ -7,7 +7,7 @@ import { DIFFS } from '../data/difficulty';
 import { ENCOUNTERS, mobGrade, type Encounter, type EncounterKey, type ScriptKey } from '../data/encounters';
 import { canDispel, HEROES } from '../data/heroes';
 import { SKILLS } from '../data/skills';
-import { CHAIN_GROW, create, ROD_HP, type Fight, type Role } from '../engine';
+import { CHAIN_GROW, create, ROD_HP, TIDE_CUT, type Fight, type Role } from '../engine';
 import { bossSvg } from './art';
 import { bossSkillArt, gimArt, mobSkillArt, skillArtImg } from './skillArt';
 import { BOSSES, type DebuffDef, type SkillDef, type SkillEffect } from '../data/bosses';
@@ -277,11 +277,12 @@ function debuffText(d: DebuffDef, n: (x: number) => number): string {
     d.swell ? `${secT(d.swell.every)}마다 1중첩 (최대 ${d.swell.max})` : '',
     d.end?.p === 'pop' ? `지우면 이웃 칸 중첩 × <b>${n(d.end.pop)}</b>, 두면 끝날 때 본인 중첩 × <b>${n(d.end.self)}</b> + 이웃 칸 중첩 × <b>${n(d.end.near)}</b>` : '',
     d.cap != null ? `체력이 ${pctT(d.cap)}까지만 참` : '', d.end?.p === 'flip' ? '끝날 때 체력 비율이 뒤집힘 (80% → 20%)' : '',
-    d.drop ? `걸릴 때 <b>${n(d.drop)}</b>` : '', d.end?.p === 'pass' ? '지우면 남은 막이 가장 건강한 아군에게 넘어감, 두면 끝날 때 남은 막만큼 피해' : ''].filter(Boolean);
+    d.drop ? `걸릴 때 <b>${n(d.drop)}</b>` : '', d.debt ? `체력을 가득 채우고 채운 만큼 (최소 ${pctT(d.debt.min)}) 빚, 초마다 +${pctT(d.debt.grow)} (어둠물에 잠기면 2배), 끝나면 남은 빚만큼 피해 · 이 사람에게 넘친 치유가 빚을 갚음` : '',
+    (d.end?.p === 'blast' || d.end?.p === 'trapHit') && d.end.debt ? '빚진 사람이면 터질 때 남은 빚도 함께' : '', d.end?.p === 'pass' ? '지우면 남은 막이 가장 건강한 아군에게 넘어감, 두면 끝날 때 남은 막만큼 피해' : ''].filter(Boolean);
   return `「${d.name}」 (${d.type}, ${secT(d.left)}${fx.length ? ` · ${fx.join(' · ')}` : ''})`;
 }
 /** 디버프 대응: 지울 수 있으면 해제, 아니면 버티기 */
-const debuffHow = (d: DebuffDef) => (d.lock || d.trap ? '' : d.end?.p === 'flip' ? flipHow(d) : d.swell ? swellHow(d) : d.cap != null ? capHow(d) : d.end?.p === 'pass' ? passHow(d)
+const debuffHow = (d: DebuffDef) => (d.debt ? '가득 차 보여도 그 사람에게 힐해서 빚 갚기 (일찍 갚을수록 쌈). 빚보다 체력이 높으면 안 쓰러지니 바쁠 땐 버티기' : d.lock || d.trap ? '' : d.end?.p === 'flip' ? flipHow(d) : d.swell ? swellHow(d) : d.cap != null ? capHow(d) : d.end?.p === 'pass' ? passHow(d)
   : canDispel(S.hero, d.type) ? `${act('purify', RO)} 지우기` : cantDispel(d.type));
 /** 새 부품 대응 (46 5장): 지울 수 있는지에 따라 */
 const swellHow = (d: DebuffDef) => (canDispel(S.hero, d.type) ? `중첩이 적고 옆에 사람이 적을 때 ${act('purify', RO)} 지우기` : `못 지움. 터지기 전에 본인과 옆 칸 사람을 가득 채우기`);
@@ -295,6 +296,7 @@ const linkPairs = (e: Extract<SkillEffect, { p: 'link' }>, c: GuideCtx): number 
 function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: ProbeSkill | undefined): [string, string] {
   const { n } = c;
   if (!e && d.fixed) return [`${d.cells?.p === 'flow' ? `세로 줄을 ${d.cells.every}초마다 한 줄씩 훑으며 그 줄에 선 사람` : `${ROW_NAME[d.cells?.p === 'line' ? d.cells.at : 'mid']}에 선 사람`} 모두 <b>${n(d.hitDmg ?? 0)}</b>${d.hitDebuff ? ` + ${debuffText(d.hitDebuff, n)}` : ''} (피할 수 없음)`, `맞기 전에 그 줄을 ${act('poh', RO)} · ${act('renew', EUL)} 미리 채우기`];
+  if (!e && d.cells?.p === 'tide') { const rows = c.mythic && d.cells.rowsMythic ? d.cells.rowsMythic : d.cells.rows; return [`🌊 판 아래 ${rows}줄이 ${secT(d.dur ?? 0)} 동안 어둠물에 잠김: 잠긴 칸에 선 사람은 <b>받는 치유 −${pctT(TIDE_CUT)}</b> (지속 힐 · 광역 힐도)${d.dps ? ` · 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}. 파티원은 위쪽 빈 칸으로 비키지만 빈 칸이 모자라면 남음`, '예고 동안 아래 줄 사람을 채우고, 잠긴 동안은 다른 사람 · 보호막, 물이 빠지면 몰아 채우기']; }
   if (!e) return d.cells ? [`장판${d.hitDmg ? `: 맞는 순간 그 칸 <b>${n(d.hitDmg)}</b>` : ''}${d.dps ? `${d.hitDmg ? ',' : ':'} 안에 있으면 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}${d.dur ? ` (${secT(d.dur)})` : ''}`, '파티원이 알아서 피함. 늦게 피하는 사람을 채우기'] : ['', ''];
   switch (e.p) {
     case 'tank': return [`${d.target === 'offtank' ? '보스를 안 맞는 탱커' : '탱커'}에게 <b>${n(ps?.dmg ?? d.dmg ?? 0)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, e.debuff?.swap ? '교대한 탱커에게도 지속 힐을 걸어 두기' : '예고가 뜨면 탱커를 미리 가득 채우기'];

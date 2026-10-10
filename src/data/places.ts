@@ -5,7 +5,7 @@
 import type { ContentKey } from './content';
 import type { EncounterKey } from './encounters';
 
-export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'hill' | 'abyss' | 'pirate' | 'fairy' | 'dragon' | 'sand' | 'storm';
+export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'hill' | 'abyss' | 'pirate' | 'fairy' | 'dragon' | 'sand' | 'storm' | 'deep';
 export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple' | 'abyss' | 'cathedral'
   | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge' | 'watchtower'
   | 'abyss-garden' | 'abyss-gallery' | 'abyss-observatory' | 'abyss-spire'
@@ -19,7 +19,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'dusk' | 'dusk-vault' | 'dusk-throne' | 'caravan' | 'rootwood' | 'rootwood-greenhouse' | 'rootwood-heart'
   | 'pyramid' | 'pyramid-clock' | 'pyramid-bed' | 'reservoir' | 'reservoir-bridge' | 'reservoir-mirror' | 'pinwheel' | 'observatory'
   | 'well' | 'well-moss' | 'well-floor' | 'post' | 'post-sort' | 'post-roof' | 'ranch' | 'windmill'
-  | 'crystal' | 'crystal-field' | 'crystal-mirror' | 'fort' | 'fort-armory' | 'fort-top' | 'station' | 'shadow' | 'shadow-wall' | 'shadow-tower' | 'school';
+  | 'crystal' | 'crystal-field' | 'crystal-mirror' | 'fort' | 'fort-armory' | 'fort-top' | 'station' | 'shadow' | 'shadow-wall' | 'shadow-tower' | 'school'
+  | 'maze' | 'maze-hall' | 'maze-core' | 'camp' | 'camp-yard' | 'camp-command' | 'carriage' | 'ballroom';
 
 export interface Faction {
   name: string;
@@ -51,6 +52,8 @@ export const FACTIONS: Record<FactionKey, Faction> = {
   sand: { name: '모래 왕국', color: '#E9C46A', mark: { rim: '#B8913E', glyph: '#F2D58A' }, dispel: ['질병', '저주'] },
   // 묶음 E 탐험 ⑳ (54 2장): 다음 지역 구름 위 섬의 폭풍 깃털단 (묶음 F에서 계속). 하늘색, 문양 = 깃털 + 바람 소용돌이
   storm: { name: '폭풍 깃털단', color: '#6EC3F0', mark: { rim: '#4C93BD', glyph: '#A8DDF7' }, dispel: ['저주', '마법'] },
+  // 묶음 G (59 0장): 심연의 바닥의 심연의 정예 (심장이 빚은 마지막 그림자 군대). 푸른 보라 (몰락한 귀족가 자주 · 옛 심연 금빛과 다르게), 문양 = 뛰는 심장 + 뿌리 고리
+  deep: { name: '심연의 정예', color: '#8A7CFF', mark: { rim: '#6A5CC9', glyph: '#B3A8FF' }, dispel: ALL_DISPEL },
 };
 
 export interface Place {
@@ -185,6 +188,15 @@ export const PLACES: Record<PlaceKey, Place> = {
   'shadow-wall': { key: 'shadow-wall', name: '성벽길', faction: 'abyss', tone: ['#201C30', '#0C0A14'], borrow: 'cathedral' },
   'shadow-tower': { key: 'shadow-tower', name: '망루', faction: 'abyss', tone: ['#241A34', '#0E0A16'], borrow: 'cathedral' },
   school: { key: 'school', name: '구름 마법학교', faction: 'mage', tone: ['#2A3050', '#10121E'], borrow: 'frost' },
+  // 묶음 G1 (59 1장, 그림 요청 60): 그림자 미궁 · 그림자 진영 칸은 대성당 1구역 그림을 빌림, 유령 마차길 · 가라앉은 무도회장은 옛 세력 몰락한 귀족가 (장원 그림을 빌림)
+  maze: { key: 'maze', name: '미궁 입구', faction: 'deep', tone: ['#1E1C34', '#0B0A16'], borrow: 'cathedral' },
+  'maze-hall': { key: 'maze-hall', name: '함정 회랑', faction: 'deep', tone: ['#221E3A', '#0C0B18'], borrow: 'cathedral' },
+  'maze-core': { key: 'maze-core', name: '미궁 중심', faction: 'deep', tone: ['#26204A', '#0E0B1C'], borrow: 'cathedral' },
+  camp: { key: 'camp', name: '그림자 막사', faction: 'deep', tone: ['#1C1E30', '#0A0B14'], borrow: 'cathedral' },
+  'camp-yard': { key: 'camp-yard', name: '훈련장', faction: 'deep', tone: ['#20223A', '#0B0C16'], borrow: 'cathedral' },
+  'camp-command': { key: 'camp-command', name: '지휘소', faction: 'deep', tone: ['#241E40', '#0D0A18'], borrow: 'cathedral' },
+  carriage: { key: 'carriage', name: '유령 마차길', faction: 'noble', tone: ['#2A2438', '#110E16'], borrow: 'manor' },
+  ballroom: { key: 'ballroom', name: '가라앉은 무도회장', faction: 'noble', tone: ['#2C2240', '#120E1A'], borrow: 'manor' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -208,6 +220,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   well1: 'well', well2: 'well-moss', well3: 'well-floor', post1: 'post', post2: 'post-sort', post3: 'post-roof', ranch: 'ranch', windmill: 'windmill',
   crystal1: 'crystal', crystal2: 'crystal-field', crystal3: 'crystal-mirror', fort1: 'fort', fort2: 'fort-armory', fort3: 'fort-top',
   station: 'station', shadow1: 'shadow', shadow2: 'shadow-wall', shadow3: 'shadow-tower', school: 'school',
+  maze1: 'maze', maze2: 'maze-hall', maze3: 'maze-core', camp1: 'camp', camp2: 'camp-yard', camp3: 'camp-command', carriage: 'carriage', ballroom: 'ballroom',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -250,6 +263,8 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   gulgul: 'crystal', pingping: 'crystal-field', bitgallae: 'crystal-mirror', dungdung: 'fort', ssaengssaeng: 'fort-armory', ureureung: 'fort-top',
   platform: 'station', pongpong88: 'station', kwangkwang: 'shadow', syungsyung: 'shadow-wall', eodugi: 'shadow-tower',
   upsidehall: 'school', pongpong: 'school', boltlab: 'school', dwijuk: 'school',
+  geumeum: 'maze', silta: 'maze-hall', bamgeuneul: 'maze-core', jilpung: 'camp', ureobal: 'camp-yard', chilheuk: 'camp-command',
+  carriagetrash: 'carriage', serena92: 'carriage', ballhall: 'ballroom', serena: 'ballroom', balcony: 'ballroom', valen: 'ballroom',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

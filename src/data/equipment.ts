@@ -156,7 +156,7 @@ export const slotName = (k: SlotKey) => SLOTS.find(s => s.key === k)!.name;
 // ---------- 세력 생김새 (34 6-10 ②) ----------
 /** 세력 말: 이름 = 등급 말 + 세력 말 + 종류 (「축복받은 산호 로브」) */
 export const LOOK_WORD: Record<FactionKey, string> = {
-  golem: '톱니', plague: '잿빛', swamp: '이끼', noble: '백합', mage: '서리', hill: '해바라기', abyss: '별밤', pirate: '산호', fairy: '버섯', dragon: '불꽃', sand: '노을', storm: '깃털',
+  golem: '톱니', plague: '잿빛', swamp: '이끼', noble: '백합', mage: '서리', hill: '해바라기', abyss: '별밤', pirate: '산호', fairy: '버섯', dragon: '불꽃', sand: '노을', storm: '깃털', deep: '자수정',
 };
 /** 그 장소 (콘텐츠 키)의 세력. 장소가 없으면 없음 */
 export const lookOf = (place: string | undefined): FactionKey | undefined => {
@@ -274,6 +274,11 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   station: ['starneck', 'bracer'],
   shadow1: ['mail'], shadow2: ['amulet'], shadow3: ['relic'],
   school: ['vestment', 'gloves', 'beads'],
+  // 묶음 G1 (59 6장): 심연의 정예 지능 · 정신력 · 가속 (레이드 칸마다 1, 미궁 입구는 폭풍 성채 성문 투구와 겹쳐 관), 몰락한 귀족가 지능 · 치명타
+  maze1: ['crown'], maze2: ['gloves'], maze3: ['ring'],
+  camp1: ['plume'], camp2: ['sleeve'], camp3: ['medal'],
+  carriage: ['coat', 'ring'],
+  ballroom: ['scepter', 'gloves', 'medal'],
 };
 export const KIND_WEIGHT = 3;
 

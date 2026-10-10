@@ -241,6 +241,19 @@ const ENC_ART: Record<string, string[]> = {
   platform: ['mob-rune-doll', 'mob-drifting-tome'],
   upsidehall: ['mob-rune-doll', 'mob-apprentice-mage'],
   boltlab: ['mob-frost-sprite', 'mob-drifting-tome', 'mob-rune-doll'],
+  // 묶음 G1 (그림 요청 60): 탐험 ㉓ 세레나는 던전 ⑲ 그림을 같이 씀. 귀족가 졸개는 새 그림이 없으면 장원 그림
+  geumeum: ['boss-maze-warden'],
+  silta: ['boss-trap-spider'],
+  bamgeuneul: ['boss-maze-lord'],
+  jilpung: ['boss-shadow-cavalry'],
+  ureobal: ['boss-abyss-beast'],
+  chilheuk: ['boss-shadow-knight-commander'],
+  serena92: ['boss-ghost-conductor'],
+  serena: ['boss-ghost-conductor'],
+  valen: ['boss-fallen-duke'],
+  carriagetrash: ['mob-wet-armor', 'mob-wet-mourner', 'mob-empty-armor', 'mob-veiled-mourner'],
+  ballhall: ['mob-wet-armor', 'mob-sunken-maid', 'mob-empty-armor', 'mob-ghost-maid'],
+  balcony: ['mob-sunken-hound', 'mob-wet-mourner', 'mob-wet-armor', 'mob-ghost-hound', 'mob-veiled-mourner', 'mob-empty-armor'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {

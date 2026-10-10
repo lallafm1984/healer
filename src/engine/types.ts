@@ -68,6 +68,12 @@ export interface Debuff {
   invert?: boolean;
   /** 끝날 때 하는 일 (부품) */
   end?: DebuffEnd;
+  /**
+   * 빌린 생명 (P-DEBT, 59 5장): 걸릴 때 체력을 가득 채우고 채운 만큼 (최소 최대 체력 × min)이 빚. 빚은 초마다 grow씩 불어나고 (어둠물에 잠기면 2배),
+   * 그 사람에게 넘친 치유가 빚을 갚음. 시간이 다 되면 남은 빚만큼 피해 (고정). debtLeft = 남은 빚 (체력 단위)
+   */
+  debt?: { min: number; grow: number };
+  debtLeft?: number;
   /** 감옥 (P-JAIL): 시간으로 안 끝나고 감옥이 깨지면 풀림 */
   jail?: boolean;
   /** 마력 역류 (P-RECOIL): 내가 스킬을 쓸 때마다 1중첩 */
@@ -339,6 +345,8 @@ export interface BossSkill {
   lift?: { pre?: DebuffDef };
   /** 연쇄 번개 (P-CHAIN, 56 5장): 예고 칸에 번개 구름, 자동 힐러가 예고 동안 대상 이웃을 90% 위로 */
   chain?: boolean;
+  /** 어둠물 밀물 (P-TIDE, 59 5장): 잠길 줄 예고 (화면 물결), 맞으면 잠긴 칸 장판 (Zone.tide). 자동 힐러가 예고 동안 잠길 줄 사람을 채움 */
+  tide?: boolean;
   /** 부품 상태 (장판 좌우 번갈아·성부 차례 등, engine/bossParts.ts) */
   st: Record<string, number | boolean>;
 }
@@ -374,6 +382,8 @@ export interface Zone {
   dps: number;
   /** 요정 고리 (P-GROW, 48 5장): 가운데 칸 · 자란 겹 수 · 최대 겹 · 자라는 간격 · 마지막으로 자란 시각 · 기술 이름 */
   ring?: { center: number; n: number; max: number; every: number; at: number; name: string };
+  /** 어둠물 밀물 (P-TIDE, 59 5장): 잠긴 칸 (판 아래 줄). 선 사람은 받는 치유 × (1 − TIDE_CUT) */
+  tide?: boolean;
 }
 
 export type FightEvent =
@@ -430,7 +440,9 @@ export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crum
   /** 묶음 F 새 부품 (56 5장, 그림 57 E): 회오리가 띄워 올림 · 구름에서 내려앉음 · 번개가 하늘에서 떨어짐 · 이웃으로 튐 (on → to) · 피뢰침에서 땅으로 빠짐 */
   | 'lift-swirl' | 'land-puff' | 'chain-strike' | 'chain-bolt' | 'chain-rod'
   /** 묶음 F2 우르릉 기우는 섬 (낮은 쪽으로 바람 · 구름이 쓸려 감, 판 전체) */
-  | 'island-tilt';
+  | 'island-tilt'
+  /** 묶음 G 새 부품 (59 5장, 그림 60 E): 어둠물이 차오름 · 빠짐 · 생명을 빌려줌 (보랏빛 손) · 빚을 갚음 (금빛 동전) · 남은 빚을 거둬 감 */
+  | 'tide-rise' | 'tide-ebb' | 'debt-lend' | 'debt-pay' | 'debt-collect';
 
 export type FightResult = 'win' | 'lose';
 

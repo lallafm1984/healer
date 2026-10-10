@@ -22,7 +22,8 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'pokshin' | 'jjaekkak' | 'hapum' | 'ttakttak' | 'jjirit' | 'doeul' | 'windtrash' | 'hwirik' | 'startrash' | 'stargazer' | 'sundialyard' | 'geuneul'
   | 'chulleong' | 'puseok' | 'huu' | 'hwirik83' | 'kkongkkong' | 'buri' | 'sheeptrash' | 'boksul84' | 'millstairs' | 'boksul' | 'millhouse' | 'dolgae'
   | 'gulgul' | 'pingping' | 'bitgallae' | 'dungdung' | 'ssaengssaeng' | 'ureureung'
-  | 'platform' | 'pongpong88' | 'upsidehall' | 'pongpong' | 'boltlab' | 'dwijuk' | 'kwangkwang' | 'syungsyung' | 'eodugi';
+  | 'platform' | 'pongpong88' | 'upsidehall' | 'pongpong' | 'boltlab' | 'dwijuk' | 'kwangkwang' | 'syungsyung' | 'eodugi'
+  | 'geumeum' | 'silta' | 'bamgeuneul' | 'jilpung' | 'ureobal' | 'chilheuk' | 'carriagetrash' | 'serena92' | 'ballhall' | 'serena' | 'balcony' | 'valen';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -38,7 +39,8 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'pokshin' | 'jjaekkak' | 'hapum' | 'ttakttak' | 'jjirit' | 'doeul' | 'hwirik' | 'stargazer' | 'geuneul'
   | 'chulleong' | 'puseok' | 'huu' | 'hwirik83' | 'kkongkkong' | 'buri' | 'boksul84' | 'boksul' | 'dolgae'
   | 'gulgul' | 'pingping' | 'bitgallae' | 'dungdung' | 'ssaengssaeng' | 'ureureung'
-  | 'pongpong88' | 'pongpong' | 'dwijuk' | 'kwangkwang' | 'syungsyung' | 'eodugi';
+  | 'pongpong88' | 'pongpong' | 'dwijuk' | 'kwangkwang' | 'syungsyung' | 'eodugi'
+  | 'geumeum' | 'silta' | 'bamgeuneul' | 'jilpung' | 'ureobal' | 'chilheuk' | 'serena92' | 'serena' | 'valen';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -797,6 +799,46 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
   kwangkwang: { key: 'kwangkwang', name: '그림자 망치 거인 쾅쾅이', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 50600, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'kwangkwang', big: true, stage: 0.13, debuffs: HEAL4 },
   syungsyung: { key: 'syungsyung', name: '그림자 궁수대장 슝슝이', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 51400, enrage: 390, manaCoef: 1.6, diffs: ALL, script: 'syungsyung', big: true, stage: 0.13 },
   eodugi: { key: 'eodugi', name: '그림자 장군 어둑이', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 67300, enrage: 480, manaCoef: 1.8, diffs: ALL, script: 'eodugi', big: true, stage: 0.13, debuffs: HEAL4 },
+  // ---------- 묶음 G1 (59 1장 · 3-1 · 4-1 · 4-2) ----------
+  // 10인 ⑮ 그림자 미궁 (Lv 91 · 악몽 100 · 심연의 정예 · 전 유형, 칸마다 주로 거는 유형)
+  geumeum: { key: 'geumeum', name: '미궁 파수꾼 그믐', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 21600, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'geumeum', stage: 0.18, debuffs: ['독', '마법'] },
+  silta: { key: 'silta', name: '함정 거미 실타래', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 20700, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'silta', stage: 0.18, debuffs: ['질병', '저주'] },
+  bamgeuneul: { key: 'bamgeuneul', name: '미궁의 주인 밤그늘', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 27000, enrage: 480, manaCoef: 1.5, diffs: ALL, script: 'bamgeuneul', stage: 0.18, debuffs: HEAL4 },
+  // 20인 ⑧ 그림자 진영 (Lv 91 · 악몽 100 · 심연의 정예 · 전 유형)
+  jilpung: { key: 'jilpung', name: '그림자 기병대장 질풍', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 50600, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'jilpung', big: true, stage: 0.13, debuffs: ['독', '질병'] },
+  ureobal: { key: 'ureobal', name: '심연 거수 우레발', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 51400, enrage: 380, manaCoef: 1.6, diffs: ALL, script: 'ureobal', big: true, stage: 0.13, debuffs: ['저주', '마법'] },
+  chilheuk: { key: 'chilheuk', name: '심연 기사단장 칠흑', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 67300, enrage: 480, manaCoef: 1.8, diffs: ALL, script: 'chilheuk', big: true, stage: 0.13, debuffs: HEAL4 },
+  // 탐험 ㉓ 「유령 마차길」 (59 1-1, Lv 92 · 몰락한 귀족가 · 저주): 가라앉은 가로수길 → 유령 악단장 세레나 (어둠물 밀물 쉬운 판, 던전 ⑲ 예습). 졸개는 39 2장 귀족가에 「물에 젖은」 · 「가라앉은」만
+  carriagetrash: trash('carriagetrash', '가라앉은 가로수길', [
+    { name: '물에 젖은 갑옷 시종', hp: 170, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '물에 젖은 조문객', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'veil', name: '젖은 베일', icon: '베일', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '젖은 베일', type: '저주', left: 12, healCut: 0.5 } } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['저주'] }),
+  serena92: { key: 'serena92', lowLevel: true, name: '유령 악단장 세레나', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3200, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'serena92', stage: 0.3, debuffs: ['저주'] },
+  // 던전 ⑲ 「가라앉은 무도회장」 (59 1-2 · 3-1, Lv 95 · 몰락한 귀족가 · 저주): 일반 물에 잠긴 연회장 → 유령 악단장 세레나 → 정예 무너진 발코니 → 몰락한 대공 발렌
+  ballhall: trash('ballhall', '물에 잠긴 연회장', [
+    { name: '물에 젖은 갑옷 시종', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '가라앉은 유령 하녀', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { debuffs: ['저주'] }),
+  serena: { key: 'serena', lowLevel: true, name: '유령 악단장 세레나', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6000, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'serena', stage: 0.25, debuffs: ['저주'] },
+  balcony: trash('balcony', '무너진 발코니', [
+    { name: '물에 젖은 갑옷 시종', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '물에 젖은 조문객', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'veil', name: '젖은 베일', icon: '베일', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '젖은 베일', type: '저주', left: 12, healCut: 0.5 } } },
+    ] },
+    {
+      name: '가라앉은 사냥개', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'howl', name: '물속 울부짖음', icon: '울부', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['저주'] }),
+  valen: { key: 'valen', lowLevel: true, name: '몰락한 대공 발렌', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7600, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'valen', stage: 0.25, debuffs: ['저주'] },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

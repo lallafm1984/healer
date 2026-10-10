@@ -2,7 +2,7 @@ import { aimMult, rageMult } from '../data/classes';
 import { hexDist } from './board';
 import { BARK, DRUID_BIG } from '../data/heroConst';
 import { SKILLS } from '../data/skills';
-import { bark, cellOf, damage, DT, emit, hasAbsorb, heal, hpLineTick, linger, onDebuffEnd } from './core';
+import { bark, cellOf, damage, DT, emit, hasAbsorb, heal, hpLineTick, linger, onDebuffEnd, submerged } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
 import { calmHymn, renewEnd } from './talents';
 import { charmTick, land, pullTick } from './bossParts';
@@ -93,6 +93,7 @@ function carried(f: Fight, u: Unit, dt: number): boolean {
   if (u.cls) { if (u.flow > 0) u.flow -= dt; u.aim = u.moving ? (u.mods.length && hasMod(u, 'aim') ? u.aim : 0) : u.aim + dt; }
   for (const d of u.debuffs.slice()) {
     d.left -= dt;
+    if (d.debt && debtTick(f, u, d, dt)) continue;
     if ((d.cureAt != null || d.grow) && hpLineTick(f, u, d, dt)) continue;
     if (d.charm && charmTick(f, u, d)) continue; // 매혹 (P-CHARM)
     if (d.swell) { // 부풀기 (P-SWELL): every초마다 1중첩
@@ -113,6 +114,16 @@ function carried(f: Fight, u: Unit, dt: number): boolean {
     if (d.left <= 0) { u.debuffs = u.debuffs.filter(x => x !== d); onDebuffEnd(f, u, d, false); }
   }
   return u.alive;
+}
+
+/**
+ * 빌린 생명 (P-DEBT, 59 5장) 한 틱: 빚이 초마다 grow씩 불어남 (어둠물에 잠기면 2배). 그림자 감옥에 갇힌 동안은 빚도 시간도 멈춤 (59 4-1 밤그늘).
+ * 멈췄으면 true (이번 틱 이 디버프는 끝)
+ */
+function debtTick(f: Fight, u: Unit, d: Debuff, dt: number): boolean {
+  if (u.debuffs.some(x => x.jail)) { d.left += dt; return true; }
+  d.debtLeft = (d.debtLeft ?? 0) * (1 + d.debt!.grow * dt * (f.zones.length && submerged(f, u) ? 2 : 1));
+  return false;
 }
 
 /** 0.2초마다 판단: 장판 피하기 · 도망 · 비켜 서기 · 제자리로 · 삐짐 (04 4장) */
