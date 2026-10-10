@@ -30,7 +30,7 @@ const MELT = 0xff8a3d;
 const SAND = 0xe9c46a;
 const C = {
   cell: 0x15120e, cellLine: 0x2c241b, line: 0x080605, ink: 0xf1e4c8, dead: 0x8a7f6a, gold: 0xf0c46a, white: 0xffffff,
-  zone: 0xe2402e, zoneHi: 0xff6a4a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0xffe08a, over: 0xa99a7e,
+  zone: 0xe2402e, zoneHi: 0xff6a4a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0x4dff7c, over: 0xa99a7e,
   empty: 0x2c241b, dangerBg: 0x3b1514, bronze: 0x5c4424, frame: 0x9c7a3c, dark: 0x12100c,
 };
 const FONT = '"Noto Sans KR", "Apple SD Gothic Neo", sans-serif';
@@ -775,11 +775,13 @@ export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: nu
   B2.hitFx[u.id] = now;
   if (B2.fx.length < 60 && !over) B2.fx.push({ kind: 'heal', id: u.id, t0: now, crit, seeds: Array.from({ length: crit ? 8 : 4 }, rnd) });
 }
+/** 부활 · 봉화 지정 글자: 연한 금빛 (능력 이름처럼 사건 글자, 치명타 치유 숫자와 다른 색) */
+const REVIVE_TEXT = 0xffe08a;
 export function fxRevive(u: Unit, now: number, label = '부활'): void {
   if (!L.ok) return;
   if (S.reducedEffects) { addBubble(u.id, label, now); return; }
   const p = unitPos(u);
-  B2.floats.push({ x: p.x, y: p.y - L.s * 0.3, text: label, crit: true, over: false, t0: now, n: B2.n++, id: u.id });
+  B2.floats.push({ x: p.x, y: p.y - L.s * 0.3, text: label, crit: true, over: false, t0: now, n: B2.n++, id: u.id, fill: REVIVE_TEXT });
   B2.hitFx[u.id] = now;
   B2.fx.push({ kind: 'revive', id: u.id, t0: now });
 }
@@ -1452,6 +1454,9 @@ export function render(now: number): void {
     const k = (now - fl.t0) / 900;
     const size = fl.label ? fs(0.22, 10) : fl.crit ? fs(0.36, 14) : fl.over || fl.fill ? fs(0.22, 10) : fs(0.27, 11);
     const label = tops.put(`fl${fl.n}`, fl.text, { size, fill: fl.fill ?? (fl.crit ? C.crit : fl.over ? C.over : C.heal), strokeW: 3, num: !fl.fill }, fl.x, S.reducedEffects ? fl.y : fl.y - k * s * (fl.label ? 0.3 : 0.6), S.reducedEffects ? 1 : 1 - k * k, 1);
+    // 치명타 치유 = 선명한 초록 (C.crit, 보통 치유 민트보다 진하고 1.3배 크게. 2026-10-10 Lim: 노랑은 치유와 안 어울리고 부활·능력 글자와 헷갈림)
+    // 처음 0.15초 크게 튀었다가 제 크기로 (색만으로 구분하지 않게)
+    if (fl.crit && !fl.fill && !S.reducedEffects && k < 0.17) label.scale.set(1 + 0.45 * (1 - k / 0.17));
     const b = label.getBounds(), x = (b.minX + b.maxX) / 2, y = (b.minY + b.maxY) / 2;
     const own = partyAt.find(q => q.id === fl.id), others = own ? partyAt.filter(q => q !== own && Math.hypot(q.x - own.x, q.y - own.y) < s * 4) : [];
     const near = own ? (px: number, py: number) => {
