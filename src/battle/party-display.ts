@@ -65,7 +65,8 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
   // 매혹 · 옮겨붙음 · 마나 갈취 (35 3장): 길게 눌렀을 때 판단 근거
   const more = debuff.charm ? ` · 이웃을 때림, 힐하면 길어짐, 체력 ${Math.round(debuff.charm.free * 100)}% 아래면 풀림`
     : debuff.end?.p === 'jump' ? ' · 지우면 옆 사람에게 옮겨붙음 (혼자면 사라짐), 두면 보스가 강해짐'
-    : debuff.drain ? ` · 마나 초당 -${debuff.drain}` : '';
+    : debuff.drain ? ` · 마나 초당 -${debuff.drain}`
+    : debuff.end?.p === 'pass' ? ` · 치유 흡수 막 ${Math.round(debuff.absorbLeft ?? 0)}, 지우면 가장 건강한 아군에게 넘어감, 두면 끝날 때 남은 막만큼 피해` : '';
   return {
     text: `${marker}${kind}${compact ? '' : ' '}${seconds}`,
     detail: `${debuff.name} · ${debuff.type} · ${seconds}초${stack}${heal}${more} · ${action}`,
@@ -76,6 +77,6 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
 
 /** 기존 판의 함정 → 독 이외의 알려진 종류 → 나머지 순서를 보존한다. */
 export function primaryDebuff(debuffs: readonly Debuff[]): Debuff | undefined {
-  const priority = (d: Debuff) => d.jail ? 3 : d.trap || d.swell || d.end?.p === 'flip' ? 2 : TYPE_SHORT[d.type] && d.type !== '독' ? 1 : 0;
+  const priority = (d: Debuff) => d.jail ? 3 : d.trap || d.swell || d.end?.p === 'flip' || d.end?.p === 'pass' ? 2 : TYPE_SHORT[d.type] && d.type !== '독' ? 1 : 0;
   return debuffs.reduce<Debuff | undefined>((best, d) => !best || priority(d) > priority(best) ? d : best, undefined);
 }

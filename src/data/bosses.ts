@@ -61,7 +61,12 @@ export type DebuffEnd =
    */
   | { p: 'pop'; pop: number; self: number; near: number }
   /** 뒤집힘 저주 (P-FLIP, 46 5장): 지우지 않고 시간이 다 되면 체력 비율이 1 − 지금 비율로 (가장 낮아도 min, 기본 5%). 지우면 그냥 사라짐 */
-  | { p: 'flip'; min?: number };
+  | { p: 'flip'; min?: number }
+  /**
+   * 넘어가는 포자 (P-PASS, 48 5장): absorb와 같이 적음. 지우면 남은 흡수 막이 체력 비율이 가장 높은 다른 아군에게 sec초로 넘어감
+   * (넘어갈 사람이 없으면 사라짐). 지우지 않고 시간이 다 되면 남은 막만큼 그 사람 피해 (마법, 파티 기준)
+   */
+  | { p: 'pass'; sec: number };
 
 /** 걸 디버프 (02 5-5 해제 유형) */
 export interface DebuffDef {
@@ -121,6 +126,10 @@ export interface DebuffDef {
    * 막을 다 깎으면 바로 사라짐 (end 안 함), 남은 채로 시간이 다 되면 end
    */
   absorb?: number;
+  /** 걸릴 때 한 번 피해 (마법, 파티 기준): 완치 표식이 가득 찬 사람에게 걸려도 바로 풀리지 않게 체력을 떨어뜨림 (춤바람 · 완치 모자, 48) */
+  drop?: number;
+  /** 칸 위 그림 (모자 뽑기의 모자 셋, 그림 49). 그림이 없으면 안 그림 (디버프 배지 · 칸 색은 그대로) */
+  art?: string;
   end?: DebuffEnd;
 }
 
@@ -255,8 +264,16 @@ export type SkillEffect =
    * 맞을 때 발판 위 사람은 dmg, 빈 발판 하나마다 전원 empty (마법)
    */
   | { p: 'tower'; n: number; dmg: number; empty: number }
-  /** 디버프를 차례로 돌려 가며 n명에게 (네 가지 청소약: 질병 → 독 → 저주 → 마법). each = 한 번에 n명이 하나씩 다른 디버프 (네 가지 메아리, 05 6-A) */
-  | { p: 'cycle'; n: number; debuffs: DebuffDef[]; each?: boolean }
+  /**
+   * 디버프를 차례로 돌려 가며 n명에게 (네 가지 청소약: 질병 → 독 → 저주 → 마법). each = 한 번에 n명이 하나씩 다른 디버프 (네 가지 메아리, 05 6-A).
+   * random = 탱커 · 나 아닌 n명(악몽 nMythic)이 사람마다 목록에서 무작위 하나 (모자 뽑기, 48 5장)
+   */
+  | { p: 'cycle'; n: number; nMythic?: number; debuffs: DebuffDef[]; each?: boolean; random?: boolean }
+  /**
+   * 요정 고리 (P-GROW, 48 5장): 탱커 · 나 아닌 n명(악몽 nMythic)이 선 칸에 고리 장판 sec초 (초당 dps, 마법). 고리 안에 선 사람이 치유
+   * (직접 · 지속 · 광역)를 받으면 한 겹 자람 (둘레 1칸씩, every초에 한 번, 최대 max겹 · 악몽 maxMythic). 파티원은 장판처럼 걸어 나옴
+   */
+  | { p: 'ring'; n: number; nMythic?: number; sec: number; dps: number; every: number; max: number; maxMythic?: number }
   /**
    * 헤매는 영혼 (P-SOUL, 35 3장): 빈 칸 하나에 파티원이 아닌 영혼 칸 (최대 체력 = 탱커·나 아닌 파티원 평균, hp 비율로 시작).
    * 칸 탭으로 단일 힐(기본·빠른·지속)만 들어감. sec초 안에 가득 채우면 win, 못 채우면 fail. type이 있으면 그 유형을 지우는 직업이
@@ -463,6 +480,24 @@ const bubbles = (byPhase: [number, number][], first: number, period: number): Sk
 const COIN: DebuffDef = { name: '동전 뒤집기', type: '저주', left: 10, dot: U.dps(0.04), end: { p: 'flip' } };
 const COIN_HOW = '끝날 때 체력 비율이 뒤집힘 (90% → 10%). 걸린 동안 체력이 조금씩 빠지니 힐을 멈추고 두면 반쯤에서 뒤집힘. 저주를 지우는 직업은 지움';
 const INK_HOW = '체력이 일정 비율까지만 참 (물통에 먹물 선). 상한까지는 채워 두고, 큰 피해가 오기 전에 보호막 · 해제';
+/**
+ * 포자 솜뭉치 (P-PASS, 48 3-1): 치유 흡수 막 딜체 40% + 초당 딜체 1%, 14초. 지우면 남은 막이 가장 건강한 다른 아군에게 (시간 처음부터),
+ * 두면 끝날 때 남은 막만큼 피해. x = 배율 (탐험판 0.7, 악몽 막 55%)
+ */
+const spore = (x = 1): DebuffDef =>
+  ({ name: '포자 솜뭉치', type: '질병', left: 14, dot: U.dps(0.01 * Math.min(1, x)), absorb: U.dps(0.4 * x), end: { p: 'pass', sec: 14 } });
+const SPORE_HOW = '치유를 빨아들이는 솜뭉치. 지우면 체력 비율이 가장 높은 아군에게 넘어감. 붙은 사람이 낮으면 지워서 넘기고, 건강한 사람 몸에서 힐로 녹이기';
+/** 모자 뽑기 (48 3-1 ②): 뒤집힌 축복 실크해트 · 치유 상한 고깔모자 · 완치 왕관 모자 (못 지움, 걸릴 때 딜체 30%를 떨어뜨림) */
+const HAT_CROWN: DebuffDef = { name: '왕관 모자', type: '마법', left: 12, lock: true, cureAt: 1, drop: U.dps(0.3), end: { p: 'hit', dmg: U.dps(0.45) }, art: 'icon-hat-crown' };
+const HATS: DebuffDef[] = [
+  { name: '실크해트', type: '마법', left: 8, invert: true, art: 'icon-hat-silk' },
+  { name: '고깔모자', type: '마법', left: 12, cap: 0.7, art: 'icon-hat-cone' },
+  HAT_CROWN,
+];
+/** 악몽: 왕관 모자가 끝나면 딜체 60% */
+const HATS_MYTHIC: DebuffDef[] = [HATS[0], HATS[1], { ...HAT_CROWN, end: { p: 'hit', dmg: U.dps(0.6) } }];
+const HAT_HOW = '모자가 셋 중 하나. 실크해트 = 힐하면 아픔 (힐 멈춤) · 고깔모자 = 70%까지만 참 (지우거나 보호막) · 왕관 모자 = 100%까지 채우면 벗겨짐 (못 지움, 진동 전에 몰아서)';
+const RING_HOW = '고리 안에 선 사람이 치유를 받으면 고리가 자람. 파티원이 걸어 나올 때까지 힐을 미루고, 광역 힐은 고리를 피해서. 위급하면 예외';
 /** 못 피하는 줄 피해 (P-ROW): 뒷줄 → 가운데 → 앞줄을 period초마다 번갈아. two = 2페이즈부터 다른 한 줄을 같이 */
 const rows = (key: string, name: string, icon: string, first: number, period: number, dmg: number, two: boolean): SkillDef[] => {
   const at = ['back', 'mid', 'front'] as const;
@@ -1230,6 +1265,109 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ] },
     ],
     enrage: { name: '보물 사수', period: 3, dmg: 200 },
+  },
+  // ---------- 묶음 C (48 3장 · 1-1): 버섯 요정단 (질병 + 마법: 드루이드는 질병을 힐로) · 늪의 부족 (독) · 붉은 용 일가 첫 얼굴 ----------
+  // 찻잔 요정 홀짝이 탐험판 (48 1-1, 탐험 ⑬ 꼬마등 오솔길 Lv 52): 평타 · 찻잔 던지기 · 포자 솜뭉치 1명 (작게). 넘어가는 포자 예습 (던전 ⑪)
+  sippy52: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('찻잔 던지기', '찻잔', 8, 15, 350),
+      { key: 'spore', name: '포자 솜뭉치', icon: '솜', kind: 'instant', first: 10, period: 20, cast: 0, how: SPORE_HOW,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: spore(0.7) } },
+    ],
+    enrage: { name: '찻잔 폭주', period: 2, dmg: 190 },
+  },
+  // 찻잔 요정 홀짝이 (48 3-1 ①, 던전 ⑪ 끝없는 다과회): 넘어가는 포자 × 사냥 (막이 붙어 낮아진 사람을 문다 → 지워서 건강한 사람에게 넘김).
+  // 50% 아래 솜뭉치 2명. 악몽은 막 딜체 55%. 목표 2:45 · 광폭화 3:45
+  sippy: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('찻잔 던지기', '찻잔', 8, 15, U.tank(0.5)),
+      ...([[1, 1], [2, 2]] as const).flatMap(([phase, n]) => ([false, true] as const).map((mythic): SkillDef => ({
+        key: `spore${phase}${mythic ? 'm' : ''}`, name: '포자 솜뭉치', icon: '솜', kind: 'instant', first: 10, period: 16, cast: 0, when: { phase: [phase], mythic }, how: SPORE_HOW,
+        effect: { p: 'debuff', n, pick: 'others', debuff: spore(mythic ? 55 / 40 : 1) },
+      }))),
+      { key: 'hunt', name: '한 잔 더!', icon: '한잔', kind: 'instant', first: 12, period: 12, cast: 2, effect: { p: 'hunt', dmg: U.dps(0.35) } },
+      { key: 'aoe', name: '각설탕 비', icon: '설탕', kind: 'aoe', first: 20, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '리필: 포자 솜뭉치 2명' }] }],
+    enrage: { name: '찻잔 폭주', period: 2, dmg: 270 },
+  },
+  // 모자 장수 해롱 (48 3-1 ②, 끝없는 다과회 최종): 모자 뽑기 (뒤집힘 · 상한 · 완치 중 하나) × 진동 (완치 모자를 채우는 시전이 끊김).
+  // 35% 아래 모자 2명 · 진동 15초. 악몽은 완치 모자가 끝나면 딜체 60%. 목표 3:15 · 광폭화 4:30
+  hatter: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('지팡이 휘두르기', '지팡', 8, 16, U.tank(0.55)),
+      ...([['hats', 1, 1], ['hats2', 2, 2]] as const).flatMap(([key, n, phase]) => ([false, true] as const).map((mythic): SkillDef => ({
+        key: `${key}${mythic ? 'm' : ''}`, name: '모자 씌우기', icon: '모자', kind: 'instant', first: phase === 1 ? 10 : null, period: 14, cast: 0, when: { phase: [phase], mythic }, how: HAT_HOW,
+        effect: { p: 'cycle', n, random: true, debuffs: mythic ? HATS_MYTHIC : HATS },
+      }))),
+      { key: 'quake', name: '늦었다, 늦었어!', icon: '늦었', kind: 'aoe', first: 12, period: 20, cast: 3, warn: 'aoe', effect: { p: 'quake', dmg: U.dps(0.1), lock: 3 } },
+      { key: 'aoe', name: '자리 바꿔!', icon: '자리', kind: 'aoe', first: 22, period: 26, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.35 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'hats2', in: 2 }, { p: 'start', skill: 'hats2m', in: 2 }, { p: 'period', skill: 'quake', sec: 15 },
+      { p: 'text', text: '티타임은 끝나지 않아: 모자 2명, 진동이 잦아짐' },
+    ] }],
+    enrage: { name: '티타임 폭주', period: 2, dmg: 270 },
+  },
+  // 버섯 가면 주술사 우가 (48 3-2 ①, 던전 ⑫ 이끼 뿌리 사원): 요정 고리 × 완치 표식 (거머리가 고리 안 사람에게 붙으면 걸어 나올 때까지 기다릴지).
+  // 50% 아래 고리 2개. 악몽은 고리 최대 3겹. 목표 2:50 · 광폭화 3:50
+  uga: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('가면 박치기', '가면', 8, 15, U.tank(0.5)),
+      ...([['ring', 1, 1], ['ring2', 2, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '독버섯 고리', icon: '고리', kind: 'instant', first: phase === 1 ? 6 : null, period: 18, cast: 0, when: { phase: [phase] }, how: RING_HOW,
+        effect: { p: 'ring', n, sec: 18, dps: U.dps(0.05), every: 2, max: 2, maxMythic: 3 },
+      })),
+      { key: 'leech', name: '거머리 붙이기', icon: '거머', kind: 'instant', first: 10, period: 20, cast: 0,
+        how: '체력을 뚝 떨어뜨리고 붙음. 해제 불가, 100%까지 채우면 떨어짐. 고리 밖이면 바로 몰아서, 고리 안이면 걸어 나올 때를 봄',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '거머리', type: '독', left: 12, lock: true, cureAt: 1, drop: U.dps(0.4), end: { p: 'hit', dmg: U.dps(0.45) } } } },
+      { key: 'aoe', name: '북소리', icon: '북', kind: 'aoe', first: 20, period: 24, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'ring2', in: 2 }, { p: 'text', text: '신나는 춤: 독버섯 고리 2개' }] }],
+    enrage: { name: '우가우가 축제', period: 2, dmg: 270 },
+  },
+  // 늪 거북 신 등딱지 (48 3-2 ②, 이끼 뿌리 사원 최종): 무력화 × 해제 못 하는 독 (사제는 독 걸린 사람을 힐로 70% 위에) · 등딱지 굴리기 (못 피하는 줄).
+  // 40% 아래 늪물 3명 · 무력화 28초. 악몽은 게이지 선 80%. 목표 3:20 · 광폭화 4:40
+  shellgod: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('등딱지 박치기', '박치', 8, 16, U.tank(0.55)),
+      ...([['spit', 2, 1], ['spit2', 3, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '늪물 뿜기', icon: '늪물', kind: 'instant', first: phase === 1 ? 6 : null, period: 18, cast: 0, when: { phase: [phase] },
+        effect: { p: 'debuff', n, pick: 'others', debuff: { name: '늪물', type: '독', left: 12, dot: U.dps(0.025) } },
+      })),
+      { key: 'stagger', name: '대지 흔들기', icon: '흔들', kind: 'instant', first: 20, period: 35, cast: 0,
+        how: '6초 동안 체력 70% 이상인 파티원의 딜만 게이지를 채움. 늪물 걸린 사람을 지우거나 채워서 70% 위로',
+        effect: { p: 'stagger', sec: 6, need: 4, hp: 0.7, hpMythic: 0.8, tank: 2, win: { sec: 6, vuln: 1.3 }, fail: { dmg: U.dps(0.45), lock: 3 } } },
+      ...rows('roll', '등딱지 굴리기', '굴림', 16, 22, U.dps(0.3), false),
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'spit2', in: 2 }, { p: 'period', skill: 'stagger', sec: 28 }, { p: 'text', text: '깊은 하품: 늪물 3명, 무력화가 잦아짐' },
+    ] }],
+    enrage: { name: '늪의 분노', period: 2, dmg: 280 },
+  },
+  // 코볼트 보물 지킴이 꼬질 탐험판 (48 1-1, 탐험 ⑮ 불꽃 봉우리 기슭 Lv 60): 평타 · 곡괭이 내려치기 · 불씨 꼬마 용 (자폭 쫄) · 독 연기 1명. 붉은 용 일가 첫 얼굴 (D 10인 ⑧로 키움)
+  kobold60: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('곡괭이 내려치기', '곡괭', 8, 15, 360),
+      { key: 'whelp', name: '불씨 꼬마 용', icon: '불씨', kind: 'instant', first: 14, period: 24, cast: 0,
+        how: '나 또는 원거리 딜러를 쫓아와 붙으면 터짐. 쫓기는 사람을 미리 채우기',
+        effect: { p: 'adds', n: 1, add: { name: '불씨 꼬마 용', short: '불씨', art: 'mob-ember-whelp', hp: 0.03, dmg: 0, every: 2, job: { p: 'fixate', every: 2, dmg: 300, splash: 100, from: 3 } } } },
+      { key: 'smoke', name: '독 연기', icon: '연기', kind: 'instant', first: 8, period: 18, cast: 0,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '독 연기', type: '독', left: 10, dot: 14 } } },
+    ],
+    enrage: { name: '보물 지킴이 화남', period: 2, dmg: 200 },
   },
   // 녹슨 문지기 (05 1장): 40% 아래 녹물 웅덩이
   warden: {

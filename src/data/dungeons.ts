@@ -2,7 +2,8 @@ import type { EncounterKey } from './encounters';
 
 /** 5인 던전 (11 4장, 23). 구간을 차례로 이어서 하고, 구간 사이에 휴식 (09 S07) */
 export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt' | 'lily' | 'swamp' | 'snowpass' | 'manor' | 'hillpath' | 'frost' | 'pilgrim' | 'temple' | 'abyssedge' | 'watchtower'
-  | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary' | 'shellbeach' | 'wreck';
+  | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary' | 'shellbeach' | 'wreck'
+  | 'lampway' | 'emberfoot' | 'teaparty' | 'mossroot';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -37,6 +38,11 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   sewer: { key: 'sewer', name: '역병 수로', segments: ['leakyway', 'ratking', 'sludgegrate', 'carrier'] },
   archive: { key: 'archive', name: '얼음 서고', segments: ['iceread', 'librarian', 'forbidden', 'scholar'] },
   ossuary: { key: 'ossuary', name: '백합 납골당', segments: ['petalstair', 'priestess', 'keeperhall', 'sleeper'] },
+  // 묶음 C (48 1장): 탐험 ⑬ ⑮ · 던전 ⑪ ⑫
+  lampway: { key: 'lampway', name: '꼬마등 오솔길', segments: ['capway', 'sippy52'] },
+  emberfoot: { key: 'emberfoot', name: '불꽃 봉우리 기슭', segments: ['hotgravel', 'kobold60'] },
+  teaparty: { key: 'teaparty', name: '끝없는 다과회', segments: ['sugarstair', 'sippy', 'cuptower', 'hatter'] },
+  mossroot: { key: 'mossroot', name: '이끼 뿌리 사원', segments: ['wetstair', 'uga', 'turtlebridge', 'shellgod'] },
 };
 
 /** 휴식: 초당 마나 회복 (%). 「계속」은 언제든 누를 수 있음 */

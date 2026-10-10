@@ -47,8 +47,15 @@ function lowest(f: Fight, live: Unit[], pct: (u: Unit) => number): Unit {
  * 힐하면 손해인 사람: 뒤집힌 축복 (P-INVERT, 힐이 피해), 매혹 (P-CHARM, 힐하면 지배가 길어짐 → 그 사람은 두고 주변을),
  * 과부하 표식 (P-OVER)인데 모자란 양이 힐 한 번보다 적음 (넘친 치유가 이웃을 때림 → 정확히 채우기)
  */
-const off = (f: Fight, u: Unit) => u.debuffs.length > 0 && u.debuffs.some(d => d.invert || d.charm || (!!d.over && u.max - u.hp < OVER_GAP * f.power)
-  || (d.end?.p === 'flip' && flipWait(u, d)) || (d.link?.kind === 'share' && !!unitById(f, d.link.to)?.debuffs.some(x => x.invert)));
+const off = (f: Fight, u: Unit) => (u.debuffs.length > 0 && u.debuffs.some(d => d.invert || d.charm || (!!d.over && u.max - u.hp < OVER_GAP * f.power)
+  || (d.end?.p === 'flip' && flipWait(u, d)) || (d.link?.kind === 'share' && !!unitById(f, d.link.to)?.debuffs.some(x => x.invert))))
+  || (f.zones.length > 0 && ringWait(f, u));
+/**
+ * 요정 고리 (P-GROW, 48 5장): 아직 더 자랄 수 있는 고리 안에 선 사람은 걸어 나올 때까지 힐하지 않음 (지속 힐 · 광역도 그 사람을 피함).
+ * 체력 35% 아래면 쓰러질 수 있어 다시 힐함
+ */
+const ringWait = (f: Fight, u: Unit) => u.hp >= u.max * RING_LOW && f.zones.some(z => !!z.ring && z.ring.n < z.ring.max && z.cells.has(u.cell));
+const RING_LOW = 0.35;
 /**
  * 뒤집힘 저주 (P-FLIP, 46 5장): 걸려 있는 동안 체력 50% 위로는 힐하지 않고 (끝나면 낮아짐), 40% 아래는 두면 뒤집혀 오르니 힐하지 않음.
  * 25% 아래는 쓰러질 수 있어 다시 힐함
@@ -102,7 +109,7 @@ interface Gim {
   counter: boolean;
   /**
    * 지금 지우지 않을 디버프: 옮겨붙음 (P-JUMP)인데 이웃 칸에 아군이 있음 (지우면 옮겨붙어 더 세짐, 혼자일 때 지움),
-   * 뒤집힘 저주 (P-FLIP)인데 체력이 낮음 (두면 뒤집혀 오름)
+   * 뒤집힘 저주 (P-FLIP)인데 체력이 낮음 (두면 뒤집혀 오름), 넘어가는 포자 (P-PASS)인데 넘길 때가 아님
    */
   hold: Set<Debuff>;
   /** 큰 피해 예고 (광역 · 버스터)가 곧 맞음: 치유 상한 (P-CAP)을 먼저 지움 */
@@ -138,6 +145,8 @@ function gim(f: Fight): Gim {
   for (const u of f.party) for (const d of u.debuffs) {
     if (d.end?.p === 'jump' && d.end.on !== 'quake' && u.alive && f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1)) hold.add(d);
     if (d.end?.p === 'flip' && u.hp < u.max * 0.45) hold.add(d);
+    // 넘어가는 포자 (P-PASS, 48 5장): 붙은 사람이 50% 아래이고 70% 위인 다른 사람이 있을 때만 지워 넘김. 아니면 힐로 막을 녹임
+    if (d.end?.p === 'pass' && !(u.hp < u.max * 0.5 && f.party.some(v => v !== u && v.alive && v.hp > v.max * 0.7))) hold.add(d);
   }
   // 부풀기 (P-SWELL): 못 지운 채 곧 터지면 본인을 미리 가득
   if (!pre) pre = f.party.find(u => u.alive && !off(f, u) && u.hp < healTop(u) * 0.95 && u.debuffs.some(d => d.swell && d.left < 3)) ?? null;
@@ -168,7 +177,7 @@ function byDispel(g: Gim, cands: Unit[], ok: (d: Debuff) => boolean): Unit[] {
   const rank = (u: Unit) => {
     const ds = u.debuffs.filter(ok);
     // 부풀기는 중첩이 쌓이기 전에, 치유 상한은 큰 피해 예고가 떴을 때, 뒤집힘은 체력이 높을 때 (46 5장)
-    if (ds.some(d => d.invert || d.count || d.swell || (d.cap != null && g.big) || (d.end?.p === 'flip' && u.hp > u.max * 0.5))) return 0;
+    if (ds.some(d => d.invert || d.count || d.swell || (d.cap != null && g.big) || (d.end?.p === 'flip' && u.hp > u.max * 0.5) || d.end?.p === 'pass')) return 0;
     if (ds.some(d => d.charm || d.drain || (d.end?.p === 'jump' && d.end.on === 'quake'))) return 1;
     if (ds.some(d => d.noDps) && ((g.adds && (u.role === 'melee' || u.role === 'ranged')) || (g.counter && cutter(u)))) return 1;
     return 2;

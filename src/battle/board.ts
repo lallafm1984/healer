@@ -20,6 +20,8 @@ import { CELL_RADIUS, fitBoard } from './board-layout';
 // ---------- 색 ----------
 const hex = (c: string) => parseInt(c.slice(1, 7), 16);
 // 테마 「길드 홀」 (2026-10-08): 돌색 빈칸, 청동 안쪽 테두리, 물통 빈 부분 = 돌 3. 디버프·위험 색은 그대로
+/** 요정 고리 · 넘어가는 포자 색 (48 5장, 버섯 요정단 연분홍) */
+const RING = 0xf29cb7, RING_HI = 0xd9577f;
 const C = {
   cell: 0x15120e, cellLine: 0x2c241b, line: 0x080605, ink: 0xf1e4c8, dead: 0x8a7f6a, gold: 0xf0c46a, white: 0xffffff,
   zone: 0xe2402e, zoneHi: 0xff6a4a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0xffe08a, over: 0xa99a7e,
@@ -593,6 +595,9 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   'swell-pop': { size: 2.2, color: 0x7ee36a, ms: 550 },
   'ink-splat': { size: 1.4, color: 0x3a3550, ms: 600 },
   'coin-flip': { size: 1.2, color: 0xffd166, ms: 650, up: 0.5 },
+  // 묶음 C (48 5장, 그림 49): 요정 고리가 깔리거나 자라며 버섯이 퐁퐁 · 넘어가는 포자 솜뭉치가 날아감
+  'ring-grow': { size: 2.2, color: 0xf29cb7, ms: 600 },
+  'spore-pass': { size: 0.9, color: 0xfbe4ee, ms: 500, fly: true },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();
@@ -735,6 +740,7 @@ export function render(now: number): void {
   // 영역 (장판 예고·활성 장판)
   const zoneSet = new Set<number>(), telSet = new Set<number>();
   for (const z of F.zones) z.cells.forEach(i => zoneSet.add(i));
+  const ringSet = new Set<number>(); for (const z of F.zones) if (z.ring) z.cells.forEach(i => ringSet.add(i)); // 요정 고리 (P-GROW, 48 5장)
   for (const tl of F.tels) if (tl.kind === 'zone') tl.cells.forEach(i => telSet.add(i));
   const safeSet = new Set<number>(); for (const tl of F.tels) tl.safe?.forEach(i => safeSet.add(i)); // 피난처 (35 3-E)
   const padSet = new Set<number>(); for (const tl of F.tels) if (tl.skill.pads || tl.ring) tl.cells.forEach(i => padSet.add(i)); // 받침 발판 (35 4-5) · 끌려온 칸 받침 (39 3-1)
@@ -742,7 +748,7 @@ export function render(now: number): void {
   for (const z of F.zones) if (!seenZones.has(z.id)) { seenZones.add(z.id); if (isFinite(z.end)) z.cells.forEach(i => fxGim('zone-burst', now, { cell: i })); }
   // 칸 무늬 그림 (37 4장 B). 없으면 아래 벡터 그림
   const zoneTex = artTexture(zoneArtName(boardFaction)), warnTex = artTexture('fx-cell-zone-warn'), holeTex = artTexture(holeArtName(boardFaction));
-  const safeTex = artTexture('fx-cell-safe'), padTex = artTexture('fx-cell-tower'), cellArt = r * 1.96;
+  const safeTex = artTexture('fx-cell-safe'), padTex = artTexture('fx-cell-tower'), ringTex = artTexture('fx-cell-ring'), cellArt = r * 1.96;
   F.cells.forEach((c, i) => {
     const p = center(i);
     hexPoly(cellsG, p.x, p.y, r).fill({ color: C.cell, alpha: 0.5 }).stroke({ width: 2, color: C.bronze, alpha: 0.75 }); // 빈칸은 비쳐서 장소 바닥이 보임, 진형 선은 청동 (28 5장)
@@ -762,7 +768,15 @@ export function render(now: number): void {
       }
     }
     // 장판: 바닥 그림(28 5장)에 묻히지 않게 밝은 빨강 + 빗금 + 안쪽 테. 예고 = 깜빡이는 빨강 + 점선 테
-    if (zoneSet.has(i)) {
+    if (ringSet.has(i)) {
+      // 요정 고리: 분홍 바닥 + 버섯 동그라미 (그림 49 fx-cell-ring). 자라면 칸이 늘어남
+      if (ringTex) decals.put(ringTex, p.x, p.y, cellArt, cellArt, 0.82 + 0.18 * zpulse);
+      else {
+        hexPoly(cellsG, p.x, p.y, r).fill({ color: RING, alpha: 0.38 + 0.12 * zpulse });
+        cellsG.circle(p.x, p.y, r * 0.66).stroke({ width: Math.max(2, s * 0.06), color: RING_HI, alpha: 0.95 });
+        for (let k = 0; k < 6; k++) { const a = (k * 60 + 30) * Math.PI / 180; cellsG.circle(p.x + Math.cos(a) * r * 0.66, p.y + Math.sin(a) * r * 0.66, Math.max(2, s * 0.07)).fill({ color: 0xfff1f5 }).stroke({ width: 1.5, color: RING_HI }); }
+      }
+    } else if (zoneSet.has(i)) {
       if (zoneTex) decals.put(zoneTex, p.x, p.y, cellArt, cellArt, 0.82 + 0.18 * zpulse);
       else {
         hexPoly(cellsG, p.x, p.y, r).fill({ color: C.zone, alpha: 0.5 + 0.12 * zpulse });
@@ -853,6 +867,16 @@ export function render(now: number): void {
     if (swell) unitsG.circle(x, y + r * 0.1, r * Math.min(0.85, 0.3 + 0.12 * (swell.stack ?? 1))).fill({ color: 0x7ee36a, alpha: 0.16 }).stroke({ width: Math.max(1.5, s * 0.04), color: 0x7ee36a, alpha: 0.75 });
     const flip = u.debuffs.find(d => d.end?.p === 'flip');
     if (flip) hexPoly(unitsG, x, y, r).fill({ color: 0xffd166, alpha: flip.left < 1 ? 0.15 + 0.3 * pulse : 0.15 });
+    // 묶음 C (48 5장 화면): 넘어가는 포자 = 칸 아래쪽 솜뭉치 (남은 막이 적을수록 작게), 끝나기 2초 전 깜빡임
+    const puff = u.debuffs.find(d => d.end?.p === 'pass');
+    if (puff) {
+      const k = Math.max(0.45, Math.min(1, (puff.absorbLeft ?? 0) / Math.max(1, (puff.absorb ?? 1) * F.dmgMult)));
+      const pr = r * 0.2 * k, py = y + r * 0.42, a = puff.left < 2 ? 0.55 + 0.4 * pulse : 0.9;
+      for (const [dx, dy] of [[-1.1, 0.2], [0, -0.35], [1.1, 0.2], [0, 0.45]]) unitsG.circle(x + dx * pr, py + dy * pr, pr).fill({ color: 0xfbe4ee, alpha: a }).stroke({ width: 1.2, color: RING_HI, alpha: a * 0.8 });
+    }
+    // 모자 뽑기 (48 5장): 칸 위에 모자 그림 (뒤집힘 실크해트 · 상한 고깔모자 · 완치 왕관 모자)
+    const hat = u.debuffs.find(d => d.art), hatTex = hat ? artTexture(hat.art!) : null;
+    if (hatTex) fxArt.put(hatTex, x, y - r * 0.6, r * 0.95, r * 0.95);
     // 장판 위에 선 사람: 칸 전체에 붉은 빛 + 빗금 (체력 위험 깜빡임과 구분)
     if (zoneSet.has(u.cell)) {
       hexPoly(unitsG, x, y, r).fill({ color: C.zone, alpha: 0.2 + 0.08 * zpulse });
