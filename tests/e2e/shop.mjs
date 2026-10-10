@@ -22,7 +22,7 @@ export default async function shop(url, shots) {
 
   // ---- 로비 → 임무 ----
   ok(/일일 0\/5/.test(await text('#s-lobby .lb-missions')) && /10인 레이드 · 열쇠 0\/5/.test(await text('#s-lobby .lb-raid')), '로비 이름표: 임무 일일 0/5 · 첨탑 = 10인 레이드 악몽 열쇠 수량');
-  await page.click('#s-lobby .lb-missions .lb-rmain'); await page.clock.runFor(100);
+  await page.click('#s-lobby .lb-missions .lb-main'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-missions') && (await page.locator('#s-missions .mlist').first().locator('.mrow').count()) === 5, '임무 화면: 일일 5개');
   ok((await page.locator('#s-missions .mlist').nth(1).locator('.mrow').count()) === 3, 'Lv 40 = 주간 임무 3개');
   const keys0 = (await save()).daily.missions.map(m => m.key).join();
@@ -33,7 +33,7 @@ export default async function shop(url, shots) {
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.daily.missions.forEach(m => { m.n = 99; }); s.weekly.missions[0].n = 99; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   ok(await page.isVisible('#s-lobby .lb-missions .g-qm') && await page.isVisible('#lbClaim') && (await text('#s-lobby .lb-missions .g-badge')) === '6', '로비 게시판: 받을 것 있음 = 노란 「!」 + 빨간 숫자 6');
-  await page.click('#s-lobby .lb-missions .lb-rmain'); await page.clock.runFor(100);
+  await page.click('#s-lobby .lb-missions .lb-main'); await page.clock.runFor(100);
   ok((await page.locator('#s-missions [data-claim]').count()) === 6, '받을 임무 6개 (일일 5 + 주간 1)');
   const g0 = (await save()).player.gold;
   for (let i = 0; i < 5; i++) { await page.click('#s-missions [data-claim="daily"]'); await page.clock.runFor(30); }

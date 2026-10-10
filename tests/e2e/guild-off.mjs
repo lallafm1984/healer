@@ -38,7 +38,7 @@ export default async function guildOff(url, shots) {
   await page.screenshot({ path: `${shots}/guild_off_lobby.png` });
 
   // ---- 임무: 길드 임무 없음 ----
-  await page.click('#s-lobby .lb-missions .lb-rmain'); await page.clock.runFor(100);
+  await page.click('#s-lobby .lb-missions .lb-main'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-missions') && (await page.locator('#s-missions .mlist').first().locator('.mrow').count()) === 5, '임무 화면: 일일 5개');
   ok(!/길드/.test(await text('#s-missions')), '임무: 「길드파티로 클리어」·길드 주간 목표 없음');
   const sv = await page.evaluate(() => JSON.parse(localStorage.getItem('healer.save')));

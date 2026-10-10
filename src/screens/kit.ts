@@ -75,8 +75,8 @@ export function setTabsHandler(fn: (t: TabKey | undefined) => void): void { onTa
 const GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="6.6"/><path d="M12 2.5v2.9M12 18.6v2.9M2.5 12h2.9M18.6 12h2.9M5.3 5.3l2 2M16.7 16.7l2 2M5.3 18.7l2-2M16.7 7.3l2-2"/></svg>';
 
 /**
- * 상단 바. back이 있으면 「← 제목」 줄, 없으면 MMO 캐릭터 칸 (30 0장 공통 위 줄, 시안 Lobby30 .hud):
- * 금테 원 직업 문장 + 진홍 Lv 띠 + 알림 빨간 점 (특성 남음·더 좋은 장비) → 캐릭터 탭 · 직업 이름 + 경험치 막대 · 골드·크리스탈 · 설정.
+ * 상단 바. back이 있으면 「← 제목」 줄, 없으면 MMO 캐릭터 칸 (30 0장 공통 위 줄, 전투 Sunforged 기준 코덱스 로비 시안):
+ * 황동 초상 테 직업 문장 + 알림 빨간 점 (특성 남음·더 좋은 장비) → 캐릭터 탭 · 직업 이름 + Lv + 경험치 막대 · 골드·크리스탈 · 설정 (황동 칸).
  * 캐릭터 칸은 탭 루트(settings)에서만 누름. 튜토리얼 중 캐릭터 탭이 잠겼으면(첫 장비 전) 누르지 않음.
  */
 export function topBar(opts: { back?: string; title?: string; settings?: boolean } = {}): string {
@@ -92,12 +92,13 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
   const charOk = tutDone || s.gear.bag.length > 0 || Object.keys(s.gear.equipped).length > 0;
   const hero = HEROES[heroNow()];
   const note = [left ? `특성 ${left} 남음` : '', better ? `더 좋은 장비 ${better}` : ''].filter(Boolean).join(' · ');
-  const pfIn = `<span class="tb-em">${classEmblem(heroNow(), 'lg')}</span><span class="tb-lv"><b>${p.level}</b></span>${note ? '<i class="tb-dot"></i>' : ''}`;
+  const pfIn = `<span class="tb-em">${classEmblem(heroNow(), 'lg')}</span>${note ? '<i class="tb-dot"></i>' : ''}`;
   const pf = opts.settings && charOk
     ? `<button class="tb-pf" type="button" data-go="s-char"${better ? ' data-arg="gear"' : left ? ' data-arg="talent"' : ''} aria-label="캐릭터 · ${esc(hero.name)} Lv ${p.level}${note ? ` · ${note}` : ''}">${pfIn}</button>`
     : `<span class="tb-pf" role="img" aria-label="${esc(hero.name)} Lv ${p.level}">${pfIn}</span>`;
   return `<header class="topbar tb-mmo">${pf}
-    <span class="tb-nm"><b class="tb-cls">${esc(hero.name)}</b><span class="tb-xp" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}${apexOf(p.level) > 1 ? ` · 수련 +${((apexOf(p.level) - 1) * 100).toFixed(1)}%` : ''}"><i style="width:${pct.toFixed(1)}%"></i></span><small class="tb-xpt" aria-hidden="true" data-pct="${Math.floor(pct)}"></small></span>
+    <span class="tb-nm"><span class="tb-id"><b class="tb-cls">${esc(hero.name)}</b><small class="tb-lv">Lv. ${p.level}</small></span>
+      <span class="tb-xprow"><span class="tb-xp" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}${apexOf(p.level) > 1 ? ` · 수련 +${((apexOf(p.level) - 1) * 100).toFixed(1)}%` : ''}"><i style="width:${pct.toFixed(1)}%"></i></span><small class="tb-xpt" aria-hidden="true" data-pct="${Math.floor(pct)}"></small></span></span>
     <span class="tb-wal"><span class="tb-cur tb-gold" aria-label="골드">${currencyIcon('gold')}<b>${fmt(p.gold)}</b></span><span class="tb-cur tb-cr" aria-label="크리스탈">${currencyIcon('crystal')}<b>${fmt(s.wallet.crystal)}</b></span></span>
     ${set}</header>`;
 }

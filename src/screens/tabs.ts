@@ -3,6 +3,7 @@
  * 출시판은 길드를 빼 두어 4개 (Lim 2026-10-09, features.ts).
  * 탭 막대는 탭 루트(로비 S02 · 모험 선택 S03 · 캐릭터 · 길드 · 상점)에서만 보인다. 고른 탭을 다시 누르면 그 루트 맨 위로.
  * 아이콘: 로비 등불, 전투 방패, 캐릭터 = 지금 직업 문장, 길드 깃발, 상점 주머니 (그림 tab-*, 30 문서. 없으면 선 아이콘). 잠긴 탭은 자물쇠 + Lv. 빨간 점 = 받을 것·볼 것.
+ * 아이콘은 전투 아이템 칸과 같은 황동 사각 소켓(.tab-sock) 안에. 고른 탭 = 밝은 금색 안쪽 테 (sunforged-ui.css).
  */
 import { PASS_LEVELS } from '../data/economy';
 import { FEATURES } from '../data/features';
@@ -84,7 +85,7 @@ export function mountTabs(nav: HTMLElement): void {
       const tl = tutLocked(t.key);
       const icon = locked || tl ? uiIcon('lock') : iconOf(t.key);
       const cls = tl ? ' class="tlock"' : locked ? ' class="llock"' : '';
-      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${cls}${tl ? ' aria-disabled="true"' : ''}>${icon}<span>${t.name}</span>${tl || locked ? `<small>${tl ? '잠금' : `Lv ${t.lv}`}</small>` : ''}${!tl && !locked && dotOf(t.key) ? '<i class="rdot" aria-label="새 소식"></i>' : ''}</button>`;
+      return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${cls}${tl ? ' aria-disabled="true"' : ''}><span class="tab-sock">${icon}</span><span>${t.name}</span>${tl || locked ? `<small>${tl ? '잠금' : `Lv ${t.lv}`}</small>` : ''}${!tl && !locked && dotOf(t.key) ? '<i class="rdot" aria-label="새 소식"></i>' : ''}</button>`;
     }).join('');
   };
   nav.addEventListener('click', e => {
