@@ -5,7 +5,7 @@ import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
 import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
-import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, shieldGone, specDeath, specDebuffEnd, specFlip, specJump, sv } from './specials';
+import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, shieldGone, specDeath, specDebtPaid, specDebuffEnd, specFlip, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
 
@@ -68,7 +68,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     if (ch) ch.left += ch.charm!.heal; // 매혹 (P-CHARM): 힐하면 지배가 길어짐
     const cut = u.debuffs.reduce((s, d) => s + (d.healCut ?? 0) * (d.stack ?? 1), 0); // 얼룩진 장갑·먼지 범벅 (35 4-3·4-5)
     if (cut) amt *= Math.max(0, 1 - cut * (1 - sv(f, 'holdingHand'))); // 받치는 손 (42 기믹 08)
-    if (u.debuffs.some(d => d.invert)) { invertHeal(f, u, amt); return 0; } // 뒤집힌 축복 (P-INVERT)
+    if (u.debuffs.some(d => d.invert)) { invertHeal(f, u, f.zones.length && submerged(f, u) ? amt * 2 : amt); return 0; } // 뒤집힌 축복 (P-INVERT). 어둠물에 잠기면 2배 (59 3-1 발렌)
     const ab = u.debuffs.find(d => d.absorbLeft);
     if (ab) { // 치유 흡수 (P-ABSORB): 막을 먼저 깎고, 다 깎으면 막이 사라짐
       const take = Math.min(amt, ab.absorbLeft!);
@@ -78,6 +78,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
       if (amt <= 1e-9) return 0;
     }
   }
+  if (f.zones.length && submerged(f, u)) amt *= 1 - TIDE_CUT; // 어둠물 밀물 (P-TIDE, 59 5장): 잠긴 사람은 받는 치유 절반 (지속 힐 · 광역 힐도)
   if (f.watch && f.t >= f.watch.until) f.watch.fill += amt * f.watch.rate; // 주시 (P-AGGRO): 넘친 치유까지 게이지에
   const hp0 = u.hp, eff = Math.max(0, Math.min(amt, healTop(u) - u.hp)); // 치유 상한 (P-CAP): 상한 위는 넘친 치유
   u.hp += eff;
@@ -85,8 +86,12 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   f.stats.healed += eff;
   f.stats.overheal += amt - eff;
   if (amt - eff > 1e-9) { // 넘치는 빛 (P-OVER): 그릇에 모이고, 과부하 표식이면 이웃이 아픔
-    if (f.vessel && f.t < f.vessel.until) f.vessel.fill += (amt - eff) * (1 + sv(f, 'breathFlask')); // 후우의 숨결 병 (56 6장)
-    if (u.debuffs.length) overload(f, u, amt - eff);
+    let over = amt - eff;
+    if (u.debuffs.length) over = payDebt(f, u, over, direct); // 빌린 생명 (P-DEBT, 59 5장): 넘친 치유는 빚부터 갚고 남는 몫만 그릇에
+    if (over > 1e-9) {
+      if (f.vessel && f.t < f.vessel.until) f.vessel.fill += over * (1 + sv(f, 'breathFlask')); // 후우의 숨결 병 (56 6장)
+      if (u.debuffs.length) overload(f, u, over);
+    }
   }
   if (direct) {
     emit(f, { type: 'heal', id: u.id, amt: Math.round(amt), eff: Math.round(eff), crit });
@@ -109,6 +114,57 @@ function ringFeed(f: Fight, u: Unit): void {
     emit(f, { type: 'fx', name: 'ring-grow', cell: r.center });
     emit(f, { type: 'msg', text: `${r.name}: ${u.nick}이(가) 안에서 치유를 받아 한 겹 자람 (${r.n}겹)` });
   }
+}
+
+/** 어둠물 밀물 (P-TIDE, 59 5장): 잠긴 칸에 선 사람이 받는 치유가 줄어드는 비율 */
+export const TIDE_CUT = 0.5;
+/** 어둠물에 잠긴 칸에 서 있음 (움직이는 중이면 떠난 칸 기준) */
+export const submerged = (f: Fight, u: Unit): boolean => f.zones.some(z => z.tide && z.cells.has(u.cell));
+
+/** 빌린 생명 (P-DEBT, 59 5장): 체력을 가득 채우고 채운 만큼 (최소 최대 체력 × min)이 빚. 이미 빚이 있으면 그 빚에 더하고 시간은 처음부터 */
+export function lend(f: Fight, u: Unit, d: Debuff): Debuff {
+  const add = Math.max(u.max - u.hp, d.debt!.min * u.max);
+  u.hp = Math.max(u.hp, u.max);
+  const old = u.debuffs.find(x => x !== d && x.debt && x.name === d.name);
+  if (old) { old.debtLeft = (old.debtLeft ?? 0) + add; old.left = d.left; u.debuffs = u.debuffs.filter(x => x !== d); }
+  else d.debtLeft = add;
+  emit(f, { type: 'fx', name: 'debt-lend', on: u.id });
+  return old ?? d;
+}
+
+/** 넘친 치유가 빚을 갚음 (P-DEBT). 다 갚으면 디버프가 사라짐. 남는 넘친 치유를 돌려줌 */
+function payDebt(f: Fight, u: Unit, over: number, direct: boolean): number {
+  const d = u.debuffs.find(x => (x.debtLeft ?? 0) > 1e-6);
+  if (!d) return over;
+  const mult = 1 + sv(f, 'debtLantern'); // 꺼지지 않는 등불 (59 6장): 빚을 갚을 때 1.2배
+  const pay = Math.min(over * mult, d.debtLeft!);
+  d.debtLeft! -= pay;
+  if (direct) emit(f, { type: 'fx', name: 'debt-pay', on: u.id });
+  if (d.debtLeft! <= 1e-6) {
+    u.debuffs = u.debuffs.filter(x => x !== d);
+    emit(f, { type: 'cure', id: u.id, name: d.name });
+    emit(f, { type: 'msg', text: `${d.name}: ${u.nick}의 빚을 다 갚음` });
+    if (f.sp) specDebtPaid(f, u); // 마지막 그림자의 저울
+  }
+  return over - pay / mult;
+}
+
+/** 빌린 생명 시간 끝 (또는 터지는 덫과 함께): 남은 빚만큼 피해 (고정) */
+export function collectDebt(f: Fight, u: Unit, d: Debuff): void {
+  const left = d.debtLeft ?? 0;
+  d.debtLeft = 0;
+  if (left <= 1e-6 || !u.alive) return;
+  emit(f, { type: 'fx', name: 'debt-collect', on: u.id });
+  emit(f, { type: 'msg', text: `${d.name}: ${u.nick}에게서 남은 빚 ${Math.round(left)}을 거둬 감` });
+  damage(f, u, left / f.dmgMult, false, 'fixed');
+}
+
+/** 빚이 터지는 덫: 빌린 생명이 같이 걸려 있으면 남은 빚을 지금 거둬 감 */
+function burstDebt(f: Fight, u: Unit): void {
+  const d = u.debuffs.find(x => (x.debtLeft ?? 0) > 1e-6);
+  if (!d) return;
+  u.debuffs = u.debuffs.filter(x => x !== d);
+  collectDebt(f, u, d);
 }
 
 /** 치유로 채울 수 있는 끝: 최대 체력, 치유 상한 (P-CAP)이 걸려 있으면 최대 체력 × cap (여럿이면 가장 낮은 것) */
@@ -284,7 +340,9 @@ export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): v
   if (f.sp && dispelled && d.trap) { during(f, 'trap', () => { if (f.aff) affDebuffEnd(f, u, d, dispelled); if (d.end) debuffEnd(f, u, d, dispelled); }); return; } // 함정 감지 (42 해제 06)
   if (f.aff) affDebuffEnd(f, u, d, dispelled); // 어픽스 불안정·메아리
   if (d.end) debuffEnd(f, u, d, dispelled);
+  if (d.end && 'debt' in d.end && d.end.debt) burstDebt(f, u); // 빚이 터지는 덫 (59 4-1 밤그늘): 덫이 터질 때 남은 빚도 함께
   if (f.sp && d.end?.p === 'flip' && !dispelled) specFlip(f, u); // 뒤죽박죽 졸업장
+  if (d.debtLeft) collectDebt(f, u, d); // 빌린 생명 (P-DEBT): 시간이 다 되면 남은 빚
 }
 
 /** 보스가 주는 피해 +boost (걸어오는 쫄 흡수 · 옮겨붙음 시간 끝). 겹치면 더함 (+10% · +20% …), 체력바에 「강해짐」 */

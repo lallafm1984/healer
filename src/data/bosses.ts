@@ -42,10 +42,10 @@ export type DebuffEnd =
   | { p: 'colDmg'; dmg: number }
   /** 지우지 않고 끝나면 그 사람에게 피해 (완치 표식 P-FULL의 시간 끝) */
   | { p: 'hit'; dmg: number }
-  /** 함정 (P-TRAP, 가문의 반지): 지우지 않고 끝나면 그 사람 dmg, 지우면 이웃 칸 아군 burst (마법) */
-  | { p: 'trapHit'; dmg: number; burst: number }
-  /** 터지는 마력 (P-TRAP, 불안정한 마력 · 서리 표식): 시간이 다 되거나 지우면 (바로) 이웃 칸 아군 dmg (마법) */
-  | { p: 'blast'; dmg: number }
+  /** 함정 (P-TRAP, 가문의 반지): 지우지 않고 끝나면 그 사람 dmg, 지우면 이웃 칸 아군 burst (마법). debt는 blast와 같음 (미로 덫) */
+  | { p: 'trapHit'; dmg: number; burst: number; debt?: boolean }
+  /** 터지는 마력 (P-TRAP, 불안정한 마력 · 서리 표식): 시간이 다 되거나 지우면 (바로) 이웃 칸 아군 dmg (마법). debt = 빌린 생명이 같이 걸려 있으면 터질 때 남은 빚도 바로 (59 4-1 밤그늘) */
+  | { p: 'blast'; dmg: number; debt?: boolean }
   /** 끝나거나 지워지면 그때까지 중첩 × dmg 피해 (마력 역류 P-RECOIL, 중첩 0이면 없음) */
   | { p: 'stackHit'; dmg: number }
   /**
@@ -132,6 +132,11 @@ export interface DebuffDef {
   absorb?: number;
   /** 걸릴 때 한 번 피해 (마법, 파티 기준): 완치 표식이 가득 찬 사람에게 걸려도 바로 풀리지 않게 체력을 떨어뜨림 (춤바람 · 완치 모자, 48) */
   drop?: number;
+  /**
+   * 빌린 생명 (P-DEBT, 59 5장): 걸릴 때 체력을 가득 채우고 채운 만큼 (최소 최대 체력 × min)을 빚으로. 빚은 초마다 grow씩 불어나고 (어둠물에 잠기면 2배),
+   * 이 사람에게 넘친 치유가 빚을 갚음 (다 갚으면 사라짐). 시간이 다 되면 남은 빚만큼 피해 (고정). lock과 같이 적음
+   */
+  debt?: { min: number; grow: number };
   /** 칸 위 그림 (모자 뽑기의 모자 셋, 그림 49). 그림이 없으면 안 그림 (디버프 배지 · 칸 색은 그대로) */
   art?: string;
   /** 걸릴 때 그 사람 칸에 이펙트 (모자 · 춤바람 · 벌침, 그림 49 E) */
@@ -222,9 +227,10 @@ export type SkillEffect =
    * linked = 생명 사슬에 묶인 사람 먼저, 모자라면 탱커 · 나 빼고 무작위 (잠꼬대 저주 · 소금물 저주, 46 5장).
    * order = 차례 번호를 받은 사람 먼저 (나 빼고), 모자라면 탱커 · 나 빼고 무작위 (거꾸로 마술, 48 4-3).
    * burstAdjacent = 걸린 둘이 붙어 서 있으면 바로 터짐 (전염).
-   * prefer = 이 이름의 디버프가 걸린 사람 먼저 (나 빼고), 모자라면 탱커 · 나 빼고 무작위 (이끼 덮기 대상 먼저 이끼 표식, 56 4-3)
+   * prefer = 이 이름의 디버프가 걸린 사람 먼저 (나 빼고), 모자라면 탱커 · 나 빼고 무작위 (이끼 덮기 대상 먼저 이끼 표식, 56 4-3).
+   * pairs = 생명 사슬 쌍마다 한 사람 (나 · 떠 있는 사람 빼고, 사슬 대출 59 4-1). 사슬이 없으면 탱커 · 나 빼고 무작위
    */
-  | { p: 'debuff'; n: number | 'all'; nMythic?: number; pick?: 'random' | 'lowest' | 'tel' | 'others' | 'me' | 'tank' | 'linked' | 'order'; debuff: DebuffDef; burstAdjacent?: boolean; prefer?: string }
+  | { p: 'debuff'; n: number | 'all'; nMythic?: number; pick?: 'random' | 'lowest' | 'tel' | 'others' | 'me' | 'tank' | 'linked' | 'order' | 'pairs'; debuff: DebuffDef; burstAdjacent?: boolean; prefer?: string }
   /**
    * 최대 체력을 깎는 중첩 디버프 (썩은 숨결 · 썩은 축복 P-HPDOWN): 무작위 n명, 중첩마다 pct, max 중첩, 다시 걸리면 지속이 처음으로.
    * again = 이미 걸린 사람이 있으면 그 확률로 그중에서 고름 (썩은 축복 0.6). 지우면 최대 체력이 돌아옴 (end restoreMax)
@@ -393,6 +399,8 @@ export type ZoneCells =
    * fixed + hitDmg면 못 피하는 세로 줄 훑기 (보물 수레, 51 4-1): 열이 닿을 때 그 열에 선 사람 hitDmg
    */
   | { p: 'flow'; every: number; from?: 'left' | 'right' | 'alt' }
+  /** 어둠물 밀물 (P-TIDE, 59 5장): 판 아래 rows줄 (보스에서 먼 줄). 장판이 잠긴 칸이 되어 받는 치유 −50% (core TIDE_CUT) */
+  | { p: 'tide'; rows: number; rowsMythic?: number }
   /**
    * 피난처 (P-SAFE): 안전 칸을 뺀 모든 칸. 안전 칸 n개 (악몽 nMythic): edge = 판 가운데에서 먼 칸부터 (배치기),
    * center = 가운데에 가까운 칸부터 + tank면 탱커 칸도 (천장 무너짐), side = 왼쪽 · 오른쪽 끝 중 무작위 한쪽에서 가까운 칸부터 (신기루 피난처, 54 4-3:
@@ -449,9 +457,10 @@ export interface SkillDef {
    * 예고 때 맞을 사람을 고름: tank = 보스가 때릴 사람, back = 뒷줄부터 n명 (탱커·나 빼고, 끌어당김),
    * random = 탱커·나 빼고 무작위 n명 (피의 서약), greed = 체력 비율이 가장 높은 탱커·나 아닌 n명 (보물 욕심 P-GREED, 51 5장). 악몽은 nMythic.
    * offtank = 보스를 안 맞는 탱커 (없으면 보스가 때릴 사람, 비늘 방패 돌진 51 4-2).
-   * linked = 나눔 사슬 쌍마다 한 사람 (나 빼고, 소포 부치기 56 4-1. 사슬이 없으면 탱커 · 나 빼고 무작위), pad = 받침 발판에 선 · 가는 사람 (받침 위 반송) n명까지
+   * linked = 나눔 사슬 쌍마다 한 사람 (나 빼고, 소포 부치기 56 4-1. 사슬이 없으면 탱커 · 나 빼고 무작위), pad = 받침 발판에 선 · 가는 사람 (받침 위 반송) n명까지.
+   * order = 차례 (P-ORDER)에서 아직 힐을 못 받은 다음 번호부터 n명 (나 빼고, 차례 번개 59 4-2. 차례가 없으면 탱커 · 나 빼고 무작위)
    */
-  target?: 'tank' | 'offtank' | { p: 'back' | 'random' | 'greed' | 'linked' | 'pad'; n: number; nMythic?: number; /** random: 이 이름의 디버프가 걸린 사람 먼저 (거꾸로 주문) */ prefer?: string };
+  target?: 'tank' | 'offtank' | { p: 'back' | 'random' | 'greed' | 'linked' | 'pad' | 'order'; n: number; nMythic?: number; /** random: 이 이름의 디버프가 걸린 사람 먼저 (거꾸로 주문) */ prefer?: string };
   /** 맞을 때 (장판은 없음) */
   effect?: SkillEffect;
   /** 장판 칸 */
@@ -638,6 +647,47 @@ const LANCE_JAB: DebuffDef = { name: '번개 창 찌르기', type: '물리', lef
 const FLASK_HOW = '12초 동안 넘친 치유가 플라스크에 모임. 가득 차면 전원 보호막이고, 보호막이 있는 사람은 연쇄 번개의 피뢰침. 번개 전에 일부러 넘치게 힐';
 /** 뒤죽박죽 거꾸로 주문 (P-FLIP, 마법): 10초 뒤 체력 비율이 뒤집힘 (가장 낮아도 5%) */
 const UPSIDE: DebuffDef = { name: '거꾸로 주문', type: '마법', left: 12, end: { p: 'flip', min: 0.25 } };
+/** 어둠물 밀물 (P-TIDE, 59 5장) 공략 글 */
+const TIDE_HOW = '판 아래 줄이 어둠물에 잠김: 잠긴 사람은 받는 치유 절반 (지속 힐 · 광역 힐도) · 초당 딜체 1.5%. 파티원은 위쪽 빈 칸으로 비키지만 자리가 모자라면 남음. 예고 3초 안에 잠길 줄 사람을 채우고, 빠지면 몰아 채우기';
+/** 빌린 생명 (P-DEBT, 59 5장) 공략 글 */
+const DEBT_HOW = '체력을 가득 채워 주고 채운 만큼 (최소 30%)이 빚. 빚은 초마다 10%씩 불어나고 10초 뒤 남은 빚만큼 피해 (고정). 그 사람에게 넘친 치유가 빚을 갚으니 가득 차 보여도 일찍 힐';
+/** 빌린 생명 디버프 (P-DEBT): 지울 수 없음. min = 최소 빚 (최대 체력 비율), grow = 초마다 불어나는 비율 */
+const loan = (name: string, { left = 10, min = 0.3, grow = 0.1 } = {}): DebuffDef => ({ name, type: '물리', left, lock: true, debt: { min, grow } });
+/**
+ * 어둠물 밀물 기술 (P-TIDE): 3초 예고 뒤 판 아래 rows줄이 sec초 잠김. 악몽 secMythic · rowsMythic이 있으면 악몽판을 따로 (악몽판은 대기열 숨김).
+ * when = 그 페이즈에서만 (끝나지 않는 왈츠)
+ */
+const tides = (key: string, name: string, icon: string, first: number | null, period: number, rows: number, sec: number,
+  o: { secMythic?: number; rowsMythic?: number; when?: SkillWhen } = {}): SkillDef[] => {
+  const one = (k: string, s: number, r: number, when?: SkillWhen, hidden?: boolean): SkillDef => ({
+    key: k, name, icon, kind: 'zone', first, period, cast: 3, warn: 'zone', dps: U.dps(0.015), dur: s, cells: { p: 'tide', rows: r }, when,
+    ...(hidden ? { hidden: true } : { how: TIDE_HOW }),
+  });
+  if (o.secMythic == null && o.rowsMythic == null) return [one(key, sec, rows, o.when)];
+  return [one(key, sec, rows, { ...o.when, mythic: false }), one(`${key}m`, o.secMythic ?? sec, o.rowsMythic ?? rows, { ...o.when, mythic: true }, true)];
+};
+/** 그림자 미궁 (59 4-1) 그믐 해제 짝: 미궁의 독 (독) · 미궁의 봉인 (마법, 받는 치유 −25%: 빚을 갚기 어려움) */
+const MAZE_SEAL: DebuffDef[] = [
+  { name: '미궁의 독', type: '독', left: 10, dot: U.dps(0.02) },
+  { name: '미궁의 봉인', type: '마법', left: 10, healCut: 0.25 },
+];
+/** 실타래 해제 짝: 거미 열병 (질병) · 거미의 저주 (저주) */
+const SPIDER_FEVER: DebuffDef[] = [
+  { name: '거미 열병', type: '질병', left: 10, dot: U.dps(0.02) },
+  { name: '거미의 저주', type: '저주', left: 10, dot: U.dps(0.02) },
+];
+/** 미로 덫 (59 4-1 밤그늘, 함정 디버프 × 빌린 생명): 지우면 주변 딜체 15%, 두면 8초 뒤 그 사람 딜체 30%. 빚이 있으면 터질 때 (지워도) 남은 빚도 함께 */
+const MAZE_TRAP: DebuffDef = { name: '미로 덫', type: '마법', left: 8, trap: true, end: { p: 'trapHit', dmg: U.dps(0.3), burst: U.dps(0.15), debt: true } };
+/** 그림자 진영 (59 4-2) 질풍 해제 짝: 녹슨 창날 (독) · 군영 역병 (질병) */
+const CAMP_PLAGUE: DebuffDef[] = [
+  { name: '녹슨 창날', type: '독', left: 10, dot: U.dps(0.02) },
+  { name: '군영 역병', type: '질병', left: 10, dot: U.dps(0.02) },
+];
+/** 우레발 해제 짝: 짐승의 저주 (저주) · 정신 지배 끈 (마법) */
+const BEAST_BIND: DebuffDef[] = [
+  { name: '짐승의 저주', type: '저주', left: 10, dot: U.dps(0.02) },
+  { name: '정신 지배 끈', type: '마법', left: 10, dot: U.dps(0.02) },
+];
 /** 무작위 파티원 둘레 장판 n곳 (P-ZONE around를 n개, 하나만 대기열에 보임) */
 const spots = (key: string, name: string, icon: string, n: number, first: number, period: number, dmg: number, when?: SkillWhen): SkillDef[] =>
   Array.from({ length: n }, (_, i): SkillDef => ({
@@ -3013,6 +3063,198 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ] },
     ],
     enrage: { name: '그림자 대군', period: 3, dmg: 220 },
+  },
+  // ---------- 묶음 G1 10인 ⑮ 그림자 미궁 (59 4-1, Lv 91 · 악몽 100 · 심연의 정예 · 전 유형): 그믐 · 실타래 · 밤그늘 ----------
+  // 미궁 파수꾼 그믐 (입구): 빌린 생명 첫 판 (생명 통행세 2명: 체력을 가득 채우고 빚, 그 사람에게 넘친 치유로 갚기) · 문지기 강타 (탱커 교대) · 그림자 창 · 미궁의 독 · 봉인 (독 · 마법).
+  // 악몽은 생명 통행세 3명. 목표 4:30 · 광폭화 6:00
+  geumeum: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...SWAP_BUSTER('문지기 강타', '강타', '문지기 자국', U.tank(0.55)), cast: 2.5, period: 16 },
+      { key: 'toll', name: '생명 통행세', icon: '통행', kind: 'instant', first: 10, period: 20, cast: 0, how: DEBT_HOW,
+        effect: { p: 'debuff', n: 2, nMythic: 3, pick: 'others', debuff: loan('생명 통행세') } },
+      { key: 'spear', name: '그림자 창', icon: '창', kind: 'aoe', first: 14, period: 22, cast: 2.5, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.18) } },
+      { key: 'venom', name: '미궁의 독', icon: '독', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '3명에게 독 (초당 딜체 2%) 또는 봉인 (마법, 받는 치유 −25%) 무작위. 봉인이 빚진 사람에게 붙으면 갚기 어려우니 먼저 지우기',
+        effect: { p: 'cycle', n: 3, random: true, debuffs: MAZE_SEAL } },
+    ],
+    enrage: { name: '닫히는 문', period: 3, dmg: 200 },
+  },
+  // 함정 거미 실타래 (회랑): 빌린 생명 × 나눔 사슬 (그물 사슬 쌍마다 한 명에게 사슬 대출 → 짝을 힐해도 반이 넘어가 넘친 몫이 빚을 갚음) · 거미알 (새끼 거미 2) · 거미 열병 · 저주 (질병 · 저주).
+  // 악몽은 그물 사슬 3쌍. 목표 4:30 · 광폭화 6:00
+  silta: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('독니', '독니', 8, 14, U.tank(0.55)),
+      { key: 'web', name: '그물 사슬', icon: '그물', kind: 'instant', first: 10, period: 24, cast: 0,
+        how: '탱커 아닌 2쌍 (악몽 3쌍)이 12초 이어져 받는 피해 · 치유를 반씩 나눔. 곧 쌍마다 한 명에게 사슬 대출이 오니 짝을 힐해도 넘친 몫이 빚을 갚음',
+        effect: { p: 'link', kind: 'share', name: '그물 사슬', sec: 12, pick: 'others', pairs: 2, pairsMythic: 3 } },
+      { key: 'loan', name: '사슬 대출', icon: '대출', kind: 'instant', first: 11, period: 24, cast: 0, how: `${DEBT_HOW}. 그물 사슬 쌍마다 한 명`,
+        effect: { p: 'debuff', n: 2, nMythic: 3, pick: 'pairs', debuff: loan('사슬 대출') } },
+      { key: 'eggs', name: '거미알', icon: '거미', kind: 'instant', first: 18, period: 26, cast: 0, how: '판 가장자리에 새끼 거미 2마리. 딜러가 잡기 전까지 3초마다 무작위 1명을 물어 독',
+        effect: { p: 'adds', n: 2, add: { name: '새끼 거미', short: '거미', art: 'mob-shadow-spiderling', hp: 0.01, dmg: 0, every: 0, at: 'edge',
+          job: { p: 'sting', every: 3, dmg: U.dps(0.1), debuff: { name: '거미 물림', type: '독', left: 6, dot: U.dps(0.01) } } } } },
+      { key: 'fever', name: '거미 열병', icon: '열병', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '3명에게 질병 (거미 열병) 또는 저주 (거미의 저주) 무작위, 초당 딜체 2%. 직업마다 못 지우는 쪽은 채워서',
+        effect: { p: 'cycle', n: 3, random: true, debuffs: SPIDER_FEVER } },
+    ],
+    enrage: { name: '그물 조이기', period: 3, dmg: 200 },
+  },
+  // 미궁의 주인 밤그늘 (중심, 최종 3페이즈): 1 미로 (생명 대출 · 미로 덫: 덫이 빚진 사람에게 먼저 붙고, 터지면 (지워도) 남은 빚도 함께) → 2 갇힌 길 (그림자 감옥 2명: 갇힌 동안 빚이 멈춤 · 무너지는 길)
+  // → 3 미궁의 심장 (모두 + 미궁 수축, 칠 때마다 세짐). 그림자 손길은 내내. 악몽은 미로 덫 2명. 목표 6:00 · 광폭화 8:00
+  bamgeuneul: {
+    phase: [1, '1페이즈 · 미로'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('벽 손아귀', '손아', 8, 15, U.tank(0.6)), cast: 2.5 },
+      { key: 'loan', name: '생명 대출', icon: '대출', kind: 'instant', first: 10, period: 20, cast: 0, how: DEBT_HOW,
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: loan('생명 대출') } },
+      { key: 'trap', name: '미로 덫', icon: '덫', kind: 'instant', first: 11, period: 20, cast: 0,
+        how: '함정: 지우면 주변 칸 딜체 15%, 두면 8초 뒤 그 사람 딜체 30%. 빚진 사람에게 먼저 붙고, 터질 때 (지워도) 남은 빚도 함께 거둬 가니 빚을 갚고 나서 지우기',
+        effect: { p: 'debuff', n: 1, nMythic: 2, prefer: '생명 대출', debuff: MAZE_TRAP } },
+      { key: 'touch', name: '그림자 손길', icon: '손길', kind: 'instant', first: 16, period: 18, cast: 0,
+        how: '3명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 3, random: true, debuffs: SHADOW_TOUCH } },
+      { key: 'jail', name: '그림자 감옥', icon: '감옥', kind: 'instant', first: null, period: 35, cast: 0, when: { phase: [2, 3] },
+        how: '2명이 그림자 감옥에 갇힘 (딜 0 · 해제 안 됨 · 초당 피해). 딜러가 감옥을 깨면 풀림. 갇힌 동안은 빚이 멈추고 풀리면 다시 불어나니, 갇힌 사이에 체력을 채워 두기',
+        effect: { p: 'jail', n: 2, name: '그림자 감옥', short: '감옥', hp: 0.008, dot: U.dps(0.015), art: 'mob-shadow-cage' } },
+      { key: 'sink', name: '무너지는 길', icon: '구멍', kind: 'instant', first: null, period: 25, cast: 0, when: { phase: [2, 3] },
+        how: '가장자리 칸 2개가 무너져 끝까지 못 섬 (최대 6칸). 판이 좁아져 밀려난 사람이 모임', effect: { p: 'hole', n: 2, max: 6 } },
+      { key: 'squeeze', name: '미궁 수축', icon: '수축', kind: 'aoe', first: null, period: 18, cast: 2.5, warn: 'aoe', when: { phase: [3] },
+        how: '칠 때마다 딜체 3%씩 세짐. 광역 몰아 채우기, 빚은 그 사이에', effect: { p: 'all', dmg: U.dps(0.22), grow: U.dps(0.03) } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 갇힌 길' }, { p: 'start', skill: 'jail', in: 4 }, { p: 'start', skill: 'sink', in: 8 },
+        { p: 'text', text: '갇힌 길: 그림자 감옥에 갇히면 빚이 멈추고, 길이 무너짐' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.35 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 미궁의 심장' }, { p: 'start', skill: 'squeeze', in: 5 },
+        { p: 'text', text: '미궁의 심장: 모든 기술 + 미궁 수축' },
+      ] },
+    ],
+    enrage: { name: '미궁 붕괴', period: 3, dmg: 220 },
+  },
+  // ---------- 묶음 G1 20인 ⑧ 그림자 진영 (59 4-2, Lv 91 · 악몽 100 · 심연의 정예 · 전 유형): 질풍 · 우레발 · 칠흑 ----------
+  // 그림자 기병대장 질풍 (막사): 줄 피해 × 무너지는 바닥 (기병 돌격이 줄을 지날 때마다 가장자리 칸이 무너져 판이 좁아짐) · 말발굽 진동 · 녹슨 창날 · 군영 역병 (독 · 질병).
+  // 악몽은 기병 돌격 2줄. 목표 4:30 · 광폭화 6:00
+  jilpung: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...SWAP_BUSTER('창 찌르기', '창', '기병창 자국', U.tank(0.6)), cast: 2.5, period: 16 },
+      ...rows('charge', '기병 돌격', '돌격', 12, 18, U.dps(0.25), { mythic: true }),
+      { key: 'trample', name: '짓밟힌 땅', icon: '구멍', kind: 'instant', hidden: true, first: 15.5, period: 18, cast: 0, effect: { p: 'hole', n: 1, max: 6 } }, // 돌격이 지나가면 가장자리 칸이 구멍
+      { key: 'hoof', name: '말발굽 진동', icon: '진동', kind: 'aoe', first: 22, period: 26, cast: 2, warn: 'aoe',
+        how: '진동: 맞는 순간 시전 중인 힐이 끊기고 1.5초 잠김. 예고가 뜨면 즉시 스킬 · 지속 힐로', effect: { p: 'quake', dmg: U.dps(0.12), lock: 1.5 } },
+      { key: 'plague', name: '군영 역병', icon: '역병', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '4명에게 독 (녹슨 창날) 또는 질병 (군영 역병) 무작위, 초당 딜체 2%', effect: { p: 'cycle', n: 4, random: true, debuffs: CAMP_PLAGUE } },
+    ],
+    enrage: { name: '기병대 총돌격', period: 3, dmg: 210 },
+  },
+  // 심연 거수 우레발 (훈련장): 진동 × 탱커 교대 (뿔 들이받기 3.5초 뒤 발 구르기 진동 → 탱커 힐이 끊기기 쉬움) · 쫄 떼 (등에서 떨어진 그림자 6마리, 범위 딜로 잡음, 무작위 물기)
+  // · 뿌리 포효 · 짐승의 저주 · 정신 지배 끈 (저주 · 마법). 악몽은 발 구르기 뒤 4초 받는 치유 −15%. 목표 4:45 · 광폭화 6:20
+  ureobal: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...SWAP_BUSTER('뿔 들이받기', '뿔', '뿔 자국', U.tank(0.55)), cast: 2.5, period: 15 },
+      { key: 'stomp', name: '발 구르기', icon: '발구', kind: 'aoe', first: 12, period: 30, cast: 2, warn: 'aoe',
+        how: '진동: 맞는 순간 시전 중인 힐이 끊기고 1.5초 잠김. 뿔 들이받기 바로 뒤라 탱커는 즉시 스킬 · 지속 힐로', effect: { p: 'quake', dmg: U.dps(0.12), lock: 1.5 } },
+      { key: 'stompm', name: '흔들리는 땅', icon: '발구', kind: 'instant', hidden: true, first: 14.1, period: 30, cast: 0, when: { mythic: true },
+        effect: { p: 'debuff', n: 'all', debuff: { name: '흔들리는 땅', type: '물리', left: 4, lock: true, healCut: 0.15 } } },
+      { key: 'swarm', name: '등에서 떨어진 그림자', icon: '그림', kind: 'instant', first: 18, period: 28, cast: 0,
+        how: '작은 그림자 6마리가 판에 떨어져 4초마다 무작위로 물어 받는 치유 −10%. 딜러가 범위 딜로 한꺼번에 잡음',
+        effect: { p: 'adds', n: 6, add: { name: '작은 그림자', short: '그림', art: 'mob-shadow-imp', hp: 0.004, dmg: 0, every: 0, at: 'random', cleave: true,
+          job: { p: 'sting', every: 4, dmg: U.dps(0.06), debuff: { name: '그림자 물림', type: '물리', left: 6, lock: true, healCut: 0.1 } } } } },
+      { key: 'roar', name: '뿌리 포효', icon: '포효', kind: 'aoe', first: 20, period: 22, cast: 2.5, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+      { key: 'bind', name: '짐승의 저주', icon: '저주', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '4명에게 저주 (짐승의 저주) 또는 마법 (정신 지배 끈) 무작위, 초당 딜체 2%', effect: { p: 'cycle', n: 4, random: true, debuffs: BEAST_BIND } },
+    ],
+    enrage: { name: '거수 폭주', period: 3, dmg: 210 },
+  },
+  // 심연 기사단장 칠흑 (지휘소, 최종 3페이즈): 1 지휘 (신기루 번개: 번개 구름 셋 중 진짜 하나, 끝 1초에 걷힘 · 전군 돌격) → 2 모래 군기 (모래시계 · 기사단 해제 전 유형)
+  // → 3 마지막 진형 (차례 + 차례 번개: 다음 번호에게 번개가 떨어지니 그 이웃을 미리 · 광폭 진군). 악몽은 번개 구름 넷. 목표 6:00 · 광폭화 8:00
+  chilheuk: {
+    phase: [1, '1페이즈 · 지휘'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...SWAP_BUSTER('대검 내려치기', '대검', '대검 자국', U.tank(0.6)), cast: 2.5, period: 15 },
+      { key: 'bolt', name: '신기루 번개', icon: '번개', kind: 'buster', first: 12, period: 15, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, when: { phase: [1, 2] },
+        mirage: { n: 2, nMythic: 3 }, how: `구름 셋 (악몽 넷) 가운데 하나만 진짜, 끝 1초에 가짜가 걷힘. 걷히기 전에는 셋 이웃을 다 채우지 말고 걷히면 진짜 이웃만. ${CHAIN_HOW}`,
+        effect: { p: 'chain', dmg: U.dps(0.25), jumps: 4 } },
+      { key: 'charge', name: '전군 돌격', icon: '돌격', kind: 'aoe', first: 18, period: 20, cast: 2.5, warn: 'aoe', when: { phase: [1, 2] }, effect: { p: 'all', dmg: U.dps(0.2) } },
+      { key: 'glass', name: '모래 군기', icon: '모래', kind: 'aoe', first: null, period: 30, cast: 3, warn: 'aoe', when: { phase: [2] }, how: GLASS_HOW, effect: { p: 'glass', sec: 8 } },
+      { key: 'touch', name: '기사단 해제', icon: '손길', kind: 'instant', first: null, period: 16, cast: 0, when: { phase: [2, 3] },
+        how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
+      { key: 'order', name: '마지막 진형', icon: '차례', kind: 'instant', first: null, period: 24, cast: 0, when: { phase: [3] },
+        how: '번호 ①②③ 순서대로 단일 힐을 한 번씩 넣으면 보스가 4초 멍함. 곧 다음 번호에게 차례 번개가 떨어지니 그 이웃을 미리 90% 위로',
+        effect: { p: 'order', n: 3, sec: 8, wrong: U.dps(0.15), miss: U.dps(0.25), daze: { sec: 4, vuln: 1.2 } } },
+      { key: 'orderbolt', name: '차례 번개', icon: '번개', kind: 'buster', first: null, period: 24, cast: 3, warn: 'buster', target: { p: 'order', n: 1 }, when: { phase: [3] },
+        how: `아직 힐을 못 받은 다음 차례 번호에게 떨어짐. ${CHAIN_HOW}`, effect: { p: 'chain', dmg: U.dps(0.25), jumps: 4 } },
+      { key: 'march', name: '광폭 진군', icon: '진군', kind: 'aoe', first: null, period: 16, cast: 2.5, warn: 'aoe', when: { phase: [3] }, effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 모래 군기' }, { p: 'start', skill: 'glass', in: 4 }, { p: 'start', skill: 'touch', in: 6 },
+        { p: 'text', text: '모래 군기: 모래시계가 뒤집힌 순간의 체력으로 되돌아감' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.35 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 마지막 진형' }, { p: 'start', skill: 'order', in: 4 }, { p: 'start', skill: 'orderbolt', in: 6 }, { p: 'start', skill: 'march', in: 10 },
+        { p: 'text', text: '마지막 진형: 차례대로 힐, 다음 번호에게 번개' },
+      ] },
+    ],
+    enrage: { name: '기사단 총공격', period: 3, dmg: 220 },
+  },
+  // ---------- 묶음 G1 탐험 ㉓ 유령 마차길 (59 1-1, Lv 92 · 몰락한 귀족가 · 저주): 어둠물 밀물 쉬운 판 (던전 ⑲ 예습) ----------
+  // 유령 악단장 세레나 탐험판: 평타 · 박자 밀물 (아래 1줄) · 불협화음 (저주 1명) · 크레센도. 수치는 던전판의 70%
+  serena92: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      ...tides('tide', '박자 밀물', '밀물', 8, 18, 1, 8),
+      { key: 'discord', name: '불협화음', icon: '불협', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '불협화음', type: '저주', left: 10, dot: 14 } } },
+      { key: 'cresc', name: '크레센도', icon: '크레', kind: 'aoe', first: 14, period: 14, cast: 2.5, warn: 'aoe', effect: { p: 'all', dmg: 70 } },
+    ],
+    enrage: { name: '끝없는 앙코르', period: 2, dmg: 200 },
+  },
+  // ---------- 묶음 G1 던전 ⑲ 가라앉은 무도회장 (59 3-1, Lv 95 · 몰락한 귀족가 · 저주): 세레나 · 발렌 ----------
+  // 유령 악단장 세레나 (①): 어둠물 밀물 (박자 밀물: 아래 1줄이 8초 잠김, 잠긴 사람은 받는 치유 절반) · 불협화음 (저주 2명) · 크레센도.
+  // 악몽은 밀물 10초. 목표 3:00 · 광폭화 4:00
+  serena: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('지휘봉 내려치기', '지휘', 8, 14, U.tank(0.5)),
+      ...tides('tide', '박자 밀물', '밀물', 10, 20, 1, 8, { secMythic: 10 }),
+      { key: 'discord', name: '불협화음', icon: '불협', kind: 'instant', first: 6, period: 16, cast: 0,
+        how: '탱커 아닌 2명에게 저주 (초당 딜체 2%). 드루이드만 지움. 잠긴 사람은 지우는 게 힐보다 쌈',
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '불협화음', type: '저주', left: 10, dot: U.dps(0.02) } } },
+      { key: 'cresc', name: '크레센도', icon: '크레', kind: 'aoe', first: 16, period: 22, cast: 2.5, warn: 'aoe', how: '밀물과 겹치면 잠긴 사람부터', effect: { p: 'all', dmg: U.dps(0.18) } },
+    ],
+    enrage: { name: '끝없는 앙코르', period: 2, dmg: 240 },
+  },
+  // 몰락한 대공 발렌 (최종): 어둠물 × 뒤집힌 축복 (거꾸로 건배가 걸린 사람은 받는 치유가 피해, 잠기면 두 배 → 밀물 때 아래 줄에 광역 힐 조심) · 무도회 행진 (줄 피해).
+  // 40% 아래 끝나지 않는 왈츠 (밀물 2줄). 악몽은 거꾸로 건배 2명. 목표 3:30 · 광폭화 5:00
+  valen: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('레이피어 찌르기', '레이', 8, 15, U.tank(0.55)), cast: 2.5 },
+      ...tides('tide', '왈츠 밀물', '밀물', 12, 22, 1, 8, { when: { phase: [1] } }),
+      ...tides('tide2', '끝나지 않는 왈츠', '왈츠', null, 18, 2, 8, { when: { phase: [2] } }),
+      { key: 'toast', name: '거꾸로 건배', icon: '건배', kind: 'instant', first: 9, period: 18, cast: 0,
+        how: '탱커 아닌 사람이 8초 동안 받는 치유가 피해로 바뀜 (어둠물에 잠기면 2배). 드루이드는 지움, 아니면 그 사람만 빼고 힐 (광역 힐 조심)',
+        effect: { p: 'debuff', n: 1, nMythic: 2, pick: 'others', debuff: { name: '거꾸로 건배', type: '저주', left: 8, invert: true } } },
+      ...rows('march', '무도회 행진', '행진', 16, 20, U.dps(0.22), false),
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'tide2', in: 3 },
+      { p: 'text', text: '끝나지 않는 왈츠: 어둠물이 아래 두 줄까지' },
+    ] }],
+    enrage: { name: '마지막 왈츠', period: 2, dmg: 240 },
   },
   warden: {
     phase: [1, ''],

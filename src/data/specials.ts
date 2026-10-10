@@ -307,6 +307,11 @@ export const NAMED: NamedDef[] = [
   { key: 'shadowVeil', name: '어둑이의 그림자 휘장', slot: 'neck', place: 'shadow3', placeName: '그림자 성벽 망루', text: '신기루가 걷히거나 띄워진 아군이 내려올 때 가장 낮은 아군 1명에게 지능 {v} 보호막 (6초)', val: 0.5, unit: 'pct' },
   { key: 'diploma', name: '뒤죽박죽 졸업장', slot: 'neck', place: 'school', placeName: '구름 마법학교', text: '뒤집힘 저주가 끝날 때 그 아군이 체력 40~60%이면 지능 {v} 보호막 (6초)', val: 0.5, unit: 'pct' },
   { key: 'stormWedge', name: '우르릉의 번개 쐐기', slot: 'neck', place: 'fort3', placeName: '폭풍 성채 꼭대기', text: '다른 탱커가 띄워 올려진 동안 남은 탱커에게 하는 힐 +{v}', val: 0.25, unit: 'pct' },
+  // 묶음 G1 (59 6장): 10인 ⑮ 중심 · 20인 ⑧ 지휘소 · 탐험 ㉓ · 던전 ⑲
+  { key: 'mazeMap', name: '밤그늘의 미궁 지도', slot: 'neck', place: 'maze3', placeName: '그림자 미궁 중심', text: '빚진 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'knightBanner', name: '칠흑의 기사단 휘장', slot: 'neck', place: 'camp3', placeName: '그림자 진영 지휘소', text: '신기루가 걷히면 진짜 번개 구름 대상의 이웃 가운데 낮은 2명에게 지능 {v} 보호막 (6초)', val: 0.3, unit: 'pct' },
+  { key: 'wetGlove', name: '마부의 젖은 장갑', slot: 'ring', place: 'carriage', placeName: '유령 마차길', text: '어둠물에 잠긴 아군에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
+  { key: 'wetScore', name: '세레나의 젖은 악보', slot: 'neck', place: 'ballroom', placeName: '가라앉은 무도회장', text: '어둠물이 빠지는 순간 잠겨 있던 아군 모두 지능 {v} 회복', val: 0.2, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -468,6 +473,14 @@ export const FEATURED: Record<string, readonly string[]> = {
   shadow2: ['layer', 'lingerLight', 'holdTogether'],
   shadow3: ['clearEye', 'starVeil', 'sunrise'],
   school: ['lingerLight', 'bubble', 'spellWard'],
+  maze1: ['quickAid', 'pouch', 'numberSense'],
+  maze2: ['layer', 'holdTogether', 'cleanHands'],
+  maze3: ['sunrise', 'starVeil', 'overflowKind'],
+  camp1: ['windStep', 'quickAid', 'evenly'],
+  camp2: ['sturdyBack', 'prop', 'shieldFriend'],
+  camp3: ['clearEye', 'constellation', 'guardFeather'],
+  carriage: ['quickAid', 'curseBreak', 'lingerLight'],
+  ballroom: ['curseBreak', 'lingerLight', 'kindCrit'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

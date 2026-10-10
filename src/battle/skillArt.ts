@@ -9,10 +9,10 @@ import { BOSSES, type AddDef, type AddJob, type DebuffDef, type SkillDef } from 
 import type { Encounter, ScriptKey } from '../data/encounters';
 import type { BossSkill, Fight } from '../engine/types';
 
-/** 기믹 아이콘 45장 (37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2, 52 보물 욕심 · 녹는 보호막 · 부화하는 알, 55 G 신기루 · 모래시계, 57 G 띄워 올리기 · 연쇄 번개): icon-gim-<이름>. 모자 뽑기 모자 (H 3~5)는 칸 위 표식이라 대기열에 안 씀 */
+/** 기믹 아이콘 47장 (37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2, 52 보물 욕심 · 녹는 보호막 · 부화하는 알, 55 G 신기루 · 모래시계, 57 G 띄워 올리기 · 연쇄 번개, 60 G 어둠물 밀물 · 빌린 생명): icon-gim-<이름>. 모자 뽑기 모자 (H 3~5)는 칸 위 표식이라 대기열에 안 씀 */
 export const GIMS = ['full', 'wound', 'hunt', 'link', 'invert', 'over', 'quake', 'recoil', 'gaze', 'drain', 'charm', 'order', 'jump', 'safe', 'tower', 'pull', 'hole',
   'stagger', 'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass', 'greed', 'melt', 'hatch', 'mirage', 'glass',
-  'lift', 'chain'] as const;
+  'lift', 'chain', 'tide', 'debt'] as const;
 export type Gim = (typeof GIMS)[number];
 type BossKey = Exclude<ScriptKey, 'trash'>;
 
@@ -148,6 +148,16 @@ const BSK: Partial<Record<BossKey, Record<string, string>>> = {
   kwangkwang: { buster: 'icon-bsk-kwangkwang-1', touch: 'icon-bsk-ormal-2' },
   syungsyung: { buster: 'icon-bsk-syungsyung-1', rain0: 'icon-bsk-syungsyung-2', rain1: 'icon-bsk-syungsyung-2', rain2: 'icon-bsk-syungsyung-2', rain3: 'icon-bsk-syungsyung-2' },
   eodugi: { buster: 'icon-bsk-eodugi-1', touch: 'icon-bsk-ormal-2', wave: 'icon-bsk-eodugi-2', wave2: 'icon-bsk-eodugi-2', beat: 'icon-bsk-eodugi-3' },
+  // 묶음 G1 (60 4장 D): 탐험 ㉓ 세레나는 던전 ⑲ 그림, 그림자 손길은 오르말 그림
+  geumeum: { buster: 'icon-bsk-geumeum-1', spear: 'icon-bsk-geumeum-2', venom: 'icon-bsk-geumeum-3' },
+  silta: { buster: 'icon-bsk-silta-1', fever: 'icon-bsk-silta-2' },
+  bamgeuneul: { buster: 'icon-bsk-bamgeuneul-1', touch: 'icon-bsk-ormal-2', squeeze: 'icon-bsk-bamgeuneul-2' },
+  jilpung: { buster: 'icon-bsk-jilpung-1', charge0: 'icon-bsk-jilpung-2', charge0b: 'icon-bsk-jilpung-2', charge1: 'icon-bsk-jilpung-2', charge1b: 'icon-bsk-jilpung-2', charge2: 'icon-bsk-jilpung-2', charge2b: 'icon-bsk-jilpung-2', plague: 'icon-bsk-jilpung-3' },
+  ureobal: { buster: 'icon-bsk-ureobal-1', roar: 'icon-bsk-ureobal-2', bind: 'icon-bsk-ureobal-3' },
+  chilheuk: { buster: 'icon-bsk-chilheuk-1', charge: 'icon-bsk-chilheuk-2', touch: 'icon-bsk-ormal-2', march: 'icon-bsk-chilheuk-3' },
+  serena92: { discord: 'icon-bsk-serena-2', cresc: 'icon-bsk-serena-3' },
+  serena: { buster: 'icon-bsk-serena-1', discord: 'icon-bsk-serena-2', cresc: 'icon-bsk-serena-3' },
+  valen: { buster: 'icon-bsk-valen-1', march0: 'icon-bsk-valen-2', march1: 'icon-bsk-valen-2', march2: 'icon-bsk-valen-2' },
 };
 /** 데이터 부품만으로는 안 보이는 기믹 (35 4장 표): 서리 손길 · 빗자루 = 버스터 + 썩는 상처 (서리 · 먼지 범벅), 얼어붙는 바닥 · 바닥이 언다 = 장판 → 무너지는 바닥 */
 const GIM_KEY: Partial<Record<BossKey, Record<string, Gim>>> = {
@@ -178,6 +188,8 @@ const MOB: Record<string, string> = {
   '스핑크스 석상:storm': 'icon-mob-sandstorm', // 55 4장 D 45
   '천둥 숫양:ram': 'icon-mob-thunder-charge', // 57 4장 D
   '번개 실험 정령:burst': 'icon-mob-spark-burst', // 57 4장 D
+  '물에 젖은 조문객:veil': 'icon-mob-veil', // 묶음 G1: 귀족가 졸개는 장원 그림을 같이 씀
+  '가라앉은 사냥개:howl': 'icon-mob-howl',
 };
 
 /** 판 위 적이 하는 일 → 기믹 (37 4장 E 1~10) */
@@ -190,6 +202,7 @@ function addGim(a: AddDef, tanks: number): Gim {
 }
 /** 디버프 → 기믹 (35 3장 · 3-J). 없으면 기믹이 아닌 디버프 */
 function debuffGim(d: DebuffDef): Gim | undefined {
+  if (d.debt) return 'debt'; // 빌린 생명 (P-DEBT, 60 G 2)
   if (d.cureAt != null) return d.cureAt >= 1 ? 'full' : 'wound';
   if (d.invert) return 'invert';
   if (d.charm) return 'charm';
@@ -208,7 +221,7 @@ export function gimOf(d: SkillDef, tanks = 1): Gim | undefined {
   const e = d.effect;
   if (d.mirage && e?.p !== 'order') return 'mirage'; // 신기루 (55 G 1). 수수께끼 (차례 × 신기루)는 차례 아이콘
   if (e?.p === 'glass') return 'glass'; // 모래시계 (55 G 2)
-  if (!e) return d.cells?.p === 'safe' ? 'safe' : undefined;
+  if (!e) return d.cells?.p === 'safe' ? 'safe' : d.cells?.p === 'tide' ? 'tide' : undefined; // 어둠물 밀물 (P-TIDE, 60 G 1)
   switch (e.p) {
     case 'hunt': case 'quake': case 'pull': case 'order': case 'link': case 'hole': case 'tower': case 'stagger': case 'counter': case 'soul': case 'jail': return e.p;
     case 'vessel': return 'over';

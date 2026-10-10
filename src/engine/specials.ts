@@ -9,7 +9,7 @@ import { namedOf, SPECS } from '../data/specials';
 import { SKILLS, type SkillKey, type SlotName } from '../data/skills';
 import { hexDist } from './board';
 import { addMod } from './abilities';
-import { cellOf, emit, heal, living, onDebuffEnd } from './core';
+import { cellOf, emit, heal, living, onDebuffEnd, submerged } from './core';
 import type { Debuff, Fight, Telegraph, Unit } from './types';
 
 /** 전투 중 특수능력 상태 */
@@ -159,6 +159,8 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.millVane && tick && u.lift) m += v.millVane; // 풍차 날개 조각
   if (v.stormWedge && u.role === 'tank' && f.party.some(w => w !== u && w.role === 'tank' && w.alive && w.lift)) m += v.stormWedge; // 우르릉의 번개 쐐기
   if (v.festInvite && direct && !tick && u.debuffs.some(d => d.noDps)) m += v.festInvite; // 축제 초대장 (48 6장)
+  if (v.wetGlove && f.zones.length && submerged(f, u)) m += v.wetGlove; // 마부의 젖은 장갑 (59 6장)
+  if (v.mazeMap && u.debuffs.some(d => (d.debtLeft ?? 0) > 1e-6)) m += v.mazeMap; // 밤그늘의 미궁 지도
   if (v.rainbowSpore && u.soul) m += v.rainbowSpore; // 무지개 포자
   if (v.mossBrooch && aoe && f.stagger) m += v.mossBrooch; // 이끼 브로치
   if (u.me && v.brokenChain && on(f, 'brokenChain')) m += v.brokenChain;
@@ -573,11 +575,44 @@ export function hotDone(f: Fight): void {
   s.ready.graveLantern = f.t + 2;
   f.mana = Math.min(100, f.mana + v);
 }
-/** 신기루가 걷히면 (냥크스의 수수께끼 쪽지: 1초 동안 직접 힐 +) */
-export function specReveal(f: Fight): void {
+/** 신기루가 걷히면 (냥크스의 수수께끼 쪽지: 1초 동안 직접 힐 +). gone = 걷힌 가짜 예고 (칠흑의 기사단 휘장) */
+export function specReveal(f: Fight, gone: Telegraph[] = []): void {
   if (f.sp!.v.riddleNote) f.sp!.until.riddleNote = f.t + 1;
   echoDrop(f);
   shadowVeil(f);
+  knightBanner(f, gone);
+}
+/** 칠흑의 기사단 휘장 (59 6장): 가짜 번개 구름이 걷히면 진짜 번개 구름 대상의 이웃 가운데 낮은 2명 보호막 */
+function knightBanner(f: Fight, gone: Telegraph[]): void {
+  const v = f.sp!.v.knightBanner;
+  if (!v || !gone.some(t => t.skill.chain)) return;
+  let any = false;
+  for (const o of f.tels.filter(t => t.skill.chain && !t.fake && gone.some(g => g.skill === t.skill))) {
+    for (const id of o.units) {
+      const u = f.party.find(w => w.id === id);
+      if (!u) continue;
+      const c = cellOf(f, u);
+      const near = living(f).filter(w => w !== u && hexDist(cellOf(f, w), c) === 1).sort((a, b) => a.hp / a.max - b.hp / b.max).slice(0, 2);
+      for (const w of near) shield(f, w, intAmt(f, v), 6, 'knightBanner');
+      any ||= near.length > 0;
+    }
+  }
+  if (any) shout(f, 'knightBanner');
+}
+/** 빌린 생명의 빚을 다 갚으면 (마지막 그림자의 저울: 그 아군 보호막) */
+export function specDebtPaid(f: Fight, u: Unit): void {
+  const v = f.sp!.v.shadowScale;
+  if (!v || !u.alive) return;
+  shield(f, u, intAmt(f, v), 6, 'shadowScale');
+  shout(f, 'shadowScale', u);
+}
+/** 어둠물이 빠지면 (세레나의 젖은 악보: 잠겨 있던 아군 회복) */
+export function specTideEbb(f: Fight, cells: Set<number>): void {
+  const v = f.sp!.v.wetScore;
+  if (!v) return;
+  const wet = living(f).filter(u => cells.has(u.cell));
+  for (const u of wet) heal(f, u, intAmt(f, v), true, true);
+  if (wet.length) shout(f, 'wetScore');
 }
 /** 되울림의 물방울 (54 6장): 신기루가 걷히거나 모래시계가 되돌리면 가장 낮은 아군 2명 작은 힐 */
 function echoDrop(f: Fight): void {

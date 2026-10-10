@@ -22,6 +22,7 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'pyramid1' | 'pyramid2' | 'pyramid3' | 'reservoir1' | 'reservoir2' | 'reservoir3' | 'pinwheel' | 'observatory'
   | 'well1' | 'well2' | 'well3' | 'post1' | 'post2' | 'post3' | 'ranch' | 'windmill'
   | 'crystal1' | 'crystal2' | 'crystal3' | 'fort1' | 'fort2' | 'fort3' | 'station' | 'shadow1' | 'shadow2' | 'shadow3' | 'school'
+  | 'maze1' | 'maze2' | 'maze3' | 'camp1' | 'camp2' | 'camp3' | 'carriage' | 'ballroom'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -234,6 +235,16 @@ export const CONTENT: ContentDef[] = [
     key: 'school', bosses: ['실험 조교 퐁퐁이', '엉뚱 교장 뒤죽박죽'], kind: 'dungeon', name: '구름 마법학교', place: '구름 위 섬 · 폭주한 마도사', stageLv: 90, unlockLv: 90, ready: true,
     fights: () => DUNGEONS.school.segments, size: five,
   },
+  // 묶음 G 탐험 ㉓ (59 1-1): 옛 세력 몰락한 귀족가, 던전 ⑲ 가라앉은 무도회장 예습 (어둠물 밀물)
+  {
+    key: 'carriage', kind: 'explore', name: '유령 마차길', place: '호수 밑 마찻길 · 몰락한 귀족가', stageLv: 92, unlockLv: 92, ready: true, bosses: ['유령 악단장 세레나'],
+    fights: () => DUNGEONS.carriage.segments, size: three,
+  },
+  // 던전 ⑲ (59 1-2 · 3-1, 묶음 G): 몰락한 귀족가 (저주), 보스 2
+  {
+    key: 'ballroom', bosses: ['유령 악단장 세레나', '몰락한 대공 발렌'], kind: 'dungeon', name: '가라앉은 무도회장', place: '호수 밑 · 몰락한 귀족가', stageLv: 95, unlockLv: 95, ready: true,
+    fights: () => DUNGEONS.ballroom.segments, size: five,
+  },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인
     key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 탑 1층', place: '납골당 · 역병 군주', stageLv: 35, unlockLv: 35, ready: true,
@@ -297,6 +308,10 @@ export const CONTENT: ContentDef[] = [
     ['fort1', '폭풍 성채 성문', '성채 성문 · 천둥 북 거인 둥둥이', '천둥 북 거인 둥둥이', 'dungdung', 87],
     ['fort2', '폭풍 성채 무기고', '성채 무기고 · 하피 기사 쌩쌩이', '하피 기사 쌩쌩이', 'ssaengssaeng', 87],
     ['fort3', '폭풍 성채 꼭대기', '성채 꼭대기 · 폭풍 거인 우르릉', '폭풍 거인 우르릉', 'ureureung', 87],
+    // 묶음 G 10인 ⑮ (59 1-3): 심연의 정예, 악몽은 Lv 100까지
+    ['maze1', '그림자 미궁 입구', '미궁 입구 · 미궁 파수꾼 그믐', '미궁 파수꾼 그믐', 'geumeum', 91],
+    ['maze2', '그림자 미궁 회랑', '함정 회랑 · 함정 거미 실타래', '함정 거미 실타래', 'silta', 91],
+    ['maze3', '그림자 미궁 중심', '미궁 중심 · 미궁의 주인 밤그늘', '미궁의 주인 밤그늘', 'bamgeuneul', 91],
   ] as const).map(([key, name, place, boss, enc, lv]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: lv, unlockLv: lv, ready: true, fights: () => [enc], size: () => 10, diffUnlock: { '악몽': Math.min(100, lv + 15) },
   })),
@@ -360,6 +375,14 @@ export const CONTENT: ContentDef[] = [
     ['shadow3', '그림자 성벽 망루', '망루 · 그림자 장군 어둑이', '그림자 장군 어둑이', 'eodugi'],
   ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: 88, unlockLv: 88, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 98 },
+  })),
+  // 묶음 G 20인 ⑧ 그림자 진영 (59 1-4): 열림 Lv 91 · 악몽 100
+  ...([
+    ['camp1', '그림자 진영 막사', '진영 막사 · 그림자 기병대장 질풍', '그림자 기병대장 질풍', 'jilpung'],
+    ['camp2', '그림자 진영 훈련장', '진영 훈련장 · 심연 거수 우레발', '심연 거수 우레발', 'ureobal'],
+    ['camp3', '그림자 진영 지휘소', '진영 지휘소 · 심연 기사단장 칠흑', '심연 기사단장 칠흑', 'chilheuk'],
+  ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
+    key, bosses: [boss], kind: 'raid', name, place, stageLv: 91, unlockLv: 91, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 100 },
   })),
 ];
 

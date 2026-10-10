@@ -55,6 +55,8 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
   if (debuff.swell) return { text: `${marker}${compact ? '' : '거품 '}${debuff.stack ?? 1}중`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초, ${debuff.stack ?? 1}중첩 · ${debuff.swell.every}초마다 1중첩 (최대 ${debuff.swell.max}) · 지우면 이웃 칸이 중첩만큼, 두면 끝날 때 본인과 이웃 칸이 더 크게 터짐 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (적을 때 · 옆에 사람이 적을 때)'}`, state, seconds };
   // 뒤집힘 저주 (P-FLIP): 끝날 때 체력 비율이 뒤집힘
   if (debuff.end?.p === 'flip') return { text: `${marker}${compact ? '' : '뒤집 '}${seconds}`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초 · 끝날 때 체력 비율이 뒤집힘 (80% → 20%, 30% → 70%) · 높으면 힐을 멈추고 낮으면 둠 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (지우면 그냥 사라짐)'}`, state, seconds };
+  // 빌린 생명 (P-DEBT, 59 5장): 배지에 남은 빚 (불어날수록 커짐)
+  if (debuff.debt) { const amt = Math.round(debuff.debtLeft ?? 0); return { text: `빚 ${compact && amt >= 1000 ? `${(amt / 1000).toFixed(amt >= 10000 ? 0 : 1)}k` : amt}`, detail: `${debuff.name} · ${seconds}초 · 남은 빚 ${amt} (초마다 +${Math.round(debuff.debt.grow * 100)}%, 어둠물에 잠기면 2배) · 이 사람에게 넘친 치유가 빚을 갚음 · 시간이 다 되면 남은 빚만큼 피해 · 해제 불가`, state, seconds }; }
   if (debuff.jail) return { text: `${marker}${compact ? '감옥' : debuff.name}`, detail: `${debuff.name} · 딜 0 · 못 움직임 · 딜러가 감옥을 깨면 풀림 · 해제 불가`, state, seconds: 0 };
   const action = debuff.lock ? (debuff.cureAt != null ? `해제 불가, 체력 ${Math.round(debuff.cureAt * 100)}% 이상이면 사라짐`
     : debuff.untilBossLoss != null ? `해제 불가, 보스 체력 ${Math.round(debuff.untilBossLoss * 100)}% 깎으면 풀림` : '해제 불가')
@@ -78,6 +80,6 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
 
 /** 기존 판의 함정 → 독 이외의 알려진 종류 → 나머지 순서를 보존한다. */
 export function primaryDebuff(debuffs: readonly Debuff[]): Debuff | undefined {
-  const priority = (d: Debuff) => d.jail ? 3 : d.trap || d.swell || d.end?.p === 'flip' || d.end?.p === 'pass' ? 2 : TYPE_SHORT[d.type] && d.type !== '독' ? 1 : 0;
+  const priority = (d: Debuff) => d.jail ? 3 : d.trap || d.swell || d.debt || d.end?.p === 'flip' || d.end?.p === 'pass' ? 2 : TYPE_SHORT[d.type] && d.type !== '독' ? 1 : 0;
   return debuffs.reduce<Debuff | undefined>((best, d) => !best || priority(d) > priority(best) ? d : best, undefined);
 }

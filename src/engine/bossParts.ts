@@ -8,10 +8,10 @@ import { HEROES } from '../data/heroes';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
-import { addDebuff, bark, cellOf, damage, DT, emit, empowerBoss, hasAbsorb, heal, living, onDebuffEnd, randomTargets, setMax, spread, unitById } from './core';
+import { addDebuff, bark, cellOf, damage, DT, emit, empowerBoss, hasAbsorb, heal, lend, living, onDebuffEnd, randomTargets, setMax, spread, unitById } from './core';
 import { dangerAt, finishMove, moveTo, scheduleReaction, scheduleReactions, zoneOf } from './movement';
 import { hotTick, stepAway } from './units';
-import { during, immune, specBroken, specLand, specPhase, specRod, specVessel, specQuake, specReveal, specRewind, sv } from './specials';
+import { during, immune, specBroken, specLand, specPhase, specRod, specVessel, specQuake, specReveal, specRewind, specTideEbb, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
@@ -105,6 +105,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         : e.pick === 'lowest' ? lowestTargets(f, n, u => free(u) && u.role !== 'tank')
         : e.pick === 'linked' ? linkedTargets(f, n, free)
         : e.pick === 'order' ? orderTargets(f, n, free)
+        : e.pick === 'pairs' ? linkedOnes(f, n).filter(free)
         : e.prefer ? preferTargets(f, n, free, e.prefer)
         : randomTargets(f, n, e.pick === 'others' ? u => free(u) && u.role !== 'tank' && !u.me : free);
       for (const u of ts) applyDebuff(f, u, d);
@@ -491,6 +492,20 @@ export function mirageUp(f: Fight, tel: Telegraph): void {
   }
 }
 
+/** 어둠물 밀물 (P-TIDE, 59 5장): 예고가 끝나 아래 줄이 잠김 (검보랏빛 물결이 차오름) */
+export function tideRise(f: Fight, tel: Telegraph): void {
+  for (const i of tel.cells) emit(f, { type: 'fx', name: 'tide-rise', cell: i });
+  const rows = new Set([...tel.cells].map(i => f.cells[i].row)).size;
+  const wet = living(f).filter(u => tel.cells.has(u.cell));
+  emit(f, { type: 'msg', text: `${tel.skill.name ?? '어둠물'}: 아래 ${rows}줄이 잠김${wet.length ? ` (${wet.map(u => u.nick).join(' · ')} 받는 치유 절반)` : ''}` });
+}
+
+/** 어둠물이 빠짐 (잠긴 칸이 다시 마름) */
+export function tideEbb(f: Fight, z: { cells: Set<number> }): void {
+  for (const i of z.cells) emit(f, { type: 'fx', name: 'tide-ebb', cell: i });
+  if (f.sp) specTideEbb(f, z.cells); // 세레나의 젖은 악보
+}
+
 /** 매 틱 신기루: 걷힐 때가 된 가짜 예고를 지움 (일렁이며 흩어짐). 진짜는 그대로 */
 export function mirageTick(f: Fight): void {
   const gone = f.tels.filter(t => t.fake && f.t + 1e-9 >= t.veil!);
@@ -503,7 +518,7 @@ export function mirageTick(f: Fight): void {
     emit(f, { type: 'msg', text: `${t.skill.name ?? '예고'}: ${t.kind === 'aoe' ? '신기루였음' : t.skill.safe ? '가짜 안전 칸이 걷힘' : '신기루가 걷힘'}` });
     if (t.skill.safe) { const real = f.tels.find(o => o.skill === t.skill && !o.fake && o.veil === t.veil); if (real) scheduleReactions(f, real); } // 가짜 안전 칸에 선 사람이 진짜로 옮김
   }
-  if (f.sp) specReveal(f);
+  if (f.sp) specReveal(f, gone);
 }
 
 /**
@@ -931,6 +946,7 @@ export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
   if (d.cap != null) emit(f, { type: 'fx', name: 'ink-splat', on: u.id }); // 치유 상한 (P-CAP, 그림 47 E)
   if (def.fx) emit(f, { type: 'fx', name: def.fx, on: u.id }); // 모자 · 춤바람 · 벌침 (그림 49 E)
   if (def.drop) damage(f, u, def.drop, true); // 걸릴 때 한 번 (춤바람 · 완치 모자: 가득 찬 사람도 바로 안 풀림)
+  if (d.debt) return lend(f, u, d); // 빌린 생명 (P-DEBT, 59 5장)
   return d;
 }
 
@@ -1264,6 +1280,12 @@ export function preferTargets(f: Fight, n: number, ok: (u: Unit) => boolean, nam
   return marked.concat(randomTargets(f, n - marked.length, u => ok(u) && !marked.includes(u) && u.role !== 'tank' && !u.me));
 }
 
+/** 차례 번개 (59 4-2 칠흑): 아직 힐을 못 받은 다음 번호부터 n명 (나 · 떠 있는 사람 빼고). 차례가 없으면 탱커 · 나 빼고 무작위 */
+export function orderNext(f: Fight, n: number): Unit[] {
+  const next = (f.order?.ids.slice(f.order.i) ?? []).map(id => unitById(f, id)).filter((u): u is Unit => !!u && u.alive && !u.lift && !u.me).slice(0, n);
+  return next.length ? next : randomTargets(f, n, u => u.role !== 'tank' && !u.me);
+}
+
 /** 차례 번호를 받은 사람 먼저 (나 빼고, 거꾸로 마술 48 4-3), 모자라면 탱커 · 나 빼고 무작위 */
 function orderTargets(f: Fight, n: number, ok: (u: Unit) => boolean): Unit[] {
   const ids = f.order?.ids ?? [];
@@ -1307,6 +1329,11 @@ export function zoneCells(f: Fight, s: BossSkill, z: ZoneCells, mirror = false):
     }
     case 'line':
       return new Set(f.cells.filter(c => !c.block && zoneOf(f, c.row) === z.at).map(c => c.i));
+    case 'tide': {
+      // 어둠물 밀물 (P-TIDE, 59 5장): 보스에서 먼 아래 n줄
+      const n = Math.min(f.rows - 1, f.mythic && z.rowsMythic ? z.rowsMythic : z.rows);
+      return new Set(f.cells.filter(c => !c.block && c.row >= f.rows - n).map(c => c.i));
+    }
     case 'flow': {
       // 흐르는 장판의 첫 열: 맨 왼쪽(또는 오른쪽) 열. 방향은 s.st.dir (bossTick이 예고에 flow로 붙임)
       const left = z.from === 'right' ? false : z.from === 'alt' ? !(s.st.left as boolean | undefined) : true;

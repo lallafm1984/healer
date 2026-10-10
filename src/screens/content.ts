@@ -63,7 +63,8 @@ const SHORT: Partial<Record<ContentKey, string>> = { crypt: '지하묘지', mano
   pyramid1: '피라미드 복도', pyramid2: '피라미드 시계방', pyramid3: '피라미드 침실', reservoir1: '저수지 수문', reservoir2: '저수지 다리', reservoir3: '저수지 거울호수',
   well1: '우물 도르래', well2: '우물 이끼벽', well3: '우물 바닥', post1: '우체국 접수대', post2: '우체국 분류실', post3: '우체국 옥상',
   crystal1: '뿌리굴 갈림길', crystal2: '뿌리굴 수정밭', crystal3: '뿌리굴 거울방', fort1: '성채 성문', fort2: '성채 무기고', fort3: '성채 꼭대기',
-  shadow1: '성벽 성문', shadow2: '성벽 성벽길', shadow3: '성벽 망루' };
+  shadow1: '성벽 성문', shadow2: '성벽 성벽길', shadow3: '성벽 망루',
+  maze1: '미궁 입구', maze2: '미궁 회랑', maze3: '미궁 중심', camp1: '진영 막사', camp2: '진영 훈련장', camp3: '진영 지휘소' };
 
 /** 마지막으로 고른 분류 (27 3-1) */
 let tab: Tab = 'dungeon';

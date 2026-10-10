@@ -5,7 +5,7 @@ import { DISPELLABLE, SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
 import { aggroTarget } from './bosses';
 import { ROD_HP } from './bossParts';
-import { cellOf, healTop, living, unitById } from './core';
+import { cellOf, healTop, living, submerged, unitById } from './core';
 import { create, step } from './fight';
 import { canTarget, knows, use } from './healer';
 import { setBeacon } from './heroes';
@@ -39,7 +39,9 @@ function busterShort(f: Fight): { u: Unit; soon: boolean } | null {
  * 가장 낮은 사람. 직업군 방어력이 있으면 힐러(나)가 가장 약한 쪽이라, 나도 거의 같이 낮으면 나부터 (내가 쓰러지면 끝)
  */
 function lowest(f: Fight, live: Unit[], pct: (u: Unit) => number): Unit {
-  const low = live.reduce((a, b) => (pct(b) < pct(a) ? b : a));
+  // 어둠물 (P-TIDE, 59 5장): 잠긴 사람은 힐이 반만 드니 체력이 비슷하면 안 잠긴 사람 먼저
+  const p = f.zones.length && f.zones.some(z => z.tide) ? (u: Unit) => pct(u) + (submerged(f, u) ? TIDE_BIAS : 0) : pct;
+  const low = live.reduce((a, b) => (p(b) < p(a) ? b : a));
   return f.armor && f.me.alive && !off(f, f.me) && pct(f.me) < 0.6 && pct(f.me) < pct(low) + 0.15 ? f.me : low;
 }
 
@@ -64,6 +66,8 @@ const RING_LOW = 0.35;
 const flipWait = (u: Unit, _d: Debuff) => { const r = u.hp / u.max; return r > 0.5 || (r < 0.4 && r > 0.25); };
 /** 지금 채울 수 있는 끝 (치유 상한 P-CAP이면 상한) 기준 체력 비율 */
 const pctOf = (u: Unit) => u.hp / healTop(u);
+/** 어둠물에 잠긴 사람을 이만큼 높게 봄 (가장 낮은 사람 고르기) */
+const TIDE_BIAS = 0.06;
 /** 과부하 표식에 힐을 넣어도 되는 모자란 양 (힐 한 번 크기쯤, 레벨 배율 전) */
 const OVER_GAP = 250;
 /** 힐 크기 단위: 레벨 배율 × 치유 배율 (34 1-6). 판단 기준의 회복량 숫자(스킬 표의 amt)에 곱함 */
@@ -137,6 +141,10 @@ interface Gim {
   chain: { u: Unit; soon: number } | null;
   /** 떠 있는 사람이 낮으면 그 사람과 나눔 사슬로 묶인 짝 (짝에게 넣은 힐의 반이 하늘까지 감) */
   mate: Unit | null;
+  /** 어둠물 밀물 (P-TIDE, 59 5장): 예고 동안 잠길 칸에 있는 사람 가운데 90% 아래인 가장 낮은 사람 (잠기면 힐이 반만 드니 미리) */
+  tide: Unit | null;
+  /** 빌린 생명 (P-DEBT, 59 5장): 빚진 사람 (빚이 가장 큰). due = 빚이 체력의 60%를 넘거나 거둬 가기 4초 전 → 넘친 치유로 갚기 */
+  debt: { u: Unit; due: boolean } | null;
 }
 
 function gim(f: Fight): Gim {
@@ -206,7 +214,31 @@ function gim(f: Fight): Gim {
     liftClean: liftUnits(f).filter(u => u.debuffs.some(d => cleanable(f, d) && !hold.has(d))),
     chain: chainNear(f),
     mate: liftMate(f),
+    tide: tideFill(f),
+    debt: debtOf(f),
   };
+}
+
+/** 어둠물 밀물 대비 (59 5장 자동 힐러 규칙): 예고 동안 잠길 칸 (움직이는 중이면 가는 칸)에 있는 사람 가운데 90% 아래인 가장 낮은 사람 */
+function tideFill(f: Fight): Unit | null {
+  let best: Unit | null = null;
+  for (const t of f.tels) if (t.skill.tide && !veiled(f, t)) for (const v of living(f)) {
+    if (!t.cells.has(v.moving ? v.moving.to : v.cell) || off(f, v) || v.hp >= healTop(v) * 0.9) continue;
+    if (!best || pctOf(v) < pctOf(best)) best = v;
+  }
+  return best;
+}
+
+/** 빌린 생명 (59 5장 자동 힐러 규칙): 빚이 가장 큰 사람. 갇힌 사람은 빚이 멈춰 있으니 뺌 */
+function debtOf(f: Fight): Gim['debt'] {
+  let best: Gim['debt'] = null, most = 0;
+  for (const v of living(f)) {
+    const d = v.debuffs.length ? v.debuffs.find(x => (x.debtLeft ?? 0) > 1e-6) : undefined;
+    if (!d || off(f, v) || v.debuffs.some(x => x.jail)) continue;
+    const due = d.debtLeft! > v.hp * 0.6 || d.left < 4;
+    if (!best || (due && !best.due) || (due === best.due && d.debtLeft! > most)) { best = { u: v, due }; most = d.debtLeft!; }
+  }
+  return best;
 }
 
 /** 띄우기 예고에 찍힌 사람 (살아 있고 아직 안 떴음) */
@@ -326,6 +358,9 @@ export function autoHealer(f: Fight): void {
   // 연쇄 번개: 번개 구름 옆 가장 낮은 사람을 90% 위로 (피뢰침)
   if (g.chain && f.mana > 4) { const k = big(g.chain.soon < castOf(f, 'heal') + 0.3); if (k) { use(f, k, cellIdx(g.chain.u)); return; } }
   if (g.mate && f.mana > 4) { const k = big(false); if (k) { use(f, k, cellIdx(g.mate)); return; } }
+  // 어둠물: 잠길 줄 사람을 예고 동안 채움 · 빌린 생명: 빚이 크거나 곧 거둬 가면 (위급한 사람이 없으면 언제든) 그 사람에게 힐해서 갚기
+  if (g.tide && f.mana > 4) { const k = big(pct(g.tide) < 0.5); if (k) { use(f, k, cellIdx(g.tide)); return; } }
+  if (g.debt && (g.debt.due || pct(low) > 0.6) && f.mana > 6) { const k = big(g.debt.due && g.debt.u.debuffs.some(d => (d.debtLeft ?? 0) > 0 && d.left < castOf(f, 'heal') + 0.5)); if (k) { use(f, k, cellIdx(g.debt.u)); return; } }
   // 차례: 위급한 사람이 없으면 다음 번호에 즉시 단일 힐 (소생, 없으면 순간 치유)
   if (g.order && pct(low) > 0.3) {
     const k = can('renew') && f.mana >= SKILLS.renew.cost ? 'renew' : can('flash') && f.mana >= SKILLS.flash.cost ? 'flash' : null;
@@ -440,6 +475,9 @@ function autoDruid(f: Fight): void {
   // 연쇄 번개: 번개 구름 옆 가장 낮은 사람을 90% 위로 · 떠 있는 사람의 사슬 짝
   if (g.chain && f.mana > 4 && tryUse(f, 'growth', g.chain.u, idx)) return;
   if (g.mate && f.mana > 4 && tryUse(f, 'growth', g.mate, idx)) return;
+  // 어둠물: 잠길 줄 사람을 예고 동안 채움 · 빌린 생명: 빚진 사람에게 힐해서 갚기
+  if (g.tide && f.mana > 4 && tryUse(f, 'growth', g.tide, idx)) return;
+  if (g.debt && (g.debt.due || pct(low) > 0.6) && f.mana > 6 && tryUse(f, 'growth', g.debt.u, idx)) return;
   // 차례: 위급한 사람이 없으면 다음 번호에 새싹 (즉시)
   if (g.order && pct(low) > 0.3 && tryUse(f, 'sprout', g.order, idx)) return;
   // 생명 사슬이 곧 끊어지면 낮은 쪽부터
@@ -493,6 +531,9 @@ function autoPaladin(f: Fight): void {
   // 연쇄 번개: 번개 구름 옆 가장 낮은 사람을 90% 위로 · 떠 있는 사람의 사슬 짝
   if (g.chain && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.chain.u, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.chain.u, idx)))) return;
   if (g.mate && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.mate, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.mate, idx)))) return;
+  // 어둠물: 잠길 줄 사람을 예고 동안 채움 · 빌린 생명: 빚진 사람에게 힐해서 갚기
+  if (g.tide && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.tide, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.tide, idx)))) return;
+  if (g.debt && (g.debt.due || pct(low) > 0.6) && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.debt.u, idx)) || (f.mana > 5 && tryUse(f, 'holyLight', g.debt.u, idx)))) return;
   // 차례: 위급한 사람이 없으면 다음 번호에 즉시 단일 힐 (빛 일격 → 빛의 서약 → 빛의 손길)
   if (g.order && pct(low) > 0.3 && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.order, idx)) || (knows(f, 'oath') && f.power3 >= 1 && tryUse(f, 'oath', g.order, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.order, idx)))) return;
   /** 단일 힐 하나: 빛 일격 → 빛의 손길 */
