@@ -157,6 +157,7 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.pinwheelPin && u.pulled) m += v.pinwheelPin; // 바람개비 핀
   if (v.fleeceRing && nearChain(f, u)) m += v.fleeceRing; // 복슬 양털 반지 (56 6장)
   if (v.millVane && tick && u.lift) m += v.millVane; // 풍차 날개 조각
+  if (v.stormWedge && u.role === 'tank' && f.party.some(w => w !== u && w.role === 'tank' && w.alive && w.lift)) m += v.stormWedge; // 우르릉의 번개 쐐기
   if (v.festInvite && direct && !tick && u.debuffs.some(d => d.noDps)) m += v.festInvite; // 축제 초대장 (48 6장)
   if (v.rainbowSpore && u.soul) m += v.rainbowSpore; // 무지개 포자
   if (v.mossBrooch && aoe && f.stagger) m += v.mossBrooch; // 이끼 브로치
@@ -576,6 +577,7 @@ export function hotDone(f: Fight): void {
 export function specReveal(f: Fight): void {
   if (f.sp!.v.riddleNote) f.sp!.until.riddleNote = f.t + 1;
   echoDrop(f);
+  shadowVeil(f);
 }
 /** 되울림의 물방울 (54 6장): 신기루가 걷히거나 모래시계가 되돌리면 가장 낮은 아군 2명 작은 힐 */
 function echoDrop(f: Fight): void {
@@ -589,6 +591,34 @@ function echoDrop(f: Fight): void {
 export function specLand(f: Fight, u: Unit): void {
   const v = f.sp!.v.postStamp;
   if (v) shield(f, u, intAmt(f, v), 6, 'postStamp');
+  shadowVeil(f);
+}
+/** 넘치는 빛 그릇이 가득 차면 (빗자루 승차권: 마나 회복) */
+export function specVessel(f: Fight): void {
+  const v = f.sp!.v.broomTicket;
+  if (!v) return;
+  f.mana = Math.min(100, f.mana + v);
+  shout(f, 'broomTicket');
+}
+/** 뒤집힘 저주가 끝나 뒤집힌 아군 (뒤죽박죽 졸업장: 40~60%면 보호막) */
+export function specFlip(f: Fight, u: Unit): void {
+  const v = f.sp!.v.diploma;
+  if (!v || !u.alive || u.hp < u.max * 0.4 - 1e-9 || u.hp > u.max * 0.6 + 1e-9) return;
+  shield(f, u, intAmt(f, v), 6, 'diploma');
+}
+/** 신기루가 걷히거나 띄워진 아군이 내려오면 (어둑이의 그림자 휘장: 가장 낮은 아군 1명 보호막) */
+function shadowVeil(f: Fight): void {
+  const v = f.sp!.v.shadowVeil;
+  if (!v) return;
+  const low = living(f).sort((a, b) => a.hp / a.max - b.hp / b.max)[0];
+  if (low) shield(f, low, intAmt(f, v), 6, 'shadowVeil');
+}
+/** 연쇄 번개가 피뢰침에서 멈추면 (빛갈래의 프리즘: 그 아군 회복) */
+export function specRod(f: Fight, u: Unit): void {
+  const v = f.sp!.v.prism;
+  if (!v || !u.alive) return;
+  heal(f, u, intAmt(f, v), true, true);
+  shout(f, 'prism', u);
 }
 /** 진동이 울리면 (낙타 털실 반지: 2초 동안 시전 시간 −) */
 export function specQuake(f: Fight): void {

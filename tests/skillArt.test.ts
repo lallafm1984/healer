@@ -12,7 +12,7 @@ import { bossSkillArt, bossSkillArtNames, fightSkillArt, GIMS, mobSkillArt, SKIL
 const DOC_GIM = ['full', 'wound', 'hunt', 'link', 'invert', 'over', 'quake', 'recoil', 'gaze', 'drain', 'charm', 'order', 'jump', 'safe', 'tower', 'pull', 'hole', 'stagger',
   'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass',
   'greed', 'melt', 'hatch', 'mirage', 'glass', 'lift', 'chain'].map(n => `icon-gim-${n}`);
-/** 37 4장 D (던전 ② ~ ⑥), 44 4장 D 1~4 (던전 ⑦), 47 4장 D 1~43 (묶음 B), 49 4장 D 1~35 (묶음 C), 52 4장 D 1~25 (묶음 D), 55 4장 D (묶음 E1 · E2 보스만), 57 4장 D (묶음 F1): 보스 → 장 수 */
+/** 37 4장 D (던전 ② ~ ⑥), 44 4장 D 1~4 (던전 ⑦), 47 4장 D 1~43 (묶음 B), 49 4장 D 1~35 (묶음 C), 52 4장 D 1~25 (묶음 D), 55 4장 D (묶음 E1 · E2 보스만), 57 4장 D (묶음 F): 보스 → 장 수 */
 const DOC_BSK_N: Record<string, number> = {
   collector: 2, malchor: 3, shaman: 1, toad: 3, seres: 2, butler: 4, lady: 1, belmore: 3, runegolem: 3, mage: 2, shadow: 2, guardian: 2, keeper: 2,
   sentinel: 2, crystal: 2, ratking: 2, carrier: 2, librarian: 2, scholar: 3, priestess: 3, sleeper: 2,
@@ -24,11 +24,12 @@ const DOC_BSK_N: Record<string, number> = {
   solsal: 1, eonggeum: 3, sarasha: 4, ttubeok: 2, toktok: 1, kungkung: 1,
   stargazer: 2, geuneul: 2, poksin: 2, jjaekkak: 1, hapum: 3, ttakttak: 1, jjirit: 2, doeul: 2, hwirik: 3,
   chulleong: 2, puseok: 2, huu: 2, kkongkkong: 2, buri: 2, boksul: 3, dolgae: 1,
+  gulgul: 3, pingping: 2, bitgallae: 2, dungdung: 2, ssaengssaeng: 3, ureureung: 3, pongpong: 2, dwijuk: 2, kwangkwang: 1, syungsyung: 2, eodugi: 3,
 };
 /** 55 4장 D 1~2: 모래 왕국 공용 (모래 기침 · 천 년 졸음), 57 4장 D: 구름 위 섬 공용 (깃털 간지럼) */
 const DOC_BSK = [...Object.entries(DOC_BSK_N).flatMap(([b, n]) => Array.from({ length: n }, (_, i) => `icon-bsk-${b}-${i + 1}`)), 'icon-bsk-sand-cough', 'icon-bsk-sand-sleepy', 'icon-bsk-sky-tickle'];
-/** 44 4장 D 5~15, 47 4장 D 44~46, 49 4장 D 36, 52 4장 D 26, 55 4장 D 45, 57 4장 D (천둥 숫양) */
-const DOC_MOB = ['rot', 'sick-shout', 'dart', 'veil', 'howl', 'silence', 'frost-burst', 'pilgrim', 'ground-quake', 'trap', 'gaze', 'jelly', 'anchor-spin', 'dust-sweep', 'sneeze', 'tail-sweep', 'sandstorm', 'thunder-charge'].map(n => `icon-mob-${n}`);
+/** 44 4장 D 5~15, 47 4장 D 44~46, 49 4장 D 36, 52 4장 D 26, 55 4장 D 45, 57 4장 D (천둥 숫양 · 번개 실험 정령) */
+const DOC_MOB = ['rot', 'sick-shout', 'dart', 'veil', 'howl', 'silence', 'frost-burst', 'pilgrim', 'ground-quake', 'trap', 'gaze', 'jelly', 'anchor-spin', 'dust-sweep', 'sneeze', 'tail-sweep', 'sandstorm', 'thunder-charge', 'spark-burst'].map(n => `icon-mob-${n}`);
 /** 모자 뽑기 모자 (37 4장 H 3~5): 칸 위 표식 (대기열 기믹 표에는 없음) */
 const DOC_HAT = ['full', 'invert', 'cap'].map(n => `icon-gim-hat-${n}`);
 const DOC = new Set([...DOC_GIM, ...DOC_HAT, ...DOC_BSK, ...DOC_MOB]);

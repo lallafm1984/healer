@@ -131,6 +131,8 @@ interface Gim {
   inGlass: boolean;
   /** 띄워 올리기 (P-LIFT, 56 5장): 예고에 찍힌 사람. 떠오르면 새 힐 · 해제가 안 닿으니 예고 동안 해제 → 지속 힐을 먼저 */
   lift: Unit[];
+  /** 띄우기 예고에 찍힌 사람 가운데 지울 것이 있는 사람 (힐하면 손해인 사람도: 거꾸로 주문은 떠 있는 동안 뒤집히니 예고 동안 지움, 56 3-2) */
+  liftClean: Unit[];
   /** 연쇄 번개 (P-CHAIN): 번개 구름 (내려오며 번개면 떠 있는 사람 자리) 옆에서 피뢰침 선 (90%) 아래인 가장 낮은 사람. soon = 맞기까지 남은 초 */
   chain: { u: Unit; soon: number } | null;
   /** 떠 있는 사람이 낮으면 그 사람과 나눔 사슬로 묶인 짝 (짝에게 넣은 힐의 반이 하늘까지 감) */
@@ -200,11 +202,15 @@ function gim(f: Fight): Gim {
     veil,
     glassFill: f.tels.some(t => t.skill.glass),
     inGlass: f.glass.some(x => x.until - f.t > 0.3),
-    lift: f.tels.filter(t => t.skill.lift && !veiled(f, t)).flatMap(t => t.units.map(id => unitById(f, id)).filter((u): u is Unit => !!u && u.alive && !u.lift && !off(f, u))),
+    lift: liftUnits(f).filter(u => !off(f, u)),
+    liftClean: liftUnits(f).filter(u => u.debuffs.some(d => cleanable(f, d) && !hold.has(d))),
     chain: chainNear(f),
     mate: liftMate(f),
   };
 }
+
+/** 띄우기 예고에 찍힌 사람 (살아 있고 아직 안 떴음) */
+const liftUnits = (f: Fight) => f.tels.filter(t => t.skill.lift && !veiled(f, t)).flatMap(t => t.units.map(id => unitById(f, id)).filter((u): u is Unit => !!u && u.alive && !u.lift));
 
 /** 연쇄 번개 대비 (56 5장 자동 힐러 규칙): 번개가 떨어질 칸 (예고 대상 · 내려오며 번개를 달고 떠 있는 사람) 이웃 가운데 90% 아래인 가장 낮은 사람 */
 function chainNear(f: Fight): Gim['chain'] {
@@ -315,7 +321,7 @@ export function autoHealer(f: Fight): void {
   if (bs && bk && !off(f, bs.u) && f.mana > 6) { use(f, bk, cellIdx(bs.u)); return; }
   if (g.pre && f.mana > 6 && can('flash')) { use(f, 'flash', cellIdx(g.pre)); return; }
   // 띄워 올리기: 예고 동안 해제 → 소생 (떠 있는 동안은 미리 건 지속 힐만 닿음)
-  { const d = g.lift.find(u => u.debuffs.some(x => cleanable(f, x))); if (d && purifyOk) { use(f, 'purify', cellIdx(d)); return; } }
+  { const d = g.liftClean[0]; if (d && purifyOk) { use(f, 'purify', cellIdx(d)); return; } }
   { const v = g.lift.find(u => u.hot <= 0); if (v && can('renew') && f.mana >= SKILLS.renew.cost) { use(f, 'renew', cellIdx(v)); return; } }
   // 연쇄 번개: 번개 구름 옆 가장 낮은 사람을 90% 위로 (피뢰침)
   if (g.chain && f.mana > 4) { const k = big(g.chain.soon < castOf(f, 'heal') + 0.3); if (k) { use(f, k, cellIdx(g.chain.u)); return; } }
@@ -429,7 +435,7 @@ function autoDruid(f: Fight): void {
   { const bs = busterShort(f); if (bs && !off(f, bs.u) && f.mana > 4 && tryUse(f, 'growth', bs.u, idx)) return; }
   if (g.pre && ((!sprouted(g.pre) && tryUse(f, 'sprout', g.pre, idx)) || (f.mana > 4 && tryUse(f, 'growth', g.pre, idx)))) return;
   // 띄워 올리기: 예고 동안 해제 → 새싹 (떠 있는 동안은 미리 건 지속 힐만 닿음)
-  { const d = g.lift.find(u => u.debuffs.some(x => cleanable(f, x))); if (d && ready('natureCleanse') && tryUse(f, 'natureCleanse', d, idx)) return; }
+  { const d = g.liftClean[0]; if (d && ready('natureCleanse') && tryUse(f, 'natureCleanse', d, idx)) return; }
   { const v = g.lift.find(u => !sprouted(u)); if (v && f.mana > 2 && tryUse(f, 'sprout', v, idx)) return; }
   // 연쇄 번개: 번개 구름 옆 가장 낮은 사람을 90% 위로 · 떠 있는 사람의 사슬 짝
   if (g.chain && f.mana > 4 && tryUse(f, 'growth', g.chain.u, idx)) return;
@@ -481,7 +487,7 @@ function autoPaladin(f: Fight): void {
   { const bs = busterShort(f); if (bs && !off(f, bs.u) && ((ready('holyStrike') && tryUse(f, 'holyStrike', bs.u, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', bs.u, idx)))) return; }
   if (g.pre && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.pre, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.pre, idx)))) return;
   // 띄워 올리기: 예고 동안 해제 → 빛의 서약 (신성한 힘이 있으면) → 가득 채우기
-  { const d = g.lift.find(u => u.debuffs.some(x => cleanable(f, x))); if (d && ready('handCleanse') && tryUse(f, 'handCleanse', d, idx)) return; }
+  { const d = g.liftClean[0]; if (d && ready('handCleanse') && tryUse(f, 'handCleanse', d, idx)) return; }
   { const v = g.lift.find(u => !u.hots.some(h => h.key === 'oath')); if (v && knows(f, 'oath') && f.power3 >= 1 && tryUse(f, 'oath', v, idx)) return; }
   { const v = g.lift.find(u => u.hp < healTop(u) * 0.95); if (v && ((ready('holyStrike') && tryUse(f, 'holyStrike', v, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', v, idx)))) return; }
   // 연쇄 번개: 번개 구름 옆 가장 낮은 사람을 90% 위로 · 떠 있는 사람의 사슬 짝

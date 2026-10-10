@@ -92,23 +92,26 @@ export function finishMove(f: Fight, u: Unit): void {
 
 /** 장판 예고에 대한 반응 예약 */
 export function scheduleReactions(f: Fight, tel: Telegraph): void {
-  for (const u of living(f)) {
-    const pos = u.moving ? u.moving.to : u.cell;
-    const inZ = tel.cells.has(pos);
-    let rt = 0.8 * f.diff.react * (u.p.react || 1);
-    if (u.me) rt = 0.6 * f.diff.react;
-    else if (u.cls === 'mage') rt += 0.2;
-    rt *= u.senseReact; // 눈치 자질 (17 9-1)
-    if (u.mods.length) rt *= reactMods(u); // 기합·매의 눈
-    if (f.sp && !u.me) rt = Math.max(0.1, rt - sv(f, 'quickPeer')); // 눈치 빠른 동료 (42 지원 09)
-    if (inZ) {
-      let at = f.t + rt;
-      if (u.p.greedy) at = Math.max(at, tel.impact - 0.3);
-      u.react = { at, tel: tel.id };
-    } else if (u.p.wrongWay && f.rng() < u.p.wrongWay && !u.fleeing) {
-      u.react = { at: f.t + rt, tel: tel.id, wrong: true };
-      u.wrongUntil = f.t + rt;
-    }
+  for (const u of living(f)) scheduleReaction(f, tel, u);
+}
+
+/** 한 사람의 반응 예약 (예고가 뜰 때 · 띄워졌다가 장판 위에 내려앉았을 때) */
+export function scheduleReaction(f: Fight, tel: Telegraph, u: Unit): void {
+  const pos = u.moving ? u.moving.to : u.cell;
+  const inZ = tel.cells.has(pos);
+  let rt = 0.8 * f.diff.react * (u.p.react || 1);
+  if (u.me) rt = 0.6 * f.diff.react;
+  else if (u.cls === 'mage') rt += 0.2;
+  rt *= u.senseReact; // 눈치 자질 (17 9-1)
+  if (u.mods.length) rt *= reactMods(u); // 기합·매의 눈
+  if (f.sp && !u.me) rt = Math.max(0.1, rt - sv(f, 'quickPeer')); // 눈치 빠른 동료 (42 지원 09)
+  if (inZ) {
+    let at = f.t + rt;
+    if (u.p.greedy) at = Math.max(at, tel.impact - 0.3);
+    u.react = { at, tel: tel.id };
+  } else if (u.p.wrongWay && f.rng() < u.p.wrongWay && !u.fleeing) {
+    u.react = { at: f.t + rt, tel: tel.id, wrong: true };
+    u.wrongUntil = f.t + rt;
   }
 }
 

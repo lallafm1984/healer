@@ -9,9 +9,9 @@ import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
 import { addDebuff, bark, cellOf, damage, DT, emit, empowerBoss, hasAbsorb, heal, living, onDebuffEnd, randomTargets, setMax, spread, unitById } from './core';
-import { dangerAt, finishMove, moveTo, scheduleReactions, zoneOf } from './movement';
+import { dangerAt, finishMove, moveTo, scheduleReaction, scheduleReactions, zoneOf } from './movement';
 import { hotTick, stepAway } from './units';
-import { during, immune, specBroken, specLand, specPhase, specQuake, specReveal, specRewind, sv } from './specials';
+import { during, immune, specBroken, specLand, specPhase, specRod, specVessel, specQuake, specReveal, specRewind, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
@@ -294,7 +294,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       return;
     case 'glass': {
       // 모래시계 (P-GLASS, 54 5장): 지금 체력 비율을 적어 두고 sec초 뒤 되돌림. 창 안 기술은 then으로 엶
-      const rec = new Map(living(f).map(u => [u.id, u.hp / u.max] as const));
+      const rec = new Map(f.party.filter(u => u.alive).map(u => [u.id, u.hp / u.max] as const)); // 떠 있는 사람도 적어 둠 (그림자 돌풍, 56 4-5)
       const name = s.name ?? '모래시계';
       f.glass.push({ name, at: f.t, until: f.t + e.sec, rec, absorbHit: e.absorbHit, lowHit: f.mythic ? e.lowHitMythic : undefined });
       for (const x of e.then ?? []) if (f.bs[x.skill]) f.bs[x.skill].next = f.t + x.in;
@@ -340,6 +340,7 @@ export function chainFrom(f: Fight, u: Unit, dmg: number, jumps: number, grow: n
       emit(f, { type: 'fx', name: 'chain-rod', on: v.id });
       emit(f, { type: 'msg', text: `${name}: ${v.nick}에게서 멈춤 (피뢰침)` });
       damage(f, v, x / 2, true);
+      if (f.sp) specRod(f, v);
       return;
     }
     damage(f, v, x, true);
@@ -392,7 +393,7 @@ function liftUp(f: Fight, s: BossSkill, e: Extract<SkillEffect, { p: 'lift' }>, 
   emit(f, { type: 'msg', text: `${name}: ${us.map(u => u.nick).join(' · ')} 하늘로 (${e.sec}초 동안 힐이 안 닿음)` });
 }
 
-/** 띄워 올려진 사람이 내려옴: 제자리 (비웠으면 비어 있을 때, 아니면 가장 가까운 빈 칸) · 무작위 빈 칸 (기우는 섬). 낙하 피해 → 내려오며 번개 */
+/** 띄워 올려진 사람이 내려옴: 제자리 (비웠으면 비어 있을 때, 아니면 가장 가까운 빈 칸) · 무작위 빈 칸 (기우는 섬: 장판 위일 수도, 그러면 그때 피함). 낙하 피해 → 내려오며 번개 */
 export function land(f: Fight, u: Unit): void {
   const l = u.lift!;
   u.lift = null;
@@ -402,9 +403,13 @@ export function land(f: Fight, u: Unit): void {
     const free = f.cells.filter(c => open(c) && !dangerAt(f, c.i));
     const any = free.length ? free : f.cells.filter(open);
     let to: Cell | undefined;
-    if (l.land === 'random') to = any[Math.floor(f.rng() * any.length)];
-    else to = open(own) ? own : any.sort((a, b) => hexDist(a, own) - hexDist(b, own))[0];
+    if (l.land === 'random') {
+      const all = f.cells.filter(open); // 바람에 밀려 아무 빈 칸 (기우는 섬의 낮은 쪽일 수도)
+      to = all[Math.floor(f.rng() * all.length)];
+    } else to = open(own) ? own : any.sort((a, b) => hexDist(a, own) - hexDist(b, own))[0];
     if (to) { to.unit = u; u.cell = to.i; }
+    const tel = f.tels.find(t => t.cells.has(u.cell) && t.impact > f.t && !t.fake);
+    if (tel) scheduleReaction(f, tel, u); // 장판 위에 내려앉으면 그제야 피함
   }
   emit(f, { type: 'fx', name: 'land-puff', on: u.id });
   if (f.sp) specLand(f, u);
@@ -418,7 +423,7 @@ export function glassTick(f: Fight): void {
     f.glass = f.glass.filter(x => x !== g);
     emit(f, { type: 'sound', name: 'gauge' });
     emit(f, { type: 'msg', text: `${g.name}: 체력이 되돌아감` });
-    for (const u of living(f)) {
+    for (const u of f.party.filter(x => x.alive)) { // 떠 있어도 되돌아감
       const r = g.rec.get(u.id);
       if (r == null) continue;
       u.hp = Math.max(1, Math.min(u.max, r * u.max));
@@ -642,6 +647,7 @@ export function vesselTick(f: Fight): void {
   if (v.fill >= v.need - 1e-9) {
     f.vessel = null;
     for (const u of living(f)) u.shield = Math.max(u.shield, v.shield);
+    if (f.sp) specVessel(f);
     emit(f, { type: 'sound', name: 'gauge' });
     emit(f, { type: 'fx', name: 'bubble', all: true });
     emit(f, { type: 'msg', text: `${v.name} 가득: 전원 보호막 ${v.shield}초` });
@@ -1235,11 +1241,11 @@ export function flowNext(f: Fight, tel: Telegraph): void {
   if (!tel.skill.fixed) scheduleReactions(f, next); // 못 피하는 줄 훑기 (보물 수레)는 안 비킴
 }
 
-/** 소포 부치기 (56 4-1): 나눔 사슬 쌍마다 한 사람 (나 빼고 무작위)을 n명까지. 사슬이 없으면 탱커 · 나 빼고 무작위 */
+/** 소포 부치기 · 화살 바람 (56 4-1 · 4-5): 생명 사슬 쌍마다 한 사람 (나 빼고 무작위)을 n명까지. 사슬이 없으면 탱커 · 나 빼고 무작위 */
 export function linkedOnes(f: Fight, n: number): Unit[] {
   const out: Unit[] = [];
   for (const l of f.links) {
-    if (l.kind !== 'share' || out.length >= n) continue;
+    if (out.length >= n) continue;
     const two = [unitById(f, l.a), unitById(f, l.b)].filter((u): u is Unit => !!u && u.alive && !u.lift && !u.me);
     if (two.length) out.push(two[Math.floor(f.rng() * two.length)]);
   }
@@ -1253,7 +1259,7 @@ function linkedTargets(f: Fight, n: number, ok: (u: Unit) => boolean): Unit[] {
 }
 
 /** 그 디버프가 걸린 사람 먼저 (나 빼고, 이끼 덮기 → 이끼 표식 56 4-3), 모자라면 탱커 · 나 빼고 무작위 */
-function preferTargets(f: Fight, n: number, ok: (u: Unit) => boolean, name: string): Unit[] {
+export function preferTargets(f: Fight, n: number, ok: (u: Unit) => boolean, name: string): Unit[] {
   const marked = randomTargets(f, n, u => ok(u) && !u.me && u.debuffs.some(d => d.name === name));
   return marked.concat(randomTargets(f, n - marked.length, u => ok(u) && !marked.includes(u) && u.role !== 'tank' && !u.me));
 }

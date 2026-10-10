@@ -240,7 +240,7 @@ export default async function portrait(url, shots) {
       if (t.startsWith('raid')) raids[t] = await page.evaluate(() => [...document.querySelectorAll('#s-content .b-pl[data-content]')].map(b => b.dataset.content).join());
     }
     ok(new Set(gates).size === 1, `${width}: 관문 자리·크기가 탐험·10인·20인 레이드·던전 모두 같음 (${gates.join(' ')})`);
-    ok(/^abyss1(,abyss\d)*(,gull\d)*(,queen\d)*(,isle\d)*(,fest\d)*(,cave\d)*(,palace\d)*(,den\d)*(,nest\d)*(,bazaar\d)*(,dusk\d)*(,pyramid\d)*(,post\d)*$/.test(raids.raid10) && /^cathedral1(,cathedral\d)*(,abbey\d)*(,rootwood\d)*(,reservoir\d)*(,well\d)*$/.test(raids.raid20), `${width}: 10인 탭 = 탑 (1층부터) · 항구 · 여왕호 · 요새 · 축제 마당 · 동굴 정원 · 궁전 · 보물 굴 · 둥지 · 노을 시장 · 노을 궁전 · 낮잠 피라미드 · 구름 우체국 순, 20인 탭 = 대성당 (1구역부터) · 물밑 수도원 · 빛뿌리 숲 · 별빛 저수지 · 숨결 우물 ${JSON.stringify(raids)}`);
+    ok(/^abyss1(,abyss\d)*(,gull\d)*(,queen\d)*(,isle\d)*(,fest\d)*(,cave\d)*(,palace\d)*(,den\d)*(,nest\d)*(,bazaar\d)*(,dusk\d)*(,pyramid\d)*(,post\d)*(,fort\d)*$/.test(raids.raid10) && /^cathedral1(,cathedral\d)*(,abbey\d)*(,rootwood\d)*(,reservoir\d)*(,well\d)*(,crystal\d)*(,shadow\d)*$/.test(raids.raid20), `${width}: 10인 탭 = 탑 (1층부터) · 항구 · 여왕호 · 요새 · 축제 마당 · 동굴 정원 · 궁전 · 보물 굴 · 둥지 · 노을 시장 · 노을 궁전 · 낮잠 피라미드 · 구름 우체국 · 폭풍 성채 순, 20인 탭 = 대성당 (1구역부터) · 물밑 수도원 · 빛뿌리 숲 · 별빛 저수지 · 숨결 우물 · 수정 뿌리굴 · 그림자 성벽 ${JSON.stringify(raids)}`);
     const row = await page.evaluate(() => {
       const sc = document.querySelector('#s-content .b-plr'), r = sc.getBoundingClientRect();
       const cut = [...sc.querySelectorAll('.b-pl')].some(b => { const x = b.getBoundingClientRect(); return x.left < r.right - 8 && x.right > r.right + 8; });

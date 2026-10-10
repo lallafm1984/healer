@@ -18,7 +18,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'bazaar' | 'bazaar-alley' | 'bazaar-gate' | 'deepstairs' | 'abbey' | 'abbey-library' | 'abbey-altar' | 'hourglass'
   | 'dusk' | 'dusk-vault' | 'dusk-throne' | 'caravan' | 'rootwood' | 'rootwood-greenhouse' | 'rootwood-heart'
   | 'pyramid' | 'pyramid-clock' | 'pyramid-bed' | 'reservoir' | 'reservoir-bridge' | 'reservoir-mirror' | 'pinwheel' | 'observatory'
-  | 'well' | 'well-moss' | 'well-floor' | 'post' | 'post-sort' | 'post-roof' | 'ranch' | 'windmill';
+  | 'well' | 'well-moss' | 'well-floor' | 'post' | 'post-sort' | 'post-roof' | 'ranch' | 'windmill'
+  | 'crystal' | 'crystal-field' | 'crystal-mirror' | 'fort' | 'fort-armory' | 'fort-top' | 'station' | 'shadow' | 'shadow-wall' | 'shadow-tower' | 'school';
 
 export interface Faction {
   name: string;
@@ -171,6 +172,19 @@ export const PLACES: Record<PlaceKey, Place> = {
   'post-roof': { key: 'post-roof', name: '우체국 옥상', faction: 'storm', tone: ['#2A4050', '#101A20'], borrow: 'post' },
   ranch: { key: 'ranch', name: '구름 양 목장', faction: 'storm', tone: ['#2E3E3C', '#121818'] },
   windmill: { key: 'windmill', name: '천둥 풍차', faction: 'storm', tone: ['#323A46', '#13161C'] },
+  // 묶음 F2 (56 1장, 그림 요청 57): 수정 뿌리굴 칸은 대성당 1구역 그림을 빌림, 폭풍 성채는 색 배경 (무기고 · 꼭대기는 성문 그림을 빌림)
+  crystal: { key: 'crystal', name: '수정 갈림길', faction: 'abyss', tone: ['#1E2236', '#0B0C16'], borrow: 'cathedral' },
+  'crystal-field': { key: 'crystal-field', name: '수정밭', faction: 'abyss', tone: ['#1A2A34', '#0A1014'], borrow: 'cathedral' },
+  'crystal-mirror': { key: 'crystal-mirror', name: '거울방', faction: 'abyss', tone: ['#26203A', '#0E0B16'], borrow: 'cathedral' },
+  fort: { key: 'fort', name: '폭풍 성채', faction: 'storm', tone: ['#2A3444', '#10141C'] },
+  'fort-armory': { key: 'fort-armory', name: '성채 무기고', faction: 'storm', tone: ['#30343E', '#121418'], borrow: 'fort' },
+  'fort-top': { key: 'fort-top', name: '성채 꼭대기', faction: 'storm', tone: ['#283A4E', '#0F161E'], borrow: 'fort' },
+  // 묶음 F3 (56 1장, 그림 요청 57): 빗자루 정류장 · 구름 마법학교는 옛 세력 폭주한 마도사 (서리 마탑 그림을 빌림), 그림자 성벽 칸은 대성당 1구역 그림을 빌림
+  station: { key: 'station', name: '빗자루 정류장', faction: 'mage', tone: ['#28344A', '#10141E'], borrow: 'frost' },
+  shadow: { key: 'shadow', name: '그림자 성문', faction: 'abyss', tone: ['#1C1A2C', '#0A0912'], borrow: 'cathedral' },
+  'shadow-wall': { key: 'shadow-wall', name: '성벽길', faction: 'abyss', tone: ['#201C30', '#0C0A14'], borrow: 'cathedral' },
+  'shadow-tower': { key: 'shadow-tower', name: '망루', faction: 'abyss', tone: ['#241A34', '#0E0A16'], borrow: 'cathedral' },
+  school: { key: 'school', name: '구름 마법학교', faction: 'mage', tone: ['#2A3050', '#10121E'], borrow: 'frost' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -192,6 +206,8 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   pyramid1: 'pyramid', pyramid2: 'pyramid-clock', pyramid3: 'pyramid-bed', reservoir1: 'reservoir', reservoir2: 'reservoir-bridge', reservoir3: 'reservoir-mirror',
   pinwheel: 'pinwheel', observatory: 'observatory',
   well1: 'well', well2: 'well-moss', well3: 'well-floor', post1: 'post', post2: 'post-sort', post3: 'post-roof', ranch: 'ranch', windmill: 'windmill',
+  crystal1: 'crystal', crystal2: 'crystal-field', crystal3: 'crystal-mirror', fort1: 'fort', fort2: 'fort-armory', fort3: 'fort-top',
+  station: 'station', shadow1: 'shadow', shadow2: 'shadow-wall', shadow3: 'shadow-tower', school: 'school',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -231,6 +247,9 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   windtrash: 'pinwheel', hwirik: 'pinwheel', startrash: 'observatory', stargazer: 'observatory', sundialyard: 'observatory', geuneul: 'observatory',
   chulleong: 'well', puseok: 'well-moss', huu: 'well-floor', hwirik83: 'post', kkongkkong: 'post-sort', buri: 'post-roof',
   sheeptrash: 'ranch', boksul84: 'ranch', millstairs: 'windmill', boksul: 'windmill', millhouse: 'windmill', dolgae: 'windmill',
+  gulgul: 'crystal', pingping: 'crystal-field', bitgallae: 'crystal-mirror', dungdung: 'fort', ssaengssaeng: 'fort-armory', ureureung: 'fort-top',
+  platform: 'station', pongpong88: 'station', kwangkwang: 'shadow', syungsyung: 'shadow-wall', eodugi: 'shadow-tower',
+  upsidehall: 'school', pongpong: 'school', boltlab: 'school', dwijuk: 'school',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

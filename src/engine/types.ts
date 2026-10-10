@@ -428,7 +428,9 @@ export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crum
   /** 묶음 E 새 부품 (54 5장, 그림 55 E): 신기루가 걷힘 · 모래시계를 뒤집음 (보스) · 체력이 되감김 · 모래 폭풍 · 하품 · 심장 박동 */
   | 'mirage-shimmer' | 'hourglass-flip' | 'sand-rewind' | 'sandstorm' | 'yawn' | 'heartbeat'
   /** 묶음 F 새 부품 (56 5장, 그림 57 E): 회오리가 띄워 올림 · 구름에서 내려앉음 · 번개가 하늘에서 떨어짐 · 이웃으로 튐 (on → to) · 피뢰침에서 땅으로 빠짐 */
-  | 'lift-swirl' | 'land-puff' | 'chain-strike' | 'chain-bolt' | 'chain-rod';
+  | 'lift-swirl' | 'land-puff' | 'chain-strike' | 'chain-bolt' | 'chain-rod'
+  /** 묶음 F2 우르릉 기우는 섬 (낮은 쪽으로 바람 · 구름이 쓸려 감, 판 전체) */
+  | 'island-tilt';
 
 export type FightResult = 'win' | 'lose';
 

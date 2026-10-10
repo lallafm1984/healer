@@ -224,6 +224,23 @@ const ENC_ART: Record<string, string[]> = {
   sheeptrash: ['mob-harpy-spear', 'mob-wind-sprite'],
   millstairs: ['mob-harpy-spear', 'mob-wind-sprite'],
   millhouse: ['mob-thunder-ram', 'mob-storm-seer', 'mob-harpy-spear'],
+  // 묶음 F2 (그림 요청 57)
+  gulgul: ['boss-crystal-mole'],
+  pingping: ['boss-pinwheel-spirit'],
+  bitgallae: ['boss-crystal-witch'],
+  dungdung: ['boss-drum-giant'],
+  ssaengssaeng: ['boss-harpy-knight'],
+  ureureung: ['boss-storm-giant'],
+  // 묶음 F3: 탐험 ㉒ 퐁퐁이는 던전 ⑱ 그림을 같이 씀, 마도사 졸개는 서리 마탑 그림 (번개 실험 정령은 서리 정령)
+  pongpong88: ['boss-flask-golem'],
+  pongpong: ['boss-flask-golem'],
+  dwijuk: ['boss-topsy-headmaster'],
+  kwangkwang: ['boss-shadow-hammer-giant'],
+  syungsyung: ['boss-shadow-archer'],
+  eodugi: ['boss-shadow-general'],
+  platform: ['mob-rune-doll', 'mob-drifting-tome'],
+  upsidehall: ['mob-rune-doll', 'mob-apprentice-mage'],
+  boltlab: ['mob-frost-sprite', 'mob-drifting-tome', 'mob-rune-doll'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {

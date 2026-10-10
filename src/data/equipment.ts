@@ -267,6 +267,13 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   post1: ['plume'], post2: ['gloves'], post3: ['signet'],
   ranch: ['coat', 'ring'],
   windmill: ['scepter', 'sleeve', 'medal'],
+  // 묶음 F2 (56 6장): 심연 지능 · 정신력 (수정 뿌리굴 칸마다 1), 폭풍 깃털단 가속 · 치명타 (폭풍 성채 칸마다 1)
+  crystal1: ['stone'], crystal2: ['wand'], crystal3: ['crown'],
+  fort1: ['helm'], fort2: ['wraps'], fort3: ['staff'],
+  // 묶음 F3 (56 6장): 폭주한 마도사 지능 · 가속, 심연 지능 · 정신력 (그림자 성벽 칸마다 1)
+  station: ['starneck', 'bracer'],
+  shadow1: ['mail'], shadow2: ['amulet'], shadow3: ['relic'],
+  school: ['vestment', 'gloves', 'beads'],
 };
 export const KIND_WEIGHT = 3;
 

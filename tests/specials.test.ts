@@ -1,4 +1,4 @@
-/** 장비 특수능력 118종 + 이름 있는 장신구 57개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
+/** 장비 특수능력 118종 + 이름 있는 장신구 62개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { NAMED, SPEC_GROUPS, SPEC_KEYS, SPECS, specText, specTotals, specValue } from '../src/data/specials';
@@ -56,14 +56,14 @@ const absorb = (u: U) => u.mods.find(m => m.k === 'absorb')?.v ?? 0;
 const healOn = (f: F, id: number) => { for (const e of f.events) if (e.type === 'heal' && e.id === id) return e.amt; return 0; };
 
 describe('데이터', () => {
-  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 57개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C +8 · 묶음 D1 +4 · D2 +3 · E1 +4 · E2 +3 · E3 +4 · F1 +4)', () => {
+  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 62개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C +8 · 묶음 D1 +4 · D2 +3 · E1 +4 · E2 +3 · E3 +4 · F1 +4 · F2 +2 · F3 +3)', () => {
     expect(SPEC_KEYS.length).toBe(118);
     expect(new Set(SPEC_KEYS).size).toBe(118);
     const by = (g: string) => SPEC_KEYS.filter(k => SPECS[k].group === g).length;
     expect(Object.keys(SPEC_GROUPS).map(by)).toEqual([16, 16, 14, 12, 10, 8, 10, 8, 24]);
     expect(SPEC_KEYS.filter(k => SPECS[k].hero).length).toBe(24);
-    expect(NAMED.length).toBe(57);
-    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(175);
+    expect(NAMED.length).toBe(62);
+    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(180);
   });
   it('직업 전용은 영웅 이상, 효과 글에 값이 들어감', () => {
     for (const k of SPEC_KEYS) {

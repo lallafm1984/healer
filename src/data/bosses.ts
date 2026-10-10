@@ -451,7 +451,7 @@ export interface SkillDef {
    * offtank = 보스를 안 맞는 탱커 (없으면 보스가 때릴 사람, 비늘 방패 돌진 51 4-2).
    * linked = 나눔 사슬 쌍마다 한 사람 (나 빼고, 소포 부치기 56 4-1. 사슬이 없으면 탱커 · 나 빼고 무작위), pad = 받침 발판에 선 · 가는 사람 (받침 위 반송) n명까지
    */
-  target?: 'tank' | 'offtank' | { p: 'back' | 'random' | 'greed' | 'linked' | 'pad'; n: number; nMythic?: number };
+  target?: 'tank' | 'offtank' | { p: 'back' | 'random' | 'greed' | 'linked' | 'pad'; n: number; nMythic?: number; /** random: 이 이름의 디버프가 걸린 사람 먼저 (거꾸로 주문) */ prefer?: string };
   /** 맞을 때 (장판은 없음) */
   effect?: SkillEffect;
   /** 장판 칸 */
@@ -607,6 +607,8 @@ const SHADOW_TOUCH: DebuffDef[] = [
   { name: '무거운 그림자', type: '저주', left: 10, healCut: 0.4 },
   { name: '차가운 그림자', type: '마법', left: 8, dot: U.dps(0.02) },
 ];
+/** 수정 가루 (56 4-4 굴굴이): 그림자 손길과 같은 네 유형, 이름만 수정 가루 */
+const CRYSTAL_DUST: DebuffDef[] = SHADOW_TOUCH.map(d => ({ ...d, name: d.name.replace('그림자', '수정 가루') }));
 /** 돌가루 (54 3-2 해시계 천문대, 39 깨진 신전 돌가루를 유형 무작위로): 질병 · 독 · 저주 · 마법 중 사람마다 하나. 마법은 침묵 (끊기 담당이면 반격 틈을 못 끊음) */
 const STONE_DUST: DebuffDef[] = [
   { name: '돌가루 기침', type: '질병', left: 12, dot: U.dps(0.02) },
@@ -628,6 +630,14 @@ const GLASS_HOW = '뒤집는 순간의 체력으로 8초 뒤 모두 되돌아감
 const FEATHER: DebuffDef = { name: '깃털 간지럼', type: '저주', left: 10, dot: U.dps(0.02) };
 const CHAIN_HOW = '번개 구름 아래 사람에게 번개가 떨어지고, 이웃 칸 가운데 체력 비율이 가장 낮은 사람에게 튐 (튈 때마다 +25%). 튈 곳이 90% 이상이거나 보호막이면 피뢰침으로 절반만 받고 멈춤 → 예고 동안 구름 이웃을 90% 위로';
 const LIFT_HOW = '회오리가 뜬 사람이 하늘로 떠올라 그동안 새 힐 · 해제가 안 닿음 (미리 건 지속 힐 · 보호막만 남음). 예고 동안 지속 힐 · 해제, 내려오면 낙하 피해라 바로 채우기';
+/** 하늘 던지기 (탱커 띄우기, 56 4-2) 공략 글 */
+const TOSS_HOW = '보스를 맞는 탱커를 4초 하늘로. 그동안 보스는 다른 탱커를 침 (창 찌르기 중첩이 남아 있으면 아픔). 예고가 뜨면 다른 탱커를 미리 채우고, 내려온 탱커 (낙하 탱체 25%)를 바로';
+/** 쌩쌩이 번개 창 찌르기 (탱커 교대): 받는 피해 +15% 중첩 (최대 4), 4중첩이면 다른 탱커가 가져감 */
+const LANCE_JAB: DebuffDef = { name: '번개 창 찌르기', type: '물리', left: 20, lock: true, stackMax: 4, vuln: 0.15, swap: 4 };
+/** 거품 플라스크 (56 3-2 퐁퐁이: 넘치는 빛 × 연쇄 번개) 공략 글 */
+const FLASK_HOW = '12초 동안 넘친 치유가 플라스크에 모임. 가득 차면 전원 보호막이고, 보호막이 있는 사람은 연쇄 번개의 피뢰침. 번개 전에 일부러 넘치게 힐';
+/** 뒤죽박죽 거꾸로 주문 (P-FLIP, 마법): 10초 뒤 체력 비율이 뒤집힘 (가장 낮아도 5%) */
+const UPSIDE: DebuffDef = { name: '거꾸로 주문', type: '마법', left: 12, end: { p: 'flip', min: 0.25 } };
 /** 무작위 파티원 둘레 장판 n곳 (P-ZONE around를 n개, 하나만 대기열에 보임) */
 const spots = (key: string, name: string, icon: string, n: number, first: number, period: number, dmg: number, when?: SkillWhen): SkillDef[] =>
   Array.from({ length: n }, (_, i): SkillDef => ({
@@ -2746,6 +2756,263 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'text', text: '바람 거세짐: 돌개바람 2명 · 방아 번개가 더 자주' },
     ] }],
     enrage: { name: '풍차 폭주', period: 2, dmg: 240 },
+  },
+  // ---------- 묶음 F2 20인 ⑥ 수정 뿌리굴 (56 4-4, Lv 85 · 악몽 95 · 심연 · 모든 유형): 굴굴이 · 핑핑이 · 빛갈래 ----------
+  // 수정 두더지 굴굴이 (갈림길, 56의 「땅땅이」는 용암 대장간 모루 골렘 땅땅과 겹쳐 바꿈): 20인 연쇄 번개 × 무너지는 바닥 (땅파기 뒤 가장자리 칸이 구멍 → 판이 좁아져 이웃이 늘고 번개가 멀리 튐) · 수정 가루 (유형 무작위). 악몽은 수정 번개 3명. 목표 4:30 · 광폭화 6:00
+  gulgul: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('곡괭이 찍기', '곡괭', 8, 15, U.tank(0.5)),
+      ...spots('dig', '땅파기', '땅파', 3, 10, 20, U.dps(0.25)),
+      { key: 'sink', name: '무너지는 굴', icon: '구멍', hidden: true, first: 12.8, period: 20, cast: 0, effect: { p: 'hole', n: 2, max: 8 } }, // 땅파기가 끝나면 가장자리 칸이 구멍
+      { key: 'bolt', name: '수정 번개', icon: '수정', kind: 'buster', first: 14, period: 15, cast: 3, warn: 'buster', target: { p: 'random', n: 2, nMythic: 3 },
+        how: `${CHAIN_HOW}. 바닥이 무너질수록 이웃이 늘어 멀리 튐`, effect: { p: 'chain', dmg: U.dps(0.25), jumps: 5 } },
+      { key: 'dust', name: '수정 가루', icon: '가루', kind: 'instant', first: 16, period: 16, cast: 0,
+        how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: CRYSTAL_DUST } },
+    ],
+    enrage: { name: '굴 무너뜨리기', period: 3, dmg: 210 },
+  },
+  // 바람개비 정령 핑핑이 (수정밭): 띄워 올리기 × 쇠약 (수정 가시가 90% 아래인 동안 쌓임 → 떠오른 사람은 힐을 못 받아 하늘에서도 쌓임) · 바람 칼날 (4곳). 악몽은 회오리 5명. 목표 5:00 · 광폭화 6:30
+  pingping: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('날개 베기', '날개', 8, 15, U.tank(0.5)),
+      { key: 'thorn', name: '수정 가시', icon: '가시', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '6명이 90% 아래인 동안 3초마다 중첩이 쌓임 (중첩마다 초당 딜체 1%). 90% 위로 채우면 사라짐',
+        effect: { p: 'debuff', n: 6, debuff: { name: '수정 가시', type: '물리', left: 20, lock: true, cureAt: 0.9, grow: { every: 3, dot: U.dps(0.01), max: 5 } } } },
+      { key: 'whirl', name: '회오리', icon: '회오', kind: 'buster', first: 14, period: 20, cast: 2.5, warn: 'buster', target: { p: 'random', n: 4, nMythic: 5 },
+        how: `${LIFT_HOW}. 수정 가시가 붙은 채 90% 아래로 떠오르면 하늘에서 중첩이 계속 쌓이니 회오리가 뜬 사람을 먼저 90% 위로`, effect: { p: 'lift', sec: 6, fall: U.dps(0.2) } },
+      ...spots('blade', '바람 칼날', '칼날', 4, 9, 15, U.dps(0.2)),
+    ],
+    enrage: { name: '수정 돌개바람', period: 3, dmg: 210 },
+  },
+  // 수정 마녀 빛갈래 (거울방, 최종 3페이즈): 연쇄 번개 × 보물 욕심 (2페이즈부터 수정 욕심이 체력 비율 높은 3명을, 갈래 번개는 90% 아래 이웃을 → 모두 85~95%로 고르게)
+  // · 그림자 손길 · 3페이즈 프리즘 폭발. 악몽은 수정 욕심 4명. 목표 6:00 · 광폭화 8:00
+  bitgallae: {
+    phase: [1, '1페이즈 · 갈라지는 빛'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('수정 손톱', '손톱', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'fork', name: '갈래 번개', icon: '갈래', kind: 'buster', first: 12, period: 15, cast: 3, warn: 'buster', target: { p: 'random', n: 3 }, how: CHAIN_HOW,
+        effect: { p: 'chain', dmg: U.dps(0.25), jumps: 4 } },
+      { key: 'touch', name: '그림자 손길', icon: '손길', kind: 'instant', first: 16, period: 16, cast: 0, when: { phase: [1, 3] },
+        how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
+      { key: 'greed', name: '수정 욕심', icon: '욕심', kind: 'buster', first: null, period: 16, cast: 2.5, warn: 'buster', when: { phase: [2, 3] },
+        how: `${GREED_HOW}. 갈래 번개는 90% 아래 이웃으로 튀니 가득도 덜도 아니게 85~95%로 고르게 (번개 구름 이웃만 90% 위로)`,
+        target: { p: 'greed', n: 3, nMythic: 4 }, effect: { p: 'greed', dmg: U.dps(0.55) } },
+      { key: 'prism', name: '프리즘 폭발', icon: '프리', kind: 'aoe', first: null, period: 20, cast: 3, warn: 'aoe', when: { phase: [3] }, effect: { p: 'all', dmg: U.dps(0.25) } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 수정 욕심' }, { p: 'start', skill: 'greed', in: 4 },
+        { p: 'text', text: '수정 욕심: 가장 반짝이는 (체력 비율이 높은) 사람을 노림' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.35 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 깨지는 거울' }, { p: 'start', skill: 'prism', in: 5 },
+        { p: 'text', text: '깨지는 거울: 그림자 손길 · 수정 욕심 함께 + 프리즘 폭발' },
+      ] },
+    ],
+    enrage: { name: '프리즘 폭주', period: 3, dmg: 220 },
+  },
+  // ---------- 묶음 F2 10인 ⑭ 폭풍 성채 (56 4-2, Lv 87 · 악몽 100 · 폭풍 깃털단 · 저주 + 마법): 둥둥이 · 쌩쌩이 · 우르릉 ----------
+  // 천둥 북 거인 둥둥이 (성문): 진동 × 연쇄 번개 (천둥 북 진동이 울린 1초 뒤 번개 북소리 → 진동에 긴 시전이 끊기니 구름 이웃은 즉시 스킬 · 지속 힐로 미리) · 정전기 (마법).
+  // 악몽은 번개 북소리 3명. 목표 4:30 · 광폭화 6:00
+  dungdung: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('북채 내려치기', '북채', 8, 15, U.tank(0.5)), cast: 2.5 },
+      { key: 'drum', name: '천둥 북', icon: '천둥', kind: 'aoe', first: 20, period: 20, cast: 2, warn: 'aoe',
+        how: '진동: 맞는 순간 시전 중인 힐이 끊기고 1.5초 잠김. 1초 뒤 번개 북소리가 치니 그 전에 즉시 스킬 · 지속 힐로', effect: { p: 'quake', dmg: U.dps(0.1), lock: 1.5 } },
+      { key: 'roll', name: '번개 북소리', icon: '북소', kind: 'buster', first: 19.5, period: 20, cast: 3.5, warn: 'buster', target: { p: 'random', n: 2, nMythic: 3 },
+        how: `${CHAIN_HOW}. 천둥 북 진동 바로 뒤라 예고가 뜨자마자 구름 이웃을 즉시 스킬 · 지속 힐로`, effect: { p: 'chain', dmg: U.dps(0.3), jumps: 4 } },
+      { key: 'static', name: '정전기', icon: '정전', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '3명이 받는 치유 −25% (마법). 걸린 사람은 90%까지 채우기 어려우니 번개 전에 지우기',
+        effect: { p: 'debuff', n: 3, debuff: { name: '정전기', type: '마법', left: 10, healCut: 0.25 } } },
+    ],
+    enrage: { name: '천둥 북 연타', period: 3, dmg: 200 },
+  },
+  // 하피 기사 쌩쌩이 (무기고): 탱커 띄우기 (하늘 던지기가 보스를 맞는 탱커를 4초 띄움 → 그동안 보스는 창 찌르기 중첩이 남은 다른 탱커를 침) · 깃털 화살 비 (3곳) · 바람 저주.
+  // 악몽은 하늘 던지기가 끝날 때 남은 탱커에게 창 찌르기 2중첩. 목표 4:30 · 광폭화 6:00
+  ssaengssaeng: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { key: 'jab', name: '번개 창 찌르기', icon: '창', kind: 'instant', first: 4, period: 6, cast: 0, how: '보스를 맞는 탱커가 받는 피해 +15%씩 (최대 4). 4중첩이면 다른 탱커가 가져감',
+        effect: { p: 'debuff', n: 1, pick: 'tank', debuff: LANCE_JAB } },
+      { key: 'throw', name: '하늘 던지기', icon: '던지', kind: 'buster', first: 16, period: 24, cast: 2.5, warn: 'buster', target: 'tank',
+        how: TOSS_HOW, effect: { p: 'lift', sec: 4, fall: U.dps(0.2), tankFall: U.tank(0.25) } },
+      ...[0, 1].map((i): SkillDef => ({ key: `jabm${i}`, name: '번개 창 찌르기', icon: '창', kind: 'instant', hidden: true, first: 22.2 + i * 0.1, period: 24, cast: 0, when: { mythic: true },
+        effect: { p: 'debuff', n: 1, pick: 'tank', debuff: LANCE_JAB } })), // 악몽: 던진 탱커가 내려오기 직전 남은 탱커에게 2중첩
+      ...spots('arrow', '깃털 화살 비', '화살', 3, 10, 15, U.dps(0.25)),
+      { key: 'curse', name: '바람 저주', icon: '바람', kind: 'instant', first: 12, period: 20, cast: 0,
+        effect: { p: 'debuff', n: 2, debuff: { name: '바람 저주', type: '저주', left: 8, healCut: 0.3 } } },
+    ],
+    enrage: { name: '하늘 창 돌격', period: 3, dmg: 200 },
+  },
+  // 폭풍 거인 우르릉 (꼭대기, 수장 3페이즈): 1 천둥 (번개 구름 · 폭풍 저주) → 2 섬 흔들기 (기우는 섬: 낮은 쪽 칸이 큰 피해, 그 직전 섬 돌풍이 3명을 띄워 무작위 빈 칸에 내려앉힘 → 낮은 쪽이면 늦게 옮김)
+  // → 3 폭풍의 눈 (모두 + 하늘 던지기 · 폭풍 함성). 악몽은 섬 돌풍 4명 · 낙하 딜체 25%. 목표 6:00 · 광폭화 8:00
+  ureureung: {
+    phase: [1, '1페이즈 · 천둥'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('천둥 주먹', '주먹', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'cloud', name: '번개 구름', icon: '번개', kind: 'buster', first: 12, period: 16, cast: 3, warn: 'buster', target: { p: 'random', n: 2 }, when: { phase: [1, 3] }, how: CHAIN_HOW,
+        effect: { p: 'chain', dmg: U.dps(0.3), jumps: 4 } },
+      { key: 'curse', name: '폭풍 저주', icon: '폭풍', kind: 'instant', first: 8, period: 18, cast: 0, when: { phase: [1, 3] },
+        effect: { p: 'debuff', n: 3, debuff: { name: '폭풍 저주', type: '저주', left: 10, dot: U.dps(0.02) } } },
+      { key: 'gust', name: '섬 돌풍', icon: '돌풍', kind: 'buster', first: null, period: 32, cast: 2.5, warn: 'buster', target: { p: 'random', n: 3, nMythic: 4 }, when: { phase: [2, 3] },
+        how: '3명 (악몽 4명)이 4초 동안 하늘로, 바람에 밀려 무작위 빈 칸에 내려앉음 (기우는 섬의 낮은 쪽일 수도). 떠오르기 전에 지속 힐 · 보호막',
+        effect: { p: 'lift', sec: 4, fall: U.dps(0.15), fallMythic: U.dps(0.25), land: 'random' } },
+      { key: 'tilt', name: '기우는 섬', icon: '기울', kind: 'zone', first: null, period: 32, cast: 5, warn: 'zone', hitDmg: U.dps(0.7), when: { phase: [2, 3] },
+        cells: { p: 'safe', at: 'side', n: 10 }, hitFx: 'island-tilt',
+        how: '섬이 한쪽으로 기울어 높은 쪽 두 줄만 안전. 섬 돌풍에 뜬 사람이 낮은 쪽에 내려앉으면 늦게 옮기다 맞으니 미리 채우기' },
+      { key: 'static', name: '정전기', icon: '정전', kind: 'instant', first: null, period: 18, cast: 0, when: { phase: [2, 3] },
+        effect: { p: 'debuff', n: 3, debuff: { name: '정전기', type: '마법', left: 10, healCut: 0.25 } } },
+      { key: 'throw', name: '하늘 던지기', icon: '던지', kind: 'buster', first: null, period: 24, cast: 2.5, warn: 'buster', target: 'tank', when: { phase: [3] },
+        how: TOSS_HOW, effect: { p: 'lift', sec: 4, fall: U.dps(0.2), tankFall: U.tank(0.25) } },
+      { key: 'shout', name: '폭풍 함성', icon: '함성', kind: 'aoe', first: null, period: 20, cast: 3, warn: 'aoe', when: { phase: [3] }, effect: { p: 'all', dmg: U.dps(0.25) } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.7 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 섬 흔들기' }, { p: 'start', skill: 'gust', in: 4 }, { p: 'start', skill: 'tilt', in: 8 }, { p: 'start', skill: 'static', in: 6 },
+        { p: 'text', text: '섬 흔들기: 섬이 기울고, 떠오른 사람은 엉뚱한 칸에 내려앉음' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.4 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 폭풍의 눈' }, { p: 'start', skill: 'throw', in: 6 }, { p: 'start', skill: 'shout', in: 10 },
+        { p: 'text', text: '폭풍의 눈: 모든 기술 + 하늘 던지기 · 폭풍 함성' },
+      ] },
+    ],
+    enrage: { name: '천둥 웃음', period: 3, dmg: 220 },
+  },
+  // ---------- 묶음 F3 탐험 ㉒ 빗자루 정류장 (56 1-1, Lv 88 · 폭주한 마도사 · 마법): 넘치는 빛 × 연쇄 번개 쉬운 판 (던전 ⑱ 예습) ----------
+  // 실험 조교 퐁퐁이 탐험판: 평타 · 거품 플라스크 (넘치는 빛 그릇) · 실습 번개 (연쇄 번개, 2번까지) · 꼬인 주문 (마법 1명). 수치는 던전판의 70%
+  pongpong88: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'flask', name: '거품 플라스크', icon: '거품', kind: 'instant', first: 4, period: 14, cast: 0, how: FLASK_HOW,
+        effect: { p: 'vessel', name: '거품 플라스크', need: 0.25, sec: 12, shield: 8 } },
+      { key: 'bolt', name: '실습 번개', icon: '실습', kind: 'buster', first: 14, period: 14, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, how: CHAIN_HOW,
+        effect: { p: 'chain', dmg: 120, jumps: 2 } },
+      { key: 'twist', name: '꼬인 주문', icon: '꼬임', kind: 'instant', first: 6, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '꼬인 주문', type: '마법', left: 8, dot: 18 } } },
+    ],
+    enrage: { name: '거품 폭발', period: 2, dmg: 200 },
+  },
+  // ---------- 묶음 F3 던전 ⑱ 구름 마법학교 (56 3-2, Lv 90 · 폭주한 마도사 · 마법): 퐁퐁이 · 뒤죽박죽 ----------
+  // 실험 조교 퐁퐁이 (①): 보호막 피뢰침 (넘친 치유가 거품 플라스크에 모여 가득 차면 전원 보호막 → 보호막이 있는 사람은 연쇄 번개 피뢰침) · 실습 번개 (4번까지) · 꼬인 주문 (마법).
+  // 악몽은 플라스크 보호막 6초. 목표 3:00 · 광폭화 4:00
+  pongpong: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('플라스크 던지기', '플라', 8, 14, U.tank(0.5)),
+      ...([false, true] as const).map((mythic): SkillDef => ({
+        key: mythic ? 'flaskm' : 'flask', name: '거품 플라스크', icon: '거품', kind: 'instant', first: 4, period: 14, cast: 0, when: { mythic },
+        ...(mythic ? { hidden: true } : { how: FLASK_HOW }),
+        effect: { p: 'vessel', name: '거품 플라스크', need: 0.25, sec: 12, shield: mythic ? 6 : 8 },
+      })),
+      { key: 'bolt', name: '실습 번개', icon: '실습', kind: 'buster', first: 14, period: 14, cast: 3, warn: 'buster', target: { p: 'random', n: 1 },
+        how: `${CHAIN_HOW}. 거품 플라스크 보호막이 있으면 바로 멈춤`, effect: { p: 'chain', dmg: U.dps(0.3), jumps: 4 } },
+      { key: 'twist', name: '꼬인 주문', icon: '꼬임', kind: 'instant', first: 6, period: 16, cast: 0,
+        effect: { p: 'debuff', n: 2, debuff: { name: '꼬인 주문', type: '마법', left: 8, dot: U.dps(0.025) } } },
+    ],
+    enrage: { name: '거품 폭발', period: 2, dmg: 240 },
+  },
+  // 엉뚱 교장 뒤죽박죽 (최종): 띄워 올리기 × 뒤집힘 (거꾸로 주문이 걸린 사람을 끝나기 직전에 띄움 → 떠 있는 동안 뒤집히니 띄우기 전에 40~60%로) · 분필 폭풍.
+  // 30% 아래 전교생 공중 부양 (거꾸로 주문 · 공중 부양 3명). 악몽은 낙하 딜체 30%. 목표 3:30 · 광폭화 5:00
+  dwijuk: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('지팡이 딱밤', '딱밤', 8, 15, U.tank(0.55)), cast: 2.5 },
+      ...([[1, 2], [2, 3]] as const).flatMap(([phase, n]): SkillDef[] => [
+        { key: phase === 1 ? 'flip' : 'flip2', name: '거꾸로 주문', icon: '거꾸', kind: 'instant', first: phase === 1 ? 8 : null, period: 22, cast: 0, when: { phase: [phase] },
+          ...(phase === 1 ? { how: '탱커 아닌 사람이 12초 뒤 체력 비율이 뒤집힘 (가장 낮아도 25%). 마법이라 지워도 됨. 끝나기 직전에 공중 부양이 오니 지우거나, 못 지우면 예고 동안 지속 힐을 걸어 둠' } : { hidden: true }),
+          effect: { p: 'debuff', n, pick: 'others', debuff: UPSIDE } },
+        { key: phase === 1 ? 'levit' : 'levit2', name: '공중 부양 수업', icon: '부양', kind: 'buster', first: phase === 1 ? 16 : null, period: 22, cast: 2.5, warn: 'buster', when: { phase: [phase] },
+          target: { p: 'random', n, prefer: '거꾸로 주문' },
+          ...(phase === 1 ? { how: '거꾸로 주문이 걸린 사람이 끝나기 직전에 5초 하늘로 (떠 있는 동안 뒤집힘). 예고 전에 40~60%로 맞추기: 높으면 과힐 금지, 낮으면 조금만' } : { hidden: true }),
+          effect: { p: 'lift', sec: 5, fall: U.dps(0.15), fallMythic: U.dps(0.3) } },
+      ]),
+      { key: 'chalk', name: '분필 폭풍', icon: '분필', kind: 'aoe', first: 12, period: 20, cast: 2, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'flip2', in: 3 }, { p: 'start', skill: 'levit2', in: 9 },
+      { p: 'text', text: '전교생 공중 부양: 거꾸로 주문 · 공중 부양 3명' },
+    ] }],
+    enrage: { name: '대혼란 수업', period: 2, dmg: 240 },
+  },
+  // ---------- 묶음 F3 20인 ⑦ 그림자 성벽 (56 4-5, Lv 88 · 악몽 98 · 심연 · 모든 유형): 쾅쾅이 · 슝슝이 · 어둑이 ----------
+  // 그림자 망치 거인 쾅쾅이 (성문): 연쇄 번개 × 끌어당김 여럿 (그림자 갈고리가 뒷줄 셋을 탱커 곁으로 → 바로 뒤 망치 번개가 탱커에서 시작해 이웃으로) · 그림자 손길.
+  // 악몽은 갈고리 4명. 목표 4:30 · 광폭화 6:00
+  kwangkwang: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('망치 내려치기', '망치', 8, 15, U.tank(0.5)), cast: 2.5 },
+      { key: 'hook', name: '그림자 갈고리', icon: '갈고', kind: 'buster', first: 14, period: 20, cast: 2, warn: 'buster', target: { p: 'back', n: 3, nMythic: 4 },
+        how: '뒷줄 셋 (악몽 넷)이 탱커 곁으로 끌려와 4초 동안 평타를 나눠 맞음. 1초 뒤 망치 번개가 탱커에서 시작하니 끌려온 사람을 먼저 90% 위로', effect: { p: 'pull', sec: 4, dmg: U.dps(0.15) } },
+      { key: 'hammer', name: '망치 번개', icon: '번개', kind: 'buster', first: 15, period: 20, cast: 3, warn: 'buster', target: 'tank',
+        how: `보스를 맞는 탱커에게서 시작. ${CHAIN_HOW}`, effect: { p: 'chain', dmg: U.dps(0.25), jumps: 5 } },
+      { key: 'touch', name: '그림자 손길', icon: '손길', kind: 'instant', first: 8, period: 16, cast: 0,
+        how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
+    ],
+    enrage: { name: '성문 부수기', period: 3, dmg: 210 },
+  },
+  // 그림자 궁수대장 슝슝이 (성벽길): 띄워 올리기 × 균형 사슬 (그림자 사슬 짝 중 한 명을 화살 바람이 띄움 → 떠 있는 사람 체력은 멈추니 땅에 남은 짝을 너무 채우지도 비우지도 않게)
+  // · 화살 비 (4곳). 악몽은 사슬 4쌍. 목표 5:00 · 광폭화 6:30
+  syungsyung: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('그림자 화살', '화살', 8, 15, U.tank(0.5)),
+      { key: 'chain', name: '그림자 사슬', icon: '사슬', kind: 'instant', first: 10, period: 26, cast: 0,
+        how: '탱커 아닌 3쌍 (악몽 4쌍)이 14초 묶임. 둘의 체력 비율이 30%p 넘게 벌어지면 끊어지며 둘 다 아픔. 짝 하나가 띄워지면 땅에 남은 짝을 떠 있는 사람에 맞추기',
+        effect: { p: 'link', kind: 'balance', name: '그림자 사슬', sec: 14, pick: 'others', gap: 0.3, dmg: U.dps(0.35), pairs: 3, pairsMythic: 4 } },
+      { key: 'gust', name: '화살 바람', icon: '바람', kind: 'buster', first: 13, period: 26, cast: 2.5, warn: 'buster', target: { p: 'linked', n: 3, nMythic: 4 },
+        how: `${LIFT_HOW}. 사슬 짝마다 한 명`, effect: { p: 'lift', sec: 6, fall: U.dps(0.15) } },
+      ...spots('rain', '화살 비', '화살', 4, 9, 15, U.dps(0.25)),
+    ],
+    enrage: { name: '그림자 화살 폭풍', period: 3, dmg: 210 },
+  },
+  // 그림자 장군 어둑이 (망루, 최종 3페이즈): 1 그림자 번개 (신기루가 섞인 연쇄 번개: 구름 4개 중 진짜 2, 끝 1초에 걷힘) → 2 그림자 돌풍 (모래시계가 뒤집히는 순간 4명을 띄움,
+  // 떠 있는 동안에도 적어 둔 체력으로 되돌아감 → 뒤집기 전 · 띄우기 전에 채우기 · 창 안 그림자 파도 2번) → 3 심연의 문 (모두 + 심연의 고동). 악몽은 진짜 구름 3. 목표 6:00 · 광폭화 8:00
+  eodugi: {
+    phase: [1, '1페이즈 · 그림자 번개'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('그림자 창', '창', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'bolt', name: '그림자 번개', icon: '번개', kind: 'buster', first: 12, period: 15, cast: 3, warn: 'buster', target: { p: 'random', n: 2, nMythic: 3 }, when: { phase: [1, 3] },
+        mirage: { n: 2 }, how: `구름 넷 중 둘 (악몽 다섯 중 셋)이 진짜, 끝 1초에 가짜가 걷힘. ${CHAIN_HOW}`, effect: { p: 'chain', dmg: U.dps(0.25), jumps: 4 } },
+      { key: 'touch', name: '그림자 손길', icon: '손길', kind: 'instant', first: 16, period: 16, cast: 0, when: { phase: [1, 3] },
+        how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
+      { key: 'glass', name: '그림자 모래시계', icon: '모래', kind: 'aoe', first: null, period: 30, cast: 3, warn: 'aoe', when: { phase: [2, 3] },
+        how: `${GLASS_HOW}. 뒤집는 순간 그림자 돌풍이 4명을 띄우고 (떠 있어도 되돌아감), 창 안에 그림자 파도가 두 번`,
+        effect: { p: 'glass', sec: 8, then: [{ skill: 'gust', in: 0 }, { skill: 'wave', in: 0.5 }, { skill: 'wave2', in: 4.5 }] } },
+      { key: 'gust', name: '그림자 돌풍', icon: '돌풍', kind: 'buster', first: null, period: 9999, cast: 2.5, warn: 'buster', target: { p: 'random', n: 4 },
+        how: '모래시계를 뒤집는 순간 4명이 6초 하늘로. 되돌림 뒤에 내려와 낙하 피해. 뒤집기 전에 채워 두기', effect: { p: 'lift', sec: 6, fall: U.dps(0.2) } },
+      ...(['wave', 'wave2'] as const).map((key): SkillDef => ({
+        key, name: '그림자 파도', icon: '파도', kind: 'aoe', first: null, period: 9999, cast: 1.5, warn: 'aoe',
+        ...(key === 'wave2' ? { hidden: true } : { how: '모래시계 창 안에서 두 번. 맞은 피해는 창이 끝나면 되돌아가니 쓰러질 사람만 힐' }),
+        effect: { p: 'all', dmg: U.dps(0.3) },
+      })),
+      { key: 'beat', name: '심연의 고동', icon: '고동', kind: 'aoe', first: null, period: 20, cast: 3, warn: 'aoe', when: { phase: [3] }, effect: { p: 'all', dmg: U.dps(0.25) } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 그림자 돌풍' }, { p: 'start', skill: 'glass', in: 4 },
+        { p: 'text', text: '그림자 돌풍: 모래시계가 뒤집히는 순간 몇 사람이 하늘로' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.35 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 심연의 문' }, { p: 'start', skill: 'beat', in: 5 },
+        { p: 'text', text: '심연의 문: 그림자 번개 · 모래시계 함께 + 심연의 고동' },
+      ] },
+    ],
+    enrage: { name: '그림자 대군', period: 3, dmg: 220 },
   },
   warden: {
     phase: [1, ''],
