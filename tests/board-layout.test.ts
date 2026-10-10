@@ -176,16 +176,25 @@ describe('초기화·극소 영역의 수치 안정성', () => {
   });
 });
 
-describe('보스전 판 (Lim 2026-10-09: 모든 보스전 6줄로 일정하게)', () => {
-  it('던전 5인 · 10인 · 20인은 같은 6열 × 6줄 판, 탐험·튜토리얼은 7칸', () => {
+describe('보스전 판 (Lim 2026-10-09: 레이드는 6줄로 일정하게 · 2026-10-10: 5인 던전은 칸을 줄여 크게)', () => {
+  it('10인 · 20인은 6열 × 6줄 b36, 던전 5인은 5 · 4칸 번갈아 4줄 b18, 탐험·튜토리얼은 7칸', () => {
     for (const enc of Object.values(ENCOUNTERS)) {
-      const rows = BOARDS[enc.board];
-      if (enc.board === 'b7') expect(enc.comp.tank + enc.comp.melee + enc.comp.ranged, enc.key).toBeLessThanOrEqual(2);
+      const n = enc.comp.tank + enc.comp.melee + enc.comp.ranged;
+      if (enc.board === 'b7') expect(n, enc.key).toBeLessThanOrEqual(2);
+      else if (n === 4) expect(enc.board, enc.key).toBe('b18');
       else {
         expect(enc.board, enc.key).toBe('b36');
-        expect(rows).toHaveLength(6);
-        expect(rows.every(r => r.join() === '0,1,2,3,4,5'), enc.key).toBe(true);
+        expect(BOARDS.b36.every(r => r.join() === '0,1,2,3,4,5'), enc.key).toBe(true);
       }
     }
+    expect(BOARDS.b18.map(r => r.length)).toEqual([5, 4, 5, 4]);
+  });
+
+  // 전투 화면 판 영역 (CSS px, 2026-10-10 실측): S25 · S25 울트라 · 울트라 WQHD · Z 플립 펼침
+  it.each([[360, 284], [384, 315], [412, 394], [360, 359]])('5인 판은 %i × %i 판 영역의 좌우를 가득 채우고 칸이 6열 판보다 1.4배쯤 큼', (w, h) => {
+    const cells = makeCells(BOARDS.b18), layout = fitBoard(cells, w, h);
+    expect(layout.axis).toBe('horizontal');
+    expect(expectContained(cells, layout).width).toBeCloseTo(layout.right - layout.left, 7);
+    expect(layout.s / fitBoard(makeCells(BOARDS.b36), w, h).s).toBeGreaterThan(1.3);
   });
 });

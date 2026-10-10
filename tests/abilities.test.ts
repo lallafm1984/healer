@@ -5,7 +5,7 @@ import { armorFactor } from '../src/data/armor';
 import { RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
 import { lvPower } from '../src/data/progression';
 import * as E from '../src/engine';
-import { abCut, abOnTel } from '../src/engine/abilities';
+import { abCut, abOnTel, addMod } from '../src/engine/abilities';
 import { addDebuff, damage } from '../src/engine/core';
 import type { RosterEntry, Telegraph } from '../src/engine/types';
 
@@ -186,6 +186,19 @@ describe('쓰는 때와 효과', () => {
     expect(d0).toBeGreaterThan(0);
     const hp = u.hp; damage(f, u, 10);
     expect(hp - u.hp).toBeCloseTo(10 * f.dmgMult * armorFactor(u.role, 'party') * 1.1, 5);
+  });
+
+  it('둘이 서로 피해를 나눠 받아도 한 번만 나눔 (받는 피해가 늘어난 사람끼리 끝없이 오가다 멈추지 않음)', () => {
+    const f = E.create({ encounter: 'warden', diff: '보통', seed: 1 });
+    const a = f.party.find(u => u.role === 'melee')!, b = f.party.find(u => u.role === 'ranged')!;
+    for (const [u, o] of [[a, b], [b, a]]) {
+      addMod(u, { k: 'share', v: 0.5, until: f.t + 10, src: 's', by: o.id });
+      addMod(u, { k: 'vuln', v: 1, until: f.t + 10, src: 'v' }); // 받는 피해 2배: 나눈 만큼 그대로 되돌아옴
+    }
+    const ha = a.hp, hb = b.hp;
+    expect(() => damage(f, a, 10, false, 'fixed')).not.toThrow();
+    expect(ha - a.hp).toBeCloseTo(10 * f.dmgMult * 2 * 0.5, 5); // 2배로 늘고 반을 b에게
+    expect(hb - b.hp).toBeCloseTo(10 * f.dmgMult * 2 * 0.5 * 2, 5); // b는 받은 몫이 다시 2배, 더 나누지 않음
   });
 });
 
