@@ -589,6 +589,10 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   slow: { size: 1.6, color: 0x8fd3ff, ms: 700 },
   absorb: { size: 1.5, color: 0xb48be8, ms: 600 },
   cheer: { size: 1.4, color: 0xffd166, ms: 700, up: 0.4 },
+  // 묶음 B (46 5장, 그림 요청 47): 부풀기 거품 터짐 · 치유 상한 먹물 · 뒤집힘 금화
+  'bubble-pop': { size: 2.2, color: 0x7ee36a, ms: 550 },
+  ink: { size: 1.4, color: 0x3a3550, ms: 600 },
+  'coin-flip': { size: 1.2, color: 0xffd166, ms: 650, up: 0.5 },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();
@@ -838,6 +842,17 @@ export function render(now: number): void {
     if (low) hexPoly(unitsG, x, y, r).fill({ color: C.danger, alpha: 0.08 + 0.2 * pulse });
     if (u.debuffs.some(d => d.invert)) hexPoly(unitsG, x, y, r).fill({ color: 0x7fa88c, alpha: 0.45 }); // 뒤집힌 축복: 회녹색 칸 (35 8장)
     if (u.debuffs.some(d => d.charm)) hexPoly(unitsG, x, y, r).fill({ color: 0x9a6bd1, alpha: 0.45 }); // 매혹: 보라 칸 (적이 됨)
+    // 묶음 B 새 부품 (46 5장 화면): 치유 상한 = 상한 위를 먹물로 · 부풀기 = 중첩만큼 커지는 초록 거품 · 뒤집힘 = 금빛, 끝나기 1초 전 깜빡임
+    const cap = u.debuffs.find(d => d.cap != null);
+    if (cap && cap.cap! < 1) {
+      const ly = bot - 2 * r * cap.cap!;
+      fillBand(unitsG, x, y, r, top, ly, 0x2c2a44, 0.55);
+      fillBand(unitsG, x, y, r, ly - Math.max(1, s * 0.025), ly + Math.max(1, s * 0.025), 0x15131f, 0.95);
+    }
+    const swell = u.debuffs.find(d => d.swell);
+    if (swell) unitsG.circle(x, y + r * 0.1, r * Math.min(0.85, 0.3 + 0.12 * (swell.stack ?? 1))).fill({ color: 0x7ee36a, alpha: 0.16 }).stroke({ width: Math.max(1.5, s * 0.04), color: 0x7ee36a, alpha: 0.75 });
+    const flip = u.debuffs.find(d => d.end?.p === 'flip');
+    if (flip) hexPoly(unitsG, x, y, r).fill({ color: 0xffd166, alpha: flip.left < 1 ? 0.15 + 0.3 * pulse : 0.15 });
     // 장판 위에 선 사람: 칸 전체에 붉은 빛 + 빗금 (체력 위험 깜빡임과 구분)
     if (zoneSet.has(u.cell)) {
       hexPoly(unitsG, x, y, r).fill({ color: C.zone, alpha: 0.2 + 0.08 * zpulse });

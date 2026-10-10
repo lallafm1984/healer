@@ -8,7 +8,8 @@ import type { EncounterKey } from './encounters';
 export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'hill' | 'abyss';
 export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple' | 'abyss' | 'cathedral'
   | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge' | 'watchtower'
-  | 'abyss-garden' | 'abyss-gallery' | 'abyss-observatory' | 'abyss-spire';
+  | 'abyss-garden' | 'abyss-gallery' | 'abyss-observatory' | 'abyss-spire'
+  | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary';
 
 export interface Faction {
   name: string;
@@ -67,6 +68,12 @@ export const PLACES: Record<PlaceKey, Place> = {
   'abyss-gallery': { key: 'abyss-gallery', name: '백합 회랑', faction: 'abyss', tone: ['#2C2433', '#100D13'], borrow: 'abyss' },
   'abyss-observatory': { key: 'abyss-observatory', name: '서리 전망대', faction: 'abyss', tone: ['#222C3C', '#0B0F16'], borrow: 'abyss' },
   'abyss-spire': { key: 'abyss-spire', name: '꼭대기 첨탑', faction: 'abyss', tone: ['#2E2236', '#100B13'], borrow: 'abyss' },
+  // 묶음 B 옛 세력 (46 1장, 그림 요청 47): 그림이 올 때까지 같은 세력 장소 그림
+  bookfield: { key: 'bookfield', name: '책갈피 설원', faction: 'mage', tone: ['#2C3848', '#0E131C'], borrow: 'snowpass' },
+  rosemaze: { key: 'rosemaze', name: '장미 울타리 미로', faction: 'noble', tone: ['#36283A', '#130F16'], borrow: 'lily' },
+  sewer: { key: 'sewer', name: '역병 수로', faction: 'plague', tone: ['#2E3326', '#12140E'], borrow: 'crypt' },
+  archive: { key: 'archive', name: '얼음 서고', faction: 'mage', tone: ['#26344A', '#0E131C'], borrow: 'frost' },
+  ossuary: { key: 'ossuary', name: '백합 납골당', faction: 'noble', tone: ['#2E2838', '#120F16'], borrow: 'manor' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -75,8 +82,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   manor: 'manor', frost: 'frost', temple: 'temple', abyss1: 'abyss', cathedral1: 'cathedral',
   cemetery: 'cemetery', marsh: 'marsh', lily: 'lily', snowpass: 'snowpass', hillpath: 'hillpath', pilgrim: 'pilgrim', abyssedge: 'abyssedge', watchtower: 'watchtower',
   abyss2: 'abyss-garden', abyss3: 'abyss-gallery', abyss4: 'abyss-observatory', abyss5: 'abyss-spire',
-  // 던전 ⑧~⑩ (묶음 B, 아직 카드만): 같은 세력 장소 그림을 빌려 씀
-  archive: 'frost', ossuary: 'manor', sewer: 'crypt',
+  bookfield: 'bookfield', rosemaze: 'rosemaze', archive: 'archive', ossuary: 'ossuary', sewer: 'sewer',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -92,6 +98,10 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   templeyard: 'temple', guardian: 'temple', nave: 'temple', keeper: 'temple', riftground: 'abyssedge', plague33: 'abyssedge',
   rubblestair: 'watchtower', sentinel: 'watchtower', blackrift: 'watchtower', crystal: 'watchtower',
   hydra: 'abyss-garden', twins: 'abyss-gallery', orben: 'abyss-observatory', abysslord: 'abyss-spire',
+  pagedrift: 'bookfield', librarian40: 'bookfield', rosetunnel: 'rosemaze', priestess48: 'rosemaze',
+  leakyway: 'sewer', ratking: 'sewer', sludgegrate: 'sewer', carrier: 'sewer',
+  iceread: 'archive', librarian: 'archive', forbidden: 'archive', scholar: 'archive',
+  petalstair: 'ossuary', priestess: 'ossuary', keeperhall: 'ossuary', sleeper: 'ossuary',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

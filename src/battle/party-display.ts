@@ -50,6 +50,10 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
     detail: `${debuff.name} · ${seconds}초 · ${debuff.link.kind === 'share' ? '이어진 두 사람이 받는 피해·치유를 반씩 나눔' : '이어진 두 사람 체력 차이가 크게 벌어지면 끊어지며 둘 다 피해'} · 해제 불가`,
     state, seconds,
   };
+  // 부풀기 (P-SWELL, 46 5장): 배지에 중첩 수. 지우면 이웃만, 두면 본인 + 이웃이 터짐
+  if (debuff.swell) return { text: `${marker}${compact ? '' : '거품 '}${debuff.stack ?? 1}중`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초, ${debuff.stack ?? 1}중첩 · ${debuff.swell.every}초마다 1중첩 (최대 ${debuff.swell.max}) · 지우면 이웃 칸이 중첩만큼, 두면 끝날 때 본인과 이웃 칸이 더 크게 터짐 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (적을 때 · 옆에 사람이 적을 때)'}`, state, seconds };
+  // 뒤집힘 저주 (P-FLIP): 끝날 때 체력 비율이 뒤집힘
+  if (debuff.end?.p === 'flip') return { text: `${marker}${compact ? '' : '뒤집 '}${seconds}`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초 · 끝날 때 체력 비율이 뒤집힘 (80% → 20%, 30% → 70%) · 높으면 힐을 멈추고 낮으면 둠 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (지우면 그냥 사라짐)'}`, state, seconds };
   if (debuff.jail) return { text: `${marker}${compact ? '감옥' : debuff.name}`, detail: `${debuff.name} · 딜 0 · 못 움직임 · 딜러가 감옥을 깨면 풀림 · 해제 불가`, state, seconds: 0 };
   const action = debuff.lock ? (debuff.cureAt != null ? `해제 불가, 체력 ${Math.round(debuff.cureAt * 100)}% 이상이면 사라짐`
     : debuff.untilBossLoss != null ? `해제 불가, 보스 체력 ${Math.round(debuff.untilBossLoss * 100)}% 깎으면 풀림` : '해제 불가')
@@ -57,7 +61,7 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
   const stack = (debuff.stack ?? 0) > 1 ? `, ${debuff.stack}중첩` : '';
   // 받는 치유가 바뀌는 디버프 (35 4-3): 뒤집힌 축복 · 얼룩진 장갑 · 먼지 범벅
   const heal = debuff.invert ? ' · 받는 치유가 피해로' : debuff.healCut ? ` · 받는 치유 -${Math.round(debuff.healCut * (debuff.stack ?? 1) * 100)}%`
-    : debuff.over ? ' · 넘친 치유만큼 옆 칸 아군 피해' : '';
+    : debuff.over ? ' · 넘친 치유만큼 옆 칸 아군 피해' : debuff.cap != null ? ` · 체력이 ${Math.round(debuff.cap * 100)}%까지만 참` : '';
   // 매혹 · 옮겨붙음 · 마나 갈취 (35 3장): 길게 눌렀을 때 판단 근거
   const more = debuff.charm ? ` · 이웃을 때림, 힐하면 길어짐, 체력 ${Math.round(debuff.charm.free * 100)}% 아래면 풀림`
     : debuff.end?.p === 'jump' ? ' · 지우면 옆 사람에게 옮겨붙음 (혼자면 사라짐), 두면 보스가 강해짐'
@@ -72,6 +76,6 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
 
 /** 기존 판의 함정 → 독 이외의 알려진 종류 → 나머지 순서를 보존한다. */
 export function primaryDebuff(debuffs: readonly Debuff[]): Debuff | undefined {
-  const priority = (d: Debuff) => d.jail ? 3 : d.trap ? 2 : TYPE_SHORT[d.type] && d.type !== '독' ? 1 : 0;
+  const priority = (d: Debuff) => d.jail ? 3 : d.trap || d.swell || d.end?.p === 'flip' ? 2 : TYPE_SHORT[d.type] && d.type !== '독' ? 1 : 0;
   return debuffs.reduce<Debuff | undefined>((best, d) => !best || priority(d) > priority(best) ? d : best, undefined);
 }

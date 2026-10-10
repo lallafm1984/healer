@@ -1,7 +1,8 @@
 import type { EncounterKey } from './encounters';
 
 /** 5인 던전 (11 4장, 23). 구간을 차례로 이어서 하고, 구간 사이에 휴식 (09 S07) */
-export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt' | 'lily' | 'swamp' | 'snowpass' | 'manor' | 'hillpath' | 'frost' | 'pilgrim' | 'temple' | 'abyssedge' | 'watchtower';
+export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt' | 'lily' | 'swamp' | 'snowpass' | 'manor' | 'hillpath' | 'frost' | 'pilgrim' | 'temple' | 'abyssedge' | 'watchtower'
+  | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -28,6 +29,12 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   manor: { key: 'manor', name: '저주받은 장원', segments: ['parlor', 'butler', 'lady', 'kennel', 'belmore'] },
   swamp: { key: 'swamp', name: '독안개 늪', segments: ['rotbridge', 'shaman', 'toad', 'toadnest', 'seres'] },
   crypt: { key: 'crypt', name: '역병 지하묘지', segments: ['bonepass', 'collector', 'censerhall', 'malchor'] },
+  // 묶음 B 옛 세력 (46 1장): 탐험 ⑩ ⑫ · 던전 ⑧~⑩
+  bookfield: { key: 'bookfield', name: '책갈피 설원', segments: ['pagedrift', 'librarian40'] },
+  rosemaze: { key: 'rosemaze', name: '장미 울타리 미로', segments: ['rosetunnel', 'priestess48'] },
+  sewer: { key: 'sewer', name: '역병 수로', segments: ['leakyway', 'ratking', 'sludgegrate', 'carrier'] },
+  archive: { key: 'archive', name: '얼음 서고', segments: ['iceread', 'librarian', 'forbidden', 'scholar'] },
+  ossuary: { key: 'ossuary', name: '백합 납골당', segments: ['petalstair', 'priestess', 'keeperhall', 'sleeper'] },
 };
 
 /** 휴식: 초당 마나 회복 (%). 「계속」은 언제든 누를 수 있음 */

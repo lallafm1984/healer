@@ -5,7 +5,7 @@ import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
 import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
-import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, specDeath, sv } from './specials';
+import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, specDeath, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
 
@@ -76,7 +76,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     }
   }
   if (f.watch && f.t >= f.watch.until) f.watch.fill += amt * f.watch.rate; // 주시 (P-AGGRO): 넘친 치유까지 게이지에
-  const hp0 = u.hp, eff = Math.min(amt, u.max - u.hp);
+  const hp0 = u.hp, eff = Math.max(0, Math.min(amt, healTop(u) - u.hp)); // 치유 상한 (P-CAP): 상한 위는 넘친 치유
   u.hp += eff;
   u.got += eff;
   f.stats.healed += eff;
@@ -93,6 +93,13 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   }
   if (f.sp && !raw) afterHeal(f, u, amt, eff, crit, direct, hp0);
   return eff;
+}
+
+/** 치유로 채울 수 있는 끝: 최대 체력, 치유 상한 (P-CAP)이 걸려 있으면 최대 체력 × cap (여럿이면 가장 낮은 것) */
+export function healTop(u: Unit): number {
+  let top = u.max;
+  if (u.debuffs.length) for (const d of u.debuffs) if (d.cap != null) top = Math.min(top, u.max * d.cap);
+  return top;
 }
 
 /** 생명 사슬 나눔형 (P-LINK): 나눠 받는 중에는 다시 나누지 않음 */
@@ -299,6 +306,27 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       addDebuff(f, v, { ...rest, left: e.sec, dot: (d.dot ?? 0) * e.mult });
       emit(f, { type: 'fx', name: 'fireball-green', on: u.id, to: v.id });
       emit(f, { type: 'msg', text: `${d.name}이(가) ${v.nick}에게 옮겨붙음` });
+      if (f.sp) specJump(f, v); // 녹슨 수문 열쇠
+      return;
+    }
+    case 'pop': {
+      // 부풀기 (P-SWELL, 46 5장): 지우면 이웃 칸만 중첩 × pop, 두면 본인 중첩 × self + 이웃 칸 중첩 × near
+      const n = d.stack ?? 1, c = cellOf(f, u);
+      const near = living(f).filter(v => v !== u && hexDist(cellOf(f, v), c) === 1);
+      emit(f, { type: 'sound', name: 'burst' });
+      emit(f, { type: 'fx', name: 'bubble-pop', on: u.id });
+      for (const v of near) damage(f, v, (dispelled ? e.pop : e.near) * n, true);
+      if (!dispelled) damage(f, u, e.self * n, true);
+      emit(f, { type: 'msg', text: dispelled ? `${d.name} ${n}중첩: 지워서 이웃 칸이 터짐` : `${d.name} ${n}중첩: ${u.nick} 터짐` });
+      return;
+    }
+    case 'flip': {
+      // 뒤집힘 저주 (P-FLIP, 46 5장): 두면 체력 비율이 뒤집힘 (가장 낮아도 min). 지우면 그냥 사라짐
+      if (dispelled || !u.alive) return;
+      const r = Math.max(e.min ?? 0.05, 1 - u.hp / u.max);
+      u.hp = u.max * r;
+      emit(f, { type: 'fx', name: 'coin-flip', on: u.id });
+      emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 체력 ${Math.round(r * 100)}%로 뒤집힘` });
       return;
     }
     case 'stackHit': {

@@ -4,7 +4,7 @@ import { HEROES } from '../data/heroes';
 import { DISPELLABLE, SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
 import { aggroTarget } from './bosses';
-import { cellOf, living, unitById } from './core';
+import { cellOf, healTop, living, unitById } from './core';
 import { create, step } from './fight';
 import { canTarget, knows, use } from './healer';
 import { setBeacon } from './heroes';
@@ -20,7 +20,7 @@ import type { Debuff, Fight, FightConfig, Unit } from './types';
  */
 function busterShort(f: Fight): { u: Unit; soon: boolean } | null {
   if (!f.armor) return null;
-  const short = (u: Unit | null | undefined, dmg: number) => !!u && u.alive && u.guardian <= 0 && u.hp < Math.min(u.max * 0.95, dmg * f.dmgMult * armorFactor(u.role, 'tank') * 1.1 + u.max * 0.15); // 그 사이 평타 한두 대 여유. 가득 차도 못 버티는 버스터면 거의 가득까지만
+  const short = (u: Unit | null | undefined, dmg: number) => !!u && u.alive && u.guardian <= 0 && u.hp < Math.min(healTop(u) * 0.95, dmg * f.dmgMult * armorFactor(u.role, 'tank') * 1.1 + u.max * 0.15); // 그 사이 평타 한두 대 여유. 가득 차도 못 버티는 버스터면 거의 가득까지만
   for (const t of f.tels) {
     if (t.kind !== 'buster' || !t.skill.dmg) continue;
     const u = unitById(f, t.units[0]);
@@ -47,7 +47,15 @@ function lowest(f: Fight, live: Unit[], pct: (u: Unit) => number): Unit {
  * 힐하면 손해인 사람: 뒤집힌 축복 (P-INVERT, 힐이 피해), 매혹 (P-CHARM, 힐하면 지배가 길어짐 → 그 사람은 두고 주변을),
  * 과부하 표식 (P-OVER)인데 모자란 양이 힐 한 번보다 적음 (넘친 치유가 이웃을 때림 → 정확히 채우기)
  */
-const off = (f: Fight, u: Unit) => u.debuffs.length > 0 && u.debuffs.some(d => d.invert || d.charm || (!!d.over && u.max - u.hp < OVER_GAP * f.power));
+const off = (f: Fight, u: Unit) => u.debuffs.length > 0 && u.debuffs.some(d => d.invert || d.charm || (!!d.over && u.max - u.hp < OVER_GAP * f.power)
+  || (d.end?.p === 'flip' && flipWait(u, d)) || (d.link?.kind === 'share' && !!unitById(f, d.link.to)?.debuffs.some(x => x.invert)));
+/**
+ * 뒤집힘 저주 (P-FLIP, 46 5장): 끝나기 직전 (시전이 닿을 4초 안) 체력 50% 위면 힐을 멈추고, 40% 아래는 두면 뒤집혀 오르니 힐하지 않음.
+ * 25% 아래는 쓰러질 수 있어 다시 힐함
+ */
+const flipWait = (u: Unit, d: Debuff) => { const r = u.hp / u.max; return (d.left < 4 && r > 0.5) || (r < 0.4 && r > 0.25); };
+/** 지금 채울 수 있는 끝 (치유 상한 P-CAP이면 상한) 기준 체력 비율 */
+const pctOf = (u: Unit) => u.hp / healTop(u);
 /** 과부하 표식에 힐을 넣어도 되는 모자란 양 (힐 한 번 크기쯤, 레벨 배율 전) */
 const OVER_GAP = 250;
 /** 시전 또는 채널에 걸리는 초 (진동 판단) */
@@ -92,8 +100,13 @@ interface Gim {
   calm: number;
   /** 반격 틈 (P-COUNTER) 기술이 있음: 끊기 능력자의 딜 0 디버프를 먼저 지움 */
   counter: boolean;
-  /** 지금 지우지 않을 디버프: 옮겨붙음 (P-JUMP)인데 이웃 칸에 아군이 있음 (지우면 옮겨붙어 더 세짐, 혼자일 때 지움) */
+  /**
+   * 지금 지우지 않을 디버프: 옮겨붙음 (P-JUMP)인데 이웃 칸에 아군이 있음 (지우면 옮겨붙어 더 세짐, 혼자일 때 지움),
+   * 뒤집힘 저주 (P-FLIP)인데 체력이 낮음 (두면 뒤집혀 오름)
+   */
   hold: Set<Debuff>;
+  /** 큰 피해 예고 (광역 · 버스터)가 곧 맞음: 치유 상한 (P-CAP)을 먼저 지움 */
+  big: boolean;
 }
 
 function gim(f: Fight): Gim {
@@ -106,10 +119,10 @@ function gim(f: Fight): Gim {
   let pre: Unit | null = null;
   for (const m of adds) {
     const a = m.add!, u = unitById(f, a.on);
-    if (!u || !u.alive || off(f, u) || u.hp >= u.max * 0.95) continue;
+    if (!u || !u.alive || off(f, u) || u.hp >= healTop(u) * 0.95) continue;
     if ((a.job?.p === 'fixate' && hexDist(f.cells[a.cell!], cellOf(f, u)) <= 2) || (a.job?.p === 'smash' && a.warned)) { pre = u; break; }
   }
-  if (!pre) pre = f.party.filter(u => u.alive && u.padUntil != null && u.padUntil > f.t && !off(f, u) && u.hp < u.max * 0.95).sort((a, b) => a.hp / a.max - b.hp / b.max)[0] ?? null;
+  if (!pre) pre = f.party.filter(u => u.alive && u.padUntil != null && u.padUntil > f.t && !off(f, u) && u.hp < healTop(u) * 0.95).sort((a, b) => a.hp / a.max - b.hp / b.max)[0] ?? null;
   // 무력화 중에는 선보다 조금 위까지 (선에 딱 걸치면 한 대에 다시 내려감)
   const st = f.stagger;
   const gap = (u: Unit) => Math.max(st && !u.me ? (st.hp + 0.03) * u.max - u.hp : -Infinity, ...u.debuffs.filter(d => d.cureAt != null).map(d => d.cureAt! * u.max - u.hp));
@@ -124,7 +137,10 @@ function gim(f: Fight): Gim {
   const hold = new Set<Debuff>();
   for (const u of f.party) for (const d of u.debuffs) {
     if (d.end?.p === 'jump' && d.end.on !== 'quake' && u.alive && f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1)) hold.add(d);
+    if (d.end?.p === 'flip' && u.hp < u.max * 0.45) hold.add(d);
   }
+  // 부풀기 (P-SWELL): 못 지운 채 곧 터지면 본인을 미리 가득
+  if (!pre) pre = f.party.find(u => u.alive && !off(f, u) && u.hp < healTop(u) * 0.95 && u.debuffs.some(d => d.swell && d.left < 3)) ?? null;
   return {
     order, hit, pre, cure,
     aoe: adds.some(m => (m.add!.job?.p === 'bomb' && m.add!.jobAt! - f.t < 3) || (m.add!.down?.p === 'burst' && m.hp < m.max * 0.25)),
@@ -137,6 +153,7 @@ function gim(f: Fight): Gim {
     calm: calmOf(f),
     counter: f.abOn && f.skills.some(s => s.stunOnCut),
     hold,
+    big: f.tels.some(t => (t.kind === 'aoe' || t.kind === 'buster') && t.impact - f.t < 3.5),
   };
 }
 
@@ -150,7 +167,8 @@ const topUp = (f: Fight, g: Gim, base: number) => (g.spill && f.mana > 30 ? 1.01
 function byDispel(g: Gim, cands: Unit[], ok: (d: Debuff) => boolean): Unit[] {
   const rank = (u: Unit) => {
     const ds = u.debuffs.filter(ok);
-    if (ds.some(d => d.invert || d.count)) return 0;
+    // 부풀기는 중첩이 쌓이기 전에, 치유 상한은 큰 피해 예고가 떴을 때, 뒤집힘은 체력이 높을 때 (46 5장)
+    if (ds.some(d => d.invert || d.count || d.swell || (d.cap != null && g.big) || (d.end?.p === 'flip' && u.hp > u.max * 0.5))) return 0;
     if (ds.some(d => d.charm || d.drain || (d.end?.p === 'jump' && d.end.on === 'quake'))) return 1;
     if (ds.some(d => d.noDps) && ((g.adds && (u.role === 'melee' || u.role === 'ranged')) || (g.counter && cutter(u)))) return 1;
     return 2;
@@ -174,7 +192,7 @@ export function autoHealer(f: Fight): void {
   if (f.cast || f.channel > 0 || f.gcd > 0 || f.queued) return;
   const all = living(f), live = all.filter(u => !off(f, u)), g = gim(f);
   if (!live.length) return;
-  const pct = (u: Unit) => u.hp / u.max;
+  const pct = pctOf;
   const low = lowest(f, live, pct);
   const aoeSoon = g.aoe || f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 3.5);
   const cellIdx = (u: Unit) => (u.moving ? u.moving.from : u.cell);
@@ -205,7 +223,7 @@ export function autoHealer(f: Fight): void {
   let best: Unit | null = null, score = 0;
   for (const c of live) {
     let s = 0;
-    for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= 1) s = off(f, v) ? -Infinity : s + Math.min(180 * hp, v.max - v.hp);
+    for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= 1) s = off(f, v) ? -Infinity : s + Math.min(180 * hp, Math.max(0, healTop(v) - v.hp));
     if (s > score) { best = c; score = s; }
   }
   if (f.g.s >= 100 && score > (thrifty ? 450 : 900) * hp) { use(f, 'sanctify', cellIdx(best!)); return; }
@@ -263,14 +281,14 @@ function ctx(f: Fight, amt: number): Ctx | null {
   if (f.cast || f.channel > 0 || f.gcd > 0 || f.queued) return null;
   const all = living(f), live = all.filter(u => !off(f, u));
   if (!live.length) return null;
-  const pct = (u: Unit) => u.hp / u.max;
+  const pct = pctOf;
   const low = lowest(f, live, pct);
   const idx = (u: Unit) => (u.moving ? u.moving.from : u.cell);
   const ready = (k: SkillKey) => knows(f, k) && (f.cd[k] ?? 0) <= 0 && !f.lock[k] && f.mana >= SKILLS[k].cost;
   let best: Unit | null = null, score = 0;
   for (const c of live) {
     let s = 0;
-    for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= 1) s = off(f, v) ? -Infinity : s + Math.min(amt * f.power, v.max - v.hp);
+    for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= 1) s = off(f, v) ? -Infinity : s + Math.min(amt * f.power, Math.max(0, healTop(v) - v.hp));
     if (s > score) { best = c; score = s; }
   }
   const bt = f.tels.find(t => t.kind === 'buster');

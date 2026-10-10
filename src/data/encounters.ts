@@ -1,6 +1,6 @@
 import type { TelKind } from '../engine/types';
 import type { BoardId } from './boards';
-import type { DebuffDef, SkillEffect } from './bosses';
+import type { AddDown, DebuffDef, SkillEffect } from './bosses';
 import type { DiffName } from './difficulty';
 
 /** 보스 전투 (05)와 던전 일반·정예 구간 (23). 보스 기술 스크립트는 engine/bosses.ts */
@@ -9,11 +9,14 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'flowerbed' | 'butler13' | 'rotbridge' | 'shaman' | 'toad' | 'toadnest' | 'seres' | 'snowslope' | 'golem18'
   | 'parlor' | 'butler' | 'lady' | 'kennel' | 'belmore' | 'restyard' | 'guardian23'
   | 'icehall' | 'frostgolem' | 'mage' | 'frostlab' | 'shadow' | 'brokenbridge' | 'keeper28' | 'templeyard' | 'guardian' | 'nave' | 'keeper' | 'riftground' | 'plague33' | 'rubblestair' | 'sentinel' | 'blackrift' | 'crystal'
-  | 'hydra' | 'twins' | 'orben' | 'abysslord';
+  | 'hydra' | 'twins' | 'orben' | 'abysslord'
+  | 'leakyway' | 'ratking' | 'sludgegrate' | 'carrier' | 'iceread' | 'librarian' | 'forbidden' | 'scholar'
+  | 'petalstair' | 'priestess' | 'keeperhall' | 'sleeper' | 'pagedrift' | 'librarian40' | 'rosetunnel' | 'priestess48';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
-  | 'hydra' | 'twins' | 'orben' | 'abysslord';
+  | 'hydra' | 'twins' | 'orben' | 'abysslord'
+  | 'ratking' | 'carrier' | 'librarian' | 'scholar' | 'priestess' | 'sleeper' | 'librarian40' | 'priestess48';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -42,6 +45,8 @@ export interface MobDef {
   hp: number;
   count: number;
   attacks: MobAttack[];
+  /** 쓰러질 때 (판 위 적의 down과 같은 부품, 46 5장): 먼지 유령이 쓰러질 때마다 살아 있는 모두에게 먼지 파열 */
+  down?: AddDown;
 }
 
 export interface Encounter {
@@ -323,6 +328,84 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
   ], { debuffs: ['마법'] }),
   crystal: { key: 'crystal', lowLevel: true, name: '금 간 공명 수정', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 6600, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'crystal', stage: 0.25, debuffs: ['저주', '마법'] },
   keeper: { key: 'keeper', lowLevel: true, name: '신전지기 유령', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 7000, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'keeper', stage: 0.25, debuffs: HEAL4 },
+  // ---------- 묶음 B 옛 세력 (46 1장 · 2장): 구간 졸개는 그 세력 4종 (39 2장) 그대로 ----------
+  // 탐험 ⑩ 「책갈피 설원」 (46 1-1, Lv 40): 얼음 룬 인형 ×2 + 견습 마법사 → 서고 사서 (마나 갈취 예습, 던전 ⑨)
+  pagedrift: trash('pagedrift', '흩날린 책장', [
+    { name: '얼음 룬 인형', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '견습 마법사', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  librarian40: { key: 'librarian40', lowLevel: true, name: '서고 사서', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2500, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'librarian40', stage: 0.3 },
+  // 탐험 ⑫ 「장미 울타리 미로」 (46 1-1, Lv 48): 빈 갑옷 시종 ×2 + 검은 베일 조문객 → 백합 여사제 (넘치는 빛 예습, 던전 ⑩)
+  rosetunnel: trash('rosetunnel', '장미 터널', [
+    { name: '빈 갑옷 시종', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '검은 베일 조문객', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'veil', name: '검은 베일', icon: '베일', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '검은 베일', type: '저주', left: 12, healCut: 0.5 } } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['저주'] }),
+  priestess48: { key: 'priestess48', lowLevel: true, name: '백합 여사제', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2600, enrage: 215, manaCoef: 1.0, diffs: ALL, script: 'priestess48', stage: 0.3, debuffs: ['저주'] },
+  // 던전 ⑧ 「역병 수로」 (46 1-2 · 3-1, Lv 40): 일반 물 새는 수로 → 수로 쥐왕 → 정예 오물 거름망 → 역병 운반자
+  leakyway: trash('leakyway', '물 새는 수로', [
+    { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  ratking: { key: 'ratking', lowLevel: true, name: '수로 쥐왕', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 4900, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'ratking', stage: 0.25, debuffs: ['질병'] },
+  sludgegrate: trash('sludgegrate', '오물 거름망', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'rot', name: '부패', icon: '부패', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '부패', type: '질병', left: 20, maxCut: 0.1, end: { p: 'restoreMax' } } } },
+    ] },
+    {
+      name: '부리 가면 집행자', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'shout', name: '병든 외침', icon: '외침', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['질병'] }),
+  carrier: { key: 'carrier', lowLevel: true, name: '역병 운반자', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 6600, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'carrier', stage: 0.25, debuffs: ['질병'] },
+  // 던전 ⑨ 「얼음 서고」 (46 1-2 · 3-2, Lv 45): 일반 얼음 열람실 → 서고 사서 → 정예 금서 보관소 → 얼어붙은 대학자
+  iceread: trash('iceread', '얼음 열람실', [
+    { name: '얼음 룬 인형', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '견습 마법사', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  librarian: { key: 'librarian', lowLevel: true, name: '서고 사서', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 5600, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'librarian', stage: 0.25, debuffs: ['마법'] },
+  forbidden: trash('forbidden', '금서 보관소', [
+    { name: '얼음 룬 인형', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '떠도는 주술서', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'silence', name: '침묵', icon: '침묵', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '침묵', type: '마법', left: 6, noDps: true } } },
+    ] },
+    {
+      name: '서리 정령', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'burst', name: '서리 폭발', icon: '서리', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['마법'] }),
+  scholar: { key: 'scholar', lowLevel: true, name: '얼어붙은 대학자', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 6900, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'scholar', stage: 0.25, debuffs: ['마법'] },
+  // 던전 ⑩ 「백합 납골당」 (46 1-2 · 3-3, Lv 50): 일반 꽃잎 계단 → 백합 여사제 → 정예 관리인 회랑 (납골당 관리인 + 먼지 유령 무리) → 잠든 가주
+  petalstair: trash('petalstair', '꽃잎 계단', [
+    { name: '빈 갑옷 시종', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '유령 하녀', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  priestess: { key: 'priestess', lowLevel: true, name: '백합 여사제', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 6000, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'priestess', stage: 0.25, debuffs: ['저주'] },
+  // 먼지 유령: 체력이 일반 ①의 30%라 거의 함께 쓰러지고, 쓰러질 때마다 살아 있는 모두에게 먼지 파열 1중첩 (쫄 떼 파열 본판, 46 2장)
+  keeperhall: trash('keeperhall', '관리인 회랑', [
+    { name: '빈 갑옷 시종', hp: 400, count: 1, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '먼지 유령', hp: 120, count: 5, attacks: [{ key: 'hit', to: 'other', dmg: 25, jitter: 0.2, first: 2.5, period: 3, cast: 0 }],
+      down: { p: 'burst', debuff: { name: '먼지 파열', type: '저주', left: 4, dot: 6, stackMax: 5 } } },
+    {
+      name: '납골당 관리인', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'dust', name: '먼지 털기', icon: '먼지', kind: 'aoe', to: 'all', dmg: 120, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['저주'] }),
+  sleeper: { key: 'sleeper', lowLevel: true, name: '잠든 가주', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 7200, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'sleeper', stage: 0.25, debuffs: ['저주'] },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

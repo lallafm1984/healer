@@ -92,6 +92,11 @@ const GUIDE: Partial<Record<ScriptKey, (c: GuideCtx) => GuideBody>> = {
         what: `${who}에게 <b>${amt}</b> 피해${each}${a.cast ? ` · 예고 ${secT(a.cast)}` : ''}. ${m.name}${josa(m.name, '이', '가')} 쓰러지면 멈춤`,
         every: `${secT(a.period)}마다`, tip: () => [`${who}에게 ${m.count > 1 ? '한 마리당 ' : ''}${amt} 피해를 줍니다.`] });
     }
+    // 쓰러질 때 (46 5장 먼지 유령): 쓰러질 때마다 디버프
+    for (const m of mobs) if (m.down) {
+      const what = `${m.name}${josa(m.name, '이', '가')} 쓰러질 때마다 ${m.down.p === 'burst' ? '살아 있는 모두' : '때리던 사람'}에게 ${debuffText(m.down.debuff, n)}`;
+      skills.push({ ic: m.name.slice(0, 2), name: `${m.name} 쓰러짐`, what, how: '여럿이 한꺼번에 쓰러지면 겹침. 거의 다 잡힐 때 지속 힐을 미리', every: '쓰러질 때마다', tip: () => [what.replace(/<\/?b>/g, '')] });
+    }
     return {
       nums: {},
       cur: F => { const m = F.mobs.find(x => x.alive); return m ? 'm' + mobs.findIndex(d => d.name === m.name) : ''; },
@@ -264,11 +269,19 @@ function debuffText(d: DebuffDef, n: (x: number) => number): string {
     d.end?.p === 'blast' ? `끝나거나 지우면 이웃 칸 <b>${n(d.end.dmg)}</b>` : '',
     d.end?.p === 'jump' && d.end.on === 'quake' ? `진동이 울리면 이웃 칸 아군에게 옮겨붙고 ×${d.end.mult}, 지우면 사라짐` : '',
     d.vuln ? `받는 피해 +${pctT(d.vuln)}${d.stackMax ? ' 중첩' : ''}` : '', d.swap ? `${d.swap}중첩이면 탱커 교대` : '',
-    d.absorb ? `치유 흡수 <b>${n(d.absorb)}</b> (다 채우면 사라짐)` : '', d.end?.p === 'stackHit' ? `끝나면 중첩 × <b>${n(d.end.dmg)}</b>` : ''].filter(Boolean);
+    d.absorb ? `치유 흡수 <b>${n(d.absorb)}</b> (다 채우면 사라짐)` : '', d.end?.p === 'stackHit' ? `끝나면 중첩 × <b>${n(d.end.dmg)}</b>` : '',
+    d.swell ? `${secT(d.swell.every)}마다 1중첩 (최대 ${d.swell.max})` : '',
+    d.end?.p === 'pop' ? `지우면 이웃 칸 중첩 × <b>${n(d.end.pop)}</b>, 두면 끝날 때 본인 중첩 × <b>${n(d.end.self)}</b> + 이웃 칸 중첩 × <b>${n(d.end.near)}</b>` : '',
+    d.cap != null ? `체력이 ${pctT(d.cap)}까지만 참` : '', d.end?.p === 'flip' ? '끝날 때 체력 비율이 뒤집힘 (80% → 20%)' : ''].filter(Boolean);
   return `「${d.name}」 (${d.type}, ${secT(d.left)}${fx.length ? ` · ${fx.join(' · ')}` : ''})`;
 }
 /** 디버프 대응: 지울 수 있으면 해제, 아니면 버티기 */
-const debuffHow = (d: DebuffDef) => (d.lock || d.trap ? '' : canDispel(S.hero, d.type) ? `${act('purify', RO)} 지우기` : cantDispel(d.type));
+const debuffHow = (d: DebuffDef) => (d.lock || d.trap ? '' : d.end?.p === 'flip' ? flipHow(d) : d.swell ? swellHow(d) : d.cap != null ? capHow(d)
+  : canDispel(S.hero, d.type) ? `${act('purify', RO)} 지우기` : cantDispel(d.type));
+/** 새 부품 대응 (46 5장): 지울 수 있는지에 따라 */
+const swellHow = (d: DebuffDef) => (canDispel(S.hero, d.type) ? `중첩이 적고 옆에 사람이 적을 때 ${act('purify', RO)} 지우기` : `못 지움. 터지기 전에 본인과 옆 칸 사람을 가득 채우기`);
+const capHow = (d: DebuffDef) => (canDispel(S.hero, d.type) ? `큰 피해 예고가 뜨면 ${act('purify', RO)} 먼저 지우기` : `상한 위로는 힐이 안 들어감. 큰 피해 전에 보호막 · 지속 힐`);
+const flipHow = (d: DebuffDef) => `끝날 때 체력이 높으면 낮아지니 힐을 멈추고, 낮으면 오히려 둠${canDispel(S.hero, d.type) ? `. 높을 때는 ${act('purify', RO)} 지우기` : ''}`;
 /** 기술 효과 → [무엇, 어떻게] */
 function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: ProbeSkill | undefined): [string, string] {
   const { n } = c;
@@ -276,7 +289,7 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
   if (!e) return d.cells ? [`장판${d.hitDmg ? `: 맞는 순간 그 칸 <b>${n(d.hitDmg)}</b>` : ''}${d.dps ? `${d.hitDmg ? ',' : ':'} 안에 있으면 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}${d.dur ? ` (${secT(d.dur)})` : ''}`, '파티원이 알아서 피함. 늦게 피하는 사람을 채우기'] : ['', ''];
   switch (e.p) {
     case 'tank': return [`탱커에게 <b>${n(ps?.dmg ?? d.dmg ?? 0)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, e.debuff?.swap ? '교대한 탱커에게도 지속 힐을 걸어 두기' : '예고가 뜨면 탱커를 미리 가득 채우기'];
-    case 'hunt': return [`그 순간 체력 비율이 가장 낮은 탱커 아닌 1명에게 <b>${n(e.dmg)}</b> 피해`, '예고 동안 가장 낮은 사람을 먼저 채우기'];
+    case 'hunt': return [`그 순간 체력 비율이 가장 낮은 탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : 1}명에게 <b>${n(e.dmg)}</b> 피해`, '예고 동안 가장 낮은 사람을 먼저 채우기'];
     case 'all': return [`파티 전원에게 <b>${n(e.dmg)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, `예고 동안 ${act('renew', EUL)} 미리 걸고, 맞은 뒤 ${act('poh', RO)} 채우기`];
     case 'debuff': return [`${e.n === 'all' ? '모두' : `${c.mythic && e.nMythic ? e.nMythic : e.n}명`}에게 ${debuffText(e.debuff, n)}`, debuffHow(e.debuff)];
     case 'rot': return [`${e.n}명 최대 체력 −${pctT(e.pct)} 중첩 (최대 ${e.max}) ${debuffText(e.debuff, n)}`, debuffHow(e.debuff)];

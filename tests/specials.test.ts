@@ -1,4 +1,4 @@
-/** 장비 특수능력 118종 + 이름 있는 장신구 17개 (42): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
+/** 장비 특수능력 118종 + 이름 있는 장신구 22개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { NAMED, SPEC_GROUPS, SPEC_KEYS, SPECS, specText, specTotals, specValue } from '../src/data/specials';
@@ -55,14 +55,14 @@ const absorb = (u: U) => u.mods.find(m => m.k === 'absorb')?.v ?? 0;
 const healOn = (f: F, id: number) => { for (const e of f.events) if (e.type === 'heal' && e.id === id) return e.amt; return 0; };
 
 describe('데이터', () => {
-  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 17개', () => {
+  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 22개 (묶음 B 옛 세력 +5)', () => {
     expect(SPEC_KEYS.length).toBe(118);
     expect(new Set(SPEC_KEYS).size).toBe(118);
     const by = (g: string) => SPEC_KEYS.filter(k => SPECS[k].group === g).length;
     expect(Object.keys(SPEC_GROUPS).map(by)).toEqual([16, 16, 14, 12, 10, 8, 10, 8, 24]);
     expect(SPEC_KEYS.filter(k => SPECS[k].hero).length).toBe(24);
-    expect(NAMED.length).toBe(17);
-    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(135);
+    expect(NAMED.length).toBe(22);
+    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(140);
   });
   it('직업 전용은 영웅 이상, 효과 글에 값이 들어감', () => {
     for (const k of SPEC_KEYS) {
@@ -890,6 +890,51 @@ describe('3 이름 있는 장신구', () => {
     expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1, 6);
     both([a, b], f => addDebuff(f, tank(f), { name: '둘', type: '물리', left: 30 }));
     expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1.15, 2);
+  });
+  // 묶음 B 옛 세력 (46 6장)
+  it('은빛 책갈피: 마나 50% 아래에서 단일 힐 마나 −, 광역 힐은 그대로', () => {
+    const [a] = pair('silverBookmark', 0.15);
+    a.mana = 60;
+    expect(costOf(a, 'flash', tank(a))).toBe(6);
+    a.mana = 40;
+    expect(costOf(a, 'flash', tank(a))).toBeCloseTo(6 * 0.85, 9);
+    expect(costOf(a, 'poh')).toBe(10);
+  });
+  it('녹슨 수문 열쇠: 해제한 디버프가 이웃에게 옮겨붙으면 옮겨 간 아군 회복', () => {
+    const [a, b] = pair('sluiceKey', 0.4);
+    const go = (f: F) => {
+      hurt(f);
+      const u = withAdj(f), hp = f.party.map(v => v.hp);
+      addDebuff(f, u, { name: '축복 배달', type: '질병', left: 12, end: { p: 'jump', sec: 10, mult: 1.5, boost: 0.05 } });
+      E.use(f, 'purify', u.cell); E.step(f);
+      const to = f.party.find(v => v !== u && v.debuffs.some(d => d.name === '축복 배달'))!;
+      return to.hp - hp[f.party.indexOf(to)];
+    };
+    expect(go(a) - go(b)).toBeCloseTo(0.4 * 300, 4);
+  });
+  it('얼어붙은 깃펜: 내게 디버프가 있는 동안 정신력 +', () => {
+    const [a, b] = pair('frozenQuill', 0.3);
+    const g = (f: F) => { f.mana = 50; const m = f.mana; step(f, 1); return f.mana - m; };
+    expect(ratio(g(a), g(b))).toBeCloseTo(1, 6);
+    both([a, b], f => addDebuff(f, f.me, { name: '먹물', type: '독', left: 30 }));
+    expect(ratio(g(a), g(b))).toBeCloseTo(1.3, 6);
+  });
+  it('장미 브로치: 넘친 치유가 그 힐의 절반을 넘으면 4초 동안 회복량 + (재사용 8초)', () => {
+    const [a, b] = pair('roseBrooch', 0.08); hurt(a); hurt(b);
+    tank(a).hp = tank(a).max;
+    cast(a, 'flash', tank(a));
+    expect(a.sp!.until.roseBrooch).toBeGreaterThan(a.t);
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1.08, 2);
+    step(a, 4); step(b, 4);
+    expect(ratio(amtOn(a, 'flash', dealer(a, 1)), amtOn(b, 'flash', dealer(b, 1)))).toBeCloseTo(1, 6);
+  });
+  it('가주의 인장: 사슬로 묶인 아군 힐 +', () => {
+    const [a, b] = pair('heirSeal', 0.15); both([a, b], f => hurt(f));
+    both([a, b], f => runEffect(f, {} as BossSkill, { p: 'link', kind: 'share', name: '백 년 서약', sec: 20 }));
+    const tied = (f: F) => f.party.find(u => u.debuffs.some(d => d.link))!;
+    const free = (f: F) => f.party.find(u => !u.debuffs.some(d => d.link) && u.role !== 'tank' && !u.me)!;
+    expect(ratio(amtOn(a, 'flash', tied(a)), amtOn(b, 'flash', tied(b)))).toBeCloseTo(1.15, 2);
+    expect(ratio(amtOn(a, 'flash', free(a)), amtOn(b, 'flash', free(b)))).toBeCloseTo(1, 6);
   });
 });
 

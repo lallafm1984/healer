@@ -7,7 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abOnTel } from './abilities';
 import { affChaos } from './affixes';
-import { addsTick, aggroTarget, backTargets, flowNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, backTargets, flowNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import { specBuster, specCut, specTel } from './specials';
@@ -82,7 +82,7 @@ function initTrash(f: Fight): void {
   f.bodyHp = true;
   const scale = f.bossMax / f.enc.hp;
   for (const def of f.enc.mobs!) for (let i = 0; i < def.count; i++) {
-    const m: Mob = { id: f.nextId++, name: def.name, elite: !!def.elite, hp: def.hp * scale, max: def.hp * scale, alive: true };
+    const m: Mob = { id: f.nextId++, name: def.name, elite: !!def.elite, hp: def.hp * scale, max: def.hp * scale, alive: true, down: def.down };
     f.mobs.push(m);
     for (const a of def.attacks) {
       const tel = a.cast > 0, e = a.effect;
@@ -126,7 +126,7 @@ export function initBoss(f: Fight): void {
 
 /** 매 틱 보스 쪽: 페이즈 흐름 → 광폭화 */
 function bossUpdate(f: Fight): void {
-  if (f.enc.script === 'trash') return; // 일반·정예 구간은 광폭화 없음
+  if (f.enc.script === 'trash') { if (f.mobs.some(m => m.down)) trashDown(f); return; } // 일반·정예 구간은 광폭화 없음
   const def = BOSSES[f.enc.script];
   if (def.flow) runFlow(f, def.flow);
   if (def.watch?.from && !f.watch && f.phase === def.watch.from) watchInit(f, def.watch); // 주시가 이 페이즈부터 (심연의 군주 3페이즈)

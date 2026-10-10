@@ -86,6 +86,13 @@ export interface Debuff {
   /** 치유 흡수 (P-ABSORB): 데이터 값 · 남은 막 (보스 피해 배율을 곱한 양) */
   absorb?: number;
   absorbLeft?: number;
+  /** 부풀기 (P-SWELL): every초마다 1중첩 (최대 max). swellT = 다음 중첩까지 모은 시간 */
+  swell?: { every: number; max: number };
+  swellT?: number;
+  /** 치유 상한 (P-CAP): 치유로는 최대 체력 × cap까지만 참 */
+  cap?: number;
+  /** 옮겨붙음 본판 (P-JUMP): 비켜 설지 이미 정함 */
+  stepped?: boolean;
 }
 
 /**
@@ -189,6 +196,8 @@ export interface Unit {
   pulled?: { until: number; cell: number; dmg: number } | null;
   /** 받침 (P-TOWER): 이 시각까지 발판에 머묾 (제자리로 안 돌아감) */
   padUntil?: number;
+  /** 옮겨붙음을 들고 비켜 선 동안 (P-JUMP): 원래 자리로 안 돌아감 */
+  awayUntil?: number;
   /** 헤매는 영혼 (P-SOUL): 파티원이 아닌 영혼 칸 (Fight.souls). 파티 목록에는 없음 */
   soul?: SoulState;
   diedAt: number;
@@ -366,7 +375,9 @@ export type FightEvent =
 /** 기믹 연출 이름 = 그림 fx-<이름> (37 4장 F-1) */
 export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crumble' | 'dizzy' | 'chain-break' | 'soul-purify' | 'splash'
   | 'link-snap' | 'bubble' | 'overflow' | 'fireball-green' | 'hearts' | 'hook' | 'rage' | 'recoil'
-  | 'soak' | 'swap' | 'slow' | 'absorb' | 'cheer';
+  | 'soak' | 'swap' | 'slow' | 'absorb' | 'cheer'
+  /** 묶음 B 새 부품 (46 5장): 부풀기 터짐 · 치유 상한 먹물 · 뒤집힘 금화 */
+  | 'bubble-pop' | 'ink' | 'coin-flip';
 
 export type FightResult = 'win' | 'lose';
 
@@ -457,6 +468,8 @@ export interface Mob {
   alive: boolean;
   /** 능력으로 기절·얼림: 이 시각까지 기술을 안 씀 */
   stun?: number;
+  /** 일반 · 정예 구간 적이 쓰러질 때 (MobDef.down, 먼지 유령). downDone = 이미 했음 */
+  down?: AddDown; downDone?: boolean;
   /** 보스 전투 중에 나온 쫄 (P-ADD): 맡은 사람(on)을 every초마다 때림. 보스 체력 합에는 안 들어감 */
   add?: {
     short: string; on: number; dmg: number; every: number; next: number; down?: AddDown; done?: boolean;

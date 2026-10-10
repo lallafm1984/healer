@@ -11,6 +11,7 @@ export type ContentKind = 'explore' | 'dungeon' | 'raid';
 export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathedral1' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple'
   | 'watchtower' | 'archive' | 'ossuary' | 'sewer'
   | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge'
+  | 'bookfield' | 'rosemaze'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -39,7 +40,6 @@ export interface ContentDef {
   hidden?: boolean;
 }
 
-const none = () => [] as EncounterKey[];
 const three = () => 3;
 const five = () => 5;
 
@@ -79,6 +79,15 @@ export const CONTENT: ContentDef[] = [
     key: 'abyssedge', kind: 'explore', name: '심연 가장자리', place: '심연의 탑 아래 · 심연', stageLv: 33, unlockLv: 33, ready: true, bosses: ['역병 군주'],
     fights: () => DUNGEONS.abyssedge.segments, size: three,
   },
+  // 탐험 ⑨~⑫ (46 1-1, 묶음 B): ⑩ ⑫는 옛 세력 던전 보스를 빌려 다음 던전 예습
+  {
+    key: 'bookfield', kind: 'explore', name: '책갈피 설원', place: '설원 · 마도사', stageLv: 40, unlockLv: 40, ready: true, bosses: ['서고 사서'],
+    fights: () => DUNGEONS.bookfield.segments, size: three,
+  },
+  {
+    key: 'rosemaze', kind: 'explore', name: '장미 울타리 미로', place: '백합 영지 · 귀족가', stageLv: 48, unlockLv: 48, ready: true, bosses: ['백합 여사제'],
+    fights: () => DUNGEONS.rosemaze.segments, size: three,
+  },
   // 던전 ①~⑩ (5인, 5레벨마다). ⑧~⑩은 묶음 B
   {
     key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 5, unlockLv: 5, ready: true,
@@ -108,9 +117,19 @@ export const CONTENT: ContentDef[] = [
     key: 'watchtower', bosses: ['망루 파수꾼', '금 간 공명 수정'], kind: 'dungeon', name: '무너진 망루', place: '해바라기 언덕 · 혼합', stageLv: 35, unlockLv: 35, ready: true,
     fights: () => DUNGEONS.watchtower.segments, size: five,
   },
-  { key: 'sewer', bosses: ['수로 쥐왕', '역병 운반자'], kind: 'dungeon', name: '역병 수로', place: '왕도 지하 · 역병 교단', stageLv: 40, unlockLv: 40, ready: false, fights: none, size: five },
-  { key: 'archive', bosses: ['서고 사서', '얼어붙은 대학자'], kind: 'dungeon', name: '얼음 서고', place: '설원 · 마도사', stageLv: 45, unlockLv: 45, ready: false, fights: none, size: five },
-  { key: 'ossuary', bosses: ['백합 여사제', '잠든 가주'], kind: 'dungeon', name: '백합 납골당', place: '백합 영지 · 귀족가', stageLv: 50, unlockLv: 50, ready: false, fights: none, size: five },
+  // 던전 ⑧~⑩ (46 1-2, 묶음 B): 옛 세력, 보스 2
+  {
+    key: 'sewer', bosses: ['수로 쥐왕', '역병 운반자'], kind: 'dungeon', name: '역병 수로', place: '왕도 지하 · 역병 교단', stageLv: 40, unlockLv: 40, ready: true,
+    fights: () => DUNGEONS.sewer.segments, size: five,
+  },
+  {
+    key: 'archive', bosses: ['서고 사서', '얼어붙은 대학자'], kind: 'dungeon', name: '얼음 서고', place: '설원 · 마도사', stageLv: 45, unlockLv: 45, ready: true,
+    fights: () => DUNGEONS.archive.segments, size: five,
+  },
+  {
+    key: 'ossuary', bosses: ['백합 여사제', '잠든 가주'], kind: 'dungeon', name: '백합 납골당', place: '백합 영지 · 귀족가', stageLv: 50, unlockLv: 50, ready: true,
+    fights: () => DUNGEONS.ossuary.segments, size: five,
+  },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인
     key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 탑 1층', place: '납골당 · 역병 군주', stageLv: 35, unlockLv: 35, ready: true,

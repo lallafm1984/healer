@@ -99,6 +99,23 @@ const ENC_ART: Record<string, string[]> = {
   bonepass: ['mob-risen-bones', 'mob-crypt-rats'],
   censerhall: ['mob-beak-enforcer', 'mob-cult-acolyte', 'mob-risen-bones'],
   choir: ['boss-ghost-choir', 'boss-silent-choir'], // 40: 새 이름 boss-ghost-choir
+  // 묶음 B (그림 요청 47): 그림이 올 때까지 벡터 그림
+  ratking: ['boss-sewer-ratking'],
+  carrier: ['boss-plague-carrier'],
+  librarian: ['boss-archive-librarian'],
+  librarian40: ['boss-archive-librarian'],
+  scholar: ['boss-frozen-scholar'],
+  priestess: ['boss-lily-priestess'],
+  priestess48: ['boss-lily-priestess'],
+  sleeper: ['boss-sleeping-lord'],
+  leakyway: ['mob-risen-bones', 'mob-crypt-rats'],
+  sludgegrate: ['mob-beak-enforcer', 'mob-cult-acolyte', 'mob-risen-bones'],
+  iceread: ['mob-rune-doll', 'mob-apprentice-mage'],
+  forbidden: ['mob-frost-sprite', 'mob-drifting-tome', 'mob-rune-doll'],
+  petalstair: ['mob-empty-armor', 'mob-ghost-maid'],
+  keeperhall: ['mob-ossuary-keeper', 'mob-dust-ghost', 'mob-empty-armor'],
+  pagedrift: ['mob-rune-doll', 'mob-apprentice-mage'],
+  rosetunnel: ['mob-empty-armor', 'mob-veiled-mourner'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {

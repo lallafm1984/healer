@@ -54,7 +54,14 @@ export type DebuffEnd =
    * on: quake = 약한 판 (메아리, 39 3-2): 진동이 울릴 때 이웃 칸 아군 1명 (악몽 nMythic명까지 갈라져)에게 남은 시간 그대로 옮겨붙음.
    * 지우거나 시간이 다 되면 그냥 사라짐 (sec · boost는 안 씀)
    */
-  | { p: 'jump'; sec: number; mult: number; boost: number; on?: 'quake'; nMythic?: number };
+  | { p: 'jump'; sec: number; mult: number; boost: number; on?: 'quake'; nMythic?: number }
+  /**
+   * 부풀기 (P-SWELL, 46 5장): 지우면 이웃 칸 아군에게 중첩 × pop, 지우지 않고 시간이 다 되면 본인 중첩 × self + 이웃 칸 아군 중첩 × near.
+   * 피해는 방어력 파티 기준 (마법). 중첩은 DebuffDef.swell이 쌓음
+   */
+  | { p: 'pop'; pop: number; self: number; near: number }
+  /** 뒤집힘 저주 (P-FLIP, 46 5장): 지우지 않고 시간이 다 되면 체력 비율이 1 − 지금 비율로 (가장 낮아도 min, 기본 5%). 지우면 그냥 사라짐 */
+  | { p: 'flip'; min?: number };
 
 /** 걸 디버프 (02 5-5 해제 유형) */
 export interface DebuffDef {
@@ -103,6 +110,10 @@ export interface DebuffDef {
   over?: number;
   /** 받는 피해 +비율 × 중첩 (가시 · 공허, 탱커 교대 P-SWAP) */
   vuln?: number;
+  /** 부풀기 (P-SWELL): 1중첩으로 걸리고 every초마다 1중첩 (최대 max). 터지는 일은 end pop */
+  swell?: { every: number; max: number };
+  /** 치유 상한 (P-CAP): 걸린 동안 치유로는 체력이 최대 체력 × cap까지만 참 (넘는 몫은 넘친 치유). 이미 더 높으면 깎지 않음 */
+  cap?: number;
   /** 보스를 맞는 탱커에게 이 중첩이 쌓이면 다른 탱커가 보스를 가져감 (탱커 교대 P-SWAP, 05 4-A · 6-A) */
   swap?: number;
   /**
@@ -186,10 +197,11 @@ export type SkillEffect =
   /**
    * n명에게 디버프 (이미 같은 디버프가 있는 사람은 뺌). n = 'all'이면 살아 있는 모두. nMythic = 악몽 인원.
    * pick: random (기본) / lowest = 체력 비율이 가장 낮은 사람부터, 탱커 빼고 (사냥 P-HUNT) / tel = 예고 때 고른 사람 (skill.target, 삼키기) /
-   * others = 탱커 · 나 빼고 무작위 (매혹 · 뒤집힌 축복) / me = 나 (마력 역류) / tank = 보스가 때리는 사람 (서리 손길).
+   * others = 탱커 · 나 빼고 무작위 (매혹 · 뒤집힌 축복) / me = 나 (마력 역류) / tank = 보스가 때리는 사람 (서리 손길) /
+   * linked = 생명 사슬에 묶인 사람 먼저, 모자라면 탱커 · 나 빼고 무작위 (잠꼬대 저주 · 소금물 저주, 46 5장).
    * burstAdjacent = 걸린 둘이 붙어 서 있으면 바로 터짐 (전염)
    */
-  | { p: 'debuff'; n: number | 'all'; nMythic?: number; pick?: 'random' | 'lowest' | 'tel' | 'others' | 'me' | 'tank'; debuff: DebuffDef; burstAdjacent?: boolean }
+  | { p: 'debuff'; n: number | 'all'; nMythic?: number; pick?: 'random' | 'lowest' | 'tel' | 'others' | 'me' | 'tank' | 'linked'; debuff: DebuffDef; burstAdjacent?: boolean }
   /**
    * 최대 체력을 깎는 중첩 디버프 (썩은 숨결 · 썩은 축복 P-HPDOWN): 무작위 n명, 중첩마다 pct, max 중첩, 다시 걸리면 지속이 처음으로.
    * again = 이미 걸린 사람이 있으면 그 확률로 그중에서 고름 (썩은 축복 0.6). 지우면 최대 체력이 돌아옴 (end restoreMax)
@@ -201,8 +213,8 @@ export type SkillEffect =
    * pad = 끌려온 칸에 금빛 받침 (망루 파수꾼, 39 3-1): sec초 끝에 울려 받침 위 사람 dmg, 비어 있으면 (도망 · 쓰러짐) 전원 empty (마법)
    */
   | { p: 'pull'; sec: number; dmg: number; pad?: { dmg: number; empty: number } }
-  /** 사냥 (P-HUNT, 35 4-2 사냥 창): 맞는 순간 체력 비율이 가장 낮은 탱커 아닌 1명에게 dmg (물리, 원거리 기준) */
-  | { p: 'hunt'; dmg: number }
+  /** 사냥 (P-HUNT, 35 4-2 사냥 창): 맞는 순간 체력 비율이 가장 낮은 탱커 아닌 1명 (악몽 nMythic명)에게 dmg (물리, 원거리 기준) */
+  | { p: 'hunt'; dmg: number; nMythic?: number }
   /** 쫄 n마리 (P-ADD). 악몽은 nMythic */
   | { p: 'adds'; n: number; nMythic?: number; add: AddDef }
   /** 무너지는 바닥 (P-HOLE): 가장자리 빈 칸 n개가 끝까지 못 서는 칸이 됨 (전투 전체 max개까지). 빈 칸은 늘 1개 이상 남김 */
@@ -827,6 +839,152 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'quake', sec: 11 }, { p: 'start', skill: 'echo2', in: 2 }, { p: 'text', text: '마지막 울림: 진동이 잦아지고 메아리 2명' },
     ] }],
     enrage: { name: '공명 폭주', period: 2, dmg: 260 },
+  },
+  // ---------- 묶음 B 옛 세력 (46 3장 · 1-1): 던전 ⑧~⑩ 보스 6 · 탐험 ⑩ ⑫ 빌림 2 ----------
+  // 수로 쥐왕 (46 3-1 ①, 던전 ⑧ 역병 수로): 사냥 × 파열 (쥐가 쓰러질 때 쌓인 파열로 모두 낮아진 순간 가장 낮은 사람을 문다). 50% 아래 쥐 4 · 사냥 9초.
+  // 악몽은 사냥이 가장 낮은 둘. 목표 2:45 · 광폭화 3:45
+  ratking: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('꼬리 채찍', '꼬리', 8, 15, U.tank(0.5)),
+      ...([['rats', 3, 1], ['rats2', 4, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '쥐떼 부르기', icon: '쥐떼', kind: 'instant', first: 18, period: 30, cast: 0, when: { phase: [phase] },
+        how: '쥐가 쓰러질 때마다 모두에게 쥐 파열이 쌓임. 쥐가 거의 다 잡힐 때 지속 힐을 미리, 그 뒤 사냥에 물릴 가장 낮은 사람부터',
+        effect: { p: 'adds', n, add: { name: '수로 쥐', short: '쥐', art: 'mob-sewer-rat', hp: 0.015, dmg: U.dps(0.04), every: 2,
+          down: { p: 'burst', debuff: { name: '쥐 파열', type: '질병', left: 4, dot: U.dps(0.01), stackMax: 5 } } } },
+      })),
+      { key: 'hunt', name: '약한 놈 물어!', icon: '사냥', kind: 'instant', first: 12, period: 12, cast: 2, effect: { p: 'hunt', dmg: U.dps(0.35), nMythic: 2 } },
+      { key: 'cap', name: '병뚜껑 던지기', icon: '뚜껑', kind: 'instant', first: 8, period: 20, cast: 2, cut: true,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '병뚜껑', type: '질병', left: 10, dot: U.dps(0.02) } } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'hunt', sec: 9 }, { p: 'text', text: '수로가 넘친다: 쥐 4마리, 사냥이 잦아짐' }] }],
+    enrage: { name: '쥐떼 폭주', period: 2, dmg: 270 },
+  },
+  // 역병 운반자 (46 3-1 ②, 역병 수로 최종): 옮겨붙음 본판 (지우면 옆으로 ×1.5, 두면 보스 +3%) × 걸어오는 쫄 (닿으면 보스 +10%).
+  // 35% 아래 축복 배달 2명. 악몽은 오물 통 2개씩. 목표 3:15 · 광폭화 4:30
+  carrier: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('물통 내려치기', '물통', 8, 16, U.tank(0.55)),
+      ...([['bless', 1, 1, 6], ['bless2', 2, 2, null]] as const).map(([key, n, phase, first]): SkillDef => ({
+        key, name: '축복 배달', icon: '배달', kind: 'instant', first, period: 18, cast: 0, when: { phase: [phase] },
+        how: '지우면 옆 칸 아군에게 옮겨붙어 세지고 (혼자면 사라짐), 두면 끝날 때 보스가 강해짐. 혼자 선 사람일 때 지우기',
+        effect: { p: 'debuff', n, pick: 'others', debuff: { name: '축복 배달', type: '질병', left: 12, dot: U.dps(0.025), end: { p: 'jump', sec: 10, mult: 1.5, boost: 0.03 } } },
+      })),
+      { key: 'barrel', name: '오물 통 굴리기', icon: '오물', kind: 'instant', first: 14, period: 25, cast: 0,
+        how: '뒷줄에서 한 줄씩 굴러옴. 보스에게 닿으면 보스가 끝까지 강해지니 딜러가 잡게 딜러를 살려 두기',
+        effect: { p: 'adds', n: 1, nMythic: 2, add: { name: '오물 통', short: '통', art: 'mob-sludge-barrel', hp: 0.015, dmg: 0, every: 3, at: 'back', job: { p: 'march', every: 3, boost: 0.1 } } } },
+      { key: 'aoe', name: '초록 물 쏟기', icon: '초록', kind: 'aoe', first: 22, period: 28, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.35 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'bless2', in: 2 }, { p: 'text', text: '마지막 배달: 축복 배달 2명' }] }],
+    enrage: { name: '배달 폭주', period: 2, dmg: 270 },
+  },
+  // 서고 사서 (46 3-2 ①, 던전 ⑨ 얼음 서고): 마나 갈취 본판 (책이 살아 있는 동안 마나가 샘) × 차례. 40% 아래 책 3권. 악몽은 차례 4명. 목표 2:50 · 광폭화 4:00
+  librarian: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('두꺼운 사전', '사전', 8, 16, U.tank(0.55)),
+      ...([['books', 2, 1], ['books2', 3, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '마나 먹는 책', icon: '책', kind: 'instant', first: 16, period: 30, cast: 0, when: { phase: [phase] },
+        how: '책이 살아 있는 동안 한 권마다 내 마나가 샘. 딜러가 빨리 잡게 딜러 침묵 (쉿!)부터 지우고, 마나가 바닥나기 전에 물약',
+        effect: { p: 'adds', n, add: { name: '마나 먹는 책', short: '책', art: 'mob-drain-book', hp: 0.015, dmg: 0, every: 2, at: 'random', job: { p: 'drain', pct: 0.4 } } },
+      })),
+      { key: 'order', name: '제자리에 꽂기', icon: '꽂기', kind: 'instant', first: 24, period: 35, cast: 2,
+        how: '번호 순서대로 직접 힐을 한 번씩. 빠른 힐로 짧게 (책이 살아 있으면 마나가 더 아까움)',
+        effect: { p: 'order', n: 3, nMythic: 4, sec: 8, wrong: U.dps(0.2), miss: U.dps(0.25), daze: { sec: 4, vuln: 1.2 } } },
+      { key: 'hush', name: '쉿!', icon: '쉿', kind: 'instant', first: 10, period: 22, cast: 2, cut: true,
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '쉿!', type: '마법', left: 6, noDps: true } } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '마감 시간: 마나 먹는 책 3권' }] }],
+    enrage: { name: '서고 폐관', period: 2, dmg: 270 },
+  },
+  // 얼어붙은 대학자 (46 3-2 ②, 얼음 서고 최종): 역류 × 무너지는 바닥 · 내게 걸린 마법 둘 (역류 · 마나 얼음). 35% 아래 역류 20초. 악몽은 바닥 2곳. 목표 3:20 · 광폭화 4:30
+  scholar: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('얼음 지팡이', '지팡', 8, 16, U.tank(0.55)),
+      { key: 'recoil', name: '강의: 역류', icon: '역류', kind: 'instant', first: 15, period: 30, cast: 0,
+        how: '내 스킬마다 1중첩, 끝날 때 중첩만큼 나에게 피해. 큰 힐 몇 번만, 0~1중첩일 때만 지우기',
+        effect: { p: 'debuff', n: 1, pick: 'me', debuff: { name: '강의: 역류', type: '마법', left: 10, count: true, end: { p: 'stackHit', dmg: U.me(0.07) } } } },
+      { key: 'ice', name: '마나 얼음', icon: '얼음', kind: 'instant', first: 9, period: 24, cast: 0,
+        how: '내 마나가 초당 샘. 역류와 겹치면 마나 얼음을 지움',
+        effect: { p: 'debuff', n: 1, pick: 'me', debuff: { name: '마나 얼음', type: '마법', left: 12, drain: 0.6 } } },
+      ...([['floor', 12, undefined], ['floor2', 12.5, true]] as const).map(([key, first, mythic]): SkillDef => ({
+        key, name: '바닥이 언다', icon: '바닥', kind: 'zone', first, period: 22, cast: 2.5, warn: 'zone', dps: U.dps(0.1), dur: 6, cells: { p: 'around' },
+        when: mythic ? { mythic: true } : undefined, ...(mythic ? { hidden: true } : {}),
+      })),
+      { key: 'crack', name: '얼음 깨짐', icon: '깨짐', kind: 'instant', first: 20.5, period: 22, cast: 0, effect: { p: 'hole', n: 1, max: 6 } }, // 바닥이 언 뒤 가장자리가 구멍
+      { key: 'aoe', name: '눈보라 강의', icon: '눈보', kind: 'aoe', first: 26, period: 26, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.35 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'recoil', sec: 20 }, { p: 'text', text: '마지막 강의: 역류가 잦아짐' }] }],
+    enrage: { name: '강의 폭주', period: 2, dmg: 280 },
+  },
+  // 백합 여사제 (46 3-3 ①, 던전 ⑩ 백합 납골당): 넘치는 빛 그릇형 (일부러 넘치게 → 전원 보호막) · 시든 백합 (받는 치유 −50%). 40% 아래 꽃잎 폭풍 38%.
+  // 악몽은 꽃병 끝 30%. 목표 2:50 · 광폭화 4:00
+  priestess: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('백합 지팡이', '지팡', 8, 16, U.tank(0.5)),
+      ...([['vessel', 0.25, false], ['vessel2', 0.3, true]] as const).map(([key, need, mythic]): SkillDef => ({
+        key, name: '백합 꽃병', icon: '꽃병', kind: 'instant', first: 14, period: 40, cast: 0, when: { mythic },
+        how: '12초 동안 넘친 치유가 꽃병에 모임. 가득 차면 전원 보호막이라 곧 올 꽃잎 폭풍이 가벼움. 광역 힐 · 큰 힐을 일부러 넘치게',
+        effect: { p: 'vessel', name: '백합 꽃병', need, sec: 12, shield: 10 },
+      })),
+      { key: 'storm', name: '꽃잎 폭풍', icon: '폭풍', kind: 'aoe', first: 25, period: 40, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.3), phaseDmg: { 2: U.dps(0.38) } } },
+      { key: 'wilt', name: '시든 백합', icon: '시든', kind: 'instant', first: 8, period: 18, cast: 0,
+        effect: { p: 'debuff', n: 2, debuff: { name: '시든 백합', type: '저주', left: 12, healCut: 0.5 } } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '만개: 꽃잎 폭풍이 세짐' }] }],
+    enrage: { name: '꽃잎 폭주', period: 2, dmg: 280 },
+  },
+  // 잠든 가주 (46 3-3 ②, 백합 납골당 최종): 사슬 나눔형 (한쪽만 힐해도 둘 다 참) × 뒤집힌 축복 (사슬 짝이 뒤집히면 짝에게 하는 힐도 절반이 피해).
+  // 30% 아래 서약 2쌍. 악몽은 잠꼬대 저주 2명. 목표 3:30 · 광폭화 4:45
+  sleeper: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('베개 휘두르기', '베개', 8, 16, U.tank(0.55)),
+      ...([['oath', 1, 10], ['oath2', 2, 10.5]] as const).map(([key, phase, first]): SkillDef => ({
+        key, name: '백 년 서약', icon: '서약', kind: 'instant', first, period: 30, cast: 0, when: phase === 1 ? undefined : { phase: [2] },
+        how: '이어진 둘이 피해 · 치유를 반씩 나눔. 한쪽만 힐해도 둘 다 참',
+        effect: { p: 'link', kind: 'share', name: '백 년 서약', sec: 20 },
+      })),
+      { key: 'murmur', name: '잠꼬대 저주', icon: '잠꼬', kind: 'instant', first: 15, period: 30, cast: 0,
+        how: '받는 치유가 피해로. 사슬 짝에게 먼저 걸려서 짝에게 하는 힐도 절반이 피해. 짝 둘 다 힐을 멈추고 지울 수 있으면 지우기',
+        effect: { p: 'debuff', n: 1, nMythic: 2, pick: 'linked', debuff: { name: '잠꼬대 저주', type: '저주', left: 6, invert: true } } },
+      { key: 'aoe', name: '뒤척임', icon: '뒤척', kind: 'aoe', first: 20, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.24) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '깨어남: 백 년 서약 2쌍' }] }],
+    enrage: { name: '기상', period: 2, dmg: 290 },
+  },
+  // 서고 사서 탐험판 (46 1-1, 탐험 ⑩ 책갈피 설원 Lv 40): 평타 · 두꺼운 사전 · 마나 먹는 책 1권. 마나 갈취 예습 (던전 ⑨). 수치는 던전판의 70%
+  librarian40: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('두꺼운 사전', '사전', 8, 16, 385),
+      { key: 'books', name: '마나 먹는 책', icon: '책', kind: 'instant', first: 14, period: 30, cast: 0,
+        how: '책이 살아 있는 동안 내 마나가 샘. 딜러가 잡을 때까지 마나를 아끼기',
+        effect: { p: 'adds', n: 1, add: { name: '마나 먹는 책', short: '책', art: 'mob-drain-book', hp: 0.03, dmg: 0, every: 2, at: 'random', job: { p: 'drain', pct: 0.3 } } } },
+    ],
+    enrage: { name: '서고 폐관', period: 2, dmg: 190 },
+  },
+  // 백합 여사제 탐험판 (46 1-1, 탐험 ⑫ 장미 울타리 미로 Lv 48): 평타 · 백합 꽃병 (3인 맞춤) · 꽃잎 폭풍. 넘치는 빛 예습 (던전 ⑩)
+  priestess48: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'vessel', name: '백합 꽃병', icon: '꽃병', kind: 'instant', first: 12, period: 36, cast: 0,
+        how: '12초 동안 넘친 치유가 꽃병에 모임. 가득 차면 전원 보호막. 일부러 넘치게 힐하기',
+        effect: { p: 'vessel', name: '백합 꽃병', need: 0.25, sec: 12, shield: 10 } },
+      { key: 'storm', name: '꽃잎 폭풍', icon: '폭풍', kind: 'aoe', first: 23, period: 36, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.21) } },
+    ],
+    enrage: { name: '꽃잎 폭주', period: 2, dmg: 195 },
   },
   // 녹슨 문지기 (05 1장): 40% 아래 녹물 웅덩이
   warden: {
