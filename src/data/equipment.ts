@@ -181,6 +181,11 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   gull1: ['signet'], gull2: ['ring'], gull3: ['robe'],
   queen1: ['scepter'], queen2: ['beads'], queen3: ['hood'],
   isle1: ['staff'], isle2: ['crown'], isle3: ['mace'],
+  // 묶음 C (48 6장): 버섯 요정단은 정신력 · 지능, 용 일가 · 늪은 인내 (+ 가속 반지)
+  lampway: ['hood', 'beads'],
+  teaparty: ['robe', 'vestment', 'pendant'],
+  emberfoot: ['mace', 'gauntlet'],
+  mossroot: ['helm', 'mail', 'signet'],
 };
 export const KIND_WEIGHT = 3;
 

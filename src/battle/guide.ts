@@ -272,15 +272,18 @@ function debuffText(d: DebuffDef, n: (x: number) => number): string {
     d.absorb ? `치유 흡수 <b>${n(d.absorb)}</b> (다 채우면 사라짐)` : '', d.end?.p === 'stackHit' ? `끝나면 중첩 × <b>${n(d.end.dmg)}</b>` : '',
     d.swell ? `${secT(d.swell.every)}마다 1중첩 (최대 ${d.swell.max})` : '',
     d.end?.p === 'pop' ? `지우면 이웃 칸 중첩 × <b>${n(d.end.pop)}</b>, 두면 끝날 때 본인 중첩 × <b>${n(d.end.self)}</b> + 이웃 칸 중첩 × <b>${n(d.end.near)}</b>` : '',
-    d.cap != null ? `체력이 ${pctT(d.cap)}까지만 참` : '', d.end?.p === 'flip' ? '끝날 때 체력 비율이 뒤집힘 (80% → 20%)' : ''].filter(Boolean);
+    d.cap != null ? `체력이 ${pctT(d.cap)}까지만 참` : '', d.end?.p === 'flip' ? '끝날 때 체력 비율이 뒤집힘 (80% → 20%)' : '',
+    d.drop ? `걸릴 때 <b>${n(d.drop)}</b>` : '', d.end?.p === 'pass' ? '지우면 남은 막이 가장 건강한 아군에게 넘어감, 두면 끝날 때 남은 막만큼 피해' : ''].filter(Boolean);
   return `「${d.name}」 (${d.type}, ${secT(d.left)}${fx.length ? ` · ${fx.join(' · ')}` : ''})`;
 }
 /** 디버프 대응: 지울 수 있으면 해제, 아니면 버티기 */
-const debuffHow = (d: DebuffDef) => (d.lock || d.trap ? '' : d.end?.p === 'flip' ? flipHow(d) : d.swell ? swellHow(d) : d.cap != null ? capHow(d)
+const debuffHow = (d: DebuffDef) => (d.lock || d.trap ? '' : d.end?.p === 'flip' ? flipHow(d) : d.swell ? swellHow(d) : d.cap != null ? capHow(d) : d.end?.p === 'pass' ? passHow(d)
   : canDispel(S.hero, d.type) ? `${act('purify', RO)} 지우기` : cantDispel(d.type));
 /** 새 부품 대응 (46 5장): 지울 수 있는지에 따라 */
 const swellHow = (d: DebuffDef) => (canDispel(S.hero, d.type) ? `중첩이 적고 옆에 사람이 적을 때 ${act('purify', RO)} 지우기` : `못 지움. 터지기 전에 본인과 옆 칸 사람을 가득 채우기`);
 const capHow = (d: DebuffDef) => (canDispel(S.hero, d.type) ? `큰 피해 예고가 뜨면 ${act('purify', RO)} 먼저 지우기` : `상한 위로는 힐이 안 들어감. 큰 피해 전에 보호막 · 지속 힐`);
+/** 묶음 C 새 부품 (48 5장) */
+const passHow = (d: DebuffDef) => (canDispel(S.hero, d.type) ? `낮은 사람에게 붙으면 ${act('purify', RO)} 지워 건강한 사람에게 넘기고, 그 사람 몸에서 힐로 녹이기` : `못 지움. 붙은 사람에게 힐을 몰아 막을 녹이기`);
 const flipHow = (d: DebuffDef) => `끝날 때 체력이 높으면 낮아지니 힐을 멈추고, 낮으면 오히려 둠${canDispel(S.hero, d.type) ? `. 높을 때는 ${act('purify', RO)} 지우기` : ''}`;
 /** 기술 효과 → [무엇, 어떻게] */
 function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: ProbeSkill | undefined): [string, string] {
@@ -305,7 +308,11 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
     case 'stagger': return [`${secT(e.sec)} 안에 게이지 채우기: 체력 ${pctT(e.hp)} 이상인 파티원의 딜만 셈`, '딜러 체력을 높게 유지'];
     case 'counter': return [`끊기 능력으로 끊으면 보스 ${secT(e.stun)} 기절, 못 끊으면 앞줄 <b>${n(e.dmg)}</b>`, '앞줄을 미리 채우기'];
     case 'tower': return [`발판 ${e.n}곳: 위 사람 <b>${n(e.dmg)}</b>, 빈 발판마다 전원 <b>${n(e.empty)}</b>`, '발판에 선 사람을 채워 끝까지 세워 두기'];
-    case 'cycle': return [`${e.n}명에게 디버프를 차례로 (${e.debuffs.map(x => x.type).join(' → ')})`, '지울 수 있는 것부터 지우기'];
+    case 'cycle': return e.random
+      ? [`탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : e.n}명에게 셋 중 하나: ${e.debuffs.map(x => debuffText(x, n)).join(' / ')}`, '칸 위 모자를 보고 다르게: 뒤집힘은 힐 멈춤 · 상한은 지우거나 보호막 · 완치는 몰아서 채우기']
+      : [`${e.n}명에게 디버프를 차례로 (${e.debuffs.map(x => x.type).join(' → ')})`, '지울 수 있는 것부터 지우기'];
+    case 'ring': return [`탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : e.n}명 발밑에 고리 ${secT(e.sec)} (안에 있으면 초당 <b>${n(e.dps)}</b>). 안에서 치유를 받으면 한 겹 자람 (최대 ${c.mythic && e.maxMythic != null ? e.maxMythic : e.max}겹)`,
+      '고리 안 사람은 걸어 나올 때까지 힐을 미루기 (위급하면 예외). 광역 힐은 고리를 피해서'];
     case 'soul': return [`빈 칸에 「${e.name}」. ${secT(e.sec)} 안에 단일 힐로 가득 채우면 ${e.win.text}`, `영혼 칸에 ${act('heal', EUL)} 넣기`];
     case 'link': return [`두 사람을 「${e.name}」으로 ${secT(e.sec)} 이음`, e.kind === 'balance' ? '두 사람 체력 비율을 비슷하게' : '둘이 피해 · 치유를 나눔'];
     case 'vessel': return [`「${e.name}」: 넘친 치유를 모아 가득 차면 전원 보호막`, '일부러 넘치게 힐하기'];

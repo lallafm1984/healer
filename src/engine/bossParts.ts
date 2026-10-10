@@ -197,6 +197,11 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
     }
     case 'cycle': {
       // 네 가지 청소약: 쓸 때마다 다음 디버프. each = 한 번에 n명이 하나씩 다른 디버프 (네 가지 메아리)
+      if (e.random) { // 모자 뽑기 (48 5장): 탱커 · 나 아닌 사람마다 목록에서 무작위 하나
+        const free = (x: Unit) => x.role !== 'tank' && !x.me && !e.debuffs.some(d => x.debuffs.some(y => y.name === d.name));
+        for (const u of randomTargets(f, f.mythic && e.nMythic ? e.nMythic : e.n, free)) applyDebuff(f, u, e.debuffs[Math.floor(f.rng() * e.debuffs.length)]);
+        return;
+      }
       const k = (s.st.k as number | undefined) ?? 0;
       s.st.k = k + 1;
       if (e.each) {
@@ -209,6 +214,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       return;
     }
     case 'soul': spawnSoul(f, e); return;
+    case 'ring': spawnRing(f, s, e); return;
     case 'link': linkUp(f, e); return;
     case 'vessel':
       // 넘치는 빛 그릇형 (P-OVER): 끝 = 파티 최대 체력 합 × need
@@ -284,6 +290,19 @@ export function soakGo(f: Fight, tel: Telegraph): void {
       u.padUntil = tel.impact + 0.2; u.homeAt = null;
     }
   }
+}
+
+/** 요정 고리 (P-GROW, 48 5장): 탱커 · 나 아닌 n명이 선 칸 (옮겨 가는 중이면 가는 칸)에 고리 장판. 자라는 일은 core.ts heal (ringFeed) */
+function spawnRing(f: Fight, s: BossSkill, e: Extract<SkillEffect, { p: 'ring' }>): void {
+  const ringed = (u: Unit) => f.zones.some(z => z.ring && z.cells.has(u.moving ? u.moving.to : u.cell));
+  const ts = randomTargets(f, f.mythic && e.nMythic ? e.nMythic : e.n, u => u.role !== 'tank' && !u.me && !ringed(u));
+  const name = s.name ?? '요정 고리', max = f.mythic && e.maxMythic != null ? e.maxMythic : e.max;
+  for (const u of ts) {
+    const c = u.moving ? u.moving.to : u.cell;
+    f.zones.push({ id: f.nextId++, cells: new Set([c]), end: f.t + e.sec, dps: e.dps, ring: { center: c, n: 0, max, every: e.every, at: -Infinity, name } });
+    emit(f, { type: 'fx', name: 'ring-grow', cell: c });
+  }
+  if (ts.length) emit(f, { type: 'msg', text: `${name}: ${ts.map(u => u.nick).join(' · ')} 발밑에 고리. 안에서 치유를 받으면 자람` });
 }
 
 /** 헤매는 영혼 (P-SOUL): 빈 칸 하나에 영혼 칸. 파티원이 아니라 Fight.souls에만 있고, 칸 탭으로 단일 힐을 받음. 빈 칸은 1개 이상 남김 */
@@ -618,6 +637,7 @@ export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
   if (d.untilBossLoss != null) d.bossAt = f.bossHp;
   if (d.absorb) { d.absorbLeft = d.absorb * f.dmgMult; emit(f, { type: 'fx', name: 'absorb', on: u.id }); } // 치유 흡수 막 (P-ABSORB)
   if (d.cap != null) emit(f, { type: 'fx', name: 'ink-splat', on: u.id }); // 치유 상한 (P-CAP, 그림 47 E)
+  if (def.drop) damage(f, u, def.drop, true); // 걸릴 때 한 번 (춤바람 · 완치 모자: 가득 찬 사람도 바로 안 풀림)
   return d;
 }
 
@@ -921,7 +941,8 @@ export function zoneCells(f: Fight, s: BossSkill, z: ZoneCells): Set<number> {
       // 안전 칸 n개: edge = 가운데에서 먼 칸부터, center = 가까운 칸부터 (+ 탱커 칸). 나머지가 맞는 칸
       const open = f.cells.filter(c => !c.block);
       const n = f.mythic && z.nMythic ? z.nMythic : z.n;
-      const order = open.slice().sort((a, b) => (z.at === 'edge' ? fromMid(f, b) - fromMid(f, a) : fromMid(f, a) - fromMid(f, b)));
+      const ringed = new Set(f.zones.flatMap(x => (x.ring ? [...x.cells] : []))); // 요정 고리 칸은 안전 칸이 아님 (48 축제 대장 퐁가)
+      const order = open.filter(c => !ringed.has(c.i)).sort((a, b) => (z.at === 'edge' ? fromMid(f, b) - fromMid(f, a) : fromMid(f, a) - fromMid(f, b)));
       const safe = new Set(order.slice(0, n).map(c => c.i));
       if (z.tank) { const tk = aggroTarget(f); if (tk) safe.add(tk.moving ? tk.moving.to : tk.cell); }
       return new Set(open.filter(c => !safe.has(c.i)).map(c => c.i));

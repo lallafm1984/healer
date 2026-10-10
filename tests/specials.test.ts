@@ -55,14 +55,14 @@ const absorb = (u: U) => u.mods.find(m => m.k === 'absorb')?.v ?? 0;
 const healOn = (f: F, id: number) => { for (const e of f.events) if (e.type === 'heal' && e.id === id) return e.amt; return 0; };
 
 describe('데이터', () => {
-  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 27개 (묶음 B 옛 세력 +5 · 해적단 +5)', () => {
+  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 31개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C1 +4)', () => {
     expect(SPEC_KEYS.length).toBe(118);
     expect(new Set(SPEC_KEYS).size).toBe(118);
     const by = (g: string) => SPEC_KEYS.filter(k => SPECS[k].group === g).length;
     expect(Object.keys(SPEC_GROUPS).map(by)).toEqual([16, 16, 14, 12, 10, 8, 10, 8, 24]);
     expect(SPEC_KEYS.filter(k => SPECS[k].hero).length).toBe(24);
-    expect(NAMED.length).toBe(27);
-    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(145);
+    expect(NAMED.length).toBe(31);
+    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(149);
   });
   it('직업 전용은 영웅 이상, 효과 글에 값이 들어감', () => {
     for (const k of SPEC_KEYS) {
@@ -977,6 +977,39 @@ describe('3 이름 있는 장신구', () => {
     expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1, 6);
     both([a, b], f => { hurt(f); addDebuff(f, tank(f), { name: '삼킴', type: '물리', left: 0.5, hide: true }); step(f, 1); });
     expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1, 6);
+  });
+  // 묶음 C (48 6장)
+  it('꼬마등 유리병: 지울 때 대상이 50% 아래면 그 아군에게 보호막, 위면 없음 (재사용 12초)', () => {
+    const [a] = pair('lampGlass', 0.25);
+    const u = dealer(a);
+    u.hp = u.max * 0.8;
+    addDebuff(a, u, { name: '보통', type: '마법', left: 30 });
+    cast(a, 'purify', u);
+    expect(absorb(u)).toBe(0);
+    step(a, 8.1);
+    u.hp = u.max * 0.4;
+    addDebuff(a, u, { name: '보통', type: '마법', left: 30 });
+    cast(a, 'purify', u);
+    expect(absorb(u)).toBeCloseTo(0.25 * 300, 4);
+  });
+  it('이 빠진 찻잔: 치유 흡수 막이 걸린 아군 힐 +', () => {
+    const [a, b] = pair('chippedCup', 0.2); both([a, b], f => hurt(f));
+    expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1, 6);
+    both([a, b], f => { const d = addDebuff(f, tank(f), { name: '포자 솜뭉치', type: '질병', left: 30 }); d.absorbLeft = 1e6; });
+    expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1.2, 2);
+  });
+  it('용 비늘 조각: 독이 걸린 아군 힐 +', () => {
+    const [a, b] = pair('dragonScale', 0.12); both([a, b], f => hurt(f));
+    both([a, b], f => addDebuff(f, tank(f), { name: '저주', type: '저주', left: 30 }));
+    expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1, 6);
+    both([a, b], f => addDebuff(f, dealer(f), { name: '독 연기', type: '독', left: 30 }));
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1.12, 2);
+  });
+  it('거북 등딱지 부적: 내 마나 30% 아래에서 내가 받는 피해 −', () => {
+    const [a, b] = pair('turtleCharm', 0.15);
+    const lost = (f: F, mana: number) => { f.mana = mana; f.me.hp = f.me.max; damage(f, f.me, 100, false, 'fixed'); return f.me.max - f.me.hp; };
+    expect(ratio(lost(a, 50), lost(b, 50))).toBeCloseTo(1, 6);
+    expect(ratio(lost(a, 20), lost(b, 20))).toBeCloseTo(0.85, 6);
   });
 });
 

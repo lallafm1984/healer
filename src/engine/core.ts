@@ -60,6 +60,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   if (f.bless && f.t < f.bless.until) amt *= f.bless.heal; // 영혼 축복 (P-SOUL): 받는 치유 증가
   if (u.mods.length) amt *= healMods(f, u); // 광란 (받는 치유 +30%), 얼음 방패 (치유 없음)
   if (f.aff) amt *= affHeal(f); // 메마름 (받는 치유 -20%)
+  if (f.zones.length) ringFeed(f, u); // 요정 고리 (P-GROW): 안에서 치유를 받으면 자람
   if (u.debuffs.length) {
     const ch = u.debuffs.find(d => d.charm);
     if (ch) ch.left += ch.charm!.heal; // 매혹 (P-CHARM): 힐하면 지배가 길어짐
@@ -93,6 +94,19 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   }
   if (f.sp && !raw) afterHeal(f, u, amt, eff, crit, direct, hp0);
   return eff;
+}
+
+/** 요정 고리 (P-GROW, 48 5장): 고리 안에 선 사람이 치유를 받으면 한 겹 자람 (둘레 1칸씩, every초에 한 번, 최대 max겹) */
+function ringFeed(f: Fight, u: Unit): void {
+  for (const z of f.zones) {
+    const r = z.ring;
+    if (!r || r.n >= r.max || !z.cells.has(u.cell) || f.t + 1e-9 < r.at + r.every) continue;
+    r.n++; r.at = f.t;
+    const c0 = f.cells[r.center];
+    z.cells = new Set(f.cells.filter(c => c.block !== 'hole' && hexDist(c, c0) <= r.n).map(c => c.i));
+    emit(f, { type: 'fx', name: 'ring-grow', cell: r.center });
+    emit(f, { type: 'msg', text: `${r.name}: ${u.nick}이(가) 안에서 치유를 받아 한 겹 자람 (${r.n}겹)` });
+  }
 }
 
 /** 치유로 채울 수 있는 끝: 최대 체력, 치유 상한 (P-CAP)이 걸려 있으면 최대 체력 × cap (여럿이면 가장 낮은 것) */
@@ -328,6 +342,24 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       u.hp = u.max * r;
       emit(f, { type: 'fx', name: 'coin-flip', on: u.id });
       emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 체력 ${Math.round(r * 100)}%로 뒤집힘` });
+      return;
+    }
+    case 'pass': {
+      // 넘어가는 포자 (P-PASS, 48 5장): 지우면 남은 막이 체력 비율이 가장 높은 다른 아군에게 (시간 처음부터), 두면 남은 막만큼 피해
+      const left = d.absorbLeft ?? 0;
+      if (left <= 1e-6) return;
+      if (!dispelled) {
+        emit(f, { type: 'fx', name: 'splash', on: u.id });
+        emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 시간 끝, 남은 막만큼 피해` });
+        damage(f, u, left / f.dmgMult, true);
+        return;
+      }
+      const v = living(f).filter(x => x !== u && !x.debuffs.some(y => y.name === d.name)).sort((a, b) => b.hp / b.max - a.hp / a.max)[0];
+      if (!v) { emit(f, { type: 'msg', text: `${d.name}: 넘어갈 사람이 없어 사라짐` }); return; }
+      const { id: _id, ...rest } = d;
+      addDebuff(f, v, { ...rest, left: e.sec, absorbLeft: left });
+      emit(f, { type: 'fx', name: 'spore-pass', on: u.id, to: v.id });
+      emit(f, { type: 'msg', text: `${d.name}이(가) ${v.nick}에게 넘어감` });
       return;
     }
     case 'stackHit': {

@@ -93,6 +93,8 @@ export interface Debuff {
   cap?: number;
   /** 옮겨붙음 본판 (P-JUMP): 비켜 설지 이미 정함 */
   stepped?: boolean;
+  /** 칸 위 그림 (모자 뽑기, data/bosses.ts DebuffDef) */
+  art?: string;
 }
 
 /**
@@ -335,6 +337,8 @@ export interface Zone {
   cells: Set<number>;
   end: number;
   dps: number;
+  /** 요정 고리 (P-GROW, 48 5장): 가운데 칸 · 자란 겹 수 · 최대 겹 · 자라는 간격 · 마지막으로 자란 시각 · 기술 이름 */
+  ring?: { center: number; n: number; max: number; every: number; at: number; name: string };
 }
 
 export type FightEvent =
@@ -377,7 +381,9 @@ export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crum
   | 'link-snap' | 'bubble' | 'overflow' | 'fireball-green' | 'hearts' | 'hook' | 'rage' | 'recoil'
   | 'soak' | 'swap' | 'slow' | 'absorb' | 'cheer'
   /** 묶음 B 새 부품 (46 5장, 그림 37 G · 47 E): 부풀기 지워서 퐁 · 치유 상한 먹물 · 뒤집힘 금화. 두어서 터지면 explode */
-  | 'swell-pop' | 'ink-splat' | 'coin-flip';
+  | 'swell-pop' | 'ink-splat' | 'coin-flip'
+  /** 묶음 C 새 부품 (48 5장, 그림 49): 요정 고리가 깔리거나 자람 · 넘어가는 포자가 날아감 */
+  | 'ring-grow' | 'spore-pass';
 
 export type FightResult = 'win' | 'lose';
 
