@@ -28,6 +28,8 @@ const RING = 0xf29cb7, RING_HI = 0xd9577f;
 const MELT = 0xff8a3d;
 /** 모래시계 되돌림 선 (모래 왕국 금모래, 54 0장) */
 const SAND = 0xe9c46a;
+/** 묶음 F (56 5장): 띄워 올리기 하늘색 · 연쇄 번개 노랑 */
+const SKY = 0x9fd8f5, BOLT = 0xffe066;
 const C = {
   cell: 0x15120e, cellLine: 0x2c241b, line: 0x080605, ink: 0xf1e4c8, dead: 0x8a7f6a, gold: 0xf0c46a, white: 0xffffff,
   zone: 0xe2402e, zoneHi: 0xff6a4a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0xffe08a, over: 0xa99a7e,
@@ -709,6 +711,12 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   sandstorm: { size: 3.2, color: 0xe9c46a, ms: 900, wide: true },
   yawn: { size: 1.0, color: 0xf4e3b5, ms: 700, up: 0.5 },
   heartbeat: { size: 3.2, color: 0xa66bff, ms: 800, wide: true },
+  // 묶음 F (56 5장, 그림 57 E): 회오리가 띄워 올림 · 구름에서 내려앉음 · 번개가 하늘에서 떨어짐 · 이웃으로 튐 (그림이 없으면 번개 줄) · 피뢰침에서 땅으로
+  'lift-swirl': { size: 1.8, color: SKY, ms: 700, up: 0.3 },
+  'land-puff': { size: 1.6, color: 0xf2f7ff, ms: 500 },
+  'chain-strike': { size: 0.9, color: BOLT, ms: 300, fly: true, top: true },
+  'chain-bolt': { size: 0.8, color: BOLT, ms: 350, fly: true },
+  'chain-rod': { size: 1.4, color: BOLT, ms: 500 },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();
@@ -859,6 +867,7 @@ function artFx(F: NonNullable<typeof B.F>, e: Fx, now: number, r: number, s: num
   if (look.fly) {
     const from = look.top ? { x: p.x, y: L.top } : p, to = look.top ? p : e.to != null ? fxPos(F, e.to) : null;
     if (!to) return;
+    if (e.name!.startsWith('chain-') && !artTexture(look.art ?? `fx-${e.name}`)) { bolt(from, to, Math.max(2, s * 0.07), 1 - k, `${key}-bolt`); return; } // 연쇄 번개 줄 (그림 57이 오기 전)
     const kk = k * k * (3 - 2 * k);
     rot = Math.atan2(to.y - from.y, to.x - from.x);
     p = { x: from.x + (to.x - from.x) * kk, y: from.y + (to.y - from.y) * kk };
@@ -880,6 +889,16 @@ function artFx(F: NonNullable<typeof B.F>, e: Fx, now: number, r: number, s: num
   glow(p.x, p.y, size, color, 0.45 * alpha, `${key}-glow`);
   const w = Math.max(2, s * 0.07) * (1 - k);
   if (w > 0.2) fxG.circle(p.x, p.y, ringRadius(key, 'circle', p.x, p.y, size * 0.42, w, 'fx')).stroke({ width: w, color, alpha });
+}
+
+/** 번개 줄 (연쇄 번개, 56 5장 화면): 두 점 사이 지그재그 노란 선 */
+function bolt(a: { x: number; y: number }, b: { x: number; y: number }, width: number, alpha: number, key: string): void {
+  if (alpha <= 0) return;
+  const n = 6, dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+  fxG.moveTo(a.x, a.y);
+  for (let i = 1; i < n; i++) { const j = (i % 2 ? 1 : -1) * len * 0.07; fxG.lineTo(a.x + (dx * i) / n + nx * j, a.y + (dy * i) / n + ny * j); }
+  fxG.lineTo(b.x, b.y).stroke({ width, color: BOLT, alpha, cap: 'round', join: 'round' });
+  recordBound(key, 'fx', 'line', (a.x + b.x) / 2, (a.y + b.y) / 2, Math.abs(dx) + width, Math.abs(dy) + width);
 }
 
 // ---------- 한 프레임 ----------
@@ -973,6 +992,13 @@ export function render(now: number): void {
     F.cells.forEach((c, i) => { if (hexDist(c, c0) === 1) { const p = center(i); dashPoly(cellsG, hexPts(p.x, p.y, r * 0.98), 3, 4, 2.5, hex(DEB['질병'])); } });
   }
 
+  // 연쇄 번개 예고 (56 5장 화면): 번개 구름 옆 칸 테두리가 옅게 번쩍 (튈 수 있는 곳)
+  for (const tl of F.tels) if (tl.skill.chain && !tl.fake) for (const id of tl.units) {
+    const v = F.party.find(x => x.id === id);
+    if (!v?.alive) continue;
+    const c0 = F.cells[v.cell];
+    F.cells.forEach((c, i) => { if (hexDist(c, c0) === 1 && !c.block) { const p = center(i); dashPoly(cellsG, hexPts(p.x, p.y, r * 0.96), 5, 4, Math.max(2, s * 0.05), BOLT, 0.25 + 0.45 * pulse); } });
+  }
   // 파티원
   const busterIds = new Set<number>(); for (const tl of F.tels) if (tl.kind === 'buster') tl.units.forEach(id => busterIds.add(id));
   const castTarget = F.cast ? F.cast.uid : -1;
@@ -987,6 +1013,11 @@ export function render(now: number): void {
       continue;
     }
     let { x, y } = unitPos(u);
+    // 띄워 올리기 (56 5장 화면): 칸에는 그림자, 카드는 위로 떠올라 구름 위에
+    if (u.lift) {
+      cellsG.ellipse(x, y + r * 0.55, r * 0.55, r * 0.17).fill({ color: 0x000000, alpha: 0.28 });
+      y -= r * (0.3 + (S.reducedEffects ? 0 : 0.05 * Math.sin(t * 3)));
+    }
     if (!S.reducedEffects && F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) x += Math.sin(t * 70) * s * 0.07;
     if (!S.reducedEffects && u.fleeing) x += Math.sin(t * 40) * s * 0.03;
     const shk = (now - (B2.shake[u.id] ?? -1e9)) / 400;
@@ -1073,6 +1104,11 @@ export function render(now: number): void {
       hexPoly(unitsG, x, y, r).stroke({ width: bw, color: low ? C.danger : C.line });
       hexPoly(unitsG, x, y, r - bw * 0.85).stroke({ width: Math.max(1.2, s * 0.035), color: low ? C.line : u.role === 'healer' ? C.frame : C.bronze });
       hexFrame(u.id, x, y, r, bw);
+    }
+    if (u.lift) { // 떠 있는 구름 (그림 57 E가 오면 fx-cloud-ride)
+      const ct = artTexture('fx-cloud-ride');
+      if (ct) fxArt.put(ct, x, y + r * 0.8, r * 1.9, r * 0.95);
+      else for (const [dx, dy, k] of [[-0.5, 0.88, 0.3], [0, 0.8, 0.38], [0.5, 0.88, 0.3]]) unitsG.circle(x + dx * r, y + dy * r, r * k).fill({ color: 0xf6fbff, alpha: 0.92 });
     }
     over.push({ u, x, y, deb: undefined });
   }
@@ -1371,6 +1407,16 @@ export function render(now: number): void {
       const dmg = Math.round(bd * F.dmgMult * sh), lethal = dmg >= u.hp + (u.guardian > 0 ? 1e9 : 0);
       pill(overG, labels, `bus${u.id}`, x, y + r * 0.2, `${bt.skill.greed != null ? '금화 ' : ''}-${dmg}`, lethal ? C.danger : bt.skill.greed != null ? C.gold : 0xffb25b, C.dark, fs(0.3, 11));
     }
+    // 띄워 올리기 · 연쇄 번개 예고 (56 5장 화면): 칸 아래 회오리 · 위 번개 구름 + 남은 초
+    const lc = F.tels.find(tl => (tl.skill.lift || tl.skill.chain) && !tl.fake && tl.units.includes(u.id));
+    if (lc) {
+      const col = lc.skill.lift ? SKY : BOLT, left = Math.max(0, Math.ceil(lc.impact - F.t));
+      const gt = artTexture(lc.skill.lift ? 'fx-lift-warn' : 'fx-chain-cloud');
+      if (gt) fxArt.put(gt, x, lc.skill.lift ? y + r * 0.55 : y - r * 0.75, r * 1.3, r * 0.9, 0.75 + 0.25 * pulse);
+      else if (lc.skill.lift) dashCircle(overG, x, y + r * 0.5, r * 0.5, 5, 4, Math.max(2, s * 0.06), col, 0.6 + 0.4 * pulse);
+      else overG.ellipse(x, y - r * 0.8, r * 0.42, r * 0.18).fill({ color: 0x4a4e66, alpha: 0.85 }).stroke({ width: 2, color: col, alpha: 0.6 + 0.4 * pulse });
+      pill(overG, labels, `lc${u.id}`, x, y + r * 0.2, `${lc.skill.lift ? '돌풍' : '번개'} ${left}`, col, C.dark, fs(0.26, 11));
+    }
     if (busterIds.has(u.id)) {
       // 중앙 십자선은 이름과 HP를 지나지 않는다. 상단 타깃 표식과 바깥 위험 링으로 예고한다.
       const mark = ringRadius(`buster${u.id}`, 'hex', x, y, r * 1.02, 3);
@@ -1386,7 +1432,7 @@ export function render(now: number): void {
     else if (u.debuffs.some(d => d.invert)) { const m = markAt('✕', fs(0.28, 11)); pill(overG, labels, `inv${u.id}`, m.x, m.y, '✕', 0x7fa88c, C.dark, fs(0.28, 11)); }
     if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
     else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
-    const st = u.bulwark > 0 ? ([`버팀 ${Math.ceil(u.bulwark)}`, '#F0C46A'] as const) : u.pulled ? ([`끌림 ${Math.ceil(u.pulled.until - F.t)}`, '#C98B5A'] as const) : u.fleeing ? (['도망', '#DB9B57'] as const) : u.sulking ? (['삐짐', '#D68FA6'] as const) : null;
+    const st = u.lift ? ([`하늘 ${Math.max(0, Math.ceil(u.lift.until - F.t))}`, '#9FD8F5'] as const) : u.bulwark > 0 ? ([`버팀 ${Math.ceil(u.bulwark)}`, '#F0C46A'] as const) : u.pulled ? ([`끌림 ${Math.ceil(u.pulled.until - F.t)}`, '#C98B5A'] as const) : u.fleeing ? (['도망', '#DB9B57'] as const) : u.sulking ? (['삐짐', '#D68FA6'] as const) : null;
     if (st && s >= 40) pill(overG, labels, `st${u.id}`, x, y + r * 0.95, st[0], hex(st[1]), C.dark, fs(0.18, 9));
     else if (st) hexPoly(overG, x, y, ringRadius(`status${u.id}`, 'hex', x, y, r * 0.95, 3)).stroke({ width: 3, color: hex(st[1]), alpha: 0.5 + 0.5 * pulse });
   }

@@ -295,6 +295,11 @@ export const NAMED: NamedDef[] = [
   { key: 'echoDrop', name: '되울림의 물방울', slot: 'neck', place: 'reservoir3', placeName: '별빛 저수지 거울호수', text: '신기루가 걷히거나 모래시계가 되돌릴 때 가장 낮은 아군 2명 지능 {v} 회복', val: 0.5, unit: 'pct' },
   { key: 'pinwheelPin', name: '바람개비 핀', slot: 'ring', place: 'pinwheel', placeName: '바람개비 언덕', text: '끌려온 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
   { key: 'starMap', name: '별 지도 조각', slot: 'neck', place: 'observatory', placeName: '해시계 천문대', text: '파티원이 보스 시전을 끊은 뒤 6초 동안 파티 받는 피해 −{v}', val: 0.08, unit: 'pct' },
+  // 묶음 F1 (56 6장, 이름 임시 · 그림 57): 20인 ⑤ 마지막 칸 · 10인 ⑬ 마지막 칸 · 탐험 ㉑ · 던전 ⑰
+  { key: 'breathFlask', name: '후우의 숨결 병', slot: 'neck', place: 'well3', placeName: '숨결 우물 바닥', text: '넘치는 빛 그릇에 모이는 넘친 치유 +{v}', val: 0.25, unit: 'pct' },
+  { key: 'postStamp', name: '부리부리의 우표', slot: 'neck', place: 'post3', placeName: '구름 우체국 옥상', text: '띄워 올려진 아군이 내려올 때 지능 {v} 보호막 (6초)', val: 0.4, unit: 'pct' },
+  { key: 'fleeceRing', name: '복슬 양털 반지', slot: 'ring', place: 'ranch', placeName: '구름 양 목장', text: '번개 구름이 뜬 아군의 이웃에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
+  { key: 'millVane', name: '풍차 날개 조각', slot: 'ring', place: 'windmill', placeName: '천둥 풍차', text: '떠 있는 아군이 받는 지속 힐 +{v}', val: 0.2, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -435,6 +440,16 @@ export const FEATURED: Record<string, readonly string[]> = {
   reservoir3: ['clearEye', 'starVeil', 'constellation'],
   pinwheel: ['windStep', 'curseBreak', 'spellWard'],
   observatory: ['cutBeat', 'starClock', 'holdTogether'],
+  // 묶음 F1 (56 6장): 20인 ⑤ 도르래 (차례 × 진동) / 이끼벽 (치유 상한 × 완치 표식 · 질병) / 바닥 (넘치는 빛 그릇 · 페이즈),
+  // 10인 ⑬ 접수대 (띄워 올리기 · 저주) / 분류실 (띄워 올리기 × 나눔 사슬) / 옥상 (받침 × 띄워 올리기 · 페이즈), 구름 양 목장 (연쇄 번개 · 마법), 천둥 풍차 (연쇄 번개 × 띄워 올리기 · 저주)
+  well1: ['numberSense', 'quickAid', 'pouch'],
+  well2: ['cleanHands', 'holdingHand', 'brushOff'],
+  well3: ['bubble', 'overflowKind', 'sunrise'],
+  post1: ['lingerLight', 'curseBreak', 'drumbeat'],
+  post2: ['layer', 'holdTogether', 'lingerLight'],
+  post3: ['shelterMap', 'sunrise', 'guardFeather'],
+  ranch: ['quickAid', 'spellWard', 'bubble'],
+  windmill: ['curseBreak', 'lingerLight', 'quickAid'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

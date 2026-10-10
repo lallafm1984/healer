@@ -211,6 +211,19 @@ const ENC_ART: Record<string, string[]> = {
   windtrash: ['mob-harpy-spear', 'mob-storm-seer'],
   startrash: ['mob-stone-monk', 'mob-attic-bats'],
   sundialyard: ['mob-stone-giant', 'mob-lost-pilgrim', 'mob-stone-monk'],
+  // 묶음 F1 (그림 요청 57). 10인 휘리릭은 키운 판이 오기 전까지 탐험 ⑳ 그림, 탐험 ㉑ 복슬이는 던전 ⑰ 그림을 같이 씀
+  chulleong: ['boss-well-bucket'],
+  puseok: ['boss-moss-keeper'],
+  huu: ['boss-heart-breath'],
+  hwirik83: ['boss-harpy-courier-raid', 'boss-harpy-courier'],
+  kkongkkong: ['boss-parcel-fairy'],
+  buri: ['boss-postmaster-harpy'],
+  boksul84: ['boss-thunder-sheep'],
+  boksul: ['boss-thunder-sheep'],
+  dolgae: ['boss-mill-harpy'],
+  sheeptrash: ['mob-harpy-spear', 'mob-wind-sprite'],
+  millstairs: ['mob-harpy-spear', 'mob-wind-sprite'],
+  millhouse: ['mob-thunder-ram', 'mob-storm-seer', 'mob-harpy-spear'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {

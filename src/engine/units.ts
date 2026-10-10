@@ -2,10 +2,10 @@ import { aimMult, rageMult } from '../data/classes';
 import { hexDist } from './board';
 import { BARK, DRUID_BIG } from '../data/heroConst';
 import { SKILLS } from '../data/skills';
-import { bark, cellOf, damage, DT, emit, hasAbsorb, heal, hpLineTick, onDebuffEnd } from './core';
+import { bark, cellOf, damage, DT, emit, hasAbsorb, heal, hpLineTick, linger, onDebuffEnd } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
 import { calmHymn, renewEnd } from './talents';
-import { charmTick, pullTick } from './bossParts';
+import { charmTick, land, pullTick } from './bossParts';
 import { abFear, dpsMods, hasMod } from './abilities';
 import { dotSpec, dpsSpec, hotDone, shieldGone, sv, under } from './specials';
 import { barkCut } from './heroes';
@@ -18,7 +18,7 @@ const awayFrom = (d: Debuff): boolean => !!d.swell || (d.end?.p === 'jump' && d.
  * 비켜 서기: 사교형은 그대로, 눈치 (회피율)에 따라 놓침. 옆에 아무도 없는 안전한 칸 중 가장 가까운 곳, 디버프가 끝날 때까지 머묾.
  * 작은 판 (5인 10칸)에서 그런 칸이 없으면 옆 사람이 지금보다 적은 칸 중 가장 적은 곳 (2026-10-10)
  */
-function stepAway(f: Fight, u: Unit, sec: number): boolean {
+export function stepAway(f: Fight, u: Unit, sec: number): boolean {
   for (const d of u.debuffs) if (awayFrom(d)) d.stepped = true;
   if ((u.p.dist ?? 0) > 0 || f.rng() >= dodgeRate(f, u)) return false;
   if (!f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1)) return false;
@@ -54,6 +54,25 @@ export function unitTick(f: Fight, u: Unit): void {
   const dt = DT;
   if (u.flash > 0) u.flash -= dt;
   if (!u.alive) return;
+  if (u.lift) { // 띄워 올리기 (P-LIFT, 56 5장): 하늘에서는 붙어 있던 지속 힐 · 지속 피해만 돌고, 시간이 되면 내려옴
+    linger(() => carried(f, u, dt));
+    if (u.alive && u.lift && f.t + 1e-9 >= u.lift.until) land(f, u);
+    return;
+  }
+  if (!carried(f, u, dt)) return;
+  for (const z of f.zones) if (z.cells.has(u.cell) && !(u.debuffs.length && u.debuffs.some(d => d.hide))) damage(f, u, z.dps * dt, true);
+  if (!u.alive) return;
+  if (u.moving) { u.moving.left -= dt; if (u.moving.left <= 0) finishMove(f, u); }
+  if (u.pulled) pullTick(f, u);
+  if (u.debuffs.length && u.debuffs.some(d => d.noMove)) return; // 얼림·삼킴: 제자리
+  if (u.mods.length && hasMod(u, 'stop')) return; // 붕대 감기·명상·얼음 방패: 멈춤
+  if (u.react && f.t >= u.react.at && !u.moving) doReact(f, u);
+  if (f.k % 4 !== 0 || u.moving || u.react) return;
+  think(f, u);
+}
+
+/** 붙어 있는 것 한 틱: 지속 힐 · 보호 효과 시간 · 디버프 (지속 피해 · 끝남). 그 사이 쓰러지면 false */
+function carried(f: Fight, u: Unit, dt: number): boolean {
   if (u.hot > 0) {
     u.hot -= dt; u.hotTick += dt;
     if (u.hotTick >= 3 - 1e-9) { u.hotTick -= 3; if (f.sp) under('renew', true, () => heal(f, u, 80 * (1 + sv(f, 'quickRenew')), false)); else heal(f, u, 80, false); } // 짙은 소생 (42 사제 04)
@@ -90,18 +109,14 @@ export function unitTick(f: Fight, u: Unit): void {
       damage(f, u, x, true);
       if (d.feed && !f.over) f.bossHp = Math.min(f.bossMax, f.bossHp + Math.max(0, hp0 - u.hp) * d.feed); // 젊음의 갈망: 빨아들인 만큼 보스 회복
     }
-    if (!u.alive) return;
+    if (!u.alive) return false;
     if (d.left <= 0) { u.debuffs = u.debuffs.filter(x => x !== d); onDebuffEnd(f, u, d, false); }
   }
-  if (!u.alive) return;
-  for (const z of f.zones) if (z.cells.has(u.cell) && !(u.debuffs.length && u.debuffs.some(d => d.hide))) damage(f, u, z.dps * dt, true);
-  if (!u.alive) return;
-  if (u.moving) { u.moving.left -= dt; if (u.moving.left <= 0) finishMove(f, u); }
-  if (u.pulled) pullTick(f, u);
-  if (u.debuffs.length && u.debuffs.some(d => d.noMove)) return; // 얼림·삼킴: 제자리
-  if (u.mods.length && hasMod(u, 'stop')) return; // 붕대 감기·명상·얼음 방패: 멈춤
-  if (u.react && f.t >= u.react.at && !u.moving) doReact(f, u);
-  if (f.k % 4 !== 0 || u.moving || u.react) return;
+  return u.alive;
+}
+
+/** 0.2초마다 판단: 장판 피하기 · 도망 · 비켜 서기 · 제자리로 · 삐짐 (04 4장) */
+function think(f: Fight, u: Unit): void {
   const inZone = f.zones.find(z => z.cells.has(u.cell));
   if (inZone && u.ignoreZone !== inZone.id && f.t >= u.retryAt) {
     if (u.p.stubborn && inZone.dps * 2 * f.dmgMult < u.p.stubborn * u.max) { u.ignoreZone = inZone.id; }
@@ -202,7 +217,7 @@ export function partyDps(f: Fight): number {
 
 /** 파티원 1명 초당 딜. f가 있으면 장비 특수능력 (42 2-7 지원)까지 */
 export function unitDps(u: Unit, f?: Fight): number {
-  if (!u.alive || u.fleeing || u.me) return 0;
+  if (!u.alive || u.fleeing || u.me || u.lift) return 0; // 띄워 올려진 동안 딜 0 (P-LIFT)
   if (u.debuffs.length && u.debuffs.some(d => d.noDps)) return 0; // 얼림·침묵·삼킴
   if (u.immune > 0) return 0; // 보호의 손: 그동안 딜 0
   if (u.moving && u.cls !== 'hunter') return 0;

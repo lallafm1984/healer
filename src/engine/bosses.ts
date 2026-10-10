@@ -7,7 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abDecoy, abOnTel } from './abilities';
 import { affChaos } from './affixes';
-import { addsTick, aggroTarget, applyDebuff, backTargets, decoyOpen, flowNext, MIRAGE_REVEAL, glassTick, greedTargets, mirageTick, mirageUp, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, applyDebuff, backTargets, chainWarn, decoyOpen, flowNext, MIRAGE_REVEAL, glassTick, greedTargets, linkedOnes, liftWarn, mirageTick, mirageUp, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import { specBuster, specCut, specTel } from './specials';
@@ -34,7 +34,8 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
       : d.target === 'offtank' ? g => { const tk = aggroTarget(g), off = living(g).find(u => u.role === 'tank' && u !== tk) ?? tk; return off ? [off.id] : []; }
       : d.target ? g => {
         const t = d.target as Exclude<SkillDef['target'], 'tank' | 'offtank' | undefined>, n = g.mythic && t.nMythic ? t.nMythic : t.n;
-        return (t.p === 'random' ? randomTargets(g, n, u => u.role !== 'tank' && !u.me) : t.p === 'greed' ? greedTargets(g, n) : backTargets(g, n)).map(u => u.id);
+        return (t.p === 'random' ? randomTargets(g, n, u => u.role !== 'tank' && !u.me) : t.p === 'greed' ? greedTargets(g, n)
+          : t.p === 'linked' ? linkedOnes(g, n) : t.p === 'pad' ? randomTargets(g, n, u => u.padUntil != null && u.padUntil > g.t) : backTargets(g, n)).map(u => u.id);
       } : undefined,
     fire: e ? g => runEffect(g, s, e) : undefined,
     hit: e ? (g, tel) => runEffect(g, s, e, tel) : undefined,
@@ -43,6 +44,7 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
     stunOnCut: e?.p === 'counter' ? e.stun : undefined, pads: e?.p === 'tower' || undefined, fixed: d.fixed, soak: e?.p === 'share' || undefined,
     greed: e?.p === 'greed' ? e.dmg : undefined, hunt: e?.p === 'hunt' || undefined, mirage: d.mirage, glass: e?.p === 'glass' || undefined,
     decoy: e?.p === 'counter' ? e.decoy : undefined, mirrorCells: z?.p === 'safe' && z.at === 'side' ? g => zoneCells(g, s, z, true) : undefined,
+    lift: e?.p === 'lift' ? { pre: e.pre } : undefined, chain: e?.p === 'chain' || undefined,
   });
   f.bs[d.key] = s;
   return s;
@@ -172,6 +174,8 @@ export function bossTick(f: Fight): void {
     if (s.decoy) { tel.veil = tel.impact - MIRAGE_REVEAL; tel.fake = fakeGap || undefined; } // 가짜 반격 틈: 둘 다 똑같이 보이다가 걷힘
     if (s.pads) { tel.safe = new Set(tel.cells); padsGo(f, tel); } // 받침: 금빛 발판으로 파티원이 들어감
     if (s.soak) soakGo(f, tel); // 집결 분담: 가까운 파티원이 대상 옆으로
+    if (s.lift) liftWarn(f, tel); // 띄워 올리기: 돌풍에 먼저 붙는 디버프
+    if (s.chain) chainWarn(f, tel); // 연쇄 번개: 번개 구름 아래 신중파가 비킴
     if (f.abOn) abOnTel(f, tel);
     if (f.sp) specTel(f, tel); // 북소리 (42 발동 13)
     if (f.aff) affChaos(f, tel);

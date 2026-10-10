@@ -17,7 +17,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'nest' | 'nest-bridge' | 'nest-hoard' | 'lakeshore' | 'cathedral-hall' | 'cathedral-organ' | 'cathedral-sanctum'
   | 'bazaar' | 'bazaar-alley' | 'bazaar-gate' | 'deepstairs' | 'abbey' | 'abbey-library' | 'abbey-altar' | 'hourglass'
   | 'dusk' | 'dusk-vault' | 'dusk-throne' | 'caravan' | 'rootwood' | 'rootwood-greenhouse' | 'rootwood-heart'
-  | 'pyramid' | 'pyramid-clock' | 'pyramid-bed' | 'reservoir' | 'reservoir-bridge' | 'reservoir-mirror' | 'pinwheel' | 'observatory';
+  | 'pyramid' | 'pyramid-clock' | 'pyramid-bed' | 'reservoir' | 'reservoir-bridge' | 'reservoir-mirror' | 'pinwheel' | 'observatory'
+  | 'well' | 'well-moss' | 'well-floor' | 'post' | 'post-sort' | 'post-roof' | 'ranch' | 'windmill';
 
 export interface Faction {
   name: string;
@@ -161,6 +162,15 @@ export const PLACES: Record<PlaceKey, Place> = {
   'reservoir-mirror': { key: 'reservoir-mirror', name: '거울호수', faction: 'abyss', tone: ['#1E2236', '#0B0C15'], borrow: 'cathedral' },
   pinwheel: { key: 'pinwheel', name: '바람개비 언덕', faction: 'storm', tone: ['#2A3A3A', '#101616'] },
   observatory: { key: 'observatory', name: '해시계 천문대', faction: 'hill', tone: ['#3A3424', '#16130C'], borrow: 'temple' },
+  // 묶음 F1 (56 1장, 그림 요청 57): 숨결 우물 칸은 대성당 1구역 그림을 빌림, 구름 우체국 · 목장 · 풍차는 색 배경 (분류실 · 옥상은 접수대 그림을 빌림)
+  well: { key: 'well', name: '숨결 우물', faction: 'abyss', tone: ['#1A2430', '#090D12'], borrow: 'cathedral' },
+  'well-moss': { key: 'well-moss', name: '이끼벽', faction: 'abyss', tone: ['#1C2A26', '#0A100E'], borrow: 'cathedral' },
+  'well-floor': { key: 'well-floor', name: '우물 바닥', faction: 'abyss', tone: ['#221E34', '#0C0A14'], borrow: 'cathedral' },
+  post: { key: 'post', name: '구름 우체국', faction: 'storm', tone: ['#2C3C4A', '#11181E'] },
+  'post-sort': { key: 'post-sort', name: '소포 분류실', faction: 'storm', tone: ['#30384A', '#12161E'], borrow: 'post' },
+  'post-roof': { key: 'post-roof', name: '우체국 옥상', faction: 'storm', tone: ['#2A4050', '#101A20'], borrow: 'post' },
+  ranch: { key: 'ranch', name: '구름 양 목장', faction: 'storm', tone: ['#2E3E3C', '#121818'] },
+  windmill: { key: 'windmill', name: '천둥 풍차', faction: 'storm', tone: ['#323A46', '#13161C'] },
 };
 
 /** 콘텐츠 → 장소 */
@@ -181,6 +191,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   dusk1: 'dusk', dusk2: 'dusk-vault', dusk3: 'dusk-throne', caravan: 'caravan', rootwood1: 'rootwood', rootwood2: 'rootwood-greenhouse', rootwood3: 'rootwood-heart',
   pyramid1: 'pyramid', pyramid2: 'pyramid-clock', pyramid3: 'pyramid-bed', reservoir1: 'reservoir', reservoir2: 'reservoir-bridge', reservoir3: 'reservoir-mirror',
   pinwheel: 'pinwheel', observatory: 'observatory',
+  well1: 'well', well2: 'well-moss', well3: 'well-floor', post1: 'post', post2: 'post-sort', post3: 'post-roof', ranch: 'ranch', windmill: 'windmill',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -218,6 +229,8 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   ttubeok: 'rootwood', toktok: 'rootwood-greenhouse', kungkung: 'rootwood-heart',
   pokshin: 'pyramid', jjaekkak: 'pyramid-clock', hapum: 'pyramid-bed', ttakttak: 'reservoir', jjirit: 'reservoir-bridge', doeul: 'reservoir-mirror',
   windtrash: 'pinwheel', hwirik: 'pinwheel', startrash: 'observatory', stargazer: 'observatory', sundialyard: 'observatory', geuneul: 'observatory',
+  chulleong: 'well', puseok: 'well-moss', huu: 'well-floor', hwirik83: 'post', kkongkkong: 'post-sort', buri: 'post-roof',
+  sheeptrash: 'ranch', boksul84: 'ranch', millstairs: 'windmill', boksul: 'windmill', millhouse: 'windmill', dolgae: 'windmill',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

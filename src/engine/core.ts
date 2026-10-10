@@ -15,7 +15,8 @@ export const DT = 0.05;
 /** 성기사 희생: 대상이 받는 피해 중 내가 대신 받는 비율 (25 3장) */
 export const SACRIFICE_CUT = 0.3;
 
-export const living = (f: Fight): Unit[] => f.party.filter(u => u.alive);
+/** 살아 있고 판 위에 있는 파티원. 띄워 올려진 사람 (P-LIFT)은 하늘에 있어 빠짐: 보스 기술 · 광역 힐 · 이웃 칸 효과가 안 닿음 */
+export const living = (f: Fight): Unit[] => f.party.filter(u => u.alive && !u.lift);
 export const cellOf = (f: Fight, u: Unit): Cell => f.cells[u.cell];
 /** 파티원 (없으면 헤매는 영혼 칸, P-SOUL) */
 export const unitById = (f: Fight, id: number): Unit | undefined => f.party.find(x => x.id === id) ?? (f.souls.length ? f.souls.find(x => x.id === id) : undefined);
@@ -45,6 +46,7 @@ export function bark(f: Fight, u: Unit, text: string | null, force: boolean, sit
  */
 export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = false): number {
   if (!u.alive || amt <= 0) return 0;
+  if (u.lift && !sharing && !lingering) return 0; // 띄워 올리기 (P-LIFT): 미리 건 지속 힐 · 나눔 사슬 몫만 닿음
   let crit = false;
   if (!raw) {
     amt *= f.gear.heal * f.power;
@@ -83,7 +85,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   f.stats.healed += eff;
   f.stats.overheal += amt - eff;
   if (amt - eff > 1e-9) { // 넘치는 빛 (P-OVER): 그릇에 모이고, 과부하 표식이면 이웃이 아픔
-    if (f.vessel && f.t < f.vessel.until) f.vessel.fill += amt - eff;
+    if (f.vessel && f.t < f.vessel.until) f.vessel.fill += (amt - eff) * (1 + sv(f, 'breathFlask')); // 후우의 숨결 병 (56 6장)
     if (u.debuffs.length) overload(f, u, amt - eff);
   }
   if (direct) {
@@ -114,6 +116,14 @@ export function healTop(u: Unit): number {
   let top = u.max;
   if (u.debuffs.length) for (const d of u.debuffs) if (d.cap != null) top = Math.min(top, u.max * d.cap);
   return top;
+}
+
+/** 띄워 올리기 (P-LIFT, 56 5장): 떠 있는 사람에게 이미 붙어 있던 것 (지속 힐 · 지속 피해 디버프)이 도는 중 */
+let lingering = false;
+export function linger<T>(fn: () => T): T {
+  const was = lingering;
+  lingering = true;
+  try { return fn(); } finally { lingering = was; }
 }
 
 /** 생명 사슬 나눔형 (P-LINK): 나눠 받는 중에는 다시 나누지 않음 */
@@ -162,6 +172,7 @@ const affinity = (u: Unit): number => (u.gid != null ? 1e9 + u.runs : u.got);
  */
 export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: DamageAim = 'party'): void {
   if (!u.alive || amt <= 0) return;
+  if (u.lift && !sharing && !lingering) return; // 띄워 올리기 (P-LIFT): 보스 기술 · 장판은 안 닿고 지속 피해 · 나눔 사슬 몫만
   if (f.links.length && !sharing) { // 생명 사슬 나눔형: 맞은 사람 방어력으로 줄인 뒤 반씩 「고정」으로 (34 9-3, 탱커 버스터가 사슬 건너 딜러에게 그대로 가지 않게)
     const o = shareWith(f, u);
     if (o) { const half = (amt * (f.armor ? armorFactor(u.role, aim) : 1)) / 2; shared(() => { damage(f, u, half, magic, 'fixed'); damage(f, o, half, magic, 'fixed'); }); return; }

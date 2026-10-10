@@ -8,11 +8,11 @@ import * as E from '../src/engine';
 import { bossSkillArt, bossSkillArtNames, fightSkillArt, GIMS, mobSkillArt, SKILL_ART_TABLE } from '../src/battle/skillArt';
 
 // 문서 파일 이름 (그림 요청 문서 표 그대로)
-/** 37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2, 52 4장 A (묶음 D 보물 욕심 · 녹는 보호막 · 부화하는 알), 55 4장 G 1~2 (묶음 E 신기루 · 모래시계) */
+/** 37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2, 52 4장 A (묶음 D 보물 욕심 · 녹는 보호막 · 부화하는 알), 55 4장 G 1~2 (묶음 E 신기루 · 모래시계), 57 4장 G 1~2 (묶음 F 띄워 올리기 · 연쇄 번개) */
 const DOC_GIM = ['full', 'wound', 'hunt', 'link', 'invert', 'over', 'quake', 'recoil', 'gaze', 'drain', 'charm', 'order', 'jump', 'safe', 'tower', 'pull', 'hole', 'stagger',
   'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass',
-  'greed', 'melt', 'hatch', 'mirage', 'glass'].map(n => `icon-gim-${n}`);
-/** 37 4장 D (던전 ② ~ ⑥), 44 4장 D 1~4 (던전 ⑦), 47 4장 D 1~43 (묶음 B), 49 4장 D 1~35 (묶음 C), 52 4장 D 1~25 (묶음 D), 55 4장 D (묶음 E1 · E2 보스만): 보스 → 장 수 */
+  'greed', 'melt', 'hatch', 'mirage', 'glass', 'lift', 'chain'].map(n => `icon-gim-${n}`);
+/** 37 4장 D (던전 ② ~ ⑥), 44 4장 D 1~4 (던전 ⑦), 47 4장 D 1~43 (묶음 B), 49 4장 D 1~35 (묶음 C), 52 4장 D 1~25 (묶음 D), 55 4장 D (묶음 E1 · E2 보스만), 57 4장 D (묶음 F1): 보스 → 장 수 */
 const DOC_BSK_N: Record<string, number> = {
   collector: 2, malchor: 3, shaman: 1, toad: 3, seres: 2, butler: 4, lady: 1, belmore: 3, runegolem: 3, mage: 2, shadow: 2, guardian: 2, keeper: 2,
   sentinel: 2, crystal: 2, ratking: 2, carrier: 2, librarian: 2, scholar: 3, priestess: 3, sleeper: 2,
@@ -22,12 +22,13 @@ const DOC_BSK_N: Record<string, number> = {
   whelps: 1, dandani: 2, rubina: 4, knights: 1, uwoong: 1, ormal: 3,
   degul: 2, dooldool: 3, hokdol: 2, nyanx: 1, heumul: 1, bichumi: 2, gipeun: 2,
   solsal: 1, eonggeum: 3, sarasha: 4, ttubeok: 2, toktok: 1, kungkung: 1,
-  stargazer: 2, geuneul: 2, poksin: 2, jjaekkak: 1, hapum: 3, ttakttak: 1, jjirit: 2, doeul: 2, hwirik: 2,
+  stargazer: 2, geuneul: 2, poksin: 2, jjaekkak: 1, hapum: 3, ttakttak: 1, jjirit: 2, doeul: 2, hwirik: 3,
+  chulleong: 2, puseok: 2, huu: 2, kkongkkong: 2, buri: 2, boksul: 3, dolgae: 1,
 };
-/** 55 4장 D 1~2: 모래 왕국 공용 (모래 기침 · 천 년 졸음) */
-const DOC_BSK = [...Object.entries(DOC_BSK_N).flatMap(([b, n]) => Array.from({ length: n }, (_, i) => `icon-bsk-${b}-${i + 1}`)), 'icon-bsk-sand-cough', 'icon-bsk-sand-sleepy'];
-/** 44 4장 D 5~15, 47 4장 D 44~46, 49 4장 D 36, 52 4장 D 26, 55 4장 D 45 */
-const DOC_MOB = ['rot', 'sick-shout', 'dart', 'veil', 'howl', 'silence', 'frost-burst', 'pilgrim', 'ground-quake', 'trap', 'gaze', 'jelly', 'anchor-spin', 'dust-sweep', 'sneeze', 'tail-sweep', 'sandstorm'].map(n => `icon-mob-${n}`);
+/** 55 4장 D 1~2: 모래 왕국 공용 (모래 기침 · 천 년 졸음), 57 4장 D: 구름 위 섬 공용 (깃털 간지럼) */
+const DOC_BSK = [...Object.entries(DOC_BSK_N).flatMap(([b, n]) => Array.from({ length: n }, (_, i) => `icon-bsk-${b}-${i + 1}`)), 'icon-bsk-sand-cough', 'icon-bsk-sand-sleepy', 'icon-bsk-sky-tickle'];
+/** 44 4장 D 5~15, 47 4장 D 44~46, 49 4장 D 36, 52 4장 D 26, 55 4장 D 45, 57 4장 D (천둥 숫양) */
+const DOC_MOB = ['rot', 'sick-shout', 'dart', 'veil', 'howl', 'silence', 'frost-burst', 'pilgrim', 'ground-quake', 'trap', 'gaze', 'jelly', 'anchor-spin', 'dust-sweep', 'sneeze', 'tail-sweep', 'sandstorm', 'thunder-charge'].map(n => `icon-mob-${n}`);
 /** 모자 뽑기 모자 (37 4장 H 3~5): 칸 위 표식 (대기열 기믹 표에는 없음) */
 const DOC_HAT = ['full', 'invert', 'cap'].map(n => `icon-gim-hat-${n}`);
 const DOC = new Set([...DOC_GIM, ...DOC_HAT, ...DOC_BSK, ...DOC_MOB]);
@@ -37,7 +38,7 @@ const NOT_IN_DATA = /^icon-mob-anchor-spin$/;
 type BossKey = Exclude<ScriptKey, 'trash'>;
 const OK_NAME =/^icon-(gim|bsk|mob)-[a-z0-9-]+$/;
 /** 기믹 부품인지 (35 3장 22종 · 3-I · 3-J): 엔진 부품 · 디버프 표시로 따로 판단 */
-const GIM_P = new Set(['hunt', 'quake', 'pull', 'order', 'link', 'hole', 'tower', 'stagger', 'counter', 'soul', 'jail', 'vessel', 'adds', 'ring', 'greed', 'melt', 'glass']);
+const GIM_P = new Set(['hunt', 'quake', 'pull', 'order', 'link', 'hole', 'tower', 'stagger', 'counter', 'soul', 'jail', 'vessel', 'adds', 'ring', 'greed', 'melt', 'glass', 'lift', 'chain']);
 function isGimmick(d: SkillDef): boolean {
   const e = d.effect;
   if (d.mirage) return true; // 신기루 (54 5장)

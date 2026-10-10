@@ -5,7 +5,7 @@ export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt'
   | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary' | 'shellbeach' | 'wreck'
   | 'lampway' | 'emberfoot' | 'teaparty' | 'mossroot' | 'rainbow'
   | 'ashpass' | 'hotspring' | 'forge' | 'lakeshore'
-  | 'deepstairs' | 'hourglass' | 'caravan' | 'pinwheel' | 'observatory';
+  | 'deepstairs' | 'hourglass' | 'caravan' | 'pinwheel' | 'observatory' | 'ranch' | 'windmill';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -54,6 +54,9 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   // 묶음 E3 (54 1장): 탐험 ⑳ · 던전 ⑯
   pinwheel: { key: 'pinwheel', name: '바람개비 언덕', segments: ['windtrash', 'hwirik'] },
   observatory: { key: 'observatory', name: '해시계 천문대', segments: ['startrash', 'stargazer', 'sundialyard', 'geuneul'] },
+  // 묶음 F1 (56 1장): 탐험 ㉑ · 던전 ⑰
+  ranch: { key: 'ranch', name: '구름 양 목장', segments: ['sheeptrash', 'boksul84'] },
+  windmill: { key: 'windmill', name: '천둥 풍차', segments: ['millstairs', 'boksul', 'millhouse', 'dolgae'] },
   hotspring: { key: 'hotspring', name: '용암 온천장', segments: ['steamroom', 'mungsil', 'lavabath', 'bulttung'] },
   forge: { key: 'forge', name: '용암 대장간', segments: ['coldhearth', 'huggeun', 'anvilbridge', 'ttangttang'] },
   emberfoot: { key: 'emberfoot', name: '불꽃 봉우리 기슭', segments: ['hotgravel', 'kobold60'] },

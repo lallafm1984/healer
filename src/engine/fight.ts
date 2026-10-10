@@ -16,7 +16,7 @@ import { makeCells } from './board';
 import { aggroTarget, initBoss, bossTick } from './bosses';
 import { bossTaken, focusOrder } from './bossParts';
 import { affixTick, initAffixes } from './affixes';
-import { bark, damageMob, DT, emit, living } from './core';
+import { bark, damageMob, DT, emit } from './core';
 import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { rngFrom } from './rng';
@@ -199,11 +199,10 @@ export function step(f: Fight): void {
   tankWatch(f);
   bossTick(f);
   partyHits(f);
-  const live = living(f);
   if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', f.mobs.some(m => !m.add) && !f.mobs.some(m => m.boss) ? '모두 쓰러뜨림' : '보스를 쓰러뜨림'); }
   else if (!f.me.alive) end(f, 'lose', '힐러가 쓰러짐');
   // 탱커가 쓰러져도 계속, 파티원이 모두 쓰러지면 전멸 (2026-10-07 Lim)
-  else if (!live.some(u => !u.me)) end(f, 'lose', '파티 전멸');
+  else if (!f.party.some(u => u.alive && !u.me)) end(f, 'lose', '파티 전멸'); // 띄워 올려진 사람도 살아 있음 (P-LIFT)
 }
 
 /**

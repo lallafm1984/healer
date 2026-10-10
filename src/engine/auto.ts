@@ -4,6 +4,7 @@ import { HEROES } from '../data/heroes';
 import { DISPELLABLE, SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
 import { aggroTarget } from './bosses';
+import { ROD_HP } from './bossParts';
 import { cellOf, healTop, living, unitById } from './core';
 import { create, step } from './fight';
 import { canTarget, knows, use } from './healer';
@@ -128,6 +129,12 @@ interface Gim {
   /** 모래시계 (P-GLASS): 뒤집기 예고 중 (기록될 체력을 채움) · 창 안 (넣은 힐이 사라지니 쓰러질 사람 · 남는 일만) */
   glassFill: boolean;
   inGlass: boolean;
+  /** 띄워 올리기 (P-LIFT, 56 5장): 예고에 찍힌 사람. 떠오르면 새 힐 · 해제가 안 닿으니 예고 동안 해제 → 지속 힐을 먼저 */
+  lift: Unit[];
+  /** 연쇄 번개 (P-CHAIN): 번개 구름 (내려오며 번개면 떠 있는 사람 자리) 옆에서 피뢰침 선 (90%) 아래인 가장 낮은 사람. soon = 맞기까지 남은 초 */
+  chain: { u: Unit; soon: number } | null;
+  /** 떠 있는 사람이 낮으면 그 사람과 나눔 사슬로 묶인 짝 (짝에게 넣은 힐의 반이 하늘까지 감) */
+  mate: Unit | null;
 }
 
 function gim(f: Fight): Gim {
@@ -193,8 +200,42 @@ function gim(f: Fight): Gim {
     veil,
     glassFill: f.tels.some(t => t.skill.glass),
     inGlass: f.glass.some(x => x.until - f.t > 0.3),
+    lift: f.tels.filter(t => t.skill.lift && !veiled(f, t)).flatMap(t => t.units.map(id => unitById(f, id)).filter((u): u is Unit => !!u && u.alive && !u.lift && !off(f, u))),
+    chain: chainNear(f),
+    mate: liftMate(f),
   };
 }
+
+/** 연쇄 번개 대비 (56 5장 자동 힐러 규칙): 번개가 떨어질 칸 (예고 대상 · 내려오며 번개를 달고 떠 있는 사람) 이웃 가운데 90% 아래인 가장 낮은 사람 */
+function chainNear(f: Fight): Gim['chain'] {
+  const spots: { c: number; at: number }[] = [];
+  for (const t of f.tels) if (t.skill.chain && !veiled(f, t)) for (const id of t.units) { const u = unitById(f, id); if (u?.alive) spots.push({ c: u.cell, at: t.impact }); }
+  for (const u of f.party) if (u.alive && u.lift?.chain && !u.lift.land) spots.push({ c: u.cell, at: u.lift.until });
+  let best: Gim['chain'] = null;
+  for (const sp of spots) {
+    const c0 = f.cells[sp.c];
+    for (const v of living(f)) {
+      if (v.cell === sp.c || hexDist(cellOf(f, v), c0) !== 1 || off(f, v) || v.hp >= v.max * ROD_HP) continue;
+      if (!best || v.hp / v.max < best.u.hp / best.u.max) best = { u: v, soon: sp.at - f.t };
+    }
+  }
+  return best;
+}
+
+/** 떠 있는 사람이 60% 아래면 나눔 사슬 짝 (짝을 힐하면 반이 하늘까지) */
+function liftMate(f: Fight): Unit | null {
+  for (const l of f.links) {
+    if (l.kind !== 'share') continue;
+    const a = unitById(f, l.a), b = unitById(f, l.b);
+    if (!a?.alive || !b?.alive) continue;
+    const up = a.lift ? a : b.lift ? b : null, mate = up === a ? b : a;
+    if (up && !mate.lift && up.hp < up.max * LIFT_LOW && !off(f, mate)) return mate;
+  }
+  return null;
+}
+const LIFT_LOW = 0.6;
+/** 이 직업이 지울 수 있는 디버프 (해제 불가 · 함정 빼고) */
+const cleanable = (f: Fight, d: Debuff) => !d.trap && !d.lock && (f.hero === 'priest' ? !!DISPELLABLE[d.type] : HEROES[f.hero].dispel.includes(d.type));
 
 /** 채우기 힐을 넣는 체력 선: 그릇이 있으면 가득 찬 사람에게도 (넘치게), 역류 중이면 낮게, 아낄 때 0.7 */
 const topUp = (f: Fight, g: Gim, base: number) => (g.spill && f.mana > 30 ? 1.01 : g.glassFill && f.mana > 15 ? 0.97 : g.few ? 0.6 : g.save ? 0.7 : base);
@@ -220,8 +261,9 @@ function glassWindow(f: Fight, g: Gim, live: Unit[], one: (u: Unit, hurry: boole
 function byDispel(g: Gim, cands: Unit[], ok: (d: Debuff) => boolean): Unit[] {
   const rank = (u: Unit) => {
     const ds = u.debuffs.filter(ok);
-    // 부풀기는 중첩이 쌓이기 전에, 치유 상한은 큰 피해 예고가 떴을 때, 뒤집힘은 체력이 높을 때 (46 5장)
-    if (ds.some(d => d.invert || d.count || d.swell || (d.cap != null && g.big) || (d.end?.p === 'flip' && u.hp > u.max * 0.5) || d.end?.p === 'pass')) return 0;
+    // 부풀기는 중첩이 쌓이기 전에, 치유 상한은 큰 피해 예고가 떴을 때 · 완치 표식이 같이 있을 때 (상한부터 지워야 표식이 사라짐, 56 4-3), 뒤집힘은 체력이 높을 때 (46 5장)
+    const full = u.debuffs.some(d => d.cureAt != null && d.cureAt >= 1);
+    if (ds.some(d => d.invert || d.count || d.swell || (d.cap != null && (g.big || full)) || (d.end?.p === 'flip' && u.hp > u.max * 0.5) || d.end?.p === 'pass')) return 0;
     if (ds.some(d => d.charm || d.drain || (d.end?.p === 'jump' && d.end.on === 'quake'))) return 1;
     if (ds.some(d => d.noDps) && ((g.adds && (u.role === 'melee' || u.role === 'ranged')) || (g.counter && cutter(u)))) return 1;
     return 2;
@@ -272,6 +314,12 @@ export function autoHealer(f: Fight): void {
   const bs = busterShort(f), bk = bs && big(bs.soon);
   if (bs && bk && !off(f, bs.u) && f.mana > 6) { use(f, bk, cellIdx(bs.u)); return; }
   if (g.pre && f.mana > 6 && can('flash')) { use(f, 'flash', cellIdx(g.pre)); return; }
+  // 띄워 올리기: 예고 동안 해제 → 소생 (떠 있는 동안은 미리 건 지속 힐만 닿음)
+  { const d = g.lift.find(u => u.debuffs.some(x => cleanable(f, x))); if (d && purifyOk) { use(f, 'purify', cellIdx(d)); return; } }
+  { const v = g.lift.find(u => u.hot <= 0); if (v && can('renew') && f.mana >= SKILLS.renew.cost) { use(f, 'renew', cellIdx(v)); return; } }
+  // 연쇄 번개: 번개 구름 옆 가장 낮은 사람을 90% 위로 (피뢰침)
+  if (g.chain && f.mana > 4) { const k = big(g.chain.soon < castOf(f, 'heal') + 0.3); if (k) { use(f, k, cellIdx(g.chain.u)); return; } }
+  if (g.mate && f.mana > 4) { const k = big(false); if (k) { use(f, k, cellIdx(g.mate)); return; } }
   // 차례: 위급한 사람이 없으면 다음 번호에 즉시 단일 힐 (소생, 없으면 순간 치유)
   if (g.order && pct(low) > 0.3) {
     const k = can('renew') && f.mana >= SKILLS.renew.cost ? 'renew' : can('flash') && f.mana >= SKILLS.flash.cost ? 'flash' : null;
@@ -380,6 +428,12 @@ function autoDruid(f: Fight): void {
   if (c.busterOn && ready('bark') && pct(c.busterOn) < 0.8 && tryUse(f, 'bark', c.busterOn, idx)) return;
   { const bs = busterShort(f); if (bs && !off(f, bs.u) && f.mana > 4 && tryUse(f, 'growth', bs.u, idx)) return; }
   if (g.pre && ((!sprouted(g.pre) && tryUse(f, 'sprout', g.pre, idx)) || (f.mana > 4 && tryUse(f, 'growth', g.pre, idx)))) return;
+  // 띄워 올리기: 예고 동안 해제 → 새싹 (떠 있는 동안은 미리 건 지속 힐만 닿음)
+  { const d = g.lift.find(u => u.debuffs.some(x => cleanable(f, x))); if (d && ready('natureCleanse') && tryUse(f, 'natureCleanse', d, idx)) return; }
+  { const v = g.lift.find(u => !sprouted(u)); if (v && f.mana > 2 && tryUse(f, 'sprout', v, idx)) return; }
+  // 연쇄 번개: 번개 구름 옆 가장 낮은 사람을 90% 위로 · 떠 있는 사람의 사슬 짝
+  if (g.chain && f.mana > 4 && tryUse(f, 'growth', g.chain.u, idx)) return;
+  if (g.mate && f.mana > 4 && tryUse(f, 'growth', g.mate, idx)) return;
   // 차례: 위급한 사람이 없으면 다음 번호에 새싹 (즉시)
   if (g.order && pct(low) > 0.3 && tryUse(f, 'sprout', g.order, idx)) return;
   // 생명 사슬이 곧 끊어지면 낮은 쪽부터
@@ -426,6 +480,13 @@ function autoPaladin(f: Fight): void {
   if (c.busterOn && ready('handGuard') && pct(c.busterOn) < 0.35 && c.busterOn.role !== 'tank' && tryUse(f, 'handGuard', c.busterOn, idx)) return;
   { const bs = busterShort(f); if (bs && !off(f, bs.u) && ((ready('holyStrike') && tryUse(f, 'holyStrike', bs.u, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', bs.u, idx)))) return; }
   if (g.pre && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.pre, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.pre, idx)))) return;
+  // 띄워 올리기: 예고 동안 해제 → 빛의 서약 (신성한 힘이 있으면) → 가득 채우기
+  { const d = g.lift.find(u => u.debuffs.some(x => cleanable(f, x))); if (d && ready('handCleanse') && tryUse(f, 'handCleanse', d, idx)) return; }
+  { const v = g.lift.find(u => !u.hots.some(h => h.key === 'oath')); if (v && knows(f, 'oath') && f.power3 >= 1 && tryUse(f, 'oath', v, idx)) return; }
+  { const v = g.lift.find(u => u.hp < healTop(u) * 0.95); if (v && ((ready('holyStrike') && tryUse(f, 'holyStrike', v, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', v, idx)))) return; }
+  // 연쇄 번개: 번개 구름 옆 가장 낮은 사람을 90% 위로 · 떠 있는 사람의 사슬 짝
+  if (g.chain && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.chain.u, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.chain.u, idx)))) return;
+  if (g.mate && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.mate, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.mate, idx)))) return;
   // 차례: 위급한 사람이 없으면 다음 번호에 즉시 단일 힐 (빛 일격 → 빛의 서약 → 빛의 손길)
   if (g.order && pct(low) > 0.3 && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.order, idx)) || (knows(f, 'oath') && f.power3 >= 1 && tryUse(f, 'oath', g.order, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.order, idx)))) return;
   /** 단일 힐 하나: 빛 일격 → 빛의 손길 */

@@ -155,6 +155,8 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.featherBrooch && f.tels.some(t => t.skill.glass)) m += v.featherBrooch; // 사라샤의 깃털 브로치 (모래시계 뒤집기 예고 동안)
   if (v.nightcapTassel && f.tels.some(t => t.skill.safe && !t.fake && t.safe && !t.safe.has(u.cell))) m += v.nightcapTassel; // 하품호텝의 수면 모자 술 (54 6장)
   if (v.pinwheelPin && u.pulled) m += v.pinwheelPin; // 바람개비 핀
+  if (v.fleeceRing && nearChain(f, u)) m += v.fleeceRing; // 복슬 양털 반지 (56 6장)
+  if (v.millVane && tick && u.lift) m += v.millVane; // 풍차 날개 조각
   if (v.festInvite && direct && !tick && u.debuffs.some(d => d.noDps)) m += v.festInvite; // 축제 초대장 (48 6장)
   if (v.rainbowSpore && u.soul) m += v.rainbowSpore; // 무지개 포자
   if (v.mossBrooch && aoe && f.stagger) m += v.mossBrooch; // 이끼 브로치
@@ -172,6 +174,12 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (k === 'serenity') m += v.serenityEcho ?? 0;
   if (k === 'oath') m += v.firmOath ?? 0;
   return 1 + m;
+}
+
+/** 번개 구름 (연쇄 번개 예고)이 뜬 아군의 옆 칸 (복슬 양털 반지) */
+function nearChain(f: Fight, u: Unit): boolean {
+  const c = cellOf(f, u);
+  return f.tels.some(t => t.skill.chain && t.units.some(id => id !== u.id && f.party.some(w => w.id === id && hexDist(cellOf(f, w), c) === 1)));
 }
 
 /** 옆 칸에 살아 있는 아군이 없음 (검은 돌 부적) */
@@ -576,6 +584,11 @@ function echoDrop(f: Fight): void {
   const low = living(f).filter(u => u.hp < u.max).sort((a, b) => a.hp / a.max - b.hp / b.max).slice(0, 2);
   for (const u of low) heal(f, u, intAmt(f, v), true, true);
   if (low.length) shout(f, 'echoDrop');
+}
+/** 띄워 올려진 아군이 내려오면 (부리부리의 우표: 낙하 피해 전에 보호막) */
+export function specLand(f: Fight, u: Unit): void {
+  const v = f.sp!.v.postStamp;
+  if (v) shield(f, u, intAmt(f, v), 6, 'postStamp');
 }
 /** 진동이 울리면 (낙타 털실 반지: 2초 동안 시전 시간 −) */
 export function specQuake(f: Fight): void {
