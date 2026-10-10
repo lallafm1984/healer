@@ -44,10 +44,10 @@ describe('콘텐츠', () => {
     }
     expect(contentOf('isle3').bosses).toEqual(['해적 선장 금빛수염']);
   });
-  it('모두 6열 × 6줄 판, 10인 · 탱커 둘, 광폭화 시간이 있음', () => {
+  it('모두 5 × 5 판 (25칸), 10인 · 탱커 둘, 광폭화 시간이 있음', () => {
     for (const [, enc] of RAIDS) {
       const f = E.create({ encounter: enc, diff: '보통', seed: 1 });
-      expect(f.board, enc).toBe('b36');
+      expect(f.board, enc).toBe('b25');
       expect(f.party.length).toBe(10);
       expect(tanks(f).length).toBe(2);
       expect(ENCOUNTERS[enc].enrage, enc).toBeGreaterThan(300);

@@ -45,10 +45,10 @@ describe('콘텐츠', () => {
     }
     expect(contentOf('abyss5').name).toBe('심연의 탑 꼭대기');
   });
-  it('모두 6열 × 6줄 판, 탱커 둘', () => {
+  it('모두 5 × 5 판 (25칸), 탱커 둘', () => {
     for (const [, enc] of FLOORS) {
       const f = E.create({ encounter: enc, diff: '보통', seed: 1 });
-      expect(f.board, enc).toBe('b36');
+      expect(f.board, enc).toBe('b25');
       expect(f.party.length).toBe(10);
       expect(tanks(f).length).toBe(2);
     }

@@ -14,17 +14,21 @@ import type { Cell, Debuff, Fight, Unit } from './types';
 
 /** 비켜 설 디버프: 보스를 키우는 옮겨붙음 (P-JUMP) · 부풀기 (P-SWELL, 46 4-1 성격 포인트) */
 const awayFrom = (d: Debuff): boolean => !!d.swell || (d.end?.p === 'jump' && d.end.boost > 0);
-/** 비켜 서기: 사교형은 그대로, 눈치 (회피율)에 따라 놓침. 옆에 아무도 없는 안전한 칸 중 가장 가까운 곳, 디버프가 끝날 때까지 머묾 */
+/**
+ * 비켜 서기: 사교형은 그대로, 눈치 (회피율)에 따라 놓침. 옆에 아무도 없는 안전한 칸 중 가장 가까운 곳, 디버프가 끝날 때까지 머묾.
+ * 작은 판 (5인 10칸)에서 그런 칸이 없으면 옆 사람이 지금보다 적은 칸 중 가장 적은 곳 (2026-10-10)
+ */
 function stepAway(f: Fight, u: Unit, sec: number): boolean {
   for (const d of u.debuffs) if (awayFrom(d)) d.stepped = true;
   if ((u.p.dist ?? 0) > 0 || f.rng() >= dodgeRate(f, u)) return false;
   if (!f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1)) return false;
   const cur = cellOf(f, u);
-  let best: Cell | null = null;
+  const nearAt = (c: Cell) => f.party.filter(v => v !== u && v.alive && hexDist(f.cells[v.moving ? v.moving.to : v.cell], c) <= 1).length;
+  let best: Cell | null = null, fewest = nearAt(cur);
   for (const c of f.cells) {
     if (c.block || (c.unit && c.unit !== u) || dangerAt(f, c.i)) continue;
-    if (f.party.some(v => v !== u && v.alive && (hexDist(f.cells[v.moving ? v.moving.to : v.cell], c) <= 1))) continue;
-    if (!best || hexDist(cur, c) < hexDist(cur, best)) best = c;
+    const n = nearAt(c);
+    if (n < fewest || (n === fewest && best && hexDist(cur, c) < hexDist(cur, best))) { best = c; fewest = n; }
   }
   if (!best || !moveTo(f, u, best)) return false;
   u.awayUntil = f.t + sec + 0.5; u.homeAt = null;

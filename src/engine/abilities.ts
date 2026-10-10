@@ -38,6 +38,9 @@ function endHp(u: Unit, m: Mod): void {
   u.hp = Math.min(u.hp, u.max);
 }
 
+/** 나눠 받는 중인 피해는 다시 나누지 않음: 둘이 서로 나눠 받으면 피해가 끝없이 오가서 멈춤 */
+let sharing = false;
+
 /** 받는 피해에 능력 효과 적용. -1 = 무시 (피해 없음) */
 export function dmgMods(f: Fight, u: Unit, amt: number, magic: boolean): number {
   if (f.ab.weakUntil > f.t) amt *= 1 - f.ab.weak;
@@ -60,9 +63,14 @@ export function dmgMods(f: Fight, u: Unit, amt: number, magic: boolean): number 
     m.v -= take; amt -= take;
     if (m.v <= 1e-9) m.until = 0;
   }
-  if (share && amt > 0) {
+  if (share && amt > 0 && !sharing) {
     const by = f.party.find(x => x.id === share!.by);
-    if (by && by.alive && by !== u) { const part = amt * share.v; amt -= part; damage(f, by, part / f.dmgMult, magic, 'fixed'); }
+    if (by && by.alive && by !== u) {
+      const part = amt * share.v;
+      amt -= part;
+      sharing = true;
+      try { damage(f, by, part / f.dmgMult, magic, 'fixed'); } finally { sharing = false; }
+    }
   }
   return amt;
 }

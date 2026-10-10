@@ -68,6 +68,7 @@ describe('기본 강화 (Lv 10~30)', () => {
   });
   it('넓은 원: 기원 반경 2, 회복 ×0.8', () => {
     const f = fight(['wideCircle']); hurt(f, 0.1);
+    for (const v of f.party) v.p = { ...v.p, flee: 0 }; // 겁쟁이가 시전 중에 도망가면 반경 밖으로 나감
     const u = tanks(f)[0];
     const far = f.party.find(v => E.hexDist(f.cells[v.cell], f.cells[u.cell]) === 2)!;
     const h = cast(f, 'poh', u);

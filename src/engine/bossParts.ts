@@ -760,7 +760,7 @@ function spawnAdd(f: Fight, a: AddDef, at?: Cell): void {
     f.zones.push({ id, cells: new Set(f.cells.filter(x => hexDist(x, c) === 1 && !x.block).map(x => x.i)), end: Infinity, dps: a.aura });
     m.add!.zone = id;
   }
-  if (j) m.add!.jobAt = f.t + (j.p === 'bomb' || j.p === 'hatch' || j.p === 'hoard' ? j.sec : 'every' in j ? j.every : Infinity);
+  if (j) m.add!.jobAt = f.t + (j.p === 'bomb' || j.p === 'hatch' || j.p === 'hoard' ? j.sec : j.p === 'march' ? marchEvery(f, j.every) : 'every' in j ? j.every : Infinity);
   if (j?.p === 'march') m.add!.steps = c.row + 1; // 앞줄(0)까지 걸어와서 한 번 더 걸으면 흡수
   f.mobs.push(m);
   emit(f, { type: 'fx', name: 'spawn', cell: c.i });
@@ -916,7 +916,7 @@ function addJob(f: Fight, m: Mob): void {
     emit(f, { type: 'shake', id: u.id });
   } else if (j.p === 'march') {
     // 걸어오는 쫄 (P-MARCH): 한 줄 앞으로. 걸음이 다 되면 보스에게 흡수
-    a.jobAt! += j.every;
+    a.jobAt! += marchEvery(f, j.every);
     a.steps = (a.steps ?? 1) - 1;
     if (a.steps > 0) { stepTo(f, m, x => x.row === f.cells[a.cell!].row - 1); return; }
     vanish(m);
@@ -939,6 +939,12 @@ function addJob(f: Fight, m: Mob): void {
     });
   }
 }
+
+/**
+ * 걸어오는 쫄 한 걸음 간격: every는 6줄 판 (36칸) 기준. 줄이 적은 판 (5인 3줄 · 10인 5줄)은 그만큼 천천히 걸어서
+ * 뒷줄에서 보스까지 걸리는 시간 (6 × every)은 판과 상관없이 같음 (2026-10-10)
+ */
+const marchEvery = (f: Fight, every: number) => every * 6 / f.rows;
 
 /** 판 위 적이 이웃 빈 칸으로 한 칸 (ok인 칸 중 by가 가장 작은 곳, 같으면 무작위). 갈 칸이 없으면 제자리 */
 function stepTo(f: Fight, m: Mob, ok: (c: Cell) => boolean, by: (c: Cell) => number = () => 0): boolean {
