@@ -8,7 +8,7 @@ import { TUT, type CoachKey } from '../game/tutorial';
 import { G, heroNow } from '../game/state';
 import { betterSlots, talentsLeft } from '../game/charinfo';
 import { apexOf, xpToNext } from '../data/progression';
-import { classEmblem, currencyIcon } from './art';
+import { classEmblem, currencyIcon, gameIcon } from './art';
 import { releaseSheetDialogs, resetShellScroll } from './dialog';
 
 export const $ = (id: string) => document.getElementById(id)!;
@@ -108,12 +108,15 @@ document.addEventListener('click', e => {
   if (b && b.closest('#app')) go(b.dataset.go!, b.dataset.arg);
 });
 
+/** 소비 아이템 그림 (36 4-1 item-use-<키>, 음식 · 나중 아이템도 같은 이름). 없으면 전투 벡터 그림 */
+export const useIcon = (k: string): string => gameIcon(`use-${k}`, battle().itemIcon(k), 'item');
+
 /** 단축칸 고르기 칩 (편성·캐릭터): 튜토리얼 뒤엔 가방 개수 (19 11장) */
 export function itemChipsHtml(items: ItemKey[]): string {
   const stock = G.save.tut >= 3 ? G.save.bag : null;
   return `<div class="chips items">${(Object.keys(ITEMS) as ItemKey[]).map(k => {
     const n = stock ? stock[k] || 0 : null;
-    return `<button class="chip ichip${n === 0 ? ' empty' : ''}" type="button" data-item="${k}" aria-pressed="${items.includes(k)}">${battle().itemIcon(k)}${ITEMS[k].name}${n != null ? ` <small>×${n}</small>` : ''}</button>`;
+    return `<button class="chip ichip${n === 0 ? ' empty' : ''}" type="button" data-item="${k}" aria-pressed="${items.includes(k)}">${useIcon(k)}${ITEMS[k].name}${n != null ? ` <small>×${n}</small>` : ''}</button>`;
   }).join('')}</div>`;
 }
 

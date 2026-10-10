@@ -596,3 +596,41 @@
 @media (prefers-reduced-motion: reduce) { #s-char .fx .c7-gic, #s-char .c7-fxring, #s-char .c7-fxspark { animation: none; } #s-char .c7-fxres { animation-duration: 0.01s; } }
 #s-char .c7-spg .g-ic { display: block; width: 22px; height: 22px; }
 #s-char .c7-spg:has(.g-ic) { min-width: 0; padding: 0; border: 0; }
+/* 단축칸 소비 아이템 그림 (36 4-1): 선 그림 자리(18px) 그대로, 그림만 조금 크게 */
+#s-char .c7-item > .g-ic { flex: none; width: 22px; height: 22px; margin: -2px; }
+/* ---------- 강화 · 각성 · 새 특수능력 그림 (36 4-4 G · 4-6 J): 그림이 있을 때만 들어옴, 움직임은 CSS. 자리는 차지하지 않음 ---------- */
+/* 불꽃 그림은 장비 그림 뒤로 (36 5장: 장비를 가리지 않게) */
+#s-char .c7-fxspark:has(> img) { z-index: -1; background: none; }
+#s-char .c7-fxspi { display: block; width: 100%; height: 100%; object-fit: contain; }
+#s-char .fx-ok .c7-fxspark:has(> img) { animation-name: efxSparkOk; }
+/* 망치: 손잡이 끝을 축으로 장비 왼쪽 위에서 세 번 내리침 (0.4 · 0.7 · 1.0초 = 27 · 47 · 67%) */
+#s-char .c7-fxham {
+  position: absolute; left: -10px; top: -38px; z-index: 3; width: 52px; height: 52px; object-fit: contain; pointer-events: none;
+  transform-origin: 18% 88%; opacity: 0; animation: efxHam var(--fxd) linear both;
+}
+/* 실패 (34 7-2): 흔들릴 때 금 간 조각이 튐 */
+#s-char .c7-fxcrk {
+  position: absolute; left: 50%; top: 50%; z-index: 3; width: 104px; height: 104px; margin: -52px 0 0 -52px; object-fit: contain; pointer-events: none;
+  opacity: 0; animation: efxCrack var(--fxd) ease-out both;
+}
+/* 옵션 각성: 룰렛이 멈춘 줄의 값 위에서 한 번 번쩍 */
+#s-char .c7-cmp.aw { position: relative; }
+#s-char .c7-fxawk {
+  position: absolute; left: 96px; top: 50%; z-index: 1; width: 76px; height: 76px; margin: -38px 0 0 -38px; object-fit: contain; pointer-events: none;
+  opacity: 0; animation: efxAwk 0.6s calc(var(--fxd) + 0.9s) ease-out both;
+}
+/* 도감: 지난 판에 처음 얻은 칸은 표식 위에서 한 번 터짐 · 고유 칸 = 장신구 그림 (못 얻은 칸은 실루엣) */
+#s-char .c7-spg { position: relative; }
+#s-char .c7-spnew { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; object-fit: contain; pointer-events: none; opacity: 0; animation: efxNew 1s 0.2s ease-out both; }
+#s-char .c7-spec.unk[data-g="named"] .c7-spg .g-ic { filter: brightness(0) drop-shadow(0 0 1px var(--spc)); }
+@keyframes efxHam {
+  0% { opacity: 0; transform: rotate(-30deg); } 8% { opacity: 1; transform: rotate(-15deg); }
+  22% { transform: rotate(-20deg); } 27% { transform: rotate(36deg); } 33% { transform: rotate(-12deg); }
+  42% { transform: rotate(-20deg); } 47% { transform: rotate(36deg); } 53% { transform: rotate(-12deg); }
+  62% { opacity: 1; transform: rotate(-20deg); } 67% { opacity: 1; transform: rotate(36deg); } 76%, 100% { opacity: 0; transform: rotate(20deg); }
+}
+@keyframes efxSparkOk { 0%, 25% { transform: scale(0); } 28% { transform: scale(1); } 34%, 46% { transform: scale(0); } 48% { transform: scale(1.1) rotate(40deg); } 54%, 66% { transform: scale(0); } 68% { transform: scale(1.2) rotate(80deg); } 74% { transform: scale(0); } 82% { transform: scale(1.5) rotate(120deg); } 94%, 100% { transform: scale(0) rotate(140deg); } }
+@keyframes efxCrack { 0%, 74% { opacity: 0; transform: scale(0.3); } 78% { opacity: 1; transform: scale(0.8); } 100% { opacity: 0; transform: scale(1.5) rotate(12deg); } }
+@keyframes efxAwk { 0% { opacity: 0; transform: scale(0.3); } 35% { opacity: 1; transform: scale(1.1) rotate(45deg); } 100% { opacity: 0; transform: scale(1.35) rotate(100deg); } }
+@keyframes efxNew { 0% { opacity: 0; transform: scale(0.2); } 30% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1.4); } }
+@media (prefers-reduced-motion: reduce) { #s-char .c7-fxham, #s-char .c7-fxcrk, #s-char .c7-fxawk, #s-char .c7-spnew { display: none; } }

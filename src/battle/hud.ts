@@ -22,8 +22,9 @@ import { art, cssUrl } from '../art';
 import { ITEM_ICON, skillMark } from './art';
 import { center, L } from './board';
 import { $, arrowOf, B, DIR_VEC, DIRS, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
-import { guideModel } from './guide';
+import { guideModel, iconColor } from './guide';
 import { manaMeter } from './mana-meter';
+import { fightSkillArt, skillArtImg } from './skillArt';
 
 const fight = () => B.F!;
 const setText = (el: Element, t: string) => { if (el.textContent !== t) el.textContent = t; };
@@ -235,7 +236,8 @@ export function buildItems(): void {
       html += `<div class="item empty" aria-hidden="true">${emptyArt ? `<img class="item-art empty-slot-art" src="${emptyArt}" alt="" aria-hidden="true" decoding="async" draggable="false">` : ''}<span class="nm">빈 칸</span></div>`;
       continue;
     }
-    const painted = art(`ui-sunforged-potion-${k}`);
+    // 소비 아이템 그림 (36 4-1 item-use-*) → 옛 물약 그림 → 벡터
+    const painted = art(`item-use-${k}`) || art(`ui-sunforged-potion-${k}`);
     const icon = painted ? `<img class="item-art" src="${painted}" alt="" aria-hidden="true" decoding="async" draggable="false">` : ITEM_ICON[k];
     html += `<button class="item" type="button" data-item="${k}" aria-label="${ITEMS[k].name}">${icon}<span class="nm">${ITEMS[k].short}</span><span class="n"></span><span class="cd"></span><span class="cds"></span></button>`;
   }
@@ -385,6 +387,11 @@ const QKIND: Record<string, { name: string; path: string }> = {
 const qKind = (k: string | undefined) => QKIND[k || ''] || QKIND.aoe;
 /** 예고 칸·설명 팝업의 네모 아이콘 */
 export const qIcon = (kind: string | undefined) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${qKind(kind).path}</svg>`;
+/** 예고 칸 · 팝업 아이콘 칸: 기술 그림이 있으면 그림 + 종류 · 유형 색 테두리 (37 1장, 44 4장 D), 없으면 종류 SVG */
+const qIc = (ic: string, kind: string | undefined, name: string, cls = 'ic') => {
+  const img = skillArtImg(name);
+  return img ? `<span class="${cls} art" style="border-color:${iconColor(ic, kind)}">${img}</span>` : `<span class="${cls}">${qIcon(kind)}</span>`;
+};
 
 /**
  * 판마다 한 번: 보스 체력 막대의 페이즈 눈금, 던전 구간 진행 ●●○○ (보스 이름 줄 오른쪽).
@@ -433,18 +440,19 @@ export function updateStage(now: number): void {
   $('timer').classList.toggle('enraged', F.enraged || noTank != null);
   if (now - ui.qAt > 90) {
     ui.qAt = now;
-    const q = queue(F).map(it => ({ ...it, kind: it.kind as string | undefined }));
-    if (F.phaseName === '인터미션' && F.interEnd) q.unshift({ name: '인터미션 끝', icon: '쥐떼', kind: 'inter', impact: F.interEnd, casting: false });
+    // art = 기술 아이콘 그림 이름 (37 1장 · 4장, 없으면 '' → 종류 SVG)
+    const q = queue(F).map(it => ({ ...it, kind: it.kind as string | undefined, art: it.skill ? fightSkillArt(F, it.skill) : '' }));
+    if (F.phaseName === '인터미션' && F.interEnd) q.unshift({ name: '인터미션 끝', icon: '쥐떼', kind: 'inter', impact: F.interEnd, casting: false, art: '' });
     q.splice(3);
     const queueEl = $('queue');
     let cards = Array.from(queueEl.querySelectorAll<HTMLElement>('.q'));
     let refocus: HTMLElement | undefined;
     // 같은 기술·발동 시각의 대기열은 DOM을 유지: 카운트다운 때문에 포커스를 다시 만들지 않는다.
-    const changed = queueEl.children.length !== 3 || cards.length !== q.length || q.some((it, i) => cards[i]?.dataset.ic !== (it.icon || '') || cards[i]?.dataset.imp !== it.impact.toFixed(2));
+    const changed = queueEl.children.length !== 3 || cards.length !== q.length || q.some((it, i) => cards[i]?.dataset.ic !== (it.icon || '') || cards[i]?.dataset.imp !== it.impact.toFixed(2) || cards[i]?.dataset.art !== it.art);
     if (changed) {
       const focused = document.activeElement instanceof HTMLElement && queueEl.contains(document.activeElement) ? { ...document.activeElement.dataset } : null;
       // 예고 칸 3개를 늘 표시 (27 3-4): 기술이 없으면 빈 테두리 칸
-      queueEl.innerHTML = q.map(it => `<button type="button" class="q" data-ic="${it.icon || ''}" data-imp="${it.impact.toFixed(2)}" data-kind="${it.kind || ''}"><span class="fill"></span><span class="ic">${qIcon(it.kind)}</span><span class="tx"><span class="nm"></span><span class="kd">${qKind(it.kind).name}</span></span><span class="sec"><b class="sec-num"></b><small>초</small></span></button>`).join('')
+      queueEl.innerHTML = q.map(it => `<button type="button" class="q" data-ic="${it.icon || ''}" data-imp="${it.impact.toFixed(2)}" data-kind="${it.kind || ''}" data-art="${it.art}"><span class="fill"></span>${qIc(it.icon || '', it.kind, it.art)}<span class="tx"><span class="nm"></span><span class="kd">${qKind(it.kind).name}</span></span><span class="sec"><b class="sec-num"></b><small>초</small></span></button>`).join('')
         + '<span class="q-empty" aria-hidden="true"></span>'.repeat(3 - q.length);
       cards = Array.from(queueEl.querySelectorAll<HTMLElement>('.q'));
       // 순서가 바뀌었을 때만, 여전히 예고 중인 같은 기술로 포커스를 이어 준다.
@@ -498,7 +506,7 @@ export function openTip(ic: string, qEl: HTMLElement): void {
   const F = fight(), s = guideOf(F).skills.find(x => x.ic === ic);
   if (!s) { closeTip(); return; }
   const [what] = s.tip(F);
-  popTip(tipHtml({ icon: `<span class="ic qk">${qIcon(qEl.dataset.kind)}</span>`, name: s.name, kind: F.enc.script === 'trash' ? '적 기술' : '보스 기술', rows: [[s.every]], desc: what }), qEl, { ic, imp: +qEl.dataset.imp! });
+  popTip(tipHtml({ icon: qIc(ic, qEl.dataset.kind, qEl.dataset.art || '', 'ic qk'), name: s.name, kind: F.enc.script === 'trash' ? '적 기술' : '보스 기술', rows: [[s.every]], desc: what }), qEl, { ic, imp: +qEl.dataset.imp! });
   ui.skillTips++;
   for (const q of $('queue').querySelectorAll<HTMLElement>('.q')) q.classList.toggle('tipon', tipMatch(q.dataset.ic!, +q.dataset.imp!));
 }
@@ -507,7 +515,8 @@ export function openSkillTip(key: SkillKey, el: HTMLElement): void {
   popTip(tipHtml(skillTip(key, lock, B.F ? INT_BASE * B.F.power * B.F.gear.heal : undefined)), el, { skill: key });
 }
 export function openItemTip(key: ItemKey, el: HTMLElement): void {
-  popTip(tipHtml(itemTip(key, `<span class="iic">${ITEM_ICON[key]}</span>`, fight().items[key] || 0)), el, { item: key });
+  const img = art(`item-use-${key}`); // 소비 아이템 그림 (36 4-1), 없으면 벡터
+  popTip(tipHtml(itemTip(key, `<span class="iic">${img ? `<img src="${img}" alt="" decoding="async" draggable="false">` : ITEM_ICON[key]}</span>`, fight().items[key] || 0)), el, { item: key });
   ui.itemTips++;
 }
 export function closeTip(): void {

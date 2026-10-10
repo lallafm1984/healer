@@ -12,7 +12,7 @@ import { buyItem, buyPremium, claimPass, craftShard, exchangeMerit, grantMember,
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { purchase, STORE_WHY } from '../platform/billing';
-import { battle, esc, fmt, screen, topBar } from './kit';
+import { esc, fmt, screen, topBar, useIcon } from './kit';
 import { currencyIcon, uiIcon } from './art';
 
 type Sub = 'gold' | 'merit' | 'pass' | 'crystal';
@@ -66,7 +66,7 @@ function goldHtml(): string {
       return `<button class="btn mini buy" type="button" data-buy="${k}" data-n="${n}"${price == null || have >= BAG_MAX || gold < price! * m ? ' disabled' : ''}>${n}개<small>${have >= BAG_MAX ? '가득' : `${currencyIcon('gold')}${fmt(price! * m)}`}</small></button>`;
     };
     // 위 줄 = 아이콘·이름·구매 버튼, 아래 줄 = 설명 (좁은 화면에서도 설명이 한 줄을 다 씀)
-    return `<li class="srow itemrow"><div class="ir-top"><span class="sic">${battle().itemIcon(k)}${have ? `<i class="stack">${have}</i>` : ''}</span><div class="ir-name"><b>${ITEMS[k].name}</b><small${have >= BAG_MAX ? ' class="full"' : ''}>가방 ${have}/${BAG_MAX}${have >= BAG_MAX ? ' · 가득' : ''}</small></div>
+    return `<li class="srow itemrow"><div class="ir-top"><span class="sic">${useIcon(k)}${have ? `<i class="stack">${have}</i>` : ''}</span><div class="ir-name"><b>${ITEMS[k].name}</b><small${have >= BAG_MAX ? ' class="full"' : ''}>가방 ${have}/${BAG_MAX}${have >= BAG_MAX ? ' · 가득' : ''}</small></div>
       ${price == null ? '<small class="mute">레이드 드롭·주간 보상만</small>' : `<div class="sbuy">${btn(1)}${btn(5)}</div>`}</div><p class="note use">사용: ${esc(ITEMS[k].desc)}</p></li>`;
   }).join('');
   const sh = G.save.wallet.shards;

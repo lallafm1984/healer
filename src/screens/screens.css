@@ -103,6 +103,9 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .hint ul { padding-left: 16px; }
 .ichip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px 5px 6px; }
 .ichip svg { width: 22px; height: 22px; }
+/* 소비 아이템 그림 (36 4-1 item-use-*): 선 그림 자리 그대로, 그림만 조금 크게 */
+.ichip > .g-ic { flex: none; width: 26px; height: 26px; margin: -2px; }
+.ns .sic > .g-ic { width: 36px; height: 36px; }
 .ichip small { font-size: 11px; opacity: 0.75; }
 .ichip.empty { opacity: 0.5; }
 

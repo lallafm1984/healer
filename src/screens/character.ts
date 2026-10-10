@@ -21,8 +21,9 @@ import {
   setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleItem, toggleLock, type EnhanceOutcome, type RerollKind,
 } from '../game/state';
 import { TUT } from '../game/tutorial';
-import { classEmblem, gameIcon, LOCK, uiIcon } from './art';
-import { battle, esc, fmt, itemChipsHtml, josa, screen, topBar } from './kit';
+import { Flow } from '../game/flow';
+import { classEmblem, fxArt, gameIcon, gearIcon, LOCK, trinketArt, uiIcon } from './art';
+import { battle, esc, fmt, itemChipsHtml, josa, screen, topBar, useIcon } from './kit';
 import { pushSettings } from './settings';
 import { sheetDialog } from './dialog';
 
@@ -173,8 +174,8 @@ const gvars = (it: GearItem) => `--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE
 const plusTxt = (it: GearItem) => (it.plus ? ` +${it.plus}` : '');
 /** 비율 → 퍼센트 글자 (소수 한 자리, .0은 뺌): 0.085 → 8.5 */
 const pc = (x: number) => String(Math.round(x * 1000) / 10);
-/** 장비 그림 (item-<부위>, 없으면 부위 선 아이콘) */
-const itemIc = (k: SlotKey) => gameIcon(k, uiIcon(k), 'item');
+/** 장비 그림 (36 4-2 · 4-3): 이름 있는 장신구 → 종류 → 부위 (item-<부위>) → 부위 선 아이콘. 빈칸은 부위 그림 */
+const itemIc = (x: SlotKey | GearItem) => gearIcon(typeof x === 'string' ? { slot: x } : x);
 
 /** 능력치 그림 (stat-<이름>). 없으면 선 아이콘 */
 const STAT_LINE = {
@@ -188,8 +189,12 @@ const STAT_LINE = {
 const statIc = (k: keyof typeof STAT_LINE) => gameIcon(k, STAT_LINE[k], 'stat');
 
 /** ① 장비 칸 (시안 .slot): 등급 색 테두리·빛 · 등급 글자 칩 · 강화 +n · 더 좋은 장비 초록 ↑ · 빈칸 점선 + 가방 개수 */
-/** 특수능력 묶음 표식 (36 I `spec-*`): 그림이 있으면 그림, 없으면 묶음 글자 */
-const specBadge = (g: CodexGroup, label: string) => (g === 'named' ? label : gameIcon(SPEC_GROUPS[g].icon.replace(/^spec-/, ''), label, 'spec'));
+/** 특수능력 묶음 표식 (36 I `spec-*`): 그림이 있으면 그림, 없으면 묶음 글자. trinket = 도감 고유 칸의 이름 있는 장신구 키 (36 4-3 그림, 없으면 글자) */
+const specBadge = (g: CodexGroup, label: string, trinket?: string) => {
+  if (g !== 'named') return gameIcon(SPEC_GROUPS[g].icon.replace(/^spec-/, ''), label, 'spec');
+  const u = trinketArt(trinket);
+  return u ? `<img class="g-ic" src="${u}" alt="" decoding="async" draggable="false">` : label;
+};
 
 /** 특수능력 점 (34 10장): 한 줄 = 점 하나 (고유 효과 포함), 지금 직업에 안 맞는 직업 전용은 회색 */
 function specDots(it: GearItem): string {
@@ -208,7 +213,7 @@ function slotHtml(key: SlotKey, better: SlotKey[]): string {
         <span class="c7-sq">${itemIc(key)}${up}</span><b>${name}</b><small${n ? ' class="ok"' : ''}>${n ? `가방에 ${n}개` : '빈칸'}</small></button>`;
   }
   return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(it.name)}${plusTxt(it)} · ${it.grade}${specLabel(it)}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
-      <span class="c7-sq${it.plus >= MAX_PLUS ? ' max' : ''}">${itemIc(key)}<i class="c7-gl">${it.grade[0]}</i>${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${specDots(it)}${up}</span>
+      <span class="c7-sq${it.plus >= MAX_PLUS ? ' max' : ''}">${itemIc(it)}<i class="c7-gl">${it.grade[0]}</i>${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${specDots(it)}${up}</span>
       <b>${it.lock ? LOCK : ''}${name}</b><small>${esc(kindOf(it).name)}</small></button>`;
 }
 
@@ -252,7 +257,7 @@ function gearHtml(): string {
 function bagCell(it: GearItem): string {
   const up = isBetter(it), on = !!salv?.has(it.id), nw = isNew(it);
   const label = `${it.grade} ${slotName(it.slot)} · ${it.name}${plusTxt(it)}${specLabel(it)}${up ? ' · 더 좋음' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
-  return `<button type="button" class="c7-bag${on ? ' on' : ''}${it.lock ? ' lock' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}"${salv ? ` aria-pressed="${on}"` : ''}>${itemIc(it.slot)}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${up ? '<span class="up">↑</span>' : ''}${nw ? '<span class="nw"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}${on ? '<span class="ck">✓</span>' : ''}</button>`;
+  return `<button type="button" class="c7-bag${on ? ' on' : ''}${it.lock ? ' lock' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}"${salv ? ` aria-pressed="${on}"` : ''}>${itemIc(it)}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${up ? '<span class="up">↑</span>' : ''}${nw ? '<span class="nw"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}${on ? '<span class="ck">✓</span>' : ''}</button>`;
 }
 
 const grip = '<span class="grip" aria-hidden="true"></span>';
@@ -286,6 +291,17 @@ function bagSheet(): string {
 const codexHave = (gs: readonly CodexGroup[]) => gs.reduce((a, g) => a + codexKeys(g).filter(k => G.save.gear.codex.includes(k)).length, 0);
 const SPEC_GROUP_KEYS = Object.keys(SPEC_GROUPS) as SpecGroup[];
 
+/** 지난 판에 처음 얻은 특수능력 (42 1-6): 도감 표식 위에서 fx-spec-new가 칸마다 한 번 터짐 (36 4-6). 효과 줄이기면 없음 */
+let freshShown: { of: object; keys: Set<string> } | null = null;
+function freshFx(key: string): string {
+  const x = Flow.settle;
+  if (!x?.newSpecs?.includes(key) || G.save.settings.reducedEffects) return '';
+  if (freshShown?.of !== x) freshShown = { of: x, keys: new Set() };
+  if (freshShown.keys.has(key)) return '';
+  freshShown.keys.add(key);
+  return fxArt('fx-spec-new', 'c7-spnew');
+}
+
 /** 특수능력 도감 시트 (42 1-6): 묶음 칩 (얻은 수/전체) · 칸 목록 (얻은 것 = 이름 · 효과, 아닌 것 = 「?」 + 나오는 곳) · 받은 칭호 */
 function codexSheet(): string {
   const groups: CodexGroup[] = [...SPEC_GROUP_KEYS, 'named'];
@@ -297,7 +313,7 @@ function codexSheet(): string {
       <div class="c7-row"><h3 class="h-rule">특수능력 도감</h3><span class="cap">${codexHave(SPEC_GROUP_KEYS)}/${SPEC_KEYS.length} · 고유 ${codexHave(['named'])}/${NAMED.length}</span></div>
       <div class="c7-fcs" role="group" aria-label="도감 묶음">${groups.map(g => `<button type="button" class="c7-fc" data-codexg="${g}" aria-pressed="${codexG === g}">${label(g)} <small>${codexHave([g])}/${codexKeys(g).length}</small></button>`).join('')}</div>
       <p class="cap c7-ctitle">${done ? `칭호 「${esc(title)}」 받음` : `다 모으면 칭호 「${esc(title)}」 (${have}/${rows.length})`}</p>
-      <div class="c7-clist">${rows.map(r => `<div class="c7-spec${r.got ? '' : ' unk'}" data-g="${codexG}"><span class="c7-spg">${specBadge(codexG, label(codexG))}</span><span class="c7-spt"><b>${r.got ? esc(r.name) : '?'}</b><span class="cap">${esc(r.got ? r.text : r.hint)}</span></span></div>`).join('')}</div>
+      <div class="c7-clist">${rows.map(r => `<div class="c7-spec${r.got ? '' : ' unk'}" data-g="${codexG}"><span class="c7-spg">${specBadge(codexG, label(codexG), r.key)}${r.got ? freshFx(r.key) : ''}</span><span class="c7-spt"><b>${r.got ? esc(r.name) : '?'}</b><span class="cap">${esc(r.got ? r.text : r.hint)}</span></span></div>`).join('')}</div>
       <div class="c7-bagf">${titles.length ? `<span class="cap">받은 칭호 ${titles.map(t => `「${esc(t)}」`).join(' ')}</span>` : '<span class="cap">효과는 영웅 장비 최대값</span>'}${fill}<button type="button" class="btn2" data-sheetx>닫기</button></div></section>`;
 }
 
@@ -334,11 +350,11 @@ function autoHtml(it: GearItem): string {
       <div class="c7-autof"><label class="toggle"><input type="checkbox" data-autodrop${auto.stopDrop ? ' checked' : ''}> 떨어지면 멈춤</label><span class="c7-fill"></span><button type="button" class="btn2" data-autox>닫기</button><button type="button" class="btn2 hot" data-autogo>+${tg}까지 시작</button></div></div>`;
 }
 
-/** 강화 한 번 눌렀을 때: 저장은 끝났고 연출만 (각성은 룰렛 1초 더) */
+/** 강화 한 번 눌렀을 때: 저장은 끝났고 연출만 (각성은 룰렛 0.9초 + 멈춘 줄 번쩍 0.6초 더) */
 function playFx(o: EnhanceOutcome, quick: boolean): void {
   efx = { ...o, quick };
   clearTimeout(efxTimer);
-  efxTimer = setTimeout(endFx, (quick ? 500 : 1500) + (o.awaken != null ? 1000 : 0));
+  efxTimer = setTimeout(endFx, (quick ? 500 : 1500) + (o.awaken != null ? 1500 : 0));
   vibe(o.ok ? [15] : [30, 40, 30]);
 }
 function endFx(): void {
@@ -382,12 +398,14 @@ function itemSheet(id: number): string {
   // 옵션 각성 룰렛 (34 7-2): 추가 옵션 줄이 차례로 빛나다 각성한 줄에서 멈춤
   const aw = efx && efx.id === it.id && efx.awaken != null ? efx.awaken : null;
   const lineCls = (i: number) => (aw == null ? '' : ` roul${i === aw ? ' aw' : ''}`);
+  // 연출 그림 (36 4-4 G · 4-6 J)은 효과 줄이기면 빼고 CSS 연출만
+  const calm = !!G.save.settings.reducedEffects;
   // 이 장비의 줄 (34 10장): 주 능력치 · 고정 옵션 (종류) · 추가 옵션 (굴림 막대)
   const fx = fixedOf(it);
   const own = [
     ...mainOf(it).map(x => row(STATS[x.stat].name, `+${pc(x.v)}%`, '<span class="cap">주 능력치</span>')),
     row(STATS[fx.stat].name, `+${pc(fx.v)}%`, `<span class="cap">${esc(kindOf(it).name)} 고정</span>`),
-    ...(it.lines ?? []).map((l, i) => row(STATS[l.stat].name, `+${pc(lineValue(it, l))}%`, `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(l.roll * 100)}%"><i style="width:${Math.round(rollFill(l.roll) * 100)}%"></i></span>${l.up ? '<span class="c7-awt">각성</span>' : ''}${rrBtn('line', i, STATS[l.stat].name)}`, lineCls(i))),
+    ...(it.lines ?? []).map((l, i) => row(STATS[l.stat].name, `+${pc(lineValue(it, l))}%`, `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(l.roll * 100)}%"><i style="width:${Math.round(rollFill(l.roll) * 100)}%"></i></span>${l.up ? '<span class="c7-awt">각성</span>' : ''}${rrBtn('line', i, STATS[l.stat].name)}${i === aw && !calm ? fxArt('fx-awaken', 'c7-fxawk') : ''}`, lineCls(i))),
   ].join('');
   // 특수능력 (42 1-3 · 1-5): 묶음 표식 · 이름 · 효과 · 굴림 막대, 꺼진 줄은 회색 + 이유
   const sp = specRows(it);
@@ -404,10 +422,12 @@ function itemSheet(id: number): string {
   const f = efx && efx.id === it.id ? efx : null;
   const fxCls = f ? ` fx ${f.ok ? 'fx-ok' : f.to < f.from ? 'fx-drop' : 'fx-fail'}${f.quick ? ' fx-quick' : ''}${f.awaken != null ? ' fx-aw' : ''}` : '';
   const fxRes = f ? `<b class="c7-fxres" aria-live="polite">${f.ok ? `+${f.to}` : f.to < f.from ? `+${f.from} → +${f.to}` : `실패 · +${f.from} 그대로`}</b>` : '';
+  // 망치 (0.4 · 0.7 · 1.0초, 짧게면 없음) · 불꽃 (CSS 반짝이 자리에 그림) · 실패하면 금 간 조각 (36 4-4 G)
+  const fxOn = f ? `<span class="c7-fxring" aria-hidden="true"></span><span class="c7-fxspark" aria-hidden="true">${calm ? '' : fxArt('fx-enhance-spark', 'c7-fxspi')}</span>${f.quick || calm ? '' : fxArt('fx-enhance-hammer', 'c7-fxham')}${f.ok || calm ? '' : fxArt('fx-enhance-crack', 'c7-fxcrk')}` : '';
   const max10 = it.plus >= MAX_PLUS ? ' max' : '';
   return `${dim}<section class="sheet c7-gsheet${fxCls}" role="dialog" aria-labelledby="gearSheetTitle" aria-describedby="gearSheetSave" style="${gvars(it)}">${grip}
       <div class="c7-dialog-head"><h3 id="gearSheetTitle">장비 상세</h3><button type="button" class="btn2 c7-dialog-close" data-sheetx aria-label="장비 상세 닫기">닫기</button></div>
-      <div class="c7-ghead"><span class="c7-gic${max10}">${itemIc(it.slot)}<span class="c7-gl">${it.grade[0]}</span>${f ? '<span class="c7-fxring" aria-hidden="true"></span><span class="c7-fxspark" aria-hidden="true"></span>' : ''}${fxRes}</span>
+      <div class="c7-ghead"><span class="c7-gic${max10}">${itemIc(it)}<span class="c7-gl">${it.grade[0]}</span>${fxOn}${fxRes}</span>
         <span class="c7-gname"><b>${esc(it.name)}${it.plus ? ` <i>+${it.plus}</i>` : ''}</b><span class="cap">${sub2}</span></span>
         <span class="c7-gscore"><span class="cap">점수</span><b>${sc}</b>${worn ? '' : updn(sc - scoreOf(cur))}</span></div>
       <div class="c7-cmpw"><h3 class="h-rule c7-h3">옵션<span class="rule"></span><span class="cap">${it.lines?.length ?? 0}줄 추가</span>${rerollOpen() ? `<button type="button" class="btn2 c7-rrb" data-rrmode aria-pressed="${rrOn}">재설정</button>` : ''}</h3>${rrOn ? rrCostHtml(it) : ''}${own}${rrAltHtml(it, 'line')}</div>
@@ -605,7 +625,7 @@ function skillHtml(): string {
     const k = items[i];
     if (!k) return `<button type="button" class="c7-item empty" data-islot="${i}">빈 칸 +</button>`;
     const n = stock ? stock[k] || 0 : null;
-    return `<button type="button" class="c7-item" data-islot="${i}" aria-label="${ITEMS[k].name}${n != null ? ` ${n}개` : ''} · 바꾸기">${battle().itemIcon(k)}<span>${ITEMS[k].short}${n != null ? ` ×${n}` : ''}</span></button>`;
+    return `<button type="button" class="c7-item" data-islot="${i}" aria-label="${ITEMS[k].name}${n != null ? ` ${n}개` : ''} · 바꾸기">${useIcon(k)}<span>${ITEMS[k].short}${n != null ? ` ×${n}` : ''}</span></button>`;
   }).join('');
   return `<div class="c7-mode" role="group" aria-label="휠 보기 방식"><button type="button" data-smode="view" aria-pressed="${!swapping}">설명 보기</button><button type="button" data-smode="swap" aria-pressed="${swapping}">배치 바꾸기</button></div>
     <div class="c7-wwrap"><span class="c7-mcircle" aria-hidden="true">${gameIcon('magic-circle', '', 'ui')}</span><div class="c7-wheel${swapping ? ' swapping' : ''}">${L.GRID.map(d => wheelCell(d, lay)).join('')}</div></div>

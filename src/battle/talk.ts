@@ -8,8 +8,29 @@ import { hasOwnLines, pickLine, SITS, type Speaker, type TalkSit } from '../data
 import { hotCount, type Fight, type FightEvent, type Unit } from '../engine';
 import type { BubbleKind } from './board';
 
-/** kind = 말풍선 테두리 (위기 · 기믹·신호 · 반응 · 쓰러진 사람) */
-export interface TalkBubble { id: number; text: string; life: number; sit: TalkSit | null; kind: BubbleKind }
+/** kind = 말풍선 테두리 (위기 · 기믹·신호 · 반응 · 쓰러진 사람) · emote = 왼쪽 감정 아이콘 emote-<이름> · cheer = 승리 이펙트 띠 */
+export interface TalkBubble { id: number; text: string; life: number; sit: TalkSit | null; kind: BubbleKind; emote: string | null; cheer: boolean }
+
+/** 감정 아이콘 (43 4장 B): 아이콘 → 붙는 상황. 표에 없는 상황은 아이콘 없이 뜸 */
+const EMOTES: Record<string, TalkSit[]> = {
+  alert: ['buster', 'aoeWarn', 'safeCall', 'bomb', 'mistake'],
+  sweat: ['hurtBig', 'low50', 'low25', 'zoneHit', 'dodge'],
+  heart: ['healed', 'saved', 'clutch', 'thanks', 'jailFree', 'allyRevived'],
+  sparkle: ['healCrit', 'bigHeal', 'meterTop', 'win', 'winClean'],
+  note: ['idle', 'allFull', 'hello'],
+  question: ['wrongStep', 'orderWrong', 'castMove'],
+  anger: ['sulk', 'stubborn', 'jealous', 'noHeal'],
+  tear: ['selfDown', 'lose', 'loseClose', 'allyDown'],
+  dizzy: ['swallowed', 'jailed', 'noDps', 'pulled'],
+  shield: ['busterOk', 'guardOn', 'shieldOn', 'bulwark', 'offTank', 'eliteAdd'],
+  sword: ['abAtk', 'adds', 'swarm', 'marchAdd', 'boss5'],
+  flame: ['enraged', 'enrageSoon', 'noTank', 'partyLow'],
+  run: ['flee', 'shelter', 'fixate', 'dodgeOk'],
+  mana: ['manaLow', 'manaEmpty', 'manaPot'],
+};
+const EMOTE_OF = new Map<TalkSit, string>(Object.entries(EMOTES).flatMap(([e, sits]) => sits.map(s => [s, e] as const)));
+/** 승리 한마디 (43 4장 C fx-talk-cheer) */
+const CHEER = new Set<TalkSit>(['win', 'winClean', 'winClose', 'segWin']);
 
 /** 전투를 시작할 때 화면이 알려 주는 것 */
 export interface TalkStart {
@@ -209,7 +230,7 @@ export function createTalk(rand: () => number = Math.random) {
     const life = Math.max(1700, Math.min(2800, 1200 + 75 * [...text].length));
     const def = sit ? SITS[sit] : null;
     const kind: BubbleKind = !u.alive ? 'chat' : !def ? 'call' : def.group === '시작' || def.group === '끝' ? 'talk' : def.prio === 3 ? 'alert' : def.prio === 2 ? 'call' : 'talk';
-    out.push({ id: u.id, text, life, sit, kind });
+    out.push({ id: u.id, text, life, sit, kind, emote: sit ? EMOTE_OF.get(sit) ?? null : null, cheer: !!sit && CHEER.has(sit) });
     spoke.set(u.id, now); lastAny = now;
     live = live.filter(t => t > now); live.push(now + life);
     if (sit) count[sit] = (count[sit] ?? 0) + 1;

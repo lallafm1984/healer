@@ -384,6 +384,8 @@ export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crum
   | 'swell-pop' | 'ink-splat' | 'coin-flip'
   /** 묶음 C 새 부품 (48 5장, 그림 49): 요정 고리가 깔리거나 자람 · 넘어가는 포자가 날아감 */
   | 'ring-grow' | 'spore-pass'
+  /** 장비 특수능력 (36 J): 튀는 빛이 옆 칸으로 날아감 */
+  | 'bounce'
   /** 묶음 C2 (48 4장, 그림 49): 모자가 씌워짐 · 춤바람 음표 · 꿀벌이 쏨 · 숲 할아버지가 깨어남 */
   | 'hat-drop' | 'dance' | 'bee-sting' | 'tree-wake';
 
