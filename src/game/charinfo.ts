@@ -73,7 +73,8 @@ export function codexRows(g: CodexGroup): CodexRow[] {
 }
 
 /** 장비 도감 한 칸 (34 6-10 ④): 얻은 것은 이름 · 설명, 못 얻은 것은 「?」 + 나오는 곳 */
-export interface DexRow { key: string; got: boolean; name: string; text: string; hint: string; slot: SlotKey; look?: FactionKey }
+/** 도감 한 칸. kind · named · unique는 칸 그림 (gearIcon)용 */
+export interface DexRow { key: string; got: boolean; name: string; text: string; hint: string; slot: SlotKey; kind?: string; look?: FactionKey; named?: string; unique?: string }
 /** 그 종류가 잘 나오는 장소 이름 (세력을 주면 그 세력 장소만) */
 function kindPlaces(kind: string, f?: FactionKey): string[] {
   return Object.keys(PLACE_KINDS).filter(p => PLACE_KINDS[p].includes(kind) && (!f || lookOf(p) === f)).map(p => contentOf(p as ContentKey)?.name).filter(Boolean) as string[];
@@ -85,18 +86,18 @@ export function dexRows(tab: DexTab): DexRow[] {
     const got = have.includes(key), [, a, b] = key.split(':');
     if (tab === 'kind') {
       const k = KINDS.find(x => x.key === a)!, ps = kindPlaces(a);
-      return { key, got, slot: k.slot, name: k.name, text: `${slotName(k.slot)} · 고정 ${fixedTxt(k)}`, hint: `${slotName(k.slot)} · ${ps.length ? `${ps.slice(0, 3).join(' · ')}에서 잘 나옴` : '어디서나'}` };
+      return { key, got, slot: k.slot, kind: a, name: k.name, text: `${slotName(k.slot)} · 고정 ${fixedTxt(k)}`, hint: `${slotName(k.slot)} · ${ps.length ? `${ps.slice(0, 3).join(' · ')}에서 잘 나옴` : '어디서나'}` };
     }
     if (tab === 'look') {
       const f = a as FactionKey, k = KINDS.find(x => x.key === b)!;
-      return { key, got, slot: k.slot, look: f, name: `${LOOK_WORD[f]} ${k.name}`, text: `${FACTIONS[f].name} 생김새 · 고정 ${fixedTxt(k)}`, hint: `${FACTIONS[f].name} ${k.name} · ${kindPlaces(b, f).slice(0, 3).join(' · ')}에서` };
+      return { key, got, slot: k.slot, kind: b, look: f, name: `${LOOK_WORD[f]} ${k.name}`, text: `${FACTIONS[f].name} 생김새 · 고정 ${fixedTxt(k)}`, hint: `${FACTIONS[f].name} ${k.name} · ${kindPlaces(b, f).slice(0, 3).join(' · ')}에서` };
     }
     if (tab === 'named') {
       const n = namedOf(a)!;
-      return { key, got, slot: n.slot, name: n.name, text: specText(n, n.val), hint: `${n.placeName}에서 · ${slotName(n.slot)}` };
+      return { key, got, slot: n.slot, named: a, name: n.name, text: specText(n, n.val), hint: `${n.placeName}에서 · ${slotName(n.slot)}` };
     }
     const u = uniqueOf(a)!, d = SPECS[u.spec];
-    return { key, got, slot: u.slot, name: u.name, text: `${d.name} (고유): ${specText(d, uniqueValue(u, '영웅'))}`, hint: `${u.placeName}에서 · ${slotName(u.slot)} 희귀 이상` };
+    return { key, got, slot: u.slot, kind: u.kind, unique: a, name: u.name, text: `${d.name} (고유): ${specText(d, uniqueValue(u, '영웅'))}`, hint: `${u.placeName}에서 · ${slotName(u.slot)} 희귀 이상` };
   });
 }
 

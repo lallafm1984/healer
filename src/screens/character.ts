@@ -181,7 +181,7 @@ const plusTxt = (it: GearItem) => (it.plus ? ` +${it.plus}` : '');
 /** 비율 → 퍼센트 글자 (소수 한 자리, .0은 뺌): 0.085 → 8.5 */
 const pc = (x: number) => String(Math.round(x * 1000) / 10);
 /** 장비 그림 (36 4-2 · 4-3): 이름 있는 장신구 → 종류 → 부위 (item-<부위>) → 부위 선 아이콘. 빈칸은 부위 그림 */
-const itemIc = (x: SlotKey | GearItem) => gearIcon(typeof x === 'string' ? { slot: x } : x);
+const itemIc = (x: SlotKey | Parameters<typeof gearIcon>[0]) => gearIcon(typeof x === 'string' ? { slot: x } : x);
 
 /** 능력치 그림 (stat-<이름>). 없으면 선 아이콘 */
 const STAT_LINE = {
@@ -338,7 +338,7 @@ function dexSheet(): string {
       <div class="c7-dexr">${reward}</div>
       ${msg ? `<p class="note c7-msg">${esc(msg)}</p>` : ''}
       <p class="cap c7-ctitle">${done ? `칭호 「${esc(tab.title)}」 받음` : `다 모으면 칭호 「${esc(tab.title)}」 (${got}/${rows.length})`}</p>
-      <div class="c7-clist">${rows.map(r => `<div class="c7-spec c7-dexc${r.got ? '' : ' unk'}"${r.look ? ` style="--look:${FACTIONS[r.look].color}"` : ''}><span class="c7-spg">${itemIc(r.slot)}</span><span class="c7-spt"><b>${r.got ? esc(r.name) : '?'}</b><span class="cap">${esc(r.got ? r.text : r.hint)}</span></span></div>`).join('')}</div>
+      <div class="c7-clist">${rows.map(r => `<div class="c7-spec c7-dexc${r.got ? '' : ' unk'}"${r.look ? ` style="--look:${FACTIONS[r.look].color}"` : ''}><span class="c7-spg">${itemIc(r.got ? r : r.slot)}</span><span class="c7-spt"><b>${r.got ? esc(r.name) : '?'}</b><span class="cap">${esc(r.got ? r.text : r.hint)}</span></span></div>`).join('')}</div>
       <div class="c7-bagf"><span class="cap">처음 얻으면 칸이 채워짐 · 능력치 보너스 없음</span>${fill}<button type="button" class="btn2" data-codex>특수능력 ${codexHave(SPEC_GROUP_KEYS)}/${SPEC_KEYS.length}</button><button type="button" class="btn2" data-sheetx>닫기</button></div></section>`;
 }
 

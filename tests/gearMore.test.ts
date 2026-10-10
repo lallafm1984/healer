@@ -11,6 +11,7 @@ import { FACTIONS, type FactionKey } from '../src/data/places';
 import { rngFrom } from '../src/engine/rng';
 import { migrate, newSave, noteDex } from '../src/platform/storage';
 import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, dexKeysOf, dexReward, dexTabOf } from '../src/data/dex';
+import { gearIcon, KIND_ART } from '../src/screens/art';
 
 describe('종류 30 · 겹 고정 옵션 (34 6-10 ①)', () => {
   it('부위마다 5종, 키 · 이름이 겹치지 않고, 겹 옵션은 서로 다른 두 능력치', () => {
@@ -175,5 +176,16 @@ describe('장비 도감 (34 6-10 ④)', () => {
     expect(dexDue(30, 0)).toEqual({ gold: 1800, stone: 15, refined: 0, steps: 3 });
     expect(dexDue(52, 3)).toEqual({ gold: 1200, stone: 10, refined: 2, steps: 2 });
     expect(dexReward(DEX_STEP / DEX_STEP).gold).toBe(600);
+  });
+});
+
+describe('장비 그림 이름 (50 5장)', () => {
+  it('종류 30 모두 그림 이름이 있고 item-<부위>(-<종류>) 꼴', () => {
+    for (const k of KINDS) expect(KIND_ART[k.key], k.key).toMatch(new RegExp(`^item-${k.slot}(-${k.key})?$`));
+  });
+  it('그림이 없는 고유 · 세력 생김새 · 새 종류는 부위 그림이나 선 아이콘으로 돌아감 (빈 칸이 아님)', () => {
+    for (const it of [{ slot: 'hands' as const, kind: 'gauntlet', unique: 'boilerGauntlet' }, { slot: 'ring' as const, kind: 'stone', look: 'golem' as FactionKey }, { slot: 'neck' as const, kind: 'medal' }]) {
+      expect(gearIcon(it), JSON.stringify(it)).toMatch(/<(img|svg)/);
+    }
   });
 });
