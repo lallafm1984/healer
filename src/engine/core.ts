@@ -315,7 +315,7 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       const n = d.stack ?? 1, c = cellOf(f, u);
       const near = living(f).filter(v => v !== u && hexDist(cellOf(f, v), c) === 1);
       emit(f, { type: 'sound', name: 'burst' });
-      emit(f, { type: 'fx', name: 'bubble-pop', on: u.id });
+      emit(f, { type: 'fx', name: dispelled ? 'swell-pop' : 'explode', on: u.id }); // 지우면 퐁 (37 G), 두면 펑 (37 F)
       for (const v of near) damage(f, v, (dispelled ? e.pop : e.near) * n, true);
       if (!dispelled) damage(f, u, e.self * n, true);
       emit(f, { type: 'msg', text: dispelled ? `${d.name} ${n}중첩: 지워서 이웃 칸이 터짐` : `${d.name} ${n}중첩: ${u.nick} 터짐` });
