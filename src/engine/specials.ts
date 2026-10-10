@@ -9,7 +9,7 @@ import { namedOf, SPECS } from '../data/specials';
 import { SKILLS, type SkillKey, type SlotName } from '../data/skills';
 import { hexDist } from './board';
 import { addMod } from './abilities';
-import { cellOf, emit, heal, living } from './core';
+import { cellOf, emit, heal, living, onDebuffEnd } from './core';
 import type { Debuff, Fight, Telegraph, Unit } from './types';
 
 /** 전투 중 특수능력 상태 */
@@ -143,6 +143,9 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.goldButton && direct && !tick && f.sp!.button[u.id]) { m += v.goldButton; delete f.sp!.button[u.id]; } // 금빛수염 단추
   if (v.chippedCup && u.debuffs.some(d => d.absorbLeft)) m += v.chippedCup; // 이 빠진 찻잔 (48 6장)
   if (v.dragonScale && u.debuffs.some(d => d.type === '독')) m += v.dragonScale; // 용 비늘 조각
+  if (v.festInvite && direct && !tick && u.debuffs.some(d => d.noDps)) m += v.festInvite; // 축제 초대장 (48 6장)
+  if (v.rainbowSpore && u.soul) m += v.rainbowSpore; // 무지개 포자
+  if (v.mossBrooch && aoe && f.stagger) m += v.mossBrooch; // 이끼 브로치
   if (u.me && v.brokenChain && on(f, 'brokenChain')) m += v.brokenChain;
   if (f.t < 20) m += v.firstWord ?? 0;
   if (bossPct(f) < 0.3) m += v.secondWind ?? 0;
@@ -381,6 +384,18 @@ export function specDispel(f: Fight, u: Unit, d: Debuff): void {
   if (v.wornRosary) { if (s.dtype && s.dtype !== d.type) { cdCut(f, ['dispel'], v.wornRosary); shout(f, 'wornRosary'); } s.dtype = d.type; }
   // 꼬마등 유리병 (48 6장): 지울 때 대상이 50% 아래면 그 아군에게 보호막
   if (v.lampGlass && u.hp < u.max * 0.5 && (s.ready.lampGlass ?? 0) <= f.t) { s.ready.lampGlass = f.t + 12; shield(f, u, intAmt(f, v.lampGlass), 8, 'lampGlass'); }
+  // 광대버섯 왕관 조각 (48 6장): 그 확률로 이웃 칸 아군 1명의 같은 유형 디버프도 함께 지움
+  if (v.amanitaShard && f.rng() < v.amanitaShard) {
+    const c = f.cells[u.cell];
+    const w = living(f).find(x => x !== u && hexDist(f.cells[x.cell], c) === 1 && x.debuffs.some(y => y.type === d.type && !y.lock && !y.trap));
+    const y = w?.debuffs.find(x => x.type === d.type && !x.lock && !x.trap);
+    if (w && y) {
+      w.debuffs = w.debuffs.filter(x => x !== y);
+      emit(f, { type: 'dispel', id: w.id, trap: false });
+      onDebuffEnd(f, w, y, true);
+      shout(f, 'amanitaShard', w);
+    }
+  }
   // 소라 껍데기 (46 6장): 터지는 디버프 (부풀기 · 함정 · 터지는 마력)를 지우면 대상과 이웃 칸 아군에게 보호막
   if (v.conchShell && (d.trap || d.end?.p === 'pop' || d.end?.p === 'trapHit' || d.end?.p === 'blast') && (s.ready.conchShell ?? 0) <= f.t) {
     s.ready.conchShell = f.t + 15;

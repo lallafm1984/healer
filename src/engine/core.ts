@@ -159,7 +159,10 @@ const affinity = (u: Unit): number => (u.gid != null ? 1e9 + u.runs : u.got);
  */
 export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: DamageAim = 'party'): void {
   if (!u.alive || amt <= 0) return;
-  if (f.links.length && !sharing) { const o = shareWith(f, u); if (o) { shared(() => { damage(f, u, amt / 2, magic, aim); damage(f, o, amt / 2, magic, aim); }); return; } } // 생명 사슬 나눔형
+  if (f.links.length && !sharing) { // 생명 사슬 나눔형: 맞은 사람 방어력으로 줄인 뒤 반씩 「고정」으로 (34 9-3, 탱커 버스터가 사슬 건너 딜러에게 그대로 가지 않게)
+    const o = shareWith(f, u);
+    if (o) { const half = (amt * (f.armor ? armorFactor(u.role, aim) : 1)) / 2; shared(() => { damage(f, u, half, magic, 'fixed'); damage(f, o, half, magic, 'fixed'); }); return; }
+  }
   amt *= f.dmgMult;
   if (u.debuffs.length) { const v = u.debuffs.reduce((x, d) => x + (d.vuln ?? 0) * (d.stack ?? 1), 0); if (v) amt *= 1 + v; } // 가시 · 공허 (P-SWAP)
   if (f.armor) amt *= armorFactor(u.role, aim);

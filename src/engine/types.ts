@@ -383,7 +383,9 @@ export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crum
   /** 묶음 B 새 부품 (46 5장, 그림 37 G · 47 E): 부풀기 지워서 퐁 · 치유 상한 먹물 · 뒤집힘 금화. 두어서 터지면 explode */
   | 'swell-pop' | 'ink-splat' | 'coin-flip'
   /** 묶음 C 새 부품 (48 5장, 그림 49): 요정 고리가 깔리거나 자람 · 넘어가는 포자가 날아감 */
-  | 'ring-grow' | 'spore-pass';
+  | 'ring-grow' | 'spore-pass'
+  /** 묶음 C2 (48 4장, 그림 49): 모자가 씌워짐 · 춤바람 음표 · 꿀벌이 쏨 · 숲 할아버지가 깨어남 */
+  | 'hat-drop' | 'dance' | 'bee-sting' | 'tree-wake';
 
 export type FightResult = 'win' | 'lose';
 
@@ -648,6 +650,8 @@ export interface Fight {
   bless: { heal: number; until: number } | null;
   /** 영혼 축복: until까지 보스가 주는 피해 × (1 − cut). dmgMult에 곱했다가 끝나면 되돌림 */
   weak: { cut: number; until: number } | null;
+  /** 영혼 축복: until까지 보스가 받는 피해 × vuln (숲 할아버지가 왕관을 흔듦, 48 4-3). 보스가 기술은 그대로 씀 (멍함과 다름) */
+  expose: { vuln: number; until: number } | null;
   /** 장비 특수능력 (42, engine/specials). 없으면 null */
   sp: SpecRun | null;
   /** 보스를 잡은 탱커 id (탱커 교대 P-SWAP). null이면 줄 앞 탱커 */

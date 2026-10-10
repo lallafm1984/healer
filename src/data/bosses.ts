@@ -4,7 +4,7 @@
  * 없는 부품만 engine/bossParts.ts에 더한다 (38 0-4).
  * 피해 수치는 맞을 대상이 실제로 받는 양 (35 1-2, 34 9-3): tank = 탱커 기준, 그 밖은 원거리·힐러 기준.
  */
-import type { TelKind } from '../engine/types';
+import type { FxName, TelKind } from '../engine/types';
 import { CLASSES } from './classes';
 import { soaps, type ScriptKey } from './encounters';
 import { SKILLS } from './skills';
@@ -130,6 +130,8 @@ export interface DebuffDef {
   drop?: number;
   /** 칸 위 그림 (모자 뽑기의 모자 셋, 그림 49). 그림이 없으면 안 그림 (디버프 배지 · 칸 색은 그대로) */
   art?: string;
+  /** 걸릴 때 그 사람 칸에 이펙트 (모자 · 춤바람 · 벌침, 그림 49 E) */
+  fx?: FxName;
   end?: DebuffEnd;
 }
 
@@ -190,7 +192,9 @@ export type AddJob =
    * 자폭 쫄 (P-FIXATE): 탱커 아닌 1명(나 포함)을 노려 from칸 떨어진 곳(기본 3)에 나오고 every초마다 한 칸씩 다가감.
    * 붙은 채로 차례가 오면 터져 그 사람 dmg + 이웃 칸 splash (마법, 원거리 기준). 노린 사람이 쓰러지면 다른 사람을 노림
    */
-  | { p: 'fixate'; every: number; dmg: number; splash: number; from?: number };
+  | { p: 'fixate'; every: number; dmg: number; splash: number; from?: number }
+  /** 쏘는 쫄 (꿀벌 떼, 48 4-3): every초마다 탱커 아닌 무작위 1명 (나 포함)에게 dmg (물리, 원거리 기준) + debuff (벌침 쇠약). 맡은 사람을 때리지 않음 */
+  | { p: 'sting'; every: number; dmg: number; debuff: DebuffDef };
 
 /** 기술이 맞을 때 하는 일 */
 export type SkillEffect =
@@ -208,9 +212,10 @@ export type SkillEffect =
    * pick: random (기본) / lowest = 체력 비율이 가장 낮은 사람부터, 탱커 빼고 (사냥 P-HUNT) / tel = 예고 때 고른 사람 (skill.target, 삼키기) /
    * others = 탱커 · 나 빼고 무작위 (매혹 · 뒤집힌 축복) / me = 나 (마력 역류) / tank = 보스가 때리는 사람 (서리 손길) /
    * linked = 생명 사슬에 묶인 사람 먼저, 모자라면 탱커 · 나 빼고 무작위 (잠꼬대 저주 · 소금물 저주, 46 5장).
+   * order = 차례 번호를 받은 사람 먼저 (나 빼고), 모자라면 탱커 · 나 빼고 무작위 (거꾸로 마술, 48 4-3).
    * burstAdjacent = 걸린 둘이 붙어 서 있으면 바로 터짐 (전염)
    */
-  | { p: 'debuff'; n: number | 'all'; nMythic?: number; pick?: 'random' | 'lowest' | 'tel' | 'others' | 'me' | 'tank' | 'linked'; debuff: DebuffDef; burstAdjacent?: boolean }
+  | { p: 'debuff'; n: number | 'all'; nMythic?: number; pick?: 'random' | 'lowest' | 'tel' | 'others' | 'me' | 'tank' | 'linked' | 'order'; debuff: DebuffDef; burstAdjacent?: boolean }
   /**
    * 최대 체력을 깎는 중첩 디버프 (썩은 숨결 · 썩은 축복 P-HPDOWN): 무작위 n명, 중첩마다 pct, max 중첩, 다시 걸리면 지속이 처음으로.
    * again = 이미 걸린 사람이 있으면 그 확률로 그중에서 고름 (썩은 축복 0.6). 지우면 최대 체력이 돌아옴 (end restoreMax)
@@ -219,9 +224,10 @@ export type SkillEffect =
   /**
    * 끌어당김 (P-PULL): 예고 때 고른 사람(target back)을 탱커 옆 앞줄 빈 칸으로 끌어옴. sec초 동안 보스 평타를 탱커와 번갈아 맞음
    * (끌려온 사람은 한 대에 dmg, 원거리 기준). 끌려온 칸을 벗어나면 (도망·장판 피하기) 바로 끝나고, 끝나면 제자리로 돌아감.
-   * pad = 끌려온 칸에 금빛 받침 (망루 파수꾼, 39 3-1): sec초 끝에 울려 받침 위 사람 dmg, 비어 있으면 (도망 · 쓰러짐) 전원 empty (마법)
+   * pad = 끌려온 칸에 금빛 받침 (망루 파수꾼, 39 3-1): sec초 끝에 울려 받침 위 사람 dmg, 비어 있으면 (도망 · 쓰러짐) 전원 empty (마법).
+   * link = 끌려온 사람과 보스를 맞는 탱커를 sec초 나눔형 사슬로 이음 (연잎 사슬, 48 4-2). 악몽은 둘 다 받는 피해 +vulnMythic
    */
-  | { p: 'pull'; sec: number; dmg: number; pad?: { dmg: number; empty: number } }
+  | { p: 'pull'; sec: number; dmg: number; pad?: { dmg: number; empty: number }; link?: { name: string; vulnMythic?: number } }
   /** 사냥 (P-HUNT, 35 4-2 사냥 창): 맞는 순간 체력 비율이 가장 낮은 탱커 아닌 1명 (악몽 nMythic명)에게 dmg (물리, 원거리 기준) */
   | { p: 'hunt'; dmg: number; nMythic?: number }
   /** 쫄 n마리 (P-ADD). 악몽은 nMythic */
@@ -277,9 +283,9 @@ export type SkillEffect =
   /**
    * 헤매는 영혼 (P-SOUL, 35 3장): 빈 칸 하나에 파티원이 아닌 영혼 칸 (최대 체력 = 탱커·나 아닌 파티원 평균, hp 비율로 시작).
    * 칸 탭으로 단일 힐(기본·빠른·지속)만 들어감. sec초 안에 가득 채우면 win, 못 채우면 fail. type이 있으면 그 유형을 지우는 직업이
-   * 영혼에 해제를 쓰면 바로 성공. 빈 칸이 1개뿐이면 안 나옴
+   * 영혼에 해제를 쓰면 바로 성공. 빈 칸이 1개뿐이면 안 나옴. size = 최대 체력 배율 (사람 칸 큰 판: 숲 할아버지 나무, 48 4-3), hpMythic = 악몽 시작 비율
    */
-  | { p: 'soul'; name: string; short: string; hp: number; sec: number; type?: string; win: SoulWin; fail: SoulFail; art?: string }
+  | { p: 'soul'; name: string; short: string; hp: number; hpMythic?: number; sec: number; type?: string; win: SoulWin; fail: SoulFail; art?: string; size?: number }
   /**
    * 생명 사슬 (P-LINK, 35 3장): 두 사람을 sec초 잇는 사슬 (pick tanks = 두 탱커, 없으면 탱커 아닌 사람 둘. 나도 걸릴 수 있음).
    * balance = 두 사람 체력 비율 차이가 gap(기본 0.3)을 넘으면 끊어지며 둘 다 dmg (aim 기준, 기본 party).
@@ -303,12 +309,15 @@ export type SkillEffect =
   /** 보스가 주는 피해 +boost, 전투 끝까지 더해짐 (소프트 광폭화 P-ENRAGE, 05 6-E) */
   | { p: 'empower'; boost: number };
 
-/** 영혼을 채웠을 때: cure 유형 디버프를 모두에게서 1개씩 지움 · 받는 치유 +heal 비율 · 보스가 주는 피해 −weak 비율 (sec초) */
+/** 영혼을 채웠을 때: cure 유형 디버프를 모두에게서 1개씩 지움 · 받는 치유 +heal 비율 · 보스가 주는 피해 −weak 비율 · 보스가 받는 피해 +vuln 비율 (sec초) */
 export interface SoulWin {
   text: string;
   cure?: string;
   heal?: { pct: number; sec: number };
   weak?: { pct: number; sec: number };
+  vuln?: { pct: number; sec: number };
+  /** 채웠을 때 판 전체 이펙트 (숲 할아버지가 깨어남, 그림 49 E). 영혼 정화 이펙트는 늘 나옴 */
+  fx?: FxName;
 }
 
 /** 영혼을 못 채웠을 때: dmg (마법), near = 영혼 이웃 칸만 (아니면 전원). debuff = 맞은 사람에게 */
@@ -488,16 +497,21 @@ const spore = (x = 1): DebuffDef =>
   ({ name: '포자 솜뭉치', type: '질병', left: 14, dot: U.dps(0.01 * Math.min(1, x)), absorb: U.dps(0.4 * x), end: { p: 'pass', sec: 14 } });
 const SPORE_HOW = '치유를 빨아들이는 솜뭉치. 지우면 체력 비율이 가장 높은 아군에게 넘어감. 붙은 사람이 낮으면 지워서 넘기고, 건강한 사람 몸에서 힐로 녹이기';
 /** 모자 뽑기 (48 3-1 ②): 뒤집힌 축복 실크해트 · 치유 상한 고깔모자 · 완치 왕관 모자 (못 지움, 걸릴 때 딜체 30%를 떨어뜨림) */
-const HAT_CROWN: DebuffDef = { name: '왕관 모자', type: '마법', left: 12, lock: true, cureAt: 1, drop: U.dps(0.3), end: { p: 'hit', dmg: U.dps(0.45) }, art: 'icon-hat-crown' };
+const HAT_CROWN: DebuffDef = { name: '왕관 모자', type: '마법', left: 12, lock: true, cureAt: 1, drop: U.dps(0.3), end: { p: 'hit', dmg: U.dps(0.45) }, art: 'icon-gim-hat-full', fx: 'hat-drop' };
 const HATS: DebuffDef[] = [
-  { name: '실크해트', type: '마법', left: 8, invert: true, art: 'icon-hat-silk' },
-  { name: '고깔모자', type: '마법', left: 12, cap: 0.7, art: 'icon-hat-cone' },
+  { name: '실크해트', type: '마법', left: 8, invert: true, art: 'icon-gim-hat-invert', fx: 'hat-drop' },
+  { name: '고깔모자', type: '마법', left: 12, cap: 0.7, art: 'icon-gim-hat-cap', fx: 'hat-drop' },
   HAT_CROWN,
 ];
 /** 악몽: 왕관 모자가 끝나면 딜체 60% */
 const HATS_MYTHIC: DebuffDef[] = [HATS[0], HATS[1], { ...HAT_CROWN, end: { p: 'hit', dmg: U.dps(0.6) } }];
 const HAT_HOW = '모자가 셋 중 하나. 실크해트 = 힐하면 아픔 (힐 멈춤) · 고깔모자 = 70%까지만 참 (지우거나 보호막) · 왕관 모자 = 100%까지 채우면 벗겨짐 (못 지움, 진동 전에 몰아서)';
 const RING_HOW = '고리 안에 선 사람이 치유를 받으면 고리가 자람. 파티원이 걸어 나올 때까지 힐을 미루고, 광역 힐은 고리를 피해서. 위급하면 예외';
+/** 춤바람 (P-FULL + 딜 0, 48 4-1): 체력을 65%로 떨어뜨리고 12초 춤 (딜 0 · 못 움직임), 가득 차면 멈춤 · 해제 가능, 다 되면 어질어질 */
+const DANCE: DebuffDef = { name: '춤바람', type: '마법', left: 12, noDps: true, noMove: true, cureAt: 1, drop: U.dps(0.41), end: { p: 'hit', dmg: U.dps(0.3) }, fx: 'dance' };
+const DANCE_HOW = '체력을 35% 깎고 (근접은 덜) 12초 동안 춤만 춤 (딜 0 · 못 움직임). 가득 채우거나 지우면 바로 멈춤. 쫄이 나와 있으면 춤추는 딜러부터';
+/** 벌침 (P-WOUND, 48 4-3): 꿀벌이 쏜 사람이 90% 아래인 동안 3초마다 1중첩 (중첩당 초당 딜체 1%), 못 지움 */
+const sting = (max: number): DebuffDef => ({ name: '벌침', type: '물리', left: 20, lock: true, cureAt: 0.9, grow: { every: 3, dot: U.dps(0.01), max }, fx: 'bee-sting' });
 /** 못 피하는 줄 피해 (P-ROW): 뒷줄 → 가운데 → 앞줄을 period초마다 번갈아. two = 2페이즈부터 다른 한 줄을 같이 */
 const rows = (key: string, name: string, icon: string, first: number, period: number, dmg: number, two: boolean): SkillDef[] => {
   const at = ['back', 'mid', 'front'] as const;
@@ -1368,6 +1382,215 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '독 연기', type: '독', left: 10, dot: 14 } } },
     ],
     enrage: { name: '보물 지킴이 화남', period: 2, dmg: 200 },
+  },
+  // 버섯 여왕 아마니타 탐험판 (48 1-1, 탐험 ⑭ 무지개 버섯밭 Lv 56): 평타 · 여왕의 홀 · 숲 할아버지 묘목 (작은 사람 칸). 10인 ⑦ 왕좌 예습
+  queen56: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('여왕의 홀', '홀', 8, 15, 350),
+      { key: 'sapling', name: '숲 할아버지 묘목', icon: '묘목', kind: 'instant', first: 14, period: 35, cast: 0,
+        how: '묘목 칸을 단일 힐로 20초 안에 가득 채우면 보스가 받는 피해 +25%. 질병을 지우는 직업은 해제로 바로 깨움',
+        effect: { p: 'soul', name: '숲 할아버지 묘목', short: '묘목', art: 'mob-grandpa-tree', hp: 0.4, sec: 20, type: '질병',
+          win: { text: '묘목이 깨어남: 보스가 받는 피해 +25%', vuln: { pct: 0.25, sec: 12 }, fx: 'tree-wake' }, fail: { text: '꽃가루가 터짐', dmg: 120 } } },
+    ],
+    enrage: { name: '여왕님 화남', period: 2, dmg: 190 },
+  },
+  // ---------- 묶음 C 10인 ⑤~⑦ (48 4장, 버섯 요정단 · 해제 질병 + 마법): 탱커 교대 자국은 모두 3중첩 ----------
+  // 버섯 경비대장 송이 (48 4-1 어귀, 10인 ⑤ 요정 축제 마당): 요정 고리 × 탱커 교대. 50% 아래 고리 2개. 악몽은 고리 최대 3겹. 목표 4:30 · 광폭화 6:00
+  songi: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('포자 창 찌르기', '창', '포자 자국', U.tank(0.5)),
+      ...([['ring', 1, 1], ['ring2', 2, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '요정 고리', icon: '고리', kind: 'instant', first: phase === 1 ? 6 : null, period: 18, cast: 0, when: { phase: [phase] }, how: RING_HOW,
+        effect: { p: 'ring', n, sec: 20, dps: U.dps(0.05), every: 2, max: 2, maxMythic: 3 },
+      })),
+      { key: 'cough', name: '포자 기침', icon: '기침', kind: 'instant', first: 10, period: 20, cast: 0,
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '포자 기침', type: '질병', left: 10, dot: U.dps(0.02) } } },
+      { key: 'ticket', name: '입장권 검사', icon: '입장', kind: 'aoe', first: 20, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'ring2', in: 2 }, { p: 'text', text: '경비 교대!: 요정 고리 2개' }] }],
+    enrage: { name: '입장 마감', period: 3, dmg: 180 },
+  },
+  // 요정 악단장 삘릴리 (48 4-1 무대): 춤바람 × 쫄 (꽃가루 무용단). 춤바람 24초 · 무용수 체력 0.8% · 35초 (48은 20초 · 2% · 30초, 딜이 너무 빠져 광폭화까지 감). 50% 아래 춤바람 3명. 악몽은 무용수 4 · 춤바람 처음부터 3명. 목표 4:40 · 광폭화 6:15
+  pililli: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('박자 맞춰 때리기', '박자', '음표 자국', U.tank(0.5)),
+      ...([['dance', 2, 1], ['dance2', 3, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '춤바람', icon: '춤', kind: 'instant', first: phase === 1 ? 12 : null, period: 24, cast: 0, when: { phase: [phase] }, how: DANCE_HOW,
+        effect: { p: 'debuff', n, nMythic: 3, pick: 'others', debuff: DANCE },
+      })),
+      { key: 'troupe', name: '꽃가루 무용단', icon: '무용', kind: 'instant', first: 18, period: 35, cast: 0,
+        how: '무용수를 부탱커가 끌고 딜러가 잡음. 춤추는 딜러는 못 잡으니 그 딜러부터 채우기',
+        effect: { p: 'adds', n: 3, nMythic: 4, add: { name: '꽃가루 무용수', short: '무용', art: 'mob-pollen-dancer', hp: 0.008, dmg: U.dps(0.04), every: 2 } } },
+      { key: 'band', name: '신나는 합주', icon: '합주', kind: 'aoe', first: 22, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'dance2', in: 2 }, { p: 'text', text: '앙코르!: 춤바람 3명' }] }],
+    enrage: { name: '끝없는 앙코르', period: 3, dmg: 180 },
+  },
+  // 축제 대장 퐁가 (48 4-1 모닥불, 10인 ⑤ 최종): 피난처 × 요정 고리 (고리 칸에는 안전 칸이 안 생김) · 폭탄 (폭죽 통). 30% 아래 폭죽 통 3 · 포자 구름 24초.
+  // 악몽은 고리 3명. 목표 5:00 · 광폭화 6:30
+  ponga: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('갓 박치기', '박치', '포자 혹', U.tank(0.5)),
+      { key: 'ring', name: '요정 고리', icon: '고리', kind: 'instant', first: 8, period: 22, cast: 0, how: `${RING_HOW}. 고리 칸에는 포자 구름 안전 칸이 안 생기니 키우지 않기`,
+        effect: { p: 'ring', n: 2, nMythic: 3, sec: 20, dps: U.dps(0.05), every: 2, max: 2 } },
+      { key: 'cloud', name: '퐁! 포자 구름', icon: '포자', kind: 'zone', first: 30, period: 30, cast: 4, warn: 'zone', hitDmg: U.dps(0.45), cells: { p: 'safe', at: 'edge', n: 12 },
+        how: '파티원이 금빛 안전 칸으로 모임 (요정 고리 칸에는 안 생김). 늦을 사람에게 미리 지속 힐 · 보호막' },
+      ...([['keg', 2, 1], ['keg3', 3, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '폭죽 통', icon: '폭죽', kind: 'instant', first: phase === 1 ? 20 : null, period: 28, cast: 0, when: { phase: [phase] },
+        how: '8초 안에 딜러가 못 깨면 전원이 아픔. 춤 · 침묵에 걸린 딜러부터 풀고, 못 깰 것 같으면 광역 선힐',
+        effect: { p: 'adds', n, add: { name: '폭죽 통', short: '폭죽', art: 'mob-firework-keg', hp: 0.015, dmg: 0, every: 0, job: { p: 'bomb', sec: 8, dmg: U.dps(0.25) } } },
+      })),
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'keg3', in: 3 }, { p: 'period', skill: 'cloud', sec: 24 }, { p: 'text', text: '축제는 계속돼!: 폭죽 통 3, 포자 구름이 잦아짐' },
+    ] }],
+    enrage: { name: '대폭죽', period: 3, dmg: 190 },
+  },
+  // 이끼 골렘 뭉게 (48 4-2 이끼 굴, 10인 ⑥ 포자 동굴 정원): 무력화 × 넘어가는 포자 (막이 붙은 사람은 70% 위로 올리기 어려움). 50% 아래 솜뭉치 3명.
+  // 악몽은 게이지 선 75%. 목표 4:40 · 광폭화 6:15
+  mungge: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('이끼 주먹', '주먹', '이끼 자국', U.tank(0.55)),
+      ...([['spore', 2, 1], ['spore2', 3, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '포자 솜뭉치', icon: '솜', kind: 'instant', first: phase === 1 ? 10 : null, period: 18, cast: 0, when: { phase: [phase] }, how: `${SPORE_HOW}. 웅크리기 전에 막을 정리해 모두 70% 위로`,
+        effect: { p: 'debuff', n, pick: 'others', debuff: spore() },
+      })),
+      { key: 'stagger', name: '뭉게 웅크리기', icon: '웅크', kind: 'instant', first: 25, period: 32, cast: 0,
+        how: '6초 동안 체력 70% 이상인 파티원의 딜만 게이지를 채움. 솜뭉치가 붙은 사람은 지워서 넘기거나 녹여서 70% 위로',
+        effect: { p: 'stagger', sec: 6, need: 4, hp: 0.7, hpMythic: 0.75, tank: 2, win: { sec: 6, vuln: 1.3 }, fail: { dmg: U.dps(0.4), lock: 3 } } },
+      { key: 'rain', name: '이끼 비', icon: '이끼', kind: 'aoe', first: 20, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'spore2', in: 2 }, { p: 'text', text: '이끼가 자란다: 솜뭉치 3명' }] }],
+    enrage: { name: '이끼 폭주', period: 3, dmg: 180 },
+  },
+  // 개구리 사공 개굴 (48 4-2 연못): 끌어당김 × 사슬 나눔형 (끌려온 사람과 탱커가 피해 · 치유를 반씩). 40% 아래 혀 2명 (둘째는 부탱커와 사슬).
+  // 악몽은 사슬로 묶인 둘이 받는 피해 +10%. 목표 4:40 · 광폭화 6:15
+  gaegul: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('물갈퀴 철썩', '철썩', '연못 자국', U.tank(0.5)),
+      ...([['tongue', 1, 1], ['tongue2', 2, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '혀 낚아채기', icon: '혀', kind: 'buster', first: phase === 1 ? 14 : null, period: 20, cast: 2, warn: 'buster', target: { p: 'back', n }, when: { phase: [phase] },
+        how: '끌려온 사람은 탱커와 연잎 사슬로 피해 · 치유를 반씩 나눔. 끌려온 사람에게 단일 힐을 넣으면 탱커도 같이 참',
+        effect: { p: 'pull', sec: 8, dmg: U.dps(0.1), link: { name: '연잎 사슬', vulnMythic: 0.1 } },
+      })),
+      { key: 'splash', name: '연잎 물보라', icon: '물보', kind: 'zone', first: 10, period: 16, cast: 2.5, warn: 'zone', dps: U.dps(0.04), dur: 8, cells: { p: 'around' } },
+      { key: 'croak', name: '개굴개굴 합창', icon: '개굴', kind: 'aoe', first: 22, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'tongue2', in: 3 }, { p: 'text', text: '큰 물결: 혀 낚아채기 2명' }] }],
+    enrage: { name: '연못 범람', period: 3, dmg: 180 },
+  },
+  // 포자 정원사 모락 할멈 (48 4-2 뿌리 방, 10인 ⑥ 최종): 치유하는 쫄 (버섯 화분) × 요정 고리. 30% 아래 화분 3 · 회복 0.45% (48은 0.6 → 0.9%, 보스가 다시 차서 절반으로).
+  // 악몽은 고리 3명. 목표 5:00 · 광폭화 6:45
+  morak: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('삽 내려치기', '삽', '흙 자국', U.tank(0.55)),
+      ...([['pots', 2, 0.003, 1], ['pots3', 3, 0.0045, 2]] as const).map(([key, n, pct, phase]): SkillDef => ({
+        key, name: '버섯 화분', icon: '화분', kind: 'instant', first: phase === 1 ? 15 : null, period: 30, cast: 0, when: { phase: [phase] },
+        how: '화분이 살아 있는 동안 보스가 체력을 회복함. 화분을 깨는 딜러가 쓰러지면 보스가 다시 차니 딜러를 살려 두기',
+        effect: { p: 'adds', n, add: { name: '버섯 화분', short: '화분', art: 'mob-mushroom-pot', hp: 0.015, dmg: 0, every: 0, at: 'random', job: { p: 'mend', every: 3, pct } } },
+      })),
+      { key: 'ring', name: '요정 고리', icon: '고리', kind: 'instant', first: 8, period: 22, cast: 0, how: RING_HOW,
+        effect: { p: 'ring', n: 2, nMythic: 3, sec: 20, dps: U.dps(0.05), every: 2, max: 2 } },
+      { key: 'water', name: '물뿌리개', icon: '물뿌', kind: 'instant', first: 12, period: 18, cast: 0,
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '젖은 포자', type: '질병', left: 10, dot: U.dps(0.02) } } },
+      { key: 'storm', name: '포자 폭풍', icon: '폭풍', kind: 'aoe', first: 22, period: 26, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'pots3', in: 3 }, { p: 'text', text: '다 자랐다!: 버섯 화분 3, 회복이 빨라짐' }] }],
+    enrage: { name: '정원 폭주', period: 3, dmg: 190 },
+  },
+  // 꿀벌 근위대장 붕붕 (48 4-3 정원, 10인 ⑦ 버섯 여왕의 궁전): 쇠약 × 쫄 떼 (꿀벌이 쏜 사람은 90% 아래인 동안 벌침이 쌓임). 40% 아래 꿀벌 7.
+  // 악몽은 벌침 최대 7중첩. 목표 4:40 · 광폭화 6:15
+  bungbung: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('창 찌르기', '창', '꿀 자국', U.tank(0.5)),
+      ...([['swarm', 5, 1], ['swarm2', 7, 2]] as const).flatMap(([key, n, phase]) => ([false, true] as const).map((mythic): SkillDef => ({
+        key: `${key}${mythic ? 'm' : ''}`, name: '근위 꿀벌 떼', icon: '꿀벌', kind: 'instant', first: phase === 1 ? 12 : null, period: 30, cast: 0, when: { phase: [phase], mythic },
+        how: '꿀벌은 딜러 범위 딜에 같이 맞음. 살아 있는 동안 2초마다 한 명을 쏘고, 쏘인 사람은 90% 아래인 동안 벌침이 쌓임. 여럿을 조금씩보다 한 명씩 90% 위로',
+        effect: { p: 'adds', n, add: { name: '근위 꿀벌', short: '꿀벌', art: 'mob-guard-bee', hp: 0.008, dmg: 0, every: 2, at: 'random', cleave: true,
+          job: { p: 'sting', every: 2, dmg: U.dps(0.03), debuff: sting(mythic ? 7 : 5) } } },
+      }))),
+      { key: 'wind', name: '날갯짓 바람', icon: '바람', kind: 'aoe', first: 20, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'swarm2', in: 3 }, { p: 'start', skill: 'swarm2m', in: 3 }, { p: 'text', text: '비상!: 근위 꿀벌 7마리' },
+    ] }],
+    enrage: { name: '벌집 비상', period: 3, dmg: 180 },
+  },
+  // 요정 마술사 뿅뿅 (48 4-3 연회장): 차례 × 뒤집힌 축복 (차례 번호 중 한 명에게 거꾸로 마술). 35% 아래 차례 4명 · 거꾸로 2명.
+  // 악몽은 차례 제한 8초. 목표 4:50 · 광폭화 6:30
+  ppyong: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('지팡이 뿅', '뿅', '별 자국', U.tank(0.5)),
+      ...([['clap', 3, 1], ['clap2', 4, 2]] as const).flatMap(([key, n, phase]) => ([false, true] as const).map((mythic): SkillDef => ({
+        key: `${key}${mythic ? 'm' : ''}`, name: '순서대로 박수', icon: '박수', kind: 'instant', first: phase === 1 ? 20 : null, period: 26, cast: 0, when: { phase: [phase], mythic },
+        how: '번호 순서대로 직접 힐을 한 번씩. 거꾸로 마술이 걸린 번호는 힐하면 아프니 먼저 해제하고 이어 가기',
+        effect: { p: 'order', n, sec: mythic ? 8 : 10, wrong: U.dps(0.25), miss: U.dps(0.3), daze: { sec: 5, vuln: 1.2 } },
+      }))),
+      ...([['flip', 1, 1], ['flip2', 2, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '거꾸로 마술', icon: '거꾸', kind: 'instant', first: phase === 1 ? 20.5 : null, period: 26, cast: 0, when: { phase: [phase] },
+        how: '받는 치유가 피해로 (광역 힐도). 차례 번호에 걸리면 먼저 해제하고 그 번호를 힐',
+        effect: { p: 'debuff', n, pick: 'order', debuff: { name: '거꾸로 마술', type: '마법', left: 8, invert: true } },
+      })),
+      { key: 'vanish', name: '사라지는 마술', icon: '사라', kind: 'aoe', first: 12, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.35 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'clap2', in: 3 }, { p: 'start', skill: 'clap2m', in: 3 }, { p: 'start', skill: 'flip2', in: 3.5 },
+      { p: 'text', text: '피날레: 차례 4명, 거꾸로 마술 2명' },
+    ] }],
+    enrage: { name: '마술쇼 폭주', period: 3, dmg: 190 },
+  },
+  // 버섯 여왕 아마니타 (48 4-3 왕좌, 10인 ⑦ 최종 · 요정단 수장): 1페이즈 고리 · 포자 → 70% 「쉿, 할아버지는 주무셔」 (숲 할아버지 나무: 사람 칸 큰 판,
+  // 가득 채우면 보스가 받는 피해 +25%) → 40% 「영원한 축제」 (고리 · 포자 · 춤바람, 10초마다 보스 +5%). 악몽은 나무 20%로 시작 · 2페이즈에도 고리. 목표 6:00 · 광폭화 7:30
+  amanita: {
+    phase: [1, '1페이즈'],
+    skills: [
+      AUTO(U.tank(0.06)),
+      SWAP_BUSTER('여왕의 홀', '홀', '왕관 자국', U.tank(0.55)),
+      { key: 'ring', name: '요정 고리', icon: '고리', kind: 'instant', first: 8, period: 22, cast: 0, when: { phase: [1, 3] }, how: RING_HOW,
+        effect: { p: 'ring', n: 2, sec: 20, dps: U.dps(0.05), every: 2, max: 2 } },
+      { key: 'ringm', name: '요정 고리', icon: '고리', kind: 'instant', first: null, period: 22, cast: 0, when: { phase: [2], mythic: true }, how: RING_HOW,
+        effect: { p: 'ring', n: 2, sec: 20, dps: U.dps(0.05), every: 2, max: 2 } },
+      { key: 'spore', name: '포자 솜뭉치', icon: '솜', kind: 'instant', first: 14, period: 20, cast: 0, when: { phase: [1, 3] }, how: SPORE_HOW,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: spore(45 / 40) } },
+      { key: 'tree', name: '숲 할아버지 나무', icon: '나무', kind: 'instant', first: null, period: 50, cast: 0, when: { phase: [2] },
+        how: '나무 칸을 단일 힐로 25초 안에 가득 채우면 할아버지가 깨어나 보스가 받는 피해 +25%. 질병을 지우는 직업은 해제로 바로 깨움. 그동안 파티는 지속 힐에 맡기기',
+        effect: { p: 'soul', name: '숲 할아버지 나무', short: '나무', art: 'mob-grandpa-tree', hp: 0.3, hpMythic: 0.2, sec: 25, type: '질병', size: 2,
+          win: { text: '할아버지가 깨어나 왕관을 흔듦: 보스가 받는 피해 +25%', vuln: { pct: 0.25, sec: 20 }, fx: 'tree-wake' }, fail: { text: '꽃가루 폭발', dmg: U.dps(0.4) } } },
+      { key: 'waltz', name: '포자 왈츠', icon: '왈츠', kind: 'aoe', first: null, period: 20, cast: 3, warn: 'aoe', when: { phase: [2] }, effect: { p: 'all', dmg: U.dps(0.18) } },
+      { key: 'dance', name: '춤바람', icon: '춤', kind: 'instant', first: null, period: 22, cast: 0, when: { phase: [3] }, how: DANCE_HOW,
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: DANCE } },
+      { key: 'party', name: '영원한 축제', icon: '축제', kind: 'instant', first: null, period: 10, cast: 0, when: { phase: [3] },
+        how: '10초마다 보스가 주는 피해 +5% (끝까지). 마나를 3페이즈에 남겨 두기', effect: { p: 'empower', boost: 0.05 } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.7 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 쉿, 할아버지는 주무셔' }, { p: 'start', skill: 'tree', in: 2 }, { p: 'start', skill: 'waltz', in: 8 }, { p: 'start', skill: 'ringm', in: 6 },
+        { p: 'text', text: '쉿, 할아버지는 주무셔: 숲 할아버지 나무를 25초 안에 채우기' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.4 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 영원한 축제' }, { p: 'start', skill: 'party', in: 10 }, { p: 'start', skill: 'dance', in: 4 },
+        { p: 'text', text: '영원한 축제: 10초마다 보스 피해 +5%, 춤바람' },
+      ] },
+    ],
+    enrage: { name: '축제 폭주', period: 3, dmg: 200 },
   },
   // 녹슨 문지기 (05 1장): 40% 아래 녹물 웅덩이
   warden: {

@@ -137,7 +137,7 @@ function bossUpdate(f: Fight): void {
   if (f.souls.length) soulsTick(f);
   if (f.links.length) linksTick(f);
   if (f.vessel) vesselTick(f);
-  if (f.bless || f.weak) boonTick(f);
+  if (f.bless || f.weak || f.expose) boonTick(f);
   if (f.daze && f.t >= f.daze.until) f.daze = null;
   enrageAt(f, def.enrage.name, def.enrage.period, def.enrage.dmg);
 }

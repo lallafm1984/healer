@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import type { DebuffDef, SkillEffect } from '../src/data/bosses';
 import * as E from '../src/engine';
 import { applyDebuff, runEffect, zoneCells } from '../src/engine/bossParts';
-import { autoHealer } from '../src/engine/auto';
 import { hexDist } from '../src/engine/board';
 import { heal } from '../src/engine/core';
 import { doDispel } from '../src/engine/heroes';
@@ -166,41 +165,4 @@ describe('모자 뽑기 · 걸릴 때 피해', () => {
   });
 });
 
-describe('자동 힐러 대응 (48 5장)', () => {
-  const decide = (f: Fight): number | null => {
-    f.cast = null; f.queued = null; f.gcd = 0;
-    const hp = f.party.map(u => u.hp);
-    autoHealer(f);
-    const c = f.cast as { uid: number } | null, q = f.queued as { uid: number } | null;
-    return c?.uid ?? q?.uid ?? f.party.find((u, i) => u.hp > hp[i] + 1e-6)?.id ?? null;
-  };
-
-  it('고리 안 사람은 35% 아래가 아니면 힐하지 않음', () => {
-    const f = fight('priest');
-    f.party.forEach(u => { u.hp = u.max; });
-    run(f, RING);
-    const z = f.zones.find(x => x.ring)!;
-    const u = f.party.find(x => z.cells.has(x.cell))!;
-    u.hp = u.max * 0.6;
-    f.mana = 100;
-    expect(decide(f)).not.toBe(u.id);
-    u.hp = u.max * 0.3;
-    expect(decide(f)).toBe(u.id);
-  });
-
-  it('포자: 붙은 사람이 50% 위면 두고, 아래이고 건강한 사람이 있으면 지워 넘김', () => {
-    const f = fight('priest');
-    f.party.forEach(u => { u.hp = u.max; });
-    const u = f.party.find(x => x.role === 'ranged')!;
-    applyDebuff(f, u, SPORE);
-    u.hp = u.max * 0.8;
-    f.mana = 100;
-    decide(f);
-    expect(u.debuffs.some(d => d.name === SPORE.name)).toBe(true);
-    u.hp = u.max * 0.4;
-    f.cast = null; f.queued = null; f.gcd = 0; f.cd.purify = 0;
-    autoHealer(f);
-    expect(u.debuffs.some(d => d.name === SPORE.name)).toBe(false);
-    expect(f.party.some(x => x !== u && x.debuffs.some(d => d.name === SPORE.name))).toBe(true);
-  });
-});
+// 자동 힐러 대응 (고리 · 포자)은 tests/autoParts.test.ts

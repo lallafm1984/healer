@@ -13,7 +13,8 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge'
   | 'bookfield' | 'rosemaze' | 'shellbeach' | 'wreck'
   | 'gull1' | 'gull2' | 'gull3' | 'queen1' | 'queen2' | 'queen3' | 'isle1' | 'isle2' | 'isle3'
-  | 'lampway' | 'emberfoot' | 'teaparty' | 'mossroot'
+  | 'lampway' | 'emberfoot' | 'teaparty' | 'mossroot' | 'rainbow'
+  | 'fest1' | 'fest2' | 'fest3' | 'cave1' | 'cave2' | 'cave3' | 'palace1' | 'palace2' | 'palace3'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -105,6 +106,10 @@ export const CONTENT: ContentDef[] = [
     fights: () => DUNGEONS.lampway.segments, size: three,
   },
   {
+    key: 'rainbow', kind: 'explore', name: '무지개 버섯밭', place: '반딧불 버섯숲 · 버섯 요정단', stageLv: 56, unlockLv: 56, ready: true, bosses: ['버섯 여왕 아마니타'],
+    fights: () => DUNGEONS.rainbow.segments, size: three,
+  },
+  {
     key: 'emberfoot', kind: 'explore', name: '불꽃 봉우리 기슭', place: '불꽃 봉우리 · 붉은 용 일가', stageLv: 60, unlockLv: 60, ready: true, bosses: ['코볼트 보물 지킴이 꼬질'],
     fights: () => DUNGEONS.emberfoot.segments, size: three,
   },
@@ -173,7 +178,7 @@ export const CONTENT: ContentDef[] = [
   ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: 35, unlockLv: 35, ready: true, fights: () => [enc], size: () => 10, diffUnlock: { '악몽': 50 },
   })),
-  // 묶음 B 10인 ②~④ (46 1-3): 짠물 해적단, 칸마다 보스 1. 악몽 = 열림 + 15 (34 5-2)
+  // 묶음 B 10인 ②~④ (46 1-3): 짠물 해적단 · 묶음 C 10인 ⑤~⑦ (48 1-3): 버섯 요정단, 칸마다 보스 1. 악몽 = 열림 + 15 (34 5-2)
   ...([
     ['gull1', '갈매기 항구 부두', '갈매기 항구 · 집게발 갑판장', '집게발 갑판장', 'crab', 39],
     ['gull2', '갈매기 항구 주방', '생선 시장 주방 · 해적 요리사 왕솥', '해적 요리사 왕솥', 'cook', 39],
@@ -184,6 +189,16 @@ export const CONTENT: ContentDef[] = [
     ['isle1', '보물섬 요새 동굴', '보물 동굴 · 보물 상자 덥석이', '보물 상자 덥석이', 'mimic', 47],
     ['isle2', '보물섬 요새 망루', '앵무새 망루 · 앵무새 대장 깍깍', '앵무새 대장 깍깍', 'parrot', 47],
     ['isle3', '보물섬 요새 꼭대기', '꼭대기 보물 더미 · 해적 선장 금빛수염', '해적 선장 금빛수염', 'goldbeard', 47],
+    // 묶음 C 10인 ⑤~⑦ (48 1-3): 버섯 요정단
+    ['fest1', '요정 축제 마당 어귀', '축제 어귀 · 버섯 경비대장 송이', '버섯 경비대장 송이', 'songi', 51],
+    ['fest2', '요정 축제 마당 무대', '축제 무대 · 요정 악단장 삘릴리', '요정 악단장 삘릴리', 'pililli', 51],
+    ['fest3', '요정 축제 마당 모닥불', '축제 모닥불 · 축제 대장 퐁가', '축제 대장 퐁가', 'ponga', 51],
+    ['cave1', '포자 동굴 정원 이끼굴', '이끼 굴 · 이끼 골렘 뭉게', '이끼 골렘 뭉게', 'mungge', 55],
+    ['cave2', '포자 동굴 정원 연못', '포자 연못 · 개구리 사공 개굴', '개구리 사공 개굴', 'gaegul', 55],
+    ['cave3', '포자 동굴 정원 뿌리방', '뿌리 방 · 포자 정원사 모락 할멈', '포자 정원사 모락 할멈', 'morak', 55],
+    ['palace1', '버섯 여왕의 궁전 정원', '궁전 정원 · 꿀벌 근위대장 붕붕', '꿀벌 근위대장 붕붕', 'bungbung', 59],
+    ['palace2', '버섯 여왕의 궁전 연회장', '궁전 연회장 · 요정 마술사 뿅뿅', '요정 마술사 뿅뿅', 'ppyong', 59],
+    ['palace3', '버섯 여왕의 궁전 왕좌', '광대버섯 왕좌 · 버섯 여왕 아마니타', '버섯 여왕 아마니타', 'amanita', 59],
   ] as const).map(([key, name, place, boss, enc, lv]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: lv, unlockLv: lv, ready: true, fights: () => [enc], size: () => 10, diffUnlock: { '악몽': lv + 15 },
   })),
