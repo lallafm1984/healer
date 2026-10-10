@@ -1,4 +1,4 @@
-/** 장비 특수능력 118종 + 이름 있는 장신구 35개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
+/** 장비 특수능력 118종 + 이름 있는 장신구 39개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { NAMED, SPEC_GROUPS, SPEC_KEYS, SPECS, specText, specTotals, specValue } from '../src/data/specials';
@@ -12,6 +12,7 @@ import { reviveUnit } from '../src/engine/items';
 import { orderHeal, runEffect } from '../src/engine/bossParts';
 import type { BossSkill, Telegraph } from '../src/engine';
 import { putHot } from '../src/engine/heroes';
+import { addMod } from '../src/engine/abilities';
 
 type F = ReturnType<typeof E.create>;
 type U = F['party'][number];
@@ -55,14 +56,14 @@ const absorb = (u: U) => u.mods.find(m => m.k === 'absorb')?.v ?? 0;
 const healOn = (f: F, id: number) => { for (const e of f.events) if (e.type === 'heal' && e.id === id) return e.amt; return 0; };
 
 describe('데이터', () => {
-  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 35개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C +8)', () => {
+  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 39개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C +8 · 묶음 D1 +4)', () => {
     expect(SPEC_KEYS.length).toBe(118);
     expect(new Set(SPEC_KEYS).size).toBe(118);
     const by = (g: string) => SPEC_KEYS.filter(k => SPECS[k].group === g).length;
     expect(Object.keys(SPEC_GROUPS).map(by)).toEqual([16, 16, 14, 12, 10, 8, 10, 8, 24]);
     expect(SPEC_KEYS.filter(k => SPECS[k].hero).length).toBe(24);
-    expect(NAMED.length).toBe(35);
-    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(153);
+    expect(NAMED.length).toBe(39);
+    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(157);
   });
   it('직업 전용은 영웅 이상, 효과 글에 값이 들어감', () => {
     for (const k of SPEC_KEYS) {
@@ -1032,6 +1033,50 @@ describe('3 이름 있는 장신구', () => {
     expect(ratio(amtOn(a, 'poh', tank(a)), amtOn(b, 'poh', tank(b)))).toBeCloseTo(1, 6);
     both([a, b], f => { hurt(f, 0.3); runEffect(f, { name: '웅크리기', st: {} } as unknown as BossSkill, { p: 'stagger', sec: 30, need: 99, hp: 0.7, tank: 2, win: { sec: 6, vuln: 1.3 }, fail: { dmg: 0, lock: 0 } }); });
     expect(ratio(amtOn(a, 'poh', tank(a)), amtOn(b, 'poh', tank(b)))).toBeCloseTo(1.12, 2);
+  });
+  it('코볼트 임명장: 체력 90% 위인 아군에게 거는 보호막 +', () => {
+    const a = fight({ bubble: 0.3, koboldWarrant: 0.2 }), b = fight({ bubble: 0.3 });
+    both([a, b], f => { tank(f).hp = tank(f).max; });
+    cast(a, 'flash', tank(a)); cast(b, 'flash', tank(b));
+    expect(ratio(absorb(tank(a)), absorb(tank(b)))).toBeCloseTo(1.2, 4);
+  });
+  it('온천 수건: 큰 피해 예고가 2초 안에 맞을 때 거는 보호막 +', () => {
+    const a = fight({ bubble: 0.3, spaTowel: 0.25 }), b = fight({ bubble: 0.3 });
+    const tel = (f: F, after: number) => f.tels.push({ id: 900, skill: { st: {}, hit() {} } as unknown as BossSkill, kind: 'aoe', start: f.t, impact: f.t + after, units: [], cells: new Set() });
+    both([a, b], f => { tank(f).hp = tank(f).max; tel(f, 30); });
+    cast(a, 'flash', tank(a)); cast(b, 'flash', tank(b));
+    expect(ratio(absorb(tank(a)), absorb(tank(b)))).toBeCloseTo(1, 4);
+    both([a, b], f => { tank(f).mods = []; tank(f).hp = tank(f).max; f.tels = []; tel(f, f.gcd + 3); });
+    cast(a, 'flash', tank(a)); cast(b, 'flash', tank(b));
+    expect(ratio(absorb(tank(a)), absorb(tank(b)))).toBeCloseTo(1.25, 4);
+  });
+  it('따끈한 조약돌: 보호막이 깨지거나 녹아 없어지면 그 아군 지능 회복 (재사용 6초)', () => {
+    const [a] = pair('warmPebble', 0.08);
+    const u = dealer(a);
+    u.hp = u.max * 0.5;
+    addMod(u, { k: 'absorb', v: 50, until: a.t + 30, src: 'test' });
+    const h0 = u.hp;
+    damage(a, u, 100, false, 'fixed');
+    expect(u.hp).toBeCloseTo(h0 - 50 + intAmt(a, 0.08), 4);
+    expect(a.events).toContainEqual({ type: 'spec', id: u.id, name: '따끈한 조약돌' });
+    addMod(u, { k: 'absorb', v: 50, until: a.t + 30, src: 'test' });
+    const h1 = u.hp;
+    damage(a, u, 100, false, 'fixed');
+    expect(u.hp).toBeCloseTo(h1 - 50, 4); // 재사용 6초
+    step(a, 6.1);
+    addMod(u, { k: 'absorb', v: 50, until: a.t + 30, src: 'test' });
+    runEffect(a, { name: '김', st: {} } as unknown as BossSkill, { p: 'melt', sec: 30, rate: 0.9 });
+    const h2 = u.hp;
+    step(a, 2.5);
+    expect(absorb(u)).toBe(0);
+    expect(u.hp).toBeGreaterThan(h2);
+  });
+  it('식은 모루 조각: 무력화 게이지가 모이는 동안 파티원이 받는 피해 −', () => {
+    const [a, b] = pair('coldAnvil', 0.1); both([a, b], f => hurt(f, 0.8));
+    const hit = (f: F) => lost(f, dealer(f), () => damage(f, dealer(f), 20, false, 'fixed'));
+    expect(ratio(hit(a), hit(b))).toBeCloseTo(1, 6);
+    both([a, b], f => runEffect(f, { name: '담금질', st: {} } as unknown as BossSkill, { p: 'stagger', sec: 30, need: 99, hp: 0.7, tank: 2, win: { sec: 6, vuln: 1.3 }, fail: { dmg: 0, lock: 0 } }));
+    expect(ratio(hit(a), hit(b))).toBeCloseTo(0.9, 6);
   });
   it('광대버섯 왕관 조각: 해제하면 이웃 칸 아군의 같은 유형 디버프도 지움 (다른 유형 · 못 지우는 것은 그대로)', () => {
     const [a, b] = pair('amanitaShard', 1);

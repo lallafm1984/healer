@@ -292,11 +292,14 @@ const flipHow = (d: DebuffDef) => `끝날 때 체력이 높으면 낮아지니 �
 /** 기술 효과 → [무엇, 어떻게] */
 function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: ProbeSkill | undefined): [string, string] {
   const { n } = c;
-  if (!e && d.fixed) return [`${ROW_NAME[d.cells?.p === 'line' ? d.cells.at : 'mid']}에 선 사람 모두 <b>${n(d.hitDmg ?? 0)}</b> (피할 수 없음)`, `맞기 전에 그 줄을 ${act('poh', RO)} · ${act('renew', EUL)} 미리 채우기`];
+  if (!e && d.fixed) return [`${d.cells?.p === 'flow' ? `세로 줄을 ${d.cells.every}초마다 한 줄씩 훑으며 그 줄에 선 사람` : `${ROW_NAME[d.cells?.p === 'line' ? d.cells.at : 'mid']}에 선 사람`} 모두 <b>${n(d.hitDmg ?? 0)}</b>${d.hitDebuff ? ` + ${debuffText(d.hitDebuff, n)}` : ''} (피할 수 없음)`, `맞기 전에 그 줄을 ${act('poh', RO)} · ${act('renew', EUL)} 미리 채우기`];
   if (!e) return d.cells ? [`장판${d.hitDmg ? `: 맞는 순간 그 칸 <b>${n(d.hitDmg)}</b>` : ''}${d.dps ? `${d.hitDmg ? ',' : ':'} 안에 있으면 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}${d.dur ? ` (${secT(d.dur)})` : ''}`, '파티원이 알아서 피함. 늦게 피하는 사람을 채우기'] : ['', ''];
   switch (e.p) {
     case 'tank': return [`탱커에게 <b>${n(ps?.dmg ?? d.dmg ?? 0)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, e.debuff?.swap ? '교대한 탱커에게도 지속 힐을 걸어 두기' : '예고가 뜨면 탱커를 미리 가득 채우기'];
     case 'hunt': return [`그 순간 체력 비율이 가장 낮은 탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : 1}명에게 <b>${n(e.dmg)}</b> 피해`, '예고 동안 가장 낮은 사람을 먼저 채우기'];
+    case 'greed': return [`🎯 예고 때 체력 비율이 가장 높은 탱커 · 나 아닌 ${d.target && d.target !== 'tank' ? (c.mythic && d.target.nMythic ? d.target.nMythic : d.target.n) : 1}명에게 <b>${n(e.dmg)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`,
+      `모두를 가득 채우면 누가 맞을지 모름. 예고된 사람에게 맞기 직전 ${act('guardian', EUL)} · 맞은 뒤 바로 힐`];
+    case 'melt': return [`${secT(e.sec)} 동안 열기: 보호막이 초마다 ${pctT(e.rate)}씩 녹고 외부 생존기 시간이 두 배로 빨리 줄어듦`, `${act('guardian', EUL)} 미리 걸지 말고 큰 피해 예고 직전에. ${act('renew', EUL)}은 미리`];
     case 'all': return [`파티 전원에게 <b>${n(e.dmg)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, `예고 동안 ${act('renew', EUL)} 미리 걸고, 맞은 뒤 ${act('poh', RO)} 채우기`];
     case 'debuff': return [`${e.n === 'all' ? '모두' : `${c.mythic && e.nMythic ? e.nMythic : e.n}명`}에게 ${debuffText(e.debuff, n)}`, debuffHow(e.debuff)];
     case 'rot': return [`${e.n}명 최대 체력 −${pctT(e.pct)} 중첩 (최대 ${e.max}) ${debuffText(e.debuff, n)}`, debuffHow(e.debuff)];

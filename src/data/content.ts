@@ -15,6 +15,7 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'gull1' | 'gull2' | 'gull3' | 'queen1' | 'queen2' | 'queen3' | 'isle1' | 'isle2' | 'isle3'
   | 'lampway' | 'emberfoot' | 'teaparty' | 'mossroot' | 'rainbow'
   | 'fest1' | 'fest2' | 'fest3' | 'cave1' | 'cave2' | 'cave3' | 'palace1' | 'palace2' | 'palace3'
+  | 'ashpass' | 'hotspring' | 'forge' | 'den1' | 'den2' | 'den3'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -113,6 +114,11 @@ export const CONTENT: ContentDef[] = [
     key: 'emberfoot', kind: 'explore', name: '불꽃 봉우리 기슭', place: '불꽃 봉우리 · 붉은 용 일가', stageLv: 60, unlockLv: 60, ready: true, bosses: ['코볼트 보물 지킴이 꼬질'],
     fights: () => DUNGEONS.emberfoot.segments, size: three,
   },
+  // 묶음 D 탐험 ⑯ (51 1-1): 던전 ⑬ 예습 (녹는 보호막)
+  {
+    key: 'ashpass', kind: 'explore', name: '화산재 고갯길', place: '불꽃 봉우리 · 붉은 용 일가', stageLv: 64, unlockLv: 64, ready: true, bosses: ['온천지기 코볼트 뭉실'],
+    fights: () => DUNGEONS.ashpass.segments, size: three,
+  },
   // 던전 ①~⑩ (5인, 5레벨마다). ⑧~⑩은 묶음 B
   {
     key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 5, unlockLv: 5, ready: true,
@@ -164,6 +170,15 @@ export const CONTENT: ContentDef[] = [
     key: 'mossroot', bosses: ['버섯 가면 주술사 우가', '늪 거북 신 등딱지'], kind: 'dungeon', name: '이끼 뿌리 사원', place: '독안개 늪 · 늪의 부족', stageLv: 60, unlockLv: 60, ready: true,
     fights: () => DUNGEONS.mossroot.segments, size: five,
   },
+  // 던전 ⑬ ⑭ (51 1-2, 묶음 D): 붉은 용 일가 · 버려진 골렘 (해제 없음), 보스 2
+  {
+    key: 'hotspring', bosses: ['온천지기 코볼트 뭉실', '사춘기 용 불퉁이'], kind: 'dungeon', name: '용암 온천장', place: '불꽃 봉우리 · 붉은 용 일가', stageLv: 65, unlockLv: 65, ready: true,
+    fights: () => DUNGEONS.hotspring.segments, size: five,
+  },
+  {
+    key: 'forge', bosses: ['풀무 골렘 후끈이', '모루 골렘 땅땅'], kind: 'dungeon', name: '용암 대장간', place: '불꽃 봉우리 · 버려진 골렘', stageLv: 70, unlockLv: 70, ready: true,
+    fights: () => DUNGEONS.forge.segments, size: five,
+  },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인
     key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 탑 1층', place: '납골당 · 역병 군주', stageLv: 35, unlockLv: 35, ready: true,
@@ -199,6 +214,10 @@ export const CONTENT: ContentDef[] = [
     ['palace1', '버섯 여왕의 궁전 정원', '궁전 정원 · 꿀벌 근위대장 붕붕', '꿀벌 근위대장 붕붕', 'bungbung', 59],
     ['palace2', '버섯 여왕의 궁전 연회장', '궁전 연회장 · 요정 마술사 뿅뿅', '요정 마술사 뿅뿅', 'ppyong', 59],
     ['palace3', '버섯 여왕의 궁전 왕좌', '광대버섯 왕좌 · 버섯 여왕 아마니타', '버섯 여왕 아마니타', 'amanita', 59],
+    // 묶음 D 10인 ⑧ (51 1-3): 붉은 용 일가
+    ['den1', '코볼트 보물 굴 갱도', '보물 굴 갱도 · 코볼트 보물 지킴이 꼬질', '코볼트 보물 지킴이 꼬질', 'kkojil', 63],
+    ['den2', '코볼트 보물 굴 수레길', '수레길 · 코볼트 수레꾼 덜컹이', '코볼트 수레꾼 덜컹이', 'deolkeong', 63],
+    ['den3', '코볼트 보물 굴 보물방', '보물방 · 코볼트 대장 번쩍이', '코볼트 대장 번쩍이', 'beonjjeok', 63],
   ] as const).map(([key, name, place, boss, enc, lv]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: lv, unlockLv: lv, ready: true, fights: () => [enc], size: () => 10, diffUnlock: { '악몽': lv + 15 },
   })),

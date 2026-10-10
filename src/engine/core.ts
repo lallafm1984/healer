@@ -5,7 +5,7 @@ import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
 import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
-import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, specDeath, specDebuffEnd, specJump, sv } from './specials';
+import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, shieldGone, specDeath, specDebuffEnd, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
 
@@ -150,6 +150,9 @@ function invertHeal(f: Fight, u: Unit, amt: number): void {
   damage(f, u, amt / f.dmgMult, false, 'fixed');
 }
 
+/** 흡수 보호막이 남아 있는지 */
+export const hasAbsorb = (f: Fight, u: Unit): boolean => u.mods.some(m => m.k === 'absorb' && m.until > f.t && m.v > 1e-9);
+
 /** 호감도 (06 6장 은혜 갚기): 길드원은 함께 출전한 수, 공개모집은 이번 판에 내 힐을 받은 양 (인연 스카우트와 같은 기준). 길드원이 먼저 */
 const affinity = (u: Unit): number => (u.gid != null ? 1e9 + u.runs : u.got);
 
@@ -173,7 +176,12 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
   if (u.shield > 0) amt *= 0.6;
   if (u.bulwark > 0) amt *= 1 - BULWARK.cut;
   if (u.redu > 0) amt *= 1 - u.reduCut;
-  if (f.abOn || u.mods.length) { amt = dmgMods(f, u, amt, magic); if (amt < 0) return; } // 파티원 능력 (17) · 특수능력 보호막 · 피해 감소 (42)
+  if (f.abOn || u.mods.length) { // 파티원 능력 (17) · 특수능력 보호막 · 피해 감소 (42)
+    const had = !!f.sp?.v.warmPebble && hasAbsorb(f, u);
+    amt = dmgMods(f, u, amt, magic);
+    if (had && !hasAbsorb(f, u)) shieldGone(f, u); // 따끈한 조약돌 (51 6장)
+    if (amt < 0) return;
+  }
   if (u.immune > 0 && !magic) return; // 보호의 손: 물리 피해 무시 (25 성기사)
   if (u.sacr > 0 && f.me.alive && f.me !== u) { // 희생: 받는 피해의 30%를 내가 대신. 기도하는 희생 (42 성기 08): 몫 +, 내가 받는 것 −20%
     const pray = sv(f, 'prayingSacrifice');

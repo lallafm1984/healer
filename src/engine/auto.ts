@@ -76,6 +76,9 @@ function calmOf(f: Fight): number {
 }
 /** 이 스킬을 지금 시작해도 되는지: 진동으로 잠기지 않았고, 다음 진동 전에 시전이 끝남 */
 const calmFor = (f: Fight, k: SkillKey, calm: number) => !f.lock[k] && busy(f, k) < calm;
+/** 녹는 보호막 (P-MELT, 51 5장): 열기 동안 외부 생존기는 맞기 MELT_EXT초 안에만 (일찍 걸면 녹아서 맞기 전에 끝남) */
+const meltWait = (f: Fight, impact: number) => !!f.melt && f.t < f.melt.until && impact - f.t > MELT_EXT;
+const MELT_EXT = 1.5;
 /** 끊기 ✋ 능력이 있는 파티원 (반격 틈 P-COUNTER) */
 const cutter = (u: Unit) => !!u.ab && ABILITIES[u.ab.key]?.fx.e === 'interrupt';
 
@@ -83,7 +86,7 @@ const cutter = (u: Unit) => !!u.ab && ABILITIES[u.ab.key]?.fx.e === 'interrupt';
 interface Gim {
   /** 차례 (P-ORDER): 다음 번호. 위급한 사람이 없으면 바로 즉시 단일 힐 */
   order: Unit | null;
-  /** 탱커처럼 계속 맞는 사람: 끌려와 평타를 나눠 맞음 (P-PULL), 쫄이 때림 (P-ADD 5인), 갇힘 (P-JAIL), 주시로 보스가 나를 노림 (P-AGGRO) → 지속 힐을 탱커처럼 */
+  /** 탱커처럼 계속 맞는 사람: 끌려와 평타를 나눠 맞음 (P-PULL), 쫄이 때림 (P-ADD 5인), 갇힘 (P-JAIL), 주시로 보스가 나를 노림 (P-AGGRO), 5인 대신 맞기 (달군 쇠) → 지속 힐을 탱커처럼 */
   hit: Unit[];
   /** 곧 크게 맞을 사람: 자폭 쫄이 두 칸 안 (P-FIXATE), 큰 쫄 강타 예고 (P-ELITE), 받침에 들어감 (P-TOWER) → 버스터처럼 미리 가득 */
   pre: Unit | null;
@@ -122,7 +125,7 @@ function gim(f: Fight): Gim {
   const adds = f.mobs.filter(m => m.alive && m.add);
   const watched = !!f.watch && f.t < f.watch.until;
   const hit = f.party.filter(u => u.alive && u.role !== 'tank' && !off(f, u)
-    && (u.pulled || u.debuffs.some(d => d.jail) || adds.some(m => m.add!.dmg > 0 && m.add!.on === u.id) || (u.me && watched)));
+    && (u.pulled || u.debuffs.some(d => d.jail) || (f.sub?.id === u.id && f.t < f.sub.until) || adds.some(m => m.add!.dmg > 0 && m.add!.on === u.id) || (u.me && watched)));
   let pre: Unit | null = null;
   for (const m of adds) {
     const a = m.add!, u = unitById(f, a.on);
@@ -211,7 +214,7 @@ export function autoHealer(f: Fight): void {
   const big = (hurry: boolean): SkillKey | null => (hurry || !can('heal') ? (can('flash') ? 'flash' : null) : 'heal');
   // 찬가는 모두를 채우니 힐하면 손해인 사람이 있으면 안 씀
   if (can('hymn') && (f.cd.hymn ?? 0) <= 0 && live.length === all.length && live.filter(u => pct(u) < 0.5).length >= Math.max(2, Math.floor(live.length / 2)) && f.mana >= 15) { use(f, 'hymn', 0); return; }
-  for (const t of f.tels) if (t.kind === 'buster' && knows(f, 'guardian') && (f.cd.guardian ?? 0) <= 0 && f.mana >= 2) {
+  for (const t of f.tels) if (t.kind === 'buster' && !meltWait(f, t.impact) && knows(f, 'guardian') && (f.cd.guardian ?? 0) <= 0 && f.mana >= 2) {
     const tk = unitById(f, t.units[0]);
     if (tk && tk.alive && pct(tk) < 0.75) { use(f, 'guardian', cellIdx(tk)); return; }
   }
@@ -300,7 +303,7 @@ function ctx(f: Fight, amt: number): Ctx | null {
     for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= 1) s = off(f, v) ? -Infinity : s + Math.min(amt * f.power, Math.max(0, healTop(v) - v.hp));
     if (s > score) { best = c; score = s; }
   }
-  const bt = f.tels.find(t => t.kind === 'buster');
+  const bt = f.tels.find(t => t.kind === 'buster' && !meltWait(f, t.impact));
   const on = bt ? unitById(f, bt.units[0]) || null : null;
   return { live, all, g: gim(f), pct, low, idx, ready, cluster: { best, score }, busterOn: on && !off(f, on) ? on : null };
 }

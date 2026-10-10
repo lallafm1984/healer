@@ -7,6 +7,7 @@
  */
 import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
 import { art } from '../art';
+import { armorFactor } from '../data/armor';
 import { CLASSES } from '../data/classes';
 import { SKILLS } from '../data/skills';
 import { NAMED, SPECS, type SpecGroup } from '../data/specials';
@@ -23,6 +24,8 @@ const hex = (c: string) => parseInt(c.slice(1, 7), 16);
 // 테마 「길드 홀」 (2026-10-08): 돌색 빈칸, 청동 안쪽 테두리, 물통 빈 부분 = 돌 3. 디버프·위험 색은 그대로
 /** 요정 고리 · 넘어가는 포자 색 (48 5장, 버섯 요정단 연분홍) */
 const RING = 0xf29cb7, RING_HI = 0xd9577f;
+/** 녹는 보호막 (P-MELT, 51 5장): 열기 동안 판이 주황빛으로 일렁이고 보호막 · 외부 생존기 테두리가 주황 */
+const MELT = 0xff8a3d;
 const C = {
   cell: 0x15120e, cellLine: 0x2c241b, line: 0x080605, ink: 0xf1e4c8, dead: 0x8a7f6a, gold: 0xf0c46a, white: 0xffffff,
   zone: 0xe2402e, zoneHi: 0xff6a4a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0xffe08a, over: 0xa99a7e,
@@ -704,6 +707,10 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   dance: { size: 1.3, color: 0xf29cb7, ms: 700, up: 0.4 },
   'bee-sting': { size: 0.8, color: 0xffc94a, ms: 400 },
   'tree-wake': { size: 3.2, color: 0x8fd36a, ms: 900 },
+  // 묶음 D (51 5장, 그림 52 E): 보물 욕심 금화가 떨어짐 · 녹는 보호막 열기 (판 전체) · 알이 깨짐
+  'greed-coin': { size: 1.2, color: 0xffd166, ms: 600, up: 0.5 },
+  'melt-heat': { size: 3.2, color: 0xff8a3d, ms: 900, wide: true },
+  'egg-hatch': { size: 1.8, color: 0xffb25b, ms: 600 },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();
@@ -905,6 +912,7 @@ export function render(now: number): void {
   // 칸 무늬 그림 (37 4장 B). 없으면 아래 벡터 그림
   const zoneTex = artTexture(zoneArtName(boardFaction)), warnTex = artTexture('fx-cell-zone-warn'), holeTex = artTexture(holeArtName(boardFaction));
   const safeTex = artTexture('fx-cell-safe'), padTex = artTexture('fx-cell-tower'), ringTex = artTexture('fx-cell-ring'), cellArt = r * 1.96;
+  const melting = !!F.melt && F.t < F.melt.until;
   F.cells.forEach((c, i) => {
     const p = center(i);
     hexPoly(cellsG, p.x, p.y, r).fill({ color: C.cell, alpha: 0.5 }).stroke({ width: 2, color: C.bronze, alpha: 0.75 }); // 빈칸은 비쳐서 장소 바닥이 보임, 진형 선은 청동 (28 5장)
@@ -944,6 +952,8 @@ export function render(now: number): void {
       if (warnTex) decals.put(warnTex, p.x, p.y, cellArt, cellArt, 0.5 + 0.5 * pulse);
       else dashPoly(cellsG, hexPts(p.x, p.y, r * 0.9), 6, 4, Math.max(2, s * 0.05), C.zoneHi, 0.5 + 0.5 * pulse);
     }
+    // 녹는 보호막: 열기 동안 칸마다 주황 아지랑이 (그림 52가 오면 fx)
+    if (melting) hexPoly(cellsG, p.x, p.y, r).fill({ color: MELT, alpha: 0.07 + 0.08 * zpulse });
     // 성기사 빛의 성역: 금빛 바닥, 끝나기 2초 전 깜빡임
     if (F.sanctuary && F.sanctuary.cells.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: F.sanctuary.end - F.t < 2 ? 0.08 + 0.14 * pulse : 0.2 });
     // 사제 쉼터 (특성): 금빛 바닥 + 안쪽 테두리, 끝나기 2초 전 깜빡임
@@ -1141,9 +1151,9 @@ export function render(now: number): void {
     else labels.put(`tot${m.id}`, a.short, { size: typography.nick, fill: 0xf3cfc6, strokeW: 2 }, p.x, p.y + r * (compact ? -0.29 : 0.13));
     labels.put(`totp${m.id}`, `${Math.ceil((m.hp / m.max) * 100)}%`, { size: typography.hp, fill: C.white, weight: W_NUM, strokeW: compact ? 1.5 : 2.5 }, p.x, p.y + r * (compact ? 0.25 : 0.6));
     const j = a.job;
-    // 남은 초: 폭탄 = 터질 때까지, 걸어오는 쫄 = 보스에게 닿을 때까지, 큰 쫄 = 강타 예고
-    const left = j?.p === 'bomb' && isFinite(a.jobAt!) ? a.jobAt! - F.t : j?.p === 'march' ? (a.steps! - 1) * j.every + a.jobAt! - F.t : j?.p === 'smash' && a.warned ? a.jobAt! - F.t : null;
-    if (left != null) pill(overG, labels, `bomb${m.id}`, p.x, p.y - r * (compact ? 0.85 : 0.8), `${Math.max(0, Math.ceil(left))}`, j!.p === 'bomb' ? C.danger : 0xffb25b, j!.p === 'bomb' ? C.white : C.dark, fs(0.26, 11));
+    // 남은 초: 폭탄 = 터질 때까지 (부화하는 알 = 깨질 때까지), 걸어오는 쫄 = 보스에게 닿을 때까지, 큰 쫄 = 강타 예고
+    const left = (j?.p === 'bomb' || j?.p === 'hatch' || j?.p === 'hoard') && isFinite(a.jobAt!) ? a.jobAt! - F.t : j?.p === 'march' ? (a.steps! - 1) * j.every + a.jobAt! - F.t : j?.p === 'smash' && a.warned ? a.jobAt! - F.t : null;
+    if (left != null) pill(overG, labels, `bomb${m.id}`, p.x, p.y - r * (compact ? 0.85 : 0.8), `${Math.max(0, Math.ceil(left))}`, j!.p === 'bomb' || j!.p === 'hatch' ? C.danger : j!.p === 'hoard' ? 0xffd24a : 0xffb25b, j!.p === 'bomb' || j!.p === 'hatch' ? C.white : C.dark, fs(0.26, 11));
     // 자폭 쫄: 노린 사람까지 붉은 줄
     const prey = j?.p === 'fixate' ? F.party.find(u => u.id === a.on && u.alive) : undefined;
     if (prey) { const q = unitPos(prey); overG.moveTo(p.x, p.y).lineTo(q.x, q.y).stroke({ width: Math.max(2, s * 0.05), color: C.danger, alpha: 0.45 + 0.4 * pulse }); }
@@ -1194,7 +1204,7 @@ export function render(now: number): void {
       if (deb.trap) dashPoly(overG, hexPts(x, y, dr), 6, 4, w, col); else hexPoly(overG, x, y, dr).stroke({ width: w, color: col });
     }
     if (zoneSet.has(u.cell) || telSet.has(u.cell)) { const w = Math.max(2.5, s * 0.09); hexPoly(overG, x, y, ringRadius(`zone${u.id}`, 'hex', x, y, r * 1.02, w)).stroke({ width: w, color: 0xff5a3d, alpha: zoneSet.has(u.cell) ? 1 : 0.4 + 0.6 * pulse }); }
-    if (u.guardian > 0) dashCircle(overG, x, y, ringRadius(`guardian${u.id}`, 'circle', x, y, r * 1.1, 3), 2, 4, 3, C.ink, 0.9);
+    if (u.guardian > 0) dashCircle(overG, x, y, ringRadius(`guardian${u.id}`, 'circle', x, y, r * 1.1, 3), 2, 4, 3, melting ? MELT : C.ink, 0.9);
     // 버팀목 (특성): 금색 두꺼운 테두리, 끝나기 2초 전 깜빡임
     if (u.bulwark > 0) { const w = Math.max(3, s * 0.09); hexPoly(overG, x, y, ringRadius(`bulwark${u.id}`, 'hex', x, y, r * 1.1, w)).stroke({ width: w, color: C.gold, alpha: u.bulwark < 2 ? 0.35 + 0.6 * pulse : 0.95 }); }
     // 보호 두루마리: 흰 이중 테두리 (황토 질병·빨간 탱커 표시와 구분), 끝나기 2초 전 깜빡임
@@ -1202,13 +1212,13 @@ export function render(now: number): void {
       const a = u.shield < 2 ? 0.35 + 0.6 * pulse : 0.95;
       const outer = ringRadius(`shield-outer${u.id}`, 'hex', x, y, r * 1.2, 2);
       const inner = ringRadius(`shield-inner${u.id}`, 'hex', x, y, r * 1.12, 2, 'ring', outer - r * 0.08);
-      hexPoly(overG, x, y, inner).stroke({ width: 2, color: 0xedeff7, alpha: a });
-      hexPoly(overG, x, y, outer).stroke({ width: 2, color: 0xedeff7, alpha: a });
+      hexPoly(overG, x, y, inner).stroke({ width: 2, color: melting ? MELT : 0xedeff7, alpha: a });
+      hexPoly(overG, x, y, outer).stroke({ width: 2, color: melting ? MELT : 0xedeff7, alpha: a });
     }
     // 직업 스킬 표시 (25 3장): 피해 감소(나무껍질·성역) 초록 테두리, 희생 금색 점선, 보호의 손 흰 두꺼운 테두리, 봉화 금색 점선 원
     if (u.immune > 0) { const w = Math.max(3, s * 0.1); hexPoly(overG, x, y, ringRadius(`immune${u.id}`, 'hex', x, y, r * 1.14, w)).stroke({ width: w, color: 0xffffff, alpha: u.immune < 2 ? 0.35 + 0.6 * pulse : 0.95 }); }
-    else if (u.redu > 0) hexPoly(overG, x, y, ringRadius(`reduction${u.id}`, 'hex', x, y, r * 1.1, 2.5)).stroke({ width: 2.5, color: HOT_COLOR.sprout, alpha: u.redu < 2 ? 0.35 + 0.6 * pulse : 0.9 });
-    if (u.sacr > 0) dashPoly(overG, hexPts(x, y, ringRadius(`sacrifice${u.id}`, 'hex', x, y, r * 1.16, 2)), 5, 4, 2, C.gold);
+    else if (u.redu > 0) hexPoly(overG, x, y, ringRadius(`reduction${u.id}`, 'hex', x, y, r * 1.1, 2.5)).stroke({ width: 2.5, color: melting && u.redu > 0.5 ? MELT : HOT_COLOR.sprout, alpha: u.redu < 2 ? 0.35 + 0.6 * pulse : 0.9 });
+    if (u.sacr > 0) dashPoly(overG, hexPts(x, y, ringRadius(`sacrifice${u.id}`, 'hex', x, y, r * 1.16, 2)), 5, 4, 2, melting ? MELT : C.gold);
     if (F.beacon === u.id) dashCircle(overG, x, y, ringRadius(`beacon${u.id}`, 'circle', x, y, r * 1.22, 2.5), 3, 5, 2.5, C.gold, 0.95);
     if (castTarget === u.id) hexPoly(overG, x, y, ringRadius(`cast${u.id}`, 'hex', x, y, r * 1.12, 3)).stroke({ width: 3, color: hex(SEL) });
     if (ui.selectedUnitId === u.id) {
@@ -1344,10 +1354,11 @@ export function render(now: number): void {
       if (jail === focusOrder(F)[0]) overG.circle(x, y, r * 0.8).stroke({ width: Math.max(2.5, s * 0.06), color: C.gold, alpha: 0.6 + 0.4 * pulse });
     }
     const bt = F.tels.find(tl => tl.kind === 'buster' && tl.units.includes(u.id));
-    if (bt && bt.skill.dmg) {
+    const bd = bt ? bt.skill.dmg ?? (bt.skill.greed != null ? bt.skill.greed * (F.armor ? armorFactor(u.role, 'party') : 1) : 0) : 0; // 보물 욕심은 원거리 기준 값 × 직업군 방어력
+    if (bt && bd) {
       const sh = u.shield > bt.impact - F.t ? 0.6 : 1; // 맞을 때까지 보호 두루마리가 남아 있으면 -40%
-      const dmg = Math.round(bt.skill.dmg * F.dmgMult * sh), lethal = dmg >= u.hp + (u.guardian > 0 ? 1e9 : 0);
-      pill(overG, labels, `bus${u.id}`, x, y + r * 0.2, `-${dmg}`, lethal ? C.danger : 0xffb25b, C.dark, fs(0.3, 11));
+      const dmg = Math.round(bd * F.dmgMult * sh), lethal = dmg >= u.hp + (u.guardian > 0 ? 1e9 : 0);
+      pill(overG, labels, `bus${u.id}`, x, y + r * 0.2, `${bt.skill.greed != null ? '금화 ' : ''}-${dmg}`, lethal ? C.danger : bt.skill.greed != null ? C.gold : 0xffb25b, C.dark, fs(0.3, 11));
     }
     if (busterIds.has(u.id)) {
       // 중앙 십자선은 이름과 HP를 지나지 않는다. 상단 타깃 표식과 바깥 위험 링으로 예고한다.

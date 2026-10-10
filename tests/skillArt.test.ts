@@ -8,19 +8,21 @@ import * as E from '../src/engine';
 import { bossSkillArt, bossSkillArtNames, fightSkillArt, GIMS, mobSkillArt, SKILL_ART_TABLE } from '../src/battle/skillArt';
 
 // 문서 파일 이름 (그림 요청 문서 표 그대로)
-/** 37 4장 A 1~23 · E 1~10 · G 1~3 */
+/** 37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2, 52 4장 A (묶음 D 보물 욕심 · 녹는 보호막 · 부화하는 알) */
 const DOC_GIM = ['full', 'wound', 'hunt', 'link', 'invert', 'over', 'quake', 'recoil', 'gaze', 'drain', 'charm', 'order', 'jump', 'safe', 'tower', 'pull', 'hole', 'stagger',
-  'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass'].map(n => `icon-gim-${n}`);
-/** 37 4장 D (던전 ② ~ ⑥), 44 4장 D 1~4 (던전 ⑦), 47 4장 D 1~43 (묶음 B), 49 4장 D 1~35 (묶음 C): 보스 → 장 수 */
+  'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass',
+  'greed', 'melt', 'hatch'].map(n => `icon-gim-${n}`);
+/** 37 4장 D (던전 ② ~ ⑥), 44 4장 D 1~4 (던전 ⑦), 47 4장 D 1~43 (묶음 B), 49 4장 D 1~35 (묶음 C), 52 4장 D 1~13 (묶음 D1): 보스 → 장 수 */
 const DOC_BSK_N: Record<string, number> = {
   collector: 2, malchor: 3, shaman: 1, toad: 3, seres: 2, butler: 4, lady: 1, belmore: 3, runegolem: 3, mage: 2, shadow: 2, guardian: 2, keeper: 2,
   sentinel: 2, crystal: 2, ratking: 2, carrier: 2, librarian: 2, scholar: 3, priestess: 3, sleeper: 2,
   crab: 2, cook: 3, morel: 3, gunner: 3, octo: 3, seawitch: 4, mimic: 3, parrot: 4, goldbeard: 4,
   sippy: 3, hatter: 3, uga: 3, shellgod: 3, kobold: 2, songi: 3, pililli: 2, ponga: 2, mungge: 2, gaegul: 3, morak: 3, bungbung: 2, ppyong: 2, amanita: 2,
+  mungsil: 2, bulttung: 2, huggeun: 3, ttangttang: 2, deolkeong: 2, beonjjeok: 2,
 };
 const DOC_BSK = Object.entries(DOC_BSK_N).flatMap(([b, n]) => Array.from({ length: n }, (_, i) => `icon-bsk-${b}-${i + 1}`));
-/** 44 4장 D 5~15, 47 4장 D 44~46, 49 4장 D 36 */
-const DOC_MOB = ['rot', 'sick-shout', 'dart', 'veil', 'howl', 'silence', 'frost-burst', 'pilgrim', 'ground-quake', 'trap', 'gaze', 'jelly', 'anchor-spin', 'dust-sweep', 'sneeze'].map(n => `icon-mob-${n}`);
+/** 44 4장 D 5~15, 47 4장 D 44~46, 49 4장 D 36, 52 4장 D 26 */
+const DOC_MOB = ['rot', 'sick-shout', 'dart', 'veil', 'howl', 'silence', 'frost-burst', 'pilgrim', 'ground-quake', 'trap', 'gaze', 'jelly', 'anchor-spin', 'dust-sweep', 'sneeze', 'tail-sweep'].map(n => `icon-mob-${n}`);
 /** 모자 뽑기 모자 (37 4장 H 3~5): 칸 위 표식 (대기열 기믹 표에는 없음) */
 const DOC_HAT = ['full', 'invert', 'cap'].map(n => `icon-gim-hat-${n}`);
 const DOC = new Set([...DOC_GIM, ...DOC_HAT, ...DOC_BSK, ...DOC_MOB]);
@@ -30,7 +32,7 @@ const NOT_IN_DATA = /^icon-mob-anchor-spin$/;
 type BossKey = Exclude<ScriptKey, 'trash'>;
 const OK_NAME =/^icon-(gim|bsk|mob)-[a-z0-9-]+$/;
 /** 기믹 부품인지 (35 3장 22종 · 3-I · 3-J): 엔진 부품 · 디버프 표시로 따로 판단 */
-const GIM_P = new Set(['hunt', 'quake', 'pull', 'order', 'link', 'hole', 'tower', 'stagger', 'counter', 'soul', 'jail', 'vessel', 'adds', 'ring']);
+const GIM_P = new Set(['hunt', 'quake', 'pull', 'order', 'link', 'hole', 'tower', 'stagger', 'counter', 'soul', 'jail', 'vessel', 'adds', 'ring', 'greed', 'melt']);
 function isGimmick(d: SkillDef): boolean {
   const e = d.effect;
   if (!e) return d.cells?.p === 'safe';

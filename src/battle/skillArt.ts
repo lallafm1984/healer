@@ -9,13 +9,13 @@ import { BOSSES, type AddDef, type AddJob, type DebuffDef, type SkillDef } from 
 import type { Encounter, ScriptKey } from '../data/encounters';
 import type { BossSkill, Fight } from '../engine/types';
 
-/** 기믹 아이콘 38장 (37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2): icon-gim-<이름>. 모자 뽑기 모자 (H 3~5)는 칸 위 표식이라 대기열에 안 씀 */
+/** 기믹 아이콘 41장 (37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2, 52 보물 욕심 · 녹는 보호막 · 부화하는 알): icon-gim-<이름>. 모자 뽑기 모자 (H 3~5)는 칸 위 표식이라 대기열에 안 씀 */
 export const GIMS = ['full', 'wound', 'hunt', 'link', 'invert', 'over', 'quake', 'recoil', 'gaze', 'drain', 'charm', 'order', 'jump', 'safe', 'tower', 'pull', 'hole',
-  'stagger', 'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass'] as const;
+  'stagger', 'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass', 'greed', 'melt', 'hatch'] as const;
 export type Gim = (typeof GIMS)[number];
 type BossKey = Exclude<ScriptKey, 'trash'>;
 
-/** 보스 고유 아이콘 (37 4장 D, 44 4장 D 1~4, 47 4장 D 1~43, 49 4장 D 1~35): 보스 데이터 키 → 기술 키 → 그림. 탐험판은 던전 보스 그림을 같이 씀 (44 0장) */
+/** 보스 고유 아이콘 (37 4장 D, 44 4장 D 1~4, 47 4장 D 1~43, 49 4장 D 1~35, 52 4장 D): 보스 데이터 키 → 기술 키 → 그림. 탐험판은 던전 보스 그림을 같이 씀 (44 0장) */
 const BSK: Partial<Record<BossKey, Record<string, string>>> = {
   collector3: { aoe: 'icon-bsk-collector-2' },
   collector: { buster: 'icon-bsk-collector-1', aoe: 'icon-bsk-collector-2' },
@@ -75,12 +75,22 @@ const BSK: Partial<Record<BossKey, Record<string, string>>> = {
   bungbung: { buster: 'icon-bsk-bungbung-1', wind: 'icon-bsk-bungbung-2' },
   ppyong: { buster: 'icon-bsk-ppyong-1', vanish: 'icon-bsk-ppyong-2' },
   amanita: { buster: 'icon-bsk-amanita-1', waltz: 'icon-bsk-amanita-2' },
+  // 묶음 D1 (52 4장 D 1~13). 연기 · 곡괭이는 꼬질 (49) 그림을 같이 씀
+  mungsil64: { buster: 'icon-bsk-mungsil-1', steam: 'icon-bsk-mungsil-2', smoke: 'icon-bsk-kobold-2' },
+  mungsil: { buster: 'icon-bsk-mungsil-1', steam: 'icon-bsk-mungsil-2', smoke: 'icon-bsk-kobold-2' },
+  bulttung: { buster: 'icon-bsk-bulttung-1', fire0: 'icon-bsk-bulttung-2', fire1: 'icon-bsk-bulttung-2', fire2: 'icon-bsk-bulttung-2' },
+  huggeun: { iron: 'icon-bsk-huggeun-1', ironm: 'icon-bsk-huggeun-1', spark: 'icon-bsk-huggeun-2', splash: 'icon-bsk-huggeun-3' },
+  ttangttang: { buster: 'icon-bsk-ttangttang-1', sea: 'icon-bsk-ttangttang-2' },
+  kkojil: { pick: 'icon-bsk-kobold-1', smoke: 'icon-bsk-kobold-2' },
+  deolkeong: { cart: 'icon-bsk-deolkeong-1', cartm: 'icon-bsk-deolkeong-1', wheel: 'icon-bsk-deolkeong-2' },
+  beonjjeok: { buster: 'icon-bsk-beonjjeok-1', rain: 'icon-bsk-beonjjeok-2' },
 };
 /** 데이터 부품만으로는 안 보이는 기믹 (35 4장 표): 서리 손길 · 빗자루 = 버스터 + 썩는 상처 (서리 · 먼지 범벅), 얼어붙는 바닥 · 바닥이 언다 = 장판 → 무너지는 바닥 */
 const GIM_KEY: Partial<Record<BossKey, Record<string, Gim>>> = {
   shadow: { buster: 'rot', floor: 'hole' },
   keeper: { buster: 'rot' },
   scholar: { floor: 'hole', floor2: 'hole' },
+  mungsil: { meltm: 'melt' }, // 악몽 「김 서림」 = 받는 치유 감소지만 녹는 보호막과 같이 옴
 };
 /** 구간 적 기술 (44 4장 D 5~15, 47 4장 D 46): 「적 이름:공격 키」 → 그림. 독 혹 두꺼비는 부글이 그림을 같이 씀 (44 0장) */
 const MOB: Record<string, string> = {
@@ -99,10 +109,12 @@ const MOB: Record<string, string> = {
   '재채기 버섯:sneeze': 'icon-mob-sneeze', // 49 4장 D 36
   '해파리 점쟁이:fortune': 'icon-mob-jelly', // 47 4장 D 44 (닻 든 거한 닻 돌리기 45는 아직 데이터에 없음)
   '독 혹 두꺼비:burst': 'icon-bsk-toad-3',
+  '용 비늘 경비병:tail': 'icon-mob-tail-sweep', // 52 4장 D 26
 };
 
 /** 판 위 적이 하는 일 → 기믹 (37 4장 E 1~10) */
-const ADD_GIM: Record<AddJob['p'], Gim> = { mend: 'mender', bomb: 'bomb', pylon: 'pylon', drain: 'drain', jail: 'jail', smash: 'elite', march: 'march', fixate: 'fixate', sting: 'add' }; // 꿀벌 떼 (sting, 48 4장)는 판 위 쫄
+/** 꿀벌 떼 (sting, 48 4장)는 판 위 쫄, 부화하는 알 (51 5장)은 새 아이콘, 금화 더미 (51 4-1)는 보스를 키우는 수정 아이콘을 빌림 */
+const ADD_GIM: Record<AddJob['p'], Gim> = { mend: 'mender', bomb: 'bomb', pylon: 'pylon', drain: 'drain', jail: 'jail', smash: 'elite', march: 'march', fixate: 'fixate', sting: 'add', hatch: 'hatch', hoard: 'pylon' };
 function addGim(a: AddDef, tanks: number): Gim {
   if (a.job) return ADD_GIM[a.job.p];
   if (a.down?.p === 'burst') return 'burst'; // 쓰러질 때 파열 (쥐떼 · 늪 머리)
@@ -131,6 +143,7 @@ export function gimOf(d: SkillDef, tanks = 1): Gim | undefined {
     case 'hunt': case 'quake': case 'pull': case 'order': case 'link': case 'hole': case 'tower': case 'stagger': case 'counter': case 'soul': case 'jail': return e.p;
     case 'vessel': return 'over';
     case 'ring': return 'grow'; // 요정 고리 (P-GROW, 37 4장 H-1)
+    case 'greed': case 'melt': return e.p; // 보물 욕심 · 녹는 보호막 (51 5장, 그림 52)
     case 'adds': return addGim(e.add, tanks);
     case 'debuff': case 'tank': case 'all': return e.debuff ? debuffGim(e.debuff) : undefined;
     default: return undefined;

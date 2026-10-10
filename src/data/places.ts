@@ -12,7 +12,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary'
   | 'shellbeach' | 'wreck' | 'gull' | 'gull-kitchen' | 'gull-lighthouse' | 'queen' | 'queen-hold' | 'queen-bow' | 'isle' | 'isle-lookout' | 'isle-summit'
   | 'lampway' | 'teaparty' | 'mossroot' | 'emberfoot' | 'rainbow'
-  | 'fest' | 'fest-stage' | 'fest-bonfire' | 'sporecave' | 'sporecave-pond' | 'sporecave-root' | 'palace' | 'palace-hall' | 'palace-throne';
+  | 'fest' | 'fest-stage' | 'fest-bonfire' | 'sporecave' | 'sporecave-pond' | 'sporecave-root' | 'palace' | 'palace-hall' | 'palace-throne'
+  | 'ashpass' | 'hotspring' | 'forge' | 'den' | 'den-cart' | 'den-vault';
 
 export interface Faction {
   name: string;
@@ -110,6 +111,13 @@ export const PLACES: Record<PlaceKey, Place> = {
   palace: { key: 'palace', name: '버섯 여왕의 궁전', faction: 'fairy', tone: ['#3A2A2E', '#160F11'] },
   'palace-hall': { key: 'palace-hall', name: '궁전 연회장', faction: 'fairy', tone: ['#382A3A', '#140F16'], borrow: 'palace' },
   'palace-throne': { key: 'palace-throne', name: '광대버섯 왕좌', faction: 'fairy', tone: ['#3E2626', '#170E0E'], borrow: 'palace' },
+  // 묶음 D1 (51 1장, 그림 요청 52): 용암 대장간은 옛 골렘 대장간 (버려진 골렘, 녹슨 요새를 빌림), 용 일가는 불꽃 봉우리 기슭, 10인 레이드 칸은 첫 칸 그림을 빌림
+  ashpass: { key: 'ashpass', name: '화산재 고갯길', faction: 'dragon', tone: ['#3A2C26', '#16100D'], borrow: 'emberfoot' },
+  hotspring: { key: 'hotspring', name: '용암 온천장', faction: 'dragon', tone: ['#3E2A26', '#170F0D'], borrow: 'emberfoot' },
+  forge: { key: 'forge', name: '용암 대장간', faction: 'golem', tone: ['#382A22', '#150F0B'], borrow: 'rustfort' },
+  den: { key: 'den', name: '코볼트 보물 굴', faction: 'dragon', tone: ['#36302A', '#141210'], borrow: 'emberfoot' },
+  'den-cart': { key: 'den-cart', name: '수레길', faction: 'dragon', tone: ['#382E26', '#15110D'], borrow: 'den' },
+  'den-vault': { key: 'den-vault', name: '보물방', faction: 'dragon', tone: ['#3E3424', '#17130C'], borrow: 'den' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -124,6 +132,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   lampway: 'lampway', teaparty: 'teaparty', mossroot: 'mossroot', emberfoot: 'emberfoot', rainbow: 'rainbow',
   fest1: 'fest', fest2: 'fest-stage', fest3: 'fest-bonfire', cave1: 'sporecave', cave2: 'sporecave-pond', cave3: 'sporecave-root',
   palace1: 'palace', palace2: 'palace-hall', palace3: 'palace-throne',
+  ashpass: 'ashpass', hotspring: 'hotspring', forge: 'forge', den1: 'den', den2: 'den-cart', den3: 'den-vault',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -151,6 +160,8 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   wetstair: 'mossroot', uga: 'mossroot', turtlebridge: 'mossroot', shellgod: 'mossroot',
   pollenfield: 'rainbow', queen56: 'rainbow', songi: 'fest', pililli: 'fest-stage', ponga: 'fest-bonfire',
   mungge: 'sporecave', gaegul: 'sporecave-pond', morak: 'sporecave-root', bungbung: 'palace', ppyong: 'palace-hall', amanita: 'palace-throne',
+  warmash: 'ashpass', mungsil64: 'ashpass', steamroom: 'hotspring', mungsil: 'hotspring', lavabath: 'hotspring', bulttung: 'hotspring',
+  coldhearth: 'forge', huggeun: 'forge', anvilbridge: 'forge', ttangttang: 'forge', kkojil: 'den', deolkeong: 'den-cart', beonjjeok: 'den-vault',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;
