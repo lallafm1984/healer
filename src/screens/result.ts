@@ -16,6 +16,7 @@ import { codexGroupOf, SPEC_GROUPS } from '../data/specials';
 import { art } from '../art';
 import { TUT } from '../game/tutorial';
 import { AFFIXES } from '../data/affixes';
+import { ENDING } from '../data/story';
 import type { BattleResult, Settlement } from '../game/settle';
 import { esc, fmt, mmss, screen, topBar } from './kit';
 import { currencyIcon, fxArt, gameIcon, gearIcon, placeArt, trinketArt, uiIcon, type CurrencyIconKey } from './art';
@@ -46,13 +47,18 @@ function render(): void {
       ${recordHtml(r, x, !won)}
     </div>
     <footer class="ns-foot ${tut ? '' : 'row3'}">${footHtml(x, tut)}</footer>`;
+  // 심연의 심장을 처음 멈추면 엔딩 글 (59 4-4, 한 번만). 레벨업 팝업이 있으면 그 위에
+  if (won && r.content === 'heart3' && x.first && !ended.has(x) && Object.values(G.save.clears.heart3 ?? {}).reduce((a, c) => a + (c?.n ?? 0), 0) === 1) {
+    ended.add(x);
+    setTimeout(() => { if (Flow.settle === x && !st.el.hidden) showEnding(st.el); }, 1600);
+  }
   // 새로 열린 기능이 있으면 연출이 끝난 뒤 팝업 (한 판에 한 번)
   if (x.levelUps.length && !shown.has(x)) {
     shown.add(x);
     setTimeout(() => { if (Flow.settle === x && !st.el.hidden) showLevelUp(st.el, x.levelUps); }, 1100);
   }
 }
-const shown = new WeakSet<object>();
+const shown = new WeakSet<object>(), ended = new WeakSet<object>();
 
 /** 머리: 제목 · 장소·난이도·어픽스 · (이기면) 등급 + 별 칸 3개, (지면) 원인 */
 function head(r: BattleResult, x: Settlement, key: ContentKey, name: string): string {
@@ -253,6 +259,16 @@ function again(): void {
     st.el.querySelector('.r-err')?.remove();
     st.el.querySelector('.res')?.insertAdjacentHTML('afterbegin', `<p class="warnbox r-err">${esc(err)}</p>`);
   }
+}
+
+// ---------- 엔딩 글 (59 4-4 · 11 6장 햇살 축제) ----------
+export function showEnding(host: HTMLElement): void {
+  const box = document.createElement('div');
+  box.className = 'overlay lvpop ending';
+  box.innerHTML = `<div class="card" role="dialog" aria-label="엔딩"><h3>심장이 멈췄다</h3>${ENDING.map(t => `<p>${esc(t)}</p>`).join('')}
+    <button class="btn primary" type="button">햇살 축제로</button></div>`;
+  box.querySelector('button')!.addEventListener('click', () => box.remove());
+  host.appendChild(box);
 }
 
 // ---------- 레벨업 팝업 (P04) ----------

@@ -122,7 +122,8 @@ function carried(f: Fight, u: Unit, dt: number): boolean {
  */
 function debtTick(f: Fight, u: Unit, d: Debuff, dt: number): boolean {
   if (u.debuffs.some(x => x.jail)) { d.left += dt; return true; }
-  d.debtLeft = (d.debtLeft ?? 0) * (1 + d.debt!.grow * dt * (f.zones.length && submerged(f, u) ? 2 : 1));
+  const grow = f.mythic && d.debt!.growMythic ? d.debt!.growMythic : d.debt!.grow; // 악몽 마지막 그림자 12%
+  d.debtLeft = (d.debtLeft ?? 0) * (1 + grow * dt * (f.zones.length && submerged(f, u) ? 2 : 1));
   return false;
 }
 

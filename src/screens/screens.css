@@ -134,6 +134,9 @@ body.tabs-on .ns-body { padding-bottom: calc(var(--tabs-h) + 20px); }
 .lvnum { margin: 0; font-size: 18px; }
 .lvnum b { font-family: var(--font-display); font-weight: 400; font-size: 30px; color: var(--gold-hi); }
 .lvpop ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; text-align: left; font-size: 14px; }
+/* 엔딩 글 (59 4-4): 레벨업 팝업 모양에 글만 */
+.ending .card { max-width: 360px; max-height: 86vh; overflow-y: auto; }
+.ending p { margin: 0 0 10px; text-align: left; font-size: 14px; line-height: 1.55; }
 
 /* 장비 탭 */
 .gtile { background: var(--panel); border: 2px solid var(--g, var(--line)); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 2px; min-height: 72px; }

@@ -392,6 +392,16 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
       emit(f, { type: 'msg', text: `${d.name}: 지워서 이웃 칸이 터짐` });
       return;
     }
+    case 'trapLoan': {
+      // 그림자 덫 (59 3-2 마지막 그림자): 두면 그 사람만, 지우면 터지는 대신 이웃 칸 아군 n명에게 빌린 생명
+      if (!dispelled) { damage(f, u, e.dmg, true); emit(f, { type: 'msg', text: `${d.name}: ${u.nick} 시간 끝` }); return; }
+      const c = cellOf(f, u), near = living(f).filter(v => v !== u && !v.lift && hexDist(cellOf(f, v), c) === 1);
+      for (let i = near.length - 1; i > 0; i--) { const j = Math.floor(f.rng() * (i + 1)); [near[i], near[j]] = [near[j], near[i]]; }
+      const got = near.slice(0, e.n);
+      for (const v of got) { const x = addDebuff(f, v, { ...e.loan }); if (v.debuffs.includes(x)) lend(f, v, x); }
+      emit(f, { type: 'msg', text: got.length ? `${d.name}: 지워서 ${got.map(v => v.nick).join(' · ')}에게 빚` : `${d.name}: 지움 (옆에 아무도 없음)` });
+      return;
+    }
     case 'jump': {
       // 옮겨붙음 (P-JUMP): 지우면 이웃 칸 1명에게 더 세게, 혼자면 사라짐. 시간이 다 되면 보스가 강해짐. 약한 판 (진동에 옮김)은 그냥 사라짐
       if (e.on === 'quake') return;

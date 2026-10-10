@@ -24,6 +24,7 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'crystal1' | 'crystal2' | 'crystal3' | 'fort1' | 'fort2' | 'fort3' | 'station' | 'shadow1' | 'shadow2' | 'shadow3' | 'school'
   | 'maze1' | 'maze2' | 'maze3' | 'camp1' | 'camp2' | 'camp3' | 'carriage' | 'ballroom'
   | 'coast1' | 'coast2' | 'coast3' | 'lantern'
+  | 'heart1' | 'heart2' | 'heart3' | 'dawn' | 'heartcrack'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -251,6 +252,16 @@ export const CONTENT: ContentDef[] = [
     key: 'lantern', kind: 'explore', name: '어둠물 등불길', place: '호수 밑 등불길 · 심연의 정예', stageLv: 96, unlockLv: 96, ready: true, bosses: ['그림자 대여상 녹슬음'],
     fights: () => DUNGEONS.lantern.segments, size: three,
   },
+  // 묶음 G 탐험 ㉕ (59 1-1): 이야기 뒤 Lv 100 반복, 보스는 20인 ⑩ 심장을 빌림 (탐험이 레이드 보스를 빌리는 첫 경우)
+  {
+    key: 'dawn', kind: 'explore', name: '새벽 호숫길', place: '호숫가 새벽길 · 심연의 정예', stageLv: 100, unlockLv: 100, ready: true, bosses: ['심장 조각'],
+    fights: () => DUNGEONS.dawn.segments, size: three,
+  },
+  // 던전 ⑳ (59 1-2 · 3-2, 묶음 G): 심연의 정예 (전 유형), 보스 2. 이야기 뒤 Lv 100 반복 던전
+  {
+    key: 'heartcrack', bosses: ['그림자 대여상 녹슬음', '마지막 그림자'], kind: 'dungeon', name: '멈춘 심장 속', place: '멈춘 심장 틈 · 심연의 정예', stageLv: 100, unlockLv: 100, ready: true,
+    fights: () => DUNGEONS.heartcrack.segments, size: five,
+  },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인
     key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 탑 1층', place: '납골당 · 역병 군주', stageLv: 35, unlockLv: 35, ready: true,
@@ -397,6 +408,14 @@ export const CONTENT: ContentDef[] = [
     ['coast3', '어둠물 해안 소용돌이', '해안 소용돌이 · 어둠물 여왕 검은물결', '어둠물 여왕 검은물결', 'geomeun'],
   ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: 94, unlockLv: 94, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 100 },
+  })),
+  // 묶음 G 20인 ⑩ 심연의 심장 (59 4-4, 최종 레이드): 열림 Lv 97 · 악몽 100
+  ...([
+    ['heart1', '심연의 심장 뿌리다리', '심장 뿌리다리 · 뿌리 수호자 얽힘', '뿌리 수호자 얽힘', 'eongkim'],
+    ['heart2', '심연의 심장 심장문', '심장문 · 되살아난 심연의 군주', '되살아난 심연의 군주', 'revlord'],
+    ['heart3', '심연의 심장 심실', '심실 · 심연의 심장', '심연의 심장', 'abyssheart'],
+  ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
+    key, bosses: [boss], kind: 'raid', name, place, stageLv: 97, unlockLv: 97, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 100 },
   })),
 ];
 

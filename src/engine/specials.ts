@@ -160,6 +160,7 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.stormWedge && u.role === 'tank' && f.party.some(w => w !== u && w.role === 'tank' && w.alive && w.lift)) m += v.stormWedge; // 우르릉의 번개 쐐기
   if (v.festInvite && direct && !tick && u.debuffs.some(d => d.noDps)) m += v.festInvite; // 축제 초대장 (48 6장)
   if (v.wetGlove && f.zones.length && submerged(f, u)) m += v.wetGlove; // 마부의 젖은 장갑 (59 6장)
+  if (v.dawnPebble && direct && u.pulsed) { m += v.dawnPebble; u.pulsed = false; } // 첫 햇살 조약돌 (59 6장): 박동에 맞은 아군에게 하는 다음 힐
   if (v.mazeMap && u.debuffs.some(d => (d.debtLeft ?? 0) > 1e-6)) m += v.mazeMap; // 밤그늘의 미궁 지도
   if (v.rainbowSpore && u.soul) m += v.rainbowSpore; // 무지개 포자
   if (v.mossBrooch && aoe && f.stagger) m += v.mossBrooch; // 이끼 브로치
@@ -324,6 +325,7 @@ export function hasteOf(f: Fight): number {
   const v = f.sp.v;
   let h = f.gear.haste;
   for (const k of ['sunHandful', 'resolve', 'drumbeat', 'rustyCog', 'leechJar']) if (v[k] && on(f, k)) h += v[k];
+  if (v.stillHeart && on(f, 'stillHeart') && f.t + 1e-9 >= (f.sp.until.stillHeartFrom ?? 0)) h += v.stillHeart; // 멈춘 심장 조각 (59 6장)
   if (v.busyHands) h += (v.busyHands * Math.min(5, Math.floor(f.sp.busy / 2))) / 5;
   return Math.min(f.R.hasteCap, h);
 }
@@ -654,6 +656,12 @@ export function specRod(f: Fight, u: Unit): void {
   if (!v || !u.alive) return;
   heal(f, u, intAmt(f, v), true, true);
   shout(f, 'prism', u);
+}
+/** 크게 뛰기 (59 4-4): 시전 불가가 끝나면 2초 동안 가속 (멈춘 심장 조각) */
+export function specBeat(f: Fight, sec: number): void {
+  if (!f.sp!.v.stillHeart) return;
+  f.sp!.until.stillHeartFrom = f.t + sec;
+  f.sp!.until.stillHeart = f.t + sec + 2;
 }
 /** 진동이 울리면 (낙타 털실 반지: 2초 동안 시전 시간 −) */
 export function specQuake(f: Fight): void {

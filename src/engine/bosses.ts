@@ -40,7 +40,8 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
     fire: e ? g => runEffect(g, s, e) : undefined,
     hit: e ? (g, tel) => runEffect(g, s, e, tel) : undefined,
     cellsFor: z ? g => zoneCells(g, s, z) : e?.p === 'tower' ? g => padCells(g, e.n) : undefined,
-    flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg, hitDebuff: d.hitDebuff, hitFx: d.hitFx, safe: z?.p === 'safe' || undefined, quake: e?.p === 'quake' || undefined,
+    flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg, hitDebuff: d.hitDebuff, hitFx: d.hitFx, safe: z?.p === 'safe' || undefined, quake: e?.p === 'quake' || e?.p === 'beat' || undefined,
+    pulse: z?.p === 'ring' || undefined, hitDebt: d.hitDebt,
     stunOnCut: e?.p === 'counter' ? e.stun : undefined, pads: e?.p === 'tower' || undefined, fixed: d.fixed, soak: e?.p === 'share' || undefined,
     greed: e?.p === 'greed' ? e.dmg : undefined, hunt: e?.p === 'hunt' || undefined, mirage: d.mirage, glass: e?.p === 'glass' || undefined,
     decoy: e?.p === 'counter' ? e.decoy : undefined, mirrorCells: z?.p === 'safe' && z.at === 'side' ? g => zoneCells(g, s, z, true) : undefined,
@@ -53,11 +54,14 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
 /** 장판 예고가 맞는 순간 그 칸에 선 사람 (옮겨 가는 중이면 가는 칸) 한 번 피해. 두꺼비 배 속(hide)은 안 맞음 (피난처) */
 function cellHit(f: Fight, tel: Telegraph, dmg: number): void {
   if (tel.skill.hitFx && tel.cells.size) { const cs = [...tel.cells].sort((a, b) => a - b); emit(f, { type: 'fx', name: tel.skill.hitFx, cell: cs[cs.length >> 1] }); } // 용의 숨결 (52 E)
+  if (tel.skill.pulse) for (const i of tel.cells) emit(f, { type: 'fx', name: 'pulse-ring', cell: i }); // 퍼지는 박동 (59 4-4)
   for (const u of living(f)) {
     const pos = u.moving ? u.moving.to : u.cell;
     if (!tel.cells.has(pos) || u.debuffs.some(d => d.hide)) continue;
     damage(f, u, dmg, true);
     if (tel.skill.hitDebuff && u.alive) applyDebuff(f, u, tel.skill.hitDebuff); // 줄 불길 불씨 (51 3-1)
+    if (tel.skill.hitDebt && u.alive) { const d = u.debuffs.find(x => (x.debtLeft ?? 0) > 1e-6); if (d) d.debtLeft! *= 1 + tel.skill.hitDebt; } // 빚진 고동 (59 4-4)
+    if (tel.skill.pulse && f.sp?.v.dawnPebble) u.pulsed = true; // 첫 햇살 조약돌
   }
 }
 

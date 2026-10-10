@@ -315,6 +315,10 @@ export const NAMED: NamedDef[] = [
   // 묶음 G2 (59 6장): 20인 ⑨ 소용돌이 · 탐험 ㉔
   { key: 'moonBowl', name: '검은물결의 달빛 그릇', slot: 'neck', place: 'coast3', placeName: '어둠물 해안 소용돌이', text: '넘치는 빛 그릇에 모이는 넘친 치유 +{v}, 빚을 갚은 넘친 치유도 절반이 그릇에', val: 0.25, unit: 'pct' },
   { key: 'debtLantern', name: '꺼지지 않는 등불', slot: 'ring', place: 'lantern', placeName: '어둠물 등불길', text: '넘친 치유가 빚진 아군의 빚을 갚는 양 +{v}', val: 0.2, unit: 'pct', min: '고급' },
+  // 묶음 G3 (59 6장): 20인 ⑩ 심실 · 탐험 ㉕ · 던전 ⑳
+  { key: 'stillHeart', name: '멈춘 심장 조각', slot: 'neck', place: 'heart3', placeName: '심연의 심장 심실', text: '크게 뛰기 (시전 불가)가 끝나면 2초 동안 가속 +{v}', val: 0.3, unit: 'pct' },
+  { key: 'dawnPebble', name: '첫 햇살 조약돌', slot: 'ring', place: 'dawn', placeName: '새벽 호숫길', text: '퍼지는 박동에 맞은 아군에게 하는 다음 직접 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
+  { key: 'shadowScale', name: '마지막 그림자의 저울', slot: 'neck', place: 'heartcrack', placeName: '멈춘 심장 속', text: '빌린 생명의 빚을 다 갚으면 그 아군에게 지능 {v} 보호막 (6초)', val: 0.4, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -488,6 +492,11 @@ export const FEATURED: Record<string, readonly string[]> = {
   coast2: ['woundClean', 'hardShell', 'holdingHand'],
   coast3: ['bubble', 'overflowKind', 'sunrise'],
   lantern: ['bubble', 'lightBreath', 'quickAid'],
+  heart1: ['fadingMiasma', 'holdTogether', 'brushOff'],
+  heart2: ['drumbeat', 'windStep', 'starVeil'],
+  heart3: ['edgeTouch', 'sunrise', 'constellation'],
+  dawn: ['sunrise', 'lightBreath', 'wideEmbrace'],
+  heartcrack: ['layer', 'cleanHands', 'pouch'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

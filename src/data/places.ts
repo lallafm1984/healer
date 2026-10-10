@@ -21,7 +21,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'well' | 'well-moss' | 'well-floor' | 'post' | 'post-sort' | 'post-roof' | 'ranch' | 'windmill'
   | 'crystal' | 'crystal-field' | 'crystal-mirror' | 'fort' | 'fort-armory' | 'fort-top' | 'station' | 'shadow' | 'shadow-wall' | 'shadow-tower' | 'school'
   | 'maze' | 'maze-hall' | 'maze-core' | 'camp' | 'camp-yard' | 'camp-command' | 'carriage' | 'ballroom'
-  | 'coast' | 'coast-way' | 'coast-whirl' | 'lantern';
+  | 'coast' | 'coast-way' | 'coast-whirl' | 'lantern'
+  | 'heart' | 'heart-gate' | 'heart-core' | 'dawn' | 'heartcrack';
 
 export interface Faction {
   name: string;
@@ -203,6 +204,12 @@ export const PLACES: Record<PlaceKey, Place> = {
   'coast-way': { key: 'coast-way', name: '물길', faction: 'deep', tone: ['#1A2238', '#090C17'], borrow: 'cathedral' },
   'coast-whirl': { key: 'coast-whirl', name: '소용돌이', faction: 'deep', tone: ['#1E1E40', '#0A0A19'], borrow: 'cathedral' },
   lantern: { key: 'lantern', name: '어둠물 등불길', faction: 'deep', tone: ['#221E36', '#0C0A16'], borrow: 'cathedral' },
+  // 묶음 G3 (59 1장, 그림 요청 60): 심연의 심장 칸 · 새벽 호숫길 · 멈춘 심장 속도 대성당 그림을 빌림
+  heart: { key: 'heart', name: '뿌리다리', faction: 'deep', tone: ['#241A38', '#0D0915'], borrow: 'cathedral' },
+  'heart-gate': { key: 'heart-gate', name: '심장문', faction: 'deep', tone: ['#2A1A40', '#0F0918'], borrow: 'cathedral' },
+  'heart-core': { key: 'heart-core', name: '심실', faction: 'deep', tone: ['#321C4A', '#12091C'], borrow: 'cathedral' },
+  dawn: { key: 'dawn', name: '새벽 호숫길', faction: 'deep', tone: ['#3C3046', '#15111C'], borrow: 'cathedral' },
+  heartcrack: { key: 'heartcrack', name: '멈춘 심장 속', faction: 'deep', tone: ['#2A1E38', '#0E0A15'], borrow: 'cathedral' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -228,6 +235,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   station: 'station', shadow1: 'shadow', shadow2: 'shadow-wall', shadow3: 'shadow-tower', school: 'school',
   maze1: 'maze', maze2: 'maze-hall', maze3: 'maze-core', camp1: 'camp', camp2: 'camp-yard', camp3: 'camp-command', carriage: 'carriage', ballroom: 'ballroom',
   coast1: 'coast', coast2: 'coast-way', coast3: 'coast-whirl', lantern: 'lantern',
+  heart1: 'heart', heart2: 'heart-gate', heart3: 'heart-core', dawn: 'dawn', heartcrack: 'heartcrack',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -273,6 +281,8 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   geumeum: 'maze', silta: 'maze-hall', bamgeuneul: 'maze-core', jilpung: 'camp', ureobal: 'camp-yard', chilheuk: 'camp-command',
   carriagetrash: 'carriage', serena92: 'carriage', ballhall: 'ballroom', serena: 'ballroom', balcony: 'ballroom', valen: 'ballroom',
   janmul: 'coast', hwigami: 'coast-way', geomeun: 'coast-whirl', lanterntrash: 'lantern', nokseul96: 'lantern',
+  eongkim: 'heart', revlord: 'heart-gate', abyssheart: 'heart-core', dawntrash: 'dawn', heartshard100: 'dawn',
+  cracktrash: 'heartcrack', nokseul: 'heartcrack', coolroot: 'heartcrack', lastshade: 'heartcrack',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

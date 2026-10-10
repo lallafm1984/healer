@@ -11,7 +11,7 @@ import { hexDist } from './board';
 import { addDebuff, bark, cellOf, damage, DT, emit, empowerBoss, hasAbsorb, heal, lend, living, onDebuffEnd, randomTargets, setMax, spread, unitById } from './core';
 import { dangerAt, finishMove, moveTo, scheduleReaction, scheduleReactions, zoneOf } from './movement';
 import { hotTick, stepAway } from './units';
-import { during, immune, specBroken, specLand, specPhase, specRod, specVessel, specQuake, specReveal, specRewind, specTideEbb, sv } from './specials';
+import { during, immune, specBeat, specBroken, specLand, specPhase, specRod, specVessel, specQuake, specReveal, specRewind, specTideEbb, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
@@ -217,6 +217,19 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       return;
     }
     case 'quake': quake(f, e); return;
+    case 'beat': {
+      // 크게 뛰기 (59 4-4 심연의 심장 · 시전 불가): 시전 · 정신 집중 중이면 끊기고 sec초 동안 시전 시간이 있는 스킬을 못 씀 (즉시 스킬은 됨)
+      const sec = f.mythic && e.secMythic ? e.secMythic : e.sec;
+      const casts = Object.values(HEROES[f.hero].slots).filter((k): k is SkillKey => !!k && ((f.R.cast?.[k] ?? SKILLS[k].cast) > 0 || !!SKILLS[k].channel));
+      if (f.cast && casts.includes(f.cast.key)) { f.cast = null; emit(f, { type: 'shake', id: f.me.id }); if (f.sp) specBroken(f); }
+      if (f.channel > 0) { f.channel = 0; f.stats.hymnBroken++; }
+      for (const k of casts) f.lock[k] = { left: sec, total: sec };
+      emit(f, { type: 'fx', name: 'heartbeat', all: true });
+      emit(f, { type: 'msg', text: `${s.name ?? '크게 뛰기'}: ${sec}초 동안 시전 불가 (즉시 스킬만)` });
+      if (e.dmg) for (const u of living(f)) damage(f, u, e.dmg, true);
+      if (f.sp) specBeat(f, sec); // 멈춘 심장 조각
+      return;
+    }
     case 'rest': {
       // 숨 고르기 (35 4-4): 보스가 쉬는 동안 그 이름의 디버프가 모두 사라짐 (서리 중첩)
       f.daze = { until: f.t + e.sec, vuln: 1, name: s.name ?? '숨 고르기' };
@@ -327,7 +340,8 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
     }
     case 'lift': liftUp(f, s, e, tel); return;
     case 'chain':
-      // 연쇄 번개 (P-CHAIN, 56 5장): 예고 때 고른 사람마다 번개가 떨어져 이웃으로 튐
+      // 연쇄 번개 (P-CHAIN, 56 5장): 예고 때 고른 사람마다 번개가 떨어져 이웃으로 튐. hitFx = 판 전체 이펙트 (번개 쐐기, 59 4-4)
+      if (s.hitFx && tel?.units.length) emit(f, { type: 'fx', name: s.hitFx, all: true });
       for (const id of tel?.units ?? []) {
         const u = unitById(f, id);
         if (u?.alive && !u.lift) chainFrom(f, u, e.dmg, f.mythic && e.jumpsMythic ? e.jumpsMythic : e.jumps, e.grow ?? CHAIN_GROW, s.name ?? '연쇄 번개');
@@ -1369,6 +1383,11 @@ export function zoneCells(f: Fight, s: BossSkill, z: ZoneCells, mirror = false):
       const pool = wet.slice(), dry = new Set<number>();
       while (dry.size < k && pool.length) dry.add(pool.splice(Math.floor(f.rng() * pool.length), 1)[0].i);
       return new Set(wet.filter(c => !dry.has(c.i)).map(c => c.i));
+    }
+    case 'ring': {
+      // 퍼지는 박동 (59 4-4 심연의 심장): 판 가운데에서 바깥으로 of겹으로 나눈 band번째 겹 (0 = 가운데)
+      const open = f.cells.filter(c => !c.block), d = open.map(c => fromMid(f, c)), max = Math.max(...d) + 1e-6;
+      return new Set(open.filter((_, i) => Math.min(z.of - 1, Math.floor((d[i] / max) * z.of)) === z.band).map(c => c.i));
     }
     case 'flow': {
       // 흐르는 장판의 첫 열: 맨 왼쪽(또는 오른쪽) 열. 방향은 s.st.dir (bossTick이 예고에 flow로 붙임)

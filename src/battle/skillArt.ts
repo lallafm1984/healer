@@ -9,10 +9,10 @@ import { BOSSES, type AddDef, type AddJob, type DebuffDef, type SkillDef } from 
 import type { Encounter, ScriptKey } from '../data/encounters';
 import type { BossSkill, Fight } from '../engine/types';
 
-/** 기믹 아이콘 47장 (37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2, 52 보물 욕심 · 녹는 보호막 · 부화하는 알, 55 G 신기루 · 모래시계, 57 G 띄워 올리기 · 연쇄 번개, 60 G 어둠물 밀물 · 빌린 생명): icon-gim-<이름>. 모자 뽑기 모자 (H 3~5)는 칸 위 표식이라 대기열에 안 씀 */
+/** 기믹 아이콘 49장 (37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2, 52 보물 욕심 · 녹는 보호막 · 부화하는 알, 55 G 신기루 · 모래시계, 57 G 띄워 올리기 · 연쇄 번개, 60 G 어둠물 밀물 · 빌린 생명 · 퍼지는 박동 · 크게 뛰기): icon-gim-<이름>. 모자 뽑기 모자 (H 3~5)는 칸 위 표식이라 대기열에 안 씀 */
 export const GIMS = ['full', 'wound', 'hunt', 'link', 'invert', 'over', 'quake', 'recoil', 'gaze', 'drain', 'charm', 'order', 'jump', 'safe', 'tower', 'pull', 'hole',
   'stagger', 'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass', 'greed', 'melt', 'hatch', 'mirage', 'glass',
-  'lift', 'chain', 'tide', 'debt'] as const;
+  'lift', 'chain', 'tide', 'debt', 'pulse', 'beat'] as const;
 export type Gim = (typeof GIMS)[number];
 type BossKey = Exclude<ScriptKey, 'trash'>;
 
@@ -163,6 +163,12 @@ const BSK: Partial<Record<BossKey, Record<string, string>>> = {
   hwigami: { buster: 'icon-bsk-hwigami-1', bolt: 'icon-bsk-hwigami-2', scale: 'icon-bsk-hwigami-3' },
   geomeun: { buster: 'icon-bsk-geomeun-1', touch: 'icon-bsk-ormal-2', rain: 'icon-bsk-geomeun-2' },
   nokseul96: { dun: 'icon-bsk-nokseul-1' },
+  // 묶음 G3 (60 4장 D): 심연 해제는 오르말 그림. 탐험 ㉕ 심장 조각은 공용 기믹 (박동 · 밀물 · 크게 뛰기)
+  eongkim: { buster: 'icon-bsk-eongkim-1', curse: 'icon-bsk-eongkim-2' },
+  revlord: { buster: 'icon-bsk-revlord-1', speech: 'icon-bsk-revlord-2', touch: 'icon-bsk-ormal-2' },
+  abyssheart: { buster: 'icon-bsk-abyssheart-1', touch: 'icon-bsk-ormal-2', wedge0: 'icon-bsk-abyssheart-2', wedge1: 'icon-bsk-abyssheart-2', wedge2: 'icon-bsk-abyssheart-2' },
+  nokseul: { dun: 'icon-bsk-nokseul-1', buster: 'icon-bsk-nokseul-2' },
+  lastshade: { buster: 'icon-bsk-lastshade-1', trap: 'icon-bsk-lastshade-2', will: 'icon-bsk-lastshade-3' },
 };
 /** 데이터 부품만으로는 안 보이는 기믹 (35 4장 표): 서리 손길 · 빗자루 = 버스터 + 썩는 상처 (서리 · 먼지 범벅), 얼어붙는 바닥 · 바닥이 언다 = 장판 → 무너지는 바닥 */
 const GIM_KEY: Partial<Record<BossKey, Record<string, Gim>>> = {
@@ -196,6 +202,7 @@ const MOB: Record<string, string> = {
   '물에 젖은 조문객:veil': 'icon-mob-veil', // 묶음 G1: 귀족가 졸개는 장원 그림을 같이 씀
   '가라앉은 사냥개:howl': 'icon-mob-howl',
   '함정 술사:hex': 'icon-mob-trap-hex', // 묶음 G2 (60 4장 D)
+  '심연 거수:root': 'icon-mob-root-slam', // 묶음 G3 (60 4장 D)
 };
 
 /** 판 위 적이 하는 일 → 기믹 (37 4장 E 1~10) */
@@ -227,9 +234,10 @@ export function gimOf(d: SkillDef, tanks = 1): Gim | undefined {
   const e = d.effect;
   if (d.mirage && e?.p !== 'order') return 'mirage'; // 신기루 (55 G 1). 수수께끼 (차례 × 신기루)는 차례 아이콘
   if (e?.p === 'glass') return 'glass'; // 모래시계 (55 G 2)
-  if (!e) return d.cells?.p === 'safe' ? 'safe' : d.cells?.p === 'tide' ? 'tide' : undefined; // 어둠물 밀물 (P-TIDE, 60 G 1)
+  if (!e) return d.cells?.p === 'safe' ? 'safe' : d.cells?.p === 'tide' ? 'tide' : d.cells?.p === 'ring' ? 'pulse' : undefined; // 어둠물 밀물 (P-TIDE, 60 G 1) · 퍼지는 박동 (60 G 3)
   switch (e.p) {
     case 'drag': return 'pull'; // 물로 끌어내림 (59 4-3)은 끌어당김 아이콘
+    case 'beat': return 'beat'; // 크게 뛰기 (시전 불가, 60 G 4)
     case 'hunt': case 'quake': case 'pull': case 'order': case 'link': case 'hole': case 'tower': case 'stagger': case 'counter': case 'soul': case 'jail': return e.p;
     case 'vessel': return 'over';
     case 'ring': return 'grow'; // 요정 고리 (P-GROW, 37 4장 H-1)

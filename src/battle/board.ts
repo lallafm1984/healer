@@ -739,6 +739,9 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   // 묶음 G2 (59 4-3, 그림 60 E): 밀물 때 마른 채 남은 물 위 섬 · 장어 꼬리가 물속으로 끌어내림
   'tide-island': { size: 1.3, color: 0xe9d9a6, ms: 800, up: 0.15 },
   'tide-drag': { size: 1.6, color: TIDE_HI, ms: 600 },
+  // 묶음 G3 (59 4-4, 그림 60 E): 퍼지는 박동이 지나가는 겹 칸 · 번개 쐐기가 심장에 박힘 (판 전체)
+  'pulse-ring': { size: 1.4, color: 0xa66bff, ms: 500 },
+  wedge: { size: 3.2, color: BOLT, ms: 900, wide: true },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();

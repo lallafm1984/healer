@@ -282,6 +282,10 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   // 묶음 G2 (59 6장): 어둠물 해안 칸마다 1 (소용돌이는 미궁 입구 관과 겹쳐 화관), 등불길은 가속
   coast1: ['staff'], coast2: ['mail'], coast3: ['wreath'],
   lantern: ['starneck', 'bracer'],
+  // 묶음 G3 (59 6장): 심연의 심장 칸마다 1 (뿌리다리 장화는 신발 칸이 없어 건틀릿), 새벽 호숫길 반지 · 외투 (정신력), 멈춘 심장 속 가속 · 로브 · 목걸이
+  heart1: ['gauntlet'], heart2: ['crown'], heart3: ['relic'],
+  dawn: ['jade', 'robe'],
+  heartcrack: ['wand', 'habit', 'amulet'],
 };
 export const KIND_WEIGHT = 3;
 
