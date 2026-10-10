@@ -195,7 +195,7 @@ export function afterHeal(f: Fight, u: Unit, amt: number, eff: number, crit: boo
     hc.crit = true;
     if (v.wishStar) proc(f, 'wishStar', 6, 15);
     if (v.insight && (s.ready.insight ?? 0) <= f.t) { s.ready.insight = f.t + 1; f.mana = Math.min(100, f.mana + v.insight); }
-    if (single && v.bounceLight) { const n = lowNear(f, u); if (n) heal(f, n, amt * v.bounceLight, true, true); }
+    if (single && v.bounceLight) { const n = lowNear(f, u); if (n) { emit(f, { type: 'fx', name: 'bounce', on: u.id, to: n.id }); heal(f, n, amt * v.bounceLight, true, true); } } // 화면: 빛 구슬이 옆 칸으로 (36 J fx-bounce)
   }
   if (over > 1e-9) {
     if (v.overflowKind) {

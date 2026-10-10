@@ -1,5 +1,6 @@
 import { art } from '../art';
 import type { ContentKey } from '../data/content';
+import { kindOf, type SlotKey } from '../data/equipment';
 import { artPlaces, CONTENT_PLACE, FACTIONS, floorArtName, sceneArtName, type FactionKey, type PlaceKey } from '../data/places';
 
 /** 화면 장식 그림 (정식 아트 전까지 임시, 16 문서) */
@@ -45,6 +46,36 @@ export function gameIcon(name: string, fallback: string, prefix: 'icon' | 'tab' 
   const img = art(`${prefix}-${name}`);
   return img ? `<img class="g-ic" src="${img}" alt="" decoding="async" draggable="false">` : fallback;
 }
+
+/** 장비 종류 그림 (36 0 · 4-2): 부위 첫 종류는 부위 그림 그대로 */
+export const KIND_ART: Record<string, string> = {
+  staff: 'item-weapon', scepter: 'item-weapon-scepter', mace: 'item-weapon-mace',
+  hood: 'item-head', crown: 'item-head-crown', helm: 'item-head-helm',
+  robe: 'item-chest', vestment: 'item-chest-vestment', mail: 'item-chest-mail',
+  gloves: 'item-hands', wraps: 'item-hands-wraps', gauntlet: 'item-hands-gauntlet',
+  ring: 'item-ring', signet: 'item-ring-signet',
+  beads: 'item-neck', pendant: 'item-neck-pendant',
+};
+/** 이름 있는 장신구 그림 (36 4-3 · 44 G · 47 H): 장신구 키 → item-trinket-<이름>. 장신구 이름이 바뀌어도 파일 이름은 그대로 */
+export const TRINKET_ART: Record<string, string> = {
+  rustyCog: 'cog', plagueCenser: 'censer', toadCharm: 'toad', ladyPortrait: 'portrait', frozenHourglass: 'hourglass', templeVial: 'vial',
+  scrapWhistle: 'whistle', graveLantern: 'lantern', leechJar: 'leech', lilyCorsage: 'corsage', snowCrystal: 'snowflake', pilgrimCharm: 'pilgrim',
+  wornRosary: 'rosary', blackStone: 'blackstone', ropeKnot: 'rope', lordIncense: 'incense', brokenChain: 'chain',
+  silverBookmark: 'bookmark', sluiceKey: 'sluicekey', frozenQuill: 'quill', roseBrooch: 'rosebrooch', heirSeal: 'heirseal',
+  conchShell: 'conch', luckyCoin: 'luckycoin', lighthouseEmber: 'ember', sailorCompass: 'compass', goldButton: 'goldbutton',
+};
+/** 이름 있는 장신구 그림 주소 (없으면 '') */
+export const trinketArt = (named?: string): string => (named && TRINKET_ART[named] ? art(`item-trinket-${TRINKET_ART[named]}`) : '');
+/** 장비 그림 (36 4-2 · 4-3): 이름 있는 장신구 → 종류 (모르는 종류 = 부위 첫 종류) → 부위 (item-<부위>) → 부위 선 아이콘 */
+export function gearIcon(it: { slot: SlotKey; kind?: string; named?: string }): string {
+  const img = trinketArt(it.named) || art(KIND_ART[kindOf(it).key] ?? '') || art(`item-${it.slot}`);
+  return img ? `<img class="g-ic" src="${img}" alt="" decoding="async" draggable="false">` : uiIcon(it.slot);
+}
+/** 연출 그림 한 장 (36 4-4 · 4-6 fx-*): 없으면 '' (CSS 연출만) */
+export const fxArt = (name: string, cls: string): string => {
+  const u = art(name);
+  return u ? `<img class="${cls}" src="${u}" alt="" aria-hidden="true" decoding="async" draggable="false">` : '';
+};
 
 /**
  * 직업 문장 (27 5장): 힐러 그림 대신. 원형 금테 + 돌 바탕 + 선 아이콘, 색은 16 4-1 포인트 색.

@@ -190,6 +190,7 @@
 .f-item > span { overflow: hidden; text-overflow: ellipsis; }
 .f-item small { position: absolute; top: -6px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; display: grid; place-items: center; border-radius: 9px; background: #3A2E1F; border: 1px solid var(--frame); font: 700 10px var(--font-body); color: var(--ink); }
 .f-item svg { width: 16px; height: 16px; flex: none; }
+.f-item > .g-ic { flex: none; width: 22px; height: 22px; margin: -3px; }
 .f-item.zero, .f-item.zero small { color: var(--mute); }
 .f-item.empty { border-style: dashed; background: none; color: var(--dim); font-weight: 400; }
 /* 단축칸 고르기 시트 */

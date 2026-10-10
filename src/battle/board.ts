@@ -5,13 +5,14 @@
  * 칸 위 이펙트는 0.4초 안에 사라지고 체력 숫자·디버프 테두리 아래에 그림.
  * 그림 (37 v0.2): 판 위 적·영혼 칸 그림(mob-), 칸 무늬(fx-cell-), 사슬 띠(fx-link-), 이펙트(fx-)가 src/art에 있으면 그 그림을, 없으면 지금 벡터 그림을 씀.
  */
-import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
+import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
 import { art } from '../art';
 import { CLASSES } from '../data/classes';
 import { SKILLS } from '../data/skills';
-import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type Unit } from '../engine';
+import { NAMED, SPECS, type SpecGroup } from '../data/specials';
+import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
 import { emblemColor } from '../screens/art';
-import type { FactionKey } from '../data/places';
+import { FACTIONS, type FactionKey } from '../data/places';
 import { addArtName, emblemSrc, holeArtName, soulArtName, zoneArtName } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebuff } from './party-display';
@@ -48,7 +49,10 @@ const emblemL = new Container();
 /** 칸 무늬 · 판 위 적 그림 (칸 채움 위, 파티원 칸 아래) · 그림 이펙트 (파티원 칸 위, 테두리·글자 아래) */
 const decalL = new Container();
 const fxArtL = new Container();
-root.addChild(cellsG, decalL, unitsG, glowL, fxG, fxArtL, frameL, overG, emblemL, labelsL, topG, topL, lensL);
+/** 말풍선 그림 (43 5장): 틀 뒤 이펙트 띠 · 틀 9조각 · 꼬리·감정 아이콘·앞 이펙트 띠. 대사 글자(topL)는 그 위 */
+const bubbleL = new Container(), bubbleBackL = new Container(), sliceL = new Container(), bubbleFrontL = new Container();
+bubbleL.addChild(bubbleBackL, sliceL, bubbleFrontL);
+root.addChild(cellsG, decalL, unitsG, glowL, fxG, fxArtL, frameL, overG, emblemL, labelsL, topG, bubbleL, topL, lensL);
 
 let dpr = 1;
 export const L = { s: 40, W: 0, H: 0, ox: 0, oy: 0, left: 2, right: 2, top: 2, bottom: 2, ok: false };
@@ -71,6 +75,9 @@ export async function initBoard(): Promise<void> {
   app = a;
   ready = true;
   glowTex = makeGlow();
+  // 말풍선 틀 · 꼬리 · 대사 이펙트 띠는 미리 읽어 둠 (첫 말풍선이 앱 그림으로 잠깐 보였다 바뀌지 않게, 43 5장)
+  for (const k of ['talk', 'call', 'alert', 'chat']) { artTexture(`ui-bubble-${k}`); artTexture(`ui-bubble-tail-${k}`); }
+  for (const n of Object.keys(TALK_FX)) artTexture(`fx-talk-${n}`);
   if (B.F) resizeBoard();
   await document.fonts?.ready;
   await frameReady;
@@ -287,11 +294,51 @@ function artTexture(name: string): Texture | null {
   img.onload = () => {
     const c = document.createElement('canvas');
     c.width = img.naturalWidth; c.height = img.naturalHeight;
-    c.getContext('2d')!.drawImage(img, 0, 0);
+    const g = c.getContext('2d')!;
+    g.drawImage(img, 0, 0);
+    // 말풍선 틀 · 꼬리는 불투명 영역 (틀 여백 · 꼬리 자르기), 흔들림 띠는 가운데 빈 곳 (말풍선 자리)을 한 번 재 둠
+    try {
+      if (name.startsWith('ui-bubble-')) artBoxes.set(name, opaqueBox(g, c.width, c.height));
+      else if (name === 'fx-talk-shake') artBoxes.set(name, holeBox(g, c.height * TALK_FX.shake.fw, c.height));
+    } catch { /* 픽셀을 못 읽으면 그림 전체 크기로 */ }
     artTex.set(name, Texture.from(c));
   };
   img.src = src;
   return null;
+}
+interface ArtBox { x: number; y: number; w: number; h: number }
+const artBoxes = new Map<string, ArtBox>();
+const solid = (d: Uint8ClampedArray, i: number) => d[i * 4 + 3] > 24;
+/** 그림에서 불투명한 부분 (알파 > 24) */
+function opaqueBox(g: CanvasRenderingContext2D, w: number, h: number): ArtBox {
+  const d = g.getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (solid(d, y * w + x)) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  return x1 < 0 ? { x: 0, y: 0, w, h } : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+}
+/** 첫 프레임 가운데에서 가로·세로로 처음 그림이 나오는 곳까지 (안 나오면 프레임의 60% · 50%) */
+function holeBox(g: CanvasRenderingContext2D, fw: number, h: number): ArtBox {
+  const d = g.getImageData(0, 0, fw, h).data, cx = fw >> 1, cy = h >> 1;
+  let l = cx, t = cy;
+  while (l > 0 && !solid(d, cy * fw + l)) l--;
+  while (t > 0 && !solid(d, t * fw + cx)) t--;
+  const hw = l > 0 ? cx - l : fw * 0.3, hh = t > 0 ? cy - t : h * 0.25;
+  return { x: cx - hw, y: cy - hh, w: hw * 2, h: hh * 2 };
+}
+/** 그림의 한 부분 (띠의 한 프레임 · 잘라 낸 꼬리) */
+const subTex = new Map<string, Texture>();
+function partTex(name: string, tex: Texture, x: number, y: number, w: number, h: number): Texture {
+  const key = `${name}#${x},${y},${w},${h}`;
+  let t = subTex.get(key);
+  if (!t) { t = new Texture({ source: tex.source, frame: new Rectangle(x, y, w, h) }); subTex.set(key, t); }
+  return t;
+}
+/** 가로 띠 그림의 k (0~1) 때 프레임. fw = 프레임 너비 ÷ 높이 */
+function stripFrame(name: string, fw: number, k: number): Texture | null {
+  const tex = artTexture(name);
+  if (!tex) return null;
+  const w = tex.height * fw, n = Math.max(1, Math.floor(tex.width / w + 0.01)), i = Math.max(0, Math.min(n - 1, Math.floor(k * n)));
+  return partTex(name, tex, i * w, 0, w, tex.height);
 }
 /** 프레임마다 다시 쓰는 그림 칸 (안 쓴 것은 숨김) */
 class SpritePool {
@@ -308,7 +355,7 @@ class SpritePool {
   }
   end(): void { for (let i = this.used; i < this.list.length; i++) this.list[i].visible = false; }
 }
-const decals = new SpritePool(decalL), fxArt = new SpritePool(fxArtL);
+const decals = new SpritePool(decalL), fxArt = new SpritePool(fxArtL), bubbleBack = new SpritePool(bubbleBackL), bubbleFront = new SpritePool(bubbleFrontL);
 /** 생명 사슬 띠 (fx-link-*): 가로로 이어 붙이는 그림을 두 칸 사이에 깔아 돌림 */
 const strips: TilingSprite[] = [];
 let stripUsed = 0;
@@ -544,13 +591,50 @@ interface Fx {
 interface Float { x: number; y: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean }
 /** 말풍선 종류 (41·43 문서): talk 반응·잡담 · call 기믹·신호 (금테) · alert 위기 (붉은 테, 흔들림) · chat 쓰러진 사람의 파티 채팅 (회색) */
 export type BubbleKind = 'talk' | 'call' | 'alert' | 'chat';
-interface Bubble { id: number; text: string; t0: number; life: number; kind: BubbleKind }
+/** emote = 왼쪽 감정 아이콘 emote-<이름> (43 4장 B) · cheer = 승리 한마디 (fx-talk-cheer) */
+interface Bubble { id: number; text: string; t0: number; life: number; kind: BubbleKind; emote?: string | null; cheer?: boolean }
 const BUBBLE: Record<BubbleKind, { fill: number; fillA: number; line: number; lw: number }> = {
   talk: { fill: C.ink, fillA: 1, line: C.line, lw: 2 },
   call: { fill: C.ink, fillA: 1, line: C.gold, lw: 2.5 },
   alert: { fill: C.ink, fillA: 1, line: C.danger, lw: 2.5 },
   chat: { fill: C.dead, fillA: 0.85, line: C.line, lw: 2 },
 };
+/** 감정 아이콘 자리 (43 5장: 말풍선 너비 = 아이콘 16px + 글자 + 여백) */
+const EMOTE_W = 16;
+/**
+ * 대사 이펙트 띠 (43 4장 C, fx-talk-<이름>): 길이(ms) · 프레임 너비 ÷ 높이.
+ * pop 말풍선이 뜰 때 · shake 위기 말풍선 둘레 · cheer 승리 한마디 · sweat 실수 신호 칸 위
+ */
+const TALK_FX = { pop: { ms: 200, fw: 1 }, shake: { ms: 300, fw: 2 }, cheer: { ms: 600, fw: 1 }, sweat: { ms: 600, fw: 1 } } as const;
+/** 말풍선 틀 9조각 (43 2장: 장식은 384×192 기준 네 모서리 48px 안, 네 변·가운데는 단색) */
+const slices: NineSliceSprite[] = [];
+let sliceUsed = 0;
+/** 틀 그림의 불투명 부분이 (x, y, w, h)에 맞게. 384×192 → 0.25배 (테두리 약 2px, 위아래 모서리 합이 높이 22px 안) */
+function bubbleFrame(tex: Texture, box: ArtBox, x: number, y: number, w: number, h: number, alpha: number): number {
+  const e = (48 * tex.height) / 192, mL = box.x, mR = tex.width - box.x - box.w, mT = box.y, mB = tex.height - box.y - box.h;
+  const k = Math.min(48 / tex.height, h / Math.max(1, 2 * e - mT - mB));
+  let sp = slices[sliceUsed];
+  if (!sp) { sp = new NineSliceSprite({ texture: tex, leftWidth: e, rightWidth: e, topHeight: e, bottomHeight: e }); slices.push(sp); sliceL.addChild(sp); }
+  sliceUsed++;
+  if (sp.texture !== tex) { sp.texture = tex; sp.leftWidth = sp.rightWidth = sp.topHeight = sp.bottomHeight = e; }
+  sp.setSize(w / k + mL + mR, h / k + mT + mB);
+  sp.scale.set(k); sp.position.set(x - mL * k, y - mT * k); sp.alpha = alpha; sp.visible = true;
+  return k;
+}
+/** 꼬리 그림의 불투명 부분만 (윗변이 열린 아래쪽 삼각형) */
+function bubbleTail(kind: BubbleKind): Texture | null {
+  const name = `ui-bubble-tail-${kind}`, tex = artTexture(name), b = artBoxes.get(name);
+  return tex && b ? partTex(name, tex, b.x, b.y, b.w, b.h) : null;
+}
+/** 대사 이펙트 띠 한 프레임 (판 밖으로 안 나가게 줄이고 옮김) */
+function talkFx(pool: SpritePool, name: keyof typeof TALK_FX, age: number, x: number, y: number, w: number, h: number, key: string, alpha = 1): void {
+  // 흔들림은 프레임을 0.12초마다 되풀이 (2프레임 = 0.06초씩), 나머지는 길이 동안 한 번
+  const fx = TALK_FX[name], tex = age >= 0 && age < fx.ms ? stripFrame(`fx-talk-${name}`, fx.fw, name === 'shake' ? (age % 120) / 120 : age / fx.ms) : null;
+  if (!tex) return;
+  const sc = Math.min(1, (L.right - L.left) / w, (L.bottom - L.top) / h), p = fitCenter(x, y, (w * sc) / 2, (h * sc) / 2);
+  pool.put(tex, p.x, p.y, w * sc, h * sc, alpha);
+  recordBound(key, 'fx', 'rect', p.x, p.y, w * sc, h * sc);
+}
 const FX_MS = 400;
 const B2 = {
   floats: [] as Float[], bubbles: [] as Bubble[], fx: [] as Fx[], disp: {} as Record<number, number>, hitFx: {} as Record<number, number>, shake: {} as Record<number, number>,
@@ -558,18 +642,20 @@ const B2 = {
 };
 export function resetBoardFx(): void {
   B2.floats = []; B2.bubbles = []; B2.fx = []; B2.disp = {}; B2.hitFx = {}; B2.shake = {}; B2.lastFlash = {}; B2.lens = null; seenZones.clear();
+  telsSeen = []; telsDone.clear();
 }
 /**
  * 기믹 연출 (37 4장 F-1): 칸 반지름 배 크기 · 그림이 없을 때 빛 색 · 길이(ms).
- * tint = 흰 그림을 이 색으로 칠함, fly = to에게 날아감 (top = 판 위쪽 보스 자리에서), up = 칸 위로 띄움
+ * tint = 흰 그림을 이 색으로 칠함 (사건마다 색이 다르면 그 색), fly = to에게 날아감 (top = 판 위쪽 보스 자리에서), up = 칸 위로 띄움,
+ * wide = 판 가운데 크게 한 번 (all이어도), rot = 돌림 (라디안), art = 그림 이름이 fx-<이름>과 다를 때
  */
-const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?: boolean; fly?: boolean; top?: boolean; up?: number }> = {
+const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?: boolean; fly?: boolean; top?: boolean; up?: number; wide?: boolean; rot?: number; art?: string }> = {
   spawn: { size: 1.7, color: 0xb06bff, ms: 500 },
   poof: { size: 1.6, color: 0xd8d0c0 },
   explode: { size: 2.6, color: 0xff8a3d, ms: 600 },
   slam: { size: 1.9, color: 0xffd166 },
   warn: { size: 0.8, color: 0xff5a3d, ms: 700, up: 0.95 },
-  shockwave: { size: 2.6, color: 0xd9a66b, ms: 600 },
+  shockwave: { size: 2.6, color: 0xd9a66b, ms: 600, wide: true },
   crumble: { size: 1.7, color: 0x9a8f80, ms: 500 },
   'soul-purify': { size: 2.1, color: 0x8fe3e0, ms: 600 },
   splash: { size: 1.9, color: 0x9a7fc4, tint: true },
@@ -593,16 +679,77 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   'swell-pop': { size: 2.2, color: 0x7ee36a, ms: 550 },
   'ink-splat': { size: 1.4, color: 0x3a3550, ms: 600 },
   'coin-flip': { size: 1.2, color: 0xffd166, ms: 650, up: 0.5 },
+  // 묶음 A 이펙트 (44 E): 디버프 걸림 (종류 색) · 외침·울부짖음·함성 (세력 색, 보스 쪽 위에서 아래로 퍼짐) · 등불 흔들기
+  debuff: { size: 1.3, color: 0xe5433d, tint: true },
+  shout: { size: 1, color: 0xf1e4c8, ms: 600, tint: true, wide: true, rot: Math.PI / 2 },
+  lantern: { size: 1, color: 0xffb347, ms: 600, wide: true },
+  // 아직 안 온 그림 (44 E-4~10): 그림이 있을 때만 부름 (메아리 · 받침 울림 · 서리 폭발 · 침묵의 시선 · 침묵 · 떨어지는 돌)
+  echo: { size: 0.8, color: 0xb06bff, ms: 450, fly: true },
+  'tower-ring': { size: 1.8, color: 0xffd166, ms: 500 },
+  'frost-burst': { size: 1.7, color: 0x8fd3ff },
+  gaze: { size: 0.9, color: 0xd04ad8, ms: 400, fly: true, top: true },
+  silence: { size: 1.2, color: 0x9dbde6 },
+  rockfall: { size: 1.6, color: 0xc9a35c },
+  // 장비 특수능력 (36 J): 발동 (묶음 색) · 튀는 빛 (옆 칸으로 날아감) · 마지막 숨 (금빛 날개)
+  proc: { size: 1.5, color: 0xffd166, ms: 500, tint: true },
+  bounce: { size: 0.7, color: 0xffd166, ms: 400, fly: true },
+  endure: { size: 1.9, color: 0xffd166, ms: 700 },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();
-/** 기믹 연출 하나 (엔진 fx 사건 · 쫄 처치 · 새 장판). all = 살아 있는 모두 (진동·땅 울림은 판 가운데 크게 한 번) */
-export function fxGim(name: string, now: number, at: { cell?: number; id?: number; to?: number; all?: boolean }): void {
+/**
+ * 기믹 연출 하나 (엔진 fx 사건 · 쫄 처치 · 새 장판). all = 살아 있는 모두 (wide 연출은 판 가운데 크게 한 번), color = 흰 그림 칠할 색
+ */
+export function fxGim(name: string, now: number, at: { cell?: number; id?: number; to?: number; all?: boolean; color?: number }): void {
   const F = B.F;
   if (!F || !L.ok || S.reducedEffects || B2.fx.length >= 90) return;
-  const dur = FX_LOOK[name]?.ms ?? FX_MS;
-  if (at.all && name !== 'shockwave') { for (const u of F.party) if (u.alive) B2.fx.push({ kind: 'art', name, id: u.id, t0: now, dur }); return; }
-  B2.fx.push({ kind: 'art', name, id: at.id ?? -1, cell: at.cell, to: at.to, t0: now, dur, wide: at.all });
+  // 메아리 (44 E-4): 진동에 옮겨붙은 디버프면 fx-echo (그림이 없으면 옮겨붙음 그대로)
+  if (name === 'fireball-green' && at.to != null && art('fx-echo') && F.party.find(u => u.id === at.to)?.debuffs.some(d => d.end?.p === 'jump' && d.end.on === 'quake')) name = 'echo';
+  const look = FX_LOOK[name], dur = look?.ms ?? FX_MS;
+  if (at.all && !look?.wide) { for (const u of F.party) if (u.alive) B2.fx.push({ kind: 'art', name, id: u.id, t0: now, dur, color: at.color }); return; }
+  B2.fx.push({ kind: 'art', name, id: at.id ?? -1, cell: at.cell, to: at.to, t0: now, dur, wide: at.all || look?.wide, color: at.color });
+}
+/** 디버프가 걸림 (44 E-1 fx-debuff, 종류 색으로 칠함: 질병 황토 · 독 초록 · 저주 보라 · 마법 파랑). 딜 0 (침묵)은 fx-silence가 있으면 그것 (E-8) */
+export function fxDebuff(u: Unit, dtype: string, now: number): void {
+  const d = u.debuffs.reduce<Unit['debuffs'][number] | undefined>((a, x) => (!a || x.id > a.id ? x : a), undefined);
+  const silence = !!d?.noDps && d.untilBossLoss == null && !!art('fx-silence');
+  fxGim(silence ? 'silence' : 'debuff', now, { id: u.id, color: hex(DEB[dtype] || '#E5433D') });
+}
+/** 특수능력 묶음 색 (42 2장, 캐릭터 화면 char31.css와 같음) */
+const SPEC_TINT: Record<SpecGroup | 'named', number> = {
+  heal: 0x8bea9c, proc: 0xffb86b, guard: 0x9cc8ff, mana: 0x7fb2ff, dispel: 0xc9a2ff, cd: 0xffe07a, ally: 0xff9db0, gimmick: 0x8fe3d9, hero: 0xf2c46b, named: 0xff8a3d,
+};
+/** 특수능력 이름 → 열쇠 (spec 사건은 이름만 실어 옴) */
+let specKeys: Map<string, string> | null = null;
+/** 장비 특수능력이 켜짐 (42 · 36 J): 칸 위 금색 이름 + fx-proc (묶음 색). 마지막 숨은 fx-endure (금빛 날개) */
+export function fxSpec(u: Unit, name: string, now: number): void {
+  fxAbility(u, name, now);
+  if (!specKeys) { specKeys = new Map(Object.values(SPECS).map(d => [d.name, d.key] as const)); for (const n of NAMED) specKeys.set(n.name, n.key); }
+  const key = specKeys.get(name) ?? '';
+  if (key === 'lastBreath') fxGim('endure', now, { id: u.id });
+  else fxGim('proc', now, { id: u.id, color: SPEC_TINT[SPECS[key]?.group ?? 'named'] });
+}
+/** 지난 프레임 보스 예고 (impact 사건에는 어느 기술인지 없어서 사라진 예고로 찾음) */
+let telsSeen: Telegraph[] = [];
+const telsDone = new Set<number>();
+/**
+ * 보스·정예 기술이 떨어짐 (44 E): 외침·울부짖음·함성 = fx-shout (세력 색), 등불 흔들기 = fx-lantern,
+ * 그림이 있을 때만 서리 폭발 = fx-frost-burst (모두의 칸), 침묵의 시선 = fx-gaze (걸린 사람에게 날아감), 받침 울림 = fx-tower-ring
+ */
+export function fxImpact(kind: TelKind | undefined, now: number): void {
+  const F = B.F;
+  if (!F || S.reducedEffects) return;
+  for (const tl of telsSeen) {
+    if (tl.kind !== kind || telsDone.has(tl.id) || tl.impact > F.t + 1e-6) continue;
+    telsDone.add(tl.id);
+    const sk = tl.skill, nm = sk.name ?? '';
+    if (tl.ring || sk.pads) { if (art('fx-tower-ring')) for (const i of tl.cells) fxGim('tower-ring', now, { cell: i }); }
+    else if (kind !== 'aoe') continue;
+    else if (sk.key === 'shout' || sk.key === 'howl' || /외침|울부짖|함성/.test(nm)) fxGim('shout', now, { all: true, color: boardFaction ? hex(FACTIONS[boardFaction].color) : undefined });
+    else if (nm.includes('등불')) fxGim('lantern', now, { all: true });
+    else if (nm.includes('서리 폭발') && art('fx-frost-burst')) fxGim('frost-burst', now, { all: true });
+    else if (sk.key === 'gaze' && art('fx-gaze')) for (const u of F.party) if (u.alive && u.debuffs.some(d => d.name === nm)) fxGim('gaze', now, { id: u.id });
+  }
 }
 const rnd = () => Math.random();
 export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: number): void {
@@ -653,10 +800,11 @@ export function fxDeath(u: Unit, now: number): void {
   if (S.reducedEffects) { addBubble(u.id, '쓰러짐', now); return; }
   const p = unitPos(u); B2.fx.push({ kind: 'death', id: u.id, t0: now, color: hex(ROLE[u.role].color), x: p.x, y: p.y });
 }
-/** 말풍선. life = 보이는 시간 (ms, 긴 대사는 조금 더 오래, battle/talk.ts) · kind = 테두리 종류 */
-export function addBubble(id: number, text: string, now: number, life = 1700, kind: BubbleKind = 'talk'): void {
+/** 말풍선. life = 보이는 시간 (ms, 긴 대사는 조금 더 오래, battle/talk.ts) · kind = 테두리 종류 · look = 감정 아이콘 · 승리 이펙트 (43 4장) */
+export function addBubble(id: number, text: string, now: number, life = 1700, kind: BubbleKind = 'talk', look: { emote?: string | null; cheer?: boolean } = {}): void {
   B2.bubbles = B2.bubbles.filter(b => b.id !== id);
-  B2.bubbles.push({ id, text, t0: now, life, kind });
+  B2.bubbles.push({ id, text, t0: now, life, kind, emote: look.emote, cheer: look.cheer });
+  if (look.emote) artTexture(`emote-${look.emote}`); // 감정 아이콘을 바로 읽기 시작
   if (B2.bubbles.length > 3) B2.bubbles.shift();
 }
 /** 20인 탭 확대 미리보기 0.3초 (02 3-1) */
@@ -692,7 +840,7 @@ function artFx(F: NonNullable<typeof B.F>, e: Fx, now: number, r: number, s: num
   const k = Math.min(1, (now - e.t0) / (e.dur ?? FX_MS)), key = `fx-${e.name}-${e.t0}-${e.id}-${e.cell ?? ''}`;
   let p = e.wide ? { x: (L.left + L.right) / 2, y: (L.top + L.bottom) / 2 } : e.cell != null ? center(e.cell) : fxPos(F, e.id);
   if (!p) return;
-  let rot = 0;
+  let rot = look.rot ?? 0;
   if (look.fly) {
     const from = look.top ? { x: p.x, y: L.top } : p, to = look.top ? p : e.to != null ? fxPos(F, e.to) : null;
     if (!to) return;
@@ -706,17 +854,17 @@ function artFx(F: NonNullable<typeof B.F>, e: Fx, now: number, r: number, s: num
   if (look.up) p = { x: p.x, y: p.y - r * look.up * (0.7 + 0.3 * k) };
   const size = e.wide ? Math.min(L.right - L.left, L.bottom - L.top) * (0.45 + 0.55 * k) : r * look.size * (look.fly ? 1 : 0.7 + 0.4 * Math.sin((k * Math.PI) / 2));
   const alpha = look.fly ? (k < 0.85 ? 1 : (1 - k) / 0.15) : 1 - k * k;
-  const tex = artTexture(`fx-${e.name}`);
-  if (tex) { spriteFx(tex, key, p.x, p.y, size, alpha, look.tint ? look.color : 0xffffff, rot); return; }
+  const tex = artTexture(look.art ?? `fx-${e.name}`), color = e.color ?? look.color;
+  if (tex) { spriteFx(tex, key, p.x, p.y, size, alpha, look.tint ? color : 0xffffff, rot); return; }
   if (look.fly) {
     const half = safeRadius(p.x, p.y, r * 0.22, 'circle');
-    fxG.circle(p.x, p.y, half).fill({ color: look.color, alpha });
+    fxG.circle(p.x, p.y, half).fill({ color, alpha });
     recordBound(key, 'fx', 'circle', p.x, p.y, half * 2, half * 2);
     return;
   }
-  glow(p.x, p.y, size, look.color, 0.45 * alpha, `${key}-glow`);
+  glow(p.x, p.y, size, color, 0.45 * alpha, `${key}-glow`);
   const w = Math.max(2, s * 0.07) * (1 - k);
-  if (w > 0.2) fxG.circle(p.x, p.y, ringRadius(key, 'circle', p.x, p.y, size * 0.42, w, 'fx')).stroke({ width: w, color: look.color, alpha });
+  if (w > 0.2) fxG.circle(p.x, p.y, ringRadius(key, 'circle', p.x, p.y, size * 0.42, w, 'fx')).stroke({ width: w, color, alpha });
 }
 
 // ---------- 한 프레임 ----------
@@ -730,6 +878,8 @@ export function render(now: number): void {
   const rdt = Math.min(0.1, Math.max(0, (now - (B2.lastRender || now)) / 1000)); B2.lastRender = now;
   for (const g of [cellsG, unitsG, fxG, overG, topG]) g.clear();
   labels.begin(); tops.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); stripUsed = 0;
+  bubbleBack.begin(); bubbleFront.begin(); sliceUsed = 0;
+  telsSeen = F.tels.slice(); // 다음 impact 사건이 어느 기술인지 (fxImpact)
   const fs = (k: number, min: number) => Math.max(min, s * k);
 
   // 영역 (장판 예고·활성 장판)
@@ -738,8 +888,9 @@ export function render(now: number): void {
   for (const tl of F.tels) if (tl.kind === 'zone') tl.cells.forEach(i => telSet.add(i));
   const safeSet = new Set<number>(); for (const tl of F.tels) tl.safe?.forEach(i => safeSet.add(i)); // 피난처 (35 3-E)
   const padSet = new Set<number>(); for (const tl of F.tels) if (tl.skill.pads || tl.ring) tl.cells.forEach(i => padSet.add(i)); // 받침 발판 (35 4-5) · 끌려온 칸 받침 (39 3-1)
-  // 새로 깔린 장판: 칸마다 한 번 터지는 연출 (쫄 오라처럼 끝나지 않는 장판은 빼고)
-  for (const z of F.zones) if (!seenZones.has(z.id)) { seenZones.add(z.id); if (isFinite(z.end)) z.cells.forEach(i => fxGim('zone-burst', now, { cell: i })); }
+  // 새로 깔린 장판: 칸마다 한 번 터지는 연출 (쫄 오라처럼 끝나지 않는 장판은 빼고). 해바라기 언덕은 떨어지는 돌 (44 E-10, 그림이 있을 때)
+  const burst = boardFaction === 'hill' && art('fx-rockfall') ? 'rockfall' : 'zone-burst';
+  for (const z of F.zones) if (!seenZones.has(z.id)) { seenZones.add(z.id); if (isFinite(z.end)) z.cells.forEach(i => fxGim(burst, now, { cell: i })); }
   // 칸 무늬 그림 (37 4장 B). 없으면 아래 벡터 그림
   const zoneTex = artTexture(zoneArtName(boardFaction)), warnTex = artTexture('fx-cell-zone-warn'), holeTex = artTexture(holeArtName(boardFaction));
   const safeTex = artTexture('fx-cell-safe'), padTex = artTexture('fx-cell-tower'), cellArt = r * 1.96;
@@ -865,6 +1016,11 @@ export function render(now: number): void {
     // 큰 피격: 깜빡임이 새로 켜진 순간 = 날카로운 자국 (16 4-6)
     if (!S.reducedEffects && u.flash > (B2.lastFlash[u.id] ?? 0) + 0.05) B2.fx.push({ kind: 'hit', id: u.id, t0: now, seeds: [rnd()] });
     B2.lastFlash[u.id] = u.flash;
+    // 실수 신호 땀방울 (43 4장 C fx-talk-sweat): 칸 흔들림 0.6초 동안 칸 위쪽에 3프레임
+    if (!S.reducedEffects && F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) {
+      const st = stripFrame('fx-talk-sweat', TALK_FX.sweat.fw, 1 - (u.mistakeUntil - F.t) / 0.6);
+      if (st) spriteFx(st, `sweat${u.id}`, x, y - r * 0.45, r * 1.5, 1);
+    }
     // 테두리
     if (u.moving) dashPoly(unitsG, hexPts(x, y, r), 4, 4, Math.max(2.5, s * 0.07), 0xd8d3c0);
     else {
@@ -1261,17 +1417,20 @@ export function render(now: number): void {
     const label = it && it.key ? SKILLS[slotKey(F, it.key)].name : '비어 있음';
     pill(topG, tops, 'swipe', ex, ey - s * 0.45, label, it && it.key ? C.ink : 0x5a5b70, C.dark, fs(0.28, 12));
   }
-  // 말풍선 (동시에 최대 3개, 04 10장)
+  // 말풍선 (동시에 최대 3개, 04 10장). 그림 (43 5장): 틀 9조각 ui-bubble-<종류> · 꼬리 ui-bubble-tail-<종류> · 왼쪽 감정 아이콘 · 이펙트 띠.
+  // 그림이 없으면 앱이 그린 둥근 네모 + 꼬리
   B2.bubbles = B2.bubbles.filter(b => now - b.t0 < b.life);
   for (const b of B2.bubbles) {
     const u = F.party.find(x => x.id === b.id); if (!u) continue;
     const p = unitPos(u);
-    const text = fitPartyName(b.text, Math.max(1, L.right - L.left - 16), value => measure(value, 12, FONT, '500'));
+    // 감정 아이콘 자리는 그림 파일이 있으면 처음부터 잡아 둠 (읽는 동안 너비가 바뀌지 않게)
+    const emote = b.emote ? `emote-${b.emote}` : '', iw = emote && art(emote) ? EMOTE_W : 0;
+    const text = fitPartyName(b.text, Math.max(1, L.right - L.left - 16 - iw), value => measure(value, 12, FONT, '500'));
     const age = now - b.t0, st = BUBBLE[b.kind];
     const a = S.reducedEffects ? 1 : Math.max(0, Math.min(1, (b.life - age) / 300));
     const label = tops.put(`bb${b.id}`, text, { size: 12, fill: C.dark, weight: '500' }, 0, 0, a);
     const textBounds = label.getBounds();
-    const w = Math.max(measure(text, 12, FONT, '500'), label.width) + 14, h = Math.max(22, label.height + 3);
+    const w = Math.max(measure(text, 12, FONT, '500'), label.width) + 14 + iw, h = Math.max(22, label.height + 3);
     let by = p.y - r - h - 6;
     if (by < L.top + 1) by = p.y + r + 6;
     // 몸체뿐 아니라 꼬리·stroke와 위기 흔들림의 전체 이동 폭을 먼저 확보한다.
@@ -1283,21 +1442,43 @@ export function render(now: number): void {
     const shake = shakeRange ? Math.sin(age / 25) * shakeRange : 0;
     const bx = bp.x - w / 2 + shake;
     by = bp.y - h / 2;
-    topG.roundRect(bx, by, w, h, 8).fill({ color: st.fill, alpha: a * st.fillA }).stroke({ width: st.lw, color: st.line, alpha: a });
+    const frame = artTexture(`ui-bubble-${b.kind}`), box = artBoxes.get(`ui-bubble-${b.kind}`);
+    const k = frame && box ? bubbleFrame(frame, box, bx, by, w, h, a) : 0;
+    if (!k) topG.roundRect(bx, by, w, h, 8).fill({ color: st.fill, alpha: a * st.fillA }).stroke({ width: st.lw, color: st.line, alpha: a });
     // 말한 사람 칸 쪽 꼬리. strokePad는 V 꼭짓점의 miter와 끝점까지 포함한다.
-    const below = bp.y >= p.y;
-    const tx = Math.max(bx + 9, Math.min(bx + w - 9, p.x)), ty = below ? by : by + h, td = below ? -tail : tail;
-    topG.poly([tx - 4.5, ty, tx + 4.5, ty, tx, ty + td]).fill({ color: st.fill, alpha: a * st.fillA });
-    topG.moveTo(tx - 4.5, ty).lineTo(tx, ty + td).lineTo(tx + 4.5, ty).stroke({ width: st.lw, color: st.line, alpha: a });
-    label.position.set(bp.x + shake - (textBounds.minX + textBounds.maxX) / 2, bp.y + 0.5 - (textBounds.minY + textBounds.maxY) / 2);
-    recordBound(`bubble-text${b.id}`, 'bubble', 'text', bp.x + shake, bp.y + 0.5, textBounds.maxX - textBounds.minX, textBounds.maxY - textBounds.minY);
+    const below = bp.y >= p.y, tt = k ? bubbleTail(b.kind) : null;
+    const tx = Math.max(bx + (tt ? 11 : 9), Math.min(bx + w - (tt ? 11 : 9), p.x)), ty = below ? by : by + h, td = below ? -tail : tail;
+    if (tt) {
+      // 꼬리 그림: 너비 10px, 열린 윗변을 틀 테두리(약 2px)에 겹쳐 붙임 → 틀 밖으로는 tail 안쪽만. 칸 아래에 뜨면 위아래 뒤집음
+      const lip = Math.max(1.5, 9 * k), th = Math.min((10 * tt.height) / tt.width, tail + lip), tw = (th * tt.width) / tt.height;
+      bubbleFront.put(tt, tx, below ? ty + lip - th / 2 : ty - lip + th / 2, tw, below ? -th : th, a);
+    } else {
+      topG.poly([tx - 4.5, ty, tx + 4.5, ty, tx, ty + td]).fill({ color: st.fill, alpha: a * st.fillA });
+      topG.moveTo(tx - 4.5, ty).lineTo(tx, ty + td).lineTo(tx + 4.5, ty).stroke({ width: st.lw, color: st.line, alpha: a });
+    }
+    // 감정 아이콘 (43 4장 B): 말풍선 왼쪽 안 16px, 글자는 그만큼 오른쪽으로
+    const et = iw ? artTexture(emote) : null;
+    if (et) bubbleFront.put(et, bx + 5 + iw / 2, bp.y, iw, iw, a);
+    label.position.set(bp.x + shake + iw / 2 - (textBounds.minX + textBounds.maxX) / 2, bp.y + 0.5 - (textBounds.minY + textBounds.maxY) / 2);
+    recordBound(`bubble-text${b.id}`, 'bubble', 'text', bp.x + shake + iw / 2, bp.y + 0.5, textBounds.maxX - textBounds.minX, textBounds.maxY - textBounds.minY);
     recordBound(`bubble${b.id}`, 'bubble', 'rect', bp.x + shake, bp.y + td / 2, w + 2 * strokePad, h + tail + 2 * strokePad);
     transientOccupied.push(bp);
+    // 이펙트 띠 (43 4장 C, 효과 줄이기면 안 씀): 뜰 때 퐁 (가운데, 글자 아래) · 위기 둘레 흔들림 (가운데 빈 곳 = 말풍선) · 승리 한마디 꽃가루 (틀 뒤)
+    if (!S.reducedEffects) {
+      talkFx(bubbleFront, 'pop', age, bp.x + shake, bp.y, h * 2, h * 2, `bubble-pop${b.id}`, a);
+      const sk = b.kind === 'alert' ? artTexture('fx-talk-shake') : null;
+      if (sk) {
+        const fw = sk.height * TALK_FX.shake.fw, hole = artBoxes.get('fx-talk-shake') ?? { w: fw * 0.6, h: sk.height * 0.5 };
+        talkFx(bubbleFront, 'shake', age, bp.x + shake, bp.y, (fw * (w + 4)) / hole.w, (sk.height * (h + 4)) / hole.h, `bubble-shake${b.id}`, a);
+      }
+      if (b.cheer) talkFx(bubbleBack, 'cheer', age, bp.x, bp.y - h * 0.3, h * 3, h * 3, `bubble-cheer${b.id}`, a);
+    }
   }
 
   for (let i = glowUsed; i < glows.length; i++) glows[i].visible = false;
   for (let i = hexFramesUsed; i < hexFrames.length; i++) hexFrames[i].visible = false;
-  labels.end(); tops.end(); decals.end(); fxArt.end();
+  for (let i = sliceUsed; i < slices.length; i++) slices[i].visible = false;
+  labels.end(); tops.end(); decals.end(); fxArt.end(); bubbleBack.end(); bubbleFront.end();
   for (let i = stripUsed; i < strips.length; i++) strips[i].visible = false;
   lensL.visible = false;
   app.renderer.render(app.stage);

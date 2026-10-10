@@ -12,11 +12,13 @@ import { meterHtml } from '../game/meter';
 import { equip, G } from '../game/state';
 import { isBetter, scoreOf, specName } from '../game/charinfo';
 import { specKeysOf } from '../data/equipment';
+import { codexGroupOf, SPEC_GROUPS } from '../data/specials';
+import { art } from '../art';
 import { TUT } from '../game/tutorial';
 import { AFFIXES } from '../data/affixes';
 import type { BattleResult, Settlement } from '../game/settle';
 import { esc, fmt, mmss, screen, topBar } from './kit';
-import { currencyIcon, gameIcon, placeArt, uiIcon, type CurrencyIconKey } from './art';
+import { currencyIcon, fxArt, gameIcon, gearIcon, placeArt, trinketArt, uiIcon, type CurrencyIconKey } from './art';
 import { depart } from './party';
 
 const st = screen('s-settle', '전투 결과', { enter() { render(); } });
@@ -122,9 +124,16 @@ function itemsHtml(x: Settlement): string {
     if (h.includes('data-eqnow')) first = false;
     return h;
   }).join('');
-  // 처음 얻은 특수능력은 장비가 여럿이어도 띠 하나로 (42 1-6)
+  // 처음 얻은 특수능력은 장비가 여럿이어도 띠 하나로 (42 1-6): 묶음 표식 + 이름, 띠 머리에서 fx-spec-new 한 번 (36 4-6, 효과 줄이기면 없음)
   const fresh = x.newSpecs ?? [];
-  return rows + (fresh.length ? `<p class="r-newsp"><b>새 특수능력!</b> ${fresh.map(k => esc(specName(k))).join(' · ')} <span>도감에 적었습니다</span></p>` : '');
+  const pop = G.save.settings.reducedEffects ? '' : fxArt('fx-spec-new', 'r-spnew');
+  return rows + (fresh.length ? `<p class="r-newsp"><b>새 특수능력!${pop}</b> ${fresh.map(k => specMark(k) + esc(specName(k))).join(' · ')} <span>도감에 적었습니다</span></p>` : '');
+}
+
+/** 특수능력 묶음 표식 (36 I spec-*, 이름 있는 장신구 = 그 장신구 그림). 그림이 없으면 이름만 */
+function specMark(k: string): string {
+  const g = codexGroupOf(k), u = g === 'named' ? trinketArt(k) : g ? art(SPEC_GROUPS[g].icon) : '';
+  return u ? `<img class="r-spm" src="${u}" alt="" decoding="async" draggable="false">` : '';
 }
 
 /** 장비 한 줄: 부위 그림(등급 색 테두리) · 이름 · 부위·종류·등급·점수 (지금 장비보다 ▲▼) · 장착 버튼 (지금보다 좋을 때만) */
@@ -141,8 +150,11 @@ function itemRow(id: number, first: boolean): string {
   // 특수능력 이름 (42)
   const sp = specKeysOf(it);
   const spTxt = sp.length ? `<small class="r-sp">${sp.map(k => esc(specName(k))).join(' · ')}</small>` : '';
+  // 영웅 · 전설은 장비 칸 뒤로 등급 색 빛기둥 (36 4-6 fx-loot-beam, 흰 그림을 등급 색으로 칠함). 효과 줄이기면 움직이지 않음
+  const bu = it.grade === '영웅' || it.grade === '전설' ? art('fx-loot-beam') : '';
+  const beam = bu ? `<span class="r-beam${G.save.settings.reducedEffects ? ' calm' : ''}" style="--beam:url('${bu}')" aria-hidden="true"></span>` : '';
   return `<div class="r-item" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
-      <span class="r-ic">${gameIcon(it.slot, uiIcon(it.slot), 'item')}</span>
+      ${beam}<span class="r-ic">${gearIcon(it)}</span>
       <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><small>${slotName(it.slot)} · ${esc(kindOf(it).name)} · ${it.grade} · 점수 ${sc}${delta}</small>${spTxt}</span>
       ${act}
     </div>`;

@@ -9,6 +9,7 @@ import { canDispel, HEROES } from '../data/heroes';
 import { SKILLS } from '../data/skills';
 import { create, type Fight, type Role } from '../engine';
 import { bossSvg } from './art';
+import { bossSkillArt, gimArt, mobSkillArt, skillArtImg } from './skillArt';
 import { BOSSES, type DebuffDef, type SkillDef, type SkillEffect } from '../data/bosses';
 import { bossNums } from './guideNums';
 import { ARROW, heroSkill, ICON_COLOR, iga, josa, mmss, READ_ORDER, S, secT } from './core';
@@ -49,7 +50,8 @@ const ENRAGE_HOW = '버티는 기술이 아님. 그 전에 잡으려면 딜러�
 
 interface GuideCtx { enc: Encounter; diff: DiffName; m: number; n: (x: number) => number; mythic: boolean; sk: Record<string, ProbeSkill>; hp: Probe['hp']; B: Record<string, Num>; hpMult: number }
 export interface GuidePhase { id: string; name: string; at: string; text: string; enr?: boolean }
-export interface GuideSkill { ic: string; name: string; enr?: boolean; when?: string; what: string; how?: string; every: string; tip: (F?: Fight | null) => string[] }
+/** art = 기술 아이콘 그림 이름 (battle/skillArt.ts, 없으면 글자 아이콘) */
+export interface GuideSkill { ic: string; name: string; art?: string; enr?: boolean; when?: string; what: string; how?: string; every: string; tip: (F?: Fight | null) => string[] }
 interface GuideBody { nums: Record<string, Num>; cur: (F: Fight) => string; phases: GuidePhase[]; skills: GuideSkill[] }
 
 const GUIDE: Partial<Record<ScriptKey, (c: GuideCtx) => GuideBody>> = {
@@ -88,14 +90,14 @@ const GUIDE: Partial<Record<ScriptKey, (c: GuideCtx) => GuideBody>> = {
       const who = a.to === 'tank' ? '탱커' : a.to === 'other' ? '탱커 아닌 1명' : '파티 전원';
       const amt = a.jitter ? `${n(a.dmg * (1 - a.jitter))}~${n(a.dmg * (1 + a.jitter))}` : n(a.dmg);
       const each = m.count > 1 ? ' (한 마리당)' : '';
-      skills.push({ ic: a.icon || m.name.slice(0, 2), name: a.name || `${m.name} 공격`,
+      skills.push({ ic: a.icon || m.name.slice(0, 2), name: a.name || `${m.name} 공격`, art: mobSkillArt(m.name, a.key),
         what: `${who}에게 <b>${amt}</b> 피해${each}${a.cast ? ` · 예고 ${secT(a.cast)}` : ''}. ${m.name}${josa(m.name, '이', '가')} 쓰러지면 멈춤`,
         every: `${secT(a.period)}마다`, tip: () => [`${who}에게 ${m.count > 1 ? '한 마리당 ' : ''}${amt} 피해를 줍니다.`] });
     }
     // 쓰러질 때 (46 5장 먼지 유령): 쓰러질 때마다 디버프
     for (const m of mobs) if (m.down) {
       const what = `${m.name}${josa(m.name, '이', '가')} 쓰러질 때마다 ${m.down.p === 'burst' ? '살아 있는 모두' : '때리던 사람'}에게 ${debuffText(m.down.debuff, n)}`;
-      skills.push({ ic: m.name.slice(0, 2), name: `${m.name} 쓰러짐`, what, how: '여럿이 한꺼번에 쓰러지면 겹침. 거의 다 잡힐 때 지속 힐을 미리', every: '쓰러질 때마다', tip: () => [what.replace(/<\/?b>/g, '')] });
+      skills.push({ ic: m.name.slice(0, 2), name: `${m.name} 쓰러짐`, art: m.down.p === 'burst' ? gimArt('burst') : '', what, how: '여럿이 한꺼번에 쓰러지면 겹침. 거의 다 잡힐 때 지속 힐을 미리', every: '쓰러질 때마다', tip: () => [what.replace(/<\/?b>/g, '')] });
     }
     return {
       nums: {},
@@ -258,6 +260,8 @@ for (const def of Object.values(BOSSES)) for (const d of def.skills) {
   const e = d.effect, type = e?.p === 'debuff' || e?.p === 'rot' ? e.debuff.type : undefined;
   ICON_COLOR[d.icon] = (type && TYPE_COLOR[type]) || KIND_COLOR[d.kind ?? 'instant'];
 }
+/** 기술 아이콘 테두리 · 바탕 색: 정한 색 → 기술 종류 색 (그림 아이콘은 테두리만 칠함, 37 1장 · 44 4장 D) */
+export const iconColor = (ic: string, kind?: string): string => ICON_COLOR[ic] || KIND_COLOR[kind ?? ''] || '#BBB';
 const pctT = (x: number) => `${Math.round(x * 100)}%`;
 const ROW_NAME = { front: '앞줄', mid: '가운데 줄', back: '뒷줄' } as const;
 /** 디버프 한 줄: 「부패」 질병 20초 · 최대 체력 −10% */
@@ -340,7 +344,7 @@ function dataGuide(c: GuideCtx): GuideBody {
   const skills: GuideSkill[] = shown.map(d => {
     const ps = sk[d.key], [what, how0] = effectText(d, d.effect, c, ps), wt = whenText(d);
     const every = `${wt ? `${wt} · ` : ''}${secT(d.period)}마다`;
-    return { ic: d.icon ?? d.name!.slice(0, 2), name: d.name!, when: `${wt ? `${wt}부터 · ` : `${secT((d.first ?? 0) + d.cast)}에 첫 타, 그 뒤 `}${secT(d.period)}마다${d.cast ? ` · 예고 ${secT(d.cast)}` : ''}${d.cut ? ' · 끊기 ✋' : ''}`,
+    return { ic: d.icon ?? d.name!.slice(0, 2), name: d.name!, art: bossSkillArt(c.enc, d), when: `${wt ? `${wt}부터 · ` : `${secT((d.first ?? 0) + d.cast)}에 첫 타, 그 뒤 `}${secT(d.period)}마다${d.cast ? ` · 예고 ${secT(d.cast)}` : ''}${d.cut ? ' · 끊기 ✋' : ''}`,
       what, how: d.how ?? (how0 || undefined), every, tip: () => [what.replace(/<\/?b>/g, '')] };
   });
   skills.push({ ic: '광폭', name: B.enrName, enr: true, when: `광폭화 ${mmss(c.enc.enrage)}부터 ${B.enrPeriod}초마다 · 예고 ${secT(B.enrCast)}`,
@@ -375,7 +379,10 @@ export function guideHtml(g: GuideModel, F: Fight | null): string {
   const phases = `<h4 class="gd-h">진행</h4><ol class="gd-phases">${g.phases.map((p, i) => `<li class="${p.id === cur ? 'cur' : ''}${p.enr ? ' enr' : ''}"><i>${i + 1}</i><div><b>${p.name}</b><small>${p.at}</small><p>${p.text}</p></div>${p.id === cur ? now : ''}</li>`).join('')}</ol>`;
   const skills = `<h4 class="gd-h">보스 기술 <small>전투 중 위쪽 예고 칸을 누르면 짧은 설명</small></h4><div class="gd-skills">${g.skills.map(s => {
     const live = F && skillLive(F, s.ic);
-    return `<article class="gs${s.enr ? ' enr' : ''}${live ? ' live' : ''}" data-ic="${s.ic}"><header><span class="ic" style="background:${ICON_COLOR[s.ic] || '#BBB'}">${s.ic}</span><b>${s.name}</b>${live ? now : ''}</header>
+    // 기술 그림이 있으면 그림 + 색 테두리, 없으면 색 바탕 글자 아이콘 (37 1장)
+    const img = s.art ? skillArtImg(s.art) : '';
+    const ic = img ? `<span class="ic art" style="border-color:${iconColor(s.ic)}">${img}</span>` : `<span class="ic" style="background:${iconColor(s.ic)}">${s.ic}</span>`;
+    return `<article class="gs${s.enr ? ' enr' : ''}${live ? ' live' : ''}" data-ic="${s.ic}"><header>${ic}<b>${s.name}</b>${live ? now : ''}</header>
       <p class="gs-line">${s.tip(F)[0]}<small>${s.every}</small></p></article>`;
   }).join('')}</div>`;
   return `<div class="gd">${head}${phases}${skills}</div>`;

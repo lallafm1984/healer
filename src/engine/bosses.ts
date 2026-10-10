@@ -188,18 +188,20 @@ export interface QueueEntry {
   impact: number;
   start?: number;
   casting: boolean;
+  /** 화면용: 이 기술 (아이콘 그림 찾기, battle/skillArt.ts). 엔진은 안 읽음 */
+  skill?: BossSkill;
 }
 
 /** 화면 상단 보스 기술 예고: 다음 3개 */
 export function queue(f: Fight): QueueEntry[] {
   const list: QueueEntry[] = [];
-  for (const t of f.tels) list.push({ name: t.skill.name, icon: t.skill.icon, kind: t.kind, impact: t.impact, start: t.start, casting: true });
+  for (const t of f.tels) list.push({ name: t.skill.name, icon: t.skill.icon, kind: t.kind, impact: t.impact, start: t.start, casting: true, skill: t.skill });
   for (const s of f.skills) {
     if (s.hidden || s.next === Infinity) continue;
     let n = s.next;
     for (let i = 0; i < 3; i++) {
       const imp = n + s.cast;
-      if (imp - f.t < 120 && s.active(f)) list.push({ name: s.name, icon: s.icon, kind: s.kind, impact: imp, casting: false });
+      if (imp - f.t < 120 && s.active(f)) list.push({ name: s.name, icon: s.icon, kind: s.kind, impact: imp, casting: false, skill: s });
       n += s.period;
     }
   }

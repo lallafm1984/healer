@@ -16,7 +16,7 @@ import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, se
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON, ratsArt } from './art';
-import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxDeath, fxDispel, fxGim, fxHeal, fxHurt, fxRevive, fxShake, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard, setBoardFaction } from './board';
+import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxImpact, fxRevive, fxShake, fxSpec, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard, setBoardFaction } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
@@ -514,8 +514,10 @@ function handleEvents(now: number): void {
       case 'debuff': {
         const nm = ({ '질병': 'cough', '독': 'bubble', '마법': 'zap' } as Record<string, string>)[ev.dtype];
         if (nm && now - (ui.debSnd[nm] || 0) > 400) { ui.debSnd[nm] = now; Snd.play(nm); }
+        if (u) fxDebuff(u, ev.dtype, now); // 디버프 걸림 그림 (44 E-1, 종류 색)
         break;
       }
+      case 'impact': fxImpact(ev.kind, now); break; // 외침·등불 흔들기 … 떨어짐 (44 E-2 · 3)
       case 'hit': dmgNum(F.party.find(x => x.id === ev.uid), ev.amt, now); break;
       case 'death':
         if (u) fxDeath(u, now);
@@ -533,7 +535,7 @@ function handleEvents(now: number): void {
         break;
       }
       case 'ability': if (u) fxAbility(u, ev.name, now); break;
-      case 'spec': if (u) fxAbility(u, ev.name, now); break; // 장비 특수능력이 켜짐 (42): 칸 위 금색 이름
+      case 'spec': if (u) fxSpec(u, ev.name, now); break; // 장비 특수능력이 켜짐 (42): 칸 위 금색 이름 + fx-proc · 마지막 숨 fx-endure (36 J)
       case 'aheal': if (u) fxAllyHeal(u, ev.amt, now); break;
       case 'hurt': if (u) fxHurt(u, ev.amt, now); break; // 뒤집힌 축복
       case 'bossHeal': bossHealNum(ev.amt); bossFx('mend'); break; // 치유하는 쫄
@@ -542,7 +544,7 @@ function handleEvents(now: number): void {
       case 'shake': if (u) { fxShake(u, now); vibe([20, 40, 20]); } break;
     }
   }
-  for (const b of talk.frame(F, now, { pulling: ui.pullLeft > 0, paused: B.paused })) addBubble(b.id, b.text, now, b.life, b.kind);
+  for (const b of talk.frame(F, now, { pulling: ui.pullLeft > 0, paused: B.paused })) addBubble(b.id, b.text, now, b.life, b.kind, b); // b.emote · b.cheer (43 4장)
   if (critSnd) Snd.play('crit');
   else if (healSnd && now - ui.lastHealSnd > 90) { Snd.play('heal'); ui.lastHealSnd = now; }
   F.events.length = 0;

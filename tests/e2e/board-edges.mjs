@@ -322,7 +322,8 @@ async function animatedEdges(page, ok, label, shots, shotKey) {
       await page.clock.runFor(delta); elapsed += delta;
       const g = await geometry(page), bounds = g.decorations;
       checkDecorations(g, ok, `${label} ${deathSide} 사망 ${elapsed}ms`);
-      const glow = bounds.filter(b => b.kind === 'glow' && b.key.startsWith(`heal-glow${ids.healed}-`));
+      // 치유 빛: 벡터 발광, 또는 그림 fx-heal (37 4장 F-2)이 있으면 그림 한 장
+      const glow = bounds.filter(b => (b.kind === 'glow' && b.key.startsWith(`heal-glow${ids.healed}-`)) || (b.kind === 'fx' && b.key.startsWith(`heal${ids.healed}-`)));
       const death = bounds.filter(b => b.kind === 'fx' && b.key.startsWith(`death${ids.dead}-`));
       const shield = bounds.filter(b => b.key === `shield-inner${ids.healed}` || b.key === `shield-outer${ids.healed}`);
       ok(glow.length > 0 && death.length > 0 && shield.length === 2 && glow.every(b => Math.abs(b.w - b.h) < EPS),

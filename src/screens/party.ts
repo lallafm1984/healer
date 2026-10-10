@@ -26,7 +26,7 @@ import { settle } from '../game/settle';
 import { commit, firstDungeonNow, G, healerLevel, heroNow, itemsNow, talentsNow, toggleItem } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { memDetailHtml, memRowHtml, ROLE_ICON } from './members';
-import { battle, esc, fmt, go, itemChipsHtml, ROLE, screen } from './kit';
+import { battle, esc, fmt, go, itemChipsHtml, ROLE, screen, useIcon } from './kit';
 import { classEmblem, currencyIcon, LOCK, uiIcon } from './art';
 import { afxRows, afxTags, ARROW, BOOK, diffNote, flowHead, guides, KEY, timeline, warnings } from './brief';
 import { markHtml } from './content';
@@ -134,7 +134,7 @@ function slotRow(slots: number, items: ItemKey[]): string {
   const stock = G.save.tut >= TUT.done ? G.save.bag : null;
   const chips = items.map(k => {
     const n = stock ? stock[k] || 0 : null;
-    return `<button class="f-item${n === 0 ? ' zero' : ''}" type="button" data-slots>${battle().itemIcon(k)}<span>${ITEMS[k].short}</span>${n != null ? `<small><span class="sr">남은 </span>${n}</small>` : ''}</button>`;
+    return `<button class="f-item${n === 0 ? ' zero' : ''}" type="button" data-slots>${useIcon(k)}<span>${ITEMS[k].short}</span>${n != null ? `<small><span class="sr">남은 </span>${n}</small>` : ''}</button>`;
   }).join('');
   const empty = Array.from({ length: Math.max(0, slots - items.length) }, () => '<button class="f-item empty" type="button" data-slots>빈칸</button>').join('');
   return `<div class="f-slots" role="group" aria-label="단축칸 ${slots}칸 (누르면 바꾸기)"><span class="cap f-slab" aria-hidden="true">단축칸</span>${chips}${empty}</div>`;
