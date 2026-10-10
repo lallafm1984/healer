@@ -60,8 +60,13 @@ export const UNIQUES: UniqueDef[] = [
   // 묶음 D1 (51 6장): 폭탄 해체반은 몸통 · 끊기 박자는 머리에만 나와서 꼬질 · 땅땅 것은 51의 메이스 · 건틀릿 대신 외투 · 투구
   { key: 'kkojilCoat', name: '꼬질의 보물 지킴이 외투', slot: 'chest', kind: 'coat', place: 'den1', placeName: '코볼트 보물 굴 갱도', spec: 'bombSquad' },
   { key: 'cartGloves', name: '덜컹이 바퀴 장갑', slot: 'hands', kind: 'gloves', place: 'den2', placeName: '코볼트 보물 굴 수레길', spec: 'hardShell' },
-  // 20인: 가라앉은 대성당
+  // 묶음 D2 (51 6장): 정예 사냥꾼은 무기에만 나와서 삼남매 것은 51의 수도복 대신 홀
+  { key: 'eggScepter', name: '삼남매 알껍데기 홀', slot: 'weapon', kind: 'scepter', place: 'nest1', placeName: '어미 용의 둥지 알둥지', spec: 'eliteHunter' },
+  { key: 'scaleBracer', name: '단단이 비늘 토시', slot: 'hands', kind: 'bracer', place: 'nest2', placeName: '어미 용의 둥지 다리', spec: 'shieldFriend' },
+  // 20인: 가라앉은 대성당 (2 · 3구역은 묶음 D2, 숫자 감각은 머리에만 나와서 우웅이 것은 51의 완드 대신 관)
   { key: 'sunkenVestment', name: '가라앉은 대성당 법복', slot: 'chest', kind: 'vestment', place: 'cathedral1', placeName: '가라앉은 대성당 1구역', spec: 'encore' },
+  { key: 'knightHelm', name: '물그림자 기사 투구', slot: 'head', kind: 'helm', place: 'cathedral2', placeName: '가라앉은 대성당 회랑', spec: 'holdTogether' },
+  { key: 'pipeCrown', name: '우웅이 파이프 관', slot: 'head', kind: 'crown', place: 'cathedral3', placeName: '가라앉은 대성당 오르간', spec: 'numberSense' },
 ];
 
 export const uniqueOf = (key: string | undefined) => (key ? UNIQUES.find(u => u.key === key) : undefined);

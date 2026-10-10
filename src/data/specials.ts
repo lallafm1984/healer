@@ -277,6 +277,10 @@ export const NAMED: NamedDef[] = [
   { key: 'warmPebble', name: '따끈한 조약돌', slot: 'ring', place: 'ashpass', placeName: '화산재 고갯길', text: '내가 건 보호막이 깨지거나 녹아 없어지면 그 아군에게 지능 {v} 회복 (재사용 6초)', val: 0.08, unit: 'pct', cd: 6, min: '고급' },
   { key: 'spaTowel', name: '온천 수건', slot: 'neck', place: 'hotspring', placeName: '용암 온천장', text: '큰 피해 예고가 2초 안에 맞을 때 거는 보호막 +{v}', val: 0.25, unit: 'pct' },
   { key: 'coldAnvil', name: '식은 모루 조각', slot: 'neck', place: 'forge', placeName: '용암 대장간', text: '무력화 게이지가 모이는 동안 파티원이 받는 피해 −{v}', val: 0.1, unit: 'pct' },
+  // 묶음 D2 (51 6장, 이름 임시 · 그림 52): 10인 ⑨ 마지막 칸 · 탐험 ⑰ · 20인 ① 마지막 칸
+  { key: 'rubinaPearl', name: '루비나의 진주', slot: 'neck', place: 'nest3', placeName: '어미 용의 둥지 보물더미', text: '보물 욕심 · 사냥 대상이 된 아군에게 하는 직접 힐 +{v}', val: 0.15, unit: 'pct' },
+  { key: 'lakePebble', name: '호숫가 조약돌', slot: 'ring', place: 'lakeshore', placeName: '잠긴 호숫가', text: '생명 사슬이 걸린 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
+  { key: 'threeShards', name: '세 조각 목걸이', slot: 'neck', place: 'cathedral4', placeName: '가라앉은 대성당 성소', text: '사람 칸 (조각 · 영혼 · 나무)에게 하는 힐 +{v}', val: 0.25, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -379,6 +383,15 @@ export const FEATURED: Record<string, readonly string[]> = {
   ashpass: ['antidote', 'layer', 'firstWord'],
   hotspring: ['hardShell', 'antidote', 'holdingHand'],
   forge: ['cutBeat', 'holdTogether', 'hardShell'],
+  // 묶음 D2 (51 6장): 10인 ⑨ 알둥지 (알 · 독) / 다리 (탱커 교대 · 녹는 보호막) / 보물더미 (D 부품 모두), 잠긴 호숫가 (사슬 쉬움),
+  // 20인 대성당 회랑 (사슬 3쌍 · 끌어당김) / 오르간 (무력화 · 진동 · 상한) / 성소 (욕심 · 사람 칸 · 녹는 보호막)
+  nest1: ['eliteHunter', 'antidote', 'wideEmbrace'],
+  nest2: ['shieldFriend', 'twinShield', 'layer'],
+  nest3: ['sunrise', 'evenly', 'starClock'],
+  lakeshore: ['holdTogether', 'constellation', 'evenly'],
+  cathedral2: ['holdTogether', 'evenly', 'holdingHand'],
+  cathedral3: ['numberSense', 'spellWard', 'bigBowl'],
+  cathedral4: ['sunrise', 'starVeil', 'constellation'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

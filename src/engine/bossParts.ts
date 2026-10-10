@@ -65,7 +65,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       }
       return;
     case 'hunt':
-      for (const u of lowestTargets(f, f.mythic && e.nMythic ? e.nMythic : 1, x => x.role !== 'tank')) {
+      for (const u of lowestTargets(f, f.mythic && e.nMythic ? e.nMythic : (e.n ?? 1), x => x.role !== 'tank')) {
         emit(f, { type: 'msg', text: `${s.name ?? '사냥'}: ${u.nick}` }); emit(f, { type: 'fx', name: 'slam', on: u.id }); damage(f, u, e.dmg, false, 'party');
       }
       return;
@@ -344,11 +344,14 @@ function spawnRing(f: Fight, s: BossSkill, e: Extract<SkillEffect, { p: 'ring' }
 
 /** 헤매는 영혼 (P-SOUL): 빈 칸 하나에 영혼 칸. 파티원이 아니라 Fight.souls에만 있고, 칸 탭으로 단일 힐을 받음. 빈 칸은 1개 이상 남김 */
 function spawnSoul(f: Fight, e: Extract<SkillEffect, { p: 'soul' }>): void {
+  for (let i = 0; i < (e.n ?? 1); i++) spawnOneSoul(f, e); // 문에 박힌 조각 셋 (51 4-3)
+}
+function spawnOneSoul(f: Fight, e: Extract<SkillEffect, { p: 'soul' }>): void {
   const free = f.cells.filter(c => !c.unit && !c.block);
   if (free.length <= 1) return;
   const c = free[Math.floor(f.rng() * free.length)];
   const ref = f.party.filter(u => u.role !== 'tank' && !u.me);
-  const max = (ref.length ? ref.reduce((a, u) => a + u.base, 0) / ref.length : f.me.base) * (e.size ?? 1);
+  const max = (ref.length ? ref.reduce((a, u) => a + u.base, 0) / ref.length : f.me.base) * ((f.mythic && e.sizeMythic) || e.size || 1);
   const u: Unit = {
     id: f.nextId++, role: 'ranged', cls: null, aim: 0, flow: 0, traits: [], bulwark: 0, bulwarkUsed: false, acc: 0, dealt: 0, pers: null, p: {}, nick: e.short,
     base: max, max, hp: max * (f.mythic && e.hpMythic ? e.hpMythic : e.hp), dps: 0, alive: true, cell: c.i, home: c.i, hot: 0, hotTick: 0, hots: [], redu: 0, reduCut: 0, sacr: 0, immune: 0, echo: [],
@@ -409,6 +412,8 @@ function soulEnd(f: Fight, u: Unit, ok: boolean): void {
   emit(f, { type: 'msg', text: `${s.name} 놓침: ${s.fail.text}` });
   const hit = s.fail.near ? living(f).filter(v => hexDist(cellOf(f, v), at) === 1) : living(f);
   for (const v of hit) { damage(f, v, s.fail.dmg, true); if (s.fail.debuff && v.alive) applyDebuff(f, v, s.fail.debuff); }
+  if (s.fail.fx) emit(f, { type: 'fx', name: s.fail.fx, all: true }); // 성소 문이 한 칸 열림 (52 E)
+  if (s.fail.boost) empowerBoss(f, s.fail.boost, `${s.name} 놓침`); // 악몽 오르말: 조각을 잃을 때마다 +5% (51 4-3)
 }
 
 /** 매 틱 넘치는 빛 그릇: 가득 차면 전원 보호막, 시간이 다 되면 그냥 사라짐 */
@@ -439,10 +444,13 @@ const LINK_GRACE = 2;
 /** 생명 사슬 (P-LINK): 두 사람에게 해제 안 되는 사슬 표시 디버프 + Fight.links. 주문 반사로 한쪽이라도 안 걸리면 사슬도 없음 */
 function linkUp(f: Fight, e: Extract<SkillEffect, { p: 'link' }>): void {
   const free = (u: Unit) => !u.debuffs.some(d => d.link);
-  const tanks = randomTargets(f, 2, u => u.role === 'tank' && free(u));
-  const two = e.pick === 'tanks' && tanks.length === 2 ? tanks : randomTargets(f, 2, u => u.role !== 'tank' && free(u));
-  if (two.length < 2) return;
-  linkPair(f, two[0], two[1], e);
+  const pairs = (f.mythic && e.pairsMythic) || e.pairs || 1; // 20인 물그림자 사슬 3쌍 (51 4-3)
+  for (let i = 0; i < pairs; i++) {
+    const tanks = randomTargets(f, 2, u => u.role === 'tank' && free(u));
+    const two = e.pick === 'tanks' && tanks.length === 2 ? tanks : randomTargets(f, 2, u => u.role !== 'tank' && free(u));
+    if (two.length < 2) return;
+    linkPair(f, two[0], two[1], e);
+  }
 }
 
 /** 두 사람을 사슬로 이음. vuln = 사슬 표시 디버프에 받는 피해 +비율 (연잎 사슬 악몽) */

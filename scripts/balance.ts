@@ -21,7 +21,7 @@ const check = args.includes('--check'), write = args.includes('--write');
 const places = CONTENT.filter(c => balanceable(c) && (!keys.length || keys.includes(c.key)));
 if (!places.length) { console.log(`맞출 장소가 없음 (${keys.join(', ')})`); process.exit(1); }
 
-const fmtT = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+const fmtT = (s: number) => { const r = Math.round(s); return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}`; };
 const tuneTxt = (t: Tune | null) => (t === null ? '구간마다 다름' : `dmg ${t.dmg ?? 1}${t.hp != null ? ` · hp ${t.hp}` : ''}`);
 const short: Record<string, string> = { priest: '사제', druid: '드루', paladin: '성기' };
 const mTxt = (m: Measure) => `${String(Math.round(m.rate)).padStart(3)}% (${HERO_KEYS.map(h => `${short[h]} ${m.byHero[h]}`).join(' · ')}) ${m.time ? fmtT(m.time) : '-'}`;

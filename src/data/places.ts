@@ -13,7 +13,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'shellbeach' | 'wreck' | 'gull' | 'gull-kitchen' | 'gull-lighthouse' | 'queen' | 'queen-hold' | 'queen-bow' | 'isle' | 'isle-lookout' | 'isle-summit'
   | 'lampway' | 'teaparty' | 'mossroot' | 'emberfoot' | 'rainbow'
   | 'fest' | 'fest-stage' | 'fest-bonfire' | 'sporecave' | 'sporecave-pond' | 'sporecave-root' | 'palace' | 'palace-hall' | 'palace-throne'
-  | 'ashpass' | 'hotspring' | 'forge' | 'den' | 'den-cart' | 'den-vault';
+  | 'ashpass' | 'hotspring' | 'forge' | 'den' | 'den-cart' | 'den-vault'
+  | 'nest' | 'nest-bridge' | 'nest-hoard' | 'lakeshore' | 'cathedral-hall' | 'cathedral-organ' | 'cathedral-sanctum';
 
 export interface Faction {
   name: string;
@@ -118,6 +119,14 @@ export const PLACES: Record<PlaceKey, Place> = {
   den: { key: 'den', name: '코볼트 보물 굴', faction: 'dragon', tone: ['#36302A', '#141210'], borrow: 'emberfoot' },
   'den-cart': { key: 'den-cart', name: '수레길', faction: 'dragon', tone: ['#382E26', '#15110D'], borrow: 'den' },
   'den-vault': { key: 'den-vault', name: '보물방', faction: 'dragon', tone: ['#3E3424', '#17130C'], borrow: 'den' },
+  // 묶음 D2 (51 1장, 그림 요청 52): 둥지는 기슭 그림, 호숫가 · 대성당 칸은 대성당 1구역 그림을 빌림
+  nest: { key: 'nest', name: '어미 용의 둥지', faction: 'dragon', tone: ['#3E2A24', '#170F0C'], borrow: 'emberfoot' },
+  'nest-bridge': { key: 'nest-bridge', name: '용암 다리', faction: 'dragon', tone: ['#402822', '#180E0B'], borrow: 'nest' },
+  'nest-hoard': { key: 'nest-hoard', name: '보물 더미', faction: 'dragon', tone: ['#40342A', '#18130F'], borrow: 'nest' },
+  lakeshore: { key: 'lakeshore', name: '잠긴 호숫가', faction: 'abyss', tone: ['#1F2C33', '#0B1013'], borrow: 'cathedral' },
+  'cathedral-hall': { key: 'cathedral-hall', name: '회랑', faction: 'abyss', tone: ['#1F2833', '#0B0E13'], borrow: 'cathedral' },
+  'cathedral-organ': { key: 'cathedral-organ', name: '물오르간', faction: 'abyss', tone: ['#1F2E36', '#0B1114'], borrow: 'cathedral' },
+  'cathedral-sanctum': { key: 'cathedral-sanctum', name: '성소', faction: 'abyss', tone: ['#26223A', '#0E0C16'], borrow: 'cathedral' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -133,6 +142,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   fest1: 'fest', fest2: 'fest-stage', fest3: 'fest-bonfire', cave1: 'sporecave', cave2: 'sporecave-pond', cave3: 'sporecave-root',
   palace1: 'palace', palace2: 'palace-hall', palace3: 'palace-throne',
   ashpass: 'ashpass', hotspring: 'hotspring', forge: 'forge', den1: 'den', den2: 'den-cart', den3: 'den-vault',
+  lakeshore: 'lakeshore', nest1: 'nest', nest2: 'nest-bridge', nest3: 'nest-hoard', cathedral2: 'cathedral-hall', cathedral3: 'cathedral-organ', cathedral4: 'cathedral-sanctum',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -162,6 +172,7 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   mungge: 'sporecave', gaegul: 'sporecave-pond', morak: 'sporecave-root', bungbung: 'palace', ppyong: 'palace-hall', amanita: 'palace-throne',
   warmash: 'ashpass', mungsil64: 'ashpass', steamroom: 'hotspring', mungsil: 'hotspring', lavabath: 'hotspring', bulttung: 'hotspring',
   coldhearth: 'forge', huggeun: 'forge', anvilbridge: 'forge', ttangttang: 'forge', kkojil: 'den', deolkeong: 'den-cart', beonjjeok: 'den-vault',
+  whelps: 'nest', dandani: 'nest-bridge', rubina: 'nest-hoard', shoretrash: 'lakeshore', knights68: 'lakeshore', knights: 'cathedral-hall', uwoong: 'cathedral-organ', ormal: 'cathedral-sanctum',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

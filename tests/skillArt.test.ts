@@ -12,13 +12,14 @@ import { bossSkillArt, bossSkillArtNames, fightSkillArt, GIMS, mobSkillArt, SKIL
 const DOC_GIM = ['full', 'wound', 'hunt', 'link', 'invert', 'over', 'quake', 'recoil', 'gaze', 'drain', 'charm', 'order', 'jump', 'safe', 'tower', 'pull', 'hole', 'stagger',
   'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass',
   'greed', 'melt', 'hatch'].map(n => `icon-gim-${n}`);
-/** 37 4장 D (던전 ② ~ ⑥), 44 4장 D 1~4 (던전 ⑦), 47 4장 D 1~43 (묶음 B), 49 4장 D 1~35 (묶음 C), 52 4장 D 1~13 (묶음 D1): 보스 → 장 수 */
+/** 37 4장 D (던전 ② ~ ⑥), 44 4장 D 1~4 (던전 ⑦), 47 4장 D 1~43 (묶음 B), 49 4장 D 1~35 (묶음 C), 52 4장 D 1~25 (묶음 D): 보스 → 장 수 */
 const DOC_BSK_N: Record<string, number> = {
   collector: 2, malchor: 3, shaman: 1, toad: 3, seres: 2, butler: 4, lady: 1, belmore: 3, runegolem: 3, mage: 2, shadow: 2, guardian: 2, keeper: 2,
   sentinel: 2, crystal: 2, ratking: 2, carrier: 2, librarian: 2, scholar: 3, priestess: 3, sleeper: 2,
   crab: 2, cook: 3, morel: 3, gunner: 3, octo: 3, seawitch: 4, mimic: 3, parrot: 4, goldbeard: 4,
   sippy: 3, hatter: 3, uga: 3, shellgod: 3, kobold: 2, songi: 3, pililli: 2, ponga: 2, mungge: 2, gaegul: 3, morak: 3, bungbung: 2, ppyong: 2, amanita: 2,
   mungsil: 2, bulttung: 2, huggeun: 3, ttangttang: 2, deolkeong: 2, beonjjeok: 2,
+  whelps: 1, dandani: 2, rubina: 4, knights: 1, uwoong: 1, ormal: 3,
 };
 const DOC_BSK = Object.entries(DOC_BSK_N).flatMap(([b, n]) => Array.from({ length: n }, (_, i) => `icon-bsk-${b}-${i + 1}`));
 /** 44 4장 D 5~15, 47 4장 D 44~46, 49 4장 D 36, 52 4장 D 26 */

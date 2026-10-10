@@ -16,6 +16,7 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'lampway' | 'emberfoot' | 'teaparty' | 'mossroot' | 'rainbow'
   | 'fest1' | 'fest2' | 'fest3' | 'cave1' | 'cave2' | 'cave3' | 'palace1' | 'palace2' | 'palace3'
   | 'ashpass' | 'hotspring' | 'forge' | 'den1' | 'den2' | 'den3'
+  | 'lakeshore' | 'nest1' | 'nest2' | 'nest3' | 'cathedral2' | 'cathedral3' | 'cathedral4'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -119,6 +120,11 @@ export const CONTENT: ContentDef[] = [
     key: 'ashpass', kind: 'explore', name: '화산재 고갯길', place: '불꽃 봉우리 · 붉은 용 일가', stageLv: 64, unlockLv: 64, ready: true, bosses: ['온천지기 코볼트 뭉실'],
     fights: () => DUNGEONS.ashpass.segments, size: three,
   },
+  // 묶음 D 탐험 ⑰ (51 1-1): 20인 대성당 회랑 예습 (생명 사슬 균형형)
+  {
+    key: 'lakeshore', kind: 'explore', name: '잠긴 호숫가', place: '불꽃 봉우리 아래 호수 · 심연', stageLv: 68, unlockLv: 68, ready: true, bosses: ['물그림자 기사 셋'],
+    fights: () => DUNGEONS.lakeshore.segments, size: three,
+  },
   // 던전 ①~⑩ (5인, 5레벨마다). ⑧~⑩은 묶음 B
   {
     key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 5, unlockLv: 5, ready: true,
@@ -218,6 +224,10 @@ export const CONTENT: ContentDef[] = [
     ['den1', '코볼트 보물 굴 갱도', '보물 굴 갱도 · 코볼트 보물 지킴이 꼬질', '코볼트 보물 지킴이 꼬질', 'kkojil', 63],
     ['den2', '코볼트 보물 굴 수레길', '수레길 · 코볼트 수레꾼 덜컹이', '코볼트 수레꾼 덜컹이', 'deolkeong', 63],
     ['den3', '코볼트 보물 굴 보물방', '보물방 · 코볼트 대장 번쩍이', '코볼트 대장 번쩍이', 'beonjjeok', 63],
+    // 묶음 D 10인 ⑨ (51 1-3): 붉은 용 일가 수장
+    ['nest1', '어미 용의 둥지 알둥지', '알둥지 · 새끼 용 삼남매', '새끼 용 삼남매', 'whelps', 67],
+    ['nest2', '어미 용의 둥지 다리', '용암 다리 · 용 비늘 경비대장 단단이', '용 비늘 경비대장 단단이', 'dandani', 67],
+    ['nest3', '어미 용의 둥지 보물더미', '보물 더미 · 어미 용 루비나', '어미 용 루비나', 'rubina', 67],
   ] as const).map(([key, name, place, boss, enc, lv]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: lv, unlockLv: lv, ready: true, fights: () => [enc], size: () => 10, diffUnlock: { '악몽': lv + 15 },
   })),
@@ -226,6 +236,14 @@ export const CONTENT: ContentDef[] = [
     key: 'cathedral1', bosses: ['유령 성가대'], kind: 'raid', name: '가라앉은 대성당 1구역', place: '해바라기 언덕 아래 · 호수 밑', stageLv: 70, unlockLv: 70, ready: true,
     fights: () => ['choir'], size: () => 20, diffUnlock: { '악몽': 80 },
   },
+  // 묶음 D 20인 ① 2~4구역 (51 1-4): 1구역과 한 레이드, 칸마다 보스 1 · 열림 Lv 70 · 악몽 80
+  ...([
+    ['cathedral2', '가라앉은 대성당 회랑', '물 빠진 회랑 · 물그림자 기사 셋', '물그림자 기사 셋', 'knights'],
+    ['cathedral3', '가라앉은 대성당 오르간', '물오르간 · 물오르간 정령 우웅이', '물오르간 정령 우웅이', 'uwoong'],
+    ['cathedral4', '가라앉은 대성당 성소', '성소 · 문지기 그림자 오르말', '문지기 그림자 오르말', 'ormal'],
+  ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
+    key, bosses: [boss], kind: 'raid', name, place, stageLv: 70, unlockLv: 70, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 80 },
+  })),
 ];
 
 export const contentOf = (k: ContentKey) => CONTENT.find(c => c.key === k)!;

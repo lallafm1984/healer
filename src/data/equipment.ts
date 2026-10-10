@@ -242,8 +242,12 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   ashpass: ['plume', 'medal'],
   hotspring: ['coat', 'wraps', 'starneck'],
   den1: ['coat'], den2: ['twin'], den3: ['scepter'],
+  nest1: ['wreath'], nest2: ['gauntlet'], nest3: ['relic'],
   // 용암 대장간 (51 6장): 버려진 골렘 인내
   forge: ['mail', 'helm', 'stone'],
+  // 심연 (51 6장): 잠긴 호숫가 지능 · 정신력, 대성당 2~4구역 칸마다 1
+  lakeshore: ['vestment', 'amulet'],
+  cathedral2: ['mail'], cathedral3: ['crown'], cathedral4: ['staff'],
 };
 export const KIND_WEIGHT = 3;
 

@@ -56,7 +56,8 @@ const tabOf = (c: ContentDef): Tab => (c.kind === 'raid' ? (raidSize(c) === 20 ?
 /** 장소 문양 줄의 짧은 이름 (칸이 좁아서. 관문 이름표엔 전체 이름) */
 const SHORT: Partial<Record<ContentKey, string>> = { crypt: '지하묘지', manor: '장원', abyss1: '탑 1층', abyss2: '탑 2층', abyss3: '탑 3층', abyss4: '탑 4층', abyss5: '탑 꼭대기', cathedral1: '대성당 1구역', gull1: '항구 부두', gull2: '항구 주방', gull3: '항구 등대', queen1: '여왕호 갑판', queen2: '여왕호 창고', queen3: '여왕호 뱃머리', isle1: '요새 동굴', isle2: '요새 망루', isle3: '요새 꼭대기',
   fest1: '축제 어귀', fest2: '축제 무대', fest3: '축제 모닥불', cave1: '동굴 이끼굴', cave2: '동굴 연못', cave3: '동굴 뿌리방', palace1: '궁전 정원', palace2: '궁전 연회장', palace3: '궁전 왕좌',
-  den1: '굴 갱도', den2: '굴 수레길', den3: '굴 보물방' };
+  den1: '굴 갱도', den2: '굴 수레길', den3: '굴 보물방', nest1: '둥지 알둥지', nest2: '둥지 다리', nest3: '둥지 보물더미',
+  cathedral2: '대성당 회랑', cathedral3: '대성당 오르간', cathedral4: '대성당 성소' };
 
 /** 마지막으로 고른 분류 (27 3-1) */
 let tab: Tab = 'dungeon';
