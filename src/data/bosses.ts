@@ -591,6 +591,8 @@ const GUARD_HP = 12000;
 /** 모래 왕국 (54 0장) 해제 짝: 모래 기침 (질병, 초당 딜체 2%) · 천 년 졸음 (저주, 받는 치유 −30%) */
 const SAND_COUGH: DebuffDef = { name: '모래 기침', type: '질병', left: 12, dot: U.dps(0.02) };
 const SLEEPY: DebuffDef = { name: '천 년 졸음', type: '저주', left: 8, healCut: 0.3, fx: 'yawn' };
+const SPRITES = ['솔솔', '살살']; const SPRITE_HP = 11650;
+const SAND_CHAIN_HOW = '두 쌍 (악몽 세 쌍)이 이어짐. 짝끼리 체력 비율을 비슷하게. 모래시계 창 안에서는 안 끊기고, 되돌린 뒤 다시 재니 뒤집기 전에 짝을 맞춰 두기';
 const MIRAGE_HOW = '표시 가운데 하나는 신기루 (끝 1초에 일렁이며 걷힘). 걷히기 전에는 지속 힐 · 작은 힐만, 걷히면 남은 진짜에게 바로 보호막 · 큰 힐';
 const GLASS_HOW = '뒤집는 순간의 체력으로 8초 뒤 모두 되돌아감. 예고 3초 안에 모두 채우고, 창 안에서는 쓰러질 사람만 힐 (붕대 벗기기 · 해제는 남음)';
 /** 벌침 (P-WOUND, 48 4-3): 꿀벌이 쏜 사람이 90% 아래인 동안 3초마다 1중첩 (중첩당 초당 딜체 1%), 못 지움 */
@@ -2159,6 +2161,157 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'text', text: '다림질 끝!: 붕대 3명, 모래시계가 잦아짐' },
     ] }],
     enrage: { name: '집사의 잔소리', period: 2, dmg: 270 },
+  },
+  // ---------- 묶음 E2 10인 ⑪ 노을 궁전 (54 4-2, Lv 75 · 악몽 90 · 모래 왕국 · 질병 + 저주): 솔솔 · 살살 · 엉금이 · 사라샤 ----------
+  // 모래 정령 솔솔 · 살살 (분수): 몸통 둘 × 모래시계 × 생명 사슬 (창 안에서는 사슬이 안 끊기고 되돌린 뒤 다시 잼) · 따끔 모래 (창 안에 두 번 더) · 모래 기침.
+  // 던전 ⑮보다 먼저 와도 되게 창 안 피해는 작게 (54 7장). 악몽은 모래 사슬 3쌍. 목표 4:30 · 광폭화 6:00
+  solsol: {
+    phase: [1, ''],
+    bodies: SPRITES.map(name => ({ name, hp: SPRITE_HP, boss: true })),
+    split: true,
+    skills: [
+      ...SPRITES.map((_, i): SkillDef => ({ ...AUTO(U.tank(0.04)), key: `auto${i}`, first: 2 + i * 0.8, when: { bodyAlive: [i] } })),
+      { key: 'chain', name: '모래 사슬', icon: '사슬', kind: 'instant', first: 10, period: 25, cast: 0, how: SAND_CHAIN_HOW,
+        effect: { p: 'link', kind: 'balance', name: '모래 사슬', sec: 12, pick: 'others', gap: 0.3, dmg: U.dps(0.35), pairs: 2, pairsMythic: 3 } },
+      { key: 'glass', name: '분수 모래시계', icon: '모래', kind: 'aoe', first: 16, period: 30, cast: 3, warn: 'aoe', how: GLASS_HOW,
+        effect: { p: 'glass', sec: 8, then: [{ skill: 'sting2', in: 1.5 }, { skill: 'sting3', in: 4.5 }] } },
+      ...(['sting', 'sting2', 'sting3'] as const).map((key): SkillDef => ({
+        key, name: '따끔 모래', icon: '따끔', kind: 'instant', first: key === 'sting' ? 7 : null, period: key === 'sting' ? 9 : 9999, cast: 0,
+        ...(key === 'sting' ? { how: '무작위 3명이 따끔. 모래시계 창 안에서는 두 번 더 오지만 창이 끝나면 되돌아감' } : { hidden: true }),
+        effect: { p: 'debuff', n: 3, debuff: { name: '따끔 모래', type: '물리', left: 2, lock: true, drop: U.dps(0.2) } },
+      })),
+      { key: 'cough', name: '모래 기침', icon: '기침', kind: 'instant', first: 5, period: 16, cast: 0, effect: { p: 'debuff', n: 2, debuff: SAND_COUGH } },
+    ],
+    enrage: { name: '모래 분수 폭주', period: 3, dmg: 200 },
+  },
+  // 보물고 거북 엉금이 (보물고): 탱커 교대 (등껍질 4중첩) × 신기루 버스터 (두 탱커에게 예고, 하나는 신기루) · 모래 늪 (2곳) · 보물 셈 (저주).
+  // 악몽은 박치기가 두 탱커 모두 진짜. 목표 4:50 · 광폭화 6:30
+  eonggeum: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { key: 'shell', name: '등껍질 쌓기', icon: '껍질', kind: 'instant', first: 4, period: 6, cast: 0, how: '보스를 맞는 탱커가 받는 피해 +15%씩 (최대 4). 4중첩이면 다른 탱커가 가져감',
+        effect: { p: 'debuff', n: 1, pick: 'tank', debuff: { name: '등껍질', type: '물리', left: 20, lock: true, stackMax: 4, vuln: 0.15, swap: 4 } } },
+      { key: 'ram', name: '등껍질 박치기', icon: '박치', kind: 'buster', first: 10, period: 16, cast: 3, warn: 'buster', dmg: U.tank(0.55), target: 'tank', when: { mythic: false }, mirage: { n: 1 },
+        how: '두 탱커에게 예고가 뜨지만 하나는 신기루 (끝 1초에 걷힘). 둘 다에 보호막을 쓰면 마나가 모자라니 걷히면 바로', effect: { p: 'tank' } },
+      ...(['ramm', 'ramm2'] as const).map((key): SkillDef => ({
+        key, name: '등껍질 박치기', icon: '박치', kind: 'buster', first: 10, period: 16, cast: 3, warn: 'buster', dmg: U.tank(0.55), target: key === 'ramm' ? 'tank' : 'offtank', when: { mythic: true },
+        ...(key === 'ramm2' ? { hidden: true } : { how: '악몽: 두 탱커 모두 진짜. 예고가 뜨면 둘 다 채우고 보호막' }), effect: { p: 'tank' },
+      })),
+      ...[0, 1].map((i): SkillDef => ({
+        key: `bog${i}`, name: '모래 늪', icon: '늪', kind: 'zone', first: 12 + i * 0.3, period: 18, cast: 2, warn: 'zone', hitDmg: U.dps(0.2), dps: U.dps(0.04), dur: 6, cells: { p: 'around' },
+        ...(i ? { hidden: true } : { how: '두 곳에 모래 늪. 파티원이 알아서 비킴. 못 비킨 사람부터 채우기' }),
+      })),
+      { key: 'count', name: '보물 셈', icon: '셈', kind: 'instant', first: 15, period: 20, cast: 0, effect: { p: 'debuff', n: 2, debuff: { name: '보물 셈', type: '저주', left: 8, healCut: 0.3 } } },
+    ],
+    enrage: { name: '보물고 문 닫기', period: 3, dmg: 200 },
+  },
+  // 노을 여왕 사라샤 (옥좌, 10인 ⑪ 최종): 1페이즈 여왕의 시험 (신기루 바람 · 노을 부채질) → 70% 거꾸로 궁전 (여왕의 모래시계 · 창 안 모래 회오리 두 번 · 붕대 시녀)
+  // → 40% 노을 폭풍 (모두 + 사막의 한숨). 악몽은 3페이즈 시작 때 여왕의 눈길 (모두 8초 받는 치유 −20%, 못 지움). 목표 6:00 · 광폭화 8:00
+  sarasha: {
+    phase: [1, '1페이즈 · 여왕의 시험'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('부채 내려치기', '부채', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'wind', name: '신기루 바람', icon: '바람', kind: 'buster', first: 12, period: 13, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, mirage: { n: 1 }, when: { phase: [1, 3] },
+        how: MIRAGE_HOW, effect: { p: 'strike', dmg: U.dps(0.45) } },
+      { key: 'fan', name: '노을 부채질', icon: '부채', kind: 'instant', first: 16, period: 18, cast: 0, when: { phase: [1, 3] },
+        effect: { p: 'debuff', n: 3, debuff: { name: '노을 부채질', type: '저주', left: 8, healCut: 0.3 } } },
+      { key: 'glass', name: '여왕의 모래시계', icon: '모래', kind: 'aoe', first: null, period: 28, cast: 3, warn: 'aoe', when: { phase: [2, 3] }, how: GLASS_HOW,
+        effect: { p: 'glass', sec: 8, then: [{ skill: 'whirl', in: 0.5 }, { skill: 'whirl2', in: 4.5 }] } },
+      ...(['whirl', 'whirl2'] as const).map((key): SkillDef => ({
+        key, name: '모래 회오리', icon: '회오', kind: 'aoe', first: null, period: 9999, cast: 1.5, warn: 'aoe',
+        ...(key === 'whirl2' ? { hidden: true } : { how: '모래시계 창 안 2초 · 6초에 두 번. 맞은 피해는 창이 끝나면 되돌아가니 쓰러질 사람만 힐' }),
+        effect: { p: 'all', dmg: U.dps(0.3) },
+      })),
+      { key: 'maids', name: '시녀 부르기', icon: '시녀', kind: 'instant', first: null, period: 40, cast: 0, when: { phase: [2, 3] }, how: '붕대 시녀 둘이 모래 기침 (질병)을 뿌림. 딜러가 잡는 동안 기침부터 지우기',
+        effect: { p: 'adds', n: 2, add: { name: '붕대 시녀', short: '시녀', art: 'mob-bandage-servant', hp: 0.025, dmg: 0, every: 0, job: { p: 'sting', every: 6, dmg: U.dps(0.05), debuff: SAND_COUGH } } } },
+      { key: 'sigh', name: '사막의 한숨', icon: '한숨', kind: 'aoe', first: null, period: 20, cast: 3, warn: 'aoe', when: { phase: [3] }, effect: { p: 'all', dmg: U.dps(0.2) } },
+      { key: 'gaze', name: '여왕의 눈길', icon: '눈길', kind: 'instant', first: null, period: 9999, cast: 0, when: { mythic: true }, how: '악몽: 3페이즈 시작 때 모두 8초 동안 받는 치유 −20% (못 지움). 그 전에 모두 채워 두기',
+        effect: { p: 'debuff', n: 'all', debuff: { name: '여왕의 눈길', type: '마법', left: 8, lock: true, healCut: 0.2 } } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.7 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 거꾸로 궁전' }, { p: 'start', skill: 'glass', in: 4 }, { p: 'start', skill: 'maids', in: 10 },
+        { p: 'text', text: '거꾸로 궁전: 여왕의 모래시계 · 붕대 시녀' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.4 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 노을 폭풍' }, { p: 'start', skill: 'gaze', in: 0.5 }, { p: 'start', skill: 'sigh', in: 6 },
+        { p: 'text', text: '노을 폭풍: 신기루 · 모래시계 함께 + 사막의 한숨' },
+      ] },
+    ],
+    enrage: { name: '노을 폭풍', period: 3, dmg: 210 },
+  },
+  // 베개 골렘 폭신이 탐험판 (54 1-1, 탐험 ⑲ 낙타 대상로 Lv 76): 평타 · 신기루 베개 (두 곳 중 한 곳만 진짜) · 코골이 진동. 10인 낮잠 피라미드 복도 예습
+  pokshin76: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'pillow', name: '신기루 베개', icon: '베개', kind: 'zone', first: 8, period: 15, cast: 3, warn: 'zone', hitDmg: 120, cells: { p: 'around' }, mirage: { n: 1 },
+        how: '두 곳 중 한 곳은 신기루 (끝 1초에 걷힘). 파티원이 알아서 피함. 못 피한 사람부터 채우기' },
+      { key: 'snore', name: '코골이', icon: '코골', kind: 'aoe', first: 12, period: 20, cast: 1.5, warn: 'aoe', effect: { p: 'quake', dmg: 60, lock: 3 } },
+    ],
+    enrage: { name: '베개 폭탄', period: 2, dmg: 200 },
+  },
+  // ---------- 묶음 E2 20인 ③ 빛뿌리 숲 (54 4-5, Lv 76 · 악몽 86 · 심연 · 모든 유형): 뚜벅이 · 톡톡 · 쿵쿵 ----------
+  // 뿌리 거인 뚜벅이 (입구): 탱커 교대 (뿌리 짓누르기 4중첩) × 20인 끌어당김 여럿 (뒷줄 3명, 악몽 4명) · 뿌리 솟기 (4곳). 목표 4:30 · 광폭화 6:00
+  ttubeok: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { key: 'press', name: '뿌리 짓누르기', icon: '짓눌', kind: 'instant', first: 4, period: 6, cast: 0, how: '보스를 맞는 탱커가 받는 피해 +15%씩 (최대 4). 4중첩이면 다른 탱커가 가져감',
+        effect: { p: 'debuff', n: 1, pick: 'tank', debuff: { name: '뿌리 짓누르기', type: '물리', left: 20, lock: true, stackMax: 4, vuln: 0.15, swap: 4 } } },
+      { key: 'pull', name: '뿌리 끌어당기기', icon: '끌기', kind: 'buster', first: 14, period: 20, cast: 2, warn: 'buster', target: { p: 'back', n: 3, nMythic: 4 },
+        how: '뒷줄 셋 (악몽 넷)이 끌려와 4초 동안 평타를 나눠 맞음. 탱커 교대 직후면 더 아프니 끌려온 사람을 먼저', effect: { p: 'pull', sec: 4, dmg: U.dps(0.15) } },
+      ...[0, 1, 2, 3].map((i): SkillDef => ({
+        key: `rise${i}`, name: '뿌리 솟기', icon: '솟기', kind: 'zone', first: 9 + i * 0.2, period: 15, cast: 2, warn: 'zone', hitDmg: U.dps(0.25), cells: { p: 'around' },
+        ...(i ? { hidden: true } : { how: '네 곳에서 뿌리가 솟음. 파티원이 알아서 비킴. 못 비킨 사람부터 채우기' }),
+      })),
+    ],
+    enrage: { name: '뿌리 거인 행진', period: 3, dmg: 200 },
+  },
+  // 씨앗 할머니 톡톡 (온실): 20인 쇠약 (가시 덩굴 6명, 90% 아래인 동안 중첩) × 자폭 쫄 (빛 씨앗 셋, 악몽 넷: 10초 뒤 펑) · 꽃가루 (질병). 목표 5:00 · 광폭화 6:30
+  toktok: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { key: 'seeds', name: '빛 씨앗', icon: '씨앗', kind: 'instant', first: 12, period: 30, cast: 0, how: '씨앗 셋 (악몽 넷)이 10초 뒤 펑 (모두 아픔). 딜러가 깨는 동안 가시 덩굴 대상을 90% 위로',
+        effect: { p: 'adds', n: 3, nMythic: 4, add: { name: '빛 씨앗', short: '씨앗', art: 'mob-light-seed', hp: 0.008, dmg: 0, every: 0, job: { p: 'bomb', sec: 10, dmg: U.dps(0.2) } } } },
+      { key: 'thorn', name: '가시 덩굴', icon: '가시', kind: 'instant', first: 7, period: 20, cast: 0, how: '6명에게 가시 덩굴. 90% 아래인 동안 3초마다 중첩 (못 지움). 씨앗이 터지기 전에 90% 위로',
+        effect: { p: 'debuff', n: 6, debuff: { name: '가시 덩굴', type: '물리', left: 20, lock: true, cureAt: 0.9, grow: { every: 3, dot: U.dps(0.01), max: 5 } } } },
+      { key: 'pollen', name: '꽃가루', icon: '꽃가', kind: 'instant', first: 5, period: 16, cast: 0, effect: { p: 'debuff', n: 4, debuff: { name: '꽃가루', type: '질병', left: 12, dot: U.dps(0.02) } } },
+    ],
+    enrage: { name: '온실 대폭발', period: 3, dmg: 210 },
+  },
+  // 심장의 뿌리 쿵쿵 (심장뿌리, 20인 ③ 최종): 1페이즈 뿌리 박동 (부푼 씨앗 4명) → 65% 뒤집힌 박동 (뒤집힘 저주 4명 · 뿌리 덩굴) → 35% 깨어나는 박동 (모두 + 심장 박동, 박동마다 +1.5%).
+  // 20인 부풀기 × 뒤집힘. 악몽은 뒤집힘 저주 6명. 목표 6:00 · 광폭화 8:00. 54의 피해는 치유 0.6에서 너무 세서 저주 · 씨앗 · 덩굴 · 박동을 반으로 (tune.ts E2)
+  kungkung: {
+    phase: [1, '1페이즈 · 뿌리 박동'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('뿌리 채찍', '채찍', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'swell', name: '부푼 씨앗', icon: '부푼', kind: 'instant', first: 10, period: 22, cast: 0,
+        how: '시간이 갈수록 씨앗이 부풂. 지우면 옆 칸 사람만 조금, 두면 본인과 옆 칸이 크게 터짐. 1~2중첩이고 옆이 비었을 때 지우기',
+        effect: { p: 'debuff', n: 4, pick: 'others', debuff: { name: '부푼 씨앗', type: '마법', left: 16, swell: { every: 4, max: 4 }, end: { p: 'pop', pop: U.dps(0.03), self: U.dps(0.06), near: U.dps(0.04) } } } },
+      { key: 'flip', name: '뒤집힌 박동', icon: '뒤집', kind: 'instant', first: null, period: 24, cast: 0, when: { phase: [2, 3] },
+        how: '끝날 때 체력 비율이 뒤집힘 (90% → 10%). 걸린 동안 체력이 조금씩 빠지니 40~60%에 두기. 저주를 지우는 직업은 지움',
+        effect: { p: 'debuff', n: 4, nMythic: 6, pick: 'others', debuff: { name: '뒤집힌 박동', type: '저주', left: 10, dot: U.dps(0.02), end: { p: 'flip' } } } },
+      { key: 'vines', name: '뿌리 덩굴', icon: '덩굴', kind: 'instant', first: null, period: 40, cast: 0, when: { phase: [2, 3] },
+        effect: { p: 'adds', n: 3, add: { name: '뿌리 덩굴', short: '덩굴', art: 'mob-root-vine', hp: 0.02, dmg: U.dps(0.05), every: 2 } } },
+      { key: 'beat', name: '심장 박동', icon: '박동', kind: 'aoe', first: null, period: 18, cast: 3, warn: 'aoe', when: { phase: [3] },
+        how: '박동마다 조금씩 세짐. 지속 힐을 미리 깔고, 뒤집힘 대상은 가운데에 두기', effect: { p: 'all', dmg: U.dps(0.1), grow: U.dps(0.015) } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 뒤집힌 박동' }, { p: 'start', skill: 'flip', in: 4 }, { p: 'start', skill: 'vines', in: 8 },
+        { p: 'text', text: '뒤집힌 박동: 뒤집힘 저주 · 뿌리 덩굴' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.35 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 깨어나는 박동' }, { p: 'start', skill: 'beat', in: 5 },
+        { p: 'text', text: '깨어나는 박동: 심장 박동이 점점 세짐' },
+      ] },
+    ],
+    enrage: { name: '심장의 고동', period: 3, dmg: 220 },
   },
   warden: {
     phase: [1, ''],

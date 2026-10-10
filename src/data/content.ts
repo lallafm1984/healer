@@ -18,6 +18,7 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'ashpass' | 'hotspring' | 'forge' | 'den1' | 'den2' | 'den3'
   | 'lakeshore' | 'nest1' | 'nest2' | 'nest3' | 'cathedral2' | 'cathedral3' | 'cathedral4'
   | 'bazaar1' | 'bazaar2' | 'bazaar3' | 'deepstairs' | 'abbey1' | 'abbey2' | 'abbey3' | 'hourglass'
+  | 'dusk1' | 'dusk2' | 'dusk3' | 'caravan' | 'rootwood1' | 'rootwood2' | 'rootwood3'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -131,6 +132,11 @@ export const CONTENT: ContentDef[] = [
     key: 'deepstairs', kind: 'explore', name: '물밑 계단', place: '가라앉은 대성당 아래 · 심연', stageLv: 72, unlockLv: 72, ready: true, bosses: ['해파리 정원사 흐물이'],
     fights: () => DUNGEONS.deepstairs.segments, size: three,
   },
+  // 묶음 E 탐험 ⑲ (54 1-1): 10인 낮잠 피라미드 복도 예습 (신기루 × 진동)
+  {
+    key: 'caravan', kind: 'explore', name: '낙타 대상로', place: '노을 사막 · 모래 왕국', stageLv: 76, unlockLv: 76, ready: true, bosses: ['베개 골렘 폭신이'],
+    fights: () => DUNGEONS.caravan.segments, size: three,
+  },
   // 던전 ①~⑩ (5인, 5레벨마다). ⑧~⑩은 묶음 B
   {
     key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 5, unlockLv: 5, ready: true,
@@ -243,6 +249,10 @@ export const CONTENT: ContentDef[] = [
     ['bazaar1', '노을 시장 입구', '시장 입구 · 졸린 모래 병정 꾸벅 · 끄덕', '졸린 모래 병정 꾸벅 · 끄덕', 'kkubeok', 71],
     ['bazaar2', '노을 시장 골목', '향신료 골목 · 향신료 낙타 상인 혹돌이', '향신료 낙타 상인 혹돌이', 'hokdol', 71],
     ['bazaar3', '노을 시장 성문', '시장 성문 · 수수께끼 고양이 냥크스', '수수께끼 고양이 냥크스', 'nyanx', 71],
+    // 묶음 E 10인 ⑪ (54 1-3)
+    ['dusk1', '노을 궁전 분수', '궁전 분수 · 모래 정령 솔솔 · 살살', '모래 정령 솔솔 · 살살', 'solsol', 75],
+    ['dusk2', '노을 궁전 보물고', '보물고 · 보물고 거북 엉금이', '보물고 거북 엉금이', 'eonggeum', 75],
+    ['dusk3', '노을 궁전 옥좌', '옥좌 · 노을 여왕 사라샤', '노을 여왕 사라샤', 'sarasha', 75],
   ] as const).map(([key, name, place, boss, enc, lv]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: lv, unlockLv: lv, ready: true, fights: () => [enc], size: () => 10, diffUnlock: { '악몽': lv + 15 },
   })),
@@ -266,6 +276,14 @@ export const CONTENT: ContentDef[] = [
     ['abbey3', '물밑 수도원 제단', '잠의 제단 · 심연 수도원장 깊은잠', '심연 수도원장 깊은잠', 'gipeun'],
   ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: 73, unlockLv: 73, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 83 },
+  })),
+  // 묶음 E 20인 ③ 빛뿌리 숲 (54 1-4): 열림 Lv 76 · 악몽 86
+  ...([
+    ['rootwood1', '빛뿌리 숲 입구', '숲 입구 · 뿌리 거인 뚜벅이', '뿌리 거인 뚜벅이', 'ttubeok'],
+    ['rootwood2', '빛뿌리 숲 온실', '빛 온실 · 씨앗 할머니 톡톡', '씨앗 할머니 톡톡', 'toktok'],
+    ['rootwood3', '빛뿌리 숲 심장뿌리', '심장뿌리 · 심장의 뿌리 쿵쿵', '심장의 뿌리 쿵쿵', 'kungkung'],
+  ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
+    key, bosses: [boss], kind: 'raid', name, place, stageLv: 76, unlockLv: 76, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 86 },
   })),
 ];
 

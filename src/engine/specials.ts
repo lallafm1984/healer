@@ -152,6 +152,7 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.riddleNote && direct && !tick && on(f, 'riddleNote')) m += v.riddleNote; // 냥크스의 수수께끼 쪽지 (54 6장)
   if (v.jellyLight && (f.zones.some(z => z.cells.has(u.cell)) || f.tels.some(t => t.kind === 'zone' && !t.fake && t.cells.has(u.cell)))) m += v.jellyLight; // 해파리 불빛
   if (v.prayerKnot && u.debuffs.some(d => d.cureAt != null && d.cureAt >= 1)) m += v.prayerKnot; // 깊은잠의 기도 매듭
+  if (v.featherBrooch && f.tels.some(t => t.skill.glass)) m += v.featherBrooch; // 사라샤의 깃털 브로치 (모래시계 뒤집기 예고 동안)
   if (v.festInvite && direct && !tick && u.debuffs.some(d => d.noDps)) m += v.festInvite; // 축제 초대장 (48 6장)
   if (v.rainbowSpore && u.soul) m += v.rainbowSpore; // 무지개 포자
   if (v.mossBrooch && aoe && f.stagger) m += v.mossBrooch; // 이끼 브로치
@@ -332,6 +333,12 @@ export function costSpec(f: Fight, key: SkillKey, u?: Unit): number {
   return Math.max(0, 1 - cut);
 }
 
+/** 시전 시간 배율 (낙타 털실 반지: 진동 뒤 잠깐 −) */
+export function castMult(f: Fight): number {
+  const v = f.sp!.v.camelYarn;
+  return v && on(f, 'camelYarn') ? 1 - v : 1;
+}
+
 /** 시전 시간 − 초 (직업 전용) */
 export function castCut(f: Fight, key: SkillKey): number {
   const v = f.sp!.v;
@@ -460,6 +467,7 @@ export function dmgSpec(f: Fight, u: Unit): number {
   if (s.bomb) m *= 1 - (v.bombSquad ?? 0);
   if (u.me && v.turtleCharm && f.mana < 30) m *= 1 - v.turtleCharm; // 거북 등딱지 부적 (48 6장)
   if (v.coldAnvil && f.stagger) m *= 1 - v.coldAnvil; // 식은 모루 조각 (51 6장)
+  if (v.heartShard && u.debuffs.some(d => d.end?.p === 'flip') && u.hp >= u.max * 0.4 - 1e-9 && u.hp <= u.max * 0.6 + 1e-9) m *= 1 - v.heartShard; // 심장뿌리 조각 (54 6장)
   return m;
 }
 
@@ -556,6 +564,10 @@ export function hotDone(f: Fight): void {
 /** 신기루가 걷히면 (냥크스의 수수께끼 쪽지: 1초 동안 직접 힐 +) */
 export function specReveal(f: Fight): void {
   if (f.sp!.v.riddleNote) f.sp!.until.riddleNote = f.t + 1;
+}
+/** 진동이 울리면 (낙타 털실 반지: 2초 동안 시전 시간 −) */
+export function specQuake(f: Fight): void {
+  if (f.sp!.v.camelYarn) f.sp!.until.camelYarn = f.t + 2;
 }
 /** 모래시계가 체력을 되돌리면 (거꾸로 모래알: 마나 회복) */
 export function specRewind(f: Fight): void {

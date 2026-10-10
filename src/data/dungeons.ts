@@ -5,7 +5,7 @@ export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt'
   | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary' | 'shellbeach' | 'wreck'
   | 'lampway' | 'emberfoot' | 'teaparty' | 'mossroot' | 'rainbow'
   | 'ashpass' | 'hotspring' | 'forge' | 'lakeshore'
-  | 'deepstairs' | 'hourglass';
+  | 'deepstairs' | 'hourglass' | 'caravan';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -49,6 +49,8 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   // 묶음 E1 (54 1장): 탐험 ⑱ · 던전 ⑮
   deepstairs: { key: 'deepstairs', name: '물밑 계단', segments: ['stairtrash', 'heumul72'] },
   hourglass: { key: 'hourglass', name: '모래시계 궁전', segments: ['sandhall', 'degul', 'backgarden', 'dooldool'] },
+  // 묶음 E2 (54 1-1): 탐험 ⑲
+  caravan: { key: 'caravan', name: '낙타 대상로', segments: ['dunetrash', 'pokshin76'] },
   hotspring: { key: 'hotspring', name: '용암 온천장', segments: ['steamroom', 'mungsil', 'lavabath', 'bulttung'] },
   forge: { key: 'forge', name: '용암 대장간', segments: ['coldhearth', 'huggeun', 'anvilbridge', 'ttangttang'] },
   emberfoot: { key: 'emberfoot', name: '불꽃 봉우리 기슭', segments: ['hotgravel', 'kobold60'] },

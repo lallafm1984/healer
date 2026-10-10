@@ -11,7 +11,7 @@ import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, empowerBoss, heal, living, onDebuffEnd, randomTargets, setMax, spread, unitById } from './core';
 import { moveTo, scheduleReactions, zoneOf } from './movement';
 import { hotTick } from './units';
-import { during, immune, specBroken, specPhase, specReveal, specRewind, sv } from './specials';
+import { during, immune, specBroken, specPhase, specQuake, specReveal, specRewind, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
@@ -554,12 +554,15 @@ function linkPair(f: Fight, a: Unit, b: Unit, e: { kind: 'balance' | 'share'; na
   emit(f, { type: 'msg', text: `${e.name}: ${a.nick} · ${b.nick} 이어짐` });
 }
 
-/** 매 틱 생명 사슬: 한쪽이 쓰러지거나 시간이 다 되면 풀림. 균형형은 두 사람 체력 비율 차이가 gap을 넘으면 끊어지며 둘 다 피해 */
+/**
+ * 매 틱 생명 사슬: 한쪽이 쓰러지거나 시간이 다 되면 풀림. 균형형은 두 사람 체력 비율 차이가 gap을 넘으면 끊어지며 둘 다 피해.
+ * 모래시계 (P-GLASS) 창 안에서는 균형형이 안 끊기고 되돌린 뒤 다시 잼 (54 4-2 솔솔 · 살살: 뒤집기 전에 짝을 맞춰 두면 창 안에서 벌어져도 괜찮음)
+ */
 export function linksTick(f: Fight): void {
   for (const l of f.links.slice()) {
     const a = unitById(f, l.a), b = unitById(f, l.b);
     const done = !a?.alive || !b?.alive || f.t + 1e-9 >= l.until;
-    const snap = !done && l.kind === 'balance' && f.t + 1e-9 >= l.at + LINK_GRACE && Math.abs(a!.hp / a!.max - b!.hp / b!.max) > l.gap + 1e-9;
+    const snap = !done && l.kind === 'balance' && !f.glass.length && f.t + 1e-9 >= l.at + LINK_GRACE && Math.abs(a!.hp / a!.max - b!.hp / b!.max) > l.gap + 1e-9;
     if (!done && !snap) continue;
     f.links = f.links.filter(x => x !== l);
     for (const u of [a, b]) if (u) u.debuffs = u.debuffs.filter(d => !(d.link && (d.link.to === l.a || d.link.to === l.b)));
@@ -656,6 +659,7 @@ function quake(f: Fight, e: Extract<SkillEffect, { p: 'quake' }>): void {
   emit(f, { type: 'fx', name: 'shockwave', all: true });
   for (const u of living(f)) damage(f, u, e.dmg, true);
   quakeJump(f);
+  if (f.sp) specQuake(f); // 낙타 털실 반지 (54 6장)
 }
 
 /** 진동에 옮겨붙는 디버프 (메아리, P-JUMP on quake): 이웃 칸 아군 1명 (악몽 nMythic명)에게 남은 시간 그대로 · 초당 피해 × mult. 이웃이 없으면 사라짐 */
