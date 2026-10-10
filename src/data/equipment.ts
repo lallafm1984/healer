@@ -1,12 +1,15 @@
 /**
- * 힐러 장비 아이템 (02 10장, 34 6장 v0.2). 6부위, 부위마다 종류 2~3개 (종류마다 고정 옵션 1개), 등급 5단계, 클리어 때 랜덤 1개.
+ * 힐러 장비 아이템 (02 10장, 34 6장 v0.3). 6부위, 부위마다 종류 5개 (종류마다 고정 옵션 1~2개, 34 6-10), 등급 5단계, 클리어 때 랜덤 1개.
+ * 장소에서 나온 장비는 그 장소 세력의 생김새 (이름 · 그림, 성능 같음), 장소마다 고유 무기 · 방어구 (data/uniques).
  * 한 장비 = 주 능력치 (무기 지능 · 방어구 지능과 체력 · 장신구 없음) + 고정 옵션 + 추가 옵션 1~3줄 (등급 최대값의 60~100% 굴림).
  * 강화 +1~+10 (확률, +2 이상에서 실패하면 1단계 떨어짐, 34 6-5 · 12 3-2) · 분해 (골드 + 강화석, 12 3-1). 떨어지는 장비는 모두 +0.
  */
 import type { DiffName } from './difficulty';
 import type { GearStats, GradeName } from './gear';
 import type { HeroKey } from './heroes';
+import { CONTENT_PLACE, FACTIONS, PLACES, type FactionKey } from './places';
 import { FEATURED, namedFor, namedOf, SPEC_KEYS, SPECS, specTotals, specValue, type SpecLine, type SpecOn } from './specials';
+import { uniqueFor, uniqueOf, uniqueValue } from './uniques';
 
 export type SlotKey = 'weapon' | 'head' | 'chest' | 'hands' | 'ring' | 'neck';
 
@@ -57,26 +60,46 @@ export const PLUS_STEP = 0.08;
 /** 주 능력치 (영웅 +0, 34 6-5): 무기 지능 12% · 방어구 칸마다 지능 7% + 체력 5% · 장신구 없음 */
 export const MAIN: Record<SlotGroup, Partial<Record<StatKey, number>>> = { weapon: { int: 0.12 }, armor: { int: 0.07, hp: 0.05 }, acc: {} };
 
-/** 장비 종류 (34 6-2): 부위마다 2~3종, 종류마다 고정 옵션 1개 (값 = 그 옵션의 등급 최대값). 부위의 첫 종류 = 옛 장비가 받는 종류 */
-export interface KindDef { key: string; slot: SlotKey; name: string; fixed: StatKey }
+/**
+ * 장비 종류 (34 6-2 · 6-10): 부위마다 5종. 고정 옵션이 하나면 그 옵션의 등급 최대값, 둘이면 각각 DUAL_SHARE (합 1.2배).
+ * 부위의 첫 종류 = 옛 장비가 받는 종류. 그림 = item-<부위>-<종류> (첫 종류는 item-<부위>)
+ */
+export interface KindDef { key: string; slot: SlotKey; name: string; fixed: readonly StatKey[] }
+export const DUAL_SHARE = 0.6;
 export const KINDS: KindDef[] = [
-  { key: 'staff', slot: 'weapon', name: '지팡이', fixed: 'haste' },
-  { key: 'scepter', slot: 'weapon', name: '홀', fixed: 'crit' },
-  { key: 'mace', slot: 'weapon', name: '메이스', fixed: 'endure' },
-  { key: 'hood', slot: 'head', name: '두건', fixed: 'spirit' },
-  { key: 'crown', slot: 'head', name: '관', fixed: 'crit' },
-  { key: 'helm', slot: 'head', name: '투구', fixed: 'endure' },
-  { key: 'robe', slot: 'chest', name: '로브', fixed: 'spirit' },
-  { key: 'vestment', slot: 'chest', name: '법복', fixed: 'int' },
-  { key: 'mail', slot: 'chest', name: '사슬 조끼', fixed: 'endure' },
-  { key: 'gloves', slot: 'hands', name: '장갑', fixed: 'haste' },
-  { key: 'wraps', slot: 'hands', name: '손싸개', fixed: 'crit' },
-  { key: 'gauntlet', slot: 'hands', name: '건틀릿', fixed: 'endure' },
-  { key: 'ring', slot: 'ring', name: '반지', fixed: 'crit' },
-  { key: 'signet', slot: 'ring', name: '인장 반지', fixed: 'haste' },
-  { key: 'beads', slot: 'neck', name: '구슬 목걸이', fixed: 'spirit' },
-  { key: 'pendant', slot: 'neck', name: '펜던트', fixed: 'int' },
+  { key: 'staff', slot: 'weapon', name: '지팡이', fixed: ['haste'] },
+  { key: 'scepter', slot: 'weapon', name: '홀', fixed: ['crit'] },
+  { key: 'mace', slot: 'weapon', name: '메이스', fixed: ['endure'] },
+  { key: 'wand', slot: 'weapon', name: '완드', fixed: ['haste', 'spirit'] },
+  { key: 'relic', slot: 'weapon', name: '성물', fixed: ['int', 'crit'] },
+  { key: 'hood', slot: 'head', name: '두건', fixed: ['spirit'] },
+  { key: 'crown', slot: 'head', name: '관', fixed: ['crit'] },
+  { key: 'helm', slot: 'head', name: '투구', fixed: ['endure'] },
+  { key: 'wreath', slot: 'head', name: '화관', fixed: ['spirit', 'haste'] },
+  { key: 'plume', slot: 'head', name: '깃털 모자', fixed: ['crit', 'endure'] },
+  { key: 'robe', slot: 'chest', name: '로브', fixed: ['spirit'] },
+  { key: 'vestment', slot: 'chest', name: '법복', fixed: ['int'] },
+  { key: 'mail', slot: 'chest', name: '사슬 조끼', fixed: ['endure'] },
+  { key: 'habit', slot: 'chest', name: '수도복', fixed: ['spirit', 'endure'] },
+  { key: 'coat', slot: 'chest', name: '외투', fixed: ['haste', 'crit'] },
+  { key: 'gloves', slot: 'hands', name: '장갑', fixed: ['haste'] },
+  { key: 'wraps', slot: 'hands', name: '손싸개', fixed: ['crit'] },
+  { key: 'gauntlet', slot: 'hands', name: '건틀릿', fixed: ['endure'] },
+  { key: 'bracer', slot: 'hands', name: '팔찌', fixed: ['int', 'haste'] },
+  { key: 'sleeve', slot: 'hands', name: '토시', fixed: ['crit', 'spirit'] },
+  { key: 'ring', slot: 'ring', name: '반지', fixed: ['crit'] },
+  { key: 'signet', slot: 'ring', name: '인장 반지', fixed: ['haste'] },
+  { key: 'jade', slot: 'ring', name: '옥 반지', fixed: ['spirit'] },
+  { key: 'twin', slot: 'ring', name: '쌍가락지', fixed: ['crit', 'haste'] },
+  { key: 'stone', slot: 'ring', name: '돌 반지', fixed: ['endure', 'int'] },
+  { key: 'beads', slot: 'neck', name: '구슬 목걸이', fixed: ['spirit'] },
+  { key: 'pendant', slot: 'neck', name: '펜던트', fixed: ['int'] },
+  { key: 'medal', slot: 'neck', name: '메달', fixed: ['crit'] },
+  { key: 'amulet', slot: 'neck', name: '부적', fixed: ['endure', 'spirit'] },
+  { key: 'starneck', slot: 'neck', name: '별 목걸이', fixed: ['int', 'haste'] },
 ];
+/** 고정 옵션 한 개의 몫 (홑 = 1, 겹 = DUAL_SHARE) */
+export const fixedShare = (k: KindDef) => (k.fixed.length > 1 ? DUAL_SHARE : 1);
 export const kindsOf = (slot: SlotKey) => KINDS.filter(k => k.slot === slot);
 /** 종류 정의 (모르는 종류면 그 부위 첫 종류) */
 export const kindOf = (it: { slot: SlotKey; kind?: string }): KindDef => KINDS.find(k => k.key === it.kind && k.slot === it.slot) ?? kindsOf(it.slot)[0];
@@ -114,6 +137,10 @@ export interface GearItem {
   specs?: SpecLine[];
   /** 이름 있는 장신구 (42 3장): 고유 효과 키. 이름도 그 장신구 이름 */
   named?: string;
+  /** 고유 무기 · 방어구 (34 6-10 ③, data/uniques): 키. 이름도 그 장비 이름, 특수능력 하나가 1.5배로 고정 */
+  unique?: string;
+  /** 세력 생김새 (34 6-10 ②): 떨어진 장소의 세력. 이름에 세력 말이 붙고 그림이 다름 (성능 같음). 옛 저장 · 상점 · 임무 장비는 없음 */
+  look?: FactionKey;
   /** 잠금 (27 4-3): 분해 고르기·일괄 분해에서 빠짐. 옛 저장엔 없음 = 안 잠김 */
   lock?: boolean;
   /** 이 장비에서 재설정한 횟수 (34 6-8, 할수록 비쌈). 옛 저장엔 없음 = 0 */
@@ -125,12 +152,27 @@ export interface GearItem {
 export type Equipped = Partial<Record<SlotKey, GearItem>>;
 
 export const slotName = (k: SlotKey) => SLOTS.find(s => s.key === k)!.name;
-/** 이름: 등급 말 + 종류 (「축복받은 두건」). 이름 있는 장신구는 그 이름 (「녹슨 톱니」) */
-export const itemName = (it: { slot: SlotKey; kind?: string; grade: ItemGrade; named?: string }) => namedOf(it.named)?.name ?? `${GRADE_STYLE[it.grade].word} ${kindOf(it).name}`;
 
-/** 추가 옵션 n줄: 고정 옵션과 다른 능력치에서 서로 다르게, 값은 ROLL_MIN~1 굴림 */
-export function rollLines(r: () => number, n: number, fixed: StatKey): GearLine[] {
-  const pool = STAT_KEYS.filter(k => k !== fixed), out: GearLine[] = [];
+// ---------- 세력 생김새 (34 6-10 ②) ----------
+/** 세력 말: 이름 = 등급 말 + 세력 말 + 종류 (「축복받은 산호 로브」) */
+export const LOOK_WORD: Record<FactionKey, string> = {
+  golem: '톱니', plague: '잿빛', swamp: '이끼', noble: '백합', mage: '서리', hill: '해바라기', abyss: '별밤', pirate: '산호', fairy: '버섯', dragon: '불꽃',
+};
+/** 그 장소 (콘텐츠 키)의 세력. 장소가 없으면 없음 */
+export const lookOf = (place: string | undefined): FactionKey | undefined => {
+  const p = place ? CONTENT_PLACE[place as keyof typeof CONTENT_PLACE] : undefined;
+  return p ? PLACES[p].faction : undefined;
+};
+/** 생김새 색 (세력 색): 그림이 없는 생김새는 종류 그림 + 이 색 테두리 */
+export const lookColor = (f: FactionKey) => FACTIONS[f].color;
+
+/** 이름: 등급 말 + (세력 말) + 종류 (「축복받은 두건」 · 「축복받은 산호 두건」). 이름 있는 장신구 · 고유 장비는 그 이름 (「녹슨 톱니」) */
+export const itemName = (it: { slot: SlotKey; kind?: string; grade: ItemGrade; named?: string; unique?: string; look?: FactionKey }) =>
+  namedOf(it.named)?.name ?? uniqueOf(it.unique)?.name ?? [GRADE_STYLE[it.grade].word, it.look ? LOOK_WORD[it.look] : '', kindOf(it).name].filter(Boolean).join(' ');
+
+/** 추가 옵션 n줄: 고정 옵션 (둘 다)과 다른 능력치에서 서로 다르게, 값은 ROLL_MIN~1 굴림 */
+export function rollLines(r: () => number, n: number, fixed: readonly StatKey[]): GearLine[] {
+  const pool = STAT_KEYS.filter(k => !fixed.includes(k)), out: GearLine[] = [];
   for (let i = 0; i < n && pool.length; i++) {
     const stat = pool.splice(Math.floor(r() * pool.length), 1)[0];
     out.push({ stat, roll: Math.round((ROLL_MIN + (1 - ROLL_MIN) * r()) * 100) / 100 });
@@ -149,52 +191,71 @@ export const NAMED_CHANCE = 0.25;
 export const NAMED_MIN: ItemGrade = '희귀';
 
 /**
- * 장소마다 잘 나오는 장비 종류 (39 4장): 던전 3 · 탐험 2 · 레이드 층마다 1. 목록에 없는 종류도 나오지만 목록이 KIND_WEIGHT배.
- * 같은 세력 탐험 · 던전은 노리는 고정 옵션이 같음. 아직 없는 장소는 만들 때 더함
+ * 장소마다 잘 나오는 장비 종류 (39 4장, 34 6-10 ①에서 30종으로 다시 나눔): 던전 3 · 탐험 2 · 레이드 칸마다 1. 목록에 없는 종류도 나오지만 목록이 KIND_WEIGHT배.
+ * 같은 레벨대 (열림 ±5)에서 조합이 겹치지 않게. 세력 장소들의 목록을 합친 것이 그 세력의 생김새 (LOOKS). 아직 없는 장소는 만들 때 더함
  */
 export const PLACE_KINDS: Record<string, readonly string[]> = {
-  plateau: ['mace', 'helm'],
-  cemetery: ['hood', 'robe'],
-  rustfort: ['mace', 'helm', 'gauntlet'],
-  marsh: ['gloves', 'signet'],
-  crypt: ['hood', 'robe', 'beads'],
-  lily: ['scepter', 'crown'],
-  swamp: ['staff', 'gloves', 'signet'],
-  snowpass: ['staff', 'pendant'],
-  manor: ['scepter', 'crown', 'wraps'],
-  hillpath: ['beads', 'ring'],
-  frost: ['staff', 'vestment', 'pendant'],
-  pilgrim: ['helm', 'mail'],
-  temple: ['beads', 'ring', 'wraps'],
-  abyssedge: ['vestment', 'gauntlet'],
-  watchtower: ['helm', 'mail', 'gauntlet'],
-  // 묶음 B 옛 세력 (46 6장)
-  bookfield: ['vestment', 'signet'],
-  rosemaze: ['scepter', 'beads'],
-  sewer: ['hood', 'robe', 'pendant'],
-  archive: ['staff', 'vestment', 'signet'],
-  ossuary: ['scepter', 'ring', 'beads'],
-  abyss1: ['vestment'], abyss2: ['mail'], abyss3: ['wraps'], abyss4: ['gloves'], abyss5: ['pendant'],
-  // 묶음 B 짠물 해적단 (46 6장): 탐험은 종류 2, 레이드는 칸마다 1. 탑 칸 · 늪지 어귀와 같은 조합이 되지 않게 해변 · 부두 · 등대 · 갑판 · 창고 · 꼭대기를 46 표에서 바꿈
-  shellbeach: ['staff', 'gloves'],
-  wreck: ['ring', 'wraps'],
-  gull1: ['signet'], gull2: ['ring'], gull3: ['robe'],
-  queen1: ['scepter'], queen2: ['beads'], queen3: ['hood'],
-  isle1: ['staff'], isle2: ['crown'], isle3: ['mace'],
-  // 묶음 C (48 6장): 버섯 요정단은 정신력 · 지능, 용 일가 · 늪은 인내 (+ 가속 반지)
-  lampway: ['hood', 'beads'],
-  teaparty: ['robe', 'vestment', 'pendant'],
-  emberfoot: ['mace', 'gauntlet'],
-  mossroot: ['helm', 'mail', 'signet'],
-  // 묶음 C2 (48 6장): 레이드 칸 하나짜리 조합은 탑 · 해적단과 같아도 열림 ±5 밖이라 괜찮음 (같은 레벨대에서만 안 겹치게)
-  rainbow: ['vestment', 'beads'],
-  fest1: ['helm'], fest2: ['pendant'], fest3: ['robe'],
-  cave1: ['gloves'], cave2: ['vestment'], cave3: ['scepter'],
-  palace1: ['mail'], palace2: ['crown'], palace3: ['staff'],
+  // 버려진 골렘: 인내
+  plateau: ['mace', 'plume'],
+  rustfort: ['helm', 'gauntlet', 'stone'],
+  // 역병 교단: 정신력
+  cemetery: ['hood', 'habit'],
+  crypt: ['robe', 'beads', 'amulet'],
+  sewer: ['hood', 'pendant', 'habit'],
+  // 늪의 부족: 가속
+  marsh: ['gloves', 'wand'],
+  swamp: ['staff', 'signet', 'bracer'],
+  mossroot: ['helm', 'mail', 'wand'],
+  // 몰락한 귀족가: 치명타
+  lily: ['crown', 'relic'],
+  manor: ['scepter', 'wraps', 'sleeve'],
+  rosemaze: ['scepter', 'sleeve'],
+  ossuary: ['ring', 'beads', 'relic'],
+  // 폭주한 마도사: 지능 · 가속
+  snowpass: ['staff', 'starneck'],
+  frost: ['vestment', 'pendant', 'starneck'],
+  bookfield: ['signet', 'bracer'],
+  archive: ['staff', 'vestment', 'bracer'],
+  // 해바라기 언덕: 고루
+  hillpath: ['ring', 'wreath'],
+  pilgrim: ['helm', 'medal'],
+  temple: ['beads', 'wraps', 'medal'],
+  watchtower: ['mail', 'gauntlet', 'wreath'],
+  // 심연
+  abyssedge: ['vestment', 'stone'],
+  abyss1: ['vestment'], abyss2: ['coat'], abyss3: ['wraps'], abyss4: ['stone'], abyss5: ['pendant'],
+  // 짠물 해적단 (46 6장)
+  shellbeach: ['gloves', 'coat'],
+  wreck: ['wraps', 'twin'],
+  gull1: ['signet'], gull2: ['twin'], gull3: ['robe'],
+  queen1: ['relic'], queen2: ['beads'], queen3: ['hood'],
+  isle1: ['staff'], isle2: ['crown'], isle3: ['medal'],
+  // 버섯 요정단 (48 6장): 정신력 · 지능
+  lampway: ['hood', 'jade'],
+  rainbow: ['beads', 'wreath'],
+  teaparty: ['robe', 'pendant', 'amulet'],
+  fest1: ['wreath'], fest2: ['pendant'], fest3: ['robe'],
+  cave1: ['gloves'], cave2: ['amulet'], cave3: ['scepter'],
+  palace1: ['mail'], palace2: ['crown'], palace3: ['wand'],
+  // 붉은 용 일가: 인내
+  emberfoot: ['gauntlet', 'plume'],
 };
 export const KIND_WEIGHT = 3;
 
-/** 장소 목록이 있으면 16종류 중에서 (목록 KIND_WEIGHT배) 부위 · 종류를 함께 고름 */
+/** 세력 생김새 (34 6-10 ② · 도감): 세력 장소들에서 잘 나오는 종류. 이 종류만 세력 그림이 따로 있고, 나머지는 종류 그림 + 세력 색 테두리 */
+export const LOOKS: Record<FactionKey, string[]> = (() => {
+  const out = Object.fromEntries(Object.keys(LOOK_WORD).map(f => [f, [] as string[]])) as Record<FactionKey, string[]>;
+  for (const [place, ks] of Object.entries(PLACE_KINDS)) {
+    const f = lookOf(place);
+    if (f) for (const k of ks) if (!out[f].includes(k)) out[f].push(k);
+  }
+  for (const f of Object.keys(out) as FactionKey[]) out[f].sort((a, b) => KINDS.findIndex(k => k.key === a) - KINDS.findIndex(k => k.key === b));
+  return out;
+})();
+/** 이 장비가 세력 그림이 따로 있는 생김새인지 (아니면 종류 그림 + 세력 색 테두리) */
+export const hasLookArt = (it: { kind?: string; look?: FactionKey }) => !!it.look && !!it.kind && LOOKS[it.look].includes(it.kind);
+
+/** 장소 목록이 있으면 30종류 중에서 (목록 KIND_WEIGHT배) 부위 · 종류를 함께 고름 */
 export function pickKind(r: () => number, place: string): KindDef {
   const list = PLACE_KINDS[place] ?? [], w = KINDS.map(k => (list.includes(k.key) ? KIND_WEIGHT : 1));
   let x = r() * w.reduce((a, b) => a + b, 0), j = 0;
@@ -231,32 +292,47 @@ export function rollSpecs(r: () => number, slot: SlotKey, grade: ItemGrade, n: n
 /** 등급만큼 특수능력 줄 수 (고급은 확률) */
 export const specCount = (r: () => number, grade: ItemGrade): number => (grade === '고급' ? (r() < SPEC_ADV ? 1 : 0) : SPEC_LINES[grade]);
 
-/** 부위 · 등급이 정해진 장비 1개 (종류 · 추가 옵션 · 특수능력 굴림). kind를 주면 그 종류. o = 드롭 맥락 (직업 · 장소) */
+/**
+ * 부위 · 등급이 정해진 장비 1개 (종류 · 추가 옵션 · 특수능력 굴림). kind를 주면 그 종류. o = 드롭 맥락 (직업 · 장소).
+ * 장소가 있으면 이름 있는 장신구 · 고유 장비 (희귀 이상에서 NAMED_CHANCE)가 나올 수 있고, 아니면 그 장소 세력 생김새
+ */
 export function makeItem(r: () => number, slot: SlotKey, grade: ItemGrade, id: number, kind?: string, o: DropCtx = {}): GearItem {
-  const ks = kindsOf(slot), k = ks.find(x => x.key === kind) ?? ks[Math.floor(r() * ks.length)];
+  const gi = ITEM_GRADES.indexOf(grade);
+  // 고유 무기 · 방어구 (34 6-10 ③): 종류가 정해져 있고, 고정 특수능력 1줄 + 전설이면 무작위 1줄
+  const un = o.place ? uniqueFor(o.place, slot) : undefined;
+  const isUnique = !!un && gi >= ITEM_GRADES.indexOf(NAMED_MIN) && r() < NAMED_CHANCE;
+  const ks = kindsOf(slot), k = (isUnique ? ks.find(x => x.key === un!.kind) : ks.find(x => x.key === kind)) ?? ks[Math.floor(r() * ks.length)];
   const it: GearItem = { id, slot, kind: k.key, grade, plus: 0, name: '', lines: rollLines(r, EXTRA_LINES[grade], k.fixed), specs: [] };
   // 이름 있는 장신구 (42 3장): 고유 효과 1줄 + 전설이면 무작위 1줄
   const nm = o.place ? namedFor(o.place, slot) : undefined;
-  if (nm && ITEM_GRADES.indexOf(grade) >= ITEM_GRADES.indexOf(nm.min ?? NAMED_MIN) && r() < NAMED_CHANCE) {
+  if (isUnique) {
+    it.unique = un!.key;
+    it.specs = rollSpecs(r, slot, grade, SPEC_LINES[grade] - 1, o, [un!.spec]);
+  } else if (nm && gi >= ITEM_GRADES.indexOf(nm.min ?? NAMED_MIN) && r() < NAMED_CHANCE) {
     it.named = nm.key;
     it.specs = rollSpecs(r, slot, grade, SPEC_LINES[grade] - 1, o);
-  } else it.specs = rollSpecs(r, slot, grade, specCount(r, grade), o);
+  } else {
+    it.specs = rollSpecs(r, slot, grade, specCount(r, grade), o);
+    const look = lookOf(o.place);
+    if (look) it.look = look;
+  }
   it.name = itemName(it);
   return it;
 }
 
-/** 장비 한 개의 특수능력 값 (이름 있는 장신구 고유 효과 + 줄마다 값) */
+/** 장비 한 개의 특수능력 값 (이름 있는 장신구 고유 효과 · 고유 장비 고정 특수능력 + 줄마다 값) */
 export function itemSpecs(it: GearItem | null | undefined): SpecOn[] {
   if (!it) return [];
   const out: SpecOn[] = [];
-  const nm = namedOf(it.named);
+  const nm = namedOf(it.named), un = uniqueOf(it.unique);
   if (nm) out.push({ key: nm.key, v: nm.val });
+  if (un) out.push({ key: un.spec, v: uniqueValue(un, it.grade) });
   for (const l of it.specs ?? []) out.push({ key: l.key, v: specValue(l.key, it.grade, l.roll) });
   return out;
 }
 
-/** 장비 한 개의 특수능력 · 이름 있는 장신구 키 (도감용) */
-export const specKeysOf = (it: GearItem): string[] => [...(it.named ? [it.named] : []), ...(it.specs ?? []).map(l => l.key)];
+/** 장비 한 개의 특수능력 · 이름 있는 장신구 키 (도감용, 고유 장비는 고정 특수능력) */
+export const specKeysOf = (it: GearItem): string[] => [...(it.named ? [it.named] : []), ...(uniqueOf(it.unique) ? [uniqueOf(it.unique)!.spec] : []), ...(it.specs ?? []).map(l => l.key)];
 
 /** 착용 장비 → 전투에서 켜지는 특수능력 값 (42 1-3 · 1-5) */
 export const specsOf = (eq: Equipped, hero: HeroKey): Record<string, number> => specTotals(SLOTS.flatMap(s => itemSpecs(eq[s.key])), hero);
@@ -295,10 +371,10 @@ export function rerollCost(it: GearItem, spec: boolean): { gold: number; refined
   const m = spec ? SPEC_REROLL_MULT : 1;
   return { gold: REROLL_GOLD[it.grade] * (1 + (it.rr ?? 0)) * m, refined: m };
 }
-/** 추가 옵션 i번 줄 다시 굴림: 고정 옵션 · 다른 줄과 다른 능력치 (지금 능력치도 나올 수 있음), 각성 값은 사라짐 */
+/** 추가 옵션 i번 줄 다시 굴림: 고정 옵션 (둘 다) · 다른 줄과 다른 능력치 (지금 능력치도 나올 수 있음), 각성 값은 사라짐 */
 export function rerollLine(r: () => number, it: GearItem, i: number): GearLine {
   const fx = kindOf(it).fixed, others = it.lines.filter((_, j) => j !== i).map(l => l.stat);
-  const pool = STAT_KEYS.filter(k => k !== fx && !others.includes(k));
+  const pool = STAT_KEYS.filter(k => !fx.includes(k) && !others.includes(k));
   return { stat: pool[Math.floor(r() * pool.length)], roll: Math.round((ROLL_MIN + (1 - ROLL_MIN) * r()) * 100) / 100 };
 }
 /** 특수능력 i번 줄 다시 굴림: 같은 묶음 · 그 부위 · 등급 안에서 (직업 전용은 같은 직업), 다른 줄과 겹치지 않게. 지금 특수능력도 나올 수 있음 (값만 바뀜) */
@@ -316,10 +392,10 @@ export function rerollSpec(r: () => number, it: GearItem, i: number): SpecLine {
 export type StatSet = Record<StatKey, number>;
 export const noStats = (): StatSet => ({ int: 0, hp: 0, crit: 0, haste: 0, spirit: 0, endure: 0 });
 
-/** 고정 옵션 값: 그 능력치의 등급 최대값. 장신구는 강화로 오름 (34 6-5) */
-export function fixedOf(it: GearItem): { stat: StatKey; v: number } {
-  const k = kindOf(it), up = groupOf(it.slot) === 'acc' ? 1 + PLUS_STEP * it.plus : 1;
-  return { stat: k.fixed, v: STATS[k.fixed].max * GRADE_MULT[it.grade] * up };
+/** 고정 옵션 값 (1~2줄): 그 능력치의 등급 최대값 × 몫 (겹 옵션은 각각 DUAL_SHARE). 장신구는 강화로 함께 오름 (34 6-5) */
+export function fixedOf(it: GearItem): { stat: StatKey; v: number }[] {
+  const k = kindOf(it), up = groupOf(it.slot) === 'acc' ? 1 + PLUS_STEP * it.plus : 1, share = fixedShare(k);
+  return k.fixed.map(stat => ({ stat, v: STATS[stat].max * GRADE_MULT[it.grade] * share * up }));
 }
 /** 주 능력치 줄 (무기 지능 · 방어구 지능과 체력, 강화 반영). 장신구는 없음 */
 export function mainOf(it: GearItem): { stat: StatKey; v: number }[] {
@@ -336,8 +412,7 @@ export function itemStats(it: GearItem | null | undefined): StatSet {
   const s = noStats();
   if (!it) return s;
   for (const x of mainOf(it)) s[x.stat] += x.v;
-  const fx = fixedOf(it);
-  s[fx.stat] += fx.v;
+  for (const fx of fixedOf(it)) s[fx.stat] += fx.v;
   for (const l of it.lines ?? []) s[l.stat] += lineValue(it, l);
   return s;
 }
@@ -369,8 +444,8 @@ export function presetStats(grade: ItemGrade, plus: number): StatSet {
     for (const k of STAT_KEYS) if (main[k]) s[k] += main[k]! * m * up;
     for (const kd of ks) {
       const w = 1 / ks.length;
-      s[kd.fixed] += w * STATS[kd.fixed].max * m * (x.group === 'acc' ? up : 1);
-      const others = STAT_KEYS.filter(k => k !== kd.fixed);
+      for (const f of kd.fixed) s[f] += w * STATS[f].max * m * fixedShare(kd) * (x.group === 'acc' ? up : 1);
+      const others = STAT_KEYS.filter(k => !kd.fixed.includes(k));
       for (const k of others) s[k] += (w * EXTRA_LINES[grade] * STATS[k].max * m * mid) / others.length;
     }
   }
@@ -446,7 +521,7 @@ export function salvageOf(it: GearItem): { gold: number; stone: number; refined:
  */
 /** 장비 점수: 등급 + 강화 + 추가 옵션 굴림 + 특수능력 줄 (줄마다 SPEC_SCORE) */
 export const SPEC_SCORE = 0.15;
-export const itemScore = (it: GearItem | undefined) => (it ? ITEM_GRADES.indexOf(it.grade) + 1 + it.plus / 10 + (it.lines ?? []).reduce((a, l) => a + (l.roll - ROLL_MIN) / 4, 0) + SPEC_SCORE * ((it.specs?.length ?? 0) + (it.named ? 1 : 0)) : 0);
+export const itemScore = (it: GearItem | undefined) => (it ? ITEM_GRADES.indexOf(it.grade) + 1 + it.plus / 10 + (it.lines ?? []).reduce((a, l) => a + (l.roll - ROLL_MIN) / 4, 0) + SPEC_SCORE * ((it.specs?.length ?? 0) + (it.named || it.unique ? 1 : 0)) : 0);
 export const avgScore = (eq: Equipped) => SLOTS.reduce((a, s) => a + itemScore(eq[s.key]), 0) / SLOTS.length;
 
 /** 권장 장비 (02 2-2, 13): 어려움 = 고급, 악몽 = 희귀 +5. 미달이면 경고만 (입장은 허용) */

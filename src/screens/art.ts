@@ -55,6 +55,11 @@ export const KIND_ART: Record<string, string> = {
   gloves: 'item-hands', wraps: 'item-hands-wraps', gauntlet: 'item-hands-gauntlet',
   ring: 'item-ring', signet: 'item-ring-signet',
   beads: 'item-neck', pendant: 'item-neck-pendant',
+  // 34 6-10 ① 새 종류 14 (50 A)
+  wand: 'item-weapon-wand', relic: 'item-weapon-relic', wreath: 'item-head-wreath', plume: 'item-head-plume',
+  habit: 'item-chest-habit', coat: 'item-chest-coat', bracer: 'item-hands-bracer', sleeve: 'item-hands-sleeve',
+  medal: 'item-neck-medal', amulet: 'item-neck-amulet', starneck: 'item-neck-starneck',
+  jade: 'item-ring-jade', twin: 'item-ring-twin', stone: 'item-ring-stone',
 };
 /** 이름 있는 장신구 그림 (36 4-3 · 44 G · 47 H · 49 H): 장신구 키 → item-trinket-<이름>. 장신구 이름이 바뀌어도 파일 이름은 그대로 */
 export const TRINKET_ART: Record<string, string> = {
@@ -68,9 +73,11 @@ export const TRINKET_ART: Record<string, string> = {
 };
 /** 이름 있는 장신구 그림 주소 (없으면 '') */
 export const trinketArt = (named?: string): string => (named && TRINKET_ART[named] ? art(`item-trinket-${TRINKET_ART[named]}`) : '');
-/** 장비 그림 (36 4-2 · 4-3): 이름 있는 장신구 → 종류 (모르는 종류 = 부위 첫 종류) → 부위 (item-<부위>) → 부위 선 아이콘 */
-export function gearIcon(it: { slot: SlotKey; kind?: string; named?: string }): string {
-  const img = trinketArt(it.named) || art(KIND_ART[kindOf(it).key] ?? '') || art(`item-${it.slot}`);
+/** 장비 그림 (36 4-2 · 4-3 · 50 5장): 고유 장비 → 이름 있는 장신구 → 세력 생김새 (item-<부위>-<종류>-<세력>) → 종류 (모르는 종류 = 부위 첫 종류) → 부위 (item-<부위>) → 부위 선 아이콘 */
+export function gearIcon(it: { slot: SlotKey; kind?: string; named?: string; unique?: string; look?: FactionKey }): string {
+  const k = kindOf(it).key;
+  const img = (it.unique ? art(`item-unique-${it.unique}`) : '') || trinketArt(it.named)
+    || (it.look ? art(`item-${it.slot}-${k}-${it.look}`) : '') || art(KIND_ART[k] ?? '') || art(`item-${it.slot}`);
   return img ? `<img class="g-ic" src="${img}" alt="" decoding="async" draggable="false">` : uiIcon(it.slot);
 }
 /** 연출 그림 한 장 (36 4-4 · 4-6 fx-*): 없으면 '' (CSS 연출만) */

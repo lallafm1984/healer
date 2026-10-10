@@ -6,6 +6,7 @@ import type { DiffName } from '../data/difficulty';
 import { EXTRA_LINES, itemName, kindOf, rollLines, rollSpecs, specCount, specKeysOf, SLOTS, type Equipped, type GearItem } from '../data/equipment';
 import { rngFrom } from '../engine/rng';
 import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
+import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
 import type { GuildMember, PostTier } from '../data/guild';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { STARTER_BAG } from '../data/economy';
@@ -150,7 +151,7 @@ export interface SaveData {
    * seen = 캐릭터 › 장비에서 마지막으로 본 장비 id (이보다 큰 id = 새것 점, 27 4-2). 옛 저장엔 없어서 migrate가 채움.
    * codex = 얻은 적 있는 특수능력 · 이름 있는 장신구 키 (도감, 42 1-6). v8부터, 옛 저장은 가진 장비로 채움
    */
-  gear: { equipped: Equipped; bag: GearItem[]; seen?: number; codex: string[] };
+  gear: { equipped: Equipped; bag: GearItem[]; seen?: number; codex: string[]; /** 장비 도감 칸 (34 6-10 ④, data/dex). 옛 저장은 가진 장비로 채움 */ dex: string[]; /** 장비 도감 보상을 받은 단계 수 */ dexPaid: number };
   /** 강화 재료 (12 1장): 강화석 (+1~+5), 정제 강화석 (+6~+10) */
   mats: { stone: number; refined: number };
   /** 소비 아이템 단축칸 구성 */
@@ -210,7 +211,7 @@ export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'r
 export function newSave(now = Date.now()): SaveData {
   return {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
-    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0, codex: [] }, mats: { stone: 0, refined: 0 }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1, tut: 0,
+    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0, codex: [], dex: [], dexPaid: 0 }, mats: { stone: 0, refined: 0 }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1, tut: 0,
     hero: 'priest', heroes: {}, guild: newGuild(),
     wallet: { crystal: 0, shards: 0, merit: 0, ticket: 0 }, bag: { ...STARTER_BAG }, daily: newDaily(), weekly: newWeekly(),
     pass: { season: 0, xp: 0, premium: false, free: [], prem: [] }, member: 0, chalOpen: 1, decos: [], chalChest: 0, firstBuy: [],
@@ -286,7 +287,11 @@ function gearOf(o: Partial<SaveData>, hero: HeroKey, nextId: number): SaveData['
   // 가진 장비의 특수능력은 늘 도감에 (옛 저장 · migrate가 굴린 줄 포함)
   const codex = Array.isArray(g?.codex) ? g!.codex.filter(k => typeof k === 'string') : [];
   for (const it of [...SLOTS.map(s => equipped[s.key]), ...bag]) if (it) for (const k of specKeysOf(it)) if (!codex.includes(k)) codex.push(k);
-  return { equipped, bag, seen: typeof g?.seen === 'number' ? g.seen : (typeof o.nextId === 'number' ? o.nextId : nextId) - 1, codex };
+  // 장비 도감도 가진 장비로 채움 (34 6-10 ④)
+  const dex = Array.isArray(g?.dex) ? g!.dex.filter(k => typeof k === 'string') : [];
+  for (const it of [...SLOTS.map(s => equipped[s.key]), ...bag]) if (it) for (const k of dexKeysOf(it)) if (!dex.includes(k)) dex.push(k);
+  const dexPaid = typeof g?.dexPaid === 'number' ? g.dexPaid : 0;
+  return { equipped, bag, seen: typeof g?.seen === 'number' ? g.seen : (typeof o.nextId === 'number' ? o.nextId : nextId) - 1, codex, dex, dexPaid };
 }
 
 /**
@@ -294,12 +299,21 @@ function gearOf(o: Partial<SaveData>, hero: HeroKey, nextId: number): SaveData['
  * 그걸로 도감 묶음 하나를 다 모으면 칭호를 decos에 넣음
  */
 export function noteSpecs(d: SaveData, items: readonly (GearItem | null | undefined)[]): string[] {
+  noteDex(d, items);
   const out: string[] = [];
   for (const it of items) if (it) for (const k of specKeysOf(it)) if (!d.gear.codex.includes(k)) { d.gear.codex.push(k); out.push(k); }
   for (const k of out) {
     const g = codexGroupOf(k), t = g && SPEC_TITLES[g];
     if (t && !d.decos.includes(t) && codexKeys(g).every(x => d.gear.codex.includes(x))) d.decos.push(t);
   }
+  return out;
+}
+
+/** 새 장비를 장비 도감에 적고 처음 채운 칸을 돌려줌 (34 6-10 ④). 묶음 하나를 다 채우면 칭호를 decos에 넣음 */
+export function noteDex(d: SaveData, items: readonly (GearItem | null | undefined)[]): string[] {
+  const out: string[] = [];
+  for (const it of items) if (it) for (const k of dexKeysOf(it)) if (!d.gear.dex.includes(k)) { d.gear.dex.push(k); out.push(k); }
+  for (const t of DEX_TABS) if (out.some(k => dexTabOf(k) === t.key) && !d.decos.includes(t.title) && dexKeys(t.key).every(k => d.gear.dex.includes(k))) d.decos.push(t.title);
   return out;
 }
 

@@ -55,10 +55,17 @@ export default async function gear(url, shots) {
   ok(await page.getAttribute('#s-char .c7-bag:first-child', 'data-gitem') === '203', '새것순 = 최근 장비 먼저');
   await page.click('#s-char [data-bsort]'); await page.clock.runFor(50);
   await page.screenshot({ path: `${shots}/gear_list.png` });
-  // ---- 특수능력 도감 (42 1-6) ----
-  ok(/도감 3\/118/.test(await text('#s-char [data-codex]')), '가방 아래 「도감 3/118」 (옛 장비 이전 때 굴린 특수능력 3개)');
-  await page.click('#s-char [data-codex]'); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-char .c7-codex') && (await page.locator('#s-char [data-codexg]').count()) === 10 && (await page.locator('#s-char .c7-codex .c7-spec').count()) === 16, '도감 = 묶음 칩 10개 (9묶음 + 고유), 치유 16칸');
+  // ---- 장비 도감 (34 6-10 ④) → 특수능력 도감 (42 1-6) ----
+  ok(/도감/.test(await text('#s-char [data-dex]')) && (await page.locator('#s-char [data-dex] .g-badge').count()) === 0, '가방 아래 「도감」 (받을 보상 없음)');
+  await page.click('#s-char [data-dex]'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-char .c7-dex') && (await page.locator('#s-char [data-dext]').count()) === 4 && (await page.locator('#s-char .c7-dex .c7-spec').count()) === 30, '장비 도감 = 묶음 칩 4개 (종류 · 세력 · 장신구 · 고유), 종류 30칸');
+  ok((await page.locator('#s-char .c7-dex .c7-spec:not(.unk)').count()) === 6 && /6\/163/.test(await text('#s-char .c7-dex .c7-row')) && /10칸을 채우면/.test(await text('#s-char .c7-dexr')), '가진 장비 종류 6칸이 채워짐 (옛 장비 = 부위 첫 종류), 10칸마다 보상 안내');
+  await page.click('#s-char [data-dext="look"]'); await page.clock.runFor(50);
+  ok((await page.locator('#s-char .c7-dex .c7-spec.unk').count()) === 70 && /버섯 요정단/.test(await text('#s-char .c7-dex')), '세력 묶음 70칸 (못 얻은 칸 = 「?」 + 세력 · 나오는 곳)');
+  await page.screenshot({ path: `${shots}/gear_dex.png` });
+  ok(/특수능력 3\/118/.test(await text('#s-char .c7-dex [data-codex]')), '장비 도감 아래 「특수능력 3/118」 (옛 장비 이전 때 굴린 특수능력 3개)');
+  await page.click('#s-char .c7-dex [data-codex]'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-char .c7-codex') && (await page.locator('#s-char [data-codexg]').count()) === 10 && (await page.locator('#s-char .c7-codex .c7-spec').count()) === 16, '특수능력 도감 = 묶음 칩 10개 (9묶음 + 고유), 치유 16칸');
   ok((await page.locator('#s-char .c7-codex .c7-spec.unk').count()) === 16 && /다 모으면 칭호/.test(await text('#s-char .c7-codex')), '못 얻은 칸 = 「?」 + 나오는 곳, 칭호 안내');
   await page.click('#s-char [data-codexg="dispel"]'); await page.clock.runFor(50);
   ok(/해독초/.test(await text('#s-char .c7-codex')) && (await page.locator('#s-char .c7-codex .c7-spec:not(.unk)').count()) === 1, '해제 묶음: 얻은 「해독초」는 이름 · 효과');
@@ -130,6 +137,26 @@ export default async function gear(url, shots) {
   sv = await save();
   ok(sv.gear.equipped.neck?.id === 203 && sv.gear.bag.length === 0, '「바꾸기」 = 목걸이 장착');
   ok(await page.isDisabled('#s-char [data-rec]') && !(await page.isVisible('#s-char [data-csub="gear"] .rdot')), '바꿀 것 없으면 추천 장착 꺼짐, 빨간 점 없음');
+
+  // ---- 장비 도감 보상 (10칸마다) ----
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('healer.save'));
+    s.gear.dex = [...s.gear.dex, 'k:mace', 'k:helm', 'k:crown', 'k:wand', 'l:fairy:jade', 'u:guardianHelm'];
+    localStorage.setItem('healer.save', JSON.stringify(s));
+  });
+  await page.reload(); await page.clock.runFor(300); await pastTitle(page);
+  await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
+  await page.click('#s-char [data-bag]'); await page.clock.runFor(50);
+  ok((await page.locator('#s-char [data-dex] .g-badge').count()) === 1, '10칸을 넘기면 「도감」에 받을 보상 표시');
+  await page.click('#s-char [data-dex]'); await page.clock.runFor(50);
+  const g0 = (await save()).player.gold, s0 = (await save()).mats.stone;
+  ok(/보상 받기 · 골드 600 · 강화석 5/.test(await text('#s-char .c7-dexr')), '보상 받기 버튼 = 골드 600 · 강화석 5');
+  await page.click('#s-char [data-dexclaim]'); await page.clock.runFor(50);
+  sv = await save();
+  ok(sv.player.gold === g0 + 600 && sv.mats.stone === s0 + 5 && sv.gear.dexPaid === 1 && /20칸을 채우면/.test(await text('#s-char .c7-dexr')), `보상을 받으면 골드 · 강화석이 들어오고 다음 보상 안내 (${sv.player.gold - g0}, ${sv.mats.stone - s0})`);
+  await page.click('#s-char [data-dext="unique"]'); await page.clock.runFor(50);
+  ok(/신전 수호상 투구/.test(await text('#s-char .c7-dex')) && (await page.locator('#s-char .c7-dex .c7-spec').count()) === 28, '고유 묶음 28칸: 얻은 「신전 수호상 투구」는 이름 · 고유 특수능력');
+  await closeSheet();
 
   await ctx.close();
   await browser.close();

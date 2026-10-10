@@ -14,7 +14,7 @@ import type { ItemKey } from '../data/items';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
 import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, starsOf, type Grade } from '../data/progression';
-import { heroSaveOf, noteSpecs, type SaveData } from '../platform/storage';
+import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
 import { guildAfter, type GuildAfter } from './guild';
 import { bonusDiff, lootKey, meritFor, onRun, raidLootOpen, rollover } from './economy';
@@ -85,6 +85,8 @@ export interface Settlement {
   items: GearItem[];
   /** 그 장비로 처음 얻은 특수능력 · 이름 있는 장신구 키 (결과 화면 「새 특수능력!」, 42 1-6) */
   newSpecs: string[];
+  /** 그 장비로 처음 채운 장비 도감 칸 (34 6-10 ④, 결과 화면 「장비 도감 +n」) */
+  newDex: string[];
   /** 받은 강화 재료 (12 1장) */
   mats: { stone: number; refined: number };
   /** 이 콘텐츠·난이도 첫 클리어 */
@@ -157,7 +159,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const levelUps = addXp(p, xp);
 
   const items: GearItem[] = [];
-  let newSpecs: string[] = [];
+  let newSpecs: string[] = [], newDex: string[] = [];
   const mats = r.win ? clearMats(r.diff, raid) : { stone: 0, refined: 0 };
   // 레이드 장비는 보스마다 난이도별 주 1회 (13 3-4). 그 뒤엔 골드·공훈만
   const lootLocked = play && r.win && !!raid && !raidLootOpen(save, c.key, r.diff);
@@ -168,6 +170,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
       const n = play && c.kind !== 'explore' ? Math.max(1, c.bosses.length) : 1;
       for (let i = 0; i < n; i++) items.push(rollItem(rng, pubBonus ? bonusDiff(r.diff) : r.diff, grade!, levelBefore, save.nextId++, { hero: save.hero, place: c.key, cap: c.kind === 'explore' ? exploreCap(c.unlockLv) : undefined }));
       save.gear.bag.push(...items);
+      newDex = noteDex(save, items);
       newSpecs = noteSpecs(save, items);
       if (play && raid) save.weekly.loot.push(lootKey(c.key, r.diff));
     }
@@ -223,6 +226,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    gold, xp, levelBefore, levelUps, items, newSpecs, mats, first, best, heroQuest, guild, merit, crystal, lootLocked, pubBonus, missions, chal, cont, tutEnd,
+    gold, xp, levelBefore, levelUps, items, newSpecs, newDex, mats, first, best, heroQuest, guild, merit, crystal, lootLocked, pubBonus, missions, chal, cont, tutEnd,
   };
 }

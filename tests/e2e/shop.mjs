@@ -73,7 +73,7 @@ export default async function shop(url, shots) {
   ok((await page.locator('#s-shop .mgear [data-ex]').count()) === 6 && !/세트/.test(await text('#s-shop')), '공훈 = 영웅 장비 6부위 (세트 없음)');
   await page.click('#s-shop [data-ex="ring"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.wallet.merit === 20 && sv.gear.bag.some(i => i.slot === 'ring' && i.grade === '영웅' && /^성스러운 (인장 )?반지$/.test(i.name) && !('set' in i)), '공훈 100 → 성스러운 반지·인장 (영웅, 종류는 무작위)');
+  ok(sv.wallet.merit === 20 && sv.gear.bag.some(i => i.slot === 'ring' && i.grade === '영웅' && /^성스러운 (반지|인장 반지|옥 반지|쌍가락지|돌 반지)$/.test(i.name) && !('set' in i)), '공훈 100 → 성스러운 반지 5종 중 하나 (영웅, 종류는 무작위)');
 
   // ---- 시즌 패스 ----
   await page.click('#s-shop [data-sub="pass"]'); await page.clock.runFor(50);

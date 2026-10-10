@@ -125,9 +125,11 @@ function itemsHtml(x: Settlement): string {
     return h;
   }).join('');
   // 처음 얻은 특수능력은 장비가 여럿이어도 띠 하나로 (42 1-6): 묶음 표식 + 이름, 띠 머리에서 fx-spec-new 한 번 (36 4-6, 효과 줄이기면 없음)
-  const fresh = x.newSpecs ?? [];
+  // 처음 채운 장비 도감 칸 (34 6-10 ④)은 특수능력 띠가 있으면 그 꼬리에, 없으면 띠 하나로 (결과 화면이 한 줄 더 길어지지 않게)
+  const fresh = x.newSpecs ?? [], dex = x.newDex ?? [];
   const pop = G.save.settings.reducedEffects ? '' : fxArt('fx-spec-new', 'r-spnew');
-  return rows + (fresh.length ? `<p class="r-newsp"><b>새 특수능력!${pop}</b> ${fresh.map(k => specMark(k) + esc(specName(k))).join(' · ')} <span>도감에 적었습니다</span></p>` : '');
+  if (fresh.length) return rows + `<p class="r-newsp"><b>새 특수능력!${pop}</b> ${fresh.map(k => specMark(k) + esc(specName(k))).join(' · ')} <span>${dex.length ? `도감에 적음 · <b class="r-newdex">장비 도감 +${dex.length}</b>` : '도감에 적었습니다'}</span></p>`;
+  return rows + (dex.length ? `<p class="r-newsp"><b class="r-newdex">장비 도감 +${dex.length}</b> <span>캐릭터 → 가방 → 도감</span></p>` : '');
 }
 
 /** 특수능력 묶음 표식 (36 I spec-*, 이름 있는 장신구 = 그 장신구 그림). 그림이 없으면 이름만 */

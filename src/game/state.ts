@@ -1,4 +1,5 @@
 /** 게임 진행 상태 (기기 저장 한 덩어리) + 화면들이 같이 쓰는 규칙 */
+import { dexDue, type DexReward } from '../data/dex';
 import { contentOf, type ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HERO_KEYS, HERO_SWITCH_LV, HEROES, type HeroKey } from '../data/heroes';
@@ -200,6 +201,16 @@ export function salvage(ids: number[]): { n: number; gold: number; stone: number
   G.save.player.gold += got.gold; G.save.mats.stone += got.stone; G.save.mats.refined += got.refined;
   if (got.n) commit();
   return got;
+}
+
+/** 장비 도감 보상 받기 (34 6-10 ④): 채운 칸 DEX_STEP마다 쌓인 보상을 한 번에. 받을 게 없으면 steps 0 */
+export function claimDex(): DexReward & { steps: number } {
+  const g = G.save.gear, due = dexDue(g.dex.length, g.dexPaid);
+  if (!due.steps) return due;
+  g.dexPaid += due.steps;
+  G.save.player.gold += due.gold; G.save.mats.stone += due.stone; G.save.mats.refined += due.refined;
+  commit();
+  return due;
 }
 
 export const emptySlots = () => SLOTS.filter(s => !G.save.gear.equipped[s.key]).length;
