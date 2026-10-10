@@ -253,6 +253,10 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   deepstairs: ['hood', 'pendant'],
   abbey1: ['vestment'], abbey2: ['wand'], abbey3: ['amulet'],
   hourglass: ['robe', 'gloves', 'beads'],
+  // 묶음 E2 (54 6장)
+  dusk1: ['wreath'], dusk2: ['medal'], dusk3: ['relic'],
+  caravan: ['coat', 'twin'],
+  rootwood1: ['gauntlet'], rootwood2: ['stone'], rootwood3: ['mace'],
 };
 export const KIND_WEIGHT = 3;
 

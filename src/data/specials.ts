@@ -286,6 +286,10 @@ export const NAMED: NamedDef[] = [
   { key: 'jellyLight', name: '해파리 불빛', slot: 'ring', place: 'deepstairs', placeName: '물밑 계단', text: '고리 · 장판 안 아군에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
   { key: 'prayerKnot', name: '깊은잠의 기도 매듭', slot: 'neck', place: 'abbey3', placeName: '물밑 수도원 제단', text: '완치 표식 대상에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
   { key: 'backSand', name: '거꾸로 모래알', slot: 'ring', place: 'hourglass', placeName: '모래시계 궁전', text: '모래시계가 체력을 되돌릴 때 마나 {v} 회복', val: 3, unit: 'mana' },
+  // 묶음 E2 (54 6장, 이름 임시 · 그림 55): 10인 ⑪ 마지막 칸 · 탐험 ⑲ · 20인 ③ 마지막 칸
+  { key: 'featherBrooch', name: '사라샤의 깃털 브로치', slot: 'neck', place: 'dusk3', placeName: '노을 궁전 옥좌', text: '모래시계를 뒤집기 전 3초 (예고) 동안 하는 힐 +{v}', val: 0.15, unit: 'pct' },
+  { key: 'camelYarn', name: '낙타 털실 반지', slot: 'ring', place: 'caravan', placeName: '낙타 대상로', text: '진동 뒤 2초 동안 시전 시간 −{v}', val: 0.15, unit: 'pct', min: '고급' },
+  { key: 'heartShard', name: '심장뿌리 조각', slot: 'neck', place: 'rootwood3', placeName: '빛뿌리 숲 심장뿌리', text: '뒤집힘 저주가 걸린 아군이 체력 40~60%이면 받는 피해 −{v}', val: 0.15, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -407,6 +411,15 @@ export const FEATURED: Record<string, readonly string[]> = {
   abbey2: ['clearEye', 'quickAid', 'bigBowl'],
   abbey3: ['holdTogether', 'starClock', 'sunrise'],
   hourglass: ['woundClean', 'coldMedicine', 'thrifty'],
+  // 묶음 E2 (54 6장): 10인 ⑪ 분수 (모래시계 × 사슬) / 보물고 (탱커 교대 × 신기루) / 옥좌 (페이즈 · 신기루), 낙타 대상로 (진동),
+  // 20인 ③ 입구 (탱커 교대 · 끌어당김) / 온실 (자폭 쫄 · 쇠약) / 심장뿌리 (뒤집힘 · 부풀기)
+  dusk1: ['stillMoment', 'evenly', 'starClock'],
+  dusk2: ['hardShell', 'shieldFriend', 'twinShield'],
+  dusk3: ['sunrise', 'clearEye', 'constellation'],
+  caravan: ['cutBeat', 'windStep', 'thrifty'],
+  rootwood1: ['sturdyBack', 'prop', 'holdTogether'],
+  rootwood2: ['bombSquad', 'woundClean', 'evenly'],
+  rootwood3: ['holdingHand', 'starVeil', 'bigBowl'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

@@ -74,6 +74,11 @@ export const UNIQUES: UniqueDef[] = [
   // 20인 ② 물밑 수도원 (묶음 E1): 연못 · 서고
   { key: 'jellyVestment', name: '흐물이 해파리 법복', slot: 'chest', kind: 'vestment', place: 'abbey1', placeName: '물밑 수도원 연못', spec: 'wideEmbrace' },
   { key: 'mirrorWand', name: '비추미 거울 완드', slot: 'weapon', kind: 'wand', place: 'abbey2', placeName: '물밑 수도원 서고', spec: 'bounceLight' },
+  // 묶음 E2 (54 6장): 10인 ⑪ 분수 · 보물고 (보물고 메달은 장신구라 투구), 20인 ③ 입구 · 온실
+  { key: 'sandWreath', name: '솔솔 · 살살 모래 화관', slot: 'head', kind: 'wreath', place: 'dusk1', placeName: '노을 궁전 분수', spec: 'stillMoment' },
+  { key: 'shellHelm', name: '엉금이 등껍질 투구', slot: 'head', kind: 'helm', place: 'dusk2', placeName: '노을 궁전 보물고', spec: 'hardShell' },
+  { key: 'rootGauntlet', name: '뚜벅이 뿌리 건틀릿', slot: 'hands', kind: 'gauntlet', place: 'rootwood1', placeName: '빛뿌리 숲 입구', spec: 'heavyFeet' },
+  { key: 'seedHabit', name: '톡톡 씨앗 수도복', slot: 'chest', kind: 'habit', place: 'rootwood2', placeName: '빛뿌리 숲 온실', spec: 'bombSquad' },
 ];
 
 export const uniqueOf = (key: string | undefined) => (key ? UNIQUES.find(u => u.key === key) : undefined);

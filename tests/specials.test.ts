@@ -1,4 +1,4 @@
-/** 장비 특수능력 118종 + 이름 있는 장신구 46개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
+/** 장비 특수능력 118종 + 이름 있는 장신구 49개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { NAMED, SPEC_GROUPS, SPEC_KEYS, SPECS, specText, specTotals, specValue } from '../src/data/specials';
@@ -6,7 +6,7 @@ import { SKILLS } from '../src/data/skills';
 import * as E from '../src/engine';
 import { addDebuff, damage, heal } from '../src/engine/core';
 import { areaRadius, castOf, cdOf, costOf } from '../src/engine/talents';
-import { critBonus, during, hasteOf, healSpec, hotDone, intAmt, specBuster, specCut, specPhase, specTel } from '../src/engine/specials';
+import { critBonus, dmgSpec, during, hasteOf, healSpec, hotDone, intAmt, specBuster, specCut, specPhase, specTel } from '../src/engine/specials';
 import { moveTo, scheduleReactions } from '../src/engine/movement';
 import { reviveUnit } from '../src/engine/items';
 import { orderHeal, runEffect } from '../src/engine/bossParts';
@@ -56,14 +56,14 @@ const absorb = (u: U) => u.mods.find(m => m.k === 'absorb')?.v ?? 0;
 const healOn = (f: F, id: number) => { for (const e of f.events) if (e.type === 'heal' && e.id === id) return e.amt; return 0; };
 
 describe('데이터', () => {
-  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 46개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C +8 · 묶음 D1 +4 · D2 +3 · E1 +4)', () => {
+  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 49개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C +8 · 묶음 D1 +4 · D2 +3 · E1 +4 · E2 +3)', () => {
     expect(SPEC_KEYS.length).toBe(118);
     expect(new Set(SPEC_KEYS).size).toBe(118);
     const by = (g: string) => SPEC_KEYS.filter(k => SPECS[k].group === g).length;
     expect(Object.keys(SPEC_GROUPS).map(by)).toEqual([16, 16, 14, 12, 10, 8, 10, 8, 24]);
     expect(SPEC_KEYS.filter(k => SPECS[k].hero).length).toBe(24);
-    expect(NAMED.length).toBe(46);
-    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(164);
+    expect(NAMED.length).toBe(49);
+    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(167);
   });
   it('직업 전용은 영웅 이상, 효과 글에 값이 들어감', () => {
     for (const k of SPEC_KEYS) {
@@ -1106,6 +1106,31 @@ describe('3 이름 있는 장신구', () => {
     both([a, b], f => { f.mana = 50; runEffect(f, { name: '모래시계', st: {} } as unknown as BossSkill, { p: 'glass', sec: 1 }); });
     step(a, 1.05); step(b, 1.05);
     expect(a.mana - b.mana).toBeCloseTo(3, 4);
+  });
+  it('사라샤의 깃털 브로치: 모래시계 뒤집기 예고 동안 힐 +', () => {
+    const [a] = pair('featherBrooch', 0.15);
+    expect(healSpec(a, tank(a), true)).toBeCloseTo(1, 6);
+    a.tels.push({ id: 902, skill: { name: '모래시계 뒤집기', glass: true, st: {}, hit() {} } as unknown as BossSkill, kind: 'aoe', start: a.t, impact: a.t + 3, units: [], cells: new Set() });
+    expect(healSpec(a, tank(a), true)).toBeCloseTo(1.15, 6);
+    expect(healSpec(a, dealer(a), false)).toBeCloseTo(1.15, 6);
+  });
+  it('낙타 털실 반지: 진동 뒤 2초 동안 시전 시간 −', () => {
+    const [a, b] = pair('camelYarn', 0.15);
+    expect(castOf(a, 'heal') / castOf(b, 'heal')).toBeCloseTo(1, 6);
+    both([a, b], f => runEffect(f, { name: '진동', st: {} } as unknown as BossSkill, { p: 'quake', dmg: 0, lock: 0 }));
+    expect(castOf(a, 'heal') / castOf(b, 'heal')).toBeCloseTo(0.85, 6);
+    step(a, 2.1); step(b, 2.1);
+    expect(castOf(a, 'heal') / castOf(b, 'heal')).toBeCloseTo(1, 6);
+  });
+  it('심장뿌리 조각: 뒤집힘 저주가 걸린 아군이 40~60%이면 받는 피해 −', () => {
+    const [a] = pair('heartShard', 0.15);
+    const u = dealer(a);
+    u.hp = u.max * 0.5;
+    expect(dmgSpec(a, u)).toBeCloseTo(1, 6);
+    addDebuff(a, u, { name: '뒤집힌 박동', type: '저주', left: 10, end: { p: 'flip' } });
+    expect(dmgSpec(a, u)).toBeCloseTo(0.85, 6);
+    u.hp = u.max * 0.9;
+    expect(dmgSpec(a, u)).toBeCloseTo(1, 6);
   });
   it('광대버섯 왕관 조각: 해제하면 이웃 칸 아군의 같은 유형 디버프도 지움 (다른 유형 · 못 지우는 것은 그대로)', () => {
     const [a, b] = pair('amanitaShard', 1);

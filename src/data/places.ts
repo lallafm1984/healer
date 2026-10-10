@@ -15,7 +15,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'fest' | 'fest-stage' | 'fest-bonfire' | 'sporecave' | 'sporecave-pond' | 'sporecave-root' | 'palace' | 'palace-hall' | 'palace-throne'
   | 'ashpass' | 'hotspring' | 'forge' | 'den' | 'den-cart' | 'den-vault'
   | 'nest' | 'nest-bridge' | 'nest-hoard' | 'lakeshore' | 'cathedral-hall' | 'cathedral-organ' | 'cathedral-sanctum'
-  | 'bazaar' | 'bazaar-alley' | 'bazaar-gate' | 'deepstairs' | 'abbey' | 'abbey-library' | 'abbey-altar' | 'hourglass';
+  | 'bazaar' | 'bazaar-alley' | 'bazaar-gate' | 'deepstairs' | 'abbey' | 'abbey-library' | 'abbey-altar' | 'hourglass'
+  | 'dusk' | 'dusk-vault' | 'dusk-throne' | 'caravan' | 'rootwood' | 'rootwood-greenhouse' | 'rootwood-heart';
 
 export interface Faction {
   name: string;
@@ -140,6 +141,14 @@ export const PLACES: Record<PlaceKey, Place> = {
   'abbey-library': { key: 'abbey-library', name: '거울 서고', faction: 'abyss', tone: ['#222A38', '#0C0F15'], borrow: 'cathedral' },
   'abbey-altar': { key: 'abbey-altar', name: '잠의 제단', faction: 'abyss', tone: ['#26223A', '#0E0C16'], borrow: 'cathedral' },
   hourglass: { key: 'hourglass', name: '모래시계 궁전', faction: 'sand', tone: ['#3A3226', '#16130D'] },
+  // 묶음 E2 (54 1장, 그림 요청 55): 노을 궁전 · 낙타 대상로는 색 배경 (보물고 · 옥좌는 분수 그림을 빌림), 빛뿌리 숲 칸은 대성당 1구역 그림을 빌림
+  dusk: { key: 'dusk', name: '노을 궁전', faction: 'sand', tone: ['#40322A', '#19130F'] },
+  'dusk-vault': { key: 'dusk-vault', name: '보물고', faction: 'sand', tone: ['#3C3324', '#17130C'], borrow: 'dusk' },
+  'dusk-throne': { key: 'dusk-throne', name: '옥좌', faction: 'sand', tone: ['#422E2C', '#1A1110'], borrow: 'dusk' },
+  caravan: { key: 'caravan', name: '낙타 대상로', faction: 'sand', tone: ['#3E3428', '#18140E'] },
+  rootwood: { key: 'rootwood', name: '빛뿌리 숲', faction: 'abyss', tone: ['#1E2E30', '#0B1213'], borrow: 'cathedral' },
+  'rootwood-greenhouse': { key: 'rootwood-greenhouse', name: '온실', faction: 'abyss', tone: ['#20302A', '#0C1310'], borrow: 'cathedral' },
+  'rootwood-heart': { key: 'rootwood-heart', name: '심장뿌리', faction: 'abyss', tone: ['#2A2236', '#100D15'], borrow: 'cathedral' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -157,6 +166,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   ashpass: 'ashpass', hotspring: 'hotspring', forge: 'forge', den1: 'den', den2: 'den-cart', den3: 'den-vault',
   lakeshore: 'lakeshore', nest1: 'nest', nest2: 'nest-bridge', nest3: 'nest-hoard', cathedral2: 'cathedral-hall', cathedral3: 'cathedral-organ', cathedral4: 'cathedral-sanctum',
   bazaar1: 'bazaar', bazaar2: 'bazaar-alley', bazaar3: 'bazaar-gate', deepstairs: 'deepstairs', abbey1: 'abbey', abbey2: 'abbey-library', abbey3: 'abbey-altar', hourglass: 'hourglass',
+  dusk1: 'dusk', dusk2: 'dusk-vault', dusk3: 'dusk-throne', caravan: 'caravan', rootwood1: 'rootwood', rootwood2: 'rootwood-greenhouse', rootwood3: 'rootwood-heart',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -190,6 +200,8 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   kkubeok: 'bazaar', hokdol: 'bazaar-alley', nyanx: 'bazaar-gate', stairtrash: 'deepstairs', heumul72: 'deepstairs',
   heumul: 'abbey', bichumi: 'abbey-library', gipeun: 'abbey-altar',
   sandhall: 'hourglass', degul: 'hourglass', backgarden: 'hourglass', dooldool: 'hourglass',
+  solsol: 'dusk', eonggeum: 'dusk-vault', sarasha: 'dusk-throne', dunetrash: 'caravan', pokshin76: 'caravan',
+  ttubeok: 'rootwood', toktok: 'rootwood-greenhouse', kungkung: 'rootwood-heart',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

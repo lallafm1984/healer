@@ -12,7 +12,7 @@ import { bossSkillArt, bossSkillArtNames, fightSkillArt, GIMS, mobSkillArt, SKIL
 const DOC_GIM = ['full', 'wound', 'hunt', 'link', 'invert', 'over', 'quake', 'recoil', 'gaze', 'drain', 'charm', 'order', 'jump', 'safe', 'tower', 'pull', 'hole', 'stagger',
   'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass',
   'greed', 'melt', 'hatch', 'mirage', 'glass'].map(n => `icon-gim-${n}`);
-/** 37 4장 D (던전 ② ~ ⑥), 44 4장 D 1~4 (던전 ⑦), 47 4장 D 1~43 (묶음 B), 49 4장 D 1~35 (묶음 C), 52 4장 D 1~25 (묶음 D), 55 4장 D (묶음 E1 보스만): 보스 → 장 수 */
+/** 37 4장 D (던전 ② ~ ⑥), 44 4장 D 1~4 (던전 ⑦), 47 4장 D 1~43 (묶음 B), 49 4장 D 1~35 (묶음 C), 52 4장 D 1~25 (묶음 D), 55 4장 D (묶음 E1 · E2 보스만): 보스 → 장 수 */
 const DOC_BSK_N: Record<string, number> = {
   collector: 2, malchor: 3, shaman: 1, toad: 3, seres: 2, butler: 4, lady: 1, belmore: 3, runegolem: 3, mage: 2, shadow: 2, guardian: 2, keeper: 2,
   sentinel: 2, crystal: 2, ratking: 2, carrier: 2, librarian: 2, scholar: 3, priestess: 3, sleeper: 2,
@@ -21,6 +21,7 @@ const DOC_BSK_N: Record<string, number> = {
   mungsil: 2, bulttung: 2, huggeun: 3, ttangttang: 2, deolkeong: 2, beonjjeok: 2,
   whelps: 1, dandani: 2, rubina: 4, knights: 1, uwoong: 1, ormal: 3,
   degul: 2, dooldool: 3, hokdol: 2, nyanx: 1, heumul: 1, bichumi: 2, gipeun: 2,
+  solsal: 1, eonggeum: 3, sarasha: 4, ttubeok: 2, toktok: 1, kungkung: 1,
 };
 /** 55 4장 D 1~2: 모래 왕국 공용 (모래 기침 · 천 년 졸음) */
 const DOC_BSK = [...Object.entries(DOC_BSK_N).flatMap(([b, n]) => Array.from({ length: n }, (_, i) => `icon-bsk-${b}-${i + 1}`)), 'icon-bsk-sand-cough', 'icon-bsk-sand-sleepy'];
@@ -102,6 +103,11 @@ describe('기술 아이콘 이름', () => {
     expect(one('nyanx', 'tail')).toEqual(['icon-gim-mirage']);
     expect(one('degul', 'glass')).toEqual(['icon-gim-glass']);
     expect(one('dooldool', 'glassm')).toEqual(['icon-gim-glass']);
+    expect(one('eonggeum', 'ram')).toEqual(['icon-gim-mirage']); // 탱커 버스터 × 신기루
+    expect(one('solsol', 'chain')).toEqual(['icon-gim-link']);
+    expect(one('sarasha', 'glass')).toEqual(['icon-gim-glass']);
+    expect(one('ttubeok', 'pull')).toEqual(['icon-gim-pull']);
+    expect(one('kungkung', 'flip')).toEqual(['icon-gim-flip']);
   });
 
   it('구간 적 기술: 그림 이름이 없거나 icon-mob- · icon-bsk-', () => {

@@ -189,6 +189,15 @@ const ENC_ART: Record<string, string[]> = {
   stairtrash: ['mob-void-servant', 'mob-black-eye'],
   sandhall: ['mob-sand-soldier', 'mob-scarab-slinger'],
   backgarden: ['mob-sphinx-statue', 'mob-bandage-servant', 'mob-sand-soldier'],
+  // 묶음 E2 (그림 요청 55). 탐험 ⑲ 폭신이는 10인 ⑫ 그림을 같이 씀
+  solsol: ['boss-sand-twins'],
+  eonggeum: ['boss-vault-turtle'],
+  sarasha: ['boss-dusk-queen'],
+  pokshin76: ['boss-pillow-golem'],
+  ttubeok: ['boss-root-giant'],
+  toktok: ['boss-seed-granny'],
+  kungkung: ['boss-heart-root'],
+  dunetrash: ['mob-sand-soldier', 'mob-bandage-servant'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {

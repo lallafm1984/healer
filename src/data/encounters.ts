@@ -17,7 +17,8 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'pollenfield' | 'queen56' | 'songi' | 'pililli' | 'ponga' | 'mungge' | 'gaegul' | 'morak' | 'bungbung' | 'ppyong' | 'amanita'
   | 'warmash' | 'mungsil64' | 'steamroom' | 'mungsil' | 'lavabath' | 'bulttung' | 'coldhearth' | 'huggeun' | 'anvilbridge' | 'ttangttang' | 'kkojil' | 'deolkeong' | 'beonjjeok'
   | 'whelps' | 'dandani' | 'rubina' | 'shoretrash' | 'knights68' | 'knights' | 'uwoong' | 'ormal'
-  | 'kkubeok' | 'hokdol' | 'nyanx' | 'stairtrash' | 'heumul72' | 'heumul' | 'bichumi' | 'gipeun' | 'sandhall' | 'degul' | 'backgarden' | 'dooldool';
+  | 'kkubeok' | 'hokdol' | 'nyanx' | 'stairtrash' | 'heumul72' | 'heumul' | 'bichumi' | 'gipeun' | 'sandhall' | 'degul' | 'backgarden' | 'dooldool'
+  | 'solsol' | 'eonggeum' | 'sarasha' | 'dunetrash' | 'pokshin76' | 'ttubeok' | 'toktok' | 'kungkung';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -28,7 +29,8 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'queen56' | 'songi' | 'pililli' | 'ponga' | 'mungge' | 'gaegul' | 'morak' | 'bungbung' | 'ppyong' | 'amanita'
   | 'mungsil64' | 'mungsil' | 'bulttung' | 'huggeun' | 'ttangttang' | 'kkojil' | 'deolkeong' | 'beonjjeok'
   | 'whelps' | 'dandani' | 'rubina' | 'knights68' | 'knights' | 'uwoong' | 'ormal'
-  | 'kkubeok' | 'hokdol' | 'nyanx' | 'heumul72' | 'heumul' | 'bichumi' | 'gipeun' | 'degul' | 'dooldool';
+  | 'kkubeok' | 'hokdol' | 'nyanx' | 'heumul72' | 'heumul' | 'bichumi' | 'gipeun' | 'degul' | 'dooldool'
+  | 'solsol' | 'eonggeum' | 'sarasha' | 'pokshin76' | 'ttubeok' | 'toktok' | 'kungkung';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -646,6 +648,24 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     },
   ], { debuffs: ['질병', '저주'] }),
   dooldool: { key: 'dooldool', lowLevel: true, name: '붕대 집사 둘둘이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7200, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'dooldool', stage: 0.25, debuffs: ['저주'] },
+  // ---------- 묶음 E2 (54 1장 · 4-2 · 4-5) ----------
+  // 10인 ⑪ 노을 궁전 (Lv 75 · 악몽 90). 솔솔 · 살살 몸통 체력 = hp ÷ 2 (bosses SPRITE_HP와 같게 맞출 것)
+  solsol: { key: 'solsol', name: '모래 정령 솔솔 · 살살', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 23300, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'solsol', stage: 0.18, debuffs: ['질병'] },
+  eonggeum: { key: 'eonggeum', name: '보물고 거북 엉금이', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 24000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'eonggeum', stage: 0.18, debuffs: ['저주'] },
+  sarasha: { key: 'sarasha', name: '노을 여왕 사라샤', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 23500, enrage: 480, manaCoef: 1.5, diffs: ALL, script: 'sarasha', stage: 0.18, debuffs: ['질병', '저주'] },
+  // 탐험 ⑲ 「낙타 대상로」 (54 1-1, Lv 76, 모래 왕국 졸개 · 질병만): 모래 언덕 길 → 베개 골렘 폭신이 (신기루 × 진동, 10인 낮잠 피라미드 복도 예습)
+  dunetrash: trash('dunetrash', '모래 언덕 길', [
+    { name: '모래 병정', hp: 170, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '붕대 시종', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'wrap', name: '하품 붕대', icon: '붕대', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: [SAND_WRAP[0]] } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['질병'] }),
+  pokshin76: { key: 'pokshin76', lowLevel: true, name: '베개 골렘 폭신이', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3000, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'pokshin76', stage: 0.3 },
+  // 20인 ③ 빛뿌리 숲 (Lv 76 · 악몽 86)
+  ttubeok: { key: 'ttubeok', name: '뿌리 거인 뚜벅이', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 48400, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'ttubeok', big: true, stage: 0.13 },
+  toktok: { key: 'toktok', name: '씨앗 할머니 톡톡', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 47300, enrage: 390, manaCoef: 1.6, diffs: ALL, script: 'toktok', big: true, stage: 0.13, debuffs: ['질병'] },
+  kungkung: { key: 'kungkung', name: '심장의 뿌리 쿵쿵', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 49000, enrage: 480, manaCoef: 1.6, diffs: ALL, script: 'kungkung', big: true, stage: 0.13, debuffs: ['저주', '마법'] },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

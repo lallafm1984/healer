@@ -107,6 +107,13 @@ const BSK: Partial<Record<BossKey, Record<string, string>>> = {
   gipeun: { buster: 'icon-bsk-gipeun-1', touch: 'icon-bsk-ormal-2', beat: 'icon-bsk-gipeun-2' },
   degul: { buster: 'icon-bsk-degul-1', roll: 'icon-bsk-degul-2', roll2: 'icon-bsk-degul-2', rollm: 'icon-bsk-degul-2', rollm2: 'icon-bsk-degul-2', cough: 'icon-bsk-sand-cough' },
   dooldool: { buster: 'icon-bsk-dooldool-1', wrap: 'icon-bsk-dooldool-2', wrap2: 'icon-bsk-dooldool-2', hush: 'icon-bsk-dooldool-3', sleepy: 'icon-bsk-sand-sleepy' },
+  // 묶음 E2 (55 4장 D 15 ~ 22 · 33 ~ 37)
+  solsol: { sting: 'icon-bsk-solsal-1', sting2: 'icon-bsk-solsal-1', sting3: 'icon-bsk-solsal-1', cough: 'icon-bsk-sand-cough' },
+  eonggeum: { shell: 'icon-bsk-eonggeum-1', bog0: 'icon-bsk-eonggeum-2', bog1: 'icon-bsk-eonggeum-2', count: 'icon-bsk-eonggeum-3' },
+  sarasha: { buster: 'icon-bsk-sarasha-1', fan: 'icon-bsk-sarasha-2', whirl: 'icon-bsk-sarasha-3', whirl2: 'icon-bsk-sarasha-3', sigh: 'icon-bsk-sarasha-4' },
+  ttubeok: { press: 'icon-bsk-ttubeok-1', rise0: 'icon-bsk-ttubeok-2', rise1: 'icon-bsk-ttubeok-2', rise2: 'icon-bsk-ttubeok-2', rise3: 'icon-bsk-ttubeok-2' },
+  toktok: { pollen: 'icon-bsk-toktok-1' },
+  kungkung: { buster: 'icon-bsk-kungkung-1', beat: 'icon-bsk-gipeun-2' },
 };
 /** 데이터 부품만으로는 안 보이는 기믹 (35 4장 표): 서리 손길 · 빗자루 = 버스터 + 썩는 상처 (서리 · 먼지 범벅), 얼어붙는 바닥 · 바닥이 언다 = 장판 → 무너지는 바닥 */
 const GIM_KEY: Partial<Record<BossKey, Record<string, Gim>>> = {

@@ -72,6 +72,7 @@ export const TRINKET_ART: Record<string, string> = {
   festInvite: 'festinvite', rainbowSpore: 'rainbowspore', mossBrooch: 'mossbrooch', amanitaShard: 'amanitashard',
   koboldWarrant: 'warrant', warmPebble: 'warmpebble', spaTowel: 'spatowel', coldAnvil: 'coldanvil', rubinaPearl: 'rubypearl', lakePebble: 'lakepebble', threeShards: 'threeshards', // 52 4장 I
   riddleNote: 'riddlenote', jellyLight: 'jellylight', prayerKnot: 'prayerknot', backSand: 'backsand', // 55 4장 I
+  featherBrooch: 'featherbrooch', camelYarn: 'camelyarn', heartShard: 'heartroot', // 55 4장 I 5 ~ 7
 };
 /** 이름 있는 장신구 그림 주소 (없으면 '') */
 export const trinketArt = (named?: string): string => (named && TRINKET_ART[named] ? art(`item-trinket-${TRINKET_ART[named]}`) : '');
