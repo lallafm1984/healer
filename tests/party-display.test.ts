@@ -5,15 +5,24 @@ import type { Debuff } from '../src/engine/types';
 const debuff = (extra: Partial<Debuff> = {}): Debuff => ({ id: 1, name: '부패', type: '질병', left: 4.1, ...extra });
 
 describe('작은 전투 칸 표시', () => {
-  it('작은 20인 칸도 HP 12px, 이름 11px보다 작게 줄이지 않는다', () => {
+  it('작은 20인 칸도 HP 12px 아래로 줄이지 않고, 이름은 칸 크기를 따라 9px까지 줄인다', () => {
     for (const scale of [20.75, 27, 30, 35.9]) {
       const fonts = cellTypography(scale);
       expect(fonts.compact).toBe(true);
       expect(fonts.hp).toBeGreaterThanOrEqual(12);
       expect(fonts.hp).toBeLessThanOrEqual(14);
-      expect(fonts.nick).toBeGreaterThanOrEqual(11);
+      expect(fonts.nick).toBeGreaterThanOrEqual(9);
+      expect(fonts.nick).toBeLessThan(11);
     }
     expect(cellTypography(36).compact).toBe(false);
+  });
+  it('이름 글자는 칸이 작을수록 작고, 큰 칸은 예전 크기 (0.24배, 11px 이상)', () => {
+    const scales = [20, 29, 32.3, 34.5, 36.4, 38.4, 43.1, 51.8, 59.3, 77.7];
+    const nicks = scales.map(scale => cellTypography(scale).nick);
+    nicks.slice(1).forEach((n, i) => expect(n).toBeGreaterThanOrEqual(nicks[i]));
+    expect(cellTypography(29).nick).toBeCloseTo(9, 5);
+    expect(cellTypography(51.8).nick).toBeCloseTo(51.8 * 0.24, 5);
+    expect(cellTypography(43.1).nick).toBe(11);
   });
   it('칸 확대 중 절대 HP 표시 경계에서도 글자가 작아지지 않는다', () => {
     expect(cellTypography(36).hp).toBeGreaterThanOrEqual(cellTypography(35.9).hp);

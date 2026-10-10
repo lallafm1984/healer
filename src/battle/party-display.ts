@@ -8,7 +8,8 @@ export function cellTypography(scale: number): { compact: boolean; hp: number; n
     compact,
     // 칸을 확대해 절대 HP 표시로 바뀌는 경계에서도 글자가 14→12px로 줄지 않는다.
     hp: compact ? Math.max(12, Math.min(14, scale * 0.4)) : Math.max(14, scale * 0.28),
-    nick: Math.max(11, scale * 0.24),
+    // 이름은 칸 크기를 따라 작아짐 (2026-10-10 Lim): 작은 칸 (10·20인)은 0.3배, 9px까지. 큰 칸은 예전처럼 0.24배 (11px 이상)
+    nick: Math.min(Math.max(9, scale * 0.3), Math.max(11, scale * 0.24)),
     debuff: Math.max(11, scale * 0.2),
   };
 }
