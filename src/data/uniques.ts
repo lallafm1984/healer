@@ -85,6 +85,12 @@ export const UNIQUES: UniqueDef[] = [
   { key: 'clawMace', name: '딱딱이 집게 메이스', slot: 'weapon', kind: 'mace', place: 'reservoir1', placeName: '별빛 저수지 수문', spec: 'chainBreaker' },
   { key: 'sparkSleeve', name: '찌릿 번개 토시', slot: 'hands', kind: 'sleeve', place: 'reservoir2', placeName: '별빛 저수지 다리', spec: 'thrifty' },
   { key: 'sundialCrown', name: '그늘지기의 해시계 관', slot: 'head', kind: 'crown', place: 'observatory', placeName: '해시계 천문대', spec: 'starClock' },
+  // 묶음 F1 (56 6장): 20인 ⑤ 도르래 · 이끼벽 (수도복은 낮잠 피라미드 복도와 겹쳐 로브로), 10인 ⑬ 접수대 · 분류실, 던전 ⑰
+  { key: 'bucketHood', name: '출렁이 두레박 두건', slot: 'head', kind: 'hood', place: 'well1', placeName: '숨결 우물 도르래', spec: 'numberSense' },
+  { key: 'mossRobe', name: '푸석이 이끼 로브', slot: 'chest', kind: 'robe', place: 'well2', placeName: '숨결 우물 이끼벽', spec: 'fadingMiasma' },
+  { key: 'courierPlume', name: '휘리릭 우편 깃털 모자', slot: 'head', kind: 'plume', place: 'post1', placeName: '구름 우체국 접수대', spec: 'drumbeat' },
+  { key: 'ribbonGloves', name: '꽁꽁이 리본 장갑', slot: 'hands', kind: 'gloves', place: 'post2', placeName: '구름 우체국 분류실', spec: 'layer' },
+  { key: 'vaneScepter', name: '돌개의 풍차 날개 홀', slot: 'weapon', kind: 'scepter', place: 'windmill', placeName: '천둥 풍차', spec: 'bounceLight' },
 ];
 
 export const uniqueOf = (key: string | undefined) => (key ? UNIQUES.find(u => u.key === key) : undefined);

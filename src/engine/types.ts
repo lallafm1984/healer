@@ -202,6 +202,11 @@ export interface Unit {
   pulled?: { until: number; cell: number; dmg: number } | null;
   /** 받침 (P-TOWER): 이 시각까지 발판에 머묾 (제자리로 안 돌아감) */
   padUntil?: number;
+  /**
+   * 띄워 올리기 (P-LIFT, 56 5장): until까지 하늘에 떠 있음 (새 힐 · 해제 · 보스 기술이 안 닿고 딜 0, 미리 건 지속 힐 · 지속 피해만).
+   * fall = 내려올 때 피해 (aim 기준), chain = 내려오는 순간 이 사람에게서 연쇄 번개, land = random 무작위 빈 칸 · free 떠 있는 동안 칸을 비움 (같으면 제자리)
+   */
+  lift?: { until: number; fall: number; aim: 'tank' | 'party'; chain?: { dmg: number; jumps: number; grow: number; name: string }; land?: 'random' | 'free' } | null;
   /** 옮겨붙음을 들고 비켜 선 동안 (P-JUMP): 원래 자리로 안 돌아감 */
   awayUntil?: number;
   /** 헤매는 영혼 (P-SOUL): 파티원이 아닌 영혼 칸 (Fight.souls). 파티 목록에는 없음 */
@@ -330,6 +335,10 @@ export interface BossSkill {
   decoy?: { gap: number; stunMythic?: number };
   /** 신기루 피난처 (54 4-3): 가짜 안전 칸 묶음 = 진짜와 반대쪽 끝 (맞는 칸을 돌려줌) */
   mirrorCells?: (f: Fight) => Set<number>;
+  /** 띄워 올리기 (P-LIFT, 56 5장): 예고 칸에 회오리, 자동 힐러가 예고 동안 대상에게 지속 힐 · 해제를 먼저. pre = 예고가 뜰 때 대상에게 거는 디버프 */
+  lift?: { pre?: DebuffDef };
+  /** 연쇄 번개 (P-CHAIN, 56 5장): 예고 칸에 번개 구름, 자동 힐러가 예고 동안 대상 이웃을 90% 위로 */
+  chain?: boolean;
   /** 부품 상태 (장판 좌우 번갈아·성부 차례 등, engine/bossParts.ts) */
   st: Record<string, number | boolean>;
 }
@@ -417,7 +426,9 @@ export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crum
   /** 묶음 D 새 부품 (51 5장, 그림 52): 보물 욕심 금화가 날아감 · 녹는 보호막 열기 · 알이 깨짐 */
   | 'greed-coin' | 'melt-heat' | 'egg-hatch' | 'dragon-breath' | 'door-open'
   /** 묶음 E 새 부품 (54 5장, 그림 55 E): 신기루가 걷힘 · 모래시계를 뒤집음 (보스) · 체력이 되감김 · 모래 폭풍 · 하품 · 심장 박동 */
-  | 'mirage-shimmer' | 'hourglass-flip' | 'sand-rewind' | 'sandstorm' | 'yawn' | 'heartbeat';
+  | 'mirage-shimmer' | 'hourglass-flip' | 'sand-rewind' | 'sandstorm' | 'yawn' | 'heartbeat'
+  /** 묶음 F 새 부품 (56 5장, 그림 57 E): 회오리가 띄워 올림 · 구름에서 내려앉음 · 번개가 하늘에서 떨어짐 · 이웃으로 튐 (on → to) · 피뢰침에서 땅으로 빠짐 */
+  | 'lift-swirl' | 'land-puff' | 'chain-strike' | 'chain-bolt' | 'chain-rod';
 
 export type FightResult = 'win' | 'lose';
 

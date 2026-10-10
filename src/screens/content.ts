@@ -60,7 +60,8 @@ const SHORT: Partial<Record<ContentKey, string>> = { crypt: '지하묘지', mano
   cathedral2: '대성당 회랑', cathedral3: '대성당 오르간', cathedral4: '대성당 성소',
   bazaar1: '시장 입구', bazaar2: '시장 골목', bazaar3: '시장 성문', abbey1: '수도원 연못', abbey2: '수도원 서고', abbey3: '수도원 제단',
   dusk1: '노을 분수', dusk2: '노을 보물고', dusk3: '노을 옥좌', rootwood1: '숲 입구', rootwood2: '숲 온실', rootwood3: '숲 심장뿌리',
-  pyramid1: '피라미드 복도', pyramid2: '피라미드 시계방', pyramid3: '피라미드 침실', reservoir1: '저수지 수문', reservoir2: '저수지 다리', reservoir3: '저수지 거울호수' };
+  pyramid1: '피라미드 복도', pyramid2: '피라미드 시계방', pyramid3: '피라미드 침실', reservoir1: '저수지 수문', reservoir2: '저수지 다리', reservoir3: '저수지 거울호수',
+  well1: '우물 도르래', well2: '우물 이끼벽', well3: '우물 바닥', post1: '우체국 접수대', post2: '우체국 분류실', post3: '우체국 옥상' };
 
 /** 마지막으로 고른 분류 (27 3-1) */
 let tab: Tab = 'dungeon';

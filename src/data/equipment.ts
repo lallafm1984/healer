@@ -262,6 +262,11 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   reservoir1: ['mail'], reservoir2: ['twin'], reservoir3: ['scepter'],
   pinwheel: ['plume', 'starneck'],
   observatory: ['crown', 'sleeve', 'jade'],
+  // 묶음 F1 (56 6장): 심연 지능 · 정신력 (숨결 우물 칸마다 1, 이끼벽 수도복은 낮잠 피라미드 복도와 겹쳐 로브로), 폭풍 깃털단 가속 · 치명타
+  well1: ['hood'], well2: ['robe'], well3: ['pendant'],
+  post1: ['plume'], post2: ['gloves'], post3: ['signet'],
+  ranch: ['coat', 'ring'],
+  windmill: ['scepter', 'sleeve', 'medal'],
 };
 export const KIND_WEIGHT = 3;
 

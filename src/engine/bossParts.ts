@@ -8,10 +8,10 @@ import { HEROES } from '../data/heroes';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
-import { addDebuff, cellOf, damage, DT, emit, empowerBoss, heal, living, onDebuffEnd, randomTargets, setMax, spread, unitById } from './core';
-import { moveTo, scheduleReactions, zoneOf } from './movement';
-import { hotTick } from './units';
-import { during, immune, specBroken, specPhase, specQuake, specReveal, specRewind, sv } from './specials';
+import { addDebuff, bark, cellOf, damage, DT, emit, empowerBoss, hasAbsorb, heal, living, onDebuffEnd, randomTargets, setMax, spread, unitById } from './core';
+import { dangerAt, finishMove, moveTo, scheduleReactions, zoneOf } from './movement';
+import { hotTick, stepAway } from './units';
+import { during, immune, specBroken, specLand, specPhase, specQuake, specReveal, specRewind, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
@@ -19,7 +19,7 @@ import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './typ
  * (버팀목 특성 → 근접 → 원거리 → 나, 2026-10-07 Lim)
  */
 export function aggroTarget(f: Fight): Unit | null {
-  const alive = f.party.filter(u => u.alive);
+  const alive = living(f); // 띄워 올려진 탱커는 못 때림 → 다른 탱커 (탱커 띄우기, 56 5장)
   const sub = f.sub && f.t < f.sub.until ? alive.find(u => u.id === f.sub!.id) : undefined;
   const held = f.hold != null ? alive.find(u => u.id === f.hold && u.role === 'tank') : undefined;
   return sub || held || alive.find(u => u.role === 'tank') || alive.find(u => u.traits.includes('bulwark')) || alive.find(u => u.role === 'melee') || alive.find(u => u.role === 'ranged') || alive.find(u => u.me) || null;
@@ -105,6 +105,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         : e.pick === 'lowest' ? lowestTargets(f, n, u => free(u) && u.role !== 'tank')
         : e.pick === 'linked' ? linkedTargets(f, n, free)
         : e.pick === 'order' ? orderTargets(f, n, free)
+        : e.prefer ? preferTargets(f, n, free, e.prefer)
         : randomTargets(f, n, e.pick === 'others' ? u => free(u) && u.role !== 'tank' && !u.me : free);
       for (const u of ts) applyDebuff(f, u, d);
       // 전염 (26 3-1) · 불안정한 마력 둘 (05 5-C): 두 대상이 붙어 서 있으면 걸리자마자 둘 다 터짐
@@ -302,7 +303,113 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       emit(f, { type: 'msg', text: `${name}: ${e.sec}초 뒤 모두 지금 체력으로 돌아감` });
       return;
     }
+    case 'lift': liftUp(f, s, e, tel); return;
+    case 'chain':
+      // 연쇄 번개 (P-CHAIN, 56 5장): 예고 때 고른 사람마다 번개가 떨어져 이웃으로 튐
+      for (const id of tel?.units ?? []) {
+        const u = unitById(f, id);
+        if (u?.alive && !u.lift) chainFrom(f, u, e.dmg, f.mythic && e.jumpsMythic ? e.jumpsMythic : e.jumps, e.grow ?? CHAIN_GROW, s.name ?? '연쇄 번개');
+      }
+      return;
   }
+}
+
+// ---------- 묶음 F 새 부품 (56 5장): 띄워 올리기 · 연쇄 번개 ----------
+/** 연쇄 번개가 튈 때마다 세지는 비율 */
+export const CHAIN_GROW = 0.25;
+/** 이 체력 비율 이상이거나 보호막 (흡수 막 · 넘치는 빛 보호막)이 있으면 피뢰침: 절반만 받고 번개가 멈춤 */
+export const ROD_HP = 0.9;
+export const isRod = (f: Fight, u: Unit): boolean => u.hp / u.max >= ROD_HP - 1e-9 || u.shield > 0 || hasAbsorb(f, u);
+
+/**
+ * 연쇄 번개 (P-CHAIN): u에게 dmg (마법), 그다음 아직 안 맞은 이웃 칸 아군 가운데 체력 비율이 가장 낮은 사람에게 튀며 +grow씩, jumps번까지.
+ * 튈 곳이 피뢰침이면 절반만 받고 멈춤, 이웃이 없어도 멈춤. 내려오며 번개 (P-LIFT chain)도 여기로
+ */
+export function chainFrom(f: Fight, u: Unit, dmg: number, jumps: number, grow: number, name: string): void {
+  const hit = new Set<number>([u.id]);
+  let cur = u, x = dmg;
+  emit(f, { type: 'fx', name: 'chain-strike', on: u.id });
+  damage(f, u, x, true);
+  for (let j = 0; j < jumps; j++) {
+    const c = cellOf(f, cur);
+    const v = living(f).filter(w => !hit.has(w.id) && hexDist(cellOf(f, w), c) === 1).sort((a, b) => a.hp / a.max - b.hp / b.max)[0];
+    if (!v) return;
+    hit.add(v.id); x *= 1 + grow;
+    emit(f, { type: 'fx', name: 'chain-bolt', on: cur.id, to: v.id });
+    if (isRod(f, v)) {
+      emit(f, { type: 'fx', name: 'chain-rod', on: v.id });
+      emit(f, { type: 'msg', text: `${name}: ${v.nick}에게서 멈춤 (피뢰침)` });
+      damage(f, v, x / 2, true);
+      return;
+    }
+    damage(f, v, x, true);
+    cur = v;
+  }
+}
+
+/** 연쇄 번개 예고: 번개 구름 아래 신중파는 이웃이 적은 칸으로 한 칸 비킴 (56 5장 성격) */
+export function chainWarn(f: Fight, tel: Telegraph): void {
+  for (const id of tel.units) {
+    const u = unitById(f, id);
+    if (u?.alive && !u.me && !u.lift && u.pers === '신중파' && !u.moving) stepAway(f, u, tel.impact - f.t);
+  }
+}
+
+/** 띄워 올리기 예고: pre 디버프 (돌풍에 깃털이 먼저 붙음), 겁쟁이는 겁먹음 (말풍선) */
+export function liftWarn(f: Fight, tel: Telegraph): void {
+  for (const id of tel.units) {
+    const u = unitById(f, id);
+    if (!u?.alive || u.lift) continue;
+    if (tel.skill.lift?.pre) applyDebuff(f, u, tel.skill.lift.pre);
+    if (u.pers === '겁쟁이') bark(f, u, null, false, 'noEscape');
+  }
+}
+
+/**
+ * 띄워 올리기 (P-LIFT): 예고 때 고른 사람이 sec초 동안 하늘로. 걸던 힐은 멈춤 (마나 안 씀). land free · random이면 칸을 비우고,
+ * 받침 위에서 떠오르면 (land가 없어도) 칸을 비워 빈 받침에 다른 사람이 대신 들어감 (받침 위 반송, 56 4-1)
+ */
+function liftUp(f: Fight, s: BossSkill, e: Extract<SkillEffect, { p: 'lift' }>, tel?: Telegraph): void {
+  const fall = f.mythic && e.fallMythic != null ? e.fallMythic : e.fall;
+  const us = (tel?.units ?? []).map(id => unitById(f, id)).filter((u): u is Unit => !!u && u.alive && !u.lift && !u.soul);
+  if (!us.length) return;
+  const name = s.name ?? '띄워 올리기';
+  for (const u of us) {
+    if (u.moving) finishMove(f, u);
+    const pad = u.padUntil != null && u.padUntil > f.t ? u.padUntil : null;
+    u.react = null; u.padUntil = undefined; u.homeAt = null;
+    const land = e.land ?? (pad != null ? 'free' : undefined); // 받침 위에서 떠오르면 받침이 빔 (다른 사람이 대신 들어감)
+    if (land) f.cells[u.cell].unit = null;
+    const tk = u.role === 'tank' && e.tankFall != null;
+    u.lift = { until: f.t + e.sec, fall: tk ? e.tankFall! : fall, aim: tk ? 'tank' : 'party', land,
+      chain: e.chain ? { ...e.chain, grow: CHAIN_GROW, name } : undefined };
+    if (f.cast?.uid === u.id) { f.cast = null; f.gcd = 0; } // 떠오른 사람에게 걸던 힐은 멈춤
+    if (f.queued?.uid === u.id) f.queued = null;
+    emit(f, { type: 'fx', name: 'lift-swirl', on: u.id });
+    if (pad != null) padTake(f, f.cells[u.cell], new Set(living(f).filter(v => v.padUntil != null && v.padUntil > f.t)), pad);
+  }
+  emit(f, { type: 'sound', name: 'aoe' });
+  emit(f, { type: 'msg', text: `${name}: ${us.map(u => u.nick).join(' · ')} 하늘로 (${e.sec}초 동안 힐이 안 닿음)` });
+}
+
+/** 띄워 올려진 사람이 내려옴: 제자리 (비웠으면 비어 있을 때, 아니면 가장 가까운 빈 칸) · 무작위 빈 칸 (기우는 섬). 낙하 피해 → 내려오며 번개 */
+export function land(f: Fight, u: Unit): void {
+  const l = u.lift!;
+  u.lift = null;
+  if (l.land) {
+    const own = f.cells[u.cell];
+    const open = (c: Cell) => !c.block && (!c.unit || c.unit === u);
+    const free = f.cells.filter(c => open(c) && !dangerAt(f, c.i));
+    const any = free.length ? free : f.cells.filter(open);
+    let to: Cell | undefined;
+    if (l.land === 'random') to = any[Math.floor(f.rng() * any.length)];
+    else to = open(own) ? own : any.sort((a, b) => hexDist(a, own) - hexDist(b, own))[0];
+    if (to) { to.unit = u; u.cell = to.i; }
+  }
+  emit(f, { type: 'fx', name: 'land-puff', on: u.id });
+  if (f.sp) specLand(f, u);
+  if (l.fall) damage(f, u, l.fall, false, l.aim);
+  if (u.alive && l.chain) chainFrom(f, u, l.chain.dmg, l.chain.jumps, l.chain.grow, l.chain.name);
 }
 
 /** 매 틱 모래시계: 시간이 된 기록마다 살아 있는 사람의 체력을 그 비율로 (쓰러진 사람 · 그때 없던 사람은 그대로, 보호막 · 디버프는 안 건드림) */
@@ -649,18 +756,22 @@ const PAD_EAGER: PersName[] = ['허세꾼', '관심종자', '신중파'];
 /** 받침 예고: 발판마다 갈 수 있는 파티원 중 먼저 가는 성격 → 가까운 사람이 들어가 맞을 때까지 머묾 */
 export function padsGo(f: Fight, tel: Telegraph): void {
   const used = new Set<Unit>();
-  for (const i of tel.cells) {
-    const c = f.cells[i];
-    const ok = living(f).filter(u => u.role !== 'tank' && !u.me && u.pers !== '겁쟁이' && !u.moving && !u.pulled && !u.fleeing && !used.has(u)
-      && !u.debuffs.some(d => d.noMove));
-    if (!ok.length) break;
-    const eager = (u: Unit) => (u.pers && PAD_EAGER.includes(u.pers) ? 0 : 1);
-    ok.sort((a, b) => eager(a) - eager(b) || hexDist(cellOf(f, a), c) - hexDist(cellOf(f, b), c));
-    const u = ok[0];
-    used.add(u);
-    moveTo(f, u, c);
-    u.padUntil = tel.impact + 0.2; u.homeAt = null;
-  }
+  for (const i of tel.cells) if (!padTake(f, f.cells[i], used, tel.impact + 0.2)) break;
+}
+
+/** 발판 하나에 들어갈 사람: 먼저 가는 성격 → 가까운 사람 (used · 탱커 · 나 · 겁쟁이 빼고). 아무도 없으면 false */
+function padTake(f: Fight, c: Cell, used: Set<Unit>, until: number): boolean {
+  if (c.unit) return true; // 이미 누가 서 있거나 오는 중
+  const ok = living(f).filter(u => u.role !== 'tank' && !u.me && u.pers !== '겁쟁이' && !u.moving && !u.pulled && !u.fleeing && !used.has(u)
+    && !u.debuffs.some(d => d.noMove));
+  if (!ok.length) return false;
+  const eager = (u: Unit) => (u.pers && PAD_EAGER.includes(u.pers) ? 0 : 1);
+  ok.sort((a, b) => eager(a) - eager(b) || hexDist(cellOf(f, a), c) - hexDist(cellOf(f, b), c));
+  const u = ok[0];
+  used.add(u);
+  moveTo(f, u, c);
+  u.padUntil = until; u.homeAt = null;
+  return true;
 }
 
 function randomOrder<T>(f: Fight, xs: T[]): T[] {
@@ -796,6 +907,7 @@ function clearNamed(f: Fight, name: string): void {
 
 /** 디버프 걸기: 중첩 디버프(stackMax)는 이미 있으면 1중첩 더함, 최대 체력 깎는 디버프(maxCut)는 바로 반영 */
 export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
+  if (u.lift) return null; // 띄워 올려진 사람에게는 보스 기술이 안 닿음 (P-LIFT)
   if (f.sp && immune(f, u, def.name)) return null; // 면역 향 (42 해제 04)
   if (def.stackMax) {
     const old = u.debuffs.find(x => x.name === def.name);
@@ -1123,10 +1235,27 @@ export function flowNext(f: Fight, tel: Telegraph): void {
   if (!tel.skill.fixed) scheduleReactions(f, next); // 못 피하는 줄 훑기 (보물 수레)는 안 비킴
 }
 
+/** 소포 부치기 (56 4-1): 나눔 사슬 쌍마다 한 사람 (나 빼고 무작위)을 n명까지. 사슬이 없으면 탱커 · 나 빼고 무작위 */
+export function linkedOnes(f: Fight, n: number): Unit[] {
+  const out: Unit[] = [];
+  for (const l of f.links) {
+    if (l.kind !== 'share' || out.length >= n) continue;
+    const two = [unitById(f, l.a), unitById(f, l.b)].filter((u): u is Unit => !!u && u.alive && !u.lift && !u.me);
+    if (two.length) out.push(two[Math.floor(f.rng() * two.length)]);
+  }
+  return out.length ? out : randomTargets(f, n, u => u.role !== 'tank' && !u.me);
+}
+
 /** 사슬 짝 고르기 (46 5장): 생명 사슬에 묶인 사람 먼저 (무작위), 모자라면 탱커 · 나 빼고 무작위 */
 function linkedTargets(f: Fight, n: number, ok: (u: Unit) => boolean): Unit[] {
   const tied = randomTargets(f, n, u => ok(u) && u.debuffs.some(d => d.link));
   return tied.concat(randomTargets(f, n - tied.length, u => ok(u) && !tied.includes(u) && u.role !== 'tank' && !u.me));
+}
+
+/** 그 디버프가 걸린 사람 먼저 (나 빼고, 이끼 덮기 → 이끼 표식 56 4-3), 모자라면 탱커 · 나 빼고 무작위 */
+function preferTargets(f: Fight, n: number, ok: (u: Unit) => boolean, name: string): Unit[] {
+  const marked = randomTargets(f, n, u => ok(u) && !u.me && u.debuffs.some(d => d.name === name));
+  return marked.concat(randomTargets(f, n - marked.length, u => ok(u) && !marked.includes(u) && u.role !== 'tank' && !u.me));
 }
 
 /** 차례 번호를 받은 사람 먼저 (나 빼고, 거꾸로 마술 48 4-3), 모자라면 탱커 · 나 빼고 무작위 */

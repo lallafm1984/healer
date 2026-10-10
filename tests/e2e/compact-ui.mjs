@@ -894,12 +894,15 @@ async function featureCases(page, ok) {
   ok(armed && kept && off.sameFight && off.sameState && !off.compact
     && cancelled,
   '360: 선택한 스킬은 모드 변경 뒤에도 유지, 같은 스킬 재탭으로 취소', { armed, kept, off, cancelled });
+  // 시계가 실제로 흘러 앞 단계 뒤에도 전투가 진행됨: 누르기 직전에 상태를 다시 맞추고, 실패하면 무엇이 달랐는지 남김
+  await page.evaluate(() => { const f = window.__proto.F; f.cast = null; f.queued = null; f.gcd = 0; f.mana = 80; f.g.p = 0; f.party.forEach(u => { if (u.alive) u.hp = u.max; }); });
   await page.locator('#wheel [data-slot="heal"]').focus();
   await page.keyboard.press('Enter'); await page.clock.runFor(40);
   const keyboardArmed = await page.getAttribute('#wheel [data-slot="heal"]', 'aria-pressed') === 'true';
   await page.keyboard.press('Space'); await page.clock.runFor(40);
-  ok(keyboardArmed && await page.getAttribute('#wheel [data-slot="heal"]', 'aria-pressed') === 'false',
-    '360: 키보드 Enter로 치유 선택, Space로 한 번만 취소');
+  const keyboardOff = await page.getAttribute('#wheel [data-slot="heal"]', 'aria-pressed') === 'false';
+  ok(keyboardArmed && keyboardOff, '360: 키보드 Enter로 치유 선택, Space로 한 번만 취소', { keyboardArmed, keyboardOff,
+    state: await page.evaluate(() => ({ over: window.__proto.F.over, paused: !document.querySelector('#pause').hidden, focus: document.activeElement?.getAttribute('data-slot') ?? document.activeElement?.id })) });
 
   // 재사용 대기와 자원 부족은 각 모드에서 서로 다른 상태로 표시되어야 한다.
   for (const compact of [false, true]) {

@@ -20,6 +20,7 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'bazaar1' | 'bazaar2' | 'bazaar3' | 'deepstairs' | 'abbey1' | 'abbey2' | 'abbey3' | 'hourglass'
   | 'dusk1' | 'dusk2' | 'dusk3' | 'caravan' | 'rootwood1' | 'rootwood2' | 'rootwood3'
   | 'pyramid1' | 'pyramid2' | 'pyramid3' | 'reservoir1' | 'reservoir2' | 'reservoir3' | 'pinwheel' | 'observatory'
+  | 'well1' | 'well2' | 'well3' | 'post1' | 'post2' | 'post3' | 'ranch' | 'windmill'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -143,6 +144,11 @@ export const CONTENT: ContentDef[] = [
     key: 'pinwheel', kind: 'explore', name: '바람개비 언덕', place: '구름 위 섬 가는 길 · 폭풍 깃털단', stageLv: 80, unlockLv: 80, ready: true, bosses: ['하피 우체부 휘리릭'],
     fights: () => DUNGEONS.pinwheel.segments, size: three,
   },
+  // 묶음 F 탐험 ㉑ (56 1-1): 구름 위 섬 · 폭풍 깃털단, 던전 ⑰ 천둥 풍차 예습 (연쇄 번개)
+  {
+    key: 'ranch', kind: 'explore', name: '구름 양 목장', place: '구름 위 섬 · 폭풍 깃털단', stageLv: 84, unlockLv: 84, ready: true, bosses: ['번개 양 복슬이'],
+    fights: () => DUNGEONS.ranch.segments, size: three,
+  },
   // 던전 ①~⑩ (5인, 5레벨마다). ⑧~⑩은 묶음 B
   {
     key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 5, unlockLv: 5, ready: true,
@@ -212,6 +218,11 @@ export const CONTENT: ContentDef[] = [
     key: 'observatory', bosses: ['천문대 수호상 별바라기', '해시계 관리인 유령 그늘지기'], kind: 'dungeon', name: '해시계 천문대', place: '해바라기 언덕 끝 · 해바라기 언덕', stageLv: 80, unlockLv: 80, ready: true,
     fights: () => DUNGEONS.observatory.segments, size: five,
   },
+  // 던전 ⑰ (56 1-2 · 3-1, 묶음 F): 폭풍 깃털단 (저주 · 마법), 보스 2
+  {
+    key: 'windmill', bosses: ['번개 양 복슬이', '풍차지기 하피 돌개'], kind: 'dungeon', name: '천둥 풍차', place: '구름 위 섬 끝 · 폭풍 깃털단', stageLv: 85, unlockLv: 85, ready: true,
+    fights: () => DUNGEONS.windmill.segments, size: five,
+  },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인
     key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 탑 1층', place: '납골당 · 역병 군주', stageLv: 35, unlockLv: 35, ready: true,
@@ -267,6 +278,10 @@ export const CONTENT: ContentDef[] = [
     ['pyramid1', '낮잠 피라미드 복도', '피라미드 복도 · 베개 골렘 폭신이', '베개 골렘 폭신이', 'pokshin', 79],
     ['pyramid2', '낮잠 피라미드 시계방', '시계방 · 모래시계 사제 째깍이', '모래시계 사제 째깍이', 'jjaekkak', 79],
     ['pyramid3', '낮잠 피라미드 침실', '왕의 침실 · 모래 왕 하품호텝', '모래 왕 하품호텝', 'hapum', 79],
+    // 묶음 F 10인 ⑬ (56 1-3): 폭풍 깃털단
+    ['post1', '구름 우체국 접수대', '우체국 접수대 · 하피 우체부 휘리릭', '하피 우체부 휘리릭', 'hwirik83', 83],
+    ['post2', '구름 우체국 분류실', '소포 분류실 · 소포 요정 꽁꽁이', '소포 요정 꽁꽁이', 'kkongkkong', 83],
+    ['post3', '구름 우체국 옥상', '우체국 옥상 · 우체국장 하피 부리부리', '우체국장 하피 부리부리', 'buri', 83],
   ] as const).map(([key, name, place, boss, enc, lv]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: lv, unlockLv: lv, ready: true, fights: () => [enc], size: () => 10, diffUnlock: { '악몽': lv + 15 },
   })),
@@ -306,6 +321,14 @@ export const CONTENT: ContentDef[] = [
     ['reservoir3', '별빛 저수지 거울호수', '거울호수 · 심연의 메아리 되울림', '심연의 메아리 되울림', 'doeul'],
   ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: 79, unlockLv: 79, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 89 },
+  })),
+  // 묶음 F 20인 ⑤ 숨결 우물 (56 1-4): 열림 Lv 82 · 악몽 92
+  ...([
+    ['well1', '숨결 우물 도르래', '우물 도르래 · 두레박 정령 출렁이', '두레박 정령 출렁이', 'chulleong'],
+    ['well2', '숨결 우물 이끼벽', '이끼벽 · 이끼 수호자 푸석이', '이끼 수호자 푸석이', 'puseok'],
+    ['well3', '숨결 우물 바닥', '우물 바닥 · 심장의 숨 후우', '심장의 숨 후우', 'huu'],
+  ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
+    key, bosses: [boss], kind: 'raid', name, place, stageLv: 82, unlockLv: 82, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 92 },
   })),
 ];
 

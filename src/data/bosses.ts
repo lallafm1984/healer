@@ -221,9 +221,10 @@ export type SkillEffect =
    * others = 탱커 · 나 빼고 무작위 (매혹 · 뒤집힌 축복) / me = 나 (마력 역류) / tank = 보스가 때리는 사람 (서리 손길) /
    * linked = 생명 사슬에 묶인 사람 먼저, 모자라면 탱커 · 나 빼고 무작위 (잠꼬대 저주 · 소금물 저주, 46 5장).
    * order = 차례 번호를 받은 사람 먼저 (나 빼고), 모자라면 탱커 · 나 빼고 무작위 (거꾸로 마술, 48 4-3).
-   * burstAdjacent = 걸린 둘이 붙어 서 있으면 바로 터짐 (전염)
+   * burstAdjacent = 걸린 둘이 붙어 서 있으면 바로 터짐 (전염).
+   * prefer = 이 이름의 디버프가 걸린 사람 먼저 (나 빼고), 모자라면 탱커 · 나 빼고 무작위 (이끼 덮기 대상 먼저 이끼 표식, 56 4-3)
    */
-  | { p: 'debuff'; n: number | 'all'; nMythic?: number; pick?: 'random' | 'lowest' | 'tel' | 'others' | 'me' | 'tank' | 'linked' | 'order'; debuff: DebuffDef; burstAdjacent?: boolean }
+  | { p: 'debuff'; n: number | 'all'; nMythic?: number; pick?: 'random' | 'lowest' | 'tel' | 'others' | 'me' | 'tank' | 'linked' | 'order'; debuff: DebuffDef; burstAdjacent?: boolean; prefer?: string }
   /**
    * 최대 체력을 깎는 중첩 디버프 (썩은 숨결 · 썩은 축복 P-HPDOWN): 무작위 n명, 중첩마다 pct, max 중첩, 다시 걸리면 지속이 처음으로.
    * again = 이미 걸린 사람이 있으면 그 확률로 그중에서 고름 (썩은 축복 0.6). 지우면 최대 체력이 돌아옴 (end restoreMax)
@@ -340,7 +341,20 @@ export type SkillEffect =
    * absorbHit = 되돌릴 때 치유 흡수 막이 남은 사람 이만큼 피해 (악몽 둘둘이). lowHitMythic = 악몽에서 되돌릴 때 체력 비율이 below 아래인 사람 dmg 더 (악몽 째깍이, 54 4-3).
    * 모래시계가 둘 겹치면 (째깍이 큰 · 작은 모래시계) 각자 자기 기록으로, 짧은 것이 먼저 되돌림
    */
-  | { p: 'glass'; sec: number; then?: { skill: string; in: number }[]; absorbHit?: number; lowHitMythic?: { below: number; dmg: number } };
+  | { p: 'glass'; sec: number; then?: { skill: string; in: number }[]; absorbHit?: number; lowHitMythic?: { below: number; dmg: number } }
+  /**
+   * 띄워 올리기 (P-LIFT, 56 5장): 예고 때 고른 사람 (target)이 sec초 동안 하늘로 떠오름. 떠 있는 동안 새 힐 · 해제 · 생존기 · 광역 힐이 닿지 않고
+   * 미리 건 지속 힐 · 보호막 · 나눔 사슬 몫만 남음. 보스 기술 · 장판도 안 맞지만 지속 피해 디버프는 계속, 딜 0. 내려올 때 fall 피해 (원거리 기준, 악몽 fallMythic,
+   * 탱커는 tankFall 탱커 기준). pre = 예고가 뜰 때 대상에게 거는 디버프 (돌풍에 깃털이 먼저 붙음). chain = 내려오는 순간 그 사람에게서 연쇄 번개 (내려오며 번개).
+   * land: random = 무작위 빈 칸에 내려앉음 (기우는 섬) · free = 떠 있는 동안 칸을 비움 (받침 위 반송: 빈 받침에 다른 사람이 대신 들어감). 없으면 칸을 두고 제자리로
+   */
+  | { p: 'lift'; sec: number; fall: number; fallMythic?: number; tankFall?: number; pre?: DebuffDef; chain?: { dmg: number; jumps: number }; land?: 'random' | 'free' }
+  /**
+   * 연쇄 번개 (P-CHAIN, 56 5장): 예고 때 고른 사람 (target)에게 dmg (마법). 그다음 아직 안 맞은 이웃 칸 아군 가운데 체력 비율이 가장 낮은 사람에게 튀며
+   * 튈 때마다 +grow (기본 25%), 최대 jumps번 (악몽 jumpsMythic). 튈 곳이 체력 90% 이상이거나 보호막 (흡수 막 · 넘치는 빛 보호막)이 있으면 피뢰침: 절반만 받고 멈춤.
+   * 이웃이 없어도 멈춤 → 예고 동안 대상 이웃을 90% 위로
+   */
+  | { p: 'chain'; dmg: number; jumps: number; jumpsMythic?: number; grow?: number };
 
 /** 영혼을 채웠을 때: cure 유형 디버프를 모두에게서 1개씩 지움 · 받는 치유 +heal 비율 · 보스가 주는 피해 −weak 비율 · 보스가 받는 피해 +vuln 비율 (sec초) */
 export interface SoulWin {
@@ -434,9 +448,10 @@ export interface SkillDef {
   /**
    * 예고 때 맞을 사람을 고름: tank = 보스가 때릴 사람, back = 뒷줄부터 n명 (탱커·나 빼고, 끌어당김),
    * random = 탱커·나 빼고 무작위 n명 (피의 서약), greed = 체력 비율이 가장 높은 탱커·나 아닌 n명 (보물 욕심 P-GREED, 51 5장). 악몽은 nMythic.
-   * offtank = 보스를 안 맞는 탱커 (없으면 보스가 때릴 사람, 비늘 방패 돌진 51 4-2)
+   * offtank = 보스를 안 맞는 탱커 (없으면 보스가 때릴 사람, 비늘 방패 돌진 51 4-2).
+   * linked = 나눔 사슬 쌍마다 한 사람 (나 빼고, 소포 부치기 56 4-1. 사슬이 없으면 탱커 · 나 빼고 무작위), pad = 받침 발판에 선 · 가는 사람 (받침 위 반송) n명까지
    */
-  target?: 'tank' | 'offtank' | { p: 'back' | 'random' | 'greed'; n: number; nMythic?: number };
+  target?: 'tank' | 'offtank' | { p: 'back' | 'random' | 'greed' | 'linked' | 'pad'; n: number; nMythic?: number };
   /** 맞을 때 (장판은 없음) */
   effect?: SkillEffect;
   /** 장판 칸 */
@@ -609,6 +624,16 @@ const SPRITES = ['솔솔', '살살']; const SPRITE_HP = 11650;
 const SAND_CHAIN_HOW = '두 쌍 (악몽 세 쌍)이 이어짐. 짝끼리 체력 비율을 비슷하게. 모래시계 창 안에서는 안 끊기고, 되돌린 뒤 다시 재니 뒤집기 전에 짝을 맞춰 두기';
 const MIRAGE_HOW = '표시 가운데 하나는 신기루 (끝 1초에 일렁이며 걷힘). 걷히기 전에는 지속 힐 · 작은 힐만, 걷히면 남은 진짜에게 바로 보호막 · 큰 힐';
 const GLASS_HOW = '뒤집는 순간의 체력으로 8초 뒤 모두 되돌아감. 예고 3초 안에 모두 채우고, 창 안에서는 쓰러질 사람만 힐 (붕대 벗기기 · 해제는 남음)';
+/** 폭풍 깃털단 (56 0장) 저주: 깃털 간지럼 (초당 딜체 2%). 드루이드만 지움, 띄워진 사람에게 걸리면 내려올 때까지 못 지움 */
+const FEATHER: DebuffDef = { name: '깃털 간지럼', type: '저주', left: 10, dot: U.dps(0.02) };
+const CHAIN_HOW = '번개 구름 아래 사람에게 번개가 떨어지고, 이웃 칸 가운데 체력 비율이 가장 낮은 사람에게 튐 (튈 때마다 +25%). 튈 곳이 90% 이상이거나 보호막이면 피뢰침으로 절반만 받고 멈춤 → 예고 동안 구름 이웃을 90% 위로';
+const LIFT_HOW = '회오리가 뜬 사람이 하늘로 떠올라 그동안 새 힐 · 해제가 안 닿음 (미리 건 지속 힐 · 보호막만 남음). 예고 동안 지속 힐 · 해제, 내려오면 낙하 피해라 바로 채우기';
+/** 무작위 파티원 둘레 장판 n곳 (P-ZONE around를 n개, 하나만 대기열에 보임) */
+const spots = (key: string, name: string, icon: string, n: number, first: number, period: number, dmg: number, when?: SkillWhen): SkillDef[] =>
+  Array.from({ length: n }, (_, i): SkillDef => ({
+    key: `${key}${i}`, name, icon, kind: 'zone', first: first + i * 0.3, period, cast: 2, warn: 'zone', hitDmg: dmg, cells: { p: 'around' }, when,
+    ...(i ? { hidden: true } : { how: `${n}곳에 ${name}. 파티원이 알아서 비킴. 못 비킨 사람부터 채우기` }),
+  }));
 /** 벌침 (P-WOUND, 48 4-3): 꿀벌이 쏜 사람이 90% 아래인 동안 3초마다 1중첩 (중첩당 초당 딜체 1%), 못 지움 */
 const sting = (max: number): DebuffDef => ({ name: '벌침', type: '물리', left: 20, lock: true, cureAt: 0.9, grow: { every: 3, dot: U.dps(0.01), max }, fx: 'bee-sting' });
 /** 못 피하는 줄 피해 (P-ROW): 뒷줄 → 가운데 → 앞줄을 period초마다 번갈아. two = 2페이즈부터 다른 한 줄을 같이 (조건을 주면 그때: 악몽 단단이 { mythic: true }) */
@@ -2531,6 +2556,196 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ] },
     ],
     enrage: { name: '한밤의 그림자', period: 2, dmg: 240 },
+  },
+  // ---------- 묶음 F1 20인 ⑤ 숨결 우물 (56 4-3, Lv 82 · 악몽 92 · 심연 · 모든 유형): 출렁이 · 푸석이 · 후우 ----------
+  // 두레박 정령 출렁이 (도르래): 20인 차례 × 진동 (두레박 순서 ①~④를 12초 안에, 순서 4초 뒤 우물 울림이 긴 시전을 끊음) · 물보라 4곳.
+  // 악몽은 두레박 순서 5명. 목표 4:30 · 광폭화 6:00
+  chulleong: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('두레박 내려치기', '두레', 8, 15, U.tank(0.5)), cast: 2.5 },
+      { key: 'order', name: '두레박 순서', icon: '순서', kind: 'instant', first: 20, period: 30, cast: 2,
+        how: '번호 순서대로 직접 힐을 한 번씩 (12초, 악몽 다섯). 4초 뒤 우물 울림이 긴 시전을 끊으니 순서 힐은 즉시 · 빠른 힐로',
+        effect: { p: 'order', n: 4, nMythic: 5, sec: 12, wrong: U.dps(0.25), miss: U.dps(0.4), daze: { sec: 5, vuln: 1.2 } } },
+      { key: 'quake', name: '우물 울림', icon: '울림', kind: 'aoe', first: 24.5, period: 30, cast: 1.5, warn: 'aoe',
+        how: '진동: 맞는 순간 시전 중인 힐이 끊기고 3초 잠김. 두레박 순서 4초 뒤에 오니 그 앞뒤로는 즉시 스킬 · 지속 힐로', effect: { p: 'quake', dmg: U.dps(0.1), lock: 3 } },
+      ...spots('splash', '물보라', '물보', 4, 10, 16, U.dps(0.25)),
+    ],
+    enrage: { name: '우물 범람', period: 3, dmg: 200 },
+  },
+  // 이끼 수호자 푸석이 (이끼벽): 치유 상한 × 완치 표식 (이끼 덮기 5명이 70%까지만 참, 2초 뒤 이끼 표식이 그 사람들에게 먼저 → 상한부터 지우기) · 포자 기침 (질병).
+  // 악몽은 상한 60%. 목표 5:00 · 광폭화 6:30
+  puseok: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('이끼 주먹', '이끼', 8, 15, U.tank(0.5)), cast: 2.5 },
+      ...([false, true] as const).map((mythic): SkillDef => ({
+        key: mythic ? 'coverm' : 'cover', name: '이끼 덮기', icon: '이끼', kind: 'instant', first: 12, period: 22, cast: 0, when: { mythic },
+        ...(mythic ? { hidden: true } : { how: '5명이 12초 동안 70% (악몽 60%)까지만 참 (마법). 2초 뒤 이끼 표식이 이 사람들에게 먼저 붙으니 표식 대상의 이끼 덮기부터 지우고 채우기' }),
+        effect: { p: 'debuff', n: 5, debuff: { name: '이끼 덮기', type: '마법', left: 12, cap: mythic ? 0.6 : 0.7 } },
+      })),
+      { key: 'mark', name: '이끼 표식', icon: '표식', kind: 'instant', first: 14, period: 22, cast: 0,
+        how: '3명 (이끼 덮기 대상 먼저)에게 표식. 10초 안에 100%까지 채우면 사라지고, 못 채우면 크게 아픔 (못 지움). 상한이 걸린 채로는 100%가 안 됨',
+        effect: { p: 'debuff', n: 3, prefer: '이끼 덮기', debuff: { name: '이끼 표식', type: '마법', left: 10, lock: true, cureAt: 1, drop: U.dps(0.2), end: { p: 'hit', dmg: U.dps(0.45) } } } },
+      { key: 'cough', name: '포자 기침', icon: '기침', kind: 'instant', first: 6, period: 16, cast: 0,
+        effect: { p: 'debuff', n: 3, debuff: { name: '포자 기침', type: '질병', left: 12, dot: U.dps(0.02) } } },
+    ],
+    enrage: { name: '이끼 뒤덮기', period: 3, dmg: 210 },
+  },
+  // 심장의 숨 후우 (바닥, 20인 ⑤ 최종): 1페이즈 들숨 (깊은 들숨: 뒷줄 3명 끌어옴 · 그림자 손길) → 65% 날숨 (20인 넘치는 빛 그릇: 숨결 그릇이 차면 전원 보호막 → 큰 날숨)
+  // → 35% 심장의 고동 (모두 + 심장 박동, 칠 때마다 세짐). 악몽은 큰 날숨 딜체 40%. 목표 6:00 · 광폭화 8:00
+  huu: {
+    phase: [1, '1페이즈 · 들숨'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('숨결 손바닥', '손바', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'inhale', name: '깊은 들숨', icon: '들숨', kind: 'buster', first: 12, period: 20, cast: 2, warn: 'buster', target: { p: 'back', n: 3 }, when: { phase: [1, 3] },
+        how: '뒷줄 셋이 끌려와 4초 동안 평타를 나눠 맞음. 끌려온 사람을 먼저', effect: { p: 'pull', sec: 4, dmg: U.dps(0.12) } },
+      { key: 'touch', name: '그림자 손길', icon: '손길', kind: 'instant', first: 16, period: 16, cast: 0, when: { phase: [1, 3] },
+        how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
+      { key: 'bowl', name: '숨결 그릇', icon: '그릇', kind: 'instant', first: null, period: 30, cast: 0, when: { phase: [2, 3] },
+        how: '12초 동안 넘친 치유가 그릇에 모임. 가득 차면 전원 보호막이라 곧 올 큰 날숨이 가벼움. 광역 힐 · 큰 힐을 일부러 넘치게',
+        effect: { p: 'vessel', name: '숨결 그릇', need: 0.06, sec: 12, shield: 10 } },
+      ...([false, true] as const).map((mythic): SkillDef => ({
+        key: mythic ? 'exhalem' : 'exhale', name: '큰 날숨', icon: '날숨', kind: 'aoe', first: null, period: 30, cast: 4, warn: 'aoe', when: { phase: [2, 3], mythic },
+        ...(mythic ? { hidden: true } : { how: '숨결 그릇이 차면 보호막으로 막음. 못 채웠으면 맞기 전에 광역 선힐' }),
+        effect: { p: 'all', dmg: U.dps(mythic ? 0.4 : 0.3) },
+      })),
+      { key: 'beat', name: '심장 박동', icon: '박동', kind: 'aoe', first: null, period: 18, cast: 3, warn: 'aoe', when: { phase: [3] },
+        how: '칠 때마다 조금씩 세짐. 박동 사이에 광역으로 채우기', effect: { p: 'all', dmg: U.dps(0.12), grow: U.dps(0.02) } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 날숨' }, { p: 'start', skill: 'bowl', in: 4 }, { p: 'start', skill: 'exhale', in: 15 }, { p: 'start', skill: 'exhalem', in: 15 },
+        { p: 'text', text: '날숨: 넘친 치유로 숨결 그릇을 채우기' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.35 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 심장의 고동' }, { p: 'start', skill: 'beat', in: 5 },
+        { p: 'text', text: '심장의 고동: 들숨 · 날숨 함께 + 심장 박동' },
+      ] },
+    ],
+    enrage: { name: '심장의 한숨', period: 3, dmg: 220 },
+  },
+  // ---------- 묶음 F1 10인 ⑬ 구름 우체국 (56 4-1, Lv 83 · 악몽 98 · 폭풍 깃털단 · 저주 + 마법): 휘리릭 · 꽁꽁이 · 부리부리 ----------
+  // 하피 우체부 휘리릭 (접수대, 탐험 ⑳에서 만난 그 우체부를 키운 판): 띄워 올리기 쉬운 판 (속달 돌풍 2명 · 5초, 돌풍이 뜰 때 깃털 간지럼이 먼저 붙음) · 깃털 간지럼 · 바람 편지 (마법).
+  // 악몽은 속달 돌풍 3명. 목표 4:30 · 광폭화 6:00
+  hwirik83: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('부리 쪼기', '부리', 8, 15, U.tank(0.45)),
+      { key: 'express', name: '속달 돌풍', icon: '속달', kind: 'buster', first: 14, period: 20, cast: 2.5, warn: 'buster', target: { p: 'random', n: 2, nMythic: 3 },
+        how: `${LIFT_HOW}. 회오리가 뜨면 깃털 간지럼이 먼저 붙으니 드루이드는 지우고, 아니면 지속 힐`,
+        effect: { p: 'lift', sec: 5, fall: U.dps(0.2), pre: FEATHER } },
+      { key: 'tickle', name: '깃털 간지럼', icon: '깃털', kind: 'instant', first: 8, period: 18, cast: 0, effect: { p: 'debuff', n: 1, pick: 'others', debuff: FEATHER } },
+      { key: 'letter', name: '바람 편지', icon: '편지', kind: 'instant', first: 11, period: 20, cast: 0,
+        effect: { p: 'debuff', n: 2, debuff: { name: '바람 편지', type: '마법', left: 8, healCut: 0.25 } } },
+    ],
+    enrage: { name: '속달 폭풍', period: 3, dmg: 200 },
+  },
+  // 소포 요정 꽁꽁이 (분류실): 띄워 올리기 × 나눔 사슬 (리본 묶기 2쌍, 3초 뒤 쌍마다 한 사람을 띄움 → 떠 있는 사람은 땅에 남은 짝을 힐해서 채움) · 바람 포장지 3곳 · 깃털 간지럼.
+  // 악몽은 리본 3쌍. 목표 4:30 · 광폭화 6:00
+  kkongkkong: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('소포 상자 던지기', '상자', 8, 15, U.tank(0.5)), cast: 2.5 },
+      { key: 'ribbon', name: '리본 묶기', icon: '리본', kind: 'instant', first: 10, period: 26, cast: 0,
+        how: '두 쌍 (악몽 세 쌍)이 14초 동안 받는 피해 · 치유를 반씩 나눔. 곧 쌍마다 한 사람이 띄워지니 땅에 남은 짝을 힐하면 반이 하늘까지 감',
+        effect: { p: 'link', kind: 'share', name: '리본 묶기', sec: 14, pick: 'others', pairs: 2, pairsMythic: 3 } },
+      { key: 'parcel', name: '소포 부치기', icon: '소포', kind: 'buster', first: 13, period: 26, cast: 2.5, warn: 'buster', target: { p: 'linked', n: 3 },
+        how: '리본 쌍마다 한 사람이 6초 동안 하늘로 (새 힐이 안 닿음). 떠 있는 사람이 아프면 땅에 남은 짝을 힐 (반이 나눠짐)',
+        effect: { p: 'lift', sec: 6, fall: U.dps(0.2) } },
+      ...spots('wrap', '바람 포장지', '포장', 3, 16, 16, U.dps(0.25)),
+      { key: 'tickle', name: '깃털 간지럼', icon: '깃털', kind: 'instant', first: 7, period: 18, cast: 0, effect: { p: 'debuff', n: 2, debuff: FEATHER } },
+    ],
+    enrage: { name: '꽁꽁 포장', period: 3, dmg: 200 },
+  },
+  // 우체국장 하피 부리부리 (옥상, 10인 ⑬ 최종): 1페이즈 접수 마감 (반송 돌풍 3명 · 깃털 간지럼 2명) → 70% 우편함 정리 (받침 × 띄워 올리기: 우편함 받침 3칸에
+  // 선 사람 둘을 띄우고, 빈 받침에 다른 사람이 대신 들어감) → 40% 편지 폭풍 (모두 + 편지 폭풍). 악몽은 받침 4칸. 목표 6:00 · 광폭화 8:00
+  buri: {
+    phase: [1, '1페이즈 · 접수 마감'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('도장 찍기', '도장', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'return', name: '반송 돌풍', icon: '반송', kind: 'buster', first: 14, period: 20, cast: 2.5, warn: 'buster', target: { p: 'random', n: 3 }, when: { phase: [1, 3] },
+        how: LIFT_HOW, effect: { p: 'lift', sec: 5, fall: U.dps(0.2) } },
+      { key: 'tickle', name: '깃털 간지럼', icon: '깃털', kind: 'instant', first: 8, period: 18, cast: 0, when: { phase: [1, 3] }, effect: { p: 'debuff', n: 2, debuff: FEATHER } },
+      ...([false, true] as const).map((mythic): SkillDef => ({
+        key: mythic ? 'boxm' : 'box', name: '우편함 받침', icon: '우편', kind: 'aoe', first: null, period: 26, cast: 8, when: { phase: [2, 3], mythic },
+        ...(mythic ? { hidden: true } : { how: '받침 세 칸 (악몽 네 칸)에 사람이 서야 함. 받침 위 사람을 띄우면 다른 사람이 대신 들어가 맞으니 받침 사람에게 미리 지속 힐, 대신 들어간 사람을 바로 채우기' }),
+        effect: { p: 'tower', n: mythic ? 4 : 3, dmg: U.dps(0.3), empty: U.dps(0.15) },
+      })),
+      { key: 'padlift', name: '받침 위 반송', icon: '반송', kind: 'buster', first: null, period: 26, cast: 2, warn: 'buster', target: { p: 'pad', n: 2 }, when: { phase: [2, 3] },
+        how: '받침에 선 둘이 5초 동안 하늘로 (칸이 비어 다른 사람이 대신 받침에 들어감). 띄워질 사람에게 미리 지속 힐', effect: { p: 'lift', sec: 5, fall: U.dps(0.2), land: 'free' } },
+      { key: 'storm', name: '편지 폭풍', icon: '편지', kind: 'aoe', first: null, period: 20, cast: 3, warn: 'aoe', when: { phase: [3] }, effect: { p: 'all', dmg: U.dps(0.25) } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.7 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 우편함 정리' }, { p: 'start', skill: 'box', in: 4 }, { p: 'start', skill: 'boxm', in: 4 }, { p: 'start', skill: 'padlift', in: 6 },
+        { p: 'text', text: '우편함 정리: 받침 위 사람을 하늘로 반송' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.4 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 편지 폭풍' }, { p: 'start', skill: 'storm', in: 5 },
+        { p: 'text', text: '편지 폭풍: 반송 돌풍 · 우편함 받침 함께 + 편지 폭풍' },
+      ] },
+    ],
+    enrage: { name: '규정 위반 폭풍', period: 3, dmg: 220 },
+  },
+  // ---------- 묶음 F1 탐험 ㉑ 구름 양 목장 (56 1-1, Lv 84): 연쇄 번개 쉬운 판 (던전 ⑰ 예습) ----------
+  // 번개 양 복슬이 탐험판: 평타 · 번개 털 (연쇄 번개, 2번까지) · 정전기 털 (마법) · 구름 털 뭉치 (작은 전체 피해, 3인 판이 한가하지 않게). 수치는 던전판의 70%
+  boksul84: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'bolt', name: '번개 털', icon: '번개', kind: 'buster', first: 8, period: 16, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, how: CHAIN_HOW,
+        effect: { p: 'chain', dmg: 120, jumps: 2 } },
+      { key: 'static', name: '정전기 털', icon: '정전', kind: 'instant', first: 6, period: 18, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '정전기 털', type: '마법', left: 10, healCut: 0.25 } } },
+      { key: 'fluff', name: '구름 털 뭉치', icon: '털뭉', kind: 'aoe', first: 12, period: 12, cast: 2, warn: 'aoe', effect: { p: 'all', dmg: 60 } },
+    ],
+    enrage: { name: '털 폭발', period: 2, dmg: 200 },
+  },
+  // ---------- 묶음 F1 던전 ⑰ 천둥 풍차 (56 3-1, Lv 85 · 폭풍 깃털단 · 저주 + 마법): 복슬이 · 돌개 ----------
+  // 번개 양 복슬이 (①): 연쇄 번개 (번개 털: 3번까지 튐) · 정전기 털 (마법 받는 치유 −25%, 90%까지 채우기 어려움) · 구름 털 뭉치. 악몽은 번개 털 2명. 목표 3:00 · 광폭화 4:00
+  boksul: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('머리 박치기', '박치', 8, 14, U.tank(0.5)),
+      { key: 'bolt', name: '번개 털', icon: '번개', kind: 'buster', first: 10, period: 16, cast: 3, warn: 'buster', target: { p: 'random', n: 1, nMythic: 2 }, how: CHAIN_HOW,
+        effect: { p: 'chain', dmg: U.dps(0.3), jumps: 3 } },
+      { key: 'static', name: '정전기 털', icon: '정전', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '2명이 받는 치유 −25% (마법). 걸린 사람은 90%까지 채우기 어려우니 번개 전에 지우기',
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '정전기 털', type: '마법', left: 10, healCut: 0.25 } } },
+      { key: 'fluff', name: '구름 털 뭉치', icon: '털뭉', kind: 'aoe', first: 15, period: 20, cast: 2, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.15) } },
+    ],
+    enrage: { name: '정전기 폭발', period: 2, dmg: 240 },
+  },
+  // 풍차지기 하피 돌개 (최종): 연쇄 번개 × 띄워 올리기 (돌개바람으로 띄운 사람이 내려오는 순간 그 사람에게서 연쇄 번개 → 떠 있는 동안 내려올 자리 이웃을 채움)
+  // · 방아 번개 · 깃털 간지럼 (저주). 40% 아래 바람 거세짐 (돌개바람 2명 · 방아 번개 14초). 악몽은 낙하 딜체 30%. 목표 3:30 · 광폭화 5:00
+  dolgae: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('날개 후려치기', '날개', 8, 15, U.tank(0.55)), cast: 2.5 },
+      ...([['gust', 1, 1], ['gust2', 2, 2]] as const).map(([key, n, phase]): SkillDef => ({
+        key, name: '돌개바람', icon: '돌개', kind: 'buster', first: phase === 1 ? 12 : null, period: 22, cast: 2.5, warn: 'buster', target: { p: 'random', n }, when: { phase: [phase] },
+        ...(phase === 1 ? { how: '회오리가 뜬 사람이 5초 동안 하늘로 (새 힐이 안 닿음). 내려오는 순간 그 자리에서 연쇄 번개가 시작되니 예고 동안 지속 힐, 떠 있는 동안 그 칸 이웃을 90% 위로' } : { hidden: true }),
+        effect: { p: 'lift', sec: 5, fall: U.dps(0.2), fallMythic: U.dps(0.3), chain: { dmg: U.dps(0.25), jumps: 3 } },
+      })),
+      { key: 'mill', name: '방아 번개', icon: '방아', kind: 'buster', first: 18, period: 18, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, how: CHAIN_HOW,
+        effect: { p: 'chain', dmg: U.dps(0.3), jumps: 3 } },
+      { key: 'tickle', name: '깃털 간지럼', icon: '깃털', kind: 'instant', first: 6, period: 16, cast: 0,
+        how: '2명에게 저주 (초당 피해). 드루이드만 지움. 띄워진 사람에게 걸리면 내려올 때까지 못 지움', effect: { p: 'debuff', n: 2, debuff: FEATHER } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'gust2', in: 4 }, { p: 'period', skill: 'mill', sec: 14 },
+      { p: 'text', text: '바람 거세짐: 돌개바람 2명 · 방아 번개가 더 자주' },
+    ] }],
+    enrage: { name: '풍차 폭주', period: 2, dmg: 240 },
   },
   warden: {
     phase: [1, ''],

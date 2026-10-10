@@ -19,7 +19,8 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'whelps' | 'dandani' | 'rubina' | 'shoretrash' | 'knights68' | 'knights' | 'uwoong' | 'ormal'
   | 'kkubeok' | 'hokdol' | 'nyanx' | 'stairtrash' | 'heumul72' | 'heumul' | 'bichumi' | 'gipeun' | 'sandhall' | 'degul' | 'backgarden' | 'dooldool'
   | 'solsol' | 'eonggeum' | 'sarasha' | 'dunetrash' | 'pokshin76' | 'ttubeok' | 'toktok' | 'kungkung'
-  | 'pokshin' | 'jjaekkak' | 'hapum' | 'ttakttak' | 'jjirit' | 'doeul' | 'windtrash' | 'hwirik' | 'startrash' | 'stargazer' | 'sundialyard' | 'geuneul';
+  | 'pokshin' | 'jjaekkak' | 'hapum' | 'ttakttak' | 'jjirit' | 'doeul' | 'windtrash' | 'hwirik' | 'startrash' | 'stargazer' | 'sundialyard' | 'geuneul'
+  | 'chulleong' | 'puseok' | 'huu' | 'hwirik83' | 'kkongkkong' | 'buri' | 'sheeptrash' | 'boksul84' | 'millstairs' | 'boksul' | 'millhouse' | 'dolgae';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -32,7 +33,8 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'whelps' | 'dandani' | 'rubina' | 'knights68' | 'knights' | 'uwoong' | 'ormal'
   | 'kkubeok' | 'hokdol' | 'nyanx' | 'heumul72' | 'heumul' | 'bichumi' | 'gipeun' | 'degul' | 'dooldool'
   | 'solsol' | 'eonggeum' | 'sarasha' | 'pokshin76' | 'ttubeok' | 'toktok' | 'kungkung'
-  | 'pokshin' | 'jjaekkak' | 'hapum' | 'ttakttak' | 'jjirit' | 'doeul' | 'hwirik' | 'stargazer' | 'geuneul';
+  | 'pokshin' | 'jjaekkak' | 'hapum' | 'ttakttak' | 'jjirit' | 'doeul' | 'hwirik' | 'stargazer' | 'geuneul'
+  | 'chulleong' | 'puseok' | 'huu' | 'hwirik83' | 'kkongkkong' | 'buri' | 'boksul84' | 'boksul' | 'dolgae';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -711,6 +713,41 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     },
   ], { debuffs: HEAL4 }),
   geuneul: { key: 'geuneul', lowLevel: true, name: '해시계 관리인 유령 그늘지기', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7600, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'geuneul', stage: 0.25, debuffs: HEAL4 },
+  // ---------- 묶음 F1 (56 1장 · 2장 · 3-1 · 4-1 · 4-3): 구름 위 섬 · 폭풍 깃털단 ① 깃털 창병 하피 · ② 바람 요정 · ③ 폭풍 점술사 · ④ 천둥 숫양 ----------
+  // 20인 ⑤ 숨결 우물 (Lv 82 · 악몽 92 · 심연 · 모든 유형)
+  chulleong: { key: 'chulleong', name: '두레박 정령 출렁이', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 51000, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'chulleong', big: true, stage: 0.13 },
+  puseok: { key: 'puseok', name: '이끼 수호자 푸석이', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 56500, enrage: 390, manaCoef: 1.6, diffs: ALL, script: 'puseok', big: true, stage: 0.13, debuffs: ['질병', '마법'] },
+  huu: { key: 'huu', name: '심장의 숨 후우', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 69000, enrage: 480, manaCoef: 1.8, diffs: ALL, script: 'huu', big: true, stage: 0.13, debuffs: HEAL4 },
+  // 10인 ⑬ 구름 우체국 (Lv 83 · 악몽 98)
+  hwirik83: { key: 'hwirik83', name: '하피 우체부 휘리릭', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 21600, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'hwirik83', stage: 0.18, debuffs: ['저주', '마법'] },
+  kkongkkong: { key: 'kkongkkong', name: '소포 요정 꽁꽁이', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 20700, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'kkongkkong', stage: 0.18, debuffs: ['저주'] },
+  buri: { key: 'buri', name: '우체국장 하피 부리부리', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 27000, enrage: 480, manaCoef: 1.5, diffs: ALL, script: 'buri', stage: 0.18, debuffs: ['저주'] },
+  // 탐험 ㉑ 「구름 양 목장」 (56 1-1, Lv 84 · 마법): 솜구름 목초지 → 번개 양 복슬이 (연쇄 번개 쉬운 판, 던전 ⑰ 예습)
+  sheeptrash: trash('sheeptrash', '솜구름 목초지', [
+    { name: '깃털 창병 하피', hp: 170, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '바람 요정', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 75, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  boksul84: { key: 'boksul84', lowLevel: true, name: '번개 양 복슬이', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3100, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'boksul84', stage: 0.3, debuffs: ['마법'] },
+  // 던전 ⑰ 「천둥 풍차」 (56 1-2 · 3-1, Lv 85 · 저주 + 마법): 일반 바람 날개 계단 → 번개 양 복슬이 → 정예 번개 방앗간 → 풍차지기 하피 돌개
+  millstairs: trash('millstairs', '바람 날개 계단', [
+    { name: '깃털 창병 하피', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '바람 요정', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  boksul: { key: 'boksul', lowLevel: true, name: '번개 양 복슬이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6000, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'boksul', stage: 0.25, debuffs: ['마법'] },
+  millhouse: trash('millhouse', '번개 방앗간', [
+    { name: '깃털 창병 하피', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '폭풍 점술사', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'hex', name: '폭풍 점괘', icon: '점괘', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: STORM_HEX } },
+    ] },
+    {
+      name: '천둥 숫양', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'ram', name: '천둥 박치기', icon: '박치', kind: 'aoe', to: 'all', dmg: 160, first: 8, period: 12, cast: 2.5, cut: true },
+      ],
+    },
+  ], { debuffs: ['저주', '마법'] }),
+  dolgae: { key: 'dolgae', lowLevel: true, name: '풍차지기 하피 돌개', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7600, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'dolgae', stage: 0.25, debuffs: ['저주'] },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

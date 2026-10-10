@@ -41,6 +41,7 @@ export function canTarget(f: Fight, key: SkillKey, cellIdx: number): ActionResul
   if (!c || !c.unit) return { ok: false, reason: '빈 칸' };
   const u = c.unit;
   if (!u.alive) return { ok: false, reason: `${u.nick}은(는) 쓰러짐` };
+  if (u.lift) return { ok: false, reason: `닿지 않음: ${u.nick}은(는) 하늘에 떠 있음` }; // 띄워 올리기 (P-LIFT, 56 5장)
   if (key === 'purify' && !u.debuffs.some(d => DISPELLABLE[d.type] && !d.lock)) return { ok: false, reason: '정화로 지울 디버프 없음' };
   if (sk.slot === 'dispel' && f.hero !== 'priest' && !u.debuffs.some(d => HEROES[f.hero].dispel.includes(d.type) && !d.lock)) return { ok: false, reason: `${sk.name}로 지울 디버프 없음` };
   if (key === 'bloom' && !hotCount(u)) return { ok: false, reason: '거둘 지속 힐 없음' };
@@ -137,6 +138,7 @@ function apply(f: Fight, key: SkillKey, u: Unit): void {
 }
 
 function applySkill(f: Fight, key: SkillKey, u: Unit): void {
+  if (u.lift) { emit(f, { type: 'msg', text: `닿지 않음: ${u.nick}은(는) 하늘에 떠 있음` }); return; } // 예약해 둔 힐이 나갈 때 떠 버림 (P-LIFT)
   if (f.order && singleHeal(key) && !u.soul) orderHeal(f, u); // 차례 (P-ORDER)
   if (f.hero !== 'priest') { heroApply(f, key, u); return; }
   const sk = SKILLS[key];

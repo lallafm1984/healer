@@ -7,7 +7,7 @@ import { DIFFS } from '../data/difficulty';
 import { ENCOUNTERS, mobGrade, type Encounter, type EncounterKey, type ScriptKey } from '../data/encounters';
 import { canDispel, HEROES } from '../data/heroes';
 import { SKILLS } from '../data/skills';
-import { create, type Fight, type Role } from '../engine';
+import { CHAIN_GROW, create, ROD_HP, type Fight, type Role } from '../engine';
 import { bossSvg } from './art';
 import { bossSkillArt, gimArt, mobSkillArt, skillArtImg } from './skillArt';
 import { BOSSES, type DebuffDef, type SkillDef, type SkillEffect } from '../data/bosses';
@@ -334,7 +334,17 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
     case 'strike': return [`🎯 예고 때 고른 ${typeof d.target === 'object' ? (c.mythic && d.target.nMythic ? d.target.nMythic : d.target.n) : 1}명에게 <b>${n(e.dmg)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, '예고된 사람을 미리 채우기'];
     case 'glass': return [`모래시계를 뒤집음: 그 순간 체력으로 ${secT(e.sec)} 뒤 모두 되돌아감 (그 사이 받은 피해도 넣은 힐도 사라짐)${e.absorbHit ? `. 그때 치유 흡수 막이 남은 사람은 <b>${n(e.absorbHit)}</b>` : ''}`,
       `뒤집기 전에 모두 채우기. 창 안에서는 쓰러질 사람만 힐 (막 벗기기 · 해제는 남음)`];
+    case 'lift': return [`🌪 예고 때 고른 ${targetWho(d, c)}이 ${secT(e.sec)} 동안 하늘로 떠오름: 새 힐 · 해제가 안 닿고 미리 건 지속 힐 · 보호막 · 나눔 사슬 몫만 남음. 내려올 때 <b>${n(c.mythic && e.fallMythic != null ? e.fallMythic : e.fall)}</b>${e.chain ? ` + 그 자리에서 연쇄 번개 <b>${n(e.chain.dmg)}</b> (${e.chain.jumps}번까지 튐)` : ''}${e.land === 'random' ? ' · 무작위 빈 칸에 내려앉음' : ''}`,
+      `예고 동안 ${act('renew', EUL)} · 해제를 먼저. 떠 있는 동안은 다른 사람 (사슬 짝이 있으면 짝을 힐), 내려오면 바로 힐`];
+    case 'chain': return [`⚡ 예고 때 고른 ${targetWho(d, c)}에게 번개 <b>${n(e.dmg)}</b>. 이웃 칸 가운데 체력 비율이 가장 낮은 사람에게 튀며 +${pctT(e.grow ?? CHAIN_GROW)}씩 (${c.mythic && e.jumpsMythic ? e.jumpsMythic : e.jumps}번까지). 체력 ${pctT(ROD_HP)} 이상이거나 보호막이 있는 이웃은 피뢰침: 절반만 받고 멈춤`,
+      `예고 동안 번개 구름 옆 사람을 ${pctT(ROD_HP)} 위로 (가장 낮은 사람부터) · 보호막`];
   }
+}
+/** 예고 때 고르는 사람 (띄워 올리기 · 연쇄 번개) */
+function targetWho(d: SkillDef, c: GuideCtx): string {
+  const t = d.target;
+  if (typeof t !== 'object') return t === 'tank' ? '탱커' : t === 'offtank' ? '보스를 안 맞는 탱커' : '1명';
+  return t.p === 'linked' ? '사슬 짝마다 1명' : t.p === 'pad' ? '받침 위 사람' : `${c.mythic && t.nMythic ? t.nMythic : t.n}명`;
 }
 /** 신기루 (P-MIRAGE, 54 5장) 한 줄 */
 function mirageText(d: SkillDef, c: GuideCtx): string {

@@ -77,7 +77,7 @@ describe('세력 생김새 (34 6-10 ②)', () => {
       for (const k of LOOKS[f]) expect(KINDS.some(x => x.key === k)).toBe(true);
     }
     const n = Object.values(LOOKS).reduce((a, l) => a + l.length, 0);
-    expect(n).toBe(108); // 묶음 D1: 불꽃 (용) +6 · 톱니 (골렘) 사슬 조끼 +1 / D2: 불꽃 화관 · 성물 +2 · 별밤 (심연) 부적 · 사슬 조끼 · 관 · 지팡이 +4 / E1: 노을 (모래 왕국) +6 · 별밤 두건 · 완드 +2 / E2: 노을 +5 · 별밤 건틀릿 · 메이스 +2 / E3: 노을 +3 · 별밤 쌍가락지 · 홀 +2 · 해바라기 관 · 토시 · 옥 반지 +3 · 깃털 (폭풍 깃털단) +2
+    expect(n).toBe(116); // 묶음 D1: 불꽃 (용) +6 · 톱니 (골렘) 사슬 조끼 +1 / D2: 불꽃 화관 · 성물 +2 · 별밤 (심연) 부적 · 사슬 조끼 · 관 · 지팡이 +4 / E1: 노을 (모래 왕국) +6 · 별밤 두건 · 완드 +2 / E2: 노을 +5 · 별밤 건틀릿 · 메이스 +2 / E3: 노을 +3 · 별밤 쌍가락지 · 홀 +2 · 해바라기 관 · 토시 · 옥 반지 +3 · 깃털 (폭풍 깃털단) +2 / F1: 깃털 +7 · 별밤 로브 +1
   });
   it('생김새 그림은 세력 장소에서 잘 나오는 종류만 (나머지는 테두리)', () => {
     expect(hasLookArt({ kind: 'jade', look: 'fairy' })).toBe(true);
@@ -89,8 +89,8 @@ describe('세력 생김새 (34 6-10 ②)', () => {
 });
 
 describe('고유 무기 · 방어구 (34 6-10 ③)', () => {
-  it('50개 (묶음 D1 +4 · D2 +4 · E1 +5 · E2 +4 · E3 +5): 키 · 이름 겹침 없음, 종류는 그 부위, 특수능력은 그 부위에 나오는 직업 공용', () => {
-    expect(UNIQUES).toHaveLength(50);
+  it('55개 (묶음 D1 +4 · D2 +4 · E1 +5 · E2 +4 · E3 +5 · F1 +5): 키 · 이름 겹침 없음, 종류는 그 부위, 특수능력은 그 부위에 나오는 직업 공용', () => {
+    expect(UNIQUES).toHaveLength(55);
     expect(new Set(UNIQUES.map(u => u.key)).size).toBe(UNIQUES.length);
     expect(new Set(UNIQUES.map(u => u.name)).size).toBe(UNIQUES.length);
     expect(new Set(UNIQUES.map(u => u.place)).size).toBe(UNIQUES.length);
@@ -152,10 +152,10 @@ describe('고유 무기 · 방어구 (34 6-10 ③)', () => {
 });
 
 describe('장비 도감 (34 6-10 ④)', () => {
-  it('칸 241 = 종류 30 + 세력 108 + 장신구 53 + 고유 50, 키가 겹치지 않음', () => {
+  it('칸 258 = 종류 30 + 세력 116 + 장신구 57 + 고유 55, 키가 겹치지 않음', () => {
     const all = DEX_ALL();
     expect(new Set(all).size).toBe(all.length);
-    expect(all.length).toBe(30 + 108 + NAMED.length + 50);
+    expect(all.length).toBe(30 + 116 + NAMED.length + 55);
     for (const t of DEX_TABS) for (const k of dexKeys(t.key)) expect(dexTabOf(k)).toBe(t.key);
   });
   it('새 장비가 칸을 채움: 종류는 늘, 세력은 그림 있는 생김새만, 장신구 · 고유는 그 칸', () => {
