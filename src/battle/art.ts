@@ -142,6 +142,17 @@ const ENC_ART: Record<string, string[]> = {
   hotgravel: ['mob-kobold-miner', 'mob-kobold-smoker'],
   wetstair: ['mob-swamp-spearman', 'mob-mud-slinger'],
   turtlebridge: ['mob-wart-toad', 'mob-dart-hunter', 'mob-swamp-spearman'],
+  queen56: ['boss-queen-amanita'],
+  pollenfield: ['mob-cap-guard', 'mob-pollen-fairy'],
+  songi: ['boss-cap-captain-songi'],
+  pililli: ['boss-fairy-bandleader'],
+  ponga: ['boss-puffball-ponga'],
+  mungge: ['boss-moss-golem'],
+  gaegul: ['boss-frog-ferryman'],
+  morak: ['boss-spore-gardener'],
+  bungbung: ['boss-bee-captain'],
+  ppyong: ['boss-fairy-magician'],
+  amanita: ['boss-queen-amanita'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {
@@ -182,7 +193,7 @@ export function emblemSrc(hero: string, color: string): { src: string; painted: 
  */
 const ADD_ART: Record<string, string> = {
   mend: 'mob-imp-mender', bomb: 'mob-bomb', pylon: 'mob-pylon', jail: 'mob-jail', march: 'mob-slime-march', fixate: 'mob-spark-fixate',
-  smash: 'mob-brute', drain: 'mob-mana-leech', swarm: 'mob-imp-swarm', aura: 'mob-totem', hit: 'mob-imp',
+  smash: 'mob-brute', drain: 'mob-mana-leech', swarm: 'mob-imp-swarm', sting: 'mob-imp-swarm', aura: 'mob-totem', hit: 'mob-imp',
 };
 const firstArt = (...names: (string | undefined)[]): string => names.find(n => n && art(n)) ?? '';
 export function addArtName(m: Mob): string {

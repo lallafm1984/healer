@@ -13,14 +13,16 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'leakyway' | 'ratking' | 'sludgegrate' | 'carrier' | 'iceread' | 'librarian' | 'forbidden' | 'scholar'
   | 'petalstair' | 'priestess' | 'keeperhall' | 'sleeper' | 'pagedrift' | 'librarian40' | 'rosetunnel' | 'priestess48'
   | 'gullsand' | 'crab36' | 'wreckage' | 'goldbeard44' | 'crab' | 'cook' | 'morel' | 'gunner' | 'octo' | 'seawitch' | 'mimic' | 'parrot' | 'goldbeard'
-  | 'capway' | 'sippy52' | 'hotgravel' | 'kobold60' | 'sugarstair' | 'sippy' | 'cuptower' | 'hatter' | 'wetstair' | 'uga' | 'turtlebridge' | 'shellgod';
+  | 'capway' | 'sippy52' | 'hotgravel' | 'kobold60' | 'sugarstair' | 'sippy' | 'cuptower' | 'hatter' | 'wetstair' | 'uga' | 'turtlebridge' | 'shellgod'
+  | 'pollenfield' | 'queen56' | 'songi' | 'pililli' | 'ponga' | 'mungge' | 'gaegul' | 'morak' | 'bungbung' | 'ppyong' | 'amanita';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
   | 'hydra' | 'twins' | 'orben' | 'abysslord'
   | 'ratking' | 'carrier' | 'librarian' | 'scholar' | 'priestess' | 'sleeper' | 'librarian40' | 'priestess48'
   | 'crab36' | 'goldbeard44' | 'crab' | 'cook' | 'morel' | 'gunner' | 'octo' | 'seawitch' | 'mimic' | 'parrot' | 'goldbeard'
-  | 'sippy52' | 'kobold60' | 'sippy' | 'hatter' | 'uga' | 'shellgod';
+  | 'sippy52' | 'kobold60' | 'sippy' | 'hatter' | 'uga' | 'shellgod'
+  | 'queen56' | 'songi' | 'pililli' | 'ponga' | 'mungge' | 'gaegul' | 'morak' | 'bungbung' | 'ppyong' | 'amanita';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -498,6 +500,22 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     },
   ], { debuffs: ['독'] }),
   shellgod: { key: 'shellgod', lowLevel: true, name: '늪 거북 신 등딱지', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 7300, enrage: 280, manaCoef: 1.0, diffs: ALL, script: 'shellgod', stage: 0.25, debuffs: ['독'] },
+  // 탐험 ⑭ 「무지개 버섯밭」 (48 1-1, Lv 56): 꽃가루 들판 → 버섯 여왕 아마니타 (사람 칸 쉬운 판, 10인 ⑦ 왕좌 예습)
+  pollenfield: trash('pollenfield', '꽃가루 들판', [
+    { name: '버섯 꼬마 경비', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '꽃가루 요정', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  queen56: { key: 'queen56', lowLevel: true, name: '버섯 여왕 아마니타', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2650, enrage: 215, manaCoef: 1.0, diffs: ALL, script: 'queen56', stage: 0.3, debuffs: ['질병'] },
+  // 10인 ⑤ 요정 축제 마당 (Lv 51) · ⑥ 포자 동굴 정원 (Lv 55) · ⑦ 버섯 여왕의 궁전 (Lv 59): 체력은 자동 힐러 시뮬로 목표 시간에 쓰러지게 맞춤
+  songi: { key: 'songi', name: '버섯 경비대장 송이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 23000, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'songi', stage: 0.18, debuffs: ['질병'] },
+  pililli: { key: 'pililli', name: '요정 악단장 삘릴리', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 19000, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'pililli', stage: 0.18, debuffs: ['마법'] },
+  ponga: { key: 'ponga', name: '축제 대장 퐁가', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 17800, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'ponga', stage: 0.18 },
+  mungge: { key: 'mungge', name: '이끼 골렘 뭉게', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 25500, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'mungge', stage: 0.18, debuffs: ['질병'] },
+  gaegul: { key: 'gaegul', name: '개구리 사공 개굴', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 23000, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'gaegul', stage: 0.18 },
+  morak: { key: 'morak', name: '포자 정원사 모락 할멈', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 16500, enrage: 405, manaCoef: 1.3, diffs: ALL, script: 'morak', stage: 0.18, debuffs: ['질병'] },
+  bungbung: { key: 'bungbung', name: '꿀벌 근위대장 붕붕', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 22500, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'bungbung', stage: 0.18 },
+  ppyong: { key: 'ppyong', name: '요정 마술사 뿅뿅', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 25000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'ppyong', stage: 0.18, debuffs: ['마법'] },
+  amanita: { key: 'amanita', name: '버섯 여왕 아마니타', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 28500, enrage: 450, manaCoef: 1.5, diffs: ALL, script: 'amanita', stage: 0.18, debuffs: ['질병', '마법'] },
   // ---------- 묶음 C 붉은 용 일가 (48 2장, 첫 등장): 졸개 ① 코볼트 곡괭이꾼 · ② 불씨 꼬마 용 · ③ 코볼트 연기 주술사 (독 → 마법) · ④ 용 비늘 경비병 ----------
   // 탐험 ⑮ 「불꽃 봉우리 기슭」 (48 1-1, Lv 60): 뜨거운 자갈길 → 코볼트 보물 지킴이 꼬질 (자폭 쫄 × 독, 10인 ⑧ 예습)
   hotgravel: trash('hotgravel', '뜨거운 자갈길', [

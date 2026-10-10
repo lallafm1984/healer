@@ -84,6 +84,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         : e.pick === 'tel' ? (tel?.units ?? []).map(id => unitById(f, id)).filter((u): u is Unit => !!u && u.alive && free(u)).slice(0, n)
         : e.pick === 'lowest' ? lowestTargets(f, n, u => free(u) && u.role !== 'tank')
         : e.pick === 'linked' ? linkedTargets(f, n, free)
+        : e.pick === 'order' ? orderTargets(f, n, free)
         : randomTargets(f, n, e.pick === 'others' ? u => free(u) && u.role !== 'tank' && !u.me : free);
       for (const u of ts) applyDebuff(f, u, d);
       // 전염 (26 3-1) · 불안정한 마력 둘 (05 5-C): 두 대상이 붙어 서 있으면 걸리자마자 둘 다 터짐
@@ -112,6 +113,9 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         const u = unitById(f, id);
         if (!u) continue;
         pull(f, u, e.sec, e.dmg);
+        // 연잎 사슬 (48 4-2): 끌려온 사람과 보스를 맞는 탱커 (이미 묶였으면 부탱커)를 나눔형 사슬로
+        const tk = [aggroTarget(f), offTank(f)].find(t => t && t !== u && !t.debuffs.some(d => d.link));
+        if (e.link && u.pulled && tk) linkPair(f, u, tk, { kind: 'share', name: e.link.name, sec: e.sec, vuln: f.mythic ? e.link.vulnMythic : undefined });
         // 끌려온 칸에 받침: sec초 뒤 울림 (화면은 그 칸이 금빛)
         if (e.pad && u.pulled) {
           const cells = new Set([u.pulled.cell]);
@@ -311,10 +315,10 @@ function spawnSoul(f: Fight, e: Extract<SkillEffect, { p: 'soul' }>): void {
   if (free.length <= 1) return;
   const c = free[Math.floor(f.rng() * free.length)];
   const ref = f.party.filter(u => u.role !== 'tank' && !u.me);
-  const max = ref.length ? ref.reduce((a, u) => a + u.base, 0) / ref.length : f.me.base;
+  const max = (ref.length ? ref.reduce((a, u) => a + u.base, 0) / ref.length : f.me.base) * (e.size ?? 1);
   const u: Unit = {
     id: f.nextId++, role: 'ranged', cls: null, aim: 0, flow: 0, traits: [], bulwark: 0, bulwarkUsed: false, acc: 0, dealt: 0, pers: null, p: {}, nick: e.short,
-    base: max, max, hp: max * e.hp, dps: 0, alive: true, cell: c.i, home: c.i, hot: 0, hotTick: 0, hots: [], redu: 0, reduCut: 0, sacr: 0, immune: 0, echo: [],
+    base: max, max, hp: max * (f.mythic && e.hpMythic ? e.hpMythic : e.hp), dps: 0, alive: true, cell: c.i, home: c.i, hot: 0, hotTick: 0, hots: [], redu: 0, reduCut: 0, sacr: 0, immune: 0, echo: [],
     guardian: 0, shield: 0, debuffs: [], moving: null, react: null, retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0,
     thanks: 0, flash: 0, barkAt: 0, ignoreZone: 0, homeAt: null, diedAt: 0, me: false, ab: null, mods: [], got: 0, senseReact: 1, senseDodge: 0, runs: 0,
     soul: { name: e.name, short: e.short, until: f.t + e.sec, total: e.sec, win: e.win, fail: e.fail, art: e.art },
@@ -363,6 +367,8 @@ function soulEnd(f: Fight, u: Unit, ok: boolean): void {
       f.dmgMult *= 1 - w.weak.pct;
       f.weak = { cut: w.weak.pct, until: f.t + w.weak.sec };
     }
+    if (w.vuln) f.expose = { vuln: 1 + w.vuln.pct, until: f.t + w.vuln.sec };
+    if (w.fx) emit(f, { type: 'fx', name: w.fx, all: true });
     return;
   }
   emit(f, { type: 'sound', name: 'aoe' });
@@ -391,6 +397,7 @@ export function vesselTick(f: Fight): void {
 export function boonTick(f: Fight): void {
   if (f.bless && f.t + 1e-9 >= f.bless.until) f.bless = null;
   if (f.weak && f.t + 1e-9 >= f.weak.until) { f.dmgMult /= 1 - f.weak.cut; f.weak = null; }
+  if (f.expose && f.t + 1e-9 >= f.expose.until) f.expose = null;
 }
 
 /** 생명 사슬이 걸린 뒤 이만큼은 안 끊어짐 (차이를 맞출 틈) */
@@ -402,9 +409,15 @@ function linkUp(f: Fight, e: Extract<SkillEffect, { p: 'link' }>): void {
   const tanks = randomTargets(f, 2, u => u.role === 'tank' && free(u));
   const two = e.pick === 'tanks' && tanks.length === 2 ? tanks : randomTargets(f, 2, u => u.role !== 'tank' && free(u));
   if (two.length < 2) return;
-  const [a, b] = two;
-  const da = applyDebuff(f, a, { name: e.name, type: '마법', left: e.sec, lock: true });
-  const db = applyDebuff(f, b, { name: e.name, type: '마법', left: e.sec, lock: true });
+  linkPair(f, two[0], two[1], e);
+}
+
+/** 두 사람을 사슬로 이음. vuln = 사슬 표시 디버프에 받는 피해 +비율 (연잎 사슬 악몽) */
+function linkPair(f: Fight, a: Unit, b: Unit, e: { kind: 'balance' | 'share'; name: string; sec: number; gap?: number; dmg?: number; aim?: 'tank' | 'party'; vuln?: number }): void {
+  if ([a, b].some(u => u.debuffs.some(d => d.link))) return;
+  const mark = { name: e.name, type: '마법', left: e.sec, lock: true, ...(e.vuln ? { vuln: e.vuln } : {}) };
+  const da = applyDebuff(f, a, mark);
+  const db = applyDebuff(f, b, mark);
   if (!da || !db) { a.debuffs = a.debuffs.filter(d => d !== da); b.debuffs = b.debuffs.filter(d => d !== db); return; }
   da.link = { to: b.id, kind: e.kind }; db.link = { to: a.id, kind: e.kind };
   f.links.push({ name: e.name, kind: e.kind, a: a.id, b: b.id, at: f.t, until: f.t + e.sec, gap: e.gap ?? 0.3, dmg: e.dmg ?? 0, aim: e.aim ?? 'party' });
@@ -637,6 +650,7 @@ export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
   if (d.untilBossLoss != null) d.bossAt = f.bossHp;
   if (d.absorb) { d.absorbLeft = d.absorb * f.dmgMult; emit(f, { type: 'fx', name: 'absorb', on: u.id }); } // 치유 흡수 막 (P-ABSORB)
   if (d.cap != null) emit(f, { type: 'fx', name: 'ink-splat', on: u.id }); // 치유 상한 (P-CAP, 그림 47 E)
+  if (def.fx) emit(f, { type: 'fx', name: def.fx, on: u.id }); // 모자 · 춤바람 · 벌침 (그림 49 E)
   if (def.drop) damage(f, u, def.drop, true); // 걸릴 때 한 번 (춤바람 · 완치 모자: 가득 찬 사람도 바로 안 풀림)
   return d;
 }
@@ -768,9 +782,9 @@ export function focusOrder(f: Fight): Mob[] {
   return f.mobs.filter(m => m.alive && m.add).sort((a, b) => focusRank(a) - focusRank(b) || a.id - b.id);
 }
 
-/** 보스가 받는 피해 배율: 보호막 수정 (P-PYLON) × 멍함 (차례 성공) */
+/** 보스가 받는 피해 배율: 보호막 수정 (P-PYLON) × 멍함 (차례 성공) × 영혼 축복 (숲 할아버지) */
 export function bossTaken(f: Fight): number {
-  let m = f.daze ? f.daze.vuln : 1;
+  let m = (f.daze ? f.daze.vuln : 1) * (f.expose ? f.expose.vuln : 1);
   for (const x of f.mobs) if (x.alive && x.add?.job?.p === 'pylon') m *= 1 - x.add.job.cut;
   return m;
 }
@@ -818,6 +832,16 @@ function addJob(f: Fight, m: Mob): void {
     emit(f, { type: 'fx', name: 'explode', cell: a.cell });
     emit(f, { type: 'msg', text: `${m.name}이(가) 터짐` });
     during(f, 'bomb', () => { for (const u of living(f)) damage(f, u, j.dmg, true); }); // 폭탄 해체반 (42 기믹 04)
+  } else if (j.p === 'sting') {
+    // 쏘는 쫄 (꿀벌 떼): 탱커 아닌 무작위 1명에게 피해 + 쇠약
+    a.jobAt! += j.every;
+    if ((m.stun || 0) > f.t) return;
+    const u = randomTargets(f, 1, v => v.role !== 'tank')[0];
+    if (!u) return;
+    damage(f, u, j.dmg, false, 'party');
+    const old = u.debuffs.find(d => d.name === j.debuff.name);
+    if (old) old.left = j.debuff.left; // 이미 쏘였으면 시간만 처음으로 (중첩은 체력이 낮은 동안 쌓임)
+    else if (u.alive) applyDebuff(f, u, j.debuff);
   } else if (j.p === 'smash') {
     // 큰 쫄 (P-ELITE): 예고한 강타. 맡은 사람(부탱커)이 쓰러졌으면 다음 사람
     a.jobAt! += j.every; a.warned = false;
@@ -914,6 +938,13 @@ export function flowNext(f: Fight, tel: Telegraph): void {
 function linkedTargets(f: Fight, n: number, ok: (u: Unit) => boolean): Unit[] {
   const tied = randomTargets(f, n, u => ok(u) && u.debuffs.some(d => d.link));
   return tied.concat(randomTargets(f, n - tied.length, u => ok(u) && !tied.includes(u) && u.role !== 'tank' && !u.me));
+}
+
+/** 차례 번호를 받은 사람 먼저 (나 빼고, 거꾸로 마술 48 4-3), 모자라면 탱커 · 나 빼고 무작위 */
+function orderTargets(f: Fight, n: number, ok: (u: Unit) => boolean): Unit[] {
+  const ids = f.order?.ids ?? [];
+  const numbered = randomTargets(f, n, u => ok(u) && !u.me && ids.includes(u.id));
+  return numbered.concat(randomTargets(f, n - numbered.length, u => ok(u) && !numbered.includes(u) && u.role !== 'tank' && !u.me));
 }
 
 /** 체력 비율이 가장 낮은 사람부터 n명 (사냥 P-HUNT, 35 9-1 「대상 고르기」). 같으면 먼저 선 사람 */

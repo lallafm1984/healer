@@ -186,6 +186,11 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   teaparty: ['robe', 'vestment', 'pendant'],
   emberfoot: ['mace', 'gauntlet'],
   mossroot: ['helm', 'mail', 'signet'],
+  // 묶음 C2 (48 6장): 레이드 칸 하나짜리 조합은 탑 · 해적단과 같아도 열림 ±5 밖이라 괜찮음 (같은 레벨대에서만 안 겹치게)
+  rainbow: ['vestment', 'beads'],
+  fest1: ['helm'], fest2: ['pendant'], fest3: ['robe'],
+  cave1: ['gloves'], cave2: ['vestment'], cave3: ['scepter'],
+  palace1: ['mail'], palace2: ['crown'], palace3: ['staff'],
 };
 export const KIND_WEIGHT = 3;
 

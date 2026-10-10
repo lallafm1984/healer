@@ -11,7 +11,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'abyss-garden' | 'abyss-gallery' | 'abyss-observatory' | 'abyss-spire'
   | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary'
   | 'shellbeach' | 'wreck' | 'gull' | 'gull-kitchen' | 'gull-lighthouse' | 'queen' | 'queen-hold' | 'queen-bow' | 'isle' | 'isle-lookout' | 'isle-summit'
-  | 'lampway' | 'teaparty' | 'mossroot' | 'emberfoot';
+  | 'lampway' | 'teaparty' | 'mossroot' | 'emberfoot' | 'rainbow'
+  | 'fest' | 'fest-stage' | 'fest-bonfire' | 'sporecave' | 'sporecave-pond' | 'sporecave-root' | 'palace' | 'palace-hall' | 'palace-throne';
 
 export interface Faction {
   name: string;
@@ -98,6 +99,17 @@ export const PLACES: Record<PlaceKey, Place> = {
   teaparty: { key: 'teaparty', name: '끝없는 다과회', faction: 'fairy', tone: ['#3A2C34', '#161014'], borrow: 'lampway' },
   mossroot: { key: 'mossroot', name: '이끼 뿌리 사원', faction: 'swamp', tone: ['#24332A', '#0D140F'], borrow: 'swamp' },
   emberfoot: { key: 'emberfoot', name: '불꽃 봉우리 기슭', faction: 'dragon', tone: ['#3A2A22', '#160F0B'] },
+  // 묶음 C2: 무지개 버섯밭은 꼬마등 오솔길 그림을 빌림, 10인 레이드 칸은 레이드 첫 칸 그림을 빌림
+  rainbow: { key: 'rainbow', name: '무지개 버섯밭', faction: 'fairy', tone: ['#2C3036', '#101214'], borrow: 'lampway' },
+  fest: { key: 'fest', name: '요정 축제 마당', faction: 'fairy', tone: ['#3A2A36', '#150F14'] },
+  'fest-stage': { key: 'fest-stage', name: '축제 무대', faction: 'fairy', tone: ['#36283A', '#130E16'], borrow: 'fest' },
+  'fest-bonfire': { key: 'fest-bonfire', name: '축제 모닥불', faction: 'fairy', tone: ['#3A2C26', '#16100D'], borrow: 'fest' },
+  sporecave: { key: 'sporecave', name: '포자 동굴 정원', faction: 'fairy', tone: ['#26303A', '#0E1216'] },
+  'sporecave-pond': { key: 'sporecave-pond', name: '포자 연못', faction: 'fairy', tone: ['#22343A', '#0C1417'], borrow: 'sporecave' },
+  'sporecave-root': { key: 'sporecave-root', name: '뿌리 방', faction: 'fairy', tone: ['#30302A', '#121210'], borrow: 'sporecave' },
+  palace: { key: 'palace', name: '버섯 여왕의 궁전', faction: 'fairy', tone: ['#3A2A2E', '#160F11'] },
+  'palace-hall': { key: 'palace-hall', name: '궁전 연회장', faction: 'fairy', tone: ['#382A3A', '#140F16'], borrow: 'palace' },
+  'palace-throne': { key: 'palace-throne', name: '광대버섯 왕좌', faction: 'fairy', tone: ['#3E2626', '#170E0E'], borrow: 'palace' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -109,7 +121,9 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   bookfield: 'bookfield', rosemaze: 'rosemaze', archive: 'archive', ossuary: 'ossuary', sewer: 'sewer',
   shellbeach: 'shellbeach', wreck: 'wreck', gull1: 'gull', gull2: 'gull-kitchen', gull3: 'gull-lighthouse',
   queen1: 'queen', queen2: 'queen-hold', queen3: 'queen-bow', isle1: 'isle', isle2: 'isle-lookout', isle3: 'isle-summit',
-  lampway: 'lampway', teaparty: 'teaparty', mossroot: 'mossroot', emberfoot: 'emberfoot',
+  lampway: 'lampway', teaparty: 'teaparty', mossroot: 'mossroot', emberfoot: 'emberfoot', rainbow: 'rainbow',
+  fest1: 'fest', fest2: 'fest-stage', fest3: 'fest-bonfire', cave1: 'sporecave', cave2: 'sporecave-pond', cave3: 'sporecave-root',
+  palace1: 'palace', palace2: 'palace-hall', palace3: 'palace-throne',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -135,6 +149,8 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   capway: 'lampway', sippy52: 'lampway', hotgravel: 'emberfoot', kobold60: 'emberfoot',
   sugarstair: 'teaparty', sippy: 'teaparty', cuptower: 'teaparty', hatter: 'teaparty',
   wetstair: 'mossroot', uga: 'mossroot', turtlebridge: 'mossroot', shellgod: 'mossroot',
+  pollenfield: 'rainbow', queen56: 'rainbow', songi: 'fest', pililli: 'fest-stage', ponga: 'fest-bonfire',
+  mungge: 'sporecave', gaegul: 'sporecave-pond', morak: 'sporecave-root', bungbung: 'palace', ppyong: 'palace-hall', amanita: 'palace-throne',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

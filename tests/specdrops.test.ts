@@ -109,15 +109,16 @@ describe('이름 있는 장신구 (42 3장)', () => {
 });
 
 describe('장소마다 잘 나오는 장비 종류 (39 4장)', () => {
-  it('있는 종류 · 있는 장소, 던전 3 · 탐험 2 · 레이드 층 1, 같은 레벨대 같은 조합 없음', () => {
+  it('있는 종류 · 있는 장소, 던전 3 · 탐험 2 · 레이드 층 1, 같은 레벨대 (열림 ±5, 48 6장) 같은 조합 없음', () => {
     const keys = new Set(KINDS.map(k => k.key));
     for (const [place, ks] of Object.entries(PLACE_KINDS)) {
       const c = contentOf(place as ContentKey);
       expect(ks.every(k => keys.has(k)), place).toBe(true);
       expect(ks.length, place).toBe(c.kind === 'dungeon' ? 3 : c.kind === 'explore' ? 2 : 1);
     }
-    const combos = Object.values(PLACE_KINDS).map(ks => [...ks].sort().join());
-    expect(new Set(combos).size).toBe(combos.length);
+    // 종류가 16가지라 레이드 칸 하나짜리 조합은 70곳 전체에서는 겹칠 수밖에 없음 → 열림 레벨이 5 안쪽인 장소끼리만 다르게
+    const rows = Object.entries(PLACE_KINDS).map(([place, ks]) => ({ place, lv: contentOf(place as ContentKey).unlockLv, combo: [...ks].sort().join() }));
+    for (const x of rows) for (const y of rows) if (x.place < y.place && Math.abs(x.lv - y.lv) <= 5) expect(x.combo, `${x.place} · ${y.place}`).not.toBe(y.combo);
     // 지금 열린 탐험 · 던전은 모두 표가 있음
     for (const c of CONTENT) if (c.ready && !c.hidden && (c.kind === 'explore' || c.kind === 'dungeon')) expect(PLACE_KINDS[c.key], c.key).toBeDefined();
   });

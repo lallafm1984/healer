@@ -1,4 +1,4 @@
-/** 장비 특수능력 118종 + 이름 있는 장신구 27개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
+/** 장비 특수능력 118종 + 이름 있는 장신구 35개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { NAMED, SPEC_GROUPS, SPEC_KEYS, SPECS, specText, specTotals, specValue } from '../src/data/specials';
@@ -55,14 +55,14 @@ const absorb = (u: U) => u.mods.find(m => m.k === 'absorb')?.v ?? 0;
 const healOn = (f: F, id: number) => { for (const e of f.events) if (e.type === 'heal' && e.id === id) return e.amt; return 0; };
 
 describe('데이터', () => {
-  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 31개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C1 +4)', () => {
+  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 35개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C +8)', () => {
     expect(SPEC_KEYS.length).toBe(118);
     expect(new Set(SPEC_KEYS).size).toBe(118);
     const by = (g: string) => SPEC_KEYS.filter(k => SPECS[k].group === g).length;
     expect(Object.keys(SPEC_GROUPS).map(by)).toEqual([16, 16, 14, 12, 10, 8, 10, 8, 24]);
     expect(SPEC_KEYS.filter(k => SPECS[k].hero).length).toBe(24);
-    expect(NAMED.length).toBe(31);
-    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(149);
+    expect(NAMED.length).toBe(35);
+    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(153);
   });
   it('직업 전용은 영웅 이상, 효과 글에 값이 들어감', () => {
     for (const k of SPEC_KEYS) {
@@ -1010,6 +1010,41 @@ describe('3 이름 있는 장신구', () => {
     const lost = (f: F, mana: number) => { f.mana = mana; f.me.hp = f.me.max; damage(f, f.me, 100, false, 'fixed'); return f.me.max - f.me.hp; };
     expect(ratio(lost(a, 50), lost(b, 50))).toBeCloseTo(1, 6);
     expect(ratio(lost(a, 20), lost(b, 20))).toBeCloseTo(0.85, 6);
+  });
+  it('축제 초대장: 딜을 못 하는 아군 (춤바람 · 감옥 · 침묵)에게 하는 직접 힐 +', () => {
+    const [a, b] = pair('festInvite', 0.2); both([a, b], f => hurt(f));
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1, 6);
+    both([a, b], f => addDebuff(f, dealer(f), { name: '춤바람', type: '마법', left: 30, noDps: true, noMove: true }));
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1.2, 2);
+  });
+  it('무지개 포자: 사람 칸 (영혼)에게 하는 힐 +, 파티원은 그대로', () => {
+    const [a, b] = pair('rainbowSpore', 0.25); both([a, b], f => hurt(f));
+    expect(ratio(amtOn(a, 'flash', dealer(a)), amtOn(b, 'flash', dealer(b)))).toBeCloseTo(1, 6);
+    const soul = (f: F) => {
+      runEffect(f, { name: '나무', st: {} } as unknown as BossSkill, { p: 'soul', name: '숲 할아버지 나무', short: '나무', hp: 0.1, sec: 60, size: 10, win: { text: '' }, fail: { text: '', dmg: 0 } });
+      return f.souls[0];
+    };
+    const sa = soul(a), sb = soul(b);
+    expect(ratio(amtOn(a, 'flash', sa), amtOn(b, 'flash', sb))).toBeCloseTo(1.25, 2);
+  });
+  it('이끼 브로치: 무력화 게이지가 모이는 동안만 광역 힐 +', () => {
+    const [a, b] = pair('mossBrooch', 0.12); both([a, b], f => hurt(f, 0.3));
+    expect(ratio(amtOn(a, 'poh', tank(a)), amtOn(b, 'poh', tank(b)))).toBeCloseTo(1, 6);
+    both([a, b], f => { hurt(f, 0.3); runEffect(f, { name: '웅크리기', st: {} } as unknown as BossSkill, { p: 'stagger', sec: 30, need: 99, hp: 0.7, tank: 2, win: { sec: 6, vuln: 1.3 }, fail: { dmg: 0, lock: 0 } }); });
+    expect(ratio(amtOn(a, 'poh', tank(a)), amtOn(b, 'poh', tank(b)))).toBeCloseTo(1.12, 2);
+  });
+  it('광대버섯 왕관 조각: 해제하면 이웃 칸 아군의 같은 유형 디버프도 지움 (다른 유형 · 못 지우는 것은 그대로)', () => {
+    const [a, b] = pair('amanitaShard', 1);
+    for (const f of [a, b]) {
+      const u = withAdj(f), [v] = adj(f, u);
+      addDebuff(f, u, { name: '요정 장난', type: '마법', left: 30 });
+      addDebuff(f, v, { name: '요정 장난', type: '마법', left: 30 });
+      addDebuff(f, v, { name: '독 연기', type: '독', left: 30 });
+      cast(f, 'purify', u);
+      expect(u.debuffs.some(d => d.name === '요정 장난')).toBe(false);
+      expect(v.debuffs.some(d => d.name === '요정 장난')).toBe(f === b);
+      expect(v.debuffs.some(d => d.name === '독 연기')).toBe(true);
+    }
   });
 });
 
