@@ -79,6 +79,12 @@ export const UNIQUES: UniqueDef[] = [
   { key: 'shellHelm', name: '엉금이 등껍질 투구', slot: 'head', kind: 'helm', place: 'dusk2', placeName: '노을 궁전 보물고', spec: 'hardShell' },
   { key: 'rootGauntlet', name: '뚜벅이 뿌리 건틀릿', slot: 'hands', kind: 'gauntlet', place: 'rootwood1', placeName: '빛뿌리 숲 입구', spec: 'heavyFeet' },
   { key: 'seedHabit', name: '톡톡 씨앗 수도복', slot: 'chest', kind: 'habit', place: 'rootwood2', placeName: '빛뿌리 숲 온실', spec: 'bombSquad' },
+  // 묶음 E3 (54 6장): 10인 ⑫ 복도 · 시계방, 20인 ④ 수문 (사슬 끊는 손은 무기에만 나와서 사슬 조끼 대신 메이스) · 다리, 던전 ⑯
+  { key: 'pillowHabit', name: '폭신이 베개 수도복', slot: 'chest', kind: 'habit', place: 'pyramid1', placeName: '낮잠 피라미드 복도', spec: 'sturdyBack' },
+  { key: 'hourglassBracer', name: '째깍이 모래시계 팔찌', slot: 'hands', kind: 'bracer', place: 'pyramid2', placeName: '낮잠 피라미드 시계방', spec: 'busyHands' },
+  { key: 'clawMace', name: '딱딱이 집게 메이스', slot: 'weapon', kind: 'mace', place: 'reservoir1', placeName: '별빛 저수지 수문', spec: 'chainBreaker' },
+  { key: 'sparkSleeve', name: '찌릿 번개 토시', slot: 'hands', kind: 'sleeve', place: 'reservoir2', placeName: '별빛 저수지 다리', spec: 'thrifty' },
+  { key: 'sundialCrown', name: '그늘지기의 해시계 관', slot: 'head', kind: 'crown', place: 'observatory', placeName: '해시계 천문대', spec: 'starClock' },
 ];
 
 export const uniqueOf = (key: string | undefined) => (key ? UNIQUES.find(u => u.key === key) : undefined);

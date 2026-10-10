@@ -18,7 +18,8 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'warmash' | 'mungsil64' | 'steamroom' | 'mungsil' | 'lavabath' | 'bulttung' | 'coldhearth' | 'huggeun' | 'anvilbridge' | 'ttangttang' | 'kkojil' | 'deolkeong' | 'beonjjeok'
   | 'whelps' | 'dandani' | 'rubina' | 'shoretrash' | 'knights68' | 'knights' | 'uwoong' | 'ormal'
   | 'kkubeok' | 'hokdol' | 'nyanx' | 'stairtrash' | 'heumul72' | 'heumul' | 'bichumi' | 'gipeun' | 'sandhall' | 'degul' | 'backgarden' | 'dooldool'
-  | 'solsol' | 'eonggeum' | 'sarasha' | 'dunetrash' | 'pokshin76' | 'ttubeok' | 'toktok' | 'kungkung';
+  | 'solsol' | 'eonggeum' | 'sarasha' | 'dunetrash' | 'pokshin76' | 'ttubeok' | 'toktok' | 'kungkung'
+  | 'pokshin' | 'jjaekkak' | 'hapum' | 'ttakttak' | 'jjirit' | 'doeul' | 'windtrash' | 'hwirik' | 'startrash' | 'stargazer' | 'sundialyard' | 'geuneul';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -30,7 +31,8 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'mungsil64' | 'mungsil' | 'bulttung' | 'huggeun' | 'ttangttang' | 'kkojil' | 'deolkeong' | 'beonjjeok'
   | 'whelps' | 'dandani' | 'rubina' | 'knights68' | 'knights' | 'uwoong' | 'ormal'
   | 'kkubeok' | 'hokdol' | 'nyanx' | 'heumul72' | 'heumul' | 'bichumi' | 'gipeun' | 'degul' | 'dooldool'
-  | 'solsol' | 'eonggeum' | 'sarasha' | 'pokshin76' | 'ttubeok' | 'toktok' | 'kungkung';
+  | 'solsol' | 'eonggeum' | 'sarasha' | 'pokshin76' | 'ttubeok' | 'toktok' | 'kungkung'
+  | 'pokshin' | 'jjaekkak' | 'hapum' | 'ttakttak' | 'jjirit' | 'doeul' | 'hwirik' | 'stargazer' | 'geuneul';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -130,6 +132,11 @@ export const soaps = (x = 1): DebuffDef[] => [
 const SAND_WRAP: DebuffDef[] = [
   { name: '모래 먼지', type: '질병', left: 10, dot: 12 },
   { name: '옮은 졸음', type: '저주', left: 10, healCut: 0.3 },
+];
+/** 폭풍 점술사 (54 2장, 폭풍 깃털단 ③ · 묶음 F): 저주 (받는 치유 −30%) → 마법 (초당 딜체 2%) 차례로 (작게) */
+const STORM_HEX: DebuffDef[] = [
+  { name: '깃털 저주', type: '저주', left: 10, healCut: 0.3 },
+  { name: '찌릿 구름', type: '마법', left: 10, dot: 12 },
 ];
 /** 재채기 버섯 (48 2장, 버섯 요정단 ③): 질병 (초당 딜체 2%) → 마법 (받는 치유 −30%) 차례로. x = 피해 배율 (탐험 0.7) */
 const sneeze = (x = 1): DebuffDef[] => [
@@ -666,6 +673,44 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
   ttubeok: { key: 'ttubeok', name: '뿌리 거인 뚜벅이', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 48400, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'ttubeok', big: true, stage: 0.13 },
   toktok: { key: 'toktok', name: '씨앗 할머니 톡톡', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 47300, enrage: 390, manaCoef: 1.6, diffs: ALL, script: 'toktok', big: true, stage: 0.13, debuffs: ['질병'] },
   kungkung: { key: 'kungkung', name: '심장의 뿌리 쿵쿵', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 49000, enrage: 480, manaCoef: 1.6, diffs: ALL, script: 'kungkung', big: true, stage: 0.13, debuffs: ['저주', '마법'] },
+  // ---------- 묶음 E3 (54 1장 · 2장 · 3-2 · 4-3 · 4-6) ----------
+  // 10인 ⑫ 낮잠 피라미드 (Lv 79 · 악몽 94)
+  pokshin: { key: 'pokshin', name: '베개 골렘 폭신이', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 24000, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'pokshin', stage: 0.18, debuffs: ['질병'] },
+  jjaekkak: { key: 'jjaekkak', name: '모래시계 사제 째깍이', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 25300, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'jjaekkak', stage: 0.18, debuffs: ['저주'] },
+  hapum: { key: 'hapum', name: '모래 왕 하품호텝', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 29400, enrage: 480, manaCoef: 1.5, diffs: ALL, script: 'hapum', stage: 0.18, debuffs: ['질병', '저주'] },
+  // 20인 ④ 별빛 저수지 (Lv 79 · 악몽 89)
+  ttakttak: { key: 'ttakttak', name: '수문지기 집게 딱딱이', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 44500, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'ttakttak', big: true, stage: 0.13 },
+  jjirit: { key: 'jjirit', name: '별빛 장어 찌릿', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 56600, enrage: 390, manaCoef: 1.6, diffs: ALL, script: 'jjirit', big: true, stage: 0.13, debuffs: ['마법'] },
+  doeul: { key: 'doeul', name: '심연의 메아리 되울림', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 69700, enrage: 480, manaCoef: 1.6, diffs: ALL, script: 'doeul', big: true, stage: 0.13, debuffs: HEAL4 },
+  // 탐험 ⑳ 「바람개비 언덕」 (54 1-1, Lv 80, 폭풍 깃털단 첫 등장 · 저주 + 마법): 바람 부는 언덕 → 하피 우체부 휘리릭
+  windtrash: trash('windtrash', '바람 부는 언덕', [
+    { name: '깃털 창병 하피', hp: 170, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '폭풍 점술사', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'hex', name: '폭풍 점괘', icon: '점괘', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: STORM_HEX } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['저주', '마법'] }),
+  hwirik: { key: 'hwirik', lowLevel: true, name: '하피 우체부 휘리릭', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3100, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'hwirik', stage: 0.3, debuffs: ['저주', '마법'] },
+  // 던전 ⑯ 「해시계 천문대」 (54 1-2 · 3-2, Lv 80, 해바라기 언덕 · 모든 유형): 일반 별 지도 회랑 → 천문대 수호상 별바라기 → 정예 해시계 마당 → 해시계 관리인 유령 그늘지기
+  startrash: trash('startrash', '별 지도 회랑', [
+    { name: '돌 수도사', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '다락 박쥐 떼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  stargazer: { key: 'stargazer', lowLevel: true, name: '천문대 수호상 별바라기', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6000, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'stargazer', stage: 0.25, debuffs: HEAL4 },
+  sundialyard: trash('sundialyard', '해시계 마당', [
+    { name: '돌 수도사', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '길 잃은 순례자', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'soap', name: '엉뚱한 물약', icon: '물약', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: soaps() } },
+    ] },
+    {
+      name: '신전 돌거인', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'pound', name: '땅 울림', icon: '울림', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: HEAL4 }),
+  geuneul: { key: 'geuneul', lowLevel: true, name: '해시계 관리인 유령 그늘지기', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7600, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'geuneul', stage: 0.25, debuffs: HEAL4 },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

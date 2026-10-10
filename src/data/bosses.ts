@@ -115,6 +115,8 @@ export interface DebuffDef {
   over?: number;
   /** 받는 피해 +비율 × 중첩 (가시 · 공허, 탱커 교대 P-SWAP) */
   vuln?: number;
+  /** 걸린 동안 딜 −비율 (하품호텝 하품, 54 4-3) */
+  dpsCut?: number;
   /** 부풀기 (P-SWELL): 1중첩으로 걸리고 every초마다 1중첩 (최대 max). 터지는 일은 end pop */
   swell?: { every: number; max: number };
   /** 치유 상한 (P-CAP): 걸린 동안 치유로는 체력이 최대 체력 × cap까지만 참 (넘는 몫은 넘친 치유). 이미 더 높으면 깎지 않음 */
@@ -262,7 +264,7 @@ export type SkillEffect =
    * 감옥 (P-JAIL): 탱커·나 아닌 n명(악몽 nMythic)을 가둠 (딜 0 · 못 움직임 · 초당 dot, 해제 안 됨). 그 칸에 감옥(체력 = 보스 최대 × hp)이
    * 겹쳐 나오고 딜러가 일점사로 깨면 풀림. 갇힌 사람이 쓰러지면 감옥도 사라짐
    */
-  | { p: 'jail'; n: number; nMythic?: number; name: string; short: string; hp: number; dot: number }
+  | { p: 'jail'; n: number; nMythic?: number; name: string; short: string; hp: number; dot: number; art?: string }
   /**
    * 진동 (P-QUAKE, 35 4-4): 맞는 순간 내가 시전 중인 힐(찬가 같은 채널 포함)이 끊기고 그 스킬이 lock초 잠김. 전원 dmg (마법).
    * 화면은 예고 동안 휠 가장자리가 떨림. 즉시 스킬·지속 힐은 안 끊김
@@ -280,9 +282,12 @@ export type SkillEffect =
   | { p: 'stagger'; sec: number; need: number; hp: number; hpMythic?: number; tank: number; win: { sec: number; vuln: number }; fail: { dmg: number; lock: number } }
   /**
    * 반격 틈 (P-COUNTER, 35 4-5): 끊기 ✋ 능력이 있는 파티원이 시전 시작에 끊으면(능력 성공 확률) 보스가 stun초 기절.
-   * 못 끊으면 맞을 때 앞줄(판 앞쪽 3분의 1)에 선 사람 모두 dmg (물리). 기술은 저절로 「끊기 가능」이 됨
+   * 못 끊으면 맞을 때 앞줄(판 앞쪽 3분의 1)에 선 사람 모두 dmg (물리). 기술은 저절로 「끊기 가능」이 됨. all = 못 끊으면 전원 (별똥비).
+   * decoy = 가짜 반격 틈 (54 3-2 별바라기, 반격 틈 × 신기루): 틈이 gap초 간격으로 두 번 열리고 그중 하나는 신기루 (맞기 1초 전에 걷힘).
+   * 신중파는 걷힐 때까지 기다렸다 진짜만 끊고, 다른 끊기 담당은 틈이 열리자마자 끊음 → 가짜를 끊으면 능력만 쓰고 진짜를 놓침.
+   * 악몽은 가짜를 끊은 사람이 stunMythic초 기절
    */
-  | { p: 'counter'; stun: number; dmg: number }
+  | { p: 'counter'; stun: number; dmg: number; all?: boolean; decoy?: { gap: number; stunMythic?: number } }
   /**
    * 받침 (P-TOWER, 35 4-5): 예고 때 빈 칸 n개에 금빛 발판, 갈 수 있는 파티원(탱커·나·겁쟁이 빼고)이 발판으로 감.
    * 맞을 때 발판 위 사람은 dmg, 빈 발판 하나마다 전원 empty (마법)
@@ -332,9 +337,10 @@ export type SkillEffect =
   /**
    * 모래시계 (P-GLASS, 54 5장): 뒤집는 순간 살아 있는 파티원의 체력 비율을 기록하고 sec초 뒤 모두 그 비율로 되돌림 (체력만, 그 사이 쓰러진 사람은 그대로).
    * then = 뒤집은 뒤 in초에 그 기술을 엶 (창 안 광역 데굴데굴. 그 기술은 first null · 긴 주기로 적어 한 번만 쓰게).
-   * absorbHit = 되돌릴 때 치유 흡수 막이 남은 사람 이만큼 피해 (악몽 둘둘이)
+   * absorbHit = 되돌릴 때 치유 흡수 막이 남은 사람 이만큼 피해 (악몽 둘둘이). lowHitMythic = 악몽에서 되돌릴 때 체력 비율이 below 아래인 사람 dmg 더 (악몽 째깍이, 54 4-3).
+   * 모래시계가 둘 겹치면 (째깍이 큰 · 작은 모래시계) 각자 자기 기록으로, 짧은 것이 먼저 되돌림
    */
-  | { p: 'glass'; sec: number; then?: { skill: string; in: number }[]; absorbHit?: number };
+  | { p: 'glass'; sec: number; then?: { skill: string; in: number }[]; absorbHit?: number; lowHitMythic?: { below: number; dmg: number } };
 
 /** 영혼을 채웠을 때: cure 유형 디버프를 모두에게서 1개씩 지움 · 받는 치유 +heal 비율 · 보스가 주는 피해 −weak 비율 · 보스가 받는 피해 +vuln 비율 (sec초) */
 export interface SoulWin {
@@ -375,9 +381,10 @@ export type ZoneCells =
   | { p: 'flow'; every: number; from?: 'left' | 'right' | 'alt' }
   /**
    * 피난처 (P-SAFE): 안전 칸을 뺀 모든 칸. 안전 칸 n개 (악몽 nMythic): edge = 판 가운데에서 먼 칸부터 (배치기),
-   * center = 가운데에 가까운 칸부터 + tank면 탱커 칸도 (천장 무너짐). 화면은 안전 칸을 금빛으로. 던전은 안전 칸 ≥ 인원 (35 3-E)
+   * center = 가운데에 가까운 칸부터 + tank면 탱커 칸도 (천장 무너짐), side = 왼쪽 · 오른쪽 끝 중 무작위 한쪽에서 가까운 칸부터 (신기루 피난처, 54 4-3:
+   * 신기루면 가짜 안전 칸은 반대쪽 끝). 화면은 안전 칸을 금빛으로. 던전은 안전 칸 ≥ 인원 (35 3-E)
    */
-  | { p: 'safe'; at: 'edge' | 'center'; n: number; nMythic?: number; tank?: boolean };
+  | { p: 'safe'; at: 'edge' | 'center' | 'side'; n: number; nMythic?: number; tank?: boolean };
 
 /** 기술이 도는 조건. 타이머는 조건과 상관없이 흐르고, 조건이 안 맞으면 그 차례는 건너뜀 */
 export interface SkillWhen {
@@ -584,6 +591,13 @@ const SHADOW_TOUCH: DebuffDef[] = [
   { name: '쓴 그림자', type: '독', left: 12, dot: U.dps(0.02) },
   { name: '무거운 그림자', type: '저주', left: 10, healCut: 0.4 },
   { name: '차가운 그림자', type: '마법', left: 8, dot: U.dps(0.02) },
+];
+/** 돌가루 (54 3-2 해시계 천문대, 39 깨진 신전 돌가루를 유형 무작위로): 질병 · 독 · 저주 · 마법 중 사람마다 하나. 마법은 침묵 (끊기 담당이면 반격 틈을 못 끊음) */
+const STONE_DUST: DebuffDef[] = [
+  { name: '돌가루 기침', type: '질병', left: 12, dot: U.dps(0.02) },
+  { name: '쓴 돌가루', type: '독', left: 12, dot: U.dps(0.02) },
+  { name: '무거운 돌가루', type: '저주', left: 10, healCut: 0.3 },
+  { name: '반짝 돌가루', type: '마법', left: 6, noDps: true },
 ];
 /** 졸린 모래 병정 꾸벅 · 끄덕 (54 4-1): 몸통 둘, 체력은 encounters kkubeok hp를 둘로 나눔 */
 const GUARDS = ['꾸벅', '끄덕'];
@@ -2312,6 +2326,211 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ] },
     ],
     enrage: { name: '심장의 고동', period: 3, dmg: 220 },
+  },
+  // ---------- 묶음 E3 10인 ⑫ 낮잠 피라미드 (54 4-3, Lv 79 · 악몽 94 · 모래 왕국 · 질병 + 저주): 폭신이 · 째깍이 · 하품호텝 ----------
+  // 베개 골렘 폭신이 (복도): 무력화 × 신기루 (베개 싸움 동안 신기루 베개가 두 곳, 진짜 자리 사람이 70% 아래면 게이지를 못 채움) · 코골이 진동 · 깃털 기침 (질병).
+  // 악몽은 신기루 베개 3곳 (진짜 2). 목표 4:30 · 광폭화 6:00
+  pokshin: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { key: 'fight', name: '베개 싸움', icon: '베개', kind: 'instant', first: 20, period: 45, cast: 0,
+        how: '15초 동안 체력 70% 이상인 파티원의 딜만 게이지를 채움. 신기루 베개가 걷히면 진짜 자리 사람을 바로 70% 위로, 코골이 진동 전에 시전을 끝내기',
+        effect: { p: 'stagger', sec: 15, need: 10, hp: 0.7, tank: 2, win: { sec: 8, vuln: 1.3 }, fail: { dmg: U.dps(0.5), lock: 3 } } },
+      ...(['pillow', 'pillowm'] as const).map((key): SkillDef => ({
+        key, name: '신기루 베개', icon: '베개', kind: 'zone', first: key === 'pillow' ? 8 : 8.2, period: 15, cast: 3, warn: 'zone', hitDmg: U.dps(0.35), cells: { p: 'around' },
+        ...(key === 'pillow' ? { mirage: { n: 1 }, how: '두 곳 중 한 곳은 신기루 (끝 1초에 걷힘, 악몽은 세 곳 중 두 곳이 진짜). 파티원이 알아서 피함. 못 피한 사람부터 채우기' }
+          : { hidden: true, when: { mythic: true } }),
+      })),
+      { key: 'snore', name: '코골이', icon: '코골', kind: 'aoe', first: 12, period: 20, cast: 1.5, warn: 'aoe',
+        how: '진동: 맞는 순간 시전 중인 힐이 끊기고 3초 잠김. 예고가 뜨면 즉시 스킬 · 지속 힐로', effect: { p: 'quake', dmg: U.dps(0.12), lock: 3 } },
+      { key: 'cough', name: '깃털 기침', icon: '기침', kind: 'instant', first: 5, period: 16, cast: 0, effect: { p: 'debuff', n: 3, debuff: { ...SAND_COUGH, name: '깃털 기침' } } },
+    ],
+    enrage: { name: '베개 폭탄', period: 3, dmg: 210 },
+  },
+  // 모래시계 사제 째깍이 (시계방): 모래시계 둘 (큰 것 12초를 뒤집고 4초 뒤 작은 것 6초. 작은 것이 먼저, 큰 것이 한 번 더 되돌림) × 사냥 (늦잠 꾸러기 찾기) · 시간 재촉 (창 안 두 번) · 천 년 졸음.
+  // 악몽은 작은 모래시계가 되돌릴 때 체력 30% 아래인 사람 딜체 20% 더. 목표 4:50 · 광폭화 6:30
+  jjaekkak: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { key: 'big', name: '큰 모래시계', icon: '모래', kind: 'aoe', first: 16, period: 36, cast: 3, warn: 'aoe',
+        how: '12초 뒤 뒤집은 순간의 체력으로 되돌아감. 4초 뒤 작은 모래시계가 또 뒤집히니, 작은 것을 뒤집기 전에 채우면 작은 것이 되돌릴 때까지 버팀',
+        effect: { p: 'glass', sec: 12, then: [{ skill: 'hurry', in: 0.5 }, { skill: 'small', in: 1 }, { skill: 'hurry2', in: 5.5 }] } },
+      { key: 'small', name: '작은 모래시계', icon: '작은', kind: 'aoe', first: null, period: 9999, cast: 3, warn: 'aoe',
+        how: '큰 모래시계 4초 뒤 뒤집혀 6초 뒤 되돌림 (그때 체력 기준). 악몽은 되돌릴 때 30% 아래인 사람이 더 아픔',
+        effect: { p: 'glass', sec: 6, lowHitMythic: { below: 0.3, dmg: U.dps(0.2) } } },
+      ...(['hurry', 'hurry2'] as const).map((key): SkillDef => ({
+        key, name: '시간 재촉', icon: '재촉', kind: 'aoe', first: null, period: 9999, cast: 1.5, warn: 'aoe',
+        ...(key === 'hurry2' ? { hidden: true } : { how: '모래시계 창 안에서 두 번. 맞은 피해는 창이 끝나면 되돌아가니 쓰러질 사람만 힐' }),
+        effect: { p: 'all', dmg: U.dps(0.25) },
+      })),
+      { key: 'hunt', name: '늦잠 꾸러기 찾기', icon: '늦잠', kind: 'instant', first: 12, period: 11, cast: 2,
+        how: '맞는 순간 체력 비율이 가장 낮은 사람. 창 안에서도 오니 가장 낮은 사람은 쓰러지지 않게', effect: { p: 'hunt', dmg: U.dps(0.35) } },
+      { key: 'sleepy', name: '천 년 졸음', icon: '졸음', kind: 'instant', first: 9, period: 18, cast: 0, effect: { p: 'debuff', n: 2, debuff: SLEEPY } },
+    ],
+    enrage: { name: '기상 시간', period: 3, dmg: 210 },
+  },
+  // 모래 왕 하품호텝 (침실, 10인 ⑫ 최종 · 모래 왕국 수장): 1페이즈 반쯤 깸 (하품: 저주 받는 치유 −30% + 딜 −20% · 늦잠 꾸러기 찾기)
+  // → 70% 모래 폭풍 (신기루 피난처: 안전 칸이 양쪽 끝에 뜨고 한쪽은 신기루, 끝 2초에 걷힘 · 모래 기침) → 40% 왕의 모래시계 (모두 + 모래시계 · 천 년 하품).
+  // 악몽은 3페이즈 모래시계 창 안에 왕홀 내려치기 한 번 더. 목표 6:00 · 광폭화 8:00
+  hapum: {
+    phase: [1, '1페이즈 · 반쯤 깸'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('왕홀 내려치기', '왕홀', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'busterm', name: '왕홀 내려치기', icon: '왕홀', kind: 'buster', first: null, period: 9999, cast: 2, warn: 'buster', dmg: U.tank(0.55), target: 'tank', when: { mythic: true }, hidden: true, effect: { p: 'tank' } },
+      { key: 'yawn', name: '하품', icon: '하품', kind: 'instant', first: 10, period: 18, cast: 0,
+        how: '3명이 졸음: 받는 치유 −30% · 딜 −20%. 저주를 지우는 직업은 지움', effect: { p: 'debuff', n: 3, debuff: { ...SLEEPY, name: '하품', dpsCut: 0.2 } } },
+      { key: 'hunt', name: '늦잠 꾸러기 찾기', icon: '늦잠', kind: 'instant', first: 14, period: 12, cast: 2, effect: { p: 'hunt', dmg: U.dps(0.35) } },
+      { key: 'storm', name: '신기루 모래 폭풍', icon: '폭풍', kind: 'zone', first: null, period: 35, cast: 5, warn: 'zone', hitDmg: U.dps(0.6), when: { phase: [2, 3] },
+        cells: { p: 'safe', at: 'side', n: 10 }, mirage: { n: 1, reveal: 2 }, hitFx: 'sandstorm',
+        how: '양쪽 끝에 안전 칸이 뜨지만 한쪽은 신기루 (끝 2초에 걷힘). 성급한 사람은 먼저 달려가고, 걷힌 뒤 늦게 옮기는 사람이 맞음. 멀리 선 사람을 미리 채우기' },
+      { key: 'cough', name: '모래 기침', icon: '기침', kind: 'instant', first: null, period: 16, cast: 0, when: { phase: [2, 3] }, effect: { p: 'debuff', n: 3, debuff: SAND_COUGH } },
+      { key: 'glass', name: '왕의 모래시계', icon: '모래', kind: 'aoe', first: null, period: 30, cast: 3, warn: 'aoe', when: { phase: [3] },
+        how: `${GLASS_HOW}. 창 안에 모래 폭풍이 겹치면 맞아도 되돌아감`, effect: { p: 'glass', sec: 8, then: [{ skill: 'busterm', in: 1 }] } },
+      { key: 'bigyawn', name: '천 년 하품', icon: '하품', kind: 'aoe', first: null, period: 20, cast: 3, warn: 'aoe', when: { phase: [3] }, effect: { p: 'all', dmg: U.dps(0.25) } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.7 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 모래 폭풍' }, { p: 'start', skill: 'storm', in: 4 }, { p: 'start', skill: 'cough', in: 6 },
+        { p: 'text', text: '모래 폭풍: 안전 칸 한쪽은 신기루' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.4 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 왕의 모래시계' }, { p: 'start', skill: 'glass', in: 4 }, { p: 'start', skill: 'bigyawn', in: 9 },
+        { p: 'text', text: '왕의 모래시계: 신기루 · 모래시계 함께 + 천 년 하품' },
+      ] },
+    ],
+    enrage: { name: '왕의 모래 폭풍', period: 3, dmg: 220 },
+  },
+  // ---------- 묶음 E3 20인 ④ 별빛 저수지 (54 4-6, Lv 79 · 악몽 89 · 심연 · 모든 유형): 딱딱이 · 찌릿 · 되울림 ----------
+  // 수문지기 집게 딱딱이 (수문): 20인 감옥 × 행진 (집게 감옥 3명, 큰 물결이 세로 줄을 1초마다 왼쪽 → 오른쪽, 못 피함) · 거품 뿜기 (5명).
+  // 악몽은 큰 물결이 돌아오며 한 번 더. 목표 4:30 · 광폭화 6:00
+  ttakttak: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { key: 'jail', name: '집게 감옥', icon: '집게', kind: 'instant', first: 10, period: 24, cast: 0,
+        how: '3명이 집게에 갇힘 (딜러가 깸, 못 피함). 큰 물결이 갇힌 사람 줄에 닿기 전에 채우기',
+        effect: { p: 'jail', n: 3, name: '집게 감옥', short: '집게', hp: 0.006, dot: U.dps(0.02), art: 'mob-claw-jail' } },
+      ...([['wave', 15, 'left', undefined], ['wavem', 21, 'right', true]] as const).map(([key, first, from, mythic]): SkillDef => ({
+        key, name: '큰 물결', icon: '물결', kind: 'zone', first, period: 26, cast: 3, warn: 'zone', fixed: true, hitDmg: U.dps(0.25), cells: { p: 'flow', every: 1, from },
+        ...(mythic ? { hidden: true, when: { mythic } } : { how: '물결이 세로 줄을 한 줄씩 훑음 (못 피함, 악몽은 돌아오며 한 번 더). 다음 줄 사람과 갇힌 사람을 미리 채우기' }),
+      })),
+      { key: 'bubble', name: '거품 뿜기', icon: '거품', kind: 'instant', first: 7, period: 13, cast: 0,
+        effect: { p: 'debuff', n: 5, debuff: { name: '거품', type: '물리', left: 1, lock: true, drop: U.dps(0.18) } } },
+    ],
+    enrage: { name: '수문 열기', period: 3, dmg: 200 },
+  },
+  // 별빛 장어 찌릿 (다리): 나눔 사슬 3쌍 (악몽 4쌍, 피해 · 치유를 반씩) × 찌릿 역류 (힐러, 스킬마다 중첩, 끝날 때 중첩당 내 체력 6%) · 번개 꼬리 · 정전기 (마법).
+  // 역류 동안은 사슬 짝에게 큰 힐 한 번이 낫다. 목표 5:00 · 광폭화 6:30
+  jjirit: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { key: 'chain', name: '별빛 사슬', icon: '사슬', kind: 'instant', first: 10, period: 24, cast: 0,
+        how: '세 쌍 (악몽 네 쌍)이 12초 동안 받는 피해 · 치유를 반씩 나눔. 한 번의 힐이 둘을 채움',
+        effect: { p: 'link', kind: 'share', name: '별빛 사슬', sec: 12, pick: 'others', pairs: 3, pairsMythic: 4 } },
+      { key: 'recoil', name: '찌릿 역류', icon: '역류', kind: 'instant', first: 20, period: 30, cast: 0,
+        how: '10초 동안 내가 스킬을 쓸 때마다 1중첩, 끝날 때 중첩당 내 체력 6%. 사슬 짝에게 큰 힐을 아껴 쓰기',
+        effect: { p: 'debuff', n: 1, pick: 'me', debuff: { name: '찌릿 역류', type: '마법', left: 10, count: true, end: { p: 'stackHit', dmg: U.me(0.06) } } } },
+      { key: 'tail', name: '번개 꼬리', icon: '꼬리', kind: 'instant', first: 7, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 4, debuff: { name: '번개 꼬리', type: '물리', left: 1, lock: true, drop: U.dps(0.25) } } },
+      { key: 'static', name: '정전기', icon: '정전', kind: 'instant', first: 13, period: 18, cast: 0, effect: { p: 'debuff', n: 3, debuff: { name: '정전기', type: '마법', left: 8, healCut: 0.25 } } },
+    ],
+    enrage: { name: '번개 폭풍', period: 3, dmg: 210 },
+  },
+  // 심연의 메아리 되울림 (거울호수, 20인 ④ 최종): 1페이즈 비치는 물 (메아리 화살 4명 중 진짜 2 · 그림자 손길) → 65% 거꾸로 메아리 (모래시계 · 창 안 메아리 파도 두 번)
+  // → 35% 물 아래로 (모두 + 심연의 물결). 20인 신기루 × 모래시계. 악몽은 메아리 화살 진짜 3 (표시 5명). 목표 6:00 · 광폭화 8:00
+  doeul: {
+    phase: [1, '1페이즈 · 비치는 물'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('그림자 손바닥', '손바', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'arrow', name: '메아리 화살', icon: '화살', kind: 'buster', first: 12, period: 13, cast: 3, warn: 'buster', target: { p: 'random', n: 2, nMythic: 3 }, mirage: { n: 2 }, when: { phase: [1, 3] },
+        how: '4명 (악몽 5명)에게 화살이 겨눠지지만 둘은 신기루 (끝 1초에 걷힘). 걷히면 남은 진짜에게 바로 큰 힐 · 보호막', effect: { p: 'strike', dmg: U.dps(0.5) } },
+      { key: 'touch', name: '그림자 손길', icon: '손길', kind: 'instant', first: 16, period: 16, cast: 0, when: { phase: [1, 3] },
+        how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
+      { key: 'glass', name: '거꾸로 메아리', icon: '모래', kind: 'aoe', first: null, period: 30, cast: 3, warn: 'aoe', when: { phase: [2, 3] }, how: GLASS_HOW,
+        effect: { p: 'glass', sec: 8, then: [{ skill: 'wave', in: 0.5 }, { skill: 'wave2', in: 4.5 }] } },
+      ...(['wave', 'wave2'] as const).map((key): SkillDef => ({
+        key, name: '메아리 파도', icon: '파도', kind: 'aoe', first: null, period: 9999, cast: 1.5, warn: 'aoe',
+        ...(key === 'wave2' ? { hidden: true } : { how: '거꾸로 메아리 창 안 2초 · 6초에 두 번. 맞은 피해는 창이 끝나면 되돌아가니 쓰러질 사람만 힐' }),
+        effect: { p: 'all', dmg: U.dps(0.3) },
+      })),
+      { key: 'deep', name: '심연의 물결', icon: '물결', kind: 'aoe', first: null, period: 20, cast: 3, warn: 'aoe', when: { phase: [3] }, effect: { p: 'all', dmg: U.dps(0.25) } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 거꾸로 메아리' }, { p: 'start', skill: 'glass', in: 4 },
+        { p: 'text', text: '거꾸로 메아리: 모래시계처럼 체력이 되돌아감' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.35 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 물 아래로' }, { p: 'start', skill: 'deep', in: 5 },
+        { p: 'text', text: '물 아래로: 메아리 화살 · 거꾸로 메아리 함께 + 심연의 물결' },
+      ] },
+    ],
+    enrage: { name: '메아리 폭풍', period: 3, dmg: 220 },
+  },
+  // ---------- 묶음 E3 탐험 ⑳ 바람개비 언덕 (54 1-1, Lv 80): 다음 지역 구름 위 섬 · 폭풍 깃털단 첫 등장 ----------
+  // 하피 우체부 휘리릭 (새 보스, 묶음 F 10인에서 키움): 평타 · 돌풍 (원거리 1명을 끌고 감) · 깃털 저주 · 바람 편지 (마법)
+  hwirik: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'gust', name: '돌풍', icon: '돌풍', kind: 'buster', first: 9, period: 16, cast: 2, warn: 'buster', target: { p: 'back', n: 1 },
+        how: '원거리 딜러를 보스 앞으로 끌고 와 4초 동안 평타를 나눠 맞게 함. 끌려온 사람을 먼저', effect: { p: 'pull', sec: 4, dmg: 70 } },
+      { key: 'curse', name: '깃털 저주', icon: '깃털', kind: 'instant', first: 6, period: 14, cast: 0, effect: { p: 'debuff', n: 1, debuff: { name: '깃털 저주', type: '저주', left: 8, healCut: 0.3 } } },
+      { key: 'letter', name: '바람 편지', icon: '편지', kind: 'instant', first: 12, period: 16, cast: 0, effect: { p: 'debuff', n: 1, debuff: { name: '바람 편지', type: '마법', left: 8, dot: 14 } } },
+    ],
+    enrage: { name: '속달 폭풍', period: 2, dmg: 200 },
+  },
+  // ---------- 묶음 E3 던전 ⑯ 해시계 천문대 (54 3-2, Lv 80 · 해바라기 언덕 · 모든 유형): 별바라기 · 그늘지기 ----------
+  // 천문대 수호상 별바라기 (①): 가짜 반격 틈 (별빛 모으기: 틈이 5초 간격으로 두 번, 하나는 신기루. 신중파는 걷힐 때까지 기다림) · 별 지도 장판 · 돌가루 (유형 무작위).
+  // 못 끊으면 별똥비 (전원). 악몽은 가짜 틈에 끊기를 쓴 사람이 3초 기절. 목표 3:00 · 광폭화 4:00
+  stargazer: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.08)),
+      BUSTER('망원경 휘두르기', '망원', 8, 14, U.tank(0.5)),
+      { key: 'star', name: '별빛 모으기', icon: '별빛', kind: 'aoe', first: 20, period: 28, cast: 3, warn: 'aoe',
+        how: '파란 틈이 두 번 열리고 하나는 신기루. 가짜를 끊으면 진짜를 놓쳐 별똥비 (전원). 끊기를 놓쳤으면 광역 선힐',
+        effect: { p: 'counter', stun: 4, dmg: U.dps(0.4), all: true, decoy: { gap: 5, stunMythic: 3 } } },
+      ...[0, 1].map((i): SkillDef => ({
+        key: `chart${i}`, name: '별 지도 장판', icon: '지도', kind: 'zone', first: 12 + i * 0.3, period: 16, cast: 2, warn: 'zone', hitDmg: U.dps(0.25), dps: U.dps(0.04), dur: 4, cells: { p: 'around' },
+        ...(i ? { hidden: true } : { how: '두 곳에 별 지도. 파티원이 알아서 비킴. 못 비킨 사람부터 채우기' }),
+      })),
+      { key: 'dust', name: '돌가루', icon: '돌가', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '2명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 2, random: true, debuffs: STONE_DUST } },
+    ],
+    enrage: { name: '별똥 폭풍', period: 2, dmg: 240 },
+  },
+  // 해시계 관리인 유령 그늘지기 (최종): 모래시계 × 완치 표식 (뒤집는 순간 2명에게 해 질 녘 표식, 10초 안에 100%가 안 되면 크게 아픔. 창 안에서는 표식 대상만 채울 가치가 있음)
+  // · 창 안 그늘 광역 · 돌가루. 30% 아래 한밤의 해시계 (표식 3명 · 뒤집기 24초마다). 악몽은 표식 8초. 목표 3:30 · 광폭화 5:00
+  geuneul: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.08)),
+      { ...BUSTER('그림자 낫질', '낫질', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'glass', name: '거꾸로 해시계', icon: '모래', kind: 'aoe', first: 16, period: 30, cast: 3, warn: 'aoe',
+        how: '8초 뒤 뒤집은 순간의 체력으로 되돌아감. 표식은 채우면 사라진 채로 남으니 창 안에서는 표식 대상만 끝까지',
+        effect: { p: 'glass', sec: 8, then: [{ skill: 'mark', in: 0.1 }, { skill: 'markm', in: 0.1 }, { skill: 'mark3', in: 0.1 }, { skill: 'mark3m', in: 0.1 }, { skill: 'shade', in: 2.5 }] } },
+      ...([['mark', 2, [1]], ['mark3', 3, [2]]] as const).flatMap(([key, n, phase]) => ([false, true] as const).map((mythic): SkillDef => ({
+        key: `${key}${mythic ? 'm' : ''}`, name: '해 질 녘 표식', icon: '표식', kind: 'instant', first: null, period: 9999, cast: 0, when: { phase: [...phase], mythic },
+        ...(key === 'mark' && !mythic ? { how: `뒤집는 순간 2명 (30% 아래 3명)에게 표식. 10초 (악몽 8초) 안에 100%까지 채우면 사라지고, 못 채우면 크게 아픔 (못 지움)` } : { hidden: true }),
+        effect: { p: 'debuff', n, pick: 'others', debuff: { name: '해 질 녘 표식', type: '마법', left: mythic ? 8 : 10, lock: true, cureAt: 1, drop: U.dps(0.2), end: { p: 'hit', dmg: U.dps(0.6) } } },
+      }))),
+      { key: 'shade', name: '그늘 광역', icon: '그늘', kind: 'aoe', first: null, period: 9999, cast: 1.5, warn: 'aoe',
+        how: '거꾸로 해시계 창 안 4초에 전원. 창이 끝나면 되돌아가니 쓰러질 사람만 힐', effect: { p: 'all', dmg: U.dps(0.3) } },
+      { key: 'dust', name: '돌가루', icon: '돌가', kind: 'instant', first: 6, period: 18, cast: 0, effect: { p: 'cycle', n: 2, random: true, debuffs: STONE_DUST } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [
+        { p: 'phase', n: 2, name: '한밤의 해시계' }, { p: 'period', skill: 'glass', sec: 24 },
+        { p: 'text', text: '한밤의 해시계: 표식 3명 · 거꾸로 해시계가 더 자주' },
+      ] },
+    ],
+    enrage: { name: '한밤의 그림자', period: 2, dmg: 240 },
   },
   warden: {
     phase: [1, ''],

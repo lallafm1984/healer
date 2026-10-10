@@ -207,6 +207,7 @@ export function unitDps(u: Unit, f?: Fight): number {
   if (u.immune > 0) return 0; // 보호의 손: 그동안 딜 0
   if (u.moving && u.cls !== 'hunter') return 0;
   let d = u.dps * (u.p.dps || 1);
+  for (const x of u.debuffs) if (x.dpsCut) d *= 1 - x.dpsCut; // 하품 (54 4-3)
   if (u.sulking) d *= 0.75;
   if (u.thanks > 0) d *= 1.1;
   if (u.cls) d *= classDps(u);

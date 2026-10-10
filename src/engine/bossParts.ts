@@ -188,7 +188,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         emit(f, { type: 'fx', name: 'spawn', on: u.id });
         const hp = f.bossMax * e.hp * (1 - sv(f, 'chainBreaker')); // 사슬 끊는 손 (42 기믹 03)
         f.mobs.push({ id: f.nextId++, name: e.name, elite: false, hp, max: hp, alive: true,
-          add: { short: e.short, on: u.id, dmg: 0, every: 0, next: Infinity, job: { p: 'jail' }, jobAt: Infinity, hold: d.id } });
+          add: { short: e.short, art: e.art, on: u.id, dmg: 0, every: 0, next: Infinity, job: { p: 'jail' }, jobAt: Infinity, hold: d.id } });
       }
       if (got.length) emit(f, { type: 'msg', text: `${e.name}: ${got.map(u => u.nick).join(' · ')} 갇힘` });
       return;
@@ -213,8 +213,8 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       return;
     }
     case 'counter':
-      // 반격 틈 (P-COUNTER): 못 끊었으면 앞줄에 선 사람 모두
-      for (const u of living(f)) if (zoneOf(f, cellOf(f, u).row) === 'front') damage(f, u, e.dmg, false);
+      // 반격 틈 (P-COUNTER): 못 끊었으면 앞줄에 선 사람 모두 (all = 전원, 별똥비)
+      for (const u of living(f)) if (e.all) damage(f, u, e.dmg, true); else if (zoneOf(f, cellOf(f, u).row) === 'front') damage(f, u, e.dmg, false);
       return;
     case 'tower': {
       // 받침 (P-TOWER): 발판 위 사람은 dmg, 빈 발판마다 전원 empty
@@ -295,7 +295,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       // 모래시계 (P-GLASS, 54 5장): 지금 체력 비율을 적어 두고 sec초 뒤 되돌림. 창 안 기술은 then으로 엶
       const rec = new Map(living(f).map(u => [u.id, u.hp / u.max] as const));
       const name = s.name ?? '모래시계';
-      f.glass.push({ name, at: f.t, until: f.t + e.sec, rec, absorbHit: e.absorbHit });
+      f.glass.push({ name, at: f.t, until: f.t + e.sec, rec, absorbHit: e.absorbHit, lowHit: f.mythic ? e.lowHitMythic : undefined });
       for (const x of e.then ?? []) if (f.bs[x.skill]) f.bs[x.skill].next = f.t + x.in;
       emit(f, { type: 'sound', name: 'gauge' });
       emit(f, { type: 'fx', name: 'hourglass-flip' });
@@ -318,12 +318,29 @@ export function glassTick(f: Fight): void {
       emit(f, { type: 'fx', name: 'sand-rewind', on: u.id });
     }
     if (g.absorbHit) for (const u of living(f)) if (u.debuffs.some(d => (d.absorbLeft ?? 0) > 0)) damage(f, u, g.absorbHit, true); // 악몽 둘둘이: 붕대가 남은 사람
+    if (g.lowHit) for (const u of living(f)) if (u.hp / u.max < g.lowHit.below) damage(f, u, g.lowHit.dmg, true); // 악몽 째깍이: 낮은 채로 되돌아간 사람
     if (f.sp) specRewind(f);
   }
 }
 
 /** 신기루가 걷히는 시각 (맞기 reveal초 전) */
-const MIRAGE_REVEAL = 1;
+export const MIRAGE_REVEAL = 1;
+
+/**
+ * 가짜 반격 틈 (54 3-2): 틈 두 번 중 첫 번째에 어느 쪽이 신기루인지 정하고 다음 틈을 gap초 뒤로, 두 번째 틈 뒤에는 원래 주기로.
+ * 이번 틈이 신기루면 true
+ */
+export function decoyOpen(f: Fight, s: BossSkill): boolean {
+  const gap = s.decoy!.gap;
+  if (!s.st.second) {
+    s.st.second = true; s.st.fakeFirst = f.rng() < 0.5;
+    s.next = f.t + gap;
+    return s.st.fakeFirst;
+  }
+  s.st.second = false;
+  s.next = f.t - gap + s.period;
+  return !s.st.fakeFirst;
+}
 /**
  * 신기루 (P-MIRAGE, 54 5장): 진짜 예고 옆에 가짜 예고. 사람을 고르는 기술은 가짜 n명을 한 예고에 (탱커 기술이면 다른 탱커),
  * 장판은 가짜 칸 묶음 n개 (진짜와 가장 덜 겹치게). chance면 예고 자체가 그 확률로 가짜. 가짜 장판도 파티원이 비킴 (모름)
@@ -337,6 +354,12 @@ export function mirageUp(f: Fight, tel: Telegraph): void {
     const tanky = tel.units.every(id => unitById(f, id)?.role === 'tank');
     const pick = randomTargets(f, n, u => !tel.units.includes(u.id) && (tanky ? u.role === 'tank' : u.role !== 'tank' && !u.me));
     if (pick.length) f.tels.push({ ...tel, id: f.nextId++, units: pick.map(u => u.id), cells: new Set(), fake: true });
+    return;
+  }
+  if (tel.safe && tel.skill.mirrorCells) {
+    // 신기루 피난처 (54 4-3): 반대쪽 끝에 가짜 안전 칸 묶음. 파티원은 걷히기 전 둘 중 가까운 쪽으로 가고 (movement dangerAt), 걷히면 진짜로 다시 옮김 (mirageTick)
+    const cells = tel.skill.mirrorCells(f);
+    f.tels.push({ ...tel, id: f.nextId++, units: [], cells, safe: new Set(f.cells.filter(c => !c.block && !cells.has(c.i)).map(c => c.i)), fake: true });
     return;
   }
   if (!tel.cells.size || !tel.skill.cellsFor) return;
@@ -364,8 +387,9 @@ export function mirageTick(f: Fight): void {
   for (const t of gone) {
     if (t.units.length) for (const id of t.units) emit(f, { type: 'fx', name: 'mirage-shimmer', on: id });
     else if (t.kind === 'aoe' || !t.cells.size) emit(f, { type: 'fx', name: 'mirage-shimmer', all: true });
-    else for (const i of t.cells) emit(f, { type: 'fx', name: 'mirage-shimmer', cell: i });
-    emit(f, { type: 'msg', text: `${t.skill.name ?? '예고'}: ${t.kind === 'aoe' ? '신기루였음' : '신기루가 걷힘'}` });
+    else for (const i of t.skill.safe && t.safe ? t.safe : t.cells) emit(f, { type: 'fx', name: 'mirage-shimmer', cell: i }); // 피난처는 가짜 안전 칸이 일렁임
+    emit(f, { type: 'msg', text: `${t.skill.name ?? '예고'}: ${t.kind === 'aoe' ? '신기루였음' : t.skill.safe ? '가짜 안전 칸이 걷힘' : '신기루가 걷힘'}` });
+    if (t.skill.safe) { const real = f.tels.find(o => o.skill === t.skill && !o.fake && o.veil === t.veil); if (real) scheduleReactions(f, real); } // 가짜 안전 칸에 선 사람이 진짜로 옮김
   }
   if (f.sp) specReveal(f);
 }
@@ -1130,15 +1154,18 @@ function rotTargets(f: Fight, e: Extract<SkillEffect, { p: 'rot' }>): Unit[] {
   return out;
 }
 
-/** 장판 칸 고르기 */
-export function zoneCells(f: Fight, s: BossSkill, z: ZoneCells): Set<number> {
+/** 장판 칸 고르기. mirror = 신기루 피난처의 가짜 (side의 반대쪽 끝) */
+export function zoneCells(f: Fight, s: BossSkill, z: ZoneCells, mirror = false): Set<number> {
   switch (z.p) {
     case 'safe': {
-      // 안전 칸 n개: edge = 가운데에서 먼 칸부터, center = 가까운 칸부터 (+ 탱커 칸). 나머지가 맞는 칸
+      // 안전 칸 n개: edge = 가운데에서 먼 칸부터, center = 가까운 칸부터 (+ 탱커 칸), side = 무작위 한쪽 끝 열에서 가까운 칸부터. 나머지가 맞는 칸
       const open = f.cells.filter(c => !c.block);
       const n = f.mythic && z.nMythic ? z.nMythic : z.n;
       const ringed = new Set(f.zones.flatMap(x => (x.ring ? [...x.cells] : []))); // 요정 고리 칸은 안전 칸이 아님 (48 축제 대장 퐁가)
-      const order = open.filter(c => !ringed.has(c.i)).sort((a, b) => (z.at === 'edge' ? fromMid(f, b) - fromMid(f, a) : fromMid(f, a) - fromMid(f, b)));
+      if (z.at === 'side' && !mirror) s.st.left = f.rng() < 0.5;
+      const left = mirror ? !s.st.left : !!s.st.left, midRow = (f.rows - 1) / 2;
+      const order = open.filter(c => !ringed.has(c.i)).sort((a, b) => (z.at === 'side' ? (left ? a.px - b.px : b.px - a.px) || Math.abs(a.row - midRow) - Math.abs(b.row - midRow)
+        : z.at === 'edge' ? fromMid(f, b) - fromMid(f, a) : fromMid(f, a) - fromMid(f, b)));
       const safe = new Set(order.slice(0, n).map(c => c.i));
       if (z.tank) { const tk = aggroTarget(f); if (tk) safe.add(tk.moving ? tk.moving.to : tk.cell); }
       return new Set(open.filter(c => !safe.has(c.i)).map(c => c.i));

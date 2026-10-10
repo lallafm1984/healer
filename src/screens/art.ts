@@ -73,6 +73,7 @@ export const TRINKET_ART: Record<string, string> = {
   koboldWarrant: 'warrant', warmPebble: 'warmpebble', spaTowel: 'spatowel', coldAnvil: 'coldanvil', rubinaPearl: 'rubypearl', lakePebble: 'lakepebble', threeShards: 'threeshards', // 52 4장 I
   riddleNote: 'riddlenote', jellyLight: 'jellylight', prayerKnot: 'prayerknot', backSand: 'backsand', // 55 4장 I
   featherBrooch: 'featherbrooch', camelYarn: 'camelyarn', heartShard: 'heartroot', // 55 4장 I 5 ~ 7
+  nightcapTassel: 'nightcaptassel', echoDrop: 'echodrop', pinwheelPin: 'pinwheelpin', starMap: 'starmap', // 55 4장 I 8 ~ 11
 };
 /** 이름 있는 장신구 그림 주소 (없으면 '') */
 export const trinketArt = (named?: string): string => (named && TRINKET_ART[named] ? art(`item-trinket-${TRINKET_ART[named]}`) : '');
@@ -125,6 +126,8 @@ const FACTION_PATH: Record<FactionKey, string> = {
   dragon: '<path d="M12 21.5c-4 0-6.8-2.7-6.8-6.4 0-3.4 2.4-5.4 3.6-8.6.9 1.6 1.5 2.9 1.6 4.4 1.3-2.4 2.4-5.4 1.8-8.4 3.8 2.4 6.6 6.6 6.6 11.6 0 4.6-2.8 7.4-6.8 7.4z"/><path d="M12 21.5c-1.7 0-2.9-1.2-2.9-2.9 0-1.9 1.6-2.9 2.3-4.8 1.6 1.4 3.5 2.8 3.5 4.8 0 1.7-1.2 2.9-2.9 2.9z"/>',
   // 모래 왕국 (54 0장): 반쯤 뜬 해 + 모래시계
   sand: '<path d="M3 11.5a9 9 0 0 1 18 0z"/><path d="M12 2.5V1M5.6 5.1 4.5 4M18.4 5.1 19.5 4"/><path d="M8.5 14h7M8.5 22h7M9.5 14c0 2.5 2.5 2.8 2.5 4s-2.5 1.5-2.5 4M14.5 14c0 2.5-2.5 2.8-2.5 4s2.5 1.5 2.5 4"/>',
+  // 폭풍 깃털단 (54 2장): 깃털 + 바람 소용돌이
+  storm: '<path d="M5 20.5C8 13 12.5 7 19.5 3.5c-1 6.5-5 12-12 15.5z"/><path d="M5 20.5l7.5-9.5M9.5 13.5l-2.3-.6M12 10.5l-2-.9"/><path d="M14.5 21c2.2 0 4-1.5 4-3.4 0-1.5-1.1-2.6-2.5-2.6-1 0-1.8.7-1.8 1.6"/>',
 };
 export function factionMark(f: FactionKey, size: 'sm' | 'md' | 'lg' = 'md'): string {
   const img = art(`mark-${f}`);

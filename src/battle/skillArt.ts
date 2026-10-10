@@ -114,6 +114,16 @@ const BSK: Partial<Record<BossKey, Record<string, string>>> = {
   ttubeok: { press: 'icon-bsk-ttubeok-1', rise0: 'icon-bsk-ttubeok-2', rise1: 'icon-bsk-ttubeok-2', rise2: 'icon-bsk-ttubeok-2', rise3: 'icon-bsk-ttubeok-2' },
   toktok: { pollen: 'icon-bsk-toktok-1' },
   kungkung: { buster: 'icon-bsk-kungkung-1', beat: 'icon-bsk-gipeun-2' },
+  // 묶음 E3 (55 4장 D 8 ~ 11 · 23 ~ 28 · 38 ~ 44)
+  stargazer: { buster: 'icon-bsk-stargazer-1', chart0: 'icon-bsk-stargazer-2', chart1: 'icon-bsk-stargazer-2' },
+  geuneul: { buster: 'icon-bsk-geuneul-1', shade: 'icon-bsk-geuneul-2' },
+  pokshin: { cough: 'icon-bsk-poksin-1', fight: 'icon-bsk-poksin-2' },
+  jjaekkak: { hurry: 'icon-bsk-jjaekkak-1', hurry2: 'icon-bsk-jjaekkak-1', sleepy: 'icon-bsk-sand-sleepy' },
+  hapum: { buster: 'icon-bsk-hapum-1', busterm: 'icon-bsk-hapum-1', yawn: 'icon-bsk-hapum-2', bigyawn: 'icon-bsk-hapum-3', cough: 'icon-bsk-sand-cough' },
+  ttakttak: { bubble: 'icon-bsk-ttakttak-1' },
+  jjirit: { tail: 'icon-bsk-jjirit-1', static: 'icon-bsk-jjirit-2' },
+  doeul: { buster: 'icon-bsk-doeul-1', wave: 'icon-bsk-doeul-2', wave2: 'icon-bsk-doeul-2' },
+  hwirik: { curse: 'icon-bsk-hwirik-1', letter: 'icon-bsk-hwirik-2' },
 };
 /** 데이터 부품만으로는 안 보이는 기믹 (35 4장 표): 서리 손길 · 빗자루 = 버스터 + 썩는 상처 (서리 · 먼지 범벅), 얼어붙는 바닥 · 바닥이 언다 = 장판 → 무너지는 바닥 */
 const GIM_KEY: Partial<Record<BossKey, Record<string, Gim>>> = {

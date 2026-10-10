@@ -290,6 +290,11 @@ export const NAMED: NamedDef[] = [
   { key: 'featherBrooch', name: '사라샤의 깃털 브로치', slot: 'neck', place: 'dusk3', placeName: '노을 궁전 옥좌', text: '모래시계를 뒤집기 전 3초 (예고) 동안 하는 힐 +{v}', val: 0.15, unit: 'pct' },
   { key: 'camelYarn', name: '낙타 털실 반지', slot: 'ring', place: 'caravan', placeName: '낙타 대상로', text: '진동 뒤 2초 동안 시전 시간 −{v}', val: 0.15, unit: 'pct', min: '고급' },
   { key: 'heartShard', name: '심장뿌리 조각', slot: 'neck', place: 'rootwood3', placeName: '빛뿌리 숲 심장뿌리', text: '뒤집힘 저주가 걸린 아군이 체력 40~60%이면 받는 피해 −{v}', val: 0.15, unit: 'pct' },
+  // 묶음 E3 (54 6장, 이름 임시 · 그림 55): 10인 ⑫ 마지막 칸 · 20인 ④ 마지막 칸 · 탐험 ⑳ · 던전 ⑯
+  { key: 'nightcapTassel', name: '하품호텝의 수면 모자 술', slot: 'neck', place: 'pyramid3', placeName: '낮잠 피라미드 침실', text: '피난처 예고 동안 아직 안전 칸에 못 들어간 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'echoDrop', name: '되울림의 물방울', slot: 'neck', place: 'reservoir3', placeName: '별빛 저수지 거울호수', text: '신기루가 걷히거나 모래시계가 되돌릴 때 가장 낮은 아군 2명 지능 {v} 회복', val: 0.5, unit: 'pct' },
+  { key: 'pinwheelPin', name: '바람개비 핀', slot: 'ring', place: 'pinwheel', placeName: '바람개비 언덕', text: '끌려온 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
+  { key: 'starMap', name: '별 지도 조각', slot: 'neck', place: 'observatory', placeName: '해시계 천문대', text: '파티원이 보스 시전을 끊은 뒤 6초 동안 파티 받는 피해 −{v}', val: 0.08, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -420,6 +425,16 @@ export const FEATURED: Record<string, readonly string[]> = {
   rootwood1: ['sturdyBack', 'prop', 'holdTogether'],
   rootwood2: ['bombSquad', 'woundClean', 'evenly'],
   rootwood3: ['holdingHand', 'starVeil', 'bigBowl'],
+  // 묶음 E3 (54 6장): 10인 ⑫ 복도 (무력화 × 신기루 · 진동) / 시계방 (모래시계 둘 · 사냥) / 침실 (신기루 피난처 · 페이즈),
+  // 20인 ④ 수문 (감옥 × 행진) / 다리 (나눔 사슬 × 역류) / 거울호수 (신기루 × 모래시계), 바람개비 언덕 (끌어당김 · 저주 · 마법), 해시계 천문대 (가짜 반격 틈)
+  pyramid1: ['cutBeat', 'sturdyBack', 'clearEye'],
+  pyramid2: ['starClock', 'rewind', 'thrifty'],
+  pyramid3: ['shelterMap', 'sunrise', 'constellation'],
+  reservoir1: ['chainBreaker', 'holdingHand', 'evenly'],
+  reservoir2: ['thrifty', 'insight', 'wideEmbrace'],
+  reservoir3: ['clearEye', 'starVeil', 'constellation'],
+  pinwheel: ['windStep', 'curseBreak', 'spellWard'],
+  observatory: ['cutBeat', 'starClock', 'holdTogether'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

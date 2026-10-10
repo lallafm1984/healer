@@ -5,9 +5,9 @@
 import { NO_TANK_RAMP, NO_TANK_SEC } from '../data/armor';
 import { BOSSES, type SkillDef } from '../data/bosses';
 import type { MobAttack } from '../data/encounters';
-import { abCut, abOnTel } from './abilities';
+import { abCut, abDecoy, abOnTel } from './abilities';
 import { affChaos } from './affixes';
-import { addsTick, aggroTarget, applyDebuff, backTargets, flowNext, glassTick, greedTargets, mirageTick, mirageUp, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, applyDebuff, backTargets, decoyOpen, flowNext, MIRAGE_REVEAL, glassTick, greedTargets, mirageTick, mirageUp, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import { specBuster, specCut, specTel } from './specials';
@@ -42,6 +42,7 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
     flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg, hitDebuff: d.hitDebuff, hitFx: d.hitFx, safe: z?.p === 'safe' || undefined, quake: e?.p === 'quake' || undefined,
     stunOnCut: e?.p === 'counter' ? e.stun : undefined, pads: e?.p === 'tower' || undefined, fixed: d.fixed, soak: e?.p === 'share' || undefined,
     greed: e?.p === 'greed' ? e.dmg : undefined, hunt: e?.p === 'hunt' || undefined, mirage: d.mirage, glass: e?.p === 'glass' || undefined,
+    decoy: e?.p === 'counter' ? e.decoy : undefined, mirrorCells: z?.p === 'safe' && z.at === 'side' ? g => zoneCells(g, s, z, true) : undefined,
   });
   f.bs[d.key] = s;
   return s;
@@ -154,12 +155,13 @@ export function bossTick(f: Fight): void {
   for (const s of f.skills) {
     if (f.t + 1e-9 < s.next) continue;
     s.next += s.period;
+    const fakeGap = s.decoy ? decoyOpen(f, s) : false; // 가짜 반격 틈: 이번 틈이 신기루인지 · 다음 틈 시각
     if (!s.active(f)) continue;
     if (f.daze && s.mob == null) continue; // 멍한 보스는 그 차례를 건너뜀 (차례 성공)
     if (f.abOn) {
       // 파티원 능력 (17 7장): 기절한 적은 기술을 안 씀, 끊기 가능 기술은 시전 시작에 끊길 수 있음
       if (s.mob != null && (f.mobs.find(m => m.id === s.mob)?.stun || 0) > f.t) continue;
-      if (abCut(f, s)) { if (s.stunOnCut) stunBoss(f, s.stunOnCut); if (f.sp) specCut(f); continue; } // 반격 틈 (P-COUNTER) · 끊기 박자 (42 지원 05)
+      if (s.decoy ? abDecoy(f, s, fakeGap, false) : abCut(f, s)) { if (s.stunOnCut) stunBoss(f, s.stunOnCut); if (f.sp) specCut(f); continue; } // 반격 틈 (P-COUNTER) · 끊기 박자 (42 지원 05)
     }
     if (s.cast <= 0) { s.fire!(f); continue; }
     const tel: Telegraph = { id: f.nextId++, skill: s, kind: s.kind, start: f.t, impact: f.t + s.cast, units: s.target ? s.target(f) : [], cells: s.cellsFor ? s.cellsFor(f) : new Set(), dps: s.dps, dur: s.dur };
@@ -167,6 +169,7 @@ export function bossTick(f: Fight): void {
     if (s.safe) tel.safe = new Set(f.cells.filter(c => !c.block && !tel.cells.has(c.i)).map(c => c.i));
     f.tels.push(tel);
     if (s.mirage) mirageUp(f, tel); // 신기루 (P-MIRAGE, 54 5장): 가짜 예고를 함께
+    if (s.decoy) { tel.veil = tel.impact - MIRAGE_REVEAL; tel.fake = fakeGap || undefined; } // 가짜 반격 틈: 둘 다 똑같이 보이다가 걷힘
     if (s.pads) { tel.safe = new Set(tel.cells); padsGo(f, tel); } // 받침: 금빛 발판으로 파티원이 들어감
     if (s.soak) soakGo(f, tel); // 집결 분담: 가까운 파티원이 대상 옆으로
     if (f.abOn) abOnTel(f, tel);
@@ -176,6 +179,11 @@ export function bossTick(f: Fight): void {
     if (tel.kind === 'zone' && f.tels.includes(tel) && !s.fixed) scheduleReactions(f, tel); // 줄 피해 (P-ROW)는 안 비킴
   }
   mirageTick(f); // 걷힐 때가 된 가짜 예고는 맞기 전에 사라짐
+  for (const t of f.tels.filter(x => x.skill?.decoy && !x.fake && !x.seen && x.veil != null && f.t + 1e-9 >= x.veil)) {
+    // 가짜 반격 틈: 걷히고 남은 진짜 틈은 기다리던 신중파가 끊음
+    t.seen = true;
+    if (f.abOn && !f.daze && abDecoy(f, t.skill, false, true)) { f.tels = f.tels.filter(x => x !== t); stunBoss(f, t.skill.stunOnCut ?? 0); if (f.sp) specCut(f); }
+  }
   for (const tel of f.tels.filter(t => t.impact <= f.t + 1e-9)) {
     if (tel.kind === 'zone') {
       if (tel.skill.hitDmg) cellHit(f, tel, tel.skill.hitDmg);

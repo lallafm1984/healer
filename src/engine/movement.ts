@@ -34,8 +34,13 @@ export function centerX(f: Fight): number {
 export function dangerAt(f: Fight, idx: number, extra?: Set<number>): boolean {
   if (extra && extra.has(idx)) return true;
   for (const z of f.zones) if (z.cells.has(idx)) return true;
-  for (const t of f.tels) if (t.kind === 'zone' && t.cells.has(idx)) return true;
+  for (const t of f.tels) if (t.kind === 'zone' && t.cells.has(idx) && !veiledSafe(f, t, idx)) return true;
   return false;
+}
+
+/** 신기루 피난처 (54 4-3): 걷히기 전에는 두 안전 칸 묶음이 모두 안전해 보임 (짝 예고의 안전 칸이면 위험하지 않음) */
+function veiledSafe(f: Fight, t: Telegraph, idx: number): boolean {
+  return t.veil != null && !!t.skill.mirrorCells && f.t < t.veil && f.tels.some(o => o !== t && o.skill === t.skill && o.veil === t.veil && !!o.safe?.has(idx));
 }
 
 export interface PickOpts {
@@ -142,8 +147,14 @@ export function doReact(f: Fight, u: Unit): void {
   if (u.p.brave && u.hp / u.max >= u.p.brave) { u.retryAt = f.t + 1; bark(f, u, u.p.barks![0], false, 'brave'); return; }
   const rate = dodgeRate(f, u);
   const impact = 'impact' in tel ? tel.impact : 0;
+  let extra = tel.cells;
+  if ('impact' in tel && tel.veil != null && tel.skill.mirrorCells && f.t < tel.veil) {
+    // 신기루 피난처: 신중파는 걷힐 때까지 기다리고, 다른 사람은 두 안전 칸 묶음 중 가까운 쪽으로 (걷히면 mirageTick이 다시 반응시킴)
+    if (u.pers === '신중파') return;
+    extra = new Set([...tel.cells].filter(i => !veiledSafe(f, tel, i)));
+  }
   if (f.rng() < rate) {
-    const c = pickCell(f, u, { safe: true, extra: tel.cells });
+    const c = pickCell(f, u, { safe: true, extra });
     if (c) { moveTo(f, u, c); if (u.pers === '신중파') bark(f, u, null, false, 'dodge'); }
     else { bark(f, u, '피할 곳이 없어!', true, 'noEscape'); u.retryAt = f.t + 1.5; }
   } else {

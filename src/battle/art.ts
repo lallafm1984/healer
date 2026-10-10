@@ -198,6 +198,19 @@ const ENC_ART: Record<string, string[]> = {
   toktok: ['boss-seed-granny'],
   kungkung: ['boss-heart-root'],
   dunetrash: ['mob-sand-soldier', 'mob-bandage-servant'],
+  // 묶음 E3 (그림 요청 55). 천문대 졸개는 깨진 신전 그림 그대로
+  pokshin: ['boss-pillow-golem'],
+  jjaekkak: ['boss-hourglass-priest'],
+  hapum: ['boss-sand-king'],
+  ttakttak: ['boss-sluice-crab'],
+  jjirit: ['boss-star-eel'],
+  doeul: ['boss-abyss-echo'],
+  hwirik: ['boss-harpy-courier'],
+  stargazer: ['boss-star-gazer'],
+  geuneul: ['boss-sundial-ghost'],
+  windtrash: ['mob-harpy-spear', 'mob-storm-seer'],
+  startrash: ['mob-stone-monk', 'mob-attic-bats'],
+  sundialyard: ['mob-stone-giant', 'mob-lost-pilgrim', 'mob-stone-monk'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {
@@ -249,7 +262,7 @@ export function addArtName(m: Mob): string {
 /** 헤매는 영혼 칸 (37 4장 C-3·5 고유, E-21 공용) */
 export const soulArtName = (u: Unit): string => firstArt(u.soul?.art, 'mob-soul-wisp');
 /** 장판 칸 무늬 (37 4장 B-8~14): 세력 장판 → 공용. 예고는 B-9 */
-const ZONE_TAIL: Partial<Record<FactionKey, string>> = { plague: 'plague', swamp: 'swamp', noble: 'noble', mage: 'frost', hill: 'hill', pirate: 'tide', fairy: 'spore', dragon: 'lava', abyss: 'abyss', golem: 'metal', sand: 'sand' }; // 심연 = 44 그림, 골렘 쇳물 = 52 F, 모래 늪 = 55 F
+const ZONE_TAIL: Partial<Record<FactionKey, string>> = { plague: 'plague', swamp: 'swamp', noble: 'noble', mage: 'frost', hill: 'hill', pirate: 'tide', fairy: 'spore', dragon: 'lava', abyss: 'abyss', golem: 'metal', sand: 'sand', storm: 'storm' }; // 심연 = 44 그림, 골렘 쇳물 = 52 F, 모래 늪 · 회오리 = 55 F
 export const zoneArtName = (fac: FactionKey | null): string => firstArt(fac && ZONE_TAIL[fac] ? `fx-cell-zone-${ZONE_TAIL[fac]}` : undefined, 'fx-cell-zone');
 /** 요정 고리 칸 (49 F): 심연은 흐물이 빛 고리 (55 F 3), 그 밖 = 버섯 고리 */
 export const ringArtName = (fac: FactionKey | null): string => firstArt(fac === 'abyss' ? 'fx-cell-ring-jelly' : undefined, 'fx-cell-ring');
