@@ -5,7 +5,7 @@ import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
 import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
-import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, specDeath, specJump, sv } from './specials';
+import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, specDeath, specDebuffEnd, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
 
@@ -244,6 +244,7 @@ export function spread(f: Fight, u: Unit): void {
 
 export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
   if (u.soul) { u.soul.cleansed = dispelled; return; } // 헤매는 영혼: 해제로 바로 성공 (P-SOUL)
+  if (f.sp) specDebuffEnd(f, u, d); // 금빛수염 단추
   if (f.sp && dispelled && d.trap) { during(f, 'trap', () => { if (f.aff) affDebuffEnd(f, u, d, dispelled); if (d.end) debuffEnd(f, u, d, dispelled); }); return; } // 함정 감지 (42 해제 06)
   if (f.aff) affDebuffEnd(f, u, d, dispelled); // 어픽스 불안정·메아리
   if (d.end) debuffEnd(f, u, d, dispelled);

@@ -257,6 +257,12 @@ export const NAMED: NamedDef[] = [
   { key: 'frozenQuill', name: '얼어붙은 깃펜', slot: 'ring', place: 'archive', placeName: '얼음 서고', text: '내게 디버프가 걸려 있는 동안 정신력 +{v}', val: 0.3, unit: 'pct' },
   { key: 'roseBrooch', name: '장미 브로치', slot: 'neck', place: 'rosemaze', placeName: '장미 울타리 미로', text: '넘친 치유가 그 힐의 절반을 넘으면 4초 동안 회복량 +{v} (재사용 8초)', val: 0.08, unit: 'pct', cd: 8, min: '고급' },
   { key: 'heirSeal', name: '가주의 인장', slot: 'ring', place: 'ossuary', placeName: '백합 납골당', text: '사슬로 묶인 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct' },
+  // 묶음 B 짠물 해적단 (46 6장): 탐험 ⑨ ⑪, 10인 ②~④ 마지막 칸
+  { key: 'conchShell', name: '소라 껍데기', slot: 'neck', place: 'shellbeach', placeName: '조개껍데기 해변', text: '터지는 디버프 (부풀기 · 함정 · 터지는 마력)를 지우면 대상과 이웃 칸 아군에게 지능 {v} 보호막 (재사용 15초)', val: 0.3, unit: 'pct', cd: 15, min: '고급' },
+  { key: 'luckyCoin', name: '앞면 금화', slot: 'ring', place: 'wreck', placeName: '난파선 모래톱', text: '체력 40~60% 아군에게 하는 직접 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
+  { key: 'lighthouseEmber', name: '등대 불씨', slot: 'neck', place: 'gull3', placeName: '갈매기 항구 등대', text: '보스 큰 기술 예고가 떠 있는 동안 광역 힐 +{v}', val: 0.15, unit: 'pct' },
+  { key: 'sailorCompass', name: '선원의 나침반', slot: 'neck', place: 'queen3', placeName: '짠물 여왕호 뱃머리', text: '치유 상한 · 받는 치유 감소가 걸린 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'goldButton', name: '금빛수염 단추', slot: 'neck', place: 'isle3', placeName: '보물섬 요새 꼭대기', text: '디버프가 끝나거나 지워진 아군에게 하는 다음 직접 힐 +{v}', val: 0.25, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -320,6 +326,21 @@ export const FEATURED: Record<string, readonly string[]> = {
   abyss4: ['trapSense', 'spellWard', 'pouch'],
   abyss5: ['cleanHands', 'chainBreaker', 'heartyMeal'],
   cathedral1: ['spellWard', 'strongChorus', 'goldEcho'],
+  // 짠물 해적단 (46 6장): 조개껍데기 해변 (부풀기 · 독 · 저주) / 난파선 모래톱 (뒤집힘 · 저주)
+  shellbeach: ['trapSense', 'antidote', 'thankHand'],
+  wreck: ['curseBreak', 'kindCrit', 'wishStar'],
+  // 갈매기 항구: 부두 (부풀기 · 탱커 교대) / 주방 (큰 쫄 · 두 탱커) / 등대 (피난처 · 부풀기)
+  gull1: ['antidote', 'trapSense', 'prop'],
+  gull2: ['eliteHunter', 'shieldFriend', 'wideEmbrace'],
+  gull3: ['shelterMap', 'antidote', 'starVeil'],
+  // 짠물 여왕호: 갑판 (폭탄 · 자폭 쫄 · 줄) / 창고 (감옥 · 치유 상한) / 뱃머리 (사슬 · 상한)
+  queen1: ['bombSquad', 'eliteHunter', 'shelterMap'],
+  queen2: ['chainBreaker', 'holdingHand', 'antidote'],
+  queen3: ['holdingHand', 'curseBreak', 'evenly'],
+  // 보물섬 요새: 동굴 (마나 갈취 · 삼키기) / 망루 (차례 · 느린 시전) / 꼭대기 (뒤집힘 · 낮은 사람)
+  isle1: ['potionRegular', 'springSip', 'chainBreaker'],
+  isle2: ['numberSense', 'quickAid', 'windStep'],
+  isle3: ['sunrise', 'edgeTouch', 'curseBreak'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

@@ -50,10 +50,10 @@ function lowest(f: Fight, live: Unit[], pct: (u: Unit) => number): Unit {
 const off = (f: Fight, u: Unit) => u.debuffs.length > 0 && u.debuffs.some(d => d.invert || d.charm || (!!d.over && u.max - u.hp < OVER_GAP * f.power)
   || (d.end?.p === 'flip' && flipWait(u, d)) || (d.link?.kind === 'share' && !!unitById(f, d.link.to)?.debuffs.some(x => x.invert)));
 /**
- * 뒤집힘 저주 (P-FLIP, 46 5장): 끝나기 직전 (시전이 닿을 4초 안) 체력 50% 위면 힐을 멈추고, 40% 아래는 두면 뒤집혀 오르니 힐하지 않음.
+ * 뒤집힘 저주 (P-FLIP, 46 5장): 걸려 있는 동안 체력 50% 위로는 힐하지 않고 (끝나면 낮아짐), 40% 아래는 두면 뒤집혀 오르니 힐하지 않음.
  * 25% 아래는 쓰러질 수 있어 다시 힐함
  */
-const flipWait = (u: Unit, d: Debuff) => { const r = u.hp / u.max; return (d.left < 4 && r > 0.5) || (r < 0.4 && r > 0.25); };
+const flipWait = (u: Unit, _d: Debuff) => { const r = u.hp / u.max; return r > 0.5 || (r < 0.4 && r > 0.25); };
 /** 지금 채울 수 있는 끝 (치유 상한 P-CAP이면 상한) 기준 체력 비율 */
 const pctOf = (u: Unit) => u.hp / healTop(u);
 /** 과부하 표식에 힐을 넣어도 되는 모자란 양 (힐 한 번 크기쯤, 레벨 배율 전) */

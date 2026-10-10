@@ -50,6 +50,8 @@ export interface SpecRun {
   dtype: string | null;
   /** 아군마다 최근 2초 잃은 체력 (밧줄 매듭) */
   hurt: Record<number, { t: number; d: number }[]>;
+  /** 디버프가 끝나거나 지워진 아군 (금빛수염 단추: 다음 직접 힐 +) */
+  button: Record<number, true>;
 }
 
 export function newSpecs(v: Record<string, number> | undefined): SpecRun | null {
@@ -57,7 +59,7 @@ export function newSpecs(v: Record<string, number> | undefined): SpecRun | null 
   const on: Record<string, number> = {};
   for (const k in v) if (v[k] > 0) on[k] = v[k];
   if (!Object.keys(on).length) return null;
-  return { v: on, until: {}, ready: {}, used: {}, last: null, chain: [], inst: 0, free: false, bee: 0, beeOn: false, busy: 0, quilt: {}, imm: [], later: [], trap: false, bomb: false, near: [], lilyFree: false, dtype: null, hurt: {} };
+  return { v: on, until: {}, ready: {}, used: {}, last: null, chain: [], inst: 0, free: false, bee: 0, beeOn: false, busy: 0, quilt: {}, imm: [], later: [], trap: false, bomb: false, near: [], lilyFree: false, dtype: null, hurt: {}, button: {} };
 }
 
 /** 켜진 값 (없으면 0) */
@@ -135,6 +137,10 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.lordIncense && u.debuffs.filter(d => !d.hide).length >= 2) m += v.lordIncense;
   if (v.heirSeal && u.debuffs.some(d => d.link)) m += v.heirSeal; // 가주의 인장 (46 6장)
   if (v.roseBrooch && on(f, 'roseBrooch')) m += v.roseBrooch;
+  if (v.luckyCoin && direct && !tick && pct >= 0.4 - 1e-9 && pct <= 0.6 + 1e-9) m += v.luckyCoin; // 앞면 금화 (46 6장)
+  if (v.lighthouseEmber && aoe && f.tels.some(t => t.kind === 'aoe' || t.kind === 'buster')) m += v.lighthouseEmber; // 등대 불씨
+  if (v.sailorCompass && u.debuffs.some(d => d.cap != null || (d.healCut ?? 0) > 0)) m += v.sailorCompass; // 선원의 나침반
+  if (v.goldButton && direct && !tick && f.sp!.button[u.id]) { m += v.goldButton; delete f.sp!.button[u.id]; } // 금빛수염 단추
   if (u.me && v.brokenChain && on(f, 'brokenChain')) m += v.brokenChain;
   if (f.t < 20) m += v.firstWord ?? 0;
   if (bossPct(f) < 0.3) m += v.secondWind ?? 0;
@@ -371,6 +377,16 @@ export function specDispel(f: Fight, u: Unit, d: Debuff): void {
   if (v.busyDay) cdCut(f, ['ext'], v.busyDay);
   if (v.plagueCenser && (s.ready.plagueCenser ?? 0) <= f.t) { s.ready.plagueCenser = f.t + 15; shield(f, u, intAmt(f, v.plagueCenser), 8, 'plagueCenser'); }
   if (v.wornRosary) { if (s.dtype && s.dtype !== d.type) { cdCut(f, ['dispel'], v.wornRosary); shout(f, 'wornRosary'); } s.dtype = d.type; }
+  // 소라 껍데기 (46 6장): 터지는 디버프 (부풀기 · 함정 · 터지는 마력)를 지우면 대상과 이웃 칸 아군에게 보호막
+  if (v.conchShell && (d.trap || d.end?.p === 'pop' || d.end?.p === 'trapHit' || d.end?.p === 'blast') && (s.ready.conchShell ?? 0) <= f.t) {
+    s.ready.conchShell = f.t + 15;
+    const c = f.cells[u.cell];
+    for (const w of living(f)) if (w === u || hexDist(f.cells[w.cell], c) === 1) shield(f, w, intAmt(f, v.conchShell), 8, 'conchShell');
+  }
+}
+/** 디버프가 끝나거나 지워짐 (금빛수염 단추: 그 아군의 다음 직접 힐 +). 숨은 디버프 (삼키기 같은)는 안 셈 */
+export function specDebuffEnd(f: Fight, u: Unit, d: Debuff): void {
+  if (f.sp!.v.goldButton && !d.hide && u.alive) f.sp!.button[u.id] = true;
 }
 /** 두 번 털기: 해제가 그 확률로 재사용 대기 없이 */
 export const twiceBrush = (f: Fight): boolean => !!f.sp?.v.twiceBrush && f.rng() < f.sp.v.twiceBrush;

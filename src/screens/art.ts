@@ -68,7 +68,7 @@ export function classEmblem(hero: string, size: 'sm' | 'md' | 'lg' | 'xl' = 'md'
   return `<span class="emblem emblem-${size}${hero === 'warder' ? ' dark' : ''}" style="--em:${e.color}" role="img" aria-label="${e.name}">${inner}</span>`;
 }
 
-/** 세력 문양 (27 3-1): 골렘 톱니 · 역병 플라스크 · 늪 잎 · 귀족가 백합 · 마도사 눈꽃 · 해바라기 언덕 해바라기 · 심연 소용돌이 눈 (10 4장) */
+/** 세력 문양 (27 3-1): 골렘 톱니 · 역병 플라스크 · 늪 잎 · 귀족가 백합 · 마도사 눈꽃 · 해바라기 언덕 해바라기 · 심연 소용돌이 눈 (10 4장) · 해적단 닻 (46 0-2) */
 const FACTION_PATH: Record<FactionKey, string> = {
   golem: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/><circle cx="12" cy="12" r="6.5"/>',
   plague: '<path d="M9.5 3h5M10 3v5.5L5 18a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9.5V3"/><path d="M7.5 15h9"/><circle cx="10.5" cy="17.5" r=".6"/><circle cx="13.5" cy="18.5" r=".6"/>',
@@ -77,6 +77,7 @@ const FACTION_PATH: Record<FactionKey, string> = {
   mage: '<path d="M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6"/><path d="M10 4.5l2 2 2-2M10 19.5l2-2 2 2M4.6 10l2.7.8-.7 2.7M19.4 14l-2.7-.8.7-2.7"/>',
   hill: '<circle cx="12" cy="9" r="2.4"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(0 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(45 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(90 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(135 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(180 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(225 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(270 12 9)"/><ellipse cx="12" cy="4.4" rx="1.4" ry="2.2" transform="rotate(315 12 9)"/><path d="M12 13.6V21.5M12 18.5c1.4-1.7 3-2.3 4.8-2.1"/>',
   abyss: '<path d="M2.5 12C5 7.6 8.3 5.5 12 5.5s7 2.1 9.5 6.5c-2.5 4.4-5.8 6.5-9.5 6.5S5 16.4 2.5 12z"/><path d="M12 9a3 3 0 1 1-3 3c0-1.1.9-1.9 1.9-1.9s1.5.7 1.5 1.4"/>',
+  pirate: '<circle cx="12" cy="4.8" r="1.9"/><path d="M12 6.7V21"/><path d="M8 10.2h8"/><path d="M4.5 13.5c0 4.1 3.4 7.5 7.5 7.5s7.5-3.4 7.5-7.5"/><path d="M3 15.2l1.5-1.7 1.6 1.7M17.9 15.2l1.6-1.7 1.5 1.7"/>',
 };
 export function factionMark(f: FactionKey, size: 'sm' | 'md' | 'lg' = 'md'): string {
   const img = art(`mark-${f}`);

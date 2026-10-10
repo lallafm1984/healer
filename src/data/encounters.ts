@@ -11,12 +11,14 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'icehall' | 'frostgolem' | 'mage' | 'frostlab' | 'shadow' | 'brokenbridge' | 'keeper28' | 'templeyard' | 'guardian' | 'nave' | 'keeper' | 'riftground' | 'plague33' | 'rubblestair' | 'sentinel' | 'blackrift' | 'crystal'
   | 'hydra' | 'twins' | 'orben' | 'abysslord'
   | 'leakyway' | 'ratking' | 'sludgegrate' | 'carrier' | 'iceread' | 'librarian' | 'forbidden' | 'scholar'
-  | 'petalstair' | 'priestess' | 'keeperhall' | 'sleeper' | 'pagedrift' | 'librarian40' | 'rosetunnel' | 'priestess48';
+  | 'petalstair' | 'priestess' | 'keeperhall' | 'sleeper' | 'pagedrift' | 'librarian40' | 'rosetunnel' | 'priestess48'
+  | 'gullsand' | 'crab36' | 'wreckage' | 'goldbeard44' | 'crab' | 'cook' | 'morel' | 'gunner' | 'octo' | 'seawitch' | 'mimic' | 'parrot' | 'goldbeard';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
   | 'hydra' | 'twins' | 'orben' | 'abysslord'
-  | 'ratking' | 'carrier' | 'librarian' | 'scholar' | 'priestess' | 'sleeper' | 'librarian40' | 'priestess48';
+  | 'ratking' | 'carrier' | 'librarian' | 'scholar' | 'priestess' | 'sleeper' | 'librarian40' | 'priestess48'
+  | 'crab36' | 'goldbeard44' | 'crab' | 'cook' | 'morel' | 'gunner' | 'octo' | 'seawitch' | 'mimic' | 'parrot' | 'goldbeard';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -95,6 +97,8 @@ function trash(key: EncounterKey, name: string, mobs: MobDef[], o: Partial<Encou
 /** 튜토리얼 2인 (탱 1 + 나), 탐험 3인 (탱 1 · 딜 1 + 나) — 02 11장 */
 const DUO = { tank: 1, melee: 0, ranged: 0 };
 const TRIO = { tank: 1, melee: 0, ranged: 1 };
+/** 10인 레이드 (탱 2 · 근접 3 · 원거리 4 + 나, 26 3장) */
+const RAID10 = { tank: 2, melee: 3, ranged: 4 };
 /**
  * 네 가지 청소약 (신전지기 유령, 35 4-5): 질병 → 독 → 저주 → 마법 차례로, 유형마다 대표 효과를 작게 (02 5-4).
  * 피해는 딜체 비율 (600 = bosses U.dps 기준, bosses가 이 파일을 읽으므로 여기 둠). x = 피해 배율 (탐험 0.7)
@@ -406,6 +410,36 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     },
   ], { debuffs: ['저주'] }),
   sleeper: { key: 'sleeper', lowLevel: true, name: '잠든 가주', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 7200, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'sleeper', stage: 0.25, debuffs: ['저주'] },
+  // ---------- 묶음 B 짠물 해적단 (46 2장 · 4장): 졸개 ① 갑판 청소부 · ② 새총 꼬마 해적 · ③ 해파리 점쟁이 (독 → 저주) · ④ 닻 든 거한 ----------
+  // 탐험 ⑨ 「조개껍데기 해변」 (46 1-1, Lv 36): 갈매기 모래밭 → 집게발 갑판장 (부풀기 쉬운 판, 10인 ② 예습)
+  gullsand: trash('gullsand', '갈매기 모래밭', [
+    { name: '갑판 청소부', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '해파리 점쟁이', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'fortune', name: '해파리 점괘', icon: '점괘', to: 'other', dmg: 0, first: 5, period: 10, cast: 0,
+        effect: { p: 'cycle', n: 1, debuffs: [
+          { name: '해파리 독', type: '독', left: 10, dot: 12 },
+          { name: '나쁜 점괘', type: '저주', left: 10, healCut: 0.3 },
+        ] } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['독', '저주'] }),
+  crab36: { key: 'crab36', lowLevel: true, name: '집게발 갑판장', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2400, enrage: 205, manaCoef: 1.0, diffs: ALL, script: 'crab36', stage: 0.3, debuffs: ['독'] },
+  // 탐험 ⑪ 「난파선 모래톱」 (46 1-1, Lv 44): 난파선 잔해 → 해적 선장 금빛수염 (뒤집힘 저주 쉬운 판, 10인 ④ 예습)
+  wreckage: trash('wreckage', '난파선 잔해', [
+    { name: '갑판 청소부', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '새총 꼬마 해적', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  goldbeard44: { key: 'goldbeard44', lowLevel: true, name: '해적 선장 금빛수염', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2500, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'goldbeard44', stage: 0.3, debuffs: ['저주'] },
+  // 10인 ② 갈매기 항구 (Lv 39) · ③ 짠물 여왕호 (Lv 43) · ④ 보물섬 요새 (Lv 47): 체력은 자동 힐러 시뮬로 목표 시간에 쓰러지게 맞춤 (쫄 · 감옥이 많은 보스는 낮음)
+  crab: { key: 'crab', name: '집게발 갑판장', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 22000, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'crab', stage: 0.18, debuffs: ['독'] },
+  cook: { key: 'cook', name: '해적 요리사 왕솥', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 19000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'cook', stage: 0.18, debuffs: ['독'] },
+  morel: { key: 'morel', name: '부선장 갈고리 모렐', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 23500, enrage: 420, manaCoef: 1.3, diffs: ALL, script: 'morel', stage: 0.18, debuffs: ['독'] },
+  gunner: { key: 'gunner', name: '포수장 쾅쾅', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 17000, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'gunner', stage: 0.18, debuffs: ['저주'] },
+  octo: { key: 'octo', name: '문어 꾸물이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 16500, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'octo', stage: 0.18, debuffs: ['독'] },
+  seawitch: { key: 'seawitch', name: '바다 마녀 미역 할멈', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 27000, enrage: 435, manaCoef: 1.3, diffs: ALL, script: 'seawitch', stage: 0.18, debuffs: ['저주'] },
+  mimic: { key: 'mimic', name: '보물 상자 덥석이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 18600, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'mimic', stage: 0.18 },
+  parrot: { key: 'parrot', name: '앵무새 대장 깍깍', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 26000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'parrot', stage: 0.18, debuffs: ['저주'] },
+  goldbeard: { key: 'goldbeard', name: '해적 선장 금빛수염', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 22600, enrage: 450, manaCoef: 1.5, diffs: ALL, script: 'goldbeard', stage: 0.18, debuffs: ['저주'] },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

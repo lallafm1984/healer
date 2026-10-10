@@ -10,11 +10,13 @@ import { abFear, dpsMods, hasMod } from './abilities';
 import { dotSpec, dpsSpec, hotDone, sv, under } from './specials';
 import { barkCut } from './heroes';
 import type { PersName } from '../data/personalities';
-import type { Cell, Fight, Unit } from './types';
+import type { Cell, Debuff, Fight, Unit } from './types';
 
+/** 비켜 설 디버프: 보스를 키우는 옮겨붙음 (P-JUMP) · 부풀기 (P-SWELL, 46 4-1 성격 포인트) */
+const awayFrom = (d: Debuff): boolean => !!d.swell || (d.end?.p === 'jump' && d.end.boost > 0);
 /** 비켜 서기: 사교형은 그대로, 눈치 (회피율)에 따라 놓침. 옆에 아무도 없는 안전한 칸 중 가장 가까운 곳, 디버프가 끝날 때까지 머묾 */
 function stepAway(f: Fight, u: Unit, sec: number): boolean {
-  for (const d of u.debuffs) if (d.end?.p === 'jump') d.stepped = true;
+  for (const d of u.debuffs) if (awayFrom(d)) d.stepped = true;
   if ((u.p.dist ?? 0) > 0 || f.rng() >= dodgeRate(f, u)) return false;
   if (!f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1)) return false;
   const cur = cellOf(f, u);
@@ -105,8 +107,8 @@ export function unitTick(f: Fight, u: Unit): void {
       if (c && hexDist(c, cellOf(f, u)) >= 1) moveTo(f, u, c);
     }
   }
-  // 옮겨붙음 본판 (P-JUMP, 46 3-1): 보스를 키우는 옮겨붙음을 들면 옆에 아무도 없는 칸으로 비켜 섬 (지우면 그냥 사라지게)
-  if (u.debuffs.length && !u.me) { const d = u.debuffs.find(x => x.end?.p === 'jump' && x.end.boost > 0 && !x.stepped); if (d && stepAway(f, u, d.left)) return; }
+  // 옮겨붙음 본판 (P-JUMP, 46 3-1) · 부풀기 (P-SWELL, 46 4-1): 들면 옆에 아무도 없는 칸으로 비켜 섬 (지워도 옆 사람이 안 맞게)
+  if (u.debuffs.length && !u.me) { const d = u.debuffs.find(x => awayFrom(x) && !x.stepped); if (d && stepAway(f, u, d.left)) return; }
   // 회피가 끝나면 원래 자리로 복귀 (04 3장 상태 머신). 신중파는 1초 더 기다림
   if (!u.fleeing && !u.pulled && !(u.padUntil != null && u.padUntil > f.t) && !(u.awayUntil != null && u.awayUntil > f.t) && u.home >= 0 && u.cell !== u.home) {
     const h = f.cells[u.home];
