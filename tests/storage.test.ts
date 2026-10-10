@@ -13,7 +13,7 @@ describe('기기 저장', () => {
     expect(s.v).toBe(SAVE_VERSION);
     expect(s.settings).toEqual(DEFAULT_SETTINGS);
     expect(s.player).toEqual({ level: 1, xp: 0, gold: 0 });
-    expect(s.gear).toEqual({ equipped: {}, bag: [], seen: 0, codex: [] });
+    expect(s.gear).toEqual({ equipped: {}, bag: [], seen: 0, codex: [], dex: [], dexPaid: 0 });
     expect(s.items).toEqual(['mana', 'life']);
   });
   it('저장 후 다시 읽으면 같음', () => {
@@ -25,6 +25,7 @@ describe('기기 저장', () => {
     s.player.gold = 500;
     s.gear.bag.push({ id: 1, slot: 'ring', kind: 'ring', grade: '희귀', plus: 0, name: '축복받은 반지', lines: [{ stat: 'int', roll: 0.8 }, { stat: 'hp', roll: 0.7 }], specs: [{ key: 'warmTouch', roll: 0.9 }] });
     s.gear.codex.push('warmTouch');
+    s.gear.dex.push('k:ring');
     expect(save(s, kv)).toBe(true);
     expect(load(kv)).toEqual(s);
   });

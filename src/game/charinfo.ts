@@ -2,7 +2,10 @@
  * 내 힐러 요약 (27 2장 로비 힐러 카드 · 4-1 캐릭터 머리 · 4-2 능력치 판).
  * 장비 점수 = 장착 장비 itemScore 합 × 10 (편성 화면 권장 장비 경고와 같은 기준). 「전투력」이라는 말은 쓰지 않는다.
  */
-import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, itemSpecs, SLOTS, slotName, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
+import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, itemSpecs, KINDS, LOOK_WORD, lookOf, PLACE_KINDS, SLOTS, slotName, STATS, type GearItem, type ItemGrade, type KindDef, type SlotKey } from '../data/equipment';
+import { dexKeys, type DexTab } from '../data/dex';
+import { FACTIONS, type FactionKey } from '../data/places';
+import { uniqueOf, uniqueValue } from '../data/uniques';
 import { HEROES } from '../data/heroes';
 import { codexKeys, FEATURED, namedOf, SPEC_GROUPS, SPECS, specText, specValue, type CodexGroup, type SpecGroup } from '../data/specials';
 import { contentOf, type ContentKey } from '../data/content';
@@ -23,7 +26,7 @@ export const gearScore = () => SLOTS.reduce((a, s) => a + scoreOf(G.save.gear.eq
 /** 특수능력 · 이름 있는 장신구 이름 (도감 키 → 이름) */
 export const specName = (key: string) => SPECS[key]?.name ?? namedOf(key)?.name ?? key;
 
-/** 장비 상세 특수능력 한 줄: 묶음 (이름 있는 장신구 고유 효과는 'named') · 효과 글 · 굴림 (값 고정이면 null) · 꺼진 이유 */
+/** 장비 상세 특수능력 한 줄: 묶음 (이름 있는 장신구 고유 효과는 'named') · 효과 글 · 굴림 (값 고정이면 null) · 꺼진 이유. 고유 장비 고정 특수능력은 badge 「고유」 */
 export interface SpecRow { key: string; name: string; group: SpecGroup | 'named'; badge: string; text: string; roll: number | null; off: string; /** it.specs 안 번호 (고유 효과는 null, 재설정 안 됨) */ i: number | null }
 /** 같은 특수능력을 여러 장비에 껴도 하나만 켜지는 것 (재사용 대기 · 고정 값 · 고유 효과, 42 1-3) */
 const single = (key: string) => !SPECS[key] || !!SPECS[key].cd || !!SPECS[key].fixed;
@@ -43,6 +46,8 @@ export function specRows(it: GearItem): SpecRow[] {
   const out: SpecRow[] = [];
   const nm = namedOf(it.named);
   if (nm) out.push({ key: nm.key, name: nm.name, group: 'named', badge: '고유', text: specText(nm, nm.val), roll: null, off: dup(nm.key), i: null });
+  const un = uniqueOf(it.unique), ud = un && SPECS[un.spec];
+  if (un && ud) out.push({ key: ud.key, name: `${ud.name} (고유)`, group: ud.group, badge: '고유', text: specText(ud, uniqueValue(un, it.grade)), roll: null, off: dup(ud.key), i: null });
   for (const [i, l] of (it.specs ?? []).entries()) {
     const d = SPECS[l.key];
     if (!d) continue;
@@ -64,6 +69,34 @@ export function codexRows(g: CodexGroup): CodexRow[] {
     const feat = Object.keys(FEATURED).filter(p => FEATURED[p].includes(key)).map(p => contentOf(p as ContentKey).name);
     const hint = [where, `${d.min} 이상`, d.hero ? `${HEROES[d.hero].name}로 돌 때` : '', feat.length ? `${feat.join(' · ')}에서 자주` : ''].filter(Boolean).join(' · ');
     return { key, got, name: d.name, text: specText(d, d.fixed ? d.val : specValue(key, '영웅', 1)), hint };
+  });
+}
+
+/** 장비 도감 한 칸 (34 6-10 ④): 얻은 것은 이름 · 설명, 못 얻은 것은 「?」 + 나오는 곳 */
+export interface DexRow { key: string; got: boolean; name: string; text: string; hint: string; slot: SlotKey; look?: FactionKey }
+/** 그 종류가 잘 나오는 장소 이름 (세력을 주면 그 세력 장소만) */
+function kindPlaces(kind: string, f?: FactionKey): string[] {
+  return Object.keys(PLACE_KINDS).filter(p => PLACE_KINDS[p].includes(kind) && (!f || lookOf(p) === f)).map(p => contentOf(p as ContentKey)?.name).filter(Boolean) as string[];
+}
+const fixedTxt = (k: KindDef) => k.fixed.map(x => STATS[x].name).join(' + ');
+export function dexRows(tab: DexTab): DexRow[] {
+  const have = G.save.gear.dex;
+  return dexKeys(tab).map(key => {
+    const got = have.includes(key), [, a, b] = key.split(':');
+    if (tab === 'kind') {
+      const k = KINDS.find(x => x.key === a)!, ps = kindPlaces(a);
+      return { key, got, slot: k.slot, name: k.name, text: `${slotName(k.slot)} · 고정 ${fixedTxt(k)}`, hint: `${slotName(k.slot)} · ${ps.length ? `${ps.slice(0, 3).join(' · ')}에서 잘 나옴` : '어디서나'}` };
+    }
+    if (tab === 'look') {
+      const f = a as FactionKey, k = KINDS.find(x => x.key === b)!;
+      return { key, got, slot: k.slot, look: f, name: `${LOOK_WORD[f]} ${k.name}`, text: `${FACTIONS[f].name} 생김새 · 고정 ${fixedTxt(k)}`, hint: `${FACTIONS[f].name} ${k.name} · ${kindPlaces(b, f).slice(0, 3).join(' · ')}에서` };
+    }
+    if (tab === 'named') {
+      const n = namedOf(a)!;
+      return { key, got, slot: n.slot, name: n.name, text: specText(n, n.val), hint: `${n.placeName}에서 · ${slotName(n.slot)}` };
+    }
+    const u = uniqueOf(a)!, d = SPECS[u.spec];
+    return { key, got, slot: u.slot, name: u.name, text: `${d.name} (고유): ${specText(d, uniqueValue(u, '영웅'))}`, hint: `${u.placeName}에서 · ${slotName(u.slot)} 희귀 이상` };
   });
 }
 

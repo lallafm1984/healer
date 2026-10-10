@@ -128,7 +128,7 @@ describe('장비 종류 · 옵션 (34 6-2 ~ 6-5)', () => {
       expect(k).toBeTruthy();
       expect(it.lines).toHaveLength(EXTRA_LINES[it.grade]);
       expect(new Set(it.lines.map(l => l.stat)).size).toBe(it.lines.length);
-      expect(it.lines.some(l => l.stat === k.fixed)).toBe(false);
+      expect(it.lines.some(l => k.fixed.includes(l.stat))).toBe(false);
       for (const l of it.lines) { expect(l.roll).toBeGreaterThanOrEqual(0.6); expect(l.roll).toBeLessThanOrEqual(1); }
     }
   });
