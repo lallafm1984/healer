@@ -240,7 +240,7 @@ export default async function portrait(url, shots) {
       if (t.startsWith('raid')) raids[t] = await page.evaluate(() => [...document.querySelectorAll('#s-content .b-pl[data-content]')].map(b => b.dataset.content).join());
     }
     ok(new Set(gates).size === 1, `${width}: 관문 자리·크기가 탐험·10인·20인 레이드·던전 모두 같음 (${gates.join(' ')})`);
-    ok(raids.raid10 === 'abyss1' && raids.raid20 === 'cathedral1', `${width}: 10인 탭 = 탑, 20인 탭 = 대성당 ${JSON.stringify(raids)}`);
+    ok(/^abyss1(,abyss\d)*$/.test(raids.raid10) && raids.raid20 === 'cathedral1', `${width}: 10인 탭 = 탑 (1층부터), 20인 탭 = 대성당 ${JSON.stringify(raids)}`);
     const row = await page.evaluate(() => {
       const sc = document.querySelector('#s-content .b-plr'), r = sc.getBoundingClientRect();
       const cut = [...sc.querySelectorAll('.b-pl')].some(b => { const x = b.getBoundingClientRect(); return x.left < r.right - 8 && x.right > r.right + 8; });
