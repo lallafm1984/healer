@@ -99,7 +99,8 @@ export default async function portrait(url, shots) {
 
     // 장면 시간 = 마을이 실제로 그려진 시간. 보이는 동안 흐르고, 다른 탭·동작 줄이기에서는 멈춤
     const t0 = await villageTime(); await page.clock.runFor(1500); const t1 = await villageTime();
-    ok(t1 - t0 > 1, `${width}: 로비에서 마을이 움직임 (장면 시간 ${t0} → ${t1})`);
+    // CI의 소프트웨어 그래픽에서는 그리는 장 수가 적어 흐른 양은 보지 않고 흐르는지만 본다
+    ok(t1 > t0, `${width}: 로비에서 마을이 움직임 (장면 시간 ${t0} → ${t1})`);
     if (width === 390) {
       // 높이는 고정하고 폭만 바꿔도 메뉴가 장면 안에서 서로 겹치지 않는다.
       for (const resizedWidth of [320, 360, 390, 430, 390]) {

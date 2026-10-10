@@ -114,6 +114,8 @@ class Village {
   private ready = false;
   private failed = false;
   private readonly reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  /** 한 장 사이 최소 간격 (초). 폰 GPU = 약 30장, 소프트웨어 그래픽 (CI·GPU 없는 기기) = 4장 */
+  private frame = 1 / 32;
 
   constructor() {
     this.host.className = 'lb-village';
@@ -136,7 +138,7 @@ class Village {
     const W = VILLAGE.width, H = VILLAGE.height;
     const app = new Application();
     this.app = app;
-    await app.init({ width: W, height: H, resolution: 1, antialias: true, autoDensity: false, backgroundAlpha: 0, preference: 'webgl', autoStart: false, sharedTicker: false, eventFeatures: { click: false, move: false, globalMove: false, wheel: false } });
+    await app.init({ width: W, height: H, resolution: 1, antialias: false, autoDensity: false, backgroundAlpha: 0, preference: 'webgl', autoStart: false, sharedTicker: false, eventFeatures: { click: false, move: false, globalMove: false, wheel: false } });
     this.world.sortableChildren = true;
     this.world.eventMode = 'none';
     app.stage.eventMode = 'none';
@@ -151,8 +153,11 @@ class Village {
     this.addEffects(VILLAGE.effects);
     const canvas = app.canvas;
     canvas.className = 'lb-village-canvas';
-    canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); this.failed = true; this.destroyApp(); });
+    // 그래픽 연결이 끊기면 고정 바탕으로 돌아가고, 다음에 로비를 그릴 때 다시 만든다
+    canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); this.destroyApp(); });
     this.host.appendChild(canvas);
+    // GPU 없이 CPU로 그리는 환경이면 장 수를 크게 줄여 다른 화면·입력을 막지 않게
+    if (/swiftshader|llvmpipe|software/i.test(rendererName(app))) this.frame = 1 / 4;
     this.ready = true;
     this.render();
     this.host.classList.add('live');
@@ -296,7 +301,7 @@ class Village {
     return this.ready && !this.failed && !document.hidden && !this.reduce.matches && this.host.isConnected && !this.host.closest('[hidden]');
   }
 
-  /** 초당 약 30장 (폰 배터리). 시간은 실제 경과로 진행해 움직임 속도는 같다 */
+  /** 초당 약 30장 (폰 배터리, 소프트웨어 그래픽은 4장). 시간은 실제 경과로 진행해 움직임 속도는 같다 */
   private playback(): void {
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = 0; this.last = null;
@@ -305,8 +310,8 @@ class Village {
       this.raf = 0;
       if (!this.running()) { this.last = null; return; }
       const dt = this.last === null ? 0 : (now - this.last) / 1000;
-      if (this.last === null || dt >= 1 / 32) {
-        if (this.last !== null) this.advance(clamp(dt, 0, 0.1));
+      if (this.last === null || dt >= this.frame) {
+        if (this.last !== null) this.advance(clamp(dt, 0, 0.3));
         this.last = now;
         this.render();
       }
@@ -327,8 +332,17 @@ class Village {
     this.host.classList.remove('live');
     try { this.app?.destroy({ removeView: true }, { children: true, texture: false, textureSource: false }); } catch { /* 이미 끊긴 WebGL */ }
     this.glow?.destroy(true);
-    this.app = undefined;
+    this.app = undefined; this.glow = undefined; this.motes = undefined; this.birds = undefined;
+    this.world = new Container(); this.items = []; this.waters = []; this.lights = [];
   }
+}
+
+/** WebGL 그리기 장치 이름 (확장이 없으면 일반 이름) */
+function rendererName(app: Application): string {
+  const gl = (app.renderer as unknown as { gl?: WebGLRenderingContext }).gl;
+  if (!gl) return '';
+  const ext = gl.getExtension('WEBGL_debug_renderer_info');
+  return String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || '');
 }
 
 let scene: Village | null = null;
