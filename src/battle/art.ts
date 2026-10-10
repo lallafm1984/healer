@@ -129,6 +129,19 @@ const ENC_ART: Record<string, string[]> = {
   goldbeard: ['boss-goldbeard'],
   gullsand: ['mob-deck-swab', 'mob-jelly-seer'],
   wreckage: ['mob-deck-swab', 'mob-slingshot-pirate'],
+  // 묶음 C (그림 요청 49): 그림이 올 때까지 벡터 그림
+  sippy52: ['boss-teacup-sippy'],
+  sippy: ['boss-teacup-sippy'],
+  hatter: ['boss-hatter-haerong'],
+  uga: ['boss-mask-uga'],
+  shellgod: ['boss-swamp-turtle'],
+  kobold60: ['boss-kobold-kkojil'],
+  capway: ['mob-cap-guard', 'mob-sneeze-shroom'],
+  sugarstair: ['mob-cap-guard', 'mob-pollen-fairy'],
+  cuptower: ['mob-big-cap', 'mob-sneeze-shroom', 'mob-cap-guard'],
+  hotgravel: ['mob-kobold-miner', 'mob-kobold-smoker'],
+  wetstair: ['mob-swamp-spearman', 'mob-mud-slinger'],
+  turtlebridge: ['mob-wart-toad', 'mob-dart-hunter', 'mob-swamp-spearman'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {
@@ -179,7 +192,7 @@ export function addArtName(m: Mob): string {
 /** 헤매는 영혼 칸 (37 4장 C-3·5 고유, E-21 공용) */
 export const soulArtName = (u: Unit): string => firstArt(u.soul?.art, 'mob-soul-wisp');
 /** 장판 칸 무늬 (37 4장 B-8~14): 세력 장판 → 공용. 예고는 B-9 */
-const ZONE_TAIL: Partial<Record<FactionKey, string>> = { plague: 'plague', swamp: 'swamp', noble: 'noble', mage: 'frost', hill: 'hill', pirate: 'tide' };
+const ZONE_TAIL: Partial<Record<FactionKey, string>> = { plague: 'plague', swamp: 'swamp', noble: 'noble', mage: 'frost', hill: 'hill', pirate: 'tide', fairy: 'spore', dragon: 'lava' };
 export const zoneArtName = (fac: FactionKey | null): string => firstArt(fac && ZONE_TAIL[fac] ? `fx-cell-zone-${ZONE_TAIL[fac]}` : undefined, 'fx-cell-zone');
 /** 무너진 바닥 칸 (37 4장 B-3~5): 늪 = 물, 마탑 = 얼음 기둥, 그 밖 = 돌 구덩이 */
 const HOLE_TAIL: Partial<Record<FactionKey, string>> = { swamp: 'swamp', mage: 'ice' };

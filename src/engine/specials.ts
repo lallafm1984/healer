@@ -141,6 +141,8 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.lighthouseEmber && aoe && f.tels.some(t => t.kind === 'aoe' || t.kind === 'buster')) m += v.lighthouseEmber; // 등대 불씨
   if (v.sailorCompass && u.debuffs.some(d => d.cap != null || (d.healCut ?? 0) > 0)) m += v.sailorCompass; // 선원의 나침반
   if (v.goldButton && direct && !tick && f.sp!.button[u.id]) { m += v.goldButton; delete f.sp!.button[u.id]; } // 금빛수염 단추
+  if (v.chippedCup && u.debuffs.some(d => d.absorbLeft)) m += v.chippedCup; // 이 빠진 찻잔 (48 6장)
+  if (v.dragonScale && u.debuffs.some(d => d.type === '독')) m += v.dragonScale; // 용 비늘 조각
   if (u.me && v.brokenChain && on(f, 'brokenChain')) m += v.brokenChain;
   if (f.t < 20) m += v.firstWord ?? 0;
   if (bossPct(f) < 0.3) m += v.secondWind ?? 0;
@@ -377,6 +379,8 @@ export function specDispel(f: Fight, u: Unit, d: Debuff): void {
   if (v.busyDay) cdCut(f, ['ext'], v.busyDay);
   if (v.plagueCenser && (s.ready.plagueCenser ?? 0) <= f.t) { s.ready.plagueCenser = f.t + 15; shield(f, u, intAmt(f, v.plagueCenser), 8, 'plagueCenser'); }
   if (v.wornRosary) { if (s.dtype && s.dtype !== d.type) { cdCut(f, ['dispel'], v.wornRosary); shout(f, 'wornRosary'); } s.dtype = d.type; }
+  // 꼬마등 유리병 (48 6장): 지울 때 대상이 50% 아래면 그 아군에게 보호막
+  if (v.lampGlass && u.hp < u.max * 0.5 && (s.ready.lampGlass ?? 0) <= f.t) { s.ready.lampGlass = f.t + 12; shield(f, u, intAmt(f, v.lampGlass), 8, 'lampGlass'); }
   // 소라 껍데기 (46 6장): 터지는 디버프 (부풀기 · 함정 · 터지는 마력)를 지우면 대상과 이웃 칸 아군에게 보호막
   if (v.conchShell && (d.trap || d.end?.p === 'pop' || d.end?.p === 'trapHit' || d.end?.p === 'blast') && (s.ready.conchShell ?? 0) <= f.t) {
     s.ready.conchShell = f.t + 15;
@@ -427,6 +431,7 @@ export function dmgSpec(f: Fight, u: Unit): number {
   if (u.pulled) m *= 1 - (v.heavyFeet ?? 0);
   if (s.trap) m *= 1 - (v.trapSense ?? 0);
   if (s.bomb) m *= 1 - (v.bombSquad ?? 0);
+  if (u.me && v.turtleCharm && f.mana < 30) m *= 1 - v.turtleCharm; // 거북 등딱지 부적 (48 6장)
   return m;
 }
 

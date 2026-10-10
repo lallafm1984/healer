@@ -12,13 +12,15 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'hydra' | 'twins' | 'orben' | 'abysslord'
   | 'leakyway' | 'ratking' | 'sludgegrate' | 'carrier' | 'iceread' | 'librarian' | 'forbidden' | 'scholar'
   | 'petalstair' | 'priestess' | 'keeperhall' | 'sleeper' | 'pagedrift' | 'librarian40' | 'rosetunnel' | 'priestess48'
-  | 'gullsand' | 'crab36' | 'wreckage' | 'goldbeard44' | 'crab' | 'cook' | 'morel' | 'gunner' | 'octo' | 'seawitch' | 'mimic' | 'parrot' | 'goldbeard';
+  | 'gullsand' | 'crab36' | 'wreckage' | 'goldbeard44' | 'crab' | 'cook' | 'morel' | 'gunner' | 'octo' | 'seawitch' | 'mimic' | 'parrot' | 'goldbeard'
+  | 'capway' | 'sippy52' | 'hotgravel' | 'kobold60' | 'sugarstair' | 'sippy' | 'cuptower' | 'hatter' | 'wetstair' | 'uga' | 'turtlebridge' | 'shellgod';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
   | 'hydra' | 'twins' | 'orben' | 'abysslord'
   | 'ratking' | 'carrier' | 'librarian' | 'scholar' | 'priestess' | 'sleeper' | 'librarian40' | 'priestess48'
-  | 'crab36' | 'goldbeard44' | 'crab' | 'cook' | 'morel' | 'gunner' | 'octo' | 'seawitch' | 'mimic' | 'parrot' | 'goldbeard';
+  | 'crab36' | 'goldbeard44' | 'crab' | 'cook' | 'morel' | 'gunner' | 'octo' | 'seawitch' | 'mimic' | 'parrot' | 'goldbeard'
+  | 'sippy52' | 'kobold60' | 'sippy' | 'hatter' | 'uga' | 'shellgod';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -108,6 +110,11 @@ export const soaps = (x = 1): DebuffDef[] => [
   { name: '초록 청소약', type: '독', left: 12, dot: Math.round(600 * 0.02 * x) },
   { name: '보라 청소약', type: '저주', left: 10, healCut: 0.5 },
   { name: '파랑 청소약', type: '마법', left: 8, dot: Math.round(600 * 0.03 * x) },
+];
+/** 재채기 버섯 (48 2장, 버섯 요정단 ③): 질병 (초당 딜체 2%) → 마법 (받는 치유 −30%) 차례로. x = 피해 배율 (탐험 0.7) */
+const sneeze = (x = 1): DebuffDef[] => [
+  { name: '포자 기침', type: '질병', left: 10, dot: Math.round(600 * 0.02 * x) },
+  { name: '요정 장난', type: '마법', left: 10, healCut: 0.3 },
 ];
 /** 네 가지 청소약을 거는 곳: 해제 4유형 모두 (신전지기 유령) */
 const HEAL4 = ['질병', '독', '저주', '마법'];
@@ -440,6 +447,71 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
   mimic: { key: 'mimic', name: '보물 상자 덥석이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 18600, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'mimic', stage: 0.18 },
   parrot: { key: 'parrot', name: '앵무새 대장 깍깍', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 26000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'parrot', stage: 0.18, debuffs: ['저주'] },
   goldbeard: { key: 'goldbeard', name: '해적 선장 금빛수염', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 22600, enrage: 450, manaCoef: 1.5, diffs: ALL, script: 'goldbeard', stage: 0.18, debuffs: ['저주'] },
+  // ---------- 묶음 C 버섯 요정단 (48 2장): 졸개 ① 버섯 꼬마 경비 · ② 꽃가루 요정 · ③ 재채기 버섯 (질병 → 마법) · ④ 큰 갓 버섯 거인 ----------
+  // 탐험 ⑬ 「꼬마등 오솔길」 (48 1-1, Lv 52): 버섯 우산 길 → 찻잔 요정 홀짝이 (넘어가는 포자 쉬운 판, 던전 ⑪ 예습)
+  capway: trash('capway', '버섯 우산 길', [
+    { name: '버섯 꼬마 경비', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '재채기 버섯', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'sneeze', name: '에취!', icon: '에취', to: 'other', dmg: 0, first: 5, period: 10, cast: 0, effect: { p: 'cycle', n: 1, debuffs: sneeze(0.7) } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['질병', '마법'] }),
+  sippy52: { key: 'sippy52', lowLevel: true, name: '찻잔 요정 홀짝이', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2600, enrage: 215, manaCoef: 1.0, diffs: ALL, script: 'sippy52', stage: 0.3, debuffs: ['질병'] },
+  // 던전 ⑪ 「끝없는 다과회」 (48 1-2 · 3-1, Lv 55): 일반 각설탕 계단 → 찻잔 요정 홀짝이 → 정예 찻잔 탑 → 모자 장수 해롱
+  sugarstair: trash('sugarstair', '각설탕 계단', [
+    { name: '버섯 꼬마 경비', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '꽃가루 요정', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  sippy: { key: 'sippy', lowLevel: true, name: '찻잔 요정 홀짝이', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 5100, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'sippy', stage: 0.25, debuffs: ['질병'] },
+  cuptower: trash('cuptower', '찻잔 탑', [
+    { name: '버섯 꼬마 경비', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '재채기 버섯', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'sneeze', name: '에취!', icon: '에취', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: sneeze() } },
+    ] },
+    {
+      name: '큰 갓 버섯 거인', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'cap', name: '갓 내려찍기', icon: '갓', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['질병', '마법'] }),
+  hatter: { key: 'hatter', lowLevel: true, name: '모자 장수 해롱', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 6800, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'hatter', stage: 0.25, debuffs: ['마법'] },
+  // 던전 ⑫ 「이끼 뿌리 사원」 (48 1-2 · 3-2, Lv 60, 늪의 부족 졸개 그대로): 일반 젖은 계단 → 버섯 가면 주술사 우가 → 정예 거북 등 다리 → 늪 거북 신 등딱지
+  wetstair: trash('wetstair', '젖은 계단', [
+    { name: '늪 창병', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  uga: { key: 'uga', lowLevel: true, name: '버섯 가면 주술사 우가', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 5400, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'uga', stage: 0.25, debuffs: ['독'] },
+  turtlebridge: trash('turtlebridge', '거북 등 다리', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '독침 사냥꾼', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'sting', name: '독침', icon: '독침', to: 'other', dmg: 0, first: 5, period: 10, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '독침', type: '독', left: 10, dot: 9, stackMax: 3 } } },
+    ] },
+    {
+      name: '독 혹 두꺼비', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'burst', name: '독 혹 터뜨리기', icon: '독혹', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['독'] }),
+  shellgod: { key: 'shellgod', lowLevel: true, name: '늪 거북 신 등딱지', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 7300, enrage: 280, manaCoef: 1.0, diffs: ALL, script: 'shellgod', stage: 0.25, debuffs: ['독'] },
+  // ---------- 묶음 C 붉은 용 일가 (48 2장, 첫 등장): 졸개 ① 코볼트 곡괭이꾼 · ② 불씨 꼬마 용 · ③ 코볼트 연기 주술사 (독 → 마법) · ④ 용 비늘 경비병 ----------
+  // 탐험 ⑮ 「불꽃 봉우리 기슭」 (48 1-1, Lv 60): 뜨거운 자갈길 → 코볼트 보물 지킴이 꼬질 (자폭 쫄 × 독, 10인 ⑧ 예습)
+  hotgravel: trash('hotgravel', '뜨거운 자갈길', [
+    { name: '코볼트 곡괭이꾼', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '코볼트 연기 주술사', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'smoke', name: '매캐한 연기', icon: '연기', to: 'other', dmg: 0, first: 5, period: 10, cast: 0,
+        effect: { p: 'cycle', n: 1, debuffs: [
+          { name: '독 연기', type: '독', left: 10, dot: 12 },
+          { name: '불티', type: '마법', left: 8, dot: 15 },
+        ] } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['독', '마법'] }),
+  kobold60: { key: 'kobold60', lowLevel: true, name: '코볼트 보물 지킴이 꼬질', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2700, enrage: 220, manaCoef: 1.0, diffs: ALL, script: 'kobold60', stage: 0.3, debuffs: ['독'] },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

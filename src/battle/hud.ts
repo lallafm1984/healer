@@ -564,6 +564,7 @@ export function showPreview(idx: number): void {
   if (u.sacr > 0) items.push(`희생 ${Math.ceil(u.sacr)}초 (받는 피해 30%를 내가 대신)`);
   if (u.immune > 0) items.push(`보호의 손 ${Math.ceil(u.immune)}초 (물리 피해 무시, 딜 멈춤)`);
   if (u.guardian > 0) items.push(`수호 영혼 ${Math.ceil(u.guardian)}초`);
+  for (const z of F.zones) if (z.ring && z.cells.has(u.cell)) items.push(`${z.ring.name} 안 ${Math.ceil(z.end - F.t)}초 (${z.ring.n < z.ring.max ? `치유를 받으면 한 겹 자람, ${z.ring.n}/${z.ring.max}겹` : `다 자람 ${z.ring.max}겹`})`); // 요정 고리 (48 5장)
   if (u.shield > 0) items.push(`보호 두루마리 ${Math.ceil(u.shield)}초 (받는 피해 -40%)`);
   if (u.bulwark > 0) items.push(`${TRAITS.bulwark.name} ${Math.ceil(u.bulwark)}초 (받는 피해 -50%)`);
   if (!u.alive) items.push('쓰러짐');

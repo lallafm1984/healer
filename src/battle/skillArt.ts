@@ -9,13 +9,13 @@ import { BOSSES, type AddDef, type AddJob, type DebuffDef, type SkillDef } from 
 import type { Encounter, ScriptKey } from '../data/encounters';
 import type { BossSkill, Fight } from '../engine/types';
 
-/** 기믹 아이콘 36장 (37 4장 A 1~23 · E 1~10 · G 1~3): icon-gim-<이름> */
+/** 기믹 아이콘 38장 (37 4장 A 1~23 · E 1~10 · G 1~3 · H 1~2): icon-gim-<이름>. 모자 뽑기 모자 (H 3~5)는 칸 위 표식이라 대기열에 안 씀 */
 export const GIMS = ['full', 'wound', 'hunt', 'link', 'invert', 'over', 'quake', 'recoil', 'gaze', 'drain', 'charm', 'order', 'jump', 'safe', 'tower', 'pull', 'hole',
-  'stagger', 'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip'] as const;
+  'stagger', 'counter', 'burst', 'soul', 'rot', 'notank', 'add', 'elite', 'mender', 'bomb', 'pylon', 'jail', 'march', 'fixate', 'focus', 'offtank', 'swell', 'cap', 'flip', 'grow', 'pass'] as const;
 export type Gim = (typeof GIMS)[number];
 type BossKey = Exclude<ScriptKey, 'trash'>;
 
-/** 보스 고유 아이콘 (37 4장 D, 44 4장 D 1~4, 47 4장 D 1~43): 보스 데이터 키 → 기술 키 → 그림. 탐험판은 던전 보스 그림을 같이 씀 (44 0장) */
+/** 보스 고유 아이콘 (37 4장 D, 44 4장 D 1~4, 47 4장 D 1~43, 49 4장 D 1~35): 보스 데이터 키 → 기술 키 → 그림. 탐험판은 던전 보스 그림을 같이 씀 (44 0장) */
 const BSK: Partial<Record<BossKey, Record<string, string>>> = {
   collector3: { aoe: 'icon-bsk-collector-2' },
   collector: { buster: 'icon-bsk-collector-1', aoe: 'icon-bsk-collector-2' },
@@ -58,6 +58,13 @@ const BSK: Partial<Record<BossKey, Record<string, string>>> = {
   parrot: { buster: 'icon-bsk-parrot-1', gust: 'icon-bsk-parrot-2', gust2: 'icon-bsk-parrot-2', mimicry: 'icon-bsk-parrot-3', flap: 'icon-bsk-parrot-4' },
   goldbeard44: { buster: 'icon-bsk-goldbeard-1' },
   goldbeard: { buster: 'icon-bsk-goldbeard-1', cannon0: 'icon-bsk-goldbeard-2', cannon1: 'icon-bsk-goldbeard-2', cannon2: 'icon-bsk-goldbeard-2', roar: 'icon-bsk-goldbeard-3', treasure: 'icon-bsk-goldbeard-4' },
+  // 묶음 C (49 4장 D 1~14)
+  sippy52: { buster: 'icon-bsk-sippy-1' },
+  sippy: { buster: 'icon-bsk-sippy-1', hunt: 'icon-bsk-sippy-2', aoe: 'icon-bsk-sippy-3' },
+  hatter: { buster: 'icon-bsk-hatter-1', quake: 'icon-bsk-hatter-2', aoe: 'icon-bsk-hatter-3' },
+  uga: { buster: 'icon-bsk-uga-1', leech: 'icon-bsk-uga-2', aoe: 'icon-bsk-uga-3' },
+  shellgod: { buster: 'icon-bsk-shellgod-1', spit: 'icon-bsk-shellgod-2', spit2: 'icon-bsk-shellgod-2', roll0: 'icon-bsk-shellgod-3', roll1: 'icon-bsk-shellgod-3', roll2: 'icon-bsk-shellgod-3' },
+  kobold60: { buster: 'icon-bsk-kobold-1', smoke: 'icon-bsk-kobold-2' },
 };
 /** 데이터 부품만으로는 안 보이는 기믹 (35 4장 표): 서리 손길 · 빗자루 = 버스터 + 썩는 상처 (서리 · 먼지 범벅), 얼어붙는 바닥 · 바닥이 언다 = 장판 → 무너지는 바닥 */
 const GIM_KEY: Partial<Record<BossKey, Record<string, Gim>>> = {
@@ -79,6 +86,7 @@ const MOB: Record<string, string> = {
   '심연 전령:seal': 'icon-mob-trap',
   '탑 감시자:gaze': 'icon-mob-gaze',
   '납골당 관리인:dust': 'icon-mob-dust-sweep',
+  '재채기 버섯:sneeze': 'icon-mob-sneeze', // 49 4장 D 36
   '해파리 점쟁이:fortune': 'icon-mob-jelly', // 47 4장 D 44 (닻 든 거한 닻 돌리기 45는 아직 데이터에 없음)
   '독 혹 두꺼비:burst': 'icon-bsk-toad-3',
 };
@@ -102,6 +110,7 @@ function debuffGim(d: DebuffDef): Gim | undefined {
   if (d.cap != null) return 'cap';
   if (d.end?.p === 'flip') return 'flip';
   if (d.end?.p === 'jump') return 'jump';
+  if (d.end?.p === 'pass') return 'pass'; // 넘어가는 포자 (P-PASS, 37 4장 H-2)
   return undefined;
 }
 /** 기술 데이터 → 기믹 (35 3장 22종 · 3-I · 3-J). tanks = 탱커 수 (부탱커 끌기) */
@@ -111,6 +120,7 @@ export function gimOf(d: SkillDef, tanks = 1): Gim | undefined {
   switch (e.p) {
     case 'hunt': case 'quake': case 'pull': case 'order': case 'link': case 'hole': case 'tower': case 'stagger': case 'counter': case 'soul': case 'jail': return e.p;
     case 'vessel': return 'over';
+    case 'ring': return 'grow'; // 요정 고리 (P-GROW, 37 4장 H-1)
     case 'adds': return addGim(e.add, tanks);
     case 'debuff': case 'tank': case 'all': return e.debuff ? debuffGim(e.debuff) : undefined;
     default: return undefined;

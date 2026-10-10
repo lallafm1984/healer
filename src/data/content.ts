@@ -13,6 +13,7 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge'
   | 'bookfield' | 'rosemaze' | 'shellbeach' | 'wreck'
   | 'gull1' | 'gull2' | 'gull3' | 'queen1' | 'queen2' | 'queen3' | 'isle1' | 'isle2' | 'isle3'
+  | 'lampway' | 'emberfoot' | 'teaparty' | 'mossroot'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -98,6 +99,15 @@ export const CONTENT: ContentDef[] = [
     key: 'rosemaze', kind: 'explore', name: '장미 울타리 미로', place: '백합 영지 · 귀족가', stageLv: 48, unlockLv: 48, ready: true, bosses: ['백합 여사제'],
     fights: () => DUNGEONS.rosemaze.segments, size: three,
   },
+  // 묶음 C 탐험 ⑬ ⑮ (48 1-1): ⑬은 던전 ⑪ 예습 (넘어가는 포자), ⑮는 다음 지역 붉은 용 일가 첫 얼굴
+  {
+    key: 'lampway', kind: 'explore', name: '꼬마등 오솔길', place: '반딧불 버섯숲 · 버섯 요정단', stageLv: 52, unlockLv: 52, ready: true, bosses: ['찻잔 요정 홀짝이'],
+    fights: () => DUNGEONS.lampway.segments, size: three,
+  },
+  {
+    key: 'emberfoot', kind: 'explore', name: '불꽃 봉우리 기슭', place: '불꽃 봉우리 · 붉은 용 일가', stageLv: 60, unlockLv: 60, ready: true, bosses: ['코볼트 보물 지킴이 꼬질'],
+    fights: () => DUNGEONS.emberfoot.segments, size: three,
+  },
   // 던전 ①~⑩ (5인, 5레벨마다). ⑧~⑩은 묶음 B
   {
     key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 5, unlockLv: 5, ready: true,
@@ -139,6 +149,15 @@ export const CONTENT: ContentDef[] = [
   {
     key: 'ossuary', bosses: ['백합 여사제', '잠든 가주'], kind: 'dungeon', name: '백합 납골당', place: '백합 영지 · 귀족가', stageLv: 50, unlockLv: 50, ready: true,
     fights: () => DUNGEONS.ossuary.segments, size: five,
+  },
+  // 던전 ⑪ ⑫ (48 1-2, 묶음 C): 버섯 요정단 · 늪의 부족, 보스 2
+  {
+    key: 'teaparty', bosses: ['찻잔 요정 홀짝이', '모자 장수 해롱'], kind: 'dungeon', name: '끝없는 다과회', place: '반딧불 버섯숲 · 버섯 요정단', stageLv: 55, unlockLv: 55, ready: true,
+    fights: () => DUNGEONS.teaparty.segments, size: five,
+  },
+  {
+    key: 'mossroot', bosses: ['버섯 가면 주술사 우가', '늪 거북 신 등딱지'], kind: 'dungeon', name: '이끼 뿌리 사원', place: '독안개 늪 · 늪의 부족', stageLv: 60, unlockLv: 60, ready: true,
+    fights: () => DUNGEONS.mossroot.segments, size: five,
   },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인

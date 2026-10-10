@@ -263,6 +263,11 @@ export const NAMED: NamedDef[] = [
   { key: 'lighthouseEmber', name: '등대 불씨', slot: 'neck', place: 'gull3', placeName: '갈매기 항구 등대', text: '보스 큰 기술 예고가 떠 있는 동안 광역 힐 +{v}', val: 0.15, unit: 'pct' },
   { key: 'sailorCompass', name: '선원의 나침반', slot: 'neck', place: 'queen3', placeName: '짠물 여왕호 뱃머리', text: '치유 상한 · 받는 치유 감소가 걸린 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
   { key: 'goldButton', name: '금빛수염 단추', slot: 'neck', place: 'isle3', placeName: '보물섬 요새 꼭대기', text: '디버프가 끝나거나 지워진 아군에게 하는 다음 직접 힐 +{v}', val: 0.25, unit: 'pct' },
+  // 묶음 C (48 6장, 이름 임시 · 그림 49): 탐험 ⑬ ⑮ · 던전 ⑪ ⑫
+  { key: 'lampGlass', name: '꼬마등 유리병', slot: 'ring', place: 'lampway', placeName: '꼬마등 오솔길', text: '디버프를 지울 때 대상 체력이 50% 아래면 그 아군에게 지능 {v} 보호막 (재사용 12초)', val: 0.25, unit: 'pct', cd: 12, min: '고급' },
+  { key: 'chippedCup', name: '이 빠진 찻잔', slot: 'ring', place: 'teaparty', placeName: '끝없는 다과회', text: '치유 흡수 막이 걸린 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'dragonScale', name: '용 비늘 조각', slot: 'ring', place: 'emberfoot', placeName: '불꽃 봉우리 기슭', text: '독이 걸린 아군에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
+  { key: 'turtleCharm', name: '거북 등딱지 부적', slot: 'neck', place: 'mossroot', placeName: '이끼 뿌리 사원', text: '내 마나 30% 아래에서 내가 받는 피해 −{v}', val: 0.15, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -341,6 +346,11 @@ export const FEATURED: Record<string, readonly string[]> = {
   isle1: ['potionRegular', 'springSip', 'chainBreaker'],
   isle2: ['numberSense', 'quickAid', 'windStep'],
   isle3: ['sunrise', 'edgeTouch', 'curseBreak'],
+  // 묶음 C (48 6장): 꼬마등 오솔길 (포자 · 질병) / 끝없는 다과회 (포자 · 모자 · 진동) / 불꽃 봉우리 기슭 (자폭 쫄 · 독) / 이끼 뿌리 사원 (고리 · 무력화 · 독)
+  lampway: ['coldMedicine', 'cleanHands', 'restTea'],
+  teaparty: ['firstCup', 'coldMedicine', 'holdingHand'],
+  emberfoot: ['antidote', 'bombSquad', 'hardShell'],
+  mossroot: ['antidote', 'holdTogether', 'numberSense'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

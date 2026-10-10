@@ -5,12 +5,13 @@
 import type { ContentKey } from './content';
 import type { EncounterKey } from './encounters';
 
-export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'hill' | 'abyss' | 'pirate';
+export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'hill' | 'abyss' | 'pirate' | 'fairy' | 'dragon';
 export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple' | 'abyss' | 'cathedral'
   | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge' | 'watchtower'
   | 'abyss-garden' | 'abyss-gallery' | 'abyss-observatory' | 'abyss-spire'
   | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary'
-  | 'shellbeach' | 'wreck' | 'gull' | 'gull-kitchen' | 'gull-lighthouse' | 'queen' | 'queen-hold' | 'queen-bow' | 'isle' | 'isle-lookout' | 'isle-summit';
+  | 'shellbeach' | 'wreck' | 'gull' | 'gull-kitchen' | 'gull-lighthouse' | 'queen' | 'queen-hold' | 'queen-bow' | 'isle' | 'isle-lookout' | 'isle-summit'
+  | 'lampway' | 'teaparty' | 'mossroot' | 'emberfoot';
 
 export interface Faction {
   name: string;
@@ -35,6 +36,9 @@ export const FACTIONS: Record<FactionKey, Faction> = {
   abyss: { name: '심연', color: '#E6D3A0', mark: { rim: '#E6E0D0', glyph: '#E6E0D0', dark: true }, dispel: ALL_DISPEL },
   // 묶음 B 새 세력 (46 0-2): 산호 해안의 짠물 해적단, 바다 청록
   pirate: { name: '짠물 해적단', color: '#2BB5B0', mark: { rim: '#3A9C98', glyph: '#6FD0C8' }, dispel: ['독', '저주'] },
+  // 묶음 C (48 0장): 반딧불 버섯숲의 버섯 요정단 (연분홍) · 다음 지역 불꽃 봉우리의 붉은 용 일가 (탐험 ⑮에서 첫 등장, D에서 계속)
+  fairy: { name: '버섯 요정단', color: '#F29CB7', mark: { rim: '#C9718F', glyph: '#F8C4D5' }, dispel: ['질병', '마법'] },
+  dragon: { name: '붉은 용 일가', color: '#E0673C', mark: { rim: '#B5502E', glyph: '#F29466' }, dispel: ['독', '마법'] },
 };
 
 export interface Place {
@@ -89,6 +93,11 @@ export const PLACES: Record<PlaceKey, Place> = {
   isle: { key: 'isle', name: '보물섬 요새', faction: 'pirate', tone: ['#2E3226', '#12140E'] },
   'isle-lookout': { key: 'isle-lookout', name: '앵무새 망루', faction: 'pirate', tone: ['#28362C', '#0E1510'], borrow: 'isle' },
   'isle-summit': { key: 'isle-summit', name: '꼭대기 보물 더미', faction: 'pirate', tone: ['#3A3424', '#16130C'], borrow: 'isle' },
+  // 묶음 C (48 1장, 그림 요청 49): 끝없는 다과회는 꼬마등 오솔길 그림을, 이끼 뿌리 사원은 독안개 늪 그림을 빌림
+  lampway: { key: 'lampway', name: '꼬마등 오솔길', faction: 'fairy', tone: ['#2E2A3A', '#110F16'] },
+  teaparty: { key: 'teaparty', name: '끝없는 다과회', faction: 'fairy', tone: ['#3A2C34', '#161014'], borrow: 'lampway' },
+  mossroot: { key: 'mossroot', name: '이끼 뿌리 사원', faction: 'swamp', tone: ['#24332A', '#0D140F'], borrow: 'swamp' },
+  emberfoot: { key: 'emberfoot', name: '불꽃 봉우리 기슭', faction: 'dragon', tone: ['#3A2A22', '#160F0B'] },
 };
 
 /** 콘텐츠 → 장소 */
@@ -100,6 +109,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   bookfield: 'bookfield', rosemaze: 'rosemaze', archive: 'archive', ossuary: 'ossuary', sewer: 'sewer',
   shellbeach: 'shellbeach', wreck: 'wreck', gull1: 'gull', gull2: 'gull-kitchen', gull3: 'gull-lighthouse',
   queen1: 'queen', queen2: 'queen-hold', queen3: 'queen-bow', isle1: 'isle', isle2: 'isle-lookout', isle3: 'isle-summit',
+  lampway: 'lampway', teaparty: 'teaparty', mossroot: 'mossroot', emberfoot: 'emberfoot',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -122,6 +132,9 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   gullsand: 'shellbeach', crab36: 'shellbeach', wreckage: 'wreck', goldbeard44: 'wreck',
   crab: 'gull', cook: 'gull-kitchen', morel: 'gull-lighthouse', gunner: 'queen', octo: 'queen-hold', seawitch: 'queen-bow',
   mimic: 'isle', parrot: 'isle-lookout', goldbeard: 'isle-summit',
+  capway: 'lampway', sippy52: 'lampway', hotgravel: 'emberfoot', kobold60: 'emberfoot',
+  sugarstair: 'teaparty', sippy: 'teaparty', cuptower: 'teaparty', hatter: 'teaparty',
+  wetstair: 'mossroot', uga: 'mossroot', turtlebridge: 'mossroot', shellgod: 'mossroot',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;
