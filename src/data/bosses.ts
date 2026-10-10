@@ -44,6 +44,8 @@ export type DebuffEnd =
   | { p: 'hit'; dmg: number }
   /** 함정 (P-TRAP, 가문의 반지): 지우지 않고 끝나면 그 사람 dmg, 지우면 이웃 칸 아군 burst (마법). debt는 blast와 같음 (미로 덫) */
   | { p: 'trapHit'; dmg: number; burst: number; debt?: boolean }
+  /** 지우면 빚 (59 3-2 마지막 그림자 그림자 덫): 지우지 않고 끝나면 그 사람 dmg, 지우면 터지는 대신 이웃 칸 아군 n명에게 loan (빌린 생명) */
+  | { p: 'trapLoan'; dmg: number; n: number; loan: DebuffDef }
   /** 터지는 마력 (P-TRAP, 불안정한 마력 · 서리 표식): 시간이 다 되거나 지우면 (바로) 이웃 칸 아군 dmg (마법). debt = 빌린 생명이 같이 걸려 있으면 터질 때 남은 빚도 바로 (59 4-1 밤그늘) */
   | { p: 'blast'; dmg: number; debt?: boolean }
   /** 끝나거나 지워지면 그때까지 중첩 × dmg 피해 (마력 역류 P-RECOIL, 중첩 0이면 없음) */
@@ -136,7 +138,7 @@ export interface DebuffDef {
    * 빌린 생명 (P-DEBT, 59 5장): 걸릴 때 체력을 가득 채우고 채운 만큼 (최소 최대 체력 × min)을 빚으로. 빚은 초마다 grow씩 불어나고 (어둠물에 잠기면 2배),
    * 이 사람에게 넘친 치유가 빚을 갚음 (다 갚으면 사라짐). 시간이 다 되면 남은 빚만큼 피해 (고정). lock과 같이 적음
    */
-  debt?: { min: number; grow: number };
+  debt?: { min: number; grow: number; /** 악몽 불어나는 비율 (마지막 그림자 12%) */ growMythic?: number };
   /** 칸 위 그림 (모자 뽑기의 모자 셋, 그림 49). 그림이 없으면 안 그림 (디버프 배지 · 칸 색은 그대로) */
   art?: string;
   /** 걸릴 때 그 사람 칸에 이펙트 (모자 · 춤바람 · 벌침, 그림 49 E) */
@@ -282,6 +284,11 @@ export type SkillEffect =
    * 화면은 예고 동안 휠 가장자리가 떨림. 즉시 스킬·지속 힐은 안 끊김
    */
   | { p: 'quake'; dmg: number; lock: number }
+  /**
+   * 크게 뛰기 (59 4-4 심연의 심장 · 시전 불가): 시전 · 정신 집중 중이면 끊기고 sec초 (악몽 secMythic) 동안 시전 시간이 있는 스킬을 못 씀 (즉시 스킬은 됨).
+   * dmg = 전원 피해 (없으면 0). 자동 힐러는 진동처럼 예고 동안 새 시전을 시작하지 않음
+   */
+  | { p: 'beat'; sec: number; secMythic?: number; dmg?: number }
   /** 숨 고르기 (35 4-4 탑주의 그림자): sec초 동안 보스가 기술을 쉼 (받는 피해는 그대로). clear 이름의 디버프가 모두에게서 사라짐 */
   | { p: 'rest'; sec: number; clear?: string }
   /** 그 이름의 디버프가 모두에게서 사라짐 (신전지기 유령: 천장 무너짐 뒤 먼지 범벅, 35 4-5) */
@@ -415,7 +422,9 @@ export type ZoneCells =
    * center = 가운데에 가까운 칸부터 + tank면 탱커 칸도 (천장 무너짐), side = 왼쪽 · 오른쪽 끝 중 무작위 한쪽에서 가까운 칸부터 (신기루 피난처, 54 4-3:
    * 신기루면 가짜 안전 칸은 반대쪽 끝). 화면은 안전 칸을 금빛으로. 던전은 안전 칸 ≥ 인원 (35 3-E)
    */
-  | { p: 'safe'; at: 'edge' | 'center' | 'side'; n: number; nMythic?: number; tank?: boolean };
+  | { p: 'safe'; at: 'edge' | 'center' | 'side'; n: number; nMythic?: number; tank?: boolean }
+  /** 퍼지는 박동 (59 4-4 심연의 심장): 판 가운데에서 바깥으로 of겹으로 나눈 band번째 겹 (0 = 가운데). fixed + hitDmg로 겹마다 0.5초 늦게 */
+  | { p: 'ring'; band: number; of: number };
 
 /** 기술이 도는 조건. 타이머는 조건과 상관없이 흐르고, 조건이 안 맞으면 그 차례는 건너뜀 */
 export interface SkillWhen {
@@ -457,6 +466,8 @@ export interface SkillDef {
   hitDebuff?: DebuffDef;
   /** 장판 예고가 맞는 순간 그 칸 가운데에 이펙트 한 번 (용의 숨결, 그림 52 E) */
   hitFx?: FxName;
+  /** 장판에 맞은 사람이 빚 (P-DEBT)이 있으면 남은 빚 × (1 + hitDebt) (59 4-4 빚진 고동) */
+  hitDebt?: number;
   /** 악몽 장판 피해 배율 (불협화음 0.7) */
   dpsMythic?: number;
   /** 피할 수 없는 장판 예고 (줄 피해 P-ROW, 05 3-A 산성 토사 · 5-B 눈보라 세 줄): 파티원이 안 비킴. 맞는 순간 그 칸 hitDmg → 미리 채우기 */
@@ -661,7 +672,8 @@ const TIDE_HOW = '판 아래 줄이 어둠물에 잠김: 잠긴 사람은 받는
 /** 빌린 생명 (P-DEBT, 59 5장) 공략 글 */
 const DEBT_HOW = '체력을 가득 채워 주고 채운 만큼 (최소 30%)이 빚. 빚은 초마다 10%씩 불어나고 10초 뒤 남은 빚만큼 피해 (고정). 그 사람에게 넘친 치유가 빚을 갚으니 가득 차 보여도 일찍 힐';
 /** 빌린 생명 디버프 (P-DEBT): 지울 수 없음. min = 최소 빚 (최대 체력 비율), grow = 초마다 불어나는 비율 */
-const loan = (name: string, { left = 10, min = 0.3, grow = 0.1 } = {}): DebuffDef => ({ name, type: '물리', left, lock: true, debt: { min, grow } });
+const loan = (name: string, { left = 10, min = 0.3, grow = 0.1, growMythic = undefined as number | undefined } = {}): DebuffDef =>
+  ({ name, type: '물리', left, lock: true, debt: { min, grow, ...(growMythic ? { growMythic } : {}) } });
 /**
  * 어둠물 밀물 기술 (P-TIDE): 3초 예고 뒤 판 아래 rows줄이 sec초 잠김. 악몽 secMythic · rowsMythic이 있으면 악몽판을 따로 (악몽판은 대기열 숨김).
  * when = 그 페이즈에서만 (끝나지 않는 왈츠). islands = 물 위 섬 칸 (큰 밀물, 59 4-3), cast = 예고 시간 (기본 3), how = 공략 글 덧붙임
@@ -708,6 +720,41 @@ const EEL_SCALE: DebuffDef[] = [
   { name: '물병', type: '질병', left: 10, dot: U.dps(0.02) },
   { name: '저주 비늘', type: '저주', left: 10, dot: U.dps(0.02) },
 ];
+/** 뿌리 수호자 얽힘 (59 4-4) 해제 짝: 엉킨 저주 (저주) · 수액 봉인 (마법, 받는 치유 −25%) */
+const ROOT_SAP: DebuffDef[] = [
+  { name: '엉킨 저주', type: '저주', left: 10, dot: U.dps(0.02) },
+  { name: '수액 봉인', type: '마법', left: 10, healCut: 0.25 },
+];
+/** 녹슬음 연체 독촉 (59 3-2): 독 · 질병 */
+const DUN: DebuffDef[] = [
+  { name: '연체 독촉', type: '독', left: 10, dot: U.dps(0.02) },
+  { name: '연체 독촉', type: '질병', left: 10, dot: U.dps(0.02) },
+];
+/** 마지막 그림자 (59 3-2) 그림자 덫: 두면 8초 뒤 그 사람 딜체 45%, 지우면 터지는 대신 이웃 칸 2명에게 덫 대출 (빚 최소 25%). 악몽은 빚이 초마다 12% */
+const SHADE_TRAP: DebuffDef = { name: '그림자 덫', type: '마법', left: 8, trap: true,
+  end: { p: 'trapLoan', dmg: U.dps(0.45), n: 2, loan: loan('덫 대출', { min: 0.25, growMythic: 0.12 }) } };
+/** 흩어지는 의지: 저주 · 질병, 받는 치유 −25% */
+const SHADE_WILL: DebuffDef[] = [
+  { name: '흩어지는 의지', type: '저주', left: 10, healCut: 0.25 },
+  { name: '흩어지는 의지', type: '질병', left: 10, healCut: 0.25 },
+];
+/**
+ * 퍼지는 박동 (59 4-4 심연의 심장): 판 가운데 겹부터 바깥 겹으로 0.5초 차이 3겹 (키 `${key}0~2`, 첫 겹만 대기열에 보임). 겹마다 그 겹 칸에 선 사람 dmg (못 피함).
+ * hitDebt = 빚진 사람이 맞으면 남은 빚 + 비율 (빚진 고동). first null이면 흐름 start로 셋 모두 0.5초씩 늦게 엶
+ */
+const pulses = (key: string, name: string, icon: string, first: number | null, period: number, dmg: number, o: { when?: SkillWhen; hitDebt?: number; how?: string } = {}): SkillDef[] =>
+  [0, 1, 2].map((i): SkillDef => ({
+    key: `${key}${i}`, name, icon, kind: 'zone', first: first == null ? null : first + i * 0.5, period, cast: 2, warn: 'zone', fixed: true, hitDmg: dmg, cells: { p: 'ring', band: i, of: 3 },
+    ...(o.hitDebt ? { hitDebt: o.hitDebt } : {}), when: o.when,
+    ...(i ? { hidden: true } : o.how ? { how: o.how } : {}),
+  }));
+/** 되살아난 심연의 군주 (59 4-4) 세력 기믹 다시 보기: 구간 k에서만, 악몽은 다음 구간까지 하나 더 남음 (악몽판 키 `…m`) */
+const echo = (k: number, d: SkillDef): SkillDef[] => [
+  { ...d, when: { phase: [k], mythic: false } },
+  { ...d, key: `${d.key}m`, when: { phase: [k, k + 1], mythic: true } },
+];
+/** 흐름 start를 보통판 · 악몽판 둘 다에 (꺼진 쪽은 안 씀) */
+const startBoth = (skill: string, at: number): FlowDo[] => [{ p: 'start', skill, in: at }, { p: 'start', skill: `${skill}m`, in: at }];
 /** 무작위 파티원 둘레 장판 n곳 (P-ZONE around를 n개, 하나만 대기열에 보임) */
 const spots = (key: string, name: string, icon: string, n: number, first: number, period: number, dmg: number, when?: SkillWhen): SkillDef[] =>
   Array.from({ length: n }, (_, i): SkillDef => ({
@@ -3356,6 +3403,157 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'cycle', n: 1, random: true, debuffs: [{ name: '연체 독촉', type: '독', left: 10, dot: 10 }, { name: '연체 독촉', type: '질병', left: 10, dot: 10 }] } },
     ],
     enrage: { name: '빚 독촉', period: 2, dmg: 200 },
+  },
+  // ---------- 묶음 G3 20인 ⑩ 심연의 심장 (59 4-4, Lv 97 · 악몽 100 · 심연의 정예 · 전 유형, 최종 레이드): 얽힘 · 되살아난 군주 · 심연의 심장 ----------
+  // 뿌리 수호자 얽힘 (뿌리다리): 빌린 생명 × 생명 사슬 (뿌리 매듭 2쌍: 체력 비율이 맞춰지고, 쌍마다 한 명에게 뿌리 대출 → 빚 피해도 짝과 나눠 받음) · 뿌리 휘두르기 (탱커 교대)
+  // · 다리 흔들기 (진동) · 엉킨 저주 · 수액 봉인 (저주 · 마법). 악몽은 뿌리 매듭 3쌍. 목표 4:30 · 광폭화 6:00
+  eongkim: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...SWAP_BUSTER('뿌리 휘두르기', '뿌리', '뿌리 자국', U.tank(0.6)), cast: 2.5, period: 16 },
+      { key: 'knot', name: '뿌리 매듭', icon: '매듭', kind: 'instant', first: 10, period: 24, cast: 0,
+        how: '탱커 아닌 2쌍 (악몽 3쌍)이 12초 묶여 체력 비율이 맞춰짐 (차이가 35%를 넘으면 둘 다 딜체 35%). 곧 쌍마다 한 명에게 뿌리 대출이 오니 둘 다 채워 빚을 갚기',
+        effect: { p: 'link', kind: 'balance', name: '뿌리 매듭', sec: 12, pick: 'others', pairs: 2, pairsMythic: 3, gap: 0.35, dmg: U.dps(0.35) } },
+      { key: 'rootloan', name: '뿌리 대출', icon: '대출', kind: 'instant', first: 11, period: 24, cast: 0, how: `${DEBT_HOW}. 뿌리 매듭 쌍마다 한 명 (빚 피해는 짝과 나눠 받음)`,
+        effect: { p: 'debuff', n: 2, nMythic: 3, pick: 'pairs', debuff: loan('뿌리 대출') } },
+      { key: 'shake', name: '다리 흔들기', icon: '흔들', kind: 'aoe', first: 18, period: 26, cast: 2, warn: 'aoe',
+        how: '진동: 맞는 순간 시전 중인 힐이 끊기고 1.5초 잠김. 예고가 뜨면 즉시 스킬 · 지속 힐로', effect: { p: 'quake', dmg: U.dps(0.1), lock: 1.5 } },
+      { key: 'curse', name: '엉킨 저주', icon: '저주', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '4명에게 저주 (엉킨 저주, 초당 딜체 2%) 또는 마법 (수액 봉인, 받는 치유 −25%) 무작위. 빚진 사람의 봉인부터 지우기',
+        effect: { p: 'cycle', n: 4, random: true, debuffs: ROOT_SAP } },
+    ],
+    enrage: { name: '뿌리 조이기', period: 3, dmg: 210 },
+  },
+  // 되살아난 심연의 군주 (심장문): 세력 기믹 다시 보기. 체력 20%마다 지나온 세력 수장 기믹을 하나씩 (B 금빛 바다 보물 욕심 → C 포자 축제 요정 고리 → D 붉은 보물 녹는 보물 더미
+  // → E 모래 시간 모래시계 × 신기루 → F 폭풍 띄워 올리기 × 연쇄 번개). 내내 심연의 칼 (탱커 교대) · 긴 연설 · 심연 해제. 악몽은 구간마다 앞 구간 기믹이 하나 남음. 목표 6:00 · 광폭화 8:00
+  revlord: {
+    phase: [1, '금빛 바다'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...SWAP_BUSTER('심연의 칼', '칼', '심연의 칼 자국', U.tank(0.6)), cast: 2.5, period: 15 },
+      { key: 'speech', name: '긴 연설', icon: '연설', kind: 'aoe', first: 14, period: 22, cast: 3, warn: 'aoe', how: '연설은 여전히 김. 기믹과 겹치면 광역 힐로 몰아 채우기', effect: { p: 'all', dmg: U.dps(0.18) } },
+      { key: 'touch', name: '심연 해제', icon: '손길', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
+      ...echo(1, { key: 'gold', name: '금빛 욕심', icon: '금화', kind: 'buster', first: 10, period: 16, cast: 3, warn: 'buster', how: `${GREED_HOW}. 2명`,
+        target: { p: 'greed', n: 2 }, effect: { p: 'greed', dmg: U.dps(0.3) } }),
+      ...echo(2, { key: 'ring', name: '포자 고리', icon: '고리', kind: 'instant', first: null, period: 22, cast: 0, how: `${RING_HOW}. 3곳`,
+        effect: { p: 'ring', n: 3, sec: 20, dps: U.dps(0.03), every: 2, max: 2 } }),
+      ...echo(3, { key: 'melt', name: '녹는 보물 더미', icon: '녹음', kind: 'instant', first: null, period: 24, cast: 0, how: `${MELT_HOW}. 6초 뒤 보물 더미가 무너지며 전원 딜체 25%`,
+        effect: { p: 'melt', sec: 10, rate: 0.25 } }),
+      ...echo(3, { key: 'pile', name: '무너지는 보물', icon: '보물', kind: 'aoe', first: null, period: 24, cast: 3, warn: 'aoe', hidden: true, effect: { p: 'all', dmg: U.dps(0.25) } }),
+      ...echo(4, { key: 'glass', name: '군주의 모래시계', icon: '모래', kind: 'aoe', first: null, period: 28, cast: 3, warn: 'aoe', how: `${GLASS_HOW}. 창 안에 신기루 칼날`,
+        effect: { p: 'glass', sec: 8, then: [{ skill: 'blade', in: 1 }, { skill: 'bladem', in: 1 }] } }),
+      ...echo(4, { key: 'blade', name: '신기루 칼날', icon: '칼날', kind: 'buster', first: null, period: 9999, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, mirage: { n: 1 },
+        how: MIRAGE_HOW, effect: { p: 'strike', dmg: U.dps(0.35) } }),
+      ...echo(5, { key: 'lift', name: '폭풍 띄우기', icon: '폭풍', kind: 'buster', first: null, period: 20, cast: 3, warn: 'buster', target: { p: 'random', n: 2 },
+        how: `${LIFT_HOW}. 내려오는 순간 그 자리에서 연쇄 번개 (튈 곳 이웃을 90% 위로)`, effect: { p: 'lift', sec: 5, fall: U.dps(0.2), chain: { dmg: U.dps(0.25), jumps: 3 } } }),
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.8 }, do: [{ p: 'phase', n: 2, name: '포자 축제' }, ...startBoth('ring', 3), { p: 'text', text: '포자 축제: 고리 안 사람은 꼭 필요할 때만' }] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.6 }, do: [{ p: 'phase', n: 3, name: '붉은 보물' }, ...startBoth('melt', 3), ...startBoth('pile', 6), { p: 'text', text: '붉은 보물: 보호막이 녹으니 무너지기 직전에' }] },
+      { p: 'when', if: { phase: 3, hpBelow: 0.4 }, do: [{ p: 'phase', n: 4, name: '모래 시간' }, ...startBoth('glass', 4), { p: 'text', text: '모래 시간: 뒤집히기 전에 모두 채우기' }] },
+      { p: 'when', if: { phase: 4, hpBelow: 0.2 }, do: [{ p: 'phase', n: 5, name: '폭풍' }, ...startBoth('lift', 3), { p: 'text', text: '폭풍: 띄우기 전에 지속 힐, 내려올 자리 이웃을 채우기' }] },
+    ],
+    enrage: { name: '끝나지 않는 연설', period: 3, dmg: 220 },
+  },
+  // 심연의 심장 (심실, 최종 3페이즈): 1 고동 (퍼지는 박동: 가운데 겹부터 바깥 겹으로 0.5초씩 3겹 · 어둠물 박자가 번갈아) → 2 빚진 고동 (생명 대출 2명 · 악몽 3명, 빚은 초마다 5%: 박동에 맞으면 빚 +20%
+  // · 크게 뛰기: 2초 시전 불가, 빚을 거둔 뒤에 오게 22초마다) → 3 마지막 박동 (박동 10초마다 · 10초마다 보스 피해 +2% · 해일 박자 2줄) → 10% 아래 번개 쐐기 (우르릉의 쐐기가 박혀 연쇄 번개 3번, 공대 딜 크게 올라 마무리).
+  // 악몽은 크게 뛰기 3초. 목표 6:30 · 광폭화 8:45
+  abyssheart: {
+    phase: [1, '1페이즈 · 고동'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...SWAP_BUSTER('뿌리 채찍', '채찍', '뿌리 채찍 자국', U.tank(0.65)), cast: 2.5, period: 16 },
+      ...pulses('pulse', '퍼지는 박동', '박동', 14, 14, U.dps(0.18), { when: { phase: [1, 2] }, hitDebt: 0.2,
+        how: '판 가운데 겹부터 바깥 겹으로 0.5초 차이로 3겹 (못 피함). 예고 2초 동안 가운데 사람부터 채우고, 2페이즈부터는 빚진 사람이 맞으면 남은 빚 +20%라 박동 전에 빚을 갚기' }),
+      ...tides('tide', '어둠물 박자', '박자', 21, 14, 1, 8, { when: { phase: [1, 2] }, how: '퍼지는 박동과 번갈아 옴' }),
+      { key: 'touch', name: '심연 해제', icon: '손길', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
+      { key: 'loan', name: '생명 대출', icon: '대출', kind: 'instant', first: null, period: 22, cast: 0, when: { phase: [2, 3, 4] }, how: `${DEBT_HOW}. 2명 (악몽 3명), 빚은 초마다 5%. 박동에 맞으면 남은 빚 +20%`,
+        effect: { p: 'debuff', n: 2, nMythic: 3, pick: 'others', debuff: loan('생명 대출', { grow: 0.05 }) } },
+      { key: 'beat', name: '크게 뛰기', icon: '뛰기', kind: 'aoe', first: null, period: 22, cast: 2.5, warn: 'aoe', when: { phase: [2, 3, 4] },
+        how: '심장이 크게 뛰면 2초 (악몽 3초) 동안 시전 시간이 있는 스킬을 못 쓰고, 시전 중이면 끊김. 예고가 뜨면 즉시 스킬 · 지속 힐 · 보호막으로', effect: { p: 'beat', sec: 2, secMythic: 3 } },
+      ...pulses('fast', '빨라지는 박동', '박동', null, 10, U.dps(0.18), { when: { phase: [3, 4] }, hitDebt: 0.2,
+        how: '퍼지는 박동이 10초마다. 칠수록 심장이 세짐 (10초마다 보스 피해 +2%). 마나를 3페이즈에 남겨 두기' }),
+      { key: 'pound', name: '빨라지는 고동', icon: '고동', kind: 'instant', hidden: true, first: null, period: 10, cast: 0, when: { phase: [3, 4] }, effect: { p: 'empower', boost: 0.02 } },
+      ...tides('surge', '해일 박자', '해일', null, 24, 2, 10, { when: { phase: [3, 4] }, how: '해일 박자는 아래 두 줄. 빚진 사람이 잠기면 빚이 두 배로 불어나니 해일 전에 갚기' }),
+      ...[0, 1, 2].map((i): SkillDef => ({
+        key: `wedge${i}`, name: '번개 쐐기', icon: '쐐기', kind: 'buster', first: null, period: 9999, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, when: { phase: [4] }, hitFx: 'wedge',
+        ...(i ? { hidden: true } : { how: `우르릉의 번개 쐐기가 박혀 심장이 세 번 크게 떪: 연쇄 번개 세 번 (딜체 20%, 6번까지 튐). ${CHAIN_HOW}` }),
+        effect: { p: 'chain', dmg: U.dps(0.2), jumps: 6 },
+      })),
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 빚진 고동' }, { p: 'start', skill: 'loan', in: 3 }, { p: 'start', skill: 'beat', in: 14 },
+        { p: 'text', text: '빚진 고동: 박동 전에 빚을 갚고, 크게 뛰기 전엔 즉시 스킬로' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.35 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 마지막 박동' }, { p: 'start', skill: 'fast0', in: 4 }, { p: 'start', skill: 'fast1', in: 4.5 }, { p: 'start', skill: 'fast2', in: 5 },
+        { p: 'start', skill: 'pound', in: 10 }, { p: 'start', skill: 'surge', in: 9 },
+        { p: 'text', text: '마지막 박동: 박동이 빨라지고 해일 박자가 두 줄' },
+      ] },
+      { p: 'when', if: { phase: 3, hpBelow: 0.1 }, do: [
+        { p: 'phase', n: 4, name: '번개 쐐기' }, { p: 'cheer', pct: 3, sec: 12 },
+        { p: 'start', skill: 'wedge0', in: 0.5 }, { p: 'start', skill: 'wedge1', in: 3 }, { p: 'start', skill: 'wedge2', in: 5.5 },
+        { p: 'text', text: '번개 쐐기: 우르릉의 쐐기가 심장에 박힘! 번개 이웃을 채우기' },
+      ] },
+    ],
+    enrage: { name: '멈추지 않는 심장', period: 3, dmg: 230 },
+  },
+  // ---------- 묶음 G3 탐험 ㉕ 새벽 호숫길 (59 1-1, Lv 100 · 심연의 정예): 심장 기믹 다시 보기 (작은 판, Lv 100 반복용) ----------
+  // 심장 조각 (20인 ⑩ 심장 빌림): 평타 · 퍼지는 박동 · 어둠물 박자 (아래 1줄) · 크게 뛰기 (2초 시전 불가). 수치는 원판의 70% 안팎
+  heartshard100: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      ...pulses('pulse', '퍼지는 박동', '박동', 10, 16, 70, { how: '판 가운데 칸부터 바깥 칸으로 0.5초 차이로 3겹 (못 피함). 예고 동안 가운데 사람부터 채우기' }),
+      ...tides('tide', '어둠물 박자', '박자', 18, 16, 1, 8),
+      { key: 'beat', name: '크게 뛰기', icon: '뛰기', kind: 'aoe', first: 24, period: 26, cast: 2.5, warn: 'aoe',
+        how: '2초 동안 시전 시간이 있는 스킬을 못 쓰고, 시전 중이면 끊김. 예고가 뜨면 즉시 스킬로', effect: { p: 'beat', sec: 2 } },
+    ],
+    enrage: { name: '다시 뛰는 조각', period: 2, dmg: 200 },
+  },
+  // ---------- 묶음 G3 던전 ⑳ 멈춘 심장 속 (59 3-2, Lv 100 · 심연의 정예 · 전 유형): 녹슬음 · 마지막 그림자 ----------
+  // 그림자 대여상 녹슬음 (①): 빌린 생명 × 어둠물 (잠긴 사람의 빚은 두 배로 불어남) · 저울추 · 연체 독촉 (독 · 질병). 악몽은 생명 대출 2명. 목표 3:00 · 광폭화 4:00
+  nokseul: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('저울추', '저울', 8, 14, U.tank(0.5)),
+      { key: 'loan', name: '생명 대출', icon: '대출', kind: 'instant', first: 8, period: 18, cast: 0, how: `${DEBT_HOW}. 악몽은 2명`,
+        effect: { p: 'debuff', n: 1, nMythic: 2, pick: 'others', debuff: loan('생명 대출') } },
+      ...tides('tide', '어둠물 장부', '장부', 12, 22, 1, 8, { how: '빚진 사람이 잠기면 빚이 두 배로 불어나니 먼저 갚기' }),
+      { key: 'dun', name: '연체 독촉', icon: '독촉', kind: 'instant', first: 5, period: 16, cast: 0, how: '2명에게 독 또는 질병 무작위, 초당 딜체 2%. 직업마다 못 지우는 쪽은 채워서',
+        effect: { p: 'cycle', n: 2, random: true, debuffs: DUN } },
+    ],
+    enrage: { name: '빚 독촉', period: 2, dmg: 240 },
+  },
+  // 마지막 그림자 (최종): 빌린 생명 × 어둠물 × 함정 디버프 (그림자 덫: 지우면 터지는 대신 이웃 칸 2명에게 빌린 생명, 두면 8초 뒤 그 사람 딜체 45%) · 그림자 칼날 · 흩어지는 의지 (저주 · 질병).
+  // 40% 아래 다시 뛰어라 (밀물 2줄 · 생명 대출 2명). 악몽은 빚이 초마다 12%. 목표 3:30 · 광폭화 5:00
+  lastshade: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('그림자 칼날', '칼날', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'trap', name: '그림자 덫', icon: '덫', kind: 'instant', first: 10, period: 18, cast: 0,
+        how: '함정: 두면 8초 뒤 그 사람 딜체 45%. 지우면 터지지 않고 이웃 칸 2명에게 덫 대출 (빚 최소 25%). 마나와 빚 갚을 여유가 있을 때만 지우고, 없으면 그 사람을 채워 버티기',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: SHADE_TRAP } },
+      ...tides('tide', '마지막 박동', '박동', 12, 20, 1, 8, { when: { phase: [1] } }),
+      ...tides('tide2', '다시 뛰어라', '뛰어', null, 20, 2, 8, { when: { phase: [2] } }),
+      { key: 'loan', name: '생명 대출', icon: '대출', kind: 'instant', first: 7, period: 20, cast: 0, when: { phase: [1] }, how: `${DEBT_HOW}. 악몽은 초마다 12%`,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: loan('생명 대출', { growMythic: 0.12 }) } },
+      { key: 'loan2', name: '생명 대출', icon: '대출', kind: 'instant', first: null, period: 20, cast: 0, when: { phase: [2] }, how: `${DEBT_HOW}. 2명, 악몽은 초마다 12%`,
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: loan('생명 대출', { growMythic: 0.12 }) } },
+      { key: 'will', name: '흩어지는 의지', icon: '의지', kind: 'instant', first: 5, period: 16, cast: 0,
+        how: '2명에게 저주 또는 질병 (받는 치유 −25%). 빚진 사람이 걸리면 갚기 어려우니 먼저 지우기', effect: { p: 'cycle', n: 2, random: true, debuffs: SHADE_WILL } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'tide2', in: 3 }, { p: 'start', skill: 'loan2', in: 5 },
+      { p: 'text', text: '다시 뛰어라: 어둠물이 아래 두 줄까지, 생명 대출 2명' },
+    ] }],
+    enrage: { name: '마지막 의지', period: 2, dmg: 240 },
   },
   warden: {
     phase: [1, ''],

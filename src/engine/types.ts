@@ -72,7 +72,7 @@ export interface Debuff {
    * 빌린 생명 (P-DEBT, 59 5장): 걸릴 때 체력을 가득 채우고 채운 만큼 (최소 최대 체력 × min)이 빚. 빚은 초마다 grow씩 불어나고 (어둠물에 잠기면 2배),
    * 그 사람에게 넘친 치유가 빚을 갚음. 시간이 다 되면 남은 빚만큼 피해 (고정). debtLeft = 남은 빚 (체력 단위)
    */
-  debt?: { min: number; grow: number };
+  debt?: { min: number; grow: number; growMythic?: number };
   debtLeft?: number;
   /** 감옥 (P-JAIL): 시간으로 안 끝나고 감옥이 깨지면 풀림 */
   jail?: boolean;
@@ -191,6 +191,8 @@ export interface Unit {
   guardian: number;
   shield: number;
   debuffs: Debuff[];
+  /** 퍼지는 박동에 맞음 (첫 햇살 조약돌: 다음 직접 힐 +15%, 59 6장). 그 장신구가 있을 때만 붙음 */
+  pulsed?: boolean;
   moving: Move | null;
   react: Reaction | null;
   retryAt: number;
@@ -319,8 +321,12 @@ export interface BossSkill {
   hitFx?: FxName;
   /** 예고에 안전 칸을 붙임 (피난처) */
   safe?: boolean;
-  /** 진동 (P-QUAKE): 예고 동안 휠 가장자리가 떨림 */
+  /** 진동 (P-QUAKE): 예고 동안 휠 가장자리가 떨림. 크게 뛰기 (59 4-4)도 같음 */
   quake?: boolean;
+  /** 퍼지는 박동 (59 4-4): 겹 칸 장판 (맞으면 칸마다 보랏빛 고리) */
+  pulse?: boolean;
+  /** 장판에 맞은 사람의 남은 빚 × (1 + hitDebt) */
+  hitDebt?: number;
   /** 반격 틈 (P-COUNTER): 끊기면 보스가 이만큼 기절 */
   stunOnCut?: number;
   /** 받침 (P-TOWER): 예고 칸이 금빛 발판이고 파티원이 들어감 */
@@ -444,7 +450,7 @@ export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crum
   /** 묶음 F2 우르릉 기우는 섬 (낮은 쪽으로 바람 · 구름이 쓸려 감, 판 전체) */
   | 'island-tilt'
   /** 묶음 G 새 부품 (59 5장, 그림 60 E): 어둠물이 차오름 · 빠짐 · 생명을 빌려줌 (보랏빛 손) · 빚을 갚음 (금빛 동전) · 남은 빚을 거둬 감 */
-  | 'tide-rise' | 'tide-ebb' | 'debt-lend' | 'debt-pay' | 'debt-collect' | 'tide-island' | 'tide-drag';
+  | 'tide-rise' | 'tide-ebb' | 'debt-lend' | 'debt-pay' | 'debt-collect' | 'tide-island' | 'tide-drag' | 'pulse-ring' | 'wedge';
 
 export type FightResult = 'win' | 'lose';
 

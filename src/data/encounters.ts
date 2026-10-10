@@ -24,7 +24,8 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'gulgul' | 'pingping' | 'bitgallae' | 'dungdung' | 'ssaengssaeng' | 'ureureung'
   | 'platform' | 'pongpong88' | 'upsidehall' | 'pongpong' | 'boltlab' | 'dwijuk' | 'kwangkwang' | 'syungsyung' | 'eodugi'
   | 'geumeum' | 'silta' | 'bamgeuneul' | 'jilpung' | 'ureobal' | 'chilheuk' | 'carriagetrash' | 'serena92' | 'ballhall' | 'serena' | 'balcony' | 'valen'
-  | 'janmul' | 'hwigami' | 'geomeun' | 'lanterntrash' | 'nokseul96';
+  | 'janmul' | 'hwigami' | 'geomeun' | 'lanterntrash' | 'nokseul96'
+  | 'eongkim' | 'revlord' | 'abyssheart' | 'dawntrash' | 'heartshard100' | 'cracktrash' | 'nokseul' | 'coolroot' | 'lastshade';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -42,7 +43,8 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'gulgul' | 'pingping' | 'bitgallae' | 'dungdung' | 'ssaengssaeng' | 'ureureung'
   | 'pongpong88' | 'pongpong' | 'dwijuk' | 'kwangkwang' | 'syungsyung' | 'eodugi'
   | 'geumeum' | 'silta' | 'bamgeuneul' | 'jilpung' | 'ureobal' | 'chilheuk' | 'serena92' | 'serena' | 'valen'
-  | 'janmul' | 'hwigami' | 'geomeun' | 'nokseul96';
+  | 'janmul' | 'hwigami' | 'geomeun' | 'nokseul96'
+  | 'eongkim' | 'revlord' | 'abyssheart' | 'heartshard100' | 'nokseul' | 'lastshade';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -867,6 +869,42 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     ] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: HEAL4 }),
   nokseul96: { key: 'nokseul96', lowLevel: true, name: '그림자 대여상 녹슬음', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3200, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'nokseul96', stage: 0.3, debuffs: ['독', '질병'] },
+  // ---------- 묶음 G3 (59 1장 · 3-2 · 4-4) ----------
+  // 20인 ⑩ 심연의 심장 (Lv 97 · 악몽 100 · 심연의 정예 · 전 유형, 최종 레이드)
+  eongkim: { key: 'eongkim', name: '뿌리 수호자 얽힘', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 50600, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'eongkim', big: true, stage: 0.13, debuffs: ['저주', '마법'] },
+  revlord: { key: 'revlord', name: '되살아난 심연의 군주', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 67300, enrage: 480, manaCoef: 1.8, diffs: ALL, script: 'revlord', big: true, stage: 0.13, debuffs: HEAL4 },
+  abyssheart: { key: 'abyssheart', name: '심연의 심장', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 78700, enrage: 525, manaCoef: 2.1, diffs: ALL, script: 'abyssheart', big: true, stage: 0.13, debuffs: HEAL4 },
+  // 탐험 ㉕ 「새벽 호숫길」 (59 1-1, Lv 100 · 심연의 정예): 무너지는 뿌리길 (심연의 정예 ① ×2 ④) → 심장 조각 (20인 ⑩ 심장 빌림, 심장 기믹 다시 보기)
+  dawntrash: trash('dawntrash', '무너지는 뿌리길', [
+    { name: '그림자 기사', hp: 170, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    {
+      name: '심연 거수', elite: true, hp: 350, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'root', name: '뿌리 내려찍기', icon: '뿌리', kind: 'aoe', to: 'all', dmg: 120, first: 8, period: 12, cast: 2.5, cut: true },
+      ],
+    },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  heartshard100: { key: 'heartshard100', lowLevel: true, name: '심장 조각', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3400, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'heartshard100', stage: 0.3 },
+  // 던전 ⑳ 「멈춘 심장 속」 (59 3-2, Lv 100 · 심연의 정예 · 전 유형): 갈라진 심실 → 녹슬음 → 식어 가는 뿌리 → 마지막 그림자
+  cracktrash: trash('cracktrash', '갈라진 심실', [
+    { name: '그림자 기사', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '그림자 석궁수', hp: 300, count: 1, attacks: [{ key: 'shot', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { debuffs: HEAL4 }),
+  nokseul: { key: 'nokseul', lowLevel: true, name: '그림자 대여상 녹슬음', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6000, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'nokseul', stage: 0.25, debuffs: ['독', '질병'] },
+  coolroot: trash('coolroot', '식어 가는 뿌리', [
+    { name: '그림자 기사', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '함정 술사', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'hex', name: '그림자 주문', icon: '주문', to: 'other', dmg: 0, first: 5, period: 10, cast: 0, effect: { p: 'cycle', n: 1, debuffs: trapHex(1) } },
+    ] },
+    {
+      name: '심연 거수', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'root', name: '뿌리 내려찍기', icon: '뿌리', kind: 'aoe', to: 'all', dmg: 180, first: 8, period: 12, cast: 2.5, cut: true },
+      ],
+    },
+  ], { debuffs: HEAL4 }),
+  lastshade: { key: 'lastshade', lowLevel: true, name: '마지막 그림자', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7600, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'lastshade', stage: 0.25, debuffs: ['마법', '저주', '질병'] },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

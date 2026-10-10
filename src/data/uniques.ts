@@ -109,6 +109,10 @@ export const UNIQUES: UniqueDef[] = [
   // 묶음 G2 (59 6장): 20인 ⑨ 선착장 · 물길
   { key: 'oarStaff', name: '잔물결 뱃사공 노', slot: 'weapon', kind: 'staff', place: 'coast1', placeName: '어둠물 해안 선착장', spec: 'insight' },
   { key: 'eelVest', name: '휘감이 비늘 조끼', slot: 'chest', kind: 'mail', place: 'coast2', placeName: '어둠물 해안 물길', spec: 'woundClean' },
+  // 묶음 G3 (59 6장): 20인 ⑩ 뿌리다리 · 심장문, 던전 ⑳ (뿌리다리 장화는 신발 칸이 없어 건틀릿)
+  { key: 'tangleGauntlet', name: '얽힘 뿌리 건틀릿', slot: 'hands', kind: 'gauntlet', place: 'heart1', placeName: '심연의 심장 뿌리다리', spec: 'fadingMiasma' },
+  { key: 'lordCrown', name: '군주의 그림자 왕관', slot: 'head', kind: 'crown', place: 'heart2', placeName: '심연의 심장 심장문', spec: 'drumbeat' },
+  { key: 'scaleRobe', name: '녹슬음의 낡은 저울 로브', slot: 'chest', kind: 'robe', place: 'heartcrack', placeName: '멈춘 심장 속', spec: 'layer' },
 ];
 
 export const uniqueOf = (key: string | undefined) => (key ? UNIQUES.find(u => u.key === key) : undefined);

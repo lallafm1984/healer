@@ -267,10 +267,11 @@ const ROW_NAME = { front: '앞줄', mid: '가운데 줄', back: '뒷줄' } as co
 /** 디버프 한 줄: 「부패」 질병 20초 · 최대 체력 −10% */
 function debuffText(d: DebuffDef, n: (x: number) => number): string {
   const fx = [d.dot ? `초당 ${n(d.dot)}` : '', d.maxCut ? `최대 체력 −${pctT(d.maxCut)}` : '', d.healCut ? `받는 치유 −${pctT(d.healCut)}` : '',
-    d.noDps ? '딜 0' : '', d.invert ? '받는 치유가 피해로' : '', d.trap ? '지우면 터짐' : '', d.lock ? '해제 안 됨' : '',
+    d.noDps ? '딜 0' : '', d.invert ? '받는 치유가 피해로' : '', d.trap && d.end?.p !== 'trapLoan' ? '지우면 터짐' : '', d.lock ? '해제 안 됨' : '',
     d.cureAt ? `체력 ${pctT(d.cureAt)} 채우면 떨어짐` : '', d.end?.p === 'hit' ? `시간 끝에 <b>${n(d.end.dmg)}</b>` : '',
     d.feed ? `빨아들인 만큼 × ${d.feed} 보스 회복` : '', d.end?.p === 'trapHit' ? `두면 시간 끝에 <b>${n(d.end.dmg)}</b>, 지우면 이웃 칸 <b>${n(d.end.burst)}</b>` : '',
     d.end?.p === 'blast' ? `끝나거나 지우면 이웃 칸 <b>${n(d.end.dmg)}</b>` : '',
+    d.end?.p === 'trapLoan' ? `두면 시간 끝에 <b>${n(d.end.dmg)}</b>, 지우면 터지지 않고 이웃 칸 ${d.end.n}명에게 빌린 생명 (최소 ${pctT(d.end.loan.debt?.min ?? 0.3)})` : '',
     d.end?.p === 'jump' && d.end.on === 'quake' ? `진동이 울리면 이웃 칸 아군에게 옮겨붙고 ×${d.end.mult}, 지우면 사라짐` : '',
     d.vuln ? `받는 피해 +${pctT(d.vuln)}${d.stackMax ? ' 중첩' : ''}` : '', d.swap ? `${d.swap}중첩이면 탱커 교대` : '',
     d.absorb ? `치유 흡수 <b>${n(d.absorb)}</b> (다 채우면 사라짐)` : '', d.end?.p === 'stackHit' ? `끝나면 중첩 × <b>${n(d.end.dmg)}</b>` : '',
@@ -295,6 +296,7 @@ const linkPairs = (e: Extract<SkillEffect, { p: 'link' }>, c: GuideCtx): number 
 /** 기술 효과 → [무엇, 어떻게] */
 function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: ProbeSkill | undefined): [string, string] {
   const { n } = c;
+  if (!e && d.fixed && d.cells?.p === 'ring') return [`💓 판 가운데부터 바깥으로 박동이 ${d.cells.of}겹 퍼짐: 겹마다 0.5초 차이로 그 겹에 선 사람 모두 <b>${n(d.hitDmg ?? 0)}</b>${d.hitDebt ? ` · 빌린 생명이 걸린 사람은 남은 빚 +${pctT(d.hitDebt)}` : ''} (피할 수 없음)`, `가운데 사람부터 차례로 맞으니 ${act('poh', RO)} · ${act('renew', EUL)} 미리 채우기`];
   if (!e && d.fixed) return [`${d.cells?.p === 'flow' ? `세로 줄을 ${d.cells.every}초마다 한 줄씩 훑으며 그 줄에 선 사람` : `${ROW_NAME[d.cells?.p === 'line' ? d.cells.at : 'mid']}에 선 사람`} 모두 <b>${n(d.hitDmg ?? 0)}</b>${d.hitDebuff ? ` + ${debuffText(d.hitDebuff, n)}` : ''} (피할 수 없음)`, `맞기 전에 그 줄을 ${act('poh', RO)} · ${act('renew', EUL)} 미리 채우기`];
   if (!e && d.cells?.p === 'tide') { const rows = c.mythic && d.cells.rowsMythic ? d.cells.rowsMythic : d.cells.rows; return [`🌊 판 아래 ${rows}줄이 ${secT(d.dur ?? 0)} 동안 어둠물에 잠김: 잠긴 칸에 선 사람은 <b>받는 치유 −${pctT(TIDE_CUT)}</b> (지속 힐 · 광역 힐도)${d.dps ? ` · 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}. 파티원은 위쪽 빈 칸으로 비키지만 빈 칸이 모자라면 남음${d.cells.islands ? `. 🏝 잠길 줄 가운데 ${(c.mythic && d.cells.islandsMythic) || d.cells.islands}칸은 물 위 섬 (안 잠김)` : ''}`, '예고 동안 아래 줄 사람을 채우고, 잠긴 동안은 다른 사람 · 보호막, 물이 빠지면 몰아 채우기']; }
   if (!e) return d.cells ? [`장판${d.hitDmg ? `: 맞는 순간 그 칸 <b>${n(d.hitDmg)}</b>` : ''}${d.dps ? `${d.hitDmg ? ',' : ':'} 안에 있으면 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}${d.dur ? ` (${secT(d.dur)})` : ''}`, '파티원이 알아서 피함. 늦게 피하는 사람을 채우기'] : ['', ''];
@@ -315,6 +317,7 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
     case 'order': return [`${c.mythic && e.nMythic ? e.nMythic : e.n}명 칸에 번호. ${secT(e.sec)} 안에 번호 순서대로 단일 힐 → 보스 ${secT(e.daze.sec)} 멍함${e.fake ? `. 🌫 하나는 신기루 숫자 (시작 ${secT(e.fake.at)} 뒤 걷힘, 그 전에 힐하면 틀림)` : ''}${c.mythic && e.wrongAll ? `. 틀리면 전원 <b>${n(e.wrongAll)}</b>` : ''}`,
       e.fake ? '①부터 시작하고, 같은 번호가 둘이면 걷힐 때까지 기다렸다가 진짜에게' : '번호 순서대로 한 번씩 힐 넣기'];
     case 'jail': return [`${c.mythic && e.nMythic ? e.nMythic : e.n}명을 「${e.name}」에 가둠 (딜 0 · 초당 ${n(e.dot)})`, '딜러가 감옥을 깰 때까지 갇힌 사람을 채우기'];
+    case 'beat': return [`💓 심장이 크게 뜀: 시전 · 집중 중인 힐이 끊기고 시전 스킬이 ${secT(c.mythic && e.secMythic ? e.secMythic : e.sec)} 잠김${e.dmg ? ` + 전원 <b>${n(e.dmg)}</b>` : ''}`, '예고가 뜨면 새 시전을 시작하지 않기. 잠긴 동안은 즉시 스킬 · 지속 힐 · 보호막'];
     case 'quake': return [`시전 중인 힐이 끊기고 그 스킬 ${secT(e.lock)} 잠김 + 전원 <b>${n(e.dmg)}</b>`, '예고가 뜨면 새 시전을 시작하지 않기 (즉시 스킬 · 지속 힐)'];
     case 'rest': return [`${secT(e.sec)} 동안 기술을 쉼`, '그동안 마나를 아끼며 채우기'];
     case 'clear': return [`「${e.name}」이 모두에게서 사라짐`, ''];
