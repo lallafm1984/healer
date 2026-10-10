@@ -7,7 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abOnTel } from './abilities';
 import { affChaos } from './affixes';
-import { addsTick, aggroTarget, backTargets, flowNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, applyDebuff, backTargets, flowNext, greedTargets, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import { specBuster, specCut, specTel } from './specials';
@@ -33,13 +33,14 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
     target: d.target === 'tank' ? g => { const tk = aggroTarget(g); return tk ? [tk.id] : []; }
       : d.target ? g => {
         const t = d.target as Exclude<SkillDef['target'], 'tank' | undefined>, n = g.mythic && t.nMythic ? t.nMythic : t.n;
-        return (t.p === 'random' ? randomTargets(g, n, u => u.role !== 'tank' && !u.me) : backTargets(g, n)).map(u => u.id);
+        return (t.p === 'random' ? randomTargets(g, n, u => u.role !== 'tank' && !u.me) : t.p === 'greed' ? greedTargets(g, n) : backTargets(g, n)).map(u => u.id);
       } : undefined,
     fire: e ? g => runEffect(g, s, e) : undefined,
     hit: e ? (g, tel) => runEffect(g, s, e, tel) : undefined,
     cellsFor: z ? g => zoneCells(g, s, z) : e?.p === 'tower' ? g => padCells(g, e.n) : undefined,
-    flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg, safe: z?.p === 'safe' || undefined, quake: e?.p === 'quake' || undefined,
+    flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg, hitDebuff: d.hitDebuff, safe: z?.p === 'safe' || undefined, quake: e?.p === 'quake' || undefined,
     stunOnCut: e?.p === 'counter' ? e.stun : undefined, pads: e?.p === 'tower' || undefined, fixed: d.fixed, soak: e?.p === 'share' || undefined,
+    greed: e?.p === 'greed' ? e.dmg : undefined,
   });
   f.bs[d.key] = s;
   return s;
@@ -49,7 +50,9 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
 function cellHit(f: Fight, tel: Telegraph, dmg: number): void {
   for (const u of living(f)) {
     const pos = u.moving ? u.moving.to : u.cell;
-    if (tel.cells.has(pos) && !u.debuffs.some(d => d.hide)) damage(f, u, dmg, true);
+    if (!tel.cells.has(pos) || u.debuffs.some(d => d.hide)) continue;
+    damage(f, u, dmg, true);
+    if (tel.skill.hitDebuff && u.alive) applyDebuff(f, u, tel.skill.hitDebuff); // 줄 불길 불씨 (51 3-1)
   }
 }
 

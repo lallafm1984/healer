@@ -61,7 +61,7 @@ export const KIND_ART: Record<string, string> = {
   medal: 'item-neck-medal', amulet: 'item-neck-amulet', starneck: 'item-neck-starneck',
   jade: 'item-ring-jade', twin: 'item-ring-twin', stone: 'item-ring-stone',
 };
-/** 이름 있는 장신구 그림 (36 4-3 · 44 G · 47 H · 49 H): 장신구 키 → item-trinket-<이름>. 장신구 이름이 바뀌어도 파일 이름은 그대로 */
+/** 이름 있는 장신구 그림 (36 4-3 · 44 G · 47 H · 49 H · 52 I): 장신구 키 → item-trinket-<이름>. 장신구 이름이 바뀌어도 파일 이름은 그대로 */
 export const TRINKET_ART: Record<string, string> = {
   rustyCog: 'cog', plagueCenser: 'censer', toadCharm: 'toad', ladyPortrait: 'portrait', frozenHourglass: 'hourglass', templeVial: 'vial',
   scrapWhistle: 'whistle', graveLantern: 'lantern', leechJar: 'leech', lilyCorsage: 'corsage', snowCrystal: 'snowflake', pilgrimCharm: 'pilgrim',
@@ -70,6 +70,7 @@ export const TRINKET_ART: Record<string, string> = {
   conchShell: 'conch', luckyCoin: 'luckycoin', lighthouseEmber: 'ember', sailorCompass: 'compass', goldButton: 'goldbutton',
   lampGlass: 'lampglass', chippedCup: 'chippedcup', dragonScale: 'dragonscale', turtleCharm: 'turtlecharm',
   festInvite: 'festinvite', rainbowSpore: 'rainbowspore', mossBrooch: 'mossbrooch', amanitaShard: 'amanitashard',
+  koboldWarrant: 'warrant', warmPebble: 'warmpebble', spaTowel: 'spatowel', coldAnvil: 'coldanvil', // 52 4장 I
 };
 /** 이름 있는 장신구 그림 주소 (없으면 '') */
 export const trinketArt = (named?: string): string => (named && TRINKET_ART[named] ? art(`item-trinket-${TRINKET_ART[named]}`) : '');

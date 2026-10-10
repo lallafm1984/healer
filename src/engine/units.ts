@@ -2,12 +2,12 @@ import { aimMult, rageMult } from '../data/classes';
 import { hexDist } from './board';
 import { BARK, DRUID_BIG } from '../data/heroConst';
 import { SKILLS } from '../data/skills';
-import { bark, cellOf, damage, DT, emit, heal, hpLineTick, onDebuffEnd } from './core';
+import { bark, cellOf, damage, DT, emit, hasAbsorb, heal, hpLineTick, onDebuffEnd } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
 import { calmHymn, renewEnd } from './talents';
 import { charmTick, pullTick } from './bossParts';
 import { abFear, dpsMods, hasMod } from './abilities';
-import { dotSpec, dpsSpec, hotDone, sv, under } from './specials';
+import { dotSpec, dpsSpec, hotDone, shieldGone, sv, under } from './specials';
 import { barkCut } from './heroes';
 import type { PersName } from '../data/personalities';
 import type { Cell, Debuff, Fight, Unit } from './types';
@@ -31,6 +31,20 @@ function stepAway(f: Fight, u: Unit, sec: number): boolean {
   return true;
 }
 
+/**
+ * 녹는 보호막 (P-MELT, 51 5장): 흡수 보호막은 초마다 남은 양의 rate씩 녹고, 보호막 · 외부 생존기 (수호 영혼 · 나무껍질 · 희생)는 한 번 더 줄어듦 (두 배 빠르게).
+ * 성역 피해 감소 (안에 있는 동안 틱마다 dt × 2로 다시 참)는 그대로
+ */
+function meltTick(f: Fight, u: Unit, dt: number): void {
+  const k = Math.pow(1 - f.melt!.rate, dt), had = hasAbsorb(f, u);
+  for (const m of u.mods) if (m.k === 'absorb') { m.v *= k; if (m.v < u.max * 0.01) m.until = 0; } // 거의 다 녹으면 사라짐
+  if (had && f.sp && !hasAbsorb(f, u)) shieldGone(f, u); // 따끈한 조약돌 (51 6장)
+  if (u.shield > 0) u.shield -= dt;
+  if (u.guardian > 0) u.guardian -= dt;
+  if (u.sacr > 0) u.sacr -= dt;
+  if (u.redu > dt * 2 + 1e-9) u.redu -= dt;
+}
+
 /** 파티원 한 틱: 지속 효과, 디버프, 장판 피해, 이동, 0.2초마다 판단 (04 4장) */
 export function unitTick(f: Fight, u: Unit): void {
   const dt = DT;
@@ -50,6 +64,7 @@ export function unitTick(f: Fight, u: Unit): void {
   u.echo = u.echo.filter(e => e.left > 0);
   if (u.guardian > 0) u.guardian -= dt;
   if (u.shield > 0) u.shield -= dt;
+  if (f.melt && f.t < f.melt.until) meltTick(f, u, dt); // 녹는 보호막 (P-MELT, 51 5장)
   if (u.bulwark > 0) u.bulwark -= dt;
   if (u.thanks > 0) u.thanks -= dt;
   if (u.cls) { if (u.flow > 0) u.flow -= dt; u.aim = u.moving ? (u.mods.length && hasMod(u, 'aim') ? u.aim : 0) : u.aim + dt; }

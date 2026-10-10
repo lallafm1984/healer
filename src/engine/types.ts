@@ -10,7 +10,7 @@ import type { HeroKey } from '../data/heroes';
 import type { SkillKey } from '../data/skills';
 import type { TalentKey } from '../data/talents';
 import type { AffixKey } from '../data/affixes';
-import type { AddDown, AddJob, DebuffEnd, SoulFail, SoulWin } from '../data/bosses';
+import type { AddDown, AddJob, DebuffDef, DebuffEnd, SoulFail, SoulWin } from '../data/bosses';
 import type { AffixState } from './affixes';
 import type { TraitKey } from '../data/traits';
 import type { BarkSit } from '../data/talk/sits';
@@ -83,6 +83,8 @@ export interface Debuff {
   /** 받는 피해 +비율 × 중첩 · 이 중첩이면 탱커 교대 (P-SWAP, data/bosses.ts DebuffDef) */
   vuln?: number;
   swap?: number;
+  /** 5인 대신 맞기: 탱커가 하나뿐일 때 swap 중첩이면 근접 딜러가 이 초만큼 보스를 받음 (달군 쇠, 51 3-2) */
+  sub?: number;
   /** 치유 흡수 (P-ABSORB): 데이터 값 · 남은 막 (보스 피해 배율을 곱한 양) */
   absorb?: number;
   absorbLeft?: number;
@@ -298,6 +300,8 @@ export interface BossSkill {
   flowEvery?: number;
   /** 장판 예고가 맞는 순간 한 번 피해 (피난처) */
   hitDmg?: number;
+  /** 장판이 맞는 순간 그 칸 사람에게 디버프 (data SkillDef.hitDebuff) */
+  hitDebuff?: DebuffDef;
   /** 예고에 안전 칸을 붙임 (피난처) */
   safe?: boolean;
   /** 진동 (P-QUAKE): 예고 동안 휠 가장자리가 떨림 */
@@ -310,6 +314,8 @@ export interface BossSkill {
   fixed?: boolean;
   /** 집결 분담 (P-SOAK): 예고 동안 가까운 파티원이 대상 옆으로 모임 */
   soak?: boolean;
+  /** 보물 욕심 (P-GREED): 맞을 피해 (예고 칸에 금화 · 숫자) */
+  greed?: number;
   /** 부품 상태 (장판 좌우 번갈아·성부 차례 등, engine/bossParts.ts) */
   st: Record<string, number | boolean>;
 }
@@ -387,7 +393,9 @@ export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crum
   /** 장비 특수능력 (36 J): 튀는 빛이 옆 칸으로 날아감 */
   | 'bounce'
   /** 묶음 C2 (48 4장, 그림 49): 모자가 씌워짐 · 춤바람 음표 · 꿀벌이 쏨 · 숲 할아버지가 깨어남 */
-  | 'hat-drop' | 'dance' | 'bee-sting' | 'tree-wake';
+  | 'hat-drop' | 'dance' | 'bee-sting' | 'tree-wake'
+  /** 묶음 D 새 부품 (51 5장, 그림 52): 보물 욕심 금화가 날아감 · 녹는 보호막 열기 · 알이 깨짐 */
+  | 'greed-coin' | 'melt-heat' | 'egg-hatch';
 
 export type FightResult = 'win' | 'lose';
 
@@ -648,6 +656,8 @@ export interface Fight {
   links: LinkState[];
   /** 넘치는 빛 그릇 (P-OVER): 넘친 치유를 모음 / 가득 / 끝 시각. 차면 전원 shield초 보호막 */
   vessel: { name: string; fill: number; need: number; until: number; shield: number } | null;
+  /** 녹는 보호막 (P-MELT, 51 5장): until까지 흡수 보호막이 초마다 rate씩 녹고 보호막 · 외부 생존기 시간이 두 배로 줄어듦 */
+  melt: { name: string; until: number; rate: number } | null;
   /** 영혼 축복: until까지 받는 치유 × heal (정화의 물) */
   bless: { heal: number; until: number } | null;
   /** 영혼 축복: until까지 보스가 주는 피해 × (1 − cut). dmgMult에 곱했다가 끝나면 되돌림 */
@@ -658,6 +668,8 @@ export interface Fight {
   sp: SpecRun | null;
   /** 보스를 잡은 탱커 id (탱커 교대 P-SWAP). null이면 줄 앞 탱커 */
   hold: number | null;
+  /** 5인 대신 맞기 (DebuffDef.sub): 이 사람이 until까지 보스를 받음 (탱커 표식이 풀리는 동안) */
+  sub: { id: number; until: number } | null;
   /** 깨진 시간 (05 5-E): until까지 내 시전 시간 × mult */
   slow: { until: number; mult: number } | null;
   /** 전투의 함성 (05 6-D): until까지 파티원 딜 × mult */

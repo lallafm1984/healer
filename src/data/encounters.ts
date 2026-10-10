@@ -14,7 +14,8 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'petalstair' | 'priestess' | 'keeperhall' | 'sleeper' | 'pagedrift' | 'librarian40' | 'rosetunnel' | 'priestess48'
   | 'gullsand' | 'crab36' | 'wreckage' | 'goldbeard44' | 'crab' | 'cook' | 'morel' | 'gunner' | 'octo' | 'seawitch' | 'mimic' | 'parrot' | 'goldbeard'
   | 'capway' | 'sippy52' | 'hotgravel' | 'kobold60' | 'sugarstair' | 'sippy' | 'cuptower' | 'hatter' | 'wetstair' | 'uga' | 'turtlebridge' | 'shellgod'
-  | 'pollenfield' | 'queen56' | 'songi' | 'pililli' | 'ponga' | 'mungge' | 'gaegul' | 'morak' | 'bungbung' | 'ppyong' | 'amanita';
+  | 'pollenfield' | 'queen56' | 'songi' | 'pililli' | 'ponga' | 'mungge' | 'gaegul' | 'morak' | 'bungbung' | 'ppyong' | 'amanita'
+  | 'warmash' | 'mungsil64' | 'steamroom' | 'mungsil' | 'lavabath' | 'bulttung' | 'coldhearth' | 'huggeun' | 'anvilbridge' | 'ttangttang' | 'kkojil' | 'deolkeong' | 'beonjjeok';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -22,7 +23,8 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'ratking' | 'carrier' | 'librarian' | 'scholar' | 'priestess' | 'sleeper' | 'librarian40' | 'priestess48'
   | 'crab36' | 'goldbeard44' | 'crab' | 'cook' | 'morel' | 'gunner' | 'octo' | 'seawitch' | 'mimic' | 'parrot' | 'goldbeard'
   | 'sippy52' | 'kobold60' | 'sippy' | 'hatter' | 'uga' | 'shellgod'
-  | 'queen56' | 'songi' | 'pililli' | 'ponga' | 'mungge' | 'gaegul' | 'morak' | 'bungbung' | 'ppyong' | 'amanita';
+  | 'queen56' | 'songi' | 'pililli' | 'ponga' | 'mungge' | 'gaegul' | 'morak' | 'bungbung' | 'ppyong' | 'amanita'
+  | 'mungsil64' | 'mungsil' | 'bulttung' | 'huggeun' | 'ttangttang' | 'kkojil' | 'deolkeong' | 'beonjjeok';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -103,6 +105,11 @@ const DUO = { tank: 1, melee: 0, ranged: 0 };
 const TRIO = { tank: 1, melee: 0, ranged: 1 };
 /** 10인 레이드 (탱 2 · 근접 3 · 원거리 4 + 나, 26 3장) */
 const RAID10 = { tank: 2, melee: 3, ranged: 4 };
+/** 코볼트 연기 주술사 (51 2장): 독 → 마법 차례로 (작게) */
+const KOBOLD_SMOKE: DebuffDef[] = [
+  { name: '독 연기', type: '독', left: 10, dot: 12 },
+  { name: '불티', type: '마법', left: 8, dot: 15 },
+];
 /**
  * 네 가지 청소약 (신전지기 유령, 35 4-5): 질병 → 독 → 저주 → 마법 차례로, 유형마다 대표 효과를 작게 (02 5-4).
  * 피해는 딜체 비율 (600 = bosses U.dps 기준, bosses가 이 파일을 읽으므로 여기 둠). x = 피해 배율 (탐험 0.7)
@@ -530,6 +537,56 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     ] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['독', '마법'] }),
   kobold60: { key: 'kobold60', lowLevel: true, name: '코볼트 보물 지킴이 꼬질', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2700, enrage: 220, manaCoef: 1.0, diffs: ALL, script: 'kobold60', stage: 0.3, debuffs: ['독'] },
+  // ---------- 묶음 D1 (51 1장 · 2장): 붉은 용 일가 졸개 ① 코볼트 곡괭이꾼 · ② 불씨 꼬마 용 (구간에서는 원거리, 자폭 안 함) · ③ 코볼트 연기 주술사 · ④ 용 비늘 경비병 ----------
+  // 탐험 ⑯ 「화산재 고갯길」 (51 1-1, Lv 64): 뜨끈한 재 언덕 → 온천지기 코볼트 뭉실 (녹는 보호막 쉬운 판, 던전 ⑬ 예습)
+  warmash: trash('warmash', '뜨끈한 재 언덕', [
+    { name: '코볼트 곡괭이꾼', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '코볼트 연기 주술사', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'smoke', name: '매캐한 연기', icon: '연기', to: 'other', dmg: 0, first: 5, period: 10, cast: 0, effect: { p: 'cycle', n: 1, debuffs: KOBOLD_SMOKE } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['독', '마법'] }),
+  mungsil64: { key: 'mungsil64', lowLevel: true, name: '온천지기 코볼트 뭉실', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2700, enrage: 220, manaCoef: 1.0, diffs: ALL, script: 'mungsil64', stage: 0.3, debuffs: ['독'] },
+  // 던전 ⑬ 「용암 온천장」 (51 1-2 · 3-1, Lv 65): 일반 김 서린 탈의실 → 온천지기 코볼트 뭉실 → 정예 용암 탕 → 사춘기 용 불퉁이
+  steamroom: trash('steamroom', '김 서린 탈의실', [
+    { name: '코볼트 곡괭이꾼', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '불씨 꼬마 용', hp: 300, count: 1, attacks: [{ key: 'spit', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  mungsil: { key: 'mungsil', lowLevel: true, name: '온천지기 코볼트 뭉실', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 5300, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'mungsil', stage: 0.25, debuffs: ['독'] },
+  lavabath: trash('lavabath', '용암 탕', [
+    { name: '코볼트 곡괭이꾼', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '코볼트 연기 주술사', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'smoke', name: '매캐한 연기', icon: '연기', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: KOBOLD_SMOKE } },
+    ] },
+    {
+      name: '용 비늘 경비병', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'tail', name: '꼬리 휩쓸기', icon: '꼬리', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['독', '마법'] }),
+  bulttung: { key: 'bulttung', lowLevel: true, name: '사춘기 용 불퉁이', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 7000, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'bulttung', stage: 0.25, debuffs: ['마법'] },
+  // 던전 ⑭ 「용암 대장간」 (51 1-2 · 3-2, Lv 70, 버려진 골렘 졸개 그대로 · 해제 없음): 일반 식은 화로 → 풀무 골렘 후끈이 → 정예 모루 다리 → 모루 골렘 땅땅
+  coldhearth: trash('coldhearth', '식은 화로', [
+    { ...CHAFF, count: 3 },
+    { name: '잔해 투척병', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  huggeun: { key: 'huggeun', lowLevel: true, name: '풀무 골렘 후끈이', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 5500, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'huggeun', stage: 0.25 },
+  anvilbridge: trash('anvilbridge', '모루 다리', [
+    { ...CHAFF, count: 3 },
+    {
+      name: '보일러 골렘', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'burst', name: '증기 분출', icon: '증기', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ]),
+  ttangttang: { key: 'ttangttang', lowLevel: true, name: '모루 골렘 땅땅', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 7600, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'ttangttang', stage: 0.25 },
+  // 10인 ⑧ 코볼트 보물 굴 (51 4-1, Lv 63 · 악몽 78): 체력은 자동 힐러 시뮬로 목표 시간에 쓰러지게 맞춤
+  kkojil: { key: 'kkojil', name: '코볼트 보물 지킴이 꼬질', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 18500, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'kkojil', stage: 0.18, debuffs: ['독'] },
+  deolkeong: { key: 'deolkeong', name: '코볼트 수레꾼 덜컹이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 23000, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'deolkeong', stage: 0.18, debuffs: ['마법'] },
+  beonjjeok: { key: 'beonjjeok', name: '코볼트 대장 번쩍이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 21500, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'beonjjeok', stage: 0.18 },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

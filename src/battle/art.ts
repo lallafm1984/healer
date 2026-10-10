@@ -153,6 +153,20 @@ const ENC_ART: Record<string, string[]> = {
   bungbung: ['boss-bee-captain'],
   ppyong: ['boss-fairy-magician'],
   amanita: ['boss-queen-amanita'],
+  // 묶음 D1 (그림 요청 52): 그림이 올 때까지 벡터 그림
+  mungsil64: ['boss-kobold-mungsil'],
+  mungsil: ['boss-kobold-mungsil'],
+  bulttung: ['boss-teen-dragon-bulttung'],
+  huggeun: ['boss-bellows-golem'],
+  ttangttang: ['boss-anvil-golem'],
+  kkojil: ['boss-kobold-kkojil'],
+  deolkeong: ['boss-kobold-cart'],
+  beonjjeok: ['boss-kobold-chief'],
+  warmash: ['mob-kobold-miner', 'mob-kobold-smoker'],
+  steamroom: ['mob-kobold-miner', 'mob-ember-whelp'],
+  lavabath: ['mob-dragon-scale-guard', 'mob-kobold-smoker', 'mob-kobold-miner'],
+  coldhearth: ['mob-scrap-minion', 'mob-debris-thrower', 'boss-rust-guardian'],
+  anvilbridge: ['mob-boiler-golem', 'boss-rust-guardian'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {
@@ -194,6 +208,7 @@ export function emblemSrc(hero: string, color: string): { src: string; painted: 
 const ADD_ART: Record<string, string> = {
   mend: 'mob-imp-mender', bomb: 'mob-bomb', pylon: 'mob-pylon', jail: 'mob-jail', march: 'mob-slime-march', fixate: 'mob-spark-fixate',
   smash: 'mob-brute', drain: 'mob-mana-leech', swarm: 'mob-imp-swarm', sting: 'mob-imp-swarm', aura: 'mob-totem', hit: 'mob-imp',
+  hatch: 'mob-egg', hoard: 'mob-gold-pile', // 묶음 D (그림 요청 52)
 };
 const firstArt = (...names: (string | undefined)[]): string => names.find(n => n && art(n)) ?? '';
 export function addArtName(m: Mob): string {
@@ -203,7 +218,7 @@ export function addArtName(m: Mob): string {
 /** 헤매는 영혼 칸 (37 4장 C-3·5 고유, E-21 공용) */
 export const soulArtName = (u: Unit): string => firstArt(u.soul?.art, 'mob-soul-wisp');
 /** 장판 칸 무늬 (37 4장 B-8~14): 세력 장판 → 공용. 예고는 B-9 */
-const ZONE_TAIL: Partial<Record<FactionKey, string>> = { plague: 'plague', swamp: 'swamp', noble: 'noble', mage: 'frost', hill: 'hill', pirate: 'tide', fairy: 'spore', dragon: 'lava' };
+const ZONE_TAIL: Partial<Record<FactionKey, string>> = { plague: 'plague', swamp: 'swamp', noble: 'noble', mage: 'frost', hill: 'hill', pirate: 'tide', fairy: 'spore', dragon: 'lava', abyss: 'abyss', golem: 'metal' }; // 심연 = 44 그림, 골렘 쇳물 = 52 F
 export const zoneArtName = (fac: FactionKey | null): string => firstArt(fac && ZONE_TAIL[fac] ? `fx-cell-zone-${ZONE_TAIL[fac]}` : undefined, 'fx-cell-zone');
 /** 무너진 바닥 칸 (37 4장 B-3~5): 늪 = 물, 마탑 = 얼음 기둥, 그 밖 = 돌 구덩이 */
 const HOLE_TAIL: Partial<Record<FactionKey, string>> = { swamp: 'swamp', mage: 'ice' };

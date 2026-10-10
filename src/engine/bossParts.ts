@@ -15,13 +15,14 @@ import { during, immune, specBroken, specPhase, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
- * 보스가 때릴 사람: 보스를 잡은 탱커 (탱커 교대 P-SWAP), 없으면 줄 앞 살아 있는 탱커. 탱커가 모두 쓰러지면 대신 막는 사람
+ * 보스가 때릴 사람: 5인 대신 맞는 사람 (DebuffDef.sub), 보스를 잡은 탱커 (탱커 교대 P-SWAP), 없으면 줄 앞 살아 있는 탱커. 탱커가 모두 쓰러지면 대신 막는 사람
  * (버팀목 특성 → 근접 → 원거리 → 나, 2026-10-07 Lim)
  */
 export function aggroTarget(f: Fight): Unit | null {
   const alive = f.party.filter(u => u.alive);
+  const sub = f.sub && f.t < f.sub.until ? alive.find(u => u.id === f.sub!.id) : undefined;
   const held = f.hold != null ? alive.find(u => u.id === f.hold && u.role === 'tank') : undefined;
-  return held || alive.find(u => u.role === 'tank') || alive.find(u => u.traits.includes('bulwark')) || alive.find(u => u.role === 'melee') || alive.find(u => u.role === 'ranged') || alive.find(u => u.me) || null;
+  return sub || held || alive.find(u => u.role === 'tank') || alive.find(u => u.traits.includes('bulwark')) || alive.find(u => u.role === 'melee') || alive.find(u => u.role === 'ranged') || alive.find(u => u.me) || null;
 }
 
 /** 보스 평타 ±30% (전사 「단단한 몸」은 ±15%, 17) */
@@ -68,6 +69,25 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         emit(f, { type: 'msg', text: `${s.name ?? '사냥'}: ${u.nick}` }); emit(f, { type: 'fx', name: 'slam', on: u.id }); damage(f, u, e.dmg, false, 'party');
       }
       return;
+    case 'greed':
+      // 보물 욕심 (P-GREED): 예고 때 고른 사람 (가장 건강한 사람)에게 금화
+      for (const id of tel?.units ?? []) {
+        const u = unitById(f, id);
+        if (!u || !u.alive) continue;
+        emit(f, { type: 'fx', name: 'greed-coin', on: u.id });
+        damage(f, u, e.dmg, false, 'party');
+        if (e.debuff && u.alive) applyDebuff(f, u, e.debuff);
+      }
+      if (tel?.units.length) emit(f, { type: 'msg', text: `${s.name ?? '보물 욕심'}: ${tel.units.map(id => unitById(f, id)?.nick).filter(Boolean).join(' · ')}` });
+      return;
+    case 'melt': {
+      // 녹는 보호막 (P-MELT, 51 5장): 열기 동안 흡수 보호막이 녹고 보호막 · 외부 생존기가 빨리 끝남 (units.ts unitTick)
+      const name = s.name ?? '열기';
+      f.melt = { name, until: Math.max(f.melt && f.t < f.melt.until ? f.melt.until : 0, f.t + e.sec), rate: e.rate };
+      emit(f, { type: 'fx', name: 'melt-heat', all: true });
+      emit(f, { type: 'msg', text: `${name}: ${e.sec}초 동안 보호막이 녹음` });
+      return;
+    }
     case 'all': {
       let dmg = e.phaseDmg?.[f.phase] ?? e.dmg;
       if (e.grow) { const n = (s.st.n as number | undefined) ?? 0; dmg += e.grow * n; s.st.n = n + 1; } // 커지는 광역 (수정 핵 과열)
@@ -261,14 +281,27 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
   }
 }
 
-/** 탱커 교대 (P-SWAP): 지금 보스를 맞는 탱커(from)에게서 다른 살아 있는 탱커가 보스를 가져감 */
-function swapTank(f: Fight, from: Unit): void {
+/**
+ * 탱커 교대 (P-SWAP): 지금 보스를 맞는 탱커(from)에게서 다른 살아 있는 탱커가 보스를 가져감.
+ * 탱커가 하나뿐이고 sub가 있으면 (5인 달군 쇠) 근접 딜러 (없으면 원거리)가 sub초 대신 맞고 탱커의 그 디버프가 풀림
+ */
+function swapTank(f: Fight, from: Unit, d?: Debuff, sub?: number): void {
   if (aggroTarget(f) !== from) return;
   const to = living(f).find(u => u.role === 'tank' && u !== from);
-  if (!to) return;
-  f.hold = to.id;
-  emit(f, { type: 'fx', name: 'swap', on: from.id, to: to.id });
-  emit(f, { type: 'msg', text: `탱커 교대: ${to.nick}이(가) 보스를 받음` });
+  if (to) {
+    f.hold = to.id;
+    emit(f, { type: 'fx', name: 'swap', on: from.id, to: to.id });
+    emit(f, { type: 'msg', text: `탱커 교대: ${to.nick}이(가) 보스를 받음` });
+    return;
+  }
+  if (!sub || !d || from.role !== 'tank') return;
+  const st = living(f).find(u => u.role === 'melee' && !u.me) ?? living(f).find(u => u.role === 'ranged' && !u.me);
+  if (!st) return;
+  f.sub = { id: st.id, until: f.t + sub };
+  from.debuffs = from.debuffs.filter(x => x !== d);
+  emit(f, { type: 'cure', id: from.id, name: d.name });
+  emit(f, { type: 'fx', name: 'swap', on: from.id, to: st.id });
+  emit(f, { type: 'msg', text: `${d.name} 가득: ${st.nick}이(가) ${sub}초 보스를 대신 받음` });
 }
 
 /** 모이러 안 가는 성격 (외톨이 · 겁쟁이) · 먼저 가는 성격 (사교형) */
@@ -640,7 +673,7 @@ export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
     const old = u.debuffs.find(x => x.name === def.name);
     if (old) {
       old.stack = Math.min(def.stackMax, (old.stack ?? 1) + 1); old.left = def.left;
-      if (def.swap && old.stack >= def.swap) swapTank(f, u); // 탱커 교대 (P-SWAP)
+      if (def.swap && old.stack >= def.swap) swapTank(f, u, old, def.sub); // 탱커 교대 (P-SWAP)
       return old;
     }
   }
@@ -666,6 +699,12 @@ function fromMid(f: Fight, c: Cell): number {
 export function backTargets(f: Fight, n: number): Unit[] {
   const c = randomTargets(f, 99, u => u.role !== 'tank' && !u.me && !u.pulled);
   return c.sort((a, b) => cellOf(f, b).row - cellOf(f, a).row).slice(0, n);
+}
+
+/** 보물 욕심 (P-GREED, 51 5장): 체력 비율이 가장 높은 탱커 · 나 아닌 n명. 1%p 안이면 같은 것으로 보고 무작위 (가득 찬 사람이 여럿이면 누가 맞을지 모름) */
+export function greedTargets(f: Fight, n: number): Unit[] {
+  const r = (u: Unit) => Math.round((u.hp / u.max) * 100);
+  return randomTargets(f, 99, u => u.role !== 'tank' && !u.me).sort((a, b) => r(b) - r(a)).slice(0, n);
 }
 
 /** 끌어당김 (P-PULL): 탱커(보스가 때릴 사람) 옆 빈 칸, 없으면 앞줄에 가까운 빈 칸으로 바로 끌어옴 */
@@ -697,11 +736,11 @@ export function pullTick(f: Fight, u: Unit): void {
  * 판에 나오는 적 하나 (35 3-I): 빈 칸 하나를 차지 (빈 칸이 1개뿐이면 안 나옴). 때리는 쫄은 부탱커가 옆 칸으로 와서 끌고,
  * 부탱커가 없으면 아직 쫄이 붙지 않은 딜러를 맡음. 오라가 있으면 이웃 칸에 끝나지 않는 장판. 자폭 쫄은 노린 사람에게서 from칸 떨어져 나옴
  */
-function spawnAdd(f: Fight, a: AddDef): void {
+function spawnAdd(f: Fight, a: AddDef, at?: Cell): void {
   const j = a.job;
   const prey = j?.p === 'fixate' ? fixateTarget(f) : undefined;
   if (j?.p === 'fixate' && !prey) return;
-  const c = prey && j?.p === 'fixate' ? cellNear(f, prey, j.from ?? 3) : addCell(f, a.at ?? (a.dmg > 0 ? 'front' : j?.p === 'march' ? 'back' : 'random'));
+  const c = at ?? (prey && j?.p === 'fixate' ? cellNear(f, prey, j.from ?? 3) : addCell(f, a.at ?? (a.dmg > 0 ? 'front' : j?.p === 'march' ? 'back' : 'random')));
   if (!c) return;
   const m: Mob = { id: f.nextId++, name: a.name, elite: false, hp: f.bossMax * a.hp, max: f.bossMax * a.hp, alive: true,
     add: { short: a.short, on: prey?.id ?? 0, dmg: a.dmg, every: a.every, next: f.t + a.every, down: a.down, cell: c.i, job: j, cleave: a.cleave, art: a.art } };
@@ -713,7 +752,7 @@ function spawnAdd(f: Fight, a: AddDef): void {
     f.zones.push({ id, cells: new Set(f.cells.filter(x => hexDist(x, c) === 1 && !x.block).map(x => x.i)), end: Infinity, dps: a.aura });
     m.add!.zone = id;
   }
-  if (j) m.add!.jobAt = f.t + (j.p === 'bomb' ? j.sec : 'every' in j ? j.every : Infinity);
+  if (j) m.add!.jobAt = f.t + (j.p === 'bomb' || j.p === 'hatch' || j.p === 'hoard' ? j.sec : 'every' in j ? j.every : Infinity);
   if (j?.p === 'march') m.add!.steps = c.row + 1; // 앞줄(0)까지 걸어와서 한 번 더 걸으면 흡수
   f.mobs.push(m);
   emit(f, { type: 'fx', name: 'spawn', cell: c.i });
@@ -775,8 +814,8 @@ function offTankTo(f: Fight, u: Unit, c: Cell): void {
   u.home = near.i; u.homeAt = null;
 }
 
-/** 일점사 순서 (P-FOCUS): 치유하는 쫄 → 폭탄 → 감옥 → 보호막 수정 → 마나 갈취 쫄 → 그 밖, 같으면 먼저 나온 것 */
-const FOCUS: Partial<Record<AddJob['p'], number>> = { mend: 0, bomb: 1, jail: 2, pylon: 3, drain: 4 };
+/** 일점사 순서 (P-FOCUS): 치유하는 쫄 → 폭탄 · 부화하는 알 → 감옥 → 보호막 수정 → 마나 갈취 쫄 → 그 밖, 같으면 먼저 나온 것 */
+const FOCUS: Partial<Record<AddJob['p'], number>> = { mend: 0, bomb: 1, hatch: 1, hoard: 1, jail: 2, pylon: 3, drain: 4 };
 const focusRank = (m: Mob): number => (m.add!.job && FOCUS[m.add!.job.p]) ?? 9;
 export function focusOrder(f: Fight): Mob[] {
   return f.mobs.filter(m => m.alive && m.add).sort((a, b) => focusRank(a) - focusRank(b) || a.id - b.id);
@@ -832,6 +871,22 @@ function addJob(f: Fight, m: Mob): void {
     emit(f, { type: 'fx', name: 'explode', cell: a.cell });
     emit(f, { type: 'msg', text: `${m.name}이(가) 터짐` });
     during(f, 'bomb', () => { for (const u of living(f)) damage(f, u, j.dmg, true); }); // 폭탄 해체반 (42 기믹 04)
+    if (j.debuff) for (const u of living(f)) applyDebuff(f, u, j.debuff);
+  } else if (j.p === 'hatch') {
+    // 부화하는 알 (51 5장): 시간 안에 못 깨면 알이 사라지고 그 칸에서 새끼가 나옴
+    a.jobAt = Infinity; a.done = true;
+    vanish(m);
+    const c = f.cells[a.cell!];
+    c.block = undefined;
+    emit(f, { type: 'fx', name: 'egg-hatch', cell: c.i });
+    emit(f, { type: 'msg', text: `${m.name}이(가) 깨져 ${j.add.name}이(가) 나옴` });
+    spawnAdd(f, j.add, c.unit ? undefined : c);
+  } else if (j.p === 'hoard') {
+    // 금화 더미 (51 4-1): 시간 안에 못 깨면 보스가 주워 감
+    a.jobAt = Infinity;
+    vanish(m);
+    emit(f, { type: 'fx', name: 'greed-coin', cell: a.cell });
+    empowerBoss(f, j.boost, `보스가 ${m.name}을(를) 주움`);
   } else if (j.p === 'sting') {
     // 쏘는 쫄 (꿀벌 떼): 탱커 아닌 무작위 1명에게 피해 + 쇠약
     a.jobAt! += j.every;
@@ -931,7 +986,7 @@ export function flowNext(f: Fight, tel: Telegraph): void {
   if (!cells.size) return;
   const next: Telegraph = { id: f.nextId++, skill: tel.skill, kind: 'zone', start: f.t, impact: f.t + every, units: [], cells, dps: tel.dps, dur: tel.dur, flow: { col: col + dir, dir, every } };
   f.tels.push(next);
-  scheduleReactions(f, next);
+  if (!tel.skill.fixed) scheduleReactions(f, next); // 못 피하는 줄 훑기 (보물 수레)는 안 비킴
 }
 
 /** 사슬 짝 고르기 (46 5장): 생명 사슬에 묶인 사람 먼저 (무작위), 모자라면 탱커 · 나 빼고 무작위 */

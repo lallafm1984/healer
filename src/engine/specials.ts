@@ -176,10 +176,13 @@ export function critBonus(f: Fight): number {
 /** 치명타 치유 배율 (기본 1.5 × 다정한 치명타) */
 export const critMult = (f: Fight): number => 1.5 * (1 + sv(f, 'kindCrit'));
 
-/** 내가 거는 보호막 (단단한 껍데기). 같은 출처는 더하고 최대 체력 절반까지 */
+/** 내가 거는 보호막 (단단한 껍데기 · 코볼트 임명장 · 온천 수건). 같은 출처는 더하고 최대 체력 절반까지 */
 function shield(f: Fight, u: Unit, amt: number, sec: number, src: string): void {
   if (!u.alive || amt <= 0) return;
-  amt *= 1 + sv(f, 'hardShell');
+  const sp = f.sp!.v;
+  amt *= 1 + sv(f, 'hardShell')
+    + (sp.koboldWarrant && u.hp >= u.max * 0.9 ? sp.koboldWarrant : 0) // 코볼트 임명장 (51 6장)
+    + (sp.spaTowel && f.tels.some(t => (t.kind === 'aoe' || t.kind === 'buster') && t.impact - f.t <= 2) ? sp.spaTowel : 0); // 온천 수건
   const old = u.mods.find(m => m.k === 'absorb' && m.src === src && m.until > f.t);
   const v = Math.min(u.max * 0.5, (old ? old.v : 0) + amt);
   addMod(u, { k: 'absorb', v, until: f.t + sec, src });
@@ -447,7 +450,17 @@ export function dmgSpec(f: Fight, u: Unit): number {
   if (s.trap) m *= 1 - (v.trapSense ?? 0);
   if (s.bomb) m *= 1 - (v.bombSquad ?? 0);
   if (u.me && v.turtleCharm && f.mana < 30) m *= 1 - v.turtleCharm; // 거북 등딱지 부적 (48 6장)
+  if (v.coldAnvil && f.stagger) m *= 1 - v.coldAnvil; // 식은 모루 조각 (51 6장)
   return m;
+}
+
+/** 내가 건 보호막 (흡수)이 깨지거나 녹아 없어지면 (따끈한 조약돌, 51 6장): 그 아군 지능 v 회복, 재사용 6초 */
+export function shieldGone(f: Fight, u: Unit): void {
+  const s = f.sp!, v = s.v.warmPebble;
+  if (!v || !u.alive || (s.ready.warmPebble ?? 0) > f.t + 1e-9) return;
+  s.ready.warmPebble = f.t + 6;
+  heal(f, u, intAmt(f, v), true, true);
+  shout(f, 'warmPebble', u);
 }
 
 /** 함정이 터지는 동안 · 폭탄이 터지는 동안 fn (그 피해에만 배율) */

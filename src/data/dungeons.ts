@@ -3,7 +3,8 @@ import type { EncounterKey } from './encounters';
 /** 5인 던전 (11 4장, 23). 구간을 차례로 이어서 하고, 구간 사이에 휴식 (09 S07) */
 export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt' | 'lily' | 'swamp' | 'snowpass' | 'manor' | 'hillpath' | 'frost' | 'pilgrim' | 'temple' | 'abyssedge' | 'watchtower'
   | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary' | 'shellbeach' | 'wreck'
-  | 'lampway' | 'emberfoot' | 'teaparty' | 'mossroot' | 'rainbow';
+  | 'lampway' | 'emberfoot' | 'teaparty' | 'mossroot' | 'rainbow'
+  | 'ashpass' | 'hotspring' | 'forge';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -41,6 +42,10 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   // 묶음 C (48 1장): 탐험 ⑬ ⑮ · 던전 ⑪ ⑫
   lampway: { key: 'lampway', name: '꼬마등 오솔길', segments: ['capway', 'sippy52'] },
   rainbow: { key: 'rainbow', name: '무지개 버섯밭', segments: ['pollenfield', 'queen56'] },
+  // 묶음 D (51 1장): 탐험 ⑯ · 던전 ⑬ ⑭
+  ashpass: { key: 'ashpass', name: '화산재 고갯길', segments: ['warmash', 'mungsil64'] },
+  hotspring: { key: 'hotspring', name: '용암 온천장', segments: ['steamroom', 'mungsil', 'lavabath', 'bulttung'] },
+  forge: { key: 'forge', name: '용암 대장간', segments: ['coldhearth', 'huggeun', 'anvilbridge', 'ttangttang'] },
   emberfoot: { key: 'emberfoot', name: '불꽃 봉우리 기슭', segments: ['hotgravel', 'kobold60'] },
   teaparty: { key: 'teaparty', name: '끝없는 다과회', segments: ['sugarstair', 'sippy', 'cuptower', 'hatter'] },
   mossroot: { key: 'mossroot', name: '이끼 뿌리 사원', segments: ['wetstair', 'uga', 'turtlebridge', 'shellgod'] },

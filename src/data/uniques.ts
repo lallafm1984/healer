@@ -23,7 +23,7 @@ export interface UniqueDef {
 export const UNIQUE_MULT = 1.5;
 
 export const UNIQUES: UniqueDef[] = [
-  // 던전 ①~⑫
+  // 던전 ①~⑭
   { key: 'boilerGauntlet', name: '증기 보일러 건틀릿', slot: 'hands', kind: 'gauntlet', place: 'rustfort', placeName: '녹슨 요새', spec: 'shieldFriend' },
   { key: 'malchorRobe', name: '말코어의 향 로브', slot: 'chest', kind: 'robe', place: 'crypt', placeName: '역병 지하묘지', spec: 'coldMedicine' },
   { key: 'seresBracer', name: '세레스의 깃 팔찌', slot: 'hands', kind: 'bracer', place: 'swamp', placeName: '독안개 늪', spec: 'antidote' },
@@ -36,6 +36,9 @@ export const UNIQUES: UniqueDef[] = [
   { key: 'lilyRelic', name: '여사제의 백합 성물', slot: 'weapon', kind: 'relic', place: 'ossuary', placeName: '백합 납골당', spec: 'edgeTouch' },
   { key: 'hatterPlume', name: '해롱의 깃털 모자', slot: 'head', kind: 'plume', place: 'teaparty', placeName: '끝없는 다과회', spec: 'drumbeat' },
   { key: 'shellMail', name: '등딱지 무늬 사슬 조끼', slot: 'chest', kind: 'mail', place: 'mossroot', placeName: '이끼 뿌리 사원', spec: 'braveSong' },
+  // 던전 ⑬ ⑭ (51 6장)
+  { key: 'sulkyPlume', name: '불퉁이의 삐친 깃털 모자', slot: 'head', kind: 'plume', place: 'hotspring', placeName: '용암 온천장', spec: 'hardShell' },
+  { key: 'anvilHelm', name: '땅땅의 모루 투구', slot: 'head', kind: 'helm', place: 'forge', placeName: '용암 대장간', spec: 'cutBeat' },
   // 10인: 심연의 탑 2~4층
   { key: 'hydraCoat', name: '히드라 비늘 외투', slot: 'chest', kind: 'coat', place: 'abyss2', placeName: '심연의 탑 2층', spec: 'holdTogether' },
   { key: 'twinWraps', name: '쌍둥이 여군주의 손싸개', slot: 'hands', kind: 'wraps', place: 'abyss3', placeName: '심연의 탑 3층', spec: 'quickAid' },
@@ -54,6 +57,9 @@ export const UNIQUES: UniqueDef[] = [
   { key: 'lilypadHabit', name: '개굴 연잎 수도복', slot: 'chest', kind: 'habit', place: 'cave2', placeName: '포자 동굴 정원 연못', spec: 'sturdyBack' },
   { key: 'hiveGloves', name: '붕붕 벌집 장갑', slot: 'hands', kind: 'gloves', place: 'palace1', placeName: '버섯 여왕의 궁전 정원', spec: 'woundClean' },
   { key: 'magicCrown', name: '뿅뿅 마술 관', slot: 'head', kind: 'crown', place: 'palace2', placeName: '버섯 여왕의 궁전 연회장', spec: 'numberSense' },
+  // 묶음 D1 (51 6장): 폭탄 해체반은 몸통 · 끊기 박자는 머리에만 나와서 꼬질 · 땅땅 것은 51의 메이스 · 건틀릿 대신 외투 · 투구
+  { key: 'kkojilCoat', name: '꼬질의 보물 지킴이 외투', slot: 'chest', kind: 'coat', place: 'den1', placeName: '코볼트 보물 굴 갱도', spec: 'bombSquad' },
+  { key: 'cartGloves', name: '덜컹이 바퀴 장갑', slot: 'hands', kind: 'gloves', place: 'den2', placeName: '코볼트 보물 굴 수레길', spec: 'hardShell' },
   // 20인: 가라앉은 대성당
   { key: 'sunkenVestment', name: '가라앉은 대성당 법복', slot: 'chest', kind: 'vestment', place: 'cathedral1', placeName: '가라앉은 대성당 1구역', spec: 'encore' },
 ];

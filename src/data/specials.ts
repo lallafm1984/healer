@@ -272,6 +272,11 @@ export const NAMED: NamedDef[] = [
   { key: 'rainbowSpore', name: '무지개 포자', slot: 'neck', place: 'rainbow', placeName: '무지개 버섯밭', text: '사람 칸 (헤매는 영혼 · 등대지기 · 숲 할아버지)에게 하는 힐 +{v}', val: 0.25, unit: 'pct', min: '고급' },
   { key: 'mossBrooch', name: '이끼 브로치', slot: 'neck', place: 'cave3', placeName: '포자 동굴 정원 뿌리방', text: '무력화 게이지가 모이는 동안 광역 힐 +{v}', val: 0.12, unit: 'pct' },
   { key: 'amanitaShard', name: '광대버섯 왕관 조각', slot: 'neck', place: 'palace3', placeName: '버섯 여왕의 궁전 왕좌', text: '해제하면 {v} 확률로 이웃 칸 아군 1명의 같은 유형 디버프도 함께 지움', val: 0.3, unit: 'pct' },
+  // 묶음 D1 (51 6장, 이름 임시 · 그림 52): 10인 ⑧ 마지막 칸 · 탐험 ⑯ · 던전 ⑬ ⑭
+  { key: 'koboldWarrant', name: '코볼트 임명장', slot: 'neck', place: 'den3', placeName: '코볼트 보물 굴 보물방', text: '체력 90% 위인 아군에게 거는 보호막 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'warmPebble', name: '따끈한 조약돌', slot: 'ring', place: 'ashpass', placeName: '화산재 고갯길', text: '내가 건 보호막이 깨지거나 녹아 없어지면 그 아군에게 지능 {v} 회복 (재사용 6초)', val: 0.08, unit: 'pct', cd: 6, min: '고급' },
+  { key: 'spaTowel', name: '온천 수건', slot: 'neck', place: 'hotspring', placeName: '용암 온천장', text: '큰 피해 예고가 2초 안에 맞을 때 거는 보호막 +{v}', val: 0.25, unit: 'pct' },
+  { key: 'coldAnvil', name: '식은 모루 조각', slot: 'neck', place: 'forge', placeName: '용암 대장간', text: '무력화 게이지가 모이는 동안 파티원이 받는 피해 −{v}', val: 0.1, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -366,6 +371,14 @@ export const FEATURED: Record<string, readonly string[]> = {
   palace1: ['woundClean', 'evenly', 'coldMedicine'],
   palace2: ['numberSense', 'spellWard', 'quickAid'],
   palace3: ['sunrise', 'bigBowl', 'coldMedicine'],
+  // 묶음 D1 (51 6장): 10인 ⑧ 갱도 (폭탄 · 독 · 탱커 교대) / 수레길 (보물 욕심 · 줄) / 보물방 (욕심 × 사냥 · 금화 더미),
+  // 화산재 고갯길 (녹는 보호막 쉬움 · 독) / 용암 온천장 (녹는 보호막 · 욕심 · 불씨) / 용암 대장간 (무력화 · 진동 · 해제 없음)
+  den1: ['bombSquad', 'antidote', 'shieldFriend'],
+  den2: ['hardShell', 'evenly', 'quickAid'],
+  den3: ['evenly', 'kindCrit', 'starVeil'],
+  ashpass: ['antidote', 'layer', 'firstWord'],
+  hotspring: ['hardShell', 'antidote', 'holdingHand'],
+  forge: ['cutBeat', 'holdTogether', 'hardShell'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

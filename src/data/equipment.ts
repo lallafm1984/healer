@@ -237,8 +237,13 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   fest1: ['wreath'], fest2: ['pendant'], fest3: ['robe'],
   cave1: ['gloves'], cave2: ['amulet'], cave3: ['scepter'],
   palace1: ['mail'], palace2: ['crown'], palace3: ['wand'],
-  // 붉은 용 일가: 인내
+  // 붉은 용 일가: 인내 (기슭) · 치명타 · 가속 (51 6장)
   emberfoot: ['gauntlet', 'plume'],
+  ashpass: ['plume', 'medal'],
+  hotspring: ['coat', 'wraps', 'starneck'],
+  den1: ['coat'], den2: ['twin'], den3: ['scepter'],
+  // 용암 대장간 (51 6장): 버려진 골렘 인내
+  forge: ['mail', 'helm', 'stone'],
 };
 export const KIND_WEIGHT = 3;
 

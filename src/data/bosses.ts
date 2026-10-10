@@ -121,6 +121,8 @@ export interface DebuffDef {
   cap?: number;
   /** 보스를 맞는 탱커에게 이 중첩이 쌓이면 다른 탱커가 보스를 가져감 (탱커 교대 P-SWAP, 05 4-A · 6-A) */
   swap?: number;
+  /** 탱커가 하나뿐인 5인: swap 중첩이면 근접 딜러 (없으면 원거리)가 이 초만큼 대신 맞고 탱커의 이 디버프가 풀림 (달군 쇠, 51 3-2) */
+  sub?: number;
   /**
    * 치유 흡수 (P-ABSORB, 05 5-C · 6-C): 이 사람에게 들어오는 치유가 먼저 막을 깎음 (그동안 체력은 안 참). 막 = absorb × 보스 피해 배율.
    * 막을 다 깎으면 바로 사라짐 (end 안 함), 남은 채로 시간이 다 되면 end
@@ -169,12 +171,12 @@ export interface AddDef {
   cleave?: boolean;
 }
 
-/** 판 위 적이 하는 일. 딜러는 mend → bomb → jail → pylon → 그 밖 순서로, 같으면 먼저 나온 것부터 잡는다 */
+/** 판 위 적이 하는 일. 딜러는 mend → bomb · hatch · hoard → jail → pylon → 그 밖 순서로, 같으면 먼저 나온 것부터 잡는다 */
 export type AddJob =
   /** 치유하는 쫄 (P-MENDER): every초마다 보스 체력 pct 회복 */
   | { p: 'mend'; every: number; pct: number }
-  /** 폭탄 (P-BOMB): sec초 안에 못 깨면 터져서 살아 있는 모두에게 dmg (마법) */
-  | { p: 'bomb'; sec: number; dmg: number }
+  /** 폭탄 (P-BOMB): sec초 안에 못 깨면 터져서 살아 있는 모두에게 dmg (마법). debuff = 터질 때 맞은 모두에게 (악몽 꼬질 독 연기, 51 4-1) */
+  | { p: 'bomb'; sec: number; dmg: number; debuff?: DebuffDef }
   /** 보호막 수정 (P-PYLON): 서 있는 동안 보스가 받는 피해 −cut */
   | { p: 'pylon'; cut: number }
   /** 마나 갈취 쫄 (P-DRAIN): 살아 있는 동안 내 마나 초당 −pct (%p) */
@@ -194,7 +196,11 @@ export type AddJob =
    */
   | { p: 'fixate'; every: number; dmg: number; splash: number; from?: number }
   /** 쏘는 쫄 (꿀벌 떼, 48 4-3): every초마다 탱커 아닌 무작위 1명 (나 포함)에게 dmg (물리, 원거리 기준) + debuff (벌침 쇠약). 맡은 사람을 때리지 않음 */
-  | { p: 'sting'; every: number; dmg: number; debuff: DebuffDef };
+  | { p: 'sting'; every: number; dmg: number; debuff: DebuffDef }
+  /** 부화하는 알 (51 5장 작은 조합 = 판 위 적 + 시간 제한): sec초 안에 딜러가 못 깨면 알이 깨지고 그 칸에서 add가 나옴 */
+  | { p: 'hatch'; sec: number; add: AddDef }
+  /** 금화 더미 (51 4-1 번쩍이): sec초 안에 딜러가 못 깨면 보스가 주워 보스가 주는 피해 +boost (전투 끝까지 겹침) */
+  | { p: 'hoard'; sec: number; boost: number };
 
 /** 기술이 맞을 때 하는 일 */
 export type SkillEffect =
@@ -230,6 +236,16 @@ export type SkillEffect =
   | { p: 'pull'; sec: number; dmg: number; pad?: { dmg: number; empty: number }; link?: { name: string; vulnMythic?: number } }
   /** 사냥 (P-HUNT, 35 4-2 사냥 창): 맞는 순간 체력 비율이 가장 낮은 탱커 아닌 1명 (악몽 nMythic명)에게 dmg (물리, 원거리 기준) */
   | { p: 'hunt'; dmg: number; nMythic?: number }
+  /**
+   * 보물 욕심 (P-GREED, 51 5장): 사냥의 반대. 예고 때 고른 사람 (target greed = 그 순간 체력 비율이 가장 높은 탱커 · 나 아닌 n명, 같으면 무작위)에게
+   * dmg (물리, 원거리 기준). debuff = 맞은 사람에게 (무거운 주머니 · 그을음). 모두를 가득 채우면 누가 맞을지 모르니 가운데에 두기
+   */
+  | { p: 'greed'; dmg: number; debuff?: DebuffDef }
+  /**
+   * 녹는 보호막 (P-MELT, 51 5장): sec초 동안 열기. 흡수 보호막은 초마다 남은 양의 rate씩 녹고, 보호막 · 외부 생존기 (수호 영혼 · 나무껍질 · 희생)는
+   * 남은 시간이 두 배로 빨리 줄어듦 → 미리 걸지 말고 큰 피해 직전에. 열기 끝에 오는 큰 피해는 따로 적은 광역 기술
+   */
+  | { p: 'melt'; sec: number; rate: number }
   /** 쫄 n마리 (P-ADD). 악몽은 nMythic */
   | { p: 'adds'; n: number; nMythic?: number; add: AddDef }
   /** 무너지는 바닥 (P-HOLE): 가장자리 빈 칸 n개가 끝까지 못 서는 칸이 됨 (전투 전체 max개까지). 빈 칸은 늘 1개 이상 남김 */
@@ -340,7 +356,8 @@ export type ZoneCells =
   | { p: 'bodyCols'; bodies: number; per: number; nMythic: number }
   /**
    * 흐르는 장판 (향로 연기, 35 4-1): 한쪽 끝 열에서 시작해 every초마다 한 열씩 옆으로. 다음 열은 every초 전에 예고되어 파티원이 미리 비킨다.
-   * 열마다 장판은 skill.dur초 남음. from: left (기본) / right / alt = 쓸 때마다 번갈아
+   * 열마다 장판은 skill.dur초 남음. from: left (기본) / right / alt = 쓸 때마다 번갈아.
+   * fixed + hitDmg면 못 피하는 세로 줄 훑기 (보물 수레, 51 4-1): 열이 닿을 때 그 열에 선 사람 hitDmg
    */
   | { p: 'flow'; every: number; from?: 'left' | 'right' | 'alt' }
   /**
@@ -385,6 +402,8 @@ export interface SkillDef {
   dur?: number;
   /** 장판 예고가 맞는 순간 그 칸에 선 사람 한 번 피해 (피난처 배치기·천장 무너짐) */
   hitDmg?: number;
+  /** 장판 예고가 맞는 순간 그 칸에 선 사람에게 디버프 (줄 불길 불씨, 51 3-1) */
+  hitDebuff?: DebuffDef;
   /** 악몽 장판 피해 배율 (불협화음 0.7) */
   dpsMythic?: number;
   /** 피할 수 없는 장판 예고 (줄 피해 P-ROW, 05 3-A 산성 토사 · 5-B 눈보라 세 줄): 파티원이 안 비킴. 맞는 순간 그 칸 hitDmg → 미리 채우기 */
@@ -392,9 +411,9 @@ export interface SkillDef {
   when?: SkillWhen;
   /**
    * 예고 때 맞을 사람을 고름: tank = 보스가 때릴 사람, back = 뒷줄부터 n명 (탱커·나 빼고, 끌어당김),
-   * random = 탱커·나 빼고 무작위 n명 (피의 서약). 악몽은 nMythic
+   * random = 탱커·나 빼고 무작위 n명 (피의 서약), greed = 체력 비율이 가장 높은 탱커·나 아닌 n명 (보물 욕심 P-GREED, 51 5장). 악몽은 nMythic
    */
-  target?: 'tank' | { p: 'back' | 'random'; n: number; nMythic?: number };
+  target?: 'tank' | { p: 'back' | 'random' | 'greed'; n: number; nMythic?: number };
   /** 맞을 때 (장판은 없음) */
   effect?: SkillEffect;
   /** 장판 칸 */
@@ -510,6 +529,28 @@ const RING_HOW = '고리 안에 선 사람이 치유를 받으면 고리가 자�
 /** 춤바람 (P-FULL + 딜 0, 48 4-1): 체력을 65%로 떨어뜨리고 12초 춤 (딜 0 · 못 움직임), 가득 차면 멈춤 · 해제 가능, 다 되면 어질어질 */
 const DANCE: DebuffDef = { name: '춤바람', type: '마법', left: 12, noDps: true, noMove: true, cureAt: 1, drop: U.dps(0.41), end: { p: 'hit', dmg: U.dps(0.3) }, fx: 'dance' };
 const DANCE_HOW = '체력을 35% 깎고 (근접은 덜) 12초 동안 춤만 춤 (딜 0 · 못 움직임). 가득 채우거나 지우면 바로 멈춤. 쫄이 나와 있으면 춤추는 딜러부터';
+/** 녹는 보호막 (P-MELT, 51 5장) 공략 글 */
+const MELT_HOW = '열기 동안 보호막 · 외부 생존기가 빨리 녹음. 미리 걸지 말고 큰 피해 예고가 거의 끝날 때. 지속 힐은 미리 깔기';
+/** 보물 욕심 (P-GREED, 51 5장) 공략 글 */
+const GREED_HOW = '예고 때 체력 비율이 가장 높은 사람이 맞음 (탱커 · 나 빼고). 모두를 가득 채우지 말고, 예고된 사람에게 직전 보호막 · 맞은 뒤 힐';
+/**
+ * 보물 욕심 기술 묶음: [페이즈, 인원]마다 (키 `${key}${페이즈}` · 악몽 `…m`). 첫 페이즈만 first, 나머지는 흐름 start로 엶.
+ * debuff = 맞은 사람에게 (무거운 주머니), mythic = 악몽만 맞은 사람에게 (그을음 · 털린 주머니, 있으면 악몽 아님 / 악몽 두 개). 페이즈가 하나면 키에 페이즈를 안 붙임
+ */
+const greeds = (key: string, name: string, icon: string, first: number, period: number, cast: number, byPhase: readonly (readonly [number, number])[], dmg: number, debuff?: DebuffDef, mythic?: DebuffDef): SkillDef[] =>
+  byPhase.flatMap(([phase, n], i) => (mythic ? [false, true] : [undefined]).map((m): SkillDef => ({
+    key: `${key}${byPhase.length > 1 ? phase : ''}${m ? 'm' : ''}`, name, icon, kind: 'buster', first: i === 0 ? first : null, period, cast, warn: 'buster', how: GREED_HOW,
+    when: byPhase.length > 1 || m != null ? { ...(byPhase.length > 1 ? { phase: [phase] } : {}), ...(m != null ? { mythic: m } : {}) } : undefined,
+    target: { p: 'greed', n }, effect: { p: 'greed', dmg, debuff: m ? mythic : debuff },
+  })));
+/** 줄 불길 불씨 (51 3-1): 받는 치유 −25% */
+const EMBER: DebuffDef = { name: '불씨', type: '마법', left: 6, healCut: 0.25 };
+/** 악몽 불퉁이: 반짝이에 맞은 사람에게 그을음 (독) */
+const SOOT: DebuffDef = { name: '그을음', type: '독', left: 10, dot: U.dps(0.02) };
+/** 덜컹이 금화 던지기: 무거운 주머니 (받는 피해 +15%) */
+const PURSE: DebuffDef = { name: '무거운 주머니', type: '물리', left: 8, lock: true, vuln: 0.15 };
+/** 악몽 번쩍이: 털린 주머니 (받는 피해 +15%, 사냥까지 맞기 쉬움) */
+const ROBBED: DebuffDef = { name: '털린 주머니', type: '물리', left: 6, lock: true, vuln: 0.15 };
 /** 벌침 (P-WOUND, 48 4-3): 꿀벌이 쏜 사람이 90% 아래인 동안 3초마다 1중첩 (중첩당 초당 딜체 1%), 못 지움 */
 const sting = (max: number): DebuffDef => ({ name: '벌침', type: '물리', left: 20, lock: true, cureAt: 0.9, grow: { every: 3, dot: U.dps(0.01), max }, fx: 'bee-sting' });
 /** 못 피하는 줄 피해 (P-ROW): 뒷줄 → 가운데 → 앞줄을 period초마다 번갈아. two = 2페이즈부터 다른 한 줄을 같이 */
@@ -1593,6 +1634,156 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     enrage: { name: '축제 폭주', period: 3, dmg: 200 },
   },
   // 녹슨 문지기 (05 1장): 40% 아래 녹물 웅덩이
+  // ---------- 묶음 D1 (51 3장 · 4-1, 붉은 용 일가 · 해제 독 + 마법 / 용암 대장간은 버려진 골렘 · 해제 없음) ----------
+  // 온천지기 코볼트 뭉실 탐험판 (51 1-1, 탐험 ⑯ 화산재 고갯길 Lv 64): 평타 · 수건 휘두르기 · 김 서린 수건 (작게) · 연기 퐁퐁 1명. 던전 ⑬ 예습
+  mungsil64: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('수건 휘두르기', '수건', 8, 15, 340),
+      { key: 'melt', name: '김 서린 수건', icon: '김', kind: 'instant', first: 14, period: 26, cast: 0, how: MELT_HOW, effect: { p: 'melt', sec: 6, rate: 0.2 } },
+      { key: 'steam', name: '뜨거운 김', icon: '뜨김', kind: 'aoe', first: 17, period: 26, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: 110 } },
+      { key: 'smoke', name: '연기 퐁퐁', icon: '연기', kind: 'instant', first: 8, period: 18, cast: 0,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '연기 퐁퐁', type: '독', left: 10, dot: 14 } } },
+    ],
+    enrage: { name: '온천 폭주', period: 2, dmg: 200 },
+  },
+  // 온천지기 코볼트 뭉실 (51 3-1 ①, 던전 ⑬ 용암 온천장): 녹는 보호막 × 독. 김 서린 수건 끝 3초 전에 뜨거운 김 예고 (열기가 끝나는 순간 맞음).
+  // 50% 아래 수건 ↻ 20초. 악몽은 김 동안 받는 치유 −15%. 목표 2:45 · 광폭화 3:45
+  mungsil: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('수건 휘두르기', '수건', 8, 15, U.tank(0.45)),
+      { key: 'melt', name: '김 서린 수건', icon: '김', kind: 'instant', first: 15, period: 25, cast: 0, how: MELT_HOW, effect: { p: 'melt', sec: 8, rate: 0.25 } },
+      { key: 'meltm', name: '김 서림', icon: '김', kind: 'instant', hidden: true, first: 15, period: 25, cast: 0, when: { mythic: true },
+        effect: { p: 'debuff', n: 'all', debuff: { name: '김 서림', type: '마법', left: 8, lock: true, healCut: 0.15 } } },
+      { key: 'steam', name: '뜨거운 김', icon: '뜨김', kind: 'aoe', first: 20, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.25) } },
+      { key: 'smoke', name: '연기 퐁퐁', icon: '연기', kind: 'instant', first: 8, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '연기 퐁퐁', type: '독', left: 12, dot: U.dps(0.02) } } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'period', skill: 'melt', sec: 20 }, { p: 'period', skill: 'meltm', sec: 20 }, { p: 'period', skill: 'steam', sec: 20 },
+      { p: 'text', text: '입장료!: 김 서린 수건이 잦아짐' },
+    ] }],
+    enrage: { name: '온천 폭주', period: 2, dmg: 270 },
+  },
+  // 사춘기 용 불퉁이 (51 3-1 ②, 용암 온천장 최종): 녹는 보호막 × 보물 욕심 · 줄 불길 (불씨 = 받는 치유 −25%).
+  // 40% 아래 반짝이 내놔! 2명 · 뜨끈한 숨 ↻ 20초. 악몽은 반짝이에 맞은 사람에게 그을음 (독). 목표 3:15 · 광폭화 4:30
+  bulttung: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('꼬리 철썩', '꼬리', 8, 14, U.tank(0.5)),
+      ...greeds('greed', '반짝이 내놔!', '반짝', 10, 12, 2.5, [[1, 1], [2, 2]], U.dps(0.45), undefined, SOOT),
+      ...rows('fire', '줄 불길', '불길', 16, 18, U.dps(0.35), false).map((d): SkillDef => ({ ...d, hitDebuff: EMBER })),
+      { key: 'melt', name: '뜨끈한 숨', icon: '숨', kind: 'instant', first: 20, period: 30, cast: 0, how: MELT_HOW, effect: { p: 'melt', sec: 6, rate: 0.25 } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'greed2', in: 2 }, { p: 'start', skill: 'greed2m', in: 2 }, { p: 'period', skill: 'melt', sec: 20 },
+      { p: 'text', text: '다 컸다고!: 반짝이 내놔! 2명, 뜨끈한 숨이 잦아짐' },
+    ] }],
+    enrage: { name: '사춘기 폭발', period: 2, dmg: 280 },
+  },
+  // 풀무 골렘 후끈이 (51 3-2 ①, 던전 ⑭ 용암 대장간): 녹는 보호막 × 탱커 교대 (5인은 4중첩이면 근접 딜러가 6초 대신 맞음, DebuffDef.sub).
+  // 풀무질 끝 3초 전에 불티 예고. 악몽은 3중첩에서 교대. 목표 3:00 · 광폭화 4:00
+  huggeun: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      ...([false, true] as const).map((mythic): SkillDef => ({
+        key: `iron${mythic ? 'm' : ''}`, name: '달군 쇠', icon: '쇠', kind: 'instant', first: 6, period: 6, cast: 0, when: { mythic },
+        how: `탱커가 받는 피해가 쌓이다 ${mythic ? 3 : 4}중첩이면 근접 딜러가 6초 동안 보스를 대신 맞음. 그 딜러에게 미리 지속 힐 · 보호막`,
+        effect: { p: 'debuff', n: 1, pick: 'tank', debuff: { name: '달군 쇠', type: '물리', left: 20, lock: true, stackMax: mythic ? 3 : 4, vuln: 0.15, swap: mythic ? 3 : 4, sub: 6 } },
+      })),
+      { key: 'melt', name: '풀무질', icon: '풀무', kind: 'instant', first: 14, period: 28, cast: 0, how: MELT_HOW, effect: { p: 'melt', sec: 10, rate: 0.2 } },
+      { key: 'spark', name: '불티', icon: '불티', kind: 'aoe', first: 21, period: 28, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+      { key: 'splash', name: '쇳물 튀김', icon: '쇳물', kind: 'instant', first: 10, period: 16, cast: 0,
+        effect: { p: 'debuff', n: 2, debuff: { name: '쇳물', type: '물리', left: 4, lock: true, drop: U.dps(0.25), dot: U.dps(0.03) } } },
+    ],
+    enrage: { name: '화로 폭주', period: 2, dmg: 280 },
+  },
+  // 모루 골렘 땅땅 (51 3-2 ②, 용암 대장간 최종): 보물 욕심 × 무력화 · 진동. 30% 아래 판 가장자리 쇳물 바다 · 담금질 ↻ 30초.
+  // 악몽은 담금질 실패 딜체 80%. 목표 3:30 · 광폭화 5:00
+  ttangttang: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.08)),
+      { ...BUSTER('망치 내려치기', '망치', 8, 14, U.tank(0.55)), cast: 2.5 },
+      ...greeds('greed', '반짝반짝 두드리기', '반짝', 12, 15, 2.5, [[1, 2]], U.dps(0.4)),
+      ...([false, true] as const).map((mythic): SkillDef => ({
+        key: `stagger${mythic ? 'm' : ''}`, name: '담금질', icon: '담금', kind: 'instant', first: 25, period: 40, cast: 0, when: { mythic },
+        how: '12초 동안 체력 70% 이상인 파티원의 딜만 게이지를 채움. 반짝반짝에 맞은 딜러를 바로 70% 위로',
+        effect: { p: 'stagger', sec: 12, need: 7, hp: 0.7, tank: 2, win: { sec: 8, vuln: 1.3 }, fail: { dmg: U.dps(mythic ? 0.8 : 0.6), lock: 3 } },
+      })),
+      { key: 'quake', name: '모루 울림', icon: '울림', kind: 'aoe', first: 18, period: 22, cast: 1.5, warn: 'aoe', effect: { p: 'quake', dmg: U.dps(0.15), lock: 3 } },
+      { key: 'sea', name: '쇳물 바다', icon: '쇳물', kind: 'zone', first: null, period: 20, cast: 2.5, warn: 'zone', dps: U.dps(0.06), dur: 12, cells: { p: 'edge' }, when: { phase: [2] } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'sea', in: 2 }, { p: 'period', skill: 'stagger', sec: 30 }, { p: 'period', skill: 'staggerm', sec: 30 },
+      { p: 'text', text: '쇳물 바다: 가장자리가 끓고 담금질이 잦아짐' },
+    ] }],
+    enrage: { name: '대장간 폭주', period: 2, dmg: 300 },
+  },
+  // ---------- 10인 ⑧ 코볼트 보물 굴 (51 4-1, Lv 63 · 악몽 78): 꼬질 (탐험 ⑮에서 키움) · 덜컹이 · 번쩍이 ----------
+  // 코볼트 보물 지킴이 꼬질 (갱도): 자폭 쫄 (불씨 꼬마 용 폭탄) × 독 연기 · 곡괭이 자국 5중첩 탱커 교대. 50% 아래 꼬마 용 3.
+  // 악몽은 꼬마 용이 터질 때 모두에게 독 연기. 목표 4:30 · 광폭화 6:00
+  kkojil: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      { key: 'pick', name: '곡괭이 콕콕', icon: '곡괭', kind: 'instant', first: 5, period: 5, cast: 0, how: '5중첩이면 부탱커가 보스를 가져감. 교대한 탱커에게도 지속 힐',
+        effect: { p: 'debuff', n: 1, pick: 'tank', debuff: { name: '곡괭이 자국', type: '물리', left: 20, lock: true, stackMax: 5, vuln: 0.12, swap: 5 } } },
+      ...([[1, 2], [2, 3]] as const).flatMap(([phase, n]) => ([false, true] as const).map((mythic): SkillDef => ({
+        key: `whelp${phase}${mythic ? 'm' : ''}`, name: '불씨 꼬마 용', icon: '불씨', kind: 'instant', first: phase === 1 ? 20 : null, period: 30, cast: 0, when: { phase: [phase], mythic },
+        how: '8초 안에 딜러가 못 잡으면 터져서 모두 아픔. 못 잡을 것 같으면 광역 선힐',
+        effect: { p: 'adds', n, add: { name: '불씨 꼬마 용', short: '불씨', art: 'mob-ember-whelp', hp: 0.012, dmg: 0, every: 0,
+          job: { p: 'bomb', sec: 8, dmg: U.dps(0.2), debuff: mythic ? { name: '독 연기', type: '독', left: 8, dot: U.dps(0.015) } : undefined } } },
+      }))),
+      { key: 'smoke', name: '독 연기', icon: '연기', kind: 'instant', first: 10, period: 16, cast: 0,
+        effect: { p: 'debuff', n: 3, pick: 'others', debuff: { name: '독 연기', type: '독', left: 12, dot: U.dps(0.02) } } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'whelp2', in: 3 }, { p: 'start', skill: 'whelp2m', in: 3 }, { p: 'text', text: '보물 지킴이 함성: 불씨 꼬마 용 3' },
+    ] }],
+    enrage: { name: '보물 지킴이 화남', period: 3, dmg: 180 },
+  },
+  // 코볼트 수레꾼 덜컹이 (수레길): 행진 (보물 수레가 세로 줄을 1초마다 한 줄씩 훑음, 못 피함) × 보물 욕심 (금화 던지기 + 무거운 주머니).
+  // 악몽은 수레가 돌아오며 한 번 더 (왼쪽 → 오른쪽 → 왼쪽). 목표 4:30 · 광폭화 6:00
+  deolkeong: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      ...([['cart', 15, 'left', undefined], ['cartm', 21, 'right', true]] as const).map(([key, first, from, mythic]): SkillDef => ({
+        key, name: '보물 수레', icon: '수레', kind: 'zone', first, period: 24, cast: 3, warn: 'zone', fixed: true, hitDmg: U.dps(0.25), cells: { p: 'flow', every: 1, from },
+        when: mythic ? { mythic } : undefined, how: '수레가 세로 줄을 한 줄씩 밀고 지나감 (못 피함). 다음 줄 사람을 미리 채우기',
+      })),
+      ...greeds('coin', '금화 던지기', '금화', 10, 12, 2, [[1, 2]], U.dps(0.35), PURSE),
+      { key: 'wheel', name: '바퀴 자국', icon: '바퀴', kind: 'instant', first: 8, period: 18, cast: 0,
+        effect: { p: 'debuff', n: 3, debuff: { name: '바퀴 자국', type: '마법', left: 8, healCut: 0.2, drop: U.dps(0.15) } } },
+    ],
+    enrage: { name: '수레 폭주', period: 3, dmg: 180 },
+  },
+  // 코볼트 대장 번쩍이 (보물방, 10인 ⑧ 최종): 보물 욕심 × 사냥 (모두를 가운데쯤) · 판 위 금화 더미 (15초 안에 못 깨면 보스 피해 +20%, 겹침).
+  // 30% 아래 보물 비 · 내 거야! 3명. 악몽은 내 거야!에 맞은 사람이 6초 받는 피해 +15% (사냥까지 맞기 쉬움). 목표 5:00 · 광폭화 6:30
+  beonjjeok: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('왕관 박치기', '왕관', 8, 15, U.tank(0.5)), cast: 2.5 },
+      ...greeds('greed', '내 거야!', '내거', 10, 13, 2.5, [[1, 2], [2, 3]], U.dps(0.4), undefined, ROBBED),
+      { key: 'hunt', name: '쫄쫄이 부하', icon: '쫄쫄', kind: 'instant', first: 12, period: 11, cast: 2, effect: { p: 'hunt', dmg: U.dps(0.35) } },
+      { key: 'hoard', name: '금화 더미', icon: '금화', kind: 'instant', first: 25, period: 35, cast: 0,
+        how: '15초 안에 딜러가 못 깨면 번쩍이가 주워 보스 피해 +20% (겹침). 딜러를 살려 두기',
+        effect: { p: 'adds', n: 1, add: { name: '금화 더미', short: '금화', art: 'mob-gold-pile', hp: 0.02, dmg: 0, every: 0, at: 'random', job: { p: 'hoard', sec: 15, boost: 0.2 } } } },
+      { key: 'rain', name: '보물 비', icon: '보물', kind: 'aoe', first: null, period: 25, cast: 3, warn: 'aoe', when: { phase: [2] }, effect: { p: 'all', dmg: U.dps(0.25) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.3 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'greed2', in: 2 }, { p: 'start', skill: 'greed2m', in: 2 }, { p: 'start', skill: 'rain', in: 5 },
+      { p: 'text', text: '보물 비!: 내 거야! 3명' },
+    ] }],
+    enrage: { name: '대장님 화남', period: 3, dmg: 190 },
+  },
   warden: {
     phase: [1, ''],
     skills: [
