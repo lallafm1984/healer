@@ -690,9 +690,9 @@ describe('2-9 직업 전용: 사제', () => {
 });
 
 describe('2-9 직업 전용: 드루이드', () => {
-  it('넓은 군락: 군락 보너스 칸마다 +', () => {
+  it('넓은 군락: 군락 보너스 칸마다 + (겁쟁이가 체력 10%에 도망가지 않게)', () => {
     const [a, b] = pair('wideGrove', 0.05, 'druid');
-    const go = (f: F) => { big(f); const u = withAdj(f, 2); for (const v of adj(f, u).slice(0, 2)) putHot(v, 'sprout', { sec: 99, every: 99, total: 1 }); cast(f, 'sprout', u); step(f, 13); return u.got; };
+    const go = (f: F) => { big(f); for (const v of f.party) v.p = { ...v.p, flee: 0 }; const u = withAdj(f, 2); for (const v of adj(f, u).slice(0, 2)) putHot(v, 'sprout', { sec: 99, every: 99, total: 1 }); cast(f, 'sprout', u); step(f, 13); return u.got; };
     expect(ratio(go(a), go(b))).toBeCloseTo((1 + 2 * 0.15) / 1.2, 2);
   });
   it('옮겨 가는 새싹: 새싹이 끝까지 가면 옆 칸 1명에게 절반 시간 새싹 (다시 안 옮겨 감)', () => {

@@ -97,7 +97,7 @@ export const segGrade = (e: Encounter) => (e.mobs ? (e.mobs.some(m => m.elite) ?
 
 function trash(key: EncounterKey, name: string, mobs: MobDef[], o: Partial<Encounter> = {}): Encounter {
   return {
-    key, name, tier: `던전 · ${mobs.some(m => m.elite) ? '정예' : '일반'}`, board: 'b18', comp: PARTY5, lowLevel: true,
+    key, name, tier: `던전 · ${mobs.some(m => m.elite) ? '정예' : '일반'}`, board: 'b10', comp: PARTY5, lowLevel: true,
     hp: mobs.reduce((s, m) => s + m.hp * m.count, 0), enrage: Infinity, manaCoef: 1.0, diffs: ALL, script: 'trash', stage: 0.25, mobs, ...o,
   };
 }
@@ -131,18 +131,18 @@ const sneeze = (x = 1): DebuffDef[] => [
 const HEAL4 = ['질병', '독', '저주', '마법'];
 
 export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
-  warden: { key: 'warden', lowLevel: true, name: '녹슨 문지기', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 7000, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'warden', stage: 0.25 },
+  warden: { key: 'warden', lowLevel: true, name: '녹슨 문지기', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7000, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'warden', stage: 0.25 },
   // 10인 레이드 「심연의 탑」 1층 (05 2장). 악몽 = 공통 악몽 규칙 + 전용 패턴 (26 3-1)
-  plague: { key: 'plague', name: '역병 군주', tier: '레이드 · 10인', board: 'b36', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 22000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'plague', stage: 0.18, debuffs: ['질병', '독'] },
+  plague: { key: 'plague', name: '역병 군주', tier: '레이드 · 10인', board: 'b25', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 22000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'plague', stage: 0.18, debuffs: ['질병', '독'] },
   // 심연의 탑 2층 ~ 꼭대기 (05 3~6장, 35 5장 보강). 광폭화는 05 공통 표, 체력은 판 위 적 · 딜 0 기믹으로 늘어난 시간만큼 05 표에서 낮춤 (2층 24,000 · 4층 27,000 · 꼭대기 34,000). 꼭대기는 가장 길어서 마나 회복 1.5
-  hydra: { key: 'hydra', name: '늪의 어머니 히드라', tier: '레이드 · 10인', board: 'b36', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 21000, enrage: 420, manaCoef: 1.3, diffs: ALL, script: 'hydra', stage: 0.18, debuffs: ['독'] },
-  twins: { key: 'twins', name: '쌍둥이 여군주', tier: '레이드 · 10인', board: 'b36', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 26000, enrage: 450, manaCoef: 1.3, diffs: ALL, script: 'twins', stage: 0.18, debuffs: ['저주'] },
-  orben: { key: 'orben', name: '대마도사 오르벤', tier: '레이드 · 10인', board: 'b36', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 20000, enrage: 450, manaCoef: 1.3, diffs: ALL, script: 'orben', stage: 0.18, debuffs: ['마법'] },
-  abysslord: { key: 'abysslord', name: '심연의 군주', tier: '레이드 · 10인', board: 'b36', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 28000, enrage: 510, manaCoef: 1.5, diffs: ALL, script: 'abysslord', stage: 0.18, debuffs: ['질병', '독', '저주', '마법'] },
+  hydra: { key: 'hydra', name: '늪의 어머니 히드라', tier: '레이드 · 10인', board: 'b25', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 21000, enrage: 420, manaCoef: 1.3, diffs: ALL, script: 'hydra', stage: 0.18, debuffs: ['독'] },
+  twins: { key: 'twins', name: '쌍둥이 여군주', tier: '레이드 · 10인', board: 'b25', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 26000, enrage: 450, manaCoef: 1.3, diffs: ALL, script: 'twins', stage: 0.18, debuffs: ['저주'] },
+  orben: { key: 'orben', name: '대마도사 오르벤', tier: '레이드 · 10인', board: 'b25', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 20000, enrage: 450, manaCoef: 1.3, diffs: ALL, script: 'orben', stage: 0.18, debuffs: ['마법'] },
+  abysslord: { key: 'abysslord', name: '심연의 군주', tier: '레이드 · 10인', board: 'b25', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 28000, enrage: 510, manaCoef: 1.5, diffs: ALL, script: 'abysslord', stage: 0.18, debuffs: ['질병', '독', '저주', '마법'] },
   // 20인 레이드 「가라앉은 대성당」 1구역 (26 4-3): 성가대원 4,000 × 3 + 지휘자 30,000
   choir: { key: 'choir', name: '유령 성가대', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 42000, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'choir', big: true, stage: 0.13, debuffs: ['마법'] },
   // 녹슨 요새 (23). 첫 보스 = 문지기를 순하게 줄인 판
-  scrap: { key: 'scrap', lowLevel: true, name: '고철 경비병', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 2500, enrage: 150, manaCoef: 1.0, diffs: ALL, script: 'scrap', stage: 0.25 },
+  scrap: { key: 'scrap', lowLevel: true, name: '고철 경비병', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 2500, enrage: 150, manaCoef: 1.0, diffs: ALL, script: 'scrap', stage: 0.25 },
   gate: trash('gate', '무너진 정문', [
     { ...CHAFF, count: 3 },
     { name: '잔해 투척병', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
@@ -195,7 +195,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  collector: { key: 'collector', lowLevel: true, name: '뼈다귀 수집가', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 3400, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'collector', stage: 0.25, debuffs: ['질병'] },
+  collector: { key: 'collector', lowLevel: true, name: '뼈다귀 수집가', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 3400, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'collector', stage: 0.25, debuffs: ['질병'] },
   censerhall: trash('censerhall', '향로 예배실', [
     { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '교단 신도', hp: 300, count: 1, attacks: [
@@ -210,7 +210,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ], { debuffs: ['질병'] }),
-  malchor: { key: 'malchor', lowLevel: true, name: '역병 사제 말코어', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 5900, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'malchor', stage: 0.25, debuffs: ['질병'] },
+  malchor: { key: 'malchor', lowLevel: true, name: '역병 사제 말코어', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5900, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'malchor', stage: 0.25, debuffs: ['질병'] },
   // 탐험 ⑤ 「눈보라 고개」 (39 1-1, Lv 18): 얼음 룬 인형 ×2 + 떠도는 주술서 (침묵, 딜 0 마법) → 마력 골렘 (진동 예습, 35 4-8)
   snowslope: trash('snowslope', '눈 덮인 비탈', [
     { name: '얼음 룬 인형', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
@@ -232,8 +232,8 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '늪 창병', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  shaman: { key: 'shaman', lowLevel: true, name: '늪 주술사', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 3400, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'shaman', stage: 0.25, debuffs: ['독'] },
-  toad: { key: 'toad', lowLevel: true, name: '거대 두꺼비 부글이', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 5100, enrage: 195, manaCoef: 1.0, diffs: ALL, script: 'toad', stage: 0.25, debuffs: ['독'] },
+  shaman: { key: 'shaman', lowLevel: true, name: '늪 주술사', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 3400, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'shaman', stage: 0.25, debuffs: ['독'] },
+  toad: { key: 'toad', lowLevel: true, name: '거대 두꺼비 부글이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5100, enrage: 195, manaCoef: 1.0, diffs: ALL, script: 'toad', stage: 0.25, debuffs: ['독'] },
   toadnest: trash('toadnest', '독 혹 둥지', [
     { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '독침 사냥꾼', hp: 300, count: 1, attacks: [
@@ -248,14 +248,14 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ], { debuffs: ['독'] }),
-  seres: { key: 'seres', lowLevel: true, name: '늪 족장 세레스', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 6600, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'seres', stage: 0.25, debuffs: ['독'] },
+  seres: { key: 'seres', lowLevel: true, name: '늪 족장 세레스', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6600, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'seres', stage: 0.25, debuffs: ['독'] },
   // 던전 ④ 「저주받은 장원」 (39 1-2, Lv 20, 35 4-3): 일반 먼지 낀 응접실 → 집사 유령 → 초상화 속 귀부인 → 정예 사냥개 우리 → 장원 주인 벨모어 경
   parlor: trash('parlor', '먼지 낀 응접실', [
     { name: '빈 갑옷 시종', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '유령 하녀', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  butler: { key: 'butler', lowLevel: true, name: '집사 유령', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 4700, enrage: 180, manaCoef: 1.0, diffs: ALL, script: 'butler', stage: 0.25, debuffs: ['저주'] },
-  lady: { key: 'lady', lowLevel: true, name: '초상화 속 귀부인', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 4300, enrage: 195, manaCoef: 1.0, diffs: ALL, script: 'lady', stage: 0.25, debuffs: ['저주'] },
+  butler: { key: 'butler', lowLevel: true, name: '집사 유령', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4700, enrage: 180, manaCoef: 1.0, diffs: ALL, script: 'butler', stage: 0.25, debuffs: ['저주'] },
+  lady: { key: 'lady', lowLevel: true, name: '초상화 속 귀부인', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4300, enrage: 195, manaCoef: 1.0, diffs: ALL, script: 'lady', stage: 0.25, debuffs: ['저주'] },
   kennel: trash('kennel', '사냥개 우리', [
     { name: '빈 갑옷 시종', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '검은 베일 조문객', hp: 300, count: 1, attacks: [
@@ -270,14 +270,14 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ], { debuffs: ['저주'] }),
-  belmore: { key: 'belmore', lowLevel: true, name: '장원 주인 벨모어 경', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 5800, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'belmore', stage: 0.25, debuffs: ['저주'] },
+  belmore: { key: 'belmore', lowLevel: true, name: '장원 주인 벨모어 경', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5800, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'belmore', stage: 0.25, debuffs: ['저주'] },
   // 던전 ⑤ 「서리 마탑」 (39 1-2, Lv 25, 35 4-4): 일반 얼음 복도 → 마력 골렘 → 불안정한 마법사 → 정예 서리 실험실 → 탑주의 그림자
   icehall: trash('icehall', '얼음 복도', [
     { name: '얼음 룬 인형', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '견습 마법사', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  frostgolem: { key: 'frostgolem', lowLevel: true, name: '마력 골렘', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 4800, enrage: 180, manaCoef: 1.0, diffs: ALL, script: 'frostgolem', stage: 0.25, debuffs: ['마법'] },
-  mage: { key: 'mage', lowLevel: true, name: '불안정한 마법사', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 5300, enrage: 195, manaCoef: 1.0, diffs: ALL, script: 'mage', stage: 0.25, debuffs: ['마법'] },
+  frostgolem: { key: 'frostgolem', lowLevel: true, name: '마력 골렘', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4800, enrage: 180, manaCoef: 1.0, diffs: ALL, script: 'frostgolem', stage: 0.25, debuffs: ['마법'] },
+  mage: { key: 'mage', lowLevel: true, name: '불안정한 마법사', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5300, enrage: 195, manaCoef: 1.0, diffs: ALL, script: 'mage', stage: 0.25, debuffs: ['마법'] },
   frostlab: trash('frostlab', '서리 실험실', [
     { name: '얼음 룬 인형', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '떠도는 주술서', hp: 300, count: 1, attacks: [
@@ -292,7 +292,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ], { debuffs: ['마법'] }),
-  shadow: { key: 'shadow', lowLevel: true, name: '탑주의 그림자', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 6200, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'shadow', stage: 0.25, debuffs: ['마법'] },
+  shadow: { key: 'shadow', lowLevel: true, name: '탑주의 그림자', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6200, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'shadow', stage: 0.25, debuffs: ['마법'] },
   // 탐험 ⑦ 「무너진 순례길」 (39 1-1, Lv 28): 돌 수도사 ×2 + 길 잃은 순례자 (청소약을 차례로) → 신전지기 유령 (발판 1곳 · 네 가지 청소약, 35 4-8)
   brokenbridge: trash('brokenbridge', '끊어진 돌다리', [
     { name: '돌 수도사', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
@@ -307,7 +307,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '돌 수도사', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '다락 박쥐 떼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  guardian: { key: 'guardian', lowLevel: true, name: '신전 수호상', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 6000, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'guardian', stage: 0.25, debuffs: ['마법'] },
+  guardian: { key: 'guardian', lowLevel: true, name: '신전 수호상', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6000, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'guardian', stage: 0.25, debuffs: ['마법'] },
   nave: trash('nave', '금 간 본당', [
     { name: '돌 수도사', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '길 잃은 순례자', hp: 300, count: 1, attacks: [
@@ -332,7 +332,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '돌 수도사', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '다락 박쥐 떼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  sentinel: { key: 'sentinel', lowLevel: true, name: '망루 파수꾼', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 5800, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'sentinel', stage: 0.25 },
+  sentinel: { key: 'sentinel', lowLevel: true, name: '망루 파수꾼', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5800, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'sentinel', stage: 0.25 },
   blackrift: trash('blackrift', '검은 틈', [
     { name: '공허의 종복', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '심연 전령', hp: 300, count: 1, attacks: [
@@ -348,8 +348,8 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ], { debuffs: ['마법'] }),
-  crystal: { key: 'crystal', lowLevel: true, name: '금 간 공명 수정', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 6600, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'crystal', stage: 0.25, debuffs: ['저주', '마법'] },
-  keeper: { key: 'keeper', lowLevel: true, name: '신전지기 유령', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 7000, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'keeper', stage: 0.25, debuffs: HEAL4 },
+  crystal: { key: 'crystal', lowLevel: true, name: '금 간 공명 수정', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6600, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'crystal', stage: 0.25, debuffs: ['저주', '마법'] },
+  keeper: { key: 'keeper', lowLevel: true, name: '신전지기 유령', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7000, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'keeper', stage: 0.25, debuffs: HEAL4 },
   // ---------- 묶음 B 옛 세력 (46 1장 · 2장): 구간 졸개는 그 세력 4종 (39 2장) 그대로 ----------
   // 탐험 ⑩ 「책갈피 설원」 (46 1-1, Lv 40): 얼음 룬 인형 ×2 + 견습 마법사 → 서고 사서 (마나 갈취 예습, 던전 ⑨)
   pagedrift: trash('pagedrift', '흩날린 책장', [
@@ -372,7 +372,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  ratking: { key: 'ratking', lowLevel: true, name: '수로 쥐왕', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 4900, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'ratking', stage: 0.25, debuffs: ['질병'] },
+  ratking: { key: 'ratking', lowLevel: true, name: '수로 쥐왕', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4900, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'ratking', stage: 0.25, debuffs: ['질병'] },
   sludgegrate: trash('sludgegrate', '오물 거름망', [
     { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '교단 신도', hp: 300, count: 1, attacks: [
@@ -387,13 +387,13 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ], { debuffs: ['질병'] }),
-  carrier: { key: 'carrier', lowLevel: true, name: '역병 운반자', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 6600, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'carrier', stage: 0.25, debuffs: ['질병'] },
+  carrier: { key: 'carrier', lowLevel: true, name: '역병 운반자', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6600, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'carrier', stage: 0.25, debuffs: ['질병'] },
   // 던전 ⑨ 「얼음 서고」 (46 1-2 · 3-2, Lv 45): 일반 얼음 열람실 → 서고 사서 → 정예 금서 보관소 → 얼어붙은 대학자
   iceread: trash('iceread', '얼음 열람실', [
     { name: '얼음 룬 인형', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '견습 마법사', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  librarian: { key: 'librarian', lowLevel: true, name: '서고 사서', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 5600, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'librarian', stage: 0.25, debuffs: ['마법'] },
+  librarian: { key: 'librarian', lowLevel: true, name: '서고 사서', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5600, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'librarian', stage: 0.25, debuffs: ['마법'] },
   forbidden: trash('forbidden', '금서 보관소', [
     { name: '얼음 룬 인형', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '떠도는 주술서', hp: 300, count: 1, attacks: [
@@ -408,13 +408,13 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ], { debuffs: ['마법'] }),
-  scholar: { key: 'scholar', lowLevel: true, name: '얼어붙은 대학자', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 6900, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'scholar', stage: 0.25, debuffs: ['마법'] },
+  scholar: { key: 'scholar', lowLevel: true, name: '얼어붙은 대학자', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6900, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'scholar', stage: 0.25, debuffs: ['마법'] },
   // 던전 ⑩ 「백합 납골당」 (46 1-2 · 3-3, Lv 50): 일반 꽃잎 계단 → 백합 여사제 → 정예 관리인 회랑 (납골당 관리인 + 먼지 유령 무리) → 잠든 가주
   petalstair: trash('petalstair', '꽃잎 계단', [
     { name: '빈 갑옷 시종', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '유령 하녀', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  priestess: { key: 'priestess', lowLevel: true, name: '백합 여사제', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 6000, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'priestess', stage: 0.25, debuffs: ['저주'] },
+  priestess: { key: 'priestess', lowLevel: true, name: '백합 여사제', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6000, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'priestess', stage: 0.25, debuffs: ['저주'] },
   // 먼지 유령: 체력이 일반 ①의 30%라 거의 함께 쓰러지고, 쓰러질 때마다 살아 있는 모두에게 먼지 파열 1중첩 (쫄 떼 파열 본판, 46 2장)
   keeperhall: trash('keeperhall', '관리인 회랑', [
     { name: '빈 갑옷 시종', hp: 400, count: 1, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
@@ -427,7 +427,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ], { debuffs: ['저주'] }),
-  sleeper: { key: 'sleeper', lowLevel: true, name: '잠든 가주', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 7200, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'sleeper', stage: 0.25, debuffs: ['저주'] },
+  sleeper: { key: 'sleeper', lowLevel: true, name: '잠든 가주', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7200, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'sleeper', stage: 0.25, debuffs: ['저주'] },
   // ---------- 묶음 B 짠물 해적단 (46 2장 · 4장): 졸개 ① 갑판 청소부 · ② 새총 꼬마 해적 · ③ 해파리 점쟁이 (독 → 저주) · ④ 닻 든 거한 ----------
   // 탐험 ⑨ 「조개껍데기 해변」 (46 1-1, Lv 36): 갈매기 모래밭 → 집게발 갑판장 (부풀기 쉬운 판, 10인 ② 예습)
   gullsand: trash('gullsand', '갈매기 모래밭', [
@@ -449,15 +449,15 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
   goldbeard44: { key: 'goldbeard44', lowLevel: true, name: '해적 선장 금빛수염', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2500, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'goldbeard44', stage: 0.3, debuffs: ['저주'] },
   // 10인 ② 갈매기 항구 (Lv 39) · ③ 짠물 여왕호 (Lv 43) · ④ 보물섬 요새 (Lv 47): 체력은 자동 힐러 시뮬로 목표 시간에 쓰러지게 맞춤 (쫄 · 감옥이 많은 보스는 낮음)
-  crab: { key: 'crab', name: '집게발 갑판장', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 22000, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'crab', stage: 0.18, debuffs: ['독'] },
-  cook: { key: 'cook', name: '해적 요리사 왕솥', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 19000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'cook', stage: 0.18, debuffs: ['독'] },
-  morel: { key: 'morel', name: '부선장 갈고리 모렐', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 23500, enrage: 420, manaCoef: 1.3, diffs: ALL, script: 'morel', stage: 0.18, debuffs: ['독'] },
-  gunner: { key: 'gunner', name: '포수장 쾅쾅', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 17000, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'gunner', stage: 0.18, debuffs: ['저주'] },
-  octo: { key: 'octo', name: '문어 꾸물이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 16500, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'octo', stage: 0.18, debuffs: ['독'] },
-  seawitch: { key: 'seawitch', name: '바다 마녀 미역 할멈', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 27000, enrage: 435, manaCoef: 1.3, diffs: ALL, script: 'seawitch', stage: 0.18, debuffs: ['저주'] },
-  mimic: { key: 'mimic', name: '보물 상자 덥석이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 18600, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'mimic', stage: 0.18 },
-  parrot: { key: 'parrot', name: '앵무새 대장 깍깍', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 26000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'parrot', stage: 0.18, debuffs: ['저주'] },
-  goldbeard: { key: 'goldbeard', name: '해적 선장 금빛수염', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 22600, enrage: 450, manaCoef: 1.5, diffs: ALL, script: 'goldbeard', stage: 0.18, debuffs: ['저주'] },
+  crab: { key: 'crab', name: '집게발 갑판장', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 22000, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'crab', stage: 0.18, debuffs: ['독'] },
+  cook: { key: 'cook', name: '해적 요리사 왕솥', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 19000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'cook', stage: 0.18, debuffs: ['독'] },
+  morel: { key: 'morel', name: '부선장 갈고리 모렐', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 23500, enrage: 420, manaCoef: 1.3, diffs: ALL, script: 'morel', stage: 0.18, debuffs: ['독'] },
+  gunner: { key: 'gunner', name: '포수장 쾅쾅', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 17000, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'gunner', stage: 0.18, debuffs: ['저주'] },
+  octo: { key: 'octo', name: '문어 꾸물이', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 16500, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'octo', stage: 0.18, debuffs: ['독'] },
+  seawitch: { key: 'seawitch', name: '바다 마녀 미역 할멈', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 27000, enrage: 435, manaCoef: 1.3, diffs: ALL, script: 'seawitch', stage: 0.18, debuffs: ['저주'] },
+  mimic: { key: 'mimic', name: '보물 상자 덥석이', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 18600, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'mimic', stage: 0.18 },
+  parrot: { key: 'parrot', name: '앵무새 대장 깍깍', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 26000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'parrot', stage: 0.18, debuffs: ['저주'] },
+  goldbeard: { key: 'goldbeard', name: '해적 선장 금빛수염', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 22600, enrage: 450, manaCoef: 1.5, diffs: ALL, script: 'goldbeard', stage: 0.18, debuffs: ['저주'] },
   // ---------- 묶음 C 버섯 요정단 (48 2장): 졸개 ① 버섯 꼬마 경비 · ② 꽃가루 요정 · ③ 재채기 버섯 (질병 → 마법) · ④ 큰 갓 버섯 거인 ----------
   // 탐험 ⑬ 「꼬마등 오솔길」 (48 1-1, Lv 52): 버섯 우산 길 → 찻잔 요정 홀짝이 (넘어가는 포자 쉬운 판, 던전 ⑪ 예습)
   capway: trash('capway', '버섯 우산 길', [
@@ -473,7 +473,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '버섯 꼬마 경비', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '꽃가루 요정', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  sippy: { key: 'sippy', lowLevel: true, name: '찻잔 요정 홀짝이', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 5100, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'sippy', stage: 0.25, debuffs: ['질병'] },
+  sippy: { key: 'sippy', lowLevel: true, name: '찻잔 요정 홀짝이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5100, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'sippy', stage: 0.25, debuffs: ['질병'] },
   cuptower: trash('cuptower', '찻잔 탑', [
     { name: '버섯 꼬마 경비', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '재채기 버섯', hp: 300, count: 1, attacks: [
@@ -487,13 +487,13 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ], { debuffs: ['질병', '마법'] }),
-  hatter: { key: 'hatter', lowLevel: true, name: '모자 장수 해롱', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 6800, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'hatter', stage: 0.25, debuffs: ['마법'] },
+  hatter: { key: 'hatter', lowLevel: true, name: '모자 장수 해롱', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6800, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'hatter', stage: 0.25, debuffs: ['마법'] },
   // 던전 ⑫ 「이끼 뿌리 사원」 (48 1-2 · 3-2, Lv 60, 늪의 부족 졸개 그대로): 일반 젖은 계단 → 버섯 가면 주술사 우가 → 정예 거북 등 다리 → 늪 거북 신 등딱지
   wetstair: trash('wetstair', '젖은 계단', [
     { name: '늪 창병', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  uga: { key: 'uga', lowLevel: true, name: '버섯 가면 주술사 우가', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 5400, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'uga', stage: 0.25, debuffs: ['독'] },
+  uga: { key: 'uga', lowLevel: true, name: '버섯 가면 주술사 우가', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5400, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'uga', stage: 0.25, debuffs: ['독'] },
   turtlebridge: trash('turtlebridge', '거북 등 다리', [
     { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '독침 사냥꾼', hp: 300, count: 1, attacks: [
@@ -508,7 +508,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ], { debuffs: ['독'] }),
-  shellgod: { key: 'shellgod', lowLevel: true, name: '늪 거북 신 등딱지', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 7300, enrage: 280, manaCoef: 1.0, diffs: ALL, script: 'shellgod', stage: 0.25, debuffs: ['독'] },
+  shellgod: { key: 'shellgod', lowLevel: true, name: '늪 거북 신 등딱지', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7300, enrage: 280, manaCoef: 1.0, diffs: ALL, script: 'shellgod', stage: 0.25, debuffs: ['독'] },
   // 탐험 ⑭ 「무지개 버섯밭」 (48 1-1, Lv 56): 꽃가루 들판 → 버섯 여왕 아마니타 (사람 칸 쉬운 판, 10인 ⑦ 왕좌 예습)
   pollenfield: trash('pollenfield', '꽃가루 들판', [
     { name: '버섯 꼬마 경비', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
@@ -516,15 +516,15 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
   queen56: { key: 'queen56', lowLevel: true, name: '버섯 여왕 아마니타', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2650, enrage: 215, manaCoef: 1.0, diffs: ALL, script: 'queen56', stage: 0.3, debuffs: ['질병'] },
   // 10인 ⑤ 요정 축제 마당 (Lv 51) · ⑥ 포자 동굴 정원 (Lv 55) · ⑦ 버섯 여왕의 궁전 (Lv 59): 체력은 자동 힐러 시뮬로 목표 시간에 쓰러지게 맞춤
-  songi: { key: 'songi', name: '버섯 경비대장 송이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 23000, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'songi', stage: 0.18, debuffs: ['질병'] },
-  pililli: { key: 'pililli', name: '요정 악단장 삘릴리', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 19000, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'pililli', stage: 0.18, debuffs: ['마법'] },
-  ponga: { key: 'ponga', name: '축제 대장 퐁가', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 17800, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'ponga', stage: 0.18 },
-  mungge: { key: 'mungge', name: '이끼 골렘 뭉게', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 25500, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'mungge', stage: 0.18, debuffs: ['질병'] },
-  gaegul: { key: 'gaegul', name: '개구리 사공 개굴', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 23000, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'gaegul', stage: 0.18 },
-  morak: { key: 'morak', name: '포자 정원사 모락 할멈', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 16500, enrage: 405, manaCoef: 1.3, diffs: ALL, script: 'morak', stage: 0.18, debuffs: ['질병'] },
-  bungbung: { key: 'bungbung', name: '꿀벌 근위대장 붕붕', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 22500, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'bungbung', stage: 0.18 },
-  ppyong: { key: 'ppyong', name: '요정 마술사 뿅뿅', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 25000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'ppyong', stage: 0.18, debuffs: ['마법'] },
-  amanita: { key: 'amanita', name: '버섯 여왕 아마니타', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 28500, enrage: 450, manaCoef: 1.5, diffs: ALL, script: 'amanita', stage: 0.18, debuffs: ['질병', '마법'] },
+  songi: { key: 'songi', name: '버섯 경비대장 송이', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 23000, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'songi', stage: 0.18, debuffs: ['질병'] },
+  pililli: { key: 'pililli', name: '요정 악단장 삘릴리', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 19000, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'pililli', stage: 0.18, debuffs: ['마법'] },
+  ponga: { key: 'ponga', name: '축제 대장 퐁가', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 17800, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'ponga', stage: 0.18 },
+  mungge: { key: 'mungge', name: '이끼 골렘 뭉게', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 25500, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'mungge', stage: 0.18, debuffs: ['질병'] },
+  gaegul: { key: 'gaegul', name: '개구리 사공 개굴', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 23000, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'gaegul', stage: 0.18 },
+  morak: { key: 'morak', name: '포자 정원사 모락 할멈', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 16500, enrage: 405, manaCoef: 1.3, diffs: ALL, script: 'morak', stage: 0.18, debuffs: ['질병'] },
+  bungbung: { key: 'bungbung', name: '꿀벌 근위대장 붕붕', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 22500, enrage: 375, manaCoef: 1.3, diffs: ALL, script: 'bungbung', stage: 0.18 },
+  ppyong: { key: 'ppyong', name: '요정 마술사 뿅뿅', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 25000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'ppyong', stage: 0.18, debuffs: ['마법'] },
+  amanita: { key: 'amanita', name: '버섯 여왕 아마니타', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 28500, enrage: 450, manaCoef: 1.5, diffs: ALL, script: 'amanita', stage: 0.18, debuffs: ['질병', '마법'] },
   // ---------- 묶음 C 붉은 용 일가 (48 2장, 첫 등장): 졸개 ① 코볼트 곡괭이꾼 · ② 불씨 꼬마 용 · ③ 코볼트 연기 주술사 (독 → 마법) · ④ 용 비늘 경비병 ----------
   // 탐험 ⑮ 「불꽃 봉우리 기슭」 (48 1-1, Lv 60): 뜨거운 자갈길 → 코볼트 보물 지킴이 꼬질 (자폭 쫄 × 독, 10인 ⑧ 예습)
   hotgravel: trash('hotgravel', '뜨거운 자갈길', [
@@ -554,7 +554,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '코볼트 곡괭이꾼', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '불씨 꼬마 용', hp: 300, count: 1, attacks: [{ key: 'spit', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  mungsil: { key: 'mungsil', lowLevel: true, name: '온천지기 코볼트 뭉실', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 5300, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'mungsil', stage: 0.25, debuffs: ['독'] },
+  mungsil: { key: 'mungsil', lowLevel: true, name: '온천지기 코볼트 뭉실', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5300, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'mungsil', stage: 0.25, debuffs: ['독'] },
   lavabath: trash('lavabath', '용암 탕', [
     { name: '코볼트 곡괭이꾼', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '코볼트 연기 주술사', hp: 300, count: 1, attacks: [
@@ -568,13 +568,13 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ], { debuffs: ['독', '마법'] }),
-  bulttung: { key: 'bulttung', lowLevel: true, name: '사춘기 용 불퉁이', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 7000, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'bulttung', stage: 0.25, debuffs: ['마법'] },
+  bulttung: { key: 'bulttung', lowLevel: true, name: '사춘기 용 불퉁이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7000, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'bulttung', stage: 0.25, debuffs: ['마법'] },
   // 던전 ⑭ 「용암 대장간」 (51 1-2 · 3-2, Lv 70, 버려진 골렘 졸개 그대로 · 해제 없음): 일반 식은 화로 → 풀무 골렘 후끈이 → 정예 모루 다리 → 모루 골렘 땅땅
   coldhearth: trash('coldhearth', '식은 화로', [
     { ...CHAFF, count: 3 },
     { name: '잔해 투척병', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  huggeun: { key: 'huggeun', lowLevel: true, name: '풀무 골렘 후끈이', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 5500, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'huggeun', stage: 0.25 },
+  huggeun: { key: 'huggeun', lowLevel: true, name: '풀무 골렘 후끈이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5500, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'huggeun', stage: 0.25 },
   anvilbridge: trash('anvilbridge', '모루 다리', [
     { ...CHAFF, count: 3 },
     {
@@ -584,16 +584,16 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ]),
-  ttangttang: { key: 'ttangttang', lowLevel: true, name: '모루 골렘 땅땅', tier: '던전 · 5인', board: 'b18', comp: PARTY5, hp: 7600, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'ttangttang', stage: 0.25 },
+  ttangttang: { key: 'ttangttang', lowLevel: true, name: '모루 골렘 땅땅', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7600, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'ttangttang', stage: 0.25 },
   // 10인 ⑧ 코볼트 보물 굴 (51 4-1, Lv 63 · 악몽 78): 체력은 자동 힐러 시뮬로 목표 시간에 쓰러지게 맞춤
-  kkojil: { key: 'kkojil', name: '코볼트 보물 지킴이 꼬질', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 18500, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'kkojil', stage: 0.18, debuffs: ['독'] },
-  deolkeong: { key: 'deolkeong', name: '코볼트 수레꾼 덜컹이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 23000, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'deolkeong', stage: 0.18, debuffs: ['마법'] },
-  beonjjeok: { key: 'beonjjeok', name: '코볼트 대장 번쩍이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 21500, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'beonjjeok', stage: 0.18 },
+  kkojil: { key: 'kkojil', name: '코볼트 보물 지킴이 꼬질', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 18500, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'kkojil', stage: 0.18, debuffs: ['독'] },
+  deolkeong: { key: 'deolkeong', name: '코볼트 수레꾼 덜컹이', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 23000, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'deolkeong', stage: 0.18, debuffs: ['마법'] },
+  beonjjeok: { key: 'beonjjeok', name: '코볼트 대장 번쩍이', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 21500, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'beonjjeok', stage: 0.18 },
   // ---------- 묶음 D2 (51 1장 · 4-2 · 4-3) ----------
   // 10인 ⑨ 어미 용의 둥지 (Lv 67 · 악몽 82). 삼남매 몸통 체력 = hp ÷ 3 (bosses WHELP_HP)
-  whelps: { key: 'whelps', name: '새끼 용 삼남매', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 23400, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'whelps', stage: 0.18, debuffs: ['마법'] },
-  dandani: { key: 'dandani', name: '용 비늘 경비대장 단단이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 25000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'dandani', stage: 0.18, debuffs: ['마법'] },
-  rubina: { key: 'rubina', name: '어미 용 루비나', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 23000, enrage: 480, manaCoef: 1.5, diffs: ALL, script: 'rubina', stage: 0.18, debuffs: ['독', '마법'] },
+  whelps: { key: 'whelps', name: '새끼 용 삼남매', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 23400, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'whelps', stage: 0.18, debuffs: ['마법'] },
+  dandani: { key: 'dandani', name: '용 비늘 경비대장 단단이', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 25000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'dandani', stage: 0.18, debuffs: ['마법'] },
+  rubina: { key: 'rubina', name: '어미 용 루비나', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 23000, enrage: 480, manaCoef: 1.5, diffs: ALL, script: 'rubina', stage: 0.18, debuffs: ['독', '마법'] },
   // 탐험 ⑰ 「잠긴 호숫가」 (51 1-1, Lv 68, 심연 졸개): 물이 빠진 호숫가 → 물그림자 기사 셋 (생명 사슬 균형형 쉬운 판, 20인 대성당 회랑 예습)
   shoretrash: trash('shoretrash', '물이 빠진 호숫가', [
     { name: '공허의 종복', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },

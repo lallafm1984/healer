@@ -37,15 +37,20 @@ describe('역병 수로', () => {
     expect(BOSSES.ratking.skills.find(s => s.key === 'hunt')!.effect).toMatchObject({ p: 'hunt', nMythic: 2 });
   });
 
-  it('운반자: 축복 배달을 든 파티원은 옆에 아무도 없는 칸으로 비켜 서고, 그때 지우면 사라짐', () => {
+  it('운반자: 축복 배달을 든 파티원은 옆 사람이 가장 적은 칸으로 비켜 서고 (10칸 판은 빈 곳이 없을 때가 많음), 옆이 비었을 때 지우면 사라짐', () => {
     const f = E.create({ encounter: 'carrier', diff: '쉬움', seed: 2, level: 40, hero: 'priest' });
     f.skills.forEach(s => { s.next = Infinity; });
-    const u = f.party.find(x => x.role === 'ranged' && near(f, x).length > 0) ?? f.party.find(x => x.role === 'ranged')!;
+    // 빈 칸 중 옆 사람이 가장 적은 곳보다 지금 옆 사람이 많은 파티원
+    const fewest = (x: E.Unit) => Math.min(...f.cells.filter(c => !c.unit && !c.block).map(c => f.party.filter(v => v !== x && v.alive && E.hexDist(f.cells[v.cell], c) <= 1).length));
+    const u = f.party.find(x => !x.me && x.role !== 'tank' && near(f, x).length > fewest(x))!;
     u.p = { ...u.p, dist: 0 };
     f.diff = { ...f.diff, dodge: 1 };
+    const before = near(f, u).length;
     applyDebuff(f, u, (BOSSES.carrier.skills.find(s => s.key === 'bless')!.effect as { debuff: DebuffDef }).debuff);
-    until(f, 4, () => !u.moving && near(f, u).length === 0 && f.t > 0.5);
-    expect(near(f, u)).toHaveLength(0);
+    until(f, 4, () => !u.moving && near(f, u).length < before && f.t > 0.5);
+    expect(near(f, u).length).toBeLessThan(before);
+    // 옆 사람이 남았으면 비켜 줬다고 치고 (쓰러진 사람은 안 옮음) 자동 힐러가 지우게 둠
+    for (const v of near(f, u)) v.alive = false;
     const e0 = f.empower;
     until(f, 6, () => !u.debuffs.some(d => d.name === '축복 배달'), true);
     expect(u.debuffs.some(d => d.name === '축복 배달')).toBe(false);

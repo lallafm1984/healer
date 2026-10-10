@@ -176,25 +176,26 @@ describe('초기화·극소 영역의 수치 안정성', () => {
   });
 });
 
-describe('보스전 판 (Lim 2026-10-09: 레이드는 6줄로 일정하게 · 2026-10-10: 5인 던전은 칸을 줄여 크게)', () => {
-  it('10인 · 20인은 6열 × 6줄 b36, 던전 5인은 5 · 4칸 번갈아 4줄 b18, 탐험·튜토리얼은 7칸', () => {
+describe('보스전 판 (Lim 2026-10-10: 5인은 그전처럼 10칸, 10인은 20인보다 크게, 20인은 6줄)', () => {
+  it('던전 5인 = 10칸 b10, 10인 = 5 × 5 b25, 20인 = 6 × 6 b36, 탐험·튜토리얼 = 7칸', () => {
+    const want: Record<number, string> = { 4: 'b10', 9: 'b25', 19: 'b36' };
     for (const enc of Object.values(ENCOUNTERS)) {
       const n = enc.comp.tank + enc.comp.melee + enc.comp.ranged;
       if (enc.board === 'b7') expect(n, enc.key).toBeLessThanOrEqual(2);
-      else if (n === 4) expect(enc.board, enc.key).toBe('b18');
-      else {
-        expect(enc.board, enc.key).toBe('b36');
-        expect(BOARDS.b36.every(r => r.join() === '0,1,2,3,4,5'), enc.key).toBe(true);
-      }
+      else expect(enc.board, enc.key).toBe(want[n]);
     }
-    expect(BOARDS.b18.map(r => r.length)).toEqual([5, 4, 5, 4]);
+    expect(BOARDS.b10.map(r => r.length)).toEqual([3, 4, 3]);
+    expect(BOARDS.b25.map(r => r.join())).toEqual(Array(5).fill('0,1,2,3,4'));
+    expect(BOARDS.b36.map(r => r.join())).toEqual(Array(6).fill('0,1,2,3,4,5'));
   });
 
   // 전투 화면 판 영역 (CSS px, 2026-10-10 실측): S25 · S25 울트라 · 울트라 WQHD · Z 플립 펼침
-  it.each([[360, 284], [384, 315], [412, 394], [360, 359]])('5인 판은 %i × %i 판 영역의 좌우를 가득 채우고 칸이 6열 판보다 1.4배쯤 큼', (w, h) => {
-    const cells = makeCells(BOARDS.b18), layout = fitBoard(cells, w, h);
-    expect(layout.axis).toBe('horizontal');
-    expect(expectContained(cells, layout).width).toBeCloseTo(layout.right - layout.left, 7);
-    expect(layout.s / fitBoard(makeCells(BOARDS.b36), w, h).s).toBeGreaterThan(1.3);
+  it.each([[360, 284], [384, 315], [412, 394], [360, 359]])('%i × %i: 5인 판은 좌우를 가득 채우고, 칸 크기는 5인 > 10인 > 20인', (w, h) => {
+    const size = (b: keyof typeof BOARDS) => fitBoard(makeCells(BOARDS[b]), w, h);
+    const five = size('b10');
+    expect(five.axis).toBe('horizontal');
+    expect(expectContained(makeCells(BOARDS.b10), five).width).toBeCloseTo(five.right - five.left, 7);
+    expect(five.s / size('b25').s).toBeGreaterThan(1.3);
+    expect(size('b25').s / size('b36').s).toBeGreaterThan(1.15);
   });
 });

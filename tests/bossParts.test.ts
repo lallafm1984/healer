@@ -652,9 +652,10 @@ describe('판에 나오는 적 2 (35 3-I): 감옥 · 걸어오는 쫄 · 자폭 
     expect(focusOrder(f).map(m => m.name)).toEqual(['치유사', '폭탄', '심연 감옥', '수정', '꼬마 악마']);
   });
 
-  it('걸어오는 쫄: 뒷줄에 나와 every초마다 한 줄씩 앞으로, 걸음이 다 되면 흡수 → 보스 피해 +10%씩 (더함)', () => {
+  it('걸어오는 쫄: 뒷줄에 나와 한 줄씩 앞으로 (every는 6줄 판 기준, 줄이 적으면 천천히), 걸음이 다 되면 흡수 → 보스 피해 +10%씩 (더함)', () => {
     const f = raid();
     const mult = f.dmgMult;
+    const step = 3 * 6 / f.rows; // 10인 5줄 판: 3.6초마다, 뒷줄에서 보스까지 18초
     const MARCH = { ...IMP, name: '진흙 덩이', short: '진흙', dmg: 0, job: { p: 'march' as const, every: 3, boost: 0.1 } };
     run(f, { p: 'adds', n: 1, add: MARCH });
     const m = f.mobs[f.mobs.length - 1];
@@ -664,19 +665,19 @@ describe('판에 나오는 적 2 (35 3-I): 감옥 · 걸어오는 쫄 · 자폭 
     expect(m.add!.steps).toBe(row0 + 1);
     let last = row0;
     for (let k = 1; k <= row0; k++) {
-      steps(f, 3);
+      steps(f, step);
       const r = f.cells[m.add!.cell!].row;
       expect(r).toBeLessThanOrEqual(last);
       expect(r).toBeGreaterThanOrEqual(row0 - k);
       last = r;
       expect(m.alive).toBe(true);
     }
-    steps(f, 3);
+    steps(f, step);
     expect(m.alive).toBe(false);
     expect(f.empower).toBeCloseTo(0.1);
     expect(f.dmgMult / mult).toBeCloseTo(1.1);
     run(f, { p: 'adds', n: 1, add: MARCH });
-    steps(f, 3 * (f.cells[f.mobs[f.mobs.length - 1].add!.cell!].row + 1) + 0.1);
+    steps(f, step * (f.cells[f.mobs[f.mobs.length - 1].add!.cell!].row + 1) + 0.1);
     expect(f.empower).toBeCloseTo(0.2);
     expect(f.dmgMult / mult).toBeCloseTo(1.2);
     // 잡으면 흡수 안 됨
