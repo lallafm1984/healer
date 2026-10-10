@@ -28,11 +28,9 @@ export default async function dungeon(url, shots) {
   ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true', '콘텐츠 기본 탭 = 던전 5인');
   ok(await page.getAttribute('#s-content [data-content="rustfort"]', 'aria-pressed') === 'true' && /녹슨 요새/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo'), '녹슨 요새가 골라져 있고 출전 가능');
   ok(await page.getAttribute('#s-content [data-diff="보통"]', 'aria-pressed') === 'true', '난이도 기본 = 아직 안 깬 보통');
-  // 묶음 B 던전 (역병 수로)은 아직 안 만듦
+  // 묶음 B (46)로 던전 ⑧~⑩까지 모두 만듦: 준비 중 칸이 없고, 맨 끝 역병 수로도 관문에서 출전 가능
   await page.click('#s-content [data-content="sewer"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-content [data-content="sewer"]', 'aria-pressed') === 'true' && /준비 중/.test(await page.textContent('#s-content .b-gate')) && await page.isDisabled('#contentGo'), '안 만든 던전 = 관문에 준비 중, 출전 막힘');
-  await page.click('#contentGo', { force: true }); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-content'), '준비 중 장소는 출전을 눌러도 그대로');
+  ok(await page.getAttribute('#s-content [data-content="sewer"]', 'aria-pressed') === 'true' && /역병 수로/.test(await page.textContent('#s-content .b-gate')) && !/준비 중/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo') && (await page.locator('#s-content .b-pl.off').count()) === 0, '던전은 모두 만듦 = 준비 중 칸 없음, 역병 수로도 출전 가능');
   await page.click('#s-content [data-content="crypt"]'); await page.clock.runFor(50);
   await page.click('#s-content [aria-label="이전 장소"]'); await page.clock.runFor(50);
   ok(await page.getAttribute('#s-content [data-content="rustfort"]', 'aria-pressed') === 'true', '‹ = 같은 분류의 이전 장소 (녹슨 요새)');
