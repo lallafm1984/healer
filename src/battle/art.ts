@@ -52,6 +52,10 @@ const ENC_ART: Record<string, string[]> = {
   duo: ['mob-scrap-minion', 'boss-rust-guardian'],
   trash: ['mob-scrap-minion', 'boss-rust-guardian'],
   plague: ['boss-plague-lord'],
+  hydra: ['boss-swamp-hydra'],
+  twins: ['boss-twin-queens'],
+  orben: ['boss-orben'],
+  abysslord: ['boss-abyss-lord'],
   // 묶음 A (그림 요청 44): 그림이 올 때까지 벡터 그림
   collector3: ['boss-bone-collector'],
   ashyard: ['mob-risen-bones', 'mob-cult-acolyte'],

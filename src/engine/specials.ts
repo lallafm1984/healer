@@ -133,6 +133,7 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   }
   if (v.blackStone && alone(f, u)) m += v.blackStone;
   if (v.lordIncense && u.debuffs.filter(d => !d.hide).length >= 2) m += v.lordIncense;
+  if (u.me && v.brokenChain && on(f, 'brokenChain')) m += v.brokenChain;
   if (f.t < 20) m += v.firstWord ?? 0;
   if (bossPct(f) < 0.3) m += v.secondWind ?? 0;
   if (f.mana > 90) m += v.brimming ?? 0;
@@ -418,6 +419,7 @@ export function afterHurt(f: Fight, u: Unit, hp0: number): void {
     shout(f, 'lastStand');
   }
   if (v.ropeKnot && u.hp > 0) rope(f, u, hp0 - u.hp);
+  if (u.me && v.brokenChain && hp0 >= u.max * 0.5 && u.hp < u.max * 0.5 && u.hp > 0) proc(f, 'brokenChain', 8, 60); // 끊어진 사슬 (39 4장)
 }
 
 /** 밧줄 매듭: 2초 안에 최대 체력 30% 넘게 잃으면 그 아군에게 보호막 (재사용 20초) */

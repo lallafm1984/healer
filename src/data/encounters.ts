@@ -8,10 +8,12 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'ashyard' | 'collector3' | 'reedbank' | 'shaman8' | 'bonepass' | 'collector' | 'censerhall' | 'malchor'
   | 'flowerbed' | 'butler13' | 'rotbridge' | 'shaman' | 'toad' | 'toadnest' | 'seres' | 'snowslope' | 'golem18'
   | 'parlor' | 'butler' | 'lady' | 'kennel' | 'belmore' | 'restyard' | 'guardian23'
-  | 'icehall' | 'frostgolem' | 'mage' | 'frostlab' | 'shadow' | 'brokenbridge' | 'keeper28' | 'templeyard' | 'guardian' | 'nave' | 'keeper' | 'riftground' | 'plague33' | 'rubblestair' | 'sentinel' | 'blackrift' | 'crystal';
+  | 'icehall' | 'frostgolem' | 'mage' | 'frostlab' | 'shadow' | 'brokenbridge' | 'keeper28' | 'templeyard' | 'guardian' | 'nave' | 'keeper' | 'riftground' | 'plague33' | 'rubblestair' | 'sentinel' | 'blackrift' | 'crystal'
+  | 'hydra' | 'twins' | 'orben' | 'abysslord';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
-  | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal';
+  | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
+  | 'hydra' | 'twins' | 'orben' | 'abysslord';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -105,6 +107,11 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
   warden: { key: 'warden', lowLevel: true, name: '녹슨 문지기', tier: '던전 · 5인', board: 'b36', comp: PARTY5, hp: 7000, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'warden', stage: 0.25 },
   // 10인 레이드 「심연의 탑」 1층 (05 2장). 악몽 = 공통 악몽 규칙 + 전용 패턴 (26 3-1)
   plague: { key: 'plague', name: '역병 군주', tier: '레이드 · 10인', board: 'b36', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 22000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'plague', stage: 0.18, debuffs: ['질병', '독'] },
+  // 심연의 탑 2층 ~ 꼭대기 (05 3~6장, 35 5장 보강). 광폭화는 05 공통 표, 체력은 판 위 적 · 딜 0 기믹으로 늘어난 시간만큼 05 표에서 낮춤 (2층 24,000 · 4층 27,000 · 꼭대기 34,000). 꼭대기는 가장 길어서 마나 회복 1.5
+  hydra: { key: 'hydra', name: '늪의 어머니 히드라', tier: '레이드 · 10인', board: 'b36', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 21000, enrage: 420, manaCoef: 1.3, diffs: ALL, script: 'hydra', stage: 0.18, debuffs: ['독'] },
+  twins: { key: 'twins', name: '쌍둥이 여군주', tier: '레이드 · 10인', board: 'b36', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 26000, enrage: 450, manaCoef: 1.3, diffs: ALL, script: 'twins', stage: 0.18, debuffs: ['저주'] },
+  orben: { key: 'orben', name: '대마도사 오르벤', tier: '레이드 · 10인', board: 'b36', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 20000, enrage: 450, manaCoef: 1.3, diffs: ALL, script: 'orben', stage: 0.18, debuffs: ['마법'] },
+  abysslord: { key: 'abysslord', name: '심연의 군주', tier: '레이드 · 10인', board: 'b36', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 28000, enrage: 510, manaCoef: 1.5, diffs: ALL, script: 'abysslord', stage: 0.18, debuffs: ['질병', '독', '저주', '마법'] },
   // 20인 레이드 「가라앉은 대성당」 1구역 (26 4-3): 성가대원 4,000 × 3 + 지휘자 30,000
   choir: { key: 'choir', name: '유령 성가대', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 42000, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'choir', big: true, stage: 0.13, debuffs: ['마법'] },
   // 녹슨 요새 (23). 첫 보스 = 문지기를 순하게 줄인 판

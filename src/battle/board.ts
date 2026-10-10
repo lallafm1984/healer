@@ -583,6 +583,12 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   'zone-burst': { size: 1.6, color: 0xff5a3d },
   'jail-break': { size: 1.8, color: 0xd8c7a8, ms: 500 },
   'mana-drop': { size: 1.0, color: 0x5aa8ff, ms: 600, up: 0.6 },
+  // 심연의 탑 2~5층 (그림 요청 44 H): 피의 서약 분담 · 탱커 교대 · 깨진 시간 · 치유 흡수 막 · 전투의 함성
+  soak: { size: 2.4, color: 0xd8475a, ms: 600 },
+  swap: { size: 0.9, color: 0xc9a2ff, ms: 450, fly: true },
+  slow: { size: 1.6, color: 0x8fd3ff, ms: 700 },
+  absorb: { size: 1.5, color: 0xb48be8, ms: 600 },
+  cheer: { size: 1.4, color: 0xffd166, ms: 700, up: 0.4 },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();
@@ -1037,7 +1043,8 @@ export function render(now: number): void {
     const nameBox = nick(u, x, y + r * (compact ? -0.29 : 0.13), r);
     const health = healthDisplay(u.hp, u.max);
     const hasHot = u.hot > 0 || u.hots.length > 0;
-    const hpText = `${health.critical ? '!' : ''}${compact ? `${health.percent}%` : Math.ceil(u.hp)}`;
+    // 영원한 저녁 (05 6-G): 숫자 없이 채움 색만
+    const hpText = F.dark ? '?' : `${health.critical ? '!' : ''}${compact ? `${health.percent}%` : Math.ceil(u.hp)}`;
     const hpY = y + r * (compact ? 0.25 : 0.6);
     const hpLabel = labels.put(`hp${u.id}`, hpText, {
       size: typography.hp, fill: C.white, weight: W_NUM, strokeW: compact ? 1.5 : 2.5, num: !compact,

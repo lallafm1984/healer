@@ -9,6 +9,8 @@ import { runOnce } from '../src/sim/balance';
 
 /** 종류: 탐험 · 던전 · 10인 · 20인 */
 const kindOf = (c: ContentDef) => (c.kind === 'raid' ? `${c.size('보통')}인` : c.kind);
+/** 한 레이드의 층 · 구역 (심연의 탑 1층 ~ 꼭대기)은 이름 앞부분이 같음 */
+const groupOf = (c: ContentDef) => (c.kind === 'raid' ? c.name.replace(/ \S+$/, '') : c.key);
 const shown = CONTENT.filter(c => !c.hidden);
 const made = shown.filter(c => c.ready);
 
@@ -24,12 +26,12 @@ describe('모든 장소', () => {
       expect(p && FACTIONS[p.faction], c.key).toBeTruthy();
     }
   });
-  it('같은 종류는 같은 레벨에 두 곳 없음', () => {
+  it('같은 종류는 같은 레벨에 두 곳 없음 (한 레이드의 층 · 구역은 한 곳)', () => {
     const seen = new Map<string, string>();
     for (const c of shown) {
-      const k = `${kindOf(c)} Lv ${c.unlockLv}`;
-      expect(seen.get(k), `${c.key}와 ${seen.get(k)}`).toBeUndefined();
-      seen.set(k, c.key);
+      const k = `${kindOf(c)} Lv ${c.unlockLv}`, g = groupOf(c);
+      expect(seen.get(k) ?? g, `${c.key}와 ${seen.get(k)}`).toBe(g);
+      seen.set(k, g);
     }
   });
 });

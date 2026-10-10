@@ -168,7 +168,7 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   temple: ['beads', 'ring', 'wraps'],
   abyssedge: ['vestment', 'gauntlet'],
   watchtower: ['helm', 'mail', 'gauntlet'],
-  abyss1: ['vestment'],
+  abyss1: ['vestment'], abyss2: ['mail'], abyss3: ['wraps'], abyss4: ['gloves'], abyss5: ['pendant'],
 };
 export const KIND_WEIGHT = 3;
 
