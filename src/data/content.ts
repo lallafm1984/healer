@@ -10,7 +10,8 @@ import { CONTENT_PLACE, FACTIONS, PLACES } from './places';
 export type ContentKind = 'explore' | 'dungeon' | 'raid';
 export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathedral1' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple'
   | 'watchtower' | 'archive' | 'ossuary' | 'sewer'
-  | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge';
+  | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge'
+  | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
 
@@ -115,6 +116,15 @@ export const CONTENT: ContentDef[] = [
     key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 탑 1층', place: '납골당 · 역병 군주', stageLv: 35, unlockLv: 35, ready: true,
     fights: () => ['plague'], size: () => 10, diffUnlock: { '악몽': 50 },
   },
+  // 심연의 탑 2층 ~ 꼭대기 (39 1-3): 층마다 보스 1, 1층과 같은 Lv 35 · 악몽 Lv 50
+  ...([
+    ['abyss2', '심연의 탑 2층', '늪의 정원 · 늪의 어머니 히드라', '늪의 어머니 히드라', 'hydra'],
+    ['abyss3', '심연의 탑 3층', '백합 회랑 · 쌍둥이 여군주', '쌍둥이 여군주', 'twins'],
+    ['abyss4', '심연의 탑 4층', '서리 전망대 · 대마도사 오르벤', '대마도사 오르벤', 'orben'],
+    ['abyss5', '심연의 탑 꼭대기', '첨탑 · 심연의 군주', '심연의 군주', 'abysslord'],
+  ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
+    key, bosses: [boss], kind: 'raid', name, place, stageLv: 35, unlockLv: 35, ready: true, fights: () => [enc], size: () => 10, diffUnlock: { '악몽': 50 },
+  })),
   {
     // 20인 레이드 (26 4장): 따로 된 레이드, 난이도 4개 모두 20인
     key: 'cathedral1', bosses: ['유령 성가대'], kind: 'raid', name: '가라앉은 대성당 1구역', place: '해바라기 언덕 아래 · 호수 밑', stageLv: 70, unlockLv: 70, ready: true,

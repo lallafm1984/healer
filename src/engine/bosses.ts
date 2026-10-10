@@ -7,7 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abOnTel } from './abilities';
 import { affChaos } from './affixes';
-import { addsTick, aggroTarget, backTargets, flowNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soulsTick, staggerTick, stunBoss, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, backTargets, flowNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import { specBuster, specCut, specTel } from './specials';
@@ -31,12 +31,15 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
     warn: d.warn, cut: d.cut || e?.p === 'counter', dmg: d.dmg, dps: d.dps != null ? d.dps * (f.mythic && d.dpsMythic ? d.dpsMythic : 1) : undefined, dur: d.dur,
     active: whenFn(d.when),
     target: d.target === 'tank' ? g => { const tk = aggroTarget(g); return tk ? [tk.id] : []; }
-      : d.target ? g => { const t = d.target as Exclude<SkillDef['target'], 'tank' | undefined>; return backTargets(g, g.mythic && t.nMythic ? t.nMythic : t.n).map(u => u.id); } : undefined,
+      : d.target ? g => {
+        const t = d.target as Exclude<SkillDef['target'], 'tank' | undefined>, n = g.mythic && t.nMythic ? t.nMythic : t.n;
+        return (t.p === 'random' ? randomTargets(g, n, u => u.role !== 'tank' && !u.me) : backTargets(g, n)).map(u => u.id);
+      } : undefined,
     fire: e ? g => runEffect(g, s, e) : undefined,
     hit: e ? (g, tel) => runEffect(g, s, e, tel) : undefined,
     cellsFor: z ? g => zoneCells(g, s, z) : e?.p === 'tower' ? g => padCells(g, e.n) : undefined,
     flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg, safe: z?.p === 'safe' || undefined, quake: e?.p === 'quake' || undefined,
-    stunOnCut: e?.p === 'counter' ? e.stun : undefined, pads: e?.p === 'tower' || undefined,
+    stunOnCut: e?.p === 'counter' ? e.stun : undefined, pads: e?.p === 'tower' || undefined, fixed: d.fixed, soak: e?.p === 'share' || undefined,
   });
   f.bs[d.key] = s;
   return s;
@@ -116,8 +119,9 @@ export function initBoss(f: Fight): void {
     const scale = f.bossMax / f.enc.hp;
     for (const b of def.bodies) f.mobs.push({ id: f.nextId++, name: b.name, elite: !!b.elite, boss: b.boss, hp: b.hp * scale, max: b.hp * scale, alive: true });
   }
+  f.split = !!def.split;
   for (const d of def.skills) fromDef(f, d);
-  if (def.watch) watchInit(f, def.watch);
+  if (def.watch && !def.watch.from) watchInit(f, def.watch);
 }
 
 /** 매 틱 보스 쪽: 페이즈 흐름 → 광폭화 */
@@ -125,6 +129,7 @@ function bossUpdate(f: Fight): void {
   if (f.enc.script === 'trash') return; // 일반·정예 구간은 광폭화 없음
   const def = BOSSES[f.enc.script];
   if (def.flow) runFlow(f, def.flow);
+  if (def.watch?.from && !f.watch && f.phase === def.watch.from) watchInit(f, def.watch); // 주시가 이 페이즈부터 (심연의 군주 3페이즈)
   if (f.mobs.length) addsTick(f);
   if (f.order) orderTick(f);
   if (f.watch) watchTick(f);
@@ -156,11 +161,12 @@ export function bossTick(f: Fight): void {
     if (s.safe) tel.safe = new Set(f.cells.filter(c => !c.block && !tel.cells.has(c.i)).map(c => c.i));
     f.tels.push(tel);
     if (s.pads) { tel.safe = new Set(tel.cells); padsGo(f, tel); } // 받침: 금빛 발판으로 파티원이 들어감
+    if (s.soak) soakGo(f, tel); // 집결 분담: 가까운 파티원이 대상 옆으로
     if (f.abOn) abOnTel(f, tel);
     if (f.sp) specTel(f, tel); // 북소리 (42 발동 13)
     if (f.aff) affChaos(f, tel);
     if (s.warn) emit(f, { type: 'sound', name: s.warn });
-    if (tel.kind === 'zone' && f.tels.includes(tel)) scheduleReactions(f, tel);
+    if (tel.kind === 'zone' && f.tels.includes(tel) && !s.fixed) scheduleReactions(f, tel); // 줄 피해 (P-ROW)는 안 비킴
   }
   for (const tel of f.tels.filter(t => t.impact <= f.t + 1e-9)) {
     if (tel.kind === 'zone') {

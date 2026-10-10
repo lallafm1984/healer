@@ -254,6 +254,7 @@ for (const def of Object.values(BOSSES)) for (const d of def.skills) {
   ICON_COLOR[d.icon] = (type && TYPE_COLOR[type]) || KIND_COLOR[d.kind ?? 'instant'];
 }
 const pctT = (x: number) => `${Math.round(x * 100)}%`;
+const ROW_NAME = { front: '앞줄', mid: '가운데 줄', back: '뒷줄' } as const;
 /** 디버프 한 줄: 「부패」 질병 20초 · 최대 체력 −10% */
 function debuffText(d: DebuffDef, n: (x: number) => number): string {
   const fx = [d.dot ? `초당 ${n(d.dot)}` : '', d.maxCut ? `최대 체력 −${pctT(d.maxCut)}` : '', d.healCut ? `받는 치유 −${pctT(d.healCut)}` : '',
@@ -261,7 +262,9 @@ function debuffText(d: DebuffDef, n: (x: number) => number): string {
     d.cureAt ? `체력 ${pctT(d.cureAt)} 채우면 떨어짐` : '', d.end?.p === 'hit' ? `시간 끝에 <b>${n(d.end.dmg)}</b>` : '',
     d.feed ? `빨아들인 만큼 × ${d.feed} 보스 회복` : '', d.end?.p === 'trapHit' ? `두면 시간 끝에 <b>${n(d.end.dmg)}</b>, 지우면 이웃 칸 <b>${n(d.end.burst)}</b>` : '',
     d.end?.p === 'blast' ? `끝나거나 지우면 이웃 칸 <b>${n(d.end.dmg)}</b>` : '',
-    d.end?.p === 'jump' && d.end.on === 'quake' ? `진동이 울리면 이웃 칸 아군에게 옮겨붙고 ×${d.end.mult}, 지우면 사라짐` : ''].filter(Boolean);
+    d.end?.p === 'jump' && d.end.on === 'quake' ? `진동이 울리면 이웃 칸 아군에게 옮겨붙고 ×${d.end.mult}, 지우면 사라짐` : '',
+    d.vuln ? `받는 피해 +${pctT(d.vuln)}${d.stackMax ? ' 중첩' : ''}` : '', d.swap ? `${d.swap}중첩이면 탱커 교대` : '',
+    d.absorb ? `치유 흡수 <b>${n(d.absorb)}</b> (다 채우면 사라짐)` : '', d.end?.p === 'stackHit' ? `끝나면 중첩 × <b>${n(d.end.dmg)}</b>` : ''].filter(Boolean);
   return `「${d.name}」 (${d.type}, ${secT(d.left)}${fx.length ? ` · ${fx.join(' · ')}` : ''})`;
 }
 /** 디버프 대응: 지울 수 있으면 해제, 아니면 버티기 */
@@ -269,11 +272,12 @@ const debuffHow = (d: DebuffDef) => (d.lock || d.trap ? '' : canDispel(S.hero, d
 /** 기술 효과 → [무엇, 어떻게] */
 function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: ProbeSkill | undefined): [string, string] {
   const { n } = c;
-  if (!e) return d.cells ? [`장판${d.dps ? `: 안에 있으면 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}${d.dur ? ` (${secT(d.dur)})` : ''}`, '파티원이 알아서 피함. 늦게 피하는 사람을 채우기'] : ['', ''];
+  if (!e && d.fixed) return [`${ROW_NAME[d.cells?.p === 'line' ? d.cells.at : 'mid']}에 선 사람 모두 <b>${n(d.hitDmg ?? 0)}</b> (피할 수 없음)`, `맞기 전에 그 줄을 ${act('poh', RO)} · ${act('renew', EUL)} 미리 채우기`];
+  if (!e) return d.cells ? [`장판${d.hitDmg ? `: 맞는 순간 그 칸 <b>${n(d.hitDmg)}</b>` : ''}${d.dps ? `${d.hitDmg ? ',' : ':'} 안에 있으면 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}${d.dur ? ` (${secT(d.dur)})` : ''}`, '파티원이 알아서 피함. 늦게 피하는 사람을 채우기'] : ['', ''];
   switch (e.p) {
-    case 'tank': return [`탱커에게 <b>${n(ps?.dmg ?? d.dmg ?? 0)}</b> 피해`, '예고가 뜨면 탱커를 미리 가득 채우기'];
+    case 'tank': return [`탱커에게 <b>${n(ps?.dmg ?? d.dmg ?? 0)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, e.debuff?.swap ? '교대한 탱커에게도 지속 힐을 걸어 두기' : '예고가 뜨면 탱커를 미리 가득 채우기'];
     case 'hunt': return [`그 순간 체력 비율이 가장 낮은 탱커 아닌 1명에게 <b>${n(e.dmg)}</b> 피해`, '예고 동안 가장 낮은 사람을 먼저 채우기'];
-    case 'all': return [`파티 전원에게 <b>${n(e.dmg)}</b> 피해`, `예고 동안 ${act('renew', EUL)} 미리 걸고, 맞은 뒤 ${act('poh', RO)} 채우기`];
+    case 'all': return [`파티 전원에게 <b>${n(e.dmg)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, `예고 동안 ${act('renew', EUL)} 미리 걸고, 맞은 뒤 ${act('poh', RO)} 채우기`];
     case 'debuff': return [`${e.n === 'all' ? '모두' : `${c.mythic && e.nMythic ? e.nMythic : e.n}명`}에게 ${debuffText(e.debuff, n)}`, debuffHow(e.debuff)];
     case 'rot': return [`${e.n}명 최대 체력 −${pctT(e.pct)} 중첩 (최대 ${e.max}) ${debuffText(e.debuff, n)}`, debuffHow(e.debuff)];
     case 'pull': return [`뒷줄 1명을 보스 앞으로 끌어옴. ${secT(e.sec)} 동안 평타를 탱커와 번갈아 맞음 (한 대에 <b>${n(e.dmg)}</b>)${e.pad ? `. 그 칸에 받침: 끝에 위 사람 <b>${n(e.pad.dmg)}</b>, 비어 있으면 전원 <b>${n(e.pad.empty)}</b>` : ''}`,
@@ -293,6 +297,10 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
     case 'link': return [`두 사람을 「${e.name}」으로 ${secT(e.sec)} 이음`, e.kind === 'balance' ? '두 사람 체력 비율을 비슷하게' : '둘이 피해 · 치유를 나눔'];
     case 'vessel': return [`「${e.name}」: 넘친 치유를 모아 가득 차면 전원 보호막`, '일부러 넘치게 힐하기'];
     case 'auto': return [`탱커에게 ${n(e.dmg)}`, ''];
+    case 'share': return [`🎯 대상과 이웃 칸 아군이 <b>${n(e.dmg)}</b>를 인원 수로 나눠 받음 (혼자면 그대로)`, '가까운 파티원이 모임. 대상을 미리 채우고, 모인 칸에 광역 힐'];
+    case 'trade': return [`두 탱커의 「${e.name}」 중첩이 서로 바뀜`, '바뀐 뒤 바로 교대가 오니 두 탱커 모두 채워 두기'];
+    case 'slow': return [`${secT(e.sec)} 동안 내 시전 시간 ×${e.mult}`, '그동안 즉시 스킬 · 지속 힐로 버티기'];
+    case 'empower': return [`보스 피해 +${pctT(e.boost)} (끝까지 쌓임)`, '오래 끌수록 아파짐. 쿨기를 이때 쓰기'];
   }
 }
 /** 기술이 도는 때 (페이즈 · 체력 문턱) */
@@ -304,7 +312,8 @@ function whenText(d: SkillDef): string {
 }
 function dataGuide(c: GuideCtx): GuideBody {
   const def = BOSSES[c.enc.script as Exclude<ScriptKey, 'trash'>], { sk, B, n } = c;
-  const shown = def.skills.filter(d => !d.hidden && (d.when?.mythic == null || d.when.mythic === c.mythic));
+  // 대기열에 안 보이는 기술도 공략 글(how)이 있으면 공략에 (가시 중첩 · 짙어지는 저녁)
+  const shown = def.skills.filter(d => (!d.hidden || d.how) && (d.when?.mythic == null || d.when.mythic === c.mythic));
   const phases: GuidePhase[] = [{ id: 'p1', name: '시작', at: '처음부터', text: shown.filter(d => !whenText(d)).map(d => d.name).join(' · ') }];
   // 체력 문턱 · 페이즈 흐름: 문턱마다 한 줄
   const marks = new Map<number, string[]>();

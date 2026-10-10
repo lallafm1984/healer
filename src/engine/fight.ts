@@ -64,7 +64,7 @@ export function create(cfg: FightConfig): Fight {
     standin: null,
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
-    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null, empower: 0, lock: {}, watch: null, stagger: null, souls: [], links: [], vessel: null, bless: null, weak: null, sp: cfg.proto ? null : newSpecs(cfg.specs),
+    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null, empower: 0, lock: {}, watch: null, stagger: null, souls: [], links: [], vessel: null, bless: null, weak: null, sp: cfg.proto ? null : newSpecs(cfg.specs), hold: null, slow: null, cheer: null, dark: false, split: false,
     items: {}, potCd: 0, medit: 0, itemLog: [],
     stats: { healed: 0, overheal: 0, deaths: 0, minMana: 100, dispels: 0, dispellable: 0, trapPops: 0, queueLost: 0, casts: {}, taps: 0, missTaps: 0, emptyTaps: 0, cancels: 0, manaFails: 0, hymnBroken: 0 },
     nextId: 1,
@@ -237,14 +237,14 @@ function partyHits(f: Fight): void {
   for (const u of f.party) {
     if (u.me) continue;
     if (!u.alive) { u.acc = 0; continue; }
-    if (f.invuln) continue;
+    if (f.invuln && !(u.role !== 'tank' && f.mobs.some(m => m.alive && m.add))) continue; // 인터미션 무적: 딜러는 판 위 적 (감옥)만 침
     u.acc += unitDps(u, f) * DT;
     if ((f.k + u.id * 7) % SWING[u.role as Exclude<Role, 'healer'>] !== 0 || u.acc <= 0 || f.bossHp <= 0) continue;
     const amt = u.acc;
     if (f.stagger && u.hp >= u.max * f.stagger.hp - 1e-9) f.stagger.fill += amt * (u.role === 'tank' ? f.stagger.tank : 1); // 무력화 게이지 (P-STAGGER)
     u.dealt += Math.min(amt, f.bossHp);
     u.acc = 0;
-    if (f.bodyHp) hitMobs(f, amt);
+    if (f.bodyHp) hitMobs(f, amt, u);
     else if (u.role !== 'tank' && f.mobs.length) hitAdds(f, amt);
     else f.bossHp -= amt * (f.daze || f.mobs.length ? bossTaken(f) : 1); // 멍함 · 보호막 수정 (35 3-I)
     emit(f, { type: 'hit', uid: u.id, amt });
@@ -266,13 +266,17 @@ function hitAdds(f: Fight, d: number): void {
     left -= x / boost;
     damageMob(f, m, x);
   }
-  if (left > 1e-9) f.bossHp -= left * bossTaken(f);
+  if (left > 1e-9 && !f.invuln) f.bossHp -= left * bossTaken(f);
 }
 
-/** 일반·정예 구간: 파티 딜은 잡을 차례인 적에게, 남는 딜은 다음 적에게 (23 2장) */
-function hitMobs(f: Fight, d: number): void {
+/**
+ * 일반·정예 구간: 파티 딜은 잡을 차례인 적에게, 남는 딜은 다음 적에게 (23 2장).
+ * 고르게 깎는 몸통 (쌍둥이 여군주): 체력이 많은 몸통부터, 딜 욕심쟁이는 적은 쪽부터
+ */
+function hitMobs(f: Fight, d: number, u?: Unit): void {
   let left = d;
-  for (const m of f.mobs) {
+  const order = f.split ? f.mobs.filter(m => m.alive && !m.add).sort((a, b) => (u?.p.greedy ? a.hp - b.hp : b.hp - a.hp)) : f.mobs;
+  for (const m of order) {
     if (!m.alive || m.add) continue;
     const x = Math.min(m.hp, left);
     m.hp -= x; left -= x;

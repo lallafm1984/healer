@@ -8,19 +8,20 @@ import { HEROES } from '../data/heroes';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
-import { addDebuff, cellOf, damage, DT, emit, empowerBoss, heal, living, randomTargets, setMax, spread, unitById } from './core';
+import { addDebuff, cellOf, damage, DT, emit, empowerBoss, heal, living, onDebuffEnd, randomTargets, setMax, spread, unitById } from './core';
 import { moveTo, scheduleReactions, zoneOf } from './movement';
 import { hotTick } from './units';
 import { during, immune, specBroken, specPhase, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
- * 보스가 때릴 사람: 살아 있는 탱커. 탱커가 모두 쓰러지면 대신 막는 사람
+ * 보스가 때릴 사람: 보스를 잡은 탱커 (탱커 교대 P-SWAP), 없으면 줄 앞 살아 있는 탱커. 탱커가 모두 쓰러지면 대신 막는 사람
  * (버팀목 특성 → 근접 → 원거리 → 나, 2026-10-07 Lim)
  */
 export function aggroTarget(f: Fight): Unit | null {
   const alive = f.party.filter(u => u.alive);
-  return alive.find(u => u.role === 'tank') || alive.find(u => u.traits.includes('bulwark')) || alive.find(u => u.role === 'melee') || alive.find(u => u.role === 'ranged') || alive.find(u => u.me) || null;
+  const held = f.hold != null ? alive.find(u => u.id === f.hold && u.role === 'tank') : undefined;
+  return held || alive.find(u => u.role === 'tank') || alive.find(u => u.traits.includes('bulwark')) || alive.find(u => u.role === 'melee') || alive.find(u => u.role === 'ranged') || alive.find(u => u.me) || null;
 }
 
 /** 보스 평타 ±30% (전사 「단단한 몸」은 ±15%, 17) */
@@ -55,7 +56,12 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       return;
     }
     case 'tank':
-      for (const id of tel?.units ?? []) { const u = unitById(f, id); if (u) damage(f, u, s.dmg!, false, 'tank'); }
+      for (const id of tel?.units ?? []) {
+        const u = unitById(f, id);
+        if (!u) continue;
+        damage(f, u, s.dmg!, false, 'tank');
+        if (e.debuff && u.alive) applyDebuff(f, u, e.debuff); // 물어뜯기 독 · 공허 중첩
+      }
       return;
     case 'hunt': {
       const u = lowestTargets(f, 1, x => x.role !== 'tank')[0];
@@ -66,6 +72,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       let dmg = e.phaseDmg?.[f.phase] ?? e.dmg;
       if (e.grow) { const n = (s.st.n as number | undefined) ?? 0; dmg += e.grow * n; s.st.n = n + 1; } // 커지는 광역 (수정 핵 과열)
       for (const u of living(f)) damage(f, u, dmg, true);
+      if (e.debuff) for (const u of living(f)) applyDebuff(f, u, e.debuff); // 독안개 분출 · 그림자 파동 메아리
       return;
     }
     case 'debuff': {
@@ -78,10 +85,15 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         : e.pick === 'lowest' ? lowestTargets(f, n, u => free(u) && u.role !== 'tank')
         : randomTargets(f, n, e.pick === 'others' ? u => free(u) && u.role !== 'tank' && !u.me : free);
       for (const u of ts) applyDebuff(f, u, d);
-      // 전염 (26 3-1): 두 대상이 붙어 서 있으면 걸리자마자 둘 다 터짐
+      // 전염 (26 3-1) · 불안정한 마력 둘 (05 5-C): 두 대상이 붙어 서 있으면 걸리자마자 둘 다 터짐
       if (e.burstAdjacent && ts.length === 2 && hexDist(cellOf(f, ts[0]), cellOf(f, ts[1])) === 1) {
         emit(f, { type: 'msg', text: `${d.name} 대상이 붙어 있어 바로 터짐` });
-        for (const u of ts) { const x = u.debuffs.find(y => y.name === d.name); if (x) { u.debuffs = u.debuffs.filter(y => y !== x); spread(f, u); } }
+        for (const u of ts) {
+          const x = u.debuffs.find(y => y.name === d.name);
+          if (!x) continue;
+          u.debuffs = u.debuffs.filter(y => y !== x);
+          if (d.end?.p === 'spread' || !d.end) spread(f, u); else onDebuffEnd(f, u, x, false);
+        }
       }
       return;
     }
@@ -183,9 +195,14 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       return;
     }
     case 'cycle': {
-      // 네 가지 청소약: 쓸 때마다 다음 디버프
+      // 네 가지 청소약: 쓸 때마다 다음 디버프. each = 한 번에 n명이 하나씩 다른 디버프 (네 가지 메아리)
       const k = (s.st.k as number | undefined) ?? 0;
       s.st.k = k + 1;
+      if (e.each) {
+        const ts = randomTargets(f, e.n, x => !e.debuffs.some(d => x.debuffs.some(y => y.name === d.name)));
+        ts.forEach((u, i) => applyDebuff(f, u, e.debuffs[(k + i) % e.debuffs.length]));
+        return;
+      }
       const d = e.debuffs[k % e.debuffs.length];
       for (const u of randomTargets(f, e.n, x => !x.debuffs.some(y => y.name === d.name))) applyDebuff(f, u, d);
       return;
@@ -198,6 +215,73 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       f.vessel = { name: e.name, fill: 0, need: f.party.reduce((a, u) => a + u.max, 0) * e.need, until: f.t + e.sec, shield: e.shield };
       emit(f, { type: 'msg', text: `${e.name}: ${e.sec}초 안에 넘친 치유로 채우면 전원 보호막` });
       return;
+    case 'share':
+      // 집결 분담 (P-SOAK): 대상과 이웃 칸 아군이 나눠 받음. 혼자면 그대로
+      for (const id of tel?.units ?? []) {
+        const u = unitById(f, id);
+        if (!u?.alive) continue;
+        const at = f.cells[u.moving ? u.moving.to : u.cell];
+        const group = [u, ...living(f).filter(v => v !== u && hexDist(f.cells[v.moving ? v.moving.to : v.cell], at) === 1)];
+        emit(f, { type: 'fx', name: 'soak', cell: at.i });
+        emit(f, { type: 'msg', text: `${s.name ?? '분담'}: ${group.length}명이 나눠 받음` });
+        for (const v of group) damage(f, v, e.dmg / group.length, true);
+      }
+      return;
+    case 'trade': {
+      // 뒤바뀐 자매: 두 탱커의 중첩 디버프를 맞바꿈
+      const [a, b] = living(f).filter(u => u.role === 'tank');
+      if (!a || !b) return;
+      const da = a.debuffs.filter(d => d.name === e.name), db = b.debuffs.filter(d => d.name === e.name);
+      a.debuffs = a.debuffs.filter(d => !da.includes(d)).concat(db);
+      b.debuffs = b.debuffs.filter(d => !db.includes(d)).concat(da);
+      emit(f, { type: 'fx', name: 'swap', on: a.id, to: b.id });
+      emit(f, { type: 'msg', text: `${s.name ?? '맞바꿈'}: ${e.name} 중첩이 상대 탱커에게` });
+      const tk = aggroTarget(f), d = tk?.debuffs.find(x => x.name === e.name);
+      if (tk && d?.swap && (d.stack ?? 1) >= d.swap) swapTank(f, tk);
+      return;
+    }
+    case 'slow':
+      // 깨진 시간 (05 5-E): 그동안 시작하는 내 시전이 느려짐
+      f.slow = { until: f.t + e.sec, mult: e.mult };
+      emit(f, { type: 'fx', name: 'slow', on: f.me.id });
+      emit(f, { type: 'msg', text: `${s.name ?? '느려짐'}: ${e.sec}초 동안 시전 시간 ×${e.mult}` });
+      return;
+    case 'empower': empowerBoss(f, e.boost, s.name ?? '분노'); return;
+  }
+}
+
+/** 탱커 교대 (P-SWAP): 지금 보스를 맞는 탱커(from)에게서 다른 살아 있는 탱커가 보스를 가져감 */
+function swapTank(f: Fight, from: Unit): void {
+  if (aggroTarget(f) !== from) return;
+  const to = living(f).find(u => u.role === 'tank' && u !== from);
+  if (!to) return;
+  f.hold = to.id;
+  emit(f, { type: 'fx', name: 'swap', on: from.id, to: to.id });
+  emit(f, { type: 'msg', text: `탱커 교대: ${to.nick}이(가) 보스를 받음` });
+}
+
+/** 모이러 안 가는 성격 (외톨이 · 겁쟁이) · 먼저 가는 성격 (사교형) */
+const SOAK_SKIP: PersName[] = ['외톨이', '겁쟁이'];
+const SOAK_EAGER: PersName[] = ['사교형'];
+/** 집결 분담 예고: 대상마다 가까운 파티원 (탱커 · 나 · 다른 대상 빼고) 최대 3명이 대상 옆 빈 칸으로 가서 맞을 때까지 머묾 */
+export function soakGo(f: Fight, tel: Telegraph): void {
+  const used = new Set<Unit>(tel.units.map(id => unitById(f, id)).filter((u): u is Unit => !!u));
+  for (const id of tel.units) {
+    const t = unitById(f, id);
+    if (!t?.alive) continue;
+    const at = f.cells[t.moving ? t.moving.to : t.cell];
+    const ok = living(f).filter(u => u.role !== 'tank' && !u.me && !used.has(u) && !(u.pers && SOAK_SKIP.includes(u.pers)) && !u.moving && !u.pulled && !u.fleeing
+      && !u.debuffs.some(d => d.noMove) && hexDist(cellOf(f, u), at) <= 3);
+    const eager = (u: Unit) => (u.pers && SOAK_EAGER.includes(u.pers) ? 0 : 1);
+    ok.sort((a, b) => eager(a) - eager(b) || hexDist(cellOf(f, a), at) - hexDist(cellOf(f, b), at));
+    for (const u of ok.slice(0, 3)) {
+      used.add(u);
+      if (hexDist(cellOf(f, u), at) === 1) { u.padUntil = tel.impact + 0.2; continue; } // 이미 옆
+      const c = f.cells.filter(x => !x.unit && !x.block && hexDist(x, at) === 1).sort((a, b) => hexDist(a, cellOf(f, u)) - hexDist(b, cellOf(f, u)))[0];
+      if (!c) break;
+      moveTo(f, u, c);
+      u.padUntil = tel.impact + 0.2; u.homeAt = null;
+    }
   }
 }
 
@@ -521,12 +605,17 @@ export function applyDebuff(f: Fight, u: Unit, def: DebuffDef): Debuff | null {
   if (f.sp && immune(f, u, def.name)) return null; // 면역 향 (42 해제 04)
   if (def.stackMax) {
     const old = u.debuffs.find(x => x.name === def.name);
-    if (old) { old.stack = Math.min(def.stackMax, (old.stack ?? 1) + 1); old.left = def.left; return old; }
+    if (old) {
+      old.stack = Math.min(def.stackMax, (old.stack ?? 1) + 1); old.left = def.left;
+      if (def.swap && old.stack >= def.swap) swapTank(f, u); // 탱커 교대 (P-SWAP)
+      return old;
+    }
   }
   const d = addDebuff(f, u, { ...def, stack: def.stackMax ? 1 : def.count ? 0 : undefined });
   if (!u.debuffs.includes(d)) return null; // 주문 반사 등으로 안 걸림
   if (d.maxCut) setMax(u);
   if (d.untilBossLoss != null) d.bossAt = f.bossHp;
+  if (d.absorb) { d.absorbLeft = d.absorb * f.dmgMult; emit(f, { type: 'fx', name: 'absorb', on: u.id }); } // 치유 흡수 막 (P-ABSORB)
   return d;
 }
 
@@ -887,6 +976,13 @@ function flowDo(f: Fight, d: FlowDo): void {
     case 'debuffDebuffed':
       for (const u of living(f)) if (u.debuffs.length) addDebuff(f, u, { ...d.debuff });
       return;
+    case 'empower': empowerBoss(f, d.boost, d.why); return;
+    case 'cheer':
+      f.cheer = { until: f.t + d.sec, mult: 1 + d.pct };
+      emit(f, { type: 'sound', name: 'gauge' });
+      emit(f, { type: 'fx', name: 'cheer', all: true });
+      return;
+    case 'dark': f.dark = true; return;
   }
 }
 

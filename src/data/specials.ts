@@ -250,6 +250,7 @@ export const NAMED: NamedDef[] = [
   { key: 'blackStone', name: '검은 돌 부적', slot: 'neck', place: 'abyssedge', placeName: '심연 가장자리', text: '옆 칸에 아군이 없는 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
   { key: 'ropeKnot', name: '밧줄 매듭', slot: 'ring', place: 'watchtower', placeName: '무너진 망루', text: '아군이 2초 안에 최대 체력의 30% 넘게 잃으면 그 아군에게 지능 {v} 보호막 (재사용 20초)', val: 0.5, unit: 'pct', cd: 20 },
   { key: 'lordIncense', name: '군주의 향 주머니', slot: 'neck', place: 'abyss1', placeName: '심연의 탑 1층', text: '디버프가 2개 이상 보이는 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct' },
+  { key: 'brokenChain', name: '끊어진 사슬', slot: 'ring', place: 'abyss5', placeName: '심연의 탑 꼭대기', text: '내 체력이 50% 아래가 되면 8초 동안 내게 하는 힐 +{v} (재사용 60초)', val: 0.3, unit: 'pct', cd: 60 },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -300,6 +301,11 @@ export const FEATURED: Record<string, readonly string[]> = {
   // 역병 지하묘지 (던전 ②): 질병 해제 · 끌려온 사람과 탱커를 광역으로
   crypt: ['coldMedicine', 'immuneIncense', 'wideEmbrace'],
   abyss1: ['coldMedicine', 'cleanHands', 'bounceLight'],
+  // 심연의 탑 2층 ~ 꼭대기: 못 지우는 독 · 머리 파열 / 탱커 교대 · 저주 / 함정 · 마법 · 즉시 스킬 / 감옥 · 탱커 막 · 해제 4유형
+  abyss2: ['antidote', 'warmCloak', 'eliteHunter'],
+  abyss3: ['prop', 'holdingHand', 'curseBreak'],
+  abyss4: ['trapSense', 'spellWard', 'pouch'],
+  abyss5: ['cleanHands', 'chainBreaker', 'heartyMeal'],
   cathedral1: ['spellWard', 'strongChorus', 'goldEcho'],
 };
 

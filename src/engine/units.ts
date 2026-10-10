@@ -168,6 +168,7 @@ export function unitDps(u: Unit, f?: Fight): number {
   if (u.cls) d *= classDps(u);
   if (u.mods.length) d *= dpsMods(u); // 파티원 능력 (17)
   if (f?.sp) d *= dpsSpec(f, u);
+  if (f?.cheer && f.t < f.cheer.until) d *= f.cheer.mult; // 전투의 함성 (05 6-D)
   return d;
 }
 

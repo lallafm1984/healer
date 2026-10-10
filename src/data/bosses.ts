@@ -101,6 +101,15 @@ export interface DebuffDef {
   charm?: { every: number; dmg: number; heal: number; free: number };
   /** 넘치는 빛 과부하형 (P-OVER): 이 사람에게 넘친 치유 × over만큼 이웃 칸 아군 피해 (방어력 무시) → 정확히 채우기 */
   over?: number;
+  /** 받는 피해 +비율 × 중첩 (가시 · 공허, 탱커 교대 P-SWAP) */
+  vuln?: number;
+  /** 보스를 맞는 탱커에게 이 중첩이 쌓이면 다른 탱커가 보스를 가져감 (탱커 교대 P-SWAP, 05 4-A · 6-A) */
+  swap?: number;
+  /**
+   * 치유 흡수 (P-ABSORB, 05 5-C · 6-C): 이 사람에게 들어오는 치유가 먼저 막을 깎음 (그동안 체력은 안 참). 막 = absorb × 보스 피해 배율.
+   * 막을 다 깎으면 바로 사라짐 (end 안 함), 남은 채로 시간이 다 되면 end
+   */
+  absorb?: number;
   end?: DebuffEnd;
 }
 
@@ -167,10 +176,13 @@ export type AddJob =
 export type SkillEffect =
   /** 평타: 보스가 때릴 사람(탱커)에게 ±30% (전사 ±15%) */
   | { p: 'auto'; dmg: number }
-  /** 탱커 버스터: 예고 때 고른 사람에게 skill.dmg (탱커 기준, 물리) */
-  | { p: 'tank' }
-  /** 전원 광역 (마법). phaseDmg = 그 페이즈에서는 이 피해. grow = 쓸 때마다 이만큼 더 커짐 (수정 핵 과열) */
-  | { p: 'all'; dmg: number; phaseDmg?: Partial<Record<number, number>>; grow?: number }
+  /** 탱커 버스터: 예고 때 고른 사람에게 skill.dmg (탱커 기준, 물리). debuff = 맞은 사람에게 (물어뜯기 독 · 공허 중첩) */
+  | { p: 'tank'; debuff?: DebuffDef }
+  /**
+   * 전원 광역 (마법). phaseDmg = 그 페이즈에서는 이 피해. grow = 쓸 때마다 이만큼 더 커짐 (수정 핵 과열).
+   * debuff = 맞은 사람 모두에게 (독안개 분출 독 중첩 · 그림자 파동 메아리)
+   */
+  | { p: 'all'; dmg: number; phaseDmg?: Partial<Record<number, number>>; grow?: number; debuff?: DebuffDef }
   /**
    * n명에게 디버프 (이미 같은 디버프가 있는 사람은 뺌). n = 'all'이면 살아 있는 모두. nMythic = 악몽 인원.
    * pick: random (기본) / lowest = 체력 비율이 가장 낮은 사람부터, 탱커 빼고 (사냥 P-HUNT) / tel = 예고 때 고른 사람 (skill.target, 삼키기) /
@@ -231,8 +243,8 @@ export type SkillEffect =
    * 맞을 때 발판 위 사람은 dmg, 빈 발판 하나마다 전원 empty (마법)
    */
   | { p: 'tower'; n: number; dmg: number; empty: number }
-  /** 디버프를 차례로 돌려 가며 n명에게 (네 가지 청소약: 질병 → 독 → 저주 → 마법) */
-  | { p: 'cycle'; n: number; debuffs: DebuffDef[] }
+  /** 디버프를 차례로 돌려 가며 n명에게 (네 가지 청소약: 질병 → 독 → 저주 → 마법). each = 한 번에 n명이 하나씩 다른 디버프 (네 가지 메아리, 05 6-A) */
+  | { p: 'cycle'; n: number; debuffs: DebuffDef[]; each?: boolean }
   /**
    * 헤매는 영혼 (P-SOUL, 35 3장): 빈 칸 하나에 파티원이 아닌 영혼 칸 (최대 체력 = 탱커·나 아닌 파티원 평균, hp 비율로 시작).
    * 칸 탭으로 단일 힐(기본·빠른·지속)만 들어감. sec초 안에 가득 채우면 win, 못 채우면 fail. type이 있으면 그 유형을 지우는 직업이
@@ -249,7 +261,18 @@ export type SkillEffect =
    * 넘치는 빛 그릇형 (P-OVER, 35 4-7): sec초 동안 넘친 치유가 그릇에 모임 (끝 = 파티 최대 체력 합 × need).
    * 가득 차면 전원 shield초 보호막 (받는 피해 −40%). 못 채우면 그냥 사라짐. 과부하형은 DebuffDef.over
    */
-  | { p: 'vessel'; name: string; need: number; sec: number; shield: number };
+  | { p: 'vessel'; name: string; need: number; sec: number; shield: number }
+  /**
+   * 집결 분담 (P-SOAK, 05 4-A 피의 서약): 예고 때 고른 사람(target random)과 그 이웃 칸 아군이 dmg를 인원 수로 나눠 받음 (마법).
+   * 예고 동안 가까운 파티원이 그 옆으로 모임 (외톨이 · 겁쟁이 · 탱커 · 나는 안 감). 혼자면 dmg 그대로
+   */
+  | { p: 'share'; dmg: number }
+  /** 뒤바뀐 자매 (05 4-D): 두 탱커의 그 이름 디버프 (가시 중첩)를 맞바꿈. 바뀐 뒤 보스를 맞는 탱커가 swap 중첩이면 바로 교대 */
+  | { p: 'trade'; name: string }
+  /** 깨진 시간 (05 5-E): sec초 동안 내 시전 시간 × mult (이미 시전 중인 힐은 그대로) */
+  | { p: 'slow'; sec: number; mult: number }
+  /** 보스가 주는 피해 +boost, 전투 끝까지 더해짐 (소프트 광폭화 P-ENRAGE, 05 6-E) */
+  | { p: 'empower'; boost: number };
 
 /** 영혼을 채웠을 때: cure 유형 디버프를 모두에게서 1개씩 지움 · 받는 치유 +heal 비율 · 보스가 주는 피해 −weak 비율 (sec초) */
 export interface SoulWin {
@@ -326,9 +349,14 @@ export interface SkillDef {
   hitDmg?: number;
   /** 악몽 장판 피해 배율 (불협화음 0.7) */
   dpsMythic?: number;
+  /** 피할 수 없는 장판 예고 (줄 피해 P-ROW, 05 3-A 산성 토사 · 5-B 눈보라 세 줄): 파티원이 안 비킴. 맞는 순간 그 칸 hitDmg → 미리 채우기 */
+  fixed?: boolean;
   when?: SkillWhen;
-  /** 예고 때 맞을 사람을 고름: tank = 보스가 때릴 사람, back = 뒷줄부터 n명 (탱커·나 빼고, 끌어당김). 악몽은 nMythic */
-  target?: 'tank' | { p: 'back'; n: number; nMythic?: number };
+  /**
+   * 예고 때 맞을 사람을 고름: tank = 보스가 때릴 사람, back = 뒷줄부터 n명 (탱커·나 빼고, 끌어당김),
+   * random = 탱커·나 빼고 무작위 n명 (피의 서약). 악몽은 nMythic
+   */
+  target?: 'tank' | { p: 'back' | 'random'; n: number; nMythic?: number };
   /** 맞을 때 (장판은 없음) */
   effect?: SkillEffect;
   /** 장판 칸 */
@@ -364,7 +392,13 @@ export type FlowDo =
   /** 쥐떼가 뒷줄 원거리 n명에게 붙음 (뒤 줄부터) */
   | { p: 'rats'; n: number }
   /** 디버프가 하나라도 있는 사람 모두에게 이 디버프 */
-  | { p: 'debuffDebuffed'; debuff: DebuffDef };
+  | { p: 'debuffDebuffed'; debuff: DebuffDef }
+  /** 보스가 주는 피해 +boost (상실의 분노, 05 4장) */
+  | { p: 'empower'; boost: number; why: string }
+  /** 전투의 함성 (05 6-D): sec초 동안 파티원 딜 +pct */
+  | { p: 'cheer'; pct: number; sec: number }
+  /** 영원한 저녁 (05 6-G): 판의 체력 숫자가 사라지고 채움 색만 보임 */
+  | { p: 'dark' };
 
 /** 매 틱 보스 쪽에서 도는 일 (위에서부터 차례로) */
 export type FlowStep =
@@ -379,15 +413,18 @@ export interface BossDef {
   phase: [number, string];
   /** 보스 전투 안의 적 몸통 (유령 성가대 성부·지휘자). hp는 enc.hp 기준이라 체력 배율이 그대로 붙음 */
   bodies?: { name: string; hp: number; elite?: boolean; boss?: boolean }[];
+  /** 몸통을 고르게 깎음 (쌍둥이 여군주): 파티 딜이 체력이 많은 몸통부터. 딜 욕심쟁이만 적은 쪽을 침 */
+  split?: boolean;
   skills: SkillDef[];
   flow?: FlowStep[];
   /** 광폭화: 시각(enc.enrage)이 되거나 레이드 탱커 공백 (35 6-4)이면 짧은 주기 전원 광역 */
   enrage: { name: string; period: number; dmg: number };
   /**
    * 주시 (P-AGGRO, 35 4-4): 내가 넣은 치유량(넘친 치유 포함)으로 눈 게이지가 참. 파티 최대 체력 합 × cap이 되면 sec초 동안
-   * 보스가 every초마다 나를 dmg로 때림 (파티원 중 도발 능력이 있으면 tauntSec초). 끝나면 0부터. 악몽은 게이지가 mythicRate배 빨리 참
+   * 보스가 every초마다 나를 dmg로 때림 (파티원 중 도발 능력이 있으면 tauntSec초). 끝나면 0부터. 악몽은 게이지가 mythicRate배 빨리 참.
+   * from = 이 페이즈가 되어야 게이지가 생김 (심연의 군주 3페이즈)
    */
-  watch?: { cap: number; sec: number; tauntSec?: number; every: number; dmg: number; mythicRate?: number };
+  watch?: { cap: number; sec: number; tauntSec?: number; every: number; dmg: number; mythicRate?: number; from?: number };
 }
 
 const AUTO = (dmg: number): SkillDef => ({ key: 'auto', hidden: true, first: 2, period: 2, cast: 0, effect: { p: 'auto', dmg } });
@@ -834,6 +871,173 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       ] },
     ],
     enrage: { name: '역병 폭주', period: 3, dmg: 180 },
+  },
+  // 늪의 어머니 히드라 (05 3장, 10인 2층 늪의 정원): 못 지우는 독 오라 (늪의 숨결) · 물어뜯기 독 · 뒷줄 산성 토사 (줄 피해, 못 피함) · 늪 머리 (부탱커가 끎, 쓰러지면 전원 파열 35 5장) ·
+  // 늪 치유사 (35 3-I). 50% 아래 머리가 셋: 머리 25초 · 독안개 분출 · 숨결 두 겹. 악몽 늪에 잠김 (뒷줄 장판). 목표 5:10 · 광폭화 7:00
+  hydra: {
+    phase: [1, '1페이즈'],
+    skills: [
+      AUTO(U.tank(0.06)),
+      { key: 'breath', name: '늪의 숨결', icon: '숨결', kind: 'instant', first: 1, period: 600, cast: 0,
+        how: '전투 내내 모두에게 못 지우는 독. 지속 힐을 넓게 깔아 버티기',
+        effect: { p: 'debuff', n: 'all', debuff: { name: '늪의 숨결', type: '독', left: 600, dot: U.dps(0.004), lock: true } } },
+      { key: 'breath2', name: '짙은 늪 숨결', icon: '숨결', kind: 'instant', first: null, period: 600, cast: 0, when: { phase: [2] },
+        effect: { p: 'debuff', n: 'all', debuff: { name: '짙은 늪 숨결', type: '독', left: 600, dot: U.dps(0.004), lock: true } } },
+      { key: 'buster', name: '물어뜯기', icon: '물어', kind: 'buster', first: 8, period: 18, cast: 2, warn: 'buster', dmg: U.tank(0.45), target: 'tank',
+        effect: { p: 'tank', debuff: { name: '물어뜯긴 독', type: '독', left: 10, dot: U.dps(0.01), stackMax: 3 } } },
+      { key: 'acid', name: '산성 토사', icon: '토사', kind: 'zone', first: 15, period: 25, cast: 2.5, warn: 'zone', fixed: true, hitDmg: U.dps(0.22), cells: { p: 'line', at: 'back' } },
+      ...([['heads', 1, 20, [1]], ['heads2', 1, null, [2]]] as const).map(([key, n, first, phase]): SkillDef => ({
+        key, name: '머리 재생', icon: '머리', kind: 'instant', first, period: phase[0] === 1 ? 40 : 25, cast: 0, when: { phase: [...phase] },
+        how: '늪 머리를 부탱커가 끌고 딜러가 잡음. 쓰러질 때 모두에게 늪 파열 (독, 겹침). 잡히기 직전에 광역 힐을 준비',
+        effect: { p: 'adds', n, add: { name: '늪 머리', short: '머리', art: 'mob-swamp-head', hp: 0.02, dmg: U.dps(0.04), every: 2,
+          down: { p: 'burst', debuff: { name: '늪 파열', type: '독', left: 4, dot: U.dps(0.01), stackMax: 5 } } } },
+      })),
+      { key: 'mender', name: '늪 치유사', icon: '치유', kind: 'instant', first: 45, period: 60, cast: 0,
+        effect: { p: 'adds', n: 1, add: { name: '늪 치유사', short: '치유', art: 'mob-swamp-mender', hp: 0.015, dmg: 0, every: 0, job: { p: 'mend', every: 5, pct: 0.008 } } } },
+      { key: 'spew', name: '독안개 분출', icon: '분출', kind: 'aoe', first: null, period: 30, cast: 3, warn: 'aoe', when: { phase: [2] },
+        effect: { p: 'all', dmg: U.dps(0.17), debuff: { name: '독안개', type: '독', left: 10, dot: U.dps(0.007), stackMax: 3 } } },
+      { key: 'sink', name: '늪에 잠김', icon: '잠김', kind: 'zone', first: 30, period: 30, cast: 3, warn: 'zone', dps: U.dps(0.04), dur: 10, when: { mythic: true }, cells: { p: 'line', at: 'back' } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [
+      { p: 'phase', n: 2, name: '2페이즈 · 머리가 셋' }, { p: 'start', skill: 'heads2', in: 2 }, { p: 'start', skill: 'spew', in: 6 }, { p: 'start', skill: 'breath2', in: 1 },
+      { p: 'text', text: '머리가 셋: 머리가 잦아지고 독안개 분출, 숨결이 두 겹' },
+    ] }],
+    enrage: { name: '늪의 분노', period: 3, dmg: 180 },
+  },
+  // 쌍둥이 여군주 릴리안 · 로제 (05 4장, 10인 3층 백합 회랑): 몸통 둘 (고르게 깎음, 하나가 먼저 쓰러지면 상실의 분노 +30%) · 가시 중첩 → 4중첩 탱커 교대 ·
+  // 귀부인의 저주 (받는 치유 −50%) · 피의 서약 (집결 분담) · 쌍둥이 무도회 · 자매의 실 (두 탱커 균형, 35 5장). 60% 거울 저주, 20% 무도회 20초. 악몽 뒤바뀐 자매. 목표 5:50 · 광폭화 7:30
+  twins: {
+    phase: [1, '1페이즈'],
+    bodies: [{ name: '릴리안', hp: 13000, boss: true }, { name: '로제', hp: 13000, boss: true }],
+    split: true,
+    skills: [
+      AUTO(U.tank(0.06)),
+      { key: 'thorn', name: '가시', icon: '가시', hidden: true, first: 4, period: 4, cast: 0,
+        how: '보스를 맞는 탱커에게 4초마다 받는 피해 +12% 중첩. 4중첩이면 다른 탱커가 받아 감. 두 탱커 모두에게 지속 힐',
+        effect: { p: 'debuff', n: 1, pick: 'tank', debuff: { name: '가시', type: '물리', left: 10, lock: true, stackMax: 4, vuln: 0.12, swap: 4 } } },
+      { key: 'curse', name: '귀부인의 저주', icon: '저주', kind: 'instant', first: 8, period: 15, cast: 0, when: { phase: [1] },
+        effect: { p: 'debuff', n: 2, debuff: { name: '귀부인의 저주', type: '저주', left: 15, healCut: 0.5 } } },
+      { key: 'mirror', name: '거울 저주', icon: '거울', kind: 'instant', first: null, period: 15, cast: 0, when: { phase: [2, 3] },
+        how: '지우면 이웃 칸 아군에게 옮겨감 (혼자 선 사람은 지우면 사라짐). 버티면 그냥 사라짐',
+        effect: { p: 'debuff', n: 3, debuff: { name: '거울 저주', type: '저주', left: 15, healCut: 0.5, end: { p: 'jump', sec: 10, mult: 1, boost: 0 } } } },
+      { key: 'oath', name: '피의 서약', icon: '서약', kind: 'buster', first: 20, period: 30, cast: 3, warn: 'buster', target: { p: 'random', n: 1 },
+        effect: { p: 'share', dmg: U.dps(0.67) } },
+      { key: 'dance', name: '쌍둥이 무도회', icon: '무도', kind: 'aoe', first: 30, period: 35, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.3) } },
+      { key: 'thread', name: '자매의 실', icon: '실', kind: 'instant', first: 25, period: 40, cast: 0,
+        effect: { p: 'link', kind: 'balance', name: '자매의 실', sec: 20, pick: 'tanks', gap: 0.3, dmg: U.tank(0.25), aim: 'tank' } },
+      { key: 'trade', name: '뒤바뀐 자매', icon: '뒤바', kind: 'instant', first: 40, period: 40, cast: 2, when: { mythic: true }, effect: { p: 'trade', name: '가시' } },
+      { key: 'grief', name: '상실의 분노', icon: '분노', hidden: true, first: null, period: 9999, cast: 0,
+        how: '한쪽이 먼저 쓰러지면 남은 쪽 피해 +30% (끝까지)', effect: { p: 'empower', boost: 0.3 } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.6 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 거울 저주' }, { p: 'start', skill: 'mirror', in: 3 }, { p: 'text', text: '거울 저주: 저주가 3명, 지우면 옆 사람에게 옮겨감' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.2 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 등을 맞댐' }, { p: 'period', skill: 'dance', sec: 20 }, { p: 'text', text: '등을 맞댐: 쌍둥이 무도회가 잦아짐' },
+      ] },
+      ...[0, 1].map((i): FlowStep => ({ p: 'when', if: { idle: 'grief', bodiesDead: [i] }, do: [{ p: 'start', skill: 'grief', in: 0 }] })),
+    ],
+    enrage: { name: '쌍둥이 광란', period: 3, dmg: 200 },
+  },
+  // 대마도사 오르벤 (05 5장, 10인 4층 서리 전망대): 서리 화살 · 얼음 족쇄 (지움) · 불안정한 마력 (지우면 안 됨, 같은 마법) · 서리 고리 · 서리 수정 3개 (35 3-I).
+  // 55% 인터미션 「눈보라 세 줄」 (앞 → 가운데 → 뒷줄 줄 피해 두 바퀴). 2페이즈 마력 둘 (붙으면 같이 터짐) · 얼어붙은 시간 (치유 흡수) · 마력 역류 (35 5장). 악몽 깨진 시간. 목표 6:00 · 광폭화 7:30
+  orben: {
+    phase: [1, '1페이즈'],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('서리 화살', '화살', 8, 16, U.tank(0.6)),
+      { key: 'shackle', name: '얼음 족쇄', icon: '족쇄', kind: 'instant', first: 10, period: 18, cast: 0, when: { phase: [1, 2] },
+        how: '딜 0 + 지속 피해. 지우면 바로 풀림 (불안정한 마력과 같은 마법이니 ⚠ 표시를 보고 고르기)',
+        effect: { p: 'debuff', n: 2, debuff: { name: '얼음 족쇄', type: '마법', left: 10, dot: U.dps(0.02), noDps: true } } },
+      ...([['mana', 1, 16, 1], ['mana2', 2, null, 2]] as const).map(([key, n, first, phase]): SkillDef => ({
+        key, name: '불안정한 마력', icon: '마력', kind: 'instant', first, period: 22, cast: 0, when: { phase: [phase] },
+        how: '함정. 8초 뒤 이웃 칸이 터지고 지우면 바로 터짐. 두고 이웃 칸 사람을 채우기',
+        effect: { p: 'debuff', n, pick: 'others', burstAdjacent: n === 2, debuff: { name: '불안정한 마력', type: '마법', left: 8, trap: true, end: { p: 'blast', dmg: U.dps(0.42) } } },
+      })),
+      ...(['ring', 'ring2'] as const).map((key, i): SkillDef => ({
+        key, name: '서리 고리', icon: '고리', kind: 'zone', first: 20 + i * 0.5, period: 20, cast: 2.5, warn: 'zone', dps: U.dps(0.12), dur: 6, when: { phase: [1, 2] }, cells: { p: 'around' },
+        ...(i ? { hidden: true } : {}),
+      })),
+      { key: 'crystals', name: '서리 수정', icon: '수정', kind: 'instant', first: 30, period: 60, cast: 0, when: { phase: [1, 2] },
+        effect: { p: 'adds', n: 3, add: { name: '서리 수정', short: '수정', art: 'mob-frost-crystal', hp: 0.015, dmg: 0, every: 0, at: 'random', job: { p: 'pylon', cut: 0.1 } } } },
+      ...(['front', 'mid', 'back'] as const).map((at, i): SkillDef => ({
+        key: `row${i + 1}`, name: '눈보라 세 줄', icon: '세줄', kind: 'zone', first: null, period: 12, cast: 3, warn: 'zone', fixed: true, hitDmg: U.dps(0.37),
+        when: { phase: [0] }, cells: { p: 'line', at }, ...(i ? { hidden: true } : {}),
+      })),
+      { key: 'freeze', name: '얼어붙은 시간', icon: '시간', kind: 'instant', first: null, period: 25, cast: 0, when: { phase: [2] },
+        how: '막이 다 깎일 때까지 힐이 막만 채움. 12초 안에 다 채우면 사라지고, 남으면 막이 터져 그 사람이 아픔',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '얼어붙은 시간', type: '마법', left: 12, lock: true, absorb: U.dps(0.83), end: { p: 'hit', dmg: U.dps(0.5) } } } },
+      { key: 'recoil', name: '마력 역류', icon: '역류', kind: 'instant', first: null, period: 30, cast: 0, when: { phase: [2] },
+        how: '내 스킬마다 1중첩, 끝날 때 중첩만큼 나에게 피해. 0~1중첩일 때 바로 지우기',
+        effect: { p: 'debuff', n: 1, pick: 'me', debuff: { name: '마력 역류', type: '마법', left: 10, count: true, end: { p: 'stackHit', dmg: U.me(0.07) } } } },
+      { key: 'broken', name: '깨진 시간', icon: '깨진', kind: 'instant', first: null, period: 20, cast: 2, warn: 'aoe', when: { phase: [2], mythic: true },
+        how: '3초 동안 내 시전 시간 2배. 예고가 뜨면 즉시 스킬 · 지속 힐로 버티기', effect: { p: 'slow', sec: 3, mult: 2 } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.55 }, do: [
+        { p: 'phase', n: 0, name: '인터미션 · 눈보라 세 줄' }, { p: 'inter', sec: 24 },
+        { p: 'start', skill: 'row1', in: 0 }, { p: 'start', skill: 'row2', in: 4 }, { p: 'start', skill: 'row3', in: 8 },
+        { p: 'text', text: '눈보라 세 줄: 앞줄 → 가운데 → 뒷줄, 맞기 전에 그 줄을 채우기' },
+      ] },
+      { p: 'when', if: { phase: 0, interOver: true }, do: [
+        { p: 'phase', n: 2, name: '2페이즈' }, { p: 'interEnd' },
+        { p: 'start', skill: 'mana2', in: 5 }, { p: 'start', skill: 'freeze', in: 10 }, { p: 'start', skill: 'recoil', in: 8 }, { p: 'start', skill: 'broken', in: 15 },
+        { p: 'text', text: '2페이즈: 불안정한 마력 둘 · 얼어붙은 시간 (치유 흡수) · 마력 역류' },
+      ] },
+    ],
+    enrage: { name: '마력 폭주', period: 3, dmg: 200 },
+  },
+  // 심연의 군주 (05 6장, 10인 꼭대기 첨탑, 최종): 심연의 손길 + 공허 3중첩 교대 · 그림자 파동 · 네 가지 메아리. 65% 인터미션 (심연 감옥 둘 · 조각 흡수 = 나를 노림).
+  // 2페이즈 공허의 막 (탱커 치유 흡수) · 첨탑 붕괴. 30% 전투의 함성 (파티 딜 +30% 20초) → 3페이즈 10초마다 보스 +5% · 파동에 메아리 · 주시 (35 5장). 악몽 10% 영원한 저녁. 목표 7:00 · 광폭화 8:30
+  abysslord: {
+    phase: [1, '1페이즈 · 저녁이 온다'],
+    skills: [
+      AUTO(U.tank(0.06)),
+      { key: 'buster', name: '심연의 손길', icon: '손길', kind: 'buster', first: 8, period: 12, cast: 2, warn: 'buster', dmg: U.tank(0.55), target: 'tank',
+        effect: { p: 'tank', debuff: { name: '공허', type: '물리', left: 20, lock: true, stackMax: 3, vuln: 0.1, swap: 3 } } },
+      { key: 'wave', name: '그림자 파동', icon: '파동', kind: 'aoe', first: 20, period: 25, cast: 3, warn: 'aoe', when: { phase: [1, 2] }, effect: { p: 'all', dmg: U.dps(0.28) } },
+      { key: 'wave3', name: '그림자 파동', icon: '파동', kind: 'aoe', first: null, period: 20, cast: 3, warn: 'aoe', when: { phase: [3, 4] },
+        effect: { p: 'all', dmg: U.dps(0.28), debuff: { name: '그림자 메아리', type: '마법', left: 10, dot: U.dps(0.015) } } },
+      { key: 'echoes', name: '네 가지 메아리', icon: '메아', kind: 'instant', first: 12, period: 25, cast: 0, when: { phase: [1, 2, 3, 4] },
+        how: '4명에게 질병 · 독 · 저주 · 마법 하나씩. 지울 수 있는 것부터',
+        effect: { p: 'cycle', n: 4, each: true, debuffs: [
+          { name: '역병의 메아리', type: '질병', left: 12, maxCut: 0.08, end: { p: 'restoreMax' } },
+          { name: '늪의 메아리', type: '독', left: 12, dot: U.dps(0.02) },
+          { name: '자매의 메아리', type: '저주', left: 10, healCut: 0.4 },
+          { name: '서리의 메아리', type: '마법', left: 8, dot: U.dps(0.02), noDps: true },
+        ] } },
+      { key: 'jail', name: '심연 감옥', icon: '감옥', kind: 'instant', first: null, period: 99, cast: 0, when: { phase: [0] },
+        effect: { p: 'jail', n: 2, name: '심연 감옥', short: '감옥', hp: 0.02, dot: U.dps(0.02) } },
+      { key: 'shard', name: '조각 흡수', icon: '조각', kind: 'instant', first: null, period: 99, cast: 0, when: { phase: [0] },
+        how: '인터미션 동안 나에게 지속 피해 (못 지움). 내 체력도 채우며 파티를 돌보기',
+        effect: { p: 'debuff', n: 1, pick: 'me', debuff: { name: '조각 흡수', type: '마법', left: 20, dot: U.me(0.04), lock: true } } },
+      { key: 'veil', name: '공허의 막', icon: '막', kind: 'instant', first: null, period: 24, cast: 0, when: { phase: [2, 3, 4] },
+        how: '보스를 맞는 탱커에게 치유 흡수 막. 10초 안에 다 채우지 못하면 막이 터져 탱커가 크게 아픔',
+        effect: { p: 'debuff', n: 1, pick: 'tank', debuff: { name: '공허의 막', type: '마법', left: 10, lock: true, absorb: U.tank(0.6), end: { p: 'hit', dmg: U.tank(0.5) } } } },
+      { key: 'collapse', name: '첨탑 붕괴', icon: '붕괴', kind: 'zone', first: null, period: 18, cast: 2.5, warn: 'zone', dps: U.dps(0.07), dur: 8, when: { phase: [2, 3, 4] }, cells: { p: 'edge' } },
+      { key: 'dusk', name: '짙어지는 저녁', icon: '저녁', hidden: true, first: null, period: 10, cast: 0, when: { phase: [3, 4] },
+        how: '10초마다 보스 피해 +5% (끝까지 쌓임). 쿨기는 이 구간에', effect: { p: 'empower', boost: 0.05 } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
+        { p: 'phase', n: 0, name: '인터미션 · 악몽 열쇠 강탈' }, { p: 'inter', sec: 20 }, { p: 'start', skill: 'jail', in: 1 }, { p: 'start', skill: 'shard', in: 2 },
+        { p: 'text', text: '악몽 열쇠 강탈: 감옥 둘, 군주가 나를 노림' },
+      ] },
+      { p: 'when', if: { phase: 0, interOver: true }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 보랏빛 폭풍' }, { p: 'interEnd' }, { p: 'period', skill: 'wave', sec: 20 },
+        { p: 'start', skill: 'veil', in: 6 }, { p: 'start', skill: 'collapse', in: 10 }, { p: 'text', text: '보랏빛 폭풍: 공허의 막 · 첨탑 붕괴' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.3 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 가라앉은 대성당' }, { p: 'cheer', pct: 0.3, sec: 20 }, { p: 'start', skill: 'wave3', in: 5 }, { p: 'start', skill: 'dusk', in: 10 },
+        { p: 'text', text: '전투의 함성: 파티 딜 +30% · 이제 10초마다 보스가 강해지고 군주가 나를 지켜봄' },
+      ] },
+      { p: 'when', if: { mythic: true, phase: 3, hpBelow: 0.1 }, do: [
+        { p: 'phase', n: 4, name: '4페이즈 · 영원한 저녁' }, { p: 'dark' }, { p: 'text', text: '영원한 저녁: 체력 숫자가 사라짐, 채움 색만 보고 힐' },
+      ] },
+    ],
+    watch: { cap: 1.5, sec: 6, tauntSec: 3, every: 1.5, dmg: U.me(0.15), mythicRate: 1.3, from: 3 },
+    enrage: { name: '영원한 밤', period: 3, dmg: 220 },
   },
   // 유령 성가대 (26 4-3): 20인 입문. 성가대원 셋이 맡은 2열에 노래, 다 잡으면 지휘자 2페이즈
   choir: {

@@ -7,7 +7,8 @@ import type { EncounterKey } from './encounters';
 
 export type FactionKey = 'golem' | 'plague' | 'swamp' | 'noble' | 'mage' | 'hill' | 'abyss';
 export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'frost' | 'temple' | 'abyss' | 'cathedral'
-  | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge' | 'watchtower';
+  | 'cemetery' | 'marsh' | 'lily' | 'snowpass' | 'hillpath' | 'pilgrim' | 'abyssedge' | 'watchtower'
+  | 'abyss-garden' | 'abyss-gallery' | 'abyss-observatory' | 'abyss-spire';
 
 export interface Faction {
   name: string;
@@ -61,6 +62,11 @@ export const PLACES: Record<PlaceKey, Place> = {
   pilgrim: { key: 'pilgrim', name: '무너진 순례길', faction: 'hill', tone: ['#36311F', '#16130C'], borrow: 'temple' },
   abyssedge: { key: 'abyssedge', name: '심연 가장자리', faction: 'abyss', tone: ['#262A22', '#0C0D0B'], borrow: 'abyss' },
   watchtower: { key: 'watchtower', name: '무너진 망루', faction: 'hill', tone: ['#383222', '#16130C'], borrow: 'temple' },
+  // 심연의 탑 2층 ~ 꼭대기 (39 1-3, 그림 요청 44 A 17~24): 그림이 올 때까지 1층 그림
+  'abyss-garden': { key: 'abyss-garden', name: '늪의 정원', faction: 'abyss', tone: ['#22302A', '#0B100D'], borrow: 'abyss' },
+  'abyss-gallery': { key: 'abyss-gallery', name: '백합 회랑', faction: 'abyss', tone: ['#2C2433', '#100D13'], borrow: 'abyss' },
+  'abyss-observatory': { key: 'abyss-observatory', name: '서리 전망대', faction: 'abyss', tone: ['#222C3C', '#0B0F16'], borrow: 'abyss' },
+  'abyss-spire': { key: 'abyss-spire', name: '꼭대기 첨탑', faction: 'abyss', tone: ['#2E2236', '#100B13'], borrow: 'abyss' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -68,6 +74,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   tutorial: 'plateau', plateau: 'plateau', rustfort: 'rustfort', crypt: 'crypt', swamp: 'swamp',
   manor: 'manor', frost: 'frost', temple: 'temple', abyss1: 'abyss', cathedral1: 'cathedral',
   cemetery: 'cemetery', marsh: 'marsh', lily: 'lily', snowpass: 'snowpass', hillpath: 'hillpath', pilgrim: 'pilgrim', abyssedge: 'abyssedge', watchtower: 'watchtower',
+  abyss2: 'abyss-garden', abyss3: 'abyss-gallery', abyss4: 'abyss-observatory', abyss5: 'abyss-spire',
   // 던전 ⑧~⑩ (묶음 B, 아직 카드만): 같은 세력 장소 그림을 빌려 씀
   archive: 'frost', ossuary: 'manor', sewer: 'crypt',
 };
@@ -84,6 +91,7 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   icehall: 'frost', frostgolem: 'frost', mage: 'frost', frostlab: 'frost', shadow: 'frost', brokenbridge: 'pilgrim', keeper28: 'pilgrim',
   templeyard: 'temple', guardian: 'temple', nave: 'temple', keeper: 'temple', riftground: 'abyssedge', plague33: 'abyssedge',
   rubblestair: 'watchtower', sentinel: 'watchtower', blackrift: 'watchtower', crystal: 'watchtower',
+  hydra: 'abyss-garden', twins: 'abyss-gallery', orben: 'abyss-observatory', abysslord: 'abyss-spire',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

@@ -66,6 +66,14 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     const cut = u.debuffs.reduce((s, d) => s + (d.healCut ?? 0) * (d.stack ?? 1), 0); // 얼룩진 장갑·먼지 범벅 (35 4-3·4-5)
     if (cut) amt *= Math.max(0, 1 - cut * (1 - sv(f, 'holdingHand'))); // 받치는 손 (42 기믹 08)
     if (u.debuffs.some(d => d.invert)) { invertHeal(f, u, amt); return 0; } // 뒤집힌 축복 (P-INVERT)
+    const ab = u.debuffs.find(d => d.absorbLeft);
+    if (ab) { // 치유 흡수 (P-ABSORB): 막을 먼저 깎고, 다 깎으면 막이 사라짐
+      const take = Math.min(amt, ab.absorbLeft!);
+      ab.absorbLeft! -= take; amt -= take;
+      if (direct) emit(f, { type: 'heal', id: u.id, amt: Math.round(take), eff: 0, crit });
+      if (ab.absorbLeft! <= 1e-6) { u.debuffs = u.debuffs.filter(x => x !== ab); emit(f, { type: 'cure', id: u.id, name: ab.name }); }
+      if (amt <= 1e-9) return 0;
+    }
   }
   if (f.watch && f.t >= f.watch.until) f.watch.fill += amt * f.watch.rate; // 주시 (P-AGGRO): 넘친 치유까지 게이지에
   const hp0 = u.hp, eff = Math.min(amt, u.max - u.hp);
@@ -132,6 +140,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
   if (!u.alive || amt <= 0) return;
   if (f.links.length && !sharing) { const o = shareWith(f, u); if (o) { shared(() => { damage(f, u, amt / 2, magic, aim); damage(f, o, amt / 2, magic, aim); }); return; } } // 생명 사슬 나눔형
   amt *= f.dmgMult;
+  if (u.debuffs.length) { const v = u.debuffs.reduce((x, d) => x + (d.vuln ?? 0) * (d.stack ?? 1), 0); if (v) amt *= 1 + v; } // 가시 · 공허 (P-SWAP)
   if (f.armor) amt *= armorFactor(u.role, aim);
   if (f.sp) amt *= dmgSpec(f, u); // 장비 특수능력 (42 보호 · 지원 · 기믹)
   if (u.me && f.tx.on.firmWill) amt *= 0.8; // 굳은 의지 (06 6장)
@@ -281,7 +290,7 @@ function debuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
     case 'jump': {
       // 옮겨붙음 (P-JUMP): 지우면 이웃 칸 1명에게 더 세게, 혼자면 사라짐. 시간이 다 되면 보스가 강해짐. 약한 판 (진동에 옮김)은 그냥 사라짐
       if (e.on === 'quake') return;
-      if (!dispelled) { empowerBoss(f, e.boost, `${d.name} 시간 끝`); return; }
+      if (!dispelled) { if (e.boost) empowerBoss(f, e.boost, `${d.name} 시간 끝`); return; } // boost 0 = 버티면 그냥 사라짐 (거울 저주)
       const c = cellOf(f, u);
       const near = living(f).filter(v => v !== u && hexDist(cellOf(f, v), c) === 1);
       if (!near.length) { emit(f, { type: 'msg', text: `${d.name}: 옆에 아무도 없어 사라짐` }); return; }

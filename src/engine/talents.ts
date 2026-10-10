@@ -44,7 +44,7 @@ export function castOf(f: Fight, key: SkillKey): number {
   if (activeOn(f, 'zenith')) return 0;
   if (f.sp && freeCast(f, key)) return 0;
   const b = (key === 'heal' && f.tx.on.practiced ? base - 0.3 : base) - (f.sp ? castCut(f, key) : 0);
-  return Math.max(0.5, b) / (1 + hasteOf(f));
+  return (Math.max(0.5, b) / (1 + hasteOf(f))) * (f.slow && f.t < f.slow.until ? f.slow.mult : 1); // 깨진 시간 (05 5-E)
 }
 
 /** 재사용 대기 (쓸 때 거는 값): 빨라진 찬가 (찬가 -60초), 장비 특수능력 (42 쿨기 · 해제 · 직업 전용) */

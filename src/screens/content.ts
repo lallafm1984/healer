@@ -54,7 +54,7 @@ const catIcon = (k: (typeof KINDS)[number]) => (k.kind === 'raid20' && art('icon
 /** 그 장소가 들어가는 탭 */
 const tabOf = (c: ContentDef): Tab => (c.kind === 'raid' ? (raidSize(c) === 20 ? 'raid20' : 'raid10') : c.kind === 'explore' ? 'explore' : 'dungeon');
 /** 장소 문양 줄의 짧은 이름 (칸이 좁아서. 관문 이름표엔 전체 이름) */
-const SHORT: Partial<Record<ContentKey, string>> = { crypt: '지하묘지', manor: '장원', abyss1: '탑 1층', cathedral1: '대성당 1구역' };
+const SHORT: Partial<Record<ContentKey, string>> = { crypt: '지하묘지', manor: '장원', abyss1: '탑 1층', abyss2: '탑 2층', abyss3: '탑 3층', abyss4: '탑 4층', abyss5: '탑 꼭대기', cathedral1: '대성당 1구역' };
 
 /** 마지막으로 고른 분류 (27 3-1) */
 let tab: Tab = 'dungeon';

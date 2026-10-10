@@ -80,6 +80,12 @@ export interface Debuff {
   feed?: number;
   /** 생명 사슬 (P-LINK): 사슬 반대쪽 파티원 id. 실제 판정은 Fight.links */
   link?: { to: number; kind: LinkKind };
+  /** 받는 피해 +비율 × 중첩 · 이 중첩이면 탱커 교대 (P-SWAP, data/bosses.ts DebuffDef) */
+  vuln?: number;
+  swap?: number;
+  /** 치유 흡수 (P-ABSORB): 데이터 값 · 남은 막 (보스 피해 배율을 곱한 양) */
+  absorb?: number;
+  absorbLeft?: number;
 }
 
 /**
@@ -289,6 +295,10 @@ export interface BossSkill {
   stunOnCut?: number;
   /** 받침 (P-TOWER): 예고 칸이 금빛 발판이고 파티원이 들어감 */
   pads?: boolean;
+  /** 피할 수 없는 장판 예고 (줄 피해 P-ROW): 파티원이 안 비킴 */
+  fixed?: boolean;
+  /** 집결 분담 (P-SOAK): 예고 동안 가까운 파티원이 대상 옆으로 모임 */
+  soak?: boolean;
   /** 부품 상태 (장판 좌우 번갈아·성부 차례 등, engine/bossParts.ts) */
   st: Record<string, number | boolean>;
 }
@@ -355,7 +365,8 @@ export type FightEvent =
 
 /** 기믹 연출 이름 = 그림 fx-<이름> (37 4장 F-1) */
 export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crumble' | 'dizzy' | 'chain-break' | 'soul-purify' | 'splash'
-  | 'link-snap' | 'bubble' | 'overflow' | 'fireball-green' | 'hearts' | 'hook' | 'rage' | 'recoil';
+  | 'link-snap' | 'bubble' | 'overflow' | 'fireball-green' | 'hearts' | 'hook' | 'rage' | 'recoil'
+  | 'soak' | 'swap' | 'slow' | 'absorb' | 'cheer';
 
 export type FightResult = 'win' | 'lose';
 
@@ -620,6 +631,16 @@ export interface Fight {
   weak: { cut: number; until: number } | null;
   /** 장비 특수능력 (42, engine/specials). 없으면 null */
   sp: SpecRun | null;
+  /** 보스를 잡은 탱커 id (탱커 교대 P-SWAP). null이면 줄 앞 탱커 */
+  hold: number | null;
+  /** 깨진 시간 (05 5-E): until까지 내 시전 시간 × mult */
+  slow: { until: number; mult: number } | null;
+  /** 전투의 함성 (05 6-D): until까지 파티원 딜 × mult */
+  cheer: { until: number; mult: number } | null;
+  /** 영원한 저녁 (05 6-G): 판의 체력 숫자를 숨김 */
+  dark: boolean;
+  /** 몸통을 고르게 깎음 (쌍둥이 여군주, data/bosses.ts BossDef.split) */
+  split: boolean;
 }
 
 export type LinkKind = 'balance' | 'share';
