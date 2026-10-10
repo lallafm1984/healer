@@ -243,6 +243,11 @@ export type SkillEffect =
    * link = 끌려온 사람과 보스를 맞는 탱커를 sec초 나눔형 사슬로 이음 (연잎 사슬, 48 4-2). 악몽은 둘 다 받는 피해 +vulnMythic
    */
   | { p: 'pull'; sec: number; dmg: number; pad?: { dmg: number; empty: number }; link?: { name: string; vulnMythic?: number } }
+  /**
+   * 물로 끌어내림 (어둠물 × 끌어당김, 59 4-3 휘감이): 예고 때 고른 사람 (target front = 보스 가까운 줄)을 잠긴 칸 (밀물이 없으면 가장 아래 빈 칸)의 가까운 빈 칸으로 끌어내리고
+   * sec초 묶어 둠 (name 디버프, 못 움직임 · 해제 안 됨) + dmg (물리, 원거리 기준). 잠긴 칸이면 받는 치유 절반이라 예고 동안 미리 채우기
+   */
+  | { p: 'drag'; name: string; sec: number; dmg: number }
   /** 사냥 (P-HUNT, 35 4-2 사냥 창): 맞는 순간 체력 비율이 가장 낮은 탱커 아닌 n명 (기본 1, 20인 그림자 가시 2 · 악몽 nMythic명)에게 dmg (물리, 원거리 기준) */
   | { p: 'hunt'; dmg: number; n?: number; nMythic?: number }
   /**
@@ -400,7 +405,11 @@ export type ZoneCells =
    */
   | { p: 'flow'; every: number; from?: 'left' | 'right' | 'alt' }
   /** 어둠물 밀물 (P-TIDE, 59 5장): 판 아래 rows줄 (보스에서 먼 줄). 장판이 잠긴 칸이 되어 받는 치유 −50% (core TIDE_CUT) */
-  | { p: 'tide'; rows: number; rowsMythic?: number }
+  | {
+    p: 'tide'; rows: number; rowsMythic?: number;
+    /** 물 위 섬 (어둠물 × 피난처, 59 4-3 잔물결): 잠길 줄 가운데 무작위 islands칸 (악몽 islandsMythic)은 안 잠김. 화면은 섬 칸이 마른 채 남음 */
+    islands?: number; islandsMythic?: number;
+  }
   /**
    * 피난처 (P-SAFE): 안전 칸을 뺀 모든 칸. 안전 칸 n개 (악몽 nMythic): edge = 판 가운데에서 먼 칸부터 (배치기),
    * center = 가운데에 가까운 칸부터 + tank면 탱커 칸도 (천장 무너짐), side = 왼쪽 · 오른쪽 끝 중 무작위 한쪽에서 가까운 칸부터 (신기루 피난처, 54 4-3:
@@ -460,7 +469,7 @@ export interface SkillDef {
    * linked = 나눔 사슬 쌍마다 한 사람 (나 빼고, 소포 부치기 56 4-1. 사슬이 없으면 탱커 · 나 빼고 무작위), pad = 받침 발판에 선 · 가는 사람 (받침 위 반송) n명까지.
    * order = 차례 (P-ORDER)에서 아직 힐을 못 받은 다음 번호부터 n명 (나 빼고, 차례 번개 59 4-2. 차례가 없으면 탱커 · 나 빼고 무작위)
    */
-  target?: 'tank' | 'offtank' | { p: 'back' | 'random' | 'greed' | 'linked' | 'pad' | 'order'; n: number; nMythic?: number; /** random: 이 이름의 디버프가 걸린 사람 먼저 (거꾸로 주문) */ prefer?: string };
+  target?: 'tank' | 'offtank' | { p: 'back' | 'front' | 'random' | 'greed' | 'linked' | 'pad' | 'order'; n: number; nMythic?: number; /** random: 이 이름의 디버프가 걸린 사람 먼저 (거꾸로 주문) */ prefer?: string };
   /** 맞을 때 (장판은 없음) */
   effect?: SkillEffect;
   /** 장판 칸 */
@@ -655,13 +664,14 @@ const DEBT_HOW = '체력을 가득 채워 주고 채운 만큼 (최소 30%)이 �
 const loan = (name: string, { left = 10, min = 0.3, grow = 0.1 } = {}): DebuffDef => ({ name, type: '물리', left, lock: true, debt: { min, grow } });
 /**
  * 어둠물 밀물 기술 (P-TIDE): 3초 예고 뒤 판 아래 rows줄이 sec초 잠김. 악몽 secMythic · rowsMythic이 있으면 악몽판을 따로 (악몽판은 대기열 숨김).
- * when = 그 페이즈에서만 (끝나지 않는 왈츠)
+ * when = 그 페이즈에서만 (끝나지 않는 왈츠). islands = 물 위 섬 칸 (큰 밀물, 59 4-3), cast = 예고 시간 (기본 3), how = 공략 글 덧붙임
  */
 const tides = (key: string, name: string, icon: string, first: number | null, period: number, rows: number, sec: number,
-  o: { secMythic?: number; rowsMythic?: number; when?: SkillWhen } = {}): SkillDef[] => {
+  o: { secMythic?: number; rowsMythic?: number; when?: SkillWhen; islands?: number; islandsMythic?: number; cast?: number; how?: string } = {}): SkillDef[] => {
   const one = (k: string, s: number, r: number, when?: SkillWhen, hidden?: boolean): SkillDef => ({
-    key: k, name, icon, kind: 'zone', first, period, cast: 3, warn: 'zone', dps: U.dps(0.015), dur: s, cells: { p: 'tide', rows: r }, when,
-    ...(hidden ? { hidden: true } : { how: TIDE_HOW }),
+    key: k, name, icon, kind: 'zone', first, period, cast: o.cast ?? 3, warn: 'zone', dps: U.dps(0.015), dur: s,
+    cells: { p: 'tide', rows: r, ...(o.islands ? { islands: o.islands, islandsMythic: o.islandsMythic } : {}) }, when,
+    ...(hidden ? { hidden: true } : { how: o.how ? `${TIDE_HOW}. ${o.how}` : TIDE_HOW }),
   });
   if (o.secMythic == null && o.rowsMythic == null) return [one(key, sec, rows, o.when)];
   return [one(key, sec, rows, { ...o.when, mythic: false }), one(`${key}m`, o.secMythic ?? sec, o.rowsMythic ?? rows, { ...o.when, mythic: true }, true)];
@@ -687,6 +697,16 @@ const CAMP_PLAGUE: DebuffDef[] = [
 const BEAST_BIND: DebuffDef[] = [
   { name: '짐승의 저주', type: '저주', left: 10, dot: U.dps(0.02) },
   { name: '정신 지배 끈', type: '마법', left: 10, dot: U.dps(0.02) },
+];
+/** 어둠물 해안 (59 4-3) 잔물결 해제 짝: 물때 독 (독) · 젖은 봉인 (마법, 받는 치유 −25%) */
+const TIDE_SEAL: DebuffDef[] = [
+  { name: '물때 독', type: '독', left: 10, dot: U.dps(0.02) },
+  { name: '젖은 봉인', type: '마법', left: 10, healCut: 0.25 },
+];
+/** 휘감이 해제 짝: 물병 (질병) · 저주 비늘 (저주) */
+const EEL_SCALE: DebuffDef[] = [
+  { name: '물병', type: '질병', left: 10, dot: U.dps(0.02) },
+  { name: '저주 비늘', type: '저주', left: 10, dot: U.dps(0.02) },
 ];
 /** 무작위 파티원 둘레 장판 n곳 (P-ZONE around를 n개, 하나만 대기열에 보임) */
 const spots = (key: string, name: string, icon: string, n: number, first: number, period: number, dmg: number, when?: SkillWhen): SkillDef[] =>
@@ -3255,6 +3275,87 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'text', text: '끝나지 않는 왈츠: 어둠물이 아래 두 줄까지' },
     ] }],
     enrage: { name: '마지막 왈츠', period: 2, dmg: 240 },
+  },
+  // ---------- 묶음 G2 20인 ⑨ 어둠물 해안 (59 4-3, Lv 94 · 악몽 100 · 심연의 정예 · 전 유형): 잔물결 · 휘감이 · 검은물결 ----------
+  // 어둠물 뱃사공 잔물결 (선착장): 20인 어둠물 × 피난처 (큰 밀물: 아래 3줄이 잠기고 물 위 섬 3칸만 마름) · 물결 밀물 · 노 내려치기 (탱커 교대) · 노 젓는 소리 · 물때 독 · 젖은 봉인 (독 · 마법).
+  // 악몽은 섬 2칸. 목표 4:30 · 광폭화 6:00
+  janmul: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...SWAP_BUSTER('노 내려치기', '노', '노 자국', U.tank(0.6)), cast: 2.5, period: 16 },
+      ...tides('tide', '물결 밀물', '밀물', 10, 20, 1, 8),
+      ...tides('big', '큰 밀물', '큰물', 34, 40, 3, 10, { cast: 4, islands: 3, islandsMythic: 2,
+        how: '큰 밀물은 아래 세 줄까지 차오르고 물 위 섬 3칸 (악몽 2칸)만 마름. 섬과 위쪽 빈 칸이 모자라 남는 사람이 생기니 예고 4초 동안 아래 줄을 채우기' }),
+      { key: 'row', name: '노 젓는 소리', icon: '노젓', kind: 'aoe', first: 16, period: 22, cast: 2.5, warn: 'aoe', how: '밀물과 겹치면 잠긴 사람부터', effect: { p: 'all', dmg: U.dps(0.18) } },
+      { key: 'venom', name: '물때 독', icon: '물때', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '4명에게 독 (물때 독, 초당 딜체 2%) 또는 마법 (젖은 봉인, 받는 치유 −25%) 무작위. 잠긴 사람의 봉인은 힐이 거의 안 드니 먼저 지우기',
+        effect: { p: 'cycle', n: 4, random: true, debuffs: TIDE_SEAL } },
+    ],
+    enrage: { name: '검은 파도', period: 3, dmg: 210 },
+  },
+  // 심연 장어왕 휘감이 (물길): 어둠물 × 끌어당김 (휘감기: 밀물 동안 보스 가까운 3명을 잠긴 줄로 끌어내려 6초 묶음 → 예고 2.5초 동안 그 셋을 채우기) · 전기 비늘 (연쇄 번개)
+  // · 이빨 (탱커 교대) · 물병 · 저주 비늘 (질병 · 저주). 악몽은 휘감기 4명. 목표 4:45 · 광폭화 6:20
+  hwigami: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...SWAP_BUSTER('이빨', '이빨', '이빨 자국', U.tank(0.55)), period: 15 },
+      ...tides('tide', '물길 밀물', '밀물', 10, 24, 1, 12),
+      { key: 'drag', name: '휘감기', icon: '휘감', kind: 'buster', first: 15, period: 24, cast: 2.5, warn: 'buster', target: { p: 'front', n: 3, nMythic: 4 },
+        how: '밀물 동안 보스 가까운 3명 (악몽 4명)을 꼬리로 감아 잠긴 줄로 끌어내리고 6초 묶음 + 딜체 15%. 끌려가면 받는 치유 절반이니 예고 동안 그 셋을 90% 위로',
+        effect: { p: 'drag', name: '휘감김', sec: 6, dmg: U.dps(0.15) } },
+      { key: 'bolt', name: '전기 비늘', icon: '번개', kind: 'buster', first: 20, period: 18, cast: 3, warn: 'buster', target: { p: 'random', n: 1 },
+        how: CHAIN_HOW, effect: { p: 'chain', dmg: U.dps(0.28), jumps: 3 } },
+      { key: 'scale', name: '저주 비늘', icon: '비늘', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '4명에게 질병 (물병) 또는 저주 (저주 비늘) 무작위, 초당 딜체 2%. 직업마다 못 지우는 쪽은 채워서',
+        effect: { p: 'cycle', n: 4, random: true, debuffs: EEL_SCALE } },
+    ],
+    enrage: { name: '소용돌이 조임', period: 3, dmg: 210 },
+  },
+  // 어둠물 여왕 검은물결 (소용돌이, 최종 3페이즈): 1 밀물 (소용돌이 밀물 · 달빛 그릇: 넘친 치유가 모이면 전원 보호막) → 2 대출 (생명 대출 4명: 빚진 사람에게 넘친 치유는 빚부터 갚고 남는 몫만 그릇에 · 검은 비)
+  // → 3 해일 (아래 두 줄 12초, 그동안 잠긴 사람의 빚은 두 배로 불어남). 악몽은 생명 대출 5명. 목표 6:00 · 광폭화 8:00
+  geomeun: {
+    phase: [1, '1페이즈 · 밀물'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...SWAP_BUSTER('물의 채찍', '채찍', '채찍 자국', U.tank(0.65)), cast: 2.5, period: 16 },
+      ...tides('tide', '소용돌이 밀물', '밀물', 10, 24, 1, 10, { when: { phase: [1, 2] } }),
+      { key: 'bowl', name: '달빛 그릇', icon: '그릇', kind: 'instant', first: 16, period: 34, cast: 0,
+        how: '12초 동안 넘친 치유가 그릇에 모임. 가득 차면 전원 보호막. 빚진 사람에게 넘친 치유는 빚부터 갚고 남는 몫만 그릇에 들어가니 빚을 갚을지 그릇을 채울지 고르기',
+        effect: { p: 'vessel', name: '달빛 그릇', need: 0.06, sec: 12, shield: 10 } },
+      { key: 'touch', name: '심연 해제', icon: '손길', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
+      { key: 'loan', name: '생명 대출', icon: '대출', kind: 'instant', first: null, period: 22, cast: 0, when: { phase: [2, 3] }, how: `${DEBT_HOW}. 4명 (악몽 5명)`,
+        effect: { p: 'debuff', n: 4, nMythic: 5, pick: 'others', debuff: loan('생명 대출') } },
+      { key: 'rain', name: '검은 비', icon: '검비', kind: 'aoe', first: null, period: 20, cast: 2.5, warn: 'aoe', when: { phase: [2, 3] }, effect: { p: 'all', dmg: U.dps(0.18) } },
+      ...tides('surge', '해일', '해일', null, 30, 2, 12, { when: { phase: [3] }, how: '해일 동안 잠긴 사람의 빚은 두 배로 불어나니 해일 전에 빚을 다 갚기' }),
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 대출' }, { p: 'start', skill: 'loan', in: 3 }, { p: 'start', skill: 'rain', in: 7 },
+        { p: 'text', text: '대출: 빚진 사람에게 넘친 치유는 빚부터, 남는 몫만 그릇에' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.35 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 해일' }, { p: 'start', skill: 'surge', in: 4 },
+        { p: 'text', text: '해일: 모래시계가 물이 빠질 때를 알려 줌. 해일 전에 빚을 갚기' },
+      ] },
+    ],
+    enrage: { name: '검은 해일', period: 3, dmg: 220 },
+  },
+  // ---------- 묶음 G2 탐험 ㉔ 어둠물 등불길 (59 1-1, Lv 96 · 심연의 정예): 빌린 생명 쉬운 판 · 빌린 생명 × 어둠물 (던전 ⑳ 예습) ----------
+  // 그림자 대여상 녹슬음 탐험판: 평타 · 생명 대출 (1명) · 어둠물 장부 (아래 1줄, 잠기면 빚이 두 배로) · 연체 독촉 (독 · 질병). 수치는 던전판의 70%
+  nokseul96: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'loan', name: '생명 대출', icon: '대출', kind: 'instant', first: 8, period: 18, cast: 0, how: DEBT_HOW,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: loan('생명 대출') } },
+      ...tides('tide', '어둠물 장부', '장부', 12, 22, 1, 8, { how: '빚진 사람이 잠기면 빚이 두 배로 불어나니 먼저 갚기' }),
+      { key: 'dun', name: '연체 독촉', icon: '독촉', kind: 'instant', first: 5, period: 16, cast: 0,
+        effect: { p: 'cycle', n: 1, random: true, debuffs: [{ name: '연체 독촉', type: '독', left: 10, dot: 10 }, { name: '연체 독촉', type: '질병', left: 10, dot: 10 }] } },
+    ],
+    enrage: { name: '빚 독촉', period: 2, dmg: 200 },
   },
   warden: {
     phase: [1, ''],

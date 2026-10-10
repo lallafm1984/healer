@@ -279,6 +279,9 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   camp1: ['plume'], camp2: ['sleeve'], camp3: ['medal'],
   carriage: ['coat', 'ring'],
   ballroom: ['scepter', 'gloves', 'medal'],
+  // 묶음 G2 (59 6장): 어둠물 해안 칸마다 1 (소용돌이는 미궁 입구 관과 겹쳐 화관), 등불길은 가속
+  coast1: ['staff'], coast2: ['mail'], coast3: ['wreath'],
+  lantern: ['starneck', 'bracer'],
 };
 export const KIND_WEIGHT = 3;
 

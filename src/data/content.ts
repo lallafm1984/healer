@@ -23,6 +23,7 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'well1' | 'well2' | 'well3' | 'post1' | 'post2' | 'post3' | 'ranch' | 'windmill'
   | 'crystal1' | 'crystal2' | 'crystal3' | 'fort1' | 'fort2' | 'fort3' | 'station' | 'shadow1' | 'shadow2' | 'shadow3' | 'school'
   | 'maze1' | 'maze2' | 'maze3' | 'camp1' | 'camp2' | 'camp3' | 'carriage' | 'ballroom'
+  | 'coast1' | 'coast2' | 'coast3' | 'lantern'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -245,6 +246,11 @@ export const CONTENT: ContentDef[] = [
     key: 'ballroom', bosses: ['유령 악단장 세레나', '몰락한 대공 발렌'], kind: 'dungeon', name: '가라앉은 무도회장', place: '호수 밑 · 몰락한 귀족가', stageLv: 95, unlockLv: 95, ready: true,
     fights: () => DUNGEONS.ballroom.segments, size: five,
   },
+  // 묶음 G 탐험 ㉔ (59 1-1): 심연의 정예, 던전 ⑳ 멈춘 심장 속 예습 (빌린 생명 × 어둠물)
+  {
+    key: 'lantern', kind: 'explore', name: '어둠물 등불길', place: '호수 밑 등불길 · 심연의 정예', stageLv: 96, unlockLv: 96, ready: true, bosses: ['그림자 대여상 녹슬음'],
+    fights: () => DUNGEONS.lantern.segments, size: three,
+  },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인
     key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 탑 1층', place: '납골당 · 역병 군주', stageLv: 35, unlockLv: 35, ready: true,
@@ -383,6 +389,14 @@ export const CONTENT: ContentDef[] = [
     ['camp3', '그림자 진영 지휘소', '진영 지휘소 · 심연 기사단장 칠흑', '심연 기사단장 칠흑', 'chilheuk'],
   ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: 91, unlockLv: 91, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 100 },
+  })),
+  // 묶음 G 20인 ⑨ 어둠물 해안 (59 1-4): 열림 Lv 94 · 악몽 100
+  ...([
+    ['coast1', '어둠물 해안 선착장', '해안 선착장 · 어둠물 뱃사공 잔물결', '어둠물 뱃사공 잔물결', 'janmul'],
+    ['coast2', '어둠물 해안 물길', '해안 물길 · 심연 장어왕 휘감이', '심연 장어왕 휘감이', 'hwigami'],
+    ['coast3', '어둠물 해안 소용돌이', '해안 소용돌이 · 어둠물 여왕 검은물결', '어둠물 여왕 검은물결', 'geomeun'],
+  ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
+    key, bosses: [boss], kind: 'raid', name, place, stageLv: 94, unlockLv: 94, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 100 },
   })),
 ];
 

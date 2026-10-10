@@ -296,7 +296,7 @@ const linkPairs = (e: Extract<SkillEffect, { p: 'link' }>, c: GuideCtx): number 
 function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: ProbeSkill | undefined): [string, string] {
   const { n } = c;
   if (!e && d.fixed) return [`${d.cells?.p === 'flow' ? `세로 줄을 ${d.cells.every}초마다 한 줄씩 훑으며 그 줄에 선 사람` : `${ROW_NAME[d.cells?.p === 'line' ? d.cells.at : 'mid']}에 선 사람`} 모두 <b>${n(d.hitDmg ?? 0)}</b>${d.hitDebuff ? ` + ${debuffText(d.hitDebuff, n)}` : ''} (피할 수 없음)`, `맞기 전에 그 줄을 ${act('poh', RO)} · ${act('renew', EUL)} 미리 채우기`];
-  if (!e && d.cells?.p === 'tide') { const rows = c.mythic && d.cells.rowsMythic ? d.cells.rowsMythic : d.cells.rows; return [`🌊 판 아래 ${rows}줄이 ${secT(d.dur ?? 0)} 동안 어둠물에 잠김: 잠긴 칸에 선 사람은 <b>받는 치유 −${pctT(TIDE_CUT)}</b> (지속 힐 · 광역 힐도)${d.dps ? ` · 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}. 파티원은 위쪽 빈 칸으로 비키지만 빈 칸이 모자라면 남음`, '예고 동안 아래 줄 사람을 채우고, 잠긴 동안은 다른 사람 · 보호막, 물이 빠지면 몰아 채우기']; }
+  if (!e && d.cells?.p === 'tide') { const rows = c.mythic && d.cells.rowsMythic ? d.cells.rowsMythic : d.cells.rows; return [`🌊 판 아래 ${rows}줄이 ${secT(d.dur ?? 0)} 동안 어둠물에 잠김: 잠긴 칸에 선 사람은 <b>받는 치유 −${pctT(TIDE_CUT)}</b> (지속 힐 · 광역 힐도)${d.dps ? ` · 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}. 파티원은 위쪽 빈 칸으로 비키지만 빈 칸이 모자라면 남음${d.cells.islands ? `. 🏝 잠길 줄 가운데 ${(c.mythic && d.cells.islandsMythic) || d.cells.islands}칸은 물 위 섬 (안 잠김)` : ''}`, '예고 동안 아래 줄 사람을 채우고, 잠긴 동안은 다른 사람 · 보호막, 물이 빠지면 몰아 채우기']; }
   if (!e) return d.cells ? [`장판${d.hitDmg ? `: 맞는 순간 그 칸 <b>${n(d.hitDmg)}</b>` : ''}${d.dps ? `${d.hitDmg ? ',' : ':'} 안에 있으면 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}${d.dur ? ` (${secT(d.dur)})` : ''}`, '파티원이 알아서 피함. 늦게 피하는 사람을 채우기'] : ['', ''];
   switch (e.p) {
     case 'tank': return [`${d.target === 'offtank' ? '보스를 안 맞는 탱커' : '탱커'}에게 <b>${n(ps?.dmg ?? d.dmg ?? 0)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, e.debuff?.swap ? '교대한 탱커에게도 지속 힐을 걸어 두기' : '예고가 뜨면 탱커를 미리 가득 채우기'];
@@ -309,6 +309,7 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
     case 'rot': return [`${e.n}명 최대 체력 −${pctT(e.pct)} 중첩 (최대 ${e.max}) ${debuffText(e.debuff, n)}`, debuffHow(e.debuff)];
     case 'pull': return [`뒷줄 1명을 보스 앞으로 끌어옴. ${secT(e.sec)} 동안 평타를 탱커와 번갈아 맞음 (한 대에 <b>${n(e.dmg)}</b>)${e.pad ? `. 그 칸에 받침: 끝에 위 사람 <b>${n(e.pad.dmg)}</b>, 비어 있으면 전원 <b>${n(e.pad.empty)}</b>` : ''}`,
       e.pad ? '끌려온 사람을 받침 끝까지 세워 두기 (탱커와 묶어 광역, 울림 직전 단일 힐)' : `끌려온 사람이 탱커 옆이라 ${act('poh', RO)} 둘을 한 번에 채우기`];
+    case 'drag': return [`🌊 예고 때 고른 ${targetWho(d, c)}을 잠긴 줄로 끌어내려 ${secT(e.sec)} 묶어 둠 + <b>${n(e.dmg)}</b> (잠긴 칸이면 받는 치유 −${pctT(TIDE_CUT)})`, '예고 동안 찍힌 사람을 90% 위로. 끌려간 뒤에는 보호막 · 지속 힐'];
     case 'adds': return [`「${e.add.name}」 ${c.mythic && e.nMythic ? e.nMythic : e.n}마리 등장`, '딜러가 잡음. 맞는 사람을 채우기'];
     case 'hole': return [`가장자리 바닥 ${e.n}칸이 무너짐`, '파티원이 알아서 비킴'];
     case 'order': return [`${c.mythic && e.nMythic ? e.nMythic : e.n}명 칸에 번호. ${secT(e.sec)} 안에 번호 순서대로 단일 힐 → 보스 ${secT(e.daze.sec)} 멍함${e.fake ? `. 🌫 하나는 신기루 숫자 (시작 ${secT(e.fake.at)} 뒤 걷힘, 그 전에 힐하면 틀림)` : ''}${c.mythic && e.wrongAll ? `. 틀리면 전원 <b>${n(e.wrongAll)}</b>` : ''}`,

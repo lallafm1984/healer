@@ -254,6 +254,12 @@ const ENC_ART: Record<string, string[]> = {
   carriagetrash: ['mob-wet-armor', 'mob-wet-mourner', 'mob-empty-armor', 'mob-veiled-mourner'],
   ballhall: ['mob-wet-armor', 'mob-sunken-maid', 'mob-empty-armor', 'mob-ghost-maid'],
   balcony: ['mob-sunken-hound', 'mob-wet-mourner', 'mob-wet-armor', 'mob-ghost-hound', 'mob-veiled-mourner', 'mob-empty-armor'],
+  // 묶음 G2 (그림 요청 60): 탐험 ㉔ 녹슬음은 던전 ⑳ 그림을 같이 씀. 심연의 정예 졸개는 새 그림이 없으면 심연의 탑 졸개 그림
+  janmul: ['boss-shadow-boatman'],
+  hwigami: ['boss-abyss-eel-king'],
+  geomeun: ['boss-darkwater-queen'],
+  nokseul96: ['boss-shadow-lender'],
+  lanterntrash: ['mob-shadow-knight', 'mob-trap-caster', 'mob-void-servant', 'mob-abyss-herald'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {

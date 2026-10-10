@@ -26,11 +26,12 @@ const DOC_BSK_N: Record<string, number> = {
   chulleong: 2, puseok: 2, huu: 2, kkongkkong: 2, buri: 2, boksul: 3, dolgae: 1,
   gulgul: 3, pingping: 2, bitgallae: 2, dungdung: 2, ssaengssaeng: 3, ureureung: 3, pongpong: 2, dwijuk: 2, kwangkwang: 1, syungsyung: 2, eodugi: 3,
   geumeum: 3, silta: 2, bamgeuneul: 2, jilpung: 3, ureobal: 3, chilheuk: 3, serena: 3, valen: 2,
+  janmul: 3, hwigami: 3, geomeun: 2, nokseul: 1,
 };
 /** 55 4장 D 1~2: 모래 왕국 공용 (모래 기침 · 천 년 졸음), 57 4장 D: 구름 위 섬 공용 (깃털 간지럼) */
 const DOC_BSK = [...Object.entries(DOC_BSK_N).flatMap(([b, n]) => Array.from({ length: n }, (_, i) => `icon-bsk-${b}-${i + 1}`)), 'icon-bsk-sand-cough', 'icon-bsk-sand-sleepy', 'icon-bsk-sky-tickle'];
 /** 44 4장 D 5~15, 47 4장 D 44~46, 49 4장 D 36, 52 4장 D 26, 55 4장 D 45, 57 4장 D (천둥 숫양 · 번개 실험 정령) */
-const DOC_MOB = ['rot', 'sick-shout', 'dart', 'veil', 'howl', 'silence', 'frost-burst', 'pilgrim', 'ground-quake', 'trap', 'gaze', 'jelly', 'anchor-spin', 'dust-sweep', 'sneeze', 'tail-sweep', 'sandstorm', 'thunder-charge', 'spark-burst'].map(n => `icon-mob-${n}`);
+const DOC_MOB = ['rot', 'sick-shout', 'dart', 'veil', 'howl', 'silence', 'frost-burst', 'pilgrim', 'ground-quake', 'trap', 'gaze', 'jelly', 'anchor-spin', 'dust-sweep', 'sneeze', 'tail-sweep', 'sandstorm', 'thunder-charge', 'spark-burst', 'trap-hex'].map(n => `icon-mob-${n}`);
 /** 모자 뽑기 모자 (37 4장 H 3~5): 칸 위 표식 (대기열 기믹 표에는 없음) */
 const DOC_HAT = ['full', 'invert', 'cap'].map(n => `icon-gim-hat-${n}`);
 const DOC = new Set([...DOC_GIM, ...DOC_HAT, ...DOC_BSK, ...DOC_MOB]);

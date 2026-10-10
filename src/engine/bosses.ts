@@ -7,7 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abDecoy, abOnTel } from './abilities';
 import { affChaos } from './affixes';
-import { addsTick, aggroTarget, applyDebuff, backTargets, chainWarn, decoyOpen, flowNext, MIRAGE_REVEAL, glassTick, greedTargets, linkedOnes, liftWarn, mirageTick, preferTargets, mirageUp, orderNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, tideEbb, tideRise, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, applyDebuff, backTargets, chainWarn, frontTargets, decoyOpen, flowNext, MIRAGE_REVEAL, glassTick, greedTargets, linkedOnes, liftWarn, mirageTick, preferTargets, mirageUp, orderNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, tideEbb, tideRise, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import { specBuster, specCut, specTel } from './specials';
@@ -35,7 +35,7 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
       : d.target ? g => {
         const t = d.target as Exclude<SkillDef['target'], 'tank' | 'offtank' | undefined>, n = g.mythic && t.nMythic ? t.nMythic : t.n;
         return (t.p === 'random' ? (t.prefer ? preferTargets(g, n, u => u.role !== 'tank', t.prefer) : randomTargets(g, n, u => u.role !== 'tank' && !u.me)) : t.p === 'greed' ? greedTargets(g, n)
-          : t.p === 'linked' ? linkedOnes(g, n) : t.p === 'order' ? orderNext(g, n) : t.p === 'pad' ? randomTargets(g, n, u => u.padUntil != null && u.padUntil > g.t) : backTargets(g, n)).map(u => u.id);
+          : t.p === 'linked' ? linkedOnes(g, n) : t.p === 'order' ? orderNext(g, n) : t.p === 'front' ? frontTargets(g, n) : t.p === 'pad' ? randomTargets(g, n, u => u.padUntil != null && u.padUntil > g.t) : backTargets(g, n)).map(u => u.id);
       } : undefined,
     fire: e ? g => runEffect(g, s, e) : undefined,
     hit: e ? (g, tel) => runEffect(g, s, e, tel) : undefined,
@@ -44,7 +44,7 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
     stunOnCut: e?.p === 'counter' ? e.stun : undefined, pads: e?.p === 'tower' || undefined, fixed: d.fixed, soak: e?.p === 'share' || undefined,
     greed: e?.p === 'greed' ? e.dmg : undefined, hunt: e?.p === 'hunt' || undefined, mirage: d.mirage, glass: e?.p === 'glass' || undefined,
     decoy: e?.p === 'counter' ? e.decoy : undefined, mirrorCells: z?.p === 'safe' && z.at === 'side' ? g => zoneCells(g, s, z, true) : undefined,
-    lift: e?.p === 'lift' ? { pre: e.pre } : undefined, chain: e?.p === 'chain' || undefined, tide: z?.p === 'tide' || undefined,
+    lift: e?.p === 'lift' ? { pre: e.pre } : undefined, chain: e?.p === 'chain' || undefined, tide: z?.p === 'tide' || undefined, drag: e?.p === 'drag' || undefined,
   });
   f.bs[d.key] = s;
   return s;
