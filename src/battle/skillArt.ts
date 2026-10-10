@@ -84,6 +84,20 @@ const BSK: Partial<Record<BossKey, Record<string, string>>> = {
   kkojil: { pick: 'icon-bsk-kobold-1', smoke: 'icon-bsk-kobold-2' },
   deolkeong: { cart: 'icon-bsk-deolkeong-1', cartm: 'icon-bsk-deolkeong-1', wheel: 'icon-bsk-deolkeong-2' },
   beonjjeok: { buster: 'icon-bsk-beonjjeok-1', rain: 'icon-bsk-beonjjeok-2' },
+  // 묶음 D2 (52 4장 D 14~25). 단단이 줄 불길은 불퉁이 그림을 같이 씀
+  whelps: { snort: 'icon-bsk-whelps-1' },
+  dandani: {
+    spear: 'icon-bsk-dandani-1', charge: 'icon-bsk-dandani-2',
+    fire0: 'icon-bsk-bulttung-2', fire0b: 'icon-bsk-bulttung-2', fire1: 'icon-bsk-bulttung-2', fire1b: 'icon-bsk-bulttung-2', fire2: 'icon-bsk-bulttung-2', fire2b: 'icon-bsk-bulttung-2',
+  },
+  rubina: {
+    buster: 'icon-bsk-rubina-1', showoff: 'icon-bsk-rubina-2', ash: 'icon-bsk-rubina-3',
+    breath0: 'icon-bsk-rubina-4', breath0b: 'icon-bsk-rubina-4', breath1: 'icon-bsk-rubina-4', breath1b: 'icon-bsk-rubina-4', breath2: 'icon-bsk-rubina-4', breath2b: 'icon-bsk-rubina-4',
+  },
+  knights68: { wave: 'icon-bsk-knights-1' },
+  knights: { wave: 'icon-bsk-knights-1' },
+  uwoong: { drops: 'icon-bsk-uwoong-1' },
+  ormal: { buster: 'icon-bsk-ormal-1', touch: 'icon-bsk-ormal-2', wave: 'icon-bsk-ormal-3' },
 };
 /** 데이터 부품만으로는 안 보이는 기믹 (35 4장 표): 서리 손길 · 빗자루 = 버스터 + 썩는 상처 (서리 · 먼지 범벅), 얼어붙는 바닥 · 바닥이 언다 = 장판 → 무너지는 바닥 */
 const GIM_KEY: Partial<Record<BossKey, Record<string, Gim>>> = {

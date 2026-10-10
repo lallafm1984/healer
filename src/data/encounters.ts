@@ -15,7 +15,8 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'gullsand' | 'crab36' | 'wreckage' | 'goldbeard44' | 'crab' | 'cook' | 'morel' | 'gunner' | 'octo' | 'seawitch' | 'mimic' | 'parrot' | 'goldbeard'
   | 'capway' | 'sippy52' | 'hotgravel' | 'kobold60' | 'sugarstair' | 'sippy' | 'cuptower' | 'hatter' | 'wetstair' | 'uga' | 'turtlebridge' | 'shellgod'
   | 'pollenfield' | 'queen56' | 'songi' | 'pililli' | 'ponga' | 'mungge' | 'gaegul' | 'morak' | 'bungbung' | 'ppyong' | 'amanita'
-  | 'warmash' | 'mungsil64' | 'steamroom' | 'mungsil' | 'lavabath' | 'bulttung' | 'coldhearth' | 'huggeun' | 'anvilbridge' | 'ttangttang' | 'kkojil' | 'deolkeong' | 'beonjjeok';
+  | 'warmash' | 'mungsil64' | 'steamroom' | 'mungsil' | 'lavabath' | 'bulttung' | 'coldhearth' | 'huggeun' | 'anvilbridge' | 'ttangttang' | 'kkojil' | 'deolkeong' | 'beonjjeok'
+  | 'whelps' | 'dandani' | 'rubina' | 'shoretrash' | 'knights68' | 'knights' | 'uwoong' | 'ormal';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -24,7 +25,8 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'crab36' | 'goldbeard44' | 'crab' | 'cook' | 'morel' | 'gunner' | 'octo' | 'seawitch' | 'mimic' | 'parrot' | 'goldbeard'
   | 'sippy52' | 'kobold60' | 'sippy' | 'hatter' | 'uga' | 'shellgod'
   | 'queen56' | 'songi' | 'pililli' | 'ponga' | 'mungge' | 'gaegul' | 'morak' | 'bungbung' | 'ppyong' | 'amanita'
-  | 'mungsil64' | 'mungsil' | 'bulttung' | 'huggeun' | 'ttangttang' | 'kkojil' | 'deolkeong' | 'beonjjeok';
+  | 'mungsil64' | 'mungsil' | 'bulttung' | 'huggeun' | 'ttangttang' | 'kkojil' | 'deolkeong' | 'beonjjeok'
+  | 'whelps' | 'dandani' | 'rubina' | 'knights68' | 'knights' | 'uwoong' | 'ormal';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -587,6 +589,21 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
   kkojil: { key: 'kkojil', name: '코볼트 보물 지킴이 꼬질', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 18500, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'kkojil', stage: 0.18, debuffs: ['독'] },
   deolkeong: { key: 'deolkeong', name: '코볼트 수레꾼 덜컹이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 23000, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'deolkeong', stage: 0.18, debuffs: ['마법'] },
   beonjjeok: { key: 'beonjjeok', name: '코볼트 대장 번쩍이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 21500, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'beonjjeok', stage: 0.18 },
+  // ---------- 묶음 D2 (51 1장 · 4-2 · 4-3) ----------
+  // 10인 ⑨ 어미 용의 둥지 (Lv 67 · 악몽 82). 삼남매 몸통 체력 = hp ÷ 3 (bosses WHELP_HP)
+  whelps: { key: 'whelps', name: '새끼 용 삼남매', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 23400, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'whelps', stage: 0.18, debuffs: ['마법'] },
+  dandani: { key: 'dandani', name: '용 비늘 경비대장 단단이', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 25000, enrage: 390, manaCoef: 1.3, diffs: ALL, script: 'dandani', stage: 0.18, debuffs: ['마법'] },
+  rubina: { key: 'rubina', name: '어미 용 루비나', tier: '레이드 · 10인', board: 'b36', comp: RAID10, hp: 23000, enrage: 480, manaCoef: 1.5, diffs: ALL, script: 'rubina', stage: 0.18, debuffs: ['독', '마법'] },
+  // 탐험 ⑰ 「잠긴 호숫가」 (51 1-1, Lv 68, 심연 졸개): 물이 빠진 호숫가 → 물그림자 기사 셋 (생명 사슬 균형형 쉬운 판, 20인 대성당 회랑 예습)
+  shoretrash: trash('shoretrash', '물이 빠진 호숫가', [
+    { name: '공허의 종복', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '검은 눈', hp: 150, count: 1, attacks: [{ key: 'ray', to: 'other', dmg: 75, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  knights68: { key: 'knights68', lowLevel: true, name: '물그림자 기사 셋', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2900, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'knights68', stage: 0.3 },
+  // 20인 ① 가라앉은 대성당 2 · 3 · 4구역 (Lv 70 · 악몽 80): 1구역 유령 성가대 수치 (마나 1.6 · 단계 0.13)에 맞춤. 기사 몸통 체력 = hp ÷ 3 (bosses KNIGHT_HP)
+  knights: { key: 'knights', name: '물그림자 기사 셋', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 49500, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'knights', big: true, stage: 0.13 },
+  uwoong: { key: 'uwoong', name: '물오르간 정령 우웅이', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 60000, enrage: 390, manaCoef: 1.6, diffs: ALL, script: 'uwoong', big: true, stage: 0.13, debuffs: ['마법'] },
+  ormal: { key: 'ormal', name: '문지기 그림자 오르말', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 70000, enrage: 480, manaCoef: 1.6, diffs: ALL, script: 'ormal', big: true, stage: 0.13, debuffs: ['질병', '독', '저주', '마법'] },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

@@ -102,6 +102,9 @@ const baseCast = (f: Fight, k: SkillKey): number => f.R.cast?.[k] ?? SKILLS[k].c
 const isSingle = (k: SkillKey | null): boolean => !!k && SINGLE.has(SKILLS[k].slot) && SKILLS[k].target === 'ally';
 const hasHot = (u: Unit): boolean => u.hots.length > 0 || u.hot > 0;
 const bossPct = (f: Fight): number => (f.bossMax > 0 ? f.bossHp / f.bossMax : 1);
+/** 보물 욕심 예고가 노린 사람이거나, 사냥 예고 중에 지금 맞을 사람 (체력 비율이 가장 낮은 탱커 아닌 사람) */
+const aimedAt = (f: Fight, u: Unit): boolean => f.tels.some(t => (t.skill.greed != null && t.units.includes(u.id))
+  || (!!t.skill.hunt && u.role !== 'tank' && living(f).every(x => x.role === 'tank' || x.hp / x.max >= u.hp / u.max - 1e-9)));
 
 /** 치유 배율 (core heal, 장비 · 레벨 배율 다음 · 치명타 전). 조건이 맞는 것을 더한다 */
 export function healSpec(f: Fight, u: Unit, direct: boolean): number {
@@ -143,6 +146,9 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.goldButton && direct && !tick && f.sp!.button[u.id]) { m += v.goldButton; delete f.sp!.button[u.id]; } // 금빛수염 단추
   if (v.chippedCup && u.debuffs.some(d => d.absorbLeft)) m += v.chippedCup; // 이 빠진 찻잔 (48 6장)
   if (v.dragonScale && u.debuffs.some(d => d.type === '독')) m += v.dragonScale; // 용 비늘 조각
+  if (v.rubinaPearl && direct && !tick && aimedAt(f, u)) m += v.rubinaPearl; // 루비나의 진주 (51 6장)
+  if (v.lakePebble && u.debuffs.some(d => d.link)) m += v.lakePebble; // 호숫가 조약돌
+  if (v.threeShards && u.soul) m += v.threeShards; // 세 조각 목걸이
   if (v.festInvite && direct && !tick && u.debuffs.some(d => d.noDps)) m += v.festInvite; // 축제 초대장 (48 6장)
   if (v.rainbowSpore && u.soul) m += v.rainbowSpore; // 무지개 포자
   if (v.mossBrooch && aoe && f.stagger) m += v.mossBrooch; // 이끼 브로치

@@ -234,8 +234,8 @@ export type SkillEffect =
    * link = 끌려온 사람과 보스를 맞는 탱커를 sec초 나눔형 사슬로 이음 (연잎 사슬, 48 4-2). 악몽은 둘 다 받는 피해 +vulnMythic
    */
   | { p: 'pull'; sec: number; dmg: number; pad?: { dmg: number; empty: number }; link?: { name: string; vulnMythic?: number } }
-  /** 사냥 (P-HUNT, 35 4-2 사냥 창): 맞는 순간 체력 비율이 가장 낮은 탱커 아닌 1명 (악몽 nMythic명)에게 dmg (물리, 원거리 기준) */
-  | { p: 'hunt'; dmg: number; nMythic?: number }
+  /** 사냥 (P-HUNT, 35 4-2 사냥 창): 맞는 순간 체력 비율이 가장 낮은 탱커 아닌 n명 (기본 1, 20인 그림자 가시 2 · 악몽 nMythic명)에게 dmg (물리, 원거리 기준) */
+  | { p: 'hunt'; dmg: number; n?: number; nMythic?: number }
   /**
    * 보물 욕심 (P-GREED, 51 5장): 사냥의 반대. 예고 때 고른 사람 (target greed = 그 순간 체력 비율이 가장 높은 탱커 · 나 아닌 n명, 같으면 무작위)에게
    * dmg (물리, 원거리 기준). debuff = 맞은 사람에게 (무거운 주머니 · 그을음). 모두를 가득 채우면 누가 맞을지 모르니 가운데에 두기
@@ -299,15 +299,16 @@ export type SkillEffect =
   /**
    * 헤매는 영혼 (P-SOUL, 35 3장): 빈 칸 하나에 파티원이 아닌 영혼 칸 (최대 체력 = 탱커·나 아닌 파티원 평균, hp 비율로 시작).
    * 칸 탭으로 단일 힐(기본·빠른·지속)만 들어감. sec초 안에 가득 채우면 win, 못 채우면 fail. type이 있으면 그 유형을 지우는 직업이
-   * 영혼에 해제를 쓰면 바로 성공. 빈 칸이 1개뿐이면 안 나옴. size = 최대 체력 배율 (사람 칸 큰 판: 숲 할아버지 나무, 48 4-3), hpMythic = 악몽 시작 비율
+   * 영혼에 해제를 쓰면 바로 성공. 빈 칸이 1개뿐이면 안 나옴. size = 최대 체력 배율 (사람 칸 큰 판: 숲 할아버지 나무, 48 4-3), hpMythic = 악몽 시작 비율.
+   * n = 한 번에 나오는 수 (문에 박힌 조각 셋, 51 4-3), sizeMythic = 악몽 최대 체력 배율
    */
-  | { p: 'soul'; name: string; short: string; hp: number; hpMythic?: number; sec: number; type?: string; win: SoulWin; fail: SoulFail; art?: string; size?: number }
+  | { p: 'soul'; name: string; short: string; hp: number; hpMythic?: number; sec: number; type?: string; win: SoulWin; fail: SoulFail; art?: string; size?: number; sizeMythic?: number; n?: number }
   /**
    * 생명 사슬 (P-LINK, 35 3장): 두 사람을 sec초 잇는 사슬 (pick tanks = 두 탱커, 없으면 탱커 아닌 사람 둘. 나도 걸릴 수 있음).
    * balance = 두 사람 체력 비율 차이가 gap(기본 0.3)을 넘으면 끊어지며 둘 다 dmg (aim 기준, 기본 party).
-   * share = 둘이 받는 피해·치유를 반씩 나눔 (방어력·받는 치유 효과는 각자)
+   * share = 둘이 받는 피해·치유를 반씩 나눔 (방어력·받는 치유 효과는 각자). pairs = 한 번에 거는 쌍 수 (20인 물그림자 사슬 3쌍, 51 4-3), pairsMythic = 악몽
    */
-  | { p: 'link'; kind: 'balance' | 'share'; name: string; sec: number; pick?: 'tanks' | 'others'; gap?: number; dmg?: number; aim?: 'tank' | 'party' }
+  | { p: 'link'; kind: 'balance' | 'share'; name: string; sec: number; pick?: 'tanks' | 'others'; gap?: number; dmg?: number; aim?: 'tank' | 'party'; pairs?: number; pairsMythic?: number }
   /**
    * 넘치는 빛 그릇형 (P-OVER, 35 4-7): sec초 동안 넘친 치유가 그릇에 모임 (끝 = 파티 최대 체력 합 × need).
    * 가득 차면 전원 shield초 보호막 (받는 피해 −40%). 못 채우면 그냥 사라짐. 과부하형은 DebuffDef.over
@@ -336,12 +337,14 @@ export interface SoulWin {
   fx?: FxName;
 }
 
-/** 영혼을 못 채웠을 때: dmg (마법), near = 영혼 이웃 칸만 (아니면 전원). debuff = 맞은 사람에게 */
+/** 영혼을 못 채웠을 때: dmg (마법), near = 영혼 이웃 칸만 (아니면 전원). debuff = 맞은 사람에게. boost = 보스가 주는 피해 +비율 (악몽 오르말, 51 4-3), fx = 판 전체 이펙트 (문이 열림) */
 export interface SoulFail {
   text: string;
   dmg: number;
   near?: boolean;
   debuff?: DebuffDef;
+  boost?: number;
+  fx?: FxName;
 }
 
 /** 장판 칸 고르기 */
@@ -404,6 +407,8 @@ export interface SkillDef {
   hitDmg?: number;
   /** 장판 예고가 맞는 순간 그 칸에 선 사람에게 디버프 (줄 불길 불씨, 51 3-1) */
   hitDebuff?: DebuffDef;
+  /** 장판 예고가 맞는 순간 그 칸 가운데에 이펙트 한 번 (용의 숨결, 그림 52 E) */
+  hitFx?: FxName;
   /** 악몽 장판 피해 배율 (불협화음 0.7) */
   dpsMythic?: number;
   /** 피할 수 없는 장판 예고 (줄 피해 P-ROW, 05 3-A 산성 토사 · 5-B 눈보라 세 줄): 파티원이 안 비킴. 맞는 순간 그 칸 hitDmg → 미리 채우기 */
@@ -411,9 +416,10 @@ export interface SkillDef {
   when?: SkillWhen;
   /**
    * 예고 때 맞을 사람을 고름: tank = 보스가 때릴 사람, back = 뒷줄부터 n명 (탱커·나 빼고, 끌어당김),
-   * random = 탱커·나 빼고 무작위 n명 (피의 서약), greed = 체력 비율이 가장 높은 탱커·나 아닌 n명 (보물 욕심 P-GREED, 51 5장). 악몽은 nMythic
+   * random = 탱커·나 빼고 무작위 n명 (피의 서약), greed = 체력 비율이 가장 높은 탱커·나 아닌 n명 (보물 욕심 P-GREED, 51 5장). 악몽은 nMythic.
+   * offtank = 보스를 안 맞는 탱커 (없으면 보스가 때릴 사람, 비늘 방패 돌진 51 4-2)
    */
-  target?: 'tank' | { p: 'back' | 'random' | 'greed'; n: number; nMythic?: number };
+  target?: 'tank' | 'offtank' | { p: 'back' | 'random' | 'greed'; n: number; nMythic?: number };
   /** 맞을 때 (장판은 없음) */
   effect?: SkillEffect;
   /** 장판 칸 */
@@ -551,17 +557,31 @@ const SOOT: DebuffDef = { name: '그을음', type: '독', left: 10, dot: U.dps(0
 const PURSE: DebuffDef = { name: '무거운 주머니', type: '물리', left: 8, lock: true, vuln: 0.15 };
 /** 악몽 번쩍이: 털린 주머니 (받는 피해 +15%, 사냥까지 맞기 쉬움) */
 const ROBBED: DebuffDef = { name: '털린 주머니', type: '물리', left: 6, lock: true, vuln: 0.15 };
+/** 새끼 용 삼남매 (51 4-2): 몸통 셋, 체력은 encounters whelps hp를 셋으로 나눔 */
+const WHELPS = ['화르', '르륵', '퐁퐁'];
+const WHELP_HP = 7800;
+/** 물그림자 기사 셋 (51 4-3): 몸통 셋, 체력은 encounters knights hp를 셋으로 나눔 */
+const KNIGHTS = ['창 기사', '방패 기사', '검 기사'];
+const KNIGHT_HP = 16500;
+/** 그림자 손길 (51 4-3 오르말): 질병 · 독 · 저주 · 마법 중 사람마다 무작위 하나 */
+const SHADOW_TOUCH: DebuffDef[] = [
+  { name: '시드는 그림자', type: '질병', left: 12, maxCut: 0.08, end: { p: 'restoreMax' } },
+  { name: '쓴 그림자', type: '독', left: 12, dot: U.dps(0.02) },
+  { name: '무거운 그림자', type: '저주', left: 10, healCut: 0.4 },
+  { name: '차가운 그림자', type: '마법', left: 8, dot: U.dps(0.02) },
+];
 /** 벌침 (P-WOUND, 48 4-3): 꿀벌이 쏜 사람이 90% 아래인 동안 3초마다 1중첩 (중첩당 초당 딜체 1%), 못 지움 */
 const sting = (max: number): DebuffDef => ({ name: '벌침', type: '물리', left: 20, lock: true, cureAt: 0.9, grow: { every: 3, dot: U.dps(0.01), max }, fx: 'bee-sting' });
-/** 못 피하는 줄 피해 (P-ROW): 뒷줄 → 가운데 → 앞줄을 period초마다 번갈아. two = 2페이즈부터 다른 한 줄을 같이 */
-const rows = (key: string, name: string, icon: string, first: number, period: number, dmg: number, two: boolean): SkillDef[] => {
+/** 못 피하는 줄 피해 (P-ROW): 뒷줄 → 가운데 → 앞줄을 period초마다 번갈아. two = 2페이즈부터 다른 한 줄을 같이 (조건을 주면 그때: 악몽 단단이 { mythic: true }) */
+const rows = (key: string, name: string, icon: string, first: number, period: number, dmg: number, two: boolean | SkillWhen): SkillDef[] => {
   const at = ['back', 'mid', 'front'] as const;
+  const twoWhen = two === true ? { phase: [2] } : two || undefined;
   return [0, 1, 2].flatMap((i): SkillDef[] => {
     const one = (k: string, line: (typeof at)[number], when?: SkillWhen): SkillDef => ({
       key: k, name, icon, kind: 'zone', first: first + period * i, period: period * 3, cast: 3, warn: 'zone', fixed: true, hitDmg: dmg, cells: { p: 'line', at: line }, when,
       how: '그 줄에 선 사람이 맞음 (못 피함). 예고된 줄을 미리 채우기',
     });
-    return two ? [one(`${key}${i}`, at[i]), one(`${key}${i}b`, at[(i + 1) % 3], { phase: [2] })] : [one(`${key}${i}`, at[i])];
+    return twoWhen ? [one(`${key}${i}`, at[i]), one(`${key}${i}b`, at[(i + 1) % 3], twoWhen)] : [one(`${key}${i}`, at[i])];
   });
 };
 
@@ -1783,6 +1803,165 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'text', text: '보물 비!: 내 거야! 3명' },
     ] }],
     enrage: { name: '대장님 화남', period: 3, dmg: 190 },
+  },
+  // ---------- 10인 ⑨ 어미 용의 둥지 (51 4-2, Lv 67 · 악몽 82): 삼남매 · 단단이 · 루비나 ----------
+  // 새끼 용 삼남매 (알둥지): 몸통 셋 (고르게 깎음) · 부화하는 알 (12초 안에 못 깨면 새끼 용) × 녹는 보호막 (아기 불꽃 끝에 광역).
+  // 악몽은 알 부화 10초. 목표 4:30 · 광폭화 6:00
+  whelps: {
+    phase: [1, ''],
+    bodies: WHELPS.map(name => ({ name, hp: WHELP_HP, boss: true })),
+    split: true,
+    skills: [
+      ...WHELPS.map((_, i): SkillDef => ({ ...AUTO(U.tank(0.04)), key: `auto${i}`, first: 2 + i * 0.6, when: { bodyAlive: [i] } })),
+      ...([false, true] as const).map((mythic): SkillDef => ({
+        key: `egg${mythic ? 'm' : ''}`, name: '굴러온 알', icon: '알', kind: 'instant', first: 12, period: 30, cast: 0, when: { mythic },
+        how: `${mythic ? 10 : 12}초 안에 딜러가 알을 못 깨면 새끼 용이 나와 탱커를 때림. 알을 치는 동안 파티는 지속 힐로`,
+        effect: { p: 'adds', n: 1, add: { name: '굴러온 알', short: '알', art: 'mob-egg', hp: 0.015, dmg: 0, every: 0, at: 'random',
+          job: { p: 'hatch', sec: mythic ? 10 : 12, add: { name: '새끼 용', short: '새끼', art: 'mob-ember-whelp', hp: 0.04, dmg: U.tank(0.04), every: 2, at: 'front' } } } },
+      })),
+      { key: 'melt', name: '아기 불꽃', icon: '불꽃', kind: 'instant', first: 16, period: 26, cast: 0, how: MELT_HOW, effect: { p: 'melt', sec: 8, rate: 0.2 } },
+      { key: 'boom', name: '불꽃 재채기', icon: '재채', kind: 'aoe', first: 21, period: 26, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.2) } },
+      { key: 'snort', name: '콧김 퉤', icon: '콧김', kind: 'instant', first: 8, period: 15, cast: 0,
+        effect: { p: 'debuff', n: 3, debuff: { name: '콧김', type: '마법', left: 8, healCut: 0.25, drop: U.dps(0.15) } } },
+    ],
+    enrage: { name: '삼남매 떼쓰기', period: 3, dmg: 180 },
+  },
+  // 용 비늘 경비대장 단단이 (다리): 탱커 교대 × 녹는 보호막 · 줄 불길 · 부탱커에게 비늘 방패 돌진. 악몽은 줄 불길 두 줄. 목표 4:50 · 광폭화 6:30
+  dandani: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { key: 'spear', name: '비늘 창', icon: '창', kind: 'instant', first: 6, period: 6, cast: 0, how: '4중첩이면 다른 탱커가 보스를 가져감. 열기 동안 교대가 겹치면 보호막 대신 힐로',
+        effect: { p: 'debuff', n: 1, pick: 'tank', debuff: { name: '비늘 창', type: '물리', left: 20, lock: true, stackMax: 4, vuln: 0.15, swap: 4 } } },
+      { key: 'melt', name: '다리 위 열기', icon: '열기', kind: 'instant', first: 15, period: 30, cast: 0, how: MELT_HOW, effect: { p: 'melt', sec: 10, rate: 0.25 } },
+      ...rows('fire', '줄 불길', '불길', 12, 16, U.dps(0.35), { mythic: true }).map((d): SkillDef => ({ ...d, hitDebuff: EMBER, hitFx: 'dragon-breath' })),
+      { key: 'charge', name: '비늘 방패 돌진', icon: '돌진', kind: 'buster', first: 20, period: 20, cast: 2, warn: 'buster', dmg: U.tank(0.45), target: 'offtank',
+        how: '보스를 안 맞는 탱커가 맞음. 교대 직전이면 그 탱커에게 미리 보호막', effect: { p: 'tank' } },
+    ],
+    enrage: { name: '경비대장 화남', period: 3, dmg: 190 },
+  },
+  // 어미 용 루비나 (보물더미, 10인 ⑨ 최종 · 붉은 용 일가 수장): 1페이즈 보물 욕심 · 눈부심 → 70% 날아오름 (녹는 보호막 · 화산재 비 · 새끼 용) →
+  // 40% 보물 지키기 (모두 + 사냥 · 용의 숨결 두 줄). 악몽은 3페이즈 시작에 진주 목걸이 반짝 (전원 받는 치유 −20%, 못 지움). 목표 6:00 · 광폭화 8:00
+  rubina: {
+    phase: [1, '1페이즈 · 낮잠 깸'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('앞발 내려치기', '앞발', 8, 15, U.tank(0.55)), cast: 2.5 },
+      ...greeds('greed', '내 보물 만지지 마!', '보물', 10, 12, 2.5, [[1, 2], [3, 2]], U.dps(0.4)),
+      { key: 'showoff', name: '보물 자랑', icon: '자랑', kind: 'instant', first: 14, period: 18, cast: 0, when: { phase: [1, 3] },
+        effect: { p: 'debuff', n: 3, debuff: { name: '눈부심', type: '마법', left: 8, healCut: 0.25 } } },
+      { key: 'melt', name: '뜨거운 날갯짓', icon: '날개', kind: 'instant', first: null, period: 28, cast: 0, when: { phase: [2, 3] }, how: MELT_HOW, effect: { p: 'melt', sec: 10, rate: 0.25 } },
+      { key: 'ash', name: '화산재 비', icon: '화산', kind: 'aoe', first: null, period: 20, cast: 3, warn: 'aoe', when: { phase: [2, 3] },
+        effect: { p: 'all', dmg: U.dps(0.15), debuff: { name: '화산재', type: '독', left: 6, dot: U.dps(0.01) } } },
+      { key: 'kids', name: '우리 애들!', icon: '애들', kind: 'instant', first: null, period: 40, cast: 0, when: { phase: [2, 3] }, how: '새끼 용 둘이 탱커를 때림. 딜러가 잡는 동안 부탱커에게 지속 힐',
+        effect: { p: 'adds', n: 2, add: { name: '새끼 용', short: '새끼', art: 'mob-ember-whelp', hp: 0.02, dmg: U.tank(0.03), every: 2, at: 'front' } } },
+      { key: 'hunt', name: '제일 약한 손님', icon: '손님', kind: 'instant', first: null, period: 13, cast: 2, when: { phase: [3] }, effect: { p: 'hunt', dmg: U.dps(0.3) } },
+      ...[0, 1, 2].flatMap((i): SkillDef[] => (['', 'b'] as const).map((b): SkillDef => ({
+        key: `breath${i}${b}`, name: '용의 숨결', icon: '숨결', kind: 'zone', first: null, period: 75, cast: 4, warn: 'zone', fixed: true, hitDmg: U.dps(0.3), hitFx: 'dragon-breath',
+        cells: { p: 'line', at: (['back', 'mid', 'front'] as const)[(i + (b ? 1 : 0)) % 3] }, when: { phase: [3] }, ...(b ? { hidden: true } : {}),
+        how: '가로 두 줄이 맞음 (못 피함). 예고된 두 줄을 미리 채우기',
+      }))),
+      { key: 'pearl', name: '진주 목걸이 반짝', icon: '진주', kind: 'instant', first: null, period: 9999, cast: 0, when: { phase: [3], mythic: true },
+        how: '3페이즈 시작에 모두 8초 받는 치유 −20% (못 지움). 그 전에 모두를 채워 두기',
+        effect: { p: 'debuff', n: 'all', debuff: { name: '진주 반짝', type: '마법', left: 8, lock: true, healCut: 0.2 } } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.7 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 날아오름' }, { p: 'start', skill: 'melt', in: 3 }, { p: 'start', skill: 'ash', in: 8 }, { p: 'start', skill: 'kids', in: 5 },
+        { p: 'text', text: '날아오름: 뜨거운 날갯짓 · 화산재 비 · 우리 애들!' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.4 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 보물 지키기' }, { p: 'start', skill: 'pearl', in: 0 }, { p: 'start', skill: 'greed3', in: 4 }, { p: 'start', skill: 'hunt', in: 6 },
+        ...[0, 1, 2].flatMap((i): FlowDo[] => (['', 'b'] as const).map((b): FlowDo => ({ p: 'start', skill: `breath${i}${b}`, in: 6 + i * 25 }))),
+        { p: 'text', text: '보물 지키기: 보물 욕심 · 사냥 · 용의 숨결 두 줄이 함께' },
+      ] },
+    ],
+    enrage: { name: '어미 용의 분노', period: 3, dmg: 200 },
+  },
+  // ---------- 20인 ① 가라앉은 대성당 2 · 3 · 4구역 (51 4-3, Lv 70 · 악몽 80 · 심연 · 모든 유형) ----------
+  // 물그림자 기사 셋 탐험판 (51 1-1, 탐험 ⑰ 잠긴 호숫가 Lv 68): 평타 · 물그림자 사슬 (균형형 1쌍 = 원거리 딜러와 나) · 물결 베기. 대성당 회랑 예습
+  knights68: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'chain', name: '물그림자 사슬', icon: '사슬', kind: 'instant', first: 10, period: 25, cast: 0, how: '이어진 둘의 체력 비율을 비슷하게. 30%p 넘게 벌어지면 끊어지며 둘 다 아픔',
+        effect: { p: 'link', kind: 'balance', name: '물그림자 사슬', sec: 12, gap: 0.3, dmg: 160 } },
+      { key: 'wave', name: '물결 베기', icon: '물결', kind: 'aoe', first: 15, period: 14, cast: 2.5, warn: 'aoe', effect: { p: 'all', dmg: 120 } },
+    ],
+    enrage: { name: '물그림자 폭주', period: 2, dmg: 200 },
+  },
+  // 물그림자 기사 셋 (회랑): 몸통 셋 (차례로 쓰러뜨림, 하나가 쓰러질 때마다 남은 기사 +15%) · 20인 생명 사슬 균형형 3쌍 × 끌어당김 · 물결 베기 (살아 있는 기사가 맡은 2열).
+  // 악몽은 사슬 4쌍. 목표 4:30 · 광폭화 6:00
+  knights: {
+    phase: [1, ''],
+    bodies: KNIGHTS.map(name => ({ name, hp: KNIGHT_HP, boss: true })),
+    skills: [
+      ...KNIGHTS.map((_, i): SkillDef => ({ ...AUTO(U.tank(0.04)), key: `auto${i}`, first: 2 + i * 0.6, when: { bodyAlive: [i] } })),
+      { key: 'chain', name: '물그림자 사슬', icon: '사슬', kind: 'instant', first: 10, period: 25, cast: 0,
+        how: '세 쌍 (악몽 네 쌍)이 이어짐. 짝끼리 체력 비율을 비슷하게, 끌려간 사람의 짝도 같이 채우기',
+        effect: { p: 'link', kind: 'balance', name: '물그림자 사슬', sec: 15, pick: 'others', gap: 0.3, dmg: U.dps(0.4), pairs: 3, pairsMythic: 4 } },
+      { key: 'wave', name: '물결 베기', icon: '물결', kind: 'zone', first: 14, period: 12, cast: 2.5, warn: 'zone', hitDmg: U.dps(0.3),
+        cells: { p: 'bodyCols', bodies: 3, per: 2, nMythic: 1 }, how: '살아 있는 기사가 맡은 두 열을 벰. 파티원이 비키지 못하면 그 사람부터' },
+      { key: 'pull', name: '깊은 물로', icon: '깊은', kind: 'buster', first: 18, period: 18, cast: 2, warn: 'buster', target: { p: 'back', n: 1 },
+        how: '뒷줄 한 명이 끌려와 평타를 나눠 맞음. 사슬 짝이면 짝도 같이 채우기', effect: { p: 'pull', sec: 4, dmg: U.dps(0.12) } },
+      ...KNIGHTS.map((_, i): SkillDef => ({ key: `oath${i}`, name: '셋이 하나로', icon: '하나', hidden: true, first: null, period: 9999, cast: 0,
+        how: '기사가 쓰러질 때마다 남은 기사 피해 +15% (끝까지)', effect: { p: 'empower', boost: 0.15 } })),
+    ],
+    flow: KNIGHTS.map((_, i): FlowStep => ({ p: 'when', if: { idle: `oath${i}`, bodiesDead: [i] }, do: [{ p: 'start', skill: `oath${i}`, in: 0 }] })),
+    enrage: { name: '기사단 돌격', period: 3, dmg: 200 },
+  },
+  // 물오르간 정령 우웅이 (오르간): 진동 × 치유 상한 · 20인 무력화 (불협화음 게이지를 모두 함께). 파이프 소리 (종 · 방울 아님).
+  // 악몽은 물빛 화음 70%까지 (무력화 조건은 65%로 낮춰 상한에 걸린 사람도 채울 수 있게). 목표 4:50 · 광폭화 6:30
+  uwoong: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { key: 'quake', name: '낮은음 파동', icon: '파동', kind: 'aoe', first: 12, period: 20, cast: 1.5, warn: 'aoe', effect: { p: 'quake', dmg: U.dps(0.15), lock: 3 } },
+      ...([false, true] as const).map((mythic): SkillDef => ({
+        key: `chord${mythic ? 'm' : ''}`, name: '물빛 화음', icon: '화음', kind: 'instant', first: 8, period: 22, cast: 0, when: { mythic }, how: INK_HOW,
+        effect: { p: 'debuff', n: 6, debuff: { name: '물빛 화음', type: '마법', left: 10, cap: mythic ? 0.7 : 0.8 } },
+      })),
+      { key: 'stagger', name: '불협화음', icon: '불협', kind: 'instant', first: 30, period: 45, cast: 0,
+        how: '15초 동안 체력 70% (악몽 65%) 이상인 파티원의 딜만 게이지를 채움. 상한에 걸린 사람은 상한까지라도 채우기',
+        effect: { p: 'stagger', sec: 15, need: 8, hp: 0.7, hpMythic: 0.65, tank: 2, win: { sec: 8, vuln: 1.3 }, fail: { dmg: U.dps(0.55), lock: 3 } } },
+      { key: 'drops', name: '음표 물방울', icon: '음표', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 4, debuff: { name: '젖은 음표', type: '물리', left: 2, lock: true, drop: U.dps(0.2) } } },
+    ],
+    enrage: { name: '오르간 폭주', period: 3, dmg: 200 },
+  },
+  // 문지기 그림자 오르말 (성소, 20인 ① 최종): 1페이즈 조각 욕심 · 그림자 손길 (유형 무작위) → 65% 문 두드리기 (문에 박힌 탑 조각 셋 = 사람 칸, 못 채우면 문이 한 칸 열림 ·
+  // 차가운 심연 숨결) → 35% 문 아래로 (모두 + 심연의 물결 · 그림자 가시 2명). 악몽은 조각 체력 1.5배 · 못 채울 때마다 오르말 +5%. 목표 6:00 · 광폭화 8:00
+  ormal: {
+    phase: [1, '1페이즈 · 조각 빼앗기'],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('그림자 지팡이', '지팡', 8, 15, U.tank(0.55)), cast: 2.5 },
+      ...greeds('greed', '조각 욕심', '욕심', 10, 12, 2.5, [[1, 3], [3, 3]], U.dps(0.4)),
+      { key: 'touch', name: '그림자 손길', icon: '손길', kind: 'instant', first: 14, period: 16, cast: 0, when: { phase: [1, 3] },
+        how: '4명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터',
+        effect: { p: 'cycle', n: 4, random: true, debuffs: SHADOW_TOUCH } },
+      ...([false, true] as const).map((mythic): SkillDef => ({
+        key: `shards${mythic ? 'm' : ''}`, name: '조각 지키기', icon: '조각', kind: 'instant', first: null, period: 30, cast: 0, when: { phase: [2], mythic },
+        how: '문에 박힌 조각 셋을 20초 안에 단일 힐로 가득 채우기. 못 채운 조각마다 문이 한 칸 열려 모두 아픔. 그동안 파티는 지속 힐에 맡기기',
+        effect: { p: 'soul', name: '탑 조각', short: '조각', art: 'mob-tower-shard', hp: 0.5, sec: 20, size: 1.5, sizeMythic: 2.25, n: 3,
+          win: { text: '조각을 지켜 냄: 오르말이 받는 피해 +10%', vuln: { pct: 0.1, sec: 10 } },
+          fail: { text: '문이 한 칸 열림', dmg: U.dps(0.3), fx: 'door-open', ...(mythic ? { boost: 0.05 } : {}) } },
+      })),
+      { key: 'melt', name: '차가운 심연 숨결', icon: '숨결', kind: 'instant', first: null, period: 28, cast: 0, when: { phase: [2, 3] }, how: MELT_HOW, effect: { p: 'melt', sec: 10, rate: 0.25 } },
+      { key: 'wave', name: '심연의 물결', icon: '물결', kind: 'aoe', first: null, period: 20, cast: 3, warn: 'aoe', when: { phase: [3] }, effect: { p: 'all', dmg: U.dps(0.25) } },
+      { key: 'hunt', name: '그림자 가시', icon: '가시', kind: 'instant', first: null, period: 11, cast: 2, when: { phase: [3] }, effect: { p: 'hunt', dmg: U.dps(0.35), n: 2 } },
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
+        { p: 'phase', n: 2, name: '2페이즈 · 문 두드리기' }, { p: 'start', skill: 'shards', in: 2 }, { p: 'start', skill: 'shardsm', in: 2 }, { p: 'start', skill: 'melt', in: 6 },
+        { p: 'text', text: '문 두드리기: 문에 박힌 조각 셋을 채우기' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.35 }, do: [
+        { p: 'phase', n: 3, name: '3페이즈 · 문 아래로' }, { p: 'start', skill: 'greed3', in: 4 }, { p: 'start', skill: 'wave', in: 8 }, { p: 'start', skill: 'hunt', in: 6 },
+        { p: 'text', text: '문 아래로: 조각 욕심 · 그림자 가시 · 심연의 물결' },
+      ] },
+    ],
+    enrage: { name: '심연의 문', period: 3, dmg: 220 },
   },
   warden: {
     phase: [1, ''],

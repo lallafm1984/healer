@@ -289,15 +289,17 @@ const capHow = (d: DebuffDef) => (canDispel(S.hero, d.type) ? `큰 피해 예고
 /** 묶음 C 새 부품 (48 5장) */
 const passHow = (d: DebuffDef) => (canDispel(S.hero, d.type) ? `낮은 사람에게 붙으면 ${act('purify', RO)} 지워 건강한 사람에게 넘기고, 그 사람 몸에서 힐로 녹이기` : `못 지움. 붙은 사람에게 힐을 몰아 막을 녹이기`);
 const flipHow = (d: DebuffDef) => `끝날 때 체력이 높으면 낮아지니 힐을 멈추고, 낮으면 오히려 둠${canDispel(S.hero, d.type) ? `. 높을 때는 ${act('purify', RO)} 지우기` : ''}`;
+/** 생명 사슬 쌍 수 (20인 물그림자 사슬, 51 4-3) */
+const linkPairs = (e: Extract<SkillEffect, { p: 'link' }>, c: GuideCtx): number => (c.mythic && e.pairsMythic) || e.pairs || 1;
 /** 기술 효과 → [무엇, 어떻게] */
 function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: ProbeSkill | undefined): [string, string] {
   const { n } = c;
   if (!e && d.fixed) return [`${d.cells?.p === 'flow' ? `세로 줄을 ${d.cells.every}초마다 한 줄씩 훑으며 그 줄에 선 사람` : `${ROW_NAME[d.cells?.p === 'line' ? d.cells.at : 'mid']}에 선 사람`} 모두 <b>${n(d.hitDmg ?? 0)}</b>${d.hitDebuff ? ` + ${debuffText(d.hitDebuff, n)}` : ''} (피할 수 없음)`, `맞기 전에 그 줄을 ${act('poh', RO)} · ${act('renew', EUL)} 미리 채우기`];
   if (!e) return d.cells ? [`장판${d.hitDmg ? `: 맞는 순간 그 칸 <b>${n(d.hitDmg)}</b>` : ''}${d.dps ? `${d.hitDmg ? ',' : ':'} 안에 있으면 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}${d.dur ? ` (${secT(d.dur)})` : ''}`, '파티원이 알아서 피함. 늦게 피하는 사람을 채우기'] : ['', ''];
   switch (e.p) {
-    case 'tank': return [`탱커에게 <b>${n(ps?.dmg ?? d.dmg ?? 0)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, e.debuff?.swap ? '교대한 탱커에게도 지속 힐을 걸어 두기' : '예고가 뜨면 탱커를 미리 가득 채우기'];
-    case 'hunt': return [`그 순간 체력 비율이 가장 낮은 탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : 1}명에게 <b>${n(e.dmg)}</b> 피해`, '예고 동안 가장 낮은 사람을 먼저 채우기'];
-    case 'greed': return [`🎯 예고 때 체력 비율이 가장 높은 탱커 · 나 아닌 ${d.target && d.target !== 'tank' ? (c.mythic && d.target.nMythic ? d.target.nMythic : d.target.n) : 1}명에게 <b>${n(e.dmg)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`,
+    case 'tank': return [`${d.target === 'offtank' ? '보스를 안 맞는 탱커' : '탱커'}에게 <b>${n(ps?.dmg ?? d.dmg ?? 0)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, e.debuff?.swap ? '교대한 탱커에게도 지속 힐을 걸어 두기' : '예고가 뜨면 탱커를 미리 가득 채우기'];
+    case 'hunt': return [`그 순간 체력 비율이 가장 낮은 탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : (e.n ?? 1)}명에게 <b>${n(e.dmg)}</b> 피해`, '예고 동안 가장 낮은 사람을 먼저 채우기'];
+    case 'greed': return [`🎯 예고 때 체력 비율이 가장 높은 탱커 · 나 아닌 ${typeof d.target === 'object' ? (c.mythic && d.target.nMythic ? d.target.nMythic : d.target.n) : 1}명에게 <b>${n(e.dmg)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`,
       `모두를 가득 채우면 누가 맞을지 모름. 예고된 사람에게 맞기 직전 ${act('guardian', EUL)} · 맞은 뒤 바로 힐`];
     case 'melt': return [`${secT(e.sec)} 동안 열기: 보호막이 초마다 ${pctT(e.rate)}씩 녹고 외부 생존기 시간이 두 배로 빨리 줄어듦`, `${act('guardian', EUL)} 미리 걸지 말고 큰 피해 예고 직전에. ${act('renew', EUL)}은 미리`];
     case 'all': return [`파티 전원에게 <b>${n(e.dmg)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, `예고 동안 ${act('renew', EUL)} 미리 걸고, 맞은 뒤 ${act('poh', RO)} 채우기`];
@@ -320,8 +322,8 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
       : [`${e.n}명에게 디버프를 차례로 (${e.debuffs.map(x => x.type).join(' → ')})`, '지울 수 있는 것부터 지우기'];
     case 'ring': return [`탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : e.n}명 발밑에 고리 ${secT(e.sec)} (안에 있으면 초당 <b>${n(e.dps)}</b>). 안에서 치유를 받으면 한 겹 자람 (최대 ${c.mythic && e.maxMythic != null ? e.maxMythic : e.max}겹)`,
       '고리 안 사람은 걸어 나올 때까지 힐을 미루기 (위급하면 예외). 광역 힐은 고리를 피해서'];
-    case 'soul': return [`빈 칸에 「${e.name}」. ${secT(e.sec)} 안에 단일 힐로 가득 채우면 ${e.win.text}`, `영혼 칸에 ${act('heal', EUL)} 넣기`];
-    case 'link': return [`두 사람을 「${e.name}」으로 ${secT(e.sec)} 이음`, e.kind === 'balance' ? '두 사람 체력 비율을 비슷하게' : '둘이 피해 · 치유를 나눔'];
+    case 'soul': return [`빈 칸에 「${e.name}」${(e.n ?? 1) > 1 ? ` ${e.n}개` : ''}. ${secT(e.sec)} 안에 단일 힐로 가득 채우면 ${e.win.text}`, `영혼 칸에 ${act('heal', EUL)} 넣기${(e.n ?? 1) > 1 ? ' (낮은 칸부터 돌아가며)' : ''}`];
+    case 'link': return [`${linkPairs(e, c) > 1 ? `${linkPairs(e, c)}쌍을` : '두 사람을'} 「${e.name}」으로 ${secT(e.sec)} 이음`, e.kind === 'balance' ? '두 사람 체력 비율을 비슷하게' : '둘이 피해 · 치유를 나눔'];
     case 'vessel': return [`「${e.name}」: 넘친 치유를 모아 가득 차면 전원 보호막`, '일부러 넘치게 힐하기'];
     case 'auto': return [`탱커에게 ${n(e.dmg)}`, ''];
     case 'share': return [`🎯 대상과 이웃 칸 아군이 <b>${n(e.dmg)}</b>를 인원 수로 나눠 받음 (혼자면 그대로)`, '가까운 파티원이 모임. 대상을 미리 채우고, 모인 칸에 광역 힐'];

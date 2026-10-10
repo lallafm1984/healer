@@ -711,6 +711,9 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   'greed-coin': { size: 1.2, color: 0xffd166, ms: 600, up: 0.5 },
   'melt-heat': { size: 3.2, color: 0xff8a3d, ms: 900, wide: true },
   'egg-hatch': { size: 1.8, color: 0xffb25b, ms: 600 },
+  // 묶음 D2: 용의 숨결이 줄을 지나감 (줄 가운데 칸에서 크게) · 성소 문이 한 칸 열림 (판 전체)
+  'dragon-breath': { size: 2.8, color: 0xff9a3d, ms: 600 },
+  'door-open': { size: 3.2, color: 0xb06bff, ms: 900, wide: true },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();

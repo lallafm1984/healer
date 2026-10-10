@@ -302,6 +302,8 @@ export interface BossSkill {
   hitDmg?: number;
   /** 장판이 맞는 순간 그 칸 사람에게 디버프 (data SkillDef.hitDebuff) */
   hitDebuff?: DebuffDef;
+  /** 장판이 맞는 순간 그 칸 가운데에 이펙트 (data SkillDef.hitFx, 용의 숨결) */
+  hitFx?: FxName;
   /** 예고에 안전 칸을 붙임 (피난처) */
   safe?: boolean;
   /** 진동 (P-QUAKE): 예고 동안 휠 가장자리가 떨림 */
@@ -316,6 +318,8 @@ export interface BossSkill {
   soak?: boolean;
   /** 보물 욕심 (P-GREED): 맞을 피해 (예고 칸에 금화 · 숫자) */
   greed?: number;
+  /** 사냥 (P-HUNT): 맞는 순간 체력 비율이 가장 낮은 사람 (루비나의 진주, 51 6장) */
+  hunt?: boolean;
   /** 부품 상태 (장판 좌우 번갈아·성부 차례 등, engine/bossParts.ts) */
   st: Record<string, number | boolean>;
 }
@@ -395,7 +399,7 @@ export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crum
   /** 묶음 C2 (48 4장, 그림 49): 모자가 씌워짐 · 춤바람 음표 · 꿀벌이 쏨 · 숲 할아버지가 깨어남 */
   | 'hat-drop' | 'dance' | 'bee-sting' | 'tree-wake'
   /** 묶음 D 새 부품 (51 5장, 그림 52): 보물 욕심 금화가 날아감 · 녹는 보호막 열기 · 알이 깨짐 */
-  | 'greed-coin' | 'melt-heat' | 'egg-hatch';
+  | 'greed-coin' | 'melt-heat' | 'egg-hatch' | 'dragon-breath' | 'door-open';
 
 export type FightResult = 'win' | 'lose';
 

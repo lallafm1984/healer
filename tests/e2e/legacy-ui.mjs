@@ -158,7 +158,7 @@ export default async function legacyUi(url, shots) {
   // ---- 깃털 + 20인 판 ----
   await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
   await toParty(page, { content: 'cathedral1', tab: 'raid20', diff: '악몽' });
-  ok((await page.locator('#s-content [data-content^="cathedral"]').count()) === 1 && (await page.locator('#s-content [data-content^="abyss"]').count()) === 0, '20인 레이드 탭 = 20인 장소만 (10인 탑은 10인 탭에)');
+  ok((await page.locator('#s-content [data-content^="cathedral"]').count()) === 4 && (await page.locator('#s-content [data-content^="abyss"]').count()) === 0, '20인 레이드 탭 = 20인 장소만 (대성당 4칸, 10인 탑은 10인 탭에)');
   await page.click('#guideOpen'); await page.clock.runFor(50);
   ok(/20인/.test(await page.textContent('#s-party .f-gsheet .h-rule')) && /악몽 전용 기술/.test(await page.textContent('#s-party .f-gsheet .f-dnote')), '20인 악몽: 공략 시트에 인원 20, 악몽 안내');
   await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);

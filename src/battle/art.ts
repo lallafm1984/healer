@@ -167,6 +167,15 @@ const ENC_ART: Record<string, string[]> = {
   lavabath: ['mob-dragon-scale-guard', 'mob-kobold-smoker', 'mob-kobold-miner'],
   coldhearth: ['mob-scrap-minion', 'mob-debris-thrower', 'boss-rust-guardian'],
   anvilbridge: ['mob-boiler-golem', 'boss-rust-guardian'],
+  // 묶음 D2 (그림 요청 52)
+  whelps: ['boss-whelp-trio'],
+  dandani: ['boss-scale-captain'],
+  rubina: ['boss-ruby-dragon'],
+  knights68: ['boss-water-knights'],
+  knights: ['boss-water-knights'],
+  uwoong: ['boss-organ-spirit'],
+  ormal: ['boss-shadow-ormal'],
+  shoretrash: ['mob-void-servant', 'mob-black-eye'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {
