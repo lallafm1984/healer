@@ -144,7 +144,7 @@ describe('드루이드', () => {
   });
   it('환생: 쓰러진 파티원을 40% 체력으로, 전투당 한 번', () => {
     const f = fight('druid'), d = dps(f);
-    damage(f, d, d.max * 5);
+    damage(f, d, (d.max * 5) / f.dmgMult); // 레벨 · 난이도 피해 배율 (data/tune)과 상관없이 쓰러뜨림
     expect(d.alive).toBe(false);
     const r = E.use(f, 'rebirth', d.cell);
     expect(r.ok).toBe(true);
