@@ -575,6 +575,7 @@ export function showPreview(idx: number): void {
   for (const z of F.zones) if (z.ring && z.cells.has(u.cell)) items.push(`${z.ring.name} 안 ${Math.ceil(z.end - F.t)}초 (${z.ring.n < z.ring.max ? `치유를 받으면 한 겹 자람, ${z.ring.n}/${z.ring.max}겹` : `다 자람 ${z.ring.max}겹`})`); // 요정 고리 (48 5장)
   if (u.shield > 0) items.push(`보호 두루마리 ${Math.ceil(u.shield)}초 (받는 피해 -40%)`);
   if (u.bulwark > 0) items.push(`${TRAITS.bulwark.name} ${Math.ceil(u.bulwark)}초 (받는 피해 -50%)`);
+  for (const g of F.glass) { const g0 = g.rec.get(u.id); if (g0 != null && u.alive) items.push(`${g.name} ${Math.ceil(g.until - F.t)}초 뒤 체력 ${Math.round(g0 * 100)}%로 돌아감 (금빛 선)`); } // 모래시계 (54 5장)
   if (F.melt && F.t < F.melt.until && u.alive) items.push(`${F.melt.name} ${Math.ceil(F.melt.until - F.t)}초: 보호막 · 외부 생존기가 빨리 녹음`); // 녹는 보호막 (51 5장)
   if (!u.alive) items.push('쓰러짐');
   if (items.length) lines.push(`<ul>${items.map(x => `<li>${x}</li>`).join('')}</ul>`);

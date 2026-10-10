@@ -281,6 +281,11 @@ export const NAMED: NamedDef[] = [
   { key: 'rubinaPearl', name: '루비나의 진주', slot: 'neck', place: 'nest3', placeName: '어미 용의 둥지 보물더미', text: '보물 욕심 · 사냥 대상이 된 아군에게 하는 직접 힐 +{v}', val: 0.15, unit: 'pct' },
   { key: 'lakePebble', name: '호숫가 조약돌', slot: 'ring', place: 'lakeshore', placeName: '잠긴 호숫가', text: '생명 사슬이 걸린 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
   { key: 'threeShards', name: '세 조각 목걸이', slot: 'neck', place: 'cathedral4', placeName: '가라앉은 대성당 성소', text: '사람 칸 (조각 · 영혼 · 나무)에게 하는 힐 +{v}', val: 0.25, unit: 'pct' },
+  // 묶음 E1 (54 6장, 이름 임시 · 그림 55): 10인 ⑩ 마지막 칸 · 탐험 ⑱ · 20인 ② 마지막 칸 · 던전 ⑮
+  { key: 'riddleNote', name: '냥크스의 수수께끼 쪽지', slot: 'neck', place: 'bazaar3', placeName: '노을 시장 성문', text: '신기루가 걷힌 뒤 1초 안에 하는 직접 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'jellyLight', name: '해파리 불빛', slot: 'ring', place: 'deepstairs', placeName: '물밑 계단', text: '고리 · 장판 안 아군에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
+  { key: 'prayerKnot', name: '깊은잠의 기도 매듭', slot: 'neck', place: 'abbey3', placeName: '물밑 수도원 제단', text: '완치 표식 대상에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'backSand', name: '거꾸로 모래알', slot: 'ring', place: 'hourglass', placeName: '모래시계 궁전', text: '모래시계가 체력을 되돌릴 때 마나 {v} 회복', val: 3, unit: 'mana' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -392,6 +397,16 @@ export const FEATURED: Record<string, readonly string[]> = {
   cathedral2: ['holdTogether', 'evenly', 'holdingHand'],
   cathedral3: ['numberSense', 'spellWard', 'bigBowl'],
   cathedral4: ['sunrise', 'starVeil', 'constellation'],
+  // 묶음 E1 (54 6장): 10인 ⑩ 입구 (신기루 쉬운 판 · 질병) / 골목 (옮겨붙는 질병 · 저주) / 성문 (차례 × 신기루), 물밑 계단 (고리 쉬움),
+  // 20인 ② 연못 (고리 · 마법) / 서고 (신기루 × 진동) / 제단 (완치 표식 · 페이즈), 모래시계 궁전 (붕대 · 질병)
+  bazaar1: ['clearEye', 'coldMedicine', 'evenly'],
+  bazaar2: ['coldMedicine', 'curseBreak', 'quickAid'],
+  bazaar3: ['numberSense', 'clearEye', 'kindCrit'],
+  deepstairs: ['wideEmbrace', 'calmRipple', 'cleanHands'],
+  abbey1: ['wideEmbrace', 'evenly', 'spellWard'],
+  abbey2: ['clearEye', 'quickAid', 'bigBowl'],
+  abbey3: ['holdTogether', 'starClock', 'sunrise'],
+  hourglass: ['woundClean', 'coldMedicine', 'thrifty'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

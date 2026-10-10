@@ -63,10 +63,17 @@ export const UNIQUES: UniqueDef[] = [
   // 묶음 D2 (51 6장): 정예 사냥꾼은 무기에만 나와서 삼남매 것은 51의 수도복 대신 홀
   { key: 'eggScepter', name: '삼남매 알껍데기 홀', slot: 'weapon', kind: 'scepter', place: 'nest1', placeName: '어미 용의 둥지 알둥지', spec: 'eliteHunter' },
   { key: 'scaleBracer', name: '단단이 비늘 토시', slot: 'hands', kind: 'bracer', place: 'nest2', placeName: '어미 용의 둥지 다리', spec: 'shieldFriend' },
+  // 묶음 E1 (54 6장): 10인 ⑩ 입구 · 골목, 던전 ⑮ (이름 있는 장신구가 반지라 장갑)
+  { key: 'drowsyHelm', name: '꾸벅 · 끄덕 졸음 투구', slot: 'head', kind: 'helm', place: 'bazaar1', placeName: '노을 시장 입구', spec: 'drumbeat' },
+  { key: 'spiceWraps', name: '혹돌이 향신료 손싸개', slot: 'hands', kind: 'wraps', place: 'bazaar2', placeName: '노을 시장 골목', spec: 'coldMedicine' },
+  { key: 'bandageGloves', name: '둘둘이의 붕대 장갑', slot: 'hands', kind: 'gloves', place: 'hourglass', placeName: '모래시계 궁전', spec: 'woundClean' },
   // 20인: 가라앉은 대성당 (2 · 3구역은 묶음 D2, 숫자 감각은 머리에만 나와서 우웅이 것은 51의 완드 대신 관)
   { key: 'sunkenVestment', name: '가라앉은 대성당 법복', slot: 'chest', kind: 'vestment', place: 'cathedral1', placeName: '가라앉은 대성당 1구역', spec: 'encore' },
   { key: 'knightHelm', name: '물그림자 기사 투구', slot: 'head', kind: 'helm', place: 'cathedral2', placeName: '가라앉은 대성당 회랑', spec: 'holdTogether' },
   { key: 'pipeCrown', name: '우웅이 파이프 관', slot: 'head', kind: 'crown', place: 'cathedral3', placeName: '가라앉은 대성당 오르간', spec: 'numberSense' },
+  // 20인 ② 물밑 수도원 (묶음 E1): 연못 · 서고
+  { key: 'jellyVestment', name: '흐물이 해파리 법복', slot: 'chest', kind: 'vestment', place: 'abbey1', placeName: '물밑 수도원 연못', spec: 'wideEmbrace' },
+  { key: 'mirrorWand', name: '비추미 거울 완드', slot: 'weapon', kind: 'wand', place: 'abbey2', placeName: '물밑 수도원 서고', spec: 'bounceLight' },
 ];
 
 export const uniqueOf = (key: string | undefined) => (key ? UNIQUES.find(u => u.key === key) : undefined);

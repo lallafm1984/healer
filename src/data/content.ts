@@ -17,6 +17,7 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'fest1' | 'fest2' | 'fest3' | 'cave1' | 'cave2' | 'cave3' | 'palace1' | 'palace2' | 'palace3'
   | 'ashpass' | 'hotspring' | 'forge' | 'den1' | 'den2' | 'den3'
   | 'lakeshore' | 'nest1' | 'nest2' | 'nest3' | 'cathedral2' | 'cathedral3' | 'cathedral4'
+  | 'bazaar1' | 'bazaar2' | 'bazaar3' | 'deepstairs' | 'abbey1' | 'abbey2' | 'abbey3' | 'hourglass'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -125,6 +126,11 @@ export const CONTENT: ContentDef[] = [
     key: 'lakeshore', kind: 'explore', name: '잠긴 호숫가', place: '불꽃 봉우리 아래 호수 · 심연', stageLv: 68, unlockLv: 68, ready: true, bosses: ['물그림자 기사 셋'],
     fights: () => DUNGEONS.lakeshore.segments, size: three,
   },
+  // 묶음 E 탐험 ⑱ (54 1-1): 20인 물밑 수도원 연못 예습 (요정 고리 × 진동)
+  {
+    key: 'deepstairs', kind: 'explore', name: '물밑 계단', place: '가라앉은 대성당 아래 · 심연', stageLv: 72, unlockLv: 72, ready: true, bosses: ['해파리 정원사 흐물이'],
+    fights: () => DUNGEONS.deepstairs.segments, size: three,
+  },
   // 던전 ①~⑩ (5인, 5레벨마다). ⑧~⑩은 묶음 B
   {
     key: 'rustfort', bosses: ['고철 경비병', '녹슨 문지기'], kind: 'dungeon', name: '녹슨 요새', place: '녹슨 고원 · 골렘', stageLv: 5, unlockLv: 5, ready: true,
@@ -185,6 +191,11 @@ export const CONTENT: ContentDef[] = [
     key: 'forge', bosses: ['풀무 골렘 후끈이', '모루 골렘 땅땅'], kind: 'dungeon', name: '용암 대장간', place: '불꽃 봉우리 · 버려진 골렘', stageLv: 70, unlockLv: 70, ready: true,
     fights: () => DUNGEONS.forge.segments, size: five,
   },
+  // 던전 ⑮ (54 1-2 · 3-1, 묶음 E): 모래 왕국 (질병 · 저주), 보스 2
+  {
+    key: 'hourglass', bosses: ['시간지기 풍뎅이 데굴이', '붕대 집사 둘둘이'], kind: 'dungeon', name: '모래시계 궁전', place: '노을 사막 · 모래 왕국', stageLv: 75, unlockLv: 75, ready: true,
+    fights: () => DUNGEONS.hourglass.segments, size: five,
+  },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인
     key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 탑 1층', place: '납골당 · 역병 군주', stageLv: 35, unlockLv: 35, ready: true,
@@ -228,6 +239,10 @@ export const CONTENT: ContentDef[] = [
     ['nest1', '어미 용의 둥지 알둥지', '알둥지 · 새끼 용 삼남매', '새끼 용 삼남매', 'whelps', 67],
     ['nest2', '어미 용의 둥지 다리', '용암 다리 · 용 비늘 경비대장 단단이', '용 비늘 경비대장 단단이', 'dandani', 67],
     ['nest3', '어미 용의 둥지 보물더미', '보물 더미 · 어미 용 루비나', '어미 용 루비나', 'rubina', 67],
+    // 묶음 E 10인 ⑩ (54 1-3): 모래 왕국
+    ['bazaar1', '노을 시장 입구', '시장 입구 · 졸린 모래 병정 꾸벅 · 끄덕', '졸린 모래 병정 꾸벅 · 끄덕', 'kkubeok', 71],
+    ['bazaar2', '노을 시장 골목', '향신료 골목 · 향신료 낙타 상인 혹돌이', '향신료 낙타 상인 혹돌이', 'hokdol', 71],
+    ['bazaar3', '노을 시장 성문', '시장 성문 · 수수께끼 고양이 냥크스', '수수께끼 고양이 냥크스', 'nyanx', 71],
   ] as const).map(([key, name, place, boss, enc, lv]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: lv, unlockLv: lv, ready: true, fights: () => [enc], size: () => 10, diffUnlock: { '악몽': lv + 15 },
   })),
@@ -243,6 +258,14 @@ export const CONTENT: ContentDef[] = [
     ['cathedral4', '가라앉은 대성당 성소', '성소 · 문지기 그림자 오르말', '문지기 그림자 오르말', 'ormal'],
   ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: 70, unlockLv: 70, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 80 },
+  })),
+  // 묶음 E 20인 ② 물밑 수도원 (54 1-4): 대성당 아래 4막 줄, 칸마다 보스 1 · 열림 Lv 73 · 악몽 83 (20인은 열림 + 10)
+  ...([
+    ['abbey1', '물밑 수도원 연못', '수도원 연못 · 해파리 정원사 흐물이', '해파리 정원사 흐물이', 'heumul'],
+    ['abbey2', '물밑 수도원 서고', '거울 서고 · 거울 사서 비추미', '거울 사서 비추미', 'bichumi'],
+    ['abbey3', '물밑 수도원 제단', '잠의 제단 · 심연 수도원장 깊은잠', '심연 수도원장 깊은잠', 'gipeun'],
+  ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
+    key, bosses: [boss], kind: 'raid', name, place, stageLv: 73, unlockLv: 73, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 83 },
   })),
 ];
 

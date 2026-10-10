@@ -11,7 +11,7 @@ import { hexDist } from './board';
 import { addDebuff, cellOf, damage, DT, emit, empowerBoss, heal, living, onDebuffEnd, randomTargets, setMax, spread, unitById } from './core';
 import { moveTo, scheduleReactions, zoneOf } from './movement';
 import { hotTick } from './units';
-import { during, immune, specBroken, specPhase, sv } from './specials';
+import { during, immune, specBroken, specPhase, specReveal, specRewind, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
@@ -169,8 +169,11 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       const ids = randomTargets(f, f.mythic && e.nMythic ? e.nMythic : e.n, u => u.role !== 'tank').map(u => u.id);
       if (!ids.length) return;
       const name = s.name ?? '차례';
-      f.order = { name, ids, i: 0, until: f.t + e.sec, wrong: e.wrong, miss: e.miss, daze: e.daze };
-      emit(f, { type: 'msg', text: `${name}: ${ORDER_NUM.slice(0, ids.length).split('').join(' → ')} 차례로 힐` });
+      f.order = { name, ids, i: 0, until: f.t + e.sec, wrong: e.wrong, miss: e.miss, daze: e.daze, wrongAll: f.mythic ? e.wrongAll : undefined };
+      // 신기루 숫자 (54 4-1): 번호 없는 사람 하나에 ① 아닌 번호를 하나 더 (걷히기 전에 ①부터 시작할 수 있게)
+      const fk = e.fake && ids.length > 1 ? randomTargets(f, 1, u => u.role !== 'tank' && !ids.includes(u.id))[0] : undefined;
+      if (fk) f.order.fake = { id: fk.id, num: 1 + Math.floor(f.rng() * (ids.length - 1)), until: f.t + e.fake!.at };
+      emit(f, { type: 'msg', text: `${name}: ${ORDER_NUM.slice(0, ids.length).split('').join(' → ')} 차례로 힐${fk ? ' (하나는 신기루 숫자)' : ''}` });
       return;
     }
     case 'jail': {
@@ -278,7 +281,93 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       emit(f, { type: 'msg', text: `${s.name ?? '느려짐'}: ${e.sec}초 동안 시전 시간 ×${e.mult}` });
       return;
     case 'empower': empowerBoss(f, e.boost, s.name ?? '분노'); return;
+    case 'strike':
+      // 신기루 창 · 거울 책장 (54 4장): 예고 때 고른 사람에게
+      for (const id of tel?.units ?? []) {
+        const u = unitById(f, id);
+        if (!u?.alive) continue;
+        emit(f, { type: 'fx', name: 'slam', on: u.id });
+        damage(f, u, e.dmg, false, 'party');
+        if (e.debuff && u.alive) applyDebuff(f, u, e.debuff);
+      }
+      return;
+    case 'glass': {
+      // 모래시계 (P-GLASS, 54 5장): 지금 체력 비율을 적어 두고 sec초 뒤 되돌림. 창 안 기술은 then으로 엶
+      const rec = new Map(living(f).map(u => [u.id, u.hp / u.max] as const));
+      const name = s.name ?? '모래시계';
+      f.glass.push({ name, at: f.t, until: f.t + e.sec, rec, absorbHit: e.absorbHit });
+      for (const x of e.then ?? []) if (f.bs[x.skill]) f.bs[x.skill].next = f.t + x.in;
+      emit(f, { type: 'sound', name: 'gauge' });
+      emit(f, { type: 'fx', name: 'hourglass-flip' });
+      emit(f, { type: 'msg', text: `${name}: ${e.sec}초 뒤 모두 지금 체력으로 돌아감` });
+      return;
+    }
   }
+}
+
+/** 매 틱 모래시계: 시간이 된 기록마다 살아 있는 사람의 체력을 그 비율로 (쓰러진 사람 · 그때 없던 사람은 그대로, 보호막 · 디버프는 안 건드림) */
+export function glassTick(f: Fight): void {
+  for (const g of f.glass.filter(x => f.t + 1e-9 >= x.until)) {
+    f.glass = f.glass.filter(x => x !== g);
+    emit(f, { type: 'sound', name: 'gauge' });
+    emit(f, { type: 'msg', text: `${g.name}: 체력이 되돌아감` });
+    for (const u of living(f)) {
+      const r = g.rec.get(u.id);
+      if (r == null) continue;
+      u.hp = Math.max(1, Math.min(u.max, r * u.max));
+      emit(f, { type: 'fx', name: 'sand-rewind', on: u.id });
+    }
+    if (g.absorbHit) for (const u of living(f)) if (u.debuffs.some(d => (d.absorbLeft ?? 0) > 0)) damage(f, u, g.absorbHit, true); // 악몽 둘둘이: 붕대가 남은 사람
+    if (f.sp) specRewind(f);
+  }
+}
+
+/** 신기루가 걷히는 시각 (맞기 reveal초 전) */
+const MIRAGE_REVEAL = 1;
+/**
+ * 신기루 (P-MIRAGE, 54 5장): 진짜 예고 옆에 가짜 예고. 사람을 고르는 기술은 가짜 n명을 한 예고에 (탱커 기술이면 다른 탱커),
+ * 장판은 가짜 칸 묶음 n개 (진짜와 가장 덜 겹치게). chance면 예고 자체가 그 확률로 가짜. 가짜 장판도 파티원이 비킴 (모름)
+ */
+export function mirageUp(f: Fight, tel: Telegraph): void {
+  const m = tel.skill.mirage!;
+  tel.veil = tel.impact - (m.reveal ?? MIRAGE_REVEAL);
+  if (m.chance != null) { if (f.rng() < m.chance) tel.fake = true; return; }
+  const n = f.mythic && m.nMythic ? m.nMythic : m.n ?? 1;
+  if (tel.units.length) {
+    const tanky = tel.units.every(id => unitById(f, id)?.role === 'tank');
+    const pick = randomTargets(f, n, u => !tel.units.includes(u.id) && (tanky ? u.role === 'tank' : u.role !== 'tank' && !u.me));
+    if (pick.length) f.tels.push({ ...tel, id: f.nextId++, units: pick.map(u => u.id), cells: new Set(), fake: true });
+    return;
+  }
+  if (!tel.cells.size || !tel.skill.cellsFor) return;
+  const seen = new Set(tel.cells);
+  for (let i = 0; i < n; i++) {
+    let best: Set<number> | null = null, over = Infinity;
+    for (let k = 0; k < 6 && over > 0; k++) {
+      const c = tel.skill.cellsFor(f), o = [...c].filter(x => seen.has(x)).length;
+      if (c.size && o < over) { best = c; over = o; }
+    }
+    if (!best) continue;
+    best.forEach(x => seen.add(x));
+    const fk: Telegraph = { ...tel, id: f.nextId++, units: [], cells: best, fake: true };
+    if (tel.safe) fk.safe = new Set(f.cells.filter(c => !c.block && !best!.has(c.i)).map(c => c.i));
+    f.tels.push(fk);
+    if (fk.kind === 'zone' && !tel.skill.fixed) scheduleReactions(f, fk);
+  }
+}
+
+/** 매 틱 신기루: 걷힐 때가 된 가짜 예고를 지움 (일렁이며 흩어짐). 진짜는 그대로 */
+export function mirageTick(f: Fight): void {
+  const gone = f.tels.filter(t => t.fake && f.t + 1e-9 >= t.veil!);
+  if (!gone.length) return;
+  f.tels = f.tels.filter(t => !gone.includes(t));
+  for (const t of gone) {
+    if (t.units.length) for (const id of t.units) emit(f, { type: 'fx', name: 'mirage-shimmer', on: id });
+    else if (t.kind === 'aoe' || !t.cells.size) emit(f, { type: 'fx', name: 'mirage-shimmer', all: true });
+    else for (const i of t.cells) emit(f, { type: 'fx', name: 'mirage-shimmer', cell: i });
+    emit(f, { type: 'msg', text: `${t.skill.name ?? '예고'}: ${t.kind === 'aoe' ? '신기루였음' : '신기루가 걷힘'}` });
+  }
+  if (f.sp) specReveal(f);
 }
 
 /**
@@ -636,16 +725,19 @@ export const ORDER_NUM = '①②③④⑤⑥';
 export function orderHeal(f: Fight, u: Unit): void {
   const o = f.order!;
   const k = o.ids.indexOf(u.id);
-  if (k < o.i) return; // 번호 없는 사람 · 이미 받은 사람
+  const fake = !!o.fake && o.fake.id === u.id && f.t < o.fake.until; // 걷히기 전 신기루 숫자 (54 4-1)
+  if (k < o.i && !fake) return; // 번호 없는 사람 · 이미 받은 사람
   if (k === o.i) { o.i++; if (o.i >= o.ids.length) orderDone(f, true); return; }
   if (f.cfg.diff !== '쉬움') damage(f, u, o.wrong, true); // 쉬움은 피해 없이 처음부터
+  if (o.wrongAll) for (const v of living(f)) damage(f, v, o.wrongAll, true); // 악몽 냥크스: 틀리면 모두
   o.i = 0;
-  emit(f, { type: 'msg', text: `${o.name}: 순서가 틀려 처음부터` });
+  emit(f, { type: 'msg', text: `${o.name}: ${fake ? '신기루 숫자였음, 처음부터' : '순서가 틀려 처음부터'}` });
 }
 
 /** 매 틱 차례: 쓰러진 번호는 건너뜀, 시간이 다 되면 아직 못 받은 사람마다 피해 */
 export function orderTick(f: Fight): void {
   const o = f.order!;
+  if (o.fake && f.t + 1e-9 >= o.fake.until) { emit(f, { type: 'fx', name: 'mirage-shimmer', on: o.fake.id }); emit(f, { type: 'msg', text: `${o.name}: 신기루 숫자가 걷힘` }); o.fake = undefined; if (f.sp) specReveal(f); }
   while (o.i < o.ids.length && !unitById(f, o.ids[o.i])?.alive) o.i++;
   if (o.i >= o.ids.length) { orderDone(f, true); return; }
   if (f.t + 1e-9 < o.until) return;

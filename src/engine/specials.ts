@@ -149,6 +149,9 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.rubinaPearl && direct && !tick && aimedAt(f, u)) m += v.rubinaPearl; // 루비나의 진주 (51 6장)
   if (v.lakePebble && u.debuffs.some(d => d.link)) m += v.lakePebble; // 호숫가 조약돌
   if (v.threeShards && u.soul) m += v.threeShards; // 세 조각 목걸이
+  if (v.riddleNote && direct && !tick && on(f, 'riddleNote')) m += v.riddleNote; // 냥크스의 수수께끼 쪽지 (54 6장)
+  if (v.jellyLight && (f.zones.some(z => z.cells.has(u.cell)) || f.tels.some(t => t.kind === 'zone' && !t.fake && t.cells.has(u.cell)))) m += v.jellyLight; // 해파리 불빛
+  if (v.prayerKnot && u.debuffs.some(d => d.cureAt != null && d.cureAt >= 1)) m += v.prayerKnot; // 깊은잠의 기도 매듭
   if (v.festInvite && direct && !tick && u.debuffs.some(d => d.noDps)) m += v.festInvite; // 축제 초대장 (48 6장)
   if (v.rainbowSpore && u.soul) m += v.rainbowSpore; // 무지개 포자
   if (v.mossBrooch && aoe && f.stagger) m += v.mossBrooch; // 이끼 브로치
@@ -549,6 +552,17 @@ export function hotDone(f: Fight): void {
   if (!v || (s.ready.graveLantern ?? 0) > f.t + 1e-9) return;
   s.ready.graveLantern = f.t + 2;
   f.mana = Math.min(100, f.mana + v);
+}
+/** 신기루가 걷히면 (냥크스의 수수께끼 쪽지: 1초 동안 직접 힐 +) */
+export function specReveal(f: Fight): void {
+  if (f.sp!.v.riddleNote) f.sp!.until.riddleNote = f.t + 1;
+}
+/** 모래시계가 체력을 되돌리면 (거꾸로 모래알: 마나 회복) */
+export function specRewind(f: Fight): void {
+  const v = f.sp!.v.backSand;
+  if (!v) return;
+  f.mana = Math.min(100, f.mana + v);
+  shout(f, 'backSand');
 }
 /** 페이즈가 바뀌면 (해돋이) */
 export function specPhase(f: Fight): void {

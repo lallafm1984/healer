@@ -320,6 +320,10 @@ export interface BossSkill {
   greed?: number;
   /** 사냥 (P-HUNT): 맞는 순간 체력 비율이 가장 낮은 사람 (루비나의 진주, 51 6장) */
   hunt?: boolean;
+  /** 신기루 (P-MIRAGE, 54 5장): 예고를 띄울 때 가짜 예고를 함께 (data/bosses SkillDef.mirage) */
+  mirage?: { n?: number; nMythic?: number; chance?: number; reveal?: number };
+  /** 모래시계 (P-GLASS): 이 기술이 맞으면 모래시계를 뒤집음 (자동 힐러가 예고 동안 모두 채움) */
+  glass?: boolean;
   /** 부품 상태 (장판 좌우 번갈아·성부 차례 등, engine/bossParts.ts) */
   st: Record<string, number | boolean>;
 }
@@ -340,6 +344,10 @@ export interface Telegraph {
   safe?: Set<number>;
   /** 끌려온 칸의 받침이 울리는 예고 (P-PULL pad): 맞을 때 끌기 대신 받침 피해 */
   ring?: boolean;
+  /** 신기루 (P-MIRAGE, 54 5장): 가짜가 걷히는 시각. 진짜 · 가짜 예고 모두에 붙음 (그 전에는 둘이 똑같이 보임) */
+  veil?: number;
+  /** 신기루 가짜: veil에 일렁이며 사라지고 맞지 않음. 화면 · 자동 힐러는 veil 전에 이 값을 보지 않음 */
+  fake?: boolean;
 }
 
 export interface Zone {
@@ -399,7 +407,9 @@ export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crum
   /** 묶음 C2 (48 4장, 그림 49): 모자가 씌워짐 · 춤바람 음표 · 꿀벌이 쏨 · 숲 할아버지가 깨어남 */
   | 'hat-drop' | 'dance' | 'bee-sting' | 'tree-wake'
   /** 묶음 D 새 부품 (51 5장, 그림 52): 보물 욕심 금화가 날아감 · 녹는 보호막 열기 · 알이 깨짐 */
-  | 'greed-coin' | 'melt-heat' | 'egg-hatch' | 'dragon-breath' | 'door-open';
+  | 'greed-coin' | 'melt-heat' | 'egg-hatch' | 'dragon-breath' | 'door-open'
+  /** 묶음 E 새 부품 (54 5장, 그림 55 E): 신기루가 걷힘 · 모래시계를 뒤집음 (보스) · 체력이 되감김 · 모래 폭풍 · 하품 · 심장 박동 */
+  | 'mirage-shimmer' | 'hourglass-flip' | 'sand-rewind' | 'sandstorm' | 'yawn' | 'heartbeat';
 
 export type FightResult = 'win' | 'lose';
 
@@ -663,6 +673,8 @@ export interface Fight {
   vessel: { name: string; fill: number; need: number; until: number; shield: number } | null;
   /** 녹는 보호막 (P-MELT, 51 5장): until까지 흡수 보호막이 초마다 rate씩 녹고 보호막 · 외부 생존기 시간이 두 배로 줄어듦 */
   melt: { name: string; until: number; rate: number } | null;
+  /** 모래시계 (P-GLASS, 54 5장): 겹치면 각자 자기 기록으로 (짧은 것이 먼저) */
+  glass: GlassState[];
   /** 영혼 축복: until까지 받는 치유 × heal (정화의 물) */
   bless: { heal: number; until: number } | null;
   /** 영혼 축복: until까지 보스가 주는 피해 × (1 − cut). dmgMult에 곱했다가 끝나면 되돌림 */
@@ -722,6 +734,20 @@ export interface OrderState {
   wrong: number;
   miss: number;
   daze: { sec: number; vuln: number };
+  /** 신기루 숫자 (54 4-1 냥크스): fake 칸에 num번째 번호가 하나 더 보이다가 until에 걷힘. 그 전에 그 사람에게 힐하면 틀림 */
+  fake?: { id: number; num: number; until: number };
+  /** 악몽: 틀리면 전원 이만큼 (마법) */
+  wrongAll?: number;
+}
+
+/** 모래시계 (P-GLASS, 54 5장): 뒤집은 순간 살아 있는 파티원의 체력 비율 (id → 비율), until에 모두 그 비율로 */
+export interface GlassState {
+  name: string;
+  at: number;
+  until: number;
+  rec: Map<number, number>;
+  /** 되돌릴 때 치유 흡수 막이 남은 사람 이만큼 (악몽 둘둘이) */
+  absorbHit?: number;
 }
 
 /** 스킬·아이템 사용 결과 */

@@ -16,7 +16,8 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'capway' | 'sippy52' | 'hotgravel' | 'kobold60' | 'sugarstair' | 'sippy' | 'cuptower' | 'hatter' | 'wetstair' | 'uga' | 'turtlebridge' | 'shellgod'
   | 'pollenfield' | 'queen56' | 'songi' | 'pililli' | 'ponga' | 'mungge' | 'gaegul' | 'morak' | 'bungbung' | 'ppyong' | 'amanita'
   | 'warmash' | 'mungsil64' | 'steamroom' | 'mungsil' | 'lavabath' | 'bulttung' | 'coldhearth' | 'huggeun' | 'anvilbridge' | 'ttangttang' | 'kkojil' | 'deolkeong' | 'beonjjeok'
-  | 'whelps' | 'dandani' | 'rubina' | 'shoretrash' | 'knights68' | 'knights' | 'uwoong' | 'ormal';
+  | 'whelps' | 'dandani' | 'rubina' | 'shoretrash' | 'knights68' | 'knights' | 'uwoong' | 'ormal'
+  | 'kkubeok' | 'hokdol' | 'nyanx' | 'stairtrash' | 'heumul72' | 'heumul' | 'bichumi' | 'gipeun' | 'sandhall' | 'degul' | 'backgarden' | 'dooldool';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -26,7 +27,8 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'sippy52' | 'kobold60' | 'sippy' | 'hatter' | 'uga' | 'shellgod'
   | 'queen56' | 'songi' | 'pililli' | 'ponga' | 'mungge' | 'gaegul' | 'morak' | 'bungbung' | 'ppyong' | 'amanita'
   | 'mungsil64' | 'mungsil' | 'bulttung' | 'huggeun' | 'ttangttang' | 'kkojil' | 'deolkeong' | 'beonjjeok'
-  | 'whelps' | 'dandani' | 'rubina' | 'knights68' | 'knights' | 'uwoong' | 'ormal';
+  | 'whelps' | 'dandani' | 'rubina' | 'knights68' | 'knights' | 'uwoong' | 'ormal'
+  | 'kkubeok' | 'hokdol' | 'nyanx' | 'heumul72' | 'heumul' | 'bichumi' | 'gipeun' | 'degul' | 'dooldool';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -121,6 +123,11 @@ export const soaps = (x = 1): DebuffDef[] => [
   { name: '초록 청소약', type: '독', left: 12, dot: Math.round(600 * 0.02 * x) },
   { name: '보라 청소약', type: '저주', left: 10, healCut: 0.5 },
   { name: '파랑 청소약', type: '마법', left: 8, dot: Math.round(600 * 0.03 * x) },
+];
+/** 붕대 시종 (54 2장, 모래 왕국 ③): 질병 (초당 딜체 2%) → 저주 (받는 치유 −30%) 차례로 (작게) */
+const SAND_WRAP: DebuffDef[] = [
+  { name: '모래 먼지', type: '질병', left: 10, dot: 12 },
+  { name: '옮은 졸음', type: '저주', left: 10, healCut: 0.3 },
 ];
 /** 재채기 버섯 (48 2장, 버섯 요정단 ③): 질병 (초당 딜체 2%) → 마법 (받는 치유 −30%) 차례로. x = 피해 배율 (탐험 0.7) */
 const sneeze = (x = 1): DebuffDef[] => [
@@ -604,6 +611,41 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
   knights: { key: 'knights', name: '물그림자 기사 셋', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 49500, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'knights', big: true, stage: 0.13 },
   uwoong: { key: 'uwoong', name: '물오르간 정령 우웅이', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 60000, enrage: 390, manaCoef: 1.6, diffs: ALL, script: 'uwoong', big: true, stage: 0.13, debuffs: ['마법'] },
   ormal: { key: 'ormal', name: '문지기 그림자 오르말', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 70000, enrage: 480, manaCoef: 1.6, diffs: ALL, script: 'ormal', big: true, stage: 0.13, debuffs: ['질병', '독', '저주', '마법'] },
+  // ---------- 묶음 E1 (54 1장 · 2장 · 3-1 · 4-1 · 4-4): 모래 왕국 졸개 ① 모래 병정 · ② 풍뎅이 투석병 · ③ 붕대 시종 (질병 → 저주) · ④ 스핑크스 석상 ----------
+  // 10인 ⑩ 노을 시장 (Lv 71 · 악몽 86). 꾸벅 · 끄덕 몸통 체력 = hp ÷ 2 (bosses GUARD_HP)
+  kkubeok: { key: 'kkubeok', name: '졸린 모래 병정 꾸벅 · 끄덕', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 24000, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'kkubeok', stage: 0.18, debuffs: ['질병'] },
+  hokdol: { key: 'hokdol', name: '향신료 낙타 상인 혹돌이', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 22400, enrage: 360, manaCoef: 1.3, diffs: ALL, script: 'hokdol', stage: 0.18, debuffs: ['질병', '저주'] },
+  nyanx: { key: 'nyanx', name: '수수께끼 고양이 냥크스', tier: '레이드 · 10인', board: 'b25', comp: RAID10, hp: 26000, enrage: 390, manaCoef: 1.5, diffs: ALL, script: 'nyanx', stage: 0.18, debuffs: ['저주'] },
+  // 탐험 ⑱ 「물밑 계단」 (54 1-1, Lv 72, 심연 졸개): 대성당 아래 계단 → 해파리 정원사 흐물이 (요정 고리 × 진동 쉬운 판, 20인 물밑 수도원 연못 예습)
+  stairtrash: trash('stairtrash', '대성당 아래 계단', [
+    { name: '공허의 종복', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '검은 눈', hp: 150, count: 1, attacks: [{ key: 'ray', to: 'other', dmg: 75, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  heumul72: { key: 'heumul72', lowLevel: true, name: '해파리 정원사 흐물이', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2900, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'heumul72', stage: 0.3 },
+  // 20인 ② 물밑 수도원 (Lv 73 · 악몽 83): 20인 ① 대성당 수치 (마나 1.6 · 단계 0.13)에 맞춤
+  heumul: { key: 'heumul', name: '해파리 정원사 흐물이', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 52000, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'heumul', big: true, stage: 0.13, debuffs: ['마법'] },
+  bichumi: { key: 'bichumi', name: '거울 사서 비추미', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 56000, enrage: 390, manaCoef: 1.6, diffs: ALL, script: 'bichumi', big: true, stage: 0.13, debuffs: ['질병', '저주'] },
+  gipeun: { key: 'gipeun', name: '심연 수도원장 깊은잠', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 64000, enrage: 480, manaCoef: 1.8, diffs: ALL, script: 'gipeun', big: true, stage: 0.13, debuffs: HEAL4 },
+  // 던전 ⑮ 「모래시계 궁전」 (54 1-2 · 3-1, Lv 75): 일반 모래 흐르는 복도 → 시간지기 풍뎅이 데굴이 → 정예 거꾸로 정원 → 붕대 집사 둘둘이
+  sandhall: trash('sandhall', '모래 흐르는 복도', [
+    { name: '모래 병정', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '풍뎅이 투석병', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  degul: { key: 'degul', lowLevel: true, name: '시간지기 풍뎅이 데굴이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5500, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'degul', stage: 0.25, debuffs: ['질병'] },
+  backgarden: trash('backgarden', '거꾸로 정원', [
+    { name: '모래 병정', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '붕대 시종', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'wrap', name: '하품 붕대', icon: '붕대', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: SAND_WRAP } },
+    ] },
+    {
+      name: '스핑크스 석상', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'storm', name: '모래 폭풍', icon: '폭풍', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['질병', '저주'] }),
+  dooldool: { key: 'dooldool', lowLevel: true, name: '붕대 집사 둘둘이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7200, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'dooldool', stage: 0.25, debuffs: ['저주'] },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

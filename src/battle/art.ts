@@ -176,6 +176,19 @@ const ENC_ART: Record<string, string[]> = {
   uwoong: ['boss-organ-spirit'],
   ormal: ['boss-shadow-ormal'],
   shoretrash: ['mob-void-servant', 'mob-black-eye'],
+  // 묶음 E1 (그림 요청 55): 그림이 올 때까지 벡터 그림. 탐험 ⑱ 흐물이는 20인 그림을 같이 씀
+  kkubeok: ['boss-sleepy-guards'],
+  hokdol: ['boss-camel-merchant'],
+  nyanx: ['boss-riddle-cat'],
+  heumul72: ['boss-jelly-gardener'],
+  heumul: ['boss-jelly-gardener'],
+  bichumi: ['boss-mirror-librarian'],
+  gipeun: ['boss-abyss-abbot'],
+  degul: ['boss-scarab-timekeeper'],
+  dooldool: ['boss-bandage-butler'],
+  stairtrash: ['mob-void-servant', 'mob-black-eye'],
+  sandhall: ['mob-sand-soldier', 'mob-scarab-slinger'],
+  backgarden: ['mob-sphinx-statue', 'mob-bandage-servant', 'mob-sand-soldier'],
 };
 /** 그 전투에 쓸 그림 주소 (없으면 '') */
 export function encArt(key: string, script = key): string {
@@ -227,8 +240,10 @@ export function addArtName(m: Mob): string {
 /** 헤매는 영혼 칸 (37 4장 C-3·5 고유, E-21 공용) */
 export const soulArtName = (u: Unit): string => firstArt(u.soul?.art, 'mob-soul-wisp');
 /** 장판 칸 무늬 (37 4장 B-8~14): 세력 장판 → 공용. 예고는 B-9 */
-const ZONE_TAIL: Partial<Record<FactionKey, string>> = { plague: 'plague', swamp: 'swamp', noble: 'noble', mage: 'frost', hill: 'hill', pirate: 'tide', fairy: 'spore', dragon: 'lava', abyss: 'abyss', golem: 'metal' }; // 심연 = 44 그림, 골렘 쇳물 = 52 F
+const ZONE_TAIL: Partial<Record<FactionKey, string>> = { plague: 'plague', swamp: 'swamp', noble: 'noble', mage: 'frost', hill: 'hill', pirate: 'tide', fairy: 'spore', dragon: 'lava', abyss: 'abyss', golem: 'metal', sand: 'sand' }; // 심연 = 44 그림, 골렘 쇳물 = 52 F, 모래 늪 = 55 F
 export const zoneArtName = (fac: FactionKey | null): string => firstArt(fac && ZONE_TAIL[fac] ? `fx-cell-zone-${ZONE_TAIL[fac]}` : undefined, 'fx-cell-zone');
+/** 요정 고리 칸 (49 F): 심연은 흐물이 빛 고리 (55 F 3), 그 밖 = 버섯 고리 */
+export const ringArtName = (fac: FactionKey | null): string => firstArt(fac === 'abyss' ? 'fx-cell-ring-jelly' : undefined, 'fx-cell-ring');
 /** 무너진 바닥 칸 (37 4장 B-3~5): 늪 = 물, 마탑 = 얼음 기둥, 그 밖 = 돌 구덩이 */
 const HOLE_TAIL: Partial<Record<FactionKey, string>> = { swamp: 'swamp', mage: 'ice' };
 export const holeArtName = (fac: FactionKey | null): string => firstArt(fac && HOLE_TAIL[fac] ? `fx-cell-hole-${HOLE_TAIL[fac]}` : undefined, 'fx-cell-hole-stone');

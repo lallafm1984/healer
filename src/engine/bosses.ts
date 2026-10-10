@@ -7,7 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abOnTel } from './abilities';
 import { affChaos } from './affixes';
-import { addsTick, aggroTarget, applyDebuff, backTargets, flowNext, greedTargets, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, applyDebuff, backTargets, flowNext, glassTick, greedTargets, mirageTick, mirageUp, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import { specBuster, specCut, specTel } from './specials';
@@ -41,7 +41,7 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
     cellsFor: z ? g => zoneCells(g, s, z) : e?.p === 'tower' ? g => padCells(g, e.n) : undefined,
     flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg, hitDebuff: d.hitDebuff, hitFx: d.hitFx, safe: z?.p === 'safe' || undefined, quake: e?.p === 'quake' || undefined,
     stunOnCut: e?.p === 'counter' ? e.stun : undefined, pads: e?.p === 'tower' || undefined, fixed: d.fixed, soak: e?.p === 'share' || undefined,
-    greed: e?.p === 'greed' ? e.dmg : undefined, hunt: e?.p === 'hunt' || undefined,
+    greed: e?.p === 'greed' ? e.dmg : undefined, hunt: e?.p === 'hunt' || undefined, mirage: d.mirage, glass: e?.p === 'glass' || undefined,
   });
   f.bs[d.key] = s;
   return s;
@@ -142,6 +142,7 @@ function bossUpdate(f: Fight): void {
   if (f.souls.length) soulsTick(f);
   if (f.links.length) linksTick(f);
   if (f.vessel) vesselTick(f);
+  if (f.glass.length) glassTick(f);
   if (f.bless || f.weak || f.expose) boonTick(f);
   if (f.daze && f.t >= f.daze.until) f.daze = null;
   enrageAt(f, def.enrage.name, def.enrage.period, def.enrage.dmg);
@@ -165,6 +166,7 @@ export function bossTick(f: Fight): void {
     if (s.flowEvery && tel.cells.size) tel.flow = { col: f.cells[[...tel.cells][0]].col, dir: s.st.dir === -1 ? -1 : 1, every: s.flowEvery };
     if (s.safe) tel.safe = new Set(f.cells.filter(c => !c.block && !tel.cells.has(c.i)).map(c => c.i));
     f.tels.push(tel);
+    if (s.mirage) mirageUp(f, tel); // 신기루 (P-MIRAGE, 54 5장): 가짜 예고를 함께
     if (s.pads) { tel.safe = new Set(tel.cells); padsGo(f, tel); } // 받침: 금빛 발판으로 파티원이 들어감
     if (s.soak) soakGo(f, tel); // 집결 분담: 가까운 파티원이 대상 옆으로
     if (f.abOn) abOnTel(f, tel);
@@ -173,6 +175,7 @@ export function bossTick(f: Fight): void {
     if (s.warn) emit(f, { type: 'sound', name: s.warn });
     if (tel.kind === 'zone' && f.tels.includes(tel) && !s.fixed) scheduleReactions(f, tel); // 줄 피해 (P-ROW)는 안 비킴
   }
+  mirageTick(f); // 걷힐 때가 된 가짜 예고는 맞기 전에 사라짐
   for (const tel of f.tels.filter(t => t.impact <= f.t + 1e-9)) {
     if (tel.kind === 'zone') {
       if (tel.skill.hitDmg) cellHit(f, tel, tel.skill.hitDmg);
@@ -200,7 +203,8 @@ export interface QueueEntry {
 /** 화면 상단 보스 기술 예고: 다음 3개 */
 export function queue(f: Fight): QueueEntry[] {
   const list: QueueEntry[] = [];
-  for (const t of f.tels) list.push({ name: t.skill.name, icon: t.skill.icon, kind: t.kind, impact: t.impact, start: t.start, casting: true, skill: t.skill });
+  // 신기루 가짜 예고는 진짜와 같은 기술이라 한 번만 (예고 자체가 가짜인 광역은 그대로 보임)
+  for (const t of f.tels) if (!t.fake || !list.some(x => x.casting && x.skill === t.skill)) list.push({ name: t.skill.name, icon: t.skill.icon, kind: t.kind, impact: t.impact, start: t.start, casting: true, skill: t.skill });
   for (const s of f.skills) {
     if (s.hidden || s.next === Infinity) continue;
     let n = s.next;
