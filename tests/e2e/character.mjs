@@ -29,14 +29,14 @@ export default async function character(url, shots) {
   const stats = await flat('#s-char .c7-stats');
   ok(/체력220/.test(stats) && /지능120/.test(stats) && /정신력/.test(stats) && /인내/.test(stats) && !/세트/.test(stats), `능력치 판: 체력 220 · 지능 120 (34 1-2: 숫자 ÷2.5), 정신력 · 인내, 세트 칸 없음 (${stats})`);
   ok((await page.locator('#s-char .c7-stat').count()) === 6 && (await page.locator('#s-char .gtile').count()) === 6 && (await page.locator('#s-char .gtile.empty').count()) === 6, '능력치 6칸, 착용 6칸 (다 빈칸)');
-  ok((await page.locator('#s-char .c7-sq img.g-ic').count()) === 4 && (await page.locator('#s-char .c7-stat .c7-si img.g-ic').count()) === 5 && (await page.locator('#s-char nav .c7-tic img.g-ic').count()) === 3, '31 그림: 장비 칸 item- 4장 (무기·목걸이는 종 없이 다시 그릴 때까지 선 아이콘), 능력치 stat- 5장 (인내 stat-stamina는 그림 전까지 선 아이콘), 하위 탭 icon-gear·skills·talent');
+  ok((await page.locator('#s-char .c7-sq img.g-ic').count()) === 6 && (await page.locator('#s-char .c7-stat .c7-si img.g-ic').count()) === 6 && (await page.locator('#s-char nav .c7-tic img.g-ic').count()) === 3, '31 그림: 장비 칸 item- 6장 (무기·목걸이는 40 다시 그린 그림), 능력치 stat- 6장 (인내 stat-stamina 포함), 하위 탭 icon-gear·skills·talent');
   await page.screenshot({ path: `${shots}/char_gear.png` });
 
   // ---- 스킬: Lv 1 ----
   await page.click('#s-char [data-csub="skill"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char .c7-sk').count()) === 9, '스킬 줄 7 + 성언 줄 + 패시브 줄');
   ok((await page.locator('#s-char .c7-wheel .c7-wh .c7-si').count()) === 7 && (await page.locator('#s-char .c7-wh.core').count()) === 1 && (await page.locator('#s-char .c7-mcircle').count()) === 1, '휠 = 메달 7개에 스킬 그림(없으면 선 아이콘) + 가운데 마나 구슬 + 마법진');
-  ok((await page.locator('#s-char .c7-wheel .c7-si img.g-ic').count()) === 7 && (await page.locator('#s-char .c7-mcircle img.g-ic').count()) === 0 && (await page.locator('#s-char .c7-ski img.g-ic').count()) === 8, '31 그림: 휠 메달 skill- 7장, 마법진은 종 무늬 없이 다시 그릴 때까지 CSS 원, 스킬 줄 그림 (패시브 줄은 선 아이콘)');
+  ok((await page.locator('#s-char .c7-wheel .c7-si img.g-ic').count()) === 7 && (await page.locator('#s-char .c7-mcircle img.g-ic').count()) === 1 && (await page.locator('#s-char .c7-ski img.g-ic').count()) === 8, '31 그림: 휠 메달 skill- 7장, 마법진 ui-magic-circle (40 다시 그린 그림), 스킬 줄 그림 (패시브 줄은 선 아이콘)');
   ok((await page.locator('#s-char .c7-sk.locked').count()) === 6 && (await page.locator('#s-char .lslot.locked').count()) === 5, 'Lv 1: 치유·순간 치유만 열림 (휠 5칸·성언 잠김)');
   ok(/Lv 2/.test(await text('#s-char .c7-sk[data-skill="renew"]')), '잠긴 스킬엔 배우는 레벨');
   ok(await page.getAttribute('#s-char [data-smode="view"]', 'aria-pressed') === 'true', '처음은 「설명 보기」');
