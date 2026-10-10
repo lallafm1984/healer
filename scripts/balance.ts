@@ -1,6 +1,7 @@
 /**
- * 자동 밸런스 (38 0-6, src/sim/balance.ts). 실행: npm run balance -- [장소 키 …] [--diff 어려움,악몽] [--n 40] [--check] [--write]
- * 장소를 안 주면 만든 장소 모두. --check = 재기만 (배율을 찾지 않음), --write = 찾은 값을 src/data/tune.ts에 씀
+ * 자동 밸런스 (38 0-6, src/sim/balance.ts). 실행: npm run balance -- [장소 키 …] [--diff 어려움,악몽] [--n 40] [--check] [--write] [--report 파일.md]
+ * 장소를 안 주면 만든 장소 모두. --check = 재기만 (배율을 찾지 않음), --write = 찾은 값을 src/data/tune.ts에 씀,
+ * --report = 장소 × 난이도 시뮬 보고서 한 장 (38 0-7)을 마크다운 표로 씀
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { ALL_DIFFS, CONTENT } from '../src/data/content';
@@ -8,13 +9,14 @@ import type { DiffName } from '../src/data/difficulty';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { HERO_KEYS } from '../src/data/heroes';
 import { TUNE, type Tune } from '../src/data/tune';
-import { applyRows, balanceable, balanceOne, renderTune, rewriteTuneFile, TARGET, type Measure, type Row } from '../src/sim/balance';
+import { applyRows, balanceable, balanceOne, renderTune, rewriteTuneFile, TARGET, verdictOf, type Measure, type Row } from '../src/sim/balance';
 
 const args = process.argv.slice(2);
 const opt = (k: string) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
 const N = Number(opt('--n') || 40);
 const diffs = (opt('--diff')?.split(',') as DiffName[] | undefined) ?? ALL_DIFFS;
-const keys = args.filter((a, i) => !a.startsWith('--') && args[i - 1] !== '--n' && args[i - 1] !== '--diff');
+const keys = args.filter((a, i) => !a.startsWith('--') && !['--n', '--diff', '--report'].includes(args[i - 1]));
+const report = opt('--report');
 const check = args.includes('--check'), write = args.includes('--write');
 const places = CONTENT.filter(c => balanceable(c) && (!keys.length || keys.includes(c.key)));
 if (!places.length) { console.log(`맞출 장소가 없음 (${keys.join(', ')})`); process.exit(1); }
@@ -41,6 +43,24 @@ for (const c of places) {
     console.log(`  ${d.padEnd(3)} Lv ${String(r.std.lv).padStart(3)} [${r.std.gear}${r.std.affixes.length ? ` · ${r.std.affixes.join('+')}` : ''}] ${tuneTxt(r.cur)} → ${mTxt(r.now)} ${mark[r.verdict]}${f ? ` | 실패: ${f}` : ''}`);
     if (r.next) console.log(`      → dmg ${r.next.dmg} = ${mTxt(r.next.m)}`);
   }
+}
+
+if (report) {
+  const kind = (c: (typeof places)[number]) => (c.kind === 'raid' ? `${c.size('보통')}인` : c.kind === 'dungeon' ? '던전' : '탐험');
+  const lines = [
+    `# 시뮬 보고서 (38 0-7)`, '',
+    `${new Date().toISOString().slice(0, 10)} · 만든 장소 ${places.length}곳 × ${diffs.length}난이도 · 직업마다 ${N}판 (자동 힐러, 기준 레벨 · 권장 장비 · 던전 어픽스) · 목표 ${diffs.map(d => `${d} ${TARGET[d].min}~${TARGET[d].max}%`).join(' / ')}`, '',
+    '| 장소 | 종류 | 난이도 | 기준 | 보정 | 클리어율 | 사제 · 드루 · 성기 | 이긴 판 시간 | 판정 | 진 이유 (많은 순) |',
+    '|---|---|---|---|---|---|---|---|---|---|',
+  ];
+  for (const r of rows) {
+    const c = places.find(x => x.key === r.key)!, m = r.next?.m ?? r.now;
+    lines.push(`| ${c.name} | ${kind(c)} | ${r.diff} | Lv ${r.std.lv} · ${r.std.gear}${r.std.affixes.length ? ` · ${r.std.affixes.join('+')}` : ''} | ${tuneTxt(r.next ? { ...(r.cur ?? {}), dmg: r.next.dmg } : r.cur)} | ${Math.round(m.rate)}% | ${HERO_KEYS.map(h => m.byHero[h]).join(' · ')} | ${m.time ? fmtT(m.time) : '-'} | ${mark[verdictOf(r.diff, m.rate)]} | ${why(m) || '-'} |`);
+  }
+  const off = rows.filter(r => verdictOf(r.diff, (r.next?.m ?? r.now).rate) !== 'ok');
+  lines.push('', off.length ? `목표 밖 ${off.length}칸: ${off.map(r => `${r.name} ${r.diff}`).join(' · ')}` : '모든 칸이 목표 안.', '');
+  writeFileSync(report, lines.join('\n'));
+  console.log(`\n보고서: ${report}`);
 }
 
 const out = applyRows(TUNE, rows);
