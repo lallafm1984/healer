@@ -138,11 +138,11 @@ describe('10인 ⑧', () => {
 });
 
 describe('자동 힐러', () => {
-  it('보통이면 거의 다 깸 (장비 없음)', () => {
-    for (const [dungeon, level] of [['ashpass', 64], ['hotspring', 65], ['forge', 70]] as const) {
+  for (const [dungeon, level] of [['ashpass', 64], ['hotspring', 65], ['forge', 70]] as const) {
+    it(`${dungeon} Lv ${level}: 보통이면 거의 다 깸 (장비 없음)`, () => {
       let wins = 0;
       for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon, diff: '보통', seed: s, level, gear: 'none' }).win) wins++;
-      expect(wins, dungeon).toBeGreaterThanOrEqual(19);
-    }
-  });
+      expect(wins).toBeGreaterThanOrEqual(19);
+    });
+  }
 });
