@@ -312,6 +312,9 @@ export const NAMED: NamedDef[] = [
   { key: 'knightBanner', name: '칠흑의 기사단 휘장', slot: 'neck', place: 'camp3', placeName: '그림자 진영 지휘소', text: '신기루가 걷히면 진짜 번개 구름 대상의 이웃 가운데 낮은 2명에게 지능 {v} 보호막 (6초)', val: 0.3, unit: 'pct' },
   { key: 'wetGlove', name: '마부의 젖은 장갑', slot: 'ring', place: 'carriage', placeName: '유령 마차길', text: '어둠물에 잠긴 아군에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
   { key: 'wetScore', name: '세레나의 젖은 악보', slot: 'neck', place: 'ballroom', placeName: '가라앉은 무도회장', text: '어둠물이 빠지는 순간 잠겨 있던 아군 모두 지능 {v} 회복', val: 0.2, unit: 'pct' },
+  // 묶음 G2 (59 6장): 20인 ⑨ 소용돌이 · 탐험 ㉔
+  { key: 'moonBowl', name: '검은물결의 달빛 그릇', slot: 'neck', place: 'coast3', placeName: '어둠물 해안 소용돌이', text: '넘치는 빛 그릇에 모이는 넘친 치유 +{v}, 빚을 갚은 넘친 치유도 절반이 그릇에', val: 0.25, unit: 'pct' },
+  { key: 'debtLantern', name: '꺼지지 않는 등불', slot: 'ring', place: 'lantern', placeName: '어둠물 등불길', text: '넘친 치유가 빚진 아군의 빚을 갚는 양 +{v}', val: 0.2, unit: 'pct', min: '고급' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -481,6 +484,10 @@ export const FEATURED: Record<string, readonly string[]> = {
   camp3: ['clearEye', 'constellation', 'guardFeather'],
   carriage: ['quickAid', 'curseBreak', 'lingerLight'],
   ballroom: ['curseBreak', 'lingerLight', 'kindCrit'],
+  coast1: ['shelterMap', 'lingerLight', 'wideEmbrace'],
+  coast2: ['woundClean', 'hardShell', 'holdingHand'],
+  coast3: ['bubble', 'overflowKind', 'sunrise'],
+  lantern: ['bubble', 'lightBreath', 'quickAid'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

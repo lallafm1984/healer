@@ -106,6 +106,9 @@ export const UNIQUES: UniqueDef[] = [
   { key: 'galeLance', name: '질풍 기병창', slot: 'weapon', kind: 'staff', place: 'camp1', placeName: '그림자 진영 막사', spec: 'bounceLight' },
   { key: 'hornSleeve', name: '우레발 뿔 토시', slot: 'hands', kind: 'sleeve', place: 'camp2', placeName: '그림자 진영 훈련장', spec: 'sturdyBack' },
   { key: 'valenRapier', name: '발렌의 은빛 레이피어', slot: 'weapon', kind: 'scepter', place: 'ballroom', placeName: '가라앉은 무도회장', spec: 'bounceLight' },
+  // 묶음 G2 (59 6장): 20인 ⑨ 선착장 · 물길
+  { key: 'oarStaff', name: '잔물결 뱃사공 노', slot: 'weapon', kind: 'staff', place: 'coast1', placeName: '어둠물 해안 선착장', spec: 'insight' },
+  { key: 'eelVest', name: '휘감이 비늘 조끼', slot: 'chest', kind: 'mail', place: 'coast2', placeName: '어둠물 해안 물길', spec: 'woundClean' },
 ];
 
 export const uniqueOf = (key: string | undefined) => (key ? UNIQUES.find(u => u.key === key) : undefined);

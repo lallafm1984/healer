@@ -347,6 +347,8 @@ export interface BossSkill {
   chain?: boolean;
   /** 어둠물 밀물 (P-TIDE, 59 5장): 잠길 줄 예고 (화면 물결), 맞으면 잠긴 칸 장판 (Zone.tide). 자동 힐러가 예고 동안 잠길 줄 사람을 채움 */
   tide?: boolean;
+  /** 물로 끌어내림 (59 4-3 휘감이): 예고에 찍힌 사람이 잠긴 줄로 끌려감. 자동 힐러가 예고 동안 미리 채움 */
+  drag?: boolean;
   /** 부품 상태 (장판 좌우 번갈아·성부 차례 등, engine/bossParts.ts) */
   st: Record<string, number | boolean>;
 }
@@ -442,7 +444,7 @@ export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crum
   /** 묶음 F2 우르릉 기우는 섬 (낮은 쪽으로 바람 · 구름이 쓸려 감, 판 전체) */
   | 'island-tilt'
   /** 묶음 G 새 부품 (59 5장, 그림 60 E): 어둠물이 차오름 · 빠짐 · 생명을 빌려줌 (보랏빛 손) · 빚을 갚음 (금빛 동전) · 남은 빚을 거둬 감 */
-  | 'tide-rise' | 'tide-ebb' | 'debt-lend' | 'debt-pay' | 'debt-collect';
+  | 'tide-rise' | 'tide-ebb' | 'debt-lend' | 'debt-pay' | 'debt-collect' | 'tide-island' | 'tide-drag';
 
 export type FightResult = 'win' | 'lose';
 

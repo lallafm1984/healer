@@ -77,6 +77,7 @@ export const TRINKET_ART: Record<string, string> = {
   breathFlask: 'breathflask', postStamp: 'poststamp', fleeceRing: 'fleecering', millVane: 'millvane', // 57 장신구 1 ~ 4
   prism: 'prism', stormWedge: 'stormwedge', broomTicket: 'broomticket', shadowVeil: 'shadowveil', diploma: 'diploma', // 57 장신구 5 ~ 9
   mazeMap: 'mazemap', knightBanner: 'knightbanner', wetGlove: 'wetglove', wetScore: 'wetscore', // 60 장신구 1 ~ 4
+  moonBowl: 'moonbowl', debtLantern: 'debtlantern', // 60 장신구 5 ~ 6
 };
 /** 이름 있는 장신구 그림 주소 (없으면 '') */
 export const trinketArt = (named?: string): string => (named && TRINKET_ART[named] ? art(`item-trinket-${TRINKET_ART[named]}`) : '');

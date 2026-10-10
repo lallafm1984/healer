@@ -158,6 +158,11 @@ const BSK: Partial<Record<BossKey, Record<string, string>>> = {
   serena92: { discord: 'icon-bsk-serena-2', cresc: 'icon-bsk-serena-3' },
   serena: { buster: 'icon-bsk-serena-1', discord: 'icon-bsk-serena-2', cresc: 'icon-bsk-serena-3' },
   valen: { buster: 'icon-bsk-valen-1', march0: 'icon-bsk-valen-2', march1: 'icon-bsk-valen-2', march2: 'icon-bsk-valen-2' },
+  // 묶음 G2 (60 4장 D): 탐험 ㉔ 녹슬음은 던전 ⑳ 그림, 심연 해제는 오르말 그림
+  janmul: { buster: 'icon-bsk-janmul-1', row: 'icon-bsk-janmul-2', venom: 'icon-bsk-janmul-3' },
+  hwigami: { buster: 'icon-bsk-hwigami-1', bolt: 'icon-bsk-hwigami-2', scale: 'icon-bsk-hwigami-3' },
+  geomeun: { buster: 'icon-bsk-geomeun-1', touch: 'icon-bsk-ormal-2', rain: 'icon-bsk-geomeun-2' },
+  nokseul96: { dun: 'icon-bsk-nokseul-1' },
 };
 /** 데이터 부품만으로는 안 보이는 기믹 (35 4장 표): 서리 손길 · 빗자루 = 버스터 + 썩는 상처 (서리 · 먼지 범벅), 얼어붙는 바닥 · 바닥이 언다 = 장판 → 무너지는 바닥 */
 const GIM_KEY: Partial<Record<BossKey, Record<string, Gim>>> = {
@@ -190,6 +195,7 @@ const MOB: Record<string, string> = {
   '번개 실험 정령:burst': 'icon-mob-spark-burst', // 57 4장 D
   '물에 젖은 조문객:veil': 'icon-mob-veil', // 묶음 G1: 귀족가 졸개는 장원 그림을 같이 씀
   '가라앉은 사냥개:howl': 'icon-mob-howl',
+  '함정 술사:hex': 'icon-mob-trap-hex', // 묶음 G2 (60 4장 D)
 };
 
 /** 판 위 적이 하는 일 → 기믹 (37 4장 E 1~10) */
@@ -223,6 +229,7 @@ export function gimOf(d: SkillDef, tanks = 1): Gim | undefined {
   if (e?.p === 'glass') return 'glass'; // 모래시계 (55 G 2)
   if (!e) return d.cells?.p === 'safe' ? 'safe' : d.cells?.p === 'tide' ? 'tide' : undefined; // 어둠물 밀물 (P-TIDE, 60 G 1)
   switch (e.p) {
+    case 'drag': return 'pull'; // 물로 끌어내림 (59 4-3)은 끌어당김 아이콘
     case 'hunt': case 'quake': case 'pull': case 'order': case 'link': case 'hole': case 'tower': case 'stagger': case 'counter': case 'soul': case 'jail': return e.p;
     case 'vessel': return 'over';
     case 'ring': return 'grow'; // 요정 고리 (P-GROW, 37 4장 H-1)

@@ -145,6 +145,27 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         }
       }
       return;
+    case 'drag': {
+      // 물로 끌어내림 (어둠물 × 끌어당김, 59 4-3 휘감이): 잠긴 칸 (밀물이 없으면 가장 아래 빈 칸) 가까운 빈 칸으로 끌어내리고 묶음 + 피해
+      const wet = new Set(f.zones.filter(z => z.tide).flatMap(z => [...z.cells]));
+      for (const id of tel?.units ?? []) {
+        const u = unitById(f, id);
+        if (!u?.alive || u.lift) continue;
+        const at = cellOf(f, u);
+        const c = f.cells.filter(x => !x.unit && !x.block && (!wet.size || wet.has(x.i))).sort((a, b) => (wet.size ? 0 : b.row - a.row) || hexDist(a, at) - hexDist(b, at))[0];
+        if (c && !wet.has(u.cell)) {
+          if (u.moving) { const to = f.cells[u.moving.to]; if (to.unit === u) to.unit = null; u.moving = null; }
+          u.react = null; u.fleeing = false; u.homeAt = null;
+          c.unit = u;
+          u.moving = { from: u.cell, to: c.i, left: 0.3, total: 0.3 };
+        }
+        addDebuff(f, u, { name: e.name, type: '물리', left: e.sec, lock: true, noMove: true });
+        emit(f, { type: 'fx', name: 'tide-drag', on: u.id });
+        damage(f, u, e.dmg, true);
+      }
+      if (tel?.units.length) emit(f, { type: 'msg', text: `${s.name}: ${tel.units.map(id => unitById(f, id)?.nick).filter(Boolean).join(' · ')} 물속으로 끌려감` });
+      return;
+    }
     case 'adds': {
       const n = f.mythic && e.nMythic ? e.nMythic : e.n;
       for (let i = 0; i < n; i++) spawnAdd(f, e.add);
@@ -495,6 +516,8 @@ export function mirageUp(f: Fight, tel: Telegraph): void {
 /** 어둠물 밀물 (P-TIDE, 59 5장): 예고가 끝나 아래 줄이 잠김 (검보랏빛 물결이 차오름) */
 export function tideRise(f: Fight, tel: Telegraph): void {
   for (const i of tel.cells) emit(f, { type: 'fx', name: 'tide-rise', cell: i });
+  const top = Math.min(...[...tel.cells].map(i => f.cells[i].row));
+  for (const c of f.cells) if (!c.block && c.row >= top && !tel.cells.has(c.i)) emit(f, { type: 'fx', name: 'tide-island', cell: c.i }); // 물 위 섬 (59 4-3)
   const rows = new Set([...tel.cells].map(i => f.cells[i].row)).size;
   const wet = living(f).filter(u => tel.cells.has(u.cell));
   emit(f, { type: 'msg', text: `${tel.skill.name ?? '어둠물'}: 아래 ${rows}줄이 잠김${wet.length ? ` (${wet.map(u => u.nick).join(' · ')} 받는 치유 절반)` : ''}` });
@@ -958,6 +981,13 @@ function fromMid(f: Fight, c: Cell): number {
 }
 
 /** 뒷줄부터 n명 (탱커·나·이미 끌려온 사람 빼고). 같은 줄이면 무작위 */
+/** 물로 끌어내림 대상 (59 4-3 휘감이): 보스 가까운 줄부터 탱커 · 나 아닌 n명. 이미 잠긴 사람 · 끌려온 사람은 뺌 */
+export function frontTargets(f: Fight, n: number): Unit[] {
+  const wet = new Set(f.zones.filter(z => z.tide).flatMap(z => [...z.cells]));
+  const c = randomTargets(f, 99, u => u.role !== 'tank' && !u.me && !u.pulled && !wet.has(u.cell));
+  return c.sort((a, b) => cellOf(f, a).row - cellOf(f, b).row).slice(0, n);
+}
+
 export function backTargets(f: Fight, n: number): Unit[] {
   const c = randomTargets(f, 99, u => u.role !== 'tank' && !u.me && !u.pulled);
   return c.sort((a, b) => cellOf(f, b).row - cellOf(f, a).row).slice(0, n);
@@ -1332,7 +1362,13 @@ export function zoneCells(f: Fight, s: BossSkill, z: ZoneCells, mirror = false):
     case 'tide': {
       // 어둠물 밀물 (P-TIDE, 59 5장): 보스에서 먼 아래 n줄
       const n = Math.min(f.rows - 1, f.mythic && z.rowsMythic ? z.rowsMythic : z.rows);
-      return new Set(f.cells.filter(c => !c.block && c.row >= f.rows - n).map(c => c.i));
+      const wet = f.cells.filter(c => !c.block && c.row >= f.rows - n);
+      const k = (f.mythic && z.islandsMythic) || z.islands || 0;
+      if (!k) return new Set(wet.map(c => c.i));
+      // 물 위 섬 (어둠물 × 피난처, 59 4-3): 잠길 줄에서 무작위 k칸은 마른 채 남음
+      const pool = wet.slice(), dry = new Set<number>();
+      while (dry.size < k && pool.length) dry.add(pool.splice(Math.floor(f.rng() * pool.length), 1)[0].i);
+      return new Set(wet.filter(c => !dry.has(c.i)).map(c => c.i));
     }
     case 'flow': {
       // 흐르는 장판의 첫 열: 맨 왼쪽(또는 오른쪽) 열. 방향은 s.st.dir (bossTick이 예고에 flow로 붙임)

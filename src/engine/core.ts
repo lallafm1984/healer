@@ -87,9 +87,11 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   f.stats.overheal += amt - eff;
   if (amt - eff > 1e-9) { // 넘치는 빛 (P-OVER): 그릇에 모이고, 과부하 표식이면 이웃이 아픔
     let over = amt - eff;
+    const o0 = over, bowl = sv(f, 'moonBowl');
     if (u.debuffs.length) over = payDebt(f, u, over, direct); // 빌린 생명 (P-DEBT, 59 5장): 넘친 치유는 빚부터 갚고 남는 몫만 그릇에
+    if (bowl && o0 > over && f.vessel && f.t < f.vessel.until) f.vessel.fill += (o0 - over) / 2; // 검은물결의 달빛 그릇 (59 6장): 빚을 갚은 몫도 절반
     if (over > 1e-9) {
-      if (f.vessel && f.t < f.vessel.until) f.vessel.fill += over * (1 + sv(f, 'breathFlask')); // 후우의 숨결 병 (56 6장)
+      if (f.vessel && f.t < f.vessel.until) f.vessel.fill += over * (1 + sv(f, 'breathFlask') + bowl); // 후우의 숨결 병 (56 6장) · 달빛 그릇
       if (u.debuffs.length) overload(f, u, over);
     }
   }

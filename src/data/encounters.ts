@@ -23,7 +23,8 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'chulleong' | 'puseok' | 'huu' | 'hwirik83' | 'kkongkkong' | 'buri' | 'sheeptrash' | 'boksul84' | 'millstairs' | 'boksul' | 'millhouse' | 'dolgae'
   | 'gulgul' | 'pingping' | 'bitgallae' | 'dungdung' | 'ssaengssaeng' | 'ureureung'
   | 'platform' | 'pongpong88' | 'upsidehall' | 'pongpong' | 'boltlab' | 'dwijuk' | 'kwangkwang' | 'syungsyung' | 'eodugi'
-  | 'geumeum' | 'silta' | 'bamgeuneul' | 'jilpung' | 'ureobal' | 'chilheuk' | 'carriagetrash' | 'serena92' | 'ballhall' | 'serena' | 'balcony' | 'valen';
+  | 'geumeum' | 'silta' | 'bamgeuneul' | 'jilpung' | 'ureobal' | 'chilheuk' | 'carriagetrash' | 'serena92' | 'ballhall' | 'serena' | 'balcony' | 'valen'
+  | 'janmul' | 'hwigami' | 'geomeun' | 'lanterntrash' | 'nokseul96';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -40,7 +41,8 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'chulleong' | 'puseok' | 'huu' | 'hwirik83' | 'kkongkkong' | 'buri' | 'boksul84' | 'boksul' | 'dolgae'
   | 'gulgul' | 'pingping' | 'bitgallae' | 'dungdung' | 'ssaengssaeng' | 'ureureung'
   | 'pongpong88' | 'pongpong' | 'dwijuk' | 'kwangkwang' | 'syungsyung' | 'eodugi'
-  | 'geumeum' | 'silta' | 'bamgeuneul' | 'jilpung' | 'ureobal' | 'chilheuk' | 'serena92' | 'serena' | 'valen';
+  | 'geumeum' | 'silta' | 'bamgeuneul' | 'jilpung' | 'ureobal' | 'chilheuk' | 'serena92' | 'serena' | 'valen'
+  | 'janmul' | 'hwigami' | 'geomeun' | 'nokseul96';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -151,6 +153,18 @@ const sneeze = (x = 1): DebuffDef[] => [
   { name: '포자 기침', type: '질병', left: 10, dot: Math.round(600 * 0.02 * x) },
   { name: '요정 장난', type: '마법', left: 10, healCut: 0.3 },
 ];
+/**
+ * 함정 술사 (59 2장, 심연의 정예 ③): 질병 → 독 → 함정 → 저주 → 마법 → 함정 차례로. 네 유형은 10초 초당 딜체 2%,
+ * 함정 (그림자 덫)은 지우면 주변 칸 딜체 15%, 두면 8초 뒤 그 사람 딜체 25%. x = 피해 배율 (탐험 0.7)
+ */
+export const trapHex = (x = 1): DebuffDef[] => {
+  const dot = Math.round(600 * 0.02 * x);
+  const trap: DebuffDef = { name: '그림자 덫', type: '마법', left: 8, trap: true, end: { p: 'trapHit', dmg: Math.round(600 * 0.25 * x), burst: Math.round(600 * 0.15 * x) } };
+  return [
+    { name: '그림자 열병', type: '질병', left: 10, dot }, { name: '그림자 독', type: '독', left: 10, dot }, trap,
+    { name: '그림자 저주', type: '저주', left: 10, dot }, { name: '그림자 봉인', type: '마법', left: 10, dot }, trap,
+  ];
+};
 /** 네 가지 청소약을 거는 곳: 해제 4유형 모두 (신전지기 유령) */
 const HEAL4 = ['질병', '독', '저주', '마법'];
 
@@ -839,6 +853,20 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     },
   ], { debuffs: ['저주'] }),
   valen: { key: 'valen', lowLevel: true, name: '몰락한 대공 발렌', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7600, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'valen', stage: 0.25, debuffs: ['저주'] },
+  // ---------- 묶음 G2 (59 1장 · 2장 · 4-3) ----------
+  // 20인 ⑨ 어둠물 해안 (Lv 94 · 악몽 100 · 심연의 정예 · 전 유형)
+  janmul: { key: 'janmul', name: '어둠물 뱃사공 잔물결', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 50600, enrage: 360, manaCoef: 1.6, diffs: ALL, script: 'janmul', big: true, stage: 0.13, debuffs: ['독', '마법'] },
+  hwigami: { key: 'hwigami', name: '심연 장어왕 휘감이', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 51400, enrage: 380, manaCoef: 1.6, diffs: ALL, script: 'hwigami', big: true, stage: 0.13, debuffs: ['질병', '저주'] },
+  geomeun: { key: 'geomeun', name: '어둠물 여왕 검은물결', tier: '대규모 레이드 · 20인', board: 'b36', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 67300, enrage: 480, manaCoef: 1.8, diffs: ALL, script: 'geomeun', big: true, stage: 0.13, debuffs: HEAL4 },
+  // 탐험 ㉔ 「어둠물 등불길」 (59 1-1, Lv 96 · 심연의 정예): 꺼진 등불 길 (심연의 정예 ① ×2 ③) → 그림자 대여상 녹슬음 (빌린 생명 쉬운 판, 던전 ⑳ 예습)
+  lanterntrash: trash('lanterntrash', '꺼진 등불 길', [
+    { name: '그림자 기사', hp: 170, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '함정 술사', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'hex', name: '그림자 주문', icon: '주문', to: 'other', dmg: 0, first: 5, period: 10, cast: 0, effect: { p: 'cycle', n: 1, debuffs: trapHex(0.7) } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: HEAL4 }),
+  nokseul96: { key: 'nokseul96', lowLevel: true, name: '그림자 대여상 녹슬음', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3200, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'nokseul96', stage: 0.3, debuffs: ['독', '질병'] },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

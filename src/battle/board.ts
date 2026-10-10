@@ -736,6 +736,9 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   'debt-lend': { size: 1.6, color: DEBT, ms: 700 },
   'debt-pay': { size: 0.9, color: 0xffd166, ms: 450, up: 0.5 },
   'debt-collect': { size: 1.9, color: DEBT, ms: 700 },
+  // 묶음 G2 (59 4-3, 그림 60 E): 밀물 때 마른 채 남은 물 위 섬 · 장어 꼬리가 물속으로 끌어내림
+  'tide-island': { size: 1.3, color: 0xe9d9a6, ms: 800, up: 0.15 },
+  'tide-drag': { size: 1.6, color: TIDE_HI, ms: 600 },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();

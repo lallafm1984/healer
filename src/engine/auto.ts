@@ -226,6 +226,12 @@ function tideFill(f: Fight): Unit | null {
     if (!t.cells.has(v.moving ? v.moving.to : v.cell) || off(f, v) || v.hp >= healTop(v) * 0.9) continue;
     if (!best || pctOf(v) < pctOf(best)) best = v;
   }
+  // 물로 끌어내림 (59 4-3 휘감이): 예고에 찍힌 사람도 끌려가면 힐이 반만 드니 미리
+  for (const t of f.tels) if (t.skill.drag) for (const id of t.units) {
+    const v = unitById(f, id);
+    if (!v?.alive || off(f, v) || v.hp >= healTop(v) * 0.9) continue;
+    if (!best || pctOf(v) < pctOf(best)) best = v;
+  }
   return best;
 }
 
