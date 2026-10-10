@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { gearStatsOf, itemStats, noStats, SLOTS, STAT_KEYS, type GearItem } from '../src/data/equipment';
 import { lvPower } from '../src/data/progression';
+import { RULES } from '../src/data/rules';
 import { heroStats, statParts } from '../src/game/charinfo';
 import {
   bestGearPlan, equipBest, G, lowGradeIds, pickTalent, salvage, setTalentPreset, talentPreset, talentsNow, toggleLock,
@@ -143,9 +144,9 @@ describe('능력치 판 · 출처 (27 4-2)', () => {
     expect(p.hp.gear).toBeGreaterThan(0); // 방어구 주 능력치 체력 (34 6-5)
     expect(p.endure.total).toBeCloseTo(st.endure!);
     expect(p.hp.base).toBe(220); // Lv 1 = 550 ÷ 2.5 (34 1-2)
-    expect(p.int.base).toBe(120);
+    expect(p.int.base).toBe(72); // 300 ÷ 2.5 × 치유 배율 0.6 (34 1-6)
     expect(p.int.base + p.int.level + p.int.gear).toBe(p.int.total);
-    expect(p.int.total).toBe(Math.round(300 * lp * st.heal));
+    expect(p.int.total).toBe(Math.round(300 * RULES.heal * lp * st.heal));
     expect(p.crit.base).toBe(0); // 기본 치명 0% (34 1-2)
     expect(p.crit.base + p.crit.gear).toBeCloseTo(st.crit);
     expect(1 + p.spirit.total).toBeCloseTo(st.regen);

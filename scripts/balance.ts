@@ -9,7 +9,7 @@ import type { DiffName } from '../src/data/difficulty';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { HERO_KEYS } from '../src/data/heroes';
 import { TUNE, type Tune } from '../src/data/tune';
-import { applyRows, balanceable, balanceOne, renderTune, rewriteTuneFile, TARGET, verdictOf, type Measure, type Row } from '../src/sim/balance';
+import { applyRows, balanceable, balanceOne, BUSY, renderTune, rewriteTuneFile, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
 
 const args = process.argv.slice(2);
 const opt = (k: string) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
@@ -24,11 +24,12 @@ if (!places.length) { console.log(`맞출 장소가 없음 (${keys.join(', ')})`
 const fmtT = (s: number) => { const r = Math.round(s); return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}`; };
 const tuneTxt = (t: Tune | null) => (t === null ? '구간마다 다름' : `dmg ${t.dmg ?? 1}${t.hp != null ? ` · hp ${t.hp}` : ''}`);
 const short: Record<string, string> = { priest: '사제', druid: '드루', paladin: '성기' };
-const mTxt = (m: Measure) => `${String(Math.round(m.rate)).padStart(3)}% (${HERO_KEYS.map(h => `${short[h]} ${m.byHero[h]}`).join(' · ')}) ${m.time ? fmtT(m.time) : '-'}`;
+const mTxt = (m: Measure) => `${String(Math.round(m.rate)).padStart(3)}% (${HERO_KEYS.map(h => `${short[h]} ${m.byHero[h]}`).join(' · ')}) ${m.time ? fmtT(m.time) : '-'} · 바쁨 ${m.busy.toFixed(1)}/분`;
 const why = (m: Measure) => Object.entries(m.fails).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${k} ${n}`).join(' · ');
 const mark = { ok: '✓', easy: '쉬움 ↑', hard: '어려움 ↓' };
+const markOf = (d: (typeof diffs)[number], m: Measure) => (tooIdle(d, m) ? '한가함 ↑' : mark[verdictOf(d, m.rate)]);
 
-console.log(`자동 밸런스 (38 0-6) · 직업마다 ${N}판 · 목표 ${diffs.map(d => `${d} ${TARGET[d].min}~${TARGET[d].max}%`).join(' / ')}${check ? ' · 재기만' : ''}`);
+console.log(`자동 밸런스 (38 0-6) · 직업마다 ${N}판 · 목표 ${diffs.map(d => `${d} ${TARGET[d].min}~${TARGET[d].max}%${BUSY[d] ? ` · 바쁨 ${BUSY[d]}/분 이상` : ''}`).join(' / ')}${check ? ' · 재기만' : ''}`);
 const rows: Row[] = [];
 for (const c of places) {
   const segs = c.fights('보통');
@@ -40,7 +41,7 @@ for (const c of places) {
     const r = balanceOne(TUNE, c, d, N, !check);
     rows.push(r);
     const f = why(r.now);
-    console.log(`  ${d.padEnd(3)} Lv ${String(r.std.lv).padStart(3)} [${r.std.gear}${r.std.affixes.length ? ` · ${r.std.affixes.join('+')}` : ''}] ${tuneTxt(r.cur)} → ${mTxt(r.now)} ${mark[r.verdict]}${f ? ` | 실패: ${f}` : ''}`);
+    console.log(`  ${d.padEnd(3)} Lv ${String(r.std.lv).padStart(3)} [${r.std.gear}${r.std.affixes.length ? ` · ${r.std.affixes.join('+')}` : ''}] ${tuneTxt(r.cur)} → ${mTxt(r.now)} ${markOf(d, r.now)}${f ? ` | 실패: ${f}` : ''}`);
     if (r.next) console.log(`      → dmg ${r.next.dmg} = ${mTxt(r.next.m)}`);
   }
 }
@@ -50,14 +51,14 @@ if (report) {
   const lines = [
     `# 시뮬 보고서 (38 0-7)`, '',
     `${new Date().toISOString().slice(0, 10)} · 만든 장소 ${places.length}곳 × ${diffs.length}난이도 · 직업마다 ${N}판 (자동 힐러, 기준 레벨 · 권장 장비 · 던전 어픽스) · 목표 ${diffs.map(d => `${d} ${TARGET[d].min}~${TARGET[d].max}%`).join(' / ')}`, '',
-    '| 장소 | 종류 | 난이도 | 기준 | 보정 | 클리어율 | 사제 · 드루 · 성기 | 이긴 판 시간 | 판정 | 진 이유 (많은 순) |',
-    '|---|---|---|---|---|---|---|---|---|---|',
+    '| 장소 | 종류 | 난이도 | 기준 | 보정 | 클리어율 | 사제 · 드루 · 성기 | 이긴 판 시간 | 바쁨 (치유/분) | 판정 | 진 이유 (많은 순) |',
+    '|---|---|---|---|---|---|---|---|---|---|---|',
   ];
   for (const r of rows) {
     const c = places.find(x => x.key === r.key)!, m = r.next?.m ?? r.now;
-    lines.push(`| ${c.name} | ${kind(c)} | ${r.diff} | Lv ${r.std.lv} · ${r.std.gear}${r.std.affixes.length ? ` · ${r.std.affixes.join('+')}` : ''} | ${tuneTxt(r.next ? { ...(r.cur ?? {}), dmg: r.next.dmg } : r.cur)} | ${Math.round(m.rate)}% | ${HERO_KEYS.map(h => m.byHero[h]).join(' · ')} | ${m.time ? fmtT(m.time) : '-'} | ${mark[verdictOf(r.diff, m.rate)]} | ${why(m) || '-'} |`);
+    lines.push(`| ${c.name} | ${kind(c)} | ${r.diff} | Lv ${r.std.lv} · ${r.std.gear}${r.std.affixes.length ? ` · ${r.std.affixes.join('+')}` : ''} | ${tuneTxt(r.next ? { ...(r.cur ?? {}), dmg: r.next.dmg } : r.cur)} | ${Math.round(m.rate)}% | ${HERO_KEYS.map(h => m.byHero[h]).join(' · ')} | ${m.time ? fmtT(m.time) : '-'} | ${m.busy.toFixed(1)} | ${markOf(r.diff, m)} | ${why(m) || '-'} |`);
   }
-  const off = rows.filter(r => verdictOf(r.diff, (r.next?.m ?? r.now).rate) !== 'ok');
+  const off = rows.filter(r => verdictOf(r.diff, (r.next?.m ?? r.now).rate) !== 'ok' || tooIdle(r.diff, r.next?.m ?? r.now));
   lines.push('', off.length ? `목표 밖 ${off.length}칸: ${off.map(r => `${r.name} ${r.diff}`).join(' · ')}` : '모든 칸이 목표 안.', '');
   writeFileSync(report, lines.join('\n'));
   console.log(`\n보고서: ${report}`);

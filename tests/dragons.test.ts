@@ -8,6 +8,7 @@ import { PLACE_KINDS } from '../src/data/equipment';
 import { FEATURED, NAMED } from '../src/data/specials';
 import { UNIQUES } from '../src/data/uniques';
 import * as E from '../src/engine';
+import { runOnce } from '../src/sim/balance';
 import { aggroTarget } from '../src/engine/bossParts';
 
 type F = ReturnType<typeof E.create>;
@@ -141,8 +142,8 @@ describe('자동 힐러', () => {
   for (const [dungeon, level] of [['ashpass', 64], ['hotspring', 65], ['forge', 70]] as const) {
     it(`${dungeon} Lv ${level}: 보통이면 거의 다 깸 (장비 없음)`, () => {
       let wins = 0;
-      for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon, diff: '보통', seed: s, level, gear: 'none' }).win) wins++;
+      for (let s = 1; s <= 20; s++) if (runOnce(contentOf(dungeon), '보통', 'priest', s).win) wins++; // 자동 밸런스 기준: 장비 없음 · 열린 특성 · 능력 1개 · 물약, 치유 배율 0.6 (34 1-6) 뒤로 특성 없는 사제는 높은 레벨에서 많이 짐 (레벨 = 열림 레벨)
       expect(wins).toBeGreaterThanOrEqual(19);
-    });
+    }, 20_000); // 자동 밸런스 기준 20판은 CI 기본 5초를 넘을 수 있음
   }
 });

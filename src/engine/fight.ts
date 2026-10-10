@@ -43,6 +43,7 @@ export function create(cfg: FightConfig): Fight {
   // 장비 가속은 상한까지 (34 1-2: 50% = GCD 1.0초 바닥), 치명타는 기본값 + 장비
   gear.haste = Math.min(gear.haste, R.hasteCap);
   gear.crit += R.baseCrit;
+  gear.heal *= R.heal; // 치유 배율 (34 1-6): 모든 힐 · 보호막 · 화면의 지능 값이 gear.heal을 거침
   // 레벨 배율 (34 1-2): 단계가 같으면 비율은 그대로이고 숫자만 커짐. 적·파티원은 내 레벨 세기 × 0.95, 단계보다 높은 만큼 힐러가 세짐
   const stageLv = cfg.stageLv ?? 1;
   const scale = R.lv(stageLv) * R.enemy;

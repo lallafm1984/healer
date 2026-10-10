@@ -29,7 +29,7 @@ describe('백합 정원', () => {
   });
 
   it('차례대로 모시기: 탱커 아닌 두 칸 (원거리 · 나)에 번호', () => {
-    const f = E.create({ encounter: 'butler13', diff: '보통', seed: 3, level: 13 });
+    const f = E.create({ encounter: 'butler13', diff: '보통', seed: 3, level: 13, tune: {} }); // 힐 없이 돌리니 난이도 보정 (data/tune) 없이
     until(f, 40, () => !!f.order);
     expect(f.order).toBeTruthy();
     const on = f.order!.ids.map(id => f.party.find(u => u.id === id)!);

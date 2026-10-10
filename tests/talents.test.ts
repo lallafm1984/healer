@@ -18,7 +18,7 @@ const picks = (...keys: TalentKey[]) => {
 const fight = (keys: TalentKey[], o: { enc?: 'warden' | 'plague' | 'choir'; hero?: 'priest' | 'druid'; level?: number } = {}) => {
   const f = E.create({ encounter: o.enc ?? 'plague', diff: '보통', seed: 7, level: o.level ?? 100, hero: o.hero, talents: picks(...keys) });
   f.gear.crit = 0;
-  f.power = 1; f.dmgMult = 1; // 힐·피해를 기본 단위로 (레벨 배율 1, 34 1-2): 특성 효과만 봄
+  f.power = 1; f.dmgMult = 1; f.gear.heal = 1; // 힐·피해를 기본 단위로 (레벨 배율 · 치유 배율 1, 34 1-2 · 1-6): 특성 효과만 봄
   f.skills.forEach(s => { s.next = Infinity; }); // 보스 기술은 끔
   return f;
 };

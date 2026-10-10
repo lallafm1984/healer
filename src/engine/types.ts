@@ -556,6 +556,7 @@ export interface Fight {
   enc: Encounter;
   diff: Difficulty;
   rng: () => number;
+  /** 장비 능력치. heal에는 치유 배율 (RULES.heal, 34 1-6)이 곱해져 있음 */
   gear: GearStats;
   cells: Cell[];
   rows: number;

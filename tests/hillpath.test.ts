@@ -27,7 +27,7 @@ describe('해바라기 언덕길', () => {
   });
 
   it('우르릉 힘 모으기: 전원 70% 위면 3인 딜로 10초 안에 채움 → 무방비', () => {
-    const f = E.create({ encounter: 'guardian23', diff: '보통', seed: 3, level: 23 });
+    const f = E.create({ encounter: 'guardian23', diff: '보통', seed: 3, level: 23, tune: {} }); // 힐 없이 돌리니 난이도 보정 (data/tune) 없이
     until(f, 25, () => !!f.stagger);
     expect(f.stagger).toBeTruthy();
     // 전원을 가득 채워 두면 3인 딜로 10초 안에 채워 무방비

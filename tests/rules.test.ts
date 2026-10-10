@@ -40,7 +40,7 @@ describe('34 1-2 바꾼 값', () => {
   });
   it('같은 레벨이면 적·파티원 = 내 세기 × 0.95, 적 피해 × 0.85', () => {
     for (const lv of [1, 20, 70]) {
-      const f = E.create({ ...cfg, stageLv: lv, heroLv: lv });
+      const f = E.create({ ...cfg, stageLv: lv, heroLv: lv, tune: {} }); // 난이도 보정 (data/tune) 없이
       expect(f.power).toBeCloseTo(lvPower(lv) * apexOf(lv));
       expect(f.scale).toBeCloseTo(lvPower(lv) * 0.95);
       expect(f.dmgMult).toBeCloseTo(lvPower(lv) * 0.95 * 0.85);
@@ -52,12 +52,19 @@ describe('34 1-2 바꾼 값', () => {
     expect(f.power / f.scale).toBeCloseTo(1.15 / 0.95);
     expect(E.create({ ...cfg, stageLv: 100, heroLv: 100, proto: true }).power).toBeCloseTo(PROTO_RULES.lv(100));
   });
-  it('Lv 1 맨몸 힐러 체력 220 · 치유 120 (34 1-3)', () => {
+  it('Lv 1 맨몸 힐러 체력 220 · 치유 72 (34 1-3, 치유 배율 0.6은 1-6)', () => {
     const f = E.create({ ...cfg, stageLv: 1, heroLv: 1 });
     expect(f.me.max).toBeCloseTo(220);
     const t = f.party.find(u => u.role === 'tank')!;
     t.hp = 1;
-    expect(heal(f, t, SKILLS.heal.amt!, false)).toBeCloseTo(120);
+    expect(heal(f, t, SKILLS.heal.amt!, false)).toBeCloseTo(72);
+  });
+  it('치유 한 번이 딜러 체력의 약 1/3 · 탱커의 약 1/5 (34 1-6, Lim 2026-10-10 「일반 힐이 너무 많이 찬다」)', () => {
+    const f = E.create({ ...cfg, stageLv: 1, heroLv: 1 });
+    const t = f.party.find(u => u.role === 'tank')!, d = f.party.find(u => u.role === 'melee' || u.role === 'ranged')!;
+    t.hp = d.hp = 1;
+    expect(heal(f, d, SKILLS.heal.amt!, false) / d.max).toBeLessThan(0.37); // 마법사 (체력이 가장 적은 딜러) 36%
+    expect(heal(f, t, SKILLS.heal.amt!, false) / t.max).toBeLessThan(0.22);
   });
 });
 

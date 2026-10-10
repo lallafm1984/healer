@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { contentOf, stageOf } from '../src/data/content';
 import { avgScore, DROP_TABLE, gearStatsOf, ITEM_GRADES, rollItem, SLOTS, type Equipped } from '../src/data/equipment';
 import { gearStats } from '../src/data/gear';
+import { RULES } from '../src/data/rules';
 import { addXp, clearGold, clearXp, gradeOf, itemSlots, lvPower, lvPowerProto, starsOf, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
 import { heal } from '../src/engine/core';
@@ -90,7 +91,7 @@ describe('레벨 배율 (07 4장, 18 2-1)', () => {
 
   const cfg = { encounter: 'warden' as const, diff: '보통' as const, seed: 3 };
   it('레벨을 안 주면 Lv 1: 숫자 ÷2.5, 적·파티원은 내 세기 × 0.95, 적 피해 × 0.85 (34 1-2 · 1-4)', () => {
-    const f = E.create(cfg);
+    const f = E.create({ ...cfg, tune: {} }); // 난이도 보정 (data/tune) 없이
     expect(f.power).toBeCloseTo(0.4);
     expect(f.scale).toBeCloseTo(0.4 * 0.95);
     expect(f.dmgMult).toBeCloseTo(0.4 * 0.95 * 0.85);
@@ -159,7 +160,7 @@ describe('장비 (02 10장)', () => {
   it('전투에 착용 장비 능력치가 들어감', () => {
     const st = gearStatsOf({ weapon: { id: 1, slot: 'weapon', kind: 'staff', grade: '영웅', plus: 0, name: '', lines: [{ stat: 'hp', roll: 1 }] } });
     const f = E.create({ encounter: 'warden', diff: '보통', seed: 1, gearStats: st });
-    expect(f.gear).toEqual(st);
+    expect(f.gear).toEqual({ ...st, heal: st.heal * RULES.heal }); // 지능에는 치유 배율이 곱해짐 (34 1-6)
   });
 });
 

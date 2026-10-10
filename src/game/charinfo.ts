@@ -139,7 +139,8 @@ export function statParts() {
   const lv = G.save.player.level, apex = RULES.apex(lv);
   const eq = G.save.gear.equipped, st = gearStatsOf(eq), lp = lvPower(lv) * apex, l1 = lvPower(1);
   const hpLv = Math.round(HEALER_HP * lp), hp = Math.round(HEALER_HP * lp * (1 + (st.hp ?? 0))), hp1 = Math.round(HEALER_HP * l1);
-  const int = Math.round(INT_BASE * lp * st.heal), intLv = Math.round(INT_BASE * lp), int1 = Math.round(INT_BASE * l1);
+  const ib = INT_BASE * RULES.heal; // 치유 배율 (34 1-6)
+  const int = Math.round(ib * lp * st.heal), intLv = Math.round(ib * lp), int1 = Math.round(ib * l1);
   return {
     lp,
     /** 정점 수련 몫 (34 2-2, Lv 51부터 레벨마다 +0.3%). 레벨 몫에 들어 있음 */

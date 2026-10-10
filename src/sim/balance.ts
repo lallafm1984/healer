@@ -7,6 +7,8 @@
  * 단축칸 마나·생명 물약, 던전은 그 레벨의 난이도 어픽스. 세 직업 평균.
  * 목표 (26 9-2): 보통 거의 100% (95% 아래면 낮춤), 어려움 약 85%, 악몽 약 75%. 38 0-6에 처음 적은 「보통 85 · 어려움 60~70」은
  * 악몽보다 어려움이 어려워지는 숫자라 9-2로 맞춤 (2026-10-09).
+ * 바쁨 하한 (Lim 2026-10-10 「초반에도 힐러가 충분히 바빠야 재미 있는데 조작이 너무 한가하다」): 쉬움 · 보통은 클리어율이 목표 안이어도
+ * 받는 피해가 치유 한 번 크기로 분당 BUSY번이 안 되면 피해 배율을 올림 (클리어율이 목표값 아래로 가지 않는 만큼만).
  */
 import { diffAffixes, type AffixKey } from '../data/affixes';
 import { ALL_DIFFS, CONTENT, stageOf, type ContentDef, type ContentKey } from '../data/content';
@@ -21,6 +23,7 @@ import { autoHealer } from '../engine/auto';
 import { restCarry } from '../engine/dungeon';
 import { create, recruitParty, step } from '../engine/fight';
 import type { Carry } from '../engine/types';
+import { SKILLS } from '../data/skills';
 
 /** 목표 클리어율 (%). 쉬움·보통은 아래 선만 (넘으면 그대로), 어려움·악몽은 min~max 안. aim = 배율을 찾을 때 겨누는 값 */
 export const TARGET: Record<DiffName, { min: number; max: number; aim: number }> = {
@@ -29,6 +32,11 @@ export const TARGET: Record<DiffName, { min: number; max: number; aim: number }>
   '어려움': { min: 78, max: 92, aim: 85 },
   '악몽': { min: 68, max: 82, aim: 75 },
 };
+/**
+ * 바쁨 하한 (쉬움 · 보통): 파티가 받는 피해 ÷ 치유 한 번 (사제 치유, 지능의 100%)을 분당. GCD 1.5초면 분당 40번이 끝이라
+ * 보통 24 = 피해만 따라가도 GCD의 60%, 넘친 치유 · 해제까지 치면 거의 쉬지 않고 누름. 쉬움은 그 0.8 (난이도 피해 배율과 같은 비)
+ */
+export const BUSY: Partial<Record<DiffName, number>> = { '쉬움': 19, '보통': 24 };
 /** 권장 장비 (data/equipment RECOMMENDED: 어려움 고급, 악몽 희귀 +5) */
 export const STD_GEAR: Record<DiffName, GearId> = { '쉬움': 'none', '보통': 'none', '어려움': 'adv0', '악몽': 'rare5' };
 const ITEMS: ItemKey[] = ['mana', 'life'];
@@ -50,24 +58,33 @@ export function standard(c: ContentDef, d: DiffName): Std {
 /** 사제 특성: 열린 단만, 빌드 b = 0·1·2 칸 (scripts/sim-raids와 같음) */
 const build = (lv: number, b: number) => TALENTS.map(t => (t.lv <= lv ? b : null));
 
-export interface Run { win: boolean; time: number; reason: string }
+export interface Run {
+  win: boolean;
+  time: number;
+  reason: string;
+  /** 파티가 받은 피해를 치유 한 번 크기로 나눈 값 (구간 합) */
+  heals: number;
+}
 /** 한 판: 장소의 구간을 차례로 (구간 사이 휴식, 파티는 첫 구간에서 뽑은 그대로). tune을 주면 모든 구간에 그 값 (data/tune 대신) */
 export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number, tune?: Tune): Run {
   const segs = c.fights(d), s = standard(c, d);
   const party = recruitParty(segs[0], seed, { abilities: true });
-  let carry: Carry | undefined, time = 0;
+  let carry: Carry | undefined, time = 0, heals = 0;
   for (let i = 0; i < segs.length; i++) {
     const f = create({
       encounter: segs[i], diff: d, gear: s.gear, seed: seed + i * 7919, items: ITEMS, hero, level: s.lv, heroLv: s.lv, stageLv: s.lv,
       talents: hero === 'priest' ? build(s.lv, seed % 3) : undefined, party, affixes: s.affixes.length ? s.affixes : undefined, carry, tune,
       specs: presetSpecs(s.gear, hero),
     });
+    const hp0 = f.party.reduce((a, u) => a + u.hp, 0);
     while (!f.over && f.t < MAX_T) { autoHealer(f); step(f); f.events.length = 0; }
     time += f.t;
-    if (f.over !== 'win') return { win: false, time, reason: f.over ? f.reason : '시간 초과' };
+    // 받은 피해 = 그동안 들어간 치유 + 줄어든 체력 (넘친 피해 · 보호막은 빼고)
+    heals += (f.stats.healed + hp0 - f.party.reduce((a, u) => a + Math.max(0, u.hp), 0)) / (SKILLS.heal.amt! * f.gear.heal * f.power);
+    if (f.over !== 'win') return { win: false, time, reason: f.over ? f.reason : '시간 초과', heals };
     carry = restCarry(f, REST);
   }
-  return { win: true, time, reason: '' };
+  return { win: true, time, reason: '', heals };
 }
 
 export interface Measure {
@@ -78,21 +95,24 @@ export interface Measure {
   time: number;
   /** 진 이유별 판 수 */
   fails: Record<string, number>;
+  /** 바쁨: 받는 피해 ÷ 치유 한 번, 분당 (모든 판) */
+  busy: number;
 }
 /** 직업마다 시드 1~n으로 돌림 (같은 시드라 배율을 바꿔 가며 재도 흔들림이 적음) */
 export function measure(c: ContentDef, d: DiffName, n: number, tune?: Tune): Measure {
   const byHero = {} as Record<HeroKey, number>, fails: Record<string, number> = {};
-  let wins = 0, time = 0;
+  let wins = 0, time = 0, all = 0, heals = 0;
   for (const h of HERO_KEYS) {
     let w = 0;
     for (let s = 1; s <= n; s++) {
       const r = runOnce(c, d, h, s, tune);
+      all += r.time; heals += r.heals;
       if (r.win) { w++; time += r.time; } else fails[r.reason] = (fails[r.reason] || 0) + 1;
     }
     byHero[h] = Math.round((100 * w) / n);
     wins += w;
   }
-  return { rate: (100 * wins) / (n * HERO_KEYS.length), byHero, time: wins ? time / wins : 0, fails };
+  return { rate: (100 * wins) / (n * HERO_KEYS.length), byHero, time: wins ? time / wins : 0, fails, busy: all ? heals / (all / 60) : 0 };
 }
 
 /**
@@ -130,9 +150,12 @@ export interface Row {
   cur: Tune | null;
   now: Measure;
   verdict: Verdict;
-  /** 목표 밖이라 찾은 새 피해 배율과 그때 결과 */
+  /** 목표 밖 (또는 바쁨 하한 아래)이라 찾은 새 피해 배율과 그때 결과 */
   next?: { dmg: number; m: Measure };
 }
+
+/** 쉬움 · 보통인데 클리어율은 목표 안이고 바쁨 하한 아래 */
+export const tooIdle = (d: DiffName, m: Measure): boolean => BUSY[d] != null && verdictOf(d, m.rate) === 'ok' && m.busy < BUSY[d]! - 0.5;
 
 /** 장소 하나 · 난이도 하나: 지금 값으로 재고, 목표 밖이면 (search) 피해 배율을 찾음 */
 export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, search = true): Row {
@@ -141,10 +164,28 @@ export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, 
   // 목표 밖이면 판 수를 두 배로 다시 재서 확인 (선 근처의 흔들림으로 값을 자꾸 바꾸지 않게)
   if (search && verdict !== 'ok') { now = measure(c, d, n * 2); verdict = verdictOf(d, now.rate); }
   const row: Row = { key: c.key, name: c.name, diff: d, std: standard(c, d), cur, now, verdict };
-  if (!search || verdict === 'ok') return row;
+  if (!search) return row;
   const base = cur ?? {};
   const seen = new Map<number, Measure>();
   const at = (dmg: number) => { if (!seen.has(dmg)) seen.set(dmg, measure(c, d, n, { ...base, dmg })); return seen.get(dmg)!.rate; };
+  if (verdict === 'ok') {
+    if (!tooIdle(d, now)) return row;
+    // 바쁨 하한: 받는 피해는 배율에 거의 비례 → 하한까지 올린 배율 (덜 오르면 세 번까지 다시).
+    // 클리어율은 목표값 (aim, 찾기와 같이 1 차이까지) 아래로 내리지 않음: 넘으면 마지막으로 괜찮던 배율과 그 사이에서 목표값에 맞춤
+    const curDmg = base.dmg ?? 1, aim = TARGET[d].aim, floor = aim - 1;
+    let ok = curDmg, m = now;
+    for (let i = 0; i < 3 && tooIdle(d, m); i++) {
+      const want = Math.ceil(ok * (BUSY[d]! / m.busy) * 100) / 100;
+      if (want - ok < 0.015) break;
+      if (at(want) >= floor) { ok = want; m = seen.get(want)!; continue; }
+      findDmg(at, aim, ok, want);
+      // 잰 배율 중 아래 선을 넘은 가장 큰 값 (선 근처는 판 수에 따라 흔들려서 가장 가까운 값이 선 밑일 수 있음)
+      for (const [x, mm] of seen) if (x > ok && x < want && mm.rate >= floor) ok = x;
+      break;
+    }
+    if (ok > curDmg) row.next = { dmg: ok, m: seen.get(ok)! };
+    return row;
+  }
   // 쉬움·보통은 아래 선만: 지금보다 쉽게만 (지금 배율 아래에서 찾음)
   const curDmg = base.dmg ?? 1;
   const hi = TARGET[d].max >= 100 ? curDmg : HI;

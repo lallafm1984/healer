@@ -5,6 +5,7 @@ import { BOSSES, type SkillEffect } from '../src/data/bosses';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { artPlaces, CONTENT_PLACE, FACTIONS, PLACES } from '../src/data/places';
 import * as E from '../src/engine';
+import { runOnce } from '../src/sim/balance';
 import { damage, heal, living } from '../src/engine/core';
 import { doDispel } from '../src/engine/heroes';
 
@@ -108,10 +109,10 @@ describe('탐험', () => {
   it('자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     for (const [dungeon, level] of [['lampway', 52], ['rainbow', 56], ['emberfoot', 60]] as const) {
       let wins = 0;
-      for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon, diff: '보통', seed: s, level, gear: 'none' }).win) wins++;
-      expect(wins, dungeon).toBeGreaterThanOrEqual(19);
+      for (let s = 1; s <= 20; s++) if (runOnce(contentOf(dungeon), '보통', 'priest', s).win) wins++; // 자동 밸런스 기준: 장비 없음 · 열린 특성 · 능력 1개 · 물약, 치유 배율 0.6 (34 1-6) 뒤로 특성 없는 사제는 높은 레벨에서 많이 짐 (레벨 = 열림 레벨)
+      expect(wins, `${dungeon} Lv ${level}`).toBeGreaterThanOrEqual(19);
     }
-  });
+  }, 20_000); // 자동 밸런스 기준 20판은 CI 기본 5초를 넘을 수 있음
 });
 
 describe('던전 보스', () => {
@@ -181,7 +182,7 @@ describe('10인 레이드 보스', () => {
     expect(effectOf('songi', 'ring2')).toMatchObject({ n: 2, maxMythic: 3 });
   });
   it('삘릴리: 춤바람은 딜러 2명을 떨어뜨리고 (원거리 65%, 근접은 덜) 딜 0 · 못 움직임, 가득 차면 멈춤', () => {
-    const f = quiet(E.create({ encounter: 'pililli', diff: '보통', seed: 4 }));
+    const f = quiet(E.create({ encounter: 'pililli', diff: '보통', seed: 4, tune: {} })); // 난이도 보정 (data/tune) 없이
     f.party.forEach(u => { u.hp = u.max; });
     skillOn(f, 'dance');
     steps(f, 0.1);
