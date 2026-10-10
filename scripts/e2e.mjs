@@ -22,6 +22,7 @@ import boardEdges from '../tests/e2e/board-edges.mjs';
 import dialogs from '../tests/e2e/dialogs.mjs';
 import manaRing from '../tests/e2e/mana-ring.mjs';
 import places from '../tests/e2e/places.mjs';
+import wordReady from '../tests/e2e/word-ready.mjs';
 
 const PORT = 4179;
 const url = `http://localhost:${PORT}/`;
@@ -39,7 +40,7 @@ let fails = 0, errors = 0;
 /** E2E_ONLY=장소,던전 처럼 이름 일부로 몇 묶음만 */
 const only = process.env.E2E_ONLY?.split(',').filter(Boolean);
 try {
-  for (const [name, run] of [['세로 UI·이미지', portrait], ['대상 폰 크기 (S25·울트라·플립)', devices], ['마나량 외곽 링·소비·회복', manaRing], ['축소 전투·취소 복구', compactUi], ['탭·스와이프 입력 소유권', compactInput], ['전투판 가장자리·균등 확대·resize 복구', boardEdges], ['상세 시트·포커스 복구', dialogs], ['앱 틀', appShell], ['임시 전투 화면', legacyUi], ['던전 흐름', dungeon], ['첫 5분 튜토리얼', tutorial], ['캐릭터 탭', character], ['장비 강화·분해', gear], ['힐러 직업', heroes], ['사제 특성', talents], ['길드 빼 둠', guildOff], ['재화·임무·상점', shop], ['성장·주간 도전·이어하기', challenge], ['자동 치유 (개발)', devauto], ['장소마다 입장 → 결과', places]]) {
+  for (const [name, run] of [['세로 UI·이미지', portrait], ['대상 폰 크기 (S25·울트라·플립)', devices], ['마나량 외곽 링·소비·회복', manaRing], ['축소 전투·취소 복구', compactUi], ['탭·스와이프 입력 소유권', compactInput], ['전투판 가장자리·균등 확대·resize 복구', boardEdges], ['상세 시트·포커스 복구', dialogs], ['앱 틀', appShell], ['임시 전투 화면', legacyUi], ['던전 흐름', dungeon], ['첫 5분 튜토리얼', tutorial], ['캐릭터 탭', character], ['장비 강화·분해', gear], ['힐러 직업', heroes], ['사제 특성', talents], ['성언 준비 반짝임', wordReady], ['길드 빼 둠', guildOff], ['재화·임무·상점', shop], ['성장·주간 도전·이어하기', challenge], ['자동 치유 (개발)', devauto], ['장소마다 입장 → 결과', places]]) {
     if (only && !only.some(o => name.includes(o))) continue;
     console.log(`\n== ${name} ==`);
     const r = await run(url, shots);

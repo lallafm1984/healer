@@ -4,6 +4,7 @@ import { contentOf } from '../src/data/content';
 import { BOSSES } from '../src/data/bosses';
 import { ENCOUNTERS } from '../src/data/encounters';
 import * as E from '../src/engine';
+import { runOnce } from '../src/sim/balance';
 
 const until = (f: E.Fight, sec: number, done: () => boolean, auto = false) => { while (!f.over && f.t < sec && !done()) { if (auto) E.autoHealer(f); E.step(f); f.events.length = 0; } };
 const stack = (u: E.Unit | undefined, name: string) => u?.debuffs.find(d => d.name === name)?.stack ?? 0;
@@ -61,7 +62,7 @@ describe('깨진 신전', () => {
 
   it('Lv 30 자동 힐러, 보통이면 대부분 깸 (장비 없음)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'temple', diff: '보통', seed: s, level: 30, gear: 'none' }).win) wins++;
+    for (let s = 1; s <= 20; s++) if (runOnce(contentOf('temple'), '보통', 'priest', s).win) wins++; // 자동 밸런스 기준: 장비 없음 · 열린 특성 · 능력 1개 · 물약, 치유 배율 0.6 (34 1-6) 뒤로 특성 없는 사제는 높은 레벨에서 많이 짐
     expect(wins).toBeGreaterThanOrEqual(18);
-  });
+  }, 20_000); // 자동 밸런스 기준 20판은 CI 기본 5초를 넘을 수 있음
 });

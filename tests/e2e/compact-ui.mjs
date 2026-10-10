@@ -607,8 +607,8 @@ async function quakeWarningCases(page, ok) {
       await warning(false, false);
       const cleared = await sample(), clearedHoly = cleared.slots.filter(s => s.holy);
       ok(cleared.sameFight && !cleared.quake && !cleared.reduced && clearedHoly.length === 2
-        && clearedHoly.every(s => s.animation === 'none' && !s.runningQuake && s.art === holy.find(h => h.slot === s.slot)?.art),
-      `${tag} 진동 예고 해제 뒤 성언 원화 유지·장식 애니메이션 정지 복구`, cleared);
+        && clearedHoly.every(s => /wordGlow/.test(s.animation) && !s.runningQuake && s.art === holy.find(h => h.slot === s.slot)?.art),
+      `${tag} 진동 예고 해제 뒤 성언 원화 유지·준비 반짝임으로 복구 (게이지 가득, Lim 2026-10-10)`, cleared);
     }
   } finally {
     await page.evaluate(() => {

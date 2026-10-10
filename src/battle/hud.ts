@@ -67,7 +67,9 @@ export function buildWheel(D: number): void {
       html += `<button class="slot locked" type="button" data-lock="${k}" data-dir="${it.d}" style="${pos}" aria-label="${SKILLS[k].name}, 잠김, Lv ${SKILL_LEVEL[k]}에 배움"><span class="in"><span class="slot-lock" aria-hidden="true">${LOCK_SVG}</span><span class="nm">${SKILLS[k].short}</span><span class="ct">Lv ${SKILL_LEVEL[k]}</span></span></button>`;
       return;
     }
-    html += `<button class="slot" type="button" data-slot="${it.key}" data-dir="${it.d}" style="${pos}"><span class="cd"></span><span class="in">${dirSvg(it.d)}<span class="nm"></span><span class="ct"></span><span class="cds"></span></span></button>`;
+    const wru = it.key === 'heal' || it.key === 'poh' ? art('fx-word-ready') : ''; // 성언 준비 별빛 고리 (그림이 있으면, 그림 요청 53)
+    const wr = wru ? `<img class="wr-fx" src="${wru}" alt="" aria-hidden="true" decoding="async" draggable="false">` : '';
+    html += `<button class="slot" type="button" data-slot="${it.key}" data-dir="${it.d}" style="${pos}"><span class="cd"></span><span class="in">${dirSvg(it.d)}<span class="nm"></span><span class="ct"></span><span class="cds"></span></span>${wr}</button>`;
   });
   w.innerHTML = html;
 }
@@ -158,6 +160,12 @@ export function updateWheel(): void {
   setText($('gS'), r.b);
   setBar($('gPb'), r.outer);
   setBar($('gSb'), r.inner);
+  // 성언 준비: 휠 칸이 평온 · 신성화로 바뀌는 때와 같이 게이지 줄도 반짝임
+  if (F.hero === 'priest') {
+    const rows = $('gauges').querySelectorAll<HTMLElement>('.gr');
+    rows[0]?.classList.toggle('ready', slotKey(F, 'heal') === 'serenity');
+    rows[1]?.classList.toggle('ready', slotKey(F, 'poh') === 'sanctify');
+  }
 }
 function setBar(el: HTMLElement | null, v: number): void {
   if (!el) return;

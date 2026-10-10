@@ -14,6 +14,8 @@ export interface Rules {
   enemy: number;
   /** 적이 주는 피해 배율 (느린 시전에 맞춤, 34 1-4) */
   enemyDmg: number;
+  /** 치유 배율: 지능 = INT_BASE × 레벨 배율 × 이 값 × (1 + 장비 지능). 힐 한 번이 체력바를 채우는 몫 (34 1-6) */
+  heal: number;
   /** GCD (초). 가속으로 줄어듦 */
   gcd: number;
   /** 가속 상한 (GCD 1.5초 → 바닥 1.0초) */
@@ -26,11 +28,11 @@ export interface Rules {
   cast?: Partial<Record<SkillKey, number>>;
 }
 
-export const RULES: Rules = { lv: lvPower, apex: apexOf, enemy: 0.95, enemyDmg: 0.85, gcd: 1.5, hasteCap: 0.5, baseCrit: 0, regen: 0.7 };
+export const RULES: Rules = { lv: lvPower, apex: apexOf, enemy: 0.95, enemyDmg: 0.85, heal: 0.6, gcd: 1.5, hasteCap: 0.5, baseCrit: 0, regen: 0.7 };
 
 /** 34 이전 값: 숫자 ×2.5 · 레벨마다 +0.08, 적 = 내 레벨과 같은 세기, GCD 1.0, 기본 치명 5%, 마나 재생 1%, 시전이 짧음 */
 export const PROTO_RULES: Rules = {
-  lv: lvPowerProto, apex: () => 1, enemy: 1, enemyDmg: 1, gcd: 1.0, hasteCap: Infinity, baseCrit: 0.05, regen: 1.0,
+  lv: lvPowerProto, apex: () => 1, enemy: 1, enemyDmg: 1, heal: 1, gcd: 1.0, hasteCap: Infinity, baseCrit: 0.05, regen: 1.0,
   cast: { heal: 1.8, flash: 1.0, poh: 2.0, growth: 1.5, wildflower: 1.5, rebirth: 2.0, holyLight: 1.5 },
 };
 

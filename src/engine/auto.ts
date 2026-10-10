@@ -47,7 +47,7 @@ function lowest(f: Fight, live: Unit[], pct: (u: Unit) => number): Unit {
  * 힐하면 손해인 사람: 뒤집힌 축복 (P-INVERT, 힐이 피해), 매혹 (P-CHARM, 힐하면 지배가 길어짐 → 그 사람은 두고 주변을),
  * 과부하 표식 (P-OVER)인데 모자란 양이 힐 한 번보다 적음 (넘친 치유가 이웃을 때림 → 정확히 채우기)
  */
-const off = (f: Fight, u: Unit) => (u.debuffs.length > 0 && u.debuffs.some(d => d.invert || d.charm || (!!d.over && u.max - u.hp < OVER_GAP * f.power)
+const off = (f: Fight, u: Unit) => (u.debuffs.length > 0 && u.debuffs.some(d => d.invert || d.charm || (!!d.over && u.max - u.hp < OVER_GAP * healUnit(f))
   || (d.end?.p === 'flip' && flipWait(u, d)) || (d.link?.kind === 'share' && !!unitById(f, d.link.to)?.debuffs.some(x => x.invert))))
   || (f.zones.length > 0 && ringWait(f, u));
 /**
@@ -65,6 +65,8 @@ const flipWait = (u: Unit, _d: Debuff) => { const r = u.hp / u.max; return r > 0
 const pctOf = (u: Unit) => u.hp / healTop(u);
 /** 과부하 표식에 힐을 넣어도 되는 모자란 양 (힐 한 번 크기쯤, 레벨 배율 전) */
 const OVER_GAP = 250;
+/** 힐 크기 단위: 레벨 배율 × 치유 배율 (34 1-6). 판단 기준의 회복량 숫자(스킬 표의 amt)에 곱함 */
+const healUnit = (f: Fight) => f.power * f.R.heal;
 /** 시전 또는 채널에 걸리는 초 (진동 판단) */
 const busy = (f: Fight, k: SkillKey) => castOf(f, k) || SKILLS[k].channel || 0;
 /** 진동 (P-QUAKE): 다음 울림까지 남은 초 (예고 중이거나 곧 예고할 진동 기술). 없으면 Infinity */
@@ -230,8 +232,8 @@ export function autoHealer(f: Fight): void {
   if (g.link?.near && f.mana > 6) { const k = big(pct(g.link.u) < 0.5); if (k) { use(f, k, cellIdx(g.link.u)); return; } }
   const thrifty = f.mana < 25 || g.save; // 마나가 바닥나거나 아껴야 하면 무료 성언을 아끼지 않는다
   if (f.g.p >= 100 && pct(low) < (thrifty ? 0.7 : 0.45)) { use(f, 'serenity', cellIdx(low)); return; }
-  // 광역 힐 판단 기준은 힐 크기에 맞춤 (레벨 배율 f.power, 07 4장). 힐하면 손해인 사람이 범위에 들면 그 자리는 안 씀
-  const hp = f.power;
+  // 광역 힐 판단 기준은 힐 크기에 맞춤 (레벨 배율 · 치유 배율, 07 4장 · 34 1-6). 힐하면 손해인 사람이 범위에 들면 그 자리는 안 씀
+  const hp = healUnit(f);
   let best: Unit | null = null, score = 0;
   for (const c of live) {
     let s = 0;
@@ -300,7 +302,7 @@ function ctx(f: Fight, amt: number): Ctx | null {
   let best: Unit | null = null, score = 0;
   for (const c of live) {
     let s = 0;
-    for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= 1) s = off(f, v) ? -Infinity : s + Math.min(amt * f.power, Math.max(0, healTop(v) - v.hp));
+    for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= 1) s = off(f, v) ? -Infinity : s + Math.min(amt * healUnit(f), Math.max(0, healTop(v) - v.hp));
     if (s > score) { best = c; score = s; }
   }
   const bt = f.tels.find(t => t.kind === 'buster' && !meltWait(f, t.impact));
@@ -335,7 +337,7 @@ function autoDruid(f: Fight): void {
   // 생명 사슬이 곧 끊어지면 낮은 쪽부터
   if (g.link?.near && ((!sprouted(g.link.u) && tryUse(f, 'sprout', g.link.u, idx)) || (f.mana > 4 && tryUse(f, 'growth', g.link.u, idx)))) return;
   // 여럿이 크게 다쳤으면 들꽃 군락부터 (20인에서 한 명씩만 살리다 밀리지 않게)
-  if (ready('wildflower') && c.cluster.best && c.cluster.score > 800 * f.power && tryUse(f, 'wildflower', c.cluster.best, idx)) return;
+  if (ready('wildflower') && c.cluster.best && c.cluster.score > 800 * healUnit(f) && tryUse(f, 'wildflower', c.cluster.best, idx)) return;
   // 위급: 거둘 지속 힐이 있으면 피워 내기, 없으면 생장
   if (pct(low) < 0.5) {
     if (ready('bloom') && low.hots.length && tryUse(f, 'bloom', low, idx)) return;
@@ -349,7 +351,7 @@ function autoDruid(f: Fight): void {
   if (g.link && pct(low) > 0.4 && f.mana > 4 && ((!sprouted(g.link.u) && tryUse(f, 'sprout', g.link.u, idx)) || tryUse(f, 'growth', g.link.u, idx))) return;
   const tank = live.find(u => u.role === 'tank' && !sprouted(u)) ?? g.hit.find(u => !sprouted(u));
   if (tank && f.mana > 2 && tryUse(f, 'sprout', tank, idx)) return;
-  if (ready('wildflower') && c.cluster.best && c.cluster.score > 500 * f.power && tryUse(f, 'wildflower', c.cluster.best, idx)) return;
+  if (ready('wildflower') && c.cluster.best && c.cluster.score > 500 * healUnit(f) && tryUse(f, 'wildflower', c.cluster.best, idx)) return;
   // 새싹은 미리 깔아 둠: 다친 사람부터, 마나가 넉넉하면 멀쩡한 사람에게도 (광역 피해 대비)
   const aoeSoon = g.aoe || f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 6);
   // 역류 중에는 미리 깔기를 쉼 (스킬마다 중첩)
@@ -378,7 +380,7 @@ function autoPaladin(f: Fight): void {
   // 생명 사슬이 곧 끊어지면 낮은 쪽부터
   if (g.link?.near && one(g.link.u)) return;
   if (f.power3 >= 3) {
-    if (knows(f, 'lightWave') && c.cluster.best && c.cluster.score > 600 * f.power && tryUse(f, 'lightWave', c.cluster.best, idx)) return;
+    if (knows(f, 'lightWave') && c.cluster.best && c.cluster.score > 600 * healUnit(f) && tryUse(f, 'lightWave', c.cluster.best, idx)) return;
     const oathless = (u: Unit) => !u.hots.some(h => h.key === 'oath');
     const tank = live.find(u => u.role === 'tank' && oathless(u)) ?? g.hit.find(oathless);
     if (knows(f, 'oath') && tryUse(f, 'oath', tank || low, idx)) return;

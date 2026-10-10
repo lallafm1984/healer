@@ -20,7 +20,7 @@ type Hero = 'priest' | 'druid' | 'paladin';
 const fight = (specs: Record<string, number> = {}, hero?: Hero) => {
   const f = E.create({ encounter: 'plague', diff: '보통', seed: 7, level: 100, hero, specs });
   f.gear.crit = 0;
-  f.power = 1; f.dmgMult = 1; // 힐·피해를 기본 단위로: 특수능력 효과만 봄
+  f.power = 1; f.dmgMult = 1; f.gear.heal = 1; // 힐·피해를 기본 단위로 (치유 배율도 1): 특수능력 효과만 봄
   f.skills.forEach(s => { s.next = Infinity; }); // 보스 기술은 끔
   return f;
 };

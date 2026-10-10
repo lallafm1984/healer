@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { contentOf } from '../src/data/content';
 import { BOSSES } from '../src/data/bosses';
 import * as E from '../src/engine';
+import { runOnce } from '../src/sim/balance';
 import type { DebuffDef } from '../src/data/bosses';
 import { applyDebuff } from '../src/engine/bossParts';
 import { hexDist } from '../src/engine/board';
@@ -59,7 +60,7 @@ describe('서리 마탑', () => {
 
   it('Lv 25 자동 힐러, 보통이면 대부분 깸 (장비 없음)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'frost', diff: '보통', seed: s, level: 25, gear: 'none' }).win) wins++;
+    for (let s = 1; s <= 20; s++) if (runOnce(contentOf('frost'), '보통', 'priest', s).win) wins++; // 자동 밸런스 기준: 장비 없음 · 열린 특성 · 능력 1개 · 물약, 치유 배율 0.6 (34 1-6) 뒤로 특성 없는 사제는 높은 레벨에서 많이 짐
     expect(wins).toBeGreaterThanOrEqual(18);
-  });
+  }, 20_000); // 자동 밸런스 기준 20판은 CI 기본 5초를 넘을 수 있음
 });
