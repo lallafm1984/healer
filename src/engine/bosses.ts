@@ -7,7 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abDecoy, abOnTel } from './abilities';
 import { affChaos } from './affixes';
-import { addsTick, aggroTarget, applyDebuff, backTargets, chainWarn, decoyOpen, flowNext, MIRAGE_REVEAL, glassTick, greedTargets, linkedOnes, liftWarn, mirageTick, mirageUp, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, applyDebuff, backTargets, chainWarn, decoyOpen, flowNext, MIRAGE_REVEAL, glassTick, greedTargets, linkedOnes, liftWarn, mirageTick, preferTargets, mirageUp, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import { specBuster, specCut, specTel } from './specials';
@@ -34,7 +34,7 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
       : d.target === 'offtank' ? g => { const tk = aggroTarget(g), off = living(g).find(u => u.role === 'tank' && u !== tk) ?? tk; return off ? [off.id] : []; }
       : d.target ? g => {
         const t = d.target as Exclude<SkillDef['target'], 'tank' | 'offtank' | undefined>, n = g.mythic && t.nMythic ? t.nMythic : t.n;
-        return (t.p === 'random' ? randomTargets(g, n, u => u.role !== 'tank' && !u.me) : t.p === 'greed' ? greedTargets(g, n)
+        return (t.p === 'random' ? (t.prefer ? preferTargets(g, n, u => u.role !== 'tank', t.prefer) : randomTargets(g, n, u => u.role !== 'tank' && !u.me)) : t.p === 'greed' ? greedTargets(g, n)
           : t.p === 'linked' ? linkedOnes(g, n) : t.p === 'pad' ? randomTargets(g, n, u => u.padUntil != null && u.padUntil > g.t) : backTargets(g, n)).map(u => u.id);
       } : undefined,
     fire: e ? g => runEffect(g, s, e) : undefined,

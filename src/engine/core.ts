@@ -5,7 +5,7 @@ import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
 import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
-import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, shieldGone, specDeath, specDebuffEnd, specJump, sv } from './specials';
+import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, shieldGone, specDeath, specDebuffEnd, specFlip, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
 
@@ -284,6 +284,7 @@ export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): v
   if (f.sp && dispelled && d.trap) { during(f, 'trap', () => { if (f.aff) affDebuffEnd(f, u, d, dispelled); if (d.end) debuffEnd(f, u, d, dispelled); }); return; } // 함정 감지 (42 해제 06)
   if (f.aff) affDebuffEnd(f, u, d, dispelled); // 어픽스 불안정·메아리
   if (d.end) debuffEnd(f, u, d, dispelled);
+  if (f.sp && d.end?.p === 'flip' && !dispelled) specFlip(f, u); // 뒤죽박죽 졸업장
 }
 
 /** 보스가 주는 피해 +boost (걸어오는 쫄 흡수 · 옮겨붙음 시간 끝). 겹치면 더함 (+10% · +20% …), 체력바에 「강해짐」 */

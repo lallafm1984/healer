@@ -59,9 +59,9 @@ export default async function gear(url, shots) {
   ok(/도감/.test(await text('#s-char [data-dex]')) && (await page.locator('#s-char [data-dex] .g-badge').count()) === 0, '가방 아래 「도감」 (받을 보상 없음)');
   await page.click('#s-char [data-dex]'); await page.clock.runFor(50);
   ok(await page.isVisible('#s-char .c7-dex') && (await page.locator('#s-char [data-dext]').count()) === 4 && (await page.locator('#s-char .c7-dex .c7-spec').count()) === 30, '장비 도감 = 묶음 칩 4개 (종류 · 세력 · 장신구 · 고유), 종류 30칸');
-  ok((await page.locator('#s-char .c7-dex .c7-spec:not(.unk)').count()) === 6 && /6\/258/.test(await text('#s-char .c7-dex .c7-row')) && /10칸을 채우면/.test(await text('#s-char .c7-dexr')), '가진 장비 종류 6칸이 채워짐 (옛 장비 = 부위 첫 종류), 10칸마다 보상 안내');
+  ok((await page.locator('#s-char .c7-dex .c7-spec:not(.unk)').count()) === 6 && /6\/276/.test(await text('#s-char .c7-dex .c7-row')) && /10칸을 채우면/.test(await text('#s-char .c7-dexr')), '가진 장비 종류 6칸이 채워짐 (옛 장비 = 부위 첫 종류), 10칸마다 보상 안내');
   await page.click('#s-char [data-dext="look"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-char .c7-dex .c7-spec.unk').count()) === 116 && /버섯 요정단/.test(await text('#s-char .c7-dex')), '세력 묶음 116칸 (못 얻은 칸 = 「?」 + 세력 · 나오는 곳)');
+  ok((await page.locator('#s-char .c7-dex .c7-spec.unk').count()) === 122 && /버섯 요정단/.test(await text('#s-char .c7-dex')), '세력 묶음 122칸 (못 얻은 칸 = 「?」 + 세력 · 나오는 곳)');
   await page.screenshot({ path: `${shots}/gear_dex.png` });
   ok(/특수능력 3\/118/.test(await text('#s-char .c7-dex [data-codex]')), '장비 도감 아래 「특수능력 3/118」 (옛 장비 이전 때 굴린 특수능력 3개)');
   await page.click('#s-char .c7-dex [data-codex]'); await page.clock.runFor(50);
@@ -155,7 +155,7 @@ export default async function gear(url, shots) {
   sv = await save();
   ok(sv.player.gold === g0 + 600 && sv.mats.stone === s0 + 5 && sv.gear.dexPaid === 1 && /20칸을 채우면/.test(await text('#s-char .c7-dexr')), `보상을 받으면 골드 · 강화석이 들어오고 다음 보상 안내 (${sv.player.gold - g0}, ${sv.mats.stone - s0})`);
   await page.click('#s-char [data-dext="unique"]'); await page.clock.runFor(50);
-  ok(/신전 수호상 투구/.test(await text('#s-char .c7-dex')) && (await page.locator('#s-char .c7-dex .c7-spec').count()) === 55, '고유 묶음 55칸: 얻은 「신전 수호상 투구」는 이름 · 고유 특수능력');
+  ok(/신전 수호상 투구/.test(await text('#s-char .c7-dex')) && (await page.locator('#s-char .c7-dex .c7-spec').count()) === 62, '고유 묶음 62칸: 얻은 「신전 수호상 투구」는 이름 · 고유 특수능력');
   await closeSheet();
 
   await ctx.close();

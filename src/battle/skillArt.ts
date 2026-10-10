@@ -135,6 +135,19 @@ const BSK: Partial<Record<BossKey, Record<string, string>>> = {
   boksul84: { static: 'icon-bsk-boksul-2', fluff: 'icon-bsk-boksul-3' },
   boksul: { buster: 'icon-bsk-boksul-1', static: 'icon-bsk-boksul-2', fluff: 'icon-bsk-boksul-3' },
   dolgae: { buster: 'icon-bsk-dolgae-1', tickle: 'icon-bsk-sky-tickle' },
+  // 묶음 F2 · F3 (57 4장 D): 우르릉 정전기는 둥둥이 그림
+  gulgul: { buster: 'icon-bsk-gulgul-1', dig0: 'icon-bsk-gulgul-2', dig1: 'icon-bsk-gulgul-2', dig2: 'icon-bsk-gulgul-2', dust: 'icon-bsk-gulgul-3' },
+  pingping: { buster: 'icon-bsk-pingping-1', blade0: 'icon-bsk-pingping-2', blade1: 'icon-bsk-pingping-2', blade2: 'icon-bsk-pingping-2', blade3: 'icon-bsk-pingping-2' },
+  bitgallae: { buster: 'icon-bsk-bitgallae-1', touch: 'icon-bsk-ormal-2', prism: 'icon-bsk-bitgallae-2' },
+  dungdung: { buster: 'icon-bsk-dungdung-1', static: 'icon-bsk-dungdung-2' },
+  ssaengssaeng: { jab: 'icon-bsk-ssaengssaeng-1', jabm0: 'icon-bsk-ssaengssaeng-1', jabm1: 'icon-bsk-ssaengssaeng-1', arrow0: 'icon-bsk-ssaengssaeng-2', arrow1: 'icon-bsk-ssaengssaeng-2', arrow2: 'icon-bsk-ssaengssaeng-2', curse: 'icon-bsk-ssaengssaeng-3' },
+  ureureung: { buster: 'icon-bsk-ureureung-1', curse: 'icon-bsk-ureureung-2', static: 'icon-bsk-dungdung-2', shout: 'icon-bsk-ureureung-3' },
+  pongpong88: { twist: 'icon-bsk-pongpong-2' },
+  pongpong: { buster: 'icon-bsk-pongpong-1', twist: 'icon-bsk-pongpong-2' },
+  dwijuk: { buster: 'icon-bsk-dwijuk-1', chalk: 'icon-bsk-dwijuk-2' },
+  kwangkwang: { buster: 'icon-bsk-kwangkwang-1', touch: 'icon-bsk-ormal-2' },
+  syungsyung: { buster: 'icon-bsk-syungsyung-1', rain0: 'icon-bsk-syungsyung-2', rain1: 'icon-bsk-syungsyung-2', rain2: 'icon-bsk-syungsyung-2', rain3: 'icon-bsk-syungsyung-2' },
+  eodugi: { buster: 'icon-bsk-eodugi-1', touch: 'icon-bsk-ormal-2', wave: 'icon-bsk-eodugi-2', wave2: 'icon-bsk-eodugi-2', beat: 'icon-bsk-eodugi-3' },
 };
 /** 데이터 부품만으로는 안 보이는 기믹 (35 4장 표): 서리 손길 · 빗자루 = 버스터 + 썩는 상처 (서리 · 먼지 범벅), 얼어붙는 바닥 · 바닥이 언다 = 장판 → 무너지는 바닥 */
 const GIM_KEY: Partial<Record<BossKey, Record<string, Gim>>> = {
@@ -164,6 +177,7 @@ const MOB: Record<string, string> = {
   '용 비늘 경비병:tail': 'icon-mob-tail-sweep', // 52 4장 D 26
   '스핑크스 석상:storm': 'icon-mob-sandstorm', // 55 4장 D 45
   '천둥 숫양:ram': 'icon-mob-thunder-charge', // 57 4장 D
+  '번개 실험 정령:burst': 'icon-mob-spark-burst', // 57 4장 D
 };
 
 /** 판 위 적이 하는 일 → 기믹 (37 4장 E 1~10) */

@@ -300,6 +300,13 @@ export const NAMED: NamedDef[] = [
   { key: 'postStamp', name: '부리부리의 우표', slot: 'neck', place: 'post3', placeName: '구름 우체국 옥상', text: '띄워 올려진 아군이 내려올 때 지능 {v} 보호막 (6초)', val: 0.4, unit: 'pct' },
   { key: 'fleeceRing', name: '복슬 양털 반지', slot: 'ring', place: 'ranch', placeName: '구름 양 목장', text: '번개 구름이 뜬 아군의 이웃에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
   { key: 'millVane', name: '풍차 날개 조각', slot: 'ring', place: 'windmill', placeName: '천둥 풍차', text: '떠 있는 아군이 받는 지속 힐 +{v}', val: 0.2, unit: 'pct' },
+  // 묶음 F2 (56 6장): 20인 ⑥ 거울방 · 10인 ⑭ 꼭대기
+  { key: 'prism', name: '빛갈래의 프리즘', slot: 'neck', place: 'crystal3', placeName: '수정 뿌리굴 거울방', text: '연쇄 번개가 피뢰침에서 멈추면 그 아군 지능 {v} 회복', val: 0.5, unit: 'pct' },
+  // 묶음 F3 (56 6장): 탐험 ㉒ · 20인 ⑦ 망루 · 던전 ⑱
+  { key: 'broomTicket', name: '빗자루 승차권', slot: 'ring', place: 'station', placeName: '빗자루 정류장', text: '넘치는 빛 그릇이 가득 차면 마나 {v} 회복', val: 2, unit: 'mana', min: '고급' },
+  { key: 'shadowVeil', name: '어둑이의 그림자 휘장', slot: 'neck', place: 'shadow3', placeName: '그림자 성벽 망루', text: '신기루가 걷히거나 띄워진 아군이 내려올 때 가장 낮은 아군 1명에게 지능 {v} 보호막 (6초)', val: 0.5, unit: 'pct' },
+  { key: 'diploma', name: '뒤죽박죽 졸업장', slot: 'neck', place: 'school', placeName: '구름 마법학교', text: '뒤집힘 저주가 끝날 때 그 아군이 체력 40~60%이면 지능 {v} 보호막 (6초)', val: 0.5, unit: 'pct' },
+  { key: 'stormWedge', name: '우르릉의 번개 쐐기', slot: 'neck', place: 'fort3', placeName: '폭풍 성채 꼭대기', text: '다른 탱커가 띄워 올려진 동안 남은 탱커에게 하는 힐 +{v}', val: 0.25, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -450,6 +457,17 @@ export const FEATURED: Record<string, readonly string[]> = {
   post3: ['shelterMap', 'sunrise', 'guardFeather'],
   ranch: ['quickAid', 'spellWard', 'bubble'],
   windmill: ['curseBreak', 'lingerLight', 'quickAid'],
+  crystal1: ['quickAid', 'hardShell', 'evenly'],
+  crystal2: ['woundClean', 'lingerLight', 'wideEmbrace'],
+  crystal3: ['edgeTouch', 'starVeil', 'constellation'],
+  fort1: ['windStep', 'pouch', 'quickAid'],
+  fort2: ['shieldFriend', 'prop', 'sturdyBack'],
+  fort3: ['shelterMap', 'guardFeather', 'constellation'],
+  station: ['bubble', 'lightBreath', 'spellWard'],
+  shadow1: ['heavyFeet', 'holdingHand', 'evenly'],
+  shadow2: ['layer', 'lingerLight', 'holdTogether'],
+  shadow3: ['clearEye', 'starVeil', 'sunrise'],
+  school: ['lingerLight', 'bubble', 'spellWard'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

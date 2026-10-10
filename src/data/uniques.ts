@@ -91,6 +91,15 @@ export const UNIQUES: UniqueDef[] = [
   { key: 'courierPlume', name: '휘리릭 우편 깃털 모자', slot: 'head', kind: 'plume', place: 'post1', placeName: '구름 우체국 접수대', spec: 'drumbeat' },
   { key: 'ribbonGloves', name: '꽁꽁이 리본 장갑', slot: 'hands', kind: 'gloves', place: 'post2', placeName: '구름 우체국 분류실', spec: 'layer' },
   { key: 'vaneScepter', name: '돌개의 풍차 날개 홀', slot: 'weapon', kind: 'scepter', place: 'windmill', placeName: '천둥 풍차', spec: 'bounceLight' },
+  // 묶음 F2 (56 6장): 20인 ⑥ 갈림길 · 수정밭, 10인 ⑭ 성문 · 무기고 (56의 땅땅이는 용암 대장간 땅땅과 겹쳐 굴굴이로)
+  { key: 'crystalPick', name: '굴굴이 수정 곡괭이', slot: 'weapon', kind: 'mace', place: 'crystal1', placeName: '수정 뿌리굴 갈림길', spec: 'insight' },
+  { key: 'pinwheelHabit', name: '핑핑이 바람개비 수도복', slot: 'chest', kind: 'habit', place: 'crystal2', placeName: '수정 뿌리굴 수정밭', spec: 'woundClean' },
+  { key: 'drumHelm', name: '둥둥이 천둥 북 투구', slot: 'head', kind: 'helm', place: 'fort1', placeName: '폭풍 성채 성문', spec: 'drumbeat' },
+  // 묶음 F3 (56 6장): 20인 ⑦ 성문 · 성벽길, 던전 ⑱
+  { key: 'shadowHammer', name: '쾅쾅이 그림자 망치', slot: 'weapon', kind: 'mace', place: 'shadow1', placeName: '그림자 성벽 성문', spec: 'bounceLight' },
+  { key: 'fletchSleeve', name: '슝슝이 화살깃 토시', slot: 'hands', kind: 'sleeve', place: 'shadow2', placeName: '그림자 성벽 성벽길', spec: 'evenly' },
+  { key: 'upsideVestment', name: '뒤죽박죽의 거꾸로 법복', slot: 'chest', kind: 'vestment', place: 'school', placeName: '구름 마법학교', spec: 'lingerLight' },
+  { key: 'lanceWraps', name: '쌩쌩이 번개 창 손싸개', slot: 'hands', kind: 'wraps', place: 'fort2', placeName: '폭풍 성채 무기고', spec: 'shieldFriend' },
 ];
 
 export const uniqueOf = (key: string | undefined) => (key ? UNIQUES.find(u => u.key === key) : undefined);

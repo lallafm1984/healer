@@ -717,6 +717,7 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   'chain-strike': { size: 0.9, color: BOLT, ms: 300, fly: true, top: true },
   'chain-bolt': { size: 0.8, color: BOLT, ms: 350, fly: true },
   'chain-rod': { size: 1.4, color: BOLT, ms: 500 },
+  'island-tilt': { size: 3.2, color: SKY, ms: 900, wide: true }, // 묶음 F2 기우는 섬 (그림 57 E)
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();

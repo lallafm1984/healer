@@ -21,6 +21,7 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'dusk1' | 'dusk2' | 'dusk3' | 'caravan' | 'rootwood1' | 'rootwood2' | 'rootwood3'
   | 'pyramid1' | 'pyramid2' | 'pyramid3' | 'reservoir1' | 'reservoir2' | 'reservoir3' | 'pinwheel' | 'observatory'
   | 'well1' | 'well2' | 'well3' | 'post1' | 'post2' | 'post3' | 'ranch' | 'windmill'
+  | 'crystal1' | 'crystal2' | 'crystal3' | 'fort1' | 'fort2' | 'fort3' | 'station' | 'shadow1' | 'shadow2' | 'shadow3' | 'school'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
@@ -223,6 +224,16 @@ export const CONTENT: ContentDef[] = [
     key: 'windmill', bosses: ['번개 양 복슬이', '풍차지기 하피 돌개'], kind: 'dungeon', name: '천둥 풍차', place: '구름 위 섬 끝 · 폭풍 깃털단', stageLv: 85, unlockLv: 85, ready: true,
     fights: () => DUNGEONS.windmill.segments, size: five,
   },
+  // 묶음 F 탐험 ㉒ (56 1-1): 옛 세력 폭주한 마도사, 던전 ⑱ 구름 마법학교 예습 (넘치는 빛 × 연쇄 번개)
+  {
+    key: 'station', kind: 'explore', name: '빗자루 정류장', place: '구름 위 섬 · 폭주한 마도사', stageLv: 88, unlockLv: 88, ready: true, bosses: ['실험 조교 퐁퐁이'],
+    fights: () => DUNGEONS.station.segments, size: three,
+  },
+  // 던전 ⑱ (56 1-2 · 3-2, 묶음 F): 폭주한 마도사 (마법), 보스 2
+  {
+    key: 'school', bosses: ['실험 조교 퐁퐁이', '엉뚱 교장 뒤죽박죽'], kind: 'dungeon', name: '구름 마법학교', place: '구름 위 섬 · 폭주한 마도사', stageLv: 90, unlockLv: 90, ready: true,
+    fights: () => DUNGEONS.school.segments, size: five,
+  },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인
     key: 'abyss1', bosses: ['역병 군주'], kind: 'raid', name: '심연의 탑 1층', place: '납골당 · 역병 군주', stageLv: 35, unlockLv: 35, ready: true,
@@ -282,8 +293,12 @@ export const CONTENT: ContentDef[] = [
     ['post1', '구름 우체국 접수대', '우체국 접수대 · 하피 우체부 휘리릭', '하피 우체부 휘리릭', 'hwirik83', 83],
     ['post2', '구름 우체국 분류실', '소포 분류실 · 소포 요정 꽁꽁이', '소포 요정 꽁꽁이', 'kkongkkong', 83],
     ['post3', '구름 우체국 옥상', '우체국 옥상 · 우체국장 하피 부리부리', '우체국장 하피 부리부리', 'buri', 83],
+    // 묶음 F 10인 ⑭ (56 1-3): 폭풍 깃털단 수장, 악몽은 Lv 100까지
+    ['fort1', '폭풍 성채 성문', '성채 성문 · 천둥 북 거인 둥둥이', '천둥 북 거인 둥둥이', 'dungdung', 87],
+    ['fort2', '폭풍 성채 무기고', '성채 무기고 · 하피 기사 쌩쌩이', '하피 기사 쌩쌩이', 'ssaengssaeng', 87],
+    ['fort3', '폭풍 성채 꼭대기', '성채 꼭대기 · 폭풍 거인 우르릉', '폭풍 거인 우르릉', 'ureureung', 87],
   ] as const).map(([key, name, place, boss, enc, lv]): ContentDef => ({
-    key, bosses: [boss], kind: 'raid', name, place, stageLv: lv, unlockLv: lv, ready: true, fights: () => [enc], size: () => 10, diffUnlock: { '악몽': lv + 15 },
+    key, bosses: [boss], kind: 'raid', name, place, stageLv: lv, unlockLv: lv, ready: true, fights: () => [enc], size: () => 10, diffUnlock: { '악몽': Math.min(100, lv + 15) },
   })),
   {
     // 20인 레이드 (26 4장): 따로 된 레이드, 난이도 4개 모두 20인
@@ -329,6 +344,22 @@ export const CONTENT: ContentDef[] = [
     ['well3', '숨결 우물 바닥', '우물 바닥 · 심장의 숨 후우', '심장의 숨 후우', 'huu'],
   ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
     key, bosses: [boss], kind: 'raid', name, place, stageLv: 82, unlockLv: 82, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 92 },
+  })),
+  // 묶음 F 20인 ⑥ 수정 뿌리굴 (56 1-4): 열림 Lv 85 · 악몽 95
+  ...([
+    ['crystal1', '수정 뿌리굴 갈림길', '수정 갈림길 · 수정 두더지 굴굴이', '수정 두더지 굴굴이', 'gulgul'],
+    ['crystal2', '수정 뿌리굴 수정밭', '수정밭 · 바람개비 정령 핑핑이', '바람개비 정령 핑핑이', 'pingping'],
+    ['crystal3', '수정 뿌리굴 거울방', '거울방 · 수정 마녀 빛갈래', '수정 마녀 빛갈래', 'bitgallae'],
+  ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
+    key, bosses: [boss], kind: 'raid', name, place, stageLv: 85, unlockLv: 85, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 95 },
+  })),
+  // 묶음 F 20인 ⑦ 그림자 성벽 (56 1-4): 열림 Lv 88 · 악몽 98, 너머가 심연의 바닥 (묶음 G)
+  ...([
+    ['shadow1', '그림자 성벽 성문', '그림자 성문 · 그림자 망치 거인 쾅쾅이', '그림자 망치 거인 쾅쾅이', 'kwangkwang'],
+    ['shadow2', '그림자 성벽 성벽길', '성벽길 · 그림자 궁수대장 슝슝이', '그림자 궁수대장 슝슝이', 'syungsyung'],
+    ['shadow3', '그림자 성벽 망루', '망루 · 그림자 장군 어둑이', '그림자 장군 어둑이', 'eodugi'],
+  ] as const).map(([key, name, place, boss, enc]): ContentDef => ({
+    key, bosses: [boss], kind: 'raid', name, place, stageLv: 88, unlockLv: 88, ready: true, fights: () => [enc], size: () => 20, diffUnlock: { '악몽': 98 },
   })),
 ];
 
