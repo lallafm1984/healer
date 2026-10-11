@@ -24,6 +24,7 @@ import {
 import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
+import { landedPxf } from './pxf';
 import {
   bossFx, bossHealNum, bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
   resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
@@ -480,17 +481,22 @@ cv.addEventListener('lostpointercapture', e => endPointer(true, e));
 cv.addEventListener('contextmenu', e => e.preventDefault());
 
 // ---------- 전투 사건 → 소리·진동·알림·판 효과 ----------
-function handleEvents(now: number): void {
+/** cast0 = 이번 프레임 엔진을 돌리기 전 시전: 끝까지 들어갔으면 그 스킬의 PXF 이펙트를 대상의 첫 치유에 (battle/pxf.ts) */
+function handleEvents(now: number, cast0: Fight['cast'] = null): void {
   const F = B.F!;
   let healSnd = false, critSnd = false;
+  let landed = landedPxf(cast0, F.cast);
   for (const ev of F.events) {
     const u = 'id' in ev ? F.party.find(x => x.id === ev.id) ?? F.souls.find(x => x.id === ev.id) : undefined;
     switch (ev.type) {
-      case 'heal':
+      case 'heal': {
         if (!u) break;
-        fxHeal(u, ev.eff, ev.amt, ev.crit, now);
+        const pxf = landed && !ev.item && ev.id === landed.uid ? landed.key : undefined;
+        if (pxf) landed = null;
+        fxHeal(u, ev.eff, ev.amt, ev.crit, now, pxf);
         if (ev.crit) critSnd = true; else healSnd = true;
         break;
+      }
       case 'bark': break; // 말풍선은 아래 talk.frame이 상황에 맞는 대사로 (41)
       case 'sound':
         Snd.play(ev.name);
@@ -754,6 +760,7 @@ function frame(now: number): void {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   const F = B.F;
   if (F && !$('battle').hidden) {
+    const cast0 = F.cast;
     if (!B.paused && !F.over) {
       if (ui.pullLeft > 0) updatePull(dt);
       else {
@@ -765,7 +772,7 @@ function frame(now: number): void {
         }
       }
     }
-    handleEvents(now);
+    handleEvents(now, cast0);
     updateStage(now); updateWheel(); updateItems(); updateAux(); updateCastbar();
     if (layoutState !== `${S.compactSkills}:${$('controls').classList.contains('tank-down')}`) layoutBattle();
     render(now);
