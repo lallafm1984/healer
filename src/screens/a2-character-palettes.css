@@ -1,0 +1,164 @@
+/* Matching body palettes for the four colored character tabs. Import last.
+ * Color/material overrides only: no geometry, layout, image filters or DOM changes.
+ * Grade/faction borders, mana, gold selection, locked states and action-role colors stay local. */
+
+#s-char[data-sub="gear"] {
+  --c7-palette-surface: #244664;
+  --c7-palette-panel: #24435e;
+  --c7-palette-deep: #142a40;
+  --c7-palette-wash: transparent;
+  --c7-palette-muted: #bbd0e2;
+  --c7-palette-paper: #dbe8f1;
+  --c7-palette-paper-ink: #19374e;
+  --c7-palette-paper-muted: #476278;
+}
+#s-char[data-sub="skill"] {
+  --c7-palette-surface: #1d5550;
+  --c7-palette-panel: #214d47;
+  --c7-palette-deep: #102f2c;
+  --c7-palette-wash: #113830cf;
+  --c7-palette-muted: #bddbd0;
+  --c7-palette-paper: #dcebe2;
+  --c7-palette-paper-ink: #203f34;
+  --c7-palette-paper-muted: #4a695b;
+}
+#s-char[data-sub="talent"] {
+  --c7-palette-surface: #563c70;
+  --c7-palette-panel: #3e2c54;
+  --c7-palette-deep: #271a36;
+  --c7-palette-wash: #281a39e3;
+  --c7-palette-muted: #d0c0e0;
+  --c7-palette-paper: #e9e0f0;
+  --c7-palette-paper-ink: #3c294d;
+  --c7-palette-paper-muted: #695575;
+}
+#s-char[data-sub="hero"] {
+  --c7-palette-surface: #793c45;
+  --c7-palette-panel: #573039;
+  --c7-palette-deep: #351e29;
+  --c7-palette-wash: #401f2acb;
+  --c7-palette-muted: #e0c1c5;
+  --c7-palette-paper: #efe1df;
+  --c7-palette-paper-ink: #522a33;
+  --c7-palette-paper-muted: #795660;
+}
+
+/* Tint the space behind existing content without filtering the armory or any icons. */
+#s-char[data-sub] { background-color: var(--c7-palette-deep); }
+#s-char[data-sub] > .c7-body { background-color: var(--c7-palette-wash); }
+
+/* Keep the original armory painting and its char31.css lighting visible.
+ * Equipment blue is reserved for controls and the central stat panel. */
+#s-char[data-sub="gear"] { background-color: #15120e; }
+
+#s-char[data-sub] :is(.c7-stats, .c7-sklist, .c7-tiers, .c7-plq, .c7-enh, .c7-auto, .c7-dialog-head),
+#s-char[data-sub] .sheet {
+  background-color: var(--c7-palette-panel);
+  background-image: var(--a2-wood);
+  background-blend-mode: luminosity;
+}
+#s-char[data-sub] .c7-dialog-head { background-color: var(--c7-palette-surface); }
+#s-char[data-sub] :is(.c7-hnote, .c7-h small, .c7-sh small, .c7-sv small, .c7-stat > small, .c7-plq small, .c7-skn span, .c7-soont) {
+  color: var(--c7-palette-muted);
+}
+#s-char[data-sub="gear"] .c7-stat > b { color: var(--a2-ink); }
+#s-char[data-sub="gear"] .c7-mid .c7-stats {
+  background-color: #203647;
+  border-color: #bd985b;
+  box-shadow: inset 0 0 0 3px #10161cb3, inset 0 0 0 4px #bfa16c42, 0 5px 14px #080807aa;
+}
+#s-char[data-sub="gear"] .c7-slot > b { text-shadow: 0 1px 2px #000, 0 0 5px #000; }
+
+/* Item rarity/glow/faction edges remain unchanged; only the recess receives the palette. */
+#s-char[data-sub="gear"] :is(.c7-sq, .c7-gic, .c7-bag) {
+  background-color: var(--c7-palette-deep);
+  background-blend-mode: luminosity;
+}
+#s-char[data-sub="gear"] .c7-slot.empty .c7-sq { background-color: var(--c7-palette-deep); }
+
+/* Exclude the action row, salvage controls and all disabled controls from utility tinting. */
+#s-char[data-sub] :is(.c7-fc, .c7-rr, .c7-sb:not(.c7-salvb)):not(:disabled):not([aria-pressed="true"]),
+#s-char[data-sub="skill"] .c7-mode,
+#s-char[data-sub="skill"] .c7-taps > button:not(:disabled):not([aria-pressed="true"]),
+#s-char[data-sub="skill"] .c7-item:not(:disabled):not(.empty) {
+  background-color: var(--c7-palette-surface);
+  background-image: var(--a2-wood);
+  background-blend-mode: luminosity;
+}
+#s-char[data-sub="skill"] .c7-wh:not(.core):not(.empty):not(.locked):not([aria-pressed="true"]),
+#s-char[data-sub="skill"] .c7-sk:not(.locked) .c7-ski {
+  background-color: var(--c7-palette-deep);
+  background-image: var(--a2-wood);
+  background-blend-mode: luminosity;
+}
+
+/* Light tinted paper keeps descriptions separate from the darker boards. */
+#s-char[data-sub] .c7-parch,
+#s-char[data-sub] .c7-fc[aria-pressed="true"],
+#s-char[data-sub] .c7-lockb[aria-pressed="true"],
+#s-char[data-sub="skill"] .c7-mode button[aria-pressed="true"],
+#s-char[data-sub="skill"] .c7-taps > button[aria-pressed="true"],
+#s-char[data-sub="skill"] .c7-wh[aria-pressed="true"]:not(.core):not(.empty):not(.locked),
+#s-char[data-sub="hero"] .c7-cs.now {
+  background-color: var(--c7-palette-paper);
+  background-image: var(--a2-paper);
+  background-blend-mode: luminosity;
+  color: var(--c7-palette-paper-ink);
+}
+#s-char[data-sub] .c7-parch :is(h3, p, .c7-pas li b, .c7-pas li p),
+#s-char[data-sub] .c7-lockb[aria-pressed="true"] small,
+#s-char[data-sub="skill"] .c7-wh[aria-pressed="true"]:not(.core):not(.empty):not(.locked) :is(b, .c7-ar) {
+  color: var(--c7-palette-paper-ink);
+}
+#s-char[data-sub] .c7-parch :is(.m, .cap, .c7-hchips) { color: var(--c7-palette-paper-muted); }
+
+/* Talent-specific navy surfaces become purple. Chosen nodes/presets retain their gold state. */
+#s-char[data-sub="talent"] :is(.c7-tsum, .c7-tiers) {
+  background-color: var(--c7-palette-panel);
+  background-image: none;
+}
+#s-char[data-sub="talent"] .c7-tiers {
+  box-shadow: inset 0 0 0 3px #190f2499, 0 4px 12px #0005;
+}
+#s-char[data-sub="talent"] .c7-tl :is(b, small, em),
+#s-char[data-sub="talent"] .c7-pk small {
+  background-color: var(--c7-palette-panel);
+}
+#s-char[data-sub="talent"] :is(.c7-talent-title p, .c7-tsum small, .c7-tsh .cap, .c7-tactive-note, .c7-tooltip-foot small),
+#s-char[data-sub="talent"] .c7-tier:not(.locked) .c7-tl small,
+#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) small {
+  color: var(--c7-palette-muted);
+}
+#s-char[data-sub="talent"] .c7-tier:not(.locked) .c7-tl em { color: #cbb3e3; }
+#s-char[data-sub="talent"] .c7-pre:not([aria-pressed="true"]):not(:disabled),
+#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn,
+#s-char[data-sub="talent"] .c7-tsi,
+#s-char[data-sub="talent"] .c7-tclose:not(:disabled) {
+  background-color: var(--c7-palette-surface);
+  background-image: none;
+}
+#s-char[data-sub="talent"] .c7-pre:not([aria-pressed="true"]):not(:disabled),
+#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn {
+  border-color: #a88cbd;
+  color: #e1d4ec;
+}
+#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn {
+  box-shadow: 0 0 0 2px #1c112a, inset 0 0 0 1px #dac2ee33;
+}
+#s-char[data-sub="talent"] .c7-tier.pending .c7-pk:not([aria-pressed="true"]) .c7-tn {
+  border-color: #c4a5e2;
+  box-shadow: 0 0 0 2px #1c112a, 0 0 9px #b28ade26;
+}
+#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn::after {
+  background-color: var(--c7-palette-deep);
+  border-color: #977aad;
+  color: #dfd1eb;
+}
+#s-char[data-sub="talent"] .c7-tpath .d { stroke: #c3add6; }
+#s-char[data-sub="talent"] .c7-tier { border-bottom-color: #b998d324; }
+#s-char[data-sub="talent"] .sheet.c7-tsheet {
+  background-color: var(--c7-palette-deep);
+  background-image: none;
+  box-shadow: inset 0 0 0 3px #49325e, 0 -6px 26px #000a;
+}
+#s-char[data-sub="talent"] .c7-tooltip-foot { border-top-color: #ba9acb3b; }

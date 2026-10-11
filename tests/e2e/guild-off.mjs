@@ -32,8 +32,22 @@ export default async function guildOff(url, shots) {
   // ---- 탭 · 로비 ----
   const tabs = await page.evaluate(() => [...document.querySelectorAll('#tabs button')].map(b => b.dataset.tab).join());
   ok(tabs === 'lobby,battle,char,shop', `하단 탭 4개, 길드 없음 (${tabs})`);
-  const tw = await page.locator('#tabs button').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().width)));
-  ok(tw.every(w => Math.abs(w - tw[0]) <= 1) && tw.reduce((a, b) => a + b, 0) >= 356, `탭 4개가 화면 너비를 똑같이 나눔 ${JSON.stringify(tw)}`);
+  const tabLayout = await page.locator('#tabs').evaluate(el => {
+    const css = getComputedStyle(el), r = el.getBoundingClientRect();
+    const left = parseFloat(css.paddingLeft) + parseFloat(css.borderLeftWidth);
+    const right = parseFloat(css.paddingRight) + parseFloat(css.borderRightWidth);
+    const gap = parseFloat(css.columnGap) || 0;
+    const buttons = [...el.querySelectorAll('button')].map(b => {
+      const box = b.getBoundingClientRect(); return { x: box.x, right: box.right, width: box.width };
+    });
+    return { buttons, gap, start: r.left + left, end: r.right - right, available: r.width - left - right - gap * (buttons.length - 1) };
+  });
+  const tw = tabLayout.buttons.map(b => b.width);
+  ok(tw.length === 4 && tw.every(w => w >= 44 && Math.abs(w - tw[0]) <= 1)
+    && Math.abs(tw.reduce((a, b) => a + b, 0) - tabLayout.available) <= 1
+    && Math.abs(tabLayout.buttons[0].x - tabLayout.start) <= 1 && Math.abs(tabLayout.buttons[3].right - tabLayout.end) <= 1
+    && tabLayout.buttons.slice(1).every((b, i) => Math.abs(b.x - tabLayout.buttons[i].right - tabLayout.gap) <= 1),
+    `탭 4개가 패딩·간격을 제외한 너비를 균등 분할 ${JSON.stringify(tabLayout)}`);
   ok(await page.isVisible('#s-lobby') && (await page.locator('#s-lobby .lb-guild').count()) === 0 && !/길드/.test(await text('#s-lobby')), '로비: 길드 회관 이름표 없음, 「길드」 글자 없음');
   await page.screenshot({ path: `${shots}/guild_off_lobby.png` });
 

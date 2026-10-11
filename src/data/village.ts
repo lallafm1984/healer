@@ -1,7 +1,8 @@
 /**
  * 로비 「살아 있는 마을」 장면 목록 (2026-10-11 코덱스 village-living-background 시안 manifest.json에서 옮김).
  * 좌표·크기·잘라내기 다각형은 원본 그림 853×1844 기준. 그림 이름은 src/art의 village-<원본 파일 이름> (바탕 = village-base).
- * 승인된 모션 값 그대로: 구름 9개 (서로 다른 속도, 산·성 뒤로 가림) · 가지·잎·꽃 초기 진폭 ×2.4 · 덩굴 ×2.1 · 깃발 ×3 · 차양 ×1.35 · 기본 바람 35%.
+ * 승인된 가지·잎·꽃 초기 진폭 ×2.4 · 덩굴 ×2.1 · 깃발 ×3 · 차양 ×1.35 · 기본 바람 35%.
+ * 2026-10-11 추가 요청: 구름 9개/3종과 속도 ×1.65, 새 4마리 무리, 실제 그림 낙엽 8개.
  * 사용자 요청 없이 진폭을 줄이거나 부착점·가림 관계를 바꾸지 않는다.
  * 종탑의 종 레이어(chapel-bell)는 뺐다 (10 4장 「종에 관한 것은 모두 빼자」). 바탕 그림의 탑 창은 원래 비어 있다.
  */
@@ -26,6 +27,8 @@ export interface VillageLayer {
   alpha?: number;
   rotation?: number;
   flipX?: boolean;
+  /** 새가 같은 무리에서 출발하는 시차 (초). phase는 날갯짓 위상에만 사용 */
+  flightDelay?: number;
   /** 이 다각형 안에만 보임 (구름 = 산·성 뒤) */
   clip?: Poly;
 }
@@ -34,9 +37,10 @@ export interface VillageEffects {
   waterPaths: { id: string; direction: readonly [number, number]; density: number; polygon: Poly }[];
   waterfalls: { id: string; direction: readonly [number, number]; density: number; polygon: Poly }[];
   lights: { id: string; x: number; y: number; radius: number; alpha?: number }[];
-  motes: { x: number; y: number }[];
-  /** 그림 새가 따로 있으면 그린 새는 끔 */
-  birds: boolean;
+  leafArt: string;
+  /** alpha>16 영역의 실제 폭. 투명 여백을 자르지 않고 표시 크기를 보정 */
+  leafContentWidth: number;
+  motes: { x: number; y: number; size: number; drift: readonly [number, number]; duration: number; phase: number; rotation: number }[];
 }
 
 /** 하늘: 산·성 실루엣 위로만 구름 */
@@ -49,23 +53,29 @@ export const VILLAGE = {
   height: 1844,
   background: 'village-base',
   defaultWind: 35,
+  cloudSpeedScale: 1.65,
+  birdFrames: ['village-bird-mid', 'village-bird-up'],
   layers: [
     { id: 'cloud-distant-west', art: 'village-cloud-wide', group: 'clouds', motion: 'cloud', x: 67, y: 37, width: 184, height: 64, anchor: [0, 0], amplitude: 2.8, phase: 0.051, speed: 0.42, z: 0.1, alpha: 0.56, clip: CLIP_SKY },
-    { id: 'cloud-distant-middle', art: 'village-cloud-wide', group: 'clouds', motion: 'cloud', x: 336, y: 42, width: 175, height: 62, anchor: [0, 0], amplitude: 2.8, phase: 2.451, speed: 0.51, z: 0.2, alpha: 0.62, clip: CLIP_SKY },
+    // Wisp는 전체 높이의 52.35%만 구름이다. 원본 픽셀을 자르지 않고 높이/시작점을 보정한다.
+    { id: 'cloud-distant-middle', art: 'village-cloud-wisp-v1', group: 'clouds', motion: 'cloud', x: 330, y: 24, width: 219, height: 73, anchor: [0, 0], amplitude: 2.8, phase: 2.451, speed: 0.51, z: 0.2, alpha: 0.62, flipX: true, clip: CLIP_SKY },
     { id: 'cloud-distant-east', art: 'village-cloud-wide', group: 'clouds', motion: 'cloud', x: 601, y: 31, width: 179, height: 66, anchor: [0, 0], amplitude: 2.8, phase: 4.851, speed: 0.47, z: 0.3, alpha: 0.58, clip: CLIP_SKY },
     { id: 'cloud-west', art: 'village-cloud-wide', group: 'clouds', motion: 'cloud', x: -100, y: -28, width: 202, height: 95, anchor: [0, 0], amplitude: 2.8, phase: 0, speed: 0.68, z: 1, alpha: 0.83, clip: CLIP_SKY },
     { id: 'cloud-middle', art: 'village-cloud-round', group: 'clouds', motion: 'cloud', x: 198, y: -15, width: 137, height: 86, anchor: [0, 0], amplitude: 2.8, phase: 2.4, speed: 1.06, z: 2, alpha: 0.94, clip: CLIP_SKY },
     { id: 'cloud-near-west', art: 'village-cloud-round', group: 'clouds', motion: 'cloud', x: 88, y: -12, width: 166, height: 90, anchor: [0, 0], amplitude: 2.8, phase: 0.968, speed: 0.95, z: 2.2, alpha: 0.87, clip: CLIP_SKY },
-    { id: 'cloud-near-middle', art: 'village-cloud-round', group: 'clouds', motion: 'cloud', x: 357, y: -22, width: 172, height: 99, anchor: [0, 0], amplitude: 2.8, phase: 3.368, speed: 0.79, z: 2.8, alpha: 0.84, clip: CLIP_SKY },
+    { id: 'cloud-near-middle', art: 'village-cloud-wisp-v1', group: 'clouds', motion: 'cloud', x: 355, y: -42, width: 288, height: 96, anchor: [0, 0], amplitude: 2.8, phase: 3.368, speed: 0.79, z: 2.8, alpha: 0.84, clip: CLIP_SKY },
     { id: 'cloud-east', art: 'village-cloud-wide', group: 'clouds', motion: 'cloud', x: 478, y: -32, width: 210, height: 99, anchor: [0, 0], amplitude: 2.8, phase: 4.8, speed: 0.87, z: 3, alpha: 0.88, clip: CLIP_SKY },
-    { id: 'cloud-small', art: 'village-cloud-round', group: 'clouds', motion: 'cloud', x: 755, y: -17, width: 104, height: 70, anchor: [0, 0], amplitude: 2.8, phase: 0.917, speed: 1.24, z: 4, alpha: 0.75, clip: CLIP_SKY },
+    { id: 'cloud-small', art: 'village-cloud-wisp-v1', group: 'clouds', motion: 'cloud', x: 749, y: -27, width: 150, height: 50, anchor: [0, 0], amplitude: 2.8, phase: 0.917, speed: 1.24, z: 4, alpha: 0.75, flipX: true, clip: CLIP_SKY },
     { id: 'tree-west-back', art: 'village-tree-pine', group: 'foliage', motion: 'branch', x: 109, y: 144, width: 145, height: 303, anchor: [0.48, 0.98], amplitude: 2.16, phase: 5.717, z: 5 },
     { id: 'tree-west-high', art: 'village-tree-broad', group: 'foliage', motion: 'branch', x: -215, y: 128, width: 361, height: 347, anchor: [0.49, 0.97], amplitude: 3.36, phase: 3.317, z: 6 },
     { id: 'tree-east-back', art: 'village-tree-pine', group: 'foliage', motion: 'branch', x: 375, y: 268, width: 122, height: 255, anchor: [0.47, 0.98], amplitude: 2.64, phase: 1.833, z: 7 },
     { id: 'tree-west-low', art: 'village-branch-canopy', group: 'foliage', motion: 'branch', x: -93, y: 470, width: 179, height: 159, anchor: [0.19, 0.96], amplitude: 5.52, phase: 4.233, z: 19, flipX: true },
     { id: 'tree-west-edge', art: 'village-branch-canopy', group: 'foliage', motion: 'branch', x: -103, y: 595, width: 161, height: 143, anchor: [0.19, 0.96], amplitude: 5.52, phase: 0.35, z: 20, flipX: true },
-    { id: 'bird-valley', art: 'village-bird-up', group: 'birds', motion: 'bird', x: 454, y: 278, width: 13, height: 14, anchor: [0.5, 0.5], amplitude: 1, phase: 1.534, z: 20 },
-    { id: 'bird-sky', art: 'village-bird-mid', group: 'birds', motion: 'bird', x: 220, y: 95, width: 11, height: 10, anchor: [0.5, 0.5], amplitude: 0.7, phase: 3.934, z: 20 },
+    // width = alpha 외곽 기준 날개 폭. 같은 네 마리가 하늘/먼 계곡을 번갈아 횡단한다.
+    { id: 'bird-flock-lead', art: 'village-bird-mid', group: 'birds', motion: 'bird', x: 0, y: 92, width: 24, height: 23, anchor: [0.47, 0.62], phase: 0.2, flightDelay: 0, alpha: 0.84, z: 9 },
+    { id: 'bird-flock-high', art: 'village-bird-up', group: 'birds', motion: 'bird', x: 0, y: 73, width: 20, height: 24, anchor: [0.47, 0.7], phase: 1.8, flightDelay: 0.7, alpha: 0.75, z: 9 },
+    { id: 'bird-flock-low', art: 'village-bird-mid', group: 'birds', motion: 'bird', x: 0, y: 110, width: 22, height: 21, anchor: [0.47, 0.62], phase: 3.6, flightDelay: 1.25, alpha: 0.8, z: 9 },
+    { id: 'bird-flock-tail', art: 'village-bird-up', group: 'birds', motion: 'bird', x: 0, y: 89, width: 18, height: 22, anchor: [0.47, 0.7], phase: 5.1, flightDelay: 1.9, alpha: 0.7, z: 9 },
     { id: 'flag-west', art: 'village-flag-front', group: 'cloth', motion: 'flag', x: 146, y: 481, width: 45, height: 113, anchor: [0.5, 0.035], pin: 'top', amplitude: 6.9, phase: 5.15, z: 24 },
     { id: 'flag-east', art: 'village-flag-angle', group: 'cloth', motion: 'flag', x: 363, y: 497, width: 38, height: 102, anchor: [0.5, 0.035], pin: 'top', amplitude: 6.3, phase: 1.267, z: 25 },
     { id: 'shop-awning', art: 'village-awning', group: 'cloth', motion: 'awning', x: 532, y: 757, width: 213, height: 106, anchor: [0.5, 0.07], pin: 'top', amplitude: 2.16, phase: 3.667, z: 27 },
@@ -123,7 +133,17 @@ export const VILLAGE = {
       { id: 'water-narrow-channel', direction: [0, 1], density: 7, polygon: [[204, 1501], [211, 1513], [213, 1539], [224, 1557], [223, 1576], [208, 1579], [200, 1560], [202, 1536], [199, 1525]] },
     ],
     lights: [{ id: 'light-market', x: 492, y: 739, radius: 33, alpha: 0.15 }, { id: 'light-square', x: 599, y: 1154, radius: 31, alpha: 0.15 }],
-    motes: [{ x: 60, y: 610 }, { x: 386, y: 648 }, { x: 749, y: 925 }, { x: 675, y: 1320 }, { x: 86, y: 1510 }, { x: 548, y: 1680 }],
-    birds: false,
+    leafArt: 'village-leaf-drift-v1',
+    leafContentWidth: 1123,
+    motes: [
+      { x: 60, y: 218, size: 10, drift: [48, 148], duration: 19, phase: 0.12, rotation: 0.4 },
+      { x: 786, y: 425, size: 8, drift: [-36, 126], duration: 23, phase: 0.54, rotation: 2.1 },
+      { x: 50, y: 606, size: 12, drift: [46, 143], duration: 21, phase: 0.8, rotation: -0.7 },
+      { x: 776, y: 865, size: 11, drift: [-44, 139], duration: 18, phase: 0.27, rotation: 1.3 },
+      { x: 73, y: 1048, size: 9, drift: [34, 119], duration: 24, phase: 0.65, rotation: -1.2 },
+      { x: 756, y: 1305, size: 14, drift: [-46, 155], duration: 20, phase: 0.02, rotation: 0.8 },
+      { x: 98, y: 1492, size: 13, drift: [45, 158], duration: 22, phase: 0.43, rotation: 2.8 },
+      { x: 726, y: 1616, size: 10, drift: [-35, 126], duration: 17, phase: 0.91, rotation: -0.2 },
+    ],
   } satisfies VillageEffects as VillageEffects,
 };

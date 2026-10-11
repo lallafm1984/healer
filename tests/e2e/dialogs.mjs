@@ -70,12 +70,15 @@ export default async function dialogs(url, shots) {
       await page.click('#s-char .sheet-dim', { position: { x: 4, y: 75 } }); await page.clock.runFor(50);
       ok(await page.evaluate(() => document.activeElement?.matches('.gtile[data-gitem="901"]')), `${label} 배경 탭 → 원래 장비칸`);
 
-      await page.click('#s-char [data-bag]'); await page.clock.runFor(50);
       await page.click('#s-char .c7-bag[data-gitem="903"]'); await page.clock.runFor(50);
-      await page.click('#s-char .c7-dialog-close'); await page.clock.runFor(50);
-      ok(await page.isVisible('#s-char .c7-bsheet') && await page.evaluate(() => document.activeElement?.matches('.c7-bag[data-gitem="903"]')), `${label} 상세 닫기 → 가방과 원래 가방 칸 복귀`);
       await page.keyboard.press('Escape'); await page.clock.runFor(50);
-      ok(await page.evaluate(() => document.activeElement?.matches('[data-bag]') && !document.querySelector('#tabs').inert), `${label} 가방 닫기 → 가방 열기 버튼`);
+      ok(await page.isVisible('#s-char .c7-inventory') && !(await page.locator('#s-char .sheet').count()) && await page.evaluate(() => document.activeElement?.matches('.c7-bag[data-gitem="903"]') && !document.querySelector('#tabs').inert), `${label} Escape → 상시 인벤토리의 원래 아이템 포커스 복귀·배경 해제`);
+      await page.click('#s-char .c7-inventory [data-dex]'); await page.clock.runFor(50);
+      await page.click('#s-char .c7-dex [data-codex]'); await page.clock.runFor(50);
+      await page.keyboard.press('Escape'); await page.clock.runFor(50);
+      ok(await page.isVisible('#s-char .c7-dex') && await page.evaluate(() => document.activeElement?.matches('.c7-dex [data-codex]')), `${label} 특수능력 도감 Escape → 장비 도감 버튼 포커스 복귀`);
+      await page.keyboard.press('Escape'); await page.clock.runFor(50);
+      ok(!(await page.locator('#s-char .sheet').count()) && await page.evaluate(() => document.activeElement?.matches('.c7-inventory [data-dex]') && !document.querySelector('#tabs').inert), `${label} 장비 도감 Escape → 인벤토리 도감 버튼 포커스 복귀·배경 해제`);
 
       const shell = () => page.evaluate(() => ({ top: document.querySelector('#s-party .topbar').getBoundingClientRect().top, app: document.querySelector('#app').scrollTop, viewport: document.querySelector('#viewport').scrollTop }));
       for (let attempt = 0; attempt < 2; attempt++) {

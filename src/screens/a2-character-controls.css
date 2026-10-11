@@ -1,0 +1,82 @@
+/* Character control colors only; import after a2-character-theme.css.
+ * Painted PNG frames, dimensions, click targets and disabled rules stay intact.
+ * The inset color surface is behind live text/icons, so no content hue filter is used. */
+
+#s-char .c7-tab[data-csub="gear"] {
+  --c7-control-tone: #244664;
+  --c7-control-active: #286893;
+}
+#s-char .c7-tab[data-csub="skill"] {
+  --c7-control-tone: #1d5550;
+  --c7-control-active: #227568;
+}
+#s-char .c7-tab[data-csub="talent"] {
+  --c7-control-tone: #563c70;
+  --c7-control-active: #735093;
+}
+#s-char .c7-tab[data-csub="hero"] {
+  --c7-control-tone: #793c45;
+  --c7-control-active: #984953;
+}
+
+#s-char .c7-tab,
+#s-char .c7-acts > button:is(.g-sign, .c7-recb) {
+  position: relative;
+  isolation: isolate;
+}
+
+#s-char .c7-tab::before,
+#s-char .c7-acts > button:is(.g-sign, .c7-recb):not(:disabled)::before {
+  content: '';
+  display: block;
+  position: absolute;
+  z-index: -1;
+  inset: 6px 7px;
+  width: auto;
+  height: auto;
+  margin: 0;
+  border: 0;
+  border-radius: 5px;
+  background: var(--c7-control-tone);
+  opacity: 0.82;
+  box-shadow: inset 0 1px 0 #fff1d024;
+  pointer-events: none;
+}
+
+#s-char .c7-tab,
+#s-char .c7-tab[aria-selected="true"] {
+  color: var(--a2-ink, #fff1d0);
+  text-shadow: 0 1px 2px #131a23;
+}
+#s-char .c7-tab[aria-selected="true"] {
+  outline: 2px solid #f4d483;
+  outline-offset: -2px;
+  box-shadow: 0 0 0 1px #5a3a1c, 0 0 9px #e8c77a66;
+}
+#s-char .c7-tab[aria-selected="true"]::before {
+  background-color: var(--c7-control-active);
+  opacity: 0.96;
+  box-shadow: inset 0 1px 0 #fff1d04a;
+}
+
+/* The whole action row uses one frame; each enabled action keeps a distinct role color. */
+#s-char .c7-acts > [data-bag] { --c7-control-tone: #245a83; }
+#s-char .c7-acts > [data-rec] { --c7-control-tone: #386c48; }
+#s-char .c7-acts > [data-salvbag] { --c7-control-tone: #803d4c; }
+#s-char .c7-acts > button:is(.g-sign, .c7-recb):not(:disabled) {
+  color: var(--a2-ink, #fff1d0);
+  text-shadow: 0 1px 2px #171716;
+}
+#s-char .c7-acts > button:is(.g-sign, .c7-recb):not(:disabled)::before {
+  inset: 7px 8px;
+  border-radius: 6px;
+  opacity: 0.88;
+}
+#s-char .c7-acts > [data-bag]:not(:disabled) small { color: #e3eff8; }
+
+/* Disabled controls intentionally receive no tint, keeping their existing grey/filter state. */
+#s-char .c7-tab:focus-visible,
+#s-char .c7-acts > button:is(.g-sign, .c7-recb):focus-visible {
+  outline: 3px solid #ffe3a0;
+  outline-offset: 1px;
+}
