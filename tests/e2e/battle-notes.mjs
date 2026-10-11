@@ -100,21 +100,25 @@ export default async function battleNotes(url, shots) {
     if (board.n >= 10) {
       // 붙일 자리가 없는 사람의 기믹 말풍선은 생략 (2026-10-11 Lim 「자리가 없으면 말풍선 생략」): 판에도, 전투 메시지에도 안 뜸
       let skipped = null;
+      await page.clock.runFor(1500); // 앞 검사의 말풍선이 모두 사라진 뒤 (다른 말풍선 때문에 기다리는 경우와 구분)
       for (const id of ids) {
         await fill();
         const nick = await page.evaluate(id => { window.__proto.say(id, '폭탄! 다들 흩어져!', 'call', 1500); return window.__proto.F.party.find(u => u.id === id).nick; }, id);
-        await page.clock.runFor(120);
         const look = () => page.evaluate(id => ({ toast: document.querySelector('#toast').textContent,
           onBoard: JSON.parse(document.querySelector('#board').dataset.decorationBounds || '[]').some(b => b.key === `bubble${id}`) }), id);
-        const first = await look();
-        if (first.onBoard) { await page.clock.runFor(1500); continue; }
-        await page.clock.runFor(1400); // 기다리는 시간(1.2초)이 지나도 자리가 안 나면 버림
+        // 기다리는 시간(1.2초) 동안 한 번도 못 뜨면 버림. 그 사이 자리가 나서 뜨면 (전투가 실제 시간으로 흘러 사람이 움직임) 다음 사람으로
+        const seen = [];
+        let shown = false;
+        for (let t = 0; t < 15 && !shown; t++) { await page.clock.runFor(100); const g = await look(); seen.push(g.toast); shown = g.onBoard; }
+        if (shown) { await page.clock.runFor(1500); continue; }
+        await page.clock.runFor(300);
         const later = await look();
-        skipped = { id, nick, first, later };
+        skipped = { id, nick, later, toasts: [...new Set([...seen, later.toast])] };
         break;
       }
-      ok(!!skipped && !skipped.later.onBoard && ![skipped.first.toast, skipped.later.toast].some(t => t.includes('폭탄! 다들 흩어져!')),
-        `${tag}: 판에 붙일 자리가 없는 기믹 말풍선은 생략 (전투 메시지로도 안 넘김)`, skipped);
+      // 5인 모양 판은 칸 사이가 넓어 모두 자리가 있을 수 있음
+      ok(skipped ? !skipped.later.onBoard && !skipped.toasts.some(t => t.includes('폭탄! 다들 흩어져!')) : !!board.five,
+        `${tag}: 판에 붙일 자리가 없는 기믹 말풍선은 생략 (전투 메시지로도 안 넘김)${skipped ? '' : ' · 모두 자리 있음'}`, skipped);
     }
     if (name === 'S25') await page.screenshot({ path: `${shots}/notes_bubbles_${board.n}${board.five ? 'f' : ''}.png` });
 
