@@ -806,6 +806,9 @@ export const CHOIR = {
 /** 전염이 터질 때 (26 3-1): 이웃 칸에 피해 + 독침 */
 export const SPREAD = { dmg: 150, debuff: { name: '독침', type: '독', left: 12, dot: 15 } satisfies DebuffDef };
 
+/** 심연 쌍둥이 기사 흑 · 백 (62 3-4 던전 ㊴, 묶음 H4): 몸통 둘, 체력은 encounters heukbaek hp를 둘로 나눔 */
+const H4_TWIN_KNIGHTS = ['흑', '백'];
+
 /** 보스 기술 (05, 23, 26). 일반·정예 구간(trash)은 encounters.ts의 적 목록 */
 export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
   // 고철 경비병 (23 3장): 문지기를 순하게 줄인 첫 보스. 탱커 버스터 + 광역만
@@ -4564,6 +4567,312 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '저주받은 서명', type: '저주', left: 8, dot: 15, end: { p: 'hit', dmg: 280 } } } },
     ],
     enrage: { name: '서기관 폭주', period: 2, dmg: 200 },
+  },
+  // ---------- 묶음 H4 (62 3-4, Lv 82~100): 새 부품 없이 있는 부품의 새 조합. 탐험판은 던전 보스 기술 3~4개를 작게 (39 1-1) ----------
+  // ---------- 묶음 H4 던전 ㊱ 깃털단 비행 훈련장 (62 3-4, Lv 83 · 폭풍 깃털단 · 저주 · 마법): 휘파람 · 회오리 ----------
+  // 하피 교관 휘파람 (①): 띄워 올리기 (2명, 내려올 때 낙하 피해: 구름 우체국 속달 돌풍을 5인으로) · 깃털 저주 (저주 2명) · 급강하 (뒷줄 → 가운데 → 앞줄 줄 피해).
+  // 악몽은 띄워 올리기 3명. 목표 3:00 · 광폭화 4:00
+  hwiparam: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('발톱 할퀴기', '발톱', 8, 14, U.tank(0.5)),
+      { key: 'lift', name: '띄워 올리기', icon: '띄움', kind: 'buster', first: 14, period: 22, cast: 2.5, warn: 'buster', target: { p: 'random', n: 2, nMythic: 3 },
+        how: `${LIFT_HOW}. 휘파람 한 번에 2명 (악몽 3명)`,
+        effect: { p: 'lift', sec: 5, fall: U.dps(0.2) } },
+      { key: 'curse', name: '깃털 저주', icon: '깃털', kind: 'instant', first: 6, period: 16, cast: 0,
+        how: '2명에게 저주 (초당 딜체 2%). 드루이드만 지움. 띄워진 사람에게 걸리면 내려올 때까지 못 지움', effect: { p: 'debuff', n: 2, debuff: FEATHER } },
+      ...rows('dive', '급강하', '강하', 18, 20, U.dps(0.22), false),
+    ],
+    enrage: { name: '비행 훈련 폭주', period: 2, dmg: 240 },
+  },
+  // 바람 정령 회오리 (최종): 회오리 (끌어당김: 뒷줄 둘을 보스 앞으로) × 연쇄 번개 (끌려와 붙어 선 사람 사이로 튐) · 바람 장벽 (피난처: 한쪽 끝 금빛 칸 밖은 모두 맞음) · 정전기 바람 (마법).
+  // 악몽은 피난처 칸 하나 모자람 (한 명은 맞음). 목표 3:30 · 광폭화 5:00
+  hoeori: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('돌풍 주먹', '주먹', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'whirl', name: '회오리', icon: '회오', kind: 'buster', first: 12, period: 20, cast: 2, warn: 'buster', target: { p: 'back', n: 2 },
+        how: '뒷줄 둘이 보스 앞으로 끌려와 4초 동안 평타를 나눠 맞음. 곧 연쇄 번개가 붙어 선 사람 사이로 튀니 끌려온 사람을 90% 위로',
+        effect: { p: 'pull', sec: 4, dmg: U.dps(0.12) } },
+      { key: 'bolt', name: '연쇄 번개', icon: '번개', kind: 'buster', first: 15, period: 20, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, how: CHAIN_HOW,
+        effect: { p: 'chain', dmg: U.dps(0.3), jumps: 3 } },
+      { key: 'wall', name: '바람 장벽', icon: '장벽', kind: 'zone', first: 26, period: 30, cast: 4, warn: 'zone', hitDmg: U.dps(0.45), cells: { p: 'safe', at: 'side', n: 5, nMythic: 4 },
+        how: '한쪽 끝 바람 장벽 뒤 금빛 칸으로 피함. 그 밖은 모두 맞음. 악몽은 칸이 하나 모자라 한 명은 맞으니 미리 채우기' },
+      { key: 'static', name: '정전기 바람', icon: '정전', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '2명이 받는 치유 −25% (마법). 연쇄 번개 전에 지워 90%까지 채우기',
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '정전기 바람', type: '마법', left: 10, healCut: 0.25 } } },
+    ],
+    enrage: { name: '대회오리', period: 2, dmg: 240 },
+  },
+  // 하피 교관 휘파람 탐험판 (탐험 ㊹ 구름 다리 Lv 82): 던전 ㊱ ①의 평타 · 발톱 할퀴기 · 띄워 올리기 · 깃털 저주만 (급강하는 7칸 판이라 뺌)
+  hwiparam82: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('발톱 할퀴기', '발톱', 8, 16, 360),
+      { key: 'lift', name: '띄워 올리기', icon: '띄움', kind: 'buster', first: 12, period: 20, cast: 2.5, warn: 'buster', target: { p: 'random', n: 1 }, how: LIFT_HOW,
+        effect: { p: 'lift', sec: 5, fall: 160 } },
+      { key: 'curse', name: '깃털 저주', icon: '깃털', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { ...FEATHER, dot: 22 } } },
+    ],
+    enrage: { name: '비행 훈련 폭주', period: 2, dmg: 200 },
+  },
+  // 바람 정령 회오리 탐험판 (탐험 ㊺ 번개 구름 목초지 Lv 86): 던전 ㊱ ②의 평타 · 회오리 · 연쇄 번개 · 정전기 바람만 (바람 장벽은 7칸 판이라 뺌)
+  hoeori86: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('돌풍 주먹', '주먹', 8, 16, 370),
+      { key: 'whirl', name: '회오리', icon: '회오', kind: 'buster', first: 12, period: 20, cast: 2, warn: 'buster', target: { p: 'back', n: 1 },
+        how: '원거리 딜러가 보스 앞으로 끌려와 4초 동안 평타를 나눠 맞음. 끌려온 사람을 먼저', effect: { p: 'pull', sec: 4, dmg: 70 } },
+      { key: 'bolt', name: '연쇄 번개', icon: '번개', kind: 'buster', first: 15, period: 20, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, how: CHAIN_HOW,
+        effect: { p: 'chain', dmg: 120, jumps: 2 } },
+      { key: 'static', name: '정전기 바람', icon: '정전', kind: 'instant', first: 6, period: 18, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '정전기 바람', type: '마법', left: 10, healCut: 0.25 } } },
+    ],
+    enrage: { name: '대회오리', period: 2, dmg: 200 },
+  },
+  // ---------- 묶음 H4 던전 ㊲ 구름 도서관 탑 (62 3-4, Lv 88 · 폭주한 마도사 · 마법): 펄럭이 · 쉿 ----------
+  // 날아다니는 책 펄럭이 (①): 책장 회오리 (쫄 떼: 날아다니는 책 3, 범위 딜로 같이 잡힘) · 침묵 페이지 (나에게 마법: 스킬을 쓸 때마다 중첩 → 끝날 때 중첩만큼 피해, 마력 역류 부품) · 종이 베기 (무작위 3명).
+  // 쫄이 딜 시간을 먹어 체력 10% 낮춤. 악몽은 날아다니는 책 4. 목표 2:45 · 광폭화 4:00
+  peoleok: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('표지 덮치기', '표지', 8, 14, U.tank(0.5)),
+      { key: 'books', name: '책장 회오리', icon: '책장', kind: 'instant', first: 14, period: 30, cast: 0,
+        how: '날아다니는 책 3권 (악몽 4권)이 딜러를 때림. 범위 딜로 같이 잡히니 그동안 맞는 딜러를 채우기',
+        effect: { p: 'adds', n: 3, nMythic: 4, add: { name: '날아다니는 책', short: '책', art: 'mob-flying-book', hp: 0.015, dmg: U.dps(0.025), every: 2, cleave: true } } },
+      { key: 'page', name: '침묵 페이지', icon: '침묵', kind: 'instant', first: 9, period: 24, cast: 0,
+        how: '나에게 마법: 10초 동안 스킬을 쓸 때마다 1중첩, 끝나거나 지울 때 중첩마다 내 체력 7%. 0~1중첩일 때 바로 지우거나 꼭 필요한 힐만',
+        effect: { p: 'debuff', n: 1, pick: 'me', debuff: { name: '침묵 페이지', type: '마법', left: 10, count: true, end: { p: 'stackHit', dmg: U.me(0.07) } } } },
+      { key: 'paper', name: '종이 베기', icon: '종이', kind: 'buster', first: 18, period: 20, cast: 2, warn: 'buster', target: { p: 'random', n: 3 },
+        how: '탱커 아닌 3명이 베임. 예고 동안 셋을 미리 채우기', effect: { p: 'strike', dmg: U.dps(0.2) } },
+    ],
+    enrage: { name: '서가 폭풍', period: 2, dmg: 240 },
+  },
+  // 사서 유령 쉿 (최종): 넘치는 빛 그릇 (12초 동안 넘친 치유를 모아 가득 차면 전원 보호막 → 곧 오는 장서 폭풍을 막음, 구름 마법학교 거품 플라스크)
+  // · 뒤집힌 페이지 (뒤집힘: 12초 뒤 체력 비율이 뒤집힘, 40~60%로 맞추기) · 조용히 (2초 시전 불가: 그릇을 채울 때 긴 시전이 끊김). 악몽은 뒤집힌 페이지 2명. 목표 3:30 · 광폭화 5:00
+  swit: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('두꺼운 장부', '장부', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'bowl', name: '넘치는 빛 그릇', icon: '그릇', kind: 'instant', first: 14, period: 30, cast: 0,
+        how: '12초 동안 넘친 치유가 그릇에 모임. 가득 차면 전원 보호막이라 곧 올 장서 폭풍이 가벼움. 광역 힐 · 큰 힐을 일부러 넘치게 (뒤집힌 페이지가 걸린 사람은 빼고)',
+        effect: { p: 'vessel', name: '넘치는 빛 그릇', need: 0.25, sec: 12, shield: 8 } },
+      { key: 'storm', name: '장서 폭풍', icon: '폭풍', kind: 'aoe', first: 27, period: 30, cast: 3, warn: 'aoe',
+        how: '그릇이 차면 보호막으로 막음. 못 채웠으면 맞기 전에 광역 선힐', effect: { p: 'all', dmg: U.dps(0.3) } },
+      { key: 'flip', name: '뒤집힌 페이지', icon: '뒤집', kind: 'instant', first: 8, period: 20, cast: 0,
+        how: '탱커 아닌 사람이 12초 뒤 체력 비율이 뒤집힘 (가장 낮아도 25%). 마법이라 지워도 됨. 못 지우면 끝나기 전에 40~60%로 (높으면 과힐 금지)',
+        effect: { p: 'debuff', n: 1, nMythic: 2, pick: 'others', debuff: { name: '뒤집힌 페이지', type: '마법', left: 12, end: { p: 'flip', min: 0.25 } } } },
+      { key: 'hush', name: '조용히', icon: '조용', kind: 'aoe', first: 22, period: 15, cast: 2, warn: 'aoe',
+        how: '2초 동안 시전 시간이 있는 스킬을 못 쓰고, 시전 중이면 끊김. 그릇을 채울 때는 즉시 스킬 · 지속 힐로', effect: { p: 'beat', sec: 2 } },
+    ],
+    enrage: { name: '서고 대폐관', period: 2, dmg: 240 },
+  },
+  // 사서 유령 쉿 탐험판 (탐험 ㊻ 빗자루 경주로 Lv 90): 던전 ㊲ ②의 평타 · 넘치는 빛 그릇 + 장서 폭풍 · 뒤집힌 페이지 · 조용히만
+  swit90: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'bowl', name: '넘치는 빛 그릇', icon: '그릇', kind: 'instant', first: 12, period: 26, cast: 0,
+        how: '12초 동안 넘친 치유가 그릇에 모임. 가득 차면 전원 보호막이라 곧 올 장서 폭풍이 가벼움',
+        effect: { p: 'vessel', name: '넘치는 빛 그릇', need: 0.25, sec: 12, shield: 8 } },
+      { key: 'storm', name: '장서 폭풍', icon: '폭풍', kind: 'aoe', first: 25, period: 26, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: 180 } },
+      { key: 'flip', name: '뒤집힌 페이지', icon: '뒤집', kind: 'instant', first: 8, period: 18, cast: 0,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '뒤집힌 페이지', type: '마법', left: 12, end: { p: 'flip', min: 0.25 } } } },
+      { key: 'hush', name: '조용히', icon: '조용', kind: 'aoe', first: 20, period: 26, cast: 2, warn: 'aoe',
+        how: '2초 동안 시전 시간이 있는 스킬을 못 쓰고, 시전 중이면 끊김. 예고가 뜨면 즉시 스킬로', effect: { p: 'beat', sec: 2 } },
+    ],
+    enrage: { name: '서고 대폐관', period: 2, dmg: 200 },
+  },
+  // ---------- 묶음 H4 던전 ㊳ 가라앉은 장미 정원 (62 3-4, Lv 93 · 몰락한 귀족가 · 저주): 가위손 · 로살린 ----------
+  // 정원사 유령 가위손 (①): 가시 덩굴 (생명 사슬 균형형: 두 사람 체력 비율 차이가 30%를 넘으면 끊어지며 둘 다 아픔) · 장미 저주 (덩굴에 묶인 사람 먼저 저주 2명: 짝이 벌어짐)
+  // · 가지치기 (뒷줄 → 가운데 → 앞줄 줄 피해, 무도회 행진). 악몽은 가시 덩굴 2쌍. 목표 3:00 · 광폭화 4:00
+  gawison: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('큰 가위 싹둑', '싹둑', 8, 14, U.tank(0.5)),
+      { key: 'vine', name: '가시 덩굴', icon: '덩굴', kind: 'instant', first: 10, period: 24, cast: 0,
+        how: '두 사람 (악몽 두 쌍)이 14초 동안 이어짐. 체력 비율 차이가 30%를 넘으면 끊어지며 둘 다 아픔. 짝을 비슷하게 채우기',
+        effect: { p: 'link', kind: 'balance', name: '가시 덩굴', sec: 14, gap: 0.3, dmg: U.dps(0.35), pairs: 1, pairsMythic: 2 } },
+      { key: 'rose', name: '장미 저주', icon: '장미', kind: 'instant', first: 12, period: 16, cast: 0,
+        how: '덩굴에 묶인 사람 먼저 2명에게 저주 (초당 딜체 2%). 짝이 벌어지니 드루이드는 지우고, 아니면 짝을 같이 채우기',
+        effect: { p: 'debuff', n: 2, pick: 'linked', debuff: { name: '장미 저주', type: '저주', left: 10, dot: U.dps(0.02) } } },
+      ...rows('prune', '가지치기', '가지', 16, 20, U.dps(0.22), false),
+    ],
+    enrage: { name: '정원 폭주', period: 2, dmg: 240 },
+  },
+  // 대공비 유령 로살린 (최종): 어둠물 밀물 (아래 1줄 → 40% 아래 2줄) × 거꾸로 꽃향기 (뒤집힌 축복: 받는 치유가 피해, 잠기면 두 배) · 꽃잎 회오리 (광역, 잠긴 줄에 선 사람은 한 번 더).
+  // 「잠긴 줄에 두 배」는 광역과 같은 순간 잠긴 줄에만 떨어지는 못 피하는 줄 피해 (숨김, 밀물 창 안에 맞게 시각을 맞춤)로 만듦. 악몽은 거꾸로 꽃향기 2명. 목표 3:30 · 광폭화 5:00
+  rosalin: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('장미 홀 내려치기', '장미', 8, 15, U.tank(0.55)), cast: 2.5 },
+      ...tides('tide', '어둠물 밀물', '밀물', 12, 22, 1, 8, { when: { phase: [1] } }),
+      ...tides('tide2', '어둠물 밀물', '밀물', null, 18, 2, 8, { when: { phase: [2] } }),
+      { key: 'scent', name: '거꾸로 꽃향기', icon: '향기', kind: 'instant', first: 9, period: 18, cast: 0,
+        how: '탱커 아닌 사람이 8초 동안 받는 치유가 피해로 바뀜 (어둠물에 잠기면 2배). 드루이드는 지움, 아니면 그 사람만 빼고 힐 (광역 힐 조심)',
+        effect: { p: 'debuff', n: 1, nMythic: 2, pick: 'others', debuff: { name: '거꾸로 꽃향기', type: '저주', left: 8, invert: true } } },
+      // 꽃잎 회오리: 1페이즈 밀물 창 (15~23초) 안 19.5초, 2페이즈 밀물 (흐름 3초 뒤 + 예고 3초) 안 7.5초에 맞음. 숨긴 줄 피해가 같은 순간 잠긴 줄에
+      { key: 'petal', name: '꽃잎 회오리', icon: '꽃잎', kind: 'aoe', first: 17, period: 22, cast: 2.5, warn: 'aoe', when: { phase: [1] },
+        how: '전원 광역. 어둠물에 잠긴 줄에 선 사람은 한 번 더 맞음 (두 배). 밀물 예고 동안 잠길 줄 사람을 먼저 채우기', effect: { p: 'all', dmg: U.dps(0.16) } },
+      { key: 'petalw', name: '꽃잎 회오리', icon: '꽃잎', kind: 'zone', hidden: true, first: 17, period: 22, cast: 2.5, warn: 'zone', fixed: true, hitDmg: U.dps(0.16), cells: { p: 'line', at: 'back' }, when: { phase: [1] } },
+      { key: 'petal2', name: '꽃잎 회오리', icon: '꽃잎', kind: 'aoe', hidden: true, first: null, period: 18, cast: 2.5, warn: 'aoe', when: { phase: [2] }, effect: { p: 'all', dmg: U.dps(0.16) } },
+      { key: 'petalw2', name: '꽃잎 회오리', icon: '꽃잎', kind: 'zone', hidden: true, first: null, period: 18, cast: 2.5, warn: 'zone', fixed: true, hitDmg: U.dps(0.16), cells: { p: 'line', at: 'mid' }, when: { phase: [2] } },
+      { key: 'petalw3', name: '꽃잎 회오리', icon: '꽃잎', kind: 'zone', hidden: true, first: null, period: 18, cast: 2.5, warn: 'zone', fixed: true, hitDmg: U.dps(0.16), cells: { p: 'line', at: 'back' }, when: { phase: [2] } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'tide2', in: 3 },
+      { p: 'start', skill: 'petal2', in: 5 }, { p: 'start', skill: 'petalw2', in: 5 }, { p: 'start', skill: 'petalw3', in: 5 },
+      { p: 'text', text: '마지막 무도: 어둠물이 아래 두 줄까지, 꽃잎 회오리가 두 줄에' },
+    ] }],
+    enrage: { name: '시든 장미의 왈츠', period: 2, dmg: 240 },
+  },
+  // 정원사 유령 가위손 탐험판 (탐험 ㊼ 호수 밑 연꽃길 Lv 94): 던전 ㊳ ①의 평타 · 큰 가위 · 가시 덩굴 · 장미 저주만 (가지치기는 7칸 판이라 뺌)
+  gawison94: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('큰 가위 싹둑', '싹둑', 8, 16, 370),
+      { key: 'vine', name: '가시 덩굴', icon: '덩굴', kind: 'instant', first: 10, period: 24, cast: 0,
+        how: '두 사람이 12초 동안 이어짐. 체력 비율 차이가 30%를 넘으면 끊어지며 둘 다 아픔', effect: { p: 'link', kind: 'balance', name: '가시 덩굴', sec: 12, gap: 0.3, dmg: 160 } },
+      { key: 'rose', name: '장미 저주', icon: '장미', kind: 'instant', first: 12, period: 16, cast: 0,
+        effect: { p: 'debuff', n: 1, pick: 'linked', debuff: { name: '장미 저주', type: '저주', left: 10, dot: 22 } } },
+    ],
+    enrage: { name: '정원 폭주', period: 2, dmg: 200 },
+  },
+  // ---------- 묶음 H4 던전 ㊴ 심연 정예 병영 (62 3-4, Lv 98 · 심연의 정예 · 4유형): 칼날 · 흑 · 백 ----------
+  // 그림자 훈련교관 칼날 (①): 그림자 행진 (정해진 줄 피해: 그림자 진영 질풍의 기병 돌격) · 차례 (번호 순서대로 힐하면 4초 멍함: 칠흑 마지막 진형) · 훈련 덫 (함정 디버프: 지우면 이웃 칸, 두면 그 사람)
+  // · 군영 역병 (독 · 질병). 악몽은 차례 4명. 목표 3:00 · 광폭화 4:00
+  kalnal: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('곧은 검 내려치기', '검', 8, 14, U.tank(0.5)),
+      ...rows('march', '그림자 행진', '행진', 14, 18, U.dps(0.22), false),
+      { key: 'order', name: '차례', icon: '차례', kind: 'instant', first: 20, period: 30, cast: 0,
+        how: '번호 ①②③ (악몽 ①~④) 순서대로 단일 힐을 한 번씩 (8초) 넣으면 칼날이 4초 멍함. 틀리면 그 사람이 아프고 처음부터',
+        effect: { p: 'order', n: 3, nMythic: 4, sec: 8, wrong: U.dps(0.15), miss: U.dps(0.25), daze: { sec: 4, vuln: 1.2 } } },
+      { key: 'trap', name: '훈련 덫', icon: '덫', kind: 'instant', first: 10, period: 18, cast: 0,
+        how: '함정: 두면 8초 뒤 그 사람 딜체 30%, 지우면 이웃 칸 사람이 조금씩 맞음. 이웃이 비었을 때 지우거나, 그 사람을 채워 버티기',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '훈련 덫', type: '마법', left: 8, trap: true, end: { p: 'trapHit', dmg: U.dps(0.3), burst: U.dps(0.15) } } } },
+      { key: 'plague', name: '군영 역병', icon: '역병', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '2명에게 독 (녹슨 창날) 또는 질병 (군영 역병) 무작위, 초당 딜체 2%', effect: { p: 'cycle', n: 2, random: true, debuffs: CAMP_PLAGUE } },
+    ],
+    enrage: { name: '병영 총돌격', period: 2, dmg: 240 },
+  },
+  // 심연 쌍둥이 기사 흑 · 백 (최종): 두 몸 (고르게 깎아야, 먼저 하나가 쓰러지면 남은 쪽 +30%: 견습생 쌍둥이 지지 · 직직) · 빌린 생명 (빚 2명) · 퍼지는 박동 (심장 쉬운 판: 3겹, 빚진 사람이 맞으면 빚 +20%)
+  // · 그림자 손길 (4유형). 악몽은 빚 3명. 목표 3:30 · 광폭화 5:00
+  heukbaek: {
+    phase: [1, ''],
+    bodies: H4_TWIN_KNIGHTS.map(name => ({ name, hp: 3600, boss: true })),
+    split: true,
+    skills: [
+      ...H4_TWIN_KNIGHTS.map((_, i): SkillDef => ({ ...AUTO(U.tank(0.035)), key: `auto${i}`, first: 2 + i * 0.8, when: { bodyAlive: [i] } })),
+      { ...BUSTER('쌍검 내려치기', '쌍검', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'loan', name: '빌린 생명', icon: '대출', kind: 'instant', first: 8, period: 20, cast: 0, how: `${DEBT_HOW}. 2명 (악몽 3명)`,
+        effect: { p: 'debuff', n: 2, nMythic: 3, pick: 'others', debuff: loan('빌린 생명') } },
+      ...pulses('pulse', '퍼지는 박동', '박동', 14, 20, U.dps(0.18), { hitDebt: 0.2,
+        how: '판 가운데 겹부터 바깥 겹으로 0.5초 차이로 3겹 (못 피함). 빚진 사람이 맞으면 남은 빚 +20%라 박동 전에 빚을 갚기' }),
+      { key: 'touch', name: '그림자 손길', icon: '손길', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '2명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 2, random: true, debuffs: SHADOW_TOUCH } },
+      ...H4_TWIN_KNIGHTS.map((_, i): SkillDef => ({ key: `cry${i}`, name: '짝 잃은 분노', icon: '분노', hidden: true, first: null, period: 9999, cast: 0,
+        how: '하나가 먼저 쓰러지면 남은 쪽 피해 +30% (끝까지). 둘을 고르게 깎기', effect: { p: 'empower', boost: 0.3 } })),
+    ],
+    flow: H4_TWIN_KNIGHTS.map((_, i): FlowStep => ({ p: 'when', if: { idle: `cry${1 - i}`, bodiesDead: [i] }, do: [{ p: 'start', skill: `cry${1 - i}`, in: 0 }] })),
+    enrage: { name: '쌍둥이 돌격', period: 2, dmg: 240 },
+  },
+  // 그림자 훈련교관 칼날 탐험판 (탐험 ㊽ 그림자 초소 Lv 98): 던전 ㊴ ①의 평타 · 곧은 검 · 차례 (2명) · 훈련 덫만 (그림자 행진은 7칸 판이라 뺌)
+  kalnal98: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('곧은 검 내려치기', '검', 8, 16, 380),
+      { key: 'order', name: '차례', icon: '차례', kind: 'instant', first: 18, period: 28, cast: 0,
+        how: '번호 ①② 순서대로 단일 힐을 한 번씩 (8초) 넣으면 칼날이 4초 멍함',
+        effect: { p: 'order', n: 2, sec: 8, wrong: 130, miss: 105, daze: { sec: 4, vuln: 1.2 } } },
+      { key: 'trap', name: '훈련 덫', icon: '덫', kind: 'instant', first: 10, period: 18, cast: 0,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '훈련 덫', type: '마법', left: 8, trap: true, end: { p: 'trapHit', dmg: 200, burst: 100 } } } },
+    ],
+    enrage: { name: '병영 총돌격', period: 2, dmg: 200 },
+  },
+  // ---------- 묶음 H4 던전 ㊵ 별빛 수정 동굴 (62 3-4, Lv 99 · 심연의 정예 · 4유형, 이야기 뒤): 반짝돌 · 마지막 메아리 ----------
+  // 수정 거인 반짝돌 (①): 수정 갑옷 (유리 부품 = 치유 흡수 막: 들어오는 치유가 먼저 막을 녹이고, 못 녹이면 끝날 때 아픔. 눈꽃 연구소 얼음 갑옷) × 프리즘 빛 (연쇄 번개: 체력 비율 낮은 이웃으로 튐)
+  // · 땅 울림 (진동) · 수정 가루 (4유형). 악몽은 수정 갑옷 3명. 목표 3:00 · 광폭화 4:00
+  banjjak: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      BUSTER('수정 주먹', '주먹', 8, 14, U.tank(0.5)),
+      { key: 'armor', name: '수정 갑옷', icon: '갑옷', kind: 'instant', first: 9, period: 20, cast: 0,
+        how: '2명 (악몽 3명)이 수정 막에 덮임: 들어오는 치유가 먼저 막을 녹이고 (그동안 체력은 안 참), 12초 안에 못 녹이면 아픔. 해제 안 됨. 프리즘 빛이 낮은 사람에게 튀니 막을 먼저 녹이기',
+        effect: { p: 'debuff', n: 2, nMythic: 3, pick: 'others', debuff: { name: '수정 갑옷', type: '마법', left: 12, lock: true, absorb: U.dps(0.35), end: { p: 'hit', dmg: U.dps(0.3) } } } },
+      { key: 'prism', name: '프리즘 빛', icon: '프리', kind: 'buster', first: 14, period: 16, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, how: CHAIN_HOW,
+        effect: { p: 'chain', dmg: U.dps(0.3), jumps: 3 } },
+      { key: 'quake', name: '땅 울림', icon: '울림', kind: 'aoe', first: 20, period: 22, cast: 2, warn: 'aoe',
+        how: '진동: 맞는 순간 시전 중인 힐이 끊기고 3초 잠김. 예고가 뜨면 즉시 스킬 · 지속 힐로', effect: { p: 'quake', dmg: U.dps(0.12), lock: 3 } },
+      { key: 'dust', name: '수정 가루', icon: '가루', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '2명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 2, random: true, debuffs: CRYSTAL_DUST } },
+    ],
+    enrage: { name: '수정 폭주', period: 2, dmg: 240 },
+  },
+  // 마지막 메아리 (최종): 메아리 (앞 기술을 4초 뒤 다시: 쌍검 · 퍼지는 박동을 4초 늦은 한 벌로 더 둠) · 어둠물 밀물 (40% 아래 2줄) · 빌린 생명 · 그림자 손길 (4유형).
+  // 20인 심장 (퍼지는 박동) · 무도회장 (밀물) · 등불길 (빌린 생명)을 5인으로 다시 보기. 악몽은 빌린 생명 2명. 목표 3:30 · 광폭화 5:00
+  lastecho: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('빛 손바닥', '손바', 8, 15, U.tank(0.5)), cast: 2.5 },
+      { ...BUSTER('메아리: 빛 손바닥', '메아', 12, 15, U.tank(0.35)), key: 'busterecho', cast: 2.5 },
+      ...tides('tide', '어둠물 밀물', '밀물', 12, 22, 1, 8, { when: { phase: [1] } }),
+      ...tides('tide2', '어둠물 밀물', '밀물', null, 22, 2, 8, { when: { phase: [2] } }),
+      { key: 'loan', name: '빌린 생명', icon: '대출', kind: 'instant', first: 8, period: 20, cast: 0, how: `${DEBT_HOW}. 악몽은 2명`,
+        effect: { p: 'debuff', n: 1, nMythic: 2, pick: 'others', debuff: loan('빌린 생명') } },
+      ...pulses('pulse', '퍼지는 박동', '박동', 16, 22, U.dps(0.16), { hitDebt: 0.2,
+        how: '판 가운데 겹부터 바깥 겹으로 0.5초 차이로 3겹 (못 피함). 4초 뒤 메아리가 한 번 더 오니 두 번 사이에 광역으로 채우기. 빚진 사람이 맞으면 남은 빚 +20%' }),
+      ...pulses('echo', '메아리: 퍼지는 박동', '메아', 20, 22, U.dps(0.12), { hitDebt: 0.2, how: '바로 앞 퍼지는 박동을 4초 뒤 한 번 더 (조금 약함)' }),
+      { key: 'touch', name: '그림자 손길', icon: '손길', kind: 'instant', first: 6, period: 18, cast: 0,
+        how: '2명에게 질병 · 독 · 저주 · 마법 중 하나씩 무작위. 지울 수 있는 것부터', effect: { p: 'cycle', n: 2, random: true, debuffs: SHADOW_TOUCH } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'tide2', in: 3 },
+      { p: 'text', text: '끝나지 않는 메아리: 어둠물이 아래 두 줄까지' },
+    ] }],
+    enrage: { name: '마지막 울림', period: 2, dmg: 240 },
+  },
+  // 수정 거인 반짝돌 탐험판 (탐험 ㊾ 아침 햇살 언덕 Lv 99): 던전 ㊵ ①의 평타 · 수정 주먹 · 수정 갑옷 (1명) · 프리즘 빛 · 수정 가루만 (땅 울림은 뺌)
+  banjjak99: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('수정 주먹', '주먹', 8, 16, 380),
+      { key: 'armor', name: '수정 갑옷', icon: '갑옷', kind: 'instant', first: 9, period: 20, cast: 0,
+        how: '수정 막에 덮인 사람은 들어오는 치유가 먼저 막을 녹임. 12초 안에 못 녹이면 아픔 (해제 안 됨)',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '수정 갑옷', type: '마법', left: 12, lock: true, absorb: 250, end: { p: 'hit', dmg: 200 } } } },
+      { key: 'prism', name: '프리즘 빛', icon: '프리', kind: 'buster', first: 14, period: 16, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, how: CHAIN_HOW,
+        effect: { p: 'chain', dmg: 120, jumps: 2 } },
+      { key: 'dust', name: '수정 가루', icon: '가루', kind: 'instant', first: 6, period: 18, cast: 0, effect: { p: 'cycle', n: 1, random: true, debuffs: CRYSTAL_DUST } },
+    ],
+    enrage: { name: '수정 폭주', period: 2, dmg: 200 },
+  },
+  // 마지막 메아리 탐험판 (탐험 ㊿ 물빛 정원 Lv 97): 던전 ㊵ ②의 평타 · 퍼지는 박동 + 메아리 · 어둠물 밀물 (1줄) · 빌린 생명만
+  lastecho97: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      ...pulses('pulse', '퍼지는 박동', '박동', 10, 18, 70, { how: '판 가운데 칸부터 바깥 칸으로 0.5초 차이로 3겹 (못 피함). 4초 뒤 메아리가 한 번 더' }),
+      ...pulses('echo', '메아리: 퍼지는 박동', '메아', 14, 18, 55, { how: '바로 앞 퍼지는 박동을 4초 뒤 한 번 더 (조금 약함)' }),
+      ...tides('tide', '어둠물 밀물', '밀물', 16, 22, 1, 8),
+      { key: 'loan', name: '빌린 생명', icon: '대출', kind: 'instant', first: 8, period: 20, cast: 0, how: DEBT_HOW,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: loan('빌린 생명') } },
+    ],
+    enrage: { name: '마지막 울림', period: 2, dmg: 200 },
   },
 };
 

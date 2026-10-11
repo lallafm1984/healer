@@ -8,7 +8,8 @@ export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt'
   | 'deepstairs' | 'hourglass' | 'caravan' | 'pinwheel' | 'observatory' | 'ranch' | 'windmill' | 'station' | 'school' | 'carriage' | 'ballroom' | 'lantern' | 'dawn' | 'heartcrack'
   | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest'
   | 'granary' | 'scarefield' | 'smuggler' | 'reef' | 'frostgarden' | 'dorm' | 'cultcamp' | 'apothecary' | 'rooftop' | 'bakery' | 'dewhill' | 'mushmarsh' | 'lilypalace'
-  | 'quarry' | 'smithy' | 'ferry' | 'turtlecave' | 'mistplaza' | 'coralgarden' | 'oasis' | 'sandlibrary' | 'sundialroad';
+  | 'quarry' | 'smithy' | 'ferry' | 'turtlecave' | 'mistplaza' | 'coralgarden' | 'oasis' | 'sandlibrary' | 'sundialroad'
+  | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -112,6 +113,19 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   oasis: { key: 'oasis', name: '모래 언덕 오아시스', segments: ['palmshade', 'baseurak74'] },
   sandlibrary: { key: 'sandlibrary', name: '모래 서기관 도서관', segments: ['sandshelf', 'baseurak', 'sealedstack', 'gitpen'] },
   sundialroad: { key: 'sundialroad', name: '노을 해시계 길', segments: ['obelisks', 'gitpen78'] },
+  // 묶음 H4 (62): 탐험 = 일반 → 보스, 던전 = 일반 → 보스 ① → 정예 → 보스 ②
+  cloudbridge: { key: 'cloudbridge', name: '구름 다리', segments: ['swaybridge', 'hwiparam82'] },
+  flightyard: { key: 'flightyard', name: '깃털단 비행 훈련장', segments: ['glideyard', 'hwiparam', 'windtunnel', 'hoeori'] },
+  stormmeadow: { key: 'stormmeadow', name: '번개 구름 목초지', segments: ['zapgrass', 'hoeori86'] },
+  cloudlibrary: { key: 'cloudlibrary', name: '구름 도서관 탑', segments: ['floatshelf', 'peoleok', 'forbidstair', 'swit'] },
+  broomrace: { key: 'broomrace', name: '빗자루 경주로', segments: ['startline', 'swit90'] },
+  sunkrose: { key: 'sunkrose', name: '가라앉은 장미 정원', segments: ['drownhall', 'gawison', 'thornmaze', 'rosalin'] },
+  lotusway: { key: 'lotusway', name: '호수 밑 연꽃길', segments: ['lotusstep', 'gawison94'] },
+  waterglow: { key: 'waterglow', name: '물빛 정원', segments: ['glowpond', 'lastecho97'] },
+  barracks: { key: 'barracks', name: '심연 정예 병영', segments: ['drillyard', 'kalnal', 'weaponrack', 'heukbaek'] },
+  outpost: { key: 'outpost', name: '그림자 초소', segments: ['palisade', 'kalnal98'] },
+  starcave: { key: 'starcave', name: '별빛 수정 동굴', segments: ['crystalstair', 'banjjak', 'echohall', 'lastecho'] },
+  sunrisehill: { key: 'sunrisehill', name: '아침 햇살 언덕', segments: ['sunpath', 'banjjak99'] },
 };
 
 /** 휴식: 초당 마나 회복 (%). 「계속」은 언제든 누를 수 있음 */

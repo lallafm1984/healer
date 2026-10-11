@@ -28,7 +28,8 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'eongkim' | 'revlord' | 'abyssheart' | 'dawntrash' | 'heartshard100' | 'cracktrash' | 'nokseul' | 'coolroot' | 'lastshade'
   | 'heaptrash' | 'kongkong5' | 'shaft' | 'kongkong' | 'railway' | 'gurit' | 'alleytrash' | 'molly10' | 'pothall' | 'molly' | 'mushbed' | 'chingching' | 'lilypads' | 'kara15' | 'reedfence' | 'kara' | 'mudpath' | 'cheolbeok' | 'fountainwalk' | 'lavender20' | 'bottlehall' | 'lavender' | 'stillroom' | 'rose' | 'iceholes' | 'ppodeuk25' | 'toolstore' | 'ppodeuk' | 'coldstore' | 'icia' | 'sheaves' | 'jipdan30'
   | 'sacks' | 'jipdan' | 'millwheel' | 'nadal' | 'crowfield' | 'nadal34' | 'wetcave' | 'peg' | 'powder' | 'pado' | 'reefpool' | 'peg38' | 'iceflowers' | 'jiji42' | 'messhall' | 'jiji' | 'lounge' | 'eomgyeok' | 'campfire' | 'geopum46' | 'shelves' | 'geopum' | 'cauldron' | 'malos' | 'tiles' | 'malos50' | 'flourstore' | 'polpol' | 'oven' | 'monggeul' | 'dewpath' | 'polpol54' | 'mushpath' | 'poljjak58' | 'lilybridge' | 'poljjak' | 'tadpond' | 'umulluk'
-  | 'scalepile' | 'ttemjil62' | 'charcoal' | 'ttemjil' | 'bellowway' | 'hwalhwal' | 'hotdock' | 'jigeul66' | 'steamcave' | 'jigeul' | 'gemvein' | 'garnet' | 'miststeps' | 'malmijal70' | 'kelphall' | 'malmijal' | 'pearlpond' | 'chalrang' | 'palmshade' | 'baseurak74' | 'sandshelf' | 'baseurak' | 'sealedstack' | 'gitpen' | 'obelisks' | 'gitpen78';
+  | 'scalepile' | 'ttemjil62' | 'charcoal' | 'ttemjil' | 'bellowway' | 'hwalhwal' | 'hotdock' | 'jigeul66' | 'steamcave' | 'jigeul' | 'gemvein' | 'garnet' | 'miststeps' | 'malmijal70' | 'kelphall' | 'malmijal' | 'pearlpond' | 'chalrang' | 'palmshade' | 'baseurak74' | 'sandshelf' | 'baseurak' | 'sealedstack' | 'gitpen' | 'obelisks' | 'gitpen78'
+  | 'swaybridge' | 'hwiparam82' | 'glideyard' | 'hwiparam' | 'windtunnel' | 'hoeori' | 'zapgrass' | 'hoeori86' | 'floatshelf' | 'peoleok' | 'forbidstair' | 'swit' | 'startline' | 'swit90' | 'drownhall' | 'gawison' | 'thornmaze' | 'rosalin' | 'lotusstep' | 'gawison94' | 'glowpond' | 'lastecho97' | 'drillyard' | 'kalnal' | 'weaponrack' | 'heukbaek' | 'palisade' | 'kalnal98' | 'crystalstair' | 'banjjak' | 'echohall' | 'lastecho' | 'sunpath' | 'banjjak99';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -50,7 +51,8 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'eongkim' | 'revlord' | 'abyssheart' | 'heartshard100' | 'nokseul' | 'lastshade'
   | 'kongkong5' | 'kongkong' | 'gurit' | 'molly10' | 'molly' | 'chingching' | 'kara15' | 'kara' | 'cheolbeok' | 'lavender20' | 'lavender' | 'rose' | 'ppodeuk25' | 'ppodeuk' | 'icia' | 'jipdan30'
   | 'jipdan' | 'nadal' | 'nadal34' | 'peg' | 'pado' | 'peg38' | 'jiji42' | 'jiji' | 'eomgyeok' | 'geopum46' | 'geopum' | 'malos' | 'malos50' | 'polpol' | 'monggeul' | 'polpol54' | 'poljjak58' | 'poljjak' | 'umulluk'
-  | 'ttemjil62' | 'ttemjil' | 'hwalhwal' | 'jigeul66' | 'jigeul' | 'garnet' | 'malmijal70' | 'malmijal' | 'chalrang' | 'baseurak74' | 'baseurak' | 'gitpen' | 'gitpen78';
+  | 'ttemjil62' | 'ttemjil' | 'hwalhwal' | 'jigeul66' | 'jigeul' | 'garnet' | 'malmijal70' | 'malmijal' | 'chalrang' | 'baseurak74' | 'baseurak' | 'gitpen' | 'gitpen78'
+  | 'hwiparam82' | 'hwiparam' | 'hoeori' | 'hoeori86' | 'peoleok' | 'swit' | 'swit90' | 'gawison' | 'rosalin' | 'gawison94' | 'lastecho97' | 'kalnal' | 'heukbaek' | 'kalnal98' | 'banjjak' | 'lastecho' | 'banjjak99';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -1359,6 +1361,157 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     ] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['질병', '저주'] }),
   gitpen78: { key: 'gitpen78', lowLevel: true, name: '모래 서기관 깃펜', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2600, enrage: 215, manaCoef: 1.0, diffs: ALL, script: 'gitpen78', stage: 0.3, debuffs: ['저주'] },
+  // ---------- 묶음 H4 (62 2-4 · 3-4, Lv 82~100): 졸개는 그 세력 옛 졸개, 보스 체력 · 광폭화는 같은 레벨대 던전 줄 (① 5,800 · 4:00, ② 7,200 · 5:00, 탐험판 3,000~3,300) ----------
+  // 탐험 ㊹ 구름 다리 (Lv 82): 깃털 창병 하피 ×2 + 폭풍 점술사 → 하피 교관 휘파람 (탐험판)
+  swaybridge: trash('swaybridge', '흔들 구름 다리', [
+    { name: '깃털 창병 하피', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '폭풍 점술사', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'hex', name: '폭풍 점괘', icon: '점괘', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: STORM_HEX } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['저주', '마법'] }),
+  hwiparam82: { key: 'hwiparam82', lowLevel: true, name: '하피 교관 휘파람', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3000, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'hwiparam82', stage: 0.3, debuffs: ['저주'] },
+  // 던전 ㊱ 깃털단 비행 훈련장 (Lv 83): 일반 활공 연습장 → 하피 교관 휘파람 → 정예 바람 터널 → 바람 정령 회오리
+  glideyard: trash('glideyard', '활공 연습장', [
+    { name: '깃털 창병 하피', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '바람 요정', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  hwiparam: { key: 'hwiparam', lowLevel: true, name: '하피 교관 휘파람', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5800, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'hwiparam', stage: 0.25, debuffs: ['저주'] },
+  windtunnel: trash('windtunnel', '바람 터널', [
+    { name: '깃털 창병 하피', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '폭풍 점술사', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'hex', name: '폭풍 점괘', icon: '점괘', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: STORM_HEX } },
+    ] },
+    {
+      name: '천둥 숫양', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'ram', name: '터널 돌진', icon: '박치', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['저주', '마법'] }),
+  hoeori: { key: 'hoeori', lowLevel: true, name: '바람 정령 회오리', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7200, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'hoeori', stage: 0.25, debuffs: ['마법'] },
+  // 탐험 ㊺ 번개 구름 목초지 (Lv 86): 바람 요정 ×2 + 천둥 숫양 (정예 아님) → 바람 정령 회오리 (탐험판)
+  zapgrass: trash('zapgrass', '찌릿 풀밭', [
+    { name: '바람 요정', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '천둥 숫양', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  hoeori86: { key: 'hoeori86', lowLevel: true, name: '바람 정령 회오리', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3100, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'hoeori86', stage: 0.3, debuffs: ['마법'] },
+  // 던전 ㊲ 구름 도서관 탑 (Lv 88): 일반 떠다니는 서가 → 날아다니는 책 펄럭이 (쫄 떼라 체력 −10%) → 정예 금서 계단 → 사서 유령 쉿
+  floatshelf: trash('floatshelf', '떠다니는 서가', [
+    { name: '구름 룬 인형', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '빗자루 견습생', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  peoleok: { key: 'peoleok', lowLevel: true, name: '날아다니는 책 펄럭이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5200, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'peoleok', stage: 0.25, debuffs: ['마법'] },
+  forbidstair: trash('forbidstair', '금서 계단', [
+    { name: '구름 룬 인형', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '떠도는 주술서', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'silence', name: '침묵', icon: '침묵', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '침묵', type: '마법', left: 6, noDps: true } } },
+    ] },
+    {
+      name: '번개 실험 정령', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'burst', name: '금서 번개', icon: '번개', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['마법'] }),
+  swit: { key: 'swit', lowLevel: true, name: '사서 유령 쉿', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7200, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'swit', stage: 0.25, debuffs: ['마법'] },
+  // 탐험 ㊻ 빗자루 경주로 (Lv 90): 빗자루 견습생 ×2 + 구름 룬 인형 → 사서 유령 쉿 (탐험판)
+  startline: trash('startline', '경주 출발선', [
+    { name: '빗자루 견습생', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '구름 룬 인형', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  swit90: { key: 'swit90', lowLevel: true, name: '사서 유령 쉿', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3100, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'swit90', stage: 0.3, debuffs: ['마법'] },
+  // 던전 ㊳ 가라앉은 장미 정원 (Lv 93): 일반 물에 잠긴 회랑 → 정원사 유령 가위손 → 정예 장미 미로 → 대공비 유령 로살린
+  drownhall: trash('drownhall', '물에 잠긴 회랑', [
+    { name: '물에 젖은 갑옷 시종', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '가라앉은 유령 하녀', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  gawison: { key: 'gawison', lowLevel: true, name: '정원사 유령 가위손', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5800, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'gawison', stage: 0.25, debuffs: ['저주'] },
+  thornmaze: trash('thornmaze', '장미 미로', [
+    { name: '물에 젖은 갑옷 시종', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '물에 젖은 조문객', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'veil', name: '젖은 베일', icon: '베일', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '젖은 베일', type: '저주', left: 12, healCut: 0.5 } } },
+    ] },
+    {
+      name: '가라앉은 사냥개', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'howl', name: '가시 울부짖음', icon: '울부', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['저주'] }),
+  rosalin: { key: 'rosalin', lowLevel: true, name: '대공비 유령 로살린', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7200, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'rosalin', stage: 0.25, debuffs: ['저주'] },
+  // 탐험 ㊼ 호수 밑 연꽃길 (Lv 94): 물에 젖은 갑옷 시종 ×2 + 가라앉은 유령 하녀 → 정원사 유령 가위손 (탐험판)
+  lotusstep: trash('lotusstep', '연꽃 징검다리', [
+    { name: '물에 젖은 갑옷 시종', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '가라앉은 유령 하녀', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  gawison94: { key: 'gawison94', lowLevel: true, name: '정원사 유령 가위손', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3200, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'gawison94', stage: 0.3, debuffs: ['저주'] },
+  // 탐험 ㊿ 물빛 정원 (Lv 97): 그림자 기사 ×2 + 함정 술사 → 마지막 메아리 (탐험판)
+  glowpond: trash('glowpond', '물빛 연못', [
+    { name: '그림자 기사', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '함정 술사', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'hex', name: '그림자 주문', icon: '주문', to: 'other', dmg: 0, first: 5, period: 10, cast: 0, effect: { p: 'cycle', n: 1, debuffs: trapHex(0.7) } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: HEAL4 }),
+  lastecho97: { key: 'lastecho97', lowLevel: true, name: '마지막 메아리', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3200, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'lastecho97', stage: 0.3 },
+  // 던전 ㊴ 심연 정예 병영 (Lv 98): 일반 훈련 마당 → 그림자 훈련교관 칼날 → 정예 무기 창고 → 심연 쌍둥이 기사 흑 · 백 (몸 둘 = 3,600 × 2)
+  drillyard: trash('drillyard', '훈련 마당', [
+    { name: '그림자 기사', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '그림자 석궁수', hp: 300, count: 1, attacks: [{ key: 'shot', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  kalnal: { key: 'kalnal', lowLevel: true, name: '그림자 훈련교관 칼날', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5800, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'kalnal', stage: 0.25, debuffs: ['독', '질병', '마법'] },
+  weaponrack: trash('weaponrack', '무기 창고', [
+    { name: '그림자 기사', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '함정 술사', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'hex', name: '그림자 주문', icon: '주문', to: 'other', dmg: 0, first: 5, period: 10, cast: 0, effect: { p: 'cycle', n: 1, debuffs: trapHex(1) } },
+    ] },
+    {
+      name: '심연 거수', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'root', name: '무기 더미 내려찍기', icon: '뿌리', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: HEAL4 }),
+  heukbaek: { key: 'heukbaek', lowLevel: true, name: '심연 쌍둥이 기사 흑 · 백', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7200, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'heukbaek', stage: 0.25, debuffs: HEAL4 },
+  // 탐험 ㊽ 그림자 초소 (Lv 98): 그림자 기사 + 그림자 석궁수 ×2 → 그림자 훈련교관 칼날 (탐험판)
+  palisade: trash('palisade', '초소 울타리', [
+    { name: '그림자 기사', hp: 160, count: 1, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '그림자 석궁수', hp: 150, count: 2, attacks: [{ key: 'shot', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  kalnal98: { key: 'kalnal98', lowLevel: true, name: '그림자 훈련교관 칼날', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3200, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'kalnal98', stage: 0.3, debuffs: ['마법'] },
+  // 던전 ㊵ 별빛 수정 동굴 (Lv 99): 일반 수정 계단 → 수정 거인 반짝돌 → 정예 메아리 회랑 → 마지막 메아리
+  crystalstair: trash('crystalstair', '수정 계단', [
+    { name: '그림자 기사', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '그림자 석궁수', hp: 300, count: 1, attacks: [{ key: 'shot', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  banjjak: { key: 'banjjak', lowLevel: true, name: '수정 거인 반짝돌', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5800, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'banjjak', stage: 0.25, debuffs: HEAL4 },
+  echohall: trash('echohall', '메아리 회랑', [
+    { name: '그림자 기사', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '함정 술사', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'hex', name: '그림자 주문', icon: '주문', to: 'other', dmg: 0, first: 5, period: 10, cast: 0, effect: { p: 'cycle', n: 1, debuffs: trapHex(1) } },
+    ] },
+    {
+      name: '심연 거수', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'root', name: '메아리 내려찍기', icon: '뿌리', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: HEAL4 }),
+  lastecho: { key: 'lastecho', lowLevel: true, name: '마지막 메아리', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7200, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'lastecho', stage: 0.25, debuffs: HEAL4 },
+  // 탐험 ㊾ 아침 햇살 언덕 (Lv 99): 돌 수도사 ×2 + 신전 돌거인 (정예 아님) → 수정 거인 반짝돌 (탐험판)
+  sunpath: trash('sunpath', '햇살 언덕길', [
+    { name: '돌 수도사', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '신전 돌거인', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  banjjak99: { key: 'banjjak99', lowLevel: true, name: '수정 거인 반짝돌', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3300, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'banjjak99', stage: 0.3, debuffs: HEAL4 },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */
