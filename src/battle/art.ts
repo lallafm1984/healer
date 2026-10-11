@@ -1,5 +1,6 @@
 /** 전투 아트. 보스·잡몹은 생성 원화(src/art의 boss-·mob-, 29 문서), 없으면 벡터 그림. 소비 아이템은 벡터 그림. */
 import { art } from '../art';
+import { BOSSES, type BossDef } from '../data/bosses';
 import type { ItemKey } from '../data/items';
 import type { FactionKey } from '../data/places';
 import type { Mob, Unit } from '../engine/types';
@@ -465,3 +466,69 @@ export const ringArtName = (fac: FactionKey | null): string => firstArt(fac === 
 /** 무너진 바닥 칸 (37 4장 B-3~5): 늪 = 물, 마탑 = 얼음 기둥, 그 밖 = 돌 구덩이 */
 const HOLE_TAIL: Partial<Record<FactionKey, string>> = { swamp: 'swamp', mage: 'ice' };
 export const holeArtName = (fac: FactionKey | null): string => firstArt(fac && HOLE_TAIL[fac] ? `fx-cell-hole-${HOLE_TAIL[fac]}` : undefined, 'fx-cell-hole-stone');
+/** 밀물 칸 (60 E 1·2, 63 E 6·7·13·14): 짠물 해적단 = 맑은 청록 짠물, 늪 = 독 연못, 그 밖 = 어둠물. 꼬리는 그 그림이 있을 때만 ('' = 어둠물) */
+const TIDE_TAIL: Partial<Record<FactionKey, string>> = { pirate: 'sea', swamp: 'poison' };
+export const tideTail = (fac: FactionKey | null): string => (fac && TIDE_TAIL[fac] && art(`fx-cell-tide-${TIDE_TAIL[fac]}`) ? TIDE_TAIL[fac]! : '');
+export const tideArtName = (fac: FactionKey | null, warn = false): string => {
+  const t = tideTail(fac), w = warn ? '-warn' : '';
+  return firstArt(t ? `fx-cell-tide-${t}${w}` : undefined, `fx-cell-tide${w}`);
+};
+
+/**
+ * 묶음 H 보스 기술 이펙트 (63 E): 전투 대본 → 그림 fx-. 그림이 없으면 지금 연출 그대로.
+ * land = 그 기술 예고가 떨어질 때 (줄 피해는 맞는 줄을 왼쪽 → 오른쪽으로 지나감, fx-cell-은 맞은 칸 바닥에 잠깐 남음) · omen = 예고 칸 무늬 (떨어질 때까지)
+ * hold = 그 기술 디버프 · 감옥이 걸린 동안 칸 위에 겹침 · hit = 그 기술 디버프가 걸릴 때 한 번 · cure = 그 디버프를 힐로 다 녹였을 때
+ * swap = 이 전투에서 엔진 연출 (fx 사건 이름) 대신 · dark = 체력 숫자가 숨은 동안 판 전체. 기술 키는 번호 꼬리를 뺀 이름도 됨 (skillBase)
+ */
+interface BossFx {
+  land?: Record<string, string>; omen?: Record<string, string>; hold?: Record<string, string>; hit?: Record<string, string>;
+  cure?: Record<string, string>; swap?: Record<string, string>; dark?: string;
+}
+export const BOSS_FX: Record<string, BossFx> = {
+  gurit: { land: { cart: 'fx-minecart-charge' } }, // 광차 돌진
+  ppodeuk25: { land: { roll: 'fx-snowball-roll' } }, // 눈덩이 굴리기
+  ppodeuk: { land: { roll: 'fx-snowball-roll' } },
+  icia: { hold: { armor: 'fx-ice-armor' }, cure: { armor: 'fx-frost-burst' } }, // 얼음 갑옷: 힐로 녹이면 서리 폭발
+  jipdan30: { hit: { crows: 'fx-crow-swarm' } }, // 까마귀 떼: 보스 자리에서 맞는 사람에게
+  jipdan: { hit: { crows: 'fx-crow-swarm' } },
+  nadal: { land: { grain: 'fx-cell-hole-grain', grain2: 'fx-cell-hole-grain' } }, // 낟알 쏟아짐 (장판이라 무너진 칸 대신 맞은 칸에 잠깐)
+  nadal34: { land: { grain: 'fx-cell-hole-grain' } },
+  eomgyeok: { swap: { heartbeat: 'fx-hush' } }, // 조용히! (시전 끊기)
+  geopum: { hold: { bubble: 'fx-bubble-trap' }, swap: { 'swell-pop': 'fx-bubble-pop' } }, // 역병 거품: 지우면 거품 터짐
+  polpol: { dark: 'fx-flour-cloud' }, // 밀가루 구름 (50% 아래 흐름 dark)
+  monggeul: { hit: { cream: 'fx-cream-burst' } }, // 크림 폭발 (판 가운데)
+  chalrang: { omen: { omen: 'fx-cell-jelly-omen' }, hold: { bubble: 'fx-bubble-trap' }, swap: { 'jail-break': 'fx-bubble-pop' } }, // 해파리 점괘 · 물거품 감옥
+  swit: { swap: { heartbeat: 'fx-hush' } }, // 조용히
+  swit90: { swap: { heartbeat: 'fx-hush' } },
+};
+/** 번호 꼬리를 뺀 기술 키 (rows · spots · 점괘: cart0 · cart0b → cart, grain20 → grain2) */
+export const skillBase = (key: string): string => key.replace(/\d[bm]?$/, '');
+const pick = (t: Record<string, string> | undefined, k: string): string | undefined => (t && Object.prototype.hasOwnProperty.call(t, k) ? t[k] : undefined);
+const have = (a: string | undefined): string => (a && art(a) ? a : '');
+/** 그 전투 · 그 기술 키 (swap은 엔진 연출 이름)의 63 E 그림. 그림이 없으면 '' */
+export function bossFxArt(script: string, slot: 'land' | 'omen' | 'swap', key: string): string {
+  const t = BOSS_FX[script]?.[slot];
+  return have(pick(t, key) ?? pick(t, skillBase(key)));
+}
+/** 체력 숫자가 숨은 동안 판 전체 그림 (없으면 '') */
+export const darkArt = (script: string): string => have(BOSS_FX[script]?.dark);
+/** 그 기술이 거는 디버프 · 감옥 이름 (판은 디버프 이름만 앎) */
+export function skillDebuffName(script: string, key: string): string {
+  const e = (BOSSES as Record<string, BossDef | undefined>)[script]?.skills.find(d => d.key === key)?.effect;
+  return !e ? '' : e.p === 'jail' ? e.name : 'debuff' in e && e.debuff ? e.debuff.name : '';
+}
+const byDebuff = new Map<string, Map<string, string>>();
+/** 그 전투에서 이 디버프 · 감옥 이름에 붙는 63 E 그림 (hold · hit · cure). 그림이 없으면 '' */
+export function debuffFxArt(script: string, slot: 'hold' | 'hit' | 'cure', name: string): string {
+  const k = `${script}|${slot}`;
+  let m = byDebuff.get(k);
+  if (!m) {
+    m = new Map();
+    for (const [key, a] of Object.entries(BOSS_FX[script]?.[slot] ?? {})) { const n = skillDebuffName(script, key); if (n) m.set(n, a); }
+    byDebuff.set(k, m);
+  }
+  return have(m.get(name));
+}
+/** 그 전투의 63 E 그림 모두 (있는 것만, 전투 시작에 미리 읽어 둠) */
+export const bossFxArts = (script: string): string[] =>
+  Object.values(BOSS_FX[script] ?? {}).flatMap(v => (typeof v === 'string' ? [v] : Object.values(v as Record<string, string>))).filter(a => art(a));

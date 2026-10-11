@@ -17,7 +17,7 @@ import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, se
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON, ratsArt } from './art';
-import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxPxf, fxImpact, fxRevive, fxShake, fxSpec, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard, setBoardFaction } from './board';
+import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxCure, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxPxf, fxImpact, fxRevive, fxShake, fxSpec, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard, setBoardFaction } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
@@ -509,7 +509,7 @@ function handleEvents(now: number): void {
         if (u) fxDispel(u, now, ev.trap, undefined, !ev.trap && !ev.item && plain.has(ev.id));
         if (!ev.trap && !ev.item) vibe([12, 60, 12]);
         break;
-      case 'cure': if (u) fxDispel(u, now, false, `${ev.name} 사라짐`); break; // 체력을 채워 쇠약·완치 표식이 사라짐
+      case 'cure': if (u) fxCure(u, ev.name, now); break; // 체력을 채워 쇠약·완치 표식이 사라짐 (얼음 갑옷은 녹음, 63 E)
       case 'item': {
         const it = ITEMS[ev.key];
         toast(`${it.name}${ev.note ? ` → ${ev.note}` : ''}`);
