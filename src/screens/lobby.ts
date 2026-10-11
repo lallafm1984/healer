@@ -1,36 +1,57 @@
 /**
- * S02 로비 = 마을 (30 0장 → 2026-10-11 전투 Sunforged 기준 코덱스 로비 시안). 캐릭터 그림 없음.
- * 위 정보창(공통 topBar) 아래 ~ 하단 탭 위가 살아 있는 마을 장면 (village.ts). 그 위에 전투 부품으로 만든 메뉴:
+ * S02 로비 = 살아 있는 마을 + A2 목재·리넨 UI (2026-10-11 채택 시안). 캐릭터 그림 없음.
+ * 위 정보창(공통 topBar) 아래 ~ 하단 탭 위의 마을 장면(village.ts)은 그대로 유지하고 UI만 겹친다:
  *  왼쪽 원형 소켓 = 임무 (받을 것 있으면 노란 「!」 = 한 번에 받기) · 주간 도전 · 일일 상자,
  *  오른쪽 황동 패널 = 첨탑 (10인 레이드) · 길드 회관 (길드를 빼 두면 없음) · 잡화점, 그 아래 원형 소켓 = 「다시」 (지난 판),
- *  아래 황동·가죽 패널 = 다음 목표 (레이드 문 앞이면 체크 목록) + 「출전」 + 시즌 패스.
+ *  아래 리넨 목표표 + 붉은 「출전」은 바깥 하단을 맞추며, 로비 패스 바로가기는 두지 않는다.
  * 받기·열기는 그 자리에서. 튜토리얼 중엔 다음 목표 + 출전 + 안내만.
  */
 import { CONTENT, contentOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { ITEM_GRADES, RECOMMENDED, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
-import { PASS_LEVELS, SHARD_MAX } from '../data/economy';
+import { SHARD_MAX } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { guildCap } from '../data/guild';
 import { nextMilestone } from '../data/progression';
 import { weekRemaining } from '../game/clock';
-import { chestState, claimChalChest, claimChest, claimMission, missionReady, passLevel } from '../game/economy';
+import { chestState, claimChalChest, claimChest, claimMission, missionReady } from '../game/economy';
 import { Flow } from '../game/flow';
 import { capOf, guildOpen } from '../game/guild';
 import { chalGate } from '../game/runmode';
 import { commit, firstDungeonNow, G, lockOf, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
-import { esc, go, screen, topBar } from './kit';
+import { esc, fmt, go, screen, topBar } from './kit';
+import { art } from '../art';
 import { gameIcon, uiIcon } from './art';
 import { gainText } from './shop';
 import { mountVillage } from './village';
 
-// 소켓 선 아이콘 (icon-replay · icon-pass 그림이 없을 때)
+// 소켓 선 아이콘 (icon-replay 그림이 없을 때)
 const REPLAY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v5h5"/></svg>';
-const PASS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4h11l-2 4 2 4H6"/></svg>';
+/** A2에서 생성한 작은 황동 화살표. 문자를 도형 대신 사용하지 않는다. */
+const chevron = () => `<img class="lb-chevron" src="${art('a2-chevron')}" alt="" aria-hidden="true" decoding="async" draggable="false">`;
 
 const st = { msg: '' };
+const compactCurrency = new Intl.NumberFormat('ko-KR', { notation: 'compact', maximumSignificantDigits: 3 });
+
+/** 로비의 좁은 재화 칸만 단위 축약. 툴팁과 접근성 이름에는 실제 전체 값을 남긴다. */
+function labelLobbyWallet(): void {
+  const amounts = [
+    ['.tb-gold', '골드', G.save.player.gold],
+    ['.tb-cr', '크리스탈', G.save.wallet.crystal],
+  ] as const;
+  for (const [selector, label, amount] of amounts) {
+    const el = s.el.querySelector<HTMLElement>(`.tb-wal ${selector}`);
+    const value = el?.querySelector('b');
+    if (!el || !value) continue;
+    const full = `${label} ${fmt(amount)}`;
+    value.textContent = amount >= 10000 ? compactCurrency.format(Math.round(amount)) : fmt(amount);
+    el.title = full;
+    el.setAttribute('role', 'img');
+    el.setAttribute('aria-label', full);
+  }
+}
 
 /**
  * 목표 한 줄. title = 큰 제목 (장소 이름 · Lv n), tag = 난이도 표, sub = 설명, prog = 진행 n/m,
@@ -39,6 +60,8 @@ const st = { msg: '' };
 interface Goal { title: string; tag?: DiffName; sub: string; prog: string; to?: { content: ContentKey; diff: DiffName } }
 /** 목표 한 줄 글 (aria · 두 번째 줄) */
 const goalText = (g: Goal) => `${g.title}${g.tag ? ` · ${g.tag}` : ''}${g.sub && !g.tag ? ` · ${g.sub}` : ''}`;
+/** 좁은 리넨 표에는 스킬·장소 이름만, 접근성 설명에는 분류를 포함한 원래 목표 정보를 유지한다. */
+const shortGoalText = (g: Goal) => goalText(g).replace(/(?:스킬|탐험|던전|레이드)\s*「([^」]+)」/g, '$1');
 
 /** 아직 한 번도 안 깬 열린 장소 (탐험 · 던전, 낮은 레벨부터, 34 5-2). 첫 던전 녹슨 요새는 쉬움, 나머지는 보통 */
 function freshPlace(): { content: ContentKey; diff: DiffName } | null {
@@ -70,8 +93,8 @@ function goals(): Goal[] {
 /** 권장 장비 (편성 화면 경고와 같은 값) — 목표 aria 설명용 */
 const recLabel = (d: DiffName) => (RECOMMENDED[d] ? ` · 권장 ${RECOMMENDED[d]!.label}` : '');
 
-/** 목표 칸 머리: 던전 그림 + 「다음 목표」 */
-const trkHead = () => `<span class="trk-h">${gameIcon('dungeon', uiIcon('battle'))}<span>다음 목표</span></span>`;
+/** 목표 칸 머리: A2 펼친 책 그림 + 「다음 목표」 */
+const trkHead = () => `<span class="trk-h">${gameIcon('a2-goal-book-r6', uiIcon('quest'))}<span>다음 목표</span></span>`;
 
 /**
  * 레이드 문 (18 3-3): 레벨이 가까워지면 남은 조건을 체크 목록으로. 길드원 수는 그 전 레벨에서 둘 수 있는 최대 (6명·12명), 길드를 빼 두면 그 줄 없음.
@@ -112,9 +135,9 @@ function tracker(): string {
     ? `<strong class="trk-t">${esc(first.title)}</strong>
       <span class="trk-lv">${first.tag ? `<span class="trk-diff">${esc(first.tag)}</span>` : ''}<span class="trk-sub">${esc(first.sub)}</span><small>${first.prog}</small></span>`
     : '<strong class="trk-t">마을 정비</strong>';
-  const inner = `${trkHead()}${main}${rest.map(g => `<span class="obj dim"><i></i><span>${esc(goalText(g))}</span><small>${g.prog}</small></span>`).join('')}`;
+  const inner = `${trkHead()}${main}${rest.map(g => `<span class="obj dim" aria-label="${esc(goalText(g))} · ${g.prog}"><i></i><span>${esc(shortGoalText(g))}</span><small>${g.prog}</small></span>`).join('')}`;
   return to >= 0
-    ? `<button type="button" class="lb-trk" data-goal="${to}" aria-label="다음 목표: ${esc(goalText(gs[to]))}${recLabel(gs[to].to!.diff)}">${inner}</button>`
+    ? `<button type="button" class="lb-trk" data-goal="${to}" aria-label="다음 목표: ${gs.map(g => `${esc(goalText(g))} · ${g.prog}`).join(', ')}${recLabel(gs[to].to!.diff)}">${inner}</button>`
     : `<div class="lb-trk">${inner}</div>`;
 }
 
@@ -139,7 +162,7 @@ function toParty(to: { content: ContentKey; diff: DiffName }): void {
 
 /** 원형 소켓 바로가기: 전투 스킬 칸과 같은 spell-socket 안에 그림, 아래 이름 + 짧은 상태 */
 function socket(cls: string, attrs: string, icon: string, name: string, sub: string, extra = ''): string {
-  return `<div class="lb-sc ${cls}"><button type="button" class="lb-main"${attrs}><span class="lb-sock">${icon}</span><b>${name}</b>${sub ? `<small>${sub}</small>` : ''}</button>${extra}</div>`;
+  return `<div class="lb-sc ${cls}"><button type="button" class="lb-main"${attrs}><span class="lb-sock">${icon}</span><span class="lb-caption"><b>${name}</b>${sub ? `<small>${sub}</small>` : ''}</span></button>${extra}</div>`;
 }
 
 /** 왼쪽 소켓: 임무 · 주간 도전 · 일일 상자 */
@@ -173,7 +196,7 @@ function buildings(): string {
   const s = G.save;
   const raid = contentOf('abyss1'), raidLock = lockOf(raid).locked;
   const plate = (cls: string, attrs: string, icon: string, name: string, sub: string, extra = '') =>
-    `<button type="button" class="lb-plate ${cls}"${attrs}>${icon}<span class="lb-pt"><b>${name}</b><span>${sub}</span></span>${extra}</button>`;
+    `<button type="button" class="lb-plate ${cls}"${attrs} aria-label="${esc(name)} · ${esc(sub)}">${icon}<span class="lb-pt"><b>${name}</b><span>${sub.split(' · ').map(line => `<span>${line}</span>`).join('')}</span></span>${chevron()}${extra}</button>`;
   const gOpen = guildOpen(s), apps = (s.guild.post?.cands.length || 0) + s.guild.scouts.length;
   const gLine = !gOpen.ok ? gOpen.why : apps ? `지원자 ${apps}명` : `길드원 ${s.guild.members.length}/${capOf(s).cap}`;
   const plates = plate(`lb-raid${raidLock ? ' lock' : ''}`, ' data-go="s-content" data-arg="raid10"', gameIcon('raid', uiIcon('star')), '첨탑',
@@ -187,15 +210,11 @@ function buildings(): string {
   return `<div class="lb-side lb-right">${plates}${again ? `<span class="lb-fill"></span>${again}` : ''}</div>`;
 }
 
-/** 아래 패널: 다음 목표 칸 + 「출전」 (지난 판 → 안 깬 장소) + 시즌 패스 */
-function journey(tutDone: boolean): string {
+/** 아래 독립된 목표표 + 「출전」 (지난 판 → 안 깬 장소). 시즌 패스는 상점에만 둔다. */
+function journey(): string {
   const to = dest(), c = contentOf(to.content);
-  const cta = `<button type="button" class="lb-cta${firstDungeonNow() ? ' hi-pulse' : ''}" id="lobbyStart" aria-label="출전 · ${esc(c.name)} ${esc(to.diff)}">${gameIcon('battle', uiIcon('battle'), 'tab')}<b>출전</b><small>${esc(c.name)} · ${esc(to.diff)}</small></button>`;
-  const plv = Math.min(PASS_LEVELS, passLevel(G.save.pass.xp));
-  const pass = tutDone
-    ? `<button type="button" class="lb-pass" data-go="s-shop" data-arg="pass" aria-label="시즌 패스 ${plv} / ${PASS_LEVELS}">${gameIcon('pass', PASS_SVG)}<span>패스 ${plv}</span></button>`
-    : '';
-  return `<div class="lb-journey">${tracker()}<div class="lb-go">${cta}${pass}</div></div>`;
+  const cta = `<button type="button" class="lb-cta${firstDungeonNow() ? ' hi-pulse' : ''}" id="lobbyStart" aria-label="출전 · ${esc(c.name)} ${esc(to.diff)}">${gameIcon('a2-swords', gameIcon('battle', uiIcon('battle'), 'tab'))}<span class="lb-cta-copy"><b>출전</b><small>${esc(c.name)} · ${esc(to.diff)}</small></span>${chevron()}</button>`;
+  return `<div class="lb-journey">${tracker()}<div class="lb-go">${cta}</div></div>`;
 }
 
 const s = screen('s-lobby', '로비', {
@@ -212,11 +231,12 @@ function render(): void {
         <div class="lb-ui">
           <div class="lb-mid">${tutDone ? shortcuts() + buildings() : ''}</div>
           ${firstDungeonNow() ? '<p class="coachtip lb-coach">첫 던전 <b>녹슨 요새</b>가 열림. 「출전」 누르기</p>' : ''}
-          ${journey(tutDone)}
+          ${journey()}
         </div>
         ${st.msg ? `<p class="warnbox lb-msg" role="status">${esc(st.msg)}</p>` : ''}
       </div>
     </div>`;
+  labelLobbyWallet();
   // 살아 있는 마을: 같은 캔버스를 새 무대로 옮겨 붙여 움직임이 이어짐 (보상 받기로 다시 그려도)
   mountVillage(s.el.querySelector('.lb-stage'));
   st.msg = '';

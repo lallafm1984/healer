@@ -1,0 +1,212 @@
+/* A2 목재·리넨 로비 UI. village.ts, .lb-world/.lb-stage의 크기와 동작은 바꾸지 않는다.
+ * 생성한 빈 프레임 위에 실제 아이콘·텍스트·버튼을 올린다. 다른 화면의 공통 테마에는 영향이 없다. */
+#s-lobby {
+  --a2-cream: #fff4d5;
+  --a2-ink: #2b1b0d;
+  --a2-wood-sign: url('../art/a2-wood-sign.png');
+  --a2-socket: url('../art/a2-side-socket.png');
+  --a2-goal: url('../art/a2-goal-card.png');
+  --a2-depart: url('../art/a2-depart-button-r6.png');
+  --a2-topbar: url('../art/a2-topbar.png');
+}
+
+/* 상단은 기존 80px 경계를 보존한다. */
+#s-lobby .topbar.tb-mmo {
+  height: 80px; gap: 7px; padding: 0 8px;
+  background: transparent; box-shadow: none;
+}
+#s-lobby .topbar.tb-mmo::before {
+  inset: 0; border: 0; background: var(--a2-topbar) 50% 51.852% / 103.481% 182.865% no-repeat;
+}
+#s-lobby .tb-mmo .tb-pf { width: 70px; height: 70px; background: var(--sf-socket) center / 100% 100% no-repeat; }
+#s-lobby .tb-mmo .tb-pf::after { inset: -2px; background-image: url('../art/a2-portrait-ring-r6.png'); }
+#s-lobby .tb-mmo .tb-em { width: 77%; height: 77%; }
+#s-lobby .tb-mmo .tb-nm { gap: 7px; padding: 0 0 0 1px; transform: translateY(-1.5px); }
+#s-lobby .tb-mmo .tb-id { gap: 8px; transform: translateY(-2px); }
+#s-lobby .tb-mmo .tb-cls { color: var(--a2-cream); font-size: 21px; font-weight: 800; letter-spacing: -.05em; }
+#s-lobby .tb-mmo .tb-lv { font-size: 11px; font-weight: 600; color: var(--a2-cream); }
+#s-lobby .tb-mmo .tb-xprow { gap: 8px; }
+#s-lobby .tb-mmo .tb-xp { height: 10px; max-width: 142px; }
+#s-lobby .tb-mmo .tb-xpt { font-size: 10px; font-weight: 600; color: var(--a2-cream); }
+#s-lobby .tb-mmo .tb-wal { gap: 8px; max-width: 67px; }
+#s-lobby .tb-mmo .tb-cur { gap: 2px; max-width: 100%; }
+#s-lobby .tb-mmo .tb-cur > .g-ic { width: 18px; height: 18px; }
+#s-lobby .tb-mmo .tb-cur b { font-size: 14px; overflow: visible; text-overflow: clip; }
+#s-lobby .tb-mmo .tb-set { width: 44px; height: 46px; min-height: 44px; }
+#s-lobby .tb-mmo .tb-ring2 svg { width: 21px; height: 21px; }
+
+/* 목표표 196×120, 출전 145×65 (390px 기준). 두 외곽 하단은 같은 grid 기준선이다. */
+#s-lobby .lb-ui { gap: 8px; padding: 7px 10px 32px 14px; }
+#s-lobby .lb-mid { gap: 10px; }
+#s-lobby .lb-side { gap: 8px; }
+#s-lobby .lb-left { margin-left: -2px; align-items: flex-start; }
+#s-lobby .lb-right { padding-top: 0; }
+#s-lobby .lb-fill { min-height: 8px; }
+
+/* 생성된 한 장의 소켓+리넨 라벨 안에서 아이콘과 실시간 글자를 배치한다. */
+#s-lobby .lb-sc .lb-main {
+  box-sizing: border-box; display: flex; gap: 0; justify-content: flex-start;
+  width: clamp(66px, 18.98cqw, 82px); height: clamp(78px, 21.8cqw, 94px); min-height: 44px;
+  padding: 3px 4px 4px; border: 0; border-radius: 0;
+  background: var(--a2-socket) 43.182% 50% / 103.971% 109.28% no-repeat;
+  color: var(--a2-ink); text-shadow: none;
+}
+#s-lobby .lb-sock {
+  flex: 1 1 auto; min-height: 0; width: 100%; height: auto; padding: 1px 4px 0;
+  border: 0; border-radius: 0; background: none; filter: none;
+}
+#s-lobby .lb-sock > .g-ic { width: var(--a2-icon-size, 46px); height: var(--a2-icon-size, 46px); max-width: 90%; max-height: 100%; filter: drop-shadow(0 1px 1px #251301); }
+#s-lobby .lb-missions { --a2-icon-size: 42px; }
+#s-lobby .lb-chal { --a2-icon-size: 36px; }
+#s-lobby .lb-chest { --a2-icon-size: 40px; }
+#s-lobby .lb-sock > svg { width: 30px; height: 30px; }
+#s-lobby .lb-caption { flex: none; width: 100%; height: 32px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 1px; }
+#s-lobby .lb-caption > b { white-space: nowrap; font: 800 13px/1.15 var(--font-body); letter-spacing: -.065em; }
+#s-lobby .lb-caption > small { font: 600 10px/1.2 var(--font-body); white-space: nowrap; color: var(--a2-ink); }
+#s-lobby .lb-sc.off .lb-sock { filter: saturate(.82); }
+#s-lobby .lb-sc.off .lb-main > b { color: var(--a2-ink); }
+#s-lobby .lb-sc.hot .lb-sock { outline: 0; }
+#s-lobby .lb-sc .g-badge { top: 0; right: 0; }
+/* 보상 받기는 임무 버튼과 겹치지 않는 별도 44px 표적. */
+#s-lobby .lb-claim { top: 3px; left: calc(100% + 8px); }
+
+/* 첨탑·잡화점: 기능/잠금/열쇠 정보는 실제 데이터로 유지한다. */
+#s-lobby .lb-plate {
+  display: grid; grid-template-columns: 27px minmax(0, 1fr) 9px; align-items: center; gap: 3px;
+  width: clamp(116px, 32.06cqw, 138px); max-width: none; min-height: 53px; height: 53px;
+  padding: 18px 7px 3px; border: 0; border-image: none; border-radius: 0;
+  background: var(--a2-wood-sign) 48.148% 25% / 103.03% 105.941% no-repeat; box-shadow: none;
+  color: var(--a2-cream); text-shadow: 0 1px 1px #271202;
+}
+#s-lobby .lb-plate.lb-shop { padding-top: 5px; background-image: url('../art/a2-shop-sign-r6.png'); background-size: 102.103% 89.954%; background-position: 55% 50%; }
+#s-lobby .lb-plate.lb-raid { height: 65px; padding-top: 11px; }
+#s-lobby .lb-plate > .g-ic { width: 29px; height: 34px; transform: translateX(-1px) scale(1.35); transform-origin: 50% 50%; }
+#s-lobby .lb-pt { box-sizing: border-box; gap: 2px; text-align: left; }
+#s-lobby .lb-raid .lb-pt { padding-left: 14px; }
+#s-lobby .lb-shop .lb-pt { padding-left: 20px; }
+#s-lobby .lb-shop .lb-pt > b { font-size: 15.5px; }
+#s-lobby .lb-pt > b { font: 700 16px/1.1 var(--font-body); color: var(--a2-cream); text-shadow: 0 1px 1px #271202; letter-spacing: -.045em; }
+#s-lobby .lb-pt > span { display: flex; flex-direction: column; overflow: visible; gap: 1px; font: 600 10px/1.15 var(--font-body); color: var(--a2-cream); letter-spacing: -.055em; }
+#s-lobby .lb-pt > span > span { overflow: hidden; text-overflow: ellipsis; }
+#s-lobby .lb-plate.lock > .g-ic { filter: saturate(.82) drop-shadow(0 1px 1px #251301); }
+#s-lobby .lb-plate.lock .lb-pt > b { color: var(--a2-cream); }
+#s-lobby .lb-chevron { display: block; width: 9px; height: 20px; object-fit: fill; transform: scale(1.524, 1.869); transform-origin: 51.5% 50.3%; }
+
+#s-lobby .lb-journey {
+  display: grid; grid-template-columns: minmax(0, 196fr) minmax(0, 145fr); justify-content: space-between; align-items: end; gap: 25px;
+  min-height: 0; padding: 0; border: 0; border-image: none; background: none; box-shadow: none; pointer-events: none;
+}
+#s-lobby .lb-trk {
+  position: relative; box-sizing: border-box; justify-content: center; gap: 3px; width: 100%; height: auto; min-height: 120px;
+  padding: 22px 13px 9px; border: 0; border-image: none; border-radius: 0;
+  background: var(--a2-goal) 56.604% 13.331309% / 107.231% 109.879% no-repeat; color: var(--a2-ink); pointer-events: auto;
+}
+#s-lobby .lb-trk .trk-h { gap: 7px; font: 700 11.5px/1.1 var(--font-body); color: var(--a2-ink); }
+#s-lobby .lb-trk .trk-h > .g-ic { width: 24px; height: 18px; transform: scale(1.2); }
+#s-lobby .lb-trk .trk-t { font: 800 clamp(21px, 6.03cqw, 23.5px)/1.15 var(--font-display); letter-spacing: -.06em; color: var(--a2-ink); text-shadow: none; }
+#s-lobby .lb-trk .trk-lv { gap: 7px; font: 700 12px/1.25 var(--font-body); color: var(--a2-ink); }
+#s-lobby .lb-trk .trk-diff { padding: 2px 7px; border-color: #91612b; background: #44301b; color: var(--a2-cream); font-size: 11px; }
+#s-lobby .lb-trk .trk-lv > small { margin-left: -3px; font-size: 12px; font-weight: 700; color: var(--a2-ink); }
+#s-lobby .lb-trk .obj { gap: 6px; padding-left: 5px; margin-top: 2px; padding-top: 5px; border-top: 1px solid #80684050; font: 600 11px/1.2 var(--font-body); color: var(--a2-ink); }
+#s-lobby .lb-trk .obj > span { flex: 0 1 auto; overflow: visible; white-space: normal; overflow-wrap: anywhere; word-break: normal; line-break: strict; }
+#s-lobby .lb-trk .obj > small { font-size: 11px; color: var(--a2-ink); }
+#s-lobby .lb-trk .obj > i { width: 7px; height: 7px; border-color: var(--a2-ink); }
+#s-lobby .lb-trk .obj.ok { color: #385025; }
+#s-lobby .lb-trk .obj.ok > i { background: #527036; border-color: #527036; }
+#s-lobby .lb-trk:not(.gate) :is(.trk-t, .trk-lv, .obj) { transform: translateY(-2px); }
+#s-lobby .lb-trk.gate { min-height: 130px; height: auto; }
+#s-lobby .lb-trk.gate .trk-t { font-size: 19px; }
+#s-lobby .lb-trk .trk-tl > small { font-size: 10px; color: var(--a2-ink); }
+#s-lobby .lb-trk.gate .obj { margin-top: 0; padding-top: 2px; border-top: 0; }
+#s-lobby .lb-trk.gate .obj > small { margin-left: auto; font-size: 10px; }
+
+#s-lobby .lb-go { width: 100%; align-self: end; gap: 0; pointer-events: auto; }
+#s-lobby .lb-cta {
+  box-sizing: border-box; display: grid; grid-template-columns: 29px minmax(0, 1fr) 8px; gap: 3px;
+  width: 100%; height: 65px; min-height: 44px; padding: 8px 9px 9px; margin: 0;
+  border: 0; border-image: none; border-radius: 0; background: var(--a2-depart) 52.632% 44.304171% / 101.041% 122.734% no-repeat;
+  box-shadow: none; color: var(--a2-cream); text-shadow: 0 1px 1px #240502; pointer-events: auto;
+}
+#s-lobby .lb-cta > .g-ic { width: 35px; height: 39px; transform: translateX(2px); }
+#s-lobby .lb-cta-copy { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; }
+#s-lobby .lb-cta-copy > b { transform: translateX(-4px); font: 700 clamp(24px, 6.54cqw, 25.5px)/1 var(--font-display); letter-spacing: -.04em; color: var(--a2-cream); }
+#s-lobby .lb-cta-copy > small { width: max-content; max-width: calc(100% + 25px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 600 10px/1.15 var(--font-body); color: var(--a2-cream); letter-spacing: -.02em; }
+#s-lobby .lb-cta > .lb-chevron { transform: scale(1.524, 1.4); }
+#s-lobby .lb-cta.hi-pulse { outline: 2px solid #ffe398; outline-offset: -6px; }
+#s-lobby button:focus-visible { outline: 3px solid #ffdd80; outline-offset: 2px; }
+#s-lobby .lb-coach { font-size: 12px; }
+
+/* 전역 하단 내비게이션은 로비가 보일 때만 A2 프레임을 사용한다. 기존 높이 68px/safe-area는 유지한다. */
+body:has(#s-lobby:not([hidden])) #adBanner span { visibility: hidden; }
+body:has(#s-lobby:not([hidden])) #tabs {
+  gap: 4px; padding: 2px 20px 5px; background: url('../art/a2-bottom-plinth.png') 87.5% 57.56% / 100.384% 200.533% no-repeat; box-shadow: none;
+}
+body:has(#s-lobby:not([hidden])) #tabs::before { content: none; }
+body:has(#s-lobby:not([hidden])) #tabs button {
+  min-height: 44px; padding: 4px 3px 5px; gap: 1px; border: 0;
+  background: url('../art/a2-tab-idle.png') 50% 51.23% / 105.532% 130.012% no-repeat;
+  font: 700 13px/1.15 var(--font-body); color: #fff4d5; letter-spacing: -.04em;
+}
+body:has(#s-lobby:not([hidden])) #tabs button[aria-current="page"] {
+  background-image: url('../art/a2-tab-active.png'); background-size: 105.159% 129.06%; background-position: 50.685% 50.42%; color: #2b1b0d; text-shadow: none;
+}
+body:has(#s-lobby:not([hidden])) #tabs .tab-sock { width: 30px; height: 30px; padding: 0; background: none; outline: none; }
+body:has(#s-lobby:not([hidden])) #tabs .tab-sock > .g-ic { width: 30px; height: 30px; transform: scale(1.3); }
+body:has(#s-lobby:not([hidden])) #tabs button[data-tab="lobby"] .tab-sock > .g-ic { transform: scale(1.15); }
+body:has(#s-lobby:not([hidden])) #tabs button[data-tab="battle"] .tab-sock > .g-ic { transform: scale(1); }
+body:has(#s-lobby:not([hidden])) #tabs .tab-sock > .emblem.emblem-sm img { transform: scale(1.08); }
+body:has(#s-lobby:not([hidden])) #tabs button:not([aria-current]) .tab-sock > .g-ic { filter: drop-shadow(0 1px 1px #251301); }
+body:has(#s-lobby:not([hidden])) #tabs button:focus-visible { outline: 3px solid #ffe398; outline-offset: -3px; }
+
+@container (max-width: 379px) {
+  #s-lobby .lb-raid .lb-pt { padding-left: 9px; }
+  #s-lobby .lb-shop .lb-pt { padding-left: 14px; }
+}
+@container (max-width: 359px) {
+  #s-lobby .lb-ui { padding-right: 8px; padding-left: 10px; }
+  #s-lobby .lb-journey { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px; }
+  #s-lobby .lb-trk { padding-left: 11px; padding-right: 10px; }
+  #s-lobby .lb-trk .trk-h { font-size: 12px; }
+  #s-lobby .lb-trk .trk-lv { gap: 5px; font-size: 11px; }
+  #s-lobby .lb-trk .trk-lv > small { font-size: 11px; }
+  #s-lobby .lb-trk .obj { font-size: 10px; gap: 4px; }
+  #s-lobby .lb-trk .obj > small { font-size: 10px; }
+  #s-lobby .lb-caption > b { font-size: 13px; }
+  #s-lobby .lb-caption > small { font-size: 10px; }
+  #s-lobby .lb-cta { grid-template-columns: 24px minmax(0, 1fr) 7px; padding-left: 7px; padding-right: 7px; }
+  #s-lobby .lb-cta > .g-ic { width: 26px; height: 32px; }
+  #s-lobby .lb-cta-copy > small { font-size: 9px; }
+}
+@container (max-height: 470px) {
+  #s-lobby .lb-ui { padding-top: 6px; padding-bottom: 14px; }
+  #s-lobby .lb-side { gap: 5px; }
+  #s-lobby .lb-sc .lb-main { height: 73px; }
+  #s-lobby .lb-caption { height: 29px; }
+  #s-lobby .lb-caption > small { display: block; }
+  #s-lobby .lb-sock > .g-ic { width: 32px; height: 32px; }
+  #s-lobby .lb-trk { height: auto; min-height: 111px; padding-top: 19px; }
+  #s-lobby .lb-trk.gate { min-height: 120px; }
+}
+@container (max-height: 380px) {
+  #s-lobby .lb-ui { padding-top: 4px; padding-bottom: 8px; gap: 6px; }
+  #s-lobby .lb-sc .lb-main { height: 62px; }
+  #s-lobby .lb-caption { height: 27px; }
+  #s-lobby .lb-caption > b { font-size: 12px; }
+  #s-lobby .lb-caption > small { font-size: 9px; }
+  #s-lobby .lb-sock > .g-ic { width: 27px; height: 27px; }
+  #s-lobby .lb-fill { min-height: 0; }
+  #s-lobby .lb-plate { height: 48px; min-height: 44px; }
+  #s-lobby .lb-plate.lb-shop { padding-top: 5px; background-image: url('../art/a2-shop-sign-r6.png'); background-size: 102.103% 89.954%; background-position: 55% 50%; }
+#s-lobby .lb-plate.lb-raid { height: 60px; padding-top: 14px; }
+}
+@media (max-width: 359px) {
+  #s-lobby .topbar.tb-mmo { gap: 5px; padding-left: 5px; padding-right: 5px; }
+  #s-lobby .tb-mmo .tb-pf { width: 54px; height: 54px; }
+  #s-lobby .tb-mmo .tb-cls { font-size: 20px; }
+  #s-lobby .tb-mmo .tb-lv { font-size: 10px; }
+  #s-lobby .tb-mmo .tb-xpt { font-size: 8px; }
+  #s-lobby .tb-mmo .tb-cur b { font-size: 12px; }
+  #s-lobby .tb-mmo .tb-cur > .g-ic { width: 16px; height: 16px; }
+  body:has(#s-lobby:not([hidden])) #tabs { padding-left: 8px; padding-right: 8px; gap: 3px; }
+  body:has(#s-lobby:not([hidden])) #tabs button { font-size: 13px; }
+}

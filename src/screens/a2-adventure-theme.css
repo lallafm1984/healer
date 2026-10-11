@@ -1,0 +1,329 @@
+/* A2 lobby materials across the adventure flow (2026-10-11).
+ * Appearance only: all layout, hit areas, board geometry and gauge fills remain
+ * owned by the existing screen / battle styles. Shared tokens live in the
+ * common A2 theme; supplied art is reused instead of drawing new ornaments.
+ * Role, rarity, HP, mana, dispel and warning colours are intentionally local.
+ */
+
+/* Adventure panels use the same dark wood and warm brass as the lobby. */
+:is(#s-content, #s-entry, #s-party, #s-settle) {
+  color: var(--a2-ink);
+  --ink: var(--a2-ink);
+  --ink-2: #ecd7b4;
+  --mute: var(--a2-muted);
+  --dim: #b7a185;
+  --frame: var(--a2-brass);
+  --frame-hi: var(--a2-brass-hi);
+  --edge: #8a6235;
+  --edge-dim: #715030;
+  --gold-hi: var(--a2-brass-hi);
+  --panel-2: #3d2918;
+}
+
+:is(#s-entry, #s-party, #s-settle) {
+  background-color: #35291d;
+  background-image: var(--a2-wood);
+  background-blend-mode: soft-light;
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+#s-content .b-cat,
+#s-content .b-dc,
+#s-content .b-gt,
+#s-content .b-arw,
+#s-content .b-st,
+#s-content .b-rb,
+#s-content .b-tg:not(.rec),
+:is(#s-entry, #s-party) .pn,
+:is(#s-entry, #s-party) .f-gbtn,
+#s-party .f-rr,
+#s-party .f-item:not(.empty),
+#s-party .f-det,
+#s-party .f-ps,
+#s-settle .r-loot,
+#s-settle .r-prog,
+#s-settle .r-rec,
+#s-settle .r-note,
+#s-settle .r-cur {
+  background-color: #59402a;
+  background-image: var(--a2-wood);
+  background-blend-mode: soft-light;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  color: var(--a2-ink);
+}
+
+#s-content .b-cat,
+#s-content .b-dc,
+#s-content .b-gt,
+#s-content .b-arw,
+#s-content .b-st,
+:is(#s-entry, #s-party) .pn,
+:is(#s-entry, #s-party) .f-gbtn,
+#s-party .f-rr,
+#s-party .f-item:not(.empty),
+#s-party .f-det,
+#s-settle .r-loot,
+#s-settle .r-prog,
+#s-settle .r-rec,
+#s-settle .r-note {
+  border-color: var(--a2-brass);
+  box-shadow: inset 0 1px 0 #e8c77a55, inset 0 -1px 0 #1f110c99, 0 2px 3px #160b0755;
+}
+
+/* Paper is the selection state, with dark ink rather than pale-on-pale text. */
+#s-content .b-cat[aria-selected="true"],
+#s-content .b-dc.on,
+#s-party .subtabs button[aria-selected="true"],
+#s-party .chips.items button.on,
+#s-party .chips.items button[aria-pressed="true"] {
+  background-color: #e8d2a0;
+  background-image: var(--a2-paper);
+  background-blend-mode: normal;
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-color: var(--a2-brass-hi);
+  color: var(--a2-paper-ink);
+  text-shadow: none;
+  box-shadow: inset 0 1px 0 #fff3d299, 0 2px 4px #170b0755;
+}
+#s-content .b-cat[aria-selected="true"] :is(b, small),
+#s-content .b-dc.on small,
+#s-party .subtabs button[aria-selected="true"] :is(small, b),
+#s-party .chips.items button.on :is(small, b),
+#s-party .chips.items button[aria-pressed="true"] :is(small, b) {
+  color: var(--a2-paper-ink);
+  text-shadow: none;
+}
+#s-content .b-cat[aria-selected="true"]::after { background: var(--a2-brass-hi); }
+#s-content .b-cat:not([aria-selected="true"]) small { color: var(--a2-muted); }
+#s-content .b-dc:disabled { color: #b7a185; }
+#s-content .b-dc:disabled small { color: #b7a185; }
+
+/* The location art, faction marks and reward rarity rims keep their own colour. */
+#s-content .b-gate { border-color: var(--a2-brass-hi); }
+#s-content .b-gn b { color: var(--a2-ink); }
+#s-content .b-gn small,
+#s-content .b-inf,
+#s-content .b-rw small,
+#s-content .b-lootrow .cap { color: #f0dbb8; }
+#s-content .b-r,
+#s-content .b-hg {
+  background-color: #302012;
+  background-image: var(--a2-wood);
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+#s-content .b-pl.on .b-r { border-color: var(--a2-brass-hi); }
+#s-content .b-pl.on small { color: var(--a2-ink); }
+#s-content .b-pl.off:not(.on) small,
+#s-content .b-pl.lock:not(.on) small { color: #b7a185; }
+#s-content .b-tg:not(.rec) { border-color: var(--a2-brass); }
+#s-content .b-foot {
+  background-color: #38291c;
+  background-image: var(--a2-wood);
+  background-blend-mode: soft-light;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+/* Entry and party retain the original warning/affix and role swatches. */
+:is(#s-entry, #s-party) :is(.f-ttl, .f-cinfo b, .chalstep b) { color: var(--a2-ink); }
+:is(#s-entry, #s-party) :is(.f-hcap, .f-cinfo, .f-rules, .f-afd, .f-nl) { color: var(--a2-muted); }
+:is(#s-entry, #s-party) .f-afd small { color: #d9c19d; }
+:is(#s-entry, #s-party) .f-afr { border-top-color: #8a623577; }
+:is(#s-entry, #s-party) .f-warn { background-color: #463218; border-color: #b38a3f; }
+:is(#s-entry, #s-party) .f-warn .v { color: var(--a2-ink); }
+:is(#s-entry, #s-party) .f-warn .v .cap { color: #e3cdaa; }
+#s-entry .ns-foot.f-foot,
+#s-party .ns-foot.f-foot2 {
+  background-color: #38291c;
+  background-image: var(--a2-wood);
+  background-blend-mode: soft-light;
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-top-color: var(--a2-brass);
+}
+#s-party .pcard.f-mem { border-top-color: #8a623577; }
+#s-party .pcard.f-mem :is(.pnick, .f-l1) { color: var(--a2-ink); }
+#s-party .f-l2,
+#s-party .f-l1 > .cap { color: var(--a2-muted); }
+#s-party .pcard.f-mem.on,
+#s-party .pcard.f-mem.picked {
+  background-color: #584024;
+  box-shadow: inset 3px 0 0 var(--a2-brass-hi);
+}
+#s-party .f-tr,
+#s-party .f-ps { border-color: var(--a2-brass); }
+#s-party .f-item small { background-color: #493019; border-color: var(--a2-brass); color: var(--a2-ink); }
+#s-party .f-item.empty { color: #c5ad89; border-color: #947044; }
+#s-party .f-item.zero,
+#s-party .f-item.zero small { color: var(--a2-muted); }
+
+/* The three party sheets: guide accordion, member detail, and item picker. */
+#s-party .sheet .f-det { background-color: #332113; }
+#s-party .sheet .f-det p:not(.pab),
+#s-party .sheet .f-det p.pab { color: #f0ddbb; }
+#s-party .sheet .f-det p.pab b,
+#s-party .sheet .f-det p.pab i { color: var(--gc); }
+#s-party .sheet .gdet.f-acc { border-top-color: #98714588; }
+#s-party .sheet .gdet.f-acc > summary { color: var(--a2-ink); }
+#s-party .sheet .gdet.f-acc[open] > summary .f-an { color: var(--a2-brass-hi); }
+#s-party .sheet .f-ih {
+  background-color: #4c351e;
+  background-image: var(--a2-wood);
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-color: var(--a2-brass);
+  color: var(--a2-ink);
+}
+#s-party .sheet > .f-shut { box-shadow: 0 -9px 12px #2d1b12cc; }
+
+/* Reuse the approved crimson button art; no new CSS ornamental shapes. */
+#s-content .g-cta,
+:is(#s-entry, #s-party) .f-go {
+  background-color: transparent;
+  background-image: url('../art/a2-depart-v3.png');
+  background-size: 101.295775% 107.891492%;
+  background-position: 8.695652% 17.1875%;
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--a2-ink);
+}
+#s-content .g-cta::before,
+#s-content .g-cta::after { content: none; }
+#s-content .g-ct b,
+:is(#s-entry, #s-party) .f-go .f-gt {
+  color: var(--a2-ink);
+  text-shadow: 0 2px 2px #35100b;
+}
+#s-content .g-ct small,
+:is(#s-entry, #s-party) .f-go .cta2 small { color: #f3ddb8; }
+:is(#s-entry, #s-party) .f-go:disabled,
+:is(#s-entry, #s-party) .f-go[aria-disabled="true"] { filter: saturate(.4) brightness(.78); }
+
+/* Results: leave rarity, success/failure and metric bars as data colours. */
+#s-settle .res-head {
+  background-color: #3b2513;
+  background-image: var(--a2-wood);
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+#s-settle .res-head > p:not(.r-why),
+#s-settle .r-nm small:not(.r-sp),
+#s-settle .r-cur small,
+#s-settle .r-rec > summary span,
+#s-settle .r-xpl small { color: var(--a2-muted); }
+#s-settle .r-cur b,
+#s-settle .r-note { color: var(--a2-ink); }
+#s-settle .r-cur { border-color: #947044; }
+#s-settle .r-newsp { background-color: #4d3319; border-color: var(--a2-brass); color: var(--a2-ink); }
+#s-settle .r-newsp span { color: var(--a2-muted); }
+#s-settle .r-chips li { background-color: #322012; border-color: #886137; color: #eedaba; }
+#s-settle .r-chips small { color: var(--a2-muted); }
+#s-settle .r-rec .meter { background-color: #322012; border-color: #886137; }
+#s-settle .m-all { border-color: var(--a2-brass); color: var(--a2-muted); }
+#s-settle .r-dev > summary { color: #bca581; }
+#s-settle .lvpop .card {
+  background-color: #e6d0a2;
+  background-image: var(--a2-paper);
+  background-blend-mode: normal;
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-color: var(--a2-brass);
+  color: var(--a2-paper-ink);
+  text-shadow: none;
+}
+#s-settle .lvpop .card :is(h3, p, li, .lvnum, .lvnum b) { color: var(--a2-paper-ink); text-shadow: none; }
+
+/* Battle chrome only. Existing artwork and semantic colours on the playfield,
+ * skill art, mana orb/low state, HP/cast fills and queue warning states survive.
+ */
+#battle {
+  --sf-leather: var(--a2-wood);
+  --ink: var(--a2-ink);
+  --ink-2: #ecd7b4;
+  --mute: var(--a2-muted);
+  --frame: var(--a2-brass);
+  --frame-hi: var(--a2-brass-hi);
+  --gold-hi: var(--a2-brass-hi);
+}
+#battle #controlsFrame { background-color: #302013; }
+#battle #controls {
+  background-color: #3b2513;
+  background-image: var(--a2-wood);
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+#battle .stage-head::before {
+  background-color: #3b2513;
+  background-image: var(--a2-wood);
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+#battle #controls::after,
+#battle #controls.hasaux::after {
+  background-image: none;
+  border-style: solid;
+  border-color: transparent;
+  border-image-source: var(--sf-panel);
+  border-image-slice: 104;
+  border-image-width: 14px 22px 10px;
+  border-image-repeat: stretch;
+}
+#battle #queue .q:not(.hot),
+#battle #queue .q-empty {
+  background-color: #392616;
+  background-image: var(--a2-wood);
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+#battle .stage-loc,
+#battle .stage-time,
+#battle #timer { color: #f0dfbd; }
+#battle #controls #hint { color: var(--a2-muted); }
+#battle #controls .item,
+#battle #controls .aux,
+#battle #controls #giveUp,
+#battle #controls .item.empty::after {
+  background-image: url('../art/a2-tab-idle-v3.png');
+  background-size: 103.913043% 108.613861%;
+  background-position: 12.962963% 55.172414%;
+  background-repeat: no-repeat;
+}
+/* Empty items already own a dimmed pseudo-element; keep that single layer. */
+#battle #controls .item.empty { background-image: none; }
+
+/* Live pause, confirmation/accessibility dialogs and skill/boss tooltips. */
+#battle #pause .card,
+#battle #pauseGuide,
+#battle #preview,
+#battle #coach,
+#battle #tip,
+.battle-dialog {
+  background-color: #3b2513;
+  background-image: var(--a2-wood);
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-color: var(--a2-brass);
+  color: var(--a2-ink);
+}
+#battle #pauseSub { color: var(--a2-muted); }
+#battle #tip::after { background-color: #3b2513; border-color: var(--a2-brass); }
+.battle-dialog h2 { color: var(--a2-ink); }
+:is(#s-party .f-gsheet, #battle #pauseGuide) :is(.gd-hp, .gd-phases li, .gs:not(.enr)) {
+  background-color: #332214;
+  background-image: var(--a2-wood);
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-color: #8c6439;
+}
+:is(#s-party .f-gsheet, #battle #pauseGuide) .gd-phases li.cur {
+  border-color: var(--a2-brass-hi);
+  background-color: #594023;
+}

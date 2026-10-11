@@ -1,6 +1,7 @@
 // 세로 UI 회귀: 그림 로드 (캐릭터 그림 없음, 장소·메뉴 그림은 28), 고정 출발 버튼, 좁은 메뉴, 20인/특성/전멸 배치.
 import { chromium } from 'playwright';
 import { pastTitle, toParty } from './nav.mjs';
+import { equipmentLayout } from './character.mjs';
 
 export default async function portrait(url, shots) {
   const browser = await chromium.launch();
@@ -48,13 +49,15 @@ export default async function portrait(url, shots) {
     ok(vill.live && vill.w === 853 && vill.h === 1844 && vill.base, `${width}: 살아 있는 마을 캔버스 853×1844 · 바탕 그림 로드`);
     if (width === 320) console.log(`INFO 마을 그래픽: ${await page.locator('#s-lobby .lb-village').evaluate(el => el.dataset.gl)}`);
     const villageTime = () => page.locator('#s-lobby .lb-village').evaluate(el => Number(el.dataset.t || 'NaN'));
-    // 전투 Sunforged 부품 (코덱스 로비 시안): 소켓·패널·출전 그림과 가죽·소켓 재질이 실제로 읽히는지
+    // A2 목재·리넨 부품: 의미별 메뉴 아이콘과 독립 목표/출전 재질이 실제로 읽히는지.
     const lobbyIcons = '#s-lobby .lb-sock .g-ic, #s-lobby .lb-plate > .g-ic, #s-lobby .lb-cta > .g-ic';
-    const iconsLoaded = await loaded(lobbyIcons) && await page.locator(lobbyIcons).evaluateAll(imgs =>
-      ['icon-mission', 'icon-challenge', 'icon-chest', 'icon-raid', 'tab-shop', 'tab-battle'].every(name => imgs.some(i => i.src.includes(name))));
+    const iconsLoaded = await loaded(lobbyIcons) && (await Promise.all([
+      '.lb-missions .g-ic', '.lb-chal .g-ic', '.lb-chest .g-ic', '.lb-raid > .g-ic', '.lb-shop > .g-ic', '.lb-cta > .g-ic',
+    ].map(selector => loaded(`#s-lobby ${selector}`)))).every(Boolean);
     ok(iconsLoaded, `${width}: 로비 소켓·패널·출전 그림 (임무·주간 도전·일일 상자·첨탑·잡화점·출전) decode`);
-    ok(await bgLoaded('#s-lobby .lb-sock') && await bgLoaded('#s-lobby .lb-journey') && await bgLoaded('#s-lobby .topbar', '::before') && await bgLoaded('#tabs .tab-sock'),
-      `${width}: 원형 소켓 · 가죽 패널 · 위 정보창 · 하단 탭 소켓 재질 로드`);
+    ok(await bgLoaded('#s-lobby .lb-main') && await bgLoaded('#s-lobby .lb-trk') && await bgLoaded('#lobbyStart')
+      && await bgLoaded('#s-lobby .topbar', '::before') && await bgLoaded('#tabs button[aria-current="page"]') && await bgLoaded('#tabs button:not([aria-current])'),
+      `${width}: A2 소켓·독립 목표·붉은 출전·위 정보창·하단 탭 재질 로드`);
 
     // 메뉴 (소켓·패널)는 장면 안, 아래 목표·출전 패널과 서로 겹치지 않음
     const lobbyGeometry = () => page.evaluate(() => {
@@ -138,8 +141,10 @@ export default async function portrait(url, shots) {
       ok(same && after >= before, `390: 임무 보상 수령 후 같은 마을 캔버스, 장면 시간 이어짐 (${before} → ${after})`);
       await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(80);
     }
-    ok(await page.locator('#s-char .c7-stage .c7-bigem .emblem').count() === 1 && await noOverflow('#s-char .ns-body'), `${width}: 캐릭터 장비 받침대 직업 문장·능력치 화면 안`);
-    if (width === 390) await page.screenshot({ path: `${shots}/portrait_character_${width}.png` });
+    ok(await page.locator('#s-char .c7-mid .c7-stat').count() === 6 && await noOverflow('#s-char .ns-body'), `${width}: 캐릭터 장비 중앙 능력치 6줄 화면 안`);
+    const equipment = await equipmentLayout(page);
+    ok(equipment.centered && equipment.viewport && equipment.valuesFit, `${width}: 중앙 능력치 6줄이 좌우 슬롯 사이·액션행 위, 텍스트 겹침·화면 클립 없음 (${JSON.stringify(equipment)})`);
+    await page.screenshot({ path: `${shots}/portrait_character_${width}.png`, animations: 'disabled' });
     await page.click('#s-char nav [data-csub="hero"]'); await page.clock.runFor(80);
     ok(await page.locator('#s-char [data-hcard] .emblem').count() === 3 && await noHeroArt(), `${width}: 구현된 세 직업 = 직업 문장`);
     await page.click('#s-char nav [data-csub="skill"]'); await page.clock.runFor(80);

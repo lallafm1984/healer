@@ -2,6 +2,37 @@
 import { chromium } from 'playwright';
 import { pastTitle, patchSave } from './nav.mjs';
 
+/** 실제 텍스트 범위까지 검사해 작은 중앙 판의 이름/값/장비 증가량 겹침을 잡는다. */
+export const equipmentLayout = page => page.evaluate(() => {
+  const q = s => document.querySelector(`#s-char ${s}`), rect = el => el.getBoundingClientRect();
+  const panel = rect(q('.c7-mid .c7-stats')), [left, right] = [...document.querySelectorAll('#s-char .c7-col')].map(rect);
+  const stage = rect(q('.c7-stage')), inventory = rect(q('.c7-inventory'));
+  const bodyEl = q('.ns-body'), body = rect(bodyEl), tabs = rect(document.querySelector('#tabs'));
+  const centered = panel.left >= left.right - 1 && panel.right <= right.left + 1 && panel.bottom <= inventory.top + 1;
+  const viewport = [...document.querySelectorAll('#s-char .c7-slot, #s-char .c7-mid .c7-stats')].every(el => {
+    const r = rect(el); return r.left >= 0 && r.right <= innerWidth && r.top >= body.top - 1 && r.bottom <= tabs.top + 1;
+  }) && bodyEl.scrollWidth <= bodyEl.clientWidth + 1;
+  const firstRow = q('.c7-bag') ?? q('.c7-inventory .c7-bag-empty');
+  const inventoryFollows = inventory.top >= stage.bottom - 1 && inventory.top - stage.bottom <= 24;
+  const inventoryVisible = rect(q('.c7-inventory-count')).bottom <= tabs.top && (!firstRow || rect(firstRow).bottom <= tabs.top + 1);
+  const issues = [], bonuses = [];
+  for (const row of document.querySelectorAll('#s-char .c7-stat')) {
+    const parts = [...row.querySelectorAll(':scope > small, :scope > b, :scope > i')].filter(el => el.textContent.trim()).map(el => {
+      const range = document.createRange(); range.selectNodeContents(el);
+      return { el, r: range.getBoundingClientRect() };
+    });
+    const name = row.querySelector('small').textContent;
+    for (let i = 0; i < parts.length; i++) {
+      const a = parts[i].r;
+      if (a.left < panel.left + 1 || a.right > panel.right - 1 || a.top < panel.top || a.bottom > panel.bottom) issues.push(`${name}: clipped ${parts[i].el.tagName}`);
+      for (let j = i + 1; j < parts.length; j++) { const b = parts[j].r; if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1) issues.push(`${name}: overlap`); }
+    }
+    const bonus = row.querySelector(':scope > i');
+    if (bonus.textContent.trim()) { const rgb = getComputedStyle(bonus).color.match(/[\d.]+/g).map(Number); bonuses.push(rgb[1] > rgb[0] && rgb[1] > rgb[2]); }
+  }
+  return { centered, viewport, inventoryFollows, inventoryVisible, valuesFit: !issues.length, issues, bonusCount: bonuses.length, bonusGreen: bonuses.every(Boolean) };
+});
+
 export default async function character(url, shots) {
   const browser = await chromium.launch();
   const errs = [];
@@ -23,19 +54,17 @@ export default async function character(url, shots) {
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-char') && await page.getAttribute('#s-char [data-csub="gear"]', 'aria-selected') === 'true', '캐릭터 탭 = 장비부터');
   ok((await page.locator('#s-char nav .c7-tab .c7-tic').count()) === 4 && (await page.locator('#s-char nav [data-csub="hero"] .emblem').count()) === 1, '하위 탭 4칸 = 아이콘 + 이름 (직업 칸 = 직업 문장)');
-  // Lim 2026-10-11: 가운데 장비 점수 이름표를 빼고 능력치 판을 가운데로
-  const mid = await page.evaluate(() => {
-    const r = s => document.querySelector(s).getBoundingClientRect();
-    const st = r('#s-char .c7-mid .c7-stats'), [a, b] = [...document.querySelectorAll('#s-char .c7-stage .c7-col')].map(e => e.getBoundingClientRect()), acts = r('#s-char .c7-acts');
-    return { ok: st.left >= a.right - 1 && st.right <= b.left + 1 && st.bottom <= acts.top + 1, at: [st.left, st.right, st.bottom].map(Math.round) };
-  });
-  ok((await page.locator('#s-char .c7-plq').count()) === 0 && !/장비 점수/.test(await text('#s-char .c7-stage')) && mid.ok, `가운데 장비 점수 이름표 없음, 능력치 판이 좌우 장비 칸 사이 가운데 (${mid.at})`);
-  ok((await page.locator('#s-char .c7-stage .c7-bigem .emblem').count()) === 1 && /사제/.test(await text('#s-char .topbar .tb-cls')), '받침대 위 큰 직업 문장 1개, 위 줄 = 사제');
+  const layout = await equipmentLayout(page);
+  ok((await page.locator('#s-char .c7-plq').count()) === 0 && layout.centered && layout.viewport && layout.inventoryFollows && layout.inventoryVisible, `장비 중앙 능력치와 바로 아래 인벤토리가 화면 안 (${JSON.stringify(layout)})`);
+  ok((await page.locator('#s-char .c7-stage .c7-bigem').count()) === 0 && /사제/.test(await page.getAttribute('#s-char .topbar .tb-em .emblem', 'aria-label')) && /사제/.test(await text('#s-char .topbar .tb-cls')), '능력치 위 둥근 장식 없음, 위 줄 직업 문장·이름 = 사제');
+  ok(await page.getAttribute('#s-char .c7-inventory', 'aria-label') === '인벤토리' && (await page.locator('#s-char .c7-acts, #s-char [data-bag], #s-char [data-rec], #s-char [data-salvbag]').count()) === 0, '장비 아래 인벤토리 상시 표시, 별도 가방·추천·분해 버튼 없음');
   const stats = await flat('#s-char .c7-stats');
   ok(/체력220/.test(stats) && /지능72/.test(stats) && /정신력/.test(stats) && /인내/.test(stats) && !/세트/.test(stats), `능력치 판: 체력 220 · 지능 72 (34 1-2: 숫자 ÷2.5, 1-6 치유 배율 0.6), 정신력 · 인내, 세트 칸 없음 (${stats})`);
   ok((await page.locator('#s-char .c7-stat').count()) === 6 && (await page.locator('#s-char .gtile').count()) === 6 && (await page.locator('#s-char .gtile.empty').count()) === 6, '능력치 6칸, 착용 6칸 (다 빈칸)');
+  ok((await page.locator('#s-char .c7-slot > small').count()) === 0 && (await page.locator('#s-char .c7-slot > b').count()) === 6 && await page.locator('#s-char .c7-slot.empty').evaluateAll(els => els.every(el => /빈칸/.test(el.getAttribute('aria-label')))), '장비 슬롯은 그림+부위 이름만 표시, 빈칸 정보는 접근 가능한 이름에 유지');
+  ok(layout.valuesFit, `중앙 능력치 이름·값 겹침 없음 (${layout.issues.join(',')})`);
   ok((await page.locator('#s-char .c7-sq img.g-ic').count()) === 6 && (await page.locator('#s-char .c7-stat .c7-si img.g-ic').count()) === 6 && (await page.locator('#s-char nav .c7-tic img.g-ic').count()) === 3, '31 그림: 장비 칸 item- 6장 (무기·목걸이는 40 다시 그린 그림), 능력치 stat- 6장 (인내 stat-stamina 포함), 하위 탭 icon-gear·skills·talent');
-  await page.screenshot({ path: `${shots}/char_gear.png` });
+  await page.screenshot({ path: `${shots}/char_gear.png`, animations: 'disabled' });
 
   // ---- 스킬: Lv 1 ----
   await page.click('#s-char [data-csub="skill"]'); await page.clock.runFor(50);
@@ -107,7 +136,8 @@ export default async function character(url, shots) {
   ok(await page.isVisible('#s-char [data-csub="talent"] .rdot') && (await page.locator('#s-char .c7-pre').count()) === 3, '남은 특성 = 특성 탭 빨간 점, 프리셋 3칸');
   await page.click('#s-char [data-tcell="1:0"]'); await page.clock.runFor(50);
   ok(/벼랑 끝 손길/.test(await text('#s-char .c7-tsheet')) && /Lv 10/.test(await text('#s-char .c7-tsheet')) && /고르기/.test(await text('#s-char .c7-tsheet [data-talent="1:0"]')), '칸을 누르면 아래 시트 (이름·Lv·주제·설명·고르기)');
-  await page.screenshot({ path: `${shots}/char_talent.png` });
+  // 가짜 시계와 무관하게 CSS 등장 애니메이션의 마지막 프레임을 캡처한다.
+  await page.screenshot({ path: `${shots}/char_talent.png`, animations: 'disabled' });
   await page.click('#s-char .c7-tsum'); await page.clock.runFor(50);
   ok(!(await page.isVisible('#s-char .c7-tsheet')), '시트 밖을 누르면 닫힘');
   await page.click('#s-char [data-csub="skill"]'); await page.clock.runFor(50);

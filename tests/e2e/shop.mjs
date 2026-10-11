@@ -21,7 +21,10 @@ export default async function shop(url, shots) {
   await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 40; s.player.gold = 50000; s.mats.stone = 20; localStorage.setItem('healer.save', JSON.stringify(s)); });
 
   // ---- 로비 → 임무 ----
-  ok(/일일 0\/5/.test(await text('#s-lobby .lb-missions')) && /10인 레이드 · 열쇠 0\/5/.test(await text('#s-lobby .lb-raid')), '로비 이름표: 임무 일일 0/5 · 첨탑 = 10인 레이드 악몽 열쇠 수량');
+  // A2 간판은 분류와 열쇠 수량을 두 줄로 표시한다. 장식 구분자 대신 실제 보이는 두 정보를 검사한다.
+  const raidLabel = await page.locator('#s-lobby .lb-raid').innerText();
+  ok(/일일 0\/5/.test(await text('#s-lobby .lb-missions')) && /첨탑/.test(raidLabel)
+    && /10인 레이드/.test(raidLabel) && /열쇠 0\/5/.test(raidLabel), '로비 이름표: 임무 일일 0/5 · 첨탑 = 10인 레이드 악몽 열쇠 수량');
   await page.click('#s-lobby .lb-missions .lb-main'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-missions') && (await page.locator('#s-missions .mlist').first().locator('.mrow').count()) === 5, '임무 화면: 일일 5개');
   ok((await page.locator('#s-missions .mlist').nth(1).locator('.mrow').count()) === 3, 'Lv 40 = 주간 임무 3개');

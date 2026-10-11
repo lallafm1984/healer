@@ -12,6 +12,8 @@ import legacyUi from './legacy-ui.mjs';
 import talents from './talents.mjs';
 import tutorial from './tutorial.mjs';
 import portrait from './portrait.mjs';
+import lobbyLiving from './lobby-living.mjs';
+import lobbyA2 from './lobby-a2.mjs';
 import devices from './devices.mjs';
 import compactUi from './compact-ui.mjs';
 import compactInput from './compact-input.mjs';
@@ -31,6 +33,8 @@ import commonPxf from './common-pxf.mjs';
  */
 export const SUITES = [
   ['세로 UI·이미지', portrait, 79],
+  ['로비 생동감·입력·수명', lobbyLiving, 30], // 어림 (아직 CI 기록 없음)
+  ['A2 로비 UI·기능·안전영역', lobbyA2, 30], // 어림 (아직 CI 기록 없음)
   ['대상 폰 크기 (S25·울트라·플립)', devices, 66],
   ['마나량 외곽 링·소비·회복', manaRing, 42],
   ['축소 전투·취소 복구', compactUi, 150],
