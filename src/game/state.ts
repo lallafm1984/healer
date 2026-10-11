@@ -122,7 +122,7 @@ export function enhanceLack(it: GearItem): string {
 }
 /**
  * 강화 한 번 (34 6-5): 누른 순간 굴려서 저장에 먼저 넣음 (연출은 보여 주기만, 7-4). 실패하면 +2 이상은 1단계 떨어짐.
- * +3 · +6 · +9에 처음 닿으면 추가 옵션 한 줄 각성. 못 하면 이유 글
+ * +3 · +6 · +9에 처음 닿으면 무작위 옵션 한 줄 각성 (무작위 옵션이 없으면 없음). 못 하면 이유 글
  */
 export function enhanceTry(id: number, roll: () => number = Math.random): EnhanceOutcome | string {
   const it = findItem(id);
@@ -137,7 +137,7 @@ export function enhanceTry(id: number, roll: () => number = Math.random): Enhanc
   if (ok && c.to > top && (AWAKEN_AT as readonly number[]).includes(c.to) && it.lines?.length) {
     awaken = Math.min(it.lines.length - 1, Math.floor(roll() * it.lines.length));
     const l = it.lines[awaken];
-    l.up = (l.up ?? 0) + awakenValue(l);
+    l.up = (l.up ?? 0) + awakenValue(it, l);
   }
   it.top = Math.max(top, it.plus);
   if (G.save.tut >= TUT.done) onAct(G.save, 'enhance');
@@ -145,7 +145,7 @@ export function enhanceTry(id: number, roll: () => number = Math.random): Enhanc
   return { id, ok, from, to: it.plus, awaken };
 }
 
-/** 재설정할 줄: 추가 옵션 (line) · 특수능력 (spec, 이름 있는 장신구 고유 효과는 안 됨) */
+/** 재설정할 줄: 무작위 옵션 (line) · 특수능력 (spec, 전설 고유 능력은 고유 능력끼리, 이름 있는 장신구 · 고유 장비 효과는 안 됨) */
 export type RerollKind = 'line' | 'spec';
 /** 재설정 결과: err = 못 한 이유, alt = Lv 60부터 둘째 후보 (pickReroll로 바꿀 수 있음, 시트를 닫으면 사라짐) */
 export interface RerollResult { err: string; alt?: GearLine | SpecLine }

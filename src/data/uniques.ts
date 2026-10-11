@@ -1,8 +1,8 @@
 /**
  * 고유 무기 · 방어구 (34 6-10 ③, Lim 2026-10-10 「장비 갯수를 매우 다양하게」).
  * 던전마다 1개 (그 던전 어느 보스에서나, 이름 있는 장신구와 다른 부위), 레이드는 이름 있는 장신구가 없는 칸마다 1개 (10인 마지막이 아닌 칸 · 20인 구역).
- * 효과 = 그 보스 기믹에 맞는 특수능력 하나를 UNIQUE_MULT배 값으로 고정 (굴림 없음). 나머지 특수능력 줄은 등급대로 굴림 (data/equipment makeItem).
- * 나오는 규칙은 이름 있는 장신구와 같음: 그 장소에서 그 부위 희귀 이상이 나오면 NAMED_CHANCE. 그림 = item-unique-<키> (그림 요청 50)
+ * 효과 = 그 보스 기믹에 맞는 특수능력 하나를 UNIQUE_MULT배 값으로 고정 (굴림 없음) = 그 전설의 고유 능력 (data/equipment makeItem).
+ * 나오는 규칙은 이름 있는 장신구와 같음: 그 장소에서 그 부위 전설이 나오면 NAMED_CHANCE (Lim 2026-10-11 「전설에만 고유 능력」). 그림 = item-unique-<키> (그림 요청 50)
  */
 import type { ItemGrade, SlotKey } from './equipment';
 import { SPECS, specValue } from './specials';

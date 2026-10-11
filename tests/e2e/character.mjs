@@ -23,8 +23,13 @@ export default async function character(url, shots) {
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-char') && await page.getAttribute('#s-char [data-csub="gear"]', 'aria-selected') === 'true', '캐릭터 탭 = 장비부터');
   ok((await page.locator('#s-char nav .c7-tab .c7-tic').count()) === 4 && (await page.locator('#s-char nav [data-csub="hero"] .emblem').count()) === 1, '하위 탭 4칸 = 아이콘 + 이름 (직업 칸 = 직업 문장)');
-  const plq = await flat('#s-char .c7-plq');
-  ok(/장비점수0/.test(plq) && /장비없음/.test(plq), `받침대 이름표 = 장비 점수 · 평균 등급 (${plq})`);
+  // Lim 2026-10-11: 가운데 장비 점수 이름표를 빼고 능력치 판을 가운데로
+  const mid = await page.evaluate(() => {
+    const r = s => document.querySelector(s).getBoundingClientRect();
+    const st = r('#s-char .c7-mid .c7-stats'), [a, b] = [...document.querySelectorAll('#s-char .c7-stage .c7-col')].map(e => e.getBoundingClientRect()), acts = r('#s-char .c7-acts');
+    return { ok: st.left >= a.right - 1 && st.right <= b.left + 1 && st.bottom <= acts.top + 1, at: [st.left, st.right, st.bottom].map(Math.round) };
+  });
+  ok((await page.locator('#s-char .c7-plq').count()) === 0 && !/장비 점수/.test(await text('#s-char .c7-stage')) && mid.ok, `가운데 장비 점수 이름표 없음, 능력치 판이 좌우 장비 칸 사이 가운데 (${mid.at})`);
   ok((await page.locator('#s-char .c7-stage .c7-bigem .emblem').count()) === 1 && /사제/.test(await text('#s-char .topbar .tb-cls')), '받침대 위 큰 직업 문장 1개, 위 줄 = 사제');
   const stats = await flat('#s-char .c7-stats');
   ok(/체력220/.test(stats) && /지능72/.test(stats) && /정신력/.test(stats) && /인내/.test(stats) && !/세트/.test(stats), `능력치 판: 체력 220 · 지능 72 (34 1-2: 숫자 ÷2.5, 1-6 치유 배율 0.6), 정신력 · 인내, 세트 칸 없음 (${stats})`);
