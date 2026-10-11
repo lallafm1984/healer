@@ -7,6 +7,8 @@ import { ALLY_PXF, BOSS_PXF, COMMON_PXF, PXF, pxfArtName, pxfCrop, pxfDrawSize, 
 import { AB_KIND, type AbKind } from '../src/data/abilities';
 import * as E from '../src/engine';
 import { damage } from '../src/engine/core';
+// @ts-expect-error 빌드 도구 스크립트 (.mjs, 타입 없음)
+import { splitGraph, TILE_KEYS } from '../scripts/pxf-split.mjs';
 
 const graph = (name: string) => JSON.parse(readFileSync(new URL(`../src/art/pxf/${name}.pxf.json`, import.meta.url), 'utf8'));
 /** PNG 머리 (IHDR)의 가로 · 세로 */
@@ -29,7 +31,18 @@ describe('PXF 이펙트 파일', () => {
       expect(g.game.pivot).toEqual([0.5, 0.5]); // 칸 가운데에 그림
       expect(c.blend).toBe('normal'); // Lim 2026-10-11: 원본 색이 잘 보이게 보통 섞기
       expect(pngSize(pxfArtName(k))).toEqual({ w: c.size * c.frames, h: c.size });
-      expect(existsSync(new URL(`../src/art/pxf/${k}.timeline.png`, import.meta.url))).toBe(true); // 다시 굽는 원본
+      if (c.size === 64) expect(existsSync(new URL(`../src/art/pxf/${k}.timeline.png`, import.meta.url))).toBe(true); // 다시 굽는 원본
+      else {
+        // 128px는 64px 조각 4개로 그려 이음 (scripts/pxf-tiles.mjs): 조각 그래프가 원본을 나눈 것과 같고, 조각마다 타임라인 그림이 있음
+        expect(c.size).toBe(128);
+        const { tiles } = splitGraph(g);
+        for (const q of TILE_KEYS as readonly string[]) {
+          const f = new URL(`../src/art/pxf/tiles/${k}.${q}.pxf.json`, import.meta.url);
+          if (!tiles[q]) { expect(existsSync(f), q).toBe(false); continue; }
+          expect(JSON.parse(readFileSync(f, 'utf8')), q).toEqual(tiles[q]);
+          expect(existsSync(new URL(`../src/art/pxf/tiles/${k}.${q}.timeline.png`, import.meta.url)), q).toBe(true);
+        }
+      }
     });
   }
 
@@ -100,7 +113,7 @@ describe('전투 공통 효과 · 파티원 능력 (모든 효과 PXF 1단계)',
   });
 });
 
-describe('보스 판 전체 공격 (Lim 「보스의 판 전체 공격 이펙트를 … 픽셀 크기를 늘려서」)', () => {
+describe('보스 판 전체 공격 (Lim 「보스의 판 전체 공격 이펙트를 … 픽셀 크기를 늘려서」 → 「픽셀이 좀더 디테일」)', () => {
   const gray = (c: string) => c.length === 7 && c.slice(1, 3) === c.slice(3, 5) && c.slice(3, 5) === c.slice(5, 7);
   it('판 전체 연출 11가지, 모두 다른 이펙트 · 다른 PXF와 안 겹침 · 외침만 회색 (세력 색을 곱함)', () => {
     expect(Object.keys(BOSS_PXF).sort()).toEqual(['cream-burst', 'door-open', 'heartbeat', 'hush', 'island-tilt', 'lantern', 'melt-heat', 'sandstorm', 'shockwave', 'shout', 'wedge']);
@@ -111,14 +124,15 @@ describe('보스 판 전체 공격 (Lim 「보스의 판 전체 공격 이펙트
       const cols = graph(key!).nodes.filter((n: { type: string }) => n.type === 'Palette' || n.type === 'Outline')
         .flatMap((n: { type: string; params: { colors?: string[]; color?: string } }) => (n.type === 'Palette' ? n.params.colors! : [n.params.color ?? '#10142e']).map((c: string) => c.toLowerCase()));
       expect(PXF[key!].gray, name).toBe(name === 'shout');
+      expect(PXF[key!].size, name).toBe(128);
       if (name === 'shout') expect(cols.filter((c: string) => !gray(c))).toEqual([]);
     }
   });
   it('판 너비로 키우고 판 밖은 잘라 냄 (픽셀은 정사각형)', () => {
     const c = PXF['boss-shockwave'];
-    expect(pxfCrop(c, 340, 245)).toEqual({ x: 0, y: 9, w: 64, h: 46 }); // 5인: 가로로 넓음 → 위아래
-    expect(pxfCrop(c, 300, 300)).toEqual({ x: 0, y: 0, w: 64, h: 64 });
-    expect(pxfCrop(c, 240, 320)).toEqual({ x: 8, y: 0, w: 48, h: 64 }); // 세로로 길면 좌우
+    expect(pxfCrop(c, 340, 245)).toEqual({ x: 0, y: 18, w: 128, h: 92 }); // 5인: 가로로 넓음 → 위아래
+    expect(pxfCrop(c, 300, 300)).toEqual({ x: 0, y: 0, w: 128, h: 128 });
+    expect(pxfCrop(c, 240, 320)).toEqual({ x: 16, y: 0, w: 96, h: 128 }); // 세로로 길면 좌우
   });
 });
 

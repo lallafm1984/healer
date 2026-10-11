@@ -1,7 +1,7 @@
 /**
  * PXF 공방 이펙트 (pxf.graph@1): 그래프 원본은 src/art/pxf/<이름>.pxf.json, 요청문은 src/art/pxf/requests.md.
  * 게임에는 PXF 엔진이 없어서 실제 엔진이 그린 프레임을 투명 띠로 구워 둔 src/art/fx-pxf-<이름>.png
- * (64px 프레임을 가로로 frames장, 굽기 scripts/pxf-strip.mjs)를 그린다.
+ * (64px 프레임을 가로로 frames장, 굽기 scripts/pxf-strip.mjs. 보스 판 전체 공격은 128px 프레임, 조각 4개로 그려 잇는 scripts/pxf-tiles.mjs)를 그린다.
  * 값은 그래프의 settings · game 블록과 같아야 함 (tests/pxf.test.ts).
  * 2026-10-11 Lim: 사제 치유로 시험 → 「직업별 모든 스킬에」 → 전투 공통 효과 · 파티원 능력 · 보스 판 전체 공격도. 보통 섞기 · 모두 판 맨 위 층 (board.ts pxfL, Lim 「파티원에서 최상단으로」)
  */
@@ -26,8 +26,10 @@ export interface PxfClip {
   gray: boolean;
 }
 
-const clip = (frames: number, impactFrame: number, gray = false): PxfClip =>
-  ({ size: 64, frames, fps: 24, blend: 'normal', impactFrame, logicalSize: 64, referenceCell: 62, gray });
+const clip = (frames: number, impactFrame: number, gray = false, size = 64): PxfClip =>
+  ({ size, frames, fps: 24, blend: 'normal', impactFrame, logicalSize: size, referenceCell: 62, gray });
+/** 보스 판 전체 공격: 128px (Lim 2026-10-11 「전체공격의 픽셀이 좀더 디테일 했으면」, 64px 조각 4개로 그려 이음) */
+const wide = (frames: number, impactFrame: number, gray = false): PxfClip => clip(frames, impactFrame, gray, 128);
 
 /** 이름 = 그래프 · 프레임 띠 파일 이름 (src/art/pxf/<이름>.pxf.json → fx-pxf-<이름>.png) */
 export const PXF = {
@@ -74,18 +76,18 @@ export const PXF = {
   'ally-sup': clip(16, 1),
   'ally-heal': clip(16, 1),
   'ally-atk': clip(14, 0),
-  // 보스 판 전체 공격 (requests.md, Lim 「픽셀 크기를 늘려서」): 캔버스 = 판 너비, 판 밖은 잘라 냄. 외침은 세력 색을 곱함
-  'boss-shout': clip(16, 0, true),
-  'boss-lantern': clip(16, 0),
-  'boss-shockwave': clip(16, 0),
-  'boss-heartbeat': clip(20, 1),
-  'boss-sandstorm': clip(22, 0),
-  'boss-melt-heat': clip(22, 1),
-  'boss-cream-burst': clip(20, 0),
-  'boss-hush': clip(20, 1),
-  'boss-door-open': clip(22, 1),
-  'boss-island-tilt': clip(22, 1),
-  'boss-wedge': clip(18, 1),
+  // 보스 판 전체 공격 (requests.md, Lim 「픽셀 크기를 늘려서」 → 「픽셀이 좀더 디테일」): 128px 캔버스 = 판 너비, 판 밖은 잘라 냄. 외침은 세력 색을 곱함
+  'boss-shout': wide(16, 0, true),
+  'boss-lantern': wide(16, 0),
+  'boss-shockwave': wide(16, 0),
+  'boss-heartbeat': wide(20, 1),
+  'boss-sandstorm': wide(22, 0),
+  'boss-melt-heat': wide(22, 1),
+  'boss-cream-burst': wide(20, 0),
+  'boss-hush': wide(20, 1),
+  'boss-door-open': wide(22, 1),
+  'boss-island-tilt': wide(22, 1),
+  'boss-wedge': wide(18, 1),
 } as const satisfies Record<string, PxfClip>;
 export type PxfKey = keyof typeof PXF;
 export const pxfArtName = (key: PxfKey): string => `fx-pxf-${key}`;
@@ -132,7 +134,8 @@ export const ALLY_PXF: Partial<Record<AbKind, PxfKey>> = { def: 'ally-def', ctl:
 
 /**
  * 보스 판 전체 공격 (board.ts FX_LOOK의 wide 연출, Lim 2026-10-11 「보스의 판 전체 공격 이펙트를 … 픽셀 크기를 늘려서」):
- * 있으면 예전 그림 (판 크기 45→100%로 키움) 대신 판 너비로 크게 한 번. 장판 · 칸마다 · 사람마다 연출은 그대로
+ * 있으면 예전 그림 (판 크기 45→100%로 키움) 대신 판 너비로 크게 한 번. 장판 · 칸마다 · 사람마다 연출은 그대로.
+ * 처음엔 64px였다가 「크기는 괜찮은데 … 픽셀이 좀더 디테일 했으면」 → 128px (공방이 128px 프레임을 다 돌려주지 않아 64px 조각 4개로 그려 이음)
  */
 export const BOSS_PXF: Partial<Record<string, PxfKey>> = {
   shout: 'boss-shout', lantern: 'boss-lantern', shockwave: 'boss-shockwave', heartbeat: 'boss-heartbeat', sandstorm: 'boss-sandstorm', 'melt-heat': 'boss-melt-heat',

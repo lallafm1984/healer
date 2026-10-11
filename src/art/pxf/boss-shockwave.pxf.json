@@ -1,15 +1,15 @@
 {
   "format": "pxf.graph@1",
-  "name": "보스 땅 울림 갈라지는 금",
+  "name": "보스 땅 울림 갈라지는 금 128",
   "settings": {
-    "size": 64,
+    "size": 128,
     "frames": 16,
     "fps": 24,
     "loop": false
   },
   "nodes": [
     {
-      "id": "crack1",
+      "id": "crack0",
       "type": "Lightning",
       "x": 40,
       "y": 40,
@@ -17,19 +17,19 @@
         "x0": 0.5,
         "y0": 0.5,
         "x1": 0.02,
-        "y1": 0.24,
-        "detail": 4,
-        "jag": 0.5,
-        "branch": 0.2,
-        "branchLen": 0.25,
-        "seed": 1101,
+        "y1": 0.5,
+        "detail": 5,
+        "jag": 0.42,
+        "branch": 0.32,
+        "branchLen": 0.3,
+        "seed": 2101,
         "rate": 0,
-        "thick": 2,
+        "thick": 3,
         "grow": {
           "k": [
             [
               0,
-              0.45,
+              0.4,
               "out"
             ],
             [
@@ -51,15 +51,72 @@
           "k": [
             [
               0,
-              0.75
+              0.78
             ],
             [
               1,
-              0.75
+              0.78
             ],
             [
               3,
-              0.55
+              0.6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "crack1",
+      "type": "Lightning",
+      "x": 40,
+      "y": 110,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.98,
+        "y1": 0.5,
+        "detail": 5,
+        "jag": 0.42,
+        "branch": 0.32,
+        "branchLen": 0.3,
+        "seed": 2198,
+        "rate": 0,
+        "thick": 3,
+        "grow": {
+          "k": [
+            [
+              0,
+              0.45,
+              "out"
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.78
+            ],
+            [
+              1,
+              0.78
+            ],
+            [
+              3,
+              0.6
             ]
           ]
         }
@@ -69,81 +126,24 @@
       "id": "crack2",
       "type": "Lightning",
       "x": 40,
-      "y": 210,
+      "y": 180,
       "params": {
         "x0": 0.5,
         "y0": 0.5,
-        "x1": 0.0,
-        "y1": 0.58,
-        "detail": 4,
-        "jag": 0.5,
-        "branch": 0.2,
-        "branchLen": 0.25,
-        "seed": 1202,
+        "x1": 0.1,
+        "y1": 0.12,
+        "detail": 5,
+        "jag": 0.42,
+        "branch": 0.32,
+        "branchLen": 0.3,
+        "seed": 2295,
         "rate": 0,
-        "thick": 2,
+        "thick": 3,
         "grow": {
           "k": [
             [
               0,
               0.4,
-              "out"
-            ],
-            [
-              3,
-              1
-            ],
-            [
-              9,
-              1,
-              "in"
-            ],
-            [
-              14,
-              0
-            ]
-          ]
-        },
-        "intensity": {
-          "k": [
-            [
-              0,
-              0.75
-            ],
-            [
-              1,
-              0.75
-            ],
-            [
-              3,
-              0.55
-            ]
-          ]
-        }
-      }
-    },
-    {
-      "id": "crack3",
-      "type": "Lightning",
-      "x": 40,
-      "y": 380,
-      "params": {
-        "x0": 0.5,
-        "y0": 0.5,
-        "x1": 0.18,
-        "y1": 0.96,
-        "detail": 4,
-        "jag": 0.5,
-        "branch": 0.2,
-        "branchLen": 0.25,
-        "seed": 1303,
-        "rate": 0,
-        "thick": 2,
-        "grow": {
-          "k": [
-            [
-              0,
-              0.5,
               "out"
             ],
             [
@@ -165,94 +165,37 @@
           "k": [
             [
               0,
-              0.75
+              0.78
             ],
             [
               1,
-              0.75
+              0.78
             ],
             [
               3,
-              0.55
+              0.6
             ]
           ]
         }
       }
     },
     {
-      "id": "crack4",
+      "id": "crack3",
       "type": "Lightning",
       "x": 40,
-      "y": 550,
+      "y": 250,
       "params": {
         "x0": 0.5,
         "y0": 0.5,
-        "x1": 0.82,
-        "y1": 0.04,
-        "detail": 4,
-        "jag": 0.5,
-        "branch": 0.2,
-        "branchLen": 0.25,
-        "seed": 1404,
+        "x1": 0.86,
+        "y1": 0.06,
+        "detail": 5,
+        "jag": 0.42,
+        "branch": 0.32,
+        "branchLen": 0.3,
+        "seed": 2392,
         "rate": 0,
-        "thick": 2,
-        "grow": {
-          "k": [
-            [
-              0,
-              0.4,
-              "out"
-            ],
-            [
-              3,
-              1
-            ],
-            [
-              9,
-              1,
-              "in"
-            ],
-            [
-              14,
-              0
-            ]
-          ]
-        },
-        "intensity": {
-          "k": [
-            [
-              0,
-              0.75
-            ],
-            [
-              1,
-              0.75
-            ],
-            [
-              3,
-              0.55
-            ]
-          ]
-        }
-      }
-    },
-    {
-      "id": "crack5",
-      "type": "Lightning",
-      "x": 40,
-      "y": 720,
-      "params": {
-        "x0": 0.5,
-        "y0": 0.5,
-        "x1": 1.0,
-        "y1": 0.42,
-        "detail": 4,
-        "jag": 0.5,
-        "branch": 0.2,
-        "branchLen": 0.25,
-        "seed": 1505,
-        "rate": 0,
-        "thick": 2,
+        "thick": 3,
         "grow": {
           "k": [
             [
@@ -265,6 +208,63 @@
               1
             ],
             [
+              9,
+              1,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.78
+            ],
+            [
+              1,
+              0.78
+            ],
+            [
+              3,
+              0.6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "crack4",
+      "type": "Lightning",
+      "x": 40,
+      "y": 320,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.16,
+        "y1": 0.95,
+        "detail": 5,
+        "jag": 0.42,
+        "branch": 0.32,
+        "branchLen": 0.3,
+        "seed": 2489,
+        "rate": 0,
+        "thick": 3,
+        "grow": {
+          "k": [
+            [
+              0,
+              0.4,
+              "out"
+            ],
+            [
+              3,
+              1
+            ],
+            [
               8,
               1,
               "in"
@@ -279,42 +279,42 @@
           "k": [
             [
               0,
-              0.75
+              0.78
             ],
             [
               1,
-              0.75
+              0.78
             ],
             [
               3,
-              0.55
+              0.6
             ]
           ]
         }
       }
     },
     {
-      "id": "crack6",
+      "id": "crack5",
       "type": "Lightning",
       "x": 40,
-      "y": 890,
+      "y": 390,
       "params": {
         "x0": 0.5,
         "y0": 0.5,
-        "x1": 0.97,
-        "y1": 0.84,
-        "detail": 4,
-        "jag": 0.5,
-        "branch": 0.2,
-        "branchLen": 0.25,
-        "seed": 1606,
+        "x1": 0.92,
+        "y1": 0.9,
+        "detail": 5,
+        "jag": 0.42,
+        "branch": 0.32,
+        "branchLen": 0.3,
+        "seed": 2586,
         "rate": 0,
-        "thick": 2,
+        "thick": 3,
         "grow": {
           "k": [
             [
               0,
-              0.5,
+              0.45,
               "out"
             ],
             [
@@ -336,50 +336,500 @@
           "k": [
             [
               0,
-              0.75
+              0.78
             ],
             [
               1,
-              0.75
+              0.78
             ],
             [
               3,
-              0.55
+              0.6
             ]
           ]
         }
       }
     },
     {
-      "id": "dust1",
+      "id": "hair0",
+      "type": "Lightning",
+      "x": 40,
+      "y": 460,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.28,
+        "y1": 0.25,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.15,
+        "branchLen": 0.25,
+        "seed": 3301,
+        "rate": 0,
+        "thick": 1,
+        "grow": {
+          "k": [
+            [
+              1,
+              0
+            ],
+            [
+              4,
+              1,
+              "out"
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        },
+        "intensity": 0.55
+      }
+    },
+    {
+      "id": "hair1",
+      "type": "Lightning",
+      "x": 40,
+      "y": 530,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.69,
+        "y1": 0.22,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.15,
+        "branchLen": 0.25,
+        "seed": 3362,
+        "rate": 0,
+        "thick": 1,
+        "grow": {
+          "k": [
+            [
+              1,
+              0
+            ],
+            [
+              4,
+              1,
+              "out"
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        },
+        "intensity": 0.55
+      }
+    },
+    {
+      "id": "hair2",
+      "type": "Lightning",
+      "x": 40,
+      "y": 600,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.3,
+        "y1": 0.78,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.15,
+        "branchLen": 0.25,
+        "seed": 3423,
+        "rate": 0,
+        "thick": 1,
+        "grow": {
+          "k": [
+            [
+              1,
+              0
+            ],
+            [
+              4,
+              1,
+              "out"
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        },
+        "intensity": 0.55
+      }
+    },
+    {
+      "id": "hair3",
+      "type": "Lightning",
+      "x": 40,
+      "y": 670,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.74,
+        "y1": 0.74,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.15,
+        "branchLen": 0.25,
+        "seed": 3484,
+        "rate": 0,
+        "thick": 1,
+        "grow": {
+          "k": [
+            [
+              1,
+              0
+            ],
+            [
+              4,
+              1,
+              "out"
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        },
+        "intensity": 0.55
+      }
+    },
+    {
+      "id": "hair4",
+      "type": "Lightning",
+      "x": 40,
+      "y": 740,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.35,
+        "y1": 0.17,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.15,
+        "branchLen": 0.25,
+        "seed": 3545,
+        "rate": 0,
+        "thick": 1,
+        "grow": {
+          "k": [
+            [
+              1,
+              0
+            ],
+            [
+              4,
+              1,
+              "out"
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        },
+        "intensity": 0.55
+      }
+    },
+    {
+      "id": "hair5",
+      "type": "Lightning",
+      "x": 40,
+      "y": 810,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.62,
+        "y1": 0.86,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.15,
+        "branchLen": 0.25,
+        "seed": 3606,
+        "rate": 0,
+        "thick": 1,
+        "grow": {
+          "k": [
+            [
+              1,
+              0
+            ],
+            [
+              4,
+              1,
+              "out"
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        },
+        "intensity": 0.55
+      }
+    },
+    {
+      "id": "crater",
+      "type": "Shape",
+      "x": 40,
+      "y": 880,
+      "params": {
+        "shape": "star",
+        "x": 0.5,
+        "y": 0.5,
+        "points": 9,
+        "size2": 0.55,
+        "rot": 12,
+        "size": {
+          "k": [
+            [
+              0,
+              5,
+              "out"
+            ],
+            [
+              2,
+              14
+            ],
+            [
+              10,
+              11,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        },
+        "intensity": 0.3
+      }
+    },
+    {
+      "id": "flash",
+      "type": "Shape",
+      "x": 40,
+      "y": 950,
+      "params": {
+        "shape": "circle",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              11,
+              "out"
+            ],
+            [
+              2,
+              5
+            ],
+            [
+              3,
+              0
+            ]
+          ]
+        },
+        "intensity": 1
+      }
+    },
+    {
+      "id": "rocks",
       "type": "Particles",
       "x": 40,
-      "y": 1060,
+      "y": 1020,
       "params": {
-        "count": 4,
-        "seed": 300,
+        "count": 18,
+        "seed": 501,
+        "emit": "burst",
+        "start": 0,
+        "life": 0.42,
+        "lifeVar": 0.3,
+        "area": "circle",
+        "x": 0.5,
+        "y": 0.5,
+        "aw": 6,
+        "ah": 6,
+        "dirMode": "outward",
+        "angle": -90,
+        "spread": 360,
+        "speed": 2.6,
+        "speedVar": 0.5,
+        "gravity": 0.14,
+        "drag": 0.03,
+        "sizeA": 3,
+        "sizeB": 2,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.62,
+        "brightVar": 0.3,
+        "loop": false
+      }
+    },
+    {
+      "id": "dust0",
+      "type": "Particles",
+      "x": 40,
+      "y": 1090,
+      "params": {
+        "count": 7,
+        "seed": 611,
         "emit": "burst",
         "start": 0.0625,
         "life": 0.5,
         "lifeVar": 0.25,
         "area": "box",
         "x": 0.236,
-        "y": 0.357,
-        "aw": 14,
+        "y": 0.5,
+        "aw": 16,
         "ah": 6,
         "dirMode": "fixed",
         "angle": -90,
         "spread": 70,
-        "speed": 1.5,
+        "speed": 1.7,
         "speedVar": 0.4,
-        "gravity": 0.2,
+        "gravity": 0.16,
         "drag": 0.02,
-        "sizeA": 4,
-        "sizeB": 2.5,
+        "sizeA": 5,
+        "sizeB": 3,
         "pshape": "circle",
         "fade": "flat",
-        "bright": 0.72,
+        "bright": 0.7,
         "brightVar": 0.35,
+        "loop": false
+      }
+    },
+    {
+      "id": "grit0",
+      "type": "Particles",
+      "x": 40,
+      "y": 1160,
+      "params": {
+        "count": 9,
+        "seed": 811,
+        "emit": "burst",
+        "start": 0.0625,
+        "life": 0.4,
+        "lifeVar": 0.3,
+        "area": "box",
+        "x": 0.236,
+        "y": 0.5,
+        "aw": 14,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 110,
+        "speed": 2.0,
+        "speedVar": 0.5,
+        "gravity": 0.2,
+        "drag": 0.02,
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.95,
+        "brightVar": 0.2,
+        "loop": false
+      }
+    },
+    {
+      "id": "dust1",
+      "type": "Particles",
+      "x": 40,
+      "y": 1230,
+      "params": {
+        "count": 7,
+        "seed": 628,
+        "emit": "burst",
+        "start": 0.125,
+        "life": 0.5,
+        "lifeVar": 0.25,
+        "area": "box",
+        "x": 0.764,
+        "y": 0.5,
+        "aw": 16,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 70,
+        "speed": 1.7,
+        "speedVar": 0.4,
+        "gravity": 0.16,
+        "drag": 0.02,
+        "sizeA": 5,
+        "sizeB": 3,
+        "pshape": "diamond",
+        "fade": "flat",
+        "bright": 0.7,
+        "brightVar": 0.35,
+        "loop": false
+      }
+    },
+    {
+      "id": "grit1",
+      "type": "Particles",
+      "x": 40,
+      "y": 1300,
+      "params": {
+        "count": 9,
+        "seed": 834,
+        "emit": "burst",
+        "start": 0.125,
+        "life": 0.4,
+        "lifeVar": 0.3,
+        "area": "box",
+        "x": 0.764,
+        "y": 0.5,
+        "aw": 14,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 110,
+        "speed": 2.0,
+        "speedVar": 0.5,
+        "gravity": 0.2,
+        "drag": 0.02,
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.95,
+        "brightVar": 0.2,
         "loop": false
       }
     },
@@ -387,32 +837,65 @@
       "id": "dust2",
       "type": "Particles",
       "x": 40,
-      "y": 1230,
+      "y": 1370,
       "params": {
-        "count": 4,
-        "seed": 317,
+        "count": 7,
+        "seed": 645,
         "emit": "burst",
-        "start": 0.0938,
+        "start": 0.1875,
         "life": 0.5,
         "lifeVar": 0.25,
         "area": "box",
-        "x": 0.225,
-        "y": 0.544,
-        "aw": 14,
+        "x": 0.28,
+        "y": 0.291,
+        "aw": 16,
         "ah": 6,
         "dirMode": "fixed",
         "angle": -90,
         "spread": 70,
-        "speed": 1.5,
+        "speed": 1.7,
         "speedVar": 0.4,
+        "gravity": 0.16,
+        "drag": 0.02,
+        "sizeA": 5,
+        "sizeB": 3,
+        "pshape": "circle",
+        "fade": "flat",
+        "bright": 0.7,
+        "brightVar": 0.35,
+        "loop": false
+      }
+    },
+    {
+      "id": "grit2",
+      "type": "Particles",
+      "x": 40,
+      "y": 1440,
+      "params": {
+        "count": 9,
+        "seed": 857,
+        "emit": "burst",
+        "start": 0.1875,
+        "life": 0.4,
+        "lifeVar": 0.3,
+        "area": "box",
+        "x": 0.28,
+        "y": 0.291,
+        "aw": 14,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 110,
+        "speed": 2.0,
+        "speedVar": 0.5,
         "gravity": 0.2,
         "drag": 0.02,
-        "sizeA": 4,
-        "sizeB": 2.5,
-        "pshape": "diamond",
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "square",
         "fade": "flat",
-        "bright": 0.72,
-        "brightVar": 0.35,
+        "bright": 0.95,
+        "brightVar": 0.2,
         "loop": false
       }
     },
@@ -420,32 +903,65 @@
       "id": "dust3",
       "type": "Particles",
       "x": 40,
-      "y": 1400,
+      "y": 1510,
       "params": {
-        "count": 4,
-        "seed": 334,
+        "count": 7,
+        "seed": 662,
         "emit": "burst",
-        "start": 0.125,
+        "start": 0.0625,
         "life": 0.5,
         "lifeVar": 0.25,
         "area": "box",
-        "x": 0.324,
-        "y": 0.753,
-        "aw": 14,
+        "x": 0.698,
+        "y": 0.258,
+        "aw": 16,
         "ah": 6,
         "dirMode": "fixed",
         "angle": -90,
         "spread": 70,
-        "speed": 1.5,
+        "speed": 1.7,
         "speedVar": 0.4,
+        "gravity": 0.16,
+        "drag": 0.02,
+        "sizeA": 5,
+        "sizeB": 3,
+        "pshape": "diamond",
+        "fade": "flat",
+        "bright": 0.7,
+        "brightVar": 0.35,
+        "loop": false
+      }
+    },
+    {
+      "id": "grit3",
+      "type": "Particles",
+      "x": 40,
+      "y": 1580,
+      "params": {
+        "count": 9,
+        "seed": 880,
+        "emit": "burst",
+        "start": 0.0625,
+        "life": 0.4,
+        "lifeVar": 0.3,
+        "area": "box",
+        "x": 0.698,
+        "y": 0.258,
+        "aw": 14,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 110,
+        "speed": 2.0,
+        "speedVar": 0.5,
         "gravity": 0.2,
         "drag": 0.02,
-        "sizeA": 4,
-        "sizeB": 2.5,
-        "pshape": "circle",
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "square",
         "fade": "flat",
-        "bright": 0.72,
-        "brightVar": 0.35,
+        "bright": 0.95,
+        "brightVar": 0.2,
         "loop": false
       }
     },
@@ -453,32 +969,65 @@
       "id": "dust4",
       "type": "Particles",
       "x": 40,
-      "y": 1570,
+      "y": 1650,
       "params": {
-        "count": 4,
-        "seed": 351,
+        "count": 7,
+        "seed": 679,
         "emit": "burst",
-        "start": 0.0625,
+        "start": 0.125,
         "life": 0.5,
         "lifeVar": 0.25,
         "area": "box",
-        "x": 0.676,
-        "y": 0.247,
-        "aw": 14,
+        "x": 0.313,
+        "y": 0.748,
+        "aw": 16,
         "ah": 6,
         "dirMode": "fixed",
         "angle": -90,
         "spread": 70,
-        "speed": 1.5,
+        "speed": 1.7,
         "speedVar": 0.4,
+        "gravity": 0.16,
+        "drag": 0.02,
+        "sizeA": 5,
+        "sizeB": 3,
+        "pshape": "circle",
+        "fade": "flat",
+        "bright": 0.7,
+        "brightVar": 0.35,
+        "loop": false
+      }
+    },
+    {
+      "id": "grit4",
+      "type": "Particles",
+      "x": 40,
+      "y": 1720,
+      "params": {
+        "count": 9,
+        "seed": 903,
+        "emit": "burst",
+        "start": 0.125,
+        "life": 0.4,
+        "lifeVar": 0.3,
+        "area": "box",
+        "x": 0.313,
+        "y": 0.748,
+        "aw": 14,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 110,
+        "speed": 2.0,
+        "speedVar": 0.5,
         "gravity": 0.2,
         "drag": 0.02,
-        "sizeA": 4,
-        "sizeB": 2.5,
-        "pshape": "diamond",
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "square",
         "fade": "flat",
-        "bright": 0.72,
-        "brightVar": 0.35,
+        "bright": 0.95,
+        "brightVar": 0.2,
         "loop": false
       }
     },
@@ -486,73 +1035,73 @@
       "id": "dust5",
       "type": "Particles",
       "x": 40,
-      "y": 1740,
+      "y": 1790,
       "params": {
-        "count": 4,
-        "seed": 368,
+        "count": 7,
+        "seed": 696,
         "emit": "burst",
-        "start": 0.0938,
+        "start": 0.1875,
         "life": 0.5,
         "lifeVar": 0.25,
         "area": "box",
-        "x": 0.775,
-        "y": 0.456,
-        "aw": 14,
+        "x": 0.731,
+        "y": 0.72,
+        "aw": 16,
         "ah": 6,
         "dirMode": "fixed",
         "angle": -90,
         "spread": 70,
-        "speed": 1.5,
+        "speed": 1.7,
         "speedVar": 0.4,
-        "gravity": 0.2,
+        "gravity": 0.16,
         "drag": 0.02,
-        "sizeA": 4,
-        "sizeB": 2.5,
-        "pshape": "circle",
+        "sizeA": 5,
+        "sizeB": 3,
+        "pshape": "diamond",
         "fade": "flat",
-        "bright": 0.72,
+        "bright": 0.7,
         "brightVar": 0.35,
         "loop": false
       }
     },
     {
-      "id": "dust6",
+      "id": "grit5",
       "type": "Particles",
       "x": 40,
-      "y": 1910,
+      "y": 1860,
       "params": {
-        "count": 4,
-        "seed": 385,
+        "count": 9,
+        "seed": 926,
         "emit": "burst",
-        "start": 0.125,
-        "life": 0.5,
-        "lifeVar": 0.25,
+        "start": 0.1875,
+        "life": 0.4,
+        "lifeVar": 0.3,
         "area": "box",
-        "x": 0.7585,
-        "y": 0.687,
+        "x": 0.731,
+        "y": 0.72,
         "aw": 14,
         "ah": 6,
         "dirMode": "fixed",
         "angle": -90,
-        "spread": 70,
-        "speed": 1.5,
-        "speedVar": 0.4,
+        "spread": 110,
+        "speed": 2.0,
+        "speedVar": 0.5,
         "gravity": 0.2,
         "drag": 0.02,
-        "sizeA": 4,
-        "sizeB": 2.5,
-        "pshape": "diamond",
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "square",
         "fade": "flat",
-        "bright": 0.72,
-        "brightVar": 0.35,
+        "bright": 0.95,
+        "brightVar": 0.2,
         "loop": false
       }
     },
     {
       "id": "m1",
       "type": "Blend",
-      "x": 270,
-      "y": 40,
+      "x": 260,
+      "y": 110,
       "params": {
         "mode": "max",
         "opacity": 1
@@ -561,8 +1110,8 @@
     {
       "id": "m2",
       "type": "Blend",
-      "x": 500,
-      "y": 40,
+      "x": 260,
+      "y": 180,
       "params": {
         "mode": "max",
         "opacity": 1
@@ -571,8 +1120,8 @@
     {
       "id": "m3",
       "type": "Blend",
-      "x": 730,
-      "y": 40,
+      "x": 260,
+      "y": 250,
       "params": {
         "mode": "max",
         "opacity": 1
@@ -581,8 +1130,8 @@
     {
       "id": "m4",
       "type": "Blend",
-      "x": 960,
-      "y": 40,
+      "x": 260,
+      "y": 320,
       "params": {
         "mode": "max",
         "opacity": 1
@@ -591,8 +1140,8 @@
     {
       "id": "m5",
       "type": "Blend",
-      "x": 1190,
-      "y": 40,
+      "x": 260,
+      "y": 390,
       "params": {
         "mode": "max",
         "opacity": 1
@@ -601,8 +1150,8 @@
     {
       "id": "m6",
       "type": "Blend",
-      "x": 1420,
-      "y": 40,
+      "x": 260,
+      "y": 460,
       "params": {
         "mode": "max",
         "opacity": 1
@@ -611,8 +1160,8 @@
     {
       "id": "m7",
       "type": "Blend",
-      "x": 1650,
-      "y": 40,
+      "x": 260,
+      "y": 530,
       "params": {
         "mode": "max",
         "opacity": 1
@@ -621,8 +1170,8 @@
     {
       "id": "m8",
       "type": "Blend",
-      "x": 1880,
-      "y": 40,
+      "x": 260,
+      "y": 600,
       "params": {
         "mode": "max",
         "opacity": 1
@@ -631,8 +1180,8 @@
     {
       "id": "m9",
       "type": "Blend",
-      "x": 2110,
-      "y": 40,
+      "x": 260,
+      "y": 670,
       "params": {
         "mode": "max",
         "opacity": 1
@@ -641,8 +1190,8 @@
     {
       "id": "m10",
       "type": "Blend",
-      "x": 2340,
-      "y": 40,
+      "x": 260,
+      "y": 740,
       "params": {
         "mode": "max",
         "opacity": 1
@@ -651,8 +1200,158 @@
     {
       "id": "m11",
       "type": "Blend",
-      "x": 2570,
-      "y": 40,
+      "x": 260,
+      "y": 810,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m12",
+      "type": "Blend",
+      "x": 260,
+      "y": 880,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m13",
+      "type": "Blend",
+      "x": 260,
+      "y": 950,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m14",
+      "type": "Blend",
+      "x": 260,
+      "y": 1020,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m15",
+      "type": "Blend",
+      "x": 260,
+      "y": 1090,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m16",
+      "type": "Blend",
+      "x": 260,
+      "y": 1160,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m17",
+      "type": "Blend",
+      "x": 260,
+      "y": 1230,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m18",
+      "type": "Blend",
+      "x": 260,
+      "y": 1300,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m19",
+      "type": "Blend",
+      "x": 260,
+      "y": 1370,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m20",
+      "type": "Blend",
+      "x": 260,
+      "y": 1440,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m21",
+      "type": "Blend",
+      "x": 260,
+      "y": 1510,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m22",
+      "type": "Blend",
+      "x": 260,
+      "y": 1580,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m23",
+      "type": "Blend",
+      "x": 260,
+      "y": 1650,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m24",
+      "type": "Blend",
+      "x": 260,
+      "y": 1720,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m25",
+      "type": "Blend",
+      "x": 260,
+      "y": 1790,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m26",
+      "type": "Blend",
+      "x": 260,
+      "y": 1860,
       "params": {
         "mode": "max",
         "opacity": 1
@@ -661,7 +1360,7 @@
     {
       "id": "color",
       "type": "Palette",
-      "x": 3030,
+      "x": 480,
       "y": 40,
       "params": {
         "colors": [
@@ -680,7 +1379,7 @@
     {
       "id": "rim",
       "type": "Outline",
-      "x": 3260,
+      "x": 600,
       "y": 40,
       "params": {
         "color": "#24140a",
@@ -692,7 +1391,7 @@
     {
       "id": "fade",
       "type": "Tint",
-      "x": 3490,
+      "x": 720,
       "y": 40,
       "params": {
         "amount": 0,
@@ -718,7 +1417,7 @@
     {
       "id": "out",
       "type": "Output",
-      "x": 3720,
+      "x": 840,
       "y": 40,
       "params": {
         "alpha": "soft",
@@ -728,12 +1427,12 @@
   ],
   "links": [
     {
-      "f": "crack1",
+      "f": "crack0",
       "t": "m1",
       "p": 0
     },
     {
-      "f": "crack2",
+      "f": "crack1",
       "t": "m1",
       "p": 1
     },
@@ -743,7 +1442,7 @@
       "p": 0
     },
     {
-      "f": "crack3",
+      "f": "crack2",
       "t": "m2",
       "p": 1
     },
@@ -753,7 +1452,7 @@
       "p": 0
     },
     {
-      "f": "crack4",
+      "f": "crack3",
       "t": "m3",
       "p": 1
     },
@@ -763,7 +1462,7 @@
       "p": 0
     },
     {
-      "f": "crack5",
+      "f": "crack4",
       "t": "m4",
       "p": 1
     },
@@ -773,7 +1472,7 @@
       "p": 0
     },
     {
-      "f": "crack6",
+      "f": "crack5",
       "t": "m5",
       "p": 1
     },
@@ -783,7 +1482,7 @@
       "p": 0
     },
     {
-      "f": "dust1",
+      "f": "hair0",
       "t": "m6",
       "p": 1
     },
@@ -793,7 +1492,7 @@
       "p": 0
     },
     {
-      "f": "dust2",
+      "f": "hair1",
       "t": "m7",
       "p": 1
     },
@@ -803,7 +1502,7 @@
       "p": 0
     },
     {
-      "f": "dust3",
+      "f": "hair2",
       "t": "m8",
       "p": 1
     },
@@ -813,7 +1512,7 @@
       "p": 0
     },
     {
-      "f": "dust4",
+      "f": "hair3",
       "t": "m9",
       "p": 1
     },
@@ -823,7 +1522,7 @@
       "p": 0
     },
     {
-      "f": "dust5",
+      "f": "hair4",
       "t": "m10",
       "p": 1
     },
@@ -833,12 +1532,162 @@
       "p": 0
     },
     {
-      "f": "dust6",
+      "f": "hair5",
       "t": "m11",
       "p": 1
     },
     {
       "f": "m11",
+      "t": "m12",
+      "p": 0
+    },
+    {
+      "f": "crater",
+      "t": "m12",
+      "p": 1
+    },
+    {
+      "f": "m12",
+      "t": "m13",
+      "p": 0
+    },
+    {
+      "f": "flash",
+      "t": "m13",
+      "p": 1
+    },
+    {
+      "f": "m13",
+      "t": "m14",
+      "p": 0
+    },
+    {
+      "f": "rocks",
+      "t": "m14",
+      "p": 1
+    },
+    {
+      "f": "m14",
+      "t": "m15",
+      "p": 0
+    },
+    {
+      "f": "dust0",
+      "t": "m15",
+      "p": 1
+    },
+    {
+      "f": "m15",
+      "t": "m16",
+      "p": 0
+    },
+    {
+      "f": "grit0",
+      "t": "m16",
+      "p": 1
+    },
+    {
+      "f": "m16",
+      "t": "m17",
+      "p": 0
+    },
+    {
+      "f": "dust1",
+      "t": "m17",
+      "p": 1
+    },
+    {
+      "f": "m17",
+      "t": "m18",
+      "p": 0
+    },
+    {
+      "f": "grit1",
+      "t": "m18",
+      "p": 1
+    },
+    {
+      "f": "m18",
+      "t": "m19",
+      "p": 0
+    },
+    {
+      "f": "dust2",
+      "t": "m19",
+      "p": 1
+    },
+    {
+      "f": "m19",
+      "t": "m20",
+      "p": 0
+    },
+    {
+      "f": "grit2",
+      "t": "m20",
+      "p": 1
+    },
+    {
+      "f": "m20",
+      "t": "m21",
+      "p": 0
+    },
+    {
+      "f": "dust3",
+      "t": "m21",
+      "p": 1
+    },
+    {
+      "f": "m21",
+      "t": "m22",
+      "p": 0
+    },
+    {
+      "f": "grit3",
+      "t": "m22",
+      "p": 1
+    },
+    {
+      "f": "m22",
+      "t": "m23",
+      "p": 0
+    },
+    {
+      "f": "dust4",
+      "t": "m23",
+      "p": 1
+    },
+    {
+      "f": "m23",
+      "t": "m24",
+      "p": 0
+    },
+    {
+      "f": "grit4",
+      "t": "m24",
+      "p": 1
+    },
+    {
+      "f": "m24",
+      "t": "m25",
+      "p": 0
+    },
+    {
+      "f": "dust5",
+      "t": "m25",
+      "p": 1
+    },
+    {
+      "f": "m25",
+      "t": "m26",
+      "p": 0
+    },
+    {
+      "f": "grit5",
+      "t": "m26",
+      "p": 1
+    },
+    {
+      "f": "m26",
       "t": "color",
       "p": 0
     },
@@ -863,7 +1712,7 @@
       0.5,
       0.5
     ],
-    "logicalSize": 64,
+    "logicalSize": 128,
     "blend": "normal",
     "impactFrame": 0
   }

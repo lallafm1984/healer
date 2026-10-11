@@ -1,0 +1,739 @@
+{
+  "format": "pxf.graph@1",
+  "name": "보스 땅 울림 갈라지는 금 128 br",
+  "settings": {
+    "size": 64,
+    "frames": 16,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "crack1",
+      "type": "Lightning",
+      "x": 40,
+      "y": 110,
+      "params": {
+        "x0": 0,
+        "y0": 0,
+        "x1": 0.96,
+        "y1": 0,
+        "detail": 5,
+        "jag": 0.42,
+        "branch": 0.32,
+        "branchLen": 0.3,
+        "seed": 2198,
+        "rate": 0,
+        "thick": 3,
+        "grow": {
+          "k": [
+            [
+              0,
+              0.45,
+              "out"
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.78
+            ],
+            [
+              1,
+              0.78
+            ],
+            [
+              3,
+              0.6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "crack5",
+      "type": "Lightning",
+      "x": 40,
+      "y": 390,
+      "params": {
+        "x0": 0,
+        "y0": 0,
+        "x1": 0.84,
+        "y1": 0.8,
+        "detail": 5,
+        "jag": 0.42,
+        "branch": 0.32,
+        "branchLen": 0.3,
+        "seed": 2586,
+        "rate": 0,
+        "thick": 3,
+        "grow": {
+          "k": [
+            [
+              0,
+              0.45,
+              "out"
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.78
+            ],
+            [
+              1,
+              0.78
+            ],
+            [
+              3,
+              0.6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "hair3",
+      "type": "Lightning",
+      "x": 40,
+      "y": 670,
+      "params": {
+        "x0": 0,
+        "y0": 0,
+        "x1": 0.48,
+        "y1": 0.48,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.15,
+        "branchLen": 0.25,
+        "seed": 3484,
+        "rate": 0,
+        "thick": 1,
+        "grow": {
+          "k": [
+            [
+              1,
+              0
+            ],
+            [
+              4,
+              1,
+              "out"
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        },
+        "intensity": 0.55
+      }
+    },
+    {
+      "id": "hair5",
+      "type": "Lightning",
+      "x": 40,
+      "y": 810,
+      "params": {
+        "x0": 0,
+        "y0": 0,
+        "x1": 0.24,
+        "y1": 0.72,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.15,
+        "branchLen": 0.25,
+        "seed": 3606,
+        "rate": 0,
+        "thick": 1,
+        "grow": {
+          "k": [
+            [
+              1,
+              0
+            ],
+            [
+              4,
+              1,
+              "out"
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        },
+        "intensity": 0.55
+      }
+    },
+    {
+      "id": "crater",
+      "type": "Shape",
+      "x": 40,
+      "y": 880,
+      "params": {
+        "shape": "star",
+        "x": 0,
+        "y": 0,
+        "points": 9,
+        "size2": 0.55,
+        "rot": 12,
+        "size": {
+          "k": [
+            [
+              0,
+              5,
+              "out"
+            ],
+            [
+              2,
+              14
+            ],
+            [
+              10,
+              11,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        },
+        "intensity": 0.3
+      }
+    },
+    {
+      "id": "flash",
+      "type": "Shape",
+      "x": 40,
+      "y": 950,
+      "params": {
+        "shape": "circle",
+        "x": 0,
+        "y": 0,
+        "size": {
+          "k": [
+            [
+              0,
+              11,
+              "out"
+            ],
+            [
+              2,
+              5
+            ],
+            [
+              3,
+              0
+            ]
+          ]
+        },
+        "intensity": 1
+      }
+    },
+    {
+      "id": "rocks",
+      "type": "Particles",
+      "x": 40,
+      "y": 1020,
+      "params": {
+        "count": 18,
+        "seed": 501,
+        "emit": "burst",
+        "start": 0,
+        "life": 0.42,
+        "lifeVar": 0.3,
+        "area": "circle",
+        "x": 0,
+        "y": 0,
+        "aw": 6,
+        "ah": 6,
+        "dirMode": "outward",
+        "angle": -90,
+        "spread": 360,
+        "speed": 2.6,
+        "speedVar": 0.5,
+        "gravity": 0.14,
+        "drag": 0.03,
+        "sizeA": 3,
+        "sizeB": 2,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.62,
+        "brightVar": 0.3,
+        "loop": false
+      }
+    },
+    {
+      "id": "dust1",
+      "type": "Particles",
+      "x": 40,
+      "y": 1230,
+      "params": {
+        "count": 7,
+        "seed": 628,
+        "emit": "burst",
+        "start": 0.125,
+        "life": 0.5,
+        "lifeVar": 0.25,
+        "area": "box",
+        "x": 0.528,
+        "y": 0,
+        "aw": 16,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 70,
+        "speed": 1.7,
+        "speedVar": 0.4,
+        "gravity": 0.16,
+        "drag": 0.02,
+        "sizeA": 5,
+        "sizeB": 3,
+        "pshape": "diamond",
+        "fade": "flat",
+        "bright": 0.7,
+        "brightVar": 0.35,
+        "loop": false
+      }
+    },
+    {
+      "id": "grit1",
+      "type": "Particles",
+      "x": 40,
+      "y": 1300,
+      "params": {
+        "count": 9,
+        "seed": 834,
+        "emit": "burst",
+        "start": 0.125,
+        "life": 0.4,
+        "lifeVar": 0.3,
+        "area": "box",
+        "x": 0.528,
+        "y": 0,
+        "aw": 14,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 110,
+        "speed": 2,
+        "speedVar": 0.5,
+        "gravity": 0.2,
+        "drag": 0.02,
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.95,
+        "brightVar": 0.2,
+        "loop": false
+      }
+    },
+    {
+      "id": "dust5",
+      "type": "Particles",
+      "x": 40,
+      "y": 1790,
+      "params": {
+        "count": 7,
+        "seed": 696,
+        "emit": "burst",
+        "start": 0.1875,
+        "life": 0.5,
+        "lifeVar": 0.25,
+        "area": "box",
+        "x": 0.462,
+        "y": 0.44,
+        "aw": 16,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 70,
+        "speed": 1.7,
+        "speedVar": 0.4,
+        "gravity": 0.16,
+        "drag": 0.02,
+        "sizeA": 5,
+        "sizeB": 3,
+        "pshape": "diamond",
+        "fade": "flat",
+        "bright": 0.7,
+        "brightVar": 0.35,
+        "loop": false
+      }
+    },
+    {
+      "id": "grit5",
+      "type": "Particles",
+      "x": 40,
+      "y": 1860,
+      "params": {
+        "count": 9,
+        "seed": 926,
+        "emit": "burst",
+        "start": 0.1875,
+        "life": 0.4,
+        "lifeVar": 0.3,
+        "area": "box",
+        "x": 0.462,
+        "y": 0.44,
+        "aw": 14,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 110,
+        "speed": 2,
+        "speedVar": 0.5,
+        "gravity": 0.2,
+        "drag": 0.02,
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.95,
+        "brightVar": 0.2,
+        "loop": false
+      }
+    },
+    {
+      "id": "m5",
+      "type": "Blend",
+      "x": 260,
+      "y": 390,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m9",
+      "type": "Blend",
+      "x": 260,
+      "y": 670,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m11",
+      "type": "Blend",
+      "x": 260,
+      "y": 810,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m12",
+      "type": "Blend",
+      "x": 260,
+      "y": 880,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m13",
+      "type": "Blend",
+      "x": 260,
+      "y": 950,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m14",
+      "type": "Blend",
+      "x": 260,
+      "y": 1020,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m17",
+      "type": "Blend",
+      "x": 260,
+      "y": 1230,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m18",
+      "type": "Blend",
+      "x": 260,
+      "y": 1300,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m25",
+      "type": "Blend",
+      "x": 260,
+      "y": 1790,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m26",
+      "type": "Blend",
+      "x": 260,
+      "y": 1860,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 480,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#2e1a0c",
+          "#6e4320",
+          "#a8742e",
+          "#d9b26a",
+          "#f3e2b0"
+        ],
+        "cutoff": 0.08,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 600,
+      "y": 40,
+      "params": {
+        "color": "#24140a",
+        "threshold": 0.5,
+        "width": 1,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 720,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              11,
+              1,
+              "in"
+            ],
+            [
+              15,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 840,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "crack1",
+      "t": "m5",
+      "p": 0
+    },
+    {
+      "f": "crack5",
+      "t": "m5",
+      "p": 1
+    },
+    {
+      "f": "m5",
+      "t": "m9",
+      "p": 0
+    },
+    {
+      "f": "hair3",
+      "t": "m9",
+      "p": 1
+    },
+    {
+      "f": "m9",
+      "t": "m11",
+      "p": 0
+    },
+    {
+      "f": "hair5",
+      "t": "m11",
+      "p": 1
+    },
+    {
+      "f": "m11",
+      "t": "m12",
+      "p": 0
+    },
+    {
+      "f": "crater",
+      "t": "m12",
+      "p": 1
+    },
+    {
+      "f": "m12",
+      "t": "m13",
+      "p": 0
+    },
+    {
+      "f": "flash",
+      "t": "m13",
+      "p": 1
+    },
+    {
+      "f": "m13",
+      "t": "m14",
+      "p": 0
+    },
+    {
+      "f": "rocks",
+      "t": "m14",
+      "p": 1
+    },
+    {
+      "f": "m14",
+      "t": "m17",
+      "p": 0
+    },
+    {
+      "f": "dust1",
+      "t": "m17",
+      "p": 1
+    },
+    {
+      "f": "m17",
+      "t": "m18",
+      "p": 0
+    },
+    {
+      "f": "grit1",
+      "t": "m18",
+      "p": 1
+    },
+    {
+      "f": "m18",
+      "t": "m25",
+      "p": 0
+    },
+    {
+      "f": "dust5",
+      "t": "m25",
+      "p": 1
+    },
+    {
+      "f": "m25",
+      "t": "m26",
+      "p": 0
+    },
+    {
+      "f": "grit5",
+      "t": "m26",
+      "p": 1
+    },
+    {
+      "f": "m26",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 128,
+    "blend": "normal",
+    "impactFrame": 0
+  }
+}

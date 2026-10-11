@@ -1066,7 +1066,7 @@ function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: numb
 }
 /**
  * 보스 판 전체 공격 PXF (pxf.ts BOSS_PXF) 한 프레임: 캔버스를 판 너비 (세로로 길면 높이)로 키워 판 가운데에, 판 밖으로 나가는 부분은 프레임을 잘라 냄.
- * 칸 그림의 5–6배라 픽셀이 굵게 보임 (Lim 「픽셀 크기를 늘려서」). 층은 다른 PXF처럼 판 맨 위
+ * 128px 캔버스라 픽셀이 칸 그림의 2–3배 (Lim 「픽셀 크기를 늘려서」 → 「픽셀이 좀더 디테일」). 층은 다른 PXF처럼 판 맨 위
  */
 function pxfWide(k: PxfKey, key: string, ms: number, tint = 0xffffff): void {
   const c = PXF[k], i = pxfFrame(c, ms), tex = i < 0 ? null : artTexture(pxfArtName(k));
