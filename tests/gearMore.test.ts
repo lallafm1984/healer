@@ -4,9 +4,9 @@ import {
   fixedOf, hasLookArt, itemName, itemSpecs, itemStats, KINDS, kindsOf, LOOK_WORD, lookOf, LOOKS, makeItem, PLACE_KINDS, rerollLine, rollItem, SLOTS,
   specKeysOf, STATS, takenStats, type GearItem,
 } from '../src/data/equipment';
-import { UNIQUE_MULT, UNIQUES, uniqueFor, uniqueOf, uniqueValue } from '../src/data/uniques';
+import { UNIQUE_MULT, UNIQUES, uniqueOf, uniquesFor, uniqueValue } from '../src/data/uniques';
 import { NAMED, SPECS, specValue } from '../src/data/specials';
-import { CONTENT, contentOf, type ContentKey } from '../src/data/content';
+import { CONTENT, contentOf, raidSize, type ContentKey } from '../src/data/content';
 import { FACTIONS, type FactionKey } from '../src/data/places';
 import { rngFrom } from '../src/engine/rng';
 import { migrate, newSave, noteDex } from '../src/platform/storage';
@@ -94,7 +94,7 @@ describe('고유 무기 · 방어구 (34 6-10 ③)', () => {
     expect(UNIQUES).toHaveLength(72);
     expect(new Set(UNIQUES.map(u => u.key)).size).toBe(UNIQUES.length);
     expect(new Set(UNIQUES.map(u => u.name)).size).toBe(UNIQUES.length);
-    expect(new Set(UNIQUES.map(u => u.place)).size).toBe(UNIQUES.length);
+    expect(new Set(UNIQUES.map(u => `${u.place} ${u.slot}`)).size).toBe(UNIQUES.length); // 같은 구역 · 부위는 하나
     for (const u of UNIQUES) {
       expect(kindsOf(u.slot).some(k => k.key === u.kind), u.key).toBe(true);
       const d = SPECS[u.spec];
@@ -104,22 +104,21 @@ describe('고유 무기 · 방어구 (34 6-10 ③)', () => {
       expect(contentOf(u.place as ContentKey), u.place).toBeTruthy();
     }
   });
-  it('던전마다 하나 (장신구와 다른 부위) · 레이드는 이름 있는 장신구가 없는 칸마다, 탐험은 없음', () => {
-    const namedPlaces = new Set(NAMED.map(n => n.place));
-    for (const u of UNIQUES) {
-      const c = contentOf(u.place as ContentKey);
-      expect(c.kind, u.place).not.toBe('explore');
-      if (c.kind === 'raid') expect(namedPlaces.has(u.place), u.place).toBe(false);
-    }
-    for (const c of CONTENT) {
-      if (!c.ready || c.hidden || c.kind === 'explore') continue;
-      if (c.kind === 'dungeon' || !namedPlaces.has(c.key)) expect(UNIQUES.some(u => u.place === c.key), c.key).toBe(true);
+  it('20인 레이드 구역에서만 (Lim 2026-10-11 「20인 악몽으로 모음」, 61 3-4): 31구역마다 고유 장비 · 이름 있는 장신구가 있고, 탐험 · 던전 · 10인에는 없음', () => {
+    const zones = CONTENT.filter(c => c.ready && !c.hidden && c.kind === 'raid' && raidSize(c) === 20);
+    expect(zones).toHaveLength(31);
+    const keys = new Set<string>(zones.map(c => c.key));
+    for (const x of [...UNIQUES, ...NAMED]) expect(keys.has(x.place), x.key).toBe(true);
+    for (const c of zones) {
+      expect(UNIQUES.some(u => u.place === c.key), c.key).toBe(true);
+      expect(NAMED.some(n => n.place === c.key), c.key).toBe(true);
     }
   });
   it('그 장소 그 부위 전설에서만 (Lim 2026-10-11): 종류 고정, 고정 특수능력 1.5배가 고유 능력 (다른 특수능력 없음), 생김새 없음', () => {
-    const u = uniqueFor('watchtower', 'weapon')!;
+    const u = UNIQUES.find(x => x.slot === 'weapon')!;
+    expect(uniquesFor(u.place, 'weapon')).toEqual([u]);
     const r = rngFrom(9);
-    const its = Array.from({ length: 400 }, (_, i) => makeItem(r, 'weapon', '전설', i, undefined, { place: 'watchtower' }));
+    const its = Array.from({ length: 400 }, (_, i) => makeItem(r, 'weapon', '전설', i, undefined, { place: u.place }));
     const got = its.filter(it => it.unique);
     expect(got.length / its.length).toBeGreaterThan(0.15);
     expect(got.length / its.length).toBeLessThan(0.35);
@@ -135,7 +134,7 @@ describe('고유 무기 · 방어구 (34 6-10 ③)', () => {
       expect(specKeysOf(it)).toContain(u.spec);
     }
     for (const g of ['고급', '희귀', '영웅'] as const) {
-      const low = Array.from({ length: 200 }, (_, i) => makeItem(r, 'weapon', g, i, undefined, { place: 'watchtower' }));
+      const low = Array.from({ length: 200 }, (_, i) => makeItem(r, 'weapon', g, i, undefined, { place: u.place }));
       expect(low.some(it => it.unique)).toBe(false);
     }
     expect(uniqueValue(uniqueOf('magicCrown')!, '전설')).toBe(SPECS.numberSense.val);
@@ -144,8 +143,9 @@ describe('고유 무기 · 방어구 (34 6-10 ③)', () => {
     const s = newSave();
     const r = rngFrom(4);
     const a = makeItem(r, 'neck', '희귀', 101, 'amulet', { place: 'teaparty' });
-    let b = makeItem(r, 'head', '전설', 102, undefined, { place: 'temple' });
-    for (let i = 0; !b.unique; i++) b = makeItem(r, 'head', '전설', 102, undefined, { place: 'temple' });
+    const at = uniqueOf('guardianHelm')!.place; // 61 3-4: 20인 구역
+    let b = makeItem(r, 'head', '전설', 102, undefined, { place: at });
+    for (let i = 0; b.unique !== 'guardianHelm' && i < 2000; i++) b = makeItem(r, 'head', '전설', 102, undefined, { place: at });
     s.gear.bag.push(a, b);
     const back = migrate(JSON.parse(JSON.stringify(s)));
     expect(back.gear.bag.find(x => x.id === 101)!.look).toBe(a.look);

@@ -225,7 +225,8 @@ for (const [group, rows] of Object.entries(TABLE) as [SpecGroup, Row[]][]) {
 
 /**
  * 이름 있는 장신구 (42 3장): 장소 고유 목걸이 · 반지. 전설만 (Lim 2026-10-11 「전설에만 고유 능력」), 고유 효과가 그 전설의 고유 능력.
- * place = 떨어지는 장소 (content 키, 아직 없는 장소는 이름만). 같은 이름 있는 장신구는 하나만 낄 수 있음
+ * place = 떨어지는 장소: 20인 레이드 31구역에 열림 레벨 순으로 고르게 (Lim 2026-10-11 「20인 악몽으로 모음」, 61 3-4), 그 구역 악몽 전설에서만.
+ * 목걸이가 47개라 한 구역에 목걸이가 둘 · 셋인 곳이 있음 (namedsFor가 목록). 아래 묶음 주석은 처음 만든 곳. 같은 이름 있는 장신구는 하나만 낄 수 있음
  */
 export interface NamedDef {
   key: string; name: string; slot: 'neck' | 'ring'; place: string; placeName: string; text: string; val: number; unit: SpecUnit; cd?: number;
@@ -233,92 +234,92 @@ export interface NamedDef {
   min?: ItemGrade;
 }
 export const NAMED: NamedDef[] = [
-  { key: 'rustyCog', name: '녹슨 톱니', slot: 'neck', place: 'rustfort', placeName: '녹슨 요새', text: '치유를 시전하면 10% 확률로 10초 동안 가속 +{v} (재사용 20초)', val: 0.15, unit: 'pct', cd: 20 },
-  { key: 'plagueCenser', name: '역병 향로', slot: 'neck', place: 'crypt', placeName: '역병 지하묘지', text: '해제하면 대상에게 지능 {v} 보호막 (재사용 15초)', val: 0.6, unit: 'pct', cd: 15 },
-  { key: 'toadCharm', name: '두꺼비 부적', slot: 'neck', place: 'swamp', placeName: '독안개 늪', text: '마나 30% 아래로 내려가면 12초 동안 정신력 +{v} (전투당 1번)', val: 0.6, unit: 'pct' },
-  { key: 'ladyPortrait', name: '귀부인의 초상', slot: 'neck', place: 'manor', placeName: '저주받은 장원', text: '체력 30% 아래 아군에게 하는 직접 힐 +{v}', val: 0.2, unit: 'pct' },
-  { key: 'frozenHourglass', name: '얼어붙은 모래시계', slot: 'ring', place: 'frost', placeName: '서리 마탑', text: '공대 쿨기를 쓰면 15초 동안 마나 소모 −{v}', val: 0.3, unit: 'pct' },
-  { key: 'templeVial', name: '신전 성수병', slot: 'neck', place: 'temple', placeName: '깨진 신전', text: '광역 힐이 4명 이상 회복하면 6초 동안 치명타 +{v}', val: 0.1, unit: 'pct' },
+  { key: 'rustyCog', name: '녹슨 톱니', slot: 'neck', place: 'cathedral3', placeName: '가라앉은 대성당 오르간', text: '치유를 시전하면 10% 확률로 10초 동안 가속 +{v} (재사용 20초)', val: 0.15, unit: 'pct', cd: 20 },
+  { key: 'plagueCenser', name: '역병 향로', slot: 'neck', place: 'cathedral4', placeName: '가라앉은 대성당 성소', text: '해제하면 대상에게 지능 {v} 보호막 (재사용 15초)', val: 0.6, unit: 'pct', cd: 15 },
+  { key: 'toadCharm', name: '두꺼비 부적', slot: 'neck', place: 'abbey2', placeName: '물밑 수도원 서고', text: '마나 30% 아래로 내려가면 12초 동안 정신력 +{v} (전투당 1번)', val: 0.6, unit: 'pct' },
+  { key: 'ladyPortrait', name: '귀부인의 초상', slot: 'neck', place: 'rootwood1', placeName: '빛뿌리 숲 입구', text: '체력 30% 아래 아군에게 하는 직접 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'frozenHourglass', name: '얼어붙은 모래시계', slot: 'ring', place: 'abbey1', placeName: '물밑 수도원 연못', text: '공대 쿨기를 쓰면 15초 동안 마나 소모 −{v}', val: 0.3, unit: 'pct' },
+  { key: 'templeVial', name: '신전 성수병', slot: 'neck', place: 'rootwood3', placeName: '빛뿌리 숲 심장뿌리', text: '광역 힐이 4명 이상 회복하면 6초 동안 치명타 +{v}', val: 0.1, unit: 'pct' },
   // 묶음 A (39 4장, 이름 임시 · 그림 44 G)
-  { key: 'scrapWhistle', name: '고철 호루라기', slot: 'neck', place: 'plateau', placeName: '녹슨 고원', text: '탱커가 버스터를 맞으면 3초 동안 탱커에게 하는 힐 +{v}', val: 0.25, unit: 'pct', min: '고급' },
-  { key: 'graveLantern', name: '묘지기 등불', slot: 'neck', place: 'cemetery', placeName: '잿빛 공동묘지', text: '지속 힐이 끝까지 가면 마나 {v} 돌려받음 (2초에 한 번)', val: 1, unit: 'mana', min: '고급' },
-  { key: 'leechJar', name: '거머리 병', slot: 'ring', place: 'marsh', placeName: '늪지 어귀', text: '아군을 체력 100%까지 채우면 4초 동안 가속 +{v} (재사용 10초)', val: 0.1, unit: 'pct', cd: 10, min: '고급' },
-  { key: 'lilyCorsage', name: '백합 코사지', slot: 'neck', place: 'lily', placeName: '백합 정원', text: '4초 안에 서로 다른 3명에게 직접 힐하면 다음 직접 힐 마나 소모 −{v} (재사용 15초)', val: 1, unit: 'pct', cd: 15, min: '고급' },
-  { key: 'snowCrystal', name: '눈꽃 결정', slot: 'neck', place: 'snowpass', placeName: '눈보라 고개', text: '보스 기술에 시전이 끊기면 마나 {v} 돌려받음', val: 3, unit: 'mana', min: '고급' },
-  { key: 'pilgrimCharm', name: '순례자 부적', slot: 'neck', place: 'hillpath', placeName: '해바라기 언덕길', text: '파티 전원이 체력 70% 이상이면 정신력 +{v}', val: 0.3, unit: 'pct', min: '고급' },
-  { key: 'wornRosary', name: '닳은 묵주', slot: 'neck', place: 'pilgrim', placeName: '무너진 순례길', text: '바로 앞에 해제한 것과 다른 유형을 해제하면 해제 재사용 대기 −{v}', val: 2, unit: 'sec', min: '고급' },
-  { key: 'blackStone', name: '검은 돌 부적', slot: 'neck', place: 'abyssedge', placeName: '심연 가장자리', text: '옆 칸에 아군이 없는 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
-  { key: 'ropeKnot', name: '밧줄 매듭', slot: 'ring', place: 'watchtower', placeName: '무너진 망루', text: '아군이 2초 안에 최대 체력의 30% 넘게 잃으면 그 아군에게 지능 {v} 보호막 (재사용 20초)', val: 0.5, unit: 'pct', cd: 20 },
-  { key: 'lordIncense', name: '군주의 향 주머니', slot: 'neck', place: 'abyss1', placeName: '심연의 탑 1층', text: '디버프가 2개 이상 보이는 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct' },
-  { key: 'brokenChain', name: '끊어진 사슬', slot: 'ring', place: 'abyss5', placeName: '심연의 탑 꼭대기', text: '내 체력이 50% 아래가 되면 8초 동안 내게 하는 힐 +{v} (재사용 60초)', val: 0.3, unit: 'pct', cd: 60 },
+  { key: 'scrapWhistle', name: '고철 호루라기', slot: 'neck', place: 'cathedral1', placeName: '가라앉은 대성당 1구역', text: '탱커가 버스터를 맞으면 3초 동안 탱커에게 하는 힐 +{v}', val: 0.25, unit: 'pct', min: '고급' },
+  { key: 'graveLantern', name: '묘지기 등불', slot: 'neck', place: 'cathedral2', placeName: '가라앉은 대성당 회랑', text: '지속 힐이 끝까지 가면 마나 {v} 돌려받음 (2초에 한 번)', val: 1, unit: 'mana', min: '고급' },
+  { key: 'leechJar', name: '거머리 병', slot: 'ring', place: 'cathedral2', placeName: '가라앉은 대성당 회랑', text: '아군을 체력 100%까지 채우면 4초 동안 가속 +{v} (재사용 10초)', val: 0.1, unit: 'pct', cd: 10, min: '고급' },
+  { key: 'lilyCorsage', name: '백합 코사지', slot: 'neck', place: 'abbey1', placeName: '물밑 수도원 연못', text: '4초 안에 서로 다른 3명에게 직접 힐하면 다음 직접 힐 마나 소모 −{v} (재사용 15초)', val: 1, unit: 'pct', cd: 15, min: '고급' },
+  { key: 'snowCrystal', name: '눈꽃 결정', slot: 'neck', place: 'abbey3', placeName: '물밑 수도원 제단', text: '보스 기술에 시전이 끊기면 마나 {v} 돌려받음', val: 3, unit: 'mana', min: '고급' },
+  { key: 'pilgrimCharm', name: '순례자 부적', slot: 'neck', place: 'cathedral4', placeName: '가라앉은 대성당 성소', text: '파티 전원이 체력 70% 이상이면 정신력 +{v}', val: 0.3, unit: 'pct', min: '고급' },
+  { key: 'wornRosary', name: '닳은 묵주', slot: 'neck', place: 'rootwood2', placeName: '빛뿌리 숲 온실', text: '바로 앞에 해제한 것과 다른 유형을 해제하면 해제 재사용 대기 −{v}', val: 2, unit: 'sec', min: '고급' },
+  { key: 'blackStone', name: '검은 돌 부적', slot: 'neck', place: 'abbey2', placeName: '물밑 수도원 서고', text: '옆 칸에 아군이 없는 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
+  { key: 'ropeKnot', name: '밧줄 매듭', slot: 'ring', place: 'abbey3', placeName: '물밑 수도원 제단', text: '아군이 2초 안에 최대 체력의 30% 넘게 잃으면 그 아군에게 지능 {v} 보호막 (재사용 20초)', val: 0.5, unit: 'pct', cd: 20 },
+  { key: 'lordIncense', name: '군주의 향 주머니', slot: 'neck', place: 'reservoir1', placeName: '별빛 저수지 수문', text: '디버프가 2개 이상 보이는 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct' },
+  { key: 'brokenChain', name: '끊어진 사슬', slot: 'ring', place: 'rootwood1', placeName: '빛뿌리 숲 입구', text: '내 체력이 50% 아래가 되면 8초 동안 내게 하는 힐 +{v} (재사용 60초)', val: 0.3, unit: 'pct', cd: 60 },
   // 묶음 B 옛 세력 (46 6장, 이름 임시 · 그림 47)
-  { key: 'silverBookmark', name: '은빛 책갈피', slot: 'ring', place: 'bookfield', placeName: '책갈피 설원', text: '마나 50% 아래에서 단일 힐 마나 소모 −{v}', val: 0.15, unit: 'pct', min: '고급' },
-  { key: 'sluiceKey', name: '녹슨 수문 열쇠', slot: 'ring', place: 'sewer', placeName: '역병 수로', text: '해제한 디버프가 이웃에게 옮겨붙으면 옮겨 간 아군에게 지능 {v} 회복', val: 0.4, unit: 'pct' },
-  { key: 'frozenQuill', name: '얼어붙은 깃펜', slot: 'ring', place: 'archive', placeName: '얼음 서고', text: '내게 디버프가 걸려 있는 동안 정신력 +{v}', val: 0.3, unit: 'pct' },
-  { key: 'roseBrooch', name: '장미 브로치', slot: 'neck', place: 'rosemaze', placeName: '장미 울타리 미로', text: '넘친 치유가 그 힐의 절반을 넘으면 4초 동안 회복량 +{v} (재사용 8초)', val: 0.08, unit: 'pct', cd: 8, min: '고급' },
-  { key: 'heirSeal', name: '가주의 인장', slot: 'ring', place: 'ossuary', placeName: '백합 납골당', text: '사슬로 묶인 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct' },
+  { key: 'silverBookmark', name: '은빛 책갈피', slot: 'ring', place: 'rootwood2', placeName: '빛뿌리 숲 온실', text: '마나 50% 아래에서 단일 힐 마나 소모 −{v}', val: 0.15, unit: 'pct', min: '고급' },
+  { key: 'sluiceKey', name: '녹슨 수문 열쇠', slot: 'ring', place: 'rootwood3', placeName: '빛뿌리 숲 심장뿌리', text: '해제한 디버프가 이웃에게 옮겨붙으면 옮겨 간 아군에게 지능 {v} 회복', val: 0.4, unit: 'pct' },
+  { key: 'frozenQuill', name: '얼어붙은 깃펜', slot: 'ring', place: 'reservoir2', placeName: '별빛 저수지 다리', text: '내게 디버프가 걸려 있는 동안 정신력 +{v}', val: 0.3, unit: 'pct' },
+  { key: 'roseBrooch', name: '장미 브로치', slot: 'neck', place: 'well2', placeName: '숨결 우물 이끼벽', text: '넘친 치유가 그 힐의 절반을 넘으면 4초 동안 회복량 +{v} (재사용 8초)', val: 0.08, unit: 'pct', cd: 8, min: '고급' },
+  { key: 'heirSeal', name: '가주의 인장', slot: 'ring', place: 'reservoir3', placeName: '별빛 저수지 거울호수', text: '사슬로 묶인 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct' },
   // 묶음 B 짠물 해적단 (46 6장): 탐험 ⑨ ⑪, 10인 ②~④ 마지막 칸
-  { key: 'conchShell', name: '소라 껍데기', slot: 'neck', place: 'shellbeach', placeName: '조개껍데기 해변', text: '터지는 디버프 (부풀기 · 함정 · 터지는 마력)를 지우면 대상과 이웃 칸 아군에게 지능 {v} 보호막 (재사용 15초)', val: 0.3, unit: 'pct', cd: 15, min: '고급' },
-  { key: 'luckyCoin', name: '앞면 금화', slot: 'ring', place: 'wreck', placeName: '난파선 모래톱', text: '체력 40~60% 아군에게 하는 직접 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
-  { key: 'lighthouseEmber', name: '등대 불씨', slot: 'neck', place: 'gull3', placeName: '갈매기 항구 등대', text: '보스 큰 기술 예고가 떠 있는 동안 광역 힐 +{v}', val: 0.15, unit: 'pct' },
-  { key: 'sailorCompass', name: '선원의 나침반', slot: 'neck', place: 'queen3', placeName: '짠물 여왕호 뱃머리', text: '치유 상한 · 받는 치유 감소가 걸린 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
-  { key: 'goldButton', name: '금빛수염 단추', slot: 'neck', place: 'isle3', placeName: '보물섬 요새 꼭대기', text: '디버프가 끝나거나 지워진 아군에게 하는 다음 직접 힐 +{v}', val: 0.25, unit: 'pct' },
+  { key: 'conchShell', name: '소라 껍데기', slot: 'neck', place: 'reservoir2', placeName: '별빛 저수지 다리', text: '터지는 디버프 (부풀기 · 함정 · 터지는 마력)를 지우면 대상과 이웃 칸 아군에게 지능 {v} 보호막 (재사용 15초)', val: 0.3, unit: 'pct', cd: 15, min: '고급' },
+  { key: 'luckyCoin', name: '앞면 금화', slot: 'ring', place: 'reservoir1', placeName: '별빛 저수지 수문', text: '체력 40~60% 아군에게 하는 직접 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
+  { key: 'lighthouseEmber', name: '등대 불씨', slot: 'neck', place: 'rootwood1', placeName: '빛뿌리 숲 입구', text: '보스 큰 기술 예고가 떠 있는 동안 광역 힐 +{v}', val: 0.15, unit: 'pct' },
+  { key: 'sailorCompass', name: '선원의 나침반', slot: 'neck', place: 'reservoir3', placeName: '별빛 저수지 거울호수', text: '치유 상한 · 받는 치유 감소가 걸린 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'goldButton', name: '금빛수염 단추', slot: 'neck', place: 'well1', placeName: '숨결 우물 도르래', text: '디버프가 끝나거나 지워진 아군에게 하는 다음 직접 힐 +{v}', val: 0.25, unit: 'pct' },
   // 묶음 C (48 6장, 이름 임시 · 그림 49): 탐험 ⑬ ⑮ · 던전 ⑪ ⑫
-  { key: 'lampGlass', name: '꼬마등 유리병', slot: 'ring', place: 'lampway', placeName: '꼬마등 오솔길', text: '디버프를 지울 때 대상 체력이 50% 아래면 그 아군에게 지능 {v} 보호막 (재사용 12초)', val: 0.25, unit: 'pct', cd: 12, min: '고급' },
-  { key: 'chippedCup', name: '이 빠진 찻잔', slot: 'ring', place: 'teaparty', placeName: '끝없는 다과회', text: '치유 흡수 막이 걸린 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
-  { key: 'dragonScale', name: '용 비늘 조각', slot: 'ring', place: 'emberfoot', placeName: '불꽃 봉우리 기슭', text: '독이 걸린 아군에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
-  { key: 'turtleCharm', name: '거북 등딱지 부적', slot: 'neck', place: 'mossroot', placeName: '이끼 뿌리 사원', text: '내 마나 30% 아래에서 내가 받는 피해 −{v}', val: 0.15, unit: 'pct' },
-  { key: 'festInvite', name: '축제 초대장', slot: 'neck', place: 'fest3', placeName: '요정 축제 마당 모닥불', text: '딜을 못 하는 아군 (춤바람 · 감옥 · 삼키기 · 침묵)에게 하는 직접 힐 +{v}', val: 0.2, unit: 'pct' },
-  { key: 'rainbowSpore', name: '무지개 포자', slot: 'neck', place: 'rainbow', placeName: '무지개 버섯밭', text: '사람 칸 (헤매는 영혼 · 등대지기 · 숲 할아버지)에게 하는 힐 +{v}', val: 0.25, unit: 'pct', min: '고급' },
-  { key: 'mossBrooch', name: '이끼 브로치', slot: 'neck', place: 'cave3', placeName: '포자 동굴 정원 뿌리방', text: '무력화 게이지가 모이는 동안 광역 힐 +{v}', val: 0.12, unit: 'pct' },
-  { key: 'amanitaShard', name: '광대버섯 왕관 조각', slot: 'neck', place: 'palace3', placeName: '버섯 여왕의 궁전 왕좌', text: '해제하면 {v} 확률로 이웃 칸 아군 1명의 같은 유형 디버프도 함께 지움', val: 0.3, unit: 'pct' },
+  { key: 'lampGlass', name: '꼬마등 유리병', slot: 'ring', place: 'well1', placeName: '숨결 우물 도르래', text: '디버프를 지울 때 대상 체력이 50% 아래면 그 아군에게 지능 {v} 보호막 (재사용 12초)', val: 0.25, unit: 'pct', cd: 12, min: '고급' },
+  { key: 'chippedCup', name: '이 빠진 찻잔', slot: 'ring', place: 'well2', placeName: '숨결 우물 이끼벽', text: '치유 흡수 막이 걸린 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'dragonScale', name: '용 비늘 조각', slot: 'ring', place: 'well3', placeName: '숨결 우물 바닥', text: '독이 걸린 아군에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
+  { key: 'turtleCharm', name: '거북 등딱지 부적', slot: 'neck', place: 'crystal3', placeName: '수정 뿌리굴 거울방', text: '내 마나 30% 아래에서 내가 받는 피해 −{v}', val: 0.15, unit: 'pct' },
+  { key: 'festInvite', name: '축제 초대장', slot: 'neck', place: 'well3', placeName: '숨결 우물 바닥', text: '딜을 못 하는 아군 (춤바람 · 감옥 · 삼키기 · 침묵)에게 하는 직접 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'rainbowSpore', name: '무지개 포자', slot: 'neck', place: 'crystal2', placeName: '수정 뿌리굴 수정밭', text: '사람 칸 (헤매는 영혼 · 등대지기 · 숲 할아버지)에게 하는 힐 +{v}', val: 0.25, unit: 'pct', min: '고급' },
+  { key: 'mossBrooch', name: '이끼 브로치', slot: 'neck', place: 'crystal1', placeName: '수정 뿌리굴 갈림길', text: '무력화 게이지가 모이는 동안 광역 힐 +{v}', val: 0.12, unit: 'pct' },
+  { key: 'amanitaShard', name: '광대버섯 왕관 조각', slot: 'neck', place: 'well1', placeName: '숨결 우물 도르래', text: '해제하면 {v} 확률로 이웃 칸 아군 1명의 같은 유형 디버프도 함께 지움', val: 0.3, unit: 'pct' },
   // 묶음 D1 (51 6장, 이름 임시 · 그림 52): 10인 ⑧ 마지막 칸 · 탐험 ⑯ · 던전 ⑬ ⑭
-  { key: 'koboldWarrant', name: '코볼트 임명장', slot: 'neck', place: 'den3', placeName: '코볼트 보물 굴 보물방', text: '체력 90% 위인 아군에게 거는 보호막 +{v}', val: 0.2, unit: 'pct' },
-  { key: 'warmPebble', name: '따끈한 조약돌', slot: 'ring', place: 'ashpass', placeName: '화산재 고갯길', text: '내가 건 보호막이 깨지거나 녹아 없어지면 그 아군에게 지능 {v} 회복 (재사용 6초)', val: 0.08, unit: 'pct', cd: 6, min: '고급' },
-  { key: 'spaTowel', name: '온천 수건', slot: 'neck', place: 'hotspring', placeName: '용암 온천장', text: '큰 피해 예고가 2초 안에 맞을 때 거는 보호막 +{v}', val: 0.25, unit: 'pct' },
-  { key: 'coldAnvil', name: '식은 모루 조각', slot: 'neck', place: 'forge', placeName: '용암 대장간', text: '무력화 게이지가 모이는 동안 파티원이 받는 피해 −{v}', val: 0.1, unit: 'pct' },
+  { key: 'koboldWarrant', name: '코볼트 임명장', slot: 'neck', place: 'shadow1', placeName: '그림자 성벽 성문', text: '체력 90% 위인 아군에게 거는 보호막 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'warmPebble', name: '따끈한 조약돌', slot: 'ring', place: 'crystal1', placeName: '수정 뿌리굴 갈림길', text: '내가 건 보호막이 깨지거나 녹아 없어지면 그 아군에게 지능 {v} 회복 (재사용 6초)', val: 0.08, unit: 'pct', cd: 6, min: '고급' },
+  { key: 'spaTowel', name: '온천 수건', slot: 'neck', place: 'shadow2', placeName: '그림자 성벽 성벽길', text: '큰 피해 예고가 2초 안에 맞을 때 거는 보호막 +{v}', val: 0.25, unit: 'pct' },
+  { key: 'coldAnvil', name: '식은 모루 조각', slot: 'neck', place: 'shadow3', placeName: '그림자 성벽 망루', text: '무력화 게이지가 모이는 동안 파티원이 받는 피해 −{v}', val: 0.1, unit: 'pct' },
   // 묶음 D2 (51 6장, 이름 임시 · 그림 52): 10인 ⑨ 마지막 칸 · 탐험 ⑰ · 20인 ① 마지막 칸
-  { key: 'rubinaPearl', name: '루비나의 진주', slot: 'neck', place: 'nest3', placeName: '어미 용의 둥지 보물더미', text: '보물 욕심 · 사냥 대상이 된 아군에게 하는 직접 힐 +{v}', val: 0.15, unit: 'pct' },
-  { key: 'lakePebble', name: '호숫가 조약돌', slot: 'ring', place: 'lakeshore', placeName: '잠긴 호숫가', text: '생명 사슬이 걸린 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
-  { key: 'threeShards', name: '세 조각 목걸이', slot: 'neck', place: 'cathedral4', placeName: '가라앉은 대성당 성소', text: '사람 칸 (조각 · 영혼 · 나무)에게 하는 힐 +{v}', val: 0.25, unit: 'pct' },
+  { key: 'rubinaPearl', name: '루비나의 진주', slot: 'neck', place: 'crystal1', placeName: '수정 뿌리굴 갈림길', text: '보물 욕심 · 사냥 대상이 된 아군에게 하는 직접 힐 +{v}', val: 0.15, unit: 'pct' },
+  { key: 'lakePebble', name: '호숫가 조약돌', slot: 'ring', place: 'crystal2', placeName: '수정 뿌리굴 수정밭', text: '생명 사슬이 걸린 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
+  { key: 'threeShards', name: '세 조각 목걸이', slot: 'neck', place: 'crystal2', placeName: '수정 뿌리굴 수정밭', text: '사람 칸 (조각 · 영혼 · 나무)에게 하는 힐 +{v}', val: 0.25, unit: 'pct' },
   // 묶음 E1 (54 6장, 이름 임시 · 그림 55): 10인 ⑩ 마지막 칸 · 탐험 ⑱ · 20인 ② 마지막 칸 · 던전 ⑮
-  { key: 'riddleNote', name: '냥크스의 수수께끼 쪽지', slot: 'neck', place: 'bazaar3', placeName: '노을 시장 성문', text: '신기루가 걷힌 뒤 1초 안에 하는 직접 힐 +{v}', val: 0.2, unit: 'pct' },
-  { key: 'jellyLight', name: '해파리 불빛', slot: 'ring', place: 'deepstairs', placeName: '물밑 계단', text: '고리 · 장판 안 아군에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
-  { key: 'prayerKnot', name: '깊은잠의 기도 매듭', slot: 'neck', place: 'abbey3', placeName: '물밑 수도원 제단', text: '완치 표식 대상에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
-  { key: 'backSand', name: '거꾸로 모래알', slot: 'ring', place: 'hourglass', placeName: '모래시계 궁전', text: '모래시계가 체력을 되돌릴 때 마나 {v} 회복', val: 3, unit: 'mana' },
+  { key: 'riddleNote', name: '냥크스의 수수께끼 쪽지', slot: 'neck', place: 'camp1', placeName: '그림자 진영 막사', text: '신기루가 걷힌 뒤 1초 안에 하는 직접 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'jellyLight', name: '해파리 불빛', slot: 'ring', place: 'crystal3', placeName: '수정 뿌리굴 거울방', text: '고리 · 장판 안 아군에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
+  { key: 'prayerKnot', name: '깊은잠의 기도 매듭', slot: 'neck', place: 'camp2', placeName: '그림자 진영 훈련장', text: '완치 표식 대상에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'backSand', name: '거꾸로 모래알', slot: 'ring', place: 'shadow1', placeName: '그림자 성벽 성문', text: '모래시계가 체력을 되돌릴 때 마나 {v} 회복', val: 3, unit: 'mana' },
   // 묶음 E2 (54 6장, 이름 임시 · 그림 55): 10인 ⑪ 마지막 칸 · 탐험 ⑲ · 20인 ③ 마지막 칸
-  { key: 'featherBrooch', name: '사라샤의 깃털 브로치', slot: 'neck', place: 'dusk3', placeName: '노을 궁전 옥좌', text: '모래시계를 뒤집기 전 3초 (예고) 동안 하는 힐 +{v}', val: 0.15, unit: 'pct' },
-  { key: 'camelYarn', name: '낙타 털실 반지', slot: 'ring', place: 'caravan', placeName: '낙타 대상로', text: '진동 뒤 2초 동안 시전 시간 −{v}', val: 0.15, unit: 'pct', min: '고급' },
-  { key: 'heartShard', name: '심장뿌리 조각', slot: 'neck', place: 'rootwood3', placeName: '빛뿌리 숲 심장뿌리', text: '뒤집힘 저주가 걸린 아군이 체력 40~60%이면 받는 피해 −{v}', val: 0.15, unit: 'pct' },
+  { key: 'featherBrooch', name: '사라샤의 깃털 브로치', slot: 'neck', place: 'camp3', placeName: '그림자 진영 지휘소', text: '모래시계를 뒤집기 전 3초 (예고) 동안 하는 힐 +{v}', val: 0.15, unit: 'pct' },
+  { key: 'camelYarn', name: '낙타 털실 반지', slot: 'ring', place: 'shadow2', placeName: '그림자 성벽 성벽길', text: '진동 뒤 2초 동안 시전 시간 −{v}', val: 0.15, unit: 'pct', min: '고급' },
+  { key: 'heartShard', name: '심장뿌리 조각', slot: 'neck', place: 'shadow2', placeName: '그림자 성벽 성벽길', text: '뒤집힘 저주가 걸린 아군이 체력 40~60%이면 받는 피해 −{v}', val: 0.15, unit: 'pct' },
   // 묶음 E3 (54 6장, 이름 임시 · 그림 55): 10인 ⑫ 마지막 칸 · 20인 ④ 마지막 칸 · 탐험 ⑳ · 던전 ⑯
-  { key: 'nightcapTassel', name: '하품호텝의 수면 모자 술', slot: 'neck', place: 'pyramid3', placeName: '낮잠 피라미드 침실', text: '피난처 예고 동안 아직 안전 칸에 못 들어간 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
-  { key: 'echoDrop', name: '되울림의 물방울', slot: 'neck', place: 'reservoir3', placeName: '별빛 저수지 거울호수', text: '신기루가 걷히거나 모래시계가 되돌릴 때 가장 낮은 아군 2명 지능 {v} 회복', val: 0.5, unit: 'pct' },
-  { key: 'pinwheelPin', name: '바람개비 핀', slot: 'ring', place: 'pinwheel', placeName: '바람개비 언덕', text: '끌려온 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
-  { key: 'starMap', name: '별 지도 조각', slot: 'neck', place: 'observatory', placeName: '해시계 천문대', text: '파티원이 보스 시전을 끊은 뒤 6초 동안 파티 받는 피해 −{v}', val: 0.08, unit: 'pct' },
+  { key: 'nightcapTassel', name: '하품호텝의 수면 모자 술', slot: 'neck', place: 'coast1', placeName: '어둠물 해안 선착장', text: '피난처 예고 동안 아직 안전 칸에 못 들어간 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'echoDrop', name: '되울림의 물방울', slot: 'neck', place: 'shadow3', placeName: '그림자 성벽 망루', text: '신기루가 걷히거나 모래시계가 되돌릴 때 가장 낮은 아군 2명 지능 {v} 회복', val: 0.5, unit: 'pct' },
+  { key: 'pinwheelPin', name: '바람개비 핀', slot: 'ring', place: 'camp1', placeName: '그림자 진영 막사', text: '끌려온 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
+  { key: 'starMap', name: '별 지도 조각', slot: 'neck', place: 'coast2', placeName: '어둠물 해안 물길', text: '파티원이 보스 시전을 끊은 뒤 6초 동안 파티 받는 피해 −{v}', val: 0.08, unit: 'pct' },
   // 묶음 F1 (56 6장, 이름 임시 · 그림 57): 20인 ⑤ 마지막 칸 · 10인 ⑬ 마지막 칸 · 탐험 ㉑ · 던전 ⑰
-  { key: 'breathFlask', name: '후우의 숨결 병', slot: 'neck', place: 'well3', placeName: '숨결 우물 바닥', text: '넘치는 빛 그릇에 모이는 넘친 치유 +{v}', val: 0.25, unit: 'pct' },
-  { key: 'postStamp', name: '부리부리의 우표', slot: 'neck', place: 'post3', placeName: '구름 우체국 옥상', text: '띄워 올려진 아군이 내려올 때 지능 {v} 보호막 (6초)', val: 0.4, unit: 'pct' },
-  { key: 'fleeceRing', name: '복슬 양털 반지', slot: 'ring', place: 'ranch', placeName: '구름 양 목장', text: '번개 구름이 뜬 아군의 이웃에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
-  { key: 'millVane', name: '풍차 날개 조각', slot: 'ring', place: 'windmill', placeName: '천둥 풍차', text: '떠 있는 아군이 받는 지속 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'breathFlask', name: '후우의 숨결 병', slot: 'neck', place: 'coast3', placeName: '어둠물 해안 소용돌이', text: '넘치는 빛 그릇에 모이는 넘친 치유 +{v}', val: 0.25, unit: 'pct' },
+  { key: 'postStamp', name: '부리부리의 우표', slot: 'neck', place: 'camp2', placeName: '그림자 진영 훈련장', text: '띄워 올려진 아군이 내려올 때 지능 {v} 보호막 (6초)', val: 0.4, unit: 'pct' },
+  { key: 'fleeceRing', name: '복슬 양털 반지', slot: 'ring', place: 'camp3', placeName: '그림자 진영 지휘소', text: '번개 구름이 뜬 아군의 이웃에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
+  { key: 'millVane', name: '풍차 날개 조각', slot: 'ring', place: 'coast1', placeName: '어둠물 해안 선착장', text: '떠 있는 아군이 받는 지속 힐 +{v}', val: 0.2, unit: 'pct' },
   // 묶음 F2 (56 6장): 20인 ⑥ 거울방 · 10인 ⑭ 꼭대기
-  { key: 'prism', name: '빛갈래의 프리즘', slot: 'neck', place: 'crystal3', placeName: '수정 뿌리굴 거울방', text: '연쇄 번개가 피뢰침에서 멈추면 그 아군 지능 {v} 회복', val: 0.5, unit: 'pct' },
+  { key: 'prism', name: '빛갈래의 프리즘', slot: 'neck', place: 'heart1', placeName: '심연의 심장 뿌리다리', text: '연쇄 번개가 피뢰침에서 멈추면 그 아군 지능 {v} 회복', val: 0.5, unit: 'pct' },
   // 묶음 F3 (56 6장): 탐험 ㉒ · 20인 ⑦ 망루 · 던전 ⑱
-  { key: 'broomTicket', name: '빗자루 승차권', slot: 'ring', place: 'station', placeName: '빗자루 정류장', text: '넘치는 빛 그릇이 가득 차면 마나 {v} 회복', val: 2, unit: 'mana', min: '고급' },
-  { key: 'shadowVeil', name: '어둑이의 그림자 휘장', slot: 'neck', place: 'shadow3', placeName: '그림자 성벽 망루', text: '신기루가 걷히거나 띄워진 아군이 내려올 때 가장 낮은 아군 1명에게 지능 {v} 보호막 (6초)', val: 0.5, unit: 'pct' },
-  { key: 'diploma', name: '뒤죽박죽 졸업장', slot: 'neck', place: 'school', placeName: '구름 마법학교', text: '뒤집힘 저주가 끝날 때 그 아군이 체력 40~60%이면 지능 {v} 보호막 (6초)', val: 0.5, unit: 'pct' },
-  { key: 'stormWedge', name: '우르릉의 번개 쐐기', slot: 'neck', place: 'fort3', placeName: '폭풍 성채 꼭대기', text: '다른 탱커가 띄워 올려진 동안 남은 탱커에게 하는 힐 +{v}', val: 0.25, unit: 'pct' },
+  { key: 'broomTicket', name: '빗자루 승차권', slot: 'ring', place: 'coast2', placeName: '어둠물 해안 물길', text: '넘치는 빛 그릇이 가득 차면 마나 {v} 회복', val: 2, unit: 'mana', min: '고급' },
+  { key: 'shadowVeil', name: '어둑이의 그림자 휘장', slot: 'neck', place: 'heart3', placeName: '심연의 심장 심실', text: '신기루가 걷히거나 띄워진 아군이 내려올 때 가장 낮은 아군 1명에게 지능 {v} 보호막 (6초)', val: 0.5, unit: 'pct' },
+  { key: 'diploma', name: '뒤죽박죽 졸업장', slot: 'neck', place: 'coast2', placeName: '어둠물 해안 물길', text: '뒤집힘 저주가 끝날 때 그 아군이 체력 40~60%이면 지능 {v} 보호막 (6초)', val: 0.5, unit: 'pct' },
+  { key: 'stormWedge', name: '우르릉의 번개 쐐기', slot: 'neck', place: 'heart2', placeName: '심연의 심장 심장문', text: '다른 탱커가 띄워 올려진 동안 남은 탱커에게 하는 힐 +{v}', val: 0.25, unit: 'pct' },
   // 묶음 G1 (59 6장): 10인 ⑮ 중심 · 20인 ⑧ 지휘소 · 탐험 ㉓ · 던전 ⑲
-  { key: 'mazeMap', name: '밤그늘의 미궁 지도', slot: 'neck', place: 'maze3', placeName: '그림자 미궁 중심', text: '빚진 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
-  { key: 'knightBanner', name: '칠흑의 기사단 휘장', slot: 'neck', place: 'camp3', placeName: '그림자 진영 지휘소', text: '신기루가 걷히면 진짜 번개 구름 대상의 이웃 가운데 낮은 2명에게 지능 {v} 보호막 (6초)', val: 0.3, unit: 'pct' },
-  { key: 'wetGlove', name: '마부의 젖은 장갑', slot: 'ring', place: 'carriage', placeName: '유령 마차길', text: '어둠물에 잠긴 아군에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
-  { key: 'wetScore', name: '세레나의 젖은 악보', slot: 'neck', place: 'ballroom', placeName: '가라앉은 무도회장', text: '어둠물이 빠지는 순간 잠겨 있던 아군 모두 지능 {v} 회복', val: 0.2, unit: 'pct' },
+  { key: 'mazeMap', name: '밤그늘의 미궁 지도', slot: 'neck', place: 'coast3', placeName: '어둠물 해안 소용돌이', text: '빚진 아군에게 하는 힐 +{v}', val: 0.2, unit: 'pct' },
+  { key: 'knightBanner', name: '칠흑의 기사단 휘장', slot: 'neck', place: 'coast3', placeName: '어둠물 해안 소용돌이', text: '신기루가 걷히면 진짜 번개 구름 대상의 이웃 가운데 낮은 2명에게 지능 {v} 보호막 (6초)', val: 0.3, unit: 'pct' },
+  { key: 'wetGlove', name: '마부의 젖은 장갑', slot: 'ring', place: 'coast3', placeName: '어둠물 해안 소용돌이', text: '어둠물에 잠긴 아군에게 하는 힐 +{v}', val: 0.12, unit: 'pct', min: '고급' },
+  { key: 'wetScore', name: '세레나의 젖은 악보', slot: 'neck', place: 'heart1', placeName: '심연의 심장 뿌리다리', text: '어둠물이 빠지는 순간 잠겨 있던 아군 모두 지능 {v} 회복', val: 0.2, unit: 'pct' },
   // 묶음 G2 (59 6장): 20인 ⑨ 소용돌이 · 탐험 ㉔
-  { key: 'moonBowl', name: '검은물결의 달빛 그릇', slot: 'neck', place: 'coast3', placeName: '어둠물 해안 소용돌이', text: '넘치는 빛 그릇에 모이는 넘친 치유 +{v}, 빚을 갚은 넘친 치유도 절반이 그릇에', val: 0.25, unit: 'pct' },
-  { key: 'debtLantern', name: '꺼지지 않는 등불', slot: 'ring', place: 'lantern', placeName: '어둠물 등불길', text: '넘친 치유가 빚진 아군의 빚을 갚는 양 +{v}', val: 0.2, unit: 'pct', min: '고급' },
+  { key: 'moonBowl', name: '검은물결의 달빛 그릇', slot: 'neck', place: 'heart1', placeName: '심연의 심장 뿌리다리', text: '넘치는 빛 그릇에 모이는 넘친 치유 +{v}, 빚을 갚은 넘친 치유도 절반이 그릇에', val: 0.25, unit: 'pct' },
+  { key: 'debtLantern', name: '꺼지지 않는 등불', slot: 'ring', place: 'heart2', placeName: '심연의 심장 심장문', text: '넘친 치유가 빚진 아군의 빚을 갚는 양 +{v}', val: 0.2, unit: 'pct', min: '고급' },
   // 묶음 G3 (59 6장): 20인 ⑩ 심실 · 탐험 ㉕ · 던전 ⑳
-  { key: 'stillHeart', name: '멈춘 심장 조각', slot: 'neck', place: 'heart3', placeName: '심연의 심장 심실', text: '크게 뛰기 (시전 불가)가 끝나면 2초 동안 가속 +{v}', val: 0.3, unit: 'pct' },
-  { key: 'dawnPebble', name: '첫 햇살 조약돌', slot: 'ring', place: 'dawn', placeName: '새벽 호숫길', text: '퍼지는 박동에 맞은 아군에게 하는 다음 직접 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
-  { key: 'shadowScale', name: '마지막 그림자의 저울', slot: 'neck', place: 'heartcrack', placeName: '멈춘 심장 속', text: '빌린 생명의 빚을 다 갚으면 그 아군에게 지능 {v} 보호막 (6초)', val: 0.4, unit: 'pct' },
+  { key: 'stillHeart', name: '멈춘 심장 조각', slot: 'neck', place: 'heart2', placeName: '심연의 심장 심장문', text: '크게 뛰기 (시전 불가)가 끝나면 2초 동안 가속 +{v}', val: 0.3, unit: 'pct' },
+  { key: 'dawnPebble', name: '첫 햇살 조약돌', slot: 'ring', place: 'heart3', placeName: '심연의 심장 심실', text: '퍼지는 박동에 맞은 아군에게 하는 다음 직접 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
+  { key: 'shadowScale', name: '마지막 그림자의 저울', slot: 'neck', place: 'heart3', placeName: '심연의 심장 심실', text: '빌린 생명의 빚을 다 갚으면 그 아군에게 지능 {v} 보호막 (6초)', val: 0.4, unit: 'pct' },
 ];
 export const namedOf = (key: string | undefined) => (key ? NAMED.find(n => n.key === key) : undefined);
 /** 도감 묶음 (42 1-6): 특수능력 9묶음 + 이름 있는 장신구 */
@@ -332,8 +333,8 @@ export const SPEC_TITLES: Record<CodexGroup, string> = {
 export const codexKeys = (g: CodexGroup): string[] => (g === 'named' ? NAMED.map(n => n.key) : SPEC_KEYS.filter(k => SPECS[k].group === g));
 /** 키 → 도감 묶음 */
 export const codexGroupOf = (key: string): CodexGroup | undefined => (SPECS[key]?.group ?? (namedOf(key) ? 'named' : undefined));
-/** 그 장소 · 부위에서 나오는 이름 있는 장신구 */
-export const namedFor = (place: string, slot: SlotKey) => NAMED.find(n => n.place === place && n.slot === slot);
+/** 그 장소 · 부위에서 나오는 이름 있는 장신구 (20인 구역, 같은 부위가 여럿이면 그중 하나가 고르게 나옴) */
+export const namedsFor = (place: string, slot: SlotKey) => NAMED.filter(n => n.place === place && n.slot === slot);
 
 /**
  * 장소마다 자주 나오는 특수능력 3개 (42 1-4, 4배). 입장 화면 「나오는 장비」에 이름이 보임.

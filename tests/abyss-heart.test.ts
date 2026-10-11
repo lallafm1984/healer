@@ -63,8 +63,8 @@ describe('콘텐츠', () => {
       expect(FEATURED[k], k).toHaveLength(3);
     }
     expect([PLACE_KINDS.dawn.length, PLACE_KINDS.heartcrack.length]).toEqual([2, 3]);
-    expect(['heart3', 'dawn', 'heartcrack'].map(p => NAMED.find(n => n.place === p)?.key)).toEqual(['stillHeart', 'dawnPebble', 'shadowScale']);
-    expect(['heart1', 'heart2', 'heartcrack'].map(p => UNIQUES.find(u => u.place === p)?.key)).toEqual(['tangleGauntlet', 'lordCrown', 'scaleRobe']);
+    expect(['stillHeart', 'dawnPebble', 'shadowScale'].map(k => NAMED.find(n => n.key === k)?.place)).toEqual(['heart2', 'heart3', 'heart3']); // 61 3-4: 20인 구역 악몽 전설로 옮김
+    expect(['tangleGauntlet', 'lordCrown', 'scaleRobe'].map(k => UNIQUES.find(u => u.key === k)?.place)).toEqual(['heart2', 'heart3', 'heart3']); // 61 3-4: 20인 구역 악몽 전설로 옮김
   });
   it('엔딩 글: 심장을 처음 멈추면 한 장, 앱 글은 「~요」로 끝나지 않음', () => {
     expect(ENDING.length).toBeGreaterThanOrEqual(3);

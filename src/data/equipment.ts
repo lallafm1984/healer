@@ -10,8 +10,8 @@ import type { DiffName } from './difficulty';
 import type { GearStats, GradeName } from './gear';
 import type { HeroKey } from './heroes';
 import { CONTENT_PLACE, FACTIONS, PLACES, type FactionKey } from './places';
-import { FEATURED, namedFor, namedOf, SPEC_KEYS, SPECS, specTotals, specValue, type SpecLine, type SpecOn } from './specials';
-import { UNIQUE_MULT, uniqueFor, uniqueOf, uniqueValue } from './uniques';
+import { FEATURED, namedOf, namedsFor, SPEC_KEYS, SPECS, specTotals, specValue, type SpecLine, type SpecOn } from './specials';
+import { UNIQUE_MULT, uniqueOf, uniquesFor, uniqueValue } from './uniques';
 
 export type SlotKey = 'weapon' | 'head' | 'chest' | 'hands' | 'ring' | 'neck';
 
@@ -394,14 +394,15 @@ export const specCount = (r: () => number, grade: ItemGrade): number => (grade =
 export function makeItem(r: () => number, slot: SlotKey, grade: ItemGrade, id: number, kind?: string, o: DropCtx = {}): GearItem {
   const legend = grade === LEGEND;
   // 고유 무기 · 방어구 (34 6-10 ③): 종류가 정해져 있고, 고정 특수능력이 고유 능력
-  const un = legend && o.place ? uniqueFor(o.place, slot) : undefined;
-  const isUnique = !!un && r() < NAMED_CHANCE;
+  const uns = legend && o.place ? uniquesFor(o.place, slot) : [];
+  const un = uns.length && r() < NAMED_CHANCE ? uns[Math.floor(r() * uns.length)] : undefined;
+  const isUnique = !!un;
   const ks = kindsOf(slot), k = (isUnique ? ks.find(x => x.key === un!.kind) : ks.find(x => x.key === kind)) ?? ks[Math.floor(r() * ks.length)];
   const it: GearItem = { id, slot, kind: k.key, grade, plus: 0, name: '', lines: rollLines(r, randomLines(k, grade), takenStats(k)), specs: [] };
   // 이름 있는 장신구 (42 3장): 고유 효과가 고유 능력
-  const nm = legend && o.place ? namedFor(o.place, slot) : undefined;
+  const nms = legend && o.place ? namedsFor(o.place, slot) : [];
   if (isUnique) it.unique = un!.key;
-  else if (nm && r() < NAMED_CHANCE) it.named = nm.key;
+  else if (nms.length && r() < NAMED_CHANCE) it.named = nms[Math.floor(r() * nms.length)].key;
   else {
     it.specs = legend ? rollSpecs(r, slot, grade, 1, o).map(l => ({ key: l.key, roll: 1, legend: true as const })) : rollSpecs(r, slot, grade, specCount(r, grade), o);
     const look = lookOf(o.place);
@@ -422,9 +423,8 @@ export function placeSpecials(place: string, top: ItemGrade): { name: string; sl
   const ti = ITEM_GRADES.indexOf(top), out: { name: string; slot: SlotKey; min: ItemGrade; unique: boolean }[] = [];
   for (const s of SLOTS) {
     if (ti < ITEM_GRADES.indexOf(LEGEND)) continue; // 전설만 (Lim 2026-10-11 「전설에만 고유 능력」)
-    const un = uniqueFor(place, s.key), nm = namedFor(place, s.key);
-    if (un) out.push({ name: un.name, slot: s.key, min: LEGEND, unique: true });
-    if (nm) out.push({ name: nm.name, slot: s.key, min: LEGEND, unique: false });
+    for (const un of uniquesFor(place, s.key)) out.push({ name: un.name, slot: s.key, min: LEGEND, unique: true });
+    for (const nm of namedsFor(place, s.key)) out.push({ name: nm.name, slot: s.key, min: LEGEND, unique: false });
   }
   return out;
 }
