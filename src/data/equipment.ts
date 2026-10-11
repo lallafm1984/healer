@@ -126,18 +126,42 @@ export const takenStats = (k: KindDef): StatKey[] => [...(MAIN_OPT[k.slot] ? [MA
 /** 종류 · 무작위 옵션 한 줄 최대값 (굴림 1, 강화 · 각성 전): 능력치 기준값 × 부위 배율 × 등급 배율 */
 export const lineMax = (stat: StatKey, slot: SlotKey, grade: ItemGrade) => STATS[stat].max * SLOT_MULT[groupOf(slot)] * LINE_MULT[grade];
 
-/** 난이도별 등급 확률 (02 10-4 초안). 순서 = ITEM_GRADES */
-export const DROP_TABLE: Record<DiffName, number[]> = {
-  '쉬움': [0.5, 0.4, 0.1, 0, 0],
-  '보통': [0.2, 0.5, 0.25, 0.05, 0],
-  '어려움': [0, 0.3, 0.5, 0.18, 0.02],
-  '악몽': [0, 0, 0.5, 0.42, 0.08],
+/**
+ * 등급 확률 (61 3장, 2026-10-11 Lim). 순서 = ITEM_GRADES. 0 = 레벨링 (탐험 · 던전), 10 · 20 = 레이드 인원.
+ * 탐험 · 던전: 쉬움 일반 · 보통 고급까지 · 어려움 희귀까지 · 악몽 영웅까지.
+ * 10인 · 20인: 쉬움 · 보통 희귀까지 · 어려움 영웅까지 · 악몽은 10인 영웅 (확률 높게) · 20인만 전설.
+ */
+export const DROP_TABLES: Record<0 | 10 | 20, Record<DiffName, number[]>> = {
+  0: {
+    '쉬움': [1, 0, 0, 0, 0],
+    '보통': [0.6, 0.4, 0, 0, 0],
+    '어려움': [0.15, 0.55, 0.3, 0, 0],
+    '악몽': [0, 0.35, 0.5, 0.15, 0],
+  },
+  10: {
+    '쉬움': [0, 0.6, 0.4, 0, 0],
+    '보통': [0, 0.3, 0.7, 0, 0],
+    '어려움': [0, 0, 0.75, 0.25, 0],
+    '악몽': [0, 0, 0.5, 0.5, 0],
+  },
+  20: {
+    '쉬움': [0, 0.5, 0.5, 0, 0],
+    '보통': [0, 0.2, 0.8, 0, 0],
+    '어려움': [0, 0, 0.65, 0.35, 0],
+    '악몽': [0, 0, 0.35, 0.55, 0.1],
+  },
 };
+/** 그 콘텐츠 · 난이도 등급 확률 (raid = 레이드 인원, 0 = 탐험 · 던전) */
+export const dropTable = (diff: DiffName, raid: 0 | 10 | 20 = 0): number[] => DROP_TABLES[raid][diff];
+/** 표에서 나올 수 있는 가장 높은 등급 (상한) */
+export const topGrade = (table: number[]): ItemGrade => ITEM_GRADES[table.reduce((m, p, i) => (p > 0 ? i : m), 0)];
 
 /** 클리어 등급이 높을수록 상위 등급 확률 소폭↑ (02 10-4): 굴린 값을 이만큼 위로 민다 */
 export const GRADE_BONUS: Record<'S' | 'A' | 'B' | 'C', number> = { S: 0.05, A: 0.02, B: 0, C: 0 };
+/** 공개모집 일일 보너스 판 (13 2-2): 굴린 값을 이만큼 더 위로 (그 난이도 상한은 그대로, 61 3-3) */
+export const PUB_GRADE_BONUS = 0.25;
 
-/** 전설은 Lv 50부터 드롭 (02 10-1) */
+/** 전설은 Lv 50부터 드롭 (02 10-1). 20인 악몽이 Lv 80부터라 실제론 그 전에 안 나옴 (61 3장) */
 export const LEGEND_LEVEL = 50;
 
 export interface GearItem {
@@ -330,8 +354,11 @@ export function pickKind(r: () => number, place: string): KindDef {
   return KINDS[j];
 }
 
-/** 드롭 맥락: 지금 직업 (직업 전용은 그 직업 것만, 42 1-4) · 장소 (잘 나오는 종류 · 자주 나오는 특수능력 · 이름 있는 장신구) · 등급 상한 (탐험 = 고급 · Lv 30부터 희귀, 34 6-7) */
-export interface DropCtx { hero?: HeroKey; place?: string; cap?: ItemGrade }
+/**
+ * 드롭 맥락: 지금 직업 (직업 전용은 그 직업 것만, 42 1-4) · 장소 (잘 나오는 종류 · 자주 나오는 특수능력 · 이름 있는 장신구) ·
+ * 레이드 인원 (등급 표, 61 3장. 없으면 탐험 · 던전 표) · 공개모집 보너스 판 · 등급 상한 (따로 줄 때만)
+ */
+export interface DropCtx { hero?: HeroKey; place?: string; raid?: 0 | 10 | 20; bonus?: boolean; cap?: ItemGrade }
 
 /**
  * 특수능력 n줄 굴림: 그 부위 · 최소 등급 이하 · (직업 전용은 그 직업) 중에서, 장소의 자주 나오는 3개는 4배.
@@ -386,6 +413,22 @@ export function makeItem(r: () => number, slot: SlotKey, grade: ItemGrade, id: n
 
 /** 특수능력 한 줄 값 (전설 고유 능력은 1.5배) */
 export const specLineValue = (it: GearItem, l: SpecLine) => (l.legend ? legendValue(l.key, it.grade) : specValue(l.key, it.grade, l.roll));
+
+/**
+ * 출전 전 보상 팝업 (61 3-4): 그 장소에서 상한 등급 (top)까지 나올 수 있는 고유 장비 · 이름 있는 장신구. makeItem과 같은 조건으로 읽음
+ * (나오는 등급 조건을 바꾸면 여기도 같이)
+ */
+export function placeSpecials(place: string, top: ItemGrade): { name: string; slot: SlotKey; min: ItemGrade; unique: boolean }[] {
+  const ti = ITEM_GRADES.indexOf(top), out: { name: string; slot: SlotKey; min: ItemGrade; unique: boolean }[] = [];
+  for (const s of SLOTS) {
+    if (ti < ITEM_GRADES.indexOf(LEGEND)) continue; // 전설만 (Lim 2026-10-11 「전설에만 고유 능력」)
+    const un = uniqueFor(place, s.key), nm = namedFor(place, s.key);
+    if (un) out.push({ name: un.name, slot: s.key, min: LEGEND, unique: true });
+    if (nm) out.push({ name: nm.name, slot: s.key, min: LEGEND, unique: false });
+  }
+  return out;
+}
+
 /** 장비 한 개의 특수능력 값 (이름 있는 장신구 고유 효과 · 고유 장비 고정 특수능력 + 줄마다 값) */
 export function itemSpecs(it: GearItem | null | undefined): SpecOn[] {
   if (!it) return [];
@@ -403,25 +446,27 @@ export const specKeysOf = (it: GearItem): string[] => [...(it.named ? [it.named]
 /** 착용 장비 → 전투에서 켜지는 특수능력 값 (42 1-3 · 1-5) */
 export const specsOf = (eq: Equipped, hero: HeroKey): Record<string, number> => specTotals(SLOTS.flatMap(s => itemSpecs(eq[s.key])), hero);
 
-/** 등급 굴림 (02 10-4): 클리어 등급만큼 위로 밀고, 표에 있는 가장 높은 등급까지만. 전설은 Lv 50부터 */
-export function rollGrade(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number): ItemGrade {
-  const table = DROP_TABLE[diff];
-  let x = Math.min(0.999999, r() + GRADE_BONUS[grade]);
+/** 등급 굴림 (02 10-4 · 61 3장): 클리어 등급 (+ 공개모집 보너스)만큼 위로 밀고, 표에 있는 가장 높은 등급까지만. 전설은 Lv 50부터 */
+export function rollGrade(r: () => number, table: number[], grade: 'S' | 'A' | 'B' | 'C', level: number, bonus = 0): ItemGrade {
+  let x = Math.min(0.999999, r() + GRADE_BONUS[grade] + bonus);
   let gi = 0;
   for (; gi < table.length - 1; gi++) {
     if (x < table[gi]) break;
     x -= table[gi];
   }
-  const top = table.reduce((m, p, i) => (p > 0 ? i : m), 0);
+  const top = ITEM_GRADES.indexOf(topGrade(table));
   const g = ITEM_GRADES[Math.min(gi, top)];
   return g === '전설' && level < LEGEND_LEVEL ? '영웅' : g;
 }
 
-/** 장비 1개 뽑기 (부위 → 등급 → 종류 · 옵션 · 특수능력, 장소에 잘 나오는 종류가 있으면 부위 · 종류 함께). r = 0~1 난수 함수, o = 드롭 맥락 (직업 · 장소) */
+/**
+ * 장비 1개 뽑기 (부위 → 등급 → 종류 · 옵션 · 특수능력, 장소에 잘 나오는 종류가 있으면 부위 · 종류 함께). r = 0~1 난수 함수,
+ * o = 드롭 맥락 (직업 · 장소 · 레이드 인원 · 공개모집 보너스)
+ */
 export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number, id: number, o: DropCtx = {}): GearItem {
   const k = o.place && PLACE_KINDS[o.place] ? pickKind(r, o.place) : undefined;
   const slot = k ? k.slot : SLOTS[Math.floor(r() * SLOTS.length)].key;
-  const g = rollGrade(r, diff, grade, level);
+  const g = rollGrade(r, dropTable(diff, o.raid ?? 0), grade, level, o.bonus ? PUB_GRADE_BONUS : 0);
   return makeItem(r, slot, o.cap && ITEM_GRADES.indexOf(g) > ITEM_GRADES.indexOf(o.cap) ? o.cap : g, id, k?.key, o);
 }
 

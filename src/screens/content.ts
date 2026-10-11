@@ -6,15 +6,16 @@
  * 관문은 어느 분류든 같은 자리·같은 크기 (2026-10-08 Lim: 주간 도전 띠를 관문 위에서 장소 줄로 옮김).
  * 분류마다 마지막 고른 장소, 장소마다 마지막 고른 난이도를 기억 (모듈 변수, 저장 안 함).
  */
-import { ALL_DIFFS, CONTENT, contentOf, dispelsOf, raidSize, stageOf, type ContentDef, type ContentKey } from '../data/content';
+import { ALL_DIFFS, CONTENT, contentOf, dispelsOf, isLeveling, raidSize, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { AFFIXES } from '../data/affixes';
 import { CHAL } from '../data/challenge';
 import { FIRST_CLEAR_CRYSTAL, SHARD_MAX } from '../data/economy';
-import { avgScore, DROP_TABLE, GRADE_STYLE, ITEM_GRADES, LEGEND_LEVEL, RECOMMENDED } from '../data/equipment';
+import { avgScore, dropTable, GRADE_STYLE, ITEM_GRADES, KINDS as GEAR_KINDS, LEGEND_LEVEL, PLACE_KINDS, placeSpecials, RECOMMENDED, SLOTS, topGrade } from '../data/equipment';
+import { FEATURED, SPECS } from '../data/specials';
 import { canDispel, DEB_COLOR, HEROES } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
-import { clearGold, EXPLORE_REWARD } from '../data/progression';
+import { clearGold, EXPLORE_REWARD, xpGap } from '../data/progression';
 import { art, cssUrl } from '../art';
 import { weekRemaining } from '../game/clock';
 import { raidLootOpen } from '../game/economy';
@@ -78,14 +79,20 @@ let drawnTab: Tab | null = null;
 /** 다음 그리기에서 고른 장소를 줄 가운데로 (‹ ›) */
 let centerNext = false;
 
-const listOf = (k: Tab) => CONTENT.filter(c => !c.hidden && tabOf(c) === k);
+// 열림 레벨 순 (같으면 원래 순서). 새 장소가 레벨 사이사이에 끼게 (62)
+const listOf = (k: Tab) => CONTENT.filter(c => !c.hidden && tabOf(c) === k).sort((a, b) => a.unlockLv - b.unlockLv);
 const factionOf = (c: ContentDef): FactionKey => PLACES[placeArt(c.key).place].faction;
 /** 준비 중이거나 레벨이 모자라 못 들어가는 장소 */
 const isOff = (c: ContentDef) => !c.ready || lockOf(c).locked;
-/** 그 난이도만 따로 잠김 (10인 악몽 Lv 50 등). 장소 자체가 잠긴 건 보상 보기로 고를 수 있게 둠 */
-function diffLocked(c: ContentDef, d: DiffName): { locked: boolean; lv: number } {
+/**
+ * 그 난이도만 따로 잠김: 10인 악몽 Lv 50 등 · 탐험 · 던전은 앞 난이도를 아직 못 깸 (need, 61 1-1).
+ * 장소 자체가 레벨로 잠긴 건 보상 보기로 고를 수 있게 둠
+ */
+function diffLocked(c: ContentDef, d: DiffName): { locked: boolean; lv: number; need: DiffName | null } {
   const l = lockOf(c, d);
-  return { locked: l.locked && l.lv > c.unlockLv, lv: l.lv };
+  if (l.locked && !l.dev && G.save.player.level < l.lv && l.lv > c.unlockLv) return { locked: true, lv: l.lv, need: null };
+  const chain = !!l.need && !lockOf(c).locked;
+  return { locked: chain, lv: l.lv, need: chain ? l.need : null };
 }
 
 /** 세력 문양 (색 = 시안 Parts27 문양 색). 입장 화면 머리도 씀 */
@@ -119,19 +126,21 @@ function lootLine(c: ContentDef): string {
 }
 
 /**
- * 추천 리본 (27 3-1): 내 레벨·장비로 「보통 이상 처음 깨기 좋은」 장소 1곳.
- * 콘텐츠마다 아직 안 깬 가장 낮은 난이도(보통부터)를 보고, 레벨이 열림 레벨 이상이고 권장 장비를 채우면 후보. 열림 레벨이 가장 높은 것 (같으면 탐험보다 던전·레이드)
+ * 추천 리본 (27 3-1): 내 레벨·장비로 「처음 깨기 좋은」 장소 1곳.
+ * 콘텐츠마다 아직 안 깬 가장 낮은 열린 난이도를 봄 (탐험 · 던전은 쉬움부터 사슬, 레이드는 보통부터).
+ * 탐험 · 던전은 적 레벨이 내 레벨 −2 ~ +1이면 (경험치 다 받음, 61 1-3), 레이드는 레벨이 되고 권장 장비를 채우면 후보.
+ * 적 레벨이 가장 높은 것 (같으면 탐험보다 던전·레이드)
  */
 function recommended(): ContentKey | null {
   const lv = G.save.player.level, mine = avgScore(G.save.gear.equipped);
   let best: { k: ContentKey; s: number } | null = null;
   for (const c of CONTENT) {
     if (c.hidden || !c.ready || lockOf(c).locked) continue;
-    const rec = G.save.clears[c.key] || {};
-    for (const d of ['보통', '어려움', '악몽'] as DiffName[]) {
+    const rec = G.save.clears[c.key] || {}, lvl = isLeveling(c);
+    for (const d of (lvl ? ALL_DIFFS : ['보통', '어려움', '악몽']) as DiffName[]) {
       if (rec[d]) continue;
       const st = stageOf(c, d), r = RECOMMENDED[d];
-      if (lockOf(c, d).locked || lv < st || (r && mine < r.score)) break;
+      if (lockOf(c, d).locked || (lvl ? st > lv + 1 || st < lv - 2 : lv < st) || (r && mine < r.score)) break;
       const sc = st * 10 + (c.kind === 'explore' ? 0 : 1);
       if (!best || sc > best.s) best = { k: c.key, s: sc };
       break;
@@ -150,14 +159,17 @@ function current(): ContentDef | null {
   return c;
 }
 
-/** 고른 난이도: 기억한 것 → (첫 던전 녹슨 요새는 쉬움, 09 4장) → 아직 안 깬 가장 낮은 난이도 (보통부터) → 다 깼으면 열린 가장 높은 난이도 */
+/**
+ * 고른 난이도: 기억한 것 → (첫 던전 녹슨 요새는 쉬움, 09 4장) → 아직 안 깬 가장 낮은 열린 난이도 (탐험 · 던전은 쉬움부터, 레이드는 보통부터)
+ * → 다 깼으면 열린 가장 높은 난이도
+ */
 function diffOf(c: ContentDef): DiffName {
   const m = diffPick[c.key];
   if (m && !diffLocked(c, m).locked) return m;
   if (c.key === 'rustfort' && firstDungeonNow()) return '쉬움';
-  const rec = G.save.clears[c.key] || {};
-  let last: DiffName = '보통';
-  for (const d of ['보통', '어려움', '악몽'] as DiffName[]) {
+  const rec = G.save.clears[c.key] || {}, lvl = isLeveling(c);
+  let last: DiffName = lvl ? '쉬움' : '보통';
+  for (const d of (lvl ? ALL_DIFFS : ['보통', '어려움', '악몽']) as DiffName[]) {
     if (diffLocked(c, d).locked) break;
     if (!rec[d]) return d;
     last = d;
@@ -196,11 +208,11 @@ function chalCell(): string {
   </button><i class="b-div" aria-hidden="true"></i>`;
 }
 
-/** 보상 칸 (정산 계산과 같음, stage = 적 레벨 = 내 레벨): 장비 등급 범위 · 골드 (A 등급) · 첫 클리어 크리스탈 + 전설 확률 */
+/** 보상 칸 (정산 계산과 같음): 장비 등급 범위 (누르면 얻는 장비 팝업, 61 3-4) · 골드 (A 등급) · 첫 클리어 크리스탈 + 전설 확률 · 경험치가 줄면 그 비율 */
 function rewards(c: ContentDef, d: DiffName, stage: number): string {
-  const lv = G.save.player.level, table = DROP_TABLE[d];
+  const lv = G.save.player.level, table = dropTable(d, raidSize(c));
   const lo = table.findIndex(p => p > 0);
-  let hi = table.reduce((m, p, i) => (p > 0 ? i : m), 0);
+  let hi = ITEM_GRADES.indexOf(topGrade(table));
   // 전설은 Lv 50부터 (그 전엔 영웅으로 나옴)
   if (ITEM_GRADES[hi] === '전설' && lv < LEGEND_LEVEL) hi = ITEM_GRADES.indexOf('영웅');
   const gLo = ITEM_GRADES[lo], gHi = ITEM_GRADES[hi];
@@ -208,21 +220,52 @@ function rewards(c: ContentDef, d: DiffName, stage: number): string {
   const gold = Math.round(clearGold(stage, d, 'A', raidSize(c)) * (c.kind === 'explore' && G.save.tut >= TUT.done ? EXPLORE_REWARD : 1));
   const first = G.save.tut >= TUT.done && !G.save.clears[c.key]?.[d];
   const leg = table[ITEM_GRADES.indexOf('전설')];
-  const legTxt = !leg ? '' : lv < LEGEND_LEVEL ? `전설 Lv ${LEGEND_LEVEL}부터` : `전설 ${Math.round(leg * 100)}%`;
+  // 탐험 · 던전은 적 레벨이 고정이라 내 레벨이 높으면 경험치가 줄어듦 (61 1-3)
+  const gap = isLeveling(c) && G.save.tut >= TUT.done ? xpGap(lv, stage) : 1;
+  const note = leg ? (lv < LEGEND_LEVEL ? `전설 Lv ${LEGEND_LEVEL}부터` : `전설 ${Math.round(leg * 100)}%`) : gap < 1 ? `레벨이 높아 경험치 ${Math.round(gap * 100)}%` : '';
   const cell = (rc: string, icon: string, label: string, extra = '') =>
     `<span class="b-rw" style="--rc:${rc}"><span class="b-rb">${icon}${extra}</span><small>${label}</small></span>`;
   return `<div class="b-rws" role="group" aria-label="${d} 보상">
-    ${cell(GRADE_STYLE[gHi].color, gameIcon('gear', ICON.gear), `<span class="sr">장비 </span>${range}`)}
+    <button type="button" class="b-rw b-rwbtn" style="--rc:${GRADE_STYLE[gHi].color}" data-drops aria-haspopup="dialog" aria-label="장비 ${range} · 얻는 장비 보기"><span class="b-rb">${gameIcon('gear', ICON.gear)}<i class="b-rwi" aria-hidden="true">i</i></span><small aria-hidden="true">${range}</small></button>
     ${cell('#C9A35C', gameIcon('gold', ICON.gold), `<span class="sr">골드 </span>${fmt(gold)}`)}
     ${first ? cell('#6FA9D8', gameIcon('crystal', ICON.crystal), `<span class="sr">크리스탈 </span>${FIRST_CLEAR_CRYSTAL}`, '<em>처음</em>') : ''}
-    <span class="cap b-leg">${legTxt}</span>
+    <span class="cap b-leg">${note}</span>
+  </div>`;
+}
+
+/**
+ * 얻는 장비 팝업 (61 3-4, Lim 「출전 전에 보상 아이템 아이콘을 누르면 작은 팝업」): 등급 확률 · 개수 · 잘 나오는 종류 · 자주 나오는 특수능력 ·
+ * 고유 장비 · 이름 있는 장신구 (그 난이도 상한으로 나올 수 있는 것만). 확률은 A 등급 기준 (S면 조금 더 위)
+ */
+function dropPop(c: ContentDef, d: DiffName): string {
+  const raid = raidSize(c), table = dropTable(d, raid), lv = G.save.player.level;
+  let top = topGrade(table);
+  if (top === '전설' && lv < LEGEND_LEVEL) top = '영웅';
+  const n = Math.max(1, c.bosses.length);
+  const count = raid ? '보스마다 1개 · 난이도별 주 1회' : c.kind === 'explore' ? '1개' : `보스마다 1개 (${n}개)`;
+  const grades = ITEM_GRADES.map((g, i) => ({ g, p: table[i] })).filter(x => x.p > 0)
+    .map(x => `<li style="--gc:${GRADE_STYLE[x.g].color}"><i aria-hidden="true"></i>${x.g}<b>${Math.round(x.p * 100)}%</b></li>`).join('');
+  const kinds = (PLACE_KINDS[c.key] ?? []).map(k => GEAR_KINDS.find(x => x.key === k)?.name).filter(Boolean);
+  const feats = (FEATURED[c.key] ?? []).map(k => SPECS[k]?.name).filter(Boolean);
+  const sp = placeSpecials(c.key, top);
+  const slotName = (k: string) => SLOTS.find(x => x.key === k)!.name;
+  const tail = raid === 20 ? (d === '악몽' ? '전설은 20인 레이드 악몽에서만 나옴' : '전설은 악몽에서만') : '전설은 20인 레이드 악몽에서만';
+  return `<div class="b-popwrap" data-popclose>
+    <div class="b-pop" role="dialog" aria-modal="true" aria-labelledby="bPopT" tabindex="-1">
+      <div class="b-poph"><b id="bPopT">${d} 장비</b><small>${count}</small><button type="button" class="b-popx" data-popclose aria-label="닫기">×</button></div>
+      <ul class="b-pgr" aria-label="등급 확률">${grades}</ul>
+      ${kinds.length ? `<p><span class="cap">잘 나오는 종류</span>${kinds.map(esc).join(' · ')}</p>` : ''}
+      ${feats.length ? `<p><span class="cap">자주 나오는 특수능력</span>${feats.map(x => esc(x!)).join(' · ')}</p>` : ''}
+      ${sp.length ? `<p><span class="cap">가끔 나옴</span>${sp.map(x => `<span class="b-psp" style="--gc:${GRADE_STYLE[x.min].color}">${esc(x.name)}<small>${x.unique ? '고유 ' : ''}${slotName(x.slot)} · ${x.min} 이상</small></span>`).join('')}</p>` : ''}
+      <p class="b-pnote">${tail}${c.kind === 'explore' || c.kind === 'dungeon' ? ' · 클리어 등급이 높으면 좋은 등급이 조금 더' : ''}</p>
+    </div>
   </div>`;
 }
 
 /** 관문: 아치 금테 안 장소 그림 + 이름표 · 추천 · ‹ › · 정보 · 해제 · 보상 */
 function gate(c: ContentDef, d: DiffName, many: boolean): string {
   const pa = placeArt(c.key), f = factionOf(c), lk = lockOf(c), pl = PLACES[pa.place];
-  // 적 레벨 = 내 레벨, 어픽스는 난이도 (32, 2026-10-08)
+  // 적 레벨: 탐험 · 던전은 장소 · 난이도에 고정 (61), 레이드는 내 레벨 (32). 어픽스는 난이도
   const m = runMode(G.save, c, d, { chal: 0 });
   const [region, side] = c.place.split(' · ');
   // 다른 직업으로는 들어갈 수 있으면 자물쇠 대신 그 직업 (34 4장 1번)
@@ -238,7 +281,7 @@ function gate(c: ContentDef, d: DiffName, many: boolean): string {
     ${many ? `<button type="button" class="b-arw prev" data-step="-1" aria-label="이전 장소">${PREV}</button><button type="button" class="b-arw next" data-step="1" aria-label="다음 장소">${NEXT}</button>` : ''}
     ${status ? `<span class="b-st">${status}</span>` : ''}
     <div class="b-gb">
-      <span class="b-row"><span class="b-inf">${esc(region)} · ${c.size(d)}인 · 보스 ${c.bosses.length}</span>${c.ready && !lk.locked ? lootLine(c) : ''}</span>
+      <span class="b-row"><span class="b-inf">${esc(region)} · ${c.size(d)}인 · 보스 ${c.bosses.length}${c.ready ? ` · 적 Lv ${m.stage}` : ''}</span>${c.ready && !lk.locked ? lootLine(c) : ''}</span>
       <span class="b-row"><span class="cap">해제</span>${dispelChips(c)}${c.ready && m.affixes.length ? `<span class="b-afx" aria-label="${d} 어픽스">${afxTags(m.affixes)}</span>` : ''}</span>
       ${c.ready && lk.dev ? `<span class="f-dev">Lv ${lk.lv} 해금 · 개발 빌드라 열림</span>` : ''}
       ${c.ready ? rewards(c, d, m.stage) : ''}
@@ -297,11 +340,12 @@ function scrollPlaces(from: number | null, center: boolean): void {
   placeFade(sc);
 }
 
-/** 난이도 4칸: 이름 + 별. 그 난이도만 잠겼으면 자물쇠 Lv, 준비 중 장소는 못 고름 */
+/** 난이도 4칸: 이름 + 별. 그 난이도만 잠겼으면 자물쇠 Lv, 앞 난이도를 못 깼으면 자물쇠 「쉬움 깨기」 (61 1-1). 준비 중 장소는 못 고름 */
 function diffs(c: ContentDef, d: DiffName): string {
   return `<div class="b-df" role="group" aria-label="난이도">${ALL_DIFFS.map(x => {
     const l = diffLocked(c, x), dis = !c.ready || l.locked, on = c.ready && x === d;
-    return `<button type="button" class="b-dc${on ? ' on' : ''}" data-diff="${x}" aria-pressed="${on}"${dis ? ' disabled' : ''}>${x}<small>${c.ready && l.locked ? `${LOCK}Lv ${l.lv}` : stars(c, x)}</small></button>`;
+    const sub = !c.ready || !l.locked ? stars(c, x) : l.need ? `${LOCK}${l.need} 깨기<span class="sr">면 열림</span>` : `${LOCK}Lv ${l.lv}`;
+    return `<button type="button" class="b-dc${on ? ' on' : ''}" data-diff="${x}" aria-pressed="${on}"${dis ? ' disabled' : ''}>${x}<small>${sub}</small></button>`;
   }).join('')}</div>`;
 }
 
@@ -309,7 +353,7 @@ function diffs(c: ContentDef, d: DiffName): string {
 function cta(c: ContentDef | null, d: DiffName): string {
   const lk = c ? lockOf(c, d) : null;
   const ok = !!c && c.ready && !lk!.locked;
-  const sub = !c ? '준비 중' : !c.ready ? `${c.name} · 준비 중` : lk!.locked ? `${c.name} · Lv ${lk!.lv}에 열림` : `${c.name} · ${d}`;
+  const sub = !c ? '준비 중' : !c.ready ? `${c.name} · 준비 중` : lk!.locked ? (lk!.need && !lockOf(c).locked ? `${c.name} · ${lk!.need}부터 깨기` : `${c.name} · Lv ${lk!.lv}에 열림`) : `${c.name} · ${d}`;
   const mk = c ? factionMark(factionOf(c), 'md') : '';
   return `<button type="button" class="g-cta" id="contentGo"${ok ? '' : ' disabled'}><span class="g-mk">${mk}</span><span class="g-ct"><b>출전</b><small>${esc(sub)}</small></span>${ARROW}</button>`;
 }
@@ -368,8 +412,37 @@ s.el.addEventListener('scroll', e => {
   if (t.classList?.contains('b-plr')) placeFade(t);
 }, { capture: true, passive: true });
 
+/** 얻는 장비 팝업: 보상 칸 위에 띄움 (관문은 넘치는 부분을 잘라서 화면 쪽에 붙임). 닫으면 그 칸으로 초점 */
+function openDrops(btn: HTMLElement): void {
+  const c = current();
+  if (!c) return;
+  closeDrops(false);
+  s.el.insertAdjacentHTML('beforeend', dropPop(c, diffOf(c)));
+  const pop = s.el.querySelector<HTMLElement>('.b-pop')!, r = btn.getBoundingClientRect(), box = s.el.getBoundingClientRect();
+  const w = Math.min(300, box.width - 32);
+  pop.style.width = `${w}px`;
+  pop.style.left = `${Math.max(16, Math.min(box.width - w - 16, r.left - box.left - 8))}px`;
+  const h = pop.offsetHeight, above = r.top - box.top - h - 8;
+  pop.style.top = `${above >= 8 ? above : Math.min(box.height - h - 8, r.bottom - box.top + 8)}px`;
+  pop.focus({ preventScroll: true });
+}
+function closeDrops(refocus = true): void {
+  const w = s.el.querySelector('.b-popwrap');
+  if (!w) return;
+  w.remove();
+  if (refocus) s.el.querySelector<HTMLElement>('[data-drops]')?.focus({ preventScroll: true });
+}
+addEventListener('keydown', e => { if (e.key === 'Escape' && !s.el.hidden && s.el.querySelector('.b-popwrap')) { e.preventDefault(); closeDrops(); } });
+
 s.el.addEventListener('click', e => {
   const el = e.target as HTMLElement;
+  if (s.el.querySelector('.b-popwrap')) {
+    // 팝업 안을 누르면 그대로, 바깥 (어두운 곳) · × 를 누르면 닫음
+    if (el.closest('[data-popclose]') && (el.closest('.b-popx') || !el.closest('.b-pop'))) closeDrops();
+    return;
+  }
+  const dr = el.closest<HTMLElement>('[data-drops]');
+  if (dr) { openDrops(dr); return; }
   const t = el.closest<HTMLElement>('[data-ctab]');
   if (t) { tab = t.dataset.ctab as Tab; render(); return; }
   const ch = el.closest<HTMLElement>('[data-chal]');

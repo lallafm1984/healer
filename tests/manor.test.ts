@@ -1,6 +1,6 @@
 /** 던전 ④ 저주받은 장원 (39 1-2, 35 4-3): 먼지 낀 응접실 → 집사 유령 → 초상화 속 귀부인 → 사냥개 우리 → 장원 주인 벨모어 경 */
 import { describe, expect, it } from 'vitest';
-import { contentOf } from '../src/data/content';
+import { contentOf, stageOf } from '../src/data/content';
 import { BOSSES } from '../src/data/bosses';
 import * as E from '../src/engine';
 import { applyDebuff, zoneCells } from '../src/engine/bossParts';
@@ -74,9 +74,9 @@ describe('저주받은 장원', () => {
     expect(f.bs.invert2.next).toBeLessThan(Infinity);
   });
 
-  it('Lv 20 자동 힐러, 보통이면 대부분 깸 (장비 없음)', () => {
+  it('보통 적 레벨 (Lv 22, 61 1-2) 자동 힐러, 보통이면 대부분 깸 (장비 없음)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'manor', diff: '보통', seed: s, level: 20, gear: 'none' }).win) wins++;
+    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'manor', diff: '보통', seed: s, level: stageOf(contentOf('manor'), '보통'), gear: 'none' }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(18);
-  });
+  }, 20_000); // 자동 밸런스 기준 20판은 CI 기본 5초를 넘을 수 있음
 });

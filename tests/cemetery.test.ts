@@ -1,6 +1,6 @@
 /** 탐험 ② 잿빛 공동묘지 (39 1-1, 묶음 A): 교단 신도 「부패」 (첫 해제) → 뼈다귀 수집가 (끌어당김 예습) */
 import { describe, expect, it } from 'vitest';
-import { contentOf } from '../src/data/content';
+import { contentOf, stageOf } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { artPlaces, PLACES } from '../src/data/places';
 import * as E from '../src/engine';
@@ -33,9 +33,9 @@ describe('잿빛 공동묘지', () => {
     expect(hit!.max).toBe(hit!.base);
   });
 
-  it('Lv 3 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('보통 적 레벨 (Lv 5, 61 1-2) 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'cemetery', diff: '보통', seed: s, level: 3, gear: 'none' }).win) wins++;
+    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'cemetery', diff: '보통', seed: s, level: stageOf(contentOf('cemetery'), '보통'), gear: 'none' }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);
-  });
+  }, 20_000); // 자동 밸런스 기준 20판은 CI 기본 5초를 넘을 수 있음
 });

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { diffAffixes, WEEKLY_AFFIXES } from '../src/data/affixes';
 import { CHAL, CHAL_ROTA, chalLimit, chalMult } from '../src/data/challenge';
 import { contentOf, stageOf } from '../src/data/content';
-import { clearGold, clearXp, EXPLORE_REWARD } from '../src/data/progression';
+import { clearGold, clearXp, EXPLORE_REWARD, xpGap } from '../src/data/progression';
 import * as E from '../src/engine';
 import { affDebuffEnd, affixTick, affHeal } from '../src/engine/affixes';
 import { heal } from '../src/engine/core';
@@ -160,22 +160,40 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
     expect(WEEKLY_AFFIXES).toContain('unstable');
     expect(CHAL_ROTA.some(w => w.includes('unstable'))).toBe(true);
   });
-  it('적 레벨로 골드·경험치를 셈', () => {
-    const s = save(52), m = runMode(s, contentOf('rustfort'), '어려움', { chal: 0 });
+  it('적 레벨로 골드·경험치를 셈, 어픽스도 적 레벨 기준', () => {
+    const s = save(34), m = runMode(s, contentOf('temple'), '어려움', { chal: 0 });
     s.daily.pub = 3; // 공개모집 보너스(×2)는 뺌
-    expect(m).toMatchObject({ stage: 52, affixes: ['rage'], chal: 0 });
-    const x = settle(s, result({ diff: '어려움', stage: m.stage, affixes: m.affixes }), rng, [], T0);
-    expect(x.gold).toBe(clearGold(52, '어려움', 'S'));
-    expect(x.xp).toBe(clearXp(52, '어려움', 'S', { win: true }));
+    expect(m).toMatchObject({ stage: 34, affixes: ['rage'], chal: 0 });
+    const x = settle(s, result({ content: 'temple', diff: '어려움', stage: m.stage, affixes: m.affixes }), rng, [], T0);
+    expect(x.gold).toBe(clearGold(34, '어려움', 'S'));
+    expect(x.xp).toBe(clearXp(34, '어려움', 'S', { win: true }));
+    // 내 레벨이 높아도 녹슨 요새 어려움은 Lv 9 · 격노 없음
+    expect(runMode(save(52), contentOf('rustfort'), '어려움', { chal: 0 })).toMatchObject({ stage: 9, affixes: [] });
   });
-  it('어느 레벨이든 적 = 내 레벨 (단계 톱니 없음, 세기 × 0.95는 엔진, 34 1-2), 열림 레벨 아래로는 안 내려감', () => {
+  it('탐험 · 던전 적 레벨 = 장소 레벨 + 난이도 (61 1-2), 내 레벨과 상관없음', () => {
     const rf = contentOf('rustfort');
-    for (const lv of [5, 9, 10, 29, 30, 49, 50, 100]) expect(runMode(save(lv), rf, '보통', { chal: 0 })).toMatchObject({ stage: lv, affixes: [] });
-    // 열림 레벨 (녹슨 요새 Lv 5, 34 5-2) 아래로는 안 내려감
-    for (const lv of [1, 2, 3]) expect(runMode(save(lv), rf, '보통', { chal: 0 }).stage).toBe(5);
-    // 튜토리얼 전은 콘텐츠 기본 레벨 · 어픽스 없음
+    for (const lv of [1, 5, 10, 50, 100]) {
+      expect(runMode(save(lv), rf, '쉬움', { chal: 0 }).stage).toBe(5);
+      expect(runMode(save(lv), rf, '보통', { chal: 0 })).toMatchObject({ stage: 7, affixes: [] });
+      expect(runMode(save(lv), rf, '어려움', { chal: 0 }).stage).toBe(9);
+      expect(runMode(save(lv), rf, '악몽', { chal: 0 }).stage).toBe(11);
+    }
+    // Lv 100을 넘지 않음
+    expect(runMode(save(100), contentOf('lantern'), '악몽', { chal: 0 }).stage).toBe(100);
+    expect(runMode(save(100), contentOf('lantern'), '보통', { chal: 0 }).stage).toBe(98);
+    // 튜토리얼 전도 같은 값 · 어픽스 없음
     const tut = save(40); tut.tut = 1;
-    expect(runMode(tut, rf, '악몽', { chal: 0 })).toMatchObject({ stage: 5, affixes: [] });
+    expect(runMode(tut, rf, '악몽', { chal: 0 })).toMatchObject({ stage: 11, affixes: [] });
+  });
+  it('내 레벨이 적보다 3 넘게 높으면 경험치가 줄어듦 (61 1-3), 레이드는 그대로', () => {
+    expect([0, 2, 3, 4, 5, 6, 7, 20].map(g => xpGap(50 + g, 50))).toEqual([1, 1, 0.8, 0.6, 0.4, 0.2, 0.1, 0.1].map(x => expect.closeTo(x, 5)));
+    expect(xpGap(10, 30)).toBe(1);
+    const s = save(52); s.daily.pub = 3;
+    const x = settle(s, result({ diff: '어려움', stage: 9 }), rng, [], T0);
+    expect(x.xp).toBe(Math.round(clearXp(52, '어려움', 'S', { win: true }) * 0.1));
+    const r = save(90); r.daily.pub = 3;
+    const y = settle(r, result({ content: 'abyss1', diff: '보통', stage: 90, segIdx: 0, segN: 1 }), rng, [], T0);
+    expect(y.xp).toBe(clearXp(90, '보통', 'S', { raid: 10, win: true }));
   });
   it('레이드·탐험은 어픽스 없음. 열림 레벨 전에 들어가면 (개발 빌드) 열림 레벨', () => {
     expect(runMode(save(90), contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(90);
@@ -183,7 +201,7 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
     const dev = save(20); dev.settings.devUnlock = true;
     expect(runMode(dev, contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(35);
     expect(runMode(dev, contentOf('abyss1'), '악몽', { chal: 0 }).stage).toBe(50);
-    expect(stageOf(contentOf('rustfort'), '보통')).toBe(5);
+    expect(stageOf(contentOf('rustfort'), '보통')).toBe(7);
     const ex = contentOf('plateau');
     expect(runMode(save(60), ex, '악몽', { chal: 0 }).affixes).toEqual([]);
   });

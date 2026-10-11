@@ -71,5 +71,5 @@ export const MISSION_REWARD = { goldShare: 0.2, stone: 2 };
 export const CHEST_REWARD = { stone: 5 };
 /** 놓친 날 완료 상자는 2일까지 (13 7장) */
 export const CHEST_BANK = 2;
-/** 공개모집 일일 보너스 (13 2-2): 첫 3판 골드 ×2, 장비 등급 한 단계 위 */
+/** 공개모집 일일 보너스 (13 2-2): 첫 3판 골드 ×2, 좋은 장비 등급 확률 ↑ (그 난이도 상한 안에서, 61 3-3) */
 export const PUB_BONUS = { runs: 3, gold: 2 };

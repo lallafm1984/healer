@@ -1,6 +1,7 @@
 /**
  * 콘텐츠 선택 화면(09 S03)에 나오는 탐험·던전·레이드. 열림 레벨은 34 5-2 (출시 70곳, 탐험 ①~⑧ · 던전 5레벨마다 · 10인 Lv 35부터),
  * 장소 · 보스는 묶음 A 장소표 (39). 만든 곳 (ready)만 들어가고, 나머지는 잠긴 카드로 보여 준다.
+ * 2026-10-11 (61, Lim): 탐험 · 던전 = 레벨링 (적 레벨이 장소 · 난이도에 고정, 쉬움을 깨야 보통이 열리는 사슬), 10인 · 20인 = 파밍 (적 = 내 레벨).
  */
 import type { DiffName } from './difficulty';
 import { DUNGEONS } from './dungeons';
@@ -35,7 +36,7 @@ export interface ContentDef {
   name: string;
   /** 지역 · 세력 (11 4장) */
   place: string;
-  /** 최소 적 레벨 (= 열림 레벨). 들어가면 적은 내 레벨로 맞춰짐 (32), 이건 개발 빌드로 레벨 전에 들어갈 때·튜토리얼 판만 씀 */
+  /** 장소 레벨 (= 열림 레벨). 탐험 · 던전은 쉬움 적 레벨 (난이도마다 LEVEL_STEP 더함, 61), 레이드는 최소 적 레벨 (들어가면 내 레벨로 맞춰짐, 32) */
   stageLv: number;
   /** 이 레벨부터 열림 */
   unlockLv: number;
@@ -421,8 +422,31 @@ export const CONTENT: ContentDef[] = [
 
 export const contentOf = (k: ContentKey) => CONTENT.find(c => c.key === k)!;
 
-/** 콘텐츠 최소 레벨 = 열림 레벨 (난이도만 따로 잠긴 건 그 레벨). 실제 적 레벨은 내 레벨과 이것 중 큰 쪽 (runmode, 32) */
-export const stageOf = (c: ContentDef, d: DiffName) => c.diffUnlock?.[d] ?? c.stageLv;
+/** 레벨링 콘텐츠 (61 1장): 탐험 · 던전. 적 레벨이 장소 · 난이도에 고정되고, 난이도는 아래부터 하나씩 열림 */
+export const isLeveling = (c: ContentDef) => c.kind !== 'raid';
+
+/** 레벨링 콘텐츠 난이도별 적 레벨 = 장소 레벨 + 이 값 (61 1-2, 최대 Lv 100) */
+export const LEVEL_STEP: Record<DiffName, number> = { '쉬움': 0, '보통': 2, '어려움': 4, '악몽': 6 };
+
+/**
+ * 적 레벨. 탐험 · 던전 = 장소 레벨 + 난이도 (고정, 61 1-2). 레이드 = 최소 적 레벨 (열림 레벨, 난이도만 따로 잠긴 건 그 레벨).
+ * 레이드의 실제 적 레벨은 내 레벨과 이것 중 큰 쪽 (runmode, 32)
+ */
+export const stageOf = (c: ContentDef, d: DiffName) =>
+  (isLeveling(c) && !c.hidden ? Math.min(100, c.stageLv + LEVEL_STEP[d]) : c.diffUnlock?.[d] ?? c.stageLv);
+
+/** 레벨링 콘텐츠의 앞 난이도 (이걸 깨야 열림, 61 1-1). 쉬움 · 레이드는 없음 */
+export function chainNeed(c: ContentDef, d: DiffName): DiffName | null {
+  const i = ALL_DIFFS.indexOf(d);
+  return isLeveling(c) && !c.hidden && i > 0 ? ALL_DIFFS[i - 1] : null;
+}
+
+/** 그 난이도가 사슬로 열렸는지: 앞 난이도나 그 위를 한 번이라도 깼으면 (옛 저장에서 보통부터 깬 장소도 이어짐) */
+export function chainOpen(c: ContentDef, d: DiffName, clears: Partial<Record<DiffName, unknown>> | undefined): boolean {
+  const need = chainNeed(c, d);
+  if (!need) return true;
+  return ALL_DIFFS.slice(ALL_DIFFS.indexOf(need)).some(x => !!clears?.[x]);
+}
 
 /** 레이드는 보스 1마리 처치마다 보상 (12 3-1) → 1층 = 보스 1 */
 export const isRaid = (c: ContentDef) => c.kind === 'raid';

@@ -48,9 +48,15 @@ export function clearGold(stageLv: number, diff: DiffName, grade: Grade, raid: 0
 /**
  * 클리어 경험치 = 지금 레벨에서 필요한 양의 이 비율 × 난이도 × 등급 (18 1장 도달 시점에 맞춤).
  * 낮은 레벨은 1판 ≈ 1레벨, 높을수록 판 수가 늘어남. Lv 15부터 ×0.85, Lv 70부터는 절반 (20인 레이드가 있어서).
- * 적이 늘 내 레벨이라 (32) 넘침 감소 없음. 시뮬 (하루 8판, 보통 A, 가장 좋은 콘텐츠): Lv 15 약 2일 · 35 약 8일 · 70 약 4주 · 100 약 12주
+ * 탐험 · 던전은 적 레벨이 고정이라 (61) 정산에서 xpGap을 곱함. 시뮬 (하루 8판, 보통 A, 가장 좋은 콘텐츠): Lv 15 약 2일 · 35 약 8일 · 70 약 4주 · 100 약 12주
  */
 export const xpShare = (level: number) => Math.min(1, 14 * level ** -1.1) * (level >= 15 ? 0.85 : 1) * (level >= 70 ? 0.5 : 1);
+/**
+ * 레벨링 콘텐츠 (탐험 · 던전) 경험치 (61 1-3): 적 레벨이 고정이라, 내 레벨이 적보다 free 넘게 높으면 레벨마다 step씩 줄어 최소 min (회색 장소).
+ * 3 높으면 80% · 4 60% · 5 40% · 6 20% · 7부터 10%. 적이 더 높아도 늘지 않음 (힐량은 적보다 약해지지 않아서)
+ */
+export const XP_GAP = { free: 2, step: 0.2, min: 0.1 } as const;
+export const xpGap = (level: number, stage: number) => Math.max(XP_GAP.min, 1 - XP_GAP.step * Math.max(0, level - stage - XP_GAP.free));
 /** 레이드 한 판 = 던전 한 판의 10인 1.2배, 20인 1.4배 (전투가 더 김, 26 6장. 레벨 맞춤으로 1.5·2에서 낮춤, 32 3-1) */
 export const XP_RAID = { 10: 1.2, 20: 1.4 } as const;
 /** 지면 이만큼만 (편성·난이도 다시 고를 힘은 남게) */
@@ -121,11 +127,11 @@ const BASE: Record<number, Milestone[]> = {
   35: [{ text: '10인 레이드 「심연의 탑」', live: true }, { text: '특성 7단', live: true }],
   40: [{ text: '특성 8단', live: true }],
   45: [{ text: '특성 9단', live: true }],
-  50: [{ text: '특성 10단 (완성)', live: true }, { text: '전설 장비 드롭', live: true }, { text: '장비 재설정 (옵션 · 특수능력 한 줄)', live: true }, { text: '10인 레이드 악몽', live: true }, { text: '악몽 던전에 어픽스 「역병」', live: true }, { text: '직업 칭호', live: false }],
+  50: [{ text: '특성 10단 (완성)', live: true }, { text: '장비 재설정 (옵션 · 특수능력 한 줄)', live: true }, { text: '10인 레이드 악몽', live: true }, { text: '악몽 던전에 어픽스 「역병」', live: true }, { text: '직업 칭호', live: false }],
   51: [{ text: '정점 수련 (레벨마다 지능·체력 +0.3%)', live: true }],
   60: [{ text: '장비 재설정 후보 2개 중 고르기', live: true }],
   70: [{ text: '20인 레이드 「가라앉은 대성당」', live: true }],
-  80: [{ text: '20인 레이드 악몽', live: true }],
+  80: [{ text: '20인 레이드 악몽 (전설 장비)', live: true }],
   100: [{ text: '직업 색 힐 이펙트 · 칭호', live: false }],
 };
 /** 탐험 · 던전 열림 (34 5-2 열림 레벨 표)은 CONTENT에서 만들어 맨 앞에. 아직 안 만든 곳은 「준비 중」. 레이드는 위에 따로 */

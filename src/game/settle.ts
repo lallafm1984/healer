@@ -1,23 +1,18 @@
 /**
  * 전투가 끝난 뒤 정산(09 S08)·보상(S09)을 계산하고 저장에 반영한다. 화면과 분리된 순수 계산 (난수는 받아서 씀).
  */
-import { ALL_DIFFS, contentOf, raidSize, stageOf, type ContentKey } from '../data/content';
+import { ALL_DIFFS, contentOf, isLeveling, raidSize, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HEROES, type HeroKey } from '../data/heroes';
-import { clearMats, rollItem, type GearItem, type ItemGrade } from '../data/equipment';
-
-/** 탐험 장비는 고급까지, Lv 30부터 여는 탐험은 희귀까지 (34 6-7 · 39 4장) */
-export const EXPLORE_CAP: ItemGrade = '고급';
-export const EXPLORE_RARE_LV = 30;
-export const exploreCap = (unlockLv: number): ItemGrade => (unlockLv >= EXPLORE_RARE_LV ? '희귀' : EXPLORE_CAP);
+import { clearMats, rollItem, type GearItem } from '../data/equipment';
 import type { ItemKey } from '../data/items';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
-import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, starsOf, type Grade } from '../data/progression';
+import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, starsOf, xpGap, type Grade } from '../data/progression';
 import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
 import { guildAfter, type GuildAfter } from './guild';
-import { bonusDiff, lootKey, meritFor, onRun, raidLootOpen, rollover } from './economy';
+import { lootKey, meritFor, onRun, raidLootOpen, rollover } from './economy';
 import { FIRST_CLEAR_CRYSTAL } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { PUB_BONUS } from '../data/missions';
@@ -102,7 +97,7 @@ export interface Settlement {
   crystal: number;
   /** 이번 주 이 레이드 보스·난이도 장비를 이미 받아서 장비 없음 (13 3-4) */
   lootLocked: boolean;
-  /** 공개모집 일일 보너스 판 (13 2-2): 골드 ×2, 장비 등급 한 단계 위. n = 오늘 몇 번째 */
+  /** 공개모집 일일 보너스 판 (13 2-2): 골드 ×2, 좋은 장비 등급 확률 ↑ (그 난이도 상한 안에서, 61 3-3). n = 오늘 몇 번째 */
   pubBonus: number;
   /** 이 판으로 다 채운 임무 */
   missions: string[];
@@ -152,8 +147,9 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   // 탐험은 짧고 쉬워서 골드·경험치를 줄임 (튜토리얼이 끝난 뒤, 32 3-3)
   const kind = play && c.kind === 'explore' ? EXPLORE_REWARD : 1;
   const gold = r.win ? Math.round(clearGold(stage, r.diff, grade!, raid) * kind * (pubBonus ? PUB_BONUS.gold : 1) * festival) : 0;
-  // 따라잡기 경험치는 없음 (34 v0.2, Lim 2026-10-09): 낮은 직업도 같은 경험치
-  const xp = r.quit ? 0 : Math.max(r.win ? 1 : 0, Math.round(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind));
+  // 따라잡기 경험치는 없음 (34 v0.2, Lim 2026-10-09): 낮은 직업도 같은 경험치. 탐험 · 던전은 적 레벨이 고정이라 내 레벨이 높으면 줄어듦 (61 1-3)
+  const gap = play && isLeveling(c) && !r.chal ? xpGap(p.level, stage) : 1;
+  const xp = r.quit ? 0 : Math.max(r.win ? 1 : 0, Math.round(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind * gap));
   const levelBefore = p.level;
   p.gold += gold;
   const levelUps = addXp(p, xp);
@@ -166,9 +162,10 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   let merit = 0;
   if (r.win) {
     if (!lootLocked) {
-      // 보스마다 1개 (34 6-7), 탐험은 1개 · 고급까지 (Lv 30 탐험은 희귀). 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장)
+      // 보스마다 1개 (34 6-7), 탐험은 1개. 등급은 콘텐츠 · 난이도 표 (61 3장: 탐험 · 던전 쉬움 일반 ~ 악몽 영웅, 전설은 20인 악몽만).
+      // 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장)
       const n = play && c.kind !== 'explore' ? Math.max(1, c.bosses.length) : 1;
-      for (let i = 0; i < n; i++) items.push(rollItem(rng, pubBonus ? bonusDiff(r.diff) : r.diff, grade!, levelBefore, save.nextId++, { hero: save.hero, place: c.key, cap: c.kind === 'explore' ? exploreCap(c.unlockLv) : undefined }));
+      for (let i = 0; i < n; i++) items.push(rollItem(rng, r.diff, grade!, levelBefore, save.nextId++, { hero: save.hero, place: c.key, raid, bonus: !!pubBonus }));
       save.gear.bag.push(...items);
       newDex = noteDex(save, items);
       newSpecs = noteSpecs(save, items);

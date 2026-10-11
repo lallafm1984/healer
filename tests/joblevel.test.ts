@@ -74,7 +74,8 @@ describe('직업 바꾸기와 레벨 (34 3-1 · 3-2)', () => {
   it('따라잡기 없음: 다른 직업보다 낮아도 경험치는 그 레벨 그대로 (34 v0.2)', () => {
     switchHero('druid');
     G.save.player.level = 10;
-    const x = settle(G.save, result(), () => 0.5);
+    // 적 레벨이 내 레벨이면 (61: 탐험 · 던전은 내 레벨이 적보다 많이 높을 때만 줄어듦)
+    const x = settle(G.save, result({ stage: 10 }), () => 0.5);
     expect(x.xp).toBe(clearXp(10, '보통', gradeOf(0), { win: true }));
     expect('catchUp' in x).toBe(false);
   });

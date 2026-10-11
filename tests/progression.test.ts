@@ -1,7 +1,7 @@
 /** 성장·보상 (24 문서): 경험치 곡선, 골드, 장비 드롭, 장비 능력치, 정산 */
 import { describe, expect, it } from 'vitest';
 import { contentOf, stageOf } from '../src/data/content';
-import { avgScore, DROP_TABLE, gearStatsOf, ITEM_GRADES, rollItem, SLOTS, type Equipped } from '../src/data/equipment';
+import { avgScore, dropTable, gearStatsOf, ITEM_GRADES, rollItem, SLOTS, type Equipped } from '../src/data/equipment';
 import { gearStats } from '../src/data/gear';
 import { RULES } from '../src/data/rules';
 import { addXp, clearGold, clearXp, gradeOf, itemSlots, lvPower, lvPowerProto, starsOf, xpToNext } from '../src/data/progression';
@@ -85,8 +85,10 @@ describe('레벨 배율 (07 4장, 18 2-1)', () => {
     expect(stageOf(contentOf('abyss1'), '보통')).toBe(35);
     expect(stageOf(contentOf('cathedral1'), '보통')).toBe(70);
     expect(stageOf(contentOf('cathedral1'), '악몽')).toBe(80);
-    expect(stageOf(contentOf('rustfort'), '어려움')).toBe(5);
-    expect(stageOf(contentOf('cemetery'), '보통')).toBe(3);
+    // 탐험 · 던전은 장소 레벨 + 난이도 (61 1-2)
+    expect(stageOf(contentOf('rustfort'), '어려움')).toBe(9);
+    expect(stageOf(contentOf('cemetery'), '보통')).toBe(5);
+    expect(stageOf(contentOf('heartcrack'), '쉬움')).toBe(100);
   });
 
   const cfg = { encounter: 'warden' as const, diff: '보통' as const, seed: 3 };
@@ -141,17 +143,21 @@ describe('장비 (02 10장)', () => {
     expect(gearStatsOf({})).toEqual(gearStats('none'));
     expect(avgScore(all('희귀', 5))).toBeCloseTo(3.5);
   });
-  it('드롭 등급 비율이 표를 따름, 전설은 Lv 50부터', () => {
+  it('드롭 등급 비율이 표를 따름, 전설은 20인 악몽 · Lv 50부터 (61 3장)', () => {
     const rng = rngFrom(7);
-    const count = (diff: '보통' | '악몽', level: number) => {
+    const count = (diff: '보통' | '악몽', level: number, raid: 0 | 10 | 20 = 0) => {
       const c: Record<string, number> = {};
-      for (let i = 0; i < 4000; i++) { const it = rollItem(rng, diff, 'B', level, i); c[it.grade] = (c[it.grade] || 0) + 1; }
+      for (let i = 0; i < 4000; i++) { const it = rollItem(rng, diff, 'B', level, i, { raid }); c[it.grade] = (c[it.grade] || 0) + 1; }
       return c;
     };
-    const n = count('보통', 1);
-    DROP_TABLE['보통'].forEach((p, i) => expect((n[ITEM_GRADES[i]] || 0) / 4000).toBeCloseTo(p, 1));
-    expect(count('악몽', 10)['전설']).toBeUndefined();
-    expect(count('악몽', 50)['전설']).toBeGreaterThan(200);
+    for (const raid of [0, 10, 20] as const) {
+      const n = count('보통', 1, raid);
+      dropTable('보통', raid).forEach((p, i) => expect((n[ITEM_GRADES[i]] || 0) / 4000).toBeCloseTo(p, 1));
+    }
+    expect(count('악몽', 100)['전설']).toBeUndefined();
+    expect(count('악몽', 100, 10)['전설']).toBeUndefined();
+    expect(count('악몽', 10, 20)['전설']).toBeUndefined();
+    expect(count('악몽', 80, 20)['전설']).toBeGreaterThan(200);
   });
   it('S 등급이면 상위 등급이 조금 더 잘 나옴', () => {
     const avg = (g: 'S' | 'C') => { const rng = rngFrom(3); let s = 0; for (let i = 0; i < 4000; i++) s += ITEM_GRADES.indexOf(rollItem(rng, '보통', g, 1, i).grade); return s / 4000; };
@@ -179,7 +185,7 @@ describe('정산 (09 S08·S09)', () => {
     expect(x.stars).toEqual([true, false, true]);
     expect(x.overhealPct).toBe(30);
     expect(x.dispelPct).toBeNull();
-    expect(x.gold).toBe(clearGold(contentOf('rustfort').stageLv, '보통', 'A'));
+    expect(x.gold).toBe(clearGold(stageOf(contentOf('rustfort'), '보통'), '보통', 'A'));
     expect(s.player.gold).toBe(x.gold);
     expect(x.levelUps).toEqual([2]); // 첫 클리어로 Lv 2
     expect(s.player.xp).toBe(x.xp - 100);
@@ -190,7 +196,7 @@ describe('정산 (09 S08·S09)', () => {
     expect(x.first).toBe(true);
     expect(s.last).toEqual({ content: 'rustfort', diff: '보통', win: true, grade: 'A' });
   });
-  it('튜토리얼 뒤 던전은 보스마다 장비 1개, 탐험은 1개 · 고급까지 (34 6-7)', () => {
+  it('튜토리얼 뒤 던전은 보스마다 장비 1개, 탐험은 1개 · 악몽은 고급 ~ 영웅 (34 6-7 · 61 3장)', () => {
     const s = newSave(1);
     s.tut = TUT.done;
     const x = settle(s, result(), rngFrom(1));
@@ -199,7 +205,7 @@ describe('정산 (09 S08·S09)', () => {
     for (let i = 0; i < 40; i++) {
       const e = settle(s, result({ content: 'plateau', diff: '악몽', deaths: 0 }), rngFrom(i));
       expect(e.items.length).toBe(1);
-      expect(['일반', '고급']).toContain(e.items[0].grade);
+      expect(['고급', '희귀', '영웅']).toContain(e.items[0].grade);
     }
   });
   it('다시 깨면 별·등급·최고 기록은 좋은 쪽을 남김', () => {

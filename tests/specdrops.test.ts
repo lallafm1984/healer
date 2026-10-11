@@ -6,7 +6,6 @@ import {
 } from '../src/data/equipment';
 import { codexKeys, FEATURED, NAMED, namedFor, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, type CodexGroup } from '../src/data/specials';
 import { CONTENT, contentOf, type ContentKey } from '../src/data/content';
-import { EXPLORE_CAP, exploreCap } from '../src/game/settle';
 import { rngFrom } from '../src/engine/rng';
 import { migrate, newSave, noteSpecs } from '../src/platform/storage';
 import { exchangeMerit } from '../src/game/economy';
@@ -128,13 +127,17 @@ describe('장소마다 잘 나오는 장비 종류 (39 4장)', () => {
     const old = many(6000, (r, i) => rollItem(r, '보통', 'B', 30, i));
     for (const s of SLOTS) expect(old.filter(it => it.slot === s.key).length / old.length).toBeCloseTo(1 / 6, 1);
   });
-  it('탐험 장비 상한: 고급, Lv 30부터 여는 탐험은 희귀', () => {
-    expect(EXPLORE_CAP).toBe('고급');
-    expect(exploreCap(contentOf('pilgrim').unlockLv)).toBe('고급');
-    expect(exploreCap(contentOf('abyssedge').unlockLv)).toBe('희귀');
-    const its = many(3000, (r, i) => rollItem(r, '악몽', 'S', 40, i, { place: 'abyssedge', cap: exploreCap(33) }));
-    expect(its.some(it => it.grade === '희귀')).toBe(true);
-    expect(its.every(it => gi(it.grade) <= gi('희귀'))).toBe(true);
+  it('등급 상한 (61 3장): 탐험 · 던전 쉬움 일반 · 보통 고급 · 어려움 희귀 · 악몽 영웅, 레이드 쉬움 · 보통 희귀 · 어려움 영웅, 전설은 20인 악몽만', () => {
+    const top = (diff: '쉬움' | '보통' | '어려움' | '악몽', raid: 0 | 10 | 20) => {
+      const its = many(3000, (r, i) => rollItem(r, diff, 'S', 100, i, { place: 'abyssedge', raid, bonus: true }));
+      return ITEM_GRADES[Math.max(...its.map(it => gi(it.grade)))];
+    };
+    expect([top('쉬움', 0), top('보통', 0), top('어려움', 0), top('악몽', 0)]).toEqual(['일반', '고급', '희귀', '영웅']);
+    expect([top('쉬움', 10), top('보통', 10), top('어려움', 10), top('악몽', 10)]).toEqual(['희귀', '희귀', '영웅', '영웅']);
+    expect([top('쉬움', 20), top('보통', 20), top('어려움', 20), top('악몽', 20)]).toEqual(['희귀', '희귀', '영웅', '전설']);
+    // 10인 악몽은 어려움보다 영웅이 잘 나옴
+    const epic = (diff: '어려움' | '악몽') => many(3000, (r, i) => rollItem(r, diff, 'B', 100, i, { raid: 10 })).filter(it => it.grade === '영웅').length;
+    expect(epic('악몽')).toBeGreaterThan(epic('어려움') * 1.5);
   });
 });
 

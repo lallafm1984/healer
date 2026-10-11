@@ -1,6 +1,6 @@
 /** 게임 진행 상태 (기기 저장 한 덩어리) + 화면들이 같이 쓰는 규칙 */
 import { dexDue, type DexReward } from '../data/dex';
-import { contentOf, type ContentDef } from '../data/content';
+import { chainNeed, chainOpen, contentOf, type ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HERO_KEYS, HERO_SWITCH_LV, HEROES, type HeroKey } from '../data/heroes';
 import { TALENTS } from '../data/talents';
@@ -34,12 +34,16 @@ export function resetSave(): void { G.save = newSave(); commit(); }
 /** 전투에 넘길 힐러 레벨 (스킬 해금 기준). 개발 빌드 「스킬 전부 열기」면 100 */
 export const healerLevel = () => (G.save.settings.allSkills ? 100 : G.save.player.level);
 
-/** 잠금: 콘텐츠·난이도 해금 레벨 (지금 직업 레벨 기준, 34 4장 1번). dev = 개발 빌드 잠금 무시 */
-export function lockOf(c: ContentDef, d?: DiffName): { lv: number; locked: boolean; dev: boolean } {
+/**
+ * 잠금: 콘텐츠·난이도 해금 레벨 (지금 직업 레벨 기준, 34 4장 1번) + 탐험 · 던전 난이도 사슬 (앞 난이도를 깨야 열림, 61 1-1).
+ * dev = 개발 빌드 레벨 잠금 무시. 사슬은 레벨 잠금이 아니라 개발 빌드에서도 그대로 (플레이 테스트에서 보이게). need = 사슬로 잠겼을 때 먼저 깰 난이도
+ */
+export function lockOf(c: ContentDef, d?: DiffName): { lv: number; locked: boolean; dev: boolean; need: DiffName | null } {
   const lv = Math.max(c.unlockLv, (d && c.diffUnlock?.[d]) || 0);
   const under = G.save.player.level < lv;
   const dev = under && G.save.settings.devUnlock && c.ready;
-  return { lv, locked: under && !dev, dev };
+  const chain = !!d && !chainOpen(c, d, G.save.clears[c.key]);
+  return { lv, locked: (under && !dev) || chain, dev, need: chain ? chainNeed(c, d!) : null };
 }
 
 /**

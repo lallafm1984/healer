@@ -27,7 +27,14 @@ export default async function dungeon(url, shots) {
   // ---- 콘텐츠 선택 (30 출정 관문: 장소 고르기 → 출전) ----
   ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true', '콘텐츠 기본 탭 = 던전 5인');
   ok(await page.getAttribute('#s-content [data-content="rustfort"]', 'aria-pressed') === 'true' && /녹슨 요새/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo'), '녹슨 요새가 골라져 있고 출전 가능');
-  ok(await page.getAttribute('#s-content [data-diff="보통"]', 'aria-pressed') === 'true', '난이도 기본 = 아직 안 깬 보통');
+  ok(await page.getAttribute('#s-content [data-diff="쉬움"]', 'aria-pressed') === 'true' && await page.isDisabled('#s-content [data-diff="보통"]') && /쉬움 깨기/.test(await page.textContent('#s-content [data-diff="보통"]')), '난이도 기본 = 쉬움, 보통은 「쉬움 깨기」로 잠김 (61 사슬, 개발 빌드도)');
+  ok(/적 Lv 5/.test(await page.textContent('#s-content .b-gate')), '관문 정보 줄 = 적 Lv 5 (장소 레벨, 61 1-2)');
+  await page.click('#s-content [data-drops]'); await page.clock.runFor(50);
+  const drops = await page.textContent('#s-content .b-pop');
+  ok(/쉬움 장비/.test(drops) && /일반\s*100%/.test(drops) && /보스마다 1개 \(2개\)/.test(drops) && /전설은 20인 레이드 악몽에서만/.test(drops), `장비 칸을 누르면 얻는 장비 팝업 (쉬움 = 일반 100%)`);
+  await page.screenshot({ path: `${shots}/content_drops.png` });
+  await page.keyboard.press('Escape'); await page.clock.runFor(50);
+  ok((await page.locator('#s-content .b-pop').count()) === 0, 'Esc = 팝업 닫힘');
   // 묶음 B (46)로 던전 ⑧~⑩까지 모두 만듦: 준비 중 칸이 없고, 맨 끝 역병 수로도 관문에서 출전 가능
   await page.click('#s-content [data-content="sewer"]'); await page.clock.runFor(50);
   ok(await page.getAttribute('#s-content [data-content="sewer"]', 'aria-pressed') === 'true' && /역병 수로/.test(await page.textContent('#s-content .b-gate')) && !/준비 중/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo') && (await page.locator('#s-content .b-pl.off').count()) === 0, '던전은 모두 만듦 = 준비 중 칸 없음, 역병 수로도 출전 가능');
@@ -37,9 +44,9 @@ export default async function dungeon(url, shots) {
 
   // ---- 출전 → 바로 편성 (2026-10-08 입장 화면을 편성에 합침) ----
   await toParty(page);
-  ok(/보통/.test(await page.textContent('#s-party .topbar')) && !/단계 Lv/.test(await page.textContent('#s-party .topbar')), '편성 머리 = 전투 탭에서 고른 난이도 (단계 Lv 없음)');
+  ok(/쉬움/.test(await page.textContent('#s-party .topbar')) && !/단계 Lv/.test(await page.textContent('#s-party .topbar')), '편성 머리 = 전투 탭에서 고른 난이도 (단계 Lv 없음)');
   // 개발 빌드는 Lv 1로 녹슨 요새(Lv 5)에 먼저 들어감 → 레벨 경고 한 줄만 (34 5-2). 해제 · 장비 경고는 없음
-  ok((await page.locator('#s-party [data-diff]').count()) === 0 && (await page.locator('#s-party .f-warns .f-warn').count()) === 1 && await page.isVisible('#s-party .f-warn.lv') && /레벨 권장 5/.test(await page.textContent('#s-party .f-warns')), '난이도 다시 고르기 없음, 보통 + 물리만 = 해제 · 장비 경고 없음 (레벨 경고만)');
+  ok((await page.locator('#s-party [data-diff]').count()) === 0 && (await page.locator('#s-party .f-warns .f-warn').count()) === 1 && await page.isVisible('#s-party .f-warn.lv') && /레벨 권장 5/.test(await page.textContent('#s-party .f-warns')), '난이도 다시 고르기 없음, 쉬움 + 물리만 = 해제 · 장비 경고 없음 (레벨 경고만)');
   await page.click('#guideOpen'); await page.clock.runFor(50);
   ok((await page.locator('#s-party .f-gsheet .segs li').count()) === 4, '공략 시트: 진행 4구간');
   const g = await page.textContent('#s-party .f-gsheet .gdet:first-child');
@@ -49,9 +56,11 @@ export default async function dungeon(url, shots) {
   await page.keyboard.press('Escape'); await page.clock.runFor(50);
   ok((await page.locator('#s-party .f-gsheet').count()) === 0, 'Esc = 공략 시트 닫힘');
   await page.click('#s-party .tb-back'); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-content') && await page.getAttribute('#s-content [data-diff="보통"]', 'aria-pressed') === 'true', '뒤로 = 전투 탭 (고른 장소·난이도 그대로)');
-  await page.click('#s-content [data-diff="어려움"]'); await page.clock.runFor(50);
-  await page.click('#contentGo'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-content') && await page.getAttribute('#s-content [data-diff="쉬움"]', 'aria-pressed') === 'true', '뒤로 = 전투 탭 (고른 장소·난이도 그대로)');
+  // 사슬 (61 1-1): 어려움은 보통을 깨야 열림. 장비 경고를 보려고 악몽 깬 기록만 넣음 (옛 저장처럼 위를 깬 기록이 있으면 아래가 다 열림, 보통 기록은 그대로 비움)
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.clears.rustfort = { '악몽': { stars: 1, grade: 'B', best: 999, n: 1 } }; localStorage.setItem('healer.save', JSON.stringify(s)); });
+  await page.reload(); await page.clock.runFor(300);
+  await toParty(page, { diff: '어려움' });
   const gck = await page.textContent('#s-party .f-warn.gear');
   ok(/권장 고급/.test(gck) && /입장은 됨/.test(gck), '어려움 + 장비 없음 = 편성 위 장비 경고 줄만');
   ok(await page.isEnabled('#depart'), '경고여도 출발 가능');
@@ -183,7 +192,7 @@ export default async function dungeon(url, shots) {
   ok(await page.isVisible('#battle'), '다시 도전 = 같은 파티로 바로 출발');
   ok(await page.evaluate(() => window.__proto.dungeon.idx === 0 && window.__proto.F.enc.key === 'gate'), '던전 처음부터');
   const lvm = await page.evaluate(() => { const F = window.__proto.F; return { power: F.power, scale: F.scale, me: Math.round(F.me.max), gearHp: F.gear.hp || 0 }; });
-  ok(Math.abs(lvm.power - 0.752) < 1e-9 && Math.abs(lvm.scale - 0.752 * 0.95) < 1e-9 && lvm.me === Math.round(550 * 0.752 * (1 + lvm.gearHp)), `Lv 2로 Lv 5 녹슨 요새 (개발 빌드로 먼저): 힐량·내 체력 = 열림 레벨 5 세기 ×0.752 (34 1-2 · 5-2, 체력은 장비 체력까지), 적 = 그 세기 × 0.95 ${JSON.stringify(lvm)}`);
+  ok(Math.abs(lvm.power - 0.928) < 1e-9 && Math.abs(lvm.scale - 0.928 * 0.95) < 1e-9 && lvm.me === Math.round(550 * 0.928 * (1 + lvm.gearHp)), `Lv 2로 Lv 5 녹슨 요새 보통 (개발 빌드로 먼저): 적 Lv 7 (장소 5 + 보통 2, 61 1-2), 힐량·내 체력 = Lv 7 세기 ×0.928 (34 1-2 · 5-2, 체력은 장비 체력까지), 적 = 그 세기 × 0.95 ${JSON.stringify(lvm)}`);
   // 탱커가 쓰러져도 전투는 계속, 아래에 포기 버튼 (2026-10-07 Lim)
   ok(await page.isHidden('#giveUp'), '탱커가 살아 있으면 포기 버튼 없음');
   // 전멸 UI의 입력 상태를 직접 고정한다. HP 1 + 3초 대기는 무작위 회피/보호 능력에 따라 살아남아 흔들린다.
