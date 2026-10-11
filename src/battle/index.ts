@@ -17,7 +17,7 @@ import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, se
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON, ratsArt } from './art';
-import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxCure, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxPxf, fxImpact, fxRevive, fxShake, fxSpec, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard, setBoardFaction, setBubbleRelay, type BubbleKind } from './board';
+import { addBubble, boardRenderer, bossPxfLoaded, center, fxAbility, fxAllyHeal, fxCure, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxPxf, fxImpact, fxRevive, fxShake, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, setBoardFaction, setBubbleRelay, type BubbleKind } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, clearToasts, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
@@ -25,7 +25,7 @@ import {
 import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
-import { ALLY_PXF, BOSS_PXF, COMMON_PXF, pxfTargets, SKILL_PXF } from './pxf';
+import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, pxfTargets, SKILL_PXF, type PxfKey } from './pxf';
 import {
   bossFx, bossHealNum, bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
   resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
@@ -809,6 +809,8 @@ setBubbleRelay((u, text) => toast(`${u.nick}: ${text}`));
     common: COMMON_PXF, ally: (uid: number) => { const ab = B.F?.party.find(u => u.id === uid)?.ab; return ab ? ALLY_PXF[ABILITIES[ab.key].kind] ?? null : null; },
     /** 보스 판 전체 공격 (FX_LOOK wide 이름 → PXF) · 판 사각형 */
     boss: BOSS_PXF, rect: () => ({ left: L.left, right: L.right, top: L.top, bottom: L.bottom }),
+    /** 띠를 읽어 뒀는지 (아니면 읽기 시작) · 이 전투에서 나올 수 있는 보스 판 전체 공격 · 지금 읽어 둔 것 */
+    ready: (k: PxfKey) => pxfReady(k), bossWant: () => (B.F ? bossPxfOf(B.F.enc) : []), bossLoaded: () => bossPxfLoaded(),
   },
 };
 (window as unknown as { __battle: unknown }).__battle = {
