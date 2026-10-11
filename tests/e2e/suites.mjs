@@ -21,6 +21,7 @@ import manaRing from './mana-ring.mjs';
 import places from './places.mjs';
 import wordReady from './word-ready.mjs';
 import dove from './dove.mjs';
+import pxfHeal from './pxf-heal.mjs';
 
 /**
  * [이름, 묶음, CI에서 걸린 초, 조각 수]. 초는 2026-10-11 CI 기록 (모두 합쳐 33분), 몫을 고르게 나누는 데만 씀.
@@ -44,6 +45,7 @@ export const SUITES = [
   ['사제 특성', talents, 8],
   ['성언 준비 반짝임', wordReady, 25],
   ['사제 빛의 비둘기', dove, 51],
+  ['사제 치유 반짝이 가루 (PXF)', pxfHeal, 60], // 아직 CI 기록 없음: 비슷한 묶음 (비둘기) 기준 어림
   ['길드 빼 둠', guildOff, 6],
   ['재화·임무·상점', shop, 14],
   ['성장·주간 도전·이어하기', challenge, 29],
