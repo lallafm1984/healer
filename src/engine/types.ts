@@ -671,6 +671,11 @@ export interface Fight {
   tels: Telegraph[];
   zones: Zone[];
   events: FightEvent[];
+  /**
+   * 화면 이펙트용 (PXF 스킬 이펙트, 2026-10-11): 휠 스킬이 대상에게 들어간 순간 (시전이 끝나 들어감 · 즉시 · 정신 집중 시작)마다 { 스킬, 대상 }.
+   * 사건(events)이 아니라 따로 둬서 프로토타입 일치 비교에 안 섞임. 화면이 매 프레임 비우고, 안 비우는 시뮬레이션에서는 USED_MAX에서 멈춤
+   */
+  used?: { key: SkillKey; uid: number }[];
   phase: number;
   phaseName: string;
   invuln: boolean;

@@ -47,7 +47,7 @@ export default async function pxfHeal(url, shots) {
           const g = await page.evaluate(id => {
             const d = JSON.parse(document.querySelector('#board').dataset.decorationBounds || '[]'), F = window.__proto.F;
             const body = d.find(b => b.key === `body${id}`); // 대상 칸 (옮겨 가는 중이면 그리는 자리)
-            return { pxf: d.filter(b => b.key.startsWith(`heal-pxf${id}-`)).map(b => ({ ...b, dx: b.x - body.x, dy: b.y - body.y })), plain: d.filter(b => b.key.startsWith(`heal${id}-`) || b.key.startsWith(`heal-glow${id}-`)),
+            return { pxf: d.filter(b => b.key.startsWith(`pxf${id}-heal-dust-`)).map(b => ({ ...b, dx: b.x - body.x, dy: b.y - body.y })), plain: d.filter(b => b.key.startsWith(`heal${id}-`) || b.key.startsWith(`heal-glow${id}-`)),
               healed: F.stats.casts.heal >= 1 && !F.cast };
           }, t.id);
           landed ||= g.healed;
@@ -71,7 +71,7 @@ export default async function pxfHeal(url, shots) {
           `${tag}: 크기 = 칸 지름 × 64/62 (${want.toFixed(1)}px, 판 가장자리면 줄어듦)`, seen.slice(0, 2));
         ok(plain.length === 0, `${tag}: 이 치유엔 기본 치유 빛 없음`, plain.slice(0, 2));
         await page.clock.runFor(600);
-        const left = await page.evaluate(id => JSON.parse(document.querySelector('#board').dataset.decorationBounds || '[]').filter(b => b.key.startsWith(`heal-pxf${id}-`)).length, t.id);
+        const left = await page.evaluate(id => JSON.parse(document.querySelector('#board').dataset.decorationBounds || '[]').filter(b => b.key.startsWith(`pxf${id}-heal-dust-`)).length, t.id);
         ok(left === 0, `${tag}: 약 0.9초 뒤 사라짐`);
         await page.click('#pauseBtn'); await page.click('#quitBtn'); await page.click('#confirmApply');
         await page.clock.runFor(120); await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(80);

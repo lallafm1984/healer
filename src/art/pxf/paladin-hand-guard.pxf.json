@@ -1,0 +1,492 @@
+{
+  "format": "pxf.graph@1",
+  "name": "성기사 보호의 손",
+  "settings": {
+    "size": 64,
+    "frames": 24,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "rimDark",
+      "type": "Shape",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "shape": "ring",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              9,
+              "out3"
+            ],
+            [
+              2,
+              27.5,
+              "inout"
+            ],
+            [
+              4,
+              26,
+              "out"
+            ],
+            [
+              16,
+              26.5,
+              "linear"
+            ],
+            [
+              23,
+              27.5
+            ]
+          ]
+        },
+        "size2": 0.16,
+        "falloff": 0,
+        "intensity": 0.15
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Shape",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "shape": "ring",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              8,
+              "out3"
+            ],
+            [
+              2,
+              26.5,
+              "inout"
+            ],
+            [
+              4,
+              25,
+              "out"
+            ],
+            [
+              16,
+              25.5,
+              "linear"
+            ],
+            [
+              23,
+              26.5
+            ]
+          ]
+        },
+        "size2": 0.1,
+        "falloff": 0,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.95,
+              "linear"
+            ],
+            [
+              3,
+              0.72,
+              "linear"
+            ],
+            [
+              6,
+              0.72,
+              "linear"
+            ],
+            [
+              7,
+              0.95,
+              "linear"
+            ],
+            [
+              8,
+              0.72,
+              "linear"
+            ],
+            [
+              12,
+              0.72,
+              "linear"
+            ],
+            [
+              13,
+              0.95,
+              "linear"
+            ],
+            [
+              14,
+              0.72
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "b1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "film",
+      "type": "Shape",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "shape": "ring",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              5,
+              "out3"
+            ],
+            [
+              2,
+              23.5,
+              "inout"
+            ],
+            [
+              4,
+              22,
+              "out"
+            ],
+            [
+              16,
+              22.5,
+              "linear"
+            ],
+            [
+              23,
+              23.5
+            ]
+          ]
+        },
+        "size2": 0.32,
+        "falloff": 0,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0,
+              "linear"
+            ],
+            [
+              2,
+              0.4,
+              "linear"
+            ],
+            [
+              5,
+              0.28,
+              "linear"
+            ],
+            [
+              12,
+              0.25,
+              "in"
+            ],
+            [
+              18,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "dith",
+      "type": "Dither",
+      "x": 270,
+      "y": 360,
+      "params": {
+        "levels": 3,
+        "pattern": "bayer4",
+        "strength": 1
+      }
+    },
+    {
+      "id": "b2",
+      "type": "Blend",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "shine",
+      "type": "Arc",
+      "x": 40,
+      "y": 520,
+      "params": {
+        "x": 0.5,
+        "y": 0.5,
+        "radius": {
+          "k": [
+            [
+              0,
+              3,
+              "out3"
+            ],
+            [
+              2,
+              21.5,
+              "inout"
+            ],
+            [
+              4,
+              20,
+              "out"
+            ],
+            [
+              16,
+              20.5,
+              "linear"
+            ],
+            [
+              23,
+              21.5
+            ]
+          ]
+        },
+        "thick": 3,
+        "start": -160,
+        "sweep": 55,
+        "head": 1,
+        "tail": 1,
+        "taper": 0.6,
+        "aspect": 1,
+        "rot": 0,
+        "intensity": 0.95
+      }
+    },
+    {
+      "id": "b3",
+      "type": "Blend",
+      "x": 730,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "glint",
+      "type": "Shape",
+      "x": 40,
+      "y": 680,
+      "params": {
+        "shape": "star",
+        "x": 0.306,
+        "y": 0.285,
+        "points": 4,
+        "size2": 0.25,
+        "size": {
+          "k": [
+            [
+              0,
+              0,
+              "linear"
+            ],
+            [
+              6,
+              0,
+              "out"
+            ],
+            [
+              7,
+              5,
+              "in"
+            ],
+            [
+              9,
+              0,
+              "linear"
+            ],
+            [
+              12,
+              0,
+              "out"
+            ],
+            [
+              13,
+              5,
+              "in"
+            ],
+            [
+              15,
+              0
+            ]
+          ]
+        },
+        "falloff": 0,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "b4",
+      "type": "Blend",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#4a2a08",
+          "#b0701a",
+          "#f0b83a",
+          "#ffe489",
+          "#fffbe8"
+        ],
+        "cutoff": 0.06,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "color": "#ffffff",
+        "amount": 0,
+        "bright": 1,
+        "opacity": {
+          "k": [
+            [
+              0,
+              0,
+              "linear"
+            ],
+            [
+              1,
+              1,
+              "linear"
+            ],
+            [
+              15,
+              1,
+              "in"
+            ],
+            [
+              23,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "rimDark",
+      "t": "b1",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "b1",
+      "p": 1
+    },
+    {
+      "f": "film",
+      "t": "dith",
+      "p": 0
+    },
+    {
+      "f": "b1",
+      "t": "b2",
+      "p": 0
+    },
+    {
+      "f": "dith",
+      "t": "b2",
+      "p": 1
+    },
+    {
+      "f": "b2",
+      "t": "b3",
+      "p": 0
+    },
+    {
+      "f": "shine",
+      "t": "b3",
+      "p": 1
+    },
+    {
+      "f": "b3",
+      "t": "b4",
+      "p": 0
+    },
+    {
+      "f": "glint",
+      "t": "b4",
+      "p": 1
+    },
+    {
+      "f": "b4",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 2
+  }
+}

@@ -16,7 +16,7 @@ import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, se
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON, ratsArt } from './art';
-import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxImpact, fxRevive, fxShake, fxSpec, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard, setBoardFaction } from './board';
+import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxPxf, fxImpact, fxRevive, fxShake, fxSpec, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard, setBoardFaction } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
@@ -24,7 +24,7 @@ import {
 import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
-import { landedPxf } from './pxf';
+import { pxfTargets, SKILL_PXF } from './pxf';
 import {
   bossFx, bossHealNum, bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
   resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
@@ -481,19 +481,21 @@ cv.addEventListener('lostpointercapture', e => endPointer(true, e));
 cv.addEventListener('contextmenu', e => e.preventDefault());
 
 // ---------- 전투 사건 → 소리·진동·알림·판 효과 ----------
-/** cast0 = 이번 프레임 엔진을 돌리기 전 시전: 끝까지 들어갔으면 그 스킬의 PXF 이펙트를 대상의 첫 치유에 (battle/pxf.ts) */
-function handleEvents(now: number, cast0: Fight['cast'] = null): void {
+function handleEvents(now: number): void {
   const F = B.F!;
   let healSnd = false, critSnd = false;
-  let landed = landedPxf(cast0, F.cast);
+  // 스킬 PXF 이펙트 (battle/pxf.ts): 들어간 휠 스킬마다 대상 · 범위 · 파티 칸에. 그 칸의 이번 치유는 치유 빛 없이
+  const plain = new Set<number>();
+  for (const { key, uid } of F.used?.splice(0) ?? []) {
+    const fx = SKILL_PXF[key]?.fx;
+    if (fx) for (const v of pxfTargets(F, key, uid)) { fxPxf(v, fx, now); plain.add(v.id); }
+  }
   for (const ev of F.events) {
     const u = 'id' in ev ? F.party.find(x => x.id === ev.id) ?? F.souls.find(x => x.id === ev.id) : undefined;
     switch (ev.type) {
       case 'heal': {
         if (!u) break;
-        const pxf = landed && !ev.item && ev.id === landed.uid ? landed.key : undefined;
-        if (pxf) landed = null;
-        fxHeal(u, ev.eff, ev.amt, ev.crit, now, pxf);
+        fxHeal(u, ev.eff, ev.amt, ev.crit, now, !ev.item && plain.has(ev.id));
         if (ev.crit) critSnd = true; else healSnd = true;
         break;
       }
@@ -760,7 +762,6 @@ function frame(now: number): void {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   const F = B.F;
   if (F && !$('battle').hidden) {
-    const cast0 = F.cast;
     if (!B.paused && !F.over) {
       if (ui.pullLeft > 0) updatePull(dt);
       else {
@@ -772,7 +773,7 @@ function frame(now: number): void {
         }
       }
     }
-    handleEvents(now, cast0);
+    handleEvents(now);
     updateStage(now); updateWheel(); updateItems(); updateAux(); updateCastbar();
     if (layoutState !== `${S.compactSkills}:${$('controls').classList.contains('tank-down')}`) layoutBattle();
     render(now);
@@ -787,6 +788,8 @@ function frame(now: number): void {
   get F() { return B.F; }, center: (i: number) => center(i), guide: (enc: EncounterKey, diff: DiffName) => guideModel(enc, diff),
   run: () => (B.F ? runData(B.F) : null), get pullLeft() { return ui.pullLeft; }, get coach() { return ui.coach; }, get dungeon() { return S.run; }, get last() { return ui.lastResult; },
   get renderer() { return boardRenderer(); },
+  /** 스킬 PXF 이펙트 표 · 재생할 칸 (화면 테스트) */
+  pxf: { skills: SKILL_PXF, targets: (key: SkillKey, uid: number) => (B.F ? pxfTargets(B.F, key, uid).map(u => u.id) : []) },
 };
 (window as unknown as { __battle: unknown }).__battle = {
   /** 전투 화면에서 바꾼 설정을 저장하게 새 화면에 알림 (일시정지의 자동 치유) */

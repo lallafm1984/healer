@@ -1,0 +1,363 @@
+{
+  "format": "pxf.graph@1",
+  "name": "사제 순간 치유 섬광",
+  "settings": {
+    "size": 64,
+    "frames": 16,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "cross",
+      "type": "Shape",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "shape": "star",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              6,
+              "out3"
+            ],
+            [
+              1,
+              20,
+              "out"
+            ],
+            [
+              3,
+              12,
+              "in"
+            ],
+            [
+              6,
+              0,
+              "linear"
+            ]
+          ]
+        },
+        "size2": 0.16,
+        "points": 4,
+        "rot": 0,
+        "falloff": 0.5,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "diag",
+      "type": "Shape",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "shape": "star",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              3,
+              "out3"
+            ],
+            [
+              1,
+              11,
+              "out"
+            ],
+            [
+              3,
+              6,
+              "in"
+            ],
+            [
+              5,
+              0,
+              "linear"
+            ]
+          ]
+        },
+        "size2": 0.22,
+        "points": 4,
+        "rot": 45,
+        "falloff": 0.2,
+        "intensity": 0.5
+      }
+    },
+    {
+      "id": "ray",
+      "type": "Shape",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "shape": "diamond",
+        "x": 0.5,
+        "y": {
+          "k": [
+            [
+              0,
+              0.38,
+              "out"
+            ],
+            [
+              6,
+              0.2,
+              "linear"
+            ]
+          ]
+        },
+        "size": {
+          "k": [
+            [
+              0,
+              0,
+              "linear"
+            ],
+            [
+              1,
+              1.6,
+              "linear"
+            ],
+            [
+              3,
+              1.6,
+              "in"
+            ],
+            [
+              6,
+              0,
+              "linear"
+            ]
+          ]
+        },
+        "aspect": 4,
+        "intensity": {
+          "k": [
+            [
+              1,
+              0.85,
+              "linear"
+            ],
+            [
+              6,
+              0.5,
+              "linear"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "rays",
+      "type": "Repeat",
+      "x": 270,
+      "y": 360,
+      "params": {
+        "count": 8,
+        "px": 0.5,
+        "py": 0.5,
+        "angle0": 0,
+        "angleStep": 45,
+        "mode": "max"
+      }
+    },
+    {
+      "id": "glint",
+      "type": "Particles",
+      "x": 40,
+      "y": 520,
+      "params": {
+        "count": 6,
+        "seed": 512,
+        "emit": "burst",
+        "start": 0.15,
+        "life": 0.72,
+        "lifeVar": 0.2,
+        "area": "ring",
+        "x": 0.5,
+        "y": 0.5,
+        "aw": 24,
+        "ah": 24,
+        "dirMode": "outward",
+        "speed": 0.3,
+        "speedVar": 0.5,
+        "drag": 0.05,
+        "sizeA": 3,
+        "sizeB": 1.5,
+        "pshape": "plus",
+        "fade": "flat",
+        "bright": 0.95,
+        "brightVar": 0.5,
+        "loop": false
+      }
+    },
+    {
+      "id": "b1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "b2",
+      "type": "Blend",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "b3",
+      "type": "Blend",
+      "x": 730,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#7a5414",
+          "#e8b838",
+          "#a6ea72",
+          "#f4ffdc"
+        ],
+        "cutoff": 0.1,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "color": "#2e2410",
+        "threshold": 0.5,
+        "width": 1,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1,
+              "linear"
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              15,
+              0,
+              "linear"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "cross",
+      "t": "b1",
+      "p": 0
+    },
+    {
+      "f": "diag",
+      "t": "b1",
+      "p": 1
+    },
+    {
+      "f": "ray",
+      "t": "rays",
+      "p": 0
+    },
+    {
+      "f": "b1",
+      "t": "b2",
+      "p": 0
+    },
+    {
+      "f": "rays",
+      "t": "b2",
+      "p": 1
+    },
+    {
+      "f": "b2",
+      "t": "b3",
+      "p": 0
+    },
+    {
+      "f": "glint",
+      "t": "b3",
+      "p": 1
+    },
+    {
+      "f": "b3",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 1
+  }
+}

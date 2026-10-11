@@ -1,0 +1,394 @@
+{
+  "format": "pxf.graph@1",
+  "name": "드루이드 자연 정화",
+  "settings": {
+    "size": 64,
+    "frames": 18,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "gust",
+      "type": "Arc",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "x": 0.5,
+        "y": 0.5,
+        "radius": 21,
+        "thick": 5,
+        "start": -90,
+        "sweep": 360,
+        "head": {
+          "k": [
+            [
+              0,
+              0.15,
+              "out"
+            ],
+            [
+              2,
+              0.45,
+              "out"
+            ],
+            [
+              9,
+              1.2,
+              "in"
+            ],
+            [
+              12,
+              1.5
+            ]
+          ]
+        },
+        "tail": 0.45,
+        "taper": 1.5,
+        "intensity": 0.65
+      }
+    },
+    {
+      "id": "eddy",
+      "type": "Arc",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "x": 0.5,
+        "y": 0.5,
+        "radius": 14,
+        "thick": 3,
+        "start": 90,
+        "sweep": 300,
+        "head": {
+          "k": [
+            [
+              0,
+              0,
+              "out"
+            ],
+            [
+              3,
+              0.35,
+              "out"
+            ],
+            [
+              10,
+              1.3
+            ]
+          ]
+        },
+        "tail": 0.5,
+        "taper": 1.5,
+        "intensity": 0.47
+      }
+    },
+    {
+      "id": "blots",
+      "type": "Particles",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "count": 6,
+        "seed": 6612,
+        "emit": "burst",
+        "start": 0.06,
+        "life": 0.5,
+        "lifeVar": 0.2,
+        "area": "circle",
+        "x": 0.5,
+        "y": 0.5,
+        "aw": 8,
+        "ah": 8,
+        "dirMode": "outward",
+        "speed": 2.6,
+        "speedVar": 0.15,
+        "gravity": 0.04,
+        "drag": 0.06,
+        "turb": 0.5,
+        "sizeA": 4.5,
+        "sizeB": 2.5,
+        "pshape": "diamond",
+        "fade": "flat",
+        "bright": 1,
+        "brightVar": 0,
+        "loop": false
+      }
+    },
+    {
+      "id": "leaf",
+      "type": "Shape",
+      "x": 40,
+      "y": 520,
+      "params": {
+        "shape": "diamond",
+        "x": 0.766,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              0,
+              "out3"
+            ],
+            [
+              8,
+              4
+            ],
+            [
+              9,
+              3.5
+            ]
+          ]
+        },
+        "aspect": 0.5,
+        "intensity": 0.76
+      }
+    },
+    {
+      "id": "tilt",
+      "type": "Transform",
+      "x": 270,
+      "y": 520,
+      "params": {
+        "rot": 50,
+        "px": 0.766,
+        "py": 0.5
+      }
+    },
+    {
+      "id": "three",
+      "type": "Repeat",
+      "x": 500,
+      "y": 520,
+      "params": {
+        "count": 3,
+        "px": 0.5,
+        "py": 0.5,
+        "angle0": 30,
+        "angleStep": 120,
+        "delay": 1,
+        "mode": "max"
+      }
+    },
+    {
+      "id": "drift",
+      "type": "Transform",
+      "x": 730,
+      "y": 520,
+      "params": {
+        "rot": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              0,
+              "inout"
+            ],
+            [
+              17,
+              35
+            ]
+          ]
+        },
+        "ty": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              8,
+              0,
+              "in"
+            ],
+            [
+              17,
+              3
+            ]
+          ]
+        },
+        "px": 0.5,
+        "py": 0.5
+      }
+    },
+    {
+      "id": "b1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b2",
+      "type": "Blend",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b3",
+      "type": "Blend",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#16404a",
+          "#2aa79a",
+          "#7eead2",
+          "#e0fff6",
+          "#58b84a",
+          "#6b3590"
+        ],
+        "cutoff": 0.05,
+        "mode": "bands",
+        "key": "alpha"
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "color": "#1a1030",
+        "threshold": 0.5,
+        "width": 1,
+        "corners": false,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 1880,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              17,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 2110,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "gust",
+      "t": "b1",
+      "p": 0
+    },
+    {
+      "f": "eddy",
+      "t": "b1",
+      "p": 1
+    },
+    {
+      "f": "leaf",
+      "t": "tilt",
+      "p": 0
+    },
+    {
+      "f": "tilt",
+      "t": "three",
+      "p": 0
+    },
+    {
+      "f": "three",
+      "t": "drift",
+      "p": 0
+    },
+    {
+      "f": "b1",
+      "t": "b2",
+      "p": 0
+    },
+    {
+      "f": "drift",
+      "t": "b2",
+      "p": 1
+    },
+    {
+      "f": "b2",
+      "t": "b3",
+      "p": 0
+    },
+    {
+      "f": "blots",
+      "t": "b3",
+      "p": 1
+    },
+    {
+      "f": "b3",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 2
+  }
+}

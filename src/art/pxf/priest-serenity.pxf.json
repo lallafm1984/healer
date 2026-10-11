@@ -1,0 +1,402 @@
+{
+  "format": "pxf.graph@1",
+  "name": "사제 성언 평온 큰 금빛 별",
+  "settings": {
+    "size": 64,
+    "frames": 24,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "starBig",
+      "type": "Shape",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "shape": "star",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              5,
+              "out3"
+            ],
+            [
+              2,
+              22,
+              "out"
+            ],
+            [
+              5,
+              15,
+              "in"
+            ],
+            [
+              10,
+              0,
+              "linear"
+            ]
+          ]
+        },
+        "size2": 0.4,
+        "points": 8,
+        "rot": 0,
+        "intensity": 0.62
+      }
+    },
+    {
+      "id": "starCore",
+      "type": "Shape",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "shape": "star",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              3,
+              "out3"
+            ],
+            [
+              2,
+              15,
+              "out"
+            ],
+            [
+              5,
+              9,
+              "in"
+            ],
+            [
+              9,
+              0,
+              "linear"
+            ]
+          ]
+        },
+        "size2": 0.38,
+        "points": 8,
+        "rot": 0,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "ring",
+      "type": "Shape",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "shape": "ring",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              0,
+              "linear"
+            ],
+            [
+              2,
+              0,
+              "linear"
+            ],
+            [
+              3,
+              15,
+              "out"
+            ],
+            [
+              6,
+              20,
+              "out"
+            ],
+            [
+              14,
+              24,
+              "linear"
+            ],
+            [
+              23,
+              25,
+              "linear"
+            ]
+          ]
+        },
+        "size2": {
+          "k": [
+            [
+              3,
+              0.4,
+              "linear"
+            ],
+            [
+              6,
+              0.28,
+              "linear"
+            ],
+            [
+              14,
+              0.18,
+              "linear"
+            ],
+            [
+              23,
+              0.13,
+              "linear"
+            ]
+          ]
+        },
+        "intensity": 0.62
+      }
+    },
+    {
+      "id": "dust",
+      "type": "Particles",
+      "x": 40,
+      "y": 520,
+      "params": {
+        "count": 32,
+        "seed": 4410,
+        "emit": "burst",
+        "start": 0.06,
+        "life": 0.5,
+        "lifeVar": 0.25,
+        "area": "circle",
+        "x": 0.5,
+        "y": 0.5,
+        "aw": 5,
+        "ah": 5,
+        "dirMode": "outward",
+        "spread": 360,
+        "speed": 2.3,
+        "speedVar": 0.35,
+        "drag": 0.09,
+        "turb": 0.6,
+        "sizeA": 2.5,
+        "sizeB": 1.5,
+        "pshape": "diamond",
+        "fade": "flat",
+        "bright": 0.45,
+        "brightVar": 0.3,
+        "loop": false
+      }
+    },
+    {
+      "id": "glint",
+      "type": "Particles",
+      "x": 40,
+      "y": 680,
+      "params": {
+        "count": 6,
+        "seed": 5823,
+        "emit": "burst",
+        "start": 0.1,
+        "life": 0.6,
+        "lifeVar": 0.2,
+        "area": "circle",
+        "x": 0.5,
+        "y": 0.5,
+        "aw": 8,
+        "ah": 8,
+        "dirMode": "outward",
+        "spread": 360,
+        "speed": 1.2,
+        "speedVar": 0.3,
+        "drag": 0.06,
+        "sizeA": 3,
+        "sizeB": 1.5,
+        "pshape": "plus",
+        "fade": "flat",
+        "bright": 1,
+        "brightVar": 0.2,
+        "loop": false
+      }
+    },
+    {
+      "id": "b1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "b2",
+      "type": "Blend",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "b3",
+      "type": "Blend",
+      "x": 730,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "b4",
+      "type": "Blend",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#2f4a16",
+          "#86d860",
+          "#e8b53a",
+          "#fff8e0"
+        ],
+        "cutoff": 0.1,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "color": "#2a2008",
+        "threshold": 0.5,
+        "width": 1,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1,
+              "linear"
+            ],
+            [
+              13,
+              1,
+              "in"
+            ],
+            [
+              23,
+              0,
+              "linear"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 1880,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "starBig",
+      "t": "b1",
+      "p": 0
+    },
+    {
+      "f": "starCore",
+      "t": "b1",
+      "p": 1
+    },
+    {
+      "f": "b1",
+      "t": "b2",
+      "p": 0
+    },
+    {
+      "f": "ring",
+      "t": "b2",
+      "p": 1
+    },
+    {
+      "f": "b2",
+      "t": "b3",
+      "p": 0
+    },
+    {
+      "f": "dust",
+      "t": "b3",
+      "p": 1
+    },
+    {
+      "f": "b3",
+      "t": "b4",
+      "p": 0
+    },
+    {
+      "f": "glint",
+      "t": "b4",
+      "p": 1
+    },
+    {
+      "f": "b4",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 2
+  }
+}
