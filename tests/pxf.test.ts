@@ -70,9 +70,9 @@ describe('전투 공통 효과 · 파티원 능력 (모든 효과 PXF 1단계)',
   for (const k of COMMON) {
     it(`${k}: ${GRAY.has(k) ? '회색 팔레트 (게임이 칠함)' : '구운 색 그대로'}`, () => {
       const key = COMMON_PXF[k]!, g = graph(key), cols = g.nodes.filter((n: { type: string }) => n.type === 'Palette' || n.type === 'Outline')
-        .flatMap((n: { type: string; params: { colors?: string[]; color?: string } }) => (n.type === 'Palette' ? n.params.colors! : [n.params.color ?? '#10142e']).map(c => c.toLowerCase()));
+        .flatMap((n: { type: string; params: { colors?: string[]; color?: string } }) => (n.type === 'Palette' ? n.params.colors! : [n.params.color ?? '#10142e']).map((c: string) => c.toLowerCase()));
       expect(PXF[key].gray).toBe(GRAY.has(k));
-      if (GRAY.has(k)) expect(cols.filter(c => !gray(c))).toEqual([]);
+      if (GRAY.has(k)) expect(cols.filter((c: string) => !gray(c))).toEqual([]);
     });
   }
   it('능력 종류마다 다른 이펙트, 휠 스킬과도 겹치지 않음', () => {

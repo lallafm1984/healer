@@ -63,6 +63,12 @@ export const PXF = {
   'paladin-sacrifice': clip(22, 3),
   'paladin-sanctuary': clip(24, 3),
   'paladin-hand-guard': clip(24, 2),
+  // 모든 효과 PXF 1단계 (requests.md): 파티원 능력 종류마다 (글자 아래)
+  'ally-def': under(16, 1),
+  'ally-ctl': under(16, 1),
+  'ally-sup': under(16, 1),
+  'ally-heal': under(16, 1),
+  'ally-atk': under(14, 0),
 } as const satisfies Record<string, PxfClip>;
 export type PxfKey = keyof typeof PXF;
 export const pxfArtName = (key: PxfKey): string => `fx-pxf-${key}`;
@@ -103,7 +109,7 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
 export type CommonFx = 'hit' | 'crit' | 'heal' | 'dispel' | 'revive' | 'death' | 'debuff' | 'proc';
 export const COMMON_PXF: Partial<Record<CommonFx, PxfKey>> = {};
 /** 파티원 능력 (엔진 ability 사건): 능력 종류마다 그 파티원 칸에 */
-export const ALLY_PXF: Partial<Record<AbKind, PxfKey>> = {};
+export const ALLY_PXF: Partial<Record<AbKind, PxfKey>> = { def: 'ally-def', ctl: 'ally-ctl', sup: 'ally-sup', heal: 'ally-heal', atk: 'ally-atk' };
 
 /** 들어간 순간부터 끝까지 길이 (ms). 맞는 순간 앞 프레임은 건너뜀 */
 export const pxfMs = (c: PxfClip): number => ((c.frames - c.impactFrame) * 1000) / c.fps;
