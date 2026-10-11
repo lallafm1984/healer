@@ -1620,7 +1620,8 @@ export function render(now: number): void {
     if (bt && bd) {
       const sh = u.shield > bt.impact - F.t ? 0.6 : 1; // 맞을 때까지 보호 두루마리가 남아 있으면 -40%
       const dmg = Math.round(bd * F.dmgMult * sh), lethal = dmg >= u.hp + (u.guardian > 0 ? 1e9 : 0);
-      pill(overG, labels, `bus${u.id}`, x, y + r * 0.2, `${bt.skill.greed != null ? '금화 ' : ''}-${dmg}`, lethal ? C.danger : bt.skill.greed != null ? C.gold : 0xffb25b, C.dark, fs(0.3, 11));
+      // 강타 예고 숫자는 이름·체력 글자보다 위 (배지 층, 2026-10-11 Lim): 숫자 뒤 바탕이 이름에 덮여 안 읽혔음
+      pill(badgeG, badgeLabels, `bus${u.id}`, x, y + r * 0.2, `${bt.skill.greed != null ? '금화 ' : ''}-${dmg}`, lethal ? C.danger : bt.skill.greed != null ? C.gold : 0xffb25b, C.dark, fs(0.3, 11));
     }
     // 띄워 올리기 · 연쇄 번개 예고 (56 5장 화면): 칸 아래 회오리 · 위 번개 구름 + 남은 초
     const lc = F.tels.find(tl => (tl.skill.lift || tl.skill.chain) && !tl.fake && tl.units.includes(u.id));
@@ -1630,7 +1631,8 @@ export function render(now: number): void {
       if (gt) fxArt.put(gt, x, lc.skill.lift ? y + r * 0.55 : y - r * 0.75, r * 1.3, r * 0.9, 0.75 + 0.25 * pulse);
       else if (lc.skill.lift) dashCircle(overG, x, y + r * 0.5, r * 0.5, 5, 4, Math.max(2, s * 0.06), col, 0.6 + 0.4 * pulse);
       else overG.ellipse(x, y - r * 0.8, r * 0.42, r * 0.18).fill({ color: 0x4a4e66, alpha: 0.85 }).stroke({ width: 2, color: col, alpha: 0.6 + 0.4 * pulse });
-      pill(overG, labels, `lc${u.id}`, x, y + r * 0.2, `${lc.skill.lift ? '돌풍' : '번개'} ${left}`, col, C.dark, fs(0.26, 11));
+      // 남은 초도 강타 예고와 같은 자리 · 같은 층 (이름·체력 글자 위)
+      pill(badgeG, badgeLabels, `lc${u.id}`, x, y + r * 0.2, `${lc.skill.lift ? '돌풍' : '번개'} ${left}`, col, C.dark, fs(0.26, 11));
     }
     if (busterIds.has(u.id)) {
       // 중앙 십자선은 이름과 HP를 지나지 않는다. 상단 타깃 표식과 바깥 위험 링으로 예고한다.
