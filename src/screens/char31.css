@@ -553,8 +553,17 @@
 /* 장비 도감 (34 6-10 ④): 칸 = 부위 그림 (세력 생김새는 세력 색 테두리) · 이름 · 설명, 10칸마다 보상 */
 #s-char .c7-dexb { position: relative; }
 #s-char .c7-dexb .g-badge { position: absolute; top: -6px; right: -6px; }
-#s-char .c7-dexr { display: flex; align-items: center; min-height: 36px; }
-#s-char .c7-dexr .btn2 { width: 100%; }
+#s-char .c7-dexr { position: relative; display: flex; align-items: center; gap: 6px; min-height: 36px; }
+#s-char .c7-dexr .btn2 { flex: 1; min-width: 0; }
+/* 도감 그림 (50 D): 「도감」 버튼 · 제목 · 보상 줄은 글자 앞 (글자 높이를 넘는 만큼은 음수 여백, 칸 높이 그대로) */
+#s-char .c7-dexb > .g-ic { flex: none; width: 22px; height: 22px; margin: -4px 0; }
+#s-char .c7-dex .h-rule > .g-ic { flex: none; width: 24px; height: 24px; margin: -4px -2px -4px 0; }
+#s-char .c7-dexr > .g-ic { flex: none; width: 30px; height: 30px; }
+/* 「보상 받기」 버튼이 있으면 그림은 버튼 왼쪽 끝 장식 위에 얹음 (버튼 너비 그대로, 긴 보상 글자도 한 줄) */
+#s-char .c7-dexr:has(> .btn2) > .g-ic { position: absolute; z-index: 1; left: -5px; top: 50%; width: 26px; height: 26px; margin-top: -13px; filter: drop-shadow(0 1px 1px #000a); }
+/* 묶음 칩은 360px에서 글자만으로 한 줄이 꽉 차서 그림은 칩 왼쪽 위 모서리에 붙임 (자리 차지 안 함, 칩 줄은 한 줄 그대로) */
+#s-char .c7-dex .c7-fc { position: relative; }
+#s-char .c7-dex .c7-fc > .g-ic { position: absolute; left: -7px; top: -9px; width: 22px; height: 22px; filter: drop-shadow(0 1px 1px #000a); }
 #s-char .c7-dexc .c7-spg { display: grid; place-items: center; width: 34px; height: 34px; min-width: 34px; padding: 0; border-color: var(--look, #D9B26A); border-width: 2px; border-radius: 8px; color: var(--look, #D9B26A); }
 #s-char .c7-dexc .c7-spg svg, #s-char .c7-dexc .c7-spg .g-ic { width: 24px; height: 24px; }
 #s-char .c7-dexc.unk .c7-spg { filter: grayscale(1); }
@@ -657,4 +666,17 @@
 @keyframes efxCrack { 0%, 74% { opacity: 0; transform: scale(0.3); } 78% { opacity: 1; transform: scale(0.8); } 100% { opacity: 0; transform: scale(1.5) rotate(12deg); } }
 @keyframes efxAwk { 0% { opacity: 0; transform: scale(0.3); } 35% { opacity: 1; transform: scale(1.1) rotate(45deg); } 100% { opacity: 0; transform: scale(1.35) rotate(100deg); } }
 @keyframes efxNew { 0% { opacity: 0; transform: scale(0.2); } 30% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1.4); } }
-@media (prefers-reduced-motion: reduce) { #s-char .c7-fxham, #s-char .c7-fxcrk, #s-char .c7-fxawk, #s-char .c7-spnew { display: none; } }
+/* 장비 도감 (50 E): 처음 채운 칸에 도장이 한 번 찍힘 (fx-dex-fill) · 「보상 받기」 뒤 보상 줄에서 동전 · 보석이 위로 (fx-dex-reward) */
+#s-char .c7-dexfill { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; object-fit: contain; pointer-events: none; opacity: 0; animation: efxSeal 1.2s 0.25s ease-out both; }
+#s-char .c7-dexpop { position: absolute; z-index: 3; left: 50%; bottom: 0; width: 104px; height: 104px; margin-left: -52px; object-fit: contain; pointer-events: none; opacity: 0; transform-origin: 50% 100%; animation: efxFount 1.3s ease-out both; }
+@keyframes efxSeal { 0% { opacity: 0; transform: scale(1.8); } 25% { opacity: 1; transform: scale(0.92); } 35% { transform: scale(1); } 70% { opacity: 1; } 100% { opacity: 0; transform: scale(1.08); } }
+@keyframes efxFount { 0% { opacity: 0; transform: translateY(16px) scale(0.5); } 30% { opacity: 1; transform: translateY(-4px) scale(1); } 100% { opacity: 0; transform: translateY(-28px) scale(1.06); } }
+/* 세력 생김새 반짝 (50 E fx-look-shimmer): 흰 그림 모양(mask)에 세력 색 + 흰 그림을 겹쳐 가운데를 밝게. 칸 안에서 한 번 쓸고 사라짐, 자리는 차지하지 않음 */
+#s-char .c7-lookfx {
+  position: absolute; inset: 2px; pointer-events: none; background: var(--lk);
+  -webkit-mask: var(--shim) center / contain no-repeat; mask: var(--shim) center / contain no-repeat;
+  opacity: 0; animation: efxShim 0.9s 0.35s ease-out both;
+}
+#s-char .c7-lookfx::after { content: ''; position: absolute; inset: 0; background: var(--shim) center / contain no-repeat; mix-blend-mode: screen; opacity: 0.55; }
+@keyframes efxShim { 0% { opacity: 1; clip-path: inset(0 100% 0 0); } 45% { opacity: 1; clip-path: inset(0 0 0 0); } 100% { opacity: 0; clip-path: inset(0 0 0 0); } }
+@media (prefers-reduced-motion: reduce) { #s-char .c7-fxham, #s-char .c7-fxcrk, #s-char .c7-fxawk, #s-char .c7-spnew, #s-char .c7-dexfill, #s-char .c7-dexpop, #s-char .c7-lookfx { display: none; } }

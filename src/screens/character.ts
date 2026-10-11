@@ -24,6 +24,8 @@ import {
 } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { Flow } from '../game/flow';
+import type { Settlement } from '../game/settle';
+import { art } from '../art';
 import { classEmblem, fxArt, gameIcon, gearIcon, LOCK, trinketArt, uiIcon } from './art';
 import { battle, esc, fmt, itemChipsHtml, josa, screen, topBar, useIcon } from './kit';
 import { pushSettings } from './settings';
@@ -169,6 +171,18 @@ function markSeen(): void {
 }
 const isNew = (it: GearItem) => it.id > seenAt;
 
+/** 세력 생김새 반짝 (50 E fx-look-shimmer): 새 장비가 가방 칸 · 장비 칸에 처음 보일 때 한 번, 흰 그림을 세력 색으로. 시트가 열려 있거나 효과 줄이기면 없음 */
+const shimmered = new Set<string>();
+/** 이번 방문에 장착한 장비 (장비 칸 반짝용) */
+let wornNow = 0;
+function lookFx(it: GearItem, at: 'b' | 's'): string {
+  if (!it.look || sheet || G.save.settings.reducedEffects || !(isNew(it) || (at === 's' && wornNow === it.id))) return '';
+  const u = art('fx-look-shimmer'), k = `${at}${it.id}`;
+  if (!u || shimmered.has(k)) return '';
+  shimmered.add(k);
+  return `<span class="c7-lookfx" style="--shim:url('${u}')" aria-hidden="true"></span>`;
+}
+
 /** 이름 글자 색 (등급 색을 밝게, 시안 CharGear27) */
 const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#8BEA9C', '희귀': '#8DBEFF', '영웅': '#D7A6FF', '전설': '#FFC07A' };
 /** 등급 색 · 글자 색, 세력 생김새면 세력 색 (안쪽 테두리, 34 6-10 ②) */
@@ -215,7 +229,7 @@ function slotHtml(key: SlotKey, better: SlotKey[]): string {
         <span class="c7-sq">${itemIc(key)}${up}</span><b>${name}</b></button>`;
   }
   return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(it.name)}${plusTxt(it)} · ${it.grade}${specLabel(it)}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
-      <span class="c7-sq${it.plus >= MAX_PLUS ? ' max' : ''}">${itemIc(it)}<i class="c7-gl">${it.grade[0]}</i>${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${specDots(it)}${up}</span>
+      <span class="c7-sq${it.plus >= MAX_PLUS ? ' max' : ''}">${itemIc(it)}${lookFx(it, 's')}<i class="c7-gl">${it.grade[0]}</i>${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${specDots(it)}${up}</span>
       <b>${it.lock ? LOCK : ''}${name}</b></button>`;
 }
 
@@ -249,7 +263,7 @@ function bagCell(it: GearItem): string {
   const vs = vsWorn(it), nw = isNew(it);
   const label = `${it.grade} ${slotName(it.slot)} · ${it.name}${plusTxt(it)}${specLabel(it)}${vs > 0 ? ' · 지금 장비보다 좋음' : vs < 0 ? ' · 지금 장비보다 나쁨' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
   const arrow = vs > 0 ? '<span class="up" aria-hidden="true">▲</span>' : vs < 0 ? '<span class="dn" aria-hidden="true">▼</span>' : '';
-  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${arrow}${nw ? '<span class="nw"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
+  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${lookFx(it, 'b')}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${arrow}${nw ? '<span class="nw"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
 }
 
 const grip = '<span class="grip" aria-hidden="true"></span>';
@@ -270,23 +284,31 @@ function inventoryHtml(): string {
       ${msg && !sheet ? `<p class="note warn c7-msg" role="status">${esc(msg)}</p>` : ''}
       <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${list.map(bagCell).join('')}${emptySlots}</div>
       ${!list.length ? `<p class="c7-inventory-empty">${all.length ? '이 분류 장비 없음' : '던전을 클리어하면 장비 획득'}</p>` : ''}
-      <footer class="c7-inventory-foot"><span class="cap gmats">강화석 ${fmt(m.stone)} · 정제 강화석 ${fmt(m.refined)}</span><button type="button" class="btn2 c7-dexb" data-dex aria-label="도감${due ? ' · 받을 보상 있음' : ''}">도감${due ? '<span class="g-badge">!</span>' : ''}</button></footer></section>`;
+      <footer class="c7-inventory-foot"><span class="cap gmats">강화석 ${fmt(m.stone)} · 정제 강화석 ${fmt(m.refined)}</span><button type="button" class="btn2 c7-dexb" data-dex aria-label="도감${due ? ' · 받을 보상 있음' : ''}">${gameIcon('dex', '')}도감${due ? '<span class="g-badge">!</span>' : ''}</button></footer></section>`;
 }
 
 /** 묶음들에서 얻은 칸 수 */
 const codexHave = (gs: readonly CodexGroup[]) => gs.reduce((a, g) => a + codexKeys(g).filter(k => G.save.gear.codex.includes(k)).length, 0);
 const SPEC_GROUP_KEYS = Object.keys(SPEC_GROUPS) as SpecGroup[];
 
-/** 지난 판에 처음 얻은 특수능력 (42 1-6): 도감 표식 위에서 fx-spec-new가 칸마다 한 번 터짐 (36 4-6). 효과 줄이기면 없음 */
-let freshShown: { of: object; keys: Set<string> } | null = null;
-function freshFx(key: string): string {
-  const x = Flow.settle;
-  if (!x?.newSpecs?.includes(key) || G.save.settings.reducedEffects) return '';
-  if (freshShown?.of !== x) freshShown = { of: x, keys: new Set() };
-  if (freshShown.keys.has(key)) return '';
-  freshShown.keys.add(key);
-  return fxArt('fx-spec-new', 'c7-spnew');
+/** 지난 판에 처음 얻은 칸: 칸 표식 위에서 그림이 칸마다 한 번 (판마다). 효과 줄이기면 없음 */
+function freshOnce(pick: (x: Settlement) => readonly string[] | undefined, fx: string, cls: string): (key: string) => string {
+  let shown: { of: object; keys: Set<string> } | null = null;
+  return key => {
+    const x = Flow.settle;
+    if (!x || !pick(x)?.includes(key) || G.save.settings.reducedEffects) return '';
+    if (shown?.of !== x) shown = { of: x, keys: new Set() };
+    if (shown.keys.has(key)) return '';
+    shown.keys.add(key);
+    return fxArt(fx, cls);
+  };
 }
+/** 특수능력 도감 (42 1-6): fx-spec-new 터짐 (36 4-6) */
+const freshFx = freshOnce(x => x.newSpecs, 'fx-spec-new', 'c7-spnew');
+/** 장비 도감 (34 6-10 ④): fx-dex-fill 도장 (50 E) */
+const dexFillFx = freshOnce(x => x.newDex, 'fx-dex-fill', 'c7-dexfill');
+/** 「보상 받기」를 누른 뒤 한 번: 보상 줄에서 fx-dex-reward가 위로 (50 E) */
+let dexPop = false;
 
 /** 특수능력 도감 시트 (42 1-6): 묶음 칩 (얻은 수/전체) · 칸 목록 (얻은 것 = 이름 · 효과, 아닌 것 = 「?」 + 나오는 곳) · 받은 칭호 */
 function codexSheet(): string {
@@ -312,13 +334,16 @@ function dexSheet(): string {
     ? `<button type="button" class="btn2 hot" data-dexclaim>보상 받기 · 골드 ${fmt(due.gold)} · 강화석 ${due.stone}${due.refined ? ` · 정제 강화석 ${due.refined}` : ''}</button>`
     : `<span class="cap">${next <= all ? `${next}칸을 채우면 골드 · 강화석 (지금 ${have.length})` : '보상을 모두 받았습니다'}</span>`;
   const count = (t: DexTab) => dexKeys(t).filter(k => have.includes(k)).length;
+  const pop = dexPop && !G.save.settings.reducedEffects ? fxArt('fx-dex-reward', 'c7-dexpop') : '';
+  dexPop = false;
+  // 도감 그림 (50 D icon-dex · icon-dex-<묶음> · icon-dex-reward): 없으면 글자만
   return `${dim}<section class="sheet c7-bsheet c7-codex c7-dex" role="dialog" aria-label="장비 도감">${grip}
-      <div class="c7-row"><h3 class="h-rule">장비 도감</h3><span class="cap">${have.length}/${all}</span></div>
-      <div class="c7-fcs" role="group" aria-label="도감 묶음">${DEX_TABS.map(t => `<button type="button" class="c7-fc" data-dext="${t.key}" aria-pressed="${dexT === t.key}">${t.name} <small>${count(t.key)}/${dexKeys(t.key).length}</small></button>`).join('')}</div>
-      <div class="c7-dexr">${reward}</div>
+      <div class="c7-row"><h3 class="h-rule">${gameIcon('dex', '')}장비 도감</h3><span class="cap">${have.length}/${all}</span></div>
+      <div class="c7-fcs" role="group" aria-label="도감 묶음">${DEX_TABS.map(t => `<button type="button" class="c7-fc" data-dext="${t.key}" aria-pressed="${dexT === t.key}">${gameIcon(`dex-${t.key}`, '')}${t.name} <small>${count(t.key)}/${dexKeys(t.key).length}</small></button>`).join('')}</div>
+      <div class="c7-dexr">${gameIcon('dex-reward', '')}${reward}${pop}</div>
       ${msg ? `<p class="note c7-msg">${esc(msg)}</p>` : ''}
       <p class="cap c7-ctitle">${done ? `칭호 「${esc(tab.title)}」 받음` : `다 모으면 칭호 「${esc(tab.title)}」 (${got}/${rows.length})`}</p>
-      <div class="c7-clist">${rows.map(r => `<div class="c7-spec c7-dexc${r.got ? '' : ' unk'}"${r.look ? ` style="--look:${FACTIONS[r.look].color}"` : ''}><span class="c7-spg">${itemIc(r.got ? r : r.slot)}</span><span class="c7-spt"><b>${r.got ? esc(r.name) : '?'}</b><span class="cap">${esc(r.got ? r.text : r.hint)}</span></span></div>`).join('')}</div>
+      <div class="c7-clist">${rows.map(r => `<div class="c7-spec c7-dexc${r.got ? '' : ' unk'}"${r.look ? ` style="--look:${FACTIONS[r.look].color}"` : ''}><span class="c7-spg">${itemIc(r.got ? r : r.slot)}${r.got ? dexFillFx(r.key) : ''}</span><span class="c7-spt"><b>${r.got ? esc(r.name) : '?'}</b><span class="cap">${esc(r.got ? r.text : r.hint)}</span></span></div>`).join('')}</div>
       <div class="c7-bagf"><span class="cap">처음 얻으면 칸이 채워짐 · 능력치 보너스 없음</span>${fill}<button type="button" class="btn2" data-codex>특수능력 ${codexHave(SPEC_GROUP_KEYS)}/${SPEC_KEYS.length}</button><button type="button" class="btn2" data-sheetx>닫기</button></div></section>`;
 }
 
@@ -840,7 +865,7 @@ function onClick(t: HTMLElement): boolean {
   const lk = t.closest<HTMLElement>('[data-lock]');
   if (lk) { toggleLock(Number(lk.dataset.lock)); msg = ''; render(); return true; }
   const eq = t.closest<HTMLElement>('[data-equip]');
-  if (eq) { equip(Number(eq.dataset.equip)); msg = ''; render(); return true; }
+  if (eq) { wornNow = Number(eq.dataset.equip); equip(wornNow); msg = ''; render(); return true; }
   const en = t.closest<HTMLButtonElement>('[data-enh]');
   if (en) {
     if (en.disabled) return true;
@@ -889,6 +914,7 @@ function onClick(t: HTMLElement): boolean {
   if (t.closest('[data-dexclaim]')) {
     const got = claimDex();
     msg = got.steps ? `도감 보상: 골드 ${fmt(got.gold)} · 강화석 ${got.stone}${got.refined ? ` · 정제 강화석 ${got.refined}` : ''}` : '';
+    dexPop = got.steps > 0;
     render(); return true;
   }
   const cg = t.closest<HTMLElement>('[data-codexg]');
