@@ -581,7 +581,7 @@ export function showPreview(idx: number): void {
   if (u.sacr > 0) items.push(`희생 ${Math.ceil(u.sacr)}초 (받는 피해 30%를 내가 대신)`);
   if (u.immune > 0) items.push(`보호의 손 ${Math.ceil(u.immune)}초 (물리 피해 무시, 딜 멈춤)`);
   if (u.guardian > 0) items.push(`수호 영혼 ${Math.ceil(u.guardian)}초`);
-  if (F.dove?.id === u.id) items.push(`빛의 비둘기 ${Math.max(0, Math.ceil(F.dove.until - F.t))}초 (피해를 받으면 회복하고 옆 사람에게, 남은 회복 ${F.dove.left}번)`);
+  if (F.relay?.id === u.id) items.push(`빛의 전이 ${Math.max(0, Math.ceil(F.relay.until - F.t))}초 (피해를 받으면 회복하고 옆 사람에게, 남은 회복 ${F.relay.left}번)`);
   for (const z of F.zones) if (z.tide && z.cells.has(u.cell)) items.push(`어둠물에 잠김 ${Math.ceil(z.end - F.t)}초 (받는 치유 −50%)`); // 어둠물 밀물 (59 5장)
   for (const d of u.debuffs) if ((d.debtLeft ?? 0) > 0) items.push(`남은 빚 ${Math.round(d.debtLeft!)} (넘친 치유가 갚음, ${Math.ceil(d.left)}초 뒤 남은 빚만큼 피해)`); // 빌린 생명
   for (const z of F.zones) if (z.ring && z.cells.has(u.cell)) items.push(`${z.ring.name} 안 ${Math.ceil(z.end - F.t)}초 (${z.ring.n < z.ring.max ? `치유를 받으면 한 겹 자람, ${z.ring.n}/${z.ring.max}겹` : `다 자람 ${z.ring.max}겹`})`); // 요정 고리 (48 5장)
