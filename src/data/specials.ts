@@ -534,6 +534,19 @@ export const FEATURED: Record<string, readonly string[]> = {
   oasis: ['curseBreak', 'coldMedicine', 'dusk'],
   sandlibrary: ['rewind', 'curseBreak', 'starClock'],
   sundialroad: ['rewind', 'hurryStar', 'coldMedicine'],
+  // 묶음 H4 (62): 그 장소 해제 유형 · 기믹에 맞춘 3개
+  cloudbridge: ['featherQuilt', 'guardFeather', 'spellWard'],
+  flightyard: ['featherQuilt', 'windStep', 'curseBreak'],
+  stormmeadow: ['holdTogether', 'featherQuilt', 'numberSense'],
+  cloudlibrary: ['spellWard', 'overflowKind', 'stillMoment'],
+  broomrace: ['spellWard', 'bigBowl', 'quickAid'],
+  sunkrose: ['curseBreak', 'layer', 'crisisSense'],
+  lotusway: ['curseBreak', 'calmRipple', 'regular'],
+  waterglow: ['goldEcho', 'rewind', 'starVeil'],
+  barracks: ['cleanHands', 'march', 'twinShield'],
+  outpost: ['trapSense', 'cleanHands', 'leadOn'],
+  starcave: ['crystalBreak', 'goldEcho', 'constellation'],
+  sunrisehill: ['sunrise', 'brightMorning', 'cleanHands'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

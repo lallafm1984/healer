@@ -29,7 +29,8 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5'
   | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest'
   | 'granary' | 'scarefield' | 'smuggler' | 'reef' | 'frostgarden' | 'dorm' | 'cultcamp' | 'apothecary' | 'rooftop' | 'bakery' | 'dewhill' | 'mushmarsh' | 'lilypalace'
-  | 'quarry' | 'smithy' | 'ferry' | 'turtlecave' | 'mistplaza' | 'coralgarden' | 'oasis' | 'sandlibrary' | 'sundialroad';
+  | 'quarry' | 'smithy' | 'ferry' | 'turtlecave' | 'mistplaza' | 'coralgarden' | 'oasis' | 'sandlibrary' | 'sundialroad'
+  | 'cloudbridge' | 'flightyard' | 'stormmeadow' | 'cloudlibrary' | 'broomrace' | 'sunkrose' | 'lotusway' | 'waterglow' | 'barracks' | 'outpost' | 'starcave' | 'sunrisehill';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
 
@@ -433,6 +434,67 @@ export const CONTENT: ContentDef[] = [
   {
     key: 'sundialroad', kind: 'explore', name: '노을 해시계 길', place: '노을 사막 끝 · 모래 왕국', stageLv: 78, unlockLv: 78, ready: true, bosses: ['모래 서기관 깃펜'],
     fights: () => DUNGEONS.sundialroad.segments, size: three,
+  },
+  // 묶음 H4 (62 2-4, 61): 탐험 · 던전 두 배 (Lv 82~100 사이사이, 97~100은 이야기 뒤 반복 자리). 새 탐험은 근처 새 던전 보스를 줄여 빌림
+  // 탐험 ㊹: 던전 ㊱ 비행 훈련장 예습 (띄워 올리기)
+  {
+    key: 'cloudbridge', kind: 'explore', name: '구름 다리', place: '구름 위 섬 · 폭풍 깃털단', stageLv: 82, unlockLv: 82, ready: true, bosses: ['하피 교관 휘파람'],
+    fights: () => DUNGEONS.cloudbridge.segments, size: three,
+  },
+  // 던전 ㊱ (폭풍 깃털단, 저주 · 마법)
+  {
+    key: 'flightyard', bosses: ['하피 교관 휘파람', '바람 정령 회오리'], kind: 'dungeon', name: '깃털단 비행 훈련장', place: '구름 위 섬 · 폭풍 깃털단', stageLv: 83, unlockLv: 83, ready: true,
+    fights: () => DUNGEONS.flightyard.segments, size: five,
+  },
+  // 탐험 ㊺: 던전 ㊱ 회오리 복습 (회오리 × 연쇄 번개)
+  {
+    key: 'stormmeadow', kind: 'explore', name: '번개 구름 목초지', place: '구름 위 섬 · 폭풍 깃털단', stageLv: 86, unlockLv: 86, ready: true, bosses: ['바람 정령 회오리'],
+    fights: () => DUNGEONS.stormmeadow.segments, size: three,
+  },
+  // 던전 ㊲ (폭주한 마도사, 마법)
+  {
+    key: 'cloudlibrary', bosses: ['날아다니는 책 펄럭이', '사서 유령 쉿'], kind: 'dungeon', name: '구름 도서관 탑', place: '구름 위 섬 · 폭주한 마도사', stageLv: 88, unlockLv: 88, ready: true,
+    fights: () => DUNGEONS.cloudlibrary.segments, size: five,
+  },
+  // 탐험 ㊻: 던전 ㊲ 쉿 복습 (넘치는 빛 그릇 · 조용히)
+  {
+    key: 'broomrace', kind: 'explore', name: '빗자루 경주로', place: '구름 위 섬 · 폭주한 마도사', stageLv: 90, unlockLv: 90, ready: true, bosses: ['사서 유령 쉿'],
+    fights: () => DUNGEONS.broomrace.segments, size: three,
+  },
+  // 던전 ㊳ (몰락한 귀족가, 저주)
+  {
+    key: 'sunkrose', bosses: ['정원사 유령 가위손', '대공비 유령 로살린'], kind: 'dungeon', name: '가라앉은 장미 정원', place: '호수 밑 · 몰락한 귀족가', stageLv: 93, unlockLv: 93, ready: true,
+    fights: () => DUNGEONS.sunkrose.segments, size: five,
+  },
+  // 탐험 ㊼: 던전 ㊳ 가위손 복습 (가시 덩굴)
+  {
+    key: 'lotusway', kind: 'explore', name: '호수 밑 연꽃길', place: '호수 밑 · 몰락한 귀족가', stageLv: 94, unlockLv: 94, ready: true, bosses: ['정원사 유령 가위손'],
+    fights: () => DUNGEONS.lotusway.segments, size: three,
+  },
+  // 탐험 ㊿: 던전 ㊵ 마지막 메아리 예습 (메아리 박동 · 빌린 생명, 이야기 뒤 반복 자리)
+  {
+    key: 'waterglow', kind: 'explore', name: '물빛 정원', place: '심연의 바닥 · 심연의 정예', stageLv: 97, unlockLv: 97, ready: true, bosses: ['마지막 메아리'],
+    fights: () => DUNGEONS.waterglow.segments, size: three,
+  },
+  // 던전 ㊴ (심연의 정예, 4유형)
+  {
+    key: 'barracks', bosses: ['그림자 훈련교관 칼날', '심연 쌍둥이 기사 흑 · 백'], kind: 'dungeon', name: '심연 정예 병영', place: '심연의 바닥 · 심연의 정예', stageLv: 98, unlockLv: 98, ready: true,
+    fights: () => DUNGEONS.barracks.segments, size: five,
+  },
+  // 탐험 ㊽: 던전 ㊴ 칼날 복습 (차례 · 훈련 덫)
+  {
+    key: 'outpost', kind: 'explore', name: '그림자 초소', place: '심연의 바닥 · 심연의 정예', stageLv: 98, unlockLv: 98, ready: true, bosses: ['그림자 훈련교관 칼날'],
+    fights: () => DUNGEONS.outpost.segments, size: three,
+  },
+  // 던전 ㊵ (심연의 정예, 4유형 · 이야기 뒤)
+  {
+    key: 'starcave', bosses: ['수정 거인 반짝돌', '마지막 메아리'], kind: 'dungeon', name: '별빛 수정 동굴', place: '심장 너머 · 심연의 정예', stageLv: 99, unlockLv: 99, ready: true,
+    fights: () => DUNGEONS.starcave.segments, size: five,
+  },
+  // 탐험 ㊾: 던전 ㊵ 반짝돌 복습 (수정 갑옷 · 프리즘 빛, 이야기 뒤 반복 자리)
+  {
+    key: 'sunrisehill', kind: 'explore', name: '아침 햇살 언덕', place: '해바라기 언덕 · 혼합', stageLv: 99, unlockLv: 99, ready: true, bosses: ['수정 거인 반짝돌'],
+    fights: () => DUNGEONS.sunrisehill.segments, size: three,
   },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인
