@@ -22,7 +22,7 @@ import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebu
 import { CELL_RADIUS, fitBoard } from './board-layout';
 import { BOARDS } from '../data/boards';
 import { makeCells } from '../engine/board';
-import { BOSS_PXF, bossPxfOf, COMMON_PXF, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, type CommonFx, type PxfKey } from './pxf';
+import { BOSS_PXF, bossPxfOf, COMMON_PXF, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, wideArtName, type CommonFx, type PxfKey } from './pxf';
 
 // ---------- 색 ----------
 const hex = (c: string) => parseInt(c.slice(1, 7), 16);
@@ -792,9 +792,9 @@ export function resetBoardFx(): void {
   darkAt = null;
   if (B.F) for (const a of bossFxArts(B.F.enc.script)) artTexture(a); // 묶음 H 이펙트 (63 E): 첫 번째부터 보이게
   // 보스 판 전체 공격 PXF (256px 띠, 하나에 4–6MB): 이 전투에서 나올 수 있는 것만 읽어 두고 다른 전투 것은 내려 놓음
-  const want = new Set((B.F ? bossPxfOf(B.F.enc) : []).map(pxfArtName));
+  const want = new Set((B.F ? bossPxfOf(B.F.enc) : []).map(pxfSheet));
   for (const k of Object.values(BOSS_PXF)) {
-    const name = pxfArtName(k!);
+    const name = pxfSheet(k!);
     if (want.has(name)) artTexture(name); else if (artTex.has(name)) dropArt(name);
   }
 }
@@ -1001,10 +1001,12 @@ export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: nu
   B2.fx.push({ kind: 'heal', id: u.id, t0: now, crit: !starDone, seeds: Array.from({ length: crit ? 8 : 4 }, rnd), plain: glowDone });
 }
 /** 스킬 PXF 이펙트 (battle/pxf.ts): 스킬이 들어간 칸에서 맞는 순간부터 끝까지. 파티 전원 스킬은 20인이면 20개라 따로 상한 */
+/** PXF 프레임 띠 이름: 보스 판 전체 공격은 Codex 그림 띠 (66 `fx-wide-`)가 들어왔으면 그것, 없으면 PXF 띠 */
+const pxfSheet = (k: PxfKey): string => (isBossPxf(k) && art(wideArtName(k)) ? wideArtName(k) : pxfArtName(k));
 /** PXF 프레임 띠를 읽어 둠 (못 읽었으면 다시 읽기 시작하고 false) */
-export const pxfReady = (k: PxfKey): boolean => !!artTexture(pxfArtName(k));
+export const pxfReady = (k: PxfKey): boolean => !!artTexture(pxfSheet(k));
 /** 읽어 둔 보스 판 전체 공격 PXF (화면 테스트: 전투마다 그 전투 것만) */
-export const bossPxfLoaded = (): PxfKey[] => Object.values(BOSS_PXF).filter((k): k is PxfKey => !!k && artLoaded.has(pxfArtName(k)));
+export const bossPxfLoaded = (): PxfKey[] => Object.values(BOSS_PXF).filter((k): k is PxfKey => !!k && artLoaded.has(pxfSheet(k)));
 /** PXF 이펙트를 재생 (프레임 띠를 아직 못 읽었으면 안 넣고 false: 부른 쪽이 예전 그림 · 공통 치유 빛을 대신 그림) */
 export function fxPxf(u: Unit, pxf: PxfKey, now: number, o: { color?: number; tag?: string; x?: number; y?: number } = {}): boolean {
   if (!L.ok || S.reducedEffects || B2.fx.length >= 100) return false;
@@ -1101,15 +1103,17 @@ function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: numb
 }
 /**
  * 보스 판 전체 공격 PXF (pxf.ts BOSS_PXF) 한 프레임: 캔버스를 판 너비 (세로로 길면 높이)로 키워 판 가운데에, 판 밖으로 나가는 부분은 프레임을 잘라 냄.
- * 띠는 256px 프레임 격자 (Lim 「픽셀 크기를 늘려서」 → 「픽셀이 좀더 디테일」 → 256px). 층은 다른 PXF처럼 판 맨 위
+ * 띠는 256px 프레임 격자 (Lim 「픽셀 크기를 늘려서」 → 「픽셀이 좀더 디테일」 → 256px). 층은 다른 PXF처럼 판 맨 위.
+ * Codex 그림 띠 (66 `fx-wide-`, 같은 격자)가 있으면 그것을 부드럽게 늘리고, 옆 프레임이 번져 들지 않게 반 픽셀 안쪽만 씀
  */
 function pxfWide(k: PxfKey, key: string, ms: number, tint = 0xffffff): void {
-  const c = PXF[k], i = pxfFrame(c, ms), tex = i < 0 ? null : artTexture(pxfArtName(k));
+  const c = PXF[k], i = pxfFrame(c, ms), name = pxfSheet(k), tex = i < 0 ? null : artTexture(name);
   const w = L.right - L.left, h = L.bottom - L.top;
   if (!tex || w <= 0 || h <= 0) return;
-  if (tex.source.scaleMode !== 'nearest') tex.source.scaleMode = 'nearest';
+  const smooth = name !== pxfArtName(k), mode = smooth ? 'linear' : 'nearest', e = smooth ? 0.5 : 0;
+  if (tex.source.scaleMode !== mode) tex.source.scaleMode = mode;
   const px = tex.width / (c.cols * c.size), at = pxfCell(c, i), cr = pxfCrop(c, w, h), x = (L.left + L.right) / 2, y = (L.top + L.bottom) / 2;
-  pxfArt.put(partTex(pxfArtName(k), tex, (at.x + cr.x) * px, (at.y + cr.y) * px, cr.w * px, cr.h * px), x, y, w, h, 1, c.gray ? tint : 0xffffff);
+  pxfArt.put(partTex(name, tex, (at.x + cr.x) * px + e, (at.y + cr.y) * px + e, cr.w * px - 2 * e, cr.h * px - 2 * e), x, y, w, h, 1, c.gray ? tint : 0xffffff);
   recordBound(key, 'fx', 'rect', x, y, w, h, { frame: i, tint: c.gray ? tint : undefined });
 }
 /** 그림 이펙트 한 장: 판 밖으로 안 나가게 크기를 줄여 그림. flipX = 좌우 뒤집음 */

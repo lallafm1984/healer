@@ -172,6 +172,8 @@ export function bossPxfOf(enc: Pick<Encounter, 'script' | 'mobs'>): PxfKey[] {
 }
 /** 보스 판 전체 공격 PXF (전투마다 필요한 것만 읽음) */
 export const isBossPxf = (k: PxfKey): boolean => k.startsWith('boss-');
+/** Codex 그림 띠 (66 문서, Lim 「도트 느낌이 아닌 이펙트로」): 보스 판 전체 공격과 같은 256 격자 · 프레임, 파일이 있으면 PXF 띠 대신 씀 */
+export const wideArtName = (k: PxfKey): string => `fx-wide-${k.slice('boss-'.length)}`;
 /** 띠에서 프레임 i의 왼쪽 위 (px, 띠에 구운 크기 기준) */
 export const pxfCell = (c: PxfClip, i: number): { x: number; y: number } => ({ x: (i % c.cols) * c.size, y: Math.floor(i / c.cols) * c.size });
 
