@@ -1,6 +1,6 @@
 // 2026-10-11 Lim 「말풍선 위치가 올바르지 못하다」 · 「꾹 누르면 상세창이 손가락에 가려진다」 · 「전투 메시지가 20인에서 파티원을 가린다」.
 // 판 크기 넷 (탐험 7칸 · 5인 10칸 · 10인 25칸 · 20인 36칸) × 대상 폰 크기에서:
-// - 말풍선은 꼬리 끝이 말한 사람 칸 꼭짓점에 닿고 (위 또는 아래), 몸통이 꼬리를 품고, 이름 · 체력을 안 가림. 붙일 자리가 없는 기믹 말풍선은 전투 메시지로 「닉네임: 대사」
+// - 말풍선은 꼬리 끝이 말한 사람 칸 꼭짓점에 닿고 (위 또는 아래), 몸통이 꼬리를 품고, 이름 · 체력을 안 가림. 붙일 자리가 없으면 생략
 // - 길게 누르기 상세창은 누른 칸 위쪽 (손가락보다 위), 손을 떼도 남았다가 다음 터치에 닫힘
 // - 전투 메시지는 판 밖 (시전 막대 자리 안)
 import { chromium } from 'playwright';
@@ -93,22 +93,23 @@ export default async function battleNotes(url, shots) {
     ok(stray.length === 0 && placed.length >= Math.min(ids.length, board.n <= 5 ? 2 : 3),
       `${tag}: 말풍선 ${placed.length}/${ids.length}개가 말한 사람 칸 꼭짓점에 꼬리로 붙음 · 이름 · 체력 안 가림`, { stray, placed: placed.length });
     if (board.n >= 10) {
-      // 붙일 자리가 없는 사람의 기믹 말풍선 → 전투 메시지 「닉네임: 대사」 (판에는 안 뜸)
-      let relayed = null;
+      // 붙일 자리가 없는 사람의 기믹 말풍선은 생략 (2026-10-11 Lim 「자리가 없으면 말풍선 생략」): 판에도, 전투 메시지에도 안 뜸
+      let skipped = null;
       for (const id of ids) {
         await fill();
-        const r = await page.evaluate(async id => {
-          const before = document.querySelector('#toast').textContent;
-          window.__proto.say(id, '폭탄! 다들 흩어져!', 'call', 1500);
-          return { before, nick: window.__proto.F.party.find(u => u.id === id).nick };
-        }, id);
+        const nick = await page.evaluate(id => { window.__proto.say(id, '폭탄! 다들 흩어져!', 'call', 1500); return window.__proto.F.party.find(u => u.id === id).nick; }, id);
         await page.clock.runFor(120);
-        const got = await page.evaluate(id => ({ toast: document.querySelector('#toast').textContent,
+        const look = () => page.evaluate(id => ({ toast: document.querySelector('#toast').textContent,
           onBoard: JSON.parse(document.querySelector('#board').dataset.decorationBounds || '[]').some(b => b.key === `bubble${id}`) }), id);
-        if (got.toast.includes(`${r.nick}: 폭탄! 다들 흩어져!`)) { relayed = { id, nick: r.nick, ...got }; break; }
-        await page.clock.runFor(1500);
+        const first = await look();
+        if (first.onBoard) { await page.clock.runFor(1500); continue; }
+        await page.clock.runFor(1400); // 기다리는 시간(1.2초)이 지나도 자리가 안 나면 버림
+        const later = await look();
+        skipped = { id, nick, first, later };
+        break;
       }
-      ok(!!relayed && !relayed.onBoard, `${tag}: 판에 붙일 자리가 없는 기믹 말풍선은 전투 메시지로 「닉네임: 대사」`, relayed);
+      ok(!!skipped && !skipped.later.onBoard && ![skipped.first.toast, skipped.later.toast].some(t => t.includes('폭탄! 다들 흩어져!')),
+        `${tag}: 판에 붙일 자리가 없는 기믹 말풍선은 생략 (전투 메시지로도 안 넘김)`, skipped);
     }
     if (name === 'S25') await page.screenshot({ path: `${shots}/notes_bubbles_${board.n}.png` });
 

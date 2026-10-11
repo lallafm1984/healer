@@ -630,7 +630,7 @@ function coverOf(a: PillBox, b: PillBox): number {
 const BUBBLE_SOFT: Record<string, number> = { debuff: 3, pill: 2, hot: 2, role: 1, aggro: 1 };
 /** 말풍선 자리 순서: 위기 → 기믹·신호 → 반응 · 쓰러진 사람 채팅 */
 const BUBBLE_RANK: Record<BubbleKind, number> = { alert: 0, call: 1, talk: 2, chat: 2 };
-/** 잡담 · 채팅 말풍선이 다른 말풍선이 비켜 주길 기다리는 시간 (ms). 넘으면 버림 */
+/** 아직 못 뜬 말풍선이 다른 말풍선이 비켜 주길 기다리는 시간 (ms). 넘으면 버림 (2026-10-11 Lim 「자리가 없으면 말풍선 생략」) */
 const BUBBLE_WAIT = 1200;
 /**
  * 말풍선 자리 (2026-10-11 Lim 「말풍선 위치가 올바르지 못하다」): 꼬리 끝이 말한 사람 칸의 위 또는 아래 꼭짓점에 닿는 자리만 고른다.
@@ -739,9 +739,6 @@ export type BubbleKind = 'talk' | 'call' | 'alert' | 'chat';
 /** emote = 왼쪽 감정 아이콘 emote-<이름> (43 4장 B) · cheer = 승리 한마디 (fx-talk-cheer) */
 /** t0 = 보이기 시작한 때 (자리를 기다리는 동안 미뤄짐) · added = 들어온 때 · shown = 한 번이라도 판에 떴음 */
 interface Bubble { id: number; text: string; t0: number; added: number; life: number; kind: BubbleKind; emote?: string | null; cheer?: boolean; shown?: boolean }
-/** 판에 붙일 자리가 없는 기믹·위기 말풍선을 받는 곳 (index.ts: 시전 막대 전투 메시지) */
-let onBubbleRelay: ((u: Unit, text: string) => void) | null = null;
-export function setBubbleRelay(fn: (u: Unit, text: string) => void): void { onBubbleRelay = fn; }
 const BUBBLE: Record<BubbleKind, { fill: number; fillA: number; line: number; lw: number }> = {
   talk: { fill: C.ink, fillA: 1, line: C.line, lw: 2 },
   call: { fill: C.ink, fillA: 1, line: C.gold, lw: 2.5 },
@@ -1926,10 +1923,8 @@ export function render(now: number): void {
     if (!bp) {
       label.visible = false;
       if (b.shown) continue; // 떠 있던 말풍선은 이 프레임만 쉼 (사람이 움직이는 중)
-      // 아직 못 뜬 말풍선: 기믹·위기는 바로 전투 메시지로 「닉네임: 대사」. 잡담 · 채팅은 잠깐 기다렸다가 자리가 안 나면 버림 (메시지 줄을 채우지 않게)
-      const urgent = b.kind === 'call' || b.kind === 'alert';
-      if (!urgent && now - b.added < BUBBLE_WAIT) { b.t0 = now; continue; } // 다른 말풍선이 비켜 주길 기다림 (보이는 시간은 뜰 때부터)
-      if (urgent) onBubbleRelay?.(u, b.text);
+      // 아직 못 뜬 말풍선: 잠깐 기다렸다가 자리가 안 나면 생략 (기믹 · 위기 대사도 다른 곳으로 옮기지 않음)
+      if (now - b.added < BUBBLE_WAIT) { b.t0 = now; continue; } // 다른 말풍선이 비켜 주길 기다림 (보이는 시간은 뜰 때부터)
       B2.bubbles = B2.bubbles.filter(x => x !== b);
       continue;
     }
