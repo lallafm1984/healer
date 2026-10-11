@@ -1,0 +1,341 @@
+{
+  "format": "pxf.graph@1",
+  "name": "공통 피격 할퀸 자국",
+  "settings": {
+    "size": 64,
+    "frames": 11,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "body",
+      "type": "Stroke",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "x0": 0.67,
+        "y0": 0.31,
+        "x1": 0.527,
+        "y1": 0.407,
+        "x2": 0.413,
+        "y2": 0.533,
+        "x3": 0.33,
+        "y3": 0.69,
+        "width": 4,
+        "taper": 1,
+        "from": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              "in"
+            ],
+            [
+              9,
+              1
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              0,
+              0.6,
+              "out"
+            ],
+            [
+              2,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 0.8,
+        "vM": 1,
+        "vB": 0.75,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.58
+            ],
+            [
+              4,
+              0.55,
+              "in"
+            ],
+            [
+              9,
+              0.35
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "core",
+      "type": "Stroke",
+      "x": 40,
+      "y": 210,
+      "params": {
+        "x0": 0.67,
+        "y0": 0.31,
+        "x1": 0.527,
+        "y1": 0.407,
+        "x2": 0.413,
+        "y2": 0.533,
+        "x3": 0.33,
+        "y3": 0.69,
+        "width": 1.5,
+        "taper": 1,
+        "from": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              "in"
+            ],
+            [
+              9,
+              1
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              0,
+              0.6,
+              "out"
+            ],
+            [
+              2,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 0.75,
+        "vM": 1,
+        "vB": 0.75,
+        "intensity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              2,
+              1,
+              "in"
+            ],
+            [
+              4,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "slash",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "claws",
+      "type": "Repeat",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "count": 3,
+        "px": 0.5,
+        "py": 0.5,
+        "angle0": 0,
+        "angleStep": 0,
+        "centered": true,
+        "dx": 5,
+        "dy": 5,
+        "mode": "max"
+      }
+    },
+    {
+      "id": "debris",
+      "type": "Particles",
+      "x": 40,
+      "y": 380,
+      "params": {
+        "count": 7,
+        "seed": 4417,
+        "emit": "burst",
+        "start": 0,
+        "life": 0.55,
+        "lifeVar": 0.2,
+        "area": "circle",
+        "x": 0.5,
+        "y": 0.5,
+        "aw": 10,
+        "ah": 10,
+        "dirMode": "outward",
+        "spread": 360,
+        "speed": 3,
+        "speedVar": 0.25,
+        "gravity": 0.06,
+        "drag": 0.12,
+        "sizeA": 2.5,
+        "sizeB": 1.5,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.75,
+        "loop": false
+      }
+    },
+    {
+      "id": "all",
+      "type": "Blend",
+      "x": 730,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#2a0a06",
+          "#8c1e12",
+          "#ee4b23",
+          "#ffa070",
+          "#fff6ee"
+        ],
+        "cutoff": 0.08,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "color": "#2a0806",
+        "threshold": 0.5,
+        "width": 1,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              6,
+              1,
+              "in"
+            ],
+            [
+              10,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "body",
+      "t": "slash",
+      "p": 0
+    },
+    {
+      "f": "core",
+      "t": "slash",
+      "p": 1
+    },
+    {
+      "f": "slash",
+      "t": "claws",
+      "p": 0
+    },
+    {
+      "f": "claws",
+      "t": "all",
+      "p": 0
+    },
+    {
+      "f": "debris",
+      "t": "all",
+      "p": 1
+    },
+    {
+      "f": "all",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 0
+  }
+}

@@ -63,6 +63,15 @@ export const PXF = {
   'paladin-sacrifice': clip(22, 3),
   'paladin-sanctuary': clip(24, 3),
   'paladin-hand-guard': clip(24, 2),
+  // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (글자 아래, 회색 그림은 색을 곱함)
+  'common-hit': under(11, 0),
+  'common-crit': under(12, 0),
+  'common-heal': under(14, 1, true),
+  'common-dispel': under(14, 1),
+  'common-revive': under(20, 2),
+  'common-death': under(18, 0, true),
+  'common-debuff': under(16, 1, true),
+  'common-proc': under(12, 0, true),
   // 모든 효과 PXF 1단계 (requests.md): 파티원 능력 종류마다 (글자 아래)
   'ally-def': under(16, 1),
   'ally-ctl': under(16, 1),
@@ -107,7 +116,9 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
 
 /** 전투 공통 효과 (모든 효과 PXF 1단계, requests.md): 있으면 board.ts가 예전 그림 (fx-hit · fx-heal …) 대신 그림 */
 export type CommonFx = 'hit' | 'crit' | 'heal' | 'dispel' | 'revive' | 'death' | 'debuff' | 'proc';
-export const COMMON_PXF: Partial<Record<CommonFx, PxfKey>> = {};
+export const COMMON_PXF: Partial<Record<CommonFx, PxfKey>> = {
+  hit: 'common-hit', crit: 'common-crit', heal: 'common-heal', dispel: 'common-dispel', revive: 'common-revive', death: 'common-death', debuff: 'common-debuff', proc: 'common-proc',
+};
 /** 파티원 능력 (엔진 ability 사건): 능력 종류마다 그 파티원 칸에 */
 export const ALLY_PXF: Partial<Record<AbKind, PxfKey>> = { def: 'ally-def', ctl: 'ally-ctl', sup: 'ally-sup', heal: 'ally-heal', atk: 'ally-atk' };
 

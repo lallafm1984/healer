@@ -1,0 +1,240 @@
+{
+  "format": "pxf.graph@1",
+  "name": "공통 치명타 치유 별",
+  "settings": {
+    "size": 64,
+    "frames": 12,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "star",
+      "type": "Shape",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "shape": "star",
+        "x": 0.72,
+        "y": 0.28,
+        "points": 4,
+        "size2": 0.3,
+        "size": {
+          "k": [
+            [
+              0,
+              4,
+              "out3"
+            ],
+            [
+              2,
+              9.5,
+              "out"
+            ],
+            [
+              4,
+              8
+            ],
+            [
+              6,
+              8.5
+            ],
+            [
+              8,
+              5.5,
+              "in"
+            ],
+            [
+              11,
+              0
+            ]
+          ]
+        },
+        "rot": {
+          "k": [
+            [
+              0,
+              -12,
+              "out"
+            ],
+            [
+              11,
+              12
+            ]
+          ]
+        },
+        "falloff": 0.6,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "twinkle",
+      "type": "Shape",
+      "x": 40,
+      "y": 210,
+      "params": {
+        "shape": "star",
+        "x": 0.72,
+        "y": 0.28,
+        "points": 4,
+        "size2": 0.12,
+        "rot": 45,
+        "size": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              7
+            ],
+            [
+              2,
+              4
+            ],
+            [
+              4,
+              7.5
+            ],
+            [
+              5,
+              4
+            ],
+            [
+              7,
+              6.5
+            ],
+            [
+              8,
+              3
+            ],
+            [
+              10,
+              0
+            ]
+          ]
+        },
+        "falloff": 0,
+        "intensity": 0.7
+      }
+    },
+    {
+      "id": "m1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#4a2a0c",
+          "#d99a1c",
+          "#ffd54a",
+          "#ffffff"
+        ],
+        "cutoff": 0.08,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 730,
+      "y": 40,
+      "params": {
+        "color": "#2e1a08",
+        "threshold": 0.5,
+        "width": 1,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              7,
+              1,
+              "in"
+            ],
+            [
+              11,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "star",
+      "t": "m1",
+      "p": 0
+    },
+    {
+      "f": "twinkle",
+      "t": "m1",
+      "p": 1
+    },
+    {
+      "f": "m1",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 0
+  }
+}
