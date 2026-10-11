@@ -40,7 +40,7 @@ export default async function dungeon(url, shots) {
   ok(await page.getAttribute('#s-content [data-content="sewer"]', 'aria-pressed') === 'true' && /역병 수로/.test(await page.textContent('#s-content .b-gate')) && !/준비 중/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo') && (await page.locator('#s-content .b-pl.off').count()) === 0, '던전은 모두 만듦 = 준비 중 칸 없음, 역병 수로도 출전 가능');
   await page.click('#s-content [data-content="crypt"]'); await page.clock.runFor(50);
   await page.click('#s-content [aria-label="이전 장소"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-content [data-content="rustfort"]', 'aria-pressed') === 'true', '‹ = 같은 분류의 이전 장소 (녹슨 요새)');
+  ok(await page.getAttribute('#s-content [data-content="mine"]', 'aria-pressed') === 'true', '‹ = 같은 분류의 이전 장소 (녹슨 광산, 62 H1)');
 
   // ---- 출전 → 바로 편성 (2026-10-08 입장 화면을 편성에 합침) ----
   await toParty(page);

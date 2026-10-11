@@ -498,6 +498,18 @@ export const FEATURED: Record<string, readonly string[]> = {
   heart3: ['edgeTouch', 'sunrise', 'constellation'],
   dawn: ['sunrise', 'lightBreath', 'wideEmbrace'],
   heartcrack: ['layer', 'cleanHands', 'pouch'],
+  // 묶음 H1 (62 2-1): 그 장소 해제 유형 · 기믹에 맞춘 3개
+  scrapheap: ['shieldFriend', 'sturdyBack', 'firstWord'],
+  mine: ['shieldFriend', 'shelterMap', 'pouch'],
+  alley: ['coldMedicine', 'brushOff', 'warmTouch'],
+  greenhouse: ['coldMedicine', 'immuneIncense', 'lingerLight'],
+  frogpond: ['antidote', 'lingerLight', 'warmCloak'],
+  reedvillage: ['antidote', 'fadingMiasma', 'trapSense'],
+  fountain: ['curseBreak', 'firstCup', 'regular'],
+  perfumery: ['curseBreak', 'hardShell', 'wideEmbrace'],
+  icefish: ['spellWard', 'springSip', 'pouch'],
+  snowlab: ['spellWard', 'crystalBreak', 'lightBreath'],
+  harvest: ['cleanHands', 'cheerFlag', 'wideEmbrace'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

@@ -26,7 +26,8 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'maze1' | 'maze2' | 'maze3' | 'camp1' | 'camp2' | 'camp3' | 'carriage' | 'ballroom'
   | 'coast1' | 'coast2' | 'coast3' | 'lantern'
   | 'heart1' | 'heart2' | 'heart3' | 'dawn' | 'heartcrack'
-  | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5';
+  | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5'
+  | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
 
@@ -262,6 +263,62 @@ export const CONTENT: ContentDef[] = [
   {
     key: 'heartcrack', bosses: ['그림자 대여상 녹슬음', '마지막 그림자'], kind: 'dungeon', name: '멈춘 심장 속', place: '멈춘 심장 틈 · 심연의 정예', stageLv: 100, unlockLv: 100, ready: true,
     fights: () => DUNGEONS.heartcrack.segments, size: five,
+  },
+  // 묶음 H1 (62 2-1, 61): 탐험 · 던전을 두 배로 (Lv 5~30 사이사이). 새 탐험은 근처 새 던전 보스를 줄여 빌림
+  // 탐험 ㉖: 던전 ㉑ 녹슨 광산 예습 (진동)
+  {
+    key: 'scrapheap', kind: 'explore', name: '고철 더미 언덕', place: '녹슨 고원 · 골렘', stageLv: 5, unlockLv: 5, ready: true, bosses: ['곡괭이 골렘 콩콩이'],
+    fights: () => DUNGEONS.scrapheap.segments, size: three,
+  },
+  // 탐험 ㉗: 던전 ㉒ 역병 약초 온실 예습 (질병 해제)
+  {
+    key: 'alley', kind: 'explore', name: '잿빛 뒷골목', place: '왕도 변두리 · 역병 교단', stageLv: 10, unlockLv: 10, ready: true, bosses: ['약초꾼 수도사 몰리'],
+    fights: () => DUNGEONS.alley.segments, size: three,
+  },
+  // 탐험 ㉘: 던전 ㉓ 갈대 오두막 마을 예습 (독침)
+  {
+    key: 'frogpond', kind: 'explore', name: '개구리 연못', place: '늪지 · 늪의 부족', stageLv: 15, unlockLv: 15, ready: true, bosses: ['늪 사냥꾼 카라'],
+    fights: () => DUNGEONS.frogpond.segments, size: three,
+  },
+  // 탐험 ㉙: 던전 ㉔ 백합 향수 공방 예습 (받는 치유 −50% 저주)
+  {
+    key: 'fountain', kind: 'explore', name: '분수 정원', place: '백합 영지 · 귀족가', stageLv: 20, unlockLv: 20, ready: true, bosses: ['향수 조향사 라벤더'],
+    fights: () => DUNGEONS.fountain.segments, size: three,
+  },
+  // 탐험 ㉚: 던전 ㉕ 눈꽃 연구소 예습 (줄 피해)
+  {
+    key: 'icefish', kind: 'explore', name: '얼음 호수 낚시터', place: '설원 · 마도사', stageLv: 25, unlockLv: 25, ready: true, bosses: ['눈사람 조수 뽀득이'],
+    fights: () => DUNGEONS.icefish.segments, size: three,
+  },
+  // 탐험 ㉛: 묶음 H2 던전 ㉖ 황금 이삭 곡물창고 예습 (보호막 분신)
+  {
+    key: 'harvest', kind: 'explore', name: '해바라기 수확밭', place: '해바라기 언덕 · 혼합', stageLv: 30, unlockLv: 30, ready: true, bosses: ['허수아비 기사 짚단'],
+    fights: () => DUNGEONS.harvest.segments, size: three,
+  },
+  // 던전 ㉑ (골렘, 해제 없음)
+  {
+    key: 'mine', bosses: ['곡괭이 골렘 콩콩이', '광산 감독관 구릿빛'], kind: 'dungeon', name: '녹슨 광산', place: '녹슨 고원 아래 · 골렘', stageLv: 8, unlockLv: 8, ready: true,
+    fights: () => DUNGEONS.mine.segments, size: five,
+  },
+  // 던전 ㉒ (역병 교단, 질병)
+  {
+    key: 'greenhouse', bosses: ['약초꾼 수도사 몰리', '온실지기 덩굴 골렘 칭칭이'], kind: 'dungeon', name: '역병 약초 온실', place: '왕도 지하 온실 · 역병 교단', stageLv: 13, unlockLv: 13, ready: true,
+    fights: () => DUNGEONS.greenhouse.segments, size: five,
+  },
+  // 던전 ㉓ (늪의 부족, 독)
+  {
+    key: 'reedvillage', bosses: ['늪 사냥꾼 카라', '진흙 정령 철벅이'], kind: 'dungeon', name: '갈대 오두막 마을', place: '늪지 마을 · 늪의 부족', stageLv: 18, unlockLv: 18, ready: true,
+    fights: () => DUNGEONS.reedvillage.segments, size: five,
+  },
+  // 던전 ㉔ (몰락한 귀족가, 저주)
+  {
+    key: 'perfumery', bosses: ['향수 조향사 라벤더', '공방 주인 마담 로즈'], kind: 'dungeon', name: '백합 향수 공방', place: '백합 영지 · 귀족가', stageLv: 23, unlockLv: 23, ready: true,
+    fights: () => DUNGEONS.perfumery.segments, size: five,
+  },
+  // 던전 ㉕ (폭주한 마도사, 마법)
+  {
+    key: 'snowlab', bosses: ['눈사람 조수 뽀득이', '서리 연구원 아이시아'], kind: 'dungeon', name: '눈꽃 연구소', place: '설원 · 마도사', stageLv: 28, unlockLv: 28, ready: true,
+    fights: () => DUNGEONS.snowlab.segments, size: five,
   },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인

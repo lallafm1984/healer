@@ -25,7 +25,8 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'platform' | 'pongpong88' | 'upsidehall' | 'pongpong' | 'boltlab' | 'dwijuk' | 'kwangkwang' | 'syungsyung' | 'eodugi'
   | 'geumeum' | 'silta' | 'bamgeuneul' | 'jilpung' | 'ureobal' | 'chilheuk' | 'carriagetrash' | 'serena92' | 'ballhall' | 'serena' | 'balcony' | 'valen'
   | 'janmul' | 'hwigami' | 'geomeun' | 'lanterntrash' | 'nokseul96'
-  | 'eongkim' | 'revlord' | 'abyssheart' | 'dawntrash' | 'heartshard100' | 'cracktrash' | 'nokseul' | 'coolroot' | 'lastshade';
+  | 'eongkim' | 'revlord' | 'abyssheart' | 'dawntrash' | 'heartshard100' | 'cracktrash' | 'nokseul' | 'coolroot' | 'lastshade'
+  | 'heaptrash' | 'kongkong5' | 'shaft' | 'kongkong' | 'railway' | 'gurit' | 'alleytrash' | 'molly10' | 'pothall' | 'molly' | 'mushbed' | 'chingching' | 'lilypads' | 'kara15' | 'reedfence' | 'kara' | 'mudpath' | 'cheolbeok' | 'fountainwalk' | 'lavender20' | 'bottlehall' | 'lavender' | 'stillroom' | 'rose' | 'iceholes' | 'ppodeuk25' | 'toolstore' | 'ppodeuk' | 'coldstore' | 'icia' | 'sheaves' | 'jipdan30';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -44,7 +45,8 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'pongpong88' | 'pongpong' | 'dwijuk' | 'kwangkwang' | 'syungsyung' | 'eodugi'
   | 'geumeum' | 'silta' | 'bamgeuneul' | 'jilpung' | 'ureobal' | 'chilheuk' | 'serena92' | 'serena' | 'valen'
   | 'janmul' | 'hwigami' | 'geomeun' | 'nokseul96'
-  | 'eongkim' | 'revlord' | 'abyssheart' | 'heartshard100' | 'nokseul' | 'lastshade';
+  | 'eongkim' | 'revlord' | 'abyssheart' | 'heartshard100' | 'nokseul' | 'lastshade'
+  | 'kongkong5' | 'kongkong' | 'gurit' | 'molly10' | 'molly' | 'chingching' | 'kara15' | 'kara' | 'cheolbeok' | 'lavender20' | 'lavender' | 'rose' | 'ppodeuk25' | 'ppodeuk' | 'icia' | 'jipdan30';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -905,6 +907,154 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     },
   ], { debuffs: HEAL4 }),
   lastshade: { key: 'lastshade', lowLevel: true, name: '마지막 그림자', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7600, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'lastshade', stage: 0.25, debuffs: ['마법', '저주', '질병'] },
+  // ---------- 묶음 H1 (62 2-1 · 3-1, Lv 5~30): 졸개는 그 세력 옛 졸개, 보스 체력 · 광폭화는 같은 레벨대 던전 줄 ----------
+  // 탐험 ㉖ 고철 더미 언덕 (Lv 5): 고철 졸개 ×2 + 잔해 투척병 → 곡괭이 골렘 콩콩이 (진동 맛보기)
+  heaptrash: trash('heaptrash', '고철 더미', [
+    { ...CHAFF, hp: 150, count: 2 },
+    { name: '잔해 투척병', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 70, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  kongkong5: { key: 'kongkong5', lowLevel: true, name: '곡괭이 골렘 콩콩이', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1600, enrage: 160, manaCoef: 1.0, diffs: ALL, script: 'kongkong5', stage: 0.3 },
+  // 던전 ㉑ 녹슨 광산 (Lv 8): 일반 무너진 갱도 입구 → 콩콩이 → 정예 광차 선로 → 광산 감독관 구릿빛
+  shaft: trash('shaft', '무너진 갱도 입구', [
+    { ...CHAFF, count: 3 },
+    { name: '잔해 투척병', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  kongkong: { key: 'kongkong', lowLevel: true, name: '곡괭이 골렘 콩콩이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 3000, enrage: 165, manaCoef: 1.0, diffs: ALL, script: 'kongkong', stage: 0.25 },
+  railway: trash('railway', '광차 선로', [
+    { ...CHAFF, count: 2 },
+    {
+      name: '광차 골렘', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'rush', name: '광차 들이받기', icon: '광차', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ]),
+  gurit: { key: 'gurit', lowLevel: true, name: '광산 감독관 구릿빛', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4800, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'gurit', stage: 0.25 },
+  // 탐험 ㉗ 잿빛 뒷골목 (Lv 10): 교단 신도 ×2 (부패) + 묘지 쥐떼 → 약초꾼 수도사 몰리 (질병 해제)
+  alleytrash: trash('alleytrash', '쓰레기 더미 골목', [
+    { name: '교단 신도', hp: 150, count: 2, attacks: [
+      { key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 },
+      { key: 'rot', name: '부패', icon: '부패', to: 'other', dmg: 0, first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '부패', type: '질병', left: 20, maxCut: 0.1, end: { p: 'restoreMax' } } } },
+    ] },
+    { name: '묘지 쥐떼', hp: 150, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 75, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['질병'] }),
+  molly10: { key: 'molly10', lowLevel: true, name: '약초꾼 수도사 몰리', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1900, enrage: 170, manaCoef: 1.0, diffs: ALL, script: 'molly10', stage: 0.3, debuffs: ['질병'] },
+  // 던전 ㉒ 역병 약초 온실 (Lv 13): 일반 곰팡이 화분 복도 → 몰리 → 정예 버섯 묘판 → 온실지기 덩굴 골렘 칭칭이
+  pothall: trash('pothall', '곰팡이 화분 복도', [
+    { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'bite', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  molly: { key: 'molly', lowLevel: true, name: '약초꾼 수도사 몰리', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 3600, enrage: 170, manaCoef: 1.0, diffs: ALL, script: 'molly', stage: 0.25, debuffs: ['질병'] },
+  mushbed: trash('mushbed', '버섯 묘판', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'rot', name: '부패', icon: '부패', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '부패', type: '질병', left: 20, maxCut: 0.1, end: { p: 'restoreMax' } } } },
+    ] },
+    {
+      name: '부리 가면 집행자', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'shout', name: '포자 외침', icon: '포자', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['질병'] }),
+  chingching: { key: 'chingching', lowLevel: true, name: '온실지기 덩굴 골렘 칭칭이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6200, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'chingching', stage: 0.25, debuffs: ['질병'] },
+  // 탐험 ㉘ 개구리 연못 (Lv 15): 늪 창병 ×2 + 독침 사냥꾼 → 늪 사냥꾼 카라 (독침)
+  lilypads: trash('lilypads', '연잎 징검다리', [
+    { name: '늪 창병', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '독침 사냥꾼', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'sting', name: '독침', icon: '독침', to: 'other', dmg: 0, first: 5, period: 10, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '독침', type: '독', left: 10, dot: 9, stackMax: 3 } } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['독'] }),
+  kara15: { key: 'kara15', lowLevel: true, name: '늪 사냥꾼 카라', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2000, enrage: 175, manaCoef: 1.0, diffs: ALL, script: 'kara15', stage: 0.3, debuffs: ['독'] },
+  // 던전 ㉓ 갈대 오두막 마을 (Lv 18): 일반 갈대 울타리 → 카라 → 정예 진흙 웅덩이 길 → 진흙 정령 철벅이
+  reedfence: trash('reedfence', '갈대 울타리', [
+    { name: '늪 창병', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  kara: { key: 'kara', lowLevel: true, name: '늪 사냥꾼 카라', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4000, enrage: 180, manaCoef: 1.0, diffs: ALL, script: 'kara', stage: 0.25, debuffs: ['독'] },
+  mudpath: trash('mudpath', '진흙 웅덩이 길', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '독침 사냥꾼', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'sting', name: '독침', icon: '독침', to: 'other', dmg: 0, first: 5, period: 10, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '독침', type: '독', left: 10, dot: 9, stackMax: 3 } } },
+    ] },
+    {
+      name: '독 혹 두꺼비', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'burst', name: '진흙 혹 터뜨리기', icon: '독혹', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['독'] }),
+  cheolbeok: { key: 'cheolbeok', lowLevel: true, name: '진흙 정령 철벅이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6600, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'cheolbeok', stage: 0.25, debuffs: ['독'] },
+  // 탐험 ㉙ 분수 정원 (Lv 20): 빈 갑옷 시종 ×2 + 유령 하녀 → 향수 조향사 라벤더 (받는 치유 −50% 저주)
+  fountainwalk: trash('fountainwalk', '분수대 산책로', [
+    { name: '빈 갑옷 시종', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '유령 하녀', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 75, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  lavender20: { key: 'lavender20', lowLevel: true, name: '향수 조향사 라벤더', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2300, enrage: 185, manaCoef: 1.0, diffs: ALL, script: 'lavender20', stage: 0.3, debuffs: ['저주'] },
+  // 던전 ㉔ 백합 향수 공방 (Lv 23): 일반 향수병 진열실 → 라벤더 → 정예 꽃잎 증류실 → 공방 주인 마담 로즈
+  bottlehall: trash('bottlehall', '향수병 진열실', [
+    { name: '빈 갑옷 시종', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '유령 하녀', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  lavender: { key: 'lavender', lowLevel: true, name: '향수 조향사 라벤더', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4500, enrage: 190, manaCoef: 1.0, diffs: ALL, script: 'lavender', stage: 0.25, debuffs: ['저주'] },
+  stillroom: trash('stillroom', '꽃잎 증류실', [
+    { name: '빈 갑옷 시종', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '검은 베일 조문객', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'veil', name: '검은 베일', icon: '베일', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '검은 베일', type: '저주', left: 12, healCut: 0.5 } } },
+    ] },
+    {
+      name: '유령 사냥개', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'howl', name: '울부짖음', icon: '울부', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['저주'] }),
+  rose: { key: 'rose', lowLevel: true, name: '공방 주인 마담 로즈', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6000, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'rose', stage: 0.25, debuffs: ['저주'] },
+  // 탐험 ㉚ 얼음 호수 낚시터 (Lv 25): 얼음 룬 인형 ×2 + 견습 마법사 → 눈사람 조수 뽀득이 (줄 피해)
+  iceholes: trash('iceholes', '얼음 구멍 줄', [
+    { name: '얼음 룬 인형', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '견습 마법사', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 75, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  ppodeuk25: { key: 'ppodeuk25', lowLevel: true, name: '눈사람 조수 뽀득이', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2400, enrage: 190, manaCoef: 1.0, diffs: ALL, script: 'ppodeuk25', stage: 0.3, debuffs: ['마법'] },
+  // 던전 ㉕ 눈꽃 연구소 (Lv 28): 일반 실험 도구 창고 → 뽀득이 → 정예 냉동 보관실 → 서리 연구원 아이시아
+  toolstore: trash('toolstore', '실험 도구 창고', [
+    { name: '얼음 룬 인형', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '견습 마법사', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  ppodeuk: { key: 'ppodeuk', lowLevel: true, name: '눈사람 조수 뽀득이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4800, enrage: 190, manaCoef: 1.0, diffs: ALL, script: 'ppodeuk', stage: 0.25, debuffs: ['마법'] },
+  coldstore: trash('coldstore', '냉동 보관실', [
+    { name: '얼음 룬 인형', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '떠도는 주술서', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'silence', name: '침묵', icon: '침묵', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '침묵', type: '마법', left: 6, noDps: true } } },
+    ] },
+    {
+      name: '서리 정령', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'burst', name: '냉기 폭발', icon: '냉기', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['마법'] }),
+  icia: { key: 'icia', lowLevel: true, name: '서리 연구원 아이시아', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6400, enrage: 240, manaCoef: 1.0, diffs: ALL, script: 'icia', stage: 0.25, debuffs: ['마법'] },
+  // 탐험 ㉛ 해바라기 수확밭 (Lv 30): 돌 수도사 ×2 + 길 잃은 순례자 (청소약) → 허수아비 기사 짚단 (보호막 분신)
+  sheaves: trash('sheaves', '이삭 더미 길', [
+    { name: '돌 수도사', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '길 잃은 순례자', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'soap', name: '엉뚱한 물약', icon: '물약', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: soaps(0.7) } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: HEAL4 }),
+  jipdan30: { key: 'jipdan30', lowLevel: true, name: '허수아비 기사 짚단', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1900, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'jipdan30', stage: 0.3, debuffs: HEAL4 },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */
