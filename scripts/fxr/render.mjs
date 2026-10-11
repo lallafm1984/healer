@@ -60,7 +60,7 @@ function segment(m, ax, ay, bx, by, ra, rb, va, vb, edge = 0) {
   for (let i = 0; i <= steps; i++) { const t = i / steps; stamp(m, ax + (bx - ax) * t, ay + (by - ay) * t, ra + (rb - ra) * t, va + (vb - va) * t, edge); }
 }
 /** 획 · 번개 가장자리 어둡기 (두 단 색) */
-const EDGE = 0.4;
+const EDGE = 0.25;
 
 // ── 생성 노드 ────────────────────────────────────────────────
 function shapeSdf(shape, px, py, r, p) {
