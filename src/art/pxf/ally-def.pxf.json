@@ -1,0 +1,557 @@
+{
+  "format": "pxf.graph@1",
+  "name": "파티원 방어 능력 강철 방패",
+  "settings": {
+    "size": 64,
+    "frames": 16,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "body",
+      "type": "Shape",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "shape": "circle",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              5,
+              "out3"
+            ],
+            [
+              1,
+              16,
+              "inout"
+            ],
+            [
+              3,
+              14,
+              "out"
+            ],
+            [
+              4,
+              13,
+              "out"
+            ],
+            [
+              5,
+              14,
+              "linear"
+            ],
+            [
+              8,
+              14,
+              "in"
+            ],
+            [
+              15,
+              11
+            ]
+          ]
+        },
+        "falloff": 0,
+        "intensity": 0.3
+      }
+    },
+    {
+      "id": "sheen",
+      "type": "Arc",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "x": 0.5,
+        "y": 0.5,
+        "radius": {
+          "k": [
+            [
+              0,
+              3.1,
+              "out3"
+            ],
+            [
+              1,
+              9.92,
+              "inout"
+            ],
+            [
+              3,
+              8.68,
+              "out"
+            ],
+            [
+              4,
+              8.06,
+              "out"
+            ],
+            [
+              5,
+              8.68,
+              "linear"
+            ],
+            [
+              8,
+              8.68,
+              "in"
+            ],
+            [
+              15,
+              6.82
+            ]
+          ]
+        },
+        "thick": 5,
+        "start": -200,
+        "sweep": 110,
+        "head": 1,
+        "tail": 1,
+        "taper": 0.4,
+        "aspect": 1,
+        "rot": 0,
+        "intensity": 0.75
+      }
+    },
+    {
+      "id": "edge",
+      "type": "Shape",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "shape": "ring",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              5,
+              "out3"
+            ],
+            [
+              1,
+              16,
+              "inout"
+            ],
+            [
+              3,
+              14,
+              "out"
+            ],
+            [
+              4,
+              13,
+              "out"
+            ],
+            [
+              5,
+              14,
+              "linear"
+            ],
+            [
+              8,
+              14,
+              "in"
+            ],
+            [
+              15,
+              11
+            ]
+          ]
+        },
+        "size2": 0.22,
+        "falloff": 0,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.95
+            ],
+            [
+              2,
+              0.95,
+              "linear"
+            ],
+            [
+              3,
+              0.7
+            ],
+            [
+              4,
+              0.95,
+              "linear"
+            ],
+            [
+              5,
+              0.7
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "boss",
+      "type": "Shape",
+      "x": 40,
+      "y": 520,
+      "params": {
+        "shape": "circle",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              0,
+              "out3"
+            ],
+            [
+              1,
+              4,
+              "inout"
+            ],
+            [
+              3,
+              3
+            ]
+          ]
+        },
+        "falloff": 0,
+        "intensity": 0.66
+      }
+    },
+    {
+      "id": "glint",
+      "type": "Shape",
+      "x": 40,
+      "y": 680,
+      "params": {
+        "shape": "star",
+        "x": 0.38,
+        "y": 0.36,
+        "points": 4,
+        "size2": 0.25,
+        "size": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              6,
+              "in"
+            ],
+            [
+              3,
+              0,
+              "linear"
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              5,
+              5,
+              "in"
+            ],
+            [
+              7,
+              0
+            ]
+          ]
+        },
+        "falloff": 0,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "wave",
+      "type": "Shape",
+      "x": 40,
+      "y": 840,
+      "params": {
+        "shape": "ring",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              14
+            ],
+            [
+              3,
+              14,
+              "out"
+            ],
+            [
+              11,
+              27
+            ]
+          ]
+        },
+        "size2": {
+          "k": [
+            [
+              0,
+              0.2
+            ],
+            [
+              3,
+              0.2,
+              "linear"
+            ],
+            [
+              11,
+              0.08
+            ]
+          ]
+        },
+        "falloff": 0,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              "linear"
+            ],
+            [
+              4,
+              0.78,
+              "linear"
+            ],
+            [
+              7,
+              0.6,
+              "in"
+            ],
+            [
+              10,
+              0.32,
+              "linear"
+            ],
+            [
+              11,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "b1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "b2",
+      "type": "Blend",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "b3",
+      "type": "Blend",
+      "x": 730,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "b4",
+      "type": "Blend",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "b5",
+      "type": "Blend",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#16204a",
+          "#34588f",
+          "#5b8fca",
+          "#a3d4f5",
+          "#effaff"
+        ],
+        "cutoff": 0.06,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 1880,
+      "y": 40,
+      "params": {
+        "color": "#0b1130",
+        "threshold": 0.5,
+        "width": 1,
+        "corners": false,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 2110,
+      "y": 40,
+      "params": {
+        "color": "#ffffff",
+        "amount": 0,
+        "bright": 1,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              8,
+              1,
+              "in"
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              15,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 2340,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "body",
+      "t": "b1",
+      "p": 0
+    },
+    {
+      "f": "sheen",
+      "t": "b1",
+      "p": 1
+    },
+    {
+      "f": "b1",
+      "t": "b2",
+      "p": 0
+    },
+    {
+      "f": "edge",
+      "t": "b2",
+      "p": 1
+    },
+    {
+      "f": "b2",
+      "t": "b3",
+      "p": 0
+    },
+    {
+      "f": "boss",
+      "t": "b3",
+      "p": 1
+    },
+    {
+      "f": "b3",
+      "t": "b4",
+      "p": 0
+    },
+    {
+      "f": "glint",
+      "t": "b4",
+      "p": 1
+    },
+    {
+      "f": "b4",
+      "t": "b5",
+      "p": 0
+    },
+    {
+      "f": "wave",
+      "t": "b5",
+      "p": 1
+    },
+    {
+      "f": "b5",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 1
+  }
+}
