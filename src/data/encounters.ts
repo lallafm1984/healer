@@ -1370,7 +1370,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       { key: 'hex', name: '폭풍 점괘', icon: '점괘', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: STORM_HEX } },
     ] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['저주', '마법'] }),
-  hwiparam82: { key: 'hwiparam82', lowLevel: true, name: '하피 교관 휘파람', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3000, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'hwiparam82', stage: 0.3, debuffs: ['저주'] },
+  hwiparam82: { key: 'hwiparam82', lowLevel: true, name: '하피 교관 휘파람', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2500, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'hwiparam82', stage: 0.3, debuffs: ['저주'] },
   // 던전 ㊱ 깃털단 비행 훈련장 (Lv 83): 일반 활공 연습장 → 하피 교관 휘파람 → 정예 바람 터널 → 바람 정령 회오리
   glideyard: trash('glideyard', '활공 연습장', [
     { name: '깃털 창병 하피', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
@@ -1396,7 +1396,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '바람 요정', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '천둥 숫양', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
-  hoeori86: { key: 'hoeori86', lowLevel: true, name: '바람 정령 회오리', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3100, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'hoeori86', stage: 0.3, debuffs: ['마법'] },
+  hoeori86: { key: 'hoeori86', lowLevel: true, name: '바람 정령 회오리', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2500, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'hoeori86', stage: 0.3, debuffs: ['마법'] },
   // 던전 ㊲ 구름 도서관 탑 (Lv 88): 일반 떠다니는 서가 → 날아다니는 책 펄럭이 (쫄 떼라 체력 −10%) → 정예 금서 계단 → 사서 유령 쉿
   floatshelf: trash('floatshelf', '떠다니는 서가', [
     { name: '구름 룬 인형', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
@@ -1423,7 +1423,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '빗자루 견습생', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '구름 룬 인형', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
-  swit90: { key: 'swit90', lowLevel: true, name: '사서 유령 쉿', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3100, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'swit90', stage: 0.3, debuffs: ['마법'] },
+  swit90: { key: 'swit90', lowLevel: true, name: '사서 유령 쉿', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2500, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'swit90', stage: 0.3, debuffs: ['마법'] },
   // 던전 ㊳ 가라앉은 장미 정원 (Lv 93): 일반 물에 잠긴 회랑 → 정원사 유령 가위손 → 정예 장미 미로 → 대공비 유령 로살린
   drownhall: trash('drownhall', '물에 잠긴 회랑', [
     { name: '물에 젖은 갑옷 시종', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
@@ -1450,7 +1450,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '물에 젖은 갑옷 시종', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '가라앉은 유령 하녀', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
-  gawison94: { key: 'gawison94', lowLevel: true, name: '정원사 유령 가위손', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3200, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'gawison94', stage: 0.3, debuffs: ['저주'] },
+  gawison94: { key: 'gawison94', lowLevel: true, name: '정원사 유령 가위손', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2600, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'gawison94', stage: 0.3, debuffs: ['저주'] },
   // 탐험 ㊿ 물빛 정원 (Lv 97): 그림자 기사 ×2 + 함정 술사 → 마지막 메아리 (탐험판)
   glowpond: trash('glowpond', '물빛 연못', [
     { name: '그림자 기사', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
@@ -1459,7 +1459,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       { key: 'hex', name: '그림자 주문', icon: '주문', to: 'other', dmg: 0, first: 5, period: 10, cast: 0, effect: { p: 'cycle', n: 1, debuffs: trapHex(0.7) } },
     ] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: HEAL4 }),
-  lastecho97: { key: 'lastecho97', lowLevel: true, name: '마지막 메아리', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3200, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'lastecho97', stage: 0.3 },
+  lastecho97: { key: 'lastecho97', lowLevel: true, name: '마지막 메아리', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2600, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'lastecho97', stage: 0.3 },
   // 던전 ㊴ 심연 정예 병영 (Lv 98): 일반 훈련 마당 → 그림자 훈련교관 칼날 → 정예 무기 창고 → 심연 쌍둥이 기사 흑 · 백 (몸 둘 = 3,600 × 2)
   drillyard: trash('drillyard', '훈련 마당', [
     { name: '그림자 기사', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
@@ -1485,7 +1485,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '그림자 기사', hp: 160, count: 1, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '그림자 석궁수', hp: 150, count: 2, attacks: [{ key: 'shot', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
-  kalnal98: { key: 'kalnal98', lowLevel: true, name: '그림자 훈련교관 칼날', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3200, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'kalnal98', stage: 0.3, debuffs: ['마법'] },
+  kalnal98: { key: 'kalnal98', lowLevel: true, name: '그림자 훈련교관 칼날', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2600, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'kalnal98', stage: 0.3, debuffs: ['마법'] },
   // 던전 ㊵ 별빛 수정 동굴 (Lv 99): 일반 수정 계단 → 수정 거인 반짝돌 → 정예 메아리 회랑 → 마지막 메아리
   crystalstair: trash('crystalstair', '수정 계단', [
     { name: '그림자 기사', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
@@ -1505,13 +1505,13 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
       ],
     },
   ], { debuffs: HEAL4 }),
-  lastecho: { key: 'lastecho', lowLevel: true, name: '마지막 메아리', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7200, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'lastecho', stage: 0.25, debuffs: HEAL4 },
+  lastecho: { key: 'lastecho', lowLevel: true, name: '마지막 메아리', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6800, enrage: 300, manaCoef: 1.0, diffs: ALL, script: 'lastecho', stage: 0.25, debuffs: HEAL4 },
   // 탐험 ㊾ 아침 햇살 언덕 (Lv 99): 돌 수도사 ×2 + 신전 돌거인 (정예 아님) → 수정 거인 반짝돌 (탐험판)
   sunpath: trash('sunpath', '햇살 언덕길', [
     { name: '돌 수도사', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '신전 돌거인', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
-  banjjak99: { key: 'banjjak99', lowLevel: true, name: '수정 거인 반짝돌', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 3300, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'banjjak99', stage: 0.3, debuffs: HEAL4 },
+  banjjak99: { key: 'banjjak99', lowLevel: true, name: '수정 거인 반짝돌', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2600, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'banjjak99', stage: 0.3, debuffs: HEAL4 },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */
