@@ -1,12 +1,11 @@
 /**
- * S02 로비 = 마을 광장 (30 0장, 시안 「30 · 로비 A」 Lobby30). 캐릭터 그림 없음.
- * 같은 2:3 무대의 하늘·원경·전경 레이어 위에 광장 물건 + 이름표:
- *  첨탑 = 10인 레이드 · 길드 회관(길드를 빼 두면 이름표 없음) · 잡화점(골드 상점) · 모래시계 석상 = 주간 도전 · 임무 게시판(받을 것 있으면 노란 「!」) · 일일 상자.
- * 왼쪽 위 목표 추적 (레이드 문 앞이면 체크 목록), 아래 줄 = 「다시」 메달 · 「출전」 · 「시즌 패스」 메달.
- * 받기·열기는 그 자리에서 (게시판 「!」 = 임무 한 번에 받기, 상자 = 열기). 튜토리얼 중엔 목표 추적 + 출전 + 안내만.
- * 건물 이름표·광장 물건은 그림 비율 2:3 「무대」 안에 %로 → 화면 크기가 달라도 같은 지점을 가리킴.
+ * S02 로비 = 마을 (30 0장 → 2026-10-11 전투 Sunforged 기준 코덱스 로비 시안). 캐릭터 그림 없음.
+ * 위 정보창(공통 topBar) 아래 ~ 하단 탭 위가 살아 있는 마을 장면 (village.ts). 그 위에 전투 부품으로 만든 메뉴:
+ *  왼쪽 원형 소켓 = 임무 (받을 것 있으면 노란 「!」 = 한 번에 받기) · 주간 도전 · 일일 상자,
+ *  오른쪽 황동 패널 = 첨탑 (10인 레이드) · 길드 회관 (길드를 빼 두면 없음) · 잡화점, 그 아래 원형 소켓 = 「다시」 (지난 판),
+ *  아래 황동·가죽 패널 = 다음 목표 (레이드 문 앞이면 체크 목록) + 「출전」 + 시즌 패스.
+ * 받기·열기는 그 자리에서. 튜토리얼 중엔 다음 목표 + 출전 + 안내만.
  */
-import { art } from '../art';
 import { CONTENT, contentOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { ITEM_GRADES, RECOMMENDED, SLOTS, type ItemGrade } from '../data/equipment';
@@ -14,7 +13,6 @@ import { CHAL } from '../data/challenge';
 import { PASS_LEVELS, SHARD_MAX } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { guildCap } from '../data/guild';
-import { CONTENT_PLACE, PLACES } from '../data/places';
 import { nextMilestone } from '../data/progression';
 import { weekRemaining } from '../game/clock';
 import { chestState, claimChalChest, claimChest, claimMission, missionReady, passLevel } from '../game/economy';
@@ -24,56 +22,23 @@ import { chalGate } from '../game/runmode';
 import { commit, firstDungeonNow, G, lockOf, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { esc, go, screen, topBar } from './kit';
-import { factionMark, gameIcon } from './art';
+import { gameIcon, uiIcon } from './art';
 import { gainText } from './shop';
+import { mountVillage } from './village';
 
-// ---------- 광장 물건 임시 그림 (시안 Lobby30 선그림. obj-board · obj-hourglass · obj-chest가 오면 그 그림) ----------
-const BOARD_SVG = `<svg viewBox="0 0 112 124" aria-hidden="true"><g stroke="#0E0E15" stroke-width="3" stroke-linejoin="round"><rect x="14" y="24" width="9" height="98" fill="#5A3B22"/><rect x="89" y="24" width="9" height="98" fill="#5A3B22"/><path d="M2 30L56 6L110 30Z" fill="#7A2E22"/><rect x="8" y="32" width="96" height="64" rx="2" fill="#8A6038"/><rect x="15" y="38" width="26" height="32" fill="#EADFC0" transform="rotate(-5 28 54)"/><rect x="45" y="40" width="22" height="26" fill="#EADFC0" transform="rotate(4 56 53)"/><rect x="71" y="37" width="26" height="34" fill="#EADFC0" transform="rotate(-2 84 54)"/><rect x="30" y="72" width="34" height="18" fill="#EADFC0" transform="rotate(2 47 81)"/></g><g stroke="#8A7A5A" stroke-width="1.6" stroke-linecap="round"><path d="M20 48h15M20 54h13M20 60h15"/><path d="M76 47h16M76 53h14M76 59h16"/><path d="M36 80h22"/></g><circle cx="28" cy="41" r="3" fill="#C8281E" stroke="#0E0E15" stroke-width="1.5"/><circle cx="56" cy="43" r="3" fill="#C8281E" stroke="#0E0E15" stroke-width="1.5"/><circle cx="84" cy="40" r="3" fill="#C8281E" stroke="#0E0E15" stroke-width="1.5"/><path d="M50 54l6-6 6 6-6 6z" fill="#FFD34D" stroke="#0E0E15" stroke-width="1.5"/></svg>`;
-const HOURGLASS_SVG = `<svg viewBox="0 0 64 102" aria-hidden="true"><g stroke="#0E0E15" stroke-width="3" stroke-linejoin="round"><rect x="6" y="80" width="52" height="19" fill="#5E5A52"/><rect x="13" y="71" width="38" height="11" fill="#7C766C"/><path d="M18 14h28c0 16-11 19-11 25s11 9 11 25H18c0-16 11-19 11-25s-11-9-11-25z" fill="#CFE0F2" fill-opacity="0.35"/><rect x="10" y="7" width="44" height="8" rx="2" fill="#C9A35C"/><rect x="10" y="63" width="44" height="8" rx="2" fill="#C9A35C"/></g><path d="M22 61h20l-10-11z" fill="#E2C27A"/><path d="M24 18h16l-8 11z" fill="#E2C27A"/><path d="M32 30v20" stroke="#E2C27A" stroke-width="1.5"/><path d="M20 89h24" stroke="#3E3A34" stroke-width="2"/></svg>`;
-const CHEST_SVG = `<svg viewBox="0 0 84 70" aria-hidden="true"><g stroke="#0E0E15" stroke-width="3" stroke-linejoin="round"><rect x="6" y="30" width="72" height="36" rx="3" fill="#7A4A26"/><path d="M6 32c0-16 12-26 36-26s36 10 36 26z" fill="#93602F"/><rect x="18" y="12" width="9" height="54" fill="#D9A84A"/><rect x="57" y="12" width="9" height="54" fill="#D9A84A"/><rect x="35" y="24" width="14" height="18" rx="2" fill="#F2C75A"/></g><circle cx="42" cy="32" r="2.6" fill="#3A2410"/><path d="M76 2l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#FFE7A0"/><path d="M6 6l1.4 3.6 3.6 1.4-3.6 1.4L6 16l-1.4-3.6L1 11l3.6-1.4z" fill="#FFE7A0"/></svg>`;
-// 메달 선 아이콘 (icon-replay · icon-pass가 오면 그 그림)
+// 소켓 선 아이콘 (icon-replay · icon-pass 그림이 없을 때)
 const REPLAY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v5h5"/></svg>';
 const PASS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4h11l-2 4 2 4H6"/></svg>';
 
-/** 별은 고정 좌표에서 밝기만 변화. 재렌더 때 위치가 바뀌지 않도록 난수를 쓰지 않는다. */
-function skyStars(): string {
-  const stars = [
-    [18, 5, 1, 6.2, -2.1], [41, 4, 1, 5.4, -4.2], [67, 8, 1.3, 6.8, -1.8],
-    [87, 12, 1, 5.8, -3.6], [29, 13, 1, 6.6, -5.3], [53, 16, 1.3, 5.2, -1.1],
-    [74, 18, 1, 6.4, -4.8], [38, 21, 1, 5.6, -2.7], [61, 24, 1.5, 6.9, -5.7],
-    [83, 27, 1, 5.3, -1.9], [24, 29, 1, 6.1, -4.3], [47, 32, 1.3, 5.7, -3.1],
-    [70, 34, 1, 6.7, -2.4], [33, 36, 1, 5.1, -4.1], [56, 39, 1.3, 6.3, -1.4],
-    [79, 41, 1, 5.9, -3.8], [45, 10, 1, 6.5, -5.9], [64, 30, 1, 5.5, -2.9],
-    [21, 19, 1, 6.8, -3.4], [57, 7, 1, 5.4, -1.6], [49, 26, 1, 6.6, -4.7],
-    [73, 11, 1, 5.8, -2.2], [35, 28, 1.3, 6.2, -5.1], [59, 35, 1, 5.6, -3.3],
-  ];
-  return `<div class="lb-stars">${stars.map(([x, y, size, duration, delay]) =>
-    `<span class="lb-star" style="left:${x}%;top:${y}%;--star-size:${size}px;--star-duration:${duration}s;--star-delay:${delay}s"></span>`).join('')}</div>`;
-}
-
-/** 남색 하늘 → 작은 별 → 흐르는 구름 순서. 구름 준비 전에는 기존 하늘 그림 유지. */
-function sceneLayers(): string {
-  const clouds = art('scene-lobby-clouds-v3'), sky = art('scene-lobby-sky-v2');
-  const images = (['landscape', 'foreground'] as const).map(layer => ({ layer, src: art(`scene-lobby-${layer}-v2`) }));
-  if ((!clouds && !sky) || images.some(image => !image.src)) return '';
-  const skyLayer = clouds
-    ? `<div class="lb-layer lb-layer-sky">${skyStars()}<div class="lb-cloud-track">${[0, 1].map(() => `<img class="lb-cloud-tile" src="${esc(clouds)}" width="2160" height="720" alt="" decoding="async" draggable="false">`).join('')}</div></div>`
-    : `<img class="lb-layer lb-layer-sky" src="${esc(sky)}" width="1024" height="1536" alt="" decoding="async" draggable="false">`;
-  return `<div class="lb-layers" aria-hidden="true">${skyLayer}${images.map(({ layer, src }) => `<img class="lb-layer lb-layer-${layer}" src="${esc(src)}" width="1024" height="1536" alt="" decoding="async" draggable="false">`).join('')}</div>`;
-}
-
-/** 바닥 접점에 맞춘 새 소품. 없으면 기존 그림·선그림 순으로 대체. */
-function propArt(name: 'board' | 'hourglass' | 'chest', fallback: string): string {
-  const v3 = art(`obj-${name}-v3`), src = v3 || art(`obj-${name}-v2`);
-  return src
-    ? `<img class="g-ic ${v3 ? 'lb-prop-v3' : 'lb-prop-v2'}" src="${esc(src)}" alt="" decoding="async" draggable="false">`
-    : gameIcon(name, fallback, 'obj');
-}
-
 const st = { msg: '' };
 
-/** 목표 한 줄: prog = 진행 n/m, to = 누르면 그 콘텐츠의 편성 화면 */
-interface Goal { text: string; prog: string; to?: { content: ContentKey; diff: DiffName } }
+/**
+ * 목표 한 줄. title = 큰 제목 (장소 이름 · Lv n), tag = 난이도 표, sub = 설명, prog = 진행 n/m,
+ * to = 누르면 그 콘텐츠의 편성 화면
+ */
+interface Goal { title: string; tag?: DiffName; sub: string; prog: string; to?: { content: ContentKey; diff: DiffName } }
+/** 목표 한 줄 글 (aria · 두 번째 줄) */
+const goalText = (g: Goal) => `${g.title}${g.tag ? ` · ${g.tag}` : ''}${g.sub && !g.tag ? ` · ${g.sub}` : ''}`;
 
 /** 아직 한 번도 안 깬 열린 장소 (탐험 · 던전, 낮은 레벨부터, 34 5-2). 첫 던전 녹슨 요새는 쉬움, 나머지는 보통 */
 function freshPlace(): { content: ContentKey; diff: DiffName } | null {
@@ -87,23 +52,26 @@ function goals(): Goal[] {
   const out: Goal[] = [];
   const rec = G.save.clears.rustfort, lvNow = G.save.player.level;
   const fresh = freshPlace();
-  if (fresh) out.push({ text: `${contentOf(fresh.content).name} 「${fresh.diff}」 클리어`, prog: '0/1', to: fresh });
+  if (fresh) out.push({ title: contentOf(fresh.content).name, tag: fresh.diff, sub: '클리어', prog: '0/1', to: fresh });
   const diff = rec && (['보통', '어려움', '악몽'] as const).find(d => !rec[d]);
-  if (diff) out.push({ text: `녹슨 요새 「${diff}」 클리어`, prog: '0/1', to: { content: 'rustfort', diff } });
+  if (diff) out.push({ title: '녹슨 요새', tag: diff, sub: '클리어', prog: '0/1', to: { content: 'rustfort', diff } });
   let lv = lvNow;
   for (let i = 0; i < 20; i++) {
     const m = nextMilestone(lv);
     if (!m) break;
     const live = m.items.filter(x => x.live);
-    // 괄호 설명은 빼고 첫 항목만 (목표 추적 칸이 좁음)
-    if (live.length) { out.push({ text: `Lv ${m.level} · ${live[0].text.replace(/\s*\(.*\)\s*$/, '')}`, prog: `${lvNow}/${m.level}` }); break; }
+    // 괄호 설명은 빼고 첫 항목만 (목표 칸이 좁음)
+    if (live.length) { out.push({ title: `Lv ${m.level}`, sub: live[0].text.replace(/\s*\(.*\)\s*$/, ''), prog: `${lvNow}/${m.level}` }); break; }
     lv = m.level;
   }
   return out.slice(0, 2);
 }
 
-/** 권장 장비 (편성 화면 경고와 같은 값) — 목표 줄 aria 설명용 */
+/** 권장 장비 (편성 화면 경고와 같은 값) — 목표 aria 설명용 */
 const recLabel = (d: DiffName) => (RECOMMENDED[d] ? ` · 권장 ${RECOMMENDED[d]!.label}` : '');
+
+/** 목표 칸 머리: 던전 그림 + 「다음 목표」 */
+const trkHead = () => `<span class="trk-h">${gameIcon('dungeon', uiIcon('battle'))}<span>다음 목표</span></span>`;
 
 /**
  * 레이드 문 (18 3-3): 레벨이 가까워지면 남은 조건을 체크 목록으로. 길드원 수는 그 전 레벨에서 둘 수 있는 최대 (6명·12명), 길드를 빼 두면 그 줄 없음.
@@ -113,7 +81,7 @@ const GATES: { lv: number; from: number; name: string; grade: ItemGrade }[] = [
   { lv: 35, from: 25, name: '심연의 탑', grade: '희귀' },
   { lv: 70, from: 55, name: '가라앉은 대성당', grade: '영웅' },
 ];
-/** 레이드 문 시기면 목표 추적 = 체크 목록. 누르면 아직 안 된 첫 줄의 화면 (길드·캐릭터) */
+/** 레이드 문 시기면 목표 칸 = 체크 목록. 누르면 아직 안 된 첫 줄의 화면 (길드·캐릭터) */
 function gateTracker(): string {
   const lv = G.save.player.level;
   const g = GATES.find(x => lv >= x.from && lv < x.lv);
@@ -127,22 +95,26 @@ function gateTracker(): string {
     [gear >= SLOTS.length, `장비 ${g.grade} 이상`, `${gear} / ${SLOTS.length} 부위`, 's-char'],
   ];
   const to = rows.find(r => !r[0] && r[3])?.[3];
-  const inner = `<span class="trk-h">다음 목표</span><span class="trk-sub">${g.name} · Lv ${g.lv}</span>
+  const inner = `${trkHead()}<span class="trk-tl"><strong class="trk-t">${g.name}</strong><small>Lv ${g.lv}</small></span>
     ${rows.map(([ok, k, v]) => `<span class="obj${ok ? ' ok' : ''}"><i></i><span>${k}</span><small>${v}</small></span>`).join('')}`;
   return to
     ? `<button type="button" class="lb-trk gate" data-go="${to}"${to === 's-char' ? ' data-arg="gear"' : ''}>${inner}</button>`
     : `<div class="lb-trk gate">${inner}</div>`;
 }
 
-/** 왼쪽 위 목표 추적 (마름모 줄 2개). 누르면 첫 목적지 편성 화면 */
+/** 다음 목표 칸: 첫 목표 = 큰 제목 + 난이도 표 + 진행, 둘째 목표 = 흐린 한 줄. 누르면 첫 목적지 편성 화면 */
 function tracker(): string {
   const gate = gateTracker();
   if (gate) return gate;
   const gs = goals(), to = gs.findIndex(g => g.to);
-  const inner = `<span class="trk-h">다음 목표</span>
-    ${gs.map((g, i) => `<span class="obj${i ? ' dim' : ' cur'}"><i></i><span>${esc(g.to ? g.text.replace(/「([^」]+)」 클리어$/, '· $1') : g.text)}</span><small>${g.prog}</small></span>`).join('')}`;
+  const [first, ...rest] = gs;
+  const main = first
+    ? `<strong class="trk-t">${esc(first.title)}</strong>
+      <span class="trk-lv">${first.tag ? `<span class="trk-diff">${esc(first.tag)}</span>` : ''}<span class="trk-sub">${esc(first.sub)}</span><small>${first.prog}</small></span>`
+    : '<strong class="trk-t">마을 정비</strong>';
+  const inner = `${trkHead()}${main}${rest.map(g => `<span class="obj dim"><i></i><span>${esc(goalText(g))}</span><small>${g.prog}</small></span>`).join('')}`;
   return to >= 0
-    ? `<button type="button" class="lb-trk" data-goal="${to}" aria-label="다음 목표: ${esc(gs[to].text)}${recLabel(gs[to].to!.diff)}">${inner}</button>`
+    ? `<button type="button" class="lb-trk" data-goal="${to}" aria-label="다음 목표: ${esc(goalText(gs[to]))}${recLabel(gs[to].to!.diff)}">${inner}</button>`
     : `<div class="lb-trk">${inner}</div>`;
 }
 
@@ -165,60 +137,65 @@ function toParty(to: { content: ContentKey; diff: DiffName }): void {
   go('s-party');
 }
 
-/** 그림 위 건물 이름표 (무대 안 %): 첨탑 = 10인 레이드, 길드 회관 (길드를 빼 두면 없음), 잡화점 */
-function buildings(): string {
-  const s = G.save;
-  const raid = contentOf('abyss1'), raidLock = lockOf(raid).locked;
-  const gOpen = guildOpen(s), apps = (s.guild.post?.cands.length || 0) + s.guild.scouts.length;
-  const gLine = !gOpen.ok ? gOpen.why : apps ? `지원자 ${apps}명` : `길드원 ${s.guild.members.length}/${capOf(s).cap}`;
-  return `<button type="button" class="g-plate pr lb-raid${raidLock ? ' lock' : ''}" data-go="s-content" data-arg="raid10"><b>첨탑</b>${raidLock ? `<span>10인 레이드</span><span>Lv ${raid.unlockLv}에 열림</span>` : `<span>10인 레이드 · 열쇠 ${s.wallet.shards}/${SHARD_MAX}</span>`}</button>
-    ${FEATURES.guild ? `<button type="button" class="g-plate lb-guild${gOpen.ok ? '' : ' lock'}" data-go="s-guild"><b>길드 회관</b><span>${esc(gLine)}</span>${gOpen.ok && apps ? `<i class="g-badge">${apps}</i>` : ''}</button>` : ''}
-    <button type="button" class="g-plate lb-shop" data-go="s-shop" data-arg="gold"><b>잡화점</b><span>골드 상점</span></button>`;
+/** 원형 소켓 바로가기: 전투 스킬 칸과 같은 spell-socket 안에 그림, 아래 이름 + 짧은 상태 */
+function socket(cls: string, attrs: string, icon: string, name: string, sub: string, extra = ''): string {
+  return `<div class="lb-sc ${cls}"><button type="button" class="lb-main"${attrs}><span class="lb-sock">${icon}</span><b>${name}</b>${sub ? `<small>${sub}</small>` : ''}</button>${extra}</div>`;
 }
 
-/** 광장 물건 (전경과 같은 무대 좌표): 모래시계 석상 = 주간 도전, 임무 게시판, 일일 상자 */
-function square(): string {
+/** 왼쪽 소켓: 임무 · 주간 도전 · 일일 상자 */
+function shortcuts(): string {
   const s = G.save, d = s.daily, w = s.weekly;
-  // 주간 도전: 이번 주 남은 날 (잠기면 해금 레벨). 도전 상자가 있으면 이름표 = 받기
-  const cg = chalGate(s), left = weekRemaining();
-  const chal = s.chalChest
-    ? `<span class="g-qm" aria-hidden="true">!</span><button type="button" class="lb-art" data-act="chal" aria-label="주간 도전 상자 받기">${propArt('hourglass', HOURGLASS_SVG)}</button>
-      <button type="button" class="g-plate" id="lbChal"><b>주간 도전</b><span>상자 받기</span><i class="g-badge">!</i></button>`
-    : `<button type="button" class="lb-art" data-go="s-content" data-arg="dungeon" tabindex="-1" aria-hidden="true">${propArt('hourglass', HOURGLASS_SVG)}</button>
-      <button type="button" class="g-plate${cg.ok ? '' : ' lock'}" data-go="s-content" data-arg="dungeon" aria-label="주간 도전 · ${esc(CHAL.name)} · ${cg.ok ? `${left} 남음` : `Lv ${cg.lv}에 열림`}"><b>주간 도전</b><span>${cg.ok ? `${left} 남음` : `Lv ${cg.lv}에 열림`}</span></button>`;
-  // 임무: 받을 것이 있으면 게시판 위 노란 「!」 + 이름표 빨간 숫자. 게시판을 누르면 한 번에 받기, 이름표는 임무 화면
+  // 임무: 받을 것이 있으면 소켓 위 노란 「!」 (= 한 번에 받기) + 빨간 숫자. 소켓은 임무 화면
   const dGot = d.missions.filter(m => m.got).length, wGot = w.missions.filter(m => m.got).length;
   const ready = d.missions.filter(missionReady).length + w.missions.filter(missionReady).length;
   const mLine = `일일 ${dGot}/${d.missions.length}${w.missions.length ? ` · 주간 ${wGot}/${w.missions.length}` : ''}`;
-  const board = ready
-    ? `<span class="g-qm" aria-hidden="true">!</span><button type="button" class="lb-art" id="lbClaim" aria-label="임무 보상 ${ready}개 받기">${propArt('board', BOARD_SVG)}</button>`
-    : `<button type="button" class="lb-art" data-go="s-missions" tabindex="-1" aria-hidden="true">${propArt('board', BOARD_SVG)}</button>`;
-  // 일일 상자: 열 수 있으면 「열기」와 배지
-  const ch = chestState(s), open = ch.today || ch.banked > 0;
-  // 닫혀 있으면 여는 조건 진행 (임무 n/5 받음) 또는 「내일 다시」. 이름표가 좁아서 짧게
-  const cLine = open ? `열기${ch.banked ? ` · ${ch.banked}일 쌓임` : ''}` : d.chest ? '내일 다시' : `임무 ${dGot}/${d.missions.length}`;
+  const missions = socket(`lb-missions${ready ? ' hot' : ''}`, ` data-go="s-missions" aria-label="임무 · ${mLine}${ready ? ` · 받을 보상 ${ready}` : ''}"`,
+    gameIcon('mission', uiIcon('quest')), '임무', `일일 ${dGot}/${d.missions.length}`,
+    ready ? `<i class="g-badge" aria-hidden="true">${ready}</i><button type="button" class="lb-claim" id="lbClaim" aria-label="임무 보상 ${ready}개 받기"><span class="g-qm" aria-hidden="true">!</span></button>` : '');
+  // 주간 도전: 이번 주 남은 날 (잠기면 해금 레벨). 도전 상자가 있으면 소켓 = 받기
+  const cg = chalGate(s), left = weekRemaining();
+  const chalIcon = gameIcon('challenge', uiIcon('hourglass'));
+  const chal = s.chalChest
+    ? socket('lb-chal hot', ' id="lbChal" aria-label="주간 도전 상자 받기"', chalIcon, '주간 도전', '상자 받기', '<i class="g-badge" aria-hidden="true">!</i>')
+    : socket(`lb-chal${cg.ok ? '' : ' off'}`, ` data-go="s-content" data-arg="dungeon" aria-label="주간 도전 · ${esc(CHAL.name)} · ${cg.ok ? `${left} 남음` : `Lv ${cg.lv}에 열림`}"`,
+      chalIcon, '주간 도전', cg.ok ? `${left} 남음` : `Lv ${cg.lv}`);
+  // 일일 상자: 열 수 있으면 소켓 = 열기 (쌓인 날이 있으면 개수). 닫혀 있으면 여는 조건 진행 (임무 n/5 받음) 또는 「내일 다시」
+  const ch = chestState(s), open = ch.today || ch.banked > 0, n = (ch.today ? 1 : 0) + ch.banked;
+  const chestIcon = gameIcon('chest', uiIcon('chest'));
   const chest = open
-    ? `<button type="button" class="lb-art" data-act="chest" tabindex="-1" aria-hidden="true">${propArt('chest', CHEST_SVG)}</button>
-      <button type="button" class="g-plate" id="lbChest"><b>일일 상자</b><span>${cLine}</span><i class="g-badge">!</i></button>`
-    : `<button type="button" class="lb-art" data-go="s-missions" tabindex="-1" aria-hidden="true">${propArt('chest', CHEST_SVG)}</button>
-      <button type="button" class="g-plate lock" data-go="s-missions"><b>일일 상자</b><span>${cLine}</span></button>`;
-  return `<div class="lb-obj lb-chal${cg.ok ? '' : ' off'}">${chal}</div>
-    <div class="lb-obj lb-board lb-missions">${board}<button type="button" class="g-plate lb-rmain" data-go="s-missions"><b>임무</b><span>${mLine}</span>${ready ? `<i class="g-badge">${ready}</i>` : ''}</button></div>
-    <div class="lb-obj lb-chest${open ? '' : ' off'}">${chest}</div>`;
+    ? socket('lb-chest hot', ` id="lbChest" aria-label="일일 상자 열기${n > 1 ? ` · ${n}개` : ''}"`, chestIcon, '일일 상자', n > 1 ? `열기 ×${n}` : '열기', '<i class="g-badge" aria-hidden="true">!</i>')
+    : socket('lb-chest off', ' data-go="s-missions"', chestIcon, '일일 상자', d.chest ? '내일 다시' : `임무 ${dGot}/${d.missions.length}`);
+  return `<nav class="lb-side lb-left" aria-label="마을 바로가기">${missions}${chal}${chest}</nav>`;
 }
 
-/** 아래 줄: 「다시」 메달 (지난 판) · 「출전」 · 「시즌 패스」 메달 */
-function dock(tutDone: boolean): string {
-  const to = dest(), c = contentOf(to.content), f = PLACES[CONTENT_PLACE[to.content]].faction;
-  const cta = `<button type="button" class="g-cta lb-cta${firstDungeonNow() ? ' hi-pulse' : ''}" id="lobbyStart" aria-label="출전 · ${esc(c.name)} ${esc(to.diff)}"><span class="g-mk">${factionMark(f)}</span><span class="g-ct"><b>출전</b><small>${esc(c.name)} · ${esc(to.diff)}</small></span></button>`;
-  if (!tutDone) return cta;
-  const last = G.save.last, lastC = last ? contentOf(last.content as ContentKey) : null;
+/** 오른쪽 황동 패널: 첨탑 = 10인 레이드, 길드 회관 (길드를 빼 두면 없음), 잡화점. 아래 「다시」 소켓 */
+function buildings(): string {
+  const s = G.save;
+  const raid = contentOf('abyss1'), raidLock = lockOf(raid).locked;
+  const plate = (cls: string, attrs: string, icon: string, name: string, sub: string, extra = '') =>
+    `<button type="button" class="lb-plate ${cls}"${attrs}>${icon}<span class="lb-pt"><b>${name}</b><span>${sub}</span></span>${extra}</button>`;
+  const gOpen = guildOpen(s), apps = (s.guild.post?.cands.length || 0) + s.guild.scouts.length;
+  const gLine = !gOpen.ok ? gOpen.why : apps ? `지원자 ${apps}명` : `길드원 ${s.guild.members.length}/${capOf(s).cap}`;
+  const plates = plate(`lb-raid${raidLock ? ' lock' : ''}`, ' data-go="s-content" data-arg="raid10"', gameIcon('raid', uiIcon('star')), '첨탑',
+    raidLock ? `10인 레이드 · Lv ${raid.unlockLv}에 열림` : `10인 레이드 · 열쇠 ${s.wallet.shards}/${SHARD_MAX}`)
+    + (FEATURES.guild ? plate(`lb-guild${gOpen.ok ? '' : ' lock'}`, ' data-go="s-guild"', gameIcon('guild', uiIcon('guild'), 'tab'), '길드 회관', esc(gLine), gOpen.ok && apps ? `<i class="g-badge">${apps}</i>` : '') : '')
+    + plate('lb-shop', ' data-go="s-shop" data-arg="gold"', gameIcon('shop', uiIcon('shop'), 'tab'), '잡화점', '골드 상점');
+  const last = s.last, lastC = last ? contentOf(last.content as ContentKey) : null;
   const again = last && lastC
-    ? `<button type="button" class="g-med lb-again" id="lbAgain" aria-label="다시 · ${esc(lastC.name)} ${esc(last.diff)}"><span class="g-ring">${gameIcon('replay', REPLAY_SVG)}</span><span class="g-lb">다시${last.win ? ` · ${esc(last.grade || '클리어')}` : ''}</span></button>`
+    ? socket('lb-again', ` id="lbAgain" aria-label="다시 · ${esc(lastC.name)} ${esc(last.diff)}"`, gameIcon('replay', REPLAY_SVG), '다시', last.win ? esc(last.grade || '클리어') : esc(last.diff))
     : '';
+  return `<div class="lb-side lb-right">${plates}${again ? `<span class="lb-fill"></span>${again}` : ''}</div>`;
+}
+
+/** 아래 패널: 다음 목표 칸 + 「출전」 (지난 판 → 안 깬 장소) + 시즌 패스 */
+function journey(tutDone: boolean): string {
+  const to = dest(), c = contentOf(to.content);
+  const cta = `<button type="button" class="lb-cta${firstDungeonNow() ? ' hi-pulse' : ''}" id="lobbyStart" aria-label="출전 · ${esc(c.name)} ${esc(to.diff)}">${gameIcon('battle', uiIcon('battle'), 'tab')}<b>출전</b><small>${esc(c.name)} · ${esc(to.diff)}</small></button>`;
   const plv = Math.min(PASS_LEVELS, passLevel(G.save.pass.xp));
-  const pass = `<button type="button" class="g-med lb-pass" data-go="s-shop" data-arg="pass" aria-label="시즌 패스 ${plv} / ${PASS_LEVELS}"><span class="g-ring">${gameIcon('pass', PASS_SVG)}</span><span class="g-lb">패스 ${plv}</span><span class="g-pbar"><i style="width:${((plv / PASS_LEVELS) * 100).toFixed(0)}%"></i></span></button>`;
-  return again + cta + pass;
+  const pass = tutDone
+    ? `<button type="button" class="lb-pass" data-go="s-shop" data-arg="pass" aria-label="시즌 패스 ${plv} / ${PASS_LEVELS}">${gameIcon('pass', PASS_SVG)}<span>패스 ${plv}</span></button>`
+    : '';
+  return `<div class="lb-journey">${tracker()}<div class="lb-go">${cta}${pass}</div></div>`;
 }
 
 const s = screen('s-lobby', '로비', {
@@ -226,31 +203,22 @@ const s = screen('s-lobby', '로비', {
   enter() { refreshDay(); render(); },
 });
 
-/** 화면 전환은 [hidden]으로, 백그라운드 탭은 문서 상태로 CSS 애니메이션만 일시정지. */
-function syncSceneMotion(): void {
-  s.el.classList.toggle('lb-motion-paused', document.hidden);
-}
-document.addEventListener('visibilitychange', syncSceneMotion);
-syncSceneMotion();
-
 function render(): void {
-  // 보상 수령으로 DOM을 다시 그려도 구름이 오른쪽 처음 위치로 튀지 않게 진행 시간 유지.
-  const cloudTime = s.el.querySelector('.lb-cloud-track')?.getAnimations()[0]?.currentTime;
   const tutDone = G.save.tut >= TUT.done;
-  const layers = sceneLayers();
   s.el.innerHTML = `${topBar({ settings: true })}
     <div class="ns-body lb30${tutDone ? '' : ' tut'}">
       <div class="lb-world">
-        <div class="lb-stage${layers ? ' has-layers' : ''}"><div class="lb-canvas">${layers}${tutDone ? square() : ''}</div>${tutDone ? buildings() : ''}</div>
-        <div class="lb-shade" aria-hidden="true"></div>
-        ${tracker()}
-        ${dock(tutDone)}
-        ${firstDungeonNow() ? '<p class="coachtip lb-coach">첫 던전 <b>녹슨 요새</b>가 열림. 「출전」 누르기</p>' : ''}
+        <div class="lb-stage"></div>
+        <div class="lb-ui">
+          <div class="lb-mid">${tutDone ? shortcuts() + buildings() : ''}</div>
+          ${firstDungeonNow() ? '<p class="coachtip lb-coach">첫 던전 <b>녹슨 요새</b>가 열림. 「출전」 누르기</p>' : ''}
+          ${journey(tutDone)}
+        </div>
         ${st.msg ? `<p class="warnbox lb-msg" role="status">${esc(st.msg)}</p>` : ''}
       </div>
     </div>`;
-  const cloudAnimation = s.el.querySelector('.lb-cloud-track')?.getAnimations()[0];
-  if (cloudAnimation && cloudTime != null) cloudAnimation.currentTime = cloudTime;
+  // 살아 있는 마을: 같은 캔버스를 새 무대로 옮겨 붙여 움직임이 이어짐 (보상 받기로 다시 그려도)
+  mountVillage(s.el.querySelector('.lb-stage'));
   st.msg = '';
 }
 
@@ -271,6 +239,6 @@ s.el.addEventListener('click', e => {
     st.msg = got.length ? `임무 보상: ${got.join(' · ')}` : '';
     commit(); render(); return;
   }
-  if (t.closest('#lbChest, [data-act="chest"]')) { const r = claimChest(save, Math.random, now); st.msg = typeof r === 'string' ? r : `일일 상자: ${gainText(r)}`; commit(); render(); return; }
-  if (t.closest('#lbChal, [data-act="chal"]')) { const r = claimChalChest(save, Math.random, now); st.msg = typeof r === 'string' ? r : `주간 도전 상자: ${gainText(r)}`; commit(); render(); }
+  if (t.closest('#lbChest')) { const r = claimChest(save, Math.random, now); st.msg = typeof r === 'string' ? r : `일일 상자: ${gainText(r)}`; commit(); render(); return; }
+  if (t.closest('#lbChal')) { const r = claimChalChest(save, Math.random, now); st.msg = typeof r === 'string' ? r : `주간 도전 상자: ${gainText(r)}`; commit(); render(); }
 });

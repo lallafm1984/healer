@@ -6,10 +6,11 @@ export default async function portrait(url, shots) {
   const browser = await chromium.launch();
   const errs = [];
   let fails = 0;
-  let lobbyAnchorBaseline;
   const ok = (value, message) => { console.log(`${value ? 'PASS' : 'FAIL'} ${message}`); if (!value) fails++; };
   for (const [width, height] of [[320, 640], [360, 740], [390, 844], [430, 932]]) {
     const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    // CI처럼 GPU가 없는 환경에서도 마을 움직임을 확인 (앱은 원래 한 장면만 그림)
+    await ctx.addInitScript(() => { window.__villageMotion = true; });
     const page = await ctx.newPage();
     page.on('pageerror', e => errs.push(e.message));
     page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
@@ -35,39 +36,35 @@ export default async function portrait(url, shots) {
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_title_${width}.png` });
     await pastTitle(page);
     ok(await page.locator('#s-lobby .topbar .tb-pf .emblem').count() === 1 && await noHeroArt(), `${width}: 로비 위 줄 캐릭터 칸 = 직업 문장 (힐러 그림 없음)`);
-    const sceneImages = '#s-lobby img.lb-layer';
-    const cloudImages = '#s-lobby .lb-cloud-track img';
-    const layerCanvas = await loaded(sceneImages) && await page.locator(sceneImages).evaluateAll(imgs =>
-      imgs.length === 2 && imgs.every(i => i.naturalWidth === 1024 && i.naturalHeight === 1536)
-      && ['landscape', 'foreground'].every(layer => imgs.some(i => i.classList.contains(`lb-layer-${layer}`) && i.src.includes(`scene-lobby-${layer}-v2`))));
-    const cloudCanvas = await loaded(cloudImages) && await page.locator(cloudImages).evaluateAll(imgs =>
-      imgs.length === 2 && imgs[0].currentSrc === imgs[1].currentSrc
-      && imgs.every(i => i.naturalWidth === 2160 && i.naturalHeight === 720));
-    ok(layerCanvas && cloudCanvas && await page.locator('#s-lobby div.lb-layer-sky .lb-cloud-track').count() === 1,
-      `${width}: 원경·전경 1024×1536 및 하늘 wrapper 안 구름 strip 2160×720 두 장 decode`);
-    const lobbyProps = '#s-lobby .lb-art .lb-prop-v3';
-    const propsLoaded = await loaded(lobbyProps) && await page.locator(lobbyProps).evaluateAll(imgs =>
-      imgs.length === 3 && ['board', 'hourglass', 'chest'].every(name => imgs.some(i => i.src.includes(`obj-${name}-v3`))));
-    ok(propsLoaded, `${width}: 새 게시판·모래시계·상자 v3 3장 decode`);
+    // 살아 있는 마을 (코덱스 시안): 853×1844 캔버스가 그려지고, 그리기 전 바탕 그림도 읽힘
+    const villageReady = async () => {
+      for (let i = 0; i < 40 && !(await page.locator('#s-lobby .lb-village.live canvas').count()); i++) await page.waitForTimeout(100);
+      return page.locator('#s-lobby .lb-village').evaluate(el => {
+        const c = el.querySelector('canvas'), img = el.querySelector('img.lb-village-base');
+        return { live: el.classList.contains('live'), w: c?.width, h: c?.height, base: !!img && img.complete && img.naturalWidth === 853 };
+      });
+    };
+    const vill = await villageReady();
+    ok(vill.live && vill.w === 853 && vill.h === 1844 && vill.base, `${width}: 살아 있는 마을 캔버스 853×1844 · 바탕 그림 로드`);
+    if (width === 320) console.log(`INFO 마을 그래픽: ${await page.locator('#s-lobby .lb-village').evaluate(el => el.dataset.gl)}`);
+    const villageTime = () => page.locator('#s-lobby .lb-village').evaluate(el => Number(el.dataset.t || 'NaN'));
+    // 전투 Sunforged 부품 (코덱스 로비 시안): 소켓·패널·출전 그림과 가죽·소켓 재질이 실제로 읽히는지
+    const lobbyIcons = '#s-lobby .lb-sock .g-ic, #s-lobby .lb-plate > .g-ic, #s-lobby .lb-cta > .g-ic';
+    const iconsLoaded = await loaded(lobbyIcons) && await page.locator(lobbyIcons).evaluateAll(imgs =>
+      ['icon-mission', 'icon-challenge', 'icon-chest', 'icon-raid', 'tab-shop', 'tab-battle'].every(name => imgs.some(i => i.src.includes(name))));
+    ok(iconsLoaded, `${width}: 로비 소켓·패널·출전 그림 (임무·주간 도전·일일 상자·첨탑·잡화점·출전) decode`);
+    ok(await bgLoaded('#s-lobby .lb-sock') && await bgLoaded('#s-lobby .lb-journey') && await bgLoaded('#s-lobby .topbar', '::before') && await bgLoaded('#tabs .tab-sock'),
+      `${width}: 원형 소켓 · 가죽 패널 · 위 정보창 · 하단 탭 소켓 재질 로드`);
 
-    // 화면 대신 실제 전경 그림 좌표로 발밑 위치를 측정한다. 이미지 alpha 여백은 포함한 .lb-art bottom center가 계약이다.
+    // 메뉴 (소켓·패널)는 장면 안, 아래 목표·출전 패널과 서로 겹치지 않음
     const lobbyGeometry = () => page.evaluate(() => {
       const rect = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; };
-      const background = document.querySelector('#s-lobby .lb-layer-foreground');
-      const canvas = document.querySelector('#s-lobby .lb-canvas');
       const world = document.querySelector('#s-lobby .lb-world');
+      const journey = document.querySelector('#s-lobby .lb-journey');
       const cta = document.querySelector('#lobbyStart');
-      if (!background || !canvas || !world || !cta) return null;
-      const bg = rect(background);
-      const props = ['board', 'chal', 'chest'].map(name => {
-        const el = document.querySelector(`#s-lobby .lb-${name} .lb-art`);
-        if (!el) return null;
-        const r = rect(el);
-        return { name, rect: r, x: (r.x + r.w / 2 - bg.x) / bg.w, y: (r.bottom - bg.y) / bg.h };
-      });
-      return { background: bg, canvas: rect(canvas), world: rect(world), cta: rect(cta), props,
-        dock: [...document.querySelectorAll('#s-lobby #lobbyStart, #s-lobby .lb-pass, #s-lobby .lb-again')].map(rect),
-        labels: [...document.querySelectorAll('#s-lobby .lb-stage .g-plate')].map(el => ({ name: el.textContent.trim(), rect: rect(el) })),
+      if (!world || !journey || !cta) return null;
+      return { world: rect(world), journey: rect(journey), cta: rect(cta),
+        items: [...document.querySelectorAll('#s-lobby .lb-sc, #s-lobby .lb-plate')].map(el => ({ name: el.textContent.trim().replace(/\s+/g, ' '), rect: rect(el) })),
         viewport: { w: innerWidth, h: innerHeight } };
     });
     const settleLobby = async () => {
@@ -82,119 +79,49 @@ export default async function portrait(url, shots) {
       }
       return { geometry: previous, stable: false };
     };
-    const anchorDrift = (baseline, g) => {
-      if (!baseline || baseline.some(p => !p) || !g || g.props.some(p => !p)) return Infinity;
-      return Math.max(...g.props.map(p => {
-        const old = baseline.find(b => b.name === p.name);
-        return old ? Math.max(Math.abs(p.x - old.x), Math.abs(p.y - old.y)) : Infinity;
-      }));
-    };
     const checkLobbyBounds = (g, label) => {
       const inside = r => r.w > 0 && r.h > 0 && r.x >= Math.max(0, g.world.x) - 1 && r.y >= Math.max(0, g.world.y) - 1
         && r.right <= Math.min(g.viewport.w, g.world.right) + 1 && r.bottom <= Math.min(g.viewport.h, g.world.bottom) + 1;
-      const separate = r => g.dock.every(d => r.right <= d.x + 1 || r.x >= d.right - 1 || r.bottom <= d.y + 1 || r.y >= d.bottom - 1);
-      const boxes = g && g.props.every(Boolean) ? [...g.props, ...g.labels] : [];
-      const outside = boxes.filter(b => !inside(b.rect)), overlaps = boxes.filter(b => !separate(b.rect));
-      // 이름표 5개 = 첨탑·잡화점·주간 도전·임무·일일 상자 (길드 회관은 길드를 빼 두어 없음)
-      ok(boxes.length === 8 && !outside.length, `${label}: 소품 3개·이름표 5개 모두 잘림 없이 광장 안`);
-      ok(boxes.length === 8 && !overlaps.length, `${label}: 소품·이름표와 출전·패스·다시 버튼 겹침 없음`);
-      if (outside.length || overlaps.length) console.log(JSON.stringify({ label, outside, overlaps, world: g.world, cta: g.cta }));
+      const apart = (a, b) => a.right <= b.x + 1 || a.x >= b.right - 1 || a.bottom <= b.y + 1 || a.y >= b.bottom - 1;
+      const items = g ? g.items : [];
+      const outside = items.filter(b => !inside(b.rect)), overJourney = items.filter(b => !apart(b.rect, g.journey));
+      const overEach = items.filter((b, i) => items.some((o, j) => j !== i && !apart(b.rect, o.rect)));
+      // 소켓 3개 (임무·주간 도전·일일 상자) + 패널 2개 (첨탑·잡화점). 길드 회관은 길드를 빼 두어 없음, 「다시」는 지난 판이 없어 없음
+      ok(items.length === 5 && !outside.length && inside(g.journey), `${label}: 소켓 3개·패널 2개·목표 패널 모두 잘림 없이 장면 안`);
+      ok(items.length === 5 && !overJourney.length && !overEach.length, `${label}: 소켓·패널끼리, 목표·출전 패널과 겹침 없음`);
+      if (outside.length || overJourney.length || overEach.length) console.log(JSON.stringify({ label, outside, overJourney, overEach, world: g.world, journey: g.journey }));
     };
     const initialLobby = await settleLobby();
     ok(initialLobby.stable, `${width}: 로비 이미지·글꼴 로드 후 배치 안정`);
     const initialGeometry = initialLobby.geometry;
-    if (!lobbyAnchorBaseline && initialGeometry?.props.every(Boolean)) lobbyAnchorBaseline = initialGeometry.props;
-    const sizeDrift = anchorDrift(lobbyAnchorBaseline, initialGeometry);
-    ok(sizeDrift <= 0.001, `${width}×${height}: 배경 대비 소품 바닥 고정 (최대 차이 ${sizeDrift.toFixed(5)})`);
     checkLobbyBounds(initialGeometry, `${width}×${height}`);
     const button = await page.locator('#lobbyStart').boundingBox(), tabs = await page.locator('#tabs').boundingBox();
     ok(button.y + button.height <= tabs.y + 1 && button.height >= 44, `${width}: 바로 출전 버튼 항상 탭 위, 44px 이상`);
     ok(await noOverflow('#s-lobby .ns-body'), `${width}: 로비 가로 넘침 없음`);
     await page.screenshot({ path: `${shots}/portrait_lobby_${width}.png` });
 
-    // page.clock과 실제 CSS 타임라인의 경과 차이를 피하고, 적용된 동작 상태를 직접 확인한다.
-    const lobbyMotion = () => page.locator('#s-lobby .lb-cloud-track, #s-lobby .lb-layer-landscape, #s-lobby .lb-star').evaluateAll(imgs => imgs.map(i => {
-      const style = getComputedStyle(i);
-      return { type: i.classList.contains('lb-cloud-track') ? 'cloud' : i.classList.contains('lb-star') ? 'star' : 'landscape',
-        name: style.animationName, state: style.animationPlayState, opacity: Number(style.opacity),
-        duration: style.animationDuration, timing: style.animationTimingFunction, direction: style.animationDirection, iterations: style.animationIterationCount };
-    }));
-    const allMotionTypes = motions => ['cloud', 'landscape', 'star'].every(type => motions.some(a => a.type === type));
+    // 장면 시간 = 마을이 실제로 그려진 시간. 보이는 동안 흐르고, 다른 탭·동작 줄이기에서는 멈춤
+    const t0 = await villageTime(); await page.clock.runFor(1500); const t1 = await villageTime();
+    // CI의 소프트웨어 그래픽에서는 그리는 장 수가 적어 흐른 양은 보지 않고 흐르는지만 본다
+    ok(t1 > t0, `${width}: 로비에서 마을이 움직임 (장면 시간 ${t0} → ${t1})`);
     if (width === 390) {
-      // 높이는 고정하고 폭만 바꿔, viewport에 놓인 소품이 배경 위를 미끄러지는 회귀를 잡는다.
+      // 높이는 고정하고 폭만 바꿔도 메뉴가 장면 안에서 서로 겹치지 않는다.
       for (const resizedWidth of [320, 360, 390, 430, 390]) {
         await page.setViewportSize({ width: resizedWidth, height: 844 });
         const settled = await settleLobby();
-        const drift = anchorDrift(initialGeometry?.props, settled.geometry);
-        ok(settled.stable && drift <= 0.001, `${resizedWidth}×844 resize: 소품의 배경 좌표 유지 (최대 차이 ${drift.toFixed(5)})`);
+        ok(settled.stable, `${resizedWidth}×844 resize: 배치 안정`);
         checkLobbyBounds(settled.geometry, `${resizedWidth}×844 resize`);
       }
       await page.emulateMedia({ reducedMotion: 'reduce' });
-      const reduced = await lobbyMotion();
-      ok(allMotionTypes(reduced) && reduced.every(a => a.name === 'none') && reduced.filter(a => a.type === 'star').every(a => a.opacity > 0),
-        '390: 동작 줄이기에서 구름·원경·별 애니메이션 없음, 별은 정적으로 표시');
+      const r0 = await villageTime(); await page.clock.runFor(1500); const r1 = await villageTime();
+      ok(r0 === r1, `390: 동작 줄이기에서 마을이 멈춘 한 장면 (${r0} → ${r1})`);
       await page.emulateMedia({ reducedMotion: 'no-preference' });
-      const running = await lobbyMotion();
-      ok(allMotionTypes(running) && running.every(a => a.name !== 'none' && a.state === 'running'), '390: 일반 설정에서 구름·원경·별 애니메이션 실행');
-      const starField = await page.locator('#s-lobby .lb-layer-sky').evaluate(sky => {
-        const field = sky.querySelector(':scope > .lb-stars'), clouds = sky.querySelector(':scope > .lb-cloud-track');
-        const stars = [...sky.querySelectorAll('.lb-stars > .lb-star')];
-        if (!field || !clouds || stars.length < 2) return null;
-        const z = el => Number(getComputedStyle(el).zIndex) || 0;
-        const behind = z(field) < z(clouds) || (z(field) === z(clouds) && Boolean(field.compareDocumentPosition(clouds) & Node.DOCUMENT_POSITION_FOLLOWING));
-        const decorative = Boolean(field.closest('[aria-hidden="true"]'))
-          && [field, ...stars].every(el => el.tabIndex < 0 && getComputedStyle(el).pointerEvents === 'none');
-        const effects = stars.map(star => {
-          const animation = star.getAnimations()[0];
-          if (!animation?.effect) return null;
-          const timing = animation.effect.getTiming(), duration = Number(timing.duration);
-          if (!duration) return null;
-          const previous = animation.currentTime, phase = animation.effect.getComputedTiming().progress;
-          const origin = star.getBoundingClientRect();
-          try {
-            const samples = [0, 0.25, 0.5, 0.75].map(fraction => {
-              animation.currentTime = timing.delay + duration * (1 + fraction);
-              const r = star.getBoundingClientRect();
-              return { opacity: Number(getComputedStyle(star).opacity), drift: Math.max(Math.abs(r.x - origin.x), Math.abs(r.y - origin.y), Math.abs(r.width - origin.width), Math.abs(r.height - origin.height)) };
-            });
-            return { phase, range: Math.max(...samples.map(s => s.opacity)) - Math.min(...samples.map(s => s.opacity)), stationary: samples.every(s => s.drift < 0.1) };
-          } finally { animation.currentTime = previous; }
-        });
-        return { behind, decorative, effects };
-      });
-      ok(starField?.behind && starField.decorative, '390: 별은 하늘 안에서 구름 뒤의 비상호작용 장식');
-      ok(starField?.effects.every(e => e && e.range > 0.1 && e.stationary), '390: 별은 실제 주기 중 밝기가 변하고 위치·크기는 고정');
-      ok(starField && new Set(starField.effects.filter(e => e?.phase != null).map(e => Math.round(e.phase * 10))).size >= 3,
-        '390: 별이 서로 다른 위상으로 깜박이며 동시에 점멸하지 않음');
-      const cloud = running.find(a => a.type === 'cloud');
-      ok(cloud?.duration === '225s' && cloud.timing === 'linear' && cloud.direction === 'normal' && cloud.iterations === 'infinite',
-        '390: 구름 track은 225초 linear 한 방향 무한 이동');
-      // CSS 타임라인을 기다리지 않고 진행률만 샘플링한다. normal 방향이라도 중간에 왕복하는 keyframe은 실패해야 한다.
-      const cloudPath = await page.locator('#s-lobby .lb-cloud-track').evaluateAll(tracks => {
-        if (tracks.length !== 1) return null;
-        const track = tracks[0], name = getComputedStyle(track).animationName;
-        const animation = track.getAnimations().find(a => a.animationName === name);
-        if (!animation?.effect) return null;
-        const previous = animation.currentTime, duration = Number(animation.effect.getTiming().duration);
-        const width = track.getBoundingClientRect().width;
-        if (!duration || !width) return null;
-        try {
-          return [0, 0.25, 0.5, 0.75, 0.999].map(fraction => {
-            animation.currentTime = duration * fraction;
-            const style = getComputedStyle(track);
-            return style.transform === 'none' ? 0 : new DOMMatrixReadOnly(style.transform).m41 / width;
-          });
-        } finally { animation.currentTime = previous; }
-      });
-      ok(cloudPath?.every((x, i) => Math.abs(x + [0, 0.125, 0.25, 0.375, 0.4995][i]) <= 0.001),
-        '390: 구름 track 0→-50% 진행, 도중 역방향 복귀 없음');
     }
     await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(80);
     if (width === 390) {
-      const paused = await lobbyMotion();
-      ok(await page.locator('#s-lobby').evaluate(el => el.hidden) && allMotionTypes(paused) && paused.every(a => a.state === 'paused'),
-        '390: 캐릭터 탭 이동 후 숨겨진 로비 구름·원경·별 애니메이션 일시정지');
-      // 임무를 받을 때 발생하는 로비 재렌더가 구름을 시작점으로 되돌리지 않아야 한다.
+      const h0 = await villageTime(); await page.clock.runFor(1500); const h1 = await villageTime();
+      ok(await page.locator('#s-lobby').evaluate(el => el.hidden) && h0 === h1, `390: 캐릭터 탭으로 가면 숨은 로비 마을 멈춤 (${h0} → ${h1})`);
+      // 임무 받기로 로비를 다시 그려도 같은 캔버스를 옮겨 붙여 움직임이 이어짐 (처음 장면으로 점프 없음)
       await page.evaluate(() => {
         const save = JSON.parse(localStorage.getItem('healer.save'));
         save.daily.missions[0].n = 999;
@@ -202,14 +129,13 @@ export default async function portrait(url, shots) {
         localStorage.setItem('healer.save', JSON.stringify(save));
       });
       await page.reload(); await page.clock.runFor(300); await pastTitle(page);
-      const cloudTime = await page.locator('#s-lobby .lb-cloud-track').evaluate(el => {
-        const animation = el.getAnimations()[0];
-        animation.currentTime = 45000;
-        return animation.currentTime;
-      });
-      await page.click('#lbClaim'); await page.clock.runFor(80);
-      const restoredTime = await page.locator('#s-lobby .lb-cloud-track').evaluate(el => el.getAnimations()[0]?.currentTime);
-      ok(typeof restoredTime === 'number' && Math.abs(restoredTime - cloudTime) < 1500, '390: 임무 보상 수령 후 구름 진행 시간 유지, 처음 위치로 점프 없음');
+      await villageReady(); await page.clock.runFor(2000);
+      await page.locator('#s-lobby .lb-village canvas').evaluate(c => { window.__villageCanvas = c; });
+      const before = await villageTime();
+      await page.click('#lbClaim'); await page.clock.runFor(200);
+      const same = await page.locator('#s-lobby .lb-village canvas').evaluate(c => c === window.__villageCanvas);
+      const after = await villageTime();
+      ok(same && after >= before, `390: 임무 보상 수령 후 같은 마을 캔버스, 장면 시간 이어짐 (${before} → ${after})`);
       await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(80);
     }
     ok(await page.locator('#s-char .c7-stage .c7-bigem .emblem').count() === 1 && await noOverflow('#s-char .ns-body'), `${width}: 캐릭터 장비 받침대 직업 문장·능력치 화면 안`);
