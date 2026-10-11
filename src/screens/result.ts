@@ -132,10 +132,12 @@ function itemsHtml(x: Settlement): string {
   }).join('');
   // 처음 얻은 특수능력은 장비가 여럿이어도 띠 하나로 (42 1-6): 묶음 표식 + 이름, 띠 머리에서 fx-spec-new 한 번 (36 4-6, 효과 줄이기면 없음)
   // 처음 채운 장비 도감 칸 (34 6-10 ④)은 특수능력 띠가 있으면 그 꼬리에, 없으면 띠 하나로 (결과 화면이 한 줄 더 길어지지 않게)
-  const fresh = x.newSpecs ?? [], dex = x.newDex ?? [];
-  const pop = G.save.settings.reducedEffects ? '' : fxArt('fx-spec-new', 'r-spnew');
-  if (fresh.length) return rows + `<p class="r-newsp"><b>새 특수능력!${pop}</b> ${fresh.map(k => specMark(k) + esc(specName(k))).join(' · ')} <span>${dex.length ? `도감에 적음 · <b class="r-newdex">장비 도감 +${dex.length}</b>` : '도감에 적었습니다'}</span></p>`;
-  return rows + (dex.length ? `<p class="r-newsp"><b class="r-newdex">장비 도감 +${dex.length}</b> <span>캐릭터 → 가방 → 도감</span></p>` : '');
+  const fresh = x.newSpecs ?? [], dex = x.newDex ?? [], calm = !!G.save.settings.reducedEffects;
+  const pop = calm ? '' : fxArt('fx-spec-new', 'r-spnew');
+  // 「장비 도감 +n」 위에 도장 한 번 (50 E fx-dex-fill)
+  const seal = calm ? '' : fxArt('fx-dex-fill', 'r-dexfill');
+  if (fresh.length) return rows + `<p class="r-newsp"><b>새 특수능력!${pop}</b> ${fresh.map(k => specMark(k) + esc(specName(k))).join(' · ')} <span>${dex.length ? `도감에 적음 · <b class="r-newdex">장비 도감 +${dex.length}${seal}</b>` : '도감에 적었습니다'}</span></p>`;
+  return rows + (dex.length ? `<p class="r-newsp"><b class="r-newdex">장비 도감 +${dex.length}${seal}</b> <span>캐릭터 → 가방 → 도감</span></p>` : '');
 }
 
 /** 특수능력 묶음 표식 (36 I spec-*, 이름 있는 장신구 = 그 장신구 그림). 그림이 없으면 이름만 */
@@ -161,8 +163,10 @@ function itemRow(id: number, first: boolean): string {
   // 영웅 · 전설은 장비 칸 뒤로 등급 색 빛기둥 (36 4-6 fx-loot-beam, 흰 그림을 등급 색으로 칠함). 효과 줄이기면 움직이지 않음
   const bu = it.grade === '영웅' || it.grade === '전설' ? art('fx-loot-beam') : '';
   const beam = bu ? `<span class="r-beam${G.save.settings.reducedEffects ? ' calm' : ''}" style="--beam:url('${bu}')" aria-hidden="true"></span>` : '';
+  // 고유 장비는 빛기둥 위에 리본 · 별이 한 번 퍼짐 (50 E fx-unique-drop, 장비 칸 뒤). 효과 줄이기면 없음
+  const drop = it.unique && !G.save.settings.reducedEffects ? fxArt('fx-unique-drop', 'r-udrop') : '';
   return `<div class="r-item" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
-      ${beam}<span class="r-ic">${gearIcon(it)}</span>
+      ${beam}${drop}<span class="r-ic">${gearIcon(it)}</span>
       <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><small>${slotName(it.slot)} · ${esc(kindOf(it).name)} · ${it.grade} · 점수 ${sc}${delta}</small>${spTxt}</span>
       ${act}
     </div>`;

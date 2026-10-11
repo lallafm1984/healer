@@ -61,7 +61,19 @@
 .r-beam.calm { animation: none; }
 @keyframes rbeam { 0% { opacity: 0; transform: scaleY(0.2); } 60% { opacity: 1; transform: scaleY(1.06); } 100% { opacity: 1; transform: none; } }
 @keyframes rbeamP { 0% { opacity: 1; } 100% { opacity: 0.7; } }
-@media (prefers-reduced-motion: reduce) { .r-beam { animation: none; } .r-spnew { display: none; } }
+/* 고유 장비 (50 E fx-unique-drop): 빛기둥 위 · 장비 칸 뒤에서 리본 · 별이 한 번 퍼짐 (가운데가 빈 그림). 이름 글자는 그 위로 */
+.r-udrop {
+  --s: 56px; position: absolute; z-index: 0; left: calc(var(--s) * -0.4); top: 50%; width: calc(var(--s) * 1.8); height: calc(var(--s) * 1.8); margin-top: calc(var(--s) * -0.9);
+  object-fit: contain; pointer-events: none; opacity: 0; animation: rudrop 1.3s 0.5s ease-out both;
+}
+.r-loot.many .r-udrop { --s: 48px; }
+.r-item:has(> .r-udrop) > .r-nm { position: relative; z-index: 1; }
+@keyframes rudrop { 0% { opacity: 0; transform: scale(0.4) rotate(-12deg); } 35% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0; transform: scale(1.2) rotate(6deg); } }
+/* 「장비 도감 +n」 끝에 도장이 한 번 찍힘 (50 E fx-dex-fill, 글자 뒤). 금빛 도장 위에서도 글자가 읽히게 어두운 테 */
+.r-newdex:has(> .r-dexfill) { text-shadow: 0 1px 2px #000, 0 0 3px #000; }
+.r-dexfill { position: absolute; z-index: -1; right: -12px; top: 50%; width: 40px; height: 40px; margin-top: -20px; object-fit: contain; pointer-events: none; opacity: 0; animation: rseal 1.2s 1s ease-out both; }
+@keyframes rseal { 0% { opacity: 0; transform: scale(1.8); } 25% { opacity: 1; transform: scale(0.92); } 35% { transform: scale(1); } 70% { opacity: 1; } 100% { opacity: 0; transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .r-beam { animation: none; } .r-spnew, .r-udrop, .r-dexfill { display: none; } }
 /* 보스마다 장비 (34 6-7): 여럿이면 줄을 조금 좁혀 「전투 기록」까지 첫 화면에 */
 .r-loot.many { gap: 8px; }
 .r-loot.many .r-item { min-height: 48px; }
