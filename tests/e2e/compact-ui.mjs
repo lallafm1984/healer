@@ -329,7 +329,7 @@ export default async function compactUi(url, shots) {
           }), target);
           ok(chosen.sameFight && chosen.selected && chosen.taps === target.taps + 1
             && chosen.t > target.t && chosen.noModal && chosen.pauseHidden,
-          `${tag}: 보드 실제 탭 한 번이 같은 전투의 선택 대상에게 기본 치유 1회 시전`, chosen);
+          `${tag}: 보드 실제 탭 한 번이 같은 전투의 선택 대상에게 기본 치유 1회 시전`, { ...chosen, before: { taps: target.taps, t: target.t } });
 
           // 대표 크기에서 상태·취소·재진입을 추가 검사. 행렬 전체를 불필요하게 반복하지 않는다.
           if (width === 360 && height === 780 && party.n === 5) {

@@ -30,7 +30,7 @@
 #battle #castbar.has-msg.is-gcd #toast::after, #battle #castbar.has-msg.is-gcd #toast::before { display: block; }
 #battle #castbar.has-msg.is-gcd #toast::after { opacity: .5; }
 #battle.reduced-effects #toast .toast.on { animation: none; }
-@keyframes noteIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes noteIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
 
 /* 프레임만 줄어든 실제 높이를 차지하고, 안쪽은 일반 UI 좌표와 배치를 그대로 유지한다. */
 #battle #controlsFrame { position: relative; flex: 0 0 auto; width: 100%; min-height: 0; background: linear-gradient(#211B15, #15120E); }
