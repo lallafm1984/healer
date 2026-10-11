@@ -13,8 +13,8 @@ const pngSize = (art: string) => {
   return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
 };
 const KEYS = Object.keys(PXF) as PxfKey[];
-/** 아직 이펙트를 안 넣은 휠 스킬: 사제 8번째 칸은 스킬 스레드가 「빛의 전이」로 바꾸는 중 */
-const LATER = new Set<SkillKey>(['dove']);
+/** 아직 이펙트를 안 넣은 휠 스킬 (없음) */
+const LATER = new Set<SkillKey>([]);
 
 describe('PXF 이펙트 파일', () => {
   for (const k of KEYS) {

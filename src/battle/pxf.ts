@@ -29,6 +29,28 @@ const clip = (frames: number, impactFrame: number, logicalSize = 64): PxfClip =>
 export const PXF = {
   /** 치유 초록 반짝이 가루 (Lim이 만든 그래프). 그래프는 더하기 섞기지만 Lim 2026-10-11 「원본 색이 잘 보이게」 → 보통 섞기 */
   'heal-dust': clip(24, 2),
+  // 아래는 Claude가 요청문 (requests.md)마다 그래프를 만들어 렌더링 · 확인한 것 (2026-10-11)
+  'priest-flash': clip(16, 1),
+  'priest-renew': clip(24, 2),
+  'priest-poh': clip(20, 2),
+  'priest-purify': clip(18, 2),
+  'priest-guardian': clip(24, 4),
+  'priest-hymn': clip(20, 3),
+  'priest-serenity': clip(24, 2),
+  'priest-sanctify': clip(20, 2),
+  'priest-relay': clip(20, 2),
+  'druid-sprout': clip(20, 2),
+  'druid-growth': clip(20, 2),
+  'druid-bloom': clip(18, 3),
+  'druid-wildflower': clip(24, 2),
+  'druid-cleanse': clip(18, 2),
+  'druid-bark': clip(24, 4),
+  'druid-quietwood': clip(24, 2),
+  'paladin-holy-light': clip(22, 3),
+  'paladin-holy-strike': clip(16, 2),
+  'paladin-oath': clip(24, 2),
+  'paladin-light-wave': clip(18, 2),
+  'paladin-cleanse': clip(18, 2),
 } as const satisfies Record<string, PxfClip>;
 export type PxfKey = keyof typeof PXF;
 export const pxfArtName = (key: PxfKey): string => `fx-pxf-${key}`;
@@ -38,6 +60,27 @@ export type PxfScope = 'target' | 'area' | 'party';
 /** 휠 스킬이 들어갈 때 재생할 PXF 이펙트 (그 칸의 이번 치유는 기본 치유 빛 없이) */
 export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }>> = {
   heal: { fx: 'heal-dust', scope: 'target' },
+  flash: { fx: 'priest-flash', scope: 'target' },
+  renew: { fx: 'priest-renew', scope: 'target' },
+  poh: { fx: 'priest-poh', scope: 'area' },
+  purify: { fx: 'priest-purify', scope: 'target' },
+  guardian: { fx: 'priest-guardian', scope: 'target' },
+  hymn: { fx: 'priest-hymn', scope: 'party' },
+  serenity: { fx: 'priest-serenity', scope: 'target' },
+  sanctify: { fx: 'priest-sanctify', scope: 'area' },
+  relay: { fx: 'priest-relay', scope: 'target' },
+  sprout: { fx: 'druid-sprout', scope: 'target' },
+  growth: { fx: 'druid-growth', scope: 'target' },
+  bloom: { fx: 'druid-bloom', scope: 'target' },
+  wildflower: { fx: 'druid-wildflower', scope: 'area' },
+  natureCleanse: { fx: 'druid-cleanse', scope: 'target' },
+  bark: { fx: 'druid-bark', scope: 'target' },
+  quietwood: { fx: 'druid-quietwood', scope: 'party' },
+  holyLight: { fx: 'paladin-holy-light', scope: 'target' },
+  holyStrike: { fx: 'paladin-holy-strike', scope: 'target' },
+  oath: { fx: 'paladin-oath', scope: 'target' },
+  lightWave: { fx: 'paladin-light-wave', scope: 'area' },
+  handCleanse: { fx: 'paladin-cleanse', scope: 'target' },
 };
 
 /** 들어간 순간부터 끝까지 길이 (ms). 맞는 순간 앞 프레임은 건너뜀 */

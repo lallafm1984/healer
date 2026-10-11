@@ -1,0 +1,499 @@
+{
+  "format": "pxf.graph@1",
+  "name": "사제 소생 나선 빛방울",
+  "settings": {
+    "size": 64,
+    "frames": 24,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "dropA",
+      "type": "Shape",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "shape": "circle",
+        "x": {
+          "k": [
+            [
+              0,
+              0.5,
+              "out"
+            ],
+            [
+              3,
+              0.69,
+              "in"
+            ],
+            [
+              7,
+              0.5,
+              "out"
+            ],
+            [
+              10,
+              0.32,
+              "in"
+            ],
+            [
+              14,
+              0.5,
+              "linear"
+            ]
+          ]
+        },
+        "y": {
+          "k": [
+            [
+              0,
+              0.84,
+              "linear"
+            ],
+            [
+              14,
+              0.28,
+              "linear"
+            ]
+          ]
+        },
+        "size": {
+          "k": [
+            [
+              0,
+              0,
+              "out"
+            ],
+            [
+              1,
+              2.2,
+              "linear"
+            ],
+            [
+              12,
+              1.8,
+              "in"
+            ],
+            [
+              14,
+              0,
+              "linear"
+            ]
+          ]
+        },
+        "intensity": 0.95
+      }
+    },
+    {
+      "id": "trailA",
+      "type": "Repeat",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "count": 4,
+        "px": 0.5,
+        "py": 0.5,
+        "angle0": 0,
+        "angleStep": 0,
+        "delay": 3,
+        "fadeStep": 0.12,
+        "scaleStep": 0.08,
+        "mode": "max"
+      }
+    },
+    {
+      "id": "dropB",
+      "type": "Shape",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "shape": "circle",
+        "x": {
+          "k": [
+            [
+              0,
+              0.5,
+              "out"
+            ],
+            [
+              3,
+              0.31,
+              "in"
+            ],
+            [
+              7,
+              0.5,
+              "out"
+            ],
+            [
+              10,
+              0.68,
+              "in"
+            ],
+            [
+              14,
+              0.5,
+              "linear"
+            ]
+          ]
+        },
+        "y": {
+          "k": [
+            [
+              0,
+              0.84,
+              "linear"
+            ],
+            [
+              14,
+              0.28,
+              "linear"
+            ]
+          ]
+        },
+        "size": {
+          "k": [
+            [
+              0,
+              0,
+              "out"
+            ],
+            [
+              1,
+              2,
+              "linear"
+            ],
+            [
+              12,
+              1.6,
+              "in"
+            ],
+            [
+              14,
+              0,
+              "linear"
+            ]
+          ]
+        },
+        "intensity": 0.62
+      }
+    },
+    {
+      "id": "trailB",
+      "type": "Repeat",
+      "x": 270,
+      "y": 200,
+      "params": {
+        "count": 4,
+        "px": 0.5,
+        "py": 0.5,
+        "angle0": 0,
+        "angleStep": 0,
+        "delay": 3,
+        "fadeStep": 0.12,
+        "scaleStep": 0.08,
+        "mode": "max"
+      }
+    },
+    {
+      "id": "base",
+      "type": "Shape",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "shape": "ring",
+        "x": 0.5,
+        "y": 0.84,
+        "size": {
+          "k": [
+            [
+              0,
+              4,
+              "out"
+            ],
+            [
+              3,
+              10,
+              "linear"
+            ],
+            [
+              10,
+              12,
+              "in"
+            ],
+            [
+              14,
+              13,
+              "linear"
+            ]
+          ]
+        },
+        "size2": {
+          "k": [
+            [
+              0,
+              0.32,
+              "linear"
+            ],
+            [
+              7,
+              0.28,
+              "in"
+            ],
+            [
+              13,
+              0.02,
+              "linear"
+            ]
+          ]
+        },
+        "aspect": 0.35,
+        "intensity": 0.42
+      }
+    },
+    {
+      "id": "ring",
+      "type": "Shape",
+      "x": 40,
+      "y": 520,
+      "params": {
+        "shape": "ring",
+        "x": 0.5,
+        "y": 0.47,
+        "size": {
+          "k": [
+            [
+              3,
+              12,
+              "out"
+            ],
+            [
+              9,
+              20,
+              "linear"
+            ],
+            [
+              20,
+              22,
+              "linear"
+            ]
+          ]
+        },
+        "size2": {
+          "k": [
+            [
+              3,
+              0.2,
+              "linear"
+            ],
+            [
+              12,
+              0.13,
+              "in"
+            ],
+            [
+              19,
+              0.02,
+              "linear"
+            ]
+          ]
+        },
+        "aspect": 0.34,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0,
+              "linear"
+            ],
+            [
+              2,
+              0,
+              "linear"
+            ],
+            [
+              4,
+              0.72,
+              "linear"
+            ],
+            [
+              23,
+              0.72,
+              "linear"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "b1",
+      "type": "Blend",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "b2",
+      "type": "Blend",
+      "x": 730,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "b3",
+      "type": "Blend",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#3d6b22",
+          "#dcb444",
+          "#92e070",
+          "#ecffd6"
+        ],
+        "cutoff": 0.1,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "color": "#1f3514",
+        "threshold": 0.5,
+        "width": 1,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1,
+              "linear"
+            ],
+            [
+              16,
+              1,
+              "in"
+            ],
+            [
+              23,
+              0,
+              "linear"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 1880,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "dropA",
+      "t": "trailA",
+      "p": 0
+    },
+    {
+      "f": "dropB",
+      "t": "trailB",
+      "p": 0
+    },
+    {
+      "f": "trailA",
+      "t": "b1",
+      "p": 0
+    },
+    {
+      "f": "trailB",
+      "t": "b1",
+      "p": 1
+    },
+    {
+      "f": "b1",
+      "t": "b2",
+      "p": 0
+    },
+    {
+      "f": "base",
+      "t": "b2",
+      "p": 1
+    },
+    {
+      "f": "b2",
+      "t": "b3",
+      "p": 0
+    },
+    {
+      "f": "ring",
+      "t": "b3",
+      "p": 1
+    },
+    {
+      "f": "b3",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 2
+  }
+}
