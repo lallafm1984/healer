@@ -10,6 +10,7 @@ import { ITEMS, type ItemKey } from '../data/items';
 import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
 import { AFFIXES } from '../data/affixes';
+import { ABILITIES } from '../data/abilities';
 import { artPlaces, ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
 import { art, cssUrl } from '../art';
 import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, setBeacon, slotKey, step, talentReady, use, useItem, useTalent, type Fight, type FightStats } from '../engine';
@@ -24,7 +25,7 @@ import {
 import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
-import { pxfTargets, SKILL_PXF } from './pxf';
+import { ALLY_PXF, COMMON_PXF, pxfTargets, SKILL_PXF } from './pxf';
 import {
   bossFx, bossHealNum, bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
   resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
@@ -505,7 +506,7 @@ function handleEvents(now: number): void {
         if (ev.name === 'death') vibe(90, true);
         break;
       case 'dispel':
-        if (u) fxDispel(u, now, ev.trap);
+        if (u) fxDispel(u, now, ev.trap, undefined, !ev.trap && !ev.item && plain.has(ev.id));
         if (!ev.trap && !ev.item) vibe([12, 60, 12]);
         break;
       case 'cure': if (u) fxDispel(u, now, false, `${ev.name} 사라짐`); break; // 체력을 채워 쇠약·완치 표식이 사라짐
@@ -518,7 +519,7 @@ function handleEvents(now: number): void {
         if (el) { el.classList.remove('flash'); void (el as HTMLElement).offsetWidth; el.classList.add('flash'); }
         break;
       }
-      case 'revive': if (u) fxRevive(u, now); break;
+      case 'revive': if (u) fxRevive(u, now, '부활', plain.has(ev.id)); break;
       case 'debuff': {
         const nm = ({ '질병': 'cough', '독': 'bubble', '마법': 'zap' } as Record<string, string>)[ev.dtype];
         if (nm && now - (ui.debSnd[nm] || 0) > 400) { ui.debSnd[nm] = now; Snd.play(nm); }
@@ -542,7 +543,13 @@ function handleEvents(now: number): void {
         if (a?.hold != null) fxGim('jail-break', now, { id: a.on }); else if (a?.cell != null) fxGim('poof', now, { cell: a.cell });
         break;
       }
-      case 'ability': if (u) fxAbility(u, ev.name, now); break;
+      case 'ability': { // 파티원 능력: 이름 글자 + 능력 종류 PXF 이펙트 (모든 효과 PXF 1단계)
+        if (!u) break;
+        fxAbility(u, ev.name, now);
+        const fx = u.ab && ALLY_PXF[ABILITIES[u.ab.key]?.kind];
+        if (fx) fxPxf(u, fx, now);
+        break;
+      }
       case 'spec': if (u) fxSpec(u, ev.name, now); break; // 장비 특수능력이 켜짐 (42): 칸 위 금색 이름 + fx-proc · 마지막 숨 fx-endure (36 J)
       case 'aheal': if (u) fxAllyHeal(u, ev.amt, now); break;
       case 'hurt': if (u) fxHurt(u, ev.amt, now); break; // 뒤집힌 축복
@@ -789,7 +796,10 @@ function frame(now: number): void {
   run: () => (B.F ? runData(B.F) : null), get pullLeft() { return ui.pullLeft; }, get coach() { return ui.coach; }, get dungeon() { return S.run; }, get last() { return ui.lastResult; },
   get renderer() { return boardRenderer(); },
   /** 스킬 PXF 이펙트 표 · 재생할 칸 (화면 테스트) */
-  pxf: { skills: SKILL_PXF, targets: (key: SkillKey, uid: number) => (B.F ? pxfTargets(B.F, key, uid).map(u => u.id) : []) },
+  pxf: {
+    skills: SKILL_PXF, targets: (key: SkillKey, uid: number) => (B.F ? pxfTargets(B.F, key, uid).map(u => u.id) : []),
+    common: COMMON_PXF, ally: (uid: number) => { const ab = B.F?.party.find(u => u.id === uid)?.ab; return ab ? ALLY_PXF[ABILITIES[ab.key].kind] ?? null : null; },
+  },
 };
 (window as unknown as { __battle: unknown }).__battle = {
   /** 전투 화면에서 바꾼 설정을 저장하게 새 화면에 알림 (일시정지의 자동 치유) */

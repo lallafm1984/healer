@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { HEROES } from '../src/data/heroes';
 import type { SkillKey } from '../src/data/skills';
-import { PXF, pxfArtName, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, type PxfKey } from '../src/battle/pxf';
+import { ALLY_PXF, COMMON_PXF, PXF, pxfArtName, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, type CommonFx, type PxfKey } from '../src/battle/pxf';
+import { AB_KIND, type AbKind } from '../src/data/abilities';
 import * as E from '../src/engine';
 
 const graph = (name: string) => JSON.parse(readFileSync(new URL(`../src/art/pxf/${name}.pxf.json`, import.meta.url), 'utf8'));
@@ -52,6 +53,32 @@ describe('직업별 휠 스킬', () => {
   it('스킬마다 다른 이펙트', () => {
     const fx = Object.values(SKILL_PXF).map(s => s!.fx);
     expect(new Set(fx).size).toBe(fx.length);
+  });
+});
+
+describe('전투 공통 효과 · 파티원 능력 (모든 효과 PXF 1단계)', () => {
+  const COMMON: CommonFx[] = ['hit', 'crit', 'heal', 'dispel', 'revive', 'death', 'debuff', 'proc'];
+  /** 게임이 색을 곱해 칠하는 회색 그림 (치유 = 문장 색 · 쓰러짐 = 역할 색 · 디버프 = 종류 색 · 장비 발동 = 묶음 색) */
+  const GRAY = new Set<CommonFx>(['heal', 'death', 'debuff', 'proc']);
+  const gray = (c: string) => c.length === 7 && c.slice(1, 3) === c.slice(3, 5) && c.slice(3, 5) === c.slice(5, 7);
+  it('공통 효과 8종 · 능력 종류 5개 모두, 글자 아래 층', () => {
+    expect(Object.keys(COMMON_PXF).sort()).toEqual([...COMMON].sort());
+    expect(Object.keys(ALLY_PXF).sort()).toEqual(Object.keys(AB_KIND).sort());
+    for (const k of [...Object.values(COMMON_PXF), ...Object.values(ALLY_PXF)]) expect(PXF[k!].layer).toBe('under');
+    for (const s of Object.values(SKILL_PXF)) expect(PXF[s!.fx].layer).toBe('top'); // 휠 스킬은 판 맨 위 (Lim 08:53)
+  });
+  for (const k of COMMON) {
+    it(`${k}: ${GRAY.has(k) ? '회색 팔레트 (게임이 칠함)' : '구운 색 그대로'}`, () => {
+      const key = COMMON_PXF[k]!, g = graph(key), cols = g.nodes.filter((n: { type: string }) => n.type === 'Palette' || n.type === 'Outline')
+        .flatMap((n: { type: string; params: { colors?: string[]; color?: string } }) => (n.type === 'Palette' ? n.params.colors! : [n.params.color ?? '#10142e']).map(c => c.toLowerCase()));
+      expect(PXF[key].gray).toBe(GRAY.has(k));
+      if (GRAY.has(k)) expect(cols.filter(c => !gray(c))).toEqual([]);
+    });
+  }
+  it('능력 종류마다 다른 이펙트, 휠 스킬과도 겹치지 않음', () => {
+    const all = [...Object.values(SKILL_PXF).map(s => s!.fx), ...Object.values(COMMON_PXF), ...Object.values(ALLY_PXF)];
+    expect(new Set(all).size).toBe(all.length);
+    for (const kind of Object.keys(AB_KIND) as AbKind[]) expect(PXF[ALLY_PXF[kind]!].gray).toBe(false);
   });
 });
 

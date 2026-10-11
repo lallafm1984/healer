@@ -19,7 +19,7 @@ import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, 
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebuff } from './party-display';
 import { CELL_RADIUS, fitBoard } from './board-layout';
-import { PXF, pxfArtName, pxfDrawSize, pxfFrame, pxfMs, type PxfKey } from './pxf';
+import { COMMON_PXF, PXF, pxfArtName, pxfDrawSize, pxfFrame, pxfMs, type CommonFx, type PxfKey } from './pxf';
 
 // ---------- 색 ----------
 const hex = (c: string) => parseInt(c.slice(1, 7), 16);
@@ -492,8 +492,8 @@ interface DecorationBound {
   radius?: number; requestedRadius?: number; diameter?: number; requestedDiameter?: number;
   /** 떠오르는 숫자가 가리키는 파티원 */
   uid?: number;
-  /** PXF 이펙트 프레임 번호 */
-  frame?: number;
+  /** PXF 이펙트 프레임 번호 · 층 (top = 판 맨 위, under = 글자 아래) · 회색 그림에 곱한 색 */
+  frame?: number; layer?: 'top' | 'under'; tint?: number;
 }
 const decorationBounds: DecorationBound[] = [];
 const clamp = (value: number, min: number, max: number) => min > max ? (min + max) / 2 : Math.max(min, Math.min(max, value));
@@ -618,8 +618,8 @@ function glow(x: number, y: number, size: number, tint: number, alpha: number, k
 // ---------- 판 위 효과 ----------
 interface Fx {
   kind: 'heal' | 'hit' | 'dispel' | 'death' | 'revive' | 'art' | 'pxf'; id: number; t0: number; crit?: boolean; color?: number; seeds?: number[]; x?: number; y?: number;
-  /** 스킬 PXF 이펙트 (kind 'pxf', battle/pxf.ts) */
-  pxf?: PxfKey;
+  /** PXF 이펙트 (kind 'pxf', battle/pxf.ts). tag = 판 기록 열쇠 앞머리 (전투 공통 효과는 예전 그림과 같은 heal · death …, 없으면 pxf), color = 회색 그림에 곱할 색 */
+  pxf?: PxfKey; tag?: string;
   /** 치유 빛 없이 숫자 · 치명타 별만 (그 칸에 스킬 PXF 이펙트가 나올 때) */
   plain?: boolean;
   /** 기믹 연출 (kind 'art'): 그림 fx-<name>, 칸 · 날아갈 사람 · 판 전체 · 길이(ms) */
@@ -794,8 +794,8 @@ export function fxGim(name: string, now: number, at: { cell?: number; id?: numbe
 /** 디버프가 걸림 (44 E-1 fx-debuff, 종류 색으로 칠함: 질병 황토 · 독 초록 · 저주 보라 · 마법 파랑). 딜 0 (침묵)은 fx-silence가 있으면 그것 (E-8) */
 export function fxDebuff(u: Unit, dtype: string, now: number): void {
   const d = u.debuffs.reduce<Unit['debuffs'][number] | undefined>((a, x) => (!a || x.id > a.id ? x : a), undefined);
-  const silence = !!d?.noDps && d.untilBossLoss == null && !!art('fx-silence');
-  fxGim(silence ? 'silence' : 'debuff', now, { id: u.id, color: hex(DEB[dtype] || '#E5433D') });
+  const silence = !!d?.noDps && d.untilBossLoss == null && !!art('fx-silence'), color = hex(DEB[dtype] || '#E5433D');
+  if (silence || S.reducedEffects || !commonFx(u, 'debuff', now, { color })) fxGim(silence ? 'silence' : 'debuff', now, { id: u.id, color });
 }
 /** 특수능력 묶음 색 (42 2장, 캐릭터 화면 char31.css와 같음) */
 const SPEC_TINT: Record<SpecGroup | 'named', number> = {
@@ -809,7 +809,10 @@ export function fxSpec(u: Unit, name: string, now: number): void {
   if (!specKeys) { specKeys = new Map(Object.values(SPECS).map(d => [d.name, d.key] as const)); for (const n of NAMED) specKeys.set(n.name, n.key); }
   const key = specKeys.get(name) ?? '';
   if (key === 'lastBreath') fxGim('endure', now, { id: u.id });
-  else fxGim('proc', now, { id: u.id, color: SPEC_TINT[SPECS[key]?.group ?? 'named'] });
+  else {
+    const color = SPEC_TINT[SPECS[key]?.group ?? 'named'];
+    if (S.reducedEffects || !commonFx(u, 'proc', now, { color })) fxGim('proc', now, { id: u.id, color });
+  }
 }
 /** 지난 프레임 보스 예고 (impact 사건에는 어느 기술인지 없어서 사라진 예고로 찾음) */
 let telsSeen: Telegraph[] = [];
@@ -841,22 +844,37 @@ export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: nu
   const over = eff < amt * 0.25; // 거의 다 넘친 힐은 회색으로 작게
   if (B2.floats.length < 40) B2.floats.push({ x: p.x + (rnd() - 0.5) * L.s * 0.5, y: p.y - L.s * 0.3, text: `+${eff}`, crit: crit && !over, over, t0: now, n: B2.n++, id: u.id });
   B2.hitFx[u.id] = now;
-  if (B2.fx.length < 60 && !over && !(plain && !crit)) B2.fx.push({ kind: 'heal', id: u.id, t0: now, crit: crit && !over, seeds: Array.from({ length: crit ? 8 : 4 }, rnd), plain });
+  if (B2.fx.length >= 60 || over || (plain && !crit)) return;
+  // 모든 효과 PXF 1단계: 치유 빛 (힐러 문장 색) · 치명타 별
+  if (COMMON_PXF.heal && COMMON_PXF.crit) {
+    if (!plain) commonFx(u, 'heal', now, { color: hex(emblemColor(B.F?.hero ?? 'priest')) });
+    if (crit) commonFx(u, 'crit', now, { tag: 'heal-crit' });
+    return;
+  }
+  B2.fx.push({ kind: 'heal', id: u.id, t0: now, crit, seeds: Array.from({ length: crit ? 8 : 4 }, rnd), plain });
 }
 /** 스킬 PXF 이펙트 (battle/pxf.ts): 스킬이 들어간 칸에서 맞는 순간부터 끝까지. 파티 전원 스킬은 20인이면 20개라 따로 상한 */
-export function fxPxf(u: Unit, pxf: PxfKey, now: number): void {
+export function fxPxf(u: Unit, pxf: PxfKey, now: number, o: { color?: number; tag?: string; x?: number; y?: number } = {}): void {
   if (!L.ok || S.reducedEffects || B2.fx.length >= 100) return;
-  B2.fx.push({ kind: 'pxf', id: u.id, t0: now, pxf, dur: pxfMs(PXF[pxf]) });
+  B2.fx.push({ kind: 'pxf', id: u.id, t0: now, pxf, dur: pxfMs(PXF[pxf]), ...o });
+}
+/** 전투 공통 효과를 PXF로 (있을 때만 true): 판 기록 열쇠는 예전 그림과 같은 앞머리 (heal12-… · death3-…) */
+function commonFx(u: Unit, k: CommonFx, now: number, o: { color?: number; tag?: string; x?: number; y?: number } = {}): boolean {
+  const pxf = COMMON_PXF[k];
+  if (!pxf) return false;
+  fxPxf(u, pxf, now, { tag: k, ...o });
+  return true;
 }
 /** 부활 · 봉화 지정 글자: 연한 금빛 (능력 이름처럼 사건 글자, 치명타 치유 숫자와 다른 색) */
 const REVIVE_TEXT = 0xffe08a;
-export function fxRevive(u: Unit, now: number, label = '부활'): void {
+/** plain = 이 칸에 스킬 PXF 이펙트 (환생)가 나와서 부활 빛은 안 그림 (글자는 그대로) */
+export function fxRevive(u: Unit, now: number, label = '부활', plain = false): void {
   if (!L.ok) return;
   if (S.reducedEffects) { addBubble(u.id, label, now); return; }
   const p = unitPos(u);
   B2.floats.push({ x: p.x, y: p.y - L.s * 0.3, text: label, crit: true, over: false, t0: now, n: B2.n++, id: u.id, fill: REVIVE_TEXT });
   B2.hitFx[u.id] = now;
-  B2.fx.push({ kind: 'revive', id: u.id, t0: now });
+  if (!plain && !commonFx(u, 'revive', now)) B2.fx.push({ kind: 'revive', id: u.id, t0: now });
 }
 /** 뒤집힌 축복 (35 8장 「치유 반전」): 이 칸에 들어간 치유가 빨간 피해 숫자로 */
 export function fxHurt(u: Unit, amt: number, now: number): void {
@@ -881,14 +899,16 @@ export function fxAbility(u: Unit, name: string, now: number): void {
   const p = unitPos(u);
   B2.floats.push({ x: p.x, y: p.y - L.s * 0.55, text: name, crit: false, over: false, t0: now, n: B2.n++, fill: C.gold, label: true, id: u.id });
 }
-export function fxDispel(u: Unit, now: number, trap = false, label?: string): void {
+/** plain = 이 칸에 해제 스킬 PXF 이펙트가 나와서 공통 해제 빛은 안 그림 */
+export function fxDispel(u: Unit, now: number, trap = false, label?: string, plain = false): void {
   if (S.reducedEffects) { addBubble(u.id, label ?? (trap ? '전염 폭발' : '해제'), now); return; }
-  B2.fx.push({ kind: 'dispel', id: u.id, t0: now });
+  if (!plain && !commonFx(u, 'dispel', now)) B2.fx.push({ kind: 'dispel', id: u.id, t0: now });
 }
 export function fxDeath(u: Unit, now: number): void {
   if (!L.ok) return;
   if (S.reducedEffects) { addBubble(u.id, '쓰러짐', now); return; }
-  const p = unitPos(u); B2.fx.push({ kind: 'death', id: u.id, t0: now, color: hex(ROLE[u.role].color), x: p.x, y: p.y });
+  const p = unitPos(u), color = hex(ROLE[u.role].color);
+  if (!commonFx(u, 'death', now, { color, x: p.x, y: p.y })) B2.fx.push({ kind: 'death', id: u.id, t0: now, color, x: p.x, y: p.y });
 }
 /** 말풍선. life = 보이는 시간 (ms, 긴 대사는 조금 더 오래, battle/talk.ts) · kind = 테두리 종류 · look = 감정 아이콘 · 승리 이펙트 (43 4장) */
 export function addBubble(id: number, text: string, now: number, life = 1700, kind: BubbleKind = 'talk', look: { emote?: string | null; cheer?: boolean } = {}): void {
@@ -914,17 +934,18 @@ function predictedHeal(u: Unit): number {
 }
 
 /**
- * PXF 이펙트 한 프레임: 대상 칸 가운데 (game.pivot 0.5, 0.5), 칸 지름 2r 기준 크기, 판 밖으로 안 나가게 줄임. 판 맨 위 층 (pxfL).
+ * PXF 이펙트 한 프레임: 대상 칸 가운데 (game.pivot 0.5, 0.5), 칸 지름 2r 기준 크기, 판 밖으로 안 나가게 줄임.
+ * 층: 휠 스킬은 판 맨 위 (pxfL), 전투 공통 · 파티원 능력은 글자 아래 (fxArtL). 회색 그림은 tint 색을 곱함.
  * 픽셀 그림이라 가장 가까운 픽셀로 키움. 더하기 섞기는 WebGL에서만 (Canvas에서는 뒤에 그리는 것까지 번져서 보통 섞기)
  */
-function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: number): void {
+function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: number, tint = 0xffffff): void {
   const c = PXF[k], i = pxfFrame(c, ms), tex = i < 0 ? null : stripFrame(pxfArtName(k), 1, (i + 0.5) / c.frames);
   if (!tex) return;
   if (tex.source.scaleMode !== 'nearest') tex.source.scaleMode = 'nearest';
   const size = pxfDrawSize(c, r * 2), half = safeRadius(x, y, size / 2, 'circle');
   if (half <= 0) return;
-  pxfArt.put(tex, x, y, half * 2, half * 2, 1, 0xffffff, 0, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
-  recordBound(key, 'fx', 'circle', x, y, half * 2, half * 2, { diameter: half * 2, requestedDiameter: size, frame: i });
+  (c.layer === 'under' ? fxArt : pxfArt).put(tex, x, y, half * 2, half * 2, 1, c.gray ? tint : 0xffffff, 0, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
+  recordBound(key, 'fx', 'circle', x, y, half * 2, half * 2, { diameter: half * 2, requestedDiameter: size, frame: i, layer: c.layer, tint: c.gray ? tint : undefined });
 }
 /** 그림 이펙트 한 장: 판 밖으로 안 나가게 크기를 줄여 그림 */
 function spriteFx(tex: Texture, key: string, x: number, y: number, size: number, alpha: number, tint = 0xffffff, rot = 0): void {
@@ -1197,7 +1218,7 @@ export function render(now: number): void {
     if (!S.reducedEffects && hk >= 0 && hk < 1) hexPoly(unitsG, x, y, r).fill({ color: 0xfff8d6, alpha: 0.4 * (1 - hk) });
     fillBand(unitsG, x, y, r, top, y, C.white, 0.06); // 윗면 광택
     // 큰 피격: 깜빡임이 새로 켜진 순간 = 날카로운 자국 (16 4-6)
-    if (!S.reducedEffects && u.flash > (B2.lastFlash[u.id] ?? 0) + 0.05) B2.fx.push({ kind: 'hit', id: u.id, t0: now, seeds: [rnd()] });
+    if (!S.reducedEffects && u.flash > (B2.lastFlash[u.id] ?? 0) + 0.05 && !commonFx(u, 'hit', now)) B2.fx.push({ kind: 'hit', id: u.id, t0: now, seeds: [rnd()] });
     B2.lastFlash[u.id] = u.flash;
     // 실수 신호 땀방울 (43 4장 C fx-talk-sweat): 칸 흔들림 0.6초 동안 칸 위쪽에 3프레임
     if (!S.reducedEffects && F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) {
@@ -1225,7 +1246,11 @@ export function render(now: number): void {
   B2.fx = S.reducedEffects ? [] : B2.fx.filter(e => now - e.t0 < (e.dur ?? FX_MS));
   for (const e of B2.fx) {
     if (e.kind === 'art') { artFx(F, e, now, r, s); continue; }
-    if (e.kind === 'pxf') { const u = F.party.find(x => x.id === e.id); if (u) { const p = unitPos(u); pxfFx(e.pxf!, `pxf${e.id}-${e.pxf}-${e.t0}`, p.x, p.y, r, now - e.t0); } continue; }
+    if (e.kind === 'pxf') {
+      const u = F.party.find(x => x.id === e.id), p = e.x != null ? { x: e.x, y: e.y! } : u ? unitPos(u) : null;
+      if (p) pxfFx(e.pxf!, e.tag ? `${e.tag}${e.id}-${e.t0}` : `pxf${e.id}-${e.pxf}-${e.t0}`, p.x, p.y, r, now - e.t0, e.color);
+      continue;
+    }
     const k = (now - e.t0) / FX_MS;
     const u = F.party.find(x => x.id === e.id);
     const p = e.x != null ? { x: e.x, y: e.y! } : u ? unitPos(u) : null;
