@@ -334,6 +334,8 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   scrapheap: ['mace', 'gauntlet'], mine: ['helm', 'mail', 'plume'], alley: ['hood', 'pendant'], greenhouse: ['robe', 'habit', 'amulet'], frogpond: ['wand', 'bracer'], reedvillage: ['mail', 'gloves', 'signet'], fountain: ['crown', 'ring'], perfumery: ['coat', 'gloves', 'medal'], icefish: ['staff', 'signet'], snowlab: ['gloves', 'bracer', 'beads'], harvest: ['jade', 'sleeve'],
   // 묶음 H2 (62): 그 세력 생김새 (LOOKS) 안의 종류만 골라 새 생김새 그림이 안 늘게. 열림 ±5 안에서 같은 조합 없음
   granary: ['helm', 'wraps', 'medal'], scarefield: ['crown', 'jade'], smuggler: ['coat', 'signet', 'twin'], reef: ['relic', 'wraps'], frostgarden: ['staff', 'pendant'], dorm: ['vestment', 'signet', 'starneck'], cultcamp: ['hood', 'beads'], apothecary: ['habit', 'pendant', 'amulet'], rooftop: ['robe', 'amulet'], bakery: ['robe', 'gloves', 'beads'], dewhill: ['wreath', 'jade'], mushmarsh: ['wand', 'gloves'], lilypalace: ['helm', 'mail', 'signet'],
+  // 묶음 H3 (62): 그 세력 생김새 (LOOKS) 안의 종류만 골라 새 생김새 그림이 안 늘게. 열림 ±5 안에서 같은 조합 없음
+  quarry: ['scepter', 'wraps'], smithy: ['gauntlet', 'twin', 'medal'], ferry: ['relic', 'wraps'], turtlecave: ['plume', 'twin', 'coat'], mistplaza: ['crown', 'pendant'], coralgarden: ['robe', 'twin', 'wand'], oasis: ['staff', 'bracer'], sandlibrary: ['habit', 'medal', 'relic'], sundialroad: ['staff', 'beads'],
 };
 export const KIND_WEIGHT = 3;
 

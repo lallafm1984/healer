@@ -28,7 +28,8 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'heart1' | 'heart2' | 'heart3' | 'dawn' | 'heartcrack'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5'
   | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest'
-  | 'granary' | 'scarefield' | 'smuggler' | 'reef' | 'frostgarden' | 'dorm' | 'cultcamp' | 'apothecary' | 'rooftop' | 'bakery' | 'dewhill' | 'mushmarsh' | 'lilypalace';
+  | 'granary' | 'scarefield' | 'smuggler' | 'reef' | 'frostgarden' | 'dorm' | 'cultcamp' | 'apothecary' | 'rooftop' | 'bakery' | 'dewhill' | 'mushmarsh' | 'lilypalace'
+  | 'quarry' | 'smithy' | 'ferry' | 'turtlecave' | 'mistplaza' | 'coralgarden' | 'oasis' | 'sandlibrary' | 'sundialroad';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
 
@@ -386,6 +387,52 @@ export const CONTENT: ContentDef[] = [
   {
     key: 'lilypalace', bosses: ['개구리 근위대장 폴짝', '두꺼비 왕 우물룩'], kind: 'dungeon', name: '두꺼비 왕국 수련궁', place: '독안개 늪 · 늪의 부족', stageLv: 58, unlockLv: 58, ready: true,
     fights: () => DUNGEONS.lilypalace.segments, size: five,
+  },
+  // 묶음 H3 (62 2-3, 61): 탐험 · 던전 두 배 (Lv 62~78 사이사이). 새 탐험은 근처 새 던전 보스를 줄여 빌림
+  // 탐험 ㊴: 던전 ㉜ 불꽃 공방 예습 (녹는 방패)
+  {
+    key: 'quarry', kind: 'explore', name: '용 비늘 채석장', place: '불꽃 봉우리 · 붉은 용 일가', stageLv: 62, unlockLv: 62, ready: true, bosses: ['코볼트 대장장이 땜질이'],
+    fights: () => DUNGEONS.quarry.segments, size: three,
+  },
+  // 던전 ㉜ (붉은 용 일가, 독 · 마법)
+  {
+    key: 'smithy', bosses: ['코볼트 대장장이 땜질이', '불도마뱀 조련사 활활'], kind: 'dungeon', name: '코볼트 불꽃 공방', place: '불꽃 봉우리 · 붉은 용 일가', stageLv: 63, unlockLv: 63, ready: true,
+    fights: () => DUNGEONS.smithy.segments, size: five,
+  },
+  // 탐험 ㊵: 던전 ㉝ 거북 동굴 예습 (등껍질 반격)
+  {
+    key: 'ferry', kind: 'explore', name: '용암 강 나룻터', place: '불꽃 봉우리 · 붉은 용 일가', stageLv: 66, unlockLv: 66, ready: true, bosses: ['용암 거북 지글이'],
+    fights: () => DUNGEONS.ferry.segments, size: three,
+  },
+  // 던전 ㉝ (붉은 용 일가, 독 · 마법)
+  {
+    key: 'turtlecave', bosses: ['용암 거북 지글이', '붉은 용 큰언니 가넷'], kind: 'dungeon', name: '용암 거북 동굴', place: '불꽃 봉우리 속 · 붉은 용 일가', stageLv: 68, unlockLv: 68, ready: true,
+    fights: () => DUNGEONS.turtlecave.segments, size: five,
+  },
+  // 탐험 ㊶: 던전 ㉞ 산호 정원 예습 (영혼 꽃)
+  {
+    key: 'mistplaza', kind: 'explore', name: '물안개 광장', place: '가라앉은 대성당 앞 · 심연', stageLv: 70, unlockLv: 70, ready: true, bosses: ['산호 정원사 말미잘'],
+    fights: () => DUNGEONS.mistplaza.segments, size: three,
+  },
+  // 던전 ㉞ (심연, 4유형)
+  {
+    key: 'coralgarden', bosses: ['산호 정원사 말미잘', '해파리 기사 찰랑'], kind: 'dungeon', name: '물밑 산호 정원', place: '가라앉은 대성당 아래 · 심연', stageLv: 73, unlockLv: 73, ready: true,
+    fights: () => DUNGEONS.coralgarden.segments, size: five,
+  },
+  // 탐험 ㊷: 던전 ㉟ 도서관 예습 (붕대 감기)
+  {
+    key: 'oasis', kind: 'explore', name: '모래 언덕 오아시스', place: '노을 사막 · 모래 왕국', stageLv: 74, unlockLv: 74, ready: true, bosses: ['두루마리 미라 사서 바스락'],
+    fights: () => DUNGEONS.oasis.segments, size: three,
+  },
+  // 던전 ㉟ (모래 왕국, 질병 · 저주)
+  {
+    key: 'sandlibrary', bosses: ['두루마리 미라 사서 바스락', '모래 서기관 깃펜'], kind: 'dungeon', name: '모래 서기관 도서관', place: '노을 사막 · 모래 왕국', stageLv: 78, unlockLv: 78, ready: true,
+    fights: () => DUNGEONS.sandlibrary.segments, size: five,
+  },
+  // 탐험 ㊸: 던전 ㉟ 깃펜 복습 (되감는 모래 · 저주받은 서명)
+  {
+    key: 'sundialroad', kind: 'explore', name: '노을 해시계 길', place: '노을 사막 끝 · 모래 왕국', stageLv: 78, unlockLv: 78, ready: true, bosses: ['모래 서기관 깃펜'],
+    fights: () => DUNGEONS.sundialroad.segments, size: three,
   },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인

@@ -27,7 +27,8 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'janmul' | 'hwigami' | 'geomeun' | 'lanterntrash' | 'nokseul96'
   | 'eongkim' | 'revlord' | 'abyssheart' | 'dawntrash' | 'heartshard100' | 'cracktrash' | 'nokseul' | 'coolroot' | 'lastshade'
   | 'heaptrash' | 'kongkong5' | 'shaft' | 'kongkong' | 'railway' | 'gurit' | 'alleytrash' | 'molly10' | 'pothall' | 'molly' | 'mushbed' | 'chingching' | 'lilypads' | 'kara15' | 'reedfence' | 'kara' | 'mudpath' | 'cheolbeok' | 'fountainwalk' | 'lavender20' | 'bottlehall' | 'lavender' | 'stillroom' | 'rose' | 'iceholes' | 'ppodeuk25' | 'toolstore' | 'ppodeuk' | 'coldstore' | 'icia' | 'sheaves' | 'jipdan30'
-  | 'sacks' | 'jipdan' | 'millwheel' | 'nadal' | 'crowfield' | 'nadal34' | 'wetcave' | 'peg' | 'powder' | 'pado' | 'reefpool' | 'peg38' | 'iceflowers' | 'jiji42' | 'messhall' | 'jiji' | 'lounge' | 'eomgyeok' | 'campfire' | 'geopum46' | 'shelves' | 'geopum' | 'cauldron' | 'malos' | 'tiles' | 'malos50' | 'flourstore' | 'polpol' | 'oven' | 'monggeul' | 'dewpath' | 'polpol54' | 'mushpath' | 'poljjak58' | 'lilybridge' | 'poljjak' | 'tadpond' | 'umulluk';
+  | 'sacks' | 'jipdan' | 'millwheel' | 'nadal' | 'crowfield' | 'nadal34' | 'wetcave' | 'peg' | 'powder' | 'pado' | 'reefpool' | 'peg38' | 'iceflowers' | 'jiji42' | 'messhall' | 'jiji' | 'lounge' | 'eomgyeok' | 'campfire' | 'geopum46' | 'shelves' | 'geopum' | 'cauldron' | 'malos' | 'tiles' | 'malos50' | 'flourstore' | 'polpol' | 'oven' | 'monggeul' | 'dewpath' | 'polpol54' | 'mushpath' | 'poljjak58' | 'lilybridge' | 'poljjak' | 'tadpond' | 'umulluk'
+  | 'scalepile' | 'ttemjil62' | 'charcoal' | 'ttemjil' | 'bellowway' | 'hwalhwal' | 'hotdock' | 'jigeul66' | 'steamcave' | 'jigeul' | 'gemvein' | 'garnet' | 'miststeps' | 'malmijal70' | 'kelphall' | 'malmijal' | 'pearlpond' | 'chalrang' | 'palmshade' | 'baseurak74' | 'sandshelf' | 'baseurak' | 'sealedstack' | 'gitpen' | 'obelisks' | 'gitpen78';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -48,7 +49,8 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'janmul' | 'hwigami' | 'geomeun' | 'nokseul96'
   | 'eongkim' | 'revlord' | 'abyssheart' | 'heartshard100' | 'nokseul' | 'lastshade'
   | 'kongkong5' | 'kongkong' | 'gurit' | 'molly10' | 'molly' | 'chingching' | 'kara15' | 'kara' | 'cheolbeok' | 'lavender20' | 'lavender' | 'rose' | 'ppodeuk25' | 'ppodeuk' | 'icia' | 'jipdan30'
-  | 'jipdan' | 'nadal' | 'nadal34' | 'peg' | 'pado' | 'peg38' | 'jiji42' | 'jiji' | 'eomgyeok' | 'geopum46' | 'geopum' | 'malos' | 'malos50' | 'polpol' | 'monggeul' | 'polpol54' | 'poljjak58' | 'poljjak' | 'umulluk';
+  | 'jipdan' | 'nadal' | 'nadal34' | 'peg' | 'pado' | 'peg38' | 'jiji42' | 'jiji' | 'eomgyeok' | 'geopum46' | 'geopum' | 'malos' | 'malos50' | 'polpol' | 'monggeul' | 'polpol54' | 'poljjak58' | 'poljjak' | 'umulluk'
+  | 'ttemjil62' | 'ttemjil' | 'hwalhwal' | 'jigeul66' | 'jigeul' | 'garnet' | 'malmijal70' | 'malmijal' | 'chalrang' | 'baseurak74' | 'baseurak' | 'gitpen' | 'gitpen78';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -1235,6 +1237,128 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     },
   ], { debuffs: ['독'] }),
   umulluk: { key: 'umulluk', lowLevel: true, name: '두꺼비 왕 우물룩', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6400, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'umulluk', stage: 0.25 },
+  // ---------- 묶음 H3 (62 2-3 · 3-3, Lv 62~78): 졸개는 그 세력 옛 졸개, 보스 체력 · 광폭화는 같은 레벨대 던전 줄 (무적 · 감옥처럼 딜 시간을 먹는 보스는 낮춤) ----------
+  // 탐험 ㊴ 용 비늘 채석장 (Lv 62): 코볼트 곡괭이꾼 ×2 + 불씨 꼬마 용 → 코볼트 대장장이 땜질이 (탐험판)
+  scalepile: trash('scalepile', '비늘 돌 더미', [
+    { name: '코볼트 곡괭이꾼', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '불씨 꼬마 용', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  ttemjil62: { key: 'ttemjil62', lowLevel: true, name: '코볼트 대장장이 땜질이', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2500, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'ttemjil62', stage: 0.3, debuffs: ['마법'] },
+  // 던전 ㉜ 코볼트 불꽃 공방 (Lv 63): 일반 숯 창고 → 코볼트 대장장이 땜질이 → 정예 풀무 통로 → 불도마뱀 조련사 활활
+  charcoal: trash('charcoal', '숯 창고', [
+    { name: '코볼트 곡괭이꾼', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '불씨 꼬마 용', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  ttemjil: { key: 'ttemjil', lowLevel: true, name: '코볼트 대장장이 땜질이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5300, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'ttemjil', stage: 0.25, debuffs: ['독', '마법'] },
+  bellowway: trash('bellowway', '풀무 통로', [
+    { name: '코볼트 곡괭이꾼', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '코볼트 연기 주술사', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'smoke', name: '매캐한 연기', icon: '연기', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: KOBOLD_SMOKE } },
+    ] },
+    {
+      name: '용 비늘 경비병', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'flame', name: '풀무 불길', icon: '불길', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['독', '마법'] }),
+  hwalhwal: { key: 'hwalhwal', lowLevel: true, name: '불도마뱀 조련사 활활', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6800, enrage: 280, manaCoef: 1.0, diffs: ALL, script: 'hwalhwal', stage: 0.25, debuffs: ['마법'] },
+  // 탐험 ㊵ 용암 강 나룻터 (Lv 66): 용 비늘 경비병 ×2 + 코볼트 연기 주술사 → 용암 거북 지글이 (탐험판)
+  hotdock: trash('hotdock', '뜨거운 나루', [
+    { name: '용 비늘 경비병', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '코볼트 연기 주술사', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'smoke', name: '매캐한 연기', icon: '연기', to: 'other', dmg: 0, first: 5, period: 10, cast: 0, effect: { p: 'cycle', n: 1, debuffs: KOBOLD_SMOKE } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['독', '마법'] }),
+  jigeul66: { key: 'jigeul66', lowLevel: true, name: '용암 거북 지글이', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2500, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'jigeul66', stage: 0.3, debuffs: ['독'] },
+  // 던전 ㉝ 용암 거북 동굴 (Lv 68): 일반 김 나는 굴 → 용암 거북 지글이 (등껍질 무적 12초만큼 체력 낮춤) → 정예 보석 광맥 → 붉은 용 큰언니 가넷
+  steamcave: trash('steamcave', '김 나는 굴', [
+    { name: '용 비늘 경비병', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '불씨 꼬마 용', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  jigeul: { key: 'jigeul', lowLevel: true, name: '용암 거북 지글이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4700, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'jigeul', stage: 0.25, debuffs: ['독'] },
+  gemvein: trash('gemvein', '보석 광맥', [
+    { name: '코볼트 곡괭이꾼', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '코볼트 연기 주술사', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'smoke', name: '매캐한 연기', icon: '연기', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: KOBOLD_SMOKE } },
+    ] },
+    {
+      name: '용 비늘 경비병', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'shards', name: '보석 파편 튀기기', icon: '보석', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['독', '마법'] }),
+  garnet: { key: 'garnet', lowLevel: true, name: '붉은 용 큰언니 가넷', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7000, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'garnet', stage: 0.25, debuffs: ['마법'] },
+  // 탐험 ㊶ 물안개 광장 (Lv 70): 공허의 종복 ×2 + 심연 전령 (봉인) → 산호 정원사 말미잘 (탐험판)
+  miststeps: trash('miststeps', '물안개 계단', [
+    { name: '공허의 종복', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '심연 전령', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'seal', name: '심연 봉인', icon: '봉인', to: 'other', dmg: 0, first: 5, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '심연 봉인', type: '마법', left: 8, trap: true, end: { p: 'blast', dmg: 110 } } } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['마법'] }),
+  malmijal70: { key: 'malmijal70', lowLevel: true, name: '산호 정원사 말미잘', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2500, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'malmijal70', stage: 0.3, debuffs: ['독'] },
+  // 던전 ㉞ 물밑 산호 정원 (Lv 73): 일반 해초 회랑 → 산호 정원사 말미잘 (감옥) → 정예 진주 연못 → 해파리 기사 찰랑 (감옥 · 4유형)
+  kelphall: trash('kelphall', '해초 회랑', [
+    { name: '공허의 종복', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '검은 눈', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  malmijal: { key: 'malmijal', lowLevel: true, name: '산호 정원사 말미잘', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5000, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'malmijal', stage: 0.25, debuffs: ['독'] },
+  pearlpond: trash('pearlpond', '진주 연못', [
+    { name: '공허의 종복', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '심연 전령', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'seal', name: '심연 봉인', icon: '봉인', to: 'other', dmg: 0, first: 5, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '심연 봉인', type: '마법', left: 8, trap: true, end: { p: 'blast', dmg: 150 } } } },
+    ] },
+    {
+      name: '탑 감시자', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'pearl', name: '진주 물결', icon: '물결', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['마법'] }),
+  chalrang: { key: 'chalrang', lowLevel: true, name: '해파리 기사 찰랑', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6500, enrage: 280, manaCoef: 1.0, diffs: ALL, script: 'chalrang', stage: 0.25, debuffs: HEAL4 },
+  // 탐험 ㊷ 모래 언덕 오아시스 (Lv 74): 모래 병정 ×2 + 풍뎅이 투석병 → 두루마리 미라 사서 바스락 (탐험판)
+  palmshade: trash('palmshade', '야자 그늘', [
+    { name: '모래 병정', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '풍뎅이 투석병', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  baseurak74: { key: 'baseurak74', lowLevel: true, name: '두루마리 미라 사서 바스락', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2600, enrage: 215, manaCoef: 1.0, diffs: ALL, script: 'baseurak74', stage: 0.3, debuffs: ['질병', '저주'] },
+  // 던전 ㉟ 모래 서기관 도서관 (Lv 78): 일반 모래 덮인 서가 → 두루마리 미라 사서 바스락 → 정예 봉인 서고 → 모래 서기관 깃펜
+  sandshelf: trash('sandshelf', '모래 덮인 서가', [
+    { name: '모래 병정', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '풍뎅이 투석병', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  baseurak: { key: 'baseurak', lowLevel: true, name: '두루마리 미라 사서 바스락', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5400, enrage: 235, manaCoef: 1.0, diffs: ALL, script: 'baseurak', stage: 0.25, debuffs: ['질병', '저주'] },
+  sealedstack: trash('sealedstack', '봉인 서고', [
+    { name: '모래 병정', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '붕대 시종', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'wrap', name: '하품 붕대', icon: '붕대', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: SAND_WRAP } },
+    ] },
+    {
+      name: '스핑크스 석상', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'storm', name: '봉인 모래바람', icon: '모래', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['질병', '저주'] }),
+  gitpen: { key: 'gitpen', lowLevel: true, name: '모래 서기관 깃펜', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 7000, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'gitpen', stage: 0.25, debuffs: ['저주'] },
+  // 탐험 ㊸ 노을 해시계 길 (Lv 78): 붕대 시종 ×2 + 스핑크스 석상 (수수께끼 모래 = 붕대 시종의 질병 → 저주) → 모래 서기관 깃펜 (탐험판)
+  obelisks: trash('obelisks', '해시계 기둥 길', [
+    { name: '붕대 시종', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '스핑크스 석상', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'riddle', name: '수수께끼 모래', icon: '모래', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: SAND_WRAP } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['질병', '저주'] }),
+  gitpen78: { key: 'gitpen78', lowLevel: true, name: '모래 서기관 깃펜', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2600, enrage: 215, manaCoef: 1.0, diffs: ALL, script: 'gitpen78', stage: 0.3, debuffs: ['저주'] },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

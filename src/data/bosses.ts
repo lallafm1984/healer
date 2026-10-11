@@ -649,6 +649,25 @@ const STONE_DUST: DebuffDef[] = [
 const GUARDS = ['꾸벅', '끄덕'];
 /** 견습생 쌍둥이 지지 · 직직 (62 3-2 던전 ㉘): 몸통 둘, 체력은 encounters jiji · jiji42 hp를 둘로 나눔 */
 const TWIN_MAGES = ['지지', '직직'];
+/** 묶음 H3 (62 3-3) 공략 글 · 디버프 */
+const POUR_HOW = '녹는 방패가 끝나는 순간 맞음. 보호막은 맞기 직전에, 지속 힐은 미리';
+const HOLE_HOW = '가장자리 칸이 용암 구멍이 되어 끝까지 못 섬. 판이 좁아지면 장판 · 반격을 피하기 어려우니 미리 채우기';
+const SHELL_HOW = '등껍질에서 나오며 반격 틈. 끊기 ✋ 능력자가 끊으면 거북이 기절, 못 끊으면 앞줄 (악몽은 전원)이 맞음. 숨은 6초 동안 미리 채우기';
+const FLOWER_HOW = '빈 칸에 영혼 꽃이 핌. 꽃 칸을 단일 힐로 가득 채우면 독 하나씩 지움 · 받는 치유 +15%. 독을 지우는 직업은 꽃에 해제를 쓰면 바로 핌. 못 채우면 시들며 이웃 칸이 아픔';
+const OMEN_HOW = '점괘가 정한 두 곳이 4초 뒤 맞음 (못 피함). 표시된 칸에 선 사람을 미리 채우기';
+const ZAP_HOW = '예고된 사람에게 찌릿, 이웃 칸 가운데 체력 비율이 가장 낮은 사람에게 튐 (튈 때마다 +25%, 3번 · 악몽 4번). 튈 곳이 90% 이상이거나 보호막이면 절반만 받고 멈춤 → 예고 동안 이웃을 90% 위로';
+const WRAP_HOW = '묶인 사람은 못 움직이고 받는 치유 −50%. 저주를 지우는 직업은 지우고, 아니면 책장 무너짐을 못 피하니 미리 채우기';
+const REWIND_HOW = '뒤집는 순간의 체력으로 5초 뒤 모두 되돌아감. 예고 3초 안에 모두 채우고, 창 안에서는 쓰러질 사람만 힐';
+const SIGN_HOW = '저주를 지우는 직업은 지움. 못 지우면 8초 뒤 그 사람이 크게 아프니 끝나기 전에 가득 채우기 (되감는 모래 창 안에서 터지면 되돌아감)';
+/** 가넷 보물 욕심에 맞은 사람: 보석 든 손 (받는 피해 +15%) */
+const GEM_HAND: DebuffDef = { name: '보석 든 손', type: '물리', left: 8, lock: true, vuln: 0.15 };
+/** 찰랑 해파리 쏘임 (심연 4유형): 질병 → 독 → 저주 → 마법 차례로 */
+const JELLY_STING: DebuffDef[] = [
+  { name: '해파리 열', type: '질병', left: 10, dot: U.dps(0.02) },
+  { name: '해파리 독', type: '독', left: 10, dot: U.dps(0.02) },
+  { name: '흐린 점괘', type: '저주', left: 10, healCut: 0.3 },
+  { name: '찌릿 자국', type: '마법', left: 8, dot: U.dps(0.025) },
+];
 const GUARD_HP = 12000;
 /** 모래 왕국 (54 0장) 해제 짝: 모래 기침 (질병, 초당 딜체 2%) · 천 년 졸음 (저주, 받는 치유 −30%) */
 const SAND_COUGH: DebuffDef = { name: '모래 기침', type: '질병', left: 12, dot: U.dps(0.02) };
@@ -4321,6 +4340,230 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'tide2', in: 3 }, { p: 'text', text: '독 연못이 아래 두 줄까지' },
     ] }],
     enrage: { name: '두꺼비 왕의 분노', period: 2, dmg: 250 },
+  },
+  // ---------- 묶음 H3 (62 3-3, Lv 62~78): 새 부품 없이 있는 부품의 새 조합. 탐험판은 던전 보스 기술 3~4개를 작게 (39 1-1) ----------
+  // 코볼트 대장장이 땜질이 탐험판 (탐험 ㊴ 용 비늘 채석장 Lv 62): 던전 ㉜ ①의 평타 · 망치 · 녹는 방패 (끝에 쇳물 쏟기) · 불똥 튀기기 1곳만
+  ttemjil62: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('망치 내려치기', '망치', 8, 16, 360),
+      { key: 'melt', name: '녹는 방패', icon: '방패', kind: 'instant', first: 14, period: 26, cast: 0, how: MELT_HOW, effect: { p: 'melt', sec: 8, rate: 0.25 } },
+      { key: 'pour', name: '쇳물 쏟기', icon: '쇳물', kind: 'aoe', first: 19, period: 26, cast: 3, warn: 'aoe', how: POUR_HOW, effect: { p: 'all', dmg: 175 } },
+      ...spots('spark', '불똥 튀기기', '불똥', 1, 10, 16, 170).map((d): SkillDef => ({ ...d, hitDebuff: EMBER })),
+    ],
+    enrage: { name: '땜질 폭주', period: 2, dmg: 190 },
+  },
+  // ---------- 묶음 H3 던전 ㉜ 코볼트 불꽃 공방 (62 3-3, Lv 63 · 붉은 용 일가 · 독 · 마법): 땜질이 · 활활 ----------
+  // 코볼트 대장장이 땜질이 (①): 녹는 방패 (녹는 보호막: 용암 온천장 뭉실처럼 열기 끝에 쇳물 쏟기 광역) · 불똥 튀기기 (장판 3곳, 맞으면 불씨 = 받는 치유 −25%) · 망치 · 풀무 그을음 (독 2명).
+  // 악몽은 불똥 4곳. 목표 2:15 · 광폭화 3:50
+  ttemjil: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('망치 내려치기', '망치', 8, 15, U.tank(0.5)),
+      { key: 'melt', name: '녹는 방패', icon: '방패', kind: 'instant', first: 14, period: 26, cast: 0, how: MELT_HOW, effect: { p: 'melt', sec: 8, rate: 0.25 } },
+      { key: 'pour', name: '쇳물 쏟기', icon: '쇳물', kind: 'aoe', first: 19, period: 26, cast: 3, warn: 'aoe', how: POUR_HOW, effect: { p: 'all', dmg: U.dps(0.25) } },
+      ...spots('spark', '불똥 튀기기', '불똥', 3, 10, 16, U.dps(0.22), { mythic: false }).map((d): SkillDef => ({ ...d, hitDebuff: EMBER })),
+      ...spots('sparkm', '불똥 튀기기', '불똥', 4, 10, 16, U.dps(0.22), { mythic: true }).map((d): SkillDef => ({ ...d, hitDebuff: EMBER })),
+      { key: 'soot', name: '풀무 그을음', icon: '그을', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '풀무 그을음', type: '독', left: 10, dot: U.dps(0.02) } } },
+    ],
+    enrage: { name: '땜질 폭주', period: 2, dmg: 240 },
+  },
+  // 불도마뱀 조련사 활활 (최종): 불도마뱀 풀기 (쫄 2, 한 사람씩 쫓아와 붙으면 터짐: 코볼트 보물 지킴이 꼬질 탐험판의 자폭 쫄) · 불 채찍 · 불꽃 숨 (못 피하는 줄 피해 + 불씨) · 조련사 호령 (광역).
+  // 악몽은 불도마뱀 3. 목표 2:45 · 광폭화 4:40
+  hwalhwal: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('불 채찍', '채찍', 8, 15, U.tank(0.52)),
+      { key: 'lizard', name: '불도마뱀 풀기', icon: '도마', kind: 'instant', first: 12, period: 26, cast: 0,
+        how: '불도마뱀 둘 (악몽 셋)이 한 사람씩 (나 포함) 쫓아와 붙으면 터짐. 딜러가 먼저 잡고, 쫓기는 사람을 미리 채우기',
+        effect: { p: 'adds', n: 2, nMythic: 3, add: { name: '불도마뱀', short: '도마', art: 'mob-salamander', hp: 0.015, dmg: 0, every: 2, job: { p: 'fixate', every: 2, dmg: U.dps(0.45), splash: U.dps(0.15), from: 3 } } } },
+      ...rows('breath', '불꽃 숨', '숨', 18, 18, U.dps(0.3), false).map((d): SkillDef => ({ ...d, hitDebuff: EMBER, hitFx: 'dragon-breath' })),
+      { key: 'aoe', name: '조련사 호령', icon: '호령', kind: 'aoe', first: 22, period: 26, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    enrage: { name: '불도마뱀 폭주', period: 2, dmg: 250 },
+  },
+  // 용암 거북 지글이 탐험판 (탐험 ㊵ 용암 강 나룻터 Lv 66): 던전 ㉝ ①의 박치기 · 등껍질 반격 (반격 틈만, 숨기 무적은 뺌) · 용암 구멍 (최대 2칸) · 유황 김만
+  jigeul66: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('박치기', '박치', 8, 16, 370),
+      { key: 'shell', name: '등껍질 반격', icon: '반격', kind: 'aoe', first: 18, period: 24, cast: 1.5,
+        how: '반격 틈. 끊기 ✋ 능력자가 끊으면 거북이 기절, 못 끊으면 앞줄이 맞음. 앞줄을 미리 채우기', effect: { p: 'counter', stun: 4, dmg: 200 } },
+      { key: 'hole', name: '용암 구멍', icon: '구멍', kind: 'instant', first: 12, period: 24, cast: 2, how: HOLE_HOW, effect: { p: 'hole', n: 1, max: 2 } },
+      { key: 'fume', name: '유황 김', icon: '유황', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '유황 김', type: '독', left: 10, dot: 22 } } },
+    ],
+    enrage: { name: '거북 폭주', period: 2, dmg: 195 },
+  },
+  // ---------- 묶음 H3 던전 ㉝ 용암 거북 동굴 (62 3-3, Lv 68 · 붉은 용 일가 · 독 · 마법): 지글이 · 가넷 ----------
+  // 용암 거북 지글이 (①): 등껍질 숨기 (66% · 33%에 6초 무적 = 귀부인 액자처럼 인터미션 무적, 끝에 반격 틈 = 깨진 신전 수호상의 반격 부품) · 용암 구멍 (무너지는 바닥, 최대 3칸) · 박치기 · 유황 김 (독 2명).
+  // 숨은 동안은 평타 · 박치기 · 광역을 쉬고 구멍 · 유황 김만. 무적 12초만큼 체력을 낮춤. 악몽은 반격을 못 끊으면 전원이 맞음. 목표 2:15 · 광폭화 3:50
+  jigeul: {
+    phase: [1, ''],
+    skills: [
+      { ...AUTO(U.tank(0.065)), when: { phase: [1, 2, 3] } },
+      { ...BUSTER('박치기', '박치', 8, 15, U.tank(0.52)), when: { phase: [1, 2, 3] } },
+      { key: 'hole', name: '용암 구멍', icon: '구멍', kind: 'instant', first: 12, period: 22, cast: 2, how: HOLE_HOW, effect: { p: 'hole', n: 1, max: 3 } },
+      { key: 'fume', name: '유황 김', icon: '유황', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '유황 김', type: '독', left: 10, dot: U.dps(0.02) } } },
+      { key: 'aoe', name: '용암 분출', icon: '분출', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, when: { phase: [1, 2, 3] }, effect: { p: 'all', dmg: U.dps(0.2) } },
+      ...(['shell1', 'shell2'] as const).flatMap((key, i) => ([false, true] as const).map((mythic): SkillDef => ({
+        key: `${key}${mythic ? 'm' : ''}`, name: '등껍질 반격', icon: '반격', kind: 'aoe', first: null, period: 9999, cast: 1.5, when: { mythic },
+        ...(i ? {} : { how: SHELL_HOW }), effect: { p: 'counter', stun: 4, dmg: U.dps(0.45), ...(mythic ? { all: true } : {}) },
+      }))),
+    ],
+    flow: [
+      { p: 'when', if: { phase: 1, hpBelow: 0.66 }, do: [
+        { p: 'phase', n: 0, name: '등껍질 숨기' }, { p: 'inter', sec: 6 }, ...startBoth('shell1', 4.5), { p: 'text', text: '등껍질 숨기: 6초 무적, 나오며 반격' },
+      ] },
+      { p: 'when', if: { phase: 2, hpBelow: 0.33 }, do: [
+        { p: 'phase', n: 0, name: '등껍질 숨기' }, { p: 'inter', sec: 6 }, ...startBoth('shell2', 4.5), { p: 'text', text: '등껍질 숨기: 6초 무적, 나오며 반격' },
+      ] },
+      // 첫 숨기에서 나오면 2, 두 번째 (shell2가 열린 뒤)에서 나오면 3
+      { p: 'when', if: { phase: 0, interOver: true, idle: 'shell2' }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'interEnd' }] },
+      { p: 'when', if: { phase: 0, interOver: true }, do: [{ p: 'phase', n: 3, name: '' }, { p: 'interEnd' }] },
+    ],
+    enrage: { name: '거북 폭주', period: 2, dmg: 240 },
+  },
+  // 붉은 용 큰언니 가넷 (최종): 날개 바람 (앞줄 2명이 날려 2초 뒤 아무 빈 칸에 떨어짐: 밀쳐내기 부품이 없어 띄워 올리기 land random으로) · 불꽃 숨결 (못 피하는 줄 피해 + 불씨, 루비나 용의 숨결)
+  // · 내 보석이야! (보물 욕심 부품 2명 + 보석 든 손 = 받는 피해 +15%, 어미 용 루비나). 악몽은 숨결 두 줄. 목표 2:45 · 광폭화 4:45
+  garnet: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('발톱 할퀴기', '발톱', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'wing', name: '날개 바람', icon: '날개', kind: 'buster', first: 14, period: 22, cast: 2.5, warn: 'buster', target: { p: 'front', n: 2 },
+        how: '앞줄 2명 (탱커 빼고)이 날려 2초 동안 힐이 안 닿고, 아무 빈 칸에 떨어지며 아픔. 예고 동안 채우고, 떨어지면 바로',
+        effect: { p: 'lift', sec: 2, fall: U.dps(0.2), land: 'random' } },
+      ...rows('breath', '불꽃 숨결', '숨결', 18, 16, U.dps(0.32), { mythic: true }).map((d): SkillDef => ({ ...d, hitDebuff: EMBER, hitFx: 'dragon-breath' })),
+      ...greeds('greed', '내 보석이야!', '보석', 10, 13, 2.5, [[1, 2]], U.dps(0.4), GEM_HAND),
+    ],
+    enrage: { name: '큰언니 화남', period: 2, dmg: 250 },
+  },
+  // 산호 정원사 말미잘 탐험판 (탐험 ㊶ 물안개 광장 Lv 70): 던전 ㉞ ①의 갈퀴 · 산호 가시 (1명) · 영혼 꽃만. 감옥은 3인에 깰 딜러가 하나라 뺌
+  malmijal70: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('산호 갈퀴', '갈퀴', 8, 16, 360),
+      { key: 'spine', name: '산호 가시', icon: '가시', kind: 'buster', first: 10, period: 18, cast: 2, warn: 'buster', target: { p: 'random', n: 1 },
+        effect: { p: 'strike', dmg: 150, debuff: { name: '산호 독', type: '독', left: 10, dot: 22 } } },
+      { key: 'flower', name: '영혼 꽃', icon: '꽃', kind: 'instant', first: 16, period: 32, cast: 0, how: FLOWER_HOW,
+        effect: { p: 'soul', name: '영혼 꽃', short: '꽃', hp: 0.4, sec: 16, type: '독',
+          win: { text: '영혼 꽃이 핌: 독 하나씩 지움 · 받는 치유 +15%', cure: '독', heal: { pct: 0.15, sec: 8 } }, fail: { text: '영혼 꽃이 시듦', dmg: 120, near: true } } },
+    ],
+    enrage: { name: '말미잘 폭주', period: 2, dmg: 195 },
+  },
+  // ---------- 묶음 H3 던전 ㉞ 물밑 산호 정원 (62 3-3, Lv 73 · 심연 · 4유형): 말미잘 · 찰랑 ----------
+  // 산호 정원사 말미잘 (①): 촉수 감옥 (감옥 부품: 밤그늘 그림자 감옥 쉬운 판, 딜러가 깸) · 산호 가시 (무작위 3명 + 독) · 영혼 꽃 (헤매는 영혼 부품: 단일 힐로 채우면 독 하나씩 지움 · 받는 치유 +15%).
+  // 「쓰러진 사람 자리에 꽃」은 영혼 부품이 빈 칸에만 나와 빈 칸으로. 악몽은 감옥 2명. 목표 2:15 · 광폭화 3:50
+  malmijal: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('산호 갈퀴', '갈퀴', 8, 15, U.tank(0.5)),
+      { key: 'jail', name: '촉수 감옥', icon: '감옥', kind: 'instant', first: 16, period: 28, cast: 0,
+        how: '1명 (악몽 2명)이 촉수에 갇힘 (딜 0 · 해제 안 됨 · 초당 피해). 딜러가 감옥을 깰 때까지 단일 힐',
+        effect: { p: 'jail', n: 1, nMythic: 2, name: '촉수 감옥', short: '촉수', hp: 0.02, dot: U.dps(0.03) } },
+      { key: 'spine', name: '산호 가시', icon: '가시', kind: 'buster', first: 10, period: 20, cast: 2, warn: 'buster', target: { p: 'random', n: 3 },
+        how: '탱커 아닌 3명이 찔리고 독 (초당 딜체 1.5%). 독을 지우는 직업은 지움',
+        effect: { p: 'strike', dmg: U.dps(0.15), debuff: { name: '산호 독', type: '독', left: 10, dot: U.dps(0.015) } } },
+      { key: 'flower', name: '영혼 꽃', icon: '꽃', kind: 'instant', first: 24, period: 34, cast: 0, how: FLOWER_HOW,
+        effect: { p: 'soul', name: '영혼 꽃', short: '꽃', hp: 0.3, sec: 12, type: '독',
+          win: { text: '영혼 꽃이 핌: 독 하나씩 지움 · 받는 치유 +15%', cure: '독', heal: { pct: 0.15, sec: 8 } }, fail: { text: '영혼 꽃이 시듦', dmg: U.dps(0.25), near: true } } },
+    ],
+    enrage: { name: '말미잘 폭주', period: 2, dmg: 240 },
+  },
+  // 해파리 기사 찰랑 (최종): 해파리 점괘 (점괘가 정한 두 곳이 4초 뒤 맞음, 못 피함: 해파리 점쟁이의 점괘를 칸으로) · 찌릿 쏘기 (연쇄 번개) · 물거품 감옥 (「방울 갇힘」 → 감옥 부품, 이름은 물거품)
+  // · 해파리 쏘임 (질병 · 독 · 저주 · 마법 차례로 2명). 악몽은 연쇄가 끝까지 (3 → 4번: 62의 「6번」은 5인 판 사람 수보다 많아 끝까지로). 목표 2:45 · 광폭화 4:40
+  chalrang: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('진주 창', '진주', 8, 15, U.tank(0.52)),
+      ...[0, 1].map((i): SkillDef => ({
+        key: `omen${i}`, name: '해파리 점괘', icon: '점괘', kind: 'zone', first: 12 + i * 0.3, period: 20, cast: 4, warn: 'zone', fixed: true, hitDmg: U.dps(0.3), cells: { p: 'around' },
+        ...(i ? { hidden: true } : { how: OMEN_HOW }),
+      })),
+      { key: 'zap', name: '찌릿 쏘기', icon: '찌릿', kind: 'buster', first: 8, period: 16, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, how: ZAP_HOW,
+        effect: { p: 'chain', dmg: U.dps(0.25), jumps: 3, jumpsMythic: 4 } },
+      { key: 'bubble', name: '물거품 감옥', icon: '거품', kind: 'instant', first: 20, period: 30, cast: 0,
+        how: '1명이 물거품에 갇힘 (딜 0 · 해제 안 됨 · 초당 피해). 딜러가 깰 때까지 단일 힐',
+        effect: { p: 'jail', n: 1, name: '물거품 감옥', short: '거품', hp: 0.015, dot: U.dps(0.03) } },
+      { key: 'sting', name: '해파리 쏘임', icon: '쏘임', kind: 'instant', first: 6, period: 14, cast: 0,
+        how: '질병 → 독 → 저주 → 마법 차례로 2명. 지울 수 있는 유형부터 지우고, 나머지는 힐로', effect: { p: 'cycle', n: 2, debuffs: JELLY_STING } },
+    ],
+    enrage: { name: '해파리 기사 폭주', period: 2, dmg: 250 },
+  },
+  // 두루마리 미라 사서 바스락 탐험판 (탐험 ㊷ 모래 언덕 오아시스 Lv 74): 던전 ㉟ ①의 두루마리 · 붕대 감기 (1명) · 먼지 바람 · 책장 무너짐 1곳만
+  baseurak74: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('두루마리 내려치기', '두루', 8, 16, 360),
+      { key: 'wrap', name: '붕대 감기', icon: '붕대', kind: 'instant', first: 8, period: 16, cast: 0, how: WRAP_HOW,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '붕대 감기', type: '저주', left: 8, noMove: true, healCut: 0.5 } } },
+      { key: 'dust', name: '먼지 바람', icon: '먼지', kind: 'aoe', first: 18, period: 22, cast: 3, warn: 'aoe', cut: true,
+        effect: { p: 'all', dmg: 150, debuff: { name: '책 먼지', type: '질병', left: 8, dot: 8 } } },
+      ...spots('shelf', '책장 무너짐', '책장', 1, 12, 16, 180),
+    ],
+    enrage: { name: '사서 폭주', period: 2, dmg: 195 },
+  },
+  // ---------- 묶음 H3 던전 ㉟ 모래 서기관 도서관 (62 3-3, Lv 78 · 모래 왕국 · 질병 · 저주): 바스락 · 깃펜 ----------
+  // 두루마리 미라 사서 바스락 (①): 붕대 감기 (저주 2명: 묶임 = 못 움직임 · 받는 치유 −50%) · 먼지 바람 (광역 + 책 먼지 질병) · 책장 무너짐 (장판 2곳, 묶인 사람은 못 피함).
+  // 악몽은 붕대 3명. 목표 2:15 · 광폭화 3:55
+  baseurak: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('두루마리 내려치기', '두루', 8, 15, U.tank(0.5)),
+      { key: 'wrap', name: '붕대 감기', icon: '붕대', kind: 'instant', first: 8, period: 16, cast: 0, how: WRAP_HOW,
+        effect: { p: 'debuff', n: 2, nMythic: 3, pick: 'others', debuff: { name: '붕대 감기', type: '저주', left: 8, noMove: true, healCut: 0.5 } } },
+      { key: 'dust', name: '먼지 바람', icon: '먼지', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true,
+        effect: { p: 'all', dmg: U.dps(0.18), debuff: { name: '책 먼지', type: '질병', left: 8, dot: U.dps(0.01) } } },
+      ...spots('shelf', '책장 무너짐', '책장', 2, 12, 16, U.dps(0.25)),
+    ],
+    enrage: { name: '사서 폭주', period: 2, dmg: 240 },
+  },
+  // 모래 서기관 깃펜 (최종): 신기루 깃펜 (신기루 부품: 모래시계 궁전 · 꾸벅 · 끄덕 신기루 창처럼 표시 둘 중 하나는 가짜) · 되감는 모래 (모래시계 부품 5초: 노을 여왕 사라샤, 창 안에 잉크 쏟기)
+  // · 저주받은 서명 (저주 1명, 두면 8초 뒤 그 사람이 터짐). 악몽은 신기루 깃펜 진짜 2명 (표시 3명). 목표 2:45 · 광폭화 4:45
+  gitpen: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('깃펜 찌르기', '깃펜', 8, 15, U.tank(0.55)), cast: 2.5 },
+      { key: 'quill', name: '신기루 깃펜', icon: '깃펜', kind: 'buster', first: 10, period: 14, cast: 2.5, warn: 'buster', target: { p: 'random', n: 1, nMythic: 2 }, mirage: { n: 1 },
+        how: MIRAGE_HOW, effect: { p: 'strike', dmg: U.dps(0.4) } },
+      { key: 'rewind', name: '되감는 모래', icon: '되감', kind: 'aoe', first: 20, period: 30, cast: 3, warn: 'aoe', how: REWIND_HOW,
+        effect: { p: 'glass', sec: 5, then: [{ skill: 'ink', in: 1 }] } },
+      { key: 'ink', name: '잉크 쏟기', icon: '잉크', kind: 'aoe', first: null, period: 9999, cast: 1.5, warn: 'aoe',
+        how: '되감는 모래 창 안에서 맞음. 맞은 피해는 창이 끝나면 되돌아가니 쓰러질 사람만 힐', effect: { p: 'all', dmg: U.dps(0.35) } },
+      { key: 'sign', name: '저주받은 서명', icon: '서명', kind: 'instant', first: 12, period: 18, cast: 0, how: SIGN_HOW,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '저주받은 서명', type: '저주', left: 8, dot: U.dps(0.015), end: { p: 'hit', dmg: U.dps(0.45) } } } },
+    ],
+    enrage: { name: '서기관 폭주', period: 2, dmg: 250 },
+  },
+  // 모래 서기관 깃펜 탐험판 (탐험 ㊸ 노을 해시계 길 Lv 78): 던전 ㉟ ②의 깃펜 찌르기 · 신기루 (3인은 가짜로 고를 사람이 없어 장판 두 곳 중 하나) · 되감는 모래 · 저주받은 서명만
+  gitpen78: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('깃펜 찌르기', '깃펜', 8, 16, 380),
+      { key: 'quill', name: '신기루 깃펜', icon: '깃펜', kind: 'zone', first: 9, period: 16, cast: 3, warn: 'zone', hitDmg: 160, cells: { p: 'around' }, mirage: { n: 1 },
+        how: '두 곳 중 한 곳은 신기루 (끝 1초에 걷힘). 파티원이 알아서 피함. 못 피한 사람부터 채우기' },
+      { key: 'rewind', name: '되감는 모래', icon: '되감', kind: 'aoe', first: 20, period: 30, cast: 3, warn: 'aoe', how: REWIND_HOW,
+        effect: { p: 'glass', sec: 5, then: [{ skill: 'ink', in: 1 }] } },
+      { key: 'ink', name: '잉크 쏟기', icon: '잉크', kind: 'aoe', first: null, period: 9999, cast: 1.5, warn: 'aoe',
+        how: '되감는 모래 창 안에서 맞음. 맞은 피해는 창이 끝나면 되돌아가니 쓰러질 사람만 힐', effect: { p: 'all', dmg: 180 } },
+      { key: 'sign', name: '저주받은 서명', icon: '서명', kind: 'instant', first: 12, period: 18, cast: 0, how: SIGN_HOW,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '저주받은 서명', type: '저주', left: 8, dot: 15, end: { p: 'hit', dmg: 280 } } } },
+    ],
+    enrage: { name: '서기관 폭주', period: 2, dmg: 200 },
   },
 };
 

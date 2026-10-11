@@ -7,7 +7,8 @@ export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt'
   | 'ashpass' | 'hotspring' | 'forge' | 'lakeshore'
   | 'deepstairs' | 'hourglass' | 'caravan' | 'pinwheel' | 'observatory' | 'ranch' | 'windmill' | 'station' | 'school' | 'carriage' | 'ballroom' | 'lantern' | 'dawn' | 'heartcrack'
   | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest'
-  | 'granary' | 'scarefield' | 'smuggler' | 'reef' | 'frostgarden' | 'dorm' | 'cultcamp' | 'apothecary' | 'rooftop' | 'bakery' | 'dewhill' | 'mushmarsh' | 'lilypalace';
+  | 'granary' | 'scarefield' | 'smuggler' | 'reef' | 'frostgarden' | 'dorm' | 'cultcamp' | 'apothecary' | 'rooftop' | 'bakery' | 'dewhill' | 'mushmarsh' | 'lilypalace'
+  | 'quarry' | 'smithy' | 'ferry' | 'turtlecave' | 'mistplaza' | 'coralgarden' | 'oasis' | 'sandlibrary' | 'sundialroad';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -101,6 +102,16 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   dewhill: { key: 'dewhill', name: '이슬 버섯 언덕', segments: ['dewpath', 'polpol54'] },
   mushmarsh: { key: 'mushmarsh', name: '버섯숲 늪가', segments: ['mushpath', 'poljjak58'] },
   lilypalace: { key: 'lilypalace', name: '두꺼비 왕국 수련궁', segments: ['lilybridge', 'poljjak', 'tadpond', 'umulluk'] },
+  // 묶음 H3 (62): 탐험 = 일반 → 보스, 던전 = 일반 → 보스 ① → 정예 → 보스 ②
+  quarry: { key: 'quarry', name: '용 비늘 채석장', segments: ['scalepile', 'ttemjil62'] },
+  smithy: { key: 'smithy', name: '코볼트 불꽃 공방', segments: ['charcoal', 'ttemjil', 'bellowway', 'hwalhwal'] },
+  ferry: { key: 'ferry', name: '용암 강 나룻터', segments: ['hotdock', 'jigeul66'] },
+  turtlecave: { key: 'turtlecave', name: '용암 거북 동굴', segments: ['steamcave', 'jigeul', 'gemvein', 'garnet'] },
+  mistplaza: { key: 'mistplaza', name: '물안개 광장', segments: ['miststeps', 'malmijal70'] },
+  coralgarden: { key: 'coralgarden', name: '물밑 산호 정원', segments: ['kelphall', 'malmijal', 'pearlpond', 'chalrang'] },
+  oasis: { key: 'oasis', name: '모래 언덕 오아시스', segments: ['palmshade', 'baseurak74'] },
+  sandlibrary: { key: 'sandlibrary', name: '모래 서기관 도서관', segments: ['sandshelf', 'baseurak', 'sealedstack', 'gitpen'] },
+  sundialroad: { key: 'sundialroad', name: '노을 해시계 길', segments: ['obelisks', 'gitpen78'] },
 };
 
 /** 휴식: 초당 마나 회복 (%). 「계속」은 언제든 누를 수 있음 */
