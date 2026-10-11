@@ -1,0 +1,1912 @@
+{
+ "format": "pxf.graph@1",
+ "limits": {
+  "bytes": 262144,
+  "nodes": 64,
+  "links": 128,
+  "keyframes": 64,
+  "frames": 32,
+  "maxSize": 128
+ },
+ "nodes": {
+  "Shape": {
+   "inputs": [],
+   "params": {
+    "shape": {
+     "type": "sel",
+     "default": "circle",
+     "options": [
+      "circle",
+      "ring",
+      "square",
+      "diamond",
+      "polygon",
+      "star",
+      "shard",
+      "crescent",
+      "cross"
+     ]
+    },
+    "x": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "y": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "size": {
+     "type": "num",
+     "default": 12,
+     "min": 0,
+     "max": 96
+    },
+    "size2": {
+     "type": "num",
+     "default": 0.4,
+     "min": 0,
+     "max": 1
+    },
+    "points": {
+     "type": "int",
+     "default": 5,
+     "min": 2,
+     "max": 12
+    },
+    "rot": {
+     "type": "num",
+     "default": 0,
+     "min": -720,
+     "max": 720
+    },
+    "aspect": {
+     "type": "num",
+     "default": 1,
+     "min": 0.1,
+     "max": 4
+    },
+    "stroke": {
+     "type": "num",
+     "default": 0,
+     "min": 0,
+     "max": 32
+    },
+    "falloff": {
+     "type": "num",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    "intensity": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Noise": {
+   "inputs": [],
+   "params": {
+    "type": {
+     "type": "sel",
+     "default": "fbm",
+     "options": [
+      "fbm",
+      "ridged",
+      "cells"
+     ]
+    },
+    "scaleX": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 32
+    },
+    "scaleY": {
+     "type": "int",
+     "default": 4,
+     "min": 1,
+     "max": 32
+    },
+    "octaves": {
+     "type": "int",
+     "default": 3,
+     "min": 1,
+     "max": 5
+    },
+    "seed": {
+     "type": "seed",
+     "default": 1,
+     "min": 0,
+     "max": 99999
+    },
+    "scrollX": {
+     "type": "num",
+     "default": 0,
+     "min": -8,
+     "max": 8
+    },
+    "scrollY": {
+     "type": "num",
+     "default": 0,
+     "min": -8,
+     "max": 8
+    },
+    "contrast": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 4
+    },
+    "bias": {
+     "type": "num",
+     "default": 0,
+     "min": -1,
+     "max": 1
+    }
+   }
+  },
+  "Gradient": {
+   "inputs": [],
+   "params": {
+    "type": {
+     "type": "sel",
+     "default": "linear",
+     "options": [
+      "linear",
+      "radial",
+      "angular",
+      "diamond"
+     ]
+    },
+    "x": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "y": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "angle": {
+     "type": "num",
+     "default": 90,
+     "min": -360,
+     "max": 360
+    },
+    "radius": {
+     "type": "num",
+     "default": 24,
+     "min": 1,
+     "max": 128
+    },
+    "offset": {
+     "type": "num",
+     "default": 0,
+     "min": -2,
+     "max": 2
+    },
+    "repeat": {
+     "type": "bool",
+     "default": false
+    },
+    "invert": {
+     "type": "bool",
+     "default": false
+    },
+    "aspect": {
+     "type": "num",
+     "default": 1,
+     "min": 0.1,
+     "max": 4
+    }
+   }
+  },
+  "Particles": {
+   "inputs": [],
+   "params": {
+    "count": {
+     "type": "int",
+     "default": 30,
+     "min": 1,
+     "max": 600
+    },
+    "seed": {
+     "type": "seed",
+     "default": 1,
+     "min": 0,
+     "max": 99999
+    },
+    "emit": {
+     "type": "sel",
+     "default": "burst",
+     "options": [
+      "burst",
+      "stream"
+     ]
+    },
+    "start": {
+     "type": "num",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    "span": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    "life": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0.02,
+     "max": 1
+    },
+    "lifeVar": {
+     "type": "num",
+     "default": 0.3,
+     "min": 0,
+     "max": 1
+    },
+    "area": {
+     "type": "sel",
+     "default": "point",
+     "options": [
+      "point",
+      "circle",
+      "ring",
+      "box",
+      "line"
+     ]
+    },
+    "x": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "y": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "aw": {
+     "type": "num",
+     "default": 8,
+     "min": 0,
+     "max": 96
+    },
+    "ah": {
+     "type": "num",
+     "default": 8,
+     "min": 0,
+     "max": 96
+    },
+    "dirMode": {
+     "type": "sel",
+     "default": "fixed",
+     "options": [
+      "fixed",
+      "outward",
+      "inward"
+     ]
+    },
+    "angle": {
+     "type": "num",
+     "default": -90,
+     "min": -360,
+     "max": 360
+    },
+    "spread": {
+     "type": "num",
+     "default": 360,
+     "min": 0,
+     "max": 360
+    },
+    "speed": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 12
+    },
+    "speedVar": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "gravity": {
+     "type": "num",
+     "default": 0,
+     "min": -1,
+     "max": 1
+    },
+    "drag": {
+     "type": "num",
+     "default": 0,
+     "min": 0,
+     "max": 0.5
+    },
+    "turb": {
+     "type": "num",
+     "default": 0,
+     "min": 0,
+     "max": 6
+    },
+    "sizeA": {
+     "type": "num",
+     "default": 2,
+     "min": 0,
+     "max": 16
+    },
+    "sizeB": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 16
+    },
+    "pshape": {
+     "type": "sel",
+     "default": "square",
+     "options": [
+      "square",
+      "diamond",
+      "plus",
+      "circle",
+      "dot",
+      "streak"
+     ]
+    },
+    "stretch": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 8
+    },
+    "fade": {
+     "type": "sel",
+     "default": "out",
+     "options": [
+      "out",
+      "inout",
+      "flat",
+      "flicker"
+     ]
+    },
+    "bright": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    "loop": {
+     "type": "bool",
+     "default": false
+    },
+    "ground": {
+     "type": "num",
+     "default": 0,
+     "min": 0,
+     "max": 128
+    },
+    "bounce": {
+     "type": "num",
+     "default": 0.35,
+     "min": 0,
+     "max": 1
+    },
+    "brightVar": {
+     "type": "num",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Lightning": {
+   "inputs": [],
+   "params": {
+    "x0": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "y0": {
+     "type": "num",
+     "default": 0.05,
+     "min": 0,
+     "max": 1
+    },
+    "x1": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "y1": {
+     "type": "num",
+     "default": 0.95,
+     "min": 0,
+     "max": 1
+    },
+    "detail": {
+     "type": "int",
+     "default": 5,
+     "min": 1,
+     "max": 7
+    },
+    "jag": {
+     "type": "num",
+     "default": 0.35,
+     "min": 0,
+     "max": 1
+    },
+    "branch": {
+     "type": "num",
+     "default": 0.25,
+     "min": 0,
+     "max": 1
+    },
+    "branchLen": {
+     "type": "num",
+     "default": 0.35,
+     "min": 0,
+     "max": 1
+    },
+    "seed": {
+     "type": "seed",
+     "default": 3,
+     "min": 0,
+     "max": 99999
+    },
+    "rate": {
+     "type": "int",
+     "default": 2,
+     "min": 0,
+     "max": 12
+    },
+    "thick": {
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 4
+    },
+    "grow": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    "intensity": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Arc": {
+   "inputs": [],
+   "params": {
+    "x": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "y": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "radius": {
+     "type": "num",
+     "default": 22,
+     "min": 1,
+     "max": 96
+    },
+    "thick": {
+     "type": "num",
+     "default": 8,
+     "min": 1,
+     "max": 48
+    },
+    "start": {
+     "type": "num",
+     "default": -150,
+     "min": -720,
+     "max": 720
+    },
+    "sweep": {
+     "type": "num",
+     "default": 220,
+     "min": -360,
+     "max": 360
+    },
+    "head": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1.5
+    },
+    "tail": {
+     "type": "num",
+     "default": 0.7,
+     "min": 0.01,
+     "max": 1
+    },
+    "taper": {
+     "type": "num",
+     "default": 1.2,
+     "min": 0,
+     "max": 4
+    },
+    "aspect": {
+     "type": "num",
+     "default": 1,
+     "min": 0.1,
+     "max": 2
+    },
+    "rot": {
+     "type": "num",
+     "default": 0,
+     "min": -360,
+     "max": 360
+    },
+    "intensity": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Transform": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    }
+   ],
+   "params": {
+    "tx": {
+     "type": "num",
+     "default": 0,
+     "min": -96,
+     "max": 96
+    },
+    "ty": {
+     "type": "num",
+     "default": 0,
+     "min": -96,
+     "max": 96
+    },
+    "sx": {
+     "type": "num",
+     "default": 1,
+     "min": -4,
+     "max": 4
+    },
+    "sy": {
+     "type": "num",
+     "default": 1,
+     "min": -4,
+     "max": 4
+    },
+    "rot": {
+     "type": "num",
+     "default": 0,
+     "min": -720,
+     "max": 720
+    },
+    "px": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "py": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Repeat": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    }
+   ],
+   "params": {
+    "count": {
+     "type": "int",
+     "default": 6,
+     "min": 1,
+     "max": 32
+    },
+    "px": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "py": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "angle0": {
+     "type": "num",
+     "default": 0,
+     "min": -720,
+     "max": 720
+    },
+    "angleStep": {
+     "type": "num",
+     "default": 60,
+     "min": -360,
+     "max": 360
+    },
+    "centered": {
+     "type": "bool",
+     "default": false
+    },
+    "dx": {
+     "type": "num",
+     "default": 0,
+     "min": -64,
+     "max": 64
+    },
+    "dy": {
+     "type": "num",
+     "default": 0,
+     "min": -64,
+     "max": 64
+    },
+    "scaleStep": {
+     "type": "num",
+     "default": 0,
+     "min": -1,
+     "max": 1
+    },
+    "fadeStep": {
+     "type": "num",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    "delay": {
+     "type": "num",
+     "default": 0,
+     "min": 0,
+     "max": 12
+    },
+    "mode": {
+     "type": "sel",
+     "default": "add",
+     "options": [
+      "add",
+      "max",
+      "over"
+     ]
+    },
+    "posX": {
+     "type": "num",
+     "default": -1,
+     "min": -1,
+     "max": 1
+    },
+    "posY": {
+     "type": "num",
+     "default": -1,
+     "min": -1,
+     "max": 1
+    },
+    "scale0": {
+     "type": "num",
+     "default": 1,
+     "min": 0.05,
+     "max": 4
+    },
+    "rotMin": {
+     "type": "num",
+     "default": 0,
+     "min": -180,
+     "max": 180
+    },
+    "rotMax": {
+     "type": "num",
+     "default": 0,
+     "min": -180,
+     "max": 180
+    },
+    "seed": {
+     "type": "seed",
+     "default": 1,
+     "min": 0,
+     "max": 99999
+    },
+    "layout": {
+     "type": "sel",
+     "default": "step",
+     "options": [
+      "step",
+      "bezier"
+     ]
+    },
+    "sx": {
+     "type": "num",
+     "default": 1,
+     "min": 0.05,
+     "max": 4
+    },
+    "sy": {
+     "type": "num",
+     "default": 1,
+     "min": 0.05,
+     "max": 4
+    },
+    "jitter": {
+     "type": "num",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    "scale1": {
+     "type": "num",
+     "default": 1,
+     "min": 0.05,
+     "max": 4
+    },
+    "scalePow": {
+     "type": "num",
+     "default": 1,
+     "min": 0.1,
+     "max": 4
+    },
+    "dist": {
+     "type": "num",
+     "default": 1,
+     "min": 0.2,
+     "max": 4
+    },
+    "bx0": {
+     "type": "num",
+     "default": 0.5,
+     "min": -1,
+     "max": 2
+    },
+    "by0": {
+     "type": "num",
+     "default": 0.2,
+     "min": -1,
+     "max": 2
+    },
+    "bx1": {
+     "type": "num",
+     "default": 0.5,
+     "min": -1,
+     "max": 2
+    },
+    "by1": {
+     "type": "num",
+     "default": 0.4,
+     "min": -1,
+     "max": 2
+    },
+    "bx2": {
+     "type": "num",
+     "default": 0.5,
+     "min": -1,
+     "max": 2
+    },
+    "by2": {
+     "type": "num",
+     "default": 0.6,
+     "min": -1,
+     "max": 2
+    },
+    "bx3": {
+     "type": "num",
+     "default": 0.5,
+     "min": -1,
+     "max": 2
+    },
+    "by3": {
+     "type": "num",
+     "default": 0.8,
+     "min": -1,
+     "max": 2
+    }
+   }
+  },
+  "Echo": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    }
+   ],
+   "params": {
+    "copies": {
+     "type": "int",
+     "default": 3,
+     "min": 1,
+     "max": 12
+    },
+    "step": {
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 8
+    },
+    "decay": {
+     "type": "num",
+     "default": 0.6,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Blur": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    }
+   ],
+   "params": {
+    "radius": {
+     "type": "int",
+     "default": 1,
+     "min": 0,
+     "max": 8
+    },
+    "passes": {
+     "type": "int",
+     "default": 2,
+     "min": 1,
+     "max": 3
+    }
+   }
+  },
+  "Glow": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    }
+   ],
+   "params": {
+    "radius": {
+     "type": "int",
+     "default": 2,
+     "min": 1,
+     "max": 8
+    },
+    "strength": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 4
+    }
+   }
+  },
+  "Levels": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    }
+   ],
+   "params": {
+    "lo": {
+     "type": "num",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    "hi": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    "gamma": {
+     "type": "num",
+     "default": 1,
+     "min": 0.1,
+     "max": 4
+    },
+    "steps": {
+     "type": "int",
+     "default": 0,
+     "min": 0,
+     "max": 16
+    }
+   }
+  },
+  "Dither": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    }
+   ],
+   "params": {
+    "levels": {
+     "type": "int",
+     "default": 4,
+     "min": 2,
+     "max": 12
+    },
+    "pattern": {
+     "type": "sel",
+     "default": "bayer4",
+     "options": [
+      "bayer4",
+      "bayer2"
+     ]
+    },
+    "strength": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Displace": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    },
+    {
+     "p": 1,
+     "label": "맵"
+    }
+   ],
+   "params": {
+    "mode": {
+     "type": "sel",
+     "default": "dir",
+     "options": [
+      "dir",
+      "radial",
+      "swirl"
+     ]
+    },
+    "amount": {
+     "type": "num",
+     "default": 4,
+     "min": -32,
+     "max": 32
+    },
+    "angle": {
+     "type": "num",
+     "default": 90,
+     "min": -360,
+     "max": 360
+    },
+    "center": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "cx": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "cy": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Polar": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    }
+   ],
+   "params": {
+    "rIn": {
+     "type": "num",
+     "default": 4,
+     "min": 0,
+     "max": 96
+    },
+    "rOut": {
+     "type": "num",
+     "default": 30,
+     "min": 1,
+     "max": 128
+    },
+    "spin": {
+     "type": "num",
+     "default": 0,
+     "min": -720,
+     "max": 720
+    },
+    "cx": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "cy": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "invert": {
+     "type": "bool",
+     "default": true
+    }
+   }
+  },
+  "Pixelate": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    }
+   ],
+   "params": {
+    "block": {
+     "type": "int",
+     "default": 2,
+     "min": 1,
+     "max": 8
+    }
+   }
+  },
+  "Blend": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "아래 A"
+    },
+    {
+     "p": 1,
+     "label": "위 B"
+    }
+   ],
+   "params": {
+    "mode": {
+     "type": "sel",
+     "default": "over",
+     "options": [
+      "over",
+      "add",
+      "screen",
+      "max",
+      "multiply",
+      "subtract"
+     ]
+    },
+    "opacity": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Mask": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    },
+    {
+     "p": 1,
+     "label": "마스크"
+    }
+   ],
+   "params": {
+    "mode": {
+     "type": "sel",
+     "default": "multiply",
+     "options": [
+      "multiply",
+      "cutout"
+     ]
+    },
+    "strength": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Palette": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "강도"
+    }
+   ],
+   "params": {
+    "colors": {
+     "type": "palette",
+     "default": [
+      "#4a0d12",
+      "#a3231b",
+      "#e8591c",
+      "#ffb030",
+      "#fff1b8"
+     ]
+    },
+    "cutoff": {
+     "type": "num",
+     "default": 0.1,
+     "min": 0,
+     "max": 1
+    },
+    "shift": {
+     "type": "num",
+     "default": 0,
+     "min": -1,
+     "max": 1
+    },
+    "mode": {
+     "type": "sel",
+     "default": "bands",
+     "options": [
+      "bands",
+      "smooth"
+     ]
+    },
+    "key": {
+     "type": "sel",
+     "default": "alpha",
+     "options": [
+      "alpha",
+      "luma"
+     ]
+    },
+    "opacity": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Tint": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    },
+    {
+     "p": 1,
+     "label": "마스크(선택)"
+    }
+   ],
+   "params": {
+    "color": {
+     "type": "color",
+     "default": "#ffffff"
+    },
+    "amount": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    "bright": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 3
+    },
+    "opacity": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Outline": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    },
+    {
+     "p": 1,
+     "label": "마스크(선택)"
+    }
+   ],
+   "params": {
+    "color": {
+     "type": "color",
+     "default": "#10142e"
+    },
+    "threshold": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "width": {
+     "type": "int",
+     "default": 1,
+     "min": 1,
+     "max": 3
+    },
+    "corners": {
+     "type": "bool",
+     "default": false
+    },
+    "mode": {
+     "type": "sel",
+     "default": "outer",
+     "options": [
+      "outer",
+      "inner"
+     ]
+    }
+   }
+  },
+  "Spike": {
+   "inputs": [],
+   "params": {
+    "x0": {
+     "type": "num",
+     "default": 0.4,
+     "min": 0,
+     "max": 1
+    },
+    "y0": {
+     "type": "num",
+     "default": 0.85,
+     "min": 0,
+     "max": 1
+    },
+    "x1": {
+     "type": "num",
+     "default": 0.6,
+     "min": 0,
+     "max": 1
+    },
+    "y1": {
+     "type": "num",
+     "default": 0.15,
+     "min": 0,
+     "max": 1
+    },
+    "width": {
+     "type": "num",
+     "default": 10,
+     "min": 0,
+     "max": 48
+    },
+    "taper": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    "grow": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    "base": {
+     "type": "num",
+     "default": 0.45,
+     "min": 0,
+     "max": 1
+    },
+    "tip": {
+     "type": "num",
+     "default": 0.8,
+     "min": 0,
+     "max": 1
+    },
+    "facet": {
+     "type": "num",
+     "default": 0.22,
+     "min": -1,
+     "max": 1
+    },
+    "ridge": {
+     "type": "num",
+     "default": 0.12,
+     "min": 0,
+     "max": 1
+    },
+    "shine": {
+     "type": "num",
+     "default": -1,
+     "min": -1,
+     "max": 1.5
+    },
+    "shineW": {
+     "type": "num",
+     "default": 0.1,
+     "min": 0.01,
+     "max": 1
+    },
+    "intensity": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    "taperPow": {
+     "type": "num",
+     "default": 1,
+     "min": 0.2,
+     "max": 4
+    },
+    "shineAmp": {
+     "type": "num",
+     "default": 0.6,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Checker": {
+   "inputs": [],
+   "params": {
+    "size": {
+     "type": "num",
+     "default": 8,
+     "min": 1,
+     "max": 64
+    },
+    "iso": {
+     "type": "bool",
+     "default": false
+    },
+    "ox": {
+     "type": "num",
+     "default": 0,
+     "min": -64,
+     "max": 64
+    },
+    "oy": {
+     "type": "num",
+     "default": 0,
+     "min": -64,
+     "max": 64
+    },
+    "a": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    "b": {
+     "type": "num",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    "pattern": {
+     "type": "sel",
+     "default": "checker",
+     "options": [
+      "checker",
+      "dots"
+     ]
+    },
+    "dot": {
+     "type": "num",
+     "default": 0.35,
+     "min": 0.05,
+     "max": 0.71
+    }
+   }
+  },
+  "Quantize": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    }
+   ],
+   "params": {
+    "colors": {
+     "type": "palette",
+     "default": [
+      "#be4a2f",
+      "#d77643",
+      "#ead4aa",
+      "#e4a672",
+      "#b86f50",
+      "#733e39",
+      "#3e2731",
+      "#a22633",
+      "#e43b44",
+      "#f77622",
+      "#feae34",
+      "#fee761",
+      "#63c74d",
+      "#3e8948",
+      "#265c42",
+      "#193c3e",
+      "#124e89",
+      "#0099db",
+      "#2ce8f5",
+      "#ffffff",
+      "#c0cbdc",
+      "#8b9bb4",
+      "#5a6988",
+      "#3a4466",
+      "#262b44",
+      "#181425",
+      "#ff0044",
+      "#68386c",
+      "#b55088",
+      "#f6757a",
+      "#e8b796",
+      "#c28569"
+     ]
+    },
+    "alpha": {
+     "type": "sel",
+     "default": "keep",
+     "options": [
+      "keep",
+      "hard"
+     ]
+    },
+    "threshold": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Grid": {
+   "inputs": [],
+   "params": {
+    "cellW": {
+     "type": "num",
+     "default": 8,
+     "min": 1,
+     "max": 64
+    },
+    "cellH": {
+     "type": "num",
+     "default": 8,
+     "min": 1,
+     "max": 128
+    },
+    "gap": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 8
+    },
+    "ox": {
+     "type": "num",
+     "default": 0,
+     "min": -128,
+     "max": 128
+    },
+    "oy": {
+     "type": "num",
+     "default": 0,
+     "min": -128,
+     "max": 128
+    },
+    "lo": {
+     "type": "num",
+     "default": 0.3,
+     "min": 0,
+     "max": 1
+    },
+    "hi": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    "gapV": {
+     "type": "num",
+     "default": 0.1,
+     "min": 0,
+     "max": 1
+    },
+    "seed": {
+     "type": "seed",
+     "default": 1,
+     "min": 0,
+     "max": 99999
+    }
+   }
+  },
+  "AuraShell": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "반구 텍스처"
+    },
+    {
+     "p": 1,
+     "label": "상승 막 텍스처"
+    }
+   ],
+   "params": {
+    "cx": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "baseY": {
+     "type": "num",
+     "default": 0.82,
+     "min": 0,
+     "max": 1
+    },
+    "lipY": {
+     "type": "num",
+     "default": 0.49,
+     "min": 0,
+     "max": 1
+    },
+    "tipY": {
+     "type": "num",
+     "default": 0.12,
+     "min": 0,
+     "max": 1
+    },
+    "radius": {
+     "type": "num",
+     "default": 32,
+     "min": 1,
+     "max": 64
+    },
+    "tilt": {
+     "type": "num",
+     "default": 0.32,
+     "min": 0,
+     "max": 1
+    },
+    "flare": {
+     "type": "num",
+     "default": 0.04,
+     "min": -0.3,
+     "max": 0.3
+    },
+    "twist": {
+     "type": "num",
+     "default": 0.07,
+     "min": -0.5,
+     "max": 0.5
+    },
+    "stretch": {
+     "type": "num",
+     "default": 3,
+     "min": 1,
+     "max": 6
+    },
+    "riseUV": {
+     "type": "num",
+     "default": 0.25,
+     "min": 0.01,
+     "max": 1
+    },
+    "riseCutoff": {
+     "type": "num",
+     "default": 0.9,
+     "min": 0,
+     "max": 1.6
+    },
+    "riseAlpha": {
+     "type": "num",
+     "default": 0.6,
+     "min": 0,
+     "max": 1
+    },
+    "uvX": {
+     "type": "num",
+     "default": 1,
+     "min": 0.25,
+     "max": 8
+    },
+    "spin": {
+     "type": "num",
+     "default": 0,
+     "min": -8,
+     "max": 8
+    },
+    "range": {
+     "type": "sel",
+     "default": "full",
+     "options": [
+      "full",
+      "front",
+      "rear"
+     ]
+    },
+    "shade": {
+     "type": "num",
+     "default": 0.25,
+     "min": 0,
+     "max": 1
+    },
+    "rearAlpha": {
+     "type": "num",
+     "default": 0.55,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Revolve": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "옆면 텍스처"
+    },
+    {
+     "p": 1,
+     "label": "뚜껑 텍스처"
+    }
+   ],
+   "params": {
+    "cx": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    },
+    "yTop": {
+     "type": "num",
+     "default": 0.28,
+     "min": 0,
+     "max": 1
+    },
+    "yBot": {
+     "type": "num",
+     "default": 0.75,
+     "min": 0,
+     "max": 1
+    },
+    "rEnd": {
+     "type": "num",
+     "default": 16,
+     "min": 0,
+     "max": 64
+    },
+    "rMid": {
+     "type": "num",
+     "default": 20.5,
+     "min": 0,
+     "max": 64
+    },
+    "bulgePow": {
+     "type": "num",
+     "default": 1,
+     "min": 0.2,
+     "max": 4
+    },
+    "ratio": {
+     "type": "num",
+     "default": 0.75,
+     "min": 0,
+     "max": 1
+    },
+    "scale": {
+     "type": "num",
+     "default": 1,
+     "min": 0.1,
+     "max": 2
+    },
+    "uvX": {
+     "type": "num",
+     "default": 2,
+     "min": 0.25,
+     "max": 8
+    },
+    "spin": {
+     "type": "num",
+     "default": 0,
+     "min": -8,
+     "max": 8
+    },
+    "range": {
+     "type": "sel",
+     "default": "full",
+     "options": [
+      "full",
+      "front"
+     ]
+    },
+    "cap": {
+     "type": "sel",
+     "default": "bottom",
+     "options": [
+      "none",
+      "bottom",
+      "top"
+     ]
+    },
+    "shade": {
+     "type": "num",
+     "default": 0.55,
+     "min": 0,
+     "max": 1
+    },
+    "shadePow": {
+     "type": "num",
+     "default": 0.8,
+     "min": 0.1,
+     "max": 4
+    },
+    "light": {
+     "type": "num",
+     "default": 0,
+     "min": -1,
+     "max": 1
+    }
+   }
+  },
+  "Stroke": {
+   "inputs": [],
+   "params": {
+    "x0": {
+     "type": "num",
+     "default": 0.2,
+     "min": -1,
+     "max": 2
+    },
+    "y0": {
+     "type": "num",
+     "default": 0.5,
+     "min": -1,
+     "max": 2
+    },
+    "x1": {
+     "type": "num",
+     "default": 0.4,
+     "min": -1,
+     "max": 2
+    },
+    "y1": {
+     "type": "num",
+     "default": 0.3,
+     "min": -1,
+     "max": 2
+    },
+    "x2": {
+     "type": "num",
+     "default": 0.6,
+     "min": -1,
+     "max": 2
+    },
+    "y2": {
+     "type": "num",
+     "default": 0.7,
+     "min": -1,
+     "max": 2
+    },
+    "x3": {
+     "type": "num",
+     "default": 0.8,
+     "min": -1,
+     "max": 2
+    },
+    "y3": {
+     "type": "num",
+     "default": 0.5,
+     "min": -1,
+     "max": 2
+    },
+    "width": {
+     "type": "num",
+     "default": 2,
+     "min": 0,
+     "max": 16
+    },
+    "taper": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    "from": {
+     "type": "num",
+     "default": 0,
+     "min": 0,
+     "max": 1
+    },
+    "to": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    "span": {
+     "type": "bool",
+     "default": true
+    },
+    "vA": {
+     "type": "num",
+     "default": 0.6,
+     "min": 0,
+     "max": 1
+    },
+    "vM": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    },
+    "vB": {
+     "type": "num",
+     "default": 0.3,
+     "min": 0,
+     "max": 1
+    },
+    "intensity": {
+     "type": "num",
+     "default": 1,
+     "min": 0,
+     "max": 1
+    }
+   }
+  },
+  "Output": {
+   "inputs": [
+    {
+     "p": 0,
+     "label": "입력"
+    }
+   ],
+   "params": {
+    "alpha": {
+     "type": "sel",
+     "default": "hard",
+     "options": [
+      "hard",
+      "soft"
+     ]
+    },
+    "threshold": {
+     "type": "num",
+     "default": 0.5,
+     "min": 0,
+     "max": 1
+    }
+   }
+  }
+ }
+}
