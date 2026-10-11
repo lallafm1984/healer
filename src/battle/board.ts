@@ -5,6 +5,7 @@
  * 칸 위 이펙트는 0.4초 안에 사라지고 체력 숫자·디버프 테두리 아래에 그림.
  * 그림 (37 v0.2): 판 위 적·영혼 칸 그림(mob-), 칸 무늬(fx-cell-), 사슬 띠(fx-link-), 이펙트(fx-)가 src/art에 있으면 그 그림을, 없으면 지금 벡터 그림을 씀.
  * PXF 이펙트 (battle/pxf.ts, 2026-10-11): 휠 스킬이 들어가면 구운 픽셀 프레임 띠 (fx-pxf-*)를 대상 · 범위 · 파티 칸에서 재생 (그 칸의 치유 빛 대신). 다른 이펙트와 달리 판 맨 위 (글자·아이콘보다 위).
+ * 보스 판 전체 공격 (외침 · 땅 울림 …)은 판 너비로 크게 한 번 (pxfWide).
  */
 import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
 import { art } from '../art';
@@ -19,7 +20,7 @@ import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, 
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebuff } from './party-display';
 import { CELL_RADIUS, fitBoard } from './board-layout';
-import { COMMON_PXF, PXF, pxfArtName, pxfDrawSize, pxfFrame, pxfMs, type CommonFx, type PxfKey } from './pxf';
+import { BOSS_PXF, COMMON_PXF, PXF, pxfArtName, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, type CommonFx, type PxfKey } from './pxf';
 
 // ---------- 색 ----------
 const hex = (c: string) => parseInt(c.slice(1, 7), 16);
@@ -836,6 +837,10 @@ export function fxGim(name: string, now: number, at: { cell?: number; id?: numbe
   const sw = bossFxArt(F.enc.script, 'swap', name); // 묶음 H (63 E): 조용히 (시전 끊기) · 거품 터짐
   if (sw) name = sw.slice(3);
   const look = FX_LOOK[name], dur = look?.ms ?? FX_MS;
+  // 보스 판 전체 공격 (Lim 2026-10-11 「픽셀 크기를 늘려서」): PXF가 있으면 판 너비로 크게 한 번 (외침은 세력 색)
+  const bp = BOSS_PXF[name];
+  // 판 전체 공격 PXF (띠를 아직 못 읽었으면 예전 그림)
+  if (bp && (at.all || look?.wide) && pxfReady(bp)) { B2.fx.push({ kind: 'pxf', id: -1, t0: now, pxf: bp, dur: pxfMs(PXF[bp]), wide: true, color: at.color ?? look?.color }); return; }
   if (at.all && !look?.wide) { for (const u of F.party) if (u.alive) B2.fx.push({ kind: 'art', name, id: u.id, t0: now, dur, color: at.color }); return; }
   B2.fx.push({ kind: 'art', name, id: at.id ?? -1, cell: at.cell, to: at.to, row: at.row, t0: now, dur, wide: at.all || look?.wide, color: at.color });
 }
@@ -1013,6 +1018,19 @@ function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: numb
   if (half <= 0) return;
   pxfArt.put(tex, x, y, half * 2, half * 2, 1, c.gray ? tint : 0xffffff, 0, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
   recordBound(key, 'fx', 'circle', x, y, half * 2, half * 2, { diameter: half * 2, requestedDiameter: size, frame: i, tint: c.gray ? tint : undefined });
+}
+/**
+ * 보스 판 전체 공격 PXF (pxf.ts BOSS_PXF) 한 프레임: 캔버스를 판 너비 (세로로 길면 높이)로 키워 판 가운데에, 판 밖으로 나가는 부분은 프레임을 잘라 냄.
+ * 칸 그림의 5–6배라 픽셀이 굵게 보임 (Lim 「픽셀 크기를 늘려서」). 층은 다른 PXF처럼 판 맨 위
+ */
+function pxfWide(k: PxfKey, key: string, ms: number, tint = 0xffffff): void {
+  const c = PXF[k], i = pxfFrame(c, ms), tex = i < 0 ? null : artTexture(pxfArtName(k));
+  const w = L.right - L.left, h = L.bottom - L.top;
+  if (!tex || w <= 0 || h <= 0) return;
+  if (tex.source.scaleMode !== 'nearest') tex.source.scaleMode = 'nearest';
+  const px = tex.height / c.size, cr = pxfCrop(c, w, h), x = (L.left + L.right) / 2, y = (L.top + L.bottom) / 2;
+  pxfArt.put(partTex(pxfArtName(k), tex, (i * c.size + cr.x) * px, cr.y * px, cr.w * px, cr.h * px), x, y, w, h, 1, c.gray ? tint : 0xffffff);
+  recordBound(key, 'fx', 'rect', x, y, w, h, { frame: i, tint: c.gray ? tint : undefined });
 }
 /** 그림 이펙트 한 장: 판 밖으로 안 나가게 크기를 줄여 그림. flipX = 좌우 뒤집음 */
 function spriteFx(tex: Texture, key: string, x: number, y: number, size: number, alpha: number, tint = 0xffffff, rot = 0, flipX = false): void {
@@ -1357,6 +1375,7 @@ export function render(now: number): void {
   for (const e of B2.fx) {
     if (e.kind === 'art') { artFx(F, e, now, r, s); continue; }
     if (e.kind === 'pxf') {
+      if (e.wide) { pxfWide(e.pxf!, `pxf-${e.pxf}-${e.t0}`, now - e.t0, e.color); continue; }
       const u = F.party.find(x => x.id === e.id), p = e.x != null ? { x: e.x, y: e.y! } : u ? unitPos(u) : null;
       if (p) pxfFx(e.pxf!, e.tag ? `${e.tag}${e.id}-${e.t0}` : `pxf${e.id}-${e.pxf}-${e.t0}`, p.x, p.y, r, now - e.t0, e.color);
       continue;

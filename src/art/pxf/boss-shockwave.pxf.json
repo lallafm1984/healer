@@ -1,0 +1,870 @@
+{
+  "format": "pxf.graph@1",
+  "name": "보스 땅 울림 갈라지는 금",
+  "settings": {
+    "size": 64,
+    "frames": 16,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "crack1",
+      "type": "Lightning",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.02,
+        "y1": 0.24,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.2,
+        "branchLen": 0.25,
+        "seed": 1101,
+        "rate": 0,
+        "thick": 2,
+        "grow": {
+          "k": [
+            [
+              0,
+              0.45,
+              "out"
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              8,
+              1,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.75
+            ],
+            [
+              1,
+              0.75
+            ],
+            [
+              3,
+              0.55
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "crack2",
+      "type": "Lightning",
+      "x": 40,
+      "y": 210,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.0,
+        "y1": 0.58,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.2,
+        "branchLen": 0.25,
+        "seed": 1202,
+        "rate": 0,
+        "thick": 2,
+        "grow": {
+          "k": [
+            [
+              0,
+              0.4,
+              "out"
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.75
+            ],
+            [
+              1,
+              0.75
+            ],
+            [
+              3,
+              0.55
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "crack3",
+      "type": "Lightning",
+      "x": 40,
+      "y": 380,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.18,
+        "y1": 0.96,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.2,
+        "branchLen": 0.25,
+        "seed": 1303,
+        "rate": 0,
+        "thick": 2,
+        "grow": {
+          "k": [
+            [
+              0,
+              0.5,
+              "out"
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              8,
+              1,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.75
+            ],
+            [
+              1,
+              0.75
+            ],
+            [
+              3,
+              0.55
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "crack4",
+      "type": "Lightning",
+      "x": 40,
+      "y": 550,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.82,
+        "y1": 0.04,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.2,
+        "branchLen": 0.25,
+        "seed": 1404,
+        "rate": 0,
+        "thick": 2,
+        "grow": {
+          "k": [
+            [
+              0,
+              0.4,
+              "out"
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.75
+            ],
+            [
+              1,
+              0.75
+            ],
+            [
+              3,
+              0.55
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "crack5",
+      "type": "Lightning",
+      "x": 40,
+      "y": 720,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 1.0,
+        "y1": 0.42,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.2,
+        "branchLen": 0.25,
+        "seed": 1505,
+        "rate": 0,
+        "thick": 2,
+        "grow": {
+          "k": [
+            [
+              0,
+              0.45,
+              "out"
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              8,
+              1,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.75
+            ],
+            [
+              1,
+              0.75
+            ],
+            [
+              3,
+              0.55
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "crack6",
+      "type": "Lightning",
+      "x": 40,
+      "y": 890,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.97,
+        "y1": 0.84,
+        "detail": 4,
+        "jag": 0.5,
+        "branch": 0.2,
+        "branchLen": 0.25,
+        "seed": 1606,
+        "rate": 0,
+        "thick": 2,
+        "grow": {
+          "k": [
+            [
+              0,
+              0.5,
+              "out"
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              9,
+              1,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.75
+            ],
+            [
+              1,
+              0.75
+            ],
+            [
+              3,
+              0.55
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "dust1",
+      "type": "Particles",
+      "x": 40,
+      "y": 1060,
+      "params": {
+        "count": 4,
+        "seed": 300,
+        "emit": "burst",
+        "start": 0.0625,
+        "life": 0.5,
+        "lifeVar": 0.25,
+        "area": "box",
+        "x": 0.236,
+        "y": 0.357,
+        "aw": 14,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 70,
+        "speed": 1.5,
+        "speedVar": 0.4,
+        "gravity": 0.2,
+        "drag": 0.02,
+        "sizeA": 4,
+        "sizeB": 2.5,
+        "pshape": "circle",
+        "fade": "flat",
+        "bright": 0.72,
+        "brightVar": 0.35,
+        "loop": false
+      }
+    },
+    {
+      "id": "dust2",
+      "type": "Particles",
+      "x": 40,
+      "y": 1230,
+      "params": {
+        "count": 4,
+        "seed": 317,
+        "emit": "burst",
+        "start": 0.0938,
+        "life": 0.5,
+        "lifeVar": 0.25,
+        "area": "box",
+        "x": 0.225,
+        "y": 0.544,
+        "aw": 14,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 70,
+        "speed": 1.5,
+        "speedVar": 0.4,
+        "gravity": 0.2,
+        "drag": 0.02,
+        "sizeA": 4,
+        "sizeB": 2.5,
+        "pshape": "diamond",
+        "fade": "flat",
+        "bright": 0.72,
+        "brightVar": 0.35,
+        "loop": false
+      }
+    },
+    {
+      "id": "dust3",
+      "type": "Particles",
+      "x": 40,
+      "y": 1400,
+      "params": {
+        "count": 4,
+        "seed": 334,
+        "emit": "burst",
+        "start": 0.125,
+        "life": 0.5,
+        "lifeVar": 0.25,
+        "area": "box",
+        "x": 0.324,
+        "y": 0.753,
+        "aw": 14,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 70,
+        "speed": 1.5,
+        "speedVar": 0.4,
+        "gravity": 0.2,
+        "drag": 0.02,
+        "sizeA": 4,
+        "sizeB": 2.5,
+        "pshape": "circle",
+        "fade": "flat",
+        "bright": 0.72,
+        "brightVar": 0.35,
+        "loop": false
+      }
+    },
+    {
+      "id": "dust4",
+      "type": "Particles",
+      "x": 40,
+      "y": 1570,
+      "params": {
+        "count": 4,
+        "seed": 351,
+        "emit": "burst",
+        "start": 0.0625,
+        "life": 0.5,
+        "lifeVar": 0.25,
+        "area": "box",
+        "x": 0.676,
+        "y": 0.247,
+        "aw": 14,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 70,
+        "speed": 1.5,
+        "speedVar": 0.4,
+        "gravity": 0.2,
+        "drag": 0.02,
+        "sizeA": 4,
+        "sizeB": 2.5,
+        "pshape": "diamond",
+        "fade": "flat",
+        "bright": 0.72,
+        "brightVar": 0.35,
+        "loop": false
+      }
+    },
+    {
+      "id": "dust5",
+      "type": "Particles",
+      "x": 40,
+      "y": 1740,
+      "params": {
+        "count": 4,
+        "seed": 368,
+        "emit": "burst",
+        "start": 0.0938,
+        "life": 0.5,
+        "lifeVar": 0.25,
+        "area": "box",
+        "x": 0.775,
+        "y": 0.456,
+        "aw": 14,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 70,
+        "speed": 1.5,
+        "speedVar": 0.4,
+        "gravity": 0.2,
+        "drag": 0.02,
+        "sizeA": 4,
+        "sizeB": 2.5,
+        "pshape": "circle",
+        "fade": "flat",
+        "bright": 0.72,
+        "brightVar": 0.35,
+        "loop": false
+      }
+    },
+    {
+      "id": "dust6",
+      "type": "Particles",
+      "x": 40,
+      "y": 1910,
+      "params": {
+        "count": 4,
+        "seed": 385,
+        "emit": "burst",
+        "start": 0.125,
+        "life": 0.5,
+        "lifeVar": 0.25,
+        "area": "box",
+        "x": 0.7585,
+        "y": 0.687,
+        "aw": 14,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 70,
+        "speed": 1.5,
+        "speedVar": 0.4,
+        "gravity": 0.2,
+        "drag": 0.02,
+        "sizeA": 4,
+        "sizeB": 2.5,
+        "pshape": "diamond",
+        "fade": "flat",
+        "bright": 0.72,
+        "brightVar": 0.35,
+        "loop": false
+      }
+    },
+    {
+      "id": "m1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m2",
+      "type": "Blend",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m3",
+      "type": "Blend",
+      "x": 730,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m4",
+      "type": "Blend",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m5",
+      "type": "Blend",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m6",
+      "type": "Blend",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m7",
+      "type": "Blend",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m8",
+      "type": "Blend",
+      "x": 1880,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m9",
+      "type": "Blend",
+      "x": 2110,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m10",
+      "type": "Blend",
+      "x": 2340,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m11",
+      "type": "Blend",
+      "x": 2570,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 3030,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#2e1a0c",
+          "#6e4320",
+          "#a8742e",
+          "#d9b26a",
+          "#f3e2b0"
+        ],
+        "cutoff": 0.08,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 3260,
+      "y": 40,
+      "params": {
+        "color": "#24140a",
+        "threshold": 0.5,
+        "width": 1,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 3490,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              11,
+              1,
+              "in"
+            ],
+            [
+              15,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 3720,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "crack1",
+      "t": "m1",
+      "p": 0
+    },
+    {
+      "f": "crack2",
+      "t": "m1",
+      "p": 1
+    },
+    {
+      "f": "m1",
+      "t": "m2",
+      "p": 0
+    },
+    {
+      "f": "crack3",
+      "t": "m2",
+      "p": 1
+    },
+    {
+      "f": "m2",
+      "t": "m3",
+      "p": 0
+    },
+    {
+      "f": "crack4",
+      "t": "m3",
+      "p": 1
+    },
+    {
+      "f": "m3",
+      "t": "m4",
+      "p": 0
+    },
+    {
+      "f": "crack5",
+      "t": "m4",
+      "p": 1
+    },
+    {
+      "f": "m4",
+      "t": "m5",
+      "p": 0
+    },
+    {
+      "f": "crack6",
+      "t": "m5",
+      "p": 1
+    },
+    {
+      "f": "m5",
+      "t": "m6",
+      "p": 0
+    },
+    {
+      "f": "dust1",
+      "t": "m6",
+      "p": 1
+    },
+    {
+      "f": "m6",
+      "t": "m7",
+      "p": 0
+    },
+    {
+      "f": "dust2",
+      "t": "m7",
+      "p": 1
+    },
+    {
+      "f": "m7",
+      "t": "m8",
+      "p": 0
+    },
+    {
+      "f": "dust3",
+      "t": "m8",
+      "p": 1
+    },
+    {
+      "f": "m8",
+      "t": "m9",
+      "p": 0
+    },
+    {
+      "f": "dust4",
+      "t": "m9",
+      "p": 1
+    },
+    {
+      "f": "m9",
+      "t": "m10",
+      "p": 0
+    },
+    {
+      "f": "dust5",
+      "t": "m10",
+      "p": 1
+    },
+    {
+      "f": "m10",
+      "t": "m11",
+      "p": 0
+    },
+    {
+      "f": "dust6",
+      "t": "m11",
+      "p": 1
+    },
+    {
+      "f": "m11",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 0
+  }
+}

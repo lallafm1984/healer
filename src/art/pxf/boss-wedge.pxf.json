@@ -1,0 +1,838 @@
+{
+  "format": "pxf.graph@1",
+  "name": "보스 번개 쐐기",
+  "settings": {
+    "size": 64,
+    "frames": 18,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "bolt",
+      "type": "Lightning",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.0,
+        "x1": 0.5,
+        "y1": 0.52,
+        "detail": 4,
+        "jag": 0.28,
+        "branch": 0,
+        "branchLen": 0.3,
+        "seed": 2207,
+        "rate": 0,
+        "thick": 4,
+        "grow": {
+          "k": [
+            [
+              0,
+              0.35,
+              "out"
+            ],
+            [
+              1,
+              1
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              3,
+              1,
+              "step"
+            ],
+            [
+              4,
+              0.72,
+              "step"
+            ],
+            [
+              6,
+              1,
+              "step"
+            ],
+            [
+              7,
+              0.72
+            ],
+            [
+              11,
+              0.72,
+              "step"
+            ],
+            [
+              12,
+              0.55,
+              "step"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "b1",
+      "type": "Lightning",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.52,
+        "x1": 0.03,
+        "y1": 0.28,
+        "detail": 4,
+        "jag": 0.4,
+        "branch": 0,
+        "branchLen": 0.25,
+        "seed": 101,
+        "rate": 3,
+        "thick": 2,
+        "grow": {
+          "k": [
+            [
+              1,
+              0,
+              "out"
+            ],
+            [
+              3,
+              1
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0,
+              "step"
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              3,
+              1,
+              "step"
+            ],
+            [
+              4,
+              0.7,
+              "step"
+            ],
+            [
+              6,
+              1,
+              "step"
+            ],
+            [
+              7,
+              0.7
+            ],
+            [
+              8,
+              0.7,
+              "step"
+            ],
+            [
+              9,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "b2",
+      "type": "Lightning",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.52,
+        "x1": 0.05,
+        "y1": 0.72,
+        "detail": 4,
+        "jag": 0.4,
+        "branch": 0,
+        "branchLen": 0.25,
+        "seed": 202,
+        "rate": 3,
+        "thick": 2,
+        "grow": {
+          "k": [
+            [
+              1,
+              0,
+              "out"
+            ],
+            [
+              4,
+              1
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0,
+              "step"
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              3,
+              1,
+              "step"
+            ],
+            [
+              4,
+              0.7,
+              "step"
+            ],
+            [
+              6,
+              1,
+              "step"
+            ],
+            [
+              7,
+              0.7
+            ],
+            [
+              10,
+              0.7,
+              "step"
+            ],
+            [
+              11,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "b3",
+      "type": "Lightning",
+      "x": 40,
+      "y": 520,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.52,
+        "x1": 0.97,
+        "y1": 0.3,
+        "detail": 4,
+        "jag": 0.4,
+        "branch": 0,
+        "branchLen": 0.25,
+        "seed": 303,
+        "rate": 3,
+        "thick": 2,
+        "grow": {
+          "k": [
+            [
+              1,
+              0,
+              "out"
+            ],
+            [
+              3,
+              1
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0,
+              "step"
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              3,
+              1,
+              "step"
+            ],
+            [
+              4,
+              0.7,
+              "step"
+            ],
+            [
+              6,
+              1,
+              "step"
+            ],
+            [
+              7,
+              0.7
+            ],
+            [
+              9,
+              0.7,
+              "step"
+            ],
+            [
+              10,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "b4",
+      "type": "Lightning",
+      "x": 40,
+      "y": 680,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.52,
+        "x1": 0.96,
+        "y1": 0.74,
+        "detail": 4,
+        "jag": 0.4,
+        "branch": 0,
+        "branchLen": 0.25,
+        "seed": 404,
+        "rate": 3,
+        "thick": 2,
+        "grow": {
+          "k": [
+            [
+              1,
+              0,
+              "out"
+            ],
+            [
+              4,
+              1
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0,
+              "step"
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              3,
+              1,
+              "step"
+            ],
+            [
+              4,
+              0.7,
+              "step"
+            ],
+            [
+              6,
+              1,
+              "step"
+            ],
+            [
+              7,
+              0.7
+            ],
+            [
+              10,
+              0.7,
+              "step"
+            ],
+            [
+              11,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "b5",
+      "type": "Lightning",
+      "x": 40,
+      "y": 840,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.52,
+        "x1": 0.6,
+        "y1": 0.92,
+        "detail": 4,
+        "jag": 0.4,
+        "branch": 0,
+        "branchLen": 0.25,
+        "seed": 505,
+        "rate": 3,
+        "thick": 2,
+        "grow": {
+          "k": [
+            [
+              2,
+              0,
+              "out"
+            ],
+            [
+              4,
+              1
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0,
+              "step"
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              3,
+              1,
+              "step"
+            ],
+            [
+              4,
+              0.7,
+              "step"
+            ],
+            [
+              6,
+              1,
+              "step"
+            ],
+            [
+              7,
+              0.7
+            ],
+            [
+              9,
+              0.7,
+              "step"
+            ],
+            [
+              10,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "wedge",
+      "type": "Spike",
+      "x": 40,
+      "y": 1000,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.0,
+        "x1": 0.5,
+        "y1": 0.5,
+        "width": 10,
+        "taper": 1,
+        "grow": {
+          "k": [
+            [
+              0,
+              0.3,
+              "out"
+            ],
+            [
+              1,
+              1
+            ]
+          ]
+        },
+        "base": 0.5,
+        "tip": 0.85,
+        "facet": 0.25,
+        "ridge": 0.15,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.75
+            ],
+            [
+              11,
+              0.75,
+              "step"
+            ],
+            [
+              12,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "flash",
+      "type": "Shape",
+      "x": 40,
+      "y": 1160,
+      "params": {
+        "shape": "diamond",
+        "x": 0.5,
+        "y": 0.52,
+        "size": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              8,
+              "out"
+            ],
+            [
+              3,
+              5.5,
+              "in"
+            ],
+            [
+              6,
+              0
+            ]
+          ]
+        },
+        "aspect": 0.7,
+        "falloff": 0.5,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "sparks",
+      "type": "Particles",
+      "x": 40,
+      "y": 1320,
+      "params": {
+        "count": 7,
+        "seed": 7313,
+        "emit": "burst",
+        "start": 0.06,
+        "life": 0.3,
+        "lifeVar": 0.3,
+        "area": "circle",
+        "x": 0.5,
+        "y": 0.52,
+        "aw": 4,
+        "ah": 4,
+        "dirMode": "outward",
+        "speed": 2.2,
+        "speedVar": 0.4,
+        "drag": 0.06,
+        "gravity": 0.08,
+        "sizeA": 4,
+        "sizeB": 2.5,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.8,
+        "brightVar": 0.25,
+        "loop": false
+      }
+    },
+    {
+      "id": "m1",
+      "type": "Blend",
+      "x": 270,
+      "y": 120,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m2",
+      "type": "Blend",
+      "x": 500,
+      "y": 200,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m3",
+      "type": "Blend",
+      "x": 730,
+      "y": 280,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m4",
+      "type": "Blend",
+      "x": 960,
+      "y": 360,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m5",
+      "type": "Blend",
+      "x": 1190,
+      "y": 440,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "halo",
+      "type": "Glow",
+      "x": 1420,
+      "y": 440,
+      "params": {
+        "radius": 1,
+        "strength": 1.0
+      }
+    },
+    {
+      "id": "m6",
+      "type": "Blend",
+      "x": 270,
+      "y": 1300,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m7",
+      "type": "Blend",
+      "x": 500,
+      "y": 1380,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m8",
+      "type": "Blend",
+      "x": 1650,
+      "y": 600,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 1880,
+      "y": 600,
+      "params": {
+        "colors": [
+          "#3d2410",
+          "#c98a12",
+          "#ffd23a",
+          "#fff09a",
+          "#ffffff"
+        ],
+        "cutoff": 0.2,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 2110,
+      "y": 600,
+      "params": {
+        "color": "#2a1606",
+        "threshold": 0.5,
+        "width": 1,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 2340,
+      "y": 600,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              10,
+              1,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 2570,
+      "y": 600,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "bolt",
+      "t": "m1",
+      "p": 0
+    },
+    {
+      "f": "b1",
+      "t": "m1",
+      "p": 1
+    },
+    {
+      "f": "m1",
+      "t": "m2",
+      "p": 0
+    },
+    {
+      "f": "b2",
+      "t": "m2",
+      "p": 1
+    },
+    {
+      "f": "m2",
+      "t": "m3",
+      "p": 0
+    },
+    {
+      "f": "b3",
+      "t": "m3",
+      "p": 1
+    },
+    {
+      "f": "m3",
+      "t": "m4",
+      "p": 0
+    },
+    {
+      "f": "b4",
+      "t": "m4",
+      "p": 1
+    },
+    {
+      "f": "m4",
+      "t": "m5",
+      "p": 0
+    },
+    {
+      "f": "b5",
+      "t": "m5",
+      "p": 1
+    },
+    {
+      "f": "m5",
+      "t": "halo",
+      "p": 0
+    },
+    {
+      "f": "wedge",
+      "t": "m6",
+      "p": 0
+    },
+    {
+      "f": "flash",
+      "t": "m6",
+      "p": 1
+    },
+    {
+      "f": "m6",
+      "t": "m7",
+      "p": 0
+    },
+    {
+      "f": "sparks",
+      "t": "m7",
+      "p": 1
+    },
+    {
+      "f": "m7",
+      "t": "m8",
+      "p": 0
+    },
+    {
+      "f": "halo",
+      "t": "m8",
+      "p": 1
+    },
+    {
+      "f": "m8",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 1
+  }
+}

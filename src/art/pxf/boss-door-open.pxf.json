@@ -1,0 +1,815 @@
+{
+  "format": "pxf.graph@1",
+  "name": "보스 문틈 열림",
+  "settings": {
+    "size": 64,
+    "frames": 22,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "slitO",
+      "type": "Stroke",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.03,
+        "x1": 0.5,
+        "y1": 0.35,
+        "x2": 0.5,
+        "y2": 0.65,
+        "x3": 0.5,
+        "y3": 0.97,
+        "width": {
+          "k": [
+            [
+              0,
+              2,
+              "out3"
+            ],
+            [
+              2,
+              4
+            ],
+            [
+              5,
+              9,
+              "out"
+            ],
+            [
+              11,
+              8,
+              "in"
+            ],
+            [
+              17,
+              0
+            ]
+          ]
+        },
+        "taper": 0.5,
+        "from": {
+          "k": [
+            [
+              0,
+              0.5,
+              "out3"
+            ],
+            [
+              2,
+              0
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              0,
+              0.5,
+              "out3"
+            ],
+            [
+              2,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 0.8,
+        "vM": 1,
+        "vB": 0.8,
+        "intensity": 0.5
+      }
+    },
+    {
+      "id": "slitM",
+      "type": "Stroke",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.03,
+        "x1": 0.5,
+        "y1": 0.35,
+        "x2": 0.5,
+        "y2": 0.65,
+        "x3": 0.5,
+        "y3": 0.97,
+        "width": {
+          "k": [
+            [
+              0,
+              1,
+              "out3"
+            ],
+            [
+              2,
+              2.5
+            ],
+            [
+              5,
+              5.5,
+              "out"
+            ],
+            [
+              11,
+              5,
+              "in"
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        "taper": 0.6,
+        "from": {
+          "k": [
+            [
+              0,
+              0.5,
+              "out3"
+            ],
+            [
+              2,
+              0
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              0,
+              0.5,
+              "out3"
+            ],
+            [
+              2,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 0.75,
+        "vM": 1,
+        "vB": 0.75,
+        "intensity": 0.76
+      }
+    },
+    {
+      "id": "slitC",
+      "type": "Stroke",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.06,
+        "x1": 0.5,
+        "y1": 0.35,
+        "x2": 0.5,
+        "y2": 0.65,
+        "x3": 0.5,
+        "y3": 0.94,
+        "width": {
+          "k": [
+            [
+              0,
+              0.5,
+              "out3"
+            ],
+            [
+              2,
+              1.5
+            ],
+            [
+              5,
+              2.5,
+              "out"
+            ],
+            [
+              10,
+              2,
+              "in"
+            ],
+            [
+              12,
+              0
+            ]
+          ]
+        },
+        "taper": 0.7,
+        "from": {
+          "k": [
+            [
+              0,
+              0.5,
+              "out3"
+            ],
+            [
+              2,
+              0
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              0,
+              0.5,
+              "out3"
+            ],
+            [
+              2,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 0.8,
+        "vM": 1,
+        "vB": 0.8,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "ray1",
+      "type": "Stroke",
+      "x": 40,
+      "y": 520,
+      "params": {
+        "x0": 0.47,
+        "y0": 0.36,
+        "x1": 0.33,
+        "y1": 0.32,
+        "x2": 0.18,
+        "y2": 0.27,
+        "x3": 0.03,
+        "y3": 0.22,
+        "width": 3,
+        "taper": 0.6,
+        "from": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              "in"
+            ],
+            [
+              12,
+              0.97
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              0.02,
+              "out"
+            ],
+            [
+              7,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 1,
+        "vM": 0.85,
+        "vB": 0.6,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0,
+              "step"
+            ],
+            [
+              2,
+              0.72
+            ],
+            [
+              11,
+              0.72,
+              "step"
+            ],
+            [
+              12,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "ray2",
+      "type": "Stroke",
+      "x": 40,
+      "y": 680,
+      "params": {
+        "x0": 0.47,
+        "y0": 0.5,
+        "x1": 0.33,
+        "y1": 0.5,
+        "x2": 0.17,
+        "y2": 0.5,
+        "x3": 0.0,
+        "y3": 0.5,
+        "width": 3.5,
+        "taper": 0.6,
+        "from": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              "in"
+            ],
+            [
+              13,
+              0.97
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              0.02,
+              "out"
+            ],
+            [
+              6,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 1,
+        "vM": 0.85,
+        "vB": 0.6,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0,
+              "step"
+            ],
+            [
+              2,
+              0.72
+            ],
+            [
+              12,
+              0.72,
+              "step"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "ray3",
+      "type": "Stroke",
+      "x": 40,
+      "y": 840,
+      "params": {
+        "x0": 0.47,
+        "y0": 0.64,
+        "x1": 0.34,
+        "y1": 0.69,
+        "x2": 0.2,
+        "y2": 0.74,
+        "x3": 0.06,
+        "y3": 0.79,
+        "width": 3,
+        "taper": 0.6,
+        "from": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              4,
+              0,
+              "in"
+            ],
+            [
+              13,
+              0.97
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0.02,
+              "out"
+            ],
+            [
+              8,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 1,
+        "vM": 0.85,
+        "vB": 0.6,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0,
+              "step"
+            ],
+            [
+              3,
+              0.72
+            ],
+            [
+              12,
+              0.72,
+              "step"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "raysA",
+      "type": "Blend",
+      "x": 270,
+      "y": 600,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "raysL",
+      "type": "Blend",
+      "x": 500,
+      "y": 600,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "mirror",
+      "type": "Transform",
+      "x": 730,
+      "y": 700,
+      "params": {
+        "tx": 0,
+        "ty": 4,
+        "sx": -1,
+        "sy": 1,
+        "rot": 0,
+        "px": 0.5,
+        "py": 0.5
+      }
+    },
+    {
+      "id": "rays",
+      "type": "Blend",
+      "x": 960,
+      "y": 600,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "fragL",
+      "type": "Particles",
+      "x": 40,
+      "y": 1000,
+      "params": {
+        "count": 4,
+        "seed": 4111,
+        "emit": "burst",
+        "start": 0.13,
+        "life": 0.36,
+        "lifeVar": 0.15,
+        "area": "box",
+        "x": 0.5,
+        "y": 0.5,
+        "aw": 4,
+        "ah": 30,
+        "dirMode": "fixed",
+        "angle": 180,
+        "spread": 50,
+        "speed": 3.2,
+        "speedVar": 0.3,
+        "gravity": 0.04,
+        "drag": 0.04,
+        "sizeA": 6,
+        "sizeB": 4,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.6,
+        "brightVar": 0.2,
+        "loop": false
+      }
+    },
+    {
+      "id": "fragR",
+      "type": "Particles",
+      "x": 40,
+      "y": 1160,
+      "params": {
+        "count": 4,
+        "seed": 9773,
+        "emit": "burst",
+        "start": 0.15,
+        "life": 0.36,
+        "lifeVar": 0.15,
+        "area": "box",
+        "x": 0.5,
+        "y": 0.5,
+        "aw": 4,
+        "ah": 30,
+        "dirMode": "fixed",
+        "angle": 0,
+        "spread": 50,
+        "speed": 3.2,
+        "speedVar": 0.3,
+        "gravity": 0.04,
+        "drag": 0.04,
+        "sizeA": 6,
+        "sizeB": 4,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.6,
+        "brightVar": 0.2,
+        "loop": false
+      }
+    },
+    {
+      "id": "frags",
+      "type": "Blend",
+      "x": 270,
+      "y": 1080,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "slitA",
+      "type": "Blend",
+      "x": 270,
+      "y": 120,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "slit",
+      "type": "Blend",
+      "x": 500,
+      "y": 120,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "sr",
+      "type": "Blend",
+      "x": 1190,
+      "y": 300,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "all",
+      "type": "Blend",
+      "x": 1420,
+      "y": 300,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 1650,
+      "y": 300,
+      "params": {
+        "colors": [
+          "#1d1238",
+          "#4a2a8c",
+          "#8452d4",
+          "#c6a4f4",
+          "#ffffff"
+        ],
+        "cutoff": 0.08,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 1880,
+      "y": 300,
+      "params": {
+        "color": "#140b28",
+        "threshold": 0.5,
+        "width": 1,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 2110,
+      "y": 300,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              12,
+              1,
+              "in"
+            ],
+            [
+              21,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 2340,
+      "y": 300,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "slitO",
+      "t": "slitA",
+      "p": 0
+    },
+    {
+      "f": "slitM",
+      "t": "slitA",
+      "p": 1
+    },
+    {
+      "f": "slitA",
+      "t": "slit",
+      "p": 0
+    },
+    {
+      "f": "slitC",
+      "t": "slit",
+      "p": 1
+    },
+    {
+      "f": "ray1",
+      "t": "raysA",
+      "p": 0
+    },
+    {
+      "f": "ray2",
+      "t": "raysA",
+      "p": 1
+    },
+    {
+      "f": "raysA",
+      "t": "raysL",
+      "p": 0
+    },
+    {
+      "f": "ray3",
+      "t": "raysL",
+      "p": 1
+    },
+    {
+      "f": "raysL",
+      "t": "mirror",
+      "p": 0
+    },
+    {
+      "f": "raysL",
+      "t": "rays",
+      "p": 0
+    },
+    {
+      "f": "mirror",
+      "t": "rays",
+      "p": 1
+    },
+    {
+      "f": "fragL",
+      "t": "frags",
+      "p": 0
+    },
+    {
+      "f": "fragR",
+      "t": "frags",
+      "p": 1
+    },
+    {
+      "f": "slit",
+      "t": "sr",
+      "p": 0
+    },
+    {
+      "f": "rays",
+      "t": "sr",
+      "p": 1
+    },
+    {
+      "f": "sr",
+      "t": "all",
+      "p": 0
+    },
+    {
+      "f": "frags",
+      "t": "all",
+      "p": 1
+    },
+    {
+      "f": "all",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 1
+  }
+}
