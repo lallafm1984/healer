@@ -15,7 +15,7 @@ import { NAMED, SPECS, type SpecGroup } from '../data/specials';
 import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
 import { emblemColor } from '../screens/art';
 import { FACTIONS, type FactionKey } from '../data/places';
-import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName } from './art';
+import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebuff } from './party-display';
 import { CELL_RADIUS, fitBoard } from './board-layout';
@@ -34,6 +34,8 @@ const SAND = 0xe9c46a;
 const SKY = 0x9fd8f5, BOLT = 0xffe066;
 /** 묶음 G (59 5장): 어둠물 검보라 · 물결 · 빌린 생명 보라 (심연의 정예 #8A7CFF) */
 const TIDE = 0x241a4d, TIDE_HI = 0x8a7cff, DEBT = 0x8a7cff, DEBT_HI = 0xd6ceff;
+/** 묶음 H 밀물 물 색 (63 E 6 · 13, tideTail): 짠물 청록 · 독 연못 초록 */
+const TIDE_TINT: Record<string, [number, number]> = { sea: [0x1f8f8b, 0x9ff3ec], poison: [0x2f5a24, 0x3cc24a] };
 const C = {
   cell: 0x15120e, cellLine: 0x2c241b, line: 0x080605, ink: 0xf1e4c8, dead: 0x8a7f6a, gold: 0xf0c46a, white: 0xffffff,
   zone: 0xe2402e, zoneHi: 0xff6a4a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0x4dff7c, over: 0xa99a7e,
@@ -624,6 +626,8 @@ interface Fx {
   plain?: boolean;
   /** 기믹 연출 (kind 'art'): 그림 fx-<name>, 칸 · 날아갈 사람 · 판 전체 · 길이(ms) */
   name?: string; cell?: number; to?: number; wide?: boolean; dur?: number;
+  /** 줄을 지나가는 연출 (FX_LOOK roll): 그 줄 칸들 */
+  row?: number[];
 }
 /** id = 숫자가 가리키는 파티원 (그 칸 근처에만 뜸) */
 interface Float { x: number; y: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean; id?: number }
@@ -681,13 +685,16 @@ const B2 = {
 export function resetBoardFx(): void {
   B2.floats = []; B2.bubbles = []; B2.fx = []; B2.disp = {}; B2.hitFx = {}; B2.shake = {}; B2.lastFlash = {}; B2.lens = null; seenZones.clear();
   telsSeen = []; telsDone.clear();
+  darkAt = null;
+  if (B.F) for (const a of bossFxArts(B.F.enc.script)) artTexture(a); // 묶음 H 이펙트 (63 E): 첫 번째부터 보이게
 }
 /**
  * 기믹 연출 (37 4장 F-1): 칸 반지름 배 크기 · 그림이 없을 때 빛 색 · 길이(ms).
  * tint = 흰 그림을 이 색으로 칠함 (사건마다 색이 다르면 그 색), fly = to에게 날아감 (top = 판 위쪽 보스 자리에서), up = 칸 위로 띄움,
- * wide = 판 가운데 크게 한 번 (all이어도), rot = 돌림 (라디안), art = 그림 이름이 fx-<이름>과 다를 때
+ * wide = 판 가운데 크게 한 번 (all이어도), rot = 돌림 (라디안), art = 그림 이름이 fx-<이름>과 다를 때.
+ * boss = top 대신 판 위 가운데 (보스 자리)에서, 그림은 가는 쪽을 봄 (왼쪽이면 뒤집고 50°까지만 기욺) · roll = 줄 (row)을 왼쪽 → 오른쪽으로 지나감 · floor = 칸 바닥에 깔림 (파티원 칸 아래)
  */
-const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?: boolean; fly?: boolean; top?: boolean; up?: number; wide?: boolean; rot?: number; art?: string }> = {
+const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?: boolean; fly?: boolean; top?: boolean; up?: number; wide?: boolean; rot?: number; art?: string; boss?: boolean; roll?: boolean; floor?: boolean }> = {
   spawn: { size: 1.7, color: 0xb06bff, ms: 500 },
   poof: { size: 1.6, color: 0xd8d0c0 },
   explode: { size: 2.6, color: 0xff8a3d, ms: 600 },
@@ -776,26 +783,45 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   'relay-land': { size: 1.2, color: 0xfff3c4, ms: 500 },
   'relay-fly': { size: 0.8, color: 0xfff3c4, ms: 1000, fly: true },
   'relay-gone': { size: 1.1, color: 0xfff3c4, ms: 500, up: 0.5 },
+  // 묶음 H (63 E, art.ts BOSS_FX): 광차 · 눈덩이가 줄을 지나감 · 까마귀 떼 · 크림 폭발 · 조용히 (판 전체) · 거품 터짐 · 낟알이 쏟아진 칸
+  'minecart-charge': { size: 2.6, color: 0xc98b5a, ms: 700, roll: true },
+  'snowball-roll': { size: 2.4, color: 0xdff4ff, ms: 800, roll: true },
+  'crow-swarm': { size: 1.5, color: 0x3a3330, ms: 550, fly: true, top: true, boss: true },
+  'cream-burst': { size: 3.2, color: 0xf6b8c8, ms: 800, wide: true },
+  hush: { size: 3.2, color: 0x9dc4ff, ms: 800, wide: true },
+  'bubble-pop': { size: 1.9, color: 0xbfe8ff, ms: 450 },
+  'cell-hole-grain': { size: 1, color: 0xe0b44a, ms: 2000, floor: true },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();
 /**
  * 기믹 연출 하나 (엔진 fx 사건 · 쫄 처치 · 새 장판). all = 살아 있는 모두 (wide 연출은 판 가운데 크게 한 번), color = 흰 그림 칠할 색
  */
-export function fxGim(name: string, now: number, at: { cell?: number; id?: number; to?: number; all?: boolean; color?: number }): void {
+export function fxGim(name: string, now: number, at: { cell?: number; id?: number; to?: number; all?: boolean; color?: number; row?: number[] }): void {
   const F = B.F;
   if (!F || !L.ok || S.reducedEffects || B2.fx.length >= 90) return;
   // 메아리 (44 E-4): 진동에 옮겨붙은 디버프면 fx-echo (그림이 없으면 옮겨붙음 그대로)
   if (name === 'fireball-green' && at.to != null && art('fx-echo') && F.party.find(u => u.id === at.to)?.debuffs.some(d => d.end?.p === 'jump' && d.end.on === 'quake')) name = 'echo';
+  const sw = bossFxArt(F.enc.script, 'swap', name); // 묶음 H (63 E): 조용히 (시전 끊기) · 거품 터짐
+  if (sw) name = sw.slice(3);
   const look = FX_LOOK[name], dur = look?.ms ?? FX_MS;
   if (at.all && !look?.wide) { for (const u of F.party) if (u.alive) B2.fx.push({ kind: 'art', name, id: u.id, t0: now, dur, color: at.color }); return; }
-  B2.fx.push({ kind: 'art', name, id: at.id ?? -1, cell: at.cell, to: at.to, t0: now, dur, wide: at.all || look?.wide, color: at.color });
+  B2.fx.push({ kind: 'art', name, id: at.id ?? -1, cell: at.cell, to: at.to, row: at.row, t0: now, dur, wide: at.all || look?.wide, color: at.color });
 }
 /** 디버프가 걸림 (44 E-1 fx-debuff, 종류 색으로 칠함: 질병 황토 · 독 초록 · 저주 보라 · 마법 파랑). 딜 0 (침묵)은 fx-silence가 있으면 그것 (E-8) */
 export function fxDebuff(u: Unit, dtype: string, now: number): void {
   const d = u.debuffs.reduce<Unit['debuffs'][number] | undefined>((a, x) => (!a || x.id > a.id ? x : a), undefined);
   const silence = !!d?.noDps && d.untilBossLoss == null && !!art('fx-silence'), color = hex(DEB[dtype] || '#E5433D');
   if (silence || S.reducedEffects || !commonFx(u, 'debuff', now, { color })) fxGim(silence ? 'silence' : 'debuff', now, { id: u.id, color });
+  // 묶음 H (63 E): 그 기술 디버프가 걸릴 때 까마귀 떼 (보스 자리에서 날아옴) · 크림 폭발 (판 가운데)
+  const hitArt = d && B.F ? debuffFxArt(B.F.enc.script, 'hit', d.name) : '';
+  if (hitArt) fxGim(hitArt.slice(3), now, { id: u.id });
+}
+/** 체력을 채워 사라진 디버프 (쇠약 · 완치 표식 · 치유 흡수 막). 묶음 H 얼음 갑옷 (63 E 3)이 녹으면 fx-frost-burst */
+export function fxCure(u: Unit, name: string, now: number): void {
+  const melt = B.F && !S.reducedEffects ? debuffFxArt(B.F.enc.script, 'cure', name) : '';
+  if (melt) fxGim(melt.slice(3), now, { id: u.id });
+  else fxDispel(u, now, false, `${name} 사라짐`);
 }
 /** 특수능력 묶음 색 (42 2장, 캐릭터 화면 char31.css와 같음) */
 const SPEC_TINT: Record<SpecGroup | 'named', number> = {
@@ -828,6 +854,8 @@ export function fxImpact(kind: TelKind | undefined, now: number): void {
     if (tl.kind !== kind || telsDone.has(tl.id) || tl.impact > F.t + 1e-6) continue;
     telsDone.add(tl.id);
     const sk = tl.skill, nm = sk.name ?? '';
+    const land = tl.fake ? '' : bossFxArt(F.enc.script, 'land', sk.key); // 묶음 H (63 E): 광차 · 눈덩이 · 낟알 (그림이 있을 때만)
+    if (land) { landFx(F, land.slice(3), tl, now); continue; }
     if (tl.ring || sk.pads) { if (art('fx-tower-ring')) for (const i of tl.cells) fxGim('tower-ring', now, { cell: i }); }
     else if (kind !== 'aoe') continue;
     else if (sk.key === 'shout' || sk.key === 'howl' || /외침|울부짖|함성/.test(nm)) fxGim('shout', now, { all: true, color: boardFaction ? hex(FACTIONS[boardFaction].color) : undefined });
@@ -835,6 +863,13 @@ export function fxImpact(kind: TelKind | undefined, now: number): void {
     else if (nm.includes('서리 폭발') && art('fx-frost-burst')) fxGim('frost-burst', now, { all: true });
     else if (sk.key === 'gaze' && art('fx-gaze')) for (const u of F.party) if (u.alive && u.debuffs.some(d => d.name === nm)) fxGim('gaze', now, { id: u.id });
   }
+}
+/** 묶음 H 예고가 떨어짐 (63 E): 줄 피해는 맞는 줄마다 왼쪽 → 오른쪽으로 지나감 (FX_LOOK roll), 칸 무늬는 맞은 칸마다 */
+function landFx(F: NonNullable<typeof B.F>, name: string, tl: Telegraph, now: number): void {
+  if (!FX_LOOK[name]?.roll) { for (const i of tl.cells) fxGim(name, now, { cell: i }); return; }
+  const rows = new Map<number, number[]>();
+  for (const i of tl.cells) { const k = F.cells[i].row; rows.set(k, [...(rows.get(k) ?? []), i]); }
+  for (const row of rows.values()) fxGim(name, now, { row });
 }
 const rnd = () => Math.random();
 /** plain = 이 칸에 스킬 PXF 이펙트가 나와서 치유 빛은 안 그림 (숫자 · 치명타 별은 그대로) */
@@ -947,30 +982,51 @@ function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: numb
   (c.layer === 'under' ? fxArt : pxfArt).put(tex, x, y, half * 2, half * 2, 1, c.gray ? tint : 0xffffff, 0, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
   recordBound(key, 'fx', 'circle', x, y, half * 2, half * 2, { diameter: half * 2, requestedDiameter: size, frame: i, layer: c.layer, tint: c.gray ? tint : undefined });
 }
-/** 그림 이펙트 한 장: 판 밖으로 안 나가게 크기를 줄여 그림 */
-function spriteFx(tex: Texture, key: string, x: number, y: number, size: number, alpha: number, tint = 0xffffff, rot = 0): void {
+/** 그림 이펙트 한 장: 판 밖으로 안 나가게 크기를 줄여 그림. flipX = 좌우 뒤집음 */
+function spriteFx(tex: Texture, key: string, x: number, y: number, size: number, alpha: number, tint = 0xffffff, rot = 0, flipX = false): void {
   const half = safeRadius(x, y, size / 2, 'circle');
   if (half <= 0 || alpha <= 0) return;
-  fxArt.put(tex, x, y, half * 2, half * 2, alpha, tint, rot);
+  fxArt.put(tex, x, y, flipX ? -half * 2 : half * 2, half * 2, alpha, tint, rot);
   recordBound(key, 'fx', 'circle', x, y, half * 2, half * 2, { diameter: half * 2, requestedDiameter: size });
 }
 const fxPos = (F: NonNullable<typeof B.F>, id: number): { x: number; y: number } | null => {
   const u = F.party.find(x => x.id === id) ?? F.souls.find(x => x.id === id);
   return u ? unitPos(u) : null;
 };
+/** 묶음 H (63 E 3 · 9): 그 기술 디버프가 걸린 동안 칸 위 그림 (얼음 갑옷 · 거품). 감옥은 감옥 자리에서 */
+function holdOf(script: string, u: Unit): { tex: Texture; d: Unit['debuffs'][number] } | null {
+  for (const d of u.debuffs) { const t = d.jail ? null : artTexture(debuffFxArt(script, 'hold', d.name)); if (t) return { tex: t, d }; }
+  return null;
+}
+/** 밀가루 구름 (63 E 11)이 덮이기 시작한 때 */
+let darkAt: number | null = null;
 /** 기믹 연출 한 프레임 (37 4장 F-1): 그림 fx-<이름>, 없으면 그 색의 빛과 고리 */
 function artFx(F: NonNullable<typeof B.F>, e: Fx, now: number, r: number, s: number): void {
   const look = FX_LOOK[e.name!] ?? { size: 1.4, color: C.white };
-  const k = Math.min(1, (now - e.t0) / (e.dur ?? FX_MS)), key = `fx-${e.name}-${e.t0}-${e.id}-${e.cell ?? ''}`;
+  const k = Math.min(1, (now - e.t0) / (e.dur ?? FX_MS)), key = `fx-${e.name}-${e.t0}-${e.id}-${e.cell ?? e.row?.[0] ?? ''}`;
+  if (look.roll) { // 줄 피해 (63 E 1 · 2): 맞는 줄을 왼쪽 → 오른쪽으로, 판 밖으로 안 나가게
+    const tex = artTexture(look.art ?? `fx-${e.name}`), cs = (e.row ?? []).map(center);
+    if (!tex || !cs.length) return;
+    const half = (r * look.size) / 2, xs = cs.map(c => c.x), y = cs.reduce((v, c) => v + c.y, 0) / cs.length;
+    const a = Math.max(Math.min(...xs), L.left + half), b = Math.max(a, Math.min(Math.max(...xs), L.right - half));
+    spriteFx(tex, key, a + (b - a) * k, y, half * 2, Math.min(1, k / 0.12, (1 - k) / 0.15));
+    return;
+  }
   let p = e.wide ? { x: (L.left + L.right) / 2, y: (L.top + L.bottom) / 2 } : e.cell != null ? center(e.cell) : fxPos(F, e.id);
   if (!p) return;
-  let rot = look.rot ?? 0;
+  if (look.floor) { // 칸 바닥에 잠깐 남음 (63 E 5 낟알): 파티원 칸 아래
+    const tex = artTexture(look.art ?? `fx-${e.name}`);
+    if (tex) decals.put(tex, p.x, p.y, r * 1.96, r * 1.96, Math.min(1, k / 0.1, (1 - k) / 0.4));
+    return;
+  }
+  let rot = look.rot ?? 0, flipX = false;
   if (look.fly) {
-    const from = look.top ? { x: p.x, y: L.top } : p, to = look.top ? p : e.to != null ? fxPos(F, e.to) : null;
+    const from = look.top ? { x: look.boss ? (L.left + L.right) / 2 : p.x, y: L.top } : p, to = look.top ? p : e.to != null ? fxPos(F, e.to) : null;
     if (!to) return;
     if (e.name!.startsWith('chain-') && !artTexture(look.art ?? `fx-${e.name}`)) { bolt(from, to, Math.max(2, s * 0.07), 1 - k, `${key}-bolt`); return; } // 연쇄 번개 줄 (그림 57이 오기 전)
     const kk = k * k * (3 - 2 * k);
     rot = Math.atan2(to.y - from.y, to.x - from.x);
+    if (look.boss) { flipX = to.x < from.x; rot = Math.max(-0.9, Math.min(0.9, Math.atan2(to.y - from.y, Math.abs(to.x - from.x)) * (flipX ? -1 : 1))); } // 까마귀 떼: 가는 쪽을 봄
     p = { x: from.x + (to.x - from.x) * kk, y: from.y + (to.y - from.y) * kk };
   } else if (e.to != null) {
     const q = fxPos(F, e.to); // 두 사람 사이 (사슬 끊어짐)
@@ -980,7 +1036,7 @@ function artFx(F: NonNullable<typeof B.F>, e: Fx, now: number, r: number, s: num
   const size = e.wide ? Math.min(L.right - L.left, L.bottom - L.top) * (0.45 + 0.55 * k) : r * look.size * (look.fly ? 1 : 0.7 + 0.4 * Math.sin((k * Math.PI) / 2));
   const alpha = look.fly ? (k < 0.85 ? 1 : (1 - k) / 0.15) : 1 - k * k;
   const tex = artTexture(look.art ?? `fx-${e.name}`), color = e.color ?? look.color;
-  if (tex) { spriteFx(tex, key, p.x, p.y, size, alpha, look.tint ? color : 0xffffff, rot); return; }
+  if (tex) { spriteFx(tex, key, p.x, p.y, size, alpha, look.tint ? color : 0xffffff, rot, flipX); return; }
   if (look.fly) {
     const half = safeRadius(p.x, p.y, r * 0.22, 'circle');
     fxG.circle(p.x, p.y, half).fill({ color, alpha });
@@ -1032,7 +1088,12 @@ export function render(now: number): void {
   // 칸 무늬 그림 (37 4장 B). 없으면 아래 벡터 그림
   const zoneTex = artTexture(zoneArtName(boardFaction)), warnTex = artTexture('fx-cell-zone-warn'), holeTex = artTexture(holeArtName(boardFaction));
   const safeTex = artTexture('fx-cell-safe'), padTex = artTexture('fx-cell-tower'), ringTex = artTexture(ringArtName(boardFaction)), cellArt = r * 1.96;
-  const tideTex = artTexture('fx-cell-tide'), tideWarnTex = artTexture('fx-cell-tide-warn');
+  // 밀물 칸: 짠물 해적단 · 늪 독 연못은 그 그림과 물 색 (63 E 6 · 7 · 13 · 14), 그 밖 = 어둠물
+  const tideTex = artTexture(tideArtName(boardFaction)), tideWarnTex = artTexture(tideArtName(boardFaction, true));
+  const [tideC, tideHi] = TIDE_TINT[tideTail(boardFaction)] ?? [TIDE, TIDE_HI];
+  // 해파리 점괘 (63 E 15): 그 기술 예고 칸은 떨어질 때까지 점괘 무늬
+  const omenCells = new Map<number, Texture>();
+  for (const tl of F.tels) { const om = tl.fake ? null : artTexture(bossFxArt(F.enc.script, 'omen', tl.skill.key)); if (om) tl.cells.forEach(i => omenCells.set(i, om)); }
   const melting = !!F.melt && F.t < F.melt.until;
   F.cells.forEach((c, i) => {
     const p = center(i);
@@ -1072,17 +1133,19 @@ export function render(now: number): void {
       // 어둠물에 잠긴 칸: 검보랏빛 물 + 물결 두 줄 (그림 60 fx-cell-tide)
       if (tideTex) decals.put(tideTex, p.x, p.y, cellArt, cellArt, 0.85 + 0.15 * zpulse);
       else {
-        hexPoly(cellsG, p.x, p.y, r).fill({ color: TIDE, alpha: 0.72 });
-        waves(cellsG, p.x, p.y, r, t, Math.max(2, s * 0.05), TIDE_HI, 0.75);
+        hexPoly(cellsG, p.x, p.y, r).fill({ color: tideC, alpha: 0.72 });
+        waves(cellsG, p.x, p.y, r, t, Math.max(2, s * 0.05), tideHi, 0.75);
       }
     } else if (tideTel.has(i)) {
       // 어둠물 예고: 아래 줄이 검게 출렁 (그림 60 fx-cell-tide-warn)
-      hexPoly(cellsG, p.x, p.y, r).fill({ color: TIDE, alpha: 0.2 + 0.3 * pulse });
+      hexPoly(cellsG, p.x, p.y, r).fill({ color: tideC, alpha: 0.2 + 0.3 * pulse });
       if (tideWarnTex) decals.put(tideWarnTex, p.x, p.y, cellArt, cellArt, 0.5 + 0.5 * pulse);
-      else dashPoly(cellsG, hexPts(p.x, p.y, r * 0.9), 6, 4, Math.max(2, s * 0.05), TIDE_HI, 0.5 + 0.5 * pulse);
+      else dashPoly(cellsG, hexPts(p.x, p.y, r * 0.9), 6, 4, Math.max(2, s * 0.05), tideHi, 0.5 + 0.5 * pulse);
     } else if (telSet.has(i)) {
-      hexPoly(cellsG, p.x, p.y, r).fill({ color: C.tel, alpha: 0.14 + 0.24 * pulse });
-      if (warnTex) decals.put(warnTex, p.x, p.y, cellArt, cellArt, 0.5 + 0.5 * pulse);
+      const om = omenCells.get(i); // 점괘 칸은 빨강을 옅게 + 점괘 무늬
+      hexPoly(cellsG, p.x, p.y, r).fill({ color: C.tel, alpha: om ? 0.08 + 0.12 * pulse : 0.14 + 0.24 * pulse });
+      if (om) decals.put(om, p.x, p.y, cellArt, cellArt, 0.75 + 0.25 * pulse);
+      else if (warnTex) decals.put(warnTex, p.x, p.y, cellArt, cellArt, 0.5 + 0.5 * pulse);
       else dashPoly(cellsG, hexPts(p.x, p.y, r * 0.9), 6, 4, Math.max(2, s * 0.05), C.zoneHi, 0.5 + 0.5 * pulse);
     }
     // 녹는 보호막: 열기 동안 칸마다 주황 아지랑이 (그림 52가 오면 fx)
@@ -1188,8 +1251,9 @@ export function render(now: number): void {
       const ly = bot - 2 * r * Math.max(0.02, Math.min(1, g0)), th = Math.max(1.5, s * 0.035);
       fillBand(unitsG, x, y, r, ly - th, ly + th, SAND, g.until - F.t < 1 ? 0.55 + 0.45 * pulse : 0.95);
     }
+    const hold = u.debuffs.length ? holdOf(F.enc.script, u) : null; // 묶음 H 얼음 갑옷 · 거품 (63 E 3 · 9)
     const swell = u.debuffs.find(d => d.swell);
-    if (swell) unitsG.circle(x, y + r * 0.1, r * Math.min(0.85, 0.3 + 0.12 * (swell.stack ?? 1))).fill({ color: 0x7ee36a, alpha: 0.16 }).stroke({ width: Math.max(1.5, s * 0.04), color: 0x7ee36a, alpha: 0.75 });
+    if (swell && hold?.d !== swell) unitsG.circle(x, y + r * 0.1, r * Math.min(0.85, 0.3 + 0.12 * (swell.stack ?? 1))).fill({ color: 0x7ee36a, alpha: 0.16 }).stroke({ width: Math.max(1.5, s * 0.04), color: 0x7ee36a, alpha: 0.75 });
     const flip = u.debuffs.find(d => d.end?.p === 'flip');
     if (flip) hexPoly(unitsG, x, y, r).fill({ color: 0xffd166, alpha: flip.left < 1 ? 0.15 + 0.3 * pulse : 0.15 });
     // 묶음 C (48 5장 화면): 넘어가는 포자 = 칸 아래쪽 솜뭉치 (남은 막이 적을수록 작게), 끝나기 2초 전 깜빡임
@@ -1202,11 +1266,16 @@ export function render(now: number): void {
     // 모자 뽑기 (48 5장): 칸 위에 모자 그림 (뒤집힘 실크해트 · 상한 고깔모자 · 완치 왕관 모자)
     const hat = u.debuffs.find(d => d.art), hatTex = hat ? artTexture(hat.art!) : null;
     if (hatTex) fxArt.put(hatTex, x, y - r * 0.6, r * 0.95, r * 0.95);
+    // 묶음 H (63 E 3 · 9): 걸린 동안 칸 위에 겹침 (가운데가 빈 그림). 얼음 갑옷은 녹을수록 옅게, 거품은 중첩만큼 커짐, 끝나기 2초 전 깜빡임
+    if (hold) {
+      const d = hold.d, melt = d.absorb ? Math.max(0, Math.min(1, (d.absorbLeft ?? 0) / Math.max(1, d.absorb * F.dmgMult))) : 1, k = d.swell ? Math.min(1.95, 1.35 + 0.15 * (d.stack ?? 1)) : 1.9;
+      fxArt.put(hold.tex, x, y, r * k, r * k, (0.45 + 0.55 * melt) * (d.left < 2 ? 0.6 + 0.4 * pulse : 1));
+    }
     // 어둠물에 잠긴 사람: 칸 아래 40%가 물에 잠김 (물 높이가 출렁) · 받는 치유 −50%
     if (tideSet.has(u.cell)) {
       const wy = bot - 2 * r * 0.4 + (S.reducedEffects ? 0 : Math.sin(t * 3 + u.id) * s * 0.03), th = Math.max(1.5, s * 0.035);
-      fillBand(unitsG, x, y, r, wy, bot, TIDE, 0.55);
-      fillBand(unitsG, x, y, r, wy - th, wy + th, TIDE_HI, 0.9);
+      fillBand(unitsG, x, y, r, wy, bot, tideC, 0.55);
+      fillBand(unitsG, x, y, r, wy - th, wy + th, tideHi, 0.9);
     }
     // 장판 위에 선 사람: 칸 전체에 붉은 빛 + 빗금 (체력 위험 깜빡임과 구분)
     if (zoneSet.has(u.cell)) {
@@ -1242,6 +1311,15 @@ export function render(now: number): void {
     over.push({ u, x, y, deb: undefined });
   }
 
+  // 밀가루 구름 (63 E 11): 체력 숫자가 숨은 동안 판 전체 (가장자리가 짙은 그림). 처음 1.2초는 짙게 덮었다가 옅어짐
+  const darkTex = F.dark ? artTexture(darkArt(F.enc.script)) : null;
+  if (darkTex) {
+    darkAt ??= now;
+    const k = S.reducedEffects ? 1 : Math.min(1, (now - darkAt) / 1200), b = S.reducedEffects ? 0 : 0.02 * (1 + Math.sin(t * 0.6));
+    const w = (L.right - L.left) * (1 - b), h = (L.bottom - L.top) * (1 - b), cx = (L.left + L.right) / 2, cy = (L.top + L.bottom) / 2;
+    fxArt.put(darkTex, cx, cy, w, h, 0.95 - 0.4 * k);
+    recordBound('fx-flour-cloud', 'fx', 'rect', cx, cy, w, h);
+  }
   // 효과 (칸 채움 위, 글자·테두리 아래)
   B2.fx = S.reducedEffects ? [] : B2.fx.filter(e => now - e.t0 < (e.dur ?? FX_MS));
   for (const e of B2.fx) {
@@ -1527,7 +1605,7 @@ export function render(now: number): void {
     // 감옥 (P-JAIL): 갇힌 사람 칸에 창살 (감옥 체력은 디버프 배지). 딜러가 깨는 중이면 금빛 과녁
     const jail = F.mobs.find(m => m.alive && m.add?.hold != null && m.add.on === u.id);
     if (jail) {
-      const w = Math.max(2.5, s * 0.07), jt = artTexture(addArtName(jail));
+      const w = Math.max(2.5, s * 0.07), jt = artTexture(debuffFxArt(F.enc.script, 'hold', jail.name) || addArtName(jail)); // 물거품 감옥 = fx-bubble-trap (63 E 9)
       if (jt) fxArt.put(jt, x, y, r * 1.9, r * 1.9); // 감옥 그림 (37 4장 E-14): 가운데가 비어 파티원 칸이 보임
       else {
         hexPoly(overG, x, y, r * 0.96).fill({ color: 0x4a3f33, alpha: 0.45 });
