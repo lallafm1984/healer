@@ -1,8 +1,8 @@
 /**
  * 캐릭터 탭 (27 4장 기능, 31 시안 CharGear31 · CharSkill31 · CharTalent31 · CharClass31 — 30 로비·전투·길드와 같은 테마). 캐릭터 그림 없음.
  * 위 = 공통 위 줄(topBar) + 하위 탭 4칸 [장비][스킬][특성][직업] (전투 탭 분류 칸 모양, 아이콘 + 이름).
- * 장비: 무기고(ui-char) 받침대 위 큰 직업 문장 + 이름표(장비 점수) · 좌우 장비 칸 6개 · 능력치 판 · 가방 / 추천 장착 / 분해
- *       + 아래 시트(장비 상세·비교·강화·잠금 · 가방(필터·정렬·분해) · 능력치 출처 · 추천 장착 확인)
+ * 장비: 무기고(ui-char) · 좌우 장비 칸 6개 · 중앙 능력치 · 바로 펼친 인벤토리(필터·정렬)
+ *       + 아래 시트(아이템 탭 → 상세·비교·장착·강화·잠금·개별 분해 · 능력치 출처 · 도감)
  * 스킬: [설명 보기 | 배치 바꾸기] · 마법진 위 휠 3×3 금테 메달 · 양피지 설명 · 칸 탭 기본 힐 나무 팻말 · 단축칸 · 스킬 줄 목록
  * 특성: 요약 · 프리셋 1·2·3 · 나무판에 단마다 메달 3개 + 고른 길(금빛 선) · 고르기 시트 / 직업: 천 깃발 · 곧 열림 · 양피지 상세 · 바꾸기
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
@@ -16,10 +16,10 @@ import { TALENTS, type TalentKey } from '../data/talents';
 import { heroLevelOf, type TapKey } from '../platform/storage';
 import { FACTIONS } from '../data/places';
 import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, type DexTab } from '../data/dex';
-import { betterSlots, codexRows, dexRows, gearAvg, gearScore, isBetter, scoreOf, specRows, statParts, talentsLeft } from '../game/charinfo';
+import { betterSlots, codexRows, dexRows, isBetter, scoreOf, specRows, statParts, talentsLeft } from '../game/charinfo';
 import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, specText, specValue, type CodexGroup, type SpecGroup, type SpecLine } from '../data/specials';
 import {
-  bestGearPlan, claimDex, commit, enhanceLack, enhanceMsg, enhanceTry, equip, equipBest, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, lowGradeIds, pickReroll, pickTalent, reroll, rerollOpen, salvage,
+  claimDex, commit, enhanceLack, enhanceMsg, enhanceTry, equip, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, pickReroll, pickTalent, reroll, rerollOpen, salvage,
   setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleItem, toggleLock, type EnhanceOutcome, type RerollKind,
 } from '../game/state';
 import { TUT } from '../game/tutorial';
@@ -32,8 +32,8 @@ import { sheetDialog } from './dialog';
 type Sub = 'gear' | 'skill' | 'talent' | 'hero';
 const SUBS: { key: Sub; name: string }[] = [{ key: 'gear', name: '장비' }, { key: 'skill', name: '스킬' }, { key: 'talent', name: '특성' }, { key: 'hero', name: '직업' }];
 
-/** 아래에서 올라오는 시트: 장비 상세(back = 가방에서 열어서 닫으면 가방으로) · 가방 · 특수능력 도감(닫으면 가방으로) · 능력치 출처 · 추천 장착 확인 · 단축칸 고르기 · 특성 설명 */
-type Sheet = { k: 'item'; id: number; back?: boolean } | { k: 'bag' } | { k: 'codex' } | { k: 'dex' } | { k: 'stats' } | { k: 'rec' } | { k: 'items' } | { k: 'talent'; i: number; j: number } | null;
+/** 장비 상세는 인벤토리로 복귀, 특수능력 도감은 장비 도감으로 복귀한다. */
+type Sheet = { k: 'item'; id: number; inventoryIndex?: number } | { k: 'codex' } | { k: 'dex' } | { k: 'stats' } | { k: 'items' } | { k: 'talent'; i: number; j: number } | null;
 /** 도감에서 펼친 묶음 */
 let codexG: CodexGroup = 'heal';
 /** 장비 도감에서 펼친 묶음 */
@@ -60,7 +60,7 @@ const s = screen('s-char', '캐릭터', {
   tab: 'char',
   enter(arg) {
     if (SUBS.some(x => x.key === arg)) sub = arg as Sub;
-    sel = null; swapping = false; msg = ''; sheet = null; salv = null; salvAsk = false; skOpen = null; hskOpen = null; hsel = null; seenMarked = false; rrOn = false; rrAlt = null; auto = null; efx = null;
+    sel = null; swapping = false; msg = ''; sheet = null; skOpen = null; hskOpen = null; hsel = null; seenMarked = false; rrOn = false; rrAlt = null; auto = null; efx = null;
     render(false);
   },
 });
@@ -83,12 +83,12 @@ const fill = '<span class="c7-fill"></span>';
 const line = (d: string, w = 2) => `<svg class="c7-li" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const BOOK = '<path d="M3 5c3-1 6-1 9 1 3-2 6-2 9-1v14c-3-1-6-1-9 1-3-2-6-2-9-1z"/><path d="M12 6v14"/>';
 const TREE = '<path d="M12 5v5M12 10l-5 4M12 10l5 4M7 14v4M17 14v4"/><circle cx="12" cy="3.5" r="1.8"/><circle cx="7" cy="19.5" r="1.8"/><circle cx="17" cy="19.5" r="1.8"/>';
-const UP = line('<path d="M12 19V5M6 11l6-6 6 6"/>', 2.4);
 
-function render(keep = true): void {
+function render(keep = true, resetInventory = false): void {
   modal.beforeRender();
   const old = s.el.querySelector<HTMLElement>('.ns-body');
   const top = keep && old ? old.scrollTop : 0;
+  const inventoryTop = keep && !resetInventory ? s.el.querySelector<HTMLElement>('.c7-bags')?.scrollTop ?? 0 : 0;
   if (sub === 'gear') markSeen();
   // 시트가 가리키던 것이 없어졌으면 (분해한 장비 등) 시트도 닫음
   const sh = sheetHtml();
@@ -106,8 +106,10 @@ function render(keep = true): void {
   if (sub === 'talent') watchTree();
   const nb = s.el.querySelector<HTMLElement>('.ns-body');
   if (nb && top) nb.scrollTop = top;
+  const inventory = s.el.querySelector<HTMLElement>('.c7-bags');
+  if (inventory) inventory.scrollTop = inventoryTop;
   const path = !sheet || sheet.k === 'talent' ? []
-    : sheet.k === 'item' ? [...(sheet.back ? ['bag'] : []), `item:${sheet.id}`] : sheet.k === 'codex' || sheet.k === 'dex' ? ['bag', sheet.k] : [sheet.k];
+    : sheet.k === 'item' ? [`item:${sheet.id}`] : sheet.k === 'codex' ? ['dex', 'codex'] : [sheet.k];
   modal.sync(path.length ? s.el.querySelector<HTMLElement>('.sheet') : null, path);
 }
 
@@ -127,20 +129,14 @@ function sheetHtml(): string {
   if (!sheet) return '';
   const g = sub === 'gear';
   if (sheet.k === 'item') return g ? itemSheet(sheet.id) : '';
-  if (sheet.k === 'bag') return g ? bagSheet() : '';
   if (sheet.k === 'codex') return g ? codexSheet() : '';
   if (sheet.k === 'dex') return g ? dexSheet() : '';
   if (sheet.k === 'stats') return g ? statsSheet() : '';
-  if (sheet.k === 'rec') return g ? recSheet() : '';
   if (sheet.k === 'items') return sub === 'skill' ? itemsSheet() : '';
   return sub === 'talent' ? talentSheet(sheet.i, sheet.j) : '';
 }
 
 // ---------- 장비 (27 4-2 · 4-3, 시안 CharGear31) ----------
-/** 분해 고르는 중이면 고른 id들 */
-let salv: Set<number> | null = null;
-/** 분해 확인 (한 번 더 누르면 분해) */
-let salvAsk = false;
 type BagFilter = 'all' | 'weapon' | 'armor' | 'acc';
 const FILTERS: { key: BagFilter; name: string; ok: (it: GearItem) => boolean }[] = [
   { key: 'all', name: '전체', ok: () => true },
@@ -216,81 +212,64 @@ function slotHtml(key: SlotKey, better: SlotKey[]): string {
   if (!it) {
     const n = G.save.gear.bag.filter(x => x.slot === key).length;
     return `<button type="button" class="gtile c7-slot empty" data-gslot="${key}"${n ? '' : ' disabled'} aria-label="${name} 빈칸${n ? ` · 가방에 ${n}개` : ''}">
-        <span class="c7-sq">${itemIc(key)}${up}</span><b>${name}</b><small${n ? ' class="ok"' : ''}>${n ? `가방에 ${n}개` : '빈칸'}</small></button>`;
+        <span class="c7-sq">${itemIc(key)}${up}</span><b>${name}</b></button>`;
   }
   return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(it.name)}${plusTxt(it)} · ${it.grade}${specLabel(it)}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
       <span class="c7-sq${it.plus >= MAX_PLUS ? ' max' : ''}">${itemIc(it)}<i class="c7-gl">${it.grade[0]}</i>${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${specDots(it)}${up}</span>
-      <b>${it.lock ? LOCK : ''}${name}</b><small>${esc(kindOf(it).name)}</small></button>`;
+      <b>${it.lock ? LOCK : ''}${name}</b></button>`;
 }
 
-/** ② 받침대 위 이름표: 장비 점수 · 평균 등급 */
-function plaqueHtml(): string {
-  const avg = gearAvg(), worn = SLOTS.some(x => G.save.gear.equipped[x.key]);
-  const avgTxt = avg.grade ? `<b style="color:${GRADE_INK[avg.grade]}">${avg.grade}</b>${avg.plus ? ` +${avg.plus}` : ''} 평균` : worn ? '일반 미만 평균' : '장비 없음';
-  return `<div class="c7-plq"><span class="c7-psc">장비 점수 <b>${fmt(gearScore())}</b></span><small>${avgTxt}</small></div>`;
-}
-
-/** ③ 능력치 판 6칸 (34 1-2 · 10장): 체력 · 지능 · 치명타 / 가속 · 정신력 · 인내. 초록 = 장비 몫. 누르면 출처 시트 */
+/**
+ * ② 가운데 능력치 판 (Lim 2026-10-11 「장비 점수 대신 능력치를 가운데에」): 장비 슬롯과 상단을 맞춘 금테 판에 6줄
+ * 체력 · 지능 · 치명타 · 가속 · 정신력 · 인내 (34 1-2 · 10장). 초록 = 장비 몫. 누르면 출처 시트
+ */
 function statsHtml(): string {
-  const p = statParts();
-  const stat = (ic: string, k: string, v: string, add = '') => `<span class="c7-stat"><span class="c7-si">${ic}</span><span class="c7-sv"><small>${k}</small><b>${v}${add ? `<i>${add}</i>` : ''}</b></span></span>`;
-  const pc0 = (x: number) => Math.round(x * 100);
+  const p = statParts(), pc0 = (x: number) => Math.round(x * 100);
+  const row = (ic: string, k: string, v: string, add = '') => `<span class="c7-stat"><span class="c7-si">${ic}</span><small>${k}</small><b>${v}</b><i>${add}</i></span>`;
   const crit = pc0(p.crit.total), critG = pc0(p.crit.gear), haste = pc0(p.haste.total), spirit = pc0(p.spirit.total), endure = pc0(p.endure.total);
   return `<button type="button" class="c7-stats" data-sheet="stats" aria-label="능력치 · 누르면 출처">
-      <span class="c7-sh">능력치<span class="rule"></span><small>초록 = 장비 몫</small></span>
-      <span class="c7-sgrid">${stat(statIc('hp'), '체력', fmt(p.hp.total), p.hp.gear ? `+${fmt(p.hp.gear)}` : '')}${stat(statIc('heal'), '지능', fmt(p.int.total), p.int.gear ? `+${fmt(p.int.gear)}` : '')}${stat(statIc('crit'), '치명타', `${crit}%`, critG ? `+${critG}` : '')}
-        ${stat(statIc('haste'), '가속', `${haste}%`, haste ? `+${haste}` : '')}${stat(statIc('regen'), '정신력', `+${spirit}%`, spirit ? `+${spirit}` : '')}${stat(statIc('stamina'), '인내', `${endure}%`, endure ? `+${endure}` : '')}</span></button>`;
+      <span class="c7-sh">능력치</span>
+      <span class="c7-sgrid">${row(statIc('hp'), '체력', fmt(p.hp.total), p.hp.gear ? `+${fmt(p.hp.gear)}` : '')}${row(statIc('heal'), '지능', fmt(p.int.total), p.int.gear ? `+${fmt(p.int.gear)}` : '')}${row(statIc('crit'), '치명타', `${crit}%`, critG ? `+${critG}` : '')}${row(statIc('haste'), '가속', `${haste}%`, haste ? `+${haste}` : '')}${row(statIc('regen'), '정신력', `+${spirit}%`, spirit ? `+${spirit}` : '')}${row(statIc('stamina'), '인내', `${endure}%`, endure ? `+${endure}` : '')}</span>
+      <span class="c7-shint">초록 = 장비 몫 · 누르면 출처</span></button>`;
 }
 
 function gearHtml(): string {
-  const better = betterSlots(), plan = bestGearPlan(), all = G.save.gear.bag;
+  const better = betterSlots();
   const col = (keys: SlotKey[]) => `<div class="c7-col">${keys.map(k => slotHtml(k, better)).join('')}</div>`;
   const keys = SLOTS.map(x => x.key);
-  return `<section class="c7-stage" aria-label="착용 장비">
+  return `<section class="c7-stage" aria-label="착용 장비 · 능력치">
       ${col(keys.slice(0, 3))}
-      <div class="c7-mid"><span class="c7-bigem">${classEmblem(hero(), 'xl')}</span>${plaqueHtml()}</div>
+      <div class="c7-mid">${statsHtml()}</div>
       ${col(keys.slice(3))}</section>
-    ${msg && !sheet ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
-    ${statsHtml()}
-    <div class="c7-acts">
-      <button type="button" class="g-sign c7-bagb" data-bag aria-label="가방 ${all.length}개${better.length ? ` · 더 좋은 장비 ${better.length}부위` : ''}">가방 <small>${all.length}</small>${better.length ? `<span class="g-badge">${better.length}</span>` : ''}</button>
-      <button type="button" class="c7-recb" data-rec${plan.length ? '' : ' disabled'}>${UP}추천 장착</button>
-      <button type="button" class="g-sign" data-salvbag${all.length ? '' : ' disabled'}>분해</button>
-    </div>`;
+    ${inventoryHtml()}`;
 }
 
 /** 가방 칸: 장비 그림 + 등급 색 + +N + ↑(지금 장비보다 좋음) + 새 점 */
 function bagCell(it: GearItem): string {
-  const up = isBetter(it), on = !!salv?.has(it.id), nw = isNew(it);
+  const up = isBetter(it), nw = isNew(it);
   const label = `${it.grade} ${slotName(it.slot)} · ${it.name}${plusTxt(it)}${specLabel(it)}${up ? ' · 더 좋음' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
-  return `<button type="button" class="c7-bag${on ? ' on' : ''}${it.lock ? ' lock' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}"${salv ? ` aria-pressed="${on}"` : ''}>${itemIc(it)}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${up ? '<span class="up">↑</span>' : ''}${nw ? '<span class="nw"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}${on ? '<span class="ck">✓</span>' : ''}</button>`;
+  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${up ? '<span class="up">↑</span>' : ''}${nw ? '<span class="nw"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
 }
 
 const grip = '<span class="grip" aria-hidden="true"></span>';
 const dim = '<div class="sheet-dim" data-sheetx></div>';
 const updn = (v: number, unit = '') => (v > 0 ? `<span class="c7-up">▲${v}${unit}</span>` : v < 0 ? `<span class="c7-dn">▼${-v}${unit}</span>` : '<span class="cap">같음</span>');
 
-/** 가방 시트: 필터 · 정렬 · 5열 격자 · 분해 고르기 (두 번 눌러 분해) · 재료 */
-function bagSheet(): string {
+/** 장비 아래에 항상 보이는 5열 인벤토리. 아이템을 누르면 상세에서 장착·분해한다. */
+function inventoryHtml(): string {
   const m = G.save.mats, all = G.save.gear.bag;
   const f = FILTERS.find(x => x.key === bagFilter) || FILTERS[0];
   const list = all.filter(f.ok).sort(SORTS[bagSort].cmp);
-  const picked = salv ? all.filter(it => salv!.has(it.id)) : [];
-  const sum = picked.reduce((a, it) => { const v = salvageOf(it); return { gold: a.gold + v.gold, stone: a.stone + v.stone, refined: a.refined + v.refined }; }, { gold: 0, stone: 0, refined: 0 });
-  const salvBar = salv ? `<div class="c7-salv">
-      <button class="btn2" type="button" data-salvall>일반·고급 모두</button>
-      <button class="btn2 hot" type="button" data-salvgo${picked.length ? '' : ' disabled'}>${salvAsk ? '한 번 더 누르면 분해' : `${picked.length}개 분해`}</button>
-      <button class="btn2" type="button" data-salvx>취소</button>
-      <span class="cap">${picked.length ? `골드 ${fmt(sum.gold)} · 강화석 ${sum.stone}${sum.refined ? ` · 정제 강화석 ${sum.refined}` : ''}` : '분해할 장비 선택 · 잠긴 장비 제외'}</span></div>` : '';
-  const grid = !all.length ? '<p class="cap c7-bempty">던전을 클리어하면 장비 1개씩 획득</p>'
-    : !list.length ? '<p class="cap c7-bempty">이 분류 장비 없음</p>'
-    : `<div class="c7-bags${salv ? ' picking' : ''}">${list.map(bagCell).join('')}</div>`;
-  return `${dim}<section class="sheet c7-bsheet c7-bagsec" role="dialog" aria-label="가방">${grip}
-      <div class="c7-row"><h3 class="h-rule">가방</h3><span class="cap">${all.length}개</span>${fill}${all.length ? `<button type="button" class="btn2 c7-sort" data-bsort aria-label="정렬: ${SORTS[bagSort].name}">${SORTS[bagSort].name} ▾</button>` : ''}</div>
-      ${all.length ? `<div class="c7-fcs" role="group" aria-label="가방 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div>` : ''}
-      ${msg ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
-      ${salvBar}${grid}
-      <div class="c7-bagf">${all.length && !salv ? '<button type="button" class="btn2" data-salvon>분해 고르기</button>' : ''}<span class="cap gmats">강화석 ${fmt(m.stone)} · 정제 강화석 ${fmt(m.refined)}</span>${fill}${salv ? '' : `<button type="button" class="btn2 c7-dexb" data-dex aria-label="도감${dexDue(G.save.gear.dex.length, G.save.gear.dexPaid).steps ? ' · 받을 보상 있음' : ''}">도감${dexDue(G.save.gear.dex.length, G.save.gear.dexPaid).steps ? '<span class="g-badge">!</span>' : ''}</button>`}<button type="button" class="btn2" data-sheetx>닫기</button></div></section>`;
+  const emptyCount = Math.max(15, Math.ceil(list.length / 5) * 5) - list.length;
+  const emptySlots = '<span class="c7-bag-empty" aria-hidden="true"></span>'.repeat(emptyCount);
+  const due = dexDue(G.save.gear.dex.length, G.save.gear.dexPaid).steps;
+  return `<section class="c7-inventory" aria-label="인벤토리">
+      <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3><span class="c7-inventory-count">${all.length}개</span>${fill}<button type="button" class="btn2 c7-sort" data-bsort aria-label="정렬: ${SORTS[bagSort].name}"${all.length ? '' : ' disabled'}>${SORTS[bagSort].name} ▾</button></header>
+      <div class="c7-fcs" role="group" aria-label="인벤토리 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div>
+      ${msg && !sheet ? `<p class="note warn c7-msg" role="status">${esc(msg)}</p>` : ''}
+      <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${list.map(bagCell).join('')}${emptySlots}</div>
+      ${!list.length ? `<p class="c7-inventory-empty">${all.length ? '이 분류 장비 없음' : '던전을 클리어하면 장비 획득'}</p>` : ''}
+      <footer class="c7-inventory-foot"><span class="cap gmats">강화석 ${fmt(m.stone)} · 정제 강화석 ${fmt(m.refined)}</span><button type="button" class="btn2 c7-dexb" data-dex aria-label="도감${due ? ' · 받을 보상 있음' : ''}">도감${due ? '<span class="g-badge">!</span>' : ''}</button></footer></section>`;
 }
 
 /** 묶음들에서 얻은 칸 수 */
@@ -490,19 +469,6 @@ function statsSheet(): string {
       <button type="button" class="c7-cta" data-sheetx>닫기</button></section>`;
 }
 
-/** 추천 장착 확인 시트: 바뀌는 칸을 먼저 보여 주고 「바꾸기」 */
-function recSheet(): string {
-  const plan = bestGearPlan();
-  if (!plan.length) return '';
-  const now = gearScore(), after = now + plan.reduce((a, p) => a + scoreOf(p.next) - scoreOf(p.now), 0);
-  const rows = plan.map(p => `<div class="c7-cmp c7-rec"><span>${slotName(p.slot)}</span><b><s>${p.now ? `${esc(p.now.name)}${plusTxt(p.now)}` : '빈칸'}</s> → <em style="color:${GRADE_INK[p.next.grade]}">${esc(p.next.name)}${plusTxt(p.next)}</em></b>${updn(scoreOf(p.next) - scoreOf(p.now))}</div>`).join('');
-  return `${dim}<section class="sheet c7-rsheet" role="dialog" aria-label="추천 장착">${grip}
-      <h3 class="h-rule">추천 장착<span class="rule"></span><span class="cap">장비 점수 ${fmt(now)} → ${fmt(after)}</span></h3>
-      <p class="note">부위마다 점수가 가장 높은 장비. 바뀌는 칸 ${plan.length}개</p>
-      <div class="c7-cmpw">${rows}</div>
-      <div class="c7-sbtns"><button type="button" class="c7-sb c7-wide" data-sheetx>취소</button><button type="button" class="c7-cta" data-recgo>바꾸기</button></div></section>`;
-}
-
 // ---------- 스킬 (27 4-4, 시안 CharSkill31) ----------
 const lockLv = (k: SkillKey) => (SKILL_LEVEL[k] > healerLevel() ? SKILL_LEVEL[k] : 0);
 /** 펼친 줄 (스킬 키 · words · pas) */
@@ -671,40 +637,21 @@ function itemsSheet(): string {
       <button type="button" class="c7-cta" data-sheetx>닫기</button></section>`;
 }
 
-// ---------- 특성 (27 4-5, 시안 CharTalent31): 나무판 · 단마다 메달 3개 · 고른 길(금빛 선) · 프리셋 3벌 · 칸을 누르면 아래 시트 ----------
-/** 특성 선 아이콘 (특성 그림은 아직 없음, 31 0장). 앞 4단 = 시안 CharTalent31 */
-const TALENT_LINE: Record<TalentKey, string> = {
-  longBreath: '<path d="M3 9c3 0 3-3 6-3s3 3 6 3 3-3 6-3M3 15c3 0 3-3 6-3s3 3 6 3 3-3 6-3"/>',
-  lightTouch: '<path d="M13 2L5 14h6l-1 8 8-12h-6z"/>',
-  wideCircle: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
-  brink: '<path d="M4 20l6-8 4 4 6-10"/>',
-  washed: '<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/>',
-  practiced: '<path d="M12 5v14M5 12h14"/>',
-  overflow: '<path d="M12 3c3.5 4.5 6 7.6 6 11a6 6 0 0 1-12 0c0-3.4 2.5-6.5 6-11z"/>',
-  hopRenew: '<path d="M5 12h14M13 6l6 6-6 6"/>',
-  breather: '<circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l3 2"/>',
-  fullHeart: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
-  spreadSerenity: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="6.5" stroke-dasharray="2 3"/><circle cx="12" cy="12" r="10" stroke-dasharray="2 4"/>',
-  echoWord: '<path d="M6.5 16v-4.5a5.5 5.5 0 0 1 11 0V16l1.5 2h-14z"/><path d="M10 20.5h4"/>',
-  miracle: '<path d="M12 2l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/><path d="M19 17l.6 1.4 1.4.6-1.4.6L19 21l-.6-1.4-1.4-.6 1.4-.6z"/>',
-  savedWord: '<path d="M7 3h10v18l-5-4-5 4z"/>',
-  cleansingWord: '<path d="M12 3c3 4 5 6.6 5 9.5a5 5 0 0 1-10 0C7 9.6 9 7 12 3z"/><path d="M19 3l.6 1.4 1.4.6-1.4.6L19 7l-.6-1.4-1.4-.6 1.4-.6z"/>',
-  repay: '<path d="M4 12a8 8 0 1 0 2.3-5.7"/><path d="M4 4v4h4"/><path d="M12 15.5s-2.5-1.5-2.5-3.3a1.3 1.3 0 0 1 2.5-.8 1.3 1.3 0 0 1 2.5.8c0 1.8-2.5 3.3-2.5 3.3z"/>',
-  twoGuard: '<path d="M9 3l5 2v4c0 3.5-2 6-5 7.5C6 15 4 12.5 4 9V5z"/><path d="M15.5 8.2 20 10v4c0 3.5-2 6-5 7.5-1.2-.6-2.2-1.3-3-2.2"/>',
-  firmWill: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M12 8v6"/>',
-  calmHymn: '<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>',
-  shelter: '<path d="M3 20 12 4l9 16z"/><path d="M9.5 20l2.5-5 2.5 5"/>',
-  grief: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/><path d="M12 7.4 10.5 11l3 2-1.5 3"/>',
-  doublePoh: '<circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/>',
-  shareRenew: '<path d="M12 21v-7M12 14l-5-5M12 14l5-5"/><path d="M7 9c-2 0-3-1.5-3-3.5 2 0 3 1.5 3 3.5zM17 9c2 0 3-1.5 3-3.5-2 0-3 1.5-3 3.5z"/>',
-  quickHymn: '<path d="M4 6l7 6-7 6zM13 6l7 6-7 6z"/>',
-  twoShields: '<rect x="2.5" y="9" width="9" height="6" rx="3"/><rect x="12.5" y="9" width="9" height="6" rx="3"/>',
-  focusOne: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
-  hymnTail: '<path d="M3 18h18M6 18a6 6 0 0 1 12 0M12 7V4M5.6 10.6 4.2 9.2M18.4 10.6l1.4-1.4"/>',
-  zenith: '<path d="M4 19l8-14 8 14z"/><path d="M9 19l3-5 3 5"/>',
-  scatter: '<path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l2.5 2.5M16.5 16.5 19 19M5 19l2.5-2.5M16.5 7.5 19 5"/>',
-  endless: '<path d="M6 9a3 3 0 1 0 0 6c3 0 9-6 12-6a3 3 0 1 1 0 6c-3 0-9-6-12-6z"/>',
+// ---------- 특성: 어두운 특성판 · 그림 노드 · 금빛 선택 경로 · 직업별 프리셋 ----------
+/** 특성의 효과에 대응하는 기존 스킬 그림. 저장 키와 단·선택지 순서는 그대로 둔다. */
+const TALENT_ART: Record<TalentKey, SkillKey> = {
+  longBreath: 'renew', lightTouch: 'flash', wideCircle: 'poh',
+  brink: 'heal', washed: 'purify', practiced: 'holyLight',
+  overflow: 'bloom', hopRenew: 'growth', breather: 'quietwood',
+  fullHeart: 'serenity', spreadSerenity: 'sanctify', echoWord: 'hymn',
+  miracle: 'holyStrike', savedWord: 'oath', cleansingWord: 'natureCleanse',
+  repay: 'sacrifice', twoGuard: 'guardian', firmWill: 'handGuard',
+  calmHymn: 'hymn', shelter: 'sanctuary', grief: 'sacrifice',
+  doublePoh: 'poh', shareRenew: 'renew', quickHymn: 'lightWave',
+  twoShields: 'handGuard', focusOne: 'holyLight', hymnTail: 'hymn',
+  zenith: 'holyStrike', scatter: 'lightWave', endless: 'serenity',
 };
+const talentIcon = (key: TalentKey) => skillIc(TALENT_ART[key]);
 
 function talentHtml(): string {
   const lv = healerLevel(), h = hero();
@@ -720,18 +667,23 @@ function talentHtml(): string {
   const focus = sheet?.k === 'talent' ? sheet : null;
   const rows = TALENTS.map((t, i) => {
     const locked = t.lv > lv, cur = mine[i] ?? null, pending = !locked && cur == null;
-    const nodes = t.picks.map((p, j) => (locked
-      ? `<span class="c7-pk off"><span class="c7-tn">${uiIcon('lock')}</span><small>${p.name}</small></span>`
-      : `<button type="button" class="c7-pk${focus && focus.i === i && focus.j === j ? ' focus' : ''}" data-tcell="${i}:${j}" aria-pressed="${cur === j}"><span class="c7-tn">${line(TALENT_LINE[p.key])}${cur === j ? '<i class="c7-tck">✓</i>' : ''}</span> <small>${p.name}</small></button>`)).join('');
-    return `<div class="c7-tier${locked ? ' locked' : ''}${pending ? ' pending' : ''}" data-tier="${i}"><span class="c7-tl"><b>Lv ${t.lv}</b><small>${t.theme}${pending ? ' · 고르기' : ''}</small></span><span class="c7-tnodes">${nodes}</span></div>`;
+    const nodes = t.picks.map((p, j) => {
+      const selected = cur === j;
+      const icon = `<span class="c7-tn${p.active ? ' active' : ''}" data-rank="${selected ? '1' : '0'}/1">${talentIcon(p.key)}${locked ? `<i class="c7-tlock">${uiIcon('lock')}</i>` : selected ? '<i class="c7-tck">✓</i>' : ''}</span><small>${p.name}</small>`;
+      return locked
+        ? `<span class="c7-pk off" aria-label="${p.name} · Lv ${t.lv}에 열림">${icon}</span>`
+        : `<button type="button" class="c7-pk${focus && focus.i === i && focus.j === j ? ' focus' : ''}" data-tcell="${i}:${j}" aria-pressed="${selected}" aria-label="${p.name}${selected ? ' · 선택됨' : ''}">${icon}</button>`;
+    }).join('');
+    return `<div class="c7-tier${locked ? ' locked' : ''}${pending ? ' pending' : ''}" data-tier="${i}"><span class="c7-tl"><b>Lv ${t.lv}</b><small>${t.theme}</small><em>${locked ? '잠김' : pending ? '하나 선택' : '선택 완료'}</em></span><span class="c7-tnodes">${nodes}</span></div>`;
   }).join('');
-  return `<div class="c7-tsum"><p><span>${head}</span><small>언제든 무료로 바꿈 · 직업마다 따로 저장</small></p><span class="c7-pres" role="group" aria-label="프리셋">${presets}</span></div>
+  return `<header class="c7-talent-title">${classEmblem('priest')}<div><h2>사제 특성</h2><p>5레벨마다 한 가지 선택 · 자유로운 조합</p></div><b>Lv ${lv}</b></header>
+    <div class="c7-tsum"><p><span>${head}</span><small>언제든 무료로 변경</small></p><span class="c7-preset-wrap"><small>프리셋</small><span class="c7-pres" role="group" aria-label="프리셋">${presets}</span></span></div>
     <section class="c7-tiers" aria-label="특성 나무">${rows}<svg class="c7-tpath" aria-hidden="true"></svg></section>`;
 }
 
 /**
- * 고른 길 (시안: 고른 메달끼리 금빛 선, 고른 단 다음의 고를 단 메달 3개엔 점선). 메달 자리는 화면 폭·글자 줄바꿈에 따라
- * 바뀌어서 그린 뒤에 재서 그림. 나무판 크기가 바뀌면(글꼴이 늦게 와서 줄이 바뀌는 등) 다시 그림
+ * 선택 경로를 보여 주는 장식 선. 단 사이 선행 조건을 뜻하지 않는다.
+ * 노드 위치는 화면 폭·글꼴에 따라 바뀌므로 배치 이후와 크기 변경 시 다시 잰다.
  */
 function drawTree(): void {
   const box = s.el.querySelector<HTMLElement>('.c7-tiers'), svg = box?.querySelector<SVGSVGElement>('.c7-tpath');
@@ -768,10 +720,13 @@ function talentSheet(i: number, j: number): string {
   if (!p || hero() !== 'priest' || t.lv > healerLevel()) return '';
   const cur = (heroSave('priest').talents || [])[i] ?? null;
   return `<section class="sheet c7-tsheet" role="dialog" aria-label="특성 설명">
-      <span class="c7-tsi">${line(TALENT_LINE[p.key])}</span>
-      <span class="c7-tst"><span class="c7-tsh"><b>${p.name}</b><span class="cap">Lv ${t.lv} · ${t.theme}${p.active ? ' · 보조 버튼' : ''}</span></span>
-        <span class="c7-tsd">${esc(healText(p.desc, statParts().int.total))}</span>${p.active ? '<span class="cap">보조 버튼 특성은 전투 화면 단축칸 위에 버튼으로 나옴</span>' : ''}</span>
-      <button type="button" class="c7-cta c7-tgo" data-talent="${i}:${j}">${cur === j ? '풀기' : '고르기'}</button></section>`;
+      <header class="c7-tooltip-head"><span class="c7-tsi${p.active ? ' active' : ''}">${talentIcon(p.key)}</span>
+        <span class="c7-tsh"><b>${p.name}</b><span class="cap">Lv ${t.lv} · ${t.theme} · ${p.active ? '사용 효과' : '지속 효과'}</span></span>
+        <button type="button" class="c7-tclose" data-sheetx aria-label="특성 설명 닫기">닫기</button></header>
+      <span class="c7-tsd">${esc(healText(p.desc, statParts().int.total))}</span>
+      ${p.active ? '<span class="c7-tactive-note">보조 버튼 · 전투 화면 단축칸 위에 표시됩니다.</span>' : ''}
+      <footer class="c7-tooltip-foot"><span>${cur === j ? '현재 선택한 특성' : '이 단에서 한 가지 선택'}<small>변경 비용 없음</small></span>
+        <button type="button" class="c7-cta c7-tgo${cur === j ? ' chosen' : ''}" data-talent="${i}:${j}">${cur === j ? '풀기' : '고르기'}</button></footer></section>`;
 }
 
 // ---------- 직업 (27 4-6, 시안 CharClass31): 금빛 막대에 걸린 천 깃발 · 곧 열림 · 양피지 상세 · 바꾸기 ----------
@@ -834,12 +789,25 @@ function heroListHtml(): string {
 }
 
 // ---------- 누르기 ----------
-/** 시트 닫기: 가방에서 연 장비 상세는 가방으로 돌아감, 가방을 닫으면 분해 고르기도 끝 */
+/** 장비·능력치·도감 시트는 펼쳐진 인벤토리로 돌아가며 스크롤과 포커스를 유지한다. */
 function closeSheet(): void {
-  if (sheet?.k === 'bag') { salv = null; salvAsk = false; }
+  const talentReturn = sheet?.k === 'talent' ? `${sheet.i}:${sheet.j}` : null;
+  const closingItem = sheet?.k === 'item' ? sheet : null;
+  const inventoryReturn = closingItem && !G.save.gear.bag.some(it => it.id === closingItem.id) ? closingItem.inventoryIndex : undefined;
   rrOn = false; rrAlt = null; auto = null; efx = null; clearTimeout(efxTimer);
-  sheet = (sheet?.k === 'item' && sheet.back) || sheet?.k === 'codex' || sheet?.k === 'dex' ? { k: 'bag' } : null;
+  sheet = sheet?.k === 'codex' ? { k: 'dex' } : null;
   msg = ''; render();
+  if (talentReturn) focusTalentControl(`[data-tcell="${talentReturn}"]`);
+  if (inventoryReturn !== undefined) {
+    const cells = s.el.querySelectorAll<HTMLElement>('.c7-inventory [data-gitem]');
+    const target = cells[Math.min(inventoryReturn, cells.length - 1)] || s.el.querySelector<HTMLElement>('#gearInventoryTitle');
+    target?.focus({ preventScroll: true });
+  }
+}
+
+/** 특성은 비모달 시트. DOM을 다시 그려도 키보드 작업 위치는 이어 준다. */
+function focusTalentControl(selector: string): void {
+  s.el.querySelector<HTMLElement>(selector)?.focus({ preventScroll: true });
 }
 
 /** 처리했으면 true (그렸음) */
@@ -847,18 +815,15 @@ function onClick(t: HTMLElement): boolean {
   // 강화 연출 중 아무 데나 누르면 연출 끝 (누른 것은 그대로 처리, 34 7-3)
   if (efx && !t.closest('[data-enh], [data-autostop]')) endFx();
   const tab = t.closest<HTMLElement>('[data-csub]');
-  if (tab) { auto = null; efx = null; sub = tab.dataset.csub as Sub; sel = null; swapping = false; msg = ''; sheet = null; salv = null; salvAsk = false; skOpen = null; hskOpen = null; hsel = null; render(false); return true; }
+  if (tab) { auto = null; efx = null; sub = tab.dataset.csub as Sub; sel = null; swapping = false; msg = ''; sheet = null; skOpen = null; hskOpen = null; hsel = null; render(false); return true; }
   if (t.closest('[data-sheetx]')) { closeSheet(); return true; }
 
   // ---- 장비 ----
   const gi = t.closest<HTMLElement>('[data-gitem]');
   if (gi) {
-    const id = Number(gi.dataset.gitem), inBag = gi.classList.contains('c7-bag');
-    if (salv && inBag) {
-      if (findItem(id)?.lock) msg = '잠긴 장비는 분해 안 됨';
-      else { if (salv.has(id)) salv.delete(id); else salv.add(id); msg = ''; }
-      salvAsk = false;
-    } else { sheet = { k: 'item', id, ...(inBag ? { back: true } : {}) }; msg = ''; rrOn = false; rrAlt = null; auto = null; }
+    const inventoryIndex = Array.from(s.el.querySelectorAll('.c7-inventory [data-gitem]')).indexOf(gi);
+    sheet = { k: 'item', id: Number(gi.dataset.gitem), ...(inventoryIndex >= 0 ? { inventoryIndex } : {}) };
+    msg = ''; rrOn = false; rrAlt = null; auto = null;
     render(); return true;
   }
   const gs = t.closest<HTMLButtonElement>('[data-gslot]');
@@ -868,12 +833,6 @@ function onClick(t: HTMLElement): boolean {
     return true;
   }
   if (t.closest('[data-sheet="stats"]')) { sheet = { k: 'stats' }; msg = ''; render(); return true; }
-  if (t.closest('[data-bag]')) { sheet = { k: 'bag' }; salv = null; salvAsk = false; msg = ''; render(); return true; }
-  const sb = t.closest<HTMLButtonElement>('[data-salvbag]');
-  if (sb) { if (!sb.disabled) { sheet = { k: 'bag' }; salv = new Set(); salvAsk = false; msg = ''; render(); } return true; }
-  const rec = t.closest<HTMLButtonElement>('[data-rec]');
-  if (rec) { if (!rec.disabled) { sheet = { k: 'rec' }; msg = ''; render(); } return true; }
-  if (t.closest('[data-recgo]')) { const n = equipBest(); sheet = null; msg = n ? `추천 장착: ${n}부위 바꿈` : ''; render(); return true; }
   const lk = t.closest<HTMLElement>('[data-lock]');
   if (lk) { toggleLock(Number(lk.dataset.lock)); msg = ''; render(); return true; }
   const eq = t.closest<HTMLElement>('[data-equip]');
@@ -897,9 +856,18 @@ function onClick(t: HTMLElement): boolean {
   const s1 = t.closest<HTMLButtonElement>('[data-salv1]');
   if (s1) {
     if (s1.disabled) return true;
-    const r = salvage([Number(s1.dataset.salv1)]);
+    const id = Number(s1.dataset.salv1);
+    const visibleIds = Array.from(s.el.querySelectorAll<HTMLElement>('.c7-inventory [data-gitem]')).map(el => Number(el.dataset.gitem));
+    const index = visibleIds.indexOf(id);
+    const next = visibleIds[index + 1] ?? visibleIds[index - 1];
+    const r = salvage([id]);
     msg = r.n ? `분해: 골드 +${fmt(r.gold)} · 강화석 +${r.stone}${r.refined ? ` · 정제 강화석 +${r.refined}` : ''}` : '';
-    sheet = sheet?.k === 'item' && sheet.back ? { k: 'bag' } : null; render(); return true;
+    if (r.n) {
+      sheet = null; render();
+      const target = s.el.querySelector<HTMLElement>(`.c7-inventory [data-gitem="${next}"]`) || s.el.querySelector<HTMLElement>('#gearInventoryTitle');
+      target?.focus({ preventScroll: true });
+    } else render();
+    return true;
   }
   if (t.closest('[data-rrmode]')) { rrOn = !rrOn; rrAlt = null; msg = ''; render(); return true; }
   const rb = t.closest<HTMLElement>('[data-rr]');
@@ -922,35 +890,29 @@ function onClick(t: HTMLElement): boolean {
   const cg = t.closest<HTMLElement>('[data-codexg]');
   if (cg) { codexG = cg.dataset.codexg as CodexGroup; render(); return true; }
   const bf = t.closest<HTMLElement>('[data-bfilter]');
-  if (bf) { bagFilter = bf.dataset.bfilter as BagFilter; render(); return true; }
-  if (t.closest('[data-bsort]')) { bagSort = SORTS[bagSort].next; render(); return true; }
-  if (t.closest('[data-salvon]')) { salv = new Set(); salvAsk = false; msg = ''; render(); return true; }
-  if (t.closest('[data-salvx]')) { salv = null; salvAsk = false; msg = ''; render(); return true; }
-  if (t.closest('[data-salvall]') && salv) { for (const id of lowGradeIds()) salv.add(id); salvAsk = false; render(); return true; }
-  const go = t.closest<HTMLButtonElement>('[data-salvgo]');
-  if (go && salv) {
-    if (go.disabled) return true;
-    if (!salvAsk) { salvAsk = true; render(); return true; }
-    const r = salvage([...salv]);
-    msg = `${r.n}개 분해: 골드 +${fmt(r.gold)} · 강화석 +${r.stone}${r.refined ? ` · 정제 강화석 +${r.refined}` : ''}`;
-    salv = null; salvAsk = false; render(); return true;
-  }
-
+  if (bf) { bagFilter = bf.dataset.bfilter as BagFilter; render(true, true); s.el.querySelector<HTMLElement>(`[data-bfilter="${bagFilter}"]`)?.focus({ preventScroll: true }); return true; }
+  if (t.closest('[data-bsort]')) { bagSort = SORTS[bagSort].next; render(true, true); s.el.querySelector<HTMLElement>('[data-bsort]')?.focus({ preventScroll: true }); return true; }
   // ---- 특성 ----
   const tc = t.closest<HTMLElement>('[data-tcell]');
   if (tc) {
     const [i, j] = tc.dataset.tcell!.split(':').map(Number);
     sheet = sheet?.k === 'talent' && sheet.i === i && sheet.j === j ? null : { k: 'talent', i, j };
-    render(); return true;
+    render();
+    focusTalentControl(sheet ? `.c7-tsheet [data-talent="${i}:${j}"]` : `[data-tcell="${i}:${j}"]`);
+    return true;
   }
   const tb = t.closest<HTMLElement>('[data-talent]');
   if (tb) {
     const [i, j] = tb.dataset.talent!.split(':').map(Number);
     if (pickTalent(i, j)) sheet = null;
-    render(); return true;
+    render(); focusTalentControl(`[data-tcell="${i}:${j}"]`); return true;
   }
   const pr = t.closest<HTMLElement>('[data-preset]');
-  if (pr) { setTalentPreset(Number(pr.dataset.preset)); sheet = null; render(); return true; }
+  if (pr) {
+    const preset = Number(pr.dataset.preset);
+    setTalentPreset(preset); sheet = null; render();
+    focusTalentControl(`[data-preset="${preset}"]`); return true;
+  }
 
   // ---- 직업 ----
   const hk = t.closest<HTMLElement>('[data-hsk]');

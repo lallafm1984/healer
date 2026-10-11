@@ -83,7 +83,9 @@ export function mountTabs(nav: HTMLElement): void {
     nav.innerHTML = TABS.map(t => {
       const locked = !!t.lv && topLevel(G.save) < t.lv;
       const tl = tutLocked(t.key);
-      const icon = locked || tl ? uiIcon('lock') : iconOf(t.key);
+      const baseIcon = iconOf(t.key);
+      // A2 교차검을 모든 탭에서 동일하게 사용한다. 잠금 상태의 자물쇠는 보존한다.
+      const icon = locked || tl ? uiIcon('lock') : t.key === 'battle' ? gameIcon('a2-swords', baseIcon) : baseIcon;
       const cls = tl ? ' class="tlock"' : locked ? ' class="llock"' : '';
       return `<button type="button" data-tab="${t.key}"${t.key === cur ? ' aria-current="page"' : ''}${cls}${tl ? ' aria-disabled="true"' : ''}><span class="tab-sock">${icon}</span><span>${t.name}</span>${tl || locked ? `<small>${tl ? '잠금' : `Lv ${t.lv}`}</small>` : ''}${!tl && !locked && dotOf(t.key) ? '<i class="rdot" aria-label="새 소식"></i>' : ''}</button>`;
     }).join('');

@@ -50,7 +50,7 @@ export default async function talents(url, shots) {
   ok((await mine())[6] === 1 && (await mine())[9] === 0, '쉼터 · 기도의 정점 고름');
   await page.click('#s-char [data-tcell="9:0"]'); await page.clock.runFor(50);
   ok(/보조 버튼/.test(await text('#s-char .c7-tsheet')), '보조 버튼 특성 표시 (시트)');
-  await page.screenshot({ path: `${shots}/talent_pick.png` });
+  await page.screenshot({ path: `${shots}/talent_pick.png`, animations: 'disabled' });
   await page.click('#s-char .c7-tsum'); await page.clock.runFor(50);
 
   // ---- 프리셋 ----
@@ -78,6 +78,71 @@ export default async function talents(url, shots) {
   await page.screenshot({ path: `${shots}/talent_battle.png` });
 
   await ctx.close();
+
+  // 특성 재설계: 잠금·선택 규칙은 같고, 작은 화면에서도 시트 조작과 마지막 단에 도달해야 한다.
+  for (const [width, height] of [[320, 640], [390, 844], [430, 932]]) {
+    const mobile = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    const p = await mobile.newPage();
+    p.on('pageerror', e => errs.push(`${width}: pageerror: ${e.message}`));
+    p.on('console', m => { if (m.type() === 'error') errs.push(`${width}: console: ${m.text()}`); });
+    await p.clock.install();
+    await p.goto(url); await p.clock.runFor(300); await pastTitle(p);
+    for (const level of [1, 25, 50]) {
+      await patchSave(p, { player: { level } }); await pastTitle(p);
+      await p.click('#tabs [data-tab="char"]'); await p.clock.runFor(100);
+      await p.click('#s-char [data-csub="talent"]'); await p.clock.runFor(50);
+      await p.screenshot({ path: `${shots}/talent_lv${level}_${width}.png`, animations: 'disabled' });
+      const open = Math.min(10, Math.floor(level / 5));
+      ok(await p.locator('#s-char .c7-tier.locked').count() === 10 - open && await p.locator('#s-char [data-tcell]').count() === open * 3, `${width} Lv ${level}: 열린 단만 3택1 버튼, 잠긴 단 비활성`);
+      const fits = await p.evaluate(() => {
+        const body = document.querySelector('#s-char .ns-body');
+        return body.scrollWidth <= body.clientWidth + 1 && [...document.querySelectorAll('#s-char .c7-tier')].every(el => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; });
+      });
+      ok(fits, `${width} Lv ${level}: 특성 목록 수평 넘침 없음`);
+    }
+    // 긴 설명(은혜 갚기)·보조 버튼(쉼터)·마지막 단의 시트와 하단 탭 경계.
+    for (const [cell, label] of [['5:0', 'long'], ['6:1', 'active'], ['9:0', 'last']]) {
+      await p.click(`#s-char [data-tcell="${cell}"]`); await p.clock.runFor(50);
+      await p.screenshot({ path: `${shots}/talent_${label}_${width}.png`, animations: 'disabled' });
+      const safe = await p.evaluate(() => {
+        const sh = document.querySelector('#s-char .c7-tsheet'), r = sh.getBoundingClientRect();
+        const tab = document.querySelector('#tabs').getBoundingClientRect();
+        const controls = [...sh.querySelectorAll('button')].map(el => ({ el, r: el.getBoundingClientRect() }));
+        return r.left >= 0 && r.right <= innerWidth && r.bottom <= tab.top && controls.every(({ el, r: b }) => b.width >= 44 && b.height >= 44 && b.top >= r.top && b.bottom <= r.bottom && el.contains(document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)));
+      });
+      ok(safe, `${width} ${label}: 설명 닫기·CTA 44px 이상, 시트 안에 표시되고 탭바와 겹치지 않음`);
+      if (label === 'last') {
+        await p.locator('#s-char .ns-body').evaluate(el => { el.scrollTop = el.scrollHeight; });
+        const lastReachable = await p.evaluate(() => document.querySelector('#s-char [data-tcell="9:0"]').getBoundingClientRect().bottom <= document.querySelector('#s-char .c7-tsheet').getBoundingClientRect().top);
+        ok(lastReachable, `${width}: 시트 열린 채 최하단 선택지까지 스크롤 가능`);
+      }
+      await p.getByRole('button', { name: '특성 설명 닫기', exact: true }).click();
+      ok(!(await p.isVisible('#s-char .c7-tsheet')), `${width} ${label}: 명시적 닫기 버튼`);
+    }
+    // native 키보드 활성화와 재렌더 뒤 CTA/원래 노드/프리셋으로의 포커스 복원.
+    await p.locator('#s-char [data-tcell="0:0"]').focus(); await p.keyboard.press('Enter');
+    ok(await p.isVisible('#s-char .c7-tsheet'), `${width}: Enter로 특성 설명 열기`);
+    ok(await p.evaluate(() => document.activeElement?.matches('#s-char [data-talent="0:0"]')), `${width}: 설명을 열면 CTA로 키보드 포커스 이동`);
+    await p.keyboard.press('Shift+Tab');
+    const closeReachable = await p.evaluate(() => document.activeElement?.matches('#s-char .c7-tclose'));
+    ok(closeReachable, `${width}: Shift+Tab으로 설명 닫기 접근 가능`);
+    if (closeReachable) await p.keyboard.press('Space');
+    ok(!(await p.isVisible('#s-char .c7-tsheet')) && await p.evaluate(() => document.activeElement?.matches('#s-char [data-tcell="0:0"]')), `${width}: Space로 설명 닫고 원래 노드 포커스 복원`);
+    await p.locator('#s-char [data-tcell="0:0"]').focus(); await p.keyboard.press('Space');
+    await p.keyboard.press('Escape');
+    ok(!(await p.isVisible('#s-char .c7-tsheet')) && await p.evaluate(() => document.activeElement?.matches('#s-char [data-tcell="0:0"]')), `${width}: Escape로 닫고 원래 노드 포커스 복원`);
+    await p.locator('#s-char [data-tcell="0:0"]').focus(); await p.keyboard.press('Enter');
+    await p.locator('#s-char [data-talent="0:0"]').focus(); await p.keyboard.press('Enter');
+    ok(await p.getAttribute('#s-char [data-tcell="0:0"]', 'aria-pressed') === 'true' && await p.evaluate(() => JSON.parse(localStorage.getItem('healer.save')).heroes.priest.talents[0]) === 0, `${width}: 키보드 CTA 선택과 저장 일치`);
+    ok(await p.evaluate(() => document.activeElement?.matches('#s-char [data-tcell="0:0"]')), `${width}: 선택 뒤 원래 노드 포커스 복원`);
+    await p.locator('#s-char [data-preset="1"]').focus(); await p.keyboard.press('Enter');
+    ok(await p.evaluate(() => document.activeElement?.matches('#s-char [data-preset="1"][aria-pressed="true"]')), `${width}: 프리셋 전환 뒤 선택한 프리셋 포커스 복원`);
+    // 상단 컬러 탭과 장비 바로 아래 상시 인벤토리를 함께 캡처한다.
+    await p.click('#s-char [data-csub="gear"]');
+    await p.locator('#s-char .ns-body').evaluate(el => { el.scrollTop = 0; });
+    await p.screenshot({ path: `${shots}/character_controls_${width}.png`, animations: 'disabled' });
+    await mobile.close();
+  }
   await browser.close();
   return { fails, errs };
 }

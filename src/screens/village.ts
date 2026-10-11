@@ -2,8 +2,8 @@
  * 로비 「살아 있는 마을」 (2026-10-11 코덱스 village-living-background 시안을 게임으로 옮김).
  * 건물은 고정 바탕 한 장. 따로 떨어진 투명 소품 (나뭇가지·잎·꽃·덩굴·깃발·차양·구름)만 움직인다.
  * 좌표·잘라내기 다각형은 원본 그림 853×1844 기준. 가지·덩굴·깃발·차양은 본 4개 리그로 메시를 휘게 하고 (부착선은 고정, 끝으로 갈수록 크게),
- * 구름은 누적 거리로 한 방향으로 흐른다 (바람을 바꿔도 위치가 튀지 않음). 물결·등불·떠다니는 잎·먼 새는 그림 없이 그린다.
- * 승인된 모션 값 (구름 9개 · 가지·잎·꽃 ×2.4 · 덩굴 ×2.1 · 깃발 ×3 · 차양 ×1.35 · 기본 바람 35%)은 data/village.ts에 그대로 둔다. 사용자 요청 없이 약하게 바꾸지 않는다.
+ * 구름은 누적 거리로 한 방향으로 흐른다 (바람을 바꿔도 위치가 튀지 않음). 새·낙엽은 실제 투명 그림, 물결·등불만 코드로 그린다.
+ * 승인된 가지·덩굴·깃발·차양 진폭과 가림은 유지. 추가 요청한 구름 3종/속도 ×1.65 · 새 무리 · 낙엽은 data/village.ts에 둔다.
  * 종 그림은 쓰지 않는다 (10 4장): 시안의 종 레이어는 옮기지 않았다.
  * 로비를 다시 그려도 (보상 받기 등) 같은 캔버스를 새 자리로 옮겨 붙여 움직임이 이어진다. 로비가 안 보이거나 앱이 뒤로 가면 멈춘다.
  * 동작 줄이기 설정이면 바람 0으로 한 장면만 그린다. WebGL이 안 되면 고정 바탕 그림만 보인다.
@@ -22,12 +22,21 @@ function windEnvelope(time: number, phase = 0): number {
 }
 
 type Motion = 'branch' | 'vine' | 'flag' | 'awning';
+interface MotionProfile { sway: number; secondary: number; secondaryWeight: number; lag: number; gust: number; flutter: number; flutterRate: number; flutterWaves: number }
+/** 승인된 진폭은 그대로 두고 재질마다 주기·본 사이 지연만 구분한다. */
+const MOTION: Record<Motion, MotionProfile> = {
+  branch: { sway: 0.79, secondary: 1.43, secondaryWeight: 0.18, lag: 0.38, gust: 0.94, flutter: 0, flutterRate: 0, flutterWaves: 0 },
+  vine: { sway: 0.63, secondary: 1.17, secondaryWeight: 0.19, lag: 0.67, gust: 1.02, flutter: 0.16, flutterRate: 1.47, flutterWaves: 4.2 },
+  flag: { sway: 1.14, secondary: 2.19, secondaryWeight: 0.24, lag: 0.56, gust: 1.16, flutter: 0.55, flutterRate: 4.73, flutterWaves: 6.4 },
+  awning: { sway: 0.87, secondary: 1.69, secondaryWeight: 0.15, lag: 0.33, gust: 0.82, flutter: 0.23, flutterRate: 2.63, flutterWaves: 4.8 },
+};
 interface Bone { start: [number, number]; length: number; angle: number }
-interface Rig { root: [number, number]; dir: [number, number]; length: number; width: number; height: number; bones: Bone[]; lever: number; motion: Motion; layer: Layer }
+interface Rig { root: [number, number]; dir: [number, number]; length: number; width: number; height: number; bones: Bone[]; lever: number; motion: Motion; layer: Layer; profile: MotionProfile; rate: number; gustDelay: number; flutter?: Float32Array }
 interface Pose { c: number; s: number; tx: number; ty: number; end: [number, number] }
+interface RigPose { bones: Pose[]; flutterSin: number; flutterCos: number }
 interface Layer extends VillageLayer { width: number; height: number; x: number; y: number; phase: number; alpha: number; rotation: number }
 
-function createRig(layer: Layer): Rig {
+function createRig(layer: Layer, vertices: Float32Array): Rig {
   const { width, height } = layer;
   const motion = (layer.motion || (layer.group === 'cloth' ? 'flag' : 'branch')) as Motion;
   const anchor = layer.anchor || (motion === 'branch' ? [0.5, 1] : [0.5, 0]);
@@ -41,28 +50,46 @@ function createRig(layer: Layer): Rig {
     start: [root[0] + dir[0] * length * i / count, root[1] + dir[1] * length * i / count], length: length / count, angle,
   }));
   const lever = bones.reduce((sum, _b, i) => sum + (length - length * i / count) * (0.65 + 0.35 * i / (count - 1)), 0);
-  return { root, dir, length, width, height, bones, lever, motion, layer };
+  const profile = MOTION[motion];
+  // 같은 소품도 약 ±9% 다른 주기. 큰 나무는 작은 잎보다 천천히 반응한다.
+  const rate = (1 + Math.sin(layer.phase * 1.73 + 0.4) * 0.09) * (motion === 'branch' ? 1 - clamp((length - 100) / 260) * 0.12 : 1);
+  const gustDelay = clamp(layer.x / VILLAGE.width) * 1.4 + (motion === 'vine' ? 0.65 : motion === 'branch' ? 0.3 : 0);
+  // sin(시간 + 위치)를 전개: 공간 성분은 한 번만 계산해 천 꼭짓점마다 매 프레임 sin을 부르지 않는다.
+  const flutter = profile.flutter ? new Float32Array(vertices.length) : undefined;
+  if (flutter) for (let i = 0; i < vertices.length; i += 2) {
+    const x = vertices[i], y = vertices[i + 1];
+    const p = clamp(((x - root[0]) * dir[0] + (y - root[1]) * dir[1]) / length);
+    const wave = -p * profile.flutterWaves + x / width * 1.3;
+    flutter[i] = Math.sin(wave) * p * p; flutter[i + 1] = Math.cos(wave) * p * p;
+  }
+  return { root, dir, length, width, height, bones, lever, motion, layer, profile, rate, gustDelay, flutter };
 }
 
-function poseRig(rig: Rig, time: number, wind: number): Pose[] {
-  const layer = rig.layer, phase = layer.phase;
+function poseRig(rig: Rig, time: number, wind: number): RigPose {
+  const layer = rig.layer, phase = layer.phase, profile = rig.profile;
   const amplitude = Number.isFinite(layer.amplitude) ? layer.amplitude! : rig.motion === 'branch' ? 2.1 : rig.motion === 'awning' ? 2.3 : 3.0;
   const strength = clamp(wind, 0, 100) / 35;
+  const envelope = clamp(0.73 + (windEnvelope(time - rig.gustDelay, phase) - 0.73) * profile.gust);
+  const bend = amplitude * strength * envelope / rig.lever, clock = time * rig.rate;
   let start: [number, number] = [...rig.root], angle = rig.bones[0].angle;
-  return rig.bones.map((bone, i) => {
-    const wave = 0.81 * Math.sin(time * 0.89 + phase - i * 0.48) + 0.19 * Math.sin(time * 1.53 + phase * 1.7 - i * 0.81);
-    angle += amplitude * strength * windEnvelope(time, phase) / rig.lever * (0.65 + 0.35 * i / 3) * wave;
+  const bones = rig.bones.map((bone, i) => {
+    const wave = (1 - profile.secondaryWeight) * Math.sin(clock * profile.sway + phase - i * profile.lag)
+      + profile.secondaryWeight * Math.sin(clock * profile.secondary + phase * 1.7 - i * profile.lag * 1.69);
+    angle += bend * (0.65 + 0.35 * i / 3) * wave;
     const delta = angle - bone.angle, c = Math.cos(delta), s = Math.sin(delta);
     const end: [number, number] = [start[0] + Math.cos(angle) * bone.length, start[1] + Math.sin(angle) * bone.length];
     const pose = { c, s, tx: start[0] - c * bone.start[0] + s * bone.start[1], ty: start[1] - s * bone.start[0] - c * bone.start[1], end };
     start = end;
     return pose;
   });
+  const flutterTime = clock * profile.flutterRate + phase;
+  const flutterStrength = profile.flutter * strength * (0.7 + envelope * 0.3);
+  return { bones, flutterSin: rig.flutter ? Math.sin(flutterTime) * flutterStrength : 0, flutterCos: rig.flutter ? Math.cos(flutterTime) * flutterStrength : 0 };
 }
 
-/** 메시 꼭짓점 하나: 부착 근처 15%는 고정, 그 뒤로 인접 두 본 변환을 섞음. 천은 끝으로 갈수록 작은 펄럭임 추가 */
-function deformPoint(x: number, y: number, rig: Rig, poses: Pose[], time: number, wind: number, out: Float32Array, i: number): void {
-  if (!wind) { out[i] = x; out[i + 1] = y; return; }
+/** 부착점은 고정하고 첫 15%에서 변형을 부드럽게 풀어 준다. 천 끝의 잔물결도 같은 고정점을 따른다. */
+function deformPoint(x: number, y: number, rig: Rig, pose: RigPose, out: Float32Array, i: number): void {
+  const poses = pose.bones;
   const along = ((x - rig.root[0]) * rig.dir[0] + (y - rig.root[1]) * rig.dir[1]) / rig.length;
   const p = clamp(along), pin = smoothstep(0, 0.15, p);
   if (!pin) { out[i] = x; out[i + 1] = y; return; }
@@ -71,7 +98,7 @@ function deformPoint(x: number, y: number, rig: Rig, poses: Pose[], time: number
   const mix = clamp(center - Math.floor(center));
   const px = (a.c * x - a.s * y + a.tx) * (1 - mix) + (b.c * x - b.s * y + b.tx) * mix;
   const py = (a.s * x + a.c * y + a.ty) * (1 - mix) + (b.s * x + b.c * y + b.ty) * mix;
-  const flutter = rig.motion === 'branch' ? 0 : Math.sin(time * 1.91 - p * 4.2 + rig.layer.phase + x / rig.width * 1.3) * p * p * 0.22 * clamp(wind, 0, 100) / 35;
+  const flutter = rig.flutter ? pose.flutterSin * rig.flutter[i + 1] + pose.flutterCos * rig.flutter[i] : 0;
   out[i] = x + (px - x) * pin - rig.dir[1] * flutter;
   out[i + 1] = y + (py - y) * pin + rig.dir[0] * flutter;
 }
@@ -84,7 +111,8 @@ function cloudPose(layer: Layer, wind: number, sceneWidth: number, distance: num
   const fade = smoothstep(-width, -width + Math.min(60, width * 0.4), x) * (1 - smoothstep(sceneWidth - Math.min(60, width * 0.4), sceneWidth, x));
   return { x, alpha: fade * layer.alpha };
 }
-const cloudSpeed = (layer: Layer, wind: number) => (layer.speed || 0.8) * (0.55 + clamp(wind, 0, 100) / 78);
+const cloudSpeed = (layer: Layer, wind: number, time: number) => VILLAGE.cloudSpeedScale * (layer.speed || 0.8) * (0.55 + clamp(wind, 0, 100) / 78)
+  * (1 + 0.08 * Math.sin(time * 0.17 + layer.phase * 0.18));
 
 const flat = (poly: readonly (readonly [number, number])[]) => poly.flat();
 function boundsOf(poly: readonly (readonly [number, number])[]) {
@@ -95,6 +123,7 @@ function boundsOf(poly: readonly (readonly [number, number])[]) {
 
 interface Item { layer: Layer; object: Sprite | MeshPlane; rig?: Rig; base?: Float32Array; positions?: Float32Array; buffer?: Buffer; travel: number }
 interface Water { object: Graphics; config: VillageEffects['waterPaths'][number]; bounds: ReturnType<typeof boundsOf>; fall: boolean }
+interface Leaf { object: Sprite; config: VillageEffects['motes'][number]; scale: number }
 
 /** 로비 마을 장면 하나 (앱 전체에서 한 번 만들고 로비가 다시 그려지면 새 자리로 옮김) */
 class Village {
@@ -103,9 +132,9 @@ class Village {
   private world = new Container();
   private items: Item[] = [];
   private waters: Water[] = [];
-  private lights: { object: Sprite; alpha: number; phase: number }[] = [];
-  private motes?: Graphics;
-  private birds?: Graphics;
+  private lights: { object: Sprite; alpha: number; phase: number; size: number; rate: number }[] = [];
+  private leaves: Leaf[] = [];
+  private birdFrames: Texture[] = [];
   private glow?: Texture;
   private time = 0;
   private wind = VILLAGE.defaultWind;
@@ -123,6 +152,7 @@ class Village {
   constructor() {
     this.host.className = 'lb-village';
     this.host.setAttribute('aria-hidden', 'true');
+    this.host.style.pointerEvents = 'none';
     // 그리기 전 / WebGL이 안 될 때: 고정 바탕 한 장
     const base = art(VILLAGE.background);
     if (base) this.host.innerHTML = `<img class="lb-village-base" src="${base}" width="${VILLAGE.width}" height="${VILLAGE.height}" alt="" decoding="async" draggable="false">`;
@@ -141,19 +171,25 @@ class Village {
     const W = VILLAGE.width, H = VILLAGE.height;
     const app = new Application();
     this.app = app;
-    await app.init({ width: W, height: H, resolution: 1, antialias: false, autoDensity: false, backgroundAlpha: 0, preference: 'webgl', autoStart: false, sharedTicker: false, eventFeatures: { click: false, move: false, globalMove: false, wheel: false } });
+    // 문자열 선호도는 CanvasRenderer까지 자동 대체한다. 메시를 지원하는 WebGL만 요청하고, 실패하면 바탕 그림을 유지한다.
+    await app.init({ width: W, height: H, resolution: 1, antialias: false, autoDensity: false, backgroundAlpha: 0, preference: ['webgl'], autoStart: false, sharedTicker: false, eventFeatures: { click: false, move: false, globalMove: false, wheel: false } });
     this.world.sortableChildren = true;
     this.world.eventMode = 'none';
     app.stage.eventMode = 'none';
     app.stage.addChild(this.world);
-    const names = [...new Set([VILLAGE.background, ...VILLAGE.layers.map(l => l.art), ...VILLAGE.occluders.map(l => l.art)])];
+    const names = [...new Set([VILLAGE.background, VILLAGE.effects.leafArt, ...VILLAGE.birdFrames, ...VILLAGE.layers.map(l => l.art), ...VILLAGE.occluders.map(l => l.art)])];
     const textures = new Map<string, Texture>();
     await Promise.all(names.map(async n => { const url = art(n); if (!url) throw new Error(`village art ${n}`); textures.set(n, await Assets.load<Texture>(url)); }));
+    this.birdFrames = VILLAGE.birdFrames.map(n => textures.get(n)!);
     const bg = new Sprite(textures.get(VILLAGE.background)!);
     bg.width = W; bg.height = H; bg.zIndex = -1000; bg.eventMode = 'none';
     this.world.addChild(bg);
     for (const l of [...VILLAGE.layers, ...VILLAGE.occluders]) this.addLayer(l, textures.get(l.art)!);
-    this.addEffects(VILLAGE.effects);
+    this.addEffects(VILLAGE.effects, textures.get(VILLAGE.effects.leafArt)!);
+    this.host.dataset.clouds = String(this.items.filter(it => it.layer.motion === 'cloud').length);
+    this.host.dataset.birds = String(this.items.filter(it => it.layer.motion === 'bird').length);
+    this.host.dataset.leaves = String(this.leaves.length);
+    this.host.dataset.cloudSpeedScale = String(VILLAGE.cloudSpeedScale);
     const canvas = app.canvas;
     canvas.className = 'lb-village-canvas';
     // 그래픽 연결이 끊기면 고정 바탕으로 돌아가고, 다음에 로비를 그릴 때 다시 만든다
@@ -187,7 +223,7 @@ class Village {
       mesh.pivot.set(anchor[0] * layer.width, anchor[1] * layer.height);
       mesh.position.set(layer.x + anchor[0] * layer.width, layer.y + anchor[1] * layer.height);
       object = mesh;
-      item = { layer, object, rig: createRig(layer), base: positions.slice(), positions, buffer, travel: 0 };
+      item = { layer, object, rig: createRig(layer, positions), base: positions.slice(), positions, buffer, travel: 0 };
     } else {
       const sprite = new Sprite(texture);
       sprite.width = layer.width; sprite.height = layer.height;
@@ -208,7 +244,7 @@ class Village {
     this.items.push(item);
   }
 
-  private addEffects(fx: VillageEffects): void {
+  private addEffects(fx: VillageEffects, leafTexture: Texture): void {
     for (const [fall, list] of [[false, fx.waterPaths], [true, fx.waterfalls]] as const) for (const config of list) {
       const object = new Graphics(), mask = new Graphics().poly(flat(config.polygon)).fill(0xffffff);
       object.zIndex = 18; object.eventMode = 'none'; mask.eventMode = 'none';
@@ -229,11 +265,17 @@ class Village {
         s.anchor.set(0.5); s.position.set(l.x, l.y); s.width = s.height = (l.radius || 35) * 2;
         s.blendMode = 'add'; s.zIndex = 500; s.eventMode = 'none';
         this.world.addChild(s);
-        this.lights.push({ object: s, alpha: l.alpha ?? 0.13, phase: i * 2.1 });
+        this.lights.push({ object: s, alpha: l.alpha ?? 0.13, phase: i * 2.1, size: s.width, rate: 0.76 + i * 0.11 });
       });
     }
-    if (fx.motes.length) { this.motes = new Graphics(); this.motes.zIndex = 700; this.motes.eventMode = 'none'; this.world.addChild(this.motes); }
-    if (fx.birds) { this.birds = new Graphics(); this.birds.zIndex = 20; this.birds.eventMode = 'none'; this.world.addChild(this.birds); }
+    for (const config of fx.motes) {
+      const object = new Sprite(leafTexture), scale = config.size / fx.leafContentWidth;
+      object.anchor.set(0.5);
+      object.scale.set(scale);
+      object.eventMode = 'none'; object.zIndex = 700;
+      this.world.addChild(object);
+      this.leaves.push({ object, config, scale });
+    }
   }
 
   private render(): void {
@@ -242,31 +284,36 @@ class Village {
     for (const it of this.items) {
       const { layer, object } = it;
       if (it.rig && it.base && it.positions && it.buffer) {
-        const poses = poseRig(it.rig, t, wind);
-        for (let i = 0; i < it.base.length; i += 2) deformPoint(it.base[i], it.base[i + 1], it.rig, poses, t, wind, it.positions, i);
+        if (!wind) it.positions.set(it.base);
+        else {
+          const pose = poseRig(it.rig, t, wind);
+          for (let i = 0; i < it.base.length; i += 2) deformPoint(it.base[i], it.base[i + 1], it.rig, pose, it.positions, i);
+        }
         it.buffer.update();
       } else if (layer.motion === 'cloud') {
         const p = cloudPose(layer, wind, VILLAGE.width, it.travel);
-        object.x = p.x + (layer.anchor?.[0] || 0) * layer.width;
+        // p.x는 좌측 경계. 음수 scale에서는 실제 anchor의 반대쪽이 좌측이 된다.
+        const anchorX = object instanceof Sprite ? object.anchor.x : (layer.anchor?.[0] || 0);
+        object.x = p.x + (object.scale.x < 0 ? 1 - anchorX : anchorX) * layer.width;
         object.alpha = p.alpha;
-      } else if (layer.motion === 'bird') {
-        const cycle = mod(t + layer.phase * 5, 29), progress = (cycle - 8) / 8;
-        object.visible = progress >= 0 && progress <= 1;
-        object.x = -layer.width + progress * (VILLAGE.width + 2 * layer.width);
-        object.y = layer.y + Math.sin(progress * Math.PI) * -15;
-        const scale = layer.height / object.texture.height;
-        object.scale.y = scale * (0.78 + 0.22 * Math.cos(t * 6.1 + layer.phase));
+      } else if (layer.motion === 'bird' && object instanceof Sprite) {
+        this.poseBird(object, layer, t);
       } else if (layer.group === 'lights') {
         object.alpha = layer.alpha * (0.97 + 0.02 * Math.sin(t * 2.2 + layer.phase) + 0.01 * Math.sin(t * 4.9));
       }
     }
     for (const w of this.waters) this.drawWater(w, t);
-    for (const l of this.lights) l.object.alpha = l.alpha * (0.96 + 0.026 * Math.sin(t * 2.15 + l.phase) + 0.014 * Math.sin(t * 5.13 + l.phase));
-    if (this.motes) this.drawMotes(this.motes, t, wind);
-    if (this.birds) this.drawBirds(this.birds, t);
+    for (const l of this.lights) {
+      // 두 등불만 서로 다른 호흡. 빛의 범위는 2% 안에서 변해 건물·메뉴는 움직이지 않는다.
+      const breath = Math.sin(t * l.rate + l.phase);
+      l.object.alpha = l.alpha * (1 + 0.14 * breath + 0.035 * Math.sin(t * 2.17 + l.phase * 1.3));
+      l.object.width = l.object.height = l.size * (1 + 0.018 * breath);
+    }
+    for (const leaf of this.leaves) this.poseLeaf(leaf, t, wind);
     this.app.render();
     // 화면 테스트가 움직임·멈춤을 확인하는 장면 시간
     this.host.dataset.t = t.toFixed(2);
+    this.host.dataset.visibleBirds = String(this.items.filter(it => it.layer.motion === 'bird' && it.object.visible && it.object.alpha > 0.02).length);
   }
 
   private drawWater(w: Water, t: number): void {
@@ -283,25 +330,38 @@ class Village {
     }
   }
 
-  private drawMotes(g: Graphics, t: number, wind: number): void {
-    g.clear();
-    if (!wind) return;
-    VILLAGE.effects.motes.forEach((p, i) => {
-      const cycle = mod(t * 0.035 + i * 0.197, 1), alpha = smoothstep(0, 0.18, cycle) * (1 - smoothstep(0.72, 1, cycle)) * 0.27 * clamp(wind / 35, 0, 1.4);
-      const x = p.x + cycle * 22 * wind / 35 + Math.sin(t * 0.5 + i) * 3, y = p.y + cycle * 95;
-      g.ellipse(x, y, 1.35, 0.6 + 0.45 * Math.abs(Math.sin(t * 1.7 + i))).fill({ color: i % 2 ? 0xd1bc6e : 0x849452, alpha });
-    });
+  /** 한 무리가 약 21초에 화면을 횡단. 다음 순환에서는 반대 방향의 먼 계곡 경로를 쓴다. */
+  private poseBird(object: Sprite, layer: Layer, t: number): void {
+    const elapsed = t + 6 - (layer.flightDelay || 0), pass = Math.floor(elapsed / 38);
+    const progress = mod(elapsed, 38) / 21, valley = mod(pass, 2) === 1;
+    object.visible = progress <= 1;
+    if (!object.visible) return;
+    const direction = valley ? -1 : 1, across = -60 + progress * (VILLAGE.width + 120);
+    object.x = valley ? VILLAGE.width - across : across;
+    object.y = layer.y + (valley ? 168 : 0) - Math.sin(progress * Math.PI) * (valley ? 24 : 32)
+      + Math.sin(progress * Math.PI * 2 + layer.phase * 0.15) * 5;
+    object.alpha = layer.alpha * smoothstep(0, 0.08, progress) * (1 - smoothstep(0.9, 1, progress));
+    const up = Math.sin(t * (12.4 + layer.phase * 0.12) + layer.phase) > 0;
+    const texture = this.birdFrames[up ? 1 : 0];
+    if (object.texture !== texture) object.texture = texture;
+    // 원본 전체 텍스처 사용: alpha 여백을 포함해 배율만 보정하고 두 자세의 몸통을 같은 점에 둔다.
+    const scale = layer.width / (up ? 207 : 225);
+    object.anchor.set(0.47, up ? 0.7 : 0.62);
+    object.scale.set(-direction * scale, scale);
+    object.rotation = direction * (Math.cos(progress * Math.PI) * -0.045 + Math.sin(t * 1.7 + layer.phase) * 0.018);
   }
 
-  private drawBirds(g: Graphics, t: number): void {
-    g.clear();
-    const progress = (mod(t, 29) - 10) / 8;
-    if (progress < 0 || progress > 1) return;
-    const x = -20 + progress * (VILLAGE.width + 40), y = 68 - Math.sin(clamp(progress) * Math.PI) * 13;
-    for (let i = 0; i < 2; i++) {
-      const bx = x - i * 23, by = y + i * 10, flap = Math.sin(t * 5.2 + i * 0.75) * 2;
-      g.moveTo(bx - 3.2, by - flap).quadraticCurveTo(bx - 1.4, by - 0.6, bx, by + 0.25).quadraticCurveTo(bx + 1.5, by - 0.6, bx + 3.2, by - flap).stroke({ color: 0x4a626c, width: 0.72, alpha: 0.45 });
-    }
+  /** 측면 나무에서 나온 잎. 반복 위치는 alpha=0에서만 되감아 나타남/사라짐이 튀지 않는다. */
+  private poseLeaf({ object, config: p, scale }: Leaf, t: number, wind: number): void {
+    object.visible = wind > 0;
+    if (!object.visible) return;
+    const progress = mod(t / p.duration + p.phase, 1), strength = clamp(wind / 35, 0, 1.4);
+    const flutter = Math.sin(t * 1.05 + p.phase * 9);
+    object.position.set(p.x + progress * p.drift[0] * strength + Math.sin(t * 0.82 + p.phase * 8) * 7,
+      p.y + progress * p.drift[1] + flutter * 4);
+    object.alpha = 0.58 * strength * smoothstep(0, 0.16, progress) * (1 - smoothstep(0.72, 1, progress));
+    object.rotation = p.rotation + t * (p.drift[0] > 0 ? 0.31 : -0.27) + flutter * 0.46;
+    object.scale.set(scale * (0.48 + 0.52 * Math.abs(Math.cos(t * 1.22 + p.phase * 7))), scale);
   }
 
   /** 로비 화면이 [hidden]이면 (다른 탭) 멈춤. 다시 들어오면 mount()가 다시 시작 */
@@ -330,7 +390,7 @@ class Village {
 
   private advance(dt: number): void {
     this.time += dt;
-    for (const it of this.items) if (it.layer.motion === 'cloud') it.travel += dt * cloudSpeed(it.layer, this.wind);
+    for (const it of this.items) if (it.layer.motion === 'cloud') it.travel += dt * cloudSpeed(it.layer, this.wind, this.time);
   }
 
   private destroyApp(): void {
@@ -340,8 +400,8 @@ class Village {
     this.host.classList.remove('live');
     try { this.app?.destroy({ removeView: true }, { children: true, texture: false, textureSource: false }); } catch { /* 이미 끊긴 WebGL */ }
     this.glow?.destroy(true);
-    this.app = undefined; this.glow = undefined; this.motes = undefined; this.birds = undefined;
-    this.world = new Container(); this.items = []; this.waters = []; this.lights = [];
+    this.app = undefined; this.glow = undefined;
+    this.world = new Container(); this.items = []; this.waters = []; this.lights = []; this.leaves = []; this.birdFrames = [];
   }
 }
 
