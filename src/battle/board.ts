@@ -839,7 +839,8 @@ export function fxGim(name: string, now: number, at: { cell?: number; id?: numbe
   const look = FX_LOOK[name], dur = look?.ms ?? FX_MS;
   // 보스 판 전체 공격 (Lim 2026-10-11 「픽셀 크기를 늘려서」): PXF가 있으면 판 너비로 크게 한 번 (외침은 세력 색)
   const bp = BOSS_PXF[name];
-  if (bp && (at.all || look?.wide)) { B2.fx.push({ kind: 'pxf', id: -1, t0: now, pxf: bp, dur: pxfMs(PXF[bp]), wide: true, color: at.color ?? look?.color }); return; }
+  // 판 전체 공격 PXF (띠를 아직 못 읽었으면 예전 그림)
+  if (bp && (at.all || look?.wide) && pxfReady(bp)) { B2.fx.push({ kind: 'pxf', id: -1, t0: now, pxf: bp, dur: pxfMs(PXF[bp]), wide: true, color: at.color ?? look?.color }); return; }
   if (at.all && !look?.wide) { for (const u of F.party) if (u.alive) B2.fx.push({ kind: 'art', name, id: u.id, t0: now, dur, color: at.color }); return; }
   B2.fx.push({ kind: 'art', name, id: at.id ?? -1, cell: at.cell, to: at.to, row: at.row, t0: now, dur, wide: at.all || look?.wide, color: at.color });
 }
