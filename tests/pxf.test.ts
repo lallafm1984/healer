@@ -4,7 +4,7 @@ import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { HEROES } from '../src/data/heroes';
 import type { SkillKey } from '../src/data/skills';
-import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, WIDE_DESIGN, type CommonFx, type PxfKey } from '../src/battle/pxf';
+import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, WIDE_DESIGN, wideArtName, type CommonFx, type PxfKey } from '../src/battle/pxf';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { AB_KIND, type AbKind } from '../src/data/abilities';
 import * as E from '../src/engine';
@@ -31,6 +31,20 @@ const pngPixels = (art: string) => {
     px.set(raw.subarray(y * (w * 4 + 1) + 1, (y + 1) * (w * 4 + 1)), y * w * 4);
   }
   return { w, h, px };
+};
+/** src/art 그림 파일의 가로 · 세로 (PNG · WebP 머리), 없으면 null */
+const artSize = (name: string): { w: number; h: number } | null => {
+  for (const ext of ['webp', 'png']) {
+    const f = new URL(`../src/art/${name}.${ext}`, import.meta.url);
+    if (!existsSync(f)) continue;
+    const b = readFileSync(f);
+    if (ext === 'png') return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
+    const kind = b.toString('ascii', 12, 16);
+    if (kind === 'VP8X') return { w: 1 + b.readUIntLE(24, 3), h: 1 + b.readUIntLE(27, 3) };
+    if (kind === 'VP8L') { const v = b.readUInt32LE(21); return { w: 1 + (v & 0x3fff), h: 1 + ((v >> 14) & 0x3fff) }; }
+    return { w: b.readUInt16LE(26) & 0x3fff, h: b.readUInt16LE(28) & 0x3fff };
+  }
+  return null;
 };
 const KEYS = Object.keys(PXF) as PxfKey[];
 /** 아직 이펙트를 안 넣은 휠 스킬 (없음) */
@@ -166,6 +180,15 @@ describe('보스 판 전체 공격 (Lim 「보스의 판 전체 공격 이펙트
       expect(alpha).toBe(0);
     }, 30000);
   }
+  it('Codex 그림 띠 (66 `fx-wide-`, Lim 「도트 느낌이 아닌 이펙트로」): 들어왔으면 PXF 띠와 같은 256 격자', () => {
+    for (const [name, k] of Object.entries(BOSS_PXF)) {
+      expect(wideArtName(k!), name).toBe(`fx-wide-${name}`);
+      const c = PXF[k!], got = artSize(wideArtName(k!));
+      if (got) expect(got, name).toEqual({ w: c.size * c.cols, h: c.size * Math.ceil(c.frames / c.cols) });
+    }
+    // art:optimize가 줄이지 않음 (fx- 규칙 256보다 먼저)
+    expect(readFileSync(new URL('../scripts/art-optimize.mjs', import.meta.url), 'utf8')).toMatch(/re: \/\^fx-wide-\/, w: 1280, h: 1280/);
+  });
   it('전투마다 그 전투에서 나올 수 있는 것만 읽음 (256px 띠라 하나에 4–6MB)', () => {
     const of = (key: string) => bossPxfOf(ENCOUNTERS[key as keyof typeof ENCOUNTERS]).sort();
     const all = new Set(Object.values(ENCOUNTERS).flatMap(e => bossPxfOf(e)));
