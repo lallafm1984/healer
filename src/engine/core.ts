@@ -5,6 +5,7 @@ import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
 import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
+import { doveHurt } from './dove';
 import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, shieldGone, specDeath, specDebtPaid, specDebuffEnd, specFlip, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
@@ -278,6 +279,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
   }
   u.hp -= amt;
   if (f.sp) afterHurt(f, u, u.hp + amt);
+  if (amt > 0 && f.dove && f.dove.id === u.id) doveHurt(f, u); // 사제 빛의 비둘기: 회복하고 날아감 (보호막이 다 막으면 그대로)
   if (amt > u.max * 0.15) u.flash = 0.35;
   if (u.hp <= 0) {
     if (u.guardian > 0) {

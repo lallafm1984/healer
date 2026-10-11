@@ -39,10 +39,10 @@ export default async function character(url, shots) {
 
   // ---- 스킬: Lv 1 ----
   await page.click('#s-char [data-csub="skill"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-char .c7-sk').count()) === 9, '스킬 줄 7 + 성언 줄 + 패시브 줄');
-  ok((await page.locator('#s-char .c7-wheel .c7-wh .c7-si').count()) === 7 && (await page.locator('#s-char .c7-wh.core').count()) === 1 && (await page.locator('#s-char .c7-mcircle').count()) === 1, '휠 = 메달 7개에 스킬 그림(없으면 선 아이콘) + 가운데 마나 구슬 + 마법진');
-  ok((await page.locator('#s-char .c7-wheel .c7-si img.g-ic').count()) === 7 && (await page.locator('#s-char .c7-mcircle img.g-ic').count()) === 1 && (await page.locator('#s-char .c7-ski img.g-ic').count()) === 8, '31 그림: 휠 메달 skill- 7장, 마법진 ui-magic-circle (40 다시 그린 그림), 스킬 줄 그림 (패시브 줄은 선 아이콘)');
-  ok((await page.locator('#s-char .c7-sk.locked').count()) === 6 && (await page.locator('#s-char .lslot.locked').count()) === 5, 'Lv 1: 치유·순간 치유만 열림 (휠 5칸·성언 잠김)');
+  ok((await page.locator('#s-char .c7-sk').count()) === 10, '스킬 줄 8 (8번째 칸 빛의 비둘기) + 성언 줄 + 패시브 줄');
+  ok((await page.locator('#s-char .c7-wheel .c7-wh .c7-si').count()) === 8 && (await page.locator('#s-char .c7-wh.core').count()) === 1 && (await page.locator('#s-char .c7-mcircle').count()) === 1, '휠 = 메달 8개 (빈 칸 없음)에 스킬 그림(없으면 선 아이콘) + 가운데 마나 구슬 + 마법진');
+  ok((await page.locator('#s-char .c7-wheel .c7-si img.g-ic').count()) === 8 && (await page.locator('#s-char .c7-mcircle img.g-ic').count()) === 1 && (await page.locator('#s-char .c7-ski img.g-ic').count()) === 9, '31 그림: 휠 메달 skill- 8장 (비둘기는 임시 그림, 64), 마법진 ui-magic-circle (40 다시 그린 그림), 스킬 줄 그림 (패시브 줄은 선 아이콘)');
+  ok((await page.locator('#s-char .c7-sk.locked').count()) === 7 && (await page.locator('#s-char .lslot.locked').count()) === 6, 'Lv 1: 치유·순간 치유만 열림 (휠 6칸·성언 잠김)');
   ok(/Lv 2/.test(await text('#s-char .c7-sk[data-skill="renew"]')), '잠긴 스킬엔 배우는 레벨');
   ok(await page.getAttribute('#s-char [data-smode="view"]', 'aria-pressed') === 'true', '처음은 「설명 보기」');
   const h0 = await page.evaluate(() => document.querySelector('#s-char .c7-sdesc').getBoundingClientRect().height);

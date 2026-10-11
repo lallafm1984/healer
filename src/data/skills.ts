@@ -7,7 +7,7 @@ import { INT_BASE } from './rules';
 
 export type SkillKey =
   // 사제
-  | 'heal' | 'flash' | 'renew' | 'poh' | 'purify' | 'guardian' | 'hymn' | 'serenity' | 'sanctify'
+  | 'heal' | 'flash' | 'renew' | 'poh' | 'purify' | 'guardian' | 'hymn' | 'serenity' | 'sanctify' | 'dove'
   // 드루이드
   | 'sprout' | 'growth' | 'bloom' | 'wildflower' | 'natureCleanse' | 'bark' | 'quietwood' | 'rebirth'
   // 성기사
@@ -49,6 +49,8 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   hymn: { name: '천상의 찬가', short: '찬가', slot: 'raid', lv: 12, cast: 0, channel: 4, cost: 15, cd: 180, target: 'none' },
   serenity: { name: '성언: 평온', short: '평온', slot: 'basic', lv: 6, cast: 0, cost: 0, amt: 600, target: 'ally' },
   sanctify: { name: '성언: 신성화', short: '신성화', slot: 'aoe', lv: 6, cast: 0, cost: 0, amt: 300, target: 'area' },
+  // 8번째 칸 (Lim 2026-10-11 「슬롯 한자리가 빈다」): amt = 비둘기 회복 한 번. 횟수·지속·거리는 data/heroConst DOVE
+  dove: { name: '빛의 비둘기', short: '비둘기', slot: 'unique', lv: 15, cast: 0, cost: 3, cd: 12, amt: 120, target: 'ally' },
 
   // ---------- ② 드루이드 (25 3장) ----------
   sprout: { name: '새싹', short: '새싹', slot: 'basic', lv: 1, cast: 0, cost: 2, amt: 280, target: 'ally' },
@@ -104,6 +106,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   hymn: { kind: '공대 쿨기', desc: '4초 동안 1초마다 파티 전원의 체력을 {120}씩 회복합니다. 그동안 다른 행동을 할 수 없습니다.' },
   serenity: { kind: '성언', desc: '대상의 체력을 즉시 {600} 회복합니다. 평온 게이지 100%에서 쓰고, 마나를 쓰지 않습니다.' },
   sanctify: { kind: '성언', desc: '대상과 붙어 있는 6칸의 아군 체력을 즉시 {300}씩 회복합니다. 신성화 게이지 100%에서 쓰고, 마나를 쓰지 않습니다.' },
+  dove: { kind: '고유', desc: '대상에게 빛의 비둘기를 앉힙니다. 앉은 아군이 피해를 받으면 체력을 {120} 회복하고, 2칸 안에서 체력이 가장 낮은 다른 아군에게 날아갑니다. 5번 회복하거나 20초가 지나면 사라지고, 회복할 때마다 신성화 게이지를 4% 채웁니다.' },
 
   sprout: { kind: '기본 힐', desc: '12초 동안 3초마다 대상의 체력을 회복합니다. 모두 {280}입니다. 군락 범위에 들면 회복량이 늘어납니다.' },
   growth: { kind: '빠른 힐', desc: '대상의 체력을 즉시 {220} 회복하고, 6초 동안 {90}만큼 더 회복합니다.' },
