@@ -524,6 +524,16 @@ export const FEATURED: Record<string, readonly string[]> = {
   dewhill: ['clearEye', 'fireflies', 'rainbow'],
   mushmarsh: ['antidote', 'heavyFeet', 'windStep'],
   lilypalace: ['antidote', 'fadingMiasma', 'heavyFeet'],
+  // 묶음 H3 (62): 그 장소 해제 유형 · 기믹에 맞춘 3개
+  quarry: ['hardShell', 'spellWard', 'layer'],
+  smithy: ['layer', 'antidote', 'eliteHunter'],
+  ferry: ['hardShell', 'antidote', 'bigBowl'],
+  turtlecave: ['cutBeat', 'spellWard', 'lastStand'],
+  mistplaza: ['cleanHands', 'starVeil', 'evenly'],
+  coralgarden: ['cleanHands', 'chainBreaker', 'calmRipple'],
+  oasis: ['curseBreak', 'coldMedicine', 'dusk'],
+  sandlibrary: ['rewind', 'curseBreak', 'starClock'],
+  sundialroad: ['rewind', 'hurryStar', 'coldMedicine'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */
