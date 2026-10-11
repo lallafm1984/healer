@@ -70,8 +70,8 @@
 #s-char .c7-parch .m { font-size: 12px; color: #6A5838; }
 #s-char .c7-parch .ui-icon.in { width: 12px; height: 12px; margin: 0 2px 2px 0; }
 
-/* ---------- 장비 ① 받침대 무대: 좌우 장비 칸 3개씩 + 가운데 큰 직업 문장 · 이름표 ---------- */
-#s-char .c7-stage { position: relative; display: grid; grid-template-columns: 68px minmax(0, 1fr) 68px; height: 296px; margin: -2px -4px 0; }
+/* ---------- 장비 ① 무대: 좌우 장비 칸 3개씩 + 가운데 직업 문장 메달 · 능력치 판. 남는 높이만큼 늘어남 (가방 줄은 아래에 붙음) ---------- */
+#s-char .c7-stage { position: relative; display: grid; grid-template-columns: 68px minmax(0, 1fr) 68px; column-gap: 6px; flex: 1 0 auto; min-height: 330px; max-height: 460px; margin: -2px -4px 0; }
 #s-char .c7-col { position: relative; z-index: 2; display: flex; flex-direction: column; justify-content: space-between; }
 #s-char .c7-slot {
   --g: #8A7448; position: relative; width: 68px; min-height: 0; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 1px;
@@ -103,43 +103,45 @@
 #s-char .c7-slot:disabled { cursor: default; }
 #s-char .c7-slot:disabled > small { color: var(--dim); }
 #s-char .c7-slot:active:not(:disabled) .c7-sq { transform: translateY(1px); }
-/* 가운데: 빛 + 금테 큰 문장 + 받침대 이름표 */
-#s-char .c7-mid { position: relative; min-width: 0; }
-#s-char .c7-mid::before { content: ''; position: absolute; left: 50%; top: 48px; width: 180px; height: 220px; margin-left: -90px; border-radius: 50%; background: radial-gradient(rgba(255, 214, 120, 0.45), rgba(255, 214, 120, 0) 68%); pointer-events: none; }
+/* 가운데: 빛 + 금테 문장 메달 (판 위 테두리에 걸침) + 능력치 판 */
+#s-char .c7-mid { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; padding: 2px 0 4px; }
+#s-char .c7-mid::before { content: ''; position: absolute; left: 50%; top: -6px; width: 170px; height: 150px; margin-left: -85px; border-radius: 50%; background: radial-gradient(rgba(255, 214, 120, 0.4), rgba(255, 214, 120, 0) 68%); pointer-events: none; }
 #s-char .c7-bigem {
-  position: absolute; left: 50%; top: 84px; width: 112px; height: 112px; margin-left: -56px; padding: 5px; border-radius: 50%;
+  position: relative; z-index: 2; flex: none; width: 78px; height: 78px; padding: 4px; border-radius: 50%;
   background: conic-gradient(from 20deg, #FFE7A0, #9C7A3C 25%, #FFE7A0 50%, #9C7A3C 75%, #FFE7A0);
-  box-shadow: 0 0 0 2px var(--line), 0 0 30px rgba(255, 214, 120, 0.45), 0 8px 18px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 0 0 2px var(--line), 0 0 24px rgba(255, 214, 120, 0.45), 0 6px 14px rgba(0, 0, 0, 0.7);
 }
 #s-char .c7-bigem .emblem { width: 100%; height: 100%; border: 3px solid #15120E; background: radial-gradient(circle at 50% 35%, #4E3D27, #15120E 75%); box-shadow: none; }
 #s-char .c7-bigem .emblem img { width: 94%; height: 94%; }
-#s-char .c7-plq {
-  position: absolute; left: -4px; right: -4px; top: 206px; z-index: 3; width: max-content; max-width: calc(100% + 8px); margin: 0 auto;
-  display: flex; flex-direction: column; align-items: center; padding: 5px 16px 6px; border-radius: 5px;
-  background: linear-gradient(#3E2F1E, #1E1712); border: 1px solid #D9B26A; box-shadow: 0 0 0 1px var(--line), 0 4px 10px rgba(0, 0, 0, 0.7); text-align: center;
-}
-#s-char .c7-psc { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
-#s-char .c7-psc b { font: 800 24px/1.1 var(--font-display); color: var(--gold-hi); text-shadow: 0 1px 0 var(--line); }
-#s-char .c7-plq small { font-size: 11px; line-height: 1.35; color: #C9BC9E; }
 
-/* ---------- 장비 ② 능력치 판 6칸 (34 1-2, 누르면 출처) ---------- */
-#s-char .c7-stats { display: block; width: 100%; margin: 0; padding: 8px 10px 6px; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
-#s-char .c7-sh { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font: 700 14px var(--font-display); color: var(--gold-hi); }
-#s-char .c7-sh small { font: 400 11px var(--font-body); color: var(--mute); white-space: nowrap; }
-#s-char .c7-sgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px 6px; }
-#s-char .c7-stat { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 38px; }
-#s-char .c7-si { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--edge); background: var(--panel-2); color: #E2BE6E; }
-#s-char .c7-si > svg { width: 15px; height: 15px; }
-#s-char .c7-si:has(.g-ic) { padding: 2px; }
+/* ---------- 장비 ② 능력치 판 6줄 (34 1-2, 누르면 출처): 금테 어두운 판, 줄마다 동그라미 아이콘 · 이름 · 값 · 초록 장비 몫 ---------- */
+#s-char .c7-stats {
+  position: relative; flex: 1 1 auto; width: 100%; min-height: 0; margin: -24px 0 0; padding: 28px 8px 6px; display: flex; flex-direction: column;
+  border-radius: 10px; border-color: #B8924E; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+  background: radial-gradient(120% 60% at 50% 0%, rgba(255, 214, 120, 0.14), rgba(255, 214, 120, 0) 70%), linear-gradient(rgba(40, 32, 23, 0.96), rgba(20, 16, 12, 0.97));
+  box-shadow: 0 0 0 1px var(--line), inset 0 1px 0 rgba(255, 226, 170, 0.25), inset 0 0 0 3px rgba(13, 11, 9, 0.6), inset 0 0 0 4px rgba(217, 178, 106, 0.22), 0 8px 18px rgba(0, 0, 0, 0.55);
+}
+#s-char .c7-stats:active { transform: translateY(1px); }
+#s-char .c7-sh { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 2px; font: 700 13px var(--font-display); letter-spacing: 0.08em; color: var(--gold-hi); text-shadow: 0 1px 2px #000; }
+#s-char .c7-sh::before, #s-char .c7-sh::after { content: ''; flex: 1; max-width: 34px; height: 1px; background: linear-gradient(90deg, rgba(217, 178, 106, 0), #D9B26A); }
+#s-char .c7-sh::after { transform: scaleX(-1); }
+#s-char .c7-sgrid { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: space-around; }
+#s-char .c7-stat { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto auto; align-items: center; column-gap: 7px; min-width: 0; min-height: 30px; padding: 2px 4px; border-top: 1px solid rgba(217, 178, 106, 0.13); }
+#s-char .c7-stat:first-child { border-top: 0; }
+#s-char .c7-si { grid-row: 1 / 3; flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--edge); background: var(--panel-2); color: #E2BE6E; }
+#s-char .c7-si > svg { width: 14px; height: 14px; }
+#s-char .c7-si:has(.g-ic) { padding: 1px; }
 #s-char .c7-stat:nth-child(5) .c7-si { color: #8DB8FF; }
 #s-char .c7-stat:nth-child(6) .c7-si { color: #C9BC9E; }
-#s-char .c7-sv { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
-#s-char .c7-sv small { font-size: 10.5px; color: var(--mute); white-space: nowrap; }
-#s-char .c7-sv b { overflow: hidden; text-overflow: ellipsis; font: 900 14px/1.25 var(--font-body); color: var(--ink); white-space: nowrap; }
-#s-char .c7-sv b i { margin-left: 3px; font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--heal); }
+#s-char .c7-stat > small { grid-row: 1 / 3; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: #C9BC9E; white-space: nowrap; }
+#s-char .c7-stat > b { justify-self: end; font: 900 15px/1.15 var(--font-body); color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+#s-char .c7-stat > i { justify-self: end; font: normal 700 10.5px/1.1 var(--font-body); color: var(--heal); white-space: nowrap; }
+#s-char .c7-stat > i:empty { display: none; }
+#s-char .c7-stat:has(> i:empty) > b { grid-row: 1 / 3; }
+#s-char .c7-shint { margin-top: 2px; text-align: center; font-size: 10px; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------- 장비 ③ 가방 · 추천 장착 · 분해 ---------- */
-#s-char .c7-acts { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 8px; margin-top: 12px; }
+#s-char .c7-acts { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 8px; margin-top: 4px; }
 #s-char .c7-acts .g-sign { min-width: 0; min-height: 52px; padding: 0 14px; white-space: nowrap; }
 #s-char .c7-acts .g-sign:disabled { filter: grayscale(0.5) brightness(0.7); cursor: default; }
 #s-char .c7-recb {
@@ -188,6 +190,16 @@
 #s-char .c7-cmp { display: flex; align-items: center; gap: 8px; min-height: 34px; border-top: 1px solid var(--panel-2); font-size: 14px; }
 #s-char .c7-cmp > span:first-child { flex: none; width: 70px; font-size: 13px; color: var(--mute); }
 #s-char .c7-cmp > b { flex: 1; min-width: 0; font-weight: 700; }
+#s-char .c7-cmp > b .c7-awt { margin-left: 6px; vertical-align: 1px; }
+/* 옵션: 오른쪽 = 지금 장비와 차이, 지금 장비에만 있는 능력치는 아래 한 줄 */
+#s-char .c7-opts .c7-cmp > b { font-size: 15px; }
+#s-char .c7-lost { margin: 0; padding: 7px 0 2px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; border-top: 1px dashed var(--panel-2); font-size: 13px; color: var(--ink-2); }
+#s-char .c7-lost .cap { font-size: 12px; }
+#s-char .c7-lost > span:not(.cap) { white-space: nowrap; }
+#s-char .c7-lost .c7-dn { font-size: 12px; }
+/* 전설 고유 능력: 주황 금테 */
+#s-char .c7-legend .c7-spec { border-radius: 6px; padding-left: 6px; padding-right: 6px; background: linear-gradient(90deg, rgba(255, 150, 46, 0.16), rgba(255, 150, 46, 0.03)); box-shadow: inset 0 0 0 1px rgba(255, 192, 122, 0.4); }
+#s-char .c7-legend .c7-spt > b { color: #FFC07A; }
 #s-char .c7-rec > b { padding: 4px 0; font-size: 13px; line-height: 1.35; }
 #s-char .c7-rec s { text-decoration: none; font-weight: 400; color: var(--mute); }
 #s-char .c7-rec em { font-style: normal; }
@@ -243,7 +255,9 @@
 #s-char .c7-bag > .ui-icon { width: 26px; height: 26px; stroke-width: 1.8; }
 #s-char .c7-bag > .g-ic { width: calc(100% - 8px); height: calc(100% - 8px); }
 #s-char .c7-bag em { position: absolute; left: 3px; bottom: 1px; font: normal 900 11px var(--font-body); color: #FFFFFF; text-shadow: 0 0 3px #000, 0 1px 0 #000; }
-#s-char .c7-bag .up { position: absolute; right: -5px; top: -5px; width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; background: #2E7A3A; border: 1px solid #B9F5C4; font: 900 10px/1 var(--font-body); color: #FFFFFF; }
+/* 지금 장비와 점수 비교 (Lim 2026-10-11): 좋으면 초록 ▲, 나쁘면 빨간 ▼ (오른쪽 위 동그라미) */
+#s-char .c7-bag .up, #s-char .c7-bag .dn { position: absolute; right: -5px; top: -5px; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; background: #2E7A3A; border: 1.5px solid #B9F5C4; font: 900 9px/1 var(--font-body); color: #FFFFFF; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); }
+#s-char .c7-bag .dn { background: #8A2A20; border-color: #FFB4A6; padding-top: 1px; }
 #s-char .c7-bag .nw { position: absolute; left: 3px; top: 3px; width: 8px; height: 8px; border-radius: 50%; background: #E0402F; border: 1.5px solid #FFE7A8; }
 #s-char .c7-bag .lk { position: absolute; right: 2px; bottom: 1px; display: flex; color: var(--ink-2); }
 #s-char .c7-bag .lk .ui-icon { width: 11px; height: 11px; stroke-width: 2.2; }
@@ -482,24 +496,24 @@
   #s-char .c7-recb { font-size: 15px; }
   #s-char .c7-taps > button { font-size: 14px; }
 }
-/* 390 미만: 능력치 판 3열이 좁아 동그라미·글자를 줄임 (지능 1,414 +268 이 잘리지 않게) */
+/* 390 미만: 가운데 능력치 판이 좁아 동그라미·글자를 줄임 (지능 1,414 · +268이 잘리지 않게) */
 @media (max-width: 389px) {
-  #s-char .c7-stats { padding-left: 8px; padding-right: 8px; }
-  #s-char .c7-sgrid { column-gap: 4px; }
-  #s-char .c7-stat { gap: 4px; }
+  #s-char .c7-stage { column-gap: 4px; }
+  #s-char .c7-stats { padding-left: 6px; padding-right: 6px; }
+  #s-char .c7-stat { column-gap: 5px; padding-left: 2px; padding-right: 2px; }
   #s-char .c7-si { width: 22px; height: 22px; }
   #s-char .c7-si > svg { width: 13px; height: 13px; }
   /* 능력치 그림(stat-)은 동그라미가 작아져도 20px */
   #s-char .c7-si:has(.g-ic) { padding: 0; }
-  #s-char .c7-sv b { font-size: 13px; }
-  #s-char .c7-sv b i { margin-left: 2px; font-size: 10px; }
+  #s-char .c7-stat > b { font-size: 14px; }
 }
 /* 360 미만 (320): 능력치 판 2열, 장비 칸·특성 머리 칸을 좁힘 */
 @media (max-width: 359px) {
   #s-char .c7-body { padding-left: 10px; padding-right: 10px; }
   #s-char .c7-stage { grid-template-columns: 62px minmax(0, 1fr) 62px; margin-left: -2px; margin-right: -2px; }
   #s-char .c7-slot { width: 62px; }
-  #s-char .c7-sgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #s-char .c7-stat > small { font-size: 11px; }
+  #s-char .c7-stat > b { font-size: 13px; }
   #s-char .c7-tl { width: 58px; padding-left: 9px; }
   #s-char .c7-tl b { font-size: 14px; }
   #s-char .c7-pres { gap: 5px; }

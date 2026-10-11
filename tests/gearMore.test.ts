@@ -1,8 +1,8 @@
 /** 장비 가짓수 늘리기 (34 6-10): 종류 30 · 겹 고정 옵션 · 세력 생김새 · 고유 무기 · 방어구 */
 import { describe, expect, it } from 'vitest';
 import {
-  DUAL_SHARE, fixedOf, GRADE_MULT, hasLookArt, itemName, itemSpecs, itemStats, KINDS, kindsOf, LOOK_WORD, lookOf, LOOKS, makeItem, PLACE_KINDS, rerollLine, rollItem, SLOTS,
-  SPEC_LINES, specKeysOf, STATS, type GearItem,
+  fixedOf, hasLookArt, itemName, itemSpecs, itemStats, KINDS, kindsOf, LOOK_WORD, lookOf, LOOKS, makeItem, PLACE_KINDS, rerollLine, rollItem, SLOTS,
+  specKeysOf, STATS, takenStats, type GearItem,
 } from '../src/data/equipment';
 import { UNIQUE_MULT, UNIQUES, uniqueFor, uniqueOf, uniqueValue } from '../src/data/uniques';
 import { NAMED, SPECS, specValue } from '../src/data/specials';
@@ -26,27 +26,28 @@ describe('종류 30 · 겹 고정 옵션 (34 6-10 ①)', () => {
     }
     expect(KINDS.filter(k => k.fixed.length === 2)).toHaveLength(12);
   });
-  it('겹 옵션은 각각 등급 최대값의 60%, 장신구는 강화로 둘 다 오름', () => {
+  it('종류 옵션은 줄마다 그 능력치 한 줄 최대값, 주 옵션과 같은 능력치는 빠지고, 줄 수가 모자라면 앞 것만, 장신구는 강화로 둘 다 오름', () => {
     const base: GearItem = { id: 1, slot: 'hands', kind: 'bracer', grade: '영웅', plus: 5, name: '', lines: [] };
     const fx = fixedOf(base);
-    expect(fx.map(x => x.stat)).toEqual(['int', 'haste']);
-    expect(fx[0].v).toBeCloseTo(STATS.int.max * DUAL_SHARE);
-    expect(fx[1].v).toBeCloseTo(STATS.haste.max * DUAL_SHARE);
+    expect(fx.map(x => x.stat)).toEqual(['int', 'haste']); // 팔찌 지능은 손 주 옵션 한 줄로
+    expect(fx[0].v).toBeCloseTo(0.1 * 1.4);
+    expect(fx[1].v).toBeCloseTo(STATS.haste.max * 1.3);
     const ring: GearItem = { ...base, slot: 'ring', kind: 'twin', plus: 10 };
     const fr = fixedOf(ring);
-    expect(fr[0].v).toBeCloseTo(STATS.crit.max * DUAL_SHARE * 1.8);
-    expect(fr[1].v).toBeCloseTo(STATS.haste.max * DUAL_SHARE * 1.8);
+    expect(fr[0].v).toBeCloseTo(STATS.crit.max * 1.8);
+    expect(fr[1].v).toBeCloseTo(STATS.haste.max * 1.8);
+    expect(fixedOf({ ...ring, grade: '일반', plus: 0 }).map(x => x.stat)).toEqual(['crit']);
     const st = itemStats({ ...base, grade: '희귀', plus: 0 });
-    expect(st.haste).toBeCloseTo(STATS.haste.max * DUAL_SHARE * GRADE_MULT['희귀']);
+    expect(st.haste).toBeCloseTo(STATS.haste.max * 1.3 * 0.85);
   });
-  it('추가 옵션 · 재설정은 두 고정 옵션과 겹치지 않음', () => {
+  it('무작위 옵션 · 재설정은 주 옵션 · 종류 옵션과 겹치지 않음', () => {
     const r = rngFrom(11);
     for (let i = 0; i < 2000; i++) {
       const k = KINDS[i % KINDS.length], it = makeItem(r, k.slot, '전설', i, k.key);
       expect(it.kind).toBe(k.key);
-      for (const l of it.lines) expect(k.fixed).not.toContain(l.stat);
+      for (const l of it.lines) expect(takenStats(k)).not.toContain(l.stat);
       const nl = rerollLine(r, it, 0);
-      expect(k.fixed).not.toContain(nl.stat);
+      expect(takenStats(k)).not.toContain(nl.stat);
     }
   });
   it('새 종류 14개가 모두 어느 장소에서 잘 나옴', () => {
@@ -115,10 +116,10 @@ describe('고유 무기 · 방어구 (34 6-10 ③)', () => {
       if (c.kind === 'dungeon' || !namedPlaces.has(c.key)) expect(UNIQUES.some(u => u.place === c.key), c.key).toBe(true);
     }
   });
-  it('그 장소 그 부위 희귀 이상에서 나옴: 종류 고정, 고정 특수능력 1.5배 + 등급 줄 − 1, 생김새 없음', () => {
+  it('그 장소 그 부위 전설에서만 (Lim 2026-10-11): 종류 고정, 고정 특수능력 1.5배가 고유 능력 (다른 특수능력 없음), 생김새 없음', () => {
     const u = uniqueFor('watchtower', 'weapon')!;
     const r = rngFrom(9);
-    const its = Array.from({ length: 400 }, (_, i) => makeItem(r, 'weapon', i % 2 ? '전설' : '희귀', i, undefined, { place: 'watchtower' }));
+    const its = Array.from({ length: 400 }, (_, i) => makeItem(r, 'weapon', '전설', i, undefined, { place: 'watchtower' }));
     const got = its.filter(it => it.unique);
     expect(got.length / its.length).toBeGreaterThan(0.15);
     expect(got.length / its.length).toBeLessThan(0.35);
@@ -127,22 +128,24 @@ describe('고유 무기 · 방어구 (34 6-10 ③)', () => {
       expect(it.kind).toBe(u.kind);
       expect(it.look).toBeUndefined();
       expect(it.name).toBe(u.name);
-      expect(it.specs).toHaveLength(SPEC_LINES[it.grade] - 1);
-      expect(it.specs!.some(l => SPECS[l.key].group === SPECS[u.spec].group)).toBe(false);
+      expect(it.specs).toEqual([]);
+      expect(itemSpecs(it)).toHaveLength(1);
       const on = itemSpecs(it).find(x => x.key === u.spec)!;
       expect(on.v).toBeCloseTo(specValue(u.spec, it.grade, 1) * UNIQUE_MULT);
       expect(specKeysOf(it)).toContain(u.spec);
     }
-    const low = Array.from({ length: 200 }, (_, i) => makeItem(r, 'weapon', '고급', i, undefined, { place: 'watchtower' }));
-    expect(low.some(it => it.unique)).toBe(false);
-    expect(uniqueValue(uniqueOf('magicCrown')!, '희귀')).toBe(SPECS.numberSense.val);
+    for (const g of ['고급', '희귀', '영웅'] as const) {
+      const low = Array.from({ length: 200 }, (_, i) => makeItem(r, 'weapon', g, i, undefined, { place: 'watchtower' }));
+      expect(low.some(it => it.unique)).toBe(false);
+    }
+    expect(uniqueValue(uniqueOf('magicCrown')!, '전설')).toBe(SPECS.numberSense.val);
   });
   it('저장했다 불러도 생김새 · 고유 장비가 남음', () => {
     const s = newSave();
     const r = rngFrom(4);
     const a = makeItem(r, 'neck', '희귀', 101, 'amulet', { place: 'teaparty' });
-    let b = makeItem(r, 'head', '희귀', 102, undefined, { place: 'temple' });
-    for (let i = 0; !b.unique; i++) b = makeItem(r, 'head', '희귀', 102, undefined, { place: 'temple' });
+    let b = makeItem(r, 'head', '전설', 102, undefined, { place: 'temple' });
+    for (let i = 0; !b.unique; i++) b = makeItem(r, 'head', '전설', 102, undefined, { place: 'temple' });
     s.gear.bag.push(a, b);
     const back = migrate(JSON.parse(JSON.stringify(s)));
     expect(back.gear.bag.find(x => x.id === 101)!.look).toBe(a.look);
@@ -162,7 +165,7 @@ describe('장비 도감 (34 6-10 ④)', () => {
     const s = newSave();
     const a: GearItem = { id: 1, slot: 'ring', kind: 'jade', grade: '일반', plus: 0, name: '', lines: [], look: 'fairy' };
     const b: GearItem = { id: 2, slot: 'weapon', kind: 'mace', grade: '일반', plus: 0, name: '', lines: [], look: 'fairy' };
-    const c: GearItem = { id: 3, slot: 'head', kind: 'helm', grade: '희귀', plus: 0, name: '', lines: [], unique: 'guardianHelm' };
+    const c: GearItem = { id: 3, slot: 'head', kind: 'helm', grade: '전설', plus: 0, name: '', lines: [], unique: 'guardianHelm' };
     expect(dexKeysOf(a)).toEqual(['k:jade', 'l:fairy:jade']);
     expect(dexKeysOf(b)).toEqual(['k:mace']);
     expect(noteDex(s, [a, b, c])).toEqual(['k:jade', 'l:fairy:jade', 'k:mace', 'k:helm', 'u:guardianHelm']);

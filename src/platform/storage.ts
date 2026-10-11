@@ -3,7 +3,9 @@
  * 지금은 localStorage. 앱에서 OS가 웹 저장소를 지울 위험이 보이면 Capacitor Preferences로 바꾼다.
  */
 import type { DiffName } from '../data/difficulty';
-import { EXTRA_LINES, itemName, kindOf, rollLines, rollSpecs, specCount, specKeysOf, SLOTS, type Equipped, type GearItem } from '../data/equipment';
+import { itemName, kindOf, LEGEND, lookOf, randomLines, rollLines, takenStats, rollSpecs, specCount, specKeysOf, SLOTS, type Equipped, type GearItem } from '../data/equipment';
+import { uniqueOf } from '../data/uniques';
+import { namedOf } from '../data/specials';
 import { rngFrom } from '../engine/rng';
 import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
@@ -14,7 +16,7 @@ import type { ItemKey } from '../data/items';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
@@ -257,23 +259,36 @@ export function migrate(raw: unknown): SaveData {
 }
 
 /**
- * 옛 장비를 지금 모양으로: 세트 표시를 빼고 (세트 장비 제거), 종류가 없으면 그 부위 첫 종류 + 등급만큼 추가 옵션 굴림 (v7, 34 12장 6번),
+ * 옛 장비를 지금 모양으로: 세트 표시를 빼고 (세트 장비 제거), 종류가 없으면 그 부위 첫 종류 (v7, 34 12장 6번),
  * 특수능력 줄이 없으면 등급만큼 굴림 (v8, 42 1-1, 직업 전용은 그 저장의 지금 직업 것).
+ * v9 옵션 정비 (Lim 2026-10-11): 무작위 옵션은 새 줄 수만큼 앞에서부터 남김 (굴림 · 각성 값 그대로, 모자라면 굴림).
+ * 고유 능력은 전설만: 희귀 · 영웅 고유 장비는 고정 특수능력을 보통 줄 (굴림 최대)로, 이름 있는 장신구는 특수능력 1줄 굴림으로 바꾸고 떨어진 장소 생김새.
+ * 전설은 고유 장비 · 이름 있는 장신구가 아니면 첫 특수능력이 고유 능력 (1.5배), 둘째 줄은 없앰.
  * 굴림은 장비 id로 정해서 몇 번 불러도 같음. 이름은 등급 말 + 종류
  */
 function upgradeItem(it: GearItem, hero: HeroKey): GearItem {
   if (!it || typeof it !== 'object') return it;
   const c: GearItem & { set?: unknown } = { ...it };
   delete c.set;
-  if (!c.kind || !Array.isArray(c.lines)) {
-    const k = kindOf(c);
-    c.kind = k.key;
-    c.lines = rollLines(rngFrom(Math.imul(c.id || 1, 0x2545f491) ^ 0x6a09e667), EXTRA_LINES[c.grade] ?? 1, k.fixed);
-  }
+  const k = kindOf(c), n = randomLines(k, c.grade);
+  c.kind = k.key;
+  const taken = takenStats(k);
+  const lines = Array.isArray(c.lines) ? c.lines.filter(l => l && !taken.includes(l.stat)).slice(0, n) : [];
+  if (lines.length < n) lines.push(...rollLines(rngFrom(Math.imul(c.id || 1, 0x2545f491) ^ 0x6a09e667), n - lines.length, [...taken, ...lines.map(l => l.stat)]));
+  c.lines = lines;
   if (!Array.isArray(c.specs)) {
     const r = rngFrom(Math.imul(c.id || 1, 0x9e3779b1) ^ 0x3c6ef372);
     c.specs = rollSpecs(r, c.slot, c.grade, specCount(r, c.grade), { hero });
   }
+  if (c.grade !== LEGEND) {
+    const un = uniqueOf(c.unique), nm = namedOf(c.named);
+    if (un) c.specs = [{ key: un.spec, roll: 1 }];
+    else if (nm) c.specs = rollSpecs(rngFrom(Math.imul(c.id || 1, 0x85ebca6b) ^ 0x1b873593), c.slot, c.grade, 1, { hero });
+    if (un || nm) { const look = lookOf((un ?? nm)!.place); if (look) c.look = look; }
+    delete c.unique; delete c.named;
+    c.specs = c.specs.filter(l => !l.legend);
+  } else if (c.unique || c.named) c.specs = [];
+  else if (!c.specs.some(l => l.legend)) c.specs = c.specs.slice(0, 1).map(l => ({ key: l.key, roll: 1, legend: true as const }));
   c.name = itemName(c);
   return c;
 }

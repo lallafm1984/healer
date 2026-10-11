@@ -1,7 +1,7 @@
 /** 장비 강화·분해·드롭 (02 10장, 12 3장) */
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  clearMats, ENHANCE_RATE, enhanceCost, equippedStats, EXTRA_LINES, gearStatsOf, itemName, itemStats, kindsOf, makeItem, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, type GearItem,
+  clearMats, ENHANCE_RATE, enhanceCost, equippedStats, gearStatsOf, itemName, itemStats, kindsOf, makeItem, OPTION_LINES, optionsOf, randomLines, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, takenStats, type GearItem,
 } from '../src/data/equipment';
 import { gearStats } from '../src/data/gear';
 import * as E from '../src/engine';
@@ -121,36 +121,49 @@ describe('클리어 재료', () => {
 });
 
 describe('장비 종류 · 옵션 (34 6-2 ~ 6-5)', () => {
-  it('뽑은 장비: 그 부위 종류, 등급만큼 추가 옵션 (서로 다르고 고정 옵션과도 다름), 굴림 60~100%', () => {
+  it('옵션 줄 수 (Lim 2026-10-11): 일반 1 · 고급 2 · 희귀 3 · 영웅 4 · 전설 4, 특수능력 · 고유 능력 줄은 따로', () => {
+    expect(OPTION_LINES).toEqual({ '일반': 1, '고급': 2, '희귀': 3, '영웅': 4, '전설': 4 });
+    const r = rngFrom(5);
+    for (let i = 0; i < 3000; i++) {
+      const it = rollItem(r, '악몽', 'S', 60, i);
+      expect(optionsOf(it)).toHaveLength(OPTION_LINES[it.grade]);
+    }
+    expect(optionsOf(item({ slot: 'weapon', kind: 'staff', grade: '일반' })).map(x => x.stat)).toEqual(['int']); // 일반 무기는 주 옵션만
+    expect(optionsOf(item({ slot: 'ring', kind: 'twin', grade: '일반' })).map(x => x.stat)).toEqual(['crit']); // 종류 옵션이 줄 수보다 많으면 앞 것만
+  });
+  it('뽑은 장비: 그 부위 종류, 남은 줄만큼 무작위 옵션 (서로 다르고 주 · 종류 옵션과도 다름), 굴림 60~100%', () => {
     const r = rngFrom(5);
     for (let i = 0; i < 3000; i++) {
       const it = rollItem(r, '악몽', 'S', 60, i), ks = kindsOf(it.slot), k = ks.find(x => x.key === it.kind)!;
       expect(k).toBeTruthy();
-      expect(it.lines).toHaveLength(EXTRA_LINES[it.grade]);
+      expect(it.lines).toHaveLength(randomLines(k, it.grade));
       expect(new Set(it.lines.map(l => l.stat)).size).toBe(it.lines.length);
-      expect(it.lines.some(l => k.fixed.includes(l.stat))).toBe(false);
+      expect(it.lines.some(l => takenStats(k).includes(l.stat))).toBe(false);
       for (const l of it.lines) { expect(l.roll).toBeGreaterThanOrEqual(0.6); expect(l.roll).toBeLessThanOrEqual(1); }
     }
   });
-  it('주 능력치는 강화로 오르고, 고정 옵션은 장신구만 강화로 오름', () => {
+  it('주 옵션은 강화로 오르고, 종류 옵션은 장신구만 강화로 오름', () => {
     const staff = item({ slot: 'weapon', kind: 'staff', grade: '영웅' });
-    expect(itemStats(staff)).toMatchObject({ int: 0.12, haste: 0.05, hp: 0 });
+    expect(itemStats(staff).int).toBeCloseTo(0.12);
+    expect(itemStats(staff).haste).toBeCloseTo(0.05 * 1.3);
+    expect(itemStats(staff).hp).toBe(0);
     const s5 = itemStats({ ...staff, plus: 5 });
     expect(s5.int).toBeCloseTo(0.12 * 1.4);
-    expect(s5.haste).toBeCloseTo(0.05);
+    expect(s5.haste).toBeCloseTo(0.05 * 1.3);
     const robe = itemStats(item({ slot: 'chest', kind: 'robe', grade: '희귀', plus: 10 }));
-    expect(robe.int).toBeCloseTo(0.07 * 0.8 * 1.8);
-    expect(robe.hp).toBeCloseTo(0.05 * 0.8 * 1.8);
-    expect(robe.spirit).toBeCloseTo(0.08 * 0.8);
+    expect(robe.hp).toBeCloseTo(0.18 * 0.85 * 1.8);
+    expect(robe.spirit).toBeCloseTo(0.08 * 1.3 * 0.85);
+    expect(robe.int).toBe(0);
     const signet = itemStats(item({ slot: 'ring', kind: 'signet', grade: '영웅', plus: 5 }));
     expect(signet.int).toBe(0);
     expect(signet.haste).toBeCloseTo(0.05 * 1.4);
   });
-  it('추가 옵션 값 = 그 능력치 영웅 최대값 × 등급 배율 × 굴림', () => {
-    const it = item({ slot: 'hands', kind: 'gloves', grade: '전설', lines: [{ stat: 'crit', roll: 0.75 }, { stat: 'int', roll: 1 }] });
+  it('무작위 옵션 값 = 능력치 기준값 × 부위 배율 × 등급 배율 × 굴림', () => {
+    const it = item({ slot: 'hands', kind: 'gloves', grade: '전설', lines: [{ stat: 'crit', roll: 0.75 }, { stat: 'spirit', roll: 1 }] });
     const s = itemStats(it);
-    expect(s.crit).toBeCloseTo(0.04 * 1.2 * 0.75);
-    expect(s.int).toBeCloseTo(0.07 * 1.2 + 0.05 * 1.2);
+    expect(s.crit).toBeCloseTo(0.04 * 1.3 * 1.2 * 0.75);
+    expect(s.spirit).toBeCloseTo(0.08 * 1.3 * 1.2);
+    expect(s.int).toBeCloseTo(0.1 * 1.2);
   });
   it('치명타 · 가속 · 인내는 합 상한까지', () => {
     const g = statsToGear({ int: 0.5, hp: 0.4, crit: 0.7, haste: 0.6, spirit: 0.3, endure: 0.45 });
@@ -178,7 +191,7 @@ describe('장비 종류 · 옵션 (34 6-2 ~ 6-5)', () => {
     const hit = (f: typeof base) => { const before = f.me.hp; damage(f, f.me, 100, false, 'fixed'); return before - f.me.hp; };
     expect(hit(geared)).toBeCloseTo(hit(base) * 0.75);
   });
-  it('옛 장비 이전: 그 부위 첫 종류 + 등급만큼 추가 옵션, 몇 번 불러도 같음', () => {
+  it('옛 장비 이전: 그 부위 첫 종류 + 남은 줄만큼 무작위 옵션, 몇 번 불러도 같음', () => {
     const o = JSON.parse(JSON.stringify(newSave(1)));
     o.gear.bag = [{ id: 7, slot: 'neck', grade: '영웅', plus: 2, name: '성스러운 목걸이' }];
     const a = migrate(o).gear.bag[0], b = migrate(JSON.parse(JSON.stringify(o))).gear.bag[0];

@@ -224,12 +224,12 @@ for (const [group, rows] of Object.entries(TABLE) as [SpecGroup, Row[]][]) {
 }
 
 /**
- * 이름 있는 장신구 (42 3장): 장소 고유 목걸이 · 반지. 고유 효과 1줄은 고정이고 나머지 줄은 등급대로 굴림.
+ * 이름 있는 장신구 (42 3장): 장소 고유 목걸이 · 반지. 전설만 (Lim 2026-10-11 「전설에만 고유 능력」), 고유 효과가 그 전설의 고유 능력.
  * place = 떨어지는 장소 (content 키, 아직 없는 장소는 이름만). 같은 이름 있는 장신구는 하나만 낄 수 있음
  */
 export interface NamedDef {
   key: string; name: string; slot: 'neck' | 'ring'; place: string; placeName: string; text: string; val: number; unit: SpecUnit; cd?: number;
-  /** 이 등급부터 나옴 (없으면 data/equipment NAMED_MIN). 탐험은 고급까지 나와서 탐험 것은 고급 */
+  /** 예전 최소 등급 (지금은 전설만 나와서 쓰지 않음) */
   min?: ItemGrade;
 }
 export const NAMED: NamedDef[] = [
@@ -514,7 +514,8 @@ export function fmtSpec(v: number, unit: SpecUnit): string {
 export const specText = (d: { text: string; unit: SpecUnit }, v: number) => d.text.replace('{v}', fmtSpec(v, d.unit));
 
 /** 장비 한 줄 (저장): 특수능력 키 + 굴림 (0.6~1, 값 고정이면 1) */
-export interface SpecLine { key: string; roll: number }
+/** 장비 특수능력 한 줄. legend = 전설 고유 능력 (굴림 없이 1.5배, data/equipment legendValue) */
+export interface SpecLine { key: string; roll: number; legend?: true }
 
 /** 줄의 값 = 영웅 최대값 × 등급 배율 × 굴림. 값 고정이면 그대로 (42 1-2) */
 export function specValue(key: string, grade: ItemGrade, roll: number): number {

@@ -2,7 +2,7 @@
  * 내 힐러 요약 (27 2장 로비 힐러 카드 · 4-1 캐릭터 머리 · 4-2 능력치 판).
  * 장비 점수 = 장착 장비 itemScore 합 × 10 (편성 화면 권장 장비 경고와 같은 기준). 「전투력」이라는 말은 쓰지 않는다.
  */
-import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, itemSpecs, KINDS, LOOK_WORD, lookOf, PLACE_KINDS, SLOTS, slotName, STATS, type GearItem, type ItemGrade, type KindDef, type SlotKey } from '../data/equipment';
+import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, itemSpecs, KINDS, specLineValue, LOOK_WORD, lookOf, PLACE_KINDS, SLOTS, slotName, STATS, type GearItem, type ItemGrade, type KindDef, type SlotKey } from '../data/equipment';
 import { dexKeys, type DexTab } from '../data/dex';
 import { FACTIONS, type FactionKey } from '../data/places';
 import { uniqueOf, uniqueValue } from '../data/uniques';
@@ -33,7 +33,7 @@ const single = (key: string) => !SPECS[key] || !!SPECS[key].cd || !!SPECS[key].f
 
 /**
  * 장비 상세의 특수능력 줄 (42 1-3 · 1-5): 고유 효과 → 굴린 줄. 다른 직업 전용이면 「사제 전용」,
- * 낀 장비 중 같은 겹치지 않는 효과가 더 좋은 게 있으면 「겹치지 않음」 (끼고 있는 장비만)
+ * 낀 장비 중 같은 겹치지 않는 효과가 더 좋은 게 있으면 「겹치지 않음」 (끼고 있는 장비만). 전설 고유 능력은 「(고유)」 · 굴림 없음
  */
 export function specRows(it: GearItem): SpecRow[] {
   const hero = heroNow(), eq = G.save.gear.equipped, worn = eq[it.slot]?.id === it.id;
@@ -52,7 +52,7 @@ export function specRows(it: GearItem): SpecRow[] {
     const d = SPECS[l.key];
     if (!d) continue;
     const off = d.hero && d.hero !== hero ? `${HEROES[d.hero].name} 전용` : dup(d.key);
-    out.push({ key: d.key, name: d.name, group: d.group, badge: SPEC_GROUPS[d.group].name, text: specText(d, specValue(d.key, it.grade, l.roll)), roll: d.fixed ? null : l.roll, off, i });
+    out.push({ key: d.key, name: l.legend ? `${d.name} (고유)` : d.name, group: d.group, badge: l.legend ? '고유' : SPEC_GROUPS[d.group].name, text: specText(d, specLineValue(it, l)), roll: d.fixed || l.legend ? null : l.roll, off, i });
   }
   return out;
 }
@@ -63,7 +63,7 @@ export function codexRows(g: CodexGroup): CodexRow[] {
   const have = G.save.gear.codex;
   return codexKeys(g).map(key => {
     const got = have.includes(key), nm = namedOf(key);
-    if (nm) return { key, got, name: nm.name, text: specText(nm, nm.val), hint: `${nm.placeName}에서 · ${slotName(nm.slot)}` };
+    if (nm) return { key, got, name: nm.name, text: specText(nm, nm.val), hint: `${nm.placeName}에서 · ${slotName(nm.slot)} 전설` };
     const d = SPECS[key];
     const where = d.slots.length === SLOTS.length ? '모든 부위' : d.slots.map(slotName).join(' · ');
     const feat = Object.keys(FEATURED).filter(p => FEATURED[p].includes(key)).map(p => contentOf(p as ContentKey).name);
@@ -94,10 +94,10 @@ export function dexRows(tab: DexTab): DexRow[] {
     }
     if (tab === 'named') {
       const n = namedOf(a)!;
-      return { key, got, slot: n.slot, named: a, name: n.name, text: specText(n, n.val), hint: `${n.placeName}에서 · ${slotName(n.slot)}` };
+      return { key, got, slot: n.slot, named: a, name: n.name, text: specText(n, n.val), hint: `${n.placeName}에서 · ${slotName(n.slot)} 전설` };
     }
     const u = uniqueOf(a)!, d = SPECS[u.spec];
-    return { key, got, slot: u.slot, kind: u.kind, unique: a, name: u.name, text: `${d.name} (고유): ${specText(d, uniqueValue(u, '영웅'))}`, hint: `${u.placeName}에서 · ${slotName(u.slot)} 희귀 이상` };
+    return { key, got, slot: u.slot, kind: u.kind, unique: a, name: u.name, text: `${d.name} (고유): ${specText(d, uniqueValue(u, '전설'))}`, hint: `${u.placeName}에서 · ${slotName(u.slot)} 전설` };
   });
 }
 
@@ -116,6 +116,13 @@ export function betterSlots(): SlotKey[] {
 }
 /** 이 장비가 같은 부위의 착용 장비보다 좋은가 */
 export const isBetter = (it: GearItem) => itemScore(it) > itemScore(G.save.gear.equipped[it.slot]);
+/** 가방 화살표 (Lim 2026-10-11): 같은 부위 착용 장비보다 점수가 높으면 1 · 낮으면 −1 · 같거나 착용 중이면 0 (빈칸이면 1) */
+export function vsWorn(it: GearItem): 1 | -1 | 0 {
+  const w = G.save.gear.equipped[it.slot];
+  if (w?.id === it.id) return 0;
+  const d = scoreOf(it) - scoreOf(w);
+  return d > 0 ? 1 : d < 0 ? -1 : 0;
+}
 
 /** 열렸는데 아직 안 고른 특성 단 수 (특성 트리는 사제만, 튜토리얼 중엔 0) */
 export function talentsLeft(): number {

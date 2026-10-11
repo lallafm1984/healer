@@ -34,11 +34,12 @@ describe('옵션 각성 (+3 · +6 · +9 처음 닿을 때만)', () => {
     const o = enhanceTry(5, () => 0) as Exclude<ReturnType<typeof enhanceTry>, string>;
     const it = G.save.gear.equipped.head!;
     expect([o.ok, o.to, o.awaken]).toEqual([true, 3, 0]);
-    expect(it.lines[0].up).toBeCloseTo(awakenValue(it.lines[0]));
+    expect(it.lines[0].up).toBeCloseTo(awakenValue(it, it.lines[0]));
+    expect(awakenValue(it, it.lines[0])).toBeCloseTo(0.04 * 1.3 * 0.25); // 방어구 치명타 영웅 최대값의 25%
     expect(it.top).toBe(3);
     const f = enhanceTry(5, () => 0.99) as Exclude<ReturnType<typeof enhanceTry>, string>;
     expect([f.ok, f.to, f.awaken]).toEqual([false, 2, null]);
-    expect(it.lines[0].up).toBeCloseTo(awakenValue(it.lines[0]));
+    expect(it.lines[0].up).toBeCloseTo(awakenValue(it, it.lines[0]));
     const again = enhanceTry(5, () => 0) as Exclude<ReturnType<typeof enhanceTry>, string>;
     expect([again.ok, again.to, again.awaken]).toEqual([true, 3, null]);
     expect(it.lines[1].up).toBeUndefined();

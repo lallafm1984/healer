@@ -1,7 +1,9 @@
 /**
  * 힐러 장비 아이템 (02 10장, 34 6장 v0.3). 6부위, 부위마다 종류 5개 (종류마다 고정 옵션 1~2개, 34 6-10), 등급 5단계, 클리어 때 랜덤 1개.
- * 장소에서 나온 장비는 그 장소 세력의 생김새 (이름 · 그림, 성능 같음), 장소마다 고유 무기 · 방어구 (data/uniques).
- * 한 장비 = 주 능력치 (무기 지능 · 방어구 지능과 체력 · 장신구 없음) + 고정 옵션 + 추가 옵션 1~3줄 (등급 최대값의 60~100% 굴림).
+ * 장소에서 나온 장비는 그 장소 세력의 생김새 (이름 · 그림, 성능 같음), 고유 무기 · 방어구 (data/uniques) · 이름 있는 장신구는 전설만.
+ * 한 장비 = 옵션 (능력치 줄) 일반 1 · 고급 2 · 희귀 3 · 영웅 4 · 전설 4줄 (Lim 2026-10-11): 주 옵션 (무기 · 머리 · 손 지능, 몸통 체력) → 종류 옵션 → 무작위 옵션.
+ * 주 옵션 · 종류 옵션은 굴림 없음, 무작위 옵션은 60~100% 굴림. 장신구는 주 옵션이 없어 종류 옵션부터.
+ * 특수능력은 옵션과 따로: 고급 가끔 · 희귀 · 영웅 1줄, 전설은 고유 능력 1줄 (특수능력 1.5배 또는 고유 장비 · 이름 있는 장신구 효과).
  * 강화 +1~+10 (확률, +2 이상에서 실패하면 1단계 떨어짐, 34 6-5 · 12 3-2) · 분해 (골드 + 강화석, 12 3-1). 떨어지는 장비는 모두 +0.
  */
 import type { DiffName } from './difficulty';
@@ -9,7 +11,7 @@ import type { GearStats, GradeName } from './gear';
 import type { HeroKey } from './heroes';
 import { CONTENT_PLACE, FACTIONS, PLACES, type FactionKey } from './places';
 import { FEATURED, namedFor, namedOf, SPEC_KEYS, SPECS, specTotals, specValue, type SpecLine, type SpecOn } from './specials';
-import { uniqueFor, uniqueOf, uniqueValue } from './uniques';
+import { UNIQUE_MULT, uniqueFor, uniqueOf, uniqueValue } from './uniques';
 
 export type SlotKey = 'weapon' | 'head' | 'chest' | 'hands' | 'ring' | 'neck';
 
@@ -49,23 +51,29 @@ export const STATS: Record<StatKey, { name: string; max: number; cap?: number }>
   spirit: { name: '정신력', max: 0.08 },
   endure: { name: '인내', max: 0.03, cap: 0.3 },
 };
-/** 등급 값 배율 (34 6-3): 주 능력치 · 고정 옵션 · 추가 옵션 · 특수능력 모두 */
+/** 특수능력 등급 배율 (34 6-3, data/specials specValue) */
 export const GRADE_MULT: Record<ItemGrade, number> = { '일반': 0.4, '고급': 0.6, '희귀': 0.8, '영웅': 1, '전설': 1.2 };
-/** 등급별 추가 옵션 줄 수 (34 6-3) */
-export const EXTRA_LINES: Record<ItemGrade, number> = { '일반': 1, '고급': 2, '희귀': 2, '영웅': 3, '전설': 3 };
-/** 추가 옵션 굴림: 등급 최대값의 ROLL_MIN ~ 100% */
+/** 등급별 옵션 줄 수 (Lim 2026-10-11 「일반 1 · 고급 2 · 희귀 3 · 영웅 4 · 전설 4 + 고유 능력」): 종류 옵션 + 무작위 옵션 */
+export const OPTION_LINES: Record<ItemGrade, number> = { '일반': 1, '고급': 2, '희귀': 3, '영웅': 4, '전설': 4 };
+/** 옵션 한 줄 등급 배율: 등급마다 줄이 늘어서 한 줄 값은 조금씩만 오름 (고급 · 희귀 장비 전체 세기는 예전과 비슷하게, 시뮬 프리셋 adv0 · rare5) */
+export const LINE_MULT: Record<ItemGrade, number> = { '일반': 0.7, '고급': 0.8, '희귀': 0.85, '영웅': 1, '전설': 1.2 };
+/**
+ * 주 옵션 (예전 주 능력치, 34 6-5): 무기 · 머리 · 손 = 지능, 몸통 = 체력, 장신구는 없음. 옵션 첫 줄, 값 = 영웅 +0 (× 등급 배율), 굴림 없음.
+ * 예전 방어구 칸마다 지능 + 체력을 머리 · 손 지능, 몸통 체력으로 나눔
+ */
+export const MAIN_OPT: Partial<Record<SlotKey, { stat: StatKey; v: number }>> = { weapon: { stat: 'int', v: 0.12 }, head: { stat: 'int', v: 0.1 }, hands: { stat: 'int', v: 0.1 }, chest: { stat: 'hp', v: 0.18 } };
+/** 종류 · 무작위 옵션 한 줄 부위 배율: 무기 · 방어구는 줄 수가 주 옵션만큼 적어서 한 줄이 큼 (영웅 장비 부위 세기는 예전과 같게) */
+export const SLOT_MULT: Record<SlotGroup, number> = { weapon: 1.3, armor: 1.3, acc: 1 };
+/** 무작위 옵션 굴림: 그 줄 최대값의 ROLL_MIN ~ 100% */
 export const ROLL_MIN = 0.6;
-/** 강화 1단계마다 주 능력치 (장신구는 고정 옵션) +8% (34 6-5, +10 = ×1.8) */
+/** 강화 1단계마다 주 옵션 (장신구는 종류 옵션) +8% (34 6-5, +10 = ×1.8). 무작위 옵션은 각성으로 오름 */
 export const PLUS_STEP = 0.08;
-/** 주 능력치 (영웅 +0, 34 6-5): 무기 지능 12% · 방어구 칸마다 지능 7% + 체력 5% · 장신구 없음 */
-export const MAIN: Record<SlotGroup, Partial<Record<StatKey, number>>> = { weapon: { int: 0.12 }, armor: { int: 0.07, hp: 0.05 }, acc: {} };
 
 /**
- * 장비 종류 (34 6-2 · 6-10): 부위마다 5종. 고정 옵션이 하나면 그 옵션의 등급 최대값, 둘이면 각각 DUAL_SHARE (합 1.2배).
+ * 장비 종류 (34 6-2 · 6-10): 부위마다 5종. fixed = 종류 옵션 (주 옵션 다음 줄부터, 주 옵션과 같은 능력치는 빼고, 줄 수가 모자라면 앞 것만).
  * 부위의 첫 종류 = 옛 장비가 받는 종류. 그림 = item-<부위>-<종류> (첫 종류는 item-<부위>)
  */
 export interface KindDef { key: string; slot: SlotKey; name: string; fixed: readonly StatKey[] }
-export const DUAL_SHARE = 0.6;
 export const KINDS: KindDef[] = [
   { key: 'staff', slot: 'weapon', name: '지팡이', fixed: ['haste'] },
   { key: 'scepter', slot: 'weapon', name: '홀', fixed: ['crit'] },
@@ -98,15 +106,25 @@ export const KINDS: KindDef[] = [
   { key: 'amulet', slot: 'neck', name: '부적', fixed: ['endure', 'spirit'] },
   { key: 'starneck', slot: 'neck', name: '별 목걸이', fixed: ['int', 'haste'] },
 ];
-/** 고정 옵션 한 개의 몫 (홑 = 1, 겹 = DUAL_SHARE) */
-export const fixedShare = (k: KindDef) => (k.fixed.length > 1 ? DUAL_SHARE : 1);
 export const kindsOf = (slot: SlotKey) => KINDS.filter(k => k.slot === slot);
 /** 종류 정의 (모르는 종류면 그 부위 첫 종류) */
 export const kindOf = (it: { slot: SlotKey; kind?: string }): KindDef => KINDS.find(k => k.key === it.kind && k.slot === it.slot) ?? kindsOf(it.slot)[0];
 export const groupOf = (slot: SlotKey): SlotGroup => SLOTS.find(s => s.key === slot)!.group;
 
-/** 추가 옵션 한 줄. roll = 등급 최대값 대비 굴림 (0.6~1), up = 옵션 각성으로 더해진 값 (34 6-5, 비율) */
+/** 무작위 옵션 한 줄. roll = 그 줄 최대값 대비 굴림 (0.6~1), up = 옵션 각성으로 더해진 값 (34 6-5, 비율) */
 export interface GearLine { stat: StatKey; roll: number; up?: number }
+/** 종류 옵션 능력치 (주 옵션과 같은 것은 뺌: 성물 · 팔찌의 지능) */
+export const kindStats = (k: KindDef): StatKey[] => k.fixed.filter(x => x !== MAIN_OPT[k.slot]?.stat);
+/** 주 옵션 줄 수 (무기 · 방어구 1, 장신구 0) */
+const mainLines = (slot: SlotKey) => (MAIN_OPT[slot] ? 1 : 0);
+/** 종류 옵션 줄 수 (옵션 줄 수가 모자라면 종류의 앞 능력치만) */
+export const kindLines = (k: KindDef, grade: ItemGrade) => Math.min(kindStats(k).length, OPTION_LINES[grade] - mainLines(k.slot));
+/** 무작위 옵션 줄 수 = 옵션 줄 수 − 주 옵션 − 종류 옵션 */
+export const randomLines = (k: KindDef, grade: ItemGrade) => OPTION_LINES[grade] - mainLines(k.slot) - kindLines(k, grade);
+/** 무작위 옵션에 안 나오는 능력치: 주 옵션 · 종류 옵션 (둘 다) */
+export const takenStats = (k: KindDef): StatKey[] => [...(MAIN_OPT[k.slot] ? [MAIN_OPT[k.slot]!.stat] : []), ...k.fixed];
+/** 종류 · 무작위 옵션 한 줄 최대값 (굴림 1, 강화 · 각성 전): 능력치 기준값 × 부위 배율 × 등급 배율 */
+export const lineMax = (stat: StatKey, slot: SlotKey, grade: ItemGrade) => STATS[stat].max * SLOT_MULT[groupOf(slot)] * LINE_MULT[grade];
 
 /** 난이도별 등급 확률 (02 10-4 초안). 순서 = ITEM_GRADES */
 export const DROP_TABLE: Record<DiffName, number[]> = {
@@ -131,13 +149,13 @@ export interface GearItem {
   /** 강화 단계 (0~10) */
   plus: number;
   name: string;
-  /** 추가 옵션 (등급만큼 줄, 고정 옵션과 겹치지 않음) */
+  /** 무작위 옵션 (옵션 줄 수 − 종류 옵션, 종류 옵션 · 서로 겹치지 않음) */
   lines: GearLine[];
-  /** 특수능력 줄 (42): 일반 0 · 고급 0~1 · 희귀 1 · 영웅 1 · 전설 2. 옛 저장엔 없음 → migrate가 굴림 */
+  /** 특수능력 줄 (42): 일반 0 · 고급 0~1 · 희귀 1 · 영웅 1 · 전설 = 고유 능력 1 (legend). 옛 저장엔 없음 → migrate가 굴림 */
   specs?: SpecLine[];
-  /** 이름 있는 장신구 (42 3장): 고유 효과 키. 이름도 그 장신구 이름 */
+  /** 이름 있는 장신구 (42 3장, 전설만): 고유 효과 키 = 고유 능력. 이름도 그 장신구 이름 */
   named?: string;
-  /** 고유 무기 · 방어구 (34 6-10 ③, data/uniques): 키. 이름도 그 장비 이름, 특수능력 하나가 1.5배로 고정 */
+  /** 고유 무기 · 방어구 (34 6-10 ③, data/uniques, 전설만): 키. 이름도 그 장비 이름, 고정 특수능력 1.5배 = 고유 능력 */
   unique?: string;
   /** 세력 생김새 (34 6-10 ②): 떨어진 장소의 세력. 이름에 세력 말이 붙고 그림이 다름 (성능 같음). 옛 저장 · 상점 · 임무 장비는 없음 */
   look?: FactionKey;
@@ -170,7 +188,7 @@ export const lookColor = (f: FactionKey) => FACTIONS[f].color;
 export const itemName = (it: { slot: SlotKey; kind?: string; grade: ItemGrade; named?: string; unique?: string; look?: FactionKey }) =>
   namedOf(it.named)?.name ?? uniqueOf(it.unique)?.name ?? [GRADE_STYLE[it.grade].word, it.look ? LOOK_WORD[it.look] : '', kindOf(it).name].filter(Boolean).join(' ');
 
-/** 추가 옵션 n줄: 고정 옵션 (둘 다)과 다른 능력치에서 서로 다르게, 값은 ROLL_MIN~1 굴림 */
+/** 무작위 옵션 n줄: 주 옵션 · 종류 옵션과 다른 능력치에서 서로 다르게 (fixed = 안 나오는 능력치, takenStats), 값은 ROLL_MIN~1 굴림 */
 export function rollLines(r: () => number, n: number, fixed: readonly StatKey[]): GearLine[] {
   const pool = STAT_KEYS.filter(k => !fixed.includes(k)), out: GearLine[] = [];
   for (let i = 0; i < n && pool.length; i++) {
@@ -181,14 +199,16 @@ export function rollLines(r: () => number, n: number, fixed: readonly StatKey[])
 }
 
 // ---------- 특수능력 줄 (42 1장) ----------
-/** 등급마다 특수능력 줄 수 (42 1-1). 고급은 SPEC_ADV 확률로 1줄 */
-export const SPEC_LINES: Record<ItemGrade, number> = { '일반': 0, '고급': 1, '희귀': 1, '영웅': 1, '전설': 2 };
+/** 등급마다 특수능력 줄 수 (42 1-1). 고급은 SPEC_ADV 확률로 1줄, 전설은 고유 능력 1줄 */
+export const SPEC_LINES: Record<ItemGrade, number> = { '일반': 0, '고급': 1, '희귀': 1, '영웅': 1, '전설': 1 };
 export const SPEC_ADV = 0.2;
 /** 장소마다 자주 나오는 특수능력은 이만큼 잘 나옴 (42 1-4) */
 export const FEATURED_WEIGHT = 4;
-/** 이름 있는 장신구: 그 장소에서 그 부위 희귀 이상 장비가 나오면 이 확률로 (42 3장) */
+/** 고유 능력 (Lim 2026-10-11 「전설에만 고유 능력」): 전설만. 그 장소 · 부위 고유 장비 · 이름 있는 장신구가 있으면 이 확률로 그것 (42 3장) */
 export const NAMED_CHANCE = 0.25;
-export const NAMED_MIN: ItemGrade = '희귀';
+export const LEGEND: ItemGrade = '전설';
+/** 전설 고유 능력 값: 그 등급 최대 굴림 × UNIQUE_MULT (고유 장비와 같음). 값 고정 특수능력은 그대로 */
+export const legendValue = (key: string, grade: ItemGrade) => (SPECS[key]?.fixed ? SPECS[key].val : specValue(key, grade, 1) * UNIQUE_MULT);
 
 /**
  * 장소마다 잘 나오는 장비 종류 (39 4장, 34 6-10 ①에서 30종으로 다시 나눔): 던전 3 · 탐험 2 · 레이드 칸마다 1. 목록에 없는 종류도 나오지만 목록이 KIND_WEIGHT배.
@@ -340,26 +360,23 @@ export function rollSpecs(r: () => number, slot: SlotKey, grade: ItemGrade, n: n
 export const specCount = (r: () => number, grade: ItemGrade): number => (grade === '고급' ? (r() < SPEC_ADV ? 1 : 0) : SPEC_LINES[grade]);
 
 /**
- * 부위 · 등급이 정해진 장비 1개 (종류 · 추가 옵션 · 특수능력 굴림). kind를 주면 그 종류. o = 드롭 맥락 (직업 · 장소).
- * 장소가 있으면 이름 있는 장신구 · 고유 장비 (희귀 이상에서 NAMED_CHANCE)가 나올 수 있고, 아니면 그 장소 세력 생김새
+ * 부위 · 등급이 정해진 장비 1개 (종류 · 무작위 옵션 · 특수능력 굴림). kind를 주면 그 종류. o = 드롭 맥락 (직업 · 장소).
+ * 전설은 고유 능력 1줄: 장소에 그 부위 고유 장비 · 이름 있는 장신구가 있으면 NAMED_CHANCE로 그것, 아니면 특수능력 하나를 1.5배로.
+ * 고유 장비 · 이름 있는 장신구가 아니면 그 장소 세력 생김새
  */
 export function makeItem(r: () => number, slot: SlotKey, grade: ItemGrade, id: number, kind?: string, o: DropCtx = {}): GearItem {
-  const gi = ITEM_GRADES.indexOf(grade);
-  // 고유 무기 · 방어구 (34 6-10 ③): 종류가 정해져 있고, 고정 특수능력 1줄 + 전설이면 무작위 1줄
-  const un = o.place ? uniqueFor(o.place, slot) : undefined;
-  const isUnique = !!un && gi >= ITEM_GRADES.indexOf(NAMED_MIN) && r() < NAMED_CHANCE;
+  const legend = grade === LEGEND;
+  // 고유 무기 · 방어구 (34 6-10 ③): 종류가 정해져 있고, 고정 특수능력이 고유 능력
+  const un = legend && o.place ? uniqueFor(o.place, slot) : undefined;
+  const isUnique = !!un && r() < NAMED_CHANCE;
   const ks = kindsOf(slot), k = (isUnique ? ks.find(x => x.key === un!.kind) : ks.find(x => x.key === kind)) ?? ks[Math.floor(r() * ks.length)];
-  const it: GearItem = { id, slot, kind: k.key, grade, plus: 0, name: '', lines: rollLines(r, EXTRA_LINES[grade], k.fixed), specs: [] };
-  // 이름 있는 장신구 (42 3장): 고유 효과 1줄 + 전설이면 무작위 1줄
-  const nm = o.place ? namedFor(o.place, slot) : undefined;
-  if (isUnique) {
-    it.unique = un!.key;
-    it.specs = rollSpecs(r, slot, grade, SPEC_LINES[grade] - 1, o, [un!.spec]);
-  } else if (nm && gi >= ITEM_GRADES.indexOf(nm.min ?? NAMED_MIN) && r() < NAMED_CHANCE) {
-    it.named = nm.key;
-    it.specs = rollSpecs(r, slot, grade, SPEC_LINES[grade] - 1, o);
-  } else {
-    it.specs = rollSpecs(r, slot, grade, specCount(r, grade), o);
+  const it: GearItem = { id, slot, kind: k.key, grade, plus: 0, name: '', lines: rollLines(r, randomLines(k, grade), takenStats(k)), specs: [] };
+  // 이름 있는 장신구 (42 3장): 고유 효과가 고유 능력
+  const nm = legend && o.place ? namedFor(o.place, slot) : undefined;
+  if (isUnique) it.unique = un!.key;
+  else if (nm && r() < NAMED_CHANCE) it.named = nm.key;
+  else {
+    it.specs = legend ? rollSpecs(r, slot, grade, 1, o).map(l => ({ key: l.key, roll: 1, legend: true as const })) : rollSpecs(r, slot, grade, specCount(r, grade), o);
     const look = lookOf(o.place);
     if (look) it.look = look;
   }
@@ -367,6 +384,8 @@ export function makeItem(r: () => number, slot: SlotKey, grade: ItemGrade, id: n
   return it;
 }
 
+/** 특수능력 한 줄 값 (전설 고유 능력은 1.5배) */
+export const specLineValue = (it: GearItem, l: SpecLine) => (l.legend ? legendValue(l.key, it.grade) : specValue(l.key, it.grade, l.roll));
 /** 장비 한 개의 특수능력 값 (이름 있는 장신구 고유 효과 · 고유 장비 고정 특수능력 + 줄마다 값) */
 export function itemSpecs(it: GearItem | null | undefined): SpecOn[] {
   if (!it) return [];
@@ -374,7 +393,7 @@ export function itemSpecs(it: GearItem | null | undefined): SpecOn[] {
   const nm = namedOf(it.named), un = uniqueOf(it.unique);
   if (nm) out.push({ key: nm.key, v: nm.val });
   if (un) out.push({ key: un.spec, v: uniqueValue(un, it.grade) });
-  for (const l of it.specs ?? []) out.push({ key: l.key, v: specValue(l.key, it.grade, l.roll) });
+  for (const l of it.specs ?? []) out.push({ key: l.key, v: specLineValue(it, l) });
   return out;
 }
 
@@ -418,14 +437,18 @@ export function rerollCost(it: GearItem, spec: boolean): { gold: number; refined
   const m = spec ? SPEC_REROLL_MULT : 1;
   return { gold: REROLL_GOLD[it.grade] * (1 + (it.rr ?? 0)) * m, refined: m };
 }
-/** 추가 옵션 i번 줄 다시 굴림: 고정 옵션 (둘 다) · 다른 줄과 다른 능력치 (지금 능력치도 나올 수 있음), 각성 값은 사라짐 */
+/** 무작위 옵션 i번 줄 다시 굴림: 종류 옵션 (둘 다) · 다른 줄과 다른 능력치 (지금 능력치도 나올 수 있음), 각성 값은 사라짐 */
 export function rerollLine(r: () => number, it: GearItem, i: number): GearLine {
-  const fx = kindOf(it).fixed, others = it.lines.filter((_, j) => j !== i).map(l => l.stat);
+  const fx = takenStats(kindOf(it)), others = it.lines.filter((_, j) => j !== i).map(l => l.stat);
   const pool = STAT_KEYS.filter(k => !fx.includes(k) && !others.includes(k));
   return { stat: pool[Math.floor(r() * pool.length)], roll: Math.round((ROLL_MIN + (1 - ROLL_MIN) * r()) * 100) / 100 };
 }
-/** 특수능력 i번 줄 다시 굴림: 같은 묶음 · 그 부위 · 등급 안에서 (직업 전용은 같은 직업), 다른 줄과 겹치지 않게. 지금 특수능력도 나올 수 있음 (값만 바뀜) */
+/** 특수능력 i번 줄 다시 굴림: 같은 묶음 · 그 부위 · 등급 안에서 (직업 전용은 같은 직업), 다른 줄과 겹치지 않게. 지금 특수능력도 나올 수 있음 (값만 바뀜). 고유 능력은 고유 능력 그대로 (1.5배) */
 export function rerollSpec(r: () => number, it: GearItem, i: number): SpecLine {
+  if (it.specs![i].legend) {
+    const k = rerollSpec(r, { ...it, specs: it.specs!.map((l, j) => (j === i ? { key: l.key, roll: l.roll } : l)) }, i).key;
+    return { key: k, roll: 1, legend: true };
+  }
   const cur = SPECS[it.specs![i].key], gi = ITEM_GRADES.indexOf(it.grade), others = it.specs!.filter((_, j) => j !== i).map(l => l.key);
   const pool = SPEC_KEYS.filter(k => {
     const d = SPECS[k];
@@ -439,28 +462,29 @@ export function rerollSpec(r: () => number, it: GearItem, i: number): SpecLine {
 export type StatSet = Record<StatKey, number>;
 export const noStats = (): StatSet => ({ int: 0, hp: 0, crit: 0, haste: 0, spirit: 0, endure: 0 });
 
-/** 고정 옵션 값 (1~2줄): 그 능력치의 등급 최대값 × 몫 (겹 옵션은 각각 DUAL_SHARE). 장신구는 강화로 함께 오름 (34 6-5) */
+/** 주 옵션 · 종류 옵션 값 (굴림 없음): 주 옵션은 부위 값 × 등급 배율, 종류 옵션은 그 줄 최대값. 강화는 주 옵션 (장신구는 종류 옵션)에 (34 6-5) */
 export function fixedOf(it: GearItem): { stat: StatKey; v: number }[] {
-  const k = kindOf(it), up = groupOf(it.slot) === 'acc' ? 1 + PLUS_STEP * it.plus : 1, share = fixedShare(k);
-  return k.fixed.map(stat => ({ stat, v: STATS[stat].max * GRADE_MULT[it.grade] * share * up }));
-}
-/** 주 능력치 줄 (무기 지능 · 방어구 지능과 체력, 강화 반영). 장신구는 없음 */
-export function mainOf(it: GearItem): { stat: StatKey; v: number }[] {
-  const m = GRADE_MULT[it.grade], up = 1 + PLUS_STEP * it.plus, main = MAIN[groupOf(it.slot)];
-  return STAT_KEYS.filter(k => main[k]).map(k => ({ stat: k, v: main[k]! * m * up }));
+  const k = kindOf(it), up = 1 + PLUS_STEP * it.plus, main = MAIN_OPT[it.slot];
+  return [
+    ...(main ? [{ stat: main.stat, v: main.v * LINE_MULT[it.grade] * up }] : []),
+    ...kindStats(k).slice(0, kindLines(k, it.grade)).map(stat => ({ stat, v: lineMax(stat, it.slot, it.grade) * (main ? 1 : up) })),
+  ];
 }
 /** 굴림 막대 채움 (0~1): 최소 굴림 = 0, 최대 = 1 */
 export const rollFill = (roll: number) => Math.max(0, Math.min(1, (roll - ROLL_MIN) / (1 - ROLL_MIN)));
-/** 추가 옵션 한 줄의 값 */
-export const lineValue = (it: GearItem, l: GearLine) => STATS[l.stat].max * GRADE_MULT[it.grade] * l.roll + (l.up ?? 0);
+/** 무작위 옵션 한 줄의 값 */
+export const lineValue = (it: GearItem, l: GearLine) => lineMax(l.stat, it.slot, it.grade) * l.roll + (l.up ?? 0);
 
-/** 장비 한 개가 보태는 능력치 (주 능력치 × 강화 + 고정 옵션 + 추가 옵션). 없으면 모두 0 */
+/** 장비 옵션 줄 (보이는 순서): 주 옵션 → 종류 옵션 → 무작위 옵션. line = it.lines 번호 (주 · 종류 옵션은 null) */
+export function optionsOf(it: GearItem): { stat: StatKey; v: number; line: number | null }[] {
+  return [...fixedOf(it).map(x => ({ ...x, line: null })), ...(it.lines ?? []).map((l, i) => ({ stat: l.stat, v: lineValue(it, l), line: i }))];
+}
+
+/** 장비 한 개가 보태는 능력치 (옵션 줄 합). 없으면 모두 0 */
 export function itemStats(it: GearItem | null | undefined): StatSet {
   const s = noStats();
   if (!it) return s;
-  for (const x of mainOf(it)) s[x.stat] += x.v;
-  for (const fx of fixedOf(it)) s[fx.stat] += fx.v;
-  for (const l of it.lines ?? []) s[l.stat] += lineValue(it, l);
+  for (const x of optionsOf(it)) s[x.stat] += x.v;
   return s;
 }
 
@@ -482,18 +506,17 @@ export const gearStatsOf = (eq: Equipped): GearStats => statsToGear(equippedStat
 
 /**
  * 시뮬 장비 프리셋 (data/gear GEARS)의 능력치: 6부위 모두 그 등급 · 강화의 「기댓값」 장비.
- * 종류는 부위의 종류를 고르게, 추가 옵션은 고정 옵션이 아닌 능력치에 고르게, 굴림은 가운데 (0.8)
+ * 종류는 부위의 종류를 고르게, 무작위 옵션은 주 · 종류 옵션이 아닌 능력치에 고르게, 굴림은 가운데 (0.8)
  */
 export function presetStats(grade: ItemGrade, plus: number): StatSet {
-  const s = noStats(), m = GRADE_MULT[grade], mid = (ROLL_MIN + 1) / 2;
+  const s = noStats(), mid = (ROLL_MIN + 1) / 2;
   for (const x of SLOTS) {
-    const ks = kindsOf(x.key), up = 1 + PLUS_STEP * plus, main = MAIN[x.group];
-    for (const k of STAT_KEYS) if (main[k]) s[k] += main[k]! * m * up;
+    const ks = kindsOf(x.key), w = 1 / ks.length, main = MAIN_OPT[x.key], up = 1 + PLUS_STEP * plus;
+    if (main) s[main.stat] += main.v * LINE_MULT[grade] * up;
     for (const kd of ks) {
-      const w = 1 / ks.length;
-      for (const f of kd.fixed) s[f] += w * STATS[f].max * m * fixedShare(kd) * (x.group === 'acc' ? up : 1);
-      const others = STAT_KEYS.filter(k => !kd.fixed.includes(k));
-      for (const k of others) s[k] += (w * EXTRA_LINES[grade] * STATS[k].max * m * mid) / others.length;
+      for (const f of kindStats(kd).slice(0, kindLines(kd, grade))) s[f] += w * lineMax(f, x.key, grade) * (main ? 1 : up);
+      const others = STAT_KEYS.filter(k => !takenStats(kd).includes(k)), n = randomLines(kd, grade);
+      for (const k of others) s[k] += (w * n * lineMax(k, x.key, grade) * mid) / others.length;
     }
   }
   return s;
@@ -525,10 +548,10 @@ export function enhanceCost(it: GearItem): EnhanceCost | null {
     rate: ENHANCE_RATE[to], fail: it.plus >= ENHANCE_DROP_FROM ? it.plus - 1 : it.plus,
   };
 }
-/** 옵션 각성 (34 6-5): 이 단계에 처음 닿으면 추가 옵션 한 줄이 영웅 최대값의 25%만큼 오름 (등급 최대값을 넘을 수 있음) */
+/** 옵션 각성 (34 6-5): 이 단계에 처음 닿으면 무작위 옵션 한 줄이 그 부위 영웅 최대값의 25%만큼 오름 (등급 최대값을 넘을 수 있음) */
 export const AWAKEN_AT = [3, 6, 9] as const;
 export const AWAKEN_SHARE = 0.25;
-export const awakenValue = (l: GearLine) => STATS[l.stat].max * AWAKEN_SHARE;
+export const awakenValue = (it: GearItem, l: GearLine) => lineMax(l.stat, it.slot, '영웅') * AWAKEN_SHARE;
 
 /**
  * 「목표까지 강화」 시작 전 예상 (34 7-3): 지금 단계에서 목표까지 평균 시도 수 · 재료 (끝까지 갈 때, 떨어지면 멈춤 없이).
@@ -564,9 +587,9 @@ export function salvageOf(it: GearItem): { gold: number; stone: number; refined:
 }
 
 /**
- * 장비 점수 (34 6-7): 등급 순위 + 강화/10 + 추가 옵션 굴림 (줄마다 최소 굴림을 넘은 만큼 ¼). 권장 장비 비교·더 좋은 장비 · 추천 장착용
+ * 장비 점수 (34 6-7): 등급 순위 + 강화/10 + 무작위 옵션 굴림 (줄마다 최소 굴림을 넘은 만큼 ¼) + 특수능력 줄 (고유 능력 포함, 줄마다 SPEC_SCORE).
+ * 권장 장비 비교 · 더 좋은 장비 · 가방 화살표 · 추천 장착용
  */
-/** 장비 점수: 등급 + 강화 + 추가 옵션 굴림 + 특수능력 줄 (줄마다 SPEC_SCORE) */
 export const SPEC_SCORE = 0.15;
 export const itemScore = (it: GearItem | undefined) => (it ? ITEM_GRADES.indexOf(it.grade) + 1 + it.plus / 10 + (it.lines ?? []).reduce((a, l) => a + (l.roll - ROLL_MIN) / 4, 0) + SPEC_SCORE * ((it.specs?.length ?? 0) + (it.named || it.unique ? 1 : 0)) : 0);
 export const avgScore = (eq: Equipped) => SLOTS.reduce((a, s) => a + itemScore(eq[s.key]), 0) / SLOTS.length;
