@@ -288,16 +288,15 @@ function relayMark(): Texture {
   const painted = artTexture('fx-relay');
   if (painted) return painted;
   if (relayTex) return relayTex;
-  const N = 96, m = N / 2, c = document.createElement('canvas');
-  c.width = c.height = N;
-  const x = c.getContext('2d')!;
-  const disc = (r: number, fill: string) => { x.beginPath(); x.arc(m, m, r, 0, Math.PI * 2); x.fillStyle = fill; x.fill(); };
-  disc(m, '#080605'); disc(m - 6, '#F0C46A');
-  const k = (N - 30) / 24, p = new Path2D(RELAY_D);
-  x.translate(15, 15); x.scale(k, k);
-  x.lineJoin = 'round'; x.lineCap = 'round'; x.lineWidth = 4.4; x.strokeStyle = '#080605'; x.stroke(p); // 구슬 · 꼬리 줄 테두리
-  x.fillStyle = x.strokeStyle = '#FFFAF0'; x.fill(p); x.lineWidth = 2; x.stroke(p);
-  return (relayTex = Texture.from(c));
+  const N = 96, m = N / 2;
+  return (relayTex = canvasTexture(N, N, x => {
+    const disc = (r: number, fill: string) => { x.beginPath(); x.arc(m, m, r, 0, Math.PI * 2); x.fillStyle = fill; x.fill(); };
+    disc(m, '#080605'); disc(m - 6, '#F0C46A');
+    const k = (N - 30) / 24, p = new Path2D(RELAY_D);
+    x.translate(15, 15); x.scale(k, k);
+    x.lineJoin = 'round'; x.lineCap = 'round'; x.lineWidth = 4.4; x.strokeStyle = '#080605'; x.stroke(p); // 구슬 · 꼬리 줄 테두리
+    x.fillStyle = x.strokeStyle = '#FFFAF0'; x.fill(p); x.lineWidth = 2; x.stroke(p);
+  }));
 }
 // ---------- 「나」 칸 직업 문장 (27 3-4·5장): 원형 금테 + 돌 바탕 + 문장. 한 번 그려 텍스처로 ----------
 const emblemTex = new Map<string, Texture | null>(); // null = 그림 읽는 중 (그동안은 ✚)
@@ -311,50 +310,82 @@ function emblemTexture(hero: string): Texture | null {
   const img = new Image();
   img.decoding = 'async';
   img.onload = () => {
-    const N = 128, m = N / 2, c = document.createElement('canvas');
-    c.width = c.height = N;
-    const x = c.getContext('2d')!;
-    const disc = (r: number, fill: string | CanvasGradient) => { x.beginPath(); x.arc(m, m, r, 0, Math.PI * 2); x.fillStyle = fill; x.fill(); };
-    disc(m, '#080605'); // 바깥 외곽선
-    disc(m - 5, '#C9A35C'); // 금테
-    disc(m - 14, '#0D0B09'); // 금테 안쪽 어두운 줄
-    const g = x.createRadialGradient(m, m * 0.72, 0, m, m, m - 17);
-    g.addColorStop(0, '#3D3125'); g.addColorStop(1, '#1A1510');
-    disc(m - 17, g); // 돌 바탕
-    const k = (N - 34) * (painted ? 0.86 : 0.66);
-    x.save(); x.beginPath(); x.arc(m, m, m - 17, 0, Math.PI * 2); x.clip();
-    x.drawImage(img, m - k / 2, m - k / 2, k, k);
-    x.restore();
-    emblemTex.set(hero, Texture.from(c));
+    const N = 128, m = N / 2;
+    emblemTex.set(hero, canvasTexture(N, N, x => {
+      const disc = (r: number, fill: string | CanvasGradient) => { x.beginPath(); x.arc(m, m, r, 0, Math.PI * 2); x.fillStyle = fill; x.fill(); };
+      disc(m, '#080605'); // 바깥 외곽선
+      disc(m - 5, '#C9A35C'); // 금테
+      disc(m - 14, '#0D0B09'); // 금테 안쪽 어두운 줄
+      const g = x.createRadialGradient(m, m * 0.72, 0, m, m, m - 17);
+      g.addColorStop(0, '#3D3125'); g.addColorStop(1, '#1A1510');
+      disc(m - 17, g); // 돌 바탕
+      const k = (N - 34) * (painted ? 0.86 : 0.66);
+      x.save(); x.beginPath(); x.arc(m, m, m - 17, 0, Math.PI * 2); x.clip();
+      x.drawImage(img, m - k / 2, m - k / 2, k, k);
+      x.restore();
+    }));
   };
   img.src = src;
   return null;
 }
 
 // ---------- 그림 (37 v0.2): 파일이 있으면 텍스처로 한 번 읽어 둠. 없거나 읽는 중이면 null → 벡터 그림 ----------
+// 텍스처는 그림 (img) 자체에서 만든다: 2D 캔버스에 옮겨 그린 텍스처는 폰에서 그래픽 메모리가 모자라 캔버스 내용이 지워지면
+// (WebGL 다시 연결 뒤) 빈 그림으로 다시 올라가 이펙트가 안 보였음 (2026-10-11 Lim 빌드 115 「스킬 이펙트 등이 안 나온다」)
 const artTex = new Map<string, Texture | null>();
+/** 읽기 실패한 그림: 이름 → 다시 읽어도 되는 시각 (ms) · 횟수 */
+const artRetry = new Map<string, { at: number; n: number }>();
+const ART_RETRY_MAX = 4;
 function artTexture(name: string): Texture | null {
   if (!name) return null;
-  if (artTex.has(name)) return artTex.get(name)!;
+  if (artTex.has(name)) {
+    const t = artTex.get(name)!, r = artRetry.get(name);
+    if (t || !r || r.n > ART_RETRY_MAX || performance.now() < r.at) return t;
+    artTex.delete(name); // 실패한 그림은 잠시 뒤 다시 읽음
+  }
   artTex.set(name, null);
   const src = art(name);
   if (!src) return null;
   const img = new Image();
   img.decoding = 'async';
   img.onload = () => {
-    const c = document.createElement('canvas');
-    c.width = img.naturalWidth; c.height = img.naturalHeight;
-    const g = c.getContext('2d')!;
-    g.drawImage(img, 0, 0);
-    // 말풍선 틀 · 꼬리는 불투명 영역 (틀 여백 · 꼬리 자르기), 흔들림 띠는 가운데 빈 곳 (말풍선 자리)을 한 번 재 둠
-    try {
-      if (name.startsWith('ui-bubble-')) artBoxes.set(name, opaqueBox(g, c.width, c.height));
-      else if (name === 'fx-talk-shake') artBoxes.set(name, holeBox(g, c.height * TALK_FX.shake.fw, c.height));
-    } catch { /* 픽셀을 못 읽으면 그림 전체 크기로 */ }
-    artTex.set(name, Texture.from(c));
+    // 말풍선 틀 · 꼬리는 불투명 영역 (틀 여백 · 꼬리 자르기), 흔들림 띠는 가운데 빈 곳 (말풍선 자리)을 한 번 재 둠 (잰 캔버스는 버림)
+    if (name.startsWith('ui-bubble-') || name === 'fx-talk-shake') {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      try {
+        const g = c.getContext('2d', { willReadFrequently: true });
+        if (g) {
+          g.drawImage(img, 0, 0);
+          if (name.startsWith('ui-bubble-')) artBoxes.set(name, opaqueBox(g, c.width, c.height));
+          else artBoxes.set(name, holeBox(g, c.height * TALK_FX.shake.fw, c.height));
+        }
+      } catch { /* 픽셀을 못 읽으면 그림 전체 크기로 */ }
+      c.width = c.height = 0;
+    }
+    artTex.set(name, Texture.from(img));
+    artRetry.delete(name);
+    artLoaded.add(name);
+  };
+  img.onerror = () => {
+    const n = (artRetry.get(name)?.n ?? 0) + 1;
+    artRetry.set(name, { at: performance.now() + 500 * n, n });
+    console.warn(`[board] 그림을 못 읽음 ${name} (${n}번째)`);
   };
   img.src = src;
   return null;
+}
+/** 읽어 둔 그림 이름 (화면 테스트 · 진단용) */
+const artLoaded = new Set<string>();
+/** 2D 캔버스로 그려 만든 텍스처. 폰에서 캔버스 내용이 지워지면 (contextrestored) 다시 그려 올림 */
+function canvasTexture(w: number, h: number, draw: (g: CanvasRenderingContext2D) => void): Texture {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const paint = (): void => { const g = c.getContext('2d'); if (g) { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h); draw(g); } };
+  paint();
+  const tex = Texture.from(c);
+  c.addEventListener('contextrestored', () => { paint(); tex.source.update(); });
+  return tex;
 }
 interface ArtBox { x: number; y: number; w: number; h: number }
 const artBoxes = new Map<string, ArtBox>();
@@ -598,11 +629,11 @@ function hatchReducedHp(g: Graphics, x: number, y: number, r: number, height: nu
 // ---------- 빛 텍스처 (한 번 만들어 둠) ----------
 let glowTex: Texture | null = null;
 function makeGlow(): Texture {
-  const c = document.createElement('canvas'); c.width = c.height = 128;
-  const x = c.getContext('2d')!, gr = x.createRadialGradient(64, 64, 0, 64, 64, 64);
-  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.45, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-  x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
-  return Texture.from(c);
+  return canvasTexture(128, 128, x => {
+    const gr = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.45, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+  });
 }
 const glows: Sprite[] = [];
 let glowUsed = 0;
@@ -880,25 +911,26 @@ export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: nu
   if (B2.floats.length < 40) B2.floats.push({ x: p.x + (rnd() - 0.5) * L.s * 0.5, y: p.y - L.s * 0.3, text: `+${eff}`, crit: crit && !over, over, t0: now, n: B2.n++, id: u.id });
   B2.hitFx[u.id] = now;
   if (B2.fx.length >= 60 || over || (plain && !crit)) return;
-  // 모든 효과 PXF 1단계: 치유 빛 (힐러 문장 색) · 치명타 별
-  if (COMMON_PXF.heal && COMMON_PXF.crit) {
-    if (!plain) commonFx(u, 'heal', now, { color: hex(emblemColor(B.F?.hero ?? 'priest')) });
-    if (crit) commonFx(u, 'crit', now, { tag: 'heal-crit' });
-    return;
-  }
-  B2.fx.push({ kind: 'heal', id: u.id, t0: now, crit, seeds: Array.from({ length: crit ? 8 : 4 }, rnd), plain });
+  // 모든 효과 PXF 1단계: 치유 빛 (힐러 문장 색) · 치명타 별. 프레임 띠를 아직 못 읽은 것만 예전 그림으로
+  const glowDone = plain || commonFx(u, 'heal', now, { color: hex(emblemColor(B.F?.hero ?? 'priest')) });
+  const starDone = !crit || commonFx(u, 'crit', now, { tag: 'heal-crit' });
+  if (glowDone && starDone) return;
+  B2.fx.push({ kind: 'heal', id: u.id, t0: now, crit: !starDone, seeds: Array.from({ length: crit ? 8 : 4 }, rnd), plain: glowDone });
 }
 /** 스킬 PXF 이펙트 (battle/pxf.ts): 스킬이 들어간 칸에서 맞는 순간부터 끝까지. 파티 전원 스킬은 20인이면 20개라 따로 상한 */
-export function fxPxf(u: Unit, pxf: PxfKey, now: number, o: { color?: number; tag?: string; x?: number; y?: number } = {}): void {
-  if (!L.ok || S.reducedEffects || B2.fx.length >= 100) return;
+/** PXF 프레임 띠를 읽어 둠 (못 읽었으면 다시 읽기 시작하고 false) */
+export const pxfReady = (k: PxfKey): boolean => !!artTexture(pxfArtName(k));
+/** PXF 이펙트를 재생 (프레임 띠를 아직 못 읽었으면 안 넣고 false: 부른 쪽이 예전 그림 · 공통 치유 빛을 대신 그림) */
+export function fxPxf(u: Unit, pxf: PxfKey, now: number, o: { color?: number; tag?: string; x?: number; y?: number } = {}): boolean {
+  if (!L.ok || S.reducedEffects || B2.fx.length >= 100) return false;
+  if (!pxfReady(pxf)) return false;
   B2.fx.push({ kind: 'pxf', id: u.id, t0: now, pxf, dur: pxfMs(PXF[pxf]), ...o });
+  return true;
 }
-/** 전투 공통 효과를 PXF로 (있을 때만 true): 판 기록 열쇠는 예전 그림과 같은 앞머리 (heal12-… · death3-…) */
+/** 전투 공통 효과를 PXF로 (그렸을 때만 true, 아니면 예전 그림): 판 기록 열쇠는 예전 그림과 같은 앞머리 (heal12-… · death3-…) */
 function commonFx(u: Unit, k: CommonFx, now: number, o: { color?: number; tag?: string; x?: number; y?: number } = {}): boolean {
   const pxf = COMMON_PXF[k];
-  if (!pxf) return false;
-  fxPxf(u, pxf, now, { tag: k, ...o });
-  return true;
+  return !!pxf && fxPxf(u, pxf, now, { tag: k, ...o });
 }
 /** 부활 · 봉화 지정 글자: 연한 금빛 (능력 이름처럼 사건 글자, 치명타 치유 숫자와 다른 색) */
 const REVIVE_TEXT = 0xffe08a;
