@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { HEROES } from '../src/data/heroes';
 import type { SkillKey } from '../src/data/skills';
-import { ALLY_PXF, COMMON_PXF, PXF, pxfArtName, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, type CommonFx, type PxfKey } from '../src/battle/pxf';
+import { ALLY_PXF, BOSS_PXF, COMMON_PXF, PXF, pxfArtName, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, type CommonFx, type PxfKey } from '../src/battle/pxf';
 import { AB_KIND, type AbKind } from '../src/data/abilities';
 import * as E from '../src/engine';
 import { damage } from '../src/engine/core';
@@ -97,6 +97,28 @@ describe('전투 공통 효과 · 파티원 능력 (모든 효과 PXF 1단계)',
     const all = [...Object.values(SKILL_PXF).map(s => s!.fx), ...Object.values(COMMON_PXF), ...Object.values(ALLY_PXF)];
     expect(new Set(all).size).toBe(all.length);
     for (const kind of Object.keys(AB_KIND) as AbKind[]) expect(PXF[ALLY_PXF[kind]!].gray).toBe(false);
+  });
+});
+
+describe('보스 판 전체 공격 (Lim 「보스의 판 전체 공격 이펙트를 … 픽셀 크기를 늘려서」)', () => {
+  const gray = (c: string) => c.length === 7 && c.slice(1, 3) === c.slice(3, 5) && c.slice(3, 5) === c.slice(5, 7);
+  it('판 전체 연출 11가지, 모두 다른 이펙트 · 다른 PXF와 안 겹침 · 외침만 회색 (세력 색을 곱함)', () => {
+    expect(Object.keys(BOSS_PXF).sort()).toEqual(['cream-burst', 'door-open', 'heartbeat', 'hush', 'island-tilt', 'lantern', 'melt-heat', 'sandstorm', 'shockwave', 'shout', 'wedge']);
+    const all = [...Object.values(SKILL_PXF).map(s => s!.fx), ...Object.values(COMMON_PXF), ...Object.values(ALLY_PXF), ...Object.values(BOSS_PXF)];
+    expect(new Set(all).size).toBe(all.length);
+    for (const [name, key] of Object.entries(BOSS_PXF)) {
+      expect(key, name).toBe(`boss-${name}`);
+      const cols = graph(key!).nodes.filter((n: { type: string }) => n.type === 'Palette' || n.type === 'Outline')
+        .flatMap((n: { type: string; params: { colors?: string[]; color?: string } }) => (n.type === 'Palette' ? n.params.colors! : [n.params.color ?? '#10142e']).map((c: string) => c.toLowerCase()));
+      expect(PXF[key!].gray, name).toBe(name === 'shout');
+      if (name === 'shout') expect(cols.filter((c: string) => !gray(c))).toEqual([]);
+    }
+  });
+  it('판 너비로 키우고 판 밖은 잘라 냄 (픽셀은 정사각형)', () => {
+    const c = PXF['boss-shockwave'];
+    expect(pxfCrop(c, 340, 245)).toEqual({ x: 0, y: 9, w: 64, h: 46 }); // 5인: 가로로 넓음 → 위아래
+    expect(pxfCrop(c, 300, 300)).toEqual({ x: 0, y: 0, w: 64, h: 64 });
+    expect(pxfCrop(c, 240, 320)).toEqual({ x: 8, y: 0, w: 48, h: 64 }); // 세로로 길면 좌우
   });
 });
 

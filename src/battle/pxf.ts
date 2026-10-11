@@ -3,7 +3,7 @@
  * 게임에는 PXF 엔진이 없어서 실제 엔진이 그린 프레임을 투명 띠로 구워 둔 src/art/fx-pxf-<이름>.png
  * (64px 프레임을 가로로 frames장, 굽기 scripts/pxf-strip.mjs)를 그린다.
  * 값은 그래프의 settings · game 블록과 같아야 함 (tests/pxf.test.ts).
- * 2026-10-11 Lim: 사제 치유로 시험 → 「직업별 모든 스킬에」 → 전투 공통 효과 · 파티원 능력도. 보통 섞기 · 모두 판 맨 위 층 (board.ts pxfL, Lim 「파티원에서 최상단으로」)
+ * 2026-10-11 Lim: 사제 치유로 시험 → 「직업별 모든 스킬에」 → 전투 공통 효과 · 파티원 능력 · 보스 판 전체 공격도. 보통 섞기 · 모두 판 맨 위 층 (board.ts pxfL, Lim 「파티원에서 최상단으로」)
  */
 import type { AbKind } from '../data/abilities';
 import type { SkillKey } from '../data/skills';
@@ -74,6 +74,18 @@ export const PXF = {
   'ally-sup': clip(16, 1),
   'ally-heal': clip(16, 1),
   'ally-atk': clip(14, 0),
+  // 보스 판 전체 공격 (requests.md, Lim 「픽셀 크기를 늘려서」): 캔버스 = 판 너비, 판 밖은 잘라 냄. 외침은 세력 색을 곱함
+  'boss-shout': clip(16, 0, true),
+  'boss-lantern': clip(16, 0),
+  'boss-shockwave': clip(16, 0),
+  'boss-heartbeat': clip(20, 1),
+  'boss-sandstorm': clip(22, 0),
+  'boss-melt-heat': clip(22, 1),
+  'boss-cream-burst': clip(20, 0),
+  'boss-hush': clip(20, 1),
+  'boss-door-open': clip(22, 1),
+  'boss-island-tilt': clip(22, 1),
+  'boss-wedge': clip(18, 1),
 } as const satisfies Record<string, PxfClip>;
 export type PxfKey = keyof typeof PXF;
 export const pxfArtName = (key: PxfKey): string => `fx-pxf-${key}`;
@@ -117,6 +129,25 @@ export const COMMON_PXF: Partial<Record<CommonFx, PxfKey>> = {
 };
 /** 파티원 능력 (엔진 ability 사건): 능력 종류마다 그 파티원 칸에 */
 export const ALLY_PXF: Partial<Record<AbKind, PxfKey>> = { def: 'ally-def', ctl: 'ally-ctl', sup: 'ally-sup', heal: 'ally-heal', atk: 'ally-atk' };
+
+/**
+ * 보스 판 전체 공격 (board.ts FX_LOOK의 wide 연출, Lim 2026-10-11 「보스의 판 전체 공격 이펙트를 … 픽셀 크기를 늘려서」):
+ * 있으면 예전 그림 (판 크기 45→100%로 키움) 대신 판 너비로 크게 한 번. 장판 · 칸마다 · 사람마다 연출은 그대로
+ */
+export const BOSS_PXF: Partial<Record<string, PxfKey>> = {
+  shout: 'boss-shout', lantern: 'boss-lantern', shockwave: 'boss-shockwave', heartbeat: 'boss-heartbeat', sandstorm: 'boss-sandstorm', 'melt-heat': 'boss-melt-heat',
+  'cream-burst': 'boss-cream-burst', hush: 'boss-hush', 'door-open': 'boss-door-open', 'island-tilt': 'boss-island-tilt', wedge: 'boss-wedge',
+};
+/**
+ * 판 전체 그림을 판 너비 (세로로 길면 높이)로 키웠을 때 판 안에 보이는 프레임 안쪽 사각형 (px, 프레임 기준).
+ * 판이 가로로 넓으면 위아래, 세로로 길면 좌우를 똑같이 잘라 냄 (픽셀은 정사각형 그대로)
+ */
+export function pxfCrop(c: PxfClip, w: number, h: number): { x: number; y: number; w: number; h: number } {
+  const n = c.size;
+  if (w >= h) { const ch = Math.max(1, Math.round((n * h) / w)); return { x: 0, y: Math.floor((n - ch) / 2), w: n, h: ch }; }
+  const cw = Math.max(1, Math.round((n * w) / h));
+  return { x: Math.floor((n - cw) / 2), y: 0, w: cw, h: n };
+}
 
 /** 들어간 순간부터 끝까지 길이 (ms). 맞는 순간 앞 프레임은 건너뜀 */
 export const pxfMs = (c: PxfClip): number => ((c.frames - c.impactFrame) * 1000) / c.fps;

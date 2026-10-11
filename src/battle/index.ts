@@ -25,7 +25,7 @@ import {
 import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
-import { ALLY_PXF, COMMON_PXF, pxfTargets, SKILL_PXF } from './pxf';
+import { ALLY_PXF, BOSS_PXF, COMMON_PXF, pxfTargets, SKILL_PXF } from './pxf';
 import {
   bossFx, bossHealNum, bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
   resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
@@ -799,6 +799,8 @@ function frame(now: number): void {
   pxf: {
     skills: SKILL_PXF, targets: (key: SkillKey, uid: number) => (B.F ? pxfTargets(B.F, key, uid).map(u => u.id) : []),
     common: COMMON_PXF, ally: (uid: number) => { const ab = B.F?.party.find(u => u.id === uid)?.ab; return ab ? ALLY_PXF[ABILITIES[ab.key].kind] ?? null : null; },
+    /** 보스 판 전체 공격 (FX_LOOK wide 이름 → PXF) · 판 사각형 */
+    boss: BOSS_PXF, rect: () => ({ left: L.left, right: L.right, top: L.top, bottom: L.bottom }),
   },
 };
 (window as unknown as { __battle: unknown }).__battle = {

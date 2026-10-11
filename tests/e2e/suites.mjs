@@ -26,6 +26,7 @@ import relay from './relay.mjs';
 import pxfHeal from './pxf-heal.mjs';
 import skillPxf from './skill-pxf.mjs';
 import commonPxf from './common-pxf.mjs';
+import bossPxf from './boss-pxf.mjs';
 
 /**
  * [이름, 묶음, CI에서 걸린 초, 조각 수]. 초는 2026-10-11 CI 기록 (모두 합쳐 33분), 몫을 고르게 나누는 데만 씀.
@@ -54,6 +55,7 @@ export const SUITES = [
   ['사제 치유 반짝이 가루 (PXF)', pxfHeal, 60], // 아직 CI 기록 없음: 비슷한 묶음 (빛의 전이) 기준 어림
   ['직업별 스킬 PXF 이펙트', skillPxf, 80], // 어림 (스킬 25개 × 1.5초 + 20인)
   ['전투 공통 효과 PXF', commonPxf, 40], // 어림 (효과 10개 × 1.5초)
+  ['보스 판 전체 공격 PXF', bossPxf, 50], // 어림 (11가지 × 1.4초 × 판 둘)
   ['길드 빼 둠', guildOff, 6],
   ['재화·임무·상점', shop, 14],
   ['성장·주간 도전·이어하기', challenge, 29],
