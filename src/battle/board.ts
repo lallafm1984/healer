@@ -20,6 +20,8 @@ import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, 
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebuff } from './party-display';
 import { CELL_RADIUS, fitBoard } from './board-layout';
+import { BOARDS } from '../data/boards';
+import { makeCells } from '../engine/board';
 import { BOSS_PXF, bossPxfOf, COMMON_PXF, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, type CommonFx, type PxfKey } from './pxf';
 
 // ---------- 색 ----------
@@ -78,7 +80,10 @@ bubbleL.addChild(bubbleBackL, sliceL, bubbleFrontL);
 root.addChild(cellsG, decalL, unitsG, glowL, fxG, fxArtL, frameL, overG, markL, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL, pxfL);
 
 let dpr = 1;
-export const L = { s: 40, W: 0, H: 0, ox: 0, oy: 0, left: 2, right: 2, top: 2, bottom: 2, ok: false };
+/** 판 그림 좌표 (Pixi root 안). k = 그림 → 화면 배율: 보통 1, 「레이드 판 5인 던전 모양」이면 1보다 작음 (화면 좌표 = 그림 좌표 × k) */
+export const L = { s: 40, W: 0, H: 0, ox: 0, oy: 0, left: 2, right: 2, top: 2, bottom: 2, ok: false, k: 1 };
+/** 5인 던전 판 (b10) 칸 자리: 5인 던전 모양 보기에서 이 화면의 5인 칸 크기를 잴 때 */
+const FIVE_CELLS = makeCells(BOARDS.b10);
 
 /**
  * 처음 한 번. WebGL을 먼저 쓰고, 안 되는 기기는 Canvas로 (같은 그림).
@@ -153,12 +158,20 @@ export function resizeBoard(): void {
   const right = Math.max(0, inset('--board-safe-right') - (window.innerWidth - r.right));
   const layout = fitBoard(F.cells, r.width, r.height, { left, right });
   const { s } = layout;
-  Object.assign(L, layout, { ok: true });
+  // 레이드 판을 5인 던전 모양으로 (설정, 2026-10-11 Lim 비교용): 10 · 20인 칸을 이 화면의 5인 던전 칸 크기로 그리고 판 전체(root)를 칸 크기 비율만큼 줄임.
+  // 칸 모양 (배치 · 글자 크기 · 배지 · 아이콘 · 테두리 · 이펙트)은 칸 크기 하나로만 정해지므로 5인 칸과 똑같은 모양이 비율대로 작아짐
+  const five = S.raidFiveLook ? fitBoard(FIVE_CELLS, r.width, r.height, { left, right }).s : 0;
+  const k = five > s ? s / five : 1;
+  if (k !== L.k) { labels.clear(); badgeLabels.clear(); tops.clear(); } // 글자 해상도를 새 배율에 맞춤
+  Object.assign(L, layout, { ok: true, k });
+  if (k < 1) Object.assign(L, { s: five, W: layout.W / k, H: layout.H / k, ox: layout.ox / k, oy: layout.oy / k, left: layout.left / k, right: layout.right / k, top: layout.top / k, bottom: layout.bottom / k });
+  root.scale.set(k);
   // 실제 표시 크기만 노출: viewport 회귀 검수에서 CSS px 기준으로 확인한다.
-  const type = cellTypography(s);
+  const type = cellTypography(L.s);
   Object.assign(cv.dataset, {
     cellScale: s.toFixed(2), cellWidth: (s * CELL_RADIUS * Math.sqrt(3)).toFixed(2), cellHeight: (s * CELL_RADIUS * 2).toFixed(2),
-    hpFontSize: type.hp.toFixed(2), nickFontSize: type.nick.toFixed(2), compactCells: String(type.compact),
+    hpFontSize: (type.hp * k).toFixed(2), nickFontSize: (type.nick * k).toFixed(2), compactCells: String(type.compact),
+    cellLook: k < 1 ? 'five' : 'own', drawScale: k.toFixed(4),
     boardSafeLeft: layout.left.toFixed(2), boardSafeRight: layout.right.toFixed(2),
     boardSafeTop: layout.top.toFixed(2), boardSafeBottom: layout.bottom.toFixed(2),
     boardInsetLeft: left.toFixed(2), boardInsetRight: right.toFixed(2), boardFitAxis: layout.axis,
@@ -168,6 +181,8 @@ export function resizeBoard(): void {
 let sizeKey = 0;
 
 export const center = (i: number) => { const c = B.F!.cells[i]; return { x: L.ox + c.px * L.s, y: L.oy + c.py * L.s }; };
+/** 칸 가운데의 화면 좌표 (캔버스 CSS px). HTML을 칸에 맞출 때 · 터치 거리를 잴 때 */
+export const screenCenter = (i: number) => { const p = center(i); return { x: p.x * L.k, y: p.y * L.k }; };
 export function unitPos(u: Unit): { x: number; y: number } {
   if (u.moving) {
     const a = center(u.moving.from), b = center(u.moving.to);
@@ -176,10 +191,11 @@ export function unitPos(u: Unit): { x: number; y: number } {
   }
   return center(u.cell);
 }
-/** 터치 판정은 칸보다 10% 크게 (기획서 3-1) */
+/** 터치 판정은 칸보다 10% 크게 (기획서 3-1). x · y = 화면 좌표 (캔버스 CSS px) */
 export function hit(x: number, y: number): number {
   const F = B.F;
   if (!F || !L.ok) return -1;
+  x /= L.k; y /= L.k;
   let best = -1, bd = Infinity;
   F.cells.forEach((_, i) => { const p = center(i); const d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = i; } });
   return bd <= L.s * 1.1 ? best : -1;
@@ -500,7 +516,7 @@ class Labels {
       const t: Label = bmp
         ? new BitmapText({ text, style: { fontFamily: NUM, fontSize: st.size } })
         : new Text({
-          text, resolution: dpr,
+          text, resolution: dpr * L.k, // 줄여 그리는 판은 화면 픽셀만큼만
           style: { fontFamily: st.font ?? FONT, fontWeight: st.weight ?? W_TEXT, fontSize: st.size, fill: st.fill, ...(st.strokeW ? { stroke: { color: st.stroke ?? C.line, width: st.strokeW, join: 'round' as const } } : {}) },
         });
       t.anchor.set(0.5, anchorY);
@@ -527,6 +543,8 @@ const mctx = document.createElement('canvas').getContext('2d')!;
 function measure(text: string, size: number, font = FONT, weight = W_TEXT): number { mctx.font = `${weight} ${size}px ${font}`; return mctx.measureText(text).width; }
 
 const COS30 = Math.sqrt(3) / 2;
+/** 기록 값 중 길이 (화면 px로 바꿀 것) */
+const BOUND_LEN = new Set(['x', 'y', 'w', 'h', 'left', 'right', 'top', 'bottom', 'radius', 'requestedRadius', 'diameter', 'requestedDiameter']);
 interface DecorationBound {
   key: string; kind: string; shape: string; x: number; y: number; w: number; h: number;
   left: number; right: number; top: number; bottom: number;
@@ -557,11 +575,16 @@ function ringRadius(key: string, shape: 'circle' | 'hex', x: number, y: number, 
   recordBound(key, kind, shape, x, y, hx * 2, hy * 2, { radius, requestedRadius });
   return radius;
 }
+/** 글자 상자를 판 그림 좌표로. getBounds()는 화면 좌표라 판을 줄여 그릴 때(L.k < 1)는 배율로 나눔 */
+function boundsOf(t: Container): { minX: number; maxX: number; minY: number; maxY: number } {
+  const b = t.getBounds(), k = L.k;
+  return { minX: b.minX / k, maxX: b.maxX / k, minY: b.minY / k, maxY: b.maxY / k };
+}
 /** 실제 Pixi 글자 bounds(획·anchor·가로 압축 포함)를 기준으로 위치만 안쪽으로 옮긴다. */
 function fitLabel(label: Label, key: string, kind: string): { x: number; y: number; w: number; h: number } {
-  let b = label.getBounds();
+  let b = boundsOf(label);
   const available = L.right - L.left;
-  if (b.maxX - b.minX > available) { label.scale.x *= available / (b.maxX - b.minX); b = label.getBounds(); }
+  if (b.maxX - b.minX > available) { label.scale.x *= available / (b.maxX - b.minX); b = boundsOf(label); }
   const w = b.maxX - b.minX, h = b.maxY - b.minY;
   const mid = { x: (b.minX + b.maxX) / 2, y: (b.minY + b.maxY) / 2 };
   const p = fitCenter(mid.x, mid.y, w / 2, h / 2);
@@ -1807,13 +1830,14 @@ export function render(now: number): void {
     if (hexDist(F.cells[a.cell], F.cells[b.cell]) !== 1 || Math.abs(a.y - b.y) >= (a.h + b.h) / 2) continue;
     neighborGap = Math.min(neighborGap, Math.abs(a.x - b.x) - (a.w + b.w) / 2);
   }
+  const sk = L.k; // 화면 px로 (판을 줄여 그리면 k < 1)
   const hpMetrics = {
-    hpTextWidthLimit: (r * 1.56).toFixed(2),
-    hpTextMaxWidth: Math.max(0, ...hpBounds.map(b => b.w)).toFixed(2),
-    hpTextMinHeight: hpBounds.length ? Math.min(...hpBounds.map(b => b.h)).toFixed(2) : '',
+    hpTextWidthLimit: (r * 1.56 * sk).toFixed(2),
+    hpTextMaxWidth: (Math.max(0, ...hpBounds.map(b => b.w)) * sk).toFixed(2),
+    hpTextMinHeight: hpBounds.length ? (Math.min(...hpBounds.map(b => b.h)) * sk).toFixed(2) : '',
     hpTextMinScaleX: hpBounds.length ? Math.min(...hpBounds.map(b => b.sx)).toFixed(3) : '',
-    hpTextMinNeighborGap: Number.isFinite(neighborGap) ? neighborGap.toFixed(2) : '',
-    hpTextBounds: JSON.stringify(hpBounds.map(b => ({ ...b, x: +b.x.toFixed(2), y: +b.y.toFixed(2), w: +b.w.toFixed(2), h: +b.h.toFixed(2), sx: +b.sx.toFixed(3) }))),
+    hpTextMinNeighborGap: Number.isFinite(neighborGap) ? (neighborGap * sk).toFixed(2) : '',
+    hpTextBounds: JSON.stringify(hpBounds.map(b => ({ ...b, x: +(b.x * sk).toFixed(2), y: +(b.y * sk).toFixed(2), w: +(b.w * sk).toFixed(2), h: +(b.h * sk).toFixed(2), sx: +b.sx.toFixed(3) }))),
   };
   for (const [key, value] of Object.entries(hpMetrics)) if (cv.dataset[key] !== value) cv.dataset[key] = value;
   meEmblem.visible = meShown;
@@ -1848,7 +1872,7 @@ export function render(now: number): void {
     // 치명타 치유 = 선명한 초록 (C.crit, 보통 치유 민트보다 진하고 1.3배 크게. 2026-10-10 Lim: 노랑은 치유와 안 어울리고 부활·능력 글자와 헷갈림)
     // 처음 0.15초 크게 튀었다가 제 크기로 (색만으로 구분하지 않게)
     if (fl.crit && !fl.fill && !S.reducedEffects && k < 0.17) label.scale.set(1 + 0.45 * (1 - k / 0.17));
-    const b = label.getBounds(), x = (b.minX + b.maxX) / 2, y = (b.minY + b.maxY) / 2;
+    const b = boundsOf(label), x = (b.minX + b.maxX) / 2, y = (b.minY + b.maxY) / 2;
     const own = partyAt.find(q => q.id === fl.id), others = own ? partyAt.filter(q => q !== own && Math.hypot(q.x - own.x, q.y - own.y) < s * 4) : [];
     const near = own ? (px: number, py: number) => {
       if ((px - x) ** 2 + (py - y) ** 2 > (r * 0.9) ** 2) return false;
@@ -1912,7 +1936,7 @@ export function render(now: number): void {
     b.shown = true;
     const age = now - b.t0, a = S.reducedEffects ? 1 : Math.max(0, Math.min(1, (b.life - age) / 300));
     label.alpha = a;
-    const textBounds = label.getBounds();
+    const textBounds = boundsOf(label);
     const shake = shakeRange ? Math.sin(age / 25) * shakeRange : 0;
     const bx = bp.x - w / 2 + shake;
     const by = bp.y - h / 2;
@@ -1959,7 +1983,8 @@ export function render(now: number): void {
   // 20인 탭 확대 미리보기 0.3초 (02 3-1): 손가락에 가리지 않게 칸 위쪽에 1.8배로
   if (B2.lens && now - B2.lens.t0 < 300) drawLens(now); else B2.lens = null;
   // Canvas-local CSS px. 실제 표시 위치/크기만 기록하며 전투·입력 상태를 수정하지 않는다.
-  const metrics = JSON.stringify(decorationBounds.map(b => Object.fromEntries(Object.entries(b).map(([key, value]) => [key, typeof value === 'number' ? +value.toFixed(3) : value]))));
+  // 판을 줄여 그리면 (L.k < 1) 길이 값을 화면 px로
+  const metrics = JSON.stringify(decorationBounds.map(b => Object.fromEntries(Object.entries(b).map(([key, value]) => [key, typeof value === 'number' ? +(BOUND_LEN.has(key) ? value * L.k : value).toFixed(3) : value]))));
   if (cv.dataset.decorationBounds !== metrics) cv.dataset.decorationBounds = metrics;
 }
 

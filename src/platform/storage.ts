@@ -61,6 +61,8 @@ export interface Settings {
   compactSkills: boolean;
   /** 전투 정보는 유지하고 흔들림·부유 숫자 등 시각 효과를 줄임 */
   reducedEffects: boolean;
+  /** 10 · 20인 레이드 판도 5인 던전 칸 모양으로 그리고 칸 크기 비율대로 줄임 (2026-10-11 Lim 비교용). 옛 저장엔 없음 = 꺼짐 */
+  raidFiveLook?: boolean;
   /** 강화 연출 짧게 (0.5초, 34 7-3). 옛 저장엔 없음 = 꺼짐 */
   quickEnhance?: boolean;
   /** 개발 빌드: 자동 힐러로 구경 */

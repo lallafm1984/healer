@@ -5,6 +5,7 @@
 import type { DiffName } from '../data/difficulty';
 import { REST_MANA_PER_SEC } from '../data/dungeons';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
+import { BOARDS } from '../data/boards';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { ITEMS, type ItemKey } from '../data/items';
 import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
@@ -17,7 +18,7 @@ import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, se
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON, ratsArt } from './art';
-import { addBubble, boardRenderer, bossPxfLoaded, center, fxAbility, fxAllyHeal, fxCure, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxPxf, fxImpact, fxRevive, fxShake, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, setBoardFaction, setBubbleRelay, type BubbleKind } from './board';
+import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxAllyHeal, fxCure, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxPxf, fxImpact, fxRevive, fxShake, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, setBubbleRelay, type BubbleKind } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, clearToasts, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
@@ -194,6 +195,18 @@ function setCompact(value: boolean): void {
   }
 }
 $('pauseCompact').addEventListener('change', e => setCompact((e.target as HTMLInputElement).checked));
+/** 10 · 20인 판 (5인 던전 판보다 칸이 많음) */
+const raidBoard = (F: Fight) => F.cells.length > BOARDS.b10.flat().length;
+/** 레이드 판을 5인 던전 모양으로 (설정 · 일시정지, 2026-10-11 Lim 비교용). 판 그리기는 board.ts resizeBoard */
+function setFiveLook(value: boolean): void {
+  if (S.raidFiveLook === value) return;
+  S.raidFiveLook = value;
+  if (B.F && !$('battle').hidden) resizeBoard();
+}
+$('pauseFive').addEventListener('change', e => {
+  const v = (e.target as HTMLInputElement).checked;
+  setFiveLook(v); S.onSetting?.('raidFiveLook', v);
+});
 new ResizeObserver(() => { if (B.F && !$('battle').hidden) resizeBoard(); }).observe($('boardWrap'));
 window.addEventListener('resize', () => { if (B.F && !$('battle').hidden) layoutBattle(); });
 
@@ -472,8 +485,8 @@ function endPointer(cancelled: boolean, e?: PointerEvent): void {
   if (idx < 0) { F.stats.missTaps++; return; }
   if (!aimable(F, idx)) { F.stats.emptyTaps++; return; }
   // 터치 정확도: 칸 중심에서 떨어진 정도(칸 크기 대비), 0.7초 안에 옆 칸으로 다시 지정 = 오탭 추정
-  const c = center(idx), nowT = performance.now();
-  ui.tapOff.push(Math.hypot(P.x - c.x, P.y - c.y) / L.s);
+  const c = screenCenter(idx), nowT = performance.now();
+  ui.tapOff.push(Math.hypot(P.x - c.x, P.y - c.y) / (L.s * L.k));
   if (ui.lastTap && ui.lastTap.idx !== idx && nowT - ui.lastTap.t < 700 && hexDist(F.cells[ui.lastTap.idx], F.cells[idx]) === 1) ui.retarget++;
   ui.lastTap = { idx, t: nowT };
   if (F.enc.big && S.zoom) lensAt(idx, nowT);
@@ -596,6 +609,8 @@ function setPause(v: boolean): void {
   $('pauseGuide').scrollTop = 0;
   ($('pauseAuto') as HTMLInputElement).checked = S.auto;
   ($('pauseCompact') as HTMLInputElement).checked = S.compactSkills;
+  ($('pauseFive') as HTMLInputElement).checked = S.raidFiveLook;
+  $('pauseFiveWrap').hidden = !raidBoard(F);
   $('resumeBtn').focus({ preventScroll: true });
 }
 function setPauseInert(value: boolean): void {
@@ -798,7 +813,7 @@ setBubbleRelay((u, text) => toast(`${u.nick}: ${text}`));
 
 // ---------- 새 화면(src/screens)이 쓰는 입구 · 테스트용 조회 ----------
 (window as unknown as { __proto: unknown }).__proto = {
-  get F() { return B.F; }, center: (i: number) => center(i), guide: (enc: EncounterKey, diff: DiffName) => guideModel(enc, diff),
+  get F() { return B.F; }, center: (i: number) => screenCenter(i), guide: (enc: EncounterKey, diff: DiffName) => guideModel(enc, diff),
   run: () => (B.F ? runData(B.F) : null), get pullLeft() { return ui.pullLeft; }, get coach() { return ui.coach; }, get dungeon() { return S.run; }, get last() { return ui.lastResult; },
   get renderer() { return boardRenderer(); },
   /** 말풍선 띄우기 (화면 테스트: 판 크기마다 말하는 사람 칸에 붙는지) */
@@ -808,7 +823,7 @@ setBubbleRelay((u, text) => toast(`${u.nick}: ${text}`));
     skills: SKILL_PXF, targets: (key: SkillKey, uid: number) => (B.F ? pxfTargets(B.F, key, uid).map(u => u.id) : []),
     common: COMMON_PXF, ally: (uid: number) => { const ab = B.F?.party.find(u => u.id === uid)?.ab; return ab ? ALLY_PXF[ABILITIES[ab.key].kind] ?? null : null; },
     /** 보스 판 전체 공격 (FX_LOOK wide 이름 → PXF) · 판 사각형 */
-    boss: BOSS_PXF, rect: () => ({ left: L.left, right: L.right, top: L.top, bottom: L.bottom }),
+    boss: BOSS_PXF, rect: () => ({ left: L.left * L.k, right: L.right * L.k, top: L.top * L.k, bottom: L.bottom * L.k }),
     /** 띠를 읽어 뒀는지 (아니면 읽기 시작) · 이 전투에서 나올 수 있는 보스 판 전체 공격 · 지금 읽어 둔 것 */
     ready: (k: PxfKey) => pxfReady(k), bossWant: () => (B.F ? bossPxfOf(B.F.enc) : []), bossLoaded: () => bossPxfLoaded(),
   },
@@ -841,7 +856,7 @@ setBubbleRelay((u, text) => toast(`${u.nick}: ${text}`));
     Snd.init();
     startBattle(0);
   },
-  settings(s: { sound?: boolean; vibrate?: boolean; hand?: string; tapKey?: string; zoom?: boolean; auto?: boolean; layout?: unknown; hero?: string; compactSkills?: boolean; reducedEffects?: boolean }) {
+  settings(s: { sound?: boolean; vibrate?: boolean; hand?: string; tapKey?: string; zoom?: boolean; auto?: boolean; layout?: unknown; hero?: string; compactSkills?: boolean; reducedEffects?: boolean; raidFiveLook?: boolean }) {
     S.sound = !!s.sound; S.vibe = !!s.vibrate; S.hand = s.hand === 'left' ? 'left' : 'right';
     S.tapKey = s.tapKey && TAP_KEYS[s.tapKey] ? s.tapKey : 'heal';
     if (s.hero && HERO_KEYS.includes(s.hero as HeroKey)) S.hero = s.hero as HeroKey;
@@ -849,6 +864,7 @@ setBubbleRelay((u, text) => toast(`${u.nick}: ${text}`));
     S.compactSkills = !!s.compactSkills;
     S.reducedEffects = !!s.reducedEffects || matchMedia('(prefers-reduced-motion: reduce)').matches;
     $('battle').classList.toggle('reduced-effects', S.reducedEffects);
+    setFiveLook(!!s.raidFiveLook);
     if (S.auto && S.run) S.run.auto = true;
     S.layout = validLayout(s.layout) ? { ...s.layout } : { ...DEFAULT_LAYOUT };
     applyLayout();

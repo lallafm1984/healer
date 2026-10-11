@@ -20,7 +20,7 @@ import { TALENT_DEF, type TalentKey } from '../data/talents';
 import { activeOn, bossTaken, cdMax, costOf, knows, queue, slotKey, type Fight, type Unit } from '../engine';
 import { art, cssUrl } from '../art';
 import { ITEM_ICON, skillMark } from './art';
-import { center, L } from './board';
+import { center, L, screenCenter } from './board';
 import { $, arrowOf, B, DIR_VEC, DIRS, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
 import { guideModel, iconColor } from './guide';
 import { manaMeter } from './mana-meter';
@@ -632,8 +632,9 @@ function drawPreview(u: Unit): void {
 /** 누른 칸 위쪽에 붙임 (#battle 기준). 위 공간이 모자라면 .brief, 그래도 모자라면 위 끝에 붙이고 칸을 조금 덮음 */
 function placePreview(u: Unit): void {
   const el = $('preview'), bat = $('battle').getBoundingClientRect(), cv = $('board').getBoundingClientRect();
-  const c = u.cell >= 0 ? center(u.cell) : { x: L.W / 2, y: L.H / 2 };
-  const cx = cv.left - bat.left + c.x, cellTop = cv.top - bat.top + c.y - L.s * 0.93;
+  // 화면 좌표 (레이드 판을 5인 던전 모양으로 줄여 그리면 판 그림 좌표 × L.k)
+  const c = u.cell >= 0 ? screenCenter(u.cell) : { x: L.W * L.k / 2, y: L.H * L.k / 2 };
+  const cx = cv.left - bat.left + c.x, cellTop = cv.top - bat.top + c.y - L.s * L.k * 0.93;
   const room = cellTop - PREVIEW_GAP - 4;
   el.classList.remove('brief');
   if (el.offsetHeight > room) el.classList.add('brief');
@@ -679,7 +680,7 @@ coachEl.addEventListener('click', e => { if ((e.target as Element).closest('[dat
 function swipeArrowHtml(u: Unit, key: SkillKey): string {
   const d = DIRS.find(x => x && x.key === key);
   if (!d) return '';
-  const c = center(u.cell), v = DIR_VEC[d.d], len = Math.max(44, L.s * 1.3);
+  const c = screenCenter(u.cell), v = DIR_VEC[d.d], len = Math.max(44, L.s * L.k * 1.3);
   const ang = (Math.atan2(v[1], v[0]) * 180) / Math.PI;
   return `<div class="sw" style="left:${Math.round(c.x)}px;top:${Math.round(c.y)}px;width:${Math.round(len)}px;transform:rotate(${ang}deg)"><i></i></div>`;
 }
