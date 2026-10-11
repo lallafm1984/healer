@@ -9,6 +9,8 @@ export default async function portrait(url, shots) {
   const ok = (value, message) => { console.log(`${value ? 'PASS' : 'FAIL'} ${message}`); if (!value) fails++; };
   for (const [width, height] of [[320, 640], [360, 740], [390, 844], [430, 932]]) {
     const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    // CI처럼 GPU가 없는 환경에서도 마을 움직임을 확인 (앱은 원래 한 장면만 그림)
+    await ctx.addInitScript(() => { window.__villageMotion = true; });
     const page = await ctx.newPage();
     page.on('pageerror', e => errs.push(e.message));
     page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
@@ -44,6 +46,7 @@ export default async function portrait(url, shots) {
     };
     const vill = await villageReady();
     ok(vill.live && vill.w === 853 && vill.h === 1844 && vill.base, `${width}: 살아 있는 마을 캔버스 853×1844 · 바탕 그림 로드`);
+    if (width === 320) console.log(`INFO 마을 그래픽: ${await page.locator('#s-lobby .lb-village').evaluate(el => el.dataset.gl)}`);
     const villageTime = () => page.locator('#s-lobby .lb-village').evaluate(el => Number(el.dataset.t || 'NaN'));
     // 전투 Sunforged 부품 (코덱스 로비 시안): 소켓·패널·출전 그림과 가죽·소켓 재질이 실제로 읽히는지
     const lobbyIcons = '#s-lobby .lb-sock .g-ic, #s-lobby .lb-plate > .g-ic, #s-lobby .lb-cta > .g-ic';

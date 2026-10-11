@@ -114,8 +114,11 @@ class Village {
   private ready = false;
   private failed = false;
   private readonly reduce = matchMedia('(prefers-reduced-motion: reduce)');
-  /** 한 장 사이 최소 간격 (초). 폰 GPU = 약 30장, 소프트웨어 그래픽 (CI·GPU 없는 기기) = 4장 */
+  /** 한 장 사이 최소 간격 (초). 폰 GPU = 약 30장 */
   private frame = 1 / 32;
+  /** GPU 없이 CPU로 그리는 환경 (CI · GPU 가속이 없는 기기): 움직이지 않는 한 장면만 (동작 줄이기처럼).
+   * 화면 테스트는 window.__villageMotion = true로 초당 4장 움직임을 켤 수 있다. */
+  private still = false;
 
   constructor() {
     this.host.className = 'lb-village';
@@ -156,8 +159,13 @@ class Village {
     // 그래픽 연결이 끊기면 고정 바탕으로 돌아가고, 다음에 로비를 그릴 때 다시 만든다
     canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); this.destroyApp(); });
     this.host.appendChild(canvas);
-    // GPU 없이 CPU로 그리는 환경이면 장 수를 크게 줄여 다른 화면·입력을 막지 않게
-    if (/swiftshader|llvmpipe|software/i.test(rendererName(app))) this.frame = 1 / 4;
+    // GPU 없이 CPU로 그리는 환경이면 한 장면만 (853×1844를 계속 그리면 다른 화면 · 입력까지 막힘)
+    const gpu = rendererName(app);
+    this.host.dataset.gl = gpu;
+    if (/swiftshader|llvmpipe|softpipe|software|basic render/i.test(gpu)) {
+      if ((globalThis as { __villageMotion?: boolean }).__villageMotion) this.frame = 1 / 4;
+      else this.still = true;
+    }
     this.ready = true;
     this.render();
     this.host.classList.add('live');
@@ -298,7 +306,7 @@ class Village {
 
   /** 로비 화면이 [hidden]이면 (다른 탭) 멈춤. 다시 들어오면 mount()가 다시 시작 */
   private running(): boolean {
-    return this.ready && !this.failed && !document.hidden && !this.reduce.matches && this.host.isConnected && !this.host.closest('[hidden]');
+    return this.ready && !this.failed && !this.still && !document.hidden && !this.reduce.matches && this.host.isConnected && !this.host.closest('[hidden]');
   }
 
   /** 초당 약 30장 (폰 배터리, 소프트웨어 그래픽은 4장). 시간은 실제 경과로 진행해 움직임 속도는 같다 */
