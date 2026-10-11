@@ -510,6 +510,20 @@ export const FEATURED: Record<string, readonly string[]> = {
   icefish: ['spellWard', 'springSip', 'pouch'],
   snowlab: ['spellWard', 'crystalBreak', 'lightBreath'],
   harvest: ['cleanHands', 'cheerFlag', 'wideEmbrace'],
+  // 묶음 H2 (62): 그 장소 해제 유형 · 기믹에 맞춘 3개
+  granary: ['cleanHands', 'twiceBrush', 'prop'],
+  scarefield: ['brushOff', 'shelterMap', 'cheerFlag'],
+  smuggler: ['bombSquad', 'antidote', 'holdTogether'],
+  reef: ['bombSquad', 'curseBreak', 'springSip'],
+  frostgarden: ['spellWard', 'evenly', 'potionRegular'],
+  dorm: ['spellWard', 'cutBeat', 'twinShield'],
+  cultcamp: ['coldMedicine', 'bubble', 'woundClean'],
+  apothecary: ['coldMedicine', 'chainBreaker', 'risingLight'],
+  rooftop: ['chainBreaker', 'immuneIncense', 'busyHands'],
+  bakery: ['clearEye', 'coldMedicine', 'brimming'],
+  dewhill: ['clearEye', 'fireflies', 'rainbow'],
+  mushmarsh: ['antidote', 'heavyFeet', 'windStep'],
+  lilypalace: ['antidote', 'fadingMiasma', 'heavyFeet'],
 };
 
 /** 값 글자: 6% · 10%p · 1.5초 · 0.6% · 1 */

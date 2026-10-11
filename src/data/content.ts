@@ -27,7 +27,8 @@ export type ContentKey = 'tutorial' | 'plateau' | 'rustfort' | 'abyss1' | 'cathe
   | 'coast1' | 'coast2' | 'coast3' | 'lantern'
   | 'heart1' | 'heart2' | 'heart3' | 'dawn' | 'heartcrack'
   | 'abyss2' | 'abyss3' | 'abyss4' | 'abyss5'
-  | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest';
+  | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest'
+  | 'granary' | 'scarefield' | 'smuggler' | 'reef' | 'frostgarden' | 'dorm' | 'cultcamp' | 'apothecary' | 'rooftop' | 'bakery' | 'dewhill' | 'mushmarsh' | 'lilypalace';
 
 export const ALL_DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
 
@@ -319,6 +320,72 @@ export const CONTENT: ContentDef[] = [
   {
     key: 'snowlab', bosses: ['눈사람 조수 뽀득이', '서리 연구원 아이시아'], kind: 'dungeon', name: '눈꽃 연구소', place: '설원 · 마도사', stageLv: 28, unlockLv: 28, ready: true,
     fights: () => DUNGEONS.snowlab.segments, size: five,
+  },
+  // 묶음 H2 (62 2-2, 61): 탐험 · 던전 두 배 (Lv 33~58 사이사이). 새 탐험은 근처 새 던전 보스를 줄여 빌림
+  // 던전 ㉖ (해바라기 언덕, 4유형)
+  {
+    key: 'granary', bosses: ['허수아비 기사 짚단', '곡물창고 수호상 낟알'], kind: 'dungeon', name: '황금 이삭 곡물창고', place: '해바라기 언덕 · 혼합', stageLv: 33, unlockLv: 33, ready: true,
+    fights: () => DUNGEONS.granary.segments, size: five,
+  },
+  // 탐험 ㉜: 던전 ㉖ 곡물창고 복습 (네 가지 곡물 가루)
+  {
+    key: 'scarefield', kind: 'explore', name: '허수아비 들판', place: '해바라기 언덕 끝 · 혼합', stageLv: 34, unlockLv: 34, ready: true, bosses: ['곡물창고 수호상 낟알'],
+    fights: () => DUNGEONS.scarefield.segments, size: three,
+  },
+  // 던전 ㉗ (짠물 해적단, 독 · 저주)
+  {
+    key: 'smuggler', bosses: ['밀수꾼 두목 외눈 페그', '동굴 해마 기사 파도'], kind: 'dungeon', name: '산호 동굴 밀수굴', place: '산호 해안 · 짠물 해적단', stageLv: 38, unlockLv: 38, ready: true,
+    fights: () => DUNGEONS.smuggler.segments, size: five,
+  },
+  // 탐험 ㉝: 던전 ㉗ 밀수굴 예습 (화약통)
+  {
+    key: 'reef', kind: 'explore', name: '산호초 얕은 물', place: '산호 해안 · 짠물 해적단', stageLv: 38, unlockLv: 38, ready: true, bosses: ['밀수꾼 두목 외눈 페그'],
+    fights: () => DUNGEONS.reef.segments, size: three,
+  },
+  // 탐험 ㉞: 던전 ㉘ 기숙사 예습 (두 몸 고르게)
+  {
+    key: 'frostgarden', kind: 'explore', name: '서리 마탑 정원', place: '설원 · 마도사', stageLv: 42, unlockLv: 42, ready: true, bosses: ['견습생 쌍둥이 지지 · 직직'],
+    fights: () => DUNGEONS.frostgarden.segments, size: three,
+  },
+  // 던전 ㉘ (폭주한 마도사, 마법)
+  {
+    key: 'dorm', bosses: ['견습생 쌍둥이 지지 · 직직', '사감 마도사 엄격이'], kind: 'dungeon', name: '마도사 기숙사', place: '설원 · 마도사', stageLv: 43, unlockLv: 43, ready: true,
+    fights: () => DUNGEONS.dorm.segments, size: five,
+  },
+  // 탐험 ㉟: 던전 ㉙ 약품 제조실 예습 (끓어오름)
+  {
+    key: 'cultcamp', kind: 'explore', name: '교단 숲속 야영지', place: '왕도 밖 숲 · 역병 교단', stageLv: 46, unlockLv: 46, ready: true, bosses: ['약품 수도사 거품이'],
+    fights: () => DUNGEONS.cultcamp.segments, size: three,
+  },
+  // 던전 ㉙ (역병 교단, 질병)
+  {
+    key: 'apothecary', bosses: ['약품 수도사 거품이', '역병 대사제 말로스'], kind: 'dungeon', name: '교단 약품 제조실', place: '왕도 지하 · 역병 교단', stageLv: 48, unlockLv: 48, ready: true,
+    fights: () => DUNGEONS.apothecary.segments, size: five,
+  },
+  // 탐험 ㊱: 던전 ㉙ 말로스 복습 (나눔 사슬 · 썩은 기도)
+  {
+    key: 'rooftop', kind: 'explore', name: '왕도 지붕길', place: '왕도 지붕 · 역병 교단', stageLv: 50, unlockLv: 50, ready: true, bosses: ['역병 대사제 말로스'],
+    fights: () => DUNGEONS.rooftop.segments, size: three,
+  },
+  // 던전 ㉚ (버섯 요정단, 질병 · 마법)
+  {
+    key: 'bakery', bosses: ['밀가루 요정 폴폴', '케이크 골렘 몽글이'], kind: 'dungeon', name: '반딧불 빵집', place: '반딧불 버섯숲 · 버섯 요정단', stageLv: 53, unlockLv: 53, ready: true,
+    fights: () => DUNGEONS.bakery.segments, size: five,
+  },
+  // 탐험 ㊲: 던전 ㉚ 빵집 복습 (재채기 가루)
+  {
+    key: 'dewhill', kind: 'explore', name: '이슬 버섯 언덕', place: '반딧불 버섯숲 · 버섯 요정단', stageLv: 54, unlockLv: 54, ready: true, bosses: ['밀가루 요정 폴폴'],
+    fights: () => DUNGEONS.dewhill.segments, size: three,
+  },
+  // 탐험 ㊳: 던전 ㉛ 수련궁 예습 (크게 뛰기)
+  {
+    key: 'mushmarsh', kind: 'explore', name: '버섯숲 늪가', place: '독안개 늪 끝 · 늪의 부족', stageLv: 58, unlockLv: 58, ready: true, bosses: ['개구리 근위대장 폴짝'],
+    fights: () => DUNGEONS.mushmarsh.segments, size: three,
+  },
+  // 던전 ㉛ (늪의 부족, 독)
+  {
+    key: 'lilypalace', bosses: ['개구리 근위대장 폴짝', '두꺼비 왕 우물룩'], kind: 'dungeon', name: '두꺼비 왕국 수련궁', place: '독안개 늪 · 늪의 부족', stageLv: 58, unlockLv: 58, ready: true,
+    fights: () => DUNGEONS.lilypalace.segments, size: five,
   },
   {
     // 10인 레이드 (26 3장): 난이도 4개 모두 10인

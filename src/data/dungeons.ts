@@ -6,7 +6,8 @@ export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt'
   | 'lampway' | 'emberfoot' | 'teaparty' | 'mossroot' | 'rainbow'
   | 'ashpass' | 'hotspring' | 'forge' | 'lakeshore'
   | 'deepstairs' | 'hourglass' | 'caravan' | 'pinwheel' | 'observatory' | 'ranch' | 'windmill' | 'station' | 'school' | 'carriage' | 'ballroom' | 'lantern' | 'dawn' | 'heartcrack'
-  | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest';
+  | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest'
+  | 'granary' | 'scarefield' | 'smuggler' | 'reef' | 'frostgarden' | 'dorm' | 'cultcamp' | 'apothecary' | 'rooftop' | 'bakery' | 'dewhill' | 'mushmarsh' | 'lilypalace';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -86,6 +87,20 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   icefish: { key: 'icefish', name: '얼음 호수 낚시터', segments: ['iceholes', 'ppodeuk25'] },
   snowlab: { key: 'snowlab', name: '눈꽃 연구소', segments: ['toolstore', 'ppodeuk', 'coldstore', 'icia'] },
   harvest: { key: 'harvest', name: '해바라기 수확밭', segments: ['sheaves', 'jipdan30'] },
+  // 묶음 H2 (62): 탐험 = 일반 → 보스, 던전 = 일반 → 보스 ① → 정예 → 보스 ②
+  granary: { key: 'granary', name: '황금 이삭 곡물창고', segments: ['sacks', 'jipdan', 'millwheel', 'nadal'] },
+  scarefield: { key: 'scarefield', name: '허수아비 들판', segments: ['crowfield', 'nadal34'] },
+  smuggler: { key: 'smuggler', name: '산호 동굴 밀수굴', segments: ['wetcave', 'peg', 'powder', 'pado'] },
+  reef: { key: 'reef', name: '산호초 얕은 물', segments: ['reefpool', 'peg38'] },
+  frostgarden: { key: 'frostgarden', name: '서리 마탑 정원', segments: ['iceflowers', 'jiji42'] },
+  dorm: { key: 'dorm', name: '마도사 기숙사', segments: ['messhall', 'jiji', 'lounge', 'eomgyeok'] },
+  cultcamp: { key: 'cultcamp', name: '교단 숲속 야영지', segments: ['campfire', 'geopum46'] },
+  apothecary: { key: 'apothecary', name: '교단 약품 제조실', segments: ['shelves', 'geopum', 'cauldron', 'malos'] },
+  rooftop: { key: 'rooftop', name: '왕도 지붕길', segments: ['tiles', 'malos50'] },
+  bakery: { key: 'bakery', name: '반딧불 빵집', segments: ['flourstore', 'polpol', 'oven', 'monggeul'] },
+  dewhill: { key: 'dewhill', name: '이슬 버섯 언덕', segments: ['dewpath', 'polpol54'] },
+  mushmarsh: { key: 'mushmarsh', name: '버섯숲 늪가', segments: ['mushpath', 'poljjak58'] },
+  lilypalace: { key: 'lilypalace', name: '두꺼비 왕국 수련궁', segments: ['lilybridge', 'poljjak', 'tadpond', 'umulluk'] },
 };
 
 /** 휴식: 초당 마나 회복 (%). 「계속」은 언제든 누를 수 있음 */
