@@ -1,6 +1,7 @@
 // 모든 효과 PXF 1단계 (Lim 2026-10-11 「모든 효과를 이렇게 할지 검토」): 전투 공통 효과 (피격 · 치유 빛 · 치명타 별 · 해제 · 부활 · 쓰러짐 · 디버프 걸림 · 장비 발동)와
 // 파티원 능력이 예전 그림 대신 PXF 프레임 띠로, 휠 스킬처럼 판 맨 위 층에 그려짐 (Lim 「파티원에서 최상단으로」). 회색 그림은 종류 색을 곱함. 끝나면 사라짐.
 // 판 기록 열쇠는 예전 그림과 같은 앞머리 (heal12-… · death3-…), 파티원 능력은 pxf<id>-ally-<종류>-…. S25 × 5인 판
+// 끝에 찬가 정신 집중: 1초마다 회복하는 틱도 공통 치유 빛 대신 찬가 이펙트 (Lim 「스킬별로 이펙트가 달라야」)
 import { chromium } from 'playwright';
 import { patchSave, toParty } from './nav.mjs';
 
@@ -106,6 +107,22 @@ export default async function commonPxf(url, shots) {
       check(g, `파티원 능력 ${who.abFx}`); await shot(who.abFx, who.ab);
       await gone('파티원 능력', `pxf${who.ab}-${who.abFx}-`);
     }
+
+    // 찬가 정신 집중 (Lim 「스킬별로 이펙트가 달라야 하는데 중복되는 게 있다」): 1초마다 파티 전원 칸에 찬가 이펙트, 그 회복엔 공통 치유 빛 없음
+    const alive = await page.evaluate(() => {
+      const F = window.__proto.F;
+      F.gear.crit = 0; F.bossHp = F.bossMax;
+      for (const x of F.mobs) if (x.alive !== false) x.hp = x.max;
+      for (const x of F.party) if (x.alive) x.hp = Math.round(x.max * 0.5);
+      F.channel = 4; F.chTick = 0;
+      return F.party.filter(x => x.alive).map(x => x.id).sort((a, b) => a - b);
+    });
+    await page.clock.runFor(1100);
+    const hb = (await bounds()).filter(d => d.kind === 'fx');
+    const hymn = [...new Set(hb.filter(d => d.key.startsWith('pxf') && d.key.includes('-priest-hymn-')).map(d => Number(d.key.slice(3, d.key.indexOf('-')))))].sort((a, b) => a - b);
+    ok(JSON.stringify(hymn) === JSON.stringify(alive), `찬가 1초 틱: 파티 전원 ${alive.length}칸에 찬가 이펙트`, { hymn, alive });
+    ok(hb.every(d => !/^heal\d+-/.test(d.key)), '찬가 틱 회복엔 공통 치유 빛 없음', hb.filter(d => /^heal\d+-/.test(d.key)).slice(0, 3));
+    await shot('hymn_tick', A);
 
     await ctx.close();
   } finally {
