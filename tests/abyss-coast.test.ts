@@ -59,8 +59,8 @@ describe('콘텐츠', () => {
       expect(FEATURED[k], k).toHaveLength(3);
     }
     expect(PLACE_KINDS.lantern).toHaveLength(2);
-    expect(['coast3', 'lantern'].map(p => NAMED.find(n => n.place === p)?.key)).toEqual(['moonBowl', 'debtLantern']);
-    expect(['coast1', 'coast2'].map(p => UNIQUES.find(u => u.place === p)?.key)).toEqual(['oarStaff', 'eelVest']);
+    expect(['moonBowl', 'debtLantern'].map(k => NAMED.find(n => n.key === k)?.place)).toEqual(['heart1', 'heart2']); // 61 3-4: 20인 구역 악몽 전설로 옮김
+    expect(['oarStaff', 'eelVest'].map(k => UNIQUES.find(u => u.key === k)?.place)).toEqual(['heart1', 'heart1']); // 61 3-4: 20인 구역 악몽 전설로 옮김
   });
 });
 

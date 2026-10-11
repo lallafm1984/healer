@@ -4,7 +4,7 @@ import {
   FEATURED_WEIGHT, ITEM_GRADES, itemName, itemScore, KIND_WEIGHT, KINDS, makeItem, NAMED_CHANCE, PLACE_KINDS, rollItem, rollSpecs, SLOTS, SPEC_ADV, SPEC_LINES, specKeysOf, specsOf,
   type GearItem, type ItemGrade, type SlotKey,
 } from '../src/data/equipment';
-import { codexKeys, FEATURED, NAMED, namedFor, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, type CodexGroup } from '../src/data/specials';
+import { codexKeys, FEATURED, NAMED, namedOf, namedsFor, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, type CodexGroup } from '../src/data/specials';
 import { CONTENT, contentOf, type ContentKey } from '../src/data/content';
 import { rngFrom } from '../src/engine/rng';
 import { migrate, newSave, noteSpecs } from '../src/platform/storage';
@@ -89,15 +89,16 @@ describe('이름 있는 장신구 (42 3장, Lim 2026-10-11 「전설에만 고�
   it('전설이 아니면 · 다른 부위 · 다른 장소에서는 안 나옴', () => {
     const cog = NAMED.find(n => n.key === 'rustyCog')!;
     for (const g of ['일반', '고급', '희귀', '영웅'] as const) expect(many(1000, (r, i) => makeItem(r, cog.slot, g, i, undefined, { place: cog.place })).some(it => it.named)).toBe(false);
-    expect(many(2000, (r, i) => makeItem(r, 'ring', '전설', i, undefined, { place: cog.place })).some(it => it.named)).toBe(false);
+    // 다른 부위: 그 구역 반지 것만 (목걸이 것은 안 나옴)
+    expect(many(2000, (r, i) => makeItem(r, 'ring', '전설', i, undefined, { place: cog.place })).every(it => !it.named || namedOf(it.named)!.slot === 'ring')).toBe(true);
     expect(many(2000, (r, i) => makeItem(r, cog.slot, '전설', i, undefined, { place: 'marsh' })).some(it => it.named)).toBe(false);
   });
-  it('장소마다 목걸이 · 반지 중 하나만, 떨어지는 장소는 모두 있는 장소', () => {
+  it('떨어지는 장소는 모두 있는 장소 (20인 구역, 같은 부위가 여럿이면 그중 하나)', () => {
     for (const n of NAMED) {
       const c = contentOf(n.place as ContentKey);
       expect(c.ready, n.key).toBe(true);
       expect(c.name.startsWith(n.placeName) || n.placeName === c.name, n.key).toBe(true);
-      expect(namedFor(n.place, n.slot)).toBe(n);
+      expect(namedsFor(n.place, n.slot)).toContain(n);
     }
   });
 });
@@ -207,7 +208,7 @@ describe('저장 · 도감 (42 1-6)', () => {
     const [un, nm, leg, legNm] = a;
     expect(un.unique).toBeUndefined();
     expect(un.specs).toEqual([{ key: 'shieldFriend', roll: 1 }]); // 고정 특수능력이 보통 특수능력 한 줄로
-    expect(un).toMatchObject({ kind: 'gauntlet', look: 'golem', name: '성스러운 톱니 건틀릿', plus: 1 });
+    expect(un).toMatchObject({ kind: 'gauntlet', look: 'abyss', name: '성스러운 별밤 건틀릿', plus: 1 }); // 생김새는 고유 장비 자리 (61 3-4: 가라앉은 대성당 1구역 = 심연) 세력
     expect(un.lines.map(l => l.stat)).toEqual(['haste', 'spirit']); // 영웅 손 = 주 옵션 + 종류 옵션 + 무작위 2줄: 종류 옵션(인내)과 겹친 줄 · 넘친 줄은 빠짐
     expect(nm.named).toBeUndefined();
     expect(nm.specs).toHaveLength(1);

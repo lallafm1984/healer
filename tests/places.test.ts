@@ -4,7 +4,7 @@ import { ALL_DIFFS, CONTENT, type ContentDef } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { PLACE_KINDS } from '../src/data/equipment';
 import { CONTENT_PLACE, FACTIONS, PLACES } from '../src/data/places';
-import { FEATURED, NAMED } from '../src/data/specials';
+import { FEATURED } from '../src/data/specials';
 import { runOnce } from '../src/sim/balance';
 
 /** 종류: 탐험 · 던전 · 10인 · 20인 */
@@ -37,12 +37,11 @@ describe('모든 장소', () => {
 });
 
 describe('만든 장소', () => {
-  it('자주 나오는 특수능력 3개, 탐험 · 던전은 장비 종류 표와 이름 있는 장신구', () => {
+  it('자주 나오는 특수능력 3개, 탐험 · 던전은 장비 종류 표 (이름 있는 장신구는 20인 구역으로, 61 3-4)', () => {
     for (const c of made) {
       expect(FEATURED[c.key]?.length, c.key).toBe(3);
       if (c.kind === 'raid') continue;
       expect(PLACE_KINDS[c.key], c.key).toBeDefined();
-      expect(NAMED.some(n => n.place === c.key), c.key).toBe(true);
     }
   });
   it('네 난이도 모두 구간이 있고, 보스 이름이 구간에 나옴', () => {

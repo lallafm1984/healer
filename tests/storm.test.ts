@@ -57,8 +57,8 @@ describe('콘텐츠', () => {
       expect(PLACE_KINDS[k], k).toHaveLength(1);
       expect(FEATURED[k], k).toHaveLength(3);
     }
-    expect(['crystal3', 'fort3'].map(p => NAMED.find(n => n.place === p)?.key)).toEqual(['prism', 'stormWedge']);
-    expect(['crystal1', 'crystal2', 'fort1', 'fort2'].map(p => UNIQUES.find(u => u.place === p)?.key)).toEqual(['crystalPick', 'pinwheelHabit', 'drumHelm', 'lanceWraps']);
+    expect(['prism', 'stormWedge'].map(k => NAMED.find(n => n.key === k)?.place)).toEqual(['heart1', 'heart2']); // 61 3-4: 20인 구역 악몽 전설로 옮김
+    expect(['crystalPick', 'pinwheelHabit', 'drumHelm', 'lanceWraps'].map(k => UNIQUES.find(u => u.key === k)?.place)).toEqual(['camp3', 'camp3', 'camp3', 'camp3']); // 61 3-4: 20인 구역 악몽 전설로 옮김
   });
 });
 
@@ -249,8 +249,8 @@ describe('F3 콘텐츠', () => {
   it('드롭: 종류 (탐험 2 · 던전 3 · 레이드 칸 1) · 이름 있는 장신구 3 · 고유 장비 3', () => {
     expect([PLACE_KINDS.station, PLACE_KINDS.school].map(k => k.length)).toEqual([2, 3]);
     for (const [k] of SHADOW) expect([PLACE_KINDS[k].length, FEATURED[k].length], k).toEqual([1, 3]);
-    expect(['station', 'shadow3', 'school'].map(p => NAMED.find(n => n.place === p)?.key)).toEqual(['broomTicket', 'shadowVeil', 'diploma']);
-    expect(['shadow1', 'shadow2', 'school'].map(p => UNIQUES.find(u => u.place === p)?.key)).toEqual(['shadowHammer', 'fletchSleeve', 'upsideVestment']);
+    expect(['broomTicket', 'shadowVeil', 'diploma'].map(k => NAMED.find(n => n.key === k)?.place)).toEqual(['coast2', 'heart3', 'coast2']); // 61 3-4: 20인 구역 악몽 전설로 옮김
+    expect(['shadowHammer', 'fletchSleeve', 'upsideVestment'].map(k => UNIQUES.find(u => u.key === k)?.place)).toEqual(['coast1', 'coast1', 'coast2']); // 61 3-4: 20인 구역 악몽 전설로 옮김
   });
 });
 

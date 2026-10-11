@@ -76,9 +76,9 @@ describe('콘텐츠', () => {
       expect(PLACE_KINDS[k]?.length, k).toBeGreaterThan(0);
       expect(FEATURED[k], k).toHaveLength(3);
     }
-    expect(['well3', 'post3', 'ranch', 'windmill'].map(p => NAMED.find(n => n.place === p)?.key)).toEqual(['breathFlask', 'postStamp', 'fleeceRing', 'millVane']);
-    expect(['well1', 'well2', 'post1', 'post2', 'windmill'].map(p => UNIQUES.find(u => u.place === p)?.key))
-      .toEqual(['bucketHood', 'mossRobe', 'courierPlume', 'ribbonGloves', 'vaneScepter']);
+    expect(['breathFlask', 'postStamp', 'fleeceRing', 'millVane'].map(k => NAMED.find(n => n.key === k)?.place)).toEqual(['coast3', 'camp2', 'camp3', 'coast1']); // 61 3-4: 20인 구역 악몽 전설로 옮김
+    expect(['bucketHood', 'mossRobe', 'courierPlume', 'ribbonGloves', 'vaneScepter'].map(k => UNIQUES.find(u => u.key === k)?.place))
+      .toEqual(['camp1', 'shadow3', 'camp2', 'camp1', 'camp2']); // 61 3-4: 20인 구역 악몽 전설로 옮김
   });
 });
 
