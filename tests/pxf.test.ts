@@ -16,8 +16,9 @@ describe('PXF 이펙트', () => {
     const g = graph('heal-dust'), c = PXF.healDust;
     expect(g.format).toBe('pxf.graph@1');
     expect({ size: c.size, frames: c.frames, fps: c.fps }).toEqual({ size: g.settings.size, frames: g.settings.frames, fps: g.settings.fps });
-    expect({ blend: c.blend, impactFrame: c.impactFrame, logicalSize: c.logicalSize, referenceCell: c.referenceCell })
-      .toEqual({ blend: g.game.blend, impactFrame: g.game.impactFrame, logicalSize: g.game.logicalSize, referenceCell: g.game.referenceCell });
+    expect({ impactFrame: c.impactFrame, logicalSize: c.logicalSize, referenceCell: c.referenceCell })
+      .toEqual({ impactFrame: g.game.impactFrame, logicalSize: g.game.logicalSize, referenceCell: g.game.referenceCell });
+    expect([g.game.blend, c.blend]).toEqual(['add', 'normal']); // Lim 2026-10-11: 원본 색이 잘 보이게 보통 섞기
     expect(g.game.pivot).toEqual([0.5, 0.5]); // 칸 가운데에 그림
     expect(pngSize(c.art)).toEqual({ w: c.size * c.frames, h: c.size });
   });

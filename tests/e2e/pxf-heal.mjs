@@ -1,5 +1,5 @@
 // 사제 치유 PXF 이펙트 (Lim 2026-10-11 시험): 칸을 눌러 치유가 들어가면 그 칸 가운데에 「치유 초록 반짝이 가루」 프레임이 재생되고
-// 기본 치유 빛은 안 나옴. 크기 = 칸 지름 × 64/62 (판 가장자리에선 줄어듦), 약 0.9초 뒤 사라짐. 대상 폰 크기 (S25 · 울트라 · 플립) × 5인 · 20인 판
+// 기본 치유 빛은 안 나옴. 보통 섞기 · 판 맨 위 층 (Lim 2026-10-11). 크기 = 칸 지름 × 64/62 (판 가장자리에선 줄어듦), 약 0.9초 뒤 사라짐. 대상 폰 크기 (S25 · 울트라 · 플립) × 5인 · 20인 판
 import { chromium } from 'playwright';
 import { DEVICES } from './devices.mjs';
 import { patchSave, toParty } from './nav.mjs';
@@ -64,7 +64,8 @@ export default async function pxfHeal(url, shots) {
         const want = 2 * t.s * 0.93 * 64 / 62;
         // 시계가 실제로도 흘러서 (느린 화면은 0.1초 사이에 여러 프레임) 본 프레임 수는 기기마다 다름: 맞는 순간 근처에서 시작해 넘어가기만 보면 됨
         ok(landed && frames.length >= 2 && frames[0] <= 4, `${tag}: 치유가 들어가면 반짝이 가루 재생 (본 프레임 ${frames.join(',')})`, { frames });
-        ok(seen.every(x => Math.abs(x.dx) < 0.5 && Math.abs(x.dy) < 0.5 && Math.abs(x.w - x.h) < 0.01),
+        // 피하는 중인 칸은 1px 안팎으로 떨리고 (fleeing) 이펙트는 칸 자리 그대로
+        ok(seen.every(x => Math.abs(x.dx) < 1.5 && Math.abs(x.dy) < 1.5 && Math.abs(x.w - x.h) < 0.01),
           `${tag}: 대상 칸 가운데 정사각`, seen.slice(0, 2));
         ok(seen.every(x => Math.abs(x.requestedDiameter - want) < 0.5 && x.diameter <= x.requestedDiameter + 0.01),
           `${tag}: 크기 = 칸 지름 × 64/62 (${want.toFixed(1)}px, 판 가장자리면 줄어듦)`, seen.slice(0, 2));

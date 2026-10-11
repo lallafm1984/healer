@@ -4,7 +4,7 @@
  * 이펙트 (16 4-6): 힐 = 부드러운 빛 + 별 반짝이(사제 금·흰), 치명타 = 반짝이 2배 + 큰 별, 큰 피격 = 날카로운 빨간 자국.
  * 칸 위 이펙트는 0.4초 안에 사라지고 체력 숫자·디버프 테두리 아래에 그림.
  * 그림 (37 v0.2): 판 위 적·영혼 칸 그림(mob-), 칸 무늬(fx-cell-), 사슬 띠(fx-link-), 이펙트(fx-)가 src/art에 있으면 그 그림을, 없으면 지금 벡터 그림을 씀.
- * PXF 이펙트 (battle/pxf.ts, 2026-10-11 시험): 사제 치유가 들어가면 치유 빛 대신 구운 픽셀 프레임 띠 (fx-pxf-*)를 대상 칸에서 재생.
+ * PXF 이펙트 (battle/pxf.ts, 2026-10-11 시험): 사제 치유가 들어가면 치유 빛 대신 구운 픽셀 프레임 띠 (fx-pxf-*)를 대상 칸에서 재생. 다른 이펙트와 달리 판 맨 위 (글자·아이콘보다 위).
  */
 import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
 import { art } from '../art';
@@ -61,6 +61,8 @@ const badgeL = new Container();
 const topG = new Graphics();
 const topL = new Container();
 const lensL = new Container();
+/** PXF 이펙트 (battle/pxf.ts): Lim 2026-10-11 「모든 UI보다 위」 → 글자·아이콘·배지·숫자·말풍선·확대 미리보기보다 위, 판 맨 위 */
+const pxfL = new Container();
 const emblemL = new Container();
 /** 칸 무늬 · 판 위 적 그림 (칸 채움 위, 파티원 칸 아래) · 그림 이펙트 (파티원 칸 위, 테두리·글자 아래) */
 const decalL = new Container();
@@ -70,7 +72,7 @@ const markL = new Container();
 /** 말풍선 그림 (43 5장): 틀 뒤 이펙트 띠 · 틀 9조각 · 꼬리·감정 아이콘·앞 이펙트 띠. 대사 글자(topL)는 그 위 */
 const bubbleL = new Container(), bubbleBackL = new Container(), sliceL = new Container(), bubbleFrontL = new Container();
 bubbleL.addChild(bubbleBackL, sliceL, bubbleFrontL);
-root.addChild(cellsG, decalL, unitsG, glowL, fxG, fxArtL, frameL, overG, markL, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL);
+root.addChild(cellsG, decalL, unitsG, glowL, fxG, fxArtL, frameL, overG, markL, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL, pxfL);
 
 let dpr = 1;
 export const L = { s: 40, W: 0, H: 0, ox: 0, oy: 0, left: 2, right: 2, top: 2, bottom: 2, ok: false };
@@ -401,7 +403,7 @@ class SpritePool {
   }
   end(): void { for (let i = this.used; i < this.list.length; i++) this.list[i].visible = false; }
 }
-const decals = new SpritePool(decalL), fxArt = new SpritePool(fxArtL), marks = new SpritePool(markL), bubbleBack = new SpritePool(bubbleBackL), bubbleFront = new SpritePool(bubbleFrontL);
+const decals = new SpritePool(decalL), fxArt = new SpritePool(fxArtL), marks = new SpritePool(markL), pxfArt = new SpritePool(pxfL), bubbleBack = new SpritePool(bubbleBackL), bubbleFront = new SpritePool(bubbleFrontL);
 /** 생명 사슬 띠 (fx-link-*): 가로로 이어 붙이는 그림을 두 칸 사이에 깔아 돌림 */
 const strips: TilingSprite[] = [];
 let stripUsed = 0;
@@ -905,7 +907,7 @@ function predictedHeal(u: Unit): number {
 }
 
 /**
- * PXF 이펙트 한 프레임: 대상 칸 가운데 (game.pivot 0.5, 0.5), 칸 지름 2r 기준 크기, 판 밖으로 안 나가게 줄임.
+ * PXF 이펙트 한 프레임: 대상 칸 가운데 (game.pivot 0.5, 0.5), 칸 지름 2r 기준 크기, 판 밖으로 안 나가게 줄임. 판 맨 위 층 (pxfL).
  * 픽셀 그림이라 가장 가까운 픽셀로 키움. 더하기 섞기는 WebGL에서만 (Canvas에서는 뒤에 그리는 것까지 번져서 보통 섞기)
  */
 function pxfFx(c: PxfClip, key: string, x: number, y: number, r: number, ms: number): void {
@@ -914,7 +916,7 @@ function pxfFx(c: PxfClip, key: string, x: number, y: number, r: number, ms: num
   if (tex.source.scaleMode !== 'nearest') tex.source.scaleMode = 'nearest';
   const size = pxfDrawSize(c, r * 2), half = safeRadius(x, y, size / 2, 'circle');
   if (half <= 0) return;
-  fxArt.put(tex, x, y, half * 2, half * 2, 1, 0xffffff, 0, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
+  pxfArt.put(tex, x, y, half * 2, half * 2, 1, 0xffffff, 0, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
   recordBound(key, 'fx', 'circle', x, y, half * 2, half * 2, { diameter: half * 2, requestedDiameter: size, frame: i });
 }
 /** 그림 이펙트 한 장: 판 밖으로 안 나가게 크기를 줄여 그림 */
@@ -982,7 +984,7 @@ export function render(now: number): void {
   const typography = cellTypography(s), compact = typography.compact;
   const rdt = Math.min(0.1, Math.max(0, (now - (B2.lastRender || now)) / 1000)); B2.lastRender = now;
   for (const g of [cellsG, unitsG, fxG, overG, badgeG, topG]) g.clear();
-  labels.begin(); badgeLabels.begin(); tops.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); marks.begin(); stripUsed = 0;
+  labels.begin(); badgeLabels.begin(); tops.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); marks.begin(); pxfArt.begin(); stripUsed = 0;
   bubbleBack.begin(); bubbleFront.begin(); sliceUsed = 0;
   telsSeen = F.tels.slice(); // 다음 impact 사건이 어느 기술인지 (fxImpact)
   const fs = (k: number, min: number) => Math.max(min, s * k);
@@ -1716,7 +1718,7 @@ export function render(now: number): void {
   for (let i = glowUsed; i < glows.length; i++) glows[i].visible = false;
   for (let i = hexFramesUsed; i < hexFrames.length; i++) hexFrames[i].visible = false;
   for (let i = sliceUsed; i < slices.length; i++) slices[i].visible = false;
-  labels.end(); badgeLabels.end(); tops.end(); decals.end(); fxArt.end(); marks.end(); bubbleBack.end(); bubbleFront.end();
+  labels.end(); badgeLabels.end(); tops.end(); decals.end(); fxArt.end(); marks.end(); pxfArt.end(); bubbleBack.end(); bubbleFront.end();
   for (let i = stripUsed; i < strips.length; i++) strips[i].visible = false;
   lensL.visible = false;
   app.renderer.render(app.stage);

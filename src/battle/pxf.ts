@@ -14,7 +14,7 @@ export interface PxfClip {
   size: number;
   frames: number;
   fps: number;
-  /** 섞기 (game.blend): add = 더하기 */
+  /** 섞기 (game.blend, 게임에서 바꿀 수 있음): add = 더하기 (밝은 칸에선 흰빛으로 보임), normal = 원본 색 그대로 */
   blend: 'add' | 'normal';
   /** 맞는 순간 프레임 (game.impactFrame): 치유가 들어간 순간이 이 프레임 */
   impactFrame: number;
@@ -24,8 +24,8 @@ export interface PxfClip {
 }
 
 export const PXF = {
-  /** 치유 초록 반짝이 가루 (64px · 24장 · 24fps · 더하기 · 맞는 순간 2) */
-  healDust: { art: 'fx-pxf-heal-dust', size: 64, frames: 24, fps: 24, blend: 'add', impactFrame: 2, logicalSize: 64, referenceCell: 62 },
+  /** 치유 초록 반짝이 가루 (64px · 24장 · 24fps · 맞는 순간 2). 그래프는 더하기 섞기지만 Lim 2026-10-11 「원본 색이 잘 보이게」 → 보통 섞기 */
+  healDust: { art: 'fx-pxf-heal-dust', size: 64, frames: 24, fps: 24, blend: 'normal', impactFrame: 2, logicalSize: 64, referenceCell: 62 },
 } as const satisfies Record<string, PxfClip>;
 export type PxfKey = keyof typeof PXF;
 
