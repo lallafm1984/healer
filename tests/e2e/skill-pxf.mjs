@@ -29,6 +29,8 @@ export default async function skillPxf(url, shots) {
         if (b.n === 20 && scope === 'target') continue;
         const t = await page.evaluate(([key]) => {
           const F = window.__proto.F, el = document.querySelector('#board'), r = el.getBoundingClientRect();
+          // 이펙트만 보는 동안 판이 끝나지 않게 (몇십 초 흐름): 파티 · 적 체력을 채워 둠
+          F.bossHp = F.bossMax; for (const x of [...F.party, ...F.mobs]) if (x.alive !== false) x.hp = x.max;
           const mid = { x: r.width / 2, y: r.height / 2 }, dist = u => { const p = window.__proto.center(u.cell); return Math.hypot(p.x - mid.x, p.y - mid.y); };
           const u = F.party.filter(x => x.alive).sort((a, c) => dist(a) - dist(c))[0];
           (F.used ??= []).push({ key, uid: u.id });
