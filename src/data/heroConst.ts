@@ -9,9 +9,10 @@ export const BEACON = { share: 0.4, cd: 10 };
 export const HAND_GUARD = { sec: 6 };
 /**
  * 사제 빛의 전이 (8번째 칸, Lim 2026-10-11): 회복 횟수 · 지속 (초, 쓴 때부터) · 옮겨 가는 시간 (그동안은 안 깃듦) ·
- * 옮겨 가는 거리 (칸, 그 안에 없으면 가장 가까운 아군) · 회복 한 번에 채우는 신성화 게이지 %
+ * 옮겨 가는 거리 (칸, 그 안에 아무도 없으면 그 자리에 남음) · 회복 한 번에 채우는 신성화 게이지 %.
+ * 2026-10-11 Lim 「너무 좋다. 너프하자. 1칸 인접, 3회 회복」: 5번 · 2칸 (없으면 가장 가까운 아군) → 3번 · 바로 옆 칸만
  */
-export const RELAY = { hops: 5, sec: 20, fly: 1, range: 2, gs: 4 };
+export const RELAY = { hops: 3, sec: 20, fly: 1, range: 1, gs: 4 };
 /** 드루이드 환생: 살아나는 체력 비율 */
 export const REBIRTH = { hp: 0.4 };
 

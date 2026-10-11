@@ -1,6 +1,6 @@
 /**
  * 사제 빛의 전이 (휠 8번째 칸, Lim 2026-10-11 「캐릭터별로 스킬이 7개 밖에 없어서 슬롯 한자리가 빈다」).
- * 대상에게 빛이 깃들고, 빛이 깃든 사람이 피해를 받으면 회복한 뒤 빛이 가까운 아군 중 체력이 가장 낮은 사람에게 옮겨 간다 (수치는 data/heroConst RELAY).
+ * 대상에게 빛이 깃들고, 빛이 깃든 사람이 피해를 받으면 회복한 뒤 빛이 가까운 아군 중 체력이 가장 낮은 사람에게 옮겨 간다 (바로 옆 칸만, 수치는 data/heroConst RELAY).
  * 판 위에 하나만: 다시 쓰면 새 빛이 새 대상에게 (남은 횟수는 처음부터)
  */
 import { RELAY } from '../data/heroConst';
@@ -44,16 +44,13 @@ export function relayTick(f: Fight): void {
 }
 
 /**
- * 다음 자리: RELAY.range칸 안에서 체력 비율이 가장 낮은 사람 (같으면 가까운 사람), 그 안에 아무도 없으면 가장 가까운 사람.
- * 갈 사람이 없으면 그 자리에 그대로 (깃든 사람이 쓰러졌으면 사라짐)
+ * 다음 자리: RELAY.range칸 안 (바로 옆 칸)에서 체력 비율이 가장 낮은 사람 (같으면 가까운 사람).
+ * 그 안에 아무도 없으면 그 자리에 그대로 (깃든 사람이 쓰러지거나 떠올랐으면 사라짐)
  */
 function fly(f: Fight, from: Unit): void {
   const c = cellOf(f, from), dist = (v: Unit) => hexDist(cellOf(f, v), c), pct = (v: Unit) => v.hp / v.max;
-  const all = living(f).filter(v => v !== from && !shy(f, v));
-  const near = all.filter(v => dist(v) <= RELAY.range);
-  const to = near.length
-    ? near.sort((a, b) => pct(a) - pct(b) || dist(a) - dist(b) || a.id - b.id)[0]
-    : all.sort((a, b) => dist(a) - dist(b) || pct(a) - pct(b) || a.id - b.id)[0];
+  const near = living(f).filter(v => v !== from && !shy(f, v) && dist(v) <= RELAY.range);
+  const to = near.sort((a, b) => pct(a) - pct(b) || dist(a) - dist(b) || a.id - b.id)[0];
   if (!to) { if (!from.alive || from.lift) gone(f, from); return; }
   f.relay = { ...f.relay!, id: to.id, flyUntil: f.t + RELAY.fly };
   emit(f, { type: 'fx', name: 'relay-fly', on: from.id, to: to.id });
