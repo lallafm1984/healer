@@ -7,6 +7,11 @@ export const SANCTUARY = { cut: 0.2, hps: 40, sec: 10 };
 export const BEACON = { share: 0.4, cd: 10 };
 /** 성기사 보호의 손 지속 */
 export const HAND_GUARD = { sec: 6 };
+/**
+ * 사제 빛의 비둘기 (8번째 칸, Lim 2026-10-11): 회복 횟수 · 지속 (초, 쓴 때부터) · 날아가는 시간 (그동안은 안 앉음) ·
+ * 날아가는 거리 (칸, 그 안에 없으면 가장 가까운 아군) · 회복 한 번에 채우는 신성화 게이지 %
+ */
+export const DOVE = { hops: 5, sec: 20, fly: 1, range: 2, gs: 4 };
 /** 드루이드 환생: 살아나는 체력 비율 */
 export const REBIRTH = { hp: 0.4 };
 

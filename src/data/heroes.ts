@@ -44,7 +44,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
     key: 'priest', name: '사제', line: '꾸준히 넣으면 큰 한 방이 차오릅니다.', star: 1,
     system: { name: '성언 게이지', lv: 6, desc: '힐을 할 때마다 평온·신성화 게이지가 찹니다. 100%가 되면 휠 조각이 성언으로 바뀝니다.' },
     dispel: ['마법', '질병'],
-    slots: slots({ basic: 'heal', fast: 'flash', hot: 'renew', aoe: 'poh', dispel: 'purify', ext: 'guardian', raid: 'hymn' }),
+    slots: slots({ basic: 'heal', fast: 'flash', hot: 'renew', aoe: 'poh', dispel: 'purify', ext: 'guardian', raid: 'hymn', unique: 'dove' }),
     tap: ['heal', 'flash', 'renew'],
     passives: [
       { name: '메아리 치유', lv: 1, desc: '치유·순간 치유·평온 힐량의 15%를 4초에 걸쳐 추가로 회복합니다.' },
@@ -113,9 +113,9 @@ export function slotLabel(hero: HeroKey, slot: SlotName): string {
 export const SLOT_ID: Record<SlotName, string> = { basic: 'heal', fast: 'flash', hot: 'renew', aoe: 'poh', dispel: 'purify', ext: 'guardian', raid: 'hymn', unique: 'unique' };
 const SLOT_OF_ID = Object.fromEntries(Object.entries(SLOT_ID).map(([k, v]) => [v, k])) as Record<string, SlotName>;
 
-/** 그 직업에서 휠 칸 이름 → 스킬 (사제는 칸 이름 그대로, 성언으로 바뀌지 않음) */
+/** 그 직업에서 휠 칸 이름 → 스킬 (사제는 칸 이름 그대로, 성언으로 바뀌지 않음. 8번째 칸은 직업마다) */
 export function skillAt(hero: HeroKey, slotId: string): SkillKey | null {
-  if (hero === 'priest') return slotId === 'unique' ? null : (slotId as SkillKey);
+  if (hero === 'priest' && slotId !== 'unique') return slotId as SkillKey;
   const sl = SLOT_OF_ID[slotId];
   return sl ? HEROES[hero].slots[sl] : null;
 }

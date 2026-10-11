@@ -14,7 +14,7 @@ import { NAMED, SPECS, type SpecGroup } from '../data/specials';
 import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
 import { emblemColor } from '../screens/art';
 import { FACTIONS, type FactionKey } from '../data/places';
-import { addArtName, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName } from './art';
+import { addArtName, DOVE_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebuff } from './party-display';
 import { CELL_RADIUS, fitBoard } from './board-layout';
@@ -63,10 +63,12 @@ const emblemL = new Container();
 /** 칸 무늬 · 판 위 적 그림 (칸 채움 위, 파티원 칸 아래) · 그림 이펙트 (파티원 칸 위, 테두리·글자 아래) */
 const decalL = new Container();
 const fxArtL = new Container();
+/** 칸 위 작은 그림 표시 (빛의 비둘기): 테두리 위, 글자 아래 */
+const markL = new Container();
 /** 말풍선 그림 (43 5장): 틀 뒤 이펙트 띠 · 틀 9조각 · 꼬리·감정 아이콘·앞 이펙트 띠. 대사 글자(topL)는 그 위 */
 const bubbleL = new Container(), bubbleBackL = new Container(), sliceL = new Container(), bubbleFrontL = new Container();
 bubbleL.addChild(bubbleBackL, sliceL, bubbleFrontL);
-root.addChild(cellsG, decalL, unitsG, glowL, fxG, fxArtL, frameL, overG, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL);
+root.addChild(cellsG, decalL, unitsG, glowL, fxG, fxArtL, frameL, overG, markL, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL);
 
 let dpr = 1;
 export const L = { s: 40, W: 0, H: 0, ox: 0, oy: 0, left: 2, right: 2, top: 2, bottom: 2, ok: false };
@@ -273,6 +275,23 @@ function roleIcon(g: Graphics, role: Unit['role'], x: number, y: number, k: numb
     g.rect(x - t + 1, y - t + 1, t * 2 - 2, t * 2 - 2).fill({ color: C.gold });
   }
 }
+// ---------- 빛의 비둘기 (사제 8번째 칸): 앉은 사람 칸에 금빛 원 + 흰 비둘기. 그림 fx-dove (그림 요청 62)가 오면 그것 ----------
+let doveTex: Texture | null = null;
+function doveMark(): Texture {
+  const painted = artTexture('fx-dove');
+  if (painted) return painted;
+  if (doveTex) return doveTex;
+  const N = 96, m = N / 2, c = document.createElement('canvas');
+  c.width = c.height = N;
+  const x = c.getContext('2d')!;
+  const disc = (r: number, fill: string) => { x.beginPath(); x.arc(m, m, r, 0, Math.PI * 2); x.fillStyle = fill; x.fill(); };
+  disc(m, '#080605'); disc(m - 6, '#F0C46A');
+  const k = (N - 30) / 24, p = new Path2D(DOVE_D);
+  x.translate(15, 16); x.scale(k, k);
+  x.lineJoin = 'round'; x.lineWidth = 2.4; x.strokeStyle = '#080605'; x.stroke(p);
+  x.fillStyle = '#FFFAF0'; x.fill(p);
+  return (doveTex = Texture.from(c));
+}
 // ---------- 「나」 칸 직업 문장 (27 3-4·5장): 원형 금테 + 돌 바탕 + 문장. 한 번 그려 텍스처로 ----------
 const emblemTex = new Map<string, Texture | null>(); // null = 그림 읽는 중 (그동안은 ✚)
 const meEmblem = new Sprite();
@@ -379,7 +398,7 @@ class SpritePool {
   }
   end(): void { for (let i = this.used; i < this.list.length; i++) this.list[i].visible = false; }
 }
-const decals = new SpritePool(decalL), fxArt = new SpritePool(fxArtL), bubbleBack = new SpritePool(bubbleBackL), bubbleFront = new SpritePool(bubbleFrontL);
+const decals = new SpritePool(decalL), fxArt = new SpritePool(fxArtL), marks = new SpritePool(markL), bubbleBack = new SpritePool(bubbleBackL), bubbleFront = new SpritePool(bubbleFrontL);
 /** 생명 사슬 띠 (fx-link-*): 가로로 이어 붙이는 그림을 두 칸 사이에 깔아 돌림 */
 const strips: TilingSprite[] = [];
 let stripUsed = 0;
@@ -742,6 +761,10 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   // 묶음 G3 (59 4-4, 그림 60 E): 퍼지는 박동이 지나가는 겹 칸 · 번개 쐐기가 심장에 박힘 (판 전체)
   'pulse-ring': { size: 1.4, color: 0xa66bff, ms: 500 },
   wedge: { size: 3.2, color: BOLT, ms: 900, wide: true },
+  // 사제 빛의 비둘기 (휠 8번째 칸, 그림 요청 62): 앉음 · 다음 사람에게 날아감 (그림은 위에서 본 모습, 머리가 오른쪽) · 다 쓰고 사라짐
+  'dove-land': { size: 1.2, color: 0xfff3c4, ms: 500 },
+  'dove-fly': { size: 0.8, color: 0xfff3c4, ms: 1000, fly: true },
+  'dove-gone': { size: 1.1, color: 0xfff3c4, ms: 500, up: 0.5 },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();
@@ -938,7 +961,7 @@ export function render(now: number): void {
   const typography = cellTypography(s), compact = typography.compact;
   const rdt = Math.min(0.1, Math.max(0, (now - (B2.lastRender || now)) / 1000)); B2.lastRender = now;
   for (const g of [cellsG, unitsG, fxG, overG, badgeG, topG]) g.clear();
-  labels.begin(); badgeLabels.begin(); tops.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); stripUsed = 0;
+  labels.begin(); badgeLabels.begin(); tops.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); marks.begin(); stripUsed = 0;
   bubbleBack.begin(); bubbleFront.begin(); sliceUsed = 0;
   telsSeen = F.tels.slice(); // 다음 impact 사건이 어느 기술인지 (fxImpact)
   const fs = (k: number, min: number) => Math.max(min, s * k);
@@ -1330,7 +1353,8 @@ export function render(now: number): void {
   // 보통 칸 배지 글자: 가장 긴 「×저주 12」와 지속 힐 원이 칸 폭 한 줄에 안 들어가는 판은 전부 짧은 글자 「×저12」 (작은 칸과 같음)
   const shortBadge = compact || measure('×저주 12', typography.debuff) + typography.debuff * 0.7 + 1.5 > r * COS30 * 2 - 2 * (hotR + 0.75) - 1;
   const hpBounds: { id: number; cell: number; text: string; x: number; y: number; w: number; h: number; sx: number }[] = [];
-  const smallHots: { id: number; x: number; y: number }[] = [];
+  /** 작은 칸 아래 가운데 표시 (지속 힐 + · 빛의 비둘기 금빛 점): 배지를 다 놓은 뒤 그림 */
+  const smallHots: { id: number; x: number; y: number; dove?: boolean }[] = [];
   for (const { u, x, y, deb } of over) {
     let debBadge: ReturnType<typeof pill> | undefined;
     // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만). 「나」 = 직업 문장 (27 3-4)
@@ -1374,6 +1398,8 @@ export function render(now: number): void {
       const hp = fitCenter(x, Math.max(y + r * 0.68, hpBox.y + hpBox.h / 2 + 4.25), 3.25);
       smallHots.push({ id: u.id, x: hp.x, y: hp.y });
     }
+    const dove = F.dove && F.dove.id === u.id && F.t >= F.dove.flyUntil; // 날아가는 중에는 연출 (dove-fly)만
+    if (compact && dove) { const p = fitCenter(x + (hasHot ? 7.5 : 0), Math.max(y + r * 0.68, hpBox.y + hpBox.h / 2 + 4.25), 3.25); smallHots.push({ id: u.id, x: p.x, y: p.y, dove: true }); }
     let hotSpot: { x: number; y: number } | null = null;
     if (deb) {
       const jail = deb.jail ? F.mobs.find(m => m.alive && m.add?.hold === deb.id) : undefined;
@@ -1483,8 +1509,22 @@ export function render(now: number): void {
     // 보통 칸에 배지가 있으면 윗줄 왼쪽이 배지 자리라 꼭짓점 줄로 (조준 표식이 있으면 그 왼쪽)
     const markAt = (text: string, size: number) => !peakY ? { x: x - r * 0.55, y: y - r * 0.42 }
       : { x: tank === u ? x - aimR - aimW / 2 - 1 - (measure(text, size) + size * 0.7) / 2 : x, y: peakY };
-    if (F.order && ok >= F.order.i) { const m = markAt(ORDER_NUM[ok], fs(0.3, 12)); pill(overG, labels, `ord${u.id}`, m.x, m.y, ORDER_NUM[ok], ok === F.order.i ? C.gold : 0xd9dde6, C.dark, fs(0.3, 12), ok === F.order.i ? 0.75 + 0.25 * pulse : 1); }
-    else if (u.debuffs.some(d => d.invert)) { const m = markAt('✕', fs(0.28, 11)); pill(overG, labels, `inv${u.id}`, m.x, m.y, '✕', 0x7fa88c, C.dark, fs(0.28, 11)); }
+    let markBox: PillBox | undefined;
+    if (F.order && ok >= F.order.i) { const m = markAt(ORDER_NUM[ok], fs(0.3, 12)); markBox = pill(overG, labels, `ord${u.id}`, m.x, m.y, ORDER_NUM[ok], ok === F.order.i ? C.gold : 0xd9dde6, C.dark, fs(0.3, 12), ok === F.order.i ? 0.75 + 0.25 * pulse : 1); }
+    else if (u.debuffs.some(d => d.invert)) { const m = markAt('✕', fs(0.28, 11)); markBox = pill(overG, labels, `inv${u.id}`, m.x, m.y, '✕', 0x7fa88c, C.dark, fs(0.28, 11)); }
+    // 빛의 비둘기 (사제 8번째 칸): 보통 칸은 왼쪽 위 (지속 힐 원 반대편) 금빛 원 + 흰 비둘기.
+    // 윗줄에 배지가 있거나 왼쪽 위에 차례 번호표 · ✕가 있으면 꼭짓점 줄에서 조준 표식 · 번호표 오른쪽
+    if (dove && !compact) {
+      const dr = Math.max(7, s * 0.19);
+      let p: { x: number; y: number };
+      if (!peakY && !markBox) p = hotCenter(x - r * 0.56, y - r * 0.44, dr + 0.75, dr + 0.75);
+      else {
+        const right = Math.max(tank === u ? x + aimR + aimW / 2 : -Infinity, markBox ? markBox.x + markBox.w / 2 : -Infinity);
+        p = fitCenter(isFinite(right) ? right + 1 + dr : x, peakY || y - r * 0.98, dr + 0.75);
+      }
+      marks.put(doveMark(), p.x, p.y, dr * 2, dr * 2);
+      recordBound(`dove${u.id}`, 'dove', 'circle', p.x, p.y, dr * 2, dr * 2);
+    }
     if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
     else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
     const st = u.lift ? ([`하늘 ${Math.max(0, Math.ceil(u.lift.until - F.t))}`, '#9FD8F5'] as const) : u.bulwark > 0 ? ([`버팀 ${Math.ceil(u.bulwark)}`, '#F0C46A'] as const) : u.pulled ? ([`끌림 ${Math.ceil(u.pulled.until - F.t)}`, '#C98B5A'] as const) : u.fleeing ? (['도망', '#DB9B57'] as const) : u.sulking ? (['삐짐', '#D68FA6'] as const) : null;
@@ -1504,6 +1544,11 @@ export function render(now: number): void {
       if (hy - 3.25 < badge.y + capRadius) hy = Math.max(hy, below);
     }
     hy = clamp(hy, L.top + 3.25, L.bottom - 3.25);
+    if (hot.dove) {
+      overG.circle(hot.x, hy, 3.25).fill({ color: C.gold }).stroke({ width: 1.25, color: C.line });
+      recordBound(`dove${hot.id}`, 'dove', 'circle', hot.x, hy, 7.75, 7.75);
+      continue;
+    }
     overG.rect(hot.x - 3, hy - 3, 6, 6).fill({ color: C.line });
     overG.moveTo(hot.x - 2.5, hy).lineTo(hot.x + 2.5, hy).moveTo(hot.x, hy - 2.5).lineTo(hot.x, hy + 2.5).stroke({ width: 1.5, color: C.teal });
     recordBound(`hot${hot.id}`, 'hot', 'cross', hot.x, hy, 6.5, 6.5);
@@ -1649,7 +1694,7 @@ export function render(now: number): void {
   for (let i = glowUsed; i < glows.length; i++) glows[i].visible = false;
   for (let i = hexFramesUsed; i < hexFrames.length; i++) hexFrames[i].visible = false;
   for (let i = sliceUsed; i < slices.length; i++) slices[i].visible = false;
-  labels.end(); badgeLabels.end(); tops.end(); decals.end(); fxArt.end(); bubbleBack.end(); bubbleFront.end();
+  labels.end(); badgeLabels.end(); tops.end(); decals.end(); fxArt.end(); marks.end(); bubbleBack.end(); bubbleFront.end();
   for (let i = stripUsed; i < strips.length; i++) strips[i].visible = false;
   lensL.visible = false;
   app.renderer.render(app.stage);

@@ -1,6 +1,7 @@
 import { HEROES } from '../data/heroes';
 import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { DT, emit, heal, living, onDebuffEnd, unitById } from './core';
+import { doveTick, putDove } from './dove';
 import { heroApply, heroChannelTick, heroTick, hotCount, putHot } from './heroes';
 import { crisis, freeCast, gcdNow, guardSec, later, raidSec, regenSpec, specApply, specDispel, specExec, specTick, sv, twiceBrush, twin, under } from './specials';
 import { orderHeal } from './bossParts';
@@ -18,7 +19,7 @@ export const knowsPassive = (f: Fight, key: PassiveKey) => f.hero === 'priest' &
  */
 export const SLOT_OF: Record<string, SlotName> = { heal: 'basic', flash: 'fast', renew: 'hot', poh: 'aoe', purify: 'dispel', guardian: 'ext', hymn: 'raid', unique: 'unique' };
 export function slotKey(f: Fight, slot: string): SkillKey {
-  if (f.hero === 'priest') {
+  if (f.hero === 'priest' && slot !== 'unique') {
     if (slot === 'heal' && wordReady(f, f.g.p)) return 'serenity';
     if (slot === 'poh' && wordReady(f, f.g.s)) return 'sanctify';
     return slot as SkillKey;
@@ -181,17 +182,24 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     u.guardian = guardSec(f, 10); // 수호의 깃 (42 보호 07)
     if (f.sp) twin(f, u, v => { v.guardian = Math.max(v.guardian, guardSec(f, 10) / 2); }); // 쌍둥이 방패
     emit(f, { type: 'sound', name: 'renew' });
+  } else if (key === 'dove') {
+    putDove(f, u);
+    emit(f, { type: 'sound', name: 'renew' });
   }
   // 성언 게이지
-  const before = { p: f.g.p, s: f.g.s };
   if (key === 'serenity') f.g.p = wordSpent(f.g.p);
   if (key === 'sanctify') f.g.s = wordSpent(f.g.s);
   if ((key === 'serenity' || key === 'sanctify') && has(f, 'echoWord')) f.tx.echoUntil = f.t + 5; // 말씀의 여운
-  if (knowsPassive(f, 'words')) {
-    const cap = wordCap(f), gm = (has(f, 'fullHeart') ? 1.3 : 1) * (1 + sv(f, 'deepWord')); // 깊은 성언 (42 사제 01)
-    if (sk.gp) f.g.p = Math.min(cap, f.g.p + sk.gp * gm);
-    if (sk.gs && knows(f, 'poh')) f.g.s = Math.min(cap, f.g.s + sk.gs * gm);
-  }
+  fillWords(f, sk.gp ?? 0, sk.gs ?? 0);
+}
+
+/** 성언 게이지 채우기 (06 4장): 충만한 마음 · 깊은 성언 (42 사제 01)이면 더 빨리, 신성화는 치유의 기원을 배운 뒤부터. 100%가 되는 순간 알림 */
+export function fillWords(f: Fight, gp: number, gs: number): void {
+  if (!knowsPassive(f, 'words') || (!gp && !gs)) return;
+  const before = { p: f.g.p, s: f.g.s };
+  const cap = wordCap(f), gm = (has(f, 'fullHeart') ? 1.3 : 1) * (1 + sv(f, 'deepWord'));
+  if (gp) f.g.p = Math.min(cap, f.g.p + gp * gm);
+  if (gs && knows(f, 'poh')) f.g.s = Math.min(cap, f.g.s + gs * gm);
   if (before.p < 100 && f.g.p >= 100) emit(f, { type: 'gauge', which: '평온' });
   if (before.s < 100 && f.g.s >= 100) emit(f, { type: 'gauge', which: '신성화' });
 }
@@ -234,6 +242,7 @@ export function healerTick(f: Fight): void {
     // 찬가의 끝자락: 끊기지 않고 끝나면 전원 6초 지속 힐 120
     if (f.channel <= 1e-9 && has(f, 'hymnTail')) { f.channel = 0; for (const u of living(f)) putHot(u, 'hymn', { sec: 6, every: 2, total: 120 }); }
   }
+  if (f.dove) doveTick(f);
   if (f.hero !== 'priest') heroTick(f, dt);
   else if (f.tx.on && Object.keys(f.tx.on).length) talentTick(f, dt);
   if (f.cast) {

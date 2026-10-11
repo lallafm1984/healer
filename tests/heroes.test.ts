@@ -112,8 +112,8 @@ describe('휠 칸 이름 ↔ 직업 스킬', () => {
       expect(k === 'serenity' || k === 'sanctify' || skillAt(h, slotIdOf(k)) === k).toBe(true);
     }
   });
-  it('8번째 칸은 사제만 비어 있음', () => {
-    expect(skillAt('priest', 'unique')).toBeNull();
+  it('8번째 칸: 모든 직업이 채움 (사제 빛의 비둘기, Lim 2026-10-11)', () => {
+    expect(skillAt('priest', 'unique')).toBe('dove');
     expect(skillAt('druid', 'unique')).toBe('rebirth');
     expect(skillAt('paladin', 'unique')).toBe('handGuard');
   });

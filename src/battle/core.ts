@@ -52,14 +52,14 @@ export const layoutCode = (l: Layout) => READ_ORDER.map(d => `${d}:${l[d] || '-'
 /** key = 휠 칸 이름 (사제 스킬 이름 그대로, 8번째 칸은 unique). 실제 스킬은 engine slotKey */
 export interface DirSlot { d: Dir; arrow: string; key: string | null }
 export let DIRS: (DirSlot | null)[] = [];
-/** 배치의 빈 방향 = 8번째 칸 (드루이드 환생·성기사 보호의 손, 25 2장). 사제는 빈 칸 그대로 */
+/** 배치의 빈 방향 = 8번째 칸 (사제 빛의 비둘기 · 드루이드 환생 · 성기사 보호의 손, 25 2장) */
 export function applyLayout(): void {
   const uniq = HEROES[S.hero].slots.unique ? 'unique' : null;
   DIRS = GRID.map(d => (d ? { d, arrow: ARROW[d], key: S.layout[d] || uniq } : null));
 }
-/** 지금 직업에서 그 칸의 스킬 (사제는 칸 이름 그대로, 성언으로 바뀌지 않음) */
+/** 지금 직업에서 그 칸의 스킬 (사제는 칸 이름 그대로, 성언으로 바뀌지 않음. 8번째 칸은 직업마다) */
 export function heroSkill(slot: string): SkillKey {
-  if (S.hero === 'priest') return slot as SkillKey;
+  if (S.hero === 'priest' && slot !== 'unique') return slot as SkillKey;
   return HEROES[S.hero].slots[SLOT_OF[slot]] || (slot as SkillKey);
 }
 export const dirSlot = (d: Dir) => DIRS.find(x => x && x.d === d) || null;

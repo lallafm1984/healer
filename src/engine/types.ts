@@ -450,7 +450,9 @@ export type FxName = 'spawn' | 'explode' | 'slam' | 'warn' | 'shockwave' | 'crum
   /** 묶음 F2 우르릉 기우는 섬 (낮은 쪽으로 바람 · 구름이 쓸려 감, 판 전체) */
   | 'island-tilt'
   /** 묶음 G 새 부품 (59 5장, 그림 60 E): 어둠물이 차오름 · 빠짐 · 생명을 빌려줌 (보랏빛 손) · 빚을 갚음 (금빛 동전) · 남은 빚을 거둬 감 */
-  | 'tide-rise' | 'tide-ebb' | 'debt-lend' | 'debt-pay' | 'debt-collect' | 'tide-island' | 'tide-drag' | 'pulse-ring' | 'wedge';
+  | 'tide-rise' | 'tide-ebb' | 'debt-lend' | 'debt-pay' | 'debt-collect' | 'tide-island' | 'tide-drag' | 'pulse-ring' | 'wedge'
+  /** 사제 빛의 비둘기: 앉음 · 회복하고 다음 사람에게 날아감 (on → to) · 사라짐 */
+  | 'dove-land' | 'dove-fly' | 'dove-gone';
 
 export type FightResult = 'win' | 'lose';
 
@@ -654,6 +656,8 @@ export interface Fight {
   rebirthUsed: boolean;
   /** 성기사 빛의 성역: 칸과 끝나는 시각 */
   sanctuary: { cells: Set<number>; end: number } | null;
+  /** 사제 빛의 비둘기 (8번째 칸): 앉은 사람 id · 남은 회복 · 사라지는 시각 · 이 시각까지 날아가는 중 (안 앉음). 한 마리만 */
+  dove: { id: number; left: number; until: number; flyUntil: number } | null;
   /** 사제 특성 (06 6장) */
   tx: TalentState;
   /** 특성 트리가 없는 직업의 임시 보정: 힐량 배율·마나 소모 배율·내가 받는 피해 배율 (data/heroConst TALENT_STANDIN). 사제는 null */
