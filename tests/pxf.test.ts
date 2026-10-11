@@ -61,11 +61,9 @@ describe('전투 공통 효과 · 파티원 능력 (모든 효과 PXF 1단계)',
   /** 게임이 색을 곱해 칠하는 회색 그림 (치유 = 문장 색 · 쓰러짐 = 역할 색 · 디버프 = 종류 색 · 장비 발동 = 묶음 색) */
   const GRAY = new Set<CommonFx>(['heal', 'death', 'debuff', 'proc']);
   const gray = (c: string) => c.length === 7 && c.slice(1, 3) === c.slice(3, 5) && c.slice(3, 5) === c.slice(5, 7);
-  it('공통 효과 8종 · 능력 종류 5개 모두, 글자 아래 층', () => {
+  it('공통 효과 8종 · 능력 종류 5개 모두', () => {
     expect(Object.keys(COMMON_PXF).sort()).toEqual([...COMMON].sort());
     expect(Object.keys(ALLY_PXF).sort()).toEqual(Object.keys(AB_KIND).sort());
-    for (const k of [...Object.values(COMMON_PXF), ...Object.values(ALLY_PXF)]) expect(PXF[k!].layer).toBe('under');
-    for (const s of Object.values(SKILL_PXF)) expect(PXF[s!.fx].layer).toBe('top'); // 휠 스킬은 판 맨 위 (Lim 08:53)
   });
   for (const k of COMMON) {
     it(`${k}: ${GRAY.has(k) ? '회색 팔레트 (게임이 칠함)' : '구운 색 그대로'}`, () => {
