@@ -275,7 +275,7 @@ function roleIcon(g: Graphics, role: Unit['role'], x: number, y: number, k: numb
     g.rect(x - t + 1, y - t + 1, t * 2 - 2, t * 2 - 2).fill({ color: C.gold });
   }
 }
-// ---------- 빛의 비둘기 (사제 8번째 칸): 앉은 사람 칸에 금빛 원 + 흰 비둘기. 그림 fx-dove (그림 요청 62)가 오면 그것 ----------
+// ---------- 빛의 비둘기 (사제 8번째 칸): 앉은 사람 칸에 금빛 원 + 흰 비둘기. 그림 fx-dove (그림 요청 64)가 오면 그것 ----------
 let doveTex: Texture | null = null;
 function doveMark(): Texture {
   const painted = artTexture('fx-dove');
@@ -761,7 +761,7 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   // 묶음 G3 (59 4-4, 그림 60 E): 퍼지는 박동이 지나가는 겹 칸 · 번개 쐐기가 심장에 박힘 (판 전체)
   'pulse-ring': { size: 1.4, color: 0xa66bff, ms: 500 },
   wedge: { size: 3.2, color: BOLT, ms: 900, wide: true },
-  // 사제 빛의 비둘기 (휠 8번째 칸, 그림 요청 62): 앉음 · 다음 사람에게 날아감 (그림은 위에서 본 모습, 머리가 오른쪽) · 다 쓰고 사라짐
+  // 사제 빛의 비둘기 (휠 8번째 칸, 그림 요청 64): 앉음 · 다음 사람에게 날아감 (그림은 위에서 본 모습, 머리가 오른쪽) · 다 쓰고 사라짐
   'dove-land': { size: 1.2, color: 0xfff3c4, ms: 500 },
   'dove-fly': { size: 0.8, color: 0xfff3c4, ms: 1000, fly: true },
   'dove-gone': { size: 1.1, color: 0xfff3c4, ms: 500, up: 0.5 },
