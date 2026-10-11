@@ -430,7 +430,8 @@ async function noticeCases(page, ok) {
       notices: [...host.children].map(el => {
         const span = el.firstElementChild;
         return { ...box(el), text: el.textContent, title: el.title, visible: visible(el), font: parseFloat(getComputedStyle(el).fontSize),
-          clipped: !!span && span.scrollHeight > span.clientHeight + 1 };
+          // 줄이 잘렸는지 (두 줄 넘침): 글자 높이 반 이상 더 길면. 몇 px 차이는 글꼴 위아래 여백
+          clipped: !!span && span.scrollHeight > span.clientHeight + parseFloat(getComputedStyle(el).fontSize) / 2 };
       }),
     };
   });
