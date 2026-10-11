@@ -1,0 +1,573 @@
+{
+  "format": "pxf.graph@1",
+  "name": "성기사 빛의 성역",
+  "settings": {
+    "size": 64,
+    "frames": 24,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "groundDark",
+      "type": "Shape",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "shape": "ring",
+        "x": 0.5,
+        "y": 0.72,
+        "size": {
+          "k": [
+            [
+              0,
+              5,
+              "out3"
+            ],
+            [
+              3,
+              18.5,
+              "out"
+            ],
+            [
+              10,
+              19.5,
+              "linear"
+            ],
+            [
+              23,
+              20.5
+            ]
+          ]
+        },
+        "size2": 0.42,
+        "aspect": 0.32,
+        "falloff": 0,
+        "intensity": 0.15
+      }
+    },
+    {
+      "id": "groundRing",
+      "type": "Shape",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "shape": "ring",
+        "x": 0.5,
+        "y": 0.72,
+        "size": {
+          "k": [
+            [
+              0,
+              4,
+              "out3"
+            ],
+            [
+              3,
+              17,
+              "out"
+            ],
+            [
+              10,
+              18,
+              "linear"
+            ],
+            [
+              23,
+              19
+            ]
+          ]
+        },
+        "size2": 0.3,
+        "aspect": 0.32,
+        "falloff": 0.4,
+        "intensity": {
+          "k": [
+            [
+              0,
+              1,
+              "linear"
+            ],
+            [
+              3,
+              1,
+              "linear"
+            ],
+            [
+              8,
+              0.8
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "g1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "rimDark",
+      "type": "Shape",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "shape": "ring",
+        "x": 0.5,
+        "y": 0.72,
+        "size": 18,
+        "size2": 0.2,
+        "aspect": 1.15,
+        "falloff": 0,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.15,
+              "linear"
+            ],
+            [
+              16,
+              0.15,
+              "linear"
+            ],
+            [
+              17,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Shape",
+      "x": 40,
+      "y": 520,
+      "params": {
+        "shape": "ring",
+        "x": 0.5,
+        "y": 0.72,
+        "size": 17,
+        "size2": 0.12,
+        "aspect": 1.15,
+        "falloff": 0,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.72,
+              "linear"
+            ],
+            [
+              14,
+              0.72,
+              "linear"
+            ],
+            [
+              16,
+              0.5,
+              "linear"
+            ],
+            [
+              17,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "d1",
+      "type": "Blend",
+      "x": 270,
+      "y": 360,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "fill",
+      "type": "Shape",
+      "x": 40,
+      "y": 680,
+      "params": {
+        "shape": "circle",
+        "x": 0.5,
+        "y": 0.72,
+        "size": 15.5,
+        "aspect": 1.15,
+        "falloff": 0,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.25,
+              "linear"
+            ],
+            [
+              10,
+              0.25,
+              "in"
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "dith",
+      "type": "Dither",
+      "x": 270,
+      "y": 680,
+      "params": {
+        "levels": 3,
+        "pattern": "bayer4",
+        "strength": 1
+      }
+    },
+    {
+      "id": "d2",
+      "type": "Blend",
+      "x": 500,
+      "y": 360,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "half",
+      "type": "Shape",
+      "x": 270,
+      "y": 840,
+      "params": {
+        "shape": "square",
+        "x": 0.5,
+        "y": 0.36,
+        "size": 32,
+        "aspect": 0.72,
+        "falloff": 0,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "cut",
+      "type": "Mask",
+      "x": 730,
+      "y": 360,
+      "params": {
+        "mode": "multiply",
+        "strength": 1
+      }
+    },
+    {
+      "id": "rise",
+      "type": "Transform",
+      "x": 960,
+      "y": 360,
+      "params": {
+        "tx": 0,
+        "ty": 0,
+        "sx": 1,
+        "sy": {
+          "k": [
+            [
+              0,
+              0,
+              "linear"
+            ],
+            [
+              3,
+              0,
+              "out3"
+            ],
+            [
+              8,
+              1
+            ]
+          ]
+        },
+        "rot": 0,
+        "px": 0.5,
+        "py": 0.72
+      }
+    },
+    {
+      "id": "a1",
+      "type": "Blend",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "moteHalo",
+      "type": "Particles",
+      "x": 40,
+      "y": 1000,
+      "params": {
+        "count": 10,
+        "seed": 2207,
+        "emit": "stream",
+        "start": 0.15,
+        "span": 0.4,
+        "life": 0.45,
+        "lifeVar": 0.25,
+        "area": "box",
+        "x": 0.5,
+        "y": 0.71,
+        "aw": 28,
+        "ah": 4,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 12,
+        "speed": 1.9,
+        "speedVar": 0.25,
+        "gravity": -0.02,
+        "turb": 0.4,
+        "sizeA": 5,
+        "sizeB": 0.5,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.15,
+        "loop": false,
+        "drag": 0
+      }
+    },
+    {
+      "id": "mote",
+      "type": "Particles",
+      "x": 40,
+      "y": 1160,
+      "params": {
+        "count": 10,
+        "seed": 2207,
+        "emit": "stream",
+        "start": 0.15,
+        "span": 0.4,
+        "life": 0.45,
+        "lifeVar": 0.25,
+        "area": "box",
+        "x": 0.5,
+        "y": 0.71,
+        "aw": 28,
+        "ah": 4,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 12,
+        "speed": 1.9,
+        "speedVar": 0.25,
+        "gravity": -0.02,
+        "turb": 0.4,
+        "sizeA": 3,
+        "sizeB": 0,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.75,
+        "loop": false,
+        "drag": 0
+      }
+    },
+    {
+      "id": "m1",
+      "type": "Blend",
+      "x": 270,
+      "y": 1000,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "a2",
+      "type": "Blend",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#3d2006",
+          "#9a5a14",
+          "#e3a22c",
+          "#ffd866",
+          "#fff4cc"
+        ],
+        "cutoff": 0.06,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 1880,
+      "y": 40,
+      "params": {
+        "color": "#ffffff",
+        "amount": 0,
+        "bright": 1,
+        "opacity": {
+          "k": [
+            [
+              0,
+              0,
+              "linear"
+            ],
+            [
+              1,
+              1,
+              "linear"
+            ],
+            [
+              15,
+              1,
+              "in"
+            ],
+            [
+              23,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 2110,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "groundDark",
+      "t": "g1",
+      "p": 0
+    },
+    {
+      "f": "groundRing",
+      "t": "g1",
+      "p": 1
+    },
+    {
+      "f": "rimDark",
+      "t": "d1",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "d1",
+      "p": 1
+    },
+    {
+      "f": "fill",
+      "t": "dith",
+      "p": 0
+    },
+    {
+      "f": "d1",
+      "t": "d2",
+      "p": 0
+    },
+    {
+      "f": "dith",
+      "t": "d2",
+      "p": 1
+    },
+    {
+      "f": "d2",
+      "t": "cut",
+      "p": 0
+    },
+    {
+      "f": "half",
+      "t": "cut",
+      "p": 1
+    },
+    {
+      "f": "cut",
+      "t": "rise",
+      "p": 0
+    },
+    {
+      "f": "g1",
+      "t": "a1",
+      "p": 0
+    },
+    {
+      "f": "rise",
+      "t": "a1",
+      "p": 1
+    },
+    {
+      "f": "moteHalo",
+      "t": "m1",
+      "p": 0
+    },
+    {
+      "f": "mote",
+      "t": "m1",
+      "p": 1
+    },
+    {
+      "f": "a1",
+      "t": "a2",
+      "p": 0
+    },
+    {
+      "f": "m1",
+      "t": "a2",
+      "p": 1
+    },
+    {
+      "f": "a2",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 3
+  }
+}

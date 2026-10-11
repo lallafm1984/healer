@@ -52,6 +52,9 @@ export const PXF = {
   'paladin-oath': clip(24, 2),
   'paladin-light-wave': clip(18, 2),
   'paladin-cleanse': clip(18, 2),
+  'paladin-sacrifice': clip(22, 3),
+  'paladin-sanctuary': clip(24, 3),
+  'paladin-hand-guard': clip(24, 2),
 } as const satisfies Record<string, PxfClip>;
 export type PxfKey = keyof typeof PXF;
 export const pxfArtName = (key: PxfKey): string => `fx-pxf-${key}`;
@@ -83,6 +86,9 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
   oath: { fx: 'paladin-oath', scope: 'target' },
   lightWave: { fx: 'paladin-light-wave', scope: 'area' },
   handCleanse: { fx: 'paladin-cleanse', scope: 'target' },
+  sacrifice: { fx: 'paladin-sacrifice', scope: 'target' },
+  sanctuary: { fx: 'paladin-sanctuary', scope: 'area' },
+  handGuard: { fx: 'paladin-hand-guard', scope: 'target' },
 };
 
 /** 들어간 순간부터 끝까지 길이 (ms). 맞는 순간 앞 프레임은 건너뜀 */
