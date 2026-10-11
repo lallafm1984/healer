@@ -1,0 +1,576 @@
+{
+  "format": "pxf.graph@1",
+  "name": "보스 번개 쐐기 128 bl",
+  "settings": {
+    "size": 64,
+    "frames": 18,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "b2",
+      "type": "Lightning",
+      "x": 40,
+      "y": 460,
+      "params": {
+        "thick": 4,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0,
+              "step"
+            ],
+            [
+              1,
+              0.76
+            ],
+            [
+              3,
+              0.76,
+              "step"
+            ],
+            [
+              4,
+              0.6,
+              "step"
+            ],
+            [
+              6,
+              0.76,
+              "step"
+            ],
+            [
+              7,
+              0.6
+            ],
+            [
+              10,
+              0.6,
+              "step"
+            ],
+            [
+              11,
+              0
+            ]
+          ]
+        },
+        "x0": 1,
+        "y0": 0,
+        "x1": 0.1,
+        "y1": 0.52,
+        "detail": 5,
+        "jag": 0.4,
+        "branch": 0,
+        "branchLen": 0.25,
+        "seed": 202,
+        "rate": 3,
+        "grow": {
+          "k": [
+            [
+              1,
+              0,
+              "out"
+            ],
+            [
+              4,
+              1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "b2c",
+      "type": "Lightning",
+      "x": 40,
+      "y": 530,
+      "params": {
+        "thick": 2,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0,
+              "step"
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              3,
+              1,
+              "step"
+            ],
+            [
+              4,
+              0.76,
+              "step"
+            ],
+            [
+              6,
+              1,
+              "step"
+            ],
+            [
+              7,
+              0.76
+            ],
+            [
+              10,
+              0.76,
+              "step"
+            ],
+            [
+              11,
+              0
+            ]
+          ]
+        },
+        "x0": 1,
+        "y0": 0,
+        "x1": 0.1,
+        "y1": 0.52,
+        "detail": 5,
+        "jag": 0.4,
+        "branch": 0,
+        "branchLen": 0.25,
+        "seed": 202,
+        "rate": 3,
+        "grow": {
+          "k": [
+            [
+              1,
+              0,
+              "out"
+            ],
+            [
+              4,
+              1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "h3",
+      "type": "Lightning",
+      "x": 40,
+      "y": 1160,
+      "params": {
+        "x0": 1,
+        "y0": 0,
+        "x1": 0.62,
+        "y1": 0.6,
+        "detail": 4,
+        "jag": 0.4,
+        "branch": 0,
+        "branchLen": 0.2,
+        "seed": 633,
+        "rate": 2,
+        "thick": 1,
+        "grow": {
+          "k": [
+            [
+              1,
+              0,
+              "out"
+            ],
+            [
+              3,
+              1
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0,
+              "step"
+            ],
+            [
+              1,
+              0.6
+            ],
+            [
+              3,
+              0.6,
+              "step"
+            ],
+            [
+              4,
+              0.44,
+              "step"
+            ],
+            [
+              5,
+              0.6,
+              "step"
+            ],
+            [
+              6,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "knot",
+      "type": "Shape",
+      "x": 40,
+      "y": 1300,
+      "params": {
+        "shape": "circle",
+        "x": 1,
+        "y": 0,
+        "size": {
+          "k": [
+            [
+              0,
+              0,
+              "step"
+            ],
+            [
+              1,
+              4
+            ],
+            [
+              9,
+              4,
+              "in"
+            ],
+            [
+              12,
+              0
+            ]
+          ]
+        },
+        "intensity": 0.95
+      }
+    },
+    {
+      "id": "flash",
+      "type": "Shape",
+      "x": 40,
+      "y": 1370,
+      "params": {
+        "shape": "diamond",
+        "x": 1,
+        "y": 0,
+        "size": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              16,
+              "out"
+            ],
+            [
+              3,
+              11,
+              "in"
+            ],
+            [
+              6,
+              0
+            ]
+          ]
+        },
+        "aspect": 0.7,
+        "falloff": 0.5,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "sparks",
+      "type": "Particles",
+      "x": 40,
+      "y": 1440,
+      "params": {
+        "count": 9,
+        "seed": 7313,
+        "emit": "burst",
+        "start": 0.06,
+        "life": 0.3,
+        "lifeVar": 0.3,
+        "area": "circle",
+        "x": 1,
+        "y": 0,
+        "aw": 8,
+        "ah": 8,
+        "dirMode": "outward",
+        "angle": -90,
+        "spread": 360,
+        "speed": 4.2,
+        "speedVar": 0.4,
+        "drag": 0.06,
+        "gravity": 0.16,
+        "sizeA": 5,
+        "sizeB": 3,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.8,
+        "brightVar": 0.25,
+        "loop": false
+      }
+    },
+    {
+      "id": "glints",
+      "type": "Particles",
+      "x": 40,
+      "y": 1510,
+      "params": {
+        "count": 10,
+        "seed": 7411,
+        "emit": "burst",
+        "start": 0.06,
+        "life": 0.26,
+        "lifeVar": 0.3,
+        "area": "circle",
+        "x": 1,
+        "y": 0,
+        "aw": 6,
+        "ah": 6,
+        "dirMode": "outward",
+        "angle": -90,
+        "spread": 360,
+        "speed": 5.5,
+        "speedVar": 0.4,
+        "drag": 0.05,
+        "gravity": 0.12,
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 1,
+        "brightVar": 0.2,
+        "loop": false
+      }
+    },
+    {
+      "id": "m7",
+      "type": "Blend",
+      "x": 260,
+      "y": 530,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m16",
+      "type": "Blend",
+      "x": 260,
+      "y": 1160,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m18",
+      "type": "Blend",
+      "x": 260,
+      "y": 1300,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m19",
+      "type": "Blend",
+      "x": 260,
+      "y": 1370,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m20",
+      "type": "Blend",
+      "x": 260,
+      "y": 1440,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m21",
+      "type": "Blend",
+      "x": 260,
+      "y": 1510,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 480,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#3d2410",
+          "#c98a12",
+          "#ffd23a",
+          "#fff09a",
+          "#ffffff"
+        ],
+        "cutoff": 0.2,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 600,
+      "y": 40,
+      "params": {
+        "color": "#2a1606",
+        "threshold": 0.5,
+        "width": 1,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 720,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              10,
+              1,
+              "in"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 840,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "b2",
+      "t": "m7",
+      "p": 0
+    },
+    {
+      "f": "b2c",
+      "t": "m7",
+      "p": 1
+    },
+    {
+      "f": "m7",
+      "t": "m16",
+      "p": 0
+    },
+    {
+      "f": "h3",
+      "t": "m16",
+      "p": 1
+    },
+    {
+      "f": "m16",
+      "t": "m18",
+      "p": 0
+    },
+    {
+      "f": "knot",
+      "t": "m18",
+      "p": 1
+    },
+    {
+      "f": "m18",
+      "t": "m19",
+      "p": 0
+    },
+    {
+      "f": "flash",
+      "t": "m19",
+      "p": 1
+    },
+    {
+      "f": "m19",
+      "t": "m20",
+      "p": 0
+    },
+    {
+      "f": "sparks",
+      "t": "m20",
+      "p": 1
+    },
+    {
+      "f": "m20",
+      "t": "m21",
+      "p": 0
+    },
+    {
+      "f": "glints",
+      "t": "m21",
+      "p": 1
+    },
+    {
+      "f": "m21",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 128,
+    "blend": "normal",
+    "impactFrame": 1
+  }
+}

@@ -20,7 +20,7 @@ import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, 
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebuff } from './party-display';
 import { CELL_RADIUS, fitBoard } from './board-layout';
-import { BOSS_PXF, COMMON_PXF, PXF, pxfArtName, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, type CommonFx, type PxfKey } from './pxf';
+import { BOSS_PXF, bossPxfOf, COMMON_PXF, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, type CommonFx, type PxfKey } from './pxf';
 
 // ---------- 색 ----------
 const hex = (c: string) => parseInt(c.slice(1, 7), 16);
@@ -101,7 +101,7 @@ export async function initBoard(): Promise<void> {
   // 말풍선 틀 · 꼬리 · 대사 이펙트 띠는 미리 읽어 둠 (첫 말풍선이 앱 그림으로 잠깐 보였다 바뀌지 않게, 43 5장)
   for (const k of ['talk', 'call', 'alert', 'chat']) { artTexture(`ui-bubble-${k}`); artTexture(`ui-bubble-tail-${k}`); }
   for (const n of Object.keys(TALK_FX)) artTexture(`fx-talk-${n}`);
-  for (const k of Object.keys(PXF) as PxfKey[]) artTexture(pxfArtName(k)); // 첫 스킬부터 보이게
+  for (const k of Object.keys(PXF) as PxfKey[]) if (!isBossPxf(k)) artTexture(pxfArtName(k)); // 첫 스킬부터 보이게 (보스 판 전체 공격은 전투마다 resetBoardFx)
   if (B.F) resizeBoard();
   await document.fonts?.ready;
   await frameReady;
@@ -378,6 +378,13 @@ function artTexture(name: string): Texture | null {
 }
 /** 읽어 둔 그림 이름 (화면 테스트 · 진단용) */
 const artLoaded = new Set<string>();
+/** 읽어 둔 그림을 내려 놓음 (그래픽 메모리를 돌려줌, 다시 쓰면 artTexture가 새로 읽음) */
+function dropArt(name: string): void {
+  const t = artTex.get(name);
+  artTex.delete(name); artRetry.delete(name); artLoaded.delete(name);
+  for (const [k, sub] of subTex) if (k.startsWith(`${name}#`)) { subTex.delete(k); sub.destroy(false); }
+  t?.destroy(true);
+}
 /** 2D 캔버스로 그려 만든 텍스처. 폰에서 캔버스 내용이 지워지면 (contextrestored) 다시 그려 올림 */
 function canvasTexture(w: number, h: number, draw: (g: CanvasRenderingContext2D) => void): Texture {
   const c = document.createElement('canvas');
@@ -764,6 +771,12 @@ export function resetBoardFx(): void {
   telsSeen = []; telsDone.clear();
   darkAt = null;
   if (B.F) for (const a of bossFxArts(B.F.enc.script)) artTexture(a); // 묶음 H 이펙트 (63 E): 첫 번째부터 보이게
+  // 보스 판 전체 공격 PXF (256px 띠, 하나에 4–6MB): 이 전투에서 나올 수 있는 것만 읽어 두고 다른 전투 것은 내려 놓음
+  const want = new Set((B.F ? bossPxfOf(B.F.enc) : []).map(pxfArtName));
+  for (const k of Object.values(BOSS_PXF)) {
+    const name = pxfArtName(k!);
+    if (want.has(name)) artTexture(name); else if (artTex.has(name)) dropArt(name);
+  }
 }
 /**
  * 기믹 연출 (37 4장 F-1): 칸 반지름 배 크기 · 그림이 없을 때 빛 색 · 길이(ms).
@@ -970,6 +983,8 @@ export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: nu
 /** 스킬 PXF 이펙트 (battle/pxf.ts): 스킬이 들어간 칸에서 맞는 순간부터 끝까지. 파티 전원 스킬은 20인이면 20개라 따로 상한 */
 /** PXF 프레임 띠를 읽어 둠 (못 읽었으면 다시 읽기 시작하고 false) */
 export const pxfReady = (k: PxfKey): boolean => !!artTexture(pxfArtName(k));
+/** 읽어 둔 보스 판 전체 공격 PXF (화면 테스트: 전투마다 그 전투 것만) */
+export const bossPxfLoaded = (): PxfKey[] => Object.values(BOSS_PXF).filter((k): k is PxfKey => !!k && artLoaded.has(pxfArtName(k)));
 /** PXF 이펙트를 재생 (프레임 띠를 아직 못 읽었으면 안 넣고 false: 부른 쪽이 예전 그림 · 공통 치유 빛을 대신 그림) */
 export function fxPxf(u: Unit, pxf: PxfKey, now: number, o: { color?: number; tag?: string; x?: number; y?: number } = {}): boolean {
   if (!L.ok || S.reducedEffects || B2.fx.length >= 100) return false;
@@ -1066,15 +1081,15 @@ function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: numb
 }
 /**
  * 보스 판 전체 공격 PXF (pxf.ts BOSS_PXF) 한 프레임: 캔버스를 판 너비 (세로로 길면 높이)로 키워 판 가운데에, 판 밖으로 나가는 부분은 프레임을 잘라 냄.
- * 칸 그림의 5–6배라 픽셀이 굵게 보임 (Lim 「픽셀 크기를 늘려서」). 층은 다른 PXF처럼 판 맨 위
+ * 띠는 256px 프레임 격자 (Lim 「픽셀 크기를 늘려서」 → 「픽셀이 좀더 디테일」 → 256px). 층은 다른 PXF처럼 판 맨 위
  */
 function pxfWide(k: PxfKey, key: string, ms: number, tint = 0xffffff): void {
   const c = PXF[k], i = pxfFrame(c, ms), tex = i < 0 ? null : artTexture(pxfArtName(k));
   const w = L.right - L.left, h = L.bottom - L.top;
   if (!tex || w <= 0 || h <= 0) return;
   if (tex.source.scaleMode !== 'nearest') tex.source.scaleMode = 'nearest';
-  const px = tex.height / c.size, cr = pxfCrop(c, w, h), x = (L.left + L.right) / 2, y = (L.top + L.bottom) / 2;
-  pxfArt.put(partTex(pxfArtName(k), tex, (i * c.size + cr.x) * px, cr.y * px, cr.w * px, cr.h * px), x, y, w, h, 1, c.gray ? tint : 0xffffff);
+  const px = tex.width / (c.cols * c.size), at = pxfCell(c, i), cr = pxfCrop(c, w, h), x = (L.left + L.right) / 2, y = (L.top + L.bottom) / 2;
+  pxfArt.put(partTex(pxfArtName(k), tex, (at.x + cr.x) * px, (at.y + cr.y) * px, cr.w * px, cr.h * px), x, y, w, h, 1, c.gray ? tint : 0xffffff);
   recordBound(key, 'fx', 'rect', x, y, w, h, { frame: i, tint: c.gray ? tint : undefined });
 }
 /** 그림 이펙트 한 장: 판 밖으로 안 나가게 크기를 줄여 그림. flipX = 좌우 뒤집음 */

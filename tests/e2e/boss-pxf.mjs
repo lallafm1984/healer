@@ -1,10 +1,19 @@
 // 보스 판 전체 공격 PXF (Lim 2026-10-11 「보스의 판 전체 공격 이펙트를 … 이펙트 공방으로 픽셀 크기를 늘려서」):
 // 외침 · 등불 · 땅 울림 · 심장 박동 · 모래 폭풍 · 열기 · 크림 · 조용히 · 문 열림 · 기우는 섬 · 번개 쐐기가 예전 그림 대신 판 너비로 키운 PXF 한 장.
-// 판 사각형 그대로 (판 밖은 프레임을 잘라 냄), 외침은 세력 색을 곱함, 끝나면 사라짐. S25 × 5인 · 20인 판
+// 판 사각형 그대로 (판 밖은 프레임을 잘라 냄), 외침은 세력 색을 곱함, 끝나면 사라짐. S25 × 5인 · 20인 판.
+// 256px 띠라 전투마다 그 전투에서 나올 수 있는 것만 읽어 두고 앞 전투 것은 내려 놓음 (Lim 「256px」)
 import { chromium } from 'playwright';
 import { patchSave, toParty } from './nav.mjs';
 
 const BOARDS = [{ n: 5, tab: 'dungeon', content: 'rustfort' }, { n: 20, tab: 'raid20', content: 'cathedral1' }];
+/** 띠를 다 읽을 때까지 (그림 읽기는 가짜 시계와 상관없이 실제 시간) */
+async function loadPxf(page, keys) {
+  for (let i = 0; i < 200; i++) {
+    if (await page.evaluate(ks => ks.every(k => window.__proto.pxf.ready(k)), keys)) return true;
+    await new Promise(r => setTimeout(r, 25));
+  }
+  return false;
+}
 
 export default async function bossPxf(url, shots) {
   const browser = await chromium.launch();
@@ -24,7 +33,12 @@ export default async function bossPxf(url, shots) {
       await page.click('#depart'); await page.clock.runFor(6500);
       const boss = await page.evaluate(() => { window.__proto.F.skills.forEach(k => { k.next = Infinity; }); return Object.entries(window.__proto.pxf.boss); });
       ok(boss.length === 11, `${b.n}인: 보스 판 전체 공격 PXF ${boss.length}가지`);
+      const want = (await page.evaluate(() => window.__proto.pxf.bossWant())).sort();
+      ok(await loadPxf(page, want), `${b.n}인: 이 전투 것 ${want.join(' · ') || '없음'} 읽음`);
+      const loaded = (await page.evaluate(() => window.__proto.pxf.bossLoaded())).sort();
+      ok(JSON.stringify(loaded) === JSON.stringify(want), `${b.n}인: 보스 판 전체 공격은 이 전투 것만 읽어 둠 (${loaded.length}가지, 앞 전투 것은 내려 놓음)`, { loaded, want });
       for (const [name, fx] of boss) {
+        ok(await loadPxf(page, [fx]), `${b.n}인 ${name}: ${fx} 띠 읽음`);
         const rect = await page.evaluate(name => {
           const F = window.__proto.F;
           F.bossHp = F.bossMax; for (const x of [...F.party, ...F.mobs]) if (x.alive !== false) x.hp = x.max;
