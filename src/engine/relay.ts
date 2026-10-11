@@ -7,7 +7,7 @@ import { RELAY } from '../data/heroConst';
 import { SKILLS } from '../data/skills';
 import { hexDist } from './board';
 import { cellOf, emit, heal, living } from './core';
-import { fillWords } from './healer';
+import { fillWords, noteUsed } from './healer';
 import { under } from './specials';
 import type { Fight, Unit } from './types';
 
@@ -30,6 +30,7 @@ export function relayHurt(f: Fight, u: Unit): void {
   if (shy(f, u)) { fly(f, u); return; } // 깃든 뒤 힐하면 손해인 상태가 됨: 회복하지 않고 옮겨 감
   const amt = SKILLS.relay.amt!;
   if (f.sp) under('relay', false, () => heal(f, u, amt, true)); else heal(f, u, amt, true);
+  noteUsed(f, 'relay', u.id); // 회복할 때마다 빛의 전이 이펙트 (공통 치유 빛 대신)
   fillWords(f, 0, RELAY.gs);
   if (--d.left <= 0) { gone(f, u); return; }
   fly(f, u);

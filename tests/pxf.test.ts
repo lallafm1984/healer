@@ -6,6 +6,7 @@ import type { SkillKey } from '../src/data/skills';
 import { ALLY_PXF, COMMON_PXF, PXF, pxfArtName, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, type CommonFx, type PxfKey } from '../src/battle/pxf';
 import { AB_KIND, type AbKind } from '../src/data/abilities';
 import * as E from '../src/engine';
+import { damage } from '../src/engine/core';
 
 const graph = (name: string) => JSON.parse(readFileSync(new URL(`../src/art/pxf/${name}.pxf.json`, import.meta.url), 'utf8'));
 /** PNG 머리 (IHDR)의 가로 · 세로 */
@@ -53,6 +54,25 @@ describe('직업별 휠 스킬', () => {
   it('스킬마다 다른 이펙트', () => {
     const fx = Object.values(SKILL_PXF).map(s => s!.fx);
     expect(new Set(fx).size).toBe(fx.length);
+  });
+});
+
+describe('모양 표 (Lim 2026-10-11 「스킬별로 이펙트가 달라야 하는데 중복되는 게 있다」)', () => {
+  /** requests.md 「모양 표」: | 이름 | 모양 | 이름 | 모양 | 두 쌍씩 */
+  const table = () => {
+    const md = readFileSync(new URL('../src/art/pxf/requests.md', import.meta.url), 'utf8');
+    const sec = md.split('## 모양 표')[1]?.split('\n## ')[0] ?? '';
+    const rows = sec.split('\n').filter(l => l.startsWith('| ') && !l.startsWith('| 이름') && !l.startsWith('|---'));
+    return rows.flatMap(l => {
+      const c = l.split('|').slice(1, -1).map(x => x.trim());
+      return [[c[0], c[1]], [c[2], c[3]]].filter(([n]) => n).map(([n, m]) => ({ name: n.split(' ')[0], shape: m }));
+    });
+  };
+  it('PXF 이펙트마다 한 줄씩, 모양은 모두 다름 (새 이펙트는 표에 없는 모양으로)', () => {
+    const t = table();
+    expect(t.map(x => x.name).sort()).toEqual([...KEYS].sort());
+    const shapes = t.map(x => x.shape.replace(/ \(.*\)$/, ''));
+    expect(shapes.filter((x, i) => shapes.indexOf(x) !== i)).toEqual([]);
   });
 });
 
@@ -116,6 +136,39 @@ describe('엔진: 스킬이 들어간 순간 (Fight.used)', () => {
     expect(E.use(f, 'hymn', f.me.cell).ok).toBe(true);
     expect(f.used).toEqual([{ key: 'hymn', uid: f.me.id }]);
     expect(pxfTargets(f, 'heal', f.me.id).map(u => u.id)).toEqual([f.me.id]);
+  });
+
+  it('정신 집중 동안 1초마다 그 스킬로 다시 (찬가 · 고요한 숲 회복이 공통 치유 빛 대신 스킬 이펙트)', () => {
+    for (const [hero, key] of [['priest', 'hymn'], ['druid', 'quietwood']] as const) {
+      const f = E.create({ encounter: 'warden', diff: '보통', seed: 7, level: 20, hero });
+      f.skills.forEach(k => { k.next = Infinity; });
+      expect(E.use(f, key, f.me.cell).ok, hero).toBe(true);
+      f.used!.length = 0;
+      const ticks: boolean[] = [];
+      for (let i = 0; i < 200 && f.channel > 0; i++) {
+        f.events.length = 0;
+        E.step(f);
+        for (const x of f.used?.splice(0) ?? []) {
+          expect(x, hero).toEqual({ key, uid: f.me.id });
+          ticks.push(E.living(f).every(u => f.events.some(e => e.type === 'heal' && e.id === u.id)));
+        }
+      }
+      expect(ticks, hero).toEqual([true, true, true, true]); // 4초 정신 집중 = 4번, 그때마다 파티 전원 치유 사건
+    }
+  });
+
+  it('빛의 전이: 빛이 깃든 사람이 회복할 때마다 그 칸에 다시', () => {
+    const f = E.create({ encounter: 'warden', diff: '보통', seed: 7, level: 100, hero: 'priest' });
+    f.skills.forEach(k => { k.next = Infinity; });
+    const t = f.party.find(u => u.role === 'tank')!;
+    expect(E.use(f, 'relay', t.cell).ok).toBe(true);
+    for (let n = 0; f.gcd > 0 && n < 200; n++) E.step(f);
+    f.used!.length = 0; f.events.length = 0;
+    t.hp = t.max * 0.8;
+    f.relay!.flyUntil = f.t;
+    damage(f, t, 300);
+    expect(f.used).toEqual([{ key: 'relay', uid: t.id }]);
+    expect(f.events.some(e => e.type === 'heal' && e.id === t.id)).toBe(true);
   });
 
   it('범위 스킬은 대상과 붙어 있는 아군 칸마다', () => {

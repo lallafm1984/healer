@@ -1,6 +1,6 @@
 {
   "format": "pxf.graph@1",
-  "name": "성기사 보호의 손",
+  "name": "보호의 손 도는 팔각 봉인",
   "settings": {
     "size": 64,
     "frames": 24,
@@ -9,54 +9,12 @@
   },
   "nodes": [
     {
-      "id": "rimDark",
+      "id": "sqA",
       "type": "Shape",
       "x": 40,
       "y": 40,
       "params": {
-        "shape": "ring",
-        "x": 0.5,
-        "y": 0.5,
-        "size": {
-          "k": [
-            [
-              0,
-              9,
-              "out3"
-            ],
-            [
-              2,
-              27.5,
-              "inout"
-            ],
-            [
-              4,
-              26,
-              "out"
-            ],
-            [
-              16,
-              26.5,
-              "linear"
-            ],
-            [
-              23,
-              27.5
-            ]
-          ]
-        },
-        "size2": 0.16,
-        "falloff": 0,
-        "intensity": 0.15
-      }
-    },
-    {
-      "id": "rim",
-      "type": "Shape",
-      "x": 40,
-      "y": 200,
-      "params": {
-        "shape": "ring",
+        "shape": "square",
         "x": 0.5,
         "y": 0.5,
         "size": {
@@ -68,74 +26,236 @@
             ],
             [
               2,
-              26.5,
-              "inout"
+              19,
+              "out"
             ],
             [
               4,
-              25,
+              17.5,
+              "linear"
+            ],
+            [
+              16,
+              17.5,
+              "in"
+            ],
+            [
+              21,
+              0
+            ]
+          ]
+        },
+        "rot": {
+          "k": [
+            [
+              0,
+              -20,
               "out"
             ],
             [
               16,
-              25.5,
-              "linear"
+              30,
+              "in"
             ],
             [
-              23,
-              26.5
+              22,
+              90
             ]
           ]
         },
-        "size2": 0.1,
+        "stroke": 2.2,
         "falloff": 0,
         "intensity": {
           "k": [
             [
               0,
-              0.95,
-              "linear"
+              1
             ],
             [
               3,
-              0.72,
+              1,
               "linear"
             ],
             [
               6,
-              0.72,
-              "linear"
-            ],
-            [
-              7,
-              0.95,
-              "linear"
-            ],
-            [
-              8,
-              0.72,
-              "linear"
-            ],
-            [
-              12,
-              0.72,
-              "linear"
-            ],
-            [
-              13,
-              0.95,
-              "linear"
-            ],
-            [
-              14,
-              0.72
+              0.55
             ]
           ]
         }
       }
     },
     {
-      "id": "b1",
+      "id": "sqB",
+      "type": "Shape",
+      "x": 40,
+      "y": 210,
+      "params": {
+        "shape": "square",
+        "x": 0.5,
+        "y": 0.5,
+        "size": {
+          "k": [
+            [
+              0,
+              8,
+              "out3"
+            ],
+            [
+              2,
+              19,
+              "out"
+            ],
+            [
+              4,
+              17.5,
+              "linear"
+            ],
+            [
+              17,
+              17.5,
+              "in"
+            ],
+            [
+              22,
+              0
+            ]
+          ]
+        },
+        "rot": {
+          "k": [
+            [
+              0,
+              25,
+              "out"
+            ],
+            [
+              16,
+              75,
+              "in"
+            ],
+            [
+              22,
+              135
+            ]
+          ]
+        },
+        "stroke": 2.2,
+        "falloff": 0,
+        "intensity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              3,
+              1,
+              "linear"
+            ],
+            [
+              6,
+              0.7
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "twink",
+      "type": "Shape",
+      "x": 40,
+      "y": 380,
+      "params": {
+        "shape": "star",
+        "x": 0.5,
+        "y": 0.125,
+        "points": 4,
+        "size2": 0.35,
+        "size": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              "out"
+            ],
+            [
+              4,
+              3.5,
+              "in"
+            ],
+            [
+              8,
+              1
+            ]
+          ]
+        },
+        "intensity": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              "linear"
+            ],
+            [
+              4,
+              1,
+              "linear"
+            ],
+            [
+              6,
+              0.9,
+              "linear"
+            ],
+            [
+              8,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "eight",
+      "type": "Repeat",
+      "x": 270,
+      "y": 380,
+      "params": {
+        "count": 8,
+        "px": 0.5,
+        "py": 0.5,
+        "angle0": {
+          "k": [
+            [
+              0,
+              -20,
+              "out"
+            ],
+            [
+              16,
+              30,
+              "in"
+            ],
+            [
+              22,
+              90
+            ]
+          ]
+        },
+        "angleStep": 45,
+        "delay": 1.2,
+        "mode": "max"
+      }
+    },
+    {
+      "id": "seal",
       "type": "Blend",
       "x": 270,
       "y": 40,
@@ -145,87 +265,7 @@
       }
     },
     {
-      "id": "film",
-      "type": "Shape",
-      "x": 40,
-      "y": 360,
-      "params": {
-        "shape": "ring",
-        "x": 0.5,
-        "y": 0.5,
-        "size": {
-          "k": [
-            [
-              0,
-              5,
-              "out3"
-            ],
-            [
-              2,
-              23.5,
-              "inout"
-            ],
-            [
-              4,
-              22,
-              "out"
-            ],
-            [
-              16,
-              22.5,
-              "linear"
-            ],
-            [
-              23,
-              23.5
-            ]
-          ]
-        },
-        "size2": 0.32,
-        "falloff": 0,
-        "intensity": {
-          "k": [
-            [
-              0,
-              0,
-              "linear"
-            ],
-            [
-              2,
-              0.4,
-              "linear"
-            ],
-            [
-              5,
-              0.28,
-              "linear"
-            ],
-            [
-              12,
-              0.25,
-              "in"
-            ],
-            [
-              18,
-              0
-            ]
-          ]
-        }
-      }
-    },
-    {
-      "id": "dith",
-      "type": "Dither",
-      "x": 270,
-      "y": 360,
-      "params": {
-        "levels": 3,
-        "pattern": "bayer4",
-        "strength": 1
-      }
-    },
-    {
-      "id": "b2",
+      "id": "m1",
       "type": "Blend",
       "x": 500,
       "y": 40,
@@ -235,148 +275,42 @@
       }
     },
     {
-      "id": "shine",
-      "type": "Arc",
-      "x": 40,
-      "y": 520,
-      "params": {
-        "x": 0.5,
-        "y": 0.5,
-        "radius": {
-          "k": [
-            [
-              0,
-              3,
-              "out3"
-            ],
-            [
-              2,
-              21.5,
-              "inout"
-            ],
-            [
-              4,
-              20,
-              "out"
-            ],
-            [
-              16,
-              20.5,
-              "linear"
-            ],
-            [
-              23,
-              21.5
-            ]
-          ]
-        },
-        "thick": 3,
-        "start": -160,
-        "sweep": 55,
-        "head": 1,
-        "tail": 1,
-        "taper": 0.6,
-        "aspect": 1,
-        "rot": 0,
-        "intensity": 0.95
-      }
-    },
-    {
-      "id": "b3",
-      "type": "Blend",
+      "id": "pal",
+      "type": "Palette",
       "x": 730,
       "y": 40,
       "params": {
-        "mode": "max",
-        "opacity": 1
-      }
-    },
-    {
-      "id": "glint",
-      "type": "Shape",
-      "x": 40,
-      "y": 680,
-      "params": {
-        "shape": "star",
-        "x": 0.306,
-        "y": 0.285,
-        "points": 4,
-        "size2": 0.25,
-        "size": {
-          "k": [
-            [
-              0,
-              0,
-              "linear"
-            ],
-            [
-              6,
-              0,
-              "out"
-            ],
-            [
-              7,
-              5,
-              "in"
-            ],
-            [
-              9,
-              0,
-              "linear"
-            ],
-            [
-              12,
-              0,
-              "out"
-            ],
-            [
-              13,
-              5,
-              "in"
-            ],
-            [
-              15,
-              0
-            ]
-          ]
-        },
-        "falloff": 0,
-        "intensity": 1
-      }
-    },
-    {
-      "id": "b4",
-      "type": "Blend",
-      "x": 960,
-      "y": 40,
-      "params": {
-        "mode": "max",
-        "opacity": 1
-      }
-    },
-    {
-      "id": "color",
-      "type": "Palette",
-      "x": 1190,
-      "y": 40,
-      "params": {
         "colors": [
-          "#4a2a08",
-          "#b0701a",
-          "#f0b83a",
-          "#ffe489",
+          "#6e3e10",
+          "#c27420",
+          "#f0b440",
+          "#ffe08a",
           "#fffbe8"
         ],
         "cutoff": 0.06,
+        "shift": 0,
         "mode": "bands",
         "key": "alpha",
         "opacity": 1
       }
     },
     {
+      "id": "rim",
+      "type": "Outline",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "color": "#3a2008",
+        "threshold": 0.5,
+        "width": 1,
+        "corners": false,
+        "mode": "outer"
+      }
+    },
+    {
       "id": "fade",
       "type": "Tint",
-      "x": 1420,
+      "x": 1190,
       "y": 40,
       "params": {
         "color": "#ffffff",
@@ -386,16 +320,10 @@
           "k": [
             [
               0,
-              0,
-              "linear"
+              1
             ],
             [
-              1,
-              1,
-              "linear"
-            ],
-            [
-              15,
+              17,
               1,
               "in"
             ],
@@ -410,7 +338,7 @@
     {
       "id": "out",
       "type": "Output",
-      "x": 1650,
+      "x": 1420,
       "y": 40,
       "params": {
         "alpha": "soft",
@@ -420,57 +348,42 @@
   ],
   "links": [
     {
-      "f": "rimDark",
-      "t": "b1",
+      "f": "sqA",
+      "t": "seal",
+      "p": 0
+    },
+    {
+      "f": "sqB",
+      "t": "seal",
+      "p": 1
+    },
+    {
+      "f": "twink",
+      "t": "eight",
+      "p": 0
+    },
+    {
+      "f": "seal",
+      "t": "m1",
+      "p": 0
+    },
+    {
+      "f": "eight",
+      "t": "m1",
+      "p": 1
+    },
+    {
+      "f": "m1",
+      "t": "pal",
+      "p": 0
+    },
+    {
+      "f": "pal",
+      "t": "rim",
       "p": 0
     },
     {
       "f": "rim",
-      "t": "b1",
-      "p": 1
-    },
-    {
-      "f": "film",
-      "t": "dith",
-      "p": 0
-    },
-    {
-      "f": "b1",
-      "t": "b2",
-      "p": 0
-    },
-    {
-      "f": "dith",
-      "t": "b2",
-      "p": 1
-    },
-    {
-      "f": "b2",
-      "t": "b3",
-      "p": 0
-    },
-    {
-      "f": "shine",
-      "t": "b3",
-      "p": 1
-    },
-    {
-      "f": "b3",
-      "t": "b4",
-      "p": 0
-    },
-    {
-      "f": "glint",
-      "t": "b4",
-      "p": 1
-    },
-    {
-      "f": "b4",
-      "t": "color",
-      "p": 0
-    },
-    {
-      "f": "color",
       "t": "fade",
       "p": 0
     },

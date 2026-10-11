@@ -1,6 +1,6 @@
 {
   "format": "pxf.graph@1",
-  "name": "사제 소생 나선 빛방울",
+  "name": "소생 감아 오르는 이중 나선",
   "settings": {
     "size": 64,
     "frames": 24,
@@ -9,7 +9,7 @@
   },
   "nodes": [
     {
-      "id": "dropA",
+      "id": "beadA",
       "type": "Shape",
       "x": 40,
       "y": 40,
@@ -24,23 +24,17 @@
             ],
             [
               3,
-              0.69,
-              "in"
+              0.71,
+              "inout"
             ],
             [
-              7,
-              0.5,
-              "out"
+              8,
+              0.29,
+              "inout"
             ],
             [
-              10,
-              0.32,
-              "in"
-            ],
-            [
-              14,
-              0.5,
-              "linear"
+              13,
+              0.71
             ]
           ]
         },
@@ -48,13 +42,12 @@
           "k": [
             [
               0,
-              0.84,
+              0.86,
               "linear"
             ],
             [
-              14,
-              0.28,
-              "linear"
+              13,
+              0.17
             ]
           ]
         },
@@ -67,263 +60,214 @@
             ],
             [
               1,
-              2.2,
-              "linear"
+              2.5,
+              "inout"
             ],
             [
-              12,
-              1.8,
-              "in"
+              5.5,
+              1.4,
+              "inout"
             ],
             [
-              14,
-              0,
-              "linear"
-            ]
-          ]
-        },
-        "intensity": 0.95
-      }
-    },
-    {
-      "id": "trailA",
-      "type": "Repeat",
-      "x": 270,
-      "y": 40,
-      "params": {
-        "count": 4,
-        "px": 0.5,
-        "py": 0.5,
-        "angle0": 0,
-        "angleStep": 0,
-        "delay": 3,
-        "fadeStep": 0.12,
-        "scaleStep": 0.08,
-        "mode": "max"
-      }
-    },
-    {
-      "id": "dropB",
-      "type": "Shape",
-      "x": 40,
-      "y": 200,
-      "params": {
-        "shape": "circle",
-        "x": {
-          "k": [
-            [
-              0,
-              0.5,
-              "out"
-            ],
-            [
-              3,
-              0.31,
-              "in"
-            ],
-            [
-              7,
-              0.5,
-              "out"
-            ],
-            [
-              10,
-              0.68,
-              "in"
-            ],
-            [
-              14,
-              0.5,
-              "linear"
-            ]
-          ]
-        },
-        "y": {
-          "k": [
-            [
-              0,
-              0.84,
-              "linear"
-            ],
-            [
-              14,
-              0.28,
-              "linear"
-            ]
-          ]
-        },
-        "size": {
-          "k": [
-            [
-              0,
-              0,
-              "out"
-            ],
-            [
-              1,
-              2,
-              "linear"
-            ],
-            [
-              12,
-              1.6,
-              "in"
-            ],
-            [
-              14,
-              0,
-              "linear"
-            ]
-          ]
-        },
-        "intensity": 0.62
-      }
-    },
-    {
-      "id": "trailB",
-      "type": "Repeat",
-      "x": 270,
-      "y": 200,
-      "params": {
-        "count": 4,
-        "px": 0.5,
-        "py": 0.5,
-        "angle0": 0,
-        "angleStep": 0,
-        "delay": 3,
-        "fadeStep": 0.12,
-        "scaleStep": 0.08,
-        "mode": "max"
-      }
-    },
-    {
-      "id": "base",
-      "type": "Shape",
-      "x": 40,
-      "y": 360,
-      "params": {
-        "shape": "ring",
-        "x": 0.5,
-        "y": 0.84,
-        "size": {
-          "k": [
-            [
-              0,
-              4,
-              "out"
-            ],
-            [
-              3,
-              10,
-              "linear"
-            ],
-            [
-              10,
-              12,
-              "in"
-            ],
-            [
-              14,
-              13,
-              "linear"
-            ]
-          ]
-        },
-        "size2": {
-          "k": [
-            [
-              0,
-              0.32,
-              "linear"
-            ],
-            [
-              7,
-              0.28,
+              10.5,
+              2.5,
               "in"
             ],
             [
               13,
-              0.02,
-              "linear"
+              0
             ]
           ]
         },
-        "aspect": 0.35,
-        "intensity": 0.42
-      }
-    },
-    {
-      "id": "ring",
-      "type": "Shape",
-      "x": 40,
-      "y": 520,
-      "params": {
-        "shape": "ring",
-        "x": 0.5,
-        "y": 0.47,
-        "size": {
-          "k": [
-            [
-              3,
-              12,
-              "out"
-            ],
-            [
-              9,
-              20,
-              "linear"
-            ],
-            [
-              20,
-              22,
-              "linear"
-            ]
-          ]
-        },
-        "size2": {
-          "k": [
-            [
-              3,
-              0.2,
-              "linear"
-            ],
-            [
-              12,
-              0.13,
-              "in"
-            ],
-            [
-              19,
-              0.02,
-              "linear"
-            ]
-          ]
-        },
-        "aspect": 0.34,
+        "falloff": 0.35,
         "intensity": {
           "k": [
             [
               0,
-              0,
-              "linear"
+              1
             ],
             [
-              2,
-              0,
-              "linear"
+              1,
+              1,
+              "inout"
             ],
             [
-              4,
-              0.72,
-              "linear"
+              5.5,
+              0.74,
+              "inout"
             ],
             [
-              23,
-              0.72,
-              "linear"
+              10.5,
+              1
             ]
           ]
         }
+      }
+    },
+    {
+      "id": "beadB",
+      "type": "Shape",
+      "x": 40,
+      "y": 210,
+      "params": {
+        "shape": "circle",
+        "x": {
+          "k": [
+            [
+              0,
+              0.5,
+              "out"
+            ],
+            [
+              3,
+              0.29,
+              "inout"
+            ],
+            [
+              8,
+              0.71,
+              "inout"
+            ],
+            [
+              13,
+              0.29
+            ]
+          ]
+        },
+        "y": {
+          "k": [
+            [
+              0,
+              0.86,
+              "linear"
+            ],
+            [
+              13,
+              0.17
+            ]
+          ]
+        },
+        "size": {
+          "k": [
+            [
+              0,
+              0,
+              "out"
+            ],
+            [
+              1,
+              1.4,
+              "inout"
+            ],
+            [
+              5.5,
+              2.5,
+              "inout"
+            ],
+            [
+              10.5,
+              1.4,
+              "in"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        },
+        "falloff": 0.35,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.46
+            ],
+            [
+              1,
+              0.46,
+              "inout"
+            ],
+            [
+              5.5,
+              0.62,
+              "inout"
+            ],
+            [
+              10.5,
+              0.46
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "strandA",
+      "type": "Repeat",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "count": 9,
+        "px": 0.5,
+        "py": 0.5,
+        "delay": 1.2,
+        "mode": "max",
+        "layout": "step",
+        "dx": 0,
+        "dy": 0,
+        "angleStep": 0,
+        "scaleStep": 0,
+        "fadeStep": 0,
+        "seed": 1
+      }
+    },
+    {
+      "id": "strandB",
+      "type": "Repeat",
+      "x": 270,
+      "y": 210,
+      "params": {
+        "count": 9,
+        "px": 0.5,
+        "py": 0.5,
+        "delay": 1.2,
+        "mode": "max",
+        "layout": "step",
+        "dx": 0,
+        "dy": 0,
+        "angleStep": 0,
+        "scaleStep": 0,
+        "fadeStep": 0,
+        "seed": 1
+      }
+    },
+    {
+      "id": "top",
+      "type": "Particles",
+      "x": 40,
+      "y": 380,
+      "params": {
+        "count": 3,
+        "seed": 727,
+        "emit": "burst",
+        "start": 0.54,
+        "life": 0.33,
+        "lifeVar": 0.2,
+        "area": "point",
+        "x": 0.5,
+        "y": 0.17,
+        "aw": 2,
+        "ah": 2,
+        "dirMode": "outward",
+        "spread": 360,
+        "speed": 0.8,
+        "speedVar": 0.3,
+        "drag": 0.05,
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "square",
+        "fade": "out",
+        "bright": 1,
+        "loop": false
       }
     },
     {
@@ -347,28 +291,20 @@
       }
     },
     {
-      "id": "b3",
-      "type": "Blend",
+      "id": "color",
+      "type": "Palette",
       "x": 960,
       "y": 40,
       "params": {
-        "mode": "max",
-        "opacity": 1
-      }
-    },
-    {
-      "id": "color",
-      "type": "Palette",
-      "x": 1190,
-      "y": 40,
-      "params": {
         "colors": [
-          "#3d6b22",
-          "#dcb444",
-          "#92e070",
-          "#ecffd6"
+          "#1d2a5c",
+          "#4fa6e8",
+          "#9fd8ff",
+          "#fff4dc",
+          "#ffffff"
         ],
-        "cutoff": 0.1,
+        "cutoff": 0.08,
+        "shift": 0,
         "mode": "bands",
         "key": "alpha",
         "opacity": 1
@@ -377,38 +313,39 @@
     {
       "id": "rim",
       "type": "Outline",
-      "x": 1420,
+      "x": 1190,
       "y": 40,
       "params": {
-        "color": "#1f3514",
+        "color": "#1d2a5c",
         "threshold": 0.5,
         "width": 1,
+        "corners": false,
         "mode": "outer"
       }
     },
     {
       "id": "fade",
       "type": "Tint",
-      "x": 1650,
+      "x": 1420,
       "y": 40,
       "params": {
+        "color": "#ffffff",
         "amount": 0,
+        "bright": 1,
         "opacity": {
           "k": [
             [
               0,
-              1,
-              "linear"
+              1
             ],
             [
-              16,
+              18,
               1,
               "in"
             ],
             [
               23,
-              0,
-              "linear"
+              0
             ]
           ]
         }
@@ -417,7 +354,7 @@
     {
       "id": "out",
       "type": "Output",
-      "x": 1880,
+      "x": 1650,
       "y": 40,
       "params": {
         "alpha": "soft",
@@ -427,22 +364,22 @@
   ],
   "links": [
     {
-      "f": "dropA",
-      "t": "trailA",
+      "f": "beadA",
+      "t": "strandA",
       "p": 0
     },
     {
-      "f": "dropB",
-      "t": "trailB",
+      "f": "beadB",
+      "t": "strandB",
       "p": 0
     },
     {
-      "f": "trailA",
+      "f": "strandB",
       "t": "b1",
       "p": 0
     },
     {
-      "f": "trailB",
+      "f": "strandA",
       "t": "b1",
       "p": 1
     },
@@ -452,22 +389,12 @@
       "p": 0
     },
     {
-      "f": "base",
+      "f": "top",
       "t": "b2",
       "p": 1
     },
     {
       "f": "b2",
-      "t": "b3",
-      "p": 0
-    },
-    {
-      "f": "ring",
-      "t": "b3",
-      "p": 1
-    },
-    {
-      "f": "b3",
       "t": "color",
       "p": 0
     },

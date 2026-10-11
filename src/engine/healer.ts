@@ -134,7 +134,8 @@ function countUse(f: Fight, rc: Debuff | undefined): void {
 
 /** 화면 이펙트용 기록 (Fight.used) 상한: 비우지 않는 시뮬레이션에서 끝없이 쌓이지 않게 */
 const USED_MAX = 32;
-function noteUsed(f: Fight, key: SkillKey, uid: number): void {
+/** 화면이 이 칸에 그 스킬 이펙트를 그림 (공통 치유 빛 대신). 쓰는 순간 · 정신 집중 1초마다 · 빛의 전이 회복마다 */
+export function noteUsed(f: Fight, key: SkillKey, uid: number): void {
   const used = (f.used ??= []);
   if (used.length < USED_MAX) used.push({ key, uid });
 }
@@ -246,6 +247,7 @@ export function healerTick(f: Fight): void {
       f.chTick -= 1;
       const tick = () => { if (f.hero === 'priest') { for (const u of living(f)) heal(f, u, 120, true); } else heroChannelTick(f); };
       if (f.sp) under(HEROES[f.hero].slots.raid!, false, tick); else tick();
+      noteUsed(f, HEROES[f.hero].slots.raid!, f.me.id); // 찬가 · 고요한 숲: 1초마다 그 스킬 이펙트 (Lim 「스킬별로 이펙트가 달라야」)
     }
     if (f.channel <= 1e-9 && f.sp && f.hero === 'priest' && sv(f, 'hymnBreath')) { f.channel = 0; f.mana = Math.min(100, f.mana + sv(f, 'hymnBreath')); } // 찬가의 숨결 (42 사제 07)
     // 찬가의 끝자락: 끊기지 않고 끝나면 전원 6초 지속 힐 120
