@@ -1,0 +1,633 @@
+{
+  "format": "pxf.graph@1",
+  "name": "보스 녹는 열기 아지랑이 (판 전체)",
+  "settings": {
+    "size": 64,
+    "frames": 22,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "h0",
+      "type": "Stroke",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "x0": 0.16,
+        "y0": 1.08,
+        "x1": 0.26,
+        "y1": 0.72,
+        "x2": 0.06,
+        "y2": 0.36,
+        "x3": 0.16,
+        "y3": -0.02,
+        "width": 3.5,
+        "taper": 0.7,
+        "from": {
+          "k": [
+            [
+              0,
+              0,
+              "in"
+            ],
+            [
+              13,
+              1
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              0,
+              0.418,
+              "out"
+            ],
+            [
+              4,
+              0.62,
+              "linear"
+            ],
+            [
+              12,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 0.95,
+        "vM": 0.75,
+        "vB": 0.4,
+        "intensity": 1.0
+      }
+    },
+    {
+      "id": "h1",
+      "type": "Stroke",
+      "x": 40,
+      "y": 210,
+      "params": {
+        "x0": 0.29,
+        "y0": 1.08,
+        "x1": 0.17,
+        "y1": 0.72,
+        "x2": 0.41,
+        "y2": 0.36,
+        "x3": 0.29,
+        "y3": -0.02,
+        "width": 3.0,
+        "taper": 0.7,
+        "from": {
+          "k": [
+            [
+              3,
+              0,
+              "in"
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              0,
+              0,
+              "out"
+            ],
+            [
+              7,
+              0.62,
+              "linear"
+            ],
+            [
+              15,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 0.95,
+        "vM": 0.75,
+        "vB": 0.4,
+        "intensity": 0.9
+      }
+    },
+    {
+      "id": "h2",
+      "type": "Stroke",
+      "x": 40,
+      "y": 380,
+      "params": {
+        "x0": 0.42,
+        "y0": 1.08,
+        "x1": 0.54,
+        "y1": 0.72,
+        "x2": 0.3,
+        "y2": 0.36,
+        "x3": 0.42,
+        "y3": -0.02,
+        "width": 3.5,
+        "taper": 0.7,
+        "from": {
+          "k": [
+            [
+              1,
+              0,
+              "in"
+            ],
+            [
+              14,
+              1
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              0,
+              0.304,
+              "out"
+            ],
+            [
+              5,
+              0.62,
+              "linear"
+            ],
+            [
+              13,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 0.95,
+        "vM": 0.75,
+        "vB": 0.4,
+        "intensity": 1.0
+      }
+    },
+    {
+      "id": "h3",
+      "type": "Stroke",
+      "x": 40,
+      "y": 550,
+      "params": {
+        "x0": 0.56,
+        "y0": 1.08,
+        "x1": 0.46,
+        "y1": 0.72,
+        "x2": 0.66,
+        "y2": 0.36,
+        "x3": 0.56,
+        "y3": -0.02,
+        "width": 3.0,
+        "taper": 0.7,
+        "from": {
+          "k": [
+            [
+              4,
+              0,
+              "in"
+            ],
+            [
+              17,
+              1
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              1,
+              0,
+              "out"
+            ],
+            [
+              8,
+              0.62,
+              "linear"
+            ],
+            [
+              16,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 0.95,
+        "vM": 0.75,
+        "vB": 0.4,
+        "intensity": 0.95
+      }
+    },
+    {
+      "id": "h4",
+      "type": "Stroke",
+      "x": 40,
+      "y": 720,
+      "params": {
+        "x0": 0.69,
+        "y0": 1.08,
+        "x1": 0.81,
+        "y1": 0.72,
+        "x2": 0.57,
+        "y2": 0.36,
+        "x3": 0.69,
+        "y3": -0.02,
+        "width": 3.5,
+        "taper": 0.7,
+        "from": {
+          "k": [
+            [
+              2,
+              0,
+              "in"
+            ],
+            [
+              15,
+              1
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              0,
+              0.164,
+              "out"
+            ],
+            [
+              6,
+              0.62,
+              "linear"
+            ],
+            [
+              14,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 0.95,
+        "vM": 0.75,
+        "vB": 0.4,
+        "intensity": 1.0
+      }
+    },
+    {
+      "id": "h5",
+      "type": "Stroke",
+      "x": 40,
+      "y": 890,
+      "params": {
+        "x0": 0.83,
+        "y0": 1.08,
+        "x1": 0.71,
+        "y1": 0.72,
+        "x2": 0.95,
+        "y2": 0.36,
+        "x3": 0.83,
+        "y3": -0.02,
+        "width": 3.0,
+        "taper": 0.7,
+        "from": {
+          "k": [
+            [
+              5,
+              0,
+              "in"
+            ],
+            [
+              18,
+              1
+            ]
+          ]
+        },
+        "to": {
+          "k": [
+            [
+              2,
+              0,
+              "out"
+            ],
+            [
+              9,
+              0.62,
+              "linear"
+            ],
+            [
+              17,
+              1
+            ]
+          ]
+        },
+        "span": true,
+        "vA": 0.95,
+        "vM": 0.75,
+        "vB": 0.4,
+        "intensity": 0.9
+      }
+    },
+    {
+      "id": "l1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "l2",
+      "type": "Blend",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "l3",
+      "type": "Blend",
+      "x": 730,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "l4",
+      "type": "Blend",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "l5",
+      "type": "Blend",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "wob",
+      "type": "Noise",
+      "x": 1420,
+      "y": 380,
+      "params": {
+        "type": "fbm",
+        "scaleX": 2,
+        "scaleY": 4,
+        "octaves": 1,
+        "seed": 2718,
+        "scrollX": 0,
+        "scrollY": 2,
+        "contrast": 1.4,
+        "bias": 0
+      }
+    },
+    {
+      "id": "haze",
+      "type": "Displace",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "mode": "dir",
+        "amount": 6,
+        "angle": 0,
+        "center": 0.5,
+        "cx": 0.5,
+        "cy": 0.5
+      }
+    },
+    {
+      "id": "embers",
+      "type": "Particles",
+      "x": 1650,
+      "y": 380,
+      "params": {
+        "count": 20,
+        "seed": 9031,
+        "emit": "stream",
+        "start": 0,
+        "span": 0.6,
+        "life": 0.35,
+        "lifeVar": 0.3,
+        "area": "box",
+        "x": 0.5,
+        "y": 0.84,
+        "aw": 50,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 30,
+        "speed": 2.4,
+        "speedVar": 0.4,
+        "gravity": -0.05,
+        "drag": 0,
+        "turb": 1.0,
+        "sizeA": 4,
+        "sizeB": 3,
+        "pshape": "square",
+        "fade": "flat",
+        "bright": 0.8,
+        "brightVar": 0.3,
+        "loop": false
+      }
+    },
+    {
+      "id": "e1",
+      "type": "Blend",
+      "x": 1880,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 2340,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#3d140b",
+          "#b52d1a",
+          "#f0701e",
+          "#ffd54a"
+        ],
+        "cutoff": 0.06,
+        "mode": "bands",
+        "key": "alpha",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 2570,
+      "y": 40,
+      "params": {
+        "color": "#2a0c06",
+        "threshold": 0.5,
+        "width": 1,
+        "corners": false,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 2800,
+      "y": 40,
+      "params": {
+        "color": "#ffffff",
+        "amount": 0,
+        "bright": 1,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1,
+              "linear"
+            ],
+            [
+              14,
+              1,
+              "in"
+            ],
+            [
+              21,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 3030,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "h0",
+      "t": "l1",
+      "p": 0
+    },
+    {
+      "f": "h1",
+      "t": "l1",
+      "p": 1
+    },
+    {
+      "f": "l1",
+      "t": "l2",
+      "p": 0
+    },
+    {
+      "f": "h2",
+      "t": "l2",
+      "p": 1
+    },
+    {
+      "f": "l2",
+      "t": "l3",
+      "p": 0
+    },
+    {
+      "f": "h3",
+      "t": "l3",
+      "p": 1
+    },
+    {
+      "f": "l3",
+      "t": "l4",
+      "p": 0
+    },
+    {
+      "f": "h4",
+      "t": "l4",
+      "p": 1
+    },
+    {
+      "f": "l4",
+      "t": "l5",
+      "p": 0
+    },
+    {
+      "f": "h5",
+      "t": "l5",
+      "p": 1
+    },
+    {
+      "f": "l5",
+      "t": "haze",
+      "p": 0
+    },
+    {
+      "f": "wob",
+      "t": "haze",
+      "p": 1
+    },
+    {
+      "f": "haze",
+      "t": "e1",
+      "p": 0
+    },
+    {
+      "f": "embers",
+      "t": "e1",
+      "p": 1
+    },
+    {
+      "f": "e1",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 1
+  }
+}
