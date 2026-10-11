@@ -314,7 +314,7 @@
   color: var(--a2-ink);
 }
 #battle #pauseSub { color: var(--a2-muted); }
-#battle #tip::after { background-color: #3b2513; border-color: var(--a2-brass); }
+#battle #tip::after, #battle #preview::after { background-color: #3b2513; border-color: var(--a2-brass); }
 .battle-dialog h2 { color: var(--a2-ink); }
 :is(#s-party .f-gsheet, #battle #pauseGuide) :is(.gd-hp, .gd-phases li, .gs:not(.enr)) {
   background-color: #332214;
