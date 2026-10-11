@@ -489,7 +489,7 @@ function handleEvents(now: number): void {
   const plain = new Set<number>();
   for (const { key, uid } of F.used?.splice(0) ?? []) {
     const fx = SKILL_PXF[key]?.fx;
-    if (fx) for (const v of pxfTargets(F, key, uid)) { fxPxf(v, fx, now); plain.add(v.id); }
+    if (fx) for (const v of pxfTargets(F, key, uid)) if (fxPxf(v, fx, now)) plain.add(v.id); // 못 그리면 공통 치유 빛 · 해제 빛을 대신
   }
   for (const ev of F.events) {
     const u = 'id' in ev ? F.party.find(x => x.id === ev.id) ?? F.souls.find(x => x.id === ev.id) : undefined;
