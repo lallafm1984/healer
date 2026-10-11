@@ -1,6 +1,6 @@
 {
   "format": "pxf.graph@1",
-  "name": "사제 성언 평온 큰 금빛 별",
+  "name": "평온 도는 햇살 빛살",
   "settings": {
     "size": 64,
     "frames": 24,
@@ -9,228 +9,294 @@
   },
   "nodes": [
     {
-      "id": "starBig",
-      "type": "Shape",
+      "id": "rayL",
+      "type": "Spike",
       "x": 40,
       "y": 40,
       "params": {
-        "shape": "star",
-        "x": 0.5,
-        "y": 0.5,
-        "size": {
+        "x0": 0.5,
+        "y0": {
           "k": [
             [
               0,
-              5,
+              0.4531,
+              "out"
+            ],
+            [
+              4,
+              0.4062,
+              "linear"
+            ],
+            [
+              23,
+              0.3438
+            ]
+          ]
+        },
+        "x1": 0.5,
+        "y1": {
+          "k": [
+            [
+              0,
+              0.3594,
               "out3"
             ],
             [
               2,
-              22,
-              "out"
+              0.0781,
+              "inout"
             ],
             [
-              5,
-              15,
-              "in"
+              8,
+              0.2656,
+              "inout"
             ],
             [
-              10,
-              0,
-              "linear"
+              14,
+              0.0781,
+              "inout"
+            ],
+            [
+              20,
+              0.1406
             ]
           ]
         },
-        "size2": 0.4,
-        "points": 8,
-        "rot": 0,
-        "intensity": 0.62
-      }
-    },
-    {
-      "id": "starCore",
-      "type": "Shape",
-      "x": 40,
-      "y": 200,
-      "params": {
-        "shape": "star",
-        "x": 0.5,
-        "y": 0.5,
-        "size": {
+        "width": {
           "k": [
             [
               0,
               3,
-              "out3"
-            ],
-            [
-              2,
-              15,
               "out"
             ],
             [
-              5,
-              9,
+              2,
+              4.5,
+              "linear"
+            ],
+            [
+              14,
+              4,
               "in"
             ],
             [
-              9,
-              0,
-              "linear"
+              23,
+              1.5
             ]
           ]
         },
-        "size2": 0.38,
-        "points": 8,
-        "rot": 0,
+        "taper": 0.7,
+        "grow": 1,
+        "base": 0.85,
+        "tip": 0.3,
+        "facet": 0.25,
+        "ridge": 0.1,
+        "shine": -1,
         "intensity": 1
       }
     },
     {
-      "id": "ring",
+      "id": "rayS",
+      "type": "Spike",
+      "x": 40,
+      "y": 210,
+      "params": {
+        "x0": 0.5,
+        "y0": {
+          "k": [
+            [
+              0,
+              0.4531,
+              "out"
+            ],
+            [
+              4,
+              0.4062,
+              "linear"
+            ],
+            [
+              23,
+              0.3438
+            ]
+          ]
+        },
+        "x1": 0.5,
+        "y1": {
+          "k": [
+            [
+              0,
+              0.4062,
+              "out3"
+            ],
+            [
+              2,
+              0.2656,
+              "inout"
+            ],
+            [
+              8,
+              0.0781,
+              "inout"
+            ],
+            [
+              14,
+              0.2656,
+              "inout"
+            ],
+            [
+              20,
+              0.1719
+            ]
+          ]
+        },
+        "width": {
+          "k": [
+            [
+              0,
+              2.5,
+              "out"
+            ],
+            [
+              2,
+              3.5,
+              "linear"
+            ],
+            [
+              14,
+              3.5,
+              "in"
+            ],
+            [
+              23,
+              1.5
+            ]
+          ]
+        },
+        "taper": 0.7,
+        "grow": 1,
+        "base": 0.8,
+        "tip": 0.3,
+        "facet": 0.25,
+        "ridge": 0.1,
+        "shine": -1,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "repL",
+      "type": "Repeat",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "count": 5,
+        "px": 0.5,
+        "py": 0.5,
+        "angle0": {
+          "k": [
+            [
+              0,
+              0,
+              "out"
+            ],
+            [
+              23,
+              40
+            ]
+          ]
+        },
+        "angleStep": 72,
+        "mode": "max"
+      }
+    },
+    {
+      "id": "repS",
+      "type": "Repeat",
+      "x": 270,
+      "y": 210,
+      "params": {
+        "count": 5,
+        "px": 0.5,
+        "py": 0.5,
+        "angle0": {
+          "k": [
+            [
+              0,
+              36,
+              "out"
+            ],
+            [
+              23,
+              76
+            ]
+          ]
+        },
+        "angleStep": 72,
+        "mode": "max"
+      }
+    },
+    {
+      "id": "disk",
       "type": "Shape",
       "x": 40,
-      "y": 360,
+      "y": 380,
       "params": {
-        "shape": "ring",
+        "shape": "circle",
         "x": 0.5,
         "y": 0.5,
         "size": {
           "k": [
             [
               0,
-              0,
-              "linear"
-            ],
-            [
-              2,
-              0,
-              "linear"
-            ],
-            [
               3,
-              15,
               "out"
             ],
             [
+              1,
               6,
-              20,
-              "out"
+              "in"
             ],
             [
-              14,
-              24,
-              "linear"
-            ],
-            [
-              23,
-              25,
-              "linear"
+              5,
+              0
             ]
           ]
         },
-        "size2": {
-          "k": [
-            [
-              3,
-              0.4,
-              "linear"
-            ],
-            [
-              6,
-              0.28,
-              "linear"
-            ],
-            [
-              14,
-              0.18,
-              "linear"
-            ],
-            [
-              23,
-              0.13,
-              "linear"
-            ]
-          ]
-        },
-        "intensity": 0.62
-      }
-    },
-    {
-      "id": "dust",
-      "type": "Particles",
-      "x": 40,
-      "y": 520,
-      "params": {
-        "count": 32,
-        "seed": 4410,
-        "emit": "burst",
-        "start": 0.06,
-        "life": 0.5,
-        "lifeVar": 0.25,
-        "area": "circle",
-        "x": 0.5,
-        "y": 0.5,
-        "aw": 5,
-        "ah": 5,
-        "dirMode": "outward",
-        "spread": 360,
-        "speed": 2.3,
-        "speedVar": 0.35,
-        "drag": 0.09,
-        "turb": 0.6,
-        "sizeA": 2.5,
-        "sizeB": 1.5,
-        "pshape": "diamond",
-        "fade": "flat",
-        "bright": 0.45,
-        "brightVar": 0.3,
-        "loop": false
+        "falloff": 0.3,
+        "intensity": 1
       }
     },
     {
       "id": "glint",
       "type": "Particles",
       "x": 40,
-      "y": 680,
+      "y": 550,
       "params": {
-        "count": 6,
-        "seed": 5823,
+        "count": 10,
+        "seed": 4417,
         "emit": "burst",
-        "start": 0.1,
-        "life": 0.6,
-        "lifeVar": 0.2,
+        "start": 0.04,
+        "life": 0.55,
+        "lifeVar": 0.3,
         "area": "circle",
         "x": 0.5,
         "y": 0.5,
-        "aw": 8,
-        "ah": 8,
+        "aw": 12,
+        "ah": 12,
         "dirMode": "outward",
-        "spread": 360,
-        "speed": 1.2,
-        "speedVar": 0.3,
-        "drag": 0.06,
-        "sizeA": 3,
-        "sizeB": 1.5,
-        "pshape": "plus",
-        "fade": "flat",
-        "bright": 1,
-        "brightVar": 0.2,
+        "speed": 0.9,
+        "speedVar": 0.5,
+        "drag": 0.04,
+        "sizeA": 1.5,
+        "sizeB": 0.5,
+        "pshape": "diamond",
+        "fade": "flicker",
+        "bright": 0.9,
+        "brightVar": 0.4,
         "loop": false
       }
     },
     {
       "id": "b1",
-      "type": "Blend",
-      "x": 270,
-      "y": 40,
-      "params": {
-        "mode": "max",
-        "opacity": 1
-      }
-    },
-    {
-      "id": "b2",
       "type": "Blend",
       "x": 500,
       "y": 40,
@@ -240,7 +306,7 @@
       }
     },
     {
-      "id": "b3",
+      "id": "b2",
       "type": "Blend",
       "x": 730,
       "y": 40,
@@ -250,7 +316,7 @@
       }
     },
     {
-      "id": "b4",
+      "id": "b3",
       "type": "Blend",
       "x": 960,
       "y": 40,
@@ -260,18 +326,20 @@
       }
     },
     {
-      "id": "color",
+      "id": "pal",
       "type": "Palette",
       "x": 1190,
       "y": 40,
       "params": {
         "colors": [
-          "#2f4a16",
-          "#86d860",
-          "#e8b53a",
-          "#fff8e0"
+          "#7a4a12",
+          "#d9962a",
+          "#ffd35e",
+          "#fff2c2",
+          "#ffffff"
         ],
-        "cutoff": 0.1,
+        "cutoff": 0.06,
+        "shift": 0,
         "mode": "bands",
         "key": "alpha",
         "opacity": 1
@@ -283,9 +351,10 @@
       "x": 1420,
       "y": 40,
       "params": {
-        "color": "#2a2008",
+        "color": "#3d2508",
         "threshold": 0.5,
         "width": 1,
+        "corners": false,
         "mode": "outer"
       }
     },
@@ -295,13 +364,14 @@
       "x": 1650,
       "y": 40,
       "params": {
+        "color": "#ffffff",
         "amount": 0,
+        "bright": 1,
         "opacity": {
           "k": [
             [
               0,
-              1,
-              "linear"
+              1
             ],
             [
               13,
@@ -310,8 +380,7 @@
             ],
             [
               23,
-              0,
-              "linear"
+              0
             ]
           ]
         }
@@ -330,12 +399,22 @@
   ],
   "links": [
     {
-      "f": "starBig",
+      "f": "rayL",
+      "t": "repL",
+      "p": 0
+    },
+    {
+      "f": "rayS",
+      "t": "repS",
+      "p": 0
+    },
+    {
+      "f": "repL",
       "t": "b1",
       "p": 0
     },
     {
-      "f": "starCore",
+      "f": "repS",
       "t": "b1",
       "p": 1
     },
@@ -345,7 +424,7 @@
       "p": 0
     },
     {
-      "f": "ring",
+      "f": "disk",
       "t": "b2",
       "p": 1
     },
@@ -355,27 +434,17 @@
       "p": 0
     },
     {
-      "f": "dust",
+      "f": "glint",
       "t": "b3",
       "p": 1
     },
     {
       "f": "b3",
-      "t": "b4",
+      "t": "pal",
       "p": 0
     },
     {
-      "f": "glint",
-      "t": "b4",
-      "p": 1
-    },
-    {
-      "f": "b4",
-      "t": "color",
-      "p": 0
-    },
-    {
-      "f": "color",
+      "f": "pal",
       "t": "rim",
       "p": 0
     },
@@ -397,6 +466,6 @@
     ],
     "logicalSize": 64,
     "blend": "normal",
-    "impactFrame": 2
+    "impactFrame": 1
   }
 }

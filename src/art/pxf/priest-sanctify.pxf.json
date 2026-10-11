@@ -1,6 +1,6 @@
 {
   "format": "pxf.graph@1",
-  "name": "사제 성언 신성화 마름모 문양",
+  "name": "신성화 바닥 문양 빛 비",
   "settings": {
     "size": 64,
     "frames": 20,
@@ -9,227 +9,205 @@
   },
   "nodes": [
     {
-      "id": "sigil",
+      "id": "dropA",
       "type": "Shape",
       "x": 40,
       "y": 40,
       "params": {
         "shape": "diamond",
-        "x": 0.5,
-        "y": 0.74,
-        "size": {
+        "x": {
           "k": [
             [
               0,
+              0.36
+            ],
+            [
+              1,
+              0.36,
+              "linear"
+            ],
+            [
               4,
-              "out3"
-            ],
-            [
-              2,
-              16,
-              "out"
-            ],
-            [
-              7,
-              17,
-              "in"
-            ],
-            [
-              11,
-              5,
-              "linear"
+              0.27
             ]
           ]
         },
-        "aspect": 0.45,
-        "stroke": 2.5,
-        "intensity": {
+        "y": {
           "k": [
             [
               0,
+              0.2
+            ],
+            [
               1,
+              0.2,
               "linear"
             ],
             [
-              3,
-              1,
-              "linear"
-            ],
-            [
-              5,
-              0.65,
-              "linear"
-            ],
-            [
-              10,
-              0.65,
-              "linear"
-            ],
-            [
-              11,
-              0,
-              "linear"
+              4,
+              0.62
             ]
           ]
-        }
-      }
-    },
-    {
-      "id": "rune",
-      "type": "Shape",
-      "x": 40,
-      "y": 200,
-      "params": {
-        "shape": "diamond",
-        "x": 0.5,
-        "y": 0.74,
+        },
         "size": {
           "k": [
             [
               0,
-              0,
-              "linear"
+              0
             ],
             [
               1,
-              0,
-              "out"
+              1.5
             ],
             [
-              3,
-              7,
-              "linear"
+              4,
+              1.5,
+              "step"
             ],
             [
-              7,
-              7,
-              "in"
-            ],
-            [
-              10,
-              0,
-              "linear"
+              5,
+              0
             ]
           ]
         },
-        "aspect": 0.45,
-        "stroke": 2,
-        "intensity": 0.85
-      }
-    },
-    {
-      "id": "pillar",
-      "type": "Stroke",
-      "x": 40,
-      "y": 360,
-      "params": {
-        "x0": 0.5,
-        "y0": 0.74,
-        "x1": 0.5,
-        "y1": 0.53,
-        "x2": 0.5,
-        "y2": 0.33,
-        "x3": 0.5,
-        "y3": 0.12,
-        "width": {
-          "k": [
-            [
-              3,
-              7,
-              "linear"
-            ],
-            [
-              10,
-              6,
-              "in"
-            ],
-            [
-              16,
-              2,
-              "linear"
-            ]
-          ]
-        },
-        "taper": 0.8,
-        "from": {
-          "k": [
-            [
-              0,
-              0,
-              "linear"
-            ],
-            [
-              8,
-              0,
-              "in"
-            ],
-            [
-              16,
-              1,
-              "linear"
-            ]
-          ]
-        },
-        "to": {
-          "k": [
-            [
-              0,
-              0,
-              "linear"
-            ],
-            [
-              3,
-              0,
-              "out"
-            ],
-            [
-              8,
-              1,
-              "linear"
-            ]
-          ]
-        },
-        "span": true,
-        "vA": 1,
-        "vM": 0.85,
-        "vB": 0.6,
+        "aspect": 4,
+        "rot": 14,
+        "falloff": 0.4,
         "intensity": 1
       }
     },
     {
-      "id": "motes",
+      "id": "splA",
       "type": "Particles",
       "x": 40,
-      "y": 520,
+      "y": 210,
       "params": {
-        "count": 6,
-        "seed": 2290,
-        "emit": "stream",
-        "start": 0.15,
-        "span": 0.3,
-        "life": 0.45,
+        "count": 4,
+        "seed": 311,
+        "emit": "burst",
+        "start": 0.25,
+        "life": 0.2,
         "lifeVar": 0.2,
-        "area": "box",
-        "x": 0.5,
-        "y": 0.72,
-        "aw": 16,
-        "ah": 2,
+        "area": "point",
+        "x": 0.25,
+        "y": 0.76,
         "dirMode": "fixed",
         "angle": -90,
-        "spread": 10,
-        "speed": 1.6,
+        "spread": 160,
+        "speed": 1.8,
         "speedVar": 0.3,
+        "gravity": 0.3,
         "sizeA": 2,
         "sizeB": 1,
-        "pshape": "diamond",
-        "fade": "flat",
-        "bright": 0.8,
-        "brightVar": 0.3,
+        "pshape": "square",
+        "fade": "out",
+        "bright": 1,
         "loop": false
       }
     },
     {
-      "id": "b1",
+      "id": "dropB",
+      "type": "Shape",
+      "x": 40,
+      "y": 380,
+      "params": {
+        "shape": "diamond",
+        "x": {
+          "k": [
+            [
+              0,
+              0.829
+            ],
+            [
+              2,
+              0.829,
+              "linear"
+            ],
+            [
+              5,
+              0.739
+            ]
+          ]
+        },
+        "y": {
+          "k": [
+            [
+              0,
+              0.2
+            ],
+            [
+              2,
+              0.2,
+              "linear"
+            ],
+            [
+              5,
+              0.62
+            ]
+          ]
+        },
+        "size": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              1.5
+            ],
+            [
+              5,
+              1.5,
+              "step"
+            ],
+            [
+              6,
+              0
+            ]
+          ]
+        },
+        "aspect": 4,
+        "rot": 14,
+        "falloff": 0.4,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "splB",
+      "type": "Particles",
+      "x": 40,
+      "y": 550,
+      "params": {
+        "count": 4,
+        "seed": 727,
+        "emit": "burst",
+        "start": 0.3,
+        "life": 0.2,
+        "lifeVar": 0.2,
+        "area": "point",
+        "x": 0.719,
+        "y": 0.76,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 160,
+        "speed": 1.8,
+        "speedVar": 0.3,
+        "gravity": 0.3,
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "square",
+        "fade": "out",
+        "bright": 1,
+        "loop": false
+      }
+    },
+    {
+      "id": "rainA",
       "type": "Blend",
       "x": 270,
       "y": 40,
@@ -239,38 +217,283 @@
       }
     },
     {
-      "id": "b2",
+      "id": "rainB",
       "type": "Blend",
+      "x": 270,
+      "y": 380,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "repA",
+      "type": "Repeat",
       "x": 500,
       "y": 40,
       "params": {
-        "mode": "max",
-        "opacity": 1
+        "count": 3,
+        "px": 0.5,
+        "py": 0.5,
+        "angle0": 0,
+        "angleStep": 0,
+        "dx": 12,
+        "dy": 0,
+        "delay": 2.5,
+        "mode": "max"
       }
     },
     {
-      "id": "b3",
+      "id": "repB",
+      "type": "Repeat",
+      "x": 500,
+      "y": 380,
+      "params": {
+        "count": 3,
+        "px": 0.5,
+        "py": 0.5,
+        "angle0": 0,
+        "angleStep": 0,
+        "dx": -12,
+        "dy": 0,
+        "delay": 2.5,
+        "mode": "max"
+      }
+    },
+    {
+      "id": "sigO",
+      "type": "Shape",
+      "x": 40,
+      "y": 720,
+      "params": {
+        "shape": "diamond",
+        "x": 0.5,
+        "y": 0.78,
+        "size": {
+          "k": [
+            [
+              0,
+              6.6,
+              "out3"
+            ],
+            [
+              2,
+              22
+            ]
+          ]
+        },
+        "aspect": 0.36,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.5
+            ],
+            [
+              10,
+              0.5,
+              "linear"
+            ],
+            [
+              12,
+              1,
+              "linear"
+            ],
+            [
+              14,
+              0.55
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "sigH",
+      "type": "Shape",
+      "x": 40,
+      "y": 890,
+      "params": {
+        "shape": "diamond",
+        "x": 0.5,
+        "y": 0.78,
+        "size": {
+          "k": [
+            [
+              0,
+              4.95,
+              "out3"
+            ],
+            [
+              2,
+              16.5
+            ]
+          ]
+        },
+        "aspect": 0.36,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "band",
+      "type": "Mask",
+      "x": 270,
+      "y": 720,
+      "params": {
+        "mode": "cutout",
+        "strength": 1
+      }
+    },
+    {
+      "id": "sigC",
+      "type": "Shape",
+      "x": 40,
+      "y": 1060,
+      "params": {
+        "shape": "diamond",
+        "x": 0.5,
+        "y": 0.78,
+        "size": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              0,
+              "out3"
+            ],
+            [
+              4,
+              7
+            ],
+            [
+              12,
+              7,
+              "in"
+            ],
+            [
+              15,
+              0
+            ]
+          ]
+        },
+        "aspect": 0.36,
+        "intensity": {
+          "k": [
+            [
+              0,
+              0.35
+            ],
+            [
+              10,
+              0.35,
+              "linear"
+            ],
+            [
+              12,
+              0.85,
+              "linear"
+            ],
+            [
+              13,
+              0.5,
+              "linear"
+            ],
+            [
+              14,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "erase",
+      "type": "Shape",
+      "x": 40,
+      "y": 1230,
+      "params": {
+        "shape": "diamond",
+        "x": 0.5,
+        "y": 0.78,
+        "size": {
+          "k": [
+            [
+              0,
+              30
+            ],
+            [
+              12,
+              23,
+              "linear"
+            ],
+            [
+              16,
+              0
+            ]
+          ]
+        },
+        "aspect": 0.36,
+        "falloff": 0,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "sig",
       "type": "Blend",
-      "x": 730,
-      "y": 40,
+      "x": 500,
+      "y": 720,
       "params": {
         "mode": "max",
         "opacity": 1
       }
     },
     {
-      "id": "color",
-      "type": "Palette",
+      "id": "sigM",
+      "type": "Mask",
+      "x": 730,
+      "y": 720,
+      "params": {
+        "mode": "multiply",
+        "strength": 1
+      }
+    },
+    {
+      "id": "m1",
+      "type": "Blend",
       "x": 960,
       "y": 40,
       "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "m2",
+      "type": "Blend",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "mode": "max",
+        "opacity": 1
+      }
+    },
+    {
+      "id": "pal",
+      "type": "Palette",
+      "x": 1420,
+      "y": 40,
+      "params": {
         "colors": [
-          "#6e4a10",
-          "#d99a28",
-          "#f6d260",
-          "#fffbe8"
+          "#7a4a12",
+          "#d9962a",
+          "#ffd35e",
+          "#fff2c2",
+          "#ffffff"
         ],
-        "cutoff": 0.1,
+        "cutoff": 0.06,
+        "shift": 0,
         "mode": "bands",
         "key": "alpha",
         "opacity": 1
@@ -279,38 +502,39 @@
     {
       "id": "rim",
       "type": "Outline",
-      "x": 1190,
+      "x": 1650,
       "y": 40,
       "params": {
-        "color": "#33230a",
+        "color": "#3d2508",
         "threshold": 0.5,
         "width": 1,
+        "corners": false,
         "mode": "outer"
       }
     },
     {
       "id": "fade",
       "type": "Tint",
-      "x": 1420,
+      "x": 1880,
       "y": 40,
       "params": {
+        "color": "#ffffff",
         "amount": 0,
+        "bright": 1,
         "opacity": {
           "k": [
             [
               0,
-              1,
-              "linear"
+              1
             ],
             [
-              11,
+              13,
               1,
               "in"
             ],
             [
-              19,
-              0,
-              "linear"
+              18,
+              0
             ]
           ]
         }
@@ -319,7 +543,7 @@
     {
       "id": "out",
       "type": "Output",
-      "x": 1650,
+      "x": 2110,
       "y": 40,
       "params": {
         "alpha": "soft",
@@ -329,42 +553,92 @@
   ],
   "links": [
     {
-      "f": "sigil",
-      "t": "b1",
+      "f": "dropA",
+      "t": "rainA",
       "p": 0
     },
     {
-      "f": "rune",
-      "t": "b1",
+      "f": "splA",
+      "t": "rainA",
       "p": 1
     },
     {
-      "f": "b1",
-      "t": "b2",
+      "f": "dropB",
+      "t": "rainB",
       "p": 0
     },
     {
-      "f": "pillar",
-      "t": "b2",
+      "f": "splB",
+      "t": "rainB",
       "p": 1
     },
     {
-      "f": "b2",
-      "t": "b3",
+      "f": "rainA",
+      "t": "repA",
       "p": 0
     },
     {
-      "f": "motes",
-      "t": "b3",
+      "f": "rainB",
+      "t": "repB",
+      "p": 0
+    },
+    {
+      "f": "sigO",
+      "t": "band",
+      "p": 0
+    },
+    {
+      "f": "sigH",
+      "t": "band",
       "p": 1
     },
     {
-      "f": "b3",
-      "t": "color",
+      "f": "band",
+      "t": "sig",
       "p": 0
     },
     {
-      "f": "color",
+      "f": "sigC",
+      "t": "sig",
+      "p": 1
+    },
+    {
+      "f": "sig",
+      "t": "sigM",
+      "p": 0
+    },
+    {
+      "f": "erase",
+      "t": "sigM",
+      "p": 1
+    },
+    {
+      "f": "sigM",
+      "t": "m1",
+      "p": 0
+    },
+    {
+      "f": "repA",
+      "t": "m1",
+      "p": 1
+    },
+    {
+      "f": "m1",
+      "t": "m2",
+      "p": 0
+    },
+    {
+      "f": "repB",
+      "t": "m2",
+      "p": 1
+    },
+    {
+      "f": "m2",
+      "t": "pal",
+      "p": 0
+    },
+    {
+      "f": "pal",
       "t": "rim",
       "p": 0
     },

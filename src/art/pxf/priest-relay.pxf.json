@@ -1,6 +1,6 @@
 {
   "format": "pxf.graph@1",
-  "name": "빛의 전이 흰 금빛 구슬",
+  "name": "빛의 전이 튀는 꼬리 별",
   "settings": {
     "size": 64,
     "frames": 20,
@@ -15,142 +15,228 @@
       "y": 40,
       "params": {
         "shape": "circle",
-        "x": 0.5,
-        "y": {
+        "x": {
           "k": [
             [
               0,
-              0.1,
-              "in"
-            ],
-            [
-              2,
-              0.42,
-              "out"
-            ],
-            [
-              5,
-              0.45,
+              0.17,
               "linear"
             ],
             [
-              19,
-              0.45
-            ]
-          ]
-        },
-        "size": {
-          "k": [
-            [
-              0,
-              4,
-              "out"
-            ],
-            [
-              2,
               6,
-              "out"
-            ],
-            [
-              5,
-              5,
-              "linear"
-            ],
-            [
-              12,
-              4,
-              "in"
-            ],
-            [
-              17,
-              0
-            ]
-          ]
-        },
-        "falloff": 0.55,
-        "intensity": 1
-      }
-    },
-    {
-      "id": "tail",
-      "type": "Echo",
-      "x": 270,
-      "y": 40,
-      "params": {
-        "copies": 3,
-        "step": 1,
-        "decay": 0.55
-      }
-    },
-    {
-      "id": "ring",
-      "type": "Shape",
-      "x": 40,
-      "y": 210,
-      "params": {
-        "shape": "ring",
-        "x": 0.5,
-        "y": 0.45,
-        "size": {
-          "k": [
-            [
-              0,
-              0
-            ],
-            [
-              2,
-              4,
-              "out3"
-            ],
-            [
-              11,
-              19,
-              "linear"
-            ],
-            [
-              17,
-              21
-            ]
-          ]
-        },
-        "size2": {
-          "k": [
-            [
-              2,
-              0.45
-            ],
-            [
-              11,
-              0.14
-            ],
-            [
-              17,
-              0.12
-            ]
-          ]
-        },
-        "intensity": {
-          "k": [
-            [
-              0,
-              0
-            ],
-            [
-              2,
-              0.55,
-              "linear"
-            ],
-            [
-              7,
               0.5,
               "out"
             ],
             [
-              17,
+              12,
+              0.6
+            ]
+          ]
+        },
+        "y": {
+          "k": [
+            [
+              0,
+              0.24,
+              "out"
+            ],
+            [
+              2,
+              0.16,
+              "in"
+            ],
+            [
+              6,
+              0.66,
+              "out"
+            ],
+            [
+              9,
+              0.5,
+              "in"
+            ],
+            [
+              12,
+              0.64
+            ]
+          ]
+        },
+        "size": {
+          "k": [
+            [
+              0,
+              4.5
+            ],
+            [
+              16,
+              4.5,
+              "in"
+            ],
+            [
+              19,
               0
             ]
           ]
+        },
+        "aspect": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              5,
+              1,
+              "linear"
+            ],
+            [
+              6,
+              0.6,
+              "linear"
+            ],
+            [
+              7,
+              1.2,
+              "linear"
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              11,
+              1,
+              "linear"
+            ],
+            [
+              12,
+              0.75,
+              "linear"
+            ],
+            [
+              13,
+              1
+            ]
+          ]
+        },
+        "falloff": 0.5,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "trail",
+      "type": "Repeat",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "count": 7,
+        "px": {
+          "k": [
+            [
+              0,
+              0.17,
+              "linear"
+            ],
+            [
+              6,
+              0.5,
+              "out"
+            ],
+            [
+              12,
+              0.6
+            ]
+          ]
+        },
+        "py": {
+          "k": [
+            [
+              0,
+              0.24,
+              "out"
+            ],
+            [
+              2,
+              0.16,
+              "in"
+            ],
+            [
+              6,
+              0.66,
+              "out"
+            ],
+            [
+              9,
+              0.5,
+              "in"
+            ],
+            [
+              12,
+              0.64
+            ]
+          ]
+        },
+        "angle0": 0,
+        "angleStep": 0,
+        "delay": 0.45,
+        "scaleStep": 0.07,
+        "fadeStep": 0.13,
+        "mode": "max"
+      }
+    },
+    {
+      "id": "blinkM",
+      "type": "Shape",
+      "x": 40,
+      "y": 210,
+      "params": {
+        "shape": "square",
+        "x": 0.5,
+        "y": 0.5,
+        "size": 48,
+        "falloff": 0,
+        "intensity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              13,
+              1,
+              "step"
+            ],
+            [
+              14,
+              0,
+              "step"
+            ],
+            [
+              15,
+              1,
+              "step"
+            ],
+            [
+              16,
+              0,
+              "step"
+            ],
+            [
+              17,
+              1
+            ]
+          ]
         }
+      }
+    },
+    {
+      "id": "blink",
+      "type": "Mask",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "mode": "multiply",
+        "strength": 1
       }
     },
     {
@@ -160,70 +246,87 @@
       "y": 380,
       "params": {
         "shape": "diamond",
-        "x": 0.66,
-        "y": 0.45,
-        "size": 2.5,
-        "intensity": {
+        "x": 0.5,
+        "y": {
+          "k": [
+            [
+              0,
+              0.69
+            ],
+            [
+              6,
+              0.66,
+              "out"
+            ],
+            [
+              12,
+              0.47
+            ]
+          ]
+        },
+        "size": {
           "k": [
             [
               0,
               0
             ],
             [
-              3,
-              0.78,
+              5,
+              0
+            ],
+            [
+              6,
+              2.5
+            ],
+            [
+              10,
+              2,
+              "in"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        },
+        "aspect": 1.5,
+        "falloff": 0,
+        "intensity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              9,
+              1,
               "linear"
             ],
             [
               13,
-              0.78,
-              "in"
-            ],
-            [
-              17,
-              0
+              0.5
             ]
           ]
         }
       }
     },
     {
-      "id": "orbit",
+      "id": "fan",
       "type": "Repeat",
       "x": 270,
       "y": 380,
       "params": {
         "count": 3,
         "px": 0.5,
-        "py": 0.45,
-        "angle0": {
-          "k": [
-            [
-              0,
-              0
-            ],
-            [
-              19,
-              320
-            ]
-          ]
-        },
-        "angleStep": 120,
+        "py": 0.69,
+        "angle0": 0,
+        "angleStep": 80,
+        "centered": true,
         "mode": "max"
       }
     },
     {
-      "id": "b1",
-      "type": "Blend",
-      "x": 500,
-      "y": 40,
-      "params": {
-        "mode": "max",
-        "opacity": 1
-      }
-    },
-    {
-      "id": "b2",
+      "id": "mix",
       "type": "Blend",
       "x": 730,
       "y": 40,
@@ -233,20 +336,23 @@
       }
     },
     {
-      "id": "color",
+      "id": "pal",
       "type": "Palette",
       "x": 960,
       "y": 40,
       "params": {
         "colors": [
-          "#6b4512",
-          "#d19a2e",
-          "#ffe07a",
-          "#fffbea"
+          "#26304a",
+          "#6cc4f0",
+          "#f0b840",
+          "#fff0b8",
+          "#ffffff"
         ],
-        "cutoff": 0.08,
+        "cutoff": 0.06,
+        "shift": 0,
         "mode": "bands",
-        "key": "alpha"
+        "key": "alpha",
+        "opacity": 1
       }
     },
     {
@@ -255,9 +361,10 @@
       "x": 1190,
       "y": 40,
       "params": {
-        "color": "#3b2507",
-        "threshold": 0.4,
+        "color": "#1a2030",
+        "threshold": 0.5,
         "width": 1,
+        "corners": false,
         "mode": "outer"
       }
     },
@@ -267,7 +374,9 @@
       "x": 1420,
       "y": 40,
       "params": {
+        "color": "#ffffff",
         "amount": 0,
+        "bright": 1,
         "opacity": {
           "k": [
             [
@@ -275,7 +384,7 @@
               1
             ],
             [
-              12,
+              15,
               1,
               "in"
             ],
@@ -301,41 +410,41 @@
   "links": [
     {
       "f": "orb",
-      "t": "tail",
+      "t": "trail",
       "p": 0
     },
     {
-      "f": "tail",
-      "t": "b1",
+      "f": "trail",
+      "t": "blink",
       "p": 0
     },
     {
-      "f": "ring",
-      "t": "b1",
+      "f": "blinkM",
+      "t": "blink",
       "p": 1
     },
     {
       "f": "spark",
-      "t": "orbit",
+      "t": "fan",
       "p": 0
     },
     {
-      "f": "b1",
-      "t": "b2",
+      "f": "blink",
+      "t": "mix",
       "p": 0
     },
     {
-      "f": "orbit",
-      "t": "b2",
+      "f": "fan",
+      "t": "mix",
       "p": 1
     },
     {
-      "f": "b2",
-      "t": "color",
+      "f": "mix",
+      "t": "pal",
       "p": 0
     },
     {
-      "f": "color",
+      "f": "pal",
       "t": "rim",
       "p": 0
     },
@@ -357,6 +466,6 @@
     ],
     "logicalSize": 64,
     "blend": "normal",
-    "impactFrame": 2
+    "impactFrame": 0
   }
 }
