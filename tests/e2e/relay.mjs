@@ -1,11 +1,11 @@
-// 사제 빛의 비둘기 (휠 8번째 칸, Lim 2026-10-11 「슬롯 한자리가 빈다」): 휠에 빈 칸 없음 · 앉은 사람 칸에 비둘기 표시가 판 안, 이름·체력·배지와 안 겹침. 대상 폰 크기
+// 사제 빛의 전이 (휠 8번째 칸, Lim 2026-10-11 「슬롯 한자리가 빈다」): 휠에 빈 칸 없음 · 빛이 깃든 사람 칸에 표시가 판 안, 이름·체력·배지와 안 겹침. 대상 폰 크기
 import { chromium } from 'playwright';
 import { DEVICES } from './devices.mjs';
 import { patchSave, toParty } from './nav.mjs';
 
 const PARTIES = [{ n: 5, tab: 'dungeon', content: 'rustfort' }, { n: 20, tab: 'raid20', content: 'cathedral1' }];
 
-export default async function dove(url, shots) {
+export default async function relay(url, shots) {
   const browser = await chromium.launch();
   const errs = [];
   let fails = 0;
@@ -25,11 +25,11 @@ export default async function dove(url, shots) {
     const wheel = await page.evaluate(() => ({
       empty: document.querySelectorAll('#wheel .slot.empty').length,
       slots: document.querySelectorAll('#wheel button.slot').length,
-      dove: document.querySelector('#wheel .slot[data-slot="unique"] .nm')?.textContent ?? null,
+      relay: document.querySelector('#wheel .slot[data-slot="unique"] .nm')?.textContent ?? null,
     }));
-    ok(wheel.empty === 0 && wheel.slots === 8 && wheel.dove === '비둘기', `${tag}: 휠 8칸 모두 스킬 (빈 칸 없음, 8번째 칸 비둘기)`, wheel);
+    ok(wheel.empty === 0 && wheel.slots === 8 && wheel.relay === '전이', `${tag}: 휠 8칸 모두 스킬 (빈 칸 없음, 8번째 칸 전이)`, wheel);
 
-    /** 비둘기를 앉히고 (보스 피해 0 · 기술 끔: 비둘기가 날아가지 않게) 몇 프레임 뒤 판 표시 */
+    /** 빛을 깃들게 하고 (보스 피해 0 · 기술 끔: 빛이 옮겨 가지 않게) 몇 프레임 뒤 판 표시 */
     const look = async ({ deb = false, hot = false, flying = false } = {}) => {
       await page.evaluate(([deb, hot, flying]) => {
         const F = window.__proto.F;
@@ -38,13 +38,13 @@ export default async function dove(url, shots) {
         const tk = F.party.find(u => u.role === 'tank' && u.alive);
         tk.debuffs = deb ? [{ id: 9001, name: '독 화살', type: '독', left: 12, dot: 0 }] : [];
         tk.hot = hot ? 9 : 0;
-        F.dove = { id: tk.id, left: 5, until: F.t + 999, flyUntil: flying ? F.t + 999 : F.t };
+        F.relay = { id: tk.id, left: 5, until: F.t + 999, flyUntil: flying ? F.t + 999 : F.t };
       }, [deb, hot, flying]);
       await page.clock.runFor(300);
       return page.evaluate(() => {
         const F = window.__proto.F, cv = document.querySelector('#board'), d = cv.dataset;
-        const bounds = JSON.parse(d.decorationBounds || '[]'), id = F.dove?.id;
-        const mark = bounds.find(b => b.key === `dove${id}`);
+        const bounds = JSON.parse(d.decorationBounds || '[]'), id = F.relay?.id;
+        const mark = bounds.find(b => b.key === `relay${id}`);
         const safe = { left: Number(d.boardSafeLeft), right: Number(d.boardSafeRight), top: Number(d.boardSafeTop), bottom: Number(d.boardSafeBottom) };
         const sep = (a, b) => a.right <= b.left + 0.05 || b.right <= a.left + 0.05 || a.bottom <= b.top + 0.05 || b.bottom <= a.top + 0.05;
         const others = bounds.filter(b => ['hp', 'nick', 'hot', 'role', 'aggro', 'pill'].includes(b.kind) || b.kind === 'debuff' && b.shape === 'pill');
@@ -56,13 +56,13 @@ export default async function dove(url, shots) {
       });
     };
     const plain = await look();
-    ok(!!plain.mark && plain.inside && plain.hits.length === 0, `${tag}: 탱커 칸 비둘기 표시가 판 안, 다른 표시와 안 겹침 (${plain.small ? '작은 칸 금빛 점' : '보통 칸 왼쪽 위'})`, plain);
-    await page.locator('#board').screenshot({ path: `${shots}/dove_${party.n}_${width}x${height}.png` });
+    ok(!!plain.mark && plain.inside && plain.hits.length === 0, `${tag}: 탱커 칸 빛의 전이 표시가 판 안, 다른 표시와 안 겹침 (${plain.small ? '작은 칸 금빛 점' : '보통 칸 왼쪽 위'})`, plain);
+    await page.locator('#board').screenshot({ path: `${shots}/relay_${party.n}_${width}x${height}.png` });
     const busy = await look({ deb: true, hot: true });
-    ok(!!busy.mark && busy.inside && busy.hits.length === 0, `${tag}: 디버프 배지 · 지속 힐이 함께 있어도 비둘기 표시가 안 겹침`, busy);
-    await page.locator('#board').screenshot({ path: `${shots}/dove_busy_${party.n}_${width}x${height}.png` });
+    ok(!!busy.mark && busy.inside && busy.hits.length === 0, `${tag}: 디버프 배지 · 지속 힐이 함께 있어도 빛의 전이 표시가 안 겹침`, busy);
+    await page.locator('#board').screenshot({ path: `${shots}/relay_busy_${party.n}_${width}x${height}.png` });
     const fly = await look({ flying: true });
-    ok(!fly.mark, `${tag}: 날아가는 중에는 앉은 표시 없음 (연출만)`);
+    ok(!fly.mark, `${tag}: 옮겨 가는 중에는 깃든 표시 없음 (연출만)`);
     await ctx.close();
   }
   await browser.close();

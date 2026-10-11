@@ -44,7 +44,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
     key: 'priest', name: '사제', line: '꾸준히 넣으면 큰 한 방이 차오릅니다.', star: 1,
     system: { name: '성언 게이지', lv: 6, desc: '힐을 할 때마다 평온·신성화 게이지가 찹니다. 100%가 되면 휠 조각이 성언으로 바뀝니다.' },
     dispel: ['마법', '질병'],
-    slots: slots({ basic: 'heal', fast: 'flash', hot: 'renew', aoe: 'poh', dispel: 'purify', ext: 'guardian', raid: 'hymn', unique: 'dove' }),
+    slots: slots({ basic: 'heal', fast: 'flash', hot: 'renew', aoe: 'poh', dispel: 'purify', ext: 'guardian', raid: 'hymn', unique: 'relay' }),
     tap: ['heal', 'flash', 'renew'],
     passives: [
       { name: '메아리 치유', lv: 1, desc: '치유·순간 치유·평온 힐량의 15%를 4초에 걸쳐 추가로 회복합니다.' },

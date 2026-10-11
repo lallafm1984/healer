@@ -107,7 +107,7 @@ export default async function dungeon(url, shots) {
   ok(/(전사|수호기사) · 탱커/.test(pv) && /(단단한 몸|신성한 갑옷)/.test(pv), `길게 누르면 직업·패시브 (${pv.slice(0, 40)})`);
   // Lv 1 = 치유·순간 치유만 (06 7장). 나머지 휠 칸은 잠금, 성언 게이지 숨김
   const locked = await page.evaluate(() => [...document.querySelectorAll('#wheel .slot.locked')].map(b => b.dataset.lock).sort().join());
-  ok(locked === 'dove,guardian,hymn,poh,purify,renew', `Lv 1 휠: 안 배운 스킬 잠금 (${locked})`);
+  ok(locked === 'guardian,hymn,poh,purify,relay,renew', `Lv 1 휠: 안 배운 스킬 잠금 (${locked})`);
   ok(await page.evaluate(() => getComputedStyle(document.getElementById('gauges')).visibility === 'hidden'), 'Lv 1: 성언 게이지 숨김');
   await page.dispatchEvent('#wheel .slot[data-lock="renew"]', 'pointerdown'); await page.dispatchEvent('#wheel .slot[data-lock="renew"]', 'pointerup');
   await page.clock.runFor(50);

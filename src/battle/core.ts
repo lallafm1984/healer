@@ -52,7 +52,7 @@ export const layoutCode = (l: Layout) => READ_ORDER.map(d => `${d}:${l[d] || '-'
 /** key = 휠 칸 이름 (사제 스킬 이름 그대로, 8번째 칸은 unique). 실제 스킬은 engine slotKey */
 export interface DirSlot { d: Dir; arrow: string; key: string | null }
 export let DIRS: (DirSlot | null)[] = [];
-/** 배치의 빈 방향 = 8번째 칸 (사제 빛의 비둘기 · 드루이드 환생 · 성기사 보호의 손, 25 2장) */
+/** 배치의 빈 방향 = 8번째 칸 (사제 빛의 전이 · 드루이드 환생 · 성기사 보호의 손, 25 2장) */
 export function applyLayout(): void {
   const uniq = HEROES[S.hero].slots.unique ? 'unique' : null;
   DIRS = GRID.map(d => (d ? { d, arrow: ARROW[d], key: S.layout[d] || uniq } : null));

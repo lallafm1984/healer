@@ -16,11 +16,11 @@ const SKILL_MARK: Record<SlotName, string> = {
   raid: '<path d="M9 17V5l11-3v13M9 7l11-3"/><ellipse cx="6" cy="18" rx="3" ry="3"/><ellipse cx="17" cy="16" rx="3" ry="3"/>',
   unique: '<path d="M12 3v15M7 8l5-5 5 5M4 15v6h16v-6"/>',
 };
-/** 사제 빛의 비둘기 모양 (24칸 판, 그림 skill-dove · fx-dove가 오기 전): 휠 칸 · 판 위 앉은 표시가 같이 씀 */
-export const DOVE_D = 'M22 7.5 19 8c-.6-1.8-2.6-2.6-4.3-1.7L12.5 8 6 3.5C5 8 7 11 10 12.5L4 14.5c1.5 2.5 4.5 3.5 7.5 3L9 21h4.5l2.2-4C19 15.6 20.5 12 19.3 9.6z';
-const DOVE_MARK = `<path d="${DOVE_D}"/>`;
+/** 사제 빛의 전이 모양 (빛 구슬 혜성) (24칸 판, 그림 skill-relay · fx-relay가 오기 전): 휠 칸 · 판 위 깃든 표시가 같이 씀 */
+export const RELAY_D = 'M20 8.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 1 1 9 0zM11 13 3.5 20.5M9.5 10.5 5 15M13.5 14.5 9 19';
+const RELAY_MARK = `<path d="${RELAY_D}"/>`;
 export function skillMark(key: SkillKey): string {
-  const path = key === 'dove' ? DOVE_MARK : key === 'handGuard' ? '<path d="M7 12V6a1.5 1.5 0 0 1 3 0v5-8a1.5 1.5 0 0 1 3 0v8-6a1.5 1.5 0 0 1 3 0v7-3a1.5 1.5 0 0 1 3 0v6c0 4-3 7-7 7-3 0-5-2-6-4L3 13a1.5 1.5 0 0 1 2-2z"/>' : SKILL_MARK[SKILLS[key].slot];
+  const path = key === 'relay' ? RELAY_MARK : key === 'handGuard' ? '<path d="M7 12V6a1.5 1.5 0 0 1 3 0v5-8a1.5 1.5 0 0 1 3 0v8-6a1.5 1.5 0 0 1 3 0v7-3a1.5 1.5 0 0 1 3 0v6c0 4-3 7-7 7-3 0-5-2-6-4L3 13a1.5 1.5 0 0 1 2-2z"/>' : SKILL_MARK[SKILLS[key].slot];
   return `<svg class="skill-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
 }
 

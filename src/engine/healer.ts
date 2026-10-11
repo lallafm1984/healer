@@ -1,7 +1,7 @@
 import { HEROES } from '../data/heroes';
 import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { DT, emit, heal, living, onDebuffEnd, unitById } from './core';
-import { doveTick, putDove } from './dove';
+import { relayTick, putRelay } from './relay';
 import { heroApply, heroChannelTick, heroTick, hotCount, putHot } from './heroes';
 import { crisis, freeCast, gcdNow, guardSec, later, raidSec, regenSpec, specApply, specDispel, specExec, specTick, sv, twiceBrush, twin, under } from './specials';
 import { orderHeal } from './bossParts';
@@ -182,8 +182,8 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     u.guardian = guardSec(f, 10); // 수호의 깃 (42 보호 07)
     if (f.sp) twin(f, u, v => { v.guardian = Math.max(v.guardian, guardSec(f, 10) / 2); }); // 쌍둥이 방패
     emit(f, { type: 'sound', name: 'renew' });
-  } else if (key === 'dove') {
-    putDove(f, u);
+  } else if (key === 'relay') {
+    putRelay(f, u);
     emit(f, { type: 'sound', name: 'renew' });
   }
   // 성언 게이지
@@ -242,7 +242,7 @@ export function healerTick(f: Fight): void {
     // 찬가의 끝자락: 끊기지 않고 끝나면 전원 6초 지속 힐 120
     if (f.channel <= 1e-9 && has(f, 'hymnTail')) { f.channel = 0; for (const u of living(f)) putHot(u, 'hymn', { sec: 6, every: 2, total: 120 }); }
   }
-  if (f.dove) doveTick(f);
+  if (f.relay) relayTick(f);
   if (f.hero !== 'priest') heroTick(f, dt);
   else if (f.tx.on && Object.keys(f.tx.on).length) talentTick(f, dt);
   if (f.cast) {

@@ -15,7 +15,7 @@ import { NAMED, SPECS, type SpecGroup } from '../data/specials';
 import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
 import { emblemColor } from '../screens/art';
 import { FACTIONS, type FactionKey } from '../data/places';
-import { addArtName, DOVE_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName } from './art';
+import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebuff } from './party-display';
 import { CELL_RADIUS, fitBoard } from './board-layout';
@@ -67,7 +67,7 @@ const emblemL = new Container();
 /** 칸 무늬 · 판 위 적 그림 (칸 채움 위, 파티원 칸 아래) · 그림 이펙트 (파티원 칸 위, 테두리·글자 아래) */
 const decalL = new Container();
 const fxArtL = new Container();
-/** 칸 위 작은 그림 표시 (빛의 비둘기): 테두리 위, 글자 아래 */
+/** 칸 위 작은 그림 표시 (빛의 전이): 테두리 위, 글자 아래 */
 const markL = new Container();
 /** 말풍선 그림 (43 5장): 틀 뒤 이펙트 띠 · 틀 9조각 · 꼬리·감정 아이콘·앞 이펙트 띠. 대사 글자(topL)는 그 위 */
 const bubbleL = new Container(), bubbleBackL = new Container(), sliceL = new Container(), bubbleFrontL = new Container();
@@ -280,22 +280,22 @@ function roleIcon(g: Graphics, role: Unit['role'], x: number, y: number, k: numb
     g.rect(x - t + 1, y - t + 1, t * 2 - 2, t * 2 - 2).fill({ color: C.gold });
   }
 }
-// ---------- 빛의 비둘기 (사제 8번째 칸): 앉은 사람 칸에 금빛 원 + 흰 비둘기. 그림 fx-dove (그림 요청 64)가 오면 그것 ----------
-let doveTex: Texture | null = null;
-function doveMark(): Texture {
-  const painted = artTexture('fx-dove');
+// ---------- 빛의 전이 (사제 8번째 칸): 빛이 깃든 사람 칸에 금빛 원 + 흰 빛 구슬. 그림 fx-relay (그림 요청 64)가 오면 그것 ----------
+let relayTex: Texture | null = null;
+function relayMark(): Texture {
+  const painted = artTexture('fx-relay');
   if (painted) return painted;
-  if (doveTex) return doveTex;
+  if (relayTex) return relayTex;
   const N = 96, m = N / 2, c = document.createElement('canvas');
   c.width = c.height = N;
   const x = c.getContext('2d')!;
   const disc = (r: number, fill: string) => { x.beginPath(); x.arc(m, m, r, 0, Math.PI * 2); x.fillStyle = fill; x.fill(); };
   disc(m, '#080605'); disc(m - 6, '#F0C46A');
-  const k = (N - 30) / 24, p = new Path2D(DOVE_D);
-  x.translate(15, 16); x.scale(k, k);
-  x.lineJoin = 'round'; x.lineWidth = 2.4; x.strokeStyle = '#080605'; x.stroke(p);
-  x.fillStyle = '#FFFAF0'; x.fill(p);
-  return (doveTex = Texture.from(c));
+  const k = (N - 30) / 24, p = new Path2D(RELAY_D);
+  x.translate(15, 15); x.scale(k, k);
+  x.lineJoin = 'round'; x.lineCap = 'round'; x.lineWidth = 4.4; x.strokeStyle = '#080605'; x.stroke(p); // 구슬 · 꼬리 줄 테두리
+  x.fillStyle = x.strokeStyle = '#FFFAF0'; x.fill(p); x.lineWidth = 2; x.stroke(p);
+  return (relayTex = Texture.from(c));
 }
 // ---------- 「나」 칸 직업 문장 (27 3-4·5장): 원형 금테 + 돌 바탕 + 문장. 한 번 그려 텍스처로 ----------
 const emblemTex = new Map<string, Texture | null>(); // null = 그림 읽는 중 (그동안은 ✚)
@@ -770,10 +770,10 @@ const FX_LOOK: Record<string, { size: number; color: number; ms?: number; tint?:
   // 묶음 G3 (59 4-4, 그림 60 E): 퍼지는 박동이 지나가는 겹 칸 · 번개 쐐기가 심장에 박힘 (판 전체)
   'pulse-ring': { size: 1.4, color: 0xa66bff, ms: 500 },
   wedge: { size: 3.2, color: BOLT, ms: 900, wide: true },
-  // 사제 빛의 비둘기 (휠 8번째 칸, 그림 요청 64): 앉음 · 다음 사람에게 날아감 (그림은 위에서 본 모습, 머리가 오른쪽) · 다 쓰고 사라짐
-  'dove-land': { size: 1.2, color: 0xfff3c4, ms: 500 },
-  'dove-fly': { size: 0.8, color: 0xfff3c4, ms: 1000, fly: true },
-  'dove-gone': { size: 1.1, color: 0xfff3c4, ms: 500, up: 0.5 },
+  // 사제 빛의 전이 (휠 8번째 칸, 그림 요청 64): 깃듦 · 다음 사람에게 옮겨 감 (그림은 빛 구슬이 오른쪽으로 나아감, 꼬리는 왼쪽) · 다 쓰고 사라짐
+  'relay-land': { size: 1.2, color: 0xfff3c4, ms: 500 },
+  'relay-fly': { size: 0.8, color: 0xfff3c4, ms: 1000, fly: true },
+  'relay-gone': { size: 1.1, color: 0xfff3c4, ms: 500, up: 0.5 },
 };
 /** 이미 터뜨린 장판 (새 장판이 깔리는 순간 한 번 zone-burst) */
 const seenZones = new Set<number>();
@@ -1377,8 +1377,8 @@ export function render(now: number): void {
   // 보통 칸 배지 글자: 가장 긴 「×저주 12」와 지속 힐 원이 칸 폭 한 줄에 안 들어가는 판은 전부 짧은 글자 「×저12」 (작은 칸과 같음)
   const shortBadge = compact || measure('×저주 12', typography.debuff) + typography.debuff * 0.7 + 1.5 > r * COS30 * 2 - 2 * (hotR + 0.75) - 1;
   const hpBounds: { id: number; cell: number; text: string; x: number; y: number; w: number; h: number; sx: number }[] = [];
-  /** 작은 칸 아래 가운데 표시 (지속 힐 + · 빛의 비둘기 금빛 점): 배지를 다 놓은 뒤 그림 */
-  const smallHots: { id: number; x: number; y: number; dove?: boolean }[] = [];
+  /** 작은 칸 아래 가운데 표시 (지속 힐 + · 빛의 전이 금빛 점): 배지를 다 놓은 뒤 그림 */
+  const smallHots: { id: number; x: number; y: number; relay?: boolean }[] = [];
   for (const { u, x, y, deb } of over) {
     let debBadge: ReturnType<typeof pill> | undefined;
     // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만). 「나」 = 직업 문장 (27 3-4)
@@ -1422,8 +1422,8 @@ export function render(now: number): void {
       const hp = fitCenter(x, Math.max(y + r * 0.68, hpBox.y + hpBox.h / 2 + 4.25), 3.25);
       smallHots.push({ id: u.id, x: hp.x, y: hp.y });
     }
-    const dove = F.dove && F.dove.id === u.id && F.t >= F.dove.flyUntil; // 날아가는 중에는 연출 (dove-fly)만
-    if (compact && dove) { const p = fitCenter(x + (hasHot ? 7.5 : 0), Math.max(y + r * 0.68, hpBox.y + hpBox.h / 2 + 4.25), 3.25); smallHots.push({ id: u.id, x: p.x, y: p.y, dove: true }); }
+    const relay = F.relay && F.relay.id === u.id && F.t >= F.relay.flyUntil; // 날아가는 중에는 연출 (relay-fly)만
+    if (compact && relay) { const p = fitCenter(x + (hasHot ? 7.5 : 0), Math.max(y + r * 0.68, hpBox.y + hpBox.h / 2 + 4.25), 3.25); smallHots.push({ id: u.id, x: p.x, y: p.y, relay: true }); }
     let hotSpot: { x: number; y: number } | null = null;
     if (deb) {
       const jail = deb.jail ? F.mobs.find(m => m.alive && m.add?.hold === deb.id) : undefined;
@@ -1536,9 +1536,9 @@ export function render(now: number): void {
     let markBox: PillBox | undefined;
     if (F.order && ok >= F.order.i) { const m = markAt(ORDER_NUM[ok], fs(0.3, 12)); markBox = pill(overG, labels, `ord${u.id}`, m.x, m.y, ORDER_NUM[ok], ok === F.order.i ? C.gold : 0xd9dde6, C.dark, fs(0.3, 12), ok === F.order.i ? 0.75 + 0.25 * pulse : 1); }
     else if (u.debuffs.some(d => d.invert)) { const m = markAt('✕', fs(0.28, 11)); markBox = pill(overG, labels, `inv${u.id}`, m.x, m.y, '✕', 0x7fa88c, C.dark, fs(0.28, 11)); }
-    // 빛의 비둘기 (사제 8번째 칸): 보통 칸은 왼쪽 위 (지속 힐 원 반대편) 금빛 원 + 흰 비둘기.
+    // 빛의 전이 (사제 8번째 칸): 보통 칸은 왼쪽 위 (지속 힐 원 반대편) 금빛 원 + 흰 빛 구슬.
     // 윗줄에 배지가 있거나 왼쪽 위에 차례 번호표 · ✕가 있으면 꼭짓점 줄에서 조준 표식 · 번호표 오른쪽
-    if (dove && !compact) {
+    if (relay && !compact) {
       const dr = Math.max(7, s * 0.19);
       let p: { x: number; y: number };
       if (!peakY && !markBox) p = hotCenter(x - r * 0.56, y - r * 0.44, dr + 0.75, dr + 0.75);
@@ -1546,8 +1546,8 @@ export function render(now: number): void {
         const right = Math.max(tank === u ? x + aimR + aimW / 2 : -Infinity, markBox ? markBox.x + markBox.w / 2 : -Infinity);
         p = fitCenter(isFinite(right) ? right + 1 + dr : x, peakY || y - r * 0.98, dr + 0.75);
       }
-      marks.put(doveMark(), p.x, p.y, dr * 2, dr * 2);
-      recordBound(`dove${u.id}`, 'dove', 'circle', p.x, p.y, dr * 2, dr * 2);
+      marks.put(relayMark(), p.x, p.y, dr * 2, dr * 2);
+      recordBound(`relay${u.id}`, 'relay', 'circle', p.x, p.y, dr * 2, dr * 2);
     }
     if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
     else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
@@ -1568,9 +1568,9 @@ export function render(now: number): void {
       if (hy - 3.25 < badge.y + capRadius) hy = Math.max(hy, below);
     }
     hy = clamp(hy, L.top + 3.25, L.bottom - 3.25);
-    if (hot.dove) {
+    if (hot.relay) {
       overG.circle(hot.x, hy, 3.25).fill({ color: C.gold }).stroke({ width: 1.25, color: C.line });
-      recordBound(`dove${hot.id}`, 'dove', 'circle', hot.x, hy, 7.75, 7.75);
+      recordBound(`relay${hot.id}`, 'relay', 'circle', hot.x, hy, 7.75, 7.75);
       continue;
     }
     overG.rect(hot.x - 3, hy - 3, 6, 6).fill({ color: C.line });

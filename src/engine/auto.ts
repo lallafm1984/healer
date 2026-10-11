@@ -405,11 +405,11 @@ export function autoHealer(f: Fight): void {
   const tanks = live.filter(u => u.role === 'tank' && u.hot <= 1 && (!g.few || pct(u) < 0.7)).concat(g.hit.filter(u => u.hot <= 1));
   if (tanks.length && f.mana > 5 && can('renew')) { use(f, 'renew', cellIdx(tanks[0])); return; }
   if (aoeSoon && !g.few && f.mana > 20 && can('renew')) { const n = live.find(u => u.hot <= 0); if (n) { use(f, 'renew', cellIdx(n)); return; } }
-  // 빛의 비둘기 (8번째 칸): 채울 사람이 없을 때 재사용마다, 보스가 때리는 사람이 다치기 시작하면 그 사람에게 (아직 많이 남은 비둘기는 안 덮어씀, 마나를 아낄 때는 안 씀).
-  // 채우기 힐보다 먼저 쓰면 보통 클리어율이 떨어짐 (사제 모든 장소 × 20판: 비둘기 없음 95.3%, 먼저 쓰면 93.6%, 채울 사람이 없을 때만 95.0%). 프로토타입에 없던 스킬이라 일치 테스트 (proto)에선 안 씀
+  // 빛의 전이 (8번째 칸): 채울 사람이 없을 때 재사용마다, 보스가 때리는 사람이 다치기 시작하면 그 사람에게 (아직 많이 남은 빛은 안 덮어씀, 마나를 아낄 때는 안 씀).
+  // 채우기 힐보다 먼저 쓰면 보통 클리어율이 떨어짐 (사제 모든 장소 × 20판: 빛의 전이 없음 95.3%, 먼저 쓰면 93.6%, 채울 사람이 없을 때만 95.0%). 프로토타입에 없던 스킬이라 일치 테스트 (proto)에선 안 씀
   const tk = aggroTarget(f);
-  if (!f.cfg.proto && tk && !off(f, tk) && pct(tk) < 0.95 && pct(low) >= topUp(f, g, 0.85) && !g.save && can('dove') && (f.cd.dove ?? 0) <= 0 && f.mana >= SKILLS.dove.cost + 5 && (!f.dove || f.dove.left <= 2)) {
-    if (use(f, 'dove', cellIdx(tk)).ok) return;
+  if (!f.cfg.proto && tk && !off(f, tk) && pct(tk) < 0.95 && pct(low) >= topUp(f, g, 0.85) && !g.save && can('relay') && (f.cd.relay ?? 0) <= 0 && f.mana >= SKILLS.relay.cost + 5 && (!f.relay || f.relay.left <= 2)) {
+    if (use(f, 'relay', cellIdx(tk)).ok) return;
   }
   if (pct(low) < topUp(f, g, 0.85) && f.mana > 3) {
     if (can('heal')) use(f, 'heal', cellIdx(low));
