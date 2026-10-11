@@ -494,8 +494,8 @@ interface DecorationBound {
   radius?: number; requestedRadius?: number; diameter?: number; requestedDiameter?: number;
   /** 떠오르는 숫자가 가리키는 파티원 */
   uid?: number;
-  /** PXF 이펙트 프레임 번호 · 층 (top = 판 맨 위, under = 글자 아래) · 회색 그림에 곱한 색 */
-  frame?: number; layer?: 'top' | 'under'; tint?: number;
+  /** PXF 이펙트 프레임 번호 · 회색 그림에 곱한 색 */
+  frame?: number; tint?: number;
 }
 const decorationBounds: DecorationBound[] = [];
 const clamp = (value: number, min: number, max: number) => min > max ? (min + max) / 2 : Math.max(min, Math.min(max, value));
@@ -970,7 +970,7 @@ function predictedHeal(u: Unit): number {
 
 /**
  * PXF 이펙트 한 프레임: 대상 칸 가운데 (game.pivot 0.5, 0.5), 칸 지름 2r 기준 크기, 판 밖으로 안 나가게 줄임.
- * 층: 휠 스킬은 판 맨 위 (pxfL), 전투 공통 · 파티원 능력은 글자 아래 (fxArtL). 회색 그림은 tint 색을 곱함.
+ * 층: 모두 판 맨 위 (pxfL, 이름 · 체력 · 말풍선 위, Lim 「파티원에서 최상단으로」). 회색 그림은 tint 색을 곱함.
  * 픽셀 그림이라 가장 가까운 픽셀로 키움. 더하기 섞기는 WebGL에서만 (Canvas에서는 뒤에 그리는 것까지 번져서 보통 섞기)
  */
 function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: number, tint = 0xffffff): void {
@@ -979,8 +979,8 @@ function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: numb
   if (tex.source.scaleMode !== 'nearest') tex.source.scaleMode = 'nearest';
   const size = pxfDrawSize(c, r * 2), half = safeRadius(x, y, size / 2, 'circle');
   if (half <= 0) return;
-  (c.layer === 'under' ? fxArt : pxfArt).put(tex, x, y, half * 2, half * 2, 1, c.gray ? tint : 0xffffff, 0, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
-  recordBound(key, 'fx', 'circle', x, y, half * 2, half * 2, { diameter: half * 2, requestedDiameter: size, frame: i, layer: c.layer, tint: c.gray ? tint : undefined });
+  pxfArt.put(tex, x, y, half * 2, half * 2, 1, c.gray ? tint : 0xffffff, 0, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
+  recordBound(key, 'fx', 'circle', x, y, half * 2, half * 2, { diameter: half * 2, requestedDiameter: size, frame: i, tint: c.gray ? tint : undefined });
 }
 /** 그림 이펙트 한 장: 판 밖으로 안 나가게 크기를 줄여 그림. flipX = 좌우 뒤집음 */
 function spriteFx(tex: Texture, key: string, x: number, y: number, size: number, alpha: number, tint = 0xffffff, rot = 0, flipX = false): void {

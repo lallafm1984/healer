@@ -1,5 +1,5 @@
 // 모든 효과 PXF 1단계 (Lim 2026-10-11 「모든 효과를 이렇게 할지 검토」): 전투 공통 효과 (피격 · 치유 빛 · 치명타 별 · 해제 · 부활 · 쓰러짐 · 디버프 걸림 · 장비 발동)와
-// 파티원 능력이 예전 그림 대신 PXF 프레임 띠로, 이름 · 체력 글자 아래 층에 그려짐. 회색 그림은 종류 색을 곱함. 끝나면 사라짐.
+// 파티원 능력이 예전 그림 대신 PXF 프레임 띠로, 휠 스킬처럼 판 맨 위 층에 그려짐 (Lim 「파티원에서 최상단으로」). 회색 그림은 종류 색을 곱함. 끝나면 사라짐.
 // 판 기록 열쇠는 예전 그림과 같은 앞머리 (heal12-… · death3-…), 파티원 능력은 pxf<id>-ally-<종류>-…. S25 × 5인 판
 import { chromium } from 'playwright';
 import { patchSave, toParty } from './nav.mjs';
@@ -50,7 +50,7 @@ export default async function commonPxf(url, shots) {
       ok(g.length === 1, `${label}: PXF 한 장`, g);
       const d = g[0];
       if (!d) return;
-      ok(d.layer === 'under' && d.frame >= 0, `${label}: 이름 · 체력 글자 아래 층`, d);
+      ok(d.frame >= 0, `${label}: 재생 (프레임 ${d.frame})`, d);
       ok(Math.abs(d.requestedDiameter - size) < 0.5 && d.diameter <= d.requestedDiameter + 0.01 && Math.abs(d.w - d.h) < 0.01, `${label}: 크기 칸 지름 × 64/62 (${size.toFixed(1)}px)`, d);
       if (want.gray) ok(typeof d.tint === 'number' && d.tint !== 0xffffff, `${label}: 회색 그림에 색을 칠함 (${d.tint?.toString(16)})`, d);
       else ok(d.tint == null, `${label}: 구운 색 그대로`, d);
@@ -107,11 +107,6 @@ export default async function commonPxf(url, shots) {
       await gone('파티원 능력', `pxf${who.ab}-${who.abFx}-`);
     }
 
-    // 휠 스킬 PXF는 그대로 판 맨 위 층
-    await page.evaluate(id => { (window.__proto.F.used ??= []).push({ key: 'flash', uid: id }); }, A);
-    await page.clock.runFor(100);
-    const top = (await bounds()).filter(d => d.key.startsWith(`pxf${A}-priest-flash-`));
-    ok(top.length === 1 && top[0].layer === 'top', '휠 스킬 PXF는 판 맨 위 층', top);
     await ctx.close();
   } finally {
     await browser.close();

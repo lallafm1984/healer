@@ -3,7 +3,7 @@
  * 게임에는 PXF 엔진이 없어서 실제 엔진이 그린 프레임을 투명 띠로 구워 둔 src/art/fx-pxf-<이름>.png
  * (64px 프레임을 가로로 frames장, 굽기 scripts/pxf-strip.mjs)를 그린다.
  * 값은 그래프의 settings · game 블록과 같아야 함 (tests/pxf.test.ts).
- * 2026-10-11 Lim: 사제 치유로 시험 → 「직업별 모든 스킬에」. 보통 섞기 · 판 맨 위 층 (board.ts pxfL)
+ * 2026-10-11 Lim: 사제 치유로 시험 → 「직업별 모든 스킬에」 → 전투 공통 효과 · 파티원 능력도. 보통 섞기 · 모두 판 맨 위 층 (board.ts pxfL, Lim 「파티원에서 최상단으로」)
  */
 import type { AbKind } from '../data/abilities';
 import type { SkillKey } from '../data/skills';
@@ -22,16 +22,12 @@ export interface PxfClip {
   /** 기준 칸 크기 (game.referenceCell, 없으면 62)일 때 그림 크기 (game.logicalSize) */
   logicalSize: number;
   referenceCell: number;
-  /** 층: top = 판 맨 위 (휠 스킬, 글자 위), under = 이름 · 체력 글자 아래 (자주 · 여러 칸에 한꺼번에 뜨는 효과) */
-  layer: 'top' | 'under';
   /** 회색 그림: 게임이 종류마다 색을 곱해 칠함 (치유 = 문장 색 · 쓰러짐 = 역할 색 · 디버프 = 종류 색 · 장비 발동 = 묶음 색) */
   gray: boolean;
 }
 
-const clip = (frames: number, impactFrame: number, o: { layer?: 'top' | 'under'; gray?: boolean } = {}): PxfClip =>
-  ({ size: 64, frames, fps: 24, blend: 'normal', impactFrame, logicalSize: 64, referenceCell: 62, layer: o.layer ?? 'top', gray: o.gray ?? false });
-/** 글자 아래에 그리는 효과 (전투 공통 · 파티원 능력) */
-const under = (frames: number, impactFrame: number, gray = false): PxfClip => clip(frames, impactFrame, { layer: 'under', gray });
+const clip = (frames: number, impactFrame: number, gray = false): PxfClip =>
+  ({ size: 64, frames, fps: 24, blend: 'normal', impactFrame, logicalSize: 64, referenceCell: 62, gray });
 
 /** 이름 = 그래프 · 프레임 띠 파일 이름 (src/art/pxf/<이름>.pxf.json → fx-pxf-<이름>.png) */
 export const PXF = {
@@ -63,21 +59,21 @@ export const PXF = {
   'paladin-sacrifice': clip(22, 3),
   'paladin-sanctuary': clip(24, 3),
   'paladin-hand-guard': clip(24, 2),
-  // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (글자 아래, 회색 그림은 색을 곱함)
-  'common-hit': under(11, 0),
-  'common-crit': under(12, 0),
-  'common-heal': under(14, 1, true),
-  'common-dispel': under(14, 1),
-  'common-revive': under(20, 2),
-  'common-death': under(18, 0, true),
-  'common-debuff': under(16, 1, true),
-  'common-proc': under(12, 0, true),
-  // 모든 효과 PXF 1단계 (requests.md): 파티원 능력 종류마다 (글자 아래)
-  'ally-def': under(16, 1),
-  'ally-ctl': under(16, 1),
-  'ally-sup': under(16, 1),
-  'ally-heal': under(16, 1),
-  'ally-atk': under(14, 0),
+  // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (회색 그림은 색을 곱함)
+  'common-hit': clip(11, 0),
+  'common-crit': clip(12, 0),
+  'common-heal': clip(14, 1, true),
+  'common-dispel': clip(14, 1),
+  'common-revive': clip(20, 2),
+  'common-death': clip(18, 0, true),
+  'common-debuff': clip(16, 1, true),
+  'common-proc': clip(12, 0, true),
+  // 모든 효과 PXF 1단계 (requests.md): 파티원 능력 종류마다
+  'ally-def': clip(16, 1),
+  'ally-ctl': clip(16, 1),
+  'ally-sup': clip(16, 1),
+  'ally-heal': clip(16, 1),
+  'ally-atk': clip(14, 0),
 } as const satisfies Record<string, PxfClip>;
 export type PxfKey = keyof typeof PXF;
 export const pxfArtName = (key: PxfKey): string => `fx-pxf-${key}`;
