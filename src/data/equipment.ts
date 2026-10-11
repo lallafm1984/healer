@@ -330,6 +330,8 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   heart1: ['gauntlet'], heart2: ['crown'], heart3: ['relic'],
   dawn: ['jade', 'robe'],
   heartcrack: ['wand', 'habit', 'amulet'],
+  // 묶음 H1 (62 2-1): 그 세력 생김새 (LOOKS) 안의 종류만 골라 새 생김새 그림이 안 늘게. 열림 ±5 안에서 같은 조합 없음
+  scrapheap: ['mace', 'gauntlet'], mine: ['helm', 'mail', 'plume'], alley: ['hood', 'pendant'], greenhouse: ['robe', 'habit', 'amulet'], frogpond: ['wand', 'bracer'], reedvillage: ['mail', 'gloves', 'signet'], fountain: ['crown', 'ring'], perfumery: ['coat', 'gloves', 'medal'], icefish: ['staff', 'signet'], snowlab: ['gloves', 'bracer', 'beads'], harvest: ['jade', 'sleeve'],
 };
 export const KIND_WEIGHT = 3;
 

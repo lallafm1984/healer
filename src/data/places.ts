@@ -22,7 +22,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'crystal' | 'crystal-field' | 'crystal-mirror' | 'fort' | 'fort-armory' | 'fort-top' | 'station' | 'shadow' | 'shadow-wall' | 'shadow-tower' | 'school'
   | 'maze' | 'maze-hall' | 'maze-core' | 'camp' | 'camp-yard' | 'camp-command' | 'carriage' | 'ballroom'
   | 'coast' | 'coast-way' | 'coast-whirl' | 'lantern'
-  | 'heart' | 'heart-gate' | 'heart-core' | 'dawn' | 'heartcrack';
+  | 'heart' | 'heart-gate' | 'heart-core' | 'dawn' | 'heartcrack'
+  | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest';
 
 export interface Faction {
   name: string;
@@ -210,6 +211,18 @@ export const PLACES: Record<PlaceKey, Place> = {
   'heart-core': { key: 'heart-core', name: '심실', faction: 'deep', tone: ['#321C4A', '#12091C'], borrow: 'cathedral' },
   dawn: { key: 'dawn', name: '새벽 호숫길', faction: 'deep', tone: ['#3C3046', '#15111C'], borrow: 'cathedral' },
   heartcrack: { key: 'heartcrack', name: '멈춘 심장 속', faction: 'deep', tone: ['#2A1E38', '#0E0A15'], borrow: 'cathedral' },
+  // 묶음 H1 (62, 그림 요청 63): 그림이 올 때까지 같은 세력 옛 장소 그림을 빌림
+  scrapheap: { key: 'scrapheap', name: '고철 더미 언덕', faction: 'golem', tone: ['#3A3226', '#18130E'], borrow: 'plateau' },
+  alley: { key: 'alley', name: '잿빛 뒷골목', faction: 'plague', tone: ['#33302A', '#14120E'], borrow: 'cemetery' },
+  frogpond: { key: 'frogpond', name: '개구리 연못', faction: 'swamp', tone: ['#25321F', '#0E130B'], borrow: 'marsh' },
+  fountain: { key: 'fountain', name: '분수 정원', faction: 'noble', tone: ['#2E2638', '#120F16'], borrow: 'lily' },
+  icefish: { key: 'icefish', name: '얼음 호수 낚시터', faction: 'mage', tone: ['#24324A', '#0E131C'], borrow: 'snowpass' },
+  harvest: { key: 'harvest', name: '해바라기 수확밭', faction: 'hill', tone: ['#3A3322', '#16130C'], borrow: 'hillpath' },
+  mine: { key: 'mine', name: '녹슨 광산', faction: 'golem', tone: ['#33302C', '#141210'], borrow: 'rustfort' },
+  greenhouse: { key: 'greenhouse', name: '역병 약초 온실', faction: 'plague', tone: ['#30332A', '#12140E'], borrow: 'crypt' },
+  reedvillage: { key: 'reedvillage', name: '갈대 오두막 마을', faction: 'swamp', tone: ['#28331F', '#10140C'], borrow: 'swamp' },
+  perfumery: { key: 'perfumery', name: '백합 향수 공방', faction: 'noble', tone: ['#32263C', '#140F18'], borrow: 'manor' },
+  snowlab: { key: 'snowlab', name: '눈꽃 연구소', faction: 'mage', tone: ['#26344C', '#0F141D'], borrow: 'frost' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -236,6 +249,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   maze1: 'maze', maze2: 'maze-hall', maze3: 'maze-core', camp1: 'camp', camp2: 'camp-yard', camp3: 'camp-command', carriage: 'carriage', ballroom: 'ballroom',
   coast1: 'coast', coast2: 'coast-way', coast3: 'coast-whirl', lantern: 'lantern',
   heart1: 'heart', heart2: 'heart-gate', heart3: 'heart-core', dawn: 'dawn', heartcrack: 'heartcrack',
+  scrapheap: 'scrapheap', mine: 'mine', alley: 'alley', greenhouse: 'greenhouse', frogpond: 'frogpond', reedvillage: 'reedvillage', fountain: 'fountain', perfumery: 'perfumery', icefish: 'icefish', snowlab: 'snowlab', harvest: 'harvest',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -283,6 +297,7 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   janmul: 'coast', hwigami: 'coast-way', geomeun: 'coast-whirl', lanterntrash: 'lantern', nokseul96: 'lantern',
   eongkim: 'heart', revlord: 'heart-gate', abyssheart: 'heart-core', dawntrash: 'dawn', heartshard100: 'dawn',
   cracktrash: 'heartcrack', nokseul: 'heartcrack', coolroot: 'heartcrack', lastshade: 'heartcrack',
+  heaptrash: 'scrapheap', kongkong5: 'scrapheap', shaft: 'mine', kongkong: 'mine', railway: 'mine', gurit: 'mine', alleytrash: 'alley', molly10: 'alley', pothall: 'greenhouse', molly: 'greenhouse', mushbed: 'greenhouse', chingching: 'greenhouse', lilypads: 'frogpond', kara15: 'frogpond', reedfence: 'reedvillage', kara: 'reedvillage', mudpath: 'reedvillage', cheolbeok: 'reedvillage', fountainwalk: 'fountain', lavender20: 'fountain', bottlehall: 'perfumery', lavender: 'perfumery', stillroom: 'perfumery', rose: 'perfumery', iceholes: 'icefish', ppodeuk25: 'icefish', toolstore: 'snowlab', ppodeuk: 'snowlab', coldstore: 'snowlab', icia: 'snowlab', sheaves: 'harvest', jipdan30: 'harvest',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

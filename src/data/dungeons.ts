@@ -5,7 +5,8 @@ export type DungeonKey = 'rustfort' | 'plateau' | 'cemetery' | 'marsh' | 'crypt'
   | 'bookfield' | 'rosemaze' | 'sewer' | 'archive' | 'ossuary' | 'shellbeach' | 'wreck'
   | 'lampway' | 'emberfoot' | 'teaparty' | 'mossroot' | 'rainbow'
   | 'ashpass' | 'hotspring' | 'forge' | 'lakeshore'
-  | 'deepstairs' | 'hourglass' | 'caravan' | 'pinwheel' | 'observatory' | 'ranch' | 'windmill' | 'station' | 'school' | 'carriage' | 'ballroom' | 'lantern' | 'dawn' | 'heartcrack';
+  | 'deepstairs' | 'hourglass' | 'caravan' | 'pinwheel' | 'observatory' | 'ranch' | 'windmill' | 'station' | 'school' | 'carriage' | 'ballroom' | 'lantern' | 'dawn' | 'heartcrack'
+  | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest';
 
 export interface Dungeon {
   key: DungeonKey;
@@ -73,6 +74,18 @@ export const DUNGEONS: Record<DungeonKey, Dungeon> = {
   emberfoot: { key: 'emberfoot', name: '불꽃 봉우리 기슭', segments: ['hotgravel', 'kobold60'] },
   teaparty: { key: 'teaparty', name: '끝없는 다과회', segments: ['sugarstair', 'sippy', 'cuptower', 'hatter'] },
   mossroot: { key: 'mossroot', name: '이끼 뿌리 사원', segments: ['wetstair', 'uga', 'turtlebridge', 'shellgod'] },
+  // 묶음 H1 (62 2-1): 탐험 = 일반 → 보스, 던전 = 일반 → 보스 ① → 정예 → 보스 ②
+  scrapheap: { key: 'scrapheap', name: '고철 더미 언덕', segments: ['heaptrash', 'kongkong5'] },
+  mine: { key: 'mine', name: '녹슨 광산', segments: ['shaft', 'kongkong', 'railway', 'gurit'] },
+  alley: { key: 'alley', name: '잿빛 뒷골목', segments: ['alleytrash', 'molly10'] },
+  greenhouse: { key: 'greenhouse', name: '역병 약초 온실', segments: ['pothall', 'molly', 'mushbed', 'chingching'] },
+  frogpond: { key: 'frogpond', name: '개구리 연못', segments: ['lilypads', 'kara15'] },
+  reedvillage: { key: 'reedvillage', name: '갈대 오두막 마을', segments: ['reedfence', 'kara', 'mudpath', 'cheolbeok'] },
+  fountain: { key: 'fountain', name: '분수 정원', segments: ['fountainwalk', 'lavender20'] },
+  perfumery: { key: 'perfumery', name: '백합 향수 공방', segments: ['bottlehall', 'lavender', 'stillroom', 'rose'] },
+  icefish: { key: 'icefish', name: '얼음 호수 낚시터', segments: ['iceholes', 'ppodeuk25'] },
+  snowlab: { key: 'snowlab', name: '눈꽃 연구소', segments: ['toolstore', 'ppodeuk', 'coldstore', 'icia'] },
+  harvest: { key: 'harvest', name: '해바라기 수확밭', segments: ['sheaves', 'jipdan30'] },
 };
 
 /** 휴식: 초당 마나 회복 (%). 「계속」은 언제든 누를 수 있음 */

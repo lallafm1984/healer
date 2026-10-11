@@ -3787,6 +3787,240 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     ],
     enrage: { name: '대합창', period: 3, dmg: 200 },
   },
+  // ---------- 묶음 H1 (62 3-1, Lv 5~30): 새 부품 없이 있는 부품의 새 조합. 탐험판은 던전 보스 기술 3~4개를 작게 (39 1-1) ----------
+  // 곡괭이 골렘 콩콩이 탐험판 (탐험 ㉖ 고철 더미 언덕 Lv 5): 던전 ㉑ ①의 평타 · 곡괭이 내려찍기 · 곡괭이 박자만. 진동 맛보기 (울릴 때 새 시전 멈추기)
+  kongkong5: {
+    phase: [1, ''],
+    skills: [
+      AUTO(80),
+      BUSTER('곡괭이 내려찍기', '곡괭', 8, 16, 360),
+      { key: 'beat', name: '곡괭이 박자', icon: '박자', kind: 'aoe', first: 12, period: 16, cast: 2, warn: 'aoe', effect: { p: 'quake', dmg: 45, lock: 2 } },
+      { key: 'aoe', name: '돌 부스러기', icon: '돌', kind: 'aoe', first: 20, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 150 } },
+    ],
+    enrage: { name: '곡괭이 폭주', period: 2, dmg: 150 },
+  },
+  // ---------- 묶음 H1 던전 ㉑ 녹슨 광산 (62 3-1, Lv 8 · 골렘 · 해제 없음): 콩콩이 · 구릿빛 ----------
+  // 곡괭이 골렘 콩콩이 (①): 곡괭이 박자 (진동: 시전 중인 힐이 끊김) · 곡괭이 내려찍기 · 돌 부스러기 (무작위 2명). 악몽은 박자가 10초마다. 목표 2:00 · 광폭화 2:45
+  kongkong: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('곡괭이 내려찍기', '곡괭', 8, 16, U.tank(0.45)),
+      { key: 'beat', name: '곡괭이 박자', icon: '박자', kind: 'aoe', first: 10, period: 14, cast: 2, warn: 'aoe', when: { mythic: false }, effect: { p: 'quake', dmg: U.dps(0.1), lock: 2 } },
+      { key: 'beatm', name: '곡괭이 박자', icon: '박자', kind: 'aoe', first: 10, period: 10, cast: 2, warn: 'aoe', when: { mythic: true }, hidden: true, effect: { p: 'quake', dmg: U.dps(0.1), lock: 2 } },
+      { key: 'chips', name: '돌 부스러기', icon: '돌', kind: 'buster', first: 15, period: 18, cast: 2, warn: 'buster', target: { p: 'random', n: 2 },
+        how: '탱커 아닌 2명이 맞음. 예고 동안 그 둘을 채우기', effect: { p: 'strike', dmg: U.dps(0.2) } },
+    ],
+    enrage: { name: '곡괭이 폭주', period: 2, dmg: 200 },
+  },
+  // 광산 감독관 구릿빛 (최종): 광차 돌진 (줄 피해, 못 피함 → 예고된 줄 미리 채우기) · 졸개 부르기 (고철 졸개 2) · 채찍질. 40% 아래 갱도 흔들림 (가장자리 칸이 무너짐).
+  // 악몽은 광차 두 줄. 목표 2:40 · 광폭화 3:45
+  gurit: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('채찍질', '채찍', 8, 15, U.tank(0.5)),
+      ...rows('cart', '광차 돌진', '광차', 14, 18, U.dps(0.25), { mythic: true }),
+      { key: 'adds', name: '졸개 부르기', icon: '졸개', kind: 'instant', first: 20, period: 30, cast: 0,
+        effect: { p: 'adds', n: 2, add: { name: '고철 졸개', short: '졸', art: 'mob-scrap-minion', hp: 0.035, dmg: U.dps(0.03), every: 2 } } },
+      { key: 'shake', name: '갱도 흔들림', icon: '흔들', kind: 'instant', first: null, period: 25, cast: 2, effect: { p: 'hole', n: 1, max: 3 } },
+    ],
+    flow: [{ p: 'when', if: { idle: 'shake', hpBelow: 0.4 }, do: [{ p: 'start', skill: 'shake', in: 2 }, { p: 'text', text: '갱도 흔들림: 가장자리 바닥이 무너짐' }] }],
+    enrage: { name: '광차 폭주', period: 2, dmg: 220 },
+  },
+  // 약초꾼 수도사 몰리 탐험판 (탐험 ㉗ 잿빛 뒷골목 Lv 10): 던전 ㉒ ①의 평타 · 병든 약초 · 약초 가루 뿌리기만. 질병 해제 연습
+  molly10: {
+    phase: [1, ''],
+    skills: [
+      AUTO(80),
+      BUSTER('지팡이 강타', '지팡', 8, 18, 340),
+      { key: 'herb', name: '병든 약초', icon: '약초', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '병든 약초', type: '질병', left: 10, dot: 22 } } },
+      { key: 'aoe', name: '약초 가루 뿌리기', icon: '가루', kind: 'aoe', first: 16, period: 22, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 170 } },
+    ],
+    enrage: { name: '약초 폭주', period: 2, dmg: 160 },
+  },
+  // ---------- 묶음 H1 던전 ㉒ 역병 약초 온실 (62 3-1, Lv 13 · 역병 교단 · 질병): 몰리 · 칭칭이 ----------
+  // 약초꾼 수도사 몰리 (①): 병든 약초 (질병 2명, 첫 「해제 여럿」) · 약초 가루 뿌리기 · 지팡이 강타. 악몽은 병든 약초 3명. 목표 2:00 · 광폭화 2:50
+  molly: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('지팡이 강타', '지팡', 8, 16, U.tank(0.45)),
+      { key: 'herb', name: '병든 약초', icon: '약초', kind: 'instant', first: 6, period: 15, cast: 0,
+        how: '2명 (악몽 3명)에게 질병 (초당 딜체 2%). 질병을 지우는 직업은 지우고, 아니면 지속 힐로 버팀',
+        effect: { p: 'debuff', n: 2, nMythic: 3, debuff: { name: '병든 약초', type: '질병', left: 10, dot: U.dps(0.02) } } },
+      { key: 'aoe', name: '약초 가루 뿌리기', icon: '가루', kind: 'aoe', first: 16, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    enrage: { name: '약초 폭주', period: 2, dmg: 200 },
+  },
+  // 온실지기 덩굴 골렘 칭칭이 (최종): 포자 꽃가루 (치유를 빨아들이는 솜뭉치, 지우면 가장 건강한 아군에게 넘어감: 무지개 버섯밭 부품을 질병 세력으로) · 덩굴 휘감기 (받는 치유 −30%) · 줄기 후려치기.
+  // 50% 아래 꽃봉오리 2 (터지기 전에 딜러가 깸). 악몽은 포자 2명. 목표 2:40 · 광폭화 4:00
+  chingching: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('줄기 후려치기', '줄기', 8, 15, U.tank(0.5)),
+      { key: 'spore', name: '포자 꽃가루', icon: '포자', kind: 'instant', first: 7, period: 18, cast: 0, how: SPORE_HOW,
+        effect: { p: 'debuff', n: 1, nMythic: 2, pick: 'others', debuff: spore(0.8) } },
+      { key: 'vine', name: '덩굴 휘감기', icon: '덩굴', kind: 'instant', first: 12, period: 20, cast: 0,
+        how: '탱커 아닌 1명이 10초 동안 받는 치유 −30%. 질병을 지우는 직업은 지움',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '덩굴 휘감기', type: '질병', left: 10, healCut: 0.3, dot: U.dps(0.01) } } },
+      { key: 'aoe', name: '꽃가루 바람', icon: '바람', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.2) } },
+      { key: 'buds', name: '꽃봉오리', icon: '봉오', kind: 'instant', first: null, period: 30, cast: 0,
+        how: '꽃봉오리 2개가 10초 뒤 터져 모두 딜체 25%. 딜러가 먼저 깸, 못 깨면 터지기 전에 모두 채우기',
+        effect: { p: 'adds', n: 2, add: { name: '꽃봉오리', short: '봉오', art: 'mob-flower-bud', hp: 0.02, dmg: 0, every: 0, at: 'random', job: { p: 'bomb', sec: 10, dmg: U.dps(0.25) } } } },
+    ],
+    flow: [{ p: 'when', if: { idle: 'buds', hpBelow: 0.5 }, do: [{ p: 'start', skill: 'buds', in: 2 }, { p: 'text', text: '꽃봉오리: 터지기 전에 깸' }] }],
+    enrage: { name: '덩굴 폭주', period: 2, dmg: 220 },
+  },
+  // 늪 사냥꾼 카라 탐험판 (탐험 ㉘ 개구리 연못 Lv 15): 던전 ㉓ ①의 평타 · 독침 사격 · 창 찌르기 · 갈대 화살 비만. 독을 지우는 직업 아니면 지속 힐로 버팀
+  kara15: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('창 찌르기', '찌르', 8, 16, 380),
+      { key: 'dart', name: '독침 사격', icon: '독침', kind: 'instant', first: 6, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '독침 사격', type: '독', left: 10, dot: 24 } } },
+      { key: 'aoe', name: '갈대 화살 비', icon: '화살', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 165 } },
+    ],
+    enrage: { name: '사냥꾼의 분노', period: 2, dmg: 170 },
+  },
+  // ---------- 묶음 H1 던전 ㉓ 갈대 오두막 마을 (62 3-1, Lv 18 · 늪의 부족 · 독): 카라 · 철벅이 ----------
+  // 늪 사냥꾼 카라 (①): 독침 사격 (독 1명, 악몽 2명) · 덫 놓기 (바닥 덫 2곳, 파티원이 비킴) · 창 찌르기 · 갈대 화살 비. 목표 2:00 · 광폭화 3:00
+  kara: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.06)),
+      BUSTER('창 찌르기', '찌르', 8, 16, U.tank(0.48)),
+      { key: 'dart', name: '독침 사격', icon: '독침', kind: 'instant', first: 6, period: 10, cast: 0,
+        how: '1명 (악몽 2명)에게 독 (초당 딜체 3%). 독을 지우는 직업은 지우고, 아니면 지속 힐',
+        effect: { p: 'debuff', n: 1, nMythic: 2, debuff: { name: '독침 사격', type: '독', left: 10, dot: U.dps(0.03) } } },
+      ...spots('trap', '덫 놓기', '덫', 2, 14, 20, U.dps(0.2)),
+      { key: 'aoe', name: '갈대 화살 비', icon: '화살', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    enrage: { name: '사냥꾼의 분노', period: 2, dmg: 210 },
+  },
+  // 진흙 정령 철벅이 (최종): 진흙 웅덩이 (남는 장판) · 진흙 독 (독 1명) · 진흙 덮치기 (광역). 50% 아래 갈라지기: 작은 철벅이 2 (때리는 쫄, 히드라 머리를 쉬운 판으로).
+  // 악몽은 작은 철벅이 3. 목표 2:40 · 광폭화 4:00
+  cheolbeok: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('진흙 주먹', '주먹', 8, 15, U.tank(0.5)),
+      { key: 'puddle', name: '진흙 웅덩이', icon: '웅덩', kind: 'zone', first: 10, period: 16, cast: 2, warn: 'zone', dps: U.dps(0.05), dur: 8, cells: { p: 'around' } },
+      { key: 'mud', name: '진흙 독', icon: '독', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '진흙 독', type: '독', left: 10, dot: U.dps(0.02) } } },
+      { key: 'aoe', name: '진흙 덮치기', icon: '덮치', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.22) } },
+      { key: 'split', name: '갈라지기', icon: '갈라', kind: 'instant', first: null, period: 999, cast: 0,
+        how: '작은 철벅이가 딜러를 때림. 딜러가 다 잡을 때까지 맞는 딜러를 채우기',
+        effect: { p: 'adds', n: 2, nMythic: 3, add: { name: '작은 철벅이', short: '철벅', art: 'mob-mud-splitling', hp: 0.05, dmg: U.dps(0.04), every: 2 } } },
+    ],
+    flow: [{ p: 'when', if: { idle: 'split', hpBelow: 0.5 }, do: [{ p: 'start', skill: 'split', in: 1 }, { p: 'text', text: '갈라지기: 작은 철벅이를 딜러가 잡음' }] }],
+    enrage: { name: '진흙 폭주', period: 2, dmg: 220 },
+  },
+  // 향수 조향사 라벤더 탐험판 (탐험 ㉙ 분수 정원 Lv 20): 던전 ㉔ ①의 평타 · 어지러운 향기 · 향수병 던지기만. 받는 치유 −50% 저주
+  lavender20: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'scent', name: '어지러운 향기', icon: '향기', kind: 'instant', first: 6, period: 15, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '어지러운 향기', type: '저주', left: 8, healCut: 0.5 } } },
+      { key: 'bottle', name: '향수병 던지기', icon: '향수', kind: 'buster', first: 12, period: 18, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, effect: { p: 'strike', dmg: 300 } },
+      { key: 'aoe', name: '꽃향기 바람', icon: '바람', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 170 } },
+    ],
+    enrage: { name: '향수 폭주', period: 2, dmg: 180 },
+  },
+  // ---------- 묶음 H1 던전 ㉔ 백합 향수 공방 (62 3-1, Lv 23 · 몰락한 귀족가 · 저주): 라벤더 · 마담 로즈 ----------
+  // 향수 조향사 라벤더 (①): 어지러운 향기 (저주 2명, 받는 치유 −50%) · 향수병 던지기 (무작위 3명) · 향기 구름 (장판 1곳) · 향수 분무. 목표 2:00 · 광폭화 3:10
+  lavender: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('향수 분무', '분무', 8, 16, U.tank(0.48)),
+      { key: 'scent', name: '어지러운 향기', icon: '향기', kind: 'instant', first: 6, period: 16, cast: 0,
+        how: '탱커 아닌 2명이 8초 동안 받는 치유 −50%. 저주를 지우는 직업은 지움, 아니면 끝난 뒤 채우기',
+        effect: { p: 'debuff', n: 2, pick: 'others', debuff: { name: '어지러운 향기', type: '저주', left: 8, healCut: 0.5 } } },
+      { key: 'bottle', name: '향수병 던지기', icon: '향수', kind: 'buster', first: 12, period: 18, cast: 2, warn: 'buster', target: { p: 'random', n: 3 },
+        how: '탱커 아닌 3명이 맞음. 향기가 걸린 사람은 미리 채우기', effect: { p: 'strike', dmg: U.dps(0.16) } },
+      ...spots('cloud', '향기 구름', '구름', 1, 20, 24, U.dps(0.15)),
+    ],
+    enrage: { name: '향수 폭주', period: 2, dmg: 210 },
+  },
+  // 공방 주인 마담 로즈 (최종): 뒤집힌 향기 (뒤집힌 축복: 받는 치유가 피해, 무도회장 거꾸로 건배의 쉬운 판) · 꽃잎 폭풍 (광역) · 장미 가시 (탱커 + 물리 지속 피해).
+  // 악몽은 뒤집힌 향기 8초. 목표 2:40 · 광폭화 4:00
+  rose: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      { key: 'thorn', name: '장미 가시', icon: '가시', kind: 'buster', first: 8, period: 15, cast: 2, warn: 'buster', dmg: U.tank(0.45), target: 'tank',
+        effect: { p: 'tank', debuff: { name: '장미 가시', type: '물리', left: 8, dot: U.tank(0.015) } } },
+      { key: 'invert', name: '뒤집힌 향기', icon: '뒤집', kind: 'instant', first: 10, period: 20, cast: 0, when: { mythic: false },
+        how: '탱커 아닌 1명이 6초 동안 받는 치유가 피해로 (악몽 8초). 저주를 지우는 직업은 지움, 아니면 그 사람만 빼고 힐 (광역 힐 조심)',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '뒤집힌 향기', type: '저주', left: 6, invert: true } } },
+      { key: 'invertm', name: '뒤집힌 향기', icon: '뒤집', kind: 'instant', first: 10, period: 20, cast: 0, when: { mythic: true }, hidden: true,
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '뒤집힌 향기', type: '저주', left: 8, invert: true } } },
+      { key: 'aoe', name: '꽃잎 폭풍', icon: '꽃잎', kind: 'aoe', first: 16, period: 22, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    enrage: { name: '장미 폭주', period: 2, dmg: 220 },
+  },
+  // 눈사람 조수 뽀득이 탐험판 (탐험 ㉚ 얼음 호수 낚시터 Lv 25): 던전 ㉕ ①의 평타 · 눈덩이 굴리기 · 실수한 얼음 마법만. 줄 피해 (못 피함 → 예고된 줄 미리 채우기)
+  ppodeuk25: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('몸통 박치기', '박치', 8, 18, 380),
+      ...rows('roll', '눈덩이 굴리기', '눈덩', 10, 14, 200, false),
+      { key: 'oops', name: '실수한 얼음 마법', icon: '실수', kind: 'instant', first: 6, period: 15, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '실수한 얼음 마법', type: '마법', left: 8, vuln: 0.2, dot: 15 } } },
+    ],
+    enrage: { name: '눈사람 폭주', period: 2, dmg: 180 },
+  },
+  // ---------- 묶음 H1 던전 ㉕ 눈꽃 연구소 (62 3-1, Lv 28 · 폭주한 마도사 · 마법): 뽀득이 · 아이시아 ----------
+  // 눈사람 조수 뽀득이 (①): 눈덩이 굴리기 (줄 피해) · 실수한 얼음 마법 (마법 2명, 받는 피해 +20%) · 몸통 박치기. 악몽은 실수 3명. 목표 2:00 · 광폭화 3:10
+  ppodeuk: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('몸통 박치기', '박치', 8, 16, U.tank(0.48)),
+      ...rows('roll', '눈덩이 굴리기', '눈덩', 12, 16, U.dps(0.25), false),
+      { key: 'oops', name: '실수한 얼음 마법', icon: '실수', kind: 'instant', first: 6, period: 16, cast: 0,
+        how: '2명 (악몽 3명)이 8초 동안 받는 피해 +20% (마법). 마법을 지우는 직업은 눈덩이 줄에 선 사람부터 지움',
+        effect: { p: 'debuff', n: 2, nMythic: 3, debuff: { name: '실수한 얼음 마법', type: '마법', left: 8, vuln: 0.2, dot: U.dps(0.01) } } },
+    ],
+    enrage: { name: '눈사람 폭주', period: 2, dmg: 210 },
+  },
+  // 서리 연구원 아이시아 (최종): 얼음 갑옷 (치유 흡수 막: 들어오는 치유가 먼저 얼음을 녹임, 해제 안 됨) · 차가운 시선 (마법 1명) · 서리 폭발 (광역) · 얼음 송곳.
+  // 악몽은 얼음 갑옷 2명. 목표 2:40 · 광폭화 4:00
+  icia: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('얼음 송곳', '송곳', 8, 15, U.tank(0.5)),
+      { key: 'armor', name: '얼음 갑옷', icon: '갑옷', kind: 'instant', first: 9, period: 20, cast: 0,
+        how: '탱커 아닌 1명 (악몽 2명)이 얼음에 갇혀 들어오는 치유가 먼저 얼음을 녹임 (해제 안 됨). 10초 안에 다 녹이지 못하면 깨지며 딜체 30%',
+        effect: { p: 'debuff', n: 1, nMythic: 2, pick: 'others', debuff: { name: '얼음 갑옷', type: '마법', left: 10, lock: true, absorb: U.dps(0.35), end: { p: 'hit', dmg: U.dps(0.3) } } } },
+      { key: 'gaze', name: '차가운 시선', icon: '시선', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '차가운 시선', type: '마법', left: 10, dot: U.dps(0.025) } } },
+      { key: 'aoe', name: '서리 폭발', icon: '서리', kind: 'aoe', first: 16, period: 22, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    enrage: { name: '서리 폭주', period: 2, dmg: 230 },
+  },
+  // 허수아비 기사 짚단 탐험판 (탐험 ㉛ 해바라기 수확밭 Lv 30): 묶음 H2 던전 ㉖ ①의 평타 · 짚단 분신 · 까마귀 떼만. 판 위 적 (분신이 서 있으면 보스가 받는 피해 −40%) 예습
+  jipdan30: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('낫 내려치기', '낫', 8, 16, 400),
+      { key: 'decoy', name: '짚단 분신', icon: '분신', kind: 'instant', first: 10, period: 28, cast: 0,
+        how: '분신이 서 있는 동안 보스가 받는 피해 −40%. 딜러가 먼저 깸',
+        effect: { p: 'adds', n: 1, add: { name: '허수아비 분신', short: '분신', art: 'mob-straw-decoy', hp: 0.04, dmg: 0, every: 0, at: 'random', job: { p: 'pylon', cut: 0.4 } } } },
+      { key: 'crows', name: '까마귀 떼', icon: '까마', kind: 'instant', first: 6, period: 15, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '까마귀 쪼기', type: '질병', left: 10, dot: 20 } } },
+      { key: 'aoe', name: '짚단 회오리', icon: '회오', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 180 } },
+    ],
+    enrage: { name: '허수아비 폭주', period: 2, dmg: 190 },
+  },
 };
 
 /** 기술 정의 찾기 (공략 화면 숫자) */
