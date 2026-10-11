@@ -1,6 +1,6 @@
 // 2026-10-11 Lim 「말풍선 위치가 올바르지 못하다」 · 「꾹 누르면 상세창이 손가락에 가려진다」 · 「전투 메시지가 20인에서 파티원을 가린다」.
 // 판 크기 넷 (탐험 7칸 · 5인 10칸 · 10인 25칸 · 20인 36칸) × 대상 폰 크기에서:
-// - 말풍선은 꼬리 끝이 말한 사람 칸 꼭짓점에 닿고 (위 또는 아래), 몸통이 꼬리를 품고, 이름 · 체력을 안 가림. 붙일 자리가 없는 기믹 말풍선은 전투 메시지로 「닉네임: 대사」
+// - 말풍선은 꼬리 끝이 말한 사람 칸 꼭짓점에 닿고 (위 또는 아래), 몸통이 꼬리를 품고, 이름 · 체력을 안 가림. 붙일 자리가 없으면 생략
 // - 길게 누르기 상세창은 누른 칸 위쪽 (손가락보다 위), 손을 떼도 남았다가 다음 터치에 닫힘
 // - 전투 메시지는 판 밖 (시전 막대 자리 안)
 import { chromium } from 'playwright';
@@ -12,6 +12,9 @@ const BOARDS = [
   { n: 5, tab: 'dungeon', content: 'rustfort' },
   { n: 10, tab: 'raid10', content: 'abyss1' },
   { n: 20, tab: 'raid20', content: 'cathedral1' },
+  // 「레이드 판 5인 던전 모양」 설정 (판을 줄여 그림: 화면 좌표 = 그림 좌표 × k)
+  { n: 10, tab: 'raid10', content: 'abyss1', five: true },
+  { n: 20, tab: 'raid20', content: 'cathedral1', five: true },
 ];
 const LINES = ['좋아, 가자!', '힐 좀 부탁해요~', '조심해! 크게 온다', '고마워요 힐러님'];
 
@@ -27,10 +30,11 @@ export default async function battleNotes(url, shots) {
     page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
     await page.clock.install({ time: new Date(2026, 9, 11, 12) });
     await page.goto(url); await page.clock.runFor(300);
-    await patchSave(page, { player: { level: 60 }, settings: { auto: false, sound: false, vibrate: false } });
+    await patchSave(page, { player: { level: 60 }, settings: { auto: false, sound: false, vibrate: false, raidFiveLook: !!board.five } });
     await toParty(page, { tab: board.tab, content: board.content, diff: '쉬움' });
     await page.click('#depart'); await page.clock.runFor(3100 + 300);
-    const tag = `${name} ${width}×${height} ${board.n}인`;
+    const tag = `${name} ${width}×${height} ${board.n}인${board.five ? ' (5인 모양)' : ''}`;
+    if (board.five) ok(await page.evaluate(() => document.querySelector('#board').dataset.cellLook === 'five'), `${tag}: 5인 던전 모양으로 줄여 그림`);
     // 판 위 사람이 죽거나 움직이지 않게 체력을 채우며 진행
     const fill = () => page.evaluate(() => { const F = window.__proto.F; F.party.forEach(u => { if (u.alive) u.hp = u.max; }); });
 
@@ -48,7 +52,7 @@ export default async function battleNotes(url, shots) {
           r: Number(cv.dataset.cellScale) * 0.93, text: el.textContent };
       });
       const cellTop = cv.y + p.y - g.r;
-      if (name === 'S25') await page.screenshot({ path: `${shots}/notes_preview_${board.n}_${where === '맨 윗줄' ? 'top' : 'bottom'}.png` });
+      if (name === 'S25') await page.screenshot({ path: `${shots}/notes_preview_${board.n}${board.five ? 'f' : ''}_${where === '맨 윗줄' ? 'top' : 'bottom'}.png` });
       ok(!g.hidden && g.bottom <= cellTop + .5 && g.top >= 70 - .5 && g.left >= 0 && g.right <= width + .5 && !g.noarrow && /체력|쓰러짐/.test(g.text),
         `${tag}: ${where} 칸을 길게 누르면 상세창이 그 칸 위쪽 (아래 끝 ${Math.round(g.bottom)} ≤ 칸 위 ${Math.round(cellTop)}${g.brief ? ', 설명 접음' : ''})`, g);
       await page.mouse.up(); await page.clock.runFor(1000);
@@ -85,7 +89,8 @@ export default async function battleNotes(url, shots) {
         const covers = all.filter(x => (x.kind === 'hp' || x.kind === 'nick') && !sep(b, x)).map(x => x.key);
         const above = b.bottom <= p.y;
         const gap = above ? (p.y - r) - b.bottom : b.top - (p.y + r);
-        return { id, gap: +gap.toFixed(2), tailIn: p.x >= b.left + 9 && p.x <= b.right - 9, covers };
+        const k = Number(cv.dataset.drawScale || 1); // 꼬리 여백 9px는 판 그림 좌표 (줄여 그리면 화면에선 9k)
+        return { id, gap: +gap.toFixed(2), tailIn: p.x >= b.left + 9 * k - .05 && p.x <= b.right - 9 * k + .05, covers };
       }, id);
       if (m) { placed.push(m); if (Math.abs(m.gap) > 2 || !m.tailIn || m.covers.length) stray.push(m); }
       await page.clock.runFor(800);
@@ -93,24 +98,29 @@ export default async function battleNotes(url, shots) {
     ok(stray.length === 0 && placed.length >= Math.min(ids.length, board.n <= 5 ? 2 : 3),
       `${tag}: 말풍선 ${placed.length}/${ids.length}개가 말한 사람 칸 꼭짓점에 꼬리로 붙음 · 이름 · 체력 안 가림`, { stray, placed: placed.length });
     if (board.n >= 10) {
-      // 붙일 자리가 없는 사람의 기믹 말풍선 → 전투 메시지 「닉네임: 대사」 (판에는 안 뜸)
-      let relayed = null;
+      // 붙일 자리가 없는 사람의 기믹 말풍선은 생략 (2026-10-11 Lim 「자리가 없으면 말풍선 생략」): 판에도, 전투 메시지에도 안 뜸
+      let skipped = null;
+      await page.clock.runFor(1500); // 앞 검사의 말풍선이 모두 사라진 뒤 (다른 말풍선 때문에 기다리는 경우와 구분)
       for (const id of ids) {
         await fill();
-        const r = await page.evaluate(async id => {
-          const before = document.querySelector('#toast').textContent;
-          window.__proto.say(id, '폭탄! 다들 흩어져!', 'call', 1500);
-          return { before, nick: window.__proto.F.party.find(u => u.id === id).nick };
-        }, id);
-        await page.clock.runFor(120);
-        const got = await page.evaluate(id => ({ toast: document.querySelector('#toast').textContent,
+        const nick = await page.evaluate(id => { window.__proto.say(id, '폭탄! 다들 흩어져!', 'call', 1500); return window.__proto.F.party.find(u => u.id === id).nick; }, id);
+        const look = () => page.evaluate(id => ({ toast: document.querySelector('#toast').textContent,
           onBoard: JSON.parse(document.querySelector('#board').dataset.decorationBounds || '[]').some(b => b.key === `bubble${id}`) }), id);
-        if (got.toast.includes(`${r.nick}: 폭탄! 다들 흩어져!`)) { relayed = { id, nick: r.nick, ...got }; break; }
-        await page.clock.runFor(1500);
+        // 기다리는 시간(1.2초) 동안 한 번도 못 뜨면 버림. 그 사이 자리가 나서 뜨면 (전투가 실제 시간으로 흘러 사람이 움직임) 다음 사람으로
+        const seen = [];
+        let shown = false;
+        for (let t = 0; t < 15 && !shown; t++) { await page.clock.runFor(100); const g = await look(); seen.push(g.toast); shown = g.onBoard; }
+        if (shown) { await page.clock.runFor(1500); continue; }
+        await page.clock.runFor(300);
+        const later = await look();
+        skipped = { id, nick, later, toasts: [...new Set([...seen, later.toast])] };
+        break;
       }
-      ok(!!relayed && !relayed.onBoard, `${tag}: 판에 붙일 자리가 없는 기믹 말풍선은 전투 메시지로 「닉네임: 대사」`, relayed);
+      // 5인 모양 판은 칸 사이가 넓어 모두 자리가 있을 수 있음
+      ok(skipped ? !skipped.later.onBoard && !skipped.toasts.some(t => t.includes('폭탄! 다들 흩어져!')) : !!board.five,
+        `${tag}: 판에 붙일 자리가 없는 기믹 말풍선은 생략 (전투 메시지로도 안 넘김)${skipped ? '' : ' · 모두 자리 있음'}`, skipped);
     }
-    if (name === 'S25') await page.screenshot({ path: `${shots}/notes_bubbles_${board.n}.png` });
+    if (name === 'S25') await page.screenshot({ path: `${shots}/notes_bubbles_${board.n}${board.five ? 'f' : ''}.png` });
 
     await ctx.close();
   }

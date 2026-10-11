@@ -18,7 +18,7 @@ import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, se
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON, ratsArt } from './art';
-import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxAllyHeal, fxCure, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxPxf, fxImpact, fxRevive, fxShake, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, setBubbleRelay, type BubbleKind } from './board';
+import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxAllyHeal, fxCure, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxPxf, fxImpact, fxRevive, fxShake, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, type BubbleKind } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, clearToasts, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
@@ -807,9 +807,6 @@ function frame(now: number): void {
   if (!$('rest').hidden && B.F) updateRest(now);
   requestAnimationFrame(frame);
 }
-
-// 판에 붙일 자리가 없는 기믹·위기 말풍선은 전투 메시지로 (누가 말했는지 닉네임과 함께)
-setBubbleRelay((u, text) => toast(`${u.nick}: ${text}`));
 
 // ---------- 새 화면(src/screens)이 쓰는 입구 · 테스트용 조회 ----------
 (window as unknown as { __proto: unknown }).__proto = {
