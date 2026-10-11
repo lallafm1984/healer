@@ -317,10 +317,11 @@ export function updateCastbar(): void {
   $('castbar').classList.toggle('is-gcd', !casting && p > 0);
   setBar($('castFill'), p);
   // 전투 메시지가 시전 막대 자리를 덮는 동안 보일 얇은 진행 선 · 남은 초
-  const note = $('toast');
-  note.style.setProperty('--cast', p.toFixed(3));
+  const note = $('toast'), cast = p.toFixed(3);
+  if (cast !== noteCast) { noteCast = cast; note.style.setProperty('--cast', cast); }
   if (note.dataset.left !== left) note.dataset.left = left;
 }
+let noteCast = '';
 
 // ---------- 파티원 공격 숫자 (2026-10-07 Lim: 합치지 않고 한 방씩) ----------
 // 한 방씩 유지하되 동시 표시를 서로 겹치지 않는 세 줄로 제한한다.
