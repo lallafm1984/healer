@@ -26,7 +26,8 @@ export type EncounterKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'gate' | 'b
   | 'geumeum' | 'silta' | 'bamgeuneul' | 'jilpung' | 'ureobal' | 'chilheuk' | 'carriagetrash' | 'serena92' | 'ballhall' | 'serena' | 'balcony' | 'valen'
   | 'janmul' | 'hwigami' | 'geomeun' | 'lanterntrash' | 'nokseul96'
   | 'eongkim' | 'revlord' | 'abyssheart' | 'dawntrash' | 'heartshard100' | 'cracktrash' | 'nokseul' | 'coolroot' | 'lastshade'
-  | 'heaptrash' | 'kongkong5' | 'shaft' | 'kongkong' | 'railway' | 'gurit' | 'alleytrash' | 'molly10' | 'pothall' | 'molly' | 'mushbed' | 'chingching' | 'lilypads' | 'kara15' | 'reedfence' | 'kara' | 'mudpath' | 'cheolbeok' | 'fountainwalk' | 'lavender20' | 'bottlehall' | 'lavender' | 'stillroom' | 'rose' | 'iceholes' | 'ppodeuk25' | 'toolstore' | 'ppodeuk' | 'coldstore' | 'icia' | 'sheaves' | 'jipdan30';
+  | 'heaptrash' | 'kongkong5' | 'shaft' | 'kongkong' | 'railway' | 'gurit' | 'alleytrash' | 'molly10' | 'pothall' | 'molly' | 'mushbed' | 'chingching' | 'lilypads' | 'kara15' | 'reedfence' | 'kara' | 'mudpath' | 'cheolbeok' | 'fountainwalk' | 'lavender20' | 'bottlehall' | 'lavender' | 'stillroom' | 'rose' | 'iceholes' | 'ppodeuk25' | 'toolstore' | 'ppodeuk' | 'coldstore' | 'icia' | 'sheaves' | 'jipdan30'
+  | 'sacks' | 'jipdan' | 'millwheel' | 'nadal' | 'crowfield' | 'nadal34' | 'wetcave' | 'peg' | 'powder' | 'pado' | 'reefpool' | 'peg38' | 'iceflowers' | 'jiji42' | 'messhall' | 'jiji' | 'lounge' | 'eomgyeok' | 'campfire' | 'geopum46' | 'shelves' | 'geopum' | 'cauldron' | 'malos' | 'tiles' | 'malos50' | 'flourstore' | 'polpol' | 'oven' | 'monggeul' | 'dewpath' | 'polpol54' | 'mushpath' | 'poljjak58' | 'lilybridge' | 'poljjak' | 'tadpond' | 'umulluk';
 export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'collector3' | 'shaman8' | 'collector' | 'malchor' | 'butler13'
   | 'shaman' | 'toad' | 'seres' | 'golem18' | 'butler' | 'lady' | 'belmore' | 'guardian23'
   | 'frostgolem' | 'mage' | 'shadow' | 'keeper28' | 'guardian' | 'keeper' | 'plague33' | 'sentinel' | 'crystal'
@@ -46,7 +47,8 @@ export type ScriptKey = 'warden' | 'plague' | 'choir' | 'scrap' | 'trash' | 'col
   | 'geumeum' | 'silta' | 'bamgeuneul' | 'jilpung' | 'ureobal' | 'chilheuk' | 'serena92' | 'serena' | 'valen'
   | 'janmul' | 'hwigami' | 'geomeun' | 'nokseul96'
   | 'eongkim' | 'revlord' | 'abyssheart' | 'heartshard100' | 'nokseul' | 'lastshade'
-  | 'kongkong5' | 'kongkong' | 'gurit' | 'molly10' | 'molly' | 'chingching' | 'kara15' | 'kara' | 'cheolbeok' | 'lavender20' | 'lavender' | 'rose' | 'ppodeuk25' | 'ppodeuk' | 'icia' | 'jipdan30';
+  | 'kongkong5' | 'kongkong' | 'gurit' | 'molly10' | 'molly' | 'chingching' | 'kara15' | 'kara' | 'cheolbeok' | 'lavender20' | 'lavender' | 'rose' | 'ppodeuk25' | 'ppodeuk' | 'icia' | 'jipdan30'
+  | 'jipdan' | 'nadal' | 'nadal34' | 'peg' | 'pado' | 'peg38' | 'jiji42' | 'jiji' | 'eomgyeok' | 'geopum46' | 'geopum' | 'malos' | 'malos50' | 'polpol' | 'monggeul' | 'polpol54' | 'poljjak58' | 'poljjak' | 'umulluk';
 
 /** 적 공격 (23 2장). to: tank = 탱커, other = 탱커 아닌 무작위 1명, all = 전원 */
 export interface MobAttack {
@@ -153,7 +155,7 @@ const STORM_HEX: DebuffDef[] = [
   { name: '찌릿 구름', type: '마법', left: 10, dot: 12 },
 ];
 /** 재채기 버섯 (48 2장, 버섯 요정단 ③): 질병 (초당 딜체 2%) → 마법 (받는 치유 −30%) 차례로. x = 피해 배율 (탐험 0.7) */
-const sneeze = (x = 1): DebuffDef[] => [
+export const sneeze = (x = 1): DebuffDef[] => [
   { name: '포자 기침', type: '질병', left: 10, dot: Math.round(600 * 0.02 * x) },
   { name: '요정 장난', type: '마법', left: 10, healCut: 0.3 },
 ];
@@ -1055,6 +1057,184 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     ] },
   ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: HEAL4 }),
   jipdan30: { key: 'jipdan30', lowLevel: true, name: '허수아비 기사 짚단', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 1900, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'jipdan30', stage: 0.3, debuffs: HEAL4 },
+  // ---------- 묶음 H2 (62 2-2 · 3-2, Lv 33~58): 졸개는 그 세력 옛 졸개, 보스 체력 · 광폭화는 같은 레벨대 던전 줄 ----------
+  // 던전 ㉖ 황금 이삭 곡물창고 (Lv 33): 일반 곡물 자루 창고 → 허수아비 기사 짚단 → 정예 방앗간 바퀴 → 곡물창고 수호상 낟알
+  sacks: trash('sacks', '곡물 자루 창고', [
+    { name: '돌 수도사', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '다락 박쥐 떼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  jipdan: { key: 'jipdan', lowLevel: true, name: '허수아비 기사 짚단', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4400, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'jipdan', stage: 0.25, debuffs: ['질병'] },
+  millwheel: trash('millwheel', '방앗간 바퀴', [
+    { name: '돌 수도사', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '길 잃은 순례자', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'soap', name: '엉뚱한 물약', icon: '물약', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: soaps() } },
+    ] },
+    {
+      name: '신전 돌거인', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'wheel', name: '방앗간 바퀴 굴리기', icon: '바퀴', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: HEAL4 }),
+  nadal: { key: 'nadal', lowLevel: true, name: '곡물창고 수호상 낟알', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6600, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'nadal', stage: 0.25, debuffs: HEAL4 },
+  // 탐험 ㉜ 허수아비 들판 (Lv 34): 돌 수도사 ×2 + 신전 돌거인 (정예 아님) → 곡물창고 수호상 낟알 (탐험판)
+  crowfield: trash('crowfield', '까마귀 밭', [
+    { name: '돌 수도사', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '신전 돌거인', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  nadal34: { key: 'nadal34', lowLevel: true, name: '곡물창고 수호상 낟알', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2300, enrage: 205, manaCoef: 1.0, diffs: ALL, script: 'nadal34', stage: 0.3, debuffs: HEAL4 },
+  // 던전 ㉗ 산호 동굴 밀수굴 (Lv 38): 일반 젖은 동굴 입구 → 밀수꾼 두목 외눈 페그 → 정예 화약 창고 → 동굴 해마 기사 파도
+  wetcave: trash('wetcave', '젖은 동굴 입구', [
+    { name: '갑판 청소부', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '새총 꼬마 해적', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  peg: { key: 'peg', lowLevel: true, name: '밀수꾼 두목 외눈 페그', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4600, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'peg', stage: 0.25, debuffs: ['독'] },
+  powder: trash('powder', '화약 창고', [
+    { name: '갑판 청소부', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '해파리 점쟁이', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'fortune', name: '해파리 점괘', icon: '점괘', to: 'other', dmg: 0, first: 5, period: 10, cast: 0,
+        effect: { p: 'cycle', n: 1, debuffs: [
+          { name: '해파리 독', type: '독', left: 10, dot: 12 },
+          { name: '나쁜 점괘', type: '저주', left: 10, healCut: 0.3 },
+        ] } },
+    ] },
+    {
+      name: '화약 창고지기', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'keg', name: '화약통 굴리기', icon: '화약', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['독', '저주'] }),
+  pado: { key: 'pado', lowLevel: true, name: '동굴 해마 기사 파도', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6600, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'pado', stage: 0.25, debuffs: ['저주'] },
+  // 탐험 ㉝ 산호초 얕은 물 (Lv 38): 갑판 청소부 ×2 + 새총 꼬마 해적 → 외눈 페그 (탐험판)
+  reefpool: trash('reefpool', '산호 웅덩이', [
+    { name: '갑판 청소부', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '새총 꼬마 해적', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  peg38: { key: 'peg38', lowLevel: true, name: '밀수꾼 두목 외눈 페그', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2300, enrage: 205, manaCoef: 1.0, diffs: ALL, script: 'peg38', stage: 0.3, debuffs: ['독'] },
+  // 탐험 ㉞ 서리 마탑 정원 (Lv 42): 얼음 룬 인형 ×2 + 견습 마법사 → 견습생 쌍둥이 지지 · 직직 (탐험판, 몸 둘 = 체력 반씩)
+  iceflowers: trash('iceflowers', '얼음 꽃밭', [
+    { name: '얼음 룬 인형', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '견습 마법사', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 75, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  jiji42: { key: 'jiji42', lowLevel: true, name: '견습생 쌍둥이 지지 · 직직', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2500, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'jiji42', stage: 0.3, debuffs: ['마법'] },
+  // 던전 ㉘ 마도사 기숙사 (Lv 43): 일반 어질러진 복도 → 지지 · 직직 → 정예 금지된 휴게실 → 사감 마도사 엄격이
+  messhall: trash('messhall', '어질러진 복도', [
+    { name: '얼음 룬 인형', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '견습 마법사', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  jiji: { key: 'jiji', lowLevel: true, name: '견습생 쌍둥이 지지 · 직직', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5600, enrage: 235, manaCoef: 1.0, diffs: ALL, script: 'jiji', stage: 0.25, debuffs: ['마법'] },
+  lounge: trash('lounge', '금지된 휴게실', [
+    { name: '얼음 룬 인형', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '떠도는 주술서', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'silence', name: '침묵', icon: '침묵', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '침묵', type: '마법', left: 6, noDps: true } } },
+    ] },
+    {
+      name: '서리 정령', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'burst', name: '냉기 폭발', icon: '냉기', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['마법'] }),
+  eomgyeok: { key: 'eomgyeok', lowLevel: true, name: '사감 마도사 엄격이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6600, enrage: 270, manaCoef: 1.0, diffs: ALL, script: 'eomgyeok', stage: 0.25, debuffs: ['마법'] },
+  // 탐험 ㉟ 교단 숲속 야영지 (Lv 46): 교단 신도 ×2 + 부리 가면 집행자 (부패) → 약품 수도사 거품이 (탐험판)
+  campfire: trash('campfire', '모닥불 야영지', [
+    { name: '교단 신도', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '부리 가면 집행자', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'rot', name: '부패', icon: '부패', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '부패', type: '질병', left: 20, maxCut: 0.1, end: { p: 'restoreMax' } } } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['질병'] }),
+  geopum46: { key: 'geopum46', lowLevel: true, name: '약품 수도사 거품이', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2400, enrage: 205, manaCoef: 1.0, diffs: ALL, script: 'geopum46', stage: 0.3, debuffs: ['질병'] },
+  // 던전 ㉙ 교단 약품 제조실 (Lv 48): 일반 약병 선반 복도 → 거품이 → 정예 끓는 솥 방 → 역병 대사제 말로스
+  shelves: trash('shelves', '약병 선반 복도', [
+    { name: '되살아난 뼈', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '묘지 쥐떼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  geopum: { key: 'geopum', lowLevel: true, name: '약품 수도사 거품이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5000, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'geopum', stage: 0.25, debuffs: ['질병'] },
+  cauldron: trash('cauldron', '끓는 솥 방', [
+    { name: '되살아난 뼈', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '교단 신도', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'rot', name: '부패', icon: '부패', to: 'other', dmg: 0, first: 5, period: 12, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '부패', type: '질병', left: 20, maxCut: 0.1, end: { p: 'restoreMax' } } } },
+    ] },
+    {
+      name: '부리 가면 집행자', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'pour', name: '끓는 솥 엎기', icon: '솥', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['질병'] }),
+  malos: { key: 'malos', lowLevel: true, name: '역병 대사제 말로스', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6800, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'malos', stage: 0.25, debuffs: ['질병'] },
+  // 탐험 ㊱ 왕도 지붕길 (Lv 50): 교단 신도 ×2 + 다락 박쥐 떼 → 역병 대사제 말로스 (탐험판)
+  tiles: trash('tiles', '기와 지붕', [
+    { name: '교단 신도', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '다락 박쥐 떼', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 80, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['질병'] }),
+  malos50: { key: 'malos50', lowLevel: true, name: '역병 대사제 말로스', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2400, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'malos50', stage: 0.3, debuffs: ['질병'] },
+  // 던전 ㉚ 반딧불 빵집 (Lv 53): 일반 밀가루 창고 → 밀가루 요정 폴폴 → 정예 오븐 앞 → 케이크 골렘 몽글이
+  flourstore: trash('flourstore', '밀가루 창고', [
+    { name: '버섯 꼬마 경비', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '꽃가루 요정', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  polpol: { key: 'polpol', lowLevel: true, name: '밀가루 요정 폴폴', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5000, enrage: 225, manaCoef: 1.0, diffs: ALL, script: 'polpol', stage: 0.25, debuffs: ['질병', '마법'] },
+  oven: trash('oven', '오븐 앞', [
+    { name: '버섯 꼬마 경비', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '재채기 버섯', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'sneeze', name: '에취!', icon: '에취', to: 'other', dmg: 0, first: 5, period: 12, cast: 0, effect: { p: 'cycle', n: 1, debuffs: sneeze() } },
+    ] },
+    {
+      name: '큰 갓 버섯 거인', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'heat', name: '오븐 열기', icon: '열기', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['질병', '마법'] }),
+  monggeul: { key: 'monggeul', lowLevel: true, name: '케이크 골렘 몽글이', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6400, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'monggeul', stage: 0.25, debuffs: ['마법'] },
+  // 탐험 ㊲ 이슬 버섯 언덕 (Lv 54): 버섯 꼬마 경비 ×2 + 꽃가루 요정 → 밀가루 요정 폴폴 (탐험판)
+  dewpath: trash('dewpath', '이슬 버섯길', [
+    { name: '버섯 꼬마 경비', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '꽃가루 요정', hp: 150, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 75, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3 }),
+  polpol54: { key: 'polpol54', lowLevel: true, name: '밀가루 요정 폴폴', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2400, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'polpol54', stage: 0.3, debuffs: ['질병', '마법'] },
+  // 탐험 ㊳ 버섯숲 늪가 (Lv 58): 늪 창병 ×2 + 독침 사냥꾼 → 개구리 근위대장 폴짝 (탐험판)
+  mushpath: trash('mushpath', '버섯 늪 길', [
+    { name: '늪 창병', hp: 160, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 70, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '독침 사냥꾼', hp: 150, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'sting', name: '독침', icon: '독침', to: 'other', dmg: 0, first: 5, period: 10, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '독침', type: '독', left: 10, dot: 9, stackMax: 3 } } },
+    ] },
+  ], { tier: '탐험 · 일반', board: 'b7', comp: TRIO, stage: 0.3, debuffs: ['독'] }),
+  poljjak58: { key: 'poljjak58', lowLevel: true, name: '개구리 근위대장 폴짝', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2500, enrage: 210, manaCoef: 1.0, diffs: ALL, script: 'poljjak58', stage: 0.3, debuffs: ['독'] },
+  // 던전 ㉛ 두꺼비 왕국 수련궁 (Lv 58): 일반 수련 다리 → 폴짝 → 정예 올챙이 연못 → 두꺼비 왕 우물룩
+  lilybridge: trash('lilybridge', '수련 다리', [
+    { name: '늪 창병', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '진흙 투석꾼', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
+  ]),
+  poljjak: { key: 'poljjak', lowLevel: true, name: '개구리 근위대장 폴짝', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5100, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'poljjak', stage: 0.25, debuffs: ['독'] },
+  tadpond: trash('tadpond', '올챙이 연못', [
+    { name: '늪 창병', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
+    { name: '독침 사냥꾼', hp: 300, count: 1, attacks: [
+      { key: 'hit', to: 'other', dmg: 50, jitter: 0.2, first: 3, period: 3, cast: 0 },
+      { key: 'sting', name: '독침', icon: '독침', to: 'other', dmg: 0, first: 5, period: 10, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '독침', type: '독', left: 10, dot: 9, stackMax: 3 } } },
+    ] },
+    {
+      name: '독 혹 두꺼비', elite: true, hp: 700, count: 1, attacks: [
+        { key: 'slam', to: 'tank', dmg: 55, jitter: 0.3, first: 2, period: 2.5, cast: 0 },
+        { key: 'burst', name: '독 혹 터뜨리기', icon: '독혹', kind: 'aoe', to: 'all', dmg: 150, first: 8, period: 12, cast: 3, cut: true },
+      ],
+    },
+  ], { debuffs: ['독'] }),
+  umulluk: { key: 'umulluk', lowLevel: true, name: '두꺼비 왕 우물룩', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 6400, enrage: 285, manaCoef: 1.0, diffs: ALL, script: 'umulluk', stage: 0.25 },
 };
 
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */

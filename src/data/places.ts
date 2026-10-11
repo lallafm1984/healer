@@ -23,7 +23,8 @@ export type PlaceKey = 'plateau' | 'rustfort' | 'crypt' | 'swamp' | 'manor' | 'f
   | 'maze' | 'maze-hall' | 'maze-core' | 'camp' | 'camp-yard' | 'camp-command' | 'carriage' | 'ballroom'
   | 'coast' | 'coast-way' | 'coast-whirl' | 'lantern'
   | 'heart' | 'heart-gate' | 'heart-core' | 'dawn' | 'heartcrack'
-  | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest';
+  | 'scrapheap' | 'mine' | 'alley' | 'greenhouse' | 'frogpond' | 'reedvillage' | 'fountain' | 'perfumery' | 'icefish' | 'snowlab' | 'harvest'
+  | 'granary' | 'scarefield' | 'smuggler' | 'reef' | 'frostgarden' | 'dorm' | 'cultcamp' | 'apothecary' | 'rooftop' | 'bakery' | 'dewhill' | 'mushmarsh' | 'lilypalace';
 
 export interface Faction {
   name: string;
@@ -223,6 +224,20 @@ export const PLACES: Record<PlaceKey, Place> = {
   reedvillage: { key: 'reedvillage', name: '갈대 오두막 마을', faction: 'swamp', tone: ['#28331F', '#10140C'], borrow: 'swamp' },
   perfumery: { key: 'perfumery', name: '백합 향수 공방', faction: 'noble', tone: ['#32263C', '#140F18'], borrow: 'manor' },
   snowlab: { key: 'snowlab', name: '눈꽃 연구소', faction: 'mage', tone: ['#26344C', '#0F141D'], borrow: 'frost' },
+  // 묶음 H2 (62, 그림 요청 63): 그림이 올 때까지 같은 세력 옛 장소 그림을 빌림
+  granary: { key: 'granary', name: '황금 이삭 곡물창고', faction: 'hill', tone: ['#3A3420', '#16130B'], borrow: 'watchtower' },
+  scarefield: { key: 'scarefield', name: '허수아비 들판', faction: 'hill', tone: ['#383220', '#16130B'], borrow: 'pilgrim' },
+  smuggler: { key: 'smuggler', name: '산호 동굴 밀수굴', faction: 'pirate', tone: ['#24363A', '#0C1517'], borrow: 'wreck' },
+  reef: { key: 'reef', name: '산호초 얕은 물', faction: 'pirate', tone: ['#203A3C', '#0B1617'], borrow: 'shellbeach' },
+  frostgarden: { key: 'frostgarden', name: '서리 마탑 정원', faction: 'mage', tone: ['#2A3648', '#0E131C'], borrow: 'bookfield' },
+  dorm: { key: 'dorm', name: '마도사 기숙사', faction: 'mage', tone: ['#28344C', '#0E131D'], borrow: 'archive' },
+  cultcamp: { key: 'cultcamp', name: '교단 숲속 야영지', faction: 'plague', tone: ['#30322A', '#12130E'], borrow: 'cemetery' },
+  apothecary: { key: 'apothecary', name: '교단 약품 제조실', faction: 'plague', tone: ['#2E3226', '#12140E'], borrow: 'sewer' },
+  rooftop: { key: 'rooftop', name: '왕도 지붕길', faction: 'plague', tone: ['#34302A', '#14120E'], borrow: 'crypt' },
+  bakery: { key: 'bakery', name: '반딧불 빵집', faction: 'fairy', tone: ['#3A2E30', '#161012'], borrow: 'teaparty' },
+  dewhill: { key: 'dewhill', name: '이슬 버섯 언덕', faction: 'fairy', tone: ['#2C2C3A', '#100F16'], borrow: 'lampway' },
+  mushmarsh: { key: 'mushmarsh', name: '버섯숲 늪가', faction: 'swamp', tone: ['#26321F', '#0E130B'], borrow: 'marsh' },
+  lilypalace: { key: 'lilypalace', name: '두꺼비 왕국 수련궁', faction: 'swamp', tone: ['#22332A', '#0D140F'], borrow: 'mossroot' },
 };
 
 /** 콘텐츠 → 장소 */
@@ -250,6 +265,7 @@ export const CONTENT_PLACE: Record<ContentKey, PlaceKey> = {
   coast1: 'coast', coast2: 'coast-way', coast3: 'coast-whirl', lantern: 'lantern',
   heart1: 'heart', heart2: 'heart-gate', heart3: 'heart-core', dawn: 'dawn', heartcrack: 'heartcrack',
   scrapheap: 'scrapheap', mine: 'mine', alley: 'alley', greenhouse: 'greenhouse', frogpond: 'frogpond', reedvillage: 'reedvillage', fountain: 'fountain', perfumery: 'perfumery', icefish: 'icefish', snowlab: 'snowlab', harvest: 'harvest',
+  granary: 'granary', scarefield: 'scarefield', smuggler: 'smuggler', reef: 'reef', frostgarden: 'frostgarden', dorm: 'dorm', cultcamp: 'cultcamp', apothecary: 'apothecary', rooftop: 'rooftop', bakery: 'bakery', dewhill: 'dewhill', mushmarsh: 'mushmarsh', lilypalace: 'lilypalace',
 };
 
 /** 전투 → 장소 (콘텐츠 흐름 없이 바로 여는 전투도 바닥을 고르게) */
@@ -298,6 +314,7 @@ export const ENCOUNTER_PLACE: Record<EncounterKey, PlaceKey> = {
   eongkim: 'heart', revlord: 'heart-gate', abyssheart: 'heart-core', dawntrash: 'dawn', heartshard100: 'dawn',
   cracktrash: 'heartcrack', nokseul: 'heartcrack', coolroot: 'heartcrack', lastshade: 'heartcrack',
   heaptrash: 'scrapheap', kongkong5: 'scrapheap', shaft: 'mine', kongkong: 'mine', railway: 'mine', gurit: 'mine', alleytrash: 'alley', molly10: 'alley', pothall: 'greenhouse', molly: 'greenhouse', mushbed: 'greenhouse', chingching: 'greenhouse', lilypads: 'frogpond', kara15: 'frogpond', reedfence: 'reedvillage', kara: 'reedvillage', mudpath: 'reedvillage', cheolbeok: 'reedvillage', fountainwalk: 'fountain', lavender20: 'fountain', bottlehall: 'perfumery', lavender: 'perfumery', stillroom: 'perfumery', rose: 'perfumery', iceholes: 'icefish', ppodeuk25: 'icefish', toolstore: 'snowlab', ppodeuk: 'snowlab', coldstore: 'snowlab', icia: 'snowlab', sheaves: 'harvest', jipdan30: 'harvest',
+  sacks: 'granary', jipdan: 'granary', millwheel: 'granary', nadal: 'granary', crowfield: 'scarefield', nadal34: 'scarefield', wetcave: 'smuggler', peg: 'smuggler', powder: 'smuggler', pado: 'smuggler', reefpool: 'reef', peg38: 'reef', iceflowers: 'frostgarden', jiji42: 'frostgarden', messhall: 'dorm', jiji: 'dorm', lounge: 'dorm', eomgyeok: 'dorm', campfire: 'cultcamp', geopum46: 'cultcamp', shelves: 'apothecary', geopum: 'apothecary', cauldron: 'apothecary', malos: 'apothecary', tiles: 'rooftop', malos50: 'rooftop', flourstore: 'bakery', polpol: 'bakery', oven: 'bakery', monggeul: 'bakery', dewpath: 'dewhill', polpol54: 'dewhill', mushpath: 'mushmarsh', poljjak58: 'mushmarsh', lilybridge: 'lilypalace', poljjak: 'lilypalace', tadpond: 'lilypalace', umulluk: 'lilypalace',
 };
 
 export const floorArtName = (p: PlaceKey) => `floor-${p}`;

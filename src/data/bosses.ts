@@ -6,7 +6,7 @@
  */
 import type { FxName, TelKind } from '../engine/types';
 import { CLASSES } from './classes';
-import { soaps, type ScriptKey } from './encounters';
+import { sneeze, soaps, type ScriptKey } from './encounters';
 import { SKILLS } from './skills';
 
 /**
@@ -647,6 +647,8 @@ const STONE_DUST: DebuffDef[] = [
 ];
 /** 졸린 모래 병정 꾸벅 · 끄덕 (54 4-1): 몸통 둘, 체력은 encounters kkubeok hp를 둘로 나눔 */
 const GUARDS = ['꾸벅', '끄덕'];
+/** 견습생 쌍둥이 지지 · 직직 (62 3-2 던전 ㉘): 몸통 둘, 체력은 encounters jiji · jiji42 hp를 둘로 나눔 */
+const TWIN_MAGES = ['지지', '직직'];
 const GUARD_HP = 12000;
 /** 모래 왕국 (54 0장) 해제 짝: 모래 기침 (질병, 초당 딜체 2%) · 천 년 졸음 (저주, 받는 치유 −30%) */
 const SAND_COUGH: DebuffDef = { name: '모래 기침', type: '질병', left: 12, dot: U.dps(0.02) };
@@ -4020,6 +4022,305 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       { key: 'aoe', name: '짚단 회오리', icon: '회오', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 180 } },
     ],
     enrage: { name: '허수아비 폭주', period: 2, dmg: 190 },
+  },
+  // ---------- 묶음 H2 (62 3-2, Lv 33~58): 새 부품 없이 있는 부품의 새 조합. 탐험판은 던전 보스 기술 3~4개를 작게 (39 1-1) ----------
+  // ---------- 묶음 H2 던전 ㉖ 황금 이삭 곡물창고 (62 3-2, Lv 33 · 해바라기 언덕 · 4유형): 짚단 · 낟알 ----------
+  // 허수아비 기사 짚단 (①): 짚단 분신 (판 위 적 2, 서 있으면 보스가 받는 피해 −25%씩) · 낫 휘두르기 (장판 2곳) · 까마귀 떼 (무작위 3명 + 질병). 악몽은 분신 3. 목표 2:15 · 광폭화 3:30
+  jipdan: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('낫 내려치기', '낫', 8, 16, U.tank(0.5)),
+      { key: 'decoy', name: '짚단 분신', icon: '분신', kind: 'instant', first: 10, period: 30, cast: 0,
+        how: '분신 하나마다 보스가 받는 피해 −25%. 딜러가 먼저 깸 (그동안 광역이 길어짐)',
+        effect: { p: 'adds', n: 2, nMythic: 3, add: { name: '허수아비 분신', short: '분신', art: 'mob-straw-decoy', hp: 0.025, dmg: 0, every: 0, at: 'random', job: { p: 'pylon', cut: 0.25 } } } },
+      ...spots('scythe', '낫 휘두르기', '낫', 2, 14, 18, U.dps(0.22)),
+      { key: 'crows', name: '까마귀 떼', icon: '까마', kind: 'buster', first: 18, period: 22, cast: 2, warn: 'buster', target: { p: 'random', n: 3 },
+        how: '탱커 아닌 3명이 쪼이고 질병 (초당 딜체 1.5%). 질병을 지우는 직업은 지움',
+        effect: { p: 'strike', dmg: U.dps(0.12), debuff: { name: '까마귀 쪼기', type: '질병', left: 10, dot: U.dps(0.015) } } },
+    ],
+    enrage: { name: '허수아비 폭주', period: 2, dmg: 230 },
+  },
+  // 곡물창고 수호상 낟알 (최종): 낟알 쏟아짐 (장판 3곳) · 무거운 자루 (탱커에게 받는 피해 +10% 쌓임, 12초) · 네 가지 곡물 가루 (질병 · 독 · 저주 · 마법 차례로 2명, 깨진 신전 청소약).
+  // 50% 아래 낟알 3곳 → 4곳. 악몽은 곡물 가루 3명. 목표 2:45 · 광폭화 4:15
+  nadal: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      { key: 'sack', name: '무거운 자루', icon: '자루', kind: 'buster', first: 8, period: 12, cast: 2, warn: 'buster', dmg: U.tank(0.4), target: 'tank',
+        how: '맞을 때마다 탱커가 받는 피해 +10% (최대 3겹, 12초). 3겹이면 탱커를 미리 채우기',
+        effect: { p: 'tank', debuff: { name: '무거운 자루', type: '물리', left: 12, lock: true, stackMax: 3, vuln: 0.1 } } },
+      ...spots('grain', '낟알 쏟아짐', '낟알', 3, 12, 20, U.dps(0.2), { phase: [1] }),
+      ...spots('grain2', '낟알 쏟아짐', '낟알', 4, 12, 20, U.dps(0.2), { phase: [2] }),
+      { key: 'flour', name: '네 가지 곡물 가루', icon: '가루', kind: 'instant', first: 6, period: 14, cast: 0,
+        how: '질병 → 독 → 저주 → 마법 차례로 2명 (악몽 3명). 지울 수 있는 유형부터 지우고, 나머지는 힐로',
+        effect: { p: 'cycle', n: 2, nMythic: 3, debuffs: soaps() } },
+      { key: 'aoe', name: '곡물창고 울림', icon: '울림', kind: 'aoe', first: 20, period: 26, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [{ p: 'phase', n: 2, name: '' }, { p: 'text', text: '낟알이 더 쏟아짐' }] }],
+    enrage: { name: '수호상 폭주', period: 2, dmg: 240 },
+  },
+  // 곡물창고 수호상 낟알 탐험판 (탐험 ㉜ 허수아비 들판 Lv 34): 던전 ㉖ ②의 평타 · 무거운 자루 · 낟알 쏟아짐 · 곡물 가루만
+  nadal34: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'sack', name: '무거운 자루', icon: '자루', kind: 'buster', first: 8, period: 14, cast: 2, warn: 'buster', dmg: 320, target: 'tank',
+        effect: { p: 'tank', debuff: { name: '무거운 자루', type: '물리', left: 12, lock: true, stackMax: 3, vuln: 0.1 } } },
+      ...spots('grain', '낟알 쏟아짐', '낟알', 2, 12, 20, 140),
+      { key: 'flour', name: '곡물 가루', icon: '가루', kind: 'instant', first: 6, period: 14, cast: 0, effect: { p: 'cycle', n: 1, debuffs: soaps(0.7) } },
+    ],
+    enrage: { name: '수호상 폭주', period: 2, dmg: 190 },
+  },
+  // ---------- 묶음 H2 던전 ㉗ 산호 동굴 밀수굴 (62 3-2, Lv 38 · 짠물 해적단 · 독 · 저주): 외눈 페그 · 파도 ----------
+  // 밀수꾼 두목 외눈 페그 (①): 화약통 (터지기 전에 딜러가 깸) · 독 단검 (독 2명) · 갈고리 당기기 (뒷줄 1명을 앞으로). 악몽은 화약통 3. 목표 2:15 · 광폭화 3:40
+  peg: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('외눈 칼질', '칼질', 8, 15, U.tank(0.5)),
+      { key: 'keg', name: '화약통', icon: '화약', kind: 'instant', first: 12, period: 28, cast: 0,
+        how: '화약통이 8초 뒤 터져 모두 딜체 25%. 딜러가 먼저 깸, 못 깨면 터지기 전에 모두 채우기',
+        effect: { p: 'adds', n: 2, nMythic: 3, add: { name: '불붙은 화약통', short: '폭', art: 'mob-lit-keg', hp: 0.012, dmg: 0, every: 0, job: { p: 'bomb', sec: 8, dmg: U.dps(0.25) } } } },
+      { key: 'dagger', name: '독 단검', icon: '단검', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 2, debuff: { name: '독 단검', type: '독', left: 10, dot: U.dps(0.02) } } },
+      { key: 'hook', name: '갈고리 당기기', icon: '갈고', kind: 'buster', first: 16, period: 24, cast: 2, warn: 'buster', target: { p: 'back', n: 1 },
+        effect: { p: 'pull', sec: 6, dmg: U.dps(0.1) } },
+    ],
+    enrage: { name: '화약 폭주', period: 2, dmg: 230 },
+  },
+  // 동굴 해마 기사 파도 (최종): 밀물 (아래 1줄이 8초 잠김, 잠긴 사람은 받는 치유 절반: 어둠물 밀물을 짠물 바다로) · 산호 창 · 소금물 저주 (받는 치유 −30%) · 소용돌이 (광역).
+  // 악몽은 밀물 10초. 목표 2:45 · 광폭화 4:30
+  pado: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('산호 창', '산호', 8, 15, U.tank(0.52)),
+      ...tides('tide', '밀물', '밀물', 10, 22, 1, 8, { secMythic: 10 }),
+      { key: 'brine', name: '소금물 저주', icon: '소금', kind: 'instant', first: 6, period: 16, cast: 0,
+        how: '탱커 아닌 1명이 10초 동안 받는 치유 −30%. 잠긴 줄이면 더 힘듦: 저주를 지우는 직업은 그 사람부터',
+        effect: { p: 'debuff', n: 1, pick: 'others', debuff: { name: '소금물 저주', type: '저주', left: 10, healCut: 0.3 } } },
+      { key: 'aoe', name: '소용돌이', icon: '소용', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, how: '밀물과 겹치면 잠긴 사람부터', effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    enrage: { name: '해일', period: 2, dmg: 240 },
+  },
+  // 밀수꾼 두목 외눈 페그 탐험판 (탐험 ㉝ 산호초 얕은 물 Lv 38): 던전 ㉗ ①의 평타 · 화약통 · 독 단검만
+  peg38: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('외눈 칼질', '칼질', 8, 16, 360),
+      { key: 'keg', name: '화약통', icon: '화약', kind: 'instant', first: 12, period: 26, cast: 0,
+        how: '화약통이 8초 뒤 터져 모두 아픔. 딜러가 먼저 깸',
+        effect: { p: 'adds', n: 1, add: { name: '불붙은 화약통', short: '폭', art: 'mob-lit-keg', hp: 0.02, dmg: 0, every: 0, job: { p: 'bomb', sec: 8, dmg: 180 } } } },
+      { key: 'dagger', name: '독 단검', icon: '단검', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '독 단검', type: '독', left: 10, dot: 22 } } },
+    ],
+    enrage: { name: '화약 폭주', period: 2, dmg: 190 },
+  },
+  // 견습생 쌍둥이 지지 · 직직 탐험판 (탐험 ㉞ 서리 마탑 정원 Lv 42): 던전 ㉘ ①의 두 몸 · 마법 실수만. 두 몸을 고르게
+  jiji42: {
+    phase: [1, ''],
+    bodies: TWIN_MAGES.map(name => ({ name, hp: 1250, boss: true })),
+    split: true,
+    skills: [
+      ...TWIN_MAGES.map((_, i): SkillDef => ({ ...AUTO(45), key: `auto${i}`, first: 2 + i * 0.8, when: { bodyAlive: [i] } })),
+      { key: 'oops', name: '마법 실수', icon: '실수', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '마법 실수', type: '마법', left: 10, dot: 22 } } },
+      { key: 'aoe', name: '쌍둥이 얼음비', icon: '얼음', kind: 'aoe', first: 16, period: 22, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 175 } },
+      ...TWIN_MAGES.map((_, i): SkillDef => ({ key: `cry${i}`, name: '울음 터짐', icon: '울음', hidden: true, first: null, period: 9999, cast: 0,
+        how: '하나가 먼저 쓰러지면 남은 쪽 피해 +30% (끝까지). 둘을 고르게 깎기', effect: { p: 'empower', boost: 0.3 } })),
+    ],
+    flow: TWIN_MAGES.map((_, i): FlowStep => ({ p: 'when', if: { idle: `cry${1 - i}`, bodiesDead: [i] }, do: [{ p: 'start', skill: `cry${1 - i}`, in: 0 }] })),
+    enrage: { name: '쌍둥이 폭주', period: 3, dmg: 190 },
+  },
+  // ---------- 묶음 H2 던전 ㉘ 마도사 기숙사 (62 3-2, Lv 43 · 폭주한 마도사 · 마법): 지지 · 직직 · 엄격이 ----------
+  // 견습생 쌍둥이 지지 · 직직 (①): 두 몸 (고르게 깎아야, 먼저 하나가 쓰러지면 남은 쪽 +30%: 노을 시장 병정 형제를 5인으로) · 마법 실수 (마법 2명) · 쌍둥이 얼음비.
+  // 악몽은 마법 실수 3명. 목표 2:15 · 광폭화 3:50
+  jiji: {
+    phase: [1, ''],
+    bodies: TWIN_MAGES.map(name => ({ name, hp: 2800, boss: true })),
+    split: true,
+    skills: [
+      ...TWIN_MAGES.map((_, i): SkillDef => ({ ...AUTO(U.tank(0.035)), key: `auto${i}`, first: 2 + i * 0.8, when: { bodyAlive: [i] } })),
+      { key: 'oops', name: '마법 실수', icon: '실수', kind: 'instant', first: 6, period: 14, cast: 0,
+        how: '2명 (악몽 3명)에게 마법 (초당 딜체 2.5%). 마법을 지우는 직업은 지움',
+        effect: { p: 'debuff', n: 2, nMythic: 3, debuff: { name: '마법 실수', type: '마법', left: 10, dot: U.dps(0.025) } } },
+      { key: 'aoe', name: '쌍둥이 얼음비', icon: '얼음', kind: 'aoe', first: 16, period: 22, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.2) } },
+      ...TWIN_MAGES.map((_, i): SkillDef => ({ key: `cry${i}`, name: '울음 터짐', icon: '울음', hidden: true, first: null, period: 9999, cast: 0,
+        how: '하나가 먼저 쓰러지면 남은 쪽 피해 +30% (끝까지). 둘을 고르게 깎기', effect: { p: 'empower', boost: 0.3 } })),
+    ],
+    flow: TWIN_MAGES.map((_, i): FlowStep => ({ p: 'when', if: { idle: `cry${1 - i}`, bodiesDead: [i] }, do: [{ p: 'start', skill: `cry${1 - i}`, in: 0 }] })),
+    enrage: { name: '쌍둥이 폭주', period: 3, dmg: 230 },
+  },
+  // 사감 마도사 엄격이 (최종): 조용히! (2초 동안 시전 스킬 못 씀, 심장의 크게 뛰기 쉬운 판) · 벌점 (마법 1명, 받는 피해 +15%) · 숙제 폭탄 (광역 예고) · 지휘봉.
+  // 악몽은 조용히 3초. 목표 2:45 · 광폭화 4:30
+  eomgyeok: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('지휘봉 딱', '지휘', 8, 15, U.tank(0.5)),
+      { key: 'hush', name: '조용히!', icon: '조용', kind: 'aoe', first: 12, period: 20, cast: 2, warn: 'aoe',
+        how: '2초 (악몽 3초) 동안 시전 시간이 있는 스킬을 못 쓰고, 시전 중이면 끊김. 예고가 뜨면 즉시 스킬 · 지속 힐로',
+        effect: { p: 'beat', sec: 2, secMythic: 3 } },
+      { key: 'demerit', name: '벌점', icon: '벌점', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '벌점', type: '마법', left: 10, vuln: 0.15, dot: U.dps(0.015) } } },
+      { key: 'homework', name: '숙제 폭탄', icon: '숙제', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, how: '조용히 바로 뒤에 오면 미리 지속 힐', effect: { p: 'all', dmg: U.dps(0.24) } },
+    ],
+    enrage: { name: '사감 폭주', period: 2, dmg: 240 },
+  },
+  // 약품 수도사 거품이 탐험판 (탐험 ㉟ 교단 숲속 야영지 Lv 46): 던전 ㉙ ①의 평타 · 역겨운 물약 · 끓어오름만
+  geopum46: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('약병 내려치기', '약병', 8, 16, 360),
+      { key: 'potion', name: '역겨운 물약', icon: '물약', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '역겨운 물약', type: '질병', left: 10, dot: 22 } } },
+      { key: 'boil', name: '끓어오름', icon: '끓음', kind: 'aoe', first: 16, period: 20, cast: 3, warn: 'aoe', cut: true, how: '쓸 때마다 조금씩 세짐', effect: { p: 'all', dmg: 140, grow: 15 } },
+    ],
+    enrage: { name: '솥 폭주', period: 2, dmg: 195 },
+  },
+  // ---------- 묶음 H2 던전 ㉙ 교단 약품 제조실 (62 3-2, Lv 48 · 역병 교단 · 질병): 거품이 · 말로스 ----------
+  // 약품 수도사 거품이 (①): 역병 거품 (부풀기: 지우면 옆 칸만 조금, 두면 크게 터짐 · 짠물 독 거품을 질병으로) · 역겨운 물약 (질병 2명) · 끓어오름 (광역이 점점 세짐).
+  // 악몽은 거품 2명. 목표 2:15 · 광폭화 3:50
+  geopum: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('약병 내려치기', '약병', 8, 15, U.tank(0.5)),
+      { key: 'bubble', name: '역병 거품', icon: '거품', kind: 'instant', first: 9, period: 18, cast: 0, how: BUBBLE_HOW,
+        effect: { p: 'debuff', n: 1, nMythic: 2, pick: 'others', debuff: { ...bubble(14, 3), name: '역병 거품', type: '질병' } } },
+      { key: 'potion', name: '역겨운 물약', icon: '물약', kind: 'instant', first: 6, period: 15, cast: 0,
+        effect: { p: 'debuff', n: 2, debuff: { name: '역겨운 물약', type: '질병', left: 10, dot: U.dps(0.02) } } },
+      { key: 'boil', name: '끓어오름', icon: '끓음', kind: 'aoe', first: 16, period: 20, cast: 3, warn: 'aoe', cut: true,
+        how: '쓸 때마다 조금씩 세짐. 지속 힐을 미리 깔기', effect: { p: 'all', dmg: U.dps(0.16), grow: U.dps(0.02) } },
+    ],
+    enrage: { name: '솥 폭주', period: 2, dmg: 240 },
+  },
+  // 역병 대사제 말로스 (최종): 역병 사슬 (나눔 사슬: 이어진 둘이 피해 · 치유를 반씩) · 썩은 기도 (최대 체력 깎임, 지우면 돌아옴) · 질병 퍼뜨리기 (두면 이웃 칸으로 번짐).
+  // 악몽은 사슬 3쌍. 목표 2:45 · 광폭화 4:45
+  malos: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('역병 지팡이', '지팡', 8, 15, U.tank(0.52)),
+      { key: 'chain', name: '역병 사슬', icon: '사슬', kind: 'instant', first: 10, period: 26, cast: 0,
+        how: '이어진 둘이 피해 · 치유를 반씩 나눔. 한쪽만 힐해도 둘 다 참',
+        effect: { p: 'link', kind: 'share', name: '역병 사슬', sec: 14, pick: 'others', pairs: 2, pairsMythic: 3 } },
+      { key: 'prayer', name: '썩은 기도', icon: '기도', kind: 'instant', first: 6, period: 12, cast: 0,
+        effect: { p: 'rot', n: 1, debuff: { name: '썩은 기도', type: '질병', left: 24, end: { p: 'restoreMax' } }, pct: 0.08, max: 4, again: 0.5 } },
+      { key: 'spread', name: '질병 퍼뜨리기', icon: '번짐', kind: 'instant', first: 15, period: 22, cast: 0,
+        how: '두면 끝날 때 이웃 칸에 번짐 (피해 + 독침). 이웃이 없을 때 지우거나, 붙어 서기 전에 지우기',
+        effect: { p: 'debuff', n: 1, debuff: { name: '퍼지는 역병', type: '질병', left: 8, trap: true, end: { p: 'spread' } } } },
+      { key: 'aoe', name: '대사제의 기도', icon: '기도', kind: 'aoe', first: 20, period: 26, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.22) } },
+    ],
+    enrage: { name: '역병 폭주', period: 2, dmg: 250 },
+  },
+  // 역병 대사제 말로스 탐험판 (탐험 ㊱ 왕도 지붕길 Lv 50): 던전 ㉙ ②의 평타 · 역병 사슬 · 썩은 기도만 (3인 사슬 = 탱커와 딜러)
+  malos50: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      { key: 'chain', name: '역병 사슬', icon: '사슬', kind: 'instant', first: 10, period: 26, cast: 0,
+        how: '이어진 둘이 피해 · 치유를 반씩 나눔', effect: { p: 'link', kind: 'share', name: '역병 사슬', sec: 14 } },
+      { key: 'prayer', name: '썩은 기도', icon: '기도', kind: 'instant', first: 6, period: 12, cast: 0,
+        effect: { p: 'rot', n: 1, debuff: { name: '썩은 기도', type: '질병', left: 24, end: { p: 'restoreMax' } }, pct: 0.08, max: 3, again: 0.5 } },
+      { key: 'aoe', name: '대사제의 기도', icon: '기도', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: 180 } },
+    ],
+    enrage: { name: '역병 폭주', period: 2, dmg: 195 },
+  },
+  // ---------- 묶음 H2 던전 ㉚ 반딧불 빵집 (62 3-2, Lv 53 · 버섯 요정단 · 질병 · 마법): 폴폴 · 몽글이 ----------
+  // 밀가루 요정 폴폴 (①): 재채기 가루 (질병 → 마법 차례로 2명) · 반죽 던지기 (무작위 1명) · 밀가루 바람 (광역). 50% 아래 밀가루 구름: 체력 숫자가 사라지고 채움 색만 (영원한 저녁을 5인으로).
+  // 악몽은 재채기 3명. 목표 2:15 · 광폭화 3:55
+  polpol: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('밀대 휘두르기', '밀대', 8, 15, U.tank(0.5)),
+      { key: 'sneeze', name: '재채기 가루', icon: '재채', kind: 'instant', first: 6, period: 14, cast: 0, effect: { p: 'cycle', n: 2, nMythic: 3, debuffs: sneeze() } },
+      { key: 'dough', name: '반죽 던지기', icon: '반죽', kind: 'buster', first: 12, period: 16, cast: 2, warn: 'buster', target: { p: 'random', n: 1, nMythic: 2 },
+        effect: { p: 'strike', dmg: U.dps(0.3) } },
+      { key: 'aoe', name: '밀가루 바람', icon: '바람', kind: 'aoe', first: 18, period: 24, cast: 3, warn: 'aoe', cut: true, effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.5 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'dark' }, { p: 'text', text: '밀가루 구름: 체력 숫자가 사라짐, 채움 색만 보고 힐' },
+    ] }],
+    enrage: { name: '밀가루 폭주', period: 2, dmg: 240 },
+  },
+  // 케이크 골렘 몽글이 (최종): 층 쌓기 (광역이 쓸 때마다 세짐) · 크림 폭발 (광역 + 마법 1명) · 설탕 장판 (남는 장판 2곳) · 케이크 덮치기.
+  // 악몽은 설탕 장판 3곳. 목표 2:45 · 광폭화 4:45
+  monggeul: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('케이크 덮치기', '덮치', 8, 15, U.tank(0.52)),
+      { key: 'layer', name: '층 쌓기', icon: '층', kind: 'aoe', first: 14, period: 18, cast: 3, warn: 'aoe',
+        how: '쓸 때마다 한 층씩 세짐. 오래 끌수록 아프니 딜이 빠질 때 지속 힐을 미리', effect: { p: 'all', dmg: U.dps(0.14), grow: U.dps(0.025) } },
+      { key: 'cream', name: '크림 폭발', icon: '크림', kind: 'instant', first: 8, period: 16, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '크림 범벅', type: '마법', left: 10, dot: U.dps(0.025) } } },
+      { key: 'sugar', name: '설탕 장판', icon: '설탕', kind: 'zone', first: 10, period: 16, cast: 2, warn: 'zone', dps: U.dps(0.05), dur: 8, cells: { p: 'around' }, when: { mythic: false } },
+      ...spots('sugarm', '설탕 장판', '설탕', 3, 10, 16, U.dps(0.15), { mythic: true }),
+    ],
+    enrage: { name: '케이크 폭주', period: 2, dmg: 250 },
+  },
+  // 밀가루 요정 폴폴 탐험판 (탐험 ㊲ 이슬 버섯 언덕 Lv 54): 던전 ㉚ ①의 평타 · 재채기 가루 · 반죽 던지기만
+  polpol54: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('밀대 휘두르기', '밀대', 8, 16, 360),
+      { key: 'sneeze', name: '재채기 가루', icon: '재채', kind: 'instant', first: 6, period: 14, cast: 0, effect: { p: 'cycle', n: 1, debuffs: sneeze(0.7) } },
+      { key: 'dough', name: '반죽 던지기', icon: '반죽', kind: 'buster', first: 12, period: 16, cast: 2, warn: 'buster', target: { p: 'random', n: 1 }, effect: { p: 'strike', dmg: 300 } },
+    ],
+    enrage: { name: '밀가루 폭주', period: 2, dmg: 200 },
+  },
+  // 개구리 근위대장 폴짝 탐험판 (탐험 ㊳ 버섯숲 늪가 Lv 58): 던전 ㉛ ①의 평타 · 크게 뛰기 · 독 침만
+  poljjak58: {
+    phase: [1, ''],
+    skills: [
+      AUTO(85),
+      BUSTER('창 내지르기', '창', 8, 16, 370),
+      ...spots('leap', '크게 뛰기', '뛰기', 1, 10, 16, 220),
+      { key: 'dart', name: '독 침', icon: '독침', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 1, debuff: { name: '독 침', type: '독', left: 10, dot: 24 } } },
+    ],
+    enrage: { name: '근위대 폭주', period: 2, dmg: 200 },
+  },
+  // ---------- 묶음 H2 던전 ㉛ 두꺼비 왕국 수련궁 (62 3-2, Lv 58 · 늪의 부족 · 독): 폴짝 · 우물룩 ----------
+  // 개구리 근위대장 폴짝 (①): 크게 뛰기 (착지 2곳, 파티원이 비킴) · 혀 끌어당김 (뒷줄 1명) · 독 침 (독 2명). 악몽은 착지 3곳. 목표 2:15 · 광폭화 4:00
+  poljjak: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.065)),
+      BUSTER('창 내지르기', '창', 8, 15, U.tank(0.5)),
+      ...spots('leap', '크게 뛰기', '뛰기', 2, 10, 16, U.dps(0.25), { mythic: false }),
+      ...spots('leapm', '크게 뛰기', '뛰기', 3, 10, 16, U.dps(0.25), { mythic: true }),
+      { key: 'tongue', name: '혀 끌어당김', icon: '혀', kind: 'buster', first: 16, period: 24, cast: 2, warn: 'buster', target: { p: 'back', n: 1 },
+        effect: { p: 'pull', sec: 6, dmg: U.dps(0.1) } },
+      { key: 'dart', name: '독 침', icon: '독침', kind: 'instant', first: 6, period: 14, cast: 0,
+        effect: { p: 'debuff', n: 2, debuff: { name: '독 침', type: '독', left: 10, dot: U.dps(0.02) } } },
+    ],
+    enrage: { name: '근위대 폭주', period: 2, dmg: 240 },
+  },
+  // 두꺼비 왕 우물룩 (최종): 독 연못 넘침 (아래 1줄이 잠김, 40% 아래 2줄) · 근위 올챙이 (쫄 떼 3, 범위 딜로 같이 잡힘) · 왕관 내려치기. 악몽은 올챙이 4.
+  // 목표 2:45 · 광폭화 4:45
+  umulluk: {
+    phase: [1, ''],
+    skills: [
+      AUTO(U.tank(0.07)),
+      { ...BUSTER('왕관 내려치기', '왕관', 8, 15, U.tank(0.55)), cast: 2.5 },
+      ...tides('tide', '독 연못 넘침', '연못', 12, 22, 1, 8, { when: { phase: [1] } }),
+      ...tides('tide2', '독 연못 넘침', '연못', null, 20, 2, 8, { when: { phase: [2] } }),
+      { key: 'tadpoles', name: '근위 올챙이', icon: '올챙', kind: 'instant', first: 18, period: 30, cast: 0,
+        how: '올챙이가 딜러를 때림. 범위 딜로 같이 잡히니 그동안 맞는 딜러를 채우기',
+        effect: { p: 'adds', n: 3, nMythic: 4, add: { name: '근위 올챙이', short: '올챙', art: 'mob-tadpole-guard', hp: 0.015, dmg: U.dps(0.025), every: 2, cleave: true } } },
+      { key: 'aoe', name: '개굴 고함', icon: '고함', kind: 'aoe', first: 20, period: 26, cast: 3, warn: 'aoe', cut: true, how: '밀물과 겹치면 잠긴 사람부터', effect: { p: 'all', dmg: U.dps(0.2) } },
+    ],
+    flow: [{ p: 'when', if: { phase: 1, hpBelow: 0.4 }, do: [
+      { p: 'phase', n: 2, name: '' }, { p: 'start', skill: 'tide2', in: 3 }, { p: 'text', text: '독 연못이 아래 두 줄까지' },
+    ] }],
+    enrage: { name: '두꺼비 왕의 분노', period: 2, dmg: 250 },
   },
 };
 
