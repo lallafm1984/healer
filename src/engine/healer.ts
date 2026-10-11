@@ -97,6 +97,7 @@ function exec(f: Fight, key: SkillKey, cellIdx: number, u: Unit | undefined): vo
   if (sk.channel) {
     f.mana -= costOf(f, key); f.cd[key] = cdOf(f, key); f.channel = f.sp ? raidSec(f, key, sk.channel) : sk.channel; f.chTick = 0; // 길어진 노래 · 숲의 숨결 (42)
     emit(f, { type: 'sound', name: 'hymn' });
+    noteUsed(f, key, f.me.id);
     if (f.me.debuffs.length) countUse(f, undefined);
     return;
   }
@@ -131,6 +132,13 @@ function countUse(f: Fight, rc: Debuff | undefined): void {
   if (d && f.me.debuffs.includes(d)) d.stack = (d.stack ?? 0) + 1;
 }
 
+/** 화면 이펙트용 기록 (Fight.used) 상한: 비우지 않는 시뮬레이션에서 끝없이 쌓이지 않게 */
+const USED_MAX = 32;
+function noteUsed(f: Fight, key: SkillKey, uid: number): void {
+  const used = (f.used ??= []);
+  if (used.length < USED_MAX) used.push({ key, uid });
+}
+
 function apply(f: Fight, key: SkillKey, u: Unit): void {
   const rc = f.me.debuffs.length ? f.me.debuffs.find(d => d.count) : undefined;
   if (f.sp) specApply(f, key, u, () => applySkill(f, key, u)); // 치유 문맥 (42)
@@ -140,6 +148,7 @@ function apply(f: Fight, key: SkillKey, u: Unit): void {
 
 function applySkill(f: Fight, key: SkillKey, u: Unit): void {
   if (u.lift) { emit(f, { type: 'msg', text: `닿지 않음: ${u.nick}은(는) 하늘에 떠 있음` }); return; } // 예약해 둔 힐이 나갈 때 떠 버림 (P-LIFT)
+  noteUsed(f, key, u.id);
   if (f.order && singleHeal(key) && !u.soul) orderHeal(f, u); // 차례 (P-ORDER)
   if (f.hero !== 'priest') { heroApply(f, key, u); return; }
   const sk = SKILLS[key];

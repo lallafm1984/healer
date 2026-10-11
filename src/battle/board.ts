@@ -4,7 +4,7 @@
  * 이펙트 (16 4-6): 힐 = 부드러운 빛 + 별 반짝이(사제 금·흰), 치명타 = 반짝이 2배 + 큰 별, 큰 피격 = 날카로운 빨간 자국.
  * 칸 위 이펙트는 0.4초 안에 사라지고 체력 숫자·디버프 테두리 아래에 그림.
  * 그림 (37 v0.2): 판 위 적·영혼 칸 그림(mob-), 칸 무늬(fx-cell-), 사슬 띠(fx-link-), 이펙트(fx-)가 src/art에 있으면 그 그림을, 없으면 지금 벡터 그림을 씀.
- * PXF 이펙트 (battle/pxf.ts, 2026-10-11 시험): 사제 치유가 들어가면 치유 빛 대신 구운 픽셀 프레임 띠 (fx-pxf-*)를 대상 칸에서 재생. 다른 이펙트와 달리 판 맨 위 (글자·아이콘보다 위).
+ * PXF 이펙트 (battle/pxf.ts, 2026-10-11): 휠 스킬이 들어가면 구운 픽셀 프레임 띠 (fx-pxf-*)를 대상 · 범위 · 파티 칸에서 재생 (그 칸의 치유 빛 대신). 다른 이펙트와 달리 판 맨 위 (글자·아이콘보다 위).
  */
 import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
 import { art } from '../art';
@@ -19,7 +19,7 @@ import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, 
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebuff } from './party-display';
 import { CELL_RADIUS, fitBoard } from './board-layout';
-import { PXF, pxfDrawSize, pxfFrame, pxfMs, type PxfClip, type PxfKey } from './pxf';
+import { PXF, pxfArtName, pxfDrawSize, pxfFrame, pxfMs, type PxfKey } from './pxf';
 
 // ---------- 색 ----------
 const hex = (c: string) => parseInt(c.slice(1, 7), 16);
@@ -98,7 +98,7 @@ export async function initBoard(): Promise<void> {
   // 말풍선 틀 · 꼬리 · 대사 이펙트 띠는 미리 읽어 둠 (첫 말풍선이 앱 그림으로 잠깐 보였다 바뀌지 않게, 43 5장)
   for (const k of ['talk', 'call', 'alert', 'chat']) { artTexture(`ui-bubble-${k}`); artTexture(`ui-bubble-tail-${k}`); }
   for (const n of Object.keys(TALK_FX)) artTexture(`fx-talk-${n}`);
-  for (const c of Object.values(PXF)) artTexture(c.art); // 첫 치유부터 보이게
+  for (const k of Object.keys(PXF) as PxfKey[]) artTexture(pxfArtName(k)); // 첫 스킬부터 보이게
   if (B.F) resizeBoard();
   await document.fonts?.ready;
   await frameReady;
@@ -617,9 +617,11 @@ function glow(x: number, y: number, size: number, tint: number, alpha: number, k
 
 // ---------- 판 위 효과 ----------
 interface Fx {
-  kind: 'heal' | 'hit' | 'dispel' | 'death' | 'revive' | 'art'; id: number; t0: number; crit?: boolean; color?: number; seeds?: number[]; x?: number; y?: number;
-  /** 치유 빛 대신 재생할 PXF 이펙트 (battle/pxf.ts) */
+  kind: 'heal' | 'hit' | 'dispel' | 'death' | 'revive' | 'art' | 'pxf'; id: number; t0: number; crit?: boolean; color?: number; seeds?: number[]; x?: number; y?: number;
+  /** 스킬 PXF 이펙트 (kind 'pxf', battle/pxf.ts) */
   pxf?: PxfKey;
+  /** 치유 빛 없이 숫자 · 치명타 별만 (그 칸에 스킬 PXF 이펙트가 나올 때) */
+  plain?: boolean;
   /** 기믹 연출 (kind 'art'): 그림 fx-<name>, 칸 · 날아갈 사람 · 판 전체 · 길이(ms) */
   name?: string; cell?: number; to?: number; wide?: boolean; dur?: number;
 }
@@ -832,14 +834,19 @@ export function fxImpact(kind: TelKind | undefined, now: number): void {
   }
 }
 const rnd = () => Math.random();
-/** pxf = 이 치유를 넣은 스킬의 PXF 이펙트 (사제 치유): 치유 빛 대신 재생. 스킬이 들어간 표시라 넘친 치유여도 재생 */
-export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: number, pxf?: PxfKey): void {
+/** plain = 이 칸에 스킬 PXF 이펙트가 나와서 치유 빛은 안 그림 (숫자 · 치명타 별은 그대로) */
+export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: number, plain = false): void {
   if (!L.ok || S.reducedEffects) return;
   const p = unitPos(u);
   const over = eff < amt * 0.25; // 거의 다 넘친 힐은 회색으로 작게
   if (B2.floats.length < 40) B2.floats.push({ x: p.x + (rnd() - 0.5) * L.s * 0.5, y: p.y - L.s * 0.3, text: `+${eff}`, crit: crit && !over, over, t0: now, n: B2.n++, id: u.id });
   B2.hitFx[u.id] = now;
-  if (B2.fx.length < 60 && (!over || pxf)) B2.fx.push({ kind: 'heal', id: u.id, t0: now, crit: crit && !over, seeds: Array.from({ length: crit ? 8 : 4 }, rnd), pxf, dur: pxf ? pxfMs(PXF[pxf]) : undefined });
+  if (B2.fx.length < 60 && !over && !(plain && !crit)) B2.fx.push({ kind: 'heal', id: u.id, t0: now, crit: crit && !over, seeds: Array.from({ length: crit ? 8 : 4 }, rnd), plain });
+}
+/** 스킬 PXF 이펙트 (battle/pxf.ts): 스킬이 들어간 칸에서 맞는 순간부터 끝까지. 파티 전원 스킬은 20인이면 20개라 따로 상한 */
+export function fxPxf(u: Unit, pxf: PxfKey, now: number): void {
+  if (!L.ok || S.reducedEffects || B2.fx.length >= 100) return;
+  B2.fx.push({ kind: 'pxf', id: u.id, t0: now, pxf, dur: pxfMs(PXF[pxf]) });
 }
 /** 부활 · 봉화 지정 글자: 연한 금빛 (능력 이름처럼 사건 글자, 치명타 치유 숫자와 다른 색) */
 const REVIVE_TEXT = 0xffe08a;
@@ -910,8 +917,8 @@ function predictedHeal(u: Unit): number {
  * PXF 이펙트 한 프레임: 대상 칸 가운데 (game.pivot 0.5, 0.5), 칸 지름 2r 기준 크기, 판 밖으로 안 나가게 줄임. 판 맨 위 층 (pxfL).
  * 픽셀 그림이라 가장 가까운 픽셀로 키움. 더하기 섞기는 WebGL에서만 (Canvas에서는 뒤에 그리는 것까지 번져서 보통 섞기)
  */
-function pxfFx(c: PxfClip, key: string, x: number, y: number, r: number, ms: number): void {
-  const i = pxfFrame(c, ms), tex = i < 0 ? null : stripFrame(c.art, 1, (i + 0.5) / c.frames);
+function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: number): void {
+  const c = PXF[k], i = pxfFrame(c, ms), tex = i < 0 ? null : stripFrame(pxfArtName(k), 1, (i + 0.5) / c.frames);
   if (!tex) return;
   if (tex.source.scaleMode !== 'nearest') tex.source.scaleMode = 'nearest';
   const size = pxfDrawSize(c, r * 2), half = safeRadius(x, y, size / 2, 'circle');
@@ -1218,6 +1225,7 @@ export function render(now: number): void {
   B2.fx = S.reducedEffects ? [] : B2.fx.filter(e => now - e.t0 < (e.dur ?? FX_MS));
   for (const e of B2.fx) {
     if (e.kind === 'art') { artFx(F, e, now, r, s); continue; }
+    if (e.kind === 'pxf') { const u = F.party.find(x => x.id === e.id); if (u) { const p = unitPos(u); pxfFx(e.pxf!, `pxf${e.id}-${e.pxf}-${e.t0}`, p.x, p.y, r, now - e.t0); } continue; }
     const k = (now - e.t0) / FX_MS;
     const u = F.party.find(x => x.id === e.id);
     const p = e.x != null ? { x: e.x, y: e.y! } : u ? unitPos(u) : null;
@@ -1225,8 +1233,7 @@ export function render(now: number): void {
     // 공용 이펙트 그림 (37 4장 F-2)이 있으면 그 그림, 없으면 벡터
     const tex = artTexture(e.kind === 'heal' ? 'fx-heal' : e.kind === 'death' ? 'fx-down' : `fx-${e.kind}`);
     if (e.kind === 'heal') {
-      if (e.pxf) pxfFx(PXF[e.pxf], `heal-pxf${e.id}-${e.t0}`, p.x, p.y, r, now - e.t0);
-      else if (tex) spriteFx(tex, `heal${e.id}-${e.t0}`, p.x, p.y - r * 0.25 * k, r * (1.5 + 0.4 * k), 1 - k * k, hex(emblemColor(F.hero)));
+      if (e.plain) { /* 스킬 PXF 이펙트가 대신 */ } else if (tex) spriteFx(tex, `heal${e.id}-${e.t0}`, p.x, p.y - r * 0.25 * k, r * (1.5 + 0.4 * k), 1 - k * k, hex(emblemColor(F.hero)));
       else {
         glow(p.x, p.y, r * (1.6 + 0.6 * k), e.crit ? 0xfff1b8 : 0xfff8e6, 0.55 * (1 - k), `heal-glow${e.id}-${e.t0}`);
         e.seeds!.forEach((sd, i) => {
@@ -1237,7 +1244,7 @@ export function render(now: number): void {
           recordBound(`heal-star${e.id}-${e.t0}-${i}`, 'fx', 'star', sp.x, sp.y, sr * 2, sr * 2);
         });
       }
-      if (e.crit && k < 1) { // PXF 이펙트는 길어도 치명타 별은 0.4초
+      if (e.crit && k < 1) {
         const size = r * 0.3, half = size * 0.65 + 1, ct = artTexture('fx-crit');
         const bp = fitCenter(p.x + r * 0.5, p.y - r * (0.42 + 0.3 * k), ct ? half * 1.6 : half);
         if (ct) spriteFx(ct, `heal-crit${e.id}-${e.t0}`, bp.x, bp.y, half * 3.2, 1 - k);
