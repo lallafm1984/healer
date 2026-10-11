@@ -1,5 +1,6 @@
 // 장소마다 화면 흐름 (38 0-8): 전투 탭 → 편성 → 출발 → 구간마다 적을 지워 넘김 (휴식 → 계속) → 결과 화면.
 // 만든 장소를 화면에서 모두 찾아 돌고, 셋에 하나는 마지막 구간에서 포기해 진 결과로. 대상 폰 크기 (S25 · 울트라 · 플립)를 돌아가며 첫 전투 · 결과 캡처
+// 나눠 돌릴 때 (part = { k, n }) 찾은 장소 중 n개마다 k번째만 (폰 크기 · 포기 순서는 통째로 돌 때와 같음)
 import { chromium } from 'playwright';
 import { killEnemies, pastTitle, toParty } from './nav.mjs';
 import { DEVICES } from './devices.mjs';
@@ -8,7 +9,7 @@ const TABS = ['explore', 'dungeon', 'raid10', 'raid20'];
 const PHONES = DEVICES.filter(([name]) => !/WQHD/.test(name));
 const BAD = /NaN|undefined|Infinity/;
 
-export default async function places(url, shots) {
+export default async function places(url, shots, part) {
   const browser = await chromium.launch();
   const errs = [];
   let fails = 0;
@@ -43,6 +44,7 @@ export default async function places(url, shots) {
   ok(list.filter(p => p.tab === 'explore').length >= 8 && list.filter(p => p.tab === 'dungeon').length >= 7, `만든 장소를 전투 탭에서 찾음 (${list.length}곳: ${list.map(p => p.key).join(' · ')})`);
 
   for (const [i, p] of list.entries()) {
+    if (part && i % part.n !== part.k) continue;
     const { page, tag, size } = pages[i % pages.length];
     const lose = i % 3 === 2;
     await page.reload(); await page.clock.runFor(300);

@@ -1,10 +1,16 @@
 # 푸시·PR마다: 타입 검사, 엔진 테스트(프로토타입과 결과 일치), 빌드, 화면 테스트
+# 화면 테스트는 한 러너에서 33분 걸려서 (2026-10-11) 러너 6대에 나눠 동시에 돈다. 나누는 법은 tests/e2e/suites.mjs
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
+
+# 같은 PR에 새로 푸시하면 앞 실행은 취소 (main 푸시는 커밋마다 끝까지)
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
@@ -18,11 +24,29 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+
+  e2e:
+    name: e2e ${{ matrix.shard }}/6
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
+        env:
+          E2E_SHARD: ${{ matrix.shard }}/6
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-shots
+          name: e2e-shots-${{ matrix.shard }}
           path: tests/e2e/shots/
           if-no-files-found: ignore

@@ -37,6 +37,7 @@ npm run dev        # 브라우저에서 개발
 npm test           # 엔진·저장 테스트
 npm run build      # 타입 검사 + dist
 npm run e2e        # 화면 테스트 (build 뒤, Playwright Chromium 필요)
+                   # E2E_ONLY=장소,던전 → 이름 일부로 몇 묶음만, E2E_SHARD=2/6 → 6몫 중 2번째 몫만 (CI는 러너 6대에서 동시에)
 npm run check      # 위 셋 전부
 npm run android    # build + Android 프로젝트에 복사
 npm run art:optimize  # src/art 그림 크기·용량 줄이기 (-- --dry 는 결과만)
