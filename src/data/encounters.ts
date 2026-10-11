@@ -1308,7 +1308,7 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
     { name: '공허의 종복', hp: 400, count: 3, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '검은 눈', hp: 300, count: 1, attacks: [{ key: 'throw', to: 'other', dmg: 90, jitter: 0.2, first: 3, period: 3, cast: 0 }] },
   ]),
-  malmijal: { key: 'malmijal', lowLevel: true, name: '산호 정원사 말미잘', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 5000, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'malmijal', stage: 0.25, debuffs: ['독'] },
+  malmijal: { key: 'malmijal', lowLevel: true, name: '산호 정원사 말미잘', tier: '던전 · 5인', board: 'b10', comp: PARTY5, hp: 4400, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'malmijal', stage: 0.25, debuffs: ['독'] },
   pearlpond: trash('pearlpond', '진주 연못', [
     { name: '공허의 종복', hp: 400, count: 2, attacks: [{ key: 'hit', to: 'tank', dmg: 55, jitter: 0.3, first: 1.5, period: 2, cast: 0 }] },
     { name: '심연 전령', hp: 300, count: 1, attacks: [

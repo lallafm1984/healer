@@ -4485,9 +4485,9 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     phase: [1, ''],
     skills: [
       AUTO(U.tank(0.065)),
-      BUSTER('진주 창', '진주', 8, 15, U.tank(0.52)),
+      BUSTER('진주 창', '진주', 8, 15, U.tank(0.48)),
       ...[0, 1].map((i): SkillDef => ({
-        key: `omen${i}`, name: '해파리 점괘', icon: '점괘', kind: 'zone', first: 12 + i * 0.3, period: 20, cast: 4, warn: 'zone', fixed: true, hitDmg: U.dps(0.3), cells: { p: 'around' },
+        key: `omen${i}`, name: '해파리 점괘', icon: '점괘', kind: 'zone', first: 12 + i * 0.3, period: 20, cast: 4, warn: 'zone', fixed: true, hitDmg: U.dps(0.25), cells: { p: 'around' },
         ...(i ? { hidden: true } : { how: OMEN_HOW }),
       })),
       { key: 'zap', name: '찌릿 쏘기', icon: '찌릿', kind: 'buster', first: 8, period: 16, cast: 3, warn: 'buster', target: { p: 'random', n: 1 }, how: ZAP_HOW,
