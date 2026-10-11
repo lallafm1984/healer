@@ -19,13 +19,35 @@ export async function pastTitle(page) {
   if (await page.isVisible('#s-story')) { await page.click('#tutSkip'); await page.clock.runFor(100); }
 }
 
-/** 전투 탭(30 출정 관문): 분류 → 장소 고르기 → (난이도) → 「출전」 = 편성 화면 (2026-10-08부터 입장 화면 없음) */
-export async function toParty(page, { content = 'rustfort', tab = 'dungeon', diff } = {}) {
+/**
+ * 탐험 · 던전 난이도 사슬 (61 1-1): 그 장소 앞 난이도를 깬 기록을 저장에 넣고 다시 읽음 (화면은 타이틀부터).
+ * 저장이 아직 없으면 (첫 화면 전) 아무것도 안 함
+ */
+export async function openDiff(page, content, diff) {
+  const done = await page.evaluate(([k, d]) => {
+    const raw = localStorage.getItem('healer.save');
+    if (!raw) return false;
+    const s = JSON.parse(raw), all = ['쉬움', '보통', '어려움', '악몽'];
+    s.clears[k] ||= {};
+    for (const x of all.slice(0, all.indexOf(d))) s.clears[k][x] ||= { stars: 1, grade: 'B', best: 999, n: 1 };
+    localStorage.setItem('healer.save', JSON.stringify(s));
+    return true;
+  }, [content, diff]);
+  if (done) { await page.reload(); await page.clock.runFor(300); }
+  return done;
+}
+
+/** 전투 탭(30 출정 관문): 분류 → 장소 고르기 → (난이도) → 「출전」 = 편성 화면 (2026-10-08부터 입장 화면 없음). 난이도가 사슬로 잠겼으면 앞 난이도 기록을 넣고 다시 */
+export async function toParty(page, { content = 'rustfort', tab = 'dungeon', diff } = {}, again = true) {
   await pastTitle(page);
   if (!(await page.isVisible('#s-content'))) { await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100); }
   await page.click(`#s-content [data-ctab="${tab}"]`); await page.clock.runFor(50);
   await page.click(`#s-content [data-content="${content}"]`); await page.clock.runFor(50);
-  if (diff) { await page.click(`#s-content [data-diff="${diff}"]`); await page.clock.runFor(50); }
+  if (diff) {
+    const sel = `#s-content [data-diff="${diff}"]`;
+    if (again && await page.isDisabled(sel) && /깨기/.test(await page.textContent(sel)) && await openDiff(page, content, diff)) return toParty(page, { content, tab, diff }, false);
+    await page.click(sel); await page.clock.runFor(50);
+  }
   await page.click('#contentGo'); await page.clock.runFor(100);
 }
 

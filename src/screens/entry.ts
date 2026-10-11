@@ -36,7 +36,7 @@ function render(): void {
       <section class="pn f-sec"><h2 class="h-rule">구간<span class="rule"></span></h2>${timeline(segs)}</section>
       <section class="pn f-sec f-rw"><h2 class="h-rule">보상<span class="rule"></span></h2>
         <span class="cap">판마다 장비 1개 · 골드 ${fmt(gold)}${festival ? ' (축제 주간 +20%)' : ''} · 경험치 약 ${fmt(xp)}</span>
-        <span class="cap">월요일 상자 (이번 주 최고 단계): ${box ? `지금 기록이면 ${box.grades.join(' · ')}${box.legend ? ' · 전설 확률' : ''}` : '5단계 희귀 · 10단계 영웅 · 15단계 영웅 2개 · 20단계 전설 확률'}</span>
+        <span class="cap">월요일 상자 (이번 주 최고 단계): ${box ? `지금 기록이면 ${box.grades.join(' · ')}` : '5단계 희귀 · 10단계 영웅 · 15단계 영웅 2개 · 20단계 영웅 3개'}</span>
       </section>
       <p class="note center f-rules">제한시간 안에 깨면 다음 단계 열림 · 실패해도 단계 유지 · 광고 이어하기 없음</p>
     </div>

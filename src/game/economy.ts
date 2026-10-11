@@ -1,14 +1,13 @@
 /**
  * 재화·임무·상점·시즌 패스 규칙 (12, 13, 15). 화면과 분리된 순수 계산 (시각·난수는 받아서 씀).
  */
-import { ALL_DIFFS } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import {
   BAG_MAX, itemPrice, MEMBER, MERIT, MERIT_GEAR_COST, MERIT_WEEK_CAP, PASS_GAIN, PASS_LEVELS, PASS_PREMIUM_CRYSTAL, PASS_XP, passFree, passPremium,
   SHARD_CRAFT, SHARD_MAX, type PassReward,
 } from '../data/economy';
 import { FEATURES } from '../data/features';
-import { LEGEND_LEVEL, makeItem, rollItem, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
+import { makeItem, rollItem, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
 import type { ItemKey } from '../data/items';
 import {
   CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, WEEKLY, WEEKLY_LV, WEEKLY_N, type MissionDef, type RunEvent,
@@ -180,21 +179,20 @@ export function claimGuildGoal(save: SaveData): string {
   return '';
 }
 
-/** 주간 도전 월요일 상자 (13 3-2): 지난주 최고 단계 기준 장비 등급 보장 (5 희귀 / 10 영웅 / 15 영웅 2개 / 20 전설 확률) */
-export function chalChestOf(stage: number): { grades: ItemGrade[]; legend: number; goldRuns: number } {
-  const grades: ItemGrade[] = stage >= 15 ? ['영웅', '영웅'] : stage >= 10 ? ['영웅'] : stage >= 5 ? ['희귀'] : ['고급'];
-  return { grades, legend: stage >= 20 ? 0.25 : 0, goldRuns: 1 + Math.floor(stage / 5) };
+/**
+ * 주간 도전 월요일 상자 (13 3-2): 지난주 최고 단계 기준 장비 등급 보장 (5 희귀 / 10 영웅 / 15 영웅 2개 / 20 영웅 3개).
+ * 전설은 20인 레이드 악몽에서만 (61 3장, 2026-10-11 Lim)이라 20단계 전설 확률은 영웅 1개로 바꿈
+ */
+export function chalChestOf(stage: number): { grades: ItemGrade[]; goldRuns: number } {
+  const grades: ItemGrade[] = stage >= 20 ? ['영웅', '영웅', '영웅'] : stage >= 15 ? ['영웅', '영웅'] : stage >= 10 ? ['영웅'] : stage >= 5 ? ['희귀'] : ['고급'];
+  return { grades, goldRuns: 1 + Math.floor(stage / 5) };
 }
 export function claimChalChest(save: SaveData, r: () => number, now: number): Gain | string {
   const stage = save.chalChest;
   if (!stage) return '받을 상자 없음';
   save.chalChest = 0;
   const c = chalChestOf(stage), lv = topLevel(save);
-  const items = c.grades.map((g, i) => {
-    const slot = SLOTS[Math.floor(r() * SLOTS.length)].key;
-    const grade: ItemGrade = i === 0 && lv >= LEGEND_LEVEL && r() < c.legend ? '전설' : g;
-    return makeItem(r, slot, grade, save.nextId++, undefined, { hero: save.hero });
-  });
+  const items = c.grades.map(g => makeItem(r, SLOTS[Math.floor(r() * SLOTS.length)].key, g, save.nextId++, undefined, { hero: save.hero }));
   return give(save, { gold: c.goldRuns * runGold(lv), items, pass: PASS_GAIN.challenge }, now);
 }
 
@@ -278,8 +276,6 @@ export function spendShard(save: SaveData): string {
   return '';
 }
 
-/** 일일 공개모집 보너스 판이면 장비 굴림 난이도를 한 단계 위로 (13 2-2) */
-export const bonusDiff = (d: DiffName): DiffName => ALL_DIFFS[Math.min(ALL_DIFFS.length - 1, ALL_DIFFS.indexOf(d) + 1)];
 
 /** 월정액 (15 5장): 30일 연장 + 크리스탈 300 바로 */
 export function grantMember(save: SaveData, now: number): void {
