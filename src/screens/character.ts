@@ -972,4 +972,68 @@ s.el.addEventListener('pointerup', e => {
   if (dragY != null && sheet && e.clientY - dragY > 60) closeSheet();
   dragY = null;
 });
+
+/**
+ * 인벤토리는 아이템·빈칸 위에서 끌어도 스크롤 (Lim 2026-10-11). 손가락·마우스 모두 직접 움직임 (.c7-bags는 touch-action: none).
+ * 위로 끌면 목록 아랫줄이 하단 메뉴에 가려 있는 동안은 바깥 화면(.ns-body)부터 (S25 360×780은 셋째 줄이 가려짐), 다 보이면 목록, 목록 끝이면 다시 바깥 화면.
+ * 아래로 끌면 목록 먼저, 목록 맨 위면 바깥 화면. 8px 넘게 끌었으면 누름(상세 열기)은 무시, 손가락은 놓은 뒤 조금 미끄러짐
+ */
+const INV_SLOP = 8;
+let inv: { id: number; y: number; t: number; v: number; moved: boolean; touch: boolean } | null = null;
+let invSwallow = false, invFling = 0;
+function scrollInv(dy: number): boolean {
+  const list = s.el.querySelector<HTMLElement>('.c7-bags'), body = s.el.querySelector<HTMLElement>('.ns-body');
+  if (!list) return false;
+  const a = list.scrollTop, b = body?.scrollTop ?? 0;
+  const by = (el: HTMLElement, d: number) => { const was = el.scrollTop; el.scrollTop = was + d; return el.scrollTop - was; };
+  let rest = dy;
+  if (body && rest > 0) {
+    const tabs = document.getElementById('tabs')?.getBoundingClientRect();
+    const hidden = list.getBoundingClientRect().bottom - Math.min(body.getBoundingClientRect().bottom, tabs && tabs.height ? tabs.top : Infinity);
+    if (hidden > 0.5) rest -= by(body, Math.min(rest, hidden));
+  }
+  rest -= by(list, rest);
+  if (body && Math.abs(rest) >= 1) by(body, rest);
+  return list.scrollTop !== a || (body?.scrollTop ?? 0) !== b;
+}
+function stopFling(): void { cancelAnimationFrame(invFling); invFling = 0; }
+s.el.addEventListener('pointerdown', e => {
+  stopFling(); invSwallow = false;
+  if (!(e.target as HTMLElement).closest('.c7-bags') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  inv = { id: e.pointerId, y: e.clientY, t: e.timeStamp, v: 0, moved: false, touch: e.pointerType !== 'mouse' };
+});
+s.el.addEventListener('pointermove', e => {
+  if (!inv || e.pointerId !== inv.id) return;
+  const dy = inv.y - e.clientY;
+  if (!inv.moved) {
+    if (Math.abs(dy) < INV_SLOP) return;
+    inv.moved = true;
+    (e.target as HTMLElement).closest<HTMLElement>('.c7-bags')?.setPointerCapture?.(e.pointerId);
+  }
+  const dt = Math.max(1, e.timeStamp - inv.t);
+  scrollInv(dy);
+  inv.v = 0.8 * (dy / dt) + 0.2 * inv.v;
+  inv.y = e.clientY; inv.t = e.timeStamp;
+});
+const endInv = (e: PointerEvent) => {
+  if (!inv || e.pointerId !== inv.id) return;
+  const { moved, touch } = inv;
+  let v = e.timeStamp - inv.t > 80 ? 0 : inv.v;
+  inv = null;
+  if (!moved) return;
+  invSwallow = true;
+  if (!touch || Math.abs(v) < 0.05 || G.save.settings.reducedEffects) return;
+  let last = performance.now();
+  const step = (now: number) => {
+    const dt = Math.min(32, now - last); last = now;
+    v *= Math.pow(0.95, dt / 16);
+    invFling = Math.abs(v) >= 0.02 && scrollInv(v * dt) ? requestAnimationFrame(step) : 0;
+  };
+  invFling = requestAnimationFrame(step);
+};
+s.el.addEventListener('pointerup', endInv);
+s.el.addEventListener('pointercancel', endInv);
+// 끈 뒤에 오는 누름은 상세를 열지 않음 (잡고 있던 칸 · 목록 어디서든)
+s.el.addEventListener('click', e => { if (invSwallow) { invSwallow = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+s.el.addEventListener('wheel', stopFling, { passive: true });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheet && !s.el.hidden) closeSheet(); });

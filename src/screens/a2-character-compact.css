@@ -65,6 +65,8 @@
   overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-gutter: stable;
   scroll-padding: 6px; border-radius: 6px;
   scrollbar-width: thin; scrollbar-color: #b7945c #101e2b;
+  /* 아이템·빈칸 위에서 끌어도 스크롤: 끌기는 character.ts가 직접 처리 (목록 → 끝나면 바깥 화면) */
+  touch-action: none; user-select: none; -webkit-user-select: none;
 }
 #s-char .c7-inventory .c7-bags::-webkit-scrollbar { width: 8px; }
 #s-char .c7-inventory .c7-bags::-webkit-scrollbar-thumb { background: #b7945c; border: 2px solid #101e2b; border-radius: 8px; }
