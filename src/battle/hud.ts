@@ -316,7 +316,12 @@ export function updateCastbar(): void {
   $('castbar').classList.toggle('is-armed', !casting && (!!B.armed || B.beacon));
   $('castbar').classList.toggle('is-gcd', !casting && p > 0);
   setBar($('castFill'), p);
+  // 전투 메시지가 시전 막대 자리를 덮는 동안 보일 얇은 진행 선 · 남은 초
+  const note = $('toast'), cast = p.toFixed(3);
+  if (cast !== noteCast) { noteCast = cast; note.style.setProperty('--cast', cast); }
+  if (note.dataset.left !== left) note.dataset.left = left;
 }
+let noteCast = '';
 
 // ---------- 파티원 공격 숫자 (2026-10-07 Lim: 합치지 않고 한 방씩) ----------
 // 한 방씩 유지하되 동시 표시를 서로 겹치지 않는 세 줄로 제한한다.
@@ -556,21 +561,52 @@ export function placeTip(el: HTMLElement): void {
 }
 
 // ---------- 길게 누르기: 파티원 정보 ----------
+// 2026-10-11 Lim 「파티원을 꾹 누르면 상세창이 손가락에 가려진다」: 손가락(손)은 아래에서 오니 상세창은 늘 누른 칸 위쪽에.
+// 판 위 공간이 모자라면 보스 무대 위까지 덮고, 그래도 모자라면 설명 문장을 접어 (.brief) 이름 · 체력 · 상태만 남김. 꼬리가 누른 칸을 가리킴.
+// 손을 떼도 PREVIEW_KEEP 동안 남아 손가락 없이 읽을 수 있음. 다음 터치에 닫히고 그 터치는 평소대로 (index.ts). 떠 있는 동안 체력 · 남은 초는 실시간
+const PREVIEW_KEEP = 5000, PREVIEW_GAP = 10;
+/** uid = 보고 있는 파티원 · until = 손을 뗀 뒤 닫을 때 (누르는 중이면 0) · at = 마지막으로 다시 그린 때 */
+const pv = { uid: -1, until: 0, at: 0 };
 export function showPreview(idx: number): void {
-  const F = fight(), u = F.cells[idx].unit!;
+  const u = fight().cells[idx].unit;
+  if (!u) return;
+  pv.uid = u.id; pv.until = 0; pv.at = performance.now();
+  drawPreview(u);
+  $('preview').hidden = false;
+  placePreview(u);
+  vibe(10);
+}
+/** 손을 뗐을 때: 잠깐 더 남김 */
+export function keepPreview(): void { if (pv.uid >= 0) pv.until = performance.now() + PREVIEW_KEEP; }
+export function hidePreview(): void { pv.uid = -1; pv.until = 0; $('preview').hidden = true; }
+/** 손을 뗀 뒤 떠 있는 상세창 (다음 터치에 닫음) */
+export const previewKept = (): boolean => pv.uid >= 0 && pv.until > 0;
+/** 매 프레임: 0.25초마다 내용 · 자리를 새로, 시간이 지나면 닫음 */
+export function updatePreview(now: number): void {
+  if (pv.uid < 0) return;
+  const u = B.F?.party.find(x => x.id === pv.uid);
+  if (!u || (pv.until && now >= pv.until)) { hidePreview(); return; }
+  if (now - pv.at < 250) return;
+  pv.at = now;
+  drawPreview(u);
+  placePreview(u);
+}
+function drawPreview(u: Unit): void {
+  const F = fight();
   const lines: string[] = [];
   const cls = u.cls ? CLASSES[u.cls] : null;
-  lines.push(`<b>${u.nick}</b> · ${cls ? `${cls.name} · ` : ''}${ROLE[u.role].name}${u.me ? ` (${HEROES[F.hero].name})` : ''}`);
-  if (cls) lines.push(`<div class="cpas"><b>${cls.passive}</b> ${cls.passiveDesc}</div>`);
+  // 첫 줄 = 이름 · 직업 · 역할 + 오른쪽 체력 (줄 하나를 아낌)
+  lines.push(`<div class="ph"><span class="pnm"><b>${u.nick}</b> · ${cls ? `${cls.name} · ` : ''}${ROLE[u.role].name}${u.me ? ` (${HEROES[F.hero].name})` : ''}</span><span class="php">${u.alive ? `체력 ${Math.ceil(u.hp)} / ${Math.round(u.max)}` : '쓰러짐'}</span></div>`);
+  if (u.max < u.base) lines.push(`<div class="pmax">최대 체력 -${Math.round((1 - u.max / u.base) * 100)}%</div>`);
+  if (cls) lines.push(`<div class="cpas"><b>${cls.passive}</b><span class="d"> ${cls.passiveDesc}</span></div>`);
   if (u.ab) {
     const ab = ABILITIES[u.ab.key];
     const left = ab.cd > 0 ? Math.max(0, u.ab.ready - F.t) : 0;
     const state = ab.cd === 0 && !ab.each ? '상시' : ab.cd < 0 ? (u.ab.uses ? '사용함' : '1회 준비') : left > 0.05 ? `${Math.ceil(left)}초 뒤` : '준비';
-    lines.push(`<div class="cpas ab"><b>${AB_KIND[ab.kind].icon} ${ab.name}${u.ab.star ? ` ${'★'.repeat(u.ab.star)}` : ''}</b> ${ab.desc} <small>(${state})</small></div>`);
+    lines.push(`<div class="cpas ab"><b>${AB_KIND[ab.kind].icon} ${ab.name}${u.ab.star ? ` ${'★'.repeat(u.ab.star)}` : ''}</b><span class="d"> ${ab.desc}</span> <small>(${state})</small></div>`);
   }
-  for (const k of u.traits) lines.push(`<div class="cpas trait"><b>${TRAITS[k].name}</b> ${TRAITS[k].desc}</div>`);
-  if (u.p.ch && u.p.cat) lines.push(`<div class="pers"><i style="background:${CATS[u.p.cat]}">${u.p.ch}</i>${u.pers}: ${u.p.desc}</div>`);
-  lines.push(`<div>체력 ${Math.ceil(u.hp)} / ${Math.round(u.max)}${u.max < u.base ? ` (최대 체력 -${Math.round((1 - u.max / u.base) * 100)}%)` : ''}</div>`);
+  for (const k of u.traits) lines.push(`<div class="cpas trait"><b>${TRAITS[k].name}</b><span class="d"> ${TRAITS[k].desc}</span></div>`);
+  if (u.p.ch && u.p.cat) lines.push(`<div class="pers"><i style="background:${CATS[u.p.cat]}">${u.p.ch}</i><span>${u.pers}<span class="d">: ${u.p.desc}</span></span></div>`);
   const items: string[] = [];
   const hero = HEROES[F.hero];
   for (const d of u.debuffs) items.push(`${d.name} (${d.type}${d.stack ? ` ${d.stack}중첩` : ''}, ${Math.ceil(d.left)}초)${!canDispel(F.hero, d.type) ? ` · ${hero.name} 해제 불가` : d.trap ? ' · 해제하면 옆 칸으로 퍼짐' : ` · ${dispelName(F)} 해제`}`);
@@ -589,12 +625,23 @@ export function showPreview(idx: number): void {
   if (u.bulwark > 0) items.push(`${TRAITS.bulwark.name} ${Math.ceil(u.bulwark)}초 (받는 피해 -50%)`);
   for (const g of F.glass) { const g0 = g.rec.get(u.id); if (g0 != null && u.alive) items.push(`${g.name} ${Math.ceil(g.until - F.t)}초 뒤 체력 ${Math.round(g0 * 100)}%로 돌아감 (금빛 선)`); } // 모래시계 (54 5장)
   if (F.melt && F.t < F.melt.until && u.alive) items.push(`${F.melt.name} ${Math.ceil(F.melt.until - F.t)}초: 보호막 · 외부 생존기가 빨리 녹음`); // 녹는 보호막 (51 5장)
-  if (!u.alive) items.push('쓰러짐');
   if (items.length) lines.push(`<ul>${items.map(x => `<li>${x}</li>`).join('')}</ul>`);
-  $('preview').innerHTML = lines.join('');
-  $('preview').classList.toggle('low', center(idx).y < L.H / 2);
-  $('preview').hidden = false;
-  vibe(10);
+  const html = lines.join('');
+  if ($('preview').innerHTML !== html) $('preview').innerHTML = html;
+}
+/** 누른 칸 위쪽에 붙임 (#battle 기준). 위 공간이 모자라면 .brief, 그래도 모자라면 위 끝에 붙이고 칸을 조금 덮음 */
+function placePreview(u: Unit): void {
+  const el = $('preview'), bat = $('battle').getBoundingClientRect(), cv = $('board').getBoundingClientRect();
+  const c = u.cell >= 0 ? center(u.cell) : { x: L.W / 2, y: L.H / 2 };
+  const cx = cv.left - bat.left + c.x, cellTop = cv.top - bat.top + c.y - L.s * 0.93;
+  const room = cellTop - PREVIEW_GAP - 4;
+  el.classList.remove('brief');
+  if (el.offsetHeight > room) el.classList.add('brief');
+  const top = Math.max(4, cellTop - PREVIEW_GAP - el.offsetHeight);
+  el.style.top = `${Math.round(top)}px`;
+  const left = el.offsetLeft;
+  el.style.setProperty('--ax', `${Math.round(Math.max(16, Math.min(el.offsetWidth - 16, cx - left)))}px`);
+  el.classList.toggle('noarrow', top + el.offsetHeight > cellTop); // 칸을 덮을 만큼 길면 꼬리 없음
 }
 
 // ---------- 튜토리얼 안내 (02 11장, 09 4장): 전투를 잠깐 멈추고 할 일 하나를 짚어 줌 ----------

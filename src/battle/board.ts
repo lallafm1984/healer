@@ -590,6 +590,47 @@ function transientSpot(box: PillBox, occupied: readonly PillBox[], near?: (x: nu
   consider(L.left, origin.y); consider(L.right, origin.y); consider(origin.x, L.top); consider(origin.x, L.bottom);
   return best;
 }
+/** 겹친 넓이 ÷ b 넓이 (0~1) */
+function coverOf(a: PillBox, b: PillBox): number {
+  const ox = Math.min(a.x + a.w / 2, b.x + b.w / 2) - Math.max(a.x - a.w / 2, b.x - b.w / 2);
+  const oy = Math.min(a.y + a.h / 2, b.y + b.h / 2) - Math.max(a.y - a.h / 2, b.y - b.h / 2);
+  return ox > 0 && oy > 0 ? (ox * oy) / Math.max(1, b.w * b.h) : 0;
+}
+/** 말풍선이 덜 가리길 바라는 표시 (가려도 되지만 점수를 깎음): 배지 · 지속 힐 원 · 직업 아이콘 · 어그로 표식 */
+const BUBBLE_SOFT: Record<string, number> = { debuff: 3, pill: 2, hot: 2, role: 1, aggro: 1 };
+/** 말풍선 자리 순서: 위기 → 기믹·신호 → 반응 · 쓰러진 사람 채팅 */
+const BUBBLE_RANK: Record<BubbleKind, number> = { alert: 0, call: 1, talk: 2, chat: 2 };
+/** 잡담 · 채팅 말풍선이 다른 말풍선이 비켜 주길 기다리는 시간 (ms). 넘으면 버림 */
+const BUBBLE_WAIT = 1200;
+/**
+ * 말풍선 자리 (2026-10-11 Lim 「말풍선 위치가 올바르지 못하다」): 꼬리 끝이 말한 사람 칸의 위 또는 아래 꼭짓점에 닿는 자리만 고른다.
+ * 몸통(w × h)은 꼬리가 안에 남는 만큼 좌우로 비킬 수 있음. 이름 · 체력 · 다른 일시 연출(hard)은 절대 안 가리고, 배지 · 아이콘(soft)은 덜 가리는 쪽.
+ * 예전엔 판 전체에서 가장 가까운 빈 곳을 찾아 20인에서 20명 중 12~14명의 말풍선이 다른 사람 칸에 더 가깝게 떴다.
+ * 돌려주는 x · y = 몸통 가운데, foot = 몸통 · 선(pad) · 말한 사람 쪽 꼬리까지 차지하는 상자. 붙일 자리가 없으면 null
+ */
+function bubbleSpot(p: { x: number; y: number }, r: number, w: number, h: number, pad: number, tail: number,
+  hard: readonly PillBox[], soft: readonly DecorationBound[], others: readonly { x: number; y: number }[]): { x: number; y: number; foot: PillBox } | null {
+  const fw = w + 2 * pad, fh = h + 2 * pad + tail;
+  if (fw > L.right - L.left) return null;
+  const reach = Math.max(0, w / 2 - 11); // 꼬리(몸통 끝에서 11px 안)가 말한 사람 x에 오는 만큼만 비킴
+  let best: { x: number; y: number; foot: PillBox } | null = null, score = Infinity;
+  for (const below of [false, true]) {
+    const y = below ? p.y + r + tail + 1 + h / 2 : p.y - r - tail - 1 - h / 2;
+    const fy = y + (below ? -tail / 2 : tail / 2);
+    if (fy - fh / 2 < L.top - 0.01 || fy + fh / 2 > L.bottom + 0.01) continue; // 판 밖이면 꼬리가 칸에 안 닿음
+    for (const k of [0, -0.25, 0.25, -0.5, 0.5, -0.75, 0.75, -1, 1]) {
+      const x = clamp(p.x + k * reach, L.left + fw / 2, L.right - fw / 2);
+      if (Math.abs(x - p.x) > reach + 0.01) continue;
+      const foot = { x, y: fy, w: fw, h: fh };
+      if (hard.some(o => coverOf(foot, o) > 0)) continue;
+      // 몸통 가운데가 다른 파티원 칸에 더 가까우면 그 사람 말로 읽히기 쉬움 → 덜 비키는 쪽
+      const d = (x - p.x) ** 2 + (y - p.y) ** 2, stray = others.some(o => (x - o.x) ** 2 + (y - o.y) ** 2 < d) ? 1 : 0;
+      const sc = soft.reduce((t, o) => t + (BUBBLE_SOFT[o.kind] ?? 0) * coverOf(foot, o), 0) + stray + (Math.abs(x - p.x) / Math.max(1, reach)) * 0.2 + (below ? 0.15 : 0);
+      if (sc < score) { score = sc; best = { x, y, foot }; }
+    }
+  }
+  return best;
+}
 function pill(g: Graphics, lb: Labels, key: string, x: number, y: number, text: string, bg: number, fg: number, fs: number, alpha = 1): PillBox {
   const kind = key.startsWith('deb') ? 'debuff' : key === 'swipe' ? 'swipe' : 'pill';
   const content = fitPartyName(text, Math.max(1, L.right - L.left - fs * 0.7 - 1.5), value => measure(value, fs));
@@ -666,7 +707,11 @@ interface Float { x: number; y: number; text: string; crit: boolean; over: boole
 /** 말풍선 종류 (41·43 문서): talk 반응·잡담 · call 기믹·신호 (금테) · alert 위기 (붉은 테, 흔들림) · chat 쓰러진 사람의 파티 채팅 (회색) */
 export type BubbleKind = 'talk' | 'call' | 'alert' | 'chat';
 /** emote = 왼쪽 감정 아이콘 emote-<이름> (43 4장 B) · cheer = 승리 한마디 (fx-talk-cheer) */
-interface Bubble { id: number; text: string; t0: number; life: number; kind: BubbleKind; emote?: string | null; cheer?: boolean }
+/** t0 = 보이기 시작한 때 (자리를 기다리는 동안 미뤄짐) · added = 들어온 때 · shown = 한 번이라도 판에 떴음 */
+interface Bubble { id: number; text: string; t0: number; added: number; life: number; kind: BubbleKind; emote?: string | null; cheer?: boolean; shown?: boolean }
+/** 판에 붙일 자리가 없는 기믹·위기 말풍선을 받는 곳 (index.ts: 시전 막대 전투 메시지) */
+let onBubbleRelay: ((u: Unit, text: string) => void) | null = null;
+export function setBubbleRelay(fn: (u: Unit, text: string) => void): void { onBubbleRelay = fn; }
 const BUBBLE: Record<BubbleKind, { fill: number; fillA: number; line: number; lw: number }> = {
   talk: { fill: C.ink, fillA: 1, line: C.line, lw: 2 },
   call: { fill: C.ink, fillA: 1, line: C.gold, lw: 2.5 },
@@ -985,7 +1030,7 @@ export function fxDeath(u: Unit, now: number): void {
 /** 말풍선. life = 보이는 시간 (ms, 긴 대사는 조금 더 오래, battle/talk.ts) · kind = 테두리 종류 · look = 감정 아이콘 · 승리 이펙트 (43 4장) */
 export function addBubble(id: number, text: string, now: number, life = 1700, kind: BubbleKind = 'talk', look: { emote?: string | null; cheer?: boolean } = {}): void {
   B2.bubbles = B2.bubbles.filter(b => b.id !== id);
-  B2.bubbles.push({ id, text, t0: now, life, kind, emote: look.emote, cheer: look.cheer });
+  B2.bubbles.push({ id, text, t0: now, added: now, life, kind, emote: look.emote, cheer: look.cheer });
   if (look.emote) artTexture(`emote-${look.emote}`); // 감정 아이콘을 바로 읽기 시작
   if (B2.bubbles.length > 3) B2.bubbles.shift();
 }
@@ -1823,28 +1868,39 @@ export function render(now: number): void {
   // 말풍선 (동시에 최대 3개, 04 10장). 그림 (43 5장): 틀 9조각 ui-bubble-<종류> · 꼬리 ui-bubble-tail-<종류> · 왼쪽 감정 아이콘 · 이펙트 띠.
   // 그림이 없으면 앱이 그린 둥근 네모 + 꼬리
   B2.bubbles = B2.bubbles.filter(b => now - b.t0 < b.life);
-  for (const b of B2.bubbles) {
+  // 기믹·위기 말풍선이 먼저 자리를 잡음 (같은 종류는 먼저 뜬 순서)
+  for (const b of [...B2.bubbles].sort((x, y) => BUBBLE_RANK[x.kind] - BUBBLE_RANK[y.kind] || x.added - y.added)) {
     const u = F.party.find(x => x.id === b.id); if (!u) continue;
     const p = unitPos(u);
     // 감정 아이콘 자리는 그림 파일이 있으면 처음부터 잡아 둠 (읽는 동안 너비가 바뀌지 않게)
     const emote = b.emote ? `emote-${b.emote}` : '', iw = emote && art(emote) ? EMOTE_W : 0;
     const text = fitPartyName(b.text, Math.max(1, L.right - L.left - 16 - iw), value => measure(value, 12, FONT, '500'));
-    const age = now - b.t0, st = BUBBLE[b.kind];
-    const a = S.reducedEffects ? 1 : Math.max(0, Math.min(1, (b.life - age) / 300));
-    const label = tops.put(`bb${b.id}`, text, { size: 12, fill: C.dark, weight: '500' }, 0, 0, a);
-    const textBounds = label.getBounds();
+    const st = BUBBLE[b.kind];
+    // 꼬리 끝이 말한 사람 칸 꼭짓점에 닿는 자리만 (bubbleSpot). 몸체 · 꼬리 · 선 · 위기 흔들림 폭까지 이름 · 체력 · 다른 연출을 피함
+    const tail = 5, strokePad = st.lw, shakeRange = b.kind === 'alert' && !S.reducedEffects && now - b.t0 < 300 ? 1.5 : 0;
+    const label = tops.put(`bb${b.id}`, text, { size: 12, fill: C.dark, weight: '500' }, 0, 0, 0);
     const w = Math.max(measure(text, 12, FONT, '500'), label.width) + 14 + iw, h = Math.max(22, label.height + 3);
-    let by = p.y - r - h - 6;
-    if (by < L.top + 1) by = p.y + r + 6;
-    // 몸체뿐 아니라 꼬리·stroke와 위기 흔들림의 전체 이동 폭을 먼저 확보한다.
-    // 꼬리는 회피로 옮겨진 최종 위치에서 화자 쪽을 향하므로 위·아래 양쪽 여유를 둔다.
-    const tail = 5, strokePad = st.lw, shakeRange = b.kind === 'alert' && !S.reducedEffects && age < 300 ? 1.5 : 0;
-    const bp = transientSpot({ x: p.x, y: by + h / 2,
-      w: w + 2 * (strokePad + shakeRange), h: h + 2 * (tail + strokePad) }, transientOccupied);
-    if (!bp) { label.visible = false; continue; }
+    const bp = bubbleSpot(p, r, w, h, strokePad + shakeRange, tail,
+      transientOccupied.filter(o => !(o as DecorationBound).kind || (o as DecorationBound).kind === 'hp' || (o as DecorationBound).kind === 'nick'),
+      transientOccupied.filter((o): o is DecorationBound => !!(o as DecorationBound).kind && (o as DecorationBound).kind in BUBBLE_SOFT),
+      F.party.filter(o => o !== u && o.alive).map(unitPos));
+    if (!bp) {
+      label.visible = false;
+      if (b.shown) continue; // 떠 있던 말풍선은 이 프레임만 쉼 (사람이 움직이는 중)
+      // 아직 못 뜬 말풍선: 기믹·위기는 바로 전투 메시지로 「닉네임: 대사」. 잡담 · 채팅은 잠깐 기다렸다가 자리가 안 나면 버림 (메시지 줄을 채우지 않게)
+      const urgent = b.kind === 'call' || b.kind === 'alert';
+      if (!urgent && now - b.added < BUBBLE_WAIT) { b.t0 = now; continue; } // 다른 말풍선이 비켜 주길 기다림 (보이는 시간은 뜰 때부터)
+      if (urgent) onBubbleRelay?.(u, b.text);
+      B2.bubbles = B2.bubbles.filter(x => x !== b);
+      continue;
+    }
+    b.shown = true;
+    const age = now - b.t0, a = S.reducedEffects ? 1 : Math.max(0, Math.min(1, (b.life - age) / 300));
+    label.alpha = a;
+    const textBounds = label.getBounds();
     const shake = shakeRange ? Math.sin(age / 25) * shakeRange : 0;
     const bx = bp.x - w / 2 + shake;
-    by = bp.y - h / 2;
+    const by = bp.y - h / 2;
     const frame = artTexture(`ui-bubble-${b.kind}`), box = artBoxes.get(`ui-bubble-${b.kind}`);
     const k = frame && box ? bubbleFrame(frame, box, bx, by, w, h, a) : 0;
     if (!k) topG.roundRect(bx, by, w, h, 8).fill({ color: st.fill, alpha: a * st.fillA }).stroke({ width: st.lw, color: st.line, alpha: a });
@@ -1865,7 +1921,7 @@ export function render(now: number): void {
     label.position.set(bp.x + shake + iw / 2 - (textBounds.minX + textBounds.maxX) / 2, bp.y + 0.5 - (textBounds.minY + textBounds.maxY) / 2);
     recordBound(`bubble-text${b.id}`, 'bubble', 'text', bp.x + shake + iw / 2, bp.y + 0.5, textBounds.maxX - textBounds.minX, textBounds.maxY - textBounds.minY);
     recordBound(`bubble${b.id}`, 'bubble', 'rect', bp.x + shake, bp.y + td / 2, w + 2 * strokePad, h + tail + 2 * strokePad);
-    transientOccupied.push(bp);
+    transientOccupied.push(bp.foot);
     // 이펙트 띠 (43 4장 C, 효과 줄이기면 안 씀): 뜰 때 퐁 (가운데, 글자 아래) · 위기 둘레 흔들림 (가운데 빈 곳 = 말풍선) · 승리 한마디 꽃가루 (틀 뒤)
     if (!S.reducedEffects) {
       talkFx(bubbleFront, 'pop', age, bp.x + shake, bp.y, h * 2, h * 2, `bubble-pop${b.id}`, a);

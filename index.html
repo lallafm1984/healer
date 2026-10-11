@@ -51,13 +51,12 @@
     </header>
     <div id="boardWrap">
       <canvas id="board" aria-label="파티 체력과 진형. 칸을 탭해 치유하고 길게 눌러 파티원 정보 확인"></canvas>
-      <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
       <div id="banner"></div>
-      <div id="preview" hidden></div>
       <div id="pull" hidden><b id="pullNum">3</b></div>
     </div>
     <!-- 시전 중 생성한 황동 틀 안에 진행률·기술·대상·남은 초 표시. 일반 44px / 축소 26px 공간은 항상 예약. -->
-    <div id="castbar"><div id="castTrack"><div id="castFill"></div><span id="castLabel">칸을 탭하면 치유</span><span id="castTime"></span></div></div>
+    <!-- 전투 메시지 (#toast)도 이 자리 안에: 판 위 파티원을 가리지 않게 (2026-10-11 Lim). 시전 중이면 막대는 메시지 아래 얇은 선 + 남은 초 -->
+    <div id="castbar"><div id="castTrack"><div id="castFill"></div><span id="castLabel">칸을 탭하면 치유</span><span id="castTime"></span></div><div id="toast" role="status" aria-live="polite" aria-atomic="true"></div></div>
     <div id="controlsFrame"><footer id="controls">
       <div id="wheel" aria-label="치유 스킬 휠"></div>
       <div id="side">
@@ -69,6 +68,8 @@
       </div>
     </footer></div>
     <div id="tip" role="status" hidden></div>
+    <!-- 파티원 길게 누르기 정보: 누른 칸 위쪽 (판 밖 보스 무대까지 덮을 수 있게 #battle 바로 아래) -->
+    <div id="preview" hidden></div>
     <div id="pause" class="overlay" role="dialog" aria-modal="true" aria-labelledby="pauseHeading" hidden>
       <div class="card">
         <div class="phead"><h3 id="pauseHeading">일시정지</h3><span id="pauseSub"></span></div>

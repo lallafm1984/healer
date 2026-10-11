@@ -194,7 +194,6 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 .overlay { background: rgba(8, 6, 5, 0.8); }
 .tt-name b { font-family: var(--font-display); }
 .tt-desc { color: var(--gold-hi); }
-.toast { border-color: var(--frame); border-radius: 4px; background: rgba(13, 11, 9, 0.92); }
 
 /* ---------- 전투 ---------- */
 #battle { background: var(--bg); }
@@ -250,6 +249,6 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 #battle #giveUp { border: 2px solid #E5433D; border-radius: 6px; background: linear-gradient(#4A1C1C, #2E1010); font-family: var(--font-display); color: #FFD9D4; }
 #battle #pause .card { border-color: var(--frame); border-radius: 6px; background: var(--gold-pnl); }
 #battle #preview, #battle #coach, #tip { border-color: var(--frame); border-radius: 4px; background: rgba(13, 11, 9, 0.97); }
-#tip::after { background: #0D0B09; border-color: var(--frame); }
+#tip::after, #battle #preview::after { background: #0D0B09; border-color: var(--frame); }
 #banner, #pullNum { font-family: var(--font-display); color: var(--gold-hi); }
 #restFill { background: var(--bar-mana); }

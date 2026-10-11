@@ -98,8 +98,6 @@
 #battle #pause .phead { flex-wrap: wrap; }
 #battle #pauseSub { white-space: normal; line-height: 1.4; }
 #battle #preview, #battle #coach { border-color: #b49a66; background: rgba(33, 26, 18, .97); }
-#battle #toast { bottom: 6px; }
-#battle .toast { border-color: #7b6b4d; padding: 6px 12px; font-size: 12px; line-height: 1.35; }
 #battle.compact #stage { grid-template-columns: 68px minmax(0, 1fr); }
 #battle.compact #bossArt { width: 68px; min-height: 68px; max-height: 100px; }
 #battle.compact #dmgNums { width: 68px; height: 76px; }

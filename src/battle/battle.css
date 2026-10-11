@@ -138,18 +138,26 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 #board { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #battle.aoe #boardWrap::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 40px 14px rgba(255, 74, 61, 0.55); animation: vign 0.6s ease-in-out infinite alternate; }
 @keyframes vign { from { opacity: 0.45; } to { opacity: 1; } }
-#toast { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 4px; align-items: center; pointer-events: none; width: calc(100% - 32px); }
-.toast { background: rgba(15, 12, 10, 0.88); border: 1.5px solid var(--gold); color: var(--ink); font-size: 13px; padding: 5px 10px; border-radius: 999px; text-align: center; animation: fade 2.2s forwards; }
 @keyframes fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
 #banner { position: absolute; left: 0; right: 0; top: 42%; text-align: center; font-family: var(--font-display); font-size: 22px; color: var(--gold-hi); text-shadow: 0 2px 0 var(--line), 0 0 18px rgba(0, 0, 0, 0.8); pointer-events: none; opacity: 0; padding: 0 16px; }
 #banner.show { animation: fade 2.6s forwards; }
-#preview.low { top: auto; bottom: 10px; }
-#preview { position: absolute; left: 12px; right: 12px; top: 10px; background: rgba(26, 21, 16, 0.96); border: 2px solid var(--gold); border-radius: 14px; padding: 10px 12px; font-size: 13px; line-height: 1.45; pointer-events: none; }
-#preview b { font-family: var(--font-display); font-weight: 400; font-size: 18px; }
-#preview .pers { display: inline-flex; gap: 6px; align-items: center; margin: 2px 0; }
+/* 파티원 길게 누르기 정보 (2026-10-11 Lim 「손가락에 가려진다」): 누른 칸 위쪽에 (hud.ts placePreview가 top · 꼬리 --ax), 보스 무대 위까지 덮을 수 있음 */
+#preview { position: absolute; z-index: 5; left: 8px; right: 8px; top: 0; box-sizing: border-box; background: rgba(26, 21, 16, 0.96); border: 2px solid var(--gold); border-radius: 14px; padding: 8px 11px 9px; font-size: 13px; line-height: 1.38; pointer-events: none; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55); word-break: keep-all; overflow-wrap: anywhere; }
+#preview::after { content: ""; position: absolute; left: var(--ax, 50%); bottom: -7px; width: 10px; height: 10px; background: rgb(26, 21, 16); border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: translateX(-50%) rotate(45deg); }
+#preview.noarrow::after { display: none; }
+#preview .ph { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+#preview .ph .pnm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#preview .ph b { font-family: var(--font-display); font-weight: 400; font-size: 17px; }
+#preview .php { flex: none; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+#preview .pmax { font-size: 12px; color: #ffb3a1; }
+/* 위 공간이 모자랄 때: 설명 문장을 접고 패시브 · 능력 · 성격 이름만 한 줄에 이어서 */
+#preview.brief .d { display: none; }
+#preview.brief .cpas, #preview.brief .pers { display: inline-flex; align-items: center; gap: 4px; margin: 2px 10px 0 0; }
+#preview .pers { display: flex; gap: 6px; align-items: flex-start; margin: 2px 0; }
+#preview .pers i { flex: none; margin-top: 1px; }
 #preview .cpas b { font-family: var(--font-body); font-weight: 700; font-size: 13px; color: var(--gold-hi); margin-right: 4px; }
 #preview .pers i { font-style: normal; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: #17130F; font-size: 11px; font-weight: 700; border: 1.5px solid var(--line); }
-#preview ul { margin: 4px 0 0; padding-left: 16px; }
+#preview ul { margin: 3px 0 0; padding-left: 16px; }
 
 #castbar { flex: 0 0 26px; display: flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 12px; color: var(--mute); border-top: 2px solid var(--line); background: #1D1710; }
 #castTrack { position: relative; flex: 1; height: 10px; border-radius: 5px; background: #120E0B; border: 1.5px solid var(--line); overflow: hidden; }
