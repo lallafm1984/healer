@@ -413,35 +413,34 @@ async function skillCircleStates(page, ok, shots) {
 
 async function noticeCases(page, ok) {
   // 기존 msg 사건만 주입한다. 알림 DOM/수명은 실제 handleEvents → toast 경로가 만든다.
-  // 최신 main은 파티 요약 줄을 제거하고 boardWrap 위의 비차단 알림을 유지한다.
-  // 자연 전투 사건이 수명 검사를 대체하지 않도록 만료 구간만 기존 일시정지 UI를 사용한다.
+  // 2026-10-11 Lim 「너무 빨리 없어지고 20인에서 파티원을 가린다」: 전투 메시지는 판 위가 아니라 시전 막대 자리 안 (#castbar > #toast),
+  // 한 번에 하나씩 차례로 (뒤에 기다리면 1.4초, 마지막은 3.6초 + 긴 글 조금 더, 최대 7초). 자연 사건이 끼지 않게 확인은 일시정지 중에.
   const originalMode = await mode(page);
   const noticeGeometry = () => page.evaluate(() => {
     const box = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; };
-    const visible = el => !!el && !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden'
+    const visible = el => !!el && !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden' && getComputedStyle(el).display !== 'none'
       && Number(getComputedStyle(el).opacity) > 0;
-    const host = document.querySelector('#toast'), board = document.querySelector('#board');
+    const host = document.querySelector('#toast'), cast = document.querySelector('#castbar');
     return {
       width: innerWidth, height: innerHeight, compact: document.querySelector('#controls').classList.contains('compact-controls'),
-      board: box(board), cast: box(document.querySelector('#castbar')), frame: box(document.querySelector('#controlsFrame')),
+      board: box(document.querySelector('#board')), cast: box(cast), frame: box(document.querySelector('#controlsFrame')), hasMsg: cast.classList.contains('has-msg'),
       summaryNodes: document.querySelectorAll('#partyStatus,#partyAlive,#partyCondition,.board-instruction').length,
       host: { ...box(host), parent: host.parentElement.id, live: host.getAttribute('aria-live'),
         atomic: host.getAttribute('aria-atomic'), role: host.getAttribute('role'), pointerEvents: getComputedStyle(host).pointerEvents },
       notices: [...host.children].map(el => {
-        const rect = box(el), point = { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 };
-        return { ...rect, text: el.textContent, title: el.title, visible: visible(el),
-          font: parseFloat(getComputedStyle(el).fontSize), pointerEvents: getComputedStyle(el).pointerEvents,
-          point, boardReceivesPoint: document.elementFromPoint(point.x, point.y) === board };
+        const span = el.firstElementChild;
+        return { ...box(el), text: el.textContent, title: el.title, visible: visible(el), font: parseFloat(getComputedStyle(el).fontSize),
+          clipped: !!span && span.scrollHeight > span.clientHeight + 1 };
       }),
     };
   });
   const nearBox = (a, b) => ['x', 'y', 'w', 'h'].every(k => Math.abs(a[k] - b[k]) <= .1);
-  const inside = (r, bounds) => r.x >= bounds.x - .1 && r.right <= bounds.right + .1
-    && r.y >= bounds.y - .1 && r.bottom <= bounds.bottom + .1;
+  const inside = (r, bounds) => r.x >= bounds.x - .1 && r.right <= bounds.right + .1 && r.y >= bounds.y - .1 && r.bottom <= bounds.bottom + .1;
+  const shownText = g => g.notices.filter(n => n.visible).map(n => n.text);
   for (const compact of [false, true]) {
     if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
     await page.click('#pauseBtn');
-    await page.clock.runFor(2301);
+    await page.clock.runFor(7100); // 앞서 뜬 메시지가 모두 지나감
     const before = await noticeGeometry();
     await page.click('#resumeBtn');
     const fullText = '어둠의 집행자: 탱커에게 12345 피해 · 강력한 연속 공격에 대비하여 체력을 회복하세요';
@@ -450,38 +449,30 @@ async function noticeCases(page, ok) {
       window.__proto.F.events.push({ type: 'msg', text: '첫 번째 알림' }, { type: 'msg', text: '두 번째 알림' }, { type: 'msg', text });
     }, fullText);
     await page.waitForFunction(text => window.__proto.F === window.__noticeFight
-      && document.querySelector('#toast .toast:last-child')?.textContent === text,
-    fullText, { polling: 'raf', timeout: 8000 });
-    const shown = await noticeGeometry(), notices = shown.notices;
-    const stable = ['board', 'cast', 'frame'].every(key => nearBox(before[key], shown[key]));
-    ok(before.notices.length === 0 && shown.summaryNodes === 0 && stable
-      && shown.host.parent === 'boardWrap' && shown.host.live === 'polite' && shown.host.atomic === 'true' && shown.host.role === 'status'
-      && shown.host.pointerEvents === 'none' && notices.length === 2
-      && notices[0].text === '두 번째 알림' && notices[1].text === fullText
-      && notices.every(n => n.visible && n.title === n.text && n.font >= 12 && n.font <= 13
-        && n.pointerEvents === 'none' && n.boardReceivesPoint && inside(n, shown.board)
-        && inside(n, { x: 0, y: 70, right: shown.width, bottom: shown.height }))
-      && notices[0].bottom <= notices[1].y + .1,
-    `${shown.width}: ${compact ? '축소' : '일반'} 최신 알림 2개·전체 문구/접근성 유지·판/화면 안 비차단 겹침·배치 고정`, { before, shown });
-
-    // 알림 중앙의 실제 touch가 가려진 canvas까지 전달되는지 확인한다.
-    await page.evaluate(() => {
-      const board = document.querySelector('#board');
-      window.__noticeBoardInput = { down: 0, up: 0 };
-      board.addEventListener('pointerdown', () => { window.__noticeBoardInput.down++; }, { capture: true, once: true });
-      board.addEventListener('pointerup', () => { window.__noticeBoardInput.up++; }, { capture: true, once: true });
-    });
-    const point = notices.at(-1).point;
-    await page.touchscreen.tap(point.x, point.y); await page.clock.runFor(40);
-    const input = await page.evaluate(() => window.__noticeBoardInput);
-    ok(input.down === 1 && input.up === 1,
-      `${shown.width}: ${compact ? '축소' : '일반'} 알림 중앙 touch는 전투판에 down/up 각 1회 전달`, input);
+      && document.querySelector('#toast .toast:last-child')?.textContent === text, fullText, { polling: 'raf', timeout: 8000 });
     await page.click('#pauseBtn');
-    await page.clock.runFor(2301);
+    const first = await noticeGeometry();
+    const stable = ['board', 'cast', 'frame'].every(key => nearBox(before[key], first[key]));
+    ok(before.notices.length === 0 && !before.hasMsg && first.hasMsg && first.summaryNodes === 0 && stable
+      && first.host.parent === 'castbar' && first.host.live === 'polite' && first.host.atomic === 'true' && first.host.role === 'status'
+      && first.host.pointerEvents === 'none' && inside(first.host, first.cast) && first.host.y >= first.board.bottom - .1
+      && shownText(first).length === 1 && shownText(first)[0] === '첫 번째 알림' && first.notices.at(-1).text === fullText
+      && first.notices.every(n => n.title === n.text),
+    `${first.width}: ${compact ? '축소' : '일반'} 전투 메시지는 시전 막대 자리 안 (판 밖)·하나씩·접근성 유지·배치 고정`, { before, first });
+    await page.clock.runFor(1450);
+    const second = await noticeGeometry();
+    await page.clock.runFor(1450);
+    const last = await noticeGeometry(), shown = last.notices.find(n => n.visible);
+    ok(shownText(second).join() === '두 번째 알림' && shownText(last).join() === fullText && shown && !shown.clipped
+      && shown.font >= 11 && inside(shown, last.cast) && shown.y >= last.board.bottom - .1,
+    `${last.width}: ${compact ? '축소' : '일반'} 기다리던 메시지가 1.4초씩 차례로, 긴 글은 두 줄로 다 보임`, { second, last });
+    await page.clock.runFor(3500);
+    const still = await noticeGeometry();
+    await page.clock.runFor(3600);
     const after = await noticeGeometry();
-    ok(after.notices.length === 0 && after.summaryNodes === 0
+    ok(shownText(still).join() === fullText && after.notices.length === 0 && !after.hasMsg && after.summaryNodes === 0
       && ['board', 'cast', 'frame'].every(key => nearBox(before[key], after[key])),
-    `${shown.width}: ${compact ? '축소' : '일반'} 알림 2.3초 만료 뒤 전투판/시전/하단 위치 유지`, { before, after });
+    `${after.width}: ${compact ? '축소' : '일반'} 마지막 메시지는 3.5초 넘게 남고 7초 안에 사라짐, 전투판/시전/하단 위치 유지`, { still, after });
     await page.click('#resumeBtn');
   }
   if (await mode(page) !== originalMode) { await toggleMode(page); await page.clock.runFor(40); }

@@ -232,13 +232,34 @@ export function vibe(ms: number | number[], important?: boolean): void {
   try { navigator.vibrate?.(ms); } catch { /* 지원 안 함 (iOS 사파리) */ }
 }
 
-// ---------- 알림 ----------
-export function toast(text: string): void {
-  const el = document.createElement('div'); el.className = 'toast'; el.textContent = text; el.title = text;
-  const box = $('toast'); box.appendChild(el);
-  while (box.children.length > 2) box.firstChild!.remove();
-  setTimeout(() => el.remove(), 2300);
+// ---------- 전투 메시지 ----------
+// 2026-10-11 Lim 「너무 빨리 없어지고 20인에서 파티원을 가린다」 → 판 위가 아니라 시전 막대 자리 안 (#castbar 안 #toast).
+// 한 번에 하나씩 차례로: 맨 앞(첫 자식)이 보이고 뒤는 기다림. 보이는 시간 = 3.6초 + 긴 글은 글자마다 조금 더 (최대 7초),
+// 뒤에 기다리는 메시지가 있으면 적어도 NOTE_MIN만 보이고 다음으로. 같은 글이 또 오면 줄 세우지 않고 시간만 새로.
+// kind: bad = 파티원이 쓰러짐 같은 나쁜 소식 (붉게) · good = 보스 처치 · 성언 준비 (금빛)
+const NOTE_MIN = 1400, NOTE_WAIT = 3;
+let noteTimer: ReturnType<typeof setTimeout> | undefined, noteAt = 0;
+const noteLife = (text: string) => Math.min(7000, 3600 + Math.max(0, text.length - 16) * 90);
+function showNote(): void {
+  const box = $('toast'), el = box.firstElementChild as HTMLElement | null;
+  clearTimeout(noteTimer);
+  $('castbar').classList.toggle('has-msg', !!el);
+  if (!el) return;
+  if (!el.classList.contains('on')) { el.classList.add('on'); noteAt = performance.now(); }
+  noteTimer = setTimeout(nextNote, box.children.length > 1 ? Math.max(0, NOTE_MIN - (performance.now() - noteAt)) : noteLife(el.textContent || ''));
 }
+function nextNote(): void { $('toast').firstElementChild?.remove(); showNote(); }
+export function toast(text: string, kind?: 'bad' | 'good'): void {
+  const box = $('toast'), last = box.lastElementChild as HTMLElement | null;
+  if (last && last.textContent === text) { if (last === box.firstElementChild) { noteAt = performance.now(); showNote(); } return; }
+  const el = document.createElement('div'); el.className = `toast${kind ? ` ${kind}` : ''}`; el.title = text;
+  const t = document.createElement('span'); t.textContent = text; el.appendChild(t);
+  box.appendChild(el);
+  while (box.children.length > NOTE_WAIT + 1) box.children[1].remove(); // 오래 기다린 것부터 버림 (지금 보이는 것은 그대로)
+  showNote();
+}
+/** 전투를 새로 시작할 때 */
+export function clearToasts(): void { clearTimeout(noteTimer); $('toast').innerHTML = ''; $('castbar').classList.remove('has-msg'); }
 let bannerTimer: ReturnType<typeof setTimeout> | undefined;
 export function banner(text: string): void {
   const b = $('banner');

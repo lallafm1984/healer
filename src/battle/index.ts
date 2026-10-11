@@ -17,17 +17,17 @@ import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, se
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON, ratsArt } from './art';
-import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxCure, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxPxf, fxImpact, fxRevive, fxShake, fxSpec, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard, setBoardFaction } from './board';
+import { addBubble, boardRenderer, center, fxAbility, fxAllyHeal, fxCure, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxPxf, fxImpact, fxRevive, fxShake, fxSpec, hit, initBoard, L, lensAt, render, resetBoardFx, resizeBoard, setBoardFaction, setBubbleRelay, type BubbleKind } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
-  swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
+  swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, clearToasts, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
 } from './core';
 import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
 import { ALLY_PXF, BOSS_PXF, COMMON_PXF, pxfTargets, SKILL_PXF } from './pxf';
 import {
-  bossFx, bossHealNum, bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, tipMatch,
+  bossFx, bossHealNum, bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
   resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
 } from './hud';
 
@@ -74,7 +74,7 @@ function startBattle(guideSec = 0): void {
   closeTip(); resetBoardFx(); resetDmgNums();
   const lag = $('bossLag'); lag.style.transition = 'none'; lag.style.width = '100%'; void lag.offsetWidth; lag.style.transition = '';
   $('controls').classList.toggle('wheel-left', S.hand === 'left');
-  $('pause').hidden = true; $('preview').hidden = true; $('toast').innerHTML = '';
+  $('pause').hidden = true; hidePreview(); clearToasts();
   $('giveUp').hidden = true; $('hint').hidden = false;
   clearCoach();
   $('bossArt').innerHTML = bossSvg(F.enc.script, F.enc.key);
@@ -381,7 +381,10 @@ $('queue').addEventListener('keydown', e => {
   if (tipMatch(q.dataset.ic, +q.dataset.imp!)) closeTip();
   else openTip(q.dataset.ic, q);
 });
-document.addEventListener('pointerdown', e => { if (ui.tip && !$('queue').contains(e.target as Node)) closeTip(); }, true);
+document.addEventListener('pointerdown', e => {
+  if (ui.tip && !$('queue').contains(e.target as Node)) closeTip();
+  if (previewKept()) hidePreview(); // 손을 뗀 뒤 남아 있던 파티원 상세창: 다음 터치에 닫고, 그 터치는 평소대로
+}, true);
 
 // ---------- 판 입력: 탭 = 기본 힐, 칸에서 8방향 쓸기 = 그 방향 스킬, 길게 누르기 = 정보 ----------
 const cv = $('board') as HTMLCanvasElement;
@@ -427,7 +430,7 @@ function endPointer(cancelled: boolean, e?: PointerEvent): void {
   const P = ui.pointer; ui.pointer = null;
   if (!P) return;
   clearTimeout(P.timer);
-  if (P.lp) { $('preview').hidden = true; return; }
+  if (P.lp) { keepPreview(); return; } // 손을 떼도 상세창은 잠깐 남음 (다음 터치에 닫힘)
   const F = B.F;
   if (cancelled || !F || !live()) return;
   if (F.cells[P.idx]?.unit) ui.selectedUnitId = F.cells[P.idx].unit!.id;
@@ -530,14 +533,14 @@ function handleEvents(now: number): void {
       case 'hit': dmgNum(F.party.find(x => x.id === ev.uid), ev.amt, now); break;
       case 'death':
         if (u) fxDeath(u, now);
-        if (u && !u.me) toast(`${u.nick} 쓰러짐`);
+        if (u && !u.me) toast(`${u.nick} 쓰러짐`, 'bad');
         break;
       case 'msg': toast(ev.text); break;
       case 'phase': banner(ev.text); if (ev.text === '광폭화') { vibe([60, 80, 60, 80, 60], true); bossFx('rage'); } else vibe(200, true); break;
-      case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`); break;
+      case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`, 'good'); break;
       case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now, '봉화 지정'); break; }
       case 'mobDown': {
-        toast(`${ev.name} 쓰러짐`); $('bossName').innerHTML = bossTitle();
+        toast(`${ev.name} 쓰러짐`, 'good'); $('bossName').innerHTML = bossTitle();
         // 판 위 적 처치 (37 4장 F-1): 감옥은 깨지고, 칸에 선 적은 연기로
         const a = F.mobs.find(m => m.id === ev.id)?.add;
         if (a?.hold != null) fxGim('jail-break', now, { id: a.on }); else if (a?.cell != null) fxGim('poof', now, { cell: a.cell });
@@ -781,7 +784,7 @@ function frame(now: number): void {
       }
     }
     handleEvents(now);
-    updateStage(now); updateWheel(); updateItems(); updateAux(); updateCastbar();
+    updateStage(now); updateWheel(); updateItems(); updateAux(); updateCastbar(); updatePreview(now);
     if (layoutState !== `${S.compactSkills}:${$('controls').classList.contains('tank-down')}`) layoutBattle();
     render(now);
     if (F.over && !B.overShown) { B.overShown = true; endSegment(); }
@@ -790,11 +793,16 @@ function frame(now: number): void {
   requestAnimationFrame(frame);
 }
 
+// 판에 붙일 자리가 없는 기믹·위기 말풍선은 전투 메시지로 (누가 말했는지 닉네임과 함께)
+setBubbleRelay((u, text) => toast(`${u.nick}: ${text}`));
+
 // ---------- 새 화면(src/screens)이 쓰는 입구 · 테스트용 조회 ----------
 (window as unknown as { __proto: unknown }).__proto = {
   get F() { return B.F; }, center: (i: number) => center(i), guide: (enc: EncounterKey, diff: DiffName) => guideModel(enc, diff),
   run: () => (B.F ? runData(B.F) : null), get pullLeft() { return ui.pullLeft; }, get coach() { return ui.coach; }, get dungeon() { return S.run; }, get last() { return ui.lastResult; },
   get renderer() { return boardRenderer(); },
+  /** 말풍선 띄우기 (화면 테스트: 판 크기마다 말하는 사람 칸에 붙는지) */
+  say: (id: number, text: string, kind: BubbleKind = 'talk', life = 3000) => addBubble(id, text, performance.now(), life, kind),
   /** 스킬 PXF 이펙트 표 · 재생할 칸 (화면 테스트) */
   pxf: {
     skills: SKILL_PXF, targets: (key: SkillKey, uid: number) => (B.F ? pxfTargets(B.F, key, uid).map(u => u.id) : []),
