@@ -1,7 +1,7 @@
 /*
  * 공략 (2026-10-12 Lim 「한눈에 들어오게, 배경·항목·색 교체」): 편성 「공략」 시트 · 일시정지 · 휴식이 같은 모양.
  * 머리 (장소 · 난이도 · 인원) → 난이도 수치 칸 → 어픽스 → 구간 길 = 탭 → 보스 카드 → 진행 (세로 줄) → 기술 카드 (대상 칩 · 굵은 피해 숫자 · 대처 줄).
- * 색은 --gk-* 변수 한 벌로만 정함.
+ * 색은 --gk-* 변수 한 벌로만 정함 (시안 C 「길드 홀」: 어두운 돌색을 나무결 없이 평평하게, 노란 제목, 2026-10-12 Lim 고름).
  */
 :is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) {
   --gk-bg: linear-gradient(#1d1812, #15120e 160px);
@@ -20,43 +20,6 @@
   --gk-tank: #3d7be0; --gk-all: #c8382f; --gk-some: #8e4fd0; --gk-zone: #c46a1c;
   --gk-tip: #241d12; --gk-tip-bd: #6b5233;
 }
-/* 안 B 등불 밤 (남색 · 금 · 청록) */
-html[data-gl="b"] :is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) {
-  --gk-bg: linear-gradient(#1c1f35, #131526 180px);
-  --gk-edge: #e3b45e;
-  --gk-ink: #f4edde; --gk-ink2: #c9c5d9; --gk-mute: #9a99b6;
-  --gk-head: #f4d79c;
-  --gk-line: #353a5e;
-  --gk-card: #1f2340; --gk-card-bd: #353a5e;
-  --gk-stat: #252a48; --gk-stat-bd: #353a5e;
-  --gk-chip: #2b3052; --gk-chip-ink: #c9c5d9;
-  --gk-accent: #e3b45e; --gk-accent-ink: #1a1408;
-  --gk-num: #ffd36a;
-  --gk-how: #72e3d2; --gk-how-bg: #15323a;
-  --gk-enr: linear-gradient(#3a1626, #25112a); --gk-enr-bd: #e5433d; --gk-enr-ink: #ffb8c0;
-  --gk-route: #181b30;
-  --gk-tank: #4a8dff; --gk-all: #e5433d; --gk-some: #a050e0; --gk-zone: #e0802a;
-  --gk-tip: #1f2340; --gk-tip-bd: #4b5180;
-}
-/* 안 A 양피지 공략서 (밝은 종이 · 먹색 글 · 붉은 제목) */
-html[data-gl="a"] :is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) {
-  --gk-bg: #efd8a4 var(--a2-paper) center / cover no-repeat;
-  --gk-edge: #b98a46;
-  --gk-ink: #35220f; --gk-ink2: #4d3519; --gk-mute: #77593a;
-  --gk-head: #8a2c14;
-  --gk-line: #c9a76b;
-  --gk-card: #fbf1d8e0; --gk-card-bd: #c9a46a;
-  --gk-stat: #fff6e2c0; --gk-stat-bd: #c9a46a;
-  --gk-chip: #ead2a0; --gk-chip-ink: #4d3519;
-  --gk-accent: #a3241a; --gk-accent-ink: #fff4d5;
-  --gk-num: #a3241a;
-  --gk-how: #2b6631; --gk-how-bg: #e2ebc6;
-  --gk-enr: #f6d6c8; --gk-enr-bd: #b0302a; --gk-enr-ink: #8a1d14;
-  --gk-route: #f0dcab;
-  --gk-tank: #2f5ea8; --gk-all: #b0302a; --gk-some: #7a4bb0; --gk-zone: #b85a14;
-  --gk-tip: #fff3d6c8; --gk-tip-bd: #b98a46;
-}
-
 /* ---------- 시트 바탕 ---------- */
 #app .ns .sheet.f-gsheet {
   background: var(--gk-bg); background-blend-mode: normal;
@@ -65,7 +28,6 @@ html[data-gl="a"] :is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide)
 #app .ns .sheet.f-gsheet > .grip { background: var(--gk-edge); }
 #s-party .f-gsheet .f-sheet-body { display: flex; flex-direction: column; gap: 10px; }
 #s-party .f-gsheet .f-sheet-actions { background: none; }
-html[data-gl="b"] #s-party .f-gsheet .f-shut { background: #262a48; border-color: #e3b45e; color: #f4d79c; box-shadow: inset 0 1px 0 #ffffff1a; }
 
 /* 머리: 책 + 「공략」 · 오른쪽에 장소 · 난이도 · 인원 */
 #s-party .f-gh { display: flex; align-items: center; gap: 8px; min-width: 0; }
