@@ -237,6 +237,8 @@ function render(): void {
       </div>
     </div>`;
   labelLobbyWallet();
+  // 설정 「시각 효과 줄이기」: 메뉴의 빛 쓸기 · 숨쉬기 · 배지 통통도 멈춤 (lobby-life.css)
+  s.el.classList.toggle('calm', !!G.save.settings.reducedEffects);
   // 살아 있는 마을: 같은 캔버스를 새 무대로 옮겨 붙여 움직임이 이어짐 (보상 받기로 다시 그려도)
   mountVillage(s.el.querySelector('.lb-stage'));
   st.msg = '';

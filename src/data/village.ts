@@ -5,6 +5,8 @@
  * 2026-10-11 추가 요청: 구름 9개/3종과 속도 ×1.65, 새 4마리 무리, 실제 그림 낙엽 8개.
  * 사용자 요청 없이 진폭을 줄이거나 부착점·가림 관계를 바꾸지 않는다.
  * 종탑의 종 레이어(chapel-bell)는 뺐다 (10 4장 「종에 관한 것은 모두 빼자」). 바탕 그림의 탑 창은 원래 비어 있다.
+ * 2026-10-12 Lim 「여전히 정적인 느낌」: 폰 화면에선 마을이 0.42배로 줄어 흔들림이 1~2px였다. 흔들림 ×1.4, 구름 ×2, 새 무리 더 자주,
+ * 그리고 큰 면이 움직이도록 ambience (구름 그림자 · 햇살 줄기 · 금빛 먼지 · 물 반짝임 · 굴뚝 연기 · 왼쪽에서 오는 돌풍과 날리는 잎)를 더했다.
  */
 export type VillageGroup = 'clouds' | 'foliage' | 'birds' | 'cloth' | 'water' | 'lights';
 export type Poly = readonly (readonly [number, number])[];
@@ -33,6 +35,31 @@ export interface VillageLayer {
   clip?: Poly;
 }
 
+/** 돌풍: first초 뒤부터 every초 (± jitter)마다 왼쪽에서 오른쪽으로 travel초에 걸쳐 지나가고, 한 자리엔 hold초 머문다 */
+export interface VillageGust { first: number; every: number; jitter: number; hold: number; travel: number; boost: number; lean: number; leaves: number }
+
+/** 그림 없이 코드로 그리는 마을 공기 (2026-10-12). 좌표·크기는 원본 그림 853×1844 기준, 속도는 그림 px/초 */
+export interface VillageAmbience {
+  /** 가지·덩굴·깃발·차양 흔들림 배율 (승인된 진폭 × 이 값) */
+  sway: number;
+  gust: VillageGust;
+  /** 땅 위를 오른쪽으로 지나가는 구름 그림자 (곱하기). offset = 처음 자리 (0~1) */
+  shadows: { y: number; width: number; height: number; speed: number; offset: number; alpha: number }[];
+  /** 왼쪽 위에서 비스듬히 내려오는 햇살 줄기 (더하기). period초에 한 번 밝아졌다 흐려짐 */
+  shafts: { x: number; width: number; alpha: number; period: number; phase: number }[];
+  shaftAngle: number;
+  /** 왼쪽 위 햇무리 */
+  sun: { x: number; y: number; radius: number; alpha: number };
+  /** 굴뚝 연기 (바탕 그림의 굴뚝 꼭대기) */
+  chimneys: { x: number; y: number }[];
+  /** 햇빛 속 금빛 먼지 수 */
+  motes: number;
+  /** 물 반짝임이 생기는 자리 x, y, x, y … (바탕 그림의 물빛 픽셀에서 뽑음: 먼 강 · 다리 아래 강 · 아래 수로) */
+  glints: readonly number[];
+  /** 동시에 반짝이는 수 */
+  glintLive: number;
+}
+
 export interface VillageEffects {
   waterPaths: { id: string; direction: readonly [number, number]; density: number; polygon: Poly }[];
   waterfalls: { id: string; direction: readonly [number, number]; density: number; polygon: Poly }[];
@@ -53,8 +80,11 @@ export const VILLAGE = {
   height: 1844,
   background: 'village-base',
   defaultWind: 35,
-  cloudSpeedScale: 1.65,
+  cloudSpeedScale: 3.3,
   birdFrames: ['village-bird-mid', 'village-bird-up'],
+  /** 새 무리: birdCycle초마다 한 번 birdCross초에 걸쳐 가로지름 (하늘 → 먼 계곡 번갈아) */
+  birdCycle: 26,
+  birdCross: 21,
   layers: [
     { id: 'cloud-distant-west', art: 'village-cloud-wide', group: 'clouds', motion: 'cloud', x: 67, y: 37, width: 184, height: 64, anchor: [0, 0], amplitude: 2.8, phase: 0.051, speed: 0.42, z: 0.1, alpha: 0.56, clip: CLIP_SKY },
     // Wisp는 전체 높이의 52.35%만 구름이다. 원본 픽셀을 자르지 않고 높이/시작점을 보정한다.
@@ -132,7 +162,7 @@ export const VILLAGE = {
       { id: 'water-distant-channel', direction: [0, 1], density: 5, polygon: [[578, 478], [588, 480], [591, 493], [588, 507], [585, 522], [579, 530], [575, 515], [576, 495]] },
       { id: 'water-narrow-channel', direction: [0, 1], density: 7, polygon: [[204, 1501], [211, 1513], [213, 1539], [224, 1557], [223, 1576], [208, 1579], [200, 1560], [202, 1536], [199, 1525]] },
     ],
-    lights: [{ id: 'light-market', x: 492, y: 739, radius: 33, alpha: 0.15 }, { id: 'light-square', x: 599, y: 1154, radius: 31, alpha: 0.15 }],
+    lights: [{ id: 'light-market', x: 492, y: 739, radius: 36, alpha: 0.2 }, { id: 'light-square', x: 599, y: 1154, radius: 34, alpha: 0.2 }],
     leafArt: 'village-leaf-drift-v1',
     leafContentWidth: 1123,
     motes: [
@@ -146,4 +176,34 @@ export const VILLAGE = {
       { x: 726, y: 1616, size: 10, drift: [-35, 126], duration: 17, phase: 0.91, rotation: -0.2 },
     ],
   } satisfies VillageEffects as VillageEffects,
+  ambience: {
+    sway: 1.4,
+    gust: { first: 2.5, every: 11, jitter: 3, hold: 3.4, travel: 2.8, boost: 1.1, lean: 0.55, leaves: 14 },
+    shadows: [
+      { y: 340, width: 620, height: 320, speed: 12, offset: 0.12, alpha: 0.8 },
+      { y: 760, width: 700, height: 360, speed: 10, offset: 0.66, alpha: 0.75 },
+      { y: 1160, width: 600, height: 320, speed: 13.5, offset: 0.38, alpha: 0.8 },
+    ],
+    shafts: [
+      { x: -150, width: 180, alpha: 0.24, period: 11, phase: 0 },
+      { x: 20, width: 120, alpha: 0.2, period: 8.5, phase: 2.1 },
+      { x: 170, width: 210, alpha: 0.17, period: 13, phase: 4.2 },
+      { x: 350, width: 130, alpha: 0.15, period: 9.5, phase: 1.3 },
+    ],
+    shaftAngle: -0.42,
+    sun: { x: -40, y: 150, radius: 560, alpha: 0.38 },
+    chimneys: [{ x: 663, y: 522 }],
+    motes: 46,
+    glints: [
+      334, 215, 348, 216, 325, 217, 311, 221, 299, 225, 288, 226, 247, 227, 322, 227, 231, 230, 260, 231, 276, 233, 213, 237, 289, 238, 244, 240,
+      267, 240, 186, 241, 202, 241, 233, 241, 252, 245, 220, 246, 164, 247, 173, 250, 208, 250, 193, 251, 240, 251, 225, 256, 187, 260, 197, 261,
+      212, 262, 237, 265, 225, 271, 238, 275, 252, 279, 259, 286, 516, 433, 505, 437, 529, 437, 541, 439, 295, 443, 285, 444, 305, 445, 531, 447,
+      319, 465, 638, 484, 590, 494, 637, 504, 589, 512, 639, 522, 595, 523, 649, 523, 640, 538, 620, 541, 702, 559, 689, 564, 825, 596, 850, 601,
+      840, 607, 103, 933, 4, 1012, 19, 1025, 24, 1041, 37, 1076, 61, 1239, 72, 1264, 88, 1279, 120, 1286, 101, 1290, 196, 1395, 196, 1417, 209, 1423,
+      178, 1431, 230, 1431, 217, 1437, 251, 1442, 234, 1447, 267, 1456, 206, 1527, 252, 1627, 205, 1638, 222, 1640, 261, 1640, 189, 1642, 245, 1644, 251, 1657,
+      302, 1666, 274, 1668, 355, 1679, 298, 1682, 326, 1685, 271, 1689, 339, 1696, 355, 1703, 312, 1704, 331, 1709, 376, 1718, 304, 1728, 356, 1729, 367, 1741,
+      382, 1746, 429, 1761, 402, 1769, 471, 1778, 413, 1779, 493, 1801, 512, 1808, 542, 1822, 562, 1827, 531, 1833, 512, 1835, 551, 1836,
+    ],
+    glintLive: 16,
+  } satisfies VillageAmbience as VillageAmbience,
 };

@@ -1,0 +1,75 @@
+/*
+ * 로비 생기 · 마감 (2026-10-12 Lim 「로비를 좀 더 퀄리티 있게, 여전히 정적인 느낌」).
+ * 메뉴 상자 크기·자리는 그대로 두고 (화면 테스트가 위치 고정을 확인), 움직임은 ::before/::after와 안쪽 그림에만 준다.
+ * 동작 줄이기 (기기 설정) 또는 설정 「시각 효과 줄이기」(#s-lobby.calm)면 메뉴 움직임은 모두 멈춘다.
+ */
+
+/* 장면 깊이: 위 정보창 아래 그늘 · 아래 목표·출전 뒤 그늘 · 가장자리 비네트. 메뉴 층 (.lb-ui z 3) 아래, 누름은 통과 */
+#s-lobby .lb-world::before {
+  content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(26, 13, 3, 0.5), rgba(26, 13, 3, 0) 30px),
+    linear-gradient(to top, rgba(26, 13, 3, 0.52), rgba(26, 13, 3, 0.18) 13%, rgba(26, 13, 3, 0) 27%),
+    radial-gradient(135% 90% at 50% 38%, rgba(26, 13, 3, 0) 60%, rgba(26, 13, 3, 0.34) 100%);
+}
+
+/* 소켓 이름이 둥근 테 아래 끝에 겹쳐 어두운 글자가 테에 묻히던 것: 글줄을 리넨 표 안쪽으로 3px 내림 */
+#s-lobby .lb-sc .lb-main { padding-bottom: 1px; }
+#s-lobby .lb-caption > b { line-height: 1.05; }
+#s-lobby .lb-caption > small { line-height: 1.1; }
+
+/* 다음 목표 둘째 줄: 낱말 중간 (온/실)에서 끊지 않음 */
+#s-lobby .lb-trk .obj > span { word-break: keep-all; }
+
+/* 출전: 행선지 글이 칼 그림 위로 넘치던 것 → 칼 · 「출전」 · 화살표 한 줄, 행선지는 아래 줄 전체 폭 */
+#s-lobby .lb-cta {
+  grid-template-columns: 30px minmax(0, 1fr) 8px; grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: 'ic t ch' 'sub sub sub'; column-gap: 3px; row-gap: 0;
+  padding: 7px 10px 9px;
+}
+#s-lobby .lb-cta > .g-ic { grid-area: ic; align-self: center; width: 31px; height: 34px; transform: translateX(1px); }
+#s-lobby .lb-cta-copy { display: contents; }
+#s-lobby .lb-cta-copy > b { grid-area: t; align-self: center; justify-self: center; transform: translateX(-2px); }
+#s-lobby .lb-cta-copy > small { grid-area: sub; justify-self: center; width: auto; max-width: 100%; text-align: center; }
+#s-lobby .lb-cta > .lb-chevron { grid-area: ch; align-self: center; }
+
+/* 출전 빛: 금빛 숨쉬기 (뒤) + 4.6초마다 붉은 판을 쓸고 지나가는 빛 (그림 모양대로 가림) */
+#s-lobby .lb-cta::before {
+  content: ''; position: absolute; inset: -16px -18px; z-index: -1; pointer-events: none;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(255, 206, 104, 0.85) 58%, rgba(255, 176, 66, 0.32) 78%, rgba(255, 170, 64, 0) 100%);
+  opacity: 0.25; animation: lb-breathe 2.8s ease-in-out infinite;
+}
+#s-lobby .lb-cta::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(104deg, rgba(255, 238, 186, 0) 41%, rgba(255, 238, 186, 0.5) 48%, rgba(255, 252, 232, 0.78) 50%, rgba(255, 238, 186, 0.5) 52%, rgba(255, 238, 186, 0) 59%) 100% 0 / 300% 100% no-repeat;
+  -webkit-mask: var(--a2-depart) 8.695652% 17.1875% / 101.295775% 107.891492% no-repeat;
+  mask: var(--a2-depart) 8.695652% 17.1875% / 101.295775% 107.891492% no-repeat;
+  animation: lb-shine 4.6s ease-in-out 1.2s infinite;
+}
+/* 누르는 동안 (밝기 필터로 버튼이 따로 겹을 만들 때) 뒤 빛이 판 위로 오지 않게 */
+#s-lobby .lb-cta:active::before { animation: none; opacity: 0; }
+@keyframes lb-breathe { 0%, 100% { opacity: 0.22; transform: scale(0.96); } 50% { opacity: 0.62; transform: scale(1.04); } }
+@keyframes lb-shine { 0% { background-position: 100% 0; } 24%, 100% { background-position: 0% 0; } }
+
+/* 받을 것이 있는 소켓: 둥근 테 뒤 금빛 숨쉬기 + 빨간 배지 통통 */
+#s-lobby .lb-sc.hot::before {
+  content: ''; position: absolute; z-index: -1; left: 50%; top: -26px; width: 104px; height: 100px; margin-left: -52px; pointer-events: none;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(255, 216, 112, 0.9) 44%, rgba(255, 188, 72, 0.34) 68%, rgba(255, 186, 70, 0) 100%);
+  animation: lb-breathe 1.9s ease-in-out infinite;
+}
+#s-lobby .lb-sc.hot .g-badge { animation: lb-hop 2.2s ease-in-out infinite; }
+#s-lobby .lb-sc.hot .lb-sock > .g-ic { animation: lb-nudge 3.4s ease-in-out infinite; transform-origin: 50% 80%; }
+@keyframes lb-hop { 0%, 70%, 100% { transform: translateY(0); } 78% { transform: translateY(-4px); } 86% { transform: translateY(0); } 92% { transform: translateY(-1.5px); } }
+@keyframes lb-nudge { 0%, 80%, 100% { transform: rotate(0); } 84% { transform: rotate(-7deg); } 88% { transform: rotate(6deg); } 92% { transform: rotate(-3deg); } 96% { transform: rotate(1deg); } }
+
+@container (max-width: 359px) {
+  #s-lobby .lb-cta { grid-template-columns: 25px minmax(0, 1fr) 7px; padding-left: 7px; padding-right: 7px; }
+  #s-lobby .lb-cta > .g-ic { width: 26px; height: 30px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #s-lobby .lb-cta::before, #s-lobby .lb-cta::after, #s-lobby .lb-sc.hot::before, #s-lobby .lb-sc.hot .g-badge, #s-lobby .lb-sc.hot .lb-sock > .g-ic { animation: none; }
+  #s-lobby .lb-cta::after { opacity: 0; }
+}
+#s-lobby.calm .lb-cta::before, #s-lobby.calm .lb-cta::after, #s-lobby.calm .lb-sc.hot::before, #s-lobby.calm .lb-sc.hot .g-badge, #s-lobby.calm .lb-sc.hot .lb-sock > .g-ic { animation: none; }
+#s-lobby.calm .lb-cta::after { opacity: 0; }
