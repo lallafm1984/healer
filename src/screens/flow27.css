@@ -21,7 +21,7 @@
 .f-go .cta2 small { overflow: hidden; max-width: 100%; white-space: nowrap; text-overflow: ellipsis; }
 
 /* 상단: ← (문양) 제목 / 아래 작은 글 (난이도 · 단계 · 어픽스) · 오른쪽 「공략」 */
-#s-entry .topbar.f-hd, #s-party .topbar.f-hd { gap: 6px; height: 56px; padding: 0 10px 0 2px; }
+#s-entry .topbar.f-hd, #s-party .topbar.f-hd { gap: 6px; padding: 0 10px 0 2px; }
 .f-hd .tb-back { flex: none; width: 44px; min-width: 44px; height: 44px; margin: 0; padding: 0; display: grid; place-items: center; color: var(--ink-2); }
 .f-hd .tb-back svg { width: 22px; height: 22px; }
 .f-tb { flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }

@@ -99,8 +99,15 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
   return `<header class="topbar tb-mmo">${pf}
     <span class="tb-nm"><span class="tb-id"><b class="tb-cls">${esc(hero.name)}</b><small class="tb-lv">Lv. ${p.level}</small></span>
       <span class="tb-xprow"><span class="tb-xp" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}${apexOf(p.level) > 1 ? ` · 수련 +${((apexOf(p.level) - 1) * 100).toFixed(1)}%` : ''}"><i style="width:${pct.toFixed(1)}%"></i></span><small class="tb-xpt" aria-hidden="true" data-pct="${Math.floor(pct)}"></small></span></span>
-    <span class="tb-wal"><span class="tb-cur tb-gold" aria-label="골드">${currencyIcon('gold')}<b>${fmt(p.gold)}</b></span><span class="tb-cur tb-cr" aria-label="크리스탈">${currencyIcon('crystal')}<b>${fmt(s.wallet.crystal)}</b></span></span>
+    <span class="tb-wal">${walletCell('tb-gold', '골드', 'gold', p.gold)}${walletCell('tb-cr', '크리스탈', 'crystal', s.wallet.crystal)}</span>
     ${set}</header>`;
+}
+
+const compactCurrency = new Intl.NumberFormat('ko-KR', { notation: 'compact', maximumSignificantDigits: 3 });
+/** 위 줄 재화 칸은 좁아서 1만부터 단위 축약 (5.23만). 모든 화면이 로비와 같은 칸이라 같은 글. 툴팁·접근성 이름에는 전체 값 */
+function walletCell(cls: string, label: string, icon: 'gold' | 'crystal', amount: number): string {
+  const full = `${label} ${fmt(amount)}`;
+  return `<span class="tb-cur ${cls}" role="img" aria-label="${full}" title="${full}">${currencyIcon(icon)}<b>${amount >= 10000 ? compactCurrency.format(Math.round(amount)) : fmt(amount)}</b></span>`;
 }
 
 /** [data-go] 버튼 = 그 화면으로 */
