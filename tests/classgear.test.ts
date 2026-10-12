@@ -1,6 +1,6 @@
 /**
- * 밸런스 다듬기 (2026-10-12 Lim): 장비는 직업마다 · 지능 무른 상한 · 해제 충전.
- * 「한 직업을 다 키우면 새로운 느낌으로 다시」 → 높은 직업 장비를 새 직업이 빌려 쓰지 못함
+ * 밸런스 다듬기 (2026-10-12 Lim, 67): 장비는 직업마다 (v11부터 캐릭터마다, 68) · 지능 무른 상한 · 해제 4초.
+ * 「한 직업을 다 키우면 새로운 느낌으로 다시」 → 높은 캐릭터 장비를 새 캐릭터가 빌려 쓰지 못함
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { makeItem, intEff, INT_SOFT, statsToGear, type GearItem } from '../src/data/equipment';
@@ -11,7 +11,7 @@ import * as E from '../src/engine';
 import { cdOf } from '../src/engine/talents';
 import { claimChalChest, exchangeMerit, raidLootOpen, rollover } from '../src/game/economy';
 import { settle, type BattleResult } from '../src/game/settle';
-import { equip, G, switchHero } from '../src/game/state';
+import { equip, G, makeChar, switchHero } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
 import { migrate, newSave, SAVE_VERSION } from '../src/platform/storage';
 
@@ -20,18 +20,19 @@ const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 const item = (id: number, o: Partial<GearItem> = {}): GearItem => ({ ...makeItem(rng, 'weapon', '희귀', id), ...o });
 const specOf = (hero: string) => Object.keys(SPECS).find(k => SPECS[k].hero === hero)!;
 
-describe('장비는 직업마다 (v10)', () => {
+describe('장비는 캐릭터마다 (v10 직업마다 → v11 캐릭터마다, 68)', () => {
   beforeEach(() => {
     G.save = newSave(1);
     G.save.tut = TUT.done;
     G.save.settings.devUnlock = false;
+    G.save.roster.slots = 2;
     G.save.player.level = 40;
     G.save.nextId = 10;
     G.save.gear.bag = [item(1), item(2)];
     equip(1);
   });
-  it('새 직업은 맨몸 · 빈 가방, 돌아오면 원래 장비', () => {
-    expect(switchHero('druid')).toBe(true);
+  it('새 캐릭터는 맨몸 · 빈 가방, 돌아오면 원래 장비', () => {
+    expect(makeChar('druid')).toBe('');
     expect(G.save.gear.equipped).toEqual({});
     expect(G.save.gear.bag).toEqual([]);
     G.save.gear.bag.push(item(20));
@@ -41,23 +42,25 @@ describe('장비는 직업마다 (v10)', () => {
     expect(switchHero('druid')).toBe(true);
     expect(G.save.gear.bag.map(x => x.id)).toEqual([20]);
   });
-  it('도감 · 재료 · 골드는 계정', () => {
-    G.save.gear.codex = ['a']; G.save.gear.dex = ['b']; G.save.mats.stone = 9;
-    switchHero('druid');
-    expect([G.save.gear.codex, G.save.gear.dex, G.save.mats.stone]).toEqual([['a'], ['b'], 9]);
+  it('도감 · 재료 · 골드도 캐릭터마다 (67에선 계정이었음)', () => {
+    G.save.gear.codex = ['a']; G.save.gear.dex = ['b']; G.save.mats.stone = 9; G.save.player.gold = 50;
+    makeChar('druid');
+    expect([G.save.gear.codex, G.save.gear.dex, G.save.mats.stone, G.save.player.gold]).toEqual([[], [], 0, 0]);
+    switchHero('priest');
+    expect([G.save.gear.codex, G.save.gear.dex, G.save.mats.stone, G.save.player.gold]).toEqual([['a'], ['b'], 9, 50]);
   });
-  it('새 직업 가방엔 새것 점이 안 뜸 (지금까지 나온 id는 본 것으로)', () => {
-    switchHero('druid');
-    expect(G.save.gear.seen).toBe(9);
+  it('새 캐릭터는 장비 번호 · 새것 점 기준도 처음부터', () => {
+    makeChar('druid');
+    expect([G.save.nextId, G.save.gear.seen]).toEqual([1, 0]);
   });
 });
 
-describe('옛 저장 나누기 (v9 → v10)', () => {
+describe('옛 저장 나누기 (v9 → v10 → v11)', () => {
   const old = (o: Record<string, unknown>) => {
     const d = newSave(1) as unknown as Record<string, unknown>;
     return migrate(JSON.parse(JSON.stringify({ ...d, v: 9, nextId: 50, ...o })));
   };
-  it('착용 · 가방은 가장 높은 직업에게, 다른 직업 전용 특수능력 장비는 그 직업 가방으로', () => {
+  it('착용 · 가방은 가장 높은 직업 캐릭터에게, 다른 직업 전용 특수능력 장비는 그 직업 캐릭터 가방으로', () => {
     const w = item(1), b = item(2), dru = item(3, { specs: [{ key: specOf('druid'), roll: 0.5 }] });
     const s = old({
       hero: 'druid', player: { level: 12, xp: 0, gold: 5 },
@@ -66,12 +69,19 @@ describe('옛 저장 나누기 (v9 → v10)', () => {
       weekly: { week: 'x', missions: [], craft: 0, merit: { 10: 0, 20: 0 }, loot: ['abyss1|보통'], chalBest: 0, guild: { n: 0, got: false } },
     });
     expect(s.v).toBe(SAVE_VERSION);
+    expect(s.roster.chars.map(c => [c.hero, c.level])).toEqual([['priest', 60], ['druid', 12]]);
+    expect(s.hero).toBe('druid');
     expect(s.gear.equipped).toEqual({});
     expect(s.gear.bag.map(x => x.id)).toEqual([3]);
-    expect(s.heroes.priest!.gear!.equipped.weapon?.id).toBe(1);
-    expect(s.heroes.priest!.gear!.bag.map(x => x.id)).toEqual([2]);
-    expect(s.heroes.paladin?.gear).toBeUndefined();
+    expect(s.player.gold).toBe(0);
+    const p = s.roster.chars[0].park!;
+    expect(p.hero).toBe('priest');
+    expect(p.gear.equipped.weapon?.id).toBe(1);
+    expect(p.gear.bag.map(x => x.id)).toEqual([2]);
+    expect(p.player.gold).toBe(5);
+    expect(s.heroes.priest).toBeUndefined();
     expect(s.weekly.loot).toEqual(['druid|abyss1|보통']);
+    expect(p.weekly.loot).toEqual([]);
   });
   it('지금 직업이 가장 높으면 그대로 (같은 레벨이면 지금 직업)', () => {
     const s = old({
@@ -81,20 +91,22 @@ describe('옛 저장 나누기 (v9 → v10)', () => {
     });
     expect(s.gear.equipped.weapon?.id).toBe(1);
     expect(s.gear.bag.map(x => x.id)).toEqual([2]);
-    expect(s.heroes.druid!.gear).toBeUndefined();
+    expect(s.player.gold).toBe(5);
+    const p = s.roster.chars.find(c => c.hero === 'druid')!.park!;
+    expect([p.gear.equipped, p.gear.bag, p.player.gold, p.player.level]).toEqual([{}, [], 0, 30]);
   });
-  it('v10 저장은 다시 나누지 않음', () => {
+  it('v11 저장은 다시 나누지 않음', () => {
     const d = newSave(1);
     d.hero = 'druid'; d.player.level = 5;
     d.heroes.priest = { layout: null, tapKey: 'heal', unlocked: true, quest: 0, wins: 0, level: 60, xp: 0 };
     d.gear.equipped.weapon = item(1);
     const s = migrate(JSON.parse(JSON.stringify(d)));
     expect(s.gear.equipped.weapon?.id).toBe(1);
-    expect(s.heroes.priest!.gear).toBeUndefined();
+    expect(s.roster.chars).toHaveLength(1);
   });
 });
 
-describe('레이드 · 주간 보상도 장비를 받는 직업 것', () => {
+describe('레이드 · 주간 보상도 캐릭터 것', () => {
   const result = (o: Partial<BattleResult> = {}): BattleResult => ({
     content: 'abyss1', diff: '보통', win: true, quit: false, reason: '', segIdx: 0, segN: 1, time: 360, restSec: 30, deaths: 0,
     healed: 7000, overheal: 1000, dispels: 2, dispellable: 2, endMana: 40, minMana: 5, auto: false,
@@ -105,46 +117,44 @@ describe('레이드 · 주간 보상도 장비를 받는 직업 것', () => {
     G.save = newSave(1);
     G.save.tut = TUT.done;
     G.save.settings.devUnlock = false;
+    G.save.roster.slots = 2;
     G.save.player.level = 60;
-    G.save.heroes.druid = { layout: null, tapKey: 'heal', unlocked: true, quest: 1, wins: 0 };
     rollover(G.save, MON, rng);
   });
-  it('레이드 주 1회 장비는 직업마다', () => {
+  it('레이드 주 1회 장비는 캐릭터마다', () => {
     settle(G.save, result(), () => 0.5);
     expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(false);
-    switchHero('druid');
+    makeChar('druid', '', MON);
     expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(true);
   });
-  it('공훈과 주 상한은 직업마다 (새 직업은 0부터, 돌아오면 그대로)', () => {
+  it('공훈과 주 상한은 캐릭터마다 (새 캐릭터는 0부터, 돌아오면 그대로)', () => {
     settle(G.save, result(), () => 0.5);
     const got = G.save.weekly.merit[10], n = G.save.wallet.merit;
     expect(n).toBeGreaterThan(0);
-    switchHero('druid');
+    makeChar('druid', '', MON);
     expect([G.save.wallet.merit, G.save.weekly.merit[10]]).toEqual([0, 0]);
     expect(exchangeMerit(G.save, 'ring')).toMatch(/부족/);
-    switchHero('priest');
+    switchHero('priest', MON);
     expect([G.save.wallet.merit, G.save.weekly.merit[10]]).toEqual([n, got]);
   });
   it('다음 주에 돌아오면 공훈은 남고 주 상한만 새로', () => {
     settle(G.save, result(), () => 0.5);
     const n = G.save.wallet.merit;
-    switchHero('druid');
-    rollover(G.save, NEXT, rng);
-    switchHero('priest');
+    makeChar('druid', '', MON);
+    switchHero('priest', NEXT);
     expect([G.save.wallet.merit, G.save.weekly.merit[10]]).toEqual([n, 0]);
   });
-  it('주간 도전 상자는 기록을 세운 직업이 받음', () => {
+  it('주간 도전 상자는 기록을 세운 캐릭터가 받음', () => {
     G.save.weekly.chalBest = 0;
     settle(G.save, result({ content: CHAL.content, diff: CHAL.diff, chal: 12, limit: chalLimit(12), time: 300, segN: 4, segIdx: 3 }), () => 0.5, [], MON);
-    expect(G.save.weekly.chalHero).toBe('priest');
-    rollover(G.save, NEXT, rng);
+    makeChar('druid', '', MON);
+    expect(G.save.chalChest).toBe(0);
+    switchHero('priest', NEXT);
     expect([G.save.chalChest, G.save.chalChestHero]).toEqual([12, 'priest']);
-    switchHero('druid');
-    expect(claimChalChest(G.save, rng, NEXT)).toMatch(/사제로/);
-    expect(G.save.chalChest).toBe(12);
-    switchHero('priest');
     expect(typeof claimChalChest(G.save, rng, NEXT)).toBe('object');
-    expect(G.save.chalChestHero).toBeUndefined();
+    expect(G.save.chalChest).toBe(0);
+    switchHero('druid', NEXT);
+    expect(claimChalChest(G.save, rng, NEXT)).toMatch(/없음/);
   });
 });
 

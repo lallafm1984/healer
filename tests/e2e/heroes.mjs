@@ -1,4 +1,4 @@
-// 힐러 직업 (25, 27 4-6, 31 시안): 직업 깃발 · 양피지 상세(해제·퀘스트) · 바꾸기, 입장 화면 해제 ✓/✕, 전투 휠·봉화
+// 힐러 직업 (25, 27 4-6, 31 시안): 직업 깃발 · 양피지 상세(해제) · 바꾸기 (v11 = 그 직업 캐릭터로, 68), 입장 화면 해제 ✓/✕, 전투 휠·봉화
 import { chromium } from 'playwright';
 import { pastTitle, patchSave, toParty } from './nav.mjs';
 
@@ -27,15 +27,7 @@ export default async function heroes(url, shots) {
   await page.clock.runFor(300);
   await pastTitle(page);
 
-  // ---- Lv 9: 잠김 ----
-  await patchSave(page, { player: { level: 9 }, settings: { devUnlock: false } });
-  await pastTitle(page);
-  await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
-  await page.click('#s-char nav [data-csub="hero"]'); await page.clock.runFor(50);
-  ok(/Lv 10에 열림/.test(await text('#s-char .c7-intro')) && (await page.locator('#s-char [data-hero]:not([disabled])').count()) === 0, 'Lv 9: 직업 바꾸기 잠김');
-  await page.click('#s-char nav [data-csub="gear"]'); await page.clock.runFor(50);
-
-  // ---- Lv 10: 직업 목록 ----
+  // ---- 캐릭터가 사제 하나: 다른 직업은 잠김 (68: 상점에서 캐릭터 칸을 사서 만듦, 레벨로는 안 열림) ----
   await patchSave(page, { player: { level: 10 }, settings: { devUnlock: false } });
   await pastTitle(page);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
@@ -46,21 +38,40 @@ export default async function heroes(url, shots) {
   ok((await page.locator('#s-char .c7-hdet .dsp').count()) === 2 && /마법/.test(await text('#s-char .c7-hdet .c7-hchips')) && /질병/.test(await text('#s-char .c7-hdet .c7-hchips')), '양피지 상세 = 해제 칩 2개 (마법·질병)');
   await page.click('#s-char [data-hsk="priest"]'); await page.clock.runFor(50);
   ok(/수호 영혼/.test(await text('#s-char .c7-hdet .c7-pas')) && /상징/.test(await text('#s-char .c7-hdet .c7-pas')), '「스킬 · 패시브 ▾」 = 펼침');
-  ok(/퀘스트 0\/1/.test(await text('#s-char [data-hcard="druid"]')), '드루이드 깃발 = 퀘스트 0/1');
-  await page.click('#s-char [data-hcard="druid"]'); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-char .c7-hc.sel[data-hcard="druid"]') && /숲의 부름/.test(await text('#s-char .c7-hdet[data-hdet="druid"] .hq')) && /0 \/ 1/.test(await text('#s-char .c7-hdet .hq')) && /바꾸고 퀘스트/.test(await text('#s-char [data-hero="druid"]')), '드루이드 깃발을 누르면 상세: 직업 퀘스트 0 / 1, 「드루이드로 바꾸고 퀘스트」');
-  ok(await page.isVisible('#s-char .c7-hc.locked[data-hcard="paladin"]') && /Lv 20/.test(await text('#s-char [data-hcard="paladin"]')) && (await page.locator('#s-char [data-hcard="paladin"] .c7-lkic').count()) === 1, '성기사 깃발: Lv 20 잠김 + 자물쇠');
+  ok(await page.isVisible('#s-char .c7-hc.locked[data-hcard="druid"]') && await page.isVisible('#s-char .c7-hc.locked[data-hcard="paladin"]') && (await page.locator('#s-char [data-hero]:not([disabled])').count()) === 0 && !/퀘스트/.test(await text('#s-char .c7-bnrs')), '드루이드 · 성기사 깃발 = 잠김 (직업 퀘스트 없음)');
   await page.click('#s-char [data-hcard="paladin"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-char [data-hero="paladin"]').count()) === 0 && await page.isDisabled('#s-char .c7-hcta') && /첫 맹세/.test(await text('#s-char .c7-hcta')), '성기사 상세: 바꾸기 없음, 잠긴 버튼에 해금 방법');
+  ok((await page.locator('#s-char [data-hero="paladin"]').count()) === 0 && await page.isDisabled('#s-char .c7-hcta') && /캐릭터 칸/.test(await text('#s-char .c7-hcta')), '성기사 상세: 바꾸기 없음, 잠긴 버튼 = 상점에서 캐릭터 칸을 사서 만들기');
   ok(/곧 열림/.test(await text('#s-char .c7-soon')) && /주술사/.test(await text('#s-char .c7-soon')) && (await page.locator('#s-char .c7-upc .emblem').count()) === 4, '「곧 열림」 업데이트 직업 4종 문장');
-  await page.click('#s-char [data-hcard="druid"]'); await page.clock.runFor(50);
   await page.screenshot({ path: `${shots}/heroes_list.png` });
+
+  // ---- 드루이드 캐릭터가 있는 저장 (칸 2, 쉬는 캐릭터 = healer.char.2) → 바꾸기 ----
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('healer.save'));
+    s.roster.slots = 2; s.roster.next = 3;
+    s.roster.chars.push({ id: 2, hero: 'druid', name: '드루이드', level: 1, at: 1 });
+    localStorage.setItem('healer.save', JSON.stringify(s));
+    const d = JSON.parse(JSON.stringify(s));
+    delete d.roster;
+    Object.assign(d, {
+      hero: 'druid', heroes: { druid: { layout: null, tapKey: 'heal', unlocked: true, quest: 0, wins: 0 } }, player: { level: 1, xp: 0, gold: 0 },
+      gear: { equipped: {}, bag: [], seen: 0, codex: [], dex: [], dexPaid: 0 }, settings: { ...s.settings, layout: null, tapKey: 'heal' }, clears: {},
+    });
+    localStorage.setItem('healer.char.2', JSON.stringify(d));
+  });
+  await page.reload(); await page.clock.runFor(300); await pastTitle(page);
+  await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
+  await page.click('#s-char nav [data-csub="hero"]'); await page.clock.runFor(50);
+  ok(!(await page.isVisible('#s-char .c7-hc.locked[data-hcard="druid"]')) && /Lv 1/.test(await text('#s-char [data-hcard="druid"]')) && await page.isVisible('#s-char .c7-hc.locked[data-hcard="paladin"]'), '드루이드 캐릭터 깃발 = Lv 1 (성기사는 그대로 잠김)');
+  await page.click('#s-char [data-hcard="druid"]'); await page.clock.runFor(50);
+  ok(/드루이드로 바꾸기/.test(await text('#s-char [data-hero="druid"]')), '드루이드 상세: 「드루이드로 바꾸기」');
+  await page.click('#s-char [data-hcard="druid"]'); await page.clock.runFor(50);
+  await page.screenshot({ path: `${shots}/heroes_druid_card.png` });
 
   // ---- 드루이드로 바꾸기 ----
   await page.click('#s-char [data-hero="druid"]'); await page.clock.runFor(50);
   ok((await save()).hero === 'druid' && /드루이드/.test(await text('#s-char .topbar .tb-cls')) && await page.isVisible('#s-char .c7-hc.now[data-hcard="druid"]'), '드루이드로 바꿈 → 저장, 위 줄·지금 직업 깃발');
-  const sv = await save();
-  ok(sv.player.level === 1 && sv.heroes.priest.level === 10 && /지금 Lv 1/.test(await text('#s-char [data-hcard="druid"]')) && /Lv 10/.test(await text('#s-char [data-hcard="priest"]')) && !/따라잡기/.test(await text('#s-char .c7-hdet[data-hdet="druid"]')), `직업별 레벨: 드루이드는 Lv 1부터, 사제 깃발 Lv 10, 따라잡기 안내 없음 (${sv.player.level} / ${sv.heroes.priest?.level})`);
+  const sv = await save(), pr = await page.evaluate(() => JSON.parse(localStorage.getItem('healer.char.1'))), left2 = await page.evaluate(() => localStorage.getItem('healer.char.2'));
+  ok(sv.player.level === 1 && pr?.player.level === 10 && pr?.hero === 'priest' && !left2 && /지금 Lv 1/.test(await text('#s-char [data-hcard="druid"]')) && /Lv 10/.test(await text('#s-char [data-hcard="priest"]')), `캐릭터마다 레벨: 드루이드 Lv 1, 쉬는 사제 캐릭터는 따로 키에 Lv 10, 드루이드 키는 지움 (${sv.player.level} / ${pr?.player.level})`);
   ok((await page.locator('#s-char .c7-hdet[data-hdet="druid"] .dsp').count()) === 3 && (await page.locator('#s-char [data-hero]').count()) === 0, '드루이드 상세 해제 칩 3개 (마법·저주·독), 지금 직업이라 바꾸기 버튼 없음');
   await page.click('#s-char nav [data-csub="gear"]'); await page.clock.runFor(50);
   ok(/드루이드/.test(await page.getAttribute('#s-char .topbar .tb-em .emblem', 'aria-label')) && /드루이드/.test(await text('#s-char .topbar .tb-cls')) && (await page.locator('#s-char .c7-mid .c7-stat').count()) === 6, '장비 위 줄 직업 문장·이름 = 드루이드, 중앙 능력치 6줄 유지');
