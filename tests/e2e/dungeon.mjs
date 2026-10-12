@@ -79,7 +79,8 @@ export default async function dungeon(url, shots) {
   const cls0 = await page.evaluate(() => [...document.querySelectorAll('#s-party .pcard')].map(c => c.dataset.cls));
   ok(cls0.every(Boolean) && new Set(cls0).size === 4, `파티원마다 직업, 5인은 같은 직업 없음 (${cls0})`);
   await page.click('#s-party .pcard:first-child'); await page.clock.runFor(50);
-  ok(/단단한 몸|신성한 갑옷/.test(await page.textContent('#s-party .f-msheet')) && (await page.locator('#s-party .f-hex.on').count()) === 1, '탱커 줄을 누르면 상세 시트 (직업 패시브) + 위치판 칸 빛남');
+  const msheet = await page.textContent('#s-party .f-msheet');
+  ok(/다루기 난이도/.test(msheet) && !/단단한 몸|신성한 갑옷/.test(msheet) && (await page.locator('#s-party .f-hex.on').count()) === 1, '탱커 줄을 누르면 상세 시트 (성격, 직업 패시브 없음 69) + 위치판 칸 빛남');
   await page.click('#s-party .f-msheet [data-shut]'); await page.clock.runFor(50);
   const nicks = () => page.evaluate(() => [...document.querySelectorAll('#s-party .pcard .pnick')].map(b => b.textContent).join());
   const before = await nicks(), goldBefore = (await save()).player.gold;
@@ -106,13 +107,13 @@ export default async function dungeon(url, shots) {
   ok(await page.evaluate(() => window.__proto.F.party.filter(u => !u.me).map(u => u.nick).join()) === party0, '편성 화면의 파티 그대로');
   const clsNow = await page.evaluate(() => [...document.querySelectorAll('#s-party .pcard')].map(c => c.dataset.cls).join());
   ok(await page.evaluate(() => window.__proto.F.party.filter(u => !u.me).map(u => u.cls).join()) === clsNow, `전투 파티원 직업 = 편성 화면 (${clsNow})`);
-  // 칸을 길게 누르면 직업·패시브
+  // 칸을 길게 누르면 직업 · 성격 (직업 패시브는 69에서 뺌)
   const bb = await page.locator('#board').boundingBox();
   const tankAt = await page.evaluate(() => { const ui = window.__proto; const t = ui.F.party.find(u => u.role === 'tank'); return ui.center(t.cell); });
   await page.mouse.move(bb.x + tankAt.x, bb.y + tankAt.y); await page.mouse.down(); await page.clock.runFor(600);
   const pv = await page.textContent('#preview');
   await page.mouse.up(); await page.clock.runFor(50);
-  ok(/(전사|수호기사) · 탱커/.test(pv) && /(단단한 몸|신성한 갑옷)/.test(pv), `길게 누르면 직업·패시브 (${pv.slice(0, 40)})`);
+  ok(/(전사|수호기사) · 탱커/.test(pv) && !/(단단한 몸|신성한 갑옷)/.test(pv), `길게 누르면 직업, 패시브 없음 (${pv.slice(0, 40)})`);
   // Lv 1 = 치유·순간 치유만 (06 7장). 나머지 휠 칸은 잠금, 성언 게이지 숨김
   const locked = await page.evaluate(() => [...document.querySelectorAll('#wheel .slot.locked')].map(b => b.dataset.lock).sort().join());
   ok(locked === 'guardian,hymn,poh,purify,relay,renew', `Lv 1 휠: 안 배운 스킬 잠금 (${locked})`);

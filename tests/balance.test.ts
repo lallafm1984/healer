@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { contentOf } from '../src/data/content';
 import { TUNE } from '../src/data/tune';
 import * as E from '../src/engine';
-import { applyRows, BUSY, findDmg, placeTune, renderTune, rewriteTuneFile, runOnce, standard, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
+import { applyRows, BUSY, closeIn, findDmg, placeTune, renderTune, rewriteTuneFile, runOnce, standard, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
 
 describe('배율 찾기', () => {
   it('클리어율이 배율에 따라 줄면 목표에 맞는 배율을 찾음', () => {
@@ -12,6 +12,13 @@ describe('배율 찾기', () => {
     const r = findDmg(rate, 85);
     expect(r.dmg).toBeCloseTo(1.375, 1);
     expect(Math.abs(r.rate - 85)).toBeLessThanOrEqual(1);
+  });
+  it('쉬움 · 보통은 찾은 값과 지금 배율 사이를 좁혀 아래 선을 지키는 가장 큰 배율 (첫 가운데 값에서 멈추지 않음)', () => {
+    const rate = (m: number) => (m <= 0.9 ? 100 : 90);
+    expect(findDmg(rate, TARGET['쉬움'].aim, 0.4, 1).dmg).toBeCloseTo(0.63);
+    const got = closeIn(rate, '쉬움', 0.63, 1);
+    expect(got).toBeGreaterThan(0.85);
+    expect(got).toBeLessThanOrEqual(0.9);
   });
   it('너무 쉬우면 배율을 올리고, 범위 끝에 닿으면 가장 가까운 값', () => {
     expect(findDmg(m => (m < 2 ? 100 : 80), 85).dmg).toBeGreaterThanOrEqual(2);

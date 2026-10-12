@@ -6,7 +6,7 @@
  *  아래 리넨 목표표 + 붉은 「출전」은 바깥 하단을 맞추며, 로비 패스 바로가기는 두지 않는다.
  * 받기·열기는 그 자리에서. 튜토리얼 중엔 다음 목표 + 출전 + 안내만.
  */
-import { CONTENT, contentOf, type ContentKey } from '../data/content';
+import { CONTENT, contentOf, RAID10_LV, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { ITEM_GRADES, RECOMMENDED, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
@@ -82,7 +82,7 @@ const trkHead = () => `<span class="trk-h">${gameIcon('a2-goal-book-r6', uiIcon(
  * 권장 파티 전투력 줄은 17 9-3 식이 정해지면 추가
  */
 const GATES: { lv: number; from: number; name: string; grade: ItemGrade }[] = [
-  { lv: 35, from: 25, name: '심연의 탑', grade: '희귀' },
+  { lv: RAID10_LV, from: RAID10_LV - 10, name: '심연의 탑', grade: '희귀' }, // 10인 열림은 레벨표를 따라감 (69)
   { lv: 70, from: 55, name: '가라앉은 대성당', grade: '영웅' },
 ];
 /** 레이드 문 시기면 목표 칸 = 체크 목록. 누르면 아직 안 된 첫 줄의 화면 (길드·캐릭터) */

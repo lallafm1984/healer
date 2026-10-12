@@ -172,7 +172,7 @@ export default async function lobbyA2(url, shots) {
           await page.screenshot({ path: `${shots}/lobby_a2_last_run.png` });
           // 「다시」 소켓은 뺐다 (Lim 2026-10-12): 지난 판이 있어도 없고, 지난 판은 「출전」이 이어 간다
           ok(await page.locator('#lbAgain, #s-lobby .lb-again').count() === 0, '지난 판 있어도 「다시」 소켓 없음 (출전이 지난 판으로)');
-          for (const [level, title, target] of [[30, '심연의 탑', '35'], [60, '가라앉은 대성당', '70']]) {
+          for (const [level, title, target] of [[40, '심연의 탑', '45'], [60, '가라앉은 대성당', '70']]) {
             await patch(page, () => {
               const s = JSON.parse(localStorage.getItem('healer.save'));
               s.last = null; localStorage.setItem('healer.save', JSON.stringify(s));
