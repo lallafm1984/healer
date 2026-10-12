@@ -343,25 +343,33 @@ class Village {
     }
   }
 
-  /** 한 무리가 약 21초에 화면을 횡단하고 26초마다 다시. 다음 순환에서는 반대 방향의 먼 계곡 경로를 쓴다. */
+  /** 먼 새 한 마리가 birdCross초에 하늘을 횡단하고 birdCycle초마다 다시. 다음 순환에서는 반대 방향으로 조금 더 높고 작게 (더 먼 하늘).
+   *  예전 먼 계곡 경로는 이 크기에선 마을 그림에 묻혀 안 보여 하늘만 쓴다. */
   private poseBird(object: Sprite, layer: Layer, t: number): void {
     const elapsed = t + 6 - (layer.flightDelay || 0), pass = Math.floor(elapsed / VILLAGE.birdCycle);
-    const progress = mod(elapsed, VILLAGE.birdCycle) / VILLAGE.birdCross, valley = mod(pass, 2) === 1;
+    const progress = mod(elapsed, VILLAGE.birdCycle) / VILLAGE.birdCross, back = mod(pass, 2) === 1;
     object.visible = progress <= 1;
     if (!object.visible) return;
-    const direction = valley ? -1 : 1, across = -60 + progress * (VILLAGE.width + 120);
-    object.x = valley ? VILLAGE.width - across : across;
-    object.y = layer.y + (valley ? 168 : 0) - Math.sin(progress * Math.PI) * (valley ? 24 : 32)
-      + Math.sin(progress * Math.PI * 2 + layer.phase * 0.15) * 5;
-    object.alpha = layer.alpha * smoothstep(0, 0.08, progress) * (1 - smoothstep(0.9, 1, progress));
-    const up = Math.sin(t * (12.4 + layer.phase * 0.12) + layer.phase) > 0;
+    // 날갯짓: flaps번 치는 동안 조금 오르고, 날개 편 채 미끄러지며 천천히 내려온다.
+    // 한 번 칠 때 올림 (up) → 펼침 (mid) → 내림 (mid를 납작하게) → 펼침. 두 장을 쉬지 않고 번갈면 깜빡이듯 어색했다 (Lim 2026-10-12).
+    const beat = VILLAGE.birdFlap, flapTime = beat.flaps / beat.rate, local = mod(t + layer.phase, beat.period);
+    const flapping = local < flapTime, stroke = flapping ? mod(local * beat.rate, 1) : 0;
+    const up = flapping && stroke < 0.32, down = flapping && stroke >= 0.56 && stroke < 0.84;
+    const lift = flapping ? smoothstep(0, 1, local / flapTime) : 1 - smoothstep(0, 1, (local - flapTime) / (beat.period - flapTime));
+    const direction = back ? -1 : 1, across = -40 + progress * (VILLAGE.width + 80), far = back ? 0.85 : 1;
+    object.x = back ? VILLAGE.width - across : across;
+    object.y = layer.y - (back ? 16 : 0) - Math.sin(progress * Math.PI) * (back ? 10 : 16)
+      + Math.sin(progress * Math.PI * 2 + layer.phase) * 3 - lift * 2.4 * far;
+    object.alpha = layer.alpha * (back ? 0.92 : 1) * smoothstep(0, 0.06, progress) * (1 - smoothstep(0.92, 1, progress));
     const texture = this.birdFrames[up ? 1 : 0];
     if (object.texture !== texture) object.texture = texture;
     // 원본 전체 텍스처 사용: alpha 여백을 포함해 배율만 보정하고 두 자세의 몸통을 같은 점에 둔다.
-    const scale = layer.width / (up ? 207 : 225);
+    const scale = layer.width * far / (up ? 207 : 225);
     object.anchor.set(0.47, up ? 0.7 : 0.62);
-    object.scale.set(-direction * scale, scale);
-    object.rotation = direction * (Math.cos(progress * Math.PI) * -0.045 + Math.sin(t * 1.7 + layer.phase) * 0.018);
+    object.scale.set(-direction * scale, scale * (down ? 0.62 : flapping ? 1 : 0.9));
+    // 칠 때는 머리를 살짝 들고, 활공하며 내려올 때는 살짝 숙임 (치기 시작·끝에서 0이라 끊기지 않음)
+    const tilt = flapping ? -0.04 * Math.sin(Math.PI * local / flapTime) : 0.06 * Math.sin(Math.PI * (local - flapTime) / (beat.period - flapTime));
+    object.rotation = direction * tilt;
   }
 
   /** 측면 나무에서 나온 잎. 반복 위치는 alpha=0에서만 되감아 나타남/사라짐이 튀지 않는다. */

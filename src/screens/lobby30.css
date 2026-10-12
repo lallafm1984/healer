@@ -18,7 +18,6 @@ body.tabs-on #s-lobby .lb30, #s-lobby .lb30 { position: relative; z-index: 0; di
 .lb-side { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 .lb-left { flex: none; align-items: center; }
 .lb-right { flex: 0 1 auto; min-width: 0; align-items: flex-end; }
-.lb-fill { flex: 1 1 auto; }
 
 /* 원형 소켓 (전투 스킬 칸과 같은 spell-socket). 이름·상태 글은 전투 스킬 이름과 같은 검은 외곽선. */
 .lb-sc { position: relative; flex: none; pointer-events: auto; }
