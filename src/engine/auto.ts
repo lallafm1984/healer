@@ -317,7 +317,7 @@ function dispelRank(g: Gim, u: Unit, ok: (d: Debuff) => boolean): number {
   if (ds.some(d => d.noDps) && ((g.adds && (u.role === 'melee' || u.role === 'ranged')) || (g.counter && cutter(u)))) return 1;
   return 2;
 }
-/** 자동 힐러가 마지막으로 해제한 때 (f.stats 트랩 말고 해제 수가 바뀐 시각) */
+/** 자동 힐러가 마지막으로 해제한 때 (함정이 아닌 해제 수 f.stats.dispels가 바뀐 시각) */
 const lastDispel = new WeakMap<Fight, { n: number; t: number }>();
 const noteDispel = (f: Fight) => {
   const l = lastDispel.get(f);
