@@ -160,7 +160,7 @@ export default async function legacyUi(url, shots) {
   await toParty(page, { content: 'cathedral1', tab: 'raid20', diff: '악몽' });
   ok(await page.locator('#s-content').getAttribute('data-selected-content') === 'cathedral1'
     && await page.locator('#s-content [data-ctab="raid20"]').getAttribute('aria-selected') === 'true'
-    && await page.locator('#s-content .b-place-modal').count() === 0, '20인 장소 대성당 선택이 편성까지 유지·장소 선택 팝업 자동 닫힘');
+    && await page.locator('#s-content .b-place-modal').count() === 0, '20인 장소 대성당 선택이 편성까지 유지·장소 팝업 없음');
   await page.click('#guideOpen'); await page.clock.runFor(50);
   ok(/20인/.test(await page.textContent('#s-party .f-gsheet .f-gh')) && /악몽 전용 기술/.test(await page.textContent('#s-party .f-gsheet .f-dnote')), '20인 악몽: 공략 시트에 인원 20, 악몽 안내');
   await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);

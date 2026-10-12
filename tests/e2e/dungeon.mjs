@@ -1,6 +1,6 @@
 // 던전 흐름 (23·24): 로비 → 콘텐츠 → 난이도 → 편성 → 잡몹 구간 → 휴식 → … → 정산 → 보상 → 레벨 업. 구간은 적 체력을 깎아 빨리 넘긴다
 import { chromium } from 'playwright';
-import { chooseContent, killEnemies, pastTitle, pickedItems, toParty } from './nav.mjs';
+import { chooseContent, killEnemies, pastTitle, pickedItems, rowContentKeys, toParty } from './nav.mjs';
 
 export default async function dungeon(url, shots) {
   const browser = await chromium.launch();
@@ -41,12 +41,12 @@ export default async function dungeon(url, shots) {
   ok((await page.locator('#s-content .b-reward-chance').count()) === 0, 'Esc = 확률 팝오버 닫힘');
   // 묶음 B (46)로 던전 ⑧~⑩까지 모두 만듦: 준비 중 칸이 없고, 맨 끝 역병 수로도 관문에서 출전 가능
   await chooseContent(page, 'sewer');
-  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'sewer' && /역병 수로/.test(await page.textContent('#s-content .b-gate')) && !/준비 중/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo') && await page.locator('#s-content .b-place-modal').count() === 0, '왕도 지역 던전은 준비 중 칸 없음, 역병 수로도 출전 가능');
+  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'sewer' && /역병 수로/.test(await page.textContent('#s-content .b-gate')) && !/준비 중/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo'), '왕도 지역 던전은 준비 중 칸 없음, 역병 수로도 출전 가능');
   await chooseContent(page, 'crypt');
   await page.click('#s-content [aria-label="다음 장소"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'greenhouse' && await page.getAttribute('#s-content [data-region="capital"]', 'aria-pressed') === 'true', '› = 왕도 지역의 다음 장소 (역병 약초 온실)');
+  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'greenhouse' && await page.getAttribute('#s-content .b-regions [data-content="greenhouse"]', 'aria-pressed') === 'true', '› = 장소 줄의 다음 장소 (역병 약초 온실)');
   await page.click('#s-content [aria-label="이전 장소"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'crypt' && !(await page.locator('#s-content [data-content="mine"]').count()), '‹ = 왕도 지역의 이전 장소 (역병 지하묘지), 다른 지역 장소는 목록에 없음');
+  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'crypt' && (await rowContentKeys(page)).slice(0, 4).join() === 'rustfort,mine,crypt,greenhouse', '‹ = 장소 줄의 이전 장소 (역병 지하묘지), 다른 지역 장소도 한 줄에 레벨 순');
 
   // ---- 출전 → 바로 편성 (2026-10-08 입장 화면을 편성에 합침) ----
   await toParty(page);

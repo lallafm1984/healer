@@ -2,7 +2,7 @@ import adventureDeparture from './adventure-departure.mjs';
 import adventureNoScroll from './adventure-no-scroll.mjs';
 import adventureWeekly from './adventure-weekly.mjs';
 import adventureRewards from './adventure-rewards.mjs';
-import adventureProgress from './adventure-progress.mjs';
+import adventurePlaceRow from './adventure-place-row.mjs';
 import headerConsistency from './header-consistency.mjs';
 import partyRefinement from './party-refinement.mjs';
 // 화면 테스트 묶음 목록 (scripts/e2e.mjs가 차례로 돌림). CI는 러너 여러 대에 나눠 동시에 돌린다 (E2E_SHARD=2/6 → 6몫 중 2번째)
@@ -45,11 +45,11 @@ import floatSteady from './float-steady.mjs';
 export const SUITES = [
   ['공통 메뉴 헤더 크기', headerConsistency, 30],
   ['편성 네 단축칸·직업·출발 UI', partyRefinement, 30],
-  ['출전 지역 선택 UI', adventureDeparture, 25],
+  ['출전 장소 선택 UI', adventureDeparture, 25],
   ['출전 세로 스크롤 없음 (S25·Flip·Fold)', adventureNoScroll, 45],
   ['출전 주간 도전 배치·복귀', adventureWeekly, 15],
   ['출전 장면 보상·확률·이동', adventureRewards, 25],
-  ['출전 장소별 난이도 진행도', adventureProgress, 15],
+  ['출전 장소 줄 레벨 순·잠김 숨김', adventurePlaceRow, 20], // 어림 (폰 넷 × 저장 다섯)
   ['세로 UI·이미지', portrait, 79],
   ['로비 생동감·입력·수명', lobbyLiving, 30], // 어림 (아직 CI 기록 없음)
   ['A2 로비 UI·기능·안전영역', lobbyA2, 30], // 어림 (아직 CI 기록 없음)

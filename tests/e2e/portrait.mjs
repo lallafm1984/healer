@@ -1,8 +1,7 @@
 // 세로 UI 회귀: 그림 로드 (캐릭터 그림 없음, 장소·메뉴 그림은 28), 고정 출발 버튼, 좁은 메뉴, 20인/특성/전멸 배치.
 import { chromium } from 'playwright';
-import { chooseContent, pastTitle, toParty } from './nav.mjs';
+import { chooseContent, pastTitle, rowContentKeys, toParty } from './nav.mjs';
 import { equipmentLayout } from './character.mjs';
-import { modalContentKeys } from './place-modal.mjs';
 
 export default async function portrait(url, shots) {
   const browser = await chromium.launch();
@@ -155,7 +154,7 @@ export default async function portrait(url, shots) {
     ok(await bgLoaded('#s-shop .shop-hero', '::before'), `${width}: 상점 선반 그림`);
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_shop_${width}.png` });
     await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(80);
-    ok(await loaded('#s-content .b-gate img') && await page.locator('#s-content .b-region').count() >= 2 && await noOverflow('#s-content .b-body'), `${width}: 전투 탭 풍경 미리보기 + 지역 카드, 가로 넘침 없음`);
+    ok(await loaded('#s-content .b-gate img') && await page.locator('#s-content .b-region').count() >= 2 && await noOverflow('#s-content .b-body'), `${width}: 전투 탭 풍경 미리보기 + 장소 카드, 가로 넘침 없음`);
     ok(await bgLoaded('#s-content .b-cats') && await bgLoaded('#s-content .b-cat[aria-selected="true"]') && await bgLoaded('#s-content .b-cat[aria-selected="false"]'), `${width}: 분류 뒤 배경 + 활성·비활성 공용 탭 재질 로드`);
     // 로비 첨탑 이름표 → 전투 탭 10인 레이드
     await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(80);
@@ -164,22 +163,14 @@ export default async function portrait(url, shots) {
     // 분류 = 탐험 · 던전 · 10인 레이드 · 20인 레이드 (2026-10-09 이벤트 탭 뺌). 레이드 탭엔 그 인원 레이드만
     const cats = await page.evaluate(() => [...document.querySelectorAll('#s-content [data-ctab]')].map(b => `${b.dataset.ctab}:${b.getAttribute('aria-label')}`).join());
     ok(/^explore:탐험[^,]*,dungeon:던전[^,]*,raid10:10인 레이드[^,]*,raid20:20인 레이드[^,]*$/.test(cats) && !/이벤트/.test(await page.textContent('#s-content .b-cats')), `${width}: 분류 4칸 = 탐험·던전·10인 레이드·20인 레이드, 이벤트 없음 (${cats})`);
-    // 관문은 분류가 바뀌어도 같은 자리·같은 크기. 레이드 장소는 모든 지역을 순회해 확인한다.
+    // 관문은 분류가 바뀌어도 같은 자리·같은 크기. 레이드 장소는 장소 줄에서 확인한다 (개발 빌드라 레벨 잠금 없이 전부).
     const gates = [], raids = {};
     for (const t of ['explore', 'raid10', 'raid20', 'dungeon']) {
       await page.click(`#s-content [data-ctab="${t}"]`); await page.clock.runFor(60);
       await page.locator('#s-content .b-body').evaluate(el => { el.scrollTop = 0; });
       const b = await page.locator('#s-content .b-gate').boundingBox();
       gates.push(b);
-      if (t.startsWith('raid')) {
-        const regions = await page.locator('#s-content [data-region]').evaluateAll(buttons => buttons.map(button => button.dataset.region));
-        raids[t] = [];
-        for (const region of regions) {
-          await page.click(`#s-content [data-region="${region}"]`); await page.clock.runFor(50);
-          raids[t].push(...await modalContentKeys(page));
-          await page.keyboard.press('Escape');
-        }
-      }
+      if (t.startsWith('raid')) raids[t] = await rowContentKeys(page);
     }
     ok(gates.every(b=>b && b.height>0 && b.y>=0 && b.y+b.height<=height), `${width}: 네 분류 모두 풍경이 화면 안에 표시`);
     const sections = prefixes => prefixes.flatMap(prefix => [1, 2, 3].map(n => `${prefix}${n}`));
@@ -187,39 +178,33 @@ export default async function portrait(url, shots) {
       raid10: [...[1, 2, 3, 4, 5].map(n => `abyss${n}`), ...sections(['gull', 'queen', 'isle', 'fest', 'cave', 'palace', 'den', 'nest', 'bazaar', 'dusk', 'pyramid', 'post', 'fort', 'maze'])],
       raid20: [...[1, 2, 3, 4].map(n => `cathedral${n}`), ...sections(['abbey', 'rootwood', 'reservoir', 'well', 'crystal', 'shadow', 'camp', 'coast', 'heart'])],
     };
-    ok(Object.keys(expectedRaids).every(tab=>JSON.stringify([...raids[tab]].sort())===JSON.stringify([...expectedRaids[tab]].sort())), `${width}: 지역·시설 팝업을 모두 돌아도 10인 47곳·20인 31곳이 빠짐없이 표시`);
+    ok(Object.keys(expectedRaids).every(tab=>JSON.stringify([...raids[tab]].sort())===JSON.stringify([...expectedRaids[tab]].sort())), `${width}: 장소 줄에 10인 47곳·20인 31곳이 빠짐없이 표시`);
     await chooseContent(page, 'rustfort');
-    await page.click('#s-content [data-current-places]');
     const selection = await page.evaluate(() => {
       const rect = el => { const r = el.getBoundingClientRect(); return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height }; };
-      const grid = document.querySelector('#s-content .b-plr'), regionRow = document.querySelector('#s-content .b-regions');
-      const cards = [...grid.querySelectorAll('.b-pl')];
+      const row = document.querySelector('#s-content .b-regions'), cards = [...row.querySelectorAll('.b-region')];
       const gate = document.querySelector('#s-content .b-gate'), level = gate.querySelector('.b-level'), name = gate.querySelector('.b-gt');
       return {
-        columns: getComputedStyle(grid).gridTemplateColumns.split(/\s+/).length,
-        grid: rect(grid), cards: cards.map(rect), noOverflow: grid.scrollWidth <= grid.clientWidth + 1,
-        region: rect(regionRow), regionCards: [...regionRow.querySelectorAll('.b-region')].map(rect),
-        selectedRegion: regionRow.querySelector('.b-region.on')?.dataset.region,
-        places: cards.map(c => c.dataset.content), gate: rect(gate), level: rect(level), name: rect(name),
+        row: rect(row), cards: cards.map(rect), selected: row.querySelector('.b-region.on')?.dataset.content,
+        places: cards.map(c => c.dataset.content), lvs: cards.map(c => Number(c.querySelector('small').textContent.replace(/\D/g, ''))),
+        modal: !!document.querySelector('#s-content .b-place-modal, #s-content [data-current-places], #s-content [data-region]'),
+        gate: rect(gate), level: rect(level), name: rect(name),
         levelLabel: level.getAttribute('aria-label'), levelFont: parseFloat(getComputedStyle(level.querySelector('strong')).fontSize),
         arrow: getComputedStyle(document.querySelector('#s-content .b-cat[aria-selected="true"]'), '::after').content,
         chal: !!document.querySelector('#s-content > .b-body > .b-chal'),
       };
     });
-    ok(selection.columns === 2 && selection.noOverflow && selection.cards.length === 2
-      && Math.abs(selection.cards[0].top - selection.cards[1].top) <= 1 && selection.cards.every(r => r.height >= 44 && r.left >= selection.grid.left - 1 && r.right <= selection.grid.right + 1),
-      `${width}: 장소는 2열 카드, 44px 이상·가로 넘침 없음`);
-    ok(selection.selectedRegion === 'rust' && selection.places.join() === 'rustfort,mine'
-      && selection.regionCards.every(r => r.width >= 44 && r.height >= 44) && selection.region.left >= 0 && selection.region.right <= width + 1,
-      `${width}: 선택한 녹슨 고원에 요새·광산만 표시, 지역 터치 영역과 가로 경계 정상`);
+    ok(selection.selected === 'rustfort' && selection.places.slice(0, 2).join() === 'rustfort,mine' && !selection.modal
+      && selection.lvs.every((lv, i) => i === 0 || selection.lvs[i - 1] <= lv)
+      && selection.cards.every(r => r.width >= 44 && r.height >= 44) && selection.row.left >= 0 && selection.row.right <= width + 1,
+      `${width}: 던전 장소 줄 = 녹슨 요새·광산부터 레벨 순, 팝업·지역 단계 없음, 카드 터치 영역과 가로 경계 정상`);
     const levelApart = selection.level.left >= selection.name.right || selection.level.right <= selection.name.left
       || selection.level.bottom <= selection.name.top || selection.level.top >= selection.name.bottom;
     ok(selection.levelLabel === '권장 레벨 5' && selection.levelFont >= (height <= 760 ? 22 : 24) && selection.gate.height > 0
       && levelApart && selection.level.right <= selection.gate.right && selection.level.top >= selection.gate.top && selection.level.bottom <= selection.gate.bottom,
       `${width}: 작은 풍경 안 권장 레벨을 크게 표시, 장소명과 겹침 없음`);
     ok(['none', 'normal', '""'].includes(selection.arrow) && selection.chal, `${width}: 탭 선택 화살표 제거, 던전 주간 도전 버튼 유지`);
-    ok(await loaded('#s-content .b-region.on img') && await loaded('#s-content .b-place-thumb'), `${width}: 선택 지역 풍경·장소 썸네일 로드`);
-    await page.keyboard.press('Escape');
+    ok(await loaded('#s-content .b-region.on img'), `${width}: 고른 장소 카드 풍경 로드`);
     await page.locator('#s-content .b-body').evaluate(el => { el.scrollTop = 0; });
     const go = await page.locator('#contentGo').boundingBox(), tb = await page.locator('#tabs').boundingBox();
     ok(go.y + go.height <= tb.y + 1 && go.height >= 44, `${width}: 출전 버튼 항상 탭 위, 44px 이상`);
