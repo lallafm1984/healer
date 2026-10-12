@@ -7,6 +7,8 @@
  * 종탑의 종 레이어(chapel-bell)는 뺐다 (10 4장 「종에 관한 것은 모두 빼자」). 바탕 그림의 탑 창은 원래 비어 있다.
  * 2026-10-12 Lim 「여전히 정적인 느낌」: 폰 화면에선 마을이 0.42배로 줄어 흔들림이 1~2px였다. 흔들림 ×1.4, 구름 ×2, 새 무리 더 자주,
  * 그리고 큰 면이 움직이도록 ambience (구름 그림자 · 햇살 줄기 · 금빛 먼지 · 물 반짝임 · 굴뚝 연기 · 왼쪽에서 오는 돌풍과 날리는 잎)를 더했다.
+ * 2026-10-12 Lim 「날갯짓이 어색하다, 더 먼 곳에서 한 마리만」: 새 4마리 무리 → 먼 새 한 마리 (날개 모양이 읽히지 않는 크기, 먼 나무 뒤),
+ * 두 장을 쉬지 않고 번갈던 날갯짓 → 몇 번 치고 날개 편 채 미끄러지는 활공 (birdFlap).
  */
 export type VillageGroup = 'clouds' | 'foliage' | 'birds' | 'cloth' | 'water' | 'lights';
 export type Poly = readonly (readonly [number, number])[];
@@ -29,7 +31,7 @@ export interface VillageLayer {
   alpha?: number;
   rotation?: number;
   flipX?: boolean;
-  /** 새가 같은 무리에서 출발하는 시차 (초). phase는 날갯짓 위상에만 사용 */
+  /** 새가 출발하는 시차 (초). phase는 날갯짓 위상에만 사용 */
   flightDelay?: number;
   /** 이 다각형 안에만 보임 (구름 = 산·성 뒤) */
   clip?: Poly;
@@ -82,9 +84,11 @@ export const VILLAGE = {
   defaultWind: 35,
   cloudSpeedScale: 3.3,
   birdFrames: ['village-bird-mid', 'village-bird-up'],
-  /** 새 무리: birdCycle초마다 한 번 birdCross초에 걸쳐 가로지름 (하늘 → 먼 계곡 번갈아) */
-  birdCycle: 26,
-  birdCross: 21,
+  /** 먼 새 한 마리: birdCycle초마다 한 번 birdCross초에 걸쳐 하늘을 가로지름 (왼→오, 다음엔 조금 더 높이 오→왼) */
+  birdCycle: 36,
+  birdCross: 28,
+  /** 날갯짓: period초마다 초당 rate번으로 flaps번 치고, 나머지는 날개 편 채 활공 */
+  birdFlap: { period: 3.2, flaps: 3, rate: 3.4 },
   layers: [
     { id: 'cloud-distant-west', art: 'village-cloud-wide', group: 'clouds', motion: 'cloud', x: 67, y: 37, width: 184, height: 64, anchor: [0, 0], amplitude: 2.8, phase: 0.051, speed: 0.42, z: 0.1, alpha: 0.56, clip: CLIP_SKY },
     // Wisp는 전체 높이의 52.35%만 구름이다. 원본 픽셀을 자르지 않고 높이/시작점을 보정한다.
@@ -101,11 +105,8 @@ export const VILLAGE = {
     { id: 'tree-east-back', art: 'village-tree-pine', group: 'foliage', motion: 'branch', x: 375, y: 268, width: 122, height: 255, anchor: [0.47, 0.98], amplitude: 2.64, phase: 1.833, z: 7 },
     { id: 'tree-west-low', art: 'village-branch-canopy', group: 'foliage', motion: 'branch', x: -93, y: 470, width: 179, height: 159, anchor: [0.19, 0.96], amplitude: 5.52, phase: 4.233, z: 19, flipX: true },
     { id: 'tree-west-edge', art: 'village-branch-canopy', group: 'foliage', motion: 'branch', x: -103, y: 595, width: 161, height: 143, anchor: [0.19, 0.96], amplitude: 5.52, phase: 0.35, z: 20, flipX: true },
-    // width = alpha 외곽 기준 날개 폭. 같은 네 마리가 하늘/먼 계곡을 번갈아 횡단한다.
-    { id: 'bird-flock-lead', art: 'village-bird-mid', group: 'birds', motion: 'bird', x: 0, y: 92, width: 24, height: 23, anchor: [0.47, 0.62], phase: 0.2, flightDelay: 0, alpha: 0.84, z: 9 },
-    { id: 'bird-flock-high', art: 'village-bird-up', group: 'birds', motion: 'bird', x: 0, y: 73, width: 20, height: 24, anchor: [0.47, 0.7], phase: 1.8, flightDelay: 0.7, alpha: 0.75, z: 9 },
-    { id: 'bird-flock-low', art: 'village-bird-mid', group: 'birds', motion: 'bird', x: 0, y: 110, width: 22, height: 21, anchor: [0.47, 0.62], phase: 3.6, flightDelay: 1.25, alpha: 0.8, z: 9 },
-    { id: 'bird-flock-tail', art: 'village-bird-up', group: 'birds', motion: 'bird', x: 0, y: 89, width: 18, height: 22, anchor: [0.47, 0.7], phase: 5.1, flightDelay: 1.9, alpha: 0.7, z: 9 },
+    // width = alpha 외곽 기준 날개 폭. 먼 새 한 마리가 하늘을 번갈아 반대로 횡단한다 (z 4.5 = 구름 앞, 먼 나무 뒤).
+    { id: 'bird-far', art: 'village-bird-mid', group: 'birds', motion: 'bird', x: 0, y: 84, width: 12, height: 11, anchor: [0.47, 0.62], phase: 0.6, flightDelay: 0, alpha: 0.82, z: 4.5 },
     { id: 'flag-west', art: 'village-flag-front', group: 'cloth', motion: 'flag', x: 146, y: 481, width: 45, height: 113, anchor: [0.5, 0.035], pin: 'top', amplitude: 6.9, phase: 5.15, z: 24 },
     { id: 'flag-east', art: 'village-flag-angle', group: 'cloth', motion: 'flag', x: 363, y: 497, width: 38, height: 102, anchor: [0.5, 0.035], pin: 'top', amplitude: 6.3, phase: 1.267, z: 25 },
     { id: 'shop-awning', art: 'village-awning', group: 'cloth', motion: 'awning', x: 532, y: 757, width: 213, height: 106, anchor: [0.5, 0.07], pin: 'top', amplitude: 2.16, phase: 3.667, z: 27 },

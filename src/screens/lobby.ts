@@ -2,7 +2,7 @@
  * S02 로비 = 살아 있는 마을 + A2 목재·리넨 UI (2026-10-11 채택 시안). 캐릭터 그림 없음.
  * 위 정보창(공통 topBar) 아래 ~ 하단 탭 위의 마을 장면(village.ts)은 그대로 유지하고 UI만 겹친다:
  *  왼쪽 원형 소켓 = 임무 (받을 것 있으면 노란 「!」 = 한 번에 받기) · 주간 도전 · 일일 상자,
- *  오른쪽 황동 패널 = 첨탑 (10인 레이드) · 길드 회관 (길드를 빼 두면 없음) · 잡화점, 그 아래 원형 소켓 = 「다시」 (지난 판),
+ *  오른쪽 황동 패널 = 첨탑 (10인 레이드) · 길드 회관 (길드를 빼 두면 없음) · 잡화점. 「다시」 소켓은 뺐다 (Lim 2026-10-12, 지난 판은 「출전」이 이어 감),
  *  아래 리넨 목표표 + 붉은 「출전」은 바깥 하단을 맞추며, 로비 패스 바로가기는 두지 않는다.
  * 받기·열기는 그 자리에서. 튜토리얼 중엔 다음 목표 + 출전 + 안내만.
  */
@@ -27,8 +27,6 @@ import { gameIcon, uiIcon } from './art';
 import { gainText } from './shop';
 import { mountVillage } from './village';
 
-// 소켓 선 아이콘 (icon-replay 그림이 없을 때)
-const REPLAY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v5h5"/></svg>';
 /** A2에서 생성한 작은 황동 화살표. 문자를 도형 대신 사용하지 않는다. */
 const chevron = () => `<img class="lb-chevron" src="${art('a2-chevron')}" alt="" aria-hidden="true" decoding="async" draggable="false">`;
 
@@ -191,7 +189,7 @@ function shortcuts(): string {
   return `<nav class="lb-side lb-left" aria-label="마을 바로가기">${missions}${chal}${chest}</nav>`;
 }
 
-/** 오른쪽 황동 패널: 첨탑 = 10인 레이드, 길드 회관 (길드를 빼 두면 없음), 잡화점. 아래 「다시」 소켓 */
+/** 오른쪽 황동 패널: 첨탑 = 10인 레이드, 길드 회관 (길드를 빼 두면 없음), 잡화점 */
 function buildings(): string {
   const s = G.save;
   const raid = contentOf('abyss1'), raidLock = lockOf(raid).locked;
@@ -203,11 +201,7 @@ function buildings(): string {
     raidLock ? `10인 레이드 · Lv ${raid.unlockLv}에 열림` : `10인 레이드 · 열쇠 ${s.wallet.shards}/${SHARD_MAX}`)
     + (FEATURES.guild ? plate(`lb-guild${gOpen.ok ? '' : ' lock'}`, ' data-go="s-guild"', gameIcon('guild', uiIcon('guild'), 'tab'), '길드 회관', esc(gLine), gOpen.ok && apps ? `<i class="g-badge">${apps}</i>` : '') : '')
     + plate('lb-shop', ' data-go="s-shop" data-arg="gold"', gameIcon('shop', uiIcon('shop'), 'tab'), '잡화점', '골드 상점');
-  const last = s.last, lastC = last ? contentOf(last.content as ContentKey) : null;
-  const again = last && lastC
-    ? socket('lb-again', ` id="lbAgain" aria-label="다시 · ${esc(lastC.name)} ${esc(last.diff)}"`, gameIcon('replay', REPLAY_SVG), '다시', last.win ? esc(last.grade || '클리어') : esc(last.diff))
-    : '';
-  return `<div class="lb-side lb-right">${plates}${again ? `<span class="lb-fill"></span>${again}` : ''}</div>`;
+  return `<div class="lb-side lb-right">${plates}</div>`;
 }
 
 /** 아래 독립된 목표표 + 「출전」 (지난 판 → 안 깬 장소). 시즌 패스는 상점에만 둔다. */
@@ -249,7 +243,6 @@ s.el.addEventListener('click', e => {
   if (t.closest('#lobbyStart')) { toParty(dest()); return; }
   const gr = t.closest<HTMLElement>('[data-goal]');
   if (gr) { const g = goals()[Number(gr.dataset.goal)]; if (g?.to) toParty(g.to); return; }
-  if (t.closest('#lbAgain') && save.last) { toParty({ content: save.last.content as ContentKey, diff: save.last.diff }); return; }
   if (t.closest('#lbClaim')) {
     // 받을 수 있는 임무를 한 번에 (주간은 악몽 열쇠가 가득이면 남김)
     const got: string[] = [];

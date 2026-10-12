@@ -89,7 +89,7 @@ export default async function portrait(url, shots) {
       const items = g ? g.items : [];
       const outside = items.filter(b => !inside(b.rect)), overJourney = items.filter(b => !apart(b.rect, g.journey));
       const overEach = items.filter((b, i) => items.some((o, j) => j !== i && !apart(b.rect, o.rect)));
-      // 소켓 3개 (임무·주간 도전·일일 상자) + 패널 2개 (첨탑·잡화점). 길드 회관은 길드를 빼 두어 없음, 「다시」는 지난 판이 없어 없음
+      // 소켓 3개 (임무·주간 도전·일일 상자) + 패널 2개 (첨탑·잡화점). 길드 회관은 길드를 빼 두어 없음, 「다시」 소켓은 없음 (2026-10-12)
       ok(items.length === 5 && !outside.length && inside(g.journey), `${label}: 소켓 3개·패널 2개·목표 패널 모두 잘림 없이 장면 안`);
       ok(items.length === 5 && !overJourney.length && !overEach.length, `${label}: 소켓·패널끼리, 목표·출전 패널과 겹침 없음`);
       if (outside.length || overJourney.length || overEach.length) console.log(JSON.stringify({ label, outside, overJourney, overEach, world: g.world, journey: g.journey }));

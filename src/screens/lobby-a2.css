@@ -41,7 +41,6 @@
 #s-lobby .lb-side { gap: 8px; }
 #s-lobby .lb-left { margin-left: -2px; align-items: flex-start; }
 #s-lobby .lb-right { padding-top: 0; }
-#s-lobby .lb-fill { min-height: 8px; }
 
 /* 생성된 한 장의 소켓+리넨 라벨 안에서 아이콘과 실시간 글자를 배치한다. */
 #s-lobby .lb-sc .lb-main {
@@ -194,7 +193,6 @@ body:has(#s-lobby:not([hidden])) #tabs button:focus-visible { outline: 3px solid
   #s-lobby .lb-caption > b { font-size: 12px; }
   #s-lobby .lb-caption > small { font-size: 9px; }
   #s-lobby .lb-sock > .g-ic { width: 27px; height: 27px; }
-  #s-lobby .lb-fill { min-height: 0; }
   #s-lobby .lb-plate { height: 48px; min-height: 44px; }
   #s-lobby .lb-plate.lb-shop { padding-top: 5px; background-image: url('../art/a2-shop-sign-r6.png'); background-size: 102.103% 89.954%; background-position: 55% 50%; }
 #s-lobby .lb-plate.lb-raid { height: 60px; padding-top: 14px; }
