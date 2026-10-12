@@ -1,7 +1,7 @@
 // 첫 5분 튜토리얼 (02 11장, 09 4장, 34 5-2): 이야기 → 2인 첫 전투(탭 힐 안내) → Lv 2 소생 → 3인 탐험(소생·순간 치유 안내) → 첫 장비 = 끝
 // → Lv 5에 첫 던전 녹슨 요새 안내 → 쉬움 클리어. 탭은 튜토리얼 동안 잠금. 구간은 적 체력을 깎아 빨리 넘긴다
 import { chromium } from 'playwright';
-import { killEnemies } from './nav.mjs';
+import { chooseContent, killEnemies } from './nav.mjs';
 
 export default async function tutorial(url, shots) {
   const browser = await chromium.launch();
@@ -124,7 +124,10 @@ export default async function tutorial(url, shots) {
   await page.screenshot({ path: `${shots}/tut_lobby.png` });
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   await page.click('#s-content [data-ctab="explore"]'); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-content [data-content="plateau"]') && await page.isVisible('#s-content [data-content="cemetery"]') && !(await page.isVisible('#s-content [data-content="tutorial"]')), '탐험 탭: 녹슨 고원 · 잿빛 공동묘지 (첫 전투는 안 보임)');
+  await chooseContent(page, 'plateau');
+  ok(await page.getAttribute('#s-content [data-region="rust"]', 'aria-pressed') === 'true' && await page.getAttribute('#s-content', 'data-selected-content') === 'plateau' && !(await page.locator('#s-content [data-content="cemetery"], #s-content [data-content="tutorial"]').count()), '탐험 녹슨 고원 지역: 고원 장소만 표시, 첫 전투는 숨김');
+  await chooseContent(page, 'cemetery');
+  ok(await page.getAttribute('#s-content [data-region="capital"]', 'aria-pressed') === 'true' && await page.getAttribute('#s-content', 'data-selected-content') === 'cemetery' && !(await page.locator('#s-content [data-content="plateau"], #s-content [data-content="tutorial"]').count()), '탐험 왕도 지역: 잿빛 공동묘지 선택, 다른 지역·첫 전투는 숨김');
 
   // ---- Lv 5: 첫 던전 녹슨 요새 안내 (로비 · 전투 탭 · 편성) ----
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 5; s.player.xp = 0; localStorage.setItem('healer.save', JSON.stringify(s)); });
@@ -133,7 +136,7 @@ export default async function tutorial(url, shots) {
   ok(await page.isVisible('#s-lobby .coachtip') && /녹슨 요새/.test(await page.textContent('#s-lobby .coachtip')) && await page.isVisible('#lobbyStart.hi-pulse'), 'Lv 5 로비: 첫 던전 안내 + 「출전」 반짝임');
   // 전투 탭(모험 선택)에서도 녹슨 요새를 짚어 줌
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
-  ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true' && await page.getAttribute('#s-content [data-content="rustfort"]', 'aria-pressed') === 'true'
+  ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true' && await page.getAttribute('#s-content', 'data-selected-content') === 'rustfort'
     && await page.getAttribute('#s-content [data-diff="쉬움"]', 'aria-pressed') === 'true' && await page.isVisible('#contentGo.hi-pulse') && /녹슨 요새/.test(await page.textContent('#s-content .coachtip')), '전투 탭: 던전 5인 · 녹슨 요새 · 쉬움이 골라져 있고 안내 + 「출전」 반짝임');
   // 로비 「바로 출전」 = 녹슨 요새 편성으로 바로 (모험 선택 건너뜀, 입장 화면 없음)
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);

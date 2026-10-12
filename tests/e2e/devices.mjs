@@ -1,6 +1,6 @@
 // 대상 폰 크기 (2026-10-08 Lim): 갤럭시 S25 · S25 울트라 · Z 플립 펼침. 전투 탭 → 편성 → 시트 · 주간 도전 입장 · 결과 화면이 첫 화면에 다 들어오는지
 import { chromium } from 'playwright';
-import { pastTitle, toParty } from './nav.mjs';
+import { chooseContent, pastTitle, toParty } from './nav.mjs';
 
 /** CSS px (Chrome 보고 값). 울트라는 화면 배율 설정에 따라 두 가지 */
 export const DEVICES = [['S25', 360, 780], ['S25 울트라', 384, 824], ['S25 울트라 (WQHD+)', 412, 915], ['Z 플립 펼침', 360, 880]];
@@ -27,7 +27,7 @@ export default async function devices(url, shots) {
     // 전투 탭: 분류 · 관문 · 장소 · 난이도 · 출전이 스크롤 없이
     await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
     await page.click('#s-content [data-ctab="dungeon"]'); await page.clock.runFor(50);
-    await page.click('#s-content [data-content="rustfort"]'); await page.clock.runFor(50);
+    await chooseContent(page, 'rustfort');
     const diffRow = await box('#s-content [data-diff="악몽"]'), go = await box('#contentGo'), tabs = await box('#tabs');
     ok(await noOverflow('#s-content .b-body') && diffRow.bottom <= go.top && go.bottom <= tabs.top + 1 && go.h >= 44, `${tag}: 전투 탭 난이도 줄·출전이 첫 화면에 (난이도 아래 ${Math.round(diffRow.bottom)} ≤ 출전 ${Math.round(go.top)})`);
     await page.screenshot({ path: `${shots}/device_battle_${width}x${height}.png` });

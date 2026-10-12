@@ -48,15 +48,9 @@ export function clearGold(stageLv: number, diff: DiffName, grade: Grade, raid: 0
 /**
  * 클리어 경험치 = 지금 레벨에서 필요한 양의 이 비율 × 난이도 × 등급 (18 1장 도달 시점에 맞춤).
  * 낮은 레벨은 1판 ≈ 1레벨, 높을수록 판 수가 늘어남. Lv 15부터 ×0.85, Lv 70부터는 절반 (20인 레이드가 있어서).
- * 탐험 · 던전은 적 레벨이 고정이라 (61) 정산에서 xpGap을 곱함. 시뮬 (하루 8판, 보통 A, 가장 좋은 콘텐츠): Lv 15 약 2일 · 35 약 8일 · 70 약 4주 · 100 약 12주
+ * 장소와의 레벨 차이에 따른 경험치 보정은 없음. 정산에서 탐험·레이드 콘텐츠 배율을 적용함.
  */
 export const xpShare = (level: number) => Math.min(1, 14 * level ** -1.1) * (level >= 15 ? 0.85 : 1) * (level >= 70 ? 0.5 : 1);
-/**
- * 레벨링 콘텐츠 (탐험 · 던전) 경험치 (61 1-3): 적 레벨이 고정이라, 내 레벨이 적보다 free 넘게 높으면 레벨마다 step씩 줄어 최소 min (회색 장소).
- * 3 높으면 80% · 4 60% · 5 40% · 6 20% · 7부터 10%. 적이 더 높아도 늘지 않음 (힐량은 적보다 약해지지 않아서)
- */
-export const XP_GAP = { free: 2, step: 0.2, min: 0.1 } as const;
-export const xpGap = (level: number, stage: number) => Math.max(XP_GAP.min, 1 - XP_GAP.step * Math.max(0, level - stage - XP_GAP.free));
 /** 레이드 한 판 = 던전 한 판의 10인 1.2배, 20인 1.4배 (전투가 더 김, 26 6장. 레벨 맞춤으로 1.5·2에서 낮춤, 32 3-1) */
 export const XP_RAID = { 10: 1.2, 20: 1.4 } as const;
 /** 지면 이만큼만 (편성·난이도 다시 고를 힘은 남게) */

@@ -1,31 +1,30 @@
 /**
  * S03 모험 선택 = 전투 탭 루트 (27 3-1 → 30 시안 Battle30 「B 출정 관문」).
- * 위에서부터: 분류 4칸 (탐험 3인 · 던전 5인 · 10인 레이드 · 20인 레이드. 2026-10-09 Lim: 이벤트 탭을 빼고 레이드를 인원으로 나눔)
- * → 관문 = 아치 금테 안 장소 그림 (28 4장) · 세력 문양 이름표 · 추천 리본 · ‹ › · 정보 줄 (레이드는 이번 주 장비·악몽 열쇠, 13 3-4) · 해제 칩 · 보상 칸
- * → 장소 문양 줄 (고르기, 많으면 가로로 넘김. 던전이면 맨 앞에 주간 도전 고정 칸, 13 3-2) → 난이도 4칸 (별) → 「출전」 = 입장 화면으로.
- * 관문은 어느 분류든 같은 자리·같은 크기 (2026-10-08 Lim: 주간 도전 띠를 관문 위에서 장소 줄로 옮김).
- * 분류마다 마지막 고른 장소, 장소마다 마지막 고른 난이도를 기억 (모듈 변수, 저장 안 함).
+ * 분류 4칸 → 작은 장소 풍경/권장 레벨 → 지역 선택 팝업 → 난이도 → 출전.
+ * 장면 안 보상 아이콘을 누르면 그 보상의 확률만 표시. 주간 도전은 던전 분류 바로 아래 독립 버튼.
+ * 지역/장소/난이도와 지역 줄의 가로 위치를 기억한다 (모듈 변수, 저장 안 함). 장소·화면 세로 스크롤은 없다.
  */
-import { ALL_DIFFS, CONTENT, contentOf, dispelsOf, isLeveling, raidSize, stageOf, type ContentDef, type ContentKey } from '../data/content';
+import { adventureContents, adventureRegionOf, adventureRegions, adventureTabOf, type AdventureRegionKey, type AdventureTab } from '../data/adventure-regions';
+import { ALL_DIFFS, CONTENT, contentOf, isLeveling, raidSize, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { AFFIXES } from '../data/affixes';
 import { CHAL } from '../data/challenge';
 import { FIRST_CLEAR_CRYSTAL, SHARD_MAX } from '../data/economy';
-import { avgScore, dropTable, GRADE_STYLE, ITEM_GRADES, KINDS as GEAR_KINDS, LEGEND_LEVEL, PLACE_KINDS, placeSpecials, RECOMMENDED, SLOTS, topGrade } from '../data/equipment';
-import { FEATURED, SPECS } from '../data/specials';
-import { canDispel, DEB_COLOR, HEROES } from '../data/heroes';
+import { avgScore, clearMats, GRADE_STYLE, ITEM_GRADES, RECOMMENDED, type ItemGrade } from '../data/equipment';
+import { gearGradeOdds } from '../data/reward-preview';
+import { HEROES } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
-import { clearGold, EXPLORE_REWARD, xpGap } from '../data/progression';
+import { clearGold, EXPLORE_REWARD } from '../data/progression';
 import { art, cssUrl } from '../art';
 import { weekRemaining } from '../game/clock';
-import { raidLootOpen } from '../game/economy';
+import { meritFor, raidLootOpen } from '../game/economy';
 import { Flow } from '../game/flow';
 import { chalGate, runMode, weekAffixes } from '../game/runmode';
-import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor } from '../game/state';
+import { firstDungeonNow, G, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
-import { esc, fmt, go, josa, previous, screen, topBar } from './kit';
-import { factionMark, gameIcon, LOCK, placeArt } from './art';
-import { afxTags } from './brief';
+import { esc, fmt, go, previous, screen, topBar } from './kit';
+import { currencyIcon, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
+import { sheetDialog } from './dialog';
 
 /** 선 아이콘 (시안 Battle30 임시 선그림, 정식 그림이 오면 gameIcon이 바꿈) */
 const line = (d: string, sw = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -43,7 +42,7 @@ const NEXT = line('<path d="M9 6l6 6-6 6"/>', 2.6);
 const ARROW = '<svg class="g-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 
 /** 분류 탭. 레이드는 인원(10·20인)으로 나눔 (콘텐츠 종류는 그대로 raid) */
-type Tab = 'explore' | 'dungeon' | 'raid10' | 'raid20';
+type Tab = AdventureTab;
 const KINDS: { kind: Tab; name: string; icon: keyof typeof ICON }[] = [
   { kind: 'explore', name: '탐험', icon: 'explore' },
   { kind: 'dungeon', name: '던전', icon: 'dungeon' },
@@ -53,34 +52,37 @@ const KINDS: { kind: Tab; name: string; icon: keyof typeof ICON }[] = [
 /** 탭 그림. 20인 레이드는 icon-raid20이 오면 그것, 없으면 10인과 같은 탑 (그림 요청 33 RS-4 · 40) */
 const catIcon = (k: (typeof KINDS)[number]) => (k.kind === 'raid20' && art('icon-raid20') ? gameIcon('raid20', '') : gameIcon(k.icon, ICON[k.icon]));
 /** 그 장소가 들어가는 탭 */
-const tabOf = (c: ContentDef): Tab => (c.kind === 'raid' ? (raidSize(c) === 20 ? 'raid20' : 'raid10') : c.kind === 'explore' ? 'explore' : 'dungeon');
-/** 장소 문양 줄의 짧은 이름 (칸이 좁아서. 관문 이름표엔 전체 이름) */
-const SHORT: Partial<Record<ContentKey, string>> = { crypt: '지하묘지', manor: '장원', abyss1: '탑 1층', abyss2: '탑 2층', abyss3: '탑 3층', abyss4: '탑 4층', abyss5: '탑 꼭대기', cathedral1: '대성당 1구역', gull1: '항구 부두', gull2: '항구 주방', gull3: '항구 등대', queen1: '여왕호 갑판', queen2: '여왕호 창고', queen3: '여왕호 뱃머리', isle1: '요새 동굴', isle2: '요새 망루', isle3: '요새 꼭대기',
-  fest1: '축제 어귀', fest2: '축제 무대', fest3: '축제 모닥불', cave1: '동굴 이끼굴', cave2: '동굴 연못', cave3: '동굴 뿌리방', palace1: '궁전 정원', palace2: '궁전 연회장', palace3: '궁전 왕좌',
-  den1: '굴 갱도', den2: '굴 수레길', den3: '굴 보물방', nest1: '둥지 알둥지', nest2: '둥지 다리', nest3: '둥지 보물더미',
-  cathedral2: '대성당 회랑', cathedral3: '대성당 오르간', cathedral4: '대성당 성소',
-  bazaar1: '시장 입구', bazaar2: '시장 골목', bazaar3: '시장 성문', abbey1: '수도원 연못', abbey2: '수도원 서고', abbey3: '수도원 제단',
-  dusk1: '노을 분수', dusk2: '노을 보물고', dusk3: '노을 옥좌', rootwood1: '숲 입구', rootwood2: '숲 온실', rootwood3: '숲 심장뿌리',
-  pyramid1: '피라미드 복도', pyramid2: '피라미드 시계방', pyramid3: '피라미드 침실', reservoir1: '저수지 수문', reservoir2: '저수지 다리', reservoir3: '저수지 거울호수',
-  well1: '우물 도르래', well2: '우물 이끼벽', well3: '우물 바닥', post1: '우체국 접수대', post2: '우체국 분류실', post3: '우체국 옥상',
-  crystal1: '뿌리굴 갈림길', crystal2: '뿌리굴 수정밭', crystal3: '뿌리굴 거울방', fort1: '성채 성문', fort2: '성채 무기고', fort3: '성채 꼭대기',
-  shadow1: '성벽 성문', shadow2: '성벽 성벽길', shadow3: '성벽 망루',
-  maze1: '미궁 입구', maze2: '미궁 회랑', maze3: '미궁 중심', camp1: '진영 막사', camp2: '진영 훈련장', camp3: '진영 지휘소',
-  coast1: '해안 선착장', coast2: '해안 물길', coast3: '해안 소용돌이', heart1: '심장 뿌리다리', heart2: '심장문', heart3: '심실' };
-
+const tabOf = adventureTabOf;
 /** 마지막으로 고른 분류 (27 3-1) */
 let tab: Tab = 'dungeon';
 /** 분류마다 마지막 고른 장소 */
 const pick: Partial<Record<Tab, ContentKey>> = {};
+/** 지역은 탭마다 기억하고, 지역 안의 마지막 장소도 따로 기억한다. */
+const regionPick: Partial<Record<Tab, AdventureRegionKey>> = {};
+const regionContentPick: Record<string, ContentKey> = {};
 /** 장소마다 마지막 고른 난이도 */
 const diffPick: Partial<Record<ContentKey, DiffName>> = {};
 /** 지금 그려져 있는 분류 (장소 줄 넘김 위치를 이어 갈지) */
 let drawnTab: Tab | null = null;
-/** 다음 그리기에서 고른 장소를 줄 가운데로 (‹ ›) */
+let drawnPageSize = 0;
+let drawnViewport = '';
+/** 장소 팝업의 지역·페이지. 선택을 확정하기 전에는 출전 상태를 바꾸지 않는다. */
+let placeModalRegion: AdventureRegionKey | null = null;
+let placePage = 0;
+/** 확률 안내는 작고 독립적인 popover이며 출전 선택을 바꾸지 않는다. */
+let rewardKey: string | null = null;
+/** 다음 그리기에서 고른 지역을 가로 줄 가운데로 (‹ › · 화면 크기 변화) */
 let centerNext = false;
 
+/** CSS가 화면 비율에 맞춰 정하는 팝업 칸 수. 기본 6, 작은 커버 화면 2, 펼친 화면 8. */
+function placePageSize(): number {
+  const size = Number.parseInt(getComputedStyle(s.el).getPropertyValue('--b-page-size'), 10);
+  return Number.isFinite(size) && size > 0 ? size : 6;
+}
+const viewportStamp = () => `${s.el.clientWidth}/${s.el.clientHeight}/${innerWidth}/${innerHeight}/${visualViewport?.width}/${visualViewport?.height}`;
+
 // 열림 레벨 순 (같으면 원래 순서). 새 장소가 레벨 사이사이에 끼게 (62)
-const listOf = (k: Tab) => CONTENT.filter(c => !c.hidden && tabOf(c) === k).sort((a, b) => a.unlockLv - b.unlockLv);
+const listOf = adventureContents;
 const factionOf = (c: ContentDef): FactionKey => PLACES[placeArt(c.key).place].faction;
 /** 준비 중이거나 레벨이 모자라 못 들어가는 장소 */
 const isOff = (c: ContentDef) => !c.ready || lockOf(c).locked;
@@ -101,16 +103,6 @@ export function markHtml(c: ContentDef, size: 'sm' | 'md' | 'lg' = 'lg'): string
   return `<span class="f-em${m.dark ? ' dark' : ''}" style="--rim:${m.rim};--glyph:${m.glyph}">${factionMark(f, size)}</span>`;
 }
 
-/** 해제 칩 (27 3-1): 그 콘텐츠에 나오는 디버프 유형. 지금 직업이 못 푸는 유형은 빗금 + 「못 풂」, 물리만이면 「없음 · 물리」 */
-function dispelChips(c: ContentDef): string {
-  const types = dispelsOf(c), h = heroNow();
-  if (!types.length) return '<span class="dsp none">없음 · 물리</span>';
-  return types.map(t => {
-    const ok = canDispel(h, t);
-    return `<span class="dsp${ok ? '' : ' cant'}" style="--c:${DEB_COLOR[t] || '#888'}">${t}${ok ? '' : ' · 못 풂'}</span>`;
-  }).join('');
-}
-
 /** 그 난이도 최고 별 (★☆ 3칸) */
 function stars(c: ContentDef, d: DiffName): string {
   const n = G.save.clears[c.key]?.[d]?.stars || 0;
@@ -128,7 +120,7 @@ function lootLine(c: ContentDef): string {
 /**
  * 추천 리본 (27 3-1): 내 레벨·장비로 「처음 깨기 좋은」 장소 1곳.
  * 콘텐츠마다 아직 안 깬 가장 낮은 열린 난이도를 봄 (탐험 · 던전은 쉬움부터 사슬, 레이드는 보통부터).
- * 탐험 · 던전은 적 레벨이 내 레벨 −2 ~ +1이면 (경험치 다 받음, 61 1-3), 레이드는 레벨이 되고 권장 장비를 채우면 후보.
+ * 탐험 · 던전은 내 레벨 +1 이하, 레이드는 레벨이 되고 권장 장비를 채우면 후보.
  * 적 레벨이 가장 높은 것 (같으면 탐험보다 던전·레이드)
  */
 function recommended(): ContentKey | null {
@@ -140,7 +132,7 @@ function recommended(): ContentKey | null {
     for (const d of (lvl ? ALL_DIFFS : ['보통', '어려움', '악몽']) as DiffName[]) {
       if (rec[d]) continue;
       const st = stageOf(c, d), r = RECOMMENDED[d];
-      if (lockOf(c, d).locked || (lvl ? st > lv + 1 || st < lv - 2 : lv < st) || (r && mine < r.score)) break;
+      if (lockOf(c, d).locked || (lvl ? st > lv + 1 : lv < st) || (r && mine < r.score)) break;
       const sc = st * 10 + (c.kind === 'explore' ? 0 : 1);
       if (!best || sc > best.s) best = { k: c.key, s: sc };
       break;
@@ -151,12 +143,23 @@ function recommended(): ContentKey | null {
 
 /** 지금 고른 장소: 기억한 것 → 추천 → 들어갈 수 있는 첫 장소 → 첫 장소 (장소가 없는 분류면 null) */
 function current(): ContentDef | null {
-  const list = listOf(tab);
-  if (!list.length) return null;
-  const rec = recommended();
-  const c = list.find(x => x.key === pick[tab]) || list.find(x => x.key === rec) || list.find(x => !isOff(x)) || list[0];
-  pick[tab] = c.key;
+  const all = listOf(tab);
+  if (!all.length) return null;
+  const remembered = all.find(x => x.key === pick[tab]);
+  const initial = remembered || all.find(x => x.key === recommended()) || all.find(x => !isOff(x)) || all[0];
+  const region = regionPick[tab] || adventureRegionOf(initial).key;
+  const list = listOf(tab, region);
+  const c = list.find(x => x.key === regionContentPick[`${tab}:${region}`])
+    || list.find(x => x.key === initial.key) || list.find(x => !isOff(x)) || list[0] || initial;
+  selectContent(c);
   return c;
+}
+
+function selectContent(c: ContentDef): void {
+  pick[tab] = c.key;
+  const region = adventureRegionOf(c).key;
+  regionPick[tab] = region;
+  regionContentPick[`${tab}:${region}`] = c.key;
 }
 
 /**
@@ -195,7 +198,7 @@ function cats(): string {
 }
 
 /**
- * 주간 도전 칸 (13 3-2): 던전 장소 줄 맨 앞에 고정 (넘기지 않음) + 금빛 구분선. 누르면 고르기가 아니라 바로 도전 입장.
+ * 주간 도전: 던전 분류 아래 독립 진입. 작은 커버에서는 지역 줄 왼쪽에 고정한다. 누르면 바로 도전 입장.
  * 보이는 건 모래시계 · 남은 날 꼬리표 · 「주간 도전」만, 어픽스·최고 단계는 입장 화면에서 (화면 읽기엔 다 넣음). 잠기면 잠긴 장소 칸처럼
  */
 function chalCell(): string {
@@ -204,140 +207,117 @@ function chalCell(): string {
   const tag = g.ok ? left.replace(' 남음', '') : `${LOCK}Lv ${g.lv}`;
   const sr = ` 「${esc(CHAL.name)}」 · ${aff.map(k => AFFIXES[k].name).join(', ')} · ${g.ok ? `${g.dev ? '개발 빌드 · ' : ''}최고 ${best ? `${best}단` : '없음'} · ${left}` : `Lv ${g.lv}에 열림`}`;
   return `<button class="b-chal${g.ok ? '' : ' off'}" type="button" data-chal${g.ok ? '' : ' aria-disabled="true"'}>
-    <span class="b-hg">${gameIcon('challenge', ICON.hourglass)}</span><span class="b-tg">${tag}</span><small>주간 도전</small><span class="sr">${sr}</span>
-  </button><i class="b-div" aria-hidden="true"></i>`;
+    <span class="b-hg">${gameIcon('challenge', ICON.hourglass)}</span><span class="b-tg">${tag}</span><small>주간 도전</small><span class="b-weekly-arrow" aria-hidden="true">${NEXT}</span><span class="sr">${sr}</span>
+  </button>`;
 }
 
-/** 보상 칸 (정산 계산과 같음): 장비 등급 범위 (누르면 얻는 장비 팝업, 61 3-4) · 골드 (A 등급) · 첫 클리어 크리스탈 + 전설 확률 · 경험치가 줄면 그 비율 */
-function rewards(c: ContentDef, d: DiffName, stage: number): string {
-  const lv = G.save.player.level, table = dropTable(d, raidSize(c));
-  const lo = table.findIndex(p => p > 0);
-  let hi = ITEM_GRADES.indexOf(topGrade(table));
-  // 전설은 Lv 50부터 (그 전엔 영웅으로 나옴)
-  if (ITEM_GRADES[hi] === '전설' && lv < LEGEND_LEVEL) hi = ITEM_GRADES.indexOf('영웅');
-  const gLo = ITEM_GRADES[lo], gHi = ITEM_GRADES[hi];
-  const range = lo >= hi ? gHi : `${gLo}~${gHi}`;
-  const gold = Math.round(clearGold(stage, d, 'A', raidSize(c)) * (c.kind === 'explore' && G.save.tut >= TUT.done ? EXPLORE_REWARD : 1));
-  const first = G.save.tut >= TUT.done && !G.save.clears[c.key]?.[d];
-  const leg = table[ITEM_GRADES.indexOf('전설')];
-  // 탐험 · 던전은 적 레벨이 고정이라 내 레벨이 높으면 경험치가 줄어듦 (61 1-3)
-  const gap = isLeveling(c) && G.save.tut >= TUT.done ? xpGap(lv, stage) : 1;
-  const note = leg ? (lv < LEGEND_LEVEL ? `전설 Lv ${LEGEND_LEVEL}부터` : `전설 ${Math.round(leg * 100)}%`) : gap < 1 ? `레벨이 높아 경험치 ${Math.round(gap * 100)}%` : '';
-  const cell = (rc: string, icon: string, label: string, extra = '') =>
-    `<span class="b-rw" style="--rc:${rc}"><span class="b-rb">${icon}${extra}</span><small>${label}</small></span>`;
-  return `<div class="b-rws" role="group" aria-label="${d} 보상">
-    <button type="button" class="b-rw b-rwbtn" style="--rc:${GRADE_STYLE[gHi].color}" data-drops aria-haspopup="dialog" aria-label="장비 ${range} · 얻는 장비 보기"><span class="b-rb">${gameIcon('gear', ICON.gear)}<i class="b-rwi" aria-hidden="true">i</i></span><small aria-hidden="true">${range}</small></button>
-    ${cell('#C9A35C', gameIcon('gold', ICON.gold), `<span class="sr">골드 </span>${fmt(gold)}`)}
-    ${first ? cell('#6FA9D8', gameIcon('crystal', ICON.crystal), `<span class="sr">크리스탈 </span>${FIRST_CLEAR_CRYSTAL}`, '<em>처음</em>') : ''}
-    <span class="cap b-leg">${note}</span>
-  </div>`;
+interface SceneReward {
+  key: string;
+  name: string;
+  label: string;
+  icon: string;
+  color: string;
+  probability: number;
+  basis: string;
+  maxGrade?: ItemGrade;
+  gradeOdds?: Record<ItemGrade, number>;
 }
 
-/**
- * 얻는 장비 팝업 (61 3-4, Lim 「출전 전에 보상 아이템 아이콘을 누르면 작은 팝업」): 등급 확률 · 개수 · 잘 나오는 종류 · 자주 나오는 특수능력 ·
- * 고유 장비 · 이름 있는 장신구 (그 난이도 상한으로 나올 수 있는 것만). 확률은 A 등급 기준 (S면 조금 더 위)
- */
-function dropPop(c: ContentDef, d: DiffName): string {
-  const raid = raidSize(c), table = dropTable(d, raid), lv = G.save.player.level;
-  let top = topGrade(table);
-  if (top === '전설' && lv < LEGEND_LEVEL) top = '영웅';
-  const n = Math.max(1, c.bosses.length);
-  const count = raid ? '보스마다 1개 · 난이도별 주 1회' : c.kind === 'explore' ? '1개' : `보스마다 1개 (${n}개)`;
-  const grades = ITEM_GRADES.map((g, i) => ({ g, p: table[i] })).filter(x => x.p > 0)
-    .map(x => `<li style="--gc:${GRADE_STYLE[x.g].color}"><i aria-hidden="true"></i>${x.g}<b>${Math.round(x.p * 100)}%</b></li>`).join('');
-  const kinds = (PLACE_KINDS[c.key] ?? []).map(k => GEAR_KINDS.find(x => x.key === k)?.name).filter(Boolean);
-  const feats = (FEATURED[c.key] ?? []).map(k => SPECS[k]?.name).filter(Boolean);
-  const sp = placeSpecials(c.key, top);
-  const slotName = (k: string) => SLOTS.find(x => x.key === k)!.name;
-  const tail = raid === 20 ? (d === '악몽' ? '전설은 20인 레이드 악몽에서만 나옴' : '전설은 악몽에서만') : '전설은 20인 레이드 악몽에서만';
-  return `<div class="b-popwrap" data-popclose>
-    <div class="b-pop" role="dialog" aria-modal="true" aria-labelledby="bPopT" tabindex="-1">
-      <div class="b-poph"><b id="bPopT">${d} 장비</b><small>${count}</small><button type="button" class="b-popx" data-popclose aria-label="닫기">×</button></div>
-      <ul class="b-pgr" aria-label="등급 확률">${grades}</ul>
-      ${kinds.length ? `<p><span class="cap">잘 나오는 종류</span>${kinds.map(esc).join(' · ')}</p>` : ''}
-      ${feats.length ? `<p><span class="cap">자주 나오는 특수능력</span>${feats.map(x => esc(x!)).join(' · ')}</p>` : ''}
-      ${sp.length ? `<p><span class="cap">가끔 나옴</span>${sp.map(x => `<span class="b-psp" style="--gc:${GRADE_STYLE[x.min].color}">${esc(x.name)}<small>${x.unique ? '고유 ' : ''}${slotName(x.slot)} · ${x.min} 이상</small></span>`).join('')}</p>` : ''}
-      <p class="b-pnote">${tail}${c.kind === 'explore' || c.kind === 'dungeon' ? ' · 클리어 등급이 높으면 좋은 등급이 조금 더' : ''}</p>
-    </div>
-  </div>`;
+/** 기본 A 평가 기준. 공개모집·주간 도전 보너스는 편성 전 확정되지 않으므로 제외한다. */
+function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
+  const raid = raidSize(c), play = G.save.tut >= TUT.done;
+  const odds = gearGradeOdds(d, raid, G.save.player.level);
+  const lootOpen = !play || !raid || raidLootOpen(G.save, c.key, d);
+  const maxGrade = [...ITEM_GRADES].reverse().find(g => odds[g] > 0) ?? ITEM_GRADES[0];
+  const items: SceneReward[] = [{
+    key: 'gear', name: '장비 등급별 확률', label: lootOpen ? maxGrade : '수령 완료', icon: gameIcon('gear', ICON.gear),
+    color: GRADE_STYLE[maxGrade].color, probability: lootOpen ? 1 : 0, maxGrade,
+    gradeOdds: Object.fromEntries(ITEM_GRADES.map(g => [g, lootOpen ? odds[g] : 0])) as Record<ItemGrade, number>,
+    basis: lootOpen ? '장비 1개 · A 평가 · 보너스 제외' : '이번 주 장비 수령 완료',
+  }];
+  const currency = (key: CurrencyIconKey, name: string, amount: number, color: string, basis = '클리어 시', probability = 1) => {
+    items.push({ key, name, label: fmt(amount), icon: currencyIcon(key), color, probability, basis });
+  };
+  const stage = runMode(G.save, c, d, { chal: 0 }).stage;
+  const gold = Math.round(clearGold(stage, d, 'A', raid) * (play && c.kind === 'explore' ? EXPLORE_REWARD : 1));
+  currency('gold', '골드', gold, '#DDB563', '클리어 시 · A 평가 · 보너스 제외');
+  if (play && !G.save.clears[c.key]?.[d]) currency('crystal', '크리스탈', FIRST_CLEAR_CRYSTAL, '#7BCBF0', '첫 클리어 시');
+  const mats = clearMats(d, raid);
+  if (mats.stone) currency('stone', '강화석', mats.stone, '#C3B899');
+  if (mats.refined) currency('refined', '정제 강화석', mats.refined, '#A6DEF0');
+  if (play && raid) {
+    const merit = meritFor(G.save, raid, d);
+    currency('merit', '공훈', merit, '#E6BA6F', merit ? '클리어 시' : '이번 주 공훈 한도 도달', merit ? 1 : 0);
+  }
+  return items;
 }
 
-/** 관문: 아치 금테 안 장소 그림 + 이름표 · 추천 · ‹ › · 정보 · 해제 · 보상 */
-function gate(c: ContentDef, d: DiffName, many: boolean): string {
-  const pa = placeArt(c.key), f = factionOf(c), lk = lockOf(c), pl = PLACES[pa.place];
-  // 적 레벨: 탐험 · 던전은 장소 · 난이도에 고정 (61), 레이드는 내 레벨 (32). 어픽스는 난이도
-  const m = runMode(G.save, c, d, { chal: 0 });
-  const [region, side] = c.place.split(' · ');
-  // 다른 직업으로는 들어갈 수 있으면 자물쇠 대신 그 직업 (34 4장 1번)
-  const other = lk.locked ? otherHeroFor(lk.lv) : null;
-  const status = !c.ready ? '준비 중' : other ? `${HEROES[other.hero].name}${josa(HEROES[other.hero].name, '으로', '로')} 열림 · Lv ${other.lv}` : lk.locked ? `${LOCK}Lv ${lk.lv}에 열림` : '';
-  const art = pa.url
-    ? `<img class="b-art${pa.scene ? '' : ' floor'}" src="${pa.url}" alt="${esc(pl.name)}" decoding="async" draggable="false">`
-    : `<span class="b-art none" style="--t0:${pl.tone[0]};--t1:${pl.tone[1]}"></span>`;
-  return `<section class="b-gate${status ? ' off' : ''}" aria-label="출전할 곳 · ${esc(c.name)}">
-    ${art}
-    <div class="b-gt"><span class="b-gm" style="--rim:${FACTIONS[f].mark.rim}">${factionMark(f, 'md')}</span><span class="b-gn"><b>${esc(c.name)}</b>${side ? `<small>${esc(side)}</small>` : ''}</span></div>
-    ${c.key === recommended() ? '<span class="b-rib">추천</span>' : ''}
-    ${many ? `<button type="button" class="b-arw prev" data-step="-1" aria-label="이전 장소">${PREV}</button><button type="button" class="b-arw next" data-step="1" aria-label="다음 장소">${NEXT}</button>` : ''}
-    ${status ? `<span class="b-st">${status}</span>` : ''}
-    <div class="b-gb">
-      <span class="b-row"><span class="b-inf">${esc(region)} · ${c.size(d)}인 · 보스 ${c.bosses.length}${c.ready ? ` · 적 Lv ${m.stage}` : ''}</span>${c.ready && !lk.locked ? lootLine(c) : ''}</span>
-      <span class="b-row"><span class="cap">해제</span>${dispelChips(c)}${c.ready && m.affixes.length ? `<span class="b-afx" aria-label="${d} 어픽스">${afxTags(m.affixes)}</span>` : ''}</span>
-      ${c.ready && lk.dev ? `<span class="f-dev">Lv ${lk.lv} 해금 · 개발 빌드라 열림</span>` : ''}
-      ${c.ready ? rewards(c, d, m.stage) : ''}
-    </div>
+/** 장비는 최고 획득 가능 등급 색상의 아이콘 하나로 표시하고, 누르면 등급별 확률을 보여 준다. */
+function rewards(c: ContentDef, d: DiffName): string {
+  return `<section class="b-scene-rewards" aria-label="획득 보상">
+    <div class="b-scene-rewards-heading"><b>획득 보상</b></div>
+    <div class="b-scene-reward-list">${rewardItems(c, d).map(r => `<button type="button" class="b-scene-reward${r.probability ? '' : ' received'}" data-reward="${r.key}" data-probability="${r.probability}"${r.maxGrade ? ` data-max-grade="${r.maxGrade}"` : ''} style="--reward-color:${r.color}" aria-label="${esc(r.maxGrade ? `장비 · ${r.probability ? `최고 ${r.maxGrade}` : '이번 주 수령 완료'} · 등급별 확률 보기` : `${r.name} · 획득 확률 보기`)}" aria-haspopup="dialog" aria-expanded="false" aria-controls="bRewardChance">
+      <span class="b-scene-reward-icon">${r.icon}</span><small>${r.label}</small></button>`).join('')}</div>
+    ${lootLine(c)}
   </section>`;
 }
 
-/**
- * 장소 문양 줄: 그 분류의 장소들 (누르면 관문이 바뀜). 준비 중 = 회색 + 「준비」, 잠김 = 자물쇠, 추천 = 빨간 「추천」.
- * 다 들어가면 가운데, 넘치면 가로로 넘김 (칸 너비는 sizePlaces: 늘 반 칸이 걸쳐 보여서 더 있는 걸 알 수 있음). lead = 맨 앞 고정 칸 (던전 = 주간 도전)
- */
-function places(list: ContentDef[], cur: ContentDef, lead = ''): string {
-  const rec = recommended();
-  return `<nav class="b-places${lead ? ' lead' : ''}" aria-label="장소">${lead}<div class="b-plr">${list.map(x => {
-    const lk = lockOf(x), on = x.key === cur.key;
-    const st = !x.ready ? ' off' : lk.locked ? ' lock' : '';
-    const tag = !x.ready ? '<span class="b-tg">준비</span>' : lk.locked ? `<span class="b-tg">${LOCK}Lv ${lk.lv}</span>` : x.key === rec ? '<span class="b-tg rec">추천</span>' : '';
-    const label = `${x.name}${!x.ready ? ' · 준비 중' : lk.locked ? ` · Lv ${lk.lv}에 열림` : x.key === rec ? ' · 추천' : ''}`;
-    return `<button type="button" class="b-pl${on ? ' on' : ''}${st}" data-content="${x.key}" aria-pressed="${on}" aria-label="${esc(label)}"><span class="b-r">${factionMark(factionOf(x), 'md')}</span>${tag}<small>${esc(SHORT[x.key] || x.name)}</small></button>`;
-  }).join('')}</div></nav>`;
+/** 작은 풍경 미리보기. 장소와 권장 레벨만 크게 표시한다. */
+function gate(c: ContentDef, d: DiffName, many: boolean): string {
+  const pa = placeArt(c.key), lk = lockOf(c), pl = PLACES[pa.place];
+  const other = lk.locked ? otherHeroFor(lk.lv) : null;
+  const status = !c.ready ? '준비 중' : other ? `${HEROES[other.hero].name} Lv ${other.lv}로 입장 가능` : lk.locked ? `Lv ${lk.lv}에 열림` : '';
+  const scene = pa.url ? `<img class="b-art${pa.scene ? '' : ' floor'}" src="${pa.url}" alt="${esc(pl.name)}" decoding="async" draggable="false">` : '';
+  return `<section class="b-gate${status ? ' off' : ''}" aria-label="출전할 곳 · ${esc(c.name)}">
+    ${scene}<div class="b-gate-shade"></div>
+    <div class="b-gt"><span class="b-gn"><small>${esc(adventureRegionOf(c).name)}</small><b>${esc(c.name)}</b></span></div>
+    <div class="b-level" aria-label="권장 레벨 ${stageOf(c, d)}"><span>권장 레벨</span><strong><small>Lv.</small> ${stageOf(c, d)}</strong></div>
+    ${many ? `<button type="button" class="b-arw prev" data-step="-1" aria-label="이전 장소">${PREV}</button><button type="button" class="b-arw next" data-step="1" aria-label="다음 장소">${NEXT}</button>` : ''}
+    <button type="button" class="b-current-places" data-current-places aria-haspopup="dialog">장소 변경</button>
+    ${status ? `<span class="b-st">${status}</span>` : ''}
+    ${rewards(c, d)}
+  </section>`;
 }
 
-/** 칸 너비: 보이는 폭에 「n칸 반」이 들어가게 (58~64px). 넘칠 때 마지막 칸이 딱 맞게 끝나서 더 있는 줄 모르는 일을 막음 */
-function sizePlaces(): void {
-  const sc = s.el.querySelector<HTMLElement>('.b-plr');
-  if (!sc) return;
-  const vis = sc.clientWidth - parseFloat(getComputedStyle(sc).paddingLeft);
-  const w = Math.min(64, Math.max(58, vis / (Math.floor(vis / 64) + 0.5) - 4));
-  (sc.parentElement as HTMLElement).style.setProperty('--pl-w', `${w.toFixed(1)}px`);
+/** 지역은 장소 선택 팝업을 연다. 팝업에서 고르기 전까지는 현재 지역 표시를 유지한다. */
+function regions(c: ContentDef): string {
+  const selected = adventureRegionOf(c).key;
+  return `<section class="b-region-section" aria-labelledby="bRegionTitle">
+    <div class="b-section-title"><h2 id="bRegionTitle">지역 선택</h2></div>
+    <nav class="b-regions" aria-label="지역">${adventureRegions(tab).map(region => {
+      const list = listOf(tab, region.key), on = region.key === selected;
+      const scene = placeArt(region.representative).url;
+      const locked = list.every(x => isOff(x));
+      return `<button type="button" class="b-region${on ? ' on' : ''}" data-region="${region.key}" aria-pressed="${on}" aria-haspopup="dialog" aria-label="${esc(region.name)} · ${list.length}곳${locked ? ` · Lv ${list[0].unlockLv}부터` : ''}">
+        <img src="${scene}" alt="" loading="lazy" decoding="async"><span class="b-region-name">${esc(region.shortName)}</span><small>${locked ? `Lv ${list[0].unlockLv}` : `${list.length}곳`}</small></button>`;
+    }).join('')}</nav>
+  </section>`;
 }
 
-/** 장소 줄 양끝 흐림: 그쪽으로 더 넘길 칸이 있을 때만 (l · r) */
-function placeFade(sc: HTMLElement): void {
-  const max = sc.scrollWidth - sc.clientWidth;
-  (sc.parentElement as HTMLElement).dataset.more = `${sc.scrollLeft > 2 ? 'l' : ''}${sc.scrollLeft < max - 2 ? 'r' : ''}`;
-}
-
-/**
- * 장소 줄 넘김 위치. from = 다시 그리기 전 위치 (null = 들어올 때·분류를 바꿀 때 → 고른 칸을 바로 가운데로).
- * center = ‹ ›로 넘김 → 고른 칸을 가운데로 부드럽게. 아니면 (줄에서 직접 누름·난이도) 자리 그대로, 반쯤 가려진 칸만 다 보이게
- */
-function scrollPlaces(from: number | null, center: boolean): void {
-  const sc = s.el.querySelector<HTMLElement>('.b-plr');
-  if (!sc) return;
-  sizePlaces();
-  const it = sc.querySelector<HTMLElement>('.b-pl.on'), max = sc.scrollWidth - sc.clientWidth;
-  const clamp = (x: number) => Math.max(0, Math.min(max, x));
-  if (from !== null) sc.scrollLeft = from;
-  if (it && max > 0) {
-    const mid = clamp(it.offsetLeft - (sc.clientWidth - it.offsetWidth) / 2);
-    const pad = 12, l = it.offsetLeft - pad, r = it.offsetLeft + it.offsetWidth + pad - sc.clientWidth;
-    const to = from === null || center ? mid : l < from ? clamp(l) : r > from ? clamp(r) : from;
-    if (from === null) sc.scrollLeft = to;
-    else if (Math.abs(to - from) > 1) sc.scrollTo({ left: to, behavior: 'smooth' });
-  }
-  placeFade(sc);
+function places(list: ContentDef[], selected: ContentKey | null, page: number, size: number): string {
+  const region = adventureRegionOf(list[0]), name = KINDS.find(k => k.kind === tab)!.name;
+  const pages = Math.max(1, Math.ceil(list.length / size)), visible = list.slice(page * size, (page + 1) * size);
+  return `<section class="b-place-section" aria-labelledby="bPlaceTitle" data-page="${page + 1}" data-pages="${pages}" data-page-size="${size}" data-total="${list.length}"><div class="b-section-title"><h2 id="bPlaceTitle">${esc(region.shortName)} <span>· ${name} · ${list.length}곳</span></h2>
+    <div class="b-place-pager b-place-pages" role="group" aria-label="장소 페이지">
+      <button type="button" data-place-page="-1" aria-label="이전 장소 페이지"${page === 0 ? ' disabled' : ''}>${PREV}</button>
+      <span class="b-page-count" aria-live="polite" aria-label="장소 목록 ${pages}쪽 중 ${page + 1}쪽">${page + 1} / ${pages}</span>
+      <button type="button" data-place-page="1" aria-label="다음 장소 페이지"${page === pages - 1 ? ' disabled' : ''}>${NEXT}</button>
+    </div></div>
+    <nav class="b-places" aria-label="${esc(region.name)}의 장소"><div class="b-plr">${visible.map(x => {
+      const lk = lockOf(x), on = x.key === selected, pa = placeArt(x.key);
+      const status = !x.ready ? '준비 중' : lk.locked ? `Lv ${lk.lv}에 열림` : `권장 Lv ${stageOf(x, diffOf(x))}`;
+      const progress = ALL_DIFFS.map(diff => {
+        const record = G.save.clears[x.key]?.[diff];
+        // 승리 때만 기록을 만들며, 기존 난이도 해금·첫 클리어도 기록 존재로 판정한다.
+        const cleared = !!record;
+        const stars = Number.isFinite(record?.stars) ? Math.max(0, Math.min(3, Math.floor(record!.stars))) : 0;
+        return { diff, cleared, stars, label: cleared ? `${diff} 클리어 · 별 ${stars}개` : `${diff} 미클리어` };
+      });
+      return `<button type="button" class="b-pl${on ? ' on' : ''}${lk.locked || !x.ready ? ' lock' : ''}" data-content="${x.key}" aria-pressed="${on}" aria-label="${esc(x.name)} · ${status} · ${progress.map(p => p.label).join(' · ')}">
+        <span class="b-place-visual"><img class="b-place-thumb" src="${pa.url}" alt="" loading="lazy" decoding="async"><span class="b-place-copy"><b>${esc(x.name)}</b><small>${lk.locked ? LOCK : ''}${status}</small></span></span>
+        <span class="b-place-progress" role="group" aria-label="난이도별 클리어 기록">${progress.map(p => `<span class="b-place-result${p.cleared ? ' cleared' : ''}" data-clear-diff="${p.diff}" data-cleared="${p.cleared}" data-stars="${p.stars}" aria-label="${p.label}"><small>${p.diff}</small><span class="b-place-result-stars" aria-hidden="true">${p.cleared ? p.stars ? '★'.repeat(p.stars) + '☆'.repeat(3 - p.stars) : '✓ 0' : '미완료'}</span></span>`).join('')}</span></button>`;
+    }).join('')}</div></nav>
+  </section>`;
 }
 
 /** 난이도 4칸: 이름 + 별. 그 난이도만 잠겼으면 자물쇠 Lv, 앞 난이도를 못 깼으면 자물쇠 「쉬움 깨기」 (61 1-1). 준비 중 장소는 못 고름 */
@@ -362,101 +342,235 @@ const s = screen('s-content', '모험 선택', {
   tab: 'battle',
   // arg = 열 분류 (로비: 주간 도전 → dungeon, 첨탑 → raid10). 없으면 마지막 고른 분류
   enter(arg) {
+    placeModalRegion = null; rewardKey = null;
     if (KINDS.some(t => t.kind === arg)) tab = arg as Tab;
     // 편성에서 돌아오면 그 장소·난이도가 골라진 채로 (로비 「바로 출전」으로 갔다 와도. 주간 도전은 따로)
     if (previous === 's-party' && !Flow.chal && G.save.tut >= TUT.done) {
       const c = contentOf(Flow.content);
-      if (!c.hidden) { tab = tabOf(c); pick[tab] = c.key; diffPick[c.key] = Flow.diff; }
+      if (!c.hidden) { tab = tabOf(c); selectContent(c); diffPick[c.key] = Flow.diff; }
     }
     // 첫 던전 안내 차례면 녹슨 요새를 짚어 줌 (분류를 골라 들어왔거나 편성에서 돌아오면 그대로)
-    else if (!arg && firstDungeonNow()) { tab = 'dungeon'; pick.dungeon = 'rustfort'; }
+    else if (!arg && firstDungeonNow()) { tab = 'dungeon'; selectContent(contentOf('rustfort')); }
     render(false);
   },
 });
+const placesDialog = sheetDialog(s.el, () => closePlaces());
 
-/** keep = 화면 안에서 다시 그림 (스크롤·포커스 유지) */
+/** keep = 화면 안에서 다시 그림 (지역 가로 위치·포커스 유지). */
 function render(keep = true): void {
-  const body = s.el.querySelector<HTMLElement>('.b-body');
-  const top = keep && body ? body.scrollTop : 0;
-  // 장소 줄 위치: 같은 분류 안에서 다시 그리면 이어서 (분류가 바뀌면 처음부터)
-  const plr = s.el.querySelector<HTMLElement>('.b-plr');
+  // 정산과 같은 주간 상태로 장비 수령·공훈 잔여량을 표시한다.
+  refreshDay();
+  // 지역 줄 위치: 같은 분류 안에서 다시 그리면 이어서 (분류가 바뀌면 고른 지역 가운데)
+  const plr = s.el.querySelector<HTMLElement>('.b-regions');
   const plFrom = keep && plr && drawnTab === tab ? plr.scrollLeft : null;
+  const c = current(), region = c ? adventureRegionOf(c).key : null;
+  const list = c ? listOf(tab, adventureRegionOf(c).key) : [], d = c ? diffOf(c) : '보통';
+  const rewardFrom = keep && s.el.dataset.selectedContent === c?.key && s.el.dataset.selectedDiff === d
+    ? s.el.querySelector<HTMLElement>('.b-scene-reward-list')?.scrollLeft ?? 0 : 0;
   const plCenter = centerNext;
-  drawnTab = tab; centerNext = false;
+  drawnTab = tab; drawnPageSize = placePageSize(); drawnViewport = viewportStamp(); centerNext = false;
   const a = document.activeElement as HTMLElement | null;
-  const focus = keep && a && s.el.contains(a) ? ['data-ctab', 'data-content', 'data-step', 'data-diff'].filter(n => a.hasAttribute(n)).map(n => `[${n}="${a.getAttribute(n)}"]`)[0] || (a.id ? `#${a.id}` : '') : '';
+  const focus = keep && a && s.el.contains(a) ? ['data-ctab', 'data-region', 'data-current-places', 'data-content', 'data-step', 'data-place-page', 'data-diff', 'data-reward'].filter(n => a.hasAttribute(n)).map(n => `[${n}="${a.getAttribute(n)}"]`)[0] || (a.id ? `#${a.id}` : '') : '';
 
-  const list = listOf(tab), c = current(), d = c ? diffOf(c) : '보통';
   const tut = tab === 'dungeon' && c?.key === 'rustfort' && firstDungeonNow();
   const tip = tut ? '<p class="coachtip b-tip"><b>녹슨 요새</b> 쉬움으로 출전. 일반·정예 구간 둘, 보스 둘을 이어서 진행</p>' : '';
   s.el.style.setProperty('--b-bg', c ? cssUrl(placeArt(c.key).url) : 'none');
+  s.el.dataset.selectedContent = c?.key ?? '';
+  s.el.dataset.selectedRegion = region ?? '';
+  s.el.dataset.selectedDiff = d;
   s.el.innerHTML = `${topBar({ settings: true })}
-    <div class="ns-body b-body">${tip}${cats()}${c ? gate(c, d, list.length > 1) + places(list, c, tab === 'dungeon' ? chalCell() : '') + diffs(c, d) : ''}</div>
+    <div class="ns-body b-body">${tip}${cats()}${tab === 'dungeon' && c ? chalCell() : ''}${c ? gate(c, d, list.length > 1) + regions(c) + `<section class="b-difficulty"><div class="b-section-title"><h2>난이도</h2></div>${diffs(c, d)}</section>` : ''}</div>
     <footer class="b-foot">${cta(c, d)}</footer>`;
   if (tut) s.el.querySelector('#contentGo')?.classList.add('hi-pulse');
-  const nb = s.el.querySelector<HTMLElement>('.b-body');
-  if (nb) nb.scrollTop = top;
-  scrollPlaces(plFrom, plCenter);
-  if (focus) s.el.querySelector<HTMLElement>(focus)?.focus({ preventScroll: true });
+  const rewardRow = s.el.querySelector<HTMLElement>('.b-scene-reward-list');
+  if (rewardRow) rewardRow.scrollLeft = rewardFrom;
+  const regionRow = s.el.querySelector<HTMLElement>('.b-regions');
+  if (regionRow) {
+    if (plFrom !== null) regionRow.scrollLeft = plFrom;
+    if (plFrom === null || plCenter) {
+      const selected = regionRow.querySelector<HTMLElement>('.b-region.on');
+      if (selected) regionRow.scrollLeft = selected.offsetLeft - regionRow.offsetLeft - (regionRow.clientWidth - selected.offsetWidth) / 2;
+    }
+  }
+  if (focus) {
+    const target = s.el.querySelector<HTMLButtonElement>(focus);
+    if (target && !target.disabled) target.focus({ preventScroll: true });
+    else if (focus.startsWith('[data-place-page')) s.el.querySelector<HTMLElement>('[data-place-page]:not(:disabled)')?.focus({ preventScroll: true });
+  }
 }
 
-// 화면 크기가 바뀌면 (회전 등) 칸 너비·흐림 다시
-addEventListener('resize', () => {
-  const sc = s.el.querySelector<HTMLElement>('.b-plr');
-  if (!s.el.hidden && sc) { sizePlaces(); placeFade(sc); }
-});
+/** 장소 팝업은 별도로 그려서 뒤에 있는 선택·난이도·출전 버튼을 그대로 둔다. */
+function renderPlaces(revealSelected = false): void {
+  if (!placeModalRegion) return;
+  const region = placeModalRegion, list = listOf(tab, region), selected = current()?.key ?? null;
+  if (!list.length) return;
+  const size = placePageSize();
+  if (revealSelected) {
+    const anchor = list.findIndex(x => x.key === selected);
+    const remembered = list.findIndex(x => x.key === regionContentPick[`${tab}:${region}`]);
+    placePage = Math.floor(Math.max(0, anchor >= 0 ? anchor : remembered) / size);
+  }
+  placePage = Math.max(0, Math.min(placePage, Math.ceil(list.length / size) - 1));
+  placesDialog.beforeRender();
+  s.el.querySelector('.b-place-modalwrap')?.remove();
+  s.el.insertAdjacentHTML('beforeend', `<div class="b-place-modalwrap" data-place-close>
+    <div class="b-place-modal" role="dialog" aria-modal="true" aria-labelledby="bPlaceModalTitle" data-modal-region="${region}" tabindex="-1">
+      <div class="b-place-modal-head"><h2 id="bPlaceModalTitle">장소 선택</h2><button type="button" class="b-place-modal-close" data-place-close aria-label="장소 선택 닫기">×</button></div>
+      ${places(list, selected, placePage, size)}
+    </div></div>`);
+  placesDialog.sync(s.el.querySelector<HTMLElement>('.b-place-modal'), [`places:${region}`]);
+  drawnPageSize = size; drawnViewport = viewportStamp();
+}
 
-// 장소 줄을 넘길 때 양끝 흐림 다시 계산 (scroll은 거품이 안 올라와서 capture)
-s.el.addEventListener('scroll', e => {
-  const t = e.target as HTMLElement;
-  if (t.classList?.contains('b-plr')) placeFade(t);
-}, { capture: true, passive: true });
+function openPlaces(region: AdventureRegionKey): void {
+  if (!listOf(tab, region).length) return;
+  placeModalRegion = region;
+  renderPlaces(true);
+}
 
-/** 얻는 장비 팝업: 보상 칸 위에 띄움 (관문은 넘치는 부분을 잘라서 화면 쪽에 붙임). 닫으면 그 칸으로 초점 */
-function openDrops(btn: HTMLElement): void {
+function closePlaces(): void {
+  const wrap = s.el.querySelector('.b-place-modalwrap');
+  if (!wrap) return;
+  placesDialog.beforeRender();
+  wrap.remove();
+  placeModalRegion = null;
+  placesDialog.sync(null, []);
+  refreshPageLayout();
+}
+
+/** 접기·펼치기와 화면 회전 중 팝업은 유지하고 선택한 장소를 새 칸 수에 맞춰 보여 준다. */
+function refreshPageLayout(): void {
+  if (s.el.hidden || !s.el.isConnected) return;
+  if (rewardKey) { positionRewardChance(); return; }
+  if (drawnViewport === viewportStamp() && drawnPageSize === placePageSize()) return;
+  if (placeModalRegion) { renderPlaces(true); return; }
+  centerNext = true;
+  render();
+}
+let resizeFrame = 0;
+function queuePageLayout(): void {
+  if (resizeFrame) return;
+  resizeFrame = requestAnimationFrame(() => { resizeFrame = 0; refreshPageLayout(); });
+}
+addEventListener('resize', queuePageLayout);
+visualViewport?.addEventListener('resize', queuePageLayout);
+if (typeof ResizeObserver === 'function') new ResizeObserver(queuePageLayout).observe(s.el);
+
+/** 확률 안내는 아이콘 가까이에 두며, 접기·펼치기 중에도 화면 안에 유지한다. */
+function positionRewardChance(): void {
+  const pop = s.el.querySelector<HTMLElement>('.b-reward-chance');
+  const btn = rewardKey ? s.el.querySelector<HTMLElement>(`[data-reward="${rewardKey}"]`) : null;
+  if (!pop || !btn) return;
+  const r = btn.getBoundingClientRect(), box = s.el.getBoundingClientRect();
+  const tabs = document.getElementById('tabs')?.getBoundingClientRect();
+  const bottom = Math.min(box.bottom, innerHeight, tabs?.height && tabs.top > box.top ? tabs.top : Infinity);
+  const height = Math.max(0, bottom - box.top);
+  const w = Math.max(0, Math.min(230, box.width - 24));
+  pop.style.width = `${w}px`;
+  pop.style.maxHeight = `${Math.max(0, height - 16)}px`;
+  pop.style.left = `${Math.max(12, Math.min(box.width - w - 12, r.left - box.left + (r.width - w) / 2))}px`;
+  const h = pop.offsetHeight, above = r.top - box.top - h - 8;
+  const top = above >= 8 ? above : r.bottom - box.top + 8;
+  pop.style.top = `${Math.max(8, Math.min(height - h - 8, top))}px`;
+}
+
+function openRewardChance(key: string): void {
+  // 화면을 켜 둔 채 주가 바뀌어도 아이콘과 확률 안내가 함께 갱신된다.
+  const changed = refreshDay();
+  if (changed.day || changed.week || changed.season || changed.banked || changed.fixed) {
+    closeRewardChance(false);
+    render();
+  }
   const c = current();
   if (!c) return;
-  closeDrops(false);
-  s.el.insertAdjacentHTML('beforeend', dropPop(c, diffOf(c)));
-  const pop = s.el.querySelector<HTMLElement>('.b-pop')!, r = btn.getBoundingClientRect(), box = s.el.getBoundingClientRect();
-  const w = Math.min(300, box.width - 32);
-  pop.style.width = `${w}px`;
-  pop.style.left = `${Math.max(16, Math.min(box.width - w - 16, r.left - box.left - 8))}px`;
-  const h = pop.offsetHeight, above = r.top - box.top - h - 8;
-  pop.style.top = `${above >= 8 ? above : Math.min(box.height - h - 8, r.bottom - box.top + 8)}px`;
-  pop.focus({ preventScroll: true });
+  const reward = rewardItems(c, diffOf(c)).find(r => r.key === key);
+  if (!reward) return;
+  closeRewardChance(false);
+  rewardKey = key;
+  s.el.querySelector(`[data-reward="${key}"]`)?.setAttribute('aria-expanded', 'true');
+  const percent = (p: number) => Number((p * 100).toFixed(2));
+  const chance = reward.gradeOdds
+    ? `<dl class="b-grade-chances" aria-label="등급별 획득 확률">${[...ITEM_GRADES].reverse().map(g => {
+      const p = reward.gradeOdds![g];
+      return `<div class="b-grade-chance${p ? '' : ' unavailable'}" data-grade="${g}" data-probability="${p}" style="--grade-color:${GRADE_STYLE[g].color}"><dt>${g}</dt><dd>${percent(p)}%</dd></div>`;
+    }).join('')}</dl>`
+    : `<strong>${percent(reward.probability)}%</strong>`;
+  s.el.insertAdjacentHTML('beforeend', `<div class="b-reward-chance" id="bRewardChance" role="dialog" aria-modal="false" aria-labelledby="bRewardChanceTitle" tabindex="-1" data-reward-key="${key}">
+    <button type="button" data-reward-close aria-label="확률 안내 닫기">×</button>
+    <b id="bRewardChanceTitle">${esc(reward.name)}</b>${chance}<small>${esc(reward.basis)}</small>
+  </div>`);
+  positionRewardChance();
+  s.el.querySelector<HTMLElement>('.b-reward-chance')?.focus({ preventScroll: true });
 }
-function closeDrops(refocus = true): void {
-  const w = s.el.querySelector('.b-popwrap');
-  if (!w) return;
-  w.remove();
-  if (refocus) s.el.querySelector<HTMLElement>('[data-drops]')?.focus({ preventScroll: true });
+
+function closeRewardChance(refocus = true): void {
+  if (!rewardKey) return;
+  const key = rewardKey;
+  rewardKey = null;
+  s.el.querySelector('.b-reward-chance')?.remove();
+  const btn = s.el.querySelector<HTMLElement>(`[data-reward="${key}"]`);
+  btn?.setAttribute('aria-expanded', 'false');
+  if (refocus) { btn?.focus({ preventScroll: true }); refreshPageLayout(); }
 }
-addEventListener('keydown', e => { if (e.key === 'Escape' && !s.el.hidden && s.el.querySelector('.b-popwrap')) { e.preventDefault(); closeDrops(); } });
+
+// 작은 확률 안내는 배경을 막지 않는다. 다른 조작을 하면 닫고 그 조작을 그대로 이어 간다.
+document.addEventListener('click', e => {
+  if (!rewardKey || s.el.hidden) return;
+  const target = e.target as Element;
+  if (!target.closest('.b-reward-chance') && !target.closest('#s-content [data-reward]')) closeRewardChance(false);
+}, true);
+document.addEventListener('focusin', e => {
+  if (!rewardKey || s.el.hidden) return;
+  const target = e.target as Element;
+  if (!target.closest('.b-reward-chance') && !target.closest('#s-content [data-reward]')) closeRewardChance(false);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && rewardKey && !s.el.hidden) { e.preventDefault(); e.stopImmediatePropagation(); closeRewardChance(); }
+}, true);
 
 s.el.addEventListener('click', e => {
   const el = e.target as HTMLElement;
-  if (s.el.querySelector('.b-popwrap')) {
-    // 팝업 안을 누르면 그대로, 바깥 (어두운 곳) · × 를 누르면 닫음
-    if (el.closest('[data-popclose]') && (el.closest('.b-popx') || !el.closest('.b-pop'))) closeDrops();
+  if (s.el.querySelector('.b-place-modalwrap')) {
+    if (el.closest('[data-place-close]') && (el.closest('.b-place-modal-close') || !el.closest('.b-place-modal'))) { closePlaces(); return; }
+    const chosen = el.closest<HTMLElement>('[data-content]');
+    if (chosen) {
+      const key = chosen.dataset.content as ContentKey;
+      closePlaces();
+      selectContent(contentOf(key));
+      centerNext = true;
+      render(); return;
+    }
+    const pageButton = el.closest<HTMLButtonElement>('[data-place-page]');
+    if (pageButton && !pageButton.disabled) { placePage += Number(pageButton.dataset.placePage); renderPlaces(); }
     return;
   }
-  const dr = el.closest<HTMLElement>('[data-drops]');
-  if (dr) { openDrops(dr); return; }
+  if (el.closest('[data-reward-close]')) { closeRewardChance(); return; }
+  if (el.closest('.b-reward-chance')) return;
+  const reward = el.closest<HTMLElement>('[data-reward]');
+  if (reward) {
+    const key = reward.dataset.reward!;
+    if (rewardKey === key) closeRewardChance(); else openRewardChance(key);
+    return;
+  }
   const t = el.closest<HTMLElement>('[data-ctab]');
   if (t) { tab = t.dataset.ctab as Tab; render(); return; }
+  const rg = el.closest<HTMLElement>('[data-region]');
+  if (rg) { openPlaces(rg.dataset.region as AdventureRegionKey); return; }
+  if (el.closest('[data-current-places]')) {
+    const c = current();
+    if (c) openPlaces(adventureRegionOf(c).key);
+    return;
+  }
   const ch = el.closest<HTMLElement>('[data-chal]');
   if (ch) {
     if (ch.getAttribute('aria-disabled') === 'true') return;
     Flow.content = CHAL.content; Flow.diff = CHAL.diff; Flow.chal = G.save.chalOpen;
     go('s-entry'); return;
   }
-  const p = el.closest<HTMLElement>('[data-content]');
-  if (p) { pick[tab] = p.dataset.content as ContentKey; render(); return; }
   const st = el.closest<HTMLElement>('[data-step]');
   if (st) {
-    const list = listOf(tab), c = current();
-    if (c && list.length > 1) pick[tab] = list[(list.indexOf(c) + Number(st.dataset.step) + list.length) % list.length].key;
+    const c = current(), list = c ? listOf(tab, adventureRegionOf(c).key) : [];
+    if (c && list.length > 1) selectContent(list[(list.indexOf(c) + Number(st.dataset.step) + list.length) % list.length]);
     centerNext = true;
     render(); return;
   }

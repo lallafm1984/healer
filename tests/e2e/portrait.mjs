@@ -1,7 +1,8 @@
 // 세로 UI 회귀: 그림 로드 (캐릭터 그림 없음, 장소·메뉴 그림은 28), 고정 출발 버튼, 좁은 메뉴, 20인/특성/전멸 배치.
 import { chromium } from 'playwright';
-import { pastTitle, toParty } from './nav.mjs';
+import { chooseContent, pastTitle, toParty } from './nav.mjs';
 import { equipmentLayout } from './character.mjs';
+import { modalContentKeys } from './place-modal.mjs';
 
 export default async function portrait(url, shots) {
   const browser = await chromium.launch();
@@ -154,7 +155,8 @@ export default async function portrait(url, shots) {
     ok(await bgLoaded('#s-shop .shop-hero', '::before'), `${width}: 상점 선반 그림`);
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_shop_${width}.png` });
     await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(80);
-    ok(await loaded('#s-content .b-gate img') && await page.locator('#s-content .b-places .fmark').count() >= 6 && await noOverflow('#s-content .b-body'), `${width}: 전투 탭 관문 장소 그림 + 장소 문양 6곳, 가로 넘침 없음`);
+    ok(await loaded('#s-content .b-gate img') && await page.locator('#s-content .b-region').count() >= 2 && await noOverflow('#s-content .b-body'), `${width}: 전투 탭 풍경 미리보기 + 지역 카드, 가로 넘침 없음`);
+    ok(await bgLoaded('#s-content .b-cats') && await bgLoaded('#s-content .b-cat[aria-selected="true"]') && await bgLoaded('#s-content .b-cat[aria-selected="false"]'), `${width}: 분류 뒤 배경 + 활성·비활성 공용 탭 재질 로드`);
     // 로비 첨탑 이름표 → 전투 탭 10인 레이드
     await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(80);
     await page.click('#s-lobby .lb-raid'); await page.clock.runFor(80);
@@ -162,31 +164,61 @@ export default async function portrait(url, shots) {
     // 분류 = 탐험 · 던전 · 10인 레이드 · 20인 레이드 (2026-10-09 이벤트 탭 뺌). 레이드 탭엔 그 인원 레이드만
     const cats = await page.evaluate(() => [...document.querySelectorAll('#s-content [data-ctab]')].map(b => `${b.dataset.ctab}:${b.getAttribute('aria-label')}`).join());
     ok(/^explore:탐험[^,]*,dungeon:던전[^,]*,raid10:10인 레이드[^,]*,raid20:20인 레이드[^,]*$/.test(cats) && !/이벤트/.test(await page.textContent('#s-content .b-cats')), `${width}: 분류 4칸 = 탐험·던전·10인 레이드·20인 레이드, 이벤트 없음 (${cats})`);
-    // 관문은 분류가 바뀌어도 같은 자리·같은 크기 (주간 도전은 관문 위 띠가 아니라 장소 줄 맨 앞 칸)
+    // 관문은 분류가 바뀌어도 같은 자리·같은 크기. 레이드 장소는 모든 지역을 순회해 확인한다.
     const gates = [], raids = {};
     for (const t of ['explore', 'raid10', 'raid20', 'dungeon']) {
       await page.click(`#s-content [data-ctab="${t}"]`); await page.clock.runFor(60);
+      await page.locator('#s-content .b-body').evaluate(el => { el.scrollTop = 0; });
       const b = await page.locator('#s-content .b-gate').boundingBox();
-      gates.push(`${Math.round(b.y)}/${Math.round(b.height)}`);
-      if (t.startsWith('raid')) raids[t] = await page.evaluate(() => [...document.querySelectorAll('#s-content .b-pl[data-content]')].map(b => b.dataset.content).join());
+      gates.push(b);
+      if (t.startsWith('raid')) {
+        const regions = await page.locator('#s-content [data-region]').evaluateAll(buttons => buttons.map(button => button.dataset.region));
+        raids[t] = [];
+        for (const region of regions) {
+          await page.click(`#s-content [data-region="${region}"]`); await page.clock.runFor(50);
+          raids[t].push(...await modalContentKeys(page));
+          await page.keyboard.press('Escape');
+        }
+      }
     }
-    ok(new Set(gates).size === 1, `${width}: 관문 자리·크기가 탐험·10인·20인 레이드·던전 모두 같음 (${gates.join(' ')})`);
-    ok(/^abyss1(,abyss\d)*(,gull\d)*(,queen\d)*(,isle\d)*(,fest\d)*(,cave\d)*(,palace\d)*(,den\d)*(,nest\d)*(,bazaar\d)*(,dusk\d)*(,pyramid\d)*(,post\d)*(,fort\d)*(,maze\d)*$/.test(raids.raid10) && /^cathedral1(,cathedral\d)*(,abbey\d)*(,rootwood\d)*(,reservoir\d)*(,well\d)*(,crystal\d)*(,shadow\d)*(,camp\d)*(,coast\d)*(,heart\d)*$/.test(raids.raid20), `${width}: 10인 탭 = 탑 (1층부터) · 항구 · 여왕호 · 요새 · 축제 마당 · 동굴 정원 · 궁전 · 보물 굴 · 둥지 · 노을 시장 · 노을 궁전 · 낮잠 피라미드 · 구름 우체국 · 폭풍 성채 · 그림자 미궁 순, 20인 탭 = 대성당 (1구역부터) · 물밑 수도원 · 빛뿌리 숲 · 별빛 저수지 · 숨결 우물 · 수정 뿌리굴 · 그림자 성벽 · 그림자 진영 · 어둠물 해안 · 심연의 심장 ${JSON.stringify(raids)}`);
-    const row = await page.evaluate(() => {
-      const sc = document.querySelector('#s-content .b-plr'), r = sc.getBoundingClientRect();
-      const cut = [...sc.querySelectorAll('.b-pl')].some(b => { const x = b.getBoundingClientRect(); return x.left < r.right - 8 && x.right > r.right + 8; });
-      return { chal: !!document.querySelector('#s-content .b-places > .b-chal'), over: sc.scrollWidth > sc.clientWidth + 1, cut, more: sc.parentElement.dataset.more };
+    ok(gates.every(b=>b && b.height>0 && b.y>=0 && b.y+b.height<=height), `${width}: 네 분류 모두 풍경이 화면 안에 표시`);
+    const sections = prefixes => prefixes.flatMap(prefix => [1, 2, 3].map(n => `${prefix}${n}`));
+    const expectedRaids = {
+      raid10: [...[1, 2, 3, 4, 5].map(n => `abyss${n}`), ...sections(['gull', 'queen', 'isle', 'fest', 'cave', 'palace', 'den', 'nest', 'bazaar', 'dusk', 'pyramid', 'post', 'fort', 'maze'])],
+      raid20: [...[1, 2, 3, 4].map(n => `cathedral${n}`), ...sections(['abbey', 'rootwood', 'reservoir', 'well', 'crystal', 'shadow', 'camp', 'coast', 'heart'])],
+    };
+    ok(Object.keys(expectedRaids).every(tab=>JSON.stringify([...raids[tab]].sort())===JSON.stringify([...expectedRaids[tab]].sort())), `${width}: 지역·시설 팝업을 모두 돌아도 10인 47곳·20인 31곳이 빠짐없이 표시`);
+    await chooseContent(page, 'rustfort');
+    await page.click('#s-content [data-current-places]');
+    const selection = await page.evaluate(() => {
+      const rect = el => { const r = el.getBoundingClientRect(); return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height }; };
+      const grid = document.querySelector('#s-content .b-plr'), regionRow = document.querySelector('#s-content .b-regions');
+      const cards = [...grid.querySelectorAll('.b-pl')];
+      const gate = document.querySelector('#s-content .b-gate'), level = gate.querySelector('.b-level'), name = gate.querySelector('.b-gt');
+      return {
+        columns: getComputedStyle(grid).gridTemplateColumns.split(/\s+/).length,
+        grid: rect(grid), cards: cards.map(rect), noOverflow: grid.scrollWidth <= grid.clientWidth + 1,
+        region: rect(regionRow), regionCards: [...regionRow.querySelectorAll('.b-region')].map(rect),
+        selectedRegion: regionRow.querySelector('.b-region.on')?.dataset.region,
+        places: cards.map(c => c.dataset.content), gate: rect(gate), level: rect(level), name: rect(name),
+        levelLabel: level.getAttribute('aria-label'), levelFont: parseFloat(getComputedStyle(level.querySelector('strong')).fontSize),
+        arrow: getComputedStyle(document.querySelector('#s-content .b-cat[aria-selected="true"]'), '::after').content,
+        chal: !!document.querySelector('#s-content > .b-body > .b-chal'),
+      };
     });
-    ok(row.chal && row.over && row.cut && row.more === 'r', `${width}: 던전 장소 줄 = 맨 앞 주간 도전 고정 칸 + 넘치면 가로로 넘김 (반 칸 걸침, 오른쪽만 흐림)`);
-    if (width === 390) {
-      for (let i = 0; i < 4; i++) { await page.click('#s-content [aria-label="다음 장소"]'); await page.clock.runFor(600); }
-      const mid = await page.evaluate(() => {
-        const sc = document.querySelector('#s-content .b-plr'), r = sc.getBoundingClientRect(), b = sc.querySelector('.b-pl.on').getBoundingClientRect();
-        return Math.abs((b.left - r.left) - (r.right - b.right));
-      });
-      ok(mid <= 3, `${width}: ›로 넘기면 고른 장소가 줄 가운데로`);
-      await page.click('#s-content [data-content="rustfort"]'); await page.clock.runFor(600);
-    }
+    ok(selection.columns === 2 && selection.noOverflow && selection.cards.length === 2
+      && Math.abs(selection.cards[0].top - selection.cards[1].top) <= 1 && selection.cards.every(r => r.height >= 44 && r.left >= selection.grid.left - 1 && r.right <= selection.grid.right + 1),
+      `${width}: 장소는 2열 카드, 44px 이상·가로 넘침 없음`);
+    ok(selection.selectedRegion === 'rust' && selection.places.join() === 'rustfort,mine'
+      && selection.regionCards.every(r => r.width >= 44 && r.height >= 44) && selection.region.left >= 0 && selection.region.right <= width + 1,
+      `${width}: 선택한 녹슨 고원에 요새·광산만 표시, 지역 터치 영역과 가로 경계 정상`);
+    ok(selection.levelLabel === '권장 레벨 5' && selection.levelFont >= 24 && selection.gate.height > 0
+      && selection.level.left >= selection.name.right && selection.level.right <= selection.gate.right && selection.level.bottom <= selection.gate.bottom,
+      `${width}: 작은 풍경 안 권장 레벨을 크게 표시, 장소명과 겹침 없음`);
+    ok(['none', 'normal', '""'].includes(selection.arrow) && selection.chal, `${width}: 탭 선택 화살표 제거, 던전 주간 도전 버튼 유지`);
+    ok(await loaded('#s-content .b-region.on img') && await loaded('#s-content .b-place-thumb'), `${width}: 선택 지역 풍경·장소 썸네일 로드`);
+    await page.keyboard.press('Escape');
+    await page.locator('#s-content .b-body').evaluate(el => { el.scrollTop = 0; });
     const go = await page.locator('#contentGo').boundingBox(), tb = await page.locator('#tabs').boundingBox();
     ok(go.y + go.height <= tb.y + 1 && go.height >= 44, `${width}: 출전 버튼 항상 탭 위, 44px 이상`);
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_content_${width}.png` });

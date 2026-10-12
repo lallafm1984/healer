@@ -1,6 +1,6 @@
 // 던전 흐름 (23·24): 로비 → 콘텐츠 → 난이도 → 편성 → 잡몹 구간 → 휴식 → … → 정산 → 보상 → 레벨 업. 구간은 적 체력을 깎아 빨리 넘긴다
 import { chromium } from 'playwright';
-import { killEnemies, pastTitle, pickedItems, toParty } from './nav.mjs';
+import { chooseContent, killEnemies, pastTitle, pickedItems, toParty } from './nav.mjs';
 
 export default async function dungeon(url, shots) {
   const browser = await chromium.launch();
@@ -26,21 +26,27 @@ export default async function dungeon(url, shots) {
 
   // ---- 콘텐츠 선택 (30 출정 관문: 장소 고르기 → 출전) ----
   ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true', '콘텐츠 기본 탭 = 던전 5인');
-  ok(await page.getAttribute('#s-content [data-content="rustfort"]', 'aria-pressed') === 'true' && /녹슨 요새/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo'), '녹슨 요새가 골라져 있고 출전 가능');
+  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'rustfort' && /녹슨 요새/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo'), '녹슨 요새가 골라져 있고 출전 가능');
   ok(await page.getAttribute('#s-content [data-diff="쉬움"]', 'aria-pressed') === 'true' && await page.isDisabled('#s-content [data-diff="보통"]') && /쉬움 깨기/.test(await page.textContent('#s-content [data-diff="보통"]')), '난이도 기본 = 쉬움, 보통은 「쉬움 깨기」로 잠김 (61 사슬, 개발 빌드도)');
-  ok(/적 Lv 5/.test(await page.textContent('#s-content .b-gate')), '관문 정보 줄 = 적 Lv 5 (장소 레벨, 61 1-2)');
-  await page.click('#s-content [data-drops]'); await page.clock.runFor(50);
-  const drops = await page.textContent('#s-content .b-pop');
-  ok(/쉬움 장비/.test(drops) && /일반\s*100%/.test(drops) && /보스마다 1개 \(2개\)/.test(drops) && /전설은 20인 레이드 악몽에서만/.test(drops), `장비 칸을 누르면 얻는 장비 팝업 (쉬움 = 일반 100%)`);
+  ok(await page.getAttribute('#s-content .b-level', 'aria-label') === '권장 레벨 5' && /Lv\.\s*5/.test(await page.textContent('#s-content .b-level')), '관문 권장 레벨 = Lv. 5 (장소 레벨, 61 1-2)');
+  ok(await page.locator('#s-content .b-gate [data-reward="gold"]').count()===1
+    && await page.locator('#s-content [data-drops],#s-content .b-pop').count()===0, '장면 안 획득 보상 아이콘 표시·기존 보상 상세 제거');
+  await page.click('#s-content [data-reward="gear"]'); await page.clock.runFor(50);
+  const drops = await page.textContent('#s-content .b-reward-chance');
+  ok(/일반/.test(drops) && /100%/.test(drops) && await page.locator('.b-reward-chance [data-grade]').count()===5
+    && await page.locator('.b-reward-chance [data-grade="전설"]').getAttribute('data-probability')==='0'
+    && !/잘 나오는 종류|자주 나오는 특수능력/.test(drops), '단일 장비 아이콘을 누르면 일반 100%와 다른 네 등급 0% 표시');
   await page.screenshot({ path: `${shots}/content_drops.png` });
   await page.keyboard.press('Escape'); await page.clock.runFor(50);
-  ok((await page.locator('#s-content .b-pop').count()) === 0, 'Esc = 팝업 닫힘');
+  ok((await page.locator('#s-content .b-reward-chance').count()) === 0, 'Esc = 확률 팝오버 닫힘');
   // 묶음 B (46)로 던전 ⑧~⑩까지 모두 만듦: 준비 중 칸이 없고, 맨 끝 역병 수로도 관문에서 출전 가능
-  await page.click('#s-content [data-content="sewer"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-content [data-content="sewer"]', 'aria-pressed') === 'true' && /역병 수로/.test(await page.textContent('#s-content .b-gate')) && !/준비 중/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo') && (await page.locator('#s-content .b-pl.off').count()) === 0, '던전은 모두 만듦 = 준비 중 칸 없음, 역병 수로도 출전 가능');
-  await page.click('#s-content [data-content="crypt"]'); await page.clock.runFor(50);
+  await chooseContent(page, 'sewer');
+  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'sewer' && /역병 수로/.test(await page.textContent('#s-content .b-gate')) && !/준비 중/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo') && await page.locator('#s-content .b-place-modal').count() === 0, '왕도 지역 던전은 준비 중 칸 없음, 역병 수로도 출전 가능');
+  await chooseContent(page, 'crypt');
+  await page.click('#s-content [aria-label="다음 장소"]'); await page.clock.runFor(50);
+  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'greenhouse' && await page.getAttribute('#s-content [data-region="capital"]', 'aria-pressed') === 'true', '› = 왕도 지역의 다음 장소 (역병 약초 온실)');
   await page.click('#s-content [aria-label="이전 장소"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-content [data-content="mine"]', 'aria-pressed') === 'true', '‹ = 같은 분류의 이전 장소 (녹슨 광산, 62 H1)');
+  ok(await page.getAttribute('#s-content', 'data-selected-content') === 'crypt' && !(await page.locator('#s-content [data-content="mine"]').count()), '‹ = 왕도 지역의 이전 장소 (역병 지하묘지), 다른 지역 장소는 목록에 없음');
 
   // ---- 출전 → 바로 편성 (2026-10-08 입장 화면을 편성에 합침) ----
   await toParty(page);

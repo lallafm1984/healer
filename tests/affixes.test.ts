@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { diffAffixes, WEEKLY_AFFIXES } from '../src/data/affixes';
 import { CHAL, CHAL_ROTA, chalLimit, chalMult } from '../src/data/challenge';
-import { contentOf, stageOf } from '../src/data/content';
-import { clearGold, clearXp, EXPLORE_REWARD, xpGap } from '../src/data/progression';
+import { ALL_DIFFS, contentOf, stageOf } from '../src/data/content';
+import { clearGold, clearXp, EXPLORE_REWARD } from '../src/data/progression';
 import * as E from '../src/engine';
 import { affDebuffEnd, affixTick, affHeal } from '../src/engine/affixes';
 import { heal } from '../src/engine/core';
@@ -185,12 +185,32 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
     const tut = save(40); tut.tut = 1;
     expect(runMode(tut, rf, '악몽', { chal: 0 })).toMatchObject({ stage: 11, affixes: [] });
   });
-  it('내 레벨이 적보다 3 넘게 높으면 경험치가 줄어듦 (61 1-3), 레이드는 그대로', () => {
-    expect([0, 2, 3, 4, 5, 6, 7, 20].map(g => xpGap(50 + g, 50))).toEqual([1, 1, 0.8, 0.6, 0.4, 0.2, 0.1, 0.1].map(x => expect.closeTo(x, 5)));
-    expect(xpGap(10, 30)).toBe(1);
-    const s = save(52); s.daily.pub = 3;
-    const x = settle(s, result({ diff: '어려움', stage: 9 }), rng, [], T0);
-    expect(x.xp).toBe(Math.round(clearXp(52, '어려움', 'S', { win: true }) * 0.1));
+  it.each(['rustfort', 'plateau'] as const)('%s: 모든 난이도에서 장소 레벨이 낮아도 경험치 감산 없음', content => {
+    const c = contentOf(content), kind = c.kind === 'explore' ? EXPLORE_REWARD : 1;
+    for (const diff of ALL_DIFFS) {
+      const low = save(52), same = save(52), high = save(52);
+      const stage = runMode(low, c, diff, { chal: 0 }).stage;
+      expect(stage).toBeLessThan(52 - 7);
+      const rewards = [
+        settle(low, result({ content, diff, stage }), rng, [], T0),
+        settle(same, result({ content, diff, stage: 52 }), rng, [], T0),
+        settle(high, result({ content, diff, stage: 70 }), rng, [], T0),
+      ];
+      const xp = Math.round(clearXp(52, diff, 'S', { win: true }) * kind);
+      expect(rewards.map(x => x.xp)).toEqual([xp, xp, xp]);
+      expect(low.player.xp).toBe(xp);
+    }
+  });
+  it('레벨 차이 보정 제거 뒤에도 패배 경험치·포기 무보상은 유지', () => {
+    for (const content of ['rustfort', 'plateau'] as const) {
+      const kind = content === 'plateau' ? EXPLORE_REWARD : 1;
+      const lost = settle(save(52), result({ content, win: false, stage: 1 }), rng, [], T0);
+      expect(lost.xp).toBe(Math.round(clearXp(52, '보통', null, { win: false }) * kind));
+      const quit = settle(save(52), result({ content, win: false, quit: true, stage: 1 }), rng, [], T0);
+      expect(quit.xp).toBe(0);
+    }
+  });
+  it('레이드 경험치 배율 유지', () => {
     const r = save(90); r.daily.pub = 3;
     const y = settle(r, result({ content: 'abyss1', diff: '보통', stage: 90, segIdx: 0, segN: 1 }), rng, [], T0);
     expect(y.xp).toBe(clearXp(90, '보통', 'S', { raid: 10, win: true }));

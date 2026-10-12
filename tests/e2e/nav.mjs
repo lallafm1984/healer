@@ -37,12 +37,47 @@ export async function openDiff(page, content, diff) {
   return done;
 }
 
-/** 전투 탭(30 출정 관문): 분류 → 장소 고르기 → (난이도) → 「출전」 = 편성 화면 (2026-10-08부터 입장 화면 없음). 난이도가 사슬로 잠겼으면 앞 난이도 기록을 넣고 다시 */
+/** 현재 분류의 지역 팝업과 장소 페이지를 찾아 고른다. 모든 진입 테스트가 같은 경로를 쓴다. */
+export async function chooseContent(page, content) {
+  const selector = `#s-content .b-place-modal .b-pl[data-content="${content}"]`;
+  const closePlaces = async () => {
+    if (await page.locator('#s-content .b-place-modal').count()) {
+      await page.keyboard.press('Escape'); await page.clock.runFor(50);
+    }
+  };
+  const chooseVisible = async () => {
+    if (!(await page.locator(selector).count())) return false;
+    await page.click(selector); await page.clock.runFor(50);
+    return true;
+  };
+  if (await chooseVisible()) return;
+  await closePlaces();
+  const regions = await page.locator('#s-content [data-region]').evaluateAll(buttons => buttons.map(b => b.dataset.region));
+  for (const region of regions) {
+    await page.click(`#s-content [data-region="${region}"]`); await page.clock.runFor(50);
+    if (await chooseVisible()) return;
+    const pages = Number(await page.locator('#s-content .b-place-section').getAttribute('data-pages')) || 1;
+    // 지역마다 기억한 선택 장소의 페이지가 먼저 열리므로, 목록 탐색은 첫 페이지부터 한다.
+    for (let i = 1; i < pages && await page.isEnabled('#s-content [data-place-page="-1"]'); i++) {
+      await page.click('#s-content [data-place-page="-1"]'); await page.clock.runFor(50);
+    }
+    for (let i = 0; i < pages; i++) {
+      if (await chooseVisible()) return;
+      if (!(await page.isEnabled('#s-content [data-place-page="1"]'))) break;
+      await page.click('#s-content [data-place-page="1"]'); await page.clock.runFor(50);
+    }
+    await closePlaces();
+  }
+  throw new Error(`현재 분류의 모든 지역·페이지에서 장소를 찾지 못함: ${content}`);
+}
+
+/** 전투 탭: 분류 → 지역 → 장소 → (난이도) → 「출전」 = 편성 화면. 난이도가 사슬로 잠겼으면 앞 난이도 기록을 넣고 다시 */
 export async function toParty(page, { content = 'rustfort', tab = 'dungeon', diff } = {}, again = true) {
   await pastTitle(page);
   if (!(await page.isVisible('#s-content'))) { await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100); }
+  if (await page.locator('#s-content .b-place-modal').count()) { await page.keyboard.press('Escape'); await page.clock.runFor(50); }
   await page.click(`#s-content [data-ctab="${tab}"]`); await page.clock.runFor(50);
-  await page.click(`#s-content [data-content="${content}"]`); await page.clock.runFor(50);
+  await chooseContent(page, content);
   if (diff) {
     const sel = `#s-content [data-diff="${diff}"]`;
     if (again && await page.isDisabled(sel) && /깨기/.test(await page.textContent(sel)) && await openDiff(page, content, diff)) return toParty(page, { content, tab, diff }, false);

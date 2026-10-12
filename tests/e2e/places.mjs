@@ -2,7 +2,8 @@
 // 만든 장소를 화면에서 모두 찾아 돌고, 셋에 하나는 마지막 구간에서 포기해 진 결과로. 대상 폰 크기 (S25 · 울트라 · 플립)를 돌아가며 첫 전투 · 결과 캡처
 // 나눠 돌릴 때 (part = { k, n }) 찾은 장소 중 n개마다 k번째만 (폰 크기 · 포기 순서는 통째로 돌 때와 같음)
 import { chromium } from 'playwright';
-import { killEnemies, pastTitle, toParty } from './nav.mjs';
+import { chooseContent, killEnemies, pastTitle, toParty } from './nav.mjs';
+import { modalContentKeys } from './place-modal.mjs';
 import { DEVICES } from './devices.mjs';
 
 const TABS = ['explore', 'dungeon', 'raid10', 'raid20'];
@@ -27,20 +28,26 @@ export default async function places(url, shots, part) {
     pages.push({ page, tag: `${name} ${width}×${height}`, size: `${width}x${height}` });
   }
 
-  // 만든 장소 찾기: 분류마다 장소 칸을 눌러 「출전」이 눌리는 곳 (개발 빌드는 레벨 잠금 없이 열림)
+  // 만든 장소 찾기: 분류 → 모든 지역 → 장소 칸. 개발 빌드는 레벨 잠금 없이 열림.
   const list = [];
   {
     const { page } = pages[0];
     await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
     for (const tab of TABS) {
       await page.click(`#s-content [data-ctab="${tab}"]`); await page.clock.runFor(50);
-      const keys = await page.evaluate(() => [...document.querySelectorAll('#s-content [data-content]')].map(b => b.dataset.content));
-      for (const key of keys) {
-        await page.click(`#s-content [data-content="${key}"]`); await page.clock.runFor(50);
-        if (await page.isEnabled('#contentGo') && !/준비 중/.test(await page.textContent('#s-content .b-gate'))) list.push({ key, tab });
+      const regions = await page.locator('#s-content [data-region]').evaluateAll(buttons => buttons.map(b => b.dataset.region));
+      for (const region of regions) {
+        await page.click(`#s-content [data-region="${region}"]`); await page.clock.runFor(50);
+        const keys = await modalContentKeys(page);
+        await page.keyboard.press('Escape');
+        for (const key of keys) {
+          await chooseContent(page,key);
+          if (await page.isEnabled('#contentGo') && !/준비 중/.test(await page.textContent('#s-content .b-gate'))) list.push({ key, tab });
+        }
       }
     }
   }
+  ok(new Set(list.map(p => p.key)).size === list.length, '지역별 장소 목록에 중복 없음');
   ok(list.filter(p => p.tab === 'explore').length >= 8 && list.filter(p => p.tab === 'dungeon').length >= 7, `만든 장소를 전투 탭에서 찾음 (${list.length}곳: ${list.map(p => p.key).join(' · ')})`);
 
   for (const [i, p] of list.entries()) {

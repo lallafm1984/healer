@@ -1,14 +1,14 @@
 /**
  * 전투가 끝난 뒤 정산(09 S08)·보상(S09)을 계산하고 저장에 반영한다. 화면과 분리된 순수 계산 (난수는 받아서 씀).
  */
-import { ALL_DIFFS, contentOf, isLeveling, raidSize, stageOf, type ContentKey } from '../data/content';
+import { ALL_DIFFS, contentOf, raidSize, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HEROES, type HeroKey } from '../data/heroes';
 import { clearMats, rollItem, type GearItem } from '../data/equipment';
 import type { ItemKey } from '../data/items';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
-import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, starsOf, xpGap, type Grade } from '../data/progression';
+import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
 import { guildAfter, type GuildAfter } from './guild';
@@ -147,9 +147,8 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   // 탐험은 짧고 쉬워서 골드·경험치를 줄임 (튜토리얼이 끝난 뒤, 32 3-3)
   const kind = play && c.kind === 'explore' ? EXPLORE_REWARD : 1;
   const gold = r.win ? Math.round(clearGold(stage, r.diff, grade!, raid) * kind * (pubBonus ? PUB_BONUS.gold : 1) * festival) : 0;
-  // 따라잡기 경험치는 없음 (34 v0.2, Lim 2026-10-09): 낮은 직업도 같은 경험치. 탐험 · 던전은 적 레벨이 고정이라 내 레벨이 높으면 줄어듦 (61 1-3)
-  const gap = play && isLeveling(c) && !r.chal ? xpGap(p.level, stage) : 1;
-  const xp = r.quit ? 0 : Math.max(r.win ? 1 : 0, Math.round(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind * gap));
+  // 따라잡기·장소 레벨 차이 보정 없음. 경험치는 직업 레벨·난이도·등급·콘텐츠 배율로만 정함.
+  const xp = r.quit ? 0 : Math.max(r.win ? 1 : 0, Math.round(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind));
   const levelBefore = p.level;
   p.gold += gold;
   const levelUps = addXp(p, xp);
