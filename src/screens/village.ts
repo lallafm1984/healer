@@ -7,10 +7,14 @@
  * 종 그림은 쓰지 않는다 (10 4장): 시안의 종 레이어는 옮기지 않았다.
  * 로비를 다시 그려도 (보상 받기 등) 같은 캔버스를 새 자리로 옮겨 붙여 움직임이 이어진다. 로비가 안 보이거나 앱이 뒤로 가면 멈춘다.
  * 동작 줄이기 설정이면 바람 0으로 한 장면만 그린다. WebGL이 안 되면 고정 바탕 그림만 보인다.
+ * 2026-10-12: 구름 그림자 · 햇살 · 금빛 먼지 · 물 반짝임 · 굴뚝 연기 · 돌풍 잎은 village-air.ts. 돌풍은 가지 · 덩굴 · 깃발도 오른쪽으로 밀었다 놓는다.
+ * 설정 「시각 효과 줄이기」면 이 공기는 끄고 소품 흔들림만 남긴다.
  */
 import { Application, Assets, Container, Graphics, MeshPlane, Sprite, Texture, type Buffer } from 'pixi.js';
 import { art } from '../art';
 import { VILLAGE, type VillageEffects, type VillageLayer } from '../data/village';
+import { G } from '../game/state';
+import { gustAt, VillageAir } from './village-air';
 
 const clamp = (v: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, Number.isFinite(v) ? v : lo));
 const smoothstep = (lo: number, hi: number, v: number) => { const t = clamp((v - lo) / (hi - lo || 1)); return t * t * (3 - 2 * t); };
@@ -65,17 +69,20 @@ function createRig(layer: Layer, vertices: Float32Array): Rig {
   return { root, dir, length, width, height, bones, lever, motion, layer, profile, rate, gustDelay, flutter };
 }
 
-function poseRig(rig: Rig, time: number, wind: number): RigPose {
-  const layer = rig.layer, phase = layer.phase, profile = rig.profile;
+/** gust = 그 자리 돌풍 세기 0~1: 흔들림이 커지고 바람 쪽 (오른쪽)으로 기울었다가 돌아온다 */
+function poseRig(rig: Rig, time: number, wind: number, gust = 0): RigPose {
+  const layer = rig.layer, phase = layer.phase, profile = rig.profile, air = VILLAGE.ambience;
   const amplitude = Number.isFinite(layer.amplitude) ? layer.amplitude! : rig.motion === 'branch' ? 2.1 : rig.motion === 'awning' ? 2.3 : 3.0;
-  const strength = clamp(wind, 0, 100) / 35;
+  const strength = clamp(wind, 0, 100) / 35 * air.sway * (1 + air.gust.boost * gust * profile.gust);
   const envelope = clamp(0.73 + (windEnvelope(time - rig.gustDelay, phase) - 0.73) * profile.gust);
   const bend = amplitude * strength * envelope / rig.lever, clock = time * rig.rate;
+  // 위로 선 가지는 +각이 오른쪽, 매달린 덩굴 · 깃발은 -각이 오른쪽
+  const lean = air.gust.lean * gust * (rig.dir[1] < 0 ? 1 : rig.dir[1] > 0 ? -1 : 0);
   let start: [number, number] = [...rig.root], angle = rig.bones[0].angle;
   const bones = rig.bones.map((bone, i) => {
     const wave = (1 - profile.secondaryWeight) * Math.sin(clock * profile.sway + phase - i * profile.lag)
       + profile.secondaryWeight * Math.sin(clock * profile.secondary + phase * 1.7 - i * profile.lag * 1.69);
-    angle += bend * (0.65 + 0.35 * i / 3) * wave;
+    angle += bend * (0.65 + 0.35 * i / 3) * (wave + lean);
     const delta = angle - bone.angle, c = Math.cos(delta), s = Math.sin(delta);
     const end: [number, number] = [start[0] + Math.cos(angle) * bone.length, start[1] + Math.sin(angle) * bone.length];
     const pose = { c, s, tx: start[0] - c * bone.start[0] + s * bone.start[1], ty: start[1] - s * bone.start[0] - c * bone.start[1], end };
@@ -136,6 +143,7 @@ class Village {
   private leaves: Leaf[] = [];
   private birdFrames: Texture[] = [];
   private glow?: Texture;
+  private air?: VillageAir;
   private time = 0;
   private wind = VILLAGE.defaultWind;
   private raf = 0;
@@ -157,12 +165,14 @@ class Village {
     const base = art(VILLAGE.background);
     if (base) this.host.innerHTML = `<img class="lb-village-base" src="${base}" width="${VILLAGE.width}" height="${VILLAGE.height}" alt="" decoding="async" draggable="false">`;
     document.addEventListener('visibilitychange', () => this.playback());
+    addEventListener('resize', () => this.measure());
     this.reduce.addEventListener?.('change', () => { this.render(); this.playback(); });
   }
 
   /** 로비 무대 안에 붙임. 처음 한 번만 Pixi를 띄운다 */
   mount(slot: Element): void {
     if (this.host.parentElement !== slot) slot.appendChild(this.host);
+    this.measure();
     if (!this.app && !this.failed) this.init().catch(() => { this.failed = true; this.destroyApp(); });
     else this.playback();
   }
@@ -186,6 +196,8 @@ class Village {
     this.world.addChild(bg);
     for (const l of [...VILLAGE.layers, ...VILLAGE.occluders]) this.addLayer(l, textures.get(l.art)!);
     this.addEffects(VILLAGE.effects, textures.get(VILLAGE.effects.leafArt)!);
+    this.air = new VillageAir(this.world, textures.get(VILLAGE.effects.leafArt)!, VILLAGE.effects.leafContentWidth);
+    this.measure();
     this.host.dataset.clouds = String(this.items.filter(it => it.layer.motion === 'cloud').length);
     this.host.dataset.birds = String(this.items.filter(it => it.layer.motion === 'bird').length);
     this.host.dataset.leaves = String(this.leaves.length);
@@ -286,7 +298,7 @@ class Village {
       if (it.rig && it.base && it.positions && it.buffer) {
         if (!wind) it.positions.set(it.base);
         else {
-          const pose = poseRig(it.rig, t, wind);
+          const pose = poseRig(it.rig, t, wind, gustAt(t, layer.x + layer.width / 2));
           for (let i = 0; i < it.base.length; i += 2) deformPoint(it.base[i], it.base[i + 1], it.rig, pose, it.positions, i);
         }
         it.buffer.update();
@@ -310,6 +322,7 @@ class Village {
       l.object.width = l.object.height = l.size * (1 + 0.018 * breath);
     }
     for (const leaf of this.leaves) this.poseLeaf(leaf, t, wind);
+    this.air?.pose(t, this.calm() ? 0 : wind);
     this.app.render();
     // 화면 테스트가 움직임·멈춤을 확인하는 장면 시간
     this.host.dataset.t = t.toFixed(2);
@@ -330,10 +343,10 @@ class Village {
     }
   }
 
-  /** 한 무리가 약 21초에 화면을 횡단. 다음 순환에서는 반대 방향의 먼 계곡 경로를 쓴다. */
+  /** 한 무리가 약 21초에 화면을 횡단하고 26초마다 다시. 다음 순환에서는 반대 방향의 먼 계곡 경로를 쓴다. */
   private poseBird(object: Sprite, layer: Layer, t: number): void {
-    const elapsed = t + 6 - (layer.flightDelay || 0), pass = Math.floor(elapsed / 38);
-    const progress = mod(elapsed, 38) / 21, valley = mod(pass, 2) === 1;
+    const elapsed = t + 6 - (layer.flightDelay || 0), pass = Math.floor(elapsed / VILLAGE.birdCycle);
+    const progress = mod(elapsed, VILLAGE.birdCycle) / VILLAGE.birdCross, valley = mod(pass, 2) === 1;
     object.visible = progress <= 1;
     if (!object.visible) return;
     const direction = valley ? -1 : 1, across = -60 + progress * (VILLAGE.width + 120);
@@ -391,6 +404,18 @@ class Village {
   private advance(dt: number): void {
     this.time += dt;
     for (const it of this.items) if (it.layer.motion === 'cloud') it.travel += dt * cloudSpeed(it.layer, this.wind, this.time);
+    if (!this.calm()) this.air?.advance(dt, this.time, this.wind);
+  }
+
+  /** 설정 「시각 효과 줄이기」: 마을 공기 (그림자 · 햇살 · 먼지 · 반짝임 · 연기 · 돌풍 잎)는 끔 */
+  private calm(): boolean {
+    return !!G.save.settings.reducedEffects;
+  }
+
+  /** 지금 보이는 장면 아래 끝 (그림 y). 마을은 폭에 맞추고 아래가 잘리므로 폰마다 다르다 */
+  private measure(): void {
+    const world = this.host.closest('.lb-world'), w = this.host.clientWidth;
+    if (this.air && world && w > 0) this.air.bottom = Math.min(VILLAGE.height, world.clientHeight / w * VILLAGE.width);
   }
 
   private destroyApp(): void {
@@ -400,7 +425,8 @@ class Village {
     this.host.classList.remove('live');
     try { this.app?.destroy({ removeView: true }, { children: true, texture: false, textureSource: false }); } catch { /* 이미 끊긴 WebGL */ }
     this.glow?.destroy(true);
-    this.app = undefined; this.glow = undefined;
+    this.air?.destroy();
+    this.app = undefined; this.glow = undefined; this.air = undefined;
     this.world = new Container(); this.items = []; this.waters = []; this.lights = []; this.leaves = []; this.birdFrames = [];
   }
 }
