@@ -60,6 +60,8 @@ interface Goal { title: string; tag?: DiffName; sub: string; prog: string; to?: 
 const goalText = (g: Goal) => `${g.title}${g.tag ? ` · ${g.tag}` : ''}${g.sub && !g.tag ? ` · ${g.sub}` : ''}`;
 /** 좁은 리넨 표에는 스킬·장소 이름만, 접근성 설명에는 분류를 포함한 원래 목표 정보를 유지한다. */
 const shortGoalText = (g: Goal) => goalText(g).replace(/(?:스킬|탐험|던전|레이드)\s*「([^」]+)」/g, '$1');
+/** 두 번째 줄은 「 · 」 사이에서만 줄을 바꾼다 (장소 이름 「역병 약초 / 온실」처럼 이름 중간에서 끊기지 않게) */
+const shortGoalHtml = (g: Goal) => shortGoalText(g).split(' · ').map((part, i, all) => `<span class="nb">${esc(part)}${i < all.length - 1 ? ' ·' : ''}</span>`).join(' ');
 
 /** 아직 한 번도 안 깬 열린 장소 (탐험 · 던전, 낮은 레벨부터, 34 5-2). 첫 던전 녹슨 요새는 쉬움, 나머지는 보통 */
 function freshPlace(): { content: ContentKey; diff: DiffName } | null {
@@ -133,7 +135,7 @@ function tracker(): string {
     ? `<strong class="trk-t">${esc(first.title)}</strong>
       <span class="trk-lv">${first.tag ? `<span class="trk-diff">${esc(first.tag)}</span>` : ''}<span class="trk-sub">${esc(first.sub)}</span><small>${first.prog}</small></span>`
     : '<strong class="trk-t">마을 정비</strong>';
-  const inner = `${trkHead()}${main}${rest.map(g => `<span class="obj dim" aria-label="${esc(goalText(g))} · ${g.prog}"><i></i><span>${esc(shortGoalText(g))}</span><small>${g.prog}</small></span>`).join('')}`;
+  const inner = `${trkHead()}${main}${rest.map(g => `<span class="obj dim" aria-label="${esc(goalText(g))} · ${g.prog}"><i></i><span>${shortGoalHtml(g)}</span><small>${g.prog}</small></span>`).join('')}`;
   return to >= 0
     ? `<button type="button" class="lb-trk" data-goal="${to}" aria-label="다음 목표: ${gs.map(g => `${esc(goalText(g))} · ${g.prog}`).join(', ')}${recLabel(gs[to].to!.diff)}">${inner}</button>`
     : `<div class="lb-trk">${inner}</div>`;
@@ -207,7 +209,7 @@ function buildings(): string {
 /** 아래 독립된 목표표 + 「출전」 (지난 판 → 안 깬 장소). 시즌 패스는 상점에만 둔다. */
 function journey(): string {
   const to = dest(), c = contentOf(to.content);
-  const cta = `<button type="button" class="lb-cta${firstDungeonNow() ? ' hi-pulse' : ''}" id="lobbyStart" aria-label="출전 · ${esc(c.name)} ${esc(to.diff)}">${gameIcon('a2-swords', gameIcon('battle', uiIcon('battle'), 'tab'))}<span class="lb-cta-copy"><b>출전</b><small>${esc(c.name)} · ${esc(to.diff)}</small></span>${chevron()}</button>`;
+  const cta = `<button type="button" class="lb-cta${firstDungeonNow() ? ' hi-pulse' : ''}" id="lobbyStart" aria-label="출전 · ${esc(c.name)} ${esc(to.diff)}">${gameIcon('a2-swords', gameIcon('battle', uiIcon('battle'), 'tab'))}<span class="lb-cta-copy"><b>출전</b><small${`${c.name} · ${to.diff}`.length > 14 ? ' class="long"' : ''}>${esc(c.name)} · ${esc(to.diff)}</small></span>${chevron()}</button>`;
   return `<div class="lb-journey">${tracker()}<div class="lb-go">${cta}</div></div>`;
 }
 
