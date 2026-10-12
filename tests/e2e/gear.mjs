@@ -142,7 +142,11 @@ export default async function gear(url, shots) {
   await closeSheet();
   ok(await page.evaluate(() => document.activeElement?.id === 'gearInventoryTitle'), '마지막 아이템 장착 뒤 상세 닫기 → 빈 인벤토리 제목 포커스 복귀');
   ok(/0개/.test(await text('#s-char .c7-inventory-count')) && (await page.locator('#s-char .c7-bag').count()) === 0 && !(await page.isVisible('#s-char [data-csub="gear"] .rdot')), '빈 인벤토리 개수 0, 더 좋은 장비 빨간 점 사라짐');
-  ok((await page.locator('#s-char .c7-bag-empty').count()) === 15, '장비가 없어도 인벤토리 빈칸 3줄 유지');
+  const emptyRows = await page.evaluate(() => {
+    const list = document.querySelector('#s-char .c7-bags'), note = list.querySelector('.c7-inventory-empty');
+    return { note: note?.textContent, empties: list.querySelectorAll('.c7-bag-empty').length, rows: Math.round(list.clientHeight / 60 * 10) / 10 };
+  });
+  ok(emptyRows.note === '던전을 클리어하면 장비 획득' && emptyRows.empties >= 10 && emptyRows.empties % 5 === 0, `장비가 없으면 안내 문장이 목록 첫 줄, 아래는 빈칸 줄 (3줄 이상 유지) (${JSON.stringify(emptyRows)})`);
 
   // ---- 장비 도감 보상 (10칸마다) ----
   await page.evaluate(() => {
@@ -187,7 +191,7 @@ export default async function gear(url, shots) {
   await page.locator('#s-char .c7-gsheet').screenshot({ path: `${shots}/gear_legend.png` });
   await closeSheet();
 
-  // ---- 많은 아이템: 3줄 창 · 내부 스크롤 · 상세 복귀 ----
+  // ---- 많은 아이템: 위쪽 고정 · 목록 창은 하단 메뉴 위까지 (최소 3줄) · 내부 스크롤 · 상세 복귀 ----
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     const slots = ['weapon', 'head', 'chest', 'hands', 'ring', 'neck'];
@@ -208,10 +212,11 @@ export default async function gear(url, shots) {
     const tabs = document.querySelector('#tabs').getBoundingClientRect();
     const visible = cell => cell.top >= r.top - 1 && cell.bottom <= r.bottom + 1;
     return {
-      top: el.scrollTop, max: el.scrollHeight - el.clientHeight, bodyTop: body.scrollTop,
+      top: el.scrollTop, max: el.scrollHeight - el.clientHeight, bodyTop: body.scrollTop, bodyMax: body.scrollHeight - body.clientHeight,
       firstFifteenFit: cells.length >= 15 && cells.slice(0, 15).every(visible),
       threeRows: new Set(cells.slice(0, 15).map(cell => Math.round(cell.top))).size === 3,
-      fourthBelow: cells.length > 15 && cells[15].top >= r.bottom - 1,
+      rows: Math.round((el.clientHeight * 10) / (cells[5].top - cells[0].top)) / 10,
+      fillsToMenu: tabs.top - r.bottom,
       onScreen: r.top >= body.getBoundingClientRect().top - 1 && r.bottom <= tabs.top + 1,
       lastVisible: visible(cells[cells.length - 1]),
       noHorizontalOverflow: el.scrollWidth <= el.clientWidth + 1,
@@ -225,11 +230,13 @@ export default async function gear(url, shots) {
       document.querySelector('#s-char .c7-bags').scrollTop = 0;
     });
     await page.clock.runFor(100);
-    // 낮은 화면은 장비 화면을 올려 인벤토리에 접근한다. 보통 높이는 첫 진입부터 3줄이 보여야 한다.
+    // 낮은 화면(320×640)만 장비 화면을 올려 인벤토리에 접근한다. 보통 높이는 화면이 안 움직이고 첫 진입부터 3줄 이상이 보여야 한다.
     if (height < 700) await grid.evaluate(el => el.scrollIntoView({ block: 'center' }));
     const start = await scrollState();
-    ok(start.firstFifteenFit && start.threeRows && start.fourthBelow && start.max > 0 && start.noHorizontalOverflow, `${width}: 첫 15개가 3줄 창에 온전히 표시되고 나머지는 아래로 스크롤 (${JSON.stringify(start)})`);
-    ok(start.onScreen, `${width}: 인벤토리 3줄 전체가 상단 영역과 하단 메뉴 사이에 표시`);
+    ok(start.firstFifteenFit && start.threeRows && start.rows >= 3 && start.max > 0 && start.noHorizontalOverflow, `${width}: 첫 15개가 목록 창에 온전히 표시되고 나머지는 아래로 스크롤 (${JSON.stringify(start)})`);
+    ok(start.onScreen, `${width}: 인벤토리 목록 창 전체가 상단 영역과 하단 메뉴 사이에 표시`);
+    if (height >= 700) ok(start.bodyMax <= 1 && start.fillsToMenu <= 24, `${width}: 위쪽(장비·능력치)은 스크롤 없음, 목록 창이 하단 메뉴 바로 위까지 (${start.bodyMax} · 메뉴까지 ${Math.round(start.fillsToMenu)}px)`);
+    if (height >= 900) ok(start.rows > 3.5, `${width}: 키 큰 화면은 3줄보다 더 보임 (${start.rows}줄)`);
     await page.screenshot({ path: `${shots}/gear_inventory_rows_${width}.png`, animations: 'disabled' });
     await grid.evaluate(el => el.focus({ preventScroll: true }));
     await page.keyboard.press('End'); await page.clock.runFor(400);
@@ -259,7 +266,7 @@ export default async function gear(url, shots) {
   filtered = await scrollState();
   ok(filtered.top === 0 && filtered.max > 0 && filtered.firstFifteenFit, '정렬 변경 뒤 인벤토리 첫 줄로 돌아옴');
 
-  // ---- 아이템·빈칸 위에서 끌어도 스크롤 (Lim 2026-10-11): 손가락으로 끌면 화면 → 목록 순서로 움직이고 상세는 안 열림, 짧게 누르면 상세 ----
+  // ---- 아이템·빈칸 위에서 끌어도 스크롤 (Lim 2026-10-11): 손가락으로 끌면 목록만 움직이고 (2026-10-12 위쪽 고정) 상세는 안 열림, 짧게 누르면 상세 ----
   await page.click('#s-char [data-bfilter="all"]'); await page.clock.runFor(50);
   const cdp = await ctx.newCDPSession(page);
   /** 손가락으로 sel의 i번째 칸 가운데를 잡고 위로 dist만큼 (음수면 아래로) 끌기 */
@@ -279,21 +286,24 @@ export default async function gear(url, shots) {
   };
   const where = () => page.evaluate(() => {
     const list = document.querySelector('#s-char .c7-bags'), body = document.querySelector('#s-char .ns-body'), tabs = document.querySelector('#tabs').getBoundingClientRect();
-    return { list: Math.round(list.scrollTop), body: Math.round(body.scrollTop), listMax: list.scrollHeight - list.clientHeight, shown: list.getBoundingClientRect().bottom <= tabs.top + 1, sheet: !!document.querySelector('#s-char .sheet') };
+    return { list: Math.round(list.scrollTop), body: Math.round(body.scrollTop), bodyMax: body.scrollHeight - body.clientHeight, listMax: list.scrollHeight - list.clientHeight, shown: list.getBoundingClientRect().bottom <= tabs.top + 1, sheet: !!document.querySelector('#s-char .sheet') };
   });
   const reset = () => page.evaluate(() => { document.querySelector('#s-char .c7-bags').scrollTop = 0; document.querySelector('#s-char .ns-body').scrollTop = 0; });
   for (const [name, width, height] of [['S25', 360, 780], ['S25 울트라', 384, 824], ['Z 플립 펼침', 360, 880]]) {
     await page.setViewportSize({ width, height }); await page.clock.runFor(100); await reset();
-    // 첫 줄 아이템을 잡고 위로: 셋째 줄이 하단 메뉴에 가려 있으면 화면부터, 다 보이면 목록
+    // 첫 줄 아이템을 잡고 위로: 목록 창이 처음부터 다 보이니 화면은 그대로, 목록만
+    ok((await where()).shown && (await where()).bodyMax <= 1, `${name}: 첫 화면부터 목록 창 전체가 하단 메뉴 위에 보이고 바깥 화면은 스크롤 없음`);
     await swipe('.c7-bag', 1, 140);
     let w = await where();
-    ok(w.list > 0 && w.shown && !w.sheet, `${name}: 아이템을 잡고 위로 끌면 셋째 줄까지 보이게 화면이 오르고 목록이 스크롤, 상세는 안 열림 (${JSON.stringify(w)})`);
+    ok(w.list > 0 && w.body === 0 && w.shown && !w.sheet, `${name}: 아이템을 잡고 위로 끌면 목록만 스크롤 (위쪽 고정), 상세는 안 열림 (${JSON.stringify(w)})`);
     await swipe('.c7-bag', null, 1200, 24);
     w = await where();
-    ok(Math.abs(w.list - w.listMax) <= 1 && w.shown && !w.sheet, `${name}: 길게 끌면 목록 끝까지 (${JSON.stringify(w)})`);
+    ok(Math.abs(w.list - w.listMax) <= 1 && w.body === 0 && w.shown && !w.sheet, `${name}: 길게 끌면 목록 끝까지, 위쪽은 그대로 (${JSON.stringify(w)})`);
     await swipe('.c7-bag', null, -1600, 24);
     w = await where();
     ok(w.list === 0 && w.body === 0 && !w.sheet, `${name}: 아래로 끌면 목록 맨 위 → 화면 맨 위 (${JSON.stringify(w)})`);
+    // 빠르게 끈 바로 뒤(실제 시간)의 누름은 Chromium이 click을 안 만들 때가 있음 (main에서도 가끔): 잠깐 쉬고 누름
+    await new Promise(r => setTimeout(r, 400));
     await page.locator('#s-char .c7-bag').nth(1).tap(); await page.clock.runFor(50);
     ok((await where()).sheet, `${name}: 짧게 누르면 그대로 상세`);
     await closeSheet();
@@ -310,7 +320,7 @@ export default async function gear(url, shots) {
   await page.locator('#s-char .c7-bag').nth(5).click(); await page.clock.runFor(50);
   ok((await where()).sheet, '끈 다음 클릭은 다시 상세를 엶');
   await closeSheet();
-  // 아이템이 적어 목록이 안 넘칠 때: 빈칸을 잡고 끌어도 화면이 움직여 셋째 줄이 보임
+  // 아이템이 적어 목록이 안 넘칠 때: 셋째 줄 빈칸까지 첫 화면에 보이고, 빈칸을 끌어도 아무것도 안 움직임
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     s.gear.bag = s.gear.bag.slice(0, 7);
@@ -319,10 +329,18 @@ export default async function gear(url, shots) {
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   await page.setViewportSize({ width: 360, height: 780 }); await page.clock.runFor(100); await reset();
-  ok(!(await where()).shown, 'S25 첫 화면: 아이템 7개일 때 셋째 줄 빈칸이 하단 메뉴에 가려 있음');
+  w = await where();
+  ok(w.shown && w.bodyMax <= 1 && w.listMax === 0 && (await page.locator('#s-char .c7-bag-empty').count()) === 8, `S25 첫 화면: 아이템 7개 + 빈칸 8개 = 3줄이 하단 메뉴 위에 다 보임 (${JSON.stringify(w)})`);
   await swipe('.c7-bag-empty', 0, 160);
   w = await where();
-  ok(w.body > 0 && w.shown && w.listMax === 0 && !w.sheet, `S25: 빈칸을 잡고 위로 끌면 화면이 올라 셋째 줄까지 보임 (${JSON.stringify(w)})`);
+  ok(w.body === 0 && w.list === 0 && w.shown && !w.sheet, `S25: 빈칸을 잡고 위로 끌어도 화면 · 목록 그대로 (${JSON.stringify(w)})`);
+  // Z 플립 펼침: 목록 창이 3줄보다 길면 보이는 줄 끝까지 빈칸으로 채움 (창 아래가 비지 않게), 창 크기가 바뀌면 다시 맞춤
+  await page.setViewportSize({ width: 360, height: 880 }); await page.clock.runFor(100);
+  const tall = await page.evaluate(() => {
+    const list = document.querySelector('#s-char .c7-bags'), r = list.getBoundingClientRect(), cells = [...list.children].map(c => c.getBoundingClientRect());
+    return { cells: cells.length, coversWindow: cells[cells.length - 1].bottom >= r.bottom - 7, max: list.scrollHeight - list.clientHeight };
+  });
+  ok(tall.cells === 20 && tall.coversWindow && tall.max < 60, `Z 플립 펼침: 3줄보다 긴 창은 빈칸이 창 끝까지 (${JSON.stringify(tall)})`);
 
   await ctx.close();
   await browser.close();
