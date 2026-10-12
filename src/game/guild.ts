@@ -12,7 +12,6 @@ import {
 } from '../data/guild';
 import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
 import { addXp, clearXp, GUILD_LEVEL, MAX_LEVEL, xpToNext, type Grade } from '../data/progression';
-import { TRAIT_CHANCE, TRAITS, type TraitKey } from '../data/traits';
 import type { RosterEntry } from '../engine/types';
 import { FEATURES } from '../data/features';
 import { topLevel, type SaveData, type Scout } from '../platform/storage';
@@ -41,22 +40,19 @@ function freshNick(save: SaveData, r: () => number, taken: Set<string>): string 
   return `${base}${i}`;
 }
 
-/** 지원자 1명 (17 2-1·3장·9-1): 직업 8종 중 무작위, 성격·특성·자질·능력. 레벨은 공고 등급마다 (내 레벨 위로는 안 감) */
+/** 지원자 1명 (17 2-1·3장·9-1): 직업 8종 중 무작위, 성격·자질·능력 (직업 스킬). 레벨은 공고 등급마다 (내 레벨 위로는 안 감) */
 export function makeCandidate(save: SaveData, r: () => number, tier: PostTier, taken = new Set<string>()): GuildMember {
   const cls = RECRUIT_CLASSES[Math.floor(r() * RECRUIT_CLASSES.length)];
   const role = CLASSES[cls].role;
   const pool = PERS_NAMES.filter(p => !(role === 'tank' && 'noTank' in PERS[p]));
   const pers: PersName = pool[Math.floor(r() * pool.length)];
-  const tr = (Object.keys(TRAITS) as TraitKey[]).filter(k => TRAITS[k].roles.includes(role));
-  const chance = tier === 'best' ? 0.6 : tier === 'better' ? 0.45 : TRAIT_CHANCE;
-  const traits = tr.length && r() < chance ? [tr[Math.floor(r() * tr.length)]] : [];
   const [lo, hi] = POSTS[tier].lv;
   const P = topLevel(save);
   const lv = Math.max(1, Math.min(P, P + lo + Math.floor(r() * (hi - lo + 1))));
   const best = tier === 'best';
   const apt0: [number, number, number] = [rollApt(r, best), rollApt(r, best), rollApt(r, best)];
   const nick = freshNick(save, r, taken);
-  return { id: 0, nick, cls, pers, traits, lv, xp: 0, apt0, aptUp: [0, 0, 0], ab: rollAbility(cls, r, AB_ODDS[tier]), star: 0, runs: 0 };
+  return { id: 0, nick, cls, pers, lv, xp: 0, apt0, aptUp: [0, 0, 0], ab: rollAbility(cls, r, AB_ODDS[tier]), star: 0, runs: 0 };
 }
 
 /** 골드 모집 공고 (12 3-3). 실패하면 이유 */
@@ -159,7 +155,7 @@ export function release(save: SaveData, id: number): boolean {
 // ---------- 길드파티 편성 ----------
 /** 전투에 넘기는 길드원 */
 export function memberEntry(m: GuildMember): RosterEntry {
-  return { role: CLASSES[m.cls].role, pers: m.pers, nick: m.nick, cls: m.cls, traits: m.traits.slice(), ab: m.ab, star: m.star, lv: m.lv, apt: aptOf(m), gid: m.id, runs: m.runs };
+  return { role: CLASSES[m.cls].role, pers: m.pers, nick: m.nick, cls: m.cls, ab: m.ab, star: m.star, lv: m.lv, apt: aptOf(m), gid: m.id, runs: m.runs };
 }
 
 /** 자리: 탱커 수와 딜러 수 (근접·원거리 섞어도 됨) */
@@ -253,7 +249,7 @@ export function guildAfter(
     const e = pub && o.roster.find(x => x.nick === pub.nick && x.gid == null && x.cls);
     if (e && !g.scouts.some(s => s.nick === e.nick && s.cls === e.cls) && !g.members.some(m => m.nick === e.nick)) {
       const lv = Math.max(1, Math.min(save.player.level, o.stage));
-      const s: Scout = { nick: e.nick, cls: e.cls!, pers: e.pers, traits: (e.traits || []).slice(), lv, apt0: [rollApt(r), rollApt(r), rollApt(r)], ab: e.ab || rollAbility(e.cls!, r), from: o.content };
+      const s: Scout = { nick: e.nick, cls: e.cls!, pers: e.pers, lv, apt0: [rollApt(r), rollApt(r), rollApt(r)], ab: e.ab || rollAbility(e.cls!, r), from: o.content };
       g.scouts.unshift(s);
       g.scouts = g.scouts.slice(0, SCOUT_MAX);
       out.scout = s;

@@ -32,10 +32,10 @@ describe('경험치·레벨 (02 부록 B)', () => {
     expect(clearXp(40, '보통', 'A', { raid: 10, win: true }) / clearXp(40, '보통', 'A', { win: true })).toBeCloseTo(1.2, 2);
   });
   it('Lv 1 → 100 도달 시점이 18 1장과 맞음 (하루 8판, 그 레벨에서 가장 좋은 콘텐츠, 보통 A)', () => {
-    // 적 = 내 레벨 (32): 던전, 10인 레이드 Lv 35부터 (×1.2), 20인 레이드 Lv 70부터 (×1.4)
+    // 적 = 내 레벨 (32): 던전, 10인 레이드 열림 (Lv 45)부터 (×1.2), 20인 레이드 Lv 70부터 (×1.4)
     const best = (lv: number) => {
       const opts: (0 | 10 | 20)[] = [0];
-      if (lv >= 35) opts.push(10);
+      if (lv >= contentOf('abyss1').unlockLv) opts.push(10);
       if (lv >= 70) opts.push(20);
       return Math.max(...opts.map(raid => clearXp(lv, '보통', 'A', { raid, win: true })));
     };
@@ -80,14 +80,14 @@ describe('레벨 배율 (07 4장, 18 2-1)', () => {
     expect(lvPowerProto(100)).toBeCloseTo(8.92);
   });
 
-  it('10인 악몽 단계 = Lv 50, 20인 = Lv 70 (악몽 80), 나머지는 콘텐츠 단계 (26)', () => {
-    expect(stageOf(contentOf('abyss1'), '악몽')).toBe(50);
-    expect(stageOf(contentOf('abyss1'), '보통')).toBe(35);
+  it('10인 악몽 단계 = Lv 60, 20인 = Lv 70 (악몽 80), 나머지는 콘텐츠 단계 (26)', () => {
+    expect(stageOf(contentOf('abyss1'), '악몽')).toBe(60);
+    expect(stageOf(contentOf('abyss1'), '보통')).toBe(45);
     expect(stageOf(contentOf('cathedral1'), '보통')).toBe(70);
     expect(stageOf(contentOf('cathedral1'), '악몽')).toBe(80);
     // 탐험 · 던전은 장소 레벨 + 난이도 (61 1-2)
     expect(stageOf(contentOf('rustfort'), '어려움')).toBe(9);
-    expect(stageOf(contentOf('cemetery'), '보통')).toBe(5);
+    expect(stageOf(contentOf('cemetery'), '보통')).toBe(9);
     expect(stageOf(contentOf('heartcrack'), '쉬움')).toBe(100);
   });
 

@@ -22,10 +22,10 @@ describe('콘텐츠', () => {
     expect(FACTIONS.sand).toMatchObject({ name: '모래 왕국', color: '#E9C46A', dispel: ['질병', '저주'] });
     expect(LOOK_WORD.sand).toBe('노을');
   });
-  it('10인 ⑩ 노을 시장: 칸마다 보스 하나, Lv 71 · 악몽 86, 골목 · 성문은 입구 그림을 빌림', () => {
+  it('10인 ⑩ 노을 시장: 칸마다 보스 하나, Lv 74 · 악몽 89, 골목 · 성문은 입구 그림을 빌림', () => {
     for (const [key, enc] of BAZAAR) {
       const c = contentOf(key);
-      expect([c.kind, c.unlockLv, c.size('보통'), c.diffUnlock], key).toEqual(['raid', 71, 10, { '악몽': 86 }]);
+      expect([c.kind, c.unlockLv, c.size('보통'), c.diffUnlock], key).toEqual(['raid', 74, 10, { '악몽': 89 }]);
       expect(c.fights('보통')).toEqual([enc]);
       expect(PLACES[CONTENT_PLACE[key]].faction).toBe('sand');
       expect(artPlaces(CONTENT_PLACE[key])[artPlaces(CONTENT_PLACE[key]).length - 1]).toBe('bazaar');

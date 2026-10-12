@@ -2,6 +2,7 @@
  * 일일·주간 임무 (13 2-1·3-1). 임무 풀에서 레벨에 맞는 것만 뽑는다. 수치는 초안.
  * 「수호 영혼으로 탱커 살리기」는 직업마다 위기 기술이 달라서 뺌 (사제만 할 수 있음).
  */
+import { RAID10_LV } from './content';
 
 /** 판 하나가 끝났을 때 임무가 보는 값 */
 export interface RunEvent {
@@ -52,9 +53,9 @@ export const DAILY: MissionDef[] = [
 export const DAILY_BASIC = ['clear3', 'pub2'];
 export const DAILY_N = 5;
 
-/** 주간 임무 3개 = 악몽 열쇠 3개 (12 3-4). Lv 35 전에는 레이드 대신 던전 임무 (13 3-1) */
+/** 주간 임무 3개 = 악몽 열쇠 3개 (12 3-4). 10인 레이드가 열리기 전 (RAID10_LV)에는 레이드 대신 던전 임무 (13 3-1) */
 export const WEEKLY: MissionDef[] = [
-  { key: 'w_raid3', text: '레이드 보스 처치', need: 3, lv: 35, run: e => (e.win && e.raid ? 1 : 0) },
+  { key: 'w_raid3', text: '레이드 보스 처치', need: 3, lv: RAID10_LV, run: e => (e.win && e.raid ? 1 : 0) },
   { key: 'w_hard5', text: '어려움 이상 던전 클리어', need: 5, lv: 10, run: e => (won(e) && !e.raid && e.diffIdx >= 2 ? 1 : 0) },
   { key: 'w_dclear15', text: '던전 클리어', need: 15, lv: 10, run: e => (won(e) && !e.raid ? 1 : 0) },
   { key: 'w_chal5', text: '주간 도전 5단계 이상 클리어', need: 1, lv: 20, run: e => (e.chal >= 5 ? 1 : 0) },

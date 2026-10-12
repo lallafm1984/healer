@@ -8,9 +8,9 @@ import * as E from '../src/engine';
 const until = (f: E.Fight, sec: number, done: () => boolean) => { while (!f.over && f.t < sec && !done()) { E.step(f); f.events.length = 0; } };
 
 describe('해바라기 언덕길', () => {
-  it('Lv 23 탐험 3인: 순례자 쉼터 → 신전 수호상, 그림은 깨진 신전을 빌림', () => {
+  it('Lv 35 탐험 3인: 순례자 쉼터 → 신전 수호상, 그림은 깨진 신전을 빌림', () => {
     const c = contentOf('hillpath');
-    expect(c.unlockLv).toBe(23);
+    expect(c.unlockLv).toBe(35);
     expect(c.ready).toBe(true);
     expect(c.fights('보통')).toEqual(['restyard', 'guardian23']);
     expect(PLACES.hillpath.borrow).toBe('temple');
@@ -35,7 +35,7 @@ describe('해바라기 언덕길', () => {
     expect(f.daze?.name).toBe('무방비');
   });
 
-  it('Lv 23 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 35 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'hillpath', diff: '보통', seed: s, level: 23, gear: 'none' }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);

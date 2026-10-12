@@ -26,7 +26,7 @@ function save(level = 15, gold = 100000): SaveData {
   return s;
 }
 const mem = (o: Partial<GuildMember> = {}): GuildMember => ({
-  id: 0, nick: '바위', cls: 'warrior', pers: '신중파', traits: [], lv: 15, xp: 0, apt0: [3, 3, 3], aptUp: [0, 0, 0], ab: 'warrior.shieldBlock', star: 0, runs: 0, ...o,
+  id: 0, nick: '바위', cls: 'warrior', pers: '신중파', lv: 15, xp: 0, apt0: [3, 3, 3], aptUp: [0, 0, 0], ab: 'warrior.shieldBlock', star: 0, runs: 0, ...o,
 });
 function add(s: SaveData, o: Partial<GuildMember> = {}): GuildMember {
   const m = mem({ ...o, id: s.guild.nextId++ });
@@ -81,8 +81,8 @@ describe('열림 · 정원 (02 9-2, 18)', () => {
     const t = save(20); t.tut = 1;
     expect(guildOpen(t).ok).toBe(false);
   });
-  it('정원 6 → Lv 35 12 → Lv 70 25', () => {
-    expect([15, 34, 35, 69, 70].map(l => guildCap(l).cap)).toEqual([6, 6, 12, 12, 25]);
+  it('정원 6 → 10인 레이드 열림 (Lv 45) 12 → Lv 70 25', () => {
+    expect([15, 44, 45, 69, 70].map(l => guildCap(l).cap)).toEqual([6, 6, 12, 12, 25]);
   });
 });
 
@@ -118,7 +118,7 @@ describe('영입 (02 9-3, 12 3-3)', () => {
   });
   it('인연 스카우트 300 골드', () => {
     const s = save(15, 299);
-    s.guild.scouts.push({ nick: '칼날', cls: 'rogue', pers: '감사형', traits: [], lv: 12, apt0: [3, 4, 3], ab: 'rogue.kick', from: '녹슨 요새' });
+    s.guild.scouts.push({ nick: '칼날', cls: 'rogue', pers: '감사형', lv: 12, apt0: [3, 4, 3], ab: 'rogue.kick', from: '녹슨 요새' });
     expect(scoutHire(s, 0)).toMatch(/골드 부족/);
     s.player.gold = 300;
     expect(scoutHire(s, 0)).toBe('');
@@ -152,8 +152,8 @@ describe('육성 (17 8장, 12 3-3)', () => {
     expect([ABILITIES[m.ab].cls, m.star, s.player.gold]).toEqual(['warrior', 2, 0]);
   });
   it('전투력 (17 9-3): Lv 30 · 자질 9 · 일반 능력 = 3,000', () => {
-    expect(memberPower({ lv: 30, apt: [3, 3, 3], ab: 'warrior.shieldBlock', star: 0, traits: [] })).toBe(3000);
-    expect(memberPower({ lv: 30, apt: [5, 4, 4], ab: 'warrior.shieldWall', star: 2, traits: [] })).toBe(Math.round(3000 * 1.12 * 1.04 * 1.03));
+    expect(memberPower({ lv: 30, apt: [3, 3, 3], ab: 'warrior.shieldBlock', star: 0 })).toBe(3000);
+    expect(memberPower({ lv: 30, apt: [5, 4, 4], ab: 'warrior.shieldWall', star: 2 })).toBe(Math.round(3000 * 1.12 * 1.04 * 1.03));
   });
   it('방출', () => {
     const s = save(), m = add(s);

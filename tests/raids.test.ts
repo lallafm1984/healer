@@ -12,10 +12,10 @@ type F = ReturnType<typeof E.create>;
 const steps = (f: F, sec: number) => { const end = f.t + sec; while (f.t < end - 1e-9 && !f.over) { E.step(f); f.events.length = 0; } };
 
 describe('콘텐츠', () => {
-  it('10인 심연의 탑: 난이도 4개 모두 10인 역병 군주, 악몽 Lv 50', () => {
+  it('10인 심연의 탑: 난이도 4개 모두 10인 역병 군주, 악몽 Lv 60', () => {
     const c = contentOf('abyss1');
     for (const d of ALL_DIFFS) { expect(c.size(d)).toBe(10); expect(c.fights(d)).toEqual(['plague']); }
-    expect(c.diffUnlock).toEqual({ '악몽': 50 });
+    expect(c.diffUnlock).toEqual({ '악몽': 60 });
     expect(raidSize(c)).toBe(10);
   });
   it('20인 가라앉은 대성당: 따로 된 레이드, Lv 70 (악몽 80)', () => {

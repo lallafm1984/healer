@@ -8,10 +8,10 @@ import * as E from '../src/engine';
 const until = (f: E.Fight, sec: number, done: () => boolean, auto = false) => { while (!f.over && f.t < sec && !done()) { if (auto) E.autoHealer(f); E.step(f); f.events.length = 0; } };
 
 describe('장미 울타리 미로', () => {
-  it('Lv 48 탐험 3인: 장미 터널 → 백합 여사제, 그림은 백합 정원을 빌림', () => {
+  it('Lv 25 탐험 3인: 장미 터널 → 백합 여사제, 그림은 백합 정원을 빌림', () => {
     const c = contentOf('rosemaze');
     expect(c.kind).toBe('explore');
-    expect(c.unlockLv).toBe(48);
+    expect(c.unlockLv).toBe(25);
     expect(c.ready).toBe(true);
     expect(c.size('보통')).toBe(3);
     expect(c.fights('보통')).toEqual(['rosetunnel', 'priestess48']);
@@ -31,7 +31,7 @@ describe('장미 울타리 미로', () => {
     for (const u of E.living(f)) expect(u.shield).toBeGreaterThan(9);
   });
 
-  it('Lv 48 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 25 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'rosemaze', diff: '보통', seed: s, level: 48, gear: 'none' }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);

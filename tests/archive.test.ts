@@ -10,10 +10,10 @@ import { runOnce } from '../src/sim/balance';
 const until = (f: E.Fight, sec: number, done: () => boolean, auto = false) => { while (!f.over && f.t < sec && !done()) { if (auto) E.autoHealer(f); E.step(f); f.events.length = 0; } };
 
 describe('얼음 서고', () => {
-  it('Lv 45 던전 5인: 일반 → 사서 → 정예 → 대학자, 마법, 그림은 서리 마탑을 빌림', () => {
+  it('Lv 34 던전 5인: 일반 → 사서 → 정예 → 대학자, 마법, 그림은 서리 마탑을 빌림', () => {
     const c = contentOf('archive');
     expect(c.kind).toBe('dungeon');
-    expect(c.unlockLv).toBe(45);
+    expect(c.unlockLv).toBe(34);
     expect(c.ready).toBe(true);
     expect(c.fights('보통')).toEqual(['iceread', 'librarian', 'forbidden', 'scholar']);
     expect(ENCOUNTERS.forbidden.mobs!.some(m => m.elite)).toBe(true);
@@ -50,7 +50,7 @@ describe('얼음 서고', () => {
     expect(d.end).toMatchObject({ p: 'stackHit' });
   });
 
-  it('Lv 45 자동 사제, 보통이면 대부분 깸 (장비 없음)', () => {
+  it('Lv 34 자동 사제, 보통이면 대부분 깸 (장비 없음)', () => {
     let wins = 0; // 자동 밸런스 기준: 장비 없음 · 열린 특성 · 능력 1개 · 물약, 치유 배율 0.6 (34 1-6) 뒤로 특성 없는 사제는 높은 레벨에서 많이 짐
     for (let s = 1; s <= 20; s++) if (runOnce(contentOf('archive'), '보통', 'priest', s).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(16);

@@ -6,10 +6,10 @@ import { artPlaces, PLACES } from '../src/data/places';
 import * as E from '../src/engine';
 
 describe('잿빛 공동묘지', () => {
-  it('Lv 3 탐험 3인: 잿빛 묘역 → 뼈다귀 수집가, 그림은 역병 지하묘지를 빌림', () => {
+  it('Lv 7 탐험 3인: 잿빛 묘역 → 뼈다귀 수집가, 그림은 역병 지하묘지를 빌림', () => {
     const c = contentOf('cemetery');
     expect(c.kind).toBe('explore');
-    expect(c.unlockLv).toBe(3);
+    expect(c.unlockLv).toBe(7);
     expect(c.ready).toBe(true);
     expect(c.size('보통')).toBe(3);
     expect(c.fights('보통')).toEqual(['ashyard', 'collector3']);

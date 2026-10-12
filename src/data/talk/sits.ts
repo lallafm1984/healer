@@ -124,7 +124,6 @@ export const SITS = {
   enraged: S('보스', '광폭화', 'any', 3, 0.8, '보스 광폭화. 점점 세게 때림'),
   noTank: S('보스', '탱커 없음', 'any', 3, 0.9, '탱커가 모두 쓰러짐. 몇 초 뒤 보스 광폭화'),
   tankUp: S('보스', '탱커 복귀', 'any', 2, 0.7, '쓰러졌던 탱커가 일어나 광폭화 카운트다운이 멈춤'),
-  bulwark: S('보스', '버팀목', 'self', 3, 1, '탱커가 모두 쓰러져 버팀목 특성으로 보스를 대신 막음 (10초)'),
   inter: S('보스', '인터미션', 'any', 1, 0.6, '보스가 무적이 되는 쉬는 구간 시작 (쥐떼 같은 게 나옴)'),
   interEnd: S('보스', '인터미션 끝', 'any', 1, 0.4, '보스 무적이 풀림'),
   rats: S('보스', '쥐떼', 'any', 1, 0.5, '쥐떼가 몰려와 디버프 걸린 사람을 노림'),
@@ -204,7 +203,6 @@ export const SITS = {
   abCtl: S('파티', '방해 능력', 'self', 1, 0.3, '내 방해 능력을 씀 (도발·기절·끊기 같은)'),
   abAtk: S('파티', '공격 능력', 'self', 1, 0.3, '내 공격 능력을 씀 (폭딜기 같은)'),
   idle: S('파티', '잡담', 'any', 1, 0.3, '한동안 위협이 없고 모두 체력 70% 위. MMO 파티 채팅 잡담 (드랍·장비·서버·힐러 칭찬·농담)'),
-  aimFull: S('파티', '조준 완성', 'self', 1, 0.4, '궁수가 25초 넘게 안 움직여 조준이 최대'),
   castMove: S('파티', '시전 끊김', 'self', 1, 0.1, '마법사가 움직이느라 딜을 멈춤'),
 
   // ---------- 끝 (보스가 쓰러지거나 전멸한 뒤 화면이 넘어가기 전 1초쯤) ----------
@@ -224,4 +222,4 @@ export const SIT_KEYS = Object.keys(SITS) as TalkSit[];
 export type TalkLines = Partial<Record<TalkSit, readonly string[]>>;
 
 /** 엔진 말풍선(bark)이 알려 주는 상황 */
-export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived' | 'bulwark'>;
+export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived'>;

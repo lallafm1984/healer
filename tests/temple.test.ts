@@ -10,9 +10,9 @@ const until = (f: E.Fight, sec: number, done: () => boolean, auto = false) => { 
 const stack = (u: E.Unit | undefined, name: string) => u?.debuffs.find(d => d.name === name)?.stack ?? 0;
 
 describe('깨진 신전', () => {
-  it('Lv 30 던전 5인: 일반 → 수호상 → 정예 → 신전지기 유령', () => {
+  it('Lv 38 던전 5인: 일반 → 수호상 → 정예 → 신전지기 유령', () => {
     const c = contentOf('temple');
-    expect(c.unlockLv).toBe(30);
+    expect(c.unlockLv).toBe(38);
     expect(c.ready).toBe(true);
     expect(c.fights('보통')).toEqual(['templeyard', 'guardian', 'nave', 'keeper']);
     expect(ENCOUNTERS.nave.mobs!.some(m => m.elite)).toBe(true);
@@ -60,7 +60,7 @@ describe('깨진 신전', () => {
     expect(f.souls[0]?.soul?.name).toBe('꼬마 오토의 기억');
   });
 
-  it('Lv 30 자동 힐러, 보통이면 대부분 깸 (장비 없음)', () => {
+  it('Lv 38 자동 힐러, 보통이면 대부분 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (runOnce(contentOf('temple'), '보통', 'priest', s).win) wins++; // 자동 밸런스 기준: 장비 없음 · 열린 특성 · 능력 1개 · 물약, 치유 배율 0.6 (34 1-6) 뒤로 특성 없는 사제는 높은 레벨에서 많이 짐
     expect(wins).toBeGreaterThanOrEqual(18);

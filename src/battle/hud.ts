@@ -15,7 +15,6 @@ import { ITEM_SLOT_LV, itemSlots } from '../data/progression';
 import { INT_BASE } from '../data/rules';
 import { healText, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { itemTip, skillTip, tipHtml } from '../game/tooltip';
-import { TRAITS } from '../data/traits';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
 import { activeOn, bossTaken, cdMax, costOf, knows, queue, slotKey, type Fight, type Unit } from '../engine';
 import { art, cssUrl } from '../art';
@@ -598,14 +597,12 @@ function drawPreview(u: Unit): void {
   // 첫 줄 = 이름 · 직업 · 역할 + 오른쪽 체력 (줄 하나를 아낌)
   lines.push(`<div class="ph"><span class="pnm"><b>${u.nick}</b> · ${cls ? `${cls.name} · ` : ''}${ROLE[u.role].name}${u.me ? ` (${HEROES[F.hero].name})` : ''}</span><span class="php">${u.alive ? `체력 ${Math.ceil(u.hp)} / ${Math.round(u.max)}` : '쓰러짐'}</span></div>`);
   if (u.max < u.base) lines.push(`<div class="pmax">최대 체력 -${Math.round((1 - u.max / u.base) * 100)}%</div>`);
-  if (cls) lines.push(`<div class="cpas"><b>${cls.passive}</b><span class="d"> ${cls.passiveDesc}</span></div>`);
   if (u.ab) {
     const ab = ABILITIES[u.ab.key];
     const left = ab.cd > 0 ? Math.max(0, u.ab.ready - F.t) : 0;
     const state = ab.cd === 0 && !ab.each ? '상시' : ab.cd < 0 ? (u.ab.uses ? '사용함' : '1회 준비') : left > 0.05 ? `${Math.ceil(left)}초 뒤` : '준비';
     lines.push(`<div class="cpas ab"><b>${AB_KIND[ab.kind].icon} ${ab.name}${u.ab.star ? ` ${'★'.repeat(u.ab.star)}` : ''}</b><span class="d"> ${ab.desc}</span> <small>(${state})</small></div>`);
   }
-  for (const k of u.traits) lines.push(`<div class="cpas trait"><b>${TRAITS[k].name}</b><span class="d"> ${TRAITS[k].desc}</span></div>`);
   if (u.p.ch && u.p.cat) lines.push(`<div class="pers"><i style="background:${CATS[u.p.cat]}">${u.p.ch}</i><span>${u.pers}<span class="d">: ${u.p.desc}</span></span></div>`);
   const items: string[] = [];
   const hero = HEROES[F.hero];
@@ -622,7 +619,6 @@ function drawPreview(u: Unit): void {
   for (const d of u.debuffs) if ((d.debtLeft ?? 0) > 0) items.push(`남은 빚 ${Math.round(d.debtLeft!)} (넘친 치유가 갚음, ${Math.ceil(d.left)}초 뒤 남은 빚만큼 피해)`); // 빌린 생명
   for (const z of F.zones) if (z.ring && z.cells.has(u.cell)) items.push(`${z.ring.name} 안 ${Math.ceil(z.end - F.t)}초 (${z.ring.n < z.ring.max ? `치유를 받으면 한 겹 자람, ${z.ring.n}/${z.ring.max}겹` : `다 자람 ${z.ring.max}겹`})`); // 요정 고리 (48 5장)
   if (u.shield > 0) items.push(`보호 두루마리 ${Math.ceil(u.shield)}초 (받는 피해 -40%)`);
-  if (u.bulwark > 0) items.push(`${TRAITS.bulwark.name} ${Math.ceil(u.bulwark)}초 (받는 피해 -50%)`);
   for (const g of F.glass) { const g0 = g.rec.get(u.id); if (g0 != null && u.alive) items.push(`${g.name} ${Math.ceil(g.until - F.t)}초 뒤 체력 ${Math.round(g0 * 100)}%로 돌아감 (금빛 선)`); } // 모래시계 (54 5장)
   if (F.melt && F.t < F.melt.until && u.alive) items.push(`${F.melt.name} ${Math.ceil(F.melt.until - F.t)}초: 보호막 · 외부 생존기가 빨리 녹음`); // 녹는 보호막 (51 5장)
   if (items.length) lines.push(`<ul>${items.map(x => `<li>${x}</li>`).join('')}</ul>`);

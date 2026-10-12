@@ -53,10 +53,10 @@ describe('데이터 (17 5장)', () => {
 });
 
 describe('공개모집 · 프로토타입 일치', () => {
-  it('능력 없이 뽑은 파티는 abilities 옵션만 다르고 직업·특성은 같음', () => {
+  it('능력 없이 뽑은 파티는 abilities 옵션만 다르고 직업은 같음', () => {
     for (let s = 1; s <= 30; s++) {
       const a = E.recruitParty('plague', s), b = E.recruitParty('plague', s, { abilities: true });
-      expect(b.map(m => [m.nick, m.cls, m.traits])).toEqual(a.map(m => [m.nick, m.cls, m.traits]));
+      expect(b.map(m => [m.nick, m.cls])).toEqual(a.map(m => [m.nick, m.cls]));
       expect(a.every(m => !m.ab)).toBe(true);
       expect(b.every(m => ABILITIES[m.ab!].cls === m.cls)).toBe(true);
     }

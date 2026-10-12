@@ -19,11 +19,11 @@ const boss = (encounter: E.FightConfig['encounter'], mythic = false) => quiet(E.
 const RAIDS = [['den1', 'kkojil'], ['den2', 'deolkeong'], ['den3', 'beonjjeok']] as const;
 
 describe('콘텐츠', () => {
-  it('탐험 ⑯ Lv 64 · 던전 ⑬ Lv 65 · ⑭ Lv 70, 대장간만 옛 세력 버려진 골렘 (해제 없음)', () => {
+  it('탐험 ⑯ Lv 64 · 던전 ⑬ Lv 65 · ⑭ Lv 69, 대장간만 옛 세력 버려진 골렘 (해제 없음)', () => {
     const a = contentOf('ashpass'), b = contentOf('hotspring'), c = contentOf('forge');
     expect([a.kind, a.unlockLv, a.size('보통'), a.ready]).toEqual(['explore', 64, 3, true]);
     expect([b.kind, b.unlockLv, b.size('보통'), b.ready]).toEqual(['dungeon', 65, 5, true]);
-    expect([c.kind, c.unlockLv, c.size('보통'), c.ready]).toEqual(['dungeon', 70, 5, true]);
+    expect([c.kind, c.unlockLv, c.size('보통'), c.ready]).toEqual(['dungeon', 69, 5, true]);
     expect(a.fights('보통')).toEqual(['warmash', 'mungsil64']);
     expect(b.fights('보통')).toEqual(['steamroom', 'mungsil', 'lavabath', 'bulttung']);
     expect(c.fights('보통')).toEqual(['coldhearth', 'huggeun', 'anvilbridge', 'ttangttang']);

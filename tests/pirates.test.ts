@@ -10,9 +10,9 @@ import { heal, living } from '../src/engine/core';
 
 type F = ReturnType<typeof E.create>;
 const RAIDS = [
-  ['gull1', 'crab', 'gull', 39], ['gull2', 'cook', 'gull', 39], ['gull3', 'morel', 'gull', 39],
-  ['queen1', 'gunner', 'queen', 43], ['queen2', 'octo', 'queen', 43], ['queen3', 'seawitch', 'queen', 43],
-  ['isle1', 'mimic', 'isle', 47], ['isle2', 'parrot', 'isle', 47], ['isle3', 'goldbeard', 'isle', 47],
+  ['gull1', 'crab', 'gull', 49], ['gull2', 'cook', 'gull', 49], ['gull3', 'morel', 'gull', 49],
+  ['queen1', 'gunner', 'queen', 50], ['queen2', 'octo', 'queen', 50], ['queen3', 'seawitch', 'queen', 50],
+  ['isle1', 'mimic', 'isle', 52], ['isle2', 'parrot', 'isle', 52], ['isle3', 'goldbeard', 'isle', 52],
 ] as const;
 const quiet = (f: F) => { f.skills.forEach(s => { s.next = Infinity; }); f.party.forEach(u => { u.dps = 0; }); return f; };
 const steps = (f: F, sec: number) => { const end = f.t + sec; while (f.t < end - 1e-9 && !f.over) { E.step(f); f.events.length = 0; } };
@@ -25,10 +25,10 @@ describe('콘텐츠', () => {
     expect(FACTIONS.pirate.dispel).toEqual(['독', '저주']);
     for (const k of ['shellbeach', 'wreck', ...RAIDS.map(r => r[0])] as const) expect(PLACES[CONTENT_PLACE[k]].faction, k).toBe('pirate');
   });
-  it('탐험 ⑨ 조개껍데기 해변 Lv 36 · ⑪ 난파선 모래톱 Lv 44: 3인, 일반 → 보스, 그림은 해변을 빌림', () => {
+  it('탐험 ⑨ 조개껍데기 해변 Lv 46 · ⑪ 난파선 모래톱 Lv 51: 3인, 일반 → 보스, 그림은 해변을 빌림', () => {
     const a = contentOf('shellbeach'), b = contentOf('wreck');
-    expect([a.kind, a.unlockLv, a.size('보통'), a.ready]).toEqual(['explore', 36, 3, true]);
-    expect([b.kind, b.unlockLv, b.size('보통'), b.ready]).toEqual(['explore', 44, 3, true]);
+    expect([a.kind, a.unlockLv, a.size('보통'), a.ready]).toEqual(['explore', 46, 3, true]);
+    expect([b.kind, b.unlockLv, b.size('보통'), b.ready]).toEqual(['explore', 51, 3, true]);
     expect(a.fights('보통')).toEqual(['gullsand', 'crab36']);
     expect(b.fights('보통')).toEqual(['wreckage', 'goldbeard44']);
     expect(ENCOUNTERS.crab36.board).toBe('b7');

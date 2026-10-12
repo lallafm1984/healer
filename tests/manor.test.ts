@@ -12,9 +12,9 @@ const until = (f: E.Fight, sec: number, done: () => boolean) => { while (!f.over
 const quiet = (f: E.Fight) => { f.skills.forEach(s => { s.next = Infinity; }); };
 
 describe('저주받은 장원', () => {
-  it('Lv 20 던전 5인 보스 셋: 일반 → 1 → 2 → 정예 → 최종, 저주', () => {
+  it('Lv 24 던전 5인 보스 셋: 일반 → 1 → 2 → 정예 → 최종, 저주', () => {
     const c = contentOf('manor');
-    expect(c.unlockLv).toBe(20);
+    expect(c.unlockLv).toBe(24);
     expect(c.ready).toBe(true);
     expect(c.fights('보통')).toEqual(['parlor', 'butler', 'lady', 'kennel', 'belmore']);
   });

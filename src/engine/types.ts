@@ -12,7 +12,6 @@ import type { TalentKey } from '../data/talents';
 import type { AffixKey } from '../data/affixes';
 import type { AddDown, AddJob, DebuffDef, DebuffEnd, SoulFail, SoulWin } from '../data/bosses';
 import type { AffixState } from './affixes';
-import type { TraitKey } from '../data/traits';
 import type { BarkSit } from '../data/talk/sits';
 import type { SpecRun } from './specials';
 
@@ -151,15 +150,6 @@ export interface Unit {
   role: Role;
   /** 직업 (17). null = 직업 없는 옛 파티 (프로토타입·시뮬 일치 테스트) */
   cls: ClassKey | null;
-  /** 궁수 조준: 안 움직이고 서 있은 시간 */
-  aim: number;
-  /** 검사 흐름: 남은 시간 */
-  flow: number;
-  /** 특성 (02 5-2-1) */
-  traits: TraitKey[];
-  /** 버팀목: 남은 시간 (받는 피해 감소) */
-  bulwark: number;
-  bulwarkUsed: boolean;
   /** 다음 공격에 넣을 딜 (공격 간격 동안 모음) */
   acc: number;
   /** 이번 전투에 넣은 딜 합 (딜미터기) */
@@ -238,8 +228,8 @@ export interface Unit {
 
 /** 능력 효과 종류: cut 받는 피해 감소 · mcut 마법 피해 감소 · vuln 받는 피해 증가 · imm 피해 무시 · dps 딜 · nodps 딜 0 · heal 받는 치유
  * react 반응 시간 감소 · move 이동 시간 감소 · dodge 장판 회피 · nofear 겁 없음 · stop 멈춤 · hp 최대 체력 · absorb 흡수막 · spell 마법 기술 막기
- * noheal 치유 안 받음 · ahot 초당 자기 회복 · share 받는 피해 일부를 by가 대신 · aim 조준 유지 */
-export type ModKind = 'cut' | 'mcut' | 'vuln' | 'imm' | 'dps' | 'nodps' | 'heal' | 'react' | 'move' | 'dodge' | 'nofear' | 'stop' | 'hp' | 'absorb' | 'spell' | 'noheal' | 'ahot' | 'share' | 'aim';
+ * noheal 치유 안 받음 · ahot 초당 자기 회복 · share 받는 피해 일부를 by가 대신 */
+export type ModKind = 'cut' | 'mcut' | 'vuln' | 'imm' | 'dps' | 'nodps' | 'heal' | 'react' | 'move' | 'dodge' | 'nofear' | 'stop' | 'hp' | 'absorb' | 'spell' | 'noheal' | 'ahot' | 'share';
 export interface Mod { k: ModKind; v: number; until: number; src: string; by?: number }
 
 /** 능력 상태 */
@@ -267,8 +257,6 @@ export interface RosterEntry {
   nick: string;
   /** 직업 (17). 없으면 역할 기본 체력·딜 */
   cls?: ClassKey;
-  /** 특성 (02 5-2-1) */
-  traits?: TraitKey[];
   /** 특수 능력 (17 5장, data/abilities.ts 키). 없으면 능력 없음 */
   ab?: string;
   /** 능력 강화 ★ (0~5) */

@@ -10,10 +10,10 @@ const until = (f: E.Fight, sec: number, done: () => boolean) => { while (!f.over
 const has = (u: E.Unit, name: string) => u.debuffs.some(d => d.name === name);
 
 describe('독안개 늪', () => {
-  it('Lv 15 던전 5인 보스 셋: 일반 → 1 → 2 → 정예 → 최종, 독', () => {
+  it('Lv 17 던전 5인 보스 셋: 일반 → 1 → 2 → 정예 → 최종, 독', () => {
     const c = contentOf('swamp');
     expect(c.kind).toBe('dungeon');
-    expect(c.unlockLv).toBe(15);
+    expect(c.unlockLv).toBe(17);
     expect(c.ready).toBe(true);
     expect(c.fights('보통')).toEqual(['rotbridge', 'shaman', 'toad', 'toadnest', 'seres']);
     expect(c.bosses).toEqual(['늪 주술사', '거대 두꺼비 부글이', '늪 족장 세레스']);

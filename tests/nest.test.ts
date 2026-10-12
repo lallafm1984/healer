@@ -19,9 +19,9 @@ const NEST = [['nest1', 'whelps'], ['nest2', 'dandani'], ['nest3', 'rubina']] as
 const HALLS = [['cathedral2', 'knights'], ['cathedral3', 'uwoong'], ['cathedral4', 'ormal']] as const;
 
 describe('콘텐츠', () => {
-  it('탐험 ⑰ 잠긴 호숫가 Lv 68 (심연), 그림은 대성당을 빌림', () => {
+  it('탐험 ⑰ 잠긴 호숫가 Lv 70 (심연), 그림은 대성당을 빌림', () => {
     const c = contentOf('lakeshore');
-    expect([c.kind, c.unlockLv, c.size('보통'), c.ready]).toEqual(['explore', 68, 3, true]);
+    expect([c.kind, c.unlockLv, c.size('보통'), c.ready]).toEqual(['explore', 70, 3, true]);
     expect(c.fights('보통')).toEqual(['shoretrash', 'knights68']);
     expect(PLACES[CONTENT_PLACE.lakeshore].faction).toBe('abyss');
     expect(artPlaces('lakeshore')).toEqual(['lakeshore', 'cathedral']);

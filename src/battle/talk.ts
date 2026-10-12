@@ -22,7 +22,7 @@ const EMOTES: Record<string, TalkSit[]> = {
   anger: ['sulk', 'stubborn', 'jealous', 'noHeal'],
   tear: ['selfDown', 'lose', 'loseClose', 'allyDown'],
   dizzy: ['swallowed', 'jailed', 'noDps', 'pulled'],
-  shield: ['busterOk', 'guardOn', 'shieldOn', 'bulwark', 'offTank', 'eliteAdd'],
+  shield: ['busterOk', 'guardOn', 'shieldOn', 'offTank', 'eliteAdd'],
   sword: ['abAtk', 'adds', 'swarm', 'marchAdd', 'boss5'],
   flame: ['enraged', 'enrageSoon', 'noTank', 'partyLow'],
   run: ['flee', 'shelter', 'fixate', 'dodgeOk'],
@@ -72,7 +72,6 @@ interface UState {
   debLong: Set<number>;
   lastHeal: number;
   noHealAt: number;
-  aimFull: boolean;
   zoneSince: number | null;
   addOn: boolean;
   /** 자폭 쫄이 노리는 중 */
@@ -141,7 +140,7 @@ export function createTalk(rand: () => number = Math.random) {
       ratio: ratio(u), alive: u.alive, low: ratio(u), marks: { 50: false, 25: false, 10: false }, hist: [[now, ratio(u)]], hurtAt: -1e9,
       shield: u.shield > 0, guard: u.guardian > 0 || u.redu > 0 || u.sacr > 0, immune: u.immune > 0, hots: hotCount(u), pulled: !!u.pulled,
       sulking: u.sulking, fleeing: u.fleeing, moving: !!u.moving, cell: u.cell, debs: new Map(u.debuffs.map(d => [d.id, 0])), debLong: new Set(),
-      lastHeal: 0, noHealAt: -1e9, aimFull: false, zoneSince: null, addOn: false, fixed: false, pad: u.padUntil != null,
+      lastHeal: 0, noHealAt: -1e9, zoneSince: null, addOn: false, fixed: false, pad: u.padUntil != null,
       held: new Map(u.debuffs.filter(d => d.jail || d.charm).map(d => [d.id, { name: d.name, kind: d.jail ? 'jail' as const : 'charm' as const }])),
     };
   }
@@ -463,8 +462,6 @@ export function createTalk(rand: () => number = Math.random) {
       const inZone = f.zones.some(z => z.cells.has(u.cell));
       if (inZone) { if (s.zoneSince == null) s.zoneSince = t; else if (t - s.zoneSince > 1) { add('zoneStand', u); s.zoneSince = t + 6; } }
       else s.zoneSince = null;
-      // 궁수 조준
-      if (u.cls === 'archer') { if (u.aim >= 25 && !s.aimFull) { s.aimFull = true; add('aimFull', u); } else if (u.aim < 5) s.aimFull = false; }
       // 쫄이 날 노림 (부탱커가 끄는 쫄·감옥 빼고) · 자폭 쫄이 날 노림 (나올 때·대상이 바뀔 때)
       const on = u.role !== 'tank' && f.mobs.some(m => m.alive && m.add && m.add.on === u.id && m.add.job?.p !== 'jail' && m.add.job?.p !== 'fixate');
       if (on && !s.addOn) add('addOnMe', u);

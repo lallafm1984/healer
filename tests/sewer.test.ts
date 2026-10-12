@@ -13,10 +13,10 @@ const until = (f: E.Fight, sec: number, done: () => boolean, auto = false) => { 
 const near = (f: E.Fight, u: E.Unit) => f.party.filter(v => v !== u && v.alive && E.hexDist(f.cells[v.cell], f.cells[u.cell]) === 1);
 
 describe('역병 수로', () => {
-  it('Lv 40 던전 5인: 일반 → 쥐왕 → 정예 → 역병 운반자, 질병, 그림은 역병 지하묘지를 빌림', () => {
+  it('Lv 11 던전 5인: 일반 → 쥐왕 → 정예 → 역병 운반자, 질병, 그림은 역병 지하묘지를 빌림', () => {
     const c = contentOf('sewer');
     expect(c.kind).toBe('dungeon');
-    expect(c.unlockLv).toBe(40);
+    expect(c.unlockLv).toBe(11);
     expect(c.ready).toBe(true);
     expect(c.size('보통')).toBe(5);
     expect(c.fights('보통')).toEqual(['leakyway', 'ratking', 'sludgegrate', 'carrier']);
@@ -67,7 +67,7 @@ describe('역병 수로', () => {
     expect(f.empower).toBeCloseTo(0.03, 9);
   });
 
-  it('Lv 40 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 11 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (runOnce(contentOf('sewer'), '보통', 'priest', s).win) wins++; // 자동 밸런스 기준: 장비 없음 · 열린 특성 · 능력 1개 · 물약, 치유 배율 0.6 (34 1-6) 뒤로 특성 없는 사제는 높은 레벨에서 많이 짐
     expect(wins).toBeGreaterThanOrEqual(16);

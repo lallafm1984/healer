@@ -46,8 +46,8 @@ describe('기준 조건과 목표 (26 9-2)', () => {
     expect(verdictOf('악몽', 75)).toBe('ok');
   });
   it('레벨은 열림 레벨 (악몽만 따로 잠긴 레이드는 그 레벨), 권장 장비, 던전만 어픽스', () => {
-    expect(standard(contentOf('abyss1'), '악몽')).toEqual({ lv: 50, gear: 'rare5', affixes: [] });
-    expect(standard(contentOf('abyss1'), '어려움')).toEqual({ lv: 35, gear: 'adv0', affixes: [] });
+    expect(standard(contentOf('abyss1'), '악몽')).toEqual({ lv: 60, gear: 'rare5', affixes: [] });
+    expect(standard(contentOf('abyss1'), '어려움')).toEqual({ lv: 45, gear: 'adv0', affixes: [] });
     expect(standard(contentOf('rustfort'), '보통').gear).toBe('none');
   });
   it('보정을 넘기면 data/tune 대신 그 값', () => {

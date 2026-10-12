@@ -59,9 +59,9 @@ describe('콘텐츠', () => {
     const hex = ENCOUNTERS.windtrash.mobs!.find(m => m.name === '폭풍 점술사')!.attacks.find(a => a.key === 'hex')!.effect!;
     expect(hex.p === 'cycle' && hex.debuffs.map(d => d.type)).toEqual(['저주', '마법']);
   });
-  it('던전 ⑯ 해시계 천문대 Lv 80: 해바라기 언덕 (모든 유형), 일반 → 별바라기 → 정예 → 그늘지기', () => {
+  it('던전 ⑯ 해시계 천문대 Lv 42: 해바라기 언덕 (모든 유형), 일반 → 별바라기 → 정예 → 그늘지기', () => {
     const c = contentOf('observatory');
-    expect([c.kind, c.unlockLv, c.size('보통')]).toEqual(['dungeon', 80, 5]);
+    expect([c.kind, c.unlockLv, c.size('보통')]).toEqual(['dungeon', 42, 5]);
     expect(c.fights('보통')).toEqual(['startrash', 'stargazer', 'sundialyard', 'geuneul']);
     expect(PLACES.observatory.faction).toBe('hill');
     expect(ENCOUNTERS.sundialyard.mobs!.some(m => m.elite)).toBe(true);

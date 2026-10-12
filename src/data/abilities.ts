@@ -43,7 +43,7 @@ export type Trig =
  * interrupt 끊기 · delay 늦추기 · dodgeNow 장판에서 즉시 빠짐 · smoke 주변 회피 100% · fast 이동 시간 감소 · react 주변 반응 시간 감소
  * cleanse 독·질병 1개 제거 · share 아군 피해 일부를 대신 · protect 물리 피해 무시 · intercept 지정 피해를 대신 · guardAlly 아군 받는 피해 감소
  * auraMagic 옆 아군 마법 피해 감소(상시) · auraDps 옆 원거리 아군 딜(상시) · healTaken 받는 치유 · maxHp 주변 최대 체력 · nofear 겁먹지 않음
- * aimMax 조준 최대 · counter 맞으면 반격 · mark 보스 30%부터 딜 · wish 체력 30% 아래 딜 · pet 동물 동료 (간이: 딜 + 광역 피해 감소) · unzone 장판 하나 없앰
+ * counter 맞으면 반격 · mark 보스 30%부터 딜 · wish 체력 30% 아래 딜 · pet 동물 동료 (간이: 딜 + 광역 피해 감소) · unzone 장판 하나 없앰
  */
 export type Fx =
   | { e: 'cut'; v: number; sec?: number; hit?: boolean; magic?: boolean; nodps?: boolean }
@@ -66,7 +66,7 @@ export type Fx =
   | { e: 'hitAdds'; v: number; sec?: number }
   | { e: 'interrupt'; v: number }
   | { e: 'delay'; sec: number }
-  | { e: 'dodgeNow'; keepAim?: boolean }
+  | { e: 'dodgeNow' }
   | { e: 'smoke'; sec: number; r: number }
   | { e: 'fast'; v: number; sec: number }
   | { e: 'react'; v: number; sec: number; r: number }
@@ -80,7 +80,6 @@ export type Fx =
   | { e: 'healTaken'; v: number; sec: number }
   | { e: 'maxHp'; v: number; sec: number; r: number }
   | { e: 'nofear'; sec: number }
-  | { e: 'aimMax' }
   | { e: 'counter'; v: number }
   | { e: 'mark'; v: number; party: number }
   | { e: 'wish'; v: number; vuln: number }
@@ -159,7 +158,7 @@ const TABLE: Record<ClassKey, Row[]> = {
     ['regen', '재생의 격노', 'heal', ONCE, [LOW(0.3)], { e: 'selfHeal', v: 0.2, over: 6 }, '6초에 걸쳐 자기 체력을 20% 회복합니다.', '체력 30% 아래'],
     ['rally', '재집결의 함성', 'sup', 120, [T('aoe')], { e: 'maxHp', v: 0.1, sec: 10, r: 2 }, '10초 동안 반경 2 아군의 최대 체력이 10% 늘어납니다. 회복은 하지 않습니다.', '광역 예고'],
     ['bladestorm', '칼날폭풍', 'atk', 60, [{ t: 'adds', n: 2 }], { e: 'hitAdds', v: 0.25, sec: 6 }, '6초 동안 보스가 아닌 적 모두에게 최대 체력 25%의 피해를 나눠 줍니다.', '보스 아닌 적 2마리 이상'],
-    ['deathWish', '죽음의 소원', 'atk', ALWAYS, [T('always')], { e: 'wish', v: 0.5, vuln: 0.1 }, '체력 30% 아래에서 딜이 50% 더 늘고, 받는 피해가 10% 늘어납니다.', '상시'],
+    ['deathWish', '죽음의 소원', 'atk', ALWAYS, [T('always')], { e: 'wish', v: 0.5, vuln: 0.1 }, '체력 30% 아래에서 딜이 50% 늘고, 받는 피해가 10% 늘어납니다.', '상시'],
   ],
   swordsman: [
     ['parry', '받아넘기기', 'def', 30, [T('targeted')], { e: 'cut', v: 0.5, hit: true }, '지정 피해 1회를 50% 줄입니다.', '지정 피해 대상'],
@@ -187,10 +186,10 @@ const TABLE: Record<ClassKey, Row[]> = {
   ],
   archer: [
     ['multiShot', '산탄 사격', 'ctl', 30, [{ t: 'adds', n: 1 }], { e: 'hitAdds', v: 0.08 }, '보스가 아닌 적 모두에게 최대 체력 8%의 피해를 줍니다.', '보스 아닌 적 등장'],
-    ['disengage', '철수', 'def', 20, [T('zone')], { e: 'dodgeNow', keepAim: true }, '장판 예고에서 바로 빠져나옵니다. 조준은 그대로 둡니다.', '장판 예고'],
+    ['disengage', '철수', 'def', 20, [T('zone')], { e: 'dodgeNow' }, '장판 예고에서 바로 빠져나옵니다.', '장판 예고'],
     ['harass', '견제 사격', 'ctl', 30, [T('cast')], { e: 'interrupt', v: 0.6 }, '끊기 가능 기술을 60% 확률로 끊습니다.', '끊기 가능 기술 시전 시작'],
     ['aimedShot', '정조준', 'atk', 60, [T('ready')], { e: 'dps', v: 0.25, sec: 10 }, '10초 동안 딜이 25% 늘어납니다.', '쿨마다'],
-    ['rapid', '연발 사격', 'atk', 45, [T('moved')], { e: 'aimMax' }, '조준을 바로 최대로 채웁니다.', '이동한 뒤'],
+    ['rapid', '연발 사격', 'atk', 45, [T('moved')], { e: 'dps', v: 0.25, sec: 8 }, '이동을 마친 뒤 8초 동안 딜이 25% 늘어납니다.', '이동한 뒤'],
     ['camo', '위장', 'def', 60, [T('targeted')], { e: 'untarget' }, '지정 공격 대상에서 빠집니다.', '지정 피해'],
     ['hawkEye', '매의 눈', 'sup', 60, [T('zoneAny')], { e: 'react', v: 0.2, sec: 10, r: 2 }, '10초 동안 반경 2 아군의 반응 시간이 20% 줄어듭니다.', '장판 예고'],
     ['trueshot', '정조준의 오라', 'sup', ALWAYS, [T('always')], { e: 'auraDps', v: 0.08, r: 1 }, '옆 원거리 아군의 딜이 8% 늘어납니다.', '상시'],

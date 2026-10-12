@@ -22,13 +22,13 @@ export function aggroTarget(f: Fight): Unit | null {
   const alive = living(f); // 띄워 올려진 탱커는 못 때림 → 다른 탱커 (탱커 띄우기, 56 5장)
   const sub = f.sub && f.t < f.sub.until ? alive.find(u => u.id === f.sub!.id) : undefined;
   const held = f.hold != null ? alive.find(u => u.id === f.hold && u.role === 'tank') : undefined;
-  return sub || held || alive.find(u => u.role === 'tank') || alive.find(u => u.traits.includes('bulwark')) || alive.find(u => u.role === 'melee') || alive.find(u => u.role === 'ranged') || alive.find(u => u.me) || null;
+  return sub || held || alive.find(u => u.role === 'tank') || alive.find(u => u.role === 'melee') || alive.find(u => u.role === 'ranged') || alive.find(u => u.me) || null;
 }
 
-/** 보스 평타 ±30% (전사 「단단한 몸」은 ±15%, 17) */
+/** 보스 평타 ±30% */
 export function autoHit(f: Fight, tk: Unit, base: number): void {
   const r = f.rng();
-  damage(f, tk, base * (tk.cls === 'warrior' ? 0.85 + 0.3 * r : 0.7 + 0.6 * r), false, 'tank');
+  damage(f, tk, base * (0.7 + 0.6 * r), false, 'tank');
 }
 
 /** 기술이 도는 조건 */
@@ -630,7 +630,7 @@ function spawnOneSoul(f: Fight, e: Extract<SkillEffect, { p: 'soul' }>): void {
   const ref = f.party.filter(u => u.role !== 'tank' && !u.me);
   const max = (ref.length ? ref.reduce((a, u) => a + u.base, 0) / ref.length : f.me.base) * ((f.mythic && e.sizeMythic) || e.size || 1);
   const u: Unit = {
-    id: f.nextId++, role: 'ranged', cls: null, aim: 0, flow: 0, traits: [], bulwark: 0, bulwarkUsed: false, acc: 0, dealt: 0, pers: null, p: {}, nick: e.short,
+    id: f.nextId++, role: 'ranged', cls: null, acc: 0, dealt: 0, pers: null, p: {}, nick: e.short,
     base: max, max, hp: max * (f.mythic && e.hpMythic ? e.hpMythic : e.hp), dps: 0, alive: true, cell: c.i, home: c.i, hot: 0, hotTick: 0, hots: [], redu: 0, reduCut: 0, sacr: 0, immune: 0, echo: [],
     guardian: 0, shield: 0, debuffs: [], moving: null, react: null, retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0,
     thanks: 0, flash: 0, barkAt: 0, ignoreZone: 0, homeAt: null, diedAt: 0, me: false, ab: null, mods: [], got: 0, senseReact: 1, senseDodge: 0, runs: 0,
