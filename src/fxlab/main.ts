@@ -4,7 +4,8 @@
 import './fxlab.css';
 import type { Contract, PxfGraph } from '../../scripts/fxr/render.mjs';
 import { validateGraph } from '../../scripts/fxr/validate.mjs';
-import { clear, h, prefs, toast } from './dom';
+import { clear, h, modeNav, prefs, toast } from './dom';
+import { ask, download, getJson, post } from './io';
 import { gameChecks } from './game-link';
 import { addNode, autoLayout, CATEGORIES, type Check, insertAfter, needsLayout, newGraph, nodeLabel, previewGraph, removeNode, renderChecks } from './graph-edit';
 import { GraphView } from './graph-view';
@@ -47,33 +48,6 @@ class RenderClient {
   }
 }
 
-async function getJson<T>(url: string): Promise<T> {
-  const r = await fetch(url, { cache: 'no-store' });
-  if (!r.ok) throw new Error(`${url}: ${r.status}`);
-  return (await r.json()) as T;
-}
-async function post<T>(url: string, body: unknown): Promise<T> {
-  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  const j = (await r.json()) as T & { error?: string };
-  if (!r.ok) throw new Error(j.error ?? `${r.status}`);
-  return j;
-}
-/** 확인 창 (버튼 값, 닫으면 null) */
-function ask(title: string, body: (Node | string)[], buttons: { label: string; value: string; kind?: string }[]): Promise<string | null> {
-  return new Promise(ok => {
-    const d = h('dialog', { class: 'fx-dialog', 'aria-labelledby': 'fxDlgTitle' },
-      h('form', { method: 'dialog' }, h('h2', { id: 'fxDlgTitle' }, title), h('div', { class: 'fx-dlg-body' }, ...body),
-        h('div', { class: 'fx-dlg-btns' }, h('button', { class: 'fx-btn', value: '' }, '취소'), ...buttons.map(b => h('button', { class: `fx-btn ${b.kind ?? ''}`, value: b.value }, b.label)))));
-    d.addEventListener('close', () => { ok(d.returnValue || null); d.remove(); });
-    document.body.append(d);
-    d.showModal();
-  });
-}
-function download(name: string, blob: Blob): void {
-  const a = h('a', { href: URL.createObjectURL(blob), download: name });
-  document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-}
 const parseGraph = (text: string): PxfGraph => {
   const j = JSON.parse(text) as { graph?: unknown };
   const g = (j && typeof j === 'object' && 'graph' in j && j.graph && typeof j.graph === 'object' ? j.graph : j) as PxfGraph;
@@ -316,6 +290,7 @@ async function boot(): Promise<void> {
 
   const top = h('header', { class: 'fx-top' },
     h('div', { class: 'fx-brand' }, h('b', {}, '이펙트 공방'), h('span', { class: 'fx-tag' }, '개발용')),
+    modeNav('fx'),
     h('div', { class: 'fx-file' }, picker, dirtyEl),
     h('div', { class: 'fx-actions' },
       h('details', { class: 'fx-menu' }, h('summary', { class: 'fx-btn' }, '파일'), h('div', { class: 'fx-menu-pop' },
@@ -398,4 +373,6 @@ async function boot(): Promise<void> {
   updateTop();
 }
 
-void boot();
+// ?mode=char = 도트 캐릭터 화면 (src/fxlab/char)
+if (new URLSearchParams(location.search).get('mode') === 'char') void import('./char/char-app').then(m => m.bootChar(document.getElementById('fxApp')!));
+else void boot();

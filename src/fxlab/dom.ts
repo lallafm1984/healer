@@ -38,3 +38,7 @@ export function toast(text: string, kind: 'ok' | 'err' | 'info' = 'info', ms = 3
   box.append(t);
   setTimeout(() => t.remove(), ms);
 }
+/** 위 막대의 도구 바꾸기 (이펙트 · 캐릭터, 페이지를 새로 엶) */
+export const modeNav = (mode: 'fx' | 'char'): HTMLElement => h('nav', { class: 'fx-modes', 'aria-label': '도구' },
+  h('a', { href: location.pathname, class: mode === 'fx' ? 'on' : '', 'aria-current': mode === 'fx' ? 'page' : undefined }, '이펙트'),
+  h('a', { href: `${location.pathname}?mode=char`, class: mode === 'char' ? 'on' : '', 'aria-current': mode === 'char' ? 'page' : undefined }, '캐릭터'));
