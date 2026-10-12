@@ -30,6 +30,7 @@ import './screens/a2-services-theme.css';
 import './screens/a2-character-compact.css';
 import './screens/a2-character-palettes.css';
 import './screens/a2-topbar.css';
+import './screens/a2-kit.css';
 import './battle';
 import './screens/title';
 import './screens/lobby';

@@ -2,45 +2,16 @@
  * Color/material overrides only: no geometry, layout, image filters or DOM changes.
  * Grade/faction borders, mana, gold selection, locked states and action-role colors stay local. */
 
-#s-char[data-sub="gear"] {
-  --c7-palette-surface: #244664;
-  --c7-palette-panel: #24435e;
-  --c7-palette-deep: #142a40;
+/* 2026-10-12 Lim 「배경색상 통일」: 네 하위 탭이 같은 호두나무 · 양피지 (파랑 · 청록 · 보라 · 자주 덮개 없앰, a2-kit.css) */
+#s-char[data-sub] {
+  --c7-palette-surface: #4a3420;
+  --c7-palette-panel: #3b2a1a;
+  --c7-palette-deep: #1d140c;
   --c7-palette-wash: transparent;
-  --c7-palette-muted: #bbd0e2;
-  --c7-palette-paper: #dbe8f1;
-  --c7-palette-paper-ink: #19374e;
-  --c7-palette-paper-muted: #476278;
-}
-#s-char[data-sub="skill"] {
-  --c7-palette-surface: #1d5550;
-  --c7-palette-panel: #214d47;
-  --c7-palette-deep: #102f2c;
-  --c7-palette-wash: #113830cf;
-  --c7-palette-muted: #bddbd0;
-  --c7-palette-paper: #dcebe2;
-  --c7-palette-paper-ink: #203f34;
-  --c7-palette-paper-muted: #4a695b;
-}
-#s-char[data-sub="talent"] {
-  --c7-palette-surface: #563c70;
-  --c7-palette-panel: #3e2c54;
-  --c7-palette-deep: #271a36;
-  --c7-palette-wash: #281a39e3;
-  --c7-palette-muted: #d0c0e0;
-  --c7-palette-paper: #e9e0f0;
-  --c7-palette-paper-ink: #3c294d;
-  --c7-palette-paper-muted: #695575;
-}
-#s-char[data-sub="hero"] {
-  --c7-palette-surface: #793c45;
-  --c7-palette-panel: #573039;
-  --c7-palette-deep: #351e29;
-  --c7-palette-wash: #401f2acb;
-  --c7-palette-muted: #e0c1c5;
-  --c7-palette-paper: #efe1df;
-  --c7-palette-paper-ink: #522a33;
-  --c7-palette-paper-muted: #795660;
+  --c7-palette-muted: #cdb896;
+  --c7-palette-paper: #efd8a4;
+  --c7-palette-paper-ink: #2b1b0d;
+  --c7-palette-paper-muted: #6b5034;
 }
 
 /* Tint the space behind existing content without filtering the armory or any icons. */
@@ -63,9 +34,9 @@
 }
 #s-char[data-sub="gear"] .c7-stat > b { color: var(--a2-ink); }
 #s-char[data-sub="gear"] .c7-mid .c7-stats {
-  background-color: #203647;
+  background-color: #3b2a1a;
   border-color: #bd985b;
-  box-shadow: inset 0 0 0 3px #10161cb3, inset 0 0 0 4px #bfa16c42, 0 5px 14px #080807aa;
+  box-shadow: inset 0 0 0 3px #0f0904b3, inset 0 0 0 4px #bfa16c42, 0 5px 14px #080807aa;
 }
 #s-char[data-sub="gear"] .c7-slot > b { text-shadow: 0 1px 2px #000, 0 0 5px #000; }
 
@@ -118,7 +89,7 @@
   background-image: none;
 }
 #s-char[data-sub="talent"] .c7-tiers {
-  box-shadow: inset 0 0 0 3px #190f2499, 0 4px 12px #0005;
+  box-shadow: inset 0 0 0 3px #0f0904aa, 0 4px 12px #0005;
 }
 #s-char[data-sub="talent"] .c7-tl :is(b, small, em),
 #s-char[data-sub="talent"] .c7-pk small {
@@ -129,7 +100,7 @@
 #s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) small {
   color: var(--c7-palette-muted);
 }
-#s-char[data-sub="talent"] .c7-tier:not(.locked) .c7-tl em { color: #cbb3e3; }
+#s-char[data-sub="talent"] .c7-tier:not(.locked) .c7-tl em { color: #e8c77a; }
 #s-char[data-sub="talent"] .c7-pre:not([aria-pressed="true"]):not(:disabled),
 #s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn,
 #s-char[data-sub="talent"] .c7-tsi,
@@ -139,26 +110,26 @@
 }
 #s-char[data-sub="talent"] .c7-pre:not([aria-pressed="true"]):not(:disabled),
 #s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn {
-  border-color: #a88cbd;
-  color: #e1d4ec;
+  border-color: #a8844c;
+  color: #ecdcbc;
 }
 #s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn {
-  box-shadow: 0 0 0 2px #1c112a, inset 0 0 0 1px #dac2ee33;
+  box-shadow: 0 0 0 2px #140d07, inset 0 0 0 1px #e8c77a33;
 }
 #s-char[data-sub="talent"] .c7-tier.pending .c7-pk:not([aria-pressed="true"]) .c7-tn {
-  border-color: #c4a5e2;
-  box-shadow: 0 0 0 2px #1c112a, 0 0 9px #b28ade26;
+  border-color: #e8c77a;
+  box-shadow: 0 0 0 2px #140d07, 0 0 9px #e8c77a26;
 }
 #s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn::after {
   background-color: var(--c7-palette-deep);
-  border-color: #977aad;
-  color: #dfd1eb;
+  border-color: #8d6a3e;
+  color: #ecdcbc;
 }
-#s-char[data-sub="talent"] .c7-tpath .d { stroke: #c3add6; }
-#s-char[data-sub="talent"] .c7-tier { border-bottom-color: #b998d324; }
+#s-char[data-sub="talent"] .c7-tpath .d { stroke: #c9a66a; }
+#s-char[data-sub="talent"] .c7-tier { border-bottom-color: #e8c77a24; }
 #s-char[data-sub="talent"] .sheet.c7-tsheet {
   background-color: var(--c7-palette-deep);
   background-image: none;
-  box-shadow: inset 0 0 0 3px #49325e, 0 -6px 26px #000a;
+  box-shadow: inset 0 0 0 3px #5a4127, 0 -6px 26px #000a;
 }
-#s-char[data-sub="talent"] .c7-tooltip-foot { border-top-color: #ba9acb3b; }
+#s-char[data-sub="talent"] .c7-tooltip-foot { border-top-color: #e8c77a3b; }

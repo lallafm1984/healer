@@ -1,0 +1,141 @@
+/*
+ * 로비 재질 키트 = 로비 밖 모든 화면의 버튼 · 패널 · 바탕 (2026-10-12 Lim 「로비를 제외한 나머지 화면 디자인, 버튼 색상, 배경색상 통일감 있게」).
+ * 로비 그림에서 뜬 9조각 틀 세 장 (src/art/a2-kit-*.webp, 하단 탭 · 출전 그림의 투명 여백을 잘라 480px로):
+ *   나무 판 (a2-tab-idle-v3)  = 패널 · 목록 줄 · 보조 버튼 · 고르지 않은 탭
+ *   양피지 판 (a2-tab-active-v3) = 고른 탭 · 켠 토글 · 읽을 설명 카드 (어두운 잉크 글)
+ *   붉은 칠 판 (a2-depart-v3)  = 화면마다 하나인 주 버튼 (출전 · 출발 · 편성으로 · 계속 · 다시 도전 · 구매)
+ * 바탕은 화면마다 색을 바꾸지 않고 같은 호두나무 바닥 + 위에서 오는 금빛 (캐릭터 하위 탭 파랑 · 청록 · 보라 · 자주 없앰).
+ * 글: 나무 위 크림 #fff4d5 / 보조 #ecdcbc / 흐림 #cdb896 / 숫자 금 #f8d478, 양피지 위 잉크 #2b1b0d / 흐림 #6b5034.
+ * 제목: 화면 제목 21~25 Hahmlet, 섹션 제목 16 Hahmlet 황동 #e8c77a. 크기 단계는 로비와 같게 11 · 12 · 13 · 14 · 16.
+ * 의미색 (등급 테 · 마나 · 체력 · 위험 · 알림 점 · 직업 깃발 · 세력 문양 · 장소 그림)은 그대로.
+ * main.ts에서 맨 마지막에 읽는다. 범위는 #app > 로비 아닌 .ns 화면과 전투 사이 휴식(#rest)이라 ID 두 개 무게로 옛 규칙을 덮는다.
+ * border-image는 칸 크기를 바꾸지 않는다 (border 폭과 상관없이 그림만 그림) → 배치 · 누르는 자리는 그대로.
+ */
+:root {
+  --kit-wood: url('../art/a2-kit-wood.webp') 76 fill / 15px / 0 stretch;
+  --kit-wood-sm: url('../art/a2-kit-wood.webp') 76 fill / 11px / 0 stretch;
+  --kit-paper: url('../art/a2-kit-paper.webp') 72 fill / 15px / 0 stretch;
+  --kit-paper-sm: url('../art/a2-kit-paper.webp') 72 fill / 11px / 0 stretch;
+  --kit-red: url('../art/a2-kit-red.webp') 70 fill / 17px 19px / 0 stretch;
+  --kit-cream: #fff4d5;
+  --kit-ink-2: #ecdcbc;
+  --kit-mute: #cdb896;
+  --kit-gold: #f8d478;
+  --kit-brass: #b98a46;
+  --kit-brass-hi: #e8c77a;
+  --kit-paper-ink: #2b1b0d;
+  --kit-paper-mute: #6b5034;
+  --kit-well: #1a120b;
+  --kit-well-edge: #6b5233;
+}
+
+/* ---------- 바탕: 같은 호두나무 바닥 + 위에서 오는 금빛 ---------- */
+#app > :is(#s-content, #s-entry, #s-party, #s-settle, #s-char, #s-shop, #s-missions, #s-settings, #s-tab),
+#app > #rest {
+  background-color: #2b1f14;
+  background-image: radial-gradient(130% 42% at 50% 0%, #f2c46a2e, #f2c46a00 70%), linear-gradient(#0000 55%, #0000004d), var(--a2-wood);
+  background-blend-mode: normal, normal, soft-light;
+  background-size: auto, auto, cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  color: var(--kit-cream);
+}
+/* 캐릭터 무기고 그림 · 하위 탭 색 덮개 없앰 (모든 하위 탭이 같은 바닥) */
+#app > #s-char::before { content: none; }
+#app > #s-char > .c7-body { background-color: transparent; }
+
+/* ---------- 나무 판: 패널 · 목록 줄 ---------- */
+#app > .ns:not(#s-lobby) :is(.panel, .pn, .srow, .mrow, .shop-wallet > span, .group,
+  .c7-stats, .c7-inventory, .c7-sklist, .c7-tsum, .c7-tiers,
+  .r-loot, .r-prog, .r-rec, .r-cur, .r-chal, .metrics),
+#app > #rest :is(.meter, #restGuide > *) {
+  border-style: solid; border-color: transparent; border-radius: 0;
+  border-image: var(--kit-wood);
+  background: none;
+  box-shadow: none;
+  color: var(--kit-cream);
+}
+/* 설정 묶음은 원래 바탕이 없어 나무 판 안쪽 여백을 줌 */
+#app > #s-settings .group { padding: 14px 16px 16px; margin: 0 0 10px; }
+
+/* ---------- 양피지 판: 읽을 설명 · 알림 카드 ---------- */
+#app > .ns:not(#s-lobby) :is(.c7-parch, .r-note.hi, .coachtip, .warnbox:not(.r-err)) {
+  border-style: solid; border-color: transparent; border-radius: 0;
+  border-image: var(--kit-paper);
+  background: none; box-shadow: none;
+  color: var(--kit-paper-ink); text-shadow: none;
+}
+#app > .ns:not(#s-lobby) :is(.c7-parch, .r-note.hi, .coachtip, .warnbox:not(.r-err)) :is(h2, h3, h4, p, b, li, span:not(.dsp):not(.rule)) { color: var(--kit-paper-ink); text-shadow: none; }
+#app > .ns:not(#s-lobby) :is(.c7-parch, .r-note.hi, .coachtip, .warnbox:not(.r-err)) :is(small, .m, .cap) { color: var(--kit-paper-mute); }
+
+/* ---------- 보조 버튼 · 고르지 않은 탭: 작은 나무 판 ---------- */
+#app > .ns:not(#s-lobby) :is(.btn, .btn2, .f-rr, .f-gbtn, .f-item:not(.empty), .r-note:not(.hi), .c7-sort, .c7-dexb, .c7-hsk, .c7-fc, .c7-pre, .c7-mode button, .c7-taps > button,
+  .subtabs button, .c7-tab, .b-cat, .b-dc, .chip),
+#app > #rest .btn:not(.primary) {
+  border-style: solid; border-color: transparent; border-radius: 0;
+  border-image: var(--kit-wood-sm);
+  background: none;
+  box-shadow: none;
+  color: var(--kit-cream); text-shadow: 0 1px 2px #1b0e05;
+}
+#app > .ns:not(#s-lobby) :is(.btn, .btn2, .f-rr, .f-gbtn, .c7-sort, .c7-dexb, .c7-hsk, .subtabs button, .c7-tab, .b-cat, .b-dc, .chip) :is(small, b, span:not(.rdot):not(.g-badge)) { color: inherit; }
+#app > .ns:not(#s-lobby) :is(.btn, .btn2, .b-dc, .f-rr) small { color: var(--kit-ink-2); }
+/* 탭 아래 다이아 꼬리표 · 고른 테 빛은 판 그림으로 대신 */
+#app > .ns:not(#s-lobby) :is(.c7-tab, .b-cat)::after { content: none; }
+
+/* ---------- 고른 상태: 작은 양피지 판 + 잉크 글 (하단 탭 고른 칸과 같음) ---------- */
+#app > .ns:not(#s-lobby) :is(.subtabs button[aria-selected="true"], .c7-tab[aria-selected="true"], .b-cat[aria-selected="true"], .b-dc.on,
+  .c7-fc[aria-pressed="true"], .c7-pre[aria-pressed="true"], .c7-mode button[aria-pressed="true"], .c7-taps > button[aria-pressed="true"],
+  .chip[aria-pressed="true"], .chip.on, .c7-lockb[aria-pressed="true"]) {
+  border-image: var(--kit-paper-sm);
+  background: none;
+  color: var(--kit-paper-ink); text-shadow: none;
+}
+#app > .ns:not(#s-lobby) :is(.subtabs button[aria-selected="true"], .c7-tab[aria-selected="true"], .b-cat[aria-selected="true"], .b-dc.on,
+  .c7-fc[aria-pressed="true"], .c7-pre[aria-pressed="true"], .c7-mode button[aria-pressed="true"], .chip[aria-pressed="true"], .chip.on) :is(small, b, span:not(.rdot):not(.g-badge)) { color: var(--kit-paper-ink); text-shadow: none; }
+
+/* ---------- 주 버튼: 붉은 칠 판 (화면마다 하나) ---------- */
+#app > .ns:not(#s-lobby) :is(.btn.primary, .btn2.hot, .f-go, .g-cta),
+#app > #rest .btn.primary {
+  border-style: solid; border-color: transparent; border-radius: 0;
+  border-image: var(--kit-red);
+  background: none;
+  box-shadow: none;
+  color: var(--kit-cream); text-shadow: 0 1px 2px #2b0805;
+}
+#app > .ns:not(#s-lobby) :is(.btn.primary, .btn2.hot, .f-go, .g-cta) :is(small, b, span) { color: var(--kit-cream); }
+#app > .ns:not(#s-lobby) :is(.btn.primary, .btn2.hot, .f-go, .g-cta) small { color: #f3dfb8; }
+#app > .ns:not(#s-lobby) .btn.mini.primary { border-image: url('../art/a2-kit-red.webp') 70 fill / 13px 14px / 0 stretch; }
+#app > #rest .btn.primary { font: 800 20px/1 var(--font-display); }
+
+/* 누름 · 못 누름 */
+#app > :is(.ns:not(#s-lobby), #rest) :is(.btn, .btn2, .f-rr, .f-gbtn, .f-go, .g-cta, .chip, .subtabs button, .c7-tab, .b-cat, .b-dc, .c7-fc, .c7-pre, .c7-sort, .c7-dexb, .c7-hsk):active:not(:disabled) { filter: brightness(.9); transform: none; }
+#app > .ns:not(#s-lobby) :is(.btn, .btn2, .f-rr, .f-gbtn, .f-go, .g-cta, .chip, .b-dc, .c7-fc, .c7-pre, .c7-sort):is(:disabled, [aria-disabled="true"]) {
+  filter: grayscale(.6) brightness(.8); opacity: .9; color: var(--kit-mute);
+}
+#app > .ns:not(#s-lobby) .b-dc:disabled :is(small, b, span) { color: var(--kit-mute); }
+
+/* ---------- 홈 (빈 칸 · 막대 바탕 · 아이콘 상자): 짙은 오목 ---------- */
+#app > .ns:not(#s-lobby) :is(.c7-bag-empty, .f-item.empty, .sic, .c7-slot.empty .c7-sq) {
+  background: var(--kit-well); border-color: var(--kit-well-edge);
+  box-shadow: inset 0 2px 5px #000b, 0 1px 0 #f1c77a1f;
+}
+#app > .ns:not(#s-lobby) :is(.mrow, .passhead, .srow) .bar { background: var(--kit-well); border-color: var(--kit-well-edge); }
+
+/* ---------- 글: 섹션 제목 · 보조 글 ---------- */
+#app > .ns:not(#s-lobby) :is(.h, .sec, .c7-h, .group > h2) {
+  font-family: var(--font-display); font-weight: 800; color: var(--kit-brass-hi); text-shadow: 0 1px 2px #120903;
+}
+#app > .ns:not(#s-lobby) :is(.h, .sec, .c7-h, .group > h2) small { font-family: var(--font-body); font-weight: 500; color: var(--kit-mute); text-shadow: none; }
+#app > .ns:not(#s-lobby) :is(.note, .c7-hnote, .group > p) { color: var(--kit-mute); }
+#app > #s-settings :is(input[type="checkbox"], input[type="radio"]) { accent-color: #c9943f; }
+#app > #s-settings .toggle { color: var(--kit-cream); }
+
+/* ---------- 화면별 마무리 ---------- */
+/* 캐릭터 하위 탭: 탭마다 다른 색 속판 · 고른 탭 금테 없앰 (판 그림이 고른 상태를 보여 줌) */
+#app > #s-char .c7-tab::before { content: none; }
+#app > #s-char .c7-tab[aria-selected="true"]:not(:focus-visible) { outline: 0; box-shadow: none; }
+/* 상점 지갑 칸은 낮아서 작은 판, 이름은 흐린 크림 */
+#app > #s-shop .shop-wallet > span { border-image: var(--kit-wood-sm); }
+#app > #s-shop .shop-wallet small { color: var(--kit-mute); }
+#app > #s-shop .shop-wallet b { color: var(--kit-gold); }
