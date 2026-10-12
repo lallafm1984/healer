@@ -27,9 +27,10 @@
   grid-template-areas: 'ic t ch' 'sub sub sub'; column-gap: 3px; row-gap: 0;
   padding: 7px 10px 9px;
 }
-#s-lobby .lb-cta > .g-ic { grid-area: ic; align-self: center; width: 31px; height: 34px; transform: translateX(1px); }
+/* 칼 그림 높이 = 「출전」 글 높이 (Lim 2026-10-12 「출전은 왼쪽 검 아이콘과 높이를 맞추고」) */
+#s-lobby .lb-cta > .g-ic { grid-area: ic; align-self: center; width: 27px; height: 29px; transform: translate(2px, 1.5px); }
 #s-lobby .lb-cta-copy { display: contents; }
-#s-lobby .lb-cta-copy > b { grid-area: t; align-self: center; justify-self: center; transform: translateX(-2px); }
+#s-lobby .lb-cta-copy > b { grid-area: t; align-self: center; justify-self: center; transform: translate(-2px, -1px); }
 #s-lobby .lb-cta-copy > small { grid-area: sub; justify-self: center; width: auto; max-width: 100%; text-align: center; }
 #s-lobby .lb-cta > .lb-chevron { grid-area: ch; align-self: center; }
 
@@ -64,7 +65,7 @@
 
 @container (max-width: 359px) {
   #s-lobby .lb-cta { grid-template-columns: 25px minmax(0, 1fr) 7px; padding-left: 7px; padding-right: 7px; }
-  #s-lobby .lb-cta > .g-ic { width: 26px; height: 30px; }
+  #s-lobby .lb-cta > .g-ic { width: 23px; height: 25px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

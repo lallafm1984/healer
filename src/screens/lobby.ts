@@ -209,7 +209,7 @@ function buildings(): string {
 /** 아래 독립된 목표표 + 「출전」 (지난 판 → 안 깬 장소). 시즌 패스는 상점에만 둔다. */
 function journey(): string {
   const to = dest(), c = contentOf(to.content);
-  const cta = `<button type="button" class="lb-cta${firstDungeonNow() ? ' hi-pulse' : ''}" id="lobbyStart" aria-label="출전 · ${esc(c.name)} ${esc(to.diff)}">${gameIcon('a2-swords', gameIcon('battle', uiIcon('battle'), 'tab'))}<span class="lb-cta-copy"><b>출전</b><small${`${c.name} · ${to.diff}`.length > 14 ? ' class="long"' : ''}>${esc(c.name)} · ${esc(to.diff)}</small></span>${chevron()}</button>`;
+  const cta = `<button type="button" class="lb-cta${firstDungeonNow() ? ' hi-pulse' : ''}" id="lobbyStart" aria-label="출전 · ${esc(c.name)} ${esc(to.diff)}">${gameIcon('a2-swords', gameIcon('battle', uiIcon('battle'), 'tab'))}<span class="lb-cta-copy"><b>출전</b><small>${esc(c.name)} · ${esc(to.diff)}</small></span>${chevron()}</button>`;
   return `<div class="lb-journey">${tracker()}<div class="lb-go">${cta}</div></div>`;
 }
 
