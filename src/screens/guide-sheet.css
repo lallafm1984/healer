@@ -1,0 +1,141 @@
+/*
+ * 공략 (2026-10-12 Lim 「한눈에 들어오게, 배경·항목·색 교체」): 편성 「공략」 시트 · 일시정지 · 휴식이 같은 모양.
+ * 머리 (장소 · 난이도 · 인원) → 난이도 수치 칸 → 어픽스 → 구간 길 = 탭 → 보스 카드 → 진행 (세로 줄) → 기술 카드 (대상 칩 · 굵은 피해 숫자 · 대처 줄).
+ * 색은 --gk-* 변수 한 벌로만 정함 (시안 C 「길드 홀」: 어두운 돌색을 나무결 없이 평평하게, 노란 제목, 2026-10-12 Lim 고름).
+ */
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) {
+  --gk-bg: linear-gradient(#1d1812, #15120e 160px);
+  --gk-edge: #9c7a3c;
+  --gk-ink: #f1e4c8; --gk-ink2: #d8ccb0; --gk-mute: #a99a7e;
+  --gk-head: #ffd34d;
+  --gk-line: #3a2c1c;
+  --gk-card: linear-gradient(#272019, #1e1914); --gk-card-bd: #5c4424;
+  --gk-stat: #201a14; --gk-stat-bd: #4a3720;
+  --gk-chip: #2c241b; --gk-chip-ink: #d8ccb0;
+  --gk-accent: #ffd34d; --gk-accent-ink: #1a1308;
+  --gk-num: #ffd34d;
+  --gk-how: #93dc8c; --gk-how-bg: #1a2716;
+  --gk-enr: linear-gradient(#3b1512, #24100e); --gk-enr-bd: #b0302a; --gk-enr-ink: #ffb3aa;
+  --gk-route: #1b1611;
+  --gk-tank: #3d7be0; --gk-all: #c8382f; --gk-some: #8e4fd0; --gk-zone: #c46a1c;
+  --gk-tip: #241d12; --gk-tip-bd: #6b5233;
+}
+/* ---------- 시트 바탕 ---------- */
+#app .ns .sheet.f-gsheet {
+  background: var(--gk-bg); background-blend-mode: normal;
+  border-color: var(--gk-edge); color: var(--gk-ink); gap: 10px;
+}
+#app .ns .sheet.f-gsheet > .grip { background: var(--gk-edge); }
+#s-party .f-gsheet .f-sheet-body { display: flex; flex-direction: column; gap: 10px; }
+#s-party .f-gsheet .f-sheet-actions { background: none; }
+
+/* 머리: 책 + 「공략」 · 오른쪽에 장소 · 난이도 · 인원 */
+#s-party .f-gh { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#s-party .f-gt { margin: 0; display: flex; align-items: center; gap: 6px; flex: none; font: 800 21px/1 var(--font-display); color: var(--gk-head); text-shadow: none; }
+#s-party .f-gt svg { width: 22px; height: 22px; }
+#s-party .f-gp { margin: 0 0 0 auto; display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 13px; color: var(--gk-ink); }
+#s-party .f-gp b { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 700; }
+#s-party .f-gc { flex: none; padding: 1px 8px; border-radius: 999px; background: var(--gk-chip); color: var(--gk-chip-ink); font-size: 12px; font-weight: 700; line-height: 1.5; }
+#s-party .f-gc.d { background: var(--gk-accent); color: var(--gk-accent-ink); }
+
+/* 난이도 수치 칸: 이름 작게 · 값 크게 */
+#s-party .f-dstats { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 6px; }
+#s-party .f-dstats > div { min-width: 0; padding: 6px 8px 7px; border-radius: 8px; background: var(--gk-stat); border: 1px solid var(--gk-stat-bd); }
+#s-party .f-dstats > div { display: flex; flex-direction: column; justify-content: space-between; }
+#s-party .f-dstats dt { font-size: 11px; line-height: 1.3; color: var(--gk-mute); word-break: keep-all; }
+#s-party .f-dstats dd { margin: 1px 0 0; font: 800 18px/1.15 var(--font-body); color: var(--gk-ink); font-variant-numeric: tabular-nums; }
+#s-party .f-gsheet .f-dnote { margin: -4px 0 0; font-size: 12px; font-weight: 700; color: var(--gk-enr-ink); }
+
+/* 어픽스: 카드 한 장에 줄로 */
+#s-party .f-gsheet .afxlist { padding: 2px 10px; border-radius: 8px; background: var(--gk-card); border: 1px solid var(--gk-card-bd); }
+#s-party .f-gsheet .f-afr { border-top-color: var(--gk-line); }
+#s-party .f-gsheet .f-afd { color: var(--gk-ink); }
+#s-party .f-gsheet .f-afd small { color: var(--gk-mute); }
+
+/* ---------- 구간 길 = 탭 (스크롤해도 위에 붙음) ---------- */
+#s-party .f-route {
+  position: sticky; top: 0; z-index: 2; display: flex; margin: 0; padding: 2px 4px 4px;
+  background: var(--gk-route); border: 1px solid var(--gk-card-bd); border-radius: 10px; box-shadow: 0 6px 10px -6px #0008;
+}
+#s-party .f-rt {
+  position: relative; flex: 1 1 0; min-width: 0; min-height: 56px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  margin: 0; padding: 0 2px 4px; border: 0; border-radius: 6px; background: none; color: var(--gk-mute); font: 500 12px/1.3 var(--font-body); cursor: pointer;
+}
+#s-party .f-rt + .f-rt::after { content: ''; position: absolute; top: 16px; right: 50%; width: 100%; height: 2px; background: var(--gk-line); z-index: 0; }
+#s-party .f-rt .f-ndw { position: relative; z-index: 1; height: 32px; display: grid; place-items: center; }
+#s-party .f-rt .f-nd { width: 14px; height: 14px; border-radius: 50%; background: var(--gk-chip); border: 2px solid var(--gk-mute); transition: transform .15s; }
+#s-party .f-rt.elite .f-nd { border-color: var(--gk-edge); }
+#s-party .f-rt.boss .f-nd { width: 18px; height: 18px; border-radius: 3px; transform: rotate(45deg); border-color: #b0302a; background: #6a1d17; }
+#s-party .f-rt .f-nl { color: inherit; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 1px 6px; border-radius: 999px; }
+#s-party .f-rt[aria-selected="true"] { color: var(--gk-ink); font-weight: 800; }
+#s-party .f-rt[aria-selected="true"] .f-nd { box-shadow: 0 0 0 3px var(--gk-route), 0 0 0 5px var(--gk-accent); }
+#s-party .f-rt.boss[aria-selected="true"] .f-nd { transform: rotate(45deg) scale(1.12); }
+#s-party .f-rt[aria-selected="true"] .f-nl { background: var(--gk-accent); color: var(--gk-accent-ink); }
+#s-party .f-rt:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: -2px; }
+#s-party .f-gsheet .guides { display: block; }
+#s-party .f-gsheet .gpane[hidden] { display: none; }
+
+/* ---------- 공략 본문 (시트 · 일시정지 · 휴식) ---------- */
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd { gap: 14px; color: var(--gk-ink); }
+/* 보스 카드 */
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-top {
+  grid-template-columns: 64px minmax(0, 1fr); gap: 12px; padding: 10px 12px; border-radius: 10px;
+  background: var(--gk-card); border: 1px solid var(--gk-card-bd);
+}
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-art :is(svg, .boss-illustration) { width: 64px; height: 64px; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-name { font: 800 22px/1.15 var(--font-display); color: var(--gk-head); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .tag { padding: 0 8px; border: 0; background: var(--gk-chip); color: var(--gk-chip-ink); font-size: 12px; font-weight: 700; line-height: 1.6; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .tag.diff { background: var(--gk-accent); color: var(--gk-accent-ink); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .tag.enr { background: var(--gk-enr-bd); color: #fff; }
+/* 소제목: 왼쪽 제목 · 오른쪽 작은 안내 */
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-sec { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-h { margin: 0; display: flex; align-items: baseline; gap: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--gk-line); font: 800 16px/1.2 var(--font-display); color: var(--gk-head); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-h small { margin-left: auto; font: 400 11px/1.3 var(--font-body); color: var(--gk-mute); text-align: right; }
+
+/* 진행: 번호 점을 세로 줄로 이음 */
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-phases { gap: 0; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-phases li {
+  position: relative; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 10px; padding: 3px 0 9px; border: 0; border-radius: 0; background: none; box-shadow: none;
+}
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-phases li:not(:last-child)::before { content: ''; position: absolute; left: 11px; top: 28px; bottom: 0; width: 2px; background: var(--gk-line); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-phases li > i { width: 24px; height: 24px; border: 2px solid var(--gk-card-bd); background: var(--gk-chip); color: var(--gk-ink); font-size: 12px; font-weight: 800; box-sizing: border-box; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-phases li.enr > i { background: var(--gk-enr-bd); border-color: var(--gk-enr-bd); color: #fff; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-phases li.cur > i { background: var(--gk-accent); border-color: var(--gk-accent); color: var(--gk-accent-ink); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-ph { margin: 2px 0 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-ph b { font: 700 15px/1.3 var(--font-body); color: var(--gk-ink); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-phases li.enr .gd-ph b { color: var(--gk-enr-ink); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-phases li.cur .gd-ph b { color: var(--gk-head); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-ph small { margin: 0; font-size: 12px; color: var(--gk-mute); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gd-phases li p:not(.gd-ph) { margin: 1px 0 0; font-size: 13px; line-height: 1.45; color: var(--gk-ink2); }
+
+/* 기술 카드 */
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs { padding: 10px 12px 11px; border-radius: 10px; background: var(--gk-card); border: 1px solid var(--gk-card-bd); box-shadow: none; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs.enr { background: var(--gk-enr); border-color: var(--gk-enr-bd); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs.live { border-color: var(--gk-accent); box-shadow: 0 0 0 1px var(--gk-accent) inset; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs header { align-items: center; gap: 10px; margin: 0 0 6px; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs .ic { width: 36px; height: 36px; font-size: 12px; border: 2px solid #0008; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs .ic.art { border-width: 2px; border-style: solid; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs-id b { font: 700 16px/1.25 var(--font-body); color: var(--gk-ink); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs.enr .gs-id b { color: var(--gk-enr-ink); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs-every { font-size: 12px; line-height: 1.3; color: var(--gk-mute); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs-who { flex: none; align-self: flex-start; margin-top: 2px; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; line-height: 1.6; color: #fff; background: var(--gk-chip); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs-who.tank { background: var(--gk-tank); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs-who.all { background: var(--gk-all); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs-who.some { background: var(--gk-some); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs-who.zone { background: var(--gk-zone); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs-who.enr { background: var(--gk-enr-bd); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs-line { margin: 0; font-size: 14px; line-height: 1.5; color: var(--gk-ink); }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs-line b { color: var(--gk-num); font-weight: 900; font-size: 15px; }
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs-how {
+  margin: 7px 0 0; display: flex; align-items: flex-start; gap: 6px; padding: 5px 8px; border-radius: 6px;
+  background: var(--gk-how-bg); color: var(--gk-how); font-size: 13px; line-height: 1.45; font-weight: 500;
+}
+:is(#s-party .f-gsheet, #battle #pauseGuide, #rest #restGuide) .gd .gs-how svg { flex: none; width: 14px; height: 14px; margin-top: 3px; }
+
+/* 아이템 힌트 */
+#s-party .sheet.f-gsheet .f-ih { background: var(--gk-tip); border: 1px dashed var(--gk-tip-bd); color: var(--gk-ink); }
+#s-party .sheet.f-gsheet .f-ih svg { color: var(--gk-head); }
+
+/* 일시정지 · 휴식: 공략 칸에 같은 바탕 */
+#battle #pauseGuide, #rest #restGuide { background: var(--gk-bg); border: 1px solid var(--gk-edge); border-radius: 10px; padding: 10px; }

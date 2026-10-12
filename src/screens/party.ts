@@ -29,7 +29,7 @@ import { TUT } from '../game/tutorial';
 import { classIcon, memDetailHtml, memRowHtml, ROLE_ICON } from './members';
 import { battle, esc, go, ROLE, screen, useIcon } from './kit';
 import { classEmblem, LOCK, uiIcon } from './art';
-import { afxRows, afxTags, ARROW, BOOK, diffNote, flowHead, guides, KEY, timeline, warnings } from './brief';
+import { afxRows, afxTags, ARROW, BOOK, diffStats, flowHead, guides, KEY, segTabs, warnings } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
 
@@ -53,6 +53,8 @@ let msg = '', gmsg = '';
 let sheet: 'slots' | 'guide' | 'mem' | null = null;
 /** 상세 시트로 연 파티원 줄 */
 let openRow = -1;
+/** 공략 시트에서 고른 구간 (-1 = 처음 열 때 마지막 구간) */
+let gseg = -1;
 /** 고르기 시트를 연 정확한 단축칸. */
 let openSlot = 0;
 
@@ -170,15 +172,32 @@ function slotSheetHtml(loadout: ItemSlot[]): string {
     <div class="f-item-actions"><button class="btn2" type="button" data-item-clear${loadout[openSlot] ? '' : ' disabled'}>이 칸 비우기</button><button class="btn2 f-shut" type="button" data-shut>닫기</button></div></section>`;
 }
 
-/** 공략 시트 (입장 화면의 구간·공략·어픽스를 옮김): 난이도 수치 · 어픽스 · 구간 노드 줄 · 보스별 공략 접기 (보스 하나면 노드 줄 없이 바로 기술) · 아이템 힌트 */
+/**
+ * 공략 시트 (2026-10-12 한눈에): 머리 (장소 · 난이도 · 인원) · 난이도 수치 칸 · 어픽스 · 구간 길 = 탭 (보스 하나면 탭 없이) · 고른 구간 공략 · 아이템 힌트.
+ * 처음 열면 마지막 구간 (최종 보스)
+ */
 function guideSheetHtml(): string {
   const c = contentOf(Flow.content), segs = c.fights(Flow.diff), m = modeNow(), ih = itemHint();
-  return sheetBox('f-gsheet', '공략', `<h2 class="h-rule">공략<span class="rule"></span><span class="cap">${esc(c.name)} ${Flow.diff} · ${c.size(Flow.diff)}인</span></h2>
-    <p class="note f-dnote">${esc(diffNote(Flow.diff, isRaid(c)))}</p>
+  const sel = gseg >= 0 && gseg < segs.length ? gseg : segs.length - 1;
+  const stats = diffStats(Flow.diff).map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+  return sheetBox('f-gsheet', '공략', `<header class="f-gh"><h2 class="f-gt">${BOOK}<span>공략</span></h2><p class="f-gp"><b>${esc(c.name)}</b><span class="f-gc d">${Flow.diff}</span><span class="f-gc">${c.size(Flow.diff)}인</span></p></header>
+    <dl class="f-dstats">${stats}</dl>
+    ${Flow.diff === '악몽' && isRaid(c) ? '<p class="f-dnote">보스마다 악몽 전용 기술</p>' : ''}
     ${afxRows(m.affixes, Flow.chal ? '이번 주' : Flow.diff)}
-    ${segs.length > 1 ? timeline(segs) : ''}
-    ${guides(segs, Flow.diff, m.stage)}
+    ${segs.length > 1 ? segTabs(segs, sel) : ''}
+    ${guides(segs, Flow.diff, m.stage, sel)}
     ${ih ? `<p class="f-ih">${BULB}<span>${esc(ih)}</span></p>` : ''}`);
+}
+
+/** 공략 시트 구간 탭 바꾸기: 다시 그리지 않고 판만 바꿈 (스크롤이 길 아래면 길 위치로) */
+function pickSeg(i: number, focus = false): void {
+  const root = s.el.querySelector<HTMLElement>('.f-gsheet');
+  if (!root) return;
+  gseg = i;
+  root.querySelectorAll<HTMLElement>('[data-gseg]').forEach(b => { const on = Number(b.dataset.gseg) === i; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; if (on && focus) b.focus(); });
+  root.querySelectorAll<HTMLElement>('[data-gpane]').forEach(p => { p.hidden = Number(p.dataset.gpane) !== i; });
+  const body = root.querySelector<HTMLElement>('.f-sheet-body'), route = root.querySelector<HTMLElement>('.f-route');
+  if (body && route && body.scrollTop > route.offsetTop) body.scrollTop = route.offsetTop;
 }
 
 /** 파티원 상세 시트 (줄을 누르면): 능력 · 자질 · 직업 패시브 · 특성 · 성격 */
@@ -246,7 +265,9 @@ function shut(): void {
 s.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
   if (t.closest('[data-shut]')) { shut(); return; }
-  if (t.closest('#guideOpen')) { openSheet('guide', '#guideOpen'); return; }
+  if (t.closest('#guideOpen')) { gseg = -1; openSheet('guide', '#guideOpen'); return; }
+  const gt = t.closest<HTMLElement>('[data-gseg]');
+  if (gt) { pickSeg(Number(gt.dataset.gseg)); return; }
   const md = t.closest<HTMLElement>('[data-mode]');
   if (md && !md.hasAttribute('disabled')) { Flow.mode = md.dataset.mode as 'public' | 'guild'; compose(); render(); return; }
   const gp = t.closest<HTMLElement>('[data-gpick]');
@@ -268,6 +289,12 @@ s.el.addEventListener('click', e => {
 // 줄을 키보드로: Enter·Space = 누르기, Esc = 시트 닫기
 s.el.addEventListener('keydown', e => {
   if (e.key === 'Escape' && sheet) { shut(); return; }
+  // 공략 구간 탭: ← → 로 옆 구간
+  const tab = (e.target as HTMLElement).closest<HTMLElement>('[data-gseg]');
+  if (tab && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+    const n = s.el.querySelectorAll('[data-gseg]').length, i = Number(tab.dataset.gseg);
+    e.preventDefault(); pickSeg((i + (e.key === 'ArrowRight' ? 1 : n - 1)) % n, true); return;
+  }
   if (e.key !== 'Enter' && e.key !== ' ') return;
   const row = (e.target as HTMLElement).closest<HTMLElement>('[data-prow], [data-gpick]');
   if (row && row === e.target) { e.preventDefault(); row.click(); }

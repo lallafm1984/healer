@@ -54,9 +54,15 @@ export default async function dungeon(url, shots) {
   // 개발 빌드는 Lv 1로 녹슨 요새(Lv 5)에 먼저 들어감 → 레벨 경고 한 줄만 (34 5-2). 해제 · 장비 경고는 없음
   ok((await page.locator('#s-party [data-diff]').count()) === 0 && (await page.locator('#s-party .f-warns .f-warn').count()) === 1 && await page.isVisible('#s-party .f-warn.lv') && /레벨 권장 5/.test(await page.textContent('#s-party .f-warns')), '난이도 다시 고르기 없음, 쉬움 + 물리만 = 해제 · 장비 경고 없음 (레벨 경고만)');
   await page.click('#guideOpen'); await page.clock.runFor(50);
-  ok((await page.locator('#s-party .f-gsheet .segs li').count()) === 4, '공략 시트: 진행 4구간');
-  const g = await page.textContent('#s-party .f-gsheet .gdet:first-child');
-  ok(/무너진 정문/.test(g) && /고철 졸개 ×3/.test(g), '첫 공략 = 무너진 정문 잡몹 (잡는 순서)');
+  ok((await page.locator('#s-party .f-gsheet .f-route [data-gseg]').count()) === 4, '공략 시트: 구간 탭 4개');
+  ok(/녹슨 문지기/.test(await page.textContent('#s-party .f-gsheet .gpane:not([hidden])')), '공략 시트 첫 판 = 마지막 보스 녹슨 문지기');
+  // 구간 탭: 누르면 그 구간 판만, ← → 로 옆 구간
+  await page.click('#s-party .f-gsheet [data-gseg="0"]'); await page.clock.runFor(50);
+  const g = await page.textContent('#s-party .f-gsheet .gpane:not([hidden])');
+  ok(/무너진 정문/.test(g) && /고철 졸개 ×3/.test(g) && /잡는 순서/.test(g) && /적 기술/.test(g) && (await page.locator('#s-party .f-gsheet .gpane:not([hidden])').count()) === 1, '첫 구간 탭 = 무너진 정문 잡몹 (잡는 순서 · 적 기술)');
+  await page.keyboard.press('ArrowRight'); await page.clock.runFor(50);
+  ok(await page.getAttribute('#s-party .f-gsheet [data-gseg="1"]', 'aria-selected') === 'true' && /고철 경비병/.test(await page.textContent('#s-party .f-gsheet .gpane:not([hidden])')) && await page.evaluate(() => document.activeElement?.dataset.gseg) === '1', '→ = 다음 구간 탭 (고철 경비병, 초점 이동)');
+  ok(/탱커/.test(await page.textContent('#s-party .f-gsheet .gpane:not([hidden]) .gs-who.tank')) && (await page.locator('#s-party .f-gsheet .gpane:not([hidden]) .gs-who.all').count()) >= 1, '기술 대상 칩: 탱커 · 전원');
   ok(!/Infinity|NaN|undefined/.test(await page.textContent('#s-party')), '편성·공략에 Infinity·NaN 없음');
   await page.screenshot({ path: `${shots}/dungeon_guide.png` });
   await page.keyboard.press('Escape'); await page.clock.runFor(50);

@@ -19,7 +19,6 @@ export const ARROW = svg('<path d="M5 12h14M13 6l6 6-6 6"/>');
 export const KEY = svg('<circle cx="7.5" cy="12" r="3.5"/><path d="M11 12h9.5M16.5 12v3.2M19.5 12v2.6"/>', 2);
 /** 공략 (펼친 책) */
 export const BOOK = svg('<path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5z"/><path d="M12 6.5v13"/>', 2);
-const CHEV = '<svg class="f-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 
 /** 흐름 화면 상단 (편성·주간 도전 입장, 시안 .hd): 뒤로 · (문양) · 제목 + 아래 작은 글 · 오른쪽 끝 (버튼 등) */
 export function flowHead(back: string, title: string, sub: string, mark = '', right = ''): string {
@@ -75,15 +74,22 @@ export function timeline(segs: EncounterKey[]): string {
   }).join('')}</ol>`;
 }
 
-/** 구간별 공략 접기: 누르면 기술 목록 (전투 공략 데이터 그대로). 보스 하나뿐이면 접기 없이 기술 목록만 */
-export function guides(segs: EncounterKey[], d: DiffName, stage: number): string {
+/**
+ * 공략 시트의 구간 길 (2026-10-12 공략 한눈에): 구간 노드 줄이 곧 탭. 누른 구간의 공략만 아래에 보임.
+ * 일반·정예 ● · 보스 ◆, 고른 구간은 금빛 고리. sel = 처음 보이는 구간 (기본 = 마지막 보스)
+ */
+export function segTabs(segs: EncounterKey[], sel: number): string {
+  return `<div class="f-route" role="tablist" aria-label="구간 ${segs.length}개">${segs.map((k, i) => {
+    const e = ENCOUNTERS[k], g = segGrade(e), on = i === sel;
+    return `<button type="button" role="tab" id="gtab${i}" class="f-rt ${e.script === 'trash' ? 'trash' : 'boss'}${g === '정예' ? ' elite' : ''}" data-gseg="${i}" aria-selected="${on}" aria-controls="gpane${i}" tabindex="${on ? 0 : -1}"><span class="f-ndw"><i class="f-nd"></i></span><span class="f-nl">${g === '보스' ? esc(e.name) : g}</span></button>`;
+  }).join('')}</div>`;
+}
+
+/** 구간별 공략: 구간마다 한 판 (고른 구간만 보임). 보스 하나뿐이면 탭 없이 기술 목록만 */
+export function guides(segs: EncounterKey[], d: DiffName, stage: number, sel = segs.length - 1): string {
   const lv = G.save.player.level;
   if (segs.length === 1) return `<div class="guides f-one">${battle().guide(segs[0], d, stage, lv)}</div>`;
-  return `<div class="guides">${segs.map(k => {
-    const html = battle().guide(k, d, stage, lv);
-    const n = (html.match(/class="gs[ "]/g) || []).length, g = segGrade(ENCOUNTERS[k]);
-    return `<details class="gdet f-acc"><summary>${CHEV}<span class="f-an">${esc(ENCOUNTERS[k].name)}</span><span class="f-sp"></span><span class="cap">${g === '보스' ? '' : `${g} · `}기술 ${n}</span></summary>${html}</details>`;
-  }).join('')}</div>`;
+  return `<div class="guides">${segs.map((k, i) => `<div class="gpane" role="tabpanel" id="gpane${i}" data-gpane="${i}" aria-labelledby="gtab${i}"${i === sel ? '' : ' hidden'}>${battle().guide(k, d, stage, lv)}</div>`).join('')}</div>`;
 }
 
 /** 어픽스 줄 (07 3장, 13 3-3): 빨간 이름 칸 + 설명 */
@@ -98,9 +104,10 @@ export function afxRows(keys: AffixKey[], label = ''): string {
 /** 어픽스 이름 칸만 (관문·편성 머리) */
 export const afxTags = (keys: AffixKey[]) => keys.map(k => `<span class="f-afx${AFFIXES[k].good ? ' good' : ''}">${AFFIXES[k].name}</span>`).join('');
 
-export function diffNote(d: DiffName, raid: boolean): string {
+/** 난이도 수치 칸 (공략 시트 머리): [이름, 값]. 악몽은 파티원·보스 배율까지 */
+export function diffStats(d: DiffName): [string, string][] {
   const x = DIFFS[d];
-  let t = `받는 피해 ×${x.dmg} · 파티원 회피 ${Math.round(x.dodge * 100)}%`;
-  if (d === '악몽') t += ` · 파티원 체력·딜 ×${MYTHIC.party} · 보스 체력 ×${MYTHIC.bossHp}${raid ? ' · 보스마다 악몽 전용 기술' : ''}`;
-  return t;
+  const out: [string, string][] = [['받는 피해', `×${x.dmg}`], ['파티원 회피', `${Math.round(x.dodge * 100)}%`]];
+  if (d === '악몽') out.push(['파티원 체력\u2060·\u2060딜', `×${MYTHIC.party}`], ['보스 체력', `×${MYTHIC.bossHp}`]);
+  return out;
 }

@@ -90,8 +90,17 @@ const GUIDE: Partial<Record<ScriptKey, (c: GuideCtx) => GuideBody>> = {
       const who = a.to === 'tank' ? '탱커' : a.to === 'other' ? '탱커 아닌 1명' : '파티 전원';
       const amt = a.jitter ? `${n(a.dmg * (1 - a.jitter))}~${n(a.dmg * (1 + a.jitter))}` : n(a.dmg);
       const each = m.count > 1 ? ' (한 마리당)' : '';
+      const stop = `${m.name}${josa(m.name, '이', '가')} 쓰러지면 멈춤`;
+      // 피해 없이 디버프만 거는 공격 (독침 사냥꾼의 독침 등): 「0 피해」 대신 디버프와 대처
+      if (a.effect && !a.dmg) {
+        const [ew, eh] = effectText(a as unknown as SkillDef, a.effect, c, undefined);
+        skills.push({ ic: a.icon || m.name.slice(0, 2), name: a.name || `${m.name} 공격`, art: mobSkillArt(m.name, a.key),
+          what: `${ew}${a.cast ? ` · 예고 ${secT(a.cast)}` : ''}. ${stop}`, how: eh || undefined,
+          every: `${secT(a.period)}마다`, tip: () => [ew.replace(/<\/?b>/g, '')] });
+        continue;
+      }
       skills.push({ ic: a.icon || m.name.slice(0, 2), name: a.name || `${m.name} 공격`, art: mobSkillArt(m.name, a.key),
-        what: `${who}에게 <b>${amt}</b> 피해${each}${a.cast ? ` · 예고 ${secT(a.cast)}` : ''}. ${m.name}${josa(m.name, '이', '가')} 쓰러지면 멈춤`,
+        what: `${who}에게 <b>${amt}</b> 피해${each}${a.cast ? ` · 예고 ${secT(a.cast)}` : ''}. ${stop}`,
         every: `${secT(a.period)}마다`, tip: () => [`${who}에게 ${m.count > 1 ? '한 마리당 ' : ''}${amt} 피해를 줍니다.`] });
     }
     // 쓰러질 때 (46 5장 먼지 유령): 쓰러질 때마다 디버프
@@ -410,20 +419,43 @@ export function skillLive(F: Fight, ic: string): boolean {
   if (ic === '노래') return F.enc.script === 'choir' && F.phase === 1;
   return F.skills.some(s => s.icon === ic && !s.hidden && s.next !== Infinity && s.active(F));
 }
+/** 기술이 누구를 치는지 (공략 대상 칩: 탱커 · 전원 · N명 · 장판). 기술 글 첫머리에서 읽고, 모르면 칩 없음 */
+export function skillWho(what: string): { k: 'tank' | 'all' | 'some' | 'zone'; t: string } | null {
+  const t = what.replace(/<[^>]+>/g, '');
+  let m: RegExpMatchArray | null;
+  if ((m = t.match(/^탱커 아닌 (\d+)명/))) return { k: 'some', t: `${m[1]}명` };
+  if (/^(두 )?탱커/.test(t)) return { k: 'tank', t: '탱커' };
+  if (/^(파티 )?전원|^모두|^파티 전원/.test(t)) return { k: 'all', t: '전원' };
+  if ((m = t.match(/^(?:무작위 |🎯 예고 때 고른 |[^\s]+ 때 고른 )?(\d+)명/))) return { k: 'some', t: `${m[1]}명` };
+  const first = t.split(/\. |: /)[0];
+  if ((m = first.match(/^(앞줄|뒷줄|가운데 줄)에 선/))) return { k: 'zone', t: m[1] };
+  if (/^보스를 안 맞는 탱커|고른 탱커/.test(first)) return { k: 'tank', t: '탱커' };
+  if (/^두 사람/.test(first)) return { k: 'some', t: '2명' };
+  if (/장판/.test(first)) return { k: 'zone', t: '장판' };
+  if ((m = first.match(/(\d+)명/))) return { k: 'some', t: `${m[1]}명` };
+  return null;
+}
+/** 짧은 설명의 피해 숫자를 굵게 (「481 피해」 · 「초당 99」) */
+const boldNums = (t: string) => t.replace(/(\d[\d,.]*(?:~\d[\d,.]*)?)(?= ?피해)/g, '<b>$1</b>').replace(/초당 (\d[\d,.]*)/g, '초당 <b>$1</b>');
+const HOW_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>';
 export function guideHtml(g: GuideModel, F: Fight | null): string {
   const cur = F ? g.cur(F) : null;
   const now = '<em class="now">지금</em>';
+  const trash = g.enc.script === 'trash';
   const head = `<div class="gd-top"><div class="gd-art">${bossSvg(g.enc.script, g.enc.key)}</div><div class="gd-id">
     <b class="gd-name">${g.enc.name}</b>
     <div class="gd-tags"><span class="tag">${g.tier}</span><span class="tag diff">${g.diff}</span>${isFinite(g.enc.enrage) ? `<span class="tag enr">광폭화 ${mmss(g.enc.enrage)}</span>` : ''}</div></div></div>`;
-  const phases = `<h4 class="gd-h">진행</h4><ol class="gd-phases">${g.phases.map((p, i) => `<li class="${p.id === cur ? 'cur' : ''}${p.enr ? ' enr' : ''}"><i>${i + 1}</i><div><b>${p.name}</b><small>${p.at}</small><p>${p.text}</p></div>${p.id === cur ? now : ''}</li>`).join('')}</ol>`;
-  const skills = `<h4 class="gd-h">보스 기술 <small>전투 중 위쪽 예고 칸을 누르면 짧은 설명</small></h4><div class="gd-skills">${g.skills.map(s => {
+  // 진행: 번호 점을 세로 줄로 이음 (잡몹 구간은 잡는 순서)
+  const phases = `<section class="gd-sec"><h4 class="gd-h">${trash ? '잡는 순서' : '진행'}</h4><ol class="gd-phases">${g.phases.map((p, i) => `<li class="${p.id === cur ? 'cur' : ''}${p.enr ? ' enr' : ''}"><i>${i + 1}</i><div><p class="gd-ph"><b>${p.name}</b><small>${p.at}</small></p><p>${p.text}</p></div>${p.id === cur ? now : ''}</li>`).join('')}</ol></section>`;
+  // 기술: 아이콘 · 이름 · 주기 / 대상 칩 + 짧은 설명 (피해 숫자 굵게) / 대처
+  const skills = `<section class="gd-sec"><h4 class="gd-h">${trash ? '적 기술' : '보스 기술'}<small>전투 중 위쪽 예고 칸을 누르면 짧은 설명</small></h4><div class="gd-skills">${g.skills.map(s => {
     const live = F && skillLive(F, s.ic);
     // 기술 그림이 있으면 그림 + 색 테두리, 없으면 색 바탕 글자 아이콘 (37 1장)
     const img = s.art ? skillArtImg(s.art) : '';
     const ic = img ? `<span class="ic art" style="border-color:${iconColor(s.ic)}">${img}</span>` : `<span class="ic" style="background:${iconColor(s.ic)}">${s.ic}</span>`;
-    return `<article class="gs${s.enr ? ' enr' : ''}${live ? ' live' : ''}" data-ic="${s.ic}"><header>${ic}<b>${s.name}</b>${live ? now : ''}</header>
-      <p class="gs-line">${s.tip(F)[0]}<small>${s.every}</small></p></article>`;
-  }).join('')}</div>`;
+    const who = s.enr ? { k: 'enr', t: '전원' } : skillWho(s.what);
+    return `<article class="gs${s.enr ? ' enr' : ''}${live ? ' live' : ''}" data-ic="${s.ic}"><header>${ic}<span class="gs-id"><b>${s.name}</b><small class="gs-every">${s.every}</small></span>${live ? now : ''}${who ? `<span class="gs-who ${who.k}">${who.t}</span>` : ''}</header>
+      <p class="gs-line">${boldNums(s.tip(F)[0])}</p>${s.how ? `<p class="gs-how">${HOW_IC}<span>${s.how}</span></p>` : ''}</article>`;
+  }).join('')}</div></section>`;
   return `<div class="gd">${head}${phases}${skills}</div>`;
 }

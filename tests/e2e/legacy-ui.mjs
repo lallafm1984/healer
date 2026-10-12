@@ -22,10 +22,9 @@ export default async function legacyUi(url, shots) {
   await toParty(page);
   ok(await page.locator('.mmobar, #ping, #brandImg, #shout, .chat').count() === 0, '서버 바·레퍼런스 그림·외침·채팅 없음');
   await page.click('#guideOpen'); await page.clock.runFor(50);
-  const top = await ev(() => { const b = document.querySelector('#s-party .f-gsheet .guides'); return { n: b.querySelectorAll('.gdet').length, chat: b.querySelectorAll('.chat').length, first: b.querySelector('.gd > *').className, note: b.querySelectorAll('.gd-note').length }; });
-  ok(top.n === 4 && top.chat === 0 && top.first === 'gd-top' && top.note === 0, `구간마다 공략, 맨 위 = 이름, 채팅·평타 메모 없음 ${JSON.stringify(top)}`);
-  await page.click('#s-party .f-gsheet .gdet:last-child summary');
-  ok(/녹슨 문지기/.test(await page.textContent('#s-party .f-gsheet .gdet:last-child')), '마지막 공략 = 녹슨 문지기');
+  const top = await ev(() => { const b = document.querySelector('#s-party .f-gsheet .guides'); return { n: b.querySelectorAll('.gpane').length, shown: b.querySelectorAll('.gpane:not([hidden])').length, tabs: document.querySelectorAll('#s-party .f-gsheet .f-route [role="tab"]').length, chat: b.querySelectorAll('.chat').length, first: b.querySelector('.gd > *').className, note: b.querySelectorAll('.gd-note').length }; });
+  ok(top.n === 4 && top.shown === 1 && top.tabs === 4 && top.chat === 0 && top.first === 'gd-top' && top.note === 0, `구간마다 공략 (구간 탭 4, 보이는 판 1), 맨 위 = 이름, 채팅·평타 메모 없음 ${JSON.stringify(top)}`);
+  ok(/녹슨 문지기/.test(await page.textContent('#s-party .f-gsheet .gpane:not([hidden])')) && await page.getAttribute('#s-party .f-gsheet [data-gseg="3"]', 'aria-selected') === 'true', '처음 보이는 공략 = 마지막 구간 녹슨 문지기');
   ok(/탱커 강타/.test(await page.textContent('#s-party .f-gsheet .f-ih')), '공략 시트 맨 아래 = 녹슨 문지기 아이템 힌트');
   await page.screenshot({ path: `${shots}/v9_guide_top.png` });
   await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
@@ -161,7 +160,7 @@ export default async function legacyUi(url, shots) {
     && await page.locator('#s-content [data-ctab="raid20"]').getAttribute('aria-selected') === 'true'
     && await page.locator('#s-content .b-place-modal').count() === 0, '20인 장소 대성당 선택이 편성까지 유지·장소 선택 팝업 자동 닫힘');
   await page.click('#guideOpen'); await page.clock.runFor(50);
-  ok(/20인/.test(await page.textContent('#s-party .f-gsheet .h-rule')) && /악몽 전용 기술/.test(await page.textContent('#s-party .f-gsheet .f-dnote')), '20인 악몽: 공략 시트에 인원 20, 악몽 안내');
+  ok(/20인/.test(await page.textContent('#s-party .f-gsheet .f-gh')) && /악몽 전용 기술/.test(await page.textContent('#s-party .f-gsheet .f-dnote')), '20인 악몽: 공략 시트에 인원 20, 악몽 안내');
   await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
   await page.click('#s-party .tb-back'); await page.clock.runFor(50);
   await page.click('#s-content [data-diff="보통"]'); await page.clock.runFor(50);
