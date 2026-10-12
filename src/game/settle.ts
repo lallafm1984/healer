@@ -169,7 +169,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
       save.gear.bag.push(...items);
       newDex = noteDex(save, items);
       newSpecs = noteSpecs(save, items);
-      if (play && raid) save.weekly.loot.push(lootKey(c.key, r.diff));
+      if (play && raid) save.weekly.loot.push(lootKey(save.hero, c.key, r.diff));
     }
     save.mats.stone += mats.stone; save.mats.refined += mats.refined;
     if (play && raid) { merit = meritFor(save, raid, r.diff); save.weekly.merit[raid] += merit; save.wallet.merit += merit; }
@@ -204,6 +204,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
     const limit = r.limit ?? Infinity, inTime = r.win && !r.quit && r.time <= limit;
     const opened = inTime && r.chal >= save.chalOpen && r.chal < CHAL.max;
     if (inTime) {
+      if (r.chal > save.weekly.chalBest) save.weekly.chalHero = save.hero; // 월요일 상자를 받을 직업
       save.weekly.chalBest = Math.max(save.weekly.chalBest, r.chal);
       save.chalOpen = Math.max(save.chalOpen, Math.min(CHAL.max, r.chal + 1));
     }

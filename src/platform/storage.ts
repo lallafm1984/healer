@@ -5,7 +5,7 @@
 import type { DiffName } from '../data/difficulty';
 import { itemName, kindOf, LEGEND, lookOf, randomLines, rollLines, takenStats, rollSpecs, specCount, specKeysOf, SLOTS, type Equipped, type GearItem } from '../data/equipment';
 import { uniqueOf } from '../data/uniques';
-import { namedOf } from '../data/specials';
+import { namedOf, SPECS } from '../data/specials';
 import { rngFrom } from '../engine/rng';
 import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
@@ -16,7 +16,7 @@ import type { ItemKey } from '../data/items';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
@@ -46,7 +46,20 @@ export interface HeroSave {
   presets?: (number | null)[][];
   /** 지금 프리셋 (0~2, 없으면 0) */
   preset?: number;
+  /**
+   * 직업마다 장비 (v10, 2026-10-12 Lim 「한 직업을 다 키우면 새로운 느낌으로 다시」): 착용 · 가방 · 새것 점 기준.
+   * 지금 직업 것은 save.gear에 있고, 바꿀 때 여기에 넣고 꺼냄 (레벨과 같은 방식). 없으면 아직 장비 없음 = 맨몸으로 시작.
+   * 도감 · 골드 · 강화석 같은 재료는 계정 (save.gear.codex · dex, mats)
+   */
+  gear?: HeroGear;
+  /** 직업마다 공훈 (v10): 레이드에서 번 공훈 n · 그 주 week에 받은 양 got (주 상한). 지금 직업 것은 wallet.merit · weekly.merit */
+  merit?: HeroMerit;
 }
+
+/** 다른 직업에 넣어 둔 장비 (HeroSave.gear) */
+export interface HeroGear { equipped: Equipped; bag: GearItem[]; seen: number }
+/** 다른 직업에 넣어 둔 공훈 (HeroSave.merit). week가 이번 주가 아니면 got은 0으로 봄 */
+export interface HeroMerit { n: number; week: string; got: { 10: number; 20: number } }
 
 export interface Settings {
   sound: boolean;
@@ -131,12 +144,14 @@ export interface WeeklySave {
   missions: MissionSave[];
   /** 악몽 열쇠 제작 횟수 (주 5회) */
   craft: number;
-  /** 레이드마다 이번 주 받은 공훈 (상한 150) */
+  /** 레이드마다 이번 주 받은 공훈 (상한 150). v10부터 지금 직업 것 (공훈이 직업마다) */
   merit: { 10: number; 20: number };
-  /** 이번 주 장비를 받은 레이드 보스·난이도 (13 3-4: 보스마다 난이도별 주 1회) */
+  /** 이번 주 장비를 받은 레이드 보스·난이도 (13 3-4: 보스마다 난이도별 주 1회). v10부터 직업마다 (「직업|장소|난이도」, 장비가 직업마다라서) */
   loot: string[];
   /** 주간 도전: 이번 주 제한시간 안에 깬 최고 단계 */
   chalBest: number;
+  /** chalBest를 세운 직업 (v10): 월요일 상자는 그 직업이 받음 (장비가 직업마다라서) */
+  chalHero?: HeroKey;
   /** 길드 주간 목표 진행 · 받음 */
   guild: { n: number; got: boolean };
 }
@@ -152,8 +167,9 @@ export interface SaveData {
   /** level·xp = 지금 직업 레벨 (34 3장, 다른 직업 것은 heroes에). gold는 계정 */
   player: { level: number; xp: number; gold: number };
   /**
+   * equipped · bag · seen = 지금 직업의 장비 (v10부터 직업마다, 다른 직업 것은 heroes[h].gear).
    * seen = 캐릭터 › 장비에서 마지막으로 본 장비 id (이보다 큰 id = 새것 점, 27 4-2). 옛 저장엔 없어서 migrate가 채움.
-   * codex = 얻은 적 있는 특수능력 · 이름 있는 장신구 키 (도감, 42 1-6). v8부터, 옛 저장은 가진 장비로 채움
+   * codex = 얻은 적 있는 특수능력 · 이름 있는 장신구 키 (도감, 42 1-6). v8부터, 옛 저장은 가진 장비로 채움. 도감 · 장비 도감은 계정
    */
   gear: { equipped: Equipped; bag: GearItem[]; seen?: number; codex: string[]; /** 장비 도감 칸 (34 6-10 ④, data/dex). 옛 저장은 가진 장비로 채움 */ dex: string[]; /** 장비 도감 보상을 받은 단계 수 */ dexPaid: number };
   /** 강화 재료 (12 1장): 강화석 (+1~+5), 정제 강화석 (+6~+10) */
@@ -188,6 +204,8 @@ export interface SaveData {
   decos: string[];
   /** 지난주 주간 도전 최고 단계 → 월요일 상자 (0 = 없음) */
   chalChest: number;
+  /** 주간 도전 상자를 받을 직업 (그 기록을 세운 직업, v10). 없으면 아무 직업이나 (옛 저장) */
+  chalChestHero?: HeroKey;
   /** 첫 구매 보너스를 받은 상품 (15 3장) */
   firstBuy: string[];
 }
@@ -228,7 +246,7 @@ export function migrate(raw: unknown): SaveData {
   const o = raw as Partial<SaveData>;
   const base = newSave(typeof o.createdAt === 'number' ? o.createdAt : Date.now());
   const obj = <T extends object>(v: unknown, d: T): T => (v && typeof v === 'object' && !Array.isArray(v) ? { ...d, ...(v as T) } : d);
-  return {
+  const out: SaveData = {
     ...base, ...o, v: SAVE_VERSION,
     settings: obj(o.settings, base.settings),
     player: obj(o.player, base.player),
@@ -258,6 +276,40 @@ export function migrate(raw: unknown): SaveData {
     chalChest: typeof o.chalChest === 'number' ? o.chalChest : 0,
     firstBuy: Array.isArray(o.firstBuy) ? o.firstBuy : [],
   };
+  if ((o.v ?? 0) < 10) gearByHero(out);
+  return out;
+}
+
+/** 그 장비에 붙은 직업 전용 특수능력의 직업 (없으면 undefined). 직업 전용은 그 직업으로 돌 때만 나와서 (42 1-4) 얻은 직업을 알 수 있음 */
+const heroOfItem = (it: GearItem): HeroKey | undefined => (it.specs ?? []).map(l => SPECS[l.key]?.hero).find(h => !!h);
+
+/**
+ * v10 직업마다 장비 (2026-10-12 Lim): 옛 저장의 공용 장비를 나눔. 착용 장비 · 가방은 가장 높은 직업 (같으면 지금 직업)이 갖고,
+ * 다른 직업 전용 특수능력이 붙은 가방 장비는 그 직업 가방으로 (그 직업으로 돌 때 얻은 장비). 나머지 직업은 맨몸으로 시작.
+ * 공훈 (장비로 바꾸는 레이드 재화)도 가장 높은 직업에게. 레이드 주 1회 장비 기록은 지금 직업 것으로
+ */
+function gearByHero(d: SaveData): void {
+  const lvOf = (h: HeroKey) => heroLevelOf(d, h);
+  const owner = HERO_KEYS.reduce<HeroKey>((b, h) => (lvOf(h) > lvOf(b) ? h : b), d.hero);
+  const g = d.gear, bags: Partial<Record<HeroKey, GearItem[]>> = {};
+  const keep: GearItem[] = [];
+  for (const it of g.bag) {
+    const h = heroOfItem(it) ?? owner;
+    (bags[h] ||= []).push(it);
+  }
+  for (const h of HERO_KEYS) {
+    const bag = bags[h] ?? [];
+    if (h === d.hero) { keep.push(...bag); continue; }
+    if (h !== owner && !bag.length) continue;
+    heroSaveOf(d, h).gear = { equipped: h === owner ? g.equipped : {}, bag, seen: g.seen ?? d.nextId - 1 };
+  }
+  if (owner !== d.hero) {
+    g.equipped = {};
+    heroSaveOf(d, owner).merit = { n: d.wallet.merit, week: d.weekly.week, got: d.weekly.merit };
+    d.wallet.merit = 0; d.weekly.merit = { 10: 0, 20: 0 };
+  }
+  g.bag = keep;
+  d.weekly.loot = d.weekly.loot.map(k => (k.split('|').length === 2 ? `${d.hero}|${k}` : k));
 }
 
 /**
@@ -340,6 +392,14 @@ export function noteDex(d: SaveData, items: readonly (GearItem | null | undefine
  */
 function heroesOf(o: Partial<SaveData>): SaveData['heroes'] {
   const hs: SaveData['heroes'] = o.heroes && typeof o.heroes === 'object' ? { ...o.heroes } : {};
+  // v10: 다른 직업에 넣어 둔 장비도 지금 장비와 같이 고침 (그 직업 것으로 굴림)
+  for (const h of HERO_KEYS) {
+    const gs = hs[h]?.gear;
+    if (!gs) continue;
+    const equipped: Equipped = {};
+    if (gs.equipped && typeof gs.equipped === 'object') for (const [k, it] of Object.entries(gs.equipped)) if (it) equipped[k as keyof Equipped] = upgradeItem(it, h);
+    hs[h] = { ...hs[h]!, gear: { equipped, bag: Array.isArray(gs.bag) ? gs.bag.map(it => upgradeItem(it, h)) : [], seen: typeof gs.seen === 'number' ? gs.seen : 0 } };
+  }
   if ((o.v ?? 0) >= 6) return hs;
   const level = typeof o.player?.level === 'number' ? o.player.level : 1, xp = typeof o.player?.xp === 'number' ? o.player.xp : 0;
   const cur = HERO_KEYS.includes(o.hero as HeroKey) ? o.hero : 'priest';

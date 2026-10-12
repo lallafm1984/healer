@@ -2,6 +2,7 @@
  * 재화·임무·상점·시즌 패스 규칙 (12, 13, 15). 화면과 분리된 순수 계산 (시각·난수는 받아서 씀).
  */
 import type { DiffName } from '../data/difficulty';
+import { HEROES, type HeroKey } from '../data/heroes';
 import {
   BAG_MAX, itemPrice, MEMBER, MERIT, MERIT_GEAR_COST, MERIT_WEEK_CAP, PASS_GAIN, PASS_LEVELS, PASS_PREMIUM_CRYSTAL, PASS_XP, passFree, passPremium,
   SHARD_CRAFT, SHARD_MAX, type PassReward,
@@ -57,7 +58,11 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
   }
   if (save.weekly.week !== week) {
     // 지난주 주간 도전 기록 → 월요일 상자 (13 3-2)
-    if (save.weekly.week && save.weekly.chalBest > 0) save.chalChest = Math.max(save.chalChest, save.weekly.chalBest);
+    // 상자는 그 기록을 세운 직업이 받음 (장비가 직업마다, 2026-10-12)
+    if (save.weekly.week && save.weekly.chalBest > 0) {
+      if (save.weekly.chalBest >= save.chalChest) save.chalChestHero = save.weekly.chalHero;
+      save.chalChest = Math.max(save.chalChest, save.weekly.chalBest);
+    }
     save.weekly = { ...newWeekly(week), missions: lv >= WEEKLY_LV ? pick(lv >= 35 ? WEEKLY : WEEKLY.filter(m => m.key !== 'w_raid3'), WEEKLY_N, lv, r) : [] };
     out.week = true;
   }
@@ -147,8 +152,9 @@ export function claimChest(save: SaveData, r: () => number, now: number, double 
     save.daily.chest2 = true;
   } else if (st.today) save.daily.chest = true;
   else save.daily.banked--;
-  const lv = topLevel(save);
-  const it = rollItem(r, chestDiff(lv), 'A', lv, save.nextId++, { hero: save.hero });
+  // 골드는 계정 (가장 높은 직업), 장비는 지금 직업 레벨로 (장비가 직업마다, 2026-10-12)
+  const lv = topLevel(save), my = save.player.level;
+  const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero });
   if (!double) onAct(save, 'chest');
   return give(save, { gold: runGold(lv), stone: CHEST_REWARD.stone, pass: double ? 0 : PASS_GAIN.chest, items: [it] }, now);
 }
@@ -190,7 +196,11 @@ export function chalChestOf(stage: number): { grades: ItemGrade[]; goldRuns: num
 export function claimChalChest(save: SaveData, r: () => number, now: number): Gain | string {
   const stage = save.chalChest;
   if (!stage) return '받을 상자 없음';
+  // 장비가 직업마다라 (2026-10-12) 기록을 세운 직업으로 받음 (높은 직업 기록으로 새 직업에게 영웅 장비를 몰아주지 못하게)
+  const h = save.chalChestHero;
+  if (h && h !== save.hero) return `${HEROES[h].name}로 바꿔서 받기 (그 직업이 세운 기록)`;
   save.chalChest = 0;
+  delete save.chalChestHero;
   const c = chalChestOf(stage), lv = topLevel(save);
   const items = c.grades.map(g => makeItem(r, SLOTS[Math.floor(r() * SLOTS.length)].key, g, save.nextId++, undefined, { hero: save.hero }));
   return give(save, { gold: c.goldRuns * runGold(lv), items, pass: PASS_GAIN.challenge }, now);
@@ -264,9 +274,10 @@ export function meritFor(save: SaveData, raid: 10 | 20, diff: DiffName): number 
   const left = Math.max(0, MERIT_WEEK_CAP - save.weekly.merit[raid]);
   return Math.min(left, MERIT[raid][diff]);
 }
-export const lootKey = (content: string, diff: DiffName) => `${content}|${diff}`;
-/** 이번 주 이 보스·난이도 장비를 아직 안 받음 (13 3-4) */
-export const raidLootOpen = (save: SaveData, content: string, diff: DiffName) => !save.weekly.loot.includes(lootKey(content, diff));
+/** 레이드 주 1회 장비 기록 키: 직업마다 (장비가 직업마다라서, 2026-10-12. 34 4장 4번 「계정에 한 번」을 바꿈) */
+export const lootKey = (hero: HeroKey, content: string, diff: DiffName) => `${hero}|${content}|${diff}`;
+/** 이번 주 지금 직업이 이 보스·난이도 장비를 아직 안 받음 (13 3-4). 공훈도 직업마다 (wallet.merit · weekly.merit = 지금 직업 것, game/state switchHero) */
+export const raidLootOpen = (save: SaveData, content: string, diff: DiffName) => !save.weekly.loot.includes(lootKey(save.hero, content, diff));
 
 /** 악몽 입장 = 악몽 열쇠 1개 (12 3-4) */
 export const needsShard = (diff: DiffName) => diff === '악몽';

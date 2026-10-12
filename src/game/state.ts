@@ -328,16 +328,28 @@ export function heroStatus(h: HeroKey): { state: 'now' | 'open' | 'quest' | 'loc
   return { state: 'locked', dev: false, ...info };
 }
 
-/** 직업 바꾸기: 지금 직업의 휠 배치·칸 탭·레벨을 넣어 두고 새 직업 것을 꺼냄 (처음 하는 직업은 Lv 1, 34 3-2) */
+/**
+ * 직업 바꾸기: 지금 직업의 휠 배치·칸 탭·레벨·장비를 넣어 두고 새 직업 것을 꺼냄 (처음 하는 직업은 Lv 1 · 맨몸, 34 3-2).
+ * 장비는 직업마다 (2026-10-12 Lim 「새 직업은 새로운 느낌으로」): 착용 · 가방과 장비로 바꾸는 공훈 (주 상한 포함)이 직업을 따라감.
+ * 도감 · 골드 · 재료 · 악몽 열쇠는 계정
+ */
 export function switchHero(h: HeroKey): boolean {
   if (h === G.save.hero || !switchOpen().ok) return false;
   const st = heroStatus(h).state;
   if (st === 'locked') return false;
-  const cur = heroSave(G.save.hero), next = heroSave(h), set = G.save.settings, p = G.save.player;
+  const cur = heroSave(G.save.hero), next = heroSave(h), set = G.save.settings, p = G.save.player, g = G.save.gear;
   cur.layout = set.layout; cur.tapKey = set.tapKey;
   set.layout = next.layout; set.tapKey = next.tapKey;
   cur.level = p.level; cur.xp = p.xp;
   p.level = next.level ?? 1; p.xp = next.xp ?? 0;
+  cur.gear = { equipped: g.equipped, bag: g.bag, seen: g.seen ?? 0 };
+  g.equipped = next.gear?.equipped ?? {}; g.bag = next.gear?.bag ?? []; g.seen = next.gear?.seen ?? G.save.nextId - 1;
+  delete next.gear;
+  const w = G.save.weekly, m = next.merit;
+  cur.merit = { n: G.save.wallet.merit, week: w.week, got: w.merit };
+  G.save.wallet.merit = m?.n ?? 0;
+  w.merit = m && m.week === w.week ? m.got : { 10: 0, 20: 0 };
+  delete next.merit;
   G.save.hero = h;
   commit();
   return true;

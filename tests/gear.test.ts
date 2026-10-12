@@ -165,9 +165,9 @@ describe('장비 종류 · 옵션 (34 6-2 ~ 6-5)', () => {
     expect(s.spirit).toBeCloseTo(0.08 * 1.3 * 1.2);
     expect(s.int).toBeCloseTo(0.1 * 1.2);
   });
-  it('치명타 · 가속 · 인내는 합 상한까지', () => {
+  it('치명타 · 가속 · 인내는 합 상한까지, 지능은 45% 넘는 몫이 절반 (2026-10-12)', () => {
     const g = statsToGear({ int: 0.5, hp: 0.4, crit: 0.7, haste: 0.6, spirit: 0.3, endure: 0.45 });
-    expect(g).toEqual({ heal: 1.5, regen: 1.3, crit: 0.5, haste: 0.5, hp: 0.4, endure: 0.3 });
+    expect(g).toEqual({ heal: 1.475, regen: 1.3, crit: 0.5, haste: 0.5, hp: 0.4, endure: 0.3 });
   });
   it('시뮬 프리셋 = 6부위 그 등급 · 강화 장비의 기댓값', () => {
     const r = rngFrom(9), n = 3000, sum = Object.fromEntries(STAT_KEYS.map(k => [k, 0])) as Record<string, number>;

@@ -541,10 +541,18 @@ export function itemStats(it: GearItem | null | undefined): StatSet {
   return s;
 }
 
-/** 능력치 합 → 전투 능력치 (치명타 · 가속 · 인내는 합 상한까지, 34 6-4) */
+/**
+ * 지능 무른 상한 (2026-10-12 Lim 「장비를 끼면 힐량이 높은 느낌」): 장비 지능 합이 INT_SOFT를 넘는 몫은 INT_OVER배만 셈.
+ * 악몽 권장 장비 (희귀 +5, 지능 약 45%)까지는 그대로라 자동 밸런스 기준이 안 바뀜. 영웅 +10 69% → 57%, 전설 +10 83% → 64%
+ */
+export const INT_SOFT = 0.45;
+export const INT_OVER = 0.5;
+export const intEff = (x: number) => (x <= INT_SOFT ? x : INT_SOFT + (x - INT_SOFT) * INT_OVER);
+
+/** 능력치 합 → 전투 능력치 (치명타 · 가속 · 인내는 합 상한까지, 34 6-4 · 지능은 무른 상한 intEff) */
 export function statsToGear(s: StatSet): GearStats {
   const cap = (k: StatKey) => Math.min(s[k], STATS[k].cap ?? Infinity);
-  return { heal: 1 + s.int, regen: 1 + s.spirit, haste: cap('haste'), crit: cap('crit'), hp: s.hp, endure: cap('endure') };
+  return { heal: 1 + intEff(s.int), regen: 1 + s.spirit, haste: cap('haste'), crit: cap('crit'), hp: s.hp, endure: cap('endure') };
 }
 
 /** 착용 장비 능력치 합 (상한 전) */

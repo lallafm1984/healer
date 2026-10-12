@@ -461,7 +461,7 @@ describe('2-4 마나', () => {
 describe('2-5 해제', () => {
   const dispel = (f: F, u: U, d: Partial<Parameters<typeof addDebuff>[2]> = {}) => { addDebuff(f, u, { name: '저주', type: '마법', left: 20, ...d }); return cast(f, 'purify', u); };
   it('깨끗한 손: 해제 재사용 −초', () => {
-    expect(cdOf(fight({ cleanHands: 1.5 }), 'purify')).toBeCloseTo(6.5, 9);
+    expect(cdOf(fight({ cleanHands: 1.5 }), 'purify')).toBeCloseTo(2.5, 9);
   });
   it('털어 내기: 해제한 대상 회복', () => {
     const [a] = pair('brushOff', 0.3); hurt(a);

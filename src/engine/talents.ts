@@ -49,7 +49,7 @@ export function castOf(f: Fight, key: SkillKey): number {
 
 /** 재사용 대기 (쓸 때 거는 값): 빨라진 찬가 (찬가 -60초), 장비 특수능력 (42 쿨기 · 해제 · 직업 전용) */
 export function cdOf(f: Fight, key: SkillKey): number {
-  let cd = SKILLS[key].cd || 0;
+  let cd = f.R.cd?.[key] ?? (SKILLS[key].cd || 0);
   if (key === 'hymn' && f.tx.on.quickHymn) cd -= 60;
   if (f.sp) cd = cdSpec(f, key, cd);
   return cd;

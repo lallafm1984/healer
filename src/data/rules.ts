@@ -26,6 +26,8 @@ export interface Rules {
   regen: number;
   /** 시전 시간을 바꾼 스킬 (없으면 skills.ts 값) */
   cast?: Partial<Record<SkillKey, number>>;
+  /** 재사용 대기를 바꾼 스킬 (없으면 skills.ts 값) */
+  cd?: Partial<Record<SkillKey, number>>;
 }
 
 export const RULES: Rules = { lv: lvPower, apex: apexOf, enemy: 0.95, enemyDmg: 0.85, heal: 0.6, gcd: 1.5, hasteCap: 0.5, baseCrit: 0, regen: 0.7 };
@@ -34,6 +36,7 @@ export const RULES: Rules = { lv: lvPower, apex: apexOf, enemy: 0.95, enemyDmg: 
 export const PROTO_RULES: Rules = {
   lv: lvPowerProto, apex: () => 1, enemy: 1, enemyDmg: 1, heal: 1, gcd: 1.0, hasteCap: Infinity, baseCrit: 0.05, regen: 1.0,
   cast: { heal: 1.8, flash: 1.0, poh: 2.0, growth: 1.5, wildflower: 1.5, rebirth: 2.0, holyLight: 1.5 },
+  cd: { purify: 8, natureCleanse: 8, handCleanse: 8 }, // 해제 8초 (2026-10-12에 4초로 줄이기 전)
 };
 
 /** 지능 1 = 치유 회복량 (34 1-2): 스킬 회복량은 지능의 비율 (예전 수치 ÷ 300) */

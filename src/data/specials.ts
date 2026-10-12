@@ -139,7 +139,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
   ],
   // 2-5 해제 · 디버프
   dispel: [
-    ['cleanHands', '해제 01', '깨끗한 손', H_ACC, '희귀', 1.5, 'sec', '해제 재사용 −{v}', { cap: 3 }],
+    ['cleanHands', '해제 01', '깨끗한 손', H_ACC, '희귀', 0.8, 'sec', '해제 재사용 −{v}', { cap: 1.6 }], // 해제 8 → 4초 (2026-10-12)에 맞춰 1.5 · 상한 3에서 반으로
     ['brushOff', '해제 02', '털어 내기', ALL, '고급', 0.3, 'pct', '해제한 대상 지능 {v} 회복'],
     ['twiceBrush', '해제 03', '두 번 털기', ACC, '영웅', 0.12, 'pct', '해제가 {v} 확률로 재사용 대기 없이'],
     ['immuneIncense', '해제 04', '면역 향', NECK, '희귀', 4, 'sec', '해제한 대상은 {v} 동안 같은 디버프에 안 걸림'],
@@ -247,7 +247,7 @@ export const NAMED: NamedDef[] = [
   { key: 'lilyCorsage', name: '백합 코사지', slot: 'neck', place: 'abbey1', placeName: '물밑 수도원 연못', text: '4초 안에 서로 다른 3명에게 직접 힐하면 다음 직접 힐 마나 소모 −{v} (재사용 15초)', val: 1, unit: 'pct', cd: 15, min: '고급' },
   { key: 'snowCrystal', name: '눈꽃 결정', slot: 'neck', place: 'abbey3', placeName: '물밑 수도원 제단', text: '보스 기술에 시전이 끊기면 마나 {v} 돌려받음', val: 3, unit: 'mana', min: '고급' },
   { key: 'pilgrimCharm', name: '순례자 부적', slot: 'neck', place: 'cathedral4', placeName: '가라앉은 대성당 성소', text: '파티 전원이 체력 70% 이상이면 정신력 +{v}', val: 0.3, unit: 'pct', min: '고급' },
-  { key: 'wornRosary', name: '닳은 묵주', slot: 'neck', place: 'rootwood2', placeName: '빛뿌리 숲 온실', text: '바로 앞에 해제한 것과 다른 유형을 해제하면 해제 재사용 대기 −{v}', val: 2, unit: 'sec', min: '고급' },
+  { key: 'wornRosary', name: '닳은 묵주', slot: 'neck', place: 'rootwood2', placeName: '빛뿌리 숲 온실', text: '바로 앞에 해제한 것과 다른 유형을 해제하면 해제 재사용 대기 −{v}', val: 1, unit: 'sec', min: '고급' }, // 해제 4초 (2026-10-12)에 맞춰 2 → 1
   { key: 'blackStone', name: '검은 돌 부적', slot: 'neck', place: 'abbey2', placeName: '물밑 수도원 서고', text: '옆 칸에 아군이 없는 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct', min: '고급' },
   { key: 'ropeKnot', name: '밧줄 매듭', slot: 'ring', place: 'abbey3', placeName: '물밑 수도원 제단', text: '아군이 2초 안에 최대 체력의 30% 넘게 잃으면 그 아군에게 지능 {v} 보호막 (재사용 20초)', val: 0.5, unit: 'pct', cd: 20 },
   { key: 'lordIncense', name: '군주의 향 주머니', slot: 'neck', place: 'reservoir1', placeName: '별빛 저수지 수문', text: '디버프가 2개 이상 보이는 아군에게 하는 힐 +{v}', val: 0.15, unit: 'pct' },
