@@ -6,6 +6,7 @@
   "description": "나혼자 힐러 본 개발 (웹 TypeScript + Capacitor)",
   "scripts": {
     "dev": "vite",
+    "fx": "vite --open /fx.html",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
