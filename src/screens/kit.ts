@@ -132,7 +132,7 @@ export function itemChipsHtml(items: ItemKey[]): string {
 export interface BattleApi {
   start(o: {
     content: string; name: string; segs: string[]; diff: string; /** 힐러 레벨 (스킬 해금) */ level: number; /** 실제 레벨 (힐량·체력) */ heroLv: number; /** 단계 레벨 */ stageLv: number; gearStats: GearStats; party: RosterEntry[];
-    items: ItemKey[]; slots: number; seed: number; onEnd(r: BattleResult): void;
+    items: ItemKey[]; itemLayout?: (ItemKey | null)[]; slots: number; seed: number; onEnd(r: BattleResult): void;
     /** 튜토리얼 안내 묶음 (02 11장) */
     coach?: CoachKey | null;
     /** 힐러 직업 (25) */

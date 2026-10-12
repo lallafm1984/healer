@@ -20,7 +20,7 @@ import { betterSlots, codexRows, dexRows, scoreOf, specRows, statParts, talentsL
 import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, specText, specValue, type CodexGroup, type SpecGroup, type SpecLine } from '../data/specials';
 import {
   claimDex, commit, enhanceLack, enhanceMsg, enhanceTry, equip, findItem, G, healerLevel, heroSave, heroStatus, itemsNow, pickReroll, pickTalent, reroll, rerollOpen, salvage,
-  setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleItem, toggleLock, type EnhanceOutcome, type RerollKind,
+  setItemSlot, setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleLock, type EnhanceOutcome, type RerollKind,
 } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { Flow } from '../game/flow';
@@ -35,7 +35,7 @@ type Sub = 'gear' | 'skill' | 'talent' | 'hero';
 const SUBS: { key: Sub; name: string }[] = [{ key: 'gear', name: '장비' }, { key: 'skill', name: '스킬' }, { key: 'talent', name: '특성' }, { key: 'hero', name: '직업' }];
 
 /** 장비 상세는 인벤토리로 복귀, 특수능력 도감은 장비 도감으로 복귀한다. */
-type Sheet = { k: 'item'; id: number; inventoryIndex?: number } | { k: 'codex' } | { k: 'dex' } | { k: 'stats' } | { k: 'items' } | { k: 'talent'; i: number; j: number } | null;
+type Sheet = { k: 'item'; id: number; inventoryIndex?: number } | { k: 'codex' } | { k: 'dex' } | { k: 'stats' } | { k: 'items'; slot: number } | { k: 'talent'; i: number; j: number } | null;
 /** 도감에서 펼친 묶음 */
 let codexG: CodexGroup = 'heal';
 /** 장비 도감에서 펼친 묶음 */
@@ -651,7 +651,7 @@ function skillHtml(): string {
   const st = G.save.settings, L = battle().layout, lay = layoutNow(), h = hero();
   const tapSkill = skillAt(h, st.tapKey) || skillAt(h, 'heal')!, basic = skillAt(h, 'heal')!;
   const tapLock = lockLv(tapSkill);
-  const { slots, items } = itemsNow();
+  const { slots, loadout } = itemsNow();
   const nextSlotLv = ITEM_SLOT_LV.find(x => itemSlots(x) > slots);
   const stock = G.save.tut >= TUT.done ? G.save.bag : null;
   const taps = (Object.keys(battle().tapKeys) as TapKey[]).map(t => {
@@ -659,7 +659,7 @@ function skillHtml(): string {
     return `<button type="button" data-tap="${t}" aria-pressed="${st.tapKey === t}"${lk ? ` disabled title="Lv ${lk}에 배움"` : ''}>${lk ? LOCK : ''}${SKILLS[k].name}</button>`;
   }).join('');
   const cells = Array.from({ length: slots }, (_, i) => {
-    const k = items[i];
+    const k = loadout[i];
     if (!k) return `<button type="button" class="c7-item empty" data-islot="${i}">빈 칸 +</button>`;
     const n = stock ? stock[k] || 0 : null;
     return `<button type="button" class="c7-item" data-islot="${i}" aria-label="${ITEMS[k].name}${n != null ? ` ${n}개` : ''} · 바꾸기">${useIcon(k)}<span>${ITEMS[k].short}${n != null ? ` ×${n}` : ''}</span></button>`;
@@ -676,11 +676,13 @@ function skillHtml(): string {
 
 /** 단축칸 고르기 시트 (편성 화면과 같은 칩) */
 function itemsSheet(): string {
-  const { slots, items } = itemsNow();
+  const { items, loadout } = itemsNow(), slot = sheet?.k === 'items' ? sheet.slot : 0;
+  const chosen = loadout[slot];
   return `${dim}<section class="sheet c7-isheet" role="dialog" aria-label="단축칸 고르기">${grip}
-      <h3 class="h-rule">단축칸<span class="rule"></span><span class="cap">${items.length} / ${slots}칸 · 누르면 넣기·빼기</span></h3>
-      ${itemChipsHtml(items)}
+      <h3 class="h-rule">${slot + 1}번 단축칸<span class="rule"></span><span class="cap">다른 칸의 아이템은 자리 교환</span></h3>
+      ${itemChipsHtml(chosen ? [chosen] : [])}
       <p class="note${msg ? ' warn' : ''}">${msg ? esc(msg) : items.map(k => `<b>${ITEMS[k].short}</b> ${esc(ITEMS[k].desc)}`).join('<br>') || '빈 칸'}</p>
+      <button type="button" class="btn2" data-item-clear${chosen ? '' : ' disabled'}>이 칸 비우기</button>
       <button type="button" class="c7-cta" data-sheetx>닫기</button></section>`;
 }
 
@@ -979,9 +981,11 @@ function onClick(t: HTMLElement): boolean {
   // ---- 스킬 ----
   const sm = t.closest<HTMLElement>('[data-smode]');
   if (sm) { swapping = sm.dataset.smode === 'swap'; sel = null; render(); return true; }
-  if (t.closest('[data-islot]')) { sheet = { k: 'items' }; msg = ''; render(); return true; }
+  const slot = t.closest<HTMLElement>('[data-islot]');
+  if (slot) { sheet = { k: 'items', slot: Number(slot.dataset.islot) }; msg = ''; render(); return true; }
+  if (t.closest('[data-item-clear]') && sheet?.k === 'items') { msg = setItemSlot(sheet.slot, null); render(); return true; }
   const it = t.closest<HTMLElement>('[data-item]');
-  if (it) { msg = toggleItem(it.dataset.item as ItemKey); render(); return true; }
+  if (it && sheet?.k === 'items') { msg = setItemSlot(sheet.slot, it.dataset.item as ItemKey); render(); return true; }
   const tap = t.closest<HTMLButtonElement>('[data-tap]');
   if (tap) { if (!tap.disabled) { G.save.settings.tapKey = tap.dataset.tap as TapKey; commit(); pushSettings(); msg = ''; render(); } return true; }
   const sk = t.closest<HTMLElement>('[data-skill], [data-skrow]');

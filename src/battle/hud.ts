@@ -236,7 +236,7 @@ export function openTalentTip(k: TalentKey, el: HTMLElement): void {
 const ITEM_SLOTS = 4;
 const slotLv = (i: number) => ITEM_SLOT_LV.find(lv => itemSlots(lv) > i) ?? ITEM_SLOT_LV[2];
 export function buildItems(): void {
-  const keys = Object.keys(fight().items) as ItemKey[];
+  const keys = S.itemLayout ?? Object.keys(fight().items) as ItemKey[];
   let html = '';
   for (let i = 0; i < ITEM_SLOTS; i++) {
     const k = keys[i];

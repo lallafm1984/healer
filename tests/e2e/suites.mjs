@@ -3,6 +3,8 @@ import adventureNoScroll from './adventure-no-scroll.mjs';
 import adventureWeekly from './adventure-weekly.mjs';
 import adventureRewards from './adventure-rewards.mjs';
 import adventureProgress from './adventure-progress.mjs';
+import headerConsistency from './header-consistency.mjs';
+import partyRefinement from './party-refinement.mjs';
 // 화면 테스트 묶음 목록 (scripts/e2e.mjs가 차례로 돌림). CI는 러너 여러 대에 나눠 동시에 돌린다 (E2E_SHARD=2/6 → 6몫 중 2번째)
 import appShell from './app-shell.mjs';
 import character from './character.mjs';
@@ -41,6 +43,8 @@ import floatSteady from './float-steady.mjs';
  * 조각 수가 있으면 나눠 돌릴 때 그 묶음을 그만큼 쪼갬 (묶음이 run(url, shots, { k, n })에서 k번째 조각만 돌림)
  */
 export const SUITES = [
+  ['공통 메뉴 헤더 크기', headerConsistency, 30],
+  ['편성 네 단축칸·직업·출발 UI', partyRefinement, 30],
   ['출전 지역 선택 UI', adventureDeparture, 25],
   ['출전 세로 스크롤 없음 (S25·Flip·Fold)', adventureNoScroll, 45],
   ['출전 주간 도전 배치·복귀', adventureWeekly, 15],

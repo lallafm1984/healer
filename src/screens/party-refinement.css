@@ -1,0 +1,127 @@
+/* 편성: 직업·성격을 읽기 쉽게, 네 단축칸과 출발을 고정된 위치에 둔다. */
+.ns .topbar .tb-back { background: var(--art-party-back-v1) center / 44px 44px no-repeat; border: 0; box-shadow: none; font-size: 0; }
+.ns .topbar .tb-back > svg { visibility: hidden; }
+#s-party .topbar #guideOpen { flex: 0 0 92px; width: 92px; min-width: 92px; height: 44px; padding: 0 7px 0 40px; border: 0; border-radius: 0; background: var(--art-party-guide-v1) center / 92px 44px no-repeat; box-shadow: none; color: #fff0ce; font: 800 15px/1 var(--font-body); text-shadow: 0 1px 2px #000; }
+#s-party .topbar #guideOpen > svg { display: none; }
+#s-party .topbar.f-hd .f-tb { flex: 1; min-width: 0; }
+#s-party .topbar.f-hd > .f-sp { display: none; }
+#s-party .topbar.f-hd .f-ttl { white-space: normal; overflow: visible; text-overflow: clip; word-break: keep-all; overflow-wrap: anywhere; font-size: 18px; line-height: 1.13; }
+#s-party .topbar.f-hd .f-hcap { font-size: 11px; }
+#s-party .topbar.f-hd .f-em .fmark { width: 26px; height: 26px; }
+#s-party .f-pty { gap: 10px; padding-top: 12px; }
+#s-party .f-ri { width: 38px; height: 38px; border-color: #c2a26e; box-shadow: inset 0 0 0 2px #241b154d; }
+.f-class-icon { display: inline-grid; place-items: center; width: 100%; height: 100%; }
+.f-class-icon > :is(svg,img) { display: block; width: 78%; height: 78%; object-fit: contain; }
+#s-party .f-hx > .f-class-icon { width: 72%; height: 72%; }
+#s-party .f-hx > .f-class-icon > :is(svg,img) { width: 100%; height: 100%; }
+.f-ps { height: auto; min-height: 23px; padding: 3px 7px; background: var(--pers-color, #a3b46a); color: #1d1512; border: 1px solid #ffefbe55; font: 800 11px/1.25 var(--font-body); text-shadow: none; }
+#s-party .f-ps { background-image: none; background-color: var(--pers-color, #a3b46a); border-color: #ffefbe55; color: #20160c; text-shadow: none; }
+#s-party .f-mems { padding-inline: 10px; }
+#s-party .pcard.f-mem { gap: 8px; min-height: 58px; }
+#s-party .f-l1 { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px 6px; }
+#s-party .f-l1 .pnick { max-width: none; font-size: 14px; grid-column: 1; grid-row: 1; }
+#s-party .f-l1 > .cap { grid-column: 1; grid-row: 2; font-size: 10px; line-height: 1.2; }
+#s-party .f-l1 > .f-sp { display: none; }
+#s-party .f-l1 > .f-ps { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+#s-party .f-l2 { gap: 4px; font-size: 11px; }
+#s-party .f-det .pcat { width: auto; height: auto; padding: 3px 6px; font-size: 11px; line-height: 1.3; vertical-align: baseline; }
+
+#s-party .ns-foot.f-foot2 { gap: 8px; padding: 8px 14px calc(10px + env(safe-area-inset-bottom)); }
+#s-party .f-slots { position: relative; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; padding-top: 16px; }
+#s-party .f-slab { position: absolute; left: 0; top: 0; display: block; font-size: 10px; line-height: 12px; color: #d7c39e; }
+#s-party .f-item { height: 64px; padding: 14px 3px 4px; gap: 1px; flex-direction: column; border: 1px solid #a58756; border-radius: 7px; background: #2e241a; box-shadow: inset 0 1px #f5ddb82b; font-size: 11px; }
+#s-party .f-item > :is(.g-ic,svg) { width: 26px; height: 26px; flex: none; }
+#s-party .f-item .f-slot-number { position: absolute; left: 6px; top: 4px; color: #cbb68d; font: 700 9px/1 var(--font-body); }
+#s-party .f-item small { top: 3px; right: 3px; min-width: 16px; height: 16px; padding: 0 3px; border: 0; border-radius: 3px; background: #100e0bcc; color: #ffeac1; font-size: 10px; line-height: 16px; }
+#s-party .f-item.empty { border-style: dashed; background: #201b15; color: #d3c2a3; }
+#s-party .f-item.locked { background: #1b1814; border-color: #6a604e; box-shadow: none; color: #baad94; cursor: default; }
+#s-party .f-item.locked > svg { width: 20px; height: 20px; margin-bottom: 4px; }
+#s-party .f-item[aria-expanded="true"] { border-color: #ffe0a0; box-shadow: 0 0 0 1px #ffe0a0; }
+#s-party .f-btns { justify-content: center; }
+#s-party .f-btns .f-go { position: relative; flex: 1; max-width: 560px; height: 64px; padding: 0 44px; }
+#s-party .f-btns .f-go .cta2 { text-align: center; align-items: center; }
+#s-party .f-btns .f-go .f-gt { font-size: 28px; line-height: 1.1; }
+#s-party .f-go > svg { position: absolute; right: 22px; width: 23px; height: 23px; }
+#s-party .f-go > svg:first-child { left: 22px; right: auto; }
+#s-party .f-go .cta2 small { font-size: 10px; }
+
+/* 아이템 선택은 선택한 칸을 중심으로, 그림·설명·보유량을 같은 카드에서 확인한다. */
+#s-party .sheet.f-gsheet { max-height: calc(100% - var(--banner-h, 70px) - 24px); overflow: hidden; }
+#s-party .f-gsheet > .grip { flex: none; }
+#s-party .f-sheet-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+#s-party .f-sheet-actions { flex: none; padding-top: 8px; }
+#s-party .f-sheet-actions > .f-shut { width: 100%; min-height: 44px; margin: 0; }
+#s-party .sheet.f-isheet { left: 12px; right: 12px; bottom: 12px; width: auto; max-width: 620px; max-height: calc(100% - var(--banner-h, 70px) - 24px); margin: 0 auto; padding: 14px; gap: 10px; background: #262119; border: 1px solid #bb9b60; border-radius: 12px; box-shadow: 0 12px 44px #000b; overflow: hidden; transform: none; animation: none; }
+#s-party .f-isheet > .grip { display: none; }
+#s-party .f-isheet .h-rule { flex: none; margin: 0; color: #fff0cf; font-size: 17px; line-height: 1.3; }
+#s-party .f-isheet .f-ih { flex: none; margin: 0; padding: 8px; border: 0; border-radius: 5px; background: #3b3021; color: #e1cda7; font-size: 11px; line-height: 1.4; }
+#s-party .f-isheet .f-ih svg { width: 17px; height: 17px; }
+#s-party .f-isheet > .note { flex: none; font-size: 11px; color: #d4c09c; }
+#s-party .f-item-options { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-auto-rows: max-content; align-content: start; gap: 8px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 2px; scrollbar-width: thin; }
+#s-party .f-item-option { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; min-height: 120px; padding: 10px; border: 1px solid #736044; border-radius: 7px; background: #332b20; color: #f1e2c5; text-align: left; font: inherit; cursor: pointer; }
+#s-party .f-item-option[aria-pressed="true"] { background: #554328; border-color: #f2cf84; box-shadow: inset 0 0 0 1px #c49f58; }
+#s-party .f-item-art { display: grid; place-items: center; width: 34px; height: 34px; }
+#s-party .f-item-art > :is(.g-ic,svg) { width: 32px; height: 32px; }
+#s-party .f-item-copy { display: flex; flex-direction: column; gap: 3px; width: 100%; min-width: 0; }
+#s-party .f-item-copy b { color: #fff0cd; font-size: 13px; line-height: 1.25; }
+#s-party .f-item-stock { color: #ddc699; font-size: 10px; }
+#s-party .f-item-desc { color: #cfc4b2; font-size: 11px; line-height: 1.4; }
+#s-party .f-item-status { color: #ffe1a1; font-size: 10px; font-style: normal; line-height: 1.4; }
+#s-party .f-item-actions { display: flex; gap: 8px; flex: none; padding-top: 8px; border-top: 1px solid #746044; background: #262119; }
+#s-party .f-item-actions > button { position: static; flex: 1; min-height: 44px; margin: 0; box-shadow: none; }
+#s-party .f-item-actions > [data-shut] { border-color: #c9a761; color: #ffe4ad; background: #4d3b24; }
+#s-party :is(.f-item,.f-item-option,.f-item-actions button,.f-gbtn,.tb-back):focus-visible { outline: 2px solid #ffe2a0; outline-offset: -3px; }
+
+@media (max-width: 359px) {
+  #s-party .topbar.f-hd { gap: 4px; padding-inline: 5px; }
+  #s-party .topbar.f-hd .f-ttl { font-size: 15px; }
+  #s-party .topbar.f-hd .f-hcap { font-size: 9px; }
+  #s-party .topbar.f-hd .f-em { display: none; }
+  #s-party .f-ri { width: 32px; height: 32px; }
+  #s-party .f-mems { padding-inline: 8px; }
+  #s-party .pcard.f-mem { min-height: 55px; gap: 6px; }
+  #s-party .f-l1 .pnick { font-size: 13px; }
+  #s-party .f-ps { padding-inline: 5px; font-size: 10px; }
+  #s-party .f-slots { gap: 5px; }
+  #s-party .f-item { height: 58px; font-size: 10px; }
+  #s-party .f-btns .f-go { height: 58px; }
+  #s-party .f-item-option { padding: 8px; }
+}
+@media (max-height: 700px) {
+  #s-party .f-pty { padding: 6px 12px; gap: 6px; }
+  #s-party .f-hexes { --bh: 105px; }
+  #s-party .f-hexes.mid { --bh: 125px; }
+  #s-party .f-hexes.big { --bh: 140px; }
+  #s-party .ns-foot.f-foot2 { gap: 5px; padding-top: 5px; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
+  #s-party .f-btns .f-go { height: 54px; }
+  #s-party .f-item { height: 56px; }
+  #s-party .f-item-options { gap: 6px; }
+}
+@media (max-height: 520px) {
+  #s-party .topbar.f-hd .f-ttl { font-size: 13px; }
+  #s-party .topbar.f-hd .f-hcap { font-size: 9px; }
+  #s-party .topbar.f-hd .f-em { display: none; }
+  #s-party .f-pty { flex-direction: row; align-items: flex-start; }
+  #s-party .f-board { position: sticky; top: 0; flex: 0 0 30%; }
+  #s-party .f-mems { flex: 1; min-width: 0; }
+  #s-party .f-l1 { display: flex; flex-wrap: wrap; gap: 3px; }
+  #s-party .f-l1 .pnick { font-size: 12px; }
+  #s-party .f-ri { width: 26px; height: 26px; }
+  #s-party .f-ps { font-size: 9px; padding: 2px 4px; min-height: 17px; }
+  #s-party .ns-foot.f-foot2 { padding: 4px 10px; gap: 4px; }
+  #s-party .f-slots { padding-top: 0; }
+  #s-party .f-slab { display: none; }
+  #s-party .f-item { height: 44px; flex-direction: row; padding: 10px 3px 1px; gap: 2px; }
+  #s-party .f-item > :is(.g-ic,svg) { width: 20px; height: 20px; }
+  #s-party .f-item small { top: 2px; height: 13px; line-height: 13px; font-size: 9px; }
+  #s-party .f-btns .f-go { height: 44px; }
+  #s-party .f-btns .f-go .f-gt { font-size: 23px; }
+  #s-party .sheet.f-isheet { padding: 10px; gap: 6px; }
+  #s-party .f-isheet .f-ih { display: none; }
+  #s-party .f-item-options { grid-template-columns: minmax(0,1fr); }
+  #s-party .f-item-option { flex-direction: row; min-height: 76px; }
+  #s-party .f-item-copy { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 3px 6px; }
+  #s-party .f-item-copy :is(.f-item-desc,.f-item-status) { grid-column: 1 / -1; }
+  #s-party .f-item-art { flex: none; width: 26px; height: 26px; }
+  #s-party .f-item-art > :is(.g-ic,svg) { width: 26px; height: 26px; }
+}

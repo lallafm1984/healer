@@ -1,29 +1,36 @@
 /*
- * 위 정보창 (kit.ts topBar) = 모든 화면이 로비와 같은 크기·그림 (2026-10-12 Lim 「모든 메뉴에서 로비의 상단 메뉴와 사이즈가 다르다, 로비 기준으로」).
- * 전에는 로비만 #s-lobby 규칙으로 키워서 (초상 70 · 이름 800 · 설정 44×46 어두운 소켓) 다른 탭(초상 58 · 나무 설정 칸)과 달랐다.
- * 탭 루트(.tb-mmo): 높이 80 · 초상 70 · 이름 21/800 · Lv·경험치 11 · 경험치 막대 10 (최대 142) · 재화 아이콘 18 · 글 14 (1만부터 축약) · 설정 44×46.
- * 「← 제목」 줄 (임무·설정·편성·입장)도 같은 80px 판 그림 위에, 제목은 이름과 같은 21/800.
- * main.ts에서 맨 마지막에 읽는다 (sunforged-ui.css 위 정보창 규칙을 덮음).
+ * 위 정보창 (kit.ts topBar)은 전투 출전 화면의 반응형 크기를 모든 메뉴에 공통 적용한다.
+ * 기본 높이 80 · 초상 70, 화면 높이 800 이하 64 · 50, 700 이하 54 · 44.
+ * 좁은 화면의 기본 초상 54도 동일하게 적용하며, 「← 제목」 줄과 편성 .f-hd는 같은 높이 토큰을 쓴다.
+ * 520 이하 커버에서는 모든 탭 루트의 MMO 정보창을 출전과 같이 숨긴다. 상세·편성은 뒤로 가기를 위해 44px 헤더를 남긴다.
+ * sunforged-ui.css 뒤에서 읽으며 출전 전용 헤더 크기 중복 규칙은 두지 않는다.
  */
-.ns .topbar.tb-mmo { height: 80px; gap: 7px; padding: 0 8px; background: transparent; box-shadow: none; }
+.ns {
+  --a2-header-height: 80px;
+  --a2-header-portrait: 70px;
+  --a2-header-name-size: 21px;
+  --a2-header-name-gap: 7px;
+  --a2-header-xpt-size: 11px;
+}
+.ns .topbar.tb-mmo { height: var(--a2-header-height); gap: 7px; padding: 0 8px; background: transparent; box-shadow: none; }
 .ns .topbar.tb-mmo::before {
   inset: 0; border: 0;
   background: url('../art/a2-header-v3.png') 50% 50.70922% / 100% 163.800905% no-repeat;
 }
 .ns .tb-mmo .tb-pf {
-  width: 70px; height: 70px;
+  width: var(--a2-header-portrait); height: var(--a2-header-portrait);
   background: url('../art/a2-portrait-v3.png') 48.076923% 39.669421% / 109.043478% 110.679612% no-repeat;
 }
 .ns .tb-mmo .tb-pf::after { content: none; }
 .ns .tb-mmo .tb-em { width: 77%; height: 77%; }
 .ns .tb-em [aria-label="사제 문장 · 햇살 성표"] img { content: url('../art/icon-a2-priest-v3.png'); }
-.ns .tb-mmo .tb-nm { gap: 7px; padding: 0 0 0 1px; transform: translateY(-1.5px); }
+.ns .tb-mmo .tb-nm { gap: var(--a2-header-name-gap); padding: 0 0 0 1px; transform: translateY(-1.5px); }
 .ns .tb-mmo .tb-id { gap: 8px; transform: translateY(-2px); }
-.ns .tb-mmo .tb-cls { color: #fff4d5; font-size: 21px; font-weight: 800; letter-spacing: -.05em; }
+.ns .tb-mmo .tb-cls { color: #fff4d5; font-size: var(--a2-header-name-size); font-weight: 800; letter-spacing: -.05em; }
 .ns .tb-mmo .tb-lv { font-size: 11px; font-weight: 600; color: #fff4d5; }
 .ns .tb-mmo .tb-xprow { gap: 8px; }
 .ns .tb-mmo .tb-xp { height: 10px; max-width: 142px; }
-.ns .tb-mmo .tb-xpt { font-size: 11px; font-weight: 600; color: #fff4d5; }
+.ns .tb-mmo .tb-xpt { font-size: var(--a2-header-xpt-size); font-weight: 600; color: #fff4d5; }
 .ns .tb-mmo .tb-wal { gap: 8px; max-width: 67px; }
 .ns .tb-mmo .tb-cur { gap: 2px; max-width: 100%; }
 .ns .tb-mmo .tb-cur > .g-ic { width: 18px; height: 18px; }
@@ -33,7 +40,7 @@
 
 /* 「← 제목」 줄: 같은 판 그림 · 같은 높이 */
 .ns .topbar:not(.tb-mmo) {
-  height: 80px; gap: 8px; padding: 0 10px 0 6px;
+  height: var(--a2-header-height); gap: 8px; padding: 0 10px 0 6px;
   background: url('../art/a2-header-v3.png') 50% 50.70922% / 100% 163.800905% no-repeat;
   border: 0; box-shadow: none;
 }
@@ -42,11 +49,24 @@
 .ns .topbar.f-hd .f-ttl { font: 800 21px/1.15 var(--font-display); letter-spacing: -.05em; color: #fff4d5; text-shadow: 0 2px 2px #000; }
 
 @media (max-width: 359px) {
+  .ns { --a2-header-portrait: 54px; --a2-header-name-size: 20px; --a2-header-xpt-size: 8px; }
   .ns .topbar.tb-mmo { gap: 5px; padding-left: 5px; padding-right: 5px; }
-  .ns .tb-mmo .tb-pf { width: 54px; height: 54px; }
-  .ns .tb-mmo .tb-cls { font-size: 20px; }
   .ns .tb-mmo .tb-lv { font-size: 10px; }
-  .ns .tb-mmo .tb-xpt { font-size: 8px; }
   .ns .tb-mmo .tb-cur b { font-size: 12px; }
   .ns .tb-mmo .tb-cur > .g-ic { width: 16px; height: 16px; }
+}
+@media (max-height: 800px) {
+  .ns { --a2-header-height: 64px; --a2-header-portrait: 50px; }
+}
+@media (max-height: 700px) {
+  .ns {
+    --a2-header-height: 54px; --a2-header-portrait: 44px;
+    --a2-header-name-size: 17px; --a2-header-name-gap: 5px; --a2-header-xpt-size: 9px;
+  }
+}
+@media (max-height: 520px) {
+  .ns { --a2-header-height: 44px; }
+  .ns .topbar.tb-mmo { display: none; }
+  .ns .topbar:not(.tb-mmo) .tb-title, .ns .topbar.f-hd .f-ttl { font-size: 17px; }
+  .ns .topbar.f-hd .f-hcap { font-size: 10px; line-height: 1.2; }
 }

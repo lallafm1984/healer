@@ -142,7 +142,8 @@ export default async function tutorial(url, shots) {
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);
   await page.click('#lobbyStart'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-party') && /녹슨 요새/.test(await page.textContent('#s-party .topbar')) && /쉬움/.test(await page.textContent('#s-party .topbar')), '바로 출전 = 녹슨 요새 쉬움 편성');
-  ok(/다시 뽑기/.test(await page.textContent('#s-party .coachtip')) && /공략/.test(await page.textContent('#s-party .coachtip')), '편성: 파티 찾기·다시 뽑기·공략 안내');
+  const partyCoach = await page.textContent('#s-party .coachtip');
+  ok(/공략/.test(partyCoach) && /단축칸/.test(partyCoach) && /출발/.test(partyCoach) && !/다시\s*뽑기/.test(partyCoach), '편성: 공략·단축칸·출발 안내, 다시 뽑기 문구 없음');
   await page.screenshot({ path: `${shots}/tut_party.png` });
 
   // ---- 녹슨 요새 쉬움: 멈추지 않는 안내 → 4구간 → 끝 ----

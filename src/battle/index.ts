@@ -831,6 +831,7 @@ function frame(now: number): void {
   start(o: StartOptions) {
     closeTip();
     S.diff = o.diff; S.gearStats = o.gearStats || null; S.party = o.party; S.items = (o.items || []).slice(); S.slots = o.slots || 4; S.onEnd = o.onEnd || null;
+    S.itemLayout = o.itemLayout ? o.itemLayout.slice(0, 4) : null;
     S.run = { content: o.content, name: o.name, segs: o.segs.slice(), seed0: o.seed != null ? o.seed : null, coachDone: new Set() } as Run;
     S.level = o.level || 100;
     S.heroLv = o.heroLv; S.stageLv = o.stageLv;

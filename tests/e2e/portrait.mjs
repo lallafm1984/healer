@@ -212,8 +212,10 @@ export default async function portrait(url, shots) {
     ok(selection.selectedRegion === 'rust' && selection.places.join() === 'rustfort,mine'
       && selection.regionCards.every(r => r.width >= 44 && r.height >= 44) && selection.region.left >= 0 && selection.region.right <= width + 1,
       `${width}: 선택한 녹슨 고원에 요새·광산만 표시, 지역 터치 영역과 가로 경계 정상`);
-    ok(selection.levelLabel === '권장 레벨 5' && selection.levelFont >= 24 && selection.gate.height > 0
-      && selection.level.left >= selection.name.right && selection.level.right <= selection.gate.right && selection.level.bottom <= selection.gate.bottom,
+    const levelApart = selection.level.left >= selection.name.right || selection.level.right <= selection.name.left
+      || selection.level.bottom <= selection.name.top || selection.level.top >= selection.name.bottom;
+    ok(selection.levelLabel === '권장 레벨 5' && selection.levelFont >= (height <= 760 ? 22 : 24) && selection.gate.height > 0
+      && levelApart && selection.level.right <= selection.gate.right && selection.level.top >= selection.gate.top && selection.level.bottom <= selection.gate.bottom,
       `${width}: 작은 풍경 안 권장 레벨을 크게 표시, 장소명과 겹침 없음`);
     ok(['none', 'normal', '""'].includes(selection.arrow) && selection.chal, `${width}: 탭 선택 화살표 제거, 던전 주간 도전 버튼 유지`);
     ok(await loaded('#s-content .b-region.on img') && await loaded('#s-content .b-place-thumb'), `${width}: 선택 지역 풍경·장소 썸네일 로드`);
@@ -227,11 +229,11 @@ export default async function portrait(url, shots) {
     const pty = await page.evaluate(() => {
       const r = el => el.getBoundingClientRect();
       const foot = r(document.querySelector('#s-party .f-foot2')), rows = [...document.querySelectorAll('#s-party .pcard')].map(r);
-      const taps = [...document.querySelectorAll('#guideOpen, #s-party .f-item, #reroll, #depart, #s-party .tb-back')].map(e => Math.round(Math.min(r(e).height, r(e).width)));
+      const taps = [...document.querySelectorAll('#guideOpen, #s-party .f-item, #depart, #s-party .tb-back')].map(e => Math.round(Math.min(r(e).height, r(e).width)));
       return { taps, rows: rows.length, lastTop: Math.round(rows[rows.length - 1].top), foot: Math.round(foot.top), ttl: document.querySelector('#s-party .f-ttl').scrollWidth <= document.querySelector('#s-party .f-ttl').clientWidth };
     });
     ok(await noOverflow('#s-party .f-pty') && await noOverflow('#s-party .f-foot2') && await noOverflow('#s-party .topbar') && pty.ttl, `${width}: 편성 가로 넘침·제목 잘림 없음`);
-    ok(pty.taps.every(x => x >= 44), `${width}: 편성 공략·단축칸·다시 뽑기·출발·뒤로 44px 이상 (${pty.taps.join(',')})`);
+    ok(pty.taps.every(x => x >= 44), `${width}: 편성 공략·단축칸 4개·출발·뒤로 44px 이상 (${pty.taps.join(',')})`);
     ok(pty.rows === 4 && pty.lastTop < pty.foot, `${width}: 5인 편성 = 파티원 4줄이 첫 화면에서 보이기 시작 (마지막 줄 ${pty.lastTop} < 아래 ${pty.foot})`);
     if (width === 320 || width === 390) await page.screenshot({ path: `${shots}/portrait_party_${width}.png` });
 

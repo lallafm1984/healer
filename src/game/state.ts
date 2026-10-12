@@ -6,7 +6,8 @@ import { HERO_KEYS, HERO_SWITCH_LV, HEROES, type HeroKey } from '../data/heroes'
 import { TALENTS } from '../data/talents';
 import { AWAKEN_AT, awakenValue, enhanceCost, itemName, itemScore, MAX_PLUS, REROLL_LEVEL, REROLL_PICK_LEVEL, rerollCost, rerollLine, rerollSpec, salvageOf, SLOTS, type GearItem, type GearLine, type SlotKey } from '../data/equipment';
 import type { SpecLine } from '../data/specials';
-import { ITEMS, type ItemKey } from '../data/items';
+import type { ItemKey } from '../data/items';
+import { activeItemKeys, assignItemSlot, itemLoadoutOf, type ItemSlot } from '../data/item-loadout';
 import { itemSlots } from '../data/progression';
 import { heroLevelOf, heroSaveOf, load, newSave, noteSpecs, save, topLevel, type HeroSave, type SaveData } from '../platform/storage';
 import { firstDungeonDue, TUT } from './tutorial';
@@ -69,18 +70,26 @@ export function otherHeroFor(lv: number): { hero: HeroKey; lv: number } | null {
 /** 지금 쓸 수 있는 단축칸 구성 (열린 칸 수만큼) */
 export function itemsNow() {
   const n = itemSlots(G.save.player.level);
-  return { slots: n, items: G.save.items.slice(0, n) };
+  const loadout = itemLoadoutOf(G.save.items);
+  return { slots: n, items: activeItemKeys(loadout, G.save.player.level), loadout };
 }
 
-/** 단축칸에 아이템 넣기/빼기 (편성·캐릭터 화면). 칸이 다 찼으면 안내 문구를 돌려줌 */
-export function toggleItem(k: ItemKey): string {
-  const { slots, items } = itemsNow();
-  let msg = '';
-  if (items.includes(k)) G.save.items = items.filter(x => x !== k);
-  else if (items.length >= slots) msg = `단축칸 ${slots}칸이 가득 참. 뺄 아이템부터 누르기`;
-  else G.save.items = (Object.keys(ITEMS) as ItemKey[]).filter(x => x === k || items.includes(x));
+/** 선택한 정확한 단축칸만 지정·해제한다. 같은 아이템은 중복 장착 대신 자리 교환. */
+export function setItemSlot(slot: number, key: ItemSlot): string {
+  const result = assignItemSlot(G.save.items, G.save.player.level, slot, key);
+  if (result.msg) return result.msg;
+  G.save.items = result.loadout;
   commit();
-  return msg;
+  return '';
+}
+
+/** 옛 선택 UI 호환: 뺀 자리는 비워 두고, 추가는 첫 빈칸에 넣는다. */
+export function toggleItem(k: ItemKey): string {
+  const { slots, loadout } = itemsNow(), active = loadout.slice(0, slots);
+  const old = active.indexOf(k);
+  if (old >= 0) return setItemSlot(old, null);
+  const empty = active.indexOf(null);
+  return empty < 0 ? `단축칸 ${slots}칸이 가득 참. 뺄 아이템부터 누르기` : setItemSlot(empty, k);
 }
 
 /** 가방의 장비를 착용. 원래 끼던 것은 가방으로 */

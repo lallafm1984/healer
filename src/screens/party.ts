@@ -1,8 +1,8 @@
 /**
  * S05 편성 (27 3-3, 시안 Party27). 2026-10-08 입장 화면(S04)을 여기로 합침: 전투 탭 「출전」 → 편성 → 출발.
  * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스 · 아이템 힌트), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭 (길드를 빼 두면 없음),
- * 경고 줄 (해제 못 함 · 장비 미달일 때만), 시작 위치 육각 미리보기 (역할 아이콘만), 파티원 줄 (누르면 상세 시트).
- * 아래 고정: 단축칸 한 줄 칩 (누르면 고르기 시트) · 다시 뽑기(광고 하루 2번 무료) · 출발 (악몽은 악몽 열쇠, 없으면 눌렀을 때 얻는 곳 + 상점). 지면 광고 이어하기 (15)
+ * 경고 줄 (해제 못 함 · 장비 미달일 때만), 시작 위치 육각 미리보기 (직업 아이콘), 파티원 줄 (누르면 상세 시트).
+ * 아래 고정: 위치가 저장되는 단축칸 4개 · 출발 (악몽은 악몽 열쇠, 없으면 눌렀을 때 얻는 곳 + 상점). 지면 광고 이어하기 (15)
  */
 import { CLASSES } from '../data/classes';
 import { contentOf, isRaid } from '../data/content';
@@ -12,22 +12,23 @@ import { gearStatsOf, specsOf } from '../data/equipment';
 import { FEATURES } from '../data/features';
 import { ENCOUNTERS } from '../data/encounters';
 import { ITEMS, type ItemKey } from '../data/items';
+import { ITEM_SLOT_COUNT, type ItemSlot } from '../data/item-loadout';
 import { ITEM_SLOT_LV } from '../data/progression';
 import { CATS, PERS } from '../data/personalities';
 import { aptOf } from '../data/guild';
 import { create, recruitParty } from '../engine';
-import { Flow, newSeed, rerollCost } from '../game/flow';
+import { Flow, newSeed } from '../game/flow';
 import { autoPick, guildOpen, guildRoster, powerOf, slotsOf, togglePick } from '../game/guild';
 import { isMember, needsShard, spendShard } from '../game/economy';
 import { runMode } from '../game/runmode';
 import { askModal, showRewarded } from '../platform/ads';
 import type { BattleResult } from '../game/settle';
 import { settle } from '../game/settle';
-import { commit, firstDungeonNow, G, healerLevel, heroNow, itemsNow, talentsNow, toggleItem } from '../game/state';
+import { commit, firstDungeonNow, G, healerLevel, heroNow, itemsNow, setItemSlot, talentsNow } from '../game/state';
 import { TUT } from '../game/tutorial';
-import { memDetailHtml, memRowHtml, ROLE_ICON } from './members';
-import { battle, esc, fmt, go, itemChipsHtml, ROLE, screen, useIcon } from './kit';
-import { classEmblem, currencyIcon, LOCK, uiIcon } from './art';
+import { classIcon, memDetailHtml, memRowHtml, ROLE_ICON } from './members';
+import { battle, esc, go, ROLE, screen, useIcon } from './kit';
+import { classEmblem, LOCK, uiIcon } from './art';
 import { afxRows, afxTags, ARROW, BOOK, diffNote, flowHead, guides, KEY, timeline, warnings } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
@@ -52,6 +53,8 @@ let msg = '', gmsg = '';
 let sheet: 'slots' | 'guide' | 'mem' | null = null;
 /** 상세 시트로 연 파티원 줄 */
 let openRow = -1;
+/** 고르기 시트를 연 정확한 단축칸. */
+let openSlot = 0;
 
 const BULB = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg>';
 
@@ -75,7 +78,7 @@ function compose(): void {
 
 /**
  * 시작 위치 미리보기 (시안 육각 칸): 첫 전투를 같은 시드로 만들어 칸 배치를 그림 (실제 전투도 이 시드로 시작).
- * 칸 = 역할 색 + 역할 아이콘 (이름은 줄에), 나는 금테 + 직업 문장. 상세 시트로 연 파티원 칸은 빛남. 높이는 화면 높이 따라 (flow27.css --bh)
+ * 칸 = 역할 색 + 직업 아이콘 (이름은 줄에), 나는 금테 + 직업 문장. 상세 시트로 연 파티원 칸은 빛남.
  */
 function boardHtml(): string {
   const segs = contentOf(Flow.content).fights(Flow.diff);
@@ -93,10 +96,10 @@ function boardHtml(): string {
     const pos = `left:${pc(c.px - HW * K - x0, W)};top:${pc(c.py - R * K - y0, H)};width:${pc(2 * HW * K, W)};height:${pc(2 * R * K, H)}`;
     if (!u) return `<span class="f-hex empty" style="${pos}"><span class="f-hx"></span></span>`;
     if (u.me) return `<span class="f-hex me" style="${pos}"><span class="f-hx">${classEmblem(hero, 'sm')}</span></span>`;
-    who.push(`${ROLE[u.role].name} ${u.nick}`);
-    return `<span class="f-hex${u.nick === sel ? ' on' : ''}" style="${pos}"><span class="f-hx" style="background:${ROLE[u.role].color}">${ROLE_ICON[u.role] || ''}</span></span>`;
+    who.push(`${u.cls ? CLASSES[u.cls].name : ROLE[u.role].name} ${u.nick}`);
+    return `<span class="f-hex${u.nick === sel ? ' on' : ''}" style="${pos}"><span class="f-hx" style="background:${ROLE[u.role].color}">${u.cls ? classIcon(u.cls) : ROLE_ICON[u.role] || ''}</span></span>`;
   }).join('');
-  return `<figure class="f-board"><div class="f-hexes${size}" role="img" aria-label="시작 위치 (자동 배치, 옮길 수 없음): 나, ${esc(who.join(', '))}" style="aspect-ratio:${W.toFixed(3)} / ${H.toFixed(3)};--ar:${(W / H).toFixed(3)};--bmax:${(W * 38).toFixed(0)}px">${cells}</div><figcaption class="cap">시작 위치 · 자동 배치</figcaption></figure>`;
+  return `<figure class="f-board"><div class="f-hexes${size}" role="img" aria-label="시작 위치 (자동 배치, 옮길 수 없음): 나, ${esc(who.join(', '))}" style="aspect-ratio:${W.toFixed(3)} / ${H.toFixed(3)};--ar:${(W / H).toFixed(3)};--bmax:${(W * 38).toFixed(0)}px">${cells}</div></figure>`;
 }
 
 /** 이번 보스에 맞는 소비 아이템 힌트 (공략 시트·단축칸 시트) */
@@ -108,7 +111,7 @@ function itemHint(): string {
 /** 직업 없는 옛 파티 줄 (시뮬·옛 테스트용 파티) */
 function plainRow(m: { role: string; nick: string; pers: keyof typeof PERS }): string {
   const p = PERS[m.pers];
-  return `<li class="pcard f-mem"><span class="f-ri" style="background:${ROLE[m.role].color}">${ROLE_ICON[m.role] || ''}</span><div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${ROLE[m.role].name}</span><span class="f-sp"></span><span class="f-ps${p.star >= 3 ? ' hard' : ''}"><i style="background:${CATS[p.cat]}" aria-hidden="true">${p.ch}</i>${esc(m.pers)}${p.star >= 3 ? '<em aria-hidden="true">!</em>' : ''}</span></span></div></li>`;
+  return `<li class="pcard f-mem"><span class="f-ri" style="background:${ROLE[m.role].color}">${ROLE_ICON[m.role] || ''}</span><div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${ROLE[m.role].name}</span><span class="f-sp"></span><span class="f-ps${p.star >= 3 ? ' hard' : ''}" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</span></span></div></li>`;
 }
 
 /** 길드파티 편성 (02 9-2): 길드원 눌러서 넣고 빼기, 빈자리는 공개모집으로 채움 */
@@ -129,30 +132,42 @@ function guildPickHtml(stage: number): string {
     ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: stage }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
 }
 
-/** 단축칸 한 줄 (27 3-3): 고른 아이템 칩 + 빈칸. 어느 칸이든 누르면 고르기 시트 */
-function slotRow(slots: number, items: ItemKey[]): string {
+/** 네 칸을 항상 표시한다. 빈칸과 잠긴 칸도 같은 위치에 남긴다. */
+function slotRow(slots: number, loadout: ItemSlot[]): string {
   const stock = G.save.tut >= TUT.done ? G.save.bag : null;
-  const chips = items.map(k => {
+  const chips = Array.from({ length: ITEM_SLOT_COUNT }, (_, i) => {
+    const number = `<span class="f-slot-number" aria-hidden="true">${i + 1}</span>`;
+    const k = loadout[i], attrs = `data-slot="${i}" data-slots="${i}"`;
+    if (i >= slots) return `<button class="f-item locked" type="button" ${attrs} disabled aria-label="${i + 1}번 단축칸 · Lv ${ITEM_SLOT_LV[i - 1]}에 열림">${number}${LOCK}<span>잠김</span><small>Lv ${ITEM_SLOT_LV[i - 1]}</small></button>`;
+    if (!k) return `<button class="f-item empty" type="button" ${attrs} aria-label="${i + 1}번 단축칸 · 빈칸 · 아이템 고르기" aria-haspopup="dialog">${number}<span>빈칸 +</span></button>`;
     const n = stock ? stock[k] || 0 : null;
-    return `<button class="f-item${n === 0 ? ' zero' : ''}" type="button" data-slots>${useIcon(k)}<span>${ITEMS[k].short}</span>${n != null ? `<small><span class="sr">남은 </span>${n}</small>` : ''}</button>`;
+    return `<button class="f-item${n === 0 ? ' zero' : ''}" type="button" ${attrs} data-slot-item="${k}" aria-label="${i + 1}번 단축칸 · ${ITEMS[k].name}${n != null ? ` · 보유 ${n}개` : ''} · 바꾸기" aria-haspopup="dialog">${number}${useIcon(k)}<span>${ITEMS[k].short}</span>${n != null ? `<small><span class="sr">남은 </span>${n}</small>` : ''}</button>`;
   }).join('');
-  const empty = Array.from({ length: Math.max(0, slots - items.length) }, () => '<button class="f-item empty" type="button" data-slots>빈칸</button>').join('');
-  return `<div class="f-slots" role="group" aria-label="단축칸 ${slots}칸 (누르면 바꾸기)"><span class="cap f-slab" aria-hidden="true">단축칸</span>${chips}${empty}</div>`;
+  return `<div class="f-slots" role="group" aria-label="단축칸 4칸 중 ${slots}칸 열림">${chips}</div>`;
 }
 
 /** 아래에서 올라오는 시트 (열 때만 그림) */
-const sheetBox = (cls: string, label: string, inner: string) =>
-  `<div class="sheet-dim" data-shut></div><section class="sheet ${cls}" role="dialog" aria-modal="true" aria-label="${esc(label)}" tabindex="-1"><span class="grip"></span>${inner}<button class="btn2 f-shut" type="button" data-shut>닫기</button></section>`;
+const sheetBox = (cls: string, label: string, inner: string) => {
+  const close = '<button class="btn2 f-shut" type="button" data-shut>닫기</button>';
+  const body = cls === 'f-gsheet' ? `<div class="f-sheet-body">${inner}</div><footer class="f-sheet-actions">${close}</footer>` : `${inner}${close}`;
+  return `<div class="sheet-dim" data-shut></div><section class="sheet ${cls}" role="dialog" aria-modal="true" aria-label="${esc(label)}" tabindex="-1"><span class="grip"></span>${body}</section>`;
+};
 
 /** 단축칸 고르기 시트 (캐릭터 › 스킬의 단축칸과 같은 저장). 닫혀 있어도 그려 둠 (칸 수·아이템 설명) */
-function slotSheetHtml(slots: number, items: ItemKey[]): string {
+function slotSheetHtml(loadout: ItemSlot[]): string {
   const hid = sheet === 'slots' ? '' : ' hidden', ih = itemHint();
-  return `<div class="sheet-dim" data-shut${hid}></div><section class="sheet f-isheet" role="dialog" aria-modal="true" aria-label="단축칸 고르기" tabindex="-1"${hid}><span class="grip"></span>
-    <h2 class="h-rule">단축칸 ${slots}칸<span class="rule"></span><span class="cap">${slots < 4 ? `Lv ${ITEM_SLOT_LV[slots - 1]}에 1칸 더` : '최대'}</span></h2>
+  const stock = G.save.tut >= TUT.done ? G.save.bag : null;
+  const options = (Object.keys(ITEMS) as ItemKey[]).map(k => {
+    const it = ITEMS[k], at = loadout.indexOf(k), selected = at === openSlot, n = stock ? stock[k] || 0 : null;
+    const status = selected ? '선택됨' : at >= 0 ? `${at + 1}번 칸${loadout[openSlot] ? '과 교체' : '에서 이동'}` : '이 칸에 지정';
+    return `<button type="button" class="f-item-option${selected ? ' selected' : ''}${n === 0 ? ' zero' : ''}" data-item="${k}" aria-pressed="${selected}"><span class="f-item-art">${useIcon(k)}</span><span class="f-item-copy"><b>${it.name}</b><small class="f-item-stock">${n == null ? '튜토리얼 제공' : `보유 ${n}개`}</small><span class="f-item-desc">${esc(it.desc)}</span><em class="f-item-status">${status}</em></span></button>`;
+  }).join('');
+  return `<div class="sheet-dim" data-shut${hid}></div><section class="sheet f-isheet" role="dialog" aria-modal="true" aria-label="${openSlot + 1}번 단축칸 아이템" data-edit-slot="${openSlot}" tabindex="-1"${hid}><span class="grip"></span>
+    <h2 class="h-rule">${openSlot + 1}번 단축칸 아이템<span class="rule"></span></h2>
     ${ih ? `<p class="f-ih">${BULB}<span>${esc(ih)}</span></p>` : ''}
-    ${itemChipsHtml(items)}
-    <p class="note${sheet === 'slots' && msg ? ' warn' : ''}">${sheet === 'slots' && msg ? esc(msg) : items.map(k => `<b>${ITEMS[k].short}</b> ${ITEMS[k].desc}`).join('<br>') || '빈 칸'}</p>
-    <button class="btn2 f-shut" type="button" data-shut>닫기</button></section>`;
+    <div class="f-item-options">${options}</div>
+    ${sheet === 'slots' && msg ? `<p class="note warn" role="status">${esc(msg)}</p>` : ''}
+    <div class="f-item-actions"><button class="btn2" type="button" data-item-clear${loadout[openSlot] ? '' : ' disabled'}>이 칸 비우기</button><button class="btn2 f-shut" type="button" data-shut>닫기</button></div></section>`;
 }
 
 /** 공략 시트 (입장 화면의 구간·공략·어픽스를 옮김): 난이도 수치 · 어픽스 · 구간 노드 줄 · 보스별 공략 접기 (보스 하나면 노드 줄 없이 바로 기술) · 아이템 힌트 */
@@ -176,14 +191,14 @@ function memSheetHtml(stage: number): string {
 function render(keepScroll = true): void {
   modal.beforeRender();
   const scroll = keepScroll ? s.el.querySelector<HTMLElement>('.ns-body')?.scrollTop || 0 : 0;
+  const itemScroll = sheet === 'slots' ? s.el.querySelector<HTMLElement>('.f-item-options')?.scrollTop || 0 : 0;
   const c = contentOf(Flow.content);
-  const { slots, items } = itemsNow();
-  const cost = rerollCost(Flow.rerolls);
+  const { slots, loadout } = itemsNow();
   const go2 = guildOpen(G.save);
   const guildTab = !go2.ok ? ` ${LOCK}${go2.why.replace('에 열림', '')}` : !G.save.guild.members.length ? ' · 길드원 없음' : '';
   const isGuild = Flow.mode === 'guild' && guildReady();
   const m = modeNow(), stage = m.stage, segs = c.fights(Flow.diff);
-  const tutDone = G.save.tut >= TUT.done, adLeft = AD_LIMIT.reroll - G.save.daily.ads.reroll;
+  const tutDone = G.save.tut >= TUT.done;
   // 악몽 = 출발할 때 악몽 열쇠 1개 (12 3-4). 없으면 출발이 흐려지고, 누르면 아래에 얻는 곳 + 상점
   const shardOn = tutDone && !Flow.chal && needsShard(Flow.diff), shards = G.save.wallet.shards, noShard = shardOn && !shards;
   const sub = Flow.chal ? `주간 도전 ${Flow.chal}단계` : `${Flow.diff}${m.affixes.length ? ` <span class="f-afxs">${afxTags(m.affixes)}</span>` : ''}`;
@@ -195,27 +210,27 @@ function render(keepScroll = true): void {
   s.el.innerHTML = `${flowHead(Flow.chal ? 's-entry' : 's-content', Flow.chal ? CHAL.name : c.name, sub, mark, guideBtn)}
     ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="파티 모집"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티${guildTab}</button></nav>` : ''}
     <div class="ns-body f-pty">
-      ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">파티는 파티 찾기로 무작위로 들어옴. 마음에 안 들면 <b>다시 뽑기</b> (처음 한 번 무료). 보스 기술은 「공략」. 준비되면 「출발」.</p>' : ''}
+      ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">보스 기술은 「공략」에서 확인. 단축칸을 준비하면 「출발」.</p>' : ''}
       ${tutDone ? warnings(segs, Flow.diff, stage, { gear: !Flow.chal }) : ''}
       ${boardHtml()}
       ${isGuild ? guildPickHtml(stage) : `<section class="pn f-mems"><ul class="pcards">${rows}</ul></section>`}
       ${msg && !sheet && !noShard ? `<p class="note warn">${esc(msg)}</p>` : ''}
-      ${tutDone && !isGuild && cost && adLeft > 0 ? `<button class="btn2 f-adrr" type="button" id="adReroll">광고 보고 무료로 다시 뽑기 · 오늘 ${adLeft}번</button>` : ''}
     </div>
     <footer class="ns-foot f-foot2">
       ${noShard && msg ? `<p class="f-warn ticket" role="alert"><span class="f-mark warn" aria-hidden="true">!</span><span class="v">악몽 열쇠가 없음 <span class="cap">상점에서 제작하거나 주간 임무로</span></span><button class="btn2" type="button" data-go="s-shop" data-arg="gold">상점</button></p>` : ''}
-      ${slotRow(slots, items)}
+      ${slotRow(slots, loadout)}
       <div class="f-btns">
-        <button class="f-rr" type="button" id="reroll"><span class="f-rrt">다시 뽑기</span>${cost ? `<small aria-label="골드 ${fmt(cost)}">${currencyIcon('gold')}${fmt(cost)}</small>` : '<small class="free">무료 1회</small>'}</button>
         <button class="f-go" type="button" id="depart"${noShard ? ' aria-disabled="true"' : ''}>${shardOn ? KEY : ''}<span class="cta2"><span class="f-gt">출발</span>${shardOn ? `<small>${shards ? `악몽 열쇠 1개 씀 · ${shards}/${SHARD_MAX}` : '악몽 열쇠 없음'}</small>` : ''}</span>${ARROW}</button>
       </div>
     </footer>
-    ${slotSheetHtml(slots, items)}
+    ${slotSheetHtml(loadout)}
     ${sheet === 'guide' ? guideSheetHtml() : sheet === 'mem' ? memSheetHtml(stage) : ''}`;
   msg = '';
   const body = s.el.querySelector<HTMLElement>('.ns-body');
   if (body) body.scrollTop = scroll;
-  modal.sync(sheet ? s.el.querySelector<HTMLElement>('.sheet:not([hidden])') : null, sheet ? [`${sheet}:${sheet === 'mem' ? openRow : ''}`] : []);
+  const itemList = s.el.querySelector<HTMLElement>('.f-item-options');
+  if (itemList) itemList.scrollTop = itemScroll;
+  modal.sync(sheet ? s.el.querySelector<HTMLElement>('.sheet:not([hidden])') : null, sheet ? [`${sheet}:${sheet === 'mem' ? openRow : sheet === 'slots' ? openSlot : ''}`] : []);
 }
 
 /** 시트 열기·닫기. 닫으면 연 버튼으로 초점을 돌려줌 */
@@ -239,19 +254,14 @@ s.el.addEventListener('click', e => {
   if (t.closest('#autoPick')) { G.save.guild.pick = []; Flow.gpick = autoPick(G.save, firstEnc()); compose(); render(); return; }
   const pr = t.closest<HTMLElement>('[data-prow]');
   if (pr) { openRow = Number(pr.dataset.prow); openSheet('mem', `[data-prow="${openRow}"]`); return; }
-  if (t.closest('[data-slots]')) { openSheet('slots', '.f-slots [data-slots]'); return; }
+  const slot = t.closest<HTMLButtonElement>('[data-slots]');
+  if (slot && !slot.disabled) { openSlot = Number(slot.dataset.slot); openSheet('slots', `.f-slots [data-slot="${openSlot}"]`); return; }
+  if (t.closest('[data-item-clear]')) { msg = setItemSlot(openSlot, null); render(); return; }
   const it = t.closest<HTMLElement>('[data-item]');
   if (it) {
-    msg = toggleItem(it.dataset.item as ItemKey);
+    msg = setItemSlot(openSlot, it.dataset.item as ItemKey);
     render(); return;
   }
-  if (t.closest('#reroll')) {
-    const cost = rerollCost(Flow.rerolls);
-    if (G.save.player.gold < cost) { msg = `골드 부족 (골드 ${fmt(cost)} 필요)`; render(); return; }
-    G.save.player.gold -= cost; Flow.rerolls++; commit();
-    roll(); compose(); render(); return;
-  }
-  if (t.closest('#adReroll')) { void adReroll(); return; }
   if (t.closest('#depart')) { msg = depart(); if (msg) render(); }
 });
 
@@ -262,15 +272,6 @@ s.el.addEventListener('keydown', e => {
   const row = (e.target as HTMLElement).closest<HTMLElement>('[data-prow], [data-gpick]');
   if (row && row === e.target) { e.preventDefault(); row.click(); }
 });
-
-/** 광고 다시 뽑기 (15 7장): 하루 2번, 골드 대신 */
-async function adReroll(): Promise<void> {
-  const save = G.save, mem = isMember(save);
-  if (save.daily.ads.reroll >= AD_LIMIT.reroll) return;
-  if (!(await showRewarded('파티 다시 뽑기 (무료)', mem))) return;
-  save.daily.ads.reroll++; commit();
-  roll(); compose(); render();
-}
 
 /** 지면 광고 보고 진 구간부터 다시 (15 7장): 하루 3번, 등급 최대 B. 주간 도전·자동 힐러 판·스스로 포기한 판은 안 물어봄 */
 async function tryContinue(r: BattleResult): Promise<boolean> {
@@ -293,12 +294,12 @@ export function depart(): string {
   // 튜토리얼 첫 던전이면 전투 중 안내 (02 11장 4·5번)
   const coach = Flow.coach ?? (c.key === 'rustfort' && firstDungeonNow() ? 'dungeon' : null);
   Flow.coach = null;
-  const { slots, items } = itemsNow();
+  const { slots, items, loadout } = itemsNow();
   const m = modeNow();
   battle().start({
     content: c.key, name: Flow.chal ? `도전 ${Flow.chal}단계` : c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: m.stage, gearStats: gearStatsOf(G.save.gear.equipped),
     affixes: m.affixes, bossMult: m.bossMult, limit: m.limit, chal: m.chal || undefined,
-    party: Flow.party!, items, slots, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(), specs: specsOf(G.save.gear.equipped, heroNow()),
+    party: Flow.party!, items, itemLayout: loadout, slots, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(), specs: specsOf(G.save.gear.equipped, heroNow()),
     stock: tutDone ? { ...G.save.bag } : undefined,
     async onEnd(r) {
       if (await tryContinue(r)) return;

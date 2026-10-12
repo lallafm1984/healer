@@ -174,8 +174,8 @@ export interface SaveData {
   gear: { equipped: Equipped; bag: GearItem[]; seen?: number; codex: string[]; /** 장비 도감 칸 (34 6-10 ④, data/dex). 옛 저장은 가진 장비로 채움 */ dex: string[]; /** 장비 도감 보상을 받은 단계 수 */ dexPaid: number };
   /** 강화 재료 (12 1장): 강화석 (+1~+5), 정제 강화석 (+6~+10) */
   mats: { stone: number; refined: number };
-  /** 소비 아이템 단축칸 구성 */
-  items: ItemKey[];
+  /** 소비 아이템 단축칸 구성. null은 빈자리이며 옛 압축 배열도 같은 순서로 읽는다. */
+  items: (ItemKey | null)[];
   /** 콘텐츠 → 난이도 → 기록 */
   clears: Record<string, Partial<Record<DiffName, ClearRecord>>>;
   /** 로비에 보여 줄 지난 판 한마디 */

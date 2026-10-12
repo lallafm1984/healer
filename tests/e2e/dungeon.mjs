@@ -81,20 +81,22 @@ export default async function dungeon(url, shots) {
   await page.click('#s-party .pcard:first-child'); await page.clock.runFor(50);
   ok(/단단한 몸|신성한 갑옷/.test(await page.textContent('#s-party .f-msheet')) && (await page.locator('#s-party .f-hex.on').count()) === 1, '탱커 줄을 누르면 상세 시트 (직업 패시브) + 위치판 칸 빛남');
   await page.click('#s-party .f-msheet [data-shut]'); await page.clock.runFor(50);
-  ok(/단축칸 2칸/.test(await page.textContent('#s-party')) && await pickedItems(page) === 'mana,life', 'Lv 1 = 단축칸 2칸, 마나·생명');
-  await page.click('#s-party [data-slots]'); await page.clock.runFor(50);
-  await page.click('#s-party [data-item="cleanse"]');
-  ok(/가득 참/.test(await page.textContent('#s-party .note.warn')), '3번째는 안 들어감');
-  await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
   const nicks = () => page.evaluate(() => [...document.querySelectorAll('#s-party .pcard .pnick')].map(b => b.textContent).join());
-  const before = await nicks();
-  ok(/무료/.test(await page.textContent('#reroll')), '첫 다시 뽑기 = 무료');
-  await page.click('#reroll'); await page.clock.runFor(50);
-  ok(/10/.test(await page.textContent('#reroll')), `다시 뽑으면 다음은 10골드 (${(await page.textContent('#reroll')).trim()})`);
-  await page.click('#reroll'); await page.clock.runFor(50);
-  ok(/골드 부족/.test(await page.textContent('#s-party .note.warn')), '골드 0이면 못 뽑음');
+  const before = await nicks(), goldBefore = (await save()).player.gold;
+  const slots = await page.locator('#s-party .f-slots .f-item').evaluateAll(buttons => buttons.map(b => ({ slot: b.dataset.slot, disabled: b.disabled, label: b.getAttribute('aria-label') })));
+  ok(slots.length === 4 && slots.map(s => s.slot).join() === '0,1,2,3' && await pickedItems(page) === 'mana,life'
+    && slots[2].disabled && /Lv 15/.test(slots[2].label) && slots[3].disabled && /Lv 30/.test(slots[3].label), 'Lv 1 = 단축칸 4개 표시, 마나·생명 2칸 열림, Lv 15·30 잠금');
+  await page.click('#s-party [data-slots="0"]'); await page.clock.runFor(50);
+  await page.click('#s-party .f-isheet [data-item="cleanse"]'); await page.clock.runFor(50);
+  ok(await pickedItems(page) === 'cleanse,life' && await page.isVisible('#s-party .f-isheet[data-edit-slot="0"]'), '1번 단축칸을 해제로 교체, 다른 칸 유지·시트에서 결과 확인');
+  await page.click('#s-party .f-isheet [data-item="mana"]');
+  await page.keyboard.press('Escape'); await page.clock.runFor(50);
+  ok(await pickedItems(page) === 'mana,life' && await page.locator('#s-party [data-slots="0"]').evaluate(el => el === document.activeElement), '1번 칸 마나 복원·Esc로 해당 칸 초점 복귀');
+  ok(await page.locator('#s-party #reroll, #s-party #adReroll').count() === 0, '편성에서 다시 뽑기·광고 다시 뽑기 버튼 제거');
+  const departAt = await page.locator('#depart').boundingBox(), footAt = await page.locator('#s-party .f-foot2').boundingBox();
+  ok(Math.abs(departAt.x + departAt.width / 2 - footAt.x - footAt.width / 2) <= 1, '출발 버튼은 편성 하단 중앙');
   const party0 = await nicks();
-  ok(party0.split(',').length === 4 && party0 !== before, `다시 뽑으면 다른 파티 (${before} → ${party0})`);
+  ok(party0.split(',').length === 4 && party0 === before && (await save()).player.gold === goldBefore, '단축칸 준비 중 파티 유지·골드 소모 없음');
   await page.screenshot({ path: `${shots}/dungeon_party.png` });
 
   // ---- 전투: 구간 → 휴식 → 구간 ----

@@ -31,25 +31,24 @@ export default async function legacyUi(url, shots) {
   await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
 
   // ---- 편성: 소비 아이템 ----
-  const chips = await ev(() => [...document.querySelectorAll('#s-party [data-item]')].map(b => [b.dataset.item, b.getAttribute('aria-pressed')]));
-  ok(chips.length === 6 && chips.filter(c => c[1] === 'true').map(c => c[0]).join() === 'mana,life,cleanse,feather', `아이템 6개 중 4개 선택 ${JSON.stringify(chips)}`);
-  ok(/단축칸 4칸/.test(await page.textContent('#s-party')), 'Lv 40 = 단축칸 4칸');
-  // 단축칸 고르기는 아래 시트 안 (처음엔 닫힘): 열고 고른 뒤 닫아야 출발 버튼이 보임
-  await page.click('#s-party [data-slots]'); await page.clock.runFor(50);
-  await page.click('#s-party [data-item="medit"]');
-  ok(/가득 참/.test(await page.textContent('#s-party .note.warn')), '5번째는 안 들어감 (안내)');
-  await page.click('#s-party [data-item="feather"]');
-  await page.click('#s-party [data-item="shield"]');
+  const chips = await ev(() => [...document.querySelectorAll('#s-party .f-slots .f-item')].map(b => [b.dataset.slot, b.dataset.slotItem, b.disabled]));
+  ok(chips.length === 4 && chips.map(c => c[1]).join() === 'mana,life,cleanse,feather', `네 단축칸에 저장된 순서대로 아이템 표시 ${JSON.stringify(chips)}`);
+  ok(chips.every(c => !c[2]) && await page.locator('#s-party .f-slots').getAttribute('aria-label') === '단축칸 4칸 중 4칸 열림', 'Lv 40 = 단축칸 4칸 모두 열림');
+  // 정확한 4번 칸을 고른다. 전체 선택 개수가 아니라 해당 칸만 교체한다.
+  await page.click('#s-party [data-slots="3"]'); await page.clock.runFor(50);
+  await page.click('#s-party .f-isheet [data-item="medit"]'); await page.clock.runFor(50);
+  ok(await pickedItems(page) === 'mana,life,cleanse,medit' && await page.isVisible('#s-party .f-isheet[data-edit-slot="3"]'), '4번 칸만 명상으로 교체하고 시트에서 선택 결과 확인');
+  await page.click('#s-party .f-isheet [data-item="shield"]');
+  ok(/탱커 강타/.test(await page.textContent('#s-party .f-isheet .f-ih')), '단축칸 시트에도 녹슨 문지기 아이템 힌트');
   await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
   const sel = await pickedItems(page);
   ok(sel === 'mana,life,cleanse,shield', `깃털 빼고 보호 넣기 → ${sel}`);
-  ok(/탱커 강타/.test(await page.textContent('#s-party .f-isheet .f-ih')), '단축칸 시트에도 녹슨 문지기 아이템 힌트');
   await page.reload(); await page.clock.runFor(300);
   await toParty(page);
   const sel2 = await pickedItems(page);
   ok(sel2 === 'mana,life,cleanse,shield', `다시 열어도 기억 (${sel2})`);
-  await page.click('#s-party [data-slots]'); await page.clock.runFor(50);
-  await page.evaluate(() => document.querySelector('#s-party .items').scrollIntoView({ block: 'center' }));
+  await page.click('#s-party [data-slots="3"]'); await page.clock.runFor(50);
+  await page.locator('#s-party .f-isheet [data-item="shield"]').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${shots}/v6_party_items.png` });
   await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
 
@@ -158,7 +157,9 @@ export default async function legacyUi(url, shots) {
   // ---- 깃털 + 20인 판 ----
   await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
   await toParty(page, { content: 'cathedral1', tab: 'raid20', diff: '악몽' });
-  ok((await page.locator('#s-content [data-content^="cathedral"]').count()) === 4 && (await page.locator('#s-content [data-content^="abyss"]').count()) === 0, '20인 레이드 탭 = 20인 장소만 (대성당 4칸, 10인 탑은 10인 탭에)');
+  ok(await page.locator('#s-content').getAttribute('data-selected-content') === 'cathedral1'
+    && await page.locator('#s-content [data-ctab="raid20"]').getAttribute('aria-selected') === 'true'
+    && await page.locator('#s-content .b-place-modal').count() === 0, '20인 장소 대성당 선택이 편성까지 유지·장소 선택 팝업 자동 닫힘');
   await page.click('#guideOpen'); await page.clock.runFor(50);
   ok(/20인/.test(await page.textContent('#s-party .f-gsheet .h-rule')) && /악몽 전용 기술/.test(await page.textContent('#s-party .f-gsheet .f-dnote')), '20인 악몽: 공략 시트에 인원 20, 악몽 안내');
   await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
@@ -169,8 +170,8 @@ export default async function legacyUi(url, shots) {
   const ent = await page.textContent('#s-party .f-gsheet');
   ok(/20인/.test(ent) && /유령 성가대/.test(ent) && /노래/.test(ent), '20인 보통: 유령 성가대 공략');
   await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
-  await page.click('#s-party [data-slots]'); await page.clock.runFor(50);
-  await page.click('#s-party [data-item="shield"]'); await page.click('#s-party [data-item="feather"]');
+  await page.click('#s-party [data-slots="3"]'); await page.clock.runFor(50);
+  await page.click('#s-party .f-isheet [data-item="feather"]');
   await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
   await page.click('#depart'); await page.clock.runFor(3300);
   const b20 = await ev(() => ({ board: window.__proto.F.board, cells: window.__proto.F.cells.length }));

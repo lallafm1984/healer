@@ -107,9 +107,14 @@ export default async function character(url, shots) {
   await page.click('#s-char [data-islot="1"]'); await page.clock.runFor(50);
   ok(await page.isVisible('#s-char .c7-isheet'), '단축칸을 누르면 고르기 시트');
   await page.click('#s-char .c7-isheet [data-item="medit"]'); await page.clock.runFor(50);
-  ok(/가득 참/.test(await text('#s-char .c7-isheet .note.warn')), '단축칸 2칸이 차면 안내');
-  await page.click('#s-char .c7-isheet [data-item="life"]'); await page.click('#s-char .c7-isheet [data-item="medit"]'); await page.clock.runFor(50);
-  ok((await save()).items.join() === 'mana,medit', '단축칸 바꾸기 저장 (생명 → 명상)');
+  ok(JSON.stringify((await save()).items) === JSON.stringify(['mana', 'medit', null, null]), '선택한 2번 단축칸만 생명 → 명상으로 교체하고 네 칸 저장');
+  await page.click('#s-char .c7-isheet [data-item="mana"]'); await page.clock.runFor(50);
+  ok(JSON.stringify((await save()).items) === JSON.stringify(['medit', 'mana', null, null]), '다른 칸에서 쓰는 마나를 고르면 두 칸 자리 교환');
+  await page.click('#s-char .c7-isheet [data-item="medit"]'); await page.clock.runFor(50);
+  await page.click('#s-char .c7-isheet [data-item-clear]'); await page.clock.runFor(50);
+  ok(JSON.stringify((await save()).items) === JSON.stringify(['mana', null, null, null]), '선택한 칸 해제는 앞 아이템과 빈칸 위치를 보존');
+  await page.click('#s-char .c7-isheet [data-item="medit"]'); await page.clock.runFor(50);
+  ok(JSON.stringify((await save()).items) === JSON.stringify(['mana', 'medit', null, null]), '같은 2번 빈칸에 명상 다시 지정');
   await page.click('#s-char .sheet-dim', { position: { x: 20, y: 120 } }); await page.clock.runFor(50);
   ok(!(await page.isVisible('#s-char .sheet')) && /명상/.test(await text('#s-char .c7-items')), '시트 바깥을 누르면 닫힘, 단축칸에 명상');
 

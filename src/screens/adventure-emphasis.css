@@ -122,7 +122,6 @@
 }
 @media (max-height: 520px) {
   #s-content { --b-page-size: 2; }
-  #s-content .topbar.tb-mmo { display: none; }
   #s-content .b-body { grid-template-rows: 44px minmax(70px,1fr) 44px 44px; }
   #s-content .b-gate { min-height: 70px; max-height: none; }
   #s-content .b-chal { padding: 3px 5px; gap: 4px; }
