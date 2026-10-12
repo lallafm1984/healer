@@ -1,4 +1,4 @@
-/** 힐러 직업 (25): 저장·직업 퀘스트·직업 바꾸기, 드루이드·성기사 고유 효과 */
+/** 힐러 직업 (25): 저장·직업 바꾸기 (v11 캐릭터, 68), 드루이드·성기사 고유 효과 */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TUNE } from '../src/data/tune';
 import { BEACON, DRUID_BIG, HAND_GUARD, SANCTUARY, TALENT_STANDIN } from '../src/data/heroConst';
@@ -7,7 +7,7 @@ import * as E from '../src/engine';
 import { damage } from '../src/engine/core';
 import { heroHeal, heroTick } from '../src/engine/heroes';
 import { heroWin } from '../src/game/settle';
-import { G, heroNow, heroStatus, switchHero, switchOpen } from '../src/game/state';
+import { G, heroNow, heroStatus, makeChar, switchHero, switchOpen } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
 import { migrate, newSave } from '../src/platform/storage';
 
@@ -36,73 +36,67 @@ describe('직업 저장', () => {
   });
 });
 
-describe('직업 퀘스트', () => {
-  const at = (hero: 'priest' | 'druid' | 'paladin') => { const s = newSave(1); s.tut = TUT.done; s.hero = hero; return s; };
-  it('튜토리얼 중엔 세지 않음', () => {
-    const s = at('druid'); s.tut = TUT.explore;
-    expect(heroWin(s, 'dungeon', 'rustfort', '보통')).toBeNull();
+describe('직업 퀘스트는 없음 (68: 캐릭터 칸을 사서 만듦)', () => {
+  beforeEach(() => {
+    G.save = newSave(1);
+    G.save.tut = TUT.done;
+    G.save.roster.slots = 2;
   });
-  it('드루이드 「숲의 부름」: 녹슨 요새 보통 이상만, 1번이면 해금', () => {
-    const s = at('druid');
-    expect(heroWin(s, 'dungeon', 'rustfort', '쉬움')).toBeNull();
-    expect(heroWin(s, 'raid', 'abyss1', '보통')).toBeNull();
-    expect(heroWin(s, 'dungeon', 'rustfort', '어려움')).toEqual({ hero: 'druid', n: 1, need: 1, unlocked: true });
-    expect(s.heroes.druid!.unlocked).toBe(true);
-    expect(s.heroes.druid!.wins).toBe(3);
-    expect(heroWin(s, 'dungeon', 'rustfort', '보통')).toBeNull(); // 이미 해금
+  it('튜토리얼 중엔 이긴 판도 세지 않음', () => {
+    G.save.tut = TUT.explore;
+    expect(heroWin(G.save, 'dungeon', 'rustfort', '보통')).toBeNull();
+    expect(G.save.heroes.priest?.wins ?? 0).toBe(0);
   });
-  it('성기사 「첫 맹세」: 녹슨 요새 어려움 이상만, 1번이면 해금 (2026-10-07 정식 조건)', () => {
-    const s = at('paladin');
-    expect(heroWin(s, 'dungeon', 'rustfort', '보통')).toBeNull();
-    expect(s.heroes.paladin!.unlocked).toBeFalsy();
-    expect(heroWin(s, 'dungeon', 'rustfort', '악몽')).toEqual({ hero: 'paladin', n: 1, need: 1, unlocked: true });
+  it('새 캐릭터는 만들 때 해금, 이긴 판만 셈', () => {
+    expect(makeChar('druid')).toBe('');
+    expect(G.save.heroes.druid!.unlocked).toBe(true);
+    expect(heroWin(G.save, 'dungeon', 'rustfort', '어려움')).toBeNull();
+    expect(G.save.heroes.druid!.wins).toBe(1);
   });
-  it('사제는 퀘스트 없이 판 수만 셈', () => {
-    const s = at('priest');
-    expect(heroWin(s, 'dungeon', 'rustfort', '보통')).toBeNull();
-    expect(s.heroes.priest!.wins).toBe(1);
+  it('드루이드 · 성기사 해금 = 상점에서 캐릭터 칸', () => {
+    expect(HEROES.druid.unlock.how).toMatch(/캐릭터 칸/);
+    expect(HEROES.paladin.unlock.how).toMatch(/캐릭터 칸/);
   });
 });
 
-describe('직업 바꾸기', () => {
+describe('직업 바꾸기 = 그 직업 캐릭터로 (68)', () => {
   beforeEach(() => {
     G.save = newSave(1);
     G.save.tut = TUT.done;
     G.save.settings.devUnlock = false;
+    G.save.roster.slots = 3;
   });
-  it('Lv 10 전엔 못 바꿈, 튜토리얼 중엔 사제로만', () => {
-    G.save.player.level = 9;
+  it('튜토리얼 중엔 못 바꾸고 사제로만', () => {
+    G.save.tut = TUT.explore;
     expect(switchOpen().ok).toBe(false);
     expect(switchHero('druid')).toBe(false);
-    G.save.tut = TUT.explore; G.save.hero = 'druid';
+    G.save.hero = 'druid';
     expect(heroNow()).toBe('priest');
   });
-  it('Lv 10: 드루이드는 퀘스트 상태로 고를 수 있고, 성기사(Lv 20)는 잠김', () => {
-    G.save.player.level = 10;
-    expect(heroStatus('druid').state).toBe('quest');
-    expect(heroStatus('paladin').state).toBe('locked');
-    expect(switchHero('paladin')).toBe(false);
-    expect(switchHero('druid')).toBe(true);
-    expect(G.save.hero).toBe('druid');
+  it('캐릭터가 없는 직업은 잠김, 있으면 레벨과 상관없이 바꿈', () => {
+    G.save.player.level = 1;
+    expect(switchOpen().ok).toBe(true);
+    expect(heroStatus('druid').state).toBe('locked');
+    expect(switchHero('druid')).toBe(false);
+    makeChar('druid');
     expect(heroStatus('druid').state).toBe('now');
+    expect(heroStatus('priest').state).toBe('open');
+    expect(heroStatus('paladin')).toEqual({ state: 'locked', dev: false, quest: 0, need: 0 });
+    expect(switchHero('priest')).toBe(true);
+    expect(G.save.hero).toBe('priest');
   });
-  it('휠 배치·칸 탭은 직업마다 따로', () => {
-    G.save.player.level = 20;
+  it('휠 배치·칸 탭은 캐릭터마다 따로', () => {
     const lay = { NW: 'hymn', N: 'purify', NE: 'heal', W: 'renew', E: 'flash', SW: null, S: 'poh', SE: 'guardian' };
     G.save.settings.layout = lay; G.save.settings.tapKey = 'flash';
-    switchHero('druid');
+    makeChar('druid');
     expect(G.save.settings.layout).toBeNull();
     expect(G.save.settings.tapKey).toBe('heal');
     G.save.settings.tapKey = 'renew';
     switchHero('priest');
     expect(G.save.settings.layout).toEqual(lay);
     expect(G.save.settings.tapKey).toBe('flash');
-    expect(G.save.heroes.druid!.tapKey).toBe('renew');
-  });
-  it('개발 빌드 「레벨 잠금 무시」면 Lv 1에서도 퀘스트 상태로 열림', () => {
-    G.save.settings.devUnlock = true;
-    expect(switchOpen()).toEqual({ ok: true, dev: true, why: '' });
-    expect(heroStatus('paladin')).toMatchObject({ state: 'quest', dev: true });
+    switchHero('druid');
+    expect(G.save.settings.tapKey).toBe('renew');
   });
 });
 

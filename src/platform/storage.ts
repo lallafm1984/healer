@@ -11,12 +11,13 @@ import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
 import type { GuildMember, PostTier } from '../data/guild';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
+import { CONTENT } from '../data/content';
 import { STARTER_BAG } from '../data/economy';
 import type { ItemKey } from '../data/items';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
@@ -159,6 +160,25 @@ export interface WeeklySave {
 /** 시즌 패스 (15 4장) */
 export interface PassSave { season: number; xp: number; premium: boolean; free: number[]; prem: number[] }
 
+/**
+ * 캐릭터 하나 (68, v11): 칸 하나에 캐릭터 하나, 직업은 만들 때 고정. 캐릭터마다 따로 계정처럼 (골드 · 장비 · 도감 · 임무 · 기록 전부).
+ * 지금 캐릭터 저장은 SAVE_KEY, 쉬는 캐릭터는 charKey(id)에 통째로
+ */
+export interface CharMeta {
+  id: number;
+  hero: HeroKey;
+  name: string;
+  /** 마지막으로 저장할 때 레벨 (캐릭터 선택에 보임) */
+  level: number;
+  /** 마지막으로 고른 시각 (ms) */
+  at: number;
+  /** 아직 따로 키에 안 쓴 쉬는 캐릭터 (저장 옮기기 직후 · 기기 저장이 없을 때). save()가 charKey(id)에 쓰고 지움 */
+  park?: SaveData;
+}
+
+/** 캐릭터 목록 (계정): cur = 지금 캐릭터 id, slots = 산 칸 수 (처음 1), next = 다음 캐릭터 id */
+export interface Roster { cur: number; slots: number; next: number; chars: CharMeta[] }
+
 export interface SaveData {
   v: number;
   /** 처음 만든 시각 (ms) */
@@ -208,6 +228,8 @@ export interface SaveData {
   chalChestHero?: HeroKey;
   /** 첫 구매 보너스를 받은 상품 (15 3장) */
   firstBuy: string[];
+  /** v11: 캐릭터 목록 (계정, 68). 캐릭터를 바꿀 때 shareAccount가 새 캐릭터 저장으로 옮김 */
+  roster: Roster;
 }
 
 export const newDaily = (day = ''): DailySave => ({ day, missions: [], swapped: false, chest: false, banked: 0, pub: 0, ads: { cont: 0, chest: 0, reroll: 0 }, chest2: false });
@@ -218,12 +240,14 @@ export function heroSaveOf(d: SaveData, h: HeroKey): HeroSave {
   return (d.heroes[h] ||= { layout: null, tapKey: 'heal', unlocked: h === 'priest', quest: 0, wins: 0 });
 }
 
-/** 그 직업 레벨 (지금 직업은 player, 안 해 본 직업은 1) */
+/** 그 직업 레벨 (지금 캐릭터 직업은 player, 다른 직업은 그 직업 캐릭터 중 가장 높은 레벨 (v11), 없으면 1) */
 export function heroLevelOf(d: SaveData, h: HeroKey): number {
-  return h === d.hero ? d.player.level : d.heroes[h]?.level ?? 1;
+  if (h === d.hero) return d.player.level;
+  const cs = d.roster?.chars.filter(c => c.hero === h && c.id !== d.roster.cur) ?? [];
+  return cs.length ? Math.max(...cs.map(c => c.level)) : d.heroes[h]?.level ?? 1;
 }
 
-/** 가장 높은 직업 레벨 (34 3-1): 직업 해금 · 직업 바꾸기 · 길드 · 상점 물약 · 임무 보상 같은 계정 것의 기준 */
+/** 기준 레벨 (34 3-1): 길드 · 상점 물약 · 임무 보상 같은 것의 기준. v11부터 캐릭터마다 따로라 지금 캐릭터 레벨 (다른 직업 레벨이 저장에 안 남음) */
 export function topLevel(d: SaveData): number {
   return Math.max(d.player.level, ...HERO_KEYS.map(h => d.heroes[h]?.level ?? 1));
 }
@@ -237,8 +261,12 @@ export function newSave(now = Date.now()): SaveData {
     hero: 'priest', heroes: {}, guild: newGuild(),
     wallet: { crystal: 0, shards: 0, merit: 0, ticket: 0 }, bag: { ...STARTER_BAG }, daily: newDaily(), weekly: newWeekly(),
     pass: { season: 0, xp: 0, premium: false, free: [], prem: [] }, member: 0, chalOpen: 1, decos: [], chalChest: 0, firstBuy: [],
+    roster: newRoster('priest', now),
   };
 }
+
+/** 캐릭터 하나짜리 목록 (새 저장: 사제, 튜토리얼) */
+export const newRoster = (hero: HeroKey, now: number, level = 1): Roster => ({ cur: 1, slots: 1, next: 2, chars: [{ id: 1, hero, name: HEROES[hero].name, level, at: now }] });
 
 /** 옛 버전 저장을 지금 버전으로. 모르는 값은 새 저장 기본값으로 채움 */
 export function migrate(raw: unknown): SaveData {
@@ -275,9 +303,124 @@ export function migrate(raw: unknown): SaveData {
     decos: Array.isArray(o.decos) ? o.decos : [],
     chalChest: typeof o.chalChest === 'number' ? o.chalChest : 0,
     firstBuy: Array.isArray(o.firstBuy) ? o.firstBuy : [],
+    roster: rosterOf(o.roster, HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest', base.createdAt),
   };
   if ((o.v ?? 0) < 10) gearByHero(out);
+  if ((o.v ?? 0) < 11) splitChars(out, out.createdAt);
   return out;
+}
+
+/** 저장의 캐릭터 목록 (깨졌거나 없으면 지금 직업 캐릭터 하나) */
+function rosterOf(v: unknown, hero: HeroKey, now: number): Roster {
+  const r = v as Partial<Roster> | null;
+  if (!r || typeof r !== 'object' || !Array.isArray(r.chars)) return newRoster(hero, now);
+  const chars = r.chars.filter(c => c && typeof c.id === 'number' && HERO_KEYS.includes(c.hero)).map(c => ({ ...c, name: typeof c.name === 'string' ? c.name : HEROES[c.hero].name, level: typeof c.level === 'number' ? c.level : 1, at: typeof c.at === 'number' ? c.at : 0 }));
+  if (!chars.length) return newRoster(hero, now);
+  const cur = chars.some(c => c.id === r.cur) ? r.cur! : chars[0].id;
+  return { cur, slots: Math.max(chars.length, typeof r.slots === 'number' ? r.slots : 1), next: Math.max(typeof r.next === 'number' ? r.next : 0, ...chars.map(c => c.id + 1)), chars };
+}
+
+// ---------- 캐릭터 (68, v11) ----------
+
+/** 쉬는 캐릭터 저장 키 */
+export const charKey = (id: number) => `healer.char.${id}`;
+
+/**
+ * 계정 것을 새 캐릭터 저장으로 옮김 (68 3장): 설정 (휠 배치 · 칸 탭은 캐릭터 것) · 돈 주고 산 것 (크리스탈 · 월정액 · 패스 · 첫 구매) · 캐릭터 목록.
+ * 나머지 (골드 · 재료 · 장비 · 도감 · 임무 · 광고 횟수 · 기록)는 캐릭터마다
+ */
+export function shareAccount(from: SaveData, to: SaveData): void {
+  to.settings = { ...from.settings, layout: to.settings.layout, tapKey: to.settings.tapKey };
+  to.wallet.crystal = from.wallet.crystal;
+  to.member = from.member;
+  to.firstBuy = [...from.firstBuy];
+  to.pass = { ...from.pass, free: [...from.pass.free], prem: [...from.pass.prem] };
+  to.roster = from.roster;
+}
+
+/** 쉬는 캐릭터 저장을 읽음 (아직 따로 안 쓴 것 먼저). 목록은 지금 저장 것을 그대로 씀 (shareAccount) */
+export function loadChar(d: SaveData, id: number, kv: KV | null = store()): SaveData | null {
+  const c = d.roster.chars.find(x => x.id === id);
+  if (!c || id === d.roster.cur) return null;
+  if (c.park) return c.park;
+  try {
+    const s = kv?.getItem(charKey(id));
+    return s ? migrate(JSON.parse(s)) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 지금 캐릭터를 쉬게 둠 (다음 save()가 charKey에 씀). 목록은 빼고 (계정 것이라 지금 저장에만) */
+export function parkChar(d: SaveData): void {
+  const c = d.roster.chars.find(x => x.id === d.roster.cur);
+  if (!c) return;
+  c.level = d.player.level; c.hero = d.hero;
+  const p = { ...d } as Partial<SaveData>;
+  delete p.roster;
+  c.park = p as SaveData;
+}
+
+/** 쉬는 캐릭터 저장을 모두 지움 (설정 「저장 지우고 처음부터」) */
+export function wipeChars(d: SaveData, kv: KV | null = store()): void {
+  for (const c of d.roster.chars) { delete c.park; try { kv?.removeItem?.(charKey(c.id)); } catch { /* 없으면 그만 */ } }
+}
+
+/**
+ * v11 캐릭터 나누기 (68 4장): 해 본 직업마다 캐릭터 하나 (지금 직업 · 해금 · 레벨 · 경험치 · 이긴 판 · 장비가 있는 직업). 칸 = 캐릭터 수.
+ * 직업마다였던 것 (레벨 · 장비 · 공훈 · 휠 배치 · 특성 · 레이드 주 1회 장비)은 그 캐릭터로. 계정이던 것 (골드 · 재료 · 열쇠 · 소비 아이템 · 도감 · 임무 · 상자 · 길드 · 칭호)은
+ * 가장 높은 레벨 캐릭터 (같으면 지금 캐릭터, v10 장비 주인과 같음)가 갖고, 나머지는 골드 0 · 처음 가방 · 자기 장비로 다시 채운 도감 · 새 임무.
+ * 클리어 기록은 나머지 캐릭터도 자기 레벨로 들어갈 수 있는 장소 것만 (난이도 사슬이 닫히지 않게)
+ */
+function splitChars(d: SaveData, now: number): void {
+  const hs = (h: HeroKey) => d.heroes[h];
+  const cur = d.hero;
+  const lvOf = (h: HeroKey) => (h === cur ? d.player.level : hs(h)?.level ?? 1);
+  const played = (h: HeroKey) => {
+    const s = hs(h);
+    return h === cur || (!!s && (s.unlocked || lvOf(h) > 1 || (s.xp ?? 0) > 0 || s.wins > 0 || !!s.gear));
+  };
+  const list = HERO_KEYS.filter(played);
+  if (list.length === 1) { d.roster = newRoster(cur, now, d.player.level); return; }
+  const main = list.reduce<HeroKey>((b, h) => (lvOf(h) > lvOf(b) ? h : b), cur);
+  const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
+  const week = d.weekly.week, chalOwner = d.weekly.chalHero ?? main, chestOwner = d.chalChestHero ?? main;
+  const build = (h: HeroKey): SaveData => {
+    const s = h === cur ? null : hs(h), mine = h === main, lv = lvOf(h);
+    const c = newSave(d.createdAt);
+    const hero: HeroSave = { ...(hs(h) ?? { layout: null, tapKey: 'heal', unlocked: true, quest: 0, wins: 0 }), unlocked: true };
+    delete hero.level; delete hero.xp; delete hero.gear; delete hero.merit;
+    const g = s ? s.gear : { equipped: d.gear.equipped, bag: d.gear.bag, seen: d.gear.seen ?? d.nextId - 1 };
+    const merit = s ? { n: s.merit?.n ?? 0, got: s.merit?.week === week ? s.merit.got : { 10: 0, 20: 0 } } : { n: d.wallet.merit, got: d.weekly.merit };
+    Object.assign(c, {
+      hero: h, heroes: { [h]: hero }, tut: d.tut, nextId: d.nextId, items: [...d.items],
+      settings: { ...d.settings, layout: s ? s.layout : d.settings.layout, tapKey: s ? s.tapKey : d.settings.tapKey },
+      player: { level: lv, xp: s ? s.xp ?? 0 : d.player.xp, gold: mine ? d.player.gold : 0 },
+      gear: { equipped: g?.equipped ?? {}, bag: g?.bag ?? [], seen: g?.seen ?? d.nextId - 1, codex: mine ? d.gear.codex : [], dex: mine ? d.gear.dex : [], dexPaid: mine ? d.gear.dexPaid : 0 },
+      mats: mine ? d.mats : c.mats, bag: mine ? d.bag : c.bag,
+      wallet: { crystal: d.wallet.crystal, shards: mine ? d.wallet.shards : 0, merit: merit.n, ticket: mine ? d.wallet.ticket : 0 },
+      clears: mine ? d.clears : Object.fromEntries(Object.entries(d.clears).filter(([k]) => (CONTENT.find(x => x.key === k)?.unlockLv ?? 1) <= lv)),
+      last: h === cur ? d.last : null,
+      guild: mine ? d.guild : c.guild, decos: mine ? d.decos : [], chalOpen: mine ? d.chalOpen : 1,
+      daily: mine ? d.daily : c.daily,
+      weekly: {
+        ...(mine ? d.weekly : newWeekly(week)), merit: merit.got,
+        loot: d.weekly.loot.filter(k => k.startsWith(`${h}|`)),
+        chalBest: chalOwner === h ? d.weekly.chalBest : 0, chalHero: chalOwner === h ? d.weekly.chalHero : undefined,
+      },
+      chalChest: chestOwner === h ? d.chalChest : 0, chalChestHero: chestOwner === h ? d.chalChestHero : undefined,
+      pass: d.pass, member: d.member, firstBuy: d.firstBuy, createdAt: d.createdAt,
+    } satisfies Partial<SaveData>);
+    const out = clone(c);
+    if (!mine) { const items = [...Object.values(out.gear.equipped), ...out.gear.bag]; noteSpecs(out, items); }
+    return out;
+  };
+  let id = 1;
+  const built = list.map(h => ({ h, id: id++, save: build(h) }));
+  const chars: CharMeta[] = built.map(b => ({ id: b.id, hero: b.h, name: HEROES[b.h].name, level: b.save.player.level, at: now, ...(b.h === cur ? {} : { park: b.save }) }));
+  const me = built.find(b => b.h === cur)!;
+  Object.assign(d, me.save);
+  d.roster = { cur: me.id, slots: chars.length, next: id, chars };
 }
 
 /** 그 장비에 붙은 직업 전용 특수능력의 직업 (없으면 undefined). 직업 전용은 그 직업으로 돌 때만 나와서 (42 1-4) 얻은 직업을 알 수 있음 */
@@ -453,12 +596,26 @@ export function load(kv: KV | null = store()): SaveData {
         if (it) { const a = JSON.parse(it); if (Array.isArray(a)) d.items = a; }
       } catch { /* 옛 값이 깨졌으면 기본값 */ }
     }
+    // v11 캐릭터 나누기 직후: 쉬는 캐릭터를 바로 따로 키에 씀
+    if (kv && d.roster.chars.some(c => c.park)) save(d, kv);
     return d;
   } catch {
     return newSave();
   }
 }
 
+/**
+ * 지금 캐릭터 저장 (계정 것 포함). 쉬게 둔 캐릭터 (park)가 있으면 먼저 그 키에 쓰고 나서 지금 저장을 씀 →
+ * 중간에 꺼져도 지금 저장은 앞 상태 그대로라 캐릭터가 사라지지 않음. 기기 저장이 없으면 park는 메모리에 남음
+ */
 export function save(data: SaveData, kv: KV | null = store()): boolean {
-  try { kv?.setItem(SAVE_KEY, JSON.stringify(data)); return !!kv; } catch { return false; }
+  try {
+    const r = data.roster, me = r.chars.find(c => c.id === r.cur);
+    if (me) { me.level = data.player.level; me.hero = data.hero; }
+    if (!kv) return false;
+    for (const c of r.chars) if (c.park) { kv.setItem(charKey(c.id), JSON.stringify(c.park)); delete c.park; }
+    kv.setItem(SAVE_KEY, JSON.stringify(data));
+    kv.removeItem?.(charKey(r.cur));
+    return true;
+  } catch { return false; }
 }

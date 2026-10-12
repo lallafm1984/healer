@@ -2,14 +2,14 @@
 import { dexDue, type DexReward } from '../data/dex';
 import { chainNeed, chainOpen, contentOf, type ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
-import { HERO_KEYS, HERO_SWITCH_LV, HEROES, type HeroKey } from '../data/heroes';
+import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { TALENTS } from '../data/talents';
 import { AWAKEN_AT, awakenValue, enhanceCost, itemName, itemScore, MAX_PLUS, REROLL_LEVEL, REROLL_PICK_LEVEL, rerollCost, rerollLine, rerollSpec, salvageOf, SLOTS, type GearItem, type GearLine, type SlotKey } from '../data/equipment';
 import type { SpecLine } from '../data/specials';
 import type { ItemKey } from '../data/items';
 import { activeItemKeys, assignItemSlot, itemLoadoutOf, type ItemSlot } from '../data/item-loadout';
 import { itemSlots } from '../data/progression';
-import { heroLevelOf, heroSaveOf, load, newSave, noteSpecs, save, topLevel, type HeroSave, type SaveData } from '../platform/storage';
+import { heroLevelOf, heroSaveOf, load, loadChar, newSave, noteSpecs, parkChar, save, shareAccount, topLevel, wipeChars, type HeroSave, type SaveData } from '../platform/storage';
 import { firstDungeonDue, TUT } from './tutorial';
 import { isMember, onAct, rollover, type Rollover } from './economy';
 
@@ -30,7 +30,8 @@ export function refreshDay(now = Date.now()): Rollover {
   return r;
 }
 
-export function resetSave(): void { G.save = newSave(); commit(); }
+/** 저장 지우고 처음부터: 쉬는 캐릭터까지 모두 (68) */
+export function resetSave(): void { wipeChars(G.save); G.save = newSave(); commit(); }
 
 /** 전투에 넘길 힐러 레벨 (스킬 해금 기준). 개발 빌드 「스킬 전부 열기」면 100 */
 export const healerLevel = () => (G.save.settings.allSkills ? 100 : G.save.player.level);
@@ -313,53 +314,90 @@ export function setTalentPreset(i: number, h: HeroKey = G.save.hero): boolean {
   return true;
 }
 
-/** 직업 바꾸기가 열렸는지 (가장 높은 직업 Lv 10, 튜토리얼 뒤). dev = 개발 빌드 잠금 무시로 열림 */
+// ---------- 캐릭터 (68): 타이틀 → 캐릭터 선택 → 게임 시작. 캐릭터마다 따로 계정처럼 ----------
+
+/** 캐릭터 선택에 보일 칸 하나 (cur = 지금 캐릭터) */
+export interface CharCard { id: number; hero: HeroKey; name: string; level: number; at: number; cur: boolean }
+
+/** 만든 캐릭터들 (만든 순서). 산 칸 수 · 값은 economy slotOffer */
+export function charList(): CharCard[] {
+  const r = G.save.roster;
+  return r.chars.map(c => ({ id: c.id, hero: c.hero, name: c.name, level: c.id === r.cur ? G.save.player.level : c.level, at: c.at, cur: c.id === r.cur }));
+}
+
+/** 이름 (최대 8자). 안 적으면 직업 이름, 같은 이름이 있으면 「사제 2」 */
+export const CHAR_NAME_MAX = 8;
+function charName(h: HeroKey, name: string): string {
+  const names = G.save.roster.chars.map(c => c.name);
+  const want = name.trim().slice(0, CHAR_NAME_MAX);
+  if (want) return want;
+  const base = HEROES[h].name;
+  if (!names.includes(base)) return base;
+  let n = 2;
+  while (names.includes(`${base} ${n}`)) n++;
+  return `${base} ${n}`;
+}
+
+/** 지금 캐릭터를 쉬게 두고 next로: 둘 다 날 · 주를 넘기고, 계정 것 (설정 · 산 것 · 목록)을 옮김 (월정액 크리스탈 · 패스가 캐릭터마다 두 번 들어가지 않게) */
+function swapTo(next: SaveData, id: number, now: number): void {
+  const cur = G.save;
+  rollover(cur, now, Math.random);
+  rollover(next, now, Math.random);
+  shareAccount(cur, next);
+  parkChar(cur);
+  const r = next.roster, c = r.chars.find(x => x.id === id)!;
+  r.cur = id; c.at = now; delete c.park;
+  G.save = next;
+  commit();
+  syncMember(now);
+}
+
+/** 캐릭터 고르기 (캐릭터 선택). 지금 캐릭터거나 없으면 false */
+export function pickChar(id: number, now = Date.now()): boolean {
+  const next = loadChar(G.save, id);
+  if (!next) return false;
+  swapTo(next, id, now);
+  return true;
+}
+
+/**
+ * 빈 칸에 새 캐릭터 만들기 (68 2장): Lv 1 · 골드 0 · 맨몸 · 처음 가방 · 빈 도감, 튜토리얼은 계정에 한 번이라 건너뜀.
+ * 만들면 그 캐릭터로 바뀜. 성공 = 빈 문자열, 아니면 이유
+ */
+export function makeChar(h: HeroKey, name = '', now = Date.now()): string {
+  const r = G.save.roster;
+  if (G.save.tut < TUT.done) return '튜토리얼을 마치면 만들 수 있음';
+  if (!HEROES[h]) return '없는 직업';
+  if (r.chars.length >= r.slots) return '빈 칸이 없음 (상점에서 캐릭터 칸 사기)';
+  const d = newSave(now);
+  d.hero = h; d.tut = TUT.done;
+  heroSaveOf(d, h).unlocked = true;
+  const id = r.next++;
+  r.chars.push({ id, hero: h, name: charName(h, name), level: 1, at: now });
+  swapTo(d, id, now);
+  return '';
+}
+
+/** 직업 바꾸기 (옛 캐릭터 › 직업 탭): v11부터 캐릭터 선택으로 바뀜 (68). 튜토리얼 뒤 언제든 */
 export function switchOpen(): { ok: boolean; dev: boolean; why: string } {
   if (G.save.tut < TUT.done) return { ok: false, dev: false, why: '튜토리얼을 마치면 열림' };
-  const under = topLevel(G.save) < HERO_SWITCH_LV;
-  if (under && !G.save.settings.devUnlock) return { ok: false, dev: false, why: `Lv ${HERO_SWITCH_LV}에 열림` };
-  return { ok: true, dev: under, why: '' };
+  return { ok: true, dev: false, why: '' };
 }
 
 /**
- * 직업 상태: now = 지금 직업 · open = 해금 · quest = 직업 퀘스트 중 (그 직업으로 해야 해서 고를 수 있음) · locked = 레벨 미달 (가장 높은 직업 레벨, 34 3-2).
- * 개발 빌드 「레벨 잠금 무시」면 레벨 미달 직업도 퀘스트 상태로 열림 (dev)
+ * 직업 상태 (옛 캐릭터 › 직업 탭이 Codex 화면으로 바뀔 때까지): now = 지금 캐릭터 직업 · open = 그 직업 캐릭터가 있음 ·
+ * locked = 그 직업 캐릭터가 없음 (상점에서 캐릭터 칸을 사서 만들기, 68). 직업 퀘스트는 없앰
  */
 export function heroStatus(h: HeroKey): { state: 'now' | 'open' | 'quest' | 'locked'; dev: boolean; quest: number; need: number } {
-  const def = HEROES[h], hs = heroSave(h), q = def.unlock.quest;
-  const info = { quest: hs.quest, need: q ? q.need : 0 };
-  const under = topLevel(G.save) < def.unlock.lv;
-  const unlocked = hs.unlocked || !q;
-  const dev = !unlocked && under && G.save.settings.devUnlock;
-  if (h === G.save.hero) return { state: 'now', dev, ...info };
-  if (unlocked && !under) return { state: 'open', dev: false, ...info };
-  if (!under || dev) return { state: unlocked ? 'open' : 'quest', dev, ...info };
-  return { state: 'locked', dev: false, ...info };
+  const r = G.save.roster, info = { dev: false, quest: 0, need: 0 };
+  if (h === G.save.hero) return { state: 'now', ...info };
+  return { state: r.chars.some(c => c.hero === h && c.id !== r.cur) ? 'open' : 'locked', ...info };
 }
 
-/**
- * 직업 바꾸기: 지금 직업의 휠 배치·칸 탭·레벨·장비를 넣어 두고 새 직업 것을 꺼냄 (처음 하는 직업은 Lv 1 · 맨몸, 34 3-2).
- * 장비는 직업마다 (2026-10-12 Lim 「새 직업은 새로운 느낌으로」): 착용 · 가방과 장비로 바꾸는 공훈 (주 상한 포함)이 직업을 따라감.
- * 도감 · 골드 · 재료 · 악몽 열쇠는 계정
- */
-export function switchHero(h: HeroKey): boolean {
+/** 그 직업 캐릭터 중 마지막으로 한 캐릭터로 바꾸기 (옛 직업 바꾸기 버튼, 68). 캐릭터가 없으면 false */
+export function switchHero(h: HeroKey, now = Date.now()): boolean {
   if (h === G.save.hero || !switchOpen().ok) return false;
-  const st = heroStatus(h).state;
-  if (st === 'locked') return false;
-  const cur = heroSave(G.save.hero), next = heroSave(h), set = G.save.settings, p = G.save.player, g = G.save.gear;
-  cur.layout = set.layout; cur.tapKey = set.tapKey;
-  set.layout = next.layout; set.tapKey = next.tapKey;
-  cur.level = p.level; cur.xp = p.xp;
-  p.level = next.level ?? 1; p.xp = next.xp ?? 0;
-  cur.gear = { equipped: g.equipped, bag: g.bag, seen: g.seen ?? 0 };
-  g.equipped = next.gear?.equipped ?? {}; g.bag = next.gear?.bag ?? []; g.seen = next.gear?.seen ?? G.save.nextId - 1;
-  delete next.gear;
-  const w = G.save.weekly, m = next.merit;
-  cur.merit = { n: G.save.wallet.merit, week: w.week, got: w.merit };
-  G.save.wallet.merit = m?.n ?? 0;
-  w.merit = m && m.week === w.week ? m.got : { 10: 0, 20: 0 };
-  delete next.merit;
-  G.save.hero = h;
-  commit();
-  return true;
+  const r = G.save.roster;
+  const c = r.chars.filter(x => x.hero === h && x.id !== r.cur).sort((a, b) => b.at - a.at)[0];
+  return !!c && pickChar(c.id, now);
 }

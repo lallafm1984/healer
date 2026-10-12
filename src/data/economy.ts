@@ -31,6 +31,15 @@ export const itemPrice = (k: ItemKey, lv: number): number | null => (ITEM_PRICE[
 /** 처음 가방 (새 저장·옛 저장 고칠 때) */
 export const STARTER_BAG: Record<ItemKey, number> = { mana: 5, medit: 3, life: 5, cleanse: 3, shield: 3, feather: 1 };
 
+// ---------- 캐릭터 칸 (68 2장): 칸 하나에 캐릭터 하나. Lim 2026-10-12 「둘 다」 = 골드로 모아 사거나 앱 결제로 바로 ----------
+/**
+ * 처음 1칸, 최대 6칸. 골드는 사는 캐릭터 것이고 그 캐릭터 Lv 10부터. gold[i] = (i + 2)번째 칸 값 (넘으면 끝 값).
+ * 앱 결제는 레벨 조건 없이 (튜토리얼 뒤) 바로
+ */
+export const CHAR_SLOT = { max: 6, lv: 10, gold: [2000, 5000, 10000], iap: { id: 'charslot', name: '캐릭터 칸', price: '2,200원' } };
+/** 칸을 have개 가졌을 때 다음 칸 골드 값 */
+export const slotGold = (have: number): number => CHAR_SLOT.gold[Math.min(Math.max(0, have - 1), CHAR_SLOT.gold.length - 1)];
+
 // ---------- 크리스탈 (15 3장) ----------
 export interface CrystalPack { id: string; name: string; price: string; crystal: number }
 export const CRYSTAL_PACKS: CrystalPack[] = [
