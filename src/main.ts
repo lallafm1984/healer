@@ -33,6 +33,7 @@ import './screens/a2-topbar.css';
 import './screens/adventure-departure.css';
 import './screens/adventure-emphasis.css';
 import './screens/party-refinement.css';
+import './screens/guide-sheet.css';
 import './battle';
 import './screens/title';
 import './screens/lobby';
