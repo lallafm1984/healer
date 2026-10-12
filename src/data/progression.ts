@@ -3,7 +3,7 @@
  * 경험치 지급량은 문서에 없어 새로 정함 (24 문서). Lv 1~100 곡선은 18 1장 도달 시점에 맞춤 (xpShare, 2026-10-07).
  */
 import type { DiffName } from './difficulty';
-import { CONTENT, contentOf } from './content';
+import { CONTENT, contentOf, isLeveling, type ContentDef, type ContentKey } from './content';
 import { FEATURES } from './features';
 
 export const MAX_LEVEL = 100;
@@ -61,6 +61,41 @@ export function clearXp(level: number, diff: DiffName, grade: Grade | null, opts
   const g = opts.win && grade ? REWARD_GRADE[grade] : 1;
   const x = xpToNext(level) * xpShare(level) * REWARD_DIFF[diff] * g * (opts.raid ? XP_RAID[opts.raid] : 1) * (opts.win ? 1 : XP_LOSE);
   return Math.max(1, Math.round(x));
+}
+
+/**
+ * 초반 순차 레벨링 (70, Lim 2026-10-12): 내 레벨이 RAMP_LV 이하일 때 장소 Lv RAMP_LV까지의 탐험 · 던전은 경험치를 장소가 정함
+ * (내 레벨 · 탐험 ×0.35와 상관없이). 장소 몫 (rampSpan) = 그 장소 레벨에서 다음 장소가 열리는 레벨까지 필요한 경험치.
+ * 쉬움 50% + 보통 60%를 처음 깨면 다음 장소 레벨이 됨 (어려움 · 다시 하기 없이). 첫 클리어는 등급과 상관없이 같고, 다시 깨면 RAMP_REPEAT × 등급, 지면 XP_LOSE.
+ * 정한 양이라 레벨이 앞서 있으면 덜 오르고 (지나온 곳 돌기는 조금만), 뒤처져 있으면 더 오름.
+ * Lv RAMP_LV + 1부터는 어느 장소든 clearXp 그대로 (장소 레벨 차이 감산 없음)
+ */
+export const RAMP_LV = 20;
+export const RAMP_FIRST: Record<DiffName, number> = { '쉬움': 0.5, '보통': 0.6, '어려움': 0.7, '악몽': 0.8 };
+export const RAMP_REPEAT = 0.4;
+
+/** 순차 레벨링 구간: 내 레벨 RAMP_LV 이하 · 장소 Lv RAMP_LV까지의 탐험 · 던전 (튜토리얼 첫 전투 빼고) */
+export const inRamp = (c: ContentDef, level: number) => level <= RAMP_LV && isLeveling(c) && !c.hidden && c.stageLv <= RAMP_LV;
+
+const spans = new Map<ContentKey, number>();
+/** 장소 몫: 장소 레벨 → 다음 탐험 · 던전이 열리는 레벨까지 필요한 경험치 (같은 레벨에 장소가 여럿이면 나눔). 녹슨 고원 1 → 3, 고철 더미 언덕 3 → 5 */
+export function rampSpan(c: ContentDef): number {
+  let s = spans.get(c.key);
+  if (s == null) {
+    const lv = CONTENT.filter(x => isLeveling(x) && !x.hidden && x.ready).map(x => x.stageLv);
+    const next = Math.min(MAX_LEVEL, ...lv.filter(l => l > c.stageLv));
+    let need = 0;
+    for (let l = c.stageLv; l < next; l++) need += xpToNext(l);
+    s = Math.round(need / Math.max(1, lv.filter(l => l === c.stageLv).length));
+    spans.set(c.key, s);
+  }
+  return s;
+}
+
+/** 순차 레벨링 구간 장소 한 판 경험치 (first = 이 캐릭터가 이 난이도를 처음 깸) */
+export function rampXp(c: ContentDef, diff: DiffName, o: { first: boolean; grade: Grade | null; win: boolean }): number {
+  const x = rampSpan(c) * RAMP_FIRST[diff] * (o.first ? 1 : RAMP_REPEAT);
+  return Math.max(1, Math.round(!o.win ? x * XP_LOSE : o.first || !o.grade ? x : x * REWARD_GRADE[o.grade]));
 }
 
 /** 경험치를 더하고 오른 레벨 목록을 돌려줌 */
