@@ -1,10 +1,10 @@
 /** 성장·보상 (24 문서): 경험치 곡선, 골드, 장비 드롭, 장비 능력치, 정산 */
 import { describe, expect, it } from 'vitest';
-import { contentOf, stageOf } from '../src/data/content';
+import { CONTENT, contentOf, isLeveling, stageOf } from '../src/data/content';
 import { avgScore, dropTable, gearStatsOf, ITEM_GRADES, rollItem, SLOTS, type Equipped } from '../src/data/equipment';
 import { gearStats } from '../src/data/gear';
 import { RULES } from '../src/data/rules';
-import { addXp, clearGold, clearXp, gradeOf, itemSlots, lvPower, lvPowerProto, starsOf, xpToNext } from '../src/data/progression';
+import { addXp, clearGold, clearXp, gradeOf, inRamp, itemSlots, lvPower, lvPowerProto, RAMP_FIRST, RAMP_LV, RAMP_REPEAT, rampSpan, rampXp, starsOf, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
 import { heal } from '../src/engine/core';
 import { rngFrom } from '../src/engine';
@@ -187,8 +187,10 @@ describe('정산 (09 S08·S09)', () => {
     expect(x.dispelPct).toBeNull();
     expect(x.gold).toBe(clearGold(stageOf(contentOf('rustfort'), '보통'), '보통', 'A'));
     expect(s.player.gold).toBe(x.gold);
-    expect(x.levelUps).toEqual([2]); // 첫 클리어로 Lv 2
-    expect(s.player.xp).toBe(x.xp - 100);
+    // Lv 20까지는 장소가 정한 경험치 (70): 녹슨 요새 보통 첫 클리어 = 장소 몫 60%
+    expect(x.xp).toBe(rampXp(contentOf('rustfort'), '보통', { first: true, grade: 'A', win: true }));
+    expect(x.levelUps).toEqual([2, 3]);
+    expect(s.player.xp).toBe(x.xp - 100 - 303);
     expect(x.items.length).toBe(1); // 튜토리얼 중엔 1개
     expect(s.gear.bag).toEqual(x.items);
     expect(s.nextId).toBe(2);
@@ -220,7 +222,8 @@ describe('정산 (09 S08·S09)', () => {
     const s = newSave(1);
     const x = settle(s, result({ win: false, segIdx: 1 }), rngFrom(1));
     expect([x.grade, x.gold, x.items]).toEqual([null, 0, []]);
-    expect(x.xp).toBe(clearXp(1, '보통', null, { win: false }));
+    expect(x.xp).toBe(rampXp(contentOf('rustfort'), '보통', { first: true, grade: null, win: false }));
+    expect(x.xp).toBe(Math.round(rampSpan(contentOf('rustfort')) * RAMP_FIRST['보통'] * 0.2));
     expect(s.clears).toEqual({});
     const q = settle(s, result({ win: false, quit: true }), rngFrom(1));
     expect(q.xp).toBe(0);
@@ -230,8 +233,65 @@ describe('정산 (09 S08·S09)', () => {
     s.player.xp = 99;
     const x = settle(s, result(), rngFrom(1));
     expect(x.levelBefore).toBe(1);
-    expect(x.levelUps).toEqual([2]);
+    expect(x.levelUps).toEqual([2, 3]);
     s.player.level = 3; s.player.xp = 0;
     expect(settle(s, result({ win: false }), rngFrom(1)).levelUps).toEqual([]);
+  });
+});
+
+describe('초반 순차 레벨링 (70): Lv 20까지 쉬움 · 보통 첫 클리어만으로 다음 장소 레벨', () => {
+  const ramp = CONTENT.filter(c => isLeveling(c) && !c.hidden && c.stageLv <= RAMP_LV)
+    .sort((a, b) => a.stageLv - b.stageLv || (a.kind === 'explore' ? -1 : 1));
+  const play = (s: ReturnType<typeof newSave>, content: BattleResult['content'], diff: BattleResult['diff'], deaths: number, win = true) =>
+    settle(s, result({ content, diff, deaths, win, segIdx: 0, segN: 1 }), rngFrom(1));
+
+  it('장소 몫 = 다음 탐험 · 던전이 열리는 레벨까지: 녹슨 고원 1 → 3, 고철 더미 언덕 3 → 5, 그 뒤는 한 레벨씩', () => {
+    expect(rampSpan(contentOf('plateau'))).toBe(xpToNext(1) + xpToNext(2));
+    expect(rampSpan(contentOf('scrapheap'))).toBe(xpToNext(3) + xpToNext(4));
+    expect(rampSpan(contentOf('rustfort'))).toBe(xpToNext(5));
+    expect(rampSpan(contentOf('lilypalace'))).toBe(xpToNext(20));
+    // 구간 장소는 Lv 1 ~ 20을 빈틈없이 덮음 (레벨이 같은 장소 둘 없음)
+    expect(new Set(ramp.map(c => c.stageLv)).size).toBe(ramp.length);
+    expect(ramp.reduce((a, c) => a + rampSpan(c), 0)).toBe([...Array(20).keys()].reduce((a, i) => a + xpToNext(i + 1), 0));
+  });
+
+  it.each([['C', 5], ['A', 1], ['S', 0]] as const)('튜토리얼 뒤 장소마다 쉬움 → 보통만 (등급 %s): 다시 하기 · 어려움 없이 다음 장소가 늘 열려 있음', (_g, deaths) => {
+    const s = newSave(1);
+    addXp(s.player, xpToNext(1)); // 첫 전투 → Lv 2 (screens/tutorial)
+    s.tut = TUT.explore;
+    play(s, 'plateau', '쉬움', deaths);
+    expect(s.tut).toBe(TUT.done);
+    for (const c of ramp) {
+      expect(s.player.level, `${c.name} (Lv ${c.unlockLv})에 들어갈 때`).toBeGreaterThanOrEqual(c.unlockLv);
+      for (const d of ['쉬움', '보통'] as const) if (!s.clears[c.key]?.[d]) play(s, c.key, d, deaths);
+    }
+    // 두꺼비 왕국 수련궁 (Lv 20)까지 끝내면 Lv 21 (이끼 뿌리 사원), 너무 앞서지 않음
+    expect(s.player.level).toBe(21);
+  });
+
+  it('첫 클리어는 등급과 상관없이 같음, 다시 깨면 RAMP_REPEAT × 등급, 지면 20%, 포기는 0', () => {
+    const c = contentOf('cemetery'), span = rampSpan(c);
+    const s = newSave(1); s.tut = TUT.done; s.player.level = 7;
+    expect(play(s, 'cemetery', '보통', 5).xp).toBe(Math.round(span * RAMP_FIRST['보통']));
+    const t = newSave(1); t.tut = TUT.done; t.player.level = 7;
+    expect(play(t, 'cemetery', '보통', 0).xp).toBe(Math.round(span * RAMP_FIRST['보통']));
+    expect(play(t, 'cemetery', '보통', 0).xp).toBe(Math.round(span * RAMP_FIRST['보통'] * RAMP_REPEAT * 1.2));
+    expect(play(t, 'cemetery', '쉬움', 0, false).xp).toBe(Math.round(span * RAMP_FIRST['쉬움'] * 0.2));
+    expect(settle(t, result({ content: 'cemetery', diff: '쉬움', win: false, quit: true }), rngFrom(1)).xp).toBe(0);
+    // 어려움 · 악몽은 더 많이 주지만 쉬움 + 보통만으로 충분
+    expect(RAMP_FIRST['쉬움'] + RAMP_FIRST['보통']).toBeGreaterThanOrEqual(1);
+    expect(RAMP_FIRST['어려움']).toBeGreaterThan(RAMP_FIRST['보통']);
+  });
+
+  it('Lv 21부터 · Lv 21 장소부터 · 주간 도전은 전과 같음 (내 레벨 기준, 장소 레벨 차이 감산 없음)', () => {
+    expect(inRamp(contentOf('rustfort'), 20)).toBe(true);
+    expect(inRamp(contentOf('rustfort'), 21)).toBe(false);
+    expect(inRamp(contentOf('mossroot'), 20)).toBe(false);
+    expect(inRamp(contentOf('abyss1'), 1)).toBe(false);
+    expect(inRamp(contentOf('tutorial'), 1)).toBe(false);
+    const s = newSave(1); s.tut = TUT.done; s.daily.pub = 3; s.player.level = 21;
+    expect(play(s, 'rustfort', '보통', 1).xp).toBe(clearXp(21, '보통', 'A', { win: true }));
+    const t = newSave(1); t.tut = TUT.done; t.daily.pub = 3; t.player.level = 20;
+    expect(settle(t, result({ content: 'rustfort', diff: '보통', chal: 1, stage: 20 }), rngFrom(1)).xp).toBe(clearXp(20, '보통', 'A', { win: true }));
   });
 });

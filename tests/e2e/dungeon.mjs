@@ -187,14 +187,14 @@ export default async function dungeon(url, shots) {
   await page.screenshot({ path: `${shots}/dungeon_settle.png` });
   ok(!(await page.isVisible('#s-settle .lvpop')), '레벨 업 팝업은 연출 뒤에');
   await page.clock.runFor(1200);
-  ok(await page.isVisible('#s-settle .lvpop'), '레벨 업 팝업 (첫 클리어로 Lv 2)');
+  ok(await page.isVisible('#s-settle .lvpop'), '레벨 업 팝업 (첫 클리어로 Lv 3: Lv 20까지는 장소가 정한 경험치, 70)');
   const pop = await page.textContent('#s-settle .lvpop');
-  ok(/Lv 1 → 2/.test(pop) && /소생/.test(pop) && !/준비 중/.test(pop), '팝업: Lv 1 → 2, 스킬 「소생」 열림');
+  ok(/Lv 1 → 3/.test(pop) && /소생/.test(pop) && /정화/.test(pop) && !/준비 중/.test(pop), '팝업: Lv 1 → 3, 스킬 「소생」 · 「정화」 열림');
   ok(!/힐량·체력/.test(pop), '팝업: 배율 줄 없음 (적이 내 레벨을 따라옴, 32)');
   await page.screenshot({ path: `${shots}/dungeon_levelup.png` });
   await page.click('#s-settle .lvpop button'); await page.clock.runFor(50);
   let sv = await save();
-  ok(sv.player.level === 2 && sv.player.gold > 0 && sv.gear.bag.length === 2, `저장: Lv 2, 골드 ${sv.player.gold}, 가방에 장비 2개 (보스마다 1개, 34 6-7)`);
+  ok(sv.player.level === 3 && sv.player.gold > 0 && sv.gear.bag.length === 2, `저장: Lv 3, 골드 ${sv.player.gold}, 가방에 장비 2개 (보스마다 1개, 34 6-7)`);
   ok(sv.clears.rustfort['보통'].n === 1 && sv.last.win, '저장: 녹슨 요새 보통 클리어 기록');
   await page.click('#equipNow'); await page.clock.runFor(50);
   sv = await save();
@@ -207,7 +207,7 @@ export default async function dungeon(url, shots) {
   ok(await page.isVisible('#battle'), '다시 도전 = 같은 파티로 바로 출발');
   ok(await page.evaluate(() => window.__proto.dungeon.idx === 0 && window.__proto.F.enc.key === 'gate'), '던전 처음부터');
   const lvm = await page.evaluate(() => { const F = window.__proto.F; return { power: F.power, scale: F.scale, me: Math.round(F.me.max), gearHp: F.gear.hp || 0 }; });
-  ok(Math.abs(lvm.power - 0.928) < 1e-9 && Math.abs(lvm.scale - 0.928 * 0.95) < 1e-9 && lvm.me === Math.round(550 * 0.928 * (1 + lvm.gearHp)), `Lv 2로 Lv 5 녹슨 요새 보통 (개발 빌드로 먼저): 적 Lv 7 (장소 5 + 보통 2, 61 1-2), 힐량·내 체력 = Lv 7 세기 ×0.928 (34 1-2 · 5-2, 체력은 장비 체력까지), 적 = 그 세기 × 0.95 ${JSON.stringify(lvm)}`);
+  ok(Math.abs(lvm.power - 0.928) < 1e-9 && Math.abs(lvm.scale - 0.928 * 0.95) < 1e-9 && lvm.me === Math.round(550 * 0.928 * (1 + lvm.gearHp)), `Lv 3으로 Lv 5 녹슨 요새 보통 (개발 빌드로 먼저): 적 Lv 7 (장소 5 + 보통 2, 61 1-2), 힐량·내 체력 = Lv 7 세기 ×0.928 (34 1-2 · 5-2, 체력은 장비 체력까지), 적 = 그 세기 × 0.95 ${JSON.stringify(lvm)}`);
   // 탱커가 쓰러져도 전투는 계속, 아래에 포기 버튼 (2026-10-07 Lim)
   ok(await page.isHidden('#giveUp'), '탱커가 살아 있으면 포기 버튼 없음');
   // 전멸 UI의 입력 상태를 직접 고정한다. HP 1 + 3초 대기는 무작위 회피/보호 능력에 따라 살아남아 흔들린다.
