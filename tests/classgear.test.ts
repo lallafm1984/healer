@@ -8,7 +8,7 @@ import { SPECS } from '../src/data/specials';
 import { SKILLS } from '../src/data/skills';
 import { CHAL, chalLimit } from '../src/data/challenge';
 import * as E from '../src/engine';
-import { chargesOf, cutCd, refundCd, startCd } from '../src/engine/talents';
+import { cdOf } from '../src/engine/talents';
 import { claimChalChest, exchangeMerit, raidLootOpen, rollover } from '../src/game/economy';
 import { settle, type BattleResult } from '../src/game/settle';
 import { equip, G, switchHero } from '../src/game/state';
@@ -159,33 +159,13 @@ describe('지능 무른 상한', () => {
   });
 });
 
-describe('해제 충전', () => {
-  const fight = (proto = false) => E.create({ encounter: 'warden', diff: '보통', seed: 1, level: 30, proto });
-  it('정화 3번까지 연달아, 다 쓰면 8초마다 1번씩 참', () => {
-    const f = fight();
-    expect(SKILLS.purify.charges).toBe(3);
-    expect(chargesOf(f, 'purify')).toEqual({ n: 3, max: 3, next: 0 });
-    for (let i = 0; i < 3; i++) { expect(f.cd.purify).toBe(0); startCd(f, 'purify'); }
-    expect(chargesOf(f, 'purify')).toMatchObject({ n: 0, next: 8 });
-    expect(f.cd.purify).toBe(8);
-    const t0 = f.t;
-    while (f.t < t0 + 8.1) E.step(f);
-    expect(chargesOf(f, 'purify')!.n).toBe(1);
-    expect(f.cd.purify).toBe(0);
-    expect(chargesOf(f, 'purify')!.next).toBeGreaterThan(7.5);
-  });
-  it('두 번 털기는 1번을 돌려받고, 재사용 줄이기는 다음 1번을 앞당김', () => {
-    const f = fight();
-    startCd(f, 'purify'); startCd(f, 'purify');
-    refundCd(f, 'purify');
-    expect(chargesOf(f, 'purify')!.n).toBe(2);
-    cutCd(f, 'purify', 8);
-    expect(chargesOf(f, 'purify')).toMatchObject({ n: 3, next: 0 });
-  });
-  it('프로토타입 규칙엔 충전이 없음 (8초 재사용 대기)', () => {
-    const f = fight(true);
-    expect(chargesOf(f, 'purify')).toBeNull();
-    startCd(f, 'purify');
-    expect(f.cd.purify).toBe(8);
+describe('해제 재사용 대기 4초 (2026-10-12 Lim 「해제는 쿨타임을 짧게」)', () => {
+  const fight = (proto = false, hero: 'priest' | 'druid' | 'paladin' = 'priest') => E.create({ encounter: 'warden', diff: '보통', seed: 1, level: 30, proto, hero });
+  it('세 직업 해제 모두 4초, 프로토타입 규칙은 예전 8초', () => {
+    expect(cdOf(fight(), 'purify')).toBe(4);
+    expect(cdOf(fight(false, 'druid'), 'natureCleanse')).toBe(4);
+    expect(cdOf(fight(false, 'paladin'), 'handCleanse')).toBe(4);
+    expect(SKILLS.purify.cd).toBe(4);
+    expect(cdOf(fight(true), 'purify')).toBe(8);
   });
 });

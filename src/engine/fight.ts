@@ -58,7 +58,7 @@ export function create(cfg: FightConfig): Fight {
     dmgMult: diff.dmg * scale * R.enemyDmg * bm.dmg * (tn?.dmg ?? 1), scale, power,
     bossMax, bossHp: bossMax, mobs: [],
     mana: 100, gcd: 0, gcdBase: R.gcd / (1 + gear.haste), cast: null, channel: 0, chTick: 0, queued: null,
-    cd: { purify: 0, guardian: 0, hymn: 0 }, charge: {},
+    cd: { purify: 0, guardian: 0, hymn: 0 },
     g: { p: 0, s: 0 }, symbolUsed: false, symbol: 0, level: cfg.level ?? 100,
     hero: cfg.hero ?? 'priest', power3: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null, relay: null,
     tx: null as unknown as TalentState, // 아래 newTalents

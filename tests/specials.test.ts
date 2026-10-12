@@ -5,7 +5,7 @@ import { NAMED, SPEC_GROUPS, SPEC_KEYS, SPECS, specText, specTotals, specValue }
 import { SKILLS } from '../src/data/skills';
 import * as E from '../src/engine';
 import { addDebuff, damage, heal } from '../src/engine/core';
-import { areaRadius, castOf, cdOf, costOf, startCd } from '../src/engine/talents';
+import { areaRadius, castOf, cdOf, costOf } from '../src/engine/talents';
 import { critBonus, dmgSpec, during, hasteOf, healSpec, hotDone, intAmt, specBuster, specCut, specPhase, specTel } from '../src/engine/specials';
 import { moveTo, scheduleReactions } from '../src/engine/movement';
 import { reviveUnit } from '../src/engine/items';
@@ -461,18 +461,18 @@ describe('2-4 마나', () => {
 describe('2-5 해제', () => {
   const dispel = (f: F, u: U, d: Partial<Parameters<typeof addDebuff>[2]> = {}) => { addDebuff(f, u, { name: '저주', type: '마법', left: 20, ...d }); return cast(f, 'purify', u); };
   it('깨끗한 손: 해제 재사용 −초', () => {
-    expect(cdOf(fight({ cleanHands: 1.5 }), 'purify')).toBeCloseTo(6.5, 9);
+    expect(cdOf(fight({ cleanHands: 1.5 }), 'purify')).toBeCloseTo(2.5, 9);
   });
   it('털어 내기: 해제한 대상 회복', () => {
     const [a] = pair('brushOff', 0.3); hurt(a);
     expect(dispel(a, tank(a)).find(e => e.id === tank(a).id)?.amt).toBe(Math.round(0.3 * 300));
   });
-  it('두 번 털기: 확률로 재사용 대기 없이 (충전을 안 씀)', () => {
+  it('두 번 털기: 확률로 재사용 대기 없이', () => {
     const [a, b] = pair('twiceBrush', 0.12);
     a.rng = () => 0;
     dispel(a, tank(a)); dispel(b, tank(b));
-    expect(E.chargesOf(a, 'purify')!.n).toBe(3);
-    expect(E.chargesOf(b, 'purify')!.n).toBe(2);
+    expect(a.cd.purify).toBe(0);
+    expect(b.cd.purify).toBeGreaterThan(0);
   });
   it('면역 향: 해제한 대상은 잠깐 같은 디버프에 안 걸림', () => {
     const [a, b] = pair('immuneIncense', 4);
@@ -538,7 +538,7 @@ describe('2-6 쿨기', () => {
   });
   it('별의 시계: 공대 쿨기를 쓰면 해제 · 생존기 재사용 −', () => {
     const [a, b] = pair('starClock', 3);
-    both([a, b], f => { for (let i = 0; i < 3; i++) startCd(f, 'purify'); f.cd.guardian = 50; E.use(f, 'hymn', tank(f).cell); }); // 해제 충전을 다 씀
+    both([a, b], f => { f.cd.purify = 8; f.cd.guardian = 50; E.use(f, 'hymn', tank(f).cell); });
     expect(b.cd.purify! - a.cd.purify!).toBeCloseTo(3, 6);
     expect(b.cd.guardian! - a.cd.guardian!).toBeCloseTo(3, 6);
   });
@@ -865,7 +865,7 @@ describe('3 이름 있는 장신구', () => {
     expect(a.cd.purify).toBeCloseTo(b.cd.purify!, 6);
     both([a, b], f => step(f, 8.1));
     both([a, b], f => purify(f, dealer(f), '질병'));
-    expect(E.chargesOf(b, 'purify')!.next - E.chargesOf(a, 'purify')!.next).toBeCloseTo(2, 6); // 다음 충전이 빨리 참
+    expect(b.cd.purify! - a.cd.purify!).toBeCloseTo(2, 6);
   });
   it('검은 돌 부적: 옆 칸에 아군이 없는 아군 힐 +', () => {
     const [a, b] = pair('blackStone', 0.15); both([a, b], f => hurt(f));

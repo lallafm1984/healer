@@ -361,7 +361,7 @@ describe('보스 데이터', () => {
     if (mark.p === 'debuff') applyDebuff(f, last, mark.debuff);
     f.party.forEach(u => { u.hp = u === last ? u.max * 0.6 : u.max; });
     E.autoHealer(f);
-    expect(E.chargesOf(f, 'purify')!.n).toBe(2); // 정화 (즉시, 충전 1번)
+    expect(f.cd.purify).toBeGreaterThan(0); // 정화 (즉시)
     expect(last.debuffs.some(d => d.name === '이끼 덮기')).toBe(false);
     expect(capped.filter(u => u !== last).every(u => u.debuffs.some(d => d.name === '이끼 덮기'))).toBe(true);
   });

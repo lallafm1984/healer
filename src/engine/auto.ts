@@ -12,7 +12,7 @@ import { canTarget, knows, use } from './healer';
 import { setBeacon } from './heroes';
 import { reviveTarget } from './items';
 import { dangerAt } from './movement';
-import { castOf, chargesOf, talentReady, useTalent } from './talents';
+import { castOf, talentReady, useTalent } from './talents';
 import type { Debuff, Fight, FightConfig, Telegraph, Unit } from './types';
 
 /**
@@ -317,14 +317,23 @@ function dispelRank(g: Gim, u: Unit, ok: (d: Debuff) => boolean): number {
   if (ds.some(d => d.noDps) && ((g.adds && (u.role === 'melee' || u.role === 'ranged')) || (g.counter && cutter(u)))) return 1;
   return 2;
 }
+/** 자동 힐러가 마지막으로 해제한 때 (f.stats 트랩 말고 해제 수가 바뀐 시각) */
+const lastDispel = new WeakMap<Fight, { n: number; t: number }>();
+const noteDispel = (f: Fight) => {
+  const l = lastDispel.get(f);
+  if (!l || l.n !== f.stats.dispels) lastDispel.set(f, { n: f.stats.dispels, t: l ? f.t : -Infinity });
+};
+/** 보통 디버프를 지우는 간격: 해제 재사용 대기를 8 → 4초로 줄이기 전 (2026-10-12) */
+const DISPEL_PACE = 8;
 /**
- * 해제 충전 (2026-10-12): 보통 디버프 (dispelRank 2)는 충전이 가득 찼을 때만 지움 = 예전 8초 재사용 대기와 같은 빠르기라
- * 마나 · GCD가 힐에 남음 (보통 디버프까지 3번 몰아 지우면 사제 마나가 모자라 무너진 망루 보통이 20판 14승으로 기준 16승 아래).
- * 먼저 지울 디버프 (0 · 1)는 남은 충전을 다 씀. 충전이 없는 규칙 (proto)은 그대로
+ * 해제 4초 (2026-10-12 Lim 「해제는 쿨타임을 짧게」): 보통 디버프 (dispelRank 2)는 예전처럼 8초에 1번만 지워 마나 · GCD를 힐에 남김
+ * (보통 디버프까지 4초마다 지우면 사제 마나가 모자람: 재사용 3초로 다 지울 때 레이드 악몽 사제 클리어 74 → 68%, 무너진 망루 보통 20판 14승으로 기준 16승 아래).
+ * 먼저 지울 디버프 (0 · 1)는 재사용이 돌면 바로. 그래서 168곳 자동 밸런스 기준은 그대로
  */
-function paced(f: Fight, k: SkillKey, g: Gim, u: Unit, ok: (d: Debuff) => boolean): boolean {
-  const c = chargesOf(f, k);
-  return !c || c.n >= c.max || dispelRank(g, u, ok) < 2;
+function paced(f: Fight, g: Gim, u: Unit, ok: (d: Debuff) => boolean): boolean {
+  if (f.cfg.proto || dispelRank(g, u, ok) < 2) return true;
+  const l = lastDispel.get(f);
+  return !l || f.t - l.t >= DISPEL_PACE - 1e-9;
 }
 
 /** 시전 중 대상에게 뒤집힌 축복이 걸리면 그 힐을 취소 (사람이 다른 칸을 눌러 끊는 것과 같음, GCD는 돌려받음) */
@@ -337,6 +346,7 @@ function dropInverted(f: Fight): void {
 /** 자동 힐러 (밸런스 시뮬레이션·구경 모드용, sim decide() 이식). 아직 안 배운 스킬은 건너뜀 */
 export function autoHealer(f: Fight): void {
   dropInverted(f);
+  noteDispel(f);
   if (f.hero === 'druid') { autoDruid(f); return; }
   if (f.hero === 'paladin') { autoPaladin(f); return; }
   autoTalents(f);
@@ -356,7 +366,7 @@ export function autoHealer(f: Fight): void {
     if (!purifyOk) return false;
     const ok = (d: Debuff) => !!DISPELLABLE[d.type] && !d.trap && !d.lock && !g.hold.has(d);
     const c = byDispel(g, all.filter(u => u.debuffs.some(ok)), ok);
-    if (!c.length || !paced(f, 'purify', g, c[0], ok)) return false;
+    if (!c.length || !paced(f, g, c[0], ok)) return false;
     use(f, 'purify', cellIdx(c[0]));
     return true;
   };
@@ -482,7 +492,7 @@ const cleansable = (f: Fight, c: Ctx) => {
   const ok = (d: Debuff) => HEROES[f.hero].dispel.includes(d.type) && !d.trap && !d.lock && !c.g.hold.has(d);
   const left = (u: Unit) => Math.min(...u.debuffs.filter(ok).map(d => d.left));
   const u = byDispel(c.g, c.all.filter(u => left(u) < Infinity).sort((a, b) => left(a) - left(b)), ok)[0];
-  return u && paced(f, f.hero === 'druid' ? 'natureCleanse' : 'handCleanse', c.g, u, ok) ? u : null;
+  return u && paced(f, c.g, u, ok) ? u : null;
 };
 
 function autoDruid(f: Fight): void {

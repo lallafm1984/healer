@@ -6,7 +6,7 @@ import { heroApply, heroChannelTick, heroTick, hotCount, putHot } from './heroes
 import { crisis, freeCast, gcdNow, guardSec, later, raidSec, regenSpec, specApply, specDispel, specExec, specTick, sv, twiceBrush, twin, under } from './specials';
 import { orderHeal } from './bossParts';
 import { reviveTarget } from './items';
-import { adjLow, castOf, cdOf, chargeTick, costOf, directSpread, focusMult, has, overflow, pohAt, refundCd, renewSec, spendGuard, startCd, talentTick, wordCap, wordPower, wordReady, wordSpent } from './talents';
+import { adjLow, castOf, cdOf, costOf, directSpread, focusMult, has, overflow, pohAt, renewSec, spendGuard, talentTick, wordCap, wordPower, wordReady, wordSpent } from './talents';
 import type { ActionResult, Debuff, Fight, Unit } from './types';
 
 /** 이 레벨에서 배운 스킬·패시브인지 (06 7장) */
@@ -102,8 +102,8 @@ function exec(f: Fight, key: SkillKey, cellIdx: number, u: Unit | undefined): vo
     return;
   }
   f.mana -= costOf(f, key, u);
-  if (sk.cd) startCd(f, key);
-  if (sk.slot === 'dispel' && f.sp && twiceBrush(f)) refundCd(f, key); // 두 번 털기 (42 해제 03)
+  if (sk.cd) f.cd[key] = cdOf(f, key);
+  if (sk.slot === 'dispel' && f.sp && twiceBrush(f)) f.cd[key] = 0; // 두 번 털기 (42 해제 03)
   if (key === 'guardian' && has(f, 'twoGuard')) spendGuard(f);
   apply(f, key, u!);
 }
@@ -238,7 +238,6 @@ export function healerTick(f: Fight): void {
   if (!f.symbolUsed && f.mana < 30 && knowsPassive(f, 'symbol')) { f.symbolUsed = true; f.symbol = 5; emit(f, { type: 'msg', text: '상징: 5초간 마나 회복 4배' }); }
   const cr = f.sp ? crisis(f) : false; // 위기의 직감 (42 쿨기 06): 공대 쿨기 2배 빨리
   for (const k in f.cd) f.cd[k as SkillKey] = Math.max(0, f.cd[k as SkillKey]! - (cr && SKILLS[k as SkillKey].slot === 'raid' ? 2 * dt : dt));
-  chargeTick(f, dt); // 충전 스킬 (해제): f.cd를 충전에 맞춤
   if (f.me.debuffs.length) for (const d of f.me.debuffs) if (d.drain) f.mana = Math.max(0, f.mana - d.drain * dt); // 마나 갈취 표식 (P-DRAIN)
   for (const k in f.lock) { const l = f.lock[k as SkillKey]!; l.left -= dt; if (l.left <= 1e-9) delete f.lock[k as SkillKey]; } // 진동 잠김
   if (f.gcd > 0) f.gcd -= dt;
@@ -267,7 +266,7 @@ export function healerTick(f: Fight): void {
       if (sk.target === 'dead') { if (u && !u.alive && f.mana >= cost) { f.mana -= cost; apply(f, c.key, u); } else emit(f, { type: 'msg', text: `${sk.name} 취소` }); }
       else if (!u || !u.alive) emit(f, { type: 'msg', text: '대상이 쓰러져 시전 취소' });
       else if (f.mana < cost) { f.stats.manaFails++; emit(f, { type: 'msg', text: '마나 부족' }); }
-      else { f.mana -= cost; if (sk.cd) startCd(f, c.key); apply(f, c.key, u); } // 시전 스킬의 재사용 대기는 시전이 끝날 때 (들꽃 군락)
+      else { f.mana -= cost; if (sk.cd) f.cd[c.key] = cdOf(f, c.key); apply(f, c.key, u); } // 시전 스킬의 재사용 대기는 시전이 끝날 때 (들꽃 군락)
     }
   }
   if (f.queued && f.gcd <= 0 && !f.cast && f.channel <= 0) {

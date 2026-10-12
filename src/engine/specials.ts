@@ -10,7 +10,6 @@ import { SKILLS, type SkillKey, type SlotName } from '../data/skills';
 import { hexDist } from './board';
 import { addMod } from './abilities';
 import { cellOf, emit, heal, living, onDebuffEnd, submerged } from './core';
-import { cutCd } from './talents';
 import type { Debuff, Fight, Telegraph, Unit } from './types';
 
 /** 전투 중 특수능력 상태 */
@@ -277,7 +276,7 @@ export const freeCast = (f: Fight, key: SkillKey): boolean => !!f.sp?.free && ba
 
 /** 그 칸 스킬들의 남은 재사용 대기 − sec초 */
 function cdCut(f: Fight, slots: SlotName[], sec: number): void {
-  for (const k in f.cd) if (slots.includes(SKILLS[k as SkillKey].slot)) cutCd(f, k as SkillKey, sec); // 충전 스킬 (해제)은 다음 1번이 빨리 참
+  for (const k in f.cd) if (slots.includes(SKILLS[k as SkillKey].slot)) f.cd[k as SkillKey] = Math.max(0, f.cd[k as SkillKey]! - sec);
 }
 
 /** 스킬 효과를 낼 때 (healer apply): 대상 · 꿀벌 · 단골/고루 문맥을 세우고 fn */
