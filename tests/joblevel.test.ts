@@ -79,11 +79,13 @@ describe('직업 바꾸기와 레벨 (34 3-1 · 3-2)', () => {
     expect(x.xp).toBe(clearXp(10, '보통', gradeOf(0), { win: true }));
     expect('catchUp' in x).toBe(false);
   });
-  it('레이드 주 1회 장비는 계정에 한 번 (직업을 바꿔도 다시 안 줌, 34 4장 4번)', () => {
+  it('레이드 주 1회 장비는 직업마다 (장비가 직업마다라서 2026-10-12, 34 4장 4번 「계정에 한 번」을 바꿈)', () => {
     G.save.player.level = 40;
     settle(G.save, result({ content: 'abyss1', diff: '보통', segN: 1, segIdx: 0 }), () => 0.5);
     expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(false);
     switchHero('druid');
+    expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(true);
+    switchHero('priest');
     expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(false);
   });
   it('길드원 레벨 상한 = 가장 높은 직업 레벨 (34 4장 8번)', () => {

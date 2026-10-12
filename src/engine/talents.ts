@@ -55,6 +55,58 @@ export function cdOf(f: Fight, key: SkillKey): number {
   return cd;
 }
 
+/**
+ * 충전 (2026-10-12 Lim 「해제 쿨타임이 길어 파티원 여럿이 걸리면 한두 번 풀고 끝난다」): charges번까지 모아 두고 재사용 대기 (cdOf)마다 1번씩 참.
+ * 남은 게 있으면 f.cd = 0 (바로 쓸 수 있음), 다 쓰면 f.cd = 다음 1번이 찰 때까지. 프로토타입 규칙엔 없음 (parity)
+ */
+export const chargeMax = (f: Fight, key: SkillKey): number => (f.cfg.proto ? 0 : SKILLS[key].charges ?? 0);
+/** 충전 스킬의 지금 상태 (화면: 남은 횟수 · 다음 1번까지 초). 충전 스킬이 아니면 null */
+export function chargesOf(f: Fight, key: SkillKey): { n: number; max: number; next: number } | null {
+  const max = chargeMax(f, key);
+  if (!max) return null;
+  const c = f.charge[key];
+  return { n: c ? c.n : max, max, next: c ? c.t : 0 };
+}
+/** 충전 칸 (처음 쓸 때 가득 찬 채로 만듦) */
+const slotOf = (f: Fight, key: SkillKey) => (f.charge[key] ??= { n: chargeMax(f, key), t: 0 });
+/** 화면 · 판단이 보는 재사용 대기를 충전에 맞춤 */
+const syncCd = (f: Fight, key: SkillKey) => { const c = f.charge[key]!; f.cd[key] = c.n > 0 ? 0 : c.t; };
+/** 재사용 대기를 검 (스킬을 쓴 순간). 충전 스킬은 1번을 쓰고, 채우는 중이 아니면 채우기 시작 */
+export function startCd(f: Fight, key: SkillKey): void {
+  if (!chargeMax(f, key)) { f.cd[key] = cdOf(f, key); return; }
+  const c = slotOf(f, key);
+  c.n = Math.max(0, c.n - 1);
+  if (c.t <= 0) c.t = cdOf(f, key);
+  syncCd(f, key);
+}
+/** 재사용 대기 없이 (두 번 털기): 충전 스킬은 쓴 1번을 돌려받음 */
+export function refundCd(f: Fight, key: SkillKey): void {
+  const max = chargeMax(f, key);
+  if (!max) { f.cd[key] = 0; return; }
+  const c = slotOf(f, key);
+  c.n = Math.min(max, c.n + 1);
+  if (c.n >= max) c.t = 0;
+  syncCd(f, key);
+}
+/** 남은 재사용 대기 − sec초 (별의 시계 · 닳은 묵주). 충전 스킬은 다음 1번이 그만큼 빨리 참 */
+export function cutCd(f: Fight, key: SkillKey, sec: number): void {
+  if (!chargeMax(f, key)) { if (f.cd[key] != null) f.cd[key] = Math.max(0, f.cd[key]! - sec); return; }
+  chargeStep(f, key, sec);
+}
+/** 충전 한 틱: 모자라면 채우는 시간이 흐르고, 다 차면 1번 더함 (넘친 시간은 다음 1번으로) */
+function chargeStep(f: Fight, key: SkillKey, dt: number): void {
+  const max = chargeMax(f, key), c = slotOf(f, key);
+  if (c.n < max) {
+    c.t -= dt;
+    while (c.t <= 1e-9 && c.n < max) { c.n++; c.t = c.n < max ? c.t + Math.max(0.05, cdOf(f, key)) : 0; }
+  } else c.t = 0;
+  syncCd(f, key);
+}
+/** 힐러 한 틱 (재사용 대기가 흐른 뒤): 쓴 적 있는 충전 스킬 */
+export function chargeTick(f: Fight, dt: number): void {
+  for (const k in f.charge) chargeStep(f, k as SkillKey, dt);
+}
+
 /** 화면의 재사용 대기 바 기준 */
 export function cdMax(f: Fight, key: SkillKey): number {
   if (key === 'guardian' && f.tx.on.twoGuard) return TWO_GUARD_RE;

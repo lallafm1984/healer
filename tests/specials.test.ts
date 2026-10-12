@@ -5,7 +5,7 @@ import { NAMED, SPEC_GROUPS, SPEC_KEYS, SPECS, specText, specTotals, specValue }
 import { SKILLS } from '../src/data/skills';
 import * as E from '../src/engine';
 import { addDebuff, damage, heal } from '../src/engine/core';
-import { areaRadius, castOf, cdOf, costOf } from '../src/engine/talents';
+import { areaRadius, castOf, cdOf, costOf, startCd } from '../src/engine/talents';
 import { critBonus, dmgSpec, during, hasteOf, healSpec, hotDone, intAmt, specBuster, specCut, specPhase, specTel } from '../src/engine/specials';
 import { moveTo, scheduleReactions } from '../src/engine/movement';
 import { reviveUnit } from '../src/engine/items';
@@ -467,12 +467,12 @@ describe('2-5 해제', () => {
     const [a] = pair('brushOff', 0.3); hurt(a);
     expect(dispel(a, tank(a)).find(e => e.id === tank(a).id)?.amt).toBe(Math.round(0.3 * 300));
   });
-  it('두 번 털기: 확률로 재사용 대기 없이', () => {
+  it('두 번 털기: 확률로 재사용 대기 없이 (충전을 안 씀)', () => {
     const [a, b] = pair('twiceBrush', 0.12);
     a.rng = () => 0;
     dispel(a, tank(a)); dispel(b, tank(b));
-    expect(a.cd.purify).toBe(0);
-    expect(b.cd.purify).toBeGreaterThan(0);
+    expect(E.chargesOf(a, 'purify')!.n).toBe(3);
+    expect(E.chargesOf(b, 'purify')!.n).toBe(2);
   });
   it('면역 향: 해제한 대상은 잠깐 같은 디버프에 안 걸림', () => {
     const [a, b] = pair('immuneIncense', 4);
@@ -538,7 +538,7 @@ describe('2-6 쿨기', () => {
   });
   it('별의 시계: 공대 쿨기를 쓰면 해제 · 생존기 재사용 −', () => {
     const [a, b] = pair('starClock', 3);
-    both([a, b], f => { f.cd.purify = 8; f.cd.guardian = 50; E.use(f, 'hymn', tank(f).cell); });
+    both([a, b], f => { for (let i = 0; i < 3; i++) startCd(f, 'purify'); f.cd.guardian = 50; E.use(f, 'hymn', tank(f).cell); }); // 해제 충전을 다 씀
     expect(b.cd.purify! - a.cd.purify!).toBeCloseTo(3, 6);
     expect(b.cd.guardian! - a.cd.guardian!).toBeCloseTo(3, 6);
   });
@@ -865,7 +865,7 @@ describe('3 이름 있는 장신구', () => {
     expect(a.cd.purify).toBeCloseTo(b.cd.purify!, 6);
     both([a, b], f => step(f, 8.1));
     both([a, b], f => purify(f, dealer(f), '질병'));
-    expect(b.cd.purify! - a.cd.purify!).toBeCloseTo(2, 6);
+    expect(E.chargesOf(b, 'purify')!.next - E.chargesOf(a, 'purify')!.next).toBeCloseTo(2, 6); // 다음 충전이 빨리 참
   });
   it('검은 돌 부적: 옆 칸에 아군이 없는 아군 힐 +', () => {
     const [a, b] = pair('blackStone', 0.15); both([a, b], f => hurt(f));

@@ -28,6 +28,8 @@ export interface SkillDef {
   cost: number;
   amt?: number;
   cd?: number;
+  /** 충전 (2026-10-12 해제): 이만큼 모아 두고 cd초마다 1번씩 참 (engine/talents chargeMax) */
+  charges?: number;
   channel?: number;
   target: SkillTarget;
   gp?: number;
@@ -44,7 +46,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   flash: { name: '순간 치유', short: '순간', slot: 'fast', lv: 1, cast: 1.5, cost: 6, amt: 250, target: 'ally', gp: 15 },
   renew: { name: '소생', short: '소생', slot: 'hot', lv: 2, cast: 0, cost: 3, target: 'ally', gp: 5, gs: 5 },
   poh: { name: '치유의 기원', short: '기원', slot: 'aoe', lv: 5, cast: 2.5, cost: 10, amt: 180, target: 'area', gs: 35 },
-  purify: { name: '정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 8, target: 'ally' },
+  purify: { name: '정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 8, charges: 3, target: 'ally' },
   guardian: { name: '수호 영혼', short: '수호', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' },
   hymn: { name: '천상의 찬가', short: '찬가', slot: 'raid', lv: 12, cast: 0, channel: 4, cost: 15, cd: 180, target: 'none' },
   serenity: { name: '성언: 평온', short: '평온', slot: 'basic', lv: 6, cast: 0, cost: 0, amt: 600, target: 'ally' },
@@ -57,7 +59,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   growth: { name: '생장', short: '생장', slot: 'fast', lv: 1, cast: 2.0, cost: 4, amt: 220, target: 'ally' },
   bloom: { name: '피워 내기', short: '피움', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 12, target: 'ally' },
   wildflower: { name: '들꽃 군락', short: '들꽃', slot: 'aoe', lv: 5, cast: 2.0, cost: 10, cd: 10, amt: 160, target: 'area' },
-  natureCleanse: { name: '자연 정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 8, target: 'ally' },
+  natureCleanse: { name: '자연 정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 8, charges: 3, target: 'ally' },
   bark: { name: '나무껍질', short: '껍질', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 60, target: 'ally' },
   quietwood: { name: '고요한 숲', short: '숲', slot: 'raid', lv: 12, cast: 0, channel: 4, cost: 15, cd: 180, target: 'none' },
   rebirth: { name: '환생', short: '환생', slot: 'unique', lv: 15, cast: 3.0, cost: 5, target: 'dead' },
@@ -67,7 +69,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   holyStrike: { name: '빛 일격', short: '일격', slot: 'fast', lv: 1, cast: 0, cost: 5, cd: 6, amt: 230, target: 'ally' },
   oath: { name: '빛의 서약', short: '서약', slot: 'hot', lv: 2, cast: 0, cost: 0, amt: 160, target: 'ally', power: 1, powerAll: true },
   lightWave: { name: '빛의 파도', short: '파도', slot: 'aoe', lv: 5, cast: 0, cost: 0, amt: 220, target: 'area', power: 3 },
-  handCleanse: { name: '정화의 손', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 8, target: 'ally' },
+  handCleanse: { name: '정화의 손', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 8, charges: 3, target: 'ally' },
   sacrifice: { name: '희생', short: '희생', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' },
   sanctuary: { name: '빛의 성역', short: '성역', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, target: 'area' },
   handGuard: { name: '보호의 손', short: '보호', slot: 'unique', lv: 15, cast: 0, cost: 2, cd: 300, target: 'ally' },
@@ -101,7 +103,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   flash: { kind: '빠른 힐', desc: '대상의 체력을 {250} 회복합니다. 평온 게이지를 15% 채웁니다.' },
   renew: { kind: '지속 힐', desc: '9초 동안 3초마다 대상의 체력을 회복합니다. 모두 {240}입니다. 두 게이지를 5%씩 채웁니다.' },
   poh: { kind: '광역 힐', desc: '대상과 붙어 있는 6칸의 아군 체력을 {180}씩 회복합니다. 신성화 게이지를 35% 채웁니다.' },
-  purify: { kind: '해제', desc: '대상의 마법·질병 디버프를 1개 제거합니다. 독은 제거하지 못합니다.' },
+  purify: { kind: '해제', desc: '대상의 마법·질병 디버프를 1개 제거합니다. 독은 제거하지 못합니다. 3번까지 연달아 쓸 수 있고, 8초마다 1번씩 다시 찹니다.' },
   guardian: { kind: '외부 생존기', desc: '10초 동안 대상이 죽을 피해를 받으면 대신 최대 체력의 40%를 회복합니다. 한 번만 발동합니다.' },
   hymn: { kind: '공대 쿨기', desc: '4초 동안 1초마다 파티 전원의 체력을 {120}씩 회복합니다. 그동안 다른 행동을 할 수 없습니다.' },
   serenity: { kind: '성언', desc: '대상의 체력을 즉시 {600} 회복합니다. 평온 게이지 100%에서 쓰고, 마나를 쓰지 않습니다.' },
@@ -112,7 +114,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   growth: { kind: '빠른 힐', desc: '대상의 체력을 즉시 {220} 회복하고, 6초 동안 {90}만큼 더 회복합니다.' },
   bloom: { kind: '지속 힐 거두기', desc: '대상의 지속 힐 하나를 거둬 남은 회복량의 150%를 즉시 회복합니다.' },
   wildflower: { kind: '광역 힐', desc: '대상과 붙어 있는 6칸을 7초 동안 모두 {160} 회복합니다. 처음이 크고 점점 작아집니다. 20인 레이드에서는 2칸 거리까지 닿습니다.' },
-  natureCleanse: { kind: '해제', desc: '대상의 마법·저주·독 디버프를 1개 제거합니다.' },
+  natureCleanse: { kind: '해제', desc: '대상의 마법·저주·독 디버프를 1개 제거합니다. 3번까지 연달아 쓸 수 있고, 8초마다 1번씩 다시 찹니다.' },
   bark: { kind: '외부 생존기', desc: '12초 동안 대상이 받는 피해가 20% 줄고, 대상에게 걸린 내 지속 힐이 20% 강해집니다.' },
   quietwood: { kind: '공대 쿨기', desc: '4초 동안 1초마다 파티 전원의 체력을 {100}씩 회복하고, 걸린 지속 힐의 남은 시간을 2초 늘립니다.' },
   rebirth: { kind: '부활', desc: '쓰러진 파티원 1명을 체력 40%로 일으킵니다. 전투당 1회 쓸 수 있습니다.' },
@@ -121,7 +123,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   holyStrike: { kind: '빠른 힐', desc: '대상의 체력을 {230} 회복하고 신성한 힘을 1 모읍니다.' },
   oath: { kind: '지속 힐', desc: '모은 신성한 힘 1칸마다 4초 동안 {160} 회복합니다. 3칸이면 12초 동안 {480}입니다.' },
   lightWave: { kind: '광역 힐', desc: '신성한 힘 3칸을 모두 써서 대상과 붙어 있는 6칸을 각각 {220} 회복합니다.' },
-  handCleanse: { kind: '해제', desc: '대상의 마법·독·질병 디버프를 1개 제거합니다.' },
+  handCleanse: { kind: '해제', desc: '대상의 마법·독·질병 디버프를 1개 제거합니다. 3번까지 연달아 쓸 수 있고, 8초마다 1번씩 다시 찹니다.' },
   sacrifice: { kind: '외부 생존기', desc: '12초 동안 대상이 받는 피해의 30%를 내가 대신 받습니다.' },
   sanctuary: { kind: '공대 쿨기', desc: '대상 중심 7칸에 10초 동안 성역을 세웁니다. 안에 있으면 받는 피해가 20% 줄고 초당 {40}씩 회복합니다.' },
   handGuard: { kind: '보호', desc: '6초 동안 대상이 물리 피해를 받지 않습니다. 그동안 대상은 딜을 하지 못합니다.' },

@@ -638,6 +638,8 @@ export interface Fight {
   chTick: number;
   queued: { key: SkillKey; uid: number | null } | null;
   cd: Partial<Record<SkillKey, number>>;
+  /** 충전 스킬 (해제, engine/talents chargeMax): 남은 횟수 n · 다음 1번이 찰 때까지 t초. 쓴 적 있는 스킬만 */
+  charge: Partial<Record<SkillKey, { n: number; t: number }>>;
   /** 성언 게이지 p = 평온, s = 신성화 */
   g: { p: number; s: number };
   symbolUsed: boolean;

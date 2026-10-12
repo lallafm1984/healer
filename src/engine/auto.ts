@@ -12,7 +12,7 @@ import { canTarget, knows, use } from './healer';
 import { setBeacon } from './heroes';
 import { reviveTarget } from './items';
 import { dangerAt } from './movement';
-import { castOf, talentReady, useTalent } from './talents';
+import { castOf, chargesOf, talentReady, useTalent } from './talents';
 import type { Debuff, Fight, FightConfig, Telegraph, Unit } from './types';
 
 /**
@@ -304,16 +304,27 @@ function glassWindow(f: Fight, g: Gim, live: Unit[], one: (u: Unit, hurry: boole
  * 판에 적이 있으면 딜러의 딜 0, 반격 틈이 있으면 끊기 능력자의 딜 0 → 그 밖. 같은 순위는 넘겨받은 순서 그대로
  */
 function byDispel(g: Gim, cands: Unit[], ok: (d: Debuff) => boolean): Unit[] {
-  const rank = (u: Unit) => {
-    const ds = u.debuffs.filter(ok);
-    // 부풀기는 중첩이 쌓이기 전에, 치유 상한은 큰 피해 예고가 떴을 때 · 완치 표식이 같이 있을 때 (상한부터 지워야 표식이 사라짐, 56 4-3), 뒤집힘은 체력이 높을 때 (46 5장)
-    const full = u.debuffs.some(d => d.cureAt != null && d.cureAt >= 1);
-    if (ds.some(d => d.invert || d.count || d.swell || (d.cap != null && (g.big || full)) || (d.end?.p === 'flip' && u.hp > u.max * 0.5) || d.end?.p === 'pass')) return 0;
-    if (ds.some(d => d.charm || d.drain || (d.end?.p === 'jump' && d.end.on === 'quake'))) return 1;
-    if (ds.some(d => d.noDps) && ((g.adds && (u.role === 'melee' || u.role === 'ranged')) || (g.counter && cutter(u)))) return 1;
-    return 2;
-  };
+  const rank = (u: Unit) => dispelRank(g, u, ok);
   return cands.map((u, i) => ({ u, i, r: rank(u) })).sort((a, b) => a.r - b.r || a.i - b.i).map(x => x.u);
+}
+/** 해제 순서 (byDispel): 0 · 1 = 먼저 지울 디버프, 2 = 보통 디버프 */
+function dispelRank(g: Gim, u: Unit, ok: (d: Debuff) => boolean): number {
+  const ds = u.debuffs.filter(ok);
+  // 부풀기는 중첩이 쌓이기 전에, 치유 상한은 큰 피해 예고가 떴을 때 · 완치 표식이 같이 있을 때 (상한부터 지워야 표식이 사라짐, 56 4-3), 뒤집힘은 체력이 높을 때 (46 5장)
+  const full = u.debuffs.some(d => d.cureAt != null && d.cureAt >= 1);
+  if (ds.some(d => d.invert || d.count || d.swell || (d.cap != null && (g.big || full)) || (d.end?.p === 'flip' && u.hp > u.max * 0.5) || d.end?.p === 'pass')) return 0;
+  if (ds.some(d => d.charm || d.drain || (d.end?.p === 'jump' && d.end.on === 'quake'))) return 1;
+  if (ds.some(d => d.noDps) && ((g.adds && (u.role === 'melee' || u.role === 'ranged')) || (g.counter && cutter(u)))) return 1;
+  return 2;
+}
+/**
+ * 해제 충전 (2026-10-12): 보통 디버프 (dispelRank 2)는 충전이 가득 찼을 때만 지움 = 예전 8초 재사용 대기와 같은 빠르기라
+ * 마나 · GCD가 힐에 남음 (보통 디버프까지 3번 몰아 지우면 사제 마나가 모자라 무너진 망루 보통이 20판 14승으로 기준 16승 아래).
+ * 먼저 지울 디버프 (0 · 1)는 남은 충전을 다 씀. 충전이 없는 규칙 (proto)은 그대로
+ */
+function paced(f: Fight, k: SkillKey, g: Gim, u: Unit, ok: (d: Debuff) => boolean): boolean {
+  const c = chargesOf(f, k);
+  return !c || c.n >= c.max || dispelRank(g, u, ok) < 2;
 }
 
 /** 시전 중 대상에게 뒤집힌 축복이 걸리면 그 힐을 취소 (사람이 다른 칸을 눌러 끊는 것과 같음, GCD는 돌려받음) */
@@ -345,8 +356,9 @@ export function autoHealer(f: Fight): void {
     if (!purifyOk) return false;
     const ok = (d: Debuff) => !!DISPELLABLE[d.type] && !d.trap && !d.lock && !g.hold.has(d);
     const c = byDispel(g, all.filter(u => u.debuffs.some(ok)), ok);
-    if (c.length) use(f, 'purify', cellIdx(c[0]));
-    return c.length > 0;
+    if (!c.length || !paced(f, 'purify', g, c[0], ok)) return false;
+    use(f, 'purify', cellIdx(c[0]));
+    return true;
   };
   // 모래시계 창 안 (54 5장): 남는 일만
   if (glassWindow(f, g, live, (u, hurry) => { const k = big(hurry); return !!k && f.mana > 3 && use(f, k, cellIdx(u)).ok; }, purifyNow)) return;
@@ -469,7 +481,8 @@ const tryUse = (f: Fight, k: SkillKey, u: Unit | null, idx: (u: Unit) => number)
 const cleansable = (f: Fight, c: Ctx) => {
   const ok = (d: Debuff) => HEROES[f.hero].dispel.includes(d.type) && !d.trap && !d.lock && !c.g.hold.has(d);
   const left = (u: Unit) => Math.min(...u.debuffs.filter(ok).map(d => d.left));
-  return byDispel(c.g, c.all.filter(u => left(u) < Infinity).sort((a, b) => left(a) - left(b)), ok)[0] || null;
+  const u = byDispel(c.g, c.all.filter(u => left(u) < Infinity).sort((a, b) => left(a) - left(b)), ok)[0];
+  return u && paced(f, f.hero === 'druid' ? 'natureCleanse' : 'handCleanse', c.g, u, ok) ? u : null;
 };
 
 function autoDruid(f: Fight): void {
