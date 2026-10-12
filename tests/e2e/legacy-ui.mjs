@@ -25,7 +25,9 @@ export default async function legacyUi(url, shots) {
   const top = await ev(() => { const b = document.querySelector('#s-party .f-gsheet .guides'); return { n: b.querySelectorAll('.gpane').length, shown: b.querySelectorAll('.gpane:not([hidden])').length, tabs: document.querySelectorAll('#s-party .f-gsheet .f-route [role="tab"]').length, chat: b.querySelectorAll('.chat').length, first: b.querySelector('.gd > *').className, note: b.querySelectorAll('.gd-note').length }; });
   ok(top.n === 4 && top.shown === 1 && top.tabs === 4 && top.chat === 0 && top.first === 'gd-top' && top.note === 0, `구간마다 공략 (구간 탭 4, 보이는 판 1), 맨 위 = 이름, 채팅·평타 메모 없음 ${JSON.stringify(top)}`);
   ok(/녹슨 문지기/.test(await page.textContent('#s-party .f-gsheet .gpane:not([hidden])')) && await page.getAttribute('#s-party .f-gsheet [data-gseg="3"]', 'aria-selected') === 'true', '처음 보이는 공략 = 마지막 구간 녹슨 문지기');
-  ok(/탱커 강타/.test(await page.textContent('#s-party .f-gsheet .f-ih')), '공략 시트 맨 아래 = 녹슨 문지기 아이템 힌트');
+  // Lim 2026-10-12 13:33: 난이도 수치 칸 · 위쪽 안내 글 · 대처 줄 · 아이템 힌트 빼고, 닫기는 나무결 없이 시트 색
+  const trim = await ev(() => { const g = document.querySelector('#s-party .f-gsheet'), shut = g.querySelector('.f-sheet-actions > .f-shut'); return { stats: g.querySelectorAll('.f-dstats').length, ih: g.querySelectorAll('.f-ih').length, how: g.querySelectorAll('.gs-how').length, hint: g.querySelectorAll('.gd-h small').length, wood: /wood/.test(getComputedStyle(shut).backgroundImage) }; });
+  ok(trim.stats === 0 && trim.ih === 0 && trim.how === 0 && trim.hint === 0 && !trim.wood, `공략 시트: 수치 칸 · 안내 글 · 대처 줄 · 힌트 없음, 닫기 나무결 없음 ${JSON.stringify(trim)}`);
   await page.screenshot({ path: `${shots}/v9_guide_top.png` });
   await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
 

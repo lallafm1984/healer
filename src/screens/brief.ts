@@ -3,7 +3,7 @@
  * 흐름 상단, 경고 줄 (미달일 때만), 공략 시트 (구간 노드 줄 + 보스별 공략 접기 + 어픽스).
  */
 import type { ContentDef } from '../data/content';
-import { DIFFS, MYTHIC, type DiffName } from '../data/difficulty';
+import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, segGrade, type EncounterKey } from '../data/encounters';
 import { avgScore, gearSummary, GRADE_STYLE, ITEM_GRADES, RECOMMENDED } from '../data/equipment';
 import { canDispel, DEB_COLOR, HEROES } from '../data/heroes';
@@ -103,11 +103,3 @@ export function afxRows(keys: AffixKey[], label = ''): string {
 
 /** 어픽스 이름 칸만 (관문·편성 머리) */
 export const afxTags = (keys: AffixKey[]) => keys.map(k => `<span class="f-afx${AFFIXES[k].good ? ' good' : ''}">${AFFIXES[k].name}</span>`).join('');
-
-/** 난이도 수치 칸 (공략 시트 머리): [이름, 값]. 악몽은 파티원·보스 배율까지 */
-export function diffStats(d: DiffName): [string, string][] {
-  const x = DIFFS[d];
-  const out: [string, string][] = [['받는 피해', `×${x.dmg}`], ['파티원 회피', `${Math.round(x.dodge * 100)}%`]];
-  if (d === '악몽') out.push(['파티원 체력\u2060·\u2060딜', `×${MYTHIC.party}`], ['보스 체력', `×${MYTHIC.bossHp}`]);
-  return out;
-}
