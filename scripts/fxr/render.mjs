@@ -2,18 +2,21 @@
 // PXF 공방 그래프 (pxf.graph@1)와 같은 노드 · 파라미터를 읽어 원하는 크기로 프레임을 그린다. 공방 엔진은 바깥 서버라 속을 모르므로
 // 노드 뜻은 공방 계약 (파라미터 이름 · 범위 · 설명)을 따라 우리가 새로 만든 것: 무작위 (파티클 · 번개 · 노이즈) 모양은 공방과 다르게 나온다.
 // 크기를 바꾸면 픽셀 단위 값 (크기 · 두께 · 속도 …)을 같은 비율로 키워 같은 그림을 더 촘촘한 픽셀로 그린다 (외곽선 두께는 1px 그대로).
-// 브라우저에서도 돌도록 node 모듈을 쓰지 않는다 (PNG 쓰기는 scripts/fxr.mjs).
+// 브라우저에서도 돌도록 node 모듈을 쓰지 않는다 (PNG 쓰기는 scripts/fxr.mjs). 개발용 이펙트 화면 (fx.html, src/fxlab)도 이 렌더러로 그린다.
+// 2026-10-12 계약 29종을 모두 그림 (아래 「더한 노드」). 공방 렌더와 견주는 법은 src/fxlab의 「공방 렌더와 나란히」.
 
 /** 노드마다 픽셀 단위 파라미터 (크기를 바꿀 때 같이 키움) */
-const PIXEL_PARAMS = {
+export const PIXEL_PARAMS = {
   Shape: ['size', 'stroke'], Stroke: ['width'], Particles: ['aw', 'ah', 'speed', 'gravity', 'turb', 'sizeA', 'sizeB', 'ground'],
   Lightning: ['thick'], Spike: ['width'], Transform: ['tx', 'ty'], Repeat: ['dx', 'dy'], Displace: ['amount'], Glow: ['radius'],
+  Arc: ['radius', 'thick'], Checker: ['size', 'ox', 'oy'], Gradient: ['radius'], Grid: ['cellW', 'cellH', 'gap', 'ox', 'oy'], Blur: ['radius'],
+  Polar: ['rIn', 'rOut'], Pixelate: ['block'], Revolve: ['rEnd', 'rMid'], AuraShell: ['radius'],
 };
 /** 정수 파라미터 (키운 뒤 반올림, 1 이상) */
-const INT_PARAMS = new Set(['Lightning.thick', 'Glow.radius']);
+export const INT_PARAMS = new Set(['Lightning.thick', 'Glow.radius', 'Blur.radius', 'Pixelate.block']);
 
 // ── 시간 · 키프레임 ─────────────────────────────────────────
-const EASE = {
+export const EASE = {
   linear: t => t, in: t => t * t, out: t => 1 - (1 - t) * (1 - t), inout: t => (t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t)),
   in3: t => t * t * t, out3: t => 1 - (1 - t) ** 3, pulse: t => Math.sin(Math.PI * t), wave: t => 0.5 - 0.5 * Math.cos(2 * Math.PI * t), step: () => 0,
 };
@@ -389,6 +392,336 @@ function output(img, p) {
   return o;
 }
 
+// ── 2026-10-12 더한 노드 (Lim 「게임 저장소 안 이펙트 도구」): 계약 29종을 모두 그림 ─────────
+// 우리 게임 그래프 50개의 공방 타임라인 그림과 나란히 보며 맞춤 (Repeat · Mask · Arc · Echo · Levels · Blur · Checker · Dither).
+// 게임 그래프에 없는 노드 (Gradient · Grid · Polar · Pixelate · Quantize · AuraShell · Revolve)는 계약 설명만 보고 만든 것이라 공방과 더 다를 수 있음.
+const alphaAt = (m, i) => (m.kind === 'i' ? m.v[i] : m.v[i * 4 + 3]);
+const blankLike = m => (m.kind === 'i' ? intensity(m.n) : color(m.n));
+const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+/** 그림 m의 픽셀마다 값 (강도 또는 알파)에 k를 곱한 사본 */
+function scaleAlpha(m, k) {
+  const o = blankLike(m);
+  if (m.kind === 'i') { for (let i = 0; i < m.v.length; i++) o.v[i] = m.v[i] * (typeof k === 'function' ? k(i) : k); return o; }
+  o.v.set(m.v);
+  for (let i = 0; i < m.n * m.n; i++) o.v[i * 4 + 3] *= typeof k === 'function' ? k(i) : k;
+  return o;
+}
+/** 여러 장 합치기: add (더하기) · max (큰 값) · over (뒤 장이 위) */
+function stack(list, mode, n, kind) {
+  const o = kind === 'i' ? intensity(n) : color(n);
+  for (const m0 of list) {
+    const m = kind === 'c' ? toColor(m0) : m0;
+    if (kind === 'i') { for (let i = 0; i < n * n; i++) { const a = o.v[i], b = m.v[i]; o.v[i] = mode === 'add' ? Math.min(1, a + b) : mode === 'over' ? b + a * (1 - b) : Math.max(a, b); } continue; }
+    for (let i = 0; i < n * n; i++) {
+      const ba = m.v[i * 4 + 3], aa = o.v[i * 4 + 3];
+      if (ba <= 0) continue;
+      if (mode === 'max') { if (ba > aa) o.v.set(m.v.subarray(i * 4, i * 4 + 4), i * 4); continue; }
+      if (mode === 'add') { for (let c = 0; c < 3; c++) o.v[i * 4 + c] = Math.min(1, (o.v[i * 4 + c] * aa + m.v[i * 4 + c] * ba) / Math.max(1e-6, Math.min(1, aa + ba))); o.v[i * 4 + 3] = Math.min(1, aa + ba); continue; }
+      const oa = ba + aa * (1 - ba);
+      for (let c = 0; c < 3; c++) o.v[i * 4 + c] = (m.v[i * 4 + c] * ba + o.v[i * 4 + c] * aa * (1 - ba)) / oa;
+      o.v[i * 4 + 3] = oa;
+    }
+  }
+  return o;
+}
+/** 그림을 옮겨 찍기: 원래 그림의 점 (px, py)가 (qx, qy)로 가고 그 둘레로 rot° 돌리고 sx · sy배 (가장 가까운 픽셀) */
+function place(img, px, py, qx, qy, rot, sx, sy, gain) {
+  const n = img.n, ch = img.kind === 'i' ? 1 : 4, o = blankLike(img), r = (rot * Math.PI) / 180, cs = Math.cos(r), sn = Math.sin(r);
+  if (Math.abs(sx) < 1e-6 || Math.abs(sy) < 1e-6 || gain <= 0) return o;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const dx = x + 0.5 - qx, dy = y + 0.5 - qy, rx = (dx * cs + dy * sn) / sx, ry = (-dx * sn + dy * cs) / sy;
+    const ix = Math.floor(rx + px), iy = Math.floor(ry + py);
+    if (ix < 0 || iy < 0 || ix >= n || iy >= n) continue;
+    const si = (iy * n + ix) * ch, di = (y * n + x) * ch;
+    for (let c = 0; c < ch; c++) o.v[di + c] = img.v[si + c];
+    o.v[di + ch - 1] *= gain;
+  }
+  return o;
+}
+const bezier = (a, b, c, d, t) => { const u = 1 - t; return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d; };
+/**
+ * 반복 배치: 입력 그림을 count장 찍음. i번째 장은 delay·i 프레임 늦은 입력 그림 (그 시각의 반복 값으로) — 시작 전 (프레임 < 0)인 장은 안 찍음.
+ * step: 피벗 (첫 위치) 둘레로 angle0 + angleStep·j 돌리고 (dx, dy)·j 옮김 (centered면 j가 가운데 0 기준 대칭), 크기 1 − scaleStep·|j|, 강도 1 − fadeStep·|j|.
+ * bezier: 곡선 (bx0, by0)…(bx3, by3) 위에 (i / (count − 1))^dist 자리로, 배율 scale0 → scale1 (scalePow 곡선).
+ */
+function repeatNode(n, count, copyAt) {
+  const list = [];
+  let kind = 'i', mode = 'add';
+  for (let i = 0; i < count; i++) {
+    const c = copyAt(i);
+    if (!c) continue;
+    const { img, p } = c;
+    mode = p.mode; if (img.kind === 'c') kind = 'c';
+    const j = p.centered ? i - (count - 1) / 2 : i, k = Math.abs(j), r = rng(p.seed * 31 + i * 977 + 5);
+    const rr = [r(), r()], px = p.px * n, py = p.py * n;
+    let qx = p.posX >= 0 ? p.posX * n : px, qy = p.posY >= 0 ? p.posY * n : py, s;
+    if (p.layout === 'bezier') {
+      const t = count > 1 ? (i / (count - 1)) ** p.dist : 0;
+      qx = bezier(p.bx0, p.bx1, p.bx2, p.bx3, t) * n; qy = bezier(p.by0, p.by1, p.by2, p.by3, t) * n;
+      s = p.scale0 + (p.scale1 - p.scale0) * t ** p.scalePow;
+    } else { qx += p.dx * j; qy += p.dy * j; s = p.scale0 * Math.max(0, 1 - p.scaleStep * k); }
+    s *= 1 - p.jitter * rr[0];
+    const rot = p.angle0 + p.angleStep * j + (p.rotMin + (p.rotMax - p.rotMin) * rr[1]);
+    list.push(place(img, px, py, qx, qy, rot, s * p.sx, s * p.sy, Math.max(0, 1 - p.fadeStep * k)));
+  }
+  return stack(list, mode, n, kind);
+}
+/** 잔상: copies장 앞선 프레임 (step 간격)의 입력을 decay^k로 옅게 깔고 지금 그림을 맨 위에 */
+function echoNode(n, p, inputAt, ff) {
+  const list = [];
+  let kind = 'i';
+  for (let k = Math.round(p.copies); k >= 0; k--) {
+    const fk = ff - k * p.step;
+    if (fk < 0) continue;
+    const img = inputAt(fk);
+    if (!img) continue;
+    if (img.kind === 'c') kind = 'c';
+    list.push(k ? scaleAlpha(img, p.decay ** k) : img);
+  }
+  return stack(list, kind === 'i' ? 'max' : 'over', n, kind);
+}
+/** 마스크: multiply = 마스크 값만큼 남김, cutout = 마스크 값만큼 지움 (값 = 강도 또는 알파) */
+function maskNode(img, mask, p) {
+  if (!mask) return img;
+  return scaleAlpha(img, i => { const mv = clamp01(alphaAt(mask, i)); return p.mode === 'cutout' ? 1 - p.strength * mv : 1 - p.strength * (1 - mv); });
+}
+/** 레벨: (값 − lo) / (hi − lo)를 감마로 휘고 steps단으로 나눔 (색 그림이면 알파에) */
+function levelsNode(img, p) {
+  const f = v => {
+    if (v <= 0) return 0;
+    let t = clamp01((v - p.lo) / Math.max(1e-6, p.hi - p.lo));
+    t = t ** (1 / Math.max(0.01, p.gamma));
+    const s = Math.round(p.steps);
+    if (s >= 2) t = Math.round(t * (s - 1)) / (s - 1); else if (s === 1) t = t > 0 ? 1 : 0;
+    return t;
+  };
+  const o = blankLike(img);
+  if (img.kind === 'i') { for (let i = 0; i < img.v.length; i++) o.v[i] = f(img.v[i]); return o; }
+  o.v.set(img.v);
+  for (let i = 0; i < img.n * img.n; i++) o.v[i * 4 + 3] = f(img.v[i * 4 + 3]);
+  return o;
+}
+/** 상자 블러 (가로 · 세로) passes번. 색 그림은 알파를 곱한 색으로 */
+function blurNode(img, p) {
+  const n = img.n, r = Math.max(0, Math.round(p.radius)), ch = img.kind === 'i' ? 1 : 4;
+  if (r === 0) return img;
+  let cur = new Float32Array(img.v);
+  if (ch === 4) for (let i = 0; i < n * n; i++) for (let c = 0; c < 3; c++) cur[i * 4 + c] *= cur[i * 4 + 3];
+  const pass = (src, horiz) => {
+    const out = new Float32Array(src.length);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) for (let c = 0; c < ch; c++) {
+      let s = 0;
+      for (let k = -r; k <= r; k++) { const xx = horiz ? x + k : x, yy = horiz ? y : y + k; if (xx >= 0 && yy >= 0 && xx < n && yy < n) s += src[(yy * n + xx) * ch + c]; }
+      out[(y * n + x) * ch + c] = s / (2 * r + 1);
+    }
+    return out;
+  };
+  for (let k = 0; k < Math.max(1, Math.round(p.passes)); k++) cur = pass(pass(cur, true), false);
+  const o = blankLike(img);
+  if (ch === 1) { o.v.set(cur); return o; }
+  for (let i = 0; i < n * n; i++) { const a = cur[i * 4 + 3]; o.v[i * 4 + 3] = a; for (let c = 0; c < 3; c++) o.v[i * 4 + c] = a > 1e-6 ? Math.min(1, cur[i * 4 + c] / a) : 0; }
+  return o;
+}
+const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16), BAYER2 = [0, 2, 3, 1].map(v => (v + 0.5) / 4);
+/** 디더: 값을 levels단으로 나누되 단 사이는 바이어 무늬로 섞음 (strength 0이면 반올림) */
+function ditherNode(img, p) {
+  const n = img.n, L = Math.max(2, Math.round(p.levels)), b4 = p.pattern !== 'bayer2';
+  const f = (v, x, y) => {
+    if (v <= 0) return 0;
+    const th = (b4 ? BAYER4[(y & 3) * 4 + (x & 3)] : BAYER2[(y & 1) * 2 + (x & 1)]) * p.strength + (1 - p.strength) * 0.5;
+    return clamp01(Math.floor(v * (L - 1) + th) / (L - 1));
+  };
+  const o = blankLike(img);
+  if (img.kind === 'c') o.v.set(img.v);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const i = y * n + x; if (img.kind === 'i') o.v[i] = f(img.v[i], x, y); else o.v[i * 4 + 3] = f(img.v[i * 4 + 3], x, y); }
+  return o;
+}
+/** 호 / 참격: 중심 둘레 반지름 radius의 띠. start°에서 sweep° 쪽으로, 앞머리 head (호 길이 비율)부터 뒤로 tail 길이만큼. 꼬리로 갈수록 가늘고 (taper) 어두움 */
+function genArc(n, p) {
+  const m = intensity(n);
+  if (p.intensity <= 0 || p.thick <= 0 || p.sweep === 0 || p.tail <= 0) return m;
+  const cx = p.x * n, cy = p.y * n, rot = (-p.rot * Math.PI) / 180, cs = Math.cos(rot), sn = Math.sin(rot), asp = Math.max(0.05, p.aspect);
+  const W = Math.abs(p.sweep), dirS = Math.sign(p.sweep), lo = Math.max(0, p.head - p.tail), hi = Math.min(1, p.head);
+  if (hi <= lo) return m;
+  const ext = p.radius + p.thick + 2;
+  for (let y = Math.max(0, Math.floor(cy - ext)); y <= Math.min(n - 1, Math.ceil(cy + ext)); y++) for (let x = Math.max(0, Math.floor(cx - ext)); x <= Math.min(n - 1, Math.ceil(cx + ext)); x++) {
+    const dx = x + 0.5 - cx, dy = y + 0.5 - cy, qx = dx * cs - dy * sn, qy = (dx * sn + dy * cs) / asp;
+    const r = Math.hypot(qx, qy), th = (Math.atan2(qy, qx) * 180) / Math.PI;
+    const s = ((((th - p.start) * dirS) % 360) + 360) % 360 / W;
+    if (s < lo || s > hi) continue;
+    // 앞머리는 두께만큼 뾰족하게 (앞머리가 호 끝을 지나면 끝에서 잘림)
+    const u = (p.head - s) / p.tail, dh = (p.head - s) * ((W * Math.PI) / 180) * p.radius;
+    const w = (p.thick / 2) * Math.max(0, 1 - u) ** p.taper * (p.head <= 1 ? Math.min(1, dh / Math.max(1, p.thick)) ** 0.5 : 1);
+    const off = Math.abs(r - p.radius);
+    if (off > Math.max(0.5, w)) continue;
+    const v = p.intensity * (1 - 0.5 * u) * (1 - 0.55 * (off / Math.max(0.5, w)) ** 2);
+    const i = y * n + x; if (v > m.v[i]) m.v[i] = v;
+  }
+  return m;
+}
+/** 체커: size px 칸을 a · b 강도로 번갈아 (iso = 마름모 칸, dots = 칸마다 점) */
+function genChecker(n, p) {
+  const m = intensity(n), c = Math.max(0.5, p.size);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const X = x + 0.5 - p.ox, Y = y + 0.5 - p.oy;
+    let u = X / c, v = Y / c;
+    if (p.iso) { const a = X / (2 * c) + Y / c, b = Y / c - X / (2 * c); u = a; v = b; }
+    const iu = Math.floor(u), iv = Math.floor(v);
+    if (p.pattern === 'dots') { const du = u - iu - 0.5, dv = v - iv - 0.5; m.v[y * n + x] = Math.hypot(du, dv) <= p.dot ? p.a : p.b; }
+    else m.v[y * n + x] = (iu + iv) & 1 ? p.a : p.b;
+  }
+  return m;
+}
+/** 그라디언트: linear (angle° 쪽으로 반경 2배 폭에 0 → 1) · radial · angular · diamond, offset만큼 밀고 repeat이면 되풀이 */
+function genGradient(n, p) {
+  const m = intensity(n), cx = p.x * n, cy = p.y * n, a = (p.angle * Math.PI) / 180, R = Math.max(1, p.radius), asp = Math.max(0.1, p.aspect);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const dx = x + 0.5 - cx, dy = (y + 0.5 - cy) / asp;
+    let t;
+    if (p.type === 'radial') t = Math.hypot(dx, dy) / R;
+    else if (p.type === 'angular') t = (((Math.atan2(dy, dx) - a) / (2 * Math.PI)) % 1 + 1) % 1;
+    else if (p.type === 'diamond') t = (Math.abs(dx) + Math.abs(dy)) / R;
+    else t = (dx * Math.cos(a) + dy * Math.sin(a)) / (2 * R) + 0.5;
+    t += p.offset;
+    t = p.repeat ? ((t % 1) + 1) % 1 : clamp01(t);
+    m.v[y * n + x] = p.invert ? 1 - t : t;
+  }
+  return m;
+}
+/** 그리드 / 판자: cellW × cellH 칸마다 lo–hi 사이 무작위 강도 (시드), 틈은 gapV */
+function genGrid(n, p) {
+  const m = intensity(n), W = Math.max(1, p.cellW), H = Math.max(1, p.cellH), g = Math.max(0, p.gap);
+  const h = (i, j) => { let k = Math.imul(i * 73856093 ^ j * 19349663 ^ p.seed * 83492791, 1274126177); k ^= k >>> 15; return ((k >>> 0) % 10007) / 10007; };
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const X = x + 0.5 - p.ox, Y = y + 0.5 - p.oy, i = Math.floor(X / W), j = Math.floor(Y / H), fx = X - i * W, fy = Y - j * H;
+    m.v[y * n + x] = fx < g || fy < g ? p.gapV : p.lo + (p.hi - p.lo) * h(i, j);
+  }
+  return m;
+}
+/** 극좌표: 입력의 가로 = 둘레 (spin°만큼 돌림), 세로 = 반경 rIn → rOut (invert면 입력 아래가 바깥) */
+function polarNode(img, p) {
+  const n = img.n, ch = img.kind === 'i' ? 1 : 4, o = blankLike(img), cx = p.cx * n, cy = p.cy * n;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const dx = x + 0.5 - cx, dy = y + 0.5 - cy, r = Math.hypot(dx, dy);
+    if (r < p.rIn || r > p.rOut || p.rOut <= p.rIn) continue;
+    const ang = (((Math.atan2(dy, dx) * 180) / Math.PI - p.spin) % 360 + 360) % 360, t = (r - p.rIn) / (p.rOut - p.rIn);
+    const sx = Math.min(n - 1, Math.floor((ang / 360) * n)), sy = Math.min(n - 1, Math.floor((p.invert ? t : 1 - t) * n));
+    for (let c = 0; c < ch; c++) o.v[(y * n + x) * ch + c] = img.v[(sy * n + sx) * ch + c];
+  }
+  return o;
+}
+/** 픽셀화: block × block 칸을 그 칸 가운데 픽셀 값으로 */
+function pixelateNode(img, p) {
+  const n = img.n, b = Math.max(1, Math.round(p.block)), ch = img.kind === 'i' ? 1 : 4, o = blankLike(img);
+  if (b === 1) return img;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const sx = Math.min(n - 1, Math.floor(x / b) * b + (b >> 1)), sy = Math.min(n - 1, Math.floor(y / b) * b + (b >> 1));
+    for (let c = 0; c < ch; c++) o.v[(y * n + x) * ch + c] = img.v[(sy * n + sx) * ch + c];
+  }
+  return o;
+}
+/** 팔레트 고정: 색마다 허용 색 중 가장 가까운 색 (alpha hard면 threshold로 0 / 1) */
+function quantizeNode(img, p) {
+  const m = toColor(img), n = m.n, o = color(n), P = (p.colors ?? []).map(hex);
+  for (let i = 0; i < n * n; i++) {
+    let a = m.v[i * 4 + 3];
+    if (p.alpha === 'hard') a = a >= p.threshold ? 1 : 0;
+    if (a <= 0) continue;
+    const c = [m.v[i * 4], m.v[i * 4 + 1], m.v[i * 4 + 2]];
+    let best = c, bd = Infinity;
+    for (const q of P) { const d = (q[0] - c[0]) ** 2 * 0.3 + (q[1] - c[1]) ** 2 * 0.59 + (q[2] - c[2]) ** 2 * 0.11; if (d < bd) { bd = d; best = q; } }
+    o.v.set([best[0], best[1], best[2], a], i * 4);
+  }
+  return o;
+}
+/** 텍스처 그림 (강도 또는 색)에서 (u, v) (0–1, 가로 되풀이) 값 → [r, g, b, a] */
+function texAt(tex, u, v) {
+  if (!tex) return [1, 1, 1, 1];
+  const n = tex.n, x = Math.min(n - 1, Math.floor((((u % 1) + 1) % 1) * n)), y = Math.min(n - 1, Math.max(0, Math.floor(v * n))), i = y * n + x;
+  return tex.kind === 'i' ? [1, 1, 1, tex.v[i]] : [tex.v[i * 4], tex.v[i * 4 + 1], tex.v[i * 4 + 2], tex.v[i * 4 + 3]];
+}
+/** 점 찍기 (뒤 → 앞 순서로 부르면 앞이 덮음) */
+function splat(o, x, y, c, a) {
+  const n = o.n, ix = Math.floor(x), iy = Math.floor(y);
+  if (ix < 0 || iy < 0 || ix >= n || iy >= n || a <= 0) return;
+  const i = (iy * n + ix) * 4, aa = o.v[i + 3], oa = a + aa * (1 - a);
+  for (let k = 0; k < 3; k++) o.v[i + k] = (c[k] * a + o.v[i + k] * aa * (1 - a)) / oa;
+  o.v[i + 3] = oa;
+}
+/**
+ * 회전체 (술통 · 기둥): 세로축 cx, 위 yTop ~ 아래 yBot. 반경은 끝 rEnd · 가운데 rMid (bulgePow 곡선), 단면은 가로 r · 세로 r·ratio 타원.
+ * 옆면 = 입력 0을 둘레로 uvX번 감고 spin (한 바퀴 재생에) 만큼 돌림, 뚜껑 = 입력 1. 음영은 가장자리로 갈수록 (light로 좌우 치우침).
+ */
+function revolveNode(n, side, cap, p, t) {
+  const o = color(n), cx = p.cx * n, y0 = p.yTop * n, y1 = p.yBot * n, H = Math.max(1, y1 - y0);
+  const rad = v => (p.rEnd + (p.rMid - p.rEnd) * (1 - Math.abs(2 * v - 1) ** p.bulgePow)) * p.scale;
+  const shadeAt = (sx) => 1 - p.shade * Math.min(1, Math.abs(sx - p.light * 0.6)) ** p.shadePow;
+  const drawCap = (yc, r, front) => {
+    if (!front) return;
+    const ry = Math.max(0.5, r * p.ratio);
+    for (let yy = Math.floor(yc - ry); yy <= Math.ceil(yc + ry); yy++) for (let xx = Math.floor(cx - r); xx <= Math.ceil(cx + r); xx++) {
+      const dx = (xx + 0.5 - cx) / Math.max(0.5, r), dy = (yy + 0.5 - yc) / ry;
+      if (dx * dx + dy * dy > 1) continue;
+      const c = texAt(cap, (Math.atan2(dy, dx) / (2 * Math.PI)) + 0.5, Math.hypot(dx, dy));
+      splat(o, xx + 0.5, yy + 0.5, c, c[3]);
+    }
+  };
+  const ring = back => {
+    const steps = Math.ceil(H * 2);
+    for (let k = 0; k <= steps; k++) {
+      const v = k / steps, r = rad(v), yc = y0 + v * H, na = Math.max(16, Math.ceil(r * 8));
+      for (let a = 0; a < na; a++) {
+        const ph = (a / na) * 2 * Math.PI, z = Math.cos(ph);
+        if (back ? z >= 0 : z < 0) continue;
+        const sx = Math.sin(ph), c = texAt(side, (ph / (2 * Math.PI)) * p.uvX + p.spin * t, v), sh = back ? 0.55 : shadeAt(sx);
+        splat(o, cx + sx * r, yc + z * r * p.ratio * 0.5, [c[0] * sh, c[1] * sh, c[2] * sh], c[3]);
+      }
+    }
+  };
+  if (p.range === 'full') ring(true);
+  if (p.cap === 'top') drawCap(y0, rad(0), true);
+  ring(false);
+  if (p.cap === 'bottom') drawCap(y1, rad(1), true);
+  return o;
+}
+/**
+ * 반구 · 상승 막: 입구 (lipY, 반경 radius, 깊이 tilt 타원) 아래로 바닥 baseY까지 반구 (입력 0), 입구에서 tipY까지 오르는 막 (입력 1, riseAlpha).
+ * 막은 flare만큼 퍼지고 twist만큼 비틀리며 텍스처를 stretch배 늘림. 위쪽은 텍스처 값이 riseCutoff를 넘는 데서 끊김. range = 그릴 깊이 (full · front · rear).
+ */
+function auraShellNode(n, bowl, rise, p, t) {
+  const o = color(n), cx = p.cx * n, lip = p.lipY * n, base = p.baseY * n, tip = p.tipY * n, R = p.radius, ry = Math.max(0.5, R * p.tilt);
+  const layer = back => {
+    if ((back && p.range === 'front') || (!back && p.range === 'rear')) return;
+    const fade = back ? p.rearAlpha : 1;
+    // 반구 (입구 아래)
+    const hb = Math.max(1, base - lip), na = Math.max(24, Math.ceil(R * 8));
+    for (let k = 0; k <= Math.ceil(hb * 2); k++) {
+      const v = k / Math.ceil(hb * 2), r = R * Math.sqrt(Math.max(0, 1 - v * v)), yc = lip + v * hb;
+      for (let a = 0; a < na; a++) {
+        const ph = (a / na) * 2 * Math.PI, z = Math.cos(ph);
+        if (back ? z >= 0 : z < 0) continue;
+        const sx = Math.sin(ph), c = texAt(bowl, (ph / (2 * Math.PI)) * p.uvX + p.spin * t, v), sh = 1 - p.shade * Math.abs(sx);
+        splat(o, cx + sx * r, yc + z * r * p.tilt, [c[0] * sh, c[1] * sh, c[2] * sh], c[3] * fade);
+      }
+    }
+    // 상승 막 (입구 위)
+    const hr = Math.max(1, lip - tip);
+    for (let k = 0; k <= Math.ceil(hr * 2); k++) {
+      const v = k / Math.ceil(hr * 2), r = R * (1 + p.flare * v * 4), yc = lip - v * hr;
+      for (let a = 0; a < na; a++) {
+        const ph = (a / na) * 2 * Math.PI, z = Math.cos(ph);
+        if (back ? z >= 0 : z < 0) continue;
+        const sx = Math.sin(ph), u = (ph / (2 * Math.PI)) * p.uvX + p.spin * t + p.twist * v, c = texAt(rise, u, (v * p.riseUV * p.stretch) % 1);
+        if (v > 0.2 && c[3] * (1 + v) > p.riseCutoff * 1.2) continue;
+        const sh = 1 - p.shade * Math.abs(sx);
+        splat(o, cx + sx * r, yc + z * ry, [c[0] * sh, c[1] * sh, c[2] * sh], c[3] * p.riseAlpha * fade * (1 - v * 0.5));
+      }
+    }
+  };
+  layer(true); layer(false);
+  return o;
+}
+
 // ── 그래프 ───────────────────────────────────────────────────
 /** 계약의 기본값 (생략한 파라미터) */
 export function withDefaults(type, params, contract) {
@@ -445,6 +778,32 @@ export function renderGraph(graph, opts = {}) {
         case 'Glow': r = glow(get(0) ?? intensity(n), P); break;
         case 'Transform': r = transform(get(0) ?? intensity(n), P); break;
         case 'Displace': r = displace(get(0) ?? intensity(n), get(1) ?? intensity(n), P); break;
+        case 'Arc': r = genArc(n, P); break;
+        case 'Checker': r = genChecker(n, P); break;
+        case 'Gradient': r = genGradient(n, P); break;
+        case 'Grid': r = genGrid(n, P); break;
+        case 'Repeat': {
+          // i번째 장 = delay·i 프레임 늦은 입력 (반복 값도 그 시각으로)
+          const cnt = Math.max(1, Math.round(P.count));
+          r = ins[0] ? repeatNode(n, cnt, i => {
+            const fi = ff - i * P.delay;
+            if (fi < 0) return null;
+            const pi = {};
+            for (const [kk, v] of Object.entries(nd.params)) pi[kk] = paramAt(v, fi, frames);
+            return { img: evalNode(ins[0], fi), p: pi };
+          }) : intensity(n);
+          break;
+        }
+        case 'Echo': r = ins[0] ? echoNode(n, P, fk => evalNode(ins[0], fk), ff) : intensity(n); break;
+        case 'Mask': r = maskNode(get(0) ?? intensity(n), get(1), P); break;
+        case 'Levels': r = levelsNode(get(0) ?? intensity(n), P); break;
+        case 'Blur': r = blurNode(get(0) ?? intensity(n), P); break;
+        case 'Dither': r = ditherNode(get(0) ?? intensity(n), P); break;
+        case 'Polar': r = polarNode(get(0) ?? intensity(n), P); break;
+        case 'Pixelate': r = pixelateNode(get(0) ?? intensity(n), P); break;
+        case 'Quantize': r = quantizeNode(get(0) ?? intensity(n), P); break;
+        case 'Revolve': r = revolveNode(n, get(0), get(1), P, ff / frames); break;
+        case 'AuraShell': r = auraShellNode(n, get(0), get(1), P, ff / frames); break;
         case 'Output': r = get(0) ?? intensity(n); break;
         default: throw new Error(`아직 못 그리는 노드: ${nd.type} (${id})`);
       }
