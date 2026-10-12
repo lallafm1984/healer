@@ -29,6 +29,7 @@ import commonPxf from './common-pxf.mjs';
 import bossPxf from './boss-pxf.mjs';
 import battleNotes from './battle-notes.mjs';
 import raidFiveLook from './raid-five-look.mjs';
+import floatSteady from './float-steady.mjs';
 
 /**
  * [이름, 묶음, CI에서 걸린 초, 조각 수]. 초는 2026-10-11 CI 기록 (모두 합쳐 33분), 몫을 고르게 나누는 데만 씀.
@@ -60,6 +61,7 @@ export const SUITES = [
   ['보스 판 전체 공격 PXF', bossPxf, 50], // 어림 (11가지 × 1.4초 × 판 둘)
   ['말풍선·상세창·전투 메시지 자리', battleNotes, 170], // 어림 (판 여섯 × 폰 넷, 말풍선 한 명씩)
   ['레이드 판 5인 던전 모양 보기', raidFiveLook, 60], // 어림 (폰 넷 × 판 셋)
+  ['떠오르는 숫자 자리 지킴', floatSteady, 110], // 어림 (판 열 × 6초)
   ['길드 빼 둠', guildOff, 6],
   ['재화·임무·상점', shop, 14],
   ['성장·주간 도전·이어하기', challenge, 29],

@@ -593,6 +593,10 @@ function fitLabel(label: Label, key: string, kind: string): { x: number; y: numb
   return { ...p, w, h };
 }
 interface PillBox { x: number; y: number; w: number; h: number }
+/** (x, y) 가운데 w × h 상자가 occupied 어느 것과도 1px 넘게 떨어져 있음 */
+function clearOf(occupied: readonly PillBox[], x: number, y: number, w: number, h: number): boolean {
+  return occupied.every(b => Math.abs(x - b.x) >= (w + b.w) / 2 + 1 || Math.abs(y - b.y) >= (h + b.h) / 2 + 1);
+}
 /**
  * 보조 연출만 실제 글자/상태 bounds를 피한다. 빈 자리가 없으면 해당 프레임에서 생략한다.
  * near = 받아 줄 자리 (떠오르는 숫자는 자기 칸 근처만: 멀리 밀려나면 다른 사람 숫자로 읽힘)
@@ -601,8 +605,7 @@ function transientSpot(box: PillBox, occupied: readonly PillBox[], near?: (x: nu
   const { w, h } = box;
   if (w > L.right - L.left || h > L.bottom - L.top) return null;
   const origin = fitCenter(box.x, box.y, w / 2, h / 2);
-  const clear = (x: number, y: number) => occupied.every(b =>
-    Math.abs(x - b.x) >= (w + b.w) / 2 + 1 || Math.abs(y - b.y) >= (h + b.h) / 2 + 1);
+  const clear = (x: number, y: number) => clearOf(occupied, x, y, w, h);
   if ((!near || near(origin.x, origin.y)) && clear(origin.x, origin.y)) return { ...origin, w, h };
   let best: PillBox | null = null, distance = Infinity;
   const consider = (x: number, y: number) => {
@@ -732,8 +735,11 @@ interface Fx {
   /** 줄을 지나가는 연출 (FX_LOOK roll): 그 줄 칸들 */
   row?: number[];
 }
-/** id = 숫자가 가리키는 파티원 (그 칸 근처에만 뜸) */
-interface Float { x: number; y: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean; id?: number }
+/**
+ * id = 숫자가 가리키는 파티원 (그 칸 근처에만 뜸). dx · dy = 떠오르기 시작하는 자리, 그 사람 칸 가운데에서 칸 크기 배수 (걸어가는 사람 숫자는 따라감)
+ * ox · oy = 자리를 잡으며 떠오르는 길에서 비킨 만큼 (칸 크기 배수, 다음 프레임에도 같은 만큼 비켜 올라감) · at · rise = 지난 프레임에 그린 자리 · 올라간 높이
+ */
+interface Float { dx: number; dy: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean; id: number; ox?: number; oy?: number; at?: PillBox; rise?: number }
 /** 말풍선 종류 (41·43 문서): talk 반응·잡담 · call 기믹·신호 (금테) · alert 위기 (붉은 테, 흔들림) · chat 쓰러진 사람의 파티 채팅 (회색) */
 export type BubbleKind = 'talk' | 'call' | 'alert' | 'chat';
 /** emote = 왼쪽 감정 아이콘 emote-<이름> (43 4장 B) · cheer = 승리 한마디 (fx-talk-cheer) */
@@ -989,9 +995,8 @@ const rnd = () => Math.random();
 /** plain = 이 칸에 스킬 PXF 이펙트가 나와서 치유 빛은 안 그림 (숫자 · 치명타 별은 그대로) */
 export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: number, plain = false): void {
   if (!L.ok || S.reducedEffects) return;
-  const p = unitPos(u);
   const over = eff < amt * 0.25; // 거의 다 넘친 힐은 회색으로 작게
-  if (B2.floats.length < 40) B2.floats.push({ x: p.x + (rnd() - 0.5) * L.s * 0.5, y: p.y - L.s * 0.3, text: `+${eff}`, crit: crit && !over, over, t0: now, n: B2.n++, id: u.id });
+  if (B2.floats.length < 40) B2.floats.push({ dx: (rnd() - 0.5) * 0.5, dy: -0.3, text: `+${eff}`, crit: crit && !over, over, t0: now, n: B2.n++, id: u.id });
   B2.hitFx[u.id] = now;
   if (B2.fx.length >= 60 || over || (plain && !crit)) return;
   // 모든 효과 PXF 1단계: 치유 빛 (힐러 문장 색) · 치명타 별. 프레임 띠를 아직 못 읽은 것만 예전 그림으로
@@ -1025,16 +1030,14 @@ const REVIVE_TEXT = 0xffe08a;
 export function fxRevive(u: Unit, now: number, label = '부활', plain = false): void {
   if (!L.ok) return;
   if (S.reducedEffects) { addBubble(u.id, label, now); return; }
-  const p = unitPos(u);
-  B2.floats.push({ x: p.x, y: p.y - L.s * 0.3, text: label, crit: true, over: false, t0: now, n: B2.n++, id: u.id, fill: REVIVE_TEXT });
+  B2.floats.push({ dx: 0, dy: -0.3, text: label, crit: true, over: false, t0: now, n: B2.n++, id: u.id, fill: REVIVE_TEXT });
   B2.hitFx[u.id] = now;
   if (!plain && !commonFx(u, 'revive', now)) B2.fx.push({ kind: 'revive', id: u.id, t0: now });
 }
 /** 뒤집힌 축복 (35 8장 「치유 반전」): 이 칸에 들어간 치유가 빨간 피해 숫자로 */
 export function fxHurt(u: Unit, amt: number, now: number): void {
   if (!L.ok || S.reducedEffects || amt < 1 || B2.floats.length >= 40) return;
-  const p = unitPos(u);
-  B2.floats.push({ x: p.x + (rnd() - 0.5) * L.s * 0.5, y: p.y - L.s * 0.3, text: `-${amt}`, crit: false, over: false, t0: now, n: B2.n++, fill: 0xff5a3d, id: u.id });
+  B2.floats.push({ dx: (rnd() - 0.5) * 0.5, dy: -0.3, text: `-${amt}`, crit: false, over: false, t0: now, n: B2.n++, fill: 0xff5a3d, id: u.id });
 }
 /** 실수 방지로 힐이 안 나감: 칸만 흔들림 */
 export function fxShake(u: Unit, now: number): void {
@@ -1043,15 +1046,13 @@ export function fxShake(u: Unit, now: number): void {
 /** 파티원 능력 회복: 연두색 + 작은 십자 (내 힐과 구분, 17 7장) */
 export function fxAllyHeal(u: Unit, amt: number, now: number): void {
   if (!L.ok || S.reducedEffects || amt < 1 || B2.floats.length >= 40) return;
-  const p = unitPos(u);
-  B2.floats.push({ x: p.x + L.s * 0.25, y: p.y - L.s * 0.1, text: `✚${amt}`, crit: false, over: false, t0: now, n: B2.n++, fill: 0xc8f07a, id: u.id });
+  B2.floats.push({ dx: 0.25, dy: -0.1, text: `✚${amt}`, crit: false, over: false, t0: now, n: B2.n++, fill: 0xc8f07a, id: u.id });
 }
 /** 파티원 능력 사용: 칸 위에 능력 이름 (17 7장) */
 export function fxAbility(u: Unit, name: string, now: number): void {
   if (S.reducedEffects) { addBubble(u.id, name, now); return; }
   if (!L.ok || B2.floats.length >= 40) return;
-  const p = unitPos(u);
-  B2.floats.push({ x: p.x, y: p.y - L.s * 0.55, text: name, crit: false, over: false, t0: now, n: B2.n++, fill: C.gold, label: true, id: u.id });
+  B2.floats.push({ dx: 0, dy: -0.55, text: name, crit: false, over: false, t0: now, n: B2.n++, fill: C.gold, label: true, id: u.id });
 }
 /** plain = 이 칸에 해제 스킬 PXF 이펙트가 나와서 공통 해제 빛은 안 그림 */
 export function fxDispel(u: Unit, now: number, trap = false, label?: string, plain = false): void {
@@ -1861,34 +1862,65 @@ export function render(now: number): void {
 
   // 실제 최종 HP·이름·상태 표시를 먼저 보호한다. 일시 연출은 다른 연출과도 겹치지 않는다.
   const transientOccupied: PillBox[] = decorationBounds.filter(b => ['hp', 'nick', 'hot', 'debuff', 'role', 'aggro', 'pill'].includes(b.kind));
-  // 떠오르는 숫자
+  // 떠오르는 숫자 (2026-10-12 Lim 「힐 수치 등 숫자 위치가 흔들린다」): 처음 잡은 자리에서 비킨 만큼을 지키며 올라감.
+  // 예전엔 프레임마다 빈자리를 새로 찾아, 올라가다 이름 · 체력 · 다른 숫자에 닿으면 옆 · 위 자리로 튀거나 두 자리 사이를 오갔다
+  // (빌드 131, S25 5인 숫자 82개 중 76개가 한 번 이상 튐, 최대 80px).
+  // 이제 ① 떠오르는 길 (+ 처음 비킨 만큼) ② 막히면 그 자리에 멈춰 흐려짐 ③ 그 자리마저 가려지면 0.35칸 안 빈자리로 ④ 그래도 없으면 그 숫자는 끝 (숨었다 다시 뜨지 않음)
   B2.floats = B2.floats.filter(fl => now - fl.t0 < 900 && (!S.reducedEffects || fl.label));
   // 자기 칸 근처 = 원래 자리에서 0.9r 안 + 다른 파티원 칸보다 자기 칸에 가까움. 10·20인 작은 칸은 칸 안이 이름·체력으로 차서
   // 예전에는 숫자가 판 아래 빈칸이나 다른 사람 칸 옆까지 밀려났다 (2026-10-10 검수, 20인 S25 최대 12.8r)
   const partyAt = F.party.filter(u => u.alive).map(u => ({ id: u.id, ...unitPos(u) }));
+  // 아직 안 그린 숫자의 지난 자리도 비워 둠: 먼저 뜬 숫자가 올라가다 나중 숫자 자리를 빼앗아 밀어내지 않게
+  const floatLast = new Map(B2.floats.filter(fl => fl.at).map(fl => [fl, fl.at!]));
+  const floatGone = new Set<Float>();
   for (const fl of B2.floats) {
-    const k = (now - fl.t0) / 900;
+    floatLast.delete(fl);
+    const u = F.party.find(q => q.id === fl.id);
+    if (!u) { floatGone.add(fl); continue; }
+    const base = unitPos(u), k = (now - fl.t0) / 900, rise = S.reducedEffects ? 0 : k * s * (fl.label ? 0.3 : 0.6);
     const size = fl.label ? fs(0.22, 10) : fl.crit ? fs(0.36, 14) : fl.over || fl.fill ? fs(0.22, 10) : fs(0.27, 11);
-    const label = tops.put(`fl${fl.n}`, fl.text, { size, fill: fl.fill ?? (fl.crit ? C.crit : fl.over ? C.over : C.heal), strokeW: 3, num: !fl.fill }, fl.x, S.reducedEffects ? fl.y : fl.y - k * s * (fl.label ? 0.3 : 0.6), S.reducedEffects ? 1 : 1 - k * k, 1);
+    const label = tops.put(`fl${fl.n}`, fl.text, { size, fill: fl.fill ?? (fl.crit ? C.crit : fl.over ? C.over : C.heal), strokeW: 3, num: !fl.fill },
+      base.x + (fl.dx + (fl.ox ?? 0)) * s, base.y + (fl.dy + (fl.oy ?? 0)) * s - rise, S.reducedEffects ? 1 : 1 - k * k, 1);
     // 치명타 치유 = 선명한 초록 (C.crit, 보통 치유 민트보다 진하고 1.3배 크게. 2026-10-10 Lim: 노랑은 치유와 안 어울리고 부활·능력 글자와 헷갈림)
     // 처음 0.15초 크게 튀었다가 제 크기로 (색만으로 구분하지 않게)
     if (fl.crit && !fl.fill && !S.reducedEffects && k < 0.17) label.scale.set(1 + 0.45 * (1 - k / 0.17));
-    const b = boundsOf(label), x = (b.minX + b.maxX) / 2, y = (b.minY + b.maxY) / 2;
+    const b = boundsOf(label), x = (b.minX + b.maxX) / 2, y = (b.minY + b.maxY) / 2, w = b.maxX - b.minX, h = b.maxY - b.minY;
     const own = partyAt.find(q => q.id === fl.id), others = own ? partyAt.filter(q => q !== own && Math.hypot(q.x - own.x, q.y - own.y) < s * 4) : [];
-    const near = own ? (px: number, py: number) => {
-      if ((px - x) ** 2 + (py - y) ** 2 > (r * 0.9) ** 2) return false;
-      const d = (px - own.x) ** 2 + (py - own.y) ** 2;
-      return others.every(q => (px - q.x) ** 2 + (py - q.y) ** 2 > d);
-    } : undefined;
-    const box = { x, y, w: b.maxX - b.minX, h: b.maxY - b.minY };
+    const closer = (px: number, py: number) => !own || others.every(q => (px - q.x) ** 2 + (py - q.y) ** 2 > (px - own.x) ** 2 + (py - own.y) ** 2);
+    const occupied = floatLast.size ? transientOccupied.concat([...floatLast.values()]) : transientOccupied;
     // 자리가 없으면 자기 직업 아이콘 위는 덮어도 됨 (칸 색이 직업을 보여 줌). 작은 칸 가운데 사람은 이 자리뿐
-    const p = transientSpot(box, transientOccupied, near)
-      ?? (own ? transientSpot(box, transientOccupied.filter(o => (o as DecorationBound).key !== `role${own.id}`), near) : null);
-    if (!p) { label.visible = false; continue; }
+    const roleFree = own ? occupied.filter(o => (o as DecorationBound).key !== `role${own.id}`) : occupied;
+    let p: PillBox | null;
+    if (fl.at) {
+      const stay = (px: number, py: number, occ: readonly PillBox[]): PillBox | null => {
+        const c = fitCenter(px, py, w / 2, h / 2);
+        return Math.abs(c.x - px) < 0.01 && Math.abs(c.y - py) < 0.01 && closer(px, py) && clearOf(occ, px, py, w, h) ? { x: px, y: py, w, h } : null;
+      };
+      // 멈춘 숫자 밑에 나중에 생긴 배지 · 지속 힐 · 아이콘은 덮고 그대로 흐려짐 (이름 · 체력 · 다른 숫자만 비킴)
+      const hard = roleFree.filter(o => !(o as DecorationBound).kind || (o as DecorationBound).kind === 'hp' || (o as DecorationBound).kind === 'nick');
+      const at = fl.at, hy = y + rise - (fl.rise ?? rise);
+      p = stay(x, y, roleFree) ?? stay(x, hy, roleFree) ?? stay(x, hy, hard)
+        ?? transientSpot({ ...at, w, h }, roleFree, (px, py) => (px - at.x) ** 2 + (py - at.y) ** 2 <= (s * 0.35) ** 2 && closer(px, py));
+    } else {
+      // 처음 자리: 떠오르는 길 0.9r 안. 체력 글자는 한 자리 늘어날 만큼 넓게 비켜 둠 (95% → 100%: 옆에 붙은 숫자가 밀려나지 않게), 그런 자리가 없으면 딱 맞게
+      const near = (px: number, py: number) => (px - x) ** 2 + (py - y) ** 2 <= (r * 0.9) ** 2 && closer(px, py);
+      const roomy = (occ: readonly PillBox[]) => occ.map(o => ((o as DecorationBound).kind === 'hp' ? { ...o, w: o.w + o.h * 0.6 } : o));
+      const box = { x, y, w, h };
+      p = transientSpot(box, roomy(occupied), near) ?? transientSpot(box, occupied, near)
+        ?? (own ? transientSpot(box, roomy(roleFree), near) ?? transientSpot(box, roleFree, near) : null);
+    }
+    if (!p) {
+      label.visible = false;
+      // 자리를 못 잡은 숫자는 잠깐만 기다림 (늦게 뜨면 다른 숫자처럼 읽힘)
+      if (fl.at || k > 0.3) floatGone.add(fl);
+      continue;
+    }
     label.position.set(label.x + p.x - x, label.y + p.y - y);
-    recordBound(`float${fl.n}`, 'float', 'text', p.x, p.y, p.w, p.h, fl.id != null ? { uid: fl.id } : {});
+    fl.ox = (fl.ox ?? 0) + (p.x - x) / s; fl.oy = (fl.oy ?? 0) + (p.y - y) / s; fl.at = p; fl.rise = rise;
+    recordBound(`float${fl.n}`, 'float', 'text', p.x, p.y, p.w, p.h, { uid: fl.id });
     transientOccupied.push(p);
   }
+  if (floatGone.size) B2.floats = B2.floats.filter(fl => !floatGone.has(fl));
   // 쓸기 방향 미리보기
   if (ui.pointer && ui.pointer.dir && ui.pointer.idx >= 0) {
     const P = ui.pointer, it = dirSlot(P.dir!), c = center(P.idx);
