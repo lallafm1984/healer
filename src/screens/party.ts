@@ -29,7 +29,7 @@ import { TUT } from '../game/tutorial';
 import { classIcon, memDetailHtml, memRowHtml, ROLE_ICON } from './members';
 import { battle, esc, go, ROLE, screen, useIcon } from './kit';
 import { classEmblem, LOCK, uiIcon } from './art';
-import { afxRows, afxTags, ARROW, BOOK, diffStats, flowHead, guides, KEY, segTabs, warnings } from './brief';
+import { afxRows, afxTags, ARROW, BOOK, flowHead, guides, KEY, segTabs, warnings } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
 
@@ -104,7 +104,7 @@ function boardHtml(): string {
   return `<figure class="f-board"><div class="f-hexes${size}" role="img" aria-label="시작 위치 (자동 배치, 옮길 수 없음): 나, ${esc(who.join(', '))}" style="aspect-ratio:${W.toFixed(3)} / ${H.toFixed(3)};--ar:${(W / H).toFixed(3)};--bmax:${(W * 38).toFixed(0)}px">${cells}</div></figure>`;
 }
 
-/** 이번 보스에 맞는 소비 아이템 힌트 (공략 시트·단축칸 시트) */
+/** 이번 보스에 맞는 소비 아이템 힌트 (단축칸 시트) */
 function itemHint(): string {
   const segs = contentOf(Flow.content).fights(Flow.diff);
   return battle().itemHint(ENCOUNTERS[segs[segs.length - 1]].script).replace(/^💡\s*/, '');
@@ -173,20 +173,17 @@ function slotSheetHtml(loadout: ItemSlot[]): string {
 }
 
 /**
- * 공략 시트 (2026-10-12 한눈에): 머리 (장소 · 난이도 · 인원) · 난이도 수치 칸 · 어픽스 · 구간 길 = 탭 (보스 하나면 탭 없이) · 고른 구간 공략 · 아이템 힌트.
- * 처음 열면 마지막 구간 (최종 보스)
+ * 공략 시트 (2026-10-12 한눈에): 머리 (장소 · 난이도 · 인원) · 어픽스 · 구간 길 = 탭 (보스 하나면 탭 없이) · 고른 구간 공략.
+ * 처음 열면 마지막 구간 (최종 보스). 난이도 수치 칸 · 아이템 힌트는 Lim 「빼기」 (2026-10-12 13:33, 아이템 힌트는 단축칸 시트에만)
  */
 function guideSheetHtml(): string {
-  const c = contentOf(Flow.content), segs = c.fights(Flow.diff), m = modeNow(), ih = itemHint();
+  const c = contentOf(Flow.content), segs = c.fights(Flow.diff), m = modeNow();
   const sel = gseg >= 0 && gseg < segs.length ? gseg : segs.length - 1;
-  const stats = diffStats(Flow.diff).map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
   return sheetBox('f-gsheet', '공략', `<header class="f-gh"><h2 class="f-gt">${BOOK}<span>공략</span></h2><p class="f-gp"><b>${esc(c.name)}</b><span class="f-gc d">${Flow.diff}</span><span class="f-gc">${c.size(Flow.diff)}인</span></p></header>
-    <dl class="f-dstats">${stats}</dl>
     ${Flow.diff === '악몽' && isRaid(c) ? '<p class="f-dnote">보스마다 악몽 전용 기술</p>' : ''}
     ${afxRows(m.affixes, Flow.chal ? '이번 주' : Flow.diff)}
     ${segs.length > 1 ? segTabs(segs, sel) : ''}
-    ${guides(segs, Flow.diff, m.stage, sel)}
-    ${ih ? `<p class="f-ih">${BULB}<span>${esc(ih)}</span></p>` : ''}`);
+    ${guides(segs, Flow.diff, m.stage, sel)}`);
 }
 
 /** 공략 시트 구간 탭 바꾸기: 다시 그리지 않고 판만 바꿈 (스크롤이 길 아래면 길 위치로) */

@@ -24,13 +24,14 @@ describe('공략 카드', () => {
     expect(sting.what).not.toMatch(/\b0<\/b> 피해|>0</);
     expect(sting.how).toBeTruthy();
   });
-  it('보스 카드: 진행 · 기술마다 주기 · 대상 칩 · 굵은 피해 숫자 · 대처 줄', () => {
+  it('보스 카드: 진행 · 기술마다 주기 · 대상 칩 · 굵은 피해 숫자 (대처 줄 · 위쪽 안내 글은 뺌)', () => {
     const html = guideHtml(guideModel(frog.fights('쉬움')[1], '쉬움', frog.stageLv, 20), null);
     expect(html).toContain('<h4 class="gd-h">진행</h4>');
     expect(html).toMatch(/<span class="gs-who tank">탱커<\/span>/);
     expect(html).toMatch(/<span class="gs-who all">전원<\/span>/);
     expect(html).toMatch(/<b>\d+<\/b> 피해/);
-    expect(html).toMatch(/class="gs-how"/);
+    expect(html).not.toMatch(/class="gs-how"/);
+    expect(html).toContain('<h4 class="gd-h">보스 기술</h4>');
     expect(html).toMatch(/class="gs-every">16초마다/);
   });
   it('잡몹 구간은 잡는 순서 · 적 기술', () => {

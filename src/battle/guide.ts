@@ -437,7 +437,6 @@ export function skillWho(what: string): { k: 'tank' | 'all' | 'some' | 'zone'; t
 }
 /** 짧은 설명의 피해 숫자를 굵게 (「481 피해」 · 「초당 99」) */
 const boldNums = (t: string) => t.replace(/(\d[\d,.]*(?:~\d[\d,.]*)?)(?= ?피해)/g, '<b>$1</b>').replace(/초당 (\d[\d,.]*)/g, '초당 <b>$1</b>');
-const HOW_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>';
 export function guideHtml(g: GuideModel, F: Fight | null): string {
   const cur = F ? g.cur(F) : null;
   const now = '<em class="now">지금</em>';
@@ -447,15 +446,15 @@ export function guideHtml(g: GuideModel, F: Fight | null): string {
     <div class="gd-tags"><span class="tag">${g.tier}</span><span class="tag diff">${g.diff}</span>${isFinite(g.enc.enrage) ? `<span class="tag enr">광폭화 ${mmss(g.enc.enrage)}</span>` : ''}</div></div></div>`;
   // 진행: 번호 점을 세로 줄로 이음 (잡몹 구간은 잡는 순서)
   const phases = `<section class="gd-sec"><h4 class="gd-h">${trash ? '잡는 순서' : '진행'}</h4><ol class="gd-phases">${g.phases.map((p, i) => `<li class="${p.id === cur ? 'cur' : ''}${p.enr ? ' enr' : ''}"><i>${i + 1}</i><div><p class="gd-ph"><b>${p.name}</b><small>${p.at}</small></p><p>${p.text}</p></div>${p.id === cur ? now : ''}</li>`).join('')}</ol></section>`;
-  // 기술: 아이콘 · 이름 · 주기 / 대상 칩 + 짧은 설명 (피해 숫자 굵게) / 대처
-  const skills = `<section class="gd-sec"><h4 class="gd-h">${trash ? '적 기술' : '보스 기술'}<small>전투 중 위쪽 예고 칸을 누르면 짧은 설명</small></h4><div class="gd-skills">${g.skills.map(s => {
+  // 기술: 아이콘 · 이름 · 주기 / 대상 칩 + 짧은 설명 (피해 숫자 굵게). 대처(how)는 시트에 안 보임 (Lim 2026-10-12 「대처 줄 모두 빼기」)
+  const skills = `<section class="gd-sec"><h4 class="gd-h">${trash ? '적 기술' : '보스 기술'}</h4><div class="gd-skills">${g.skills.map(s => {
     const live = F && skillLive(F, s.ic);
     // 기술 그림이 있으면 그림 + 색 테두리, 없으면 색 바탕 글자 아이콘 (37 1장)
     const img = s.art ? skillArtImg(s.art) : '';
     const ic = img ? `<span class="ic art" style="border-color:${iconColor(s.ic)}">${img}</span>` : `<span class="ic" style="background:${iconColor(s.ic)}">${s.ic}</span>`;
     const who = s.enr ? { k: 'enr', t: '전원' } : skillWho(s.what);
     return `<article class="gs${s.enr ? ' enr' : ''}${live ? ' live' : ''}" data-ic="${s.ic}"><header>${ic}<span class="gs-id"><b>${s.name}</b><small class="gs-every">${s.every}</small></span>${live ? now : ''}${who ? `<span class="gs-who ${who.k}">${who.t}</span>` : ''}</header>
-      <p class="gs-line">${boldNums(s.tip(F)[0])}</p>${s.how ? `<p class="gs-how">${HOW_IC}<span>${s.how}</span></p>` : ''}</article>`;
+      <p class="gs-line">${boldNums(s.tip(F)[0])}</p></article>`;
   }).join('')}</div></section>`;
   return `<div class="gd">${head}${phases}${skills}</div>`;
 }
