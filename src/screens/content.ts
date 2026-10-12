@@ -20,10 +20,10 @@ import { weekRemaining } from '../game/clock';
 import { meritFor, raidLootOpen } from '../game/economy';
 import { Flow } from '../game/flow';
 import { chalGate, runMode, weekAffixes } from '../game/runmode';
-import { firstDungeonNow, G, lockOf, otherHeroFor, refreshDay } from '../game/state';
+import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { esc, fmt, go, previous, screen, topBar } from './kit';
-import { currencyIcon, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
+import { classEmblem, currencyIcon, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
 import { sheetDialog } from './dialog';
 
 /** 선 아이콘 (시안 Battle30 임시 선그림, 정식 그림이 오면 gameIcon이 바꿈) */
@@ -329,12 +329,12 @@ function diffs(c: ContentDef, d: DiffName): string {
   }).join('')}</div>`;
 }
 
-/** 출전 (30 공통 .g-cta): 세력 문양 + 「출전」 + 장소 · 난이도. 못 들어가는 곳은 막힘 */
+/** 출전 (30 공통 .g-cta): 내 직업 문장 + 「출전」 + 장소 · 난이도. 못 들어가는 곳은 막힘 (2026-10-12 Lim: 세력 문양 톱니 대신 직업 문장) */
 function cta(c: ContentDef | null, d: DiffName): string {
   const lk = c ? lockOf(c, d) : null;
   const ok = !!c && c.ready && !lk!.locked;
   const sub = !c ? '준비 중' : !c.ready ? `${c.name} · 준비 중` : lk!.locked ? (lk!.need && !lockOf(c).locked ? `${c.name} · ${lk!.need}부터 깨기` : `${c.name} · Lv ${lk!.lv}에 열림`) : `${c.name} · ${d}`;
-  const mk = c ? factionMark(factionOf(c), 'md') : '';
+  const mk = classEmblem(heroNow(), 'md');
   return `<button type="button" class="g-cta" id="contentGo"${ok ? '' : ' disabled'}><span class="g-mk">${mk}</span><span class="g-ct"><b>출전</b><small>${esc(sub)}</small></span>${ARROW}</button>`;
 }
 
