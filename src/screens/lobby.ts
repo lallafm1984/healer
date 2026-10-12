@@ -21,7 +21,7 @@ import { capOf, guildOpen } from '../game/guild';
 import { chalGate } from '../game/runmode';
 import { commit, firstDungeonNow, G, lockOf, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
-import { esc, fmt, go, screen, topBar } from './kit';
+import { esc, go, screen, topBar } from './kit';
 import { art } from '../art';
 import { gameIcon, uiIcon } from './art';
 import { gainText } from './shop';
@@ -31,25 +31,6 @@ import { mountVillage } from './village';
 const chevron = () => `<img class="lb-chevron" src="${art('a2-chevron')}" alt="" aria-hidden="true" decoding="async" draggable="false">`;
 
 const st = { msg: '' };
-const compactCurrency = new Intl.NumberFormat('ko-KR', { notation: 'compact', maximumSignificantDigits: 3 });
-
-/** 로비의 좁은 재화 칸만 단위 축약. 툴팁과 접근성 이름에는 실제 전체 값을 남긴다. */
-function labelLobbyWallet(): void {
-  const amounts = [
-    ['.tb-gold', '골드', G.save.player.gold],
-    ['.tb-cr', '크리스탈', G.save.wallet.crystal],
-  ] as const;
-  for (const [selector, label, amount] of amounts) {
-    const el = s.el.querySelector<HTMLElement>(`.tb-wal ${selector}`);
-    const value = el?.querySelector('b');
-    if (!el || !value) continue;
-    const full = `${label} ${fmt(amount)}`;
-    value.textContent = amount >= 10000 ? compactCurrency.format(Math.round(amount)) : fmt(amount);
-    el.title = full;
-    el.setAttribute('role', 'img');
-    el.setAttribute('aria-label', full);
-  }
-}
 
 /**
  * 목표 한 줄. title = 큰 제목 (장소 이름 · Lv n), tag = 난이도 표, sub = 설명, prog = 진행 n/m,
@@ -232,7 +213,6 @@ function render(): void {
         ${st.msg ? `<p class="warnbox lb-msg" role="status">${esc(st.msg)}</p>` : ''}
       </div>
     </div>`;
-  labelLobbyWallet();
   // 설정 「시각 효과 줄이기」: 메뉴의 빛 쓸기 · 숨쉬기 · 배지 통통도 멈춤 (lobby-life.css)
   s.el.classList.toggle('calm', !!G.save.settings.reducedEffects);
   // 살아 있는 마을: 같은 캔버스를 새 무대로 옮겨 붙여 움직임이 이어짐 (보상 받기로 다시 그려도)

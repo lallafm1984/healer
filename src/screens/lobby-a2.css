@@ -7,33 +7,9 @@
   --a2-socket: url('../art/a2-side-socket.png');
   --a2-goal: url('../art/a2-goal-card.png');
   --a2-depart: url('../art/a2-depart-button-r6.png');
-  --a2-topbar: url('../art/a2-topbar.png');
 }
 
-/* 상단은 기존 80px 경계를 보존한다. */
-#s-lobby .topbar.tb-mmo {
-  height: 80px; gap: 7px; padding: 0 8px;
-  background: transparent; box-shadow: none;
-}
-#s-lobby .topbar.tb-mmo::before {
-  inset: 0; border: 0; background: var(--a2-topbar) 50% 51.852% / 103.481% 182.865% no-repeat;
-}
-#s-lobby .tb-mmo .tb-pf { width: 70px; height: 70px; background: var(--sf-socket) center / 100% 100% no-repeat; }
-#s-lobby .tb-mmo .tb-pf::after { inset: -2px; background-image: url('../art/a2-portrait-ring-r6.png'); }
-#s-lobby .tb-mmo .tb-em { width: 77%; height: 77%; }
-#s-lobby .tb-mmo .tb-nm { gap: 7px; padding: 0 0 0 1px; transform: translateY(-1.5px); }
-#s-lobby .tb-mmo .tb-id { gap: 8px; transform: translateY(-2px); }
-#s-lobby .tb-mmo .tb-cls { color: var(--a2-cream); font-size: 21px; font-weight: 800; letter-spacing: -.05em; }
-#s-lobby .tb-mmo .tb-lv { font-size: 11px; font-weight: 600; color: var(--a2-cream); }
-#s-lobby .tb-mmo .tb-xprow { gap: 8px; }
-#s-lobby .tb-mmo .tb-xp { height: 10px; max-width: 142px; }
-#s-lobby .tb-mmo .tb-xpt { font-size: 11px; font-weight: 600; color: var(--a2-cream); }
-#s-lobby .tb-mmo .tb-wal { gap: 8px; max-width: 67px; }
-#s-lobby .tb-mmo .tb-cur { gap: 2px; max-width: 100%; }
-#s-lobby .tb-mmo .tb-cur > .g-ic { width: 18px; height: 18px; }
-#s-lobby .tb-mmo .tb-cur b { font-size: 14px; overflow: visible; text-overflow: clip; }
-#s-lobby .tb-mmo .tb-set { width: 44px; height: 46px; min-height: 44px; }
-#s-lobby .tb-mmo .tb-ring2 svg { width: 21px; height: 21px; }
+/* 위 정보창은 모든 화면 공통 a2-topbar.css (로비 기준 크기) */
 
 /* 목표표 196×120, 출전 145×65 (390px 기준). 두 외곽 하단은 같은 grid 기준선이다. */
 #s-lobby .lb-ui { gap: 8px; padding: 7px 10px 32px 14px; }
@@ -198,13 +174,6 @@ body:has(#s-lobby:not([hidden])) #tabs button:focus-visible { outline: 3px solid
 #s-lobby .lb-plate.lb-raid { height: 60px; padding-top: 14px; }
 }
 @media (max-width: 359px) {
-  #s-lobby .topbar.tb-mmo { gap: 5px; padding-left: 5px; padding-right: 5px; }
-  #s-lobby .tb-mmo .tb-pf { width: 54px; height: 54px; }
-  #s-lobby .tb-mmo .tb-cls { font-size: 20px; }
-  #s-lobby .tb-mmo .tb-lv { font-size: 10px; }
-  #s-lobby .tb-mmo .tb-xpt { font-size: 8px; }
-  #s-lobby .tb-mmo .tb-cur b { font-size: 12px; }
-  #s-lobby .tb-mmo .tb-cur > .g-ic { width: 16px; height: 16px; }
   body:has(#s-lobby:not([hidden])) #tabs { padding-left: 8px; padding-right: 8px; gap: 3px; }
   body:has(#s-lobby:not([hidden])) #tabs button { font-size: 13px; }
 }

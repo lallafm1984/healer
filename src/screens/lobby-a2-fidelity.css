@@ -4,23 +4,10 @@
  * 배경 크기와 위치는 생성 PNG의 alpha>16 외곽을 기준으로 투명 여백만 보정한다.
  * 원본 PNG와 이전 자산은 덮어쓰지 않는다. */
 #s-lobby {
-  --a2-topbar: url('../art/a2-header-v3.png');
   --a2-socket: url('../art/a2-socket-v3.png');
   --a2-wood-sign: url('../art/a2-sign-v3.png');
   --a2-goal: url('../art/a2-goal-v4.png');
   --a2-depart: url('../art/a2-depart-v3.png');
-}
-#s-lobby .topbar.tb-mmo::before {
-  background-size: 100% 163.800905%;
-  background-position: 50% 50.70922%;
-}
-#s-lobby .tb-mmo .tb-pf {
-  background: url('../art/a2-portrait-v3.png') 48.076923% 39.669421% / 109.043478% 110.679612% no-repeat;
-}
-#s-lobby .tb-mmo .tb-pf::after { content: none; }
-#s-lobby .tb-em [aria-label="사제 문장 · 햇살 성표"] img,
-body:has(#s-lobby:not([hidden])) #tabs [aria-label="사제 문장 · 햇살 성표"] img {
-  content: url('../art/icon-a2-priest-v3.png');
 }
 #s-lobby .lb-sc .lb-main {
   background-size: 105.641492% 109.805511%;
