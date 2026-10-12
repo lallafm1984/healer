@@ -125,9 +125,9 @@ export default async function tutorial(url, shots) {
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   await page.click('#s-content [data-ctab="explore"]'); await page.clock.runFor(50);
   await chooseContent(page, 'plateau');
-  ok(await page.getAttribute('#s-content [data-region="rust"]', 'aria-pressed') === 'true' && await page.getAttribute('#s-content', 'data-selected-content') === 'plateau' && !(await page.locator('#s-content [data-content="cemetery"], #s-content [data-content="tutorial"]').count()), '탐험 녹슨 고원 지역: 고원 장소만 표시, 첫 전투는 숨김');
+  ok(await page.getAttribute('#s-content .b-regions [data-content="plateau"]', 'aria-pressed') === 'true' && await page.getAttribute('#s-content', 'data-selected-content') === 'plateau' && !(await page.locator('#s-content [data-content="tutorial"]').count()), '탐험 장소 줄: 녹슨 고원 선택, 첫 전투는 숨김');
   await chooseContent(page, 'cemetery');
-  ok(await page.getAttribute('#s-content [data-region="capital"]', 'aria-pressed') === 'true' && await page.getAttribute('#s-content', 'data-selected-content') === 'cemetery' && !(await page.locator('#s-content [data-content="plateau"], #s-content [data-content="tutorial"]').count()), '탐험 왕도 지역: 잿빛 공동묘지 선택, 다른 지역·첫 전투는 숨김');
+  ok(await page.getAttribute('#s-content .b-regions [data-content="cemetery"]', 'aria-pressed') === 'true' && await page.getAttribute('#s-content', 'data-selected-content') === 'cemetery' && !(await page.locator('#s-content [data-content="tutorial"]').count()), '탐험 장소 줄: 잿빛 공동묘지 바로 선택 (개발 빌드 레벨 잠금 무시), 첫 전투는 숨김');
 
   // ---- Lv 5: 첫 던전 녹슨 요새 안내 (로비 · 전투 탭 · 편성) ----
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 5; s.player.xp = 0; localStorage.setItem('healer.save', JSON.stringify(s)); });

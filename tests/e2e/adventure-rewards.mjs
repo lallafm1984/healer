@@ -1,5 +1,5 @@
 import { chromium } from 'playwright';
-import { chooseContent, pastTitle } from './nav.mjs';
+import { chooseContent, pastTitle, shownImagesReady } from './nav.mjs';
 import { DEPARTURE_DEVICES, departureLayout, layoutIssues } from './adventure-no-scroll.mjs';
 
 // 실제 A 클리어 확률: 기본표에 rollGrade의 +0.02를 적용, 공개모집 보정은 제외.
@@ -82,7 +82,7 @@ export default async function adventureRewards(url,shots) {
         for(const [tab,content,diff] of [['dungeon','rustfort','보통'],['raid20','cathedral1','악몽']]) {
           await page.click(`[data-ctab="${tab}"]`);await chooseContent(page,content);await page.click(`[data-diff="${diff}"]`);
           await page.evaluate(()=>document.fonts.ready);
-          await page.locator('#s-content img').evaluateAll(imgs=>Promise.all(imgs.map(i=>i.decode().catch(()=>{}))));
+          await shownImagesReady(page);
           const issues=layoutIssues(await departureLayout(page));
           ok(!issues.length,`${tag} ${tab}/${diff}: 화면·장면 보상·중앙 화살표 경계/겹침/세로 스크롤 없음`,issues);
           if(tab==='dungeon') {
@@ -206,7 +206,9 @@ export default async function adventureRewards(url,shots) {
         // 긴 실제 이름과 잠금 안내가 함께 나와도 중앙 제목을 줄이거나 가리지 않는다.
         for(const locked of [false,true]) {
           await seed(page,{level:locked?1:100});
-          for(const [tab,content,expectedName] of [['dungeon','sandlibrary','모래 서기관 도서관'],['raid20','cathedral3','가라앉은 대성당 오르간']]) {
+          // 레벨이 모자란 장소는 장소 줄에서 숨김: 다 잠긴 분류에서 보이는 다음에 열릴 한 곳으로 잠금 안내를 확인
+          const cases=locked?[['dungeon','rustfort','녹슨 요새'],['raid20','cathedral1','가라앉은 대성당 1구역']]:[['dungeon','sandlibrary','모래 서기관 도서관'],['raid20','cathedral3','가라앉은 대성당 오르간']];
+          for(const [tab,content,expectedName] of cases) {
             await page.click(`[data-ctab="${tab}"]`);await chooseContent(page,content);
             await page.evaluate(()=>document.fonts.ready);
             const issues=layoutIssues(await departureLayout(page));
@@ -214,7 +216,7 @@ export default async function adventureRewards(url,shots) {
             ok(!issues.length && text===expectedName && (!locked || await page.locator('.b-st').isVisible()),
               `${tag} ${tab}/${locked?'잠김':'열림'}: 긴 장소 이름 전체 표시·화살표 사이 중앙·안내와 비겹침`,{text,issues});
             if(['small','s25','flip-cover'].includes(id)) {
-              await page.locator('#s-content img').evaluateAll(imgs=>Promise.all(imgs.map(i=>i.decode().catch(()=>{}))));
+              await shownImagesReady(page);
               await page.screenshot({path:`${shots}/departure-title-${tab}-${locked?'locked':'open'}-${id}-${width}x${height}.png`});
             }
           }
