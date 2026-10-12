@@ -1,0 +1,50 @@
+/*
+ * 주간 도전 입장 「모래시계 시련」 (2026-10-12 Lim 「공략 창처럼 비슷한 테마로」): 공략 창과 같은 길드 홀 색.
+ * 나무결 대신 평평한 어두운 돌색 · 금테 카드 · 노란 제목. 색은 guide-sheet.css의 --gk-* 한 벌을 씀.
+ * 위 정보창(a2-topbar.css)과 「편성으로」 붉은 버튼 그림은 그대로.
+ */
+#s-entry {
+  background-color: #15120e; background-image: linear-gradient(#1d1812, #15120e 240px); background-blend-mode: normal;
+  color: var(--gk-ink);
+}
+
+/* 단계 고르기: − 1단계 + */
+#s-entry .chalstep .btn2 {
+  background: var(--gk-btn); border: 1px solid var(--gk-edge); border-radius: 10px; box-shadow: none;
+  color: var(--gk-head); font-weight: 800;
+}
+#s-entry .chalstep .btn2:active { background: var(--gk-btn-on); }
+#s-entry .chalstep .btn2:disabled { filter: none; opacity: .4; }
+#s-entry .chalstep b { color: var(--gk-head); }
+#s-entry .f-cinfo { color: var(--gk-mute); }
+#s-entry .f-cinfo b { color: var(--gk-ink); }
+#s-entry .note.center { color: var(--gk-mute); }
+
+/* 카드: 어픽스 · 구간 · 보상 */
+#s-entry .pn {
+  background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 10px; box-shadow: none;
+  color: var(--gk-ink);
+}
+#s-entry .h-rule { color: var(--gk-head); }
+#s-entry .h-rule > .rule { background: linear-gradient(90deg, var(--gk-card-bd), transparent); }
+#s-entry .h-rule > .cap { color: var(--gk-mute); }
+#s-entry .f-afr { border-top-color: var(--gk-line); }
+#s-entry .f-afd { color: var(--gk-ink); }
+#s-entry .f-afd small { color: var(--gk-mute); }
+#s-entry .f-rw > .cap { color: var(--gk-ink2); }
+
+/* 구간 길: 공략 창 길과 같은 점 · 마름모 */
+#s-entry .segs.f-tl li { color: var(--gk-mute); }
+#s-entry .segs.f-tl li + li::after { background: var(--gk-line); }
+#s-entry .f-tl .f-nd { background: var(--gk-chip); border-color: var(--gk-mute); }
+#s-entry .f-tl li.elite .f-nd { border-color: var(--gk-edge); }
+#s-entry .f-tl li.boss .f-nd { border-color: #b0302a; background: #6a1d17; }
+#s-entry .f-tl li.boss:last-child .f-nl { color: var(--gk-ink); font-weight: 700; }
+
+/* 경고 줄 (장비 부족 등) */
+#s-entry .f-warn { background: var(--gk-card); border-color: var(--gk-card-bd); }
+#s-entry .f-warn .v { color: var(--gk-ink); }
+#s-entry .f-warn .v .cap { color: var(--gk-mute); }
+
+/* 아래 고정 줄: 나무결 대신 바탕색, 붉은 「편성으로」 그림은 그대로 */
+#s-entry .ns-foot.f-foot { background: #15120e; border-top: 1px solid var(--gk-line); }
