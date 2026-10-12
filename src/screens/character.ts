@@ -109,7 +109,8 @@ function render(keep = true, resetInventory = false): void {
   const nb = s.el.querySelector<HTMLElement>('.ns-body');
   if (nb && top) nb.scrollTop = top;
   const inventory = s.el.querySelector<HTMLElement>('.c7-bags');
-  if (inventory) inventory.scrollTop = inventoryTop;
+  bagWatch?.disconnect();
+  if (inventory) { fillBags(); bagWatch?.observe(inventory); inventory.scrollTop = inventoryTop; }
   const path = !sheet || sheet.k === 'talent' ? []
     : sheet.k === 'item' ? [`item:${sheet.id}`] : sheet.k === 'codex' ? ['dex', 'codex'] : [sheet.k];
   modal.sync(path.length ? s.el.querySelector<HTMLElement>('.sheet') : null, path);
@@ -270,22 +271,39 @@ const grip = '<span class="grip" aria-hidden="true"></span>';
 const dim = '<div class="sheet-dim" data-sheetx></div>';
 const updn = (v: number, unit = '') => (v > 0 ? `<span class="c7-up">▲${v}${unit}</span>` : v < 0 ? `<span class="c7-dn">▼${-v}${unit}</span>` : '<span class="cap">같음</span>');
 
-/** 장비 아래에 항상 보이는 5열 인벤토리. 아이템을 누르면 상세에서 장착·분해한다. */
+/**
+ * 장비 아래에 항상 보이는 5열 인벤토리. 아이템을 누르면 상세에서 장착·분해한다.
+ * 위쪽(착용 장비·능력치)은 움직이지 않고 이 목록만 스크롤 (Lim 2026-10-12): 머리 두 줄 = [인벤토리 · 개수 · 재료 · 도감] [분류 4칸 · 정렬],
+ * 목록은 하단 메뉴 바로 위까지 남은 높이를 다 씀 (최소 3줄). 빈칸은 보이는 줄까지 fillBags가 채움
+ */
+const EMPTY_CELL = '<span class="c7-bag-empty" aria-hidden="true"></span>';
 function inventoryHtml(): string {
   const m = G.save.mats, all = G.save.gear.bag;
   const f = FILTERS.find(x => x.key === bagFilter) || FILTERS[0];
   const list = all.filter(f.ok).sort(SORTS[bagSort].cmp);
-  const emptyCount = Math.max(15, Math.ceil(list.length / 5) * 5) - list.length;
-  const emptySlots = '<span class="c7-bag-empty" aria-hidden="true"></span>'.repeat(emptyCount);
+  // 비었으면 안내 문장이 목록 첫 줄을 차지함
+  const used = list.length || 5;
+  const emptySlots = EMPTY_CELL.repeat(Math.max(15, Math.ceil(used / 5) * 5) - used);
   const due = dexDue(G.save.gear.dex.length, G.save.gear.dexPaid).steps;
   return `<section class="c7-inventory" aria-label="인벤토리">
-      <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3><span class="c7-inventory-count">${all.length}개</span>${fill}<button type="button" class="btn2 c7-sort" data-bsort aria-label="정렬: ${SORTS[bagSort].name}"${all.length ? '' : ' disabled'}>${SORTS[bagSort].name} ▾</button></header>
-      <div class="c7-fcs" role="group" aria-label="인벤토리 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div>
+      <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3><span class="c7-inventory-count">${all.length}개</span><span class="cap gmats"><span>강화석 ${fmt(m.stone)}</span><span><i class="c7-sep"> · </i>정제 강화석 ${fmt(m.refined)}</span></span><button type="button" class="btn2 c7-dexb" data-dex aria-label="도감${due ? ' · 받을 보상 있음' : ''}">${gameIcon('dex', '')}도감${due ? '<span class="g-badge">!</span>' : ''}</button></header>
+      <div class="c7-inventory-tools"><div class="c7-fcs" role="group" aria-label="인벤토리 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div><button type="button" class="btn2 c7-sort" data-bsort aria-label="정렬: ${SORTS[bagSort].name}"${all.length ? '' : ' disabled'}>${SORTS[bagSort].name} ▾</button></div>
       ${msg && !sheet ? `<p class="note warn c7-msg" role="status">${esc(msg)}</p>` : ''}
-      <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${list.map(bagCell).join('')}${emptySlots}</div>
-      ${!list.length ? `<p class="c7-inventory-empty">${all.length ? '이 분류 장비 없음' : '던전을 클리어하면 장비 획득'}</p>` : ''}
-      <footer class="c7-inventory-foot"><span class="cap gmats">강화석 ${fmt(m.stone)} · 정제 강화석 ${fmt(m.refined)}</span><button type="button" class="btn2 c7-dexb" data-dex aria-label="도감${due ? ' · 받을 보상 있음' : ''}">${gameIcon('dex', '')}도감${due ? '<span class="g-badge">!</span>' : ''}</button></footer></section>`;
+      <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${!list.length ? `<p class="c7-inventory-empty">${all.length ? '이 분류 장비 없음' : '던전을 클리어하면 장비 획득'}</p>` : ''}${list.map(bagCell).join('')}${emptySlots}</div></section>`;
 }
+
+/** 목록 창이 3줄보다 길면 (키 큰 화면) 아이템이 적어도 창 아래가 비지 않게, 보이는 줄 끝까지 빈칸을 채움. 창 크기가 바뀔 때마다 (bagWatch) */
+function fillBags(): void {
+  const list = s.el.querySelector<HTMLElement>('.c7-bags'), cell = list?.querySelector<HTMLElement>('.c7-bag, .c7-bag-empty');
+  if (!list || !cell || !list.clientHeight) return;
+  const cs = getComputedStyle(list), gap = parseFloat(cs.rowGap) || 0;
+  const rows = Math.ceil((list.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) + gap) / (cell.offsetHeight + gap) - 0.05);
+  const used = list.querySelectorAll('.c7-bag').length || 5;
+  const empties = list.querySelectorAll('.c7-bag-empty'), want = Math.max(15, Math.ceil(used / 5) * 5, rows * 5) - used;
+  if (want > empties.length) list.insertAdjacentHTML('beforeend', EMPTY_CELL.repeat(want - empties.length));
+  for (let i = empties.length - 1; i >= want; i--) empties[i].remove();
+}
+const bagWatch = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fillBags);
 
 /** 묶음들에서 얻은 칸 수 */
 const codexHave = (gs: readonly CodexGroup[]) => gs.reduce((a, g) => a + codexKeys(g).filter(k => G.save.gear.codex.includes(k)).length, 0);
@@ -1001,8 +1019,10 @@ s.el.addEventListener('pointerup', e => {
 
 /**
  * 인벤토리는 아이템·빈칸 위에서 끌어도 스크롤 (Lim 2026-10-11). 손가락·마우스 모두 직접 움직임 (.c7-bags는 touch-action: none).
- * 위로 끌면 목록 아랫줄이 하단 메뉴에 가려 있는 동안은 바깥 화면(.ns-body)부터 (S25 360×780은 셋째 줄이 가려짐), 다 보이면 목록, 목록 끝이면 다시 바깥 화면.
- * 아래로 끌면 목록 먼저, 목록 맨 위면 바깥 화면. 8px 넘게 끌었으면 누름(상세 열기)은 무시, 손가락은 놓은 뒤 조금 미끄러짐
+ * 장비 탭 본문은 화면에 딱 맞아 (Lim 2026-10-12, a2-character-compact.css) 대상 폰에서는 목록만 움직임.
+ * 무대 최소로도 안 들어가는 낮은 화면(320×640)만 바깥 화면(.ns-body)이 넘침: 위로 끌면 목록 아랫줄이 하단 메뉴에 가려 있는 동안은 바깥 화면부터,
+ * 다 보이면 목록, 목록 끝이면 다시 바깥 화면. 아래로 끌면 목록 먼저, 목록 맨 위면 바깥 화면.
+ * 8px 넘게 끌었으면 누름(상세 열기)은 무시, 손가락은 놓은 뒤 조금 미끄러짐
  */
 const INV_SLOP = 8;
 let inv: { id: number; y: number; t: number; v: number; moved: boolean; touch: boolean } | null = null;
