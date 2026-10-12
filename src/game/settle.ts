@@ -137,7 +137,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const cont = r.cont || 0;
   const grade = r.win ? (cont ? capB(gradeOf(r.deaths)) : gradeOf(r.deaths)) : null;
   const stars = starsOf({ win: r.win, deaths: r.deaths, overheal });
-  // 따로 잠긴 난이도(10인 악몽 Lv 50 등)는 그 레벨이 단계 (26 3장)
+  // 따로 잠긴 난이도(10인 악몽 = 열림 + 15 등)는 그 레벨이 단계 (26 3장)
   // 적 레벨은 전투가 넘겨준 값 (내 레벨, 32·13 3-2)
   const raid = raidSize(c), stage = r.stage ?? stageOf(c, r.diff);
   // 공개모집 일일 보너스: 오늘 첫 3번 (이긴 판만 셈, 13 2-2)

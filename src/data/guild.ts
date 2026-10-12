@@ -4,8 +4,8 @@
  */
 import { ABILITIES, AB_GRADE } from './abilities';
 import type { ClassKey } from './classes';
+import { RAID10_LV } from './content';
 import type { PersName } from './personalities';
-import type { TraitKey } from './traits';
 
 /** 자질 3축 ●1~●5 (17 9-1): 공격 = 딜, 맷집 = 최대 체력, 눈치 = 반응 시간·장판 회피 */
 export const APT = {
@@ -22,7 +22,6 @@ export interface GuildMember {
   nick: string;
   cls: ClassKey;
   pers: PersName;
-  traits: TraitKey[];
   lv: number;
   xp: number;
   /** 영입 때 자질 (공격·맷집·눈치) */
@@ -59,19 +58,19 @@ export const pointCost = (lv: number) => lv * 100;
 export const pointsAt = (lv: number) => Math.max(0, Math.min(9, Math.floor(lv / 10) - 1));
 export const pointsUsed = (m: GuildMember) => m.aptUp[0] + m.aptUp[1] + m.aptUp[2] + m.star;
 
-/** 길드 정원 (02 9-2, 18 2-2): 시작 6 → Lv 35 12 (10인 레이드) → Lv 70 25 (20인 레이드) */
+/** 길드 정원 (02 9-2, 18 2-2): 시작 6 → 10인 레이드 열림 (RAID10_LV) 12 → Lv 70 25 (20인 레이드) */
 export function guildCap(level: number): { lv: number; cap: number } {
-  return level >= 70 ? { lv: 3, cap: 25 } : level >= 35 ? { lv: 2, cap: 12 } : { lv: 1, cap: 6 };
+  return level >= 70 ? { lv: 3, cap: 25 } : level >= RAID10_LV ? { lv: 2, cap: 12 } : { lv: 1, cap: 6 };
 }
 
 /** 자질 합 (●) */
 export const aptOf = (m: GuildMember): [number, number, number] => [0, 1, 2].map(i => Math.min(5, m.apt0[i] + m.aptUp[i])) as [number, number, number];
 
-/** 전투력 (17 9-3): 레벨 × 100 × 자질 보정 × ★ 보정 × 능력 등급 + 특성 보정 (좋은 특성 +50) */
-export function memberPower(m: Pick<GuildMember, 'lv' | 'ab' | 'star' | 'traits'> & { apt: [number, number, number] }): number {
+/** 전투력 (17 9-3): 레벨 × 100 × 자질 보정 × ★ 보정 × 능력 등급 (특성은 2026-10-12에 뺌) */
+export function memberPower(m: Pick<GuildMember, 'lv' | 'ab' | 'star'> & { apt: [number, number, number] }): number {
   const sum = m.apt[0] + m.apt[1] + m.apt[2];
   const g = ABILITIES[m.ab] ? AB_GRADE[ABILITIES[m.ab].grade].mult : 1;
-  return Math.round(m.lv * 100 * (1 + (sum - 9) * 0.03) * (1 + m.star * 0.02) * g + m.traits.length * 50);
+  return Math.round(m.lv * 100 * (1 + (sum - 9) * 0.03) * (1 + m.star * 0.02) * g);
 }
 
 /** 자질 한 축 뽑기 (17 9-1): ●3 46% · ●2·●4 22% · ●1·●5 5%. 명문은 ●4 이상 40% */

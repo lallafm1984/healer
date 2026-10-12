@@ -1,7 +1,6 @@
 import { armorFactor, type DamageAim } from '../data/armor';
 import { SPREAD } from '../data/bosses';
 import { HEROES } from '../data/heroes';
-import { BULWARK } from '../data/traits';
 import { hexDist } from './board';
 import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
@@ -244,7 +243,6 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
   if (u.me && f.gear.endure) amt *= 1 - f.gear.endure; // 장비 인내 (34 6-4)
   if (u.me && f.standin) amt *= f.standin.guard; // 특성 트리 없는 직업 임시 보정
   if (u.shield > 0) amt *= 0.6;
-  if (u.bulwark > 0) amt *= 1 - BULWARK.cut;
   if (u.redu > 0) amt *= 1 - u.reduCut;
   if (f.abOn || u.mods.length) { // 파티원 능력 (17) · 특수능력 보호막 · 피해 감소 (42)
     const had = !!f.sp?.v.warmPebble && hasAbsorb(f, u);
@@ -258,10 +256,6 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     const part = amt * (SACRIFICE_CUT + pray);
     amt -= part;
     damage(f, f.me, (part * (pray ? 0.8 : 1)) / f.dmgMult, magic, 'fixed');
-  }
-  if (u.cls) {
-    if (magic && u.cls === 'paladin') amt *= 0.9;
-    if (u.cls === 'swordsman') u.flow = 3;
   }
   // 은혜 갚기 (06 6장): 내가 죽을 피해를 호감도가 가장 높은 파티원 (체력 50% 이상)이 한 번 대신 맞아 줌
   if (u.me && f.tx.on.repay && !f.tx.repayUsed && u.guardian <= 0 && u.hp - amt <= 0) {

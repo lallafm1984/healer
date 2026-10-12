@@ -90,7 +90,6 @@ export const LINES: TalkLines = {
   enraged: ['광폭', '…큰일', '빨리'],
   noTank: ['탱 없음', '…위험함', '어떡함'],
   tankUp: ['복귀 굿', '…다행', '휴 멈춤'],
-  bulwark: ['…내가 막음', '버틴다', '10초.'],
   inter: ['쉬는 시간', '…무적', '쥐 옴?'],
   interEnd: ['다시 ㄱ', '…풀림', '딜 재개'],
   rats: ['쥐', '…쥐떼', '찍찍'],
@@ -181,7 +180,6 @@ export const LINES: TalkLines = {
     '보스 좀 웃김',
     '…ㅎ',
   ],
-  aimFull: ['조준 끝', '…명중'],
   castMove: ['…끊김', '움직임 싫음'],
 
   // 끝

@@ -1,11 +1,12 @@
-/** 공개모집 직업 8종 (17 2장): 뽑기 규칙, 체력·딜, 패시브 */
+/** 공개모집 직업 8종 (17 2장): 뽑기 규칙, 체력·딜. 직업 패시브는 2026-10-12에 뺌 (파티원 = 성격 + 직업 스킬) */
 import { describe, expect, it } from 'vitest';
 import { armorFactor } from '../src/data/armor';
-import { aimMult, CLASSES, rageMult, type ClassKey } from '../src/data/classes';
+import { CLASSES, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS, type EncounterKey } from '../src/data/encounters';
 import * as E from '../src/engine';
 import { damage } from '../src/engine/core';
 import { dodgeRate, moveTo } from '../src/engine/movement';
+import { unitDps } from '../src/engine/units';
 import type { RosterEntry } from '../src/engine';
 
 const roster = (tank: ClassKey, others: ClassKey[] = ['rogue', 'mage', 'archer']): RosterEntry[] => [
@@ -60,81 +61,58 @@ describe('직업 체력·딜', () => {
   });
 });
 
-describe('직업 패시브', () => {
-  it('광전사 분노: 체력 100% ×0.9 → 50% ×1.2 → 30% 이하 ×1.4', () => {
-    expect(rageMult(1)).toBeCloseTo(0.9);
-    expect(rageMult(0.75)).toBeCloseTo(1.05);
-    expect(rageMult(0.5)).toBeCloseTo(1.2);
-    expect(rageMult(0.3)).toBeCloseTo(1.4);
-    expect(rageMult(0.1)).toBeCloseTo(1.4);
+describe('직업 패시브 없음 (2026-10-12 Lim: 성격과 직업 스킬만)', () => {
+  it('직업 데이터에 패시브가 없음', () => {
+    for (const c of Object.values(CLASSES)) expect(Object.keys(c).sort()).toEqual(['dps', 'hp', 'key', 'line', 'name', 'role', 'short']);
   });
 
-  it('궁수 조준: 5초마다 +5%, 최대 +25%, 움직이면 처음부터', () => {
-    expect(aimMult(4.9)).toBe(1);
-    expect(aimMult(5)).toBeCloseTo(1.05);
-    expect(aimMult(60)).toBeCloseTo(1.25);
-    const f = fightWith(roster('warrior', ['archer']));
-    const a = unit(f, 'archer');
-    while (f.t < 10.01) { E.step(f); f.events.length = 0; }
-    expect(a.aim).toBeGreaterThan(10);
-    moveTo(f, a, f.cells.find(c => !c.unit)!);
-    E.step(f);
-    expect(a.aim).toBe(0);
+  it('이동 중 딜은 모든 직업 0 (사냥꾼도)', () => {
+    for (const cls of ['hunter', 'mage', 'archer'] as ClassKey[]) {
+      const f = fightWith(roster('warrior', [cls]));
+      for (const u of f.party) if (!u.me && u.cls !== cls) u.alive = false;
+      expect(E.partyDps(f)).toBeGreaterThan(0);
+      moveTo(f, unit(f, cls), f.cells.find(c => !c.unit)!);
+      expect(E.partyDps(f)).toBe(0);
+    }
   });
 
-  it('이동 중 딜: 사냥꾼 60%, 마법사 0', () => {
-    const f = fightWith(roster('warrior', ['hunter', 'mage']));
-    const only = (cls: ClassKey) => { for (const u of f.party) if (!u.me && u.cls !== cls) u.alive = false; };
-    only('hunter');
-    const h = unit(f, 'hunter');
-    const still = E.partyDps(f);
-    moveTo(f, h, f.cells.find(c => !c.unit)!);
-    expect(E.partyDps(f)).toBeCloseTo(still * 0.6);
-    const g = fightWith(roster('warrior', ['mage']));
-    for (const u of g.party) if (!u.me && u.cls !== 'mage') u.alive = false;
-    moveTo(g, unit(g, 'mage'), g.cells.find(c => !c.unit)!);
-    expect(E.partyDps(g)).toBe(0);
+  it('궁수 · 광전사 · 검사의 딜은 서 있은 시간 · 체력 · 맞은 것과 상관없이 같음', () => {
+    const f = fightWith(roster('warrior', ['archer', 'berserker', 'swordsman']));
+    const dps = (cls: ClassKey) => unitDps(unit(f, cls), f);
+    const before = { archer: dps('archer'), berserker: dps('berserker'), swordsman: dps('swordsman') };
+    expect(before.archer / f.scale).toBeCloseTo(12.3);
+    unit(f, 'berserker').hp = unit(f, 'berserker').max * 0.2;
+    damage(f, unit(f, 'swordsman'), 10);
+    for (let i = 0; i < 200; i++) { unit(f, 'archer').hp = unit(f, 'archer').max; E.step(f); f.events.length = 0; }
+    if (!unit(f, 'archer').moving) expect(dps('archer')).toBeCloseTo(before.archer);
+    expect(dps('berserker')).toBeCloseTo(before.berserker);
+    expect(dps('swordsman')).toBeCloseTo(before.swordsman);
   });
 
-  it('수호기사: 마법 피해(광역·장판·지속)만 -10%', () => {
+  it('수호기사도 마법 피해를 다른 탱커와 똑같이 받음', () => {
     const f = fightWith(roster('paladin'));
     const p = unit(f, 'paladin');
-    const a = armorFactor(p.role, 'party'); // 직업군 방어력 (34 9-2) 위에 곱함
+    const a = armorFactor(p.role, 'party'); // 직업군 방어력 (34 9-2)
     damage(f, p, 100); expect(p.max - p.hp).toBeCloseTo(100 * a * f.dmgMult);
-    damage(f, p, 100, true); expect(p.max - p.hp).toBeCloseTo(190 * a * f.dmgMult);
+    damage(f, p, 100, true); expect(p.max - p.hp).toBeCloseTo(200 * a * f.dmgMult);
   });
 
-  it('검사: 맞으면 3초간 딜 +15%', () => {
-    const f = fightWith(roster('warrior', ['swordsman']));
-    for (const u of f.party) if (!u.me && u.cls !== 'swordsman') u.alive = false;
-    const s = unit(f, 'swordsman');
-    const base = E.partyDps(f);
-    damage(f, s, 10);
-    expect(E.partyDps(f)).toBeCloseTo(base * 1.15);
-    expect(s.flow).toBe(3);
-    s.flow = 0;
-    expect(E.partyDps(f)).toBeCloseTo(base);
-  });
-
-  it('도적: 장판 회피 +8%p, 이동 시간 -25%', () => {
+  it('도적도 장판 회피 · 이동 시간이 다른 직업과 같음', () => {
     const f = fightWith(roster('warrior', ['rogue', 'archer']));
     const r = unit(f, 'rogue'), a = unit(f, 'archer');
     a.pers = r.pers; a.p = r.p;
-    expect(dodgeRate(f, r) - dodgeRate(f, a)).toBeCloseTo(0.08);
+    expect(dodgeRate(f, r)).toBeCloseTo(dodgeRate(f, a));
     moveTo(f, r, f.cells.find(c => !c.unit && E.hexDist(c, f.cells[r.cell]) === 1)!);
-    expect(r.moving!.total).toBeCloseTo(0.3);
+    expect(r.moving!.total).toBeCloseTo(0.4);
   });
 
-  it('전사: 보스 평타 흔들림 ±15% (다른 탱커는 ±30%)', () => {
-    const hits = (tank: ClassKey) => [...Array(40)].map((_, s) => {
-      const f = fightWith(roster(tank), s + 1);
+  it('보스 평타 흔들림은 탱커 직업과 상관없이 ±30%', () => {
+    const w = [...Array(40)].map((_, s) => {
+      const f = fightWith(roster('warrior'), s + 1);
       const t = f.party.find(u => u.role === 'tank')!;
       while (f.t < 2.01) { E.step(f); f.events.length = 0; }
       return (t.max - t.hp) / (70 * f.dmgMult);
     });
-    const w = hits('warrior'), p = hits('paladin');
-    expect(Math.min(...w)).toBeGreaterThanOrEqual(0.85 - 1e-9);
-    expect(Math.max(...w)).toBeLessThanOrEqual(1.15 + 1e-9);
-    expect(Math.min(...p) < 0.85 || Math.max(...p) > 1.15).toBe(true);
+    expect(Math.min(...w) < 0.85 || Math.max(...w) > 1.15).toBe(true);
   });
 });

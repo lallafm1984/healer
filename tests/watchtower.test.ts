@@ -25,9 +25,9 @@ const pair = (f: E.Fight, u: E.Unit, v: E.Unit | null) => {
 };
 
 describe('무너진 망루', () => {
-  it('Lv 35 던전 5인: 일반 → 파수꾼 → 정예 → 공명 수정', () => {
+  it('Lv 41 던전 5인: 일반 → 파수꾼 → 정예 → 공명 수정', () => {
     const c = contentOf('watchtower');
-    expect(c.unlockLv).toBe(35);
+    expect(c.unlockLv).toBe(41);
     expect(c.ready).toBe(true);
     expect(c.fights('보통')).toEqual(['rubblestair', 'sentinel', 'blackrift', 'crystal']);
   });
@@ -114,7 +114,7 @@ describe('무너진 망루', () => {
     expect(f.bs.echo2.next).toBeLessThan(Infinity);
   });
 
-  it('Lv 35 자동 힐러, 보통이면 대부분 깸 (장비 없음)', () => {
+  it('Lv 41 자동 힐러, 보통이면 대부분 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (runOnce(contentOf('watchtower'), '보통', 'priest', s).win) wins++; // 자동 밸런스 기준: 장비 없음 · 열린 특성 · 능력 1개 · 물약, 치유 배율 0.6 (34 1-6) 뒤로 특성 없는 사제는 높은 레벨에서 많이 짐
     expect(wins).toBeGreaterThanOrEqual(16);

@@ -1,4 +1,3 @@
-import { aimMult, rageMult } from '../data/classes';
 import { hexDist } from './board';
 import { BARK, DRUID_BIG } from '../data/heroConst';
 import { SKILLS } from '../data/skills';
@@ -88,9 +87,7 @@ function carried(f: Fight, u: Unit, dt: number): boolean {
   if (u.guardian > 0) u.guardian -= dt;
   if (u.shield > 0) u.shield -= dt;
   if (f.melt && f.t < f.melt.until) meltTick(f, u, dt); // 녹는 보호막 (P-MELT, 51 5장)
-  if (u.bulwark > 0) u.bulwark -= dt;
   if (u.thanks > 0) u.thanks -= dt;
-  if (u.cls) { if (u.flow > 0) u.flow -= dt; u.aim = u.moving ? (u.mods.length && hasMod(u, 'aim') ? u.aim : 0) : u.aim + dt; }
   for (const d of u.debuffs.slice()) {
     d.left -= dt;
     if (d.debt && debtTick(f, u, d, dt)) continue;
@@ -232,25 +229,13 @@ export function unitDps(u: Unit, f?: Fight): number {
   if (!u.alive || u.fleeing || u.me || u.lift) return 0; // 띄워 올려진 동안 딜 0 (P-LIFT)
   if (u.debuffs.length && u.debuffs.some(d => d.noDps)) return 0; // 얼림·침묵·삼킴
   if (u.immune > 0) return 0; // 보호의 손: 그동안 딜 0
-  if (u.moving && u.cls !== 'hunter') return 0;
+  if (u.moving) return 0; // 움직이는 동안 딜 0 (모든 직업)
   let d = u.dps * (u.p.dps || 1);
   for (const x of u.debuffs) if (x.dpsCut) d *= 1 - x.dpsCut; // 하품 (54 4-3)
   if (u.sulking) d *= 0.75;
   if (u.thanks > 0) d *= 1.1;
-  if (u.cls) d *= classDps(u);
   if (u.mods.length) d *= dpsMods(u); // 파티원 능력 (17)
   if (f?.sp) d *= dpsSpec(f, u);
   if (f?.cheer && f.t < f.cheer.until) d *= f.cheer.mult; // 전투의 함성 (05 6-D)
   return d;
-}
-
-/** 직업 패시브 딜 배율 (17 2장) */
-function classDps(u: Unit): number {
-  switch (u.cls) {
-    case 'berserker': return rageMult(u.hp / u.max);
-    case 'swordsman': return u.flow > 0 ? 1.15 : 1;
-    case 'archer': return aimMult(u.aim);
-    case 'hunter': return u.moving ? 0.6 : 1;
-    default: return 1;
-  }
 }

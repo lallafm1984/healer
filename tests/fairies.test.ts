@@ -16,8 +16,8 @@ const effectOf = (boss: keyof typeof BOSSES, key: string) => BOSSES[boss].skills
 const skillOn = (f: F, key: string) => { const s = f.bs[key]; s.next = f.t; return s; };
 const HAT_NAMES = ['실크해트', '고깔모자', '왕관 모자'];
 const RAIDS = [
-  ['fest1', 'songi', 'fest', 51], ['fest2', 'pililli', 'fest', 51], ['fest3', 'ponga', 'fest', 51],
-  ['cave1', 'mungge', 'sporecave', 55], ['cave2', 'gaegul', 'sporecave', 55], ['cave3', 'morak', 'sporecave', 55],
+  ['fest1', 'songi', 'fest', 53], ['fest2', 'pililli', 'fest', 53], ['fest3', 'ponga', 'fest', 53],
+  ['cave1', 'mungge', 'sporecave', 57], ['cave2', 'gaegul', 'sporecave', 57], ['cave3', 'morak', 'sporecave', 57],
   ['palace1', 'bungbung', 'palace', 59], ['palace2', 'ppyong', 'palace', 59], ['palace3', 'amanita', 'palace', 59],
 ] as const;
 const tanks = (f: F) => f.party.filter(u => u.role === 'tank');
@@ -32,9 +32,9 @@ describe('콘텐츠', () => {
     expect(PLACES[CONTENT_PLACE.mossroot].faction).toBe('swamp');
     for (const k of ['rainbow', ...RAIDS.map(r => r[0])] as const) expect(PLACES[CONTENT_PLACE[k]].faction, k).toBe('fairy');
   });
-  it('탐험 ⑭ 무지개 버섯밭 Lv 56: 꽃가루 들판 → 버섯 여왕 아마니타, 그림은 꼬마등 오솔길을 빌림', () => {
+  it('탐험 ⑭ 무지개 버섯밭 Lv 58: 꽃가루 들판 → 버섯 여왕 아마니타, 그림은 꼬마등 오솔길을 빌림', () => {
     const c = contentOf('rainbow');
-    expect([c.kind, c.unlockLv, c.size('보통'), c.ready]).toEqual(['explore', 56, 3, true]);
+    expect([c.kind, c.unlockLv, c.size('보통'), c.ready]).toEqual(['explore', 58, 3, true]);
     expect(c.fights('보통')).toEqual(['pollenfield', 'queen56']);
     expect(artPlaces(CONTENT_PLACE.rainbow).at(-1)).toBe('lampway');
   });
@@ -57,18 +57,18 @@ describe('콘텐츠', () => {
       expect(ENCOUNTERS[enc].enrage, enc).toBeGreaterThan(300);
     }
   });
-  it('탐험 ⑬ Lv 52 · ⑮ Lv 60: 3인, 일반 → 보스, 7칸 판', () => {
+  it('탐험 ⑬ Lv 54 · ⑮ Lv 60: 3인, 일반 → 보스, 7칸 판', () => {
     const a = contentOf('lampway'), b = contentOf('emberfoot');
-    expect([a.kind, a.unlockLv, a.size('보통'), a.ready]).toEqual(['explore', 52, 3, true]);
+    expect([a.kind, a.unlockLv, a.size('보통'), a.ready]).toEqual(['explore', 54, 3, true]);
     expect([b.kind, b.unlockLv, b.size('보통'), b.ready]).toEqual(['explore', 60, 3, true]);
     expect(a.fights('보통')).toEqual(['capway', 'sippy52']);
     expect(b.fights('보통')).toEqual(['hotgravel', 'kobold60']);
     expect([ENCOUNTERS.sippy52.board, ENCOUNTERS.kobold60.board]).toEqual(['b7', 'b7']);
   });
-  it('던전 ⑪ Lv 55 · ⑫ Lv 60: 5인, 일반 → 보스 → 정예 → 최종, 그림은 같은 세력을 빌림', () => {
+  it('던전 ⑪ Lv 57 · ⑫ Lv 21: 5인, 일반 → 보스 → 정예 → 최종, 그림은 같은 세력을 빌림', () => {
     const a = contentOf('teaparty'), b = contentOf('mossroot');
-    expect([a.kind, a.unlockLv, a.size('보통'), a.ready]).toEqual(['dungeon', 55, 5, true]);
-    expect([b.kind, b.unlockLv, b.size('보통'), b.ready]).toEqual(['dungeon', 60, 5, true]);
+    expect([a.kind, a.unlockLv, a.size('보통'), a.ready]).toEqual(['dungeon', 57, 5, true]);
+    expect([b.kind, b.unlockLv, b.size('보통'), b.ready]).toEqual(['dungeon', 21, 5, true]);
     expect(a.fights('보통')).toEqual(['sugarstair', 'sippy', 'cuptower', 'hatter']);
     expect(b.fights('보통')).toEqual(['wetstair', 'uga', 'turtlebridge', 'shellgod']);
     expect(a.bosses.at(-1)).toBe('모자 장수 해롱');

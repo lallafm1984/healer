@@ -11,10 +11,10 @@ const until = (f: E.Fight, sec: number, done: () => boolean, auto = false) => { 
 const stack = (u: E.Unit, name: string) => u.debuffs.find(d => d.name === name)?.stack ?? 0;
 
 describe('백합 납골당', () => {
-  it('Lv 50 던전 5인: 일반 → 여사제 → 정예 관리인 회랑 → 잠든 가주, 저주, 그림은 저주받은 장원을 빌림', () => {
+  it('Lv 26 던전 5인: 일반 → 여사제 → 정예 관리인 회랑 → 잠든 가주, 저주, 그림은 저주받은 장원을 빌림', () => {
     const c = contentOf('ossuary');
     expect(c.kind).toBe('dungeon');
-    expect(c.unlockLv).toBe(50);
+    expect(c.unlockLv).toBe(26);
     expect(c.ready).toBe(true);
     expect(c.fights('보통')).toEqual(['petalstair', 'priestess', 'keeperhall', 'sleeper']);
     expect(ENCOUNTERS.keeperhall.mobs!.find(m => m.elite)!.name).toBe('납골당 관리인');
@@ -55,7 +55,7 @@ describe('백합 납골당', () => {
     expect(cursed.debuffs.find(d => d.name === '잠꼬대 저주')!.invert).toBe(true);
   });
 
-  it('Lv 50 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 26 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'ossuary', diff: '보통', seed: s, level: 50, gear: 'none' }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);

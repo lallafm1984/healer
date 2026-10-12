@@ -107,7 +107,7 @@ function initTrash(f: Fight): void {
         fire(f) {
           if (e) { runEffect(f, s, e); return; } // 졸개 디버프 (39 2장 ③): 대상은 부품이 고름
           for (const u of mobTargets(f, a.to)) {
-            const j = (a.jitter || 0) * (u.cls === 'warrior' ? 0.5 : 1);
+            const j = a.jitter || 0;
             damage(f, u, a.dmg * (1 - j + 2 * j * f.rng()), a.to === 'all', a.to === 'tank' ? 'tank' : 'party');
           }
         },

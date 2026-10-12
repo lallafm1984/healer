@@ -36,10 +36,10 @@ const lost = (u: U, fn: () => void) => { const h = u.hp; fn(); return h - u.hp; 
 const big = (f: F) => { for (const u of f.party) { u.base = u.max = 1e5; u.hp = 1e5; } };
 
 describe('콘텐츠', () => {
-  it('2층 ~ 꼭대기: 층마다 보스 하나, 10인 Lv 35 (악몽 Lv 50), 그림은 심연을 빌림', () => {
+  it('2층 ~ 꼭대기: 층마다 보스 하나, 10인 Lv 45 (악몽 Lv 60), 그림은 심연을 빌림', () => {
     for (const [key, enc] of FLOORS) {
       const c = contentOf(key);
-      expect([c.kind, c.unlockLv, c.size('보통'), c.diffUnlock], key).toEqual(['raid', 35, 10, { '악몽': 50 }]);
+      expect([c.kind, c.unlockLv, c.size('보통'), c.diffUnlock], key).toEqual(['raid', 45, 10, { '악몽': 60 }]);
       expect(c.fights('악몽')).toEqual([enc]);
       expect(artPlaces(CONTENT_PLACE[key]).at(-1)).toBe('abyss');
     }
@@ -225,7 +225,7 @@ describe('끊어진 사슬 (꼭대기 반지)', () => {
 });
 
 describe('밸런스', () => {
-  it.each(FLOORS)('%s: 보통이면 자동 사제가 거의 다 깸 (Lv 35, 장비 없음)', key => {
+  it.each(FLOORS)('%s: 보통이면 자동 사제가 거의 다 깸 (Lv 45, 장비 없음)', key => {
     let wins = 0;
     for (let s = 1; s <= 4; s++) if (runOnce(contentOf(key), '보통', 'priest', s).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(3);

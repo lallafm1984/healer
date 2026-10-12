@@ -27,13 +27,15 @@ export default async function challenge(url, shots) {
   await page.goto(url);
   await page.clock.runFor(300);
   await pastTitle(page);
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 30; s.player.gold = 50000; s.settings.devUnlock = false; localStorage.setItem('healer.save', JSON.stringify(s)); });
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 36; s.player.gold = 50000; s.settings.devUnlock = false; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
 
-  // ---- 로비: 레이드 문 (18 3-3) ----
+  // ---- 로비: 레이드 문 (18 3-3, 10인 열림 Lv 45의 10레벨 전부터) ----
   const gate = await text('#s-lobby .gate');
-  ok(/심연의 탑/.test(gate) && /레벨 35/.test(gate) && !/길드원/.test(gate) && /0 \/ 6 부위/.test(gate) && (await page.locator('#s-lobby .gate .obj.ok').count()) === 0, `로비 다음 목표 = 10인 레이드 문 (레벨·장비, 길드원 줄 없음, 아직 다 안 됨)`);
+  ok(/심연의 탑/.test(gate) && /레벨 45/.test(gate) && !/길드원/.test(gate) && /0 \/ 6 부위/.test(gate) && (await page.locator('#s-lobby .gate .obj.ok').count()) === 0, `로비 다음 목표 = 10인 레이드 문 (레벨·장비, 길드원 줄 없음, 아직 다 안 됨)`);
   await page.screenshot({ path: `${shots}/growth_gate.png` });
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 30; localStorage.setItem('healer.save', JSON.stringify(s)); });
+  await page.reload(); await page.clock.runFor(300); await pastTitle(page);
 
   // ---- 콘텐츠: 주간 도전 카드 ----
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
@@ -42,13 +44,13 @@ export default async function challenge(url, shots) {
   // ---- 적 레벨 = 장소 레벨 + 난이도 (61, 2026-10-11), 어픽스는 그 적 레벨 (32) ----
   await chooseContent(page, 'rustfort');
   ok(!/단계 Lv/.test(await text('#s-content .b-gate')) && (await page.locator('#s-content .b-gate .b-afx').count()) === 0, '녹슨 요새 (적 Lv 5~11) = 관문에 「단계 Lv」·어픽스 없음 (Lv 30이어도 격노 없음)');
-  // 깨진 신전 (Lv 30) 보통을 깬 기록 → 어려움 열림 (사슬, 61 1-1)
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.clears.temple = { '보통': { stars: 3, grade: 'A', best: 100, n: 1 } }; localStorage.setItem('healer.save', JSON.stringify(s)); });
+  // 눈꽃 연구소 (Lv 30) 보통을 깬 기록 → 어려움 열림 (사슬, 61 1-1)
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.clears.snowlab = { '보통': { stars: 3, grade: 'A', best: 100, n: 1 } }; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
-  await chooseContent(page, 'temple');
+  await chooseContent(page, 'snowlab');
   await page.click('#s-content [data-diff="어려움"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-content .b-level', 'aria-label') === '권장 레벨 34' && (await page.locator('#s-content .b-gate .b-afx').count()) === 0, '깨진 신전 어려움 = 권장 레벨 34, 상세 어픽스는 편성·공략에서 확인');
+  ok(await page.getAttribute('#s-content .b-level', 'aria-label') === '권장 레벨 34' && (await page.locator('#s-content .b-gate .b-afx').count()) === 0, '눈꽃 연구소 어려움 = 권장 레벨 34, 상세 어픽스는 편성·공략에서 확인');
   await page.click('#contentGo'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-party') && (await page.locator('[data-tier]').count()) === 0, '출전 = 바로 편성, 레벨 단계 칩 없음');
   ok(/어려움/.test(await text('#s-party .topbar')) && !/단계 Lv/.test(await text('#s-party .topbar')) && /격노/.test(await text('#s-party .topbar .f-afxs')), '편성 머리 = 어려움 + 격노 (단계 Lv 없음)');

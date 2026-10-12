@@ -492,7 +492,6 @@ function apply(f: Fight, u: Unit, a: AbilityDef, fx: Fx, e: number, ctx: Ctx): v
       if (!tel || !tel.cells.has(pos(u)) || u.moving) break;
       const c = pickCell(f, u, { safe: true, extra: tel.cells });
       if (!c) break;
-      if (fx.keepAim) addMod(u, { k: 'aim', v: 1, until: f.t + 1, src });
       moveTo(f, u, c);
       u.moving!.left = u.moving!.total = 0.1;
       u.react = null;
@@ -522,7 +521,6 @@ function apply(f: Fight, u: Unit, a: AbilityDef, fx: Fx, e: number, ctx: Ctx): v
       for (const v of near(R(fx.r), true)) { const b = v.max * fx.v * e; v.max += b; addMod(v, { k: 'hp', v: b, until: f.t + fx.sec, src: a.name }); }
       break;
     case 'nofear': addMod(u, { k: 'nofear', v: 1, until: f.t + fx.sec * e, src }); break;
-    case 'aimMax': u.aim = 25; break;
     case 'unzone':
       if (ctx.tel) { f.tels = f.tels.filter(t => t !== ctx.tel); emit(f, { type: 'msg', text: `${u.nick} ${a.name}: ${ctx.tel.skill.name || '장판'} 없앰` }); }
       break;

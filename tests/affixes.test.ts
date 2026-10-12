@@ -161,10 +161,10 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
     expect(CHAL_ROTA.some(w => w.includes('unstable'))).toBe(true);
   });
   it('적 레벨로 골드·경험치를 셈, 어픽스도 적 레벨 기준', () => {
-    const s = save(34), m = runMode(s, contentOf('temple'), '어려움', { chal: 0 });
+    const s = save(34), m = runMode(s, contentOf('snowlab'), '어려움', { chal: 0 });
     s.daily.pub = 3; // 공개모집 보너스(×2)는 뺌
     expect(m).toMatchObject({ stage: 34, affixes: ['rage'], chal: 0 });
-    const x = settle(s, result({ content: 'temple', diff: '어려움', stage: m.stage, affixes: m.affixes }), rng, [], T0);
+    const x = settle(s, result({ content: 'snowlab', diff: '어려움', stage: m.stage, affixes: m.affixes }), rng, [], T0);
     expect(x.gold).toBe(clearGold(34, '어려움', 'S'));
     expect(x.xp).toBe(clearXp(34, '어려움', 'S', { win: true }));
     // 내 레벨이 높아도 녹슨 요새 어려움은 Lv 9 · 격노 없음
@@ -219,8 +219,8 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
     expect(runMode(save(90), contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(90);
     expect(runMode(save(60), contentOf('abyss1'), '악몽', { chal: 0 })).toMatchObject({ stage: 60, affixes: [] });
     const dev = save(20); dev.settings.devUnlock = true;
-    expect(runMode(dev, contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(35);
-    expect(runMode(dev, contentOf('abyss1'), '악몽', { chal: 0 }).stage).toBe(50);
+    expect(runMode(dev, contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(45);
+    expect(runMode(dev, contentOf('abyss1'), '악몽', { chal: 0 }).stage).toBe(60);
     expect(stageOf(contentOf('rustfort'), '보통')).toBe(7);
     const ex = contentOf('plateau');
     expect(runMode(save(60), ex, '악몽', { chal: 0 }).affixes).toEqual([]);

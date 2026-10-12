@@ -1,9 +1,8 @@
-/** 파티원·길드원 카드 조각 (편성 S05, 길드 S12~S14): 직업 · 능력(등급 색 + ★) · 자질 · 성격 · 특성 (17 11장) */
+/** 파티원·길드원 카드 조각 (편성 S05, 길드 S12~S14): 직업 · 능력(직업 스킬, 등급 색 + ★) · 자질 · 성격 (17 11장). 직업 패시브 · 특성은 2026-10-12에 뺌 */
 import { ABILITIES, AB_GRADE, AB_KIND } from '../data/abilities';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { APT_NAMES } from '../data/guild';
 import { CATS, PERS, type PersName } from '../data/personalities';
-import { TRAITS, type TraitKey } from '../data/traits';
 import { art } from '../art';
 import { esc, ROLE } from './kit';
 
@@ -24,7 +23,6 @@ export interface CardData {
   nick: string;
   cls: ClassKey;
   pers: PersName;
-  traits?: TraitKey[];
   lv?: number;
   ab?: string;
   star?: number;
@@ -58,26 +56,24 @@ export function classIcon(cls: ClassKey): string {
 }
 
 /**
- * 파티원 줄 (27 3-3 편성, 2026-10-08 줄임): 역할 칸 · 닉네임 · 직업 · Lv · 성격 칩 / 능력 「이름」 + 특성 칩. 설명은 누르면 시트 (memDetailHtml).
+ * 파티원 줄 (27 3-3 편성, 2026-10-08 줄임): 역할 칸 · 닉네임 · 직업 · Lv · 성격 칩 / 능력 「이름」. 설명은 누르면 시트 (memDetailHtml).
  * 성격은 분류색 바탕에 전체 이름만 표시한다. 다루기 ★ 개수는 상세 시트에 둔다.
  */
 export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; note?: string; on?: boolean } = {}): string {
   const c = CLASSES[m.cls], p = PERS[m.pers], a = m.ab ? ABILITIES[m.ab] : null;
   const ab = a
     ? `「<b style="color:${AB_GRADE[a.grade].color}">${esc(a.name)}</b>」${m.star ? `<span class="f-star"> ${'★'.repeat(m.star)}</span>` : ''}`
-    : `직업 「${esc(c.passive)}」`;
-  const tr = (m.traits || []).map(k => `<span class="f-tr">${TRAITS[k].name}</span>`).join('');
+    : '';
   const hard = p.star >= 3;
   return `<li class="pcard f-mem${o.cls ? ` ${o.cls}` : ''}${o.on ? ' on' : ''}" ${o.attrs || ''}><span class="f-ri" style="background:${ROLE[c.role].color}">${classIcon(m.cls)}</span>
     <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${c.name}${m.lv ? ` · Lv ${m.lv}` : ''}${o.note ? ` · ${o.note}` : ''}</span><span class="f-sp"></span><span class="f-ps${hard ? ' hard' : ''}" style="--pers-color:${CATS[p.cat]}">${hard ? '<span class="sr">다루기 어려움 </span>' : ''}${esc(m.pers)}</span></span>
-    <span class="f-l2"><span class="f-ab">${ab}</span>${tr}</span></div>${o.extra || ''}</li>`;
+    <span class="f-l2"><span class="f-ab">${ab}</span></span></div>${o.extra || ''}</li>`;
 }
 
-/** 파티원 상세 (편성의 줄을 누르면 시트): 능력 · 자질 · 직업 패시브 · 특성 · 성격 (다루기 ★) */
+/** 파티원 상세 (편성의 줄을 누르면 시트): 능력 · 자질 · 성격 (다루기 ★) */
 export function memDetailHtml(m: CardData): string {
-  const c = CLASSES[m.cls], p = PERS[m.pers];
-  return `<div class="f-det">${abHtml(m.ab, m.star || 0)}${m.apt ? aptHtml(m.apt) : ''}<p class="ppas"><b>${c.passive}</b> ${esc(c.passiveDesc)}</p>
-    ${(m.traits || []).map(k => `<p class="ppas ptrait"><b>특성 ${TRAITS[k].name}</b> ${esc(TRAITS[k].desc)}</p>`).join('')}
+  const p = PERS[m.pers];
+  return `<div class="f-det">${abHtml(m.ab, m.star || 0)}${m.apt ? aptHtml(m.apt) : ''}
     <p><b class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</b> <span class="f-star"><span class="sr">다루기 난이도 </span>${'★'.repeat(p.star)}</span> · ${esc(p.desc)}</p></div>`;
 }
 
@@ -87,7 +83,5 @@ export function cardHtml(m: CardData, o: { attrs?: string; extra?: string; cls?:
   return `<li class="pcard${o.cls ? ` ${o.cls}` : ''}" ${o.attrs || ''}><span class="prole two" style="background:${ROLE[c.role].color}">${c.short}</span>
     <div><b class="pnick">${esc(m.nick)}</b><small>${c.name} · ${ROLE[c.role].name}${m.lv ? ` · Lv ${m.lv}` : ''}${m.power ? ` · 전투력 ${m.power.toLocaleString('ko-KR')}` : ''}</small>
     ${abHtml(m.ab, m.star || 0, o.desc !== false)}${m.apt ? aptHtml(m.apt) : ''}
-    ${o.desc !== false ? `<p class="ppas"><b>${c.passive}</b> ${esc(c.passiveDesc)}</p>` : ''}
-    ${(m.traits || []).map(k => `<p class="ppas ptrait"><b>특성 ${TRAITS[k].name}</b> ${o.desc !== false ? esc(TRAITS[k].desc) : ''}</p>`).join('')}
     <p><span class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</span> <span class="star">${'★'.repeat(p.star)}</span>${o.desc !== false ? ` · ${esc(p.desc)}` : ''}</p></div>${o.extra || ''}</li>`;
 }

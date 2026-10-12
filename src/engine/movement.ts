@@ -74,7 +74,6 @@ export function moveTo(f: Fight, u: Unit, c: Cell | null): boolean {
   if (!c) return false;
   const from = cellOf(f, u);
   let time = 0.4 * Math.max(1, hexDist(from, c));
-  if (u.cls === 'rogue') time *= 0.75;
   if (u.mods.length) time *= moveMods(u); // 치타의 상·돌진
   if (f.sp && !u.me) time *= 1 - sv(f, 'march'); // 신나는 행진 (42 지원 07)
   c.unit = u;
@@ -101,7 +100,6 @@ export function scheduleReaction(f: Fight, tel: Telegraph, u: Unit): void {
   const inZ = tel.cells.has(pos);
   let rt = 0.8 * f.diff.react * (u.p.react || 1);
   if (u.me) rt = 0.6 * f.diff.react;
-  else if (u.cls === 'mage') rt += 0.2;
   rt *= u.senseReact; // 눈치 자질 (17 9-1)
   if (u.mods.length) rt *= reactMods(u); // 기합·매의 눈
   if (f.sp && !u.me) rt = Math.max(0.1, rt - sv(f, 'quickPeer')); // 눈치 빠른 동료 (42 지원 09)
@@ -133,7 +131,6 @@ export function dodgeRate(f: Fight, u: Unit): number {
 }
 
 function dodgeBase(f: Fight, u: Unit): number {
-  if (u.cls === 'rogue') return Math.max(0.05, Math.min(0.98, f.diff.dodge + (u.p.dodge || 0) + 0.08 + calmDodge(f)));
   return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0) + calmDodge(f)));
 }
 

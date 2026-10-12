@@ -6,10 +6,10 @@ import { artPlaces, PLACES } from '../src/data/places';
 import * as E from '../src/engine';
 
 describe('늪지 어귀', () => {
-  it('Lv 8 탐험 3인: 갈대 물가 → 늪 주술사, 그림은 독안개 늪을 빌림', () => {
+  it('Lv 15 탐험 3인: 갈대 물가 → 늪 주술사, 그림은 독안개 늪을 빌림', () => {
     const c = contentOf('marsh');
     expect(c.kind).toBe('explore');
-    expect(c.unlockLv).toBe(8);
+    expect(c.unlockLv).toBe(15);
     expect(c.ready).toBe(true);
     expect(c.size('보통')).toBe(3);
     expect(c.fights('보통')).toEqual(['reedbank', 'shaman8']);
@@ -48,7 +48,7 @@ describe('늪지 어귀', () => {
     expect(hit!.hp).toBeLessThan(before);
   });
 
-  it('Lv 8 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 15 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'marsh', diff: '보통', seed: s, level: 8, gear: 'none' }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);

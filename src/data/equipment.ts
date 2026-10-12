@@ -278,7 +278,7 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   lampway: ['hood', 'jade'],
   rainbow: ['beads', 'wreath'],
   teaparty: ['robe', 'pendant', 'amulet'],
-  fest1: ['wreath'], fest2: ['pendant'], fest3: ['robe'],
+  fest1: ['wreath'], fest2: ['pendant'], fest3: ['jade'],
   cave1: ['gloves'], cave2: ['amulet'], cave3: ['scepter'],
   palace1: ['mail'], palace2: ['crown'], palace3: ['wand'],
   // 붉은 용 일가: 인내 (기슭) · 치명타 · 가속 (51 6장)
@@ -333,7 +333,7 @@ export const PLACE_KINDS: Record<string, readonly string[]> = {
   // 묶음 H1 (62 2-1): 그 세력 생김새 (LOOKS) 안의 종류만 골라 새 생김새 그림이 안 늘게. 열림 ±5 안에서 같은 조합 없음
   scrapheap: ['mace', 'gauntlet'], mine: ['helm', 'mail', 'plume'], alley: ['hood', 'pendant'], greenhouse: ['robe', 'habit', 'amulet'], frogpond: ['wand', 'bracer'], reedvillage: ['mail', 'gloves', 'signet'], fountain: ['crown', 'ring'], perfumery: ['coat', 'gloves', 'medal'], icefish: ['staff', 'signet'], snowlab: ['gloves', 'bracer', 'beads'], harvest: ['jade', 'sleeve'],
   // 묶음 H2 (62): 그 세력 생김새 (LOOKS) 안의 종류만 골라 새 생김새 그림이 안 늘게. 열림 ±5 안에서 같은 조합 없음
-  granary: ['helm', 'wraps', 'medal'], scarefield: ['crown', 'jade'], smuggler: ['coat', 'signet', 'twin'], reef: ['relic', 'wraps'], frostgarden: ['staff', 'pendant'], dorm: ['vestment', 'signet', 'starneck'], cultcamp: ['hood', 'beads'], apothecary: ['habit', 'pendant', 'amulet'], rooftop: ['robe', 'amulet'], bakery: ['robe', 'gloves', 'beads'], dewhill: ['wreath', 'jade'], mushmarsh: ['wand', 'gloves'], lilypalace: ['helm', 'mail', 'signet'],
+  granary: ['helm', 'wraps', 'medal'], scarefield: ['crown', 'jade'], smuggler: ['coat', 'signet', 'twin'], reef: ['relic', 'wraps'], frostgarden: ['staff', 'pendant'], dorm: ['vestment', 'signet', 'starneck'], cultcamp: ['hood', 'beads'], apothecary: ['habit', 'pendant', 'amulet'], rooftop: ['robe', 'amulet'], bakery: ['robe', 'gloves', 'beads'], dewhill: ['wreath', 'jade'], mushmarsh: ['staff', 'gloves'], lilypalace: ['helm', 'mail', 'signet'],
   // 묶음 H3 (62): 그 세력 생김새 (LOOKS) 안의 종류만 골라 새 생김새 그림이 안 늘게. 열림 ±5 안에서 같은 조합 없음
   quarry: ['scepter', 'wraps'], smithy: ['gauntlet', 'twin', 'medal'], ferry: ['relic', 'wraps'], turtlecave: ['plume', 'twin', 'coat'], mistplaza: ['crown', 'pendant'], coralgarden: ['robe', 'twin', 'wand'], oasis: ['staff', 'bracer'], sandlibrary: ['habit', 'medal', 'relic'], sundialroad: ['staff', 'beads'],
   // 묶음 H4 (62): 그 세력 생김새 (LOOKS) 안의 종류만 골라 새 생김새 그림이 안 늘게. 열림 ±5 안에서 같은 조합 없음

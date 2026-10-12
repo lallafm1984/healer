@@ -188,10 +188,26 @@ export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, 
   }
   // 쉬움·보통은 아래 선만: 지금보다 쉽게만 (지금 배율 아래에서 찾음)
   const curDmg = base.dmg ?? 1;
-  const hi = TARGET[d].max >= 100 ? curDmg : HI;
+  const hi = lowerOnly(d) ? curDmg : HI;
   const r = findDmg(at, TARGET[d].aim, LO, hi);
-  row.next = { dmg: r.dmg, m: seen.get(r.dmg)! };
+  const dmg = lowerOnly(d) && r.rate >= TARGET[d].aim - 1 ? closeIn(at, d, r.dmg, curDmg) : r.dmg;
+  row.next = { dmg, m: seen.get(dmg)! };
   return row;
+}
+
+const lowerOnly = (d: DiffName) => TARGET[d].max >= 100;
+/**
+ * 쉬움 · 보통 (아래 선만): 찾기는 첫 값 (LO와 지금 배율 사이 가운데)이 목표값 1 안이면 멈춰서 너무 쉬워지고 바쁨이 크게 줆 (2026-10-12 tune).
+ * 찾은 배율 (good)과 지금 배율 (bad) 사이를 좁혀 목표값 − 1을 지키는 가장 큰 배율로
+ */
+export function closeIn(rate: (dmg: number) => number, d: DiffName, good: number, bad: number, iters = 4): number {
+  const floor = TARGET[d].aim - 1;
+  for (let i = 0; i < iters && bad - good > 0.015; i++) {
+    const mid = Math.round(((good + bad) / 2) * 100) / 100;
+    if (mid <= good || mid >= bad) break;
+    if (rate(mid) >= floor) good = mid; else bad = mid;
+  }
+  return good;
 }
 
 /** 찾은 값을 표에 넣음: 장소의 모든 구간 · 그 난이도에 같은 피해 배율 (1이면 지움) */

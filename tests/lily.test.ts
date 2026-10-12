@@ -8,10 +8,10 @@ import * as E from '../src/engine';
 const until = (f: E.Fight, sec: number, done: () => boolean) => { while (!f.over && f.t < sec && !done()) { E.step(f); f.events.length = 0; } };
 
 describe('백합 정원', () => {
-  it('Lv 13 탐험 3인: 시든 화단 → 집사 유령, 그림은 저주받은 장원을 빌림', () => {
+  it('Lv 22 탐험 3인: 시든 화단 → 집사 유령, 그림은 저주받은 장원을 빌림', () => {
     const c = contentOf('lily');
     expect(c.kind).toBe('explore');
-    expect(c.unlockLv).toBe(13);
+    expect(c.unlockLv).toBe(22);
     expect(c.ready).toBe(true);
     expect(c.size('보통')).toBe(3);
     expect(c.fights('보통')).toEqual(['flowerbed', 'butler13']);
@@ -38,7 +38,7 @@ describe('백합 정원', () => {
     expect(on.every(u => u.role !== 'tank')).toBe(true);
   });
 
-  it('Lv 13 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 22 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'lily', diff: '보통', seed: s, level: 13, gear: 'none' }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);

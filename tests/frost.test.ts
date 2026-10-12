@@ -14,9 +14,9 @@ const quiet = (f: E.Fight) => { f.skills.forEach(s => { s.next = Infinity; }); }
 const has = (u: E.Unit, name: string) => u.debuffs.some(d => d.name === name);
 
 describe('서리 마탑', () => {
-  it('Lv 25 던전 5인 보스 셋, 마법', () => {
+  it('Lv 29 던전 5인 보스 셋, 마법', () => {
     const c = contentOf('frost');
-    expect(c.unlockLv).toBe(25);
+    expect(c.unlockLv).toBe(29);
     expect(c.ready).toBe(true);
     expect(c.fights('보통')).toEqual(['icehall', 'frostgolem', 'mage', 'frostlab', 'shadow']);
   });
@@ -58,7 +58,7 @@ describe('서리 마탑', () => {
     expect(f.watch).toBeTruthy();
   });
 
-  it('Lv 25 자동 힐러, 보통이면 대부분 깸 (장비 없음)', () => {
+  it('Lv 29 자동 힐러, 보통이면 대부분 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (runOnce(contentOf('frost'), '보통', 'priest', s).win) wins++; // 자동 밸런스 기준: 장비 없음 · 열린 특성 · 능력 1개 · 물약, 치유 배율 0.6 (34 1-6) 뒤로 특성 없는 사제는 높은 레벨에서 많이 짐
     expect(wins).toBeGreaterThanOrEqual(18);

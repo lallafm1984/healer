@@ -110,7 +110,6 @@ export const ROLE_LINES: Record<Exclude<Role, 'healer'>, TalkLines> = {
     tankDown: ['{ally} 누움 거리 벌려', '{ally} 일어나 보스 옴', '보스가 이쪽 본다'],
     abAtk: ['저격 간다', '폭딜 장전', '조준 끝 쏜다'],
     idle: ['뒷줄 경치 좋음', '여기서 다 보임 ㅋ', '사거리 끝에서 편함'],
-    aimFull: ['조준 완성 쏜다', '안 움직여서 셈', '자리 지켰다'],
     castMove: ['서서 쏘고 싶다', '움직이니 시전 끊김', '자리 좀 지키자'],
     win: ['뒷줄 수고', '사격 끝 ㅅㄱ', '멀리서 잘 쏨 ㅋ'],
   },

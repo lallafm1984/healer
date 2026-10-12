@@ -31,7 +31,7 @@ export default async function guild(url, shots) {
   ok(/새벽의 손/.test(await text('#s-guild h2')) && /정원 0\/6/.test(await text('#s-guild h2')), 'Lv 30 = 길드 열림, 정원 0/6');
   ok(await page.isVisible('#s-guild .g-home .g-board') && (await page.locator('#s-guild .g-board .g-note').count()) === 6, '탭에 들어오면 게시판 (쪽지 6장)');
   ok(/아직 길드원 없음/.test(await text('#s-guild .n-mem')), '빈 길드 안내 (길드원 쪽지)');
-  ok(/정원/.test(await text('#s-guild .n-cap')) && /다음: Lv 35 · 12명/.test(await text('#s-guild .n-cap')), `정원 쪽지: 다음 단계 (${(await text('#s-guild .n-cap')).replace(/\s+/g, ' ')})`);
+  ok(/정원/.test(await text('#s-guild .n-cap')) && /다음: Lv 45 · 12명/.test(await text('#s-guild .n-cap')), `정원 쪽지: 다음 단계 (${(await text('#s-guild .n-cap')).replace(/\s+/g, ' ')})`);
   ok(/0 \/ 10/.test(await text('#s-guild .n-goal')), '주간 목표 쪽지 0/10');
   ok(/영입하러 가기/.test(await text('#guildGo')), '길드원 0명 = 아래 버튼 「영입하러 가기」');
   const sgn = await page.locator('#s-guild .g-sign').evaluateAll(els => els.map(e => [e.dataset.sub, Math.round(e.getBoundingClientRect().height)]));

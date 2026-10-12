@@ -1,6 +1,7 @@
 /**
  * 재화·임무·상점·시즌 패스 규칙 (12, 13, 15). 화면과 분리된 순수 계산 (시각·난수는 받아서 씀).
  */
+import { RAID10_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HEROES, type HeroKey } from '../data/heroes';
 import {
@@ -64,11 +65,11 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
       if (save.weekly.chalBest >= save.chalChest) save.chalChestHero = save.weekly.chalHero;
       save.chalChest = Math.max(save.chalChest, save.weekly.chalBest);
     }
-    save.weekly = { ...newWeekly(week), missions: lv >= WEEKLY_LV ? pick(lv >= 35 ? WEEKLY : WEEKLY.filter(m => m.key !== 'w_raid3'), WEEKLY_N, lv, r) : [] };
+    save.weekly = { ...newWeekly(week), missions: lv >= WEEKLY_LV ? pick(lv >= RAID10_LV ? WEEKLY : WEEKLY.filter(m => m.key !== 'w_raid3'), WEEKLY_N, lv, r) : [] };
     out.week = true;
   }
   // 레벨이 올라 주간 임무가 열렸으면 (Lv 10) 이번 주 것을 바로 줌
-  if (!save.weekly.missions.length && lv >= WEEKLY_LV) save.weekly.missions = pick(WEEKLY.filter(m => m.key !== 'w_raid3' || lv >= 35), WEEKLY_N, lv, r);
+  if (!save.weekly.missions.length && lv >= WEEKLY_LV) save.weekly.missions = pick(WEEKLY.filter(m => m.key !== 'w_raid3' || lv >= RAID10_LV), WEEKLY_N, lv, r);
   const sn = seasonOf(now).n;
   if (save.pass.season !== sn) { save.pass = { season: sn, xp: 0, premium: false, free: [], prem: [] }; out.season = true; }
   return out;
@@ -138,7 +139,7 @@ export function claimMission(save: SaveData, kind: 'daily' | 'weekly', i: number
 }
 
 /** 완료 상자 장비: 레벨에 맞는 난이도 기준 (13 2-1) */
-const chestDiff = (lv: number): DiffName => (lv >= 35 ? '어려움' : '보통');
+const chestDiff = (lv: number): DiffName => (lv >= RAID10_LV ? '어려움' : '보통');
 
 /** 일일 완료 상자: 오늘 것 (임무 5개 받음) 또는 놓친 날 쌓인 것 */
 export function chestState(save: SaveData): { today: boolean; banked: number } {

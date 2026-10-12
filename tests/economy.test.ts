@@ -105,7 +105,7 @@ describe('일일 임무 (13 2-1)', () => {
 });
 
 describe('주간 (13 3장)', () => {
-  it('Lv 10부터 3개, Lv 35 전엔 레이드 임무 없음, 1개 = 악몽 열쇠 1 (최대 5)', () => {
+  it('Lv 10부터 3개, 10인 레이드 열림 (Lv 45) 전엔 레이드 임무 없음, 1개 = 악몽 열쇠 1 (최대 5)', () => {
     expect(save(9).weekly.missions).toEqual([]);
     for (let i = 0; i < 20; i++) { seed = i + 3; expect(save(20).weekly.missions.some(m => m.key === 'w_raid3')).toBe(false); }
     const s = save(40);

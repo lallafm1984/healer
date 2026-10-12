@@ -11,12 +11,11 @@ import { TUNE } from '../data/tune';
 import { ITEMS } from '../data/items';
 import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
 import { PROTO_RULES, RULES } from '../data/rules';
-import { BULWARK, TRAIT_CHANCE, TRAITS, type TraitKey } from '../data/traits';
 import { makeCells } from './board';
-import { aggroTarget, initBoss, bossTick } from './bosses';
+import { initBoss, bossTick } from './bosses';
 import { bossTaken, focusOrder } from './bossParts';
 import { affixTick, initAffixes } from './affixes';
-import { bark, damageMob, DT, emit } from './core';
+import { damageMob, DT, emit } from './core';
 import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { rngFrom } from './rng';
@@ -131,12 +130,8 @@ export function recruitParty(encKey: EncounterKey, seed: number, opts: { abiliti
     count[k] = (count[k] || 0) + 1;
     m.cls = k;
   }
-  // 특성 (02 5-2-1): 직업을 다 뽑은 뒤 같은 난수로 (직업 결과는 그대로)
-  for (const m of list) {
-    const t = (Object.keys(TRAITS) as TraitKey[]).filter(k => TRAITS[k].roles.includes(m.role));
-    if (t.length && rng() < TRAIT_CHANCE) m.traits = [t[Math.floor(rng() * t.length)]];
-  }
-  // 특수 능력 1개 (17 3장): 특성까지 뽑은 뒤 같은 난수로 (직업·특성 결과는 그대로). 튜토리얼 파티는 능력 없음
+  // 직업 스킬 (특수 능력) 1개 (17 3장): 직업을 다 뽑은 뒤 같은 난수로 (직업 결과는 그대로). 튜토리얼 파티는 능력 없음.
+  // 파티원은 성격과 직업 스킬만 가짐 (2026-10-12 Lim: 직업 패시브 · 특성 뺌)
   if (opts.abilities) for (const m of list) m.ab = rollAbility(m.cls!, rng);
   return list;
 }
@@ -144,7 +139,7 @@ export function recruitParty(encKey: EncounterKey, seed: number, opts: { abiliti
 function makeParty(f: Fight, roster?: RosterEntry[]): void {
   const mult = f.mythic ? MYTHIC.party : 1;
   const units: Unit[] = [];
-  const add = (role: Role, pers: PersName | null, nick: string, cls?: ClassKey, traits?: TraitKey[], r?: RosterEntry): Unit => {
+  const add = (role: Role, pers: PersName | null, nick: string, cls?: ClassKey, r?: RosterEntry): Unit => {
     const c = cls ? CLASSES[cls] : null;
     // 길드원은 자기 레벨 배율 (적 레벨 위로는 안 감, 34 4장 8번), 공개모집은 콘텐츠 단계 배율. 자질 공격·맷집 (17 9-1)
     const own = r?.lv ? f.R.lv(Math.min(r.lv, f.cfg.stageLv ?? r.lv)) * f.R.enemy : f.scale;
@@ -155,7 +150,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     if (apt) { base *= APT.tough[aptIdx(apt[1])]; dps *= APT.atk[aptIdx(apt[0])]; }
     if (role === 'healer' && f.gear.hp) base *= 1 + f.gear.hp; // 장비 체력 (34 6-5)
     const u: Unit = {
-      id: f.nextId++, role, cls: c ? c.key : null, aim: 0, flow: 0, traits: (traits || []).filter(k => TRAITS[k]), bulwark: 0, bulwarkUsed: false, acc: 0, dealt: 0, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
+      id: f.nextId++, role, cls: c ? c.key : null, acc: 0, dealt: 0, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
       cell: -1, home: -1, hot: 0, hotTick: 0, hots: [], redu: 0, reduCut: 0, sacr: 0, immune: 0, echo: [], guardian: 0, shield: 0, debuffs: [], moving: null, react: null,
       retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0, thanks: 0, flash: 0,
       barkAt: -10, ignoreZone: 0, homeAt: null, diedAt: 0, me: role === 'healer',
@@ -165,7 +160,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     return u;
   };
   const roles = roster || rollParty(f.enc.key, f.cfg.seed || 1);
-  roles.forEach(r => { const u = add(r.role, r.pers, r.nick, r.cls, r.traits, r); if (r.ab) giveAb(f, u, r.ab, r.star); });
+  roles.forEach(r => { const u = add(r.role, r.pers, r.nick, r.cls, r); if (r.ab) giveAb(f, u, r.ab, r.star); });
   add('healer', null, '나');
   f.party = units;
   f.me = units[units.length - 1];
@@ -206,7 +201,7 @@ export function step(f: Fight): void {
 }
 
 /**
- * 탱커가 모두 쓰러지면 보스는 다음 사람을 때림 (aggroTarget). 그 사람이 버팀목이면 잠깐 버팀.
+ * 탱커가 모두 쓰러지면 보스는 다음 사람을 때림 (bosses.ts aggroTarget).
  * 5인 이상 보스전은 「탱커 없음」 카운트다운이 끝나면 보스가 바로 광폭화 (35 6-4, bosses.ts enrageAt). 탱커를 일으키면 사라짐
  */
 function tankWatch(f: Fight): void {
@@ -218,11 +213,6 @@ function tankWatch(f: Fight): void {
     f.noTankAt = f.t;
     emit(f, { type: 'msg', text: `탱커 없음: ${NO_TANK_SEC}초 뒤 보스 광폭화` });
   }
-  const u = aggroTarget(f);
-  if (!u || u.me || u.bulwarkUsed || !u.traits.includes('bulwark')) return;
-  u.bulwarkUsed = true; u.bulwark = BULWARK.sec;
-  bark(f, u, '내가 막을게!', true, 'bulwark');
-  emit(f, { type: 'msg', text: `${u.nick} ${TRAITS.bulwark.name}: ${BULWARK.sec}초 버팀` });
 }
 
 /** 파티원 공격 간격 (틱): 탱커·원거리 2초, 근접 1.5초 */

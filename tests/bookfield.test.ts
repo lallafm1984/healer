@@ -8,10 +8,10 @@ import * as E from '../src/engine';
 const until = (f: E.Fight, sec: number, done: () => boolean) => { while (!f.over && f.t < sec && !done()) { E.step(f); f.events.length = 0; } };
 
 describe('책갈피 설원', () => {
-  it('Lv 40 탐험 3인: 흩날린 책장 → 서고 사서, 그림은 눈보라 고개를 빌림', () => {
+  it('Lv 31 탐험 3인: 흩날린 책장 → 서고 사서, 그림은 눈보라 고개를 빌림', () => {
     const c = contentOf('bookfield');
     expect(c.kind).toBe('explore');
-    expect(c.unlockLv).toBe(40);
+    expect(c.unlockLv).toBe(31);
     expect(c.ready).toBe(true);
     expect(c.size('보통')).toBe(3);
     expect(c.fights('보통')).toEqual(['pagedrift', 'librarian40']);
@@ -30,7 +30,7 @@ describe('책갈피 설원', () => {
     expect(f.mana).toBeLessThan(m0);
   });
 
-  it('Lv 40 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 31 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'bookfield', diff: '보통', seed: s, level: 40, gear: 'none' }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);

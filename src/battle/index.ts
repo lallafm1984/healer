@@ -722,7 +722,6 @@ function runData(f: Fight) {
     guideSec: ui.guideSec, skillTips: ui.skillTips, // 전투 전 공략 화면을 본 초 · 전투 중 기술 설명 팝업을 연 횟수
     items: Object.keys(f.items), itemLog: f.itemLog, itemTips: ui.itemTips, itemDispels: st.itemDispels || 0, // 고른 단축칸 · 사용 시각 · 길게 눌러 설명 본 횟수
     personalities: f.party.filter(u => u.pers).map(u => u.pers),
-    traits: f.party.flatMap(u => u.traits),
     dealt: f.party.filter(u => !u.me).map(u => [u.nick, Math.round(u.dealt)]),
     device: { w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio || 1, touch: ui.touchSeen },
   };

@@ -209,7 +209,7 @@ function recruitHtml(): string {
 function recruitCard(m: CardData, action: string, disabled: boolean, cost: string): string {
   const c = CLASSES[m.cls], ability = m.ab ? ABILITIES[m.ab] : null;
   return `<li class="pcard recruit-card"><span class="prole two" style="background:${ROLE[c.role].color}">${c.short}</span>
-    <div class="g-candidate-head"><b class="pnick">${esc(m.nick)}</b><small>${c.name} · ${ROLE[c.role].name}${m.lv ? ` · Lv ${m.lv}` : ''}${m.power ? ` · 전투력 ${fmt(m.power)}` : ''}</small><p>${ability ? esc(ability.name) : esc(c.passive)} · ${esc(m.pers)}</p></div>
+    <div class="g-candidate-head"><b class="pnick">${esc(m.nick)}</b><small>${c.name} · ${ROLE[c.role].name}${m.lv ? ` · Lv ${m.lv}` : ''}${m.power ? ` · 전투력 ${fmt(m.power)}` : ''}</small><p>${ability ? `${esc(ability.name)} · ` : ''}${esc(m.pers)}</p></div>
     <details class="g-candidate-details"><summary>능력·성격·자질 보기</summary>${memDetailHtml(m)}</details>
     <div class="g-candidate-action"><small>${cost}</small><button class="btn mini primary" type="button" ${action}${disabled ? ' disabled' : ''}>영입</button></div></li>`;
 }

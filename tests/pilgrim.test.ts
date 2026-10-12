@@ -9,9 +9,9 @@ import * as E from '../src/engine';
 const until = (f: E.Fight, sec: number, done: () => boolean) => { while (!f.over && f.t < sec && !done()) { E.step(f); f.events.length = 0; } };
 
 describe('무너진 순례길', () => {
-  it('Lv 28 탐험 3인: 끊어진 돌다리 → 신전지기 유령, 그림은 깨진 신전을 빌림, 해제 4유형', () => {
+  it('Lv 36 탐험 3인: 끊어진 돌다리 → 신전지기 유령, 그림은 깨진 신전을 빌림, 해제 4유형', () => {
     const c = contentOf('pilgrim');
-    expect(c.unlockLv).toBe(28);
+    expect(c.unlockLv).toBe(36);
     expect(c.ready).toBe(true);
     expect(c.fights('보통')).toEqual(['brokenbridge', 'keeper28']);
     expect(PLACES.pilgrim.borrow).toBe('temple');
@@ -44,7 +44,7 @@ describe('무너진 순례길', () => {
     expect(go.every(u => u.role === 'ranged')).toBe(true);
   });
 
-  it('Lv 28 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 36 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'pilgrim', diff: '보통', seed: s, level: 28, gear: 'none' }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);

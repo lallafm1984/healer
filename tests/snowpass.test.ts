@@ -8,10 +8,10 @@ import * as E from '../src/engine';
 const until = (f: E.Fight, sec: number, done: () => boolean) => { while (!f.over && f.t < sec && !done()) { E.step(f); f.events.length = 0; } };
 
 describe('눈보라 고개', () => {
-  it('Lv 18 탐험 3인: 눈 덮인 비탈 → 마력 골렘, 그림은 서리 마탑을 빌림', () => {
+  it('Lv 27 탐험 3인: 눈 덮인 비탈 → 마력 골렘, 그림은 서리 마탑을 빌림', () => {
     const c = contentOf('snowpass');
     expect(c.kind).toBe('explore');
-    expect(c.unlockLv).toBe(18);
+    expect(c.unlockLv).toBe(27);
     expect(c.ready).toBe(true);
     expect(c.fights('보통')).toEqual(['snowslope', 'golem18']);
     expect(ENCOUNTERS.golem18.board).toBe('b7');
@@ -40,7 +40,7 @@ describe('눈보라 고개', () => {
     expect(f.lock.heal).toBeDefined();
   });
 
-  it('Lv 18 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 27 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'snowpass', diff: '보통', seed: s, level: 18, gear: 'none' }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);

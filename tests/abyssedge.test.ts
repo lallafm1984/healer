@@ -8,9 +8,9 @@ import { applyDebuff } from '../src/engine/bossParts';
 import { hexDist } from '../src/engine/board';
 
 describe('심연 가장자리', () => {
-  it('Lv 33 탐험 3인: 갈라진 땅 → 역병 군주, 그림은 심연을 빌림', () => {
+  it('Lv 44 탐험 3인: 갈라진 땅 → 역병 군주, 그림은 심연을 빌림', () => {
     const c = contentOf('abyssedge');
-    expect(c.unlockLv).toBe(33);
+    expect(c.unlockLv).toBe(44);
     expect(c.ready).toBe(true);
     expect(c.fights('보통')).toEqual(['riftground', 'plague33']);
     expect(artPlaces('abyssedge')).toEqual(['abyssedge', 'abyss']);
@@ -31,7 +31,7 @@ describe('심연 가장자리', () => {
     expect(tank.debuffs.some(d => d.name === '독침')).toBe(true);
   });
 
-  it('Lv 33 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
+  it('Lv 44 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'abyssedge', diff: '보통', seed: s, level: 33, gear: 'none' }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);
