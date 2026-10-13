@@ -68,7 +68,7 @@ export default async function devices(url, shots) {
     const head = await box('#battle .stage-head'), pause = await box('#pauseBtn');
     ok(pause.right <= head.right - 11 && pause.top >= head.top + 11 && pause.bottom <= head.bottom + 5 - 11 && pause.h >= 44,
       `${tag}: 일시정지 버튼이 머리 판 테와 안 겹침 (오른쪽 여백 ${Math.round(head.right - pause.right)} · 위 ${Math.round(pause.top - head.top)})`);
-    // 탱커 전멸 (2026-10-13 Lim 첨부2): 포기 버튼은 시전 막대 자리 가운데, 황동 틀·어두운 바탕, 조작판 배치는 그대로
+    // 탱커 전멸 (2026-10-13 Lim 첨부2): 포기 버튼은 시전 막대 자리 가운데, 황동 틀·붉은 바탕, 조작판 배치는 그대로
     const before = await box('#controls');
     await page.evaluate(() => { const F = window.__proto.F; F.party.filter(u => u.role === 'tank').forEach(u => { u.hp = 0; u.alive = false; u.guardian = 0; }); F.party.forEach(u => { if (u.role !== 'tank') { u.max *= 50; u.hp = u.max; } }); });
     await page.clock.runFor(300);
@@ -82,7 +82,7 @@ export default async function devices(url, shots) {
     });
     const after = await box('#controls');
     ok(gu.parent === 'castbar' && gu.dx <= 1 && gu.dy <= 1 && gu.above && gu.w >= 88 && gu.hit && /gradient/.test(gu.bg) && !/url\(/.test(gu.bg) && gu.hint && after.h === before.h && after.top === before.top,
-      `${tag}: 탱커 전멸 포기 버튼 = 시전 막대 자리 가운데 · 누르는 칸 44 · 황동 틀·어두운 바탕 · 조작판 그대로 ${JSON.stringify({ ...gu, bg: gu.bg.slice(0, 24) })}`);
+      `${tag}: 탱커 전멸 포기 버튼 = 시전 막대 자리 가운데 · 누르는 칸 44 · 황동 틀·붉은 바탕 · 조작판 그대로 ${JSON.stringify({ ...gu, bg: gu.bg.slice(0, 24) })}`);
     await page.screenshot({ path: `${shots}/device_giveup_${width}x${height}.png` });
     // 포기 → 결과 (전멸): 「장비가 권장보다 낮음」 줄의 「장비」 버튼은 나무결 아닌 금빛 (2026-10-13 Lim 첨부1)
     await page.click('#giveUp'); await page.click('#confirmApply'); await page.clock.runFor(300);
