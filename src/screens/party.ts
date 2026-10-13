@@ -305,6 +305,7 @@ export function depart(): string {
   Flow.coach = null;
   const { slots, items, loadout } = itemsNow();
   const m = modeNow();
+  Flow.running = true;
   battle().start({
     content: c.key, name: Flow.chal ? `도전 ${Flow.chal}단계` : c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: m.stage, gearStats: gearStatsOf(G.save.gear.equipped, G.save.player.level),
     affixes: m.affixes, bossMult: m.bossMult, limit: m.limit, chal: m.chal || undefined,
@@ -313,6 +314,7 @@ export function depart(): string {
     onEnd(r) {
       Flow.result = r;
       Flow.settle = settle(G.save, r, Math.random, Flow.party!);
+      Flow.running = false;
       commit();
       go('s-settle');
     },

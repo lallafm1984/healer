@@ -1,4 +1,4 @@
-/** 장비 특수능력 118종 + 이름 있는 장신구 71개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
+/** 장비 특수능력 142종 + 이름 있는 장신구 71개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { NAMED, SPEC_GROUPS, SPEC_KEYS, SPECS, specText, specTotals, specValue } from '../src/data/specials';
@@ -56,19 +56,19 @@ const absorb = (u: U) => u.mods.find(m => m.k === 'absorb')?.v ?? 0;
 const healOn = (f: F, id: number) => { for (const e of f.events) if (e.type === 'heal' && e.id === id) return e.amt; return 0; };
 
 describe('데이터', () => {
-  it('공통 94 + 직업 전용 24 = 118종, 키는 겹치지 않음, 이름 있는 장신구 71개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C +8 · 묶음 D1 +4 · D2 +3 · E1 +4 · E2 +3 · E3 +4 · F1 +4 · F2 +2 · F3 +3 · G1 +4 · G2 +2 · G3 +3)', () => {
-    expect(SPEC_KEYS.length).toBe(118);
-    expect(new Set(SPEC_KEYS).size).toBe(118);
+  it('공통 94 + 직업 전용 24 = 142종, 키는 겹치지 않음, 이름 있는 장신구 71개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C +8 · 묶음 D1 +4 · D2 +3 · E1 +4 · E2 +3 · E3 +4 · F1 +4 · F2 +2 · F3 +3 · G1 +4 · G2 +2 · G3 +3)', () => {
+    expect(SPEC_KEYS.length).toBe(142);
+    expect(new Set(SPEC_KEYS).size).toBe(142);
     const by = (g: string) => SPEC_KEYS.filter(k => SPECS[k].group === g).length;
-    expect(Object.keys(SPEC_GROUPS).map(by)).toEqual([16, 16, 14, 12, 10, 8, 10, 8, 24]);
-    expect(SPEC_KEYS.filter(k => SPECS[k].hero).length).toBe(24);
+    expect(Object.keys(SPEC_GROUPS).map(by)).toEqual([16, 16, 14, 12, 10, 8, 10, 8, 48]);
+    expect(SPEC_KEYS.filter(k => SPECS[k].hero).length).toBe(48);
     expect(NAMED.length).toBe(71);
-    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(189);
+    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(213);
   });
-  it('직업 전용은 영웅 이상, 효과 글에 값이 들어감', () => {
+  it('직업 전용은 고급 이상, 효과 글에 값이 들어감', () => {
     for (const k of SPEC_KEYS) {
       const d = SPECS[k];
-      if (d.hero) expect(['영웅', '전설']).toContain(d.min);
+      if (d.hero) expect(['고급', '희귀', '영웅', '전설']).toContain(d.min);
       expect(specText(d, d.val)).not.toContain('{v}');
     }
     expect(specText(SPECS.warmTouch, 0.06)).toBe('단일 힐 회복량 +6%');
@@ -102,7 +102,11 @@ describe('데이터', () => {
   it('모든 특수능력이 엔진에 붙어 있음', () => {
     const dir = 'src/engine/';
     const src = readdirSync(dir).filter(n => n.endsWith('.ts')).map(n => readFileSync(dir + n, 'utf8')).join('\n');
-    for (const k of [...SPEC_KEYS, ...NAMED.map(n => n.key)]) expect(src, k).toMatch(new RegExp(`\\b${k}\\b`));
+    for (const k of [...SPEC_KEYS, ...NAMED.map(n => n.key)]) {
+      const mod = SPECS[k]?.skillMod;
+      if (mod) { expect(SKILLS[mod.key], k).toBeDefined(); expect(['heal', 'cost', 'cooldown']).toContain(mod.kind); }
+      else expect(src, k).toMatch(new RegExp(`\\b${k}\\b`));
+    }
   });
 });
 

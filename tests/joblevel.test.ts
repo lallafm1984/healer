@@ -6,7 +6,7 @@ import * as E from '../src/engine';
 import { raidLootOpen } from '../src/game/economy';
 import { capOf } from '../src/game/guild';
 import { settle, type BattleResult } from '../src/game/settle';
-import { G, heroStatus, lockOf, makeChar, otherHeroFor, switchHero, switchOpen } from '../src/game/state';
+import { G, heroStatus, lockOf, makeChar, otherHeroFor, pickChar, switchOpen } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
 import { heroLevelOf, migrate, newSave, SAVE_VERSION, topLevel } from '../src/platform/storage';
 
@@ -28,7 +28,7 @@ describe('저장 이전 (34 3-4 → 68 v11)', () => {
     expect(s.roster.chars[0].park!.player).toEqual({ level: 30, xp: 120, gold: 0 });
     expect(heroLevelOf(s, 'priest')).toBe(30);
     expect(s.heroes.druid!.wins).toBe(4);
-    expect(heroLevelOf(s, 'paladin')).toBe(1);
+    expect(heroLevelOf(s, 'paladin')).toBe(30);
     expect(topLevel(s)).toBe(30);
   });
   it('v6 뒤 저장은 레벨을 다시 옮기지 않음', () => {
@@ -36,7 +36,8 @@ describe('저장 이전 (34 3-4 → 68 v11)', () => {
     d.v = 10; d.player.level = 12;
     d.heroes.druid = { layout: null, tapKey: 'heal', unlocked: true, quest: 1, wins: 0, level: 3, xp: 5 };
     const s = migrate(JSON.parse(JSON.stringify(d)));
-    expect(heroLevelOf(s, 'druid')).toBe(3);
+    expect(heroLevelOf(s, 'druid')).toBe(12);
+    expect(s.roster.chars.find(c => c.hero === 'druid')!.park!.player.level).toBe(3);
     expect(s.player.level).toBe(12);
   });
 });
@@ -53,23 +54,24 @@ describe('캐릭터마다 레벨 (34 3장 → 68)', () => {
     expect(makeChar('druid')).toBe('');
     expect(G.save.player).toEqual({ level: 1, xp: 0, gold: 0 });
     G.save.player.level = 4;
-    expect(switchHero('priest')).toBe(true);
+    expect(pickChar(1)).toBe(true);
     expect(G.save.player).toEqual({ level: 25, xp: 40, gold: 777 });
-    expect(heroLevelOf(G.save, 'druid')).toBe(4);
+    expect(heroLevelOf(G.save, 'druid')).toBe(25);
+    expect(G.save.roster.chars.find(c => c.id === 2)!.level).toBe(4);
   });
   it('기준 레벨 (길드 · 상점 · 임무)도 그 캐릭터 레벨', () => {
     makeChar('druid');
     expect(G.save.player.level).toBe(1);
     expect(topLevel(G.save)).toBe(1);
     expect(switchOpen().ok).toBe(true);
-    expect(switchHero('priest')).toBe(true);
+    expect(pickChar(1)).toBe(true);
     expect(topLevel(G.save)).toBe(25);
   });
-  it('콘텐츠는 지금 캐릭터 레벨로 잠기고, 다른 캐릭터가 열었으면 그 직업을 알려 줌', () => {
+  it('콘텐츠는 지금 캐릭터 공통 레벨로 잠김, 직업 전환으로 우회할 수 없음', () => {
     makeChar('druid');
     const c = contentOf('swamp');
     expect(lockOf(c).locked).toBe(true);
-    expect(otherHeroFor(lockOf(c).lv)).toEqual({ hero: 'priest', lv: 25 });
+    expect(otherHeroFor(lockOf(c).lv)).toBeNull();
     expect(otherHeroFor(26)).toBeNull();
     expect(heroStatus('paladin').state).toBe('locked');
   });
@@ -89,7 +91,7 @@ describe('캐릭터마다 레벨 (34 3장 → 68)', () => {
     expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(false);
     makeChar('druid');
     expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(true);
-    switchHero('priest');
+    pickChar(1);
     expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(false);
   });
   it('길드원 레벨 상한 = 그 캐릭터 레벨 (34 4장 8번)', () => {

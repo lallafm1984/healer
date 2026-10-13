@@ -394,7 +394,9 @@ export function pickKind(r: () => number, place: string): KindDef {
  * 드롭 맥락: 지금 직업 (직업 전용은 그 직업 것만, 42 1-4) · 장소 (잘 나오는 종류 · 자주 나오는 특수능력 · 이름 있는 장신구) ·
  * 레이드 인원 (등급 표, 61 3장. 없으면 탐험 · 던전 표) · 공개모집 보너스 판 · 등급 상한 (따로 줄 때만) · 아이템 레벨
  */
-export interface DropCtx { hero?: HeroKey; place?: string; raid?: 0 | 10 | 20; bonus?: boolean; cap?: ItemGrade; /** 아이템 레벨 (떨어진 곳의 적 레벨) */ lv?: number }
+/** 효과 1줄 계약을 유지하며 전용 빌드와 기존 공용 빌드를 함께 제공 */
+export const CLASS_LOOT_CHANCE = 0.7;
+export interface DropCtx { hero?: HeroKey; /** 클리어 보상: 효과가 붙는 장비는 전용 70% / 공용 30% (고유 전설 제외) */ classLoot?: boolean; place?: string; raid?: 0 | 10 | 20; bonus?: boolean; cap?: ItemGrade; /** 아이템 레벨 (떨어진 곳의 적 레벨) */ lv?: number }
 
 /**
  * 특수능력 n줄 굴림: 그 부위 · 최소 등급 이하 · (직업 전용은 그 직업) 중에서, 장소의 자주 나오는 3개는 4배.
@@ -404,10 +406,17 @@ export function rollSpecs(r: () => number, slot: SlotKey, grade: ItemGrade, n: n
   const gi = ITEM_GRADES.indexOf(grade), feat = (o.place && FEATURED[o.place]) || [];
   const out: SpecLine[] = [], groups = new Set(taken.map(k => SPECS[k]?.group));
   for (let i = 0; i < n; i++) {
-    const pool = SPEC_KEYS.filter(k => {
+    let pool = SPEC_KEYS.filter(k => {
       const d = SPECS[k];
       return d.slots.includes(slot) && ITEM_GRADES.indexOf(d.min) <= gi && (!d.hero || d.hero === o.hero) && !groups.has(d.group);
     });
+    if (o.classLoot && o.hero && !groups.has('hero')) {
+      const jobPool = pool.filter(k => SPECS[k].hero === o.hero);
+      if (jobPool.length) {
+        const sharedPool = pool.filter(k => !SPECS[k].hero);
+        pool = !sharedPool.length || r() < CLASS_LOOT_CHANCE ? jobPool : sharedPool;
+      }
+    }
     if (!pool.length) break;
     const w = pool.map(k => (feat.includes(k) ? FEATURED_WEIGHT : 1));
     let x = r() * w.reduce((a, b) => a + b, 0), j = 0;

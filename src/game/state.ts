@@ -9,9 +9,10 @@ import type { SpecLine } from '../data/specials';
 import type { ItemKey } from '../data/items';
 import { activeItemKeys, assignItemSlot, itemLoadoutOf, type ItemSlot } from '../data/item-loadout';
 import { itemSlots } from '../data/progression';
-import { heroLevelOf, heroSaveOf, load, loadChar, newSave, noteSpecs, parkChar, save, shareAccount, topLevel, wipeChars, type HeroSave, type SaveData } from '../platform/storage';
+import { heroSaveOf, load, loadChar, newSave, noteSpecs, parkChar, save, shareAccount, topLevel, wipeChars, type HeroSave, type SaveData } from '../platform/storage';
 import { firstDungeonDue, TUT } from './tutorial';
 import { isMember, onAct, rollover, type Rollover } from './economy';
+import { Flow } from './flow';
 
 export const G: { save: SaveData } = { save: load() };
 
@@ -57,16 +58,8 @@ export function firstDungeonNow(): boolean {
   return firstDungeonDue(G.save, lv >= contentOf('rustfort').unlockLv && lv < contentOf('crypt').unlockLv);
 }
 
-/** 지금 직업으론 잠겼지만 다른 직업으로는 들어갈 수 있으면 그 직업 (34 4장 1번: 「사제 Lv 42로 열림」). 레벨이 가장 높은 직업 */
-export function otherHeroFor(lv: number): { hero: HeroKey; lv: number } | null {
-  let best: { hero: HeroKey; lv: number } | null = null;
-  for (const h of HERO_KEYS) {
-    if (h === G.save.hero || heroStatus(h).state !== 'open') continue;
-    const l = heroLevelOf(G.save, h);
-    if (l >= lv && (!best || l > best.lv)) best = { hero: h, lv: l };
-  }
-  return best;
-}
+/** v12 공통 레벨: 직업을 바꿔 콘텐츠 레벨 제한을 우회할 수 없음. 기존 화면 호출 호환 */
+export function otherHeroFor(_lv: number): { hero: HeroKey; lv: number } | null { return null; }
 
 /** 지금 쓸 수 있는 단축칸 구성 (열린 칸 수만큼) */
 export function itemsNow() {
@@ -210,6 +203,10 @@ export function salvage(ids: number[]): { n: number; gold: number; stone: number
     if (i < 0 || g.bag[i].lock) continue;
     const v = salvageOf(g.bag[i]);
     g.bag.splice(i, 1);
+    for (const h of HERO_KEYS) {
+      const refs = G.save.heroes[h]?.loadout;
+      if (refs) for (const { key } of SLOTS) if (refs[key] === id) delete refs[key];
+    }
     got.n++; got.gold += v.gold; got.stone += v.stone; got.refined += v.refined;
   }
   G.save.player.gold += got.gold; G.save.mats.stone += got.stone; G.save.mats.refined += got.refined;
@@ -354,6 +351,7 @@ function swapTo(next: SaveData, id: number, now: number): void {
 
 /** 캐릭터 고르기 (캐릭터 선택). 지금 캐릭터거나 없으면 false */
 export function pickChar(id: number, now = Date.now()): boolean {
+  if (Flow.running) return false;
   const next = loadChar(G.save, id);
   if (!next) return false;
   swapTo(next, id, now);
@@ -365,6 +363,7 @@ export function pickChar(id: number, now = Date.now()): boolean {
  * 만들면 그 캐릭터로 바뀜. 성공 = 빈 문자열, 아니면 이유
  */
 export function makeChar(h: HeroKey, name = '', now = Date.now()): string {
+  if (Flow.running) return '정산 후 생성 가능';
   const r = G.save.roster;
   if (G.save.tut < TUT.done) return '튜토리얼을 마치면 만들 수 있음';
   if (!HEROES[h]) return '없는 직업';
@@ -378,26 +377,42 @@ export function makeChar(h: HeroKey, name = '', now = Date.now()): string {
   return '';
 }
 
-/** 직업 바꾸기 (옛 캐릭터 › 직업 탭): v11부터 캐릭터 선택으로 바뀜 (68). 튜토리얼 뒤 언제든 */
+/** v12: 튜토리얼 뒤, 출발 전이나 정산 후 무료 직업 전환 */
 export function switchOpen(): { ok: boolean; dev: boolean; why: string } {
+  if (Flow.running) return { ok: false, dev: false, why: '정산 후 변경 가능' };
   if (G.save.tut < TUT.done) return { ok: false, dev: false, why: '튜토리얼을 마치면 열림' };
   return { ok: true, dev: false, why: '' };
 }
 
-/**
- * 직업 상태 (옛 캐릭터 › 직업 탭이 Codex 화면으로 바뀔 때까지): now = 지금 캐릭터 직업 · open = 그 직업 캐릭터가 있음 ·
- * locked = 그 직업 캐릭터가 없음 (상점에서 캐릭터 칸을 사서 만들기, 68). 직업 퀘스트는 없앰
- */
+/** 현재 캐릭터 레벨로 해금. 이전에 해금한 직업은 레벨과 관계없이 보존 */
 export function heroStatus(h: HeroKey): { state: 'now' | 'open' | 'quest' | 'locked'; dev: boolean; quest: number; need: number } {
-  const r = G.save.roster, info = { dev: false, quest: 0, need: 0 };
+  const info = { dev: false, quest: 0, need: 0 };
   if (h === G.save.hero) return { state: 'now', ...info };
-  return { state: r.chars.some(c => c.hero === h && c.id !== r.cur) ? 'open' : 'locked', ...info };
+  return { state: G.save.heroes[h]?.unlocked || G.save.player.level >= HEROES[h].unlock.lv ? 'open' : 'locked', ...info };
 }
 
-/** 그 직업 캐릭터 중 마지막으로 한 캐릭터로 바꾸기 (옛 직업 바꾸기 버튼, 68). 캐릭터가 없으면 false */
+/** v12: 같은 캐릭터에서 직업·스킬·착용 조합만 전환. 보상·성장·실물 장비는 공유 */
 export function switchHero(h: HeroKey, now = Date.now()): boolean {
-  if (h === G.save.hero || !switchOpen().ok) return false;
-  const r = G.save.roster;
-  const c = r.chars.filter(x => x.hero === h && x.id !== r.cur).sort((a, b) => b.at - a.at)[0];
-  return !!c && pickChar(c.id, now);
+  if (!HEROES[h] || h === G.save.hero || !switchOpen().ok || heroStatus(h).state !== 'open') return false;
+  const d = G.save, old = heroSaveOf(d, d.hero), next = heroSaveOf(d, h);
+  old.layout = d.settings.layout ? { ...d.settings.layout } : null;
+  old.tapKey = d.settings.tapKey;
+  old.unlocked = true;
+  old.loadout = Object.fromEntries(Object.entries(d.gear.equipped).filter(([, it]) => !!it).map(([slot, it]) => [slot, it!.id]));
+  if (next.loadout) {
+    const owned = new Map([...d.gear.bag, ...Object.values(d.gear.equipped).filter((it): it is GearItem => !!it)].map(it => [it.id, it]));
+    d.gear.equipped = {};
+    for (const { key } of SLOTS) {
+      const it = owned.get(next.loadout[key]!);
+      if (it?.slot === key) { d.gear.equipped[key] = it; owned.delete(it.id); }
+    }
+    d.gear.bag = [...owned.values()];
+  }
+  d.hero = h; next.unlocked = true;
+  d.settings.layout = next.layout ? { ...next.layout } : null;
+  d.settings.tapKey = next.tapKey;
+  const me = d.roster.chars.find(c => c.id === d.roster.cur);
+  if (me) { me.hero = h; me.at = now; }
+  commit();
+  return true;
 }

@@ -32,7 +32,7 @@ export interface HeroDef {
   tap: SkillKey[];
   passives: HeroPassive[];
   /**
-   * 해금 (25 5-4). v11부터 (68) 사제 말고는 상점에서 캐릭터 칸을 사서 만듦 (lv = 칸을 골드로 살 수 있는 레벨).
+   * v12 해금: 캐릭터 공통 레벨 달성. 직업 전환에는 캐릭터 칸이나 비용이 필요 없음.
    * quest = 예전 직업 퀘스트, 옛 저장 옮기기 (v6)에만 씀
    */
   unlock: { lv: number; how: string; quest?: HeroQuest };
@@ -66,7 +66,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
       { name: '뿌리 깊음', lv: 4, desc: '지속 힐이 2개 이상 걸린 대상에게 하는 직접 힐이 10% 늘어납니다.' },
       { name: '순환', lv: 10, desc: '새싹이 끝까지 다 차면 마나를 0.4% 돌려받습니다.' },
     ],
-    unlock: { lv: 10, how: '상점에서 캐릭터 칸을 사서 만들기', quest: { name: '숲의 부름', text: '드루이드로 녹슨 요새 보통 이상 클리어', need: 1, content: 'rustfort', minDiff: '보통' } },
+    unlock: { lv: 10, how: '캐릭터 Lv 10 달성', quest: { name: '숲의 부름', text: '드루이드로 녹슨 요새 보통 이상 클리어', need: 1, content: 'rustfort', minDiff: '보통' } },
   },
   paladin: {
     key: 'paladin', name: '성기사', line: '탱커 한 명을 끝까지 지키는 힐러입니다.', star: 2,
@@ -79,7 +79,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
       { name: '헌신', lv: 10, desc: '신성한 힘 3칸을 한 번에 쓰면 마나를 2% 회복합니다.' },
     ],
     // 25 원안은 「던전 2곳」. 지금 만든 던전이 녹슨 요새뿐이라 2번으로 (던전이 늘면 2곳으로 되돌림)
-    unlock: { lv: 10, how: '상점에서 캐릭터 칸을 사서 만들기', quest: { name: '첫 맹세', text: '성기사로 녹슨 요새 어려움 이상 클리어', need: 1, content: 'rustfort', minDiff: '어려움' } },
+    unlock: { lv: 20, how: '캐릭터 Lv 20 달성', quest: { name: '첫 맹세', text: '성기사로 녹슨 요새 어려움 이상 클리어', need: 1, content: 'rustfort', minDiff: '어려움' } },
   },
 };
 

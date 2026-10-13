@@ -3,7 +3,7 @@
  */
 import { ALL_DIFFS, contentOf, raidSize, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
-import { HEROES, type HeroKey } from '../data/heroes';
+import type { HeroKey } from '../data/heroes';
 import { clearMats, rollItem, type GearItem } from '../data/equipment';
 import type { ItemKey } from '../data/items';
 import type { PersName } from '../data/personalities';
@@ -22,6 +22,8 @@ import type { AffixKey } from '../data/affixes';
 
 /** 전투 화면이 끝날 때 넘겨주는 결과 (던전이면 구간 전체 합) */
 export interface BattleResult {
+  /** 출전 직업. 정산 시 화면에서 선택한 직업에 영향을 받지 않는다. 옛 결과는 저장 직업 사용 */
+  hero?: HeroKey;
   content: ContentKey;
   diff: DiffName;
   win: boolean;
@@ -113,21 +115,16 @@ export interface Settlement {
 const capB = (g: Grade): Grade => (g === 'S' || g === 'A' ? 'B' : g);
 
 /** 이긴 판을 지금 직업 기록에 더하고 (숙련도, 25 4-3), 직업 퀘스트 조건에 맞으면 한 칸 채움. 다 채우면 해금 */
-export function heroWin(save: SaveData, kind: string, content: string, diff: DiffName): Settlement['heroQuest'] {
+export function heroWin(save: SaveData, _kind: string, _content: string, _diff: DiffName, h: HeroKey = save.hero): Settlement['heroQuest'] {
   if (save.tut < TUT.done) return null;
-  const h = save.hero, hs = heroSaveOf(save, h), q = HEROES[h].unlock.quest;
-  hs.wins++;
-  if (!q || hs.unlocked || kind !== 'dungeon') return null;
-  if (q.content && q.content !== content) return null;
-  if (q.minDiff && ALL_DIFFS.indexOf(diff) < ALL_DIFFS.indexOf(q.minDiff)) return null;
-  hs.quest = Math.min(q.need, hs.quest + 1);
-  if (hs.quest >= q.need) hs.unlocked = true;
-  return { hero: h, n: hs.quest, need: q.need, unlocked: hs.unlocked };
+  heroSaveOf(save, h).wins++;
+  return null;
 }
 
 /** roster = 전투에 넘긴 편성 (길드원 경험치·인연 스카우트). 없으면 길드 정산 안 함 */
 export function settle(save: SaveData, r: BattleResult, rng: () => number, roster: RosterEntry[] = [], now = Date.now()): Settlement {
   const c = contentOf(r.content);
+  const hero = r.hero ?? save.hero;
   // 튜토리얼이 끝난 뒤부터 재화·임무 (자동 힐러로 구경한 판은 임무에 안 셈)
   const play = save.tut >= TUT.done;
   if (play) rollover(save, now, rng);
@@ -168,7 +165,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
       // 클리어마다 1개 (탐험 · 던전 · 레이드 모두, 2026-10-13 Lim 「클리어시 장비는 무조건 한개」. 예전 던전은 보스마다 1개).
       // 등급은 콘텐츠 · 난이도 표 (61 3장: 탐험 · 던전 쉬움 일반 ~ 악몽 영웅, 전설은 20인 악몽만). 주간 도전은 단계 표 (chalDropDiff: 1~9 보통 · 10~14 어려움 · 15~ 악몽).
       // 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장). 아이템 레벨 = 이 판 적 레벨 (2026-10-13)
-      items.push(rollItem(rng, r.chal ? chalDropDiff(r.chal) : r.diff, grade!, levelBefore, save.nextId++, { hero: save.hero, place: c.key, raid, bonus: !!pubBonus, lv: stage }));
+      items.push(rollItem(rng, r.chal ? chalDropDiff(r.chal) : r.diff, grade!, levelBefore, save.nextId++, { hero, classLoot: true, place: c.key, raid, bonus: !!pubBonus, lv: stage }));
       save.gear.bag.push(...items);
       newDex = noteDex(save, items);
       newSpecs = noteSpecs(save, items);
@@ -198,7 +195,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const crystal = first && play ? FIRST_CLEAR_CRYSTAL : 0;
   save.wallet.crystal += crystal;
 
-  const heroQuest = r.win ? heroWin(save, c.kind, c.key, r.diff) : null;
+  const heroQuest = r.win ? heroWin(save, c.kind, c.key, r.diff, hero) : null;
   const guild = FEATURES.guild && roster.length && save.tut >= TUT.done ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.name, party: r.party, roster }) : null;
 
   // 주간 도전: 제한시간 안에 깨면 기록·다음 단계 (실패해도 단계 유지)
@@ -207,7 +204,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
     const limit = r.limit ?? Infinity, inTime = r.win && !r.quit && r.time <= limit;
     const opened = inTime && r.chal >= save.chalOpen && r.chal < CHAL.max;
     if (inTime) {
-      if (r.chal > save.weekly.chalBest) save.weekly.chalHero = save.hero; // 월요일 상자를 받을 직업
+      if (r.chal > save.weekly.chalBest) save.weekly.chalHero = hero; // 월요일 상자의 전용 효과 직업
       save.weekly.chalBest = Math.max(save.weekly.chalBest, r.chal);
       save.chalOpen = Math.max(save.chalOpen, Math.min(CHAL.max, r.chal + 1));
     }

@@ -64,6 +64,16 @@ export function newSpecs(v: Record<string, number> | undefined): SpecRun | null 
 
 /** 켜진 값 (없으면 0) */
 export const sv = (f: Fight, k: string): number => (f.sp ? f.sp.v[k] ?? 0 : 0);
+/** 장비의 직업·대상 스킬을 모두 확인. 지속 치유도 under()의 스킬 문맥으로 적용 */
+export function skillSpec(f: Fight, key: SkillKey | null, kind: 'heal' | 'cost' | 'cooldown'): number {
+  if (!key || !f.sp) return 0;
+  let value = 0;
+  for (const [k, v] of Object.entries(f.sp.v)) {
+    const d = SPECS[k];
+    if (d?.hero === f.hero && d.skillMod?.key === key && d.skillMod.kind === kind) value += Math.min(d.cap ?? Infinity, v);
+  }
+  return value;
+}
 const on = (f: Fight, k: string): boolean => (f.sp!.until[k] ?? -1) > f.t;
 /** 특수능력 이름 (칸 위 금색 글자) */
 const nameOf = (k: string): string => SPECS[k]?.name ?? namedOf(k)?.name ?? k;
@@ -111,7 +121,7 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   const v = f.sp!.v, k = hc.key, sk = k ? SKILLS[k] : null;
   const tick = hc.tick, single = direct && !tick && isSingle(k), aoe = !!sk && sk.slot === 'aoe';
   const pct = u.hp / u.max;
-  let m = 0;
+  let m = skillSpec(f, k, 'heal');
   if (single) {
     m += v.warmTouch ?? 0;
     if (hc.same === true) m += v.regular ?? 0;
@@ -336,7 +346,7 @@ export const gcdNow = (f: Fight): number => f.R.gcd / (1 + hasteOf(f));
 export function costSpec(f: Fight, key: SkillKey, u?: Unit): number {
   const v = f.sp!.v, sk = SKILLS[key];
   if (f.sp!.lilyFree && isSingle(key)) return 0;
-  let cut = 0;
+  let cut = skillSpec(f, key, 'cost');
   if (baseCast(f, key) === 0 && !sk.channel && sk.slot !== 'raid') cut += v.pouch ?? 0;
   if (u && u.hp > u.max * 0.8 && HEAL_SLOT.has(sk.slot)) cut += v.thrifty ?? 0;
   if (f.t < 15) cut += v.firstCup ?? 0;
@@ -366,6 +376,7 @@ export function castCut(f: Fight, key: SkillKey): number {
 /** 재사용 대기 (쓸 때 거는 값) */
 export function cdSpec(f: Fight, key: SkillKey, cd: number): number {
   const v = f.sp!.v, slot = SKILLS[key].slot;
+  cd *= 1 - skillSpec(f, key, 'cooldown');
   if (slot === 'raid') cd *= 1 - (v.hurryStar ?? 0);
   if (slot === 'ext') cd *= 1 - (v.survivalDrill ?? 0);
   if (slot === 'dispel') cd -= v.cleanHands ?? 0;

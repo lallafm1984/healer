@@ -6,6 +6,8 @@ import type { CoachKey } from './tutorial';
 import type { BattleResult, Settlement } from './settle';
 
 export const Flow: {
+  /** 출발부터 정산까지 유지 (구간 사이 휴식 포함). 직업·캐릭터 전환 금지 */
+  running?: boolean;
   content: ContentKey;
   diff: DiffName;
   /** 편성 화면에서 뽑은 공개모집 파티 (입장할 때마다 새로) */

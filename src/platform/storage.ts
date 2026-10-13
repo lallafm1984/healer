@@ -17,13 +17,15 @@ import type { ItemKey } from '../data/items';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
 
-/** 직업마다 따로 두는 것 (25 4-1, 34 3-1): 휠 배치·칸 탭, 레벨·경험치, 퀘스트, 클리어 수 */
+/** 직업마다 따로 두는 것 (25 4-1, 34 3-1): 휠 배치·칸 탭·특성·착용 조합·클리어 수. 성장·인벤토리는 캐릭터 공통 (v12) */
 export interface HeroSave {
+  /** v12: 공용 인벤토리의 실제 아이템 ID만 기억. 최초 전환은 현재 장비를 그대로 사용 */
+  loadout?: Partial<Record<keyof Equipped, number>>;
   layout: Record<string, string | null> | null;
   tapKey: TapKey;
   /** 직업 퀘스트를 끝냄 (사제는 처음부터) */
@@ -32,10 +34,7 @@ export interface HeroSave {
   quest: number;
   /** 이 직업으로 이긴 판 수 */
   wins: number;
-  /**
-   * 직업 레벨·경험치 (34 3장). 지금 직업 것은 player.level·xp에 있고, 바꿀 때 여기에 넣고 꺼냄.
-   * 없으면 아직 이 직업으로 안 해 봄 = Lv 1
-   */
+  /** v6~v10 저장 이전 전용. v12 런타임 성장에는 사용하지 않음 */
   level?: number;
   xp?: number;
   /** 특성 (06 6장): 단마다 고른 칸 번호 (0~2, 안 고름 = null). 직업마다 따로 (25 4-1). 지금 프리셋의 고름 */
@@ -47,13 +46,9 @@ export interface HeroSave {
   presets?: (number | null)[][];
   /** 지금 프리셋 (0~2, 없으면 0) */
   preset?: number;
-  /**
-   * 직업마다 장비 (v10, 2026-10-12 Lim 「한 직업을 다 키우면 새로운 느낌으로 다시」): 착용 · 가방 · 새것 점 기준.
-   * 지금 직업 것은 save.gear에 있고, 바꿀 때 여기에 넣고 꺼냄 (레벨과 같은 방식). 없으면 아직 장비 없음 = 맨몸으로 시작.
-   * 도감 · 골드 · 강화석 같은 재료는 계정 (save.gear.codex · dex, mats)
-   */
+  /** v10 저장 이전 전용. v12 인벤토리는 save.gear 하나이며 loadout은 ID만 보관 */
   gear?: HeroGear;
-  /** 직업마다 공훈 (v10): 레이드에서 번 공훈 n · 그 주 week에 받은 양 got (주 상한). 지금 직업 것은 wallet.merit · weekly.merit */
+  /** v10 공훈 이전 전용. v12는 캐릭터 공통 wallet.merit · weekly.merit */
   merit?: HeroMerit;
 }
 
@@ -145,13 +140,13 @@ export interface WeeklySave {
   missions: MissionSave[];
   /** 악몽 열쇠 제작 횟수 (주 5회) */
   craft: number;
-  /** 레이드마다 이번 주 받은 공훈 (상한 150). v10부터 지금 직업 것 (공훈이 직업마다) */
+  /** 레이드마다 이번 주 받은 공훈 (상한 150). 같은 캐릭터의 모든 직업이 공유 */
   merit: { 10: number; 20: number };
-  /** 이번 주 장비를 받은 레이드 보스·난이도 (13 3-4: 보스마다 난이도별 주 1회). v10부터 직업마다 (「직업|장소|난이도」, 장비가 직업마다라서) */
+  /** 이번 주 장비를 받은 레이드 보스·난이도 (13 3-4: 보스마다 난이도별 주 1회). v12는 캐릭터 공통 「장소|난이도」, 옛 직업 접두사는 migrate에서 제거 */
   loot: string[];
   /** 주간 도전: 이번 주 제한시간 안에 깬 최고 단계 */
   chalBest: number;
-  /** chalBest를 세운 직업 (v10): 월요일 상자는 그 직업이 받음 (장비가 직업마다라서) */
+  /** chalBest를 세운 직업: 월요일 상자 장비의 전용 효과 기준. 현재 직업과 무관하게 수령 가능 */
   chalHero?: HeroKey;
   /** 길드 주간 목표 진행 · 받음 */
   guild: { n: number; got: boolean };
@@ -184,10 +179,10 @@ export interface SaveData {
   /** 처음 만든 시각 (ms) */
   createdAt: number;
   settings: Settings;
-  /** level·xp = 지금 직업 레벨 (34 3장, 다른 직업 것은 heroes에). gold는 계정 */
+  /** v12: 현재 캐릭터의 공통 레벨·경험치·골드. 직업 전환으로 변경하지 않음 */
   player: { level: number; xp: number; gold: number };
   /**
-   * equipped · bag · seen = 지금 직업의 장비 (v10부터 직업마다, 다른 직업 것은 heroes[h].gear).
+   * v12: equipped · bag · seen = 현재 캐릭터 공용 장비. 직업별 loadout은 이 실물의 ID를 참조.
    * seen = 캐릭터 › 장비에서 마지막으로 본 장비 id (이보다 큰 id = 새것 점, 27 4-2). 옛 저장엔 없어서 migrate가 채움.
    * codex = 얻은 적 있는 특수능력 · 이름 있는 장신구 키 (도감, 42 1-6). v8부터, 옛 저장은 가진 장비로 채움. 도감 · 장비 도감은 계정
    */
@@ -240,16 +235,12 @@ export function heroSaveOf(d: SaveData, h: HeroKey): HeroSave {
   return (d.heroes[h] ||= { layout: null, tapKey: 'heal', unlocked: h === 'priest', quest: 0, wins: 0 });
 }
 
-/** 그 직업 레벨 (지금 캐릭터 직업은 player, 다른 직업은 그 직업 캐릭터 중 가장 높은 레벨 (v11), 없으면 1) */
-export function heroLevelOf(d: SaveData, h: HeroKey): number {
-  if (h === d.hero) return d.player.level;
-  const cs = d.roster?.chars.filter(c => c.hero === h && c.id !== d.roster.cur) ?? [];
-  return cs.length ? Math.max(...cs.map(c => c.level)) : d.heroes[h]?.level ?? 1;
-}
+/** v12: 현재 캐릭터의 공통 레벨. 다른 캐릭터의 레벨은 참조하지 않는다. */
+export function heroLevelOf(d: SaveData, _h: HeroKey): number { return d.player.level; }
 
 /** 기준 레벨 (34 3-1): 길드 · 상점 물약 · 임무 보상 같은 것의 기준. v11부터 캐릭터마다 따로라 지금 캐릭터 레벨 (다른 직업 레벨이 저장에 안 남음) */
 export function topLevel(d: SaveData): number {
-  return Math.max(d.player.level, ...HERO_KEYS.map(h => d.heroes[h]?.level ?? 1));
+  return d.player.level;
 }
 
 export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'right', tapKey: 'heal', zoom: true, compactSkills: false, reducedEffects: false, auto: false, devUnlock: true, allSkills: false, layout: null };
@@ -307,6 +298,8 @@ export function migrate(raw: unknown): SaveData {
   };
   if ((o.v ?? 0) < 10) gearByHero(out);
   if ((o.v ?? 0) < 11) splitChars(out, out.createdAt);
+  // 이전 캐릭터들은 그대로 보존. 같은 캐릭터 안의 직업 전환으로 주간 보상을 다시 받지 못한다.
+  out.weekly.loot = [...new Set((Array.isArray(out.weekly.loot) ? out.weekly.loot : []).filter((k): k is string => typeof k === 'string').map(k => k.split('|').slice(-2).join('|')))];
   return out;
 }
 
@@ -342,7 +335,7 @@ export function shareAccount(from: SaveData, to: SaveData): void {
 export function loadChar(d: SaveData, id: number, kv: KV | null = store()): SaveData | null {
   const c = d.roster.chars.find(x => x.id === id);
   if (!c || id === d.roster.cur) return null;
-  if (c.park) return c.park;
+  if (c.park) return c.park.v < SAVE_VERSION ? migrate(c.park) : c.park;
   try {
     const s = kv?.getItem(charKey(id));
     return s ? migrate(JSON.parse(s)) : null;
@@ -432,7 +425,8 @@ const heroOfItem = (it: GearItem): HeroKey | undefined => (it.specs ?? []).map(l
  * 공훈 (장비로 바꾸는 레이드 재화)도 가장 높은 직업에게. 레이드 주 1회 장비 기록은 지금 직업 것으로
  */
 function gearByHero(d: SaveData): void {
-  const lvOf = (h: HeroKey) => heroLevelOf(d, h);
+  // v9 이전 저장만의 직업별 레벨. v12 공통 레벨 조회를 사용하면 기존 자산의 주인이 바뀐다.
+  const lvOf = (h: HeroKey) => h === d.hero ? d.player.level : d.heroes[h]?.level ?? 1;
   const owner = HERO_KEYS.reduce<HeroKey>((b, h) => (lvOf(h) > lvOf(b) ? h : b), d.hero);
   const g = d.gear, bags: Partial<Record<HeroKey, GearItem[]>> = {};
   const keep: GearItem[] = [];

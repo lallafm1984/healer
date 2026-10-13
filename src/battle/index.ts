@@ -675,6 +675,7 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
   ];
   const left = win ? undefined : { pct: Math.ceil((f.bossHp / f.bossMax) * 100), mobs: f.bodyHp };
   const result = {
+    hero: f.hero,
     content: R.content, diff: S.diff, win, quit: quitted, reason: quitted ? '포기함' : how === 'giveUp' ? '탱커 전멸 뒤 포기' : f.reason,
     segIdx: R.idx, segN: R.segs.length, time: R.time, restSec: R.restSec, deaths: R.deaths,
     healed: R.healed, overheal: R.overheal, dispels: R.dispels, dispellable: R.dispellable,

@@ -8,7 +8,7 @@ import { makeItem } from '../src/data/equipment';
 import { buySlot, grantSlot, rollover, slotOffer } from '../src/game/economy';
 import { charList, G, makeChar, pickChar, resetSave } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
-import { charKey, load, loadChar, migrate, newSave, save, type KV, type SaveData } from '../src/platform/storage';
+import { charKey, load, loadChar, migrate, newSave, save, SAVE_VERSION, type KV, type SaveData } from '../src/platform/storage';
 
 let seed = 3;
 const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -227,7 +227,7 @@ describe('옛 저장 나누기 v10 → v11 (68 4장)', () => {
       heroes: { druid: hs(50, { tapKey: 'flash', merit: { n: 120, week: 'w', got: { 10: 100, 20: 0 } } }) },
     });
     const d = s.roster.chars[1].park!;
-    expect([s.wallet.merit, s.weekly.merit[10], s.weekly.loot, s.weekly.chalBest]).toEqual([30, 30, ['priest|abyss1|보통'], 0]);
+    expect([s.wallet.merit, s.weekly.merit[10], s.weekly.loot, s.weekly.chalBest]).toEqual([30, 30, ['abyss1|보통'], 0]);
     expect([d.wallet.merit, d.weekly.merit[10], d.weekly.loot, d.weekly.chalBest, d.settings.tapKey]).toEqual([120, 100, ['druid|abyss1|보통'], 8, 'flash']);
     expect([d.wallet.crystal, d.settings.sound, s.wallet.crystal]).toEqual([70, false, 70]);
     // 가장 높은 캐릭터 (드루이드 Lv 50)가 열쇠 · 칭호 같은 계정 것을 받음
@@ -239,6 +239,6 @@ describe('옛 저장 나누기 v10 → v11 (68 4장)', () => {
     const s = load(kv);
     expect(s.roster.chars.every(c => !c.park)).toBe(true);
     expect(JSON.parse(m.get(charKey(2))!).hero).toBe('druid');
-    expect(JSON.parse(m.get('healer.save')!).v).toBe(11);
+    expect(JSON.parse(m.get('healer.save')!).v).toBe(SAVE_VERSION);
   });
 });

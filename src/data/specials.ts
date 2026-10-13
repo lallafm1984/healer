@@ -6,6 +6,7 @@
  */
 import { GRADE_MULT, type ItemGrade, type SlotKey } from './equipment';
 import type { HeroKey } from './heroes';
+import type { SkillKey } from './skills';
 
 export type SpecGroup = 'heal' | 'proc' | 'guard' | 'mana' | 'dispel' | 'cd' | 'ally' | 'gimmick' | 'hero';
 /** 묶음 (42 2장) · 묶음 표식 그림 키 (36 I spec-*) */
@@ -27,6 +28,8 @@ export const SPEC_GROUPS: Record<SpecGroup, { name: string; icon: string }> = {
 export type SpecUnit = 'pct' | 'pp' | 'sec' | 'mana' | 'n';
 
 export interface SpecDef {
+  /** 직업 스킬에만 적용하는 데이터 기반 효과. val은 치유 증가 / 마나·재사용 감소 비율 */
+  skillMod?: { key: SkillKey; kind: 'heal' | 'cost' | 'cooldown' };
   key: string;
   /** 문서 번호 (42 2장 「치유 01」) */
   no: string;
@@ -187,7 +190,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
   ],
   // 2-9 직업 전용 (영웅 이상, 그 직업일 때만)
   hero: [
-    ['deepWord', '사제 01', '깊은 성언', W_ACC, '영웅', 0.12, 'pct', '성언 게이지 충전 +{v}', { hero: 'priest' }],
+    ['deepWord', '사제 01', '깊은 성언', ALL, '희귀', 0.12, 'pct', '성언 게이지 충전 +{v}', { cap: 0.6, hero: 'priest' }],
     ['serenityEcho', '사제 02', '평온의 여운', W, '전설', 0.2, 'pct', '성언: 평온 회복량 +{v}, 넘친 양은 4초 지속 힐로', { hero: 'priest' }],
     ['wideSanctify', '사제 03', '넓은 신성화', W, '전설', 1, 'n', '성언: 신성화 범위 +{v}칸', { hero: 'priest', fixed: true }],
     ['quickRenew', '사제 04', '짙은 소생', AR, '영웅', 0.25, 'pct', '소생 회복량 +{v}', { hero: 'priest' }],
@@ -195,7 +198,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['wakeGuard', '사제 06', '깨어 있는 수호', NECK, '영웅', 1, 'pct', '수호 영혼이 발동하면 대상이 지능 {v} 회복', { hero: 'priest' }],
     ['hymnBreath', '사제 07', '찬가의 숨결', ACC, '전설', 3, 'mana', '천상의 찬가 마나 소모 −50%, 끊기지 않고 끝나면 마나 {v} 회복', { hero: 'priest' }],
     ['flashLight', '사제 08', '순간의 빛', HANDS, '영웅', 0.3, 'sec', '순간 치유 시전 −{v}', { hero: 'priest' }],
-    ['wideGrove', '드루 01', '넓은 군락', W_ACC, '영웅', 0.05, 'pp', '군락 보너스 칸마다 +{v}', { hero: 'druid' }],
+    ['wideGrove', '드루 01', '넓은 군락', ALL, '희귀', 0.05, 'pp', '군락 보너스 칸마다 +{v}', { cap: 0.15, hero: 'druid' }],
     ['sproutHop', '드루 02', '옮겨 가는 새싹', W, '전설', 1, 'n', '새싹이 끝까지 가면 옆 칸 1명에게 절반 시간 새싹', { hero: 'druid', fixed: true }],
     ['hastyBloom', '드루 03', '서두른 꽃', HANDS, '영웅', 3, 'sec', '피워 내기 재사용 −{v}', { hero: 'druid' }],
     ['flowerSea', '드루 04', '들꽃 바다', W, '전설', 1, 'n', '들꽃 군락 범위 +{v}칸', { hero: 'druid', fixed: true }],
@@ -203,7 +206,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['dawnDew', '드루 06', '새벽 이슬', HANDS, '영웅', 0.3, 'sec', '생장 시전 −{v}', { hero: 'druid' }],
     ['forestBreath', '드루 07', '숲의 숨결', ACC, '영웅', 1, 'sec', '고요한 숲 효과 시간 +{v}', { hero: 'druid', fixed: true }],
     ['quickRebirth', '드루 08', '빠른 환생', NECK, '영웅', 0.2, 'pp', '환생 시전 −1초, 부활 체력 +{v}', { hero: 'druid' }],
-    ['bigBeacon', '성기 01', '큰 봉화', W_ACC, '영웅', 0.1, 'pp', '봉화로 함께 들어가는 몫 +{v}', { hero: 'paladin' }],
+    ['bigBeacon', '성기 01', '큰 봉화', ALL, '희귀', 0.1, 'pp', '봉화로 함께 들어가는 몫 +{v}', { cap: 0.3, hero: 'paladin' }],
     ['secondBeacon', '성기 02', '두 번째 봉화', W, '전설', 1, 'n', '봉화를 2명에게 (두 번째는 절반)', { hero: 'paladin', fixed: true }],
     ['combo', '성기 03', '연타', HANDS, '영웅', 1.5, 'sec', '빛 일격 재사용 −{v}', { hero: 'paladin' }],
     ['firmOath', '성기 04', '단단한 서약', AR, '영웅', 0.15, 'pct', '빛의 서약 회복량 +{v}', { hero: 'paladin' }],
@@ -211,6 +214,31 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['wideWave', '성기 06', '퍼지는 파도', ACC, '영웅', 1, 'n', '빛의 파도 범위 +{v}칸', { hero: 'paladin', fixed: true }],
     ['longSanctuary', '성기 07', '긴 성역', HEAD, '영웅', 2, 'sec', '빛의 성역 효과 시간 +{v}', { hero: 'paladin' }],
     ['prayingSacrifice', '성기 08', '기도하는 희생', CHEST, '영웅', 0.1, 'pp', '희생으로 나눠 받는 비율 +{v}, 내가 받는 피해 −20%', { hero: 'paladin' }],
+    // v12: 직업별 성장 장비 24종. 공통 스킬 훅으로 치유·자원·쿨기 빌드 지원
+    ['steadyPrayer', '사제 09', '꾸준한 기도', ALL, '고급', 0.12, 'pct', '치유 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'heal', kind: 'heal' } }],
+    ['urgentPrayer', '사제 10', '간절한 기도', HANDS, '희귀', 0.16, 'pct', '순간 치유 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'flash', kind: 'heal' } }],
+    ['gatheredPrayer', '사제 11', '모인 기도', W_ACC, '희귀', 0.16, 'pct', '치유의 기원 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'poh', kind: 'heal' } }],
+    ['sereneLight', '사제 12', '평온한 빛', AR_ACC, '희귀', 0.18, 'pct', '성언: 평온 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'serenity', kind: 'heal' } }],
+    ['consecratedLight', '사제 13', '축성의 빛', W_ACC, '영웅', 0.18, 'pct', '성언: 신성화 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'sanctify', kind: 'heal' } }],
+    ['renewalVow', '사제 14', '소생의 서약', AR_ACC, '고급', 0.15, 'pct', '소생 마나 소모 −{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'renew', kind: 'cost' } }],
+    ['guardianPromise', '사제 15', '수호의 약속', AR, '희귀', 0.12, 'pct', '수호 영혼 재사용 대기 −{v}', { hero: 'priest', cap: 0.3, skillMod: { key: 'guardian', kind: 'cooldown' } }],
+    ['returningHymn', '사제 16', '돌아오는 찬가', NECK, '영웅', 0.1, 'pct', '천상의 찬가 재사용 대기 −{v}', { hero: 'priest', cap: 0.3, skillMod: { key: 'hymn', kind: 'cooldown' } }],
+    ['tenderSprout', '드루 09', '푸른 새싹', ALL, '고급', 0.12, 'pct', '새싹 회복량 +{v}', { hero: 'druid', cap: 0.4, skillMod: { key: 'sprout', kind: 'heal' } }],
+    ['lushGrowth', '드루 10', '무성한 생장', HANDS, '희귀', 0.16, 'pct', '생장 회복량 +{v}', { hero: 'druid', cap: 0.4, skillMod: { key: 'growth', kind: 'heal' } }],
+    ['fullBloom', '드루 11', '만개의 순간', W_ACC, '희귀', 0.16, 'pct', '피워 내기 회복량 +{v}', { hero: 'druid', cap: 0.4, skillMod: { key: 'bloom', kind: 'heal' } }],
+    ['vividFlowers', '드루 12', '짙은 들꽃', AR_ACC, '희귀', 0.16, 'pct', '들꽃 군락 회복량 +{v}', { hero: 'druid', cap: 0.4, skillMod: { key: 'wildflower', kind: 'heal' } }],
+    ['deepForest', '드루 13', '깊은 숲', W_ACC, '영웅', 0.18, 'pct', '고요한 숲 회복량 +{v}', { hero: 'druid', cap: 0.4, skillMod: { key: 'quietwood', kind: 'heal' } }],
+    ['gentleRain', '드루 14', '부드러운 비', AR_ACC, '고급', 0.15, 'pct', '새싹 마나 소모 −{v}', { hero: 'druid', cap: 0.4, skillMod: { key: 'sprout', kind: 'cost' } }],
+    ['barkCycle', '드루 15', '껍질의 순환', AR, '희귀', 0.12, 'pct', '나무껍질 재사용 대기 −{v}', { hero: 'druid', cap: 0.3, skillMod: { key: 'bark', kind: 'cooldown' } }],
+    ['forestReturn', '드루 16', '숲의 귀환', NECK, '영웅', 0.1, 'pct', '고요한 숲 재사용 대기 −{v}', { hero: 'druid', cap: 0.3, skillMod: { key: 'quietwood', kind: 'cooldown' } }],
+    ['faithfulLight', '성기 09', '신실한 빛', ALL, '고급', 0.12, 'pct', '성스러운 빛 회복량 +{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'holyLight', kind: 'heal' } }],
+    ['radiantStrike', '성기 10', '빛나는 일격', HANDS, '희귀', 0.16, 'pct', '빛 일격 회복량 +{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'holyStrike', kind: 'heal' } }],
+    ['risingWave', '성기 11', '찬란한 파도', W_ACC, '희귀', 0.16, 'pct', '빛의 파도 회복량 +{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'lightWave', kind: 'heal' } }],
+    ['blessedSanctuary', '성기 12', '축복받은 성역', CHEST, '영웅', 0.18, 'pct', '빛의 성역 회복량 +{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'sanctuary', kind: 'heal' } }],
+    ['frugalLight', '성기 13', '절제의 빛', AR_ACC, '고급', 0.15, 'pct', '성스러운 빛 마나 소모 −{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'holyLight', kind: 'cost' } }],
+    ['measuredStrike', '성기 14', '절제의 일격', H_ACC, '희귀', 0.15, 'pct', '빛 일격 마나 소모 −{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'holyStrike', kind: 'cost' } }],
+    ['sacredResolve', '성기 15', '희생의 결의', AR, '희귀', 0.12, 'pct', '희생 재사용 대기 −{v}', { hero: 'paladin', cap: 0.3, skillMod: { key: 'sacrifice', kind: 'cooldown' } }],
+    ['returningGuard', '성기 16', '돌아오는 가호', NECK, '영웅', 0.1, 'pct', '보호의 손 재사용 대기 −{v}', { hero: 'paladin', cap: 0.3, skillMod: { key: 'handGuard', kind: 'cooldown' } }],
   ],
 };
 

@@ -7,8 +7,8 @@
  * 특성: 요약 · 프리셋 1·2·3 · 나무판에 단마다 메달 3개 + 고른 길(금빛 선) · 고르기 시트 / 직업: 천 깃발 · 곧 열림 · 양피지 상세 · 바꾸기
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
  */
-import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
-import { DEB_COLOR, HERO_KEYS, HERO_SWITCH_LV, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
+import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemSpecs, itemScore, itemStats, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
+import { DEB_COLOR, HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { TALENTS, type TalentKey } from '../data/talents';
@@ -25,7 +25,7 @@ import { Flow } from '../game/flow';
 import type { Settlement } from '../game/settle';
 import { art } from '../art';
 import { classEmblem, currencyAmount, currencyIcon, CURRENCY_NAMES, fxArt, gameIcon, gearIcon, LOCK, trinketArt, uiIcon } from './art';
-import { battle, esc, fmt, josa, screen, topBar } from './kit';
+import { battle, go, esc, fmt, josa, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 import { sheetDialog } from './dialog';
 
@@ -438,7 +438,7 @@ function itemSheet(id: number): string {
   const cmpCap = worn ? '' : cur ? '착용 장비 대비' : '빈 장비칸 대비';
   // 특수능력 (42 1-3 · 1-5): 묶음 표식 · 이름 · 효과 · 굴림 막대, 꺼진 줄은 회색 + 이유. 전설은 「고유 능력」 (Lim 2026-10-11 「전설에만 고유 능력」)
   const sp = specRows(it), legend = it.grade === LEGEND;
-  const spec = sp.length ? `<div class="c7-cmpw${legend ? ' c7-legend' : ''}"><h3 class="h-rule c7-h3">${legend ? '고유 능력' : '특수능력'}<span class="rule"></span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${specBadge(s.group, s.badge)}</span><span class="c7-spt"><b>${esc(s.name)}</b><span class="cap">${esc(s.text.replace(/^내가 거는 보호막 /, '보호막 '))}</span></span>${s.off ? `<span class="cap c7-spoff">${s.off}</span>` : rrOn && s.roll != null ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(s.roll * 100)}%"><i style="width:${Math.round(rollFill(s.roll) * 100)}%"></i></span>` : ''}${s.i != null ? rrBtn('spec', s.i, s.name) : ''}</div>`).join('')}${rrAltHtml(it, 'spec')}</div>` : '';
+  const spec = sp.length ? `<div class="c7-cmpw${legend ? ' c7-legend' : ''}"><h3 class="h-rule c7-h3">${legend ? '고유 능력' : '특수능력'}<span class="rule"></span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${specBadge(s.group, s.badge)}</span><span class="c7-spt"><b>${esc(s.name)}${SPECS[s.key]?.hero ? ` <small>${HEROES[SPECS[s.key].hero!].name} 전용</small>` : ''}</b><span class="cap">${esc(s.text.replace(/^내가 거는 보호막 /, '보호막 '))}</span></span>${s.off ? `<span class="cap c7-spoff">${/전용$/.test(s.off) ? '비활성' : s.off}</span>` : rrOn && s.roll != null ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(s.roll * 100)}%"><i style="width:${Math.round(rollFill(s.roll) * 100)}%"></i></span>` : ''}${s.i != null ? rrBtn('spec', s.i, s.name) : ''}</div>`).join('')}${rrAltHtml(it, 'spec')}</div>` : '';
   const c = enhanceCost(it), m = G.save.mats, gold = G.save.player.gold;
   const can = !!c && gold >= c.gold && m.stone >= c.stone && m.refined >= c.refined;
   const lack = c && !can ? (gold < c.gold ? '골드 부족' : m.stone < c.stone ? '강화석 부족' : '정제 강화석 부족') : '';
@@ -855,27 +855,27 @@ function heroBanner(k: HeroKey, pick: HeroKey): string {
 
 /** 고른 직업 상세 = 양피지 (이름 · 별 · 한 줄 설명 · 해제 · 고유 · 스킬/패시브 · 직업 퀘스트) + 아래 진홍 버튼 */
 function heroDetail(k: HeroKey): string {
-  const h = HEROES[k], st = heroStatus(k), open = switchOpen(), q = h.unlock.quest, hs = heroSave(k);
+  const h = HEROES[k], st = heroStatus(k), open = switchOpen(), hs = heroSave(k);
   const chips = h.dispel.map(t => `<span class="dsp" style="--c:${DEB_COLOR[t]}">${t}</span>`).join('');
   // 스킬 = 휠 스킬 수 (사제 성언 둘은 휠 조각이 바뀌는 것이라 빼고 셈), 패시브 = 고유 시스템 포함 (스킬 탭 「패시브 N」과 같은 수)
   const pas = passivesOf(k), nSk = heroSkills(k).filter(x => x !== 'serenity' && x !== 'sanctify').length;
   const ex = hskOpen === k;
   const list = ex ? `<ul class="c7-pas">${heroSkills(k).map(sk => `<li><b>${SKILLS[sk].name}</b><span class="cap">${SKILL_INFO[sk].kind} · Lv ${SKILL_LEVEL[sk]}</span><p>${esc(healText(SKILL_INFO[sk].desc))}</p></li>`).join('')}${pas.map(p => `<li><b>${p.name}</b><span class="cap">${p.kind} · Lv ${p.lv}</span><p>${esc(p.desc)}</p></li>`).join('')}</ul>` : '';
-  const quest = q && st.need && st.state !== 'open' && !hs.unlocked ? `<div class="c7-hq hq"><p><b>직업 퀘스트 「${q.name}」</b><br>${esc(q.text)}</p><strong>${st.quest} / ${st.need}</strong></div>` : '';
-  const notes = [
-    st.state === 'now' ? `직업 레벨 Lv ${heroLevelOf(G.save, k)} · 이 직업으로 이긴 판 ${fmt(hs.wins)}` : '',
-    st.state === 'locked' ? `${LOCK}${esc(h.unlock.how)}` : '',
-    st.dev ? `Lv ${h.unlock.lv} 해금, 개발 빌드라 열림` : '',
-  ].filter(Boolean).map(t => `<p class="m">${t}</p>`).join('');
-  const intro = open.ok ? '' : `<p class="m c7-intro">직업 바꾸기 ${LOCK}${esc(open.why)} (Lv ${HERO_SWITCH_LV})</p>`;
+  const defs = SPEC_KEYS.map(key => SPECS[key]).filter(d => d.hero === k);
+  const collected = defs.filter(d => G.save.gear.codex.includes(d.key)).length;
+  const preview = hs.loadout && k !== hero() ? Object.values(hs.loadout).map(id => findItem(id)) : Object.values(G.save.gear.equipped);
+  const inactive = preview.flatMap(it => itemSpecs(it)).filter(o => SPECS[o.key]?.hero && SPECS[o.key].hero !== k);
+  const gear = `<details class="c7-job-gear"><summary>전용 효과 ${defs.length}종 <span>수집 ${collected}/${defs.length}</span></summary><p class="m">클리어 장비 효과: 전용 70% · 공용 30%<br>일반은 효과 없음 · 고급은 20% 확률 · 고유 전설 제외</p><ul class="c7-pas">${defs.map(d => `<li><b>${esc(d.name)}</b><span class="cap">${d.min} 이상${G.save.gear.codex.includes(d.key) ? ' · 수집' : ''}</span><p>${esc(specText(d, d.val))}</p></li>`).join('')}</ul><p class="cap">표시 수치는 영웅 최대값 · 실제 수치는 등급과 굴림에 따라 결정</p></details>`;
+  const notes = `<p class="m">공통 레벨 Lv ${heroLevelOf(G.save, k)} · ${h.name} 클리어 ${fmt(hs.wins)}회</p>${inactive.length ? `<p class="m">${h.name}에서 비활성: ${inactive.map(o => esc(SPECS[o.key].name)).join(' · ')}</p>` : ''}`;
+  const intro = open.ok ? '' : `<p class="m c7-intro">${LOCK}${esc(open.why)}</p>`;
   let cta = '';
-  if (st.state === 'quest' || st.state === 'open') cta = `<button type="button" class="c7-hcta" data-hero="${k}"${open.ok ? '' : ' disabled'}>${h.name}${josa(h.name, '으로', '로')} ${st.state === 'quest' ? '바꾸고 퀘스트' : '바꾸기'}</button>`;
+  if (st.state === 'quest' || st.state === 'open') cta = `<button type="button" class="c7-hcta" data-hero="${k}"${open.ok ? '' : ' disabled'}>${h.name}${josa(h.name, '으로', '로')} 바꾸기 · 무료</button>`;
   else if (st.state === 'locked') cta = `<button type="button" class="c7-hcta" disabled>${LOCK}${esc(h.unlock.how)}</button>`;
   return `<section class="c7-hdet c7-parch" data-hdet="${k}"><h3>${h.name}<span class="c7-hst" aria-label="난이도 ${h.star}">${stars(h.star)}</span></h3>
       <p>${esc(h.line)}</p>
       <div class="c7-hchips"><span>해제</span>${chips}<span class="c7-sys">고유 「${h.system.name}」 Lv ${h.system.lv}</span></div>
-      <p class="m c7-hm"><button type="button" class="c7-hsk" data-hsk="${k}" aria-expanded="${ex}">스킬 ${nSk} · 패시브 ${pas.length} ${ex ? '▴' : '▾'}</button><span>장비·골드는 같이 씀, 레벨은 직업마다</span></p>
-      ${list}${quest}${notes}${intro}</section>${cta}`;
+      <p class="m c7-hm"><button type="button" class="c7-hsk" data-hsk="${k}" aria-expanded="${ex}">스킬 ${nSk} · 패시브 ${pas.length} ${ex ? '▴' : '▾'}</button><span>레벨·재화·장비 유지 · 직업별 세팅 저장</span></p>
+      ${list}${notes}${gear}${intro}</section>${cta}`;
 }
 
 function heroListHtml(): string {
@@ -1010,7 +1010,7 @@ function onClick(t: HTMLElement): boolean {
     if (hb.disabled) return true;
     const k = hb.dataset.hero as HeroKey;
     msg = switchHero(k) ? '' : '바꿀 수 없음';
-    if (!msg) { pushSettings(); sel = null; swapping = false; hskOpen = null; hsel = k; }
+    if (!msg) { pushSettings(); go('s-char', 'hero'); return true; }
     render(); return true;
   }
   const hc = t.closest<HTMLElement>('[data-hcard]');

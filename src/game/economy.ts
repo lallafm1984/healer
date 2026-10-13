@@ -3,7 +3,7 @@
  */
 import { RAID10_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
-import { HEROES, type HeroKey } from '../data/heroes';
+import type { HeroKey } from '../data/heroes';
 import {
   BAG_MAX, CHAR_SLOT, itemPrice, MEMBER, MERIT, MERIT_GEAR_COST, MERIT_WEEK_CAP, PASS_GAIN, PASS_LEVELS, PASS_PREMIUM_CRYSTAL, PASS_XP, passFree, passPremium,
   SHARD_CRAFT, SHARD_MAX, slotGold, type PassReward,
@@ -198,14 +198,13 @@ export function chalChestOf(stage: number): { grades: ItemGrade[]; goldRuns: num
 export function claimChalChest(save: SaveData, r: () => number, now: number): Gain | string {
   const stage = save.chalChest;
   if (!stage) return '받을 상자 없음';
-  // 장비가 직업마다라 (2026-10-12) 기록을 세운 직업으로 받음 (높은 직업 기록으로 새 직업에게 영웅 장비를 몰아주지 못하게)
-  const h = save.chalChestHero;
-  if (h && h !== save.hero) return `${HEROES[h].name}로 바꿔서 받기 (그 직업이 세운 기록)`;
+  // v12: 어느 직업에서든 수령 가능. 장비 효과는 기록을 세운 직업을 따른다.
+  const h = save.chalChestHero ?? save.hero;
   save.chalChest = 0;
   delete save.chalChestHero;
   // 장비 (아이템 레벨) · 골드 모두 받는 캐릭터 레벨 기준 (2026-10-13 Lim 「보상시 해당 캐릭터 레벨에 기반해서」, 예전 골드는 계정 최고 레벨)
   const c = chalChestOf(stage), lv = save.player.level;
-  const items = c.grades.map(g => makeItem(r, SLOTS[Math.floor(r() * SLOTS.length)].key, g, save.nextId++, undefined, { hero: save.hero, lv }));
+  const items = c.grades.map(g => makeItem(r, SLOTS[Math.floor(r() * SLOTS.length)].key, g, save.nextId++, undefined, { hero: h, classLoot: true, lv }));
   return give(save, { gold: c.goldRuns * runGold(lv), items, pass: PASS_GAIN.challenge }, now);
 }
 
@@ -277,10 +276,10 @@ export function meritFor(save: SaveData, raid: 10 | 20, diff: DiffName): number 
   const left = Math.max(0, MERIT_WEEK_CAP - save.weekly.merit[raid]);
   return Math.min(left, MERIT[raid][diff]);
 }
-/** 레이드 주 1회 장비 기록 키: 직업마다 (장비가 직업마다라서, 2026-10-12. 34 4장 4번 「계정에 한 번」을 바꿈) */
-export const lootKey = (hero: HeroKey, content: string, diff: DiffName) => `${hero}|${content}|${diff}`;
-/** 이번 주 지금 직업이 이 보스·난이도 장비를 아직 안 받음 (13 3-4). 공훈도 직업마다 (wallet.merit · weekly.merit = 지금 직업 것, game/state switchHero) */
-export const raidLootOpen = (save: SaveData, content: string, diff: DiffName) => !save.weekly.loot.includes(lootKey(save.hero, content, diff));
+/** v12: 같은 캐릭터의 모든 직업이 레이드 주 1회 제한을 공유 */
+export const lootKey = (_hero: HeroKey, content: string, diff: DiffName) => `${content}|${diff}`;
+/** v11 직업 접두사가 남아 있어도 보스·난이도별 수령 이력으로 처리 */
+export const raidLootOpen = (save: SaveData, content: string, diff: DiffName) => !save.weekly.loot.some(k => k.split('|').slice(-2).join('|') === lootKey(save.hero, content, diff));
 
 /** 악몽 입장 = 악몽 열쇠 1개 (12 3-4) */
 export const needsShard = (diff: DiffName) => diff === '악몽';
