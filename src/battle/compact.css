@@ -31,24 +31,24 @@
 #battle #castbar.has-msg.is-gcd #toast::after { opacity: .5; }
 #battle.reduced-effects #toast .toast.on { animation: none; }
 
-/* 포기 버튼 (탱커 전멸, 2026-10-13 Lim): 시전 막대 자리 가운데. 나무결 대신 길드 홀 붉은색 (--gk-*, guide-sheet.css)으로 눈에 띄게.
+/* 포기 버튼 (탱커 전멸, 2026-10-13 Lim): 시전 막대 자리 가운데, 전투 막대와 같은 황동 틀 · 어두운 바탕.
  * 누르는 칸은 높이 44px. 축소 판 (자리 26px)은 버튼을 자리 아래에 붙이고 누르는 칸을 위 (판 쪽)로만 늘림: 아래 조작판 버튼을 안 가림.
  * 버튼이 있는 동안 메시지 · 시전 이름은 버튼 왼쪽 칸 */
 #battle #castbar #giveUp {
   position: absolute; z-index: 3; inset: 0; width: 112px; height: 40px; margin: auto; padding: 0; box-sizing: border-box;
   display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--gk-enr-ink); border-radius: 10px;
-  background: linear-gradient(#e05a48, var(--gk-all) 48%, #8e1f19);
-  box-shadow: inset 0 1px 0 #ffd7cf80, inset 0 -2px 0 #6e140f, 0 2px 0 #000a, 0 0 12px #e0402f99;
-  color: #fff4ec; font: 400 19px/1 var(--font-display); letter-spacing: .04em; text-shadow: 0 1px 0 #5a0d08;
-  pointer-events: auto; cursor: pointer; animation: giveUpIn .25s ease-out;
+  border: 6px solid transparent; border-image: var(--sf-cast) 44 128 / 9px 18px / 0 stretch; border-radius: 0;
+  background: linear-gradient(#36251b, #1b130e); background-clip: padding-box;
+  box-shadow: 0 2px 5px #0009;
+  color: #f7e5ba; font: 700 18px/1 var(--font-display); letter-spacing: .03em; text-shadow: 0 1px 0 #000;
+  pointer-events: auto; cursor: pointer; animation: giveUpIn .18s ease-out;
 }
 #battle #castbar #giveUp::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 44px; transform: translateY(-50%); }
-#battle #castbar #giveUp:active { transform: translateY(1px); background: linear-gradient(#c8382f, #8e1f19); }
+#battle #castbar #giveUp:active { transform: translateY(1px); background: linear-gradient(#281b13, #130d09); background-clip: padding-box; }
 #battle #castbar #giveUp:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
-#battle.compact-panel #castbar #giveUp { inset: auto 0 0; height: 34px; margin: 0 auto; font-size: 17px; }
-#battle.compact-panel #castbar #giveUp::before { top: auto; bottom: 0; transform: none; }
-@keyframes giveUpIn { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+#battle.compact-panel #castbar #giveUp { inset: auto 0 0; height: 34px; margin: 0 auto; border-image-width: 7px 17px; font-size: 17px; }
+#battle.compact-panel #castbar #giveUp::before { top: auto; bottom: -6px; transform: none; }
+@keyframes giveUpIn { from { opacity: 0; } to { opacity: 1; } }
 #battle #castbar.give-up #toast { right: calc(50% + 64px); }
 /* 버튼 오른쪽에 시전 막대 · 남은 초가 그대로 보이므로 메시지 칸 안의 진행 선 · 남은 초는 뺌 */
 #battle #castbar.give-up.has-msg #toast::before, #battle #castbar.give-up.has-msg #toast::after { display: none; }
