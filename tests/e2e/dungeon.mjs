@@ -200,8 +200,12 @@ export default async function dungeon(url, shots) {
   const pop = await page.textContent('#s-settle .lvpop');
   ok(/Lv 1 → 3/.test(pop) && /소생/.test(pop) && /정화/.test(pop) && !/준비 중/.test(pop), '팝업: Lv 1 → 3, 스킬 「소생」 · 「정화」 열림');
   ok(!/힐량·체력/.test(pop), '팝업: 배율 줄 없음 (적이 내 레벨을 따라옴, 32)');
+  ok(await page.evaluate(() => { const d = document.querySelector('#s-settle .lvpop [role="dialog"]'); return d.getAttribute('aria-modal') === 'true' && d.contains(document.activeElement); }), '레벨 업 모달로 포커스 이동');
+  await page.keyboard.press('Tab'); await page.keyboard.press('Tab');
+  ok(await page.evaluate(() => document.activeElement === document.querySelector('#s-settle .lvpop button')), 'Tab 포커스가 확인 버튼에서 유지');
   await page.screenshot({ path: `${shots}/dungeon_levelup.png` });
   await page.click('#s-settle .lvpop button'); await page.clock.runFor(50);
+  ok(await page.locator('#s-settle .lvpop').count() === 0 && await page.locator('[inert]').count() === 0, '확인 후 팝업 닫힘 · 배경 조작 복구');
   let sv = await save();
   ok(sv.player.level === 3 && sv.player.gold > 0 && sv.gear.bag.length === 1, `저장: Lv 3, 골드 ${sv.player.gold}, 가방에 장비 1개 (클리어마다 1개, 2026-10-13)`);
   ok(sv.clears.rustfort['보통'].n === 1 && sv.last.win, '저장: 녹슨 요새 보통 클리어 기록');

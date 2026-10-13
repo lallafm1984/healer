@@ -20,10 +20,12 @@ import { AFFIXES } from '../data/affixes';
 import { ENDING } from '../data/story';
 import type { BattleResult, Settlement } from '../game/settle';
 import { esc, fmt, go, mmss, screen, topBar } from './kit';
-import { currencyIcon, fxArt, gameIcon, gearIcon, placeArt, trinketArt, uiIcon, type CurrencyIconKey } from './art';
+import { classEmblem, currencyIcon, fxArt, gameIcon, gearIcon, placeArt, trinketArt, uiIcon, type CurrencyIconKey } from './art';
 import { depart } from './party';
+import { sheetDialog } from './dialog';
 
 const st = screen('s-settle', '전투 결과', { enter() { render(); } });
+const resultModal = sheetDialog(st.el, () => closeResultPopup(st.el));
 
 /** 머리 뒤에 장소 그림 (28 4장) */
 function resArt(k: ContentKey): string {
@@ -35,6 +37,7 @@ function resArt(k: ContentKey): string {
 const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#8BEA9C', '희귀': '#8DBEFF', '영웅': '#D7A6FF', '전설': '#FFC07A' };
 
 function render(): void {
+  resultModal.beforeRender();
   const r = Flow.result!, x = Flow.settle!;
   const c = contentOf(r.content);
   const won = r.win && !r.quit;
@@ -49,6 +52,7 @@ function render(): void {
       ${recordHtml(r, !won)}
     </div>
     ${footHtml(r, x, tut)}`;
+  resultModal.sync(null, []);
   // 심연의 심장을 처음 멈추면 엔딩 글 (59 4-4, 한 번만). 레벨업 팝업이 있으면 그 위에
   if (won && r.content === 'heart3' && x.first && !ended.has(x) && Object.values(G.save.clears.heart3 ?? {}).reduce((a, c) => a + (c?.n ?? 0), 0) === 1) {
     ended.add(x);
@@ -284,8 +288,10 @@ export function showEnding(host: HTMLElement): void {
   box.className = 'overlay lvpop ending';
   box.innerHTML = `<div class="card" role="dialog" aria-label="엔딩"><h3>심장이 멈췄다</h3>${ENDING.map(t => `<p>${esc(t)}</p>`).join('')}
     <button class="btn primary" type="button">햇살 축제로</button></div>`;
-  box.querySelector('button')!.addEventListener('click', () => box.remove());
+  box.querySelector('button')!.addEventListener('click', () => closeResultPopup(host));
+  if (host === st.el) resultModal.beforeRender();
   host.appendChild(box);
+  syncResultPopup(host);
 }
 
 // ---------- 레벨업 팝업 (P04) ----------
@@ -293,11 +299,35 @@ export function showEnding(host: HTMLElement): void {
 export function showLevelUp(host: HTMLElement, ups: number[]): void {
   const items = ups.flatMap(lv => (MILESTONES[lv] || []).filter(m => m.live).map(m => ({ lv, ...m })));
   if (!items.length) return;
+  const icon = (text: string) => text.includes('특성') ? gameIcon('talent', uiIcon('star'))
+    : /스킬|패시브|성언|쿨기/.test(text) ? gameIcon('skills', uiIcon('quest'))
+    : /던전|탐험|레이드|도전/.test(text) ? gameIcon('a2-swords', uiIcon('weapon'))
+    : /장비/.test(text) ? gameIcon('gear', uiIcon('weapon'))
+    : /직업|퀘스트/.test(text) ? classEmblem(G.save.hero, 'sm')
+    : uiIcon('star');
   const box = document.createElement('div');
-  box.className = 'overlay lvpop';
-  box.innerHTML = `<div class="card" role="dialog" aria-label="레벨 업"><h3>레벨 업!</h3><p class="lvnum">Lv ${ups[0] - 1} → <b>${ups[ups.length - 1]}</b></p>
-    <ul>${items.map(m => `<li>Lv ${m.lv} · ${esc(m.text)}</li>`).join('')}</ul>
-    <button class="btn primary" type="button">확인</button></div>`;
-  box.querySelector('button')!.addEventListener('click', () => box.remove());
+  box.className = `overlay lvpop r-level-pop${G.save.settings.reducedEffects ? ' calm' : ''}`;
+  box.innerHTML = `<div class="card r-level-card" role="dialog" aria-modal="true" aria-labelledby="levelUpTitle">
+    <div class="r-level-heading"><span class="r-level-emblem" aria-hidden="true">${classEmblem(G.save.hero, 'md')}</span><h3 id="levelUpTitle">레벨 업!</h3><span class="r-level-ornament" aria-hidden="true">✦</span></div>
+    <p class="lvnum" aria-label="Lv ${ups[0] - 1}에서 ${ups[ups.length - 1]}로 레벨 업"><span class="r-level-before">Lv ${ups[0] - 1}</span><span class="r-level-arrow" aria-hidden="true"> → </span><span class="r-level-number"><b>${ups[ups.length - 1]}</b></span></p>
+    <h4 class="r-level-unlock-title">새로 열린 기능</h4>
+    <ul class="r-level-unlocks" aria-label="새로 열린 기능">${items.map(m => `<li><span class="r-level-unlock-icon" aria-hidden="true">${icon(m.text)}</span><b>${esc(m.text)}</b><small>Lv ${m.lv}</small></li>`).join('')}</ul>
+    <button class="btn primary r-level-confirm" type="button">확인</button></div>`;
+  box.querySelector('button')!.addEventListener('click', () => closeResultPopup(host));
+  if (host === st.el) resultModal.beforeRender();
   host.appendChild(box);
+  syncResultPopup(host);
+}
+
+/** 레벨 업 위에 엔딩이 겹쳐도 맨 위 팝업만 닫고 이전 팝업으로 포커스를 돌린다. */
+function closeResultPopup(host: HTMLElement): void {
+  if (host === st.el) resultModal.beforeRender();
+  host.querySelectorAll('.lvpop')[host.querySelectorAll('.lvpop').length - 1]?.remove();
+  syncResultPopup(host);
+}
+function syncResultPopup(host: HTMLElement): void {
+  const popups = Array.from(host.querySelectorAll<HTMLElement>('.lvpop'));
+  popups.forEach((popup, i) => { popup.style.zIndex = String(70 + i); });
+  if (host === st.el) resultModal.sync(popups.at(-1)?.querySelector<HTMLElement>('.card') ?? null, popups.map(p => p.classList.contains('ending') ? 'ending' : 'level'));
+  else popups.at(-1)?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true });
 }

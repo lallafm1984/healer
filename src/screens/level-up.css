@@ -1,0 +1,56 @@
+/* Level-up dialog shares the equipment sheet's bronze frame and flat controls. */
+#app #s-settle .r-level-pop {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  padding: calc(var(--banner-h, 70px) + 12px) 16px 12px; background: #000b;
+}
+#app #s-settle .r-level-pop .r-level-card {
+  width: 100%; max-width: 390px; max-height: calc(100dvh - var(--banner-h, 70px) - 24px);
+  display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding: 18px;
+  border: 8px solid transparent; border-image: url('../art/ui-gear-detail-frame-v1.webp') 48 / 20px / 0 stretch;
+  border-radius: 12px; background: #242018; background-blend-mode: normal;
+  color: #f5e8cc; box-shadow: 0 14px 50px #000a; text-shadow: none; overflow: hidden;
+  animation: levelCardEnter .35s ease-out both;
+}
+#app #s-settle .r-level-card > * { flex-shrink: 0; }
+#app #s-settle .r-level-card:focus { outline: none; }
+#app #s-settle .r-level-card .r-level-heading { display: flex; align-items: center; gap: 10px; min-height: 46px; padding-bottom: 9px; border-bottom: 1px solid #89704480; }
+#app #s-settle .r-level-card .r-level-emblem { display: grid; place-items: center; flex: none; width: 44px; height: 44px; }
+#app #s-settle .r-level-card .r-level-emblem .emblem { width: 100%; height: 100%; }
+#app #s-settle .r-level-card h3 { margin: 0; font: 800 24px/1.4 var(--font-display); color: #f5e8cc; }
+#app #s-settle .r-level-card .r-level-ornament { margin-left: auto; color: #bd9b62; font-size: 22px; }
+#app #s-settle .r-level-card .lvnum { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 2px 0 4px; min-height: 108px; color: #c9bda8; font: 700 23px/1.4 var(--font-body); }
+#app #s-settle .r-level-card .r-level-before { padding: 8px 12px; border: 1px solid #89704466; border-radius: 7px; background: #30291e; color: #c9bda8; }
+#app #s-settle .r-level-card .r-level-arrow { font-size: 27px; color: #c5a064; }
+#app #s-settle .r-level-card .r-level-number { position: relative; isolation: isolate; display: flex; flex-direction: column; justify-content: center; width: 100px; height: 100px; border: 2px solid #bd9b62; border-radius: 50%; background: radial-gradient(circle at 45% 35%, #785b2c, #33261a 72%); box-shadow: inset 0 0 0 4px #e9c88822, 0 0 24px #c79b3433; }
+#app #s-settle .r-level-card .r-level-number::before { content: 'Lv'; color: #dec494; font: 700 12px/1.3 var(--font-body); }
+#app #s-settle .r-level-card .r-level-number::after { content: ''; position: absolute; inset: -8px; border: 1px solid #e8c88866; border-radius: 50%; opacity: 0; animation: levelHalo 1.2s ease-out both; }
+#app #s-settle .r-level-card .lvnum b { font: 900 50px/1.1 var(--font-display); color: #ffe8b1; text-shadow: 0 2px 2px #0009; }
+#app #s-settle .r-level-card .r-level-unlock-title { margin: 0; text-align: left; font: 700 13px/1.5 var(--font-body); color: #c9bda8; }
+#app #s-settle .r-level-card .r-level-unlocks { flex: 0 1 auto; min-height: 0; max-height: min(38dvh, 260px); display: flex; flex-direction: column; gap: 7px; margin: -4px 0 2px; padding: 0 2px 0 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #9c8050 #242018; }
+#app #s-settle .r-level-card .r-level-unlocks li { flex: none; display: grid; grid-template-columns: 34px minmax(0, 1fr) 39px; align-items: center; gap: 9px; min-height: 57px; padding: 9px; border: 1px solid #89704480; border-radius: 8px; background: #30291e; color: #f5e8cc; }
+#app #s-settle .r-level-card .r-level-unlocks li b { min-width: 0; font: 600 14px/1.55 var(--font-body); color: #f5e8cc; word-break: keep-all; overflow-wrap: anywhere; }
+#app #s-settle .r-level-card .r-level-unlocks li small { text-align: center; border-radius: 5px; padding: 3px 0; background: #b7985f18; color: #d6bd8e; font-size: 11px; white-space: nowrap; }
+#app #s-settle .r-level-card .r-level-unlock-icon { display: grid; place-items: center; width: 32px; height: 32px; color: #dbc18b; }
+#app #s-settle .r-level-card .r-level-unlock-icon :is(.g-ic, .ui-icon, .emblem) { width: 30px; height: 30px; object-fit: contain; }
+#app #s-settle .r-level-card .r-level-confirm { width: 100%; min-height: 52px; padding: 8px; border: 2px solid #c5a064; border-radius: 8px; background: #efdaaa; background-blend-mode: normal; color: #2d2115; font: 800 21px/1.4 var(--font-display); box-shadow: inset 0 0 0 1px #fff2d980; text-shadow: none; }
+#app #s-settle .r-level-card .r-level-confirm:focus-visible { outline: 2px solid #ffe3a0; outline-offset: 3px; }
+#app #s-settle .r-level-card .r-level-confirm:active { filter: brightness(.92); }
+#app #s-settle .r-level-pop.calm .r-level-card, #app #s-settle .r-level-pop.calm .r-level-number::after { animation: none; }
+@keyframes levelCardEnter { from { transform: translateY(10px) scale(.97); } to { transform: none; } }
+@keyframes levelHalo { 0% { opacity: .8; transform: scale(.8); } 100% { opacity: 0; transform: scale(1.35); } }
+@media (max-width: 359px) {
+  #app #s-settle .r-level-pop { padding-left: 12px; padding-right: 12px; }
+  #app #s-settle .r-level-pop .r-level-card { padding: 12px; gap: 10px; }
+  #app #s-settle .r-level-card h3 { font-size: 22px; }
+  #app #s-settle .r-level-card .r-level-heading { min-height: 40px; }
+  #app #s-settle .r-level-card .r-level-emblem { width: 38px; height: 38px; }
+  #app #s-settle .r-level-card .lvnum { min-height: 88px; gap: 13px; font-size: 20px; }
+  #app #s-settle .r-level-card .r-level-number { width: 82px; height: 82px; }
+  #app #s-settle .r-level-card .lvnum b { font-size: 42px; }
+  #app #s-settle .r-level-card .r-level-unlocks li { grid-template-columns: 30px minmax(0, 1fr) 34px; gap: 7px; padding: 8px; }
+  #app #s-settle .r-level-card .r-level-unlocks li b { font-size: 12px; }
+  #app #s-settle .r-level-card .r-level-confirm { min-height: 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #app #s-settle .r-level-card, #app #s-settle .r-level-number::after { animation: none; }
+}
