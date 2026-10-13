@@ -144,7 +144,7 @@
 /* ---------- 아래 조작판 ---------- */
 #battle #controls { gap: 8px; padding: 0 12px 0 16px; border-top: 2px solid var(--edge); background: linear-gradient(#211B15, #15120E); box-shadow: 0 -1px 0 var(--line); }
 #battle #controls.wheel-left { padding: 0 16px 0 12px; }
-/* 왼쪽 줄: 특성 버튼 → 아이템 2×2 → 고유 시스템 막대 2줄 → 안내 / 포기 */
+/* 왼쪽 줄: 특성 버튼 → 아이템 2×2 → 고유 시스템 막대 2줄 → 안내 (포기 버튼은 시전 막대 자리, compact.css) */
 #battle #side { flex: 1; min-width: 0; align-self: stretch; height: auto; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 8px; padding: 13px 0 6px; }
 #battle #side > * { width: 100%; max-width: 146px; align-self: center; }
 #battle #aux { flex: none; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(44px, 1fr); gap: 5px; justify-content: stretch; }
@@ -177,9 +177,6 @@
 #battle #gauges .gv { flex: none; min-width: 28px; max-width: 70px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 #battle #gauges b { font-weight: 400; color: inherit; }
 #battle #hint { flex: none; font-size: 12px; line-height: 1.4; color: var(--mute); text-align: center; }
-#battle #giveUp { flex: none; min-height: 44px; }
-/* 탱커 전멸: 아이템 칸은 그대로 두고 아래에 포기 버튼 (높이만 줄어듦) */
-#battle #controls.tank-down #items { max-width: 146px; }
 /* 스킬 휠 칸: 청동 3px 링, 안쪽 방사 그라데이션, 화살표(금) · 이름(굵게) · 마나 비용(파랑) */
 #battle #wheel { --slot: 68px; flex: none; background: none; }
 #battle .slot { display: flex; align-items: center; justify-content: center; padding: 0; border: 3px solid var(--frame); background: radial-gradient(circle at 50% 35%, #3E3326, #1E1813 75%); box-shadow: 0 0 0 1px var(--line), 0 3px 0 var(--line), inset 0 0 0 1px #3A2C1C; color: var(--ink); overflow: hidden; }

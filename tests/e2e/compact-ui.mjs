@@ -34,7 +34,8 @@ const geometry = page => page.evaluate(() => {
     stage: box(document.querySelector('#stage')),
     targetsGone: !document.querySelector('#targetsBtn,#partyTargets,#partyActions'),
     targetUiNodes: document.querySelectorAll('#targetsBtn,#partyTargets,#targetList,#targetsClose').length,
-    toolbarButtons: document.querySelectorAll('#partyActions button,#castbar button').length,
+    // 시전 막대 자리에는 탱커 전멸 때 나오는 포기 버튼만 (2026-10-13 Lim)
+    toolbarButtons: document.querySelectorAll('#partyActions button,#castbar button:not(#giveUp)').length,
     slots: [...document.querySelectorAll('#wheel button')].filter(visible).map(el => ({ ...box(el),
       hitW: Number(el.dataset.hitWidth), hitH: Number(el.dataset.hitHeight) })),
     cellW: Number(cv.dataset.cellWidth), cellH: Number(cv.dataset.cellHeight),
@@ -691,7 +692,7 @@ const controlGeometry = page => page.evaluate(() => {
   const box = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; };
   const visible = el => !!el && !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
   const root = document.querySelector('#controls');
-  const parts = [...root.querySelectorAll('#wheel button, #items [data-item], #aux button, #core[role="button"], #giveUp')]
+  const parts = [...root.querySelectorAll('#wheel button, #items [data-item], #aux button, #core[role="button"]')]
     .filter(visible)
     .map(el => {
       const r = box(el), cx = r.x + r.w / 2, cy = r.y + r.h / 2;
@@ -701,8 +702,13 @@ const controlGeometry = page => page.evaluate(() => {
         .every(([x, y]) => el.contains(document.elementFromPoint(x, y)));
       return { id: el.id || el.dataset.slot || el.dataset.item || el.dataset.tal, ...r, hitW, hitH, hit, hits };
     });
+  // 포기 버튼 (시전 막대 자리 가운데): 누르는 칸을 가운데 세로줄에서 1px씩 찾음 (축소 판은 자리 26px보다 위로 늘어남)
+  const gu = document.querySelector('#giveUp'), gb = box(gu), gx = gb.x + gb.w / 2;
+  let top = Infinity, bottom = -Infinity;
+  if (visible(gu)) for (let y = Math.floor(gb.y) - 30; y <= gb.bottom + 30; y++) if (gu.contains(document.elementFromPoint(gx, y))) { top = Math.min(top, y); bottom = Math.max(bottom, y + 1); }
+  const giveUpHit = { x: gb.x, y: top, right: gb.right, bottom };
   return { controls: box(root), parts, gauges: box(document.querySelector('#gauges')),
-    gaugeVisible: visible(document.querySelector('#gauges')), tankDown: root.classList.contains('tank-down'),
+    gaugeVisible: visible(document.querySelector('#gauges')), giveUpHit, giveUpHits: bottom - top >= 44 - 1,
     frame: box(document.querySelector('#controlsFrame')), scale: Number(root.dataset.uiScale),
     wheel: box(document.querySelector('#wheel')), side: box(document.querySelector('#side')),
     gaugeText: document.querySelector('#gauges').textContent,
@@ -715,16 +721,15 @@ const controlGeometry = page => page.evaluate(() => {
     extraItemsVisible: [...root.querySelectorAll('#items > :nth-child(n+3)')].some(visible) };
 });
 
-function usableControls(g, gaugeVisible = true) {
+function usableControls(g) {
   const inside = r => r.x >= g.controls.x - 1 && r.right <= g.controls.right + 1
     && r.y >= g.controls.y - 1 && r.bottom <= g.controls.bottom + 1;
   const apart = (a, b) => a.right <= b.x + 1 || b.right <= a.x + 1 || a.bottom <= b.y + 1 || b.bottom <= a.y + 1;
-  const gaugeValid = g.gaugeVisible === gaugeVisible && (gaugeVisible ? inside(g.gauges)
-    : g.tankDown && g.giveUpVisible && g.gauges.w === 0 && g.gauges.h === 0);
-  return g.parts.every(r => r.hitW >= 44 - .1 && r.hitH >= 44 - .1 && r.hits && inside(r)) && gaugeValid
+  return g.parts.every(r => r.hitW >= 44 - .1 && r.hitH >= 44 - .1 && r.hits && inside(r)) && g.gaugeVisible && inside(g.gauges)
     && g.parts.every((a, i) => g.parts.slice(i + 1).every(b => apart(a, b)))
     && g.parts.every((a, i) => g.parts.slice(i + 1).every(b => apart(a.hit, b.hit)))
-    && (!gaugeVisible || g.parts.every(r => apart(r, g.gauges)));
+    && g.parts.every(r => apart(r, g.gauges))
+    && (!g.giveUpVisible || (g.giveUpHits && g.parts.every(r => apart(r.hit, g.giveUpHit))));
 }
 
 // 축소에서도 원래 버튼 전체가 같은 footer 안에 남아 있어야 한다. 별도 보조 창으로 숨기지 않는다.
@@ -732,7 +737,7 @@ async function inspectDirectControls(page, ok, label, expectGiveUp = false) {
   const g = await page.evaluate(() => {
     const f = window.__proto.F, root = document.querySelector('#controls');
     const visible = el => !!el && !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
-    const buttons = [...root.querySelectorAll('#items [data-item],#aux [data-tal],#giveUp')].filter(visible);
+    const buttons = [...root.querySelectorAll('#items [data-item],#aux [data-tal]')].filter(visible);
     return {
       items: buttons.filter(b => b.dataset.item).map(b => b.dataset.item), expectedItems: Object.keys(f.items),
       talents: buttons.filter(b => b.dataset.tal).map(b => b.dataset.tal), expectedTalents: Object.keys(f.tx.act),
@@ -794,10 +799,13 @@ async function heroVariants(page, ok, shots) {
       for (const u of window.__proto.F.party.filter(u => u.role === 'tank')) { u.hp = 0; u.alive = false; u.guardian = 0; }
     });
     await page.clock.runFor(80);
+    await page.locator('#giveUp').evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
     const down = await controlGeometry(page);
     await page.screenshot({ path: `${shots}/compact_hero_${c.hero}${c.synthetic ? '_synthetic' : ''}_down_320x640.png` });
-    // 기존 일반 UI는 탱커 전멸 시 게이지 자리에 포기를 표시한다. 같은 전멸 상태끼리 비교한다.
+    // 탱커 전멸 포기 버튼은 시전 막대 자리 (2026-10-13 Lim): 조작판은 게이지까지 그대로. 같은 전멸 상태끼리 비교한다.
+    // 판 배치를 다시 하면 시전 막대 자리를 옮겨 넣어 버튼이 나타나는 움직임이 다시 돎: 끝난 뒤 잼
     await toggleMode(page); await page.clock.runFor(40);
+    await page.locator('#giveUp').evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
     const normalDown = await controlGeometry(page);
     await toggleMode(page); await page.clock.runFor(40);
     const label = c.synthetic ? '성기사+3보조 synthetic' : { priest: '사제', druid: '드루이드', paladin: '성기사' }[c.hero];
@@ -810,7 +818,7 @@ async function heroVariants(page, ok, shots) {
     const directControls = [compact, left, down].every(v => v.visibleItems === normal.visibleItems
       && v.visibleAux === normal.visibleAux && !v.toolsVisible);
     ok(compact.controls.h <= normal.controls.h && usableControls(normal) && usableControls(compact)
-      && usableControls(left) && usableControls(normalDown, false) && usableControls(down, false)
+      && usableControls(left) && usableControls(normalDown) && usableControls(down)
       && normalDown.gaugeVisible === down.gaugeVisible && normalDown.giveUpVisible === down.giveUpVisible
       && gauge && left.left && left.wheel.x < left.side.x
       && down.giveUp && down.giveUpVisible && directControls && uniformLayout(normalLayout, compactLayout),

@@ -3,6 +3,7 @@
  * 1) 파티원 공격 숫자: 더 크고 타격감 있게 (다른 UI를 가려도 됨). 보스 초상 둘레 네 자리에서 크게 찍혔다가 튀고 떠오름. 초상도 맞을 때 번쩍 · 흔들림
  * 2) 예고 칸 게이지: 남은 시간을 칸 아래 밝은 막대로 (예전엔 나무결 위 옅은 칠이라 안 보였음). 곧 떨어지는 칸은 붉은 막대
  * 3) 스킬 패널 작게 보기: 패널 나무판 · 황동 테는 화면 폭 그대로, 안쪽 버튼만 줄임 (양끝이 잘려 보이던 것)
+ * 4) 일시정지 버튼: 머리 판 황동 테 안쪽으로 (2026-10-13 Lim 첨부3, 예전엔 오른쪽 테 위에 겹침)
  * main.ts에서 전투 CSS · 테마 CSS 뒤에 읽음.
  */
 
@@ -60,8 +61,10 @@
   box-shadow: 0 0 6px #ffd36b99;
 }
 #battle #queue .q.hot .fill { background: linear-gradient(#ffd0b8, #ff5a3c 55%, #c42417); box-shadow: 0 0 8px #ff5a3cbb; }
-/* 글자 · 아이콘은 막대 위 공간에 (가운데보다 3px 위) */
+/* 글자는 막대 위 공간에 (가운데보다 3px 위) */
 #battle #queue .q > :not(.fill) { transform: translateY(-3px); }
+/* 기술 아이콘을 뺀 뒤 (2026-10-13 Lim) 이름이 칸 왼쪽 황동 테에 붙지 않게 */
+#battle #queue .q .tx { margin-left: 5px; }
 
 /* ---------- 3) 스킬 패널 작게 보기: 판은 화면 폭, 안쪽만 줄임 ---------- */
 #battle.compact-panel #controlsFrame {
@@ -73,3 +76,11 @@
 }
 #battle.compact-panel #controls { background: none; }
 #battle.compact-panel #controls::after { content: none; }
+
+/* ---------- 4) 일시정지 버튼 ----------
+ * 머리 판 테 (ui-sunforged-panel-frame, 22px로 그림)는 판 끝에서 4~11px 안. 버튼 오른쪽을 판 끝에서 14px 안으로 */
+#battle #pauseBtn { margin-right: 14px; }
+@media (max-width: 359px), (max-height: 700px) {
+  /* 작은 화면은 판 테를 18px로 그림 (3~9px 안), 판 높이 64: 버튼 44px · 오른쪽 12px */
+  #battle #pauseBtn { width: 44px; height: 44px; margin-right: 12px; }
+}

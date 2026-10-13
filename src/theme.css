@@ -246,7 +246,6 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 #battle #gauges { color: var(--ink-2); }
 #battle #gauges b { color: var(--gold-hi); }
 #battle #hint { color: var(--mute); }
-#battle #giveUp { border: 2px solid #E5433D; border-radius: 6px; background: linear-gradient(#4A1C1C, #2E1010); font-family: var(--font-display); color: #FFD9D4; }
 #battle #pause .card { border-color: var(--frame); border-radius: 6px; background: var(--gold-pnl); }
 #battle #preview, #battle #coach, #tip { border-color: var(--frame); border-radius: 4px; background: rgba(13, 11, 9, 0.97); }
 #tip::after, #battle #preview::after { background: #0D0B09; border-color: var(--frame); }
