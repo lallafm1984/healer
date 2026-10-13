@@ -1,5 +1,6 @@
 /** 성장·보상 (24 문서): 경험치 곡선, 골드, 장비 드롭, 장비 능력치, 정산 */
 import { describe, expect, it } from 'vitest';
+import { chalDropDiff } from '../src/data/challenge';
 import { CONTENT, contentOf, isLeveling, stageOf } from '../src/data/content';
 import { avgScore, dropTable, gearStatsOf, ITEM_GRADES, rollItem, SLOTS, type Equipped } from '../src/data/equipment';
 import { gearStats } from '../src/data/gear';
@@ -140,8 +141,8 @@ describe('레벨 배율 (07 4장, 18 2-1)', () => {
 describe('장비 (02 10장)', () => {
   it('장비 없음 = 프리셋 none, 평균 점수 = 등급 + 강화/10 (추가 옵션 굴림 없을 때)', () => {
     const all = (grade: '고급' | '희귀' | '영웅', plus: number): Equipped => Object.fromEntries(SLOTS.map((s, i) => [s.key, { id: i, slot: s.key, kind: '', grade, plus, name: '', lines: [] }]));
-    expect(gearStatsOf({})).toEqual(gearStats('none'));
-    expect(avgScore(all('희귀', 5))).toBeCloseTo(3.5);
+    expect(gearStatsOf({}, 1)).toEqual(gearStats('none'));
+    expect(avgScore(all('희귀', 5), 30)).toBeCloseTo(3.5);
   });
   it('드롭 등급 비율이 표를 따름, 전설은 20인 악몽 · Lv 50부터 (61 3장)', () => {
     const rng = rngFrom(7);
@@ -164,7 +165,7 @@ describe('장비 (02 10장)', () => {
     expect(avg('S')).toBeGreaterThan(avg('C') + 0.03);
   });
   it('전투에 착용 장비 능력치가 들어감', () => {
-    const st = gearStatsOf({ weapon: { id: 1, slot: 'weapon', kind: 'staff', grade: '영웅', plus: 0, name: '', lines: [{ stat: 'hp', roll: 1 }] } });
+    const st = gearStatsOf({ weapon: { id: 1, slot: 'weapon', kind: 'staff', grade: '영웅', plus: 0, name: '', lines: [{ stat: 'hp', roll: 1 }] } }, 30);
     const f = E.create({ encounter: 'warden', diff: '보통', seed: 1, gearStats: st });
     expect(f.gear).toEqual({ ...st, heal: st.heal * RULES.heal }); // 지능에는 치유 배율이 곱해짐 (34 1-6)
   });
@@ -198,17 +199,35 @@ describe('정산 (09 S08·S09)', () => {
     expect(x.first).toBe(true);
     expect(s.last).toEqual({ content: 'rustfort', diff: '보통', win: true, grade: 'A' });
   });
-  it('튜토리얼 뒤 던전은 보스마다 장비 1개, 탐험은 1개 · 악몽은 고급 ~ 영웅 (34 6-7 · 61 3장)', () => {
+  it('클리어마다 장비 1개 (탐험 · 던전 · 레이드 모두, 2026-10-13 Lim: 보스 둘인 녹슨 요새도 1개) · 악몽은 고급 ~ 영웅 (34 6-7 · 61 3장)', () => {
     const s = newSave(1);
     s.tut = TUT.done;
     const x = settle(s, result(), rngFrom(1));
-    expect(x.items.length).toBe(contentOf('rustfort').bosses.length);
+    expect(contentOf('rustfort').bosses.length).toBe(2);
+    expect(x.items.length).toBe(1);
     expect(s.gear.bag).toEqual(x.items);
     for (let i = 0; i < 40; i++) {
       const e = settle(s, result({ content: 'plateau', diff: '악몽', deaths: 0 }), rngFrom(i));
       expect(e.items.length).toBe(1);
       expect(['고급', '희귀', '영웅']).toContain(e.items[0].grade);
     }
+  });
+  it('주간 도전 클리어 장비 = 단계 표 (2026-10-13 Lim: 1~9 보통 · 10~14 어려움 · 15~ 악몽), 1개', () => {
+    expect([1, 9, 10, 14, 15, 20].map(chalDropDiff)).toEqual(['보통', '보통', '어려움', '어려움', '악몽', '악몽']);
+    const top = (stage: number) => {
+      const s = newSave(1); s.tut = TUT.done; s.player.level = 30; s.daily.pub = 3;
+      const seen = new Set<string>();
+      for (let i = 0; i < 60; i++) {
+        const x = settle(s, result({ chal: stage, stage: 30, deaths: 0 }), rngFrom(i + 1));
+        expect(x.items.length).toBe(1);
+        seen.add(x.items[0].grade);
+      }
+      return seen;
+    };
+    expect([...top(3)].every(g => g === '일반' || g === '고급')).toBe(true);
+    expect(top(12).has('희귀')).toBe(true);
+    expect(top(12).has('영웅')).toBe(false);
+    expect(top(16).has('영웅')).toBe(true);
   });
   it('다시 깨면 별·등급·최고 기록은 좋은 쪽을 남김', () => {
     const s = newSave(1);

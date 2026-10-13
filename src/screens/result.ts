@@ -3,7 +3,7 @@
  * 이기면 첫 화면에 등급·별·받은 것, 지면 어디서 졌는지·힌트. 지표·딜미터기는 「전투 기록」에 접어 둠 (지면 펼침)
  */
 import { contentOf, type ContentKey } from '../data/content';
-import { avgScore, GRADE_STYLE, kindOf, RECOMMENDED, slotName, type ItemGrade } from '../data/equipment';
+import { avgScore, GRADE_STYLE, kindOf, recommendedFor, slotName, type ItemGrade } from '../data/equipment';
 import { CLASSES } from '../data/classes';
 import { HEROES } from '../data/heroes';
 import { MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
@@ -102,7 +102,7 @@ function tipHtml(r: BattleResult, x: Settlement): string {
   return '';
 }
 
-/** 받은 것: 장비 줄 (보스마다 1개) · 재화 칸 · 경험치 줄 */
+/** 받은 것: 장비 줄 (클리어마다 1개) · 재화 칸 · 경험치 줄 */
 function lootHtml(r: BattleResult, x: Settlement): string {
   const tiles: string[] = [];
   // 재화는 한 줄 칩 (그림 · +값 · 이름, 2026-10-13 Lim 「골드 · 강화석 UI 점검」)
@@ -123,7 +123,7 @@ function lootHtml(r: BattleResult, x: Settlement): string {
 }
 
 /**
- * 받은 장비 줄들 (34 6-7 보스마다 1개). 장착은 캐릭터 탭에서 (2026-10-13 Lim: 「장착」 버튼 · 도감 줄 뺌)
+ * 받은 장비 줄 (34 6-7 클리어마다 1개, 2026-10-13). 장착은 캐릭터 탭에서 (2026-10-13 Lim: 「장착」 버튼 · 도감 줄 뺌)
  * 처음 얻은 특수능력은 장비가 여럿이어도 띠 하나로 (42 1-6): 묶음 표식 + 이름, 띠 머리에서 fx-spec-new 한 번 (36 4-6, 효과 줄이기면 없음)
  */
 function itemsHtml(x: Settlement): string {
@@ -184,8 +184,8 @@ function loseHtml(r: BattleResult, x: Settlement): string {
   const warn = (v: string, btn = '') => `<p class="f-warn"><i class="f-mark warn" aria-hidden="true">!</i><span class="v">${v}</span>${btn}</p>`;
   if (r.dispellable && r.dispels < r.dispellable) hints.push(warn(`해제 놓침 <b class="f-g">${r.dispellable - r.dispels}</b> / ${r.dispellable}`));
   if (r.minMana <= 10) hints.push(warn(`마나 바닥 <span class="cap">최저 ${r.minMana}%</span>`));
-  const rec = RECOMMENDED[r.diff];
-  if (rec && avgScore(G.save.gear.equipped) < rec.score) hints.push(warn(`장비가 권장(${rec.label})보다 낮음`, '<button class="btn2" type="button" data-go="s-char" data-arg="gear">장비</button>'));
+  const rec = recommendedFor(contentOf(r.content), r.diff);
+  if (rec && avgScore(G.save.gear.equipped, G.save.player.level) < rec.score) hints.push(warn(`장비가 권장(${rec.label})보다 낮음`, '<button class="btn2" type="button" data-go="s-char" data-arg="gear">장비</button>'));
   return `<section class="r-prog" aria-label="진행">${dots}<p>${where}${left}</p></section>
     ${hints.length ? `<div class="f-warns">${hints.join('')}</div>` : ''}
 `;

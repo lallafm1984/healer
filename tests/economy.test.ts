@@ -6,7 +6,7 @@ import { clearGold } from '../src/data/progression';
 import * as E from '../src/engine';
 import { dayKey, daysBetween, seasonOf, weekKey } from '../src/game/clock';
 import {
-  addPassXp, buyItem, buyPremium, chestState, claimChalChest, claimChest, claimMission, claimPass, craftShard, exchangeMerit, grantMember, isMember,
+  addPassXp, buyItem, buyPremium, chalChestOf, chestState, claimChalChest, claimChest, claimMission, claimPass, craftShard, exchangeMerit, grantMember, isMember,
   missionReady, onAct, onRun, passLevel, rollover, runGold, spendShard, swapMission,
 } from '../src/game/economy';
 import { settle, type BattleResult } from '../src/game/settle';
@@ -129,8 +129,21 @@ describe('주간 (13 3장)', () => {
     expect([s.weekly.craft, s.weekly.merit[10], s.weekly.loot.length, s.weekly.chalBest, s.chalChest]).toEqual([0, 0, 0, 0, 12]);
     const r = claimChalChest(s, rng, T0);
     expect(typeof r).toBe('object');
-    expect((r as { items: { grade: string }[] }).items.map(i => i.grade)).toEqual(['영웅']);
+    expect((r as { items: { grade: string }[] }).items.map(i => i.grade)).toEqual(['희귀']);
     expect(s.chalChest).toBe(0);
+  });
+  it('주간 도전 상자 (2026-10-13 Lim): 5단계 고급 1 · 10 희귀 1 · 15 영웅 1 · 20 영웅 2, 1~4단계는 골드만. 장비 · 골드는 받는 캐릭터 레벨', () => {
+    expect([1, 4, 5, 9, 10, 14, 15, 19, 20].map(n => chalChestOf(n).grades.join('+'))).toEqual(['', '', '고급', '고급', '희귀', '희귀', '영웅', '영웅', '영웅+영웅']);
+    const s = save(30);
+    s.heroes.druid = { ...(s.heroes.druid ?? {}), level: 80 } as never; // 다른 캐릭터가 더 높아도 이 캐릭터 레벨로
+    s.chalChest = 20;
+    const r = claimChalChest(s, rng, T0) as { items: { grade: string; lv?: number }[]; gold: number };
+    expect(r.items.map(i => [i.grade, i.lv])).toEqual([['영웅', 30], ['영웅', 30]]);
+    expect(r.gold).toBe(chalChestOf(20).goldRuns * runGold(30));
+    const t = save(30); t.chalChest = 3;
+    const g = claimChalChest(t, rng, T0) as { items?: unknown[]; gold: number };
+    expect(g.items ?? []).toEqual([]);
+    expect(g.gold).toBe(chalChestOf(3).goldRuns * runGold(30));
   });
 });
 

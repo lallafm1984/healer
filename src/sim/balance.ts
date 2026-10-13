@@ -9,11 +9,14 @@
  * 악몽보다 어려움이 어려워지는 숫자라 9-2로 맞춤 (2026-10-09).
  * 바쁨 하한 (Lim 2026-10-10 「초반에도 힐러가 충분히 바빠야 재미 있는데 조작이 너무 한가하다」): 쉬움 · 보통은 클리어율이 목표 안이어도
  * 받는 피해가 치유 한 번 크기로 분당 BUSY번이 안 되면 피해 배율을 올림 (클리어율이 목표값 아래로 가지 않는 만큼만).
+ * 순차 레벨링 구간 (70, 장소 Lv 20까지) 어려움 · 악몽은 권장 장비 대신 그 난이도가 처음 열린 플레이어의 레벨 · 드롭 장비 (sim/ramp, 2026-10-13 Lim
+ * 「Lv 1 어려움이 자동 힐로 안 깨짐」: 권장 장비로는 녹슨 고원 어려움 80%, 실제 Lv 3 · 장비 1~2개로는 3%).
  */
 import { diffAffixes, type AffixKey } from '../data/affixes';
 import { ALL_DIFFS, CONTENT, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
+import { gearStatsOf, specsOf } from '../data/equipment';
 import { presetSpecs, type GearId } from '../data/gear';
 import { HERO_KEYS, type HeroKey } from '../data/heroes';
 import type { ItemKey } from '../data/items';
@@ -24,6 +27,7 @@ import { restCarry } from '../engine/dungeon';
 import { create, recruitParty, step } from '../engine/fight';
 import type { Carry } from '../engine/types';
 import { SKILLS } from '../data/skills';
+import { rampLevel, rampPlayer, usesRamp } from './ramp';
 
 /** 목표 클리어율 (%). 쉬움·보통은 아래 선만 (넘으면 그대로), 어려움·악몽은 min~max 안. aim = 배율을 찾을 때 겨누는 값 */
 export const TARGET: Record<DiffName, { min: number; max: number; aim: number }> = {
@@ -49,11 +53,14 @@ const LO = 0.4, HI = 3;
 /** 맞출 장소: 만든 것만 (튜토리얼 첫 전투는 뺌) */
 export const balanceable = (c: ContentDef) => c.ready && !c.hidden && c.fights('보통').length > 0;
 
-export interface Std { lv: number; gear: GearId; affixes: AffixKey[] }
+/** 기준 조건: lv = 적 레벨, gear = 장비 (ramp = 순차 레벨링 기준 플레이어의 드롭 장비, 시드마다), heroLv = 내 레벨 (없으면 적 레벨) */
+export interface Std { lv: number; gear: GearId | 'ramp'; affixes: AffixKey[]; heroLv?: number }
 export function standard(c: ContentDef, d: DiffName): Std {
-  const lv = stageOf(c, d);
-  return { lv, gear: STD_GEAR[d], affixes: c.kind === 'dungeon' ? diffAffixes(d, lv) : [] };
+  const lv = stageOf(c, d), affixes = c.kind === 'dungeon' ? diffAffixes(d, lv) : [];
+  return usesRamp(c, d) ? { lv, gear: 'ramp', affixes, heroLv: rampLevel(c, d) } : { lv, gear: STD_GEAR[d], affixes };
 }
+/** 기준 조건 한 줄 (적 레벨 · 내 레벨 · 장비) */
+export const stdLabel = (s: Std) => `Lv ${String(s.lv).padStart(3)}${s.heroLv != null ? ` (내 Lv ${s.heroLv})` : ''} [${s.gear === 'ramp' ? '드롭 장비' : s.gear}${s.affixes.length ? ` · ${s.affixes.join('+')}` : ''}]`;
 
 /** 사제 특성: 열린 단만, 빌드 b = 0·1·2 칸 (scripts/sim-raids와 같음) */
 const build = (lv: number, b: number) => TALENTS.map(t => (t.lv <= lv ? b : null));
@@ -69,12 +76,14 @@ export interface Run {
 export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number, tune?: Tune): Run {
   const segs = c.fights(d), s = standard(c, d);
   const party = recruitParty(segs[0], seed, { abilities: true });
+  // 순차 레벨링 기준이면 시드마다 그 플레이어의 드롭 장비 (레벨은 시드와 상관없음)
+  const rp = s.gear === 'ramp' ? rampPlayer(c, d, hero, seed) : null, lv = s.heroLv ?? s.lv;
+  const gear = rp ? { gearStats: gearStatsOf(rp.eq, rp.lv), specs: specsOf(rp.eq, hero) } : { gear: s.gear as GearId, specs: presetSpecs(s.gear as GearId, hero) };
   let carry: Carry | undefined, time = 0, heals = 0;
   for (let i = 0; i < segs.length; i++) {
     const f = create({
-      encounter: segs[i], diff: d, gear: s.gear, seed: seed + i * 7919, items: ITEMS, hero, level: s.lv, heroLv: s.lv, stageLv: s.lv,
-      talents: hero === 'priest' ? build(s.lv, seed % 3) : undefined, party, affixes: s.affixes.length ? s.affixes : undefined, carry, tune,
-      specs: presetSpecs(s.gear, hero),
+      encounter: segs[i], diff: d, seed: seed + i * 7919, items: ITEMS, hero, level: lv, heroLv: lv, stageLv: s.lv,
+      talents: hero === 'priest' ? build(lv, seed % 3) : undefined, party, affixes: s.affixes.length ? s.affixes : undefined, carry, tune, ...gear,
     });
     const hp0 = f.party.reduce((a, u) => a + u.hp, 0);
     while (!f.over && f.t < MAX_T) { autoHealer(f); step(f); f.events.length = 0; }

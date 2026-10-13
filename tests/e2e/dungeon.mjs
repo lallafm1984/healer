@@ -203,7 +203,7 @@ export default async function dungeon(url, shots) {
   await page.screenshot({ path: `${shots}/dungeon_levelup.png` });
   await page.click('#s-settle .lvpop button'); await page.clock.runFor(50);
   let sv = await save();
-  ok(sv.player.level === 3 && sv.player.gold > 0 && sv.gear.bag.length === 2, `저장: Lv 3, 골드 ${sv.player.gold}, 가방에 장비 2개 (보스마다 1개, 34 6-7)`);
+  ok(sv.player.level === 3 && sv.player.gold > 0 && sv.gear.bag.length === 1, `저장: Lv 3, 골드 ${sv.player.gold}, 가방에 장비 1개 (클리어마다 1개, 2026-10-13)`);
   ok(sv.clears.rustfort['보통'].n === 1 && sv.last.win, '저장: 녹슨 요새 보통 클리어 기록');
   ok(await page.locator('#s-settle .r-loot button').count() === 0 && !/도감/.test(await page.textContent('#s-settle .r-loot')), '받은 것에 「장착」 버튼 · 도감 줄 없음 (2026-10-13 Lim, 장착은 캐릭터 탭)');
   const nx = await page.textContent('#s-settle #next');

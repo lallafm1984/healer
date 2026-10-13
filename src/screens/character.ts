@@ -7,7 +7,7 @@
  * 특성: 요약 · 프리셋 1·2·3 · 나무판에 단마다 메달 3개 + 고른 길(금빛 선) · 고르기 시트 / 직업: 천 깃발 · 곧 열림 · 양피지 상세 · 바꾸기
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
  */
-import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, enhanceForecast, kindOf, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, type GearItem, type GearLine, type ItemGrade, type SlotKey } from '../data/equipment';
+import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, enhanceForecast, kindOf, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
 import { DEB_COLOR, HERO_KEYS, HERO_SWITCH_LV, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
@@ -149,7 +149,7 @@ const slotIdx = (it: GearItem) => SLOTS.findIndex(x => x.key === it.slot);
 const gradeIdx = (it: GearItem) => ITEM_GRADES.indexOf(it.grade);
 /** 정렬 버튼을 누를 때마다 점수 → 등급 → 새것 */
 const SORTS: Record<BagSort, { name: string; next: BagSort; cmp: (a: GearItem, b: GearItem) => number }> = {
-  score: { name: '점수순', next: 'grade', cmp: (a, b) => itemScore(b) - itemScore(a) || slotIdx(a) - slotIdx(b) || b.id - a.id },
+  score: { name: '점수순', next: 'grade', cmp: (a, b) => itemScore(b, G.save.player.level) - itemScore(a, G.save.player.level) || slotIdx(a) - slotIdx(b) || b.id - a.id },
   grade: { name: '등급순', next: 'new', cmp: (a, b) => gradeIdx(b) - gradeIdx(a) || slotIdx(a) - slotIdx(b) || b.plus - a.plus },
   new: { name: '새것순', next: 'score', cmp: (a, b) => b.id - a.id },
 };
@@ -188,6 +188,8 @@ const gvars = (it: GearItem) => `--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE
 const plusTxt = (it: GearItem) => (it.plus ? ` +${it.plus}` : '');
 /** 비율 → 퍼센트 글자 (소수 한 자리, .0은 뺌): 0.085 → 8.5 */
 const pc = (x: number) => String(Math.round(x * 1000) / 10);
+/** 옵션 값 글자 (2026-10-13 Lim): 지능 · 체력은 수치 (정수, 천 단위 쉼표), 치명타 · 가속 · 정신력 · 인내는 고정 % */
+const optTxt = (k: StatKey, v: number, lv: number) => (isPointStat(k) ? fmt(Math.round(toPoints(k, v, lv))) : `${pc(v)}%`);
 /** 장비 그림 (36 4-2 · 4-3): 이름 있는 장신구 → 종류 → 부위 (item-<부위>) → 부위 선 아이콘. 빈칸은 부위 그림 */
 const itemIc = (x: SlotKey | Parameters<typeof gearIcon>[0]) => gearIcon(typeof x === 'string' ? { slot: x } : x);
 
@@ -259,7 +261,7 @@ function gearHtml(): string {
 /** 가방 칸: 장비 그림 + 등급 색 + +N + 지금 장비보다 점수가 높으면 초록 ▲ · 낮으면 빨간 ▼ (Lim 2026-10-11) + 새 점 */
 function bagCell(it: GearItem): string {
   const vs = vsWorn(it), nw = isNew(it);
-  const label = `${it.grade} ${slotName(it.slot)} · ${it.name}${plusTxt(it)}${specLabel(it)}${vs > 0 ? ' · 지금 장비보다 좋음' : vs < 0 ? ' · 지금 장비보다 나쁨' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
+  const label = `${it.grade} ${slotName(it.slot)} · ${it.name}${plusTxt(it)}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${vs > 0 ? ' · 지금 장비보다 좋음' : vs < 0 ? ' · 지금 장비보다 나쁨' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
   const arrow = vs > 0 ? '<span class="up" aria-hidden="true">▲</span>' : vs < 0 ? '<span class="dn" aria-hidden="true">▼</span>' : '';
   return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${lookFx(it, 'b')}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${arrow}${nw ? '<span class="nw"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
 }
@@ -376,7 +378,7 @@ function rrCostHtml(it: GearItem): string {
 function rrAltHtml(it: GearItem, kind: RerollKind): string {
   if (!rrAlt || rrAlt.id !== it.id || rrAlt.kind !== kind) return '';
   let txt: string;
-  if (kind === 'line') { const l = rrAlt.alt as GearLine; txt = `${STATS[l.stat].name} +${pc(lineValue(it, l))}%`; }
+  if (kind === 'line') { const l = rrAlt.alt as GearLine, lv = G.save.player.level; txt = `${STATS[l.stat].name} +${optTxt(l.stat, lineValue(it, l, lv), lv)}`; }
   else { const l = rrAlt.alt as SpecLine, d = SPECS[l.key]; txt = `${d.name} · ${specText(d, specValue(l.key, it.grade, l.roll))}`; }
   return `<div class="c7-rralt"><span class="cap">다른 후보</span><b>${esc(txt)}</b><button type="button" class="btn2" data-rrpick>이걸로</button></div>`;
 }
@@ -436,10 +438,15 @@ function itemSheet(id: number): string {
   const it = findItem(id);
   if (!it) return '';
   const eq = G.save.gear.equipped, worn = eq[it.slot]?.id === it.id, cur = worn ? null : eq[it.slot] ?? null;
-  const sc = scoreOf(it), a = itemStats(it), b = itemStats(cur);
-  const sub2 = [slotName(it.slot), esc(kindOf(it).name), it.unique ? '고유 장비' : it.look ? `${FACTIONS[it.look].name} 생김새` : '', it.grade, worn ? '착용 중' : isNew(it) ? '새로 얻음' : '', it.lock ? '잠김' : ''].filter(Boolean).join(' · ');
-  // 지금 장비와 차이: 퍼센트 포인트 (소수 한 자리)
-  const d1 = (k: (typeof STAT_KEYS)[number]) => Math.round((a[k] - b[k]) * 1000) / 10;
+  const lv = G.save.player.level, sc = scoreOf(it), a = itemStats(it, lv), b = itemStats(cur, lv);
+  // 아이템 레벨 (2026-10-13): 지능 · 체력 수치가 아이템 레벨을 따름
+  const sub2 = [slotName(it.slot), esc(kindOf(it).name), it.unique ? '고유 장비' : it.look ? `${FACTIONS[it.look].name} 생김새` : '', it.grade, it.lv != null ? `Lv\u00a0${it.lv}` : '', worn ? '착용 중' : isNew(it) ? '새로 얻음' : '', it.lock ? '잠김' : ''].filter(Boolean).join(' · ');
+  // 지금 장비와 차이: 지능 · 체력은 수치 (10 아래는 소수 한 자리), 나머지는 퍼센트 포인트 (소수 한 자리)
+  const d1 = (k: StatKey) => {
+    if (!isPointStat(k)) return Math.round((a[k] - b[k]) * 1000) / 10;
+    const x = toPoints(k, a[k] - b[k], lv);
+    return Math.abs(x) >= 10 ? Math.round(x) : Math.round(x * 10) / 10;
+  };
   const row = (k: string, v: string, right: string, cls = '') => `<div class="c7-cmp${cls}"><span>${k}</span><b>${v}</b>${right}</div>`;
   // 옵션 각성 룰렛 (34 7-2): 무작위 옵션 줄이 차례로 빛나다 각성한 줄에서 멈춤
   const aw = efx && efx.id === it.id && efx.awaken != null ? efx.awaken : null;
@@ -447,12 +454,12 @@ function itemSheet(id: number): string {
   // 연출 그림 (36 4-4 G · 4-6 J)은 효과 줄이기면 빼고 CSS 연출만
   const calm = !!G.save.settings.reducedEffects;
   // 옵션 줄 (Lim 2026-10-11): 왼쪽 = 능력치 · 값, 오른쪽 = 지금 장비와 차이 ▲▼ (착용 중이면 비움). 재설정 모드면 무작위 옵션 오른쪽에 굴림 막대 + ↻
-  const opts = optionsOf(it), has = new Set(opts.map(o => o.stat));
+  const opts = optionsOf(it, lv), has = new Set(opts.map(o => o.stat));
   const own = opts.map(o => {
     const l = o.line != null ? it.lines[o.line] : null;
     const awTag = l?.up ? '<i class="c7-awt">각성</i>' : '';
     const right = rrOn && l ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(l.roll * 100)}%"><i style="width:${Math.round(rollFill(l.roll) * 100)}%"></i></span>${rrBtn('line', o.line!, STATS[o.stat].name)}` : worn || rrOn ? '' : updn(d1(o.stat));
-    return row(STATS[o.stat].name, `+${pc(o.v)}%${awTag}`, `${right}${o.line != null && o.line === aw && !calm ? fxArt('fx-awaken', 'c7-fxawk') : ''}`, lineCls(o.line));
+    return row(STATS[o.stat].name, `+${optTxt(o.stat, o.v, lv)}${awTag}`, `${right}${o.line != null && o.line === aw && !calm ? fxArt('fx-awaken', 'c7-fxawk') : ''}`, lineCls(o.line));
   }).join('');
   // 지금 장비에만 있는 능력치: 빠지는 만큼 ▼ 한 줄로
   const lost = worn || rrOn ? [] : STAT_KEYS.filter(k => !has.has(k) && b[k] > 0);

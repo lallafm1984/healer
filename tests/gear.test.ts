@@ -1,8 +1,13 @@
 /** 장비 강화·분해·드롭 (02 10장, 12 3장) */
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  clearMats, ENHANCE_RATE, enhanceCost, equippedStats, gearStatsOf, itemName, itemStats, kindsOf, makeItem, OPTION_LINES, optionsOf, randomLines, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, takenStats, type GearItem,
+  avgScore, clearMats, ENHANCE_RATE, enhanceCost, equippedStats, gearStatsOf, ilvMult, itemName, itemScore, itemStats, kindsOf, makeItem, OPTION_LINES, optionsOf, randomLines, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, takenStats, STAT_POINT, isPointStat, toPoints, type GearItem,
 } from '../src/data/equipment';
+import { HEALER_HP } from '../src/game/charinfo';
+import { INT_BASE, RULES } from '../src/data/rules';
+import { apexOf, lvPower } from '../src/data/progression';
+/** 레벨 세기 = 레벨 배율 × 정점 수련 (힐러 지능 · 체력과 같은 눈금) */
+const str = (l: number) => lvPower(l) * apexOf(l);
 import { gearStats } from '../src/data/gear';
 import * as E from '../src/engine';
 import { damage } from '../src/engine/core';
@@ -58,7 +63,7 @@ describe('강화 (34 6-5: 확률, +2 이상 실패 시 1단계 하락, 12 3-2)',
 
 describe('분해 (12 3-1)', () => {
   beforeEach(() => { G.save = newSave(1); });
-  it('골드 = 등급값 + 강화 단계당 10%, 영웅·전설은 정제 강화석 (보스마다 드롭이라 골드 · 강화석 절반, 34 6-9)', () => {
+  it('골드 = 등급값 + 강화 단계당 10%, 영웅·전설은 정제 강화석 (골드 · 강화석은 처음 값의 절반, 34 6-9 · 2026-10-13 Lim 유지)', () => {
     expect(salvageOf(item({ grade: '일반' }))).toEqual({ gold: 5, stone: 1, refined: 0 });
     expect(salvageOf(item({ grade: '영웅', plus: 5 }))).toEqual({ gold: 150, stone: 3, refined: 1 });
   });
@@ -99,6 +104,66 @@ describe('세트 없음', () => {
   });
 });
 
+describe('아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비의 성능을 달리 하자」)', () => {
+  const staff = (lv?: number) => item({ slot: 'weapon', kind: 'staff', grade: '영웅', lv });
+  it('지능 · 체력 = 지금 값 × 아이템 레벨 세기 ÷ 내 레벨 세기: 같은 레벨이면 그대로, 낮은 곳 장비는 레벨이 오를수록 약해짐', () => {
+    expect(itemStats(staff(100), 100).int).toBeCloseTo(0.12);
+    expect(itemStats(staff(30), 30).int).toBeCloseTo(0.12);
+    expect(itemStats(staff(), 100).int).toBeCloseTo(0.12); // 아이템 레벨 없음 = 배율 1
+    // 녹슨 고원 악몽 (적 Lv 7) 영웅 지팡이를 Lv 100이 끼면 약 1/10
+    expect(ilvMult(7, 100)).toBeCloseTo(str(7) / str(100));
+    expect(itemStats(staff(7), 100).int).toBeCloseTo(0.12 * str(7) / str(100));
+    expect(itemStats(staff(7), 100).int).toBeLessThan(0.015);
+    expect(ilvMult(50, 100)).toBeGreaterThan(0.44); // Lv 50 장비를 Lv 100에서 = 약 45% (정점 수련 포함)
+    expect(ilvMult(50, 100)).toBeLessThan(0.46);
+    // 내 레벨보다 높은 곳 장비는 더 셈 (Lv 3에서 녹슨 고원 어려움 = 적 Lv 5)
+    expect(itemStats(staff(5), 3).int).toBeGreaterThan(0.12);
+    // 지능 · 체력은 주 옵션 · 무작위 옵션 · 각성 몫 · 강화 모두 같은 배율, 치명타 · 가속 · 정신력 · 인내는 고정 % (Lim 「10%가 9%로 떨어지면 헷갈림」)
+    const it = { ...staff(10), plus: 5, lines: [{ stat: 'spirit' as const, roll: 1, up: 0.02 }, { stat: 'hp' as const, roll: 0.8, up: 0.01 }] };
+    const same = optionsOf(it, 10), low = optionsOf(it, 20);
+    for (let i = 0; i < same.length; i++) expect(low[i].v).toBeCloseTo(same[i].v * (same[i].stat === 'int' || same[i].stat === 'hp' ? ilvMult(10, 20) : 1));
+    expect(itemStats(staff(7), 100).haste).toBeCloseTo(itemStats(staff(100), 100).haste);
+    expect(itemStats(staff(7), 100).haste).toBeCloseTo(0.05 * 1.3);
+    expect(gearStatsOf({ weapon: staff(7) }, 100).heal).toBeLessThan(gearStatsOf({ weapon: staff(100) }, 100).heal);
+  });
+  it('옵션은 % 대신 수치 (Lim 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」): 장비마다 고정, 아이템 레벨이 높을수록 큼', () => {
+    // 지능 단위 = 능력치 판 지능 눈금 (INT_BASE × 치유 배율), 체력 = 힐러 기본 체력
+    expect(STAT_POINT.int).toBe(INT_BASE * RULES.heal);
+    expect(STAT_POINT.hp).toBe(HEALER_HP);
+    expect(isPointStat('int') && isPointStat('hp')).toBe(true);
+    expect(['crit', 'haste', 'spirit', 'endure'].some(k => isPointStat(k as never))).toBe(false);
+    const pts = (it: GearItem, lv: number) => toPoints('int', itemStats(it, lv).int, lv);
+    // Lv 100 장소 영웅 지팡이 지능 ≈ 226 (정점 수련 포함), 녹슨 고원 악몽 것 ≈ 20. 내 레벨이 바뀌어도 수치는 그대로
+    expect(Math.round(pts(staff(100), 100))).toBe(Math.round(0.12 * 180 * str(100)));
+    expect(Math.round(pts(staff(7), 100))).toBe(Math.round(0.12 * 180 * str(7)));
+    for (const lv of [1, 30, 100]) expect(pts(staff(7), lv)).toBeCloseTo(pts(staff(7), 7));
+    expect(pts(staff(100), 100)).toBeGreaterThan(pts(staff(7), 100) * 9);
+  });
+  it('점수도 같은 배율 (추천 장착 · 더 좋은 장비 화살표 · 권장 장비)', () => {
+    const lowHero = staff(7), adv = (lv: number) => item({ slot: 'weapon', kind: 'staff', grade: '고급', lv });
+    expect(itemScore(lowHero, 7)).toBeGreaterThan(itemScore(adv(7), 7)); // 같은 레벨에선 등급이 높은 쪽
+    expect(itemScore(lowHero, 50)).toBeLessThan(itemScore(adv(50), 50)); // Lv 50에선 그 레벨 고급이 Lv 7 영웅보다 좋음
+    expect(avgScore({ weapon: staff(30) }, 30)).toBeCloseTo(itemScore(staff(), 30) / SLOTS.length);
+  });
+  it('떨어질 때 아이템 레벨 = 그 판 적 레벨 (탐험 · 던전은 장소 Lv + 난이도), 상자 · 상점은 내 레벨', () => {
+    expect(rollItem(rngFrom(3), '악몽', 'A', 3, 1, { place: 'plateau', lv: 7 }).lv).toBe(7);
+    expect(makeItem(rngFrom(3), 'head', '희귀', 1, undefined, { lv: 42 }).lv).toBe(42);
+    const s = newSave(1); s.tut = 3; s.player.level = 3;
+    const x = settle(s, { content: 'plateau', diff: '어려움', win: true, quit: false, reason: '', segIdx: 1, segN: 2, time: 120, restSec: 10, deaths: 0, healed: 5000, overheal: 1000, dispels: 0, dispellable: 0, endMana: 20, minMana: 5, auto: false, party: [], detail: [] }, rngFrom(5));
+    expect(x.items.length).toBe(1);
+    expect(x.items[0].lv).toBe(5);
+  });
+  it('옛 저장 장비는 읽을 때 그 직업 레벨 (지금 성능 그대로)', () => {
+    const s = newSave(1); s.player.level = 4;
+    s.gear.equipped = { weapon: { id: 1, slot: 'weapon', kind: 'staff', grade: '고급', plus: 0, name: '', lines: [] } };
+    s.gear.bag = [{ id: 2, slot: 'head', kind: 'hood', grade: '일반', plus: 0, name: '', lines: [] }];
+    const m = migrate(JSON.parse(JSON.stringify(s)));
+    expect(m.gear.equipped.weapon!.lv).toBe(4);
+    expect(m.gear.bag[0].lv).toBe(4);
+    expect(migrate(JSON.parse(JSON.stringify(m))).gear.equipped.weapon!.lv).toBe(4);
+  });
+});
+
 describe('클리어 재료', () => {
   const res = (o: Partial<BattleResult>): BattleResult => ({
     content: 'rustfort', diff: '보통', win: true, quit: false, reason: '', segIdx: 3, segN: 4, time: 360, restSec: 30, deaths: 0,
@@ -126,10 +191,10 @@ describe('장비 종류 · 옵션 (34 6-2 ~ 6-5)', () => {
     const r = rngFrom(5);
     for (let i = 0; i < 3000; i++) {
       const it = rollItem(r, '악몽', 'S', 60, i);
-      expect(optionsOf(it)).toHaveLength(OPTION_LINES[it.grade]);
+      expect(optionsOf(it, 30)).toHaveLength(OPTION_LINES[it.grade]);
     }
-    expect(optionsOf(item({ slot: 'weapon', kind: 'staff', grade: '일반' })).map(x => x.stat)).toEqual(['int']); // 일반 무기는 주 옵션만
-    expect(optionsOf(item({ slot: 'ring', kind: 'twin', grade: '일반' })).map(x => x.stat)).toEqual(['crit']); // 종류 옵션이 줄 수보다 많으면 앞 것만
+    expect(optionsOf(item({ slot: 'weapon', kind: 'staff', grade: '일반' }), 30).map(x => x.stat)).toEqual(['int']); // 일반 무기는 주 옵션만
+    expect(optionsOf(item({ slot: 'ring', kind: 'twin', grade: '일반' }), 30).map(x => x.stat)).toEqual(['crit']); // 종류 옵션이 줄 수보다 많으면 앞 것만
   });
   it('뽑은 장비: 그 부위 종류, 남은 줄만큼 무작위 옵션 (서로 다르고 주 · 종류 옵션과도 다름), 굴림 60~100%', () => {
     const r = rngFrom(5);
@@ -144,23 +209,23 @@ describe('장비 종류 · 옵션 (34 6-2 ~ 6-5)', () => {
   });
   it('주 옵션은 강화로 오르고, 종류 옵션은 장신구만 강화로 오름', () => {
     const staff = item({ slot: 'weapon', kind: 'staff', grade: '영웅' });
-    expect(itemStats(staff).int).toBeCloseTo(0.12);
-    expect(itemStats(staff).haste).toBeCloseTo(0.05 * 1.3);
-    expect(itemStats(staff).hp).toBe(0);
-    const s5 = itemStats({ ...staff, plus: 5 });
+    expect(itemStats(staff, 30).int).toBeCloseTo(0.12);
+    expect(itemStats(staff, 30).haste).toBeCloseTo(0.05 * 1.3);
+    expect(itemStats(staff, 30).hp).toBe(0);
+    const s5 = itemStats({ ...staff, plus: 5 }, 30);
     expect(s5.int).toBeCloseTo(0.12 * 1.4);
     expect(s5.haste).toBeCloseTo(0.05 * 1.3);
-    const robe = itemStats(item({ slot: 'chest', kind: 'robe', grade: '희귀', plus: 10 }));
+    const robe = itemStats(item({ slot: 'chest', kind: 'robe', grade: '희귀', plus: 10 }), 30);
     expect(robe.hp).toBeCloseTo(0.18 * 0.85 * 1.8);
     expect(robe.spirit).toBeCloseTo(0.08 * 1.3 * 0.85);
     expect(robe.int).toBe(0);
-    const signet = itemStats(item({ slot: 'ring', kind: 'signet', grade: '영웅', plus: 5 }));
+    const signet = itemStats(item({ slot: 'ring', kind: 'signet', grade: '영웅', plus: 5 }), 30);
     expect(signet.int).toBe(0);
     expect(signet.haste).toBeCloseTo(0.05 * 1.4);
   });
   it('무작위 옵션 값 = 능력치 기준값 × 부위 배율 × 등급 배율 × 굴림', () => {
     const it = item({ slot: 'hands', kind: 'gloves', grade: '전설', lines: [{ stat: 'crit', roll: 0.75 }, { stat: 'spirit', roll: 1 }] });
-    const s = itemStats(it);
+    const s = itemStats(it, 30);
     expect(s.crit).toBeCloseTo(0.04 * 1.3 * 1.2 * 0.75);
     expect(s.spirit).toBeCloseTo(0.08 * 1.3 * 1.2);
     expect(s.int).toBeCloseTo(0.1 * 1.2);
@@ -173,7 +238,7 @@ describe('장비 종류 · 옵션 (34 6-2 ~ 6-5)', () => {
     const r = rngFrom(9), n = 3000, sum = Object.fromEntries(STAT_KEYS.map(k => [k, 0])) as Record<string, number>;
     for (let i = 0; i < n; i++) {
       const eq = Object.fromEntries(SLOTS.map(s => [s.key, { ...makeItem(r, s.key, '희귀', i), plus: 5 }]));
-      const st = equippedStats(eq);
+      const st = equippedStats(eq, 30);
       for (const k of STAT_KEYS) sum[k] += st[k] / n;
     }
     const p = gearStats('rare5');
@@ -186,7 +251,7 @@ describe('장비 종류 · 옵션 (34 6-2 ~ 6-5)', () => {
   });
   it('전투: 체력은 내 최대 체력, 인내는 내가 받는 피해를 줄임', () => {
     const base = E.create({ encounter: 'warden', diff: '보통', seed: 1 });
-    const geared = E.create({ encounter: 'warden', diff: '보통', seed: 1, gearStats: { ...gearStatsOf({}), hp: 0.2, endure: 0.25 } });
+    const geared = E.create({ encounter: 'warden', diff: '보통', seed: 1, gearStats: { ...gearStatsOf({}, 1), hp: 0.2, endure: 0.25 } });
     expect(geared.me.max).toBeCloseTo(base.me.max * 1.2);
     const hit = (f: typeof base) => { const before = f.me.hp; damage(f, f.me, 100, false, 'fixed'); return before - f.me.hp; };
     expect(hit(geared)).toBeCloseTo(hit(base) * 0.75);

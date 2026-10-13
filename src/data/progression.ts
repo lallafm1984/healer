@@ -72,8 +72,10 @@ export const RAMP_LV = 20;
 export const RAMP_FIRST: Record<DiffName, number> = { '쉬움': 0.5, '보통': 0.6, '어려움': 0.7, '악몽': 0.8 };
 export const RAMP_REPEAT = 0.4;
 
-/** 순차 레벨링 구간: 내 레벨 RAMP_LV 이하 · 장소 Lv RAMP_LV까지의 탐험 · 던전 (튜토리얼 첫 전투 빼고) */
-export const inRamp = (c: ContentDef, level: number) => level <= RAMP_LV && isLeveling(c) && !c.hidden && c.stageLv <= RAMP_LV;
+/** 순차 레벨링 구간 장소: 장소 Lv RAMP_LV까지의 탐험 · 던전 (튜토리얼 첫 전투 빼고) */
+export const rampPlace = (c: ContentDef) => isLeveling(c) && !c.hidden && c.stageLv <= RAMP_LV;
+/** 순차 레벨링 구간: 내 레벨 RAMP_LV 이하 · 구간 장소 */
+export const inRamp = (c: ContentDef, level: number) => level <= RAMP_LV && rampPlace(c);
 
 const spans = new Map<ContentKey, number>();
 /** 장소 몫: 장소 레벨 → 다음 탐험 · 던전이 열리는 레벨까지 필요한 경험치 (같은 레벨에 장소가 여럿이면 나눔). 녹슨 고원 1 → 3, 고철 더미 언덕 3 → 5 */

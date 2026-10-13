@@ -156,7 +156,7 @@ export function claimChest(save: SaveData, r: () => number, now: number, double 
   else save.daily.banked--;
   // 골드는 계정 (가장 높은 직업), 장비는 지금 직업 레벨로 (장비가 직업마다, 2026-10-12)
   const lv = topLevel(save), my = save.player.level;
-  const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero });
+  const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero, lv: my });
   if (!double) onAct(save, 'chest');
   return give(save, { gold: runGold(lv), stone: CHEST_REWARD.stone, pass: double ? 0 : PASS_GAIN.chest, items: [it] }, now);
 }
@@ -188,11 +188,11 @@ export function claimGuildGoal(save: SaveData): string {
 }
 
 /**
- * 주간 도전 월요일 상자 (13 3-2): 지난주 최고 단계 기준 장비 등급 보장 (5 희귀 / 10 영웅 / 15 영웅 2개 / 20 영웅 3개).
- * 전설은 20인 레이드 악몽에서만 (61 3장, 2026-10-11 Lim)이라 20단계 전설 확률은 영웅 1개로 바꿈
+ * 주간 도전 월요일 상자 (13 3-2): 지난주 최고 단계 기준 장비 등급 보장 (2026-10-13 Lim): 5단계 고급 1 · 10 희귀 1 · 15 영웅 1 · 20 영웅 2.
+ * 1~4단계는 골드만 (예전: 고급 1 · 5 희귀 · 10 영웅 · 15 영웅 2 · 20 영웅 3). 전설은 20인 레이드 악몽에서만 (61 3장)
  */
 export function chalChestOf(stage: number): { grades: ItemGrade[]; goldRuns: number } {
-  const grades: ItemGrade[] = stage >= 20 ? ['영웅', '영웅', '영웅'] : stage >= 15 ? ['영웅', '영웅'] : stage >= 10 ? ['영웅'] : stage >= 5 ? ['희귀'] : ['고급'];
+  const grades: ItemGrade[] = stage >= 20 ? ['영웅', '영웅'] : stage >= 15 ? ['영웅'] : stage >= 10 ? ['희귀'] : stage >= 5 ? ['고급'] : [];
   return { grades, goldRuns: 1 + Math.floor(stage / 5) };
 }
 export function claimChalChest(save: SaveData, r: () => number, now: number): Gain | string {
@@ -203,8 +203,9 @@ export function claimChalChest(save: SaveData, r: () => number, now: number): Ga
   if (h && h !== save.hero) return `${HEROES[h].name}로 바꿔서 받기 (그 직업이 세운 기록)`;
   save.chalChest = 0;
   delete save.chalChestHero;
-  const c = chalChestOf(stage), lv = topLevel(save);
-  const items = c.grades.map(g => makeItem(r, SLOTS[Math.floor(r() * SLOTS.length)].key, g, save.nextId++, undefined, { hero: save.hero }));
+  // 장비 (아이템 레벨) · 골드 모두 받는 캐릭터 레벨 기준 (2026-10-13 Lim 「보상시 해당 캐릭터 레벨에 기반해서」, 예전 골드는 계정 최고 레벨)
+  const c = chalChestOf(stage), lv = save.player.level;
+  const items = c.grades.map(g => makeItem(r, SLOTS[Math.floor(r() * SLOTS.length)].key, g, save.nextId++, undefined, { hero: save.hero, lv }));
   return give(save, { gold: c.goldRuns * runGold(lv), items, pass: PASS_GAIN.challenge }, now);
 }
 
@@ -264,7 +265,7 @@ export function exchangeMerit(save: SaveData, slot: SlotKey, r: () => number = M
   if (save.wallet.merit < MERIT_GEAR_COST) return `공훈 부족 (${MERIT_GEAR_COST} 필요)`;
   save.wallet.merit -= MERIT_GEAR_COST;
   const g: ItemGrade = '영웅';
-  const it = makeItem(r, slot, g, save.nextId++, undefined, { hero: save.hero });
+  const it = makeItem(r, slot, g, save.nextId++, undefined, { hero: save.hero, lv: save.player.level });
   save.gear.bag.push(it);
   noteSpecs(save, [it]);
   return it;
