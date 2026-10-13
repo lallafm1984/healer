@@ -1,50 +1,102 @@
-/*
- * 주간 도전 입장 「모래시계 시련」 (2026-10-12 Lim 「공략 창처럼 비슷한 테마로」): 공략 창과 같은 길드 홀 색.
- * 나무결 대신 평평한 어두운 돌색 · 금테 카드 · 노란 제목. 색은 guide-sheet.css의 --gk-* 한 벌을 씀.
- * 위 정보창(a2-topbar.css)과 「편성으로」 붉은 버튼 그림은 그대로.
- */
+/* 주간 도전: 편성의 돌색 패널 · 캐릭터의 단색 버튼 · 공통 금색 테두리.
+ * 흐름 헤더와 하단 편성 버튼은 기존 공통 스타일을 유지한다. */
 #s-entry {
-  background-color: #15120e; background-image: linear-gradient(#1d1812, #15120e 240px); background-blend-mode: normal;
-  color: var(--gk-ink);
+  background: #18140f; color: var(--gk-ink);
 }
-
-/* 단계 고르기: − 1단계 + */
-#s-entry .chalstep .btn2 {
-  background: var(--gk-btn); border: 1px solid var(--gk-edge); border-radius: 10px; box-shadow: none;
-  color: var(--gk-head); font-weight: 800;
-}
-#s-entry .chalstep .btn2:active { background: var(--gk-btn-on); }
-#s-entry .chalstep .btn2:disabled { filter: none; opacity: .4; }
-#s-entry .chalstep b { color: var(--gk-head); }
-#s-entry .f-cinfo { color: var(--gk-mute); }
-#s-entry .f-cinfo b { color: var(--gk-ink); }
-#s-entry .note.center { color: var(--gk-mute); }
-
-/* 카드: 어픽스 · 구간 · 보상 */
+#s-entry .f-ebody { gap: 8px; padding: 10px 14px 12px; }
 #s-entry .pn {
-  background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 10px; box-shadow: none;
-  color: var(--gk-ink);
+  flex: none; min-width: 0; margin: 0; background: #272119;
+  border: 1px solid #80653c; border-radius: 9px;
+  box-shadow: inset 0 1px #edd6a318; color: var(--gk-ink);
 }
-#s-entry .h-rule { color: var(--gk-head); }
-#s-entry .h-rule > .rule { background: linear-gradient(90deg, var(--gk-card-bd), transparent); }
-#s-entry .h-rule > .cap { color: var(--gk-mute); }
-#s-entry .f-afr { border-top-color: var(--gk-line); }
-#s-entry .f-afd { color: var(--gk-ink); }
-#s-entry .f-afd small { color: var(--gk-mute); }
-#s-entry .f-rw > .cap { color: var(--gk-ink2); }
+#s-entry .f-sec { padding: 8px 12px; }
+#s-entry .h-rule { margin: 0 0 6px; gap: 8px; color: #f1d28e; font-size: 16px; line-height: 20px; }
+#s-entry .h-rule > .rule { background: #80653c66; }
+#s-entry .h-rule > .cap { color: #b8a98e; font-size: 10px; font-weight: 400; white-space: nowrap; }
 
-/* 구간 길: 공략 창 길과 같은 점 · 마름모 */
-#s-entry .segs.f-tl li { color: var(--gk-mute); }
-#s-entry .segs.f-tl li + li::after { background: var(--gk-line); }
-#s-entry .f-tl .f-nd { background: var(--gk-chip); border-color: var(--gk-mute); }
-#s-entry .f-tl li.elite .f-nd { border-color: var(--gk-edge); }
-#s-entry .f-tl li.boss .f-nd { border-color: #b0302a; background: #6a1d17; }
-#s-entry .f-tl li.boss:last-child .f-nl { color: var(--gk-ink); font-weight: 700; }
+/* 단계 선택과 핵심 수치를 한 카드에 */
+#s-entry .wc-overview { padding: 10px 12px 8px; }
+#s-entry .wc-stage { display: flex; align-items: center; gap: 12px; }
+#s-entry .wc-emblem { flex: none; width: 64px; height: 60px; display: grid; place-items: center; }
+#s-entry .wc-emblem img { width: 100%; height: 100%; object-fit: contain; }
+#s-entry .wc-stage-controls { flex: 1; min-width: 0; }
+#s-entry .wc-stage-controls > .cap { display: block; text-align: center; color: #d5c5a6; font-size: 11px; }
+#s-entry .chalstep { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 5px; margin: 2px 0 0; }
+#s-entry .chalstep .btn2 {
+  width: 44px; height: 44px; padding: 0; min-height: 44px;
+  background: #352a1d; border: 1px solid #a58756; border-radius: 7px;
+  box-shadow: inset 0 1px #f5ddb82b; color: #f5dfb2; font-size: 24px; font-weight: 600;
+}
+#s-entry .chalstep .btn2:active { background: #eee0c2; color: #35220f; }
+#s-entry .chalstep .btn2:focus-visible { outline: 2px solid #ffe3a0; outline-offset: 2px; }
+#s-entry .chalstep .btn2:disabled { filter: none; opacity: .35; }
+#s-entry .chalstep b { color: #ffe0a0; font: 800 30px/44px var(--font-display); white-space: nowrap; }
+#s-entry .f-cinfo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 6px 0 0; padding: 5px 0; border-top: 1px solid #a5875640; border-bottom: 1px solid #a5875640; background: #1c1812; }
+#s-entry .f-cinfo > div { text-align: center; }
+#s-entry .f-cinfo > div + div { border-left: 1px solid #a5875640; }
+#s-entry .f-cinfo dt { color: #baaa8f; font-size: 10px; line-height: 12px; }
+#s-entry .f-cinfo dd { margin: 1px 0 0; color: #f5e8cd; font: 800 17px/1.2 var(--font-display); font-variant-numeric: tabular-nums; }
+#s-entry .f-cinfo > div:first-child dd { color: #f1d28e; }
+#s-entry .wc-record { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin: 7px 0 0; color: #b8a98e; font-size: 10px; }
+#s-entry .wc-record b { margin-left: 4px; color: #eee0c2; font-weight: 600; }
 
-/* 경고 줄 (장비 부족 등) */
-#s-entry .f-warn { background: var(--gk-card); border-color: var(--gk-card-bd); }
-#s-entry .f-warn .v { color: var(--gk-ink); }
-#s-entry .f-warn .v .cap { color: var(--gk-mute); }
+/* 어픽스는 기존 설명과 팁을 유지하고 이름 칩을 패널 안에 정렬 */
+#s-entry .f-afr { min-height: 40px; padding: 5px 0; gap: 9px; border-top-color: #a5875630; }
+#s-entry .f-afr:last-child { padding-bottom: 0; }
+#s-entry .f-afx { flex: none; min-width: 46px; padding: 4px 6px; background: #56271f; border: 1px solid #936145; border-radius: 4px; text-align: center; color: #f0d2b3; }
+#s-entry .f-afx.good { background: #304031; border-color: #72835b; color: #deebc5; }
+#s-entry .f-afd { min-width: 0; color: #eee0c2; font-size: 12px; line-height: 1.35; }
+#s-entry .f-afd small { margin-top: 2px; color: #b8a98e; font-size: 10px; }
 
-/* 아래 고정 줄: 나무결 대신 바탕색, 붉은 「편성으로」 그림은 그대로 */
-#s-entry .ns-foot.f-foot { background: #15120e; border-top: 1px solid var(--gk-line); }
+/* 구간은 공략 화면과 같은 노드 표시 */
+#s-entry .segs.f-tl { margin: 0; }
+#s-entry .segs.f-tl li { color: #c9b99a; font-size: 10px; line-height: 13px; gap: 3px; }
+#s-entry .f-tl .f-ndw { height: 24px; }
+#s-entry .segs.f-tl li + li::after { top: 11px; background: #675132; }
+#s-entry .f-tl .f-nd { background: #352a1d; border-color: #b49b71; }
+#s-entry .f-tl li.elite .f-nd { border-color: #e0bd77; }
+#s-entry .f-tl li.boss .f-nd { border-color: #b8664d; background: #6a2f23; }
+#s-entry .f-tl li.boss:last-child .f-nl { color: #f0d7a6; font-weight: 700; }
+
+/* 보상: 판마다 받는 아이콘 행, 최고 기록에 따른 월요일 상자 */
+#s-entry .wc-rewards { gap: 0; }
+#s-entry .wc-reward-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 6px; }
+#s-entry .wc-reward-grid > div { min-width: 0; display: flex; align-items: center; justify-content: center; gap: 5px; }
+#s-entry .wc-reward-grid > div > img,
+#s-entry .wc-reward-grid .currency-icon { flex: none; width: 28px; height: 28px; object-fit: contain; }
+#s-entry .wc-reward-grid .currency-icon img { width: 100%; height: 100%; object-fit: contain; }
+#s-entry .wc-reward-grid > div > span:not(.currency-icon) { color: #b8a98e; font-size: 10px; line-height: 1.4; }
+#s-entry .wc-reward-grid b { display: block; color: #f2e2c0; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#s-entry .wc-festival { margin: -3px 0 6px; font-size: 10px; color: #e4ca87; text-align: center; }
+#s-entry .wc-chest { display: flex; align-items: center; gap: 8px; padding-top: 6px; border-top: 1px solid #a5875640; }
+#s-entry .wc-chest > img { width: 28px; height: 28px; flex: none; object-fit: contain; }
+#s-entry .wc-chest > div { min-width: 0; }
+#s-entry .wc-chest span { display: block; font-size: 11px; color: #f1d28e; }
+#s-entry .wc-chest small { margin-left: 4px; color: #b8a98e; font-size: 9px; }
+#s-entry .wc-chest b { display: block; margin-top: 2px; color: #eee0c2; font-size: 11px; font-weight: 500; }
+#s-entry .wc-milestones { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin-top: 5px; }
+#s-entry .wc-milestones > span { padding: 3px 0; line-height: 1.3; text-align: center; border-radius: 4px; background: #1c1812; border: 1px solid #a587562b; }
+#s-entry .wc-milestones small { display: block; color: #ab9a7e; font-size: 9px; }
+#s-entry .wc-milestones b { display: block; margin-top: 1px; color: #d7c5a2; font-size: 10px; font-weight: 500; }
+#s-entry .wc-milestones .reached { border-color: #a58756; background: #3a2e1f; }
+#s-entry .wc-milestones .reached b { color: #ffe0a0; }
+#s-entry .f-warn { background: #272119; border-color: #80653c; }
+#s-entry .f-warn .v { color: #eee0c2; }
+#s-entry .f-warn .v .cap { color: #b8a98e; }
+#s-entry .ns-foot.f-foot { background: #18140f; border-top: 1px solid #80653c66; }
+@media (max-width: 359px) {
+  #s-entry .f-ebody { padding-left: 10px; padding-right: 10px; }
+  #s-entry .wc-stage { gap: 6px; }
+  #s-entry .wc-emblem { width: 50px; height: 60px; }
+  #s-entry .chalstep b { font-size: 25px; }
+  #s-entry .wc-reward-grid { gap: 4px; }
+  #s-entry .wc-reward-grid > div { gap: 3px; }
+  #s-entry .wc-reward-grid > div > img, #s-entry .wc-reward-grid .currency-icon { width: 23px; height: 23px; }
+}
+@media (max-height: 780px) and (min-height: 600px) {
+  #s-entry .f-ebody { gap: 7px; padding-top: 8px; padding-bottom: 8px; }
+  #s-entry .f-sec { padding-top: 8px; padding-bottom: 8px; }
+  #s-entry .wc-overview { padding-top: 7px; }
+  #s-entry .wc-emblem { height: 58px; }
+  #s-entry .f-cinfo { margin-top: 5px; padding: 5px 0; }
+}

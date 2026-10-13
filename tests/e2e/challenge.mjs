@@ -81,7 +81,7 @@ export default async function challenge(url, shots) {
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   await page.click('#s-content [data-chal]'); await page.clock.runFor(100);
   const ent = await text('#s-entry');
-  ok((await text('#s-entry .chalstep b')) === '1단계' && await page.isDisabled('#s-entry [data-cstep="1"]') && /7:00/.test(ent) && /메마름/.test(ent) && /광고 이어하기 없음/.test(ent), '도전 입장: 1단계 · 제한 7:00 · 이번 주 어픽스 · 규칙');
+  ok((await text('#s-entry .chalstep b')) === '1단계' && await page.isDisabled('#s-entry [data-cstep="1"]') && /7:00/.test(ent) && /메마름/.test(ent) && !/제한시간 안에 깨면|실패해도 단계 유지|광고 이어하기 없음/.test(ent), '도전 입장: 1단계 · 제한 7:00 · 이번 주 어픽스, 하단 규칙 문구 없음');
   await page.screenshot({ path: `${shots}/challenge_entry.png`, fullPage: true });
   await page.click('#entryGo'); await page.clock.runFor(100);
   ok(/주간 도전 1단계/.test(await text('#s-party .topbar')) && (await page.locator('#reroll, #adReroll').count()) === 0, '주간 도전 편성: 다시 뽑기·광고 다시 뽑기 버튼 없음');
