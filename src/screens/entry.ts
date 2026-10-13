@@ -11,8 +11,8 @@ import { dropTable, topGrade } from '../data/equipment';
 import { runMode } from '../game/runmode';
 import { G } from '../game/state';
 import { esc, fmt, go, mmss, screen } from './kit';
-import { currencyIcon, gameIcon, uiIcon } from './art';
-import { afxRows, ARROW, cover, flowHead, timeline, warnings } from './brief';
+import { currencyIcon, gameIcon } from './art';
+import { afxRows, flowHead, timeline, warnings } from './brief';
 
 const s = screen('s-entry', '주간 도전', { enter() { render(); } });
 
@@ -28,7 +28,7 @@ function render(): void {
   const xp = clearXp(G.save.player.level, d, 'A', { win: true });
   const box = best ? chalChestOf(best) : null;
   const chestReward = box ? [...new Set(box.grades)].map(grade => `${grade} ${box.grades.filter(g => g === grade).length}개`).join(' · ') || '골드' : '';
-  s.el.innerHTML = `${cover(c, flowHead('s-content', CHAL.name, `${esc(c.name)} ${d} · ${c.size(d)}인`, `<span class="f-hg sm">${uiIcon('hourglass')}</span>`))}
+  s.el.innerHTML = `${flowHead('s-content', CHAL.name, `${esc(c.name)} ${d} · ${c.size(d)}인`)}
     <div class="ns-body f-ebody">
       <section class="pn wc-overview" aria-label="도전 단계">
         <div class="wc-stage"><span class="wc-emblem" aria-hidden="true">${gameIcon('challenge', '')}</span><div class="wc-stage-controls"><span class="cap">도전 단계</span>
@@ -47,7 +47,7 @@ function render(): void {
         <div class="wc-milestones" aria-label="월요일 상자 단계별 보상">${[5, 10, 15, 20].map(stage => { const reward = chalChestOf(stage); return `<span${best >= stage ? ' class="reached"' : ''}><small>${stage}단계</small><b>${reward.grades[0]} ${reward.grades.length}개</b></span>`; }).join('')}</div>
       </section>
     </div>
-    <footer class="ns-foot f-foot"><button class="f-go" type="button" id="entryGo">${uiIcon('hourglass')}<span class="cta2"><span class="f-gt">편성으로</span><small>주간 도전 ${Flow.chal}단계</small></span>${ARROW}</button></footer>`;
+    <footer class="ns-foot f-foot"><button class="f-go" type="button" id="entryGo"><span class="cta2"><span class="f-gt">편성으로</span><small>주간 도전 ${Flow.chal}단계</small></span></button></footer>`;
 }
 
 s.el.addEventListener('click', e => {
