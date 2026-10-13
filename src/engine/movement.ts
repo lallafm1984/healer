@@ -2,6 +2,7 @@ import { hexDist } from './board';
 import { bark, cellOf, living } from './core';
 import { abMoved, dodgeMods, moveMods, reactMods } from './abilities';
 import { sv } from './specials';
+import { posPref } from './position';
 import type { Cell, Fight, Role, Telegraph, Unit, Zone } from './types';
 
 export type Zone3 = 'front' | 'mid' | 'back';
@@ -60,6 +61,7 @@ export function pickCell(f: Fight, u: Unit, opts: PickOpts): Cell | null {
     if (opts.safe && dangerAt(f, c.i, opts.extra)) continue;
     let s = 100;
     s += ZONE_PREF[u.role][zoneOf(f, c.row)] * (u.role === 'tank' ? 1 : 0.8);
+    if (f.R.pos) s += posPref(f, u.role, c, 40); // 위치 규칙: 지키는 칸 쪽으로 (막히면 밖으로)
     s += (u.p.dist || 0) * adjAllies(f, c, u) * 8;
     s -= 10 * hexDist(cur, c);
     if (opts.back) s += c.row * 40 - adjAllies(f, c, u) * 5;

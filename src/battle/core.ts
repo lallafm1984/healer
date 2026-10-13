@@ -245,6 +245,7 @@ const noteLife = (text: string) => Math.min(7000, 3600 + Math.max(0, text.length
 function showNote(): void {
   const box = $('toast'), el = box.firstElementChild as HTMLElement | null;
   clearTimeout(noteTimer);
+  if (alarmOn) return; // 붉은 경고가 떠 있는 동안 메시지는 기다림 (꺼지면 이어서)
   $('castbar').classList.toggle('has-msg', !!el);
   if (!el) return;
   if (!el.classList.contains('on')) { el.classList.add('on'); noteAt = performance.now(); }
@@ -261,7 +262,26 @@ export function toast(text: string, kind?: 'bad' | 'good'): void {
   showNote();
 }
 /** 전투를 새로 시작할 때 */
-export function clearToasts(): void { clearTimeout(noteTimer); $('toast').innerHTML = ''; $('castbar').classList.remove('has-msg'); }
+export function clearToasts(): void { clearTimeout(noteTimer); $('toast').innerHTML = ''; $('castbar').classList.remove('has-msg'); alarm(null); }
+
+/**
+ * 붉은 경고 (위치 규칙 · 탱커 앞줄 이탈, 2026-10-13 Lim 「어그로라는 말을 모를 수 있으니 쉬운 말로」): 상황이 이어지는 동안 메시지 자리를 차지함.
+ * 다른 메시지는 뒤에서 기다렸다가 꺼지면 이어서. 처음 켜질 때만 짧게 진동
+ */
+let alarmOn = '';
+export function alarm(a: { title: string; text: string } | null): void {
+  const key = a ? `${a.title}|${a.text}` : '';
+  if (key === alarmOn) return;
+  const was = !!alarmOn, el = $('alarm');
+  alarmOn = key;
+  el.hidden = !a;
+  $('castbar').classList.toggle('has-alarm', !!a);
+  if (a) {
+    el.querySelector('b')!.textContent = a.title;
+    el.querySelector('span')!.textContent = a.text;
+    if (!was) vibe([30, 50, 30]);
+  } else { noteAt = performance.now(); showNote(); }
+}
 let bannerTimer: ReturnType<typeof setTimeout> | undefined;
 export function banner(text: string): void {
   const b = $('banner');

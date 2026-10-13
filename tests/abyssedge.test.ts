@@ -21,14 +21,14 @@ describe('심연 가장자리', () => {
     expect(def.debuff).toMatchObject({ trap: true, end: { p: 'spread' } });
     const f = E.create({ encounter: 'plague33', diff: '보통', seed: 2, level: 33 });
     f.skills.forEach(s => { s.next = Infinity; });
-    const u = f.party.find(x => x.role === 'ranged')!, tank = f.party.find(x => x.role === 'tank')!;
-    const free = f.cells.find(c => !c.block && hexDist(c, f.cells[u.cell]) === 1 && !f.party.some(v => v.cell === c.i))!;
-    tank.cell = free.i;
+    // 탱커를 원거리 옆으로 옮기면 위치 규칙 (2026-10-13)으로 1열로 돌아가 버림 → 맨 뒷줄 옆자리인 나에게 퍼지는지로 봄
+    const u = f.party.find(x => x.role === 'ranged')!;
+    expect(hexDist(f.cells[f.me.cell], f.cells[u.cell])).toBe(1);
     applyDebuff(f, u, def.debuff);
     const end = f.t + 10;
     while (f.t < end && u.debuffs.some(d => d.name === '전염')) E.step(f);
     expect(u.debuffs.some(d => d.name === '전염')).toBe(false);
-    expect(tank.debuffs.some(d => d.name === '독침')).toBe(true);
+    expect(f.me.debuffs.some(d => d.name === '독침')).toBe(true);
   });
 
   it('Lv 44 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {

@@ -8,6 +8,7 @@ import { charmTick, land, pullTick } from './bossParts';
 import { abFear, dpsMods, hasMod } from './abilities';
 import { dotSpec, dpsSpec, hotDone, shieldGone, sv, under } from './specials';
 import { barkCut } from './heroes';
+import { frontCell, posDps } from './position';
 import type { PersName } from '../data/personalities';
 import type { Cell, Debuff, Fight, Unit } from './types';
 
@@ -152,6 +153,11 @@ function think(f: Fight, u: Unit): void {
   }
   // 옮겨붙음 본판 (P-JUMP, 46 3-1) · 부풀기 (P-SWELL, 46 4-1): 들면 옆에 아무도 없는 칸으로 비켜 섬 (지워도 옆 사람이 안 맞게)
   if (u.debuffs.length && !u.me) { const d = u.debuffs.find(x => awayFrom(x) && !x.stepped); if (d && stepAway(f, u, d.left)) return; }
+  // 위치 규칙 (2026-10-13 Lim): 1열에 탱커가 없어 적이 아무나 때리면, 탱커가 비어 있는 안전한 1열 칸으로 바로 나가 다시 잡음 (거기가 새 자리)
+  if (f.loose && u.role === 'tank' && !u.pulled && !(u.padUntil != null && u.padUntil > f.t) && !(u.awayUntil != null && u.awayUntil > f.t)) {
+    const c = frontCell(f, u);
+    if (c && c.i !== u.cell && moveTo(f, u, c)) { u.home = c.i; u.homeAt = null; return; }
+  }
   // 회피가 끝나면 원래 자리로 복귀 (04 3장 상태 머신). 신중파는 1초 더 기다림
   if (!u.fleeing && !u.pulled && !(u.padUntil != null && u.padUntil > f.t) && !(u.awayUntil != null && u.awayUntil > f.t) && u.home >= 0 && u.cell !== u.home) {
     const h = f.cells[u.home];
@@ -224,13 +230,15 @@ export function partyDps(f: Fight): number {
   return s;
 }
 
-/** 파티원 1명 초당 딜. f가 있으면 장비 특수능력 (42 2-7 지원)까지 */
+/** 파티원 1명 초당 딜. f가 있으면 장비 특수능력 (42 2-7 지원) · 위치 규칙까지 */
 export function unitDps(u: Unit, f?: Fight): number {
   if (!u.alive || u.fleeing || u.me || u.lift) return 0; // 띄워 올려진 동안 딜 0 (P-LIFT)
   if (u.debuffs.length && u.debuffs.some(d => d.noDps)) return 0; // 얼림·침묵·삼킴
   if (u.immune > 0) return 0; // 보호의 손: 그동안 딜 0
   if (u.moving) return 0; // 움직이는 동안 딜 0 (모든 직업)
-  let d = u.dps * (u.p.dps || 1);
+  const pos = f?.R.pos ? posDps(f, u) : 1; // 위치 규칙: 근접은 1 · 2열에서만, 원거리는 1 · 2열이면 50%
+  if (pos <= 0) return 0;
+  let d = u.dps * (u.p.dps || 1) * pos;
   for (const x of u.debuffs) if (x.dpsCut) d *= 1 - x.dpsCut; // 하품 (54 4-3)
   if (u.sulking) d *= 0.75;
   if (u.thanks > 0) d *= 1.1;
