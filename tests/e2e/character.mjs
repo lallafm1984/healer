@@ -137,7 +137,7 @@ export default async function character(url, shots) {
   await page.screenshot({ path: `${shots}/char_skill_lv25.png`, fullPage: false });
   await page.click('#s-char [data-csub="gear"]'); await page.clock.runFor(50);
   const st25 = await flat('#s-char .c7-stats');
-  ok(/체력1,382/.test(st25) && /지능452/.test(st25), `Lv 25 = 체력 220 × 6.28 · 지능 72 × 6.28 (34 1-2 레벨 배율, 1-6 치유 배율) (${st25.slice(0, 60)})`);
+  ok(/체력1,065/.test(st25) && /지능348/.test(st25), `Lv 25 = 체력 220 × 4.84 · 지능 72 × 4.84 (34 1-2 레벨 배율 +16%, 1-6 치유 배율) (${st25.slice(0, 60)})`);
   await page.click('#s-char .c7-stats'); await page.clock.runFor(50);
   const src = await text('#s-char .c7-ssheet');
   ok(!(await text('#s-char .c7-src:nth-child(5) > b')).startsWith('+'), '정신력 상세 값 앞에 + 없음');

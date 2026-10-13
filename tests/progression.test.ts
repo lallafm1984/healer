@@ -1,6 +1,7 @@
 /** 성장·보상 (24 문서): 경험치 곡선, 골드, 장비 드롭, 장비 능력치, 정산 */
 import { describe, expect, it } from 'vitest';
 import { chalDropDiff } from '../src/data/challenge';
+import { CLASSES } from '../src/data/classes';
 import { CONTENT, contentOf, isLeveling, stageOf } from '../src/data/content';
 import { avgScore, dropTable, gearStatsOf, ITEM_GRADES, rollItem, SLOTS, type Equipped } from '../src/data/equipment';
 import { gearStats } from '../src/data/gear';
@@ -71,10 +72,10 @@ describe('경험치·레벨 (02 부록 B)', () => {
 
 describe('레벨 배율 (07 4장, 18 2-1)', () => {
   it('Lv 1 = 1, 레벨마다 +0.08, Lv 100 ≈ 8.9배', () => {
-    // 34 1-2: Lv 1 = 0.4 (숫자 ÷2.5), 레벨마다 Lv 1 값의 +22% → Lv 100 ≈ 9.1
+    // 34 1-2: Lv 1 = 0.4 (숫자 ÷2.5), 레벨마다 Lv 1 값의 +16% → Lv 100 ≈ 6.74 (2026-10-13 Lim 「100레벨 탱커 6천대」)
     expect(lvPower(1)).toBeCloseTo(0.4);
-    expect(lvPower(2)).toBeCloseTo(0.488);
-    expect(lvPower(100) / lvPower(1)).toBeCloseTo(22.78);
+    expect(lvPower(2)).toBeCloseTo(0.464);
+    expect(lvPower(100) / lvPower(1)).toBeCloseTo(16.84);
     expect(lvPower(0)).toBeCloseTo(0.4);
     expect(lvPower(150)).toBeCloseTo(lvPower(100));
     expect(lvPowerProto(1)).toBe(1);
@@ -103,23 +104,29 @@ describe('레벨 배율 (07 4장, 18 2-1)', () => {
     expect([p.scale, p.power, p.dmgMult]).toEqual([1, 1, 1]);
   });
 
-  it('단계 Lv 11 = 파티원·보스 체력·딜·피해 ×3.2, 같은 레벨 힐러도 ×3.2', () => {
+  it('단계 Lv 11 = 파티원·보스 체력·딜·피해 ×2.6, 같은 레벨 힐러도 ×2.6', () => {
     const a = E.create(cfg), b = E.create({ ...cfg, stageLv: 11, heroLv: 11 });
-    expect(b.scale / a.scale).toBeCloseTo(3.2);
-    expect(b.power / a.power).toBeCloseTo(3.2);
-    expect(b.bossMax).toBeCloseTo(a.bossMax * 3.2);
-    expect(b.dmgMult).toBeCloseTo(a.dmgMult * 3.2);
+    expect(b.scale / a.scale).toBeCloseTo(2.6);
+    expect(b.power / a.power).toBeCloseTo(2.6);
+    expect(b.bossMax).toBeCloseTo(a.bossMax * 2.6);
+    expect(b.dmgMult).toBeCloseTo(a.dmgMult * 2.6);
     b.party.forEach((u, i) => {
-      expect(u.max).toBeCloseTo(a.party[i].max * 3.2);
-      expect(u.dps).toBeCloseTo(a.party[i].dps * 3.2);
+      expect(u.max).toBeCloseTo(a.party[i].max * 2.6);
+      expect(u.dps).toBeCloseTo(a.party[i].dps * 2.6);
     });
-    expect(E.partyDps(b)).toBeCloseTo(E.partyDps(a) * 3.2);
+    expect(E.partyDps(b)).toBeCloseTo(E.partyDps(a) * 2.6);
+  });
+
+  it('Lv 100 탱커 체력 6천대 (2026-10-13 Lim 「100레벨 기준 탱커 6천대」): 전사 6,399 · 수호기사 6,079', () => {
+    const f = E.create({ ...cfg, stageLv: 100, heroLv: 100 });
+    expect(Math.round(f.party.find(u => u.role === 'tank')!.max)).toBe(6399);
+    expect(Math.round(CLASSES.paladin.hp * lvPower(100) * 0.95)).toBe(6079);
   });
 
   it('단계보다 높은 레벨만큼 힐량·내 체력만 커짐', () => {
     const a = E.create({ ...cfg, stageLv: 1, heroLv: 1 }), b = E.create({ ...cfg, stageLv: 1, heroLv: 6 });
-    expect(b.power / a.power).toBeCloseTo(2.1);
-    expect(b.me.max).toBeCloseTo(a.me.max * 2.1);
+    expect(b.power / a.power).toBeCloseTo(1.8);
+    expect(b.me.max).toBeCloseTo(a.me.max * 1.8);
     const tank = b.party.find(u => u.role === 'tank')!;
     expect(tank.max).toBeCloseTo(a.party.find(u => u.role === 'tank')!.max);
     tank.hp = 1; b.gear = { ...b.gear, crit: 0 };
