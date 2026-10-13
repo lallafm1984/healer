@@ -667,11 +667,6 @@ const COACH: Record<string, CoachStep[]> = {
     { when: f => !!firstTel(f, 'buster'), text: '<b>강타 예고</b>: 위에 뜬 기술이 끝나면 탱커가 크게 맞음. 미리 채워 두기' },
     { when: f => !!firstTel(f, 'aoe'), text: '<b>광역 예고</b>: 모두 맞음. 맞고 나면 가장 낮은 사람부터 채우기' },
   ],
-  dungeon: [
-    { when: f => f.enc.script === 'trash' && f.t >= 1, freeze: false, text: '던전은 일반·정예 구간과 보스를 이어서 진행. 구간 사이엔 쉬면서 마나 회복' },
-    { when: f => f.mana < 30 && Object.keys(f.items).length > 0, text: '마나 부족. 왼쪽 <b>단축칸</b>의 물약 누르기' },
-    { when: f => f.zones.length > 0, freeze: false, text: '바닥 장판은 파티원이 알아서 피함. 못 피한 사람을 채우기' },
-  ],
 };
 const swipeEl = document.createElement('div');
 swipeEl.id = 'swipeHint'; swipeEl.hidden = true;

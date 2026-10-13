@@ -147,16 +147,13 @@ export default async function tutorial(url, shots) {
   ok(/공략/.test(partyCoach) && /단축칸/.test(partyCoach) && /출발/.test(partyCoach) && !/다시\s*뽑기/.test(partyCoach), '편성: 공략·단축칸·출발 안내, 다시 뽑기 문구 없음');
   await page.screenshot({ path: `${shots}/tut_party.png` });
 
-  // ---- 녹슨 요새 쉬움: 멈추지 않는 안내 → 4구간 → 끝 ----
+  // ---- 녹슨 요새 쉬움: 전투 안내 팝업 없이 4구간 → 끝 (2026-10-13 Lim) ----
   await page.click('#depart'); await page.clock.runFor(3100 + 1200);
-  c = await coach();
-  ok(c && !c.freeze && /일반·정예 구간과 보스/.test(c.text), '던전 첫 안내는 전투를 멈추지 않음');
   const t1 = await t();
   await page.clock.runFor(4500);
-  ok(await t() > t1 + 3 && await coach() === null, '4초 뒤 저절로 사라짐');
+  ok(await t() > t1 + 3 && await coach() === null, '첫 던전 전투: 안내 팝업 없이 진행');
   for (let i = 0; i < 4; i++) {
     await page.evaluate(() => window.__proto.F.party.forEach(u => { u.hp = u.max; }));
-    if ((await coach())?.freeze) await page.click('#coach [data-coach-ok]');
     await killEnemies(page); await page.clock.runFor(1500);
     if (i < 3) { await page.click('#restGo'); await page.clock.runFor(3100 + 500); }
   }
