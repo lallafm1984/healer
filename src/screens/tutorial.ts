@@ -1,6 +1,6 @@
 /**
  * 첫 5분 튜토리얼 (02 11장, 09 4장, 34 5-2): 이야기 → 2인 첫 전투(탭 힐) → Lv 2 소생 → 3인 탐험(소생·순간 치유) → 결과 = 끝.
- * 첫 던전 녹슨 요새는 Lv 5에 열리고, 첫 클리어까지 로비·콘텐츠·편성 화면이 안내한다 (game/state firstDungeonNow).
+ * 첫 던전 녹슨 요새는 Lv 5에 열리고, 첫 클리어까지 로비·편성 화면이 안내한다 (출전 화면은 장소·난이도만 골라 둠) (game/state firstDungeonNow).
  */
 import { contentOf } from '../data/content';
 import { gearStatsOf, specsOf } from '../data/equipment';

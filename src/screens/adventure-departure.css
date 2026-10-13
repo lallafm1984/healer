@@ -194,7 +194,6 @@ body:has(#s-content:not([hidden])) #tabs { max-width: 880px; }
   #s-content .b-foot .g-mk { width: 38px; height: 38px; }
   #s-content .b-foot .g-ct b { font-size: 23px; }
   #s-content .b-foot .g-ct small { font-size: 10px; }
-  #s-content .b-tip { font-size: 10px; padding: 2px 5px; }
 }
 /* 폴드 펼침: 장소 네 곳을 한 줄로, 장면도 넓어진 화면 안에서 채운다. */
 @media (min-width: 600px) {
@@ -218,7 +217,7 @@ body:has(#s-content:not([hidden])) #tabs { max-width: 880px; }
   #s-content .b-body:not(:has(.b-chal)) .b-region-section { grid-column: 1 / -1; }
   #s-content .b-region-section { grid-area: regions; min-width: 0; }
   #s-content .b-gate { grid-area: gate; }
-  #s-content .b-gate, #s-content .b-tip { display: none; }
+  #s-content .b-gate { display: none; }
   #s-content .b-cats { grid-area: cats; height: 44px; padding: 0 4px; margin: 0 -4px; }
   #s-content .b-cat { height: 44px; }
   #s-content .b-ci:has(.g-ic) { width: 18px; height: 22px; }

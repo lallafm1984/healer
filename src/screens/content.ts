@@ -355,16 +355,13 @@ function render(keep = true): void {
   const a = document.activeElement as HTMLElement | null;
   const focus = keep && a && s.el.contains(a) ? ['data-ctab', 'data-content', 'data-step', 'data-diff', 'data-reward'].filter(n => a.hasAttribute(n)).map(n => `[${n}="${a.getAttribute(n)}"]`)[0] || (a.id ? `#${a.id}` : '') : '';
 
-  const tut = tab === 'dungeon' && c?.key === 'rustfort' && firstDungeonNow();
-  const tip = tut ? '<p class="coachtip b-tip"><b>녹슨 요새</b> 쉬움으로 출전. 일반·정예 구간 둘, 보스 둘을 이어서 진행</p>' : '';
   s.el.style.setProperty('--b-bg', c ? cssUrl(placeArt(c.key).url) : 'none');
   s.el.dataset.selectedContent = c?.key ?? '';
   s.el.dataset.selectedRegion = region ?? '';
   s.el.dataset.selectedDiff = d;
   s.el.innerHTML = `${topBar({ settings: true })}
-    <div class="ns-body b-body">${tip}${cats()}${tab === 'dungeon' && c ? chalCell() : ''}${c ? gate(c, d, list.length > 1) + placeRow(c) + `<section class="b-difficulty"><div class="b-section-title"><h2>난이도</h2></div>${diffs(c, d)}</section>` : ''}</div>
+    <div class="ns-body b-body">${cats()}${tab === 'dungeon' && c ? chalCell() : ''}${c ? gate(c, d, list.length > 1) + placeRow(c) + `<section class="b-difficulty"><div class="b-section-title"><h2>난이도</h2></div>${diffs(c, d)}</section>` : ''}</div>
     <footer class="b-foot">${cta(c, d)}</footer>`;
-  if (tut) s.el.querySelector('#contentGo')?.classList.add('hi-pulse');
   const rewardRow = s.el.querySelector<HTMLElement>('.b-scene-reward-list');
   if (rewardRow) rewardRow.scrollLeft = rewardFrom;
   const regionRow = s.el.querySelector<HTMLElement>('.b-regions');
