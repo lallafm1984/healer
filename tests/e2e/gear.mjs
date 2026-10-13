@@ -39,7 +39,7 @@ export default async function gear(url, shots) {
     await page.setViewportSize({ width, height }); await page.clock.runFor(100);
     const layout = await equipmentLayout(page);
     ok(layout.centered && layout.viewport && layout.inventoryFollows && layout.inventoryVisible, `${width}: 중앙 능력치와 바로 아래 인벤토리 첫 줄이 화면 안 (${JSON.stringify(layout)})`);
-    ok(layout.valuesFit && layout.bonusCount > 0 && layout.bonusGreen, `${width}: 착용 능력치와 초록 장비 증가량 겹침·잘림 없음 (${JSON.stringify(layout)})`);
+    ok(layout.valuesFit && layout.labelsSeparate && layout.detailsVisible, `${width}: 능력치 합계·상세 보기·칸 아래 장비 이름 겹침·잘림 없음 (${JSON.stringify(layout)})`);
     await page.screenshot({ path: `${shots}/gear_compact_${width}.png`, animations: 'disabled' });
   }
   await page.setViewportSize({ width: 390, height: 844 }); await page.clock.runFor(100);
@@ -51,7 +51,8 @@ export default async function gear(url, shots) {
   ok(/3개/.test(await text('#s-char .c7-inventory-count')) && (await page.locator('#s-char .c7-acts, #s-char [data-bag], #s-char [data-rec], #s-char [data-salvbag]').count()) === 0, '인벤토리 개수 3개, 별도 가방·추천·분해 버튼 없음');
 
   // ---- 장비 아래 인벤토리 ----
-  ok(await page.isVisible('#s-char .c7-inventory') && !(await page.locator('#s-char .sheet').count()) && /강화석 8/.test(await text('#s-char .gmats')), '장비 진입 즉시 인벤토리·재료 표시, 가방 모달 없음');
+  ok((await page.locator('#s-char .gmats .currency-icon img').count()) === 2 && !/강화석/.test(await text('#s-char .gmats')), '강화석 두 종류는 실제 아이콘과 수량만 표시, 이름은 접근성 정보로 유지');
+  ok(await page.isVisible('#s-char .c7-inventory') && !(await page.locator('#s-char .sheet').count()) && (await page.getAttribute('#s-char .c7-material:first-child', 'aria-label')) === '강화석 8', '장비 진입 즉시 인벤토리·재료 표시, 가방 모달 없음');
   ok((await page.locator('#s-char .c7-bag').count()) === 3 && (await page.locator('#s-char .c7-bag .nw').count()) === 3 && (await page.locator('#s-char .c7-bag .up').count()) === 3 && (await page.locator('#s-char .c7-bag .dn').count()) === 0 && /지금 장비보다 좋음/.test(await page.getAttribute('#s-char .c7-bag[data-gitem="201"]', 'aria-label')), '인벤토리 5열 격자: 새것 점 · 빈칸보다 좋으니 모두 ▲');
   await page.click('#s-char [data-bfilter="acc"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char .c7-bag').count()) === 2, '필터 「장신구」 = 반지·목걸이');
@@ -125,12 +126,12 @@ export default async function gear(url, shots) {
   await page.click('#s-char [data-salv1="201"]'); await page.clock.runFor(50);
   sv = await save();
   ok(sv.gear.bag.length === 2 && !sv.gear.bag.some(x => x.id === 201) && sv.gear.bag.some(x => x.id === 202) && sv.gear.bag.some(x => x.id === 203) && sv.player.gold === 825 && sv.mats.stone === 1, '개별 분해는 고른 일반 장비만 제거, 골드 +5 · 강화석 +1');
-  ok(!(await page.locator('#s-char .sheet').count()) && /2개/.test(await text('#s-char .c7-inventory-count')) && /강화석 1/.test(await text('#s-char .gmats')) && /분해: 골드 \+5/.test(await text('#s-char')), '분해 직후 인벤토리 복귀, 개수·재료·결과 안내 갱신');
+  ok(!(await page.locator('#s-char .sheet').count()) && /2개/.test(await text('#s-char .c7-inventory-count')) && (await page.getAttribute('#s-char .c7-material:first-child', 'aria-label')) === '강화석 1' && /분해: 골드 \+5/.test(await text('#s-char')), '분해 직후 인벤토리 복귀, 개수·재료·결과 안내 갱신');
   await page.click('#s-char .c7-bag[data-gitem="202"]'); await page.clock.runFor(50);
   await page.click('#s-char [data-salv1="202"]'); await page.clock.runFor(50);
   sv = await save();
   ok(sv.gear.bag.length === 1 && sv.gear.bag[0].id === 203 && sv.gear.bag[0].lock && sv.player.gold === 840 && sv.mats.stone === 2, `고급 장비 개별 분해 뒤 잠긴 장비 유지, 골드 +15 · 강화석 +1 (${sv.player.gold}, ${sv.mats.stone})`);
-  ok(/1개/.test(await text('#s-char .c7-inventory-count')) && (await page.locator('#s-char .c7-bag').count()) === 1 && /강화석 2/.test(await text('#s-char .gmats')), '남은 인벤토리 1개·강화석 2 표시');
+  ok(/1개/.test(await text('#s-char .c7-inventory-count')) && (await page.locator('#s-char .c7-bag').count()) === 1 && (await page.getAttribute('#s-char .c7-material:first-child', 'aria-label')) === '강화석 2', '남은 인벤토리 1개·강화석 2 표시');
 
   // ---- 인벤토리 상세에서 수동 장착 ----
   await page.click('#s-char .c7-bag[data-gitem="203"]'); await page.clock.runFor(50);
@@ -146,7 +147,7 @@ export default async function gear(url, shots) {
     const list = document.querySelector('#s-char .c7-bags'), note = list.querySelector('.c7-inventory-empty');
     return { note: note?.textContent, empties: list.querySelectorAll('.c7-bag-empty').length, rows: Math.round(list.clientHeight / 60 * 10) / 10 };
   });
-  ok(emptyRows.note === '던전을 클리어하면 장비 획득' && emptyRows.empties >= 10 && emptyRows.empties % 5 === 0, `장비가 없으면 안내 문장이 목록 첫 줄, 아래는 빈칸 줄 (3줄 이상 유지) (${JSON.stringify(emptyRows)})`);
+  ok(!emptyRows.note && emptyRows.empties >= 15 && emptyRows.empties % 5 === 0, `장비가 없으면 안내 문구 없이 빈칸만 3줄 이상 유지 (${JSON.stringify(emptyRows)})`);
 
   // ---- 장비 도감 보상 (10칸마다) ----
   await page.evaluate(() => {

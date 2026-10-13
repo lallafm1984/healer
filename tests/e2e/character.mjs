@@ -1,8 +1,8 @@
-// 캐릭터 탭 (27 4장, 31 시안): 하위 탭 4칸 · 장비(받침대 문장·이름표·장비 칸 6개·능력치 판) · 스킬(설명·휠 배치·칸 탭·단축칸·줄 목록) · 특성(나무판)
+// 캐릭터 탭 (27 4장, 31 시안): 하위 탭 4칸 · 장비(받침대 문장·이름표·장비 칸 6개·능력치 판) · 스킬(설명·휠 배치·칸 탭·줄 목록) · 특성(나무판)
 import { chromium } from 'playwright';
 import { pastTitle, patchSave } from './nav.mjs';
 
-/** 실제 텍스트 범위까지 검사해 작은 중앙 판의 이름/값/장비 증가량 겹침을 잡는다. */
+/** 실제 텍스트 범위와 슬롯 이름 간격을 검사한다. */
 export const equipmentLayout = page => page.evaluate(() => {
   const q = s => document.querySelector(`#s-char ${s}`), rect = el => el.getBoundingClientRect();
   const panel = rect(q('.c7-mid .c7-stats')), [left, right] = [...document.querySelectorAll('#s-char .c7-col')].map(rect);
@@ -15,7 +15,7 @@ export const equipmentLayout = page => page.evaluate(() => {
   const firstRow = q('.c7-bag') ?? q('.c7-inventory .c7-bag-empty');
   const inventoryFollows = inventory.top >= stage.bottom - 1 && inventory.top - stage.bottom <= 24;
   const inventoryVisible = rect(q('.c7-inventory-count')).bottom <= tabs.top && (!firstRow || rect(firstRow).bottom <= tabs.top + 1);
-  const issues = [], bonuses = [];
+  const issues = [];
   for (const row of document.querySelectorAll('#s-char .c7-stat')) {
     const parts = [...row.querySelectorAll(':scope > small, :scope > b, :scope > i')].filter(el => el.textContent.trim()).map(el => {
       const range = document.createRange(); range.selectNodeContents(el);
@@ -27,10 +27,11 @@ export const equipmentLayout = page => page.evaluate(() => {
       if (a.left < panel.left + 1 || a.right > panel.right - 1 || a.top < panel.top || a.bottom > panel.bottom) issues.push(`${name}: clipped ${parts[i].el.tagName}`);
       for (let j = i + 1; j < parts.length; j++) { const b = parts[j].r; if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1) issues.push(`${name}: overlap`); }
     }
-    const bonus = row.querySelector(':scope > i');
-    if (bonus.textContent.trim()) { const rgb = getComputedStyle(bonus).color.match(/[\d.]+/g).map(Number); bonuses.push(rgb[1] > rgb[0] && rgb[1] > rgb[2]); }
   }
-  return { centered, viewport, inventoryFollows, inventoryVisible, valuesFit: !issues.length, issues, bonusCount: bonuses.length, bonusGreen: bonuses.every(Boolean) };
+  const labelsSeparate = [...document.querySelectorAll('#s-char .c7-slot')].every(el => rect(el.querySelector('b')).top >= rect(el.querySelector('.c7-sq')).bottom + 2);
+  const details = q('.c7-shint'), detailsRect = rect(details);
+  const detailsVisible = getComputedStyle(details).display !== 'none' && detailsRect.bottom <= panel.bottom && /상세 보기/.test(details.textContent);
+  return { centered, viewport, inventoryFollows, inventoryVisible, valuesFit: !issues.length, issues, labelsSeparate, detailsVisible };
 });
 
 export default async function character(url, shots) {
@@ -98,25 +99,11 @@ export default async function character(url, shots) {
   await page.click('#s-char [data-smode="view"]'); await page.clock.runFor(50);
   ok(!(await page.isVisible('#s-char .c7-wheel.swapping')), '「설명 보기」 = 보기 모드');
 
-  // ---- 칸 탭 기본 힐·단축칸 ----
+  // ---- 칸 탭 기본 힐 ----
   ok(await page.isDisabled('#s-char [data-tap="renew"]'), 'Lv 1: 칸 탭 「소생」 잠금');
   await page.click('#s-char [data-tap="flash"]'); await page.clock.runFor(50);
   ok((await save()).settings.tapKey === 'flash' && await page.getAttribute('#s-char [data-tap="flash"]', 'aria-pressed') === 'true', '칸 탭 기본 힐 = 순간 치유 저장');
   await page.click('#s-char [data-tap="heal"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-char .c7-item').count()) === 2 && /마나/.test(await text('#s-char .c7-items')), '단축칸 2칸 (Lv 1)');
-  await page.click('#s-char [data-islot="1"]'); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-char .c7-isheet'), '단축칸을 누르면 고르기 시트');
-  await page.click('#s-char .c7-isheet [data-item="medit"]'); await page.clock.runFor(50);
-  ok(JSON.stringify((await save()).items) === JSON.stringify(['mana', 'medit', null, null]), '선택한 2번 단축칸만 생명 → 명상으로 교체하고 네 칸 저장');
-  await page.click('#s-char .c7-isheet [data-item="mana"]'); await page.clock.runFor(50);
-  ok(JSON.stringify((await save()).items) === JSON.stringify(['medit', 'mana', null, null]), '다른 칸에서 쓰는 마나를 고르면 두 칸 자리 교환');
-  await page.click('#s-char .c7-isheet [data-item="medit"]'); await page.clock.runFor(50);
-  await page.click('#s-char .c7-isheet [data-item-clear]'); await page.clock.runFor(50);
-  ok(JSON.stringify((await save()).items) === JSON.stringify(['mana', null, null, null]), '선택한 칸 해제는 앞 아이템과 빈칸 위치를 보존');
-  await page.click('#s-char .c7-isheet [data-item="medit"]'); await page.clock.runFor(50);
-  ok(JSON.stringify((await save()).items) === JSON.stringify(['mana', 'medit', null, null]), '같은 2번 빈칸에 명상 다시 지정');
-  await page.click('#s-char .sheet-dim', { position: { x: 20, y: 120 } }); await page.clock.runFor(50);
-  ok(!(await page.isVisible('#s-char .sheet')) && /명상/.test(await text('#s-char .c7-items')), '시트 바깥을 누르면 닫힘, 단축칸에 명상');
 
   // ---- 설정에서 캐릭터 → 스킬로 ----
   await page.click('#s-char .tb-set'); await page.clock.runFor(100);
@@ -140,7 +127,7 @@ export default async function character(url, shots) {
   ok((await page.locator('#s-char .c7-tier.pending').count()) === 5 && (await page.locator('#s-char .c7-tier:first-child [data-tcell]').count()) === 3, '안 고른 열린 단 = 줄 금테 + 칸 3개');
   ok(await page.isVisible('#s-char [data-csub="talent"] .rdot') && (await page.locator('#s-char .c7-pre').count()) === 3, '남은 특성 = 특성 탭 빨간 점, 프리셋 3칸');
   await page.click('#s-char [data-tcell="1:0"]'); await page.clock.runFor(50);
-  ok(/벼랑 끝 손길/.test(await text('#s-char .c7-tsheet')) && /Lv 10/.test(await text('#s-char .c7-tsheet')) && /고르기/.test(await text('#s-char .c7-tsheet [data-talent="1:0"]')), '칸을 누르면 아래 시트 (이름·Lv·주제·설명·고르기)');
+  ok(/벼랑 끝 손길/.test(await text('#s-char .c7-tsheet')) && /Lv 10/.test(await text('#s-char .c7-tsheet')) && /고르기/.test(await text('#s-char .c7-tsheet [data-talent="1:0"]')), '칸을 누르면 아래 시트 (이름·Lv·설명·고르기)');
   // 가짜 시계와 무관하게 CSS 등장 애니메이션의 마지막 프레임을 캡처한다.
   await page.screenshot({ path: `${shots}/char_talent.png`, animations: 'disabled' });
   await page.click('#s-char .c7-tsum'); await page.clock.runFor(50);
@@ -153,7 +140,7 @@ export default async function character(url, shots) {
   ok(/체력1,382/.test(st25) && /지능452/.test(st25), `Lv 25 = 체력 220 × 6.28 · 지능 72 × 6.28 (34 1-2 레벨 배율, 1-6 치유 배율) (${st25.slice(0, 60)})`);
   await page.click('#s-char .c7-stats'); await page.clock.runFor(50);
   const src = await text('#s-char .c7-ssheet');
-  ok(/기본 220/.test(src) && /레벨 \+1,162/.test(src) && /지능/.test(src) && /특성/.test(src) && !/세트/.test(src), '능력치 판을 누르면 출처 시트 (기본·레벨·장비·특성)');
+  ok(/기본 220/.test(src) && /레벨 \+1,162/.test(src) && /지능/.test(src) && !/특성|세트|지능은 치유 회복량입니다/.test(src), '능력치 상세에는 기본·레벨·장비만 표시, 미사용 특성과 하단 설명 없음');
   await ctx.close();
   await browser.close();
   return { fails, errs };

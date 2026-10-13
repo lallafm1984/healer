@@ -103,7 +103,7 @@
 }
 
 /* Character-specific switches and utility controls. Existing hit boxes stay intact. */
-#s-char :is(.c7-sb, .c7-fc, .c7-mode, .c7-taps > button, .c7-item, .c7-pre, .c7-rr) {
+#s-char :is(.c7-sb, .c7-fc, .c7-mode, .c7-taps > button, .c7-pre, .c7-rr) {
   background-color: #684522;
   background-image: var(--a2-wood);
   background-size: cover;
@@ -113,7 +113,7 @@
   color: var(--a2-ink);
   box-shadow: inset 0 1px 0 #e8c77a55, 0 2px 3px #1c100955;
 }
-#s-char :is(.c7-sb, .c7-taps > button, .c7-item) { border-radius: 9px; }
+#s-char :is(.c7-sb, .c7-taps > button) { border-radius: 9px; }
 #s-char .c7-sb small { color: var(--a2-muted); }
 #s-char .c7-mode button { color: var(--a2-muted); }
 #s-char .c7-lockb[aria-pressed="true"],
@@ -133,7 +133,6 @@
   box-shadow: inset 0 0 0 1px #b98a4699, 0 2px 4px #1c100955;
 }
 #s-char .c7-lockb[aria-pressed="true"] small { color: var(--a2-paper-ink); }
-#s-char .c7-item.empty { background-image: none; background-color: #27190fe8; color: var(--a2-muted); }
 
 /* Skill/talent sockets keep their functional state outlines, blue mana core and paths. */
 #s-char .c7-wh:not(.core):not(.empty):not(.locked),

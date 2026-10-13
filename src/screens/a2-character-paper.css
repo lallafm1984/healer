@@ -1,0 +1,232 @@
+/* Selected equipment concept 2 (2026-10-13), with plain controls matching
+ * adventure/party preparation. Shared header and bottom navigation are unchanged. */
+#s-char {
+  --c7-button-bg: #2e241a;
+  --c7-button-line: #a58756;
+  --c7-button-selected: #eee0c2;
+}
+#s-char[data-sub="gear"] {
+  --c7-palette-surface: #54351e;
+  --c7-palette-panel: #412c1c;
+  --c7-palette-deep: #21170f;
+  --c7-palette-muted: #decbab;
+  --c7-palette-paper: #f3e2ba;
+  --c7-palette-paper-ink: #35220f;
+  --c7-palette-paper-muted: #6a4c2c;
+}
+#s-char[data-sub="gear"]::before {
+  background: #21170f url('../art/equipment-armory-v1.png') center 70px / 100% auto no-repeat;
+}
+#s-char .c7-tab::before {
+  content: ''; inset: 4px; border-radius: 2px;
+  background: var(--c7-button-bg); opacity: 1; box-shadow: none;
+}
+#s-char .c7-tab {
+  background: url('../art/adventure-tab-idle-v1.webp') center / 100% 126% no-repeat;
+  border: 0; border-radius: 0; color: #fff0ce; text-shadow: 0 1px 2px #241307;
+}
+#s-char .c7-tab[aria-selected="true"] {
+  background: url('../art/adventure-tab-active-v1.webp') center / 100% 126% no-repeat;
+  border: 0;
+  color: #35220f; text-shadow: none; outline: none; box-shadow: none;
+}
+#s-char .c7-tab[aria-selected="true"]::before { background: var(--c7-button-selected); opacity: 1; box-shadow: none; }
+#s-char .c7-tab:not([aria-selected="true"]) :is(.g-ic, .emblem img) { filter: none; }
+#s-char .c7-tab:focus-visible { outline: 2px solid #ffe3a0; outline-offset: 1px; }
+#s-char[data-sub="gear"] .c7-body.c7-gear { gap: 8px; padding-top: 10px; }
+#s-char[data-sub="gear"] .c7-gear > .c7-stage {
+  --c7-lab: 17px; --c7-gap: 6px;
+  flex-basis: 238px; min-height: 196px;
+}
+#s-char[data-sub="gear"] .c7-col { padding-top: 3px; }
+#s-char[data-sub="gear"] .c7-slot > b {
+  position: static; flex: none; margin-top: 3px; line-height: 14px;
+  color: #fff1d0; white-space: nowrap;
+}
+#s-char[data-sub="gear"] .c7-slot .c7-sq {
+  flex: none; border: 0; border-radius: 3px;
+  background: url('../art/equipment-slot-v1.png') center / 120% 122% no-repeat;
+  box-shadow: none;
+}
+#s-char[data-sub="gear"] .c7-slot.empty .c7-sq {
+  background: url('../art/equipment-slot-v1.png') center / 120% 122% no-repeat;
+  border: 0;
+}
+#s-char[data-sub="gear"] .c7-slot .c7-sq > .g-ic { width: 84%; height: 84%; }
+#s-char[data-sub="gear"] .c7-slot .c7-gl { width: 12px; height: 12px; font-size: 8px; border-radius: 2px; left: -2px; top: -2px; }
+#s-char[data-sub="gear"] .c7-slot .c7-better { width: 13px; height: 13px; font-size: 9px; right: -3px; top: -2px; }
+#s-char[data-sub="gear"] .c7-mid { padding-top: 0; }
+#s-char[data-sub="gear"] .c7-mid .c7-stats {
+  padding: 11px 12px 8px; gap: 3px; border: 0; border-radius: 0;
+  background: url('../art/equipment-stats-paper-v1.png') center / 100% 100% no-repeat;
+  box-shadow: none; color: #35220f;
+}
+#s-char[data-sub="gear"] .c7-sh {
+  flex: none; margin: 0; color: #35220f; font-size: 17px; line-height: 1.35;
+  letter-spacing: 0; text-shadow: none;
+}
+#s-char[data-sub="gear"] .c7-sh::before,
+#s-char[data-sub="gear"] .c7-sh::after { background: #ac8a51; }
+#s-char[data-sub="gear"] .c7-sgrid { min-height: 0; justify-content: stretch; }
+#s-char[data-sub="gear"] .c7-stat {
+  flex: 1; min-height: 0; padding: 2px 0; column-gap: 5px;
+  grid-template-columns: 23px minmax(0, 1fr) auto;
+  grid-template-rows: 1fr; border-top-color: #9e773c55;
+}
+#s-char[data-sub="gear"] .c7-stat > :is(.c7-si, small, b) { grid-row: 1; }
+#s-char[data-sub="gear"] .c7-stat > .c7-si {
+  width: 23px; height: 23px; border: 1px solid #aa7c2d; padding: 2px;
+  background: #4b321d var(--a2-wood) center / cover no-repeat;
+  box-shadow: inset 0 0 0 1px #e2be7580;
+}
+#s-char[data-sub="gear"] .c7-stat > small { color: #5a4024; font-size: 12px; font-weight: 700; }
+#s-char[data-sub="gear"] .c7-stat > b { color: #2e1d0c; font-size: 16px; font-weight: 900; }
+#s-char[data-sub="gear"] .c7-shint {
+  display: flex; flex: none; justify-content: center; align-items: center; gap: 3px;
+  margin: 1px 4px 0; padding-top: 5px; border-top: 1px solid #9e773c55;
+  font-size: 11px; font-weight: 700; line-height: 16px; color: #634824;
+}
+#s-char[data-sub="gear"] .c7-shint img { width: 9px; height: 12px; object-fit: contain; }
+#s-char[data-sub="gear"] .c7-stats:focus-visible { outline: 2px solid #ffe3a0; outline-offset: 2px; }
+#s-char[data-sub="gear"] .c7-inventory {
+  padding-top: 4px; border-color: #b89557;
+  background: #bda583 var(--a2-wood) center / cover no-repeat; background-blend-mode: multiply;
+  box-shadow: inset 0 0 0 2px #20140c99, inset 0 0 0 3px #d2ad5b33, 0 4px 12px #08080788;
+}
+#s-char[data-sub="gear"] .c7-inventory-head h3 { color: #fff1d0; font-size: 18px; }
+#s-char[data-sub="gear"] .c7-inventory-count { color: #e2d0ad; }
+#s-char[data-sub="gear"] .c7-inventory-head .gmats { color: #eee0c2; gap: 0; }
+#s-char[data-sub="gear"] .c7-material { display: inline-flex; align-items: center; gap: 3px; height: 20px; }
+#s-char[data-sub="gear"] .c7-material .currency-icon { width: 21px; height: 21px; }
+#s-char[data-sub="gear"] .c7-material b { font: 700 11px/1.2 var(--font-body); font-variant-numeric: tabular-nums; }
+#s-char[data-sub="gear"] .c7-inventory :is(.c7-sort, .c7-fc, [data-dex]) {
+  background: var(--c7-button-bg);
+  border: 1px solid var(--c7-button-line); color: #fff0cf; border-radius: 7px;
+  box-shadow: inset 0 1px #f5ddb82b;
+}
+#s-char[data-sub="gear"] .c7-inventory .c7-fcs .c7-fc[aria-pressed] {
+  background: var(--c7-button-bg);
+}
+#s-char[data-sub="gear"] .c7-inventory .c7-fcs .c7-fc[aria-pressed="true"] {
+  background: var(--c7-button-selected); color: #35220f; border-color: #f2cf84;
+  box-shadow: inset 0 0 0 1px #c49f58;
+}
+#s-char[data-sub="gear"] .c7-inventory .c7-fc { font-size: 12px; }
+#s-char[data-sub="gear"] .c7-inventory .c7-bags { scrollbar-color: #c5a066 #271c12; }
+#s-char[data-sub="gear"] .c7-inventory .c7-bags::-webkit-scrollbar-thumb { border-color: #271c12; background: #c5a066; }
+#s-char[data-sub="gear"] .c7-inventory .c7-bag {
+  background: #251e16;
+  border-radius: 5px; box-shadow: inset 0 0 0 1px #d0ac6633, 0 0 3px #0008;
+}
+#s-char[data-sub="gear"] .c7-bag :is(.up, .dn) { width: 12px; height: 12px; font-size: 7px; right: -3px; top: -3px; border-width: 1px; }
+#s-char[data-sub="gear"] .c7-bag em { left: auto; right: 3px; font-size: 12px; }
+#s-char[data-sub="gear"] .c7-bag:has(.lk) em { right: 16px; }
+#s-char[data-sub="gear"] .c7-bag-empty {
+  border-color: #a88b5752; border-radius: 7px;
+  background: #1b160eb3; box-shadow: inset 0 2px 7px #070b1055;
+}
+#s-char[data-sub="gear"] .c7-inventory-empty { color: #e2d0ad; }
+/* Detail sheet uses the same plain surface as the preparation item dialog. */
+#s-char[data-sub="gear"] .sheet.c7-ssheet {
+  background: #262119; border-color: #bb9b60;
+  box-shadow: 0 12px 44px #000b;
+}
+#s-char[data-sub="gear"] .c7-ssheet .c7-src { border-color: #74604480; }
+#s-char[data-sub="gear"] .c7-ssheet .c7-src > span:first-child { color: #decbab; }
+#s-char[data-sub="gear"] .c7-ssheet button[data-sheetx] {
+  background: #4d3b24; border: 1px solid #c9a761;
+  border-radius: 7px; box-shadow: none; color: #ffe4ad; text-shadow: none;
+}
+/* Skills, talents and classes use the same armory, cream paper and plain controls. */
+#s-char[data-sub]:not([data-sub="gear"])::before {
+  inset: 0 0 var(--tabs-h);
+  background: #21170f url('../art/equipment-armory-v1.png') center 70px / 100% auto no-repeat;
+  opacity: .65; filter: none;
+}
+#s-char[data-sub] .c7-parch {
+  background: url('../art/equipment-stats-paper-v1.png') center / 100% 100% no-repeat;
+  background-blend-mode: normal; border: 0; border-radius: 0;
+  color: #35220f; box-shadow: none;
+}
+#s-char[data-sub] .c7-parch :is(h3, p, .c7-pas li b, .c7-pas li p) { color: #35220f; }
+#s-char[data-sub] .c7-parch :is(.m, .cap, .c7-hchips, h3 small) { color: #6a4c2c; }
+#s-char[data-sub] :is(.c7-sklist, .c7-tsum, .c7-tiers, .c7-dialog-head),
+#s-char[data-sub] .sheet {
+  background: #31261b; border-color: #a58756; background-blend-mode: normal;
+}
+#s-char[data-sub] .sheet { background: #262119; }
+#s-char[data-sub] :is(.c7-cta, .c7-hcta) {
+  background: #6e2419; border-color: #c9a761;
+  box-shadow: inset 0 1px #f5ddb82b; color: #fff0cf;
+}
+#s-char[data-sub] :is(.c7-mode, .c7-sb, .c7-pre, .c7-rr, .c7-tclose),
+#s-char[data-sub="skill"] .c7-taps > button {
+  background: var(--c7-button-bg); border-color: var(--c7-button-line);
+  color: #fff0cf; box-shadow: inset 0 1px #f5ddb82b; text-shadow: none;
+}
+/* Match the older palette selectors' state specificity so no texture leaks back in. */
+#s-char[data-sub] :is(.c7-sb:not(.c7-salvb), .c7-rr):not(:disabled):not([aria-pressed="true"]),
+#s-char[data-sub="skill"] .c7-taps > button:not(:disabled):not([aria-pressed="true"]),
+#s-char[data-sub="talent"] .c7-pre:not([aria-pressed="true"]):not(:disabled),
+#s-char[data-sub="talent"] .c7-tclose:not(:disabled) {
+  background: var(--c7-button-bg); border-color: var(--c7-button-line); color: #fff0cf;
+}
+#s-char[data-sub="skill"] .c7-mode { background: var(--c7-button-bg); border-color: var(--c7-button-line); }
+#s-char[data-sub] :is(.c7-mode button, .c7-pre, .c7-lockb)[aria-pressed="true"],
+#s-char[data-sub="skill"] .c7-taps > button[aria-pressed="true"],
+#s-char[data-sub="hero"] .c7-cs.now {
+  background: var(--c7-button-selected); color: #35220f;
+  border-color: #f2cf84; box-shadow: inset 0 0 0 1px #c49f58; text-shadow: none;
+}
+#s-char[data-sub="skill"] .c7-wh:not(.core):not(.empty):not(.locked):not([aria-pressed="true"]),
+#s-char[data-sub="skill"] .c7-sk:not(.locked) .c7-ski {
+  background: #2e241a; border-color: #b89a60; background-blend-mode: normal;
+}
+#s-char[data-sub="skill"] .c7-wh[aria-pressed="true"]:not(.core):not(.empty):not(.locked) {
+  background: var(--c7-button-selected); color: #35220f; border-color: #f2cf84;
+}
+#s-char[data-sub="talent"] .c7-tiers { box-shadow: inset 0 0 0 3px #20160d99, 0 4px 12px #0005; }
+#s-char[data-sub="talent"] :is(.c7-tl b, .c7-tl em, .c7-pk small) { background: #31261b; }
+#s-char[data-sub="talent"] .c7-tier.pending .c7-tl em { color: #e6c782; }
+#s-char[data-sub="talent"] .c7-tl em,
+#s-char[data-sub="talent"] .c7-tier:not(.locked) .c7-tl em { color: #cbb798; }
+#s-char[data-sub="talent"] .c7-tier.locked .c7-tl b { color: #bbaa90; }
+#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn,
+#s-char[data-sub="talent"] .c7-tsi {
+  background: #2e241a; border-color: #a58756;
+  box-shadow: 0 0 0 2px #20170f, inset 0 0 0 1px #e2be7533;
+}
+#s-char[data-sub="talent"] .c7-tier.pending .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn {
+  border-color: #c8a969; box-shadow: 0 0 0 2px #20170f, 0 0 9px #d7b66026;
+}
+#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn::after {
+  background: #21170f; border-color: #a58756; color: #decbab;
+}
+#s-char[data-sub="talent"] .c7-pk.off .c7-tn {
+  background: #211e18; border-color: #776950; box-shadow: 0 0 0 2px #18130d;
+}
+#s-char[data-sub="talent"] .c7-pk.off small { color: #b3a58d; }
+#s-char[data-sub="talent"] .c7-tlock { background: #262119; border-color: #a08b66; color: #d2c1a3; }
+#s-char[data-sub="talent"] .c7-tpath .d { stroke: #bda783; }
+#s-char[data-sub="talent"] .sheet.c7-tsheet {
+  background: #262119; box-shadow: inset 0 0 0 3px #4e3c2599, 0 -6px 26px #000a;
+}
+#s-char[data-sub="talent"] .c7-pk:focus-visible,
+#s-char[data-sub="talent"] .c7-pre:focus-visible,
+#s-char[data-sub="talent"] .c7-tclose:focus-visible { outline-color: #ffe3a0; }
+#s-char[data-sub="talent"] .c7-pk.focus .c7-tn { outline-color: #ffe3a0; }
+@container c7stage (max-height: 220px) {
+  #s-char[data-sub="gear"] .c7-mid .c7-stats { padding-top: 8px; padding-bottom: 7px; gap: 1px; }
+  #s-char[data-sub="gear"] .c7-sh { font-size: 15px; }
+  #s-char[data-sub="gear"] .c7-stat { padding: 1px 0; }
+  #s-char[data-sub="gear"] .c7-stat > .c7-si { width: 21px; height: 21px; }
+  #s-char[data-sub="gear"] .c7-stat > b { font-size: 14px; }
+  #s-char[data-sub="gear"] .c7-shint { padding-top: 3px; }
+}
+@media (max-width: 359px) {
+  #s-char[data-sub="gear"] .c7-mid .c7-stats { padding-left: 9px; padding-right: 9px; }
+  #s-char[data-sub="gear"] .c7-stat { grid-template-columns: 20px minmax(0, 1fr) auto; column-gap: 3px; }
+  #s-char[data-sub="gear"] .c7-stat > small { font-size: 11px; }
+  #s-char[data-sub="gear"] .c7-stat > b { font-size: 13px; }
+  #s-char[data-sub="gear"] .c7-inventory-head h3 { font-size: 16px; }
+}

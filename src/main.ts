@@ -40,6 +40,7 @@ import './battle/hit-feel.css';
 import './screens/result-hall.css';
 import './screens/party-hall.css';
 import './battle/rest-guide.css';
+import './screens/a2-character-paper.css';
 import './battle';
 import './screens/title';
 import './screens/lobby';

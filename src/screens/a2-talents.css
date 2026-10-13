@@ -7,8 +7,7 @@
 #s-char .c7-talent-title { display: flex; align-items: center; gap: 10px; padding: 2px 0 4px; }
 #s-char .c7-talent-title > .emblem { width: 42px; height: 42px; flex: none; }
 #s-char .c7-talent-title > div { flex: 1; min-width: 0; }
-#s-char .c7-talent-title h2 { margin: 0 0 3px; color: #f4d992; font: 800 21px/1.2 var(--font-display); }
-#s-char .c7-talent-title p { margin: 0; color: #bac9db; font-size: 11px; line-height: 1.4; }
+#s-char .c7-talent-title h2 { margin: 0; color: #f4d992; font: 800 21px/1.2 var(--font-display); }
 #s-char .c7-talent-title > b { color: #e8d6ad; font-size: 13px; white-space: nowrap; }
 #s-char .c7-tsum { padding: 9px 10px; border: 1px solid #826947; border-radius: 5px; background: #151d2d; box-shadow: inset 0 1px #ead49b24; }
 #s-char .c7-tsum > p { gap: 5px; font-size: 12px; color: #eee4cf; }
@@ -27,7 +26,6 @@
 #s-char .c7-tier.locked { opacity: 1; }
 #s-char .c7-tl { position: relative; z-index: 2; width: 100%; flex-direction: row; align-items: baseline; gap: 8px; padding: 0 4px 8px; }
 #s-char .c7-tl b { padding: 1px 3px; font-size: 12px; color: #e6c782; background: #101a29; }
-#s-char .c7-tl small { padding: 1px 3px; color: #b5c3d5; font-size: 11px; background: #101a29; }
 #s-char .c7-tl em { margin-left: auto; padding: 1px 3px; color: #8ca1b9; background: #101a29; font: normal 10px var(--font-body); }
 #s-char .c7-tier.pending .c7-tl em { color: #b9d9f8; }
 #s-char .c7-tier.locked .c7-tl b { color: #a4b2c3; }
@@ -75,6 +73,5 @@
   #s-char .c7-tsum { padding: 8px; gap: 5px; }
   #s-char .c7-tsum > p { font-size: 11px; }
   #s-char .c7-pre { width: 30px; height: 34px; }
-  #s-char .c7-talent-title p { font-size: 10px; }
   #s-char .c7-tsh b { font-size: 15px; }
 }

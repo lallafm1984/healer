@@ -1,54 +1,26 @@
-/* Matching body palettes for the four colored character tabs. Import last.
+/* Shared body palette for the four character tabs.
  * Color/material overrides only: no geometry, layout, image filters or DOM changes.
  * Grade/faction borders, mana, gold selection, locked states and action-role colors stay local. */
 
-#s-char[data-sub="gear"] {
-  --c7-palette-surface: #244664;
-  --c7-palette-panel: #24435e;
-  --c7-palette-deep: #142a40;
-  --c7-palette-wash: transparent;
-  --c7-palette-muted: #bbd0e2;
-  --c7-palette-paper: #dbe8f1;
-  --c7-palette-paper-ink: #19374e;
-  --c7-palette-paper-muted: #476278;
+/* All character tabs share the equipment palette. Functional grade, mana and class colors remain local. */
+#s-char[data-sub] {
+  --c7-palette-surface: #2e241a;
+  --c7-palette-panel: #31261b;
+  --c7-palette-deep: #21170f;
+  --c7-palette-wash: #21170fb3;
+  --c7-palette-muted: #decbab;
+  --c7-palette-paper: #f3e2ba;
+  --c7-palette-paper-ink: #35220f;
+  --c7-palette-paper-muted: #6a4c2c;
 }
-#s-char[data-sub="skill"] {
-  --c7-palette-surface: #1d5550;
-  --c7-palette-panel: #214d47;
-  --c7-palette-deep: #102f2c;
-  --c7-palette-wash: #113830cf;
-  --c7-palette-muted: #bddbd0;
-  --c7-palette-paper: #dcebe2;
-  --c7-palette-paper-ink: #203f34;
-  --c7-palette-paper-muted: #4a695b;
-}
-#s-char[data-sub="talent"] {
-  --c7-palette-surface: #563c70;
-  --c7-palette-panel: #3e2c54;
-  --c7-palette-deep: #271a36;
-  --c7-palette-wash: #281a39e3;
-  --c7-palette-muted: #d0c0e0;
-  --c7-palette-paper: #e9e0f0;
-  --c7-palette-paper-ink: #3c294d;
-  --c7-palette-paper-muted: #695575;
-}
-#s-char[data-sub="hero"] {
-  --c7-palette-surface: #793c45;
-  --c7-palette-panel: #573039;
-  --c7-palette-deep: #351e29;
-  --c7-palette-wash: #401f2acb;
-  --c7-palette-muted: #e0c1c5;
-  --c7-palette-paper: #efe1df;
-  --c7-palette-paper-ink: #522a33;
-  --c7-palette-paper-muted: #795660;
-}
+#s-char[data-sub="gear"] { --c7-palette-wash: transparent; }
 
 /* Tint the space behind existing content without filtering the armory or any icons. */
 #s-char[data-sub] { background-color: var(--c7-palette-deep); }
 #s-char[data-sub] > .c7-body { background-color: var(--c7-palette-wash); }
 
 /* Keep the original armory painting and its char31.css lighting visible.
- * Equipment blue is reserved for controls and the central stat panel. */
+ * Equipment keeps the armory visible. */
 #s-char[data-sub="gear"] { background-color: #15120e; }
 
 #s-char[data-sub] :is(.c7-stats, .c7-sklist, .c7-tiers, .c7-plq, .c7-enh, .c7-auto, .c7-dialog-head),
@@ -79,8 +51,7 @@
 /* Exclude the action row, salvage controls and all disabled controls from utility tinting. */
 #s-char[data-sub] :is(.c7-fc, .c7-rr, .c7-sb:not(.c7-salvb)):not(:disabled):not([aria-pressed="true"]),
 #s-char[data-sub="skill"] .c7-mode,
-#s-char[data-sub="skill"] .c7-taps > button:not(:disabled):not([aria-pressed="true"]),
-#s-char[data-sub="skill"] .c7-item:not(:disabled):not(.empty) {
+#s-char[data-sub="skill"] .c7-taps > button:not(:disabled):not([aria-pressed="true"]) {
   background-color: var(--c7-palette-surface);
   background-image: var(--a2-wood);
   background-blend-mode: luminosity;
@@ -112,7 +83,7 @@
 }
 #s-char[data-sub] .c7-parch :is(.m, .cap, .c7-hchips) { color: var(--c7-palette-paper-muted); }
 
-/* Talent-specific navy surfaces become purple. Chosen nodes/presets retain their gold state. */
+/* Talent surfaces share the warm palette. Chosen nodes/presets retain gold states. */
 #s-char[data-sub="talent"] :is(.c7-tsum, .c7-tiers) {
   background-color: var(--c7-palette-panel);
   background-image: none;
@@ -120,12 +91,11 @@
 #s-char[data-sub="talent"] .c7-tiers {
   box-shadow: inset 0 0 0 3px #190f2499, 0 4px 12px #0005;
 }
-#s-char[data-sub="talent"] .c7-tl :is(b, small, em),
+#s-char[data-sub="talent"] .c7-tl :is(b, em),
 #s-char[data-sub="talent"] .c7-pk small {
   background-color: var(--c7-palette-panel);
 }
-#s-char[data-sub="talent"] :is(.c7-talent-title p, .c7-tsum small, .c7-tsh .cap, .c7-tactive-note, .c7-tooltip-foot small),
-#s-char[data-sub="talent"] .c7-tier:not(.locked) .c7-tl small,
+#s-char[data-sub="talent"] :is(.c7-tsum small, .c7-tsh .cap, .c7-tactive-note, .c7-tooltip-foot small),
 #s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) small {
   color: var(--c7-palette-muted);
 }
