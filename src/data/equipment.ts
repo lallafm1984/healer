@@ -7,6 +7,7 @@
  * 강화 +1~+10 (확률, +2 이상에서 실패하면 1단계 떨어짐, 34 6-5 · 12 3-2) · 분해 (골드 + 강화석, 12 3-1). 떨어지는 장비는 모두 +0.
  * 아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비의 성능을 달리 하자」): 떨어진 곳의 적 레벨. 옵션 값은 아이템 레벨 세기 ÷ 내 레벨 세기만큼 (ilvMult):
  * 내 레벨과 같으면 그대로, 낮은 곳 장비는 레벨이 오를수록 약해지고 높은 곳 장비는 더 셈. 특수능력은 그대로.
+ * 옵션은 % 대신 수치로 보임 (같은 날 Lim 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」, STAT_POINT · toPoints).
  */
 import type { ContentDef } from './content';
 import type { DiffName } from './difficulty';
@@ -14,6 +15,7 @@ import type { GearStats, GradeName } from './gear';
 import type { HeroKey } from './heroes';
 import { CONTENT_PLACE, FACTIONS, PLACES, type FactionKey } from './places';
 import { lvPower, rampPlace } from './progression';
+import { INT_BASE, RULES } from './rules';
 import { FEATURED, namedOf, namedsFor, SPEC_KEYS, SPECS, specTotals, specValue, type SpecLine, type SpecOn } from './specials';
 import { UNIQUE_MULT, uniqueOf, uniquesFor, uniqueValue } from './uniques';
 
@@ -199,6 +201,17 @@ export interface GearItem {
 
 /** 아이템 레벨 배율: 아이템 레벨 세기 ÷ 내 레벨 세기 (레벨 배율 lvPower). 아이템 레벨이 없으면 1 */
 export const ilvMult = (ilv: number | undefined, level: number): number => (ilv == null ? 1 : lvPower(ilv) / lvPower(level));
+
+/**
+ * 옵션 수치 (2026-10-13 Lim 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」): 장비 옵션은 % 대신 수치로 보인다.
+ * 수치 = 비율 (6-3 ~ 6-5 표) × 수치 단위 × 레벨 배율(아이템 Lv) → 장비마다 고정이고 아이템 레벨이 높을수록 큼.
+ * 내 능력치로는 수치 ÷ (수치 단위 × 레벨 배율(내 Lv)) = 비율이라 같은 수치라도 레벨이 오르면 덜 듦 (ilvMult와 같은 셈).
+ * 지능 단위 = INT_BASE × 치유 배율 (능력치 판 지능과 같은 눈금: 힐러 기본 지능 = 단위 × 레벨 배율), 체력 = 힐러 기본 체력 (HEALER_HP),
+ * 치명타 · 가속 · 정신력 · 인내 = 500 (Lv 1에서 1% ≈ 2, Lv 100에서 1% ≈ 46)
+ */
+export const STAT_POINT: Record<StatKey, number> = { int: INT_BASE * RULES.heal, hp: 550, crit: 500, haste: 500, spirit: 500, endure: 500 };
+/** 내 레벨 기준 비율 → 수치 (optionsOf · itemStats의 v에 쓰면 그 장비 옵션 수치) */
+export const toPoints = (stat: StatKey, frac: number, level: number) => frac * STAT_POINT[stat] * lvPower(level);
 
 export type Equipped = Partial<Record<SlotKey, GearItem>>;
 

@@ -1,8 +1,10 @@
 /** 장비 강화·분해·드롭 (02 10장, 12 3장) */
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  avgScore, clearMats, ENHANCE_RATE, enhanceCost, equippedStats, gearStatsOf, ilvMult, itemName, itemScore, itemStats, kindsOf, makeItem, OPTION_LINES, optionsOf, randomLines, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, takenStats, type GearItem,
+  avgScore, clearMats, ENHANCE_RATE, enhanceCost, equippedStats, gearStatsOf, ilvMult, itemName, itemScore, itemStats, kindsOf, makeItem, OPTION_LINES, optionsOf, randomLines, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, takenStats, STAT_POINT, toPoints, type GearItem,
 } from '../src/data/equipment';
+import { HEALER_HP } from '../src/game/charinfo';
+import { INT_BASE, RULES } from '../src/data/rules';
 import { lvPower } from '../src/data/progression';
 import { gearStats } from '../src/data/gear';
 import * as E from '../src/engine';
@@ -119,6 +121,17 @@ describe('아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비�
     const same = optionsOf(it, 10), low = optionsOf(it, 20);
     for (let i = 0; i < same.length; i++) expect(low[i].v).toBeCloseTo(same[i].v * ilvMult(10, 20));
     expect(gearStatsOf({ weapon: staff(7) }, 100).heal).toBeLessThan(gearStatsOf({ weapon: staff(100) }, 100).heal);
+  });
+  it('옵션은 % 대신 수치 (Lim 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」): 장비마다 고정, 아이템 레벨이 높을수록 큼', () => {
+    // 지능 단위 = 능력치 판 지능 눈금 (INT_BASE × 치유 배율), 체력 = 힐러 기본 체력
+    expect(STAT_POINT.int).toBe(INT_BASE * RULES.heal);
+    expect(STAT_POINT.hp).toBe(HEALER_HP);
+    const pts = (it: GearItem, lv: number) => toPoints('int', itemStats(it, lv).int, lv);
+    // Lv 100 장소 영웅 지팡이 지능 ≈ 197, 녹슨 고원 악몽 것 ≈ 20. 내 레벨이 바뀌어도 수치는 그대로
+    expect(Math.round(pts(staff(100), 100))).toBe(Math.round(0.12 * 180 * lvPower(100)));
+    expect(Math.round(pts(staff(7), 100))).toBe(Math.round(0.12 * 180 * lvPower(7)));
+    for (const lv of [1, 30, 100]) expect(pts(staff(7), lv)).toBeCloseTo(pts(staff(7), 7));
+    expect(pts(staff(100), 100)).toBeGreaterThan(pts(staff(7), 100) * 9);
   });
   it('점수도 같은 배율 (추천 장착 · 더 좋은 장비 화살표 · 권장 장비)', () => {
     const lowHero = staff(7), adv = (lv: number) => item({ slot: 'weapon', kind: 'staff', grade: '고급', lv });

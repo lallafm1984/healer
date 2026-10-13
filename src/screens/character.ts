@@ -7,7 +7,7 @@
  * 특성: 요약 · 프리셋 1·2·3 · 나무판에 단마다 메달 3개 + 고른 길(금빛 선) · 고르기 시트 / 직업: 천 깃발 · 곧 열림 · 양피지 상세 · 바꾸기
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
  */
-import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, enhanceForecast, kindOf, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, type GearItem, type GearLine, type ItemGrade, type SlotKey } from '../data/equipment';
+import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, enhanceForecast, kindOf, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
 import { DEB_COLOR, HERO_KEYS, HERO_SWITCH_LV, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
@@ -187,7 +187,8 @@ const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#
 const gvars = (it: GearItem) => `--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}${it.look ? `;--lk:${FACTIONS[it.look].color}` : ''}`;
 const plusTxt = (it: GearItem) => (it.plus ? ` +${it.plus}` : '');
 /** 비율 → 퍼센트 글자 (소수 한 자리, .0은 뺌): 0.085 → 8.5 */
-const pc = (x: number) => String(Math.round(x * 1000) / 10);
+/** 옵션 수치 (2026-10-13 Lim 「퍼센트가 아닌 수치로」): 내 레벨 기준 비율 → 장비 수치 (정수, 천 단위 쉼표) */
+const pt = (k: StatKey, v: number, lv: number) => fmt(Math.round(toPoints(k, v, lv)));
 /** 장비 그림 (36 4-2 · 4-3): 이름 있는 장신구 → 종류 → 부위 (item-<부위>) → 부위 선 아이콘. 빈칸은 부위 그림 */
 const itemIc = (x: SlotKey | Parameters<typeof gearIcon>[0]) => gearIcon(typeof x === 'string' ? { slot: x } : x);
 
@@ -376,7 +377,7 @@ function rrCostHtml(it: GearItem): string {
 function rrAltHtml(it: GearItem, kind: RerollKind): string {
   if (!rrAlt || rrAlt.id !== it.id || rrAlt.kind !== kind) return '';
   let txt: string;
-  if (kind === 'line') { const l = rrAlt.alt as GearLine; txt = `${STATS[l.stat].name} +${pc(lineValue(it, l, G.save.player.level))}%`; }
+  if (kind === 'line') { const l = rrAlt.alt as GearLine, lv = G.save.player.level; txt = `${STATS[l.stat].name} +${pt(l.stat, lineValue(it, l, lv), lv)}`; }
   else { const l = rrAlt.alt as SpecLine, d = SPECS[l.key]; txt = `${d.name} · ${specText(d, specValue(l.key, it.grade, l.roll))}`; }
   return `<div class="c7-rralt"><span class="cap">다른 후보</span><b>${esc(txt)}</b><button type="button" class="btn2" data-rrpick>이걸로</button></div>`;
 }
@@ -439,8 +440,8 @@ function itemSheet(id: number): string {
   const lv = G.save.player.level, sc = scoreOf(it), a = itemStats(it, lv), b = itemStats(cur, lv);
   // 아이템 레벨 (2026-10-13): 옵션 값은 지금 내 레벨 기준이라 낮은 곳 장비는 레벨이 오르면 줄어듦
   const sub2 = [slotName(it.slot), esc(kindOf(it).name), it.unique ? '고유 장비' : it.look ? `${FACTIONS[it.look].name} 생김새` : '', it.grade, it.lv != null ? `Lv\u00a0${it.lv}` : '', worn ? '착용 중' : isNew(it) ? '새로 얻음' : '', it.lock ? '잠김' : ''].filter(Boolean).join(' · ');
-  // 지금 장비와 차이: 퍼센트 포인트 (소수 한 자리)
-  const d1 = (k: (typeof STAT_KEYS)[number]) => Math.round((a[k] - b[k]) * 1000) / 10;
+  // 지금 장비와 차이: 수치 (10 아래는 소수 한 자리, 2026-10-13 % 대신 수치)
+  const d1 = (k: StatKey) => { const x = toPoints(k, a[k] - b[k], lv); return Math.abs(x) >= 10 ? Math.round(x) : Math.round(x * 10) / 10; };
   const row = (k: string, v: string, right: string, cls = '') => `<div class="c7-cmp${cls}"><span>${k}</span><b>${v}</b>${right}</div>`;
   // 옵션 각성 룰렛 (34 7-2): 무작위 옵션 줄이 차례로 빛나다 각성한 줄에서 멈춤
   const aw = efx && efx.id === it.id && efx.awaken != null ? efx.awaken : null;
@@ -453,7 +454,7 @@ function itemSheet(id: number): string {
     const l = o.line != null ? it.lines[o.line] : null;
     const awTag = l?.up ? '<i class="c7-awt">각성</i>' : '';
     const right = rrOn && l ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(l.roll * 100)}%"><i style="width:${Math.round(rollFill(l.roll) * 100)}%"></i></span>${rrBtn('line', o.line!, STATS[o.stat].name)}` : worn || rrOn ? '' : updn(d1(o.stat));
-    return row(STATS[o.stat].name, `+${pc(o.v)}%${awTag}`, `${right}${o.line != null && o.line === aw && !calm ? fxArt('fx-awaken', 'c7-fxawk') : ''}`, lineCls(o.line));
+    return row(STATS[o.stat].name, `+${pt(o.stat, o.v, lv)}${awTag}`, `${right}${o.line != null && o.line === aw && !calm ? fxArt('fx-awaken', 'c7-fxawk') : ''}`, lineCls(o.line));
   }).join('');
   // 지금 장비에만 있는 능력치: 빠지는 만큼 ▼ 한 줄로
   const lost = worn || rrOn ? [] : STAT_KEYS.filter(k => !has.has(k) && b[k] > 0);
@@ -494,8 +495,10 @@ function itemSheet(id: number): string {
 
 /** 능력치 상세 시트: 기본 · 레벨 · 장비의 기여량 */
 function statsSheet(): string {
-  const p = statParts(), pc0 = (x: number) => Math.round(x * 100);
+  const p = statParts(), pc0 = (x: number) => Math.round(x * 100), lv = G.save.player.level;
   const crit = pc0(p.crit.total), haste = pc0(p.haste.total), spirit = pc0(p.spirit.total);
+  // 장비 몫 = 장비 수치 합과 지금 레벨에서의 % (2026-10-13 옵션은 수치)
+  const gearPt = (k: StatKey, v: number) => `장비 ${fmt(Math.round(toPoints(k, v, lv)))}(+${pc0(v)}%)`;
   // 정점 수련 (34 2-2): Lv 51부터 레벨 몫 옆에 작게
   const apexTxt = p.apex > 0 ? ` (수련 +${(p.apex * 100).toFixed(1)}%)` : '';
   const row = (k: string, v: string, parts: string[]) => `<div class="c7-src"><span>${k}</span><b>${v}</b><span class="cap">${parts.filter(Boolean).join(' · ')}</span></div>`;
@@ -504,10 +507,10 @@ function statsSheet(): string {
       <div class="c7-srcs">
         ${row('체력', fmt(p.hp.total), [`기본 ${fmt(p.hp.base)}`, `레벨 +${fmt(p.hp.level)}${apexTxt}`, `장비 +${fmt(p.hp.gear)}`])}
         ${row('지능', fmt(p.int.total), [`기본 ${fmt(p.int.base)}`, `레벨 +${fmt(p.int.level)}${apexTxt}`, `장비 +${fmt(p.int.gear)}`])}
-        ${row('치명타', `${crit}%`, [`기본 ${pc0(p.crit.base)}%`, `장비 +${pc0(p.crit.gear)}%`])}
-        ${row('가속', `${haste}%`, [`장비 +${haste}%`, `최대 ${pc0(p.haste.cap)}%`])}
-        ${row('정신력', `+${spirit}%`, [`장비 +${spirit}%`, `마나 재생 초당 ${(p.spirit.regen * (1 + p.spirit.total)).toFixed(2)}%`])}
-        ${row('인내', `${pc0(p.endure.total)}%`, ['받는 피해 감소', `장비 +${pc0(p.endure.gear)}%`])}
+        ${row('치명타', `${crit}%`, [`기본 ${pc0(p.crit.base)}%`, gearPt('crit', p.crit.gear)])}
+        ${row('가속', `${haste}%`, [gearPt('haste', p.haste.gear), `최대 ${pc0(p.haste.cap)}%`])}
+        ${row('정신력', `+${spirit}%`, [gearPt('spirit', p.spirit.gear), `초당 마나 ${(p.spirit.regen * (1 + p.spirit.total)).toFixed(2)}%`])}
+        ${row('인내', `${pc0(p.endure.total)}%`, ['받는 피해 감소', gearPt('endure', p.endure.gear)])}
       </div>
       <button type="button" class="c7-cta" data-sheetx>닫기</button></section>`;
 }
