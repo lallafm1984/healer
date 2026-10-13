@@ -14,7 +14,7 @@ import type { DiffName } from './difficulty';
 import type { GearStats, GradeName } from './gear';
 import type { HeroKey } from './heroes';
 import { CONTENT_PLACE, FACTIONS, PLACES, type FactionKey } from './places';
-import { lvPower, rampPlace } from './progression';
+import { apexOf, lvPower, rampPlace } from './progression';
 import { INT_BASE, RULES } from './rules';
 import { FEATURED, namedOf, namedsFor, SPEC_KEYS, SPECS, specTotals, specValue, type SpecLine, type SpecOn } from './specials';
 import { UNIQUE_MULT, uniqueOf, uniquesFor, uniqueValue } from './uniques';
@@ -199,13 +199,16 @@ export interface GearItem {
   lv?: number;
 }
 
-/** 아이템 레벨 배율: 아이템 레벨 세기 ÷ 내 레벨 세기 (레벨 배율 lvPower). 아이템 레벨이 없으면 1 */
-export const ilvMult = (ilv: number | undefined, level: number): number => (ilv == null ? 1 : lvPower(ilv) / lvPower(level));
+/** 레벨 세기: 레벨 배율 × 정점 수련 (힐러 지능 · 체력에 곱하는 것과 같음, 34 1-2 · 2-2) */
+const lvStrength = (l: number) => lvPower(l) * apexOf(l);
+/** 아이템 레벨 배율: 아이템 레벨 세기 ÷ 내 레벨 세기. 아이템 레벨이 없으면 1 */
+export const ilvMult = (ilv: number | undefined, level: number): number => (ilv == null ? 1 : lvStrength(ilv) / lvStrength(level));
 
 /**
  * 수치 능력치 (2026-10-13 Lim 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」): 지능 · 체력 옵션은 % 대신 수치.
  * 수치 = 비율 (6-3 ~ 6-5 표) × 수치 단위 × 레벨 배율(아이템 Lv) → 장비마다 고정이고 아이템 레벨이 높을수록 큼. 능력치 판의 지능 · 체력 합계에 그대로 더해지는 숫자
- * (지능 단위 = INT_BASE × 치유 배율 = 힐러 기본 지능 눈금, 체력 = 힐러 기본 체력 HEALER_HP). 내 능력치로는 수치 ÷ (단위 × 레벨 배율(내 Lv)) = 비율 (ilvMult와 같은 셈).
+ * (지능 단위 = INT_BASE × 치유 배율 = 힐러 기본 지능 눈금, 체력 = 힐러 기본 체력 HEALER_HP). 내 능력치로는 수치 ÷ (단위 × 레벨 세기(내 Lv)) = 비율 (ilvMult와 같은 셈).
+ * 레벨 세기 = 레벨 배율 × 정점 수련 (Lv 51부터)이라 능력치 판 「장비 +N」이 장비 수치 합과 같음 (지능 무른 상한 전)
  * 치명타 · 가속 · 정신력 · 인내는 여기 없음: 장비에 고정 %로 붙고 아이템 레벨 · 내 레벨과 상관없음 (Lim 「지능 10%가 레벨업하며 9%로 떨어지면 헷갈림」)
  */
 export const STAT_POINT: Partial<Record<StatKey, number>> = { int: INT_BASE * RULES.heal, hp: 550 };
@@ -214,7 +217,7 @@ export const isPointStat = (stat: StatKey) => STAT_POINT[stat] != null;
 /** 그 능력치 옵션의 아이템 레벨 배율: 지능 · 체력만 ilvMult, 나머지 1 */
 export const statMult = (stat: StatKey, ilv: number | undefined, level: number) => (isPointStat(stat) ? ilvMult(ilv, level) : 1);
 /** 내 레벨 기준 비율 → 수치 (지능 · 체력. optionsOf · itemStats의 v에 쓰면 그 장비 옵션 수치) */
-export const toPoints = (stat: StatKey, frac: number, level: number) => frac * (STAT_POINT[stat] ?? 0) * lvPower(level);
+export const toPoints = (stat: StatKey, frac: number, level: number) => frac * (STAT_POINT[stat] ?? 0) * lvStrength(level);
 
 export type Equipped = Partial<Record<SlotKey, GearItem>>;
 

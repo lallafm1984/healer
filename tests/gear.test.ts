@@ -5,7 +5,9 @@ import {
 } from '../src/data/equipment';
 import { HEALER_HP } from '../src/game/charinfo';
 import { INT_BASE, RULES } from '../src/data/rules';
-import { lvPower } from '../src/data/progression';
+import { apexOf, lvPower } from '../src/data/progression';
+/** 레벨 세기 = 레벨 배율 × 정점 수련 (힐러 지능 · 체력과 같은 눈금) */
+const str = (l: number) => lvPower(l) * apexOf(l);
 import { gearStats } from '../src/data/gear';
 import * as E from '../src/engine';
 import { damage } from '../src/engine/core';
@@ -109,11 +111,11 @@ describe('아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비�
     expect(itemStats(staff(30), 30).int).toBeCloseTo(0.12);
     expect(itemStats(staff(), 100).int).toBeCloseTo(0.12); // 아이템 레벨 없음 = 배율 1
     // 녹슨 고원 악몽 (적 Lv 7) 영웅 지팡이를 Lv 100이 끼면 약 1/10
-    expect(ilvMult(7, 100)).toBeCloseTo(lvPower(7) / lvPower(100));
-    expect(itemStats(staff(7), 100).int).toBeCloseTo(0.12 * lvPower(7) / lvPower(100));
+    expect(ilvMult(7, 100)).toBeCloseTo(str(7) / str(100));
+    expect(itemStats(staff(7), 100).int).toBeCloseTo(0.12 * str(7) / str(100));
     expect(itemStats(staff(7), 100).int).toBeLessThan(0.015);
-    expect(ilvMult(50, 100)).toBeGreaterThan(0.5);
-    expect(ilvMult(50, 100)).toBeLessThan(0.55);
+    expect(ilvMult(50, 100)).toBeGreaterThan(0.44); // Lv 50 장비를 Lv 100에서 = 약 45% (정점 수련 포함)
+    expect(ilvMult(50, 100)).toBeLessThan(0.46);
     // 내 레벨보다 높은 곳 장비는 더 셈 (Lv 3에서 녹슨 고원 어려움 = 적 Lv 5)
     expect(itemStats(staff(5), 3).int).toBeGreaterThan(0.12);
     // 지능 · 체력은 주 옵션 · 무작위 옵션 · 각성 몫 · 강화 모두 같은 배율, 치명타 · 가속 · 정신력 · 인내는 고정 % (Lim 「10%가 9%로 떨어지면 헷갈림」)
@@ -131,9 +133,9 @@ describe('아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비�
     expect(isPointStat('int') && isPointStat('hp')).toBe(true);
     expect(['crit', 'haste', 'spirit', 'endure'].some(k => isPointStat(k as never))).toBe(false);
     const pts = (it: GearItem, lv: number) => toPoints('int', itemStats(it, lv).int, lv);
-    // Lv 100 장소 영웅 지팡이 지능 ≈ 197, 녹슨 고원 악몽 것 ≈ 20. 내 레벨이 바뀌어도 수치는 그대로
-    expect(Math.round(pts(staff(100), 100))).toBe(Math.round(0.12 * 180 * lvPower(100)));
-    expect(Math.round(pts(staff(7), 100))).toBe(Math.round(0.12 * 180 * lvPower(7)));
+    // Lv 100 장소 영웅 지팡이 지능 ≈ 226 (정점 수련 포함), 녹슨 고원 악몽 것 ≈ 20. 내 레벨이 바뀌어도 수치는 그대로
+    expect(Math.round(pts(staff(100), 100))).toBe(Math.round(0.12 * 180 * str(100)));
+    expect(Math.round(pts(staff(7), 100))).toBe(Math.round(0.12 * 180 * str(7)));
     for (const lv of [1, 30, 100]) expect(pts(staff(7), lv)).toBeCloseTo(pts(staff(7), 7));
     expect(pts(staff(100), 100)).toBeGreaterThan(pts(staff(7), 100) * 9);
   });
