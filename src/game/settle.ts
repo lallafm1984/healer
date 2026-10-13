@@ -149,9 +149,10 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const gold = r.win ? Math.round(clearGold(stage, r.diff, grade!, raid) * kind * (pubBonus ? PUB_BONUS.gold : 1) * festival) : 0;
   // 따라잡기·장소 레벨 차이 보정 없음. 경험치는 직업 레벨·난이도·등급·콘텐츠 배율로만 정함.
   // Lv 20까지는 장소 Lv 20까지의 탐험 · 던전이 장소가 정한 경험치 (70): 쉬움 · 보통을 처음 깨면 다음 장소 레벨 (주간 도전은 빼고)
-  const xp = r.quit ? 0
+  // 진 판 (전멸 · 포기)은 경험치 없음 (2026-10-13 Lim)
+  const xp = !r.win || r.quit ? 0
     : !r.chal && inRamp(c, p.level) ? rampXp(c, r.diff, { first: !save.clears[r.content]?.[r.diff], grade, win: r.win })
-    : Math.max(r.win ? 1 : 0, Math.round(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind));
+    : Math.max(1, Math.round(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind));
   const levelBefore = p.level;
   p.gold += gold;
   const levelUps = addXp(p, xp);
@@ -223,6 +224,12 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   // 파티원 한마디는 넣지 않음 (Lim: 결과 채팅 연출 뺌)
   if (!r.quit) save.last = { content: r.content, diff: r.diff, win: r.win, grade };
   const tutEnd = advanceTutorial(save, r.content, r.win && !r.quit);
+  // 튜토리얼 끝 첫 장비는 빈 칸에 바로 장착 (2026-10-13 Lim: 결과 화면 「장착」 버튼 뺌)
+  if (tutEnd) for (const it of items) {
+    if (save.gear.equipped[it.slot]) continue;
+    save.gear.bag = save.gear.bag.filter(b => b.id !== it.id);
+    save.gear.equipped[it.slot] = it;
+  }
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,

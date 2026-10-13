@@ -33,9 +33,9 @@ export default async function dungeon(url, shots) {
     && await page.locator('#s-content [data-drops],#s-content .b-pop').count()===0, '장면 안 획득 보상 아이콘 표시·기존 보상 상세 제거');
   await page.click('#s-content [data-reward="gear"]'); await page.clock.runFor(50);
   const drops = await page.textContent('#s-content .b-reward-chance');
-  ok(/일반/.test(drops) && /100%/.test(drops) && await page.locator('.b-reward-chance [data-grade]').count()===5
-    && await page.locator('.b-reward-chance [data-grade="전설"]').getAttribute('data-probability')==='0'
-    && !/잘 나오는 종류|자주 나오는 특수능력/.test(drops), '단일 장비 아이콘을 누르면 일반 100%와 다른 네 등급 0% 표시');
+  ok(/일반/.test(drops) && /100%/.test(drops) && await page.locator('.b-reward-chance [data-grade]').count()===1
+    && await page.locator('.b-reward-chance [data-grade="전설"]').count()===0
+    && !/잘 나오는 종류|자주 나오는 특수능력|장비 1개|보너스 제외/.test(drops), '단일 장비 아이콘을 누르면 나오는 등급 일반 100%만 (0% 등급 · 「장비 1개 · 보너스 제외」 없음, 2026-10-13 Lim)');
   await page.screenshot({ path: `${shots}/content_drops.png` });
   await page.keyboard.press('Escape'); await page.clock.runFor(50);
   ok((await page.locator('#s-content .b-reward-chance').count()) === 0, 'Esc = 확률 팝오버 닫힘');
@@ -196,12 +196,10 @@ export default async function dungeon(url, shots) {
   let sv = await save();
   ok(sv.player.level === 3 && sv.player.gold > 0 && sv.gear.bag.length === 2, `저장: Lv 3, 골드 ${sv.player.gold}, 가방에 장비 2개 (보스마다 1개, 34 6-7)`);
   ok(sv.clears.rustfort['보통'].n === 1 && sv.last.win, '저장: 녹슨 요새 보통 클리어 기록');
-  await page.click('#equipNow'); await page.clock.runFor(50);
-  sv = await save();
-  ok(sv.gear.bag.length === 1 && Object.keys(sv.gear.equipped).length === 1 && /장착함/.test(await page.textContent('#s-settle .r-item')), '장착 → 가방에서 장착칸으로, 카드에 「장착함」');
+  ok(await page.locator('#s-settle .r-loot button').count() === 0 && !/도감/.test(await page.textContent('#s-settle .r-loot')), '받은 것에 「장착」 버튼 · 도감 줄 없음 (2026-10-13 Lim, 장착은 캐릭터 탭)');
   await page.screenshot({ path: `${shots}/dungeon_reward.png` });
 
-  // ---- 잡몹 구간에서 지면 던전 실패 → 경험치 20%만 ----
+  // ---- 잡몹 구간에서 지면 던전 실패 → 경험치 없음 (2026-10-13 Lim) ----
   const xp0 = sv.player.xp, gold0 = sv.player.gold, bag0 = sv.gear.bag.length;
   await page.click('#again'); await page.clock.runFor(3100 + 500);
   ok(await page.isVisible('#battle'), '다시 도전 = 같은 파티로 바로 출발');
@@ -224,9 +222,10 @@ export default async function dungeon(url, shots) {
   ok(await page.isVisible('#battle') && await page.isHidden('#s-settle'), '탱커 전멸 뒤 포기도 확인 전에는 전투 유지');
   await page.click('#confirmApply'); await page.clock.runFor(300);
   ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '전멸' && /1구간/.test(await page.textContent('#s-settle .r-prog')) && (await page.locator('#s-settle .r-segs li').count()) === 4, '포기 버튼 = 전멸과 같은 던전 실패 (구간 점 4개 · 1구간)');
-  ok(await page.locator('#s-settle .r-rec').getAttribute('open') !== null && /경험치 \+/.test(await page.textContent('#s-settle .r-xpl')), '지면 전투 기록 펼침 · 경험치 줄');
+  ok(await page.locator('#s-settle .r-rec').getAttribute('open') !== null && (await page.textContent('#s-settle .r-rec summary')).trim() === '전투 기록'
+    && !/경험치|오버힐|마나 최저/.test(await page.textContent('#s-settle .res')), '지면 전투 기록 펼침 · 경험치 줄 · 지표 칩 · 「내 치유」 요약 없음');
   sv = await save();
-  ok(sv.player.gold === gold0 && sv.player.xp > xp0 && sv.gear.bag.length === bag0, `지면 골드·장비 없음, 경험치 조금 (${xp0} → ${sv.player.xp})`);
+  ok(sv.player.gold === gold0 && sv.player.xp === xp0 && sv.gear.bag.length === bag0, `지면 골드·장비·경험치 없음 (${xp0} → ${sv.player.xp})`);
   ok((await page.textContent('#again')) === '다시 도전', '실패 결과에 다시 도전');
   await page.screenshot({ path: `${shots}/dungeon_lose.png` });
   await ctx.close();

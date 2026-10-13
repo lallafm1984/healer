@@ -242,7 +242,8 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
     key: 'gear', name: '장비 등급별 확률', label: lootOpen ? maxGrade : '수령 완료', icon: gameIcon('gear', ICON.gear),
     color: GRADE_STYLE[maxGrade].color, probability: lootOpen ? 1 : 0, maxGrade,
     gradeOdds: Object.fromEntries(ITEM_GRADES.map(g => [g, lootOpen ? odds[g] : 0])) as Record<ItemGrade, number>,
-    basis: lootOpen ? '장비 1개 · A 평가 · 보너스 제외' : '이번 주 장비 수령 완료',
+    // 등급표만 (2026-10-13 Lim: 「장비 1개 · 보너스 제외」 빼기). 이번 주에 받았으면 그 한 줄
+    basis: lootOpen ? '' : '이번 주 장비 수령 완료',
   }];
   const currency = (key: CurrencyIconKey, name: string, amount: number, color: string, basis = '클리어 시', probability = 1) => {
     items.push({ key, name, label: fmt(amount), icon: currencyIcon(key), color, probability, basis });
@@ -282,7 +283,7 @@ function gate(c: ContentDef, d: DiffName, many: boolean): string {
     <div class="b-gt"><span class="b-gn"><small>${esc(adventureRegionOf(c).name)}</small><b>${esc(c.name)}</b></span></div>
     <div class="b-level" aria-label="권장 레벨 ${stageOf(c, d)}"><span>권장 레벨</span><strong><small>Lv.</small> ${stageOf(c, d)}</strong></div>
     ${many ? `<button type="button" class="b-arw prev" data-step="-1" aria-label="이전 장소">${PREV}</button><button type="button" class="b-arw next" data-step="1" aria-label="다음 장소">${NEXT}</button>` : ''}
-    ${status ? `<span class="b-st">${status}</span>` : ''}
+    ${status ? `<span class="b-st">${lk.locked && !other ? LOCK : ''}${status}</span>` : ''}
     ${rewards(c, d)}
   </section>`;
 }
@@ -432,15 +433,17 @@ function openRewardChance(key: string): void {
   rewardKey = key;
   s.el.querySelector(`[data-reward="${key}"]`)?.setAttribute('aria-expanded', 'true');
   const percent = (p: number) => Number((p * 100).toFixed(2));
+  // 장비는 나오는 등급만 (2026-10-13 Lim: 0% 등급은 안 보임). 높은 등급부터
+  const grades = reward.gradeOdds ? [...ITEM_GRADES].reverse().filter(g => reward.gradeOdds![g] > 0) : [];
   const chance = reward.gradeOdds
-    ? `<dl class="b-grade-chances" aria-label="등급별 획득 확률">${[...ITEM_GRADES].reverse().map(g => {
+    ? grades.length ? `<dl class="b-grade-chances" aria-label="등급별 획득 확률">${grades.map(g => {
       const p = reward.gradeOdds![g];
-      return `<div class="b-grade-chance${p ? '' : ' unavailable'}" data-grade="${g}" data-probability="${p}" style="--grade-color:${GRADE_STYLE[g].color}"><dt>${g}</dt><dd>${percent(p)}%</dd></div>`;
-    }).join('')}</dl>`
+      return `<div class="b-grade-chance" data-grade="${g}" data-probability="${p}" style="--grade-color:${GRADE_STYLE[g].color}"><dt>${g}</dt><dd>${percent(p)}%</dd></div>`;
+    }).join('')}</dl>` : ''
     : `<strong>${percent(reward.probability)}%</strong>`;
   s.el.insertAdjacentHTML('beforeend', `<div class="b-reward-chance" id="bRewardChance" role="dialog" aria-modal="false" aria-labelledby="bRewardChanceTitle" tabindex="-1" data-reward-key="${key}">
     <button type="button" data-reward-close aria-label="확률 안내 닫기">×</button>
-    <b id="bRewardChanceTitle">${esc(reward.name)}</b>${chance}<small>${esc(reward.basis)}</small>
+    <b id="bRewardChanceTitle">${esc(reward.name)}</b>${chance}${reward.basis ? `<small>${esc(reward.basis)}</small>` : ''}
   </div>`);
   positionRewardChance();
   s.el.querySelector<HTMLElement>('.b-reward-chance')?.focus({ preventScroll: true });

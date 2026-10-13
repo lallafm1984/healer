@@ -53,20 +53,18 @@ export function clearGold(stageLv: number, diff: DiffName, grade: Grade, raid: 0
 export const xpShare = (level: number) => Math.min(1, 14 * level ** -1.1) * (level >= 15 ? 0.85 : 1) * (level >= 70 ? 0.5 : 1);
 /** 레이드 한 판 = 던전 한 판의 10인 1.2배, 20인 1.4배 (전투가 더 김, 26 6장. 레벨 맞춤으로 1.5·2에서 낮춤, 32 3-1) */
 export const XP_RAID = { 10: 1.2, 20: 1.4 } as const;
-/** 지면 이만큼만 (편성·난이도 다시 고를 힘은 남게) */
-export const XP_LOSE = 0.2;
-
+/** 이긴 판만 경험치. 지면 (전멸 · 포기) 없음 (2026-10-13 Lim, 예전엔 20%) */
 export function clearXp(level: number, diff: DiffName, grade: Grade | null, opts: { raid?: 0 | 10 | 20; win: boolean }): number {
-  if (level >= MAX_LEVEL) return 0;
-  const g = opts.win && grade ? REWARD_GRADE[grade] : 1;
-  const x = xpToNext(level) * xpShare(level) * REWARD_DIFF[diff] * g * (opts.raid ? XP_RAID[opts.raid] : 1) * (opts.win ? 1 : XP_LOSE);
+  if (level >= MAX_LEVEL || !opts.win) return 0;
+  const g = grade ? REWARD_GRADE[grade] : 1;
+  const x = xpToNext(level) * xpShare(level) * REWARD_DIFF[diff] * g * (opts.raid ? XP_RAID[opts.raid] : 1);
   return Math.max(1, Math.round(x));
 }
 
 /**
  * 초반 순차 레벨링 (70, Lim 2026-10-12): 내 레벨이 RAMP_LV 이하일 때 장소 Lv RAMP_LV까지의 탐험 · 던전은 경험치를 장소가 정함
  * (내 레벨 · 탐험 ×0.35와 상관없이). 장소 몫 (rampSpan) = 그 장소 레벨에서 다음 장소가 열리는 레벨까지 필요한 경험치.
- * 쉬움 50% + 보통 60%를 처음 깨면 다음 장소 레벨이 됨 (어려움 · 다시 하기 없이). 첫 클리어는 등급과 상관없이 같고, 다시 깨면 RAMP_REPEAT × 등급, 지면 XP_LOSE.
+ * 쉬움 50% + 보통 60%를 처음 깨면 다음 장소 레벨이 됨 (어려움 · 다시 하기 없이). 첫 클리어는 등급과 상관없이 같고, 다시 깨면 RAMP_REPEAT × 등급, 지면 없음.
  * 정한 양이라 레벨이 앞서 있으면 덜 오르고 (지나온 곳 돌기는 조금만), 뒤처져 있으면 더 오름.
  * Lv RAMP_LV + 1부터는 어느 장소든 clearXp 그대로 (장소 레벨 차이 감산 없음)
  */
@@ -94,8 +92,9 @@ export function rampSpan(c: ContentDef): number {
 
 /** 순차 레벨링 구간 장소 한 판 경험치 (first = 이 캐릭터가 이 난이도를 처음 깸) */
 export function rampXp(c: ContentDef, diff: DiffName, o: { first: boolean; grade: Grade | null; win: boolean }): number {
+  if (!o.win) return 0;
   const x = rampSpan(c) * RAMP_FIRST[diff] * (o.first ? 1 : RAMP_REPEAT);
-  return Math.max(1, Math.round(!o.win ? x * XP_LOSE : o.first || !o.grade ? x : x * REWARD_GRADE[o.grade]));
+  return Math.max(1, Math.round(o.first || !o.grade ? x : x * REWARD_GRADE[o.grade]));
 }
 
 /** 경험치를 더하고 오른 레벨 목록을 돌려줌 */

@@ -113,9 +113,10 @@ export default async function tutorial(url, shots) {
   ok(sv.tut === 3 && sv.clears.plateau, `저장: 탐험 클리어 = 튜토리얼 끝 (tut ${sv.tut})`);
   await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
   const tip = await page.textContent('#s-settle .coachtip');
-  ok(/첫 장비/.test(tip) && /튜토리얼은 여기까지/.test(tip) && await page.isVisible('#equipNow.hi-pulse') && (await page.locator('#s-settle .ns-foot .btn').count()) === 1, '결과: 첫 장비 · 튜토리얼 끝 안내 + 「장착」 반짝임, 로비 버튼 하나');
+  sv = await save();
+  ok(/첫 장비/.test(tip) && /튜토리얼은 여기까지/.test(tip) && /장착함/.test(await page.textContent('#s-settle .r-item')) && Object.keys(sv.gear.equipped).length === 1 && sv.gear.bag.length === 0
+    && (await page.locator('#s-settle .ns-foot .btn').count()) === 1, '결과: 첫 장비는 바로 장착 (「장착」 버튼 없음) · 튜토리얼 끝 안내, 로비 버튼 하나');
   await page.screenshot({ path: `${shots}/tut_reward.png` });
-  await page.click('#equipNow'); await page.clock.runFor(50);
   await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
 
   // ---- 로비: 튜토리얼 끝 = 탭 잠금 없음, 녹슨 요새(Lv 5)는 아직 → 던전 안내 없음 ----

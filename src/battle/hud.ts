@@ -323,8 +323,8 @@ export function updateCastbar(): void {
 let noteCast = '';
 
 // ---------- 파티원 공격 숫자 (2026-10-07 Lim: 합치지 않고 한 방씩) ----------
-// 한 방씩 유지하되 동시 표시를 서로 겹치지 않는 세 줄로 제한한다.
-const DMG_POOL = 3;
+// 2026-10-13 Lim 「더 크게, 타격감 있게. 다른 UI를 가려도 됨」: 보스 초상 둘레 네 자리에서 크게 찍히고 튀었다가 떠오름 (자리 · 연출은 hit-feel.css)
+const DMG_POOL = 4;
 const dmg = { els: [] as HTMLSpanElement[], i: 0, avg: 0, hurtAt: 0 };
 export function resetDmgNums(): void {
   const box = $('dmgNums');
@@ -340,6 +340,7 @@ export function dmgNum(u: Unit | undefined, amt: number, now: number): void {
   dmg.avg = dmg.avg ? dmg.avg * 0.9 + amt * 0.1 : amt;
   el.textContent = String(n);
   el.className = `${u ? u.role : ''}${amt > dmg.avg * 1.6 ? ' big' : ''}`;
+  el.style.setProperty('--jx', `${Math.round(Math.random() * 12 - 6)}px`);
   void el.offsetWidth;
   el.classList.add('go');
   if (now - dmg.hurtAt > 160) { dmg.hurtAt = now; const a = $('bossArt'); a.classList.remove('hurt'); void a.offsetWidth; a.classList.add('hurt'); }
@@ -388,6 +389,11 @@ function bossAura(F: Fight): void {
 // ---------- 보스 무대 (27 3-4, 시안 MmoBattle5·20) ----------
 /** 예고 칸 채움: 이만큼(초) 남았으면 가득. DBM 막대처럼 남은 시간만큼 줄어듦 */
 const QWIN = 30;
+/** 예고 칸 게이지 (2026-10-13 Lim 「잘 안 보인다」): 남은 시간 비율을 --p로, 칸 아래 밝은 막대로 그림 (hit-feel.css) */
+function qGauge(el: HTMLElement, v: number): void {
+  const p = String(Math.round(Math.max(0, Math.min(1, v)) * 1000) / 1000);
+  if (el.style.getPropertyValue('--p') !== p) el.style.setProperty('--p', p);
+}
 /** 곧 떨어지는 칸 (빨강): 시전 중이거나 이 초 이하 */
 const QSOON = 5;
 /** 예고 전용 이름. 긴 정식 이름은 설명·접근성 이름에 유지한다. */
@@ -489,7 +495,7 @@ export function updateStage(now: number): void {
       setText(el.querySelector('.sec-num')!, String(Math.ceil(sec)));
       const label = `${it.name || '기술'}, ${qKind(it.kind).name}, ${Math.ceil(sec)}초 뒤${it.casting ? ', 시전 중' : ''}. 기술 설명`;
       if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
-      setBar(el.querySelector<HTMLElement>('.fill'), sec / QWIN);
+      qGauge(el.querySelector<HTMLElement>('.fill')!, sec / QWIN);
     });
     refocus?.focus({ preventScroll: true });
     if (ui.tip) { const qe = queueEl.querySelector<HTMLElement>('.q.tipon'); if (qe) placeTip(qe); } // 팝업은 대기열 밖에서 유지하고 순서가 바뀌면 따라감

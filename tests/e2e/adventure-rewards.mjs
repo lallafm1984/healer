@@ -57,9 +57,10 @@ async function inspectProbabilities(page,expected,{maxGrade,keepOpen=false}={}) 
   const wasOpen=await page.locator('.b-reward-chance [data-grade]').count()>0;
   if(!wasOpen) {await page.locator('[data-reward="gear"]').scrollIntoViewIfNeeded();await page.click('[data-reward="gear"]');await page.clock.runFor(20);}
   const values=await page.locator('.b-reward-chance [data-grade]').evaluateAll(els=>els.map(el=>({grade:el.dataset.grade,p:Number(el.dataset.probability)*100,text:el.textContent})));
-  const wanted=GRADES.map((grade,i)=>({grade,p:expected[i]})).reverse();
+  // 나오는 등급만 (2026-10-13 Lim: 0% 등급은 안 보임), 높은 등급부터
+  const wanted=GRADES.map((grade,i)=>({grade,p:expected[i]})).reverse().filter(w=>w.p>0);
   const geometry=await probabilityBounds(page),sum=values.reduce((n,v)=>n+v.p,0),expectedSum=expected.reduce((n,p)=>n+p,0);
-  const rows=values.length===5 && values.every((v,i)=>v.grade===wanted[i].grade && Math.abs(v.p-wanted[i].p)<1e-6
+  const rows=values.length===wanted.length && values.every((v,i)=>v.grade===wanted[i].grade && Math.abs(v.p-wanted[i].p)<1e-6
     && v.text.includes(v.grade) && [...v.text.matchAll(/(\d+(?:\.\d+)?)\s*%/g)].some(m=>Math.abs(Number(m[1])-v.p)<1e-4));
   const icon=icons.length===1 && !oldCount && icons[0].max===highest && icons[0].color===color && icons[0].border===rgb
     && icons[0].p===(expectedSum?1:0) && (expectedSum?icons[0].name.includes(highest):/수령 완료/.test(icons[0].label));
@@ -100,7 +101,7 @@ export default async function adventureRewards(url,shots) {
             ok(art.every(a=>a.loaded),`${tag}: 주간 도전·장소 변경·권장 레벨·화살표 이미지 로드`,art);
           }
           const expected=await inspectProbabilities(page,TABLES[tab][diff]);
-          ok(expected.ok,`${tag} ${tab}/${diff}: 최고등급 색 장비 아이콘 1개·0% 포함 5행 확률표·합 100%`,expected);
+          ok(expected.ok,`${tag} ${tab}/${diff}: 최고등급 색 장비 아이콘 1개·나오는 등급만 확률표·합 100%`,expected);
           const rewards=await page.locator('.b-scene-reward').evaluateAll(els=>els.map(el=>({key:el.dataset.reward,p:Number(el.dataset.probability),name:el.getAttribute('aria-label')})));
           ok(rewards.length>2 && rewards.every(r=>r.name && Number.isFinite(r.p) && r.p>=0 && r.p<=1)
             && await page.locator('.b-pop,[data-drops]').count()===0,`${tag} ${tab}: 이름 있는 보상 아이콘·상세 팝업 제거`,rewards);
@@ -121,7 +122,7 @@ export default async function adventureRewards(url,shots) {
               || (reward.key!=='gear' && !percentages.some(p=>Math.abs(p-reward.p*100)<1e-4)))bad.push({key:reward.key,p:reward.p,state});
             if(reward.key==='gear') {
               const grades=await inspectProbabilities(page,TABLES[tab][diff],{keepOpen:true});
-              if(!grades.ok || !/A\s*평가.*보너스 제외/.test(state.text))bad.push({key:reward.key,issue:'grade probability table or basis',grades});
+              if(!grades.ok || /장비 1개|보너스 제외/.test(state.text))bad.push({key:reward.key,issue:'grade probability table or basis line',grades,text:state.text});
             }
             if(reward.key==='gear' || (tab==='dungeon' && reward.key==='gold'))
               await page.screenshot({path:`${shots}/departure-reward-chance-${reward.key}-${tab}-${id}-${width}x${height}.png`});
@@ -178,7 +179,7 @@ export default async function adventureRewards(url,shots) {
           await seed(page,{loot:['cathedral1|악몽'],cleared:true});await page.click('[data-ctab="raid20"]');await chooseContent(page,'cathedral1');await page.click('[data-diff="악몽"]');
           const claimed=await inspectProbabilities(page,[0,0,0,0,0],{maxGrade:'전설'});
           ok(claimed.ok && /이번 주 장비 수령 완료/.test(claimed.geometry.text) && await page.locator('[data-reward="crystal"]').count()===0,
-            '이번 주 수령 완료: 단일 장비 아이콘·5등급 모두 0%·완료 안내·크리스탈 반복 없음',claimed);
+            '이번 주 수령 완료: 단일 장비 아이콘·등급 줄 없음·완료 안내·크리스탈 반복 없음',claimed);
           for(const trigger of ['render','icon']) {
             await seed(page,{loot:['cathedral1|악몽'],cleared:true,merit:150});
             await page.click('[data-ctab="raid20"]');await chooseContent(page,'cathedral1');await page.click('[data-diff="악몽"]');

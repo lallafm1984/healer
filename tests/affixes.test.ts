@@ -201,11 +201,10 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
       expect(low.player.xp).toBe(xp);
     }
   });
-  it('레벨 차이 보정 제거 뒤에도 패배 경험치·포기 무보상은 유지', () => {
+  it('지면 경험치 없음 (2026-10-13 Lim), 포기도 무보상', () => {
     for (const content of ['rustfort', 'plateau'] as const) {
-      const kind = content === 'plateau' ? EXPLORE_REWARD : 1;
       const lost = settle(save(52), result({ content, win: false, stage: 1 }), rng, [], T0);
-      expect(lost.xp).toBe(Math.round(clearXp(52, '보통', null, { win: false }) * kind));
+      expect(lost.xp).toBe(0);
       const quit = settle(save(52), result({ content, win: false, quit: true, stage: 1 }), rng, [], T0);
       expect(quit.xp).toBe(0);
     }

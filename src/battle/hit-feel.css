@@ -1,0 +1,75 @@
+/*
+ * 전투 화면 손질 (2026-10-13 Lim 첨부 4 · 5).
+ * 1) 파티원 공격 숫자: 더 크고 타격감 있게 (다른 UI를 가려도 됨). 보스 초상 둘레 네 자리에서 크게 찍혔다가 튀고 떠오름. 초상도 맞을 때 번쩍 · 흔들림
+ * 2) 예고 칸 게이지: 남은 시간을 칸 아래 밝은 막대로 (예전엔 나무결 위 옅은 칠이라 안 보였음). 곧 떨어지는 칸은 붉은 막대
+ * 3) 스킬 패널 작게 보기: 패널 나무판 · 황동 테는 화면 폭 그대로, 안쪽 버튼만 줄임 (양끝이 잘려 보이던 것)
+ * main.ts에서 전투 CSS · 테마 CSS 뒤에 읽음.
+ */
+
+/* ---------- 1) 파티원 공격 숫자 ---------- */
+#battle #dmgNums, #battle.stage-sm #dmgNums, #battle.short-battle #dmgNums { z-index: 6; overflow: visible; }
+#battle #dmgNums span {
+  left: 50%; top: 50%; opacity: 0;
+  font: 900 28px/1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+  color: #fff1d6;
+  text-shadow: -2px 0 0 #1a0d05, 2px 0 0 #1a0d05, 0 -2px 0 #1a0d05, 0 2px 0 #1a0d05,
+    -1.5px -1.5px 0 #1a0d05, 1.5px -1.5px 0 #1a0d05, -1.5px 1.5px 0 #1a0d05, 1.5px 1.5px 0 #1a0d05, 0 4px 4px #000c;
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+}
+/* 네 자리: 초상 왼쪽 아래 · 오른쪽 위 · 위 · 이름 쪽 (한 방씩 돌아가며, 보스 이름을 가려도 됨) */
+#battle #dmgNums span:nth-child(1) { --x: -10px; --y: 10px; }
+#battle #dmgNums span:nth-child(2) { --x: 32px; --y: -14px; }
+#battle #dmgNums span:nth-child(3) { --x: 4px; --y: -28px; }
+#battle #dmgNums span:nth-child(4) { --x: 54px; --y: 12px; }
+#battle #dmgNums span.tank { color: #f1ead9; }
+#battle #dmgNums span.melee { color: #ffb066; }
+#battle #dmgNums span.ranged { color: #8ff0e2; }
+/* 평소보다 크게 맞은 한 방: 더 크게 · 금빛 · 살짝 기울임 */
+#battle #dmgNums span.big { --r: -7deg; font-size: 36px; color: #ffd84a; }
+#battle #dmgNums span.bossheal { font-size: 24px; color: #8cf29c; }
+#battle #dmgNums span.go { animation: dmgPunch 0.95s cubic-bezier(.2, .9, .3, 1) forwards; }
+@keyframes dmgPunch {
+  0% { opacity: 0; transform: translate(calc(-50% + var(--x, 0px) + var(--jx, 0px)), calc(-50% + var(--y, 0px))) rotate(var(--r, 0deg)) scale(2.3); }
+  9% { opacity: 1; transform: translate(calc(-50% + var(--x, 0px) + var(--jx, 0px)), calc(-50% + var(--y, 0px))) rotate(var(--r, 0deg)) scale(0.82); }
+  17% { transform: translate(calc(-50% + var(--x, 0px) + var(--jx, 0px)), calc(-50% + var(--y, 0px))) rotate(var(--r, 0deg)) scale(1.14); }
+  26% { transform: translate(calc(-50% + var(--x, 0px) + var(--jx, 0px)), calc(-50% + var(--y, 0px))) rotate(var(--r, 0deg)) scale(1); }
+  70% { opacity: 1; transform: translate(calc(-50% + var(--x, 0px) + var(--jx, 0px)), calc(-50% + var(--y, 0px) - 10px)) rotate(var(--r, 0deg)) scale(1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--x, 0px) + var(--jx, 0px)), calc(-50% + var(--y, 0px) - 26px)) rotate(var(--r, 0deg)) scale(0.92); }
+}
+/* 초상: 맞으면 번쩍 + 움찔 */
+#battle #bossArt.hurt { animation: hurtPunch 0.2s ease-out; }
+@keyframes hurtPunch {
+  0% { transform: none; filter: brightness(2.1) saturate(1.3); }
+  30% { transform: translate(-3px, 1px) scale(0.95); filter: brightness(1.5); }
+  65% { transform: translate(2px, -1px) scale(1.03); }
+  100% { transform: none; filter: none; }
+}
+#battle.reduced-effects #bossArt.hurt { animation: none; }
+@media (prefers-reduced-motion: reduce) { #battle #bossArt.hurt { animation: none; } }
+
+/* ---------- 2) 예고 칸 게이지 ---------- */
+#battle #queue .q::before {
+  content: ''; position: absolute; z-index: 3; left: 9px; right: 9px; bottom: 5px; height: 6px; border-radius: 3px;
+  background: #0b0704d9; box-shadow: inset 0 1px 2px #000, 0 0 0 1px #c4954c66; pointer-events: none;
+}
+#battle #queue .q .fill, #battle #queue .q.next .fill {
+  z-index: 4; top: auto; left: 9px; bottom: 5px; height: 6px; border-radius: 3px;
+  width: calc((100% - 18px) * var(--p, 0));
+  background: linear-gradient(#fff0b8, #f0bd4f 55%, #b9821f);
+  box-shadow: 0 0 6px #ffd36b99;
+}
+#battle #queue .q.hot .fill { background: linear-gradient(#ffd0b8, #ff5a3c 55%, #c42417); box-shadow: 0 0 8px #ff5a3cbb; }
+/* 글자 · 아이콘은 막대 위 공간에 (가운데보다 3px 위) */
+#battle #queue .q > :not(.fill) { transform: translateY(-3px); }
+
+/* ---------- 3) 스킬 패널 작게 보기: 판은 화면 폭, 안쪽만 줄임 ---------- */
+#battle.compact-panel #controlsFrame {
+  background-color: #3b2513; background-image: var(--a2-wood); background-size: cover; background-repeat: no-repeat;
+}
+#battle.compact-panel #controlsFrame::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  border: 0 solid transparent; border-image: var(--sf-panel) 104 / 14px 22px 10px / 0 stretch;
+}
+#battle.compact-panel #controls { background: none; }
+#battle.compact-panel #controls::after { content: none; }
