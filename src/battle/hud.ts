@@ -478,8 +478,8 @@ export function updateStage(now: number): void {
     const changed = queueEl.children.length !== 3 || cards.length !== q.length || q.some((it, i) => cards[i]?.dataset.ic !== (it.icon || '') || cards[i]?.dataset.imp !== it.impact.toFixed(2) || cards[i]?.dataset.art !== it.art);
     if (changed) {
       const focused = document.activeElement instanceof HTMLElement && queueEl.contains(document.activeElement) ? { ...document.activeElement.dataset } : null;
-      // 예고 칸 3개를 늘 표시 (27 3-4): 기술이 없으면 빈 테두리 칸
-      queueEl.innerHTML = q.map(it => `<button type="button" class="q" data-ic="${it.icon || ''}" data-imp="${it.impact.toFixed(2)}" data-kind="${it.kind || ''}" data-art="${it.art}"><span class="fill"></span>${qIc(it.icon || '', it.kind, it.art)}<span class="tx"><span class="nm"></span><span class="kd">${qKind(it.kind).name}</span></span><span class="sec"><b class="sec-num"></b><small>초</small></span></button>`).join('')
+      // 예고 칸 3개를 늘 표시 (27 3-4): 기술이 없으면 빈 테두리 칸. 칸 안 기술 아이콘은 뺌 (2026-10-13 Lim, 누르면 나오는 설명 팝업에는 있음)
+      queueEl.innerHTML = q.map(it => `<button type="button" class="q" data-ic="${it.icon || ''}" data-imp="${it.impact.toFixed(2)}" data-kind="${it.kind || ''}" data-art="${it.art}"><span class="fill"></span><span class="tx"><span class="nm"></span><span class="kd">${qKind(it.kind).name}</span></span><span class="sec"><b class="sec-num"></b><small>초</small></span></button>`).join('')
         + '<span class="q-empty" aria-hidden="true"></span>'.repeat(3 - q.length);
       cards = Array.from(queueEl.querySelectorAll<HTMLElement>('.q'));
       // 순서가 바뀌었을 때만, 여전히 예고 중인 같은 기술로 포커스를 이어 준다.
@@ -509,10 +509,10 @@ export function updateStage(now: number): void {
     if (firstBuster && !ui.busterHint && !S.auto) { ui.busterHint = true; toast(`${firstBuster.skill.name}: 탱커에게 ${Math.round(firstBuster.skill.dmg! * F.dmgMult)} 피해. 미리 채우거나 수호 영혼`); }
   }
   $('battle').classList.toggle('aoe', F.tels.some(t => t.kind === 'aoe'));
-  // 탱커가 모두 쓰러지면 아래에 포기 버튼 (2026-10-07 Lim). 전투는 파티 전멸까지 계속
+  // 탱커가 모두 쓰러지면 시전 막대 자리 가운데에 포기 버튼 (2026-10-07 Lim, 자리는 2026-10-13 Lim). 전투는 파티 전멸까지 계속.
+  // 조작판 배치는 그대로, 전투 메시지는 버튼 왼쪽으로 (give-up)
   const down = !F.over && F.party.some(u => u.role === 'tank') && !F.party.some(u => u.role === 'tank' && u.alive);
-  if ($('giveUp').hidden === down) { $('giveUp').hidden = !down; $('hint').hidden = down; }
-  $('controls').classList.toggle('tank-down', down);
+  if ($('giveUp').hidden === down) { $('giveUp').hidden = !down; $('castbar').classList.toggle('give-up', down); }
 }
 
 // ---------- 설명 팝업 (보스 기술 · 스킬 · 아이템 같은 모양) ----------

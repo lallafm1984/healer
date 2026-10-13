@@ -75,7 +75,7 @@ function startBattle(guideSec = 0): void {
   const lag = $('bossLag'); lag.style.transition = 'none'; lag.style.width = '100%'; void lag.offsetWidth; lag.style.transition = '';
   $('controls').classList.toggle('wheel-left', S.hand === 'left');
   $('pause').hidden = true; hidePreview(); clearToasts();
-  $('giveUp').hidden = true; $('hint').hidden = false;
+  $('giveUp').hidden = true; $('castbar').classList.remove('give-up');
   clearCoach();
   $('bossArt').innerHTML = bossSvg(F.enc.script, F.enc.key);
   // 인터미션 쥐떼 작은 그림 (29: mob-crypt-rats가 있을 때만)
@@ -130,14 +130,13 @@ function layoutBattle(): void {
   // 아래 조작판: 시안 390×844에서 230. 휠 = 조작판 높이 - 14 (시안 216), 폭의 56.5% (시안 220)
   const auxCount = Object.keys(F.tx.act).length;
   // 특성 버튼 줄이 있으면 버튼 44 + 아이템 2줄 + 막대 2줄이 들어가게 (낮은 화면은 막대·여백을 줄여 194)
-  const down = F.party.some(u => u.role === 'tank') && !F.party.some(u => u.role === 'tank' && u.alive);
   const controls = $('controls');
   controls.classList.toggle('compact-controls', S.compactSkills);
   $('battle').classList.toggle('compact-panel', S.compactSkills);
   controls.classList.toggle('paladin', F.hero === 'paladin');
   controls.classList.toggle('wheel-left', S.hand === 'left');
   const ch = Math.round(Math.min(236, Math.max(auxCount ? (short ? 194 : 218) : 178, H * 0.297)));
-  layoutState = `${S.compactSkills}:${down}`;
+  layoutState = `${S.compactSkills}`;
   ($('pauseCompact') as HTMLInputElement).checked = S.compactSkills;
   $('wheel').setAttribute('aria-label', '치유 스킬 휠');
   controls.style.setProperty('--controls-scale', '1');
@@ -823,7 +822,7 @@ function frame(now: number): void {
     }
     handleEvents(now);
     updateStage(now); updateWheel(); updateItems(); updateAux(); updateCastbar(); updatePreview(now);
-    if (layoutState !== `${S.compactSkills}:${$('controls').classList.contains('tank-down')}`) layoutBattle();
+    if (layoutState !== `${S.compactSkills}`) layoutBattle();
     render(now);
     if (F.over && !B.overShown) { B.overShown = true; endSegment(); }
   }

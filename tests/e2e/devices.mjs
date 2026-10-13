@@ -63,12 +63,48 @@ export default async function devices(url, shots) {
     await page.click('#s-entry .tb-back'); await page.clock.runFor(80);
     await toParty(page, { tab: 'dungeon', content: 'rustfort', diff: '어려움' });
     await page.click('#depart'); await page.clock.runFor(3100 + 300);
+
+    // 전투 머리 (2026-10-13 Lim 첨부3): 일시정지 버튼이 머리 판 황동 테 (판 끝에서 11px 안까지) 안쪽에
+    const head = await box('#battle .stage-head'), pause = await box('#pauseBtn');
+    ok(pause.right <= head.right - 11 && pause.top >= head.top + 11 && pause.bottom <= head.bottom + 5 - 11 && pause.h >= 44,
+      `${tag}: 일시정지 버튼이 머리 판 테와 안 겹침 (오른쪽 여백 ${Math.round(head.right - pause.right)} · 위 ${Math.round(pause.top - head.top)})`);
+    // 탱커 전멸 (2026-10-13 Lim 첨부2): 포기 버튼은 시전 막대 자리 가운데, 나무결 아닌 붉은색, 조작판 배치는 그대로
+    const before = await box('#controls');
+    await page.evaluate(() => { const F = window.__proto.F; F.party.filter(u => u.role === 'tank').forEach(u => { u.hp = 0; u.alive = false; u.guardian = 0; }); F.party.forEach(u => { if (u.role !== 'tank') { u.max *= 50; u.hp = u.max; } }); });
+    await page.clock.runFor(300);
+    // 나타나는 움직임 (0.25초, 실제 시간)이 끝난 뒤 잼
+    await page.locator('#giveUp').evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
+    const gu = await page.evaluate(() => {
+      const r = el => el.getBoundingClientRect(), g = document.getElementById('giveUp'), b = r(g), c = r(document.getElementById('castbar')), f = r(document.getElementById('controlsFrame'));
+      const cx = (b.left + b.right) / 2, cy = (b.top + b.bottom) / 2, st = getComputedStyle(g);
+      return { parent: g.parentElement.id, dx: Math.abs(cx - (c.left + c.right) / 2), dy: Math.abs(cy - (c.top + c.bottom) / 2), above: b.bottom <= f.top + 1, w: b.width,
+        hit: [-21, 0, 21].every(d => g.contains(document.elementFromPoint(cx, cy + d))), bg: st.backgroundImage, hint: !document.getElementById('hint').hidden };
+    });
+    const after = await box('#controls');
+    ok(gu.parent === 'castbar' && gu.dx <= 1 && gu.dy <= 1 && gu.above && gu.w >= 88 && gu.hit && /gradient/.test(gu.bg) && !/url\(/.test(gu.bg) && gu.hint && after.h === before.h && after.top === before.top,
+      `${tag}: 탱커 전멸 포기 버튼 = 시전 막대 자리 가운데 · 누르는 칸 44 · 붉은색 · 조작판 그대로 ${JSON.stringify({ ...gu, bg: gu.bg.slice(0, 24) })}`);
+    await page.screenshot({ path: `${shots}/device_giveup_${width}x${height}.png` });
+    // 포기 → 결과 (전멸): 「장비가 권장보다 낮음」 줄의 「장비」 버튼은 나무결 아닌 금빛 (2026-10-13 Lim 첨부1)
+    await page.click('#giveUp'); await page.click('#confirmApply'); await page.clock.runFor(300);
+    const gearBtn = page.locator('#s-settle .f-warn [data-arg="gear"]');
+    const gbg = await gearBtn.evaluate(el => { const st = getComputedStyle(el); return { bg: st.backgroundImage, color: st.color, h: el.getBoundingClientRect().height }; });
+    ok(/장비가 권장/.test(await page.textContent('#s-settle .f-warns')) && /gradient/.test(gbg.bg) && !/url\(/.test(gbg.bg) && gbg.color === 'rgb(42, 24, 6)' && gbg.h >= 44 - .1,
+      `${tag}: 전멸 결과 「장비」 버튼 금빛 (나무결 아님) ${JSON.stringify({ ...gbg, bg: gbg.bg.slice(0, 24) })}`);
+    await page.screenshot({ path: `${shots}/device_lose_${width}x${height}.png` });
+    await page.click('#again'); await page.clock.runFor(3100 + 300);
+    ok(await page.isHidden('#giveUp'), `${tag}: 다시 도전하면 포기 버튼 없음`);
+
+    // 보스 기술 예고 칸에는 기술 아이콘 없음 (2026-10-13 Lim 첨부3, 이름 · 남은 초 · 막대만)
+    const pills = { q: 0, ic: 0 };
     for (let i = 0; i < 6; i++) {
+      const n = await page.evaluate(() => ({ q: document.querySelectorAll('#queue .q').length, ic: document.querySelectorAll('#queue .q .ic, #queue .q svg, #queue .q img').length }));
+      pills.q += n.q; pills.ic += n.ic;
       await page.evaluate(() => { const f = window.__proto.F; f.mobs.forEach(m => { m.hp = 0; m.alive = false; }); f.bossHp = 0; });
       await page.clock.runFor(1500);
       if (!(await page.isVisible('#rest'))) break;
       await page.click('#restGo'); await page.clock.runFor(3100 + 300);
     }
+    ok(pills.q > 0 && pills.ic === 0, `${tag}: 예고 칸 ${pills.q}개에 기술 아이콘 없음`);
     const loot = await box('#s-settle .r-loot'), rfoot = await box('#s-settle .ns-foot'), rec = await box('#s-settle .r-rec');
     ok(await noOverflow('#s-settle .res') && loot.bottom <= rfoot.top && rfoot.bottom <= height + 1, `${tag}: 결과 화면 받은 것까지 첫 화면 (${Math.round(loot.bottom)} ≤ ${Math.round(rfoot.top)})`);
     ok(rec.top < rfoot.top, `${tag}: 결과 화면 「전투 기록」 줄이 보임 (${Math.round(rec.top)})`);

@@ -26,7 +26,14 @@
 #s-settle .r-rec .metrics dt { color: var(--gk-mute); }
 #s-settle .m-all { border-color: var(--gk-card-bd); color: var(--gk-mute); }
 #s-settle .f-warn .v { color: var(--gk-ink); }
-#s-settle .btn2 { background: var(--gk-btn); border: 1px solid var(--gk-edge); border-radius: 8px; box-shadow: none; color: var(--gk-head); }
+/* 힌트 줄 「장비」 버튼: 나무결 (a2-theme .ns:not(#s-lobby) .btn2)보다 세게 (#s-settle.ns), 아래 주 버튼과 같은 금빛으로 눈에 띄게 (2026-10-13 Lim) */
+#s-settle.ns .f-warn .btn2 {
+  min-width: 64px; border: 1px solid #b8862e; border-radius: 8px;
+  background: linear-gradient(#ffe07a, #f0b93a 55%, #d99a24);
+  box-shadow: inset 0 1px 0 #fff8d8, inset 0 -2px 0 #b07a1a, 0 2px 0 #000a; color: #2a1806; font-weight: 800; text-shadow: none;
+}
+#s-settle.ns .f-warn .btn2:active { transform: translateY(1px); background: linear-gradient(#f0c853, #d99a24); }
+#s-settle.ns .f-warn .btn2:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
 #s-settle .r-newsp { background: var(--gk-chip); border: 1px solid var(--gk-edge); border-radius: 8px; color: var(--gk-ink); }
 #s-settle .r-newsp b { color: var(--gk-head); }
 #s-settle .coachtip { background: var(--gk-card); border: 1px solid var(--gk-edge); border-radius: 10px; color: var(--gk-ink); }

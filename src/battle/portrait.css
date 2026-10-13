@@ -87,12 +87,6 @@
 #battle #gauges { flex-wrap: wrap; justify-content: center; gap: 2px 7px; max-width: 140px; font-size: 10px; color: #C7BCA4; }
 #battle #gauges.locked { display: none; }
 #battle #hint { color: #B9AC90; font-size: 10px; line-height: 1.45; }
-#battle #giveUp { min-height: 44px; font-size: 16px; padding: 6px; }
-#battle #controls.tank-down { min-height: 220px; }
-#battle #controls.tank-down #items { max-width: 94px; gap: 6px; }
-#battle #controls.tank-down #gauges { display: none; }
-#battle #giveUp { flex-shrink: 0; animation: giveUpFade .2s ease-out; }
-@keyframes giveUpFade { from { opacity: 0; } to { opacity: 1; } }
 #battle #pause .card { border-color: #9f8150; background: #2B2319; border-radius: 20px; }
 #battle #pause .btn, #battle #coach .btn { min-height: 44px; }
 #battle #pause .phead { flex-wrap: wrap; }
