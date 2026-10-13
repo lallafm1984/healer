@@ -24,7 +24,7 @@ import {
 import { Flow } from '../game/flow';
 import type { Settlement } from '../game/settle';
 import { art } from '../art';
-import { classEmblem, currencyAmount, fxArt, gameIcon, gearIcon, LOCK, trinketArt, uiIcon } from './art';
+import { classEmblem, currencyAmount, currencyIcon, CURRENCY_NAMES, fxArt, gameIcon, gearIcon, LOCK, trinketArt, uiIcon } from './art';
 import { battle, esc, fmt, josa, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 import { sheetDialog } from './dialog';
@@ -52,7 +52,7 @@ let swapping = false;
 let msg = '';
 let sheet: Sheet = null;
 /** 확인 전에는 재화와 장비를 변경하지 않는다. */
-let pending: { kind: 'enhance' | 'salvage'; id: number; plus: number } | null = null;
+let pending: { kind: 'enhance' | 'salvage'; id: number; plus: number; result?: EnhanceOutcome; error?: string } | null = null;
 /** 지난번에 그린 시트 (같은 시트를 다시 그릴 땐 올라오는 움직임 없이) */
 let sheetKey = '';
 
@@ -244,7 +244,7 @@ function statsHtml(): string {
   const crit = pc(p.crit.total), haste = pc(p.haste.total), spirit = pc(p.spirit.total), endure = pc(p.endure.total);
   return `<button type="button" class="c7-stats" data-sheet="stats" aria-label="능력치 상세 보기">
       <span class="c7-sh">능력치</span>
-      <span class="c7-sgrid">${row(statIc('hp'), '체력', fmt(p.hp.total))}${row(statIc('heal'), '지능', fmt(p.int.total))}${row(statIc('crit'), '치명타', `${crit}%`)}${row(statIc('haste'), '가속', `${haste}%`)}${row(statIc('regen'), '정신력', `+${spirit}%`)}${row(statIc('stamina'), '인내', `${endure}%`)}</span>
+      <span class="c7-sgrid">${row(statIc('hp'), '체력', fmt(p.hp.total))}${row(statIc('heal'), '지능', fmt(p.int.total))}${row(statIc('crit'), '치명타', `${crit}%`)}${row(statIc('haste'), '가속', `${haste}%`)}${row(statIc('regen'), '정신력', `${spirit}%`)}${row(statIc('stamina'), '인내', `${endure}%`)}</span>
       <span class="c7-shint">상세 보기 <img src="${art('a2-chevron')}" alt="" aria-hidden="true"></span></button>`;
 }
 
@@ -435,10 +435,10 @@ function itemSheet(id: number): string {
   const c = enhanceCost(it), m = G.save.mats, gold = G.save.player.gold;
   const can = !!c && gold >= c.gold && m.stone >= c.stone && m.refined >= c.refined;
   const lack = c && !can ? (gold < c.gold ? '골드 부족' : m.stone < c.stone ? '강화석 부족' : '정제 강화석 부족') : '';
-  const costHtml = c ? `${currencyAmount('gold', c.gold)}${c.stone ? currencyAmount('stone', c.stone, { have: m.stone }) : ''}${c.refined ? currencyAmount('refined', c.refined, { have: m.refined }) : ''}` : '';
+
   const sv = salvageOf(it);
   // 강화 연출 (34 7장): 성공 = 번쩍 + 「+6」, 떨어짐 = 흔들림 + 「+5 → +4」, 그대로 = 「실패 · +1 그대로」. 짧게 = 0.5초
-  const f = efx && efx.id === it.id ? efx : null;
+  const f = !pending && efx && efx.id === it.id ? efx : null;
   const fxCls = f ? ` fx ${f.ok ? 'fx-ok' : f.to < f.from ? 'fx-drop' : 'fx-fail'}${f.quick ? ' fx-quick' : ''}${f.awaken != null ? ' fx-aw' : ''}` : '';
   const fxRes = f ? `<b class="c7-fxres" aria-live="polite">${f.ok ? `+${f.to}` : f.to < f.from ? `+${f.from} → +${f.to}` : `실패 · +${f.from} 그대로`}</b>` : '';
   // 망치 (0.4 · 0.7 · 1.0초, 짧게면 없음) · 불꽃 (CSS 반짝이 자리에 그림) · 실패하면 금 간 조각 (36 4-4 G)
@@ -453,8 +453,9 @@ function itemSheet(id: number): string {
       <section class="c7-enh-section" aria-label="강화">
         <div class="c7-enh-heading"><h3>강화</h3></div>
         <div class="c7-enh">
-          <div class="c7-enh-cost"><b>${c ? `+${it.plus} → +${c.to}` : `최대 강화 +${MAX_PLUS}`}</b><div class="c7-costs">${costHtml}</div></div>
-          ${c ? `<div class="c7-rate"><span>성공 <b>${Math.round(c.rate * 100)}%</b></span>${c.rate < 1 ? `<span>실패 시 <b${c.fail < it.plus ? ' class="c7-lack"' : ''}>${c.fail < it.plus ? `+${c.fail}` : '유지'}</b></span>` : ''}</div>` : ''}
+          <div class="c7-enh-cost"><b>${c ? `+${it.plus} → +${c.to}` : `최대 강화 +${MAX_PLUS}`}</b></div>
+          ${c ? enhanceMaterials(c) : ''}
+          ${c ? `<div class="c7-rate"><span>성공률 <b>${Math.round(c.rate * 100)}%</b></span>${c.rate < 1 ? `<span class="${c.fail < it.plus ? 'c7-lack' : ''}">${failureNote(it, c)}</span>` : ''}</div>` : ''}
           ${lack ? `<p class="c7-lack c7-enh-lack" id="gearEnhanceLack">${lack}</p>` : ''}
           <button type="button" class="c7-enhance-button" data-enh="${it.id}"${lack ? ' aria-describedby="gearEnhanceLack"' : ''}${can ? '' : ' disabled'}>${c ? '강화' : '최대 강화'}</button>
         </div>
@@ -467,28 +468,50 @@ function itemSheet(id: number): string {
       </div></section>`;
 }
 
-/** 장비 상세 위에 겹쳐 여는 확인창. 취소하면 상세와 스크롤 위치로 돌아간다. */
+/** 두 강화 화면에서 같은 보유/비용 표를 쓴다. 재화 이름은 공통 아이콘의 접근성 설명으로 제공한다. */
+function enhanceMaterials(c: NonNullable<ReturnType<typeof enhanceCost>>): string {
+  const rows: { key: 'gold' | 'stone' | 'refined'; have: number; cost: number }[] = [
+    { key: 'gold', have: G.save.player.gold, cost: c.gold },
+    ...(c.stone ? [{ key: 'stone' as const, have: G.save.mats.stone, cost: c.stone }] : []),
+    ...(c.refined ? [{ key: 'refined' as const, have: G.save.mats.refined, cost: c.refined }] : []),
+  ];
+  return `<div class="c7-enh-materials" role="table" aria-label="강화 재료 보유량 및 비용">
+    <div class="c7-material-head" role="row"><span role="columnheader" class="sr">재화</span><span role="columnheader">보유</span><span role="columnheader">강화 비용</span></div>
+    ${rows.map(r => `<div class="c7-material-row${r.have < r.cost ? ' short' : ''}" role="row" data-material="${r.key}"><span role="rowheader" aria-label="${CURRENCY_NAMES[r.key]}">${currencyIcon(r.key)}</span><b role="cell" data-have aria-label="${CURRENCY_NAMES[r.key]} 보유 ${fmt(r.have)}">${fmt(r.have)}</b><b role="cell" data-cost aria-label="${CURRENCY_NAMES[r.key]} 강화 비용 ${fmt(r.cost)}">${fmt(r.cost)}</b></div>`).join('')}
+  </div>`;
+}
+
+const failureNote = (it: GearItem, c: NonNullable<ReturnType<typeof enhanceCost>>) =>
+  c.fail < it.plus ? `실패 시 +${c.fail}로 하락` : `실패해도 +${it.plus} 유지`;
+
+/** 강화는 확인창을 유지한 채 한 번씩 실행하고, 결과와 다음 비용을 갱신한다. */
 function confirmHtml(): string {
   if (!pending) return '';
   const it = findItem(pending.id);
   if (!it) return '';
-  const dismantle = pending.kind === 'salvage';
-  const title = dismantle ? '장비 분해' : '장비 강화';
-  const c = enhanceCost(it), reward = salvageOf(it);
-  const amounts = (v: { gold: number; stone: number; refined: number }) =>
-    `${currencyAmount('gold', v.gold)}${v.stone ? currencyAmount('stone', v.stone) : ''}${v.refined ? currencyAmount('refined', v.refined) : ''}`;
+  const dismantle = pending.kind === 'salvage', c = enhanceCost(it), reward = salvageOf(it);
+  const f = !dismantle && efx?.id === it.id ? efx : null, result = pending.result;
+  const fxCls = f ? ` fx ${f.ok ? 'fx-ok' : f.to < f.from ? 'fx-drop' : 'fx-fail'}${f.quick ? ' fx-quick' : ''}` : '';
+  const calm = !!G.save.settings.reducedEffects || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const effects = f && !calm ? `<span class="c7-enchant-aura" aria-hidden="true"></span><span class="c7-enchant-rays" aria-hidden="true"></span>
+    <span class="c7-fxring" aria-hidden="true"></span><span class="c7-fxspark" aria-hidden="true">${fxArt('fx-enhance-spark', 'c7-fxspi')}</span>
+    ${f.quick ? '' : fxArt('fx-enhance-hammer', 'c7-fxham')}${f.ok ? '' : fxArt('fx-enhance-crack', 'c7-fxcrk')}
+    <span class="c7-enchant-particles" aria-hidden="true">${Array.from({ length: 12 }, (_, n) => `<i style="--angle:${n * 30}deg;--delay:${n % 3 * 70}ms"></i>`).join('')}</span>` : '';
+  const amounts = `${currencyAmount('gold', reward.gold)}${reward.stone ? currencyAmount('stone', reward.stone) : ''}${reward.refined ? currencyAmount('refined', reward.refined) : ''}`;
+  const status = result ? `<div class="c7-enh-result ${result.ok ? 'success' : 'failure'}${f ? ' revealing' : ''}" role="status" aria-live="polite"><b>${result.ok ? '강화 성공' : '강화 실패'}</b><span>+${result.from} → +${result.to}${result.ok ? '' : result.to < result.from ? '로 하락' : ' 유지'}${result.awaken != null ? ' · 옵션 각성' : ''}</span></div>` : '';
   const details = dismantle
-    ? `<div class="c7-confirm-cost"><span>획득 재료</span><div>${amounts(reward)}</div></div><p id="gearConfirmDesc">분해한 장비는 되돌릴 수 없습니다.</p>`
-    : c ? `<div class="c7-confirm-step">+${it.plus} <span>→</span> +${c.to}</div>
-      <div class="c7-confirm-cost"><span>소모 재료</span><div>${amounts(c)}</div></div>
-      <div class="c7-confirm-rate"><span>성공 ${Math.round(c.rate * 100)}%</span>${c.rate < 1 ? `<span>실패 시 ${c.fail < it.plus ? `+${c.fail}` : '유지'}</span>` : ''}</div>
-      <p id="gearConfirmDesc">재료를 사용해 강화합니다.</p>` : '';
-  return `<button type="button" class="sheet-dim c7-confirm-dim" data-confirmcancel aria-label="확인 취소" tabindex="-1"></button>
-    <section class="sheet c7-confirm still" role="dialog" aria-labelledby="gearConfirmTitle" aria-describedby="gearConfirmDesc">
-      <h3 id="gearConfirmTitle">${title}</h3>
-      <div class="c7-confirm-item" style="${gvars(it)}"><span class="c7-confirm-icon">${itemIc(it)}</span><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b></div>
+    ? `<div class="c7-confirm-cost"><span>획득 재료</span><div>${amounts}</div></div><p id="gearConfirmDesc">분해한 장비는 되돌릴 수 없습니다.</p>`
+    : `${status}<div class="c7-confirm-step">${c ? `${result ? '<small>다음 강화</small>' : ''}+${it.plus} <span>→</span> +${c.to}` : `최대 강화 +${MAX_PLUS}`}</div>
+      ${c ? enhanceMaterials(c) : ''}
+      <div class="c7-confirm-rate" id="gearConfirmDesc">${c ? `<span>성공률 ${Math.round(c.rate * 100)}%</span>${c.rate < 1 ? `<span class="${c.fail < it.plus ? 'c7-lack' : ''}">${failureNote(it, c)}</span>` : ''}` : '최대 강화 도달'}</div>
+      ${pending.error ? `<p class="c7-lack" role="status">${esc(pending.error)}</p>` : ''}`;
+  const lack = !dismantle && c ? G.save.player.gold < c.gold ? '골드 부족' : G.save.mats.stone < c.stone ? '강화석 부족' : G.save.mats.refined < c.refined ? '정제 강화석 부족' : '' : '';
+  return `<button type="button" class="sheet-dim c7-confirm-dim" data-confirmcancel aria-label="${result ? '강화 팝업 닫기' : '확인 취소'}" tabindex="-1"></button>
+    <section class="sheet c7-confirm still${!dismantle ? ' c7-enhance-dialog' : ''}${fxCls}" role="dialog" aria-labelledby="gearConfirmTitle" aria-describedby="gearConfirmDesc" aria-busy="${!!f}">
+      <h3 id="gearConfirmTitle">${dismantle ? '장비 분해' : '장비 강화'}</h3>
+      <div class="c7-confirm-item${!dismantle ? ' c7-enhance-item' : ''}" style="${gvars(it)}"><span class="c7-confirm-icon${!dismantle ? ' c7-gic' : ''}">${itemIc(it)}${effects}</span><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b></div>
       ${details}
-      <div class="c7-confirm-actions"><button type="button" data-confirmcancel>취소</button><button type="button" class="hot" data-confirmgo>${dismantle ? '분해하기' : '강화하기'}</button></div>
+      <div class="c7-confirm-actions"><button type="button" data-confirmcancel>${result ? '닫기' : '취소'}</button><button type="button" class="hot" data-confirmgo${!dismantle && (f || !c || lack) ? ' disabled' : ''}>${dismantle ? '분해하기' : f ? '강화 중' : !c ? '최대 강화' : lack || (result ? '한 번 더 강화' : '강화하기')}</button></div>
     </section>`;
 }
 
@@ -496,15 +519,20 @@ function confirmHtml(): string {
 function confirmAction(): void {
   const action = pending;
   if (!action) return;
-  pending = null;
+  if (efx) return;
   const it = findItem(action.id);
-  if (!it || sheet?.k !== 'item' || sheet.id !== action.id || it.plus !== action.plus) { render(); return; }
+  if (!it || sheet?.k !== 'item' || sheet.id !== action.id || it.plus !== action.plus) { pending = null; render(); return; }
   if (action.kind === 'enhance') {
     const o = enhanceTry(action.id);
-    if (typeof o === 'string') msg = o;
-    else { msg = enhanceMsg(o); playFx(o, !!G.save.settings.quickEnhance || !!G.save.settings.reducedEffects); }
+    if (typeof o === 'string') action.error = o;
+    else {
+      action.plus = o.to; action.result = o; action.error = '';
+      msg = enhanceMsg(o);
+      playFx(o, !!G.save.settings.quickEnhance || !!G.save.settings.reducedEffects || window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
     render(); return;
   }
+  pending = null;
   const visibleIds = Array.from(s.el.querySelectorAll<HTMLElement>('.c7-inventory [data-gitem]')).map(el => Number(el.dataset.gitem));
   const index = visibleIds.indexOf(action.id), next = visibleIds[index + 1] ?? visibleIds[index - 1];
   const r = salvage([action.id]);
@@ -528,7 +556,7 @@ function statsSheet(): string {
         ${row('지능', fmt(p.int.total), '치유 스킬의 회복량 증가')}
         ${row('치명타', `${pc(p.crit.total)}%`, '치유가 더 강하게 발동할 확률')}
         ${row('가속', `${pc(p.haste.total)}%`, '시전 시간과 공통 대기시간 단축')}
-        ${row('정신력', `+${pc(p.spirit.total)}%`, '마나 자동 회복 속도 증가')}
+        ${row('정신력', `${pc(p.spirit.total)}%`, '마나 자동 회복 속도 증가')}
         ${row('인내', `${pc(p.endure.total)}%`, '내가 받는 피해 감소')}
       </div>
       <button type="button" class="c7-cta" data-sheetx>닫기</button></section>`;
@@ -836,7 +864,7 @@ function heroListHtml(): string {
 // ---------- 누르기 ----------
 /** 장비·능력치·도감 시트는 펼쳐진 인벤토리로 돌아가며 스크롤과 포커스를 유지한다. */
 function closeSheet(): void {
-  if (pending) { pending = null; render(); return; }
+  if (pending) { pending = null; efx = null; clearTimeout(efxTimer); render(); return; }
   const talentReturn = sheet?.k === 'talent' ? `${sheet.i}:${sheet.j}` : null;
   const closingItem = sheet?.k === 'item' ? sheet : null;
   const inventoryReturn = closingItem && !G.save.gear.bag.some(it => it.id === closingItem.id) ? closingItem.inventoryIndex : undefined;
