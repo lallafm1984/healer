@@ -690,7 +690,7 @@ async function gestureCases(page, ok, shots) {
 
 const controlGeometry = page => page.evaluate(() => {
   const box = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; };
-  const visible = el => !!el && !!el.getClientRects().length && !el.closest('[inert]') && getComputedStyle(el).visibility !== 'hidden';
+  const visible = el => !!el && !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
   const root = document.querySelector('#controls');
   const parts = [...root.querySelectorAll('#wheel button, #items [data-item], #aux button, #core[role="button"]')]
     .filter(visible)

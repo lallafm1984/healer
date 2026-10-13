@@ -28,20 +28,14 @@ import { fightSkillArt, skillArtImg } from './skillArt';
 const fight = () => B.F!;
 const setText = (el: Element, t: string) => { if (el.textContent !== t) el.textContent = t; };
 
-/** 오른쪽 벽의 전광판. 조작판 축소와 화면 크기가 바뀌어도 실제 우측 상단 칸을 기준으로 배치한다. */
+/** 오른쪽 벽 전광판의 세로 중심을 적 기술 예고 줄의 하단 테두리에 맞춘다. */
 export function placeGiveUp(): void {
-  const slot = $('wheel').querySelector<HTMLElement>('[data-dir="NE"]');
-  if (!slot) return;
-  const button = $('giveUp'), down = !button.hidden;
-  slot.inert = down && S.hand !== 'left';
-  if (!down) return;
-  const frame = $('controlsFrame').getBoundingClientRect(), r = slot.getBoundingClientRect();
-  const height = Math.max(44, r.height);
-  const width = Math.min(90, Math.max(44, S.hand === 'left' ? r.width + 12 : frame.right - r.left));
-  // 왼손 배치에서는 우측 아이템 칸을 가리지 않도록 같은 벽의 시전 행 위에 붙인다.
-  const top = S.hand === 'left' ? -$('castbar').getBoundingClientRect().height - height : r.top - frame.top;
+  const button = $('giveUp');
+  if (button.hidden) return;
+  const stage = $('stage').getBoundingClientRect(), queue = $('queue').getBoundingClientRect();
+  const width = 90, height = 56;
+  const top = queue.bottom - stage.top - height / 2;
   Object.assign(button.style, { width: `${width}px`, height: `${height}px`, top: `${top}px` });
-  button.style.setProperty('--give-up-font', `${Math.max(13, Math.min(19, height * .27))}px`);
 }
 
 /** 지금 판의 공략 (단계 레벨까지 반영한 숫자) */
@@ -528,10 +522,10 @@ export function updateStage(now: number): void {
     if (firstBuster && !ui.busterHint && !S.auto) { ui.busterHint = true; toast(`${firstBuster.skill.name}: 탱커에게 ${Math.round(firstBuster.skill.dmg! * F.dmgMult)} 피해. 미리 채우거나 수호 영혼`); }
   }
   $('battle').classList.toggle('aoe', F.tels.some(t => t.kind === 'aoe'));
-  // 탱커 전멸 시 우측 상단 스킬 자리에서 오른쪽 벽 전광판을 펼친다. 전투는 계속.
+  // 탱커 전멸 시 적 기술 예고 줄 하단에 오른쪽 벽 전광판을 펼친다. 전투는 계속.
   const down = !F.over && F.party.some(u => u.role === 'tank') && !F.party.some(u => u.role === 'tank' && u.alive);
   if ($('giveUp').hidden === down) {
-    $('giveUp').hidden = !down; $('controls').classList.toggle('give-up', down); placeGiveUp();
+    $('giveUp').hidden = !down; $('stage').classList.toggle('give-up', down); placeGiveUp();
   }
 }
 

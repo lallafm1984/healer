@@ -75,7 +75,7 @@ function startBattle(guideSec = 0): void {
   const lag = $('bossLag'); lag.style.transition = 'none'; lag.style.width = '100%'; void lag.offsetWidth; lag.style.transition = '';
   $('controls').classList.toggle('wheel-left', S.hand === 'left');
   $('pause').hidden = true; hidePreview(); clearToasts();
-  $('giveUp').hidden = true; $('controls').classList.remove('give-up');
+  $('giveUp').hidden = true; $('stage').classList.remove('give-up');
   clearCoach();
   $('bossArt').innerHTML = bossSvg(F.enc.script, F.enc.key);
   // 인터미션 쥐떼 작은 그림 (29: mob-crypt-rats가 있을 때만)
