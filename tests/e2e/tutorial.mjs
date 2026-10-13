@@ -138,7 +138,7 @@ export default async function tutorial(url, shots) {
   // 전투 탭(모험 선택)에서도 녹슨 요새를 짚어 줌
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true' && await page.getAttribute('#s-content', 'data-selected-content') === 'rustfort'
-    && await page.getAttribute('#s-content [data-diff="쉬움"]', 'aria-pressed') === 'true' && await page.isVisible('#contentGo.hi-pulse') && /녹슨 요새/.test(await page.textContent('#s-content .coachtip')), '전투 탭: 던전 5인 · 녹슨 요새 · 쉬움이 골라져 있고 안내 + 「출전」 반짝임');
+    && await page.getAttribute('#s-content [data-diff="쉬움"]', 'aria-pressed') === 'true' && !(await page.locator('#s-content .coachtip').count()) && !(await page.isVisible('#contentGo.hi-pulse')), '전투 탭: 던전 5인 · 녹슨 요새 · 쉬움이 골라져 있음 (안내 상자 · 「출전」 반짝임 없음, 2026-10-13 Lim)');
   // 로비 「바로 출전」 = 녹슨 요새 편성으로 바로 (모험 선택 건너뜀, 입장 화면 없음)
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);
   await page.click('#lobbyStart'); await page.clock.runFor(100);
