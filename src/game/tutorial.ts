@@ -14,8 +14,8 @@ export const TUT = {
   done: 3,
 } as const;
 
-/** 전투 중 안내 묶음 (battle/hud.ts COACH) */
-export type CoachKey = 'duo' | 'explore' | 'dungeon';
+/** 전투 중 안내 묶음 (battle/hud.ts COACH). 첫 던전 전투엔 안내 없음 (2026-10-13 Lim) */
+export type CoachKey = 'duo' | 'explore';
 
 /** 첫 전투 파티: 탱커 1명. 성격은 가장 순한 신중파 */
 export const DUO_PARTY: RosterEntry[] = [{ role: 'tank', pers: '신중파', nick: '방패든양', cls: 'warrior' }];

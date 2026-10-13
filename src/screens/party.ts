@@ -301,8 +301,7 @@ export function depart(): string {
   const tutDone = G.save.tut >= TUT.done;
   if (tutDone && !Flow.chal && needsShard(Flow.diff)) { const err = spendShard(G.save); if (err) return err; commit(); }
   if (Flow.mode === 'guild' && guildReady()) { G.save.guild.pick = Flow.gpick.slice(); commit(); }
-  // 튜토리얼 첫 던전이면 전투 중 안내 (02 11장 4·5번)
-  const coach = Flow.coach ?? (c.key === 'rustfort' && firstDungeonNow() ? 'dungeon' : null);
+  const coach = Flow.coach;
   Flow.coach = null;
   const { slots, items, loadout } = itemsNow();
   const m = modeNow();
