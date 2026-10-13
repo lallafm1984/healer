@@ -68,7 +68,7 @@ describe('드롭 줄 수 · 부위 · 등급', () => {
   });
   it('특수능력 줄은 장비 점수에 더해짐', () => {
     const a: GearItem = { id: 1, slot: 'ring', kind: 'ring', grade: '영웅', plus: 0, name: '', lines: [], specs: [] };
-    expect(itemScore({ ...a, specs: [{ key: 'warmTouch', roll: 1 }] })).toBeGreaterThan(itemScore(a));
+    expect(itemScore({ ...a, specs: [{ key: 'warmTouch', roll: 1 }] }, 30)).toBeGreaterThan(itemScore(a, 30));
   });
 });
 

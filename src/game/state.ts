@@ -246,14 +246,14 @@ export const lowGradeIds = () => G.save.gear.bag.filter(it => !it.lock && (it.gr
  * 점수가 같으면 지금 것을 그대로 둠
  */
 export function bestGearPlan(): { slot: SlotKey; now: GearItem | null; next: GearItem }[] {
-  const eq = G.save.gear.equipped, out: { slot: SlotKey; now: GearItem | null; next: GearItem }[] = [];
+  const eq = G.save.gear.equipped, lv = G.save.player.level, out: { slot: SlotKey; now: GearItem | null; next: GearItem }[] = [];
   for (const s of SLOTS) {
     const now = eq[s.key] ?? null;
     let best: GearItem | null = null;
     for (const it of G.save.gear.bag) {
       if (it.slot !== s.key) continue;
-      const top = itemScore(best ?? now ?? undefined);
-      if (itemScore(it) > top) best = it;
+      const top = itemScore(best ?? now ?? undefined, lv);
+      if (itemScore(it, lv) > top) best = it;
     }
     if (best) out.push({ slot: s.key, now, next: best });
   }

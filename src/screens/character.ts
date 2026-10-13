@@ -149,7 +149,7 @@ const slotIdx = (it: GearItem) => SLOTS.findIndex(x => x.key === it.slot);
 const gradeIdx = (it: GearItem) => ITEM_GRADES.indexOf(it.grade);
 /** 정렬 버튼을 누를 때마다 점수 → 등급 → 새것 */
 const SORTS: Record<BagSort, { name: string; next: BagSort; cmp: (a: GearItem, b: GearItem) => number }> = {
-  score: { name: '점수순', next: 'grade', cmp: (a, b) => itemScore(b) - itemScore(a) || slotIdx(a) - slotIdx(b) || b.id - a.id },
+  score: { name: '점수순', next: 'grade', cmp: (a, b) => itemScore(b, G.save.player.level) - itemScore(a, G.save.player.level) || slotIdx(a) - slotIdx(b) || b.id - a.id },
   grade: { name: '등급순', next: 'new', cmp: (a, b) => gradeIdx(b) - gradeIdx(a) || slotIdx(a) - slotIdx(b) || b.plus - a.plus },
   new: { name: '새것순', next: 'score', cmp: (a, b) => b.id - a.id },
 };
@@ -259,7 +259,7 @@ function gearHtml(): string {
 /** 가방 칸: 장비 그림 + 등급 색 + +N + 지금 장비보다 점수가 높으면 초록 ▲ · 낮으면 빨간 ▼ (Lim 2026-10-11) + 새 점 */
 function bagCell(it: GearItem): string {
   const vs = vsWorn(it), nw = isNew(it);
-  const label = `${it.grade} ${slotName(it.slot)} · ${it.name}${plusTxt(it)}${specLabel(it)}${vs > 0 ? ' · 지금 장비보다 좋음' : vs < 0 ? ' · 지금 장비보다 나쁨' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
+  const label = `${it.grade} ${slotName(it.slot)} · ${it.name}${plusTxt(it)}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${vs > 0 ? ' · 지금 장비보다 좋음' : vs < 0 ? ' · 지금 장비보다 나쁨' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
   const arrow = vs > 0 ? '<span class="up" aria-hidden="true">▲</span>' : vs < 0 ? '<span class="dn" aria-hidden="true">▼</span>' : '';
   return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${lookFx(it, 'b')}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${arrow}${nw ? '<span class="nw"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
 }
@@ -376,7 +376,7 @@ function rrCostHtml(it: GearItem): string {
 function rrAltHtml(it: GearItem, kind: RerollKind): string {
   if (!rrAlt || rrAlt.id !== it.id || rrAlt.kind !== kind) return '';
   let txt: string;
-  if (kind === 'line') { const l = rrAlt.alt as GearLine; txt = `${STATS[l.stat].name} +${pc(lineValue(it, l))}%`; }
+  if (kind === 'line') { const l = rrAlt.alt as GearLine; txt = `${STATS[l.stat].name} +${pc(lineValue(it, l, G.save.player.level))}%`; }
   else { const l = rrAlt.alt as SpecLine, d = SPECS[l.key]; txt = `${d.name} · ${specText(d, specValue(l.key, it.grade, l.roll))}`; }
   return `<div class="c7-rralt"><span class="cap">다른 후보</span><b>${esc(txt)}</b><button type="button" class="btn2" data-rrpick>이걸로</button></div>`;
 }
@@ -436,8 +436,9 @@ function itemSheet(id: number): string {
   const it = findItem(id);
   if (!it) return '';
   const eq = G.save.gear.equipped, worn = eq[it.slot]?.id === it.id, cur = worn ? null : eq[it.slot] ?? null;
-  const sc = scoreOf(it), a = itemStats(it), b = itemStats(cur);
-  const sub2 = [slotName(it.slot), esc(kindOf(it).name), it.unique ? '고유 장비' : it.look ? `${FACTIONS[it.look].name} 생김새` : '', it.grade, worn ? '착용 중' : isNew(it) ? '새로 얻음' : '', it.lock ? '잠김' : ''].filter(Boolean).join(' · ');
+  const lv = G.save.player.level, sc = scoreOf(it), a = itemStats(it, lv), b = itemStats(cur, lv);
+  // 아이템 레벨 (2026-10-13): 옵션 값은 지금 내 레벨 기준이라 낮은 곳 장비는 레벨이 오르면 줄어듦
+  const sub2 = [slotName(it.slot), esc(kindOf(it).name), it.unique ? '고유 장비' : it.look ? `${FACTIONS[it.look].name} 생김새` : '', it.grade, it.lv != null ? `Lv ${it.lv}` : '', worn ? '착용 중' : isNew(it) ? '새로 얻음' : '', it.lock ? '잠김' : ''].filter(Boolean).join(' · ');
   // 지금 장비와 차이: 퍼센트 포인트 (소수 한 자리)
   const d1 = (k: (typeof STAT_KEYS)[number]) => Math.round((a[k] - b[k]) * 1000) / 10;
   const row = (k: string, v: string, right: string, cls = '') => `<div class="c7-cmp${cls}"><span>${k}</span><b>${v}</b>${right}</div>`;
@@ -447,7 +448,7 @@ function itemSheet(id: number): string {
   // 연출 그림 (36 4-4 G · 4-6 J)은 효과 줄이기면 빼고 CSS 연출만
   const calm = !!G.save.settings.reducedEffects;
   // 옵션 줄 (Lim 2026-10-11): 왼쪽 = 능력치 · 값, 오른쪽 = 지금 장비와 차이 ▲▼ (착용 중이면 비움). 재설정 모드면 무작위 옵션 오른쪽에 굴림 막대 + ↻
-  const opts = optionsOf(it), has = new Set(opts.map(o => o.stat));
+  const opts = optionsOf(it, lv), has = new Set(opts.map(o => o.stat));
   const own = opts.map(o => {
     const l = o.line != null ? it.lines[o.line] : null;
     const awTag = l?.up ? '<i class="c7-awt">각성</i>' : '';

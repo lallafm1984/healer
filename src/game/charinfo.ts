@@ -18,8 +18,8 @@ import { G, healerLevel, heroNow, heroSave } from './state';
 /** 힐러 기본 체력 (06 2장). 레벨 배율(lvPower)을 곱하기 전 값이라 Lv 1은 220 (34 1-2) */
 export const HEALER_HP = 550;
 
-/** 장비 한 개 점수 (보여 주는 값) */
-export const scoreOf = (it?: GearItem | null) => Math.round(itemScore(it ?? undefined) * 10);
+/** 장비 한 개 점수 (보여 주는 값, 지금 레벨 기준: 아이템 레벨이 낮으면 줄어듦) */
+export const scoreOf = (it?: GearItem | null) => Math.round(itemScore(it ?? undefined, G.save.player.level) * 10);
 /** 장착 장비 점수 합 */
 export const gearScore = () => SLOTS.reduce((a, s) => a + scoreOf(G.save.gear.equipped[s.key]), 0);
 
@@ -103,7 +103,7 @@ export function dexRows(tab: DexTab): DexRow[] {
 
 /** 장착 평균 등급·강화 (빈칸은 0점으로 셈): 희귀 +3 → { grade: '희귀', plus: 3 } */
 export function gearAvg(): { grade: ItemGrade | null; plus: number } {
-  const avg = avgScore(G.save.gear.equipped);
+  const avg = avgScore(G.save.gear.equipped, G.save.player.level);
   if (avg < 1) return { grade: null, plus: 0 };
   const gi = Math.min(ITEM_GRADES.length - 1, Math.floor(avg) - 1);
   return { grade: ITEM_GRADES[gi], plus: Math.round((avg - Math.floor(avg)) * 10) };
@@ -111,11 +111,11 @@ export function gearAvg(): { grade: ItemGrade | null; plus: number } {
 
 /** 가방에 지금 장비보다 점수가 높은 장비가 있는 부위 */
 export function betterSlots(): SlotKey[] {
-  const eq = G.save.gear.equipped;
-  return SLOTS.filter(s => G.save.gear.bag.some(it => it.slot === s.key && itemScore(it) > itemScore(eq[s.key]))).map(s => s.key);
+  const eq = G.save.gear.equipped, lv = G.save.player.level;
+  return SLOTS.filter(s => G.save.gear.bag.some(it => it.slot === s.key && itemScore(it, lv) > itemScore(eq[s.key], lv))).map(s => s.key);
 }
 /** 이 장비가 같은 부위의 착용 장비보다 좋은가 */
-export const isBetter = (it: GearItem) => itemScore(it) > itemScore(G.save.gear.equipped[it.slot]);
+export const isBetter = (it: GearItem) => itemScore(it, G.save.player.level) > itemScore(G.save.gear.equipped[it.slot], G.save.player.level);
 /** 가방 화살표 (Lim 2026-10-11): 같은 부위 착용 장비보다 점수가 높으면 1 · 낮으면 −1 · 같거나 착용 중이면 0 (빈칸이면 1) */
 export function vsWorn(it: GearItem): 1 | -1 | 0 {
   const w = G.save.gear.equipped[it.slot];
@@ -144,7 +144,7 @@ export function heroStats(): { hp: number; int: number; crit: number; haste: num
  */
 export function statParts() {
   const lv = G.save.player.level, apex = RULES.apex(lv);
-  const eq = G.save.gear.equipped, st = gearStatsOf(eq), lp = lvPower(lv) * apex, l1 = lvPower(1);
+  const eq = G.save.gear.equipped, st = gearStatsOf(eq, lv), lp = lvPower(lv) * apex, l1 = lvPower(1);
   const hpLv = Math.round(HEALER_HP * lp), hp = Math.round(HEALER_HP * lp * (1 + (st.hp ?? 0))), hp1 = Math.round(HEALER_HP * l1);
   const ib = INT_BASE * RULES.heal; // 치유 배율 (34 1-6)
   const int = Math.round(ib * lp * st.heal), intLv = Math.round(ib * lp), int1 = Math.round(ib * l1);

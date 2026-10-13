@@ -28,16 +28,16 @@ describe('종류 30 · 겹 고정 옵션 (34 6-10 ①)', () => {
   });
   it('종류 옵션은 줄마다 그 능력치 한 줄 최대값, 주 옵션과 같은 능력치는 빠지고, 줄 수가 모자라면 앞 것만, 장신구는 강화로 둘 다 오름', () => {
     const base: GearItem = { id: 1, slot: 'hands', kind: 'bracer', grade: '영웅', plus: 5, name: '', lines: [] };
-    const fx = fixedOf(base);
+    const fx = fixedOf(base, 30);
     expect(fx.map(x => x.stat)).toEqual(['int', 'haste']); // 팔찌 지능은 손 주 옵션 한 줄로
     expect(fx[0].v).toBeCloseTo(0.1 * 1.4);
     expect(fx[1].v).toBeCloseTo(STATS.haste.max * 1.3);
     const ring: GearItem = { ...base, slot: 'ring', kind: 'twin', plus: 10 };
-    const fr = fixedOf(ring);
+    const fr = fixedOf(ring, 30);
     expect(fr[0].v).toBeCloseTo(STATS.crit.max * 1.8);
     expect(fr[1].v).toBeCloseTo(STATS.haste.max * 1.8);
-    expect(fixedOf({ ...ring, grade: '일반', plus: 0 }).map(x => x.stat)).toEqual(['crit']);
-    const st = itemStats({ ...base, grade: '희귀', plus: 0 });
+    expect(fixedOf({ ...ring, grade: '일반', plus: 0 }, 30).map(x => x.stat)).toEqual(['crit']);
+    const st = itemStats({ ...base, grade: '희귀', plus: 0 }, 30);
     expect(st.haste).toBeCloseTo(STATS.haste.max * 1.3 * 0.85);
   });
   it('무작위 옵션 · 재설정은 주 옵션 · 종류 옵션과 겹치지 않음', () => {

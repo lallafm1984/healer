@@ -3,9 +3,9 @@
  * 권장 장비 (어려움 고급 +0 · 악몽 희귀 +5, 6부위)와 적 레벨로 재면 녹슨 고원 어려움이 80%인데, 실제로 어려움이 열린 Lv 3 플레이어는
  * 장비가 1~2개 (거의 일반)뿐이고 치유의 기원 · 특성도 아직 없어 3%였음. 그래서 장소 Lv RAMP_LV까지는
  * 「그 난이도가 처음 열린 플레이어」로 잼: 튜토리얼 뒤 장소를 레벨 순으로 쉬움 → 보통만 깨며 (70 흐름) 받은 장비를 부위마다 점수 높은 것으로 끼고,
- * 어려움은 그 장소 보통을 깬 뒤, 악몽은 그 장소 어려움을 한 번 더 깬 뒤의 레벨 · 장비. 장비는 시드마다 드롭 굴림 (A 등급), 강화 없음
+ * 어려움은 그 장소 보통을 깬 뒤, 악몽은 그 장소 어려움을 한 번 더 깬 뒤의 레벨 · 장비. 장비는 시드마다 드롭 굴림 (A 등급, 아이템 레벨 = 그 판 적 레벨), 강화 없음
  */
-import { CONTENT, type ContentDef, type ContentKey } from '../data/content';
+import { CONTENT, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { itemScore, rollItem, type Equipped } from '../data/equipment';
 import type { HeroKey } from '../data/heroes';
@@ -35,8 +35,8 @@ function flowOf(hero: HeroKey, seed: number): Flow {
   const win = (c: ContentDef, d: DiffName, gear: Equipped, pl: { level: number; xp: number }) => {
     const n = c.kind === 'explore' ? 1 : Math.max(1, c.bosses.length);
     for (let i = 0; i < n; i++) {
-      const it = rollItem(r, d, 'A', pl.level, id++, { hero, place: c.key });
-      if (itemScore(it) > itemScore(gear[it.slot])) gear[it.slot] = it;
+      const it = rollItem(r, d, 'A', pl.level, id++, { hero, place: c.key, lv: stageOf(c, d) });
+      if (itemScore(it, pl.level) > itemScore(gear[it.slot], pl.level)) gear[it.slot] = it;
     }
     addXp(pl, rampXp(c, d, { first: true, grade: 'A', win: true }));
   };

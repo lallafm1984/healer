@@ -78,7 +78,7 @@ export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number,
   const party = recruitParty(segs[0], seed, { abilities: true });
   // 순차 레벨링 기준이면 시드마다 그 플레이어의 드롭 장비 (레벨은 시드와 상관없음)
   const rp = s.gear === 'ramp' ? rampPlayer(c, d, hero, seed) : null, lv = s.heroLv ?? s.lv;
-  const gear = rp ? { gearStats: gearStatsOf(rp.eq), specs: specsOf(rp.eq, hero) } : { gear: s.gear as GearId, specs: presetSpecs(s.gear as GearId, hero) };
+  const gear = rp ? { gearStats: gearStatsOf(rp.eq, rp.lv), specs: specsOf(rp.eq, hero) } : { gear: s.gear as GearId, specs: presetSpecs(s.gear as GearId, hero) };
   let carry: Carry | undefined, time = 0, heals = 0;
   for (let i = 0; i < segs.length; i++) {
     const f = create({

@@ -139,7 +139,7 @@ describe('능력치 판 · 출처 (27 4-2)', () => {
       chest: item({ id: 2, slot: 'chest', grade: '영웅' }),
       head: item({ id: 3, slot: 'head', grade: '희귀' }),
     };
-    const p = statParts(), st = gearStatsOf(G.save.gear.equipped), lp = lvPower(40);
+    const p = statParts(), st = gearStatsOf(G.save.gear.equipped, G.save.player.level), lp = lvPower(40);
     expect(p.hp.base + p.hp.level + p.hp.gear).toBe(p.hp.total);
     expect(p.hp.gear).toBeGreaterThan(0); // 방어구 주 능력치 체력 (34 6-5)
     expect(p.endure.total).toBeCloseTo(st.endure!);
@@ -154,14 +154,14 @@ describe('능력치 판 · 출처 (27 4-2)', () => {
   });
   it('장비 한 개 몫을 6부위 더하면 장비 능력치', () => {
     const eq = Object.fromEntries(SLOTS.map((s, i) => [s.key, item({ id: i + 1, slot: s.key, grade: (['일반', '고급', '희귀', '영웅', '전설', '희귀'] as const)[i], plus: i })]));
-    const st = gearStatsOf(eq), sum = noStats();
-    for (const s of SLOTS) { const x = itemStats(eq[s.key]); for (const k of STAT_KEYS) sum[k] += x[k]; }
+    const st = gearStatsOf(eq, 40), sum = noStats();
+    for (const s of SLOTS) { const x = itemStats(eq[s.key], 40); for (const k of STAT_KEYS) sum[k] += x[k]; }
     expect(1 + sum.int).toBeCloseTo(st.heal);
     expect(sum.crit).toBeCloseTo(st.crit);
     expect(sum.haste).toBeCloseTo(st.haste);
     expect(1 + sum.spirit).toBeCloseTo(st.regen);
     expect(sum.hp).toBeCloseTo(st.hp!);
     expect(sum.endure).toBeCloseTo(st.endure!);
-    expect(itemStats(null)).toEqual(noStats());
+    expect(itemStats(null, 40)).toEqual(noStats());
   });
 });

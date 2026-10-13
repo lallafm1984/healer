@@ -463,10 +463,12 @@ function gearByHero(d: SaveData): void {
  * 전설은 고유 장비 · 이름 있는 장신구가 아니면 첫 특수능력이 고유 능력 (1.5배), 둘째 줄은 없앰.
  * 굴림은 장비 id로 정해서 몇 번 불러도 같음. 이름은 등급 말 + 종류
  */
-function upgradeItem(it: GearItem, hero: HeroKey): GearItem {
+function upgradeItem(it: GearItem, hero: HeroKey, level: number): GearItem {
   if (!it || typeof it !== 'object') return it;
   const c: GearItem & { set?: unknown } = { ...it };
   delete c.set;
+  // 아이템 레벨 (2026-10-13): 옛 장비는 읽을 때 그 직업 레벨 (지금 성능 그대로에서 시작해 레벨이 오르면 약해짐)
+  if (typeof c.lv !== 'number') c.lv = Math.max(1, Math.round(level) || 1);
   const k = kindOf(c), n = randomLines(k, c.grade);
   c.kind = k.key;
   const taken = takenStats(k);
@@ -492,10 +494,10 @@ function upgradeItem(it: GearItem, hero: HeroKey): GearItem {
 
 /** 장비 칸 (v8: 옛 장비 특수능력 굴림, 도감에 가진 장비의 특수능력을 채움) */
 function gearOf(o: Partial<SaveData>, hero: HeroKey, nextId: number): SaveData['gear'] {
-  const g = o.gear;
+  const g = o.gear, lv = typeof o.player?.level === 'number' ? o.player.level : 1;
   const equipped: Equipped = {};
-  if (g?.equipped && typeof g.equipped === 'object') for (const [k, it] of Object.entries(g.equipped)) if (it) equipped[k as keyof Equipped] = upgradeItem(it, hero);
-  const bag = Array.isArray(g?.bag) ? g!.bag.map(it => upgradeItem(it, hero)) : [];
+  if (g?.equipped && typeof g.equipped === 'object') for (const [k, it] of Object.entries(g.equipped)) if (it) equipped[k as keyof Equipped] = upgradeItem(it, hero, lv);
+  const bag = Array.isArray(g?.bag) ? g!.bag.map(it => upgradeItem(it, hero, lv)) : [];
   // 가진 장비의 특수능력은 늘 도감에 (옛 저장 · migrate가 굴린 줄 포함)
   const codex = Array.isArray(g?.codex) ? g!.codex.filter(k => typeof k === 'string') : [];
   for (const it of [...SLOTS.map(s => equipped[s.key]), ...bag]) if (it) for (const k of specKeysOf(it)) if (!codex.includes(k)) codex.push(k);
@@ -539,9 +541,9 @@ function heroesOf(o: Partial<SaveData>): SaveData['heroes'] {
   for (const h of HERO_KEYS) {
     const gs = hs[h]?.gear;
     if (!gs) continue;
-    const equipped: Equipped = {};
-    if (gs.equipped && typeof gs.equipped === 'object') for (const [k, it] of Object.entries(gs.equipped)) if (it) equipped[k as keyof Equipped] = upgradeItem(it, h);
-    hs[h] = { ...hs[h]!, gear: { equipped, bag: Array.isArray(gs.bag) ? gs.bag.map(it => upgradeItem(it, h)) : [], seen: typeof gs.seen === 'number' ? gs.seen : 0 } };
+    const equipped: Equipped = {}, lv = hs[h]?.level ?? (typeof o.player?.level === 'number' ? o.player.level : 1);
+    if (gs.equipped && typeof gs.equipped === 'object') for (const [k, it] of Object.entries(gs.equipped)) if (it) equipped[k as keyof Equipped] = upgradeItem(it, h, lv);
+    hs[h] = { ...hs[h]!, gear: { equipped, bag: Array.isArray(gs.bag) ? gs.bag.map(it => upgradeItem(it, h, lv)) : [], seen: typeof gs.seen === 'number' ? gs.seen : 0 } };
   }
   if ((o.v ?? 0) >= 6) return hs;
   const level = typeof o.player?.level === 'number' ? o.player.level : 1, xp = typeof o.player?.xp === 'number' ? o.player.xp : 0;

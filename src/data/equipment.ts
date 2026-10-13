@@ -5,13 +5,15 @@
  * 주 옵션 · 종류 옵션은 굴림 없음, 무작위 옵션은 60~100% 굴림. 장신구는 주 옵션이 없어 종류 옵션부터.
  * 특수능력은 옵션과 따로: 고급 가끔 · 희귀 · 영웅 1줄, 전설은 고유 능력 1줄 (특수능력 1.5배 또는 고유 장비 · 이름 있는 장신구 효과).
  * 강화 +1~+10 (확률, +2 이상에서 실패하면 1단계 떨어짐, 34 6-5 · 12 3-2) · 분해 (골드 + 강화석, 12 3-1). 떨어지는 장비는 모두 +0.
+ * 아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비의 성능을 달리 하자」): 떨어진 곳의 적 레벨. 옵션 값은 아이템 레벨 세기 ÷ 내 레벨 세기만큼 (ilvMult):
+ * 내 레벨과 같으면 그대로, 낮은 곳 장비는 레벨이 오를수록 약해지고 높은 곳 장비는 더 셈. 특수능력은 그대로.
  */
 import type { ContentDef } from './content';
 import type { DiffName } from './difficulty';
 import type { GearStats, GradeName } from './gear';
 import type { HeroKey } from './heroes';
 import { CONTENT_PLACE, FACTIONS, PLACES, type FactionKey } from './places';
-import { rampPlace } from './progression';
+import { lvPower, rampPlace } from './progression';
 import { FEATURED, namedOf, namedsFor, SPEC_KEYS, SPECS, specTotals, specValue, type SpecLine, type SpecOn } from './specials';
 import { UNIQUE_MULT, uniqueOf, uniquesFor, uniqueValue } from './uniques';
 
@@ -191,7 +193,12 @@ export interface GearItem {
   rr?: number;
   /** 강화로 처음 닿은 가장 높은 단계 (옵션 각성은 처음 닿을 때만, 34 6-5). 옛 저장엔 없음 = 지금 단계 */
   top?: number;
+  /** 아이템 레벨 = 떨어진 곳의 적 레벨 (탐험 · 던전 = 장소 Lv + 난이도, 레이드 = 그 판 적 레벨, 상자 · 상점 · 공훈 = 받을 때 내 레벨). 옛 저장은 migrate가 그 직업 레벨로 */
+  lv?: number;
 }
+
+/** 아이템 레벨 배율: 아이템 레벨 세기 ÷ 내 레벨 세기 (레벨 배율 lvPower). 아이템 레벨이 없으면 1 */
+export const ilvMult = (ilv: number | undefined, level: number): number => (ilv == null ? 1 : lvPower(ilv) / lvPower(level));
 
 export type Equipped = Partial<Record<SlotKey, GearItem>>;
 
@@ -366,9 +373,9 @@ export function pickKind(r: () => number, place: string): KindDef {
 
 /**
  * 드롭 맥락: 지금 직업 (직업 전용은 그 직업 것만, 42 1-4) · 장소 (잘 나오는 종류 · 자주 나오는 특수능력 · 이름 있는 장신구) ·
- * 레이드 인원 (등급 표, 61 3장. 없으면 탐험 · 던전 표) · 공개모집 보너스 판 · 등급 상한 (따로 줄 때만)
+ * 레이드 인원 (등급 표, 61 3장. 없으면 탐험 · 던전 표) · 공개모집 보너스 판 · 등급 상한 (따로 줄 때만) · 아이템 레벨
  */
-export interface DropCtx { hero?: HeroKey; place?: string; raid?: 0 | 10 | 20; bonus?: boolean; cap?: ItemGrade }
+export interface DropCtx { hero?: HeroKey; place?: string; raid?: 0 | 10 | 20; bonus?: boolean; cap?: ItemGrade; /** 아이템 레벨 (떨어진 곳의 적 레벨) */ lv?: number }
 
 /**
  * 특수능력 n줄 굴림: 그 부위 · 최소 등급 이하 · (직업 전용은 그 직업) 중에서, 장소의 자주 나오는 3개는 4배.
@@ -409,6 +416,7 @@ export function makeItem(r: () => number, slot: SlotKey, grade: ItemGrade, id: n
   const isUnique = !!un;
   const ks = kindsOf(slot), k = (isUnique ? ks.find(x => x.key === un!.kind) : ks.find(x => x.key === kind)) ?? ks[Math.floor(r() * ks.length)];
   const it: GearItem = { id, slot, kind: k.key, grade, plus: 0, name: '', lines: rollLines(r, randomLines(k, grade), takenStats(k)), specs: [] };
+  if (o.lv != null) it.lv = o.lv;
   // 이름 있는 장신구 (42 3장): 고유 효과가 고유 능력
   const nms = legend && o.place ? namedsFor(o.place, slot) : [];
   if (isUnique) it.unique = un!.key;
@@ -517,29 +525,32 @@ export function rerollSpec(r: () => number, it: GearItem, i: number): SpecLine {
 export type StatSet = Record<StatKey, number>;
 export const noStats = (): StatSet => ({ int: 0, hp: 0, crit: 0, haste: 0, spirit: 0, endure: 0 });
 
-/** 주 옵션 · 종류 옵션 값 (굴림 없음): 주 옵션은 부위 값 × 등급 배율, 종류 옵션은 그 줄 최대값. 강화는 주 옵션 (장신구는 종류 옵션)에 (34 6-5) */
-export function fixedOf(it: GearItem): { stat: StatKey; v: number }[] {
-  const k = kindOf(it), up = 1 + PLUS_STEP * it.plus, main = MAIN_OPT[it.slot];
+/**
+ * 주 옵션 · 종류 옵션 값 (굴림 없음): 주 옵션은 부위 값 × 등급 배율, 종류 옵션은 그 줄 최대값. 강화는 주 옵션 (장신구는 종류 옵션)에 (34 6-5).
+ * level = 내 레벨 (아이템 레벨 배율)
+ */
+export function fixedOf(it: GearItem, level: number): { stat: StatKey; v: number }[] {
+  const k = kindOf(it), up = 1 + PLUS_STEP * it.plus, main = MAIN_OPT[it.slot], m = ilvMult(it.lv, level);
   return [
-    ...(main ? [{ stat: main.stat, v: main.v * LINE_MULT[it.grade] * up }] : []),
-    ...kindStats(k).slice(0, kindLines(k, it.grade)).map(stat => ({ stat, v: lineMax(stat, it.slot, it.grade) * (main ? 1 : up) })),
+    ...(main ? [{ stat: main.stat, v: main.v * LINE_MULT[it.grade] * up * m }] : []),
+    ...kindStats(k).slice(0, kindLines(k, it.grade)).map(stat => ({ stat, v: lineMax(stat, it.slot, it.grade) * (main ? 1 : up) * m })),
   ];
 }
 /** 굴림 막대 채움 (0~1): 최소 굴림 = 0, 최대 = 1 */
 export const rollFill = (roll: number) => Math.max(0, Math.min(1, (roll - ROLL_MIN) / (1 - ROLL_MIN)));
-/** 무작위 옵션 한 줄의 값 */
-export const lineValue = (it: GearItem, l: GearLine) => lineMax(l.stat, it.slot, it.grade) * l.roll + (l.up ?? 0);
+/** 무작위 옵션 한 줄의 값 (각성 몫 포함, 내 레벨 기준 아이템 레벨 배율) */
+export const lineValue = (it: GearItem, l: GearLine, level: number) => (lineMax(l.stat, it.slot, it.grade) * l.roll + (l.up ?? 0)) * ilvMult(it.lv, level);
 
-/** 장비 옵션 줄 (보이는 순서): 주 옵션 → 종류 옵션 → 무작위 옵션. line = it.lines 번호 (주 · 종류 옵션은 null) */
-export function optionsOf(it: GearItem): { stat: StatKey; v: number; line: number | null }[] {
-  return [...fixedOf(it).map(x => ({ ...x, line: null })), ...(it.lines ?? []).map((l, i) => ({ stat: l.stat, v: lineValue(it, l), line: i }))];
+/** 장비 옵션 줄 (보이는 순서): 주 옵션 → 종류 옵션 → 무작위 옵션. line = it.lines 번호 (주 · 종류 옵션은 null). level = 내 레벨 */
+export function optionsOf(it: GearItem, level: number): { stat: StatKey; v: number; line: number | null }[] {
+  return [...fixedOf(it, level).map(x => ({ ...x, line: null })), ...(it.lines ?? []).map((l, i) => ({ stat: l.stat, v: lineValue(it, l, level), line: i }))];
 }
 
-/** 장비 한 개가 보태는 능력치 (옵션 줄 합). 없으면 모두 0 */
-export function itemStats(it: GearItem | null | undefined): StatSet {
+/** 장비 한 개가 보태는 능력치 (옵션 줄 합, 내 레벨 기준). 없으면 모두 0 */
+export function itemStats(it: GearItem | null | undefined, level: number): StatSet {
   const s = noStats();
   if (!it) return s;
-  for (const x of optionsOf(it)) s[x.stat] += x.v;
+  for (const x of optionsOf(it, level)) s[x.stat] += x.v;
   return s;
 }
 
@@ -557,15 +568,15 @@ export function statsToGear(s: StatSet): GearStats {
   return { heal: 1 + intEff(s.int), regen: 1 + s.spirit, haste: cap('haste'), crit: cap('crit'), hp: s.hp, endure: cap('endure') };
 }
 
-/** 착용 장비 능력치 합 (상한 전) */
-export function equippedStats(eq: Equipped): StatSet {
+/** 착용 장비 능력치 합 (상한 전, 내 레벨 기준) */
+export function equippedStats(eq: Equipped, level: number): StatSet {
   const s = noStats();
-  for (const x of SLOTS) { const v = itemStats(eq[x.key]); for (const k of STAT_KEYS) s[k] += v[k]; }
+  for (const x of SLOTS) { const v = itemStats(eq[x.key], level); for (const k of STAT_KEYS) s[k] += v[k]; }
   return s;
 }
 
-/** 착용 장비 → 전투 능력치 */
-export const gearStatsOf = (eq: Equipped): GearStats => statsToGear(equippedStats(eq));
+/** 착용 장비 → 전투 능력치 (level = 내 레벨) */
+export const gearStatsOf = (eq: Equipped, level: number): GearStats => statsToGear(equippedStats(eq, level));
 
 /**
  * 시뮬 장비 프리셋 (data/gear GEARS)의 능력치: 6부위 모두 그 등급 · 강화의 「기댓값」 장비.
@@ -650,12 +661,12 @@ export function salvageOf(it: GearItem): { gold: number; stone: number; refined:
 }
 
 /**
- * 장비 점수 (34 6-7): 등급 순위 + 강화/10 + 무작위 옵션 굴림 (줄마다 최소 굴림을 넘은 만큼 ¼) + 특수능력 줄 (고유 능력 포함, 줄마다 SPEC_SCORE).
- * 권장 장비 비교 · 더 좋은 장비 · 가방 화살표 · 추천 장착용
+ * 장비 점수 (34 6-7): 등급 순위 + 강화/10 + 무작위 옵션 굴림 (줄마다 최소 굴림을 넘은 만큼 ¼) + 특수능력 줄 (고유 능력 포함, 줄마다 SPEC_SCORE),
+ * × 아이템 레벨 배율 (내 레벨 기준, 2026-10-13). 권장 장비 비교 · 더 좋은 장비 · 가방 화살표 · 추천 장착용
  */
 export const SPEC_SCORE = 0.15;
-export const itemScore = (it: GearItem | undefined) => (it ? ITEM_GRADES.indexOf(it.grade) + 1 + it.plus / 10 + (it.lines ?? []).reduce((a, l) => a + (l.roll - ROLL_MIN) / 4, 0) + SPEC_SCORE * ((it.specs?.length ?? 0) + (it.named || it.unique ? 1 : 0)) : 0);
-export const avgScore = (eq: Equipped) => SLOTS.reduce((a, s) => a + itemScore(eq[s.key]), 0) / SLOTS.length;
+export const itemScore = (it: GearItem | undefined, level: number) => (it ? (ITEM_GRADES.indexOf(it.grade) + 1 + it.plus / 10 + (it.lines ?? []).reduce((a, l) => a + (l.roll - ROLL_MIN) / 4, 0) + SPEC_SCORE * ((it.specs?.length ?? 0) + (it.named || it.unique ? 1 : 0))) * ilvMult(it.lv, level) : 0);
+export const avgScore = (eq: Equipped, level: number) => SLOTS.reduce((a, s) => a + itemScore(eq[s.key], level), 0) / SLOTS.length;
 
 /** 권장 장비 (02 2-2, 13): 어려움 = 고급, 악몽 = 희귀 +5. 미달이면 경고만 (입장은 허용) */
 export const RECOMMENDED: Record<DiffName, { label: string; score: number } | null> = {

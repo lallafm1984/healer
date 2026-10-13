@@ -141,7 +141,7 @@ function lootLine(c: ContentDef): string {
  * 적 레벨이 가장 높은 것 (같으면 탐험보다 던전·레이드)
  */
 function recommended(): ContentKey | null {
-  const lv = G.save.player.level, mine = avgScore(G.save.gear.equipped);
+  const lv = G.save.player.level, mine = avgScore(G.save.gear.equipped, lv);
   let best: { k: ContentKey; s: number } | null = null;
   for (const c of CONTENT) {
     if (c.hidden || !c.ready || lockOf(c).locked) continue;
