@@ -18,6 +18,7 @@ import { affixTick, initAffixes } from './affixes';
 import { damageMob, DT, emit } from './core';
 import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
+import { looseTick, posPref } from './position';
 import { rngFrom } from './rng';
 import { unitDps, unitTick } from './units';
 import { APT, aptIdx } from '../data/guild';
@@ -64,7 +65,7 @@ export function create(cfg: FightConfig): Fight {
     standin: null,
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
-    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null, empower: 0, lock: {}, watch: null, stagger: null, souls: [], links: [], vessel: null, melt: null, glass: [], bless: null, weak: null, expose: null, sp: cfg.proto ? null : newSpecs(cfg.specs), hold: null, sub: null, slow: null, cheer: null, dark: false, split: false,
+    enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null, empower: 0, lock: {}, watch: null, stagger: null, souls: [], links: [], vessel: null, melt: null, glass: [], bless: null, weak: null, expose: null, sp: cfg.proto ? null : newSpecs(cfg.specs), hold: null, sub: null, loose: null, slow: null, cheer: null, dark: false, split: false,
     items: {}, potCd: 0, medit: 0, itemLog: [],
     stats: { healed: 0, overheal: 0, deaths: 0, minMana: 100, dispels: 0, dispellable: 0, trapPops: 0, queueLost: 0, casts: {}, taps: 0, missTaps: 0, emptyTaps: 0, cancels: 0, manaFails: 0, hymnBroken: 0 },
     nextId: 1,
@@ -164,14 +165,14 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
   add('healer', null, '나');
   f.party = units;
   f.me = units[units.length - 1];
-  // 배치 (04 5-2): 탱커 → 나 → 근접 → 원거리
+  // 배치 (04 5-2): 탱커 → 나 → 근접 → 원거리. 위치 규칙 (2026-10-13 Lim): 탱커 1열 · 근접 1 · 2열 · 레이드 원거리 3열부터 (자리가 모자랄 때만 밖으로)
   const cx = centerX(f);
   const order = [...units.filter(u => u.role === 'tank'), f.me, ...units.filter(u => u.role === 'melee'), ...units.filter(u => u.role === 'ranged')];
   for (const u of order) {
     let best: Cell | null = null, bs = -Infinity;
     for (const c of f.cells) {
       if (c.unit) continue;
-      let s = ZONE_PREF[u.role][zoneOf(f, c.row)];
+      let s = ZONE_PREF[u.role][zoneOf(f, c.row)] + posPref(f, u.role, c, 100);
       if (u.role === 'tank' || u.role === 'healer') s -= Math.abs(c.px - cx) * 6;
       if (u.role === 'tank') s -= c.row * 30;
       s += (u.p.dist || 0) * adjAllies(f, c, u) * 8;
@@ -192,6 +193,7 @@ export function step(f: Fight): void {
   if (f.abOn) abTick(f);
   if (f.aff) affixTick(f);
   tankWatch(f);
+  looseTick(f); // 탱커 앞줄 이탈 (위치 규칙)
   bossTick(f);
   partyHits(f);
   if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', f.mobs.some(m => !m.add) && !f.mobs.some(m => m.boss) ? '모두 쓰러뜨림' : '보스를 쓰러뜨림'); }

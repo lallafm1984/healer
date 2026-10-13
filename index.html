@@ -63,7 +63,8 @@
     <!-- 시전 중 생성한 황동 틀 안에 진행률·기술·대상·남은 초 표시. 일반 44px / 축소 26px 공간은 항상 예약. -->
     <!-- 전투 메시지 (#toast)도 이 자리 안에: 판 위 파티원을 가리지 않게 (2026-10-11 Lim). 시전 중이면 막대는 메시지 아래 얇은 선 + 남은 초 -->
     <!-- 탱커가 모두 쓰러지면 포기 버튼도 이 자리 가운데 (2026-10-13 Lim, 예전엔 스킬 판 왼쪽 아래) -->
-    <div id="castbar"><div id="castTrack"><div id="castFill"></div><span id="castLabel">칸을 탭하면 치유</span><span id="castTime"></span></div><div id="toast" role="status" aria-live="polite" aria-atomic="true"></div><button id="giveUp" type="button" hidden>포기</button></div>
+    <!-- 탱커가 맨 앞줄을 벗어나면 붉은 경고 (#alarm, 위치 규칙 2026-10-13 Lim)가 이 자리를 차지하고 다른 메시지는 뒤에서 기다림 -->
+    <div id="castbar"><div id="castTrack"><div id="castFill"></div><span id="castLabel">칸을 탭하면 치유</span><span id="castTime"></span></div><div id="toast" role="status" aria-live="polite" aria-atomic="true"></div><div id="alarm" role="alert" hidden><b></b><span></span></div><button id="giveUp" type="button" hidden>포기</button></div>
     <div id="controlsFrame"><footer id="controls">
       <div id="wheel" aria-label="치유 스킬 휠"></div>
       <div id="side">

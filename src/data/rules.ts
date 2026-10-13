@@ -28,9 +28,31 @@ export interface Rules {
   cast?: Partial<Record<SkillKey, number>>;
   /** 재사용 대기를 바꾼 스킬 (없으면 skills.ts 값) */
   cd?: Partial<Record<SkillKey, number>>;
+  /** 위치 규칙 (없으면 끔) */
+  pos?: PosRules;
 }
 
-export const RULES: Rules = { lv: lvPower, apex: apexOf, enemy: 0.95, enemyDmg: 0.85, heal: 0.6, gcd: 1.5, hasteCap: 0.5, baseCrit: 0, regen: 0.7 };
+/**
+ * 위치 규칙 (2026-10-13 Lim). 1열 = 적에 가장 가까운 줄 (판 맨 윗줄), 판마다 줄 수가 달라도 같은 규칙.
+ * 탱커가 1열에 없으면 적이 다른 파티원 (나 빼고) 중 무작위 1명을 때림. 근접 공격 (탱커 · 근접)은 1 · 2열에서만.
+ * 원거리가 1 · 2열에 서면 공격력 × rangedDps, 받는 피해 × rangedTaken: 10 · 20인 레이드 판만 (탐험 · 5인 던전은 없음, 2026-10-13 Lim 「탐험 및 던전은 원거리 패널티 해제」).
+ * 힐러 (나)는 공격자가 아니라 뺌
+ */
+export interface PosRules {
+  /** 탱커가 서야 하는 줄 수 (1열) */
+  tankRows: number;
+  /** 근접 공격이 닿는 줄 수 (1 · 2열) */
+  meleeRows: number;
+  /** 원거리가 이 줄 수 안에 서면 약해짐 (1 · 2열) */
+  rangedRows: number;
+  /** 원거리 약해짐은 줄이 이만큼 이상인 판만 (10인 5줄 · 20인 6줄. 탐험 · 5인 던전은 3줄) */
+  rangedMinRows: number;
+  rangedDps: number;
+  rangedTaken: number;
+}
+export const POS_RULES: PosRules = { tankRows: 1, meleeRows: 2, rangedRows: 2, rangedMinRows: 5, rangedDps: 0.5, rangedTaken: 1.5 };
+
+export const RULES: Rules = { lv: lvPower, apex: apexOf, enemy: 0.95, enemyDmg: 0.85, heal: 0.6, gcd: 1.5, hasteCap: 0.5, baseCrit: 0, regen: 0.7, pos: POS_RULES };
 
 /** 34 이전 값: 숫자 ×2.5 · 레벨마다 +0.08, 적 = 내 레벨과 같은 세기, GCD 1.0, 기본 치명 5%, 마나 재생 1%, 시전이 짧음 */
 export const PROTO_RULES: Rules = {

@@ -20,7 +20,7 @@ import { activeOn, bossTaken, cdMax, costOf, knows, queue, slotKey, type Fight, 
 import { art, cssUrl } from '../art';
 import { ITEM_ICON, skillMark } from './art';
 import { center, L, screenCenter } from './board';
-import { $, arrowOf, B, DIR_VEC, DIRS, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
+import { $, alarm, arrowOf, B, DIR_VEC, DIRS, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
 import { guideModel, iconColor } from './guide';
 import { manaMeter } from './mana-meter';
 import { fightSkillArt, skillArtImg } from './skillArt';
@@ -317,8 +317,8 @@ export function updateCastbar(): void {
   setBar($('castFill'), p);
   // 전투 메시지가 시전 막대 자리를 덮는 동안 보일 얇은 진행 선 · 남은 초
   const note = $('toast'), cast = p.toFixed(3);
-  if (cast !== noteCast) { noteCast = cast; note.style.setProperty('--cast', cast); }
-  if (note.dataset.left !== left) note.dataset.left = left;
+  if (cast !== noteCast) { noteCast = cast; note.style.setProperty('--cast', cast); $('alarm').style.setProperty('--cast', cast); } // 붉은 경고도 같은 선
+  if (note.dataset.left !== left) { note.dataset.left = left; $('alarm').dataset.left = left; }
 }
 let noteCast = '';
 
@@ -465,6 +465,9 @@ export function updateStage(now: number): void {
     $('timer').classList.toggle('over', used > S.limit);
   } else setText($('timer'), F.enraged ? `${mmss(F.t)} · 광폭화!` : noTank != null ? `${mmss(F.t)} · 탱커 없음 · 광폭까지 ${mmss(noTank)}` : isFinite(F.enc.enrage) ? `${mmss(F.t)} · 광폭까지 ${mmss(Math.ceil(F.enc.enrage - F.t))}` : mmss(F.t));
   $('timer').classList.toggle('enraged', F.enraged || noTank != null);
+  // 탱커 앞줄 이탈 (위치 규칙, 2026-10-13 Lim): 적이 아무나 때리는 동안 메시지 자리에 붉은 경고 + 지금 맞는 사람
+  const lo = !F.over && F.loose ? F.party.find(u => u.id === F.loose!.id && u.alive) : undefined;
+  alarm(lo ? { title: '탱커가 맨 앞줄을 벗어남', text: `적이 아무나 공격 · 지금 ${lo.me ? '나' : lo.nick}` } : null);
   if (now - ui.qAt > 90) {
     ui.qAt = now;
     // art = 기술 아이콘 그림 이름 (37 1장 · 4장, 없으면 '' → 종류 SVG)

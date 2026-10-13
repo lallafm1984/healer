@@ -11,18 +11,21 @@ import { hexDist } from './board';
 import { addDebuff, bark, cellOf, damage, DT, emit, empowerBoss, hasAbsorb, heal, lend, living, onDebuffEnd, randomTargets, setMax, spread, unitById } from './core';
 import { dangerAt, finishMove, moveTo, scheduleReaction, scheduleReactions, zoneOf } from './movement';
 import { hotTick, stepAway } from './units';
+import { frontCell, frontTank } from './position';
 import { during, immune, specBeat, specBroken, specLand, specPhase, specRod, specVessel, specQuake, specReveal, specRewind, specTideEbb, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
 /**
- * 보스가 때릴 사람: 5인 대신 맞는 사람 (DebuffDef.sub), 보스를 잡은 탱커 (탱커 교대 P-SWAP), 없으면 줄 앞 살아 있는 탱커. 탱커가 모두 쓰러지면 대신 막는 사람
- * (버팀목 특성 → 근접 → 원거리 → 나, 2026-10-07 Lim)
+ * 보스가 때릴 사람: 5인 대신 맞는 사람 (DebuffDef.sub), 보스를 잡은 탱커 (탱커 교대 P-SWAP), 없으면 줄 앞 살아 있는 탱커.
+ * 위치 규칙 (2026-10-13 Lim): 탱커는 1열에 있어야 잡음. 아무도 1열에 없으면 그동안 무작위로 뽑힌 파티원 (f.loose, engine/position)
+ * 탱커가 모두 쓰러지면 대신 막는 사람 (버팀목 특성 → 근접 → 원거리 → 나, 2026-10-07 Lim)
  */
 export function aggroTarget(f: Fight): Unit | null {
   const alive = living(f); // 띄워 올려진 탱커는 못 때림 → 다른 탱커 (탱커 띄우기, 56 5장)
   const sub = f.sub && f.t < f.sub.until ? alive.find(u => u.id === f.sub!.id) : undefined;
-  const held = f.hold != null ? alive.find(u => u.id === f.hold && u.role === 'tank') : undefined;
-  return sub || held || alive.find(u => u.role === 'tank') || alive.find(u => u.role === 'melee') || alive.find(u => u.role === 'ranged') || alive.find(u => u.me) || null;
+  const held = f.hold != null ? alive.find(u => u.id === f.hold && frontTank(f, u)) : undefined;
+  const loose = f.loose ? alive.find(u => u.id === f.loose!.id) : undefined;
+  return sub || held || alive.find(u => frontTank(f, u)) || loose || alive.find(u => u.role === 'tank') || alive.find(u => u.role === 'melee') || alive.find(u => u.role === 'ranged') || alive.find(u => u.me) || null;
 }
 
 /** 보스 평타 ±30% */
@@ -567,6 +570,7 @@ function swapTank(f: Fight, from: Unit, d?: Debuff, sub?: number): void {
   const to = living(f).find(u => u.role === 'tank' && u !== from);
   if (to) {
     f.hold = to.id;
+    if (f.R.pos && !frontTank(f, to) && !to.pulled && !to.lift) { const c = frontCell(f, to); if (c && moveTo(f, to, c)) { to.home = c.i; to.homeAt = null; } } // 위치 규칙: 잡으려면 1열로
     emit(f, { type: 'fx', name: 'swap', on: from.id, to: to.id });
     emit(f, { type: 'msg', text: `탱커 교대: ${to.nick}이(가) 보스를 받음` });
     return;

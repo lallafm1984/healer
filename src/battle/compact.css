@@ -56,6 +56,30 @@
 #battle #castbar.give-up #castLabel { max-width: calc(50% - 80px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @keyframes noteIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
 
+/* 붉은 경고 (위치 규칙 · 탱커 앞줄 이탈, 2026-10-13 Lim): 메시지와 같은 자리를 붉게 차지함 (메시지는 그동안 숨기고 기다림).
+ * 두 줄 = 무슨 일 · 그래서 어떻게 되는지. 축소 판 (24px)은 한 줄. 시전 중이면 메시지처럼 아래 얇은 선 + 오른쪽 남은 초 */
+#battle #alarm { position: absolute; z-index: 2; left: 8px; right: 8px; top: 50%; height: 32px; transform: translateY(-50%); pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; box-sizing: border-box; padding: 0 12px;
+  border: 1px solid #ff8a72; border-radius: 3px; background: linear-gradient(#c8382f, #8e1f19);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .35), 0 0 12px rgba(255, 70, 45, .55);
+  color: #fff; text-align: center; text-shadow: 0 1px 0 #4a0a06; white-space: nowrap; overflow: hidden;
+  animation: alarmIn .22s ease-out, alarmPulse 1.2s ease-in-out .22s infinite alternate; }
+#battle #alarm[hidden] { display: none; }
+#battle #alarm b { font-size: 12.5px; font-weight: 800; line-height: 1.05; }
+#battle #alarm span { font-size: 11px; font-weight: 700; line-height: 1.05; color: #ffe0d8; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+#battle #castbar.has-alarm #toast { visibility: hidden; }
+#battle #castbar:is(.is-casting, .is-gcd) #alarm { padding: 0 34px 2px; }
+#battle #alarm::after { content: ''; display: none; position: absolute; left: 3px; bottom: 2px; height: 3px; width: calc((100% - 6px) * var(--cast, 0)); border-radius: 2px; background: linear-gradient(90deg, #E0B25A, #FFE3A1); }
+#battle #alarm::before { content: attr(data-left); display: none; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #fff; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; text-shadow: 0 1px 0 #000; }
+#battle #castbar:is(.is-casting, .is-gcd) #alarm::after, #battle #castbar:is(.is-casting, .is-gcd) #alarm::before { display: block; }
+#battle #castbar.is-gcd #alarm::after { opacity: .5; }
+#battle.compact-panel #alarm { height: 24px; flex-direction: row; gap: 6px; padding: 0 10px; }
+#battle.compact-panel #alarm b { font-size: 11.5px; }
+#battle.compact-panel #alarm span { font-size: 10.5px; }
+#battle.reduced-effects #alarm { animation: none; }
+@keyframes alarmIn { from { opacity: 0; transform: translateY(-50%) scale(.97); } to { opacity: 1; transform: translateY(-50%); } }
+@keyframes alarmPulse { from { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .35), 0 0 6px rgba(255, 70, 45, .35); } to { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .35), 0 0 14px rgba(255, 70, 45, .75); } }
+
 /* 프레임만 줄어든 실제 높이를 차지하고, 안쪽은 일반 UI 좌표와 배치를 그대로 유지한다. */
 #battle #controlsFrame { position: relative; flex: 0 0 auto; width: 100%; min-height: 0; background: linear-gradient(#211B15, #15120E); }
 #battle #controls { position: absolute; left: 0; bottom: 0; width: 100%; transform: scale(var(--controls-scale, 1)); transform-origin: center bottom; }

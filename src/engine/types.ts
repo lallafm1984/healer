@@ -415,6 +415,8 @@ export type FightEvent =
   | { type: 'fx'; name: FxName; cell?: number; on?: number; to?: number; all?: boolean }
   /** 장비 특수능력이 켜짐 (42: 칸 위에 이름, 발동 · 보호막) */
   | { type: 'spec'; id: number; name: string }
+  /** 탱커 앞줄 이탈 (위치 규칙): 적이 노리는 사람이 바뀜. null = 탱커가 1열로 돌아옴 (사람이 아니라 'id' in ev 로 찾지 않게 on) */
+  | { type: 'loose'; on: number | null }
   | { type: 'over'; result: FightResult };
 
 /** 기믹 연출 이름 = 그림 fx-<이름> (37 4장 F-1) */
@@ -725,6 +727,8 @@ export interface Fight {
   hold: number | null;
   /** 5인 대신 맞기 (DebuffDef.sub): 이 사람이 until까지 보스를 받음 (탱커 표식이 풀리는 동안) */
   sub: { id: number; until: number } | null;
+  /** 탱커 앞줄 이탈 (위치 규칙, engine/position): 탱커가 1열에 없어서 적이 노리는 사람과 이탈한 시각. 탱커가 돌아오면 null */
+  loose: { id: number; since: number } | null;
   /** 깨진 시간 (05 5-E): until까지 내 시전 시간 × mult */
   slow: { until: number; mult: number } | null;
   /** 전투의 함성 (05 6-D): until까지 파티원 딜 × mult */
