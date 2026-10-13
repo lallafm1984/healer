@@ -1,0 +1,118 @@
+/*
+ * 휴식 화면 새 배치 (2026-10-13 Lim 첨부3 「공략은 같이 보여 주지 말고 공략 보기 버튼 → 팝업, 회복 안내 글 빼기, 배치 · 디자인 점검」).
+ * 머리 (이번 장소 풍경 · 휴식 · 구간 길) → 마나 판 → 다음 상대 판 (초상 · 이름 · 태그 · 「공략 보기」) → 딜미터기.
+ * 색은 나무결 대신 공략 창과 같은 길드 홀 (--gk-*, guide-sheet.css, Lim 「나무색이 안 어울린다」).
+ * 공략은 아래에서 올라오는 시트 (편성 공략과 같은 --gk 색, 닫기 · 바깥 누르기 · Esc). main.ts 맨 뒤에서 읽음
+ */
+#rest { background: #15120e linear-gradient(#1d1812, #15120e 240px); color: var(--gk-ink); }
+/* 판: 돌색 카드 · 금테 */
+#rest :is(.rest-head, .rest-mana, .rest-next, #restMeter .meter) { border: 1px solid var(--gk-card-bd); border-radius: 10px; box-shadow: none; }
+#rest :is(.rest-mana, .rest-next, #restMeter .meter) { background: var(--gk-card); }
+#rest #restBody { gap: 12px; padding: 12px 14px 16px; }
+
+/* ---------- 머리: 풍경 · 제목 · 구간 길 ---------- */
+#rest .rest-head {
+  position: relative; isolation: isolate; overflow: hidden; padding: 16px 12px 14px;
+}
+#rest .rest-head::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(#15120eb3, #15120e40 45%, #15120ee6), var(--rest-art, none) center 40% / cover, #15120e;
+}
+#rest .rest-head h1 { font-size: 34px; line-height: 1.1; color: var(--gk-head); text-shadow: 0 2px 0 #000, 0 0 14px #000a; }
+#rest .rest-head p { margin-top: 2px; color: var(--gk-ink); text-shadow: 0 1px 2px #000; }
+#rest .rest-steps { gap: 0; margin-top: 12px; flex-wrap: nowrap; align-items: flex-start; }
+#rest .rest-steps li {
+  position: relative; flex: 1 1 0; min-width: 0; max-width: 120px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 0; border: 0; border-radius: 0; background: none; font-size: 12px; color: var(--gk-mute);
+}
+#rest .rest-steps li + li::before { content: ''; position: absolute; z-index: 0; right: 50%; top: 11px; width: 100%; height: 2px; background: var(--gk-mute); }
+#rest .rest-steps li.done + li::before { background: var(--gk-edge); }
+#rest .rest-steps li > i {
+  position: relative; z-index: 1; width: 24px; height: 24px; box-sizing: border-box; display: grid; place-items: center; border-radius: 50%;
+  border: 2px solid var(--gk-mute); background: var(--gk-chip); font: normal 900 12px/1 var(--font-body); color: var(--gk-mute);
+}
+#rest .rest-steps li > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 6px; border-radius: 999px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+#rest .rest-steps li.done > i { border-color: var(--gk-edge); background: var(--gk-btn-on); color: var(--gk-head); }
+#rest .rest-steps li.done > span { color: var(--gk-ink); }
+#rest .rest-steps li.next > i { border-color: var(--gk-accent); background: var(--gk-accent); color: var(--gk-accent-ink); box-shadow: 0 0 10px #ffd34d88; }
+#rest .rest-steps li.next > span { background: var(--gk-accent); color: var(--gk-accent-ink); text-shadow: none; }
+
+/* ---------- 마나 판 ---------- */
+#rest .rest-mana {
+  margin: 0; padding: 10px 12px; grid-template-columns: auto 1fr auto; gap: 10px;
+}
+#rest .rest-mana > span { font: 800 15px/1 var(--font-display); color: #9cc8ff; text-shadow: 0 1px 1px #000; }
+#rest .rest-mana .rbar { height: 16px; border-radius: 999px; border: 1px solid var(--gk-card-bd); background: #0d0b08; }
+#rest #restFill { border-radius: 999px; background: linear-gradient(#7ab8ff, #2f6fd6 60%, #1f4fa8); box-shadow: inset 0 1px 0 #cfe6ff99; }
+#rest .rest-mana b { min-width: 46px; font: 900 17px/1 var(--font-body); color: var(--gk-ink); }
+
+/* ---------- 다음 상대 판 ---------- */
+#rest .rest-next {
+  display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px;
+}
+#rest .rest-h {
+  margin: 0; display: flex; align-items: center; gap: 8px; font: 800 15px/1.2 var(--font-display); color: var(--gk-head);
+}
+#rest .rest-h::before, #rest .rest-h::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gk-edge), transparent); }
+#rest .rest-foe {
+  display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  padding: 8px; border-radius: 8px; background: #15120e; box-shadow: inset 0 0 0 1px var(--gk-line);
+}
+#rest .rest-art {
+  width: 60px; height: 60px; display: grid; place-items: center; overflow: hidden; border-radius: 50%;
+  border: 2px solid var(--gk-edge); background: radial-gradient(circle at 50% 35%, #3a2e1f, #15120e 75%); box-shadow: 0 2px 4px #000a;
+}
+#rest .rest-art :is(svg, img, .boss-illustration) { width: 56px; height: 56px; object-fit: contain; }
+#rest .rest-id { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+#rest .rest-id > b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 19px/1.15 var(--font-display); color: var(--gk-head); }
+#rest .rest-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+#rest .rest-tags i { padding: 0 7px; border-radius: 999px; background: var(--gk-chip); font: normal 700 11px/18px var(--font-body); color: var(--gk-chip-ink); white-space: nowrap; }
+#rest .rest-tags i.diff { background: var(--gk-accent); color: var(--gk-accent-ink); }
+#rest .rest-tags i.enr { background: var(--gk-enr-bd); color: #fff; }
+#rest .rest-gbtn {
+  flex: none; min-height: 48px; padding: 0 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border-radius: 8px; border: 1px solid var(--gk-edge); background: var(--gk-btn); box-shadow: none;
+  font: 800 12px/1.1 var(--font-body); color: var(--gk-head); text-shadow: none; cursor: pointer;
+}
+#rest .rest-gbtn svg { width: 22px; height: 22px; }
+#rest .rest-gbtn:active { background: var(--gk-btn-on); }
+#rest .rest-gbtn:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+
+/* ---------- 딜미터기 ---------- */
+#rest #restMeter { padding: 0; }
+#rest #restMeter .meter { margin: 0; }
+#rest #restMeter .meter h3 { color: var(--gk-head); }
+#rest #restMeter .meter li { background: #15120e; }
+
+/* ---------- 아래 「계속」 ---------- */
+#rest .rest-foot { background: #15120e; border-top: 1px solid var(--gk-line); }
+
+/* ---------- 공략 시트 ---------- */
+#rest .rest-sheet {
+  position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: flex-end;
+  background: #000000a6; animation: restFade .18s ease-out both;
+}
+#rest .rest-sheet[hidden] { display: none; }
+#rest .rest-sheet-card {
+  display: flex; flex-direction: column; max-height: min(88%, 720px); min-height: 0;
+  border-radius: 14px 14px 0 0; border: 1px solid var(--gk-edge); border-bottom: 0;
+  background: var(--gk-bg); box-shadow: 0 -8px 24px #000b;
+  animation: restUp .22s cubic-bezier(.2, .9, .3, 1) both;
+}
+#rest .rest-sheet-card::before { content: ''; flex: none; align-self: center; width: 44px; height: 4px; margin: 8px 0 2px; border-radius: 2px; background: var(--gk-edge); }
+#rest #restGuide { flex: 1 1 auto; min-height: 0; padding: 8px 14px 12px; border: 0; border-radius: 0; background: none; }
+#rest .rest-sheet-foot { flex: none; padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--gk-line); }
+#rest .rest-sheet-foot .btn {
+  width: 100%; min-height: 48px; border-radius: 10px; border: 1px solid var(--gk-edge); background: var(--gk-btn); box-shadow: none;
+  font: 800 15px/1 var(--font-body); color: var(--gk-head); text-shadow: none;
+}
+#rest .rest-sheet-foot .btn:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+@keyframes restFade { from { opacity: 0; } }
+@keyframes restUp { from { transform: translateY(40px); opacity: .4; } }
+@media (prefers-reduced-motion: reduce) { #rest .rest-sheet, #rest .rest-sheet-card { animation: none; } }
+
+@media (max-height: 700px) {
+  #rest .rest-head { padding: 10px 10px 10px; }
+  #rest .rest-head h1 { font-size: 28px; }
+  #rest .rest-steps { margin-top: 8px; }
+}

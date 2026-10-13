@@ -16,16 +16,22 @@
 <div id="app">
   <!-- 새 화면(타이틀·로비·콘텐츠·입장·편성·정산·보상·설정)은 src/screens가 여기에 붙인다 -->
   <section id="rest" class="screen" hidden aria-label="휴식">
+    <!-- 휴식 (2026-10-13 Lim): 머리 (장소 그림 · 구간 길) · 마나 · 다음 상대 (「공략 보기」 → 시트) · 딜미터기 -->
     <div class="gd-scroll" id="restBody">
       <header class="rest-head">
         <h1>휴식</h1>
         <p id="restSub"></p>
         <ol class="rest-steps" id="restSteps"></ol>
-        <div class="rest-mana"><span>마나</span><div class="rbar"><div id="restFill"></div></div><b id="restPct"></b></div>
-        <p class="note" id="restNote"></p>
       </header>
+      <div class="rest-mana"><span>마나</span><div class="rbar"><div id="restFill"></div></div><b id="restPct"></b></div>
+      <section class="rest-next" id="restNext" aria-label="다음 상대"></section>
       <div id="restMeter"></div>
-      <div id="restGuide"></div>
+    </div>
+    <div class="rest-sheet" id="restSheet" hidden>
+      <div class="rest-sheet-card" role="dialog" aria-modal="true" aria-label="공략">
+        <div class="gd-scroll" id="restGuide"></div>
+        <div class="rest-sheet-foot"><button class="btn" id="restGuideClose" type="button">닫기</button></div>
+      </div>
     </div>
     <footer class="gd-foot rest-foot">
       <button class="btn primary" id="restGo" type="button">계속</button>

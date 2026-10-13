@@ -3,7 +3,6 @@
  * 메뉴·정산은 새 화면(src/screens)이 맡고, 여기는 전투·휴식·일시정지만. 새 화면은 window.__battle로 부름.
  */
 import type { DiffName } from '../data/difficulty';
-import { REST_MANA_PER_SEC } from '../data/dungeons';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { BOARDS } from '../data/boards';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
@@ -739,13 +738,20 @@ function showRest(): void {
   closeTip();
   ui.restAt = performance.now(); ui.restMana = null;
   $('restSub').textContent = `${R.name} · ${F.enc.name} 끝 (${mmss(F.t)})`;
-  $('restSteps').innerHTML = segs.map((k, i) => `<li class="${i <= R.idx ? 'done' : i === R.idx + 1 ? 'next' : ''}">${i <= R.idx ? '✓ ' : ''}${ENCOUNTERS[k as EncounterKey].name}</li>`).join('');
-  const dead = F.party.filter(u => !u.alive && !u.me).length;
+  // 구간 길: 점 (✓ 깸 · 번호) 아래 구간 이름, 다음 구간은 금빛
+  $('restSteps').innerHTML = segs.map((k, i) => `<li class="${i <= R.idx ? 'done' : i === R.idx + 1 ? 'next' : ''}"><i aria-hidden="true">${i <= R.idx ? '✓' : i + 1}</i><span>${i <= R.idx ? '<span class="sr">끝: </span>' : ''}${ENCOUNTERS[k as EncounterKey].name}</span></li>`).join('');
   $('restMeter').innerHTML = meterHtml(addMeter([], F.party), F.t, { title: `딜미터기 · ${F.enc.name}`, heal: F.stats.healed });
-  $('restNote').textContent = `파티 체력 모두 회복${dead ? `. 쓰러진 ${dead}명도 일어남` : ''}. 마나는 쉬는 동안 초당 ${REST_MANA_PER_SEC}%씩 회복. 「계속」은 언제든 가능`;
+  // 공략은 한 화면에 같이 두지 않고 「공략 보기」 시트로 (2026-10-13 Lim). 회복 안내 글도 뺌
   const g = guideOf(F, segs[R.idx + 1] as EncounterKey);
   g.tier = `다음 ${R.idx + 2}/${segs.length}`;
+  $('restNext').innerHTML = `<h2 class="rest-h">다음 상대</h2>
+    <div class="rest-foe"><span class="rest-art">${bossSvg(g.enc.script, g.enc.key)}</span>
+      <span class="rest-id"><b>${g.enc.name}</b><span class="rest-tags"><i>${g.tier}</i><i class="diff">${g.diff}</i>${isFinite(g.enc.enrage) ? `<i class="enr">광폭화 ${mmss(g.enc.enrage)}</i>` : ''}</span></span>
+      <button class="btn rest-gbtn" id="restGuideOpen" type="button" aria-haspopup="dialog">${REST_BOOK}<span>공략 보기</span></button></div>`;
   $('restGuide').innerHTML = guideHtml(g, null);
+  restSheet(false);
+  // 머리 뒤에 이번 장소 풍경 (전투 무대와 같은 그림)
+  $('rest').style.setProperty('--rest-art', $('battle').style.getPropertyValue('--stage-art'));
   show('rest');
   $('restBody').scrollTop = 0;
   updateRest(ui.restAt);
@@ -760,8 +766,26 @@ function updateRest(now: number): void {
   }
   if (S.auto && c.mana >= 100) $('restGo').click(); // 자동 힐러 구경은 마나가 차면 바로 다음 구간
 }
+const REST_BOOK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5z"/><path d="M12 6.5v13"/></svg>';
+/** 휴식 공략 시트: 열면 맨 위부터 · 닫기에 포커스, 닫으면 「공략 보기」로 포커스 */
+function restSheet(open: boolean): void {
+  const el = $('restSheet');
+  if (el.hidden === !open) return;
+  el.hidden = !open;
+  if (open) { $('restGuide').scrollTop = 0; $('restGuideClose').focus(); }
+  else if (!$('rest').hidden) document.getElementById('restGuideOpen')?.focus();
+}
+$('rest').addEventListener('click', e => {
+  const t = e.target as HTMLElement;
+  if (t.closest('#restGuideOpen')) restSheet(true);
+  else if (t.closest('#restGuideClose') || t.id === 'restSheet') restSheet(false);
+});
+$('rest').addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('restSheet').hidden) { e.preventDefault(); restSheet(false); }
+});
 $('restGo').addEventListener('click', () => {
   if ($('rest').hidden || !S.run || !B.F) return;
+  restSheet(false);
   const sec = restSec(performance.now());
   S.run.carry = restCarry(B.F, sec);
   S.run.restSec += sec;

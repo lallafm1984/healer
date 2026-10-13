@@ -1,0 +1,168 @@
+/*
+ * 결과 화면 새 배치 (2026-10-13 Lim 첨부6 · 7 「전체 UI 배치 · 디자인 점검」).
+ * 색은 나무결 대신 공략 창 · 주간 도전과 같은 길드 홀 (평평한 어두운 돌색 · 금테 · 노란 제목, --gk-* 한 벌, Lim 「나무색이 안 어울린다」).
+ * 위 정보창 · 붉은 주 버튼 그림 · 경험치 보라는 그대로.
+ * 머리 (장소 그림 · 제목 · 등급 메달 · 별) → 「획득 보상」 판: 장비 카드 (등급 칩 · 점수 알약) · 재화 칩 한 줄 · 레벨 배지 + 경험치
+ * → 알림 → 전투 기록. 진 판은 구간 길 (점 아래 구간 이름) · 힌트 · 전투 기록 펼침.
+ * 아래 버튼 [나가기] [다시 도전] [다음 탐험 · 던전 · 레이드 + 갈 곳]. main.ts 맨 뒤에서 읽음 (result30 · a2-adventure-theme 위)
+ */
+#s-settle {
+  background-color: #15120e; background-image: linear-gradient(#1d1812, #15120e 240px); background-blend-mode: normal;
+  color: var(--gk-ink); --ink: var(--gk-ink); --ink-2: var(--gk-ink2); --mute: var(--gk-mute); --dim: var(--gk-mute); --edge-dim: var(--gk-card-bd);
+}
+#s-settle .res { gap: 12px; }
+
+/* 판 (보상 · 진 곳 · 알림 · 전투 기록): 나무결 없이 돌색 카드 · 금테 */
+#s-settle :is(.r-loot, .r-prog, .r-rec, .r-note, .f-warn) {
+  background: var(--gk-card); background-blend-mode: normal; border: 1px solid var(--gk-card-bd); border-radius: 10px; box-shadow: none; color: var(--gk-ink);
+}
+#s-settle .r-note.hi { border-color: var(--gk-edge); }
+#s-settle .r-note b, #s-settle .r-rec > summary { color: var(--gk-head); }
+#s-settle .r-rec > summary::before { color: var(--gk-edge); }
+/* a2-theme.css의 .ns:not(#s-lobby) :is(… .meter …) 나무결보다 세게 (#s-settle.ns) */
+#s-settle.ns .r-rec .meter { background: var(--gk-route); border: 1px solid var(--gk-card-bd); box-shadow: none; }
+#s-settle.ns .r-rec .metrics { background: none; border: 0; box-shadow: none; }
+#s-settle .r-rec .meter h3 { color: var(--gk-head); }
+#s-settle .r-rec .metrics dt { color: var(--gk-mute); }
+#s-settle .m-all { border-color: var(--gk-card-bd); color: var(--gk-mute); }
+#s-settle .f-warn .v { color: var(--gk-ink); }
+#s-settle .btn2 { background: var(--gk-btn); border: 1px solid var(--gk-edge); border-radius: 8px; box-shadow: none; color: var(--gk-head); }
+#s-settle .r-newsp { background: var(--gk-chip); border: 1px solid var(--gk-edge); border-radius: 8px; color: var(--gk-ink); }
+#s-settle .r-newsp b { color: var(--gk-head); }
+#s-settle .coachtip { background: var(--gk-card); border: 1px solid var(--gk-edge); border-radius: 10px; color: var(--gk-ink); }
+#s-settle .coachtip b { color: var(--gk-head); }
+
+/* ---------- 머리: 등급 메달 · 별 ---------- */
+#s-settle .res-head { padding-bottom: 12px; background: #15120e; }
+#s-settle .res-head::before { background: linear-gradient(0deg, #15120e 0%, #15120e8c 55%, #15120eb3), var(--res-art, none) center / cover; }
+#s-settle .res-head > p:not(.r-why) { color: var(--gk-ink2); }
+#s-settle .res-head h1 { text-shadow: 0 2px 0 #2a1608, 0 0 14px #00000080; letter-spacing: -.02em; }
+#s-settle .r-score { gap: 14px; margin-top: 8px; }
+#s-settle .r-score .grade {
+  flex: none; width: 62px; height: 62px; display: grid; place-items: center; box-sizing: border-box;
+  border-radius: 50%; border: 3px solid var(--gk-head);
+  background: radial-gradient(circle at 50% 32%, #3a2e1f, #15120e 72%);
+  box-shadow: 0 0 0 2px #15120e, 0 0 16px #ffd34d44;
+  font: 400 40px/1 var(--font-display); color: var(--gk-head); text-shadow: 0 2px 0 #000, 0 0 10px #ffd34d66;
+}
+#s-settle .r-stars { grid-template-columns: repeat(3, 74px); }
+#s-settle .r-stars li { padding: 3px 0 4px; border-radius: 8px; background: #15120ecc; box-shadow: inset 0 0 0 1px var(--gk-card-bd); }
+#s-settle .r-stars li.ok { box-shadow: inset 0 0 0 1px var(--gk-edge); }
+#s-settle .r-stars li.ok i { color: var(--gk-head); text-shadow: 0 2px 0 #000; }
+#s-settle .r-stars small { color: var(--gk-ink2); }
+#s-settle .r-stars li:not(.ok) small { color: var(--gk-mute); }
+
+/* ---------- 획득 보상 판 ---------- */
+#s-settle .r-loot { gap: 10px; padding: 10px 12px 12px; }
+#s-settle .r-lh {
+  margin: 0; display: flex; align-items: center; gap: 8px;
+  font: 800 15px/1.2 var(--font-display); letter-spacing: .02em; color: var(--gk-head);
+}
+#s-settle .r-lh::before, #s-settle .r-lh::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gk-edge), transparent); }
+
+/* 장비 카드: 등급 색 왼쪽 띠 · 어두운 속 · 등급 칩 + 점수 알약 */
+#s-settle .r-item {
+  gap: 12px; min-height: 68px; padding: 6px 10px 6px 6px; box-sizing: border-box; border-radius: 8px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--g) 18%, #15120e) 0%, #15120e 60%);
+  box-shadow: inset 3px 0 0 var(--g), inset 0 0 0 1px var(--gk-line);
+}
+#s-settle .r-item.none { min-height: 0; padding: 8px 10px; background: #15120e; box-shadow: inset 0 0 0 1px var(--gk-line); color: var(--gk-mute); }
+#s-settle .r-ic { width: 56px; height: 56px; border-radius: 8px; }
+#s-settle .r-nm { gap: 3px; }
+#s-settle .r-nm b { font-size: 18px; text-shadow: 0 1px 1px #000; }
+#s-settle .r-nm small:not(.r-sp) { min-width: 0; font-size: 12px; color: var(--gk-mute); }
+#s-settle .r-nm small.r-sp { color: var(--gk-head); }
+#s-settle .r-gs { display: flex; align-items: center; gap: 6px; min-width: 0; }
+#s-settle .r-gs > * { flex: none; }
+#s-settle .r-gs > small { flex: 1 1 auto; }
+#s-settle .r-gr {
+  flex: none; padding: 0 7px; border-radius: 999px; font: normal 800 11px/18px var(--font-body);
+  color: #160c05; background: var(--gi);
+}
+#s-settle .r-sc {
+  display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 999px;
+  background: var(--gk-chip); box-shadow: inset 0 0 0 1px var(--gk-card-bd); font: 700 12px/18px var(--font-body); color: var(--gk-ink); white-space: nowrap;
+}
+#s-settle .r-sc em { font-style: normal; font-weight: 900; }
+#s-settle .r-on { padding: 2px 8px; border-radius: 999px; background: #1f4a2a; box-shadow: inset 0 0 0 1px #6fd08c; font-weight: 800; }
+#s-settle .r-loot.many { gap: 8px; padding-top: 8px; }
+#s-settle .r-loot.many .r-item { min-height: 54px; padding-top: 4px; padding-bottom: 4px; }
+#s-settle .r-loot.many .r-nm { gap: 2px; }
+
+/* 재화: 한 줄 칩 (그림 왼쪽 · +값 · 이름) */
+#s-settle .r-curs { display: flex; flex-wrap: wrap; gap: 6px; }
+#s-settle .r-cur {
+  flex: 1 1 0; min-width: 92px; flex-direction: row; align-items: center; justify-content: flex-start; gap: 6px;
+  height: 42px; padding: 0 8px; box-sizing: border-box; border-radius: 8px; border: 0;
+  background: #15120e; box-shadow: inset 0 0 0 1px var(--gk-card-bd);
+}
+#s-settle .r-ci { flex: none; width: 26px; height: 26px; }
+#s-settle .r-ci svg, #s-settle .r-ci img { width: 26px; height: 26px; }
+/* 꼬리표 (×2 · 처음 · +20%)는 그림 왼쪽 위에 (값과 안 겹치게) */
+#s-settle .r-ci em { top: -9px; left: -6px; }
+#s-settle .r-cv { min-width: 0; display: flex; flex-direction: column; line-height: 1.1; }
+#s-settle .r-cur b { font: 900 16px/1.1 var(--font-body); color: var(--gk-ink); white-space: nowrap; }
+#s-settle .r-cur small { font-size: 11px; color: var(--gk-mute); }
+
+/* 경험치: 레벨 배지 + 굵은 바 */
+#s-settle .r-xpw { display: flex; align-items: center; gap: 8px; }
+#s-settle .r-lv {
+  flex: none; min-width: 48px; height: 34px; padding: 0 8px; box-sizing: border-box; display: flex; align-items: baseline; justify-content: center; gap: 2px;
+  border-radius: 8px; background: linear-gradient(#4b2f6e, #2a1840); box-shadow: inset 0 0 0 1px #b07ae8, 0 1px 2px #000a;
+  line-height: 34px; color: #f2e6ff; white-space: nowrap;
+}
+#s-settle .r-lv small { font: 700 11px/34px var(--font-body); color: #d9c2f5; }
+#s-settle .r-lv b { font: 900 18px/34px var(--font-body); }
+#s-settle .r-xpw.up .r-lv { background: linear-gradient(#7a4fb4, #3d2163); box-shadow: inset 0 0 0 1px #e0c2ff, 0 0 12px #b07ae899; }
+#s-settle .r-xp { flex: 1; min-width: 0; height: 28px; border: 1px solid var(--gk-card-bd); border-radius: 999px; background: #0d0b08; }
+#s-settle .r-xp span { padding: 0 12px; line-height: 24px; font-size: 13px; }
+#s-settle .r-xp em { font-weight: 800; }
+
+/* ---------- 진 판: 구간 길 ---------- */
+#s-settle .r-prog { gap: 10px; padding: 12px; }
+#s-settle .r-segs { width: 100%; justify-content: space-between; gap: 0; }
+#s-settle .r-segs li { flex: 1 1 0; min-width: 0; width: auto; height: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; border-radius: 0; background: none; }
+#s-settle .r-segs li + li::before { right: 50%; top: 12px; width: 100%; margin: 0; z-index: 0; }
+#s-settle .r-segs li > i {
+  position: relative; z-index: 1; width: 26px; height: 26px; box-sizing: border-box; display: grid; place-items: center;
+  border-radius: 50%; border: 2px solid var(--gk-mute); background: var(--gk-chip); font: normal 900 13px var(--font-body); color: var(--gk-mute);
+}
+#s-settle .r-segs li.ok > i { border-color: var(--heal); color: var(--heal); }
+#s-settle .r-segs li.x > i { border-color: #e0402f; background: #3a1512; color: #ff8a80; box-shadow: 0 0 10px #e0402f88; }
+#s-settle .r-segs li + li::before { background: var(--gk-line); }
+#s-settle .r-segs li.ok + li::before { background: var(--heal); }
+#s-settle .r-segs small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--gk-mute); }
+#s-settle .r-prog p { color: var(--gk-ink); }
+#s-settle .r-segs li.x small { color: #ffb4a8; font-weight: 700; }
+
+/* ---------- 아래 버튼: [나가기] [다시 도전] [다음 …] ----------
+ * 세 버튼은 그림 없이 한 모양 (2026-10-13 Lim 「다음 탐험과 나가기 · 다시 도전 높이 · 디자인이 다르다」):
+ * 높이 54 · 모서리 10 · 금테 1px · 같은 글꼴, 주 버튼만 금빛으로 칠함 (길드 홀 강조색 --gk-accent). 휴식 「계속」도 같은 모양 */
+#s-settle .ns-foot.row3 { grid-template-columns: 0.85fr 1fr 1.5fr; }
+#s-settle .ns-foot.row2 { grid-template-columns: 1fr 1.6fr; }
+#s-settle.ns .ns-foot { background: #15120e; border-top: 1px solid var(--gk-line); }
+:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn {
+  height: 54px; min-height: 54px; padding: 0 6px; border: 1px solid var(--gk-edge); border-radius: 10px;
+  background: var(--gk-btn); box-shadow: inset 0 1px 0 #ffe7a81a, 0 2px 0 #000a; color: var(--gk-head); text-shadow: none;
+  font: 400 19px/1.1 var(--font-display); white-space: nowrap;
+}
+:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn.primary {
+  background: linear-gradient(#ffe07a, #f0b93a 55%, #d99a24); border-color: #b8862e;
+  box-shadow: inset 0 1px 0 #fff8d8, inset 0 -2px 0 #b07a1a, 0 2px 0 #000a; color: #2a1806; text-shadow: none;
+}
+:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn:active { transform: translateY(1px); background: var(--gk-btn-on); }
+:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn.primary:active { background: linear-gradient(#f0c853, #d99a24); }
+:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+#s-settle .r-next { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 0 8px; }
+#s-settle .r-next b { font: 400 19px/1.05 var(--font-display); }
+#s-settle .r-next small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 11px/1.2 var(--font-body); color: #5a3a0e; }
+
+@media (max-height: 800px) {
+  #s-settle .r-score .grade { width: 56px; height: 56px; font-size: 36px; }
+  #s-settle .r-item { min-height: 62px; }
+}
+@media (max-width: 359px) {
+  #s-settle .r-stars { grid-template-columns: repeat(3, 66px); }
+  #s-settle .ns-foot.row3 { grid-template-columns: 0.8fr 1fr 1.3fr; }
+  :is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn, #s-settle .r-next b { font-size: 17px; }
+}
