@@ -15,7 +15,14 @@ export default async function gear(url, shots) {
   const save = () => page.evaluate(() => JSON.parse(localStorage.getItem('healer.save')));
   const text = sel => page.textContent(sel);
   /** 아래 시트 닫기 (어두운 바탕의 위쪽을 누름) */
-  const closeSheet = async () => { await page.click('#s-char .sheet-dim', { position: { x: 20, y: 120 } }); await page.clock.runFor(50); };
+  const closeSheet = async () => {
+    const dim = await page.locator('#s-char .sheet-dim').boundingBox();
+    const sheet = await page.locator('#s-char .sheet').boundingBox();
+    // 장비 상세 높이가 늘어나도 실제로 노출된 바탕을 누른다. 강제 클릭은 사용하지 않는다.
+    if (!dim || !sheet || sheet.y <= dim.y) throw new Error('시트 바깥 닫기 영역이 없음');
+    await page.mouse.click(dim.x + dim.width / 2, (dim.y + sheet.y) / 2);
+    await page.clock.runFor(50);
+  };
   await page.clock.install();
   await page.goto(url);
   await page.clock.runFor(300);
@@ -76,7 +83,12 @@ export default async function gear(url, shots) {
   ok(await page.isVisible('#s-char .c7-gsheet') && /\+0 → \+1/.test(sh) && (await text('#s-char .c7-enh [data-material="gold"] [data-cost]')).trim() === '10' && (await text('#s-char .c7-enh [data-material="stone"] [data-have]')).trim() === '8' && /성공률 100%/.test(sh) && (await text('#s-char [data-enh="101"]')).trim() === '강화' && await page.isDisabled('#s-char [data-equip="101"]'), '착용 장비 누르면 아래 시트: 공통 비용 아이콘·보유 강화석·성공 확률, 독립 강화 버튼과 착용 중 표시');
   ok((await page.locator('#s-char .c7-gsheet .c7-opts .c7-cmp').count()) === 3 && /착용 중/.test(await text('#s-char .c7-gsheet .c7-gname')) && (await page.locator('#s-char .c7-gsheet .c7-opts :is(.c7-up, .c7-dn, .c7-roll)').count()) === 0 && !/주 능력치|고정|줄 추가/.test(sh), '착용 장비 옵션: 희귀 = 3줄 (주 · 종류 · 무작위), 오른쪽은 비움 (착용 중), 「주 능력치」 · 「고정」 · 「2줄 추가」 없음 (Lim 2026-10-11)');
   ok(await page.isDisabled('#s-char [data-salv1="101"]') && /착용 중/.test(await text('#s-char [data-salv1="101"]')), '착용 중인 장비는 개별 분해 불가');
-  ok((await page.locator('#s-char .c7-gsheet .c7-spec').count()) === 1 && /특수능력/.test(sh) && /해독초/.test(sh), '옛 희귀 장비 = 특수능력 1줄 (옛 장비 이전 때 굴림, 42 1-1): 묶음 표식 · 이름 · 효과');
+  const migratedSpec = (await save()).gear.equipped.head.specs;
+  ok(migratedSpec.length === 1 && (await page.locator('#s-char .c7-gsheet .c7-spec').count()) === 1
+    && /특수능력/.test(sh) && await page.isVisible('#s-char .c7-gsheet .c7-spec .c7-spg')
+    && (await text('#s-char .c7-gsheet .c7-spec .c7-spt b')).trim().length > 0
+    && (await text('#s-char .c7-gsheet .c7-spec .c7-spt .cap')).trim().length > 0,
+  '옛 희귀 장비 = 특수능력 1줄 (후보 추가와 무관하게 저장·묶음 표식·이름·효과 표시)');
   // 확률 강화 (34 6-5): 굴림을 고정해서 누름 (0 = 성공, 0.99 = 실패)
   const enh = async r => {
     await page.evaluate(v => { window.__rnd = Math.random; Math.random = () => v; }, r);
