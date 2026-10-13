@@ -1,4 +1,4 @@
-// 성장 (61 적 레벨 = 장소 + 난이도 · 32 어픽스, 18 3-3 로비 레이드 문)·주간 도전 「모래시계 시련」 (13 3-2)·광고 이어하기·광고 다시 뽑기 (15 7장)
+// 성장 (61 적 레벨 = 장소 + 난이도 · 32 어픽스, 18 3-3 로비 레이드 문)·주간 도전 「모래시계 시련」 (13 3-2)·실패 자동 정산
 import { chromium } from 'playwright';
 import { chooseContent, killEnemies, pastTitle } from './nav.mjs';
 
@@ -14,7 +14,8 @@ export default async function challenge(url, shots) {
   const save = () => page.evaluate(() => JSON.parse(localStorage.getItem('healer.save')));
   const text = sel => page.textContent(sel);
   const F = fn => page.evaluate(fn);
-  const lose = async () => { await F(() => { const f = window.__proto.F; f.me.hp = 0; f.me.alive = false; }); await page.clock.runFor(1500); };
+  const forceLoss = () => F(() => { const f = window.__proto.F; f.me.hp = 0; f.me.alive = false; });
+  const lose = async () => { await forceLoss(); await page.clock.runFor(2200); };
   /** 남은 구간을 다 이김 (휴식 → 계속) */
   const winAll = async () => {
     for (let i = 0; i < 6; i++) {
@@ -62,17 +63,16 @@ export default async function challenge(url, shots) {
   const fs = await F(() => { const f = window.__proto.F; return { stage: f.cfg.stageLv, rage: !!f.aff?.on.rage }; });
   ok(await page.isVisible('#battle') && fs.stage === 34 && fs.rage, `전투 = 적 Lv 34 (장소 30 + 어려움 4) + 격노 (Lv 30부터) (${JSON.stringify(fs)})`);
 
-  // ---- 광고 이어하기 (15 7장) ----
-  await lose();
-  ok(await page.isVisible('.admodal.ask') && /오늘 3번/.test(await text('.admodal.ask')) && /등급 최대 B/.test(await text('.admodal.ask')), '지면 이어하기 창 (오늘 3번 · 등급 최대 B)');
-  await page.screenshot({ path: `${shots}/growth_continue.png` });
-  await page.click('.admodal.ask [data-ask="ok"]'); await page.clock.runFor(50);
-  ok(await page.isVisible('.admodal') && /광고 자리/.test(await text('.admodal')), '광고 자리 창');
-  await page.click('.admodal [data-ad="ok"]'); await page.clock.runFor(3100 + 300);
-  const rs = await F(() => ({ over: window.__proto.F.over, cont: window.__proto.dungeon.cont, idx: window.__proto.dungeon.idx }));
-  ok(await page.isVisible('#battle') && !rs.over && rs.cont === 1 && rs.idx === 0 && (await save()).daily.ads.cont === 1, `진 구간부터 다시 (${JSON.stringify(rs)})`);
-  await winAll();
-  ok(await page.isVisible('#s-settle') && /광고로 이어 함 1번/.test(await text('#s-settle')) && (await text('#s-settle .grade')) === 'B', '이어서 깬 판 = 등급 B');
+  // ---- 실패하면 2초 뒤 자동 정산 (2026-10-13 Lim) ----
+  const cont0 = (await save()).daily.ads.cont;
+  await forceLoss(); await page.clock.runFor(100);
+  ok(await page.isVisible('#battle') && await page.isHidden('#s-settle') && !(await page.isVisible('.admodal')), '실패 직후 전투 화면 유지 · 이어하기 창 없음');
+  await page.clock.runFor(1800);
+  ok(await page.isVisible('#battle') && await page.isHidden('#s-settle'), '실패 후 2초가 되기 전에는 전투 화면 유지');
+  await page.clock.runFor(300);
+  ok(await page.isVisible('#s-settle') && !(await page.isVisible('.admodal')) && (await text('#s-settle h1')) === '전멸', '실패 후 약 2초 뒤 정산으로 자동 이동');
+  await page.screenshot({ path: `${shots}/growth_failure_settle.png` });
+  ok((await save()).daily.ads.cont === cont0 && !/광고로 이어 함/.test(await text('#s-settle')), '자동 정산은 이어하기 광고 횟수를 소비하지 않음');
   ok(/격노/.test(await text('#s-settle .res-head p')) && !/단계 Lv/.test(await text('#s-settle .res-head p')), '정산 머리에 어픽스 격노 (단계 Lv 없음)');
 
   // ---- 주간 도전 (13 3-2) ----

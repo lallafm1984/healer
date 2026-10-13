@@ -2,12 +2,12 @@
  * S05 편성 (27 3-3, 시안 Party27). 2026-10-08 입장 화면(S04)을 여기로 합침: 전투 탭 「출전」 → 편성 → 출발.
  * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스 · 아이템 힌트), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭 (길드를 빼 두면 없음),
  * 경고 줄 (해제 못 함 · 권장 레벨 미달일 때만), 시작 위치 육각 미리보기 (직업 아이콘), 파티원 줄 (누르면 상세 시트).
- * 아래 고정: 위치가 저장되는 단축칸 4개 · 출발 (악몽은 악몽 열쇠, 없으면 눌렀을 때 얻는 곳 + 상점). 지면 광고 이어하기 (15)
+ * 아래 고정: 위치가 저장되는 단축칸 4개 · 출발 (악몽은 악몽 열쇠, 없으면 눌렀을 때 얻는 곳 + 상점).
  */
 import { CLASSES } from '../data/classes';
 import { contentOf, isRaid } from '../data/content';
 import { CHAL } from '../data/challenge';
-import { AD_LIMIT, SHARD_MAX } from '../data/economy';
+import { SHARD_MAX } from '../data/economy';
 import { gearStatsOf, specsOf } from '../data/equipment';
 import { FEATURES } from '../data/features';
 import { ENCOUNTERS } from '../data/encounters';
@@ -19,10 +19,8 @@ import { aptOf } from '../data/guild';
 import { create, recruitParty } from '../engine';
 import { Flow, newSeed } from '../game/flow';
 import { autoPick, guildOpen, guildRoster, powerOf, slotsOf, togglePick } from '../game/guild';
-import { isMember, needsShard, spendShard } from '../game/economy';
+import { needsShard, spendShard } from '../game/economy';
 import { runMode } from '../game/runmode';
-import { askModal, showRewarded } from '../platform/ads';
-import type { BattleResult } from '../game/settle';
 import { settle } from '../game/settle';
 import { commit, firstDungeonNow, G, healerLevel, heroNow, itemsNow, setItemSlot, talentsNow } from '../game/state';
 import { TUT } from '../game/tutorial';
@@ -297,18 +295,6 @@ s.el.addEventListener('keydown', e => {
   if (row && row === e.target) { e.preventDefault(); row.click(); }
 });
 
-/** 지면 광고 보고 진 구간부터 다시 (15 7장): 하루 3번, 등급 최대 B. 주간 도전·자동 힐러 판·스스로 포기한 판은 안 물어봄 */
-async function tryContinue(r: BattleResult): Promise<boolean> {
-  const save = G.save;
-  if (save.tut < TUT.done || r.win || r.quit || r.giveUp || r.auto || Flow.chal || save.daily.ads.cont >= AD_LIMIT.cont) return false;
-  const mem = isMember(save), left = AD_LIMIT.cont - save.daily.ads.cont;
-  const yes = await askModal(mem ? '이어하기' : '광고 보고 이어하기', `${esc(r.reason)}<br>진 구간부터 다시 (마나는 그 구간 시작 때로)<br>등급 최대 B · 오늘 ${left}번`, '정산으로', mem ? '이어하기' : `${uiIcon('ad', 'in')} 이어하기`);
-  if (!yes || !(await showRewarded('이어하기', mem))) return false;
-  save.daily.ads.cont++; commit();
-  battle().resume();
-  return true;
-}
-
 /** 출발. 악몽은 악몽 열쇠 1개 (12 3-4). 못 가면 이유를 돌려줌 */
 export function depart(): string {
   const c = contentOf(Flow.content);
@@ -325,8 +311,7 @@ export function depart(): string {
     affixes: m.affixes, bossMult: m.bossMult, limit: m.limit, chal: m.chal || undefined,
     party: Flow.party!, items, itemLayout: loadout, slots, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(), specs: specsOf(G.save.gear.equipped, heroNow()),
     stock: tutDone ? { ...G.save.bag } : undefined,
-    async onEnd(r) {
-      if (await tryContinue(r)) return;
+    onEnd(r) {
       Flow.result = r;
       Flow.settle = settle(G.save, r, Math.random, Flow.party!);
       commit();

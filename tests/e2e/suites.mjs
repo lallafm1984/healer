@@ -78,7 +78,7 @@ export const SUITES = [
   ['떠오르는 숫자 자리 지킴', floatSteady, 110], // 어림 (판 열 × 6초)
   ['길드 빼 둠', guildOff, 6],
   ['재화·임무·상점', shop, 14],
-  ['성장·주간 도전·이어하기', challenge, 29],
+  ['성장·주간 도전·실패 정산', challenge, 29],
   ['자동 치유 (개발)', devauto, 13],
   ['장소마다 입장 → 결과', places, 996, 4],
 ];

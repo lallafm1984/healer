@@ -146,8 +146,6 @@ export interface BattleApi {
     /** 어픽스·보스 배율·제한시간 (32 난이도 어픽스, 13 3-2 주간 도전) */
     affixes?: string[]; bossMult?: { hp: number; dmg: number }; limit?: number; chal?: number;
   }): void;
-  /** 진 구간부터 다시 (광고 이어하기, 15). 마나는 그 구간 시작 때로 */
-  resume(): void;
   settings(s: object): void;
   /** 전투 화면에서 바꾼 설정 (일시정지의 자동 치유) → 저장 */
   onSetting: ((key: string, val: unknown) => void) | null;

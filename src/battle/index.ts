@@ -730,7 +730,8 @@ function endSegment(): void {
   const R = S.run!, F = B.F!;
   R.time += F.t; R.deaths += F.stats.deaths; addStats(R, F, F.stats);
   const next = F.over === 'win' && R.idx < R.segs.length - 1;
-  setTimeout(() => { if (B.F && B.F.over) { if (next) showRest(); else finish('end'); } }, 1200);
+  // 실패는 전투 상태를 2초 보여 준 뒤 정산. 이전 판의 타이머가 새 판을 종료하지 않게 한다.
+  setTimeout(() => { if (B.F === F && F.over) { if (next) showRest(); else finish('end'); } }, F.over === 'lose' ? 2000 : 1200);
 }
 function showRest(): void {
   const R = S.run!, F = B.F!, segs = R.segs;
@@ -865,14 +866,6 @@ function frame(now: number): void {
     S.affixes = o.affixes?.length ? o.affixes.slice() : undefined; S.bossMult = o.bossMult; S.limit = o.limit; S.chal = o.chal || 0;
     applyLayout();
     resetRun();
-    Snd.init();
-    startBattle(0);
-  },
-  /** 광고 이어하기 (15): 진 구간을 그 구간 시작 상태(마나·게이지)로 다시. 앞 구간 기록은 그대로 */
-  resume() {
-    if (!S.run) return;
-    closeTip();
-    S.run.cont++;
     Snd.init();
     startBattle(0);
   },
