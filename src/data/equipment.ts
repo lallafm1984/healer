@@ -5,9 +5,9 @@
  * 주 옵션 · 종류 옵션은 굴림 없음, 무작위 옵션은 60~100% 굴림. 장신구는 주 옵션이 없어 종류 옵션부터.
  * 특수능력은 옵션과 따로: 고급 가끔 · 희귀 · 영웅 1줄, 전설은 고유 능력 1줄 (특수능력 1.5배 또는 고유 장비 · 이름 있는 장신구 효과).
  * 강화 +1~+10 (확률, +2 이상에서 실패하면 1단계 떨어짐, 34 6-5 · 12 3-2) · 분해 (골드 + 강화석, 12 3-1). 떨어지는 장비는 모두 +0.
- * 아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비의 성능을 달리 하자」): 떨어진 곳의 적 레벨. 옵션 값은 아이템 레벨 세기 ÷ 내 레벨 세기만큼 (ilvMult):
- * 내 레벨과 같으면 그대로, 낮은 곳 장비는 레벨이 오를수록 약해지고 높은 곳 장비는 더 셈. 특수능력은 그대로.
- * 옵션은 % 대신 수치로 보임 (같은 날 Lim 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」, STAT_POINT · toPoints).
+ * 아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비의 성능을 달리 하자」 · 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」):
+ * 떨어진 곳의 적 레벨. 지능 · 체력 옵션은 수치 (아이템 레벨이 높을수록 크고 장비마다 고정, STAT_POINT · toPoints),
+ * 치명타 · 가속 · 정신력 · 인내는 고정 % (레벨업해도 안 바뀜, Lim 「10%가 9%로 떨어지면 헷갈림」). 특수능력은 그대로.
  */
 import type { ContentDef } from './content';
 import type { DiffName } from './difficulty';
@@ -203,15 +203,18 @@ export interface GearItem {
 export const ilvMult = (ilv: number | undefined, level: number): number => (ilv == null ? 1 : lvPower(ilv) / lvPower(level));
 
 /**
- * 옵션 수치 (2026-10-13 Lim 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」): 장비 옵션은 % 대신 수치로 보인다.
- * 수치 = 비율 (6-3 ~ 6-5 표) × 수치 단위 × 레벨 배율(아이템 Lv) → 장비마다 고정이고 아이템 레벨이 높을수록 큼.
- * 내 능력치로는 수치 ÷ (수치 단위 × 레벨 배율(내 Lv)) = 비율이라 같은 수치라도 레벨이 오르면 덜 듦 (ilvMult와 같은 셈).
- * 지능 단위 = INT_BASE × 치유 배율 (능력치 판 지능과 같은 눈금: 힐러 기본 지능 = 단위 × 레벨 배율), 체력 = 힐러 기본 체력 (HEALER_HP),
- * 치명타 · 가속 · 정신력 · 인내 = 500 (Lv 1에서 1% ≈ 2, Lv 100에서 1% ≈ 46)
+ * 수치 능력치 (2026-10-13 Lim 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」): 지능 · 체력 옵션은 % 대신 수치.
+ * 수치 = 비율 (6-3 ~ 6-5 표) × 수치 단위 × 레벨 배율(아이템 Lv) → 장비마다 고정이고 아이템 레벨이 높을수록 큼. 능력치 판의 지능 · 체력 합계에 그대로 더해지는 숫자
+ * (지능 단위 = INT_BASE × 치유 배율 = 힐러 기본 지능 눈금, 체력 = 힐러 기본 체력 HEALER_HP). 내 능력치로는 수치 ÷ (단위 × 레벨 배율(내 Lv)) = 비율 (ilvMult와 같은 셈).
+ * 치명타 · 가속 · 정신력 · 인내는 여기 없음: 장비에 고정 %로 붙고 아이템 레벨 · 내 레벨과 상관없음 (Lim 「지능 10%가 레벨업하며 9%로 떨어지면 헷갈림」)
  */
-export const STAT_POINT: Record<StatKey, number> = { int: INT_BASE * RULES.heal, hp: 550, crit: 500, haste: 500, spirit: 500, endure: 500 };
-/** 내 레벨 기준 비율 → 수치 (optionsOf · itemStats의 v에 쓰면 그 장비 옵션 수치) */
-export const toPoints = (stat: StatKey, frac: number, level: number) => frac * STAT_POINT[stat] * lvPower(level);
+export const STAT_POINT: Partial<Record<StatKey, number>> = { int: INT_BASE * RULES.heal, hp: 550 };
+/** 수치로 보이는 능력치인지 (지능 · 체력) */
+export const isPointStat = (stat: StatKey) => STAT_POINT[stat] != null;
+/** 그 능력치 옵션의 아이템 레벨 배율: 지능 · 체력만 ilvMult, 나머지 1 */
+export const statMult = (stat: StatKey, ilv: number | undefined, level: number) => (isPointStat(stat) ? ilvMult(ilv, level) : 1);
+/** 내 레벨 기준 비율 → 수치 (지능 · 체력. optionsOf · itemStats의 v에 쓰면 그 장비 옵션 수치) */
+export const toPoints = (stat: StatKey, frac: number, level: number) => frac * (STAT_POINT[stat] ?? 0) * lvPower(level);
 
 export type Equipped = Partial<Record<SlotKey, GearItem>>;
 
@@ -540,19 +543,19 @@ export const noStats = (): StatSet => ({ int: 0, hp: 0, crit: 0, haste: 0, spiri
 
 /**
  * 주 옵션 · 종류 옵션 값 (굴림 없음): 주 옵션은 부위 값 × 등급 배율, 종류 옵션은 그 줄 최대값. 강화는 주 옵션 (장신구는 종류 옵션)에 (34 6-5).
- * level = 내 레벨 (아이템 레벨 배율)
+ * level = 내 레벨 (지능 · 체력의 아이템 레벨 배율, statMult)
  */
 export function fixedOf(it: GearItem, level: number): { stat: StatKey; v: number }[] {
-  const k = kindOf(it), up = 1 + PLUS_STEP * it.plus, main = MAIN_OPT[it.slot], m = ilvMult(it.lv, level);
+  const k = kindOf(it), up = 1 + PLUS_STEP * it.plus, main = MAIN_OPT[it.slot], m = (s: StatKey) => statMult(s, it.lv, level);
   return [
-    ...(main ? [{ stat: main.stat, v: main.v * LINE_MULT[it.grade] * up * m }] : []),
-    ...kindStats(k).slice(0, kindLines(k, it.grade)).map(stat => ({ stat, v: lineMax(stat, it.slot, it.grade) * (main ? 1 : up) * m })),
+    ...(main ? [{ stat: main.stat, v: main.v * LINE_MULT[it.grade] * up * m(main.stat) }] : []),
+    ...kindStats(k).slice(0, kindLines(k, it.grade)).map(stat => ({ stat, v: lineMax(stat, it.slot, it.grade) * (main ? 1 : up) * m(stat) })),
   ];
 }
 /** 굴림 막대 채움 (0~1): 최소 굴림 = 0, 최대 = 1 */
 export const rollFill = (roll: number) => Math.max(0, Math.min(1, (roll - ROLL_MIN) / (1 - ROLL_MIN)));
-/** 무작위 옵션 한 줄의 값 (각성 몫 포함, 내 레벨 기준 아이템 레벨 배율) */
-export const lineValue = (it: GearItem, l: GearLine, level: number) => (lineMax(l.stat, it.slot, it.grade) * l.roll + (l.up ?? 0)) * ilvMult(it.lv, level);
+/** 무작위 옵션 한 줄의 값 (각성 몫 포함, 지능 · 체력은 내 레벨 기준 아이템 레벨 배율) */
+export const lineValue = (it: GearItem, l: GearLine, level: number) => (lineMax(l.stat, it.slot, it.grade) * l.roll + (l.up ?? 0)) * statMult(l.stat, it.lv, level);
 
 /** 장비 옵션 줄 (보이는 순서): 주 옵션 → 종류 옵션 → 무작위 옵션. line = it.lines 번호 (주 · 종류 옵션은 null). level = 내 레벨 */
 export function optionsOf(it: GearItem, level: number): { stat: StatKey; v: number; line: number | null }[] {

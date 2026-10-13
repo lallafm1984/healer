@@ -1,7 +1,7 @@
 /** 장비 강화·분해·드롭 (02 10장, 12 3장) */
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  avgScore, clearMats, ENHANCE_RATE, enhanceCost, equippedStats, gearStatsOf, ilvMult, itemName, itemScore, itemStats, kindsOf, makeItem, OPTION_LINES, optionsOf, randomLines, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, takenStats, STAT_POINT, toPoints, type GearItem,
+  avgScore, clearMats, ENHANCE_RATE, enhanceCost, equippedStats, gearStatsOf, ilvMult, itemName, itemScore, itemStats, kindsOf, makeItem, OPTION_LINES, optionsOf, randomLines, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, takenStats, STAT_POINT, isPointStat, toPoints, type GearItem,
 } from '../src/data/equipment';
 import { HEALER_HP } from '../src/game/charinfo';
 import { INT_BASE, RULES } from '../src/data/rules';
@@ -104,7 +104,7 @@ describe('세트 없음', () => {
 
 describe('아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비의 성능을 달리 하자」)', () => {
   const staff = (lv?: number) => item({ slot: 'weapon', kind: 'staff', grade: '영웅', lv });
-  it('옵션 값 = 지금 값 × 아이템 레벨 세기 ÷ 내 레벨 세기: 같은 레벨이면 그대로, 낮은 곳 장비는 레벨이 오를수록 약해짐', () => {
+  it('지능 · 체력 = 지금 값 × 아이템 레벨 세기 ÷ 내 레벨 세기: 같은 레벨이면 그대로, 낮은 곳 장비는 레벨이 오를수록 약해짐', () => {
     expect(itemStats(staff(100), 100).int).toBeCloseTo(0.12);
     expect(itemStats(staff(30), 30).int).toBeCloseTo(0.12);
     expect(itemStats(staff(), 100).int).toBeCloseTo(0.12); // 아이템 레벨 없음 = 배율 1
@@ -116,16 +116,20 @@ describe('아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비�
     expect(ilvMult(50, 100)).toBeLessThan(0.55);
     // 내 레벨보다 높은 곳 장비는 더 셈 (Lv 3에서 녹슨 고원 어려움 = 적 Lv 5)
     expect(itemStats(staff(5), 3).int).toBeGreaterThan(0.12);
-    // 무작위 옵션 · 각성 몫 · 강화도 같은 배율
-    const it = { ...staff(10), plus: 5, lines: [{ stat: 'spirit' as const, roll: 1, up: 0.02 }] };
+    // 지능 · 체력은 주 옵션 · 무작위 옵션 · 각성 몫 · 강화 모두 같은 배율, 치명타 · 가속 · 정신력 · 인내는 고정 % (Lim 「10%가 9%로 떨어지면 헷갈림」)
+    const it = { ...staff(10), plus: 5, lines: [{ stat: 'spirit' as const, roll: 1, up: 0.02 }, { stat: 'hp' as const, roll: 0.8, up: 0.01 }] };
     const same = optionsOf(it, 10), low = optionsOf(it, 20);
-    for (let i = 0; i < same.length; i++) expect(low[i].v).toBeCloseTo(same[i].v * ilvMult(10, 20));
+    for (let i = 0; i < same.length; i++) expect(low[i].v).toBeCloseTo(same[i].v * (same[i].stat === 'int' || same[i].stat === 'hp' ? ilvMult(10, 20) : 1));
+    expect(itemStats(staff(7), 100).haste).toBeCloseTo(itemStats(staff(100), 100).haste);
+    expect(itemStats(staff(7), 100).haste).toBeCloseTo(0.05 * 1.3);
     expect(gearStatsOf({ weapon: staff(7) }, 100).heal).toBeLessThan(gearStatsOf({ weapon: staff(100) }, 100).heal);
   });
   it('옵션은 % 대신 수치 (Lim 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」): 장비마다 고정, 아이템 레벨이 높을수록 큼', () => {
     // 지능 단위 = 능력치 판 지능 눈금 (INT_BASE × 치유 배율), 체력 = 힐러 기본 체력
     expect(STAT_POINT.int).toBe(INT_BASE * RULES.heal);
     expect(STAT_POINT.hp).toBe(HEALER_HP);
+    expect(isPointStat('int') && isPointStat('hp')).toBe(true);
+    expect(['crit', 'haste', 'spirit', 'endure'].some(k => isPointStat(k as never))).toBe(false);
     const pts = (it: GearItem, lv: number) => toPoints('int', itemStats(it, lv).int, lv);
     // Lv 100 장소 영웅 지팡이 지능 ≈ 197, 녹슨 고원 악몽 것 ≈ 20. 내 레벨이 바뀌어도 수치는 그대로
     expect(Math.round(pts(staff(100), 100))).toBe(Math.round(0.12 * 180 * lvPower(100)));
