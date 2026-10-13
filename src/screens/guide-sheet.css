@@ -4,8 +4,8 @@
  * 난이도 수치 칸 · 대처 줄 · 아이템 힌트는 Lim 「빼기」 (2026-10-12 13:33), 닫기도 나무결 없이 이 색으로.
  * 색은 --gk-* 변수 한 벌로만 정함 (시안 C 「길드 홀」: 어두운 돌색을 나무결 없이 평평하게, 노란 제목, 2026-10-12 Lim 고름).
  */
-/* 색 한 벌: 공략 셋 + 주간 도전 입장 (#s-entry, chal-entry.css) + 결과 · 휴식 (result-hall.css · rest-guide.css, 2026-10-13 Lim 「나무색이 안 어울린다」) + 전투 포기 버튼 (compact.css) */
-:is(#s-party .f-gsheet, #battle #pauseGuide, #rest, #s-entry, #s-settle, #battle #giveUp) {
+/* 색 한 벌: 공략 셋 + 주간 도전 입장 (#s-entry, chal-entry.css) + 결과 · 휴식 (result-hall.css · rest-guide.css, 2026-10-13 Lim 「나무색이 안 어울린다」) + 전투 포기 버튼 (compact.css) + 편성 전체 (party-hall.css) */
+:is(#s-party, #battle #pauseGuide, #rest, #s-entry, #s-settle, #battle #giveUp) {
   --gk-bg: linear-gradient(#1d1812, #15120e 160px);
   --gk-edge: #9c7a3c;
   --gk-ink: #f1e4c8; --gk-ink2: #d8ccb0; --gk-mute: #a99a7e;

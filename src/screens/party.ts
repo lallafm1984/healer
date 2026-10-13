@@ -1,7 +1,7 @@
 /**
  * S05 편성 (27 3-3, 시안 Party27). 2026-10-08 입장 화면(S04)을 여기로 합침: 전투 탭 「출전」 → 편성 → 출발.
  * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스 · 아이템 힌트), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭 (길드를 빼 두면 없음),
- * 경고 줄 (해제 못 함 · 장비 미달일 때만), 시작 위치 육각 미리보기 (직업 아이콘), 파티원 줄 (누르면 상세 시트).
+ * 경고 줄 (해제 못 함 · 권장 레벨 미달일 때만), 시작 위치 육각 미리보기 (직업 아이콘), 파티원 줄 (누르면 상세 시트).
  * 아래 고정: 위치가 저장되는 단축칸 4개 · 출발 (악몽은 악몽 열쇠, 없으면 눌렀을 때 얻는 곳 + 상점). 지면 광고 이어하기 (15)
  */
 import { CLASSES } from '../data/classes';
@@ -227,7 +227,7 @@ function render(keepScroll = true): void {
     ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="파티 모집"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티${guildTab}</button></nav>` : ''}
     <div class="ns-body f-pty">
       ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">보스 기술은 「공략」에서 확인. 단축칸을 준비하면 「출발」.</p>' : ''}
-      ${tutDone ? warnings(segs, Flow.diff, stage, { gear: !Flow.chal }) : ''}
+      ${tutDone ? warnings(segs, stage) : ''}
       ${boardHtml()}
       ${isGuild ? guildPickHtml(stage) : `<section class="pn f-mems"><ul class="pcards">${rows}</ul></section>`}
       ${msg && !sheet && !noShard ? `<p class="note warn">${esc(msg)}</p>` : ''}

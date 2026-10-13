@@ -5,7 +5,6 @@
 import type { ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, segGrade, type EncounterKey } from '../data/encounters';
-import { avgScore, gearSummary, GRADE_STYLE, ITEM_GRADES, RECOMMENDED } from '../data/equipment';
 import { canDispel, DEB_COLOR, HEROES } from '../data/heroes';
 import { AFFIXES, type AffixKey } from '../data/affixes';
 import { G, heroNow, switchOpen } from '../game/state';
@@ -31,26 +30,15 @@ export function cover(c: ContentDef, inner: string): string {
   return `<div class="f-cover${pa.url ? ' art' : ''}"${pa.url ? ` style="--cv:url('${pa.url}')"` : ''}>${inner}</div>`;
 }
 
-/** 장비 점수 → 등급 + 강화 글 (itemScore = 등급 순위 + 강화/10, 평균이라 섞인 장비는 중간값) */
-function gradeOf(score: number): string {
-  const i = Math.floor(score + 1e-6) - 1;
-  if (i < 0) return '';
-  const g = ITEM_GRADES[Math.min(i, ITEM_GRADES.length - 1)], plus = Math.round((score - Math.min(i, ITEM_GRADES.length - 1) - 1) * 10);
-  return `<b class="f-g" style="color:${GRADE_STYLE[g].color}">${g}</b>${plus > 0 ? ` +${plus}` : ''}`;
-}
-export function myGear(): string {
-  const avg = avgScore(G.save.gear.equipped);
-  return avg >= 1 ? gradeOf(avg) : avg > 0 ? esc(gearSummary(G.save.gear.equipped)) : '장비 없음';
-}
-
 /** 경고 한 줄 (! + 글 + 오른쪽 버튼) */
 const warnRow = (cls: string, html: string, right = '') => `<p class="f-warn ${cls}"><span class="f-mark warn" aria-hidden="true">!</span><span class="v">${html}</span>${right}</p>`;
 
 /**
  * 준비 확인 (27 3-2) → 미달·불가만 경고 줄로. 다 괜찮으면 빈 글 (상자 없음).
- * 해제: 이 콘텐츠의 디버프를 지금 직업이 못 지우면 + 직업 바꾸기 (25 7장). 장비: 권장 미달 (입장은 됨). 레벨: 단계보다 낮으면 (개발 빌드)
+ * 해제: 이 콘텐츠의 디버프를 지금 직업이 못 지우면 + 직업 바꾸기 (25 7장). 레벨: 단계보다 낮으면 권장 레벨만 (개발 빌드).
+ * 2026-10-13 Lim 「장비 권장 내용은 제거, 레벨 권장 수치만 표시, 내 4처럼 내 정보는 표시하지 말고」
  */
-export function warnings(segs: EncounterKey[], d: DiffName, stage: number, o: { gear?: boolean } = {}): string {
+export function warnings(segs: EncounterKey[], stage: number): string {
   const out: string[] = [];
   const types = [...new Set(segs.flatMap(k => ENCOUNTERS[k].debuffs || []))];
   const h = heroNow(), miss = types.filter(t => !canDispel(h, t));
@@ -59,10 +47,7 @@ export function warnings(segs: EncounterKey[], d: DiffName, stage: number, o: { 
     const swap = switchOpen().ok ? '<button class="btn2" type="button" data-go="s-char" data-arg="hero">직업 바꾸기</button>' : '';
     out.push(warnRow('dispel', `${chips} 해제 못 함 <span class="cap">${HEROES[h].name}</span>`, swap));
   }
-  const rec = RECOMMENDED[d];
-  if (o.gear !== false && rec && avgScore(G.save.gear.equipped) < rec.score) out.push(warnRow('gear', `장비 권장 ${gradeOf(rec.score)} · 내 ${myGear()} <span class="cap">입장은 됨</span>`));
-  const lv = G.save.player.level;
-  if (lv < stage) out.push(warnRow('lv', `레벨 권장 ${stage} · 내 ${lv}`));
+  if (G.save.player.level < stage) out.push(warnRow('lv', '<span class="f-wl">권장 레벨</span>', `<b class="f-wn">Lv ${stage}</b>`));
   return out.length ? `<div class="f-warns" role="status">${out.join('')}</div>` : '';
 }
 

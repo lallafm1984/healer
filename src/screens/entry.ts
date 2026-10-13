@@ -31,7 +31,7 @@ function render(): void {
       <div class="chalstep"><button class="btn2" type="button" data-cstep="-1" aria-label="한 단계 아래"${Flow.chal <= 1 ? ' disabled' : ''}>−</button><b>${Flow.chal}단계</b><button class="btn2" type="button" data-cstep="1" aria-label="한 단계 위"${Flow.chal >= open ? ' disabled' : ''}>+</button></div>
       <p class="f-cinfo"><span>제한 <b>${mmss(m.limit!)}</b></span><span>적 체력 <b>+${Math.round((bm.hp - 1) * 100)}%</b></span><span>피해 <b>+${Math.round((bm.dmg - 1) * 100)}%</b></span></p>
       <p class="note center">열린 단계 ${open}/${CHAL.max} · 이번 주 최고 ${best ? `${best}단계` : '없음'}</p>
-      ${warnings(segs, d, 0, { gear: false })}
+      ${warnings(segs, 0)}
       <section class="pn f-sec"><h2 class="h-rule">이번 주 어픽스<span class="rule"></span><span class="cap">월요일 오전 6시에 바뀜</span></h2>${afxRows(m.affixes)}</section>
       <section class="pn f-sec"><h2 class="h-rule">구간<span class="rule"></span></h2>${timeline(segs)}</section>
       <section class="pn f-sec f-rw"><h2 class="h-rule">보상<span class="rule"></span></h2>

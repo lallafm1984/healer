@@ -1,0 +1,72 @@
+/*
+ * 편성 (출전) 화면 길드 홀 색 (2026-10-13 Lim 「장비 권장은 제거, 레벨 권장 수치만, 내 정보는 빼고 · 나무결 배경과 함께 UI 스타일·색 변경」).
+ * 결과 · 주간 도전 입장 · 공략 창과 같은 한 벌: 나무결 없이 평평한 어두운 돌색 · 금테 카드 · 노란 제목 (--gk-*, guide-sheet.css).
+ * 위 정보창 (a2-topbar.css) · 붉은 「출발」 그림 · 역할 색 칸 · 성격 칩 색은 그대로. main.ts 맨 뒤에서 읽음 (a2-adventure-theme · party-refinement 위)
+ */
+#s-party {
+  background-color: #15120e; background-image: linear-gradient(#1d1812, #15120e 240px); background-blend-mode: normal;
+  color: var(--gk-ink); --ink: var(--gk-ink); --ink-2: var(--gk-ink2); --mute: var(--gk-mute); --dim: var(--gk-mute); --edge-dim: var(--gk-card-bd); --panel-2: var(--gk-line);
+}
+#s-party .coachtip { background: var(--gk-card); border: 1px solid var(--gk-edge); border-radius: 10px; color: var(--gk-ink); }
+
+/* ---------- 경고 줄: 돌색 카드 · 금빛 ! ---------- */
+#s-party .f-warn { background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 10px; box-shadow: none; }
+#s-party .f-warn .v { color: var(--gk-ink); }
+#s-party .f-warn .v .cap { color: var(--gk-mute); }
+#s-party .f-mark.warn { background: #33270f; border-color: var(--gk-head); color: var(--gk-head); }
+/* 권장 레벨: 왼쪽 이름 · 오른쪽 큰 금빛 숫자 (내 레벨은 안 보임) */
+.f-warn.lv { min-height: 40px; padding: 4px 14px 4px 10px; }
+.f-warn.lv .f-wl { font: 700 13px var(--font-body); color: var(--gk-ink2); }
+.f-warn.lv .f-wn { flex: none; font: 900 17px/1 var(--font-body); color: var(--gk-head); font-variant-numeric: tabular-nums; text-shadow: 0 1px 0 #000; }
+/* 「직업 바꾸기」: 나무결 버튼 대신 공략 닫기와 같은 돌색 · 금테 · 노란 글자 */
+#s-party.ns .f-warn > .btn2 {
+  background: var(--gk-btn); border: 1px solid var(--gk-edge); border-radius: 8px; box-shadow: none;
+  color: var(--gk-head); font-weight: 800; text-shadow: none;
+}
+#s-party.ns .f-warn > .btn2:active { background: var(--gk-btn-on); }
+
+/* ---------- 파티원 목록: 돌색 카드 한 장, 줄 사이는 가는 선 ---------- */
+#s-party.ns .pn.f-mems {
+  padding: 0; overflow: hidden;
+  background: var(--gk-card); background-blend-mode: normal; border: 1px solid var(--gk-card-bd); border-radius: 12px; box-shadow: 0 2px 6px #0007;
+}
+#s-party.ns .pcard.f-mem {
+  padding: 8px 12px; background: none; border: 0; border-top: 1px solid var(--gk-line); border-radius: 0; box-shadow: none;
+}
+#s-party.ns .pcard.f-mem:first-child { border-top: 0; }
+#s-party.ns .pcard.f-mem.tap:active { background: #ffffff08; }
+#s-party.ns .pcard.f-mem:is(.on, .picked) { background: linear-gradient(90deg, #ffd34d1c, #ffd34d00 75%); box-shadow: inset 3px 0 0 var(--gk-head); }
+#s-party.ns .pcard.f-mem :is(.pnick, .f-l1) { color: var(--gk-ink); }
+#s-party.ns .pcard.f-mem .f-l1 > .cap { color: var(--gk-mute); }
+#s-party.ns .pcard.f-mem .f-l2 { color: var(--gk-ink2); }
+/* 직업 칸: 역할 색 타일 + 전투 칸과 같은 직업 아이콘, 금테 */
+#s-party.ns .pcard.f-mem .f-ri { border: 1px solid var(--gk-edge); border-radius: 8px; box-shadow: inset 0 0 0 1px #0000002e, 0 1px 2px #0008; }
+#s-party.ns .pcard.f-mem .f-ps { border-color: #00000040; }
+
+/* ---------- 아래 고정 줄: 단축칸 넷 ---------- */
+#s-party.ns .ns-foot.f-foot2 { background: #15120e; border-top: 1px solid var(--gk-line); box-shadow: 0 -6px 14px #0006; }
+#s-party.ns .f-item:not(.empty):not(.locked) { background: var(--gk-card); border: 1px solid var(--gk-edge); box-shadow: inset 0 1px 0 #ffffff12; color: var(--gk-ink); }
+#s-party.ns .f-item.empty { background: var(--gk-route); border: 1px dashed var(--gk-card-bd); color: var(--gk-mute); }
+#s-party.ns .f-item.locked { background: #17130f; border: 1px solid var(--gk-line); color: #8d8070; }
+#s-party.ns .f-item small { background: #0d0b09d9; border: 0; color: var(--gk-ink); }
+#s-party.ns .f-item .f-slot-number { color: var(--gk-mute); }
+#s-party.ns .f-item.zero, #s-party.ns .f-item.zero small { color: var(--gk-mute); }
+
+/* ---------- 파티원 상세 · 단축칸 고르기 시트: 공략 창과 같은 바탕 ---------- */
+#app .ns .sheet:is(.f-msheet, .f-isheet) { background: var(--gk-bg); background-blend-mode: normal; border-color: var(--gk-edge); color: var(--gk-ink); }
+#app .ns .sheet.f-msheet > .grip { background: var(--gk-edge); }
+#s-party .sheet :is(.h-rule) { color: var(--gk-head); }
+#s-party .sheet .h-rule > .rule { background: linear-gradient(90deg, var(--gk-card-bd), transparent); }
+#s-party .sheet .h-rule > .cap { color: var(--gk-mute); }
+#s-party.ns .sheet .f-det { background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 10px; box-shadow: none; }
+#s-party.ns .sheet .f-det p:not(.pab) { color: var(--gk-ink); }
+#s-party.ns .sheet :is(.f-msheet > .f-shut, .f-item-actions > button) {
+  background: var(--gk-btn); border: 1px solid var(--gk-edge); border-radius: 10px; box-shadow: none;
+  color: var(--gk-head); font-weight: 800; text-shadow: none;
+}
+#s-party.ns .sheet .f-item-actions > button:disabled { color: var(--gk-mute); border-color: var(--gk-card-bd); }
+#s-party.ns .sheet :is(.f-msheet > .f-shut, .f-item-actions > button):active { background: var(--gk-btn-on); }
+#s-party .f-isheet .f-ih { background: var(--gk-chip); color: var(--gk-ink2); }
+#s-party .f-item-actions { background: none; border-top-color: var(--gk-line); }
+#s-party .f-item-option { background: var(--gk-card); border-color: var(--gk-card-bd); }
+#s-party .f-item-option[aria-pressed="true"] { background: var(--gk-btn-on); border-color: var(--gk-head); box-shadow: inset 0 0 0 1px var(--gk-edge); }
