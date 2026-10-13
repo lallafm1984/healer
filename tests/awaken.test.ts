@@ -1,27 +1,11 @@
-/** 옵션 각성 · 목표까지 강화 예상 (34 6-5 · 7-3) */
+/** 옵션 각성 (34 6-5) */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { awakenValue, enhanceForecast, type GearItem } from '../src/data/equipment';
+import { awakenValue, type GearItem } from '../src/data/equipment';
 import { enhanceTry, G } from '../src/game/state';
 import { newSave } from '../src/platform/storage';
 
 const head = (o: Partial<GearItem> = {}): GearItem => ({
   id: 5, slot: 'head', kind: 'hood', grade: '영웅', plus: 0, name: '', lines: [{ stat: 'crit', roll: 0.8 }, { stat: 'haste', roll: 0.8 }], specs: [], ...o,
-});
-
-describe('목표까지 강화 예상', () => {
-  it('평균 시도: +5까지 약 7번 · +8까지 약 24번 · +10까지 약 70번 (34 6-5)', () => {
-    const it0 = head();
-    expect(enhanceForecast(it0, 5).tries).toBeGreaterThan(6);
-    expect(enhanceForecast(it0, 5).tries).toBeLessThan(8);
-    expect(enhanceForecast(it0, 8).tries).toBeGreaterThan(20);
-    expect(enhanceForecast(it0, 8).tries).toBeLessThan(28);
-    expect(enhanceForecast(it0, 10).tries).toBeGreaterThan(60);
-    expect(enhanceForecast(it0, 10).tries).toBeLessThan(80);
-  });
-  it('지금 단계부터만 셈, 첫 단계 (+1 100%)는 1번', () => {
-    expect(enhanceForecast(head(), 1)).toEqual({ tries: 1, gold: 20, stone: 1, refined: 0 });
-    expect(enhanceForecast(head({ plus: 9 }), 10).tries).toBeCloseTo(enhanceForecast(head(), 10).tries - enhanceForecast(head(), 9).tries);
-  });
 });
 
 describe('옵션 각성 (+3 · +6 · +9 처음 닿을 때만)', () => {

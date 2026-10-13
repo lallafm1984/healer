@@ -19,7 +19,7 @@
 }
 #app #s-char .c7-gsheet .c7-dialog-head h3 { font-size: 21px; color: var(--detail-ink); }
 #app #s-char .c7-gsheet button,
-#app #s-char .c7-gsheet :is(.c7-auto, .c7-gic) {
+#app #s-char .c7-gsheet .c7-gic {
   background: #29241b; background-blend-mode: normal;
   border-color: #a88b58; border-radius: 7px; box-shadow: none; color: var(--detail-ink); text-shadow: none;
 }
@@ -70,12 +70,11 @@
 #app #s-char .c7-gsheet .c7-sbtns .c7-cta { background: #efdaaa; color: #2d2115; border: 2px solid #c5a064; box-shadow: inset 0 0 0 1px #fff2d980; font-size: 21px; }
 #app #s-char .c7-gsheet .c7-lockb[aria-pressed="true"] { background: #685232; color: #fff0cc; }
 #app #s-char .c7-gsheet .c7-lockb[aria-pressed="true"] small { color: inherit; }
-#app #s-char .c7-gsheet .c7-rrcost, #app #s-char .c7-gsheet .c7-auto { font-size: 12px; line-height: 1.6; }
-#app #s-char .c7-gsheet .c7-auto { margin-top: 8px; }
+#app #s-char .c7-gsheet .c7-rrcost { font-size: 12px; line-height: 1.6; }
 #app #s-char .c7-gsheet .c7-opts:has([aria-pressed="true"]) .c7-cmp { grid-template-columns: 1fr 1fr 64px 44px; }
 #app #s-char .c7-gsheet .c7-msg { margin: 8px 0 0; font-size: 12px; }
 /* Stat roles replace source breakdowns; allow explanations to wrap on narrow screens. */
-#app #s-char .c7-ssheet .c7-src { grid-template-columns: 50px 62px minmax(0, 1fr); align-items: center; gap: 8px; padding: 10px 0; }
+#app #s-char .c7-ssheet .c7-src { grid-template-columns: 50px 76px minmax(0, 1fr); align-items: center; gap: 8px; padding: 10px 0; }
 #app #s-char .c7-ssheet .c7-src > .cap { font-size: 12px; line-height: 1.6; text-align: left; word-break: keep-all; overflow-wrap: anywhere; }
 @media (max-width: 359px) {
   #app #s-char[data-sub="gear"] .sheet.c7-gsheet { padding-left: 10px; padding-right: 10px; }
@@ -84,7 +83,7 @@
   #app #s-char .c7-gsheet .c7-enh-cost > b { font-size: 18px; }
   #app #s-char .c7-gsheet .c7-costs { gap: 6px; }
   #app #s-char .c7-gsheet .currency-amount { font-size: 12px; }
-  #app #s-char .c7-ssheet .c7-src { grid-template-columns: 44px 53px minmax(0, 1fr); gap: 6px; }
+  #app #s-char .c7-ssheet .c7-src { grid-template-columns: 44px 72px minmax(0, 1fr); gap: 6px; }
 }
 /* Inventory heading: name/count left, shared material icons right. */
 #app #s-char[data-sub="gear"] .c7-inventory-head { gap: 6px; padding: 2px 0 5px; }

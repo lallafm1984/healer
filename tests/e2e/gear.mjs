@@ -66,9 +66,12 @@ export default async function gear(url, shots) {
   await page.screenshot({ path: `${shots}/gear_list.png` });
   ok((await page.locator('#s-char .c7-inventory [data-dex]').count()) === 0, '인벤토리에 도감 버튼 없음');
 
+  ok((await page.locator('#s-char .c7-stat b').allTextContents()).slice(2).every(value => /^[+]?\d+\.\d%$/.test(value)), '퍼센트 능력치는 소수 한 자리 고정 표시');
+
   // ---- 상세 시트 · 강화 ----
   await page.click('#s-char .gtile[data-gitem="101"]'); await page.clock.runFor(50);
   let sh = await text('#s-char .c7-gsheet');
+  ok((await page.locator('#s-char [data-autoopen], #s-char [data-autogo], #s-char .c7-auto').count()) === 0 && !/목표까지|목표 강화/.test(sh), '목표 강화 없이 확인 후 한 번 강화만 제공');
   ok(await page.isVisible('#s-char .c7-gsheet') && /\+0 → \+1/.test(sh) && (await page.locator('#s-char .c7-enh [aria-label="골드 10"]').count()) === 1 && /보유 8/.test(sh) && /성공 100%/.test(sh) && (await text('#s-char [data-enh="101"]')).trim() === '강화' && await page.isDisabled('#s-char [data-equip="101"]'), '착용 장비 누르면 아래 시트: 공통 비용 아이콘·보유 강화석·성공 확률, 독립 강화 버튼과 착용 중 표시');
   ok((await page.locator('#s-char .c7-gsheet .c7-opts .c7-cmp').count()) === 3 && /착용 중/.test(await text('#s-char .c7-gsheet .c7-gname')) && (await page.locator('#s-char .c7-gsheet .c7-opts :is(.c7-up, .c7-dn, .c7-roll)').count()) === 0 && !/주 능력치|고정|줄 추가/.test(sh), '착용 장비 옵션: 희귀 = 3줄 (주 · 종류 · 무작위), 오른쪽은 비움 (착용 중), 「주 능력치」 · 「고정」 · 「2줄 추가」 없음 (Lim 2026-10-11)');
   ok(await page.isDisabled('#s-char [data-salv1="101"]') && /착용 중/.test(await text('#s-char [data-salv1="101"]')), '착용 중인 장비는 개별 분해 불가');

@@ -610,13 +610,6 @@
 @keyframes efxDrop { 0%, 74% { transform: translateX(-50%) translateY(-10px) scale(0); } 80% { transform: translateX(-50%) translateY(-10px) scale(1); } 92%, 100% { transform: translateX(-50%) translateY(6px) scale(1); } }
 @keyframes efxRoul { 0% { background: color-mix(in srgb, var(--gold-hi) 22%, transparent); } 100% { background: none; } }
 @keyframes efxAw { 0% { transform: scale(1); background: color-mix(in srgb, var(--gold-hi) 30%, transparent); } 50% { transform: scale(1.03); } 100% { transform: none; background: color-mix(in srgb, var(--gold-hi) 12%, transparent); } }
-/* 목표까지 강화 */
-#s-char .c7-autob { flex: none; min-height: 36px; height: 36px; padding: 0 10px; font-size: 12px; }
-#s-char .c7-auto { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 6px; border: 1px dashed #D9B26A; background: var(--bg-0); }
-#s-char .c7-auto.run { flex-direction: row; align-items: center; }
-#s-char .c7-auto .cap { margin: 0; }
-#s-char .c7-autof { display: flex; align-items: center; gap: 8px; }
-#s-char .c7-autowhy { margin: 0; }
 @media (prefers-reduced-motion: reduce) { #s-char .fx .c7-gic, #s-char .c7-fxring, #s-char .c7-fxspark { animation: none; } #s-char .c7-fxres { animation-duration: 0.01s; } }
 #s-char .c7-spg .g-ic { display: block; width: 22px; height: 22px; }
 #s-char .c7-spg:has(.g-ic) { min-width: 0; padding: 0; border: 0; }

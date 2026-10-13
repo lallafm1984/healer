@@ -646,24 +646,6 @@ export const AWAKEN_AT = [3, 6, 9] as const;
 export const AWAKEN_SHARE = 0.25;
 export const awakenValue = (it: GearItem, l: GearLine) => lineMax(l.stat, it.slot, '영웅') * AWAKEN_SHARE;
 
-/**
- * 「목표까지 강화」 시작 전 예상 (34 7-3): 지금 단계에서 목표까지 평균 시도 수 · 재료 (끝까지 갈 때, 떨어지면 멈춤 없이).
- * 단계 k → k+1 기대값 T_k = (1 + 실패율 × T_{k-1}) / 성공률 (+2 이상은 실패하면 한 단계 내려가서 다시), 비용도 같은 식
- */
-export function enhanceForecast(it: GearItem, target: number): { tries: number; gold: number; stone: number; refined: number } {
-  const t: number[] = [], g: number[] = [], s: number[] = [], f: number[] = [];
-  let tries = 0, gold = 0, stone = 0, refined = 0;
-  for (let k = 0; k < Math.min(target, MAX_PLUS); k++) {
-    const c = enhanceCost({ ...it, plus: k })!, p = c.rate, q = 1 - p, back = k >= ENHANCE_DROP_FROM;
-    t[k] = (1 + (back ? q * t[k - 1] : 0)) / p;
-    g[k] = (c.gold + (back ? q * g[k - 1] : 0)) / p;
-    s[k] = (c.stone + (back ? q * s[k - 1] : 0)) / p;
-    f[k] = (c.refined + (back ? q * f[k - 1] : 0)) / p;
-    if (k >= it.plus) { tries += t[k]; gold += g[k]; stone += s[k]; refined += f[k]; }
-  }
-  return { tries, gold, stone, refined };
-}
-
 /** 클리어 재료 (12 1장): 던전은 강화석 조금, 레이드는 정제 강화석도 (보스 처치). 레이드 정제 강화석은 확률 강화 · 재설정 때문에 2배 (34 6-9) */
 const DIFF_STEP: Record<DiffName, number> = { '쉬움': 0, '보통': 1, '어려움': 2, '악몽': 3 };
 export function clearMats(diff: DiffName, raid: 0 | 10 | 20): { stone: number; refined: number } {
