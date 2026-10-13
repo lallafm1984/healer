@@ -9,8 +9,8 @@ import { HEROES } from '../data/heroes';
 import { MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { Flow, newSeed } from '../game/flow';
 import { meterHtml } from '../game/meter';
-import { equip, G } from '../game/state';
-import { isBetter, scoreOf, specName } from '../game/charinfo';
+import { G } from '../game/state';
+import { scoreOf, specName } from '../game/charinfo';
 import { specKeysOf } from '../data/equipment';
 import { codexGroupOf, SPEC_GROUPS } from '../data/specials';
 import { art } from '../art';
@@ -38,13 +38,14 @@ function render(): void {
   const c = contentOf(r.content);
   const won = r.win && !r.quit;
   const tut = G.save.tut < TUT.done || x.tutEnd;
-  st.el.innerHTML = `${topBar()}
+  // 위 정보창은 로비 · 출전과 같은 모양 (설정 칸까지, 2026-10-13 Lim 「헤더 정렬」)
+  st.el.innerHTML = `${topBar({ settings: true })}
     <div class="ns-body res">
       ${head(r, x, c.key, c.name)}
       ${tipHtml(r, x)}
       ${won ? lootHtml(r, x) : loseHtml(r, x)}
       ${notesHtml(x)}
-      ${recordHtml(r, x, !won)}
+      ${recordHtml(r, !won)}
     </div>
     <footer class="ns-foot ${tut ? '' : 'row3'}">${footHtml(x, tut)}</footer>`;
   // 심연의 심장을 처음 멈추면 엔딩 글 (59 4-4, 한 번만). 레벨업 팝업이 있으면 그 위에
@@ -91,13 +92,10 @@ function head(r: BattleResult, x: Settlement, key: ContentKey, name: string): st
     ${chal}${x.cont ? `<p class="note center r-cont">광고로 이어 함 ${x.cont}번 · 등급 최대 B</p>` : ''}`;
 }
 
-/** 튜토리얼 탐험 보상 = 첫 장비 (장착 버튼 반짝임) */
-const firstGear = () => Flow.result?.content === 'plateau' && !!Flow.settle?.tutEnd;
-
-/** 튜토리얼 안내 (09 4장 · 34 5-2): 녹슨 고원 클리어 = 끝 (첫 장비 장착 유도), 녹슨 요새 쉬움 첫 클리어 = 다음은 보통 */
+/** 튜토리얼 안내 (09 4장 · 34 5-2): 녹슨 고원 클리어 = 끝 (첫 장비는 정산에서 바로 장착), 녹슨 요새 쉬움 첫 클리어 = 다음은 보통 */
 function tipHtml(r: BattleResult, x: Settlement): string {
-  const it = x.items[0], inBag = !!it && G.save.gear.bag.some(b => b.id === it.id);
-  if (firstGear() && inBag) return '<p class="coachtip"><b>첫 장비</b>! 「장착」을 눌러 바로 사용. 튜토리얼은 여기까지</p>';
+  const it = x.items[0], worn = !!it && G.save.gear.equipped[it.slot]?.id === it.id;
+  if (x.tutEnd && worn) return '<p class="coachtip"><b>첫 장비</b>를 바로 장착했습니다. 튜토리얼은 여기까지</p>';
   if (x.tutEnd) return '<p class="coachtip">튜토리얼은 여기까지! Lv 3에 탐험 <b>잿빛 공동묘지</b>, Lv 5에 첫 던전 <b>녹슨 요새</b></p>';
   if (r.content === 'rustfort' && x.first && r.diff === '쉬움' && !G.save.clears.rustfort?.['보통']) return '<p class="coachtip">첫 던전 클리어! 다음은 녹슨 요새 <b>보통</b></p>';
   return '';
@@ -121,23 +119,15 @@ function lootHtml(r: BattleResult, x: Settlement): string {
     </section>`;
 }
 
-/** 받은 장비 줄들 (34 6-7 보스마다 1개). 「장착」 첫 버튼은 #equipNow */
+/**
+ * 받은 장비 줄들 (34 6-7 보스마다 1개). 장착은 캐릭터 탭에서 (2026-10-13 Lim: 「장착」 버튼 · 도감 줄 뺌)
+ * 처음 얻은 특수능력은 장비가 여럿이어도 띠 하나로 (42 1-6): 묶음 표식 + 이름, 띠 머리에서 fx-spec-new 한 번 (36 4-6, 효과 줄이기면 없음)
+ */
 function itemsHtml(x: Settlement): string {
   if (!x.items.length) return x.lootLocked ? '<p class="r-item none">이번 주 이 보스·난이도 장비는 받음 · 월요일 오전 6시에 다시</p>' : '';
-  let first = true;
-  const rows = x.items.map(it0 => {
-    const h = itemRow(it0.id, first);
-    if (h.includes('data-eqnow')) first = false;
-    return h;
-  }).join('');
-  // 처음 얻은 특수능력은 장비가 여럿이어도 띠 하나로 (42 1-6): 묶음 표식 + 이름, 띠 머리에서 fx-spec-new 한 번 (36 4-6, 효과 줄이기면 없음)
-  // 처음 채운 장비 도감 칸 (34 6-10 ④)은 특수능력 띠가 있으면 그 꼬리에, 없으면 띠 하나로 (결과 화면이 한 줄 더 길어지지 않게)
-  const fresh = x.newSpecs ?? [], dex = x.newDex ?? [], calm = !!G.save.settings.reducedEffects;
-  const pop = calm ? '' : fxArt('fx-spec-new', 'r-spnew');
-  // 「장비 도감 +n」 위에 도장 한 번 (50 E fx-dex-fill)
-  const seal = calm ? '' : fxArt('fx-dex-fill', 'r-dexfill');
-  if (fresh.length) return rows + `<p class="r-newsp"><b>새 특수능력!${pop}</b> ${fresh.map(k => specMark(k) + esc(specName(k))).join(' · ')} <span>${dex.length ? `도감에 적음 · <b class="r-newdex">장비 도감 +${dex.length}${seal}</b>` : '도감에 적었습니다'}</span></p>`;
-  return rows + (dex.length ? `<p class="r-newsp"><b class="r-newdex">장비 도감 +${dex.length}${seal}</b> <span>캐릭터 → 가방 → 도감</span></p>` : '');
+  const rows = x.items.map(it => itemRow(it.id)).join('');
+  const fresh = x.newSpecs ?? [], pop = G.save.settings.reducedEffects ? '' : fxArt('fx-spec-new', 'r-spnew');
+  return rows + (fresh.length ? `<p class="r-newsp"><b>새 특수능력!${pop}</b> ${fresh.map(k => specMark(k) + esc(specName(k))).join(' · ')}</p>` : '');
 }
 
 /** 특수능력 묶음 표식 (36 I spec-*, 이름 있는 장신구 = 그 장신구 그림). 그림이 없으면 이름만 */
@@ -146,16 +136,14 @@ function specMark(k: string): string {
   return u ? `<img class="r-spm" src="${u}" alt="" decoding="async" draggable="false">` : '';
 }
 
-/** 장비 한 줄: 부위 그림(등급 색 테두리) · 이름 · 부위·종류·등급·점수 (지금 장비보다 ▲▼) · 장착 버튼 (지금보다 좋을 때만) */
-function itemRow(id: number, first: boolean): string {
+/** 장비 한 줄: 부위 그림(등급 색 테두리) · 이름 · 부위·종류·등급·점수 (지금 장비보다 ▲▼, 빈 칸이면 「빈칸」) · 입고 있으면 「장착함」 */
+function itemRow(id: number): string {
   const eq = G.save.gear.equipped;
   const it = G.save.gear.bag.find(b => b.id === id) || Object.values(eq).find(b => b?.id === id);
   if (!it) return '';
   const worn = eq[it.slot]?.id === it.id, cur = worn ? null : eq[it.slot] ?? null;
   const sc = scoreOf(it), d = sc - scoreOf(cur);
-  const act = worn ? '<span class="r-on">장착함</span>'
-    : isBetter(it) ? `<button class="btn r-eq${firstGear() ? ' hi-pulse' : ''}" type="button"${first ? ' id="equipNow"' : ''} data-eqnow="${it.id}">장착</button>`
-    : '<span class="r-on dim">가방에</span>';
+  const act = worn ? '<span class="r-on">장착함</span>' : '';
   const delta = worn ? '' : !cur ? ' <em class="up">빈칸</em>' : d > 0 ? ` <em class="up">▲${d}</em>` : d < 0 ? ` <em class="dn">▼${-d}</em>` : '';
   // 특수능력 이름 (42)
   const sp = specKeysOf(it);
@@ -179,7 +167,7 @@ function xpRow(x: Settlement): string {
   return `<div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${fmt(x.xp)}</b><em>${up ? `Lv ${x.levelBefore} → ${p.level}` : `Lv ${p.level}`}</em></span></div>`;
 }
 
-/** 진 판: 어디서 졌는지 (구간 점 · 적 남은 체력) · 힌트 (있을 때만) · 경험치 */
+/** 진 판: 어디서 졌는지 (구간 점 · 적 남은 체력) · 힌트 (있을 때만). 진 판은 경험치 없음 (2026-10-13 Lim) */
 function loseHtml(r: BattleResult, x: Settlement): string {
   if (r.quit) return '';
   const names = r.segNames || [];
@@ -195,7 +183,7 @@ function loseHtml(r: BattleResult, x: Settlement): string {
   if (rec && avgScore(G.save.gear.equipped) < rec.score) hints.push(warn(`장비가 권장(${rec.label})보다 낮음`, '<button class="btn2" type="button" data-go="s-char" data-arg="gear">장비</button>'));
   return `<section class="r-prog" aria-label="진행">${dots}<p>${where}${left}</p></section>
     ${hints.length ? `<div class="f-warns">${hints.join('')}</div>` : ''}
-    ${x.xp ? `<p class="r-xpl">경험치 +${fmt(x.xp)} <small>진 판은 20%</small>${x.levelUps.length ? ` <em>Lv ${G.save.player.level}</em>` : ''}</p>` : ''}`;
+`;
 }
 
 /** 알림 줄 (누르면 그 화면): 길드원 · 직업 퀘스트 · 인연 · 임무 */
@@ -217,21 +205,13 @@ function notesHtml(x: Settlement): string {
   return out.length ? `<div class="r-notes">${out.join('')}</div>` : '';
 }
 
-/** 전투 기록 (접힘, 지면 펼침): 지표 칩 · 딜미터기 상위 5명 · 마지막 전투·소비 아이템 · (개발 빌드) 플레이 기록 */
-function recordHtml(r: BattleResult, x: Settlement, open: boolean): string {
+/** 전투 기록 (접힘, 지면 펼침): 딜미터기 상위 5명 · 마지막 전투·소비 아이템 · (개발 빌드) 플레이 기록. 지표 칩 · 「내 치유」 요약은 뺌 (2026-10-13 Lim) */
+function recordHtml(r: BattleResult, open: boolean): string {
   const multi = r.segN > 1;
-  const chips = [
-    `시간 ${mmss(r.time)}${multi && r.restSec ? ` <small>휴식 ${Math.round(r.restSec)}초 따로</small>` : ''}`,
-    `쓰러짐 ${r.deaths}`,
-    `오버힐 ${x.overhealPct}%`,
-    ...(x.dispelPct != null ? [`해제 ${r.dispels}/${r.dispellable}`] : []),
-    `마나 최저 ${r.minMana}%`,
-  ];
   const dev = G.save.settings.devUnlock && r.dev?.length
     ? `<details class="r-dev"><summary>플레이 기록 (테스트용)</summary><dl class="metrics small">${r.dev.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></details>` : '';
   return `<details class="r-rec"${open ? ' open' : ''}>
-      <summary>전투 기록<span>내 치유 ${fmt(r.healed)}</span></summary>
-      <ul class="r-chips">${chips.map(t => `<li>${t}</li>`).join('')}</ul>
+      <summary>전투 기록</summary>
       ${r.meter ? meterHtml(r.meter, r.time, { title: multi ? '피해량 · 던전 전체' : '피해량', heal: r.healed, compact: true }) : ''}
       <dl class="metrics small">${r.detail.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
       ${dev}
@@ -248,9 +228,7 @@ function footHtml(x: Settlement, tut: boolean): string {
 
 st.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
-  const eqb = t.closest<HTMLElement>('[data-eqnow]');
-  if (eqb) { equip(Number(eqb.dataset.eqnow)); render(); }
-  else if (t.closest('#again')) again();
+  if (t.closest('#again')) again();
   else if (t.closest('.m-all')) t.closest('.meter')?.classList.add('all');
 });
 

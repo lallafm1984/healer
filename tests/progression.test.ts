@@ -28,7 +28,7 @@ describe('경험치·레벨 (02 부록 B)', () => {
     const at1 = clearXp(1, '보통', 'A', { win: true });
     expect(at1 / xpToNext(1)).toBeCloseTo(1.1, 2);
     expect(clearXp(15, '보통', 'A', { win: true }) / xpToNext(15)).toBeCloseTo(1.1 * 0.85 * 14 * 15 ** -1.1, 2);
-    expect(clearXp(1, '보통', null, { win: false })).toBe(Math.round(at1 / 1.1 * 0.2));
+    expect(clearXp(1, '보통', null, { win: false })).toBe(0);
     expect(clearXp(40, '보통', 'A', { raid: 10, win: true }) / clearXp(40, '보통', 'A', { win: true })).toBeCloseTo(1.2, 2);
   });
   it('Lv 1 → 100 도달 시점이 18 1장과 맞음 (하루 8판, 그 레벨에서 가장 좋은 콘텐츠, 보통 A)', () => {
@@ -218,12 +218,12 @@ describe('정산 (09 S08·S09)', () => {
     expect(x.best).toBe(true);
     expect(s.clears.rustfort!['보통']).toEqual({ stars: 3, grade: 'S', best: 300, n: 2 });
   });
-  it('지면 골드·장비 없음, 경험치 20%. 포기하면 경험치도 없음', () => {
+  it('지면 (전멸) 골드·장비·경험치 모두 없음 (2026-10-13 Lim, 예전 20%). 포기도 없음', () => {
     const s = newSave(1);
     const x = settle(s, result({ win: false, segIdx: 1 }), rngFrom(1));
-    expect([x.grade, x.gold, x.items]).toEqual([null, 0, []]);
-    expect(x.xp).toBe(rampXp(contentOf('rustfort'), '보통', { first: true, grade: null, win: false }));
-    expect(x.xp).toBe(Math.round(rampSpan(contentOf('rustfort')) * RAMP_FIRST['보통'] * 0.2));
+    expect([x.grade, x.gold, x.items, x.xp]).toEqual([null, 0, [], 0]);
+    expect(rampXp(contentOf('rustfort'), '보통', { first: true, grade: null, win: false })).toBe(0);
+    expect(s.player).toMatchObject({ level: 1, xp: 0 });
     expect(s.clears).toEqual({});
     const q = settle(s, result({ win: false, quit: true }), rngFrom(1));
     expect(q.xp).toBe(0);
@@ -269,14 +269,14 @@ describe('초반 순차 레벨링 (70): Lv 20까지 쉬움 · 보통 첫 클리�
     expect(s.player.level).toBe(21);
   });
 
-  it('첫 클리어는 등급과 상관없이 같음, 다시 깨면 RAMP_REPEAT × 등급, 지면 20%, 포기는 0', () => {
+  it('첫 클리어는 등급과 상관없이 같음, 다시 깨면 RAMP_REPEAT × 등급, 지거나 포기하면 0', () => {
     const c = contentOf('cemetery'), span = rampSpan(c);
     const s = newSave(1); s.tut = TUT.done; s.player.level = 7;
     expect(play(s, 'cemetery', '보통', 5).xp).toBe(Math.round(span * RAMP_FIRST['보통']));
     const t = newSave(1); t.tut = TUT.done; t.player.level = 7;
     expect(play(t, 'cemetery', '보통', 0).xp).toBe(Math.round(span * RAMP_FIRST['보통']));
     expect(play(t, 'cemetery', '보통', 0).xp).toBe(Math.round(span * RAMP_FIRST['보통'] * RAMP_REPEAT * 1.2));
-    expect(play(t, 'cemetery', '쉬움', 0, false).xp).toBe(Math.round(span * RAMP_FIRST['쉬움'] * 0.2));
+    expect(play(t, 'cemetery', '쉬움', 0, false).xp).toBe(0);
     expect(settle(t, result({ content: 'cemetery', diff: '쉬움', win: false, quit: true }), rngFrom(1)).xp).toBe(0);
     // 어려움 · 악몽은 더 많이 주지만 쉬움 + 보통만으로 충분
     expect(RAMP_FIRST['쉬움'] + RAMP_FIRST['보통']).toBeGreaterThanOrEqual(1);

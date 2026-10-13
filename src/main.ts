@@ -35,6 +35,8 @@ import './screens/adventure-emphasis.css';
 import './screens/party-refinement.css';
 import './screens/guide-sheet.css';
 import './screens/chal-entry.css';
+import './screens/lock-plates.css';
+import './battle/hit-feel.css';
 import './battle';
 import './screens/title';
 import './screens/lobby';

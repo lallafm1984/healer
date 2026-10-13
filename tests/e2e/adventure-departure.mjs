@@ -68,9 +68,9 @@ export default async function adventureDeparture(url, shots) {
       && await page.locator('.b-pop,[data-drops]').count()===0, `${width}: 장면 안 보상 아이콘·기존 상세 팝업 제거`);
     await page.click(rewardSelector);
     ok(await page.locator('.b-reward-chance').isVisible() && /58%/.test(await page.locator('.b-reward-chance').innerText())
-      && await page.locator('.b-reward-chance [data-grade]').count()===5
+      && await page.locator('.b-reward-chance [data-grade]').count()===2
       && /42%/.test(await page.locator('.b-reward-chance [data-grade="고급"]').innerText())
-      && await page.locator('.b-reward-chance').getAttribute('aria-modal')==='false', `${width}: 장비 아이콘은 일반 58%·고급 42%와 0% 등급을 포함한 확률 표`);
+      && await page.locator('.b-reward-chance').getAttribute('aria-modal')==='false', `${width}: 장비 아이콘은 나오는 등급 일반 58%·고급 42%만 확률 표 (2026-10-13 Lim)`);
     if(width===390) {
       const ctaBeforeResize=await page.locator('#contentGo').innerText();
       for(const [rw,rh] of [[360,330],[360,360],[690,829]]) {
