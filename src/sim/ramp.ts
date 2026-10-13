@@ -31,13 +31,10 @@ function flowOf(hero: HeroKey, seed: number): Flow {
   const r = rngFrom(Math.imul(seed, 2654435761) ^ 0x5bd1e995);
   const p = { level: 1, xp: 0 }, eq: Equipped = {};
   let id = 1;
-  /** 한 판 이김: 장비 (던전은 보스마다 1개, 탐험 1개) + 첫 클리어 경험치 */
+  /** 한 판 이김: 장비 1개 (클리어마다 1개, 2026-10-13) + 첫 클리어 경험치 */
   const win = (c: ContentDef, d: DiffName, gear: Equipped, pl: { level: number; xp: number }) => {
-    const n = c.kind === 'explore' ? 1 : Math.max(1, c.bosses.length);
-    for (let i = 0; i < n; i++) {
-      const it = rollItem(r, d, 'A', pl.level, id++, { hero, place: c.key, lv: stageOf(c, d) });
-      if (itemScore(it, pl.level) > itemScore(gear[it.slot], pl.level)) gear[it.slot] = it;
-    }
+    const it = rollItem(r, d, 'A', pl.level, id++, { hero, place: c.key, lv: stageOf(c, d) });
+    if (itemScore(it, pl.level) > itemScore(gear[it.slot], pl.level)) gear[it.slot] = it;
     addXp(pl, rampXp(c, d, { first: true, grade: 'A', win: true }));
   };
   addXp(p, xpToNext(1)); // 튜토리얼 첫 전투 → Lv 2, 장비 없음 (screens/tutorial)

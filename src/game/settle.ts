@@ -1,7 +1,7 @@
 /**
  * 전투가 끝난 뒤 정산(09 S08)·보상(S09)을 계산하고 저장에 반영한다. 화면과 분리된 순수 계산 (난수는 받아서 씀).
  */
-import { ALL_DIFFS, contentOf, raidSize, stageOf, type ContentKey, type ContentDef } from '../data/content';
+import { ALL_DIFFS, contentOf, raidSize, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HEROES, type HeroKey } from '../data/heroes';
 import { clearMats, rollItem, type GearItem } from '../data/equipment';
@@ -16,7 +16,7 @@ import { lootKey, meritFor, onRun, raidLootOpen, rollover } from './economy';
 import { FIRST_CLEAR_CRYSTAL } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { PUB_BONUS } from '../data/missions';
-import { CHAL } from '../data/challenge';
+import { CHAL, chalDropDiff } from '../data/challenge';
 import type { RosterEntry } from '../engine/types';
 import type { AffixKey } from '../data/affixes';
 
@@ -76,7 +76,7 @@ export interface Settlement {
   xp: number;
   levelBefore: number;
   levelUps: number[];
-  /** 받은 장비 (34 6-7): 던전 · 레이드는 보스마다 1개, 탐험 1개 (튜토리얼 중엔 1개) */
+  /** 받은 장비 (34 6-7): 클리어마다 1개 (탐험 · 던전 · 레이드 모두, 2026-10-13 Lim) */
   items: GearItem[];
   /** 그 장비로 처음 얻은 특수능력 · 이름 있는 장신구 키 (결과 화면 「새 특수능력!」, 42 1-6) */
   newSpecs: string[];
@@ -125,9 +125,6 @@ export function heroWin(save: SaveData, kind: string, content: string, diff: Dif
   return { hero: h, n: hs.quest, need: q.need, unlocked: hs.unlocked };
 }
 
-/** 한 판에 떨어지는 장비 개수 (34 6-7): 던전 · 레이드는 보스마다 1개, 탐험 1개 (주간 도전 녹슨 요새 = 2개) */
-export const dropCount = (c: ContentDef) => (c.kind === 'explore' ? 1 : Math.max(1, c.bosses.length));
-
 /** roster = 전투에 넘긴 편성 (길드원 경험치·인연 스카우트). 없으면 길드 정산 안 함 */
 export function settle(save: SaveData, r: BattleResult, rng: () => number, roster: RosterEntry[] = [], now = Date.now()): Settlement {
   const c = contentOf(r.content);
@@ -168,10 +165,10 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   let merit = 0;
   if (r.win) {
     if (!lootLocked) {
-      // 보스마다 1개 (34 6-7), 탐험은 1개. 등급은 콘텐츠 · 난이도 표 (61 3장: 탐험 · 던전 쉬움 일반 ~ 악몽 영웅, 전설은 20인 악몽만).
+      // 클리어마다 1개 (탐험 · 던전 · 레이드 모두, 2026-10-13 Lim 「클리어시 장비는 무조건 한개」. 예전 던전은 보스마다 1개).
+      // 등급은 콘텐츠 · 난이도 표 (61 3장: 탐험 · 던전 쉬움 일반 ~ 악몽 영웅, 전설은 20인 악몽만). 주간 도전은 단계 표 (chalDropDiff: 1~9 보통 · 10~14 어려움 · 15~ 악몽).
       // 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장). 아이템 레벨 = 이 판 적 레벨 (2026-10-13)
-      const n = play ? dropCount(c) : 1;
-      for (let i = 0; i < n; i++) items.push(rollItem(rng, r.diff, grade!, levelBefore, save.nextId++, { hero: save.hero, place: c.key, raid, bonus: !!pubBonus, lv: stage }));
+      items.push(rollItem(rng, r.chal ? chalDropDiff(r.chal) : r.diff, grade!, levelBefore, save.nextId++, { hero: save.hero, place: c.key, raid, bonus: !!pubBonus, lv: stage }));
       save.gear.bag.push(...items);
       newDex = noteDex(save, items);
       newSpecs = noteSpecs(save, items);

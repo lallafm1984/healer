@@ -102,7 +102,7 @@ function tipHtml(r: BattleResult, x: Settlement): string {
   return '';
 }
 
-/** 받은 것: 장비 줄 (보스마다 1개) · 재화 칸 · 경험치 줄 */
+/** 받은 것: 장비 줄 (클리어마다 1개) · 재화 칸 · 경험치 줄 */
 function lootHtml(r: BattleResult, x: Settlement): string {
   const tiles: string[] = [];
   // 재화는 한 줄 칩 (그림 · +값 · 이름, 2026-10-13 Lim 「골드 · 강화석 UI 점검」)
@@ -123,7 +123,7 @@ function lootHtml(r: BattleResult, x: Settlement): string {
 }
 
 /**
- * 받은 장비 줄들 (34 6-7 보스마다 1개). 장착은 캐릭터 탭에서 (2026-10-13 Lim: 「장착」 버튼 · 도감 줄 뺌)
+ * 받은 장비 줄 (34 6-7 클리어마다 1개, 2026-10-13). 장착은 캐릭터 탭에서 (2026-10-13 Lim: 「장착」 버튼 · 도감 줄 뺌)
  * 처음 얻은 특수능력은 장비가 여럿이어도 띠 하나로 (42 1-6): 묶음 표식 + 이름, 띠 머리에서 fx-spec-new 한 번 (36 4-6, 효과 줄이기면 없음)
  */
 function itemsHtml(x: Settlement): string {

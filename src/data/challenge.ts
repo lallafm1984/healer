@@ -25,6 +25,12 @@ export const CHAL = {
   festivalGold: 1.2,
 };
 
+/**
+ * 클리어마다 장비 1개의 등급 표 (2026-10-13 Lim 「추천대로」): 1~9단계 보통 표 (고급까지), 10~14단계 어려움 표 (희귀까지), 15단계부터 악몽 표 (영웅까지).
+ * 예전: 이번 주 던전 난이도 (보통) 표, 보스마다 1개 (녹슨 요새 2개)
+ */
+export const chalDropDiff = (stage: number): DiffName => (stage >= 15 ? '악몽' : stage >= 10 ? '어려움' : '보통');
+
 export const chalMult = (stage: number) => ({ hp: 1 + CHAL.hpStep * (stage - 1), dmg: 1 + CHAL.dmgStep * (stage - 1) });
 export const chalLimit = (stage: number) => CHAL.time0 + CHAL.timeStep * (stage - 1);
 

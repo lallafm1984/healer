@@ -6,8 +6,8 @@ import { contentOf } from '../data/content';
 import { clearGold, clearXp } from '../data/progression';
 import { Flow } from '../game/flow';
 import { chalChestOf } from '../game/economy';
-import { dropCount } from '../game/settle';
-import { CHAL } from '../data/challenge';
+import { CHAL, chalDropDiff } from '../data/challenge';
+import { dropTable, topGrade } from '../data/equipment';
 import { runMode } from '../game/runmode';
 import { G } from '../game/state';
 import { esc, fmt, go, mmss, screen } from './kit';
@@ -40,8 +40,8 @@ function render(): void {
       ${warnings(segs, 0)}
       <section class="pn f-sec wc-affixes"><h2 class="h-rule">이번 주 어픽스<span class="rule"></span><span class="cap">월요일 06:00 갱신</span></h2>${afxRows(m.affixes)}</section>
       <section class="pn f-sec wc-route"><h2 class="h-rule">구간<span class="rule"></span><span class="cap">${segs.length}개 구간</span></h2>${timeline(segs)}</section>
-      <section class="pn f-sec f-rw wc-rewards"><h2 class="h-rule">보상<span class="rule"></span><span class="cap">클리어마다</span></h2>
-        <div class="wc-reward-grid"><div>${gameIcon('gear', '')}<span>장비<b>${dropCount(c)}개</b></span></div><div>${currencyIcon('gold')}<span>골드<b>${fmt(gold)}</b></span></div><div>${gameIcon('a2-goal-book-r6', '')}<span>경험치<b>약 ${fmt(xp)}</b></span></div></div>
+      <section class="pn f-sec f-rw wc-rewards"><h2 class="h-rule">보상<span class="rule"></span><span class="cap">클리어마다 · 장비 ${topGrade(dropTable(chalDropDiff(Flow.chal)))}까지</span></h2>
+        <div class="wc-reward-grid"><div>${gameIcon('gear', '')}<span>장비<b>1개</b></span></div><div>${currencyIcon('gold')}<span>골드<b>${fmt(gold)}</b></span></div><div>${gameIcon('a2-goal-book-r6', '')}<span>경험치<b>약 ${fmt(xp)}</b></span></div></div>
         ${festival ? '<p class="wc-festival">축제 주간 · 골드 +20%</p>' : ''}
         <div class="wc-chest">${gameIcon('chest', '')}<div><span>월요일 상자 <small>이번 주 최고 단계 기준</small></span>${chestReward ? `<b>${chestReward}</b>` : ''}</div></div>
         <div class="wc-milestones" aria-label="월요일 상자 단계별 보상">${[5, 10, 15, 20].map(stage => { const reward = chalChestOf(stage); return `<span${best >= stage ? ' class="reached"' : ''}><small>${stage}단계</small><b>${reward.grades[0]} ${reward.grades.length}개</b></span>`; }).join('')}</div>
