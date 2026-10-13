@@ -38,6 +38,7 @@ import './screens/chal-entry.css';
 import './screens/lock-plates.css';
 import './battle/hit-feel.css';
 import './screens/result-hall.css';
+import './screens/party-hall.css';
 import './battle/rest-guide.css';
 import './battle';
 import './screens/title';

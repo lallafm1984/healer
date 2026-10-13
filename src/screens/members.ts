@@ -3,7 +3,7 @@ import { ABILITIES, AB_GRADE, AB_KIND } from '../data/abilities';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { APT_NAMES } from '../data/guild';
 import { CATS, PERS, type PersName } from '../data/personalities';
-import { art } from '../art';
+import { classGlyphSvg } from './class-icons';
 import { esc, ROLE } from './kit';
 
 /** 능력 한 줄: 종류 아이콘 + 이름 + ★ + 등급 + 효과 (+ 쓰는 때) */
@@ -39,24 +39,11 @@ export const ROLE_ICON: Record<string, string> = {
 };
 
 /**
- * 파티원 직업 아이콘: 직업마다 무기 문장 선 그림 (8직업 같은 모양).
- * 2026-10-12 Lim 「직업 아이콘이 이상하다」: 수호기사만 내 직업(성기사) 문장 그림(emblem-paladin)이 잡혀 섞여 보였음 → 문장 그림은 안 씀.
- * 파티원 전용 그림(class-<직업>)이 생기면 그걸 씀. 마법사는 + 표시가 치유처럼 보여 구슬 지팡이 + 별, 광전사는 우산처럼 보여 양날 도끼, 사냥꾼은 삼지창처럼 보여 동물 발자국.
+ * 파티원 직업 아이콘 (편성 칸·줄): 전투 칸과 같은 한 벌 (class-icons.ts, 크림색 몸 + 검은 테).
+ * 2026-10-12 Lim 「직업 아이콘이 이상하다」로 8직업 같은 모양 → 2026-10-13 Lim 「인게임에서도 동일하게, 인게임 디자인 모양으로」 다시 그림.
  */
-const CLASS_PATH: Record<ClassKey, string> = {
-  warrior: '<path d="M3 5l5-2 5 2v5c0 4-5 7-5 7s-5-3-5-7zM15 16l6-12v8l-4 5M13 15l6 3M15 17l-2 4"/>',
-  paladin: '<path d="M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM12 7v10M8 11h8"/>',
-  rogue: '<path d="M4 3l7 8-3 3-4-6zM20 3l-7 8 3 3 4-6zM5 12l6 5M19 12l-6 5M8 15l-4 6M16 15l4 6"/>',
-  berserker: '<path d="M12 2.5v19M12 6L5.5 3.5c-1.7 3-1.7 7.5 0 10.5L12 11.5M12 6l6.5-2.5c1.7 3 1.7 7.5 0 10.5L12 11.5"/>',
-  swordsman: '<path d="M12 2l3 5-1 9h-4L9 7zM6 16h12M12 16v6M9 22h6M12 6v7"/>',
-  mage: '<path d="M4 21l9.3-10.3"/><circle cx="15.5" cy="8.5" r="3.2"/><path d="M6 2.5l1.1 2.4 2.4 1.1-2.4 1.1L6 9.5 4.9 7.1 2.5 6l2.4-1.1z"/>',
-  archer: '<path d="M6 3c14 4 14 14 0 18l5-9zM3 12h18M18 9l3 3-3 3"/>',
-  hunter: '<path d="M12 12.5c-3.2 0-5.5 2.6-5.5 4.9 0 1.9 1.7 2.8 3.2 2.3 1-.3 1.6-.6 2.3-.6s1.3.3 2.3.6c1.5.5 3.2-.4 3.2-2.3 0-2.3-2.3-4.9-5.5-4.9z"/><circle cx="5" cy="10" r="1.8"/><circle cx="9" cy="5.5" r="1.8"/><circle cx="15" cy="5.5" r="1.8"/><circle cx="19" cy="10" r="1.8"/>',
-};
 export function classIcon(cls: ClassKey): string {
-  const img = art(`class-${cls}`);
-  const inner = img ? `<img src="${img}" alt="" decoding="async" draggable="false">` : roleSvg(CLASS_PATH[cls]);
-  return `<span class="f-class-icon" data-class-icon="${cls}" role="img" aria-label="${CLASSES[cls].name}">${inner}</span>`;
+  return `<span class="f-class-icon" data-class-icon="${cls}" role="img" aria-label="${CLASSES[cls].name}">${classGlyphSvg(cls)}</span>`;
 }
 
 /**

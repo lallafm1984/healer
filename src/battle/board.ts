@@ -7,14 +7,15 @@
  * PXF 이펙트 (battle/pxf.ts, 2026-10-11): 휠 스킬이 들어가면 구운 픽셀 프레임 띠 (fx-pxf-*)를 대상 · 범위 · 파티 칸에서 재생 (그 칸의 치유 빛 대신). 다른 이펙트와 달리 판 맨 위 (글자·아이콘보다 위).
  * 보스 판 전체 공격 (외침 · 땅 울림 …)은 판 너비로 크게 한 번 (pxfWide).
  */
-import { Application, BitmapFont, BitmapText, Container, Graphics, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
+import { Application, BitmapFont, BitmapText, Container, Graphics, GraphicsPath, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
 import { art } from '../art';
 import { armorFactor } from '../data/armor';
-import { CLASSES } from '../data/classes';
+import { CLASSES, type ClassKey } from '../data/classes';
 import { SKILLS } from '../data/skills';
 import { NAMED, SPECS, type SpecGroup } from '../data/specials';
 import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
 import { emblemColor } from '../screens/art';
+import { CLASS_GLYPH, CUT, EDGE, LINE } from '../screens/class-icons';
 import { FACTIONS, type FactionKey } from '../data/places';
 import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
@@ -298,6 +299,34 @@ function roleIcon(g: Graphics, role: Unit['role'], x: number, y: number, k: numb
     g.rect(x - t, y - k * 0.5, t * 2, k).rect(x - k * 0.5, y - t, k, t * 2).fill({ color: C.gold }).stroke({ ...ink, width: Math.max(1.5, k * 0.12) });
     g.rect(x - t + 1, y - t + 1, t * 2 - 2, t * 2 - 2).fill({ color: C.gold });
   }
+}
+// ---------- 파티원 직업 아이콘: 편성 화면과 같은 한 벌 (screens/class-icons.ts, 2026-10-13 Lim). SVG 길은 한 번만 읽어 둠 ----------
+type GlyphPaths = { fill?: GraphicsPath; line?: GraphicsPath; cut?: GraphicsPath; w: number }[];
+const glyphCache = new Map<ClassKey, GlyphPaths>();
+function glyphPaths(cls: ClassKey): GlyphPaths {
+  let out = glyphCache.get(cls);
+  if (!out) {
+    out = CLASS_GLYPH[cls].map(p => {
+      const m = new Matrix().translate(-12, -12).rotate(((p.rot || 0) * Math.PI) / 180).translate(12 + (p.dx || 0), 12 + (p.dy || 0));
+      const path = (d?: string) => (d ? new GraphicsPath(d).transform(m) : undefined);
+      return { fill: path(p.fill), line: path(p.line), cut: path(p.cut), w: p.w ?? LINE };
+    });
+    glyphCache.set(cls, out);
+  }
+  return out;
+}
+/** 직업 아이콘 (가운데 x, y · size = 24칸 판 한 변 px): 조각마다 검은 테 → 크림색 → 검은 새김 */
+function classGlyph(g: Graphics, cls: ClassKey, x: number, y: number, size: number): void {
+  const k = size / 24;
+  g.setTransform(k, 0, 0, k, x - 12 * k, y - 12 * k);
+  for (const p of glyphPaths(cls)) {
+    if (p.fill) g.path(p.fill).stroke({ width: EDGE * 2 * k, color: C.line, join: 'round' });
+    if (p.line) g.path(p.line).stroke({ width: (p.w + EDGE * 2) * k, color: C.line, cap: 'round', join: 'round' });
+    if (p.fill) g.path(p.fill).fill({ color: C.ink });
+    if (p.line) g.path(p.line).stroke({ width: p.w * k, color: C.ink, cap: 'round', join: 'round' });
+    if (p.cut) g.path(p.cut).stroke({ width: CUT * k, color: C.line, cap: 'round', join: 'round' });
+  }
+  g.resetTransform();
 }
 // ---------- 빛의 전이 (사제 8번째 칸): 빛이 깃든 사람 칸에 금빛 원 + 흰 빛 구슬. 그림 fx-relay (그림 요청 64)가 오면 그것 ----------
 let relayTex: Texture | null = null;
@@ -1637,9 +1666,10 @@ export function render(now: number): void {
       recordBound(`role${u.id}`, 'role', 'circle', ep.x, ep.y, d, d);
       meShown = true;
     } else if (!deb) {
-      const k = s * 0.34, half = k * 0.6 + Math.max(1.5, k * 0.12) / 2;
+      // 직업이 있으면 편성 화면과 같은 직업 아이콘 (방패 높이가 예전 역할 방패와 같게 24칸 = 1.36k), 없으면 (보스가 붙인 동료 등) 역할 아이콘
+      const k = s * 0.34, size = k * 1.36, half = u.cls ? size * 0.46 : k * 0.6 + Math.max(1.5, k * 0.12) / 2;
       const ep = fitCenter(x, y - r * (compact ? 0.79 : 0.38), half);
-      roleIcon(overG, u.role, ep.x, ep.y, k);
+      if (u.cls) classGlyph(overG, u.cls, ep.x, ep.y, size); else roleIcon(overG, u.role, ep.x, ep.y, k);
       recordBound(`role${u.id}`, 'role', 'icon', ep.x, ep.y, half * 2, half * 2);
     }
     // 작은 칸: 배지 · 이름 · 체력 세 줄이 서로와 위 칸 체력에 닿지 않게 (배지 0.81 · 이름 0.24, 2026-10-10)
