@@ -438,7 +438,7 @@ function itemSheet(id: number): string {
   const eq = G.save.gear.equipped, worn = eq[it.slot]?.id === it.id, cur = worn ? null : eq[it.slot] ?? null;
   const lv = G.save.player.level, sc = scoreOf(it), a = itemStats(it, lv), b = itemStats(cur, lv);
   // 아이템 레벨 (2026-10-13): 옵션 값은 지금 내 레벨 기준이라 낮은 곳 장비는 레벨이 오르면 줄어듦
-  const sub2 = [slotName(it.slot), esc(kindOf(it).name), it.unique ? '고유 장비' : it.look ? `${FACTIONS[it.look].name} 생김새` : '', it.grade, it.lv != null ? `Lv ${it.lv}` : '', worn ? '착용 중' : isNew(it) ? '새로 얻음' : '', it.lock ? '잠김' : ''].filter(Boolean).join(' · ');
+  const sub2 = [slotName(it.slot), esc(kindOf(it).name), it.unique ? '고유 장비' : it.look ? `${FACTIONS[it.look].name} 생김새` : '', it.grade, it.lv != null ? `Lv\u00a0${it.lv}` : '', worn ? '착용 중' : isNew(it) ? '새로 얻음' : '', it.lock ? '잠김' : ''].filter(Boolean).join(' · ');
   // 지금 장비와 차이: 퍼센트 포인트 (소수 한 자리)
   const d1 = (k: (typeof STAT_KEYS)[number]) => Math.round((a[k] - b[k]) * 1000) / 10;
   const row = (k: string, v: string, right: string, cls = '') => `<div class="c7-cmp${cls}"><span>${k}</span><b>${v}</b>${right}</div>`;

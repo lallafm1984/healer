@@ -180,6 +180,8 @@
 #s-char .c7-gname { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 #s-char .c7-gname b { font: 800 19px var(--font-display); color: var(--gi); }
 #s-char .c7-gname b i { font-style: normal; color: var(--gold-hi); }
+/* 머리 줄 (부위 · 종류 · 생김새 · 등급 · Lv · 새로 얻음)은 낱말 사이에서만 줄바꿈 (「새 / 로 얻음」처럼 낱말이 갈리지 않게) */
+#s-char .c7-gname .cap { word-break: keep-all; }
 #s-char .c7-gscore { flex: none; display: flex; flex-direction: column; align-items: flex-end; }
 #s-char .c7-gscore .cap { font-size: 11px; }
 #s-char .c7-gscore > b { font: 900 24px/1 var(--font-body); color: var(--gold-hi); }
