@@ -690,7 +690,7 @@ async function gestureCases(page, ok, shots) {
 
 const controlGeometry = page => page.evaluate(() => {
   const box = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; };
-  const visible = el => !!el && !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
+  const visible = el => !!el && !!el.getClientRects().length && !el.closest('[inert]') && getComputedStyle(el).visibility !== 'hidden';
   const root = document.querySelector('#controls');
   const parts = [...root.querySelectorAll('#wheel button, #items [data-item], #aux button, #core[role="button"]')]
     .filter(visible)
@@ -702,7 +702,7 @@ const controlGeometry = page => page.evaluate(() => {
         .every(([x, y]) => el.contains(document.elementFromPoint(x, y)));
       return { id: el.id || el.dataset.slot || el.dataset.item || el.dataset.tal, ...r, hitW, hitH, hit, hits };
     });
-  // 포기 버튼 (시전 막대 자리 가운데): 누르는 칸을 가운데 세로줄에서 1px씩 찾음 (축소 판은 자리 26px보다 위로 늘어남)
+  // 오른쪽 벽 전광판의 실제 누르는 칸을 가운데 세로줄에서 1px씩 찾음
   const gu = document.querySelector('#giveUp'), gb = box(gu), gx = gb.x + gb.w / 2;
   let top = Infinity, bottom = -Infinity;
   if (visible(gu)) for (let y = Math.floor(gb.y) - 30; y <= gb.bottom + 30; y++) if (gu.contains(document.elementFromPoint(gx, y))) { top = Math.min(top, y); bottom = Math.max(bottom, y + 1); }

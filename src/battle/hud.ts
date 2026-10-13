@@ -28,6 +28,22 @@ import { fightSkillArt, skillArtImg } from './skillArt';
 const fight = () => B.F!;
 const setText = (el: Element, t: string) => { if (el.textContent !== t) el.textContent = t; };
 
+/** 오른쪽 벽의 전광판. 조작판 축소와 화면 크기가 바뀌어도 실제 우측 상단 칸을 기준으로 배치한다. */
+export function placeGiveUp(): void {
+  const slot = $('wheel').querySelector<HTMLElement>('[data-dir="NE"]');
+  if (!slot) return;
+  const button = $('giveUp'), down = !button.hidden;
+  slot.inert = down && S.hand !== 'left';
+  if (!down) return;
+  const frame = $('controlsFrame').getBoundingClientRect(), r = slot.getBoundingClientRect();
+  const height = Math.max(44, r.height);
+  const width = Math.min(90, Math.max(44, S.hand === 'left' ? r.width + 12 : frame.right - r.left));
+  // 왼손 배치에서는 우측 아이템 칸을 가리지 않도록 같은 벽의 시전 행 위에 붙인다.
+  const top = S.hand === 'left' ? -$('castbar').getBoundingClientRect().height - height : r.top - frame.top;
+  Object.assign(button.style, { width: `${width}px`, height: `${height}px`, top: `${top}px` });
+  button.style.setProperty('--give-up-font', `${Math.max(13, Math.min(19, height * .27))}px`);
+}
+
 /** 지금 판의 공략 (단계 레벨까지 반영한 숫자) */
 export const guideOf = (F: Fight, encKey = F.enc.key) => guideModel(encKey, F.cfg.diff, F.cfg.stageLv, F.cfg.heroLv);
 
@@ -512,10 +528,11 @@ export function updateStage(now: number): void {
     if (firstBuster && !ui.busterHint && !S.auto) { ui.busterHint = true; toast(`${firstBuster.skill.name}: 탱커에게 ${Math.round(firstBuster.skill.dmg! * F.dmgMult)} 피해. 미리 채우거나 수호 영혼`); }
   }
   $('battle').classList.toggle('aoe', F.tels.some(t => t.kind === 'aoe'));
-  // 탱커가 모두 쓰러지면 시전 막대 자리 가운데에 포기 버튼 (2026-10-07 Lim, 자리는 2026-10-13 Lim). 전투는 파티 전멸까지 계속.
-  // 조작판 배치는 그대로, 전투 메시지는 버튼 왼쪽으로 (give-up)
+  // 탱커 전멸 시 우측 상단 스킬 자리에서 오른쪽 벽 전광판을 펼친다. 전투는 계속.
   const down = !F.over && F.party.some(u => u.role === 'tank') && !F.party.some(u => u.role === 'tank' && u.alive);
-  if ($('giveUp').hidden === down) { $('giveUp').hidden = !down; $('castbar').classList.toggle('give-up', down); }
+  if ($('giveUp').hidden === down) {
+    $('giveUp').hidden = !down; $('controls').classList.toggle('give-up', down); placeGiveUp();
+  }
 }
 
 // ---------- 설명 팝업 (보스 기술 · 스킬 · 아이템 같은 모양) ----------

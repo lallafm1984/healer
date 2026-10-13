@@ -222,7 +222,7 @@ export default async function dungeon(url, shots) {
   ok(await page.evaluate(() => window.__proto.dungeon.idx === 0 && window.__proto.F.enc.key === 'gate'), '던전 처음부터');
   const lvm = await page.evaluate(() => { const F = window.__proto.F; return { power: F.power, scale: F.scale, me: Math.round(F.me.max), gearHp: F.gear.hp || 0 }; });
   ok(Math.abs(lvm.power - 0.928) < 1e-9 && Math.abs(lvm.scale - 0.928 * 0.95) < 1e-9 && lvm.me === Math.round(550 * 0.928 * (1 + lvm.gearHp)), `Lv 3으로 Lv 5 녹슨 요새 보통 (개발 빌드로 먼저): 적 Lv 7 (장소 5 + 보통 2, 61 1-2), 힐량·내 체력 = Lv 7 세기 ×0.928 (34 1-2 · 5-2, 체력은 장비 체력까지), 적 = 그 세기 × 0.95 ${JSON.stringify(lvm)}`);
-  // 탱커가 쓰러져도 전투는 계속, 시전 막대 자리 가운데에 포기 버튼 (2026-10-07 Lim, 자리는 2026-10-13 Lim)
+  // 탱커가 쓰러져도 전투는 계속, 우측 상단 스킬 자리에 벽 전광판
   ok(await page.isHidden('#giveUp'), '탱커가 살아 있으면 포기 버튼 없음');
   // 전멸 UI의 입력 상태를 직접 고정한다. HP 1 + 3초 대기는 무작위 회피/보호 능력에 따라 살아남아 흔들린다.
   await page.evaluate(() => { const F = window.__proto.F; F.party.filter(u => u.role === 'tank').forEach(u => { u.hp = 0; u.alive = false; u.guardian = 0; }); F.party.forEach(u => { if (!u.me) u.hot = 0; }); });
@@ -230,8 +230,9 @@ export default async function dungeon(url, shots) {
   const td = await page.evaluate(() => { const F = window.__proto.F; return { over: F.over, tank: F.party.some(u => u.role === 'tank' && u.alive), alive: F.party.filter(u => u.alive && !u.me).length }; });
   ok(td.over === null && !td.tank && td.alive > 0, `탱커가 모두 쓰러져도 전투 계속 ${JSON.stringify(td)}`);
   ok(await page.isVisible('#giveUp') && await page.isVisible('#hint'), '탱커 전멸 → 포기 버튼 (조작판 안내 줄은 그대로)');
-  const gb = await page.evaluate(() => { const r = document.getElementById('giveUp').getBoundingClientRect(), c = document.getElementById('castbar').getBoundingClientRect(), f = document.getElementById('controlsFrame').getBoundingClientRect(); return { inCast: r.top >= c.top - 1 && r.bottom <= c.bottom + 1, center: Math.abs(r.left + r.right - c.left - c.right) / 2, above: r.bottom <= f.top + 1 }; });
-  ok(gb.inCast && gb.center <= 1 && gb.above, `포기 버튼은 시전 막대 자리 가운데, 조작판 위 ${JSON.stringify(gb)}`);
+  await page.locator('#giveUp').evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
+  const gb = await page.evaluate(() => { const g = document.getElementById('giveUp'), r = g.getBoundingClientRect(), slot = document.querySelector('#wheel [data-dir="NE"]'), c = slot.getBoundingClientRect(), f = document.getElementById('controlsFrame').getBoundingClientRect(); return { inControls: r.top >= f.top && r.bottom <= f.bottom, edge: Math.abs(r.right - f.right), row: Math.abs((r.top + r.bottom - c.top - c.bottom) / 2), replaced: slot.inert, castEmpty: !document.getElementById('castbar').contains(g) }; });
+  ok(gb.inControls && gb.edge <= 1 && gb.row <= 1 && gb.replaced && gb.castEmpty, `포기 전광판은 우측 상단 스킬 자리에서 오른쪽 벽에 붙음 ${JSON.stringify(gb)}`);
   await page.screenshot({ path: `${shots}/battle_tankdown.png` });
   await page.click('#giveUp');
   await page.locator('#battleConfirm').waitFor({ state: 'visible' });

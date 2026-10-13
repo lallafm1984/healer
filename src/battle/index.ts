@@ -28,7 +28,7 @@ import { createTalk } from './talk';
 import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, pxfTargets, SKILL_PXF, type PxfKey } from './pxf';
 import {
   bossFx, bossHealNum, bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
-  resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
+  placeGiveUp, resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
 } from './hud';
 
 const seed = () => (Math.random() * 1e9) | 0;
@@ -75,7 +75,7 @@ function startBattle(guideSec = 0): void {
   const lag = $('bossLag'); lag.style.transition = 'none'; lag.style.width = '100%'; void lag.offsetWidth; lag.style.transition = '';
   $('controls').classList.toggle('wheel-left', S.hand === 'left');
   $('pause').hidden = true; hidePreview(); clearToasts();
-  $('giveUp').hidden = true; $('castbar').classList.remove('give-up');
+  $('giveUp').hidden = true; $('controls').classList.remove('give-up');
   clearCoach();
   $('bossArt').innerHTML = bossSvg(F.enc.script, F.enc.key);
   // 인터미션 쥐떼 작은 그림 (29: mob-crypt-rats가 있을 때만)
@@ -154,6 +154,7 @@ function layoutBattle(): void {
     $('core').setAttribute('aria-label', '마나 · 봉화 지정');
   }
   scaleControls();
+  placeGiveUp();
   resizeBoard();
 }
 /** 같은 조작판을 90%부터 축소하되, 44px 터치 영역 사이에 1px 여유가 남게 배율을 올린다. */

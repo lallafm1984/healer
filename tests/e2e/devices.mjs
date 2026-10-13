@@ -68,21 +68,22 @@ export default async function devices(url, shots) {
     const head = await box('#battle .stage-head'), pause = await box('#pauseBtn');
     ok(pause.right <= head.right - 11 && pause.top >= head.top + 11 && pause.bottom <= head.bottom + 5 - 11 && pause.h >= 44,
       `${tag}: 일시정지 버튼이 머리 판 테와 안 겹침 (오른쪽 여백 ${Math.round(head.right - pause.right)} · 위 ${Math.round(pause.top - head.top)})`);
-    // 탱커 전멸 (2026-10-13 Lim 첨부2): 포기 버튼은 시전 막대 자리 가운데, 황동 틀·붉은 바탕, 조작판 배치는 그대로
+    // 탱커 전멸: 우측 상단 칸의 오른쪽 벽 전광판, 조작판 배치는 그대로
     const before = await box('#controls');
     await page.evaluate(() => { const F = window.__proto.F; F.party.filter(u => u.role === 'tank').forEach(u => { u.hp = 0; u.alive = false; u.guardian = 0; }); F.party.forEach(u => { if (u.role !== 'tank') { u.max *= 50; u.hp = u.max; } }); });
     await page.clock.runFor(300);
-    // 나타나는 움직임 (0.18초, 실제 시간)이 끝난 뒤 잼
+    // 오른쪽에서 나오는 움직임과 조명 연출이 끝난 뒤 잼
     await page.locator('#giveUp').evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
     const gu = await page.evaluate(() => {
-      const r = el => el.getBoundingClientRect(), g = document.getElementById('giveUp'), b = r(g), c = r(document.getElementById('castbar')), f = r(document.getElementById('controlsFrame'));
+      const r = el => el.getBoundingClientRect(), g = document.getElementById('giveUp'), b = r(g), c = r(document.querySelector('#wheel [data-dir="NE"]')), f = r(document.getElementById('controlsFrame'));
       const cx = (b.left + b.right) / 2, cy = (b.top + b.bottom) / 2, st = getComputedStyle(g);
-      return { parent: g.parentElement.id, dx: Math.abs(cx - (c.left + c.right) / 2), dy: Math.abs(cy - (c.top + c.bottom) / 2), above: b.bottom <= f.top + 1, w: b.width,
+      return { parent: g.parentElement.id, edge: Math.abs(b.right - f.right), dy: Math.abs(cy - (c.top + c.bottom) / 2), inside: b.top >= f.top && b.bottom <= f.bottom, w: b.width,
+        replaced: document.querySelector('#wheel [data-dir="NE"]').inert,
         hit: [-21, 0, 21].every(d => g.contains(document.elementFromPoint(cx, cy + d))), bg: st.backgroundImage, hint: !document.getElementById('hint').hidden };
     });
     const after = await box('#controls');
-    ok(gu.parent === 'castbar' && gu.dx <= 1 && gu.dy <= 1 && gu.above && gu.w >= 88 && gu.hit && /gradient/.test(gu.bg) && !/url\(/.test(gu.bg) && gu.hint && after.h === before.h && after.top === before.top,
-      `${tag}: 탱커 전멸 포기 버튼 = 시전 막대 자리 가운데 · 누르는 칸 44 · 황동 틀·붉은 바탕 · 조작판 그대로 ${JSON.stringify({ ...gu, bg: gu.bg.slice(0, 24) })}`);
+    ok(gu.parent === 'controlsFrame' && gu.edge <= 1 && gu.dy <= 1 && gu.inside && gu.w >= 44 && gu.replaced && gu.hit && /ui-give-up-wall-sign/.test(gu.bg) && gu.hint && after.h === before.h && after.top === before.top,
+      `${tag}: 탱커 전멸 포기 버튼 = 우측 상단 벽 전광판 · 누르는 칸 44 · 조작판 그대로 ${JSON.stringify({ ...gu, bg: gu.bg.slice(0, 24) })}`);
     await page.screenshot({ path: `${shots}/device_giveup_${width}x${height}.png` });
     // 포기 → 결과 (전멸): 「장비가 권장보다 낮음」 줄의 「장비」 버튼은 나무결 아닌 금빛 (2026-10-13 Lim 첨부1)
     await page.click('#giveUp'); await page.click('#confirmApply'); await page.clock.runFor(300);
