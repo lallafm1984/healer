@@ -63,7 +63,7 @@ describe('강화 (34 6-5: 확률, +2 이상 실패 시 1단계 하락, 12 3-2)',
 
 describe('분해 (12 3-1)', () => {
   beforeEach(() => { G.save = newSave(1); });
-  it('골드 = 등급값 + 강화 단계당 10%, 영웅·전설은 정제 강화석 (보스마다 드롭이라 골드 · 강화석 절반, 34 6-9)', () => {
+  it('골드 = 등급값 + 강화 단계당 10%, 영웅·전설은 정제 강화석 (골드 · 강화석은 처음 값의 절반, 34 6-9 · 2026-10-13 Lim 유지)', () => {
     expect(salvageOf(item({ grade: '일반' }))).toEqual({ gold: 5, stone: 1, refined: 0 });
     expect(salvageOf(item({ grade: '영웅', plus: 5 }))).toEqual({ gold: 150, stone: 3, refined: 1 });
   });

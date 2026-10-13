@@ -671,7 +671,10 @@ export function clearMats(diff: DiffName, raid: 0 | 10 | 20): { stone: number; r
   return { stone: 2 + DIFF_STEP[diff], refined: 2 * ((raid === 20 ? 2 : 1) + (diff === '악몽' ? 1 : 0)) };
 }
 
-/** 분해: 골드 (등급값 + 강화 단계당 10%), 강화석 (등급 비례), 정제 강화석 (영웅·전설). 장비가 보스마다 나와서 골드 · 강화석은 절반 (34 6-9) */
+/**
+ * 분해: 골드 (등급값 + 강화 단계당 10%), 강화석 (등급 비례), 정제 강화석 (영웅·전설). 골드 · 강화석은 처음 값 (12 3장)의 절반 (34 6-9: 보스마다 드롭 때 줄임).
+ * 2026-10-13 클리어마다 1개로 돌아온 뒤에도 절반 그대로 (Lim 「유지하자」: 강화가 약 25% 느려지고 골드는 거의 같음)
+ */
 export const SALVAGE_GOLD: Record<ItemGrade, number> = { '일반': 5, '고급': 15, '희귀': 40, '영웅': 100, '전설': 250 };
 export const SALVAGE_STONE: Record<ItemGrade, number> = { '일반': 1, '고급': 1, '희귀': 2, '영웅': 3, '전설': 5 };
 export const SALVAGE_REFINED: Record<ItemGrade, number> = { '일반': 0, '고급': 0, '희귀': 0, '영웅': 1, '전설': 2 };
