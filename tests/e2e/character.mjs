@@ -140,7 +140,7 @@ export default async function character(url, shots) {
   ok(/체력1,382/.test(st25) && /지능452/.test(st25), `Lv 25 = 체력 220 × 6.28 · 지능 72 × 6.28 (34 1-2 레벨 배율, 1-6 치유 배율) (${st25.slice(0, 60)})`);
   await page.click('#s-char .c7-stats'); await page.clock.runFor(50);
   const src = await text('#s-char .c7-ssheet');
-  ok(/기본 220/.test(src) && /레벨 \+1,162/.test(src) && /지능/.test(src) && !/특성|세트|지능은 치유 회복량입니다/.test(src), '능력치 상세에는 기본·레벨·장비만 표시, 미사용 특성과 하단 설명 없음');
+  ok(['최대 생명력', '치유 스킬의 회복량', '치유가 더 강하게', '시전 시간과 공통 대기시간', '마나 자동 회복', '내가 받는 피해 감소'].every(role => src.includes(role)) && !/기본 220|레벨 · 장비|특성|세트|지능은 치유 회복량입니다/.test(src), '능력치 상세에는 각 능력치 역할 표시, 출처와 불필요한 하단 설명 없음');
   await ctx.close();
   await browser.close();
   return { fails, errs };

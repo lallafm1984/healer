@@ -73,12 +73,21 @@ export default async function dialogs(url, shots) {
       await page.click('#s-char .c7-bag[data-gitem="903"]'); await page.clock.runFor(50);
       await page.keyboard.press('Escape'); await page.clock.runFor(50);
       ok(await page.isVisible('#s-char .c7-inventory') && !(await page.locator('#s-char .sheet').count()) && await page.evaluate(() => document.activeElement?.matches('.c7-bag[data-gitem="903"]') && !document.querySelector('#tabs').inert), `${label} Escape → 상시 인벤토리의 원래 아이템 포커스 복귀·배경 해제`);
-      await page.click('#s-char .c7-inventory [data-dex]'); await page.clock.runFor(50);
-      await page.click('#s-char .c7-dex [data-codex]'); await page.clock.runFor(50);
+      ok((await page.locator('#s-char .c7-inventory [data-dex]').count()) === 0, `${label} 인벤토리 도감 버튼 제거`);
+      await page.click('#s-char .c7-bag[data-gitem="903"]'); await page.clock.runFor(50);
+      await page.click('#s-char [data-enh="903"]'); await page.clock.runFor(50);
+      ok(await page.getAttribute('#s-char .c7-confirm', 'aria-modal') === 'true' && await page.evaluate(() => document.querySelector('#s-char .c7-gsheet').inert && !!document.activeElement?.closest('.c7-confirm')), `${label} 미장착 강화 확인: 상세 비활성화·중첩 모달 포커스`);
+      for (const key of ['Shift+Tab', 'Tab', 'Tab']) {
+        await page.keyboard.press(key);
+        ok(await page.evaluate(() => !!document.activeElement?.closest('.c7-confirm')), `${label} 강화 확인 ${key} 포커스 유지`);
+      }
       await page.keyboard.press('Escape'); await page.clock.runFor(50);
-      ok(await page.isVisible('#s-char .c7-dex') && await page.evaluate(() => document.activeElement?.matches('.c7-dex [data-codex]')), `${label} 특수능력 도감 Escape → 장비 도감 버튼 포커스 복귀`);
+      ok(!(await page.locator('#s-char .c7-confirm').count()) && await page.evaluate(() => document.activeElement?.matches('[data-enh="903"]')), `${label} 확인 Escape → 상세 강화 버튼 포커스 복귀`);
+      await page.click('#s-char [data-salv1="903"]'); await page.clock.runFor(50);
+      await page.click('#s-char .c7-confirm [data-confirmcancel]'); await page.clock.runFor(50);
+      ok(await page.evaluate(() => document.activeElement?.matches('[data-salv1="903"]')), `${label} 분해 취소 → 상세 분해 버튼 포커스 복귀`);
       await page.keyboard.press('Escape'); await page.clock.runFor(50);
-      ok(!(await page.locator('#s-char .sheet').count()) && await page.evaluate(() => document.activeElement?.matches('.c7-inventory [data-dex]') && !document.querySelector('#tabs').inert), `${label} 장비 도감 Escape → 인벤토리 도감 버튼 포커스 복귀·배경 해제`);
+      ok(await page.evaluate(() => document.activeElement?.matches('.c7-bag[data-gitem="903"]') && !document.querySelector('#tabs').inert), `${label} 상세 Escape → 인벤토리 포커스 복귀·배경 해제`);
 
       const shell = () => page.evaluate(() => ({ top: document.querySelector('#s-party .topbar').getBoundingClientRect().top, app: document.querySelector('#app').scrollTop, viewport: document.querySelector('#viewport').scrollTop }));
       for (let attempt = 0; attempt < 2; attempt++) {

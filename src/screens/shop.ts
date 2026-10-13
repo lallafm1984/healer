@@ -13,7 +13,7 @@ import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { purchase, STORE_WHY } from '../platform/billing';
 import { esc, fmt, screen, topBar, useIcon } from './kit';
-import { currencyIcon, uiIcon } from './art';
+import { currencyAmount, currencyIcon, uiIcon, type CurrencyIconKey } from './art';
 
 type Sub = 'gold' | 'merit' | 'pass' | 'crystal';
 const SUBS: [Sub, string][] = [['gold', '골드'], ['merit', '공훈'], ['pass', '시즌 패스'], ['crystal', '크리스탈']];
@@ -22,23 +22,30 @@ const st: { sub: Sub; msg: string } = { sub: 'gold', msg: '' };
 const s = screen('s-shop', '상점', { tab: 'shop', enter(arg) { if (typeof arg === 'string' && SUBS.some(([k]) => k === arg)) st.sub = arg as Sub; refreshDay(); st.msg = ''; render(); } });
 
 /** 받은 것 한 줄 */
-export function gainText(g: Gain): string {
+export function gainText(g: Gain): string { return gainParts(g, false); }
+/** 보상 미리보기는 재화 공통 아이콘을 사용하며, 알림 문장은 텍스트로 유지한다. */
+export function gainHtml(g: Gain): string { return gainParts(g, true); }
+function gainParts(g: Gain, icons: boolean): string {
   const out: string[] = [];
-  if (g.gold) out.push(`골드 +${fmt(g.gold)}`);
-  if (g.stone) out.push(`강화석 +${g.stone}`);
-  if (g.refined) out.push(`정제 강화석 +${g.refined}`);
-  if (g.crystal) out.push(`크리스탈 +${g.crystal}`);
-  if (g.shards) out.push(`악몽 열쇠 +${g.shards}`);
-  if (g.ticket) out.push(`모집권 +${g.ticket}`);
-  if (g.items?.length) out.push(g.items.map(i => i.name).join(', '));
-  if (g.deco) out.push(`「${g.deco}」`);
+  if (g.gold) out.push(icons ? currencyAmount('gold', g.gold, { prefix: '+' }) : `골드 +${fmt(g.gold)}`);
+  if (g.stone) out.push(icons ? currencyAmount('stone', g.stone, { prefix: '+' }) : `강화석 +${g.stone}`);
+  if (g.refined) out.push(icons ? currencyAmount('refined', g.refined, { prefix: '+' }) : `정제 강화석 +${g.refined}`);
+  if (g.crystal) out.push(icons ? currencyAmount('crystal', g.crystal, { prefix: '+' }) : `크리스탈 +${g.crystal}`);
+  if (g.shards) out.push(icons ? currencyAmount('shards', g.shards, { prefix: '+' }) : `악몽 열쇠 +${g.shards}`);
+  if (g.ticket) out.push(icons ? currencyAmount('ticket', g.ticket, { prefix: '+' }) : `모집권 +${g.ticket}`);
+  if (g.items?.length) out.push(g.items.map(i => icons ? esc(i.name) : i.name).join(', '));
+  if (g.deco) out.push(`「${icons ? esc(g.deco) : g.deco}」`);
   if (g.pass) out.push(`패스 경험치 +${g.pass}`);
   return out.join(' · ');
 }
 
 const wallet = () => {
   const w = G.save.wallet;
-  return `<p class="wallet shop-wallet"><span>${currencyIcon('crystal')}<b>${fmt(w.crystal)}</b><small>크리스탈</small></span><span>${uiIcon('key')}<b>${w.shards}/${SHARD_MAX}</b><small>악몽 열쇠</small></span><span>${currencyIcon('merit')}<b>${fmt(w.merit)}</b><small>공훈</small></span><span>${currencyIcon('stone')}<b>${G.save.mats.stone}</b><small>강화석</small></span></p>`;
+  const cells: [CurrencyIconKey, number | string, string][] = [
+    ['crystal', w.crystal, '크리스탈'], ['shards', `${w.shards}/${SHARD_MAX}`, '악몽 열쇠'],
+    ['merit', w.merit, '공훈'], ['stone', G.save.mats.stone, '강화석'], ['refined', G.save.mats.refined, '정제 강화석'], ['ticket', w.ticket, '모집권'],
+  ];
+  return `<p class="wallet shop-wallet">${cells.map(([key, n, name]) => `<span>${currencyIcon(key)}<b>${typeof n === 'number' ? fmt(n) : n}</b><small>${name}</small></span>`).join('')}</p>`;
 };
 
 function render(): void {
@@ -63,7 +70,7 @@ function goldHtml(): string {
     // 가격은 버튼 안에 (살 수 있는 만큼). 가방이 가득이면 「가득」
     const btn = (n: number) => {
       const m = Math.min(n, BAG_MAX - have);
-      return `<button class="btn mini buy" type="button" data-buy="${k}" data-n="${n}"${price == null || have >= BAG_MAX || gold < price! * m ? ' disabled' : ''}>${n}개<small>${have >= BAG_MAX ? '가득' : `${currencyIcon('gold')}${fmt(price! * m)}`}</small></button>`;
+      return `<button class="btn mini buy" type="button" data-buy="${k}" data-n="${n}"${price == null || have >= BAG_MAX || gold < price! * m ? ' disabled' : ''}>${n}개<small>${have >= BAG_MAX ? '가득' : currencyAmount('gold', price! * m)}</small></button>`;
     };
     // 위 줄 = 아이콘·이름·구매 버튼, 아래 줄 = 설명 (좁은 화면에서도 설명이 한 줄을 다 씀)
     return `<li class="srow itemrow"><div class="ir-top"><span class="sic">${useIcon(k)}${have ? `<i class="stack">${have}</i>` : ''}</span><div class="ir-name"><b>${ITEMS[k].name}</b><small${have >= BAG_MAX ? ' class="full"' : ''}>가방 ${have}/${BAG_MAX}${have >= BAG_MAX ? ' · 가득' : ''}</small></div>
@@ -73,15 +80,15 @@ function goldHtml(): string {
   const can = sh < SHARD_MAX && w.craft < SHARD_CRAFT.weekly && gold >= SHARD_CRAFT.gold && G.save.mats.stone >= SHARD_CRAFT.stone;
   return `<h3 class="sec">소비 아이템 <small>레벨 비례 가격 · 종류마다 최대 ${BAG_MAX}</small></h3><ul class="slist">${rows}</ul>
     <h3 class="sec">악몽 열쇠 제작 <small>이번 주 ${w.craft}/${SHARD_CRAFT.weekly}</small></h3>
-    <div class="srow solo"><span class="sic">${uiIcon('key')}</span><div><b>악몽 열쇠</b> <small>보유 ${sh}/${SHARD_MAX}</small><p class="note">악몽 입장권. 출발할 때 1개 소모</p></div>
-      <div class="sbuy"><small>${currencyIcon('gold')}${fmt(SHARD_CRAFT.gold)} + 강화석 ${SHARD_CRAFT.stone}</small><button class="btn mini primary" type="button" id="craft"${can ? '' : ' disabled'}>제작</button></div></div>`;
+    <div class="srow solo"><span class="sic">${currencyIcon('shards')}</span><div><b>악몽 열쇠</b> <small>보유 ${sh}/${SHARD_MAX}</small><p class="note">악몽 입장권. 출발할 때 1개 소모</p></div>
+      <div class="sbuy"><small>${currencyAmount('gold', SHARD_CRAFT.gold)} ${currencyAmount('stone', SHARD_CRAFT.stone)}</small><button class="btn mini primary" type="button" id="craft"${can ? '' : ' disabled'}>제작</button></div></div>`;
 }
 
 function meritHtml(): string {
   const w = G.save.wallet, wk = G.save.weekly.merit;
   return `<p class="note">레이드 보스를 잡으면 공훈. 레이드마다 주 ${MERIT_WEEK_CAP}까지 (10인 ${wk[10]}/${MERIT_WEEK_CAP} · 20인 ${wk[20]}/${MERIT_WEEK_CAP})</p>
     <section class="panel mgear"><h4>영웅 장비 <small>원하는 부위 1개</small></h4>
-      <div class="gbtns">${SLOTS.map(sl => `<button class="btn" type="button" data-ex="${sl.key}"${w.merit < MERIT_GEAR_COST ? ' disabled' : ''}>${sl.name}<small>공훈 ${MERIT_GEAR_COST}</small></button>`).join('')}</div></section>`;
+      <div class="gbtns">${SLOTS.map(sl => `<button class="btn" type="button" data-ex="${sl.key}"${w.merit < MERIT_GEAR_COST ? ' disabled' : ''}>${sl.name}<small>${currencyAmount('merit', MERIT_GEAR_COST)}</small></button>`).join('')}</div></section>`;
 }
 
 function passHtml(): string {
@@ -89,15 +96,15 @@ function passHtml(): string {
   const into = lv >= PASS_LEVELS ? PASS_XP : p.xp - lv * PASS_XP;
   const row = (l: number) => {
     const open = l <= lv, gf = p.free.includes(l), gp = p.prem.includes(l);
-    const f = gainText(passGain(G.save, l));
+    const f = gainHtml(passGain(G.save, l));
     return `<li class="prow${open ? ' open' : ''}"><b>${l}</b>
-      <span class="pf">${esc(f)}${open ? (gf ? ' <i>받음</i>' : ` <button class="btn mini" type="button" data-pass="${l}" data-line="free">받기</button>`) : ''}</span>
+      <span class="pf">${f}${open ? (gf ? ' <i>받음</i>' : ` <button class="btn mini" type="button" data-pass="${l}" data-line="free">받기</button>`) : ''}</span>
       <span class="pp">${esc(passPremium(l))}${open && p.premium ? (gp ? ' <i>받음</i>' : ` <button class="btn mini" type="button" data-pass="${l}" data-line="prem">받기</button>`) : ''}</span></li>`;
   };
   return `<section class="panel passhead"><h4>시즌 ${p.season || SEASON.n} 「${SEASON.name}」 <small>${se.week + 1}/${SEASON.weeks}주${se.catchUp ? ' · 따라잡기 경험치 +50%' : ''}</small></h4>
       <p>패스 Lv <b>${lv}</b>/${PASS_LEVELS} <span class="bar"><i style="width:${Math.min(100, (into / PASS_XP) * 100)}%"></i></span> ${fmt(into)}/${fmt(PASS_XP)}</p>
       <p class="note">일일·주간 임무로 패스 경험치를 얻습니다. 프리미엄 보상은 꾸미기 전용입니다.</p>
-      ${p.premium ? '<p class="note">프리미엄 패스 있음</p>' : `<button class="btn primary" type="button" id="premium"${G.save.wallet.crystal < PASS_PREMIUM_CRYSTAL ? ' disabled' : ''}>프리미엄 패스 ${currencyIcon('crystal')}${fmt(PASS_PREMIUM_CRYSTAL)}</button>`}</section>
+      ${p.premium ? '<p class="note">프리미엄 패스 있음</p>' : `<button class="btn primary" type="button" id="premium"${G.save.wallet.crystal < PASS_PREMIUM_CRYSTAL ? ' disabled' : ''}>프리미엄 패스 ${currencyAmount('crystal', PASS_PREMIUM_CRYSTAL)}</button>`}</section>
     ${passRewards(lv, row)}`;
 }
 
@@ -127,7 +134,7 @@ function crystalHtml(): string {
       return `<li class="srow"><span class="sic">${currencyIcon('crystal')}</span><div><b>${c.name}</b> <small>${fmt(c.crystal)}${first ? ` + 첫 구매 ${fmt(c.crystal)}` : ''}</small></div><div class="sbuy"><button class="btn mini" type="button" data-iap="${c.id}">${c.price}${dev ? ' 시험' : ''}</button></div></li>`;
     }).join('')}</ul>
     <h3 class="sec">꾸미기 <small>원화 작업 때 · 정보 색은 못 바꿈</small></h3>
-    <ul class="slist dim">${[['파티창 애드온', 600], ['애드온 풀세트', 1200], ['힐 이펙트', 400], ['힐 사운드팩', 400], ['힐러 의상', 800], ['정산 미터기 스킨', 300]].map(([n, c]) => `<li class="srow"><span class="sic">${uiIcon('star')}</span><div><b>${n}</b></div><div class="sbuy"><small>${currencyIcon('crystal')}${c}</small><button class="btn mini" type="button" disabled>준비 중</button></div></li>`).join('')}</ul>`;
+    <ul class="slist dim">${[['파티창 애드온', 600], ['애드온 풀세트', 1200], ['힐 이펙트', 400], ['힐 사운드팩', 400], ['힐러 의상', 800], ['정산 미터기 스킨', 300]].map(([n, c]) => `<li class="srow"><span class="sic">${uiIcon('star')}</span><div><b>${n}</b></div><div class="sbuy"><small>${currencyAmount('crystal', c)}</small><button class="btn mini" type="button" disabled>준비 중</button></div></li>`).join('')}</ul>`;
 }
 
 s.el.addEventListener('click', async e => {

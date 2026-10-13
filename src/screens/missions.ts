@@ -11,8 +11,9 @@ import { chalChestOf, chestState, claimChalChest, claimChest, claimGuildGoal, cl
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { showRewarded } from '../platform/ads';
-import { esc, fmt, screen, topBar } from './kit';
+import { esc, screen, topBar } from './kit';
 import { gainText } from './shop';
+import { currencyAmount } from './art';
 
 const st = { msg: '' };
 const s = screen('s-missions', '임무', { enter() { refreshDay(); st.msg = ''; render(); } });
@@ -36,17 +37,17 @@ function render(): void {
     <div class="ns-body missions">
       ${st.msg ? `<p class="warnbox">${esc(st.msg)}</p>` : ''}
       <h3 class="sec">일일 임무 <small>${gotN}/${d.missions.length} · 리셋까지 ${hhmm(untilReset())}</small></h3>
-      <p class="note">1개마다 골드 ${fmt(gold)} · 강화석 ${MISSION_REWARD.stone} · 패스 경험치${d.swapped ? '' : ' · 하루 1번 무료 교체'}</p>
+      <p class="note">1개마다 ${currencyAmount('gold', gold)} · ${currencyAmount('stone', MISSION_REWARD.stone)} · 패스 경험치${d.swapped ? '' : ' · 하루 1번 무료 교체'}</p>
       <ul class="mlist">${d.missions.map((_, i) => row('daily', i)).join('')}</ul>
       <section class="panel chest">
-        <h4>완료 상자 <small>임무 5개를 다 받으면 · 골드 1판 + 강화석 5 + 장비 1개</small></h4>
+        <h4>완료 상자 <small>임무 5개를 다 받으면 · ${currencyAmount('gold', '1판')} + ${currencyAmount('stone', 5)} + 장비 1개</small></h4>
         ${ch.banked ? `<p class="note">놓친 날 상자 ${ch.banked}개 (최대 2일)</p>` : ''}
         <div class="gbtns">
           <button class="btn primary" type="button" id="chest"${ch.today || ch.banked ? '' : ' disabled'}>${ch.today ? '오늘 상자 열기' : ch.banked ? '놓친 날 상자 열기' : d.chest ? '오늘 상자 받음' : `${gotN}/5`}</button>
           ${d.chest && !d.chest2 ? `<button class="btn" type="button" id="chest2"${adLeft > 0 || isMember(G.save) ? '' : ' disabled'}>${isMember(G.save) ? '회원 · 한 번 더' : '광고 보고 한 번 더'}</button>` : ''}
         </div>
       </section>
-      ${lv >= WEEKLY_LV ? `<h3 class="sec">주간 임무 <small>1개마다 악몽 열쇠 1 · 월요일 오전 6시 리셋</small></h3>
+      ${lv >= WEEKLY_LV ? `<h3 class="sec">주간 임무 <small>1개마다 ${currencyAmount('shards', 1)} · 월요일 오전 6시 리셋</small></h3>
         <ul class="mlist">${w.missions.map((_, i) => row('weekly', i)).join('')}</ul>` : `<p class="note">주간 임무는 Lv ${WEEKLY_LV}부터 (악몽 열쇠)</p>`}
       ${FEATURES.guild && lv >= GUILD_LEVEL ? `<section class="panel"><h4>길드 주간 목표 <small>길드파티로 클리어 ${g.n}/${GUILD_GOAL.need}</small></h4>
         <p class="note">명성 +${GUILD_GOAL.fame} · 길드원 전원 경험치 (다음 레벨까지의 절반)</p>

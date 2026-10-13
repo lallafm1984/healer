@@ -18,7 +18,7 @@ import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { cardHtml, memDetailHtml, ROLE_ICON, type CardData } from './members';
 import { esc, fmt, go, ROLE, screen, topBar } from './kit';
-import { currencyIcon, gameIcon, LOCK } from './art';
+import { currencyAmount, gameIcon, LOCK } from './art';
 
 type Sub = 'home' | 'members' | 'recruit';
 const st: { sub: Sub; sel: number | null; msg: string; ask: number | null } = { sub: 'home', sel: null, msg: '', ask: null };
@@ -31,7 +31,7 @@ const svg = (d: string, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="
 const FLAG = svg('<path d="M6 21V4"/><path d="M6 4h11l-2 4 2 4H6"/>');
 const ARROW = svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 2.4).replace('<svg', '<svg class="g-arrow"');
 const BACK = svg('<path d="M19 12H5M11 6l-6 6 6 6"/>', 2.4);
-const goldCost = (value: number) => `${currencyIcon('gold')}<span class="sr">골드 </span>${fmt(value)}`;
+const goldCost = (value: number) => currencyAmount('gold', value);
 
 /**
  * 정식 그림 (30 문서 3장): ui-board 게시판 나무틀 · ui-note 양피지가 있으면 .art = 9칸 늘리기(border-image)로 그림,
@@ -114,13 +114,13 @@ function homeHtml(open: { dev: boolean }): string {
   const full = n >= cap.cap;
   const postNote = g.post
     ? note('n-post', `<h3>모집 공고</h3><p>${POSTS[g.post.tier].name} 공고</p><p class="m">지원자 ${g.post.cands.length}명 · 1명 영입</p>${seal('data-sub="recruit"', '보기')}`)
-    : note('n-post', `<h3>모집 공고</h3><p>${full ? '정원이 다 참' : '공고 없음'}</p><p class="m">골드 ${fmt(minGold)}부터</p>${seal('data-sub="recruit"', full ? '보기' : '공고 내기', full)}`);
+    : note('n-post', `<h3>모집 공고</h3><p>${full ? '정원이 다 참' : '공고 없음'}</p><p class="m">${goldCost(minGold)}부터</p>${seal('data-sub="recruit"', full ? '보기' : '공고 내기', full)}`);
   const goalNote = note('n-goal', `<h3>주간 목표</h3><p>길드파티로 클리어</p>
     <span class="g-nbar"><i style="width:${Math.min(100, (w.n / need) * 100).toFixed(0)}%"></i></span>
     <p class="m">${w.got ? `달성 · 명성 +${GUILD_GOAL.fame} 받음` : w.n >= need ? `${need} / ${need} · 임무에서 명성 +${GUILD_GOAL.fame}` : `${w.n} / ${need} · 명성 +${GUILD_GOAL.fame}`}</p>`);
   const sc = g.scouts[0];
   const scoutNote = note('n-scout', `<h3>인연 스카우트</h3>${sc
-    ? `<p>대기 ${g.scouts.length}명 · ${esc(sc.nick)} (${CLASSES[sc.cls].name})</p><p class="m">골드 ${fmt(SCOUT_GOLD)} · S·A 클리어에서</p>`
+    ? `<p>대기 ${g.scouts.length}명 · ${esc(sc.nick)} (${CLASSES[sc.cls].name})</p><p class="m">${goldCost(SCOUT_GOLD)} · S·A 클리어에서</p>`
     : `<p>대기 없음</p><p class="m">공개모집 S·A 클리어 때 내 힐을 가장 많이 받은 파티원</p>`}`);
   const cs = capSteps();
   const capNote = note('n-cap', `<h3>정원</h3><p>Lv ${cs.now.lv} · ${cs.now.cap}명</p><p class="m">${cs.next ? `다음: Lv ${cs.next.lv} · ${cs.next.cap}명` : '최대 정원'}</p>`);
@@ -201,7 +201,7 @@ function recruitHtml(): string {
     ${post ? `<h3 class="g-tag">지원자 ${post.cands.length}명 <small>${POSTS[post.tier].name} 공고 · 1명만 영입</small></h3>
       <ul class="pcards">${post.cands.map((c, i) => recruitCard({ ...c, apt: aptOf(c), power: powerOf(c) }, `data-hire="${i}"`, full, '추가 비용 없음')).join('')}</ul>` : ''}
     <h3 class="g-tag">인연 스카우트 <small>${goldCost(SCOUT_GOLD)}</small></h3>
-    ${g.scouts.length ? `<ul class="pcards">${g.scouts.map((c, i) => recruitCard({ ...c, apt: c.apt0 }, `data-scout="${i}"`, full || gold < SCOUT_GOLD, `${esc(c.from)}에서<br>${full ? '정원 가득' : gold < SCOUT_GOLD ? `골드 부족 · 보유 ${fmt(gold)}` : `골드 ${fmt(SCOUT_GOLD)}`}`)).join('')}</ul>`
+    ${g.scouts.length ? `<ul class="pcards">${g.scouts.map((c, i) => recruitCard({ ...c, apt: c.apt0 }, `data-scout="${i}"`, full || gold < SCOUT_GOLD, `${esc(c.from)}에서<br>${full ? '정원 가득' : gold < SCOUT_GOLD ? `골드 부족 · 보유 ${fmt(gold)}` : goldCost(SCOUT_GOLD)}`)).join('')}</ul>`
       : memo('공개모집으로 S·A 등급 클리어를 하면, 살아남은 파티원 중 내 힐을 가장 많이 받은 사람이 호감도가 가득 차 여기 남음.')}`;
 }
 

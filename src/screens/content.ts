@@ -25,7 +25,7 @@ import { chalGate, runMode, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { esc, fmt, go, previous, screen, topBar } from './kit';
-import { classEmblem, currencyIcon, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
+import { classEmblem, currencyAmount, currencyIcon, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
 
 /** 선 아이콘 (시안 Battle30 임시 선그림, 정식 그림이 오면 gameIcon이 바꿈) */
 const line = (d: string, sw = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -131,7 +131,7 @@ function lootLine(c: ContentDef): string {
   if (c.kind !== 'raid' || G.save.tut < TUT.done) return '';
   const got = ALL_DIFFS.map(d => !raidLootOpen(G.save, c.key, d));
   const dots = `<span class="b-loot" role="img" aria-label="이번 주 장비 ${ALL_DIFFS.map((d, i) => `${d} ${got[i] ? '받음' : '아직'}`).join(', ')}" title="이번 주 장비: 쉬움 · 보통 · 어려움 · 악몽">${got.map(g => `<i${g ? ' class="got"' : ''}></i>`).join('')}</span>`;
-  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">장비</span>${dots}<span class="cap"><span class="sr">악몽 </span>열쇠 ${G.save.wallet.shards}/${SHARD_MAX}</span></span>`;
+  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">장비</span>${dots}<span class="cap">${currencyAmount('shards', `${G.save.wallet.shards}/${SHARD_MAX}`)}</span></span>`;
 }
 
 /**
