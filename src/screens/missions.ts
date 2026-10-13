@@ -52,7 +52,7 @@ function render(): void {
         <p class="note">명성 +${GUILD_GOAL.fame} · 길드원 전원 경험치 (다음 레벨까지의 절반)</p>
         <button class="btn" type="button" id="guildGoal"${g.got || g.n < GUILD_GOAL.need ? ' disabled' : ''}>${g.got ? '받음' : '받기'}</button></section>` : ''}
       ${G.save.chalChest ? `<section class="panel"><h4>주간 도전 상자 <small>지난주 최고 ${G.save.chalChest}단계</small></h4>
-        <p class="note">${chalChestOf(G.save.chalChest).grades.join(' · ')} 보장</p>
+        <p class="note">${chalChestOf(G.save.chalChest).grades.length ? `${chalChestOf(G.save.chalChest).grades.join(' · ')} 보장` : '골드 (장비는 5단계부터)'}</p>
         <button class="btn primary" type="button" id="chalChest">열기</button></section>` : ''}
     </div>`;
   st.msg = '';
