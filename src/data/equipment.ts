@@ -6,10 +6,12 @@
  * 특수능력은 옵션과 따로: 고급 가끔 · 희귀 · 영웅 1줄, 전설은 고유 능력 1줄 (특수능력 1.5배 또는 고유 장비 · 이름 있는 장신구 효과).
  * 강화 +1~+10 (확률, +2 이상에서 실패하면 1단계 떨어짐, 34 6-5 · 12 3-2) · 분해 (골드 + 강화석, 12 3-1). 떨어지는 장비는 모두 +0.
  */
+import type { ContentDef } from './content';
 import type { DiffName } from './difficulty';
 import type { GearStats, GradeName } from './gear';
 import type { HeroKey } from './heroes';
 import { CONTENT_PLACE, FACTIONS, PLACES, type FactionKey } from './places';
+import { rampPlace } from './progression';
 import { FEATURED, namedOf, namedsFor, SPEC_KEYS, SPECS, specTotals, specValue, type SpecLine, type SpecOn } from './specials';
 import { UNIQUE_MULT, uniqueOf, uniquesFor, uniqueValue } from './uniques';
 
@@ -662,6 +664,11 @@ export const RECOMMENDED: Record<DiffName, { label: string; score: number } | nu
   '어려움': { label: '고급', score: 2 },
   '악몽': { label: '희귀 +5', score: 3.5 },
 };
+/**
+ * 그 장소 · 난이도의 권장 장비. 순차 레벨링 구간 (70, 장소 Lv 20까지 탐험 · 던전)은 없음: 어려움 · 악몽을 그 난이도가 처음 열린
+ * 플레이어의 드롭 장비로 맞춤 (sim/ramp, 2026-10-13 Lim 「Lv 1 어려움이 자동 힐로 안 깨짐」)
+ */
+export const recommendedFor = (c: ContentDef, d: DiffName) => (rampPlace(c) ? null : RECOMMENDED[d]);
 
 /** 지금 장비를 한 줄로 (예: "고급 3 · 일반 2 · 빈칸 1") */
 export function gearSummary(eq: Equipped): string {

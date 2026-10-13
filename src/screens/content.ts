@@ -12,7 +12,7 @@ import type { DiffName } from '../data/difficulty';
 import { AFFIXES } from '../data/affixes';
 import { CHAL } from '../data/challenge';
 import { FIRST_CLEAR_CRYSTAL, SHARD_MAX } from '../data/economy';
-import { avgScore, clearMats, GRADE_STYLE, ITEM_GRADES, RECOMMENDED, type ItemGrade } from '../data/equipment';
+import { avgScore, clearMats, GRADE_STYLE, ITEM_GRADES, recommendedFor, type ItemGrade } from '../data/equipment';
 import { gearGradeOdds } from '../data/reward-preview';
 import { HEROES } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
@@ -148,7 +148,7 @@ function recommended(): ContentKey | null {
     const rec = G.save.clears[c.key] || {}, lvl = isLeveling(c);
     for (const d of (lvl ? ALL_DIFFS : ['보통', '어려움', '악몽']) as DiffName[]) {
       if (rec[d]) continue;
-      const st = stageOf(c, d), r = RECOMMENDED[d];
+      const st = stageOf(c, d), r = recommendedFor(c, d);
       if (lockOf(c, d).locked || (lvl ? st > lv + 1 : lv < st) || (r && mine < r.score)) break;
       const sc = st * 10 + (c.kind === 'explore' ? 0 : 1);
       if (!best || sc > best.s) best = { k: c.key, s: sc };

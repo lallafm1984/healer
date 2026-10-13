@@ -5,6 +5,8 @@ import { contentOf } from '../src/data/content';
 import { TUNE } from '../src/data/tune';
 import * as E from '../src/engine';
 import { applyRows, BUSY, closeIn, findDmg, placeTune, renderTune, rewriteTuneFile, runOnce, standard, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
+import { rampPlayer } from '../src/sim/ramp';
+import { recommendedFor, SLOTS } from '../src/data/equipment';
 
 describe('배율 찾기', () => {
   it('클리어율이 배율에 따라 줄면 목표에 맞는 배율을 찾음', () => {
@@ -56,6 +58,29 @@ describe('기준 조건과 목표 (26 9-2)', () => {
     expect(standard(contentOf('abyss1'), '악몽')).toEqual({ lv: 60, gear: 'rare5', affixes: [] });
     expect(standard(contentOf('abyss1'), '어려움')).toEqual({ lv: 45, gear: 'adv0', affixes: [] });
     expect(standard(contentOf('rustfort'), '보통').gear).toBe('none');
+    expect(standard(contentOf('mossroot'), '어려움')).toEqual({ lv: 25, gear: 'adv0', affixes: [] });
+  });
+  it('순차 레벨링 구간 (장소 Lv 20까지) 어려움 · 악몽 = 그 난이도가 처음 열린 플레이어 (2026-10-13 Lim 「Lv 1 어려움이 자동 힐로 안 깨짐」)', () => {
+    // 녹슨 고원: 튜토리얼 → 쉬움 · 보통을 깨면 Lv 3 (70), 어려움을 한 번 깨도 아직 Lv 3
+    expect(standard(contentOf('plateau'), '어려움')).toEqual({ lv: 5, gear: 'ramp', affixes: [], heroLv: 3 });
+    expect(standard(contentOf('plateau'), '악몽')).toEqual({ lv: 7, gear: 'ramp', affixes: [], heroLv: 3 });
+    expect(standard(contentOf('plateau'), '보통').gear).toBe('none');
+    // 장비 = 그때까지 드롭 (녹슨 고원 어려움 = 쉬움 · 보통 2개, 악몽 = 어려움 1개 더), 시드마다 같은 결과
+    const n = (eq: object) => Object.values(eq).filter(Boolean).length;
+    for (let s = 1; s <= 10; s++) {
+      expect(n(rampPlayer(contentOf('plateau'), '어려움', 'priest', s).eq)).toBeLessThanOrEqual(2);
+      expect(n(rampPlayer(contentOf('plateau'), '악몽', 'priest', s).eq)).toBeLessThanOrEqual(3);
+    }
+    expect(rampPlayer(contentOf('crypt'), '어려움', 'druid', 4)).toBe(rampPlayer(contentOf('crypt'), '어려움', 'druid', 4));
+    // 장소를 지날수록 장비가 늘고 레벨이 다음 장소를 따라감
+    const late = rampPlayer(contentOf('lilypalace'), '어려움', 'priest', 1);
+    expect(late.lv).toBeGreaterThanOrEqual(20);
+    expect(SLOTS.filter(x => late.eq[x.key]).length).toBeGreaterThanOrEqual(5);
+    // 이 칸들은 권장 장비 경고도 없음
+    expect(recommendedFor(contentOf('plateau'), '어려움')).toBeNull();
+    expect(recommendedFor(contentOf('plateau'), '악몽')).toBeNull();
+    expect(recommendedFor(contentOf('mossroot'), '어려움')?.label).toBe('고급');
+    expect(recommendedFor(contentOf('abyss1'), '악몽')?.label).toBe('희귀 +5');
   });
   it('보정을 넘기면 data/tune 대신 그 값', () => {
     const a = E.create({ encounter: 'plague', diff: '어려움', seed: 1, level: 35 });

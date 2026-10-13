@@ -8,7 +8,7 @@
  */
 import { CONTENT, contentOf, RAID10_LV, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
-import { ITEM_GRADES, RECOMMENDED, SLOTS, type ItemGrade } from '../data/equipment';
+import { ITEM_GRADES, recommendedFor, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
 import { SHARD_MAX } from '../data/economy';
 import { FEATURES } from '../data/features';
@@ -72,7 +72,7 @@ function goals(): Goal[] {
 }
 
 /** 권장 장비 (편성 화면 경고와 같은 값) — 목표 aria 설명용 */
-const recLabel = (d: DiffName) => (RECOMMENDED[d] ? ` · 권장 ${RECOMMENDED[d]!.label}` : '');
+const recLabel = (to: { content: ContentKey; diff: DiffName }) => { const r = recommendedFor(contentOf(to.content), to.diff); return r ? ` · 권장 ${r.label}` : ''; };
 
 /** 목표 칸 머리: A2 펼친 책 그림 + 「다음 목표」 */
 const trkHead = () => `<span class="trk-h">${gameIcon('a2-goal-book-r6', uiIcon('quest'))}<span>다음 목표</span></span>`;
@@ -118,7 +118,7 @@ function tracker(): string {
     : '<strong class="trk-t">마을 정비</strong>';
   const inner = `${trkHead()}${main}${rest.map(g => `<span class="obj dim" aria-label="${esc(goalText(g))} · ${g.prog}"><i></i><span>${shortGoalHtml(g)}</span><small>${g.prog}</small></span>`).join('')}`;
   return to >= 0
-    ? `<button type="button" class="lb-trk" data-goal="${to}" aria-label="다음 목표: ${gs.map(g => `${esc(goalText(g))} · ${g.prog}`).join(', ')}${recLabel(gs[to].to!.diff)}">${inner}</button>`
+    ? `<button type="button" class="lb-trk" data-goal="${to}" aria-label="다음 목표: ${gs.map(g => `${esc(goalText(g))} · ${g.prog}`).join(', ')}${recLabel(gs[to].to!)}">${inner}</button>`
     : `<div class="lb-trk">${inner}</div>`;
 }
 

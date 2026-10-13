@@ -3,7 +3,7 @@
  * 이기면 첫 화면에 등급·별·받은 것, 지면 어디서 졌는지·힌트. 지표·딜미터기는 「전투 기록」에 접어 둠 (지면 펼침)
  */
 import { contentOf, type ContentKey } from '../data/content';
-import { avgScore, GRADE_STYLE, kindOf, RECOMMENDED, slotName, type ItemGrade } from '../data/equipment';
+import { avgScore, GRADE_STYLE, kindOf, recommendedFor, slotName, type ItemGrade } from '../data/equipment';
 import { CLASSES } from '../data/classes';
 import { HEROES } from '../data/heroes';
 import { MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
@@ -184,7 +184,7 @@ function loseHtml(r: BattleResult, x: Settlement): string {
   const warn = (v: string, btn = '') => `<p class="f-warn"><i class="f-mark warn" aria-hidden="true">!</i><span class="v">${v}</span>${btn}</p>`;
   if (r.dispellable && r.dispels < r.dispellable) hints.push(warn(`해제 놓침 <b class="f-g">${r.dispellable - r.dispels}</b> / ${r.dispellable}`));
   if (r.minMana <= 10) hints.push(warn(`마나 바닥 <span class="cap">최저 ${r.minMana}%</span>`));
-  const rec = RECOMMENDED[r.diff];
+  const rec = recommendedFor(contentOf(r.content), r.diff);
   if (rec && avgScore(G.save.gear.equipped) < rec.score) hints.push(warn(`장비가 권장(${rec.label})보다 낮음`, '<button class="btn2" type="button" data-go="s-char" data-arg="gear">장비</button>'));
   return `<section class="r-prog" aria-label="진행">${dots}<p>${where}${left}</p></section>
     ${hints.length ? `<div class="f-warns">${hints.join('')}</div>` : ''}

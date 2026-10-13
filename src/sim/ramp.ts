@@ -1,0 +1,64 @@
+/**
+ * 순차 레벨링 구간 (70) 어려움 · 악몽의 자동 밸런스 기준 플레이어 (2026-10-13 Lim 「Lv 1 어려움이 자동 힐로 안 깨짐」).
+ * 권장 장비 (어려움 고급 +0 · 악몽 희귀 +5, 6부위)와 적 레벨로 재면 녹슨 고원 어려움이 80%인데, 실제로 어려움이 열린 Lv 3 플레이어는
+ * 장비가 1~2개 (거의 일반)뿐이고 치유의 기원 · 특성도 아직 없어 3%였음. 그래서 장소 Lv RAMP_LV까지는
+ * 「그 난이도가 처음 열린 플레이어」로 잼: 튜토리얼 뒤 장소를 레벨 순으로 쉬움 → 보통만 깨며 (70 흐름) 받은 장비를 부위마다 점수 높은 것으로 끼고,
+ * 어려움은 그 장소 보통을 깬 뒤, 악몽은 그 장소 어려움을 한 번 더 깬 뒤의 레벨 · 장비. 장비는 시드마다 드롭 굴림 (A 등급), 강화 없음
+ */
+import { CONTENT, type ContentDef, type ContentKey } from '../data/content';
+import type { DiffName } from '../data/difficulty';
+import { itemScore, rollItem, type Equipped } from '../data/equipment';
+import type { HeroKey } from '../data/heroes';
+import { addXp, rampPlace, rampXp, xpToNext } from '../data/progression';
+import { rngFrom } from '../engine/rng';
+
+/** 이 기준을 쓰는 칸: 장소 Lv RAMP_LV까지의 탐험 · 던전 어려움 · 악몽 */
+export const usesRamp = (c: ContentDef, d: DiffName) => rampPlace(c) && (d === '어려움' || d === '악몽');
+
+/** 구간 장소 (레벨 순) */
+const rampPlaces = () => CONTENT.filter(c => rampPlace(c) && c.ready).sort((a, b) => a.stageLv - b.stageLv);
+
+export interface RampPlayer { lv: number; eq: Equipped }
+type Flow = Map<ContentKey, Partial<Record<DiffName, RampPlayer>>>;
+const flows = new Map<string, Flow>();
+
+/** 직업 · 시드 하나의 흐름 (장소마다 어려움 · 악몽이 열린 때의 레벨 · 장비) */
+function flowOf(hero: HeroKey, seed: number): Flow {
+  const key = `${hero}:${seed}`;
+  let out = flows.get(key);
+  if (out) return out;
+  out = new Map();
+  const r = rngFrom(Math.imul(seed, 2654435761) ^ 0x5bd1e995);
+  const p = { level: 1, xp: 0 }, eq: Equipped = {};
+  let id = 1;
+  /** 한 판 이김: 장비 (던전은 보스마다 1개, 탐험 1개) + 첫 클리어 경험치 */
+  const win = (c: ContentDef, d: DiffName, gear: Equipped, pl: { level: number; xp: number }) => {
+    const n = c.kind === 'explore' ? 1 : Math.max(1, c.bosses.length);
+    for (let i = 0; i < n; i++) {
+      const it = rollItem(r, d, 'A', pl.level, id++, { hero, place: c.key });
+      if (itemScore(it) > itemScore(gear[it.slot])) gear[it.slot] = it;
+    }
+    addXp(pl, rampXp(c, d, { first: true, grade: 'A', win: true }));
+  };
+  addXp(p, xpToNext(1)); // 튜토리얼 첫 전투 → Lv 2, 장비 없음 (screens/tutorial)
+  for (const c of rampPlaces()) {
+    win(c, '쉬움', eq, p);
+    win(c, '보통', eq, p);
+    const hard: RampPlayer = { lv: p.level, eq: { ...eq } };
+    const eq2 = { ...eq }, p2 = { ...p };
+    win(c, '어려움', eq2, p2);
+    out.set(c.key, { '어려움': hard, '악몽': { lv: p2.level, eq: eq2 } });
+  }
+  flows.set(key, out);
+  return out;
+}
+
+/** 그 칸의 기준 플레이어 (usesRamp인 칸만) */
+export function rampPlayer(c: ContentDef, d: DiffName, hero: HeroKey, seed: number): RampPlayer {
+  const p = flowOf(hero, seed).get(c.key)?.[d];
+  if (!p) throw new Error(`순차 레벨링 기준 없음: ${c.key} ${d}`);
+  return p;
+}
+
+/** 그 칸의 기준 레벨 (시드와 상관없음: 첫 클리어 경험치는 정한 양) */
+export const rampLevel = (c: ContentDef, d: DiffName) => rampPlayer(c, d, 'priest', 1).lv;
