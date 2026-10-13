@@ -61,7 +61,8 @@ export default async function devices(url, shots) {
 
     // 결과 (정산 + 보상 한 화면): 등급·별 · 받은 것이 첫 화면에, 가로 넘침 없음
     await page.click('#s-entry .tb-back'); await page.clock.runFor(80);
-    await toParty(page, { tab: 'dungeon', content: 'rustfort', diff: '어려움' });
+    // 장소 Lv 20 이하는 장비 권장 경고가 없음 (70). 경고 버튼 검수는 Lv 24 장원에서 수행.
+    await toParty(page, { tab: 'dungeon', content: 'manor', diff: '어려움' });
     await page.click('#depart'); await page.clock.runFor(3100 + 300);
 
     // 전투 머리 (2026-10-13 Lim 첨부3): 일시정지 버튼이 머리 판 황동 테 (판 끝에서 11px 안까지) 안쪽에
