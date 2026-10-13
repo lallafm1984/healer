@@ -83,8 +83,10 @@ export default async function gear(url, shots) {
     await page.click('#s-char [data-enh="101"]'); await page.clock.runFor(50);
     await page.click('#s-char [data-confirmgo]'); await page.clock.runFor(50);
     const saved = JSON.stringify(await save());
+    ok(await page.getAttribute('#gearEnhanceFx [data-enhance-fx]', 'data-enhance-fx') === (r < .9 ? 'success' : 'failure'), '강화 결과에 맞는 화면 전면 이펙트');
     ok(await page.isVisible('#s-char .c7-confirm') && await page.isDisabled('#s-char [data-confirmgo]'), '강화 실행 후 팝업 유지·연출 중 재시도 차단');
     await page.clock.runFor(4000);
+    ok(!(await page.locator('#gearEnhanceFx [data-enhance-fx]').count()), '화면 전면 연출 종료 후 레이어 제거');
     ok(await page.isVisible('#s-char .c7-confirm') && await page.isVisible('#s-char .c7-enh-result') && JSON.stringify(await save()) === saved, '연출 종료 후 결과 유지·자동 추가 강화 없음');
     await page.evaluate(() => { Math.random = window.__rnd; });
     await page.click('#s-char .c7-confirm [data-confirmcancel]'); await page.clock.runFor(50);

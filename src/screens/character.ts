@@ -40,8 +40,8 @@ let codexG: CodexGroup = 'heal';
 let dexT: DexTab = 'kind';
 /** 장비 상세의 재설정 모드 (34 6-8): 줄마다 ↻ 버튼. rrAlt = Lv 60 둘째 후보 (시트를 닫으면 사라짐) */
 let rrOn = false;
-/** 강화 연출 (34 7장): 결과는 누른 순간 저장됨, 연출은 보여 주기만. 아무 데나 누르면 끝 (누른 버튼은 그대로 동작) */
-let efx: (EnhanceOutcome & { quick: boolean }) | null = null;
+/** 저장된 강화 결과의 시각 연출. 종료는 결과를 지우거나 추가 강화를 실행하지 않는다. */
+let efx: (EnhanceOutcome & { quick: boolean; duration: number }) | null = null;
 let efxTimer: ReturnType<typeof setTimeout> | undefined;
 let rrAlt: { id: number; kind: RerollKind; i: number; alt: GearLine | SpecLine } | null = null;
 
@@ -65,6 +65,11 @@ const s = screen('s-char', '캐릭터', {
   },
 });
 const modal = sheetDialog(s.el, closeSheet);
+/** 전면 연출은 고정 광고/앱 틀의 쌓임 순서와 클리핑 밖에서 표시한다. */
+const screenFxHost = document.createElement('div');
+screenFxHost.id = 'gearEnhanceFx';
+screenFxHost.setAttribute('aria-hidden', 'true');
+document.body.appendChild(screenFxHost);
 
 /** 지금 휠 배치 (저장이 없거나 틀리면 기본) */
 export function layoutNow(): Record<string, string | null> {
@@ -113,6 +118,7 @@ function render(keep = true, resetInventory = false): void {
     : sheet.k === 'item' ? [`item:${sheet.id}`] : sheet.k === 'codex' ? ['dex', 'codex'] : [sheet.k];
   if (pending) path.push(`confirm:${pending.kind}`);
   modal.sync(path.length ? s.el.querySelector<HTMLElement>(pending ? '.c7-confirm' : '.sheet') : null, path);
+  screenFxHost.innerHTML = screenEnhanceFx();
 }
 
 /** 하위 탭 4칸 (전투 탭 분류 칸 모양): 더 좋은 장비 = 장비 빨간 점, 남은 특성 = 특성 빨간 점 */
@@ -383,11 +389,12 @@ function rrAltHtml(it: GearItem, kind: RerollKind): string {
   return `<div class="c7-rralt"><span class="cap">다른 후보</span><b>${esc(txt)}</b><button type="button" class="btn2" data-rrpick>이걸로</button></div>`;
 }
 
-/** 강화 한 번 눌렀을 때: 저장은 끝났고 연출만 (각성은 룰렛 0.9초 + 멈춘 줄 번쩍 0.6초 더) */
+/** 결과 저장 후 전면 연출. 각성이 있으면 결과를 읽을 시간을 조금 더 준다. */
 function playFx(o: EnhanceOutcome, quick: boolean): void {
-  efx = { ...o, quick };
+  const duration = (quick ? 500 : o.ok ? 2400 : 2200) + (o.awaken != null && !quick ? 600 : 0);
+  efx = { ...o, quick, duration };
   clearTimeout(efxTimer);
-  efxTimer = setTimeout(endFx, (quick ? 500 : 1500) + (o.awaken != null ? 1500 : 0));
+  efxTimer = setTimeout(endFx, duration);
   vibe(o.ok ? [15] : [30, 40, 30]);
 }
 function endFx(): void {
@@ -513,6 +520,24 @@ function confirmHtml(): string {
       ${details}
       <div class="c7-confirm-actions"><button type="button" data-confirmcancel>${result ? '닫기' : '취소'}</button><button type="button" class="hot" data-confirmgo${!dismantle && (f || !c || lack) ? ' disabled' : ''}>${dismantle ? '분해하기' : f ? '강화 중' : !c ? '최대 강화' : lack || (result ? '한 번 더 강화' : '강화하기')}</button></div>
     </section>`;
+}
+
+/** 강화 결과는 화면 전면에서 연출한다. 결과 저장/반복 실행과는 독립된 시각 레이어다. */
+function screenEnhanceFx(): string {
+  const f = efx;
+  if (s.el.hidden || !f || pending?.kind !== 'enhance' || pending.id !== f.id || G.save.settings.reducedEffects || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return '';
+  const it = findItem(f.id);
+  if (!it) return '';
+  const particles = Array.from({ length: f.quick ? 18 : 48 }, (_, n) => `<i style="--a:${n * 137.508}deg;--r:${38 + n % 9 * 5}vmax;--delay:${n % 5 * 25}ms;--spin:${n * 47}deg;--size:${3 + n % 4}px"></i>`).join('');
+  const level = `+${f.from} → +${f.to}${f.ok ? '' : f.to < f.from ? '로 하락' : ' 유지'}`;
+  return `<div class="c7-screen-fx ${f.ok ? 'success' : 'failure'}${f.quick ? ' quick' : ''}" style="--screen-fx-duration:${f.duration}ms" aria-hidden="true" data-enhance-fx="${f.ok ? 'success' : 'failure'}">
+    <div class="c7-screen-veil"></div><div class="c7-screen-rays"></div><div class="c7-screen-flare"></div>
+    <div class="c7-screen-wave wave-1"></div><div class="c7-screen-wave wave-2"></div><div class="c7-screen-wave wave-3"></div>
+    <div class="c7-screen-art">${fxArt(f.ok ? 'fx-enhance-spark' : 'fx-enhance-crack', 'c7-screen-burst')}</div>
+    ${f.ok ? '' : `<svg class="c7-screen-fracture" viewBox="0 0 360 640" preserveAspectRatio="none"><path d="M180 320l-51-44-24-68-47-26L0 82m129 194l-62 14-25-32L0 248M180 320l54-63 11-69 49-32 66-63m-126 164l52 7 35-47 39-11M180 320l-30 85-54 22-14 80-55 63L0 640m150-235l42 45-2 108 35 42 11 40M180 320l77 61 4 57 62 26 37 77m-103-160l50-22 53 26"/></svg>`}
+    <div class="c7-screen-particles">${particles}</div>
+    <div class="c7-screen-result"><span class="c7-screen-item" style="${gvars(it)}">${itemIc(it)}</span><strong>${f.ok ? '강화 성공' : '강화 실패'}</strong><b>${level}</b>${f.awaken != null ? '<small>옵션 각성</small>' : ''}</div>
+  </div>`;
 }
 
 /** 확인창에서만 실행한다. 실행 전에 대상을 다시 확인하고, 중복 클릭은 무시한다. */

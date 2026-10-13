@@ -186,3 +186,46 @@
   #app #s-char .c7-enhance-dialog :is(.c7-enchant-aura, .c7-enchant-rays, .c7-enchant-particles, .c7-fxspark, .c7-fxring, .c7-fxham, .c7-fxcrk) { display: none; }
   #app #s-char .c7-enhance-dialog .c7-gic, #app #s-char .c7-enh-result.revealing { animation: none; }
 }
+/* Full-screen result spectacle, visually above every menu and confirmation. */
+#gearEnhanceFx .c7-screen-fx {
+  --burst: #ffdb83; --burst-soft: #ffc34b66; --burst-dark: #8c521400;
+  position: fixed; inset: 0; z-index: 120; overflow: hidden; pointer-events: none; isolation: isolate;
+  color: #fff2c7; contain: layout style; animation: screenFxExit var(--screen-fx-duration) linear both;
+}
+#gearEnhanceFx .c7-screen-fx.failure { --burst: #ff7659; --burst-soft: #ff402e66; --burst-dark: #67120900; color: #ffb19d; }
+#gearEnhanceFx .c7-screen-fx > div { position: absolute; pointer-events: none; }
+#gearEnhanceFx .c7-screen-veil { inset: 0; background: radial-gradient(ellipse at center, #17100cb3 0%, #030206eb 74%); animation: screenVeil var(--screen-fx-duration) ease-out both; }
+#gearEnhanceFx .failure .c7-screen-veil { background: radial-gradient(ellipse at center, #3a0808ba 0%, #080405ed 74%); }
+#gearEnhanceFx .c7-screen-rays { width: 150vmax; height: 150vmax; left: 50%; top: 50%; background: repeating-conic-gradient(from 10deg, transparent 0deg 8deg, var(--burst-soft) 9deg 11deg, transparent 12deg 20deg); mask-image: radial-gradient(circle, transparent 2%, #000 12%, #000a 38%, transparent 66%); opacity: 0; animation: screenRays var(--screen-fx-duration) ease-out both; }
+#gearEnhanceFx .failure .c7-screen-rays { background: repeating-conic-gradient(from -20deg, transparent 0deg 14deg, var(--burst-soft) 15deg 18deg, transparent 19deg 36deg); }
+#gearEnhanceFx .c7-screen-flare { inset: 0; background: radial-gradient(ellipse at center, #fff9ddc9 0%, var(--burst-soft) 25%, transparent 70%); opacity: 0; animation: screenFlare var(--screen-fx-duration) ease-out both; mix-blend-mode: screen; }
+#gearEnhanceFx .failure .c7-screen-flare { background: radial-gradient(ellipse at center, #ffb09499 0%, var(--burst-soft) 30%, transparent 75%); }
+#gearEnhanceFx .c7-screen-wave { left: 50%; top: 50%; width: 40vmin; height: 40vmin; border: 2px solid var(--burst); border-radius: 50%; box-shadow: 0 0 24px var(--burst), inset 0 0 18px var(--burst-soft); opacity: 0; animation: screenWave calc(var(--screen-fx-duration) * .7) calc(var(--screen-fx-duration) * .13) ease-out both; }
+#gearEnhanceFx .c7-screen-wave.wave-2 { border-width: 4px; animation-delay: calc(var(--screen-fx-duration) * .2); }
+#gearEnhanceFx .c7-screen-wave.wave-3 { border-width: 1px; animation-delay: calc(var(--screen-fx-duration) * .28); }
+#gearEnhanceFx .failure .c7-screen-wave { border-style: dashed; border-width: 3px; }
+#gearEnhanceFx .c7-screen-art { left: 50%; top: 50%; width: min(130vw, 85vh); height: min(130vw, 85vh); opacity: 0; animation: screenBurst var(--screen-fx-duration) ease-out both; mix-blend-mode: screen; }
+#gearEnhanceFx .c7-screen-burst { display: block; width: 100%; height: 100%; object-fit: contain; }
+#gearEnhanceFx .c7-screen-fracture { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: #ffb199; stroke-width: 1.6; stroke-linejoin: bevel; opacity: 0; filter: drop-shadow(0 0 5px #ff3829); animation: screenFracture var(--screen-fx-duration) ease-out both; }
+#gearEnhanceFx .c7-screen-particles { inset: 0; }
+#gearEnhanceFx .c7-screen-particles > i { position: absolute; left: 50%; top: 50%; width: var(--size); height: calc(var(--size) * 2.6); background: var(--burst); border-radius: 50%; box-shadow: 0 0 10px var(--burst), 0 0 22px var(--burst-soft); opacity: 0; animation: screenParticle calc(var(--screen-fx-duration) * .75) calc(var(--screen-fx-duration) * .15 + var(--delay)) cubic-bezier(.1,.65,.25,1) both; }
+#gearEnhanceFx .failure .c7-screen-particles > i { width: calc(var(--size) * 2.4); height: calc(var(--size) * 3.4); clip-path: polygon(10% 0, 100% 25%, 45% 100%); border-radius: 0; }
+#gearEnhanceFx .c7-screen-result { left: 50%; top: 50%; width: calc(100% - 28px); max-width: 440px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; opacity: 0; animation: screenResult var(--screen-fx-duration) ease-out both; }
+#gearEnhanceFx .c7-screen-item { display: grid; place-items: center; width: clamp(108px, 32vw, 154px); height: clamp(108px, 32vw, 154px); padding: 9px; border: 2px solid var(--burst); border-radius: 18px; background: #171009e6; box-shadow: 0 0 38px var(--burst-soft), inset 0 0 22px #ffe19a22; }
+#gearEnhanceFx .c7-screen-item :is(img, svg) { display: block; width: 100%; height: 100%; object-fit: contain; }
+#gearEnhanceFx .c7-screen-result strong { font: 900 clamp(34px, 9vw, 46px)/1.35 var(--font-display); letter-spacing: .06em; text-shadow: 0 3px 2px #000, 0 0 24px var(--burst), 0 0 60px var(--burst-soft); word-break: keep-all; }
+#gearEnhanceFx .c7-screen-result b { font: 800 clamp(21px, 6vw, 28px)/1.4 var(--font-body); color: #fff0d7; text-shadow: 0 2px 3px #000; }
+#gearEnhanceFx .c7-screen-result small { font-size: 17px; color: #ffe29c; letter-spacing: .14em; }
+#gearEnhanceFx .failure .c7-screen-item { animation: screenItemShake calc(var(--screen-fx-duration) * .45) calc(var(--screen-fx-duration) * .2) ease-out both; }
+#gearEnhanceFx .c7-screen-fx.quick :is(.wave-3, .c7-screen-fracture) { display: none; }
+@keyframes screenFxExit { 0%, 86% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes screenVeil { 0% { opacity: 0; } 18%, 84% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes screenRays { 0%, 10% { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(-35deg); } 35% { opacity: .95; transform: translate(-50%, -50%) scale(.9) rotate(-5deg); } 80% { opacity: .65; transform: translate(-50%, -50%) scale(1.1) rotate(35deg); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2) rotate(45deg); } }
+@keyframes screenFlare { 0%, 12% { opacity: 0; } 24% { opacity: .65; } 40% { opacity: .08; } 72%, 100% { opacity: 0; } }
+@keyframes screenWave { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.2); } 12% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(9); } }
+@keyframes screenBurst { 0%, 10% { opacity: 0; transform: translate(-50%, -50%) scale(.1) rotate(-20deg); } 34% { opacity: .95; transform: translate(-50%, -50%) scale(.95) rotate(0); } 70% { opacity: .4; transform: translate(-50%, -50%) scale(1.3) rotate(20deg); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5) rotate(30deg); } }
+@keyframes screenFracture { 0%, 16% { opacity: 0; transform: scale(.96); } 25%, 55% { opacity: .85; transform: scale(1); } 85%, 100% { opacity: 0; transform: scale(1.04); } }
+@keyframes screenParticle { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--a)) translateX(8vmin) rotate(0) scale(.3); } 15%, 65% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--a)) translateX(var(--r)) rotate(var(--spin)) scale(.15); } }
+@keyframes screenResult { 0%, 13% { opacity: 0; transform: translate(-50%, -50%) scale(.65); } 30% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } 42%, 83% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.04); } }
+@keyframes screenItemShake { 0%, 100% { transform: none; } 15% { transform: rotate(-8deg) translateX(-6px); } 35% { transform: rotate(7deg) translateX(6px); } 55% { transform: rotate(-5deg) translateX(-4px); } 75% { transform: rotate(3deg) translateX(3px); } }
+@media (prefers-reduced-motion: reduce) { #gearEnhanceFx .c7-screen-fx { display: none; } }
