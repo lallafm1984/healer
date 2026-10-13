@@ -158,6 +158,14 @@ export default async function dungeon(url, shots) {
       const rows = await page.locator('#restMeter .meter li').count();
       ok(rows === 4 && /딜미터기/.test(await page.textContent('#restMeter')), `휴식 화면 딜미터기 (${rows}명)`);
       await page.screenshot({ path: `${shots}/dungeon_rest.png` });
+      // 공략은 같이 두지 않고 「공략 보기」 시트로 (2026-10-13 Lim)
+      ok(await page.isHidden('#restSheet') && !/파티 체력 모두 회복/.test(await page.textContent('#restBody')), '휴식: 공략은 접혀 있고 회복 안내 글 없음');
+      await page.click('#restGuideOpen'); await page.clock.runFor(300);
+      const sheet = await page.evaluate(() => ({ open: !document.querySelector('#restSheet').hidden, text: document.querySelector('#restGuide').textContent, focus: document.activeElement?.id }));
+      ok(sheet.open && sheet.text.includes(segs[i]) && /진행|잡는 순서/.test(sheet.text) && sheet.focus === 'restGuideClose', `휴식 「공략 보기」 → ${segs[i]} 공략 시트, 닫기에 포커스`);
+      await page.screenshot({ path: `${shots}/dungeon_rest_guide.png` });
+      await page.keyboard.press('Escape'); await page.clock.runFor(50);
+      ok(await page.isHidden('#restSheet') && await page.evaluate(() => document.activeElement?.id) === 'restGuideOpen', 'Esc로 시트 닫힘 · 「공략 보기」로 포커스');
     }
     if (i === 1) {
       ok((await page.locator('#bossName .grade.elite').count()) === 0, '보일러실 첫 적은 일반');
@@ -197,6 +205,9 @@ export default async function dungeon(url, shots) {
   ok(sv.player.level === 3 && sv.player.gold > 0 && sv.gear.bag.length === 2, `저장: Lv 3, 골드 ${sv.player.gold}, 가방에 장비 2개 (보스마다 1개, 34 6-7)`);
   ok(sv.clears.rustfort['보통'].n === 1 && sv.last.win, '저장: 녹슨 요새 보통 클리어 기록');
   ok(await page.locator('#s-settle .r-loot button').count() === 0 && !/도감/.test(await page.textContent('#s-settle .r-loot')), '받은 것에 「장착」 버튼 · 도감 줄 없음 (2026-10-13 Lim, 장착은 캐릭터 탭)');
+  const nx = await page.textContent('#s-settle #next');
+  ok(/^다음 던전/.test(nx) && /녹슨 광산 · 쉬움/.test(nx) && (await page.textContent('#s-settle [data-go="s-lobby"]')).trim() === '나가기' && (await page.textContent('#again')) === '다시 도전',
+    `아래 버튼: 나가기 · 다시 도전 · 다음 던전 (보통을 깨면 다음 장소 쉬움, 기획 70) 「${nx}」`);
   await page.screenshot({ path: `${shots}/dungeon_reward.png` });
 
   // ---- 잡몹 구간에서 지면 던전 실패 → 경험치 없음 (2026-10-13 Lim) ----

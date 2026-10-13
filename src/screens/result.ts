@@ -8,6 +8,7 @@ import { CLASSES } from '../data/classes';
 import { HEROES } from '../data/heroes';
 import { MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { Flow, newSeed } from '../game/flow';
+import { nextRun } from '../game/next-run';
 import { meterHtml } from '../game/meter';
 import { G } from '../game/state';
 import { scoreOf, specName } from '../game/charinfo';
@@ -18,7 +19,7 @@ import { TUT } from '../game/tutorial';
 import { AFFIXES } from '../data/affixes';
 import { ENDING } from '../data/story';
 import type { BattleResult, Settlement } from '../game/settle';
-import { esc, fmt, mmss, screen, topBar } from './kit';
+import { esc, fmt, go, mmss, screen, topBar } from './kit';
 import { currencyIcon, fxArt, gameIcon, gearIcon, placeArt, trinketArt, uiIcon, type CurrencyIconKey } from './art';
 import { depart } from './party';
 
@@ -47,7 +48,7 @@ function render(): void {
       ${notesHtml(x)}
       ${recordHtml(r, !won)}
     </div>
-    <footer class="ns-foot ${tut ? '' : 'row3'}">${footHtml(x, tut)}</footer>`;
+    ${footHtml(r, x, tut)}`;
   // 심연의 심장을 처음 멈추면 엔딩 글 (59 4-4, 한 번만). 레벨업 팝업이 있으면 그 위에
   if (won && r.content === 'heart3' && x.first && !ended.has(x) && Object.values(G.save.clears.heart3 ?? {}).reduce((a, c) => a + (c?.n ?? 0), 0) === 1) {
     ended.add(x);
@@ -104,7 +105,8 @@ function tipHtml(r: BattleResult, x: Settlement): string {
 /** 받은 것: 장비 줄 (보스마다 1개) · 재화 칸 · 경험치 줄 */
 function lootHtml(r: BattleResult, x: Settlement): string {
   const tiles: string[] = [];
-  const tile = (k: CurrencyIconKey, label: string, v: number, tag = '', sr = '') => `<span class="r-cur"${sr ? ` aria-label="${label} +${fmt(v)} · ${sr}"` : ''}><span class="r-ci">${currencyIcon(k)}${tag}</span><b>+${fmt(v)}</b><small>${label}</small></span>`;
+  // 재화는 한 줄 칩 (그림 · +값 · 이름, 2026-10-13 Lim 「골드 · 강화석 UI 점검」)
+  const tile = (k: CurrencyIconKey, label: string, v: number, tag = '', sr = '') => `<span class="r-cur"${sr ? ` aria-label="${label} +${fmt(v)} · ${sr}"` : ''}><span class="r-ci">${currencyIcon(k)}${tag}</span><span class="r-cv"><b>+${fmt(v)}</b><small>${label}</small></span></span>`;
   // 공개모집 일일 보너스(×2, 오늘 n/3) · 축제 주간(+20%)은 골드 칸 꼬리표로
   const fest = r.affixes?.includes('festival');
   if (x.gold) tiles.push(tile('gold', '골드', x.gold, x.pubBonus ? '<em>×2</em>' : fest ? '<em>+20%</em>' : '', x.pubBonus ? `공개모집 보너스 오늘 ${x.pubBonus}/3` : fest ? '축제 주간' : ''));
@@ -113,6 +115,7 @@ function lootHtml(r: BattleResult, x: Settlement): string {
   if (x.mats.refined) tiles.push(tile('refined', '정제 강화석', x.mats.refined));
   if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
   return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
+      <h2 class="r-lh">획득 보상</h2>
       ${itemsHtml(x)}
       ${tiles.length ? `<div class="r-curs">${tiles.join('')}</div>` : ''}
       ${xpRow(x)}
@@ -136,7 +139,7 @@ function specMark(k: string): string {
   return u ? `<img class="r-spm" src="${u}" alt="" decoding="async" draggable="false">` : '';
 }
 
-/** 장비 한 줄: 부위 그림(등급 색 테두리) · 이름 · 부위·종류·등급·점수 (지금 장비보다 ▲▼, 빈 칸이면 「빈칸」) · 입고 있으면 「장착함」 */
+/** 장비 카드: 부위 그림(등급 색 테두리) · 이름 / 등급 칩 · 점수 (지금 장비보다 ▲▼, 빈 칸이면 「빈칸」) · 부위·종류 / 특수능력 · 입고 있으면 「장착함」 */
 function itemRow(id: number): string {
   const eq = G.save.gear.equipped;
   const it = G.save.gear.bag.find(b => b.id === id) || Object.values(eq).find(b => b?.id === id);
@@ -144,7 +147,7 @@ function itemRow(id: number): string {
   const worn = eq[it.slot]?.id === it.id, cur = worn ? null : eq[it.slot] ?? null;
   const sc = scoreOf(it), d = sc - scoreOf(cur);
   const act = worn ? '<span class="r-on">장착함</span>' : '';
-  const delta = worn ? '' : !cur ? ' <em class="up">빈칸</em>' : d > 0 ? ` <em class="up">▲${d}</em>` : d < 0 ? ` <em class="dn">▼${-d}</em>` : '';
+  const delta = worn ? '' : !cur ? '<em class="up">빈칸</em>' : d > 0 ? `<em class="up">▲${d}</em>` : d < 0 ? `<em class="dn">▼${-d}</em>` : '';
   // 특수능력 이름 (42)
   const sp = specKeysOf(it);
   const spTxt = sp.length ? `<small class="r-sp">${sp.map(k => esc(specName(k))).join(' · ')}</small>` : '';
@@ -155,7 +158,7 @@ function itemRow(id: number): string {
   const drop = it.unique && !G.save.settings.reducedEffects ? fxArt('fx-unique-drop', 'r-udrop') : '';
   return `<div class="r-item" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
       ${beam}${drop}<span class="r-ic">${gearIcon(it)}</span>
-      <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><small>${slotName(it.slot)} · ${esc(kindOf(it).name)} · ${it.grade} · 점수 ${sc}${delta}</small>${spTxt}</span>
+      <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><span class="r-gs"><i class="r-gr">${it.grade}</i><span class="r-sc">점수 ${sc}${delta}</span><small>${slotName(it.slot)} · ${esc(kindOf(it).name)}</small></span>${spTxt}</span>
       ${act}
     </div>`;
 }
@@ -164,14 +167,16 @@ function itemRow(id: number): string {
 function xpRow(x: Settlement): string {
   const p = G.save.player, need = xpToNext(p.level), up = x.levelUps.length > 0;
   const w = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
-  return `<div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${fmt(x.xp)}</b><em>${up ? `Lv ${x.levelBefore} → ${p.level}` : `Lv ${p.level}`}</em></span></div>`;
+  return `<div class="r-xpw${up ? ' up' : ''}"><span class="r-lv" aria-hidden="true">${up ? `<small>Lv ${x.levelBefore} →</small>` : '<small>Lv</small>'}<b>${p.level}</b></span>
+      <div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${fmt(x.xp)}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em></span></div></div>`;
 }
 
 /** 진 판: 어디서 졌는지 (구간 점 · 적 남은 체력) · 힌트 (있을 때만). 진 판은 경험치 없음 (2026-10-13 Lim) */
 function loseHtml(r: BattleResult, x: Settlement): string {
   if (r.quit) return '';
   const names = r.segNames || [];
-  const dots = r.segN > 1 ? `<ol class="r-segs" aria-hidden="true">${Array.from({ length: r.segN }, (_, i) => `<li class="${i < r.segIdx ? 'ok' : i === r.segIdx ? 'x' : ''}">${i < r.segIdx ? '✓' : i === r.segIdx ? '✕' : ''}</li>`).join('')}</ol>` : '';
+  // 구간 길: 점 (✓ 깸 · ✕ 여기서 짐) 아래 구간 이름
+  const dots = r.segN > 1 ? `<ol class="r-segs" aria-hidden="true">${Array.from({ length: r.segN }, (_, i) => `<li class="${i < r.segIdx ? 'ok' : i === r.segIdx ? 'x' : ''}"><i>${i < r.segIdx ? '✓' : i === r.segIdx ? '✕' : i + 1}</i>${names[i] ? `<small>${esc(names[i])}</small>` : ''}</li>`).join('')}</ol>` : '';
   const where = r.segN > 1 ? `${r.segIdx + 1}구간${names[r.segIdx] ? ` ${esc(names[r.segIdx])}` : ''}` : esc(names[0] || '보스');
   const left = r.left ? ` · ${r.left.mobs ? '적' : '보스'} 체력 <b>${r.left.pct}%</b> 남음` : '';
   const hints: string[] = [];
@@ -218,29 +223,59 @@ function recordHtml(r: BattleResult, open: boolean): string {
     </details>`;
 }
 
-/** 아래 버튼: [로비] [편성 바꾸기] [다시 도전 · n단계 도전]. 튜토리얼 중엔 로비 하나 */
-function footHtml(x: Settlement, tut: boolean): string {
-  if (tut) return '<button class="btn primary" type="button" data-go="s-lobby">로비</button>';
-  return `<button class="btn" type="button" data-go="s-lobby">로비</button>
-      <button class="btn" type="button" data-go="s-party">편성 바꾸기</button>
-      <button class="btn primary" type="button" id="again">${x.chal?.opened ? `${x.chal.stage + 1}단계 도전` : '다시 도전'}</button>`;
+/**
+ * 아래 버튼 (2026-10-13 Lim): [나가기 = 로비] [다시 도전] [다음 탐험 · 던전 · 레이드 (갈 곳 · 난이도)].
+ * 다음 갈 곳은 game/next-run (탐험 · 던전은 쉬움 → 보통 → 다음 장소, 기획 70). 주간 도전은 다음 단계가 열렸을 때 「n단계 도전」.
+ * 지거나 갈 곳이 없으면 [나가기] [다시 도전]. 튜토리얼 중엔 로비 하나
+ */
+function footHtml(r: BattleResult, x: Settlement, tut: boolean): string {
+  if (tut) return '<footer class="ns-foot"><button class="btn primary" type="button" data-go="s-lobby">로비</button></footer>';
+  const nx = nextOf(r, x);
+  const next = nx ? `<button class="btn primary r-next" type="button" id="next"><b>${nx.label}</b><small>${esc(nx.sub)}</small></button>` : '';
+  return `<footer class="ns-foot ${nx ? 'row3' : 'row2'}">
+      <button class="btn" type="button" data-go="s-lobby">나가기</button>
+      <button class="btn${nx ? '' : ' primary'}" type="button" id="again">다시 도전</button>
+      ${next}
+    </footer>`;
+}
+
+/** 「다음」 버튼 글: 이긴 판만 */
+function nextOf(r: BattleResult, x: Settlement): { label: string; sub: string } | null {
+  if (!r.win || r.quit) return null;
+  if (x.chal) return x.chal.opened ? { label: `${x.chal.stage + 1}단계 도전`, sub: '주간 도전' } : null;
+  const n = nextRun(r.content, r.diff);
+  if (!n) return null;
+  const c = contentOf(n.content);
+  return { label: `다음 ${{ explore: '탐험', dungeon: '던전', raid: '레이드', event: '이벤트' }[c.kind]}`, sub: `${c.name} · ${n.diff}` };
 }
 
 st.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
   if (t.closest('#again')) again();
+  else if (t.closest('#next')) next();
   else if (t.closest('.m-all')) t.closest('.meter')?.classList.add('all');
 });
 
-/** 같은 파티로 바로 다시 (시작 위치는 새로). 주간 도전에서 다음 단계가 열렸으면 그 단계로. 악몽은 악몽 열쇠가 없으면 못 감 */
+/** 같은 파티로 바로 다시 (시작 위치는 새로, 주간 도전은 같은 단계). 악몽은 악몽 열쇠가 없으면 못 감 */
 function again(): void {
-  if (Flow.settle?.chal?.opened) Flow.chal = Flow.settle.chal.stage + 1;
   Flow.seed = newSeed();
   const err = depart();
   if (err) {
     st.el.querySelector('.r-err')?.remove();
     st.el.querySelector('.res')?.insertAdjacentHTML('afterbegin', `<p class="warnbox r-err">${esc(err)}</p>`);
   }
+}
+
+/** 다음: 주간 도전은 다음 단계를 같은 파티로 바로, 그 밖엔 다음 장소 · 난이도의 편성 화면 (인원이 달라질 수 있어서) */
+function next(): void {
+  const r = Flow.result, x = Flow.settle;
+  if (!r || !x) return;
+  if (x.chal?.opened) { Flow.chal = x.chal.stage + 1; again(); return; }
+  const n = nextRun(r.content, r.diff);
+  if (!n) return;
+  Flow.content = n.content; Flow.diff = n.diff; Flow.chal = 0;
+  Flow.party = null; Flow.rerolls = 0;
+  go('s-party');
 }
 
 // ---------- 엔딩 글 (59 4-4 · 11 6장 햇살 축제) ----------

@@ -104,7 +104,11 @@ export default async function challenge(url, shots) {
   ok((await text('#s-settle h1')).startsWith('1단계 돌파') && /제한시간 안/.test(await text('#s-settle .r-chal')) && /2단계 열림/.test(await text('#s-settle .r-chal')) && sv.chalOpen === 2 && sv.weekly.chalBest === 1, '제한시간 안에 깸 → 「1단계 돌파」 · 2단계 열림');
   await page.screenshot({ path: `${shots}/challenge_settle.png`, fullPage: true });
   await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
-  ok((await text('#s-settle #again')) === '2단계 도전', '결과: 주 버튼 「2단계 도전」');
+  ok((await text('#s-settle #again')) === '다시 도전' && /^2단계 도전/.test(await text('#s-settle #next')), '결과: 다시 도전 (같은 단계) · 주 버튼 「다음」 = 「2단계 도전」');
+  await page.click('#s-settle #next'); await page.clock.runFor(3100 + 300);
+  ok(await page.isVisible('#battle'), '「2단계 도전」을 누르면 같은 파티로 바로 출발');
+  await winAll();
+  ok((await text('#s-settle h1')).startsWith('2단계 돌파'), '그 판은 2단계 (결과 「2단계 돌파」)');
 
   await ctx.close();
   await browser.close();
