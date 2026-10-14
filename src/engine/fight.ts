@@ -2,15 +2,16 @@ import { NO_TANK_MIN_PARTY, NO_TANK_SEC } from '../data/armor';
 import { BOARDS, PROTO_BOARDS } from '../data/boards';
 import { CLASSES, RECRUIT_CLASSES, sameClassMax, type ClassKey } from '../data/classes';
 import { DIFFS, MYTHIC } from '../data/difficulty';
-import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
+import { ENCOUNTERS, type Encounter, type EncounterKey } from '../data/encounters';
 import { gearStats, protoGearStats } from '../data/gear';
 import { HEROES } from '../data/heroes';
 import { PRIEST_MANA, TALENT_STANDIN } from '../data/heroConst';
 import { TALENTS } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { ITEMS } from '../data/items';
-import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
-import { PROTO_RULES, RULES } from '../data/rules';
+import { pickMember, pickNick } from '../data/nicknames';
+import { NICKS, PERS, PROTO_PERS, type PersName } from '../data/personalities';
+import { POS_RULES, PROTO_RULES, RULES } from '../data/rules';
 import { makeCells } from './board';
 import { initBoss, bossTick } from './bosses';
 import { bossTaken, focusOrder } from './bossParts';
@@ -25,6 +26,7 @@ import { APT, aptIdx } from '../data/guild';
 import { rollAbility } from '../data/abilities';
 import { newTalents } from './talents';
 import { abTick, giveAb } from './abilities';
+import { followPref, initPers } from './persona';
 import { newSpecs, sv } from './specials';
 import type { Cell, Fight, FightConfig, FightResult, Role, RosterEntry, TalentState, Unit } from './types';
 
@@ -101,7 +103,7 @@ export function rollParty(encKey: EncounterKey, seed: number): RosterEntry[] {
   const low = !!enc.lowLevel; // 04 6-F: 저레벨 던전은 탱커 ★ 성격만, ★★★ 파티당 최대 1명
   let hard = 0;
   const choose = (role: RosterEntry['role']): PersName => {
-    let pool = PERS_NAMES.filter(p => !(role === 'tank' && 'noTank' in PERS[p]));
+    let pool = PROTO_PERS.filter(p => !(role === 'tank' && 'noTank' in PERS[p]));
     if (low && role === 'tank') pool = pool.filter(p => PERS[p].star === 1);
     if (low && hard >= 1) pool = pool.filter(p => PERS[p].star < 3);
     const p = pick(pool);
@@ -116,12 +118,30 @@ export function rollParty(encKey: EncounterKey, seed: number): RosterEntry[] {
 }
 
 /**
- * 공개모집 (17 2-1): rollParty로 닉네임·성격을 뽑고, 역할마다 Lv 1 직업을 붙인다.
+ * 공개모집 구성 (76 문서, 2026-10-14 Lim 「각 전투 마다 인원 배정이 랜덤하게」): 탱커 수는 그대로, 나머지 자리는 한 자리씩 근접 · 원거리 반반.
+ * 탐험 3인 = 탱커 1 + 1명, 던전 5인 = 탱커 1 + 3명, 10인 = 탱커 2 + 7명, 20인 = 탱커 2 + 17명. 순서는 탱커 → 근접 → 원거리.
+ * 근접은 판의 앞 두 줄 (위치 규칙: 근접은 1 · 2열에서만 딜)에서 탱커 자리를 뺀 만큼까지 (20인 10명), 넘는 자리는 원거리
+ */
+export function partyRoles(encKey: EncounterKey, seed: number): RosterEntry['role'][] {
+  const enc = ENCOUNTERS[encKey], c = enc.comp, r = rngFrom(Math.imul(seed, 0x632be5ab) ^ 0x2545f491);
+  const n = c.melee + c.ranged;
+  let melee = 0;
+  for (let i = 0; i < n; i++) if (r() < MELEE_SHARE) melee++;
+  melee = Math.min(melee, meleeCap(enc));
+  return [...Array<'tank'>(c.tank).fill('tank'), ...Array<'melee'>(melee).fill('melee'), ...Array<'ranged'>(n - melee).fill('ranged')];
+}
+/** 딜러 한 자리가 근접일 확률 (나머지는 원거리) */
+export const MELEE_SHARE = 0.5;
+/** 근접이 딜할 수 있는 자리 수: 판 앞 두 줄 (POS_RULES.meleeRows) 칸 − 탱커 */
+export const meleeCap = (enc: Encounter): number => Math.max(0, BOARDS[enc.board].slice(0, POS_RULES.meleeRows).reduce((a, row) => a + row.length, 0) - enc.comp.tank);
+
+/**
+ * 공개모집 (17 2-1): 구성을 무작위로 정하고 (partyRoles), 역할마다 Lv 1 직업을 붙인 뒤, 그 직업 파티원 목록 (74 · 75: 닉네임 · 성격 · 직업 스킬이 묶인 200명)에서 1명씩.
  * 같은 직업은 5인 1명 · 10인 2명 · 20인 3명까지 (자리가 모자라면 가장 적은 직업부터 더 넣음).
- * 직업은 따로 굴린 난수로 정해서 rollParty 결과(프로토타입과 같음)는 그대로 둔다.
+ * 저레벨 던전은 희귀 성격 없이 · 탱커 ★1 · ★★★ 파티당 1명 (04 6-F).
  */
 export function recruitParty(encKey: EncounterKey, seed: number, opts: { abilities?: boolean } = {}): RosterEntry[] {
-  const list = rollParty(encKey, seed);
+  const list: RosterEntry[] = partyRoles(encKey, seed).map(role => ({ role, pers: '신중파', nick: '' }));
   const rng = rngFrom(Math.imul(seed, 0x9e3779b1) ^ 0x85ebca6b);
   const max = sameClassMax(list.length + 1);
   const count: Partial<Record<ClassKey, number>> = {};
@@ -133,9 +153,18 @@ export function recruitParty(encKey: EncounterKey, seed: number, opts: { abiliti
     count[k] = (count[k] || 0) + 1;
     m.cls = k;
   }
-  // 직업 스킬 (특수 능력) 1개 (17 3장): 직업을 다 뽑은 뒤 같은 난수로 (직업 결과는 그대로). 튜토리얼 파티는 능력 없음.
+  // 파티원 (75): 직업 목록에서 겹치지 않게 1명 = 닉네임 · 성격 · 직업 스킬 (17 3장, 튜토리얼 파티는 스킬 없음). 직업 난수와 따로 굴림
   // 파티원은 성격과 직업 스킬만 가짐 (2026-10-12 Lim: 직업 패시브 · 특성 뺌)
-  if (opts.abilities) for (const m of list) m.ab = rollAbility(m.cls!, rng);
+  const nr = rngFrom(Math.imul(seed, 0x27d4eb2f) ^ 0x165667b1);
+  const used = new Set<string>(), low = !!ENCOUNTERS[encKey].lowLevel;
+  let hard = 0;
+  for (const m of list) {
+    const p = pickMember(m.cls!, nr, used, { low, tank: m.role === 'tank', hard });
+    if (p) { m.nick = p.nick; m.pers = p.pers; if (opts.abilities) m.ab = p.ab; }
+    else { m.nick = pickNick(m.cls!, nr, used); if (opts.abilities) m.ab = rollAbility(m.cls!, nr); } // 목록을 다 씀 (거의 없음): 이름 뒤 숫자
+    if (PERS[m.pers].star === 3) hard++;
+    used.add(m.nick);
+  }
   return list;
 }
 
@@ -179,11 +208,13 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
       if (u.role === 'tank') s -= c.row * 30;
       s += (u.p.dist || 0) * adjAllies(f, c, u) * 8;
       if (u.p.dist === -1) s += Math.abs(c.px - cx) * 4;
+      if (u.p.follow) s += followPref(f, u, c); // 따라쟁이: 탱커 옆 (75)
       s += f.rng() * 3;
       if (s > bs) { bs = s; best = c; }
     }
     best!.unit = u; u.cell = best!.i; u.home = best!.i;
   }
+  initPers(f); // 새 성격 상태 · 미신쟁이 명당 (75)
 }
 
 /** 한 틱 (0.05초) */

@@ -17,10 +17,20 @@ const fightWith = (party: RosterEntry[], seed = 1) => E.create({ encounter: 'war
 const unit = (f: ReturnType<typeof fightWith>, cls: ClassKey) => f.party.find(u => u.cls === cls)!;
 
 describe('공개모집 직업 뽑기', () => {
-  it('닉네임·성격은 rollParty 그대로, 역할에 맞는 Lv 1 직업이 붙음', () => {
+  it('구성 (76): 탱커 수 · 인원은 그대로, 나머지는 근접 · 원거리 무작위, 역할에 맞는 Lv 1 직업 (이름 · 성격 · 스킬은 파티원 목록에서, nicknames.test)', () => {
+    const seen = { warden: new Set<number>(), plague: new Set<number>(), choir: new Set<number>(), field: new Set<number>() };
+    for (const enc of Object.keys(seen) as EncounterKey[]) for (let s = 1; s <= 120; s++) {
+      const c = ENCOUNTERS[enc].comp, p = E.recruitParty(enc, s);
+      expect(p.length).toBe(c.tank + c.melee + c.ranged);
+      expect(p.filter(m => m.role === 'tank').length).toBe(c.tank);
+      expect(p.map(m => m.role)).toEqual([...p].sort((a, b) => ['tank', 'melee', 'ranged'].indexOf(a.role) - ['tank', 'melee', 'ranged'].indexOf(b.role)).map(m => m.role));
+      seen[enc as keyof typeof seen].add(p.filter(m => m.role === 'melee').length);
+    }
+    expect([...seen.field].sort()).toEqual([0, 1]); // 탐험 3인: 근접 또는 원거리
+    expect([...seen.warden].sort()).toEqual([0, 1, 2, 3]); // 던전 5인: 딜러 3명이 모두 근접 · 모두 원거리도 나옴
+    expect(seen.choir.size).toBeGreaterThan(5);
     for (let s = 1; s <= 50; s++) {
-      const a = E.rollParty('warden', s), b = E.recruitParty('warden', s);
-      expect(b.map(m => [m.role, m.pers, m.nick])).toEqual(a.map(m => [m.role, m.pers, m.nick]));
+      const b = E.recruitParty('warden', s);
       for (const m of b) expect(CLASSES[m.cls!].role).toBe(m.role);
     }
   });
@@ -30,12 +40,12 @@ describe('공개모집 직업 뽑기', () => {
     for (const [enc, max] of cases) for (let s = 1; s <= 40; s++) {
       const count: Record<string, number> = {};
       for (const m of E.recruitParty(enc, s)) count[m.cls!] = (count[m.cls!] || 0) + 1;
-      // 20인 원거리 10명은 원거리 직업 3종 × 3명보다 많아서 한 직업이 4명
-      const comp = ENCOUNTERS[enc].comp;
+      // 20인은 근접 · 원거리가 무작위라 한 역할이 직업 3종 × 3명보다 많으면 한 직업이 더 많음 (고르게)
+      const party = E.recruitParty(enc, s), inRole = (r: string) => party.filter(m => m.role === r).length;
       for (const [k, n] of Object.entries(count)) {
         const role = CLASSES[k as ClassKey].role;
         const kinds = Object.values(CLASSES).filter(c => c.role === role).length;
-        expect(n).toBeLessThanOrEqual(Math.max(max, Math.ceil(comp[role] / kinds)));
+        expect(n).toBeLessThanOrEqual(Math.max(max, Math.ceil(inRole(role) / kinds)));
       }
     }
   });

@@ -2,7 +2,7 @@
  * 파티원 대사 (41 문서): 대사 데이터 규칙과 말풍선 감독(battle/talk.ts)이 전투에서 실제로 말하는지.
  */
 import { describe, expect, it } from 'vitest';
-import { createTalk, type TalkBubble } from '../src/battle/talk';
+import { createTalk, SOFT_BARKS, type TalkBubble } from '../src/battle/talk';
 import { CLASS_LINES, COMMON_LINES, lineCount, PERS_LINES, pickLine, ROLE_LINES, SIT_KEYS, SITS, type TalkLines, type TalkSit } from '../src/data/talk';
 import { PERS_NAMES } from '../src/data/personalities';
 import type { EncounterKey } from '../src/data/encounters';
@@ -39,7 +39,7 @@ describe('대사 데이터 규칙', () => {
     expect(bad).toEqual([]);
   });
 
-  it('성격 10종이 모든 상황을 채움 (그 성격 전용 상황은 그 성격만)', () => {
+  it('성격 30종이 모든 상황을 채움 (그 성격 전용 상황은 그 성격만)', () => {
     for (const p of PERS_NAMES) {
       const lines = PERS_LINES[p];
       for (const sit of SIT_KEYS) {
@@ -120,18 +120,18 @@ describe('전투 중 말풍선', () => {
     });
   }
 
-  it('실수 신호(엔진 말풍선)는 빠짐없이 보여 주고, 상황 이름이 붙어 있음 (감사·회피는 빈도 제한)', () => {
+  it('실수 신호(엔진 말풍선)는 빠짐없이 보여 주고, 상황 이름이 붙어 있음 (감사·회피 · 잦은 성격 말은 빈도 제한)', () => {
     let signals = 0;
     for (const seed of [1, 2, 3]) {
       const { out, barks } = run('plague', seed, '어려움');
       expect(barks.length).toBeGreaterThan(0);
       for (const b of barks) {
         expect(b.sit, '엔진 말풍선에 상황이 없음').toBeTruthy();
-        if (b.sit === 'thanks' || b.sit === 'dodge') continue;
+        if (SOFT_BARKS.includes(b.sit as TalkSit)) continue; // 감사 · 회피 · 성격 20종의 잦은 말 (75)
         signals++;
         const o = out.find(x => x.t === b.t && x.id === b.id);
         expect(o, `${b.sit} t=${b.t}`).toBeTruthy();
-        expect(['call', 'alert'], `${b.sit} 말풍선 테두리`).toContain(o!.kind); // 신호는 금테·붉은 테로 눈에 띄게
+        if (SITS[b.sit as TalkSit].prio >= 2) expect(['call', 'alert'], `${b.sit} 말풍선 테두리`).toContain(o!.kind); // 신호는 금테·붉은 테로 눈에 띄게 (힘 빠짐 · 몸 풀림 같은 성격 알림은 보통 테)
       }
     }
     expect(signals).toBeGreaterThan(0);

@@ -205,6 +205,29 @@ export const SITS = {
   idle: S('파티', '잡담', 'any', 1, 0.3, '한동안 위협이 없고 모두 체력 70% 위. MMO 파티 채팅 잡담 (드랍·장비·서버·힐러 칭찬·농담)'),
   castMove: S('파티', '시전 끊김', 'self', 1, 0.1, '마법사가 움직이느라 딜을 멈춤'),
 
+  // ---------- 성격 20종 전용 (75 문서, 2026-10-14). 엔진이 그 성격에서만 냄 ----------
+  slowMove: S('장판', '느릿느릿', 'self', 2, 0.5, '피한다고 움직였는데 남들보다 두 배 느림 (장판 끝자락에 걸릴 수 있음)', { pers: ['느림보'] }),
+  follow: S('파티', '탱커 따라감', 'self', 1, 0.5, '탱커가 자리를 옮겨서 그 옆 칸으로 따라감. 탱커 이름은 {tank}', { pers: ['따라쟁이'] }),
+  wander: S('파티', '딴 데로 감', 'self', 1, 0.6, '갑자기 근처 빈 칸으로 자리를 옮김 (옮기는 동안 딜 0)', { pers: ['방랑자'] }),
+  luckLost: S('파티', '명당 잃음', 'self', 2, 0.8, '행운의 칸(시작 칸)에서 밀려남. 5초 동안 딜 −20%', { pers: ['미신쟁이'] }),
+  luckBack: S('파티', '명당 복귀', 'self', 1, 0.5, '행운의 칸으로 돌아옴 (딜 +25%)', { pers: ['미신쟁이'] }),
+  cover: S('위기', '대신 맞아 줌', 'self', 2, 1, '옆 아군이 체력 25% 아래라 5초 동안 그 아군 피해 30%를 대신 받음', { pers: ['영웅'] }),
+  selfish: S('위기', '혼자 살기', 'self', 2, 0.8, '옆 아군이 위험해서 같이 맞지 않으려고 혼자 떨어진 칸으로 감', { pers: ['이기주의자'] }),
+  cheer: S('파티', '응원', 'self', 1, 0.8, '옆 아군이 위험해서 응원함 (옆 아군 딜 +10% 5초)', { pers: ['응원단장'] }),
+  rival: S('파티', '딜 1위 탈환', 'self', 1, 0.6, '같은 역할 딜 1위가 됨 (그 전까지는 딜 +15% · 회피 −10%p로 무리함)', { pers: ['경쟁심'] }),
+  rage: S('위기', '분노', 'self', 2, 1, '동료가 쓰러져 10초 동안 분노 (딜 +30%, 장판 안 피함)', { pers: ['다혈질'] }),
+  calmStep: S('장판', '침착하게 비켜 섬', 'self', 1, 0.7, '옮겨붙는 디버프가 걸려 옆에 아무도 없는 칸으로 혼자 비켜 섬', { pers: ['침착함'] }),
+  optimist: S('위기', '괜찮다고 버팀', 'self', 2, 0.6, '체력 25% 아래인데 아직 괜찮다고 함 (생존 능력을 늦게 씀)', { pers: ['낙천가'] }),
+  pessimist: S('위기', '망했다', 'self', 1, 0.5, '체력 60% 아래로 떨어지자마자 걱정함 (생존 능력을 일찍 씀)', { pers: ['비관론자'] }),
+  panic: S('기믹', '당황', 'self', 2, 1, '디버프가 걸려 3초 동안 이리저리 움직임 (딜 0). 해제하면 바로 진정', { pers: ['소심이'] }),
+  panicEnd: S('기믹', '진정', 'self', 1, 0.7, '해제받거나 3초가 지나 진정함', { pers: ['소심이'] }),
+  allIn: S('보스', '막판 승부', 'self', 1, 0.9, '보스 체력 30% 아래. 딜 +20%, 회피 −10%p로 몰아침', { pers: ['승부사'] }),
+  tired: S('파티', '힘 빠짐', 'self', 1, 0.8, '전투 60초가 지나 처음 기세가 꺾임 (딜 ×1.3 → ×0.9)', { pers: ['용두사미'] }),
+  warmUp: S('파티', '몸 풀림', 'self', 1, 0.8, '전투가 길어져 딜이 최고 (×1.4)까지 올라옴', { pers: ['대기만성'] }),
+  focusBroken: S('파티', '집중 깨짐', 'self', 1, 0.7, '크게 맞아서 쌓아 둔 집중 (딜 +20% 넘게)이 처음부터', { pers: ['몰입형'] }),
+  shaken: S('장판', '멘탈 흔들림', 'self', 2, 0.8, '한 번에 크게 맞아 8초 동안 딜 −20%, 반응이 느려짐', { pers: ['완벽주의자'] }),
+  learned: S('장판', '패턴 익힘', 'self', 1, 0.8, '같은 보스 기술을 세 번째 보고 익숙해짐 (반응 빨라짐)', { pers: ['뉴비'] }),
+
   // ---------- 끝 (보스가 쓰러지거나 전멸한 뒤 화면이 넘어가기 전 1초쯤) ----------
   win: S('끝', '승리', 'any', 2, 1, '마지막 구간 승리'),
   winClean: S('끝', '완벽한 승리', 'any', 2, 1, '아무도 안 쓰러지고 승리'),
@@ -222,4 +245,6 @@ export const SIT_KEYS = Object.keys(SITS) as TalkSit[];
 export type TalkLines = Partial<Record<TalkSit, readonly string[]>>;
 
 /** 엔진 말풍선(bark)이 알려 주는 상황 */
-export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived'>;
+export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived'
+  | 'slowMove' | 'follow' | 'wander' | 'luckLost' | 'luckBack' | 'cover' | 'selfish' | 'cheer' | 'rival' | 'rage' | 'calmStep' | 'optimist' | 'pessimist'
+  | 'panic' | 'panicEnd' | 'allIn' | 'tired' | 'warmUp' | 'focusBroken' | 'shaken' | 'learned'>;

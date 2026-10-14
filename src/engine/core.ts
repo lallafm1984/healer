@@ -6,6 +6,7 @@ import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
 import { relayHurt } from './relay';
 import { posTaken } from './position';
+import { coverPart, persDebuff, persDeath, persHurt } from './persona';
 import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, shieldGone, specDeath, specDebtPaid, specDebuffEnd, specFlip, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
@@ -259,6 +260,10 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     amt -= part;
     damage(f, f.me, (part * (pray ? 0.8 : 1)) / f.dmgMult, magic, 'fixed');
   }
+  if (u.coverBy) { // 영웅이 대신 맞아 줌 (75)
+    const c = coverPart(f, u, amt);
+    if (c) { amt -= c.part; damage(f, c.by, c.part / f.dmgMult, magic, 'fixed'); }
+  }
   // 은혜 갚기 (06 6장): 내가 죽을 피해를 호감도가 가장 높은 파티원 (체력 50% 이상)이 한 번 대신 맞아 줌
   if (u.me && f.tx.on.repay && !f.tx.repayUsed && u.guardian <= 0 && u.hp - amt <= 0) {
     const v = living(f).filter(x => !x.me && x.hp >= x.max * 0.5).sort((a, b) => affinity(b) - affinity(a) || b.hp / b.max - a.hp / a.max)[0];
@@ -274,6 +279,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     abHurt(f, u); // 거합 반격
   }
   u.hp -= amt;
+  if (u.ps) persHurt(f, u, amt); // 몰입형 · 완벽주의자 (75)
   if (f.sp) afterHurt(f, u, u.hp + amt);
   if (amt > 0 && f.relay && f.relay.id === u.id) relayHurt(f, u); // 사제 빛의 전이: 회복하고 옮겨 감 (보호막이 다 막으면 그대로)
   if (amt > u.max * 0.15) u.flash = 0.35;
@@ -296,6 +302,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     f.stats.deaths++;
     if (!u.me && f.tx.on.grief) f.tx.griefUntil = f.t + 5; // 슬픔의 힘
     if (!u.me && f.sp) specDeath(f); // 굳센 결의 · 되감기 (42)
+    if (f.persOn) persDeath(f, u); // 다혈질 (75)
     emit(f, { type: 'death', id: u.id });
     emit(f, { type: 'sound', name: 'death' });
   }
@@ -309,6 +316,7 @@ export function addDebuff(f: Fight, u: Unit, d: Omit<Debuff, 'id'>): Debuff {
     if (!o.lock && !o.trap && HEROES[f.hero].dispel.includes(o.type)) o.left *= debuffSec(f, true);
   }
   u.debuffs.push(o);
+  if (u.ps) persDebuff(f, u); // 소심이 (75)
   if (HEROES[f.hero].dispel.includes(o.type) && !o.trap) f.stats.dispellable++;
   emit(f, { type: 'debuff', id: u.id, dtype: o.type });
   if (o.charm) emit(f, { type: 'fx', name: 'hearts', on: u.id });

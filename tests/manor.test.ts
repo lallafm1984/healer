@@ -76,7 +76,9 @@ describe('저주받은 장원', () => {
 
   it('보통 적 레벨 (Lv 22, 61 1-2) 자동 힐러, 보통이면 대부분 깸 (장비 없음)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'manor', diff: '보통', seed: s, level: stageOf(contentOf('manor'), '보통'), gear: 'none' }).win) wins++;
+    // 공개모집처럼 직업 스킬이 있는 파티 (튜토리얼 뒤, 자동 밸런스 기준과 같음. 75 · 76: 파티원 목록 · 무작위 구성)
+    const first = contentOf('manor').fights('보통')[0];
+    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'manor', diff: '보통', seed: s, level: stageOf(contentOf('manor'), '보통'), gear: 'none', party: E.recruitParty(first, s, { abilities: true }) }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(18);
   }, 20_000); // 자동 밸런스 기준 20판은 CI 기본 5초를 넘을 수 있음
 });

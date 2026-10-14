@@ -32,7 +32,8 @@ describe('책갈피 설원', () => {
 
   it('Lv 31 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'bookfield', diff: '보통', seed: s, level: 40, gear: 'none' }).win) wins++;
+    // 공개모집처럼 직업 스킬이 있는 파티 (튜토리얼 뒤, 자동 밸런스 기준과 같음. 75: 파티원 목록)
+    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'bookfield', diff: '보통', seed: s, level: 40, gear: 'none', party: E.recruitParty('pagedrift', s, { abilities: true }) }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);
   });
 });
