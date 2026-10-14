@@ -187,6 +187,12 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.shelterMap && f.tels.some(t => t.kind === 'zone' && t.cells.has(u.cell))) m += v.shelterMap;
   if (k === 'serenity') m += v.serenityEcho ?? 0;
   if (k === 'oath') m += v.firmOath ?? 0;
+  // 직업 전용 (42 2-9, 2026-10-14): 수호 영혼 · 지속 힐 2개 · 봉화 · 신성한 힘 가득 · 희생
+  if (v.guardianLight && u.guardian > 0) m += v.guardianLight;
+  if (v.deepRoots && direct && !tick && u.hots.length + (u.hot > 0 ? 1 : 0) >= 2) m += v.deepRoots;
+  if (v.beaconKeeper && direct && !tick && f.beacon === u.id) m += v.beaconKeeper;
+  if (v.fullPower && direct && !tick && (k === 'holyLight' || k === 'holyStrike') && f.power3 >= 3 + sv(f, 'morePower')) m += v.fullPower;
+  if (v.sacrificeLight && u.sacr > 0) m += v.sacrificeLight;
   return 1 + m;
 }
 
@@ -274,6 +280,8 @@ export function specExec(f: Fight, key: SkillKey, castTime: number): void {
     s.chain = s.chain.includes(key) ? [key] : [...s.chain, key];
     if (s.chain.length >= 4) { s.chain = []; s.until.constellation = f.t + 6; shout(f, 'constellation'); }
   }
+  if (v.graceWord && (key === 'serenity' || key === 'sanctify')) f.mana = Math.min(100, f.mana + v.graceWord); // 성언의 은혜 (42 사제 17)
+  if (v.bloomBreath && key === 'bloom') f.mana = Math.min(100, f.mana + v.bloomBreath); // 피어나는 숨 (42 드루 24)
   if (sk.slot === 'raid') {
     if (v.encore) s.until.encore = f.t + 12;
     if (v.frozenHourglass) s.until.frozenHourglass = f.t + 15;
@@ -334,7 +342,7 @@ export function hasteOf(f: Fight): number {
   if (!f.sp) return f.gear.haste;
   const v = f.sp.v;
   let h = f.gear.haste;
-  for (const k of ['sunHandful', 'resolve', 'drumbeat', 'rustyCog', 'leechJar']) if (v[k] && on(f, k)) h += v[k];
+  for (const k of ['sunHandful', 'resolve', 'drumbeat', 'rustyCog', 'leechJar', 'dawnResolve']) if (v[k] && on(f, k)) h += v[k];
   if (v.stillHeart && on(f, 'stillHeart') && f.t + 1e-9 >= (f.sp.until.stillHeartFrom ?? 0)) h += v.stillHeart; // 멈춘 심장 조각 (59 6장)
   if (v.busyHands) h += (v.busyHands * Math.min(5, Math.floor(f.sp.busy / 2))) / 5;
   return Math.min(f.R.hasteCap, h);
@@ -580,6 +588,15 @@ export function specBroken(f: Fight): void {
   if (!v) return;
   f.mana = Math.min(100, f.mana + v);
   shout(f, 'snowCrystal');
+}
+/** 사제 소생이 끝까지 가면 (소생의 매듭 42 사제 19: 그 아군 지능 v 회복) */
+export function renewDone(f: Fight, u: Unit): void {
+  const v = f.sp!.v.renewKnot;
+  if (v && u.alive) heal(f, u, intAmt(f, v), true, true);
+}
+/** 신성한 힘 3칸을 한 번에 씀 (밝은 결의 42 성기 24: 6초 동안 가속) */
+export function powerSpent(f: Fight, n: number): void {
+  if (n >= 3 && f.sp!.v.dawnResolve) { f.sp!.until.dawnResolve = f.t + 6; shout(f, 'dawnResolve'); }
 }
 /** 지속 힐이 끝까지 가면 (묘지기 등불, 2초에 한 번) */
 export function hotDone(f: Fight): void {

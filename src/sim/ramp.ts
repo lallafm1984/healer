@@ -33,7 +33,7 @@ function flowOf(hero: HeroKey, seed: number): Flow {
   let id = 1;
   /** 한 판 이김: 장비 1개 (클리어마다 1개, 2026-10-13) + 첫 클리어 경험치 */
   const win = (c: ContentDef, d: DiffName, gear: Equipped, pl: { level: number; xp: number }) => {
-    const it = rollItem(r, d, 'A', pl.level, id++, { hero, place: c.key, lv: stageOf(c, d) });
+    const it = rollItem(r, d, 'A', pl.level, id++, { hero, classLoot: true, place: c.key, lv: stageOf(c, d) }); // 정산 드롭과 같게 (직업 전용 70%, 72)
     if (itemScore(it, pl.level) > itemScore(gear[it.slot], pl.level)) gear[it.slot] = it;
     addXp(pl, rampXp(c, d, { first: true, grade: 'A', win: true }));
   };

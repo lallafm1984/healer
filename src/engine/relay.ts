@@ -8,7 +8,7 @@ import { SKILLS } from '../data/skills';
 import { hexDist } from './board';
 import { cellOf, emit, heal, living } from './core';
 import { fillWords, noteUsed } from './healer';
-import { under } from './specials';
+import { sv, under } from './specials';
 import type { Fight, Unit } from './types';
 
 /**
@@ -19,7 +19,7 @@ const shy = (f: Fight, u: Unit) => u.debuffs.some(d => d.invert || d.charm || d.
   || (f.zones.length > 0 && f.zones.some(z => !!z.ring && z.ring.n < z.ring.max && z.cells.has(u.cell)));
 
 export function putRelay(f: Fight, u: Unit): void {
-  f.relay = { id: u.id, left: RELAY.hops, until: f.t + RELAY.sec, flyUntil: f.t };
+  f.relay = { id: u.id, left: RELAY.hops + sv(f, 'relayStep'), until: f.t + RELAY.sec, flyUntil: f.t }; // 빛의 발자국 (42 사제 22)
   emit(f, { type: 'fx', name: 'relay-land', on: u.id });
 }
 

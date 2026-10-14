@@ -3,7 +3,7 @@ import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type 
 import { DT, emit, heal, living, onDebuffEnd, unitById } from './core';
 import { relayTick, putRelay } from './relay';
 import { heroApply, heroChannelTick, heroTick, hotCount, putHot } from './heroes';
-import { crisis, freeCast, gcdNow, guardSec, later, raidSec, regenSpec, specApply, specDispel, specExec, specTick, sv, twiceBrush, twin, under } from './specials';
+import { crisis, freeCast, gcdNow, guardSec, hc, later, raidSec, regenSpec, specApply, specDispel, specExec, specTick, sv, twiceBrush, twin, under } from './specials';
 import { orderHeal } from './bossParts';
 import { reviveTarget } from './items';
 import { adjLow, castOf, cdOf, costOf, directSpread, focusMult, has, overflow, pohAt, renewSec, spendGuard, talentTick, wordCap, wordPower, wordReady, wordSpent } from './talents';
@@ -177,6 +177,7 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     pohAt(f, u.cell, amt, r);
     if (key === 'poh' && has(f, 'doublePoh')) f.tx.later.push({ at: f.t + 2, cell: u.cell, amt: amt * 0.5, r });
     if (key === 'poh' && f.sp && sv(f, 'pohEcho') && f.rng() < sv(f, 'pohEcho')) later(f, f.t + 2, u.cell, amt * 0.5, r); // 기원의 메아리 (42 사제 05)
+    if (key === 'poh' && f.sp && hc.n >= 4 && sv(f, 'groupPrayer')) fillWords(f, 0, 100 * sv(f, 'groupPrayer')); // 모두의 기도 (42 사제 21)
     if (key === 'sanctify') emit(f, { type: 'sound', name: 'chime' });
   } else if (key === 'purify') {
     const ds = u.debuffs.filter(d => DISPELLABLE[d.type] && !d.lock).sort((a, b) => (a.trap ? 1 : 0) - (b.trap ? 1 : 0) || (b.stack || 0) - (a.stack || 0));
@@ -188,6 +189,7 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     onDebuffEnd(f, u, d, true);
     if (!d.trap && has(f, 'washed')) heal(f, u, 150, true); // 씻어낸 자리
     if (f.sp) specDispel(f, u, d);
+    if (f.sp && sv(f, 'clearPrayer')) fillWords(f, 100 * sv(f, 'clearPrayer'), 0); // 맑은 기도 (42 사제 20)
   } else if (key === 'guardian') {
     u.guardian = guardSec(f, 10); // 수호의 깃 (42 보호 07)
     if (f.sp) twin(f, u, v => { v.guardian = Math.max(v.guardian, guardSec(f, 10) / 2); }); // 쌍둥이 방패
@@ -199,6 +201,7 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
   // 성언 게이지
   if (key === 'serenity') f.g.p = wordSpent(f.g.p);
   if (key === 'sanctify') f.g.s = wordSpent(f.g.s);
+  if (f.sp && sv(f, 'crossWord') && (key === 'serenity' || key === 'sanctify')) { const x = 100 * sv(f, 'crossWord'); fillWords(f, key === 'sanctify' ? x : 0, key === 'serenity' ? x : 0); } // 번지는 울림 (42 사제 18)
   if ((key === 'serenity' || key === 'sanctify') && has(f, 'echoWord')) f.tx.echoUntil = f.t + 5; // 말씀의 여운
   fillWords(f, sk.gp ?? 0, sk.gs ?? 0);
 }

@@ -223,7 +223,7 @@ describe('저장 · 도감 (42 1-6)', () => {
     expect(noteSpecs(s, [{ ...it, id: 2 }])).toEqual([]);
     expect(s.gear.codex.sort()).toEqual(['rustyCog', 'warmTouch']);
   });
-  it('도감 묶음은 특수능력 118종 + 이름 있는 장신구, 묶음마다 칭호 하나', () => {
+  it('도감 묶음은 특수능력 166종 + 이름 있는 장신구, 묶음마다 칭호 하나', () => {
     const gs = [...Object.keys(SPEC_GROUPS), 'named'] as CodexGroup[];
     expect(gs.flatMap(codexKeys).length).toBe(SPEC_KEYS.length + NAMED.length);
     expect(new Set(gs.map(g => SPEC_TITLES[g])).size).toBe(gs.length);

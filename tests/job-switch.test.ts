@@ -131,10 +131,10 @@ describe('클리어 직업과 보상 횟수', () => {
 });
 
 describe('직업별 드롭 풀', () => {
-  it('직업마다 16종, 그중 8종 신규 효과', () => {
+  it('직업마다 24종, 그중 8종 이상이 스킬 하나의 회복량 · 마나 · 재사용 (나머지는 직업 시스템 효과, 42 2-9)', () => {
     for (const hero of HERO_KEYS) {
       const ds = SPEC_KEYS.map(k => SPECS[k]).filter(d => d.hero === hero);
-      expect(ds).toHaveLength(16); expect(ds.filter(d => d.skillMod)).toHaveLength(8);
+      expect(ds).toHaveLength(24); expect(ds.filter(d => d.skillMod).length).toBeGreaterThanOrEqual(8);
     }
   });
   it('전 부위 희귀·영웅·일반 전설: 1줄 유지, 전용 약 70%, 타 직업 효과 없음', () => {
