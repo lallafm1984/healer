@@ -1,8 +1,9 @@
 /** 힐러 직업 (25): 저장·직업 바꾸기 (v11 캐릭터, 68), 드루이드·성기사 고유 효과 */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TUNE } from '../src/data/tune';
-import { BEACON, DRUID_BIG, HAND_GUARD, PRIEST_MANA, SANCTUARY, TALENT_STANDIN } from '../src/data/heroConst';
+import { BEACON, DRUID_BIG, HAND_GUARD, PRIEST_MANA, SANCTUARY, TALENT_STANDIN, WAVE } from '../src/data/heroConst';
 import { HERO_KEYS, HEROES, heroSkills, skillAt, slotIdOf } from '../src/data/heroes';
+import { SKILLS } from '../src/data/skills';
 import * as E from '../src/engine';
 import { damage } from '../src/engine/core';
 import { heroApply, heroChannelTick, heroHeal, heroTick, putHot } from '../src/engine/heroes';
@@ -188,6 +189,36 @@ describe('성기사', () => {
     t.hp = 100;
     const a = heroHeal(f, t, 100);
     expect(t.hp - 100).toBeCloseTo(a, 5);
+  });
+  it('봉화 몫: 5인까지 40%, 10인 레이드 30%, 20인 레이드 25% (73)', () => {
+    const at = (encounter: 'warden' | 'plague' | 'choir') => E.beaconShare(E.create({ encounter, diff: '보통', seed: 7, level: 100, hero: 'paladin' }));
+    expect([at('warden'), at('plague'), at('choir')]).toEqual([BEACON.share, BEACON.raid10, BEACON.raid20]);
+    const f = E.create({ encounter: 'plague', diff: '보통', seed: 7, level: 100, hero: 'paladin' }); f.standin = null; f.gear.crit = 0;
+    const t = f.party.find(u => u.id === f.beacon)!, d = dps(f);
+    t.hp = 100; d.hp = 100;
+    const a = heroHeal(f, d, 100);
+    expect(t.hp - 100).toBeCloseTo(a * BEACON.raid10, 5);
+  });
+  it('빛의 파도: 신성한 힘 3칸 + 마나 5%, 범위 안 가장 다친 4명만, 봉화로 안 옮김, 이펙트는 회복한 칸마다 (73)', () => {
+    const f = E.create({ encounter: 'choir', diff: '보통', seed: 7, level: 100, hero: 'paladin' }); f.standin = null; f.gear.crit = 0;
+    f.skills.forEach(s => { s.next = Infinity; });
+    const near = (u: (typeof f.party)[number]) => f.party.filter(v => E.hexDist(f.cells[v.cell], f.cells[u.cell]) <= 1);
+    const c = f.party.find(u => near(u).length > WAVE.max)!;
+    const pool = near(c);
+    f.beacon = f.party.find(u => !pool.includes(u))!.id; // 봉화는 범위 밖 사람에게
+    pool.forEach((v, i) => { v.hp = v.max * (0.3 + i * 0.05); });
+    const bc = f.party.find(u => u.id === f.beacon)!; bc.hp = bc.max * 0.5;
+    const hp0 = new Map(f.party.map(u => [u.id, u.hp])), bc0 = bc.hp;
+    f.power3 = 3; f.mana = 50; f.used = [];
+    expect(E.use(f, 'lightWave', c.cell).ok).toBe(true);
+    expect(f.mana).toBeCloseTo(50 - SKILLS.lightWave.cost + 2, 5); // 즉시 스킬이라 바로 · 헌신 (힘 3칸) +2
+    const healed = f.party.filter(u => u.hp > hp0.get(u.id)! + 1e-9).map(u => u.id).sort();
+    expect(healed).toEqual(pool.slice(0, WAVE.max).map(u => u.id).sort());
+    expect(bc.hp).toBeLessThanOrEqual(bc0);
+    expect(f.used!.filter(x => x.key === 'lightWave').map(x => x.uid).sort()).toEqual(healed);
+  });
+  it('빛 일격 재사용 8초 (73)', () => {
+    expect(SKILLS.holyStrike.cd).toBe(8);
   });
   it('봉화 바꾸기는 10초 대기', () => {
     const f = fight('paladin'), d = dps(f);

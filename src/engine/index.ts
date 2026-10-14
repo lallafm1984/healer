@@ -7,7 +7,7 @@ export { submerged, TIDE_CUT } from './core';
 export { DT, living } from './core';
 export { create, recruitParty, rollParty, step } from './fight';
 export { canTarget, knows, knowsPassive, SLOT_OF, slotKey, use } from './healer';
-export { heroPassive, heroRing, hotCount, setBeacon } from './heroes';
+export { beaconShare, heroPassive, heroRing, hotCount, setBeacon } from './heroes';
 export { itemReady, reviveTarget, useItem } from './items';
 export { rngFrom } from './rng';
 export { activeOn, areaRadius, cdMax, costOf, talentReady, useTalent } from './talents';

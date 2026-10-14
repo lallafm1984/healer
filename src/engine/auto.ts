@@ -1,6 +1,6 @@
 import { ABILITIES } from '../data/abilities';
 import { armorFactor } from '../data/armor';
-import { RELAY } from '../data/heroConst';
+import { RELAY, WAVE } from '../data/heroConst';
 import { HEROES } from '../data/heroes';
 import { DISPELLABLE, SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
@@ -462,12 +462,15 @@ function autoTalents(f: Fight): void {
  * 광역 힐 자리: 반경 r 안에서 모자란 체력 (한 명당 amt × 치유 단위까지)을 더한 값이 가장 큰 사람.
  * 힐하면 손해인 사람이 범위에 들면 그 자리는 안 씀
  */
-function clusterOf(f: Fight, live: Unit[], all: Unit[], amt: number, r: number): { best: Unit | null; score: number } {
+function clusterOf(f: Fight, live: Unit[], all: Unit[], amt: number, r: number, top = Infinity): { best: Unit | null; score: number } {
   const cap = amt * healUnit(f);
   let best: Unit | null = null, score = 0;
   for (const c of live) {
-    let s = 0;
-    for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= r) s = off(f, v) ? -Infinity : s + Math.min(cap, Math.max(0, healTop(v) - v.hp));
+    let bad = false;
+    const got: number[] = [];
+    for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= r) { if (off(f, v)) bad = true; else got.push(Math.min(cap, Math.max(0, healTop(v) - v.hp))); }
+    // top: 가장 다친 몇 명에게만 들어가는 광역 (빛의 파도 4명, 73)은 그만큼만 셈
+    const s = bad ? -Infinity : (top < got.length ? got.sort((a, b) => b - a).slice(0, top) : got).reduce((a, b) => a + b, 0);
     if (s > score) { best = c; score = s; }
   }
   return { best, score };
@@ -485,7 +488,7 @@ function aoeBar(f: Fight, bar: number, amt: number, r: number): number {
 // ---------- 드루이드·성기사 자동 힐러 (25 3장의 손맛대로: 드루이드는 미리 깔고, 성기사는 모았다가 씀) ----------
 interface Ctx { live: Unit[]; all: Unit[]; g: Gim; pct: (u: Unit) => number; low: Unit; idx: (u: Unit) => number; ready: (k: SkillKey) => boolean; cluster: { best: Unit | null; score: number }; busterOn: Unit | null }
 /** live = 힐해도 되는 사람 (뒤집힌 축복이 걸린 사람 뺌), all = 살아 있는 모두 */
-function ctx(f: Fight, amt: number, r = 1): Ctx | null {
+function ctx(f: Fight, amt: number, r = 1, top = Infinity): Ctx | null {
   if (f.cast || f.channel > 0 || f.gcd > 0 || f.queued) return null;
   const all = living(f), live = all.filter(u => !off(f, u));
   if (!live.length) return null;
@@ -494,7 +497,7 @@ function ctx(f: Fight, amt: number, r = 1): Ctx | null {
   const idx = (u: Unit) => (u.moving ? u.moving.from : u.cell);
   // 준비는 원래 마나 소모로 봄 (줄어든 소모로 보면 마나를 바닥까지 써서 성기사 초반 악몽 86 → 77%, 드루이드는 그대로. 2026-10-14 비교) = 그만큼이 여유분
   const ready = (k: SkillKey) => knows(f, k) && (f.cd[k] ?? 0) <= 0 && !f.lock[k] && f.mana >= SKILLS[k].cost;
-  const { best, score } = clusterOf(f, live, all, amt, r);
+  const { best, score } = clusterOf(f, live, all, amt, r, top);
   const bt = f.tels.find(t => t.kind === 'buster' && !meltWait(f, t.impact) && !veiled(f, t));
   const on = bt ? unitById(f, bt.units[0]) || null : null;
   return { live, all, g: gim(f), pct, low, idx, ready, cluster: { best, score }, busterOn: on && !off(f, on) ? on : null };
@@ -571,7 +574,7 @@ function autoPaladin(f: Fight): void {
   // 봉화는 첫 탱커에게 (배운 뒤 한 번)
   if (f.beacon == null && f.level >= HEROES.paladin.system.lv) { const t = living(f).find(u => u.role === 'tank'); if (t) setBeacon(f, t); }
   const lr = 1 + sv(f, 'wideWave'); // 퍼지는 파도 (42 성기 06)
-  const c = ctx(f, 260, lr);
+  const c = ctx(f, 260, lr, WAVE.max); // 빛의 파도는 가장 다친 4명 (73)
   if (!c) return;
   const { live, pct, low, idx, ready, g } = c;
   // 모래시계 창 안 (54 5장): 남는 일만

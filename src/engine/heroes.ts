@@ -3,10 +3,11 @@
  * healer.ts가 공통 흐름(시전·마나·GCD·예약)을 맡고, 여기서는 「맞았을 때 무슨 일이 일어나는가」만 다룬다.
  */
 import { HEROES, type HeroKey } from '../data/heroes';
-import { BARK, BEACON, HAND_GUARD, REBIRTH, SANCTUARY } from '../data/heroConst';
+import { BARK, BEACON, HAND_GUARD, REBIRTH, SANCTUARY, WAVE } from '../data/heroConst';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
 import { cellOf, emit, heal, living, onDebuffEnd } from './core';
+import { noteUsed } from './healer';
 import { reviveUnit } from './items';
 import { areaRadius } from './talents';
 import { aoeCount, aoeDone, guardSec, hc, powerSpent, raidSec, specDispel, sv, twin, under } from './specials';
@@ -36,14 +37,17 @@ const hotTail = (h: Hot): number => (h.amts ? h.amts[h.amts.length - 1] : h.per)
 /** 그 사람에게 걸린 지속 힐 개수 (사제 소생 포함) */
 export const hotCount = (u: Unit) => u.hots.length + (u.hot > 0 ? 1 : 0);
 
-/** 직접 힐 (직업 패시브·봉화까지). 성기사 봉화는 다른 사람에게 한 힐의 40%를 봉화 대상에게 */
-export function heroHeal(f: Fight, u: Unit, amt: number): number {
+/** 봉화 몫: 파티 5인까지 40%, 10인 레이드 30%, 20인 레이드 25% (73) + 큰 봉화 (42 성기 01) */
+export const beaconShare = (f: Fight): number => (f.party.length >= 20 ? BEACON.raid20 : f.party.length >= 10 ? BEACON.raid10 : BEACON.share) + sv(f, 'bigBeacon');
+
+/** 직접 힐 (직업 패시브·봉화까지). 성기사 봉화는 다른 사람에게 한 단일 힐의 몫 (beaconShare)을 봉화 대상에게. toBeacon = false면 봉화로 안 옮김 (빛의 파도, 73) */
+export function heroHeal(f: Fight, u: Unit, amt: number, toBeacon = true): number {
   let m = 1;
   if (f.hero === 'druid' && heroPassive(f, '뿌리 깊음') && hotCount(u) >= 2) m = 1.1;
   if (f.hero === 'paladin' && heroPassive(f, '굳건한 손') && u.role === 'tank') m = 1.1;
   const done = heal(f, u, amt * m, true);
-  if (f.hero === 'paladin' && f.beacon != null) {
-    const share = BEACON.share + sv(f, 'bigBeacon'); // 큰 봉화 (42 성기 01)
+  if (f.hero === 'paladin' && f.beacon != null && toBeacon) {
+    const share = beaconShare(f);
     const b = f.beacon !== u.id ? f.party.find(x => x.id === f.beacon) : undefined;
     if (b && b.alive) heal(f, b, amt * m * share, false);
     if (sv(f, 'secondBeacon')) { const b2 = secondBeacon(f); if (b2 && b2 !== u) heal(f, b2, amt * m * share * 0.5, false); } // 두 번째 봉화 (42 성기 02)
@@ -89,6 +93,9 @@ export const barkCut = (f: Fight): number => BARK.cut + sv(f, 'thickBark');
 export const powerMax = (f: Fight): number => 3 + sv(f, 'morePower');
 
 const around = (f: Fight, u: Unit, r = 1) => { const c = cellOf(f, u); return living(f).filter(v => hexDist(cellOf(f, v), c) <= r); };
+
+/** 빛의 파도가 들어갈 사람: 대상 둘레 r칸 안에서 체력 비율이 낮은 순서로 WAVE.max명 (73) */
+export const waveTargets = (f: Fight, u: Unit, r: number): Unit[] => around(f, u, r).sort((a, b) => a.hp / a.max - b.hp / b.max).slice(0, WAVE.max);
 
 const hasSprout = (u: Unit) => u.hots.some(h => h.key === 'sprout');
 /** 장비로 거는 새싹 (42 드루 19~23): 새싹이 없을 때만. half = 절반 시간 · 절반 회복량 (옮겨 가지 않음, 옮겨 가는 새싹과 같은 몫) */
@@ -166,9 +173,10 @@ function paladin(f: Fight, key: SkillKey, u: Unit): void {
     if (f.sp) powerSpent(f, f.power3); // 밝은 결의 (42 성기 24)
     f.power3 = 0;
     const r = 1 + sv(f, 'wideWave'); // 퍼지는 파도 (42 성기 06)
-    const vs = around(f, u, r);
+    // 범위 안에서 체력 비율이 가장 낮은 WAVE.max명만, 봉화로는 안 옮김 (73). 이펙트도 그 사람들 칸에만 (스킬 대상 칸 기록은 healer applySkill이 건너뜀)
+    const vs = waveTargets(f, u, r);
     if (f.sp) aoeCount(f, vs.length);
-    for (const v of vs) heroHeal(f, v, sk.amt!);
+    for (const v of vs) { noteUsed(f, key, v.id); heroHeal(f, v, sk.amt!, false); }
     if (f.sp) aoeDone(f, u.cell, sk.amt!, r);
     if (heroPassive(f, '헌신')) f.mana = Math.min(100, f.mana + 2);
     emit(f, { type: 'sound', name: 'chime' });

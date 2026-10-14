@@ -70,7 +70,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
   },
   paladin: {
     key: 'paladin', name: '성기사', line: '탱커 한 명을 끝까지 지키는 힐러입니다.', star: 2,
-    system: { name: '봉화', lv: 6, desc: '봉화를 지정한 파티원에게, 다른 사람에게 한 직접 힐의 40%가 함께 들어갑니다.' },
+    system: { name: '봉화', lv: 6, desc: '봉화를 지정한 파티원에게, 다른 사람에게 한 빛의 손길 · 빛 일격 회복량의 40%가 함께 들어갑니다. 10인 레이드는 30%, 20인 레이드는 25%입니다.' },
     dispel: ['마법', '독', '질병'],
     slots: slots({ basic: 'holyLight', fast: 'holyStrike', hot: 'oath', aoe: 'lightWave', dispel: 'handCleanse', ext: 'sacrifice', raid: 'sanctuary', unique: 'handGuard' }),
     tap: ['holyLight', 'holyStrike', 'oath'],

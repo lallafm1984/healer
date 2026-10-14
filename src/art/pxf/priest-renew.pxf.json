@@ -297,11 +297,11 @@
       "y": 40,
       "params": {
         "colors": [
-          "#1d2a5c",
-          "#4fa6e8",
-          "#9fd8ff",
-          "#fff4dc",
-          "#ffffff"
+          "#0f3b2e",
+          "#1f8f63",
+          "#4fd39a",
+          "#b8f5d8",
+          "#f4fff8"
         ],
         "cutoff": 0.08,
         "shift": 0,
@@ -316,7 +316,7 @@
       "x": 1190,
       "y": 40,
       "params": {
-        "color": "#1d2a5c",
+        "color": "#0f3b2e",
         "threshold": 0.5,
         "width": 1,
         "corners": false,

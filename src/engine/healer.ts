@@ -149,7 +149,7 @@ function apply(f: Fight, key: SkillKey, u: Unit): void {
 
 function applySkill(f: Fight, key: SkillKey, u: Unit): void {
   if (u.lift) { emit(f, { type: 'msg', text: `닿지 않음: ${u.nick}은(는) 하늘에 떠 있음` }); return; } // 예약해 둔 힐이 나갈 때 떠 버림 (P-LIFT)
-  noteUsed(f, key, u.id);
+  if (key !== 'lightWave') noteUsed(f, key, u.id); // 빛의 파도는 실제로 회복한 사람 칸마다 (heroes, 73)
   if (f.order && singleHeal(key) && !u.soul) orderHeal(f, u); // 차례 (P-ORDER)
   if (f.hero !== 'priest') { heroApply(f, key, u); return; }
   const sk = SKILLS[key];
