@@ -18,7 +18,7 @@ import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, type DexTab } from '../da
 import { betterSlots, codexRows, dexRows, specRows, statParts, talentsLeft, vsWorn } from '../game/charinfo';
 import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, specText, specValue, type CodexGroup, type SpecGroup, type SpecLine } from '../data/specials';
 import {
-  claimDex, commit, enhanceMsg, enhanceTry, equip, findItem, G, healerLevel, heroSave, heroStatus, pickReroll, pickTalent, reroll, rerollOpen, salvage,
+  claimDex, commit, enhanceLack, enhanceMsg, enhanceTry, equip, findItem, freeStones, G, healerLevel, heroSave, heroStatus, pickReroll, pickTalent, reroll, rerollOpen, salvage,
   setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleLock, type EnhanceOutcome, type RerollKind,
 } from '../game/state';
 import { Flow } from '../game/flow';
@@ -513,9 +513,11 @@ function enhanceMaterials(c: NonNullable<ReturnType<typeof enhanceCost>>): strin
     ...(c.stone ? [{ key: 'stone' as const, have: G.save.mats.stone, cost: c.stone }] : []),
     ...(c.refined ? [{ key: 'refined' as const, have: G.save.mats.refined, cost: c.refined }] : []),
   ];
+  // 개발 빌드 「강화석 무제한」이면 강화석 · 정제 강화석 보유는 ∞ (쓰지 않음)
+  const inf = (k: string) => k !== 'gold' && freeStones();
   return `<div class="c7-enh-materials" role="table" aria-label="강화 재료 보유량 및 비용">
     <div class="c7-material-head" role="row"><span role="columnheader" class="sr">재화</span><span role="columnheader">보유</span><span role="columnheader">강화 비용</span></div>
-    ${rows.map(r => `<div class="c7-material-row${r.have < r.cost ? ' short' : ''}" role="row" data-material="${r.key}"><span role="rowheader" aria-label="${CURRENCY_NAMES[r.key]}">${currencyIcon(r.key)}</span><b role="cell" data-have aria-label="${CURRENCY_NAMES[r.key]} 보유 ${fmt(r.have)}">${fmt(r.have)}</b><b role="cell" data-cost aria-label="${CURRENCY_NAMES[r.key]} 강화 비용 ${fmt(r.cost)}">${fmt(r.cost)}</b></div>`).join('')}
+    ${rows.map(r => `<div class="c7-material-row${!inf(r.key) && r.have < r.cost ? ' short' : ''}" role="row" data-material="${r.key}"><span role="rowheader" aria-label="${CURRENCY_NAMES[r.key]}">${currencyIcon(r.key)}</span><b role="cell" data-have aria-label="${CURRENCY_NAMES[r.key]} 보유 ${inf(r.key) ? '무제한' : fmt(r.have)}">${inf(r.key) ? '∞' : fmt(r.have)}</b><b role="cell" data-cost aria-label="${CURRENCY_NAMES[r.key]} 강화 비용 ${fmt(r.cost)}">${fmt(r.cost)}</b></div>`).join('')}
   </div>`;
 }
 
@@ -542,7 +544,8 @@ function confirmHtml(): string {
       <div class="c7-confirm-rate" id="gearConfirmDesc">${c ? `<span>성공률 ${Math.round(c.rate * 100)}%</span>${c.rate < 1 ? `<span class="${c.fail < it.plus ? 'c7-lack' : ''}">${failureNote(it, c)}</span>` : ''}` : '최대 강화 도달'}</div>
       </div>
       ${pending.error ? `<p class="c7-lack" role="status">${esc(pending.error)}</p>` : ''}`;
-  const lack = !dismantle && c ? G.save.player.gold < c.gold ? '골드 부족' : G.save.mats.stone < c.stone ? '강화석 부족' : G.save.mats.refined < c.refined ? '정제 강화석 부족' : '' : '';
+  // 버튼에는 짧게 (「강화석 부족」): 판정은 enhanceTry와 같은 enhanceLack
+  const lack = !dismantle && c ? enhanceLack(it).replace(/ \(.*\)$/, '') : '';
   return `<button type="button" class="sheet-dim c7-confirm-dim" data-confirmcancel aria-label="${result ? '강화 팝업 닫기' : '확인 취소'}" tabindex="-1"></button>
     <section class="sheet c7-confirm still${!dismantle ? ' c7-enhance-dialog' : ''}${fxCls}" role="dialog" aria-labelledby="gearConfirmTitle" aria-describedby="gearConfirmDesc" aria-busy="${!!f}">
       <h3 id="gearConfirmTitle">${dismantle ? '장비 분해' : '장비 강화'}</h3>

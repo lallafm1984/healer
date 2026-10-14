@@ -80,6 +80,8 @@ export interface Settings {
   devUnlock: boolean;
   /** 개발 빌드: 레벨과 상관없이 스킬 전부 (06 7장 해금 무시) */
   allSkills: boolean;
+  /** 개발 빌드: 강화석 무제한. 강화할 때 강화석 · 정제 강화석을 따지지도 쓰지도 않음 (골드는 씀, Lim 2026-10-14 강화 테스트). 옛 저장엔 없음 = 꺼짐 */
+  devStones?: boolean;
   /** 스킬 휠 8방향 배치 (09 S17). null = 기본 배치 */
   layout: Record<string, string | null> | null;
 }

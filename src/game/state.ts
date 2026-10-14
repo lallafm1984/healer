@@ -117,14 +117,16 @@ export function enhance(id: number, roll: () => number = Math.random): string {
 /** 강화 한 번의 결과 (연출용): 각성 = 옵션 각성한 줄 번호 (34 6-5) */
 export interface EnhanceOutcome { id: number; ok: boolean; from: number; to: number; awaken: number | null }
 export const enhanceMsg = (o: EnhanceOutcome) => (o.ok ? '' : o.to < o.from ? `강화 실패 · +${o.from} → +${o.to}` : `강화 실패 · +${o.from} 그대로`);
+/** 개발 빌드 「강화석 무제한」: 강화가 강화석 · 정제 강화석을 따지지도 쓰지도 않음 */
+export const freeStones = () => !!G.save.settings.devStones;
 /** 모자란 재료 (없으면 '') */
 export function enhanceLack(it: GearItem): string {
   const c = enhanceCost(it);
   if (!c) return `이미 +${MAX_PLUS}`;
-  const p = G.save.player, m = G.save.mats;
+  const p = G.save.player, m = G.save.mats, free = freeStones();
   if (p.gold < c.gold) return `골드 부족 (${c.gold.toLocaleString()} 필요)`;
-  if (m.stone < c.stone) return `강화석 부족 (${c.stone}개 필요)`;
-  if (m.refined < c.refined) return `정제 강화석 부족 (${c.refined}개 필요)`;
+  if (!free && m.stone < c.stone) return `강화석 부족 (${c.stone}개 필요)`;
+  if (!free && m.refined < c.refined) return `정제 강화석 부족 (${c.refined}개 필요)`;
   return '';
 }
 /**
@@ -137,7 +139,8 @@ export function enhanceTry(id: number, roll: () => number = Math.random): Enhanc
   const lack = enhanceLack(it);
   if (lack) return lack;
   const c = enhanceCost(it)!, p = G.save.player, m = G.save.mats;
-  p.gold -= c.gold; m.stone -= c.stone; m.refined -= c.refined;
+  p.gold -= c.gold;
+  if (!freeStones()) { m.stone -= c.stone; m.refined -= c.refined; }
   const from = it.plus, ok = roll() < c.rate, top = it.top ?? it.plus;
   it.plus = ok ? c.to : c.fail;
   let awaken: number | null = null;
