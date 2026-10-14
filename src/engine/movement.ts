@@ -3,6 +3,7 @@ import { bark, cellOf, living } from './core';
 import { abMoved, dodgeMods, moveMods, reactMods } from './abilities';
 import { sv } from './specials';
 import { posPref } from './position';
+import { followPref, persDodge, persIgnoresZone, persMove, persReact } from './persona';
 import type { Cell, Fight, Role, Telegraph, Unit, Zone } from './types';
 
 export type Zone3 = 'front' | 'mid' | 'back';
@@ -66,6 +67,7 @@ export function pickCell(f: Fight, u: Unit, opts: PickOpts): Cell | null {
     s -= 10 * hexDist(cur, c);
     if (opts.back) s += c.row * 40 - adjAllies(f, c, u) * 5;
     if (opts.home && c.i === u.home) s += 60;
+    if (u.p.follow) s += followPref(f, u, c) / 2; // 따라쟁이: 피할 때도 탱커 옆 (75)
     s += f.rng() * 2;
     if (s > bs) { bs = s; best = c; }
   }
@@ -78,6 +80,7 @@ export function moveTo(f: Fight, u: Unit, c: Cell | null): boolean {
   let time = 0.4 * Math.max(1, hexDist(from, c));
   if (u.mods.length) time *= moveMods(u); // 치타의 상·돌진
   if (f.sp && !u.me) time *= 1 - sv(f, 'march'); // 신나는 행진 (42 지원 07)
+  if (u.ps) time *= persMove(u); // 느림보 (75)
   c.unit = u;
   u.moving = { from: from.i, to: c.i, left: time, total: time };
   return true;
@@ -105,6 +108,7 @@ export function scheduleReaction(f: Fight, tel: Telegraph, u: Unit): void {
   rt *= u.senseReact; // 눈치 자질 (17 9-1)
   if (u.mods.length) rt *= reactMods(u); // 기합·매의 눈
   if (f.sp && !u.me) rt = Math.max(0.1, rt - sv(f, 'quickPeer')); // 눈치 빠른 동료 (42 지원 09)
+  if (u.ps && inZ) rt *= persReact(f, u, tel); // 뉴비 · 완벽주의자 (75)
   if (inZ) {
     let at = f.t + rt;
     if (u.p.greedy) at = Math.max(at, tel.impact - 0.3);
@@ -133,7 +137,7 @@ export function dodgeRate(f: Fight, u: Unit): number {
 }
 
 function dodgeBase(f: Fight, u: Unit): number {
-  return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0) + calmDodge(f)));
+  return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0) + calmDodge(f) + (u.ps ? persDodge(f, u) : 0)));
 }
 
 export function doReact(f: Fight, u: Unit): void {
@@ -147,6 +151,7 @@ export function doReact(f: Fight, u: Unit): void {
   }
   if (u.p.stubborn && zoneThreat(f, tel) < u.p.stubborn * u.max) { u.ignoreZone = tel.id; bark(f, u, u.p.barks![0], false, 'stubborn'); return; }
   if (u.p.brave && u.hp / u.max >= u.p.brave) { u.retryAt = f.t + 1; bark(f, u, u.p.barks![0], false, 'brave'); return; }
+  if (u.ps && persIgnoresZone(f, u)) { u.retryAt = f.t + 1; return; } // 다혈질 분노 · 소심이 당황 (75)
   const rate = dodgeRate(f, u);
   const impact = 'impact' in tel ? tel.impact : 0;
   let extra = tel.cells;
@@ -157,7 +162,7 @@ export function doReact(f: Fight, u: Unit): void {
   }
   if (f.rng() < rate) {
     const c = pickCell(f, u, { safe: true, extra });
-    if (c) { moveTo(f, u, c); if (u.pers === '신중파') bark(f, u, null, false, 'dodge'); }
+    if (c) { moveTo(f, u, c); if (u.pers === '신중파' || u.pers === '눈치백단') bark(f, u, null, false, 'dodge'); else if (u.p.slow) bark(f, u, null, false, 'slowMove'); }
     else { bark(f, u, '피할 곳이 없어!', true, 'noEscape'); u.retryAt = f.t + 1.5; }
   } else {
     u.mistakeUntil = Math.max(f.t, (impact || f.t) - 0.5) + 0.5;

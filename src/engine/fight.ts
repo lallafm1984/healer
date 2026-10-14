@@ -9,8 +9,8 @@ import { PRIEST_MANA, TALENT_STANDIN } from '../data/heroConst';
 import { TALENTS } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { ITEMS } from '../data/items';
-import { pickNick } from '../data/nicknames';
-import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
+import { pickMember, pickNick } from '../data/nicknames';
+import { NICKS, PERS, PROTO_PERS, type PersName } from '../data/personalities';
 import { PROTO_RULES, RULES } from '../data/rules';
 import { makeCells } from './board';
 import { initBoss, bossTick } from './bosses';
@@ -26,6 +26,7 @@ import { APT, aptIdx } from '../data/guild';
 import { rollAbility } from '../data/abilities';
 import { newTalents } from './talents';
 import { abTick, giveAb } from './abilities';
+import { followPref, initPers } from './persona';
 import { newSpecs, sv } from './specials';
 import type { Cell, Fight, FightConfig, FightResult, Role, RosterEntry, TalentState, Unit } from './types';
 
@@ -102,7 +103,7 @@ export function rollParty(encKey: EncounterKey, seed: number): RosterEntry[] {
   const low = !!enc.lowLevel; // 04 6-F: 저레벨 던전은 탱커 ★ 성격만, ★★★ 파티당 최대 1명
   let hard = 0;
   const choose = (role: RosterEntry['role']): PersName => {
-    let pool = PERS_NAMES.filter(p => !(role === 'tank' && 'noTank' in PERS[p]));
+    let pool = PROTO_PERS.filter(p => !(role === 'tank' && 'noTank' in PERS[p]));
     if (low && role === 'tank') pool = pool.filter(p => PERS[p].star === 1);
     if (low && hard >= 1) pool = pool.filter(p => PERS[p].star < 3);
     const p = pick(pool);
@@ -117,9 +118,9 @@ export function rollParty(encKey: EncounterKey, seed: number): RosterEntry[] {
 }
 
 /**
- * 공개모집 (17 2-1): rollParty로 성격을 뽑고, 역할마다 Lv 1 직업을 붙인 뒤 그 직업 닉네임을 붙인다 (74).
+ * 공개모집 (17 2-1): 역할마다 Lv 1 직업을 붙인 뒤, 그 직업 파티원 목록 (74 · 75: 닉네임 · 성격 · 직업 스킬이 묶인 200명)에서 1명씩.
  * 같은 직업은 5인 1명 · 10인 2명 · 20인 3명까지 (자리가 모자라면 가장 적은 직업부터 더 넣음).
- * 직업 · 닉네임은 따로 굴린 난수로 정해서 rollParty의 성격 (프로토타입과 같음)은 그대로 둔다.
+ * 저레벨 던전은 희귀 성격 없이 · 탱커 ★1 · ★★★ 파티당 1명 (04 6-F). 역할 순서는 rollParty (프로토타입) 그대로.
  */
 export function recruitParty(encKey: EncounterKey, seed: number, opts: { abilities?: boolean } = {}): RosterEntry[] {
   const list = rollParty(encKey, seed);
@@ -134,13 +135,18 @@ export function recruitParty(encKey: EncounterKey, seed: number, opts: { abiliti
     count[k] = (count[k] || 0) + 1;
     m.cls = k;
   }
-  // 직업 스킬 (특수 능력) 1개 (17 3장): 직업을 다 뽑은 뒤 같은 난수로 (직업 결과는 그대로). 튜토리얼 파티는 능력 없음.
+  // 파티원 (75): 직업 목록에서 겹치지 않게 1명 = 닉네임 · 성격 · 직업 스킬 (17 3장, 튜토리얼 파티는 스킬 없음). 직업 난수와 따로 굴림
   // 파티원은 성격과 직업 스킬만 가짐 (2026-10-12 Lim: 직업 패시브 · 특성 뺌)
-  if (opts.abilities) for (const m of list) m.ab = rollAbility(m.cls!, rng);
-  // 닉네임 (74): 직업 목록에서 겹치지 않게. 직업 · 능력 난수와 따로 굴림
   const nr = rngFrom(Math.imul(seed, 0x27d4eb2f) ^ 0x165667b1);
-  const used = new Set<string>();
-  for (const m of list) { m.nick = pickNick(m.cls!, nr, used); used.add(m.nick); }
+  const used = new Set<string>(), low = !!ENCOUNTERS[encKey].lowLevel;
+  let hard = 0;
+  for (const m of list) {
+    const p = pickMember(m.cls!, nr, used, { low, tank: m.role === 'tank', hard });
+    if (p) { m.nick = p.nick; m.pers = p.pers; if (opts.abilities) m.ab = p.ab; }
+    else { m.nick = pickNick(m.cls!, nr, used); if (opts.abilities) m.ab = rollAbility(m.cls!, nr); } // 목록을 다 씀 (거의 없음): 이름 뒤 숫자
+    if (PERS[m.pers].star === 3) hard++;
+    used.add(m.nick);
+  }
   return list;
 }
 
@@ -184,11 +190,13 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
       if (u.role === 'tank') s -= c.row * 30;
       s += (u.p.dist || 0) * adjAllies(f, c, u) * 8;
       if (u.p.dist === -1) s += Math.abs(c.px - cx) * 4;
+      if (u.p.follow) s += followPref(f, u, c); // 따라쟁이: 탱커 옆 (75)
       s += f.rng() * 3;
       if (s > bs) { bs = s; best = c; }
     }
     best!.unit = u; u.cell = best!.i; u.home = best!.i;
   }
+  initPers(f); // 새 성격 상태 · 미신쟁이 명당 (75)
 }
 
 /** 한 틱 (0.05초) */

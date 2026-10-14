@@ -35,7 +35,9 @@ describe('잿빛 공동묘지', () => {
 
   it('보통 적 레벨 (Lv 5, 61 1-2) 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
-    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'cemetery', diff: '보통', seed: s, level: stageOf(contentOf('cemetery'), '보통'), gear: 'none' }).win) wins++;
+    // 공개모집처럼 직업 스킬이 있는 파티 (튜토리얼 뒤, 자동 밸런스 기준과 같음. 75: 파티원 목록)
+    const first = contentOf('cemetery').fights('보통')[0];
+    for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'cemetery', diff: '보통', seed: s, level: stageOf(contentOf('cemetery'), '보통'), gear: 'none', party: E.recruitParty(first, s, { abilities: true }) }).win) wins++;
     expect(wins).toBeGreaterThanOrEqual(19);
   }, 20_000); // 자동 밸런스 기준 20판은 CI 기본 5초를 넘을 수 있음
 });

@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS, type EncounterKey } from '../src/data/encounters';
-import { CLASS_NICKS, pickNick, STORY_NICKS } from '../src/data/nicknames';
-import { PERS_NAMES } from '../src/data/personalities';
+import { CLASS_NICKS, PARTY_POOL, pickNick, STORY_NICKS } from '../src/data/nicknames';
+import { PERS, PERS_NAMES } from '../src/data/personalities';
 import * as E from '../src/engine';
 import { makeCandidate } from '../src/game/guild';
 import { newSave } from '../src/platform/storage';
@@ -39,6 +39,25 @@ describe('닉네임 데이터', () => {
     expect(ALL.filter(n => taken.has(n))).toEqual([]);
   });
 
+  it('성격 30종을 직업마다 고르게: 탱커 직업 25종 · 원거리 30종 1명씩, 근접 세 직업은 30종을 2번씩', () => {
+    for (const k of RECRUIT_CLASSES) {
+      const ps = PARTY_POOL[k].map(m => m.pers);
+      expect(new Set(ps).size, k).toBe(ps.length);
+      if (CLASSES[k].role === 'tank') expect(ps.every(p => !('noTank' in PERS[p]))).toBe(true);
+      if (CLASSES[k].role !== 'melee') expect(ps.length).toBe(CLASSES[k].role === 'tank' ? 25 : 30);
+    }
+    const melee = RECRUIT_CLASSES.filter(k => CLASSES[k].role === 'melee').flatMap(k => PARTY_POOL[k].map(m => m.pers));
+    for (const p of PERS_NAMES) expect(melee.filter(x => x === p).length, p).toBe(2);
+  });
+
+  it('직업 스킬은 그 직업 것, 등급은 공개모집 확률대로 (탱커 16 · 7 · 2, 근접 13 · 6 · 1, 원거리 20 · 8 · 2)', () => {
+    const want = { tank: [16, 7, 2], melee: [13, 6, 1], ranged: [20, 8, 2] };
+    for (const k of RECRUIT_CLASSES) {
+      const g = PARTY_POOL[k].map(m => { expect(ABILITIES[m.ab]?.cls, m.ab).toBe(k); return ABILITIES[m.ab].grade; });
+      expect(['common', 'rare', 'epic'].map(x => g.filter(y => y === x).length), k).toEqual(want[CLASSES[k].role]);
+    }
+  });
+
   it('다 쓰면 목록 이름 뒤에 숫자', () => {
     const used = new Set(CLASS_NICKS.warrior);
     const n = pickNick('warrior', () => 0, used);
@@ -57,12 +76,32 @@ describe('공개모집 · 길드 지원자', () => {
     }
   });
 
-  it('닉네임을 붙여도 성격 · 직업 · 능력은 그대로 (따로 굴린 난수)', () => {
+  it('파티원 = 목록 그대로 (이름 · 성격 · 직업 스킬), 같은 시드 같은 파티, 튜토리얼 파티는 스킬 없음', () => {
     for (let s = 1; s <= 30; s++) {
-      const a = E.rollParty('plague', s), b = E.recruitParty('plague', s, { abilities: true });
-      expect(b.map(m => [m.role, m.pers])).toEqual(a.map(m => [m.role, m.pers]));
+      const b = E.recruitParty('plague', s, { abilities: true });
+      for (const m of b) expect(PARTY_POOL[m.cls!].find(x => x.nick === m.nick)).toEqual({ nick: m.nick, pers: m.pers, ab: m.ab });
       expect(E.recruitParty('plague', s, { abilities: true })).toEqual(b);
+      expect(E.recruitParty('plague', s).every(m => !m.ab)).toBe(true);
     }
+  });
+
+  it('저레벨 던전 (04 6-F): 희귀 성격 없음 · 탱커 ★1 · ★★★ 파티당 1명까지', () => {
+    for (let s = 1; s <= 200; s++) {
+      const p = E.recruitParty('warden', s);
+      expect(p.some(m => 'rare' in PERS[m.pers])).toBe(false);
+      expect(p.filter(m => m.role === 'tank').every(m => PERS[m.pers].star === 1)).toBe(true);
+      expect(p.filter(m => PERS[m.pers].star === 3).length).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('희귀 성격은 덜 나옴 (가중치 0.4), 탱커 불가 성격은 탱커로 안 나옴', () => {
+    let rare = 0, all = 0;
+    for (let s = 1; s <= 300; s++) for (const m of E.recruitParty('choir', s)) {
+      all++; if ('rare' in PERS[m.pers]) rare++;
+      if (m.role === 'tank') expect('noTank' in PERS[m.pers]).toBe(false);
+    }
+    expect(rare / all).toBeLessThan(4 / 30 * 0.7);
+    expect(rare / all).toBeGreaterThan(0.02);
   });
 
   it('길드 지원자도 자기 직업 목록에서, 길드원과 겹치지 않음', () => {

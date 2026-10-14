@@ -97,7 +97,8 @@ const PER_MIN = { small: 5, raid: 6, big: 7 };
 /** 같은 전투에서 같은 상황이 또 오면 확률이 이만큼씩 줄고, 처음 확률의 이 비율 밑으로는 안 내려감 */
 const REPEAT_DECAY = 0.6, REPEAT_FLOOR = 0.2;
 /** 엔진 말풍선 중 신호가 아닌 것 (빈도 제한을 받음) */
-const SOFT_BARKS: TalkSit[] = ['thanks', 'dodge'];
+// 성격 20종 (75)의 잦은 말 (따라감 · 딴 데로 · 명당 복귀 · 걱정 · 괜찮다 · 익숙해짐)도 빈도 제한
+export const SOFT_BARKS: TalkSit[] = ['thanks', 'dodge', 'follow', 'wander', 'luckBack', 'pessimist', 'optimist', 'learned'];
 /** 한 사람이 말을 몰아서 하지 않게: 가장 적게 말한 사람보다 이만큼 더 말했으면 위기 말고는 쉼 */
 const SHARE = 2;
 

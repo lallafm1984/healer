@@ -17,6 +17,26 @@ import { LINES as greedy } from './pers/greedy';
 import { LINES as loner } from './pers/loner';
 import { LINES as social } from './pers/social';
 import { LINES as stubborn } from './pers/stubborn';
+import { LINES as savvy } from './pers/savvy';
+import { LINES as slowpoke } from './pers/slowpoke';
+import { LINES as copycat } from './pers/copycat';
+import { LINES as wanderer } from './pers/wanderer';
+import { LINES as superstitious } from './pers/superstitious';
+import { LINES as hero } from './pers/hero';
+import { LINES as selfish } from './pers/selfish';
+import { LINES as cheerleader } from './pers/cheerleader';
+import { LINES as rival } from './pers/rival';
+import { LINES as hothead } from './pers/hothead';
+import { LINES as calm } from './pers/calm';
+import { LINES as optimist } from './pers/optimist';
+import { LINES as pessimist } from './pers/pessimist';
+import { LINES as timid } from './pers/timid';
+import { LINES as gambler } from './pers/gambler';
+import { LINES as fizzle } from './pers/fizzle';
+import { LINES as bloomer } from './pers/bloomer';
+import { LINES as focused } from './pers/focused';
+import { LINES as perfectionist } from './pers/perfectionist';
+import { LINES as newbie } from './pers/newbie';
 import { ROLE_LINES } from './roles';
 import type { TalkLines, TalkSit } from './sits';
 
@@ -26,6 +46,11 @@ export { CLASS_LINES, COMMON_LINES, ROLE_LINES };
 export const PERS_LINES: Record<PersName, TalkLines> = {
   '신중파': careful, '딜 욕심쟁이': greedy, '고집불통': stubborn, '덜렁이': clumsy, '허세꾼': bluff,
   '외톨이': loner, '사교형': social, '관심종자': attention, '감사형': grateful, '겁쟁이': coward,
+  // 75 문서: 20종 추가
+  '눈치백단': savvy, '느림보': slowpoke, '따라쟁이': copycat, '방랑자': wanderer, '미신쟁이': superstitious,
+  '영웅': hero, '이기주의자': selfish, '응원단장': cheerleader, '경쟁심': rival, '다혈질': hothead,
+  '침착함': calm, '낙천가': optimist, '비관론자': pessimist, '소심이': timid, '승부사': gambler,
+  '용두사미': fizzle, '대기만성': bloomer, '몰입형': focused, '완벽주의자': perfectionist, '뉴비': newbie,
 };
 
 export interface Speaker { pers: PersName | null; cls: ClassKey | null; role: Role }

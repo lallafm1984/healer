@@ -7,6 +7,7 @@ import { ABILITIES, starFx, type AbilityDef, type Fx, type Trig } from '../data/
 import { hexDist } from './board';
 import { addDebuff, cellOf, damage, damageMob, DT, emit, living, onDebuffEnd } from './core';
 import { moveTo, pickCell } from './movement';
+import { persGuard } from './persona';
 import type { AbState, BossSkill, Fight, Mod, ModKind, Telegraph, Unit } from './types';
 
 const DEF = (u: Unit): AbilityDef => ABILITIES[u.ab!.key];
@@ -183,6 +184,7 @@ function check(f: Fight, u: Unit, a: AbilityDef, tr: Trig): Unit | true | null {
     case 'low': {
       if (tr.noZone && (u.moving || f.zones.some(z => z.cells.has(u.cell)) || f.tels.some(t => t.kind === 'zone' && t.cells.has(u.cell)))) return null;
       let thr = tr.hp + starFx(a, u.ab!.star).early;
+      if (u.p.lateGuard || u.p.earlyGuard) thr = persGuard(u, thr); // 낙천가 · 비관론자 (75)
       if (a.kind === 'heal') {
         if (u.ab!.odd != null) thr = u.ab!.odd;
         else if (u.p.flee) thr = Math.max(thr, u.p.flee); // 겁쟁이: 도망치면서

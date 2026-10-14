@@ -13,6 +13,7 @@ import type { AffixKey } from '../data/affixes';
 import type { AddDown, AddJob, DebuffDef, DebuffEnd, SoulFail, SoulWin } from '../data/bosses';
 import type { AffixState } from './affixes';
 import type { BarkSit } from '../data/talk/sits';
+import type { PersState } from './persona';
 import type { SpecRun } from './specials';
 
 export type Role = 'tank' | 'melee' | 'ranged' | 'healer';
@@ -215,6 +216,13 @@ export interface Unit {
   ab: AbState | null;
   /** 능력이 건 효과 (받는 피해·딜·반응 …). 비어 있으면 아무 영향 없음 */
   mods: Mod[];
+  /** 성격 상태 (75 문서, 새 20종만) */
+  ps?: PersState;
+  /** 응원단장이 응원해 줌: 이 시각까지 딜 +cheerUp */
+  cheerUntil?: number;
+  cheerUp?: number;
+  /** 영웅이 대신 맞아 줌: until까지 받는 피해의 share를 id가 */
+  coverBy?: { id: number; until: number; share: number };
   /** 내 힐로 회복한 양 (인연 스카우트, 12 1장) */
   got: number;
   /** 눈치 자질 (17 9-1): 반응 시간 배율, 회피 보정 */
@@ -656,6 +664,8 @@ export interface Fight {
   manaCut: number;
   /** 능력을 가진 파티원이 있음 (없으면 능력 코드를 안 탐 = 프로토타입과 같음) */
   abOn: boolean;
+  /** 새 20종 성격이 있는 전투 (75 문서): 없으면 성격 훅을 안 봄 */
+  persOn?: boolean;
   ab: PartyAb;
   /** 어픽스 (없으면 null = 프로토타입과 같음) */
   aff: AffixState | null;

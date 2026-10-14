@@ -9,6 +9,7 @@ import { abFear, dpsMods, hasMod } from './abilities';
 import { dotSpec, dpsSpec, hotDone, renewDone, shieldGone, sv, under } from './specials';
 import { barkCut } from './heroes';
 import { frontCell, posDps } from './position';
+import { persDps, persIgnoresZone, persThink } from './persona';
 import type { PersName } from '../data/personalities';
 import type { Cell, Debuff, Fight, Hot, Unit } from './types';
 
@@ -20,7 +21,7 @@ const awayFrom = (d: Debuff): boolean => !!d.swell || (d.end?.p === 'jump' && d.
  */
 export function stepAway(f: Fight, u: Unit, sec: number): boolean {
   for (const d of u.debuffs) if (awayFrom(d)) d.stepped = true;
-  if ((u.p.dist ?? 0) > 0 || f.rng() >= dodgeRate(f, u)) return false;
+  if (!u.p.calm && ((u.p.dist ?? 0) > 0 || f.rng() >= dodgeRate(f, u))) return false; // 침착함은 꼭 비켜 섬 (75)
   if (!f.party.some(v => v !== u && v.alive && hexDist(cellOf(f, v), cellOf(f, u)) === 1)) return false;
   const cur = cellOf(f, u);
   const nearAt = (c: Cell) => f.party.filter(v => v !== u && v.alive && hexDist(f.cells[v.moving ? v.moving.to : v.cell], c) <= 1).length;
@@ -32,6 +33,7 @@ export function stepAway(f: Fight, u: Unit, sec: number): boolean {
   }
   if (!best || !moveTo(f, u, best)) return false;
   u.awayUntil = f.t + sec + 0.5; u.homeAt = null;
+  if (u.p.calm) bark(f, u, null, false, 'calmStep');
   return true;
 }
 
@@ -129,7 +131,8 @@ function debtTick(f: Fight, u: Unit, d: Debuff, dt: number): boolean {
 function think(f: Fight, u: Unit): void {
   const inZone = f.zones.find(z => z.cells.has(u.cell));
   if (inZone && u.ignoreZone !== inZone.id && f.t >= u.retryAt) {
-    if (u.p.stubborn && inZone.dps * 2 * f.dmgMult < u.p.stubborn * u.max) { u.ignoreZone = inZone.id; }
+    if (u.ps && persIgnoresZone(f, u)) { u.retryAt = f.t + 1; } // 다혈질 분노 · 소심이 당황 (75)
+    else if (u.p.stubborn && inZone.dps * 2 * f.dmgMult < u.p.stubborn * u.max) { u.ignoreZone = inZone.id; }
     else if (u.p.brave && u.hp / u.max >= u.p.brave) { u.retryAt = f.t + 1; }
     else {
       const rate = dodgeRate(f, u);
@@ -138,6 +141,7 @@ function think(f: Fight, u: Unit): void {
     }
     return;
   }
+  if (u.ps && persThink(f, u)) return; // 새 성격 20종 (75)
   // 도망: 겁쟁이 (50%). 쉼터가 있으면 신중파도 40% 아래에서 쉼터로 (사제 특성, 06 6장)
   const shelter = shelterFor(f);
   const fleeAt = u.p.flee || (shelter && u.pers && SHELTER_GO.includes(u.pers) ? SHELTER_GO_HP : 0);
@@ -256,5 +260,6 @@ export function unitDps(u: Unit, f?: Fight): number {
   if (u.mods.length) d *= dpsMods(u); // 파티원 능력 (17)
   if (f?.sp) d *= dpsSpec(f, u);
   if (f?.cheer && f.t < f.cheer.until) d *= f.cheer.mult; // 전투의 함성 (05 6-D)
+  if (f?.persOn) d *= persDps(f, u); // 새 성격 20종 · 응원 (75)
   return d;
 }

@@ -17,10 +17,10 @@ const fightWith = (party: RosterEntry[], seed = 1) => E.create({ encounter: 'war
 const unit = (f: ReturnType<typeof fightWith>, cls: ClassKey) => f.party.find(u => u.cls === cls)!;
 
 describe('공개모집 직업 뽑기', () => {
-  it('성격은 rollParty 그대로, 역할에 맞는 Lv 1 직업이 붙음 (닉네임은 직업 목록에서, nicknames.test)', () => {
+  it('역할 순서는 rollParty 그대로, 역할에 맞는 Lv 1 직업이 붙음 (이름 · 성격 · 스킬은 파티원 목록에서, nicknames.test)', () => {
     for (let s = 1; s <= 50; s++) {
       const a = E.rollParty('warden', s), b = E.recruitParty('warden', s);
-      expect(b.map(m => [m.role, m.pers])).toEqual(a.map(m => [m.role, m.pers]));
+      expect(b.map(m => m.role)).toEqual(a.map(m => m.role));
       for (const m of b) expect(CLASSES[m.cls!].role).toBe(m.role);
     }
   });
