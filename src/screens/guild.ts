@@ -6,6 +6,7 @@
  * recruit = 골드 모집 공고(후보 3명 중 1명) · 인연 스카우트.
  * 게시판·쪽지·도장 그림(ui-board · ui-note · ui-seal)이 오면 그 그림, 없으면 CSS 게시판 (guild30.css).
  */
+import { resourceBalance } from '../game/resources';
 import { art } from '../art';
 import { ABILITIES, STAR5, starFx } from '../data/abilities';
 import { CLASSES } from '../data/classes';
@@ -170,7 +171,7 @@ function detailHtml(m: GuildMember): string {
   const fx = starFx(a, m.star);
   const need = xpToNext(m.lv), xpPct = isFinite(need) ? Math.min(100, (m.xp / need) * 100) : 100;
   const atCap = m.lv >= topLevel(G.save);
-  const gold = G.save.player.gold;
+  const gold = resourceBalance(G.save, 'gold');
   const btn = (attr: string, label: string, sub: string, dis: boolean, cls = '') => `<button class="btn${cls ? ` ${cls}` : ''}" type="button" ${attr}${dis ? ' disabled' : ''}>${label}<small>${sub}</small></button>`;
   return `<li class="panel mdetail">
     <p class="mxp">경험치 <span class="bar"><i style="width:${xpPct.toFixed(0)}%"></i></span> ${fmt(m.xp)} / ${isFinite(need) ? fmt(need) : '최대'} · 출전 ${m.runs}번</p>
@@ -191,7 +192,7 @@ function detailHtml(m: GuildMember): string {
 }
 
 function recruitHtml(): string {
-  const g = G.save.guild, cap = capOf(G.save), full = g.members.length >= cap.cap, gold = G.save.player.gold;
+  const g = G.save.guild, cap = capOf(G.save), full = g.members.length >= cap.cap, gold = resourceBalance(G.save, 'gold');
   const tiers = Object.keys(POSTS) as PostTier[];
   const post = g.post;
   return `${note('g-paper g-posts', `<h3>골드 모집<small>정원 ${g.members.length}/${cap.cap}</small></h3>

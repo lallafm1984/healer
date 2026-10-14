@@ -1,6 +1,7 @@
 /**
  * 재화·임무·상점·시즌 패스 규칙 (12, 13, 15). 화면과 분리된 순수 계산 (시각·난수는 받아서 씀).
  */
+import { resourceBalance, spendResource } from './resources';
 import { RAID10_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
@@ -243,8 +244,8 @@ export function buyItem(save: SaveData, k: ItemKey, n = 1): string {
   const have = save.bag[k] || 0;
   n = Math.min(n, BAG_MAX - have);
   if (n <= 0) return `가방이 가득 참 (최대 ${BAG_MAX})`;
-  if (save.player.gold < price * n) return `골드 부족 (${(price * n).toLocaleString()} 필요)`;
-  save.player.gold -= price * n; save.bag[k] = have + n;
+  if (resourceBalance(save, 'gold') < price * n) return `골드 부족 (${(price * n).toLocaleString()} 필요)`;
+  spendResource(save, 'gold', price * n); save.bag[k] = have + n;
   return '';
 }
 
@@ -252,9 +253,9 @@ export function buyItem(save: SaveData, k: ItemKey, n = 1): string {
 export function craftShard(save: SaveData): string {
   if (save.wallet.shards >= SHARD_MAX) return `악몽 열쇠가 가득 참 (최대 ${SHARD_MAX})`;
   if (save.weekly.craft >= SHARD_CRAFT.weekly) return `이번 주 제작 ${SHARD_CRAFT.weekly}번을 다 씀`;
-  if (save.player.gold < SHARD_CRAFT.gold) return `골드 부족 (${SHARD_CRAFT.gold.toLocaleString()} 필요)`;
-  if (save.mats.stone < SHARD_CRAFT.stone) return `강화석 부족 (${SHARD_CRAFT.stone} 필요)`;
-  save.player.gold -= SHARD_CRAFT.gold; save.mats.stone -= SHARD_CRAFT.stone; save.weekly.craft++; save.wallet.shards++;
+  if (resourceBalance(save, 'gold') < SHARD_CRAFT.gold) return `골드 부족 (${SHARD_CRAFT.gold.toLocaleString()} 필요)`;
+  if (resourceBalance(save, 'stone') < SHARD_CRAFT.stone) return `강화석 부족 (${SHARD_CRAFT.stone} 필요)`;
+  spendResource(save, 'gold', SHARD_CRAFT.gold); spendResource(save, 'stone', SHARD_CRAFT.stone); save.weekly.craft++; save.wallet.shards++;
   return '';
 }
 
@@ -315,7 +316,7 @@ export function slotOffer(save: SaveData): SlotOffer {
   const cashWhy = have >= CHAR_SLOT.max ? `칸이 가득 참 (최대 ${CHAR_SLOT.max})` : save.tut < TUT.done ? '튜토리얼을 마치면 살 수 있음' : '';
   const why = cashWhy
     || (save.player.level < lv && !save.settings.devUnlock ? `이 캐릭터 Lv ${lv}부터` : '')
-    || (save.player.gold < gold ? `골드 부족 (${gold.toLocaleString('ko-KR')} 필요)` : '');
+    || (resourceBalance(save, 'gold') < gold ? `골드 부족 (${gold.toLocaleString('ko-KR')} 필요)` : '');
   return { have, max: CHAR_SLOT.max, gold, lv, ok: !why, why, cash: !cashWhy, cashWhy, iap: CHAR_SLOT.iap };
 }
 
@@ -323,7 +324,7 @@ export function slotOffer(save: SaveData): SlotOffer {
 export function buySlot(save: SaveData): string {
   const o = slotOffer(save);
   if (!o.ok) return o.why;
-  save.player.gold -= o.gold;
+  spendResource(save, 'gold', o.gold);
   save.roster.slots++;
   return '';
 }

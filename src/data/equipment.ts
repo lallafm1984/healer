@@ -72,7 +72,7 @@ export const MAIN_OPT: Partial<Record<SlotKey, { stat: StatKey; v: number }>> = 
 export const SLOT_MULT: Record<SlotGroup, number> = { weapon: 1.3, armor: 1.3, acc: 1 };
 /** 무작위 옵션 굴림: 그 줄 최대값의 ROLL_MIN ~ 100% */
 export const ROLL_MIN = 0.6;
-/** 강화 1단계마다 주 옵션 (장신구는 종류 옵션) +8% (34 6-5, +10 = ×1.8). 무작위 옵션은 각성으로 오름 */
+/** 강화 1단계마다 주 옵션 (장신구는 종류 옵션) +8% (34 6-5, +10 = ×1.8). 무작위 옵션은 강화해도 유지 */
 export const PLUS_STEP = 0.08;
 
 /**
@@ -117,8 +117,8 @@ export const kindsOf = (slot: SlotKey) => KINDS.filter(k => k.slot === slot);
 export const kindOf = (it: { slot: SlotKey; kind?: string }): KindDef => KINDS.find(k => k.key === it.kind && k.slot === it.slot) ?? kindsOf(it.slot)[0];
 export const groupOf = (slot: SlotKey): SlotGroup => SLOTS.find(s => s.key === slot)!.group;
 
-/** 무작위 옵션 한 줄. roll = 그 줄 최대값 대비 굴림 (0.6~1), up = 옵션 각성으로 더해진 값 (34 6-5, 비율) */
-export interface GearLine { stat: StatKey; roll: number; up?: number }
+/** 무작위 옵션 한 줄. roll = 그 줄 최대값 대비 굴림 (0.6~1) */
+export interface GearLine { stat: StatKey; roll: number }
 /** 종류 옵션 능력치 (주 옵션과 같은 것은 뺌: 성물 · 팔찌의 지능) */
 export const kindStats = (k: KindDef): StatKey[] => k.fixed.filter(x => x !== MAIN_OPT[k.slot]?.stat);
 /** 주 옵션 줄 수 (무기 · 방어구 1, 장신구 0) */
@@ -129,7 +129,7 @@ export const kindLines = (k: KindDef, grade: ItemGrade) => Math.min(kindStats(k)
 export const randomLines = (k: KindDef, grade: ItemGrade) => OPTION_LINES[grade] - mainLines(k.slot) - kindLines(k, grade);
 /** 무작위 옵션에 안 나오는 능력치: 주 옵션 · 종류 옵션 (둘 다) */
 export const takenStats = (k: KindDef): StatKey[] => [...(MAIN_OPT[k.slot] ? [MAIN_OPT[k.slot]!.stat] : []), ...k.fixed];
-/** 종류 · 무작위 옵션 한 줄 최대값 (굴림 1, 강화 · 각성 전): 능력치 기준값 × 부위 배율 × 등급 배율 */
+/** 종류 · 무작위 옵션 한 줄 최대값 (굴림 1, 강화 전): 능력치 기준값 × 부위 배율 × 등급 배율 */
 export const lineMax = (stat: StatKey, slot: SlotKey, grade: ItemGrade) => STATS[stat].max * SLOT_MULT[groupOf(slot)] * LINE_MULT[grade];
 
 /**
@@ -193,8 +193,6 @@ export interface GearItem {
   lock?: boolean;
   /** 이 장비에서 재설정한 횟수 (34 6-8, 할수록 비쌈). 옛 저장엔 없음 = 0 */
   rr?: number;
-  /** 강화로 처음 닿은 가장 높은 단계 (옵션 각성은 처음 닿을 때만, 34 6-5). 옛 저장엔 없음 = 지금 단계 */
-  top?: number;
   /** 아이템 레벨 = 떨어진 곳의 적 레벨 (탐험 · 던전 = 장소 Lv + 난이도, 레이드 = 그 판 적 레벨, 상자 · 상점 · 공훈 = 받을 때 내 레벨). 옛 저장은 migrate가 그 직업 레벨로 */
   lv?: number;
 }
@@ -528,7 +526,7 @@ export function rerollCost(it: GearItem, spec: boolean): { gold: number; refined
   const m = spec ? SPEC_REROLL_MULT : 1;
   return { gold: REROLL_GOLD[it.grade] * (1 + (it.rr ?? 0)) * m, refined: m };
 }
-/** 무작위 옵션 i번 줄 다시 굴림: 종류 옵션 (둘 다) · 다른 줄과 다른 능력치 (지금 능력치도 나올 수 있음), 각성 값은 사라짐 */
+/** 무작위 옵션 i번 줄 다시 굴림: 종류 옵션 (둘 다) · 다른 줄과 다른 능력치 (지금 능력치도 나올 수 있음) */
 export function rerollLine(r: () => number, it: GearItem, i: number): GearLine {
   const fx = takenStats(kindOf(it)), others = it.lines.filter((_, j) => j !== i).map(l => l.stat);
   const pool = STAT_KEYS.filter(k => !fx.includes(k) && !others.includes(k));
@@ -566,8 +564,8 @@ export function fixedOf(it: GearItem, level: number): { stat: StatKey; v: number
 }
 /** 굴림 막대 채움 (0~1): 최소 굴림 = 0, 최대 = 1 */
 export const rollFill = (roll: number) => Math.max(0, Math.min(1, (roll - ROLL_MIN) / (1 - ROLL_MIN)));
-/** 무작위 옵션 한 줄의 값 (각성 몫 포함, 지능 · 체력은 내 레벨 기준 아이템 레벨 배율) */
-export const lineValue = (it: GearItem, l: GearLine, level: number) => (lineMax(l.stat, it.slot, it.grade) * l.roll + (l.up ?? 0)) * statMult(l.stat, it.lv, level);
+/** 무작위 옵션 한 줄의 값 (지능 · 체력은 내 레벨 기준 아이템 레벨 배율) */
+export const lineValue = (it: GearItem, l: GearLine, level: number) => (lineMax(l.stat, it.slot, it.grade) * l.roll) * statMult(l.stat, it.lv, level);
 
 /** 장비 옵션 줄 (보이는 순서): 주 옵션 → 종류 옵션 → 무작위 옵션. line = it.lines 번호 (주 · 종류 옵션은 null). level = 내 레벨 */
 export function optionsOf(it: GearItem, level: number): { stat: StatKey; v: number; line: number | null }[] {
@@ -630,15 +628,13 @@ export const MAX_PLUS = 10;
 export const ENHANCE_BASE: Record<ItemGrade, number> = { '일반': 3, '고급': 5, '희귀': 10, '영웅': 20, '전설': 40 };
 /** 목표 단계별 성공 확률 (34 6-5, Lim 2026-10-09: 확률 강화 · 대성공 없음). 칸 번호 = 목표 단계 */
 export const ENHANCE_RATE = [0, 1, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5, 0.45, 0.4, 0.35];
-/** 이 단계 이상인 장비가 실패하면 1단계 떨어짐 (+1에서 실패하면 그대로) */
-export const ENHANCE_DROP_FROM = 2;
 export interface EnhanceCost {
   gold: number; stone: number; refined: number;
   /** 성공하면 이 단계 */
   to: number;
   /** 성공 확률 (0~1) */
   rate: number;
-  /** 실패하면 이 단계 (+2 이상이면 1 낮음, 아니면 그대로) */
+  /** 실패하면 현재 단계 유지 */
   fail: number;
 }
 /** 다음 단계 강화 한 번의 비용·확률: +1~+5 강화석 목표 단계만큼, +6~+10 정제 강화석 1개. 다 올렸으면 null */
@@ -647,13 +643,9 @@ export function enhanceCost(it: GearItem): EnhanceCost | null {
   if (to > MAX_PLUS) return null;
   return {
     gold: ENHANCE_BASE[it.grade] * to * to, stone: to <= 5 ? to : 0, refined: to > 5 ? 1 : 0, to,
-    rate: ENHANCE_RATE[to], fail: it.plus >= ENHANCE_DROP_FROM ? it.plus - 1 : it.plus,
+    rate: ENHANCE_RATE[to], fail: it.plus,
   };
 }
-/** 옵션 각성 (34 6-5): 이 단계에 처음 닿으면 무작위 옵션 한 줄이 그 부위 영웅 최대값의 25%만큼 오름 (등급 최대값을 넘을 수 있음) */
-export const AWAKEN_AT = [3, 6, 9] as const;
-export const AWAKEN_SHARE = 0.25;
-export const awakenValue = (it: GearItem, l: GearLine) => lineMax(l.stat, it.slot, '영웅') * AWAKEN_SHARE;
 
 /** 클리어 재료 (12 1장): 던전은 강화석 조금, 레이드는 정제 강화석도 (보스 처치). 레이드 정제 강화석은 확률 강화 · 재설정 때문에 2배 (34 6-9) */
 const DIFF_STEP: Record<DiffName, number> = { '쉬움': 0, '보통': 1, '어려움': 2, '악몽': 3 };

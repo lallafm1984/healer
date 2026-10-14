@@ -37,7 +37,8 @@ function render(): void {
         ${tog('auto', '자동 치유 (일시정지에서도 켜고 끔)')}
         ${tog('devUnlock', '레벨 잠금 무시 (던전·레이드)')}
         ${tog('allSkills', '스킬 전부 열기 (레벨 무관)')}
-        ${tog('devStones', '강화석 무제한 (강화 테스트)')}<p>강화할 때 강화석·정제 강화석을 쓰지 않습니다. 골드는 그대로 씁니다.</p>
+        ${tog('devGold', '골드 무제한')}
+        ${tog('devStones', '강화석·정제 강화석 무제한')}<p>켜진 재화는 보유량과 관계없이 사용할 수 있으며 차감되지 않습니다. 끄면 실제 보유량으로 돌아옵니다.</p>
         <button class="btn" type="button" id="tutAgain">${G.save.tut < TUT.done ? '튜토리얼 건너뛰기' : '튜토리얼 다시 보기 (레벨·장비는 그대로)'}</button>
         <button class="btn" type="button" id="resetSave">${confirmReset ? '한 번 더 누르면 삭제' : '저장 지우고 처음부터'}</button>
       </section>

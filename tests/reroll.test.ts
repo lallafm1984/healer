@@ -8,7 +8,7 @@ import { newSave } from '../src/platform/storage';
 
 const ring = (o: Partial<GearItem> = {}): GearItem => ({
   id: 7, slot: 'ring', kind: 'ring', grade: '영웅', plus: 0, name: '', rr: 0,
-  lines: [{ stat: 'crit', roll: 0.7, up: 0.01 }, { stat: 'haste', roll: 0.8 }, { stat: 'spirit', roll: 0.9 }],
+  lines: [{ stat: 'crit', roll: 0.7 }, { stat: 'haste', roll: 0.8 }, { stat: 'spirit', roll: 0.9 }],
   specs: [{ key: 'wishStar', roll: 0.7 }], ...o,
 });
 const setup = (level: number) => {
@@ -28,12 +28,12 @@ describe('비용', () => {
 });
 
 describe('굴림', () => {
-  it('옵션 줄: 고정 옵션 · 다른 줄 능력치는 안 나오고, 각성 값은 사라짐', () => {
+  it('옵션 줄: 고정 옵션 · 다른 줄 능력치는 안 나옴', () => {
     const it0 = ring(), r = rngFrom(5), fx = kindOf(it0).fixed;
     for (let n = 0; n < 300; n++) {
       const l = rerollLine(r, it0, 0);
       expect([fx, 'haste', 'spirit']).not.toContain(l.stat);
-      expect(l.up).toBeUndefined();
+      expect(l).not.toHaveProperty('up');
       expect(l.roll).toBeGreaterThanOrEqual(0.6);
     }
   });

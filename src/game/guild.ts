@@ -2,6 +2,7 @@
  * 길드 (02 9장, 12 3-3, 17 8장): 영입(골드 모집·인연 스카우트), 육성(훈련·육성 포인트·능력 다시 뽑기), 길드파티 편성, 판 뒤 경험치.
  * 화면과 분리된 규칙. 난수는 받아서 씀 (테스트에서 고정).
  */
+import { resourceBalance, spendResource } from './resources';
 import { AB_ODDS, rollAbility } from '../data/abilities';
 import { CLASSES, RECRUIT_CLASSES } from '../data/classes';
 import type { DiffName } from '../data/difficulty';
@@ -59,8 +60,8 @@ export function makeCandidate(save: SaveData, r: () => number, tier: PostTier, t
 export function postRecruit(save: SaveData, tier: PostTier, r: () => number): string {
   const g = save.guild, p = POSTS[tier];
   if (g.members.length >= capOf(save).cap) return `정원 ${capOf(save).cap}명이 다 참`;
-  if (save.player.gold < p.gold) return `골드 부족 (${p.gold.toLocaleString()} 필요)`;
-  save.player.gold -= p.gold;
+  if (resourceBalance(save, 'gold') < p.gold) return `골드 부족 (${p.gold.toLocaleString()} 필요)`;
+  spendResource(save, 'gold', p.gold);
   const taken = new Set<string>();
   const cands: GuildMember[] = [];
   for (let i = 0; i < POST_CANDS; i++) { const c = makeCandidate(save, r, tier, taken); taken.add(c.nick); cands.push(c); }
@@ -91,8 +92,8 @@ export function scoutHire(save: SaveData, i: number): string {
   const g = save.guild, s = g.scouts[i];
   if (!s) return '후보 없음';
   if (g.members.length >= capOf(save).cap) return `정원 ${capOf(save).cap}명이 다 참`;
-  if (save.player.gold < SCOUT_GOLD) return `골드 부족 (${SCOUT_GOLD} 필요)`;
-  save.player.gold -= SCOUT_GOLD;
+  if (resourceBalance(save, 'gold') < SCOUT_GOLD) return `골드 부족 (${SCOUT_GOLD} 필요)`;
+  spendResource(save, 'gold', SCOUT_GOLD);
   const { from: _f, ...rest } = s;
   join(save, { ...rest, xp: 0, aptUp: [0, 0, 0], star: 0, runs: 0 });
   g.scouts.splice(i, 1);
@@ -107,8 +108,8 @@ export function train(save: SaveData, id: number): string {
   if (!m) return '길드원 없음';
   if (m.lv >= topLevel(save)) return '내 레벨까지만';
   const c = trainCost(m.lv);
-  if (save.player.gold < c) return `골드 부족 (${c.toLocaleString()} 필요)`;
-  save.player.gold -= c; m.lv++; m.xp = 0;
+  if (resourceBalance(save, 'gold') < c) return `골드 부족 (${c.toLocaleString()} 필요)`;
+  spendResource(save, 'gold', c); m.lv++; m.xp = 0;
   return '';
 }
 
@@ -119,8 +120,8 @@ export function spendPoint(save: SaveData, id: number, what: 0 | 1 | 2 | 'star')
   if (pointsUsed(m) >= pointsAt(m.lv)) return '남은 육성 포인트 없음';
   if (what === 'star' ? m.star >= 5 : m.apt0[what] + m.aptUp[what] >= 5) return '이미 최대';
   const c = pointCost(m.lv);
-  if (save.player.gold < c) return `골드 부족 (${c.toLocaleString()} 필요)`;
-  save.player.gold -= c;
+  if (resourceBalance(save, 'gold') < c) return `골드 부족 (${c.toLocaleString()} 필요)`;
+  spendResource(save, 'gold', c);
   if (what === 'star') m.star++; else m.aptUp[what]++;
   return '';
 }
@@ -130,8 +131,8 @@ export function resetPoints(save: SaveData, id: number): string {
   const m = memberOf(save, id);
   if (!m) return '길드원 없음';
   if (!pointsUsed(m)) return '쓴 포인트 없음';
-  if (save.player.gold < RESET_GOLD) return `골드 부족 (${RESET_GOLD.toLocaleString()} 필요)`;
-  save.player.gold -= RESET_GOLD; m.aptUp = [0, 0, 0]; m.star = 0;
+  if (resourceBalance(save, 'gold') < RESET_GOLD) return `골드 부족 (${RESET_GOLD.toLocaleString()} 필요)`;
+  spendResource(save, 'gold', RESET_GOLD); m.aptUp = [0, 0, 0]; m.star = 0;
   return '';
 }
 
@@ -139,8 +140,8 @@ export function resetPoints(save: SaveData, id: number): string {
 export function rerollAbility(save: SaveData, id: number, r: () => number): string {
   const m = memberOf(save, id);
   if (!m) return '길드원 없음';
-  if (save.player.gold < REROLL_GOLD) return `골드 부족 (${REROLL_GOLD.toLocaleString()} 필요)`;
-  save.player.gold -= REROLL_GOLD;
+  if (resourceBalance(save, 'gold') < REROLL_GOLD) return `골드 부족 (${REROLL_GOLD.toLocaleString()} 필요)`;
+  spendResource(save, 'gold', REROLL_GOLD);
   m.ab = rollAbility(m.cls, r);
   return '';
 }

@@ -18,21 +18,29 @@ import { migrate, newSave } from '../src/platform/storage';
 
 const item = (o: Partial<GearItem> = {}): GearItem => ({ id: 1, slot: 'head', kind: '', grade: '희귀', plus: 0, name: '', lines: [], ...o });
 
-describe('강화 (34 6-5: 확률, +2 이상 실패 시 1단계 하락, 12 3-2)', () => {
+describe('강화 (확률 강화, 실패해도 현재 단계 유지)', () => {
   beforeEach(() => { G.save = newSave(1); });
   it('비용 (시도 한 번): 골드 = 등급 기본값 × 목표 단계², +1~+5 강화석 단계만큼, +6~+10 정제 강화석 1개', () => {
     expect(enhanceCost(item())).toEqual({ gold: 10, stone: 1, refined: 0, to: 1, rate: 1, fail: 0 });
-    expect(enhanceCost(item({ plus: 4 }))).toEqual({ gold: 10 * 25, stone: 5, refined: 0, to: 5, rate: 0.7, fail: 3 });
-    expect(enhanceCost(item({ plus: 5, grade: '영웅' }))).toEqual({ gold: 20 * 36, stone: 0, refined: 1, to: 6, rate: 0.6, fail: 4 });
-    expect(enhanceCost(item({ plus: 9, grade: '전설' }))).toMatchObject({ gold: 40 * 100, refined: 1, rate: 0.35, fail: 8 });
+    expect(enhanceCost(item({ plus: 4 }))).toEqual({ gold: 10 * 25, stone: 5, refined: 0, to: 5, rate: 0.7, fail: 4 });
+    expect(enhanceCost(item({ plus: 5, grade: '영웅' }))).toEqual({ gold: 20 * 36, stone: 0, refined: 1, to: 6, rate: 0.6, fail: 5 });
+    expect(enhanceCost(item({ plus: 9, grade: '전설' }))).toMatchObject({ gold: 40 * 100, refined: 1, rate: 0.35, fail: 9 });
     expect(enhanceCost(item({ plus: 10 }))).toBeNull();
   });
-  it('성공 확률은 단계가 오를수록 낮아지고, +1은 늘 성공 · 실패하면 +1까지는 그대로', () => {
+  it('성공 확률은 단계가 오를수록 낮아지고, +1은 늘 성공 · 모든 단계에서 실패해도 그대로', () => {
     expect(ENHANCE_RATE.slice(1)).toEqual([1, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5, 0.45, 0.4, 0.35]);
     for (let i = 2; i < ENHANCE_RATE.length; i++) expect(ENHANCE_RATE[i]).toBeLessThan(ENHANCE_RATE[i - 1]);
-    expect(enhanceCost(item({ plus: 0 }))!.fail).toBe(0);
-    expect(enhanceCost(item({ plus: 1 }))!.fail).toBe(1);
-    expect(enhanceCost(item({ plus: 2 }))!.fail).toBe(1);
+    for (let plus = 0; plus < 10; plus++) expect(enhanceCost(item({ plus }))!.fail).toBe(plus);
+  });
+  it.each([1, 2, 3, 4, 5, 6, 7, 8, 9])('+%i 실패 시 장비 전체를 유지하고 시도 비용만 차감', plus => {
+    const gear = item({ id: 7, plus, lines: [{ stat: 'crit', roll: 0.8 }] });
+    if (plus % 2) G.save.gear.bag = [gear]; else G.save.gear.equipped.head = gear;
+    G.save.player.gold = 10000; G.save.mats = { stone: 30, refined: 10 };
+    const before = structuredClone(gear), cost = enhanceCost(gear)!;
+    expect(enhance(7, () => 0.999)).toBe('강화 실패');
+    expect(gear).toEqual(before);
+    expect(G.save.player.gold).toBe(10000 - cost.gold);
+    expect(G.save.mats).toEqual({ stone: 30 - cost.stone, refined: 10 - cost.refined });
   });
   it('모자라면 이유, 성공하면 한 단계 오름 (재료 씀)', () => {
     const it = item({ id: 7 });
@@ -44,20 +52,20 @@ describe('강화 (34 6-5: 확률, +2 이상 실패 시 1단계 하락, 12 3-2)',
     expect(enhance(7, () => 0)).toBe('');
     expect([it.plus, G.save.player.gold, G.save.mats.stone]).toEqual([1, 90, 0]);
   });
-  it('실패: +2 이상이면 1단계 떨어지고, +1에서는 그대로. 재료는 실패해도 씀, 대성공 없음', () => {
+  it('실패: 단계는 유지하고 재료는 소비, 대성공 없음', () => {
     const it = item({ id: 7, plus: 4 });
     G.save.gear.bag = [it];
     G.save.player.gold = 10000; G.save.mats.stone = 20;
-    expect(enhance(7, () => 0.99)).toBe('강화 실패 · +4 → +3');
-    expect([it.plus, G.save.player.gold, G.save.mats.stone]).toEqual([3, 10000 - 250, 15]);
+    expect(enhance(7, () => 0.99)).toBe('강화 실패');
+    expect([it.plus, G.save.player.gold, G.save.mats.stone]).toEqual([4, 10000 - 250, 15]);
     it.plus = 1;
-    expect(enhance(7, () => 0.99)).toBe('강화 실패 · +1 그대로');
+    expect(enhance(7, () => 0.99)).toBe('강화 실패');
     expect(it.plus).toBe(1);
     // 성공 확률 바로 아래 굴림은 성공 (90% → 0.899)
     it.plus = 2;
     expect(enhance(7, () => 0.899)).toBe('');
     expect(it.plus).toBe(3);
-    expect(enhance(7, () => 0.8)).toBe('강화 실패 · +3 → +2');
+    expect(enhance(7, () => 0.8)).toBe('강화 실패');
   });
 });
 
@@ -118,8 +126,8 @@ describe('아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비�
     expect(ilvMult(50, 100)).toBeLessThan(0.46);
     // 내 레벨보다 높은 곳 장비는 더 셈 (Lv 3에서 녹슨 고원 어려움 = 적 Lv 5)
     expect(itemStats(staff(5), 3).int).toBeGreaterThan(0.12);
-    // 지능 · 체력은 주 옵션 · 무작위 옵션 · 각성 몫 · 강화 모두 같은 배율, 치명타 · 가속 · 정신력 · 인내는 고정 % (Lim 「10%가 9%로 떨어지면 헷갈림」)
-    const it = { ...staff(10), plus: 5, lines: [{ stat: 'spirit' as const, roll: 1, up: 0.02 }, { stat: 'hp' as const, roll: 0.8, up: 0.01 }] };
+    // 지능 · 체력은 주 옵션 · 무작위 옵션 · 강화 모두 같은 배율, 치명타 · 가속 · 정신력 · 인내는 고정 % (Lim 「10%가 9%로 떨어지면 헷갈림」)
+    const it = { ...staff(10), plus: 5, lines: [{ stat: 'spirit' as const, roll: 1 }, { stat: 'hp' as const, roll: 0.8 }] };
     const same = optionsOf(it, 10), low = optionsOf(it, 20);
     for (let i = 0; i < same.length; i++) expect(low[i].v).toBeCloseTo(same[i].v * (same[i].stat === 'int' || same[i].stat === 'hp' ? ilvMult(10, 20) : 1));
     expect(itemStats(staff(7), 100).haste).toBeCloseTo(itemStats(staff(100), 100).haste);

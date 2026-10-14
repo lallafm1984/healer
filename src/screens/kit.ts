@@ -1,4 +1,5 @@
 /** 화면 공통 도구: 화면 틀 만들기, 이동, 상단 바, 글자 이스케이프 */
+import { resourceBalance } from '../game/resources';
 import { ITEMS, type ItemKey } from '../data/items';
 import type { GearStats } from '../data/gear';
 import { HEROES, type HeroKey } from '../data/heroes';
@@ -83,7 +84,7 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
   const s = G.save, p = s.player;
   const set = opts.settings ? `<button class="tb-set" type="button" data-go="s-settings" aria-label="설정"><span class="tb-ring2">${GEAR_SVG}</span></button>` : '';
   if (opts.back) {
-    return `<header class="topbar"><button class="tb-back" type="button" data-go="${opts.back}" aria-label="뒤로">←</button><b class="tb-title">${esc(opts.title || '')}</b><span class="tb-gold" aria-label="골드">${currencyIcon('gold')} <b>${fmt(p.gold)}</b></span>${set}</header>`;
+    return `<header class="topbar"><button class="tb-back" type="button" data-go="${opts.back}" aria-label="뒤로">←</button><b class="tb-title">${esc(opts.title || '')}</b><span class="tb-gold" aria-label="골드">${currencyIcon('gold')} <b>${fmt(resourceBalance(s, 'gold'))}</b></span>${set}</header>`;
   }
   const need = xpToNext(p.level);
   const pct = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
@@ -99,7 +100,7 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
   return `<header class="topbar tb-mmo">${pf}
     <span class="tb-nm"><span class="tb-id"><b class="tb-cls">${esc(hero.name)}</b><small class="tb-lv">Lv. ${p.level}</small></span>
       <span class="tb-xprow"><span class="tb-xp" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}${apexOf(p.level) > 1 ? ` · 수련 +${((apexOf(p.level) - 1) * 100).toFixed(1)}%` : ''}"><i style="width:${pct.toFixed(1)}%"></i></span><small class="tb-xpt" aria-hidden="true" data-pct="${Math.floor(pct)}"></small></span></span>
-    <span class="tb-wal">${walletCell('tb-gold', '골드', 'gold', p.gold)}${walletCell('tb-cr', '크리스탈', 'crystal', s.wallet.crystal)}</span>
+    <span class="tb-wal">${walletCell('tb-gold', '골드', 'gold', resourceBalance(s, 'gold'))}${walletCell('tb-cr', '크리스탈', 'crystal', s.wallet.crystal)}</span>
     ${set}</header>`;
 }
 

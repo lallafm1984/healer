@@ -157,8 +157,8 @@
 #app #s-char .c7-enchant-rays { inset: -45px; z-index: 0; opacity: 0; background: repeating-conic-gradient(from 15deg, transparent 0deg 18deg, #ffe29caa 19deg 21deg, transparent 22deg 30deg); mask-image: radial-gradient(circle, #000 0%, #0008 35%, transparent 69%); animation: enchantRays var(--fxd) ease-out both; }
 #app #s-char .c7-enchant-particles { inset: 0; z-index: 6; }
 #app #s-char .c7-enchant-particles > i { position: absolute; left: 50%; top: 50%; width: 5px; height: 9px; border-radius: 50%; background: var(--enchant-color); box-shadow: 0 0 8px var(--enchant-color); opacity: 0; animation: enchantParticle calc(var(--fxd) * .65) calc(var(--fxd) * .25 + var(--delay)) ease-out both; }
-#app #s-char .c7-enhance-dialog:is(.fx-fail, .fx-drop) { --enchant-color: #ff8776; }
-#app #s-char .c7-enhance-dialog:is(.fx-fail, .fx-drop) .c7-enchant-rays { background: repeating-conic-gradient(transparent 0deg 18deg, #ff8776aa 19deg 21deg, transparent 22deg 30deg); }
+#app #s-char .c7-enhance-dialog.fx-fail { --enchant-color: #ff8776; }
+#app #s-char .c7-enhance-dialog.fx-fail .c7-enchant-rays { background: repeating-conic-gradient(transparent 0deg 18deg, #ff8776aa 19deg 21deg, transparent 22deg 30deg); }
 #app #s-char .c7-enh-result { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px 12px; min-height: 36px; border: 1px solid #b7985f88; border-radius: 7px; padding: 7px 10px; background: #b58a3918; }
 #app #s-char .c7-enh-result b { font: 800 18px/1.4 var(--font-display); }
 #app #s-char .c7-enh-result span { font-size: 14px; white-space: nowrap; }

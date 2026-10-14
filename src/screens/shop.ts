@@ -2,6 +2,7 @@
  * S18 상점 · S19 시즌 패스 (09, 15 6장, 12). 하위 탭: 골드 · 공훈 · 패스 · 크리스탈.
  * 결제·광고는 자리만 (platform/billing.ts). 개발 빌드는 「시험 구매」로 흐름만 확인.
  */
+import { resourceBalance } from '../game/resources';
 import {
   BAG_MAX, CRYSTAL_PACKS, itemPrice, MEMBER, MERIT_GEAR_COST, MERIT_WEEK_CAP, PASS_LEVELS, PASS_PREMIUM_CRYSTAL, PASS_XP, passPremium, SEASON, SHARD_CRAFT, SHARD_MAX,
 } from '../data/economy';
@@ -43,7 +44,7 @@ const wallet = () => {
   const w = G.save.wallet;
   const cells: [CurrencyIconKey, number | string, string][] = [
     ['crystal', w.crystal, '크리스탈'], ['shards', `${w.shards}/${SHARD_MAX}`, '악몽 열쇠'],
-    ['merit', w.merit, '공훈'], ['stone', G.save.mats.stone, '강화석'], ['refined', G.save.mats.refined, '정제 강화석'], ['ticket', w.ticket, '모집권'],
+    ['merit', w.merit, '공훈'], ['stone', resourceBalance(G.save, 'stone'), '강화석'], ['refined', resourceBalance(G.save, 'refined'), '정제 강화석'], ['ticket', w.ticket, '모집권'],
   ];
   return `<p class="wallet shop-wallet">${cells.map(([key, n, name]) => `<span>${currencyIcon(key)}<b>${typeof n === 'number' ? fmt(n) : n}</b><small>${name}</small></span>`).join('')}</p>`;
 };
@@ -64,7 +65,7 @@ function render(): void {
 }
 
 function goldHtml(): string {
-  const lv = topLevel(G.save), gold = G.save.player.gold, w = G.save.weekly;
+  const lv = topLevel(G.save), gold = resourceBalance(G.save, 'gold'), w = G.save.weekly;
   const rows = (Object.keys(ITEMS) as ItemKey[]).map(k => {
     const price = itemPrice(k, lv), have = G.save.bag[k] || 0;
     // 가격은 버튼 안에 (살 수 있는 만큼). 가방이 가득이면 「가득」
@@ -77,7 +78,7 @@ function goldHtml(): string {
       ${price == null ? '<small class="mute">레이드 드롭·주간 보상만</small>' : `<div class="sbuy">${btn(1)}${btn(5)}</div>`}</div><p class="note use">사용: ${esc(ITEMS[k].desc)}</p></li>`;
   }).join('');
   const sh = G.save.wallet.shards;
-  const can = sh < SHARD_MAX && w.craft < SHARD_CRAFT.weekly && gold >= SHARD_CRAFT.gold && G.save.mats.stone >= SHARD_CRAFT.stone;
+  const can = sh < SHARD_MAX && w.craft < SHARD_CRAFT.weekly && gold >= SHARD_CRAFT.gold && resourceBalance(G.save, 'stone') >= SHARD_CRAFT.stone;
   return `<h3 class="sec">소비 아이템 <small>레벨 비례 가격 · 종류마다 최대 ${BAG_MAX}</small></h3><ul class="slist">${rows}</ul>
     <h3 class="sec">악몽 열쇠 제작 <small>이번 주 ${w.craft}/${SHARD_CRAFT.weekly}</small></h3>
     <div class="srow solo"><span class="sic">${currencyIcon('shards')}</span><div><b>악몽 열쇠</b> <small>보유 ${sh}/${SHARD_MAX}</small><p class="note">악몽 입장권. 출발할 때 1개 소모</p></div>

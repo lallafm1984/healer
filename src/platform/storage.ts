@@ -17,7 +17,7 @@ import type { ItemKey } from '../data/items';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
@@ -80,7 +80,9 @@ export interface Settings {
   devUnlock: boolean;
   /** 개발 빌드: 레벨과 상관없이 스킬 전부 (06 7장 해금 무시) */
   allSkills: boolean;
-  /** 개발 빌드: 강화석 무제한. 강화할 때 강화석 · 정제 강화석을 따지지도 쓰지도 않음 (골드는 씀, Lim 2026-10-14 강화 테스트). 옛 저장엔 없음 = 꺼짐 */
+  /** 개발 빌드: 골드 비용을 무시하고 실제 보유 골드는 차감하지 않음. 옛 저장엔 없음 = 꺼짐 */
+  devGold?: boolean;
+  /** 개발 빌드: 강화석 · 정제 강화석 비용을 무시하고 실제 보유량은 차감하지 않음. 옛 저장엔 없음 = 꺼짐 */
   devStones?: boolean;
   /** 스킬 휠 8방향 배치 (09 S17). null = 기본 배치 */
   layout: Record<string, string | null> | null;
@@ -454,15 +456,16 @@ function gearByHero(d: SaveData): void {
 /**
  * 옛 장비를 지금 모양으로: 세트 표시를 빼고 (세트 장비 제거), 종류가 없으면 그 부위 첫 종류 (v7, 34 12장 6번),
  * 특수능력 줄이 없으면 등급만큼 굴림 (v8, 42 1-1, 직업 전용은 그 저장의 지금 직업 것).
- * v9 옵션 정비 (Lim 2026-10-11): 무작위 옵션은 새 줄 수만큼 앞에서부터 남김 (굴림 · 각성 값 그대로, 모자라면 굴림).
+ * v9 옵션 정비 (Lim 2026-10-11): 무작위 옵션은 새 줄 수만큼 앞에서부터 남김 (굴림 유지, 모자라면 굴림). v13은 각성 추가값과 최고 강화 기록을 제거한다.
  * 고유 능력은 전설만: 희귀 · 영웅 고유 장비는 고정 특수능력을 보통 줄 (굴림 최대)로, 이름 있는 장신구는 특수능력 1줄 굴림으로 바꾸고 떨어진 장소 생김새.
  * 전설은 고유 장비 · 이름 있는 장신구가 아니면 첫 특수능력이 고유 능력 (1.5배), 둘째 줄은 없앰.
  * 굴림은 장비 id로 정해서 몇 번 불러도 같음. 이름은 등급 말 + 종류
  */
 function upgradeItem(it: GearItem, hero: HeroKey, level: number): GearItem {
   if (!it || typeof it !== 'object') return it;
-  const c: GearItem & { set?: unknown } = { ...it };
+  const c: GearItem & { set?: unknown; top?: unknown } = { ...it };
   delete c.set;
+  delete c.top;
   // 아이템 레벨 (2026-10-13): 옛 장비는 읽을 때 그 직업 레벨 (지금 성능 그대로에서 시작해 레벨이 오르면 약해짐)
   if (typeof c.lv !== 'number') c.lv = Math.max(1, Math.round(level) || 1);
   const k = kindOf(c), n = randomLines(k, c.grade);
@@ -470,7 +473,11 @@ function upgradeItem(it: GearItem, hero: HeroKey, level: number): GearItem {
   const taken = takenStats(k);
   const lines = Array.isArray(c.lines) ? c.lines.filter(l => l && !taken.includes(l.stat)).slice(0, n) : [];
   if (lines.length < n) lines.push(...rollLines(rngFrom(Math.imul(c.id || 1, 0x2545f491) ^ 0x6a09e667), n - lines.length, [...taken, ...lines.map(l => l.stat)]));
-  c.lines = lines;
+  c.lines = lines.map(l => {
+    const clean: typeof l & { up?: unknown } = { ...l };
+    delete clean.up;
+    return clean;
+  });
   if (!Array.isArray(c.specs)) {
     const r = rngFrom(Math.imul(c.id || 1, 0x9e3779b1) ^ 0x3c6ef372);
     c.specs = rollSpecs(r, c.slot, c.grade, specCount(r, c.grade), { hero });
