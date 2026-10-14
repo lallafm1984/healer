@@ -6,6 +6,7 @@ import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
 import { relayHurt } from './relay';
 import { posTaken } from './position';
+import { talentDeath, talentTaken } from './talents';
 import { coverPart, persDebuff, persDeath, persHurt } from './persona';
 import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, shieldGone, specDeath, specDebtPaid, specDebuffEnd, specFlip, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
@@ -52,7 +53,6 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   let crit = false;
   if (!raw) {
     amt *= f.gear.heal * f.power;
-    if (f.standin) amt *= f.standin.heal; // 특성 트리 없는 직업 임시 보정
     // 사제 특성 (06 6장): 슬픔의 힘 (파티원이 쓰러진 뒤 5초 +30%), 벼랑 끝 손길 (30% 이하 대상 직접 힐 +25%)
     if (f.tx.griefUntil > f.t) amt *= 1.3;
     if (direct && f.tx.on.brink && u.hp <= u.max * 0.3) amt *= 1.25;
@@ -243,8 +243,8 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
   if (f.R.pos && u.role === 'ranged') amt *= posTaken(f, u); // 위치 규칙: 레이드 판 1 · 2열 원거리는 +50%
   if (f.sp) amt *= dmgSpec(f, u); // 장비 특수능력 (42 보호 · 지원 · 기믹)
   if (u.me && f.tx.on.firmWill) amt *= 0.8; // 굳은 의지 (06 6장)
+  if (f.tx.cut) amt *= talentTaken(f, u, magic); // 드루이드 · 성기사 특성 (77)
   if (u.me && f.gear.endure) amt *= 1 - f.gear.endure; // 장비 인내 (34 6-4)
-  if (u.me && f.standin) amt *= f.standin.guard; // 특성 트리 없는 직업 임시 보정
   if (u.shield > 0) amt *= 0.6;
   if (u.redu > 0) amt *= 1 - u.reduCut;
   if (f.abOn || u.mods.length) { // 파티원 능력 (17) · 특수능력 보호막 · 피해 감소 (42)
@@ -301,6 +301,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     if (u.max < u.base) u.max = u.base;
     f.stats.deaths++;
     if (!u.me && f.tx.on.grief) f.tx.griefUntil = f.t + 5; // 슬픔의 힘
+    if (!u.me && f.tx.death) talentDeath(f, u); // 남은 꽃 · 순교의 빛 (77)
     if (!u.me && f.sp) specDeath(f); // 굳센 결의 · 되감기 (42)
     if (f.persOn) persDeath(f, u); // 다혈질 (75)
     emit(f, { type: 'death', id: u.id });

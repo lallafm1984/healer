@@ -1,7 +1,7 @@
 /** 힐러 직업 (25): 저장·직업 바꾸기 (v11 캐릭터, 68), 드루이드·성기사 고유 효과 */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TUNE } from '../src/data/tune';
-import { BEACON, DRUID_BIG, HAND_GUARD, PRIEST_MANA, SANCTUARY, TALENT_STANDIN, WAVE } from '../src/data/heroConst';
+import { BEACON, DRUID_BIG, HAND_GUARD, SANCTUARY, TIER_MANA, WAVE } from '../src/data/heroConst';
 import { HERO_KEYS, HEROES, heroSkills, skillAt, slotIdOf } from '../src/data/heroes';
 import { SKILLS } from '../src/data/skills';
 import * as E from '../src/engine';
@@ -17,7 +17,6 @@ type F = ReturnType<typeof E.create>;
 const fight = (hero: 'priest' | 'druid' | 'paladin', level = 100) => {
   const f = E.create({ encounter: 'warden', diff: '보통', seed: 7, level, hero });
   f.gear.crit = 0;
-  f.standin = null; // 기술 수치만 봄 (임시 특성 보정은 아래 따로)
   return f;
 };
 const tank = (f: F) => f.party.find(u => u.role === 'tank')!;
@@ -193,14 +192,14 @@ describe('성기사', () => {
   it('봉화 몫: 5인까지 40%, 10인 레이드 30%, 20인 레이드 25% (73)', () => {
     const at = (encounter: 'warden' | 'plague' | 'choir') => E.beaconShare(E.create({ encounter, diff: '보통', seed: 7, level: 100, hero: 'paladin' }));
     expect([at('warden'), at('plague'), at('choir')]).toEqual([BEACON.share, BEACON.raid10, BEACON.raid20]);
-    const f = E.create({ encounter: 'plague', diff: '보통', seed: 7, level: 100, hero: 'paladin' }); f.standin = null; f.gear.crit = 0;
+    const f = E.create({ encounter: 'plague', diff: '보통', seed: 7, level: 100, hero: 'paladin' }); f.gear.crit = 0;
     const t = f.party.find(u => u.id === f.beacon)!, d = dps(f);
     t.hp = 100; d.hp = 100;
     const a = heroHeal(f, d, 100);
     expect(t.hp - 100).toBeCloseTo(a * BEACON.raid10, 5);
   });
   it('빛의 파도: 신성한 힘 3칸 + 마나 5%, 범위 안 가장 다친 4명만, 봉화로 안 옮김, 이펙트는 회복한 칸마다 (73)', () => {
-    const f = E.create({ encounter: 'choir', diff: '보통', seed: 7, level: 100, hero: 'paladin' }); f.standin = null; f.gear.crit = 0;
+    const f = E.create({ encounter: 'choir', diff: '보통', seed: 7, level: 100, hero: 'paladin' }); f.gear.crit = 0;
     f.skills.forEach(s => { s.next = Infinity; });
     const near = (u: (typeof f.party)[number]) => f.party.filter(v => E.hexDist(f.cells[v.cell], f.cells[u.cell]) <= 1);
     const c = f.party.find(u => near(u).length > WAVE.max)!;
@@ -211,7 +210,7 @@ describe('성기사', () => {
     const hp0 = new Map(f.party.map(u => [u.id, u.hp])), bc0 = bc.hp;
     f.power3 = 3; f.mana = 50; f.used = [];
     expect(E.use(f, 'lightWave', c.cell).ok).toBe(true);
-    expect(f.mana).toBeCloseTo(50 - SKILLS.lightWave.cost + 2, 5); // 즉시 스킬이라 바로 · 헌신 (힘 3칸) +2
+    expect(f.mana).toBeCloseTo(50 - SKILLS.lightWave.cost * f.manaCut + 2, 5); // 즉시 스킬이라 바로 · 헌신 (힘 3칸) +2
     const healed = f.party.filter(u => u.hp > hp0.get(u.id)! + 1e-9).map(u => u.id).sort();
     expect(healed).toEqual(pool.slice(0, WAVE.max).map(u => u.id).sort());
     expect(bc.hp).toBeLessThanOrEqual(bc0);
@@ -262,22 +261,15 @@ describe('레이드 재조정 (2026-10-07: 특성·능력 포함 기준, 26 9-1)
     expect(tn).toBeGreaterThan(1);
     expect(mk('priest', 35, 'plague', '어려움').dmgMult / mk('priest', 35, 'plague', '보통').dmgMult).toBeCloseTo(1.2 * tn);
   });
-  it('임시 특성 보정: 드루이드·성기사만, 열린 특성 단마다', () => {
-    expect(mk('priest', 100).standin).toBeNull();
-    expect(mk('druid', 4).standin).toEqual({ heal: 1, mana: 1, guard: 1 });
-    const s = mk('paladin', 17).standin!;
-    expect(s.heal).toBeCloseTo(1 + TALENT_STANDIN.heal * 3);
-    expect(s.mana).toBeCloseTo(1 - TALENT_STANDIN.mana * 3);
-    expect(s.guard).toBeCloseTo(1 - TALENT_STANDIN.guard * 3);
-  });
-  it('사제 마나 보정: 열린 특성 단마다 −2%, 다른 직업 · 프로토타입은 그대로 (2026-10-14)', () => {
-    expect(mk('priest', 100).manaCut).toBeCloseTo(1 - PRIEST_MANA * 10);
-    expect(mk('priest', 17).manaCut).toBeCloseTo(1 - PRIEST_MANA * 3);
-    expect(mk('priest', 4).manaCut).toBe(1);
-    expect(mk('druid', 100).manaCut).toBe(1);
+  it('특성 단 마나 보정: 세 직업 모두 열린 특성 단마다 −2%, 프로토타입은 그대로 (67 → 77)', () => {
+    for (const h of ['priest', 'druid', 'paladin'] as const) {
+      expect(mk(h, 100).manaCut).toBeCloseTo(1 - TIER_MANA * 10);
+      expect(mk(h, 17).manaCut).toBeCloseTo(1 - TIER_MANA * 3);
+      expect(mk(h, 4).manaCut).toBe(1);
+    }
     expect(E.create({ encounter: 'plague', diff: '보통', seed: 7, level: 100, proto: true }).manaCut).toBe(1);
-    const f = mk('priest', 100);
-    expect(E.costOf(f, 'heal')).toBeCloseTo(3 * (1 - PRIEST_MANA * 10));
+    expect(E.costOf(mk('priest', 100), 'heal')).toBeCloseTo(3 * (1 - TIER_MANA * 10));
+    expect(E.costOf(mk('druid', 100), 'growth')).toBeCloseTo(3 * (1 - TIER_MANA * 10)); // 임시 보정 (단마다 −4%)은 없앰
   });
   it('자동 힐러 3인: 셋이 붙어 크게 다치면 광역 힐 (2026-10-14 검토: 3인은 문턱을 못 넘어 광역을 안 씀)', () => {
     for (const hero of ['priest', 'druid'] as const) {
@@ -292,7 +284,7 @@ describe('레이드 재조정 (2026-10-07: 특성·능력 포함 기준, 26 9-1)
     }
   });
   it('들꽃 군락: 시전이 끝나면 재사용 대기 10초', () => {
-    const f = mk('druid', 100); f.standin = null;
+    const f = mk('druid', 100);
     const u = f.party.find(x => x.role === 'tank')!;
     expect(E.use(f, 'wildflower', u.cell).ok).toBe(true);
     finish(f);

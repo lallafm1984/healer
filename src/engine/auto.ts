@@ -1,6 +1,6 @@
 import { ABILITIES } from '../data/abilities';
 import { armorFactor } from '../data/armor';
-import { RELAY, WAVE } from '../data/heroConst';
+import { RELAY } from '../data/heroConst';
 import { HEROES } from '../data/heroes';
 import { DISPELLABLE, SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
@@ -13,7 +13,7 @@ import { canTarget, knows, use } from './healer';
 import { setBeacon } from './heroes';
 import { reviveTarget } from './items';
 import { dangerAt } from './movement';
-import { areaRadius, castOf, talentReady, useTalent } from './talents';
+import { areaRadius, castOf, talentReady, useTalent, waveMax, waveNeed } from './talents';
 import type { Debuff, Fight, FightConfig, Telegraph, Unit } from './types';
 
 /**
@@ -348,9 +348,9 @@ function dropInverted(f: Fight): void {
 export function autoHealer(f: Fight): void {
   dropInverted(f);
   noteDispel(f);
+  autoTalents(f);
   if (f.hero === 'druid') { autoDruid(f); return; }
   if (f.hero === 'paladin') { autoPaladin(f); return; }
-  autoTalents(f);
   if (f.cast || f.channel > 0 || f.gcd > 0 || f.queued) return;
   const all = living(f), live = all.filter(u => !off(f, u)), g = gim(f);
   if (!live.length) return;
@@ -440,15 +440,20 @@ export function autoHealer(f: Fight): void {
   }
 }
 
-/** 사제 보조 버튼 특성 (GCD 밖): 여럿이 다치면 정점·흩빛, 위급하면 기적, 도망가는 파티원이 있으면 뒤쪽 빈 칸에 쉼터 */
+/**
+ * 보조 버튼 특성 (GCD 밖). 사제: 여럿이 다치면 정점·흩빛, 위급하면 기적, 도망가는 파티원이 있으면 뒤쪽 빈 칸에 쉼터.
+ * 드루이드 (77): 여럿이 다치거나 광역이 곧 오면 봄비 · 숲의 기억, 누가 아주 낮고 거둘 새싹이 넉넉하면 고목.
+ * 성기사 (77): 여럿이 다치거나 위급하면 가득 찬 빛 (힘이 모자랄 때), 여럿이 다치면 새벽의 맹세
+ */
 function autoTalents(f: Fight): void {
   const act = f.tx.act;
-  if (!act.miracle && !act.zenith && !act.scatter && !act.shelter) return;
+  if (!Object.keys(act).length) return;
   const live = living(f);
   if (!live.length) return;
   const pct = (u: Unit) => u.hp / u.max;
   const hurt = live.filter(u => pct(u) < 0.6).length;
   const many = hurt >= Math.max(2, Math.ceil(live.length * 0.3));
+  const low = live.reduce((a, b) => (pct(b) < pct(a) ? b : a));
   if (act.miracle && talentReady(f, 'miracle').ok && f.g.p < 100 && (many || live.some(u => pct(u) < 0.3))) useTalent(f, 'miracle');
   if (act.zenith && many && talentReady(f, 'zenith').ok) useTalent(f, 'zenith');
   if (act.scatter && many && talentReady(f, 'scatter').ok) useTalent(f, 'scatter');
@@ -456,6 +461,16 @@ function autoTalents(f: Fight): void {
     const c = f.cells.filter(x => !x.unit && !dangerAt(f, x.i)).sort((a, b) => b.row - a.row)[0];
     if (c) useTalent(f, 'shelter', c.i);
   }
+  const aoeSoon = f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 4);
+  if (act.springRain && (many || aoeSoon) && live.filter(u => !u.hots.some(h => h.key === 'sprout')).length >= Math.max(2, Math.ceil(live.length * 0.4)) && talentReady(f, 'springRain').ok) useTalent(f, 'springRain');
+  if (act.forestMemory && (many || aoeSoon) && talentReady(f, 'forestMemory').ok) useTalent(f, 'forestMemory');
+  if (act.oldTree && pct(low) < 0.3 && talentReady(f, 'oldTree').ok) {
+    let sum = 0;
+    for (const v of live) if (v !== low) for (const h of v.hots) if (h.key === 'sprout') sum += h.rest;
+    if (sum * 2 * healUnit(f) >= low.max * 0.3) useTalent(f, 'oldTree');
+  }
+  if (act.resolveFill && f.power3 < 2 && (many || pct(low) < 0.3) && talentReady(f, 'resolveFill').ok) useTalent(f, 'resolveFill');
+  if (act.dawnVow && many && talentReady(f, 'dawnVow').ok) useTalent(f, 'dawnVow');
 }
 
 /**
@@ -563,8 +578,10 @@ function autoDruid(f: Fight): void {
   // 새싹은 미리 깔아 둠: 다친 사람부터, 마나가 넉넉하면 멀쩡한 사람에게도 (광역 피해 대비)
   const aoeSoon = g.aoe || f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 6);
   // 역류 중에는 미리 깔기를 쉼 (스킬마다 중첩)
-  const bare = g.few ? undefined : live.filter(u => !sprouted(u) && (pct(u) < 0.9 || (aoeSoon && f.mana > 30))).sort((a, b) => pct(a) - pct(b))[0];
+  const bare = g.few ? undefined : live.filter(u => !sprouted(u) && (pct(u) < 0.9 || (aoeSoon && f.mana > 30) || (!!f.tx.on.earlySprout && pct(low) >= 0.8 && !g.save))).sort((a, b) => pct(a) - pct(b))[0]; // 이른 새싹 (77): 멀쩡한 사람에게는 공짜. 다친 사람이 있으면 그쪽 먼저 (힘 모으기처럼 체력 선이 있는 기믹에서 탱커를 놓쳐 3인 보통 0%이던 것)
   if (bare && f.mana > 2 && tryUse(f, 'sprout', bare, idx)) return;
+  // 두 겹 새싹 (77): 새싹을 다 깔았고 탱커가 다쳤으면 탱커에게 두 번째 새싹
+  if (f.tx.on.twinSprout && f.mana > 20) { const t2 = live.find(u => u.role === 'tank' && pct(u) < 0.9 && u.hots.filter(h => h.key === 'sprout' && h.left > 2).length < 2); if (t2 && tryUse(f, 'sprout', t2, idx)) return; }
   // 새싹을 다 깔았으면 남는 시간엔 생장 (마나가 넉넉할수록 일찍, 보호막 수정이 서 있으면 아낌, 그릇이 있으면 넘치게)
   const cut = g.spill || g.few || g.glassFill ? topUp(f, g, 0.55) : f.mana > 60 && !g.save ? 0.85 : f.mana > 30 ? 0.7 : 0.55;
   if (pct(low) < cut && f.mana > 6 && tryUse(f, 'growth', low, idx)) return;
@@ -574,7 +591,7 @@ function autoPaladin(f: Fight): void {
   // 봉화는 첫 탱커에게 (배운 뒤 한 번)
   if (f.beacon == null && f.level >= HEROES.paladin.system.lv) { const t = living(f).find(u => u.role === 'tank'); if (t) setBeacon(f, t); }
   const lr = 1 + sv(f, 'wideWave'); // 퍼지는 파도 (42 성기 06)
-  const c = ctx(f, 260, lr, WAVE.max); // 빛의 파도는 가장 다친 4명 (73)
+  const c = ctx(f, 260, lr, waveMax(f)); // 빛의 파도는 가장 다친 4명 (73, 밀려오는 파도면 5명 77)
   if (!c) return;
   const { live, pct, low, idx, ready, g } = c;
   // 모래시계 창 안 (54 5장): 남는 일만
@@ -601,6 +618,8 @@ function autoPaladin(f: Fight): void {
   const one = (u: Unit) => (ready('holyStrike') && tryUse(f, 'holyStrike', u, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', u, idx));
   // 생명 사슬이 곧 끊어지면 낮은 쪽부터
   if (g.link?.near && one(g.link.u)) return;
+  // 끝없는 빛 (77): 빛의 파도는 2칸부터 (그때 위력 70%라 문턱도 그만큼 낮춤)
+  if (f.power3 >= waveNeed(f) && f.power3 < 3 && knows(f, 'lightWave') && c.cluster.best && c.cluster.score > aoeBar(f, 600, 260, lr) * healUnit(f) && tryUse(f, 'lightWave', c.cluster.best, idx)) return;
   if (f.power3 >= 3) {
     if (knows(f, 'lightWave') && c.cluster.best && c.cluster.score > aoeBar(f, 600, 260, lr) * healUnit(f) && tryUse(f, 'lightWave', c.cluster.best, idx)) return;
     const oathless = (u: Unit) => !u.hots.some(h => h.key === 'oath');

@@ -19,7 +19,7 @@ const fight = (keys: TalentKey[], o: { enc?: 'warden' | 'plague' | 'choir'; hero
   const f = E.create({ encounter: o.enc ?? 'plague', diff: '보통', seed: 7, level: o.level ?? 100, hero: o.hero, talents: picks(...keys) });
   f.gear.crit = 0;
   f.power = 1; f.dmgMult = 1; f.gear.heal = 1; // 힐·피해를 기본 단위로 (레벨 배율 · 치유 배율 1, 34 1-2 · 1-6): 특성 효과만 봄
-  f.manaCut = 1; // 사제 마나 보정 (단마다 −2%)도 끔
+  f.manaCut = 1; // 특성 단 마나 보정 (단마다 −2%)도 끔
   f.skills.forEach(s => { s.next = Infinity; }); // 보스 기술은 끔
   return f;
 };
@@ -50,9 +50,9 @@ describe('특성 켜기', () => {
     expect(TALENTS.map(t => t.lv)).toEqual([5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
     expect(talentKeys(undefined, 100)).toEqual([]);
   });
-  it('특성 없음 = 상태 비어 있음, 사제 밖 직업은 특성을 넘겨도 무시', () => {
+  it('특성 없음 = 상태 비어 있음, 같은 칸 번호도 직업마다 그 직업 트리로 읽음 (77)', () => {
     expect(fight([]).tx.on).toEqual({});
-    expect(fight(['longBreath'], { hero: 'druid' }).tx.on).toEqual({});
+    expect(fight(['longBreath'], { hero: 'druid' }).tx.on).toEqual({ longSprout: true }); // 1단 첫 칸 = 드루이드 긴 새싹
     expect(fight(['longBreath', 'zenith']).tx.act).toEqual({ zenith: { cd: 0, left: 0, used: false } });
   });
 });

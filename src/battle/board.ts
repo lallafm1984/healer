@@ -1104,8 +1104,8 @@ export function addBubble(id: number, text: string, now: number, life = 1700, ki
 /** 20인 탭 확대 미리보기 0.3초 (02 3-1) */
 export function lensAt(idx: number, now: number): void { B2.lens = { idx, t0: now }; }
 
-/** 지속 힐 색: 새싹 초록 · 생장 연두 · 들꽃 분홍 · 빛의 서약 금색 */
-const HOT_COLOR: Record<string, number> = { sprout: 0x7bc67e, growth: 0xb7e07a, wildflower: 0xe59ac0, oath: 0xf0c46a };
+/** 지속 힐 색: 새싹 초록 · 생장 연두 · 들꽃 분홍 · 빛의 서약 금색 · 남은 꽃 (드루이드 특성) 연분홍 · 파도의 여운 (성기사 특성) 연금색 (77) */
+const HOT_COLOR: Record<string, number> = { sprout: 0x7bc67e, growth: 0xb7e07a, wildflower: 0xe59ac0, oath: 0xf0c46a, bloom: 0xf3c7d6, lightWave: 0xffe7a3 };
 
 function predictedHeal(u: Unit): number {
   const F = B.F!;
@@ -1316,6 +1316,8 @@ export function render(now: number): void {
     if (melting) hexPoly(cellsG, p.x, p.y, r).fill({ color: MELT, alpha: 0.07 + 0.08 * zpulse });
     // 성기사 빛의 성역: 금빛 바닥, 끝나기 2초 전 깜빡임
     if (F.sanctuary && F.sanctuary.cells.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: F.sanctuary.end - F.t < 2 ? 0.08 + 0.14 * pulse : 0.2 });
+    // 드루이드 이끼 자리 (특성 77): 이끼 초록 바닥, 끝나기 2초 전 깜빡임 (정식 바닥 그림은 78 그림 요청)
+    { const mu = F.tx.moss?.get(i); if (mu != null && mu > F.t) hexPoly(cellsG, p.x, p.y, r).fill({ color: HOT_COLOR.sprout, alpha: mu - F.t < 2 ? 0.06 + 0.12 * pulse : 0.16 }); }
     // 사제 쉼터 (특성): 금빛 바닥 + 안쪽 테두리, 끝나기 2초 전 깜빡임
     if (F.tx.shelter === i) {
       const left = F.tx.act.shelter?.left ?? 0;

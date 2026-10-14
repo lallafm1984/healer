@@ -71,7 +71,7 @@ export default async function heroes(url, shots) {
   ok(await page.isVisible('#s-char .c7-sk[data-skill="sprout"]') && (await page.locator('#s-char .c7-sk[data-skill="heal"]').count()) === 0, '스킬 탭 = 드루이드 스킬');
   ok(/새싹/.test(await text('#s-char [data-tap="heal"]')), '칸 탭 기본 힐 = 새싹');
   await page.click('#s-char nav [data-csub="talent"]'); await page.clock.runFor(50);
-  ok(/준비 중/.test(await text('#s-char .ns-body')), '드루이드 특성 = 준비 중');
+  ok(/드루이드 특성/.test(await text('#s-char .c7-talent-title')) && /긴 새싹/.test(await text('#s-char .c7-tiers')) && (await page.locator('#s-char .c7-tier.pending').count()) === 2, '드루이드 특성 트리 (77): Lv 10 = 2단 열림');
   await page.screenshot({ path: `${shots}/heroes_druid_skill.png` });
 
   // ---- 편성 안내: 해제 불가·직업 바꾸기 없이 권장 레벨만 ----

@@ -29,7 +29,7 @@ export function winRate(enc: EncounterKey, diff: DiffName, lv: number, gear: Gea
   for (let s = 1; s <= n; s++) {
     const f = simulate({
       encounter: enc, diff, gear, seed: s, items, hero, level: lv, heroLv: lv, stageLv: lv,
-      talents: hero === 'priest' ? build(lv, s % 3) : undefined,
+      talents: build(lv, s % 3), // 세 직업 모두 특성 트리 (77)
       party: recruitParty(enc, s, { abilities: true }),
       specs: presetSpecs(gear, hero),
     });

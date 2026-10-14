@@ -167,7 +167,7 @@ describe('신규 전용 효과: 실제 엔진 훅', () => {
     const create = (on: boolean, other = false) => {
       const f = E.create({ encounter:'warden', diff:'보통', seed:7, level:100, hero: other ? HERO_KEYS.find(h => h !== d.hero)! : d.hero,
         specs:on ? specTotals([{key:d.key,v:d.val}],d.hero!) : {}});
-      f.gear.crit=0; f.power=1; f.gear.heal=1; f.standin=null;
+      f.gear.crit=0; f.power=1; f.gear.heal=1;
       return f;
     };
     const a=create(true), b=create(false), off=create(true,true), baseOff=create(false,true);
@@ -195,7 +195,7 @@ describe('실제 스킬 시전과 지속 치유 연결', () => {
   ] as const) it(`${hero} ${key}: 시전 또는 지속 틱에 장비 효과 적용`, () => {
     const amount = (on:boolean) => {
       const f=E.create({encounter:'warden',diff:'보통',seed:14,level:100,hero,specs:on?{[spec]:SPECS[spec].val}:{}});
-      f.standin=null; f.gear.crit=0; f.gear.heal=1; f.power=1;
+      f.gear.crit=0; f.gear.heal=1; f.power=1;
       f.skills.forEach(sk=>{sk.next=Infinity;});
       for (const u of f.party) {u.max=u.base=1e6;u.hp=1000;u.ab=null;}
       const u=f.party.find(u=>u.role==='tank')!;

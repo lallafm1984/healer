@@ -125,6 +125,8 @@ export interface Hot {
   rest: number;
   /** 옮겨 가는 새싹으로 옮겨 온 것 (다시 안 옮겨 감, 42 드루 02) */
   hop?: boolean;
+  /** 숲의 기억 (77): 끝까지 가면 한 번 더 걸림 */
+  again?: boolean;
 }
 
 /** 직접 힐 뒤 4초간 이어지는 잔향 회복 */
@@ -519,8 +521,31 @@ export interface TalentState {
   repayUsed: boolean;
   /** 쉼터 칸 (-1 = 없음) */
   shelter: number;
-  /** 나중에 할 일 (두 번 퍼지는 기원) */
-  later: { at: number; cell: number; amt: number; r: number }[];
+  /** 나중에 할 일: 두 번 퍼지는 기원 (기본), 다시 피는 들꽃 (wild, amt = 위력 배율), 구원의 손 (heal, uid에게 amt) */
+  later: { at: number; cell: number; amt: number; r: number; kind?: 'wild' | 'heal'; uid?: number }[];
+  /** 고른 특성이 하나라도 있음 (특성 한 틱) · 받는 피해 · 지속 힐 배율 · 쓰러질 때를 바꾸는 특성이 있음 (빠른 길, 77) */
+  any: boolean;
+  cut: boolean;
+  hotm: boolean;
+  death: boolean;
+  /** 생장의 숨: 남은 공짜 새싹 */
+  freeSprout: number;
+  /** 이끼 자리: 이끼 칸 → 끝나는 시각 */
+  moss: Map<number, number> | null;
+  /** 맑은 새싹: 다음에 발동할 수 있는 시각 */
+  cleanAt: number;
+  /** 나무의 몸 · 경계의 싹 · 봉화의 숨 재발동 대기 (초) */
+  treeCd: number;
+  watchCd: number;
+  breathCd: number;
+  /** 경계의 싹: 이미 본 예고 id */
+  telSeen: number;
+  /** 이번 전투에 쓴 환생 수 (두 번째 봄) */
+  rebirths: number;
+  /** 모아 둔 빛: 다음 빛의 손길 마나 없음 */
+  freeLight: boolean;
+  /** 순교의 빛: 이 시각까지 빛의 서약 + */
+  martyrUntil: number;
 }
 
 /** 던전 구간 사이에 이어지는 것: 마나(휴식 회복 뒤), 성언 게이지 */
@@ -653,14 +678,12 @@ export interface Fight {
   /** 드루이드 환생을 썼는지 (전투당 1회) */
   rebirthUsed: boolean;
   /** 성기사 빛의 성역: 칸과 끝나는 시각 */
-  sanctuary: { cells: Set<number>; end: number } | null;
+  sanctuary: { cells: Set<number>; end: number; hps?: number } | null;
   /** 사제 빛의 전이 (8번째 칸): 빛이 깃든 사람 id · 남은 회복 · 사라지는 시각 · 이 시각까지 옮겨 가는 중 (아직 안 깃듦). 하나만 */
   relay: { id: number; left: number; until: number; flyUntil: number } | null;
   /** 사제 특성 (06 6장) */
   tx: TalentState;
-  /** 특성 트리가 없는 직업의 임시 보정: 힐량 배율·마나 소모 배율·내가 받는 피해 배율 (data/heroConst TALENT_STANDIN). 사제는 null */
-  standin: { heal: number; mana: number; guard: number } | null;
-  /** 사제 마나 보정 배율 (열린 특성 단마다 −2%, heroConst PRIEST_MANA). 다른 직업 · 프로토타입은 1 */
+  /** 특성 단 마나 보정 배율 (열린 특성 단마다 −2%, 세 직업 공통 heroConst TIER_MANA). 프로토타입은 1 */
   manaCut: number;
   /** 능력을 가진 파티원이 있음 (없으면 능력 코드를 안 탐 = 프로토타입과 같음) */
   abOn: boolean;

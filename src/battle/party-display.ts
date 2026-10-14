@@ -2,7 +2,8 @@
 import { canDispel, type HeroKey } from '../data/heroes';
 import type { Debuff, Unit } from '../engine/types';
 
-const HOT_TIMER_ORDER = ['renew', 'sprout', 'growth', 'wildflower', 'oath'];
+/** 소생 → 새싹 → 생장 → 들꽃 → 서약, 그 뒤 특성 지속 힐 (남은 꽃 · 파도의 여운, 77) */
+const HOT_TIMER_ORDER = ['renew', 'sprout', 'growth', 'wildflower', 'oath', 'bloom', 'lightWave'];
 const hotTimerOrder = (key: string) => {
   const index = HOT_TIMER_ORDER.indexOf(key);
   return index < 0 ? HOT_TIMER_ORDER.length : index;

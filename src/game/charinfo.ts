@@ -124,10 +124,10 @@ export function vsWorn(it: GearItem): 1 | -1 | 0 {
   return d > 0 ? 1 : d < 0 ? -1 : 0;
 }
 
-/** 열렸는데 아직 안 고른 특성 단 수 (특성 트리는 사제만, 튜토리얼 중엔 0) */
+/** 열렸는데 아직 안 고른 특성 단 수 (지금 직업 트리, 튜토리얼 중엔 0) */
 export function talentsLeft(): number {
-  if (G.save.tut < TUT.done || heroNow() !== 'priest') return 0;
-  const picks = heroSave('priest').talents || [];
+  if (G.save.tut < TUT.done) return 0;
+  const picks = heroSave(heroNow()).talents || [];
   return TALENTS.filter((t, i) => t.lv <= healerLevel() && picks[i] == null).length;
 }
 
