@@ -29,12 +29,16 @@ describe('2인 첫 전투', () => {
 });
 
 describe('3인 탐험 「녹슨 고원」', () => {
-  it('탱커 1 + 원거리 1 + 나, 공개모집 직업도 붙음', () => {
+  it('탱커 1 + 근접 또는 원거리 1 (무작위, 76) + 나, 공개모집 직업도 붙음', () => {
+    const second = new Set<string>();
     for (let s = 1; s <= 30; s++) {
       const p = E.recruitParty('field', s);
-      expect(p.map(m => m.role).sort()).toEqual(['ranged', 'tank']);
+      expect(p[0].role).toBe('tank');
+      expect(p.length).toBe(2);
+      second.add(p[1].role);
       for (const m of p) expect(CLASSES[m.cls!].role).toBe(m.role);
     }
+    expect([...second].sort()).toEqual(['melee', 'ranged']);
     expect(contentOf('plateau').size('쉬움')).toBe(3);
     expect(contentOf('plateau').fights('쉬움')).toEqual(['field', 'patrol']);
     expect(ENCOUNTERS.patrol.board).toBe('b7');

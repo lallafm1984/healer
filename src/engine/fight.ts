@@ -2,7 +2,7 @@ import { NO_TANK_MIN_PARTY, NO_TANK_SEC } from '../data/armor';
 import { BOARDS, PROTO_BOARDS } from '../data/boards';
 import { CLASSES, RECRUIT_CLASSES, sameClassMax, type ClassKey } from '../data/classes';
 import { DIFFS, MYTHIC } from '../data/difficulty';
-import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
+import { ENCOUNTERS, type Encounter, type EncounterKey } from '../data/encounters';
 import { gearStats, protoGearStats } from '../data/gear';
 import { HEROES } from '../data/heroes';
 import { PRIEST_MANA, TALENT_STANDIN } from '../data/heroConst';
@@ -11,7 +11,7 @@ import { TUNE } from '../data/tune';
 import { ITEMS } from '../data/items';
 import { pickMember, pickNick } from '../data/nicknames';
 import { NICKS, PERS, PROTO_PERS, type PersName } from '../data/personalities';
-import { PROTO_RULES, RULES } from '../data/rules';
+import { POS_RULES, PROTO_RULES, RULES } from '../data/rules';
 import { makeCells } from './board';
 import { initBoss, bossTick } from './bosses';
 import { bossTaken, focusOrder } from './bossParts';
@@ -118,12 +118,30 @@ export function rollParty(encKey: EncounterKey, seed: number): RosterEntry[] {
 }
 
 /**
- * 공개모집 (17 2-1): 역할마다 Lv 1 직업을 붙인 뒤, 그 직업 파티원 목록 (74 · 75: 닉네임 · 성격 · 직업 스킬이 묶인 200명)에서 1명씩.
+ * 공개모집 구성 (76 문서, 2026-10-14 Lim 「각 전투 마다 인원 배정이 랜덤하게」): 탱커 수는 그대로, 나머지 자리는 한 자리씩 근접 · 원거리 반반.
+ * 탐험 3인 = 탱커 1 + 1명, 던전 5인 = 탱커 1 + 3명, 10인 = 탱커 2 + 7명, 20인 = 탱커 2 + 17명. 순서는 탱커 → 근접 → 원거리.
+ * 근접은 판의 앞 두 줄 (위치 규칙: 근접은 1 · 2열에서만 딜)에서 탱커 자리를 뺀 만큼까지 (20인 10명), 넘는 자리는 원거리
+ */
+export function partyRoles(encKey: EncounterKey, seed: number): RosterEntry['role'][] {
+  const enc = ENCOUNTERS[encKey], c = enc.comp, r = rngFrom(Math.imul(seed, 0x632be5ab) ^ 0x2545f491);
+  const n = c.melee + c.ranged;
+  let melee = 0;
+  for (let i = 0; i < n; i++) if (r() < MELEE_SHARE) melee++;
+  melee = Math.min(melee, meleeCap(enc));
+  return [...Array<'tank'>(c.tank).fill('tank'), ...Array<'melee'>(melee).fill('melee'), ...Array<'ranged'>(n - melee).fill('ranged')];
+}
+/** 딜러 한 자리가 근접일 확률 (나머지는 원거리) */
+export const MELEE_SHARE = 0.5;
+/** 근접이 딜할 수 있는 자리 수: 판 앞 두 줄 (POS_RULES.meleeRows) 칸 − 탱커 */
+export const meleeCap = (enc: Encounter): number => Math.max(0, BOARDS[enc.board].slice(0, POS_RULES.meleeRows).reduce((a, row) => a + row.length, 0) - enc.comp.tank);
+
+/**
+ * 공개모집 (17 2-1): 구성을 무작위로 정하고 (partyRoles), 역할마다 Lv 1 직업을 붙인 뒤, 그 직업 파티원 목록 (74 · 75: 닉네임 · 성격 · 직업 스킬이 묶인 200명)에서 1명씩.
  * 같은 직업은 5인 1명 · 10인 2명 · 20인 3명까지 (자리가 모자라면 가장 적은 직업부터 더 넣음).
- * 저레벨 던전은 희귀 성격 없이 · 탱커 ★1 · ★★★ 파티당 1명 (04 6-F). 역할 순서는 rollParty (프로토타입) 그대로.
+ * 저레벨 던전은 희귀 성격 없이 · 탱커 ★1 · ★★★ 파티당 1명 (04 6-F).
  */
 export function recruitParty(encKey: EncounterKey, seed: number, opts: { abilities?: boolean } = {}): RosterEntry[] {
-  const list = rollParty(encKey, seed);
+  const list: RosterEntry[] = partyRoles(encKey, seed).map(role => ({ role, pers: '신중파', nick: '' }));
   const rng = rngFrom(Math.imul(seed, 0x9e3779b1) ^ 0x85ebca6b);
   const max = sameClassMax(list.length + 1);
   const count: Partial<Record<ClassKey, number>> = {};
