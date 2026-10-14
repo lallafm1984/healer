@@ -1,6 +1,7 @@
 /** 장비 특수능력 166종 + 이름 있는 장신구 71개 (42 · 46 6장): 켜면 효과가 나고, 없으면 옛 결과 그대로 */
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { HERO_KEYS } from '../src/data/heroes';
 import { NAMED, SPEC_GROUPS, SPEC_KEYS, SPECS, specText, specTotals, specValue } from '../src/data/specials';
 import { BEACON } from '../src/data/heroConst';
 import { SKILLS } from '../src/data/skills';
@@ -59,13 +60,14 @@ const healOn = (f: F, id: number) => { for (const e of f.events) if (e.type === 
 
 describe('데이터', () => {
   it('공통 94 + 직업 전용 72 = 166종, 키는 겹치지 않음, 이름 있는 장신구 71개 (묶음 B 옛 세력 +5 · 해적단 +5 · 묶음 C +8 · 묶음 D1 +4 · D2 +3 · E1 +4 · E2 +3 · E3 +4 · F1 +4 · F2 +2 · F3 +3 · G1 +4 · G2 +2 · G3 +3)', () => {
-    expect(SPEC_KEYS.length).toBe(166);
-    expect(new Set(SPEC_KEYS).size).toBe(166);
+    const n = 94 + 24 * HERO_KEYS.length; // 공통 94 + 켠 직업마다 24 (79 직업은 직업 PR에서 24씩)
+    expect(SPEC_KEYS.length).toBe(n);
+    expect(new Set(SPEC_KEYS).size).toBe(n);
     const by = (g: string) => SPEC_KEYS.filter(k => SPECS[k].group === g).length;
-    expect(Object.keys(SPEC_GROUPS).map(by)).toEqual([16, 16, 14, 12, 10, 8, 10, 8, 72]);
-    expect(SPEC_KEYS.filter(k => SPECS[k].hero).length).toBe(72);
+    expect(Object.keys(SPEC_GROUPS).map(by)).toEqual([16, 16, 14, 12, 10, 8, 10, 8, 24 * HERO_KEYS.length]);
+    expect(SPEC_KEYS.filter(k => SPECS[k].hero).length).toBe(24 * HERO_KEYS.length);
     expect(NAMED.length).toBe(71);
-    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(237);
+    expect(new Set([...SPEC_KEYS, ...NAMED.map(n => n.key)]).size).toBe(94 + 24 * HERO_KEYS.length + 71);
   });
   it('직업 전용은 고급 이상, 효과 글에 값이 들어감', () => {
     for (const k of SPEC_KEYS) {

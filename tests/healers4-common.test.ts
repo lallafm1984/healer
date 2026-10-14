@@ -62,8 +62,8 @@ describe('직업 7개 데이터 (79 0장 · 1장 · 6-1)', () => {
     expect(Object.values(HEROES.shaman.slots)).not.toContain('springTotem');
     expect(slotKey(fight('warder'), CORE_ID)).toBe('judgment');
   });
-  it('79 직업은 특성 트리가 아직 없음 (직업 PR에서 30개)', () => {
-    for (const h of NEW) expect(TALENT_TREES[h]).toEqual([]);
+  it('79 직업은 켤 때 특성 트리 30개 (켜기 전엔 없음)', () => {
+    for (const h of NEW) expect(TALENT_TREES[h].flatMap(t => t.picks)).toHaveLength(HEROES[h].ready ? 30 : 0);
   });
   it('저장: 켜지 않은 직업으로 된 옛 저장은 사제로 (저장 판은 그대로)', () => {
     const d = migrate({ v: 13, createdAt: 1, hero: 'warder' });

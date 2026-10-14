@@ -9,6 +9,7 @@ import { charmTick, land, pullTick } from './bossParts';
 import { abFear, dpsMods, hasMod } from './abilities';
 import { dotSpec, dpsSpec, hotDone, renewDone, shieldGone, sv, under } from './specials';
 import { barkCut, putSprout, sproutSpec } from './heroes';
+import { dropDone } from './shaman';
 import { frontCell, posDps } from './position';
 import { persDps, persIgnoresZone, persThink } from './persona';
 import type { PersName } from '../data/personalities';
@@ -213,6 +214,7 @@ export function hotTick(f: Fight, u: Unit, dt: number): void {
     if (h.left <= 1e-9 || h.rest <= 1e-9) {
       u.hots = u.hots.filter(x => x !== h);
       if (f.sp && h.rest <= 1e-9) hotDone(f); // 묘지기 등불 (42 3장)
+      if (h.key === 'droplet' && h.rest <= 1e-9 && f.hero === 'shaman') dropDone(f, u); // 물웅덩이 (주술 02)
       if (h.key === 'sprout' && h.rest <= 1e-9) {
         f.mana = Math.min(100, f.mana + (f.level >= 10 ? 0.4 : 0) + sv(f, 'dewDrop')); // 순환 (25 드루이드 패시브) · 이슬 맺힘 (42 드루 17)
         if (!h.hop && sv(f, 'sproutHop')) sproutHop(f, u);

@@ -1,0 +1,470 @@
+{
+  "format": "pxf.graph@1",
+  "name": "주술사 물방울",
+  "settings": {
+    "size": 64,
+    "frames": 20,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "body",
+      "type": "Shape",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "shape": "circle",
+        "x": 0.5,
+        "y": 0.42,
+        "size": {
+          "k": [
+            [
+              0,
+              5.5
+            ],
+            [
+              5,
+              6
+            ],
+            [
+              7,
+              0,
+              "in"
+            ]
+          ]
+        },
+        "aspect": {
+          "k": [
+            [
+              0,
+              1.15
+            ],
+            [
+              4,
+              1.25
+            ],
+            [
+              5,
+              0.7
+            ],
+            [
+              7,
+              0.4
+            ]
+          ]
+        },
+        "falloff": 0.3,
+        "intensity": 0.9
+      }
+    },
+    {
+      "id": "tip",
+      "type": "Shape",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "shape": "diamond",
+        "x": 0.5,
+        "y": 0.33,
+        "size": {
+          "k": [
+            [
+              0,
+              4
+            ],
+            [
+              4,
+              4.5
+            ],
+            [
+              5,
+              0
+            ]
+          ]
+        },
+        "aspect": 1.8,
+        "intensity": 0.75
+      }
+    },
+    {
+      "id": "drop",
+      "type": "Blend",
+      "x": 270,
+      "y": 120,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "fall",
+      "type": "Transform",
+      "x": 500,
+      "y": 120,
+      "params": {
+        "ty": {
+          "k": [
+            [
+              0,
+              -13,
+              "in"
+            ],
+            [
+              5,
+              0
+            ]
+          ]
+        },
+        "px": 0.5,
+        "py": 0.42
+      }
+    },
+    {
+      "id": "shine",
+      "type": "Shape",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "shape": "circle",
+        "x": 0.47,
+        "y": 0.39,
+        "size": {
+          "k": [
+            [
+              0,
+              1.5
+            ],
+            [
+              4,
+              1.5
+            ],
+            [
+              5,
+              0
+            ]
+          ]
+        },
+        "intensity": 1
+      }
+    },
+    {
+      "id": "shineFall",
+      "type": "Transform",
+      "x": 270,
+      "y": 360,
+      "params": {
+        "ty": {
+          "k": [
+            [
+              0,
+              -13,
+              "in"
+            ],
+            [
+              5,
+              0
+            ]
+          ]
+        },
+        "px": 0.5,
+        "py": 0.42
+      }
+    },
+    {
+      "id": "splat",
+      "type": "Shape",
+      "x": 40,
+      "y": 520,
+      "params": {
+        "shape": "circle",
+        "x": 0.5,
+        "y": 0.45,
+        "size": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              5,
+              0
+            ],
+            [
+              6,
+              9,
+              "out3"
+            ],
+            [
+              9,
+              6,
+              "in"
+            ],
+            [
+              11,
+              0
+            ]
+          ]
+        },
+        "aspect": 0.32,
+        "falloff": 0.25,
+        "intensity": 0.95
+      }
+    },
+    {
+      "id": "burst",
+      "type": "Particles",
+      "x": 40,
+      "y": 680,
+      "params": {
+        "count": 7,
+        "seed": 5150,
+        "emit": "burst",
+        "start": 0.27,
+        "life": 0.4,
+        "lifeVar": 0.15,
+        "area": "point",
+        "x": 0.5,
+        "y": 0.44,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 160,
+        "speed": 1.5,
+        "speedVar": 0.25,
+        "gravity": 0.13,
+        "drag": 0.02,
+        "sizeA": 3,
+        "sizeB": 1.5,
+        "pshape": "circle",
+        "fade": "out",
+        "bright": 0.9,
+        "loop": false
+      }
+    },
+    {
+      "id": "seep",
+      "type": "Particles",
+      "x": 40,
+      "y": 840,
+      "params": {
+        "count": 6,
+        "seed": 77,
+        "emit": "stream",
+        "start": 0.35,
+        "span": 0.3,
+        "life": 0.4,
+        "lifeVar": 0.2,
+        "area": "box",
+        "x": 0.5,
+        "y": 0.52,
+        "aw": 16,
+        "ah": 6,
+        "dirMode": "fixed",
+        "angle": 90,
+        "spread": 20,
+        "speed": 0.5,
+        "speedVar": 0.3,
+        "gravity": 0,
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "diamond",
+        "fade": "flicker",
+        "bright": 1,
+        "loop": false
+      }
+    },
+    {
+      "id": "b1",
+      "type": "Blend",
+      "x": 730,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b2",
+      "type": "Blend",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b3",
+      "type": "Blend",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b4",
+      "type": "Blend",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#1b5c8c",
+          "#3d9bd8",
+          "#7ec8f0",
+          "#c6ecff",
+          "#f2fcff"
+        ],
+        "cutoff": 0.05,
+        "mode": "bands",
+        "key": "alpha"
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 1880,
+      "y": 40,
+      "params": {
+        "color": "#0f3350",
+        "threshold": 0.5,
+        "width": 1,
+        "corners": false,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 2110,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              12,
+              1,
+              "in"
+            ],
+            [
+              19,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 2340,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "body",
+      "t": "drop",
+      "p": 0
+    },
+    {
+      "f": "tip",
+      "t": "drop",
+      "p": 1
+    },
+    {
+      "f": "drop",
+      "t": "fall",
+      "p": 0
+    },
+    {
+      "f": "shine",
+      "t": "shineFall",
+      "p": 0
+    },
+    {
+      "f": "fall",
+      "t": "b1",
+      "p": 0
+    },
+    {
+      "f": "shineFall",
+      "t": "b1",
+      "p": 1
+    },
+    {
+      "f": "b1",
+      "t": "b2",
+      "p": 0
+    },
+    {
+      "f": "splat",
+      "t": "b2",
+      "p": 1
+    },
+    {
+      "f": "b2",
+      "t": "b3",
+      "p": 0
+    },
+    {
+      "f": "burst",
+      "t": "b3",
+      "p": 1
+    },
+    {
+      "f": "b3",
+      "t": "b4",
+      "p": 0
+    },
+    {
+      "f": "seep",
+      "t": "b4",
+      "p": 1
+    },
+    {
+      "f": "b4",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 5
+  }
+}

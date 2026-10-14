@@ -823,6 +823,17 @@ const TALENT_ART: Record<TalentKey, SkillKey> = {
   fullWave: 'lightWave', freeWave: 'lightWave', wideSanctuary: 'sanctuary',
   tankLight: 'handGuard', beaconRing: 'lightWave', waveMarch: 'lightWave',
   dawnVow: 'holyStrike', endlessLight: 'lightWave', allKnight: 'sanctuary',
+  // 주술사 (79 2-7, 바탕 스킬 = 80 4장)
+  quickRipple: 'ripple', calmShower: 'shower', splitDrop: 'droplet',
+  stoneDrop: 'droplet', rippleChain: 'ripple', sprayShower: 'shower',
+  rootTotem: 'earthTotem', dropChain: 'chainHeal', washSpread: 'washing',
+  keeperSpring: 'springTotem', springBreath: 'springTotem', twinSpring: 'springTotem',
+  waterShield: 'springTotem', totemCall: 'springTotem', freshSpring: 'springTotem',
+  earthGrace: 'earthTotem', letFlow: 'droplet', springSelf: 'springTotem',
+  rapids: 'shower', alertTotem: 'springTotem', lastSpring: 'springTotem',
+  returnChain: 'chainHeal', overflowChain: 'chainHeal', longChain: 'chainHeal',
+  twinEarth: 'earthTotem', rainBreath: 'rainTotem', stormChain: 'chainHeal',
+  waterSpirit: 'chainHeal', endlessChain: 'chainHeal', seaSeat: 'springTotem',
 };
 const talentIcon = (key: TalentKey) => gameIcon(key, skillIc(TALENT_ART[key]), 'talent');
 

@@ -49,8 +49,8 @@ const sprout = (u: U) => u.hots.find(h => h.key === 'sprout');
 const mark = (u: U, key: 'sprout' | 'wildflower') => putHot(u, key, { sec: 99, every: 99, total: 1 });
 
 describe('데이터', () => {
-  it('공통 94 + 직업마다 24 = 166종, 직업 전용은 그 직업 스킬만 말함', () => {
-    expect(SPEC_KEYS.length).toBe(166);
+  it('공통 94 + 켠 직업마다 24, 직업 전용은 그 직업 스킬만 말함', () => {
+    expect(SPEC_KEYS.length).toBe(94 + 24 * HERO_KEYS.length);
     for (const h of HERO_KEYS) {
       const ds = SPEC_KEYS.map(k => SPECS[k]).filter(d => d.hero === h);
       expect(ds).toHaveLength(24);

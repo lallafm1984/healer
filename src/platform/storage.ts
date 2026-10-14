@@ -538,6 +538,8 @@ export function noteDex(d: SaveData, items: readonly (GearItem | null | undefine
  * v6 직업별 레벨 (34 3-4): 옛 저장의 레벨·경험치를 열린 모든 직업에 넣음 (손해 없음). 지금 직업 것은 player 그대로.
  * 아직 안 연 직업 (퀘스트 중 포함)은 열 때 Lv 1
  */
+/** 79 직업 4종 전 저장에 있던 직업 */
+const LEGACY_HEROES: HeroKey[] = ['priest', 'druid', 'paladin'];
 function heroesOf(o: Partial<SaveData>): SaveData['heroes'] {
   const hs: SaveData['heroes'] = o.heroes && typeof o.heroes === 'object' ? { ...o.heroes } : {};
   // v10: 다른 직업에 넣어 둔 장비도 지금 장비와 같이 고침 (그 직업 것으로 굴림)
@@ -551,7 +553,7 @@ function heroesOf(o: Partial<SaveData>): SaveData['heroes'] {
   if ((o.v ?? 0) >= 6) return hs;
   const level = typeof o.player?.level === 'number' ? o.player.level : 1, xp = typeof o.player?.xp === 'number' ? o.player.xp : 0;
   const cur = HERO_KEYS.includes(o.hero as HeroKey) ? o.hero : 'priest';
-  for (const h of HERO_KEYS) {
+  for (const h of LEGACY_HEROES) { // v6 이전 저장에는 사제 · 드루이드 · 성기사만 있었음 (79 직업은 레벨 해금이라 옮길 것 없음)
     const s = hs[h], open = !HEROES[h].unlock.quest || !!s?.unlocked;
     if (!open || h === cur) continue;
     hs[h] = { layout: null, tapKey: 'heal', unlocked: h === 'priest', quest: 0, wins: 0, ...s, level, xp };
