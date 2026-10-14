@@ -7,9 +7,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { ALL_DIFFS, CONTENT } from '../src/data/content';
 import type { DiffName } from '../src/data/difficulty';
 import { ENCOUNTERS } from '../src/data/encounters';
-import { HERO_KEYS } from '../src/data/heroes';
 import { TUNE, type Tune } from '../src/data/tune';
-import { applyRows, balanceable, balanceOne, BUSY, renderTune, rewriteTuneFile, stdLabel, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
+import { applyRows, balanceable, balanceOne, BASE_HEROES, BUSY, renderTune, rewriteTuneFile, stdLabel, TARGET, tooIdle, verdictOf, type Measure, type Row } from '../src/sim/balance';
 
 const args = process.argv.slice(2);
 const opt = (k: string) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
@@ -25,9 +24,9 @@ const fmtT = (s: number) => { const r = Math.round(s); return `${Math.floor(r / 
 const tuneTxt = (t: Tune | null) => (t === null ? '구간마다 다름' : `dmg ${t.dmg ?? 1}${t.hp != null ? ` · hp ${t.hp}` : ''}`);
 const short: Record<string, string> = { priest: '사제', druid: '드루', paladin: '성기' };
 /** 직업 격차 (가장 높은 직업 − 가장 낮은 직업, %p). 20 이상이면 원인을 따로 봄 (2026-10-14 직업 밸런스 검토: 평균만 보면 한 직업 49%가 가려짐) */
-const gapOf = (m: Measure) => Math.max(...HERO_KEYS.map(h => m.byHero[h])) - Math.min(...HERO_KEYS.map(h => m.byHero[h]));
+const gapOf = (m: Measure) => Math.max(...BASE_HEROES.map(h => m.byHero[h] ?? 0)) - Math.min(...BASE_HEROES.map(h => m.byHero[h] ?? 0));
 const GAP = 20;
-const mTxt = (m: Measure) => `${String(Math.round(m.rate)).padStart(3)}% (${HERO_KEYS.map(h => `${short[h]} ${m.byHero[h]}`).join(' · ')}${gapOf(m) >= GAP ? ` · 격차 ${gapOf(m)}` : ''}) ${m.time ? fmtT(m.time) : '-'} · 바쁨 ${m.busy.toFixed(1)}/분`;
+const mTxt = (m: Measure) => `${String(Math.round(m.rate)).padStart(3)}% (${BASE_HEROES.map(h => `${short[h]} ${m.byHero[h]}`).join(' · ')}${gapOf(m) >= GAP ? ` · 격차 ${gapOf(m)}` : ''}) ${m.time ? fmtT(m.time) : '-'} · 바쁨 ${m.busy.toFixed(1)}/분`;
 const why = (m: Measure) => Object.entries(m.fails).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${k} ${n}`).join(' · ');
 const mark = { ok: '✓', easy: '쉬움 ↑', hard: '어려움 ↓' };
 const markOf = (d: (typeof diffs)[number], m: Measure) => (tooIdle(d, m) ? '한가함 ↑' : mark[verdictOf(d, m.rate)]);
@@ -59,12 +58,12 @@ if (report) {
   ];
   for (const r of rows) {
     const c = places.find(x => x.key === r.key)!, m = r.next?.m ?? r.now;
-    lines.push(`| ${c.name} | ${kind(c)} | ${r.diff} | Lv ${r.std.lv}${r.std.heroLv != null ? ` (내 Lv ${r.std.heroLv})` : ''} · ${r.std.gear === 'ramp' ? '드롭 장비' : r.std.gear}${r.std.affixes.length ? ` · ${r.std.affixes.join('+')}` : ''} | ${tuneTxt(r.next ? { ...(r.cur ?? {}), dmg: r.next.dmg } : r.cur)} | ${Math.round(m.rate)}% | ${HERO_KEYS.map(h => m.byHero[h]).join(' · ')} | ${m.time ? fmtT(m.time) : '-'} | ${m.busy.toFixed(1)} | ${markOf(r.diff, m)} | ${why(m) || '-'} |`);
+    lines.push(`| ${c.name} | ${kind(c)} | ${r.diff} | Lv ${r.std.lv}${r.std.heroLv != null ? ` (내 Lv ${r.std.heroLv})` : ''} · ${r.std.gear === 'ramp' ? '드롭 장비' : r.std.gear}${r.std.affixes.length ? ` · ${r.std.affixes.join('+')}` : ''} | ${tuneTxt(r.next ? { ...(r.cur ?? {}), dmg: r.next.dmg } : r.cur)} | ${Math.round(m.rate)}% | ${BASE_HEROES.map(h => m.byHero[h] ?? 0).join(' · ')} | ${m.time ? fmtT(m.time) : '-'} | ${m.busy.toFixed(1)} | ${markOf(r.diff, m)} | ${why(m) || '-'} |`);
   }
   const off = rows.filter(r => verdictOf(r.diff, (r.next?.m ?? r.now).rate) !== 'ok' || tooIdle(r.diff, r.next?.m ?? r.now));
   const gaps = rows.filter(r => gapOf(r.next?.m ?? r.now) >= GAP);
   lines.push('', off.length ? `목표 밖 ${off.length}칸: ${off.map(r => `${r.name} ${r.diff}`).join(' · ')}` : '모든 칸이 목표 안.', '');
-  lines.push(gaps.length ? `직업 격차 ${GAP}%p 이상 ${gaps.length}칸 (원인을 따로 봄): ${gaps.map(r => `${r.name} ${r.diff} ${HERO_KEYS.map(h => (r.next?.m ?? r.now).byHero[h]).join('/')}`).join(' · ')}` : `직업 격차 ${GAP}%p 이상 없음.`, '');
+  lines.push(gaps.length ? `직업 격차 ${GAP}%p 이상 ${gaps.length}칸 (원인을 따로 봄): ${gaps.map(r => `${r.name} ${r.diff} ${BASE_HEROES.map(h => (r.next?.m ?? r.now).byHero[h] ?? 0).join('/')}`).join(' · ')}` : `직업 격차 ${GAP}%p 이상 없음.`, '');
   writeFileSync(report, lines.join('\n'));
   console.log(`\n보고서: ${report}`);
 }

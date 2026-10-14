@@ -271,7 +271,8 @@ export const PALADIN_TALENTS: TalentTier[] = [
 ];
 
 /** 직업 → 특성 트리 */
-export const TALENT_TREES: Record<HeroKey, TalentTier[]> = { priest: TALENTS, druid: DRUID_TALENTS, paladin: PALADIN_TALENTS };
+/** 79 직업 4종은 직업 PR마다 트리를 넣음 (그전엔 특성 없음) */
+export const TALENT_TREES: Record<HeroKey, TalentTier[]> = { priest: TALENTS, druid: DRUID_TALENTS, paladin: PALADIN_TALENTS, shaman: [], monk: [], astrologer: [], warder: [] };
 const ALL_TREES = Object.values(TALENT_TREES);
 
 export const TALENT_DEF = Object.fromEntries(ALL_TREES.flatMap(tree => tree.flatMap(x => x.picks.map(p => [p.key, p])))) as Record<TalentKey, TalentDef>;

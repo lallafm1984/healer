@@ -234,6 +234,13 @@ export interface Unit {
   gid?: number;
   /** 길드원: 함께 출전한 수 (은혜 갚기 호감도) */
   runs: number;
+  /** 결계사 인장 (79 5장): 이 시각까지 붙어 있음 */
+  seal?: number;
+  /** 점성술사 별의 잠 (79 4장): 이 시각까지 피해 · 회복 · 딜 없음 */
+  sleep?: number;
+  /** 최근 받은 피해 (점성술사 별의 기억, 79 4-2): 0.5초 칸 12개 (6초) 링버퍼 · 마지막으로 쓴 칸 번호. 점성술사 전투에서만 */
+  dmgLog?: number[];
+  dmgLogK?: number;
 }
 
 /** 능력 효과 종류: cut 받는 피해 감소 · mcut 마법 피해 감소 · vuln 받는 피해 증가 · imm 피해 무시 · dps 딜 · nodps 딜 0 · heal 받는 치유
@@ -612,7 +619,20 @@ export interface FightStats {
   abHeal?: number;
   /** 뒤집힌 축복으로 피해가 된 치유량 */
   inverted?: number;
+  /** 힐러가 보스 · 적에게 준 피해 (결계사 심판 · 빛의 창, 79 6-1 bossHit) */
+  healerDmg?: number;
 }
+
+/** 판 위 물건 (79 6-1): 토템 · 샘 · 성채 · 초신성. 칸 위에 서지만 길을 막지 않음. tick = 다음 효과까지 남은 초, at = 세운 시각 */
+export type TotemKind = 'spring' | 'earth' | 'sea' | 'mist' | 'citadel' | 'nova';
+export interface Totem { kind: TotemKind; cell: number; until: number; tick: number; at: number; /** 깨지지 않음 (바다의 자리 · 초신성 등) */ firm?: boolean }
+
+/**
+ * 모으기 (점성술사 별자리 잇기, 79 4-3): key 스킬을 uid (범위면 cell 중심)에게 모으는 중.
+ * t0 = 별이 모이기 시작하는 시각 (GCD 중에 누르면 GCD가 끝난 뒤), acc = 다음 별까지 모은 시간, stars = 지금 별 수, full = 마지막 별이 뜬 시각,
+ * release = 시작 전에 뗌 (시작하자마자 터짐), autoAt = 자동 힐러가 뗄 시각
+ */
+export interface Charge { key: SkillKey; uid: number | null; cell: number; t0: number; acc: number; stars: number; full: number | null; release?: boolean; autoAt?: number }
 
 /** 파티 전체에 걸린 능력 효과 */
 export interface PartyAb {
@@ -659,7 +679,8 @@ export interface Fight {
   cast: Cast | null;
   channel: number;
   chTick: number;
-  queued: { key: SkillKey; uid: number | null } | null;
+  /** 예약한 스킬 (cell = 칸을 고르는 스킬의 칸, 79 6-1) */
+  queued: { key: SkillKey; uid: number | null; cell?: number } | null;
   cd: Partial<Record<SkillKey, number>>;
   /** 성언 게이지 p = 평온, s = 신성화 */
   g: { p: number; s: number };
@@ -681,6 +702,15 @@ export interface Fight {
   sanctuary: { cells: Set<number>; end: number; hps?: number } | null;
   /** 사제 빛의 전이 (8번째 칸): 빛이 깃든 사람 id · 남은 회복 · 사라지는 시각 · 이 시각까지 옮겨 가는 중 (아직 안 깃듦). 하나만 */
   relay: { id: number; left: number; until: number; flyUntil: number } | null;
+  /** 판 위 물건 (주술사 토템 · 수도사 안개 샘 · 결계사 성채 · 점성술사 초신성, 79 6-1) */
+  totems: Totem[];
+  /** 수도사 기 리듬 (79 3-3): 리듬 · 이 시각까지 다음 손바닥이 없으면 내려감 */
+  beat: number;
+  beatUntil: number;
+  /** 점성술사 별 조각 (79 4-3) · 모으는 중인 별자리 · 막 터진 별자리 (별 수 · 완벽 · 가운데 칸, 효과를 내는 동안만) */
+  shards: number;
+  charge: Charge | null;
+  chargeOut: { stars: number; perfect: boolean; cell: number } | null;
   /** 사제 특성 (06 6장) */
   tx: TalentState;
   /** 특성 단 마나 보정 배율 (열린 특성 단마다 −2%, 세 직업 공통 heroConst TIER_MANA). 프로토타입은 1 */

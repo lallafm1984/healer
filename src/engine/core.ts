@@ -220,6 +220,25 @@ function invertHeal(f: Fight, u: Unit, amt: number): void {
   damage(f, u, amt / f.dmgMult, false, 'fixed');
 }
 
+/** 받은 피해 기록 칸 (초) · 칸 수 (6초, 79 4-2 별의 기억 · 긴 기억) */
+export const DMG_LOG_STEP = 0.5, DMG_LOG_N = 12;
+/** 받은 피해를 0.5초 칸 링버퍼에 (지난 칸은 비움) */
+export function logDmg(f: Fight, u: Unit, amt: number): void {
+  const k = Math.floor(f.t / DMG_LOG_STEP), log = (u.dmgLog ??= new Array<number>(DMG_LOG_N).fill(0));
+  const last = u.dmgLogK ?? k;
+  for (let i = Math.max(last + 1, k - DMG_LOG_N + 1); i <= k; i++) log[i % DMG_LOG_N] = 0;
+  u.dmgLogK = k;
+  log[k % DMG_LOG_N] += amt;
+}
+/** 최근 sec초 동안 받은 피해 (0.5초 칸 단위, 지금 칸 포함) */
+export function recentDmg(f: Fight, u: Unit, sec: number): number {
+  if (!u.dmgLog || u.dmgLogK == null) return 0;
+  const k = Math.floor(f.t / DMG_LOG_STEP), n = Math.min(DMG_LOG_N, Math.round(sec / DMG_LOG_STEP));
+  let sum = 0;
+  for (let i = k - n + 1; i <= k; i++) if (i <= u.dmgLogK && i > u.dmgLogK - DMG_LOG_N) sum += u.dmgLog[((i % DMG_LOG_N) + DMG_LOG_N) % DMG_LOG_N];
+  return sum;
+}
+
 /** 흡수 보호막이 남아 있는지 */
 export const hasAbsorb = (f: Fight, u: Unit): boolean => u.mods.some(m => m.k === 'absorb' && m.until > f.t && m.v > 1e-9);
 
@@ -279,6 +298,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     abHurt(f, u); // 거합 반격
   }
   u.hp -= amt;
+  if (f.hero === 'astrologer') logDmg(f, u, amt); // 별의 기억 (79 4-2): 보호막 · 피해 감소 뒤 실제로 받은 피해
   if (u.ps) persHurt(f, u, amt); // 몰입형 · 완벽주의자 (75)
   if (f.sp) afterHurt(f, u, u.hp + amt);
   if (amt > 0 && f.relay && f.relay.id === u.id) relayHurt(f, u); // 사제 빛의 전이: 회복하고 옮겨 감 (보호막이 다 막으면 그대로)

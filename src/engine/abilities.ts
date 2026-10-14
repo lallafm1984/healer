@@ -8,6 +8,7 @@ import { hexDist } from './board';
 import { addDebuff, cellOf, damage, damageMob, DT, emit, living, onDebuffEnd } from './core';
 import { moveTo, pickCell } from './movement';
 import { persGuard } from './persona';
+import { shieldBroken } from './heroes';
 import type { AbState, BossSkill, Fight, Mod, ModKind, Telegraph, Unit } from './types';
 
 const DEF = (u: Unit): AbilityDef => ABILITIES[u.ab!.key];
@@ -39,6 +40,22 @@ function endHp(u: Unit, m: Mod): void {
   u.hp = Math.min(u.hp, u.max);
 }
 
+/** 힐러가 거는 흡수 보호막의 출처 (79 6-1: 결계사 막 · 주술사 물의 방패 · 특성 막). 장비 특수능력 · 파티원 능력 보호막과 따로 */
+export const HEALER_SHIELD = 'healer';
+/**
+ * 힐러 흡수 보호막 걸기 (79 5-2): 남은 양에 더하고 시간은 새로, 한 대상 합은 최대 체력 × cap까지. 더해진 양을 돌려줌.
+ * 피해 감소 다음에 보호막이 받음 (dmgMods 순서 그대로), 녹는 보호막 (P-MELT)에 녹음
+ */
+export function giveAbsorb(f: Fight, u: Unit, amt: number, sec: number, cap: number): number {
+  if (!u.alive || amt <= 0) return 0;
+  const m = u.mods.find(x => x.k === 'absorb' && x.src === HEALER_SHIELD);
+  const left = m && m.until > f.t ? m.v : 0, v = Math.min(u.max * cap, left + amt);
+  if (m) { m.v = v; m.until = f.t + sec; } else u.mods.push({ k: 'absorb', v, until: f.t + sec, src: HEALER_SHIELD });
+  return Math.max(0, v - left);
+}
+/** 힐러 흡수 보호막 남은 양 */
+export const absorbLeft = (f: Fight, u: Unit): number => u.mods.reduce((a, m) => a + (m.k === 'absorb' && m.src === HEALER_SHIELD && m.until > f.t ? m.v : 0), 0);
+
 /** 나눠 받는 중인 피해는 다시 나누지 않음: 둘이 서로 나눠 받으면 피해가 끝없이 오가서 멈춤 */
 let sharing = false;
 
@@ -62,7 +79,7 @@ export function dmgMods(f: Fight, u: Unit, amt: number, magic: boolean): number 
     if (m.k !== 'absorb' || m.until <= f.t || amt <= 0) continue;
     const take = Math.min(m.v, amt);
     m.v -= take; amt -= take;
-    if (m.v <= 1e-9) m.until = 0;
+    if (m.v <= 1e-9) { m.until = 0; if (m.src === HEALER_SHIELD) shieldBroken(f, u); } // 깨진 막의 빛 (79 5-4)
   }
   if (share && amt > 0 && !sharing) {
     const by = f.party.find(x => x.id === share!.by);

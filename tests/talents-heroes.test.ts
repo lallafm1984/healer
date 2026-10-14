@@ -5,6 +5,7 @@ import { SKILLS } from '../src/data/skills';
 import { DRUID_TALENTS, PALADIN_TALENTS, TALENT_DEF, TALENT_HERO, TALENT_TIER, TALENT_TREES, talentKeys, TX, type TalentKey } from '../src/data/talents';
 import * as E from '../src/engine';
 import { addDebuff, damage } from '../src/engine/core';
+import { HERO_KEYS } from '../src/data/heroes';
 import { heroHeal } from '../src/engine/heroes';
 import { dodgeRate } from '../src/engine/movement';
 import { calmDodge, calmFor, castOf, cdOf, costOf, talentHot, talentReady, useTalent } from '../src/engine/talents';
@@ -47,7 +48,7 @@ const taken = (f: F, u: U, magic = false) => { const h = u.hp; damage(f, u, 100,
 
 describe('트리 구조 (77 1장)', () => {
   it('세 직업 모두 10단 × 3택1, Lv 5부터 5레벨마다', () => {
-    for (const tree of Object.values(TALENT_TREES)) {
+    for (const tree of HERO_KEYS.map(h => TALENT_TREES[h])) { // 켠 직업 (79 직업은 직업 PR에서 30개)
       expect(tree.map(t => t.lv)).toEqual([5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
       for (const t of tree) expect(t.picks.length).toBe(3);
     }

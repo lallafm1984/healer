@@ -1,7 +1,7 @@
 /** 힐러 장비 등급 이름과 시뮬 프리셋 (08 4-2, 34 6장). 장비 한 개의 모양은 data/equipment */
-import { ROLL_MIN, presetStats, statsToGear } from './equipment';
+import { ITEM_GRADES, ROLL_MIN, SLOTS, presetStats, statsToGear, type ItemGrade } from './equipment';
 import type { HeroKey } from './heroes';
-import { specTotals, specValue } from './specials';
+import { SPECS, SPEC_KEYS, specTotals, specValue } from './specials';
 
 export type GradeName = '없음' | '일반' | '고급' | '희귀' | '영웅' | '전설';
 
@@ -38,6 +38,29 @@ export function presetSpecs(id: GearId, hero: HeroKey): Record<string, number> {
   if (g === '없음') return {};
   const mid = (ROLL_MIN + 1) / 2;
   return specTotals(GEAR_SPECS[id].map(key => ({ key, v: specValue(key, g, mid) })), hero);
+}
+
+/**
+ * 직업 전용 특수능력 프리셋 (79 「전용장비 밸런스」, 72 · 42 2-9): 대표 특수능력 줄 (GEAR_SPECS와 같은 줄 수)을 그 직업 전용 특수능력으로 바꾼 것.
+ * 부위마다 그 부위 · 등급에 나오는 그 직업 전용 하나를 시드로 고름 (가운데 굴림). 직업마다 이 프리셋 − 대표 프리셋 클리어율 = 전용 장비 이득 폭
+ */
+export function classSpecs(id: GearId, hero: HeroKey, seed: number): Record<string, number> {
+  const { g } = GEARS[id];
+  if (g === '없음') return {};
+  const grade = g as ItemGrade, gi = ITEM_GRADES.indexOf(grade), mid = (ROLL_MIN + 1) / 2, n = GEAR_SPECS[id].length;
+  let a = (Math.imul(seed, 0x9e3779b1) ^ 0x7f4a7c15) >>> 0;
+  const rnd = () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const lines: { key: string; v: number }[] = [], used = new Set<string>();
+  const start = Math.floor(rnd() * SLOTS.length);
+  for (let i = 0; i < n; i++) {
+    const slot = SLOTS[(start + i) % SLOTS.length].key;
+    const pool = SPEC_KEYS.filter(k => SPECS[k].hero === hero && SPECS[k].slots.includes(slot) && ITEM_GRADES.indexOf(SPECS[k].min) <= gi && !used.has(k));
+    if (!pool.length) continue;
+    const key = pool[Math.floor(rnd() * pool.length)];
+    used.add(key);
+    lines.push({ key, v: specValue(key, grade, mid) });
+  }
+  return specTotals(lines, hero);
 }
 
 export interface GearStats {

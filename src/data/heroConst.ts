@@ -31,3 +31,9 @@ export const TIER_MANA = 0.02;
 
 /** 드루이드 20인 레이드 보정 (26 9-1, 2026-10-07 Lim): 들꽃 군락이 닿는 거리 (평소 1칸), 군락 보너스 붙은 칸 하나마다 (평소 10%, 최대 3칸). 20인에서는 들꽃 군락에도 군락 보너스 */
 export const DRUID_BIG = { wildRange: 2, colonyStep: 0.3 };
+
+/**
+ * 점성술사 별자리 잇기 (79 4-3): 별 하나 모으는 시간 (초, 가속을 받음) · 최대 별 · 마지막 별 뒤 완벽 구간 · 마지막 별 뒤 저절로 터지는 시간.
+ * 모으기 엔진 (engine/healer chargeStart · chargeRelease)이 쓰고, 직업 수치 (ASTRO)는 점성술사 PR에서
+ */
+export const ASTRO_CHARGE = { step: 0.5, max: 4, perfect: 0.5, auto: 1.0 };
