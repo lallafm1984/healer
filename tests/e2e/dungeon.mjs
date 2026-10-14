@@ -198,7 +198,7 @@ export default async function dungeon(url, shots) {
   await page.clock.runFor(1200);
   ok(await page.isVisible('#s-settle .lvpop'), '레벨 업 팝업 (첫 클리어로 Lv 3: Lv 20까지는 장소가 정한 경험치, 70)');
   const pop = await page.textContent('#s-settle .lvpop');
-  ok(/Lv 1 → 3/.test(pop) && /소생/.test(pop) && /정화/.test(pop) && !/준비 중/.test(pop), '팝업: Lv 1 → 3, 스킬 「소생」 · 「정화」 열림');
+  ok(await page.getAttribute('#s-settle .lvnum', 'aria-label') === 'Lv 1에서 3로 레벨 업' && /소생/.test(pop) && /정화/.test(pop) && !/준비 중/.test(pop), '팝업: Lv 1 → 3, 스킬 「소생」 · 「정화」 열림');
   ok(!/힐량·체력/.test(pop), '팝업: 배율 줄 없음 (적이 내 레벨을 따라옴, 32)');
   ok(await page.evaluate(() => { const d = document.querySelector('#s-settle .lvpop [role="dialog"]'); return d.getAttribute('aria-modal') === 'true' && d.contains(document.activeElement); }), '레벨 업 모달로 포커스 이동');
   await page.keyboard.press('Tab'); await page.keyboard.press('Tab');
@@ -209,7 +209,15 @@ export default async function dungeon(url, shots) {
   let sv = await save();
   ok(sv.player.level === 3 && sv.player.gold > 0 && sv.gear.bag.length === 1, `저장: Lv 3, 골드 ${sv.player.gold}, 가방에 장비 1개 (클리어마다 1개, 2026-10-13)`);
   ok(sv.clears.rustfort['보통'].n === 1 && sv.last.win, '저장: 녹슨 요새 보통 클리어 기록');
-  ok(await page.locator('#s-settle .r-loot button').count() === 0 && !/도감/.test(await page.textContent('#s-settle .r-loot')), '받은 것에 「장착」 버튼 · 도감 줄 없음 (2026-10-13 Lim, 장착은 캐릭터 탭)');
+  ok(await page.locator('#s-settle .r-loot [data-reward-item]').count() === 1 && !/도감|새 특수능력!/.test(await page.textContent('#s-settle .r-loot')), '획득 장비는 상세 보기 카드, 도감·새 특수능력 안내 없음');
+  const beforeDetail = JSON.stringify(await save());
+  await page.click('#s-settle [data-reward-item]'); await page.clock.runFor(250);
+  ok(await page.isVisible('#s-char .c7-gsheet') && await page.isVisible('#s-settle'), '획득 장비 상세를 정산 화면 위에 표시');
+  ok(await page.locator('#s-char .c7-gsheet button').count() === 1 && await page.locator('#s-char .c7-gsheet [data-sheetx]').count() === 1, '정산 장비 상세는 닫기만 표시: 강화·장착·잠금·분해·재설정 없음');
+  ok(await page.locator('#s-char .c7-opts .c7-cmp').count() > 0, '읽기 전용 상세에 장비 능력치 표시');
+  await page.click('#s-char .c7-dialog-close'); await page.clock.runFor(50);
+  ok(await page.locator('#s-char .c7-gsheet').count() === 0 && await page.locator('[inert]').count() === 0 && await page.evaluate(() => document.activeElement?.hasAttribute('data-reward-item')), '상세 닫기 후 정산 카드로 포커스·입력 복구');
+  ok(JSON.stringify(await save()) === beforeDetail, '보상 장비 상세 조회는 저장 데이터를 변경하지 않음');
   const nx = await page.textContent('#s-settle #next');
   ok(/^다음 던전/.test(nx) && /녹슨 광산 · 쉬움/.test(nx) && (await page.textContent('#s-settle [data-go="s-lobby"]')).trim() === '나가기' && (await page.textContent('#again')) === '다시 도전',
     `아래 버튼: 나가기 · 다시 도전 · 다음 던전 (보통을 깨면 다음 장소 쉬움, 기획 70) 「${nx}」`);

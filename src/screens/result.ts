@@ -13,18 +13,20 @@ import { meterHtml } from '../game/meter';
 import { G } from '../game/state';
 import { scoreOf, specName } from '../game/charinfo';
 import { specKeysOf } from '../data/equipment';
-import { codexGroupOf, SPEC_GROUPS } from '../data/specials';
 import { art } from '../art';
 import { TUT } from '../game/tutorial';
 import { AFFIXES } from '../data/affixes';
 import { ENDING } from '../data/story';
 import type { BattleResult, Settlement } from '../game/settle';
 import { esc, fmt, go, mmss, screen, topBar } from './kit';
-import { classEmblem, currencyIcon, fxArt, gameIcon, gearIcon, placeArt, trinketArt, uiIcon, type CurrencyIconKey } from './art';
+import { currencyIcon, fxArt, gameIcon, gearIcon, placeArt, uiIcon, type CurrencyIconKey } from './art';
 import { depart } from './party';
 import { sheetDialog } from './dialog';
+import { openItemDetail } from './character';
 
-const st = screen('s-settle', '전투 결과', { enter() { render(); } });
+let itemDetailOpen = false;
+let deferredPopups: (() => void)[] = [];
+const st = screen('s-settle', '전투 결과', { enter() { itemDetailOpen = false; deferredPopups = []; render(); } });
 const resultModal = sheetDialog(st.el, () => closeResultPopup(st.el));
 
 /** 머리 뒤에 장소 그림 (28 4장) */
@@ -119,28 +121,17 @@ function lootHtml(r: BattleResult, x: Settlement): string {
   if (x.mats.refined) tiles.push(tile('refined', '정제 강화석', x.mats.refined));
   if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
   return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
-      <h2 class="r-lh">획득 보상</h2>
+      <h2 class="r-lh" tabindex="-1">획득 보상</h2>
       ${itemsHtml(x)}
       ${tiles.length ? `<div class="r-curs">${tiles.join('')}</div>` : ''}
       ${xpRow(x)}
     </section>`;
 }
 
-/**
- * 받은 장비 줄 (34 6-7 클리어마다 1개, 2026-10-13). 장착은 캐릭터 탭에서 (2026-10-13 Lim: 「장착」 버튼 · 도감 줄 뺌)
- * 처음 얻은 특수능력은 장비가 여럿이어도 띠 하나로 (42 1-6): 묶음 표식 + 이름, 띠 머리에서 fx-spec-new 한 번 (36 4-6, 효과 줄이기면 없음)
- */
+/** 받은 장비를 누르면 캐릭터 메뉴와 같은 상세를 연다. 별도의 새 특수능력 띠는 표시하지 않는다. */
 function itemsHtml(x: Settlement): string {
   if (!x.items.length) return x.lootLocked ? '<p class="r-item none">이번 주 이 보스·난이도 장비는 받음 · 월요일 오전 6시에 다시</p>' : '';
-  const rows = x.items.map(it => itemRow(it.id)).join('');
-  const fresh = x.newSpecs ?? [], pop = G.save.settings.reducedEffects ? '' : fxArt('fx-spec-new', 'r-spnew');
-  return rows + (fresh.length ? `<p class="r-newsp"><b>새 특수능력!${pop}</b> ${fresh.map(k => specMark(k) + esc(specName(k))).join(' · ')}</p>` : '');
-}
-
-/** 특수능력 묶음 표식 (36 I spec-*, 이름 있는 장신구 = 그 장신구 그림). 그림이 없으면 이름만 */
-function specMark(k: string): string {
-  const g = codexGroupOf(k), u = g === 'named' ? trinketArt(k) : g ? art(SPEC_GROUPS[g].icon) : '';
-  return u ? `<img class="r-spm" src="${u}" alt="" decoding="async" draggable="false">` : '';
+  return x.items.map(it => itemRow(it.id)).join('');
 }
 
 /** 장비 카드: 부위 그림(등급 색 테두리) · 이름 / 등급 칩 · 점수 (지금 장비보다 ▲▼, 빈 칸이면 「빈칸」) · 부위·종류 / 특수능력 · 입고 있으면 「장착함」 */
@@ -160,11 +151,11 @@ function itemRow(id: number): string {
   const beam = bu ? `<span class="r-beam${G.save.settings.reducedEffects ? ' calm' : ''}" style="--beam:url('${bu}')" aria-hidden="true"></span>` : '';
   // 고유 장비는 빛기둥 위에 리본 · 별이 한 번 퍼짐 (50 E fx-unique-drop, 장비 칸 뒤). 효과 줄이기면 없음
   const drop = it.unique && !G.save.settings.reducedEffects ? fxArt('fx-unique-drop', 'r-udrop') : '';
-  return `<div class="r-item" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
+  return `<button type="button" class="r-item" data-reward-item="${id}" aria-haspopup="dialog" aria-label="${esc(it.name)}${it.plus ? ` +${it.plus}` : ''} 상세 보기" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
       ${beam}${drop}<span class="r-ic">${gearIcon(it)}</span>
       <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><span class="r-gs"><i class="r-gr">${it.grade}</i><span class="r-sc">점수 ${sc}${delta}</span><small>${slotName(it.slot)} · ${esc(kindOf(it).name)}</small></span>${spTxt}</span>
       ${act}
-    </div>`;
+    </button>`;
 }
 
 /** 경험치 줄: 바 + 받은 양 + 지금 레벨 (오르면 강조) */
@@ -255,10 +246,32 @@ function nextOf(r: BattleResult, x: Settlement): { label: string; sub: string } 
 
 st.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
-  if (t.closest('#again')) again();
+  const reward = t.closest<HTMLElement>('[data-reward-item]');
+  if (reward) showRewardItem(Number(reward.dataset.rewardItem));
+  else if (t.closest('#again')) again();
   else if (t.closest('#next')) next();
   else if (t.closest('.m-all')) t.closest('.meter')?.classList.add('all');
 });
+
+function showRewardItem(id: number): void {
+  if (itemDetailOpen || st.el.querySelector('.lvpop')) return;
+  const settlement = Flow.settle;
+  itemDetailOpen = openItemDetail(id, () => {
+    if (st.el.hidden || Flow.settle !== settlement) return;
+    itemDetailOpen = false;
+    // 읽기 전용 상세를 닫으면 정산 화면과 스크롤을 그대로 두고 보상 카드로 포커스 복귀.
+    (st.el.querySelector<HTMLElement>(`[data-reward-item="${id}"]`) ?? st.el.querySelector<HTMLElement>('.r-lh'))?.focus({ preventScroll: true });
+    const queued = deferredPopups; deferredPopups = [];
+    queued.forEach(show => show());
+  });
+}
+
+/** 보상 상세를 읽는 동안 레벨 업/엔딩 타이머가 겹치지 않도록 닫은 뒤 이어서 표시한다. */
+function deferPopup(host: HTMLElement, show: () => void): boolean {
+  if (host !== st.el || !itemDetailOpen) return false;
+  deferredPopups.push(show);
+  return true;
+}
 
 /** 같은 파티로 바로 다시 (시작 위치는 새로, 주간 도전은 같은 단계). 악몽은 악몽 열쇠가 없으면 못 감 */
 function again(): void {
@@ -284,6 +297,7 @@ function next(): void {
 
 // ---------- 엔딩 글 (59 4-4 · 11 6장 햇살 축제) ----------
 export function showEnding(host: HTMLElement): void {
+  if (deferPopup(host, () => showEnding(host))) return;
   const box = document.createElement('div');
   box.className = 'overlay lvpop ending';
   box.innerHTML = `<div class="card" role="dialog" aria-label="엔딩"><h3>심장이 멈췄다</h3>${ENDING.map(t => `<p>${esc(t)}</p>`).join('')}
@@ -299,17 +313,32 @@ export function showEnding(host: HTMLElement): void {
 export function showLevelUp(host: HTMLElement, ups: number[]): void {
   const items = ups.flatMap(lv => (MILESTONES[lv] || []).filter(m => m.live).map(m => ({ lv, ...m })));
   if (!items.length) return;
+  if (deferPopup(host, () => showLevelUp(host, ups))) return;
   const icon = (text: string) => text.includes('특성') ? gameIcon('talent', uiIcon('star'))
     : /스킬|패시브|성언|쿨기/.test(text) ? gameIcon('skills', uiIcon('quest'))
     : /던전|탐험|레이드|도전/.test(text) ? gameIcon('a2-swords', uiIcon('weapon'))
     : /장비/.test(text) ? gameIcon('gear', uiIcon('weapon'))
-    : /직업|퀘스트/.test(text) ? classEmblem(G.save.hero, 'sm')
+    : /직업|퀘스트/.test(text) ? gameIcon('skills', uiIcon('quest'))
     : uiIcon('star');
   const box = document.createElement('div');
   box.className = `overlay lvpop r-level-pop${G.save.settings.reducedEffects ? ' calm' : ''}`;
+  // A compact optical flash releases long, straight rays; each exits the viewport.
+  // Uneven fixed spacing avoids a mechanical wheel and never consumes gameplay RNG.
+  const rayAngles = [3, 18, 36, 57, 78, 96, 116, 138, 159, 184, 207, 228, 246, 263, 281, 304, 323, 344];
+  const flights = G.save.settings.reducedEffects ? '' : `<i class="r-level-flash"></i>${rayAngles.map((angle, i) => {
+    const length = 210 + i % 5 * 31;
+    const thickness = 34 + i % 4 * 8;
+    const delay = .44 + i % 5 * .012;
+    const life = .65 + i % 3 * .03;
+    return `<i class="r-level-ray" style="--angle:${angle}deg;--length:${length}px;--thickness:${thickness}px;--alpha:${i % 3 === 0 ? 1 : .82};--delay:${delay.toFixed(3)}s;--life:${life.toFixed(3)}s"></i>`;
+  }).join('')}`;
   box.innerHTML = `<div class="card r-level-card" role="dialog" aria-modal="true" aria-labelledby="levelUpTitle">
-    <div class="r-level-heading"><span class="r-level-emblem" aria-hidden="true">${classEmblem(G.save.hero, 'md')}</span><h3 id="levelUpTitle">레벨 업!</h3><span class="r-level-ornament" aria-hidden="true">✦</span></div>
-    <p class="lvnum" aria-label="Lv ${ups[0] - 1}에서 ${ups[ups.length - 1]}로 레벨 업"><span class="r-level-before">Lv ${ups[0] - 1}</span><span class="r-level-arrow" aria-hidden="true"> → </span><span class="r-level-number"><b>${ups[ups.length - 1]}</b></span></p>
+    <div class="r-level-hero">
+      <div class="r-level-banner" aria-hidden="true"></div>
+      <div class="r-level-flightfield" aria-hidden="true">${flights}</div>
+      <div class="r-level-heading"><h3 id="levelUpTitle">레벨 업!</h3></div>
+      <p class="lvnum" aria-label="Lv ${ups[0] - 1}에서 ${ups[ups.length - 1]}로 레벨 업"><span class="r-level-number"><span>Lv</span><b>${ups[ups.length - 1]}</b></span><span class="r-level-before">이전 레벨 ${ups[0] - 1}</span></p>
+    </div>
     <h4 class="r-level-unlock-title">새로 열린 기능</h4>
     <ul class="r-level-unlocks" aria-label="새로 열린 기능">${items.map(m => `<li><span class="r-level-unlock-icon" aria-hidden="true">${icon(m.text)}</span><b>${esc(m.text)}</b><small>Lv ${m.lv}</small></li>`).join('')}</ul>
     <button class="btn primary r-level-confirm" type="button">확인</button></div>`;

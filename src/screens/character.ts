@@ -25,7 +25,7 @@ import { Flow } from '../game/flow';
 import type { Settlement } from '../game/settle';
 import { art } from '../art';
 import { classEmblem, currencyAmount, currencyIcon, CURRENCY_NAMES, fxArt, gameIcon, gearIcon, LOCK, trinketArt, uiIcon } from './art';
-import { battle, go, esc, fmt, josa, screen, topBar } from './kit';
+import { battle, current, go, esc, fmt, josa, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 import { sheetDialog } from './dialog';
 
@@ -58,16 +58,32 @@ let sheet: Sheet = null;
 let pending: { kind: 'enhance' | 'salvage'; id: number; plus: number; result?: EnhanceOutcome; error?: string } | null = null;
 /** 지난번에 그린 시트 (같은 시트를 다시 그릴 땐 올라오는 움직임 없이) */
 let sheetKey = '';
+/** 다른 화면에서는 장비 정보를 읽기 전용으로 표시한다. 배경 화면은 유지한다. */
+let itemOverlay: { origin: string; previousSub: Sub; onClose: () => void } | null = null;
 
 const s = screen('s-char', '캐릭터', {
   tab: 'char',
   enter(arg) {
+    if (itemOverlay) sub = itemOverlay.previousSub;
+    itemOverlay = null; s.el.classList.remove('c7-item-overlay');
     if (SUBS.some(x => x.key === arg)) sub = arg as Sub;
     sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null; hskOpen = null; hsel = null; seenMarked = false; rrOn = false; rrAlt = null; efx = null;
     render(false);
   },
 });
 const modal = sheetDialog(s.el, closeSheet);
+
+/** 보상 카드 등에서 여는 읽기 전용 상세. 캐릭터 탭의 정보/스타일을 공유하고 조작 버튼은 제외한다. */
+export function openItemDetail(id: number, onClose: () => void): boolean {
+  if (itemOverlay && s.el.hidden) { sub = itemOverlay.previousSub; itemOverlay = null; }
+  if (!findItem(id) || current === s.el.id || itemOverlay) return false;
+  itemOverlay = { origin: current, previousSub: sub, onClose };
+  sub = 'gear'; sheet = { k: 'item', id }; pending = null; msg = ''; sheetKey = '';
+  rrOn = false; rrAlt = null; efx = null; clearTimeout(efxTimer);
+  s.el.classList.add('c7-item-overlay'); s.el.hidden = false;
+  render(false);
+  return true;
+}
 /** 전면 연출은 고정 광고/앱 틀의 쌓임 순서와 클리핑 밖에서 표시한다. */
 const screenFxHost = document.createElement('div');
 screenFxHost.id = 'gearEnhanceFx';
@@ -96,20 +112,30 @@ const TREE = '<path d="M12 5v5M12 10l-5 4M12 10l5 4M7 14v4M17 14v4"/><circle cx=
 
 function render(keep = true, resetInventory = false): void {
   modal.beforeRender();
+  // 화면 이동이나 분해로 대상이 사라지면 모달만 정리하고 원래 화면에 돌아간다.
+  if (itemOverlay && (current !== itemOverlay.origin || !sheet || sheet.k !== 'item' || !findItem(sheet.id))) {
+    const context = itemOverlay;
+    itemOverlay = null; sub = context.previousSub; sheet = null; pending = null; sheetKey = '';
+    efx = null; clearTimeout(efxTimer);
+    s.el.hidden = true; s.el.classList.remove('c7-item-overlay'); s.el.innerHTML = '';
+    modal.sync(null, []); syncScreenFx();
+    if (current === context.origin) context.onClose();
+    return;
+  }
   const old = s.el.querySelector<HTMLElement>('.ns-body');
   const top = keep && old ? old.scrollTop : 0;
   const inventoryTop = keep && !resetInventory ? s.el.querySelector<HTMLElement>('.c7-bags')?.scrollTop ?? 0 : 0;
-  if (sub === 'gear') markSeen();
+  if (sub === 'gear' && !itemOverlay) markSeen();
   // 시트가 가리키던 것이 없어졌으면 (분해한 장비 등) 시트도 닫음
   const sh = sheetHtml();
   if (!sh) { sheet = null; pending = null; }
-  const body = sub === 'gear' ? gearHtml() : sub === 'skill' ? skillHtml() : sub === 'hero' ? heroListHtml() : talentHtml();
+  const body = itemOverlay ? '' : sub === 'gear' ? gearHtml() : sub === 'skill' ? skillHtml() : sub === 'hero' ? heroListHtml() : talentHtml();
   const key = sheet ? JSON.stringify(sheet) : '';
   const still = !!key && key === sheetKey;
   sheetKey = key;
   // 화면 바탕(무기고 그림)의 밝기·흐림이 하위 탭마다 다름 (char31.css #s-char[data-sub])
   s.el.dataset.sub = sub;
-  s.el.innerHTML = `${topBar({ settings: true })}${tabsHtml()}
+  s.el.innerHTML = itemOverlay ? `${sh}${confirmHtml()}` : `${topBar({ settings: true })}${tabsHtml()}
     <div class="ns-body c7-body c7-${sub}${sheet?.k === 'talent' ? ' c7-tsheet-on' : ''}">${body}</div>${sh}${confirmHtml()}`;
   if (still) s.el.querySelector('.sheet')?.classList.add('still');
   if (sub === 'skill') fitDesc();
@@ -448,6 +474,7 @@ const vibe = (p: number[]) => { if (G.save.settings.vibrate && typeof navigator 
 function itemSheet(id: number): string {
   const it = findItem(id);
   if (!it) return '';
+  const readOnly = !!itemOverlay;
   const eq = G.save.gear.equipped, worn = eq[it.slot]?.id === it.id, cur = worn ? null : eq[it.slot] ?? null;
   const lv = G.save.player.level, a = itemStats(it, lv), b = itemStats(cur, lv);
   // 아이템 레벨 (2026-10-13): 지능 · 체력 수치가 아이템 레벨을 따름
@@ -493,9 +520,9 @@ function itemSheet(id: number): string {
       <div class="c7-dialog-head"><h3 id="gearSheetTitle">장비 상세</h3><button type="button" class="btn2 c7-dialog-close" data-sheetx aria-label="장비 상세 닫기">닫기</button></div>
       <div class="c7-ghead"><span class="c7-gic${max10}">${itemIc(it)}${fxOn}${fxRes}</span>
         <span class="c7-gname"><b>${esc(it.name)}${it.plus ? ` <i>+${it.plus}</i>` : ''}</b><span class="cap">${sub2}</span></span></div>
-      <div class="c7-cmpw c7-opts"><h3 class="h-rule c7-h3">능력치<span class="rule"></span><span class="cap">${rrOn ? '재설정할 줄의 ↻' : cmpCap}</span>${rerollOpen() && (it.lines.length || it.specs?.length) ? `<button type="button" class="btn2 c7-rrb" data-rrmode aria-pressed="${rrOn}">재설정</button>` : ''}</h3>${rrOn ? rrCostHtml(it) : ''}${own}${lostHtml}${rrAltHtml(it, 'line')}</div>
+      <div class="c7-cmpw c7-opts"><h3 class="h-rule c7-h3">능력치<span class="rule"></span><span class="cap">${rrOn ? '재설정할 줄의 ↻' : cmpCap}</span>${!readOnly && rerollOpen() && (it.lines.length || it.specs?.length) ? `<button type="button" class="btn2 c7-rrb" data-rrmode aria-pressed="${rrOn}">재설정</button>` : ''}</h3>${rrOn ? rrCostHtml(it) : ''}${own}${lostHtml}${rrAltHtml(it, 'line')}</div>
       ${spec}
-      <section class="c7-enh-section" aria-label="강화">
+      ${readOnly ? '' : `<section class="c7-enh-section" aria-label="강화">
         <button type="button" class="c7-enhance-button" data-enh="${it.id}"${c ? '' : ' disabled'}>${c ? '강화' : '최대 강화'}</button>
       </section>
       ${msg ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
@@ -503,7 +530,7 @@ function itemSheet(id: number): string {
         <button type="button" class="c7-sb c7-lockb" data-lock="${it.id}" aria-pressed="${!!it.lock}">${uiIcon('lock')}<small>${it.lock ? '잠김' : '잠금'}</small></button>
         <button type="button" class="c7-sb c7-salvb" data-salv1="${it.id}"${worn || it.lock ? ' disabled' : ''}>분해<small>${worn ? '착용 중' : it.lock ? '잠김' : currencyAmount('stone', sv.stone)}</small></button>
         <button type="button" class="c7-cta" data-equip="${it.id}"${worn ? ' disabled' : ''}>${worn ? '착용 중' : '장착'}</button>
-      </div></section>`;
+      </div>`}</section>`;
 }
 
 /** 강화 팝업의 보유/비용 표 (장비 상세에는 강화 버튼만 둔다, Lim 2026-10-14). 재화 이름은 공통 아이콘의 접근성 설명으로 제공한다. */
@@ -942,6 +969,10 @@ function focusTalentControl(selector: string): void {
 
 /** 처리했으면 true (그렸음) */
 function onClick(t: HTMLElement): boolean {
+  if (itemOverlay) {
+    if (t.closest('[data-sheetx]')) closeSheet();
+    return true;
+  }
   if (pending) {
     // 강화 연출 중에는 바깥(어두운 바탕)을 눌러도 팝업을 닫지 않고 연출만 건너뜀 (예전엔 팝업과 연출이 함께 사라져 끊겨 보였다)
     if (efx && pending.kind === 'enhance') skipFx();

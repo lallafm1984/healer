@@ -34,8 +34,6 @@
 }
 #s-settle.ns .f-warn .btn2:active { transform: translateY(1px); background: linear-gradient(#f0c853, #d99a24); }
 #s-settle.ns .f-warn .btn2:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
-#s-settle .r-newsp { background: var(--gk-chip); border: 1px solid var(--gk-edge); border-radius: 8px; color: var(--gk-ink); }
-#s-settle .r-newsp b { color: var(--gk-head); }
 #s-settle .coachtip { background: var(--gk-card); border: 1px solid var(--gk-edge); border-radius: 10px; color: var(--gk-ink); }
 #s-settle .coachtip b { color: var(--gk-head); }
 
@@ -44,6 +42,14 @@
 #s-settle .res-head::before { background: linear-gradient(0deg, #15120e 0%, #15120e8c 55%, #15120eb3), var(--res-art, none) center / cover; }
 #s-settle .res-head > p:not(.r-why) { color: var(--gk-ink2); }
 #s-settle .res-head h1 { text-shadow: 0 2px 0 #2a1608, 0 0 14px #00000080; letter-spacing: -.02em; }
+#s-settle .res-head h1 .badge {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  min-height: 24px; padding: 2px 9px; box-sizing: border-box;
+  border: 1px solid #be9954; border-radius: 5px;
+  background: linear-gradient(#eed9a3, #d3b778); color: #362510;
+  font: normal 700 12px/1.4 var(--font-body); letter-spacing: 0; text-shadow: none; white-space: nowrap;
+  box-shadow: inset 0 1px 0 #fff0c9a6, 0 1px 3px #0005;
+}
 #s-settle .r-score { gap: 14px; margin-top: 8px; }
 #s-settle .r-score .grade {
   flex: none; width: 62px; height: 62px; display: grid; place-items: center; box-sizing: border-box;
@@ -74,6 +80,9 @@
   box-shadow: inset 3px 0 0 var(--g), inset 0 0 0 1px var(--gk-line);
 }
 #s-settle .r-item.none { min-height: 0; padding: 8px 10px; background: #15120e; box-shadow: inset 0 0 0 1px var(--gk-line); color: var(--gk-mute); }
+#s-settle button.r-item { width: 100%; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+#s-settle button.r-item:active { filter: brightness(1.15); }
+#s-settle button.r-item:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 3px; }
 #s-settle .r-ic { width: 56px; height: 56px; border-radius: 8px; }
 #s-settle .r-nm { gap: 3px; }
 #s-settle .r-nm b { font-size: 18px; text-shadow: 0 1px 1px #000; }
@@ -144,22 +153,28 @@
 
 /* ---------- 아래 버튼: [나가기] [다시 도전] [다음 …] ----------
  * 세 버튼은 그림 없이 한 모양 (2026-10-13 Lim 「다음 탐험과 나가기 · 다시 도전 높이 · 디자인이 다르다」):
- * 높이 54 · 모서리 10 · 금테 1px · 같은 글꼴, 주 버튼만 금빛으로 칠함 (길드 홀 강조색 --gk-accent). 휴식 「계속」도 같은 모양 */
+ * 높이 54 · 모서리 10 · 금테 1px · 같은 글꼴, 주 버튼만 금빛으로 칠함 (길드 홀 강조색 --gk-accent).
+ * 휴식 「계속」 · 레벨 업 「확인」도 같은 표면과 눌림을 공유한다. */
 #s-settle .ns-foot.row3 { grid-template-columns: 0.85fr 1fr 1.5fr; }
 #s-settle .ns-foot.row2 { grid-template-columns: 1fr 1.6fr; }
 #s-settle.ns .ns-foot { background: #15120e; border-top: 1px solid var(--gk-line); }
-:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn {
+:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn,
+#app #s-settle .r-level-card .r-level-confirm {
   height: 54px; min-height: 54px; padding: 0 6px; border: 1px solid var(--gk-edge); border-radius: 10px;
   background: var(--gk-btn); box-shadow: inset 0 1px 0 #ffe7a81a, 0 2px 0 #000a; color: var(--gk-head); text-shadow: none;
   font: 400 19px/1.1 var(--font-display); white-space: nowrap;
 }
-:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn.primary {
+:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn.primary,
+#app #s-settle .r-level-card .r-level-confirm {
   background: linear-gradient(#ffe07a, #f0b93a 55%, #d99a24); border-color: #b8862e;
   box-shadow: inset 0 1px 0 #fff8d8, inset 0 -2px 0 #b07a1a, 0 2px 0 #000a; color: #2a1806; text-shadow: none;
 }
-:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn:active { transform: translateY(1px); background: var(--gk-btn-on); }
-:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn.primary:active { background: linear-gradient(#f0c853, #d99a24); }
-:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn:active,
+#app #s-settle .r-level-card .r-level-confirm:active { transform: translateY(1px); background: var(--gk-btn-on); }
+:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn.primary:active,
+#app #s-settle .r-level-card .r-level-confirm:active { background: linear-gradient(#f0c853, #d99a24); }
+:is(#s-settle.ns .ns-foot, #rest .rest-foot) .btn:focus-visible,
+#app #s-settle .r-level-card .r-level-confirm:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
 #s-settle .r-next { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 0 8px; }
 #s-settle .r-next b { font: 400 19px/1.05 var(--font-display); }
 #s-settle .r-next small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 11px/1.2 var(--font-body); color: #5a3a0e; }

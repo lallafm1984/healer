@@ -236,3 +236,7 @@
 /* 연출 중 탭으로 건너뛰면 짧게 사라진 뒤 닫힌다 (이 애니메이션의 animationend). */
 #gearEnhanceFx .c7-screen-fx.skip { animation: screenFxSkip .2s ease-out both; }
 @keyframes screenFxSkip { from { opacity: 1; } to { opacity: 0; } }
+/* 보상 화면에서는 캐릭터 배경 없이 동일한 장비 시트만 올린다. */
+#app #s-char.c7-item-overlay { background: transparent; pointer-events: none; }
+#app #s-char.c7-item-overlay::before { content: none; }
+#app #s-char.c7-item-overlay > :is(.sheet, .sheet-dim, .c7-confirm) { pointer-events: auto; }
