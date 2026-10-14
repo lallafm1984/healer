@@ -1,6 +1,18 @@
 /** 전투 판의 파티원 칸 표시 계산. 전투 상태는 변경하지 않는다. */
 import { canDispel, type HeroKey } from '../data/heroes';
-import type { Debuff } from '../engine/types';
+import type { Debuff, Unit } from '../engine/types';
+
+const HOT_TIMER_ORDER = ['renew', 'sprout', 'growth', 'wildflower', 'oath'];
+const hotTimerOrder = (key: string) => {
+  const index = HOT_TIMER_ORDER.indexOf(key);
+  return index < 0 ? HOT_TIMER_ORDER.length : index;
+};
+
+/** 모든 직업 공통: 효과별 시간을 분리하고, 갱신·남은 시간 때문에 순서를 바꾸지 않습니다. */
+export function hotTimersOf(u: Pick<Unit, 'hot' | 'hots'>): { key: string; left: number }[] {
+  return [...(u.hot > 0 ? [{ key: 'renew', left: u.hot }] : []), ...u.hots.filter(h => h.left > 0)]
+    .sort((a, b) => hotTimerOrder(a.key) - hotTimerOrder(b.key) || a.key.localeCompare(b.key));
+}
 
 export function cellTypography(scale: number): { compact: boolean; hp: number; nick: number; debuff: number } {
   const compact = scale < 36;
@@ -42,22 +54,22 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
   const seconds = Math.max(0, Math.ceil(debuff.left));
   // 함정은 실제로 해제되며 폭발한다. 해제불가와 혼동하지 않는다.
   const state: DispelState = debuff.lock || !canDispel(hero, debuff.type) ? 'unavailable' : debuff.trap ? 'dangerous' : 'available';
-  const marker = state === 'unavailable' ? '×' : state === 'dangerous' ? '!' : '';
+  // 칸 위 배지에는 해제 불가·함정 기호(×/!)를 붙이지 않습니다. 상세 설명에서만 안내합니다.
   const kind = compact ? TYPE_SHORT[debuff.type] ?? '?' : debuff.type;
   // 마력 역류 (P-RECOIL): 배지에 중첩 수 (내 칸의 숫자)
-  if (debuff.count) return { text: `${marker}${compact ? '' : '역류 '}${debuff.stack ?? 0}중`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초, ${debuff.stack ?? 0}중첩 · 스킬을 쓸 때마다 1중첩, 끝나거나 지우면 중첩만큼 피해 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (일찍 지울수록 덜 아픔)'}`, state, seconds };
+  if (debuff.count) return { text: `${compact ? '' : '역류 '}${debuff.stack ?? 0}중`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초, ${debuff.stack ?? 0}중첩 · 스킬을 쓸 때마다 1중첩, 끝나거나 지우면 중첩만큼 피해 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (일찍 지울수록 덜 아픔)'}`, state, seconds };
   if (debuff.link) return { // 생명 사슬 (P-LINK)
-    text: `${marker}${compact ? '사슬' : debuff.name} ${seconds}`,
+    text: `${compact ? '사슬' : debuff.name} ${seconds}`,
     detail: `${debuff.name} · ${seconds}초 · ${debuff.link.kind === 'share' ? '이어진 두 사람이 받는 피해·치유를 반씩 나눔' : '이어진 두 사람 체력 차이가 크게 벌어지면 끊어지며 둘 다 피해'} · 해제 불가`,
     state, seconds,
   };
   // 부풀기 (P-SWELL, 46 5장): 배지에 중첩 수. 지우면 이웃만, 두면 본인 + 이웃이 터짐
-  if (debuff.swell) return { text: `${marker}${compact ? '' : '거품 '}${debuff.stack ?? 1}중`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초, ${debuff.stack ?? 1}중첩 · ${debuff.swell.every}초마다 1중첩 (최대 ${debuff.swell.max}) · 지우면 이웃 칸이 중첩만큼, 두면 끝날 때 본인과 이웃 칸이 더 크게 터짐 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (적을 때 · 옆에 사람이 적을 때)'}`, state, seconds };
+  if (debuff.swell) return { text: `${compact ? '' : '거품 '}${debuff.stack ?? 1}중`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초, ${debuff.stack ?? 1}중첩 · ${debuff.swell.every}초마다 1중첩 (최대 ${debuff.swell.max}) · 지우면 이웃 칸이 중첩만큼, 두면 끝날 때 본인과 이웃 칸이 더 크게 터짐 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (적을 때 · 옆에 사람이 적을 때)'}`, state, seconds };
   // 뒤집힘 저주 (P-FLIP): 끝날 때 체력 비율이 뒤집힘
-  if (debuff.end?.p === 'flip') return { text: `${marker}${compact ? '' : '뒤집 '}${seconds}`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초 · 끝날 때 체력 비율이 뒤집힘 (80% → 20%, 30% → 70%) · 높으면 힐을 멈추고 낮으면 둠 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (지우면 그냥 사라짐)'}`, state, seconds };
+  if (debuff.end?.p === 'flip') return { text: `${compact ? '' : '뒤집 '}${seconds}`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초 · 끝날 때 체력 비율이 뒤집힘 (80% → 20%, 30% → 70%) · 높으면 힐을 멈추고 낮으면 둠 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (지우면 그냥 사라짐)'}`, state, seconds };
   // 빌린 생명 (P-DEBT, 59 5장): 배지에 남은 빚 (불어날수록 커짐)
   if (debuff.debt) { const amt = Math.round(debuff.debtLeft ?? 0); return { text: `빚 ${compact && amt >= 1000 ? `${(amt / 1000).toFixed(amt >= 10000 ? 0 : 1)}k` : amt}`, detail: `${debuff.name} · ${seconds}초 · 남은 빚 ${amt} (초마다 +${Math.round(debuff.debt.grow * 100)}%, 어둠물에 잠기면 2배) · 이 사람에게 넘친 치유가 빚을 갚음 · 시간이 다 되면 남은 빚만큼 피해 · 해제 불가`, state, seconds }; }
-  if (debuff.jail) return { text: `${marker}${compact ? '감옥' : debuff.name}`, detail: `${debuff.name} · 딜 0 · 못 움직임 · 딜러가 감옥을 깨면 풀림 · 해제 불가`, state, seconds: 0 };
+  if (debuff.jail) return { text: `${compact ? '감옥' : debuff.name}`, detail: `${debuff.name} · 딜 0 · 못 움직임 · 딜러가 감옥을 깨면 풀림 · 해제 불가`, state, seconds: 0 };
   const action = debuff.lock ? (debuff.cureAt != null ? `해제 불가, 체력 ${Math.round(debuff.cureAt * 100)}% 이상이면 사라짐`
     : debuff.untilBossLoss != null ? `해제 불가, 보스 체력 ${Math.round(debuff.untilBossLoss * 100)}% 깎으면 풀림` : '해제 불가')
     : state === 'unavailable' ? '이 직업으로 해제 불가' : state === 'dangerous' ? '해제 시 전염 폭발' : '해제 가능';
@@ -71,7 +83,7 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
     : debuff.drain ? ` · 마나 초당 -${debuff.drain}`
     : debuff.end?.p === 'pass' ? ` · 치유 흡수 막 ${Math.round(debuff.absorbLeft ?? 0)}, 지우면 가장 건강한 아군에게 넘어감, 두면 끝날 때 남은 막만큼 피해` : '';
   return {
-    text: `${marker}${kind}${compact ? '' : ' '}${seconds}`,
+    text: `${kind}${compact ? '' : ' '}${seconds}`,
     detail: `${debuff.name} · ${debuff.type} · ${seconds}초${stack}${heal}${more} · ${action}`,
     state,
     seconds,

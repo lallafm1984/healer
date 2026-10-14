@@ -73,6 +73,16 @@ export default async function gear(url, shots) {
   await page.screenshot({ path: `${shots}/gear_list.png` });
   ok((await page.locator('#s-char .c7-inventory [data-dex]').count()) === 0, '인벤토리에 도감 버튼 없음');
 
+  // 분류에서 보이지 않은 장비도 장비 화면을 나가면 확인 처리. 비교 화살표는 남는다.
+  ok((await save()).gear.seen === 0, '장비 화면을 보는 동안에는 새 장비 확인 상태를 저장하지 않음');
+  await page.click('#s-char [data-bfilter="weapon"]'); await page.clock.runFor(50);
+  await page.click('#s-char [data-csub="skill"]'); await page.clock.runFor(50);
+  ok((await save()).gear.seen === 203 && !(await page.isVisible('#s-char [data-csub="gear"] .rdot')), '비어 있는 분류에서도 장비 화면을 나가면 전체 확인 처리');
+  ok(!/새 장비/.test(await page.getAttribute('#s-char .tb-pf', 'aria-label')), '새 장비에 관한 상단 알림 제거');
+  await page.click('#s-char [data-csub="gear"]'); await page.clock.runFor(50);
+  await page.click('#s-char [data-bfilter="all"]'); await page.clock.runFor(50);
+  ok((await page.locator('#s-char .c7-bag .nw').count()) === 0 && (await page.locator('#s-char .c7-bag .up').count()) === 3, '재진입하면 빨간 새것 점은 사라지고 비교 화살표는 유지');
+
   ok(!(await text('#s-char .c7-stat:nth-child(5) b')).startsWith('+'), '정신력 합계 앞에 + 없음');
   ok((await page.locator('#s-char .c7-stat b').allTextContents()).slice(2).every(value => /^[+]?\d+\.\d%$/.test(value)), '퍼센트 능력치는 소수 한 자리 고정 표시');
 
@@ -173,7 +183,7 @@ export default async function gear(url, shots) {
   ok(await page.isDisabled('#s-char [data-salv1="203"]'), '방금 장착한 장비도 개별 분해 불가');
   await closeSheet();
   ok(await page.evaluate(() => document.activeElement?.id === 'gearInventoryTitle'), '마지막 아이템 장착 뒤 상세 닫기 → 빈 인벤토리 제목 포커스 복귀');
-  ok(/0개/.test(await text('#s-char .c7-inventory-count')) && (await page.locator('#s-char .c7-bag').count()) === 0 && !(await page.isVisible('#s-char [data-csub="gear"] .rdot')), '빈 인벤토리 개수 0, 더 좋은 장비 빨간 점 사라짐');
+  ok(/0개/.test(await text('#s-char .c7-inventory-count')) && (await page.locator('#s-char .c7-bag').count()) === 0 && !(await page.isVisible('#s-char [data-csub="gear"] .rdot')), '빈 인벤토리 개수 0, 새 장비 빨간 점 사라짐');
   const emptyRows = await page.evaluate(() => {
     const list = document.querySelector('#s-char .c7-bags'), note = list.querySelector('.c7-inventory-empty');
     return { note: note?.textContent, empties: list.querySelectorAll('.c7-bag-empty').length, rows: Math.round(list.clientHeight / 60 * 10) / 10 };

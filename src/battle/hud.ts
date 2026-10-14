@@ -430,7 +430,7 @@ const qIc = (ic: string, kind: string | undefined, name: string, cls = 'ic') => 
 };
 
 /**
- * 판마다 한 번: 보스 체력 막대의 페이즈 눈금, 던전 구간 진행 ●●○○ (보스 이름 줄 오른쪽).
+ * 판마다 한 번: 보스 체력 막대의 페이즈 눈금, 던전 구간 진행 ●●○○ (시간 줄 오른쪽).
  * 눈금 = 공략의 「체력 N%」 페이즈 + 지휘자처럼 마지막에 나오는 보스 적의 시작점
  */
 export function buildStage(): void {

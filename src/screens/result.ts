@@ -5,12 +5,13 @@
 import { contentOf, type ContentKey } from '../data/content';
 import { avgScore, GRADE_STYLE, kindOf, recommendedFor, slotName, type ItemGrade } from '../data/equipment';
 import { CLASSES } from '../data/classes';
-import { HEROES } from '../data/heroes';
-import { MILESTONES, STAR_OVERHEAL, xpToNext } from '../data/progression';
+import { HEROES, type HeroKey } from '../data/heroes';
+import { STAR_OVERHEAL, xpToNext } from '../data/progression';
+import { levelUpMilestones } from '../data/milestones';
 import { Flow, newSeed } from '../game/flow';
 import { nextRun } from '../game/next-run';
 import { meterHtml } from '../game/meter';
-import { G } from '../game/state';
+import { G, heroNow } from '../game/state';
 import { scoreOf, specName } from '../game/charinfo';
 import { specKeysOf } from '../data/equipment';
 import { art } from '../art';
@@ -63,7 +64,7 @@ function render(): void {
   // 새로 열린 기능이 있으면 연출이 끝난 뒤 팝업 (한 판에 한 번)
   if (x.levelUps.length && !shown.has(x)) {
     shown.add(x);
-    setTimeout(() => { if (Flow.settle === x && !st.el.hidden) showLevelUp(st.el, x.levelUps); }, 1100);
+    setTimeout(() => { if (Flow.settle === x && !st.el.hidden) showLevelUp(st.el, x.levelUps, r.hero ?? heroNow()); }, 1100);
   }
 }
 const shown = new WeakSet<object>(), ended = new WeakSet<object>();
@@ -310,10 +311,10 @@ export function showEnding(host: HTMLElement): void {
 
 // ---------- 레벨업 팝업 (P04) ----------
 /** 새로 열린 기능이 있을 때만 띄움. 적이 내 레벨을 따라오므로 배율은 안 보여 줌 (32 5장) */
-export function showLevelUp(host: HTMLElement, ups: number[]): void {
-  const items = ups.flatMap(lv => (MILESTONES[lv] || []).filter(m => m.live).map(m => ({ lv, ...m })));
+export function showLevelUp(host: HTMLElement, ups: number[], hero: HeroKey = heroNow()): void {
+  const items = levelUpMilestones(ups, hero);
   if (!items.length) return;
-  if (deferPopup(host, () => showLevelUp(host, ups))) return;
+  if (deferPopup(host, () => showLevelUp(host, ups, hero))) return;
   const icon = (text: string) => text.includes('특성') ? gameIcon('talent', uiIcon('star'))
     : /스킬|패시브|성언|쿨기/.test(text) ? gameIcon('skills', uiIcon('quest'))
     : /던전|탐험|레이드|도전/.test(text) ? gameIcon('a2-swords', uiIcon('weapon'))

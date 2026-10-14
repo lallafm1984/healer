@@ -5,9 +5,8 @@
 import type { ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, segGrade, type EncounterKey } from '../data/encounters';
-import { canDispel, DEB_COLOR, HEROES } from '../data/heroes';
 import { AFFIXES, type AffixKey } from '../data/affixes';
-import { G, heroNow, switchOpen } from '../game/state';
+import { G } from '../game/state';
 import { battle, esc } from './kit';
 import { placeArt } from './art';
 
@@ -33,22 +32,10 @@ export function cover(c: ContentDef, inner: string): string {
 /** 경고 한 줄 (! + 글 + 오른쪽 버튼) */
 const warnRow = (cls: string, html: string, right = '') => `<p class="f-warn ${cls}"><span class="f-mark warn" aria-hidden="true">!</span><span class="v">${html}</span>${right}</p>`;
 
-/**
- * 준비 확인 (27 3-2) → 미달·불가만 경고 줄로. 다 괜찮으면 빈 글 (상자 없음).
- * 해제: 이 콘텐츠의 디버프를 지금 직업이 못 지우면 + 직업 바꾸기 (25 7장). 레벨: 단계보다 낮으면 권장 레벨만 (개발 빌드).
- * 2026-10-13 Lim 「장비 권장 내용은 제거, 레벨 권장 수치만 표시, 내 4처럼 내 정보는 표시하지 말고」
- */
-export function warnings(segs: EncounterKey[], stage: number): string {
-  const out: string[] = [];
-  const types = [...new Set(segs.flatMap(k => ENCOUNTERS[k].debuffs || []))];
-  const h = heroNow(), miss = types.filter(t => !canDispel(h, t));
-  if (miss.length) {
-    const chips = miss.map(t => `<span class="dsp" style="--c:${DEB_COLOR[t] || '#888'}">${t}</span>`).join('');
-    const swap = switchOpen().ok ? '<button class="btn2" type="button" data-go="s-char" data-arg="hero">직업 바꾸기</button>' : '';
-    out.push(warnRow('dispel', `${chips} 해제 못 함 <span class="cap">${HEROES[h].name}</span>`, swap));
-  }
-  if (G.save.player.level < stage) out.push(warnRow('lv', '<span class="f-wl">권장 레벨</span>', `<b class="f-wn">Lv ${stage}</b>`));
-  return out.length ? `<div class="f-warns" role="status">${out.join('')}</div>` : '';
+/** 편성 안내는 권장 레벨 미달일 때 레벨만 표시합니다. */
+export function recommendedLevel(stage: number): string {
+  if (G.save.player.level >= stage) return '';
+  return `<div class="f-warns" role="status">${warnRow('lv', '<span class="f-wl">권장 레벨</span>', `<b class="f-wn">Lv ${stage}</b>`)}</div>`;
 }
 
 /** 구간 노드 줄: 일반·정예 ● · 보스 ◆ */

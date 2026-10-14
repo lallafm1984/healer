@@ -19,8 +19,8 @@ import { CLASS_GLYPH, CUT, EDGE, LINE } from '../screens/class-icons';
 import { FACTIONS, type FactionKey } from '../data/places';
 import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
-import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, primaryDebuff } from './party-display';
-import { CELL_RADIUS, fitBoard } from './board-layout';
+import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, hotTimersOf, primaryDebuff } from './party-display';
+import { CELL_RADIUS, fitBoard, hotTimerLayout } from './board-layout';
 import { BOARDS } from '../data/boards';
 import { makeCells } from '../engine/board';
 import { BOSS_PXF, bossPxfOf, COMMON_PXF, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, wideArtName, type CommonFx, type PxfKey } from './pxf';
@@ -1654,6 +1654,8 @@ export function render(now: number): void {
   const smallHots: { id: number; x: number; y: number; relay?: boolean }[] = [];
   for (const { u, x, y, deb } of over) {
     let debBadge: ReturnType<typeof pill> | undefined;
+    const hots = hotTimersOf(u), hasHot = hots.length > 0;
+    const hotLayout = hotTimerLayout(s, hots.length);
     // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만). 「나」 = 직업 문장 (27 3-4)
     const em = u.me ? emblemTexture(F.hero) : null;
     // 위쪽 한 줄은 직업 아이콘 또는 디버프 배지 (디버프가 있으면 배지가 그 자리를 씀, 칸 색이 직업을 보여 줌)
@@ -1675,9 +1677,8 @@ export function render(now: number): void {
     // 작은 칸: 배지 · 이름 · 체력 세 줄이 서로와 위 칸 체력에 닿지 않게 (배지 0.81 · 이름 0.24, 2026-10-10)
     nick(u, x, y + r * (compact ? -0.24 : 0.13), r);
     const health = healthDisplay(u.hp, u.max);
-    const hasHot = u.hot > 0 || u.hots.length > 0;
     // 영원한 저녁 (05 6-G): 숫자 없이 채움 색만
-    const hpText = F.dark ? '?' : `${health.critical ? '!' : ''}${compact ? `${health.percent}%` : Math.ceil(u.hp)}`;
+    const hpText = F.dark ? '?' : `${compact ? `${health.percent}%` : Math.ceil(u.hp)}`;
     const hpY = y + r * (compact ? 0.25 : 0.6);
     const hpLabel = labels.put(`hp${u.id}`, hpText, {
       size: typography.hp, fill: C.white, weight: W_NUM, strokeW: compact ? 1.5 : 2.5, num: !compact,
@@ -1710,36 +1711,26 @@ export function render(now: number): void {
         // 보통 칸 (2026-10-10): 배지를 직업 아이콘 자리 (윗줄)에. 꼭짓점에 두면 위 칸 체력 숫자와 겹친다 (10인 울트라·플립은 거의 다 가림).
         // 윗변은 위 칸 체력 숫자 아래 (글자 상자의 위아래 여백 2px는 겹쳐도 안 보임)
         const h = fsD * 1.32 + 1.5, below = hpBox.y + hpBox.h / 2 - 1.5 * s - 1 + h / 2;
-        const hr = hasHot ? hotR + 0.75 : 0, half = r * COS30;
+        const hr = hasHot ? hotLayout.radius + 0.75 : 0, half = r * COS30;
         let text = badgeText(shortBadge), w = measure(text, fsD) + fsD * 0.7 + 1.5;
         if (w > half * 2 - (hr ? hr * 2 + 1 : 0)) { text = badgeText(true); w = measure(text, fsD) + fsD * 0.7 + 1.5; }
-        const hx = Math.min(x + r * 0.56, x + half - hr);
+        const hx = Math.min(x + hotLayout.x, x + half - hr);
         debBadge = pill(badgeG, badgeLabels, `deb${u.id}`, hr ? Math.min(x, hx - hr - 1 - w / 2) : x, Math.max(y - r * 0.4, below), text, color, C.dark, fsD);
         // 지속 힐 원은 배지 오른쪽 같은 줄
         if (hr) hotSpot = fitCenter(Math.max(hx, debBadge.x + debBadge.w / 2 + 1 + hr), debBadge.y, hr);
       }
     }
-    if (!compact && u.hot > 0) {
-      const hr = Math.max(7, s * 0.19), hp = hotSpot ?? hotCenter(x + r * 0.56, y - r * 0.44, hr + 0.75, hr + 0.75);
-      const hx = hp.x, hy = hp.y;
-      overG.circle(hx, hy, hr).fill({ color: C.teal }).stroke({ width: 1.5, color: C.line });
-      fitLabel(labels.put(`hot${u.id}`, String(Math.ceil(u.hot)), { size: hr * 1.05, fill: C.line }, hx, hy + 0.5), `hot-text${u.id}`, 'hot');
-      recordBound(`hot${u.id}`, 'hot', 'circle', hx, hy, hr * 2 + 1.5, hr * 2 + 1.5);
-    } else if (!compact && u.hots.length) {
-      // 드루이드·성기사 지속 힐: 오른쪽 위 원 (색 = 가장 오래 남은 지속 힐, 숫자 = 남은 초).
-      // 보조 지속 힐은 원의 위쪽 테두리 두 구간에 표시한다. 숫자와 원 밖의 이름을 가리지 않는다.
-      const hs = u.hots.slice().sort((a, b) => b.left - a.left), h0 = hs[0];
-      const hr = Math.max(7, s * 0.19), dots = hs.slice(1, 3);
-      const { x: hx, y: hy } = hotSpot ?? hotCenter(x + r * 0.56, y - r * 0.44, hr + 0.75, hr + 0.75);
-      overG.circle(hx, hy, hr).fill({ color: HOT_COLOR[h0.key] ?? C.teal }).stroke({ width: 1.5, color: C.line });
-      fitLabel(labels.put(`hot${u.id}`, String(Math.ceil(h0.left)), { size: hr * 1.05, fill: C.line }, hx, hy + 0.5), `hot-text${u.id}`, 'hot');
-      recordBound(`hot${u.id}`, 'hot', 'circle', hx, hy, hr * 2 + 1.5, hr * 2 + 1.5);
-      dots.forEach((h, k) => {
-        const a = (k ? -84 : -120) * Math.PI / 180, b = (k ? -60 : -96) * Math.PI / 180, width = 1.25;
-        const ax = hx + Math.cos(a) * hr, ay = hy + Math.sin(a) * hr;
-        const bx = hx + Math.cos(b) * hr, by = hy + Math.sin(b) * hr;
-        overG.moveTo(ax, ay).arc(hx, hy, hr, a, b).stroke({ width, color: HOT_COLOR[h.key] ?? C.teal, cap: 'round' });
-        recordBound(`hot-extra${u.id}-${k}`, 'hot', 'arc', (ax + bx) / 2, (ay + by) / 2, Math.abs(bx - ax) + width, Math.abs(by - ay) + width);
+    if (!compact && hasHot) {
+      const hr = hotLayout.radius, lower = hr + 0.75 + (hots.length - 1) * hotLayout.step;
+      const start = hotCenter(hotSpot?.x ?? x + hotLayout.x, hotSpot?.y ?? y + hotLayout.y, hr + 0.75, lower);
+      hots.forEach((h, i) => {
+        const hx = start.x, hy = start.y + i * hotLayout.step, key = `hot${u.id}-${h.key}`;
+        overG.circle(hx, hy, hr).fill({ color: HOT_COLOR[h.key] ?? C.teal }).stroke({ width: 1.5, color: C.line });
+        const label = labels.put(key, String(Math.ceil(h.left)), { size: Math.max(8, hr * 1.05), fill: C.line }, hx, hy + 0.5);
+        label.scale.set(1);
+        if (label.width > hr * 1.65) label.scale.x = hr * 1.65 / label.width;
+        fitLabel(label, `${key}-text`, 'hot');
+        recordBound(key, 'hot', 'circle', hx, hy, hr * 2 + 1.5, hr * 2 + 1.5);
       });
     }
     // 보스가 때리는 사람: 테두리 대신 칸 위 조준 표식 (테두리는 디버프 몫). 작은 칸은 디버프 이름표 왼쪽, 보통 칸은 윗줄 배지 위 꼭짓점

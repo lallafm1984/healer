@@ -19,7 +19,7 @@ import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, type DexTab } from '../da
 import { betterSlots, codexRows, dexRows, specRows, statParts, talentsLeft, vsWorn } from '../game/charinfo';
 import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, specText, specValue, type CodexGroup, type SpecGroup, type SpecLine } from '../data/specials';
 import {
-  claimDex, commit, enhanceLack, enhanceTry, equip, findItem, G, healerLevel, heroSave, heroStatus, pickReroll, pickTalent, reroll, rerollOpen, salvage,
+  claimDex, commit, enhanceLack, enhanceTry, equip, findItem, G, healerLevel, heroSave, heroStatus, isNewGear, markGearSeen, newGearCount, pickReroll, pickTalent, reroll, rerollOpen, salvage,
   setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleLock, type EnhanceOutcome, type RerollKind,
 } from '../game/state';
 import { Flow } from '../game/flow';
@@ -67,10 +67,14 @@ const s = screen('s-char', '캐릭터', {
   enter(arg) {
     if (itemOverlay) sub = itemOverlay.previousSub;
     itemOverlay = null; s.el.classList.remove('c7-item-overlay');
-    if (SUBS.some(x => x.key === arg)) sub = arg as Sub;
-    sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null; seenMarked = false; rrOn = false; rrAlt = null; efx = null;
+    if (SUBS.some(x => x.key === arg)) {
+      if (sub !== arg) finishInventoryVisit();
+      sub = arg as Sub;
+    }
+    sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null; rrOn = false; rrAlt = null; efx = null;
     render(false);
   },
+  leave() { finishInventoryVisit(); },
 });
 const modal = sheetDialog(s.el, closeSheet);
 
@@ -125,7 +129,7 @@ function render(keep = true, resetInventory = false): void {
   const old = s.el.querySelector<HTMLElement>('.ns-body');
   const top = keep && old ? old.scrollTop : 0;
   const inventoryTop = keep && !resetInventory ? s.el.querySelector<HTMLElement>('.c7-bags')?.scrollTop ?? 0 : 0;
-  if (sub === 'gear' && !itemOverlay) markSeen();
+  if (sub === 'gear' && !itemOverlay) inventoryVisited = true;
   // 시트가 가리키던 것이 없어졌으면 (분해한 장비 등) 시트도 닫음
   const sh = sheetHtml();
   if (!sh) { sheet = null; pending = null; }
@@ -139,7 +143,6 @@ function render(keep = true, resetInventory = false): void {
     <div class="ns-body c7-body c7-${sub}${sheet?.k === 'talent' ? ' c7-tsheet-on' : ''}">${body}</div>${sh}${confirmHtml()}`;
   if (still) s.el.querySelector('.sheet')?.classList.add('still');
   if (sub === 'skill') fitDesc();
-  if (sub === 'talent') watchTree();
   const nb = s.el.querySelector<HTMLElement>('.ns-body');
   if (nb && top) nb.scrollTop = top;
   const inventory = s.el.querySelector<HTMLElement>('.c7-bags');
@@ -152,9 +155,9 @@ function render(keep = true, resetInventory = false): void {
   syncScreenFx();
 }
 
-/** 하위 탭 4칸 (전투 탭 분류 칸 모양): 더 좋은 장비 = 장비 빨간 점, 남은 특성 = 특성 빨간 점 */
+/** 하위 탭 4칸: 새 장비 = 장비 빨간 점, 남은 특성 = 특성 빨간 점 */
 function tabsHtml(): string {
-  const dot = (k: Sub) => ((k === 'gear' && betterSlots().length) || (k === 'talent' && talentsLeft()) ? '<span class="rdot" aria-hidden="true"></span>' : '');
+  const dot = (k: Sub) => ((k === 'gear' && newGearCount()) || (k === 'talent' && talentsLeft()) ? '<span class="rdot" aria-hidden="true"></span>' : '');
   const ic: Record<Sub, string> = {
     gear: gameIcon('gear', uiIcon('weapon')),
     skill: gameIcon('skills', line(BOOK, 1.9)),
@@ -195,25 +198,20 @@ const SORTS: Record<BagSort, { name: string; next: BagSort; cmp: (a: GearItem, b
 let bagFilter: BagFilter = 'all';
 let bagSort: BagSort = 'score';
 
-/** 이번에 들어오기 전까지 본 장비 id (이보다 크면 새것 점). 장비 탭을 처음 그릴 때 저장의 seen을 올림 */
-let seenAt = Infinity;
-let seenMarked = false;
-function markSeen(): void {
-  if (seenMarked) return;
-  seenMarked = true;
-  const g = G.save.gear;
-  seenAt = g.seen ?? 0;
-  const top = Math.max(0, ...g.bag.map(x => x.id), ...SLOTS.map(x => g.equipped[x.key]?.id ?? 0));
-  if (top > seenAt) { g.seen = top; commit(); }
+/** 상세·필터를 열어도 새 점은 유지하며, 장비 하위 탭이나 캐릭터 화면을 나갈 때 확인합니다. */
+let inventoryVisited = false;
+function finishInventoryVisit(): void {
+  if (!inventoryVisited || itemOverlay) return;
+  inventoryVisited = false;
+  markGearSeen();
 }
-const isNew = (it: GearItem) => it.id > seenAt;
 
 /** 세력 생김새 반짝 (50 E fx-look-shimmer): 새 장비가 가방 칸 · 장비 칸에 처음 보일 때 한 번, 흰 그림을 세력 색으로. 시트가 열려 있거나 효과 줄이기면 없음 */
 const shimmered = new Set<string>();
 /** 이번 방문에 장착한 장비 (장비 칸 반짝용) */
 let wornNow = 0;
 function lookFx(it: GearItem, at: 'b' | 's'): string {
-  if (!it.look || sheet || G.save.settings.reducedEffects || !(isNew(it) || (at === 's' && wornNow === it.id))) return '';
+  if (!it.look || sheet || G.save.settings.reducedEffects || !(isNewGear(it) || (at === 's' && wornNow === it.id))) return '';
   const u = art('fx-look-shimmer'), k = `${at}${it.id}`;
   if (!u || shimmered.has(k)) return '';
   shimmered.add(k);
@@ -299,10 +297,10 @@ function gearHtml(): string {
 
 /** 가방 칸: 장비 그림 + 등급 색 + +N + 지금 장비보다 점수가 높으면 초록 ▲ · 낮으면 빨간 ▼ (Lim 2026-10-11) + 새 점 */
 function bagCell(it: GearItem): string {
-  const vs = vsWorn(it), nw = isNew(it);
+  const vs = vsWorn(it), nw = isNewGear(it);
   const label = `${it.grade} ${slotName(it.slot)} · ${it.name}${plusTxt(it)}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${vs > 0 ? ' · 지금 장비보다 좋음' : vs < 0 ? ' · 지금 장비보다 나쁨' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
   const arrow = vs > 0 ? '<span class="up" aria-hidden="true">▲</span>' : vs < 0 ? '<span class="dn" aria-hidden="true">▼</span>' : '';
-  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${lookFx(it, 'b')}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${arrow}${nw ? '<span class="nw"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
+  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${lookFx(it, 'b')}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${arrow}${nw ? '<span class="nw" aria-hidden="true"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
 }
 
 const grip = '<span class="grip" aria-hidden="true"></span>';
@@ -319,15 +317,14 @@ function inventoryHtml(): string {
   const all = G.save.gear.bag;
   const f = FILTERS.find(x => x.key === bagFilter) || FILTERS[0];
   const list = all.filter(f.ok).sort(SORTS[bagSort].cmp);
-  // 빈 가방은 빈 칸만 표시. 분류 결과만 비었을 때는 첫 줄에 분류 안내.
-  const filteredEmpty = all.length > 0 && !list.length;
-  const used = list.length + (filteredEmpty ? 5 : 0);
+  // 가방이나 선택한 분류가 비어 있으면 안내 문구 없이 빈 칸만 표시.
+  const used = list.length;
   const emptySlots = EMPTY_CELL.repeat(Math.max(15, Math.ceil(used / 5) * 5) - used);
   return `<section class="c7-inventory" aria-label="인벤토리">
       <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3><span class="c7-inventory-count">${all.length}개</span><span class="cap gmats">${currencyAmount('stone', resourceBalance(G.save, 'stone'))}${currencyAmount('refined', resourceBalance(G.save, 'refined'))}</span></header>
       <div class="c7-inventory-tools"><div class="c7-fcs" role="group" aria-label="인벤토리 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div><button type="button" class="btn2 c7-sort" data-bsort aria-label="정렬: ${SORTS[bagSort].name}"${all.length ? '' : ' disabled'}>${SORTS[bagSort].name} ▾</button></div>
       ${msg && !sheet ? `<p class="note warn c7-msg" role="status">${esc(msg)}</p>` : ''}
-      <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${filteredEmpty ? '<p class="c7-inventory-empty">이 분류 장비 없음</p>' : ''}${list.map(bagCell).join('')}${emptySlots}</div></section>`;
+      <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${list.map(bagCell).join('')}${emptySlots}</div></section>`;
 }
 
 /** 목록 창이 3줄보다 길면 (키 큰 화면) 아이템이 적어도 창 아래가 비지 않게, 보이는 줄 끝까지 빈칸을 채움. 창 크기가 바뀔 때마다 (bagWatch) */
@@ -336,7 +333,7 @@ function fillBags(): void {
   if (!list || !cell || !list.clientHeight) return;
   const cs = getComputedStyle(list), gap = parseFloat(cs.rowGap) || 0;
   const rows = Math.ceil((list.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) + gap) / (cell.offsetHeight + gap) - 0.05);
-  const used = list.querySelectorAll('.c7-bag').length + (list.querySelector('.c7-inventory-empty') ? 5 : 0);
+  const used = list.querySelectorAll('.c7-bag').length;
   const empties = list.querySelectorAll('.c7-bag-empty'), want = Math.max(15, Math.ceil(used / 5) * 5, rows * 5) - used;
   if (want > empties.length) list.insertAdjacentHTML('beforeend', EMPTY_CELL.repeat(want - empties.length));
   for (let i = empties.length - 1; i >= want; i--) empties[i].remove();
@@ -786,7 +783,7 @@ function skillHtml(): string {
     <section class="c7-sklist">${skillRows(lay)}</section>`;
 }
 
-// ---------- 특성: 어두운 특성판 · 그림 노드 · 금빛 선택 경로 · 직업별 프리셋 ----------
+// ---------- 특성: 어두운 특성판 · 금빛 그림 노드 · 직업별 프리셋 ----------
 /** 특성의 효과에 대응하는 기존 스킬 그림. 저장 키와 단·선택지 순서는 그대로 둔다. */
 const TALENT_ART: Record<TalentKey, SkillKey> = {
   longBreath: 'renew', lightTouch: 'flash', wideCircle: 'poh',
@@ -827,40 +824,7 @@ function talentHtml(): string {
   }).join('');
   return `<header class="c7-talent-title">${classEmblem('priest')}<div><h2>사제 특성</h2></div><b>Lv ${lv}</b></header>
     <div class="c7-tsum"><p><span>${head}</span><small>언제든 무료로 변경</small></p><span class="c7-preset-wrap"><small>프리셋</small><span class="c7-pres" role="group" aria-label="프리셋">${presets}</span></span></div>
-    <section class="c7-tiers" aria-label="특성 나무">${rows}<svg class="c7-tpath" aria-hidden="true"></svg></section>`;
-}
-
-/**
- * 선택 경로를 보여 주는 장식 선. 단 사이 선행 조건을 뜻하지 않는다.
- * 노드 위치는 화면 폭·글꼴에 따라 바뀌므로 배치 이후와 크기 변경 시 다시 잰다.
- */
-function drawTree(): void {
-  const box = s.el.querySelector<HTMLElement>('.c7-tiers'), svg = box?.querySelector<SVGSVGElement>('.c7-tpath');
-  if (!box || !svg) return;
-  const r0 = box.getBoundingClientRect();
-  const at = (i: number, j: number) => {
-    const el = box.querySelector(`[data-tcell="${i}:${j}"] .c7-tn`);
-    if (!el) return null;
-    const r = el.getBoundingClientRect();
-    return `${Math.round(r.left - r0.left + r.width / 2)} ${Math.round(r.top - r0.top + r.height / 2)}`;
-  };
-  const mine = heroSave('priest').talents || [], lv = healerLevel();
-  let solid = '', dash = '';
-  TALENTS.forEach((t, i) => {
-    const nt = TALENTS[i + 1], a = mine[i] != null && t.lv <= lv ? at(i, mine[i]!) : null;
-    if (!a || !nt || nt.lv > lv) return;
-    if (mine[i + 1] != null) { const b = at(i + 1, mine[i + 1]!); if (b) solid += `M${a}L${b}`; }
-    else for (let j = 0; j < 3; j++) { const b = at(i + 1, j); if (b) dash += `M${a}L${b}`; }
-  });
-  svg.setAttribute('viewBox', `0 0 ${Math.round(r0.width)} ${Math.round(r0.height)}`);
-  svg.innerHTML = `${solid ? `<path class="s" d="${solid}"/>` : ''}${dash ? `<path class="d" d="${dash}"/>` : ''}`;
-}
-const treeWatch = typeof ResizeObserver === 'function' ? new ResizeObserver(() => drawTree()) : null;
-function watchTree(): void {
-  drawTree();
-  treeWatch?.disconnect();
-  const box = s.el.querySelector('.c7-tiers');
-  if (box) treeWatch?.observe(box);
+    <section class="c7-tiers" aria-label="특성 나무">${rows}</section>`;
 }
 
 /** 특성 설명 시트 (탭 막대 위, 어둡게 하지 않음). 고른 특성이면 「풀기」 = pickTalent 다시 누름과 같음 */
@@ -989,7 +953,7 @@ function onClick(t: HTMLElement): boolean {
   // 강화 연출 중 아무 데나 누르면 연출 끝 (누른 것은 그대로 처리, 34 7-3)
   if (efx && !t.closest('[data-enh]')) endFx();
   const tab = t.closest<HTMLElement>('[data-csub]');
-  if (tab) { efx = null; sub = tab.dataset.csub as Sub; sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null; render(false); return true; }
+  if (tab) { go('s-char', tab.dataset.csub); return true; }
   if (t.closest('[data-sheetx]')) { closeSheet(); return true; }
 
   // ---- 장비 ----

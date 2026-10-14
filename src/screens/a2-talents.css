@@ -51,8 +51,6 @@
 #s-char .c7-pk.off .c7-tn::after { display: none; }
 #s-char .c7-tlock { position: absolute; right: -5px; bottom: -5px; display: grid; place-items: center; width: 20px; height: 20px; background: #182232; border: 1px solid #8190a1; border-radius: 4px; color: #c4cfdc; }
 #s-char .c7-tlock svg { width: 15px; height: 15px; }
-#s-char .c7-tpath .s { stroke: #f0ca73; stroke-width: 2.5; opacity: .65; }
-#s-char .c7-tpath .d { stroke: #aebed2; stroke-width: 1.5; stroke-dasharray: 3 6; opacity: .35; }
 
 #s-char .sheet.c7-tsheet { left: 50%; right: auto; bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom) + 8px); width: calc(100% - 16px); max-width: 464px; max-height: min(45%, 330px); display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding: 12px; border: 1px solid #c1a370; border-radius: 6px; background: #101927; color: #e9e2d3; box-shadow: inset 0 0 0 3px #263246, 0 -6px 26px #000a; text-shadow: none; }
 #s-char .c7-tooltip-head { display: flex; align-items: center; gap: 10px; }

@@ -6,8 +6,8 @@ import { HEROES, type HeroKey } from '../data/heroes';
 import type { RosterEntry } from '../engine';
 import type { BattleResult } from '../game/settle';
 import { TUT, type CoachKey } from '../game/tutorial';
-import { G, heroNow } from '../game/state';
-import { betterSlots, talentsLeft } from '../game/charinfo';
+import { G, heroNow, newGearCount } from '../game/state';
+import { talentsLeft } from '../game/charinfo';
 import { apexOf, xpToNext } from '../data/progression';
 import { classEmblem, currencyIcon, gameIcon } from './art';
 import { releaseSheetDialogs, resetShellScroll } from './dialog';
@@ -36,6 +36,8 @@ export interface Screen {
   /** 하단 탭을 보일 때 켜 둘 탭 */
   tab?: TabKey;
   enter?(arg?: unknown): void;
+  /** 다른 화면으로 이동하기 전에 실행합니다. */
+  leave?(): void;
 }
 
 const screens = new Map<string, Screen>();
@@ -57,6 +59,7 @@ export function screen(id: string, label: string, def: Omit<Screen, 'el'> = {}):
 export function go(id: string, arg?: unknown): void {
   const s = screens.get(id);
   if (!s) throw new Error(`화면 없음: ${id}`);
+  if (id !== current) screens.get(current)?.leave?.();
   releaseSheetDialogs();
   if (id !== current) previous = current;
   current = id;
@@ -77,7 +80,7 @@ const GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 
 /**
  * 상단 바. back이 있으면 「← 제목」 줄, 없으면 MMO 캐릭터 칸 (30 0장 공통 위 줄, 전투 Sunforged 기준 코덱스 로비 시안):
- * 황동 초상 테 직업 문장 + 알림 빨간 점 (특성 남음·더 좋은 장비) → 캐릭터 탭 · 직업 이름 + Lv + 경험치 막대 · 골드·크리스탈 · 설정 (황동 칸).
+ * 황동 초상 테 직업 문장 + 알림 빨간 점 (특성 남음·새 장비) → 캐릭터 탭 · 직업 이름 + Lv + 경험치 막대 · 골드·크리스탈 · 설정 (황동 칸).
  * 캐릭터 칸은 탭 루트(settings)에서만 누름. 튜토리얼 중 캐릭터 탭이 잠겼으면(첫 장비 전) 누르지 않음.
  */
 export function topBar(opts: { back?: string; title?: string; settings?: boolean } = {}): string {
@@ -89,13 +92,13 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
   const need = xpToNext(p.level);
   const pct = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
   const tutDone = s.tut >= TUT.done;
-  const left = tutDone ? talentsLeft() : 0, better = tutDone ? betterSlots().length : 0;
+  const left = tutDone ? talentsLeft() : 0, fresh = tutDone ? newGearCount() : 0;
   const charOk = tutDone || s.gear.bag.length > 0 || Object.keys(s.gear.equipped).length > 0;
   const hero = HEROES[heroNow()];
-  const note = [left ? `특성 ${left} 남음` : '', better ? `더 좋은 장비 ${better}` : ''].filter(Boolean).join(' · ');
+  const note = [left ? `특성 ${left} 남음` : '', fresh ? `새 장비 ${fresh}개` : ''].filter(Boolean).join(' · ');
   const pfIn = `<span class="tb-em">${classEmblem(heroNow(), 'lg')}</span>${note ? '<i class="tb-dot"></i>' : ''}`;
   const pf = opts.settings && charOk
-    ? `<button class="tb-pf" type="button" data-go="s-char"${better ? ' data-arg="gear"' : left ? ' data-arg="talent"' : ''} aria-label="캐릭터 · ${esc(hero.name)} Lv ${p.level}${note ? ` · ${note}` : ''}">${pfIn}</button>`
+    ? `<button class="tb-pf" type="button" data-go="s-char"${fresh ? ' data-arg="gear"' : left ? ' data-arg="talent"' : ''} aria-label="캐릭터 · ${esc(hero.name)} Lv ${p.level}${note ? ` · ${note}` : ''}">${pfIn}</button>`
     : `<span class="tb-pf" role="img" aria-label="${esc(hero.name)} Lv ${p.level}">${pfIn}</span>`;
   return `<header class="topbar tb-mmo">${pf}
     <span class="tb-nm"><span class="tb-id"><b class="tb-cls">${esc(hero.name)}</b><small class="tb-lv">Lv. ${p.level}</small></span>

@@ -125,7 +125,6 @@
   border-color: #a88b5752; border-radius: 7px;
   background: #1b160eb3; box-shadow: inset 0 2px 7px #070b1055;
 }
-#s-char[data-sub="gear"] .c7-inventory-empty { color: #e2d0ad; }
 /* Detail sheet uses the same plain surface as the preparation item dialog. */
 #s-char[data-sub="gear"] .sheet.c7-ssheet {
   background: #262119; border-color: #bb9b60;
@@ -196,6 +195,11 @@
   background: #2e241a; border-color: #a58756;
   box-shadow: 0 0 0 2px #20170f, inset 0 0 0 1px #e2be7533;
 }
+/* 특성에 재사용한 직업별 스킬 그림은 모두 금빛으로 통일. 잠금은 기존 밝기와 자물쇠로 구분. */
+#s-char[data-sub="talent"] .c7-pk .c7-tn > .g-ic,
+#s-char[data-sub="talent"] .c7-tsi > .g-ic {
+  filter: grayscale(1) sepia(1) saturate(1.6);
+}
 #s-char[data-sub="talent"] .c7-tier.pending .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn {
   border-color: #c8a969; box-shadow: 0 0 0 2px #20170f, 0 0 9px #d7b66026;
 }
@@ -207,7 +211,6 @@
 }
 #s-char[data-sub="talent"] .c7-pk.off small { color: #b3a58d; }
 #s-char[data-sub="talent"] .c7-tlock { background: #262119; border-color: #a08b66; color: #d2c1a3; }
-#s-char[data-sub="talent"] .c7-tpath .d { stroke: #bda783; }
 #s-char[data-sub="talent"] .sheet.c7-tsheet {
   background: #262119; box-shadow: inset 0 0 0 3px #4e3c2599, 0 -6px 26px #000a;
 }

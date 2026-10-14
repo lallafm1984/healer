@@ -1,11 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { fitBoard, type BoardInsets, type BoardPoint } from '../src/battle/board-layout';
+import { CELL_RADIUS, fitBoard, hotTimerLayout, type BoardInsets, type BoardPoint } from '../src/battle/board-layout';
 import { BOARDS } from '../src/data/boards';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { makeCells } from '../src/engine/board';
 
 type Layout = ReturnType<typeof fitBoard>;
 const EPS = 1e-7;
+
+describe('지속 치유 시간의 세로 배치', () => {
+  it.each([36, 43, 60, 80])('칸 크기 %i에서 효과 2~5개의 테두리가 겹치지 않고 칸 높이 안에 남는다', scale => {
+    for (const count of [2, 3, 4, 5]) {
+      const layout = hotTimerLayout(scale, count);
+      const edges = Array.from({ length: count }, (_, i) => ({
+        top: layout.y + i * layout.step - layout.radius - 0.75,
+        bottom: layout.y + i * layout.step + layout.radius + 0.75,
+      }));
+      expect(edges[0].top).toBeGreaterThan(-scale * CELL_RADIUS);
+      expect(edges.at(-1)!.bottom).toBeLessThan(scale * CELL_RADIUS);
+      edges.slice(1).forEach((edge, i) => expect(edge.top).toBeGreaterThan(edges[i].bottom));
+    }
+  });
+});
 const boards = Object.entries(BOARDS).map(([name, rows]) => ({ name, cells: makeCells(rows) }));
 
 // 기존 concept4 매트릭스의 보드 영역 크기. 실기기 viewport나 전체 화면 높이가 아니다.

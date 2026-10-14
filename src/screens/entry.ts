@@ -12,7 +12,7 @@ import { runMode } from '../game/runmode';
 import { G } from '../game/state';
 import { esc, fmt, go, mmss, screen } from './kit';
 import { currencyIcon, gameIcon } from './art';
-import { afxRows, flowHead, timeline, warnings } from './brief';
+import { afxRows, flowHead, timeline } from './brief';
 
 const s = screen('s-entry', '주간 도전', { enter() { render(); } });
 
@@ -37,7 +37,6 @@ function render(): void {
         <dl class="f-cinfo"><div><dt>제한시간</dt><dd>${mmss(m.limit!)}</dd></div><div><dt>적 체력</dt><dd>+${Math.round((bm.hp - 1) * 100)}%</dd></div><div><dt>피해</dt><dd>+${Math.round((bm.dmg - 1) * 100)}%</dd></div></dl>
         <p class="wc-record"><span>열린 단계 <b>${open}/${CHAL.max}</b></span><span>이번 주 최고 <b>${best ? `${best}단계` : '없음'}</b></span></p>
       </section>
-      ${warnings(segs, 0)}
       <section class="pn f-sec wc-affixes"><h2 class="h-rule">이번 주 어픽스<span class="rule"></span><span class="cap">월요일 06:00 갱신</span></h2>${afxRows(m.affixes)}</section>
       <section class="pn f-sec wc-route"><h2 class="h-rule">구간<span class="rule"></span><span class="cap">${segs.length}개 구간</span></h2>${timeline(segs)}</section>
       <section class="pn f-sec f-rw wc-rewards"><h2 class="h-rule">보상<span class="rule"></span><span class="cap">클리어마다 · 장비 ${topGrade(dropTable(chalDropDiff(Flow.chal)))}까지</span></h2>

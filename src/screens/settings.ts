@@ -1,5 +1,7 @@
 /** S21 설정 (09). 바꾸면 바로 저장하고 전투 화면에도 넘김. 칸 탭 기본 힐·스킬 배치(S17)는 캐릭터 → 스킬로 옮김 */
-import { commit, G, heroNow, resetSave } from '../game/state';
+import { MAX_LEVEL } from '../data/progression';
+import { Flow } from '../game/flow';
+import { commit, G, heroNow, resetSave, setTestMaxLevel } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { battle, go, previous, screen, topBar } from './kit';
 
@@ -39,6 +41,8 @@ function render(): void {
         ${tog('allSkills', '스킬 전부 열기 (레벨 무관)')}
         ${tog('devGold', '골드 무제한')}
         ${tog('devStones', '강화석·정제 강화석 무제한')}<p>켜진 재화는 보유량과 관계없이 사용할 수 있으며 차감되지 않습니다. 끄면 실제 보유량으로 돌아옵니다.</p>
+        <button class="btn" type="button" id="devMaxLevel"${Flow.running || G.save.player.level >= MAX_LEVEL ? ' disabled' : ''}>${G.save.player.level >= MAX_LEVEL ? `${MAX_LEVEL}레벨 적용됨` : `${MAX_LEVEL}레벨로 변경`}</button>
+        <p id="devLevelStatus" role="status">현재 Lv. ${G.save.player.level}${Flow.running ? ' · 정산 후 변경 가능' : ' · 장비·재화 유지'}</p>
         <button class="btn" type="button" id="tutAgain">${G.save.tut < TUT.done ? '튜토리얼 건너뛰기' : '튜토리얼 다시 보기 (레벨·장비는 그대로)'}</button>
         <button class="btn" type="button" id="resetSave">${confirmReset ? '한 번 더 누르면 삭제' : '저장 지우고 처음부터'}</button>
       </section>
@@ -52,6 +56,13 @@ s.el.addEventListener('click', e => {
   const c = t.closest<HTMLElement>('[data-set]');
   if (c) { (G.save.settings as unknown as Record<string, string>)[c.dataset.set!] = c.dataset.val!; saveSettings(); return; }
   if (t.closest('#toSkills')) { go('s-char', 'skill'); return; }
+  if (t.closest('#devMaxLevel')) {
+    const scrollTop = s.el.querySelector('.settings')?.scrollTop ?? 0;
+    setTestMaxLevel();
+    pushSettings(); render();
+    s.el.querySelector('.settings')!.scrollTop = scrollTop;
+    return;
+  }
   if (t.closest('#tutAgain')) {
     const again = G.save.tut >= TUT.done;
     G.save.tut = again ? TUT.intro : TUT.done; commit();

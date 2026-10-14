@@ -13,7 +13,7 @@ import { CHAL } from '../data/challenge';
 import { SHARD_MAX } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { guildCap } from '../data/guild';
-import { nextMilestone } from '../data/progression';
+import { nextMilestone } from '../data/milestones';
 import { weekRemaining } from '../game/clock';
 import { chestState, claimChalChest, claimChest, claimMission, missionReady } from '../game/economy';
 import { Flow } from '../game/flow';
@@ -61,7 +61,7 @@ function goals(): Goal[] {
   if (diff) out.push({ title: '녹슨 요새', tag: diff, sub: '클리어', prog: '0/1', to: { content: 'rustfort', diff } });
   let lv = lvNow;
   for (let i = 0; i < 20; i++) {
-    const m = nextMilestone(lv);
+    const m = nextMilestone(lv, G.save.hero);
     if (!m) break;
     const live = m.items.filter(x => x.live);
     // 괄호 설명은 빼고 첫 항목만 (목표 칸이 좁음)

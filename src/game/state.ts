@@ -8,7 +8,7 @@ import { enhanceCost, itemName, itemScore, MAX_PLUS, REROLL_LEVEL, REROLL_PICK_L
 import type { SpecLine } from '../data/specials';
 import type { ItemKey } from '../data/items';
 import { activeItemKeys, assignItemSlot, itemLoadoutOf, type ItemSlot } from '../data/item-loadout';
-import { itemSlots } from '../data/progression';
+import { itemSlots, MAX_LEVEL } from '../data/progression';
 import { heroSaveOf, load, loadChar, newSave, noteSpecs, parkChar, save, shareAccount, topLevel, wipeChars, type HeroSave, type SaveData } from '../platform/storage';
 import { firstDungeonDue, TUT } from './tutorial';
 import { isMember, onAct, rollover, type Rollover } from './economy';
@@ -18,6 +18,19 @@ import { resourceBalance, spendResource } from './resources';
 export const G: { save: SaveData } = { save: load() };
 
 export function commit(): void { save(G.save); }
+
+/** 인벤토리를 마지막으로 나간 뒤 획득한 장비. 성능 비교와 알림은 별개입니다. */
+export const isNewGear = (it: GearItem): boolean => it.id > (G.save.gear.seen ?? 0);
+export const newGearCount = (): number => G.save.gear.bag.filter(isNewGear).length;
+
+/** 장비 화면을 나가면 필터·스크롤 위치와 관계없이 보유 장비를 모두 확인 처리합니다. */
+export function markGearSeen(): void {
+  const g = G.save.gear;
+  const top = Math.max(g.seen ?? 0, ...g.bag.map(it => it.id), ...SLOTS.map(s => g.equipped[s.key]?.id ?? 0));
+  if (top <= (g.seen ?? 0)) return;
+  g.seen = top;
+  commit();
+}
 
 /** 월정액이면 배너를 숨김 (15 5장) */
 export function syncMember(now = Date.now()): void {
@@ -34,6 +47,15 @@ export function refreshDay(now = Date.now()): Rollover {
 
 /** 저장 지우고 처음부터: 쉬는 캐릭터까지 모두 (68) */
 export function resetSave(): void { wipeChars(G.save); G.save = newSave(); commit(); }
+
+/** 개발 테스트: 현재 캐릭터의 공통 레벨만 최대로 올리고, 만렙 경험치는 0으로 저장한다. */
+export function setTestMaxLevel(): boolean {
+  if (Flow.running || G.save.player.level >= MAX_LEVEL) return false;
+  G.save.player.level = MAX_LEVEL;
+  G.save.player.xp = 0;
+  commit();
+  return true;
+}
 
 /** 전투에 넘길 힐러 레벨 (스킬 해금 기준). 개발 빌드 「스킬 전부 열기」면 100 */
 export const healerLevel = () => (G.save.settings.allSkills ? 100 : G.save.player.level);

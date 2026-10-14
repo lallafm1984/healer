@@ -1,7 +1,7 @@
 /**
  * S05 편성 (27 3-3, 시안 Party27). 2026-10-08 입장 화면(S04)을 여기로 합침: 전투 탭 「출전」 → 편성 → 출발.
  * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스 · 아이템 힌트), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭 (길드를 빼 두면 없음),
- * 경고 줄 (해제 못 함 · 권장 레벨 미달일 때만), 시작 위치 육각 미리보기 (직업 아이콘), 파티원 줄 (누르면 상세 시트).
+ * 권장 레벨 안내 (미달일 때만), 시작 위치 육각 미리보기 (직업 아이콘), 파티원 줄 (누르면 상세 시트).
  * 아래 고정: 위치가 저장되는 단축칸 4개 · 출발 (악몽은 악몽 열쇠, 없으면 눌렀을 때 얻는 곳 + 상점).
  */
 import { CLASSES } from '../data/classes';
@@ -27,7 +27,7 @@ import { TUT } from '../game/tutorial';
 import { classIcon, memDetailHtml, memRowHtml, ROLE_ICON } from './members';
 import { battle, esc, go, ROLE, screen, useIcon } from './kit';
 import { classEmblem, LOCK, uiIcon } from './art';
-import { afxRows, afxTags, ARROW, BOOK, flowHead, guides, KEY, segTabs, warnings } from './brief';
+import { afxRows, afxTags, ARROW, BOOK, flowHead, guides, KEY, recommendedLevel, segTabs } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
 
@@ -211,7 +211,7 @@ function render(keepScroll = true): void {
   const go2 = guildOpen(G.save);
   const guildTab = !go2.ok ? ` ${LOCK}${go2.why.replace('에 열림', '')}` : !G.save.guild.members.length ? ' · 길드원 없음' : '';
   const isGuild = Flow.mode === 'guild' && guildReady();
-  const m = modeNow(), stage = m.stage, segs = c.fights(Flow.diff);
+  const m = modeNow(), stage = m.stage;
   const tutDone = G.save.tut >= TUT.done;
   // 악몽 = 출발할 때 악몽 열쇠 1개 (12 3-4). 없으면 출발이 흐려지고, 누르면 아래에 얻는 곳 + 상점
   const shardOn = tutDone && !Flow.chal && needsShard(Flow.diff), shards = G.save.wallet.shards, noShard = shardOn && !shards;
@@ -225,7 +225,7 @@ function render(keepScroll = true): void {
     ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="파티 모집"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티${guildTab}</button></nav>` : ''}
     <div class="ns-body f-pty">
       ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">보스 기술은 「공략」에서 확인. 단축칸을 준비하면 「출발」.</p>' : ''}
-      ${tutDone ? warnings(segs, stage) : ''}
+      ${tutDone ? recommendedLevel(stage) : ''}
       ${boardHtml()}
       ${isGuild ? guildPickHtml(stage) : `<section class="pn f-mems"><ul class="pcards">${rows}</ul></section>`}
       ${msg && !sheet && !noShard ? `<p class="note warn">${esc(msg)}</p>` : ''}

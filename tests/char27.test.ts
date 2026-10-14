@@ -5,7 +5,7 @@ import { lvPower } from '../src/data/progression';
 import { RULES } from '../src/data/rules';
 import { heroStats, statParts } from '../src/game/charinfo';
 import {
-  bestGearPlan, equipBest, G, lowGradeIds, pickTalent, salvage, setTalentPreset, talentPreset, talentsNow, toggleLock,
+  bestGearPlan, equipBest, G, isNewGear, lowGradeIds, markGearSeen, newGearCount, pickTalent, salvage, setTalentPreset, talentPreset, talentsNow, toggleLock,
 } from '../src/game/state';
 import { load, migrate, newSave, save, type KV } from '../src/platform/storage';
 
@@ -118,6 +118,7 @@ describe('특성 프리셋 (27 4-5)', () => {
 });
 
 describe('새것 점 기준 (gear.seen)', () => {
+  beforeEach(() => { G.save = newSave(1); });
   it('새 저장은 0, 저장해 둔 값은 그대로', () => {
     expect(newSave(1).gear.seen).toBe(0);
     const s = newSave(1); s.gear.seen = 7;
@@ -128,6 +129,34 @@ describe('새것 점 기준 (gear.seen)', () => {
     delete o.gear.seen;
     o.nextId = 12;
     expect(migrate(o).gear.seen).toBe(11);
+  });
+  it('성능과 무관하게 새로 얻은 장비만 알리며, 확인 처리 후 다음 획득부터 다시 알림', () => {
+    G.save.gear.seen = 2;
+    G.save.gear.equipped.head = item({ id: 1, grade: '영웅' });
+    const old = item({ id: 2, slot: 'ring', grade: '전설' });
+    const fresh = item({ id: 3, grade: '일반' });
+    G.save.gear.bag = [old, fresh];
+    expect(newGearCount()).toBe(1);
+    expect(isNewGear(old)).toBe(false);
+    expect(isNewGear(fresh)).toBe(true);
+    markGearSeen();
+    expect(newGearCount()).toBe(0);
+    expect(G.save.gear.bag).toEqual([old, fresh]);
+    G.save.gear.bag.push(item({ id: 4, slot: 'weapon' }));
+    expect(newGearCount()).toBe(1);
+    expect(isNewGear(fresh)).toBe(false);
+  });
+  it('다른 분류와 착용한 장비까지 확인 처리하고, 저장 후에도 유지', () => {
+    G.save.gear.bag = [item({ id: 10, slot: 'weapon' }), item({ id: 11, slot: 'neck' })];
+    G.save.gear.equipped.head = item({ id: 12 });
+    markGearSeen();
+    expect(G.save.gear.seen).toBe(12);
+    const kv = mem(); save(G.save, kv);
+    expect(load(kv).gear.seen).toBe(12);
+    G.save.gear.bag = [];
+    G.save.gear.equipped = {};
+    markGearSeen();
+    expect(G.save.gear.seen).toBe(12);
   });
 });
 

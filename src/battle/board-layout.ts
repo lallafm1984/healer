@@ -5,6 +5,13 @@ const TOP_MARK_SPACE = 6;
 export interface BoardPoint { px: number; py: number }
 export interface BoardInsets { left?: number; right?: number; footer?: number }
 
+/** 지속 치유 시간은 오른쪽 위에서 아래로 배치하며, 전체 열을 칸 중앙 높이 안에 둡니다. */
+export function hotTimerLayout(scale: number, count: number) {
+  const r = scale * CELL_RADIUS, multi = count > 1;
+  const radius = multi ? Math.min(Math.max(7, scale * 0.17), (r * 0.88 / (count - 1) - 2) / 2) : Math.max(7, scale * 0.19);
+  return { radius, step: radius * 2 + 2, x: r * (multi ? 0.62 : 0.56), y: -r * 0.44 };
+}
+
 export function fitBoard(cells: readonly BoardPoint[], width: number, height: number, insets: BoardInsets = {}) {
   const W = Math.max(1, width), H = Math.max(1, height);
   const requestedLeft = Math.max(0, insets.left || 0) + EDGE;

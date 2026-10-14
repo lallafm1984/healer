@@ -1,4 +1,4 @@
-// 힐러 직업: 일곱 직업 목록 · 상세 시트 · 무료 전환, 입장 화면 해제, 전투 휠·봉화
+// 힐러 직업: 일곱 직업 목록 · 상세 시트 · 무료 전환, 편성 권장 레벨, 전투 휠·봉화
 import { chromium } from 'playwright';
 import { pastTitle, patchSave, toParty } from './nav.mjs';
 
@@ -74,14 +74,13 @@ export default async function heroes(url, shots) {
   ok(/준비 중/.test(await text('#s-char .ns-body')), '드루이드 특성 = 준비 중');
   await page.screenshot({ path: `${shots}/heroes_druid_skill.png` });
 
-  // ---- 편성 경고 줄: 못 지우는 해제 ----
+  // ---- 편성 안내: 해제 불가·직업 바꾸기 없이 권장 레벨만 ----
   await patchSave(page, { settings: { devUnlock: true } });
   await toParty(page, { content: 'abyss1', tab: 'raid10' });
-  const dis = await text('#s-party .f-warn.dispel');
-  ok(/드루이드/.test(dis) && /질병/.test(dis) && !/독/.test(dis), `역병 군주: 드루이드는 질병만 못 지움 (${dis.replace(/\s+/g, ' ').trim()})`);
+  ok((await page.locator('#s-party .f-warns .f-warn').count()) === 1 && /권장 레벨\s*Lv 45/.test(await text('#s-party .f-warn.lv')), '편성 안내는 권장 레벨만 표시');
+  ok((await page.locator('#s-party .f-warn.dispel, #s-party [data-go="s-char"]').count()) === 0 && !/해제 못 함/.test(await text('#s-party .f-pty')), '해제 불가 안내와 직업 바꾸기 버튼 제거');
   await page.screenshot({ path: `${shots}/heroes_entry.png` });
-  await page.click('#s-party .f-warn.dispel [data-go="s-char"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-char') && await page.getAttribute('#s-char nav [data-csub="hero"]', 'aria-selected') === 'true', '편성 경고 줄 「직업 바꾸기」 = 캐릭터 → 직업');
+  await page.click('#s-party .tb-back'); await page.clock.runFor(100);
 
   // ---- 전투: 드루이드 휠 ----
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);

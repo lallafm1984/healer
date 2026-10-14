@@ -109,7 +109,6 @@
 /* 알림 문장이 뜨면 목록 기본 높이를 2줄로 (무대가 최소일 때도 본문이 넘치지 않게) */
 #s-char .c7-inventory:has(> .c7-msg) .c7-bags { height: calc(var(--inventory-cell) * 2 + 18px); }
 /* 보일 장비가 없으면 안내 문장이 목록 첫 줄을 차지 */
-#s-char .c7-inventory-empty { grid-column: 1 / -1; align-self: center; margin: 0; color: #bbd0e2; font-size: 12px; line-height: 1.5; text-align: center; }
 #s-char .c7-inventory :is(.c7-sort, [data-dex]):focus-visible {
   outline: 2px solid #ffe9a5; outline-offset: 2px;
 }

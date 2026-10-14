@@ -187,7 +187,7 @@ export interface SaveData {
   player: { level: number; xp: number; gold: number };
   /**
    * v12: equipped · bag · seen = 현재 캐릭터 공용 장비. 직업별 loadout은 이 실물의 ID를 참조.
-   * seen = 캐릭터 › 장비에서 마지막으로 본 장비 id (이보다 큰 id = 새것 점, 27 4-2). 옛 저장엔 없어서 migrate가 채움.
+   * seen = 캐릭터 › 장비 화면을 나갈 때까지 확인한 장비 id (이보다 큰 id = 새것 점). 옛 저장엔 없어서 migrate가 채움.
    * codex = 얻은 적 있는 특수능력 · 이름 있는 장신구 키 (도감, 42 1-6). v8부터, 옛 저장은 가진 장비로 채움. 도감 · 장비 도감은 계정
    */
   gear: { equipped: Equipped; bag: GearItem[]; seen?: number; codex: string[]; /** 장비 도감 칸 (34 6-10 ④, data/dex). 옛 저장은 가진 장비로 채움 */ dex: string[]; /** 장비 도감 보상을 받은 단계 수 */ dexPaid: number };

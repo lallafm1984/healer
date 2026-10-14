@@ -8,10 +8,10 @@
 import { PASS_LEVELS } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { GUILD_LEVEL } from '../data/progression';
-import { betterSlots, talentsLeft } from '../game/charinfo';
+import { talentsLeft } from '../game/charinfo';
 import { chestState, missionReady, passLevel } from '../game/economy';
 import { Flow } from '../game/flow';
-import { G, heroNow } from '../game/state';
+import { G, heroNow, newGearCount } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { TUT } from '../game/tutorial';
 import { go, screen, setTabsHandler, topBar, type TabKey } from './kit';
@@ -68,7 +68,7 @@ function passReady(): boolean {
 function dotOf(k: TabKey): boolean {
   if (G.save.tut < TUT.done) return false;
   if (k === 'lobby') return lobbyReady() > 0;
-  if (k === 'char') return betterSlots().length > 0 || talentsLeft() > 0;
+  if (k === 'char') return newGearCount() > 0 || talentsLeft() > 0;
   if (k === 'shop') return passReady();
   return false;
 }

@@ -3,8 +3,7 @@
  * 경험치 지급량은 문서에 없어 새로 정함 (24 문서). Lv 1~100 곡선은 18 1장 도달 시점에 맞춤 (xpShare, 2026-10-07).
  */
 import type { DiffName } from './difficulty';
-import { CONTENT, contentOf, isLeveling, type ContentDef, type ContentKey } from './content';
-import { FEATURES } from './features';
+import { CONTENT, isLeveling, type ContentDef, type ContentKey } from './content';
 
 export const MAX_LEVEL = 100;
 
@@ -135,52 +134,3 @@ export const TALENT_LEVEL = 5;
 export const APEX_FROM = 50;
 export const APEX_STEP = 0.003;
 export const apexOf = (level: number) => 1 + APEX_STEP * Math.max(0, lvClamp(level) - APEX_FROM);
-
-/**
- * 레벨업 팝업에 보여 줄 "새로 열림" (18 2-2). live = 이 빌드에서 실제로 바뀌는 것.
- * 아직 안 만든 것(다른 던전, 공개모집 직업 단계 해금)은 live: false → 팝업에 「준비 중」으로 표시.
- */
-export interface Milestone { text: string; live: boolean }
-const BASE: Record<number, Milestone[]> = {
-  2: [{ text: '스킬 「소생」', live: true }],
-  3: [{ text: '스킬 「정화」', live: true }],
-  4: [{ text: '패시브 「빛의 은총」 (소생 걸린 대상 치유 +10%)', live: true }],
-  5: [{ text: '스킬 「치유의 기원」', live: true }, { text: '특성 1단 (사제)', live: true }],
-  6: [{ text: '성언 게이지 (평온·신성화)', live: true }],
-  8: [{ text: '스킬 「수호 영혼」', live: true }],
-  10: [{ text: '패시브 「상징」 (마나 30% 아래서 회복 4배)', live: true }, { text: '특성 2단', live: true }, { text: '직업 전환 · 드루이드 해금', live: true }, { text: '주간 임무 (악몽 열쇠)', live: true }, { text: '공개모집 직업 +6종', live: false }],
-  12: [{ text: '공대 쿨기 (사제 「천상의 찬가」, 스킬 7개 완성)', live: true }],
-  15: [{ text: '8번째 칸 고유 스킬 (드루이드·성기사)', live: true }, { text: '소비 아이템 단축칸 3칸', live: true }, { text: '특성 3단', live: true }, ...(FEATURES.guild ? [{ text: '길드 (골드 모집·인연 스카우트)', live: true }] : [])],
-  20: [{ text: '직업 전환 · 성기사 해금', live: true }, { text: '특성 4단', live: true }, { text: '주간 도전 「모래시계 시련」', live: true }],
-  25: [{ text: '특성 5단', live: true }],
-  30: [{ text: '특성 6단', live: true }, { text: '소비 아이템 단축칸 4칸', live: true }, { text: '어려움·악몽 던전에 어픽스 「격노」', live: true }],
-  35: [{ text: '특성 7단', live: true }],
-  40: [{ text: '특성 8단', live: true }],
-  45: [{ text: '특성 9단', live: true }],
-  50: [{ text: '특성 10단 (완성)', live: true }, { text: '장비 재설정 (옵션 · 특수능력 한 줄)', live: true }, { text: '악몽 던전에 어픽스 「역병」', live: true }, { text: '직업 칭호', live: false }],
-  51: [{ text: '정점 수련 (레벨마다 지능·체력 +0.3%)', live: true }],
-  60: [{ text: '장비 재설정 후보 2개 중 고르기', live: true }],
-  100: [{ text: '직업 색 힐 이펙트 · 칭호', live: false }],
-};
-/**
- * 탐험 · 던전 열림 (34 5-2 열림 레벨 표)은 CONTENT에서 만들어 맨 앞에. 아직 안 만든 곳은 「준비 중」.
- * 레이드는 첫 10인 · 첫 20인과 그 악몽만, 레벨도 CONTENT를 따라감 (69 지역 순서 레벨)
- */
-export const MILESTONES: Record<number, Milestone[]> = { ...BASE };
-const addFirst = (lv: number, m: Milestone) => { MILESTONES[lv] = [m, ...(MILESTONES[lv] ?? [])]; };
-const raid10 = contentOf('abyss1'), raid20 = contentOf('cathedral1');
-addFirst(raid20.diffUnlock!['악몽']!, { text: '20인 레이드 악몽 (전설 장비)', live: true });
-addFirst(raid20.unlockLv, { text: `20인 레이드 「가라앉은 대성당」`, live: true });
-addFirst(raid10.diffUnlock!['악몽']!, { text: '10인 레이드 악몽', live: true });
-addFirst(raid10.unlockLv, { text: '10인 레이드 「심연의 탑」', live: true });
-for (const c of CONTENT) {
-  if (c.hidden || c.kind === 'raid' || c.unlockLv <= 1) continue;
-  const text = c.key === 'rustfort' ? `첫 던전 「${c.name}」` : `${c.kind === 'explore' ? '탐험' : '던전'} 「${c.name}」`;
-  addFirst(c.unlockLv, { text, live: c.ready });
-}
-
-/** 다음 목표 (로비 「다음 목표」 카드, 18 3-3): 지금 레벨 다음 마일스톤 */
-export function nextMilestone(level: number): { level: number; items: Milestone[] } | null {
-  const lv = Object.keys(MILESTONES).map(Number).sort((a, b) => a - b).find(l => l > level);
-  return lv ? { level: lv, items: MILESTONES[lv] } : null;
-}
