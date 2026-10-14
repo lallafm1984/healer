@@ -52,5 +52,5 @@ export const PERS = {
 export type PersName = keyof typeof PERS;
 export const PERS_NAMES = Object.keys(PERS) as PersName[];
 
-/** 공개모집 파티원 닉네임 풀 */
+/** 프로토타입 닉네임 28개: rollParty (프로토타입 일치 테스트)에만 씀. 실제 공개모집 · 길드 닉네임은 nicknames.ts 직업별 목록 (74) */
 export const NICKS: readonly string[] = ['장판요정', '딜미터1등', '말없는탱', '칼날', '감자도적', '새벽세시', '고인물', '버스기사', '닉값함', '퇴근각', '만렙꿈나무', '냥냥펀치', '불꽃남자', '얼음공주', '컨트롤장인', '딜뽕', '오늘만산다', '회피의신', '맞고보자', '탱하기싫다', '원딜장인', '활쏘는곰', '초코우유', '늦잠왕', '야근요정', '방패든양', '도끼든토끼', '별빛궁수'];

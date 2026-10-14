@@ -9,6 +9,7 @@ import { PRIEST_MANA, TALENT_STANDIN } from '../data/heroConst';
 import { TALENTS } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { ITEMS } from '../data/items';
+import { pickNick } from '../data/nicknames';
 import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
 import { PROTO_RULES, RULES } from '../data/rules';
 import { makeCells } from './board';
@@ -116,9 +117,9 @@ export function rollParty(encKey: EncounterKey, seed: number): RosterEntry[] {
 }
 
 /**
- * 공개모집 (17 2-1): rollParty로 닉네임·성격을 뽑고, 역할마다 Lv 1 직업을 붙인다.
+ * 공개모집 (17 2-1): rollParty로 성격을 뽑고, 역할마다 Lv 1 직업을 붙인 뒤 그 직업 닉네임을 붙인다 (74).
  * 같은 직업은 5인 1명 · 10인 2명 · 20인 3명까지 (자리가 모자라면 가장 적은 직업부터 더 넣음).
- * 직업은 따로 굴린 난수로 정해서 rollParty 결과(프로토타입과 같음)는 그대로 둔다.
+ * 직업 · 닉네임은 따로 굴린 난수로 정해서 rollParty의 성격 (프로토타입과 같음)은 그대로 둔다.
  */
 export function recruitParty(encKey: EncounterKey, seed: number, opts: { abilities?: boolean } = {}): RosterEntry[] {
   const list = rollParty(encKey, seed);
@@ -136,6 +137,10 @@ export function recruitParty(encKey: EncounterKey, seed: number, opts: { abiliti
   // 직업 스킬 (특수 능력) 1개 (17 3장): 직업을 다 뽑은 뒤 같은 난수로 (직업 결과는 그대로). 튜토리얼 파티는 능력 없음.
   // 파티원은 성격과 직업 스킬만 가짐 (2026-10-12 Lim: 직업 패시브 · 특성 뺌)
   if (opts.abilities) for (const m of list) m.ab = rollAbility(m.cls!, rng);
+  // 닉네임 (74): 직업 목록에서 겹치지 않게. 직업 · 능력 난수와 따로 굴림
+  const nr = rngFrom(Math.imul(seed, 0x27d4eb2f) ^ 0x165667b1);
+  const used = new Set<string>();
+  for (const m of list) { m.nick = pickNick(m.cls!, nr, used); used.add(m.nick); }
   return list;
 }
 

@@ -4,14 +4,15 @@
  */
 import { resourceBalance, spendResource } from './resources';
 import { AB_ODDS, rollAbility } from '../data/abilities';
-import { CLASSES, RECRUIT_CLASSES } from '../data/classes';
+import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
 import {
   aptOf, guildCap, memberPower, POST_CANDS, POSTS, pointCost, pointsAt, pointsUsed, REROLL_GOLD, RESET_GOLD, rollApt, SCOUT_GOLD, SCOUT_MAX, trainCost,
   type GuildMember, type PostTier,
 } from '../data/guild';
-import { NICKS, PERS, PERS_NAMES, type PersName } from '../data/personalities';
+import { pickNick } from '../data/nicknames';
+import { PERS, PERS_NAMES, type PersName } from '../data/personalities';
 import { addXp, clearXp, GUILD_LEVEL, MAX_LEVEL, xpToNext, type Grade } from '../data/progression';
 import type { RosterEntry } from '../engine/types';
 import { FEATURES } from '../data/features';
@@ -30,15 +31,9 @@ export function guildOpen(save: SaveData): { ok: boolean; dev: boolean; why: str
 export const capOf = (save: SaveData) => guildCap(topLevel(save));
 export const powerOf = (m: GuildMember) => memberPower({ ...m, apt: aptOf(m) });
 
-/** 길드원 닉네임: 공개모집 닉네임 중 길드에 없는 것, 다 쓰면 뒤에 숫자 */
-function freshNick(save: SaveData, r: () => number, taken: Set<string>): string {
-  const used = new Set([...save.guild.members.map(m => m.nick), ...taken]);
-  const free = NICKS.filter(n => !used.has(n));
-  if (free.length) return free[Math.floor(r() * free.length)];
-  const base = NICKS[Math.floor(r() * NICKS.length)];
-  let i = 2;
-  while (used.has(`${base}${i}`)) i++;
-  return `${base}${i}`;
+/** 길드원 닉네임 (74): 그 직업 닉네임 중 길드에 없는 것, 다 쓰면 뒤에 숫자 */
+function freshNick(save: SaveData, cls: ClassKey, r: () => number, taken: Set<string>): string {
+  return pickNick(cls, r, new Set([...save.guild.members.map(m => m.nick), ...taken]));
 }
 
 /** 지원자 1명 (17 2-1·3장·9-1): 직업 8종 중 무작위, 성격·자질·능력 (직업 스킬). 레벨은 공고 등급마다 (내 레벨 위로는 안 감) */
@@ -52,7 +47,7 @@ export function makeCandidate(save: SaveData, r: () => number, tier: PostTier, t
   const lv = Math.max(1, Math.min(P, P + lo + Math.floor(r() * (hi - lo + 1))));
   const best = tier === 'best';
   const apt0: [number, number, number] = [rollApt(r, best), rollApt(r, best), rollApt(r, best)];
-  const nick = freshNick(save, r, taken);
+  const nick = freshNick(save, cls, r, taken);
   return { id: 0, nick, cls, pers, lv, xp: 0, apt0, aptUp: [0, 0, 0], ab: rollAbility(cls, r, AB_ODDS[tier]), star: 0, runs: 0 };
 }
 
@@ -72,7 +67,7 @@ export function postRecruit(save: SaveData, tier: PostTier, r: () => number): st
 function join(save: SaveData, m: Omit<GuildMember, 'id'>): GuildMember {
   const g = save.guild;
   const nm: GuildMember = { ...m, id: g.nextId++ };
-  if (g.members.some(x => x.nick === nm.nick)) nm.nick = freshNick(save, Math.random, new Set());
+  if (g.members.some(x => x.nick === nm.nick)) nm.nick = freshNick(save, nm.cls, Math.random, new Set());
   g.members.push(nm);
   return nm;
 }
