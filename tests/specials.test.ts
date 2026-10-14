@@ -2,6 +2,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { NAMED, SPEC_GROUPS, SPEC_KEYS, SPECS, specText, specTotals, specValue } from '../src/data/specials';
+import { BEACON } from '../src/data/heroConst';
 import { SKILLS } from '../src/data/skills';
 import * as E from '../src/engine';
 import { addDebuff, damage, heal } from '../src/engine/core';
@@ -737,16 +738,16 @@ describe('2-9 직업 전용: 성기사', () => {
   it('큰 봉화: 봉화로 함께 들어가는 몫 +', () => {
     const [a, b] = pair('bigBeacon', 0.1, 'paladin');
     const go = (f: F) => { hurt(f, 0.1); const bc = f.party.find(u => u.id === f.beacon)!; return -lost(f, bc, () => cast(f, 'holyLight', dealer(f))); };
-    expect(ratio(go(a), go(b))).toBeCloseTo(0.5 / 0.4, 6);
+    expect(ratio(go(a), go(b))).toBeCloseTo((BEACON.raid10 + 0.1) / BEACON.raid10, 6); // 10인 (역병 군주)은 봉화 30% (73)
   });
   it('두 번째 봉화: 다른 탱커에게 절반', () => {
     const [a, b] = pair('secondBeacon', 1, 'paladin');
     const go = (f: F) => { hurt(f, 0.1); return -lost(f, tank(f, 1), () => cast(f, 'holyLight', dealer(f))); };
-    expect(go(a)).toBeCloseTo(260 * 0.4 * 0.5 * a.standin!.heal, 6); // 특성 트리 없는 직업 임시 보정까지
+    expect(go(a)).toBeCloseTo(260 * BEACON.raid10 * 0.5 * a.standin!.heal, 6); // 특성 트리 없는 직업 임시 보정까지 · 10인 봉화 30% (73)
     expect(go(b)).toBeCloseTo(0, 9);
   });
   it('연타 · 단단한 서약 · 넘치는 신성한 힘 · 퍼지는 파도 · 긴 성역', () => {
-    expect(cdOf(fight({ combo: 1.5 }, 'paladin'), 'holyStrike')).toBe(4.5);
+    expect(cdOf(fight({ combo: 1.5 }, 'paladin'), 'holyStrike')).toBe(SKILLS.holyStrike.cd! - 1.5);
     const [a, b] = pair('firmOath', 0.15, 'paladin');
     both([a, b], f => { big(f); f.power3 = 3; cast(f, 'oath', tank(f)); step(f, 13); });
     expect(ratio(tank(a).got, tank(b).got)).toBeCloseTo(1.15, 2);
@@ -754,8 +755,8 @@ describe('2-9 직업 전용: 성기사', () => {
     cast(p, 'holyLight', tank(p));
     expect(p.power3).toBe(4);
     expect(E.heroRing(p).value).toBe('4/4');
-    const [c, d] = pair('wideWave', 1, 'paladin'); both([c, d], f => { hurt(f); f.power3 = 3; });
     const far = (f: F, u: U) => f.party.find(v => E.hexDist(f.cells[v.cell], f.cells[u.cell]) === 2)!;
+    const [c, d] = pair('wideWave', 1, 'paladin'); both([c, d], f => { hurt(f); f.power3 = 3; const v = far(f, tank(f)); v.hp = v.max * 0.2; }); // 가장 다친 4명에 들게 (73)
     expect(cast(c, 'lightWave', tank(c)).some(e => e.id === far(c, tank(c)).id)).toBe(true);
     expect(cast(d, 'lightWave', tank(d)).some(e => e.id === far(d, tank(d)).id)).toBe(false);
     const s = fight({ longSanctuary: 2 }, 'paladin');

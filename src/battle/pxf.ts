@@ -129,7 +129,7 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
   holyLight: { fx: 'paladin-holy-light', scope: 'target' },
   holyStrike: { fx: 'paladin-holy-strike', scope: 'target' },
   oath: { fx: 'paladin-oath', scope: 'target' },
-  lightWave: { fx: 'paladin-light-wave', scope: 'area' },
+  lightWave: { fx: 'paladin-light-wave', scope: 'target' }, // 회복한 사람 (가장 다친 4명) 칸마다 엔진이 따로 기록 (73)
   handCleanse: { fx: 'paladin-cleanse', scope: 'target' },
   sacrifice: { fx: 'paladin-sacrifice', scope: 'target' },
   sanctuary: { fx: 'paladin-sanctuary', scope: 'area' },

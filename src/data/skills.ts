@@ -64,9 +64,9 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 
   // ---------- ③ 성기사 (25 3장) ----------
   holyLight: { name: '빛의 손길', short: '손길', slot: 'basic', lv: 1, cast: 2.0, cost: 4, amt: 260, target: 'ally' },
-  holyStrike: { name: '빛 일격', short: '일격', slot: 'fast', lv: 1, cast: 0, cost: 5, cd: 6, amt: 230, target: 'ally' },
+  holyStrike: { name: '빛 일격', short: '일격', slot: 'fast', lv: 1, cast: 0, cost: 5, cd: 8, amt: 230, target: 'ally' }, // 재사용 6 → 8초 (73: 즉시 힐로 힐러가 잘 안 쓰러지던 것)
   oath: { name: '빛의 서약', short: '서약', slot: 'hot', lv: 2, cast: 0, cost: 0, amt: 160, target: 'ally', power: 1, powerAll: true },
-  lightWave: { name: '빛의 파도', short: '파도', slot: 'aoe', lv: 5, cast: 0, cost: 0, amt: 220, target: 'area', power: 3 },
+  lightWave: { name: '빛의 파도', short: '파도', slot: 'aoe', lv: 5, cast: 0, cost: 5, amt: 220, target: 'area', power: 3 }, // 마나 0 → 5% (73)
   handCleanse: { name: '정화의 손', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
   sacrifice: { name: '희생', short: '희생', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' },
   sanctuary: { name: '빛의 성역', short: '성역', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, target: 'area' },
@@ -120,7 +120,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   holyLight: { kind: '기본 힐', desc: '대상의 체력을 {260} 회복하고 신성한 힘을 1 모읍니다.' },
   holyStrike: { kind: '빠른 힐', desc: '대상의 체력을 {230} 회복하고 신성한 힘을 1 모읍니다.' },
   oath: { kind: '지속 힐', desc: '모은 신성한 힘 1칸마다 4초 동안 {160} 회복합니다. 3칸이면 12초 동안 {480}입니다.' },
-  lightWave: { kind: '광역 힐', desc: '신성한 힘 3칸을 모두 써서 대상과 붙어 있는 6칸을 각각 {220} 회복합니다.' },
+  lightWave: { kind: '광역 힐', desc: '신성한 힘 3칸을 모두 써서 대상과 붙어 있는 칸 중 체력이 가장 낮은 4명을 각각 {220} 회복합니다. 봉화로는 옮겨 가지 않습니다.' },
   handCleanse: { kind: '해제', desc: '대상의 마법·독·질병 디버프를 1개 제거합니다.' },
   sacrifice: { kind: '외부 생존기', desc: '12초 동안 대상이 받는 피해의 30%를 내가 대신 받습니다.' },
   sanctuary: { kind: '공대 쿨기', desc: '대상 중심 7칸에 10초 동안 성역을 세웁니다. 안에 있으면 받는 피해가 20% 줄고 초당 {40}씩 회복합니다.' },
