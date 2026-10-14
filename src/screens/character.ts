@@ -844,6 +844,16 @@ const TALENT_ART: Record<TalentKey, SkillKey> = {
   mistPillar: 'mistBreath', thriftBreath: 'mistBreath', gatherMist: 'wanderMist',
   windKnot: 'reviveWind', calmWind: 'reviveWind', mistPath: 'reviveWind',
   chiBurst: 'vitalPalm', endlessBeat: 'vitalPalm', mistStorm: 'wanderMist',
+  brightStar: 'starHeal', smallTwinkle: 'twinkle', scatterTwinkle: 'twinkle',
+  etchedMark: 'starMark', markBreath: 'starMark', linkedMark: 'starMark',
+  brightPolaris: 'polaris', quickLink: 'starfall', clearNight: 'starfall',
+  onePoint: 'polaris', threeShards: 'starHeal', fifthStar: 'starfall',
+  risingPolaris: 'polaris', fallingNight: 'starfall', secondStarfall: 'starfall',
+  unfading: 'starSleep', calmHands: 'starfall', starCrowd: 'starHeal',
+  prophecy: 'starMark', foreseen: 'starHeal', fallingStar: 'twinkle',
+  gatherLight: 'starfall', thriftFall: 'starfall', wideSky: 'starfall',
+  tankMemory: 'starMemory', thriftMemory: 'starMemory', longMemory: 'starMemory',
+  supernova: 'polaris', starPath: 'starfall', milkyWay: 'starHeal',
 };
 const talentIcon = (key: TalentKey) => gameIcon(key, skillIc(TALENT_ART[key]), 'talent');
 

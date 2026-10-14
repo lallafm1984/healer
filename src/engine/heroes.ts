@@ -6,6 +6,7 @@ import { HEROES, type HeroKey } from '../data/heroes';
 import { ASTRO_CHARGE, BARK, BEACON, HAND_GUARD, REBIRTH, SANCTUARY, SHAMAN } from '../data/heroConst';
 import { shamanApply, shamanCell, shamanLethal, shamanTaken, shamanTick, shamanTotemGone } from './shaman';
 import { monkApply, monkLethal, monkTaken, monkTick } from './monk';
+import { astroApply, astroChargeSpec, astroLethal, astroStartStars, astroTaken, astroTick, astroTotemGone, readMult } from './astro';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
 import { hexDist } from './board';
@@ -68,6 +69,7 @@ export function heroHeal(f: Fight, u: Unit, amt: number, toBeacon = true): numbe
   if (f.hero === 'druid' && heroPassive(f, '뿌리 깊음') && hotCount(u) >= 2) m = 1.1;
   if (f.hero === 'paladin' && heroPassive(f, '굳건한 손') && u.role === 'tank') m = 1 + (f.tx.on.tankLight ? TX.tankLight : 0.1);
   if (f.hero === 'shaman' && heroPassive(f, '깊은 물') && u.hp < u.max * SHAMAN.deep.hp) m = 1 + SHAMAN.deep.heal; // 깊은 물 (79 2-4)
+  if (f.hero === 'astrologer') m = readMult(f, u); // 별 읽기 (79 4-4)
   const done = heal(f, u, amt * m, true);
   if (f.hero === 'paladin' && f.beacon != null && toBeacon) {
     const share = beaconShare(f);
@@ -296,6 +298,7 @@ export function heroApply(f: Fight, key: SkillKey, u: Unit): void {
   else if (f.hero === 'paladin') paladin(f, key, u);
   else if (f.hero === 'shaman') shamanApply(f, key, u);
   else if (f.hero === 'monk') monkApply(f, key, u);
+  else if (f.hero === 'astrologer') astroApply(f, key, u);
 }
 
 // ---------- 79 직업 4종 공통 자리 (직업 PR마다 채움) ----------
@@ -306,17 +309,20 @@ export function heroCell(f: Fight, key: SkillKey, cell: number): void {
 /** 판 위 물건이 사라짐 (broken = 깨짐, 아니면 시간이 다 됨 · 새로 세워 밀려남): 주술사 토템의 마지막 물 · 나를 지키는 샘 (79 2장) */
 export function totemGone(f: Fight, t: Totem, broken: boolean): void {
   if (f.hero === 'shaman') shamanTotemGone(f, t, broken);
+  else if (f.hero === 'astrologer') astroTotemGone(f, t, broken);
 }
 /** 79 직업의 받는 피해 배율 (core damage, 직업 생존기 · 토템 · 특성). 사제 · 드루이드 · 성기사는 1 */
 export function heroTaken(f: Fight, u: Unit, _magic: boolean): number {
   if (f.hero === 'shaman') return shamanTaken(f, u);
   if (f.hero === 'monk') return monkTaken(f, u);
+  if (f.hero === 'astrologer') return astroTaken(f, u);
   return 1;
 }
 /** 79 직업이 죽을 피해를 막음 (나를 지키는 샘 …). 막았으면 true */
-export function heroLethal(f: Fight, u: Unit): boolean {
+export function heroLethal(f: Fight, u: Unit, amt: number): boolean {
   if (f.hero === 'shaman') return shamanLethal(f, u);
   if (f.hero === 'monk') return monkLethal(f, u);
+  if (f.hero === 'astrologer') return astroLethal(f, u, amt);
   return false;
 }
 /** 79 직업 4종인지 (core damage 훅을 탈지) */
@@ -326,11 +332,13 @@ export function shieldBroken(_f: Fight, _u: Unit): void {
   // 79 5장 결계사 PR에서 채움
 }
 /** 모으기 수치 (79 4-3): 최대 별 · 별 하나 시간 (가속 전) · 완벽 구간. 점성술사 특성 · 특수능력이 바꿈 */
-export function chargeSpec(_f: Fight): { max: number; step: number; perfect: number } {
+export function chargeSpec(f: Fight): { max: number; step: number; perfect: number } {
+  if (f.hero === 'astrologer') return astroChargeSpec(f);
   return { max: ASTRO_CHARGE.max, step: ASTRO_CHARGE.step, perfect: ASTRO_CHARGE.perfect };
 }
 /** 모으기를 시작할 때 단 별: 1 + 별 조각 (조각은 다 씀, 79 4-3) */
 export function chargeStartStars(f: Fight): number {
+  if (f.hero === 'astrologer') return astroStartStars(f);
   const n = 1 + f.shards;
   f.shards = 0;
   return n;
@@ -340,6 +348,7 @@ export function chargeStartStars(f: Fight): number {
 export function heroTick(f: Fight, dt: number): void {
   if (f.hero === 'shaman') { shamanTick(f, dt); return; }
   if (f.hero === 'monk') { monkTick(f, dt); return; }
+  if (f.hero === 'astrologer') { astroTick(f, dt); return; }
   if (f.hero !== 'paladin') return;
   if (f.beaconCd > 0) f.beaconCd -= dt;
   const s = f.sanctuary;

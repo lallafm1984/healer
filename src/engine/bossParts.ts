@@ -21,7 +21,8 @@ import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './typ
  * 탱커가 모두 쓰러지면 대신 막는 사람 (버팀목 특성 → 근접 → 원거리 → 나, 2026-10-07 Lim)
  */
 export function aggroTarget(f: Fight): Unit | null {
-  const alive = living(f); // 띄워 올려진 탱커는 못 때림 → 다른 탱커 (탱커 띄우기, 56 5장)
+  let alive = living(f); // 띄워 올려진 탱커는 못 때림 → 다른 탱커 (탱커 띄우기, 56 5장)
+  if (f.hero === 'astrologer' && alive.some(u => u.sleep != null && u.sleep > f.t)) alive = alive.filter(u => !(u.sleep != null && u.sleep > f.t)); // 별의 잠 (79 4-2): 자는 탱커는 없는 것처럼
   const sub = f.sub && f.t < f.sub.until ? alive.find(u => u.id === f.sub!.id) : undefined;
   const held = f.hold != null ? alive.find(u => u.id === f.hold && frontTank(f, u)) : undefined;
   const loose = f.loose ? alive.find(u => u.id === f.loose!.id) : undefined;

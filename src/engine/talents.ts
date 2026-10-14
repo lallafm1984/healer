@@ -11,6 +11,7 @@ import { barkCut, powerMax, putHot, putSprout } from './heroes';
 import { aoeCount, aoeDone, castCut, castMult, cdSpec, costSpec, freeCast, hasteOf, sv } from './specials';
 import { callTotems, raining, seaSeat, shamanDeath } from './shaman';
 import { breathRange, chiBurst, gatherMist, monkCost, monkDeath } from './monk';
+import { astroCost, instantStar, supernova } from './astro';
 import type { ActionResult, Fight, TalentState, Unit } from './types';
 
 /** 두 겹 수호 충전 시간, 쉼터 초당 회복 */
@@ -68,6 +69,7 @@ function heroCost(f: Fight, key: SkillKey, u?: Unit): number {
       return on.steadyHeart && u && u.id === f.beacon ? 1 - TX.steadyHeart : 1; // 곧은 마음
   }
   if (f.hero === 'shaman') return shamanCost(f, key);
+  if (f.hero === 'astrologer') return astroCost(f, key);
   return 1;
 }
 
@@ -91,8 +93,9 @@ export function castOf(f: Fight, key: SkillKey, u?: Unit): number {
   if (activeOn(f, 'zenith')) return 0;
   if (f.sp && freeCast(f, key)) return 0;
   if (key === 'chainHeal' && f.tx.on.stormChain && raining(f)) return 0; // 폭풍 사슬 (79 2-7)
+  if (instantStar(f, key)) return 0; // 은하수 (79 4-7)
   const cut = (key === 'heal' && f.tx.on.practiced) || (key === 'holyLight' && f.tx.on.swiftLight) ? (key === 'heal' ? 0.3 : TX.swiftLight)
-    : key === 'ripple' && f.tx.on.quickRipple ? TX.quickRipple : 0; // 빠른 잔물결 (79 2-7)
+    : key === 'ripple' && f.tx.on.quickRipple ? TX.quickRipple : key === 'starHeal' && f.tx.on.brightStar ? TX.brightStar : 0; // 빠른 잔물결 (79 2-7) · 밝은 별 (79 4-7)
   const quick = key === 'holyLight' && f.tx.on.quickHand && u && u.hp <= u.max * TX.quickHand.hp ? TX.quickHand.cast : 1;
   const b = base - cut - (f.sp ? castCut(f, key) : 0);
   return ((Math.max(0.5, b) * quick) / (1 + hasteOf(f))) * (f.slow && f.t < f.slow.until ? f.slow.mult : 1) * (f.sp ? castMult(f) : 1); // 깨진 시간 (05 5-E) · 낙타 털실 반지
@@ -224,6 +227,7 @@ export function useTalent(f: Fight, key: TalentKey, cellIdx?: number): ActionRes
   if (key === 'seaSeat') seaSeat(f, cellIdx!); // 바다의 자리
   if (key === 'gatherMist') gatherMist(f, cellIdx!); // 모이는 안개 (79 3-7)
   if (key === 'chiBurst') chiBurst(f, cellIdx!); // 기 폭발
+  if (key === 'supernova') supernova(f, cellIdx!); // 초신성 (79 4-7)
   emit(f, { type: 'sound', name: 'chime' });
   emit(f, { type: 'msg', text: def.active!.dur ? `${def.name}: ${def.active!.dur}초` : def.name });
   return { ok: true };

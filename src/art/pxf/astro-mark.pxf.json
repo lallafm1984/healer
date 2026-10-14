@@ -1,0 +1,361 @@
+{
+  "format": "pxf.graph@1",
+  "name": "점성술사 별자리 표식",
+  "settings": {
+    "size": 64,
+    "frames": 20,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "d1",
+      "type": "Shape",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "shape": "diamond",
+        "x": 0.3,
+        "y": 0.26,
+        "size": {
+          "k": [
+            [
+              0,
+              0,
+              "out3"
+            ],
+            [
+              2,
+              3.2
+            ],
+            [
+              4,
+              2.2
+            ]
+          ]
+        },
+        "intensity": 1
+      }
+    },
+    {
+      "id": "d2",
+      "type": "Shape",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "shape": "diamond",
+        "x": 0.5,
+        "y": 0.16,
+        "size": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              3,
+              0,
+              "out3"
+            ],
+            [
+              5,
+              3.2
+            ],
+            [
+              7,
+              2.2
+            ]
+          ]
+        },
+        "intensity": 1
+      }
+    },
+    {
+      "id": "d3",
+      "type": "Shape",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "shape": "diamond",
+        "x": 0.7,
+        "y": 0.28,
+        "size": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              6,
+              0,
+              "out3"
+            ],
+            [
+              8,
+              3.2
+            ],
+            [
+              10,
+              2.2
+            ]
+          ]
+        },
+        "intensity": 1
+      }
+    },
+    {
+      "id": "s1",
+      "type": "Stroke",
+      "x": 40,
+      "y": 520,
+      "params": {
+        "x0": 0.3,
+        "y0": 0.26,
+        "x1": 0.3667,
+        "y1": 0.2267,
+        "x2": 0.4333,
+        "y2": 0.1933,
+        "x3": 0.5,
+        "y3": 0.16,
+        "width": 1.2,
+        "taper": 0,
+        "from": 0,
+        "to": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              0,
+              "out"
+            ],
+            [
+              5,
+              1
+            ]
+          ]
+        },
+        "vA": 0.6,
+        "vM": 0.6,
+        "vB": 0.6,
+        "intensity": 0.55
+      }
+    },
+    {
+      "id": "s2",
+      "type": "Stroke",
+      "x": 40,
+      "y": 680,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.16,
+        "x1": 0.5667,
+        "y1": 0.2,
+        "x2": 0.6333,
+        "y2": 0.24,
+        "x3": 0.7,
+        "y3": 0.28,
+        "width": 1.2,
+        "taper": 0,
+        "from": 0,
+        "to": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              5,
+              0,
+              "out"
+            ],
+            [
+              8,
+              1
+            ]
+          ]
+        },
+        "vA": 0.6,
+        "vM": 0.6,
+        "vB": 0.6,
+        "intensity": 0.55
+      }
+    },
+    {
+      "id": "b1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b2",
+      "type": "Blend",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b3",
+      "type": "Blend",
+      "x": 730,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b4",
+      "type": "Blend",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#6b3d12",
+          "#b8741e",
+          "#e8b04a",
+          "#ffe08a",
+          "#fff8e0"
+        ],
+        "cutoff": 0.05,
+        "mode": "bands",
+        "key": "alpha"
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "color": "#3a2108",
+        "threshold": 0.5,
+        "width": 1,
+        "corners": false,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 1880,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              13,
+              1,
+              "in"
+            ],
+            [
+              19,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 2110,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "d1",
+      "t": "b1",
+      "p": 0
+    },
+    {
+      "f": "d2",
+      "t": "b1",
+      "p": 1
+    },
+    {
+      "f": "b1",
+      "t": "b2",
+      "p": 0
+    },
+    {
+      "f": "d3",
+      "t": "b2",
+      "p": 1
+    },
+    {
+      "f": "b2",
+      "t": "b3",
+      "p": 0
+    },
+    {
+      "f": "s1",
+      "t": "b3",
+      "p": 1
+    },
+    {
+      "f": "b3",
+      "t": "b4",
+      "p": 0
+    },
+    {
+      "f": "s2",
+      "t": "b4",
+      "p": 1
+    },
+    {
+      "f": "b4",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 4
+  }
+}

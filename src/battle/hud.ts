@@ -7,6 +7,9 @@ import { NO_TANK_SEC } from '../data/armor';
 import { CLASSES } from '../data/classes';
 import { BEACON, SHAMAN } from '../data/heroConst';
 import { beatMax, beatWindow } from '../engine/monk';
+import { shardMax } from '../engine/astro';
+import { chargePerfect } from '../engine/healer';
+import { chargeSpec } from '../engine/heroes';
 import { canDispel, HEROES } from '../data/heroes';
 import { mobGrade } from '../data/encounters';
 import type { ItemKey } from '../data/items';
@@ -167,7 +170,9 @@ export function updateWheel(): void {
   const gaugeLabels = $('gauges').querySelectorAll<HTMLElement>('.gl');
   if (F.hero === 'paladin' && gaugeLabels[0]) setText(gaugeLabels[0], '신성한 힘');
   $('gauges').setAttribute('aria-label', F.hero === 'paladin' ? `신성한 힘 ${r.a}, 봉화 ${r.b}`
-    : F.hero === 'druid' ? `새싹 ${r.a}명 / ${r.b}명` : F.hero === 'shaman' ? `샘 토템 ${r.a}, 대지 토템 ${r.b}` : F.hero === 'monk' ? `기 리듬 ${r.a}, 이어지는 시간 ${r.b}` : `평온 ${r.a}%, 신성화 ${r.b}%`);
+    : F.hero === 'druid' ? `새싹 ${r.a}명 / ${r.b}명` : F.hero === 'shaman' ? `샘 토템 ${r.a}, 대지 토템 ${r.b}` : F.hero === 'monk' ? `기 리듬 ${r.a}, 이어지는 시간 ${r.b}`
+    : F.hero === 'astrologer' ? `모으는 별 ${r.a}, 별 조각 ${r.b}` : `평온 ${r.a}%, 신성화 ${r.b}%`);
+  if (F.hero === 'astrologer') $('gauges').querySelector('.gr')?.classList.toggle('ready', chargePerfect(F));
   setText($('gP'), r.a);
   setText($('gS'), r.b);
   setBar($('gPb'), r.outer);
@@ -199,6 +204,8 @@ export function buildGauges(F: Fight): void {
     : F.hero === 'shaman' ? gaugeRow('샘', 'gPb', '<b id="gP">-</b>', 'calm') + gaugeRow('대지', 'gSb', '<b id="gS">-</b>', 'gold')
     // 수도사 (79 3-3 · 7장, Codex가 다듬음): 기 리듬 · 다음 손바닥까지 남은 시간
     : F.hero === 'monk' ? gaugeRow('리듬', 'gPb', '<b id="gP">0</b>', 'leaf') + gaugeRow('박자', 'gSb', '<b id="gS">-</b>', 'calm')
+    // 점성술사 (79 4-3 · 7장 3번, Codex가 다듬음): 모으는 별 (완벽 구간이면 반짝) · 별 조각
+    : F.hero === 'astrologer' ? gaugeRow('별', 'gPb', '<b id="gP">-</b>', 'gold') + gaugeRow('조각', 'gSb', '<b id="gS">0</b>', 'calm')
     : gaugeRow('평온', 'gPb', '<b id="gP">0</b>%', 'calm') + gaugeRow('신성화', 'gSb', '<b id="gS">0</b>%', 'gold');
 }
 
@@ -215,6 +222,10 @@ function coreRing(F: Fight): { outer: number; inner: number; a: string; b: strin
     const left = (k: 'spring' | 'earth') => Math.max(0, ...F.totems.filter(t => t.kind === k).map(t => t.until - F.t));
     const sp = left('spring'), ea = left('earth'), cd = F.cd.springTotem ?? 0;
     return { outer: sp / (SHAMAN.spring.sec + 6), inner: ea / SHAMAN.earth.sec, a: sp > 0 ? `${Math.ceil(sp)}초` : cd > 0 ? `대기 ${Math.ceil(cd)}` : '준비', b: ea > 0 ? `${Math.ceil(ea)}초` : '-' };
+  }
+  if (F.hero === 'astrologer') {
+    const sp = chargeSpec(F), st = F.charge ? F.charge.stars : 0, mx = shardMax(F);
+    return { outer: st / sp.max, inner: F.shards / mx, a: F.charge ? `${st}/${sp.max}` : '-', b: `${F.shards}/${mx}` };
   }
   if (F.hero === 'monk') {
     if (F.level < HEROES.monk.system.lv) return { outer: 0, inner: 0, a: '-', b: `Lv ${HEROES.monk.system.lv}` };
@@ -298,7 +309,12 @@ export function updateItems(): void {
 export function updateCastbar(): void {
   const F = fight();
   let label: string, detail = '', p = 0, left = '';
-  if (F.cast) {
+  if (F.charge) { // 점성술사 모으기 (79 4-3 · 7장 4번, Codex가 다듬음): 별 n/최대, 완벽 구간이면 「완벽」
+    const c = F.charge, sp = chargeSpec(F), u = c.uid == null ? null : F.party.find(x => x.id === c.uid);
+    label = c.stars === 0 ? `${SKILLS[c.key].short} 준비` : `${SKILLS[c.key].short}${u ? ` → ${u.nick}` : ''} · 별 ${c.stars}/${sp.max}${chargePerfect(F) ? ' · 완벽' : ''}`;
+    p = c.stars / sp.max;
+    left = '';
+  } else if (F.cast) {
     const u = F.party.find(x => x.id === F.cast!.uid);
     label = `${SKILLS[F.cast.key].short} → ${u ? u.nick : ''}`;
     p = 1 - F.cast.left / F.cast.total;
@@ -333,7 +349,7 @@ export function updateCastbar(): void {
       detail = `${selected.nick}, ${selected.alive ? `체력 ${hp}` : '쓰러짐'}. ${selected.debuffs.length ? selected.debuffs.map(d => `${d.name} (${d.type}), ${Math.ceil(d.left)}초${d.stack ? `, ${d.stack}중첩` : ''}, ${!canDispel(F.hero, d.type) ? '해제 불가' : d.trap ? '해제 주의: 옆 칸으로 전파' : '해제 가능'}`).join('. ') : '디버프 없음'}`;
     } else label = `칸을 탭하면 ${SKILLS[tapKey()].name}`;
   }
-  const casting = !!F.cast || F.channel > 0;
+  const casting = !!F.cast || F.channel > 0 || !!F.charge;
   setText($('castLabel'), label);
   $('castLabel').title = detail || label;
   $('castLabel').setAttribute('aria-label', detail || label);

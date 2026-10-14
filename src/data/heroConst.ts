@@ -37,6 +37,7 @@ export const DRUID_BIG = { wildRange: 2, colonyStep: 0.3 };
  * 모으기 엔진 (engine/healer chargeStart · chargeRelease)이 쓰고, 직업 수치 (ASTRO)는 점성술사 PR에서
  */
 export const ASTRO_CHARGE = { step: 0.5, max: 4, perfect: 0.5, auto: 1.0 };
+const ASTRO_CHARGE_BASE = { ...ASTRO_CHARGE, perfectHeal: 0.15 };
 
 /**
  * 주술사 (79 2-5): 물방울 (12초 · 3초마다 · 연쇄가 닿는 거리) · 연쇄 치유 (인원 · 튈 때 남는 비율) · 대지 토템 (받는 피해 감소 · 초) ·
@@ -72,4 +73,23 @@ export const MONK = {
   calm: { mana: 0.3, cost: 0.5, sec: 10 },
   /** 20인 레이드 보정 (드루이드 들꽃 군락 · 주술사 샘처럼): 안개 숨결 범위 +칸 */
   big: { breath: 1 },
+};
+
+/**
+ * 점성술사 (79 4-5): 별자리 잇기 (별 하나 시간 · 최대 · 완벽 구간 · 완벽 +회복 · 저절로 터지는 시간) · 별 조각 · 표식 (초 · 틱 · 다음 직접 힐 +) ·
+ * 별비 (별 수마다 회복 · 범위) · 북극성 (별 수마다) · 별의 잠 · 별의 기억 (최근 초 · 몫) · 별 읽기 · 별의 순환 · 자동 힐러 완벽 확률
+ */
+export const ASTRO = {
+  charge: ASTRO_CHARGE_BASE,
+  shard: { max: 2 },
+  mark: { sec: 8, tick: 2, next: 0.5 },
+  fall: { amt: [380, 150, 220, 150], range: [0, 1, 1, 2] },
+  polaris: [350, 550, 750, 950],
+  sleep: { sec: 4 },
+  memory: { sec: 4, share: 0.5 },
+  read: 0.15,
+  cycle: 3,
+  autoPerfect: 0.6,
+  /** 20인 레이드 보정 (주술사 샘처럼): 별비 회복 배율 */
+  big: { fall: 0.9 },
 };

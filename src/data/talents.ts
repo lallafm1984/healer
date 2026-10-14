@@ -70,7 +70,20 @@ export type MonkTalentKey =
   | 'windKnot' | 'calmWind' | 'mistPath'
   | 'chiBurst' | 'endlessBeat' | 'mistStorm';
 
-export type TalentKey = PriestTalentKey | DruidTalentKey | PaladinTalentKey | ShamanTalentKey | MonkTalentKey;
+/** 점성술사 (79 4-7) */
+export type AstroTalentKey =
+  | 'brightStar' | 'smallTwinkle' | 'scatterTwinkle'
+  | 'etchedMark' | 'markBreath' | 'linkedMark'
+  | 'brightPolaris' | 'quickLink' | 'clearNight'
+  | 'onePoint' | 'threeShards' | 'fifthStar'
+  | 'risingPolaris' | 'fallingNight' | 'secondStarfall'
+  | 'unfading' | 'calmHands' | 'starCrowd'
+  | 'prophecy' | 'foreseen' | 'fallingStar'
+  | 'gatherLight' | 'thriftFall' | 'wideSky'
+  | 'tankMemory' | 'thriftMemory' | 'longMemory'
+  | 'supernova' | 'starPath' | 'milkyWay';
+
+export type TalentKey = PriestTalentKey | DruidTalentKey | PaladinTalentKey | ShamanTalentKey | MonkTalentKey | AstroTalentKey;
 
 /** 보조 버튼으로 쓰는 특성 (06 9장 2번: 휠 밖 버튼). once = 전투당 1회, cell = 빈 칸을 골라서 */
 export interface TalentActive { cd: number; dur: number; once?: boolean; cell?: boolean; short: string }
@@ -250,6 +263,28 @@ export const TX = {
   windKnot: 2, calmWind: { sec: 8, cost: 0.5 }, mistPath: { sec: 6 },
   /** 기 폭발 (◎) · 끝없는 박자: 리듬 · 마나 − · 안개 폭풍 (★): 틱 간격 */
   chiBurst: { cd: 120, range: 2, amt: 300, step: 0.1 }, endlessBeat: { at: 5, cost: 0.5 }, mistStorm: { cd: 180, dur: 12, tick: 1.5 },
+
+  // ---------- 점성술사 (79 4-7) ----------
+  /** 밝은 별: 별빛 치유 시전 −초 · 작은 반짝임: 마나 − · 흩어지는 반짝임: 붙은 가장 다친 1명에게 몫 */
+  brightStar: 0.3, smallTwinkle: 0.3, scatterTwinkle: 0.4,
+  /** 새긴 표식: 표식 보너스 · 표식의 숨: 마나 · 이어진 표식: 인원 */
+  etchedMark: 0.8, markBreath: { mana: 1 }, linkedMark: { n: 1 },
+  /** 빛나는 북극성: 체력 선 · + · 빠른 잇기: 별 하나 초 · 맑은 밤: 별 2 · 3 범위 · 회복 */
+  brightPolaris: { hp: 0.5, heal: 0.25 }, quickLink: 0.4, clearNight: { range: 2, heal: -0.2 },
+  /** 한 점: 탱커 북극성 + · 세 조각: 조각 최대 · 다섯째 별: 최대 · 별비 · 북극성 */
+  onePoint: 0.2, threeShards: 3, fifthStar: { max: 5, fall: 200, polaris: 1150 },
+  /** 떠오르는 북극성: 완벽하면 재사용 −초 · 내리는 밤 (★) · 두 번째 별비: 초 뒤 · 위력 */
+  risingPolaris: 10, fallingNight: { cd: 90, dur: 10, mult: 2 }, secondStarfall: { delay: 2, share: 0.5 },
+  /** 지지 않는 별: 잠 초 · 차분한 손: 모으는 동안 − · 별 무리: 조각마다 − */
+  unfading: { sec: 4 }, calmHands: 0.3, starCrowd: 0.08,
+  /** 예언 · 내다본 손 · 떨어지는 별: 재발동 대기 */
+  prophecy: { cd: 15 }, foreseen: { n: 2, cd: 20 }, fallingStar: { hp: 0.25, cd: 20 },
+  /** 모이는 빛: 별 3개 가운데 배 · 아끼는 별비: 마나 % · 넓은 하늘: 별 4개 범위 · 회복 */
+  gatherLight: 2, thriftFall: { cost: 9 }, wideSky: { range: 3, heal: -0.15 },
+  /** 탱커의 기억: 몫 · 아끼는 기억: 마나 % · 긴 기억: 초 */
+  tankMemory: 0.7, thriftMemory: { cost: 8 }, longMemory: 6,
+  /** 초신성 (◎) · 은하수 (★) */
+  supernova: { cd: 180, delay: 3, range: 2, amt: 400 }, milkyWay: { cd: 180, dur: 15, shards: 2 },
 } as const;
 
 /** 드루이드 (77 2장) */
@@ -429,8 +464,52 @@ export const MONK_TALENTS: TalentTier[] = [
     t('mistStorm', '안개 폭풍', `${TX.mistStorm.dur}초 동안 떠도는 안개가 ${TX.mistStorm.tick}초마다 회복합니다 (한 번 회복량은 그대로). 재사용 대기시간은 ${TX.mistStorm.cd}초입니다.`, { cd: TX.mistStorm.cd, dur: TX.mistStorm.dur, short: '폭풍' })] },
 ];
 
+/** 점성술사 (79 4-7): A 한 사람 · 북극성, B 모으기 · 조각, C 넓게 */
+export const ASTRO_TALENTS: TalentTier[] = [
+  { lv: 5, theme: '기본 강화', picks: [
+    t('brightStar', '밝은 별', `별빛 치유 시전 시간이 ${TX.brightStar}초 줄어듭니다.`),
+    t('smallTwinkle', '작은 반짝임', `반짝임의 마나 소모가 ${pc(TX.smallTwinkle)} 줄어듭니다.`),
+    t('scatterTwinkle', '흩어지는 반짝임', `반짝임 회복량의 ${pc(TX.scatterTwinkle)}가 붙어 있는 가장 다친 아군 1명에게 들어갑니다.`)] },
+  { lv: 10, theme: '기본 강화', picks: [
+    t('etchedMark', '새긴 표식', `표식 보너스가 50%에서 ${pc(TX.etchedMark)}로 늘어납니다.`),
+    t('markBreath', '표식의 숨', `표식 보너스를 쓰면 마나를 ${TX.markBreath.mana}% 돌려받습니다.`),
+    t('linkedMark', '이어진 표식', `표식을 걸면 붙어 있는 다친 아군 ${TX.linkedMark.n}명에게도 표식이 걸립니다.`)] },
+  { lv: 15, theme: '기본 강화', picks: [
+    t('brightPolaris', '빛나는 북극성', `체력 ${pc(TX.brightPolaris.hp)} 아래 대상에게 하는 북극성이 ${pc(TX.brightPolaris.heal)} 늘어납니다.`),
+    t('quickLink', '빠른 잇기', `별이 0.5초 대신 ${TX.quickLink}초마다 이어집니다.`),
+    t('clearNight', '맑은 밤', `별비 별 2 · 3개 범위가 ${TX.clearNight.range}칸 거리로 넓어지고, 회복량은 ${pc(-TX.clearNight.heal)} 줄어듭니다.`)] },
+  { lv: 20, theme: '별자리', picks: [
+    t('onePoint', '한 점', `탱커에게 하는 북극성이 ${pc(TX.onePoint)} 늘어납니다.`),
+    t('threeShards', '세 조각', `별 조각을 ${TX.threeShards}개까지 모아 둘 수 있습니다.`),
+    t('fifthStar', '다섯째 별', `별이 ${TX.fifthStar.max}개까지 이어집니다. 별 5개 별비는 2칸 거리 안 {${TX.fifthStar.fall}}씩, 북극성은 {${TX.fifthStar.polaris}}입니다.`)] },
+  { lv: 25, theme: '별자리', picks: [
+    t('risingPolaris', '떠오르는 북극성', `완벽한 북극성은 재사용 대기가 ${TX.risingPolaris}초 줄어듭니다.`),
+    t('fallingNight', '내리는 밤', `${TX.fallingNight.dur}초 동안 별이 두 배로 빨리 이어집니다. 재사용 대기시간은 ${TX.fallingNight.cd}초입니다.`, { cd: TX.fallingNight.cd, dur: TX.fallingNight.dur, short: '밤' }),
+    t('secondStarfall', '두 번째 별비', `완벽한 별비는 ${TX.secondStarfall.delay}초 뒤 같은 자리에 ${pc(TX.secondStarfall.share)} 위력으로 한 번 더 쏟아집니다.`)] },
+  { lv: 30, theme: '생존', picks: [
+    t('unfading', '지지 않는 별', `내가 죽을 피해를 받으면 대신 나에게 별의 잠이 걸립니다 (${TX.unfading.sec}초, 그동안 행동은 됨). 전투마다 1회.`),
+    t('calmHands', '차분한 손', `별을 모으는 동안 내가 받는 피해가 ${pc(TX.calmHands)} 줄어듭니다.`),
+    t('starCrowd', '별 무리', `별 조각 1개마다 내가 받는 피해가 ${pc(TX.starCrowd)} 줄어듭니다.`)] },
+  { lv: 35, theme: '위기 대응', picks: [
+    t('prophecy', '예언', `탱커 버스터 예고가 뜨면 그 탱커에게 표식이 저절로 걸립니다. 재발동 대기 ${TX.prophecy.cd}초.`),
+    t('foreseen', '내다본 손', `광역 예고가 뜨면 별 조각을 ${TX.foreseen.n}개 바로 얻습니다. 재발동 대기 ${TX.foreseen.cd}초.`),
+    t('fallingStar', '떨어지는 별', `파티원 체력이 ${pc(TX.fallingStar.hp)} 아래로 떨어지면 반짝임 재사용 대기가 바로 끝납니다. 재발동 대기 ${TX.fallingStar.cd}초.`)] },
+  { lv: 40, theme: '범위 운영', picks: [
+    t('gatherLight', '모이는 빛', '별 3개 별비는 가운데 대상에게 두 배로 회복합니다.'),
+    t('thriftFall', '아끼는 별비', `별비 마나 소모가 12%에서 ${TX.thriftFall.cost}%로 줄어듭니다.`),
+    t('wideSky', '넓은 하늘', `별 4개 별비가 ${TX.wideSky.range}칸 거리까지 닿고, 회복량은 ${pc(-TX.wideSky.heal)} 줄어듭니다.`)] },
+  { lv: 45, theme: '대규모 운영', picks: [
+    t('tankMemory', '탱커의 기억', `별의 기억이 탱커에게는 받은 피해의 ${pc(TX.tankMemory)}를 회복합니다.`),
+    t('thriftMemory', '아끼는 기억', `별의 기억 마나 소모가 15%에서 ${TX.thriftMemory.cost}%로 줄어듭니다.`),
+    t('longMemory', '긴 기억', `별의 기억이 최근 ${TX.longMemory}초 동안 받은 피해를 셉니다.`)] },
+  { lv: 50, theme: '궁극', picks: [
+    t('supernova', '초신성', `빈 칸을 골라 별을 심습니다. ${TX.supernova.delay}초 뒤 터져 ${TX.supernova.range}칸 거리 안 아군 체력을 {${TX.supernova.amt}}씩 회복합니다. 재사용 대기시간은 ${TX.supernova.cd}초입니다.`, { cd: TX.supernova.cd, dur: 0, cell: true, short: '초신성' }),
+    t('starPath', '별의 길', '완벽한 별자리를 만들면 다음 별자리는 별 4개로 바로 시작합니다.'),
+    t('milkyWay', '은하수', `${TX.milkyWay.dur}초 동안 별빛 치유가 바로 시전되고 별 조각을 ${TX.milkyWay.shards}개씩 줍니다. 재사용 대기시간은 ${TX.milkyWay.cd}초입니다.`, { cd: TX.milkyWay.cd, dur: TX.milkyWay.dur, short: '은하수' })] },
+];
+
 /** 79 직업 4종은 직업 PR마다 트리를 넣음 (그전엔 특성 없음) */
-export const TALENT_TREES: Record<HeroKey, TalentTier[]> = { priest: TALENTS, druid: DRUID_TALENTS, paladin: PALADIN_TALENTS, shaman: SHAMAN_TALENTS, monk: MONK_TALENTS, astrologer: [], warder: [] };
+export const TALENT_TREES: Record<HeroKey, TalentTier[]> = { priest: TALENTS, druid: DRUID_TALENTS, paladin: PALADIN_TALENTS, shaman: SHAMAN_TALENTS, monk: MONK_TALENTS, astrologer: ASTRO_TALENTS, warder: [] };
 const ALL_TREES = Object.values(TALENT_TREES);
 
 export const TALENT_DEF = Object.fromEntries(ALL_TREES.flatMap(tree => tree.flatMap(x => x.picks.map(p => [p.key, p])))) as Record<TalentKey, TalentDef>;

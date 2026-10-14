@@ -17,6 +17,7 @@ import type { PersState } from './persona';
 import type { SpecRun } from './specials';
 import type { ShamanState } from './shaman';
 import type { MonkState } from './monk';
+import type { AstroState } from './astro';
 
 export type Role = 'tank' | 'melee' | 'ranged' | 'healer';
 
@@ -133,6 +134,8 @@ export interface Hot {
   hopK?: number;
   hops?: number;
   stay?: boolean;
+  /** 점성술사 별자리 표식 (79 4-2): 다음 직접 힐 보너스가 남아 있음 */
+  bonus?: boolean;
 }
 
 /** 직접 힐 뒤 4초간 이어지는 잔향 회복 */
@@ -638,7 +641,7 @@ export interface Totem { kind: TotemKind; cell: number; until: number; tick: num
  * t0 = 별이 모이기 시작하는 시각 (GCD 중에 누르면 GCD가 끝난 뒤), acc = 다음 별까지 모은 시간, stars = 지금 별 수, full = 마지막 별이 뜬 시각,
  * release = 시작 전에 뗌 (시작하자마자 터짐), autoAt = 자동 힐러가 뗄 시각
  */
-export interface Charge { key: SkillKey; uid: number | null; cell: number; t0: number; acc: number; stars: number; full: number | null; release?: boolean; autoAt?: number }
+export interface Charge { key: SkillKey; uid: number | null; cell: number; t0: number; acc: number; stars: number; full: number | null; release?: boolean; autoAt?: number; /** 자동 힐러: 이 별 수가 되면 뗌 */ want?: number }
 
 /** 파티 전체에 걸린 능력 효과 */
 export interface PartyAb {
@@ -712,6 +715,8 @@ export interface Fight {
   totems: Totem[];
   /** 주술사 상태 (비구름 · 물웅덩이 · 대지 충전 · 특성 재발동, engine/shaman) */
   sham?: ShamanState;
+  /** 점성술사 상태 (이번 별자리 조각 · 별의 길 · 두 번째 별비 · 특성 재발동, engine/astro) */
+  astro?: AstroState;
   /** 수도사 상태 (고요한 호흡 · 특성 재발동, engine/monk) */
   monk?: MonkState;
   /** 수도사 기 리듬 (79 3-3): 리듬 · 이 시각까지 다음 손바닥이 없으면 내려감 */

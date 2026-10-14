@@ -276,6 +276,7 @@ export function unitDps(u: Unit, f?: Fight): number {
   if (!u.alive || u.fleeing || u.me || u.lift) return 0; // 띄워 올려진 동안 딜 0 (P-LIFT)
   if (u.debuffs.length && u.debuffs.some(d => d.noDps)) return 0; // 얼림·침묵·삼킴
   if (u.immune > 0) return 0; // 보호의 손: 그동안 딜 0
+  if (u.sleep != null && f && u.sleep > f.t) return 0; // 점성술사 별의 잠 (79 4-2): 딜 없음
   if (u.moving) return 0; // 움직이는 동안 딜 0 (모든 직업)
   const pos = f?.R.pos ? posDps(f, u) : 1; // 위치 규칙: 근접은 1 · 2열에서만, 원거리는 1 · 2열이면 50%
   if (pos <= 0) return 0;

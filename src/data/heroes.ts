@@ -124,10 +124,10 @@ export const HEROES: Record<HeroKey, HeroDef> = {
     tap: ['starHeal', 'twinkle', 'starMark'],
     passives: [
       { name: '별 읽기', lv: 4, desc: '보스 예고가 찍힌 아군에게 하는 힐이 15% 늘어납니다.' },
-      { name: '별의 순환', lv: 10, desc: '완벽한 별자리를 만들 때마다 마나를 2% 돌려받습니다.' },
+      { name: '별의 순환', lv: 10, desc: '완벽한 별자리를 만들 때마다 마나를 3% 돌려받습니다.' },
     ],
     unlock: { lv: 50, how: '캐릭터 Lv 50 달성' },
-    ready: false,
+    ready: true,
   },
   warder: {
     key: 'warder', name: '결계사', line: '막을 미리 씌우고, 공격으로 치유를 터뜨리는 힐러입니다.', star: 3,

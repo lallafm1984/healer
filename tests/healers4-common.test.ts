@@ -116,7 +116,7 @@ describe('모으기 (점성술사 별자리 잇기, 79 4-3)', () => {
     expect(orig).toBeNull();
     expect(chargeRelease(f).ok).toBe(true);
     out = f.cd.polaris;
-    expect(out).toBe(30);
+    expect(out).toBe(SKILLS.polaris.cd);
     expect(f.mana).toBeLessThan(m0);
   });
   it('마지막 별 뒤 1초가 지나도 안 떼면 저절로 터짐 (완벽 아님)', () => {
@@ -146,7 +146,7 @@ describe('모으기 (점성술사 별자리 잇기, 79 4-3)', () => {
     use(f, 'starfall', t.cell);
     expect(f.charge!.stars).toBe(0);
     run(f, f.gcdBase + 0.1);
-    expect(f.charge!.stars).toBe(1);
+    expect(f.charge!.stars).toBe(2); // 반짝임이 준 조각 1 + 1 (79 4-3)
   });
   it('별 조각이 있으면 그만큼 별을 단 채로 시작 (조각은 다 씀)', () => {
     const f = ready(), t = tank(f);

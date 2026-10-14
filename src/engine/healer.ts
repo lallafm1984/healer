@@ -386,6 +386,7 @@ export function chargeRelease(f: Fight, late = false): ActionResult {
   if (f.mana < cost) { f.stats.manaFails++; emit(f, { type: 'msg', text: '마나 부족' }); return { ok: false, reason: '마나 부족' }; }
   f.mana -= cost;
   if (sk.cd) f.cd[c.key] = cdOf(f, c.key);
+  f.stats.casts[c.key] = (f.stats.casts[c.key] || 0) + 1;
   // 범위 별비는 대상이 쓰러져도 그 칸 그대로 (chargeOut.cell이 가운데). 효과 문맥의 대상은 살아 있는 대상, 없으면 나
   f.chargeOut = { stars: c.stars, perfect, cell: c.cell };
   try { apply(f, c.key, u && u.alive ? u : f.me); } finally { f.chargeOut = null; }

@@ -92,6 +92,15 @@ export const PXF = {
   'monk-soothe': clip(24, 2),
   'monk-wind': clip(20, 3),
   'monk-tea': clip(24, 4),
+  // 79 점성술사 (호박, requests.md 「점성술사」): 휠 8개
+  'astro-star': clip(20, 3),
+  'astro-twinkle': clip(16, 2),
+  'astro-mark': clip(20, 4),
+  'astro-clear': clip(18, 6),
+  'astro-fall': clip(20, 6),
+  'astro-sleep': clip(24, 4),
+  'astro-memory': clip(22, 6),
+  'astro-polaris': clip(22, 6),
   // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (회색 그림은 색을 곱함)
   'common-hit': clip(11, 0),
   'common-crit': clip(12, 0),
@@ -170,6 +179,14 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
   soothe: { fx: 'monk-soothe', scope: 'target' },
   reviveWind: { fx: 'monk-wind', scope: 'party' },
   tea: { fx: 'monk-tea', scope: 'target' }, // 내 칸
+  starHeal: { fx: 'astro-star', scope: 'target' },
+  twinkle: { fx: 'astro-twinkle', scope: 'target' },
+  starMark: { fx: 'astro-mark', scope: 'target' },
+  clearStar: { fx: 'astro-clear', scope: 'target' },
+  starfall: { fx: 'astro-fall', scope: 'target' }, // 별 수마다 범위가 달라 회복한 칸마다 엔진이 따로 기록 (79 4-2)
+  starSleep: { fx: 'astro-sleep', scope: 'target' },
+  starMemory: { fx: 'astro-memory', scope: 'party' },
+  polaris: { fx: 'astro-polaris', scope: 'target' },
 };
 
 /** 전투 공통 효과 (모든 효과 PXF 1단계, requests.md): 있으면 board.ts가 예전 그림 (fx-hit · fx-heal …) 대신 그림 */
