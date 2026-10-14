@@ -834,6 +834,16 @@ const TALENT_ART: Record<TalentKey, SkillKey> = {
   returnChain: 'chainHeal', overflowChain: 'chainHeal', longChain: 'chainHeal',
   twinEarth: 'earthTotem', rainBreath: 'rainTotem', stormChain: 'chainHeal',
   waterSpirit: 'chainHeal', endlessChain: 'chainHeal', seaSeat: 'springTotem',
+  heavyPalm: 'vitalPalm', lightPalm: 'vitalPalm', palmSplash: 'vitalPalm',
+  embrace: 'mistWrap', mistThrift: 'wanderMist', chiWave: 'clearChi',
+  stayMist: 'wanderMist', longMist: 'wanderMist', farMist: 'wanderMist',
+  focusBeat: 'vitalPalm', wideBeat: 'vitalPalm', sevenBeat: 'vitalPalm',
+  steadyMind: 'tea', thousandHands: 'vitalPalm', beatSpread: 'vitalPalm',
+  ironBody: 'soothe', mistBody: 'wanderMist', windAgain: 'reviveWind',
+  urgentPalm: 'vitalPalm', crisisBreath: 'mistBreath', scatterMist: 'wanderMist',
+  mistPillar: 'mistBreath', thriftBreath: 'mistBreath', gatherMist: 'wanderMist',
+  windKnot: 'reviveWind', calmWind: 'reviveWind', mistPath: 'reviveWind',
+  chiBurst: 'vitalPalm', endlessBeat: 'vitalPalm', mistStorm: 'wanderMist',
 };
 const talentIcon = (key: TalentKey) => gameIcon(key, skillIc(TALENT_ART[key]), 'talent');
 

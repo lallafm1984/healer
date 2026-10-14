@@ -57,7 +57,20 @@ export type ShamanTalentKey =
   | 'twinEarth' | 'rainBreath' | 'stormChain'
   | 'waterSpirit' | 'endlessChain' | 'seaSeat';
 
-export type TalentKey = PriestTalentKey | DruidTalentKey | PaladinTalentKey | ShamanTalentKey;
+/** 수도사 (79 3-7) */
+export type MonkTalentKey =
+  | 'heavyPalm' | 'lightPalm' | 'palmSplash'
+  | 'embrace' | 'mistThrift' | 'chiWave'
+  | 'stayMist' | 'longMist' | 'farMist'
+  | 'focusBeat' | 'wideBeat' | 'sevenBeat'
+  | 'steadyMind' | 'thousandHands' | 'beatSpread'
+  | 'ironBody' | 'mistBody' | 'windAgain'
+  | 'urgentPalm' | 'crisisBreath' | 'scatterMist'
+  | 'mistPillar' | 'thriftBreath' | 'gatherMist'
+  | 'windKnot' | 'calmWind' | 'mistPath'
+  | 'chiBurst' | 'endlessBeat' | 'mistStorm';
+
+export type TalentKey = PriestTalentKey | DruidTalentKey | PaladinTalentKey | ShamanTalentKey | MonkTalentKey;
 
 /** 보조 버튼으로 쓰는 특성 (06 9장 2번: 휠 밖 버튼). once = 전투당 1회, cell = 빈 칸을 골라서 */
 export interface TalentActive { cd: number; dur: number; once?: boolean; cell?: boolean; short: string }
@@ -215,6 +228,28 @@ export const TX = {
   twinEarth: { n: 2 }, rainBreath: 0.5,
   /** 물의 정령: 튀는 인원 · 몫 · 끝없는 사슬: 튈 때 남는 비율 · 바다의 자리 */
   waterSpirit: { cd: 180, dur: 20, n: 2, share: [0.75, 0.56] }, endlessChain: 0.9, seaSeat: { cd: 180, dur: 15, range: 2, tick: 2, amt: 40 },
+
+  // ---------- 수도사 (79 3-7) ----------
+  /** 묵직한 손바닥: 탱커에게 + · 가벼운 손바닥: 마나 − · 튀는 손바닥: 붙은 가장 다친 1명에게 몫 */
+  heavyPalm: 0.2, lightPalm: 0.25, palmSplash: 0.3,
+  /** 품어 주기: 감싸기 대상 받는 피해 − · 초 · 아끼는 안개: 마나 % · 기의 물결: 해제하면 붙은 6칸 회복 */
+  embrace: { cut: 0.1, sec: 6 }, mistThrift: { cost: 1 }, chiWave: { amt: 80 },
+  /** 머무는 안개: 안 옮겨 가는 대신 + · 긴 안개: +초 · 멀리 가는 안개: 거리 · 옮겨 갈 때마다 다음 회복 + */
+  stayMist: 0.3, longMist: 6, farMist: { range: 2, step: 0.2 },
+  /** 한 점 리듬: 같은 대상 리듬마다 · 느슨한 박자: 이어지는 초 · 일곱 박자: 최대 리듬 */
+  focusBeat: 0.09, wideBeat: 3.5, sevenBeat: 7,
+  /** 흔들림 없는 마음: 끊기면 남는 비율 · 천 개의 손 · 퍼지는 박자: 리듬 · 인원 · 몫 */
+  steadyMind: 0.5, thousandHands: { cd: 90, dur: 8, gcd: 0.5 }, beatSpread: { at: 5, n: 2, share: 0.4 },
+  /** 강철 몸: 리듬마다 내 받는 피해 − (최대) · 안개 몸: 체력 선 · − · 초 · 재발동 · 다시 부는 바람: 버티는 체력 */
+  ironBody: { step: 0.04, max: 0.2 }, mistBody: { hp: 0.4, cut: 0.3, sec: 4, cd: 60 }, windAgain: { hp: 0.25 },
+  /** 급한 손바닥: 체력 선 · + · 위기의 숨결 재발동 · 흩어지는 안개: 인원 · 초 */
+  urgentPalm: { hp: 0.3, heal: 0.4 }, crisisBreath: { cd: 30 }, scatterMist: { n: 3, sec: 9 },
+  /** 안개 기둥: 가운데 배 · 아끼는 숨결: 마나 % · 모이는 안개 (◎) */
+  mistPillar: 2, thriftBreath: { cost: 7 }, gatherMist: { cd: 60, dur: 8, hps: 20 },
+  /** 바람 매듭: 탱커 배 · 잔잔한 바람: 초 · 마나 − · 안개 길: 초 */
+  windKnot: 2, calmWind: { sec: 8, cost: 0.5 }, mistPath: { sec: 6 },
+  /** 기 폭발 (◎) · 끝없는 박자: 리듬 · 마나 − · 안개 폭풍 (★): 틱 간격 */
+  chiBurst: { cd: 120, range: 2, amt: 300, step: 0.1 }, endlessBeat: { at: 5, cost: 0.5 }, mistStorm: { cd: 180, dur: 12, tick: 1.5 },
 } as const;
 
 /** 드루이드 (77 2장) */
@@ -350,8 +385,52 @@ export const SHAMAN_TALENTS: TalentTier[] = [
     t('seaSeat', '바다의 자리', `빈 칸을 골라 ${TX.seaSeat.dur}초 동안 큰 샘을 엽니다. ${TX.seaSeat.range}칸 거리 안 아군을 ${TX.seaSeat.tick}초마다 {${TX.seaSeat.amt}}씩 회복하고, 깨지지 않습니다. 재사용 대기시간은 ${TX.seaSeat.cd}초입니다.`, { cd: TX.seaSeat.cd, dur: TX.seaSeat.dur, cell: true, short: '바다' })] },
 ];
 
+/** 수도사 (79 3-7): A 탱커 · 한 사람, B 효율, C 넓게 */
+export const MONK_TALENTS: TalentTier[] = [
+  { lv: 5, theme: '기본 강화', picks: [
+    t('heavyPalm', '묵직한 손바닥', `탱커에게 하는 생기 손바닥이 ${pc(TX.heavyPalm)} 늘어납니다.`),
+    t('lightPalm', '가벼운 손바닥', `생기 손바닥의 마나 소모가 ${pc(TX.lightPalm)} 줄어듭니다.`),
+    t('palmSplash', '튀는 손바닥', `생기 손바닥 회복량의 ${pc(TX.palmSplash)}가 붙어 있는 가장 다친 아군 1명에게 들어갑니다.`)] },
+  { lv: 10, theme: '기본 강화', picks: [
+    t('embrace', '품어 주기', `안개 감싸기를 받은 대상은 ${TX.embrace.sec}초 동안 받는 피해가 ${pc(TX.embrace.cut)} 줄어듭니다.`),
+    t('mistThrift', '아끼는 안개', `떠도는 안개 마나 소모가 2%에서 ${TX.mistThrift.cost}%로 줄어듭니다.`),
+    t('chiWave', '기의 물결', `맑은 기운으로 디버프를 지우면 대상과 붙어 있는 6칸의 아군 체력을 {${TX.chiWave.amt}}씩 회복합니다.`)] },
+  { lv: 15, theme: '기본 강화', picks: [
+    t('stayMist', '머무는 안개', `떠도는 안개가 옮겨 가지 않고, 대신 회복량이 ${pc(TX.stayMist)} 늘어납니다.`),
+    t('longMist', '긴 안개', `떠도는 안개 시간이 ${TX.longMist}초 늘어납니다 (회복량도 그만큼).`),
+    t('farMist', '멀리 가는 안개', `떠도는 안개가 ${TX.farMist.range}칸 거리까지 옮겨 가고, 옮겨 갈 때마다 다음 회복이 ${pc(TX.farMist.step)} 늘어납니다.`)] },
+  { lv: 20, theme: '기 리듬', picks: [
+    t('focusBeat', '한 점 리듬', `같은 대상에게 이어 친 생기 손바닥은 리듬마다 6% 대신 ${pc(TX.focusBeat)} 늘어납니다.`),
+    t('wideBeat', '느슨한 박자', `기 리듬이 이어지는 시간이 2.5초에서 ${TX.wideBeat}초로 늘어납니다.`),
+    t('sevenBeat', '일곱 박자', `기 리듬이 ${TX.sevenBeat}까지 오릅니다.`)] },
+  { lv: 25, theme: '기 리듬', picks: [
+    t('steadyMind', '흔들림 없는 마음', '리듬이 끊겨도 0이 아니라 절반 (내림)으로 내려갑니다.'),
+    t('thousandHands', '천 개의 손', `${TX.thousandHands.dur}초 동안 생기 손바닥의 다음 행동 대기가 ${TX.thousandHands.gcd}초가 되고 리듬이 내려가지 않습니다. 재사용 대기시간은 ${TX.thousandHands.cd}초입니다.`, { cd: TX.thousandHands.cd, dur: TX.thousandHands.dur, short: '천손' }),
+    t('beatSpread', '퍼지는 박자', `리듬 ${TX.beatSpread.at} 이상에서 친 생기 손바닥은 붙어 있는 다친 아군 ${TX.beatSpread.n}명에게도 ${pc(TX.beatSpread.share)}씩 들어갑니다.`)] },
+  { lv: 30, theme: '생존', picks: [
+    t('ironBody', '강철 몸', `기 리듬 1마다 내가 받는 피해가 ${pc(TX.ironBody.step)} 줄어듭니다 (최대 ${pc(TX.ironBody.max)}).`),
+    t('mistBody', '안개 몸', `내 체력이 ${pc(TX.mistBody.hp)} 아래로 내려가면 나에게 떠도는 안개가 걸리고 ${TX.mistBody.sec}초 동안 받는 피해가 ${pc(TX.mistBody.cut)} 줄어듭니다. 재발동 대기 ${TX.mistBody.cd}초.`),
+    t('windAgain', '다시 부는 바람', `내가 죽을 피해를 받으면 대신 체력 ${pc(TX.windAgain.hp)}로 버팁니다. 전투마다 1회.`)] },
+  { lv: 35, theme: '위기 대응', picks: [
+    t('urgentPalm', '급한 손바닥', `체력 ${pc(TX.urgentPalm.hp)} 아래 대상에게 하는 생기 손바닥이 ${pc(TX.urgentPalm.heal)} 늘어납니다.`),
+    t('crisisBreath', '위기의 숨결', `광역 예고가 뜨면 안개 숨결 재사용 대기가 바로 끝납니다. 재발동 대기 ${TX.crisisBreath.cd}초.`),
+    t('scatterMist', '흩어지는 안개', `파티원이 쓰러지면 그 칸과 붙어 있는 아군 ${TX.scatterMist.n}명에게 ${TX.scatterMist.sec}초짜리 안개가 걸립니다.`)] },
+  { lv: 40, theme: '범위 운영', picks: [
+    t('mistPillar', '안개 기둥', '안개 숨결의 가운데 대상은 두 배로 회복합니다.'),
+    t('thriftBreath', '아끼는 숨결', `안개 숨결 마나 소모가 10%에서 ${TX.thriftBreath.cost}%로 줄어듭니다.`),
+    t('gatherMist', '모이는 안개', `빈 칸을 골라 ${TX.gatherMist.dur}초 동안 안개 샘을 엽니다. 그 칸과 붙어 있는 6칸의 아군이 초당 {${TX.gatherMist.hps}}씩 회복하고, 안개가 걸린 것으로 칩니다. 재사용 대기시간은 ${TX.gatherMist.cd}초입니다.`, { cd: TX.gatherMist.cd, dur: TX.gatherMist.dur, cell: true, short: '안개샘' })] },
+  { lv: 45, theme: '대규모 운영', picks: [
+    t('windKnot', '바람 매듭', '되살림 바람이 탱커에게는 두 배로 회복합니다.'),
+    t('calmWind', '잔잔한 바람', `되살림 바람을 쓰면 ${TX.calmWind.sec}초 동안 마나 소모가 ${pc(TX.calmWind.cost)} 줄어듭니다.`),
+    t('mistPath', '안개 길', `되살림 바람이 안개가 없는 아군 모두에게 ${TX.mistPath.sec}초짜리 안개를 겁니다.`)] },
+  { lv: 50, theme: '궁극', picks: [
+    t('chiBurst', '기 폭발', `고른 칸 중심 ${TX.chiBurst.range}칸 거리 안 아군 체력을 {${TX.chiBurst.amt}}씩 회복합니다. 기 리듬 1마다 ${pc(TX.chiBurst.step)} 더 회복하고, 리듬은 0이 됩니다. 재사용 대기시간은 ${TX.chiBurst.cd}초입니다.`, { cd: TX.chiBurst.cd, dur: 0, cell: true, short: '기폭발' }),
+    t('endlessBeat', '끝없는 박자', `기 리듬이 ${TX.endlessBeat.at} 이상인 동안 생기 손바닥 마나 소모가 ${pc(TX.endlessBeat.cost)} 줄어듭니다.`),
+    t('mistStorm', '안개 폭풍', `${TX.mistStorm.dur}초 동안 떠도는 안개가 ${TX.mistStorm.tick}초마다 회복합니다 (한 번 회복량은 그대로). 재사용 대기시간은 ${TX.mistStorm.cd}초입니다.`, { cd: TX.mistStorm.cd, dur: TX.mistStorm.dur, short: '폭풍' })] },
+];
+
 /** 79 직업 4종은 직업 PR마다 트리를 넣음 (그전엔 특성 없음) */
-export const TALENT_TREES: Record<HeroKey, TalentTier[]> = { priest: TALENTS, druid: DRUID_TALENTS, paladin: PALADIN_TALENTS, shaman: SHAMAN_TALENTS, monk: [], astrologer: [], warder: [] };
+export const TALENT_TREES: Record<HeroKey, TalentTier[]> = { priest: TALENTS, druid: DRUID_TALENTS, paladin: PALADIN_TALENTS, shaman: SHAMAN_TALENTS, monk: MONK_TALENTS, astrologer: [], warder: [] };
 const ALL_TREES = Object.values(TALENT_TREES);
 
 export const TALENT_DEF = Object.fromEntries(ALL_TREES.flatMap(tree => tree.flatMap(x => x.picks.map(p => [p.key, p])))) as Record<TalentKey, TalentDef>;

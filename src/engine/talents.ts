@@ -10,6 +10,7 @@ import { cellOf, emit, heal, living } from './core';
 import { barkCut, powerMax, putHot, putSprout } from './heroes';
 import { aoeCount, aoeDone, castCut, castMult, cdSpec, costSpec, freeCast, hasteOf, sv } from './specials';
 import { callTotems, raining, seaSeat, shamanDeath } from './shaman';
+import { breathRange, chiBurst, gatherMist, monkCost, monkDeath } from './monk';
 import type { ActionResult, Fight, TalentState, Unit } from './types';
 
 /** 두 겹 수호 충전 시간, 쉼터 초당 회복 */
@@ -28,7 +29,7 @@ export function newTalents(f: Fight): TalentState {
   for (const k of Object.keys(on) as TalentKey[]) if (TALENT_DEF[k].active) act[k] = { cd: 0, left: 0, used: false };
   return {
     on, act, griefUntil: -1, echoUntil: -1, lastAct: 0, focus: null, guard: 2, guardRe: 0, repayUsed: false, shelter: -1, later: [],
-    any: Object.keys(on).length > 0, cut: CUT_KEYS.some(k => on[k]), hotm: HOT_KEYS.some(k => on[k]), death: !!(on.fallenFlower || on.martyr || on.lastSpring),
+    any: Object.keys(on).length > 0, cut: CUT_KEYS.some(k => on[k]), hotm: HOT_KEYS.some(k => on[k]), death: !!(on.fallenFlower || on.martyr || on.lastSpring || on.scatterMist),
     freeSprout: 0, moss: on.mossBed ? new Map() : null, treeCd: 0, watchCd: 0, telSeen: 0, rebirths: 0, freeLight: false, cleanAt: 0, martyrUntil: -1, breathCd: 0,
   };
 }
@@ -45,6 +46,7 @@ export function costOf(f: Fight, key: SkillKey, u?: Unit): number {
   let c = SKILLS[key].cost;
   if (key === 'flash' && f.tx.on.lightTouch) c *= 0.8;
   if (f.hero !== 'priest' && f.tx.any) c *= heroCost(f, key, u);
+  if (f.hero === 'monk') c *= monkCost(f, key); // 수도사 (79 3장): 고요한 호흡 (패시브)까지라 특성이 없어도
   if (f.tx.echoUntil > f.t) c *= 0.5;
   if (activeOn(f, 'zenith')) c *= 1.5;
   c *= f.manaCut; // 특성 단 마나 보정 (세 직업 공통, 77)
@@ -129,7 +131,7 @@ export function adjLow(f: Fight, u: Unit, n: number, skipRenew = false): Unit[] 
 }
 
 /** 범위 힐 반경: 넓은 원이면 기원 반경 2 */
-export const areaRadius = (f: Fight, key: SkillKey): number => (key === 'poh' && f.tx.on.wideCircle ? 2 : key === 'wildflower' && f.enc.big ? DRUID_BIG.wildRange : 1) + (key === 'wildflower' ? sv(f, 'flowerSea') : 0); // 들꽃 군락 20인 보정 (26 9-1) · 들꽃 바다 (42 드루 04)
+export const areaRadius = (f: Fight, key: SkillKey): number => key === 'mistBreath' ? breathRange(f) : (key === 'poh' && f.tx.on.wideCircle ? 2 : key === 'wildflower' && f.enc.big ? DRUID_BIG.wildRange : 1) + (key === 'wildflower' ? sv(f, 'flowerSea') : 0); // 들꽃 군락 20인 보정 (26 9-1) · 들꽃 바다 (42 드루 04)
 
 /** 치유의 기원 (반경 r) */
 export function pohAt(f: Fight, cellIdx: number, amt: number, r: number): void {
@@ -199,7 +201,8 @@ export function useTalent(f: Fight, key: TalentKey, cellIdx?: number): ActionRes
   if (def.active!.cell) {
     const c = cellIdx == null ? undefined : f.cells[cellIdx];
     if (!c) return { ok: false, reason: key === 'shelter' ? '쉼터로 만들 빈 칸 선택' : '칸 선택' };
-    if (key === 'totemCall' ? c.block === 'hole' : c.unit || c.block) return { ok: false, reason: key === 'totemCall' ? '무너진 바닥에는 못 옮김' : '빈 칸만 고를 수 있음' }; // 토템 부르기는 사람이 선 칸도 (토템은 길을 안 막음)
+    const any = key === 'totemCall' || key === 'chiBurst'; // 토템 부르기 · 기 폭발은 사람이 선 칸도 (토템은 길을 안 막음)
+    if (any ? c.block === 'hole' : c.unit || c.block) return { ok: false, reason: any ? '무너진 바닥은 못 고름' : '빈 칸만 고를 수 있음' };
   }
   a.cd = def.active!.cd; a.left = def.active!.dur; a.used = true;
   f.tx.lastAct = f.t;
@@ -219,6 +222,8 @@ export function useTalent(f: Fight, key: TalentKey, cellIdx?: number): ActionRes
   if (key === 'resolveFill') f.power3 = powerMax(f); // 가득 찬 빛 (77): 회복량 +는 켜져 있는 동안 (heroes holyBoost)
   if (key === 'totemCall') callTotems(f, cellIdx!); // 토템 부르기 (79 2-7)
   if (key === 'seaSeat') seaSeat(f, cellIdx!); // 바다의 자리
+  if (key === 'gatherMist') gatherMist(f, cellIdx!); // 모이는 안개 (79 3-7)
+  if (key === 'chiBurst') chiBurst(f, cellIdx!); // 기 폭발
   emit(f, { type: 'sound', name: 'chime' });
   emit(f, { type: 'msg', text: def.active!.dur ? `${def.name}: ${def.active!.dur}초` : def.name });
   return { ok: true };
@@ -346,6 +351,7 @@ export function talentDeath(f: Fight, u: Unit): void {
   }
   if (f.tx.on.martyr) { f.power3 = powerMax(f); f.tx.martyrUntil = f.t + TX.martyr.sec; }
   if (f.tx.on.lastSpring) shamanDeath(f, u); // 마지막 샘 (79 2-7)
+  if (f.tx.on.scatterMist) monkDeath(f, u); // 흩어지는 안개 (79 3-7)
 }
 
 /** 빛의 파도를 쓰는 데 드는 신성한 힘: 끝없는 빛이면 2칸 (77) */

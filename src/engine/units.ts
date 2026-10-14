@@ -10,6 +10,7 @@ import { abFear, dpsMods, hasMod } from './abilities';
 import { dotSpec, dpsSpec, hotDone, renewDone, shieldGone, sv, under } from './specials';
 import { barkCut, putSprout, sproutSpec } from './heroes';
 import { dropDone } from './shaman';
+import { mistHop } from './monk';
 import { frontCell, posDps } from './position';
 import { persDps, persIgnoresZone, persThink } from './persona';
 import type { PersName } from '../data/personalities';
@@ -197,11 +198,17 @@ export function hotTick(f: Fight, u: Unit, dt: number): void {
     else heal(f, u, amt * hotMult(f, u, h), false);
     if (on.overflowSap && f.stats.overheal > over0) { const v = adjLow(f, u, 1)[0]; if (v && v.hp < v.max) heal(f, v, (f.stats.overheal - over0) * TX.overflowSap, false, true); } // 넘치는 수액 (77)
   };
-  for (const h of u.hots.slice()) {
+  hots: for (const h of u.hots.slice()) {
+    if (h.hopK === f.k) continue; // 이 틱에 옮겨 온 수도사 안개 (시간은 옮기기 전 대상에서 이미 뺌)
     h.left -= dt; h.tick -= dt;
     while (h.tick <= 1e-9 && h.rest > 1e-9) {
       const amt = Math.min(h.rest, hotAmt(h));
       h.i++; h.tick += h.every;
+      if (h.key === 'wanderMist' && f.hero === 'monk') { // 떠도는 안개 (79 3-2): 대상이 다 차 있으면 옮겨 감
+        h.rest = Math.max(0, h.rest - amt);
+        if (mistHop(f, u, h, amt)) continue hots;
+        h.rest += amt;
+      }
       give(h, amt);
       if (!u.alive) return;
     }

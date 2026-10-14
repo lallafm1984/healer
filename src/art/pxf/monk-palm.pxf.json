@@ -1,0 +1,370 @@
+{
+  "format": "pxf.graph@1",
+  "name": "수도사 생기 손바닥",
+  "settings": {
+    "size": 64,
+    "frames": 14,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "orb",
+      "type": "Shape",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "shape": "circle",
+        "x": 0.5,
+        "y": 0.52,
+        "size": {
+          "k": [
+            [
+              0,
+              2,
+              "out3"
+            ],
+            [
+              2,
+              10,
+              "in"
+            ],
+            [
+              6,
+              6
+            ],
+            [
+              10,
+              0
+            ]
+          ]
+        },
+        "falloff": 0.5,
+        "intensity": 0.85
+      }
+    },
+    {
+      "id": "core",
+      "type": "Shape",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "shape": "diamond",
+        "x": 0.5,
+        "y": 0.52,
+        "size": {
+          "k": [
+            [
+              0,
+              0,
+              "out3"
+            ],
+            [
+              1,
+              4
+            ],
+            [
+              4,
+              0
+            ]
+          ]
+        },
+        "intensity": 1
+      }
+    },
+    {
+      "id": "up",
+      "type": "Shape",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "shape": "square",
+        "x": 0.5,
+        "y": {
+          "k": [
+            [
+              1,
+              0.34,
+              "out"
+            ],
+            [
+              7,
+              0.17
+            ]
+          ]
+        },
+        "size": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              2.4
+            ],
+            [
+              8,
+              1.8
+            ],
+            [
+              12,
+              0
+            ]
+          ]
+        },
+        "aspect": 1.7,
+        "intensity": 0.62
+      }
+    },
+    {
+      "id": "dn",
+      "type": "Shape",
+      "x": 40,
+      "y": 520,
+      "params": {
+        "shape": "square",
+        "x": 0.5,
+        "y": {
+          "k": [
+            [
+              1,
+              0.7,
+              "out"
+            ],
+            [
+              7,
+              0.87
+            ]
+          ]
+        },
+        "size": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              2.4
+            ],
+            [
+              8,
+              1.8
+            ],
+            [
+              12,
+              0
+            ]
+          ]
+        },
+        "aspect": 1.7,
+        "intensity": 0.62
+      }
+    },
+    {
+      "id": "spark",
+      "type": "Particles",
+      "x": 40,
+      "y": 680,
+      "params": {
+        "count": 6,
+        "seed": 5101,
+        "emit": "burst",
+        "start": 0.08,
+        "life": 0.4,
+        "lifeVar": 0.2,
+        "area": "circle",
+        "x": 0.5,
+        "y": 0.52,
+        "aw": 4,
+        "ah": 4,
+        "dirMode": "outward",
+        "spread": 360,
+        "speed": 1.3,
+        "speedVar": 0.3,
+        "drag": 0.08,
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "diamond",
+        "fade": "out",
+        "bright": 0.9,
+        "loop": false
+      }
+    },
+    {
+      "id": "b1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b2",
+      "type": "Blend",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b3",
+      "type": "Blend",
+      "x": 730,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b4",
+      "type": "Blend",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#1d6b55",
+          "#3fae8c",
+          "#6fd0b0",
+          "#bff0dc",
+          "#f2fff9"
+        ],
+        "cutoff": 0.05,
+        "mode": "bands",
+        "key": "alpha"
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "color": "#0d3329",
+        "threshold": 0.5,
+        "width": 1,
+        "corners": false,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 1880,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              8,
+              1,
+              "in"
+            ],
+            [
+              13,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 2110,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "orb",
+      "t": "b1",
+      "p": 0
+    },
+    {
+      "f": "core",
+      "t": "b1",
+      "p": 1
+    },
+    {
+      "f": "b1",
+      "t": "b2",
+      "p": 0
+    },
+    {
+      "f": "up",
+      "t": "b2",
+      "p": 1
+    },
+    {
+      "f": "b2",
+      "t": "b3",
+      "p": 0
+    },
+    {
+      "f": "dn",
+      "t": "b3",
+      "p": 1
+    },
+    {
+      "f": "b3",
+      "t": "b4",
+      "p": 0
+    },
+    {
+      "f": "spark",
+      "t": "b4",
+      "p": 1
+    },
+    {
+      "f": "b4",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 1
+  }
+}

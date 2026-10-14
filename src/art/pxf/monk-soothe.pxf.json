@@ -1,0 +1,310 @@
+{
+  "format": "pxf.graph@1",
+  "name": "수도사 누그러뜨림",
+  "settings": {
+    "size": 64,
+    "frames": 24,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "wave",
+      "type": "Stroke",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "x0": 0.1,
+        "y0": 0.52,
+        "x1": 0.37,
+        "y1": {
+          "k": [
+            [
+              0,
+              0.22,
+              "out"
+            ],
+            [
+              16,
+              0.48
+            ]
+          ]
+        },
+        "x2": 0.63,
+        "y2": {
+          "k": [
+            [
+              0,
+              0.82,
+              "out"
+            ],
+            [
+              16,
+              0.56
+            ]
+          ]
+        },
+        "x3": 0.9,
+        "y3": 0.52,
+        "width": {
+          "k": [
+            [
+              0,
+              3.5
+            ],
+            [
+              16,
+              2.5
+            ]
+          ]
+        },
+        "taper": 0.9,
+        "from": 0,
+        "to": {
+          "k": [
+            [
+              0,
+              0.1,
+              "out3"
+            ],
+            [
+              4,
+              1
+            ]
+          ]
+        },
+        "vA": 0.6,
+        "vM": 1,
+        "vB": 0.6,
+        "intensity": 0.95
+      }
+    },
+    {
+      "id": "wave2",
+      "type": "Stroke",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "x0": 0.16,
+        "y0": 0.6,
+        "x1": 0.4,
+        "y1": {
+          "k": [
+            [
+              2,
+              0.4,
+              "out"
+            ],
+            [
+              18,
+              0.6
+            ]
+          ]
+        },
+        "x2": 0.62,
+        "y2": {
+          "k": [
+            [
+              2,
+              0.84,
+              "out"
+            ],
+            [
+              18,
+              0.64
+            ]
+          ]
+        },
+        "x3": 0.84,
+        "y3": 0.62,
+        "width": 1.5,
+        "taper": 1,
+        "from": 0,
+        "to": {
+          "k": [
+            [
+              2,
+              0,
+              "out3"
+            ],
+            [
+              7,
+              1
+            ]
+          ]
+        },
+        "vA": 0.3,
+        "vM": 0.5,
+        "vB": 0.3,
+        "intensity": 0.7
+      }
+    },
+    {
+      "id": "calm",
+      "type": "Particles",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "count": 6,
+        "seed": 5611,
+        "emit": "stream",
+        "start": 0.15,
+        "span": 0.4,
+        "life": 0.45,
+        "lifeVar": 0.3,
+        "area": "line",
+        "x": 0.5,
+        "y": 0.4,
+        "aw": 36,
+        "ah": 2,
+        "dirMode": "fixed",
+        "angle": 90,
+        "spread": 10,
+        "speed": 0.3,
+        "speedVar": 0.3,
+        "sizeA": 1.5,
+        "sizeB": 0.5,
+        "pshape": "dot",
+        "fade": "inout",
+        "bright": 0.85,
+        "loop": false
+      }
+    },
+    {
+      "id": "b1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b2",
+      "type": "Blend",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#1d6b55",
+          "#3fae8c",
+          "#6fd0b0",
+          "#bff0dc",
+          "#f2fff9"
+        ],
+        "cutoff": 0.05,
+        "mode": "bands",
+        "key": "alpha"
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "color": "#0d3329",
+        "threshold": 0.5,
+        "width": 1,
+        "corners": false,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1,
+              "in"
+            ],
+            [
+              23,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "wave",
+      "t": "b1",
+      "p": 0
+    },
+    {
+      "f": "wave2",
+      "t": "b1",
+      "p": 1
+    },
+    {
+      "f": "b1",
+      "t": "b2",
+      "p": 0
+    },
+    {
+      "f": "calm",
+      "t": "b2",
+      "p": 1
+    },
+    {
+      "f": "b2",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 2
+  }
+}
