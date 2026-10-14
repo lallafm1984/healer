@@ -80,7 +80,7 @@ export default async function gear(url, shots) {
   await page.click('#s-char .gtile[data-gitem="101"]'); await page.clock.runFor(50);
   let sh = await text('#s-char .c7-gsheet');
   ok((await page.locator('#s-char [data-autoopen], #s-char [data-autogo], #s-char .c7-auto').count()) === 0 && !/목표까지|목표 강화/.test(sh), '목표 강화 없이 확인 후 한 번 강화만 제공');
-  ok(await page.isVisible('#s-char .c7-gsheet') && /\+0 → \+1/.test(sh) && (await text('#s-char .c7-enh [data-material="gold"] [data-cost]')).trim() === '10' && (await text('#s-char .c7-enh [data-material="stone"] [data-have]')).trim() === '8' && /성공률 100%/.test(sh) && (await text('#s-char [data-enh="101"]')).trim() === '강화' && await page.isDisabled('#s-char [data-equip="101"]'), '착용 장비 누르면 아래 시트: 공통 비용 아이콘·보유 강화석·성공 확률, 독립 강화 버튼과 착용 중 표시');
+  ok(await page.isVisible('#s-char .c7-gsheet') && (await page.locator('#s-char .c7-gsheet :is(.c7-enh-materials, .c7-enh-cost, .c7-rate)').count()) === 0 && !/성공률/.test(sh) && (await text('#s-char .c7-gsheet .c7-enh-section')).trim() === '강화' && await page.isDisabled('#s-char [data-equip="101"]'), '착용 장비 누르면 아래 시트: 강화 칸은 강화 버튼만 (비용·확률은 팝업, Lim 2026-10-14)과 착용 중 표시');
   ok((await page.locator('#s-char .c7-gsheet .c7-opts .c7-cmp').count()) === 3 && /착용 중/.test(await text('#s-char .c7-gsheet .c7-gname')) && (await page.locator('#s-char .c7-gsheet .c7-opts :is(.c7-up, .c7-dn, .c7-roll)').count()) === 0 && !/주 능력치|고정|줄 추가/.test(sh), '착용 장비 옵션: 희귀 = 3줄 (주 · 종류 · 무작위), 오른쪽은 비움 (착용 중), 「주 능력치」 · 「고정」 · 「2줄 추가」 없음 (Lim 2026-10-11)');
   ok(await page.isDisabled('#s-char [data-salv1="101"]') && /착용 중/.test(await text('#s-char [data-salv1="101"]')), '착용 중인 장비는 개별 분해 불가');
   const migratedSpec = (await save()).gear.equipped.head.specs;
@@ -89,7 +89,8 @@ export default async function gear(url, shots) {
     && (await text('#s-char .c7-gsheet .c7-spec .c7-spt b')).trim().length > 0
     && (await text('#s-char .c7-gsheet .c7-spec .c7-spt .cap')).trim().length > 0,
   '옛 희귀 장비 = 특수능력 1줄 (후보 추가와 무관하게 저장·묶음 표식·이름·효과 표시)');
-  // 확률 강화 (34 6-5): 굴림을 고정해서 누름 (0 = 성공, 0.99 = 실패)
+  // 확률 강화 (34 6-5): 굴림을 고정해서 누름 (0 = 성공, 0.99 = 실패). pop = 연출이 끝난 뒤 팝업 글자 (다음 강화 비용·확률)
+  let pop = '';
   const enh = async r => {
     await page.evaluate(v => { window.__rnd = Math.random; Math.random = () => v; }, r);
     await page.click('#s-char [data-enh="101"]'); await page.clock.runFor(50);
@@ -100,26 +101,32 @@ export default async function gear(url, shots) {
     await page.clock.runFor(4000);
     ok(!(await page.locator('#gearEnhanceFx [data-enhance-fx]').count()), '화면 전면 연출 종료 후 레이어 제거');
     ok(await page.isVisible('#s-char .c7-confirm') && await page.isVisible('#s-char .c7-enh-result') && JSON.stringify(await save()) === saved, '연출 종료 후 결과 유지·자동 추가 강화 없음');
+    pop = await text('#s-char .c7-confirm');
     await page.evaluate(() => { Math.random = window.__rnd; });
     await page.click('#s-char .c7-confirm [data-confirmcancel]'); await page.clock.runFor(50);
   };
   const beforeEnh = JSON.stringify(await save());
   await page.click('#s-char [data-enh="101"]'); await page.clock.runFor(50);
   ok(await page.isVisible('#s-char .c7-confirm') && JSON.stringify(await save()) === beforeEnh, '강화 확인 전에는 재화와 장비 유지');
+  pop = await text('#s-char .c7-confirm');
+  ok(/\+0 → \+1/.test(pop) && (await text('#s-char .c7-confirm [data-material="gold"] [data-cost]')).trim() === '10' && (await text('#s-char .c7-confirm [data-material="stone"] [data-have]')).trim() === '8' && /성공률 100%/.test(pop), '강화 팝업: 다음 단계·공통 비용 아이콘·보유 강화석·성공 확률');
   await page.click('#s-char .c7-confirm [data-confirmcancel]'); await page.clock.runFor(50);
   ok(JSON.stringify(await save()) === beforeEnh && await page.isVisible('#s-char .c7-gsheet'), '강화 취소는 상세로 복귀하며 비용 없음');
   await enh(0);
   let sv = await save();
   ok(sv.gear.equipped.head.plus === 1 && sv.player.gold === 990 && sv.mats.stone === 7, '강화 +1: 골드 10·강화석 1 씀');
   await enh(0);
-  sv = await save(); sh = await text('#s-char .c7-gsheet');
-  ok(sv.gear.equipped.head.plus === 2 && sv.player.gold === 950 && /성공률 90%/.test(sh) && /실패 시 \+1로 하락/.test(sh), '+2 (골드 40·강화석 2), 다음 단계 성공 90% · 실패하면 떨어진다는 경고');
+  sv = await save();
+  ok(sv.gear.equipped.head.plus === 2 && sv.player.gold === 950 && /성공률 90%/.test(pop) && /실패 시 \+1로 하락/.test(pop), '+2 (골드 40·강화석 2), 팝업의 다음 단계 성공 90% · 실패하면 떨어진다는 경고');
   await enh(0.99);
   sv = await save();
   ok(sv.gear.equipped.head.plus === 1 && sv.player.gold === 860 && sv.mats.stone === 2 && /강화 실패 · \+2 → \+1/.test(await text('#s-char .c7-gsheet')), '+3 실패: +2 → +1로 떨어지고 재료는 씀');
   await enh(0);
   sv = await save();
-  ok(sv.gear.equipped.head.plus === 2 && sv.player.gold === 820 && await page.isDisabled('#s-char [data-enh="101"]') && /강화석 부족/.test(await text('#s-char .c7-gsheet')), '다시 +2, 강화석이 모자라면 버튼 꺼짐 + 이유');
+  ok(sv.gear.equipped.head.plus === 2 && sv.player.gold === 820 && !(await page.isDisabled('#s-char [data-enh="101"]')), '다시 +2, 재료가 모자라도 상세의 강화 버튼은 팝업을 엶');
+  await page.click('#s-char [data-enh="101"]'); await page.clock.runFor(50);
+  ok(await page.isDisabled('#s-char [data-confirmgo]') && /강화석 부족/.test(await text('#s-char [data-confirmgo]')) && (await page.locator('#s-char .c7-confirm [data-material="stone"].short').count()) === 1, '강화석이 모자라면 팝업에서 모자란 재료 빨간 표시 + 강화 버튼 꺼짐과 이유');
+  await page.click('#s-char .c7-confirm [data-confirmcancel]'); await page.clock.runFor(50);
   await page.locator('#s-char .c7-gsheet').screenshot({ path: `${shots}/gear_detail.png` });
   await closeSheet();
   ok(!(await page.isVisible('#s-char .sheet')), '시트 바깥을 누르면 닫힘');
