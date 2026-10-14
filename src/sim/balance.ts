@@ -17,8 +17,8 @@ import { ALL_DIFFS, CONTENT, stageOf, type ContentDef, type ContentKey } from '.
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { gearStatsOf, specsOf } from '../data/equipment';
-import { presetSpecs, type GearId } from '../data/gear';
-import { HERO_KEYS, type HeroKey } from '../data/heroes';
+import { classSpecs, presetSpecs, type GearId } from '../data/gear';
+import type { HeroKey } from '../data/heroes';
 import type { ItemKey } from '../data/items';
 import { TALENTS } from '../data/talents';
 import type { Tune, TuneTable } from '../data/tune';
@@ -72,13 +72,16 @@ export interface Run {
   /** 파티가 받은 피해를 치유 한 번 크기로 나눈 값 (구간 합) */
   heals: number;
 }
+/** 특수능력 프리셋: common = 대표 공통 특수능력 (GEAR_SPECS), class = 그 직업 전용 특수능력 (classSpecs, 79 전용장비 밸런스) */
+export type SpecMode = 'common' | 'class';
 /** 한 판: 장소의 구간을 차례로 (구간 사이 휴식, 파티는 첫 구간에서 뽑은 그대로). tune을 주면 모든 구간에 그 값 (data/tune 대신) */
-export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number, tune?: Tune): Run {
+export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number, tune?: Tune, specs: SpecMode = 'common'): Run {
   const segs = c.fights(d), s = standard(c, d);
   const party = recruitParty(segs[0], seed, { abilities: true });
   // 순차 레벨링 기준이면 시드마다 그 플레이어의 드롭 장비 (레벨은 시드와 상관없음)
   const rp = s.gear === 'ramp' ? rampPlayer(c, d, hero, seed) : null, lv = s.heroLv ?? s.lv;
-  const gear = rp ? { gearStats: gearStatsOf(rp.eq, rp.lv), specs: specsOf(rp.eq, hero) } : { gear: s.gear as GearId, specs: presetSpecs(s.gear as GearId, hero) };
+  const gear = rp ? { gearStats: gearStatsOf(rp.eq, rp.lv), specs: specsOf(rp.eq, hero) }
+    : { gear: s.gear as GearId, specs: specs === 'class' ? classSpecs(s.gear as GearId, hero, seed) : presetSpecs(s.gear as GearId, hero) };
   let carry: Carry | undefined, time = 0, heals = 0;
   for (let i = 0; i < segs.length; i++) {
     const f = create({
@@ -96,10 +99,18 @@ export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number,
   return { win: true, time, reason: '', heals };
 }
 
+/**
+ * 장소 보정 (tune.ts)의 기준 직업 (79 1-5): 사제 · 드루이드 · 성기사 평균. 79 직업 4종은 평균에 넣지 않고 「간격 검사」만
+ * (난이도 · 콘텐츠마다 세 직업 평균 ±GAP_LIMIT%p, scripts/gap.ts). 넣으면 장소 보정 수백 칸이 다시 흔들림
+ */
+export const BASE_HEROES: HeroKey[] = ['priest', 'druid', 'paladin'];
+/** 새 직업 간격 한계 (%p, 79 1-5) */
+export const GAP_LIMIT = 5;
+
 export interface Measure {
-  /** 세 직업 평균 클리어율 (%) */
+  /** 기준 직업 평균 클리어율 (%) */
   rate: number;
-  byHero: Record<HeroKey, number>;
+  byHero: Partial<Record<HeroKey, number>>;
   /** 이긴 판 평균 시간 (초) */
   time: number;
   /** 진 이유별 판 수 */
@@ -107,11 +118,11 @@ export interface Measure {
   /** 바쁨: 받는 피해 ÷ 치유 한 번, 분당 (모든 판) */
   busy: number;
 }
-/** 직업마다 시드 1~n으로 돌림 (같은 시드라 배율을 바꿔 가며 재도 흔들림이 적음) */
-export function measure(c: ContentDef, d: DiffName, n: number, tune?: Tune): Measure {
-  const byHero = {} as Record<HeroKey, number>, fails: Record<string, number> = {};
+/** 직업마다 시드 1~n으로 돌림 (같은 시드라 배율을 바꿔 가며 재도 흔들림이 적음). heroes = 잴 직업 (기준 직업) */
+export function measure(c: ContentDef, d: DiffName, n: number, tune?: Tune, heroes: HeroKey[] = BASE_HEROES): Measure {
+  const byHero: Partial<Record<HeroKey, number>> = {}, fails: Record<string, number> = {};
   let wins = 0, time = 0, all = 0, heals = 0;
-  for (const h of HERO_KEYS) {
+  for (const h of heroes) {
     let w = 0;
     for (let s = 1; s <= n; s++) {
       const r = runOnce(c, d, h, s, tune);
@@ -121,7 +132,7 @@ export function measure(c: ContentDef, d: DiffName, n: number, tune?: Tune): Mea
     byHero[h] = Math.round((100 * w) / n);
     wins += w;
   }
-  return { rate: (100 * wins) / (n * HERO_KEYS.length), byHero, time: wins ? time / wins : 0, fails, busy: all ? heals / (all / 60) : 0 };
+  return { rate: (100 * wins) / (n * heroes.length), byHero, time: wins ? time / wins : 0, fails, busy: all ? heals / (all / 60) : 0 };
 }
 
 /**

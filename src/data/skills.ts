@@ -11,11 +11,20 @@ export type SkillKey =
   // 드루이드
   | 'sprout' | 'growth' | 'bloom' | 'wildflower' | 'natureCleanse' | 'bark' | 'quietwood' | 'rebirth'
   // 성기사
-  | 'holyLight' | 'holyStrike' | 'oath' | 'lightWave' | 'handCleanse' | 'sacrifice' | 'sanctuary' | 'handGuard';
+  | 'holyLight' | 'holyStrike' | 'oath' | 'lightWave' | 'handCleanse' | 'sacrifice' | 'sanctuary' | 'handGuard'
+  // 주술사 (79 2장, springTotem = 가운데 스킬)
+  | 'ripple' | 'shower' | 'droplet' | 'washing' | 'chainHeal' | 'earthTotem' | 'rainTotem' | 'spiritLink' | 'springTotem'
+  // 수도사 (79 3장)
+  | 'vitalPalm' | 'mistWrap' | 'wanderMist' | 'clearChi' | 'mistBreath' | 'soothe' | 'reviveWind' | 'tea'
+  // 점성술사 (79 4장)
+  | 'starHeal' | 'twinkle' | 'starMark' | 'clearStar' | 'starfall' | 'starSleep' | 'starMemory' | 'polaris'
+  // 결계사 (79 5장, judgment = 가운데 스킬)
+  | 'sealHeal' | 'quickSeal' | 'lightBarrier' | 'wardCleanse' | 'wardCircle' | 'guardWard' | 'lightVeil' | 'lightSpear' | 'judgment';
 
 /** 휠 8칸. unique = 8번째 칸 (직업 고유 스킬, Lv 15) */
 export type SlotName = 'basic' | 'fast' | 'hot' | 'aoe' | 'dispel' | 'ext' | 'raid' | 'unique';
-export type SkillTarget = 'ally' | 'area' | 'none' | 'dead';
+/** cell = 판 위 칸을 고름 (주술사 샘 토템, 79 6-1) */
+export type SkillTarget = 'ally' | 'area' | 'none' | 'dead' | 'cell';
 
 export interface SkillDef {
   name: string;
@@ -36,6 +45,12 @@ export interface SkillDef {
   power?: number;
   /** 성기사 빛의 서약처럼 힘을 쓸 수 있는 만큼 쓰는 스킬 */
   powerAll?: boolean;
+  /** 이 스킬의 GCD (초, 가속 전). 없으면 규칙 GCD (1.5). 0 = GCD를 안 쓰고 GCD · 시전 중에도 바로 나감 (수도사 차 한 잔, 79 6-1) */
+  gcd?: number;
+  /** 모으기 (점성술사 별자리 잇기, 79 4-3): 누르고 있는 동안 별이 모이고 떼면 발동. 마나 · 재사용은 뗄 때 */
+  charge?: true;
+  /** 휠 밖 가운데 버튼 스킬 (주술사 샘 토템 · 결계사 심판, 79 6-1). 휠 배치에는 안 들어감 */
+  core?: true;
 }
 
 export const SKILLS: Record<SkillKey, SkillDef> = {
@@ -71,6 +86,48 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   sacrifice: { name: '희생', short: '희생', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' },
   sanctuary: { name: '빛의 성역', short: '성역', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, target: 'area' },
   handGuard: { name: '보호의 손', short: '보호', slot: 'unique', lv: 15, cast: 0, cost: 2, cd: 300, target: 'ally' },
+
+  // ---------- ④ 주술사 (79 2장) ----------
+  ripple: { name: '잔물결', short: '물결', slot: 'basic', lv: 1, cast: 2.5, cost: 3, amt: 300, target: 'ally' },
+  shower: { name: '소나기', short: '소나기', slot: 'fast', lv: 1, cast: 1.5, cost: 6, amt: 250, target: 'ally' },
+  droplet: { name: '물방울', short: '방울', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 210, target: 'ally' },
+  washing: { name: '씻김', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
+  chainHeal: { name: '연쇄 치유', short: '연쇄', slot: 'aoe', lv: 5, cast: 2.5, cost: 10, amt: 320, target: 'ally' },
+  earthTotem: { name: '대지 토템', short: '대지', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' },
+  rainTotem: { name: '비구름 토템', short: '비구름', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, amt: 80, target: 'none' },
+  spiritLink: { name: '영혼 잇기', short: '잇기', slot: 'unique', lv: 15, cast: 0, cost: 5, cd: 120, target: 'ally' },
+  springTotem: { name: '샘 토템', short: '샘', slot: 'unique', core: true, lv: 6, cast: 0, cost: 4, cd: 10, amt: 30, target: 'cell' },
+
+  // ---------- ⑤ 수도사 (79 3장) ----------
+  vitalPalm: { name: '생기 손바닥', short: '손바닥', slot: 'basic', lv: 1, cast: 0, gcd: 1.0, cost: 1.5, amt: 130, target: 'ally' },
+  mistWrap: { name: '안개 감싸기', short: '감싸기', slot: 'fast', lv: 1, cast: 1.5, cost: 5, amt: 230, target: 'ally' },
+  wanderMist: { name: '떠도는 안개', short: '안개', slot: 'hot', lv: 2, cast: 0, cost: 2, cd: 6, amt: 270, target: 'ally' },
+  clearChi: { name: '맑은 기운', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
+  mistBreath: { name: '안개 숨결', short: '숨결', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 15, amt: 160, target: 'area' },
+  soothe: { name: '누그러뜨림', short: '누그러', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 120, target: 'ally' },
+  reviveWind: { name: '되살림 바람', short: '바람', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, amt: 350, target: 'none' },
+  tea: { name: '차 한 잔', short: '차', slot: 'unique', lv: 15, cast: 0, gcd: 0, cost: 0, cd: 60, target: 'none' },
+
+  // ---------- ⑥ 점성술사 (79 4장) ----------
+  starHeal: { name: '별빛 치유', short: '별빛', slot: 'basic', lv: 1, cast: 2.0, cost: 3, amt: 270, target: 'ally' },
+  twinkle: { name: '반짝임', short: '반짝', slot: 'fast', lv: 1, cast: 0, cost: 5, cd: 9, amt: 240, target: 'ally' },
+  starMark: { name: '별자리 표식', short: '표식', slot: 'hot', lv: 2, cast: 0, cost: 3, amt: 120, target: 'ally' },
+  clearStar: { name: '맑은 별빛', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
+  starfall: { name: '별비', short: '별비', slot: 'aoe', lv: 5, cast: 0, charge: true, cost: 12, cd: 12, target: 'area' },
+  starSleep: { name: '별의 잠', short: '잠', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 120, target: 'ally' },
+  starMemory: { name: '별의 기억', short: '기억', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, amt: 100, target: 'none' },
+  polaris: { name: '북극성', short: '북극성', slot: 'unique', lv: 15, cast: 0, charge: true, cost: 8, cd: 30, target: 'ally' },
+
+  // ---------- ⑦ 결계사 (79 5장) ----------
+  sealHeal: { name: '인장 치유', short: '인장', slot: 'basic', lv: 1, cast: 2.5, cost: 3, amt: 260, target: 'ally' },
+  quickSeal: { name: '빠른 인장', short: '빠른', slot: 'fast', lv: 1, cast: 1.5, cost: 6, amt: 220, target: 'ally' },
+  lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 4, cd: 6, amt: 300, target: 'ally' },
+  wardCleanse: { name: '결계 정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
+  wardCircle: { name: '결계 원', short: '결계', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 20, amt: 150, target: 'area' },
+  guardWard: { name: '수호 결계', short: '수호', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' },
+  lightVeil: { name: '빛의 장막', short: '장막', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, target: 'area' },
+  lightSpear: { name: '빛의 창', short: '창', slot: 'unique', lv: 15, cast: 0, cost: 3, cd: 12, amt: 160, target: 'none' },
+  judgment: { name: '심판', short: '심판', slot: 'unique', core: true, lv: 6, cast: 2.0, cost: 6, amt: 140, target: 'none' },
 };
 
 /** 배우는 레벨 (06 7장) */
@@ -125,6 +182,44 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   sacrifice: { kind: '외부 생존기', desc: '12초 동안 대상이 받는 피해의 30%를 내가 대신 받습니다.' },
   sanctuary: { kind: '공대 쿨기', desc: '대상 중심 7칸에 10초 동안 성역을 세웁니다. 안에 있으면 받는 피해가 20% 줄고 초당 {40}씩 회복합니다.' },
   handGuard: { kind: '보호', desc: '6초 동안 대상이 물리 피해를 받지 않습니다. 그동안 대상은 딜을 하지 못합니다.' },
+
+  ripple: { kind: '기본 힐', desc: '대상의 체력을 {300} 회복합니다.' },
+  shower: { kind: '빠른 힐', desc: '대상의 체력을 {250} 회복합니다.' },
+  droplet: { kind: '지속 힐', desc: '12초 동안 3초마다 대상의 체력을 회복합니다. 모두 {210}입니다. 물방울이 걸린 아군에게는 연쇄 치유가 2칸 거리까지 튑니다.' },
+  washing: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
+  chainHeal: { kind: '광역 힐', desc: '대상의 체력을 {320} 회복하고, 붙어 있는 다친 아군에게 튑니다. 체력 비율이 가장 낮은 아군에게 먼저 튀고, 튈 때마다 회복량이 25% 줄며, 모두 4명까지 닿습니다.' },
+  earthTotem: { kind: '외부 생존기', desc: '대상이 선 칸에 대지 토템을 세웁니다. 10초 동안 그 칸과 붙어 있는 6칸의 아군이 받는 피해가 15% 줄어듭니다. 토템은 그 칸에 남고 대상을 따라가지 않습니다.' },
+  rainTotem: { kind: '공대 쿨기', desc: '10초 동안 2초마다 파티 전원의 체력을 {80}씩 회복합니다. 비구름 토템은 하늘에 떠서 깨지지 않고, 그동안 다른 행동을 할 수 있습니다.' },
+  spiritLink: { kind: '고유', desc: '대상과 붙어 있는 아군의 체력 비율을 모두의 평균으로 똑같이 맞춥니다. 그 뒤 6초 동안 그 아군들이 받는 피해가 10% 줄어듭니다.' },
+  springTotem: { kind: '토템 칸', desc: '고른 칸에 샘 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군 체력을 {30}씩 회복합니다.' },
+
+  vitalPalm: { kind: '기본 힐', desc: '대상의 체력을 즉시 {130} 회복합니다. 다음 행동까지 1초만 기다립니다. 2.5초 안에 다시 치면 기 리듬이 오릅니다.' },
+  mistWrap: { kind: '빠른 힐', desc: '대상의 체력을 {230} 회복하고, 떠도는 안개가 없으면 6초 동안 {90} 회복하는 안개를 겁니다.' },
+  wanderMist: { kind: '지속 힐', desc: '18초 동안 3초마다 대상의 체력을 회복합니다. 모두 {270}입니다. 회복할 때 대상 체력이 가득 차 있으면 붙어 있는 아군 중 안개가 없고 가장 많이 다친 아군에게 옮겨 갑니다.' },
+  clearChi: { kind: '해제', desc: '대상의 마법·질병 디버프를 1개 제거합니다.' },
+  mistBreath: { kind: '광역 힐', desc: '대상과 붙어 있는 6칸의 아군 체력을 즉시 {160}씩 회복합니다. 안개가 걸린 아군은 50% 더 회복합니다.' },
+  soothe: { kind: '외부 생존기', desc: '10초 동안 대상이 받는 피해가 40% 줄어듭니다.' },
+  reviveWind: { kind: '공대 쿨기', desc: '파티 전원의 체력을 즉시 {350}씩 회복하고, 한 명마다 마법·질병 디버프를 1개씩 제거합니다. 함정 디버프와 해제가 막힌 디버프는 건드리지 않습니다.' },
+  tea: { kind: '고유', desc: '마나를 5% 회복하고 기 리듬을 2 올립니다. 마나를 쓰지 않고, 다음 행동을 기다리지 않습니다.' },
+
+  starHeal: { kind: '기본 힐', desc: '대상의 체력을 {270} 회복하고 별 조각을 1개 얻습니다 (최대 2개).' },
+  twinkle: { kind: '빠른 힐', desc: '대상의 체력을 즉시 {240} 회복하고 별 조각을 1개 얻습니다.' },
+  starMark: { kind: '지속 힐', desc: '8초 동안 대상의 체력을 모두 {120} 회복합니다. 표식이 있는 동안 내가 대상에게 하는 다음 직접 힐이 50% 늘어납니다 (한 번).' },
+  clearStar: { kind: '해제', desc: '대상의 마법·독 디버프를 1개 제거합니다.' },
+  starfall: { kind: '광역 힐', desc: '누르고 있는 동안 별이 모이고, 떼면 별이 쏟아집니다. 별 1개: 대상 {380}, 2개: 대상과 붙어 있는 6칸 {150}씩, 3개: 같은 범위 {220}씩, 4개: 2칸 거리 안 {150}씩.' },
+  starSleep: { kind: '외부 생존기', desc: '4초 동안 대상을 별빛 속에 재웁니다. 그동안 피해도 회복도 받지 않고, 딜도 하지 않습니다.' },
+  starMemory: { kind: '공대 쿨기', desc: '파티 전원이 최근 4초 동안 받은 피해의 50%를 회복합니다. 적어도 {100}씩 회복합니다.' },
+  polaris: { kind: '고유', desc: '누르고 있는 동안 별이 모이고, 떼면 대상의 체력을 별 1~4개에 따라 {350} · {550} · {750} · {950} 회복합니다.' },
+
+  sealHeal: { kind: '기본 힐', desc: '대상의 체력을 {260} 회복하고 15초 동안 인장을 붙입니다.' },
+  quickSeal: { kind: '빠른 힐', desc: '대상의 체력을 {220} 회복하고 15초 동안 인장을 붙입니다.' },
+  lightBarrier: { kind: '보호막', desc: '15초 동안 대상에게 {300}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
+  wardCleanse: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
+  wardCircle: { kind: '광역 보호막', desc: '대상과 붙어 있는 6칸의 아군에게 10초 동안 {150}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
+  guardWard: { kind: '외부 생존기', desc: '8초 동안 대상이 받는 피해가 40% 줄어듭니다.' },
+  lightVeil: { kind: '공대 쿨기', desc: '대상 중심 2칸 거리 안에 10초 동안 빛의 장막을 칩니다. 안에 있는 아군이 받는 피해가 25% 줄어듭니다.' },
+  lightSpear: { kind: '고유', desc: '보스에게 빛의 창을 던져 딜러 한 명의 1.5초 딜만큼 피해를 줍니다. 인장이 붙은 아군 중 체력이 가장 낮은 3명을 {160}씩 회복합니다.' },
+  judgment: { kind: '심판', desc: '2초 동안 심판을 외칩니다. 보스에게 딜러 한 명의 1초 딜만큼 피해를 주고, 인장이 붙은 아군 중 체력이 가장 낮은 6명을 {140}씩 회복합니다.' },
 };
 
 /** 패시브 설명 (06 5장, 성언 게이지는 4장) */

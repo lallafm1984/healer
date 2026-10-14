@@ -17,6 +17,7 @@
     "sim:heroes": "rolldown scripts/sim-heroes.ts --platform node --format esm -o .sim/sim-heroes.mjs && node .sim/sim-heroes.mjs",
     "sim:raids": "rolldown scripts/sim-raids.ts --platform node --format esm -o .sim/sim-raids.mjs && node .sim/sim-raids.mjs",
     "balance": "rolldown scripts/balance.ts --platform node --format esm -o .sim/balance.mjs && node .sim/balance.mjs",
+    "gap": "rolldown scripts/gap.ts --platform node --format esm -o .sim/gap.mjs && node .sim/gap.mjs",
     "art:optimize": "node scripts/art-optimize.mjs"
   },
   "devDependencies": {

@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { HEROES } from '../src/data/heroes';
+import { HERO_KEYS, HEROES } from '../src/data/heroes';
 import type { SkillKey } from '../src/data/skills';
 import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, WIDE_DESIGN, wideArtName, type CommonFx, type PxfKey } from '../src/battle/pxf';
 import { ENCOUNTERS } from '../src/data/encounters';
@@ -88,9 +88,10 @@ describe('PXF 이펙트 파일', () => {
 });
 
 describe('직업별 휠 스킬', () => {
-  for (const hero of Object.values(HEROES)) {
-    it(`${hero.name}: 휠 스킬마다 PXF 이펙트`, () => {
-      const missing = Object.values(hero.slots).filter((k): k is SkillKey => !!k && !LATER.has(k) && !SKILL_PXF[k]);
+  // 켠 직업마다 (79 직업은 직업 PR에서 켤 때 휠 8개 + 가운데 스킬 이펙트를 같이 넣음)
+  for (const hero of HERO_KEYS.map(h => HEROES[h])) {
+    it(`${hero.name}: 휠 스킬 · 가운데 스킬마다 PXF 이펙트`, () => {
+      const missing = [...Object.values(hero.slots), hero.core].filter((k): k is SkillKey => !!k && !LATER.has(k) && !SKILL_PXF[k]);
       expect(missing).toEqual([]);
     });
   }

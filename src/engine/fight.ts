@@ -28,7 +28,7 @@ import { newTalents } from './talents';
 import { abTick, giveAb } from './abilities';
 import { followPref, initPers } from './persona';
 import { newSpecs, sv } from './specials';
-import type { Cell, Fight, FightConfig, FightResult, Role, RosterEntry, TalentState, Unit } from './types';
+import type { Cell, Fight, FightConfig, FightResult, Mob, Role, RosterEntry, TalentState, Unit } from './types';
 
 /** 전투 만들기 */
 export function create(cfg: FightConfig): Fight {
@@ -63,6 +63,7 @@ export function create(cfg: FightConfig): Fight {
     cd: { purify: 0, guardian: 0, hymn: 0 },
     g: { p: 0, s: 0 }, symbolUsed: false, symbol: 0, level: cfg.level ?? 100,
     hero: cfg.hero ?? 'priest', power3: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null, relay: null,
+    totems: [], beat: 0, beatUntil: 0, shards: 0, charge: null, chargeOut: null,
     tx: null as unknown as TalentState, // 아래 newTalents
     manaCut: 1,
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
@@ -271,6 +272,31 @@ function partyHits(f: Fight): void {
   }
 }
 
+/**
+ * 힐러가 보스를 침 (79 6-1, 결계사 심판 · 빛의 창): 딜러 한 명 평균 딜 (직업 dps 1.0 × 10 × 단계 배율, 악몽 파티 배율) × sec.
+ * 보스가 없는 일반 · 정예 구간은 체력이 가장 많은 적에게. 보스 무적 (인터미션)이면 안 들어감. 준 피해를 돌려줌 (f.stats.healerDmg)
+ */
+export function bossHit(f: Fight, sec: number): number {
+  if (f.over || f.bossHp <= 0) return 0;
+  const amt = 10 * f.scale * (f.mythic ? MYTHIC.party : 1) * sec;
+  let done = 0;
+  if (f.bodyHp) {
+    const m = f.mobs.filter(x => x.alive && !x.add).sort((a, b) => b.hp - a.hp)[0];
+    if (!m) return 0;
+    done = Math.min(m.hp, amt);
+    m.hp -= done;
+    if (m.hp <= 1e-9) mobDown(f, m);
+    f.bossHp = f.mobs.reduce((s, x) => s + (x.add ? 0 : x.hp), 0);
+  } else {
+    if (f.invuln) return 0;
+    const before = f.bossHp;
+    f.bossHp = Math.max(0, f.bossHp - amt * bossTaken(f));
+    done = before - f.bossHp;
+  }
+  f.stats.healerDmg = (f.stats.healerDmg ?? 0) + done;
+  return done;
+}
+
 /** 보스 전투의 쫄 (P-ADD): 딜러는 먼저 나온 쫄부터, 쫄이 다 쓰러지면 남는 딜은 보스에게. 쫄 떼는 범위 딜로 같이 맞음 */
 function hitAdds(f: Fight, d: number): void {
   let left = d, cleaved = false;
@@ -300,14 +326,17 @@ function hitMobs(f: Fight, d: number, u?: Unit): void {
     if (!m.alive || m.add) continue;
     const x = Math.min(m.hp, left);
     m.hp -= x; left -= x;
-    if (m.hp <= 1e-9) {
-      m.hp = 0; m.alive = false;
-      f.tels = f.tels.filter(t => t.skill.mob !== m.id); // 시전 중이던 기술도 끊김
-      emit(f, { type: 'mobDown', id: m.id, name: m.name });
-    }
+    if (m.hp <= 1e-9) mobDown(f, m);
     if (left <= 1e-9) break;
   }
   f.bossHp = f.mobs.reduce((s, m) => s + (m.add ? 0 : m.hp), 0);
+}
+
+/** 일반 · 정예 몸통이 쓰러짐: 시전 중이던 기술도 끊김 */
+function mobDown(f: Fight, m: Mob): void {
+  m.hp = 0; m.alive = false;
+  f.tels = f.tels.filter(t => t.skill.mob !== m.id);
+  emit(f, { type: 'mobDown', id: m.id, name: m.name });
 }
 
 function end(f: Fight, result: FightResult, reason: string): void {

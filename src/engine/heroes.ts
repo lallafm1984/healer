@@ -3,7 +3,7 @@
  * healer.ts가 공통 흐름(시전·마나·GCD·예약)을 맡고, 여기서는 「맞았을 때 무슨 일이 일어나는가」만 다룬다.
  */
 import { HEROES, type HeroKey } from '../data/heroes';
-import { BARK, BEACON, HAND_GUARD, REBIRTH, SANCTUARY } from '../data/heroConst';
+import { ASTRO_CHARGE, BARK, BEACON, HAND_GUARD, REBIRTH, SANCTUARY } from '../data/heroConst';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
 import { hexDist } from './board';
@@ -13,7 +13,7 @@ import { reviveUnit } from './items';
 import { activeOn, adjLow, areaRadius, rescueLater, sanctuaryReach, waveMax, wildAt } from './talents';
 import { aoeCount, aoeDone, guardSec, hc, powerSpent, raidSec, specDispel, sv, twin, under } from './specials';
 import { hotMult as hotMultOf } from './units';
-import type { Fight, Hot, Unit } from './types';
+import type { Fight, Hot, Totem, Unit } from './types';
 
 /** 그 직업 패시브를 배웠는지 (25 3장: 직업마다 Lv 4·10) */
 export const heroPassive = (f: Fight, name: string): boolean => {
@@ -291,6 +291,30 @@ function hotNow(f: Fight, u: Unit, h: Hot, mult: number): void {
 export function heroApply(f: Fight, key: SkillKey, u: Unit): void {
   if (f.hero === 'druid') druid(f, key, u);
   else if (f.hero === 'paladin') paladin(f, key, u);
+}
+
+// ---------- 79 직업 4종 공통 자리 (직업 PR마다 채움) ----------
+/** 칸에 쓰는 스킬 (주술사 샘 토템): 마나 · 재사용은 healer exec가 씀 */
+export function heroCell(_f: Fight, _key: SkillKey, _cell: number): void {
+  // 79 2장 주술사 PR에서 채움
+}
+/** 판 위 물건이 사라짐 (broken = 깨짐, 아니면 시간이 다 됨 · 새로 세워 밀려남): 주술사 토템의 마지막 물 · 나를 지키는 샘 (79 2장) */
+export function totemGone(_f: Fight, _t: Totem, _broken: boolean): void {
+  // 79 2장 주술사 PR에서 채움
+}
+/** 힐러가 건 흡수 보호막 (src HEALER_SHIELD)이 피해로 다 깨짐: 결계사 깨진 막의 빛 (79 5-4) */
+export function shieldBroken(_f: Fight, _u: Unit): void {
+  // 79 5장 결계사 PR에서 채움
+}
+/** 모으기 수치 (79 4-3): 최대 별 · 별 하나 시간 (가속 전) · 완벽 구간. 점성술사 특성 · 특수능력이 바꿈 */
+export function chargeSpec(_f: Fight): { max: number; step: number; perfect: number } {
+  return { max: ASTRO_CHARGE.max, step: ASTRO_CHARGE.step, perfect: ASTRO_CHARGE.perfect };
+}
+/** 모으기를 시작할 때 단 별: 1 + 별 조각 (조각은 다 씀, 79 4-3) */
+export function chargeStartStars(f: Fight): number {
+  const n = 1 + f.shards;
+  f.shards = 0;
+  return n;
 }
 
 /** 직업 고유 시스템의 한 틱 (성역 범위 회복·봉화 대기) */

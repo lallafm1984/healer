@@ -9,9 +9,9 @@
  */
 import { resourceBalance, unlimitedResource, type ResourceKey } from '../game/resources';
 import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
-import { HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
+import { ALL_HERO_KEYS, HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
-import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
+import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { TALENT_TREES, type TalentKey } from '../data/talents';
 import { type TapKey } from '../platform/storage';
 import { FACTIONS } from '../data/places';
@@ -640,8 +640,8 @@ const lockLv = (k: SkillKey) => (SKILL_LEVEL[k] > healerLevel() ? SKILL_LEVEL[k]
 /** 펼친 줄 (스킬 키 · words · pas) */
 let skOpen: string | null = null;
 
-/** 스킬 선 아이콘 (skill-<키> 그림이 없을 때). 사제 = 시안 CharSkill31 */
-const SKILL_LINE: Record<SkillKey, string> = {
+/** 스킬 선 아이콘 (skill-<키> 그림이 없을 때). 사제 = 시안 CharSkill31. 79 직업 4종은 그림 (80 3장)이 올 때까지 같은 칸 사제 선 아이콘 (SLOT_LINE) */
+const SKILL_LINE: Partial<Record<SkillKey, string>> = {
   heal: '<path d="M12 5v14M5 12h14"/>',
   flash: '<path d="M13 2L5 14h6l-1 8 8-12h-6z"/>',
   renew: '<path d="M12 21v-9"/><path d="M12 12c-4 0-6-3-6-7 4 0 6 3 6 7z"/><path d="M12 14c3 0 5-2 5-5-3 0-5 2-5 5z"/>',
@@ -669,8 +669,10 @@ const SKILL_LINE: Record<SkillKey, string> = {
   sanctuary: '<path d="M4 18a8 8 0 0 1 16 0z"/><path d="M2 18h20M12 7V3"/>',
   handGuard: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M10 15v-4.5a1 1 0 0 1 2 0V9a1 1 0 0 1 2 0v6"/>',
 };
+/** 선 아이콘이 없는 스킬: 같은 휠 칸의 사제 스킬 선 아이콘 (가운데 스킬은 고유 칸) */
+const SLOT_LINE: Record<SlotName, SkillKey> = { basic: 'heal', fast: 'flash', hot: 'renew', aoe: 'poh', dispel: 'purify', ext: 'guardian', raid: 'hymn', unique: 'relay' };
 /** 스킬 그림 (skill-<키>, 없으면 선 아이콘) */
-const skillIc = (k: SkillKey) => gameIcon(k, line(SKILL_LINE[k]), 'skill');
+const skillIc = (k: SkillKey) => gameIcon(k, line(SKILL_LINE[k] ?? SKILL_LINE[SLOT_LINE[SKILLS[k].slot]]!), 'skill');
 
 /** 시전 글자 (시안: 시전 1.8초 / 즉시 / 4초 정신 집중) */
 const castShort = (k: SkillKey) => { const sk = SKILLS[k]; return sk.channel ? `${sk.channel}초 정신 집중` : sk.cast ? `시전 ${sk.cast}초` : '즉시'; };
@@ -763,7 +765,7 @@ function skillRows(lay: Record<string, string | null>): string {
   }
   const pas = passivesOf(h), open = skOpen === 'pas';
   rows.push(`<button type="button" class="c7-sk pas" data-skrow="pas" aria-expanded="${open}"><span class="c7-ski">${line('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/>')}</span><span class="c7-skn"><b>패시브 ${pas.length}</b><span>${pas.map(p => p.name).join(' · ')}</span></span><span class="c7-dir">${open ? '▴' : '▾'}</span></button>
-    ${open ? `<ul class="c7-pas">${pas.map(p => `<li class="${p.lv > lv ? 'locked' : ''}"><b>${p.name}</b><span class="cap">${p.kind} · ${p.lv > lv ? `${LOCK}Lv ${p.lv}에 배움` : `Lv ${p.lv}`}</span><p>${esc(p.desc)}</p></li>`).join('')}</ul>` : ''}`);
+    ${open ? `<ul class="c7-pas">${pas.map(p => `<li class="${p.lv > lv ? 'locked' : ''}"><b>${p.name}</b><span class="cap">${p.kind} · ${p.lv > lv ? `${LOCK}Lv ${p.lv}에 배움` : `Lv ${p.lv}`}</span><p>${esc(healText(p.desc, statParts().int.total))}</p></li>`).join('')}</ul>` : ''}`);
   return rows.join('');
 }
 
@@ -865,16 +867,13 @@ function talentSheet(i: number, j: number): string {
 }
 
 // ---------- 직업: 선택 시안 1 (2026-10-14), 일곱 직업을 한 목록에서 비교 ----------
-/** 업데이트 직업 이름 → 문장 키 (art.ts EMBLEM) */
-const UPDATE_EMBLEM: Record<string, string> = { '주술사': 'shaman', '수도사': 'monk', '점성술사': 'astrologer', '결계사': 'warder' };
+/** 직업 한 줄 플레이 방식. 아직 켜지 않은 79 직업은 「곧 열림」 칸에 이 줄만 (출시일·가격·해금 레벨은 표시하지 않는다) */
 const HERO_STYLE: Record<HeroKey, string> = {
   priest: '균형 치유 · 성언', druid: '지속 치유 · 군락', paladin: '탱커 보호 · 봉화',
+  shaman: '토템 · 연쇄 치유', monk: '연속 치유 · 안개', astrologer: '별자리 · 집중 치유', warder: '보호막 · 공격 치유',
 };
-/** 예정 직업은 기획상 플레이 방식만 소개한다. 출시일·가격·해금 레벨은 표시하지 않는다. */
-const UPDATE_STYLE: Record<string, string> = {
-  '주술사': '토템 · 연쇄 치유', '수도사': '연속 치유 · 안개',
-  '점성술사': '별자리 · 집중 치유', '결계사': '보호막 · 공격 치유',
-};
+/** 아직 켜지 않은 직업 (직업 PR마다 ready로 켬, 79 6-2) */
+const upcomingHeroes = () => ALL_HERO_KEYS.filter(k => !HEROES[k].ready);
 function heroRow(k: HeroKey): string {
   const h = HEROES[k], st = heroStatus(k), open = switchOpen();
   const word = st.state === 'now' ? '현재 직업' : st.state === 'locked' ? `Lv ${h.unlock.lv} 해금` : open.ok ? '전환 가능' : open.why;
@@ -889,6 +888,10 @@ const HERO_INTRO: Record<HeroKey, string> = {
   priest: '치유를 쌓아 강력한 성언으로 파티를 구하는 힐러입니다.',
   druid: '미리 걸어 둔 지속 치유로 파티를 지키는 힐러입니다.',
   paladin: '봉화와 보호 기술로 탱커를 끝까지 지키는 힐러입니다.',
+  shaman: '토템을 칸에 세우고, 연쇄 치유를 다친 사람 사이로 흘려보내는 힐러입니다.',
+  monk: '짧은 손바닥을 박자에 맞춰 이어 치며 안개를 띄워 두는 힐러입니다.',
+  astrologer: '별을 이어 모았다가 한 번에 터뜨려 큰 피해를 받아 내는 힐러입니다.',
+  warder: '보호막과 인장을 미리 깔고, 심판으로 한꺼번에 치유하는 힐러입니다.',
 };
 const SKILL_BRIEF: Record<SkillKey, string> = {
   heal: '한 명의 체력을 크게 회복', flash: '위급한 아군을 빠르게 회복',
@@ -904,6 +907,24 @@ const SKILL_BRIEF: Record<SkillKey, string> = {
   oath: '신성한 힘으로 지속 치유', lightWave: '신성한 힘으로 주변 회복',
   handCleanse: '마법·독·질병 해제', sacrifice: '아군의 피해를 대신 받음',
   sanctuary: '주변 아군 보호와 지속 치유', handGuard: '물리 피해 차단 · 공격 불가',
+  ripple: '한 명의 체력을 크게 회복', shower: '위급한 아군을 빠르게 회복',
+  droplet: '시간에 걸쳐 회복 · 연쇄 다리', washing: '마법·저주 해제',
+  chainHeal: '다친 아군 사이를 튀며 회복', earthTotem: '토템 둘레 받는 피해 감소',
+  rainTotem: '파티 전체를 지속 회복', spiritLink: '붙은 아군 체력 나눠 맞추기',
+  springTotem: '고른 칸 둘레를 지속 회복',
+  vitalPalm: '짧은 즉시 회복 · 기 리듬', mistWrap: '빠른 회복과 안개',
+  wanderMist: '옮겨 다니는 지속 치유', clearChi: '마법·질병 해제',
+  mistBreath: '주변 아군을 즉시 회복', soothe: '받는 피해 감소',
+  reviveWind: '파티 전체 회복과 해제', tea: '마나와 기 리듬 회복',
+  starHeal: '한 명 회복과 별 조각', twinkle: '즉시 회복과 별 조각',
+  starMark: '지속 치유 · 다음 힐 강화', clearStar: '마법·독 해제',
+  starfall: '별을 모아 범위 회복', starSleep: '잠깐 모든 피해 차단 · 공격 불가',
+  starMemory: '최근 받은 피해만큼 회복', polaris: '별을 모아 한 명 크게 회복',
+  sealHeal: '한 명 회복과 인장', quickSeal: '빠른 회복과 인장',
+  lightBarrier: '보호막과 인장', wardCleanse: '마법·저주 해제',
+  wardCircle: '주변 아군 보호막과 인장', guardWard: '받는 피해 감소',
+  lightVeil: '넓은 범위 받는 피해 감소', lightSpear: '보스 공격과 인장 회복',
+  judgment: '보스 공격과 인장 아군 회복',
 };
 
 function heroDetail(k: HeroKey): string {
@@ -918,9 +939,9 @@ function heroDetail(k: HeroKey): string {
 
 function heroListHtml(): string {
   return `<section class="c7-jobs" aria-labelledby="jobListTitle">
-    <header class="c7-jobs-head"><div><h2 id="jobListTitle">직업 선택</h2><span>${HERO_KEYS.length + UPDATE_HEROES.length}종</span></div><p>레벨·장비 유지 · 무료 전환</p></header>
+    <header class="c7-jobs-head"><div><h2 id="jobListTitle">직업 선택</h2><span>${ALL_HERO_KEYS.length}종</span></div><p>레벨·장비 유지 · 무료 전환</p></header>
     <ul class="c7-job-list" aria-label="직업 고르기">${HERO_KEYS.map(heroRow).join('')}</ul>
-    <ul class="c7-job-list c7-jobs-upcoming" aria-label="곧 열림">${UPDATE_HEROES.map(n => `<li class="c7-job-row upcoming" aria-label="${n} · ${UPDATE_STYLE[n]} · 곧 열림">${classEmblem(UPDATE_EMBLEM[n], 'lg')}<span class="c7-job-copy"><b>${n}</b><small>${UPDATE_STYLE[n]}</small></span><span class="c7-job-state">곧 열림${uiIcon('lock')}</span></li>`).join('')}</ul>
+    ${upcomingHeroes().length ? `<ul class="c7-job-list c7-jobs-upcoming" aria-label="곧 열림">${upcomingHeroes().map(k => { const n = HEROES[k].name; return `<li class="c7-job-row upcoming" aria-label="${n} · ${HERO_STYLE[k]} · 곧 열림">${classEmblem(k, 'lg')}<span class="c7-job-copy"><b>${n}</b><small>${HERO_STYLE[k]}</small></span><span class="c7-job-state">곧 열림${uiIcon('lock')}</span></li>`; }).join('')}</ul>` : ''}
   </section>`;
 }
 
