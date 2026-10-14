@@ -15,7 +15,7 @@ export interface BattleDialogs {
   closeAll(): void;
 }
 
-export function battleConfirmation(kind: BattleConfirmKind, usedItems: number): { title: string; message: string; action: string } {
+export function battleConfirmation(kind: BattleConfirmKind, usedItems: number): { title: string; message: string; action: string; detail?: string } {
   const used = Math.max(0, Math.floor(usedItems));
   if (kind === 'restart') return {
     title: '처음부터 다시 시작할까요?', action: '전체 구간 다시 시작',
@@ -27,8 +27,9 @@ export function battleConfirmation(kind: BattleConfirmKind, usedItems: number): 
     message: `이번 도전을 종료하고 보상 없이 나갑니다.${items}`,
   };
   return {
-    title: '전투를 포기할까요?', action: '포기하고 실패 정산',
-    message: `전투를 종료하고 전멸과 같은 실패로 정산합니다.${items}`,
+    title: '전투 포기', action: '포기하기',
+    message: '현재 전투를 종료하고\n전멸과 같은 실패로 정산합니다.',
+    detail: used ? `사용한 소비 아이템 ${used}개는 반환되지 않습니다.` : undefined,
   };
 }
 
@@ -42,6 +43,7 @@ export function initBattleDialogs(callbacks: BattleDialogCallbacks): BattleDialo
   const confirmDialog = element<HTMLDialogElement>('battleConfirm');
   const confirmTitle = element<HTMLElement>('confirmHeading');
   const confirmMessage = element<HTMLElement>('confirmMessage');
+  const confirmDetail = element<HTMLElement>('confirmDetail');
   const cancel = element<HTMLButtonElement>('confirmCancel');
   const apply = element<HTMLButtonElement>('confirmApply');
   type Session = {
@@ -99,6 +101,11 @@ export function initBattleDialogs(callbacks: BattleDialogCallbacks): BattleDialo
     const text = battleConfirmation(kind, callbacks.getUsedItems());
     confirmTitle.textContent = text.title;
     confirmMessage.textContent = text.message;
+    confirmDetail.textContent = text.detail ?? '';
+    confirmDetail.hidden = !text.detail;
+    confirmDialog.dataset.kind = kind;
+    confirmDialog.setAttribute('aria-describedby', text.detail ? 'confirmMessage confirmDetail' : 'confirmMessage');
+    cancel.textContent = kind === 'giveUp' ? '계속 전투' : '취소';
     apply.textContent = text.action;
     apply.disabled = false;
     show(session, cancel); // 기본 선택은 항상 취소다.

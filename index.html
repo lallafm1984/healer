@@ -98,7 +98,9 @@
 </div>
 <script type="module" src="/src/main.ts"></script>
 <dialog id="battleConfirm" class="battle-dialog" aria-labelledby="confirmHeading" aria-describedby="confirmMessage">
-  <h2 id="confirmHeading"></h2><p id="confirmMessage"></p>
+  <header class="dialog-heading"><h2 id="confirmHeading"></h2><span aria-hidden="true">◆</span></header>
+  <p id="confirmMessage"></p>
+  <p id="confirmDetail" class="dialog-detail" hidden></p>
   <div class="dialog-actions"><button id="confirmCancel" type="button">취소</button><button id="confirmApply" type="button"></button></div>
 </dialog>
 </body>

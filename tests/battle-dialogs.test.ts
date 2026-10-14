@@ -13,11 +13,14 @@ describe('전투 중단 확인 문구', () => {
     expect(quit.message).toContain('보상 없이');
     expect(quit.message).toContain('소비 아이템 3개');
     expect(giveUp.message).toContain('전멸과 같은 실패');
-    expect(giveUp.message).toContain('소비 아이템 3개');
+    expect(giveUp.detail).toContain('소비 아이템 3개');
+    expect(giveUp.detail).toContain('반환되지 않습니다');
     expect(quit.action).not.toBe(giveUp.action);
   });
-  it('사용 이력이 없으면 미사용 상태를 명확히 표시한다', () => {
+  it('포기는 사용 이력이 없으면 불필요한 아이템 안내를 생략한다', () => {
     expect(battleConfirmation('quit', 0).message).toContain('사용한 소비 아이템은 없습니다');
     expect(battleConfirmation('giveUp', -1).message).not.toContain('-1');
+    expect(battleConfirmation('giveUp', 0).detail).toBeUndefined();
+    expect(battleConfirmation('giveUp', -1).detail).toBeUndefined();
   });
 });
