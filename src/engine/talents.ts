@@ -9,6 +9,7 @@ import { hexDist } from './board';
 import { cellOf, emit, heal, living } from './core';
 import { barkCut, powerMax, putHot, putSprout } from './heroes';
 import { aoeCount, aoeDone, castCut, castMult, cdSpec, costSpec, freeCast, hasteOf, sv } from './specials';
+import { callTotems, raining, seaSeat, shamanDeath } from './shaman';
 import type { ActionResult, Fight, TalentState, Unit } from './types';
 
 /** 두 겹 수호 충전 시간, 쉼터 초당 회복 */
@@ -27,7 +28,7 @@ export function newTalents(f: Fight): TalentState {
   for (const k of Object.keys(on) as TalentKey[]) if (TALENT_DEF[k].active) act[k] = { cd: 0, left: 0, used: false };
   return {
     on, act, griefUntil: -1, echoUntil: -1, lastAct: 0, focus: null, guard: 2, guardRe: 0, repayUsed: false, shelter: -1, later: [],
-    any: Object.keys(on).length > 0, cut: CUT_KEYS.some(k => on[k]), hotm: HOT_KEYS.some(k => on[k]), death: !!(on.fallenFlower || on.martyr),
+    any: Object.keys(on).length > 0, cut: CUT_KEYS.some(k => on[k]), hotm: HOT_KEYS.some(k => on[k]), death: !!(on.fallenFlower || on.martyr || on.lastSpring),
     freeSprout: 0, moss: on.mossBed ? new Map() : null, treeCd: 0, watchCd: 0, telSeen: 0, rebirths: 0, freeLight: false, cleanAt: 0, martyrUntil: -1, breathCd: 0,
   };
 }
@@ -63,8 +64,19 @@ function heroCost(f: Fight, key: SkillKey, u?: Unit): number {
     case 'holyStrike':
       if (key === 'holyLight' && f.tx.freeLight) return 0; // 모아 둔 빛
       return on.steadyHeart && u && u.id === f.beacon ? 1 - TX.steadyHeart : 1; // 곧은 마음
-    default: return 1;
   }
+  if (f.hero === 'shaman') return shamanCost(f, key);
+  return 1;
+}
+
+/** 주술사 특성 마나 배율 (79 2-7): 잔잔한 소나기 · 샘의 숨 · 긴 사슬 (+2%p) · 비의 숨 (비구름 동안 모두) */
+function shamanCost(f: Fight, key: SkillKey): number {
+  const on = f.tx.on;
+  let m = on.rainBreath && raining(f) ? 1 - TX.rainBreath : 1;
+  if (key === 'shower' && on.calmShower) m *= 1 - TX.calmShower;
+  if (key === 'springTotem' && on.springBreath) m *= TX.springBreath.cost / SKILLS.springTotem.cost;
+  if (key === 'chainHeal' && on.longChain) m *= (SKILLS.chainHeal.cost + TX.longChain.cost) / SKILLS.chainHeal.cost;
+  return m;
 }
 
 /**
@@ -76,7 +88,9 @@ export function castOf(f: Fight, key: SkillKey, u?: Unit): number {
   if (!(base > 0)) return 0;
   if (activeOn(f, 'zenith')) return 0;
   if (f.sp && freeCast(f, key)) return 0;
-  const cut = (key === 'heal' && f.tx.on.practiced) || (key === 'holyLight' && f.tx.on.swiftLight) ? (key === 'heal' ? 0.3 : TX.swiftLight) : 0;
+  if (key === 'chainHeal' && f.tx.on.stormChain && raining(f)) return 0; // 폭풍 사슬 (79 2-7)
+  const cut = (key === 'heal' && f.tx.on.practiced) || (key === 'holyLight' && f.tx.on.swiftLight) ? (key === 'heal' ? 0.3 : TX.swiftLight)
+    : key === 'ripple' && f.tx.on.quickRipple ? TX.quickRipple : 0; // 빠른 잔물결 (79 2-7)
   const quick = key === 'holyLight' && f.tx.on.quickHand && u && u.hp <= u.max * TX.quickHand.hp ? TX.quickHand.cast : 1;
   const b = base - cut - (f.sp ? castCut(f, key) : 0);
   return ((Math.max(0.5, b) * quick) / (1 + hasteOf(f))) * (f.slow && f.t < f.slow.until ? f.slow.mult : 1) * (f.sp ? castMult(f) : 1); // 깨진 시간 (05 5-E) · 낙타 털실 반지
@@ -172,6 +186,7 @@ export function talentReady(f: Fight, key: TalentKey): ActionResult {
   if (key === 'miracle' && f.g.p >= 100 && f.g.s >= 100) return { ok: false, reason: '성언 게이지가 이미 가득 참' };
   if (key === 'springRain' && !living(f).some(v => !sprouted(v))) return { ok: false, reason: '새싹이 없는 아군 없음' };
   if (key === 'oldTree' && !treeSum(f, oldTreeTarget(f))) return { ok: false, reason: '거둘 새싹 없음' };
+  if (key === 'totemCall' && !f.totems.some(t => t.kind === 'spring' || t.kind === 'earth')) return { ok: false, reason: '옮길 토템 없음' };
   return { ok: true };
 }
 
@@ -183,8 +198,8 @@ export function useTalent(f: Fight, key: TalentKey, cellIdx?: number): ActionRes
   const def = TALENT_DEF[key], a = f.tx.act[key]!;
   if (def.active!.cell) {
     const c = cellIdx == null ? undefined : f.cells[cellIdx];
-    if (!c) return { ok: false, reason: '쉼터로 만들 빈 칸 선택' };
-    if (c.unit || c.block) return { ok: false, reason: '빈 칸만 고를 수 있음' };
+    if (!c) return { ok: false, reason: key === 'shelter' ? '쉼터로 만들 빈 칸 선택' : '칸 선택' };
+    if (key === 'totemCall' ? c.block === 'hole' : c.unit || c.block) return { ok: false, reason: key === 'totemCall' ? '무너진 바닥에는 못 옮김' : '빈 칸만 고를 수 있음' }; // 토템 부르기는 사람이 선 칸도 (토템은 길을 안 막음)
   }
   a.cd = def.active!.cd; a.left = def.active!.dur; a.used = true;
   f.tx.lastAct = f.t;
@@ -202,6 +217,8 @@ export function useTalent(f: Fight, key: TalentKey, cellIdx?: number): ActionRes
     heal(f, u, sum * TX.oldTree.mult, true);
   }
   if (key === 'resolveFill') f.power3 = powerMax(f); // 가득 찬 빛 (77): 회복량 +는 켜져 있는 동안 (heroes holyBoost)
+  if (key === 'totemCall') callTotems(f, cellIdx!); // 토템 부르기 (79 2-7)
+  if (key === 'seaSeat') seaSeat(f, cellIdx!); // 바다의 자리
   emit(f, { type: 'sound', name: 'chime' });
   emit(f, { type: 'msg', text: def.active!.dur ? `${def.name}: ${def.active!.dur}초` : def.name });
   return { ok: true };
@@ -328,6 +345,7 @@ export function talentDeath(f: Fight, u: Unit): void {
     for (const v of living(f)) if (hexDist(cellOf(f, v), c) <= 1) putHot(v, 'bloom', { sec: w.sec, every: 2, total: w.amt, name: '남은 꽃' });
   }
   if (f.tx.on.martyr) { f.power3 = powerMax(f); f.tx.martyrUntil = f.t + TX.martyr.sec; }
+  if (f.tx.on.lastSpring) shamanDeath(f, u); // 마지막 샘 (79 2-7)
 }
 
 /** 빛의 파도를 쓰는 데 드는 신성한 힘: 끝없는 빛이면 2칸 (77) */

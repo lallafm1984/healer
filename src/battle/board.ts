@@ -14,6 +14,7 @@ import { CLASSES, type ClassKey } from '../data/classes';
 import { SKILLS } from '../data/skills';
 import { NAMED, SPECS, type SpecGroup } from '../data/specials';
 import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
+import type { TotemKind } from '../engine/types';
 import { emblemColor } from '../screens/art';
 import { CLASS_GLYPH, CUT, EDGE, LINE } from '../screens/class-icons';
 import { FACTIONS, type FactionKey } from '../data/places';
@@ -1042,6 +1043,13 @@ export const pxfReady = (k: PxfKey): boolean => !!artTexture(pxfSheet(k));
 /** 읽어 둔 보스 판 전체 공격 PXF (화면 테스트: 전투마다 그 전투 것만) */
 export const bossPxfLoaded = (): PxfKey[] => Object.values(BOSS_PXF).filter((k): k is PxfKey => !!k && artLoaded.has(pxfSheet(k)));
 /** PXF 이펙트를 재생 (프레임 띠를 아직 못 읽었으면 안 넣고 false: 부른 쪽이 예전 그림 · 공통 치유 빛을 대신 그림) */
+/** 사람 없는 칸에 스킬 PXF 이펙트 (판 위 물건을 세움, 79 6-1) */
+export function fxPxfCell(cell: number, pxf: PxfKey, now: number): boolean {
+  if (!L.ok || S.reducedEffects || B2.fx.length >= 100 || !pxfReady(pxf) || !B.F?.cells[cell]) return false;
+  const p = center(cell);
+  B2.fx.push({ kind: 'pxf', id: -1, t0: now, pxf, dur: pxfMs(PXF[pxf]), x: p.x, y: p.y, tag: `cell${cell}-` });
+  return true;
+}
 export function fxPxf(u: Unit, pxf: PxfKey, now: number, o: { color?: number; tag?: string; x?: number; y?: number } = {}): boolean {
   if (!L.ok || S.reducedEffects || B2.fx.length >= 100) return false;
   if (!pxfReady(pxf)) return false;
@@ -1105,7 +1113,18 @@ export function addBubble(id: number, text: string, now: number, life = 1700, ki
 export function lensAt(idx: number, now: number): void { B2.lens = { idx, t0: now }; }
 
 /** 지속 힐 색: 새싹 초록 · 생장 연두 · 들꽃 분홍 · 빛의 서약 금색 · 남은 꽃 (드루이드 특성) 연분홍 · 파도의 여운 (성기사 특성) 연금색 (77) */
-const HOT_COLOR: Record<string, number> = { sprout: 0x7bc67e, growth: 0xb7e07a, wildflower: 0xe59ac0, oath: 0xf0c46a, bloom: 0xf3c7d6, lightWave: 0xffe7a3 };
+const HOT_COLOR: Record<string, number> = { sprout: 0x7bc67e, growth: 0xb7e07a, wildflower: 0xe59ac0, oath: 0xf0c46a, bloom: 0xf3c7d6, lightWave: 0xffe7a3, droplet: 0x7ec8f0 };
+/**
+ * 판 위 물건 (79 6-1, engine/totems): 칸 바닥 색 · 그림 이름 (80 5장 board-*, 오기 전엔 바닥 색 + 안쪽 테두리). 범위 = 테두리를 그릴 거리
+ */
+const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string }> = {
+  spring: { color: 0x7ec8f0, art: 'board-totem-spring', label: '샘' },
+  earth: { color: 0xc49a62, art: 'board-totem-earth', label: '대지' },
+  sea: { color: 0x4fa8e0, art: 'board-sea-spring', label: '바다' },
+  mist: { color: 0x6fd0b0, art: 'board-mist-pool', label: '안개' },
+  citadel: { color: 0xe6d3a0, art: 'board-citadel', label: '성채' },
+  nova: { color: 0xd19a5e, art: 'board-supernova', label: '별' },
+};
 
 function predictedHeal(u: Unit): number {
   const F = B.F!;
@@ -1318,6 +1337,13 @@ export function render(now: number): void {
     if (F.sanctuary && F.sanctuary.cells.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: F.sanctuary.end - F.t < 2 ? 0.08 + 0.14 * pulse : 0.2 });
     // 드루이드 이끼 자리 (특성 77): 이끼 초록 바닥, 끝나기 2초 전 깜빡임 (정식 바닥 그림은 78 그림 요청)
     { const mu = F.tx.moss?.get(i); if (mu != null && mu > F.t) hexPoly(cellsG, p.x, p.y, r).fill({ color: HOT_COLOR.sprout, alpha: mu - F.t < 2 ? 0.06 + 0.12 * pulse : 0.16 }); }
+    // 판 위 물건 (79 6-1: 토템 · 샘 · 성채 · 초신성): 그림 (80 5장)이 있으면 그 그림, 없으면 바닥 색 + 안쪽 테두리. 끝나기 2초 전 깜빡임
+    for (const tm of F.totems) if (tm.cell === i) {
+      const look = TOTEM_LOOK[tm.kind], end = tm.until - F.t < 2, tex = artTexture(look.art);
+      hexPoly(cellsG, p.x, p.y, r).fill({ color: look.color, alpha: end ? 0.08 + 0.14 * pulse : 0.22 });
+      if (tex) decals.put(tex, p.x, p.y, cellArt, cellArt, end ? 0.5 + 0.5 * pulse : 1);
+      else hexPoly(cellsG, p.x, p.y, r * 0.62).stroke({ width: 2.5, color: look.color, alpha: 0.9 });
+    }
     // 사제 쉼터 (특성): 금빛 바닥 + 안쪽 테두리, 끝나기 2초 전 깜빡임
     if (F.tx.shelter === i) {
       const left = F.tx.act.shelter?.left ?? 0;

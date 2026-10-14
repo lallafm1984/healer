@@ -37,3 +37,22 @@ export const DRUID_BIG = { wildRange: 2, colonyStep: 0.3 };
  * 모으기 엔진 (engine/healer chargeStart · chargeRelease)이 쓰고, 직업 수치 (ASTRO)는 점성술사 PR에서
  */
 export const ASTRO_CHARGE = { step: 0.5, max: 4, perfect: 0.5, auto: 1.0 };
+
+/**
+ * 주술사 (79 2-5): 물방울 (12초 · 3초마다 · 연쇄가 닿는 거리) · 연쇄 치유 (인원 · 튈 때 남는 비율) · 대지 토템 (받는 피해 감소 · 초) ·
+ * 비구름 토템 (초 · 회복 간격) · 영혼 잇기 (받는 피해 감소 · 초) · 샘 토템 (초 · 회복 간격 · 거리) · 깊은 물 (체력 선 · 직접 힐 +) · 밀려오는 물 (인원 · 마나 %).
+ * 깊은 물 12% → 30% (79 2-11 간격 검사: 탐험 · 던전 어려움에서 탱커를 놓치던 것)
+ */
+export const SHAMAN = {
+  droplet: { sec: 12, tick: 3, chainRange: 2 },
+  chain: { n: 4, decay: 0.75 },
+  earth: { cut: 0.15, sec: 10 },
+  rain: { sec: 10, tick: 2 },
+  link: { cut: 0.1, sec: 6 },
+  /** 샘 토템: 초 · 회복 간격 · 거리 · 20인 레이드 회복량 배율 (판이 꽉 차 범위에 7명씩 들어 다른 직업보다 높던 것) */
+  spring: { sec: 15, tick: 3, range: 1, big: 0.7 },
+  deep: { hp: 0.5, heal: 0.3 },
+  tide: { n: 4, mana: 1.5 },
+  /** 물웅덩이 (주술 02): 물방울이 끝까지 가면 그 칸에 이 초 동안 */
+  puddle: 6,
+};

@@ -1,0 +1,397 @@
+{
+  "format": "pxf.graph@1",
+  "name": "주술사 대지 토템",
+  "settings": {
+    "size": 64,
+    "frames": 22,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "s1",
+      "type": "Spike",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "x0": 0.3,
+        "y0": 0.84,
+        "x1": 0.27,
+        "y1": 0.48,
+        "width": 9,
+        "taper": 0.9,
+        "grow": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              "out3"
+            ],
+            [
+              5,
+              1
+            ],
+            [
+              15,
+              1,
+              "in"
+            ],
+            [
+              20,
+              0
+            ]
+          ]
+        },
+        "base": 0.4,
+        "tip": 0.75,
+        "facet": 0.25,
+        "ridge": 0.2,
+        "shine": {
+          "k": [
+            [
+              0,
+              -1
+            ],
+            [
+              5,
+              -1
+            ],
+            [
+              6,
+              0.2,
+              "linear"
+            ],
+            [
+              11,
+              1.2
+            ]
+          ]
+        },
+        "shineW": 0.15,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "s2",
+      "type": "Spike",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "x0": 0.5,
+        "y0": 0.86,
+        "x1": 0.51,
+        "y1": 0.36,
+        "width": 12,
+        "taper": 0.9,
+        "grow": {
+          "k": [
+            [
+              0,
+              0,
+              "out3"
+            ],
+            [
+              4,
+              1
+            ],
+            [
+              16,
+              1,
+              "in"
+            ],
+            [
+              21,
+              0
+            ]
+          ]
+        },
+        "base": 0.42,
+        "tip": 0.8,
+        "facet": 0.25,
+        "ridge": 0.22,
+        "shine": {
+          "k": [
+            [
+              0,
+              -1
+            ],
+            [
+              4,
+              -1
+            ],
+            [
+              5,
+              0.2,
+              "linear"
+            ],
+            [
+              10,
+              1.2
+            ]
+          ]
+        },
+        "shineW": 0.15,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "s3",
+      "type": "Spike",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "x0": 0.7,
+        "y0": 0.84,
+        "x1": 0.74,
+        "y1": 0.5,
+        "width": 9,
+        "taper": 0.9,
+        "grow": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              0,
+              "out3"
+            ],
+            [
+              6,
+              1
+            ],
+            [
+              15,
+              1,
+              "in"
+            ],
+            [
+              20,
+              0
+            ]
+          ]
+        },
+        "base": 0.4,
+        "tip": 0.75,
+        "facet": 0.25,
+        "ridge": 0.2,
+        "shine": {
+          "k": [
+            [
+              0,
+              -1
+            ],
+            [
+              6,
+              -1
+            ],
+            [
+              7,
+              0.2,
+              "linear"
+            ],
+            [
+              12,
+              1.2
+            ]
+          ]
+        },
+        "shineW": 0.15,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "dust",
+      "type": "Particles",
+      "x": 40,
+      "y": 520,
+      "params": {
+        "count": 12,
+        "seed": 6023,
+        "emit": "burst",
+        "start": 0.05,
+        "life": 0.45,
+        "lifeVar": 0.25,
+        "area": "line",
+        "x": 0.5,
+        "y": 0.84,
+        "aw": 34,
+        "ah": 2,
+        "dirMode": "fixed",
+        "angle": -90,
+        "spread": 120,
+        "speed": 0.9,
+        "speedVar": 0.4,
+        "gravity": 0.08,
+        "drag": 0.03,
+        "sizeA": 2,
+        "sizeB": 1,
+        "pshape": "square",
+        "fade": "out",
+        "bright": 0.45,
+        "brightVar": 0.2,
+        "loop": false
+      }
+    },
+    {
+      "id": "b1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b2",
+      "type": "Blend",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b3",
+      "type": "Blend",
+      "x": 730,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#4a3020",
+          "#7a5232",
+          "#a87c4e",
+          "#d8b884",
+          "#9fd8f2"
+        ],
+        "cutoff": 0.05,
+        "mode": "bands",
+        "key": "alpha"
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "color": "#26170c",
+        "threshold": 0.5,
+        "width": 1,
+        "corners": false,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              16,
+              1,
+              "in"
+            ],
+            [
+              21,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "s1",
+      "t": "b1",
+      "p": 0
+    },
+    {
+      "f": "s2",
+      "t": "b1",
+      "p": 1
+    },
+    {
+      "f": "b1",
+      "t": "b2",
+      "p": 0
+    },
+    {
+      "f": "s3",
+      "t": "b2",
+      "p": 1
+    },
+    {
+      "f": "b2",
+      "t": "b3",
+      "p": 0
+    },
+    {
+      "f": "dust",
+      "t": "b3",
+      "p": 1
+    },
+    {
+      "f": "b3",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 4
+  }
+}

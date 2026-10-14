@@ -1,6 +1,6 @@
 import { ABILITIES } from '../data/abilities';
 import { armorFactor } from '../data/armor';
-import { RELAY } from '../data/heroConst';
+import { RELAY, SHAMAN } from '../data/heroConst';
 import { HEROES } from '../data/heroes';
 import { DISPELLABLE, SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
@@ -14,6 +14,9 @@ import { setBeacon } from './heroes';
 import { reviveTarget } from './items';
 import { dangerAt } from './movement';
 import { areaRadius, castOf, talentReady, useTalent, waveMax, waveNeed } from './talents';
+import { chainPath } from './shaman';
+import { totemBreaks } from './totems';
+import { TX } from '../data/talents';
 import type { Debuff, Fight, FightConfig, Telegraph, Unit } from './types';
 
 /**
@@ -351,6 +354,7 @@ export function autoHealer(f: Fight): void {
   autoTalents(f);
   if (f.hero === 'druid') { autoDruid(f); return; }
   if (f.hero === 'paladin') { autoPaladin(f); return; }
+  if (f.hero === 'shaman') { autoShaman(f); return; }
   if (f.cast || f.channel > 0 || f.gcd > 0 || f.queued) return;
   const all = living(f), live = all.filter(u => !off(f, u)), g = gim(f);
   if (!live.length) return;
@@ -471,6 +475,19 @@ function autoTalents(f: Fight): void {
   }
   if (act.resolveFill && f.power3 < 2 && (many || pct(low) < 0.3) && talentReady(f, 'resolveFill').ok) useTalent(f, 'resolveFill');
   if (act.dawnVow && many && talentReady(f, 'dawnVow').ok) useTalent(f, 'dawnVow');
+  // 주술사 (79 2-7): 여럿이 다치면 물의 정령, 여럿이 다쳤고 모인 칸이 있으면 바다의 자리, 토템 범위에 아무도 없으면 토템 부르기
+  if (act.waterSpirit && many && talentReady(f, 'waterSpirit').ok) useTalent(f, 'waterSpirit');
+  if ((act.seaSeat && (many || aoeSoon) && talentReady(f, 'seaSeat').ok) || (act.totemCall && talentReady(f, 'totemCall').ok)) {
+    const r = act.seaSeat ? TX.seaSeat.range : 1;
+    let best = -1, bn = 0;
+    for (const c of f.cells) {
+      if (c.block || (act.seaSeat && c.unit) || dangerAt(f, c.i) || totemBreaks(f, c.i)) continue;
+      const n = live.filter(v => hexDist(cellOf(f, v), c) <= r).length;
+      if (n > bn) { bn = n; best = c.i; }
+    }
+    if (act.seaSeat && best >= 0 && bn >= 3) useTalent(f, 'seaSeat', best);
+    else if (act.totemCall && best >= 0 && bn >= 3 && f.totems.some(t => (t.kind === 'spring' || t.kind === 'earth') && live.filter(v => hexDist(cellOf(f, v), f.cells[t.cell]) <= 1).length <= 1)) useTalent(f, 'totemCall', best);
+  }
 }
 
 /**
@@ -634,6 +651,108 @@ function autoPaladin(f: Fight): void {
   if (pct(low) < 0.5 && ready('holyStrike') && tryUse(f, 'holyStrike', low, idx)) return;
   if (ready('holyStrike') && pct(low) < (g.few ? 0.6 : 0.92) && tryUse(f, 'holyStrike', low, idx)) return;
   if (pct(low) < topUp(f, g, 0.85) && f.mana > 3) tryUse(f, 'holyLight', low, idx);
+}
+
+// ---------- 주술사 자동 힐러 (79 2-9): 칸을 읽음 (샘 토템 자리 · 연쇄가 이어지는 곳) ----------
+const dropped = (u: Unit) => u.hots.some(h => h.key === 'droplet' && h.left > 2);
+/** 연쇄 치유 점수: 길을 따라 모자란 체력 (튈 때마다 줄어든 회복량까지) 합 · 80% 아래 인원 */
+function chainScore(f: Fight, u: Unit): { score: number; low: number } {
+  const path = chainPath(f, u), on = f.tx.on, decay = on.endlessChain ? TX.endlessChain : SHAMAN.chain.decay;
+  let amt = SKILLS.chainHeal.amt! * healUnit(f), score = 0, low = 0;
+  path.forEach((v, i) => {
+    if (i > 0 && !(on.dropChain && dropped(v))) amt *= decay;
+    if (off(f, v)) { score = -Infinity; return; } // 힐하면 손해인 사람이 길에 들면 안 씀
+    score += Math.min(amt, Math.max(0, healTop(v) - v.hp));
+    if (v.hp < healTop(v) * 0.8) low++;
+  });
+  return { score, low };
+}
+/**
+ * 샘 토템 자리: 범위 안 아군의 모자란 체력 (샘이 다 도는 동안 채울 수 있는 만큼까지) 합이 가장 큰 칸, 장판 · 예고 · 쫄 칸은 뺌.
+ * n = 범위 안 다친 사람 (90% 아래). 광역 예고가 곧 오면 멀쩡한 사람도 반만큼 셈 (미리 깔기)
+ */
+function springCell(f: Fight, live: Unit[]): { cell: number; n: number } | null {
+  const r = f.tx.on.freshSpring ? TX.freshSpring.range : SHAMAN.spring.range;
+  const cap = SKILLS.springTotem.amt! * (SHAMAN.spring.sec / SHAMAN.spring.tick) * healUnit(f), soon = f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 4);
+  let best: { cell: number; n: number; w: number } | null = null;
+  const offs = living(f).filter(v => off(f, v));
+  for (const c of f.cells) {
+    if (c.block || totemBreaks(f, c.i) || f.tels.some(t => t.cells.has(c.i)) || dangerAt(f, c.i)) continue;
+    if (offs.some(v => hexDist(cellOf(f, v), c) <= r)) continue; // 힐하면 손해인 사람이 범위에 들면 안 세움
+    let n = 0, w = 0;
+    for (const v of live) if (hexDist(cellOf(f, v), c) <= r) {
+      const gap = Math.max(0, healTop(v) - v.hp);
+      if (v.hp < v.max * 0.9) n++;
+      w += Math.min(cap, gap) + (soon ? cap / 2 : 0);
+    }
+    if (w > 0 && (!best || w > best.w)) best = { cell: c.i, n, w };
+  }
+  return best && { cell: best.cell, n: best.n + (soon ? 2 : 0) };
+}
+
+function autoShaman(f: Fight): void {
+  const c = ctx(f, 320, 1);
+  if (!c) return;
+  const { live, pct, low, idx, ready, g } = c;
+  /** 단일 힐 하나: 급하면 소나기, 아니면 잔물결 */
+  const one = (u: Unit, hurry: boolean) => (hurry && f.mana > 6 && tryUse(f, 'shower', u, idx)) || (f.mana > 3 && tryUse(f, 'ripple', u, idx)) || (f.mana > 6 && tryUse(f, 'shower', u, idx));
+  if (glassWindow(f, g, live, (u, hurry) => one(u, hurry), () => { if (!ready('washing')) return false; const d = cleansable(f, c); return !!d && tryUse(f, 'washing', d, idx); })) return;
+  // 위급 (25% 아래): 붙은 아군 평균이 넉넉하면 영혼 잇기, 아니면 소나기
+  const dying = live.filter(u => pct(u) < 0.25).sort((a, b) => pct(a) - pct(b))[0];
+  if (dying) {
+    const vs = live.filter(v => hexDist(cellOf(f, v), cellOf(f, dying)) <= 1);
+    if (ready('spiritLink') && vs.length >= 2 && vs.reduce((a, v) => a + v.hp / v.max, 0) / vs.length >= 0.6 && tryUse(f, 'spiritLink', dying, idx)) return;
+    if (f.mana > 6 && tryUse(f, 'shower', dying, idx)) return;
+  }
+  // 탱커 버스터: 대지 토템을 탱커 칸에, 모자라면 소나기로 채움
+  if (c.busterOn && ready('earthTotem') && !f.totems.some(t => t.kind === 'earth' && hexDist(f.cells[t.cell], cellOf(f, c.busterOn!)) <= 1) && tryUse(f, 'earthTotem', c.busterOn, idx)) return;
+  { const bs = busterShort(f); if (bs && !off(f, bs.u) && one(bs.u, bs.soon)) return; }
+  if (g.pre && one(g.pre, true)) return;
+  // 띄워 올리기: 예고 동안 해제 → 물방울 (떠 있는 동안은 미리 건 지속 힐만 닿음)
+  { const d = g.liftClean[0]; if (d && ready('washing') && tryUse(f, 'washing', d, idx)) return; }
+  { const v = g.lift.find(u => !dropped(u)); if (v && ready('droplet') && tryUse(f, 'droplet', v, idx)) return; }
+  if (g.chain && one(g.chain.u, g.chain.soon < castOf(f, 'ripple') + 0.3)) return;
+  if (g.mate && one(g.mate, false)) return;
+  if (g.tide && one(g.tide, pct(g.tide) < 0.5)) return;
+  if (g.debt && (g.debt.due || pct(low) > 0.6) && f.mana > 6 && one(g.debt.u, g.debt.due)) return;
+  if (g.order && pct(low) > 0.3 && ((ready('droplet') && tryUse(f, 'droplet', g.order, idx)) || (f.mana > 6 && tryUse(f, 'shower', g.order, idx)))) return;
+  if (g.link?.near && one(g.link.u, pct(g.link.u) < 0.5)) return;
+  { const v = g.veil.find(u => !dropped(u)); if (v && f.mana > 10 && ready('droplet') && tryUse(f, 'droplet', v, idx)) return; }
+  if (ready('washing')) { const d = cleansable(f, c); if (d && tryUse(f, 'washing', d, idx)) return; }
+  // 공대 위기: 평균 60% 아래이거나 큰 광역이 곧 → 비구름 토템. 전원을 채우니 힐하면 손해인 사람이 있으면 안 씀 (찬가와 같음)
+  const avg = live.reduce((a, u) => a + pct(u), 0) / live.length;
+  const bigAoe = f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 3) && live.length >= 5;
+  if (ready('rainTotem') && live.length >= 3 && live.length === c.all.length && (avg < 0.6 || (bigAoe && avg < 0.85)) && tryUse(f, 'rainTotem', null, idx)) return;
+  // 샘 토템 (가운데 버튼): 재사용이 돌면 아군이 가장 많이 모인 칸에. 지금 샘이 6초 넘게 남았고 그 범위에 3명 이상이면 그대로
+  if (ready('springTotem') && f.level >= HEROES.shaman.system.lv) {
+    const r = f.tx.on.freshSpring ? TX.freshSpring.range : SHAMAN.spring.range;
+    const keep = f.totems.some(t => t.kind === 'spring' && t.until - f.t > 6 && live.filter(v => hexDist(cellOf(f, v), f.cells[t.cell]) <= r).length >= 3);
+    const at = keep ? null : springCell(f, live);
+    if (at && at.n >= (live.length <= 3 ? 1 : live.length <= 5 ? 2 : 3) && use(f, 'springTotem', at.cell).ok) return;
+  }
+  // 연쇄 치유: 80% 아래 아군이 연쇄로 3명 이상 이어질 때 (물방울 2칸 다리 포함)
+  if (knows(f, 'chainHeal') && f.mana >= SKILLS.chainHeal.cost + 2 && calmFor(f, 'chainHeal', g.calm)) {
+    let best: Unit | null = null, bs = 0;
+    // 연쇄는 마나 1%당 회복이 잔물결보다 낮은 대신 한 번에 크게 (빠르게) 채움: 80% 아래가 연쇄로 3명 이상 이어지고, 길 전체 회복량의 60% 넘게 들어갈 때만
+    // (3인 탐험에서 둘만 다쳤을 때 쓰면 마나가 먼저 바닥남)
+    for (const u of live) { if (u.hp >= healTop(u) * 0.8) continue; const sc = chainScore(f, u); if (sc.low >= 3 && sc.score > bs) { bs = sc.score; best = u; } }
+    const full = SKILLS.chainHeal.amt! * (1 + SHAMAN.chain.decay + SHAMAN.chain.decay ** 2 + SHAMAN.chain.decay ** 3);
+    if (best && f.mana > 15 && bs > full * (f.mana > 50 ? 0.55 : 0.7) * healUnit(f) && tryUse(f, 'chainHeal', best, idx)) return;
+  }
+  if (g.cure && pct(low) > 0.4 && one(g.cure, pct(g.cure) < 0.5)) return;
+  if (g.soul && pct(low) > 0.5 && f.mana > 10 && ((ready('washing') && tryUse(f, 'washing', g.soul, idx)) || one(g.soul, false))) return;
+  if (g.link && pct(low) > 0.4 && one(g.link.u, false)) return;
+  // 물방울: 재사용마다 탱커 → 물방울 없는 가장 다친 아군
+  // 물방울: 재사용마다 탱커 (계속 맞는 사람) → 물방울 없는 가장 다친 아군 (85% 아래). 멀쩡한 사람에게는 넘쳐서 마나만 씀 (광역이 곧 오면 미리)
+  if (ready('droplet') && !g.few) {
+    const soon = g.aoe || f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 6);
+    const small = live.length <= 5; // 5인 이하: 탱커에게 늘 (계속 맞음). 레이드: 탱커도 다쳤을 때만 (탱커 둘에게 늘 걸면 넘쳐서 마나가 먼저 바닥남)
+    const t = live.find(u => u.role === 'tank' && !dropped(u) && (small || pct(u) < 0.95)) ?? g.hit.find(u => !dropped(u)) ?? live.filter(u => !dropped(u) && (pct(u) < (small ? 0.85 : 0.8) || (soon && f.mana > 30))).sort((a, b) => pct(a) - pct(b))[0];
+    if (t && tryUse(f, 'droplet', t, idx)) return;
+  }
+  // 소나기는 마나가 비싸서 (1%당 잔물결의 절반) 급할 때만: 마나가 넉넉하면 55% 아래, 보통 40%, 모자라면 25% 아래만
+  if (pct(low) < (f.mana > 60 ? 0.55 : f.mana > 25 ? 0.4 : 0.25) && f.mana > 6 && tryUse(f, 'shower', low, idx)) return;
+  if (pct(low) < topUp(f, g, f.mana > 40 ? 0.85 : 0.75) && f.mana > 3) tryUse(f, 'ripple', low, idx);
 }
 
 /** 자동 힐러로 한 판 끝까지 */

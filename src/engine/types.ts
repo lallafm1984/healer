@@ -15,6 +15,7 @@ import type { AffixState } from './affixes';
 import type { BarkSit } from '../data/talk/sits';
 import type { PersState } from './persona';
 import type { SpecRun } from './specials';
+import type { ShamanState } from './shaman';
 
 export type Role = 'tank' | 'melee' | 'ranged' | 'healer';
 
@@ -704,6 +705,8 @@ export interface Fight {
   relay: { id: number; left: number; until: number; flyUntil: number } | null;
   /** 판 위 물건 (주술사 토템 · 수도사 안개 샘 · 결계사 성채 · 점성술사 초신성, 79 6-1) */
   totems: Totem[];
+  /** 주술사 상태 (비구름 · 물웅덩이 · 대지 충전 · 특성 재발동, engine/shaman) */
+  sham?: ShamanState;
   /** 수도사 기 리듬 (79 3-3): 리듬 · 이 시각까지 다음 손바닥이 없으면 내려감 */
   beat: number;
   beatUntil: number;
@@ -730,7 +733,7 @@ export interface Fight {
    * 화면 이펙트용 (PXF 스킬 이펙트, 2026-10-11): 휠 스킬이 대상에게 들어간 순간 (시전이 끝나 들어감 · 즉시 · 정신 집중 시작)마다 { 스킬, 대상 }.
    * 사건(events)이 아니라 따로 둬서 프로토타입 일치 비교에 안 섞임. 화면이 매 프레임 비우고, 안 비우는 시뮬레이션에서는 USED_MAX에서 멈춤
    */
-  used?: { key: SkillKey; uid: number }[];
+  used?: { key: SkillKey; uid: number; /** 사람 없이 칸에만 (판 위 물건, uid -1) */ cell?: number }[];
   phase: number;
   phaseName: string;
   invuln: boolean;

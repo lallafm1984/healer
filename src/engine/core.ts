@@ -5,6 +5,7 @@ import { hexDist } from './board';
 import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
 import { relayHurt } from './relay';
+import { heroLethal, heroTaken, NEW_HERO } from './heroes';
 import { posTaken } from './position';
 import { talentDeath, talentTaken } from './talents';
 import { coverPart, persDebuff, persDeath, persHurt } from './persona';
@@ -263,6 +264,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
   if (f.sp) amt *= dmgSpec(f, u); // 장비 특수능력 (42 보호 · 지원 · 기믹)
   if (u.me && f.tx.on.firmWill) amt *= 0.8; // 굳은 의지 (06 6장)
   if (f.tx.cut) amt *= talentTaken(f, u, magic); // 드루이드 · 성기사 특성 (77)
+  if (NEW_HERO(f)) amt *= heroTaken(f, u, magic); // 79 직업 (토템 · 생존기 · 특성)
   if (u.me && f.gear.endure) amt *= 1 - f.gear.endure; // 장비 인내 (34 6-4)
   if (u.shield > 0) amt *= 0.6;
   if (u.redu > 0) amt *= 1 - u.reduCut;
@@ -313,6 +315,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
       return;
     }
     if (f.sp && lastBreath(f, u)) return; // 마지막 숨 (42 보호 06)
+    if (NEW_HERO(f) && heroLethal(f, u)) return; // 79 직업 (나를 지키는 샘 …)
     // 쓰러지면 칸을 비운다 → 다른 파티원이 그 칸으로 이동할 수 있음 (2026-10-07 Lim)
     if (u.moving) { const to = f.cells[u.moving.to]; if (to.unit === u) to.unit = null; }
     { const here = f.cells[u.cell]; if (here.unit === u) here.unit = null; }

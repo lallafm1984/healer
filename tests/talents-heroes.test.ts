@@ -53,7 +53,8 @@ describe('트리 구조 (77 1장)', () => {
       for (const t of tree) expect(t.picks.length).toBe(3);
     }
     const keys = Object.values(TALENT_TREES).flatMap(t => t.flatMap(x => x.picks.map(p => p.key)));
-    expect(new Set(keys).size).toBe(90);
+    expect(new Set(keys).size).toBe(keys.length); // 키는 직업끼리도 겹치지 않음
+    expect(keys.length).toBe(30 * HERO_KEYS.length);
     expect(DRUID_TALENTS.flatMap(t => t.picks).every(p => TALENT_HERO[p.key] === 'druid')).toBe(true);
     expect(PALADIN_TALENTS.flatMap(t => t.picks).every(p => TALENT_HERO[p.key] === 'paladin')).toBe(true);
   });

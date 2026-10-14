@@ -4,7 +4,9 @@
  * 실행: npm run gap -- --hero shaman [--n 20] [--diff 어려움,악몽] [--specs class] [--shard 0/10] [--out .sim/gap-0.json] [--base .sim/base.json]
  *   --specs class = 장비 대표 특수능력 줄을 그 직업 전용 특수능력으로 (전용장비 밸런스: 직업마다 class − common 이득 폭을 비교)
  *   --base = 기준 직업 결과를 이 파일에 모아 두고 다시 씀 (직업 수치만 바꿔 다시 잴 때 기준 직업은 안 돌림)
+ *   --base-read a.json,b.json = 읽기만 하는 기준 직업 캐시 (여러 파일)
  *   --base-only = 기준 직업만 돌려 --base 파일을 채움 (나눠 돌리면 조각마다 다른 --base 파일)
+ *   --set 스킬.amt=320,SHAMAN.deep.heal=0.25,SPECS.deepSpring.val=0.12 = 수치를 이 실행만 바꿔 봄 (기준 직업 캐시는 그대로 씀)
  *   --merge a.json b.json … = 나눠 돌린 결과를 합쳐 표만 출력
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -12,8 +14,23 @@ import { ALL_DIFFS, CONTENT, stageOf, type ContentDef } from '../src/data/conten
 import type { DiffName } from '../src/data/difficulty';
 import { HEROES, type HeroKey } from '../src/data/heroes';
 import { balanceable, BASE_HEROES, GAP_LIMIT, runOnce, type SpecMode } from '../src/sim/balance';
+import * as HC from '../src/data/heroConst';
+import { SKILLS } from '../src/data/skills';
+import { TX } from '../src/data/talents';
+import { SPECS } from '../src/data/specials';
 
 const args = process.argv.slice(2);
+// --set ripple.amt=320,SHAMAN.deep.heal=0.25,TX.keeperSpring=3: 스킬 · 직업 수치 (heroConst) · 특성 수치를 이 실행만 바꿔 봄 (수치를 찾을 때)
+{
+  const i = args.indexOf('--set');
+  for (const kv of i >= 0 ? args.splice(i, 2)[1].split(',') : []) {
+    const [path, val] = kv.split('='), parts = path.split('.'), hc = (HC as Record<string, unknown>)[parts[0]];
+    let o = (parts[0] === 'TX' ? TX : parts[0] === 'SPECS' ? SPECS : hc ?? SKILLS) as Record<string, unknown>;
+    const keys = parts[0] === 'TX' || parts[0] === 'SPECS' || hc ? parts.slice(1) : parts;
+    for (const k of keys.slice(0, -1)) o = o[k] as Record<string, unknown>;
+    o[keys[keys.length - 1]] = Number(val);
+  }
+}
 const opt = (k: string) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
 const hero = (opt('--hero') || 'shaman') as HeroKey;
 const N = Number(opt('--n') || 20);
@@ -61,6 +78,8 @@ if (args.includes('--merge')) {
 const lv = HEROES[hero].unlock.lv;
 const places = CONTENT.filter(c => balanceable(c) && (!only || only.includes(c.key)));
 const base: Record<string, Partial<Record<HeroKey, number>>> = basePath && existsSync(basePath) ? JSON.parse(readFileSync(basePath, 'utf8')) : {};
+// --base-read a.json,b.json: 읽기만 하는 기준 직업 캐시 (조각을 다르게 나눠 돌린 결과도 씀)
+for (const p of opt('--base-read')?.split(',') ?? []) if (existsSync(p)) Object.assign(base, JSON.parse(readFileSync(p, 'utf8')));
 const cells: Cell[] = [];
 let idx = 0;
 const t0 = Date.now();

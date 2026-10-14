@@ -5,7 +5,7 @@
 import { ABILITIES } from '../data/abilities';
 import { NO_TANK_SEC } from '../data/armor';
 import { CLASSES } from '../data/classes';
-import { BEACON } from '../data/heroConst';
+import { BEACON, SHAMAN } from '../data/heroConst';
 import { canDispel, HEROES } from '../data/heroes';
 import { mobGrade } from '../data/encounters';
 import type { ItemKey } from '../data/items';
@@ -160,13 +160,13 @@ export function updateWheel(): void {
   core.classList.toggle('mana-full', mana.percent === 100);
   const meter = core.querySelector('.mana-meter')!;
   if (meter.getAttribute('aria-valuenow') !== String(mana.percent)) meter.setAttribute('aria-valuenow', String(mana.percent));
-  core.classList.toggle('beacon', B.beacon);
+  core.classList.toggle('beacon', B.beacon || B.coreCell);
   // 직업 고유 시스템 = 단축칸 아래 작은 막대 2줄 (시안 20인): 사제 평온·신성화 / 드루이드 새싹 걸린 인원 / 성기사 신성한 힘 · 봉화
   const r = coreRing(F);
   const gaugeLabels = $('gauges').querySelectorAll<HTMLElement>('.gl');
   if (F.hero === 'paladin' && gaugeLabels[0]) setText(gaugeLabels[0], '신성한 힘');
   $('gauges').setAttribute('aria-label', F.hero === 'paladin' ? `신성한 힘 ${r.a}, 봉화 ${r.b}`
-    : F.hero === 'druid' ? `새싹 ${r.a}명 / ${r.b}명` : `평온 ${r.a}%, 신성화 ${r.b}%`);
+    : F.hero === 'druid' ? `새싹 ${r.a}명 / ${r.b}명` : F.hero === 'shaman' ? `샘 토템 ${r.a}, 대지 토템 ${r.b}` : `평온 ${r.a}%, 신성화 ${r.b}%`);
   setText($('gP'), r.a);
   setText($('gS'), r.b);
   setBar($('gPb'), r.outer);
@@ -194,6 +194,8 @@ export function buildGauges(F: Fight): void {
   g.innerHTML = F.hero === 'paladin' ? gaugeRow('신성한 힘', 'gPb', '<b id="gP">0/3</b>', 'gold') + gaugeRow('봉화', 'gSb', '<b id="gS">없음</b>', 'calm')
     // 드루이드: 새싹이 걸린 인원 / 살아 있는 인원 (막대 하나)
     : F.hero === 'druid' ? gaugeRow('새싹', 'gPb', '<b id="gP">0</b>/<b id="gS">0</b>', 'leaf') + '<i id="gSb" hidden></i>'
+    // 주술사 (79 7장 3번 첫 모양, Codex가 다듬음): 샘 토템 · 대지 토템 남은 시간
+    : F.hero === 'shaman' ? gaugeRow('샘', 'gPb', '<b id="gP">-</b>', 'calm') + gaugeRow('대지', 'gSb', '<b id="gS">-</b>', 'gold')
     : gaugeRow('평온', 'gPb', '<b id="gP">0</b>%', 'calm') + gaugeRow('신성화', 'gSb', '<b id="gS">0</b>%', 'gold');
 }
 
@@ -204,6 +206,12 @@ function coreRing(F: Fight): { outer: number; inner: number; a: string; b: strin
     const sys = HEROES.paladin.system.lv;
     const nick = F.beacon == null ? '' : F.party.find(u => u.id === F.beacon)?.nick || '';
     return { outer: F.power3 / 3, inner: cd ? 1 - F.beaconCd / BEACON.cd : 0, a: `${F.power3}/3`, b: F.level < sys ? `Lv ${sys}` : !nick ? '없음' : cd ? `${nick} ${cd}초` : nick };
+  }
+  if (F.hero === 'shaman') {
+    // 남은 시간 (막대 = 남은 비율). 없으면 샘은 재사용 남은 초, 대지는 -
+    const left = (k: 'spring' | 'earth') => Math.max(0, ...F.totems.filter(t => t.kind === k).map(t => t.until - F.t));
+    const sp = left('spring'), ea = left('earth'), cd = F.cd.springTotem ?? 0;
+    return { outer: sp / (SHAMAN.spring.sec + 6), inner: ea / SHAMAN.earth.sec, a: sp > 0 ? `${Math.ceil(sp)}초` : cd > 0 ? `대기 ${Math.ceil(cd)}` : '준비', b: ea > 0 ? `${Math.ceil(ea)}초` : '-' };
   }
   if (F.hero === 'druid') {
     const live = F.party.filter(u => u.alive), n = live.filter(u => u.hots.some(h => h.key === 'sprout')).length;
@@ -294,6 +302,8 @@ export function updateCastbar(): void {
     left = Math.max(0, F.channel).toFixed(1);
   } else if (B.beacon) {
     label = '봉화: 지킬 파티원 칸 선택';
+  } else if (B.coreCell) {
+    label = `${SKILLS[HEROES[F.hero].core!].name}: 세울 칸 선택`;
   } else if (B.armed) {
     const k = slotKey(F, B.armed);
     label = `${SKILLS[k].name} 장전: ${SKILLS[k].target === 'area' ? '누른 채 범위를 보고 떼기' : '대상 칸 선택'}`;
@@ -321,7 +331,7 @@ export function updateCastbar(): void {
   $('castLabel').setAttribute('aria-label', detail || label);
   setText($('castTime'), left);
   $('castbar').classList.toggle('is-casting', casting);
-  $('castbar').classList.toggle('is-armed', !casting && (!!B.armed || B.beacon));
+  $('castbar').classList.toggle('is-armed', !casting && (!!B.armed || B.beacon || B.coreCell));
   $('castbar').classList.toggle('is-gcd', !casting && p > 0);
   setBar($('castFill'), p);
   // 전투 메시지가 시전 막대 자리를 덮는 동안 보일 얇은 진행 선 · 남은 초

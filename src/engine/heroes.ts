@@ -3,7 +3,8 @@
  * healer.ts가 공통 흐름(시전·마나·GCD·예약)을 맡고, 여기서는 「맞았을 때 무슨 일이 일어나는가」만 다룬다.
  */
 import { HEROES, type HeroKey } from '../data/heroes';
-import { ASTRO_CHARGE, BARK, BEACON, HAND_GUARD, REBIRTH, SANCTUARY } from '../data/heroConst';
+import { ASTRO_CHARGE, BARK, BEACON, HAND_GUARD, REBIRTH, SANCTUARY, SHAMAN } from '../data/heroConst';
+import { shamanApply, shamanCell, shamanLethal, shamanTaken, shamanTick, shamanTotemGone } from './shaman';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
 import { hexDist } from './board';
@@ -65,6 +66,7 @@ export function heroHeal(f: Fight, u: Unit, amt: number, toBeacon = true): numbe
   let m = 1;
   if (f.hero === 'druid' && heroPassive(f, '뿌리 깊음') && hotCount(u) >= 2) m = 1.1;
   if (f.hero === 'paladin' && heroPassive(f, '굳건한 손') && u.role === 'tank') m = 1 + (f.tx.on.tankLight ? TX.tankLight : 0.1);
+  if (f.hero === 'shaman' && heroPassive(f, '깊은 물') && u.hp < u.max * SHAMAN.deep.hp) m = 1 + SHAMAN.deep.heal; // 깊은 물 (79 2-4)
   const done = heal(f, u, amt * m, true);
   if (f.hero === 'paladin' && f.beacon != null && toBeacon) {
     const share = beaconShare(f);
@@ -291,17 +293,30 @@ function hotNow(f: Fight, u: Unit, h: Hot, mult: number): void {
 export function heroApply(f: Fight, key: SkillKey, u: Unit): void {
   if (f.hero === 'druid') druid(f, key, u);
   else if (f.hero === 'paladin') paladin(f, key, u);
+  else if (f.hero === 'shaman') shamanApply(f, key, u);
 }
 
 // ---------- 79 직업 4종 공통 자리 (직업 PR마다 채움) ----------
 /** 칸에 쓰는 스킬 (주술사 샘 토템): 마나 · 재사용은 healer exec가 씀 */
-export function heroCell(_f: Fight, _key: SkillKey, _cell: number): void {
-  // 79 2장 주술사 PR에서 채움
+export function heroCell(f: Fight, key: SkillKey, cell: number): void {
+  if (f.hero === 'shaman') shamanCell(f, key, cell);
 }
 /** 판 위 물건이 사라짐 (broken = 깨짐, 아니면 시간이 다 됨 · 새로 세워 밀려남): 주술사 토템의 마지막 물 · 나를 지키는 샘 (79 2장) */
-export function totemGone(_f: Fight, _t: Totem, _broken: boolean): void {
-  // 79 2장 주술사 PR에서 채움
+export function totemGone(f: Fight, t: Totem, broken: boolean): void {
+  if (f.hero === 'shaman') shamanTotemGone(f, t, broken);
 }
+/** 79 직업의 받는 피해 배율 (core damage, 직업 생존기 · 토템 · 특성). 사제 · 드루이드 · 성기사는 1 */
+export function heroTaken(f: Fight, u: Unit, _magic: boolean): number {
+  if (f.hero === 'shaman') return shamanTaken(f, u);
+  return 1;
+}
+/** 79 직업이 죽을 피해를 막음 (나를 지키는 샘 …). 막았으면 true */
+export function heroLethal(f: Fight, u: Unit): boolean {
+  if (f.hero === 'shaman') return shamanLethal(f, u);
+  return false;
+}
+/** 79 직업 4종인지 (core damage 훅을 탈지) */
+export const NEW_HERO = (f: Fight): boolean => f.hero !== 'priest' && f.hero !== 'druid' && f.hero !== 'paladin';
 /** 힐러가 건 흡수 보호막 (src HEALER_SHIELD)이 피해로 다 깨짐: 결계사 깨진 막의 빛 (79 5-4) */
 export function shieldBroken(_f: Fight, _u: Unit): void {
   // 79 5장 결계사 PR에서 채움
@@ -317,8 +332,9 @@ export function chargeStartStars(f: Fight): number {
   return n;
 }
 
-/** 직업 고유 시스템의 한 틱 (성역 범위 회복·봉화 대기) */
+/** 직업 고유 시스템의 한 틱 (성역 범위 회복·봉화 대기, 79 직업은 그 직업 파일) */
 export function heroTick(f: Fight, dt: number): void {
+  if (f.hero === 'shaman') { shamanTick(f, dt); return; }
   if (f.hero !== 'paladin') return;
   if (f.beaconCd > 0) f.beaconCd -= dt;
   const s = f.sanctuary;

@@ -73,6 +73,16 @@ export const PXF = {
   'paladin-sacrifice': clip(22, 3),
   'paladin-sanctuary': clip(24, 3),
   'paladin-hand-guard': clip(24, 2),
+  // 79 주술사 (물빛, requests.md 「주술사」): 휠 8개 + 가운데 샘 토템
+  'shaman-ripple': clip(20, 1),
+  'shaman-shower': clip(18, 3),
+  'shaman-droplet': clip(20, 5),
+  'shaman-washing': clip(20, 2),
+  'shaman-chain': clip(14, 5),
+  'shaman-earth': clip(22, 4),
+  'shaman-rain': clip(20, 2),
+  'shaman-link': clip(22, 3),
+  'shaman-spring': clip(24, 3),
   // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (회색 그림은 색을 곱함)
   'common-hit': clip(11, 0),
   'common-crit': clip(12, 0),
@@ -134,6 +144,15 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
   sacrifice: { fx: 'paladin-sacrifice', scope: 'target' },
   sanctuary: { fx: 'paladin-sanctuary', scope: 'area' },
   handGuard: { fx: 'paladin-hand-guard', scope: 'target' },
+  ripple: { fx: 'shaman-ripple', scope: 'target' },
+  shower: { fx: 'shaman-shower', scope: 'target' },
+  droplet: { fx: 'shaman-droplet', scope: 'target' },
+  washing: { fx: 'shaman-washing', scope: 'target' },
+  chainHeal: { fx: 'shaman-chain', scope: 'target' }, // 튄 사람 칸마다 엔진이 따로 기록 (79 2-2)
+  earthTotem: { fx: 'shaman-earth', scope: 'target' },
+  rainTotem: { fx: 'shaman-rain', scope: 'party' }, // 2초마다 회복할 때마다
+  spiritLink: { fx: 'shaman-link', scope: 'area' },
+  springTotem: { fx: 'shaman-spring', scope: 'target' }, // 세운 칸 (사람이 없으면 칸에만, engine/shaman noteCell)
 };
 
 /** 전투 공통 효과 (모든 효과 PXF 1단계, requests.md): 있으면 board.ts가 예전 그림 (fx-hit · fx-heal …) 대신 그림 */

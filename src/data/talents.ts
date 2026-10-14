@@ -44,7 +44,20 @@ export type PaladinTalentKey =
   | 'tankLight' | 'beaconRing' | 'waveMarch'
   | 'dawnVow' | 'endlessLight' | 'allKnight';
 
-export type TalentKey = PriestTalentKey | DruidTalentKey | PaladinTalentKey;
+/** 주술사 (79 2-7) */
+export type ShamanTalentKey =
+  | 'quickRipple' | 'calmShower' | 'splitDrop'
+  | 'stoneDrop' | 'rippleChain' | 'sprayShower'
+  | 'rootTotem' | 'dropChain' | 'washSpread'
+  | 'keeperSpring' | 'springBreath' | 'twinSpring'
+  | 'waterShield' | 'totemCall' | 'freshSpring'
+  | 'earthGrace' | 'letFlow' | 'springSelf'
+  | 'rapids' | 'alertTotem' | 'lastSpring'
+  | 'returnChain' | 'overflowChain' | 'longChain'
+  | 'twinEarth' | 'rainBreath' | 'stormChain'
+  | 'waterSpirit' | 'endlessChain' | 'seaSeat';
+
+export type TalentKey = PriestTalentKey | DruidTalentKey | PaladinTalentKey | ShamanTalentKey;
 
 /** 보조 버튼으로 쓰는 특성 (06 9장 2번: 휠 밖 버튼). once = 전투당 1회, cell = 빈 칸을 골라서 */
 export interface TalentActive { cd: number; dur: number; once?: boolean; cell?: boolean; short: string }
@@ -180,6 +193,28 @@ export const TX = {
   endlessLight: 2,
   /** 모두의 기사: 봉화 몫을 봉화 대상과 그 옆에서 가장 다친 n명에게 이 비율씩 */
   allKnight: { n: 3, share: 0.7 },
+
+  // ---------- 주술사 (79 2-7) ----------
+  /** 빠른 잔물결: 잔물결 시전 −초 · 잔잔한 소나기: 소나기 마나 − · 갈라지는 물방울: 붙은 다친 아군 1명에게 이 위력 물방울 */
+  quickRipple: 0.3, calmShower: 0.2, splitDrop: 0.5,
+  /** 돌 물방울: 물방울이 걸린 아군 받는 피해 − · 잔물결 이음: 물방울 +초 · 흩뿌리는 소나기: 붙은 가장 낮은 1명에게 몫 */
+  stoneDrop: 0.05, rippleChain: 3, sprayShower: 0.35,
+  /** 뿌리 내린 토템: 토템 칸 받는 피해 감소 (둘레는 그대로) · 번지는 씻김: 붙은 아군 몇 명 */
+  rootTotem: 0.3, washSpread: { n: 1 },
+  /** 샘지기: 토템 칸 샘 회복 배 · 샘의 숨: 샘 토템 마나 · 두 개의 샘: 개수 */
+  keeperSpring: 2, springBreath: { cost: 2 }, twinSpring: { n: 2 },
+  /** 물의 방패: 가득 찬 아군 보호막 최대 · 초 · 토템 부르기 재사용 · 넓은 샘: 거리 · 회복량 − */
+  waterShield: { max: 90, sec: 10 }, totemCall: { cd: 20 }, freshSpring: { range: 2, heal: 0.3 },
+  /** 대지의 품: 토템 범위 안 내 받는 피해 − · 흘려보내기: 내 체력 선 · 재발동 · 나를 지키는 샘: 버티는 체력 */
+  earthGrace: 0.2, letFlow: { hp: 0.4, cd: 45 }, springSelf: { hp: 0.3 },
+  /** 급류: 체력 선 아래 소나기 + · 경계하는 토템 재발동 · 마지막 샘 재발동 */
+  rapids: { hp: 0.35, heal: 0.3 }, alertTotem: { cd: 10 }, lastSpring: { cd: 30 },
+  /** 되돌아오는 사슬: 첫 대상에게 이 위력 · 긴 사슬: 인원 · 마나 +%p */
+  returnChain: 0.5, longChain: { n: 6, cost: 2 },
+  /** 두 대지: 충전 · 판 위 개수 (충전 시간 = 대지 토템 재사용) · 비의 숨: 비구름 동안 마나 소모 − */
+  twinEarth: { n: 2 }, rainBreath: 0.5,
+  /** 물의 정령: 튀는 인원 · 몫 · 끝없는 사슬: 튈 때 남는 비율 · 바다의 자리 */
+  waterSpirit: { cd: 180, dur: 20, n: 2, share: [0.75, 0.56] }, endlessChain: 0.9, seaSeat: { cd: 180, dur: 15, range: 2, tick: 2, amt: 40 },
 } as const;
 
 /** 드루이드 (77 2장) */
@@ -271,8 +306,52 @@ export const PALADIN_TALENTS: TalentTier[] = [
 ];
 
 /** 직업 → 특성 트리 */
+/** 주술사 (79 2-7): A 탱커 · 한 사람, B 효율, C 넓게 */
+export const SHAMAN_TALENTS: TalentTier[] = [
+  { lv: 5, theme: '기본 강화', picks: [
+    t('quickRipple', '빠른 잔물결', `잔물결 시전 시간이 ${TX.quickRipple}초 줄어듭니다.`),
+    t('calmShower', '잔잔한 소나기', `소나기의 마나 소모가 ${pc(TX.calmShower)} 줄어듭니다.`),
+    t('splitDrop', '갈라지는 물방울', `물방울을 걸면 붙어 있는 다친 아군 1명에게도 ${pc(TX.splitDrop)} 위력의 물방울이 걸립니다.`)] },
+  { lv: 10, theme: '기본 강화', picks: [
+    t('stoneDrop', '돌 물방울', `물방울이 걸린 아군이 받는 피해가 ${pc(TX.stoneDrop)} 줄어듭니다.`),
+    t('rippleChain', '잔물결 이음', `잔물결로 물방울이 걸린 대상을 치유하면 물방울 시간이 ${TX.rippleChain}초 늘어납니다 (회복량도 그만큼).`),
+    t('sprayShower', '흩뿌리는 소나기', `소나기 회복량의 ${pc(TX.sprayShower)}가 붙어 있는 아군 중 체력 비율이 가장 낮은 1명에게 들어갑니다.`)] },
+  { lv: 15, theme: '기본 강화', picks: [
+    t('rootTotem', '뿌리 내린 토템', `대지 토템이 선 칸의 아군은 받는 피해가 ${pc(TX.rootTotem)} 줄어듭니다 (둘레 6칸은 그대로 15%).`),
+    t('dropChain', '물방울 사슬', '연쇄 치유가 물방울이 걸린 아군에게 튈 때는 회복량이 줄지 않습니다.'),
+    t('washSpread', '번지는 씻김', '씻김으로 디버프를 지우면 붙어 있는 아군 1명의 같은 종류 디버프도 1개 지웁니다.')] },
+  { lv: 20, theme: '토템', picks: [
+    t('keeperSpring', '샘지기', '샘 토템이 선 칸의 아군은 샘 토템 회복을 두 배로 받습니다.'),
+    t('springBreath', '샘의 숨', `샘 토템 마나 소모가 4%에서 ${TX.springBreath.cost}%로 줄어듭니다.`),
+    t('twinSpring', '두 개의 샘', '샘 토템을 2개까지 세울 수 있습니다. 세 번째를 세우면 가장 오래된 것이 사라집니다.')] },
+  { lv: 25, theme: '토템', picks: [
+    t('waterShield', '물의 방패', `샘 토템이 체력이 가득 찬 아군을 회복하면 그만큼 보호막을 씌웁니다 (최대 {${TX.waterShield.max}}, ${TX.waterShield.sec}초).`),
+    t('totemCall', '토템 부르기', `판 위의 내 샘 · 대지 토템을 고른 칸으로 옮깁니다. 남은 시간은 그대로입니다. 재사용 대기시간은 ${TX.totemCall.cd}초입니다.`, { cd: TX.totemCall.cd, dur: 0, cell: true, short: '부르기' }),
+    t('freshSpring', '넓은 샘', `샘 토템이 ${TX.freshSpring.range}칸 거리까지 닿고, 회복량은 ${pc(TX.freshSpring.heal)} 줄어듭니다.`)] },
+  { lv: 30, theme: '생존', picks: [
+    t('earthGrace', '대지의 품', `내가 샘 토템이나 대지 토템 범위 안에 있으면 받는 피해가 ${pc(TX.earthGrace)} 줄어듭니다.`),
+    t('letFlow', '흘려보내기', `내 체력이 ${pc(TX.letFlow.hp)} 아래로 내려가면 나에게 물방울이 저절로 걸리고 바로 한 번 회복합니다. 재발동 대기 ${TX.letFlow.cd}초.`),
+    t('springSelf', '나를 지키는 샘', `내가 죽을 피해를 받으면 판 위의 샘 토템이 깨지고 대신 체력 ${pc(TX.springSelf.hp)}로 버팁니다. 전투마다 1회.`)] },
+  { lv: 35, theme: '위기 대응', picks: [
+    t('rapids', '급류', `체력 ${pc(TX.rapids.hp)} 아래 대상에게 하는 소나기가 ${pc(TX.rapids.heal)} 더 회복합니다.`),
+    t('alertTotem', '경계하는 토템', `광역 예고가 뜨면 샘 토템이 바로 한 번 회복합니다. 재발동 대기 ${TX.alertTotem.cd}초.`),
+    t('lastSpring', '마지막 샘', `파티원이 쓰러지면 그 칸에 마나 없이 샘 토템이 섭니다 (지금 샘 토템은 사라짐). 재발동 대기 ${TX.lastSpring.cd}초.`)] },
+  { lv: 40, theme: '범위 운영', picks: [
+    t('returnChain', '되돌아오는 사슬', `연쇄 치유가 끝나면 첫 대상에게 ${pc(TX.returnChain)} 위력으로 한 번 더 돌아옵니다.`),
+    t('overflowChain', '넘치는 사슬', '연쇄 치유로 넘친 회복량이 다음에 튀는 대상의 회복량에 더해집니다.'),
+    t('longChain', '긴 사슬', `연쇄 치유가 ${TX.longChain.n}명까지 닿고, 마나 소모가 ${TX.longChain.cost}% 늘어납니다.`)] },
+  { lv: 45, theme: '대규모 운영', picks: [
+    t('twinEarth', '두 대지', '대지 토템을 2번까지 모아 둘 수 있고, 판 위에 2개까지 섭니다.'),
+    t('rainBreath', '비의 숨', `비구름 토템이 떠 있는 동안 내 마나 소모가 ${pc(TX.rainBreath)} 줄어듭니다.`),
+    t('stormChain', '폭풍 사슬', '비구름 토템이 떠 있는 동안 연쇄 치유가 바로 시전됩니다.')] },
+  { lv: 50, theme: '궁극', picks: [
+    t('waterSpirit', '물의 정령', `${TX.waterSpirit.dur}초 동안 잔물결과 소나기가 연쇄 치유처럼 붙어 있는 다친 아군 ${TX.waterSpirit.n}명에게 튑니다 (${TX.waterSpirit.share.map(pc).join(' · ')}). 재사용 대기시간은 ${TX.waterSpirit.cd}초입니다.`, { cd: TX.waterSpirit.cd, dur: TX.waterSpirit.dur, short: '정령' }),
+    t('endlessChain', '끝없는 사슬', `연쇄 치유가 튈 때 줄어드는 몫이 25%에서 ${pc(1 - TX.endlessChain)}로 줄어듭니다.`),
+    t('seaSeat', '바다의 자리', `빈 칸을 골라 ${TX.seaSeat.dur}초 동안 큰 샘을 엽니다. ${TX.seaSeat.range}칸 거리 안 아군을 ${TX.seaSeat.tick}초마다 {${TX.seaSeat.amt}}씩 회복하고, 깨지지 않습니다. 재사용 대기시간은 ${TX.seaSeat.cd}초입니다.`, { cd: TX.seaSeat.cd, dur: TX.seaSeat.dur, cell: true, short: '바다' })] },
+];
+
 /** 79 직업 4종은 직업 PR마다 트리를 넣음 (그전엔 특성 없음) */
-export const TALENT_TREES: Record<HeroKey, TalentTier[]> = { priest: TALENTS, druid: DRUID_TALENTS, paladin: PALADIN_TALENTS, shaman: [], monk: [], astrologer: [], warder: [] };
+export const TALENT_TREES: Record<HeroKey, TalentTier[]> = { priest: TALENTS, druid: DRUID_TALENTS, paladin: PALADIN_TALENTS, shaman: SHAMAN_TALENTS, monk: [], astrologer: [], warder: [] };
 const ALL_TREES = Object.values(TALENT_TREES);
 
 export const TALENT_DEF = Object.fromEntries(ALL_TREES.flatMap(tree => tree.flatMap(x => x.picks.map(p => [p.key, p])))) as Record<TalentKey, TalentDef>;

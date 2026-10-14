@@ -33,7 +33,7 @@ export default async function heroes(url, shots) {
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   ok(/사제/.test(await text('#s-char .topbar .tb-cls')), '위 줄 = 사제');
   await page.click('#s-char nav [data-csub="hero"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-char nav [data-csub="hero"]', 'aria-selected') === 'true' && (await page.locator('#s-char .c7-hc[data-hcard]').count()) === 3 && (await page.locator('#s-char .c7-job-row .emblem').count()) === 7, '직업 하위 탭 = 선택 가능한 3종과 예정 4종, 공통 문장 7개');
+  ok(await page.getAttribute('#s-char nav [data-csub="hero"]', 'aria-selected') === 'true' && (await page.locator('#s-char .c7-hc[data-hcard]').count()) === 4 && (await page.locator('#s-char .c7-job-row .emblem').count()) === 7, '직업 하위 탭 = 선택 가능한 4종 (주술사 Lv 30, 79)과 예정 3종, 공통 문장 7개');
   ok(await page.isVisible('#s-char .c7-hc.now[data-hcard="priest"]') && /현재 직업/.test(await text('#s-char [data-hcard="priest"]')) && (await page.locator('#s-char .c7-job-sheet').count()) === 0, '사제 현재 직업 강조, 첫 목록에는 상세가 열리지 않음');
   await page.click('#s-char [data-hcard="priest"]'); await page.clock.runFor(50);
   ok(await page.isVisible('#s-char .c7-job-sheet[role="dialog"]') && /치유를 쌓아/.test(await text('#s-char #jobDetailIntro')), '현재 직업 상세 = 짧은 소개와 스킬 카드');
@@ -45,7 +45,8 @@ export default async function heroes(url, shots) {
   await page.click('#s-char [data-hcard="paladin"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char [data-hero="paladin"]').count()) === 0 && await page.isDisabled('#s-char .c7-hcta') && /Lv 20/.test(await text('#s-char .c7-hcta')), '성기사 상세: 바꾸기 없음, 잠긴 버튼 = Lv 20 달성');
   await page.click('#s-char .c7-dialog-close'); await page.clock.runFor(50);
-  ok(/곧 열림/.test(await text('#s-char .c7-jobs-upcoming')) && /주술사/.test(await text('#s-char .c7-jobs-upcoming')) && (await page.locator('#s-char .c7-jobs-upcoming .emblem').count()) === 4 && (await page.locator('#s-char .c7-jobs-upcoming button').count()) === 0, '예정 직업 4종은 특징과 곧 열림을 표시하며 전환 동작이 없음');
+  ok(/곧 열림/.test(await text('#s-char .c7-jobs-upcoming')) && /수도사/.test(await text('#s-char .c7-jobs-upcoming')) && !/주술사/.test(await text('#s-char .c7-jobs-upcoming')) && (await page.locator('#s-char .c7-jobs-upcoming .emblem').count()) === 3 && (await page.locator('#s-char .c7-jobs-upcoming button').count()) === 0, '예정 직업 3종은 특징과 곧 열림을 표시하며 전환 동작이 없음');
+  ok(await page.isVisible('#s-char .c7-hc.locked[data-hcard="shaman"]') && /Lv 30/.test(await text('#s-char [data-hcard="shaman"]')), '주술사는 Lv 30 해금 (잠김)');
   await page.screenshot({ path: `${shots}/heroes_list.png` });
 
   // ---- 같은 캐릭터에서 드루이드로 무료 전환 ----
