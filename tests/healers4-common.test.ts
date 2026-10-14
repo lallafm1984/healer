@@ -65,8 +65,8 @@ describe('직업 7개 데이터 (79 0장 · 1장 · 6-1)', () => {
   it('79 직업은 켤 때 특성 트리 30개 (켜기 전엔 없음)', () => {
     for (const h of NEW) expect(TALENT_TREES[h].flatMap(t => t.picks)).toHaveLength(HEROES[h].ready ? 30 : 0);
   });
-  it('저장: 켜지 않은 직업으로 된 옛 저장은 사제로 (저장 판은 그대로)', () => {
-    const d = migrate({ v: 13, createdAt: 1, hero: 'warder' });
+  it('저장: 모르는 직업으로 된 옛 저장은 사제로 (저장 판은 그대로, 79 직업 4종은 모두 켬)', () => {
+    const d = migrate({ v: 13, createdAt: 1, hero: 'bard' });
     expect(d.hero).toBe('priest');
   });
 });
@@ -178,6 +178,8 @@ describe('가운데 스킬 · 칸 스킬 (79 6-1)', () => {
   });
   it('심판 (대상 없는 시전): 2초 시전이 끝나면 나간다 (대상 쓰러짐으로 취소되지 않음)', () => {
     const f = fight('warder'), m0 = f.mana;
+    expect(use(f, 'judgment', 0).ok).toBe(false); // 인장이 붙은 아군이 없으면 안 나감 (79 5-3)
+    tank(f).seal = f.t + 15;
     expect(use(f, 'judgment', 0).ok).toBe(true);
     expect(f.cast?.key).toBe('judgment');
     run(f, 2.1);

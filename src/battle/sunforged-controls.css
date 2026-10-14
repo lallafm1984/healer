@@ -245,6 +245,8 @@
 #battle #controls #core.mana-empty .mana-meter::after { opacity: 0; }
 #battle #controls #core.mana-full .mana-meter::after { background: var(--mana-fill); }
 #battle #controls #core.beacon { outline: 2px solid #fff1aa; outline-offset: -5px; box-shadow: none; }
+/* 결계사 심판: 인장 붙은 아군이 없으면 흐림 (79 5-3, 임시 모양) */
+#battle #controls #core.core-off { filter: grayscale(.75) brightness(.7); }
 #battle #controls #manaNum {
   position: relative;
   z-index: 2;

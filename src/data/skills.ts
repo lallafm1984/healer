@@ -120,15 +120,15 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   polaris: { name: '북극성', short: '북극성', slot: 'unique', lv: 15, cast: 0, charge: true, cost: 5, cd: 20, target: 'ally' }, // 마나 8 → 5% · 재사용 30 → 20초 (79 4-11)
 
   // ---------- ⑦ 결계사 (79 5장) ----------
-  sealHeal: { name: '인장 치유', short: '인장', slot: 'basic', lv: 1, cast: 2.5, cost: 3, amt: 260, target: 'ally' },
-  quickSeal: { name: '빠른 인장', short: '빠른', slot: 'fast', lv: 1, cast: 1.5, cost: 6, amt: 220, target: 'ally' },
-  lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 4, cd: 6, amt: 300, target: 'ally' },
+  sealHeal: { name: '인장 치유', short: '인장', slot: 'basic', lv: 1, cast: 2.5, cost: 2.2, amt: 350, target: 'ally' }, // 79 5-11: 260 · 3% → 350 · 2.2% (밸런스)
+  quickSeal: { name: '빠른 인장', short: '빠른', slot: 'fast', lv: 1, cast: 1.5, cost: 5, amt: 220, target: 'ally' }, // 마나 6 → 5% (79 5-11)
+  lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 300, target: 'ally' }, // 마나 4 → 3% (79 5-11)
   wardCleanse: { name: '결계 정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
-  wardCircle: { name: '결계 원', short: '결계', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 20, amt: 150, target: 'area' },
+  wardCircle: { name: '결계 원', short: '결계', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 20, amt: 100, target: 'area' }, // 150 → 100 (79 5-11)
   guardWard: { name: '수호 결계', short: '수호', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' },
   lightVeil: { name: '빛의 장막', short: '장막', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, target: 'area' },
   lightSpear: { name: '빛의 창', short: '창', slot: 'unique', lv: 15, cast: 0, cost: 3, cd: 12, amt: 160, target: 'none' },
-  judgment: { name: '심판', short: '심판', slot: 'unique', core: true, lv: 6, cast: 2.0, cost: 6, amt: 140, target: 'none' },
+  judgment: { name: '심판', short: '심판', slot: 'unique', core: true, lv: 6, cast: 2.0, cost: 6, amt: 90, target: 'none' }, // 140 → 90 (79 5-11)
 };
 
 /** 배우는 레벨 (06 7장) */
@@ -212,15 +212,15 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   starMemory: { kind: '공대 쿨기', desc: '파티 전원이 최근 4초 동안 받은 피해의 50%를 회복합니다. 적어도 {100}씩 회복합니다.' },
   polaris: { kind: '고유', desc: '누르고 있는 동안 별이 모이고, 떼면 대상의 체력을 별 1~4개에 따라 {350} · {550} · {750} · {950} 회복합니다.' },
 
-  sealHeal: { kind: '기본 힐', desc: '대상의 체력을 {260} 회복하고 15초 동안 인장을 붙입니다.' },
+  sealHeal: { kind: '기본 힐', desc: '대상의 체력을 {350} 회복하고 15초 동안 인장을 붙입니다.' },
   quickSeal: { kind: '빠른 힐', desc: '대상의 체력을 {220} 회복하고 15초 동안 인장을 붙입니다.' },
   lightBarrier: { kind: '보호막', desc: '15초 동안 대상에게 {300}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   wardCleanse: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
-  wardCircle: { kind: '광역 보호막', desc: '대상과 붙어 있는 6칸의 아군에게 10초 동안 {150}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
+  wardCircle: { kind: '광역 보호막', desc: '대상과 붙어 있는 6칸의 아군에게 10초 동안 {100}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다. 20인 레이드에서는 2칸 거리까지 닿습니다.' },
   guardWard: { kind: '외부 생존기', desc: '8초 동안 대상이 받는 피해가 40% 줄어듭니다.' },
   lightVeil: { kind: '공대 쿨기', desc: '대상 중심 2칸 거리 안에 10초 동안 빛의 장막을 칩니다. 안에 있는 아군이 받는 피해가 25% 줄어듭니다.' },
-  lightSpear: { kind: '고유', desc: '보스에게 빛의 창을 던져 딜러 한 명의 1.5초 딜만큼 피해를 줍니다. 인장이 붙은 아군 중 체력이 가장 낮은 3명을 {160}씩 회복합니다.' },
-  judgment: { kind: '심판', desc: '2초 동안 심판을 외칩니다. 보스에게 딜러 한 명의 1초 딜만큼 피해를 주고, 인장이 붙은 아군 중 체력이 가장 낮은 6명을 {140}씩 회복합니다.' },
+  lightSpear: { kind: '고유', desc: '보스에게 빛의 창을 던져 딜러 한 명의 0.5초 딜만큼 피해를 줍니다. 인장이 붙은 아군 중 체력이 가장 낮은 3명 (레이드에서는 1명)을 {160}씩 회복합니다.' },
+  judgment: { kind: '심판', desc: '2초 동안 심판을 외칩니다. 보스에게 딜러 한 명의 0.5초 딜만큼 피해를 주고, 인장이 붙은 아군 중 체력이 가장 낮은 6명 (5인 던전 3명, 10인 레이드 4명)을 {90}씩 회복합니다.' },
 };
 
 /** 패시브 설명 (06 5장, 성언 게이지는 4장) */

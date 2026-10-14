@@ -83,7 +83,20 @@ export type AstroTalentKey =
   | 'tankMemory' | 'thriftMemory' | 'longMemory'
   | 'supernova' | 'starPath' | 'milkyWay';
 
-export type TalentKey = PriestTalentKey | DruidTalentKey | PaladinTalentKey | ShamanTalentKey | MonkTalentKey | AstroTalentKey;
+/** 결계사 (79 5-7) */
+export type WarderTalentKey =
+  | 'thickBarrier' | 'lightSeal' | 'splitBarrier'
+  | 'lightOnBarrier' | 'longSeal' | 'cleanWard'
+  | 'firmWard' | 'quickBarrier' | 'sealSpread'
+  | 'heavyJudge' | 'quickJudge' | 'wideJudge'
+  | 'judgeHammer' | 'sealEcho' | 'freshSeal'
+  | 'selfBarrier' | 'barrierBreath' | 'sharedBurden'
+  | 'stepIn' | 'preWard' | 'lastWard'
+  | 'doubleCircle' | 'thriftCircle' | 'wideWard'
+  | 'veilTank' | 'veilBreath' | 'sharedLoad'
+  | 'citadel' | 'repentTime' | 'endlessJudge';
+
+export type TalentKey = PriestTalentKey | DruidTalentKey | PaladinTalentKey | ShamanTalentKey | MonkTalentKey | AstroTalentKey | WarderTalentKey;
 
 /** 보조 버튼으로 쓰는 특성 (06 9장 2번: 휠 밖 버튼). once = 전투당 1회, cell = 빈 칸을 골라서 */
 export interface TalentActive { cd: number; dur: number; once?: boolean; cell?: boolean; short: string }
@@ -285,6 +298,28 @@ export const TX = {
   tankMemory: 0.7, thriftMemory: { cost: 8 }, longMemory: 6,
   /** 초신성 (◎) · 은하수 (★) */
   supernova: { cd: 180, delay: 3, range: 2, amt: 400 }, milkyWay: { cd: 180, dur: 15, shards: 2 },
+
+  // ---------- 결계사 (79 5-7) ----------
+  /** 두꺼운 막: 탱커 막 + · 가벼운 인장: 마나 − · 갈라지는 막: 붙은 1명에게 두께 */
+  thickBarrier: 0.3, lightSeal: 0.2, splitBarrier: 0.5,
+  /** 막 위의 빛: 보호막이 있는 대상 직접 힐 + · 긴 인장: 초 · 맑은 결계: 보호막 */
+  lightOnBarrier: 0.15, longSeal: 25, cleanWard: { amt: 100 },
+  /** 굳은 결계: 수호 결계 감소 · 빠른 막: 재사용 · 번지는 인장: 인원 */
+  firmWard: 0.5, quickBarrier: 4, sealSpread: { n: 1 },
+  /** 무거운 심판: 가장 낮은 1명 배 · 빠른 심판: 시전 · 넓은 심판: 인원 */
+  heavyJudge: 2, quickJudge: 1.5, wideJudge: 8,
+  /** 심판의 망치 (★) · 새 인장: 회복 */
+  judgeHammer: { cd: 60, dur: 15 }, freshSeal: { amt: 60 },
+  /** 나를 위한 막: 양 · 초마다 · 막의 숨: 마나 재생 + · 나눠 지는 짐: 막 1명마다 − (최대) */
+  selfBarrier: { amt: 200, every: 30 }, barrierBreath: 0.3, sharedBurden: { step: 0.05, max: 0.2 },
+  /** 막아서기 · 미리 친 결계 · 마지막 결계 */
+  stepIn: { hp: 0.3, amt: 200, cd: 15 }, preWard: { cd: 30 }, lastWard: { amt: 150, cd: 30 },
+  /** 두 겹 원: 가운데 배 · 아끼는 원: 마나 % · 넓은 결계: 거리 · 두께 */
+  doubleCircle: 2, thriftCircle: { cost: 7 }, wideWard: { range: 2, amt: -0.3 },
+  /** 장막의 탱커: − · 장막의 숨: 마나 재생 배 · 함께 드는 짐: 거리 */
+  veilTank: 0.4, veilBreath: 2, sharedLoad: { range: 3 },
+  /** 성채 (◎) · 참회의 시간: 창 딜 배 · 인원 · 끝없는 심판 (★) */
+  citadel: { cd: 180, dur: 12, range: 2, cut: 0.2, tick: 3, amt: 60 }, repentTime: { dps: 2, n: 5 }, endlessJudge: { cd: 180, dur: 10, cast: 1.0 },
 } as const;
 
 /** 드루이드 (77 2장) */
@@ -508,8 +543,52 @@ export const ASTRO_TALENTS: TalentTier[] = [
     t('milkyWay', '은하수', `${TX.milkyWay.dur}초 동안 별빛 치유가 바로 시전되고 별 조각을 ${TX.milkyWay.shards}개씩 줍니다. 재사용 대기시간은 ${TX.milkyWay.cd}초입니다.`, { cd: TX.milkyWay.cd, dur: TX.milkyWay.dur, short: '은하수' })] },
 ];
 
+/** 결계사 (79 5-7): A 탱커 · 한 사람, B 효율 · 심판, C 넓게 */
+export const WARDER_TALENTS: TalentTier[] = [
+  { lv: 5, theme: '기본 강화', picks: [
+    t('thickBarrier', '두꺼운 막', `탱커에게 씌우는 빛의 막이 ${pc(TX.thickBarrier)} 두꺼워집니다.`),
+    t('lightSeal', '가벼운 인장', `인장 치유의 마나 소모가 ${pc(TX.lightSeal)} 줄어듭니다.`),
+    t('splitBarrier', '갈라지는 막', `빛의 막을 씌우면 붙어 있는 아군 1명에게도 ${pc(TX.splitBarrier)} 두께의 막과 인장이 붙습니다.`)] },
+  { lv: 10, theme: '기본 강화', picks: [
+    t('lightOnBarrier', '막 위의 빛', `보호막이 있는 대상에게 하는 직접 힐이 ${pc(TX.lightOnBarrier)} 늘어납니다.`),
+    t('longSeal', '긴 인장', `인장 시간이 15초에서 ${TX.longSeal}초로 늘어납니다.`),
+    t('cleanWard', '맑은 결계', `결계 정화로 디버프를 지우면 대상과 붙어 있는 6칸의 아군에게 {${TX.cleanWard.amt}} 보호막을 씌웁니다.`)] },
+  { lv: 15, theme: '기본 강화', picks: [
+    t('firmWard', '굳은 결계', `수호 결계가 받는 피해를 ${pc(TX.firmWard)} 줄입니다.`),
+    t('quickBarrier', '빠른 막', `빛의 막 재사용 대기가 6초에서 ${TX.quickBarrier}초로 줄어듭니다.`),
+    t('sealSpread', '번지는 인장', `인장 치유 · 빠른 인장이 붙어 있는 아군 ${TX.sealSpread.n}명에게도 인장을 붙입니다.`)] },
+  { lv: 20, theme: '심판', picks: [
+    t('heavyJudge', '무거운 심판', '심판이 체력이 가장 낮은 1명에게는 두 배로 회복합니다.'),
+    t('quickJudge', '빠른 심판', `심판 시전 시간이 2.0초에서 ${TX.quickJudge}초로 줄어듭니다.`),
+    t('wideJudge', '넓은 심판', `심판이 ${TX.wideJudge}명까지 회복합니다.`)] },
+  { lv: 25, theme: '심판', picks: [
+    t('judgeHammer', '심판의 망치', `${TX.judgeHammer.dur}초 동안 심판이 바로 시전됩니다. 재사용 대기시간은 ${TX.judgeHammer.cd}초입니다.`, { cd: TX.judgeHammer.cd, dur: TX.judgeHammer.dur, short: '망치' }),
+    t('sealEcho', '인장의 메아리', '심판으로 회복한 아군의 인장 시간이 처음으로 돌아갑니다.'),
+    t('freshSeal', '새 인장', `인장이 없던 아군에게 인장을 붙이면 체력을 {${TX.freshSeal.amt}} 회복합니다.`)] },
+  { lv: 30, theme: '생존', picks: [
+    t('selfBarrier', '나를 위한 막', `전투 시작과 ${TX.selfBarrier.every}초마다 나에게 {${TX.selfBarrier.amt}} 보호막을 씌웁니다.`),
+    t('barrierBreath', '막의 숨', `나에게 보호막이 있으면 마나 재생이 ${pc(TX.barrierBreath)} 늘어납니다.`),
+    t('sharedBurden', '나눠 지는 짐', `판 위에 내 보호막이 있는 아군 1명마다 내가 받는 피해가 ${pc(TX.sharedBurden.step)} 줄어듭니다 (최대 ${pc(TX.sharedBurden.max)}).`)] },
+  { lv: 35, theme: '위기 대응', picks: [
+    t('stepIn', '막아서기', `체력이 ${pc(TX.stepIn.hp)} 아래로 떨어진 아군에게 {${TX.stepIn.amt}} 보호막을 저절로 씌웁니다. 재발동 대기 ${TX.stepIn.cd}초.`),
+    t('preWard', '미리 친 결계', `광역 예고가 뜨면 결계 원 재사용 대기가 바로 끝납니다. 재발동 대기 ${TX.preWard.cd}초.`),
+    t('lastWard', '마지막 결계', `파티원이 쓰러지면 붙어 있는 아군 모두에게 {${TX.lastWard.amt}} 보호막을 씌웁니다. 재발동 대기 ${TX.lastWard.cd}초.`)] },
+  { lv: 40, theme: '범위 운영', picks: [
+    t('doubleCircle', '두 겹 원', '결계 원의 가운데 대상은 두 배 두께의 막을 받습니다.'),
+    t('thriftCircle', '아끼는 원', `결계 원 마나 소모가 10%에서 ${TX.thriftCircle.cost}%로 줄어듭니다.`),
+    t('wideWard', '넓은 결계', `결계 원이 ${TX.wideWard.range}칸 거리까지 닿고, 막 두께는 ${pc(-TX.wideWard.amt)} 줄어듭니다.`)] },
+  { lv: 45, theme: '대규모 운영', picks: [
+    t('veilTank', '장막의 탱커', `빛의 장막 안 탱커는 받는 피해가 ${pc(TX.veilTank)} 줄어듭니다.`),
+    t('veilBreath', '장막의 숨', '빛의 장막이 쳐진 동안 내 마나 재생이 두 배가 됩니다.'),
+    t('sharedLoad', '함께 드는 짐', `빛의 장막이 ${TX.sharedLoad.range}칸 거리까지 닿습니다.`)] },
+  { lv: 50, theme: '궁극', picks: [
+    t('citadel', '성채', `빈 칸을 골라 ${TX.citadel.dur}초 동안 성채를 세웁니다. ${TX.citadel.range}칸 거리 안 아군이 받는 피해가 ${pc(TX.citadel.cut)} 줄고, ${TX.citadel.tick}초마다 {${TX.citadel.amt}} 보호막을 받습니다. 재사용 대기시간은 ${TX.citadel.cd}초입니다.`, { cd: TX.citadel.cd, dur: TX.citadel.dur, cell: true, short: '성채' }),
+    t('repentTime', '참회의 시간', `빛의 창이 보스에게 두 배 피해를 주고 ${TX.repentTime.n}명을 회복합니다.`),
+    t('endlessJudge', '끝없는 심판', `${TX.endlessJudge.dur}초 동안 심판이 마나를 쓰지 않고 ${TX.endlessJudge.cast.toFixed(1)}초 만에 시전됩니다. 재사용 대기시간은 ${TX.endlessJudge.cd}초입니다.`, { cd: TX.endlessJudge.cd, dur: TX.endlessJudge.dur, short: '끝없는' })] },
+];
+
 /** 79 직업 4종은 직업 PR마다 트리를 넣음 (그전엔 특성 없음) */
-export const TALENT_TREES: Record<HeroKey, TalentTier[]> = { priest: TALENTS, druid: DRUID_TALENTS, paladin: PALADIN_TALENTS, shaman: SHAMAN_TALENTS, monk: MONK_TALENTS, astrologer: ASTRO_TALENTS, warder: [] };
+export const TALENT_TREES: Record<HeroKey, TalentTier[]> = { priest: TALENTS, druid: DRUID_TALENTS, paladin: PALADIN_TALENTS, shaman: SHAMAN_TALENTS, monk: MONK_TALENTS, astrologer: ASTRO_TALENTS, warder: WARDER_TALENTS };
 const ALL_TREES = Object.values(TALENT_TREES);
 
 export const TALENT_DEF = Object.fromEntries(ALL_TREES.flatMap(tree => tree.flatMap(x => x.picks.map(p => [p.key, p])))) as Record<TalentKey, TalentDef>;

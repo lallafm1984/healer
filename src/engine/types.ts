@@ -18,6 +18,7 @@ import type { SpecRun } from './specials';
 import type { ShamanState } from './shaman';
 import type { MonkState } from './monk';
 import type { AstroState } from './astro';
+import type { WarderState } from './warder';
 
 export type Role = 'tank' | 'melee' | 'ranged' | 'healer';
 
@@ -715,6 +716,8 @@ export interface Fight {
   totems: Totem[];
   /** 주술사 상태 (비구름 · 물웅덩이 · 대지 충전 · 특성 재발동, engine/shaman) */
   sham?: ShamanState;
+  /** 결계사 상태 (빛의 장막 · 특성 재발동 · 나를 위한 막, engine/warder) */
+  warder?: WarderState;
   /** 점성술사 상태 (이번 별자리 조각 · 별의 길 · 두 번째 별비 · 특성 재발동, engine/astro) */
   astro?: AstroState;
   /** 수도사 상태 (고요한 호흡 · 특성 재발동, engine/monk) */

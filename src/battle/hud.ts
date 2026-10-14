@@ -8,6 +8,7 @@ import { CLASSES } from '../data/classes';
 import { BEACON, SHAMAN } from '../data/heroConst';
 import { beatMax, beatWindow } from '../engine/monk';
 import { shardMax } from '../engine/astro';
+import { judgeCount, judgeReady, sealed, sealTargets } from '../engine/warder';
 import { chargePerfect } from '../engine/healer';
 import { chargeSpec } from '../engine/heroes';
 import { canDispel, HEROES } from '../data/heroes';
@@ -171,8 +172,13 @@ export function updateWheel(): void {
   if (F.hero === 'paladin' && gaugeLabels[0]) setText(gaugeLabels[0], '신성한 힘');
   $('gauges').setAttribute('aria-label', F.hero === 'paladin' ? `신성한 힘 ${r.a}, 봉화 ${r.b}`
     : F.hero === 'druid' ? `새싹 ${r.a}명 / ${r.b}명` : F.hero === 'shaman' ? `샘 토템 ${r.a}, 대지 토템 ${r.b}` : F.hero === 'monk' ? `기 리듬 ${r.a}, 이어지는 시간 ${r.b}`
-    : F.hero === 'astrologer' ? `모으는 별 ${r.a}, 별 조각 ${r.b}` : `평온 ${r.a}%, 신성화 ${r.b}%`);
+    : F.hero === 'astrologer' ? `모으는 별 ${r.a}, 별 조각 ${r.b}` : F.hero === 'warder' ? `인장 ${r.a}, 심판 회복 ${r.b}` : `평온 ${r.a}%, 신성화 ${r.b}%`);
   if (F.hero === 'astrologer') $('gauges').querySelector('.gr')?.classList.toggle('ready', chargePerfect(F));
+  // 심판 (79 5-3): 인장 붙은 아군이 없으면 가운데 버튼이 흐려짐 (모양은 Codex 몫), 3명 이상 회복할 수 있으면 심판 줄이 반짝
+  const coreOff = F.hero === 'warder' && F.level >= SKILL_LEVEL.judgment && !judgeReady(F);
+  core.classList.toggle('core-off', coreOff);
+  if (coreOff) core.setAttribute('aria-disabled', 'true'); else if (core.hasAttribute('aria-disabled')) core.removeAttribute('aria-disabled');
+  if (F.hero === 'warder') $('gauges').querySelectorAll('.gr')[1]?.classList.toggle('ready', sealTargets(F, judgeCount(F)).length >= 3);
   setText($('gP'), r.a);
   setText($('gS'), r.b);
   setBar($('gPb'), r.outer);
@@ -206,6 +212,8 @@ export function buildGauges(F: Fight): void {
     : F.hero === 'monk' ? gaugeRow('리듬', 'gPb', '<b id="gP">0</b>', 'leaf') + gaugeRow('박자', 'gSb', '<b id="gS">-</b>', 'calm')
     // 점성술사 (79 4-3 · 7장 3번, Codex가 다듬음): 모으는 별 (완벽 구간이면 반짝) · 별 조각
     : F.hero === 'astrologer' ? gaugeRow('별', 'gPb', '<b id="gP">-</b>', 'gold') + gaugeRow('조각', 'gSb', '<b id="gS">0</b>', 'calm')
+    // 결계사 (79 7장 3번 첫 모양, Codex가 다듬음): 인장 붙은 아군 수 · 지금 심판하면 회복할 인원
+    : F.hero === 'warder' ? gaugeRow('인장', 'gPb', '<b id="gP">0</b>', 'gold') + gaugeRow('심판', 'gSb', '<b id="gS">-</b>', 'calm')
     : gaugeRow('평온', 'gPb', '<b id="gP">0</b>%', 'calm') + gaugeRow('신성화', 'gSb', '<b id="gS">0</b>%', 'gold');
 }
 
@@ -226,6 +234,12 @@ function coreRing(F: Fight): { outer: number; inner: number; a: string; b: strin
   if (F.hero === 'astrologer') {
     const sp = chargeSpec(F), st = F.charge ? F.charge.stars : 0, mx = shardMax(F);
     return { outer: st / sp.max, inner: F.shards / mx, a: F.charge ? `${st}/${sp.max}` : '-', b: `${F.shards}/${mx}` };
+  }
+  if (F.hero === 'warder') {
+    const live = F.party.filter(u => u.alive), n = live.filter(u => sealed(F, u)).length;
+    if (F.level < SKILL_LEVEL.judgment) return { outer: live.length ? n / live.length : 0, inner: 0, a: `${n}/${live.length}`, b: `Lv ${SKILL_LEVEL.judgment}` };
+    const max = judgeCount(F), k = sealTargets(F, max).length;
+    return { outer: live.length ? n / live.length : 0, inner: k / max, a: `${n}/${live.length}`, b: `${k}/${max}` };
   }
   if (F.hero === 'monk') {
     if (F.level < HEROES.monk.system.lv) return { outer: 0, inner: 0, a: '-', b: `Lv ${HEROES.monk.system.lv}` };
