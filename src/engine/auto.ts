@@ -7,12 +7,13 @@ import { hexDist } from './board';
 import { aggroTarget } from './bosses';
 import { ROD_HP } from './bossParts';
 import { cellOf, healTop, living, submerged, unitById } from './core';
+import { sv } from './specials';
 import { create, step } from './fight';
 import { canTarget, knows, use } from './healer';
 import { setBeacon } from './heroes';
 import { reviveTarget } from './items';
 import { dangerAt } from './movement';
-import { castOf, talentReady, useTalent } from './talents';
+import { areaRadius, castOf, talentReady, useTalent } from './talents';
 import type { Debuff, Fight, FightConfig, Telegraph, Unit } from './types';
 
 /**
@@ -403,15 +404,12 @@ export function autoHealer(f: Fight): void {
   if (f.g.p >= 100 && pct(low) < (thrifty ? 0.7 : 0.45)) { use(f, 'serenity', cellIdx(low)); return; }
   // 광역 힐 판단 기준은 힐 크기에 맞춤 (레벨 배율 · 치유 배율, 07 4장 · 34 1-6). 힐하면 손해인 사람이 범위에 들면 그 자리는 안 씀
   const hp = healUnit(f);
-  let best: Unit | null = null, score = 0;
-  for (const c of live) {
-    let s = 0;
-    for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= 1) s = off(f, v) ? -Infinity : s + Math.min(180 * hp, Math.max(0, healTop(v) - v.hp));
-    if (s > score) { best = c; score = s; }
-  }
+  // 기원 범위는 반경 1로만 셈: 넓은 원 (반경 2)까지 세면 기원을 더 자주 써서 마나가 먼저 바닥남 (2026-10-14 168곳 비교: 5인 악몽 62 → 58%)
+  const { best, score } = clusterOf(f, live, all, 180, 1);
+  // 성언 (신성화)은 옛 문턱 그대로: 3인에서 더 일찍 쓰면 게이지 값을 덜 써서 오히려 낮아짐 (3인 어려움 83 → 80%)
   if (f.g.s >= 100 && score > (thrifty ? 450 : 900) * hp) { use(f, 'sanctify', cellIdx(best!)); return; }
   if (pct(low) < 0.35 && f.mana > 8 && can('flash')) { use(f, 'flash', cellIdx(low)); return; }
-  if (score > 600 * hp && f.mana > 12 && can('poh')) { use(f, 'poh', cellIdx(best!)); return; }
+  if (score > aoeBar(f, 600, 180, 1) * hp && f.mana > 12 && can('poh')) { use(f, 'poh', cellIdx(best!)); return; }
   if (purifyNow()) return;
   // 체력 선: 채우면 풀리는 사람을 선 위로
   if (g.cure && pct(low) > 0.4 && f.mana > 3) { const k = big(pct(g.cure) < 0.5); if (k) { use(f, k, cellIdx(g.cure)); return; } }
@@ -460,23 +458,43 @@ function autoTalents(f: Fight): void {
   }
 }
 
+/**
+ * 광역 힐 자리: 반경 r 안에서 모자란 체력 (한 명당 amt × 치유 단위까지)을 더한 값이 가장 큰 사람.
+ * 힐하면 손해인 사람이 범위에 들면 그 자리는 안 씀
+ */
+function clusterOf(f: Fight, live: Unit[], all: Unit[], amt: number, r: number): { best: Unit | null; score: number } {
+  const cap = amt * healUnit(f);
+  let best: Unit | null = null, score = 0;
+  for (const c of live) {
+    let s = 0;
+    for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= r) s = off(f, v) ? -Infinity : s + Math.min(cap, Math.max(0, healTop(v) - v.hp));
+    if (s > score) { best = c; score = s; }
+  }
+  return { best, score };
+}
+/**
+ * 광역 힐을 쓸 점수 문턱 (치유 단위 1 기준): bar = 큰 파티에서 쓰던 값. 파티가 작아 범위에 다 들어와도 그만큼 못 모이면
+ * 닿을 수 있는 사람 수 − 0.5명분으로 낮춤 (2026-10-14 직업 밸런스 검토: 3인은 3명이 다 다쳐도 기원 540 · 들꽃 480이라 600 · 500을 못 넘어 광역을 안 씀)
+ */
+function aoeBar(f: Fight, bar: number, amt: number, r: number): number {
+  if (f.cfg.proto) return bar; // 프로토타입 일치 테스트는 옛 고정 문턱
+  const reach = r >= 2 ? f.party.length : Math.min(7, f.party.length);
+  return Math.min(bar, (reach - 0.5) * amt);
+}
+
 // ---------- 드루이드·성기사 자동 힐러 (25 3장의 손맛대로: 드루이드는 미리 깔고, 성기사는 모았다가 씀) ----------
 interface Ctx { live: Unit[]; all: Unit[]; g: Gim; pct: (u: Unit) => number; low: Unit; idx: (u: Unit) => number; ready: (k: SkillKey) => boolean; cluster: { best: Unit | null; score: number }; busterOn: Unit | null }
 /** live = 힐해도 되는 사람 (뒤집힌 축복이 걸린 사람 뺌), all = 살아 있는 모두 */
-function ctx(f: Fight, amt: number): Ctx | null {
+function ctx(f: Fight, amt: number, r = 1): Ctx | null {
   if (f.cast || f.channel > 0 || f.gcd > 0 || f.queued) return null;
   const all = living(f), live = all.filter(u => !off(f, u));
   if (!live.length) return null;
   const pct = pctOf;
   const low = lowest(f, live, pct);
   const idx = (u: Unit) => (u.moving ? u.moving.from : u.cell);
+  // 준비는 원래 마나 소모로 봄 (줄어든 소모로 보면 마나를 바닥까지 써서 성기사 초반 악몽 86 → 77%, 드루이드는 그대로. 2026-10-14 비교) = 그만큼이 여유분
   const ready = (k: SkillKey) => knows(f, k) && (f.cd[k] ?? 0) <= 0 && !f.lock[k] && f.mana >= SKILLS[k].cost;
-  let best: Unit | null = null, score = 0;
-  for (const c of live) {
-    let s = 0;
-    for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= 1) s = off(f, v) ? -Infinity : s + Math.min(amt * healUnit(f), Math.max(0, healTop(v) - v.hp));
-    if (s > score) { best = c; score = s; }
-  }
+  const { best, score } = clusterOf(f, live, all, amt, r);
   const bt = f.tels.find(t => t.kind === 'buster' && !meltWait(f, t.impact) && !veiled(f, t));
   const on = bt ? unitById(f, bt.units[0]) || null : null;
   return { live, all, g: gim(f), pct, low, idx, ready, cluster: { best, score }, busterOn: on && !off(f, on) ? on : null };
@@ -496,7 +514,8 @@ const cleansable = (f: Fight, c: Ctx) => {
 };
 
 function autoDruid(f: Fight): void {
-  const c = ctx(f, 160);
+  const wr = areaRadius(f, 'wildflower'); // 20인 2칸 · 들꽃 바다 (2026-10-14: 반경 1로만 세서 20인에서 들꽃을 덜 쓰던 것, 20인 악몽 70 → 87%)
+  const c = ctx(f, 160, wr);
   if (!c) return;
   const { live, pct, low, idx, ready, g } = c;
   const sprouted = (u: Unit) => u.hots.some(h => h.key === 'sprout' && h.left > 2);
@@ -523,7 +542,7 @@ function autoDruid(f: Fight): void {
   // 신기루가 안 걷힌 예고에 찍힌 사람: 새싹만 미리
   { const v = g.veil.find(u => !sprouted(u)); if (v && f.mana > 10 && tryUse(f, 'sprout', v, idx)) return; }
   // 여럿이 크게 다쳤으면 들꽃 군락부터 (20인에서 한 명씩만 살리다 밀리지 않게)
-  if (ready('wildflower') && c.cluster.best && c.cluster.score > 800 * healUnit(f) && tryUse(f, 'wildflower', c.cluster.best, idx)) return;
+  if (ready('wildflower') && c.cluster.best && c.cluster.score > aoeBar(f, 800, 160, wr) * healUnit(f) && tryUse(f, 'wildflower', c.cluster.best, idx)) return;
   // 위급: 거둘 지속 힐이 있으면 피워 내기, 없으면 생장
   if (pct(low) < 0.5) {
     if (ready('bloom') && low.hots.length && tryUse(f, 'bloom', low, idx)) return;
@@ -537,7 +556,7 @@ function autoDruid(f: Fight): void {
   if (g.link && pct(low) > 0.4 && f.mana > 4 && ((!sprouted(g.link.u) && tryUse(f, 'sprout', g.link.u, idx)) || tryUse(f, 'growth', g.link.u, idx))) return;
   const tank = live.find(u => u.role === 'tank' && !sprouted(u)) ?? g.hit.find(u => !sprouted(u));
   if (tank && f.mana > 2 && tryUse(f, 'sprout', tank, idx)) return;
-  if (ready('wildflower') && c.cluster.best && c.cluster.score > 500 * healUnit(f) && tryUse(f, 'wildflower', c.cluster.best, idx)) return;
+  if (ready('wildflower') && c.cluster.best && c.cluster.score > aoeBar(f, 500, 160, wr) * healUnit(f) && tryUse(f, 'wildflower', c.cluster.best, idx)) return;
   // 새싹은 미리 깔아 둠: 다친 사람부터, 마나가 넉넉하면 멀쩡한 사람에게도 (광역 피해 대비)
   const aoeSoon = g.aoe || f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 6);
   // 역류 중에는 미리 깔기를 쉼 (스킬마다 중첩)
@@ -551,7 +570,8 @@ function autoDruid(f: Fight): void {
 function autoPaladin(f: Fight): void {
   // 봉화는 첫 탱커에게 (배운 뒤 한 번)
   if (f.beacon == null && f.level >= HEROES.paladin.system.lv) { const t = living(f).find(u => u.role === 'tank'); if (t) setBeacon(f, t); }
-  const c = ctx(f, 260);
+  const lr = 1 + sv(f, 'wideWave'); // 퍼지는 파도 (42 성기 06)
+  const c = ctx(f, 260, lr);
   if (!c) return;
   const { live, pct, low, idx, ready, g } = c;
   // 모래시계 창 안 (54 5장): 남는 일만
@@ -579,7 +599,7 @@ function autoPaladin(f: Fight): void {
   // 생명 사슬이 곧 끊어지면 낮은 쪽부터
   if (g.link?.near && one(g.link.u)) return;
   if (f.power3 >= 3) {
-    if (knows(f, 'lightWave') && c.cluster.best && c.cluster.score > 600 * healUnit(f) && tryUse(f, 'lightWave', c.cluster.best, idx)) return;
+    if (knows(f, 'lightWave') && c.cluster.best && c.cluster.score > aoeBar(f, 600, 260, lr) * healUnit(f) && tryUse(f, 'lightWave', c.cluster.best, idx)) return;
     const oathless = (u: Unit) => !u.hots.some(h => h.key === 'oath');
     const tank = live.find(u => u.role === 'tank' && oathless(u)) ?? g.hit.find(oathless);
     if (knows(f, 'oath') && tryUse(f, 'oath', tank || low, idx)) return;

@@ -22,5 +22,12 @@ export const REBIRTH = { hp: 0.4 };
  */
 export const TALENT_STANDIN: { heal: number; mana: number; guard: number; heroes: string[] } = { heal: 0.02, mana: 0.04, guard: 0.01, heroes: ['druid', 'paladin'] };
 
+/**
+ * 사제 마나 보정 (2026-10-14 직업 밸런스 검토, 67): 열린 특성 단마다 마나 소모 −2% (Lv 50 −20%).
+ * 드루이드·성기사 임시 보정은 단마다 마나 −4%인데 사제 특성 30개는 마나를 거의 못 줄여서, 레이드 어려움에서 사제만 마나가 바닥나
+ * 클리어율 65% (드루이드·성기사 95% 안팎)이던 것. 같은 장소 보정에서 −2%면 사제 89~95%
+ */
+export const PRIEST_MANA = 0.02;
+
 /** 드루이드 20인 레이드 보정 (26 9-1, 2026-10-07 Lim): 들꽃 군락이 닿는 거리 (평소 1칸), 군락 보너스 붙은 칸 하나마다 (평소 10%, 최대 3칸). 20인에서는 들꽃 군락에도 군락 보너스 */
 export const DRUID_BIG = { wildRange: 2, colonyStep: 0.3 };
