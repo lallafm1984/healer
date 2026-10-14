@@ -1,5 +1,5 @@
 /**
- * 장비 특수능력 118종 (42 v0.1, Lim 2026-10-09 「장신구 및 장비에서 더 다양한 특수능력 100여 종」) + 이름 있는 장신구 (42 3장).
+ * 장비 특수능력 166종 = 공통 94 + 직업 전용 72 (42, Lim 2026-10-09 「장신구 및 장비에서 더 다양한 특수능력 100여 종」) + 이름 있는 장신구 (42 3장).
  * 장비 한 줄 = { key, roll }. 값 = 영웅 최대값 × 등급 배율 (data/equipment GRADE_MULT) × 굴림 (60~100%), fixed면 굴리지 않음.
  * 같은 특수능력이 여러 장비에 있으면 더함 (cap까지), 재사용 대기(cd)가 있는 발동은 가장 좋은 것 하나만 (42 1-3).
  * 효과는 engine/specials.ts가 엔진 훅에 붙임. ready = 엔진에 붙어서 드롭에 나와도 되는 것.
@@ -188,7 +188,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['woundClean', '기믹 07', '상처 소독', AR, '희귀', 0.2, 'pct', '쇠약 중첩 피해 −{v}'],
     ['holdingHand', '기믹 08', '받치는 손', ACC, '영웅', 0.25, 'pct', '받는 치유 감소 디버프 효과 −{v}'],
   ],
-  // 2-9 직업 전용 (영웅 이상, 그 직업일 때만)
+  // 2-9 직업 전용 (그 직업일 때만 켜지고, 그 직업으로 돌 때만 나옴. 직업마다 24종)
   hero: [
     ['deepWord', '사제 01', '깊은 성언', ALL, '희귀', 0.12, 'pct', '성언 게이지 충전 +{v}', { cap: 0.6, hero: 'priest' }],
     ['serenityEcho', '사제 02', '평온의 여운', W, '전설', 0.2, 'pct', '성언: 평온 회복량 +{v}, 넘친 양은 4초 지속 힐로', { hero: 'priest' }],
@@ -215,7 +215,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['longSanctuary', '성기 07', '긴 성역', HEAD, '영웅', 2, 'sec', '빛의 성역 효과 시간 +{v}', { hero: 'paladin' }],
     ['prayingSacrifice', '성기 08', '기도하는 희생', CHEST, '영웅', 0.1, 'pp', '희생으로 나눠 받는 비율 +{v}, 내가 받는 피해 −20%', { hero: 'paladin' }],
     // v12: 직업별 성장 장비 24종. 공통 스킬 훅으로 치유·자원·쿨기 빌드 지원
-    ['steadyPrayer', '사제 09', '꾸준한 기도', ALL, '고급', 0.12, 'pct', '치유 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'heal', kind: 'heal' } }],
+    ['steadyPrayer', '사제 09', '꾸준한 기도', ALL, '고급', 0.12, 'pct', '「치유」 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'heal', kind: 'heal' } }],
     ['urgentPrayer', '사제 10', '간절한 기도', HANDS, '희귀', 0.16, 'pct', '순간 치유 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'flash', kind: 'heal' } }],
     ['gatheredPrayer', '사제 11', '모인 기도', W_ACC, '희귀', 0.16, 'pct', '치유의 기원 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'poh', kind: 'heal' } }],
     ['sereneLight', '사제 12', '평온한 빛', AR_ACC, '희귀', 0.18, 'pct', '성언: 평온 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'serenity', kind: 'heal' } }],
@@ -231,14 +231,39 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['gentleRain', '드루 14', '부드러운 비', AR_ACC, '고급', 0.15, 'pct', '새싹 마나 소모 −{v}', { hero: 'druid', cap: 0.4, skillMod: { key: 'sprout', kind: 'cost' } }],
     ['barkCycle', '드루 15', '껍질의 순환', AR, '희귀', 0.12, 'pct', '나무껍질 재사용 대기 −{v}', { hero: 'druid', cap: 0.3, skillMod: { key: 'bark', kind: 'cooldown' } }],
     ['forestReturn', '드루 16', '숲의 귀환', NECK, '영웅', 0.1, 'pct', '고요한 숲 재사용 대기 −{v}', { hero: 'druid', cap: 0.3, skillMod: { key: 'quietwood', kind: 'cooldown' } }],
-    ['faithfulLight', '성기 09', '신실한 빛', ALL, '고급', 0.12, 'pct', '성스러운 빛 회복량 +{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'holyLight', kind: 'heal' } }],
+    ['faithfulLight', '성기 09', '신실한 빛', ALL, '고급', 0.12, 'pct', '빛의 손길 회복량 +{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'holyLight', kind: 'heal' } }],
     ['radiantStrike', '성기 10', '빛나는 일격', HANDS, '희귀', 0.16, 'pct', '빛 일격 회복량 +{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'holyStrike', kind: 'heal' } }],
     ['risingWave', '성기 11', '찬란한 파도', W_ACC, '희귀', 0.16, 'pct', '빛의 파도 회복량 +{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'lightWave', kind: 'heal' } }],
     ['blessedSanctuary', '성기 12', '축복받은 성역', CHEST, '영웅', 0.18, 'pct', '빛의 성역 회복량 +{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'sanctuary', kind: 'heal' } }],
-    ['frugalLight', '성기 13', '절제의 빛', AR_ACC, '고급', 0.15, 'pct', '성스러운 빛 마나 소모 −{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'holyLight', kind: 'cost' } }],
+    ['frugalLight', '성기 13', '절제의 빛', AR_ACC, '고급', 0.15, 'pct', '빛의 손길 마나 소모 −{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'holyLight', kind: 'cost' } }],
     ['measuredStrike', '성기 14', '절제의 일격', H_ACC, '희귀', 0.15, 'pct', '빛 일격 마나 소모 −{v}', { hero: 'paladin', cap: 0.4, skillMod: { key: 'holyStrike', kind: 'cost' } }],
     ['sacredResolve', '성기 15', '희생의 결의', AR, '희귀', 0.12, 'pct', '희생 재사용 대기 −{v}', { hero: 'paladin', cap: 0.3, skillMod: { key: 'sacrifice', kind: 'cooldown' } }],
     ['returningGuard', '성기 16', '돌아오는 가호', NECK, '영웅', 0.1, 'pct', '보호의 손 재사용 대기 −{v}', { hero: 'paladin', cap: 0.3, skillMod: { key: 'handGuard', kind: 'cooldown' } }],
+    // 2026-10-14 직업마다 8종 더 (42 2-9): 고급 · 희귀에서도 부위마다 고를 거리가 있게, 직업 고유 시스템 (성언 · 새싹 · 신성한 힘 · 봉화)에 붙는 효과
+    ['graceWord', '사제 17', '성언의 은혜', W_ACC, '고급', 1.5, 'mana', '성언 (평온 · 신성화)을 쓰면 마나 {v} 회복', { hero: 'priest', cap: 3 }],
+    ['crossWord', '사제 18', '번지는 울림', AR, '희귀', 0.15, 'pct', '성언을 쓰면 다른 성언 게이지 +{v}', { hero: 'priest', cap: 0.3 }],
+    ['renewKnot', '사제 19', '소생의 매듭', ALL, '고급', 0.25, 'pct', '소생이 끝까지 가면 대상이 지능 {v} 회복', { hero: 'priest', cap: 0.6 }],
+    ['clearPrayer', '사제 20', '맑은 기도', HANDS, '고급', 0.15, 'pct', '정화로 디버프를 지우면 평온 게이지 +{v}', { hero: 'priest' }],
+    ['groupPrayer', '사제 21', '모두의 기도', ACC, '희귀', 0.12, 'pct', '치유의 기원이 4명 이상 회복하면 신성화 게이지 +{v}', { hero: 'priest', cap: 0.25 }],
+    ['relayStep', '사제 22', '빛의 발자국', W, '영웅', 1, 'n', '빛의 전이가 옮겨 가는 횟수 +{v}', { hero: 'priest', fixed: true }],
+    ['flashThrift', '사제 23', '아끼는 순간', H_ACC, '희귀', 0.15, 'pct', '순간 치유 마나 소모 −{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'flash', kind: 'cost' } }],
+    ['guardianLight', '사제 24', '영혼의 등불', AR, '희귀', 0.15, 'pct', '수호 영혼이 걸린 아군에게 하는 힐 +{v}', { hero: 'priest', cap: 0.3 }],
+    ['dewDrop', '드루 17', '이슬 맺힘', W_ACC, '고급', 0.2, 'mana', '새싹이 끝까지 가면 마나 {v} 회복', { hero: 'druid', cap: 0.5 }],
+    ['deepRoots', '드루 18', '깊은 뿌리', ALL, '고급', 0.08, 'pct', '지속 힐이 2개 이상 걸린 아군에게 하는 직접 힐 +{v}', { hero: 'druid', cap: 0.3 }],
+    ['pollen', '드루 19', '꽃가루', ACC, '희귀', 1, 'n', '피워 내기를 쓰면 새싹이 없는 옆 칸 1명에게 절반 새싹', { hero: 'druid', fixed: true }],
+    ['barkSprout', '드루 20', '껍질 아래 새순', CHEST, '고급', 1, 'n', '나무껍질을 건 대상에게 새싹이 없으면 새싹도 건다', { hero: 'druid', fixed: true }],
+    ['leafCleanse', '드루 21', '잎새 정화', HANDS, '고급', 1, 'n', '자연 정화로 디버프를 지우면 새싹이 없는 대상에게 절반 새싹', { hero: 'druid', fixed: true }],
+    ['meadowWind', '드루 22', '들판의 바람', W_ACC, '희귀', 0.15, 'pct', '들꽃 군락 재사용 대기 −{v}', { hero: 'druid', cap: 0.3, skillMod: { key: 'wildflower', kind: 'cooldown' } }],
+    ['sproutWind', '드루 23', '퍼지는 새싹', HEAD, '희귀', 0.12, 'pct', '새싹을 걸면 {v} 확률로 새싹이 없는 옆 칸 1명에게도 새싹', { hero: 'druid', cap: 0.3 }],
+    ['bloomBreath', '드루 24', '피어나는 숨', NECK, '영웅', 1, 'mana', '피워 내기를 쓰면 마나 {v} 회복', { hero: 'druid' }],
+    ['beaconKeeper', '성기 17', '봉화지기', W_ACC, '고급', 0.08, 'pct', '봉화 대상에게 하는 직접 힐 +{v}', { hero: 'paladin', cap: 0.25 }],
+    ['fullPower', '성기 18', '흘러넘친 빛', ALL, '고급', 0.1, 'pct', '신성한 힘이 가득 찬 채로 쓰는 빛의 손길 · 빛 일격 회복량 +{v}', { hero: 'paladin', cap: 0.3 }],
+    ['risingPower', '성기 19', '차오르는 힘', W, '희귀', 0.25, 'pct', '빛의 손길이 {v} 확률로 신성한 힘 1칸 더', { hero: 'paladin', cap: 0.5 }],
+    ['oathBreath', '성기 20', '서약의 숨', ACC, '희귀', 1.5, 'mana', '빛의 서약을 신성한 힘 3칸 이상으로 쓰면 마나 {v} 회복', { hero: 'paladin', cap: 3 }],
+    ['cleansePower', '성기 21', '정화의 손길', HANDS, '고급', 1, 'n', '정화의 손으로 디버프를 지우면 신성한 힘 +{v}칸', { hero: 'paladin', fixed: true }],
+    ['sacrificeLight', '성기 22', '희생의 빛', AR, '희귀', 0.15, 'pct', '희생 중인 아군에게 하는 힐 +{v}', { hero: 'paladin', cap: 0.3 }],
+    ['strikeEcho', '성기 23', '일격의 메아리', HEAD, '희귀', 1, 'n', '빛 일격이 치명타면 신성한 힘 1칸 더', { hero: 'paladin', fixed: true }],
+    ['dawnResolve', '성기 24', '밝은 결의', CHEST, '영웅', 0.1, 'pct', '신성한 힘 3칸을 한 번에 쓰면 6초 동안 가속 +{v}', { hero: 'paladin' }],
   ],
 };
 

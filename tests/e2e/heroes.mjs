@@ -57,7 +57,7 @@ export default async function heroes(url, shots) {
   const sv = await save();
   ok(sv.player.level === 10 && sv.player.xp === beforeSwitch.player.xp && sv.player.gold === beforeSwitch.player.gold && sv.roster.cur === beforeSwitch.roster.cur && sv.roster.chars.length === beforeSwitch.roster.chars.length, '직업 전환: 공통 레벨·경험치·골드·캐릭터 유지');
   ok(/지금 Lv 10/.test(await text('#s-char [data-hcard="druid"]')) && /Lv 10/.test(await text('#s-char [data-hcard="priest"]')), '직업 깃발에 같은 공통 레벨');
-  ok(/전용 효과 16종/.test(await text('#s-char .c7-job-gear summary')), '직업 전용 장비 수집 표시');
+  ok(/전용 효과 24종/.test(await text('#s-char .c7-job-gear summary')), '직업 전용 장비 수집 표시');
   ok((await page.locator('#s-char .c7-hdet[data-hdet="druid"] .dsp').count()) === 3 && (await page.locator('#s-char [data-hero]').count()) === 0, '드루이드 상세 해제 칩 3개 (마법·저주·독), 지금 직업이라 바꾸기 버튼 없음');
   await page.click('#s-char nav [data-csub="gear"]'); await page.clock.runFor(50);
   ok(/드루이드/.test(await page.getAttribute('#s-char .topbar .tb-em .emblem', 'aria-label')) && /드루이드/.test(await text('#s-char .topbar .tb-cls')) && (await page.locator('#s-char .c7-mid .c7-stat').count()) === 6, '장비 위 줄 직업 문장·이름 = 드루이드, 중앙 능력치 6줄 유지');

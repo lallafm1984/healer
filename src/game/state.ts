@@ -238,8 +238,10 @@ export function toggleLock(id: number): boolean {
   return !!it.lock;
 }
 
-/** 「일반·고급 모두」로 고를 가방 장비 (잠긴 것 빼고) */
-export const lowGradeIds = () => G.save.gear.bag.filter(it => !it.lock && (it.grade === '일반' || it.grade === '고급')).map(it => it.id);
+/** 다른 직업의 착용 조합에 든 장비 id (v12: 가방에 있어도 그 직업으로 바꾸면 다시 낌) */
+export const loadoutIds = (): Set<number> => new Set(HERO_KEYS.filter(h => h !== G.save.hero).flatMap(h => Object.values(G.save.heroes[h]?.loadout ?? {})).filter((id): id is number => typeof id === 'number'));
+/** 「일반·고급 모두」로 고를 가방 장비 (잠긴 것 · 다른 직업 착용 조합에 든 것 빼고) */
+export const lowGradeIds = () => { const keep = loadoutIds(); return G.save.gear.bag.filter(it => !it.lock && !keep.has(it.id) && (it.grade === '일반' || it.grade === '고급')).map(it => it.id); };
 
 /**
  * 추천 장착 (27 4-2): 부위마다 착용·가방 중 점수(itemScore)가 가장 높은 장비. 바뀌는 부위만 돌려줌.

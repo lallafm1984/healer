@@ -156,7 +156,7 @@ export function claimChest(save: SaveData, r: () => number, now: number, double 
   else save.daily.banked--;
   // 골드는 계정 (가장 높은 직업), 장비는 지금 직업 레벨로 (장비가 직업마다, 2026-10-12)
   const lv = topLevel(save), my = save.player.level;
-  const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero, lv: my });
+  const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero, classLoot: true, lv: my }); // 지금 직업 전용 70% (72)
   if (!double) onAct(save, 'chest');
   return give(save, { gold: runGold(lv), stone: CHEST_REWARD.stone, pass: double ? 0 : PASS_GAIN.chest, items: [it] }, now);
 }
@@ -264,7 +264,7 @@ export function exchangeMerit(save: SaveData, slot: SlotKey, r: () => number = M
   if (save.wallet.merit < MERIT_GEAR_COST) return `공훈 부족 (${MERIT_GEAR_COST} 필요)`;
   save.wallet.merit -= MERIT_GEAR_COST;
   const g: ItemGrade = '영웅';
-  const it = makeItem(r, slot, g, save.nextId++, undefined, { hero: save.hero, lv: save.player.level });
+  const it = makeItem(r, slot, g, save.nextId++, undefined, { hero: save.hero, classLoot: true, lv: save.player.level }); // 지금 직업 전용 70% (72)
   save.gear.bag.push(it);
   noteSpecs(save, [it]);
   return it;
