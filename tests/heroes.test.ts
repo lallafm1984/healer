@@ -1,11 +1,12 @@
 /** 힐러 직업 (25): 저장·직업 바꾸기 (v11 캐릭터, 68), 드루이드·성기사 고유 효과 */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TUNE } from '../src/data/tune';
-import { BEACON, DRUID_BIG, HAND_GUARD, SANCTUARY, TALENT_STANDIN } from '../src/data/heroConst';
+import { BEACON, DRUID_BIG, HAND_GUARD, PRIEST_MANA, SANCTUARY, TALENT_STANDIN } from '../src/data/heroConst';
 import { HERO_KEYS, HEROES, heroSkills, skillAt, slotIdOf } from '../src/data/heroes';
 import * as E from '../src/engine';
 import { damage } from '../src/engine/core';
-import { heroHeal, heroTick } from '../src/engine/heroes';
+import { heroApply, heroChannelTick, heroHeal, heroTick, putHot } from '../src/engine/heroes';
+import { hotTick } from '../src/engine/units';
 import { heroWin } from '../src/game/settle';
 import { G, heroNow, heroStatus, makeChar, switchHero, switchOpen } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
@@ -124,6 +125,27 @@ describe('드루이드', () => {
     while (f.t < t0 + 12.5 && !f.over) { E.step(f); f.events.length = 0; }
     expect(t.hots.some(h => h.key === 'sprout')).toBe(false);
   });
+  it('들꽃 군락: 7초 안에 4번, 모두 160 (2026-10-14 검토: 2초 간격이라 7초에 마지막 15가 잘려 145)', () => {
+    const f = fight('druid'), t = tank(f);
+    t.max = 1e6; t.hp = 1;
+    heroApply(f, 'wildflower', t);
+    let got = 0;
+    for (let i = 0; i < 71; i++) { const h0 = t.hp; hotTick(f, t, 0.1); got += t.hp - h0; }
+    expect(t.hots.some(h => h.key === 'wildflower')).toBe(false);
+    expect(got).toBeCloseTo(160 * f.gear.heal * f.power, 5);
+  });
+  it('고요한 숲: 늘어난 시간만큼 새싹 회복량도 (2026-10-14 검토: 시간만 늘고 회복량은 280 그대로)', () => {
+    const f = fight('druid'), t = tank(f);
+    t.max = 1e6; t.hp = 1;
+    putHot(t, 'sprout', { sec: 12, every: 3, total: 280 });
+    let got = 0;
+    for (let i = 1; i <= 250; i++) {
+      const h0 = t.hp; hotTick(f, t, 0.1); got += t.hp - h0;
+      if (i % 10 === 0 && i <= 40) { const keep = f.party.map(u => u.hp); heroChannelTick(f); f.party.forEach((u, j) => { u.hp = keep[j]; }); } // 숲 직접 회복 100은 빼고 지속 힐만
+    }
+    expect(t.hots.some(h => h.key === 'sprout')).toBe(false);
+    expect(got).toBeCloseTo(((280 * (12 + 8)) / 12) * f.gear.heal * f.power, 4);
+  });
   it('피어남은 남은 지속 힐을 거두어 1.5배로 한 번에', () => {
     const f = fight('druid'), t = tank(f);
     E.use(f, 'sprout', t.cell);
@@ -216,6 +238,27 @@ describe('레이드 재조정 (2026-10-07: 특성·능력 포함 기준, 26 9-1)
     expect(s.heal).toBeCloseTo(1 + TALENT_STANDIN.heal * 3);
     expect(s.mana).toBeCloseTo(1 - TALENT_STANDIN.mana * 3);
     expect(s.guard).toBeCloseTo(1 - TALENT_STANDIN.guard * 3);
+  });
+  it('사제 마나 보정: 열린 특성 단마다 −2%, 다른 직업 · 프로토타입은 그대로 (2026-10-14)', () => {
+    expect(mk('priest', 100).manaCut).toBeCloseTo(1 - PRIEST_MANA * 10);
+    expect(mk('priest', 17).manaCut).toBeCloseTo(1 - PRIEST_MANA * 3);
+    expect(mk('priest', 4).manaCut).toBe(1);
+    expect(mk('druid', 100).manaCut).toBe(1);
+    expect(E.create({ encounter: 'plague', diff: '보통', seed: 7, level: 100, proto: true }).manaCut).toBe(1);
+    const f = mk('priest', 100);
+    expect(E.costOf(f, 'heal')).toBeCloseTo(3 * (1 - PRIEST_MANA * 10));
+  });
+  it('자동 힐러 3인: 셋이 붙어 크게 다치면 광역 힐 (2026-10-14 검토: 3인은 문턱을 못 넘어 광역을 안 씀)', () => {
+    for (const hero of ['priest', 'druid'] as const) {
+      const f = E.create({ encounter: 'reedbank', diff: '보통', seed: 7, level: 100, hero });
+      f.skills.forEach(s => { s.next = Infinity; }); f.tels = [];
+      const [a, b, c] = f.party, near = f.cells.filter(x => !x.unit && !x.block && E.hexDist(x, f.cells[c.cell]) === 1 && E.hexDist(x, f.cells[b.cell]) <= 1)[0];
+      if (E.hexDist(f.cells[a.cell], f.cells[c.cell]) > 1) { f.cells[a.cell].unit = null; a.cell = a.home = near.i; near.unit = a; } // 셋을 붙여 세움
+      for (const u of f.party) u.hp = u.max * 0.4; // 순간 치유 선 (35%) 위
+      f.cd.hymn = f.cd.quietwood = 999; f.g = { p: 0, s: 0 }; f.gcd = 0;
+      E.autoHealer(f);
+      expect(f.cast?.key, hero).toBe(hero === 'priest' ? 'poh' : 'wildflower');
+    }
   });
   it('들꽃 군락: 시전이 끝나면 재사용 대기 10초', () => {
     const f = mk('druid', 100); f.standin = null;

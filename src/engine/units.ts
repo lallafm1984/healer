@@ -10,7 +10,7 @@ import { dotSpec, dpsSpec, hotDone, renewDone, shieldGone, sv, under } from './s
 import { barkCut } from './heroes';
 import { frontCell, posDps } from './position';
 import type { PersName } from '../data/personalities';
-import type { Cell, Debuff, Fight, Unit } from './types';
+import type { Cell, Debuff, Fight, Hot, Unit } from './types';
 
 /** 비켜 설 디버프: 보스를 키우는 옮겨붙음 (P-JUMP) · 부풀기 (P-SWELL, 46 4-1 성격 포인트) */
 const awayFrom = (d: Debuff): boolean => !!d.swell || (d.end?.p === 'jump' && d.end.boost > 0);
@@ -179,17 +179,28 @@ function shelterFor(f: Fight): Cell | null {
   return i >= 0 && !f.cells[i].unit && !dangerAt(f, i) ? f.cells[i] : null;
 }
 
+/** 지속 힐 한 틱 회복량: 정한 회복량을 다 쓰면 (고요한 숲으로 늘어난 시간) 마지막 틱 값 */
+const hotAmt = (h: Hot): number => (h.amts ? h.amts[Math.min(h.i, h.amts.length - 1)] : h.per);
 /** 지속 힐 틱 (드루이드·성기사). 다 차면 직업 패시브(순환)로 마나를 돌려줄 수 있게 이벤트 대신 콜백 */
 export function hotTick(f: Fight, u: Unit, dt: number): void {
+  const give = (h: Hot, amt: number) => {
+    h.rest = Math.max(0, h.rest - amt);
+    if (f.sp) under(h.key, true, () => heal(f, u, amt * hotMult(f, u, h), false));
+    else heal(f, u, amt * hotMult(f, u, h), false);
+  };
   for (const h of u.hots.slice()) {
     h.left -= dt; h.tick -= dt;
-    while (h.tick <= 1e-9 && h.rest > 0) {
-      const amt = h.amts ? (h.amts[h.i] ?? 0) : h.per;
+    while (h.tick <= 1e-9 && h.rest > 1e-9) {
+      const amt = Math.min(h.rest, hotAmt(h));
       h.i++; h.tick += h.every;
-      h.rest = Math.max(0, h.rest - amt);
-      if (f.sp) under(h.key, true, () => heal(f, u, amt * hotMult(f, u, h), false));
-      else heal(f, u, amt * hotMult(f, u, h), false);
+      give(h, amt);
       if (!u.alive) return;
+    }
+    // 고요한 숲으로 늘어난 시간이 틱 간격으로 안 나눠떨어지면, 끝날 때 지난 몫만큼 (2026-10-14 직업 밸런스 검토: 연장해도 회복량이 그대로이던 것)
+    if (h.left <= 1e-9 && h.rest > 1e-9) {
+      give(h, Math.min(h.rest, hotAmt(h) * Math.max(0, 1 - h.tick / h.every)));
+      if (!u.alive) return;
+      if (h.rest < 1e-6) h.rest = 0;
     }
     if (h.left <= 1e-9 || h.rest <= 1e-9) {
       u.hots = u.hots.filter(x => x !== h);

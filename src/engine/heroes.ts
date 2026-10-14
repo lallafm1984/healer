@@ -30,6 +30,9 @@ export function putHot(u: Unit, key: SkillKey, o: { sec: number; every: number; 
   return h;
 }
 
+/** 지속 힐 마지막 틱 회복량 (고요한 숲으로 늘어난 시간에 이 값으로 틱, units hotAmt) */
+const hotTail = (h: Hot): number => (h.amts ? h.amts[h.amts.length - 1] : h.per);
+
 /** 그 사람에게 걸린 지속 힐 개수 (사제 소생 포함) */
 export const hotCount = (u: Unit) => u.hots.length + (u.hot > 0 ? 1 : 0);
 
@@ -124,7 +127,7 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
   } else if (key === 'wildflower') {
     const vs = around(f, u, areaRadius(f, 'wildflower')); // 20인은 2칸 (26 9-1)
     if (f.sp) aoeCount(f, vs.length);
-    for (const v of vs) putHot(v, 'wildflower', { sec: 7, every: 2, amts: [70, 45, 30, 15] });
+    for (const v of vs) putHot(v, 'wildflower', { sec: 7, every: 1.75, amts: [70, 45, 30, 15] }); // 7초 안에 4번 (2026-10-14 검토: 2초 간격이면 마지막 15가 7초에 잘려 145)
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'natureCleanse') {
     if (dispelled(f, u) && f.sp && sv(f, 'leafCleanse')) giveSprout(f, u, true); // 잎새 정화 (42 드루 21)
@@ -213,7 +216,8 @@ export function heroChannelTick(f: Fight): void {
   if (f.hero === 'druid') {
     for (const u of living(f)) {
       heal(f, u, 100, true);
-      for (const h of u.hots) h.left += 2;
+      // 남은 시간 +2초 = 그 지속 힐 마지막 틱 빠르기로 2초만큼 회복량도 더함 (2026-10-14 검토: 시간만 늘고 남은 회복량이 그대로라 새싹은 더 회복하지 않던 것)
+      for (const h of u.hots) { h.rest += (hotTail(h) / h.every) * 2; h.left += 2; }
       if (u.hot > 0) u.hot += 2;
     }
   } else {

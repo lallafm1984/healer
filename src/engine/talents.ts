@@ -33,6 +33,7 @@ export function costOf(f: Fight, key: SkillKey, u?: Unit): number {
   if (f.tx.echoUntil > f.t) c *= 0.5;
   if (activeOn(f, 'zenith')) c *= 1.5;
   if (f.standin) c *= f.standin.mana; // 특성 트리 없는 직업 임시 보정
+  c *= f.manaCut; // 사제 마나 보정 (2026-10-14)
   if (f.sp) c *= costSpec(f, key, u);
   return c;
 }

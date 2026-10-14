@@ -652,6 +652,8 @@ export interface Fight {
   tx: TalentState;
   /** 특성 트리가 없는 직업의 임시 보정: 힐량 배율·마나 소모 배율·내가 받는 피해 배율 (data/heroConst TALENT_STANDIN). 사제는 null */
   standin: { heal: number; mana: number; guard: number } | null;
+  /** 사제 마나 보정 배율 (열린 특성 단마다 −2%, heroConst PRIEST_MANA). 다른 직업 · 프로토타입은 1 */
+  manaCut: number;
   /** 능력을 가진 파티원이 있음 (없으면 능력 코드를 안 탐 = 프로토타입과 같음) */
   abOn: boolean;
   ab: PartyAb;

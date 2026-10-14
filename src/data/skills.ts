@@ -54,7 +54,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 
   // ---------- ② 드루이드 (25 3장) ----------
   sprout: { name: '새싹', short: '새싹', slot: 'basic', lv: 1, cast: 0, cost: 2, amt: 280, target: 'ally' },
-  growth: { name: '생장', short: '생장', slot: 'fast', lv: 1, cast: 2.0, cost: 4, amt: 220, target: 'ally' },
+  growth: { name: '생장', short: '생장', slot: 'fast', lv: 1, cast: 2.0, cost: 3, amt: 220, target: 'ally' }, // 마나 4 → 3 (2026-10-14 직업 밸런스 검토: 장비 적은 초반 드루이드가 생장으로 마나가 바닥나 어려움 · 악몽 40~70%)
   bloom: { name: '피워 내기', short: '피움', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 12, target: 'ally' },
   wildflower: { name: '들꽃 군락', short: '들꽃', slot: 'aoe', lv: 5, cast: 2.0, cost: 10, cd: 10, amt: 160, target: 'area' },
   natureCleanse: { name: '자연 정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
