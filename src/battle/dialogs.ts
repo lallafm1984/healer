@@ -27,7 +27,7 @@ export function battleConfirmation(kind: BattleConfirmKind, usedItems: number): 
     message: `이번 도전을 종료하고 보상 없이 나갑니다.${items}`,
   };
   return {
-    title: '전투 포기', action: '포기하기',
+    title: '현재 전투를 포기하시겠습니까?', action: '포기하기',
     message: '현재 전투를 종료하고\n전멸과 같은 실패로 정산합니다.',
     detail: used ? `사용한 소비 아이템 ${used}개는 반환되지 않습니다.` : undefined,
   };
