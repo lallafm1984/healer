@@ -1113,7 +1113,7 @@ export function addBubble(id: number, text: string, now: number, life = 1700, ki
 export function lensAt(idx: number, now: number): void { B2.lens = { idx, t0: now }; }
 
 /** 지속 힐 색: 새싹 초록 · 생장 연두 · 들꽃 분홍 · 빛의 서약 금색 · 남은 꽃 (드루이드 특성) 연분홍 · 파도의 여운 (성기사 특성) 연금색 (77) */
-const HOT_COLOR: Record<string, number> = { sprout: 0x7bc67e, growth: 0xb7e07a, wildflower: 0xe59ac0, oath: 0xf0c46a, bloom: 0xf3c7d6, lightWave: 0xffe7a3, droplet: 0x7ec8f0 };
+const HOT_COLOR: Record<string, number> = { sprout: 0x7bc67e, growth: 0xb7e07a, wildflower: 0xe59ac0, oath: 0xf0c46a, bloom: 0xf3c7d6, lightWave: 0xffe7a3, droplet: 0x7ec8f0, wanderMist: 0x6fd0b0 };
 /**
  * 판 위 물건 (79 6-1, engine/totems): 칸 바닥 색 · 그림 이름 (80 5장 board-*, 오기 전엔 바닥 색 + 안쪽 테두리). 범위 = 테두리를 그릴 거리
  */

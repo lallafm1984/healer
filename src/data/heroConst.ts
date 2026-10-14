@@ -56,3 +56,20 @@ export const SHAMAN = {
   /** 물웅덩이 (주술 02): 물방울이 끝까지 가면 그 칸에 이 초 동안 */
   puddle: 6,
 };
+
+/**
+ * 수도사 (79 3-5): 기 리듬 (이어지는 초 · 최대 · 리듬마다 손바닥 + · 안개가 빨리 도는 리듬 · 배) · 감싸기 안개 · 떠도는 안개 · 안개 숨결 (안개 걸린 아군 +) ·
+ * 누그러뜨림 · 차 한 잔 · 스며드는 안개 (패시브) · 고요한 호흡 (패시브: 마나 선 · 마나 − · 초)
+ */
+export const MONK = {
+  beat: { window: 2.5, max: 5, step: 0.06, mistFast: 3, mistCdMult: 2 },
+  wrapMist: { sec: 6, amt: 90 },
+  mist: { sec: 18, tick: 3 },
+  breath: { mist: 0.5 },
+  soothe: { cut: 0.4, sec: 10 },
+  tea: { mana: 5, beat: 2 },
+  seep: 0.15,
+  calm: { mana: 0.3, cost: 0.5, sec: 10 },
+  /** 20인 레이드 보정 (드루이드 들꽃 군락 · 주술사 샘처럼): 안개 숨결 범위 +칸 */
+  big: { breath: 1 },
+};

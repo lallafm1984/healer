@@ -5,6 +5,7 @@
 import { HEROES, type HeroKey } from '../data/heroes';
 import { ASTRO_CHARGE, BARK, BEACON, HAND_GUARD, REBIRTH, SANCTUARY, SHAMAN } from '../data/heroConst';
 import { shamanApply, shamanCell, shamanLethal, shamanTaken, shamanTick, shamanTotemGone } from './shaman';
+import { monkApply, monkLethal, monkTaken, monkTick } from './monk';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
 import { hexDist } from './board';
@@ -294,6 +295,7 @@ export function heroApply(f: Fight, key: SkillKey, u: Unit): void {
   if (f.hero === 'druid') druid(f, key, u);
   else if (f.hero === 'paladin') paladin(f, key, u);
   else if (f.hero === 'shaman') shamanApply(f, key, u);
+  else if (f.hero === 'monk') monkApply(f, key, u);
 }
 
 // ---------- 79 직업 4종 공통 자리 (직업 PR마다 채움) ----------
@@ -308,11 +310,13 @@ export function totemGone(f: Fight, t: Totem, broken: boolean): void {
 /** 79 직업의 받는 피해 배율 (core damage, 직업 생존기 · 토템 · 특성). 사제 · 드루이드 · 성기사는 1 */
 export function heroTaken(f: Fight, u: Unit, _magic: boolean): number {
   if (f.hero === 'shaman') return shamanTaken(f, u);
+  if (f.hero === 'monk') return monkTaken(f, u);
   return 1;
 }
 /** 79 직업이 죽을 피해를 막음 (나를 지키는 샘 …). 막았으면 true */
 export function heroLethal(f: Fight, u: Unit): boolean {
   if (f.hero === 'shaman') return shamanLethal(f, u);
+  if (f.hero === 'monk') return monkLethal(f, u);
   return false;
 }
 /** 79 직업 4종인지 (core damage 훅을 탈지) */
@@ -335,6 +339,7 @@ export function chargeStartStars(f: Fight): number {
 /** 직업 고유 시스템의 한 틱 (성역 범위 회복·봉화 대기, 79 직업은 그 직업 파일) */
 export function heroTick(f: Fight, dt: number): void {
   if (f.hero === 'shaman') { shamanTick(f, dt); return; }
+  if (f.hero === 'monk') { monkTick(f, dt); return; }
   if (f.hero !== 'paladin') return;
   if (f.beaconCd > 0) f.beaconCd -= dt;
   const s = f.sanctuary;

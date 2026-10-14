@@ -100,7 +100,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   springTotem: { name: '샘 토템', short: '샘', slot: 'unique', core: true, lv: 6, cast: 0, cost: 4, cd: 10, amt: 60, target: 'cell' },
 
   // ---------- ⑤ 수도사 (79 3장) ----------
-  vitalPalm: { name: '생기 손바닥', short: '손바닥', slot: 'basic', lv: 1, cast: 0, gcd: 1.0, cost: 1.5, amt: 130, target: 'ally' },
+  vitalPalm: { name: '생기 손바닥', short: '손바닥', slot: 'basic', lv: 1, cast: 0, gcd: 1.0, cost: 1.5, amt: 85, target: 'ally' }, // 79 3-11: 130 → 85 (밸런스)
   mistWrap: { name: '안개 감싸기', short: '감싸기', slot: 'fast', lv: 1, cast: 1.5, cost: 5, amt: 230, target: 'ally' },
   wanderMist: { name: '떠도는 안개', short: '안개', slot: 'hot', lv: 2, cast: 0, cost: 2, cd: 6, amt: 270, target: 'ally' },
   clearChi: { name: '맑은 기운', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
@@ -184,8 +184,8 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   sanctuary: { kind: '공대 쿨기', desc: '대상 중심 7칸에 10초 동안 성역을 세웁니다. 안에 있으면 받는 피해가 20% 줄고 초당 {40}씩 회복합니다.' },
   handGuard: { kind: '보호', desc: '6초 동안 대상이 물리 피해를 받지 않습니다. 그동안 대상은 딜을 하지 못합니다.' },
 
-  ripple: { kind: '기본 힐', desc: '대상의 체력을 {300} 회복합니다.' },
-  shower: { kind: '빠른 힐', desc: '대상의 체력을 {250} 회복합니다.' },
+  ripple: { kind: '기본 힐', desc: '대상의 체력을 {330} 회복합니다.' },
+  shower: { kind: '빠른 힐', desc: '대상의 체력을 {280} 회복합니다.' },
   droplet: { kind: '지속 힐', desc: '12초 동안 3초마다 대상의 체력을 회복합니다. 모두 {330}입니다. 물방울이 걸린 아군에게는 연쇄 치유가 2칸 거리까지 튑니다.' },
   washing: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
   chainHeal: { kind: '광역 힐', desc: '대상의 체력을 {300} 회복하고, 붙어 있는 다친 아군에게 튑니다. 체력 비율이 가장 낮은 아군에게 먼저 튀고, 튈 때마다 회복량이 25% 줄며, 모두 4명까지 닿습니다.' },
@@ -194,11 +194,11 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   spiritLink: { kind: '고유', desc: '대상과 붙어 있는 아군의 체력 비율을 모두의 평균으로 똑같이 맞춥니다. 그 뒤 6초 동안 그 아군들이 받는 피해가 10% 줄어듭니다.' },
   springTotem: { kind: '토템 칸', desc: '고른 칸에 샘 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군 체력을 {60}씩 회복합니다. 20인 레이드에서는 70%만 회복합니다.' },
 
-  vitalPalm: { kind: '기본 힐', desc: '대상의 체력을 즉시 {130} 회복합니다. 다음 행동까지 1초만 기다립니다. 2.5초 안에 다시 치면 기 리듬이 오릅니다.' },
+  vitalPalm: { kind: '기본 힐', desc: '대상의 체력을 즉시 {85} 회복합니다. 다음 행동까지 1초만 기다립니다. 2.5초 안에 다시 치면 기 리듬이 오릅니다.' },
   mistWrap: { kind: '빠른 힐', desc: '대상의 체력을 {230} 회복하고, 떠도는 안개가 없으면 6초 동안 {90} 회복하는 안개를 겁니다.' },
   wanderMist: { kind: '지속 힐', desc: '18초 동안 3초마다 대상의 체력을 회복합니다. 모두 {270}입니다. 회복할 때 대상 체력이 가득 차 있으면 붙어 있는 아군 중 안개가 없고 가장 많이 다친 아군에게 옮겨 갑니다.' },
   clearChi: { kind: '해제', desc: '대상의 마법·질병 디버프를 1개 제거합니다.' },
-  mistBreath: { kind: '광역 힐', desc: '대상과 붙어 있는 6칸의 아군 체력을 즉시 {160}씩 회복합니다. 안개가 걸린 아군은 50% 더 회복합니다.' },
+  mistBreath: { kind: '광역 힐', desc: '대상과 붙어 있는 6칸의 아군 체력을 즉시 {160}씩 회복합니다. 안개가 걸린 아군은 50% 더 회복합니다. 20인 레이드에서는 2칸 거리까지 닿습니다.' },
   soothe: { kind: '외부 생존기', desc: '10초 동안 대상이 받는 피해가 40% 줄어듭니다.' },
   reviveWind: { kind: '공대 쿨기', desc: '파티 전원의 체력을 즉시 {350}씩 회복하고, 한 명마다 마법·질병 디버프를 1개씩 제거합니다. 함정 디버프와 해제가 막힌 디버프는 건드리지 않습니다.' },
   tea: { kind: '고유', desc: '마나를 5% 회복하고 기 리듬을 2 올립니다. 마나를 쓰지 않고, 다음 행동을 기다리지 않습니다.' },

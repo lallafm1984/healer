@@ -11,6 +11,7 @@ import { hexDist } from './board';
 import { addMod } from './abilities';
 import { cellOf, emit, heal, living, onDebuffEnd, submerged } from './core';
 import { rainHaste, totemSide } from './shaman';
+import { beatHaste, mistTouch } from './monk';
 import type { Debuff, Fight, Telegraph, Unit } from './types';
 
 /** 전투 중 특수능력 상태 */
@@ -137,6 +138,7 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
     if (pct < 0.3) m += v.ladyPortrait ?? 0;
     if (f.t - u.lastHeal >= 10) m += v.calmRipple ?? 0;
     if (v.totemSide) m += totemSide(f, u); // 토템 곁 (주술 18)
+    if (v.mistTouch) m += mistTouch(f, u); // 안개 손길 (수도 18)
     if (k && HEAL_SLOT.has(sk!.slot)) {
       const c = baseCast(f, k);
       if (c >= 2) m += v.slowHand ?? 0;
@@ -348,6 +350,7 @@ export function hasteOf(f: Fight): number {
   if (v.stillHeart && on(f, 'stillHeart') && f.t + 1e-9 >= (f.sp.until.stillHeartFrom ?? 0)) h += v.stillHeart; // 멈춘 심장 조각 (59 6장)
   if (v.busyHands) h += (v.busyHands * Math.min(5, Math.floor(f.sp.busy / 2))) / 5;
   if (v.rainHaste) h += rainHaste(f); // 비의 서두름 (주술 24)
+  if (v.beatHaste) h += beatHaste(f); // 박자의 서두름 (수도 23)
   return Math.min(f.R.hasteCap, h);
 }
 /** 지금 GCD */
@@ -382,6 +385,7 @@ export function castCut(f: Fight, key: SkillKey): number {
   if (key === 'growth') return v.dawnDew ?? 0;
   if (key === 'rebirth') return v.quickRebirth ? 1 : 0;
   if (key === 'shower') return v.quickShower ?? 0; // 빠른 소나기 (주술 06)
+  if (key === 'mistWrap') return v.quickWrap ?? 0; // 빠른 감싸기 (수도 06)
   return 0;
 }
 
@@ -395,6 +399,7 @@ export function cdSpec(f: Fight, key: SkillKey, cd: number): number {
   if (key === 'holyStrike') cd -= v.combo ?? 0;
   if (key === 'bloom') cd -= v.hastyBloom ?? 0;
   if (key === 'droplet') cd -= v.hastyDrop ?? 0; // 서두른 물방울 (주술 03)
+  if (key === 'wanderMist') cd -= v.hastyMist ?? 0; // 서두른 안개 (수도 03)
   return Math.max(0, cd);
 }
 

@@ -4,6 +4,7 @@ import { DT, emit, heal, living, onDebuffEnd, unitById } from './core';
 import { relayTick, putRelay } from './relay';
 import { totemsTick } from './totems';
 import { heroApply, heroCell, heroChannelTick, heroTick, hotCount, putHot } from './heroes';
+import { palmGcd } from './monk';
 import { crisis, freeCast, gcdNow, guardSec, hasteOf, hc, later, raidSec, regenSpec, specApply, specDispel, specExec, specTick, sv, twiceBrush, twin, under } from './specials';
 import { orderHeal } from './bossParts';
 import { reviveTarget } from './items';
@@ -97,7 +98,7 @@ export function use(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
 
 /** 이 스킬이 거는 GCD (가속 반영): 스킬마다 GCD (79 6-1, 수도사 손바닥 1.0초)면 규칙 GCD에 대한 비율만큼 */
 export function gcdOf(f: Fight, key: SkillKey): number {
-  const g = SKILLS[key].gcd;
+  const g = (key === 'vitalPalm' && palmGcd(f)) || SKILLS[key].gcd; // 천 개의 손 (79 3-7)
   return g == null ? f.gcdBase : (f.gcdBase * g) / f.R.gcd;
 }
 

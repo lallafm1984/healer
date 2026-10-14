@@ -6,6 +6,7 @@ import { ABILITIES } from '../data/abilities';
 import { NO_TANK_SEC } from '../data/armor';
 import { CLASSES } from '../data/classes';
 import { BEACON, SHAMAN } from '../data/heroConst';
+import { beatMax, beatWindow } from '../engine/monk';
 import { canDispel, HEROES } from '../data/heroes';
 import { mobGrade } from '../data/encounters';
 import type { ItemKey } from '../data/items';
@@ -166,7 +167,7 @@ export function updateWheel(): void {
   const gaugeLabels = $('gauges').querySelectorAll<HTMLElement>('.gl');
   if (F.hero === 'paladin' && gaugeLabels[0]) setText(gaugeLabels[0], '신성한 힘');
   $('gauges').setAttribute('aria-label', F.hero === 'paladin' ? `신성한 힘 ${r.a}, 봉화 ${r.b}`
-    : F.hero === 'druid' ? `새싹 ${r.a}명 / ${r.b}명` : F.hero === 'shaman' ? `샘 토템 ${r.a}, 대지 토템 ${r.b}` : `평온 ${r.a}%, 신성화 ${r.b}%`);
+    : F.hero === 'druid' ? `새싹 ${r.a}명 / ${r.b}명` : F.hero === 'shaman' ? `샘 토템 ${r.a}, 대지 토템 ${r.b}` : F.hero === 'monk' ? `기 리듬 ${r.a}, 이어지는 시간 ${r.b}` : `평온 ${r.a}%, 신성화 ${r.b}%`);
   setText($('gP'), r.a);
   setText($('gS'), r.b);
   setBar($('gPb'), r.outer);
@@ -196,6 +197,8 @@ export function buildGauges(F: Fight): void {
     : F.hero === 'druid' ? gaugeRow('새싹', 'gPb', '<b id="gP">0</b>/<b id="gS">0</b>', 'leaf') + '<i id="gSb" hidden></i>'
     // 주술사 (79 7장 3번 첫 모양, Codex가 다듬음): 샘 토템 · 대지 토템 남은 시간
     : F.hero === 'shaman' ? gaugeRow('샘', 'gPb', '<b id="gP">-</b>', 'calm') + gaugeRow('대지', 'gSb', '<b id="gS">-</b>', 'gold')
+    // 수도사 (79 3-3 · 7장, Codex가 다듬음): 기 리듬 · 다음 손바닥까지 남은 시간
+    : F.hero === 'monk' ? gaugeRow('리듬', 'gPb', '<b id="gP">0</b>', 'leaf') + gaugeRow('박자', 'gSb', '<b id="gS">-</b>', 'calm')
     : gaugeRow('평온', 'gPb', '<b id="gP">0</b>%', 'calm') + gaugeRow('신성화', 'gSb', '<b id="gS">0</b>%', 'gold');
 }
 
@@ -212,6 +215,11 @@ function coreRing(F: Fight): { outer: number; inner: number; a: string; b: strin
     const left = (k: 'spring' | 'earth') => Math.max(0, ...F.totems.filter(t => t.kind === k).map(t => t.until - F.t));
     const sp = left('spring'), ea = left('earth'), cd = F.cd.springTotem ?? 0;
     return { outer: sp / (SHAMAN.spring.sec + 6), inner: ea / SHAMAN.earth.sec, a: sp > 0 ? `${Math.ceil(sp)}초` : cd > 0 ? `대기 ${Math.ceil(cd)}` : '준비', b: ea > 0 ? `${Math.ceil(ea)}초` : '-' };
+  }
+  if (F.hero === 'monk') {
+    if (F.level < HEROES.monk.system.lv) return { outer: 0, inner: 0, a: '-', b: `Lv ${HEROES.monk.system.lv}` };
+    const left = F.beat > 0 ? Math.max(0, F.beatUntil - F.t) : 0;
+    return { outer: F.beat / beatMax(F), inner: left / beatWindow(F), a: `${F.beat}/${beatMax(F)}`, b: left > 0 ? `${left.toFixed(1)}초` : '-' };
   }
   if (F.hero === 'druid') {
     const live = F.party.filter(u => u.alive), n = live.filter(u => u.hots.some(h => h.key === 'sprout')).length;

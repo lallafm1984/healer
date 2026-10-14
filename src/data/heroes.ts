@@ -114,7 +114,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
       { name: '고요한 호흡', lv: 10, desc: '전투마다 한 번, 마나가 30% 아래로 내려가면 10초 동안 마나 소모가 50% 줄어듭니다.' },
     ],
     unlock: { lv: 40, how: '캐릭터 Lv 40 달성' },
-    ready: false,
+    ready: true,
   },
   astrologer: {
     key: 'astrologer', name: '점성술사', line: '별을 이어 모았다가 한 번에 터뜨리는 힐러입니다.', star: 3,

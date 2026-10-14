@@ -16,6 +16,7 @@ import type { BarkSit } from '../data/talk/sits';
 import type { PersState } from './persona';
 import type { SpecRun } from './specials';
 import type { ShamanState } from './shaman';
+import type { MonkState } from './monk';
 
 export type Role = 'tank' | 'melee' | 'ranged' | 'healer';
 
@@ -128,6 +129,10 @@ export interface Hot {
   hop?: boolean;
   /** 숲의 기억 (77): 끝까지 가면 한 번 더 걸림 */
   again?: boolean;
+  /** 수도사 떠도는 안개 (79 3-2): 이 틱 (f.k)에 옮겨 옴 (같은 틱에 시간을 두 번 안 뺌) · 옮겨 간 횟수 · 머무는 안개 (안 옮겨 감) */
+  hopK?: number;
+  hops?: number;
+  stay?: boolean;
 }
 
 /** 직접 힐 뒤 4초간 이어지는 잔향 회복 */
@@ -707,6 +712,8 @@ export interface Fight {
   totems: Totem[];
   /** 주술사 상태 (비구름 · 물웅덩이 · 대지 충전 · 특성 재발동, engine/shaman) */
   sham?: ShamanState;
+  /** 수도사 상태 (고요한 호흡 · 특성 재발동, engine/monk) */
+  monk?: MonkState;
   /** 수도사 기 리듬 (79 3-3): 리듬 · 이 시각까지 다음 손바닥이 없으면 내려감 */
   beat: number;
   beatUntil: number;

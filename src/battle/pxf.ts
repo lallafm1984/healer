@@ -83,6 +83,15 @@ export const PXF = {
   'shaman-rain': clip(20, 2),
   'shaman-link': clip(22, 3),
   'shaman-spring': clip(24, 3),
+  // 79 수도사 (비취, requests.md 「수도사」): 휠 8개
+  'monk-palm': clip(14, 1),
+  'monk-wrap': clip(22, 4),
+  'monk-mist': clip(24, 4),
+  'monk-breath': clip(20, 2),
+  'monk-clear': clip(18, 3),
+  'monk-soothe': clip(24, 2),
+  'monk-wind': clip(20, 3),
+  'monk-tea': clip(24, 4),
   // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (회색 그림은 색을 곱함)
   'common-hit': clip(11, 0),
   'common-crit': clip(12, 0),
@@ -153,6 +162,14 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
   rainTotem: { fx: 'shaman-rain', scope: 'party' }, // 2초마다 회복할 때마다
   spiritLink: { fx: 'shaman-link', scope: 'area' },
   springTotem: { fx: 'shaman-spring', scope: 'target' }, // 세운 칸 (사람이 없으면 칸에만, engine/shaman noteCell)
+  vitalPalm: { fx: 'monk-palm', scope: 'target' },
+  mistWrap: { fx: 'monk-wrap', scope: 'target' },
+  wanderMist: { fx: 'monk-mist', scope: 'target' }, // 옮겨 간 칸에도 (engine/monk mistHop)
+  mistBreath: { fx: 'monk-breath', scope: 'area' },
+  clearChi: { fx: 'monk-clear', scope: 'target' },
+  soothe: { fx: 'monk-soothe', scope: 'target' },
+  reviveWind: { fx: 'monk-wind', scope: 'party' },
+  tea: { fx: 'monk-tea', scope: 'target' }, // 내 칸
 };
 
 /** 전투 공통 효과 (모든 효과 PXF 1단계, requests.md): 있으면 board.ts가 예전 그림 (fx-hit · fx-heal …) 대신 그림 */
@@ -218,7 +235,7 @@ export function pxfFrame(c: PxfClip, ms: number): number {
 export const pxfDrawSize = (c: PxfClip, cell: number): number => (cell * c.logicalSize) / c.referenceCell;
 
 /** 범위 스킬의 반경 (엔진과 같은 규칙: 기원 넓은 원 · 20인 들꽃은 엔진 값, 나머지 1칸) */
-const radiusOf = (f: Fight, key: SkillKey): number => (key === 'poh' || key === 'wildflower' ? areaRadius(f, key) : 1);
+const radiusOf = (f: Fight, key: SkillKey): number => (key === 'poh' || key === 'wildflower' || key === 'mistBreath' ? areaRadius(f, key) : 1);
 
 /** 스킬이 대상 uid에게 들어갔을 때 이펙트를 재생할 파티원들 */
 export function pxfTargets(f: Fight, key: SkillKey, uid: number): Unit[] {

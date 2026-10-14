@@ -1,6 +1,6 @@
 import { ABILITIES } from '../data/abilities';
 import { armorFactor } from '../data/armor';
-import { RELAY, SHAMAN } from '../data/heroConst';
+import { MONK, RELAY, SHAMAN } from '../data/heroConst';
 import { HEROES } from '../data/heroes';
 import { DISPELLABLE, SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
@@ -15,6 +15,7 @@ import { reviveTarget } from './items';
 import { dangerAt } from './movement';
 import { areaRadius, castOf, talentReady, useTalent, waveMax, waveNeed } from './talents';
 import { chainPath } from './shaman';
+import { breathRange, misted } from './monk';
 import { totemBreaks } from './totems';
 import { TX } from '../data/talents';
 import type { Debuff, Fight, FightConfig, Telegraph, Unit } from './types';
@@ -355,6 +356,7 @@ export function autoHealer(f: Fight): void {
   if (f.hero === 'druid') { autoDruid(f); return; }
   if (f.hero === 'paladin') { autoPaladin(f); return; }
   if (f.hero === 'shaman') { autoShaman(f); return; }
+  if (f.hero === 'monk') { autoMonk(f); return; }
   if (f.cast || f.channel > 0 || f.gcd > 0 || f.queued) return;
   const all = living(f), live = all.filter(u => !off(f, u)), g = gim(f);
   if (!live.length) return;
@@ -487,6 +489,20 @@ function autoTalents(f: Fight): void {
     }
     if (act.seaSeat && best >= 0 && bn >= 3) useTalent(f, 'seaSeat', best);
     else if (act.totemCall && best >= 0 && bn >= 3 && f.totems.some(t => (t.kind === 'spring' || t.kind === 'earth') && live.filter(v => hexDist(cellOf(f, v), f.cells[t.cell]) <= 1).length <= 1)) useTalent(f, 'totemCall', best);
+  }
+  // 수도사 (79 3-7): 여럿이 다치면 천 개의 손 · 안개 폭풍 (안개가 3명 이상), 모인 칸에 안개 샘 · 기 폭발 (리듬 3 이상)
+  if (act.thousandHands && many && talentReady(f, 'thousandHands').ok) useTalent(f, 'thousandHands');
+  if (act.mistStorm && (many || aoeSoon) && live.filter(v => v.hots.some(h => h.key === 'wanderMist')).length >= 3 && talentReady(f, 'mistStorm').ok) useTalent(f, 'mistStorm');
+  if ((act.gatherMist && (many || aoeSoon) && talentReady(f, 'gatherMist').ok) || (act.chiBurst && many && f.beat >= 3 && talentReady(f, 'chiBurst').ok)) {
+    const pool = !!act.gatherMist, r = pool ? 1 : TX.chiBurst.range;
+    let best = -1, bn = 0;
+    for (const c of f.cells) {
+      if (c.block || (pool && (c.unit || totemBreaks(f, c.i) || dangerAt(f, c.i)))) continue;
+      if (live.some(v => off(f, v) && hexDist(cellOf(f, v), c) <= r)) continue;
+      const n = live.filter(v => hexDist(cellOf(f, v), c) <= r && pct(v) < 0.9).length;
+      if (n > bn) { bn = n; best = c.i; }
+    }
+    if (best >= 0 && bn >= 3) useTalent(f, pool ? 'gatherMist' : 'chiBurst', best);
   }
 }
 
@@ -753,6 +769,82 @@ function autoShaman(f: Fight): void {
   // 소나기는 마나가 비싸서 (1%당 잔물결의 절반) 급할 때만: 마나가 넉넉하면 55% 아래, 보통 40%, 모자라면 25% 아래만
   if (pct(low) < (f.mana > 60 ? 0.55 : f.mana > 25 ? 0.4 : 0.25) && f.mana > 6 && tryUse(f, 'shower', low, idx)) return;
   if (pct(low) < topUp(f, g, f.mana > 40 ? 0.85 : 0.75) && f.mana > 3) tryUse(f, 'ripple', low, idx);
+}
+
+// ---------- 수도사 자동 힐러 (79 3-9): 손바닥 박자를 지키며 안개를 깔아 둠 ----------
+const mistOn = (u: Unit) => u.hots.some(h => h.key === 'wanderMist' && h.left > 2);
+/** 안개 숨결 자리: 75% 아래 아군 (안개가 걸린 아군은 2명으로) 수가 가장 많은 사람. 힐하면 손해인 사람이 범위에 들면 안 씀 */
+function breathAt(f: Fight, live: Unit[], all: Unit[], r: number): { best: Unit | null; n: number; score: number } {
+  const cap = SKILLS.mistBreath.amt! * healUnit(f);
+  let best: Unit | null = null, bn = 0, bs = 0;
+  for (const c of live) {
+    let n = 0, sc = 0, bad = false;
+    for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= r) {
+      if (off(f, v)) { bad = true; break; }
+      const m = misted(f, v) ? 1 + MONK.breath.mist : 1;
+      if (v.hp < healTop(v) * 0.75) n += m >= 1.5 ? 2 : 1;
+      sc += Math.min(cap * m, Math.max(0, healTop(v) - v.hp));
+    }
+    if (!bad && (n > bn || (n === bn && sc > bs))) { best = c; bn = n; bs = sc; }
+  }
+  return { best, n: bn, score: bs };
+}
+
+function autoMonk(f: Fight): void {
+  // 차 한 잔은 GCD를 안 써서 시전 · GCD 중에도: 마나 85% 아래면 재사용마다
+  if (!f.over && !f.charge && knows(f, 'tea') && (f.cd.tea ?? 0) <= 0 && f.mana < 85 && !f.lock.tea) use(f, 'tea', 0);
+  const br = breathRange(f);
+  const c = ctx(f, 160, br);
+  if (!c) return;
+  const { live, pct, low, idx, ready, g } = c;
+  /** 단일 힐 하나: 급하면 감싸기 (시전), 아니면 손바닥 (즉시) */
+  const one = (u: Unit, hurry: boolean) => (hurry && f.mana > 8 && tryUse(f, 'mistWrap', u, idx)) || (f.mana > 2 && tryUse(f, 'vitalPalm', u, idx));
+  if (glassWindow(f, g, live, (u, hurry) => one(u, hurry), () => { if (!ready('clearChi')) return false; const d = cleansable(f, c); return !!d && tryUse(f, 'clearChi', d, idx); })) return;
+  // 위급 (25% 아래): 탱커 버스터 중이면 누그러뜨림, 아니면 손바닥 (즉시라 먼저) → 감싸기
+  const dying = live.filter(u => pct(u) < 0.25).sort((a, b) => pct(a) - pct(b))[0];
+  if (dying) {
+    if (c.busterOn === dying && ready('soothe') && tryUse(f, 'soothe', dying, idx)) return;
+    if (f.mana > 2 && tryUse(f, 'vitalPalm', dying, idx)) return;
+  }
+  if (c.busterOn && ready('soothe') && tryUse(f, 'soothe', c.busterOn, idx)) return;
+  { const bs = busterShort(f); if (bs && !off(f, bs.u) && one(bs.u, false)) return; }
+  if (g.pre && one(g.pre, false)) return;
+  // 띄워 올리기: 예고 동안 해제 → 안개 (떠 있는 동안은 미리 건 지속 힐만 닿음)
+  { const d = g.liftClean[0]; if (d && ready('clearChi') && tryUse(f, 'clearChi', d, idx)) return; }
+  { const v = g.lift.find(u => !mistOn(u)); if (v && ready('wanderMist') && tryUse(f, 'wanderMist', v, idx)) return; }
+  if (g.chain && one(g.chain.u, false)) return;
+  if (g.mate && one(g.mate, false)) return;
+  if (g.tide && one(g.tide, false)) return;
+  if (g.debt && (g.debt.due || pct(low) > 0.6) && f.mana > 6 && one(g.debt.u, false)) return;
+  if (g.order && pct(low) > 0.3 && ((ready('wanderMist') && tryUse(f, 'wanderMist', g.order, idx)) || one(g.order, false))) return;
+  if (g.link?.near && one(g.link.u, false)) return;
+  { const v = g.veil.find(u => !mistOn(u)); if (v && f.mana > 10 && ready('wanderMist') && tryUse(f, 'wanderMist', v, idx)) return; }
+  if (ready('clearChi')) { const d = cleansable(f, c); if (d && tryUse(f, 'clearChi', d, idx)) return; }
+  // 공대 위기: 평균 60% 아래이거나 큰 광역이 곧 → 되살림 바람 (전원을 채우니 힐하면 손해인 사람이 있으면 안 씀)
+  const avg = live.reduce((a, u) => a + pct(u), 0) / live.length;
+  const bigAoe = f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 1.5) && live.length >= 5;
+  if (ready('reviveWind') && live.length >= 3 && live.length === c.all.length && (avg < 0.6 || (bigAoe && avg < 0.8)) && tryUse(f, 'reviveWind', null, idx)) return;
+  // 안개 숨결: 75% 아래 아군 3명 이상 (안개가 걸린 아군은 2명으로, 작은 파티는 닿는 인원만큼)
+  if (ready('mistBreath') && calmFor(f, 'mistBreath', g.calm)) {
+    const b = breathAt(f, live, c.all, br);
+    if (b.best && b.n >= Math.min(3, live.length) && f.mana > 12 && tryUse(f, 'mistBreath', b.best, idx)) return;
+  }
+  if (g.cure && pct(low) > 0.4 && one(g.cure, false)) return;
+  if (g.soul && pct(low) > 0.5 && f.mana > 10 && ((ready('clearChi') && tryUse(f, 'clearChi', g.soul, idx)) || one(g.soul, false))) return;
+  if (g.link && pct(low) > 0.4 && one(g.link.u, false)) return;
+  // 떠도는 안개: 재사용마다 탱커 → 안개 없는 가장 다친 아군 (레이드는 탱커도 다쳤을 때만)
+  if (ready('wanderMist') && !g.few) {
+    const small = live.length <= 5;
+    const t = live.find(u => u.role === 'tank' && !mistOn(u) && (small || pct(u) < 0.95)) ?? g.hit.find(u => !mistOn(u)) ?? live.filter(u => !mistOn(u) && pct(u) < 0.9).sort((a, b) => pct(a) - pct(b))[0];
+    if (t && tryUse(f, 'wanderMist', t, idx)) return;
+  }
+  // 리듬 지키기: 끊기기 0.8초 전이면 손바닥 (다친 사람, 없으면 탱커)
+  const tank = live.find(u => u.role === 'tank') ?? low;
+  if (f.beat >= 1 && f.beatUntil - f.t < 0.8 && f.mana > 20) { const v = pct(low) < 0.999 ? low : tank; if (tryUse(f, 'vitalPalm', v, idx)) return; }
+  if (pct(low) < 0.4 && f.mana > 30 && tryUse(f, 'mistWrap', low, idx)) return;
+  if (pct(low) < topUp(f, g, f.mana > 40 ? 0.9 : 0.8) && f.mana > 2 && tryUse(f, 'vitalPalm', low, idx)) return;
+  // 다친 사람이 없어도 리듬 3 이상이면 탱커에게 이어 침 (마나 50% 위일 때만)
+  if (f.beat >= MONK.beat.mistFast && f.mana > 50) tryUse(f, 'vitalPalm', tank, idx);
 }
 
 /** 자동 힐러로 한 판 끝까지 */
