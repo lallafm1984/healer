@@ -1,0 +1,269 @@
+{
+  "format": "pxf.graph@1",
+  "name": "점성술사 북극성",
+  "settings": {
+    "size": 64,
+    "frames": 22,
+    "fps": 24,
+    "loop": false
+  },
+  "nodes": [
+    {
+      "id": "big",
+      "type": "Shape",
+      "x": 40,
+      "y": 40,
+      "params": {
+        "shape": "star",
+        "points": 4,
+        "x": 0.5,
+        "y": {
+          "k": [
+            [
+              0,
+              0.12,
+              "out"
+            ],
+            [
+              6,
+              0.48
+            ]
+          ]
+        },
+        "size": {
+          "k": [
+            [
+              0,
+              4,
+              "out"
+            ],
+            [
+              6,
+              18,
+              "out3"
+            ],
+            [
+              8,
+              22
+            ],
+            [
+              11,
+              0,
+              "in"
+            ]
+          ]
+        },
+        "size2": 0.18,
+        "rot": {
+          "k": [
+            [
+              0,
+              0
+            ],
+            [
+              11,
+              15
+            ]
+          ]
+        },
+        "falloff": 0.35,
+        "intensity": 1
+      }
+    },
+    {
+      "id": "glow",
+      "type": "Shape",
+      "x": 40,
+      "y": 200,
+      "params": {
+        "shape": "circle",
+        "x": 0.5,
+        "y": 0.48,
+        "size": {
+          "k": [
+            [
+              5,
+              0
+            ],
+            [
+              7,
+              9,
+              "out"
+            ],
+            [
+              12,
+              0
+            ]
+          ]
+        },
+        "falloff": 0.6,
+        "intensity": 0.8
+      }
+    },
+    {
+      "id": "shards",
+      "type": "Particles",
+      "x": 40,
+      "y": 360,
+      "params": {
+        "count": 12,
+        "seed": 6802,
+        "emit": "burst",
+        "start": 0.36,
+        "life": 0.45,
+        "lifeVar": 0.25,
+        "area": "circle",
+        "x": 0.5,
+        "y": 0.48,
+        "aw": 6,
+        "ah": 6,
+        "dirMode": "outward",
+        "speed": 1.8,
+        "speedVar": 0.3,
+        "drag": 0.07,
+        "sizeA": 2.5,
+        "sizeB": 1,
+        "pshape": "plus",
+        "fade": "out",
+        "bright": 1,
+        "loop": false
+      }
+    },
+    {
+      "id": "b1",
+      "type": "Blend",
+      "x": 270,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "b2",
+      "type": "Blend",
+      "x": 500,
+      "y": 40,
+      "params": {
+        "mode": "max"
+      }
+    },
+    {
+      "id": "color",
+      "type": "Palette",
+      "x": 960,
+      "y": 40,
+      "params": {
+        "colors": [
+          "#6b3d12",
+          "#b8741e",
+          "#e8b04a",
+          "#ffe08a",
+          "#fff8e0"
+        ],
+        "cutoff": 0.05,
+        "mode": "bands",
+        "key": "alpha"
+      }
+    },
+    {
+      "id": "rim",
+      "type": "Outline",
+      "x": 1190,
+      "y": 40,
+      "params": {
+        "color": "#3a2108",
+        "threshold": 0.5,
+        "width": 1,
+        "corners": false,
+        "mode": "outer"
+      }
+    },
+    {
+      "id": "fade",
+      "type": "Tint",
+      "x": 1420,
+      "y": 40,
+      "params": {
+        "amount": 0,
+        "opacity": {
+          "k": [
+            [
+              0,
+              1
+            ],
+            [
+              14,
+              1,
+              "in"
+            ],
+            [
+              21,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "Output",
+      "x": 1650,
+      "y": 40,
+      "params": {
+        "alpha": "soft",
+        "threshold": 0.05
+      }
+    }
+  ],
+  "links": [
+    {
+      "f": "big",
+      "t": "b1",
+      "p": 0
+    },
+    {
+      "f": "glow",
+      "t": "b1",
+      "p": 1
+    },
+    {
+      "f": "b1",
+      "t": "b2",
+      "p": 0
+    },
+    {
+      "f": "shards",
+      "t": "b2",
+      "p": 1
+    },
+    {
+      "f": "b2",
+      "t": "color",
+      "p": 0
+    },
+    {
+      "f": "color",
+      "t": "rim",
+      "p": 0
+    },
+    {
+      "f": "rim",
+      "t": "fade",
+      "p": 0
+    },
+    {
+      "f": "fade",
+      "t": "out",
+      "p": 0
+    }
+  ],
+  "game": {
+    "pivot": [
+      0.5,
+      0.5
+    ],
+    "logicalSize": 64,
+    "blend": "normal",
+    "impactFrame": 6
+  }
+}

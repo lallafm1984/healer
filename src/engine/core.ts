@@ -51,6 +51,7 @@ export function bark(f: Fight, u: Unit, text: string | null, force: boolean, sit
 export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = false): number {
   if (!u.alive || amt <= 0) return 0;
   if (u.lift && !sharing && !lingering) return 0; // 띄워 올리기 (P-LIFT): 미리 건 지속 힐 · 나눔 사슬 몫만 닿음
+  if (u.sleep != null && u.sleep > f.t) return 0; // 점성술사 별의 잠 (79 4-2): 회복도 없음
   let crit = false;
   if (!raw) {
     amt *= f.gear.heal * f.power;
@@ -253,6 +254,7 @@ const affinity = (u: Unit): number => (u.gid != null ? 1e9 + u.runs : u.got);
 export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: DamageAim = 'party'): void {
   if (!u.alive || amt <= 0) return;
   if (u.lift && !sharing && !lingering) return; // 띄워 올리기 (P-LIFT): 보스 기술 · 장판은 안 닿고 지속 피해 · 나눔 사슬 몫만
+  if (u.sleep != null && u.sleep > f.t) return; // 점성술사 별의 잠 (79 4-2): 피해 없음
   if (f.links.length && !sharing) { // 생명 사슬 나눔형: 맞은 사람 방어력으로 줄인 뒤 반씩 「고정」으로 (34 9-3, 탱커 버스터가 사슬 건너 딜러에게 그대로 가지 않게)
     const o = shareWith(f, u);
     if (o) { const half = (amt * (f.armor ? armorFactor(u.role, aim) : 1)) / 2; shared(() => { damage(f, u, half, magic, 'fixed'); damage(f, o, half, magic, 'fixed'); }); return; }
@@ -315,7 +317,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
       return;
     }
     if (f.sp && lastBreath(f, u)) return; // 마지막 숨 (42 보호 06)
-    if (NEW_HERO(f) && heroLethal(f, u)) return; // 79 직업 (나를 지키는 샘 …)
+    if (NEW_HERO(f) && heroLethal(f, u, amt)) return; // 79 직업 (나를 지키는 샘 …)
     // 쓰러지면 칸을 비운다 → 다른 파티원이 그 칸으로 이동할 수 있음 (2026-10-07 Lim)
     if (u.moving) { const to = f.cells[u.moving.to]; if (to.unit === u) to.unit = null; }
     { const here = f.cells[u.cell]; if (here.unit === u) here.unit = null; }

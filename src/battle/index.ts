@@ -14,6 +14,7 @@ import { ABILITIES } from '../data/abilities';
 import { artPlaces, ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
 import { art, cssUrl } from '../art';
 import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, setBeacon, slotKey, step, talentReady, use, useItem, useTalent, type Fight, type FightStats } from '../engine';
+import { chargeCancel, chargeRelease } from '../engine/healer';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON, ratsArt } from './art';
@@ -215,7 +216,7 @@ window.addEventListener('resize', () => { if (B.F && !$('battle').hidden) layout
 
 // ---------- 스킬 휠: 짧게 누르기 = 장전(또는 바로 사용), 잠긴 칸은 배우는 레벨 안내. 길게 누르기 = 스킬 설명 ----------
 interface Press { id: number; el: HTMLElement; lp: boolean; timer?: ReturnType<typeof setTimeout> }
-let slotPress: (Press & { slot: string | null; lock: SkillKey | null; core: boolean }) | null = null;
+let slotPress: (Press & { slot: string | null; lock: SkillKey | null; core: boolean; charge?: boolean }) | null = null;
 let itemPress: (Press & { key: ItemKey }) | null = null;
 let auxPress: (Press & { key: TalentKey }) | null = null;
 const live = () => !!B.F && !B.F.over && !B.paused;
@@ -236,6 +237,12 @@ $('wheel').addEventListener('pointerdown', ev => {
   if (!live() || ui.pullLeft > 0 || pointerBusy() || ev.button !== 0) return;
   try { el.setPointerCapture(ev.pointerId); } catch { /* 무시 */ }
   const P: typeof slotPress = { id: ev.pointerId, el, slot: el.dataset.slot || null, lock: (el.dataset.lock as SkillKey) || null, core: el.id === 'core', lp: false };
+  // 모으기 스킬 (점성술사 별비 · 북극성, 79 4-3 · 7장 4번): 누르는 동안 별이 모이고 떼면 터짐, 조각 밖으로 끌어 떼면 취소. 길게 누르기 설명은 없음
+  if (P.slot && B.F && SKILLS[slotKey(B.F, P.slot)].charge) {
+    slotPress = P;
+    P.charge = startCharge(slotKey(B.F, P.slot));
+    return;
+  }
   if (!P.core) P.timer = setTimeout(() => {
     if (slotPress !== P || !B.F) return;
     P.lp = true; openSkillTip(P.slot ? slotKey(B.F, P.slot) : P.lock!, el); vibe(10);
@@ -247,6 +254,11 @@ function endSlot(cancelled: boolean, e?: PointerEvent): void {
   const P = slotPress; slotPress = null;
   if (!P) return;
   clearTimeout(P.timer);
+  if (P.charge !== undefined) { // 모으기: 떼면 터짐, 취소면 마나 · 재사용 없이
+    if (!P.charge || !B.F?.charge) return;
+    if (cancelled || !live()) { chargeCancel(B.F); toast('별 모으기 취소'); return; }
+    chargeRelease(B.F); vibe(12); return;
+  }
   if (P.lp || cancelled || !live()) return;
   if (P.core) { pressCore(); return; }
   if (P.lock) { toast(`${SKILLS[P.lock].name}: Lv ${SKILL_LEVEL[P.lock]}에 배움`); Snd.play('error'); return; }
@@ -284,12 +296,29 @@ function pressCore(): void {
   vibe(8);
 }
 
+/**
+ * 모으기 시작 (79 4-3): 대상은 마지막으로 고른 파티원 (없거나 쓰러졌으면 체력 비율이 가장 낮은 아군). 범위 별비는 그 사람 칸이 가운데
+ */
+function startCharge(key: SkillKey): boolean {
+  const F = B.F!;
+  if (F.level < SKILL_LEVEL[key]) { toast(`${SKILLS[key].name}: Lv ${SKILL_LEVEL[key]}에 배움`); Snd.play('error'); return false; }
+  B.armed = null; ui.itemArmed = null; ui.talArmed = null; B.beacon = false; B.coreCell = false;
+  const sel = F.party.find(u => u.id === ui.selectedUnitId && u.alive);
+  const u = sel ?? F.party.filter(x => x.alive).sort((a, b) => a.hp / a.max - b.hp / b.max)[0];
+  if (!u) return false;
+  const res = use(F, key, u.moving ? u.moving.from : u.cell);
+  if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('error'); return false; }
+  vibe(8);
+  return true;
+}
+
 function pressSlot(slot: string): void {
   const F = B.F;
   if (!F || !live() || ui.pullLeft > 0) return;
   ui.itemArmed = null; ui.talArmed = null; B.beacon = false; B.coreCell = false;
   const key = slotKey(F, slot);
   if (SKILLS[key].target === 'none') { doUse(key, 0); return; }
+  if (SKILLS[key].charge) { startCharge(key); return; } // 키보드 · 보조 기술: 모으기 시작 → 끝까지 모이면 저절로 터짐
   B.armed = B.armed === slot ? null : slot;
   vibe(8);
 }
