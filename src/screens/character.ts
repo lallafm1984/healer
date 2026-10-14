@@ -40,9 +40,12 @@ let codexG: CodexGroup = 'heal';
 let dexT: DexTab = 'kind';
 /** 장비 상세의 재설정 모드 (34 6-8): 줄마다 ↻ 버튼. rrAlt = Lv 60 둘째 후보 (시트를 닫으면 사라짐) */
 let rrOn = false;
-/** 저장된 강화 결과의 시각 연출. 종료는 결과를 지우거나 추가 강화를 실행하지 않는다. */
-let efx: (EnhanceOutcome & { quick: boolean; duration: number }) | null = null;
+/** 저장된 강화 결과의 시각 연출. 종료는 결과를 지우거나 추가 강화를 실행하지 않는다. at = 시작 시각 (탭으로 건너뛰기 판단) */
+type EnhanceFx = EnhanceOutcome & { quick: boolean; duration: number; at: number };
+let efx: EnhanceFx | null = null;
 let efxTimer: ReturnType<typeof setTimeout> | undefined;
+/** 지금 전면 레이어에 붙어 있는 연출. 화면을 다시 그려도 같은 연출이면 DOM을 그대로 둬서 처음부터 다시 돌거나 끊기지 않게 한다. */
+let fxShown: EnhanceFx | null = null;
 let rrAlt: { id: number; kind: RerollKind; i: number; alt: GearLine | SpecLine } | null = null;
 
 let sub: Sub = 'gear';
@@ -70,6 +73,8 @@ const screenFxHost = document.createElement('div');
 screenFxHost.id = 'gearEnhanceFx';
 screenFxHost.setAttribute('aria-hidden', 'true');
 document.body.appendChild(screenFxHost);
+// 전면 연출은 마지막 페이드(screenFxExit)가 실제로 끝난 뒤에 닫는다. 고정 타이머만 쓰면 폰에서 첫 장면이 늦게 그려진 만큼 끝이 잘렸다.
+screenFxHost.addEventListener('animationend', e => { if (efx && e.target === screenFxHost.firstElementChild) endFx(); });
 
 /** 지금 휠 배치 (저장이 없거나 틀리면 기본) */
 export function layoutNow(): Record<string, string | null> {
@@ -118,7 +123,7 @@ function render(keep = true, resetInventory = false): void {
     : sheet.k === 'item' ? [`item:${sheet.id}`] : sheet.k === 'codex' ? ['dex', 'codex'] : [sheet.k];
   if (pending) path.push(`confirm:${pending.kind}`);
   modal.sync(path.length ? s.el.querySelector<HTMLElement>(pending ? '.c7-confirm' : '.sheet') : null, path);
-  screenFxHost.innerHTML = screenEnhanceFx();
+  syncScreenFx();
 }
 
 /** 하위 탭 4칸 (전투 탭 분류 칸 모양): 더 좋은 장비 = 장비 빨간 점, 남은 특성 = 특성 빨간 점 */
@@ -389,19 +394,54 @@ function rrAltHtml(it: GearItem, kind: RerollKind): string {
   return `<div class="c7-rralt"><span class="cap">다른 후보</span><b>${esc(txt)}</b><button type="button" class="btn2" data-rrpick>이걸로</button></div>`;
 }
 
+/** 전면 연출을 보여 줄 수 있나 (효과 줄이기 · 기기의 동작 줄이기면 팝업 안의 짧은 연출만) */
+const screenFxOn = () => !G.save.settings.reducedEffects && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 /** 결과 저장 후 전면 연출. 각성이 있으면 결과를 읽을 시간을 조금 더 준다. */
 function playFx(o: EnhanceOutcome, quick: boolean): void {
   const duration = (quick ? 500 : o.ok ? 2400 : 2200) + (o.awaken != null && !quick ? 600 : 0);
-  efx = { ...o, quick, duration };
+  efx = { ...o, quick, duration, at: performance.now() };
   clearTimeout(efxTimer);
-  efxTimer = setTimeout(endFx, duration);
+  // 전면 연출은 animationend로 닫고, 타이머는 애니메이션이 돌지 않을 때(앱이 뒤로 감 등)의 안전장치
+  efxTimer = setTimeout(endFx, screenFxOn() ? duration + 1500 : duration);
   vibe(o.ok ? [15] : [30, 40, 30]);
+  warmFx();
+}
+/**
+ * 연출 중 탭 (34 7-3 「탭 = 건너뛰고 결과」): 팝업은 닫지 않고 결과 화면으로. 결과 글자가 다 뜨기 전(앞 45%)의 탭은 무시해
+ * 번쩍임과 결과 공개는 끝까지 보이게 한다. 건너뛸 때는 짧게 사라짐 (.skip의 animationend로 닫힘).
+ */
+function skipFx(): void {
+  if (!efx || performance.now() - efx.at < efx.duration * 0.45) return;
+  const root = screenFxHost.firstElementChild;
+  if (root && !root.classList.contains('skip')) root.classList.add('skip');
+  else if (!root) endFx();
 }
 function endFx(): void {
   clearTimeout(efxTimer);
   if (!efx) return;
   efx = null;
   render();
+}
+/** 전면 레이어는 새 연출이 시작될 때만 새로 붙이고, 같은 연출이 이어지는 동안은 건드리지 않는다. */
+function syncScreenFx(): void {
+  const f = efx && !s.el.hidden && pending?.kind === 'enhance' && pending.id === efx.id && screenFxOn() ? efx : null;
+  if (f === fxShown) return;
+  fxShown = f;
+  screenFxHost.innerHTML = f ? screenEnhanceFx(f) : '';
+}
+/** 전면 연출 그림은 처음 강화할 때 늦게 떠서 장면이 비지 않도록 미리 풀어 둔다. */
+const fxWarm: HTMLImageElement[] = [];
+function warmFx(): void {
+  if (fxWarm.length) return;
+  for (const name of ['fx-enhance-spark', 'fx-enhance-crack']) {
+    const u = art(name);
+    if (!u) continue;
+    const img = new Image();
+    img.src = u;
+    img.decode?.().catch(() => { /* 그림이 없거나 못 풀면 연출만 그림 없이 */ });
+    fxWarm.push(img);
+  }
 }
 const vibe = (p: number[]) => { if (G.save.settings.vibrate && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(p); };
 
@@ -439,9 +479,7 @@ function itemSheet(id: number): string {
   // 특수능력 (42 1-3 · 1-5): 묶음 표식 · 이름 · 효과 · 굴림 막대, 꺼진 줄은 회색 + 이유. 전설은 「고유 능력」 (Lim 2026-10-11 「전설에만 고유 능력」)
   const sp = specRows(it), legend = it.grade === LEGEND;
   const spec = sp.length ? `<div class="c7-cmpw${legend ? ' c7-legend' : ''}"><h3 class="h-rule c7-h3">${legend ? '고유 능력' : '특수능력'}<span class="rule"></span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${specBadge(s.group, s.badge)}</span><span class="c7-spt"><b>${esc(s.name)}${SPECS[s.key]?.hero ? ` <small>${HEROES[SPECS[s.key].hero!].name} 전용</small>` : ''}</b><span class="cap">${esc(s.text.replace(/^내가 거는 보호막 /, '보호막 '))}</span></span>${s.off ? `<span class="cap c7-spoff">${/전용$/.test(s.off) ? '비활성' : s.off}</span>` : rrOn && s.roll != null ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(s.roll * 100)}%"><i style="width:${Math.round(rollFill(s.roll) * 100)}%"></i></span>` : ''}${s.i != null ? rrBtn('spec', s.i, s.name) : ''}</div>`).join('')}${rrAltHtml(it, 'spec')}</div>` : '';
-  const c = enhanceCost(it), m = G.save.mats, gold = G.save.player.gold;
-  const can = !!c && gold >= c.gold && m.stone >= c.stone && m.refined >= c.refined;
-  const lack = c && !can ? (gold < c.gold ? '골드 부족' : m.stone < c.stone ? '강화석 부족' : '정제 강화석 부족') : '';
+  const c = enhanceCost(it);
 
   const sv = salvageOf(it);
   // 강화 연출 (34 7장): 성공 = 번쩍 + 「+6」, 떨어짐 = 흔들림 + 「+5 → +4」, 그대로 = 「실패 · +1 그대로」. 짧게 = 0.5초
@@ -458,14 +496,7 @@ function itemSheet(id: number): string {
       <div class="c7-cmpw c7-opts"><h3 class="h-rule c7-h3">능력치<span class="rule"></span><span class="cap">${rrOn ? '재설정할 줄의 ↻' : cmpCap}</span>${rerollOpen() && (it.lines.length || it.specs?.length) ? `<button type="button" class="btn2 c7-rrb" data-rrmode aria-pressed="${rrOn}">재설정</button>` : ''}</h3>${rrOn ? rrCostHtml(it) : ''}${own}${lostHtml}${rrAltHtml(it, 'line')}</div>
       ${spec}
       <section class="c7-enh-section" aria-label="강화">
-        <div class="c7-enh-heading"><h3>강화</h3></div>
-        <div class="c7-enh">
-          <div class="c7-enh-cost"><b>${c ? `+${it.plus} → +${c.to}` : `최대 강화 +${MAX_PLUS}`}</b></div>
-          ${c ? enhanceMaterials(c) : ''}
-          ${c ? `<div class="c7-rate"><span>성공률 <b>${Math.round(c.rate * 100)}%</b></span>${c.rate < 1 ? `<span class="${c.fail < it.plus ? 'c7-lack' : ''}">${failureNote(it, c)}</span>` : ''}</div>` : ''}
-          ${lack ? `<p class="c7-lack c7-enh-lack" id="gearEnhanceLack">${lack}</p>` : ''}
-          <button type="button" class="c7-enhance-button" data-enh="${it.id}"${lack ? ' aria-describedby="gearEnhanceLack"' : ''}${can ? '' : ' disabled'}>${c ? '강화' : '최대 강화'}</button>
-        </div>
+        <button type="button" class="c7-enhance-button" data-enh="${it.id}"${c ? '' : ' disabled'}>${c ? '강화' : '최대 강화'}</button>
       </section>
       ${msg ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
       <div class="c7-sbtns">
@@ -475,7 +506,7 @@ function itemSheet(id: number): string {
       </div></section>`;
 }
 
-/** 두 강화 화면에서 같은 보유/비용 표를 쓴다. 재화 이름은 공통 아이콘의 접근성 설명으로 제공한다. */
+/** 강화 팝업의 보유/비용 표 (장비 상세에는 강화 버튼만 둔다, Lim 2026-10-14). 재화 이름은 공통 아이콘의 접근성 설명으로 제공한다. */
 function enhanceMaterials(c: NonNullable<ReturnType<typeof enhanceCost>>): string {
   const rows: { key: 'gold' | 'stone' | 'refined'; have: number; cost: number }[] = [
     { key: 'gold', have: G.save.player.gold, cost: c.gold },
@@ -499,33 +530,30 @@ function confirmHtml(): string {
   const dismantle = pending.kind === 'salvage', c = enhanceCost(it), reward = salvageOf(it);
   const f = !dismantle && efx?.id === it.id ? efx : null, result = pending.result;
   const fxCls = f ? ` fx ${f.ok ? 'fx-ok' : f.to < f.from ? 'fx-drop' : 'fx-fail'}${f.quick ? ' fx-quick' : ''}` : '';
-  const calm = !!G.save.settings.reducedEffects || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const effects = f && !calm ? `<span class="c7-enchant-aura" aria-hidden="true"></span><span class="c7-enchant-rays" aria-hidden="true"></span>
-    <span class="c7-fxring" aria-hidden="true"></span><span class="c7-fxspark" aria-hidden="true">${fxArt('fx-enhance-spark', 'c7-fxspi')}</span>
-    ${f.quick ? '' : fxArt('fx-enhance-hammer', 'c7-fxham')}${f.ok ? '' : fxArt('fx-enhance-crack', 'c7-fxcrk')}
-    <span class="c7-enchant-particles" aria-hidden="true">${Array.from({ length: 12 }, (_, n) => `<i style="--angle:${n * 30}deg;--delay:${n % 3 * 70}ms"></i>`).join('')}</span>` : '';
+  // 팝업 안 장식(빛 고리 · 불꽃 · 알갱이)은 전면 연출이 그대로 덮어서 보이지 않고 폰 그래픽만 잡아먹어 뺐다. 연출 중엔 강화 전 단계를 보여 줘 결과를 미리 드러내지 않는다.
+  const shownPlus = f ? f.from : it.plus;
   const amounts = `${currencyAmount('gold', reward.gold)}${reward.stone ? currencyAmount('stone', reward.stone) : ''}${reward.refined ? currencyAmount('refined', reward.refined) : ''}`;
   const status = result ? `<div class="c7-enh-result ${result.ok ? 'success' : 'failure'}${f ? ' revealing' : ''}" role="status" aria-live="polite"><b>${result.ok ? '강화 성공' : '강화 실패'}</b><span>+${result.from} → +${result.to}${result.ok ? '' : result.to < result.from ? '로 하락' : ' 유지'}${result.awaken != null ? ' · 옵션 각성' : ''}</span></div>` : '';
   const details = dismantle
     ? `<div class="c7-confirm-cost"><span>획득 재료</span><div>${amounts}</div></div><p id="gearConfirmDesc">분해한 장비는 되돌릴 수 없습니다.</p>`
-    : `${status}<div class="c7-confirm-step">${c ? `${result ? '<small>다음 강화</small>' : ''}+${it.plus} <span>→</span> +${c.to}` : `최대 강화 +${MAX_PLUS}`}</div>
+    : `${status}<div class="c7-enh-next">
+      <div class="c7-confirm-step">${c ? `${result ? '<small>다음 강화</small>' : ''}+${it.plus} <span>→</span> +${c.to}` : `최대 강화 +${MAX_PLUS}`}</div>
       ${c ? enhanceMaterials(c) : ''}
       <div class="c7-confirm-rate" id="gearConfirmDesc">${c ? `<span>성공률 ${Math.round(c.rate * 100)}%</span>${c.rate < 1 ? `<span class="${c.fail < it.plus ? 'c7-lack' : ''}">${failureNote(it, c)}</span>` : ''}` : '최대 강화 도달'}</div>
+      </div>
       ${pending.error ? `<p class="c7-lack" role="status">${esc(pending.error)}</p>` : ''}`;
   const lack = !dismantle && c ? G.save.player.gold < c.gold ? '골드 부족' : G.save.mats.stone < c.stone ? '강화석 부족' : G.save.mats.refined < c.refined ? '정제 강화석 부족' : '' : '';
   return `<button type="button" class="sheet-dim c7-confirm-dim" data-confirmcancel aria-label="${result ? '강화 팝업 닫기' : '확인 취소'}" tabindex="-1"></button>
     <section class="sheet c7-confirm still${!dismantle ? ' c7-enhance-dialog' : ''}${fxCls}" role="dialog" aria-labelledby="gearConfirmTitle" aria-describedby="gearConfirmDesc" aria-busy="${!!f}">
       <h3 id="gearConfirmTitle">${dismantle ? '장비 분해' : '장비 강화'}</h3>
-      <div class="c7-confirm-item${!dismantle ? ' c7-enhance-item' : ''}" style="${gvars(it)}"><span class="c7-confirm-icon${!dismantle ? ' c7-gic' : ''}">${itemIc(it)}${effects}</span><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b></div>
+      <div class="c7-confirm-item${!dismantle ? ' c7-enhance-item' : ''}" style="${gvars(it)}"><span class="c7-confirm-icon${!dismantle ? ' c7-gic' : ''}">${itemIc(it)}</span><b>${esc(it.name)}${shownPlus ? ` +${shownPlus}` : ''}</b></div>
       ${details}
       <div class="c7-confirm-actions"><button type="button" data-confirmcancel>${result ? '닫기' : '취소'}</button><button type="button" class="hot" data-confirmgo${!dismantle && (f || !c || lack) ? ' disabled' : ''}>${dismantle ? '분해하기' : f ? '강화 중' : !c ? '최대 강화' : lack || (result ? '한 번 더 강화' : '강화하기')}</button></div>
     </section>`;
 }
 
-/** 강화 결과는 화면 전면에서 연출한다. 결과 저장/반복 실행과는 독립된 시각 레이어다. */
-function screenEnhanceFx(): string {
-  const f = efx;
-  if (s.el.hidden || !f || pending?.kind !== 'enhance' || pending.id !== f.id || G.save.settings.reducedEffects || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return '';
+/** 강화 결과는 화면 전면에서 연출한다. 결과 저장/반복 실행과는 독립된 시각 레이어다 (붙이는 때는 syncScreenFx). */
+function screenEnhanceFx(f: EnhanceFx): string {
   const it = findItem(f.id);
   if (!it) return '';
   const particles = Array.from({ length: f.quick ? 18 : 48 }, (_, n) => `<i style="--a:${n * 137.508}deg;--r:${38 + n % 9 * 5}vmax;--delay:${n % 5 * 25}ms;--spin:${n * 47}deg;--size:${3 + n % 4}px"></i>`).join('');
@@ -912,7 +940,9 @@ function focusTalentControl(selector: string): void {
 /** 처리했으면 true (그렸음) */
 function onClick(t: HTMLElement): boolean {
   if (pending) {
-    if (t.closest('[data-confirmgo]')) confirmAction();
+    // 강화 연출 중에는 바깥(어두운 바탕)을 눌러도 팝업을 닫지 않고 연출만 건너뜀 (예전엔 팝업과 연출이 함께 사라져 끊겨 보였다)
+    if (efx && pending.kind === 'enhance') skipFx();
+    else if (t.closest('[data-confirmgo]')) confirmAction();
     else if (t.closest('[data-confirmcancel], [data-sheetx]')) closeSheet();
     return true;
   }
@@ -1050,7 +1080,7 @@ s.el.addEventListener('pointerdown', e => {
   dragY = sh && sh.scrollTop <= 0 && !t.closest('button') ? e.clientY : null;
 });
 s.el.addEventListener('pointerup', e => {
-  if (dragY != null && sheet && e.clientY - dragY > 60) closeSheet();
+  if (dragY != null && sheet && !efx && e.clientY - dragY > 60) closeSheet();
   dragY = null;
 });
 

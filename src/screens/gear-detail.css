@@ -229,3 +229,10 @@
 @keyframes screenResult { 0%, 13% { opacity: 0; transform: translate(-50%, -50%) scale(.65); } 30% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } 42%, 83% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.04); } }
 @keyframes screenItemShake { 0%, 100% { transform: none; } 15% { transform: rotate(-8deg) translateX(-6px); } 35% { transform: rotate(7deg) translateX(6px); } 55% { transform: rotate(-5deg) translateX(-4px); } 75% { transform: rotate(3deg) translateX(3px); } }
 @media (prefers-reduced-motion: reduce) { #gearEnhanceFx .c7-screen-fx { display: none; } }
+/* 강화 팝업: 연출 중엔 다음 단계 · 비용 · 성공률을 가려 결과를 미리 드러내지 않는다 (자리는 그대로, Lim 2026-10-14). */
+#app #s-char .c7-enh-next { display: contents; }
+#app #s-char .c7-enh-next > * { flex-shrink: 0; }
+#app #s-char .c7-enhance-dialog.fx .c7-enh-next { visibility: hidden; }
+/* 연출 중 탭으로 건너뛰면 짧게 사라진 뒤 닫힌다 (이 애니메이션의 animationend). */
+#gearEnhanceFx .c7-screen-fx.skip { animation: screenFxSkip .2s ease-out both; }
+@keyframes screenFxSkip { from { opacity: 1; } to { opacity: 0; } }
