@@ -1,4 +1,4 @@
-// 힐러 직업 (25, 27 4-6, 31 시안): 직업 깃발 · 양피지 상세(해제) · 바꾸기 (v12 = 공통 성장 + 무료 직업 전환), 입장 화면 해제 ✓/✕, 전투 휠·봉화
+// 힐러 직업: 일곱 직업 목록 · 상세 시트 · 무료 전환, 입장 화면 해제, 전투 휠·봉화
 import { chromium } from 'playwright';
 import { pastTitle, patchSave, toParty } from './nav.mjs';
 
@@ -33,32 +33,38 @@ export default async function heroes(url, shots) {
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   ok(/사제/.test(await text('#s-char .topbar .tb-cls')), '위 줄 = 사제');
   await page.click('#s-char nav [data-csub="hero"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-char nav [data-csub="hero"]', 'aria-selected') === 'true' && (await page.locator('#s-char .c7-hc[data-hcard]').count()) === 3 && (await page.locator('#s-char [data-hcard] .emblem').count()) === 3, '직업 하위 탭 = 직업 깃발 3장, 깃발마다 직업 문장');
-  ok(await page.isVisible('#s-char .c7-hc.now.sel[data-hcard="priest"]') && /지금 Lv 10/.test(await text('#s-char [data-hcard="priest"]')) && /공통 레벨 Lv 10/.test(await text('#s-char .c7-hdet[data-hdet="priest"]')), '지금 직업 = 사제 (깃발 「지금 Lv 10」, 처음 고른 깃발 = 지금 직업, 상세에 공통 레벨)');
-  ok((await page.locator('#s-char .c7-hdet .dsp').count()) === 2 && /마법/.test(await text('#s-char .c7-hdet .c7-hchips')) && /질병/.test(await text('#s-char .c7-hdet .c7-hchips')), '양피지 상세 = 해제 칩 2개 (마법·질병)');
-  await page.click('#s-char [data-hsk="priest"]'); await page.clock.runFor(50);
-  ok(/수호 영혼/.test(await text('#s-char .c7-hdet .c7-pas')) && /상징/.test(await text('#s-char .c7-hdet .c7-pas')), '「스킬 · 패시브 ▾」 = 펼침');
-  ok(!(await page.isVisible('#s-char .c7-hc.locked[data-hcard="druid"]')) && await page.isVisible('#s-char .c7-hc.locked[data-hcard="paladin"]') && (await page.locator('#s-char [data-hero]:not([disabled])').count()) === 0 && !/퀘스트/.test(await text('#s-char .c7-bnrs')), '드루이드 해금 · 성기사 잠김 (직업 퀘스트 없음)');
+  ok(await page.getAttribute('#s-char nav [data-csub="hero"]', 'aria-selected') === 'true' && (await page.locator('#s-char .c7-hc[data-hcard]').count()) === 3 && (await page.locator('#s-char .c7-job-row .emblem').count()) === 7, '직업 하위 탭 = 선택 가능한 3종과 예정 4종, 공통 문장 7개');
+  ok(await page.isVisible('#s-char .c7-hc.now[data-hcard="priest"]') && /현재 직업/.test(await text('#s-char [data-hcard="priest"]')) && (await page.locator('#s-char .c7-job-sheet').count()) === 0, '사제 현재 직업 강조, 첫 목록에는 상세가 열리지 않음');
+  await page.click('#s-char [data-hcard="priest"]'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-char .c7-job-sheet[role="dialog"]') && /치유를 쌓아/.test(await text('#s-char #jobDetailIntro')), '현재 직업 상세 = 짧은 소개와 스킬 카드');
+  ok((await page.locator('#s-char .c7-job-skill').count()) === 10 && /마법·질병 해제/.test(await text('#s-char .c7-job-skill-grid')), '사제 스킬 8종과 성언 2종 요약');
+  ok((await page.locator('#s-char .c7-job-gear, #s-char [data-hsk]').count()) === 0 && await page.isDisabled('#s-char .c7-hcta'), '장비 수집·펼치기 제거, 현재 직업은 전환 불가');
+  await page.click('#s-char .c7-dialog-close'); await page.clock.runFor(50);
+  ok(await page.evaluate(() => document.activeElement?.getAttribute('data-hcard') === 'priest'), '상세 닫기 → 열었던 직업 행으로 포커스 복귀');
+  ok(!(await page.isVisible('#s-char .c7-hc.locked[data-hcard="druid"]')) && await page.isVisible('#s-char .c7-hc.locked[data-hcard="paladin"]') && (await page.locator('#s-char [data-hero]:not([disabled])').count()) === 0 && !/퀘스트/.test(await text('#s-char .c7-jobs')), '드루이드 해금 · 성기사 잠김 (직업 퀘스트 없음)');
   await page.click('#s-char [data-hcard="paladin"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char [data-hero="paladin"]').count()) === 0 && await page.isDisabled('#s-char .c7-hcta') && /Lv 20/.test(await text('#s-char .c7-hcta')), '성기사 상세: 바꾸기 없음, 잠긴 버튼 = Lv 20 달성');
-  ok(/곧 열림/.test(await text('#s-char .c7-soon')) && /주술사/.test(await text('#s-char .c7-soon')) && (await page.locator('#s-char .c7-upc .emblem').count()) === 4, '「곧 열림」 업데이트 직업 4종 문장');
+  await page.click('#s-char .c7-dialog-close'); await page.clock.runFor(50);
+  ok(/곧 열림/.test(await text('#s-char .c7-jobs-upcoming')) && /주술사/.test(await text('#s-char .c7-jobs-upcoming')) && (await page.locator('#s-char .c7-jobs-upcoming .emblem').count()) === 4 && (await page.locator('#s-char .c7-jobs-upcoming button').count()) === 0, '예정 직업 4종은 특징과 곧 열림을 표시하며 전환 동작이 없음');
   await page.screenshot({ path: `${shots}/heroes_list.png` });
 
   // ---- 같은 캐릭터에서 드루이드로 무료 전환 ----
   const beforeSwitch = await save();
   await page.click('#s-char [data-hcard="druid"]'); await page.clock.runFor(50);
-  ok(/드루이드로 바꾸기/.test(await text('#s-char [data-hero="druid"]')), '드루이드 상세: 「드루이드로 바꾸기」');
-  await page.click('#s-char [data-hcard="druid"]'); await page.clock.runFor(50);
+  ok(/드루이드로 전환/.test(await text('#s-char [data-hero="druid"]')), '드루이드 상세: 「드루이드로 전환」');
+  ok((await save()).hero === 'priest', '직업 행 선택만으로 전환하지 않음');
   await page.screenshot({ path: `${shots}/heroes_druid_card.png` });
 
-  // ---- 드루이드로 바꾸기 ----
+  // ---- 드루이드로 전환 ----
   await page.click('#s-char [data-hero="druid"]'); await page.clock.runFor(50);
   ok((await save()).hero === 'druid' && /드루이드/.test(await text('#s-char .topbar .tb-cls')) && await page.isVisible('#s-char .c7-hc.now[data-hcard="druid"]'), '드루이드로 바꿈 → 저장, 위 줄·지금 직업 깃발');
   const sv = await save();
   ok(sv.player.level === 10 && sv.player.xp === beforeSwitch.player.xp && sv.player.gold === beforeSwitch.player.gold && sv.roster.cur === beforeSwitch.roster.cur && sv.roster.chars.length === beforeSwitch.roster.chars.length, '직업 전환: 공통 레벨·경험치·골드·캐릭터 유지');
-  ok(/지금 Lv 10/.test(await text('#s-char [data-hcard="druid"]')) && /Lv 10/.test(await text('#s-char [data-hcard="priest"]')), '직업 깃발에 같은 공통 레벨');
-  ok(/전용 효과 24종/.test(await text('#s-char .c7-job-gear summary')), '직업 전용 장비 수집 표시');
-  ok((await page.locator('#s-char .c7-hdet[data-hdet="druid"] .dsp').count()) === 3 && (await page.locator('#s-char [data-hero]').count()) === 0, '드루이드 상세 해제 칩 3개 (마법·저주·독), 지금 직업이라 바꾸기 버튼 없음');
+  ok(/현재 직업/.test(await text('#s-char [data-hcard="druid"]')) && /전환 가능/.test(await text('#s-char [data-hcard="priest"]')), '전환 후 현재 직업과 전환 가능 상태 갱신');
+  await page.click('#s-char [data-hcard="druid"]'); await page.clock.runFor(50);
+  ok((await page.locator('#s-char .c7-job-skill').count()) === 8 && /마법·저주·독 해제/.test(await text('#s-char .c7-job-skill-grid')), '드루이드 스킬 8종 및 해제 요약');
+  ok(await page.isDisabled('#s-char .c7-hcta') && /현재 직업/.test(await text('#s-char .c7-hcta')), '전환 후 현재 직업 버튼 비활성');
+  await page.click('#s-char .c7-dialog-close'); await page.clock.runFor(50);
   await page.click('#s-char nav [data-csub="gear"]'); await page.clock.runFor(50);
   ok(/드루이드/.test(await page.getAttribute('#s-char .topbar .tb-em .emblem', 'aria-label')) && /드루이드/.test(await text('#s-char .topbar .tb-cls')) && (await page.locator('#s-char .c7-mid .c7-stat').count()) === 6, '장비 위 줄 직업 문장·이름 = 드루이드, 중앙 능력치 6줄 유지');
   await page.click('#s-char nav [data-csub="skill"]'); await page.clock.runFor(50);

@@ -43,6 +43,8 @@ import './battle/rest-guide.css';
 import './screens/a2-character-paper.css';
 import './screens/gear-detail.css';
 import './screens/level-up.css';
+import './screens/class-jobs.css';
+import './battle/popovers.css';
 import './battle';
 import './screens/title';
 import './screens/lobby';

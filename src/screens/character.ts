@@ -4,16 +4,16 @@
  * 장비: 무기고(ui-char) · 좌우 장비 칸 6개 · 중앙 능력치 · 바로 펼친 인벤토리(필터·정렬·좋음/나쁨 화살표)
  *       + 아래 시트(아이템 탭 → 상세 (옵션마다 지금 장비와 차이) · 장착·강화·잠금·개별 분해 · 능력치 출처 · 도감)
  * 스킬: [설명 보기 | 배치 바꾸기] · 마법진 위 휠 3×3 금테 메달 · 양피지 설명 · 칸 탭 기본 힐 · 스킬 줄 목록
- * 특성: 요약 · 프리셋 1·2·3 · 나무판에 단마다 메달 3개 + 고른 길(금빛 선) · 고르기 시트 / 직업: 천 깃발 · 곧 열림 · 양피지 상세 · 바꾸기
+ * 특성: 프리셋 · 특성 노드 · 고르기 시트 / 직업: 일곱 직업 비교 목록 · 상태 표시 · 소개와 스킬 카드 상세
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
  */
 import { resourceBalance, unlimitedResource, type ResourceKey } from '../game/resources';
-import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemSpecs, itemScore, itemStats, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
-import { DEB_COLOR, HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
+import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
+import { HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
 import { TALENTS, type TalentKey } from '../data/talents';
-import { heroLevelOf, type TapKey } from '../platform/storage';
+import { type TapKey } from '../platform/storage';
 import { FACTIONS } from '../data/places';
 import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, type DexTab } from '../data/dex';
 import { betterSlots, codexRows, dexRows, specRows, statParts, talentsLeft, vsWorn } from '../game/charinfo';
@@ -34,7 +34,7 @@ type Sub = 'gear' | 'skill' | 'talent' | 'hero';
 const SUBS: { key: Sub; name: string }[] = [{ key: 'gear', name: '장비' }, { key: 'skill', name: '스킬' }, { key: 'talent', name: '특성' }, { key: 'hero', name: '직업' }];
 
 /** 장비 상세는 인벤토리로 복귀, 특수능력 도감은 장비 도감으로 복귀한다. */
-type Sheet = { k: 'item'; id: number; inventoryIndex?: number } | { k: 'codex' } | { k: 'dex' } | { k: 'stats' } | { k: 'talent'; i: number; j: number } | null;
+type Sheet = { k: 'item'; id: number; inventoryIndex?: number } | { k: 'codex' } | { k: 'dex' } | { k: 'stats' } | { k: 'hero'; hero: HeroKey } | { k: 'talent'; i: number; j: number } | null;
 /** 도감에서 펼친 묶음 */
 let codexG: CodexGroup = 'heal';
 /** 장비 도감에서 펼친 묶음 */
@@ -68,7 +68,7 @@ const s = screen('s-char', '캐릭터', {
     if (itemOverlay) sub = itemOverlay.previousSub;
     itemOverlay = null; s.el.classList.remove('c7-item-overlay');
     if (SUBS.some(x => x.key === arg)) sub = arg as Sub;
-    sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null; hskOpen = null; hsel = null; seenMarked = false; rrOn = false; rrAlt = null; efx = null;
+    sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null; seenMarked = false; rrOn = false; rrAlt = null; efx = null;
     render(false);
   },
 });
@@ -103,7 +103,6 @@ export function layoutNow(): Record<string, string | null> {
 const hero = (): HeroKey => G.save.hero;
 /** 휠 칸 이름 → 지금 직업의 스킬. 빈 방향은 8번째 칸 (고유 스킬이 있는 직업) */
 const skillOfDir = (lay: Record<string, string | null>, d: string): SkillKey | null => skillAt(hero(), lay[d] || 'unique');
-const stars = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);
 const fill = '<span class="c7-fill"></span>';
 
 /** 선 아이콘 (24 칸, 테마 색을 따름) */
@@ -172,6 +171,7 @@ function sheetHtml(): string {
   if (sheet.k === 'codex') return g ? codexSheet() : '';
   if (sheet.k === 'dex') return g ? dexSheet() : '';
   if (sheet.k === 'stats') return g ? statsSheet() : '';
+  if (sheet.k === 'hero') return sub === 'hero' ? heroSheet(sheet.hero) : '';
   return sub === 'talent' ? talentSheet(sheet.i, sheet.j) : '';
 }
 
@@ -878,63 +878,76 @@ function talentSheet(i: number, j: number): string {
         <button type="button" class="c7-cta c7-tgo${cur === j ? ' chosen' : ''}" data-talent="${i}:${j}">${cur === j ? '풀기' : '고르기'}</button></footer></section>`;
 }
 
-// ---------- 직업 (27 4-6, 시안 CharClass31): 금빛 막대에 걸린 천 깃발 · 곧 열림 · 양피지 상세 · 바꾸기 ----------
-/** 스킬 목록을 펼친 직업 */
-let hskOpen: HeroKey | null = null;
-/** 고른 깃발 (null = 지금 직업) */
-let hsel: HeroKey | null = null;
+// ---------- 직업: 선택 시안 1 (2026-10-14), 일곱 직업을 한 목록에서 비교 ----------
 /** 업데이트 직업 이름 → 문장 키 (art.ts EMBLEM) */
 const UPDATE_EMBLEM: Record<string, string> = { '주술사': 'shaman', '수도사': 'monk', '점성술사': 'astrologer', '결계사': 'warder' };
-/** 깃발 천 색 (사제 남색 · 드루이드 초록 · 성기사 진홍) */
-const CLOTH: Record<HeroKey, string> = {
-  priest: 'linear-gradient(#2E3A5C, #1C2338)',
-  druid: 'linear-gradient(#2F5236, #1A2E1E)',
-  paladin: 'linear-gradient(#6A2A1E, #3A1410)',
+const HERO_STYLE: Record<HeroKey, string> = {
+  priest: '균형 치유 · 성언', druid: '지속 치유 · 군락', paladin: '탱커 보호 · 봉화',
 };
-
-/** 깃발 꼬리표: 지금·열린 직업은 그 직업 레벨 (34 3-1: 직업 레벨은 직업 목록에만), 잠긴 직업은 해금 레벨 */
-function heroBanner(k: HeroKey, pick: HeroKey): string {
-  const h = HEROES[k], st = heroStatus(k), lv = heroLevelOf(G.save, k);
-  const cs = st.state === 'now' ? `<span class="c7-cs now">지금 Lv ${lv}</span>`
-    : st.state === 'locked' ? `<span class="c7-cs">Lv ${h.unlock.lv} 해금</span>`
-    : st.state === 'quest' && st.need ? `<span class="c7-cs">퀘스트 ${st.quest}/${st.need}</span>`
-    : `<span class="c7-cs">Lv ${lv}</span>`;
-  const word = st.state === 'now' ? `지금 직업 · Lv ${lv}` : st.state === 'locked' ? `Lv ${h.unlock.lv}에 열림` : st.state === 'quest' ? `직업 퀘스트 ${st.quest}/${st.need}` : `Lv ${lv}`;
-  return `<button type="button" class="c7-hc c7-bnr${st.state === 'now' ? ' now' : ''}${st.state === 'locked' ? ' locked' : ''}${k === pick ? ' sel' : ''}" data-hcard="${k}" aria-pressed="${k === pick}" aria-label="${h.name} · 난이도 ${h.star} · ${word}" style="--c:${CLOTH[k]}">
-      <span class="c7-rod"></span><span class="c7-cloth"><span class="c7-cem">${classEmblem(k, 'lg')}</span><b>${h.name}</b><span class="c7-stars">${stars(h.star)}</span>${cs}</span>${st.state === 'locked' ? `<span class="c7-lkic">${uiIcon('lock')}</span>` : ''}</button>`;
+/** 예정 직업은 기획상 플레이 방식만 소개한다. 출시일·가격·해금 레벨은 표시하지 않는다. */
+const UPDATE_STYLE: Record<string, string> = {
+  '주술사': '토템 · 연쇄 치유', '수도사': '연속 치유 · 안개',
+  '점성술사': '별자리 · 집중 치유', '결계사': '보호막 · 공격 치유',
+};
+function heroRow(k: HeroKey): string {
+  const h = HEROES[k], st = heroStatus(k), open = switchOpen();
+  const word = st.state === 'now' ? '현재 직업' : st.state === 'locked' ? `Lv ${h.unlock.lv} 해금` : open.ok ? '전환 가능' : open.why;
+  const state = st.state === 'open' && !open.ok ? 'unavailable' : st.state;
+  return `<li><button type="button" class="c7-hc c7-job-row ${state}" data-hcard="${k}" aria-haspopup="dialog"${st.state === 'now' ? ' aria-current="true"' : ''} aria-label="${h.name} · ${HERO_STYLE[k]} · ${word}">
+    ${classEmblem(k, 'lg')}<span class="c7-job-copy"><b>${h.name}</b><small>${HERO_STYLE[k]}</small></span>
+    <span class="c7-job-state">${word}${st.state === 'locked' ? uiIcon('lock') : st.state === 'now' ? '' : uiIcon('arrow')}</span></button></li>`;
 }
 
-/** 고른 직업 상세 = 양피지 (이름 · 별 · 한 줄 설명 · 해제 · 고유 · 스킬/패시브 · 직업 퀘스트) + 아래 진홍 버튼 */
+/** 직업 선택용 요약. 수치·상세 효과는 스킬 탭에서 확인한다. */
+const HERO_INTRO: Record<HeroKey, string> = {
+  priest: '치유를 쌓아 강력한 성언으로 파티를 구하는 힐러입니다.',
+  druid: '미리 걸어 둔 지속 치유로 파티를 지키는 힐러입니다.',
+  paladin: '봉화와 보호 기술로 탱커를 끝까지 지키는 힐러입니다.',
+};
+const SKILL_BRIEF: Record<SkillKey, string> = {
+  heal: '한 명의 체력을 크게 회복', flash: '위급한 아군을 빠르게 회복',
+  renew: '시간에 걸쳐 꾸준히 회복', poh: '주변 아군을 함께 회복',
+  purify: '마법·질병 해제', guardian: '치명적인 피해에서 보호',
+  hymn: '파티 전체를 지속 회복', relay: '아군 사이를 옮겨 가며 회복',
+  serenity: '한 명을 즉시 크게 회복', sanctify: '주변 아군을 즉시 크게 회복',
+  sprout: '시간에 걸쳐 꾸준히 회복', growth: '빠른 회복과 지속 치유',
+  bloom: '남은 지속 치유를 즉시 회복', wildflower: '주변 아군을 함께 회복',
+  natureCleanse: '마법·저주·독 해제', bark: '받는 피해 감소',
+  quietwood: '파티 전체를 지속 회복', rebirth: '쓰러진 아군 부활',
+  holyLight: '체력 회복과 신성한 힘 충전', holyStrike: '빠른 회복과 신성한 힘 충전',
+  oath: '신성한 힘으로 지속 치유', lightWave: '신성한 힘으로 주변 회복',
+  handCleanse: '마법·독·질병 해제', sacrifice: '아군의 피해를 대신 받음',
+  sanctuary: '주변 아군 보호와 지속 치유', handGuard: '물리 피해 차단 · 공격 불가',
+};
+
 function heroDetail(k: HeroKey): string {
-  const h = HEROES[k], st = heroStatus(k), open = switchOpen(), hs = heroSave(k);
-  const chips = h.dispel.map(t => `<span class="dsp" style="--c:${DEB_COLOR[t]}">${t}</span>`).join('');
-  // 스킬 = 휠 스킬 수 (사제 성언 둘은 휠 조각이 바뀌는 것이라 빼고 셈), 패시브 = 고유 시스템 포함 (스킬 탭 「패시브 N」과 같은 수)
-  const pas = passivesOf(k), nSk = heroSkills(k).filter(x => x !== 'serenity' && x !== 'sanctify').length;
-  const ex = hskOpen === k;
-  const list = ex ? `<ul class="c7-pas">${heroSkills(k).map(sk => `<li><b>${SKILLS[sk].name}</b><span class="cap">${SKILL_INFO[sk].kind} · Lv ${SKILL_LEVEL[sk]}</span><p>${esc(healText(SKILL_INFO[sk].desc))}</p></li>`).join('')}${pas.map(p => `<li><b>${p.name}</b><span class="cap">${p.kind} · Lv ${p.lv}</span><p>${esc(p.desc)}</p></li>`).join('')}</ul>` : '';
-  const defs = SPEC_KEYS.map(key => SPECS[key]).filter(d => d.hero === k);
-  const collected = defs.filter(d => G.save.gear.codex.includes(d.key)).length;
-  const preview = hs.loadout && k !== hero() ? Object.values(hs.loadout).map(id => findItem(id)) : Object.values(G.save.gear.equipped);
-  const inactive = preview.flatMap(it => itemSpecs(it)).filter(o => SPECS[o.key]?.hero && SPECS[o.key].hero !== k);
-  const gear = `<details class="c7-job-gear"><summary>전용 효과 ${defs.length}종 <span>수집 ${collected}/${defs.length}</span></summary><p class="m">클리어 장비 효과: 전용 70% · 공용 30%<br>일반은 효과 없음 · 고급은 20% 확률 · 고유 전설 제외</p><ul class="c7-pas">${defs.map(d => `<li><b>${esc(d.name)}</b><span class="cap">${d.min} 이상${G.save.gear.codex.includes(d.key) ? ' · 수집' : ''}</span><p>${esc(specText(d, d.val))}</p></li>`).join('')}</ul><p class="cap">표시 수치는 영웅 최대값 · 실제 수치는 등급과 굴림에 따라 결정</p></details>`;
-  const notes = `<p class="m">공통 레벨 Lv ${heroLevelOf(G.save, k)} · ${h.name} 클리어 ${fmt(hs.wins)}회</p>${inactive.length ? `<p class="m">${h.name}에서 비활성: ${inactive.map(o => esc(SPECS[o.key].name)).join(' · ')}</p>` : ''}`;
-  const intro = open.ok ? '' : `<p class="m c7-intro">${LOCK}${esc(open.why)}</p>`;
-  let cta = '';
-  if (st.state === 'quest' || st.state === 'open') cta = `<button type="button" class="c7-hcta" data-hero="${k}"${open.ok ? '' : ' disabled'}>${h.name}${josa(h.name, '으로', '로')} 바꾸기 · 무료</button>`;
-  else if (st.state === 'locked') cta = `<button type="button" class="c7-hcta" disabled>${LOCK}${esc(h.unlock.how)}</button>`;
-  return `<section class="c7-hdet c7-parch" data-hdet="${k}"><h3>${h.name}<span class="c7-hst" aria-label="난이도 ${h.star}">${stars(h.star)}</span></h3>
-      <p>${esc(h.line)}</p>
-      <div class="c7-hchips"><span>해제</span>${chips}<span class="c7-sys">고유 「${h.system.name}」 Lv ${h.system.lv}</span></div>
-      <p class="m c7-hm"><button type="button" class="c7-hsk" data-hsk="${k}" aria-expanded="${ex}">스킬 ${nSk} · 패시브 ${pas.length} ${ex ? '▴' : '▾'}</button><span>레벨·재화·장비 유지 · 직업별 세팅 저장</span></p>
-      ${list}${notes}${gear}${intro}</section>${cta}`;
+  return `<div class="c7-job-scroll"><header class="c7-job-intro">
+    ${classEmblem(k, 'xl')}<h2 id="jobDetailTitle">${HEROES[k].name}</h2>
+    <p id="jobDetailIntro">${HERO_INTRO[k]}</p></header>
+    <section class="c7-job-skills" aria-labelledby="jobSkillsTitle"><h3 id="jobSkillsTitle">스킬</h3>
+      <ul class="c7-job-skill-grid">${heroSkills(k).map(sk => `<li class="c7-job-skill" data-job-skill="${sk}">
+        <span class="c7-job-skill-icon" aria-hidden="true">${skillIc(sk)}</span><div><h4>${SKILLS[sk].name}</h4><p>${SKILL_BRIEF[sk]}</p></div></li>`).join('')}</ul>
+    </section></div>`;
 }
 
 function heroListHtml(): string {
-  const pick = hsel && HERO_KEYS.includes(hsel) ? hsel : hero();
-  return `<div class="c7-bnrs" role="group" aria-label="직업 고르기">${HERO_KEYS.map(k => heroBanner(k, pick)).join('')}</div>
-    <div class="c7-soon" role="group" aria-label="곧 열림 · 시즌마다 1종 · 골드 60,000 또는 크리스탈 1,500"><span class="c7-soont">곧 열림</span>${UPDATE_HEROES.map(n => `<span class="c7-upc">${classEmblem(UPDATE_EMBLEM[n] || 'priest', 'md')}<small>${n}</small></span>`).join('')}</div>
-    ${msg ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
-    ${heroDetail(pick)}`;
+  return `<section class="c7-jobs" aria-labelledby="jobListTitle">
+    <header class="c7-jobs-head"><div><h2 id="jobListTitle">직업 선택</h2><span>${HERO_KEYS.length + UPDATE_HEROES.length}종</span></div><p>레벨·장비 유지 · 무료 전환</p></header>
+    <ul class="c7-job-list" aria-label="직업 고르기">${HERO_KEYS.map(heroRow).join('')}</ul>
+    <ul class="c7-job-list c7-jobs-upcoming" aria-label="곧 열림">${UPDATE_HEROES.map(n => `<li class="c7-job-row upcoming" aria-label="${n} · ${UPDATE_STYLE[n]} · 곧 열림">${classEmblem(UPDATE_EMBLEM[n], 'lg')}<span class="c7-job-copy"><b>${n}</b><small>${UPDATE_STYLE[n]}</small></span><span class="c7-job-state">곧 열림${uiIcon('lock')}</span></li>`).join('')}</ul>
+  </section>`;
+}
+
+/** 시안 3: 중앙 문장·짧은 소개·2열 스킬 카드. 전환 규칙은 기존 상태 모듈을 사용한다. */
+function heroSheet(k: HeroKey): string {
+  const h = HEROES[k], st = heroStatus(k), open = switchOpen();
+  const available = (st.state === 'open' || st.state === 'quest') && open.ok;
+  const label = st.state === 'now' ? '현재 직업' : st.state === 'locked' ? `Lv ${h.unlock.lv} 해금` : !open.ok ? open.why : `${h.name}${josa(h.name, '으로', '로')} 전환`;
+  return `<div class="sheet-dim" data-sheetx></div><section class="sheet c7-job-sheet" data-hdet="${k}" aria-labelledby="jobDetailTitle" aria-describedby="jobDetailIntro">
+    <button type="button" class="c7-dialog-close" data-sheetx aria-label="직업 상세 닫기">닫기</button>
+    ${heroDetail(k)}<footer class="c7-job-footer">${msg ? `<p class="c7-msg" role="status">${esc(msg)}</p>` : ''}
+      <button type="button" class="c7-hcta"${available ? ` data-hero="${k}"` : ' disabled'}>${esc(label)}</button>
+    </footer></section>`;
 }
 
 // ---------- 누르기 ----------
@@ -976,7 +989,7 @@ function onClick(t: HTMLElement): boolean {
   // 강화 연출 중 아무 데나 누르면 연출 끝 (누른 것은 그대로 처리, 34 7-3)
   if (efx && !t.closest('[data-enh]')) endFx();
   const tab = t.closest<HTMLElement>('[data-csub]');
-  if (tab) { efx = null; sub = tab.dataset.csub as Sub; sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null; hskOpen = null; hsel = null; render(false); return true; }
+  if (tab) { efx = null; sub = tab.dataset.csub as Sub; sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null; render(false); return true; }
   if (t.closest('[data-sheetx]')) { closeSheet(); return true; }
 
   // ---- 장비 ----
@@ -1060,8 +1073,6 @@ function onClick(t: HTMLElement): boolean {
   }
 
   // ---- 직업 ----
-  const hk = t.closest<HTMLElement>('[data-hsk]');
-  if (hk) { const k = hk.dataset.hsk as HeroKey; hskOpen = hskOpen === k ? null : k; render(); return true; }
   const hb = t.closest<HTMLButtonElement>('[data-hero]');
   if (hb) {
     if (hb.disabled) return true;
@@ -1071,7 +1082,7 @@ function onClick(t: HTMLElement): boolean {
     render(); return true;
   }
   const hc = t.closest<HTMLElement>('[data-hcard]');
-  if (hc) { const k = hc.dataset.hcard as HeroKey; if (k !== (hsel || hero())) { hsel = k; hskOpen = null; msg = ''; render(); } return true; }
+  if (hc) { const k = hc.dataset.hcard as HeroKey; if (HERO_KEYS.includes(k)) { sheet = { k: 'hero', hero: k }; msg = ''; render(); } return true; }
 
   // ---- 스킬 ----
   const sm = t.closest<HTMLElement>('[data-smode]');

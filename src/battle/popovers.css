@@ -1,0 +1,117 @@
+/* 전투 중 설명: 판이 비치는 검은 패널. 화면 전체를 덮거나 흐리게 하지 않는다. */
+#battle #preview,
+#battle #tip {
+  background: rgba(0, 0, 0, .76);
+  border: 1px solid rgba(205, 174, 111, .8);
+  border-radius: 10px;
+  padding: 11px 13px;
+  color: #f5f1e8;
+  font-size: 13px;
+  line-height: 1.5;
+  text-shadow: 0 1px 2px #000;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .3);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+#battle #preview::after,
+#battle #tip::after {
+  background: rgba(0, 0, 0, .76);
+  border-color: rgba(205, 174, 111, .8);
+  border-width: 1px;
+  width: 9px;
+  height: 9px;
+  bottom: -6px;
+}
+#battle #tip.below::after { top: -6px; bottom: auto; }
+
+/* 이름/직업과 체력을 분리해 숫자와 설명이 서로 밀리지 않게 한다. */
+#battle #preview .ph {
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+#battle #preview .ph .pnm {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  white-space: normal;
+  overflow: visible;
+}
+#battle #preview .ph b {
+  font-size: 18px;
+  line-height: 1.3;
+  color: #fff6df;
+}
+#battle #preview .pmeta {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #d1ccbf;
+}
+#battle #preview .php { text-align: right; line-height: 1.4; }
+#battle #preview .php strong { font-size: 16px; }
+#battle #preview .php small { color: #d1ccbf; font-size: 12px; font-weight: 400; }
+#battle #preview .php .pdown { color: #ffb6a8; font-size: 14px; }
+#battle #preview .pmax { margin: -4px 0 6px; text-align: right; }
+
+#battle #preview .pv-section {
+  margin: 0;
+  padding: 7px 0;
+  border-top: 1px solid rgba(215, 194, 149, .22);
+}
+#battle #preview .pv-section:last-child { padding-bottom: 0; }
+#battle #preview .pers { display: block; }
+#battle #preview .pv-heading { display: flex; align-items: center; gap: 6px; }
+#battle #preview .pv-heading b {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: #f2d69c;
+}
+#battle #preview .pv-state {
+  margin-left: auto;
+  padding: 1px 6px;
+  border: 1px solid rgba(215, 194, 149, .3);
+  border-radius: 4px;
+  color: #eee3c9;
+  font-size: 10px;
+  white-space: nowrap;
+}
+#battle #preview .pv-label { font-size: 11px; color: #c7c2b7; }
+#battle #preview .pv-heading .pv-label { margin-left: auto; }
+#battle #preview .d { margin-top: 3px; color: #f5f1e8; }
+#battle #preview .pv-effects { display: flex; align-items: baseline; gap: 12px; }
+#battle #preview .pv-effects > .pv-label { flex: none; }
+#battle #preview ul { margin: 0; padding: 0; list-style: none; min-width: 0; }
+#battle #preview li + li { margin-top: 4px; }
+
+/* 위쪽 칸에 공간이 적어도 설명은 유지하고 여백만 줄인다. */
+#battle #preview.brief { padding: 8px 11px; line-height: 1.4; }
+#battle #preview.brief .cpas,
+#battle #preview.brief .pers { display: block; margin: 0; padding: 4px 0; }
+#battle #preview.brief .ph { padding-bottom: 4px; }
+#battle #preview.brief .pv-heading { line-height: 1.3; }
+#battle #preview.brief .d { display: block; margin-top: 2px; }
+#battle #preview.brief .pv-effects { padding-top: 4px; }
+
+/* 공용 tipHtml을 쓰는 캐릭터 화면은 건드리지 않고 전투 설명만 정리한다. */
+#battle #tip .tt-name { gap: 8px; margin-bottom: 7px; }
+#battle #tip .tt-name b { font-size: 18px; color: #fff6df; }
+#battle #tip .tt-name small { font-size: 11px; color: #d1ccbf; padding-left: 0; }
+#battle #tip .tt-row { color: #e1dfd9; line-height: 1.55; font-variant-numeric: tabular-nums; }
+#battle #tip .tt-desc {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(215, 194, 149, .25);
+  color: #f5f1e8;
+}
+#battle #tip .tt-note { color: #d1ccbf; }
+#battle #tip .tt-req { color: #ffb6a8; }
+
+@media (max-width: 359px) {
+  #battle #preview, #battle #tip { padding: 9px 10px; }
+  #battle #preview .ph { gap: 8px; }
+  #battle #preview .php strong { font-size: 14px; }
+}

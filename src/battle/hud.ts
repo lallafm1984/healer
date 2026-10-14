@@ -2,7 +2,7 @@
  * 전투 화면의 HTML 부분: 스킬 휠 · 단축칸 · 시전 막대 · 보스 무대(예고 대기열) · 설명 팝업 · 길게 누르기 정보 · 튜토리얼 안내 · 포기 버튼.
  * 매 프레임 바뀐 글자·클래스만 고침 (판은 board.ts가 캔버스에).
  */
-import { ABILITIES, AB_KIND } from '../data/abilities';
+import { ABILITIES } from '../data/abilities';
 import { NO_TANK_SEC } from '../data/armor';
 import { CLASSES } from '../data/classes';
 import { BEACON } from '../data/heroConst';
@@ -10,7 +10,6 @@ import { canDispel, HEROES } from '../data/heroes';
 import { mobGrade } from '../data/encounters';
 import type { ItemKey } from '../data/items';
 import { ITEMS, POTION_CD } from '../data/items';
-import { CATS } from '../data/personalities';
 import { ITEM_SLOT_LV, itemSlots } from '../data/progression';
 import { INT_BASE } from '../data/rules';
 import { healText, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
@@ -614,16 +613,16 @@ function drawPreview(u: Unit): void {
   const F = fight();
   const lines: string[] = [];
   const cls = u.cls ? CLASSES[u.cls] : null;
-  // 첫 줄 = 이름 · 직업 · 역할 + 오른쪽 체력 (줄 하나를 아낌)
-  lines.push(`<div class="ph"><span class="pnm"><b>${u.nick}</b> · ${cls ? `${cls.name} · ` : ''}${ROLE[u.role].name}${u.me ? ` (${HEROES[F.hero].name})` : ''}</span><span class="php">${u.alive ? `체력 ${Math.ceil(u.hp)} / ${Math.round(u.max)}` : '쓰러짐'}</span></div>`);
+  const job = u.me ? HEROES[F.hero].name : cls?.name;
+  lines.push(`<div class="ph"><div class="pnm"><b>${u.nick}</b><span class="pmeta">${job ? `${job} · ` : ''}${ROLE[u.role].name}</span></div><div class="php"><span class="pmeta">체력</span>${u.alive ? `<strong>${Math.ceil(u.hp).toLocaleString('ko-KR')} <small>/ ${Math.round(u.max).toLocaleString('ko-KR')}</small></strong>` : '<strong class="pdown">쓰러짐</strong>'}</div></div>`);
   if (u.max < u.base) lines.push(`<div class="pmax">최대 체력 -${Math.round((1 - u.max / u.base) * 100)}%</div>`);
   if (u.ab) {
     const ab = ABILITIES[u.ab.key];
     const left = ab.cd > 0 ? Math.max(0, u.ab.ready - F.t) : 0;
     const state = ab.cd === 0 && !ab.each ? '상시' : ab.cd < 0 ? (u.ab.uses ? '사용함' : '1회 준비') : left > 0.05 ? `${Math.ceil(left)}초 뒤` : '준비';
-    lines.push(`<div class="cpas ab"><b>${AB_KIND[ab.kind].icon} ${ab.name}${u.ab.star ? ` ${'★'.repeat(u.ab.star)}` : ''}</b><span class="d"> ${ab.desc}</span> <small>(${state})</small></div>`);
+    lines.push(`<div class="cpas ab pv-section"><div class="pv-heading"><b>${ab.name}${u.ab.star ? ` ${'★'.repeat(u.ab.star)}` : ''}</b><small class="pv-state">${state}</small></div><div class="d">${ab.desc}</div></div>`);
   }
-  if (u.p.ch && u.p.cat) lines.push(`<div class="pers"><i style="background:${CATS[u.p.cat]}">${u.p.ch}</i><span>${u.pers}<span class="d">: ${u.p.desc}</span></span></div>`);
+  if (u.p.ch && u.p.cat) lines.push(`<div class="pers pv-section"><div class="pv-heading"><b>${u.pers}</b><small class="pv-label">성격</small></div><div class="d">${u.p.desc}</div></div>`);
   const items: string[] = [];
   const hero = HEROES[F.hero];
   for (const d of u.debuffs) items.push(`${d.name} (${d.type}${d.stack ? ` ${d.stack}중첩` : ''}, ${Math.ceil(d.left)}초)${!canDispel(F.hero, d.type) ? ` · ${hero.name} 해제 불가` : d.trap ? ' · 해제하면 옆 칸으로 퍼짐' : ` · ${dispelName(F)} 해제`}`);
@@ -641,11 +640,11 @@ function drawPreview(u: Unit): void {
   if (u.shield > 0) items.push(`보호 두루마리 ${Math.ceil(u.shield)}초 (받는 피해 -40%)`);
   for (const g of F.glass) { const g0 = g.rec.get(u.id); if (g0 != null && u.alive) items.push(`${g.name} ${Math.ceil(g.until - F.t)}초 뒤 체력 ${Math.round(g0 * 100)}%로 돌아감 (금빛 선)`); } // 모래시계 (54 5장)
   if (F.melt && F.t < F.melt.until && u.alive) items.push(`${F.melt.name} ${Math.ceil(F.melt.until - F.t)}초: 보호막 · 외부 생존기가 빨리 녹음`); // 녹는 보호막 (51 5장)
-  if (items.length) lines.push(`<ul>${items.map(x => `<li>${x}</li>`).join('')}</ul>`);
+  if (items.length) lines.push(`<div class="pv-effects pv-section"><span class="pv-label">현재 효과</span><ul>${items.map(x => `<li>${x}</li>`).join('')}</ul></div>`);
   const html = lines.join('');
   if ($('preview').innerHTML !== html) $('preview').innerHTML = html;
 }
-/** 누른 칸 위쪽에 붙임 (#battle 기준). 위 공간이 모자라면 .brief, 그래도 모자라면 위 끝에 붙이고 칸을 조금 덮음 */
+/** 누른 칸 위쪽에 붙임 (#battle 기준). 위 공간이 모자라면 .brief로 여백을 줄이고, 그래도 모자라면 위 끝에 붙임 */
 function placePreview(u: Unit): void {
   const el = $('preview'), bat = $('battle').getBoundingClientRect(), cv = $('board').getBoundingClientRect();
   // 화면 좌표 (레이드 판을 5인 던전 모양으로 줄여 그리면 판 그림 좌표 × L.k)
