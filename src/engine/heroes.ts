@@ -6,6 +6,7 @@ import { HEROES, type HeroKey } from '../data/heroes';
 import { ASTRO_CHARGE, BARK, BEACON, HAND_GUARD, REBIRTH, SANCTUARY, SHAMAN } from '../data/heroConst';
 import { shamanApply, shamanCell, shamanLethal, shamanTaken, shamanTick, shamanTotemGone } from './shaman';
 import { monkApply, monkLethal, monkTaken, monkTick } from './monk';
+import { warderApply, warderShieldBroken, warderTaken, warderTick } from './warder';
 import { astroApply, astroChargeSpec, astroLethal, astroStartStars, astroTaken, astroTick, astroTotemGone, readMult } from './astro';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
@@ -299,6 +300,7 @@ export function heroApply(f: Fight, key: SkillKey, u: Unit): void {
   else if (f.hero === 'shaman') shamanApply(f, key, u);
   else if (f.hero === 'monk') monkApply(f, key, u);
   else if (f.hero === 'astrologer') astroApply(f, key, u);
+  else if (f.hero === 'warder') warderApply(f, key, u);
 }
 
 // ---------- 79 직업 4종 공통 자리 (직업 PR마다 채움) ----------
@@ -316,6 +318,7 @@ export function heroTaken(f: Fight, u: Unit, _magic: boolean): number {
   if (f.hero === 'shaman') return shamanTaken(f, u);
   if (f.hero === 'monk') return monkTaken(f, u);
   if (f.hero === 'astrologer') return astroTaken(f, u);
+  if (f.hero === 'warder') return warderTaken(f, u);
   return 1;
 }
 /** 79 직업이 죽을 피해를 막음 (나를 지키는 샘 …). 막았으면 true */
@@ -328,8 +331,8 @@ export function heroLethal(f: Fight, u: Unit, amt: number): boolean {
 /** 79 직업 4종인지 (core damage 훅을 탈지) */
 export const NEW_HERO = (f: Fight): boolean => f.hero !== 'priest' && f.hero !== 'druid' && f.hero !== 'paladin';
 /** 힐러가 건 흡수 보호막 (src HEALER_SHIELD)이 피해로 다 깨짐: 결계사 깨진 막의 빛 (79 5-4) */
-export function shieldBroken(_f: Fight, _u: Unit): void {
-  // 79 5장 결계사 PR에서 채움
+export function shieldBroken(f: Fight, u: Unit): void {
+  if (f.hero === 'warder') warderShieldBroken(f, u);
 }
 /** 모으기 수치 (79 4-3): 최대 별 · 별 하나 시간 (가속 전) · 완벽 구간. 점성술사 특성 · 특수능력이 바꿈 */
 export function chargeSpec(f: Fight): { max: number; step: number; perfect: number } {
@@ -349,6 +352,7 @@ export function heroTick(f: Fight, dt: number): void {
   if (f.hero === 'shaman') { shamanTick(f, dt); return; }
   if (f.hero === 'monk') { monkTick(f, dt); return; }
   if (f.hero === 'astrologer') { astroTick(f, dt); return; }
+  if (f.hero === 'warder') { warderTick(f, dt); return; }
   if (f.hero !== 'paladin') return;
   if (f.beaconCd > 0) f.beaconCd -= dt;
   const s = f.sanctuary;

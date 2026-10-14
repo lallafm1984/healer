@@ -854,6 +854,16 @@ const TALENT_ART: Record<TalentKey, SkillKey> = {
   gatherLight: 'starfall', thriftFall: 'starfall', wideSky: 'starfall',
   tankMemory: 'starMemory', thriftMemory: 'starMemory', longMemory: 'starMemory',
   supernova: 'polaris', starPath: 'starfall', milkyWay: 'starHeal',
+  thickBarrier: 'lightBarrier', lightSeal: 'sealHeal', splitBarrier: 'lightBarrier',
+  lightOnBarrier: 'lightBarrier', longSeal: 'sealHeal', cleanWard: 'wardCleanse',
+  firmWard: 'guardWard', quickBarrier: 'lightBarrier', sealSpread: 'sealHeal',
+  heavyJudge: 'judgment', quickJudge: 'judgment', wideJudge: 'judgment',
+  judgeHammer: 'judgment', sealEcho: 'sealHeal', freshSeal: 'sealHeal',
+  selfBarrier: 'lightBarrier', barrierBreath: 'lightBarrier', sharedBurden: 'guardWard',
+  stepIn: 'lightBarrier', preWard: 'wardCircle', lastWard: 'wardCircle',
+  doubleCircle: 'wardCircle', thriftCircle: 'wardCircle', wideWard: 'wardCircle',
+  veilTank: 'lightVeil', veilBreath: 'lightVeil', sharedLoad: 'lightVeil',
+  citadel: 'lightVeil', repentTime: 'lightSpear', endlessJudge: 'judgment',
 };
 const talentIcon = (key: TalentKey) => gameIcon(key, skillIc(TALENT_ART[key]), 'talent');
 

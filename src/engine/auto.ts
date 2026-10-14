@@ -17,6 +17,8 @@ import { areaRadius, castOf, talentReady, useTalent, waveMax, waveNeed } from '.
 import { chainPath } from './shaman';
 import { breathRange, misted } from './monk';
 import { asleep, fallSpec } from './astro';
+import { circleRange, judgeReady, sealed, sealTargets } from './warder';
+import { absorbLeft } from './abilities';
 import { totemBreaks } from './totems';
 import { TX } from '../data/talents';
 import type { Debuff, Fight, FightConfig, Telegraph, Unit } from './types';
@@ -359,6 +361,7 @@ export function autoHealer(f: Fight): void {
   if (f.hero === 'shaman') { autoShaman(f); return; }
   if (f.hero === 'monk') { autoMonk(f); return; }
   if (f.hero === 'astrologer') { autoAstro(f); return; }
+  if (f.hero === 'warder') { autoWarder(f); return; }
   if (f.cast || f.channel > 0 || f.gcd > 0 || f.queued) return;
   const all = living(f), live = all.filter(u => !off(f, u)), g = gim(f);
   if (!live.length) return;
@@ -518,6 +521,19 @@ function autoTalents(f: Fight): void {
       if (n > bn) { bn = n; best = c.i; }
     }
     if (best >= 0 && bn >= 3) useTalent(f, 'supernova', best);
+  }
+  // 결계사 (79 5-7): 인장이 붙은 다친 아군이 많으면 심판의 망치 · 끝없는 심판, 모인 빈 칸에 성채
+  const sealedHurt = f.hero === 'warder' ? sealTargets(f, 20).filter(v => pct(v) < 0.85).length : 0;
+  if (act.judgeHammer && sealedHurt >= 3 && talentReady(f, 'judgeHammer').ok) useTalent(f, 'judgeHammer');
+  if (act.endlessJudge && sealedHurt >= 3 && many && talentReady(f, 'endlessJudge').ok) useTalent(f, 'endlessJudge');
+  if (act.citadel && (many || aoeSoon) && talentReady(f, 'citadel').ok) {
+    let best = -1, bn = 0;
+    for (const c of f.cells) {
+      if (c.block || c.unit || dangerAt(f, c.i)) continue;
+      const n = live.filter(v => hexDist(cellOf(f, v), c) <= TX.citadel.range).length;
+      if (n > bn) { bn = n; best = c.i; }
+    }
+    if (best >= 0 && bn >= 3) useTalent(f, 'citadel', best);
   }
 }
 
@@ -945,6 +961,70 @@ function autoAstro(f: Fight): void {
     if (t && f.mana > 10 && tryUse(f, 'starMark', t, idx)) return;
   }
   if (pct(low) < topUp(f, g, f.mana > 40 ? 0.85 : 0.75) && f.mana > 3) tryUse(f, 'starHeal', low, idx);
+}
+
+// ---------- 결계사 자동 힐러 (79 5-9): 막과 인장을 미리 깔고 심판으로 정리 ----------
+function autoWarder(f: Fight): void {
+  const c = ctx(f, 150, 1);
+  if (!c) return;
+  const { live, pct, low, idx, ready, g } = c;
+  const melt = !!f.melt && f.t < f.melt.until; // 보호막이 녹는 동안 (P-MELT): 막 · 결계 원 대신 인장 치유 · 심판 위주
+  const shieldLow = (u: Unit) => absorbLeft(f, u) < u.max * (f.mana > 50 ? 0.3 : 0.15); // 마나가 넉넉하면 막을 두껍게 (상한 60%)
+  const one = (u: Unit, hurry: boolean) => (hurry && f.mana > 6 && tryUse(f, 'quickSeal', u, idx)) || (f.mana > 3 && tryUse(f, 'sealHeal', u, idx));
+  if (glassWindow(f, g, live, (u, hurry) => one(u, hurry), () => { if (!ready('wardCleanse')) return false; const d = cleansable(f, c); return !!d && tryUse(f, 'wardCleanse', d, idx); })) return;
+  // 위급 (25% 아래): 탱커 버스터 중이면 수호 결계 → 빠른 인장
+  const dying = live.filter(u => pct(u) < 0.25).sort((a, b) => pct(a) - pct(b))[0];
+  if (dying) {
+    if (c.busterOn === dying && ready('guardWard') && tryUse(f, 'guardWard', dying, idx)) return;
+    if (one(dying, true)) return;
+  }
+  // 탱커 버스터: 막이 없거나 얇으면 빛의 막
+  if (c.busterOn && !melt && ready('lightBarrier') && shieldLow(c.busterOn) && tryUse(f, 'lightBarrier', c.busterOn, idx)) return;
+  if (c.busterOn && ready('guardWard') && pct(c.busterOn) < 0.5 && tryUse(f, 'guardWard', c.busterOn, idx)) return;
+  { const bs = busterShort(f); if (bs && !off(f, bs.u) && one(bs.u, bs.soon)) return; }
+  if (g.pre && ((!melt && ready('lightBarrier') && shieldLow(g.pre) && tryUse(f, 'lightBarrier', g.pre, idx)) || one(g.pre, false))) return;
+  { const d = g.liftClean[0]; if (d && ready('wardCleanse') && tryUse(f, 'wardCleanse', d, idx)) return; }
+  if (g.chain && one(g.chain.u, g.chain.soon < castOf(f, 'sealHeal') + 0.3)) return;
+  if (g.mate && one(g.mate, false)) return;
+  if (g.tide && one(g.tide, pct(g.tide) < 0.5)) return;
+  if (g.debt && (g.debt.due || pct(low) > 0.6) && f.mana > 6 && one(g.debt.u, g.debt.due)) return;
+  if (g.order && pct(low) > 0.3 && one(g.order, true)) return;
+  if (g.link?.near && one(g.link.u, pct(g.link.u) < 0.5)) return;
+  if (ready('wardCleanse')) { const d = cleansable(f, c); if (d && tryUse(f, 'wardCleanse', d, idx)) return; }
+  // 광역 예고: 결계 원을 맞을 사람이 가장 많은 사람 칸에, 큰 광역이면 빛의 장막
+  const aoeSoon = g.aoe || f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 3.5);
+  const avg = live.reduce((a, u) => a + pct(u), 0) / live.length;
+  if ((aoeSoon && live.length >= 5) || (avg < 0.6 && live.length >= 3)) {
+    const center = live.slice().sort((a, b) => live.filter(v => hexDist(cellOf(f, v), cellOf(f, b)) <= 2).length - live.filter(v => hexDist(cellOf(f, v), cellOf(f, a)) <= 2).length)[0];
+    if (center && ready('lightVeil') && (avg < 0.6 || f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 2)) && tryUse(f, 'lightVeil', center, idx)) return;
+  }
+  // 결계 원: 광역 예고가 곧 오거나, 한 칸 둘레에 85% 아래 아군이 3명 이상 (막과 인장을 깔아 심판으로 이어 감)
+  if (!melt && ready('wardCircle') && f.mana > 12) {
+    const r = circleRange(f), lowN = (c0: Unit) => live.filter(v => hexDist(cellOf(f, v), cellOf(f, c0)) <= r && pct(v) < 0.85).length;
+    const center = live.filter(u => !c.all.some(v => off(f, v) && hexDist(cellOf(f, v), cellOf(f, u)) <= r)).sort((a, b) => lowN(b) - lowN(a))[0];
+    if (center && (aoeSoon || lowN(center) >= Math.min(3, live.length)) && tryUse(f, 'wardCircle', center, idx)) return;
+  }
+  // 심판: 인장이 붙은 아군 중 85% 아래가 3명 이상
+  if (knows(f, 'judgment') && judgeReady(f) && f.mana > 8) {
+    const n = sealTargets(f, 20).filter(v => pct(v) < 0.85).length;
+    if (n >= 3 && use(f, 'judgment', 0).ok) return; // 2명이면 마나 1%당 회복이 인장 치유보다 한참 낮음
+  }
+  if (g.cure && pct(low) > 0.4 && one(g.cure, pct(g.cure) < 0.5)) return;
+  if (g.soul && pct(low) > 0.5 && f.mana > 10 && ((ready('wardCleanse') && tryUse(f, 'wardCleanse', g.soul, idx)) || one(g.soul, false))) return;
+  if (g.link && pct(low) > 0.4 && one(g.link.u, false)) return;
+  // 빛의 창: 재사용마다 (인장이 붙은 다친 아군이 있으면, 아니면 보스 딜만이라도 마나 70% 위에서)
+  if (ready('lightSpear') && (sealTargets(f, 1).length || f.mana > 70) && use(f, 'lightSpear', 0).ok) return;
+  // 빛의 막: 재사용마다 탱커 (레이드는 다쳤을 때) → 계속 맞는 사람
+  if (!melt && ready('lightBarrier') && !g.few) {
+    const small = live.length <= 5;
+    const t = live.find(u => u.role === 'tank' && shieldLow(u) && (small || pct(u) < 0.95)) ?? g.hit.find(shieldLow);
+    if (t && tryUse(f, 'lightBarrier', t, idx)) return;
+  }
+  // 빠른 인장은 마나가 비싸서 급할 때만
+  if (pct(low) < (f.mana > 50 ? 0.45 : 0.3) && f.mana > 6 && tryUse(f, 'quickSeal', low, idx)) return;
+  if (pct(low) < topUp(f, g, f.mana > 40 ? 0.85 : 0.75) && f.mana > 3) { tryUse(f, 'sealHeal', low, idx); return; }
+  // 아무도 크게 안 다쳤으면: 인장이 곧 끝나는 탱커에게 막 (마나가 넉넉할 때)
+  if (!melt && ready('lightBarrier') && f.mana > 50) { const t = live.find(u => u.role === 'tank' && (!sealed(f, u) || (u.seal ?? 0) - f.t < 3)); if (t) tryUse(f, 'lightBarrier', t, idx); }
 }
 
 /** 자동 힐러로 한 판 끝까지 */

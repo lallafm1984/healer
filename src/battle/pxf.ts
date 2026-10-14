@@ -101,6 +101,16 @@ export const PXF = {
   'astro-sleep': clip(24, 4),
   'astro-memory': clip(22, 6),
   'astro-polaris': clip(22, 6),
+  // 결계사 (79 5-5, 상아빛 네모 결계): 인장 X · 도장 · 유리판 · 깨지는 유리 · 네 말뚝 · 도는 방패 · 가로 띠 · 창 · 망치
+  'warder-seal': clip(20, 4),
+  'warder-quick': clip(16, 3),
+  'warder-barrier': clip(22, 4),
+  'warder-cleanse': clip(18, 3),
+  'warder-circle': clip(20, 4),
+  'warder-guard': clip(22, 3),
+  'warder-veil': clip(24, 5),
+  'warder-spear': clip(16, 2),
+  'warder-judgment': clip(18, 5),
   // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (회색 그림은 색을 곱함)
   'common-hit': clip(11, 0),
   'common-crit': clip(12, 0),
@@ -187,6 +197,15 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
   starSleep: { fx: 'astro-sleep', scope: 'target' },
   starMemory: { fx: 'astro-memory', scope: 'party' },
   polaris: { fx: 'astro-polaris', scope: 'target' },
+  sealHeal: { fx: 'warder-seal', scope: 'target' },
+  quickSeal: { fx: 'warder-quick', scope: 'target' },
+  lightBarrier: { fx: 'warder-barrier', scope: 'target' },
+  wardCleanse: { fx: 'warder-cleanse', scope: 'target' },
+  wardCircle: { fx: 'warder-circle', scope: 'target' }, // 범위 (20인 2칸) 안 칸마다 엔진이 따로 기록 (79 5-2)
+  guardWard: { fx: 'warder-guard', scope: 'target' },
+  lightVeil: { fx: 'warder-veil', scope: 'target' }, // 장막 범위 안 칸마다 엔진이 따로 기록
+  lightSpear: { fx: 'warder-spear', scope: 'target' }, // 회복한 인장 칸마다 (없으면 누른 칸)
+  judgment: { fx: 'warder-judgment', scope: 'target' }, // 회복한 인장 칸마다
 };
 
 /** 전투 공통 효과 (모든 효과 PXF 1단계, requests.md): 있으면 board.ts가 예전 그림 (fx-hit · fx-heal …) 대신 그림 */

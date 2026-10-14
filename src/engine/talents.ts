@@ -12,6 +12,7 @@ import { aoeCount, aoeDone, castCut, castMult, cdSpec, costSpec, freeCast, haste
 import { callTotems, raining, seaSeat, shamanDeath } from './shaman';
 import { breathRange, chiBurst, gatherMist, monkCost, monkDeath } from './monk';
 import { astroCost, instantStar, supernova } from './astro';
+import { citadel, judgeCast, warderCost, warderDeath } from './warder';
 import type { ActionResult, Fight, TalentState, Unit } from './types';
 
 /** 두 겹 수호 충전 시간, 쉼터 초당 회복 */
@@ -30,7 +31,7 @@ export function newTalents(f: Fight): TalentState {
   for (const k of Object.keys(on) as TalentKey[]) if (TALENT_DEF[k].active) act[k] = { cd: 0, left: 0, used: false };
   return {
     on, act, griefUntil: -1, echoUntil: -1, lastAct: 0, focus: null, guard: 2, guardRe: 0, repayUsed: false, shelter: -1, later: [],
-    any: Object.keys(on).length > 0, cut: CUT_KEYS.some(k => on[k]), hotm: HOT_KEYS.some(k => on[k]), death: !!(on.fallenFlower || on.martyr || on.lastSpring || on.scatterMist),
+    any: Object.keys(on).length > 0, cut: CUT_KEYS.some(k => on[k]), hotm: HOT_KEYS.some(k => on[k]), death: !!(on.fallenFlower || on.martyr || on.lastSpring || on.scatterMist || on.lastWard),
     freeSprout: 0, moss: on.mossBed ? new Map() : null, treeCd: 0, watchCd: 0, telSeen: 0, rebirths: 0, freeLight: false, cleanAt: 0, martyrUntil: -1, breathCd: 0,
   };
 }
@@ -70,6 +71,7 @@ function heroCost(f: Fight, key: SkillKey, u?: Unit): number {
   }
   if (f.hero === 'shaman') return shamanCost(f, key);
   if (f.hero === 'astrologer') return astroCost(f, key);
+  if (f.hero === 'warder') return warderCost(f, key);
   return 1;
 }
 
@@ -88,7 +90,7 @@ function shamanCost(f: Fight, key: SkillKey): number {
  * 곧은 손길 (빛의 손길 −0.3초) · 다급한 손 (낮은 대상에게 빛의 손길 절반, u = 대상을 알 때, 77)
  */
 export function castOf(f: Fight, key: SkillKey, u?: Unit): number {
-  const base = f.R.cast?.[key] ?? SKILLS[key].cast;
+  const base = key === 'judgment' && f.hero === 'warder' ? judgeCast(f) : f.R.cast?.[key] ?? SKILLS[key].cast; // 심판 (79 5-7: 망치 · 끝없는 · 빠른 심판)
   if (!(base > 0)) return 0;
   if (activeOn(f, 'zenith')) return 0;
   if (f.sp && freeCast(f, key)) return 0;
@@ -105,6 +107,7 @@ export function castOf(f: Fight, key: SkillKey, u?: Unit): number {
 export function cdOf(f: Fight, key: SkillKey): number {
   let cd = f.R.cd?.[key] ?? (SKILLS[key].cd || 0);
   if (key === 'hymn' && f.tx.on.quickHymn) cd -= 60;
+  if (key === 'lightBarrier' && f.tx.on.quickBarrier) cd = TX.quickBarrier; // 빠른 막 (79 5-7)
   if (f.sp) cd = cdSpec(f, key, cd);
   return cd;
 }
@@ -228,6 +231,7 @@ export function useTalent(f: Fight, key: TalentKey, cellIdx?: number): ActionRes
   if (key === 'gatherMist') gatherMist(f, cellIdx!); // 모이는 안개 (79 3-7)
   if (key === 'chiBurst') chiBurst(f, cellIdx!); // 기 폭발
   if (key === 'supernova') supernova(f, cellIdx!); // 초신성 (79 4-7)
+  if (key === 'citadel') citadel(f, cellIdx!); // 성채 (79 5-7)
   emit(f, { type: 'sound', name: 'chime' });
   emit(f, { type: 'msg', text: def.active!.dur ? `${def.name}: ${def.active!.dur}초` : def.name });
   return { ok: true };
@@ -356,6 +360,7 @@ export function talentDeath(f: Fight, u: Unit): void {
   if (f.tx.on.martyr) { f.power3 = powerMax(f); f.tx.martyrUntil = f.t + TX.martyr.sec; }
   if (f.tx.on.lastSpring) shamanDeath(f, u); // 마지막 샘 (79 2-7)
   if (f.tx.on.scatterMist) monkDeath(f, u); // 흩어지는 안개 (79 3-7)
+  if (f.tx.on.lastWard) warderDeath(f, u); // 마지막 결계 (79 5-7)
 }
 
 /** 빛의 파도를 쓰는 데 드는 신성한 힘: 끝없는 빛이면 2칸 (77) */

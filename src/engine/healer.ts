@@ -5,6 +5,7 @@ import { relayTick, putRelay } from './relay';
 import { totemsTick } from './totems';
 import { heroApply, heroCell, heroChannelTick, heroTick, hotCount, putHot } from './heroes';
 import { palmGcd } from './monk';
+import { judgeReady, warderRegen } from './warder';
 import { crisis, freeCast, gcdNow, guardSec, hasteOf, hc, later, raidSec, regenSpec, specApply, specDispel, specExec, specTick, sv, twiceBrush, twin, under } from './specials';
 import { orderHeal } from './bossParts';
 import { reviveTarget } from './items';
@@ -85,6 +86,7 @@ export function use(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
   if (tg.u && tg.u.debuffs.length && invertTap(f, key, tg.u)) return { ok: false, reason: '뒤집힌 축복: 힐이 피해가 됨 (한 번 더 누르면 사용)' };
   if (sk.cd && (f.cd[key] ?? 0) > 0) return { ok: false, reason: `${sk.name} 재사용 대기 ${Math.ceil(f.cd[key]!)}초` };
   if (f.lock[key]) return { ok: false, reason: `${sk.name} 잠김 ${Math.ceil(f.lock[key]!.left)}초 (진동)` };
+  if (key === 'judgment' && !judgeReady(f)) return { ok: false, reason: '심판: 인장이 붙은 아군 없음' }; // 79 5-3
   if (f.mana < costOf(f, key, tg.u)) { f.stats.manaFails++; return { ok: false, reason: '마나 부족' }; }
   if (sk.gcd === 0) { exec(f, key, cellIdx, tg.u); return { ok: true }; } // GCD를 안 쓰는 스킬 (차 한 잔): 시전 · GCD 중에도 바로, 시전을 끊지 않음
   const uid = tg.u ? tg.u.id : null;
@@ -175,7 +177,7 @@ function apply(f: Fight, key: SkillKey, u: Unit): void {
 
 function applySkill(f: Fight, key: SkillKey, u: Unit): void {
   if (u.lift) { emit(f, { type: 'msg', text: `닿지 않음: ${u.nick}은(는) 하늘에 떠 있음` }); return; } // 예약해 둔 힐이 나갈 때 떠 버림 (P-LIFT)
-  if (key !== 'lightWave') noteUsed(f, key, u.id); // 빛의 파도는 실제로 회복한 사람 칸마다 (heroes, 73)
+  if (key !== 'lightWave' && key !== 'judgment' && key !== 'lightSpear') noteUsed(f, key, u.id); // 빛의 파도 · 심판 · 빛의 창은 실제로 회복한 사람 칸마다 (heroes 73, warder)
   if (f.order && singleHeal(key) && !u.soul) orderHeal(f, u); // 차례 (P-ORDER)
   if (f.hero !== 'priest') { heroApply(f, key, u); return; }
   const sk = SKILLS[key];
@@ -259,6 +261,7 @@ export function healerTick(f: Fight): void {
   let regen = f.R.regen * f.gear.regen * f.enc.manaCoef * (f.symbol > 0 ? 4 : 1) * (f.medit > 0 ? 1 + 1.5 * (1 + sv(f, 'potionRegular')) : 1); // 물약 단골 (42 마나 09)
   if (f.sp) regen *= regenSpec(f); // 샘물 한 모금 · 고요한 순간 · 두꺼비 부적 (42)
   if (f.tx.on.calmBreath) regen *= 1 + TX.calmBreath * f.power3; // 고른 호흡 (77)
+  if (f.hero === 'warder' && f.tx.any) regen *= warderRegen(f); // 막의 숨 · 장막의 숨 (79 5-7)
   if (f.cast || f.channel > 0) f.tx.lastAct = f.t;
   else if (f.tx.on.breather && f.t - f.tx.lastAct >= 3 - 1e-9) regen *= 2; // 숨 고르기
   if (f.medit > 0) f.medit -= dt;
