@@ -1167,9 +1167,9 @@ describe('부품 10 (35 3장·4-7): 헤매는 영혼 · 생명 사슬 · 넘치�
     const l = f.links[0];
     const a = f.party.find(v => v.id === l.a)!, b = f.party.find(v => v.id === l.b)!;
     a.hp = a.max; b.hp = b.max;
-    damage(f, a, 200, true);
-    expect(a.max - a.hp).toBeCloseTo(100 * f.dmgMult);
-    expect(b.max - b.hp).toBeCloseTo(100 * f.dmgMult);
+    damage(f, a, 1000, true); // 반씩 나눈 피해가 아래 치유 25보다 크게 (장소 보정 dmg에 따라 dmgMult가 바뀜)
+    expect(a.max - a.hp).toBeCloseTo(500 * f.dmgMult);
+    expect(b.max - b.hp).toBeCloseTo(500 * f.dmgMult);
     const ha = a.hp, hb = b.hp;
     heal(f, a, 50, true, true);
     expect(a.hp - ha).toBeCloseTo(25);

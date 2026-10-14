@@ -743,7 +743,7 @@ describe('2-9 직업 전용: 성기사', () => {
   it('두 번째 봉화: 다른 탱커에게 절반', () => {
     const [a, b] = pair('secondBeacon', 1, 'paladin');
     const go = (f: F) => { hurt(f, 0.1); return -lost(f, tank(f, 1), () => cast(f, 'holyLight', dealer(f))); };
-    expect(go(a)).toBeCloseTo(260 * BEACON.raid10 * 0.5 * a.standin!.heal, 6); // 특성 트리 없는 직업 임시 보정까지 · 10인 봉화 30% (73)
+    expect(go(a)).toBeCloseTo(260 * BEACON.raid10 * 0.5, 6); // 10인 봉화 30% (73)
     expect(go(b)).toBeCloseTo(0, 9);
   });
   it('연타 · 단단한 서약 · 넘치는 신성한 힘 · 퍼지는 파도 · 긴 성역', () => {
@@ -767,7 +767,7 @@ describe('2-9 직업 전용: 성기사', () => {
     const [a] = pair('prayingSacrifice', 0.1, 'paladin'); hurt(a);
     cast(a, 'sacrifice', tank(a));
     const me = lost(a, a.me, () => { expect(lost(a, tank(a), () => damage(a, tank(a), 100, false, 'fixed'))).toBeCloseTo(60, 6); });
-    expect(me).toBeCloseTo(40 * 0.8 * a.standin!.guard, 6); // 특성 트리 없는 직업 임시 보정까지
+    expect(me).toBeCloseTo(40 * 0.8, 6);
   });
 });
 

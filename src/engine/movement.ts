@@ -2,6 +2,7 @@ import { hexDist } from './board';
 import { bark, cellOf, living } from './core';
 import { abMoved, dodgeMods, moveMods, reactMods } from './abilities';
 import { sv } from './specials';
+import { calmDodge } from './talents';
 import { posPref } from './position';
 import { followPref, persDodge, persIgnoresZone, persMove, persReact } from './persona';
 import type { Cell, Fight, Role, Telegraph, Unit, Zone } from './types';
@@ -123,8 +124,6 @@ export function zoneThreat(f: Fight, tel: Telegraph | Zone): number {
   return (tel.dps || 0) * 2 * f.dmgMult;
 }
 
-/** 고요한 찬가 (사제 특성): 찬가 동안 파티원 장판 회피 +15% */
-const calmDodge = (f: Fight): number => (f.tx.on.calmHymn && f.channel > 0 ? 0.15 : 0);
 
 export function dodgeRate(f: Fight, u: Unit): number {
   if (u.mods.length || u.senseDodge) {
@@ -137,7 +136,7 @@ export function dodgeRate(f: Fight, u: Unit): number {
 }
 
 function dodgeBase(f: Fight, u: Unit): number {
-  return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0) + calmDodge(f) + (u.ps ? persDodge(f, u) : 0)));
+  return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0) + calmDodge(f, u) + (u.ps ? persDodge(f, u) : 0)));
 }
 
 export function doReact(f: Fight, u: Unit): void {

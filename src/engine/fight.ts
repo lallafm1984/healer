@@ -5,8 +5,8 @@ import { DIFFS, MYTHIC } from '../data/difficulty';
 import { ENCOUNTERS, type Encounter, type EncounterKey } from '../data/encounters';
 import { gearStats, protoGearStats } from '../data/gear';
 import { HEROES } from '../data/heroes';
-import { PRIEST_MANA, TALENT_STANDIN } from '../data/heroConst';
-import { TALENTS } from '../data/talents';
+import { TIER_MANA } from '../data/heroConst';
+import { openTiers } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { ITEMS } from '../data/items';
 import { pickMember, pickNick } from '../data/nicknames';
@@ -64,7 +64,7 @@ export function create(cfg: FightConfig): Fight {
     g: { p: 0, s: 0 }, symbolUsed: false, symbol: 0, level: cfg.level ?? 100,
     hero: cfg.hero ?? 'priest', power3: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null, relay: null,
     tx: null as unknown as TalentState, // 아래 newTalents
-    standin: null, manaCut: 1,
+    manaCut: 1,
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
     enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null, empower: 0, lock: {}, watch: null, stagger: null, souls: [], links: [], vessel: null, melt: null, glass: [], bless: null, weak: null, expose: null, sp: cfg.proto ? null : newSpecs(cfg.specs), hold: null, sub: null, loose: null, slow: null, cheer: null, dark: false, split: false,
@@ -75,13 +75,8 @@ export function create(cfg: FightConfig): Fight {
     me: null as unknown as Unit, // makeParty에서 채움
   };
   f.tx = newTalents(f);
-  // 특성 트리가 없는 직업: 열린 특성 단마다 힐량 보정 (임시)
-  if (TALENT_STANDIN.heroes.includes(f.hero)) {
-    const n = TALENTS.filter(t => t.lv <= f.level).length;
-    f.standin = { heal: 1 + TALENT_STANDIN.heal * n, mana: 1 - TALENT_STANDIN.mana * n, guard: 1 - TALENT_STANDIN.guard * n };
-  }
-  // 사제 마나 보정: 열린 특성 단마다 마나 소모 −2% (2026-10-14 직업 밸런스 검토, heroConst PRIEST_MANA). 프로토타입 일치 테스트는 그대로
-  if (f.hero === 'priest' && !cfg.proto) f.manaCut = 1 - PRIEST_MANA * TALENTS.filter(t => t.lv <= f.level).length;
+  // 특성 단 마나 보정: 열린 특성 단마다 마나 소모 −2% (세 직업 공통, heroConst TIER_MANA · 77). 프로토타입 일치 테스트는 그대로
+  if (!cfg.proto) f.manaCut = 1 - TIER_MANA * openTiers(f.level);
   for (const k of (cfg.items || []).slice(0, 4)) if (ITEMS[k]) f.items[k] = Math.max(0, Math.min(ITEMS[k].uses, cfg.itemCap?.[k] ?? Infinity));
   if (cfg.carry) { f.mana = cfg.carry.mana; f.stats.minMana = f.mana; f.g = { ...cfg.carry.g }; }
   if (!knowsPassive(f, 'words')) f.g = { p: 0, s: 0 };

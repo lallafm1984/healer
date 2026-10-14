@@ -12,7 +12,7 @@ import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, li
 import { HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey } from '../data/skills';
-import { TALENTS, type TalentKey } from '../data/talents';
+import { TALENT_TREES, type TalentKey } from '../data/talents';
 import { type TapKey } from '../platform/storage';
 import { FACTIONS } from '../data/places';
 import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, type DexTab } from '../data/dex';
@@ -784,7 +784,10 @@ function skillHtml(): string {
 }
 
 // ---------- 특성: 어두운 특성판 · 금빛 그림 노드 · 직업별 프리셋 ----------
-/** 특성의 효과에 대응하는 기존 스킬 그림. 저장 키와 단·선택지 순서는 그대로 둔다. */
+/**
+ * 특성 그림: 정식 그림 `talent-<키>` (78 그림 요청)가 있으면 그것, 없으면 효과에 대응하는 그 직업 스킬 그림 (임시). 저장 키와 단·선택지 순서는 그대로 둔다.
+ * 사제 특성은 예전부터 다른 직업 스킬 그림을 빌려 쓰던 것 (78 2장 B에서 정식 그림 요청)
+ */
 const TALENT_ART: Record<TalentKey, SkillKey> = {
   longBreath: 'renew', lightTouch: 'flash', wideCircle: 'poh',
   brink: 'heal', washed: 'purify', practiced: 'holyLight',
@@ -796,22 +799,41 @@ const TALENT_ART: Record<TalentKey, SkillKey> = {
   doublePoh: 'poh', shareRenew: 'renew', quickHymn: 'lightWave',
   twoShields: 'handGuard', focusOne: 'holyLight', hymnTail: 'hymn',
   zenith: 'holyStrike', scatter: 'lightWave', endless: 'serenity',
+  // 드루이드 (77 2장)
+  longSprout: 'sprout', sproutGrowth: 'growth', branchGrowth: 'growth',
+  firmStem: 'bark', earlySprout: 'sprout', washRain: 'natureCleanse',
+  deepGrowth: 'growth', growthBreath: 'bloom', mossBed: 'wildflower',
+  twinSprout: 'sprout', colonyAll: 'wildflower', wideRoots: 'quietwood',
+  springRain: 'quietwood', quickSprout: 'sprout', cleanFlower: 'natureCleanse',
+  treeBody: 'bark', nearGrove: 'bark', secondSpring: 'rebirth',
+  rescueSprout: 'sprout', watchSprout: 'growth', fallenFlower: 'bloom',
+  rebloomField: 'wildflower', flowerTrail: 'wildflower', seedScatter: 'bloom',
+  guardianGrove: 'bark', overflowSap: 'growth', greenField: 'quietwood',
+  forestMemory: 'quietwood', oldTree: 'rebirth', wakeForest: 'wildflower',
+  // 성기사 (77 3장)
+  swiftLight: 'holyLight', devotionPath: 'oath', shareOath: 'oath',
+  heavyStrike: 'holyStrike', steadyHeart: 'holyLight', twinHands: 'holyLight',
+  guardOath: 'oath', calmBreath: 'oath', waveEcho: 'lightWave',
+  beaconWeight: 'sacrifice', beaconBreath: 'holyLight', beaconDrift: 'lightWave',
+  resolveFill: 'holyStrike', freeLight: 'holyLight', waveCleanse: 'handCleanse',
+  lightArmor: 'handGuard', vowGuard: 'sacrifice', rescueHand: 'handGuard',
+  quickHand: 'holyStrike', steadyLight: 'sanctuary', martyr: 'sacrifice',
+  fullWave: 'lightWave', freeWave: 'lightWave', wideSanctuary: 'sanctuary',
+  tankLight: 'handGuard', beaconRing: 'lightWave', waveMarch: 'lightWave',
+  dawnVow: 'holyStrike', endlessLight: 'lightWave', allKnight: 'sanctuary',
 };
-const talentIcon = (key: TalentKey) => skillIc(TALENT_ART[key]);
+const talentIcon = (key: TalentKey) => gameIcon(key, skillIc(TALENT_ART[key]), 'talent');
 
 function talentHtml(): string {
-  const lv = healerLevel(), h = hero();
-  // 직업마다 특성 트리가 따로 (25 6장). 지금 만든 건 사제 트리뿐
-  if (h !== 'priest') return `<section class="c7-tiers c7-tprep"><h2 class="c7-h">특성<span class="rule"></span><small>${HEROES[h].name}</small></h2>
-      <p class="c7-hnote">${HEROES[h].name} 특성 트리는 준비 중. 사제 특성을 먼저 만든 뒤 같은 틀로 추가</p></section>`;
-  const mine = heroSave('priest').talents || [], pre = talentPreset('priest');
-  const open = TALENTS.filter(t => t.lv <= lv).length;
-  const picked = TALENTS.filter((t, i) => t.lv <= lv && mine[i] != null).length;
+  const lv = healerLevel(), h = hero(), tree = TALENT_TREES[h];
+  const mine = heroSave(h).talents || [], pre = talentPreset(h);
+  const open = tree.filter(t => t.lv <= lv).length;
+  const picked = tree.filter((t, i) => t.lv <= lv && mine[i] != null).length;
   const left = open - picked;
   const head = open ? `${open}단 열림 · ${picked}개 고름 · ${left ? `<b>${left}개 남음</b>` : '남은 단 없음'}` : `${LOCK}Lv ${TALENT_LEVEL}에 열림 (지금 Lv ${lv})`;
   const presets = Array.from({ length: TALENT_PRESETS }, (_, i) => `<button type="button" class="c7-pre" data-preset="${i}" aria-pressed="${pre === i}" aria-label="프리셋 ${i + 1}">${i + 1}</button>`).join('');
   const focus = sheet?.k === 'talent' ? sheet : null;
-  const rows = TALENTS.map((t, i) => {
+  const rows = tree.map((t, i) => {
     const locked = t.lv > lv, cur = mine[i] ?? null, pending = !locked && cur == null;
     const nodes = t.picks.map((p, j) => {
       const selected = cur === j;
@@ -822,16 +844,16 @@ function talentHtml(): string {
     }).join('');
     return `<div class="c7-tier${locked ? ' locked' : ''}${pending ? ' pending' : ''}" data-tier="${i}"><span class="c7-tl"><b>Lv ${t.lv}</b><em>${locked ? '잠김' : pending ? '하나 선택' : '선택 완료'}</em></span><span class="c7-tnodes">${nodes}</span></div>`;
   }).join('');
-  return `<header class="c7-talent-title">${classEmblem('priest')}<div><h2>사제 특성</h2></div><b>Lv ${lv}</b></header>
+  return `<header class="c7-talent-title">${classEmblem(h)}<div><h2>${HEROES[h].name} 특성</h2></div><b>Lv ${lv}</b></header>
     <div class="c7-tsum"><p><span>${head}</span><small>언제든 무료로 변경</small></p><span class="c7-preset-wrap"><small>프리셋</small><span class="c7-pres" role="group" aria-label="프리셋">${presets}</span></span></div>
     <section class="c7-tiers" aria-label="특성 나무">${rows}</section>`;
 }
 
 /** 특성 설명 시트 (탭 막대 위, 어둡게 하지 않음). 고른 특성이면 「풀기」 = pickTalent 다시 누름과 같음 */
 function talentSheet(i: number, j: number): string {
-  const t = TALENTS[i], p = t?.picks[j];
-  if (!p || hero() !== 'priest' || t.lv > healerLevel()) return '';
-  const cur = (heroSave('priest').talents || [])[i] ?? null;
+  const h = hero(), t = TALENT_TREES[h][i], p = t?.picks[j];
+  if (!p || t.lv > healerLevel()) return '';
+  const cur = (heroSave(h).talents || [])[i] ?? null;
   return `<section class="sheet c7-tsheet" role="dialog" aria-label="특성 설명">
       <header class="c7-tooltip-head"><span class="c7-tsi${p.active ? ' active' : ''}">${talentIcon(p.key)}</span>
         <span class="c7-tsh"><b>${p.name}</b><span class="cap">Lv ${t.lv} · ${p.active ? '사용 효과' : '지속 효과'}</span></span>

@@ -11,7 +11,6 @@ type F = ReturnType<typeof E.create>;
 const fight = (level = 100, proto = false) => {
   const f = E.create({ encounter: 'warden', diff: '보통', seed: 7, level, hero: 'priest', proto });
   f.gear.crit = 0;
-  f.standin = null;
   return f;
 };
 const tank = (f: F) => f.party.find(u => u.role === 'tank')!;

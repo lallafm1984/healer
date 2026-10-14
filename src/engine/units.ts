@@ -1,13 +1,14 @@
 import { hexDist } from './board';
 import { BARK, DRUID_BIG } from '../data/heroConst';
-import { SKILLS } from '../data/skills';
+import { SKILLS, type SkillKey } from '../data/skills';
 import { bark, cellOf, damage, DT, emit, hasAbsorb, heal, hpLineTick, linger, onDebuffEnd, submerged } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
-import { calmHymn, renewEnd } from './talents';
+import { adjLow, calmFor, renewEnd, talentHot } from './talents';
+import { TX } from '../data/talents';
 import { charmTick, land, pullTick } from './bossParts';
 import { abFear, dpsMods, hasMod } from './abilities';
 import { dotSpec, dpsSpec, hotDone, renewDone, shieldGone, sv, under } from './specials';
-import { barkCut } from './heroes';
+import { barkCut, putSprout, sproutSpec } from './heroes';
 import { frontCell, posDps } from './position';
 import { persDps, persIgnoresZone, persThink } from './persona';
 import type { PersName } from '../data/personalities';
@@ -146,7 +147,7 @@ function think(f: Fight, u: Unit): void {
   const shelter = shelterFor(f);
   const fleeAt = u.p.flee || (shelter && u.pers && SHELTER_GO.includes(u.pers) ? SHELTER_GO_HP : 0);
   if (fleeAt || u.fleeing) {
-    if (!u.fleeing && fleeAt && u.hp / u.max < fleeAt && !calmHymn(f) && !((u.ab || u.mods.length) && abFear(f, u))) {
+    if (!u.fleeing && fleeAt && u.hp / u.max < fleeAt && !calmFor(f, u) && !((u.ab || u.mods.length) && abFear(f, u))) {
       const c = shelter || pickCell(f, u, { safe: true, back: true });
       if (c) { moveTo(f, u, c); u.fleeing = true; bark(f, u, u.p.flee ? u.p.barks![0] : '쉼터로!', true, u.p.flee ? 'flee' : 'shelter'); }
     } else if (u.fleeing && u.hp / u.max >= 0.8) {
@@ -187,10 +188,13 @@ function shelterFor(f: Fight): Cell | null {
 const hotAmt = (h: Hot): number => (h.amts ? h.amts[Math.min(h.i, h.amts.length - 1)] : h.per);
 /** 지속 힐 틱 (드루이드·성기사). 다 차면 직업 패시브(순환)로 마나를 돌려줄 수 있게 이벤트 대신 콜백 */
 export function hotTick(f: Fight, u: Unit, dt: number): void {
+  const on = f.tx.on;
   const give = (h: Hot, amt: number) => {
     h.rest = Math.max(0, h.rest - amt);
+    const over0 = f.stats.overheal;
     if (f.sp) under(h.key, true, () => heal(f, u, amt * hotMult(f, u, h), false));
     else heal(f, u, amt * hotMult(f, u, h), false);
+    if (on.overflowSap && f.stats.overheal > over0) { const v = adjLow(f, u, 1)[0]; if (v && v.hp < v.max) heal(f, v, (f.stats.overheal - over0) * TX.overflowSap, false, true); } // 넘치는 수액 (77)
   };
   for (const h of u.hots.slice()) {
     h.left -= dt; h.tick -= dt;
@@ -212,21 +216,34 @@ export function hotTick(f: Fight, u: Unit, dt: number): void {
       if (h.key === 'sprout' && h.rest <= 1e-9) {
         f.mana = Math.min(100, f.mana + (f.level >= 10 ? 0.4 : 0) + sv(f, 'dewDrop')); // 순환 (25 드루이드 패시브) · 이슬 맺힘 (42 드루 17)
         if (!h.hop && sv(f, 'sproutHop')) sproutHop(f, u);
+        if (h.again) putSprout(f, u, sproutSpec(f)); // 숲의 기억 (77): 한 번 더 (다시 걸린 것은 또 안 걸림)
       }
     }
   }
 }
 
-/** 지속 힐 배율: 나무껍질(+20%), 드루이드 군락 (붙어 있는 새싹마다 +10%, 최대 +30%. 20인은 +30%씩 최대 +90%, 들꽃 군락에도) */
-function hotMult(f: Fight, u: Unit, h: { key: string }): number {
+/**
+ * 지속 힐 배율: 나무껍질(+20%), 드루이드 군락 (붙어 있는 새싹마다 +10%, 최대 +30%. 20인은 +30%씩 최대 +90%, 들꽃 군락에도).
+ * 특성 (77): 번지는 군락 (칸마다 +5%, 생장 · 들꽃에도), 이끼 자리 · 푸른 들판 (talentHot)
+ */
+export function hotMult(f: Fight, u: Unit, h: { key: string }): number {
   let m = u.redu > 0 && u.reduCut === barkCut(f) ? 1 + BARK.hot : 1;
-  if ((h.key === 'sprout' || (h.key === 'wildflower' && f.enc.big)) && f.level >= 6) {
-    const c = cellOf(f, u);
-    let n = 0;
-    for (const v of f.party) if (v !== u && v.alive && v.hots.some(x => x.key === 'sprout') && hexDist(cellOf(f, v), c) === 1) n++;
-    m *= 1 + Math.min(3, n) * ((f.enc.big ? DRUID_BIG.colonyStep : 0.1) + sv(f, 'wideGrove')); // 20인 보정 (26 9-1) · 넓은 군락 (42 드루 01)
-  }
+  const colony = h.key === 'sprout' || (h.key === 'wildflower' && f.enc.big) || (!!f.tx.on.colonyAll && (h.key === 'growth' || h.key === 'wildflower'));
+  if (colony && f.level >= 6) m *= 1 + colonyN(f, u) * ((f.enc.big ? DRUID_BIG.colonyStep : 0.1) + sv(f, 'wideGrove') + (f.tx.on.colonyAll ? TX.colonyAll : 0)); // 20인 보정 (26 9-1) · 넓은 군락 (42 드루 01) · 번지는 군락 (77)
+  if (f.tx.hotm) m *= talentHot(f, u, h.key as SkillKey);
   return m;
+}
+
+/** 군락 칸 수 (최대 3): 옆 칸에 새싹이 걸린 아군 수. 특성 (77): 탱커의 숲 (탱커 2칸 이상), 5인 이하 번지는 군락 (1칸 이상) · 뻗는 뿌리 (2칸 이상), 레이드는 뻗는 뿌리가 2칸 거리까지 셈 */
+export function colonyN(f: Fight, u: Unit): number {
+  const tx = f.tx;
+  const c = cellOf(f, u), small = f.party.length <= 5, far = !small && !!tx.on.wideRoots ? 2 : 1;
+  let n = 0;
+  for (const v of f.party) if (v !== u && v.alive && v.hots.some(x => x.key === 'sprout')) { const d = hexDist(cellOf(f, v), c); if (d >= 1 && d <= far) n++; }
+  if (tx.on.guardianGrove && u.role === 'tank') n = Math.max(2, n);
+  if (tx.on.colonyAll && small) n = Math.max(1, n);
+  if (tx.on.wideRoots && small) n = Math.max(TX.wideRoots.min, n);
+  return Math.min(3, n);
 }
 
 /** 옮겨 가는 새싹 (42 드루 02): 끝까지 간 새싹이 새싹 없는 옆 칸 1명 (체력 비율이 가장 낮은)에게 절반 시간 · 절반 회복량으로 */

@@ -3,7 +3,7 @@ import { dexDue, type DexReward } from '../data/dex';
 import { chainNeed, chainOpen, contentOf, type ContentDef } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
-import { TALENTS } from '../data/talents';
+import { TALENT_TREES, TALENTS } from '../data/talents';
 import { enhanceCost, itemName, itemScore, MAX_PLUS, REROLL_LEVEL, REROLL_PICK_LEVEL, rerollCost, rerollLine, rerollSpec, salvageOf, SLOTS, type GearItem, type GearLine, type SlotKey } from '../data/equipment';
 import type { SpecLine } from '../data/specials';
 import type { ItemKey } from '../data/items';
@@ -290,15 +290,15 @@ export const heroSave = (h: HeroKey): HeroSave => heroSaveOf(G.save, h);
 /** 전투에 쓸 직업: 튜토리얼은 사제로만 (25 4-1) */
 export const heroNow = (): HeroKey => (G.save.tut < TUT.done ? 'priest' : G.save.hero);
 
-// ---------- 특성 (06 6장) ----------
-/** 전투에 넣을 특성: 사제만 (다른 직업 트리는 준비 중), 튜토리얼은 없음 */
+// ---------- 특성 (06 6장 사제, 77 드루이드 · 성기사) ----------
+/** 전투에 넣을 특성: 지금 직업의 트리 (튜토리얼은 없음) */
 export const talentsNow = (): (number | null)[] | undefined =>
-  heroNow() === 'priest' && G.save.tut >= TUT.done ? heroSave('priest').talents : undefined;
+  G.save.tut >= TUT.done ? heroSave(heroNow()).talents : undefined;
 
-/** 특성 고르기. 같은 걸 다시 누르면 풀림. 열린 단만, 언제든 무료 */
+/** 특성 고르기. 같은 걸 다시 누르면 풀림. 지금 직업 트리의 열린 단만, 언제든 무료 */
 export function pickTalent(tier: number, pick: number): boolean {
-  const t = TALENTS[tier];
-  if (G.save.hero !== 'priest' || !t || !t.picks[pick] || t.lv > healerLevel()) return false;
+  const t = TALENT_TREES[G.save.hero][tier];
+  if (!t || !t.picks[pick] || t.lv > healerLevel()) return false;
   const hs = heroSave(G.save.hero);
   const a = (hs.talents ||= []);
   while (a.length < TALENTS.length) a.push(null);

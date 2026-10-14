@@ -6,7 +6,8 @@ import { heroApply, heroChannelTick, heroTick, hotCount, putHot } from './heroes
 import { crisis, freeCast, gcdNow, guardSec, hc, later, raidSec, regenSpec, specApply, specDispel, specExec, specTick, sv, twiceBrush, twin, under } from './specials';
 import { orderHeal } from './bossParts';
 import { reviveTarget } from './items';
-import { adjLow, castOf, cdOf, costOf, directSpread, focusMult, has, overflow, pohAt, renewSec, spendGuard, talentTick, wordCap, wordPower, wordReady, wordSpent } from './talents';
+import { adjLow, castOf, cdOf, costOf, directSpread, focusMult, has, overflow, pohAt, renewSec, spendGuard, talentTick, waveNeed, wordCap, wordPower, wordReady, wordSpent } from './talents';
+import { TX } from '../data/talents';
 import type { ActionResult, Debuff, Fight, Unit } from './types';
 
 /** 이 레벨에서 배운 스킬·패시브인지 (06 7장) */
@@ -30,7 +31,7 @@ export function slotKey(f: Fight, slot: string): SkillKey {
 
 export function canTarget(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
   const sk = SKILLS[key];
-  if (sk.power && f.power3 < (sk.powerAll ? 1 : sk.power)) return { ok: false, reason: `신성한 힘 부족 (${f.power3}/${sk.powerAll ? 1 : sk.power})` };
+  if (sk.power) { const need = sk.powerAll ? 1 : key === 'lightWave' ? waveNeed(f) : sk.power; if (f.power3 < need) return { ok: false, reason: `신성한 힘 부족 (${f.power3}/${need})` }; } // 끝없는 빛 (77): 빛의 파도 2칸부터
   if (sk.target === 'dead') {
     if (key === 'rebirth' && f.rebirthUsed) return { ok: false, reason: '환생은 전투당 1회' };
     const u = reviveTarget(f);
@@ -88,7 +89,7 @@ function exec(f: Fight, key: SkillKey, cellIdx: number, u: Unit | undefined): vo
   f.gcd = f.gcdBase;
   f.stats.casts[key] = (f.stats.casts[key] || 0) + 1;
   f.tx.lastAct = f.t;
-  const tm = castOf(f, key);
+  const tm = castOf(f, key, u);
   if (f.sp) { if (tm === 0 && freeCast(f, key)) f.sp.free = false; specExec(f, key, tm); } // 바람 탄 발걸음 · 시전 발동 (42)
   if (tm > 0) {
     f.cast = { key, cell: cellIdx, uid: u!.id, left: tm, total: tm };
@@ -232,6 +233,7 @@ export function healerTick(f: Fight): void {
   const dt = DT;
   let regen = f.R.regen * f.gear.regen * f.enc.manaCoef * (f.symbol > 0 ? 4 : 1) * (f.medit > 0 ? 1 + 1.5 * (1 + sv(f, 'potionRegular')) : 1); // 물약 단골 (42 마나 09)
   if (f.sp) regen *= regenSpec(f); // 샘물 한 모금 · 고요한 순간 · 두꺼비 부적 (42)
+  if (f.tx.on.calmBreath) regen *= 1 + TX.calmBreath * f.power3; // 고른 호흡 (77)
   if (f.cast || f.channel > 0) f.tx.lastAct = f.t;
   else if (f.tx.on.breather && f.t - f.tx.lastAct >= 3 - 1e-9) regen *= 2; // 숨 고르기
   if (f.medit > 0) f.medit -= dt;
@@ -258,7 +260,7 @@ export function healerTick(f: Fight): void {
   }
   if (f.relay) relayTick(f);
   if (f.hero !== 'priest') heroTick(f, dt);
-  else if (f.tx.on && Object.keys(f.tx.on).length) talentTick(f, dt);
+  if (f.tx.any) talentTick(f, dt);
   if (f.cast) {
     f.cast.left -= dt;
     if (f.cast.left <= 1e-9) {
