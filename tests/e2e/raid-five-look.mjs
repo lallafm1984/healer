@@ -3,7 +3,7 @@
 // 끄면 예전 그대로. 터치 · 칸 자리 (화면 좌표)는 그대로 맞음. 대상 폰 크기 (S25 · 울트라 · 플립) × 5인 · 10인 · 20인
 import { chromium } from 'playwright';
 import { DEVICES } from './devices.mjs';
-import { patchSave, pastTitle, toParty } from './nav.mjs';
+import { departGo, pastTitle, patchSave, toParty } from './nav.mjs';
 
 const BOARDS = [{ n: 5, tab: 'dungeon', content: 'rustfort' }, { n: 10, tab: 'raid10', content: 'abyss1' }, { n: 20, tab: 'raid20', content: 'cathedral1' }];
 const near = (a, b, eps) => Math.abs(a - b) <= eps;
@@ -60,7 +60,7 @@ export default async function raidFiveLook(url, shots) {
       for (const b of BOARDS) {
         const tag = `${name} ${width}×${height} ${b.n}인`;
         await toParty(page, { tab: b.tab, content: b.content, diff: '쉬움' });
-        await page.click('#depart'); await page.clock.runFor(6500);
+        await departGo(page); await page.clock.runFor(6500);
         await page.evaluate(() => { const F = window.__proto.F; F.skills.forEach(k => { k.next = Infinity; }); F.party.forEach(u => { u.hp = u.max * 0.62; }); });
         await page.clock.runFor(100);
         const own = await look(page);

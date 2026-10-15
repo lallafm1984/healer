@@ -2,12 +2,11 @@
  * S05 편성 (27 3-3, 시안 Party27). 2026-10-08 입장 화면(S04)을 여기로 합침: 전투 탭 「출전」 → 편성 → 출발.
  * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스 · 아이템 힌트), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭 (길드를 빼 두면 없음),
  * 권장 레벨 안내 (미달일 때만), 시작 위치 육각 미리보기 (직업 아이콘), 파티원 줄 (누르면 상세 시트).
- * 아래 고정: 위치가 저장되는 단축칸 4개 · 출발 (악몽은 악몽 열쇠, 없으면 눌렀을 때 얻는 곳 + 상점).
+ * 아래 고정: 위치가 저장되는 단축칸 4개 · 출발 (81: 누르면 입장 확인 팝업, 「입장」 때 스테미너를 씀).
  */
 import { CLASSES } from '../data/classes';
 import { contentOf, isRaid } from '../data/content';
 import { CHAL } from '../data/challenge';
-import { SHARD_MAX } from '../data/economy';
 import { gearStatsOf, specsOf } from '../data/equipment';
 import { FEATURES } from '../data/features';
 import { ENCOUNTERS } from '../data/encounters';
@@ -19,15 +18,16 @@ import { aptOf } from '../data/guild';
 import { create, recruitParty } from '../engine';
 import { Flow, newSeed } from '../game/flow';
 import { autoPick, guildOpen, guildRoster, powerOf, slotsOf, togglePick } from '../game/guild';
-import { needsShard, spendShard } from '../game/economy';
+import { staminaCost } from '../game/stamina';
 import { runMode } from '../game/runmode';
 import { settle } from '../game/settle';
 import { commit, firstDungeonNow, G, healerLevel, heroNow, itemsNow, setItemSlot, talentsNow } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { classIcon, memDetailHtml, memRowHtml, ROLE_ICON } from './members';
 import { battle, esc, go, ROLE, screen, useIcon } from './kit';
-import { classEmblem, LOCK, uiIcon } from './art';
-import { afxRows, afxTags, ARROW, BOOK, flowHead, guides, KEY, recommendedLevel, segTabs } from './brief';
+import { classEmblem, currencyAmount, LOCK, uiIcon } from './art';
+import { confirmEntry } from './stamina';
+import { afxRows, afxTags, ARROW, BOOK, flowHead, guides, recommendedLevel, segTabs } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
 
@@ -213,8 +213,8 @@ function render(keepScroll = true): void {
   const isGuild = Flow.mode === 'guild' && guildReady();
   const m = modeNow(), stage = m.stage;
   const tutDone = G.save.tut >= TUT.done;
-  // 악몽 = 출발할 때 악몽 열쇠 1개 (12 3-4). 없으면 출발이 흐려지고, 누르면 아래에 얻는 곳 + 상점
-  const shardOn = tutDone && !Flow.chal && needsShard(Flow.diff), shards = G.save.wallet.shards, noShard = shardOn && !shards;
+  // 81: 출발 → 입장 확인 팝업에서 스테미너 (튜토리얼은 안 씀)
+  const cost = tutDone ? staminaCost(c, Flow.chal) : 0;
   const sub = Flow.chal ? `주간 도전 ${Flow.chal}단계` : `${Flow.diff}${m.affixes.length ? ` <span class="f-afxs">${afxTags(m.affixes)}</span>` : ''}`;
   const mark = Flow.chal ? `<span class="f-hg sm">${uiIcon('hourglass')}</span>` : markHtml(c, 'sm');
   const guideBtn = `<button class="f-gbtn" type="button" id="guideOpen" aria-haspopup="dialog">${BOOK}<span>공략</span></button>`;
@@ -228,13 +228,12 @@ function render(keepScroll = true): void {
       ${tutDone ? recommendedLevel(stage) : ''}
       ${boardHtml()}
       ${isGuild ? guildPickHtml(stage) : `<section class="pn f-mems"><ul class="pcards">${rows}</ul></section>`}
-      ${msg && !sheet && !noShard ? `<p class="note warn">${esc(msg)}</p>` : ''}
+      ${msg && !sheet ? `<p class="note warn">${esc(msg)}</p>` : ''}
     </div>
     <footer class="ns-foot f-foot2">
-      ${noShard && msg ? `<p class="f-warn ticket" role="alert"><span class="f-mark warn" aria-hidden="true">!</span><span class="v">악몽 열쇠가 없음 <span class="cap">상점에서 제작하거나 주간 임무로</span></span><button class="btn2" type="button" data-go="s-shop" data-arg="gold">상점</button></p>` : ''}
       ${slotRow(slots, loadout)}
       <div class="f-btns">
-        <button class="f-go" type="button" id="depart"${noShard ? ' aria-disabled="true"' : ''}>${shardOn ? KEY : ''}<span class="cta2"><span class="f-gt">출발</span>${shardOn ? `<small>${shards ? `악몽 열쇠 1개 씀 · ${shards}/${SHARD_MAX}` : '악몽 열쇠 없음'}</small>` : ''}</span>${ARROW}</button>
+        <button class="f-go" type="button" id="depart"${cost ? ` aria-label="출발 · 스테미너 ${cost}"` : ''}><span class="cta2"><span class="f-gt">출발</span>${cost ? `<small class="f-stam">${currencyAmount('stamina', cost)}</small>` : ''}</span>${ARROW}</button>
       </div>
     </footer>
     ${slotSheetHtml(loadout)}
@@ -278,7 +277,7 @@ s.el.addEventListener('click', e => {
     msg = setItemSlot(openSlot, it.dataset.item as ItemKey);
     render(); return;
   }
-  if (t.closest('#depart')) { msg = depart(); if (msg) render(); }
+  if (t.closest('#depart')) enter();
 });
 
 // 줄을 키보드로: Enter·Space = 누르기, Esc = 시트 닫기
@@ -295,11 +294,21 @@ s.el.addEventListener('keydown', e => {
   if (row && row === e.target) { e.preventDefault(); row.click(); }
 });
 
-/** 출발. 악몽은 악몽 열쇠 1개 (12 3-4). 못 가면 이유를 돌려줌 */
+/**
+ * 입장 (81 2-3): 튜토리얼 뒤엔 확인 팝업 → 「입장」 때 스테미너를 쓰고 출발. 모자라면 팝업이 광고 충전 · 상점을 보여 줌.
+ * 결과 화면 「다시 도전」 · 주간 도전 다음 단계도 이 길로
+ */
+export function enter(): void {
+  const c = contentOf(Flow.content);
+  if (G.save.tut < TUT.done) { depart(); return; }
+  const sub = Flow.chal ? `주간 도전 ${Flow.chal}단계 · ${c.size(Flow.diff)}인` : `${Flow.diff} · ${c.size(Flow.diff)}인`;
+  confirmEntry({ name: Flow.chal ? CHAL.name : c.name, sub, cost: staminaCost(c, Flow.chal), onGo: () => { depart(); } });
+}
+
+/** 출발 (스테미너는 enter의 팝업에서 이미 씀). 튜토리얼 탐험은 바로 이걸 부름 */
 export function depart(): string {
   const c = contentOf(Flow.content);
   const tutDone = G.save.tut >= TUT.done;
-  if (tutDone && !Flow.chal && needsShard(Flow.diff)) { const err = spendShard(G.save); if (err) return err; commit(); }
   if (Flow.mode === 'guild' && guildReady()) { G.save.guild.pick = Flow.gpick.slice(); commit(); }
   const coach = Flow.coach;
   Flow.coach = null;

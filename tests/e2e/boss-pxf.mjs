@@ -3,7 +3,7 @@
 // 판 사각형 그대로 (판 밖은 프레임을 잘라 냄), 외침은 세력 색을 곱함, 끝나면 사라짐. S25 × 5인 · 20인 판.
 // 256px 띠라 전투마다 그 전투에서 나올 수 있는 것만 읽어 두고 앞 전투 것은 내려 놓음 (Lim 「256px」)
 import { chromium } from 'playwright';
-import { patchSave, toParty } from './nav.mjs';
+import { departGo, patchSave, toParty } from './nav.mjs';
 
 const BOARDS = [{ n: 5, tab: 'dungeon', content: 'rustfort' }, { n: 20, tab: 'raid20', content: 'cathedral1' }];
 /** 띠를 다 읽을 때까지 (그림 읽기는 가짜 시계와 상관없이 실제 시간) */
@@ -30,7 +30,7 @@ export default async function bossPxf(url, shots) {
     await patchSave(page, { player: { level: 100 }, settings: { devUnlock: true, auto: false, sound: false, vibrate: false, reducedEffects: false, zoom: false } });
     for (const b of BOARDS) {
       await toParty(page, { tab: b.tab, content: b.content, diff: '쉬움' });
-      await page.click('#depart'); await page.clock.runFor(6500);
+      await departGo(page); await page.clock.runFor(6500);
       const boss = await page.evaluate(() => { window.__proto.F.skills.forEach(k => { k.next = Infinity; }); return Object.entries(window.__proto.pxf.boss); });
       ok(boss.length === 11, `${b.n}인: 보스 판 전체 공격 PXF ${boss.length}가지`);
       const want = (await page.evaluate(() => window.__proto.pxf.bossWant())).sort();

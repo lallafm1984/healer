@@ -1,6 +1,6 @@
 // 독립 저장/상태 fixture. 화면·입력 회귀이며 실기기나 자연 성장 플레이 검수가 아니다.
 import { chromium } from 'playwright';
-import { pastTitle, patchSave, toParty } from './nav.mjs';
+import { departGo, pastTitle, patchSave, toParty } from './nav.mjs';
 
 const snap = page => page.evaluate(() => {
   const f = window.__proto.F, core = document.querySelector('#core'), meter = core.querySelector('.mana-meter');
@@ -47,7 +47,7 @@ export default async function run(url, shots) {
       await page.goto(url + '?renderer=canvas'); await page.clock.runFor(300); await pastTitle(page);
       await patchSave(page, { player: { level: 100 }, settings: { devUnlock: true, auto: false, allSkills: false, compactSkills: false, sound: false, vibrate: false, reducedEffects: true } });
       await pastTitle(page); await toParty(page, { tab: 'raid20', content: 'cathedral1', diff: '쉬움' });
-      await page.click('#depart'); await page.clock.runFor(6500);
+      await departGo(page); await page.clock.runFor(6500);
       for (const mode of ['normal', 'compact']) {
         if (mode === 'compact') { await page.click('#pauseBtn'); await page.setChecked('#pauseCompact', true); await page.click('#resumeBtn'); }
         const key = `${width} ${mode}`;

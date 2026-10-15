@@ -31,8 +31,8 @@ describe('직업 7개 데이터 (79 0장 · 1장 · 6-1)', () => {
     for (const h of BASE_HEROES) expect(HERO_KEYS).toContain(h);
     expect(UPDATE_HEROES).toEqual(ALL_HERO_KEYS.filter(h => !HEROES[h].ready).map(h => HEROES[h].name));
   });
-  it('열림 레벨 30 · 40 · 50 · 60, 해제 종류 (1-1: 마법 + 하나)', () => {
-    expect(NEW.map(h => HEROES[h].unlock.lv)).toEqual([30, 40, 50, 60]);
+  it('상점에서 하나에 2,200원으로 열림 (81, 예전 Lv 30 · 40 · 50 · 60), 해제 종류 (1-1: 마법 + 하나)', () => {
+    expect(NEW.map(h => !!HEROES[h].unlock.buy)).toEqual([true, true, true, true]);
     expect(HEROES.shaman.dispel).toEqual(['마법', '저주']);
     expect(HEROES.monk.dispel).toEqual(['마법', '질병']);
     expect(HEROES.astrologer.dispel).toEqual(['마법', '독']);

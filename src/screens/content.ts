@@ -11,7 +11,6 @@ import { ALL_DIFFS, CONTENT, contentOf, isLeveling, raidSize, stageOf, type Cont
 import type { DiffName } from '../data/difficulty';
 import { AFFIXES } from '../data/affixes';
 import { CHAL } from '../data/challenge';
-import { FIRST_CLEAR_CRYSTAL, SHARD_MAX } from '../data/economy';
 import { avgScore, clearMats, GRADE_STYLE, ITEM_GRADES, recommendedFor, type ItemGrade } from '../data/equipment';
 import { gearGradeOdds } from '../data/reward-preview';
 import { HEROES } from '../data/heroes';
@@ -20,6 +19,7 @@ import { clearGold, EXPLORE_REWARD } from '../data/progression';
 import { art, cssUrl } from '../art';
 import { weekRemaining } from '../game/clock';
 import { meritFor, raidLootOpen } from '../game/economy';
+import { staminaCost } from '../game/stamina';
 import { Flow } from '../game/flow';
 import { chalGate, runMode, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
@@ -126,12 +126,12 @@ function stars(c: ContentDef, d: DiffName): string {
   return `<span class="sr">별 ${n}개</span><span aria-hidden="true">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span>`;
 }
 
-/** 레이드: 이번 주 장비 받음 (보스마다 난이도별 주 1회) · 악몽 열쇠 (악몽 입장권). 정보 줄 오른쪽에 붙여서 관문 높이를 다른 분류와 맞춤 */
+/** 레이드: 이번 주 장비 받음 (보스마다 난이도별 주 1회) · 입장 스테미너 (81). 정보 줄 오른쪽에 붙여서 관문 높이를 다른 분류와 맞춤 */
 function lootLine(c: ContentDef): string {
   if (c.kind !== 'raid' || G.save.tut < TUT.done) return '';
   const got = ALL_DIFFS.map(d => !raidLootOpen(G.save, c.key, d));
   const dots = `<span class="b-loot" role="img" aria-label="이번 주 장비 ${ALL_DIFFS.map((d, i) => `${d} ${got[i] ? '받음' : '아직'}`).join(', ')}" title="이번 주 장비: 쉬움 · 보통 · 어려움 · 악몽">${got.map(g => `<i${g ? ' class="got"' : ''}></i>`).join('')}</span>`;
-  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">장비</span>${dots}<span class="cap">${currencyAmount('shards', `${G.save.wallet.shards}/${SHARD_MAX}`)}</span></span>`;
+  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">장비</span>${dots}<span class="cap">${currencyAmount('stamina', staminaCost(c))}</span></span>`;
 }
 
 /**
@@ -251,7 +251,6 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   const stage = runMode(G.save, c, d, { chal: 0 }).stage;
   const gold = Math.round(clearGold(stage, d, 'A', raid) * (play && c.kind === 'explore' ? EXPLORE_REWARD : 1));
   currency('gold', '골드', gold, '#DDB563', '클리어 시 · A 평가 · 보너스 제외');
-  if (play && !G.save.clears[c.key]?.[d]) currency('crystal', '크리스탈', FIRST_CLEAR_CRYSTAL, '#7BCBF0', '첫 클리어 시');
   const mats = clearMats(d, raid);
   if (mats.stone) currency('stone', '강화석', mats.stone, '#C3B899');
   if (mats.refined) currency('refined', '정제 강화석', mats.refined, '#A6DEF0');

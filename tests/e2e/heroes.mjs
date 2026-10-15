@@ -1,6 +1,6 @@
 // 힐러 직업: 일곱 직업 목록 · 상세 시트 · 무료 전환, 편성 권장 레벨, 전투 휠·봉화
 import { chromium } from 'playwright';
-import { pastTitle, patchSave, toParty } from './nav.mjs';
+import { departGo, pastTitle, patchSave, toParty } from './nav.mjs';
 
 export default async function heroes(url, shots) {
   const browser = await chromium.launch();
@@ -89,7 +89,7 @@ export default async function heroes(url, shots) {
   // ---- 전투: 드루이드 휠 ----
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);
   await toParty(page, { content: 'rustfort' });
-  await page.click('#depart'); await page.clock.runFor(3100 + 4000);
+  await departGo(page); await page.clock.runFor(3100 + 4000);
   ok(await page.evaluate(() => window.__proto.F.hero) === 'druid', '전투 = 드루이드');
   const wheel = await page.evaluate(() => [...document.querySelectorAll('#wheel .slot')].map(b => b.textContent).join(' '));
   ok(/새싹/.test(wheel) && /환생|환/.test(wheel), `휠에 드루이드 스킬 (${wheel.replace(/\s+/g, ' ').slice(0, 60)})`);
@@ -104,7 +104,7 @@ export default async function heroes(url, shots) {
   // ---- 전투: 성기사 봉화 ----
   await setHero('paladin');
   await toParty(page, { content: 'rustfort' });
-  await page.click('#depart'); await page.clock.runFor(3100 + 4000);
+  await departGo(page); await page.clock.runFor(3100 + 4000);
   ok(await page.evaluate(() => { const F = window.__proto.F; return F.hero === 'paladin' && F.beacon === F.party.find(u => u.role === 'tank').id; }), '성기사: 봉화는 처음에 탱커');
   await page.dispatchEvent('#core', 'pointerdown'); await page.dispatchEvent('#core', 'pointerup'); await page.clock.runFor(50);
   ok(await page.isVisible('#core.beacon'), '휠 가운데 = 봉화 지정 모드');

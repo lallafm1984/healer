@@ -1,7 +1,7 @@
 // 첫 5분 튜토리얼 (02 11장, 09 4장, 34 5-2): 이야기 → 2인 첫 전투(탭 힐 안내) → Lv 2 소생 → 3인 탐험(소생·순간 치유 안내) → 첫 장비 = 끝
 // → Lv 5에 첫 던전 녹슨 요새 안내 → 쉬움 클리어. 탭은 튜토리얼 동안 잠금. 구간은 적 체력을 깎아 빨리 넘긴다
 import { chromium } from 'playwright';
-import { chooseContent, killEnemies } from './nav.mjs';
+import { chooseContent, departGo, killEnemies } from './nav.mjs';
 
 export default async function tutorial(url, shots) {
   const browser = await chromium.launch();
@@ -148,7 +148,7 @@ export default async function tutorial(url, shots) {
   await page.screenshot({ path: `${shots}/tut_party.png` });
 
   // ---- 녹슨 요새 쉬움: 전투 안내 팝업 없이 4구간 → 끝 (2026-10-13 Lim) ----
-  await page.click('#depart'); await page.clock.runFor(3100 + 1200);
+  await departGo(page); await page.clock.runFor(3100 + 1200);
   const t1 = await t();
   await page.clock.runFor(4500);
   ok(await t() > t1 + 3 && await coach() === null, '첫 던전 전투: 안내 팝업 없이 진행');

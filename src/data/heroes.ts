@@ -33,9 +33,10 @@ export interface HeroDef {
   passives: HeroPassive[];
   /**
    * v12 해금: 캐릭터 공통 레벨 달성. 직업 전환에는 캐릭터 칸이나 비용이 필요 없음.
+   * 81 (2026-10-15 Lim): 드루이드 Lv 20 · 성기사 Lv 30 무료, 79 직업 4종은 상점에서 하나에 2,200원 (buy = 앱 결제 상품, 사면 레벨 조건 없음, lv는 쓰지 않음).
    * quest = 예전 직업 퀘스트, 옛 저장 옮기기 (v6)에만 씀
    */
-  unlock: { lv: number; how: string; quest?: HeroQuest };
+  unlock: { lv: number; how: string; quest?: HeroQuest; buy?: boolean };
   /** 가운데 버튼 스킬 (주술사 샘 토템 · 결계사 심판, 79 6-1). 휠 배치에는 안 들어감 */
   core?: SkillKey;
   /** 게임에 켠 직업 (79 6-1: 공통 준비에서는 데이터만 두고, 직업 PR마다 하나씩 켬). false면 직업 목록 · 저장 · 시뮬에서 빠지고 「곧 열림」으로 보임 */
@@ -71,7 +72,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
       { name: '뿌리 깊음', lv: 4, desc: '지속 힐이 2개 이상 걸린 대상에게 하는 직접 힐이 10% 늘어납니다.' },
       { name: '순환', lv: 10, desc: '새싹이 끝까지 다 차면 마나를 0.4% 돌려받습니다.' },
     ],
-    unlock: { lv: 10, how: '캐릭터 Lv 10 달성', quest: { name: '숲의 부름', text: '드루이드로 녹슨 요새 보통 이상 클리어', need: 1, content: 'rustfort', minDiff: '보통' } },
+    unlock: { lv: 20, how: '캐릭터 Lv 20 달성', quest: { name: '숲의 부름', text: '드루이드로 녹슨 요새 보통 이상 클리어', need: 1, content: 'rustfort', minDiff: '보통' } },
     ready: true,
   },
   paladin: {
@@ -85,10 +86,10 @@ export const HEROES: Record<HeroKey, HeroDef> = {
       { name: '헌신', lv: 10, desc: '신성한 힘 3칸을 한 번에 쓰면 마나를 2% 회복합니다.' },
     ],
     // 25 원안은 「던전 2곳」. 지금 만든 던전이 녹슨 요새뿐이라 2번으로 (던전이 늘면 2곳으로 되돌림)
-    unlock: { lv: 20, how: '캐릭터 Lv 20 달성', quest: { name: '첫 맹세', text: '성기사로 녹슨 요새 어려움 이상 클리어', need: 1, content: 'rustfort', minDiff: '어려움' } },
+    unlock: { lv: 30, how: '캐릭터 Lv 30 달성', quest: { name: '첫 맹세', text: '성기사로 녹슨 요새 어려움 이상 클리어', need: 1, content: 'rustfort', minDiff: '어려움' } },
     ready: true,
   },
-  // ---------- 79 힐러 직업 4종 (열림 Lv 30 · 40 · 50 · 60, 무료 레벨 해금) ----------
+  // ---------- 79 힐러 직업 4종: 상점에서 하나에 2,200원 (81, 예전 Lv 30 · 40 · 50 · 60 무료) ----------
   shaman: {
     key: 'shaman', name: '주술사', line: '다친 사람을 따라 물이 흘러가는 힐러입니다.', star: 2,
     system: { name: '토템 칸', lv: 6, desc: '가운데 버튼을 누르고 칸을 고르면 그 칸에 샘 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군을 회복합니다 (20인 레이드에서는 70%). 토템은 종류마다 하나만 서고, 그 칸에 장판이 깔리거나 예고된 공격이 떨어지거나 적이 나오면 깨집니다.' },
@@ -99,7 +100,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
       { name: '깊은 물', lv: 4, desc: '체력 50% 아래인 대상에게 하는 직접 힐이 30% 늘어납니다.' },
       { name: '밀려오는 물', lv: 10, desc: '연쇄 치유가 4명에게 닿으면 마나를 1.5% 돌려받습니다.' },
     ],
-    unlock: { lv: 30, how: '캐릭터 Lv 30 달성' },
+    unlock: { lv: 0, how: '상점 구매', buy: true },
     core: 'springTotem',
     ready: true,
   },
@@ -113,7 +114,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
       { name: '스며드는 안개', lv: 4, desc: '안개가 걸린 아군에게 하는 생기 손바닥이 15% 늘어납니다.' },
       { name: '고요한 호흡', lv: 10, desc: '전투마다 한 번, 마나가 30% 아래로 내려가면 10초 동안 마나 소모가 50% 줄어듭니다.' },
     ],
-    unlock: { lv: 40, how: '캐릭터 Lv 40 달성' },
+    unlock: { lv: 0, how: '상점 구매', buy: true },
     ready: true,
   },
   astrologer: {
@@ -126,7 +127,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
       { name: '별 읽기', lv: 4, desc: '보스 예고가 찍힌 아군에게 하는 힐이 15% 늘어납니다.' },
       { name: '별의 순환', lv: 10, desc: '완벽한 별자리를 만들 때마다 마나를 3% 돌려받습니다.' },
     ],
-    unlock: { lv: 50, how: '캐릭터 Lv 50 달성' },
+    unlock: { lv: 0, how: '상점 구매', buy: true },
     ready: true,
   },
   warder: {
@@ -139,7 +140,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
       { name: '깨진 막의 빛', lv: 4, desc: '내 보호막이 다 깨지면 그 아군 체력을 {80} 회복합니다.' },
       { name: '인장의 대가', lv: 10, desc: '심판이 4명 이상 회복하면 마나를 2% 돌려받습니다.' },
     ],
-    unlock: { lv: 60, how: '캐릭터 Lv 60 달성' },
+    unlock: { lv: 0, how: '상점 구매', buy: true },
     core: 'judgment',
     ready: true,
   },

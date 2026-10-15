@@ -2,7 +2,7 @@
 // 단일 버튼/대상은 touchscreen API, 쓸기/두 손가락은 Chromium touch 입력도 검사한다.
 // 취소 경계는 합성 PointerEvent로 재현한다. 크기 변경은 실제 일시정지 설정 경로를 사용한다.
 import { chromium } from 'playwright';
-import { pastTitle, patchSave, toParty } from './nav.mjs';
+import { departGo, pastTitle, patchSave, toParty } from './nav.mjs';
 
 const PROFILES = [
   { name: 'GalaxyS24', width: 360, height: 780, dpr: 3 },
@@ -378,7 +378,7 @@ async function beaconInputs(page, check, label) {
   });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await toParty(page, { content: 'rustfort', tab: 'dungeon', diff: '쉬움' });
-  await page.click('#depart'); await page.clock.runFor(3400); await installFixture(page);
+  await departGo(page); await page.clock.runFor(3400); await installFixture(page);
   for (const compact of [false, true]) {
     if (await page.locator('#controls').evaluate(el => el.classList.contains('compact-controls')) !== compact) await toggleMode(page);
     const ok = (v, message, detail) => check(v, `${label} ${compact ? '축소' : '기본'} 봉화: ${message}`, detail);
@@ -456,7 +456,7 @@ export default async function compactInput(url) {
         await patchSave(page, { player: { level: 100 }, items: ['mana', 'shield'],
           settings: { compactSkills: false, auto: false, allSkills: false, devUnlock: true, sound: false, vibrate: false } });
         await pastTitle(page); await toParty(page, { content: 'rustfort', tab: 'dungeon', diff: '쉬움' });
-        await page.click('#depart'); await page.clock.runFor(3400); await installFixture(page);
+        await departGo(page); await page.clock.runFor(3400); await installFixture(page);
         profiles.push(await page.evaluate(() => ({ width: innerWidth, height: innerHeight, dpr: devicePixelRatio })));
         for (const compact of [false, true]) {
           if (await page.locator('#controls').evaluate(el => el.classList.contains('compact-controls')) !== compact) {

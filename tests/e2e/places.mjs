@@ -2,7 +2,7 @@
 // 만든 장소를 화면에서 모두 찾아 돌고, 셋에 하나는 마지막 구간에서 포기해 진 결과로. 대상 폰 크기 (S25 · 울트라 · 플립)를 돌아가며 첫 전투 · 결과 캡처
 // 나눠 돌릴 때 (part = { k, n }) 찾은 장소 중 n개마다 k번째만 (폰 크기 · 포기 순서는 통째로 돌 때와 같음)
 import { chromium } from 'playwright';
-import { chooseContent, killEnemies, pastTitle, rowContentKeys, toParty } from './nav.mjs';
+import { chooseContent, departGo, killEnemies, pastTitle, rowContentKeys, toParty } from './nav.mjs';
 import { DEVICES } from './devices.mjs';
 
 const TABS = ['explore', 'dungeon', 'raid10', 'raid20'];
@@ -51,7 +51,7 @@ export default async function places(url, shots, part) {
     await pastTitle(page);
     await toParty(page, { content: p.key, tab: p.tab });
     ok(await page.isVisible('#s-party') && await page.isEnabled('#depart'), `${p.key} (${tag}): 편성 화면, 출발 가능`);
-    await page.click('#depart'); await page.clock.runFor(3100 + 500);
+    await departGo(page); await page.clock.runFor(3100 + 500);
     const run = await page.evaluate(() => { const R = window.__proto.dungeon, F = window.__proto.F; return { segs: R.segs.slice(), enc: F.enc.key, name: F.enc.name }; });
     // 보스 한 마리는 이름 줄에, 무리 구간은 위치 줄 앞에 이름
     const top = `${await page.textContent('#encounterLabel')} ${await page.textContent('#bossName')}`;

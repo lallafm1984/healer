@@ -1,6 +1,6 @@
 // 성장 (61 적 레벨 = 장소 + 난이도 · 32 어픽스, 18 3-3 로비 레이드 문)·주간 도전 「모래시계 시련」 (13 3-2)·실패 자동 정산
 import { chromium } from 'playwright';
-import { chooseContent, killEnemies, pastTitle } from './nav.mjs';
+import { chooseContent, departGo, entryGo, killEnemies, pastTitle } from './nav.mjs';
 
 export default async function challenge(url, shots) {
   const browser = await chromium.launch();
@@ -59,7 +59,7 @@ export default async function challenge(url, shots) {
   ok(/어려움 · 보스 체력 30%/.test(await text('#s-party .f-gsheet .afxlist')), '공략 시트에 난이도 어픽스 격노 설명');
   await page.screenshot({ path: `${shots}/growth_tier.png` });
   await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
-  await page.click('#depart'); await page.clock.runFor(3100 + 300);
+  await departGo(page); await page.clock.runFor(3100 + 300);
   const fs = await F(() => { const f = window.__proto.F; return { stage: f.cfg.stageLv, rage: !!f.aff?.on.rage }; });
   ok(await page.isVisible('#battle') && fs.stage === 34 && fs.rage, `전투 = 적 Lv 34 (장소 30 + 어려움 4) + 격노 (Lv 30부터) (${JSON.stringify(fs)})`);
 
@@ -92,20 +92,20 @@ export default async function challenge(url, shots) {
   await page.keyboard.press('Escape'); await page.clock.runFor(50);
   let sv = await save();
   ok(sv.daily.ads.reroll === ads0 && sv.player.gold === g0, '주간 도전 공략 확인 중 골드·광고 횟수 그대로');
-  await page.click('#depart'); await page.clock.runFor(3100 + 300);
+  await departGo(page); await page.clock.runFor(3100 + 300);
   const cf = await F(() => { const f = window.__proto.F; return { dry: !!f.aff?.on.dry, con: !!f.aff?.on.contagion, stage: f.cfg.stageLv }; });
   ok(cf.dry && cf.con && cf.stage === 30 && /\/ 7:00/.test(await text('#timer')), `도전 전투: 메마름·전염병, 단계 레벨 = 내 레벨, 타이머 / 7:00 (${JSON.stringify(cf)})`);
   await lose();
   ok(!(await page.isVisible('.admodal')) && await page.isVisible('#s-settle') && /단계는 그대로/.test(await text('#s-settle')), '도전은 이어하기 없음 · 실패해도 단계 그대로');
   ok((await text('#again')) === '다시 도전', '실패: 다시 도전 (같은 단계)');
-  await page.click('#again'); await page.clock.runFor(3100 + 300);
+  await page.click('#again'); await entryGo(page); await page.clock.runFor(3100 + 300);
   await winAll();
   sv = await save();
   ok((await text('#s-settle h1')).startsWith('1단계 돌파') && /제한시간 안/.test(await text('#s-settle .r-chal')) && /2단계 열림/.test(await text('#s-settle .r-chal')) && sv.chalOpen === 2 && sv.weekly.chalBest === 1, '제한시간 안에 깸 → 「1단계 돌파」 · 2단계 열림');
   await page.screenshot({ path: `${shots}/challenge_settle.png`, fullPage: true });
   await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
   ok((await text('#s-settle #again')) === '다시 도전' && /^2단계 도전/.test(await text('#s-settle #next')), '결과: 다시 도전 (같은 단계) · 주 버튼 「다음」 = 「2단계 도전」');
-  await page.click('#s-settle #next'); await page.clock.runFor(3100 + 300);
+  await page.click('#s-settle #next'); await entryGo(page); await page.clock.runFor(3100 + 300);
   ok(await page.isVisible('#battle'), '「2단계 도전」을 누르면 같은 파티로 바로 출발');
   await winAll();
   ok((await text('#s-settle h1')).startsWith('2단계 돌파'), '그 판은 2단계 (결과 「2단계 돌파」)');

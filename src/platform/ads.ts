@@ -1,12 +1,12 @@
 /**
  * 보상형 광고 자리 (15 7장, 20 4-1: AdMob). 광고 계정을 붙이기 전이라 「광고 자리」 창을 띄우고 닫으면 보상을 줌.
- * 월정액이면 광고 없이 바로 보상 (15 5장).
+ * 광고 제거 패키지 (81)면 광고 없이 바로 보상.
  */
 export const ADS_READY = false;
 
 /** 광고를 다 보면 true. 지금은 시험 창 */
-export function showRewarded(label: string, member: boolean): Promise<boolean> {
-  if (member) return Promise.resolve(true);
+export function showRewarded(label: string, adsFree: boolean): Promise<boolean> {
+  if (adsFree) return Promise.resolve(true);
   return new Promise(resolve => {
     const box = document.createElement('div');
     box.className = 'admodal';

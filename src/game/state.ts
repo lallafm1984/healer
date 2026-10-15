@@ -11,9 +11,11 @@ import { activeItemKeys, assignItemSlot, itemLoadoutOf, type ItemSlot } from '..
 import { itemSlots, MAX_LEVEL } from '../data/progression';
 import { heroSaveOf, load, loadChar, newSave, noteSpecs, parkChar, save, shareAccount, topLevel, wipeChars, type HeroSave, type SaveData } from '../platform/storage';
 import { firstDungeonDue, TUT } from './tutorial';
-import { isMember, onAct, rollover, type Rollover } from './economy';
+import { onAct, rollover, type Rollover } from './economy';
+import { adsFree } from './stamina';
 import { Flow } from './flow';
 import { resourceBalance, spendResource } from './resources';
+import { jobProductId } from '../data/economy';
 
 export const G: { save: SaveData } = { save: load() };
 
@@ -32,16 +34,16 @@ export function markGearSeen(): void {
   commit();
 }
 
-/** 월정액이면 배너를 숨김 (15 5장) */
-export function syncMember(now = Date.now()): void {
-  if (typeof document !== 'undefined') document.body.classList.toggle('member', isMember(G.save, now));
+/** 광고 제거 패키지를 샀으면 배너를 숨김 (81 3장) */
+export function syncAds(): void {
+  if (typeof document !== 'undefined') document.body.classList.toggle('noads', adsFree(G.save));
 }
 
 /** 날·주가 바뀌었는지 보고 일일·주간을 새로 (13 1장). 접속·로비·임무·상점 화면에서 부름 */
 export function refreshDay(now = Date.now()): Rollover {
   const r = rollover(G.save, now, Math.random);
   if (r.day || r.week || r.season || r.banked || r.fixed) commit();
-  syncMember(now);
+  syncAds();
   return r;
 }
 
@@ -354,7 +356,7 @@ function charName(h: HeroKey, name: string): string {
   return `${base} ${n}`;
 }
 
-/** 지금 캐릭터를 쉬게 두고 next로: 둘 다 날 · 주를 넘기고, 계정 것 (설정 · 산 것 · 목록)을 옮김 (월정액 크리스탈 · 패스가 캐릭터마다 두 번 들어가지 않게) */
+/** 지금 캐릭터를 쉬게 두고 next로: 둘 다 날 · 주를 넘기고, 계정 것 (설정 · 산 것 · 스테미너 · 패스 · 목록)을 옮김 (캐릭터를 바꿔 스테미너 · 패스를 두 번 쓰지 않게) */
 function swapTo(next: SaveData, id: number, now: number): void {
   const cur = G.save;
   rollover(cur, now, Math.random);
@@ -365,7 +367,7 @@ function swapTo(next: SaveData, id: number, now: number): void {
   r.cur = id; c.at = now; delete c.park;
   G.save = next;
   commit();
-  syncMember(now);
+  syncAds();
 }
 
 /** 캐릭터 고르기 (캐릭터 선택). 지금 캐릭터거나 없으면 false */
@@ -403,11 +405,16 @@ export function switchOpen(): { ok: boolean; dev: boolean; why: string } {
   return { ok: true, dev: false, why: '' };
 }
 
-/** 현재 캐릭터 레벨로 해금. 이전에 해금한 직업은 레벨과 관계없이 보존 */
-export function heroStatus(h: HeroKey): { state: 'now' | 'open' | 'quest' | 'locked'; dev: boolean; quest: number; need: number } {
-  const info = { dev: false, quest: 0, need: 0 };
+/**
+ * 직업 해금 (81): 드루이드 · 성기사는 지금 캐릭터 레벨 (Lv 20 · 30), 상점 직업 (unlock.buy)은 산 계정이면 레벨 조건 없이.
+ * 이전에 해금한 직업 (그 직업으로 바꾼 적 있음)은 레벨 · 구매와 관계없이 보존. buy = 잠겼고 상점에서 사야 열림
+ */
+export function heroStatus(h: HeroKey): { state: 'now' | 'open' | 'quest' | 'locked'; dev: boolean; quest: number; need: number; buy: boolean } {
+  const info = { dev: false, quest: 0, need: 0, buy: false };
   if (h === G.save.hero) return { state: 'now', ...info };
-  return { state: G.save.heroes[h]?.unlocked || G.save.player.level >= HEROES[h].unlock.lv ? 'open' : 'locked', ...info };
+  const u = HEROES[h].unlock;
+  const open = !!G.save.heroes[h]?.unlocked || (u.buy ? G.save.bought.includes(jobProductId(h)) : G.save.player.level >= u.lv);
+  return { state: open ? 'open' : 'locked', ...info, buy: !open && !!u.buy };
 }
 
 /** v12: 같은 캐릭터에서 직업·스킬·착용 조합만 전환. 보상·성장·실물 장비는 공유 */

@@ -1,7 +1,7 @@
 // 새 브라우저 컨텍스트의 시험 저장만 사용한다. viewport 검증이며 실기기/자연 플레이 검증은 아니다.
 // 상태 주입은 기존 __proto.F 훅과 독립 저장을 사용하며 각 fixture에 목적을 명시한다.
 import { chromium } from 'playwright';
-import { pastTitle, patchSave, toParty } from './nav.mjs';
+import { departGo, pastTitle, patchSave, toParty } from './nav.mjs';
 
 const VIEWPORTS = [[320, 640], [360, 780], [412, 915], [360, 880]];
 const PARTIES = [
@@ -210,7 +210,7 @@ async function enter(page, party, level = 100, compactSkills = false) {
   await patchSave(page, { player: { level }, settings: { compactSkills, auto: false, allSkills: false, devUnlock: true, sound: false, vibrate: false } });
   await pastTitle(page);
   await toParty(page, { ...party, diff: '쉬움' });
-  await page.click('#depart');
+  await departGo(page);
   await page.clock.runFor(3400);
 }
 
@@ -1174,7 +1174,7 @@ async function persistenceAndLocks(page, ok) {
     '360: 일반 설정에서 축소를 다시 켜면 즉시 저장');
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await toParty(page, { content: 'rustfort', diff: '쉬움' });
-  await page.click('#depart'); await page.clock.runFor(3400);
+  await departGo(page); await page.clock.runFor(3400);
   ok(await savedCompact(page) === true && await mode(page)
     && await page.isChecked('#pauseCompact') && await page.locator('#compactToggle,#compactReturn').count() === 0,
   '360: 페이지 reload 뒤에도 저장된 축소 모드로 전투 시작');

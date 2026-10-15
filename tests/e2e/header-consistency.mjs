@@ -44,7 +44,7 @@ export default async function headerConsistency(url,shots) {
         const expectedPortrait=height<=700?44:height<=800?50:width<359?54:70;
         page.on('pageerror',e=>errs.push(`${id}: ${e.message}`));page.on('console',m=>{if(m.type()==='error')errs.push(`${id}: ${m.text()}`);});
         await page.clock.install();await page.goto(url);await page.clock.runFor(300);
-        await page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('healer.save'));s.tut=99;s.player.level=100;s.player.gold=12700;s.wallet.crystal=180;s.settings.devUnlock=false;localStorage.setItem('healer.save',JSON.stringify(s));});
+        await page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('healer.save'));s.tut=99;s.player.level=100;s.player.gold=12700;s.stamina={n:140,at:Date.now(),day:'',ads:0};s.bought=['noads'];s.settings.devUnlock=false;localStorage.setItem('healer.save',JSON.stringify(s));});
         await page.reload();await page.clock.runFor(300);await pastTitle(page);await page.evaluate(()=>document.fonts.ready);
         const headers=[];
         for(const[tab,screen,label]of[['lobby','#s-lobby','로비'],['battle','#s-content','전투'],['char','#s-char','캐릭터'],['shop','#s-shop','상점']]) {

@@ -1,6 +1,6 @@
 // 임시 전투 화면(프로토타입 v11 UI) 확인: 편성의 단축칸 고르기·공략·카운트다운·아이템·정산·20인 판·왼손. prototype/tests/items.js에서 옮김
 import { chromium } from 'playwright';
-import { patchSave, pickedItems, toParty } from './nav.mjs';
+import { departGo, patchSave, pickedItems, toParty } from './nav.mjs';
 
 export default async function legacyUi(url, shots) {
   const browser = await chromium.launch();
@@ -54,7 +54,7 @@ export default async function legacyUi(url, shots) {
   await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
 
   // ---- 출발 → 카운트다운 ----
-  await page.click('#depart'); await page.clock.runFor(100);
+  await departGo(page); await page.clock.runFor(100);
   ok(await page.isVisible('#pull') && (await page.textContent('#pullNum')).trim() === '3', '3초 카운트다운 보임');
   ok(await page.locator('#pullChat').count() === 0 && /^3$/.test((await page.textContent('#pull')).replace(/\s/g, '')), '카운트다운은 숫자만');
   await page.screenshot({ path: `${shots}/v6_pull.png` });
@@ -174,7 +174,7 @@ export default async function legacyUi(url, shots) {
   await page.click('#s-party [data-slots="3"]'); await page.clock.runFor(50);
   await page.click('#s-party .f-isheet [data-item="feather"]');
   await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
-  await page.click('#depart'); await page.clock.runFor(3300);
+  await departGo(page); await page.clock.runFor(3300);
   const b20 = await ev(() => ({ board: window.__proto.F.board, cells: window.__proto.F.cells.length }));
   ok(b20.board === 'b36' && b20.cells === 36, `20인 = 6열 × 6줄 b36 ${JSON.stringify(b20)}`);
   // 파티 요약 줄 「파티 20/20 · 모두 생존」은 뺐다 (2026-10-09 Lim). 판이 보스 무대 바로 아래에서 시작
@@ -213,7 +213,7 @@ export default async function legacyUi(url, shots) {
   ok(await ev(() => JSON.parse(localStorage.getItem('healer.save')).settings.hand) === 'left', '왼손 설정 저장');
   await page.click('#s-settings .tb-back'); await page.clock.runFor(100);
   await toParty(page);
-  await page.click('#depart'); await page.clock.runFor(3300);
+  await departGo(page); await page.clock.runFor(3300);
   const lh = await ev(() => { const w = document.getElementById('wheel').getBoundingClientRect(), i = document.getElementById('items').getBoundingClientRect(); return { wheelX: w.x, itemsX: i.x }; });
   ok(lh.wheelX < lh.itemsX, `왼손 모드: 휠 왼쪽, 단축칸 오른쪽 ${JSON.stringify(lh)}`);
   await page.screenshot({ path: `${shots}/v6_lefthand.png` });

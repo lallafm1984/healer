@@ -3,11 +3,12 @@
  * 같이 쓰는 건 설정 · 산 것 · 캐릭터 칸. 칸은 골드로 모아 사거나 앱 결제로 바로 (Lim 「둘 다」)
  */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { CHAR_SLOT, MEMBER, slotGold } from '../src/data/economy';
+import { CHAR_SLOT, slotGold } from '../src/data/economy';
 import { makeItem } from '../src/data/equipment';
 import { buySlot, grantSlot, rollover, slotOffer } from '../src/game/economy';
 import { charList, G, makeChar, pickChar, resetSave } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
+import { adCharge } from '../src/game/stamina';
 import { charKey, load, loadChar, migrate, newSave, save, SAVE_VERSION, type KV, type SaveData } from '../src/platform/storage';
 
 let seed = 3;
@@ -71,38 +72,35 @@ describe('캐릭터 목록', () => {
 
 describe('캐릭터마다 따로, 계정은 같이 (68 3장)', () => {
   beforeEach(() => fresh());
-  it('골드 · 재료 · 열쇠 · 소비 아이템 · 도감 · 기록 · 임무 · 칭호는 캐릭터마다', () => {
+  it('골드 · 재료 · 공훈 · 소비 아이템 · 도감 · 기록 · 임무 · 칭호는 캐릭터마다', () => {
     const s = G.save;
-    s.player.gold = 900; s.mats = { stone: 7, refined: 2 }; s.wallet.shards = 3; s.bag.mana = 17;
+    s.player.gold = 900; s.mats = { stone: 7, refined: 2 }; s.wallet.merit = 3; s.bag.mana = 17;
     s.gear.codex = ['x']; s.clears.rustfort = { 보통: { stars: 3, grade: 'A', best: 100, n: 2 } }; s.decos = ['칭호'];
     s.daily.missions[0].n = 1;
     makeChar('druid', '', DAY);
     const d = G.save;
-    expect([d.player.gold, d.mats, d.wallet.shards, d.bag.mana, d.gear.codex, d.clears, d.decos]).toEqual([0, { stone: 0, refined: 0 }, 0, 5, [], {}, []]);
+    expect([d.player.gold, d.mats, d.wallet.merit, d.bag.mana, d.gear.codex, d.clears, d.decos]).toEqual([0, { stone: 0, refined: 0 }, 0, 5, [], {}, []]);
     expect(d.daily.missions.every(m => m.n === 0)).toBe(true);
     pickChar(1, DAY);
     expect([G.save.player.gold, G.save.mats.stone, G.save.bag.mana, G.save.clears.rustfort?.보통?.stars, G.save.daily.missions[0].n]).toEqual([900, 7, 17, 3, 1]);
   });
-  it('설정 · 크리스탈 · 월정액 · 패스 · 첫 구매는 계정 (휠 배치 · 칸 탭은 캐릭터)', () => {
+  it('설정 · 산 상품 · 스테미너 · 패스는 계정 (휠 배치 · 칸 탭은 캐릭터, 81)', () => {
     makeChar('druid', '', DAY);
     const s = G.save;
     s.settings.sound = false; s.settings.tapKey = 'flash';
-    s.wallet.crystal = 120; s.member = DAY + 1e9; s.pass.xp = 3000; s.pass.premium = true; s.firstBuy = ['c1'];
+    s.bought = ['noads']; s.stamina = { n: 37, at: DAY, day: 'd', ads: 2 }; s.pass.xp = 3000;
     pickChar(1, DAY);
     const p = G.save;
-    expect([p.settings.sound, p.settings.tapKey, p.wallet.crystal, p.member, p.pass.xp, p.pass.premium, p.firstBuy]).toEqual([false, 'heal', 120, DAY + 1e9, 3000, true, ['c1']]);
-    p.wallet.crystal = 80;
+    expect([p.settings.sound, p.settings.tapKey, p.bought, p.stamina.n, p.stamina.ads, p.pass.xp]).toEqual([false, 'heal', ['noads'], 37, 2, 3000]);
+    p.stamina.n = 12;
     pickChar(2, DAY);
-    expect([G.save.wallet.crystal, G.save.settings.tapKey]).toEqual([80, 'flash']);
+    expect([G.save.stamina.n, G.save.settings.tapKey]).toEqual([12, 'flash']);
   });
-  it('월정액 매일 크리스탈은 캐릭터를 바꿔도 하루 한 번', () => {
-    G.save.member = NEXT_DAY + 1e9;
+  it('스테미너 광고 충전은 캐릭터를 바꿔도 하루 3번 (계정, 81)', () => {
     makeChar('druid', '', DAY);
+    for (let i = 0; i < 3; i++) expect(adCharge(G.save, NEXT_DAY)).toBe('');
     pickChar(1, NEXT_DAY);
-    const c = G.save.wallet.crystal;
-    expect(c).toBe(MEMBER.daily);
-    pickChar(2, NEXT_DAY);
-    expect(G.save.wallet.crystal).toBe(c);
+    expect(adCharge(G.save, NEXT_DAY)).toMatch(/3번/);
   });
   it('광고 본 횟수는 캐릭터마다 (캐릭터 상자에 붙은 광고)', () => {
     G.save.daily.ads.chest = 1;
@@ -220,18 +218,16 @@ describe('옛 저장 나누기 v10 → v11 (68 4장)', () => {
     expect(Object.keys(d.clears)).toEqual(['plateau']);
     expect(Object.keys(s.clears).sort()).toEqual(['abyss1', 'plateau']);
   });
-  it('공훈 · 휠 배치는 그 직업 캐릭터로, 크리스탈 · 설정은 모두 같이', () => {
+  it('공훈 · 휠 배치는 그 직업 캐릭터로, 설정은 모두 같이 (크리스탈 · 열쇠는 81에서 없앰)', () => {
     const s = v10({
-      hero: 'priest', player: { level: 40, xp: 0, gold: 0 }, wallet: { crystal: 70, shards: 2, merit: 30, ticket: 0 }, settings: { ...newSave(1).settings, sound: false },
-      weekly: { week: 'w', missions: [], craft: 1, merit: { 10: 30, 20: 0 }, loot: ['priest|abyss1|보통', 'druid|abyss1|보통'], chalBest: 8, chalHero: 'druid', guild: { n: 0, got: false } },
+      hero: 'priest', player: { level: 40, xp: 0, gold: 0 }, wallet: { crystal: 70, shards: 2, merit: 30, ticket: 0 } as never, settings: { ...newSave(1).settings, sound: false },
+      weekly: { week: 'w', missions: [], craft: 1, merit: { 10: 30, 20: 0 }, loot: ['priest|abyss1|보통', 'druid|abyss1|보통'], chalBest: 8, chalHero: 'druid', guild: { n: 0, got: false } } as never,
       heroes: { druid: hs(50, { tapKey: 'flash', merit: { n: 120, week: 'w', got: { 10: 100, 20: 0 } } }) },
     });
     const d = s.roster.chars[1].park!;
     expect([s.wallet.merit, s.weekly.merit[10], s.weekly.loot, s.weekly.chalBest]).toEqual([30, 30, ['abyss1|보통'], 0]);
     expect([d.wallet.merit, d.weekly.merit[10], d.weekly.loot, d.weekly.chalBest, d.settings.tapKey]).toEqual([120, 100, ['druid|abyss1|보통'], 8, 'flash']);
-    expect([d.wallet.crystal, d.settings.sound, s.wallet.crystal]).toEqual([70, false, 70]);
-    // 가장 높은 캐릭터 (드루이드 Lv 50)가 열쇠 · 칭호 같은 계정 것을 받음
-    expect([d.wallet.shards, s.wallet.shards]).toEqual([2, 0]);
+    expect([d.settings.sound, d.wallet, s.wallet]).toEqual([false, { merit: 120 }, { merit: 30 }]);
   });
   it('기기에서 읽으면 쉬는 캐릭터를 바로 따로 키에 씀', () => {
     const { kv, m } = memKV();

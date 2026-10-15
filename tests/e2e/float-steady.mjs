@@ -3,7 +3,7 @@
 // 예전엔 프레임마다 판 전체에서 빈자리를 새로 찾아 S25 5인에서 숫자 82개 중 76개가 한 번 이상 튀었다 (최대 80px).
 // 자동 힐러로 전투를 돌리며 파티원 체력을 깎아 숫자를 많이 띄우고, 프레임마다 판 기록(decorationBounds)의 숫자 자리를 그 사람 칸 움직임과 견줌
 import { chromium } from 'playwright';
-import { patchSave, toParty } from './nav.mjs';
+import { departGo, patchSave, toParty } from './nav.mjs';
 
 const BOARDS = {
   3: { n: 3, tab: 'explore', content: 'plateau' },
@@ -37,7 +37,7 @@ export default async function floatSteady(url, shots) {
     await page.goto(url); await page.clock.runFor(300);
     await patchSave(page, { player: { level: 60 }, settings: { auto: true, sound: false, vibrate: false, reducedEffects: false, raidFiveLook: !!board.five } });
     await toParty(page, { tab: board.tab, content: board.content, diff: '보통' });
-    await page.click('#depart'); await page.clock.runFor(3100 + 300);
+    await departGo(page); await page.clock.runFor(3100 + 300);
     const tag = `${name} ${width}×${height} ${board.n}인${board.five ? ' (5인 모양)' : ''}`;
     // 판을 새로 그린 프레임마다 숫자 자리 · 그 사람 칸 자리를 적음 (가짜 시계는 프레임 순서가 가끔 뒤바뀌어 나중에 시각으로 정렬)
     await page.evaluate(() => {

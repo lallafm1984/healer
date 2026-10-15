@@ -1,6 +1,6 @@
 // 개발 빌드 자동 치유 (Lim 2026-10-07): 설정과 전투 일시정지에서 켜고 끄고, 바꾸면 저장
 import { chromium } from 'playwright';
-import { pastTitle, toParty } from './nav.mjs';
+import { departGo, pastTitle, toParty } from './nav.mjs';
 
 export default async function devauto(url, shots) {
   const browser = await chromium.launch();
@@ -27,7 +27,7 @@ export default async function devauto(url, shots) {
 
   // 전투 일시정지에서 켬 → 저장, 손대지 않아도 힐이 들어감
   await toParty(page, { content: 'rustfort' });
-  await page.click('#depart'); await page.clock.runFor(3100 + 500);
+  await departGo(page); await page.clock.runFor(3100 + 500);
   await page.click('#pauseBtn'); await page.clock.runFor(50);
   ok(await page.isVisible('#pauseAuto') && !(await page.isChecked('#pauseAuto')), '일시정지에 「자동 치유」 (꺼짐)');
   await page.screenshot({ path: `${shots}/devauto_pause.png` });

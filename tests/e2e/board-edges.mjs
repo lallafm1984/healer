@@ -2,7 +2,7 @@
 // 모든 좌표는 CSS px다. viewport/DPR 에뮬레이션이며 실기기 검사가 아니다.
 // 가로 화면 자체 UX의 통과를 주장하지 않고 세로 복귀와 전투 상태 보존만 검사한다.
 import { chromium } from 'playwright';
-import { pastTitle, patchSave, toParty } from './nav.mjs';
+import { departGo, pastTitle, patchSave, toParty } from './nav.mjs';
 
 const PROFILES = [
   { name: 'S24', width: 360, height: 780, dpr: 3 },
@@ -48,7 +48,7 @@ async function enter(page, party) {
   await patchSave(page, { player: { level: 100 }, settings: { compactSkills: false, auto: false,
     allSkills: false, devUnlock: true, sound: false, vibrate: false, reducedEffects: true, zoom: false } });
   await pastTitle(page); await toParty(page, { ...party, diff: '쉬움' });
-  await page.click('#depart'); await page.clock.runFor(6500);
+  await departGo(page); await page.clock.runFor(6500);
   await page.evaluate(() => {
     // 가장자리 hit를 자연 파티 편성의 우연에 의존하지 않게 세 명을 양끝/마지막 행에 배치한다.
     const f = window.__proto.F, cells = f.cells;

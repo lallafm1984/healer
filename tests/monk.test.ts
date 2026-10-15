@@ -53,10 +53,10 @@ const P = SKILLS.vitalPalm.amt!, STEP = MONK.beat.step, M = SKILLS.wanderMist.am
 const PER = (M * MONK.mist.tick) / MONK.mist.sec;
 
 describe('데이터 (79 3장)', () => {
-  it('휠 8칸 (가운데 버튼 스킬 없음), 해제 마법 · 질병, Lv 40 열림, 켬', () => {
+  it('휠 8칸 (가운데 버튼 스킬 없음), 해제 마법 · 질병, 상점 해금, 켬', () => {
     expect(heroSkills('monk')).toEqual(['vitalPalm', 'mistWrap', 'wanderMist', 'mistBreath', 'clearChi', 'soothe', 'reviveWind', 'tea']);
     expect(HEROES.monk.ready).toBe(true);
-    expect(HEROES.monk.unlock.lv).toBe(40);
+    expect(HEROES.monk.unlock).toMatchObject({ buy: true }); // 81: 상점 2,200원 (예전 Lv 40)
     expect(HEROES.monk.dispel).toEqual(['마법', '질병']);
     expect(SKILLS.vitalPalm).toMatchObject({ cast: 0, gcd: 1.0, cost: 1.5 });
     expect(SKILLS.tea).toMatchObject({ gcd: 0, cost: 0, cd: 60 });

@@ -5,7 +5,7 @@
 // - 전투 메시지는 판 밖 (시전 막대 자리 안)
 import { chromium } from 'playwright';
 import { DEVICES } from './devices.mjs';
-import { patchSave, toParty } from './nav.mjs';
+import { departGo, patchSave, toParty } from './nav.mjs';
 
 const BOARDS = [
   { n: 3, tab: 'explore', content: 'plateau' },
@@ -32,7 +32,7 @@ export default async function battleNotes(url, shots) {
     await page.goto(url); await page.clock.runFor(300);
     await patchSave(page, { player: { level: 60 }, settings: { auto: false, sound: false, vibrate: false, raidFiveLook: !!board.five } });
     await toParty(page, { tab: board.tab, content: board.content, diff: '쉬움' });
-    await page.click('#depart'); await page.clock.runFor(3100 + 300);
+    await departGo(page); await page.clock.runFor(3100 + 300);
     const tag = `${name} ${width}×${height} ${board.n}인${board.five ? ' (5인 모양)' : ''}`;
     if (board.five) ok(await page.evaluate(() => document.querySelector('#board').dataset.cellLook === 'five'), `${tag}: 5인 던전 모양으로 줄여 그림`);
     // 판 위 사람이 죽거나 움직이지 않게 체력을 채우며 진행
