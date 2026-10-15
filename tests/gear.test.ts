@@ -1,7 +1,7 @@
 /** 장비 강화·분해·드롭 (02 10장, 12 3장) */
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  avgScore, clearMats, ENHANCE_RATE, enhanceCost, equippedStats, gearStatsOf, ilvMult, itemName, itemScore, itemStats, kindsOf, makeItem, OPTION_LINES, optionsOf, randomLines, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, takenStats, STAT_POINT, isPointStat, toPoints, type GearItem,
+  avgScore, clearMats, ENHANCE_RATE, enhanceCost, equippedStats, gearStatsOf, ilvMult, pctLvMult, itemName, itemScore, itemStats, kindsOf, makeItem, OPTION_LINES, optionsOf, randomLines, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, takenStats, STAT_POINT, isPointStat, toPoints, type GearItem,
 } from '../src/data/equipment';
 import { HEALER_HP } from '../src/game/charinfo';
 import { INT_BASE, RULES } from '../src/data/rules';
@@ -126,12 +126,16 @@ describe('아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비�
     expect(ilvMult(50, 100)).toBeLessThan(0.46);
     // 내 레벨보다 높은 곳 장비는 더 셈 (Lv 3에서 녹슨 고원 어려움 = 적 Lv 5)
     expect(itemStats(staff(5), 3).int).toBeGreaterThan(0.12);
-    // 지능 · 체력은 주 옵션 · 무작위 옵션 · 강화 모두 같은 배율, 치명타 · 가속 · 정신력 · 인내는 고정 % (Lim 「10%가 9%로 떨어지면 헷갈림」)
+    // 지능 · 체력은 주 옵션 · 무작위 옵션 · 강화 모두 같은 배율, 치명타 · 가속 · 정신력 · 인내는 내 레벨과 상관없는 % (Lim 「10%가 9%로 떨어지면 헷갈림」)
     const it = { ...staff(10), plus: 5, lines: [{ stat: 'spirit' as const, roll: 1 }, { stat: 'hp' as const, roll: 0.8 }] };
     const same = optionsOf(it, 10), low = optionsOf(it, 20);
     for (let i = 0; i < same.length; i++) expect(low[i].v).toBeCloseTo(same[i].v * (same[i].stat === 'int' || same[i].stat === 'hp' ? ilvMult(10, 20) : 1));
-    expect(itemStats(staff(7), 100).haste).toBeCloseTo(itemStats(staff(100), 100).haste);
-    expect(itemStats(staff(7), 100).haste).toBeCloseTo(0.05 * 1.3);
+    // 2026-10-16 Lim 「레벨별로 모든 수치가 레벨에 맞게」: % 옵션은 아이템 레벨로 75~125% (그 장비에서는 레벨업해도 그대로)
+    expect(itemStats(staff(7), 100).haste).toBeCloseTo(0.05 * 1.3 * pctLvMult(7));
+    expect(itemStats(staff(7), 30).haste).toBeCloseTo(itemStats(staff(7), 100).haste);
+    expect(itemStats(staff(100), 100).haste).toBeCloseTo(0.05 * 1.3 * 1.25);
+    expect(itemStats(staff(1), 1).haste).toBeCloseTo(0.05 * 1.3 * 0.75);
+    expect(itemStats(staff(50), 50).haste).toBeCloseTo(0.05 * 1.3, 2);
     expect(gearStatsOf({ weapon: staff(7) }, 100).heal).toBeLessThan(gearStatsOf({ weapon: staff(100) }, 100).heal);
   });
   it('옵션은 % 대신 수치 (Lim 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」): 장비마다 고정, 아이템 레벨이 높을수록 큼', () => {
@@ -215,17 +219,19 @@ describe('장비 종류 · 옵션 (34 6-2 ~ 6-5)', () => {
       for (const l of it.lines) { expect(l.roll).toBeGreaterThanOrEqual(0.6); expect(l.roll).toBeLessThanOrEqual(1); }
     }
   });
-  it('주 옵션은 강화로 오르고, 종류 옵션은 장신구만 강화로 오름', () => {
+  it('강화는 주 · 종류 · 무작위 옵션 모두 +8%씩 (2026-10-16 Lim 「특수능력을 제외한 모든 옵션」)', () => {
     const staff = item({ slot: 'weapon', kind: 'staff', grade: '영웅' });
     expect(itemStats(staff, 30).int).toBeCloseTo(0.12);
     expect(itemStats(staff, 30).haste).toBeCloseTo(0.05 * 1.3);
     expect(itemStats(staff, 30).hp).toBe(0);
     const s5 = itemStats({ ...staff, plus: 5 }, 30);
     expect(s5.int).toBeCloseTo(0.12 * 1.4);
-    expect(s5.haste).toBeCloseTo(0.05 * 1.3);
+    expect(s5.haste).toBeCloseTo(0.05 * 1.3 * 1.4);
+    const l5 = itemStats({ ...staff, plus: 5, lines: [{ stat: 'crit', roll: 1 }] }, 30);
+    expect(l5.crit).toBeCloseTo(0.04 * 1.3 * 1.4);
     const robe = itemStats(item({ slot: 'chest', kind: 'robe', grade: '희귀', plus: 10 }), 30);
     expect(robe.hp).toBeCloseTo(0.18 * 0.85 * 1.8);
-    expect(robe.spirit).toBeCloseTo(0.08 * 1.3 * 0.85);
+    expect(robe.spirit).toBeCloseTo(0.08 * 1.3 * 0.85 * 1.8);
     expect(robe.int).toBe(0);
     const signet = itemStats(item({ slot: 'ring', kind: 'signet', grade: '영웅', plus: 5 }), 30);
     expect(signet.int).toBe(0);

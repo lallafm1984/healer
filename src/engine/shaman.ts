@@ -122,7 +122,7 @@ function spiritLink(f: Fight, u: Unit): void {
   emit(f, { type: 'sound', name: 'chime' });
 }
 
-/** 잔물결 · 소나기가 튐 (물의 정령, 79 2-7): 붙어 있는 다친 아군 2명에게 75% · 56% */
+/** 잔물결이 튐 (물의 정령, 79 2-7): 붙어 있는 다친 아군 2명에게 75% · 56% */
 function spiritJump(f: Fight, u: Unit, amt: number): void {
   if (!activeOn(f, 'waterSpirit')) return;
   const c = cellOf(f, u);
@@ -134,14 +134,12 @@ function spiritJump(f: Fight, u: Unit, amt: number): void {
 export function shamanApply(f: Fight, key: SkillKey, u: Unit): void {
   const on = f.tx.on;
   if (key === 'ripple') {
-    heroHeal(f, u, SKILLS.ripple.amt!);
-    { const v = rippleTo(f, u); if (v) { noteUsed(f, 'ripple', v.id); heroHeal(f, v, SKILLS.ripple.amt! * SHAMAN.ripple.bounce); } } // 82: 붙은 가장 다친 아군에게 한 번 튐
-    if (on.rippleChain) { const h = u.hots.find(x => x.key === 'droplet'); if (h) { h.rest += (h.per / h.every) * TX.rippleChain; h.left += TX.rippleChain; } } // 잔물결 이음
-    spiritJump(f, u, SKILLS.ripple.amt!);
-  } else if (key === 'shower') {
-    const amt = SKILLS.shower.amt! * (on.rapids && u.hp < u.max * TX.rapids.hp ? 1 + TX.rapids.heal : 1); // 급류
+    const amt = SKILLS.ripple.amt! * (on.rapids && u.hp < u.max * TX.rapids.hp ? 1 + TX.rapids.heal : 1); // 급류 (소나기를 없애며 잔물결로, 2026-10-16)
     heroHeal(f, u, amt);
-    if (on.sprayShower) { const c = cellOf(f, u), v = living(f).filter(x => x !== u && hexDist(cellOf(f, x), c) === 1).sort((a, b) => a.hp / a.max - b.hp / b.max)[0]; if (v) heroHeal(f, v, amt * TX.sprayShower); } // 흩뿌리는 소나기
+    const v = rippleTo(f, u);
+    if (v) { noteUsed(f, 'ripple', v.id); heroHeal(f, v, SKILLS.ripple.amt! * SHAMAN.ripple.bounce); } // 82: 붙은 가장 다친 아군에게 한 번 튐
+    if (on.sprayShower) { const c = cellOf(f, u), w = living(f).filter(x => x !== u && x !== v && x.hp < healTop(x) - 1e-9 && hexDist(cellOf(f, x), c) === 1).sort((a, b) => a.hp / a.max - b.hp / b.max)[0]; if (w) { noteUsed(f, 'ripple', w.id); heroHeal(f, w, amt * TX.sprayShower); } } // 흩뿌리는 잔물결
+    if (on.rippleChain) { const h = u.hots.find(x => x.key === 'droplet'); if (h) { h.rest += (h.per / h.every) * TX.rippleChain; h.left += TX.rippleChain; } } // 잔물결 이음
     spiritJump(f, u, amt);
   } else if (key === 'droplet') {
     putDrop(f, u);

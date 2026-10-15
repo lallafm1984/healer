@@ -629,8 +629,6 @@ export interface FightStats {
   abHeal?: number;
   /** 뒤집힌 축복으로 피해가 된 치유량 */
   inverted?: number;
-  /** 힐러가 보스 · 적에게 준 피해 (결계사 심판 · 빛의 창, 79 6-1 bossHit) */
-  healerDmg?: number;
 }
 
 /** 판 위 물건 (79 6-1): 토템 · 샘 · 성채 · 초신성. 칸 위에 서지만 길을 막지 않음. tick = 다음 효과까지 남은 초, at = 세운 시각 */

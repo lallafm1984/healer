@@ -195,8 +195,8 @@ export function reroll(id: number, kind: RerollKind, i: number, r: () => number 
     it.lines[i] = rerollLine(r, it, i);
     if (pick) alt = rerollLine(r, it, i);
   } else {
-    it.specs![i] = rerollSpec(r, it, i);
-    if (pick) alt = rerollSpec(r, it, i);
+    it.specs![i] = rerollSpec(r, it, i, heroNow());
+    if (pick) alt = rerollSpec(r, it, i, heroNow());
     noteSpecs(G.save, [it]);
   }
   it.name = itemName(it);

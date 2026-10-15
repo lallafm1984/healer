@@ -4,6 +4,7 @@
  * cost = 최대 마나 대비 %, gp = 사제 평온 게이지 충전량 (82: 성언 게이지는 평온 하나), power = 성기사 신성한 힘 소모
  */
 import { INT_BASE } from './rules';
+import { ASTRO, judgeText, SHAMAN } from './heroConst';
 
 export type SkillKey =
   // 사제
@@ -11,15 +12,15 @@ export type SkillKey =
   // 드루이드
   | 'sprout' | 'growth' | 'bloom' | 'wildflower' | 'natureCleanse' | 'bark' | 'quietwood' | 'rebirth'
   // 성기사
-  | 'holyLight' | 'holyStrike' | 'oath' | 'lightWave' | 'handCleanse' | 'sacrifice' | 'sanctuary' | 'handGuard'
+  | 'holyLight' | 'beacon' | 'oath' | 'lightWave' | 'handCleanse' | 'sacrifice' | 'sanctuary' | 'handGuard'
   // 주술사 (79 2장, springTotem = 가운데 스킬)
-  | 'ripple' | 'shower' | 'droplet' | 'washing' | 'chainHeal' | 'earthTotem' | 'rainTotem' | 'spiritLink' | 'springTotem'
+  | 'ripple' | 'droplet' | 'washing' | 'chainHeal' | 'earthTotem' | 'rainTotem' | 'spiritLink' | 'springTotem'
   // 수도사 (79 3장)
   | 'vitalPalm' | 'mistWrap' | 'wanderMist' | 'clearChi' | 'mistBreath' | 'soothe' | 'reviveWind' | 'tea'
   // 점성술사 (79 4장)
   | 'starHeal' | 'twinkle' | 'starMark' | 'clearStar' | 'starfall' | 'starSleep' | 'starMemory' | 'polaris'
   // 결계사 (79 5장, judgment = 가운데 스킬)
-  | 'sealHeal' | 'quickSeal' | 'lightBarrier' | 'wardCleanse' | 'wardCircle' | 'guardWard' | 'lightVeil' | 'lightSpear' | 'judgment';
+  | 'sealHeal' | 'lightBarrier' | 'wardCleanse' | 'wardCircle' | 'guardWard' | 'lightVeil' | 'wardHold' | 'judgment';
 
 /** 휠 8칸. unique = 8번째 칸 (직업 고유 스킬, Lv 15) */
 export type SlotName = 'basic' | 'fast' | 'hot' | 'aoe' | 'dispel' | 'ext' | 'raid' | 'unique';
@@ -46,7 +47,7 @@ export interface SkillDef {
   powerAll?: boolean;
   /** 이 스킬의 GCD (초, 가속 전). 없으면 규칙 GCD (1.5). 0 = GCD를 안 쓰고 GCD · 시전 중에도 바로 나감 (수도사 차 한 잔, 79 6-1) */
   gcd?: number;
-  /** 휠 밖 가운데 버튼 스킬 (주술사 샘 토템 · 결계사 심판, 79 6-1). 휠 배치에는 안 들어감 */
+  /** 휠 밖 가운데 버튼 스킬 (79 6-1). 2026-10-16 Lim 「가운데 버튼 기획을 제거」로 어느 스킬도 쓰지 않음 (샘 토템 · 심판은 빠른 힐 칸으로) */
   core?: true;
 }
 
@@ -65,7 +66,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 
   // ---------- ② 드루이드 (25 3장) ----------
   sprout: { name: '새싹', short: '새싹', slot: 'basic', lv: 1, cast: 0, cost: 2, amt: 280, target: 'ally' },
-  growth: { name: '생장', short: '생장', slot: 'fast', lv: 1, cast: 2.0, cost: 3, amt: 220, target: 'ally' }, // 마나 4 → 3 (2026-10-14 직업 밸런스 검토: 장비 적은 초반 드루이드가 생장으로 마나가 바닥나 어려움 · 악몽 40~70%)
+  growth: { name: '생장', short: '생장', slot: 'fast', lv: 1, cast: 2.0, cost: 3, amt: 250, target: 'ally' }, // 84 밸런스: 220 → 250 (Lv 21~30 악몽 −12%p). 마나 4 → 3 (2026-10-14 직업 밸런스 검토: 장비 적은 초반 드루이드가 생장으로 마나가 바닥나 어려움 · 악몽 40~70%)
   bloom: { name: '피워 내기', short: '피움', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 12, target: 'ally' },
   wildflower: { name: '들꽃 군락', short: '들꽃', slot: 'aoe', lv: 5, cast: 2.0, cost: 10, cd: 10, amt: 160, target: 'area' },
   natureCleanse: { name: '자연 정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
@@ -75,7 +76,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 
   // ---------- ③ 성기사 (25 3장) ----------
   holyLight: { name: '빛의 손길', short: '손길', slot: 'basic', lv: 1, cast: 2.0, cost: 4, amt: 260, target: 'ally' },
-  holyStrike: { name: '빛 일격', short: '일격', slot: 'fast', lv: 1, cast: 0, cost: 5, cd: 8, amt: 230, target: 'ally' }, // 재사용 6 → 8초 (73: 즉시 힐로 힐러가 잘 안 쓰러지던 것)
+  beacon: { name: '봉화', short: '봉화', slot: 'fast', lv: 6, cast: 0, cost: 3, cd: 10, amt: 160, target: 'ally' }, // 2026-10-16 Lim 「성기사는 봉화 지정스킬을 만들고 빛일격 스킬을 제거하자」 · 「봉화 스킬에 부가적인것도 추가해서 단순하게 만들지 말자」 · 「너무 좋다. 신성한 힘 1 증가 제거」: 지정 + 즉시 회복 + 피해 감소. cd = heroConst BEACON.cd
   oath: { name: '빛의 서약', short: '서약', slot: 'hot', lv: 2, cast: 0, cost: 0, amt: 160, target: 'ally', power: 1, powerAll: true },
   lightWave: { name: '빛의 파도', short: '파도', slot: 'aoe', lv: 5, cast: 0, cost: 5, amt: 220, target: 'area', power: 3 }, // 마나 0 → 5% (73)
   handCleanse: { name: '정화의 손', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
@@ -85,18 +86,17 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 
   // ---------- ④ 주술사 (79 2장) ----------
   // 79 첫 안 300 · 3% / 250 · 6% / 210 · 재사용 6 / 320 / 80 / 30 → 간격 검사 (79 2-11, 세 직업 평균 ±5%p)로 고침: 사제 메아리 · 성언, 드루이드 싼 새싹, 성기사 봉화 같은 덤이 없어 기본 힐 효율을 올림
-  ripple: { name: '잔물결', short: '물결', slot: 'basic', lv: 1, cast: 2.5, cost: 2.2, amt: 280, target: 'ally' }, // 82: 330 → 280 + 한 번 튐 30% (SHAMAN.ripple, 밸런스)
-  shower: { name: '소나기', short: '소나기', slot: 'fast', lv: 1, cast: 1.5, cost: 5, amt: 280, target: 'ally' },
+  ripple: { name: '잔물결', short: '물결', slot: 'basic', lv: 1, cast: 2.0, cost: 2.2, amt: 280, target: 'ally' }, // 82: 330 → 280 + 한 번 튐 30% (SHAMAN.ripple, 밸런스)
   droplet: { name: '물방울', short: '방울', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 4, amt: 330, target: 'ally' },
   washing: { name: '씻김', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
   chainHeal: { name: '연쇄 치유', short: '연쇄', slot: 'aoe', lv: 5, cast: 2.5, cost: 10, amt: 300, target: 'ally' },
   earthTotem: { name: '대지 토템', short: '대지', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' },
   rainTotem: { name: '비구름 토템', short: '비구름', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, amt: 60, target: 'none' },
   spiritLink: { name: '영혼 잇기', short: '잇기', slot: 'unique', lv: 15, cast: 0, cost: 5, cd: 120, target: 'ally' },
-  springTotem: { name: '샘 토템', short: '샘', slot: 'unique', core: true, lv: 6, cast: 0, cost: 4, cd: 10, amt: 60, target: 'cell' },
+  springTotem: { name: '샘 토템', short: '샘', slot: 'fast', lv: 6, cast: 0, cost: 4, cd: 10, amt: 60, target: 'cell' },
 
   // ---------- ⑤ 수도사 (79 3장) ----------
-  vitalPalm: { name: '생기 손바닥', short: '손바닥', slot: 'basic', lv: 1, cast: 0, gcd: 1.0, cost: 1.5, amt: 85, target: 'ally' }, // 79 3-11: 130 → 85 (밸런스)
+  vitalPalm: { name: '생기 손바닥', short: '손바닥', slot: 'basic', lv: 1, cast: 0, gcd: 1.0, cost: 1.2, amt: 110, target: 'ally' }, // 79 3-11: 130 → 85 (밸런스), 84: 100 → 110 (Lv 1~20 · 중반 던전)
   mistWrap: { name: '안개 감싸기', short: '감싸기', slot: 'fast', lv: 1, cast: 0, cost: 5, cd: 10, amt: 140, target: 'ally' }, // 82: 1.5초 시전 230 (생장과 같은 모양) → 즉시 · 리듬 비례 (MONK.wrap). GCD 1초로는 +5~12%p라 규칙 GCD (밸런스)
   wanderMist: { name: '떠도는 안개', short: '안개', slot: 'hot', lv: 2, cast: 0, cost: 2, cd: 6, amt: 270, target: 'ally' },
   clearChi: { name: '맑은 기운', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
@@ -106,9 +106,9 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   tea: { name: '차 한 잔', short: '차', slot: 'unique', lv: 15, cast: 0, gcd: 0, cost: 0, cd: 60, target: 'none' },
 
   // ---------- ⑥ 점성술사 (79 4장) ----------
-  starHeal: { name: '별빛 치유', short: '별빛', slot: 'basic', lv: 1, cast: 2.0, cost: 2.0, amt: 280, target: 'ally' }, // 79 4-11: 270 · 3% → 320 · 2.2%, 83 (힐량 내림): 280 · 2%
-  twinkle: { name: '반짝임', short: '반짝', slot: 'fast', lv: 1, cast: 0, cost: 4, cd: 9, amt: 240, target: 'ally' }, // 마나 5 → 4 (79 4-11)
-  starMark: { name: '별자리 표식', short: '표식', slot: 'hot', lv: 2, cast: 0, cost: 1.5, amt: 160, target: 'ally' }, // 120 · 3% → 160 · 1.5% (79 4-11)
+  starHeal: { name: '별빛 치유', short: '별빛', slot: 'basic', lv: 1, cast: 2.0, cost: 2.0, amt: 250, target: 'ally' }, // 79 4-11: 270 · 3% → 320 · 2.2%, 83 (힐량 내림): 280 · 2%
+  twinkle: { name: '반짝임', short: '반짝', slot: 'fast', lv: 1, cast: 0, cost: 4, cd: 9, amt: 210, target: 'ally' }, // 마나 5 → 4 (79 4-11)
+  starMark: { name: '별자리 표식', short: '표식', slot: 'hot', lv: 2, cast: 0, cost: 1.5, amt: 140, target: 'ally' }, // 120 · 3% → 160 · 1.5% (79 4-11)
   clearStar: { name: '맑은 별빛', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
   starfall: { name: '별비', short: '별비', slot: 'aoe', lv: 5, cast: 1.5, cost: 10, cd: 8, target: 'area' }, // 83: 모으기 → 시전 (별 = 1 + 조각) 1.5초. 힐량을 내린 몫은 마나 12 → 10% · 재사용 12 → 8초로
   starSleep: { name: '별의 잠', short: '잠', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 120, target: 'ally' },
@@ -116,15 +116,14 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   polaris: { name: '북극성', short: '북극성', slot: 'unique', lv: 15, cast: 1.5, cost: 5, cd: 12, target: 'ally' }, // 마나 8 → 5% · 재사용 30 → 20초 (79 4-11), 83: 모으기 → 시전, 힐량을 내린 몫은 재사용 20 → 12초로
 
   // ---------- ⑦ 결계사 (79 5장) ----------
-  sealHeal: { name: '인장 치유', short: '인장', slot: 'basic', lv: 1, cast: 2.5, cost: 2.2, amt: 350, target: 'ally' }, // 79 5-11: 260 · 3% → 350 · 2.2% (밸런스)
-  quickSeal: { name: '빠른 인장', short: '빠른', slot: 'fast', lv: 1, cast: 1.5, cost: 5, amt: 220, target: 'ally' }, // 마나 6 → 5% (79 5-11)
-  lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 300, target: 'ally' }, // 마나 4 → 3% (79 5-11)
+  sealHeal: { name: '인장 치유', short: '인장', slot: 'basic', lv: 1, cast: 2.2, cost: 2.2, amt: 350, target: 'ally' }, // 79 5-11: 260 · 3% → 350 · 2.2% (밸런스)
+  lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 300, target: 'ally' }, // 마나 4 → 3% (79 5-11). 84 밸런스에서 340을 시험했으나 Lv 1~20만 세지고 막 녹이기 던전은 그대로라 300
   wardCleanse: { name: '결계 정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
   wardCircle: { name: '결계 원', short: '결계', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 20, amt: 100, target: 'area' }, // 150 → 100 (79 5-11)
   guardWard: { name: '수호 결계', short: '수호', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' }, // 82: 받는 피해 −40% (누그러뜨림과 같음) → 큰 보호막 (WARDER.guard)
   lightVeil: { name: '빛의 장막', short: '장막', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, amt: 130, target: 'none' }, // 82: 범위 피해 −25% (성역과 비슷) → 전원 보호막 + 인장
-  lightSpear: { name: '빛의 창', short: '창', slot: 'unique', lv: 15, cast: 0, cost: 3, cd: 12, amt: 160, target: 'none' },
-  judgment: { name: '심판', short: '심판', slot: 'unique', core: true, lv: 6, cast: 2.0, cost: 6, amt: 90, target: 'none' }, // 140 → 90 (79 5-11)
+  wardHold: { name: '결계 굳히기', short: '굳히기', slot: 'unique', lv: 15, cast: 0, cost: 3, cd: 20, amt: 30, target: 'none' }, // 2026-10-16 Lim 「결계사의 창 스킬은 변경하자 (주인공은 공격스킬을 넣지 않는다)」 → 「막 옮기기 말고 보호막 지속시간을 늘려주는 스킬」: 빛의 창 (보스 공격 + 인장 3명 160) 대신. amt = 늘린 보호막마다 더하는 두께
+  judgment: { name: '심판', short: '심판', slot: 'fast', lv: 6, cast: 2.0, cost: 6, amt: 90, target: 'none' }, // 140 → 90 (79 5-11)
 };
 
 /** 배우는 레벨 (06 7장) */
@@ -162,7 +161,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   relay: { kind: '옮겨 다니는 힐', desc: '대상에게 빛을 깃들게 합니다. 빛이 깃든 아군이 피해를 받으면 체력을 {120} 회복하고, 빛은 바로 옆 칸에서 체력이 가장 낮은 다른 아군에게 옮겨 갑니다 (옆 칸에 아무도 없으면 그 자리에 남습니다). 3번 회복하거나 20초가 지나면 사라지고, 회복할 때마다 평온 게이지를 4% 채웁니다.' },
 
   sprout: { kind: '심기', desc: '12초 동안 3초마다 대상의 체력을 회복합니다. 모두 {280}입니다. 군락 범위에 들면 회복량이 늘어납니다.' },
-  growth: { kind: '심기 + 힐', desc: '대상의 체력을 즉시 {220} 회복하고, 6초 동안 {90}만큼 더 회복합니다.' },
+  growth: { kind: '심기 + 힐', desc: '대상의 체력을 즉시 {250} 회복하고, 6초 동안 {90}만큼 더 회복합니다.' },
   bloom: { kind: '거두기', desc: '대상의 지속 힐 하나를 거둬 남은 회복량의 150%를 즉시 회복합니다.' },
   wildflower: { kind: '광역 심기', desc: '대상과 붙어 있는 6칸을 7초 동안 모두 {160} 회복합니다. 처음이 크고 점점 작아집니다. 20인 레이드에서는 2칸 거리까지 닿습니다.' },
   natureCleanse: { kind: '해제', desc: '대상의 마법·저주·독 디버프를 1개 제거합니다.' },
@@ -171,7 +170,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   rebirth: { kind: '부활', desc: '쓰러진 파티원 1명을 체력 40%로 일으킵니다. 전투당 1회 쓸 수 있습니다.' },
 
   holyLight: { kind: '힘 모으기', desc: '대상의 체력을 {260} 회복하고 신성한 힘을 1 모읍니다.' },
-  holyStrike: { kind: '힘 모으기 · 즉시', desc: '대상의 체력을 {230} 회복하고 신성한 힘을 1 모읍니다.' },
+  beacon: { kind: '봉화 지정', desc: '대상을 봉화로 지정하고 체력을 {160} 회복합니다. 대상은 6초 동안 받는 피해가 10% 줄어듭니다. 봉화 대상에게는 다른 사람에게 한 빛의 손길 회복량의 40% (10인 레이드 30%, 20인 레이드 25%)가 함께 들어갑니다.' },
   oath: { kind: '힘 쓰기 · 지속', desc: '모은 신성한 힘 1칸마다 4초 동안 {160} 회복합니다. 3칸이면 12초 동안 {480}입니다.' },
   lightWave: { kind: '힘 쓰기 · 광역', desc: '신성한 힘 3칸을 모두 써서 대상과 붙어 있는 칸 중 체력이 가장 낮은 4명을 각각 {220} 회복합니다. 봉화로는 옮겨 가지 않습니다.' },
   handCleanse: { kind: '해제', desc: '대상의 마법·독·질병 디버프를 1개 제거합니다.' },
@@ -180,16 +179,15 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   handGuard: { kind: '탱커 보호', desc: '6초 동안 대상이 물리 피해를 받지 않습니다. 그동안 대상은 딜을 하지 못합니다.' },
 
   ripple: { kind: '튀는 힐', desc: '대상의 체력을 {280} 회복하고, 붙어 있는 다친 아군 중 체력 비율이 가장 낮은 1명에게 튀어 {84} 회복합니다. 물방울이 걸린 아군에게는 2칸 거리까지 튑니다.' },
-  shower: { kind: '빠른 힐', desc: '대상의 체력을 {280} 회복합니다.' },
   droplet: { kind: '다리 · 지속 힐', desc: '12초 동안 3초마다 대상의 체력을 회복합니다. 모두 {330}입니다. 물방울이 걸린 아군에게는 연쇄 치유가 2칸 거리까지 튑니다.' },
   washing: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
   chainHeal: { kind: '튀는 광역', desc: '대상의 체력을 {300} 회복하고, 붙어 있는 다친 아군에게 튑니다. 체력 비율이 가장 낮은 아군에게 먼저 튀고, 튈 때마다 회복량이 25% 줄며, 모두 4명까지 닿습니다.' },
   earthTotem: { kind: '토템', desc: '대상이 선 칸에 대지 토템을 세웁니다. 10초 동안 그 칸과 붙어 있는 6칸의 아군이 받는 피해가 15% 줄어듭니다. 토템은 그 칸에 남고 대상을 따라가지 않습니다.' },
   rainTotem: { kind: '토템 · 공대 쿨기', desc: '10초 동안 2초마다 파티 전원의 체력을 {60}씩 회복합니다. 비구름 토템은 하늘에 떠서 깨지지 않고, 그동안 다른 행동을 할 수 있습니다.' },
   spiritLink: { kind: '체력 나누기', desc: '대상과 붙어 있는 아군의 체력 비율을 모두의 평균으로 똑같이 맞춥니다. 그 뒤 6초 동안 그 아군들이 받는 피해가 10% 줄어듭니다.' },
-  springTotem: { kind: '토템 칸', desc: '고른 칸에 샘 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군 체력을 {60}씩 회복합니다. 20인 레이드에서는 70%만 회복합니다.' },
+  springTotem: { kind: '토템 칸', desc: `고른 아군 칸에 샘 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군 체력을 {60}씩 회복합니다.${SHAMAN.spring.big < 1 ? ` 20인 레이드에서는 ${Math.round(SHAMAN.spring.big * 100)}%만 회복합니다.` : ''}` },
 
-  vitalPalm: { kind: '연타', desc: '대상의 체력을 즉시 {85} 회복합니다. 다음 행동까지 1초만 기다립니다. 2.5초 안에 다시 치면 기 리듬이 오릅니다.' },
+  vitalPalm: { kind: '연타', desc: '대상의 체력을 즉시 {110} 회복합니다. 다음 행동까지 1초만 기다립니다 (가속과 상관없이 1초). 2.5초 안에 다시 치면 기 리듬이 오릅니다.' },
   mistWrap: { kind: '리듬 마무리', desc: '대상의 체력을 즉시 {140} 회복합니다. 기 리듬 1마다 12% 더 회복하고, 리듬은 끊기지 않고 이어집니다. 떠도는 안개가 없으면 6초 동안 {90} 회복하는 안개를 겁니다.' },
   wanderMist: { kind: '옮겨 다니는 지속 힐', desc: '18초 동안 3초마다 대상의 체력을 회복합니다. 모두 {270}입니다. 회복할 때 대상 체력이 가득 차 있으면 붙어 있는 아군 중 안개가 없고 가장 많이 다친 아군에게 옮겨 갑니다.' },
   clearChi: { kind: '해제', desc: '대상의 마법·질병 디버프를 1개 제거합니다.' },
@@ -198,24 +196,23 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   reviveWind: { kind: '공대 쿨기 · 해제', desc: '파티 전원의 체력을 즉시 {350}씩 회복하고, 한 명마다 마법·질병 디버프를 1개씩 제거합니다. 함정 디버프와 해제가 막힌 디버프는 건드리지 않습니다.' },
   tea: { kind: '마나', desc: '마나를 5% 회복하고 기 리듬을 2 올립니다. 마나를 쓰지 않고, 다음 행동을 기다리지 않습니다.' },
 
-  starHeal: { kind: '조각 모으기', desc: '대상의 체력을 {280} 회복하고 별 조각을 1개 얻습니다 (최대 3개).' },
-  twinkle: { kind: '조각 모으기 · 즉시', desc: '대상의 체력을 즉시 {240} 회복하고 별 조각을 1개 얻습니다.' },
-  starMark: { kind: '표식', desc: '8초 동안 대상의 체력을 모두 {160} 회복합니다. 표식이 있는 동안 내가 대상에게 하는 다음 직접 힐이 50% 늘어납니다 (한 번).' },
+  starHeal: { kind: '조각 모으기', desc: '대상의 체력을 {250} 회복하고 별 조각을 1개 얻습니다 (최대 3개).' },
+  twinkle: { kind: '조각 모으기 · 즉시', desc: '대상의 체력을 즉시 {210} 회복하고 별 조각을 1개 얻습니다.' },
+  starMark: { kind: '표식', desc: '8초 동안 대상의 체력을 모두 {140} 회복합니다. 표식이 있는 동안 내가 대상에게 하는 다음 직접 힐이 50% 늘어납니다 (한 번).' },
   clearStar: { kind: '해제', desc: '대상의 마법·독 디버프를 1개 제거합니다.' },
-  starfall: { kind: '별자리 · 광역', desc: '시전이 끝나면 모은 별 조각을 모두 써서 별 1 + 조각개가 쏟아집니다. 별 1개: 대상 {300}, 2개: 대상과 붙어 있는 6칸 {150}씩, 3개: 같은 범위 {220}씩, 4개: 2칸 거리 안 {150}씩. 조각 3개를 다 쓰면 15% 더 회복합니다.' },
+  starfall: { kind: '별자리 · 광역', desc: `시전이 끝나면 모은 별 조각을 모두 써서 별 1 + 조각개가 쏟아집니다. 별 1개: 대상 {${ASTRO.fall.amt[0]}}, 2개: 대상과 붙어 있는 6칸 {${ASTRO.fall.amt[1]}}씩, 3개: 같은 범위 {${ASTRO.fall.amt[2]}}씩, 4개: 2칸 거리 안 {${ASTRO.fall.amt[3]}}씩. 조각 3개를 다 쓰면 15% 더 회복합니다.` },
   starSleep: { kind: '잠재우기', desc: '4초 동안 대상을 별빛 속에 재웁니다. 그동안 피해도 회복도 받지 않고, 딜도 하지 않습니다.' },
-  starMemory: { kind: '별자리 · 되감기', desc: '시전이 끝나면 모은 별 조각을 모두 써서 파티 전원이 받은 피해를 되감습니다. 별 (1 + 조각) 1개마다 2초씩, 별 4개면 최근 8초 동안 받은 피해의 50%를 회복합니다. 적어도 {100}씩 회복합니다.' },
-  polaris: { kind: '별자리 · 한 명', desc: '시전이 끝나면 모은 별 조각을 모두 써서 대상의 체력을 별 (1 + 조각) 1~4개에 따라 {280} · {380} · {480} · {580} 회복합니다. 조각 3개를 다 쓰면 15% 더 회복합니다.' },
+  starMemory: { kind: '별자리 · 되감기', desc: '시전이 끝나면 모은 별 조각을 모두 써서 파티 전원이 받은 피해를 되감습니다. 별 (1 + 조각) 1개마다 2초씩, 별 4개면 최근 8초 동안 받은 피해의 65%를 회복합니다. 적어도 {100}씩 회복합니다.' },
+  polaris: { kind: '별자리 · 한 명', desc: `시전이 끝나면 모은 별 조각을 모두 써서 대상의 체력을 별 (1 + 조각) 1~4개에 따라 ${ASTRO.polaris.map(n => `{${n}}`).join(' · ')} 회복합니다. 조각 3개를 다 쓰면 15% 더 회복합니다.` },
 
   sealHeal: { kind: '인장 힐', desc: '대상의 체력을 {350} 회복하고 15초 동안 인장을 붙입니다.' },
-  quickSeal: { kind: '인장 힐 · 빠른', desc: '대상의 체력을 {220} 회복하고 15초 동안 인장을 붙입니다.' },
   lightBarrier: { kind: '보호막', desc: '15초 동안 대상에게 {300}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   wardCleanse: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
   wardCircle: { kind: '광역 보호막', desc: '대상과 붙어 있는 6칸의 아군에게 10초 동안 {100}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다. 20인 레이드에서는 2칸 거리까지 닿습니다.' },
   guardWard: { kind: '큰 보호막', desc: '8초 동안 대상에게 최대 체력의 30%만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   lightVeil: { kind: '전원 보호막', desc: '파티 전원에게 12초 동안 {130}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
-  lightSpear: { kind: '공격 치유', desc: '보스에게 빛의 창을 던져 딜러 한 명의 0.5초 딜만큼 피해를 줍니다. 인장이 붙은 아군 중 체력이 가장 낮은 3명 (레이드에서는 1명)을 {160}씩 회복합니다.' },
-  judgment: { kind: '공격 치유 · 가운데', desc: '2초 동안 심판을 외칩니다. 보스에게 딜러 한 명의 0.5초 딜만큼 피해를 주고, 인장이 붙은 아군 중 체력이 가장 낮은 6명 (5인 던전 3명, 10인 레이드 4명)을 {90}씩 회복합니다.' },
+  wardHold: { kind: '보호막 늘리기', desc: '내가 씌운 보호막의 남은 시간을 모두 8초 늘리고, 그 보호막을 {30}씩 두껍게 합니다. 보호막이 늘어난 아군은 인장도 처음 시간으로 돌아갑니다.' },
+  judgment: { kind: '인장 터뜨리기', desc: `2초 동안 심판을 외칩니다. 인장이 붙은 아군 중 체력이 가장 낮은 ${judgeText()}을 {90}씩 회복합니다.` },
 };
 
 /** 패시브 설명 (06 5장, 평온 게이지는 4장 · 82) */

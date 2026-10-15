@@ -47,7 +47,7 @@ describe('QA 2026-10-15', () => {
     expect(specTotals([{ key: 'deepSoothe', v: legend('deepSoothe') }, { key: 'deepSoothe', v: legend('deepSoothe') }, { key: 'deepSoothe', v: legend('deepSoothe') }], 'monk').deepSoothe).toBe(SPECS.deepSoothe.cap);
     expect(specTotals([{ key: 'thickBark', v: 0.1 }, { key: 'thickBark', v: 0.1 }, { key: 'thickBark', v: 0.1 }], 'druid').thickBark).toBe(0.2);
     expect(specTotals([{ key: 'pohEcho', v: 0.5 }, { key: 'pohEcho', v: 0.5 }], 'priest').pohEcho).toBe(0.6);
-    expect(specTotals([{ key: 'hastyDrop', v: legend('hastyDrop') }], 'shaman').hastyDrop).toBe(2);
+    expect(specTotals([{ key: 'hastyDrop', v: legend('hastyDrop') }], 'shaman').hastyDrop).toBe(SPECS.hastyDrop.cap);
   });
 
   it('헌신의 길 (Lv 5 단): 패시브 헌신 (Lv 10) 전에도 신성한 힘 2칸으로 마나', () => {

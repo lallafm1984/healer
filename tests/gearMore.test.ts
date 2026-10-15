@@ -31,7 +31,7 @@ describe('종류 30 · 겹 고정 옵션 (34 6-10 ①)', () => {
     const fx = fixedOf(base, 30);
     expect(fx.map(x => x.stat)).toEqual(['int', 'haste']); // 팔찌 지능은 손 주 옵션 한 줄로
     expect(fx[0].v).toBeCloseTo(0.1 * 1.4);
-    expect(fx[1].v).toBeCloseTo(STATS.haste.max * 1.3);
+    expect(fx[1].v).toBeCloseTo(STATS.haste.max * 1.3 * 1.4); // 2026-10-16: 강화가 종류 옵션에도
     const ring: GearItem = { ...base, slot: 'ring', kind: 'twin', plus: 10 };
     const fr = fixedOf(ring, 30);
     expect(fr[0].v).toBeCloseTo(STATS.crit.max * 1.8);

@@ -163,6 +163,9 @@
 #app #s-char .c7-enh-result b { font: 800 18px/1.4 var(--font-display); }
 #app #s-char .c7-enh-result span { font-size: 14px; white-space: nowrap; }
 #app #s-char .c7-enh-result.success { color: #ffe29c; }
+#app #s-char .c7-enh-gain { flex-basis: 100%; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; margin: 0; padding: 0; list-style: none; }
+#app #s-char .c7-enh-gain li { display: flex; gap: 4px; font-size: 13px; color: #f3e6c8; white-space: nowrap; }
+#app #s-char .c7-enh-gain li b { font-family: inherit; font-size: 13px; font-weight: 700; line-height: 1.4; color: #9fe39a; }
 #app #s-char .c7-enh-result.failure { color: #ff9c8e; border-color: #d87a6380; background: #ac4d3018; }
 #app #s-char .c7-enh-result.revealing { animation: enchantResult var(--fxd) ease-out both; }
 #app #s-char .c7-confirm-step small { display: block; font-size: 12px; font-weight: 400; color: #c9bda8; margin-bottom: 3px; }

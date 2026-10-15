@@ -652,32 +652,35 @@ function autoDruid(f: Fight): void {
 function autoPaladin(f: Fight): void {
   // 봉화는 첫 탱커에게 (배운 뒤 한 번)
   if (f.beacon == null && f.level >= HEROES.paladin.system.lv) { const t = living(f).find(u => u.role === 'tank'); if (t) setBeacon(f, t); }
+  // 봉화 대상이 쓰러지면 살아 있는 탱커에게 봉화 스킬 (2026-10-16 빠른 힐 칸)
+  { const b = f.beacon != null ? f.party.find(u => u.id === f.beacon) : null, t = b && !b.alive && knows(f, 'beacon') && (f.cd.beacon ?? 0) <= 0 ? living(f).find(u => u.role === 'tank') : null; if (t) use(f, 'beacon', t.cell); }
   const lr = 1 + sv(f, 'wideWave'); // 퍼지는 파도 (42 성기 06)
   const c = ctx(f, 260, lr, waveMax(f)); // 빛의 파도는 가장 다친 4명 (73, 밀려오는 파도면 5명 77)
   if (!c) return;
   const { live, pct, low, idx, ready, g } = c;
   // 모래시계 창 안 (54 5장): 남는 일만
-  if (glassWindow(f, g, live, u => (ready('holyStrike') && tryUse(f, 'holyStrike', u, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', u, idx)),
+  if (glassWindow(f, g, live, u => (f.mana > 3 && tryUse(f, 'holyLight', u, idx)),
     () => { if (!ready('handCleanse')) return false; const d = cleansable(f, c); return !!d && tryUse(f, 'handCleanse', d, idx); })) return;
   if (ready('sanctuary') && c.cluster.best && live.filter(u => pct(u) < 0.5).length >= Math.max(2, Math.floor(live.length / 2)) && tryUse(f, 'sanctuary', c.cluster.best, idx)) return;
   if (c.busterOn && ready('sacrifice') && tryUse(f, 'sacrifice', c.busterOn, idx)) return;
+  if (c.busterOn && ready('beacon') && tryUse(f, 'beacon', c.busterOn, idx)) return; // 봉화 (84): 강타 맞는 탱커에게 회복 + 피해 감소 + 봉화
   if (c.busterOn && ready('handGuard') && pct(c.busterOn) < 0.35 && c.busterOn.role !== 'tank' && tryUse(f, 'handGuard', c.busterOn, idx)) return;
-  { const bs = busterShort(f); if (bs && !off(f, bs.u) && ((ready('holyStrike') && tryUse(f, 'holyStrike', bs.u, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', bs.u, idx)))) return; }
-  if (g.pre && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.pre, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.pre, idx)))) return;
+  { const bs = busterShort(f); if (bs && !off(f, bs.u) && ((f.mana > 3 && tryUse(f, 'holyLight', bs.u, idx)))) return; }
+  if (g.pre && ((f.mana > 3 && tryUse(f, 'holyLight', g.pre, idx)))) return;
   // 띄워 올리기: 예고 동안 해제 → 빛의 서약 (신성한 힘이 있으면) → 가득 채우기
   { const d = g.liftClean[0]; if (d && ready('handCleanse') && tryUse(f, 'handCleanse', d, idx)) return; }
   { const v = g.lift.find(u => !u.hots.some(h => h.key === 'oath')); if (v && knows(f, 'oath') && f.power3 >= 1 && tryUse(f, 'oath', v, idx)) return; }
-  { const v = g.lift.find(u => u.hp < healTop(u) * 0.95); if (v && ((ready('holyStrike') && tryUse(f, 'holyStrike', v, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', v, idx)))) return; }
+  { const v = g.lift.find(u => u.hp < healTop(u) * 0.95); if (v && ((f.mana > 3 && tryUse(f, 'holyLight', v, idx)))) return; }
   // 연쇄 번개: 번개 구름 옆 가장 낮은 사람을 90% 위로 · 떠 있는 사람의 사슬 짝
-  if (g.chain && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.chain.u, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.chain.u, idx)))) return;
-  if (g.mate && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.mate, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.mate, idx)))) return;
+  if (g.chain && ((f.mana > 3 && tryUse(f, 'holyLight', g.chain.u, idx)))) return;
+  if (g.mate && ((f.mana > 3 && tryUse(f, 'holyLight', g.mate, idx)))) return;
   // 어둠물: 잠길 줄 사람을 예고 동안 채움 · 빌린 생명: 빚진 사람에게 힐해서 갚기
-  if (g.tide && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.tide, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.tide, idx)))) return;
-  if (g.debt && (g.debt.due || pct(low) > 0.6) && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.debt.u, idx)) || (f.mana > 5 && tryUse(f, 'holyLight', g.debt.u, idx)))) return;
-  // 차례: 위급한 사람이 없으면 다음 번호에 즉시 단일 힐 (빛 일격 → 빛의 서약 → 빛의 손길)
-  if (g.order && pct(low) > 0.3 && ((ready('holyStrike') && tryUse(f, 'holyStrike', g.order, idx)) || (knows(f, 'oath') && f.power3 >= 1 && tryUse(f, 'oath', g.order, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.order, idx)))) return;
-  /** 단일 힐 하나: 빛 일격 → 빛의 손길 */
-  const one = (u: Unit) => (ready('holyStrike') && tryUse(f, 'holyStrike', u, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', u, idx));
+  if (g.tide && ((f.mana > 3 && tryUse(f, 'holyLight', g.tide, idx)))) return;
+  if (g.debt && (g.debt.due || pct(low) > 0.6) && ((f.mana > 5 && tryUse(f, 'holyLight', g.debt.u, idx)))) return;
+  // 차례: 위급한 사람이 없으면 다음 번호에 단일 힐 (빛의 서약 → 빛의 손길)
+  if (g.order && pct(low) > 0.3 && ((knows(f, 'oath') && f.power3 >= 1 && tryUse(f, 'oath', g.order, idx)) || (f.mana > 3 && tryUse(f, 'holyLight', g.order, idx)))) return;
+  /** 단일 힐 하나: 빛의 손길 (2026-10-16 빛 일격을 없앰) */
+  const one = (u: Unit) => (f.mana > 3 && tryUse(f, 'holyLight', u, idx));
   // 생명 사슬이 곧 끊어지면 낮은 쪽부터
   if (g.link?.near && one(g.link.u)) return;
   // 끝없는 빛 (77): 빛의 파도는 2칸부터 (그때 위력 70%라 문턱도 그만큼 낮춤)
@@ -693,8 +696,8 @@ function autoPaladin(f: Fight): void {
   // 헤매는 영혼: 위급한 사람이 없으면 해제로 바로, 아니면 단일 힐
   if (g.soul && pct(low) > 0.5 && f.mana > 10 && ((ready('handCleanse') && tryUse(f, 'handCleanse', g.soul, idx)) || one(g.soul))) return;
   if (g.link && pct(low) > 0.4 && one(g.link.u)) return;
-  if (pct(low) < 0.5 && ready('holyStrike') && tryUse(f, 'holyStrike', low, idx)) return;
-  if (ready('holyStrike') && pct(low) < (g.few ? 0.6 : 0.92) && tryUse(f, 'holyStrike', low, idx)) return;
+  // 봉화 (84): 재사용마다 봉화 대상 (없으면 탱커)이 다쳤으면 다시 걸어 즉시 회복 · 피해 감소
+  { const t = live.find(u => u.id === f.beacon) ?? live.find(u => u.role === 'tank'); if (t && ready('beacon') && pct(t) < 0.9 && tryUse(f, 'beacon', t, idx)) return; }
   if (pct(low) < topUp(f, g, 0.85) && f.mana > 3) tryUse(f, 'holyLight', low, idx);
 }
 
@@ -739,17 +742,17 @@ function autoShaman(f: Fight): void {
   const c = ctx(f, 320, 1);
   if (!c) return;
   const { live, pct, low, idx, ready, g } = c;
-  /** 단일 힐 하나: 급하면 소나기, 아니면 잔물결 */
-  const one = (u: Unit, hurry: boolean) => (hurry && f.mana > 6 && tryUse(f, 'shower', u, idx)) || (f.mana > 3 && tryUse(f, 'ripple', u, idx)) || (f.mana > 6 && tryUse(f, 'shower', u, idx));
+  /** 단일 힐 하나: 급하면 물방울 (즉시) → 잔물결 (2026-10-16 소나기를 없앰) */
+  const one = (u: Unit, hurry: boolean) => (hurry && ready('droplet') && !dropped(u) && tryUse(f, 'droplet', u, idx)) || (f.mana > 3 && tryUse(f, 'ripple', u, idx));
   if (glassWindow(f, g, live, (u, hurry) => one(u, hurry), () => { if (!ready('washing')) return false; const d = cleansable(f, c); return !!d && tryUse(f, 'washing', d, idx); })) return;
-  // 위급 (25% 아래): 붙은 아군 평균이 넉넉하면 영혼 잇기, 아니면 소나기
+  // 위급 (25% 아래): 붙은 아군 평균이 넉넉하면 영혼 잇기, 아니면 물방울 → 잔물결
   const dying = live.filter(u => pct(u) < 0.25).sort((a, b) => pct(a) - pct(b))[0];
   if (dying) {
     const vs = live.filter(v => hexDist(cellOf(f, v), cellOf(f, dying)) <= 1);
     if (ready('spiritLink') && vs.length >= 2 && vs.reduce((a, v) => a + v.hp / v.max, 0) / vs.length >= 0.6 && tryUse(f, 'spiritLink', dying, idx)) return;
-    if (f.mana > 6 && tryUse(f, 'shower', dying, idx)) return;
+    if (one(dying, true)) return;
   }
-  // 탱커 버스터: 대지 토템을 탱커 칸에, 모자라면 소나기로 채움
+  // 탱커 버스터: 대지 토템을 탱커 칸에, 모자라면 잔물결로 채움
   if (c.busterOn && ready('earthTotem') && !f.totems.some(t => t.kind === 'earth' && hexDist(f.cells[t.cell], cellOf(f, c.busterOn!)) <= 1) && tryUse(f, 'earthTotem', c.busterOn, idx)) return;
   { const bs = busterShort(f); if (bs && !off(f, bs.u) && one(bs.u, bs.soon)) return; }
   if (g.pre && one(g.pre, true)) return;
@@ -760,7 +763,7 @@ function autoShaman(f: Fight): void {
   if (g.mate && one(g.mate, false)) return;
   if (g.tide && one(g.tide, pct(g.tide) < 0.5)) return;
   if (g.debt && (g.debt.due || pct(low) > 0.6) && f.mana > 6 && one(g.debt.u, g.debt.due)) return;
-  if (g.order && pct(low) > 0.3 && ((ready('droplet') && tryUse(f, 'droplet', g.order, idx)) || (f.mana > 6 && tryUse(f, 'shower', g.order, idx)))) return;
+  if (g.order && pct(low) > 0.3 && ((ready('droplet') && tryUse(f, 'droplet', g.order, idx)) || (f.mana > 3 && tryUse(f, 'ripple', g.order, idx)))) return;
   if (g.link?.near && one(g.link.u, pct(g.link.u) < 0.5)) return;
   { const v = g.veil.find(u => !dropped(u)); if (v && f.mana > 10 && ready('droplet') && tryUse(f, 'droplet', v, idx)) return; }
   if (ready('washing')) { const d = cleansable(f, c); if (d && tryUse(f, 'washing', d, idx)) return; }
@@ -768,7 +771,7 @@ function autoShaman(f: Fight): void {
   const avg = live.reduce((a, u) => a + pct(u), 0) / live.length;
   const bigAoe = f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 3) && live.length >= 5;
   if (ready('rainTotem') && live.length >= 3 && live.length === c.all.length && (avg < 0.6 || (bigAoe && avg < 0.85)) && tryUse(f, 'rainTotem', null, idx)) return;
-  // 샘 토템 (가운데 버튼): 재사용이 돌면 아군이 가장 많이 모인 칸에. 지금 샘이 6초 넘게 남았고 그 범위에 3명 이상이면 그대로
+  // 샘 토템 (빠른 힐 칸, 2026-10-16 가운데 버튼을 없앰): 재사용이 돌면 아군이 가장 많이 모인 칸에. 지금 샘이 6초 넘게 남았고 그 범위에 3명 이상이면 그대로
   if (ready('springTotem') && f.level >= HEROES.shaman.system.lv) {
     const r = f.tx.on.freshSpring ? TX.freshSpring.range : SHAMAN.spring.range;
     const keep = f.totems.some(t => t.kind === 'spring' && t.until - f.t > 6 && live.filter(v => hexDist(cellOf(f, v), f.cells[t.cell]) <= r).length >= 3);
@@ -795,8 +798,6 @@ function autoShaman(f: Fight): void {
     const t = live.find(u => u.role === 'tank' && !dropped(u) && (small || pct(u) < 0.95)) ?? g.hit.find(u => !dropped(u)) ?? live.filter(u => !dropped(u) && (pct(u) < (small ? 0.85 : 0.8) || (soon && f.mana > 30))).sort((a, b) => pct(a) - pct(b))[0];
     if (t && tryUse(f, 'droplet', t, idx)) return;
   }
-  // 소나기는 마나가 비싸서 (1%당 잔물결의 절반) 급할 때만: 마나가 넉넉하면 55% 아래, 보통 40%, 모자라면 25% 아래만
-  if (pct(low) < (f.mana > 60 ? 0.55 : f.mana > 25 ? 0.4 : 0.25) && f.mana > 6 && tryUse(f, 'shower', low, idx)) return;
   if (pct(low) < topUp(f, g, f.mana > 40 ? 0.85 : 0.75) && f.mana > 3) tryUse(f, 'ripple', low, idx);
 }
 
@@ -958,9 +959,10 @@ function autoWarder(f: Fight): void {
   const { live, pct, low, idx, ready, g } = c;
   const melt = !!f.melt && f.t < f.melt.until; // 보호막이 녹는 동안 (P-MELT): 막 · 결계 원 대신 인장 치유 · 심판 위주
   const shieldLow = (u: Unit) => absorbLeft(f, u) < u.max * (f.mana > 50 ? 0.3 : 0.15); // 마나가 넉넉하면 막을 두껍게 (상한 60%)
-  const one = (u: Unit, hurry: boolean) => (hurry && f.mana > 6 && tryUse(f, 'quickSeal', u, idx)) || (f.mana > 3 && tryUse(f, 'sealHeal', u, idx));
+  /** 단일 힐 하나: 급하면 빛의 막 (즉시, 녹는 동안은 빼고) → 인장 치유 (2026-10-16 빠른 인장을 없앰) */
+  const one = (u: Unit, hurry: boolean) => (hurry && !melt && ready('lightBarrier') && tryUse(f, 'lightBarrier', u, idx)) || (f.mana > 3 && tryUse(f, 'sealHeal', u, idx));
   if (glassWindow(f, g, live, (u, hurry) => one(u, hurry), () => { if (!ready('wardCleanse')) return false; const d = cleansable(f, c); return !!d && tryUse(f, 'wardCleanse', d, idx); })) return;
-  // 위급 (25% 아래): 탱커 버스터 중이면 수호 결계 → 빠른 인장
+  // 위급 (25% 아래): 탱커 버스터 중이면 수호 결계 → 빛의 막 → 인장 치유
   const dying = live.filter(u => pct(u) < 0.25).sort((a, b) => pct(a) - pct(b))[0];
   if (dying) {
     if (c.busterOn === dying && !melt && ready('guardWard') && tryUse(f, 'guardWard', dying, idx)) return; // 82: 수호 결계도 보호막이라 녹는 동안은 안 씀
@@ -1000,16 +1002,17 @@ function autoWarder(f: Fight): void {
   if (g.cure && pct(low) > 0.4 && one(g.cure, pct(g.cure) < 0.5)) return;
   if (g.soul && pct(low) > 0.5 && f.mana > 10 && ((ready('wardCleanse') && tryUse(f, 'wardCleanse', g.soul, idx)) || one(g.soul, false))) return;
   if (g.link && pct(low) > 0.4 && one(g.link.u, false)) return;
-  // 빛의 창: 재사용마다 (인장이 붙은 다친 아군이 있으면, 아니면 보스 딜만이라도 마나 70% 위에서)
-  if (ready('lightSpear') && (sealTargets(f, 1).length || f.mana > 70) && use(f, 'lightSpear', 0).ok) return;
+  // 결계 굳히기 (84, 빛의 창 대신): 내 보호막이 2명 이상에게 있고 그중 곧 끝나는 막이 있거나, 큰 광역이 곧 올 때 (녹는 동안은 안 씀)
+  if (ready('wardHold') && !melt) {
+    const ms = live.map(v => v.mods.find(m => m.k === 'absorb' && m.src === 'healer' && m.until > f.t && m.v > 0)).filter(Boolean) as { until: number }[];
+    if (ms.length >= Math.min(2, live.length) && (ms.some(m => m.until - f.t < 4) || aoeSoon) && use(f, 'wardHold', 0).ok) return;
+  }
   // 빛의 막: 재사용마다 탱커 (레이드는 다쳤을 때) → 계속 맞는 사람
   if (!melt && ready('lightBarrier') && !g.few) {
     const small = live.length <= 5;
     const t = live.find(u => u.role === 'tank' && shieldLow(u) && (small || pct(u) < 0.95)) ?? g.hit.find(shieldLow);
     if (t && tryUse(f, 'lightBarrier', t, idx)) return;
   }
-  // 빠른 인장은 마나가 비싸서 급할 때만
-  if (pct(low) < (f.mana > 50 ? 0.45 : 0.3) && f.mana > 6 && tryUse(f, 'quickSeal', low, idx)) return;
   if (pct(low) < topUp(f, g, f.mana > 40 ? 0.85 : 0.75) && f.mana > 3) { tryUse(f, 'sealHeal', low, idx); return; }
   // 아무도 크게 안 다쳤으면: 인장이 곧 끝나는 탱커에게 막 (마나가 넉넉할 때)
   if (!melt && ready('lightBarrier') && f.mana > 50) { const t = live.find(u => u.role === 'tank' && (!sealed(f, u) || (u.seal ?? 0) - f.t < 3)); if (t) tryUse(f, 'lightBarrier', t, idx); }

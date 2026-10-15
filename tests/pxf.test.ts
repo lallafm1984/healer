@@ -35,7 +35,7 @@ const KEYS = Object.keys(PXF) as PxfKey[];
 /** 아직 PXF 도트 (QA에서 바뀌는 스킬), 손그림풍 (scripts/vfx), 보스 판 전체 공격 (Codex fx-wide) */
 const GRAPH_KEYS = KEYS.filter(k => !PXF[k].smooth), SMOOTH_KEYS = KEYS.filter(k => PXF[k].smooth && !isBossPxf(k)), BOSS_KEYS = KEYS.filter(isBossPxf);
 /** 아직 이펙트를 안 넣은 휠 스킬 (없음) */
-const LATER = new Set<SkillKey>([]);
+const LATER = new Set<SkillKey>(['beacon']); // 2026-10-16 성기사 봉화 스킬 (빛 일격 대신): 이펙트는 전투 스킬 이펙트 스레드 몫
 
 describe('남은 PXF 도트 (QA에서 바뀌는 스킬, 바뀌면 손그림으로 다시 만들고 지움)', () => {
   it('직업 스킬 몇 개뿐 (전투 공통 · 파티원 능력 · 보스는 없음, Lim 2026-10-16 「도트를 모두 제거」)', () => {

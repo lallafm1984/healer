@@ -140,7 +140,8 @@ describe('레벨 배율 (07 4장, 18 2-1)', () => {
   });
 
   it('자동 힐러: 단계와 레벨이 같으면 클리어율 차이 없음 (녹슨 요새 보통, 20판)', () => {
-    const wins = (lv: number) => Array.from({ length: 20 }, (_, i) => E.simulateDungeon({ dungeon: 'rustfort', diff: '보통', gear: 'adv0', seed: i + 1, items: ['mana', 'life'], level: 12, heroLv: lv, stageLv: lv }).win).filter(Boolean).length;
+    // 장비는 레벨과 상관없는 같은 능력치 (프리셋 % 옵션은 아이템 레벨로 바뀌어서, 2026-10-16)
+    const wins = (lv: number) => Array.from({ length: 20 }, (_, i) => E.simulateDungeon({ dungeon: 'rustfort', diff: '보통', gearStats: gearStats('adv0', 50), seed: i + 1, items: ['mana', 'life'], level: 12, heroLv: lv, stageLv: lv }).win).filter(Boolean).length;
     expect(Math.abs(wins(1) - wins(30))).toBeLessThanOrEqual(3);
   });
 });

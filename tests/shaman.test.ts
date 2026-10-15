@@ -48,15 +48,17 @@ const taken = (f: F, u: U) => { const h = u.hp; damage(f, u, 100, false, 'fixed'
 const drop = (u: U) => u.hots.find(h => h.key === 'droplet');
 const emptyCell = (f: F) => f.cells.find(c => !c.unit && !c.block)!.i;
 /** 수치 (79 2-11 간격 검사로 고친 값을 따라감) */
-const R = SKILLS.ripple.amt!, S = SKILLS.shower.amt!, D = SKILLS.droplet.amt!, C = SKILLS.chainHeal.amt!, SP = SKILLS.springTotem.amt!, RT = SKILLS.rainTotem.amt!;
+const R = SKILLS.ripple.amt!, D = SKILLS.droplet.amt!, C = SKILLS.chainHeal.amt!, SP = SKILLS.springTotem.amt!, RT = SKILLS.rainTotem.amt!;
 const DEEP = 1 + SHAMAN.deep.heal, DEC = SHAMAN.chain.decay;
 
 describe('데이터 (79 2장)', () => {
-  it('휠 8칸 + 가운데 샘 토템, 해제 마법 · 저주, 상점 해금, 켬', () => {
-    expect(heroSkills('shaman')).toEqual(['ripple', 'shower', 'droplet', 'chainHeal', 'washing', 'earthTotem', 'rainTotem', 'spiritLink', 'springTotem']);
+  it('휠 8칸 (2026-10-16 가운데 버튼을 없애고 소나기 자리에 샘 토템), 해제 마법 · 저주, 상점 해금, 켬', () => {
+    expect(heroSkills('shaman')).toEqual(['ripple', 'springTotem', 'droplet', 'chainHeal', 'washing', 'earthTotem', 'rainTotem', 'spiritLink']);
+    expect(HEROES.shaman.core).toBeUndefined();
     expect(HEROES.shaman.ready).toBe(true);
     expect(HEROES.shaman.unlock).toMatchObject({ buy: true }); // 81: 상점 2,200원 (예전 Lv 30)
-    expect(SKILLS.springTotem).toMatchObject({ core: true, target: 'cell', cost: 4, cd: 10 });
+    expect(SKILLS.springTotem).toMatchObject({ slot: 'fast', target: 'cell', cost: 4, cd: 10 });
+    expect(SKILLS.springTotem.core).toBeUndefined();
   });
   it('특성 10단 × 3, 보조 버튼은 토템 부르기 · 물의 정령 · 바다의 자리', () => {
     expect(SHAMAN_TALENTS.map(t => t.lv)).toEqual([5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
@@ -180,9 +182,9 @@ describe('토템 칸 (79 2-3)', () => {
 });
 
 describe('특성 (79 2-7)', () => {
-  it('빠른 잔물결 −0.3초 · 잔잔한 소나기 마나 −20% · 샘의 숨 4 → 2% · 긴 사슬 +2%p', () => {
-    expect(castOf(fight(['quickRipple']), 'ripple')).toBeCloseTo(2.5 - 0.3, 6);
-    expect(costOf(fight(['calmShower']), 'shower')).toBeCloseTo(SKILLS.shower.cost * 0.8, 6);
+  it('빠른 잔물결 −0.3초 · 잔잔한 물결 마나 −20% · 샘의 숨 4 → 2% · 긴 사슬 +2%p', () => {
+    expect(castOf(fight(['quickRipple']), 'ripple')).toBeCloseTo(SKILLS.ripple.cast - 0.3, 6);
+    expect(costOf(fight(['calmShower']), 'ripple')).toBeCloseTo(SKILLS.ripple.cost * 0.8, 6);
     expect(costOf(fight(['springBreath']), 'springTotem')).toBeCloseTo(2, 6);
     expect(costOf(fight(['longChain']), 'chainHeal')).toBeCloseTo(12, 6);
   });
@@ -206,12 +208,13 @@ describe('특성 (79 2-7)', () => {
     expect(h.left).toBeCloseTo(left - (f.t - f.t) + 3 - castOf(f, 'ripple') - 0, 0);
     expect(h.rest).toBeGreaterThan(rest - 60);
   });
-  it('흩뿌리는 소나기: 35%가 붙은 가장 낮은 1명에게', () => {
+  it('흩뿌리는 물결: 잔물결이 처음 튄 아군 말고 붙은 다친 아군 1명에게 35% 한 번 더', () => {
     const f = fight(['sprayShower']); hurt(f, 0.5);
-    const u = withAdj(f, 1), v = adj(f, u).sort((a, b) => a.hp / a.max - b.hp / b.max)[0];
-    v.hp = v.max * 0.3;
-    const hs = cast(f, 'shower', u.cell);
-    expect(hs.find(e => e.id === v.id)!.amt).toBe(Math.round(S * 0.35 * DEEP));
+    const u = withAdj(f, 2), [v, w] = adj(f, u).sort((a, b) => a.hp / a.max - b.hp / b.max);
+    v.hp = v.max * 0.3; w.hp = w.max * 0.45;
+    const hs = cast(f, 'ripple', u.cell);
+    expect(hs.find(e => e.id === v.id)!.amt).toBe(Math.round(R * SHAMAN.ripple.bounce * DEEP));
+    expect(hs.find(e => e.id === w.id)!.amt).toBe(Math.round(R * 0.35 * DEEP));
   });
   it('뿌리 내린 토템: 토템 칸 −30%, 둘레 −15%', () => {
     const f = fight(['rootTotem']), u = withAdj(f, 1), v = adj(f, u)[0];
@@ -294,11 +297,11 @@ describe('특성 (79 2-7)', () => {
     expect(me.hp).toBeCloseTo(me.max * 0.3, 6);
     expect(totemsOf(f, 'spring')).toHaveLength(0);
   });
-  it('급류: 체력 35% 아래 대상 소나기 +30%', () => {
+  it('급류: 체력 35% 아래 대상 잔물결 +30% (2026-10-16 소나기에서 옮김)', () => {
     const f = fight(['rapids']), u = others(f)[0];
     u.hp = u.max * 0.3;
     u.base = u.max = 5000; u.hp = u.max * 0.3;
-    expect(cast(f, 'shower', u.cell).find(e => e.id === u.id)!.amt).toBe(Math.round(S * 1.3 * DEEP));
+    expect(cast(f, 'ripple', u.cell).find(e => e.id === u.id)!.amt).toBe(Math.round(R * 1.3 * DEEP));
   });
   it('경계하는 토템: 광역 예고가 뜨면 샘이 바로 한 번 (10초에 한 번)', () => {
     const f = fight(['alertTotem']); hurt(f, 0.2);
@@ -384,9 +387,9 @@ describe('직업 전용 특수능력 (79 2-8)', () => {
     step(f, 3.1);
     expect(taken(f, u)).toBeCloseTo(90, 6);
   });
-  it('서두른 물방울 −2초 · 빠른 소나기 −0.3초 · 비구름 시간 +2초 · 가속 +10%', () => {
-    expect(cdOf(sp('hastyDrop'), 'droplet')).toBeCloseTo(SKILLS.droplet.cd! - 2, 6);
-    expect(castOf(sp('quickShower'), 'shower')).toBeCloseTo(1.2, 6);
+  it('서두른 물방울 −1초 (84) · 서두른 샘 −1.5초 · 비구름 시간 +2초 · 가속 +10%', () => {
+    expect(cdOf(sp('hastyDrop'), 'droplet')).toBeCloseTo(SKILLS.droplet.cd! - SPECS.hastyDrop.val, 6);
+    expect(cdOf(sp('quickShower'), 'springTotem')).toBeCloseTo(SKILLS.springTotem.cd! - 1.5, 6);
     const f = sp('longRain');
     E.use(f, 'rainTotem', 0);
     expect(f.sham!.rainUntil - f.t).toBeCloseTo(12, 6);

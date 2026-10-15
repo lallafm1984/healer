@@ -16,15 +16,15 @@ describe('현재 직업의 레벨업 안내', () => {
     expect(items.some(m => /8번째 칸|드루이드·성기사/.test(m.text))).toBe(false);
   });
 
-  it.each<[HeroKey, string, string, string]>([
-    ['priest', '빛의 은총', '평온 게이지', '천상의 찬가'],
-    ['druid', '뿌리 깊음', '군락', '고요한 숲'],
-    ['paladin', '굳건한 손', '봉화', '빛의 성역'],
-  ])('%s: 패시브 · 고유 시스템 · 공대 스킬도 직업에 맞게 안내', (hero, passive, system, raidSkill) => {
+  it.each<[HeroKey, string, string, string[]]>([
+    ['priest', '빛의 은총', '평온 게이지', ['천상의 찬가']],
+    ['druid', '뿌리 깊음', '군락', ['고요한 숲']],
+    ['paladin', '굳건한 손', '봉화', ['봉화', '빛의 성역']], // 2026-10-16: 봉화 스킬 (빠른 힐 칸, Lv 6)
+  ])('%s: 패시브 · 고유 시스템 · 공대 스킬도 직업에 맞게 안내', (hero, passive, system, skills) => {
     const text = levelUpMilestones([4, 6, 12], hero).map(m => m.text);
     expect(text).toContain(`패시브 「${passive}」`);
     expect(text).toContain(system);
-    expect(text.filter(t => t.startsWith('스킬'))).toEqual([`스킬 「${raidSkill}」`]);
+    expect(text.filter(t => t.startsWith('스킬'))).toEqual(skills.map(s => `스킬 「${s}」`));
     expect(text.filter(t => t.startsWith('패시브'))).toEqual([`패시브 「${passive}」`]);
   });
 

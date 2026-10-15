@@ -58,7 +58,8 @@ describe('데이터 (79 3장)', () => {
     expect(HEROES.monk.ready).toBe(true);
     expect(HEROES.monk.unlock).toMatchObject({ buy: true }); // 81: 상점 2,200원 (예전 Lv 40)
     expect(HEROES.monk.dispel).toEqual(['마법', '질병']);
-    expect(SKILLS.vitalPalm).toMatchObject({ cast: 0, gcd: 1.0, cost: 1.5 });
+    expect(SKILLS.vitalPalm).toMatchObject({ cast: 0, gcd: 1.0, cost: 1.2 }); // 84: 1.5 → 1.2 (단 마나 보정 없음)
+    expect(MONK.palmGcdMin).toBe(1); // 84: 가속과 상관없이 1초
     expect(SKILLS.tea).toMatchObject({ gcd: 0, cost: 0, cd: 60 });
   });
   it('특성 10단 × 3, 보조 버튼은 천 개의 손 · 모이는 안개 · 기 폭발 · 안개 폭풍', () => {
@@ -95,11 +96,12 @@ describe('기 리듬 (79 3-3)', () => {
     step(f, 2.6);
     expect(f.beat).toBe(0);
   });
-  it('Lv 6 전에는 리듬이 안 오름', () => {
-    const f = fight([], {}, { level: 5 }), u = others(f)[0];
+  it('기 리듬은 Lv 1부터 (2026-10-16 구매 직업 초반 밸런스: 예전 Lv 6)', () => {
+    expect(HEROES.monk.system.lv).toBe(1);
+    const f = fight([], {}, { level: 1 }), u = others(f)[0];
     big(u);
-    expect(healOn(cast(f, 'vitalPalm', u.cell), u)).toBe(P);
-    expect(f.beat).toBe(0);
+    expect(healOn(cast(f, 'vitalPalm', u.cell), u)).toBe(Math.round(P * (1 + MONK.beat.step)));
+    expect(f.beat).toBe(1);
   });
   it('리듬 3부터 떠도는 안개 재사용이 두 배로 빨리 돎', () => {
     const f = fight(), u = others(f)[0];

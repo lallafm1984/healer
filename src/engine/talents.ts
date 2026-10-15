@@ -67,8 +67,7 @@ function heroCost(f: Fight, key: SkillKey, u?: Unit): number {
       return on.earlySprout && u && u.hp >= u.max * TX.earlySprout.hp ? TX.earlySprout.cost : 1; // 이른 새싹
     case 'lightWave': return on.freeWave ? 0 : 1; // 가벼운 파도
     case 'holyLight':
-    case 'holyStrike':
-      if (key === 'holyLight' && f.tx.freeLight) return 0; // 모아 둔 빛
+      if (f.tx.freeLight) return 0; // 모아 둔 빛
       return on.steadyHeart && u && u.id === f.beacon ? 1 - TX.steadyHeart : 1; // 곧은 마음
   }
   if (f.hero === 'shaman') return shamanCost(f, key);
@@ -77,11 +76,11 @@ function heroCost(f: Fight, key: SkillKey, u?: Unit): number {
   return 1;
 }
 
-/** 주술사 특성 마나 배율 (79 2-7): 잔잔한 소나기 · 샘의 숨 · 긴 사슬 (+2%p) · 비의 숨 (비구름 동안 모두) */
+/** 주술사 특성 마나 배율 (79 2-7): 잔잔한 물결 · 샘의 숨 · 긴 사슬 (+2%p) · 비의 숨 (비구름 동안 모두) */
 function shamanCost(f: Fight, key: SkillKey): number {
   const on = f.tx.on;
   let m = on.rainBreath && raining(f) ? 1 - TX.rainBreath : 1;
-  if (key === 'shower' && on.calmShower) m *= 1 - TX.calmShower;
+  if (key === 'ripple' && on.calmShower) m *= 1 - TX.calmShower; // 잔잔한 물결 (소나기를 없애며 잔물결로, 2026-10-16)
   if (key === 'springTotem' && on.springBreath) m *= TX.springBreath.cost / SKILLS.springTotem.cost;
   if (key === 'chainHeal' && on.longChain) m *= (SKILLS.chainHeal.cost + TX.longChain.cost) / SKILLS.chainHeal.cost;
   return m;

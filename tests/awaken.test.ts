@@ -1,4 +1,4 @@
-/** 강화 각성 제거: 단계·성공/실패는 유지하고 무작위 옵션은 바꾸지 않는다. */
+/** 강화 각성 제거: 단계·성공/실패는 유지하고 무작위 옵션의 종류 · 굴림은 바꾸지 않는다 (값은 강화 배율만큼 오름, 2026-10-16). */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { itemStats, lineValue, type GearItem } from '../src/data/equipment';
 import { enhanceTry, G } from '../src/game/state';
@@ -14,14 +14,14 @@ describe('각성 없는 강화', () => {
     G.save = newSave(1);
     G.save.player.gold = 1e7; G.save.mats.stone = 999; G.save.mats.refined = 999;
   });
-  it.each([3, 6, 9])('+%i 성공·실패·재성공에도 무작위 옵션은 그대로', to => {
+  it.each([3, 6, 9])('+%i 성공·실패·재성공에도 무작위 옵션 종류 · 굴림은 그대로, 값은 강화 배율만큼', to => {
     const gear = head(to - 1);
     G.save.gear.equipped.head = gear;
     const lines = structuredClone(gear.lines), stats = itemStats(gear, 30), roll = vi.fn(() => 0);
     expect(enhanceTry(5, roll)).toEqual({ id: 5, ok: true, from: to - 1, to });
     expect(roll).toHaveBeenCalledTimes(1);
     expect(itemStats(gear, 30).int).toBeGreaterThan(stats.int);
-    expect(itemStats(gear, 30).crit).toBe(stats.crit);
+    expect(itemStats(gear, 30).crit).toBeCloseTo(stats.crit * (1 + 0.08 * to) / (1 + 0.08 * (to - 1))); // 2026-10-16: 강화가 무작위 옵션에도
     expect(enhanceTry(5, () => 0.99)).toEqual({ id: 5, ok: false, from: to, to });
     expect(enhanceTry(5, () => 0)).toEqual({ id: 5, ok: true, from: to, to: to + 1 });
     expect(gear.lines).toEqual(lines);
@@ -46,6 +46,6 @@ describe('각성 없는 강화', () => {
     expect(migrate(out)).toEqual(out);
     expect(gear.top).toBe(9); // 원본 입력은 건드리지 않는다.
     expect(gear.lines[0].up).toBe(0.02);
-    expect(lineValue(gear, gear.lines[0], 30)).toBe(lineValue(head(), head().lines[0], 30));
+    expect(lineValue(gear, gear.lines[0], 30, 0)).toBe(lineValue(head(), head().lines[0], 30)); // 옛 각성 up은 값에 안 들어감
   });
 });

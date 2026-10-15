@@ -1,15 +1,15 @@
 /**
- * 결계사 (79 5장): 미리 막는 힐러. 힐과 보호막이 대상에게 인장을 붙이고, 가운데 버튼 심판이 보스를 치며 인장이 붙은 가장 다친 6명을 한꺼번에 치유한다.
+ * 결계사 (79 5장): 미리 막는 힐러. 힐과 보호막이 대상에게 인장을 붙이고, 가운데 버튼 심판이 인장이 붙은 가장 다친 6명을 한꺼번에 치유한다.
+ * 2026-10-16 Lim 「주인공은 공격 스킬을 넣지 않는다」: 보스를 치는 것 (심판 · 빛의 창 · 거울 막)을 없애고 빛의 창 자리에 결계 굳히기 (84)
  * 보호막은 힐러 흡수 보호막 (abilities giveAbsorb, P-MELT에 녹음). 특성 (79 5-7)과 직업 전용 특수능력 (79 5-8)의 엔진 훅도 여기서.
  * heroes.ts가 직업마다 나눠 부르고, 성채는 판 위 물건 (totems.ts)
  */
 import { WARDER } from '../data/heroConst';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
-import { absorbLeft, giveAbsorb } from './abilities';
+import { absorbLeft, giveAbsorb, HEALER_SHIELD } from './abilities';
 import { hexDist } from './board';
 import { cellOf, emit, heal, healTop, living } from './core';
-import { bossHit } from './fight';
 import { noteUsed } from './healer';
 import { doDispel, heroHeal, heroPassive } from './heroes';
 import { activeOn } from './talents';
@@ -85,21 +85,21 @@ function directMult(f: Fight, u: Unit): number {
 }
 
 // ---------- 스킬 ----------
-/** 심판 · 빛의 창 회복 (인장이 붙은 가장 다친 n명) */
+/** 심판 회복 (인장이 붙은 가장 다친 n명) · 심판의 막 (결계 21: 회복량의 비율만큼 보호막) */
 function sealBurst(f: Fight, key: SkillKey, n: number, amt: number): Unit[] {
   const vs = sealTargets(f, n);
   vs.forEach((v, i) => {
     noteUsed(f, key, v.id);
-    heal(f, v, amt * (key === 'judgment' && i === 0 && f.tx.on.heavyJudge ? TX.heavyJudge : 1), true); // 무거운 심판
+    const eff = heal(f, v, amt * (key === 'judgment' && i === 0 && f.tx.on.heavyJudge ? TX.heavyJudge : 1), true); // 무거운 심판
+    if (f.sp && sv(f, 'judgeHit') && eff > 0) giveAbsorb(f, v, eff * sv(f, 'judgeHit'), 6, WARDER.shieldCap, true); // 심판의 막 (결계 21)
     if (key === 'judgment' && f.tx.on.sealEcho) v.seal = f.t + sealSec(f); // 인장의 메아리
   });
   return vs;
 }
-/** 심판 (가운데 버튼, 79 5-3): 보스 딜 1초분 (심판의 일격 +), 인장 6명 (넓은 심판 8명) 140, 인장의 대가 · 심판의 마나 */
+/** 심판 (가운데 버튼, 79 5-3): 인장 6명 (넓은 심판 8명) 90, 인장의 대가 · 심판의 마나. 보스 피해는 없음 (2026-10-16) */
 function judgment(f: Fight): void {
   const s = st(f);
   s.judgeCut = 0;
-  bossHit(f, WARDER.judge.dps * (1 + (f.sp ? sv(f, 'judgeHit') : 0)));
   const vs = sealBurst(f, 'judgment', judgeCount(f), SKILLS.judgment.amt! * (1 + (f.sp ? sv(f, 'deepSeal') : 0)));
   if (s.veil && s.veil.until > f.t && f.tx.on.sharedLoad) s.veil.judged = true;
   if (vs.length >= WARDER.price.n && heroPassive(f, '인장의 대가')) f.mana = Math.min(100, f.mana + WARDER.price.mana);
@@ -110,7 +110,7 @@ function judgment(f: Fight): void {
 /** 결계사 스킬 효과 */
 export function warderApply(f: Fight, key: SkillKey, u: Unit): void {
   const on = f.tx.on, s = st(f);
-  if (key === 'sealHeal' || key === 'quickSeal') {
+  if (key === 'sealHeal') {
     heroHeal(f, u, SKILLS[key].amt! * directMult(f, u));
     putSeal(f, u);
     if (on.sealSpread) for (const v of adjLowest(f, u, TX.sealSpread.n, v => !sealed(f, v))) putSeal(f, v); // 번지는 인장
@@ -158,12 +158,22 @@ export function warderApply(f: Fight, key: SkillKey, u: Unit): void {
       putSeal(f, v);
     }
     emit(f, { type: 'sound', name: 'hymn' });
-  } else if (key === 'lightSpear') {
-    bossHit(f, WARDER.spear.dps * (on.repentTime ? TX.repentTime.dps : 1)); // 참회의 시간
-    const vs = sealBurst(f, 'lightSpear', on.repentTime ? TX.repentTime.n : f.party.length >= 10 ? WARDER.raid.spear : WARDER.spear.n, SKILLS.lightSpear.amt!); // 참회의 시간 · 레이드 보정
-    if (!vs.length) noteUsed(f, 'lightSpear', u.id); // 인장 붙은 아군이 없으면 누른 칸에만
-    if (f.sp && sv(f, 'spearJudge')) s.judgeCut = sv(f, 'spearJudge'); // 창 뒤의 심판 (결계 08)
-    emit(f, { type: 'sound', name: 'chime' });
+  } else if (key === 'wardHold') {
+    // 결계 굳히기 (빛의 창 대신, 84): 내 보호막이 있는 아군마다 남은 시간 +8초 · 두께 + · 인장 처음으로 (굳힌 막의 숨: 그 아군 회복)
+    let n = 0;
+    for (const v of living(f)) {
+      const m = v.mods.find(x => x.k === 'absorb' && x.src === HEALER_SHIELD && x.until > f.t);
+      if (!m || m.v <= 0) continue;
+      m.until += WARDER.hold.ext;
+      under('wardHold', true, () => giveShield(f, v, SKILLS.wardHold.amt!, m.until - f.t));
+      putSeal(f, v);
+      noteUsed(f, 'wardHold', v.id);
+      if (on.repentTime) under(null, false, () => heal(f, v, TX.repentTime.heal, true)); // 굳힌 막의 숨 (특성 50)
+      n++;
+    }
+    if (!n) noteUsed(f, 'wardHold', u.id);
+    if (f.sp && sv(f, 'spearJudge')) s.judgeCut = sv(f, 'spearJudge'); // 굳힌 뒤의 심판 (결계 08)
+    emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'judgment') {
     judgment(f);
   }
@@ -213,8 +223,8 @@ export function warderShieldBroken(f: Fight, u: Unit): void {
   const s = st(f), amt = s.barrier.get(u.id);
   if (amt != null) {
     s.barrier.delete(u.id);
-    // 거울 막: 막은 피해의 30%를 보스에게 (배율 전 회복 100 = 딜러 한 명 1초 딜로 셈)
-    if (f.sp && sv(f, 'mirrorBarrier')) bossHit(f, (amt / 100) * sv(f, 'mirrorBarrier'));
+    // 거울 막 (결계 02, 2026-10-16 보스 공격 대신): 붙어 있는 가장 다친 아군에게 그 막 두께의 비율만큼 막
+    if (f.sp && sv(f, 'mirrorBarrier')) { const v = adjLowest(f, u, 1)[0]; if (v) giveShield(f, v, amt * sv(f, 'mirrorBarrier'), WARDER.barrier.sec); }
   }
 }
 

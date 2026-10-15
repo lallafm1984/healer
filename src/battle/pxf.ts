@@ -177,7 +177,6 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
   quietwood: { fx: 'druid-quietwood', scope: 'party' },
   rebirth: { fx: 'druid-rebirth', scope: 'target' },
   holyLight: { fx: 'paladin-holy-light', scope: 'target' },
-  holyStrike: { fx: 'paladin-holy-strike', scope: 'target' },
   oath: { fx: 'paladin-oath', scope: 'target' },
   lightWave: { fx: 'paladin-light-wave', scope: 'target' }, // 회복한 사람 (가장 다친 4명) 칸마다 엔진이 따로 기록 (73)
   handCleanse: { fx: 'paladin-cleanse', scope: 'target' },
@@ -185,7 +184,6 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
   sanctuary: { fx: 'paladin-sanctuary', scope: 'area' },
   handGuard: { fx: 'paladin-hand-guard', scope: 'target' },
   ripple: { fx: 'shaman-ripple', scope: 'target' },
-  shower: { fx: 'shaman-shower', scope: 'target' },
   droplet: { fx: 'shaman-droplet', scope: 'target' },
   washing: { fx: 'shaman-washing', scope: 'target' },
   chainHeal: { fx: 'shaman-chain', scope: 'target' }, // 튄 사람 칸마다 엔진이 따로 기록 (79 2-2)
@@ -210,13 +208,12 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
   starMemory: { fx: 'astro-memory', scope: 'party' },
   polaris: { fx: 'astro-polaris', scope: 'target' },
   sealHeal: { fx: 'warder-seal', scope: 'target' },
-  quickSeal: { fx: 'warder-quick', scope: 'target' },
   lightBarrier: { fx: 'warder-barrier', scope: 'target' },
   wardCleanse: { fx: 'warder-cleanse', scope: 'target' },
   wardCircle: { fx: 'warder-circle', scope: 'target' }, // 범위 (20인 2칸) 안 칸마다 엔진이 따로 기록 (79 5-2)
   guardWard: { fx: 'warder-guard', scope: 'target' },
   lightVeil: { fx: 'warder-veil', scope: 'target' }, // 장막 범위 안 칸마다 엔진이 따로 기록
-  lightSpear: { fx: 'warder-spear', scope: 'target' }, // 회복한 인장 칸마다 (없으면 누른 칸)
+  wardHold: { fx: 'warder-spear', scope: 'target' }, // 결계 굳히기 (84, 빛의 창 대신): 새 이펙트가 올 때까지 빛의 창 그림을 임시로 (전투 스킬 이펙트 스레드에 요청)
   judgment: { fx: 'warder-judgment', scope: 'target' }, // 회복한 인장 칸마다
 };
 

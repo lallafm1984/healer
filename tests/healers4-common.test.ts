@@ -6,8 +6,7 @@ import { TALENT_TREES } from '../src/data/talents';
 import * as E from '../src/engine';
 import { absorbLeft, giveAbsorb } from '../src/engine/abilities';
 import { damage, recentDmg } from '../src/engine/core';
-import { bossHit } from '../src/engine/fight';
-import { gcdOf, slotKey, use } from '../src/engine/healer';
+import { gcdOf, use } from '../src/engine/healer';
 import { placeTotem, totemsOf } from '../src/engine/totems';
 import { BASE_HEROES } from '../src/sim/balance';
 import { migrate } from '../src/platform/storage';
@@ -48,18 +47,17 @@ describe('직업 7개 데이터 (79 0장 · 1장 · 6-1)', () => {
         expect(heroOfSkill(k)).toBe(h);
       }
     }
-    expect(Object.keys(SKILLS).length).toBe(25 + 34); // 82: 사제 성언: 신성화를 없앰
-    expect(seen.size).toBe(59);
+    expect(Object.keys(SKILLS).length).toBe(25 + 32); // 82: 사제 성언: 신성화를 없앰. 2026-10-16: 소나기 · 빠른 인장 · 빛의 창 · 빛 일격을 없애고 막 옮기기 · 봉화
+    expect(seen.size).toBe(57);
   });
-  it('가운데 스킬: 주술사 샘 토템 · 결계사 심판, 휠 밖 (칸 이름 core)', () => {
-    expect(CORE_SKILL).toEqual({ shaman: 'springTotem', warder: 'judgment' });
-    expect(heroSkills('shaman').at(-1)).toBe('springTotem');
-    expect(heroSkills('warder').at(-1)).toBe('judgment');
-    expect(slotIdOf('springTotem')).toBe(CORE_ID);
-    expect(skillAt('warder', CORE_ID)).toBe('judgment');
-    expect(skillAt('priest', CORE_ID)).toBeNull();
-    expect(Object.values(HEROES.shaman.slots)).not.toContain('springTotem');
-    expect(slotKey(fight('warder'), CORE_ID)).toBe('judgment');
+  it('가운데 버튼 스킬 없음 (2026-10-16 Lim 「가운데 버튼 기획을 제거」): 샘 토템 · 심판은 빠른 힐 칸', () => {
+    expect(CORE_SKILL).toEqual({});
+    expect(HEROES.shaman.slots.fast).toBe('springTotem');
+    expect(HEROES.warder.slots.fast).toBe('judgment');
+    expect(slotIdOf('springTotem')).toBe('flash');
+    expect(skillAt('warder', 'flash')).toBe('judgment');
+    for (const h of ALL_HERO_KEYS) expect(skillAt(h, CORE_ID)).toBeNull();
+    expect(Object.values(SKILLS).some(s => s.core)).toBe(false);
   });
   it('79 직업은 켤 때 특성 트리 30개 (켜기 전엔 없음)', () => {
     for (const h of NEW) expect(TALENT_TREES[h].flatMap(t => t.picks)).toHaveLength(HEROES[h].ready ? 30 : 0);
@@ -129,9 +127,9 @@ describe('가운데 스킬 · 칸 스킬 (79 6-1)', () => {
   });
   it('GCD 중에 고른 칸은 칸 그대로 예약', () => {
     const f = fight('shaman'), c = f.cells.find(x => !x.unit)!;
-    use(f, 'shower', tank(f).cell);
+    use(f, 'ripple', tank(f).cell);
     use(f, 'springTotem', c.i);
-    // 소나기 시전 중이면 시전이 끊기고, GCD 중이면 예약
+    // 잔물결 시전 중이면 시전이 끊기고, GCD 중이면 예약
     expect(f.queued?.cell ?? c.i).toBe(c.i);
   });
   it('심판 (대상 없는 시전): 2초 시전이 끝나면 나간다 (대상 쓰러짐으로 취소되지 않음)', () => {
@@ -176,16 +174,7 @@ describe('판 위 물건 (79 6-1 · 2-3)', () => {
   });
 });
 
-describe('보스 딜 · 보호막 · 받은 피해 기록', () => {
-  it('bossHit: 딜러 한 명 평균 딜 × 초만큼 보스 체력이 줄고 통계에 쌓임', () => {
-    const f = fight('warder'), b0 = f.bossHp;
-    const done = bossHit(f, 1.5);
-    expect(done).toBeCloseTo(10 * f.scale * 1.5, 6);
-    expect(f.bossHp).toBeCloseTo(b0 - done, 6);
-    expect(f.stats.healerDmg).toBeCloseTo(done, 6);
-    f.invuln = true;
-    expect(bossHit(f, 1)).toBe(0);
-  });
+describe('보호막 · 받은 피해 기록', () => {
   it('힐러 보호막: 남은 양에 더하고 최대 체력 × cap까지, 피해를 먼저 받음', () => {
     const f = fight('warder'), t = tank(f);
     expect(giveAbsorb(f, t, t.max * 0.4, 15, 0.6)).toBeCloseTo(t.max * 0.4, 6);

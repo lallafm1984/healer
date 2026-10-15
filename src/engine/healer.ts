@@ -1,4 +1,5 @@
 import { CORE_ID, HEROES } from '../data/heroes';
+import { MONK } from '../data/heroConst';
 import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { DT, cellOf, emit, heal, living, onDebuffEnd, unitById } from './core';
 import { hexDist } from './board';
@@ -99,8 +100,9 @@ export function use(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
 
 /** 이 스킬이 거는 GCD (가속 반영): 스킬마다 GCD (79 6-1, 수도사 손바닥 1.0초)면 규칙 GCD에 대한 비율만큼 */
 export function gcdOf(f: Fight, key: SkillKey): number {
-  const g = (key === 'vitalPalm' && palmGcd(f)) || SKILLS[key].gcd; // 천 개의 손 (79 3-7)
-  return g == null ? f.gcdBase : (f.gcdBase * g) / f.R.gcd;
+  const tg = key === 'vitalPalm' && palmGcd(f), g = tg || SKILLS[key].gcd; // 천 개의 손 (79 3-7)
+  const v = g == null ? f.gcdBase : (f.gcdBase * g) / f.R.gcd;
+  return key === 'vitalPalm' && !tg && MONK.palmGcdMin ? Math.max(MONK.palmGcdMin, v) : v; // 손바닥 대기 하한 (84 밸런스: 장비 가속이 높은 악몽에서 수도사만 크게 세지던 것)
 }
 
 function exec(f: Fight, key: SkillKey, cellIdx: number, u: Unit | undefined): void {
@@ -176,7 +178,7 @@ function apply(f: Fight, key: SkillKey, u: Unit): void {
 
 function applySkill(f: Fight, key: SkillKey, u: Unit): void {
   if (u.lift) { emit(f, { type: 'msg', text: `닿지 않음: ${u.nick}은(는) 하늘에 떠 있음` }); return; } // 예약해 둔 힐이 나갈 때 떠 버림 (P-LIFT)
-  if (key !== 'lightWave' && key !== 'judgment' && key !== 'lightSpear') noteUsed(f, key, u.id); // 빛의 파도 · 심판 · 빛의 창은 실제로 회복한 사람 칸마다 (heroes 73, warder)
+  if (key !== 'lightWave' && key !== 'judgment') noteUsed(f, key, u.id); // 빛의 파도 · 심판은 실제로 회복한 사람 칸마다 (heroes 73, warder)
   if (f.order && singleHeal(key) && !u.soul) orderHeal(f, u); // 차례 (P-ORDER)
   if (f.hero !== 'priest') { heroApply(f, key, u); return; }
   const sk = SKILLS[key];

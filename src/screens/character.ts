@@ -8,7 +8,7 @@
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
  */
 import { resourceBalance, unlimitedResource, type ResourceKey } from '../game/resources';
-import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
+import { enhanceCost, enhanceGain, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
 import { ALL_HERO_KEYS, HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
 import { JOB_PRICE, jobProductId } from '../data/economy';
@@ -228,6 +228,14 @@ const plusTxt = (it: GearItem) => (it.plus ? ` +${it.plus}` : '');
 const pc = (x: number) => (Math.sign(x) * Math.trunc((Math.abs(x) + Number.EPSILON) * 1000) / 10).toFixed(1);
 /** 옵션 값 글자 (2026-10-13 Lim): 지능 · 체력은 수치 (정수, 천 단위 쉼표), 치명타 · 가속 · 정신력 · 인내는 고정 % */
 const optTxt = (k: StatKey, v: number, lv: number) => (isPointStat(k) ? fmt(Math.round(toPoints(k, v, lv))) : `${pc(v)}%`);
+/** 강화로 오른 옵션 (2026-10-16 Lim 「강화성공시 증가 수치를 보여주자」): 화면에 보이는 값 (수치 반올림 · % 한 자리) 기준 차이, 안 바뀌어 보이는 줄은 뺌 */
+function gainHtml(it: GearItem, from: number, to: number): string {
+  const lv = G.save.player.level;
+  const shown = (k: StatKey, v: number) => (isPointStat(k) ? Math.round(toPoints(k, v, lv)) : Number(pc(v)));
+  const rows = enhanceGain(it, from, to, lv).map(g => ({ k: g.stat, d: shown(g.stat, g.after) - shown(g.stat, g.before) })).filter(g => g.d > 1e-9);
+  if (!rows.length) return '';
+  return `<ul class="c7-enh-gain" aria-label="오른 옵션">${rows.map(g => `<li><span>${STATS[g.k].name}</span><b>+${isPointStat(g.k) ? fmt(g.d) : `${g.d.toFixed(1)}%`}</b></li>`).join('')}</ul>`;
+}
 /** 장비 그림 (36 4-2 · 4-3): 이름 있는 장신구 → 종류 → 부위 (item-<부위>) → 부위 선 아이콘. 빈칸은 부위 그림 */
 const itemIc = (x: SlotKey | Parameters<typeof gearIcon>[0]) => gearIcon(typeof x === 'string' ? { slot: x } : x);
 
@@ -553,7 +561,7 @@ function confirmHtml(): string {
   // 팝업 안 장식(빛 고리 · 불꽃 · 알갱이)은 전면 연출이 그대로 덮어서 보이지 않고 폰 그래픽만 잡아먹어 뺐다. 연출 중엔 강화 전 단계를 보여 줘 결과를 미리 드러내지 않는다.
   const shownPlus = f ? f.from : it.plus;
   const amounts = `${currencyAmount('gold', reward.gold)}${reward.stone ? currencyAmount('stone', reward.stone) : ''}${reward.refined ? currencyAmount('refined', reward.refined) : ''}`;
-  const status = result?.ok ? `<div class="c7-enh-result success${f ? ' revealing' : ''}" role="status" aria-live="polite"><b>강화 성공</b><span>+${result.from} → +${result.to}</span></div>` : '';
+  const status = result?.ok ? `<div class="c7-enh-result success${f ? ' revealing' : ''}" role="status" aria-live="polite"><b>강화 성공</b><span>+${result.from} → +${result.to}</span>${gainHtml(it, result.from, result.to)}</div>` : '';
   const details = dismantle
     ? `<div class="c7-confirm-cost"><span>획득 재료</span><div>${amounts}</div></div><p id="gearConfirmDesc">분해한 장비는 되돌릴 수 없습니다.</p>`
     : `${status}<div class="c7-enh-next">
@@ -661,7 +669,7 @@ const SKILL_LINE: Partial<Record<SkillKey, string>> = {
   quietwood: '<path d="M6 20v-4M12 20v-6M18 20v-4"/><path d="M3.5 16 6 10l2.5 6zM9 14l3-8 3 8zM15.5 16 18 10l2.5 6z"/>',
   rebirth: '<path d="M12 21a5 5 0 0 1-5-5c0-3 2.5-4.5 5-9 2.5 4.5 5 6 5 9a5 5 0 0 1-5 5z"/><path d="M12 21c-1.4 0-2.5-1-2.5-2.5S12 15 12 15s2.5 2 2.5 3.5S13.4 21 12 21z"/>',
   holyLight: '<path d="M7 21v-9a1.5 1.5 0 0 1 3 0V5a1.5 1.5 0 0 1 3 0v6V4.5a1.5 1.5 0 0 1 3 0V12V8a1.5 1.5 0 0 1 3 0v7c0 3.5-2.5 6-6 6z"/>',
-  holyStrike: '<path d="M14 3l7 7-3 3-7-7z"/><path d="M11.5 9.5 4 17l3 3 7.5-7.5"/>',
+  beacon: '<path d="M12 2c2 3 3 5 3 7a3 3 0 0 1-6 0c0-2 1-4 3-7z"/><path d="M8 14h8l-1 8H9z"/>',
   oath: '<path d="M6 4h12v13l-6 4-6-4z"/><path d="M9 10l2 2 4-4"/>',
   lightWave: '<path d="M2 11c2.5 0 2.5-4 5-4s2.5 4 5 4 2.5-4 5-4 2.5 4 5 4M2 18c2.5 0 2.5-4 5-4s2.5 4 5 4 2.5-4 5-4 2.5 4 5 4"/>',
   handCleanse: '<path d="M7 21v-8a1.5 1.5 0 0 1 3 0V7a1.5 1.5 0 0 1 3 0v5V7a1.5 1.5 0 0 1 3 0v8c0 3.5-2.5 6-6 6z"/><path d="M19 2l.7 1.8 1.8.7-1.8.7L19 7l-.7-1.8-1.8-.7 1.8-.7z"/>',
@@ -771,9 +779,9 @@ function skillRows(lay: Record<string, string | null>): string {
 
 function skillHtml(): string {
   const st = G.save.settings, L = battle().layout, lay = layoutNow(), h = hero();
-  const tapSkill = skillAt(h, st.tapKey) || skillAt(h, 'heal')!, basic = skillAt(h, 'heal')!;
+  const tapSkill = (skillAt(h, st.tapKey) && SKILLS[skillAt(h, st.tapKey)!].target === 'ally' ? skillAt(h, st.tapKey) : null) || skillAt(h, 'heal')!, basic = skillAt(h, 'heal')!;
   const tapLock = lockLv(tapSkill);
-  const taps = (Object.keys(battle().tapKeys) as TapKey[]).map(t => {
+  const taps = (Object.keys(battle().tapKeys) as TapKey[]).filter(t => SKILLS[skillAt(h, t)!].target === 'ally').map(t => { // 아군에게 거는 스킬만 (2026-10-16: 주술사 · 결계사 빠른 힐 칸이 샘 토템 · 심판)
     const k = skillAt(h, t)!, lk = lockLv(k);
     return `<button type="button" data-tap="${t}" aria-pressed="${st.tapKey === t}"${lk ? ` disabled title="Lv ${lk}에 배움"` : ''}>${lk ? LOCK : ''}${SKILLS[k].name}</button>`;
   }).join('');
@@ -795,12 +803,12 @@ const TALENT_ART: Record<TalentKey, SkillKey> = {
   brink: 'heal', washed: 'purify', practiced: 'holyLight',
   overflow: 'bloom', hopRenew: 'growth', breather: 'quietwood',
   fullHeart: 'serenity', spreadSerenity: 'serenity', echoWord: 'hymn',
-  miracle: 'holyStrike', savedWord: 'oath', cleansingWord: 'natureCleanse',
+  miracle: 'flash', savedWord: 'oath', cleansingWord: 'natureCleanse',
   repay: 'sacrifice', twoGuard: 'guardian', firmWill: 'handGuard',
   calmHymn: 'hymn', shelter: 'sanctuary', grief: 'sacrifice',
   doublePoh: 'poh', shareRenew: 'renew', quickHymn: 'lightWave',
   twoShields: 'handGuard', focusOne: 'holyLight', hymnTail: 'hymn',
-  zenith: 'holyStrike', scatter: 'lightWave', endless: 'serenity',
+  zenith: 'serenity', scatter: 'lightWave', endless: 'serenity',
   // 드루이드 (77 2장)
   longSprout: 'sprout', sproutGrowth: 'growth', branchGrowth: 'growth',
   firmStem: 'bark', earlySprout: 'sprout', washRain: 'natureCleanse',
@@ -814,23 +822,23 @@ const TALENT_ART: Record<TalentKey, SkillKey> = {
   forestMemory: 'quietwood', oldTree: 'rebirth', wakeForest: 'wildflower',
   // 성기사 (77 3장)
   swiftLight: 'holyLight', devotionPath: 'oath', shareOath: 'oath',
-  heavyStrike: 'holyStrike', steadyHeart: 'holyLight', twinHands: 'holyLight',
+  heavyStrike: 'holyLight', steadyHeart: 'holyLight', twinHands: 'holyLight',
   guardOath: 'oath', calmBreath: 'oath', waveEcho: 'lightWave',
   beaconWeight: 'sacrifice', beaconBreath: 'holyLight', beaconDrift: 'lightWave',
-  resolveFill: 'holyStrike', freeLight: 'holyLight', waveCleanse: 'handCleanse',
+  resolveFill: 'oath', freeLight: 'holyLight', waveCleanse: 'handCleanse',
   lightArmor: 'handGuard', vowGuard: 'sacrifice', rescueHand: 'handGuard',
-  quickHand: 'holyStrike', steadyLight: 'sanctuary', martyr: 'sacrifice',
+  quickHand: 'holyLight', steadyLight: 'sanctuary', martyr: 'sacrifice',
   fullWave: 'lightWave', freeWave: 'lightWave', wideSanctuary: 'sanctuary',
   tankLight: 'handGuard', beaconRing: 'lightWave', waveMarch: 'lightWave',
-  dawnVow: 'holyStrike', endlessLight: 'lightWave', allKnight: 'sanctuary',
+  dawnVow: 'oath', endlessLight: 'lightWave', allKnight: 'sanctuary',
   // 주술사 (79 2-7, 바탕 스킬 = 80 4장)
-  quickRipple: 'ripple', calmShower: 'shower', splitDrop: 'droplet',
-  stoneDrop: 'droplet', rippleChain: 'ripple', sprayShower: 'shower',
+  quickRipple: 'ripple', calmShower: 'ripple', splitDrop: 'droplet',
+  stoneDrop: 'droplet', rippleChain: 'ripple', sprayShower: 'ripple',
   rootTotem: 'earthTotem', dropChain: 'chainHeal', washSpread: 'washing',
   keeperSpring: 'springTotem', springBreath: 'springTotem', twinSpring: 'springTotem',
   waterShield: 'springTotem', totemCall: 'springTotem', freshSpring: 'springTotem',
   earthGrace: 'earthTotem', letFlow: 'droplet', springSelf: 'springTotem',
-  rapids: 'shower', alertTotem: 'springTotem', lastSpring: 'springTotem',
+  rapids: 'ripple', alertTotem: 'springTotem', lastSpring: 'springTotem',
   returnChain: 'chainHeal', overflowChain: 'chainHeal', longChain: 'chainHeal',
   twinEarth: 'earthTotem', rainBreath: 'rainTotem', stormChain: 'chainHeal',
   waterSpirit: 'chainHeal', endlessChain: 'chainHeal', seaSeat: 'springTotem',
@@ -863,7 +871,7 @@ const TALENT_ART: Record<TalentKey, SkillKey> = {
   stepIn: 'lightBarrier', preWard: 'wardCircle', lastWard: 'wardCircle',
   doubleCircle: 'wardCircle', thriftCircle: 'wardCircle', wideWard: 'wardCircle',
   veilTank: 'lightVeil', veilBreath: 'lightVeil', sharedLoad: 'lightVeil',
-  citadel: 'lightVeil', repentTime: 'lightSpear', endlessJudge: 'judgment',
+  citadel: 'lightVeil', repentTime: 'judgment', endlessJudge: 'judgment',
 };
 const talentIcon = (key: TalentKey) => gameIcon(key, skillIc(TALENT_ART[key]), 'talent');
 
@@ -934,7 +942,7 @@ const HERO_INTRO: Record<HeroKey, string> = {
   paladin: '봉화와 보호 기술로 탱커를 끝까지 지키는 힐러입니다.',
   shaman: '토템을 칸에 세우고, 연쇄 치유를 다친 사람 사이로 흘려보내는 힐러입니다.',
   monk: '짧은 손바닥을 박자에 맞춰 이어 치며 안개를 띄워 두는 힐러입니다.',
-  astrologer: '별을 이어 모았다가 한 번에 터뜨려 큰 피해를 받아 내는 힐러입니다.',
+  astrologer: '별 조각을 모아 별자리 시전으로 한 번에 터뜨려 큰 피해를 받아 내는 힐러입니다.',
   warder: '보호막과 인장을 미리 깔고, 심판으로 한꺼번에 치유하는 힐러입니다.',
 };
 const SKILL_BRIEF: Record<SkillKey, string> = {
@@ -947,28 +955,28 @@ const SKILL_BRIEF: Record<SkillKey, string> = {
   bloom: '남은 지속 치유를 즉시 회복', wildflower: '주변 아군을 함께 회복',
   natureCleanse: '마법·저주·독 해제', bark: '받는 피해 감소',
   quietwood: '파티 전원에게 새싹 심기', rebirth: '쓰러진 아군 부활',
-  holyLight: '체력 회복과 신성한 힘 충전', holyStrike: '빠른 회복과 신성한 힘 충전',
+  holyLight: '체력 회복과 신성한 힘 충전', beacon: '봉화 대상 지정',
   oath: '신성한 힘으로 지속 치유', lightWave: '신성한 힘으로 주변 회복',
   handCleanse: '마법·독·질병 해제', sacrifice: '아군의 피해를 대신 받음',
   sanctuary: '주변 아군 보호와 지속 치유', handGuard: '물리 피해 차단 · 공격 불가',
-  ripple: '회복하고 옆 아군에게 튐', shower: '위급한 아군을 빠르게 회복',
+  ripple: '회복하고 옆 아군에게 튐',
   droplet: '시간에 걸쳐 회복 · 연쇄 다리', washing: '마법·저주 해제',
   chainHeal: '다친 아군 사이를 튀며 회복', earthTotem: '토템 둘레 받는 피해 감소',
   rainTotem: '파티 전체를 지속 회복', spiritLink: '붙은 아군 체력 나눠 맞추기',
-  springTotem: '고른 칸 둘레를 지속 회복',
+  springTotem: '고른 아군 칸 둘레를 지속 회복',
   vitalPalm: '짧은 즉시 회복 · 기 리듬', mistWrap: '리듬만큼 커지는 즉시 회복',
   wanderMist: '옮겨 다니는 지속 치유', clearChi: '마법·질병 해제',
   mistBreath: '주변 아군을 즉시 회복', soothe: '받는 피해 감소',
   reviveWind: '파티 전체 회복과 해제', tea: '마나와 기 리듬 회복',
   starHeal: '한 명 회복과 별 조각', twinkle: '즉시 회복과 별 조각',
   starMark: '지속 치유 · 다음 힐 강화', clearStar: '마법·독 해제',
-  starfall: '별을 모아 범위 회복', starSleep: '잠깐 모든 피해 차단 · 공격 불가',
-  starMemory: '별을 모아 받은 피해 되감기', polaris: '별을 모아 한 명 크게 회복',
-  sealHeal: '한 명 회복과 인장', quickSeal: '빠른 회복과 인장',
+  starfall: '별 조각을 써서 범위 회복', starSleep: '잠깐 모든 피해 차단 · 공격 불가',
+  starMemory: '별 조각을 써서 받은 피해 되감기', polaris: '별 조각을 써서 한 명 크게 회복',
+  sealHeal: '한 명 회복과 인장',
   lightBarrier: '보호막과 인장', wardCleanse: '마법·저주 해제',
   wardCircle: '주변 아군 보호막과 인장', guardWard: '큰 보호막과 인장',
-  lightVeil: '파티 전원 보호막과 인장', lightSpear: '보스 공격과 인장 회복',
-  judgment: '보스 공격과 인장 아군 회복',
+  lightVeil: '파티 전원 보호막과 인장', wardHold: '내 보호막 시간 늘리기와 인장',
+  judgment: '인장 붙은 아군을 한꺼번에 회복',
 };
 
 function heroDetail(k: HeroKey): string {

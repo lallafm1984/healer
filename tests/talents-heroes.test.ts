@@ -362,17 +362,16 @@ describe('성기사 기본 강화 (Lv 5~15)', () => {
     f.power3 = 3; cast(f, 'oath', u);
     expect(v.hots.find(h => h.key === 'oath')!.rest).toBeCloseTo(480 * TX.shareOath, 6);
   });
-  it('무거운 일격: 잃은 체력 1%마다 1%, 최대 50%', () => {
+  it('무거운 손길: 빛의 손길이 잃은 체력 1%마다 1%, 최대 50% (2026-10-16 빛 일격에서 옮김)', () => {
     const f = paladin(['heavyStrike']), d = others(f).find(u => u.role !== 'tank')!;
     d.max = d.base = 1e6; d.hp = d.max * 0.5;
     const h = d.hp;
-    cast(f, 'holyStrike', d);
-    expect(d.hp - h).toBeCloseTo(230 * (1 + Math.min(TX.heavyStrike.max, 0.5 * TX.heavyStrike.per)), 3);
+    cast(f, 'holyLight', d);
+    expect(d.hp - h).toBeCloseTo(SKILLS.holyLight.amt! * (1 + Math.min(TX.heavyStrike.max, 0.5 * TX.heavyStrike.per)), 3);
   });
   it('곧은 마음: 봉화 대상에게 직접 힐 마나 −25%', () => {
     const f = paladin(['steadyHeart']), b = f.party.find(u => u.id === f.beacon)!, d = others(f).find(u => u.id !== f.beacon)!;
     expect(costOf(f, 'holyLight', b)).toBeCloseTo(SKILLS.holyLight.cost * 0.75, 9);
-    expect(costOf(f, 'holyStrike', b)).toBeCloseTo(SKILLS.holyStrike.cost * 0.75, 9);
     expect(costOf(f, 'holyLight', d)).toBe(SKILLS.holyLight.cost);
   });
   it('두 손의 빛: 빛의 손길 30%가 옆 칸 가장 낮은 1명에게', () => {

@@ -5,7 +5,7 @@ import { DIFFS, MYTHIC } from '../data/difficulty';
 import { ENCOUNTERS, type Encounter, type EncounterKey } from '../data/encounters';
 import { gearStats, protoGearStats } from '../data/gear';
 import { HEROES } from '../data/heroes';
-import { TIER_MANA } from '../data/heroConst';
+import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
 import { openTiers } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { ITEM_SLOT_COUNT } from '../data/progression';
@@ -36,7 +36,7 @@ export function create(cfg: FightConfig): Fight {
   const enc = ENCOUNTERS[cfg.encounter];
   const diff = DIFFS[cfg.diff];
   const rng = rngFrom(cfg.seed || 1);
-  const gear = cfg.gearStats ? { ...cfg.gearStats } : (cfg.proto ? protoGearStats : gearStats)(cfg.gear || 'none');
+  const gear = cfg.gearStats ? { ...cfg.gearStats } : cfg.proto ? protoGearStats(cfg.gear || 'none') : gearStats(cfg.gear || 'none', cfg.stageLv ?? cfg.heroLv ?? cfg.level); // 프리셋 장비의 아이템 레벨 = 그 장소 적 레벨
   const encBoard = (cfg.proto && PROTO_BOARDS[enc.key]) || enc.board;
   const board = cfg.board && BOARDS[cfg.board] && BOARDS[cfg.board].flat().length === BOARDS[encBoard].flat().length ? cfg.board : encBoard;
   const cells = makeCells(BOARDS[board]);
@@ -78,7 +78,7 @@ export function create(cfg: FightConfig): Fight {
   };
   f.tx = newTalents(f);
   // 특성 단 마나 보정: 열린 특성 단마다 마나 소모 −2% (세 직업 공통, heroConst TIER_MANA · 77). 프로토타입 일치 테스트는 그대로
-  if (!cfg.proto) f.manaCut = 1 - TIER_MANA * openTiers(f.level);
+  if (!cfg.proto) f.manaCut = 1 - (TIER_MANA_BY[f.hero] ?? TIER_MANA) * openTiers(f.level);
   for (const k of (cfg.items || []).slice(0, ITEM_SLOT_COUNT)) if (ITEMS[k]) f.items[k] = Math.max(0, Math.min(ITEMS[k].uses, cfg.itemCap?.[k] ?? Infinity));
   if (cfg.carry) { f.mana = cfg.carry.mana; f.stats.minMana = f.mana; f.g = { ...cfg.carry.g }; }
   if (!knowsPassive(f, 'words')) f.g = { p: 0 };
@@ -271,31 +271,6 @@ function partyHits(f: Fight): void {
     else f.bossHp -= amt * (f.daze || f.expose || f.mobs.length ? bossTaken(f) : 1); // 멍함 · 영혼 축복 · 보호막 수정 (35 3-I)
     emit(f, { type: 'hit', uid: u.id, amt });
   }
-}
-
-/**
- * 힐러가 보스를 침 (79 6-1, 결계사 심판 · 빛의 창): 딜러 한 명 평균 딜 (직업 dps 1.0 × 10 × 단계 배율, 악몽 파티 배율) × sec.
- * 보스가 없는 일반 · 정예 구간은 체력이 가장 많은 적에게. 보스 무적 (인터미션)이면 안 들어감. 준 피해를 돌려줌 (f.stats.healerDmg)
- */
-export function bossHit(f: Fight, sec: number): number {
-  if (f.over || f.bossHp <= 0) return 0;
-  const amt = 10 * f.scale * (f.mythic ? MYTHIC.party : 1) * sec;
-  let done = 0;
-  if (f.bodyHp) {
-    const m = f.mobs.filter(x => x.alive && !x.add).sort((a, b) => b.hp - a.hp)[0];
-    if (!m) return 0;
-    done = Math.min(m.hp, amt);
-    m.hp -= done;
-    if (m.hp <= 1e-9) mobDown(f, m);
-    f.bossHp = f.mobs.reduce((s, x) => s + (x.add ? 0 : x.hp), 0);
-  } else {
-    if (f.invuln) return 0;
-    const before = f.bossHp;
-    f.bossHp = Math.max(0, f.bossHp - amt * bossTaken(f));
-    done = before - f.bossHp;
-  }
-  f.stats.healerDmg = (f.stats.healerDmg ?? 0) + done;
-  return done;
 }
 
 /** 보스 전투의 쫄 (P-ADD): 딜러는 먼저 나온 쫄부터, 쫄이 다 쓰러지면 남는 딜은 보스에게. 쫄 떼는 범위 딜로 같이 맞음 */
