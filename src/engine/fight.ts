@@ -36,7 +36,7 @@ export function create(cfg: FightConfig): Fight {
   const enc = ENCOUNTERS[cfg.encounter];
   const diff = DIFFS[cfg.diff];
   const rng = rngFrom(cfg.seed || 1);
-  const gear = cfg.gearStats ? { ...cfg.gearStats } : (cfg.proto ? protoGearStats : gearStats)(cfg.gear || 'none');
+  const gear = cfg.gearStats ? { ...cfg.gearStats } : cfg.proto ? protoGearStats(cfg.gear || 'none') : gearStats(cfg.gear || 'none', cfg.stageLv ?? cfg.heroLv ?? cfg.level); // 프리셋 장비의 아이템 레벨 = 그 장소 적 레벨
   const encBoard = (cfg.proto && PROTO_BOARDS[enc.key]) || enc.board;
   const board = cfg.board && BOARDS[cfg.board] && BOARDS[cfg.board].flat().length === BOARDS[encBoard].flat().length ? cfg.board : encBoard;
   const cells = makeCells(BOARDS[board]);

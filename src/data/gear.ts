@@ -89,9 +89,9 @@ export function protoGearStats(id: GearId): GearStats {
   return { heal: g === '없음' ? 1 : 1 + 6 * (h + 0.005 * u), regen: 1 + 0.03 * n, haste: 0.02 * n, crit: 0.02 * n };
 }
 
-/** 프리셋 능력치: 6부위 모두 그 등급 · 강화의 기댓값 장비 (data/equipment presetStats) */
-export function gearStats(id: GearId): GearStats {
+/** 프리셋 능력치: 6부위 모두 그 등급 · 강화의 기댓값 장비 (data/equipment presetStats). ilv = 아이템 레벨 (그 장소 적 레벨, % 옵션 배율) */
+export function gearStats(id: GearId, ilv?: number): GearStats {
   const { g, u } = GEARS[id];
   if (g === '없음') return { heal: 1, regen: 1, haste: 0, crit: 0, hp: 0, endure: 0 };
-  return statsToGear(presetStats(g, u));
+  return statsToGear(presetStats(g, u, ilv));
 }

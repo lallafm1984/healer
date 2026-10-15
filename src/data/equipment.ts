@@ -16,7 +16,7 @@ import type { HeroKey } from './heroes';
 import { CONTENT_PLACE, FACTIONS, PLACES, type FactionKey } from './places';
 import { apexOf, lvPower, rampPlace } from './progression';
 import { INT_BASE, RULES } from './rules';
-import { FEATURED, namedOf, namedsFor, SPEC_KEYS, SPECS, specTotals, specValue, type SpecLine, type SpecOn } from './specials';
+import { FEATURED, namedOf, namedsFor, SPEC_KEYS, SPECS, specTotals, specUseful, specValue, type SpecLine, type SpecOn } from './specials';
 import { UNIQUE_MULT, uniqueOf, uniquesFor, uniqueValue } from './uniques';
 
 export type SlotKey = 'weapon' | 'head' | 'chest' | 'hands' | 'ring' | 'neck';
@@ -72,8 +72,13 @@ export const MAIN_OPT: Partial<Record<SlotKey, { stat: StatKey; v: number }>> = 
 export const SLOT_MULT: Record<SlotGroup, number> = { weapon: 1.3, armor: 1.3, acc: 1 };
 /** 무작위 옵션 굴림: 그 줄 최대값의 ROLL_MIN ~ 100% */
 export const ROLL_MIN = 0.6;
-/** 강화 1단계마다 주 옵션 (장신구는 종류 옵션) +8% (34 6-5, +10 = ×1.8). 무작위 옵션은 강화해도 유지 */
+/**
+ * 강화 1단계마다 모든 옵션 (주 · 종류 · 무작위) +8% (34 6-5, +10 = ×1.8). 특수능력은 그대로.
+ * 2026-10-16 Lim 「강화시 특수능력을 제외한 모든 옵션이 증가되게」: 예전엔 주 옵션 (장신구는 종류 옵션)만
+ */
 export const PLUS_STEP = 0.08;
+/** 강화 배율 */
+export const plusMult = (plus: number) => 1 + PLUS_STEP * plus;
 
 /**
  * 장비 종류 (34 6-2 · 6-10): 부위마다 5종. fixed = 종류 옵션 (주 옵션 다음 줄부터, 주 옵션과 같은 능력치는 빼고, 줄 수가 모자라면 앞 것만).
@@ -207,13 +212,20 @@ export const ilvMult = (ilv: number | undefined, level: number): number => (ilv 
  * 수치 = 비율 (6-3 ~ 6-5 표) × 수치 단위 × 레벨 배율(아이템 Lv) → 장비마다 고정이고 아이템 레벨이 높을수록 큼. 능력치 판의 지능 · 체력 합계에 그대로 더해지는 숫자
  * (지능 단위 = INT_BASE × 치유 배율 = 힐러 기본 지능 눈금, 체력 = 힐러 기본 체력 HEALER_HP). 내 능력치로는 수치 ÷ (단위 × 레벨 세기(내 Lv)) = 비율 (ilvMult와 같은 셈).
  * 레벨 세기 = 레벨 배율 × 정점 수련 (Lv 51부터)이라 능력치 판 「장비 +N」이 장비 수치 합과 같음 (지능 무른 상한 전)
- * 치명타 · 가속 · 정신력 · 인내는 여기 없음: 장비에 고정 %로 붙고 아이템 레벨 · 내 레벨과 상관없음 (Lim 「지능 10%가 레벨업하며 9%로 떨어지면 헷갈림」)
+ * 치명타 · 가속 · 정신력 · 인내는 여기 없음: 장비에 고정 %로 붙고 내 레벨과 상관없음 (Lim 「지능 10%가 레벨업하며 9%로 떨어지면 헷갈림」).
+ * 2026-10-16부터 아이템 레벨에 따라 75~125% (pctLvMult, 떨어질 때 정해져 그 장비에서는 안 바뀜)
  */
 export const STAT_POINT: Partial<Record<StatKey, number>> = { int: INT_BASE * RULES.heal, hp: 550 };
 /** 수치로 보이는 능력치인지 (지능 · 체력) */
 export const isPointStat = (stat: StatKey) => STAT_POINT[stat] != null;
-/** 그 능력치 옵션의 아이템 레벨 배율: 지능 · 체력만 ilvMult, 나머지 1 */
-export const statMult = (stat: StatKey, ilv: number | undefined, level: number) => (isPointStat(stat) ? ilvMult(ilv, level) : 1);
+/**
+ * % 옵션 (치명타 · 가속 · 정신력 · 인내)의 아이템 레벨 배율 (2026-10-16 Lim 「장비 옵션에서 레벨별로 모든 수치가 레벨에 맞게」):
+ * 아이템 Lv 1 75% → Lv 50 100% → Lv 100 125%. 아이템 레벨로만 정해져 레벨업해도 그 장비의 %는 그대로 (Lim 2026-10-13 「10%가 9%로 떨어지면 헷갈림」)
+ */
+export const PCT_LV = { lo: 0.75, hi: 1.25 };
+export const pctLvMult = (ilv: number | undefined): number => (ilv == null ? 1 : PCT_LV.lo + (PCT_LV.hi - PCT_LV.lo) * (Math.min(100, Math.max(1, ilv)) - 1) / 99);
+/** 그 능력치 옵션의 아이템 레벨 배율: 지능 · 체력은 ilvMult (내 레벨 기준 수치), % 옵션은 pctLvMult (아이템 레벨만) */
+export const statMult = (stat: StatKey, ilv: number | undefined, level: number) => (isPointStat(stat) ? ilvMult(ilv, level) : pctLvMult(ilv));
 /** 내 레벨 기준 비율 → 수치 (지능 · 체력. optionsOf · itemStats의 v에 쓰면 그 장비 옵션 수치) */
 export const toPoints = (stat: StatKey, frac: number, level: number) => frac * (STAT_POINT[stat] ?? 0) * lvStrength(level);
 
@@ -406,7 +418,7 @@ export function rollSpecs(r: () => number, slot: SlotKey, grade: ItemGrade, n: n
   for (let i = 0; i < n; i++) {
     let pool = SPEC_KEYS.filter(k => {
       const d = SPECS[k];
-      return d.slots.includes(slot) && ITEM_GRADES.indexOf(d.min) <= gi && (!d.hero || d.hero === o.hero) && !groups.has(d.group);
+      return d.slots.includes(slot) && ITEM_GRADES.indexOf(d.min) <= gi && (!d.hero || d.hero === o.hero) && specUseful(k, o.hero) && !groups.has(d.group); // 그 직업에 효과 없는 공통 특수능력은 빼고 (NO_EFFECT)
     });
     if (o.classLoot && o.hero && !groups.has('hero')) {
       const jobPool = pool.filter(k => SPECS[k].hero === o.hero);
@@ -437,7 +449,7 @@ export const specCount = (r: () => number, grade: ItemGrade): number => (grade =
 export function makeItem(r: () => number, slot: SlotKey, grade: ItemGrade, id: number, kind?: string, o: DropCtx = {}): GearItem {
   const legend = grade === LEGEND;
   // 고유 무기 · 방어구 (34 6-10 ③): 종류가 정해져 있고, 고정 특수능력이 고유 능력
-  const uns = legend && o.place ? uniquesFor(o.place, slot) : [];
+  const uns = legend && o.place ? uniquesFor(o.place, slot).filter(u => specUseful(u.spec, o.hero)) : []; // 그 직업에 효과 없는 고유 장비는 안 나옴 (NO_EFFECT)
   const un = uns.length && r() < NAMED_CHANCE ? uns[Math.floor(r() * uns.length)] : undefined;
   const isUnique = !!un;
   const ks = kindsOf(slot), k = (isUnique ? ks.find(x => x.key === un!.kind) : ks.find(x => x.key === kind)) ?? ks[Math.floor(r() * ks.length)];
@@ -533,9 +545,9 @@ export function rerollLine(r: () => number, it: GearItem, i: number): GearLine {
   return { stat: pool[Math.floor(r() * pool.length)], roll: Math.round((ROLL_MIN + (1 - ROLL_MIN) * r()) * 100) / 100 };
 }
 /** 특수능력 i번 줄 다시 굴림: 같은 묶음 · 그 부위 · 등급 안에서 (직업 전용은 같은 직업), 다른 줄과 겹치지 않게. 지금 특수능력도 나올 수 있음 (값만 바뀜). 고유 능력은 고유 능력 그대로 (1.5배) */
-export function rerollSpec(r: () => number, it: GearItem, i: number): SpecLine {
+export function rerollSpec(r: () => number, it: GearItem, i: number, hero?: HeroKey): SpecLine {
   if (it.specs![i].legend) {
-    const k = rerollSpec(r, { ...it, specs: it.specs!.map((l, j) => (j === i ? { key: l.key, roll: l.roll } : l)) }, i).key;
+    const k = rerollSpec(r, { ...it, specs: it.specs!.map((l, j) => (j === i ? { key: l.key, roll: l.roll } : l)) }, i, hero).key;
     return { key: k, roll: 1, legend: true };
   }
   const cur = SPECS[it.specs![i].key], gi = ITEM_GRADES.indexOf(it.grade), others = it.specs!.filter((_, j) => j !== i).map(l => l.key);
@@ -543,7 +555,9 @@ export function rerollSpec(r: () => number, it: GearItem, i: number): SpecLine {
     const d = SPECS[k];
     return d.group === cur.group && d.hero === cur.hero && d.slots.includes(it.slot) && ITEM_GRADES.indexOf(d.min) <= gi && !others.includes(k);
   });
-  const d = SPECS[pool[Math.floor(r() * pool.length)]];
+  const useful = pool.filter(k => specUseful(k, hero)); // 지금 직업에 효과 없는 공통 특수능력은 빼고 (NO_EFFECT, 남는 게 없으면 그대로)
+  const from = useful.length ? useful : pool;
+  const d = SPECS[from[Math.floor(r() * from.length)]];
   return { key: d.key, roll: d.fixed ? 1 : Math.round((ROLL_MIN + (1 - ROLL_MIN) * r()) * 100) / 100 };
 }
 
@@ -552,24 +566,29 @@ export type StatSet = Record<StatKey, number>;
 export const noStats = (): StatSet => ({ int: 0, hp: 0, crit: 0, haste: 0, spirit: 0, endure: 0 });
 
 /**
- * 주 옵션 · 종류 옵션 값 (굴림 없음): 주 옵션은 부위 값 × 등급 배율, 종류 옵션은 그 줄 최대값. 강화는 주 옵션 (장신구는 종류 옵션)에 (34 6-5).
- * level = 내 레벨 (지능 · 체력의 아이템 레벨 배율, statMult)
+ * 주 옵션 · 종류 옵션 값 (굴림 없음): 주 옵션은 부위 값 × 등급 배율, 종류 옵션은 그 줄 최대값. 강화는 모든 옵션에 (plusMult, 2026-10-16).
+ * level = 내 레벨 (지능 · 체력의 아이템 레벨 배율, statMult). plus = 강화 단계 (없으면 지금 단계, 강화 전후 비교용)
  */
-export function fixedOf(it: GearItem, level: number): { stat: StatKey; v: number }[] {
-  const k = kindOf(it), up = 1 + PLUS_STEP * it.plus, main = MAIN_OPT[it.slot], m = (s: StatKey) => statMult(s, it.lv, level);
+export function fixedOf(it: GearItem, level: number, plus = it.plus): { stat: StatKey; v: number }[] {
+  const k = kindOf(it), up = plusMult(plus), main = MAIN_OPT[it.slot], m = (s: StatKey) => statMult(s, it.lv, level);
   return [
     ...(main ? [{ stat: main.stat, v: main.v * LINE_MULT[it.grade] * up * m(main.stat) }] : []),
-    ...kindStats(k).slice(0, kindLines(k, it.grade)).map(stat => ({ stat, v: lineMax(stat, it.slot, it.grade) * (main ? 1 : up) * m(stat) })),
+    ...kindStats(k).slice(0, kindLines(k, it.grade)).map(stat => ({ stat, v: lineMax(stat, it.slot, it.grade) * up * m(stat) })),
   ];
 }
 /** 굴림 막대 채움 (0~1): 최소 굴림 = 0, 최대 = 1 */
 export const rollFill = (roll: number) => Math.max(0, Math.min(1, (roll - ROLL_MIN) / (1 - ROLL_MIN)));
-/** 무작위 옵션 한 줄의 값 (지능 · 체력은 내 레벨 기준 아이템 레벨 배율) */
-export const lineValue = (it: GearItem, l: GearLine, level: number) => (lineMax(l.stat, it.slot, it.grade) * l.roll) * statMult(l.stat, it.lv, level);
+/** 무작위 옵션 한 줄의 값 (아이템 레벨 배율 · 강화 배율 포함) */
+export const lineValue = (it: GearItem, l: GearLine, level: number, plus = it.plus) => (lineMax(l.stat, it.slot, it.grade) * l.roll) * statMult(l.stat, it.lv, level) * plusMult(plus);
 
-/** 장비 옵션 줄 (보이는 순서): 주 옵션 → 종류 옵션 → 무작위 옵션. line = it.lines 번호 (주 · 종류 옵션은 null). level = 내 레벨 */
-export function optionsOf(it: GearItem, level: number): { stat: StatKey; v: number; line: number | null }[] {
-  return [...fixedOf(it, level).map(x => ({ ...x, line: null })), ...(it.lines ?? []).map((l, i) => ({ stat: l.stat, v: lineValue(it, l, level), line: i }))];
+/** 장비 옵션 줄 (보이는 순서): 주 옵션 → 종류 옵션 → 무작위 옵션. line = it.lines 번호 (주 · 종류 옵션은 null). level = 내 레벨, plus = 강화 단계 (없으면 지금) */
+export function optionsOf(it: GearItem, level: number, plus = it.plus): { stat: StatKey; v: number; line: number | null }[] {
+  return [...fixedOf(it, level, plus).map(x => ({ ...x, line: null })), ...(it.lines ?? []).map((l, i) => ({ stat: l.stat, v: lineValue(it, l, level, plus), line: i }))];
+}
+/** 강화로 오른 옵션 (강화 성공 표시, 2026-10-16 Lim 「강화성공시 증가 수치를 보여주자」): 줄마다 강화 전 · 후 값 (optionsOf와 같은 순서) */
+export function enhanceGain(it: GearItem, from: number, to: number, level: number): { stat: StatKey; before: number; after: number }[] {
+  const a = optionsOf(it, level, from), b = optionsOf(it, level, to);
+  return a.map((x, i) => ({ stat: x.stat, before: x.v, after: b[i].v }));
 }
 
 /** 장비 한 개가 보태는 능력치 (옵션 줄 합, 내 레벨 기준). 없으면 모두 0 */
@@ -606,17 +625,19 @@ export const gearStatsOf = (eq: Equipped, level: number): GearStats => statsToGe
 
 /**
  * 시뮬 장비 프리셋 (data/gear GEARS)의 능력치: 6부위 모두 그 등급 · 강화의 「기댓값」 장비.
- * 종류는 부위의 종류를 고르게, 무작위 옵션은 주 · 종류 옵션이 아닌 능력치에 고르게, 굴림은 가운데 (0.8)
+ * 종류는 부위의 종류를 고르게, 무작위 옵션은 주 · 종류 옵션이 아닌 능력치에 고르게, 굴림은 가운데 (0.8).
+ * ilv = 아이템 레벨 (그 장소 적 레벨, % 옵션 배율 pctLvMult). 지능 · 체력은 내 레벨과 같은 아이템 레벨이라 배율 1
  */
-export function presetStats(grade: ItemGrade, plus: number): StatSet {
-  const s = noStats(), mid = (ROLL_MIN + 1) / 2;
+export function presetStats(grade: ItemGrade, plus: number, ilv?: number): StatSet {
+  const s = noStats(), mid = (ROLL_MIN + 1) / 2, up = plusMult(plus);
+  const m = (k: StatKey) => (isPointStat(k) ? 1 : pctLvMult(ilv)) * up;
   for (const x of SLOTS) {
-    const ks = kindsOf(x.key), w = 1 / ks.length, main = MAIN_OPT[x.key], up = 1 + PLUS_STEP * plus;
+    const ks = kindsOf(x.key), w = 1 / ks.length, main = MAIN_OPT[x.key];
     if (main) s[main.stat] += main.v * LINE_MULT[grade] * up;
     for (const kd of ks) {
-      for (const f of kindStats(kd).slice(0, kindLines(kd, grade))) s[f] += w * lineMax(f, x.key, grade) * (main ? 1 : up);
+      for (const f of kindStats(kd).slice(0, kindLines(kd, grade))) s[f] += w * lineMax(f, x.key, grade) * m(f);
       const others = STAT_KEYS.filter(k => !takenStats(kd).includes(k)), n = randomLines(kd, grade);
-      for (const k of others) s[k] += (w * n * lineMax(k, x.key, grade) * mid) / others.length;
+      for (const k of others) s[k] += (w * n * lineMax(k, x.key, grade) * mid * m(k)) / others.length;
     }
   }
   return s;

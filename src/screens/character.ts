@@ -8,7 +8,7 @@
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
  */
 import { resourceBalance, unlimitedResource, type ResourceKey } from '../game/resources';
-import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
+import { enhanceCost, enhanceGain, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
 import { ALL_HERO_KEYS, HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
 import { JOB_PRICE, jobProductId } from '../data/economy';
@@ -228,6 +228,14 @@ const plusTxt = (it: GearItem) => (it.plus ? ` +${it.plus}` : '');
 const pc = (x: number) => (Math.sign(x) * Math.trunc((Math.abs(x) + Number.EPSILON) * 1000) / 10).toFixed(1);
 /** 옵션 값 글자 (2026-10-13 Lim): 지능 · 체력은 수치 (정수, 천 단위 쉼표), 치명타 · 가속 · 정신력 · 인내는 고정 % */
 const optTxt = (k: StatKey, v: number, lv: number) => (isPointStat(k) ? fmt(Math.round(toPoints(k, v, lv))) : `${pc(v)}%`);
+/** 강화로 오른 옵션 (2026-10-16 Lim 「강화성공시 증가 수치를 보여주자」): 화면에 보이는 값 (수치 반올림 · % 한 자리) 기준 차이, 안 바뀌어 보이는 줄은 뺌 */
+function gainHtml(it: GearItem, from: number, to: number): string {
+  const lv = G.save.player.level;
+  const shown = (k: StatKey, v: number) => (isPointStat(k) ? Math.round(toPoints(k, v, lv)) : Number(pc(v)));
+  const rows = enhanceGain(it, from, to, lv).map(g => ({ k: g.stat, d: shown(g.stat, g.after) - shown(g.stat, g.before) })).filter(g => g.d > 1e-9);
+  if (!rows.length) return '';
+  return `<ul class="c7-enh-gain" aria-label="오른 옵션">${rows.map(g => `<li><span>${STATS[g.k].name}</span><b>+${isPointStat(g.k) ? fmt(g.d) : `${g.d.toFixed(1)}%`}</b></li>`).join('')}</ul>`;
+}
 /** 장비 그림 (36 4-2 · 4-3): 이름 있는 장신구 → 종류 → 부위 (item-<부위>) → 부위 선 아이콘. 빈칸은 부위 그림 */
 const itemIc = (x: SlotKey | Parameters<typeof gearIcon>[0]) => gearIcon(typeof x === 'string' ? { slot: x } : x);
 
@@ -553,7 +561,7 @@ function confirmHtml(): string {
   // 팝업 안 장식(빛 고리 · 불꽃 · 알갱이)은 전면 연출이 그대로 덮어서 보이지 않고 폰 그래픽만 잡아먹어 뺐다. 연출 중엔 강화 전 단계를 보여 줘 결과를 미리 드러내지 않는다.
   const shownPlus = f ? f.from : it.plus;
   const amounts = `${currencyAmount('gold', reward.gold)}${reward.stone ? currencyAmount('stone', reward.stone) : ''}${reward.refined ? currencyAmount('refined', reward.refined) : ''}`;
-  const status = result?.ok ? `<div class="c7-enh-result success${f ? ' revealing' : ''}" role="status" aria-live="polite"><b>강화 성공</b><span>+${result.from} → +${result.to}</span></div>` : '';
+  const status = result?.ok ? `<div class="c7-enh-result success${f ? ' revealing' : ''}" role="status" aria-live="polite"><b>강화 성공</b><span>+${result.from} → +${result.to}</span>${gainHtml(it, result.from, result.to)}</div>` : '';
   const details = dismantle
     ? `<div class="c7-confirm-cost"><span>획득 재료</span><div>${amounts}</div></div><p id="gearConfirmDesc">분해한 장비는 되돌릴 수 없습니다.</p>`
     : `${status}<div class="c7-enh-next">

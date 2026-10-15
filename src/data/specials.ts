@@ -52,6 +52,8 @@ export interface SpecDef {
   cd?: number;
   /** 효과 글. {v} = 값 */
   text: string;
+  /** 스킬 구조상 효과가 0인 직업 (NO_EFFECT): 그 직업으로 돌 때 드롭 · 재설정에서 안 나옴 (QA 2026-10-16 Lim 2.a). 이미 가진 장비는 그대로 */
+  noHero?: HeroKey[];
 }
 
 const ALL: SlotKey[] = ['weapon', 'head', 'chest', 'hands', 'ring', 'neck'];
@@ -376,6 +378,20 @@ for (const [group, rows] of Object.entries(TABLE) as [SpecGroup, Row[]][]) {
     SPEC_KEYS.push(key);
   }
 }
+/**
+ * 직업마다 스킬 구조상 효과가 0인 공통 특수능력 (QA 2026-10-15 · 2026-10-16 Lim 「그 직업으로 돌 때 드롭 · 재설정에서 빼기」).
+ * 결계사는 지속 힐이 없고, 수도사는 시전 힐이 없고, 드루이드 광역은 지속 힐뿐, 주술사는 즉시 직접 힐이 없고, 점성술사 공대 쿨기 (별의 기억)는 즉시
+ */
+export const NO_EFFECT: Record<string, HeroKey[]> = {
+  lingerLight: ['warder'], layer: ['warder'], fireflies: ['warder'], sturdyBack: ['warder'], leadOn: ['warder'],
+  slowHand: ['monk'], windStep: ['monk'],
+  goldEcho: ['druid'], holdTogether: ['druid'],
+  quickAid: ['shaman'],
+  longSong: ['astrologer'],
+};
+for (const [k, hs] of Object.entries(NO_EFFECT)) SPECS[k].noHero = hs;
+/** 그 직업에 효과가 있는 특수능력 (직업을 모르면 true) */
+export const specUseful = (key: string, hero?: HeroKey): boolean => !hero || !SPECS[key]?.noHero?.includes(hero);
 
 /**
  * 이름 있는 장신구 (42 3장): 장소 고유 목걸이 · 반지. 전설만 (Lim 2026-10-11 「전설에만 고유 능력」), 고유 효과가 그 전설의 고유 능력.
