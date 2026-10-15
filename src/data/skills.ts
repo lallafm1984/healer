@@ -75,7 +75,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 
   // ---------- ③ 성기사 (25 3장) ----------
   holyLight: { name: '빛의 손길', short: '손길', slot: 'basic', lv: 1, cast: 2.0, cost: 4, amt: 260, target: 'ally' },
-  beacon: { name: '봉화', short: '봉화', slot: 'fast', lv: 6, cast: 0, cost: 3, cd: 10, amt: 160, target: 'ally' }, // 2026-10-16 Lim 「성기사는 봉화 지정스킬을 만들고 빛일격 스킬을 제거하자」 · 「봉화 스킬에 부가적인것도 추가해서 단순하게 만들지 말자」: 지정 + 즉시 회복 + 신성한 힘 + 피해 감소. cd = heroConst BEACON.cd
+  beacon: { name: '봉화', short: '봉화', slot: 'fast', lv: 6, cast: 0, cost: 3, cd: 10, amt: 160, target: 'ally' }, // 2026-10-16 Lim 「성기사는 봉화 지정스킬을 만들고 빛일격 스킬을 제거하자」 · 「봉화 스킬에 부가적인것도 추가해서 단순하게 만들지 말자」 · 「너무 좋다. 신성한 힘 1 증가 제거」: 지정 + 즉시 회복 + 피해 감소. cd = heroConst BEACON.cd
   oath: { name: '빛의 서약', short: '서약', slot: 'hot', lv: 2, cast: 0, cost: 0, amt: 160, target: 'ally', power: 1, powerAll: true },
   lightWave: { name: '빛의 파도', short: '파도', slot: 'aoe', lv: 5, cast: 0, cost: 5, amt: 220, target: 'area', power: 3 }, // 마나 0 → 5% (73)
   handCleanse: { name: '정화의 손', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
@@ -169,7 +169,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   rebirth: { kind: '부활', desc: '쓰러진 파티원 1명을 체력 40%로 일으킵니다. 전투당 1회 쓸 수 있습니다.' },
 
   holyLight: { kind: '힘 모으기', desc: '대상의 체력을 {260} 회복하고 신성한 힘을 1 모읍니다.' },
-  beacon: { kind: '봉화 · 힘 모으기', desc: '대상을 봉화로 지정하고 체력을 {160} 회복합니다. 신성한 힘을 1 모으고, 대상은 6초 동안 받는 피해가 10% 줄어듭니다. 봉화 대상에게는 다른 사람에게 한 빛의 손길 회복량의 40% (10인 레이드 30%, 20인 레이드 25%)가 함께 들어갑니다.' },
+  beacon: { kind: '봉화 지정', desc: '대상을 봉화로 지정하고 체력을 {160} 회복합니다. 대상은 6초 동안 받는 피해가 10% 줄어듭니다. 봉화 대상에게는 다른 사람에게 한 빛의 손길 회복량의 40% (10인 레이드 30%, 20인 레이드 25%)가 함께 들어갑니다.' },
   oath: { kind: '힘 쓰기 · 지속', desc: '모은 신성한 힘 1칸마다 4초 동안 {160} 회복합니다. 3칸이면 12초 동안 {480}입니다.' },
   lightWave: { kind: '힘 쓰기 · 광역', desc: '신성한 힘 3칸을 모두 써서 대상과 붙어 있는 칸 중 체력이 가장 낮은 4명을 각각 {220} 회복합니다. 봉화로는 옮겨 가지 않습니다.' },
   handCleanse: { kind: '해제', desc: '대상의 마법·독·질병 디버프를 1개 제거합니다.' },

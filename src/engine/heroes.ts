@@ -227,14 +227,13 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
 /** 성기사 */
 function paladin(f: Fight, key: SkillKey, u: Unit): void {
   const sk = SKILLS[key], on = f.tx.on;
-  if (key === 'beacon') { // 봉화 (84: 가운데 버튼 대신 빠른 힐 칸 스킬, 재사용 = 바꾸기 대기): 지정 + 즉시 회복 + 신성한 힘 1 + 받는 피해 −
+  if (key === 'beacon') { // 봉화 (84: 가운데 버튼 대신 빠른 힐 칸 스킬, 재사용 = 바꾸기 대기): 지정 + 즉시 회복 + 받는 피해 − (신성한 힘은 안 줌, Lim 「너무 좋다」)
     f.beacon = u.id; f.beaconCd = BEACON.cd;
     emit(f, { type: 'beacon', id: u.id });
     emit(f, { type: 'msg', text: `봉화: ${u.nick}` });
     heroHeal(f, u, sk.amt!);
     u.mods = u.mods.filter(m => m.src !== 'beacon');
     u.mods.push({ k: 'cut', v: BEACON.guard.cut, until: f.t + BEACON.guard.sec, src: 'beacon' });
-    f.power3 = Math.min(powerMax(f), f.power3 + 1);
   } else if (key === 'holyLight') {
     let amt = sk.amt!;
     if (on.heavyStrike) amt *= 1 + Math.min(TX.heavyStrike.max, (1 - u.hp / u.max) * TX.heavyStrike.per); // 무거운 손길 (77, 2026-10-16 빛 일격에서 옮김)

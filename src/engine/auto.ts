@@ -696,7 +696,7 @@ function autoPaladin(f: Fight): void {
   // 헤매는 영혼: 위급한 사람이 없으면 해제로 바로, 아니면 단일 힐
   if (g.soul && pct(low) > 0.5 && f.mana > 10 && ((ready('handCleanse') && tryUse(f, 'handCleanse', g.soul, idx)) || one(g.soul))) return;
   if (g.link && pct(low) > 0.4 && one(g.link.u)) return;
-  // 봉화 (84): 재사용마다 봉화 대상 (없으면 탱커)이 다쳤으면 다시 걸어 즉시 회복 · 신성한 힘
+  // 봉화 (84): 재사용마다 봉화 대상 (없으면 탱커)이 다쳤으면 다시 걸어 즉시 회복 · 피해 감소
   { const t = live.find(u => u.id === f.beacon) ?? live.find(u => u.role === 'tank'); if (t && ready('beacon') && pct(t) < 0.9 && tryUse(f, 'beacon', t, idx)) return; }
   if (pct(low) < topUp(f, g, 0.85) && f.mana > 3) tryUse(f, 'holyLight', low, idx);
 }
