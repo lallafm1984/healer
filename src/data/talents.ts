@@ -287,7 +287,7 @@ export const TX = {
   /** 빛나는 북극성: 체력 선 · + · 빠른 잇기: 별 하나 초 · 맑은 밤: 별 2 · 3 범위 · 회복 */
   brightPolaris: { hp: 0.5, heal: 0.25 }, quickLink: 0.5, clearNight: { range: 2, heal: -0.2 },
   /** 한 점: 탱커 북극성 + · 세 조각: 조각 최대 · 다섯째 별: 최대 · 별비 · 북극성 */
-  onePoint: 0.2, threeShards: 2, fifthStar: { max: 5, fall: 200, polaris: 680 }, // 북극성 별 5개: 1150 → 680 (83 힐량 내림)
+  onePoint: 0.2, threeShards: 2, fifthStar: { max: 5, fall: 255, polaris: 760 }, // 북극성 별 5개: 1150 → 680 (83 힐량 내림) → 760 · 별비 200 → 255 (84 별자리 +)
   /** 떠오르는 북극성: 완벽하면 재사용 −초 · 내리는 밤 (★) · 두 번째 별비: 초 뒤 · 위력 */
   risingPolaris: 10, fallingNight: { cd: 90, dur: 10 }, secondStarfall: { delay: 2, share: 0.5 },
   /** 지지 않는 별: 잠 초 · 차분한 손: 모으는 동안 − · 별 무리: 조각마다 − */

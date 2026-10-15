@@ -270,7 +270,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     // 깊은 샘 · 흐르는 물결 · 굵은 물방울 · 샘 긷기 · 토템 곁 · 대지의 울림은 전용장비 밸런스 (79 2-11)로 올림: 전용 특수능력 장비에서 세 직업 평균보다 던전 · 20인 악몽이 6%p 낮던 것
     ['deepSpring', '주술 01', '깊은 샘', ALL, '희귀', 0.15, 'pct', '샘 토템 회복량 +{v}', { cap: 0.4, hero: 'shaman' }],
     ['puddle', '주술 02', '물웅덩이', W, '전설', 0.1, 'pct', '물방울이 끝까지 가면 그 칸에 6초 웅덩이: 위에 선 아군 받는 피해 −{v}', { hero: 'shaman', fixed: true }],
-    ['hastyDrop', '주술 03', '서두른 물방울', HANDS, '영웅', 2, 'sec', '물방울 재사용 −{v}', { hero: 'shaman', cap: 2 }],
+    ['hastyDrop', '주술 03', '서두른 물방울', HANDS, '영웅', 1, 'sec', '물방울 재사용 −{v}', { hero: 'shaman', cap: 1.5 }], // 84: 2 → 1초 (재사용 4초의 절반이던 것)
     ['hardEarth', '주술 04', '굳은 대지', AR, '영웅', 0.1, 'pp', '대지 토템 받는 피해 감소 +{v}', { hero: 'shaman', cap: 0.2 }],
     ['tallSpring', '주술 05', '마르지 않는 샘', W, '전설', 6, 'sec', '샘 토템 시간 +{v}', { hero: 'shaman', fixed: true }],
     ['quickShower', '주술 06', '서두른 샘', HANDS, '영웅', 1.5, 'sec', '샘 토템 재사용 −{v}', { hero: 'shaman' }],

@@ -183,7 +183,7 @@ describe('토템 칸 (79 2-3)', () => {
 
 describe('특성 (79 2-7)', () => {
   it('빠른 잔물결 −0.3초 · 잔잔한 물결 마나 −20% · 샘의 숨 4 → 2% · 긴 사슬 +2%p', () => {
-    expect(castOf(fight(['quickRipple']), 'ripple')).toBeCloseTo(2.5 - 0.3, 6);
+    expect(castOf(fight(['quickRipple']), 'ripple')).toBeCloseTo(SKILLS.ripple.cast - 0.3, 6);
     expect(costOf(fight(['calmShower']), 'ripple')).toBeCloseTo(SKILLS.ripple.cost * 0.8, 6);
     expect(costOf(fight(['springBreath']), 'springTotem')).toBeCloseTo(2, 6);
     expect(costOf(fight(['longChain']), 'chainHeal')).toBeCloseTo(12, 6);
@@ -387,8 +387,8 @@ describe('직업 전용 특수능력 (79 2-8)', () => {
     step(f, 3.1);
     expect(taken(f, u)).toBeCloseTo(90, 6);
   });
-  it('서두른 물방울 −2초 · 서두른 샘 −1.5초 · 비구름 시간 +2초 · 가속 +10%', () => {
-    expect(cdOf(sp('hastyDrop'), 'droplet')).toBeCloseTo(SKILLS.droplet.cd! - 2, 6);
+  it('서두른 물방울 −1초 (84) · 서두른 샘 −1.5초 · 비구름 시간 +2초 · 가속 +10%', () => {
+    expect(cdOf(sp('hastyDrop'), 'droplet')).toBeCloseTo(SKILLS.droplet.cd! - SPECS.hastyDrop.val, 6);
     expect(cdOf(sp('quickShower'), 'springTotem')).toBeCloseTo(SKILLS.springTotem.cd! - 1.5, 6);
     const f = sp('longRain');
     E.use(f, 'rainTotem', 0);

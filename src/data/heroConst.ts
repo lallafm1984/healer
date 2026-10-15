@@ -31,7 +31,7 @@ export const REBIRTH = { hp: 0.4 };
  */
 export const TIER_MANA = 0.02;
 /** 직업마다 다른 특성 단 마나 보정 (없으면 TIER_MANA). 구매 직업 초반 밸런스 (QA 2026-10-16): 수도사는 손바닥 마나를 처음부터 낮추고 단 보정을 없앰 (Lv 50 마나는 그대로, 초반만 가벼움) */
-export const TIER_MANA_BY: Partial<Record<string, number>> = {};
+export const TIER_MANA_BY: Partial<Record<string, number>> = { monk: 0 }; // 84: 손바닥 마나 1.5 → 1.2 대신 단 보정 없음 (Lv 50 마나는 예전과 같음)
 
 /** 드루이드 20인 레이드 보정 (26 9-1, 2026-10-07 Lim): 들꽃 군락이 닿는 거리 (평소 1칸), 군락 보너스 붙은 칸 하나마다 (평소 10%, 최대 3칸). 20인에서는 들꽃 군락에도 군락 보너스 */
 export const DRUID_BIG = { wildRange: 2, colonyStep: 0.3 };
@@ -51,7 +51,7 @@ export const SHAMAN = {
   rain: { sec: 10, tick: 2 },
   link: { cut: 0.1, sec: 6 },
   /** 샘 토템: 초 · 회복 간격 · 거리 · 20인 레이드 회복량 배율 (판이 꽉 차 범위에 7명씩 들어 다른 직업보다 높던 것) */
-  spring: { sec: 15, tick: 3, range: 1, big: 0.7 },
+  spring: { sec: 15, tick: 3, range: 1, big: 0.85 }, // 84: 0.7 → 0.85 (소나기를 없애 20인이 약해서)
   deep: { hp: 0.5, heal: 0.3 },
   tide: { n: 4, mana: 1.5 },
   /** 물웅덩이 (주술 02): 물방울이 끝까지 가면 그 칸에 이 초 동안 */
@@ -65,7 +65,7 @@ export const SHAMAN = {
 export const MONK = {
   beat: { window: 2.5, max: 5, step: 0.06, mistFast: 3, mistCdMult: 2 },
   /** 생기 손바닥 다음 행동 대기 하한 (초, 가속이 높아도 이보다 짧아지지 않음. 천 개의 손은 따로). 0 = 하한 없음 */
-  palmGcdMin: 0,
+  palmGcdMin: 1, // 84 밸런스: 가속과 상관없이 1초 (장비 가속이 큰 악몽에서 수도사만 크게 세지던 것)
   wrapMist: { sec: 6, amt: 90 },
   /** 안개 감싸기 (82): 즉시 · 기 리듬 1마다 회복량 + (리듬은 이어 줌, 올리지는 않음) */
   wrap: { step: 0.12 },
@@ -90,15 +90,15 @@ export const ASTRO = {
   shard: { max: 3 },
   mark: { sec: 8, tick: 2, next: 0.5 },
   // 83 (Lim 「점성술사 힐량이 너무 높다」): 시전 시간당으로 보면 북극성 · 별비 (조각 3)가 다른 직업 큰 힐의 2~3배라 내림. 별비 한 별 380 → 300, 북극성 350~950 → 280~580
-  fall: { amt: [300, 150, 220, 150], range: [0, 1, 1, 2] },
-  polaris: [280, 380, 480, 580],
+  fall: { amt: [390, 195, 285, 195], range: [0, 1, 1, 2] }, // 84 밸런스: 초반 힐 (별빛 · 반짝임 · 표식)을 내린 몫을 별자리로 (+30%)
+  polaris: [315, 425, 540, 650], // 84 밸런스 (+12%)
   sleep: { sec: 4 },
   /** 별의 기억 (82 모으기): 별 1개마다 이만큼 더 먼 피해 (초)의 share를 되감음 */
-  memory: { step: 2, share: 0.5 },
+  memory: { step: 2, share: 0.65 }, // 84 밸런스: 0.5 → 0.65
   read: 0.15,
   cycle: 3,
   /** 20인 레이드 보정 (주술사 샘처럼): 별비 회복 배율 */
-  big: { fall: 1 }, // 83: 0.9 → 1 (모으기를 없애 20인 −7%p)
+  big: { fall: 1.1 }, // 83: 0.9 → 1 (모으기를 없애 20인 −7%p), 84: 1.1 (20인 악몽이 약해서)
 };
 
 /**

@@ -58,7 +58,8 @@ describe('데이터 (79 3장)', () => {
     expect(HEROES.monk.ready).toBe(true);
     expect(HEROES.monk.unlock).toMatchObject({ buy: true }); // 81: 상점 2,200원 (예전 Lv 40)
     expect(HEROES.monk.dispel).toEqual(['마법', '질병']);
-    expect(SKILLS.vitalPalm).toMatchObject({ cast: 0, gcd: 1.0, cost: 1.5 });
+    expect(SKILLS.vitalPalm).toMatchObject({ cast: 0, gcd: 1.0, cost: 1.2 }); // 84: 1.5 → 1.2 (단 마나 보정 없음)
+    expect(MONK.palmGcdMin).toBe(1); // 84: 가속과 상관없이 1초
     expect(SKILLS.tea).toMatchObject({ gcd: 0, cost: 0, cd: 60 });
   });
   it('특성 10단 × 3, 보조 버튼은 천 개의 손 · 모이는 안개 · 기 폭발 · 안개 폭풍', () => {

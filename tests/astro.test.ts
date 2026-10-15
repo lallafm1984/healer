@@ -97,9 +97,9 @@ describe('스킬', () => {
     const f = fight(); hurt(f, 0.05);
     for (const u of f.party) { u.base = u.max = 50000; u.hp = 100; }
     const u = withAdj(f, 1), v = adj(f, u)[0];
-    expect([1, 2, 3, 4].map(n => fallSpec(f, n))).toEqual([{ amt: ASTRO.fall.amt[0], r: 0 }, { amt: 150, r: 1 }, { amt: 220, r: 1 }, { amt: 150, r: 2 }]);
+    expect([1, 2, 3, 4].map(n => fallSpec(f, n))).toEqual([{ amt: ASTRO.fall.amt[0], r: 0 }, { amt: ASTRO.fall.amt[1], r: 1 }, { amt: ASTRO.fall.amt[2], r: 1 }, { amt: ASTRO.fall.amt[3], r: 2 }]);
     const hs = charge(f, 'starfall', u.cell, 4);
-    expect(healOn(hs, v)).toBe(Math.round(150 * PERF));
+    expect(healOn(hs, v)).toBe(Math.round(ASTRO.fall.amt[3] * PERF));
     const g = fight(); for (const x of g.party) { x.base = x.max = 50000; x.hp = 100; }
     const w = withAdj(g, 1), z = adj(g, w)[0];
     const hs2 = charge(g, 'starfall', w.cell, 1);
@@ -136,11 +136,11 @@ describe('스킬', () => {
     expect(asleep(f, t)).toBe(false);
     expect(taken(f, t)).toBeGreaterThan(0);
   });
-  it('별의 기억: 별 2개 = 최근 4초 받은 피해의 50%, 적어도 100', () => {
+  it('별의 기억: 별 2개 = 최근 4초 받은 피해의 65% (84), 적어도 100', () => {
     const f = fight(), u = others(f)[0];
     u.base = u.max = 50000; u.hp = 40000;
     damage(f, u, 4000, false, 'fixed');
-    expect(memoryAmt(f, u)).toBeCloseTo(2000, 6);
+    expect(memoryAmt(f, u)).toBeCloseTo(4000 * ASTRO.memory.share, 6);
     const v = others(f)[1];
     expect(memoryAmt(f, v)).toBe(SKILLS.starMemory.amt);
   });
@@ -151,10 +151,11 @@ describe('스킬', () => {
     damage(f, u, 4000, false, 'fixed');
     step(f, 5);
     damage(f, u, 1000, false, 'fixed');
-    expect(memoryAmt(f, u, 1)).toBeCloseTo(500, 6); // 최근 2초
-    expect(memoryAmt(f, u, 2)).toBeCloseTo(500, 6); // 최근 4초
-    expect(memoryAmt(f, u, 3)).toBeCloseTo(2500, 6); // 최근 6초 (5초 전 피해까지)
-    expect(memoryAmt(f, u, 4)).toBeCloseTo(2500, 6);
+    const k = ASTRO.memory.share;
+    expect(memoryAmt(f, u, 1)).toBeCloseTo(1000 * k, 6); // 최근 2초
+    expect(memoryAmt(f, u, 2)).toBeCloseTo(1000 * k, 6); // 최근 4초
+    expect(memoryAmt(f, u, 3)).toBeCloseTo(5000 * k, 6); // 최근 6초 (5초 전 피해까지)
+    expect(memoryAmt(f, u, 4)).toBeCloseTo(5000 * k, 6);
   });
   it('별의 기억 (82 · 83): 시전이 끝날 때 별 수만큼 · 가득 찬 별자리 +15% · 마나 · 재사용', () => {
     const f = fight(), u = others(f)[0];
@@ -227,12 +228,12 @@ describe('특성 (79 4-7)', () => {
     expect(g.cd.polaris).toBe(SKILLS.polaris.cd! - TX.risingPolaris);
   });
   it('맑은 밤: 별 2 · 3 범위 2칸, 회복 −20% · 넓은 하늘: 별 4 범위 3칸 −15% · 모이는 빛: 별 3 가운데 두 배', () => {
-    expect(fallSpec(fight(['clearNight']), 3)).toEqual({ amt: 220 * 0.8, r: 2 });
-    expect(fallSpec(fight(['wideSky']), 4)).toEqual({ amt: 150 * 0.85, r: 3 });
+    expect(fallSpec(fight(['clearNight']), 3)).toEqual({ amt: ASTRO.fall.amt[2] * 0.8, r: 2 });
+    expect(fallSpec(fight(['wideSky']), 4)).toEqual({ amt: ASTRO.fall.amt[3] * 0.85, r: 3 });
     const f = fight(['gatherLight']); for (const x of f.party) { x.base = x.max = 50000; x.hp = 100; }
     const u = withAdj(f, 1);
     const hs = charge(f, 'starfall', u.cell, 3);
-    expect(healOn(hs, u)).toBe(Math.round(220 * 2));
+    expect(healOn(hs, u)).toBe(Math.round(ASTRO.fall.amt[2] * 2));
   });
   it('지지 않는 별: 죽을 피해 → 별의 잠 (1회) · 차분한 손 · 별 무리', () => {
     const f = fight(['unfading']);
