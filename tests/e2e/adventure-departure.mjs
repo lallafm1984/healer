@@ -1,5 +1,5 @@
 import { chromium } from 'playwright';
-import { pastTitle, chooseContent, rowContentKeys, shownImagesReady } from './nav.mjs';
+import { chooseContent, entryGo, pastTitle, rowContentKeys, shownImagesReady } from './nav.mjs';
 
 /** 장소 줄에서 바로 고르기 (팝업 없음), 레벨/난이도, 보상 dialog·출전 복귀의 실제 사용자 흐름. */
 export default async function adventureDeparture(url, shots) {
@@ -99,7 +99,7 @@ export default async function adventureDeparture(url, shots) {
     }
     await page.keyboard.press('Escape');
     ok(await page.locator('.b-reward-chance').count()===0 && await page.evaluate(()=>document.activeElement.matches('[data-reward="gear"]')), `${width}: 확률 팝오버 닫기·포커스 복원`);
-    await page.click('#contentGo'); await page.clock.runFor(100);
+    await page.click('#contentGo'); await page.clock.runFor(100); await entryGo(page);
     ok(await page.locator('#s-party').isVisible(), `${width}: 선택한 장소로 실제 편성 진입`);
     await page.click('#s-party .tb-back'); await page.clock.runFor(100);
     ok(await page.locator('#s-content').getAttribute('data-selected-content')==='plateau' && await page.locator('[data-diff="보통"]').getAttribute('aria-pressed')==='true', `${width}: 편성에서 복귀 시 장소·난이도 기억`);

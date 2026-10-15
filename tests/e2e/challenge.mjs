@@ -52,7 +52,7 @@ export default async function challenge(url, shots) {
   await chooseContent(page, 'snowlab');
   await page.click('#s-content [data-diff="어려움"]'); await page.clock.runFor(50);
   ok(await page.getAttribute('#s-content .b-level', 'aria-label') === '권장 레벨 34' && (await page.locator('#s-content .b-gate .b-afx').count()) === 0, '눈꽃 연구소 어려움 = 권장 레벨 34, 상세 어픽스는 편성·공략에서 확인');
-  await page.click('#contentGo'); await page.clock.runFor(100);
+  await page.click('#contentGo'); await page.clock.runFor(100); await entryGo(page);
   ok(await page.isVisible('#s-party') && (await page.locator('[data-tier]').count()) === 0, '출전 = 바로 편성, 레벨 단계 칩 없음');
   ok(/어려움/.test(await text('#s-party .topbar')) && !/단계 Lv/.test(await text('#s-party .topbar')) && /격노/.test(await text('#s-party .topbar .f-afxs')), '편성 머리 = 어려움 + 격노 (단계 Lv 없음)');
   await page.click('#guideOpen'); await page.clock.runFor(50);
@@ -83,7 +83,7 @@ export default async function challenge(url, shots) {
   const ent = await text('#s-entry');
   ok((await text('#s-entry .chalstep b')) === '1단계' && await page.isDisabled('#s-entry [data-cstep="1"]') && /7:00/.test(ent) && /메마름/.test(ent) && !/제한시간 안에 깨면|실패해도 단계 유지|광고 이어하기 없음/.test(ent), '도전 입장: 1단계 · 제한 7:00 · 이번 주 어픽스, 하단 규칙 문구 없음');
   await page.screenshot({ path: `${shots}/challenge_entry.png`, fullPage: true });
-  await page.click('#entryGo'); await page.clock.runFor(100);
+  await page.click('#entryGo'); await page.clock.runFor(100); await entryGo(page);
   ok(/주간 도전 1단계/.test(await text('#s-party .topbar')) && (await page.locator('#reroll, #adReroll').count()) === 0, '주간 도전 편성: 다시 뽑기·광고 다시 뽑기 버튼 없음');
   const g0 = (await save()).player.gold, ads0 = (await save()).daily.ads.reroll;
   const departAt = await page.locator('#depart').boundingBox(), footAt = await page.locator('#s-party .f-foot2').boundingBox();

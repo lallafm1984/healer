@@ -19,9 +19,10 @@ import { TUT } from '../game/tutorial';
 import { AFFIXES } from '../data/affixes';
 import { ENDING } from '../data/story';
 import type { BattleResult, Settlement } from '../game/settle';
-import { esc, fmt, go, mmss, screen, topBar } from './kit';
+import { esc, fmt, mmss, screen, topBar } from './kit';
 import { currencyIcon, fxArt, gameIcon, gearIcon, placeArt, uiIcon, type CurrencyIconKey } from './art';
 import { enter } from './party';
+import { sortie } from './stamina';
 import { sheetDialog } from './dialog';
 import { openItemDetail } from './character';
 
@@ -287,8 +288,7 @@ function next(): void {
   const n = nextRun(r.content, r.diff);
   if (!n) return;
   Flow.content = n.content; Flow.diff = n.diff; Flow.chal = 0;
-  Flow.party = null; Flow.rerolls = 0;
-  go('s-party');
+  sortie(); // 81: 입장 확인 → 스테미너를 내고 편성으로
 }
 
 // ---------- 엔딩 글 (59 4-4 · 11 6장 햇살 축제) ----------

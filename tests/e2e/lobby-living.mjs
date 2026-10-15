@@ -1,7 +1,7 @@
 // 로비 연출 수명·입력 회귀. 가상 시간/가시성으로 검증하며 실제 기기 FPS를 측정하지 않는다.
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { pastTitle } from './nav.mjs';
+import { entryGo, pastTitle } from './nav.mjs';
 
 const village = '#s-lobby .lb-village';
 const software = /swiftshader|llvmpipe|softpipe|software|basic render/i;
@@ -117,7 +117,7 @@ export default async function lobbyLiving(url, shots) {
           const baselineRenders = baselineEnd.renders - baseline.renders;
           for (let cycle = 1; cycle <= 3; cycle++) {
             for (const tab of ['char', 'shop', 'party']) {
-              if (tab === 'party') await page.locator('#lobbyStart').tap();
+              if (tab === 'party') { await page.locator('#lobbyStart').tap(); await entryGo(page); }
               else await page.locator(`#tabs [data-tab="${tab}"]`).tap();
               await page.clock.runFor(100);
               const hidden = await sample(page); await page.clock.runFor(1000); const hiddenEnd = await sample(page);

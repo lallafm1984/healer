@@ -1,6 +1,6 @@
 // 임시 전투 화면(프로토타입 v11 UI) 확인: 편성의 단축칸 고르기·공략·카운트다운·아이템·정산·20인 판·왼손. prototype/tests/items.js에서 옮김
 import { chromium } from 'playwright';
-import { departGo, patchSave, pickedItems, toParty } from './nav.mjs';
+import { departGo, entryGo, patchSave, pickedItems, toParty } from './nav.mjs';
 
 export default async function legacyUi(url, shots) {
   const browser = await chromium.launch();
@@ -166,7 +166,7 @@ export default async function legacyUi(url, shots) {
   await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
   await page.click('#s-party .tb-back'); await page.clock.runFor(50);
   await page.click('#s-content [data-diff="보통"]'); await page.clock.runFor(50);
-  await page.click('#contentGo'); await page.clock.runFor(100);
+  await page.click('#contentGo'); await page.clock.runFor(100); await entryGo(page);
   await page.click('#guideOpen'); await page.clock.runFor(50);
   const ent = await page.textContent('#s-party .f-gsheet');
   ok(/20인/.test(ent) && /유령 성가대/.test(ent) && /노래/.test(ent), '20인 보통: 유령 성가대 공략');

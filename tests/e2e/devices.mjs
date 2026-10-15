@@ -33,7 +33,7 @@ export default async function devices(url, shots) {
     await page.screenshot({ path: `${shots}/device_battle_${width}x${height}.png` });
 
     // 편성 (5인): 파티원 4줄 전부 + 단축칸 · 출발이 첫 화면에
-    await page.click('#contentGo'); await page.clock.runFor(150);
+    await page.click('#contentGo'); await page.clock.runFor(150); await entryGo(page);
     const rows = await page.locator('#s-party .pcard').evaluateAll(els => els.map(e => e.getBoundingClientRect().bottom));
     const foot = await box('#s-party .f-foot2'), board = await box('#s-party .f-hexes');
     ok(await noOverflow('#s-party .f-pty') && await noOverflow('#s-party .topbar') && rows.length === 4 && Math.max(...rows) <= foot.top + 1, `${tag}: 편성 파티원 4줄이 다 보임 (마지막 줄 끝 ${Math.round(Math.max(...rows))} ≤ 아래 ${Math.round(foot.top)})`);

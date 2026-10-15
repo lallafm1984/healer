@@ -2,9 +2,13 @@
  * 스테미너 화면 조각 (81 2장): 위 줄 칸 · 스테미너 창 (다음 충전 시간 · 광고 충전) · 입장 확인 팝업.
  * 규칙은 game/stamina.ts. 팝업은 .admodal 위에 그리고, 닫으면 연 버튼으로 초점을 돌려준다.
  */
+import { CHAL } from '../data/challenge';
+import { contentOf } from '../data/content';
 import { STAMINA } from '../data/economy';
+import { Flow } from '../game/flow';
 import { commit, G } from '../game/state';
-import { adCharge, adsFree, spendStamina, staminaClock, staminaView } from '../game/stamina';
+import { adCharge, adsFree, spendStamina, staminaClock, staminaCost, staminaView } from '../game/stamina';
+import { TUT } from '../game/tutorial';
 import { showRewarded } from '../platform/ads';
 import { currencyIcon } from './art';
 import { esc, fmt, go } from './kit';
@@ -143,6 +147,21 @@ export function confirmEntry(o: EntryOpts): void {
     };
   };
   render();
+}
+
+/** 지금 Flow (장소 · 난이도 · 주간 도전 단계)의 입장 확인. 튜토리얼은 팝업 없이 바로 */
+export function payEntry(onGo: () => void): void {
+  if (G.save.tut < TUT.done) { onGo(); return; }
+  const c = contentOf(Flow.content), size = `${c.size(Flow.diff)}인`;
+  confirmEntry({ name: Flow.chal ? CHAL.name : c.name, sub: Flow.chal ? `주간 도전 ${Flow.chal}단계 · ${size}` : `${Flow.diff} · ${size}`, cost: staminaCost(c, Flow.chal), onGo });
+}
+
+/**
+ * 출전 (Lim 2026-10-15 「출전 버튼 다음에 팝업」): 파티원을 보기 전에 스테미너를 내고 편성으로. 파티원이 마음에 안 들어
+ * 나갔다가 다시 출전하면 다시 냄. 편성 「출발」은 낸 판이면 바로 전투 (party.ts)
+ */
+export function sortie(): void {
+  payEntry(() => { Flow.party = null; Flow.rerolls = 0; Flow.paid = G.save.tut >= TUT.done; go('s-party'); });
 }
 
 // ---------- 1초마다: 보이는 스테미너 숫자 · 시간 ----------
