@@ -1,6 +1,6 @@
 // 재화·임무·상점 (12, 13, 15, 81, 09 S18·S19·S22): 로비 임무 카드 → 임무 받기·교체·완료 상자 → 상점 골드·공훈·패스·상품 → 스테미너 입장 확인
 import { chromium } from 'playwright';
-import { pastTitle, toParty } from './nav.mjs';
+import { chooseContent, openDiff, pastTitle } from './nav.mjs';
 
 export default async function shop(url, shots) {
   const browser = await chromium.launch();
@@ -100,27 +100,38 @@ export default async function shop(url, shots) {
   ok((await save()).bought.includes('job_monk') && /보유/.test(await text('#s-shop [data-prod="job_monk"]')), '직업 구매: 수도사 보유');
   await page.screenshot({ path: `${shots}/shop_cash.png` });
 
-  // ---- 입장 확인 (81): 던전 10, 모자라면 광고 충전 ----
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.stamina = { n: 12, at: Date.now(), day: '', ads: 0 }; localStorage.setItem('healer.save', JSON.stringify(s)); });
-  await page.reload(); await page.clock.runFor(300); await pastTitle(page);
-  await toParty(page, { diff: '악몽' });
-  ok(/10/.test(await text('#depart')) && await page.getAttribute('#depart', 'aria-disabled') === null, '던전 출발 버튼: 스테미너 10');
-  await page.click('#depart'); await page.clock.runFor(50);
-  ok(await page.isVisible('.st-modal .st-entry:not(.lack)') && /입장/.test(await text('.st-modal h3')) && await page.isVisible('#s-party'), '출발 = 입장 확인 팝업 (전투 전)');
-  await page.click('.st-modal [data-st="go"]'); await page.clock.runFor(3100 + 300);
-  ok(await page.isVisible('#battle') && (await save()).stamina.n === 2, '입장 = 전투 시작 · 12 → 2');
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.stamina = { n: 2, at: Date.now(), day: '', ads: 0 }; localStorage.setItem('healer.save', JSON.stringify(s)); });
-  await page.reload(); await page.clock.runFor(300); await pastTitle(page);
-  await toParty(page, { diff: '악몽' });
-  await page.click('#depart'); await page.clock.runFor(50);
+  // ---- 입장 확인 (81): 「출전」 다음 팝업 (파티원 보기 전), 던전 10, 모자라면 광고 충전. 편성 「출발」은 바로 전투 ----
+  const toGate = async n => {
+    await page.evaluate(n => { const s = JSON.parse(localStorage.getItem('healer.save')); s.stamina = { n, at: Date.now(), day: '', ads: 0 }; localStorage.setItem('healer.save', JSON.stringify(s)); }, n);
+    await page.reload(); await page.clock.runFor(300);
+    await openDiff(page, 'rustfort', '어려움'); await pastTitle(page);
+    await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
+    await page.click('#s-content [data-ctab="dungeon"]'); await page.clock.runFor(50);
+    await chooseContent(page, 'rustfort');
+    await page.click('#s-content [data-diff="어려움"]'); await page.clock.runFor(50);
+  };
+  await toGate(12);
+  ok(/10/.test(await text('#contentGo')), '출전 버튼: 스테미너 10');
+  await page.click('#contentGo'); await page.clock.runFor(50);
+  ok(await page.isVisible('.st-modal .st-entry:not(.lack)') && /입장/.test(await text('.st-modal h3')) && await page.isVisible('#s-content') && !(await page.isVisible('#s-party')), '출전 = 입장 확인 팝업 (편성 · 파티원 전)');
+  await page.click('.st-modal [data-st="go"]'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-party') && (await save()).stamina.n === 2 && !/10/.test(await text('#depart')), '입장 = 스테미너 12 → 2 · 편성 (출발 버튼엔 비용 없음)');
+  await page.click('#depart'); await page.clock.runFor(3100 + 300);
+  ok(await page.isVisible('#battle') && !(await page.isVisible('.st-modal')) && (await save()).stamina.n === 2, '편성 출발 = 팝업 없이 바로 전투 (다시 안 냄)');
+  await toGate(2);
+  await page.click('#contentGo'); await page.clock.runFor(50);
   ok(await page.isVisible('.st-modal .st-entry.lack') && /부족/.test(await text('.st-modal h3')) && await page.locator('.st-modal [data-st="go"]').count() === 0, '모자라면 입장 대신 광고 충전 · 상점');
   await page.click('.st-modal [data-st="ad"]'); await page.clock.runFor(50);
   ok(!(await page.isVisible('.admodal [data-ad]')) && await page.isVisible('.st-modal .st-entry:not(.lack)'), '광고 제거 패키지 = 광고 없이 바로 +50 → 입장 가능');
   sv = await save();
   ok(sv.stamina.n === 52 && sv.stamina.ads === 1, '광고 충전: 2 → 52, 오늘 1번');
   await page.screenshot({ path: `${shots}/shop_entry.png` });
-  await page.click('.st-modal [data-st="go"]'); await page.clock.runFor(3100 + 300);
-  ok(await page.isVisible('#battle') && (await save()).stamina.n === 42, '입장 = 52 → 42');
+  await page.click('.st-modal [data-st="go"]'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-party') && (await save()).stamina.n === 42, '입장 = 52 → 42 · 편성');
+  await page.click('#s-party .tb-back'); await page.clock.runFor(100);
+  await page.click('#contentGo'); await page.clock.runFor(50);
+  await page.click('.st-modal [data-st="go"]'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-party') && (await save()).stamina.n === 32, '편성에서 나갔다 다시 출전 = 다시 냄 (42 → 32)');
 
   await ctx.close();
   await browser.close();

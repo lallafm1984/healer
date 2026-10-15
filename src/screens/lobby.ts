@@ -21,9 +21,10 @@ import { capOf, guildOpen } from '../game/guild';
 import { chalGate } from '../game/runmode';
 import { commit, firstDungeonNow, G, lockOf, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
-import { esc, go, screen, topBar } from './kit';
+import { esc, screen, topBar } from './kit';
 import { art } from '../art';
 import { gameIcon, uiIcon } from './art';
+import { sortie } from './stamina';
 import { gainText } from './shop';
 import { mountVillage } from './village';
 
@@ -135,10 +136,10 @@ function dest(): { content: ContentKey; diff: DiffName } {
   const rec = G.save.clears.rustfort || {};
   return { content: 'rustfort', diff: (['보통', '어려움', '악몽'] as const).find(d => !rec[d]) || '어려움' };
 }
+/** 출전: 입장 확인 → 스테미너를 내고 편성으로 (81) */
 function toParty(to: { content: ContentKey; diff: DiffName }): void {
   Flow.content = to.content; Flow.diff = to.diff; Flow.chal = 0;
-  Flow.party = null; Flow.rerolls = 0;
-  go('s-party');
+  sortie();
 }
 
 /** 원형 소켓 바로가기: 전투 스킬 칸과 같은 spell-socket 안에 그림, 아래 이름 + 짧은 상태 */

@@ -26,6 +26,7 @@ import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '.
 import { TUT } from '../game/tutorial';
 import { esc, fmt, go, previous, screen, topBar } from './kit';
 import { classEmblem, currencyAmount, currencyIcon, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
+import { sortie } from './stamina';
 
 /** 선 아이콘 (시안 Battle30 임시 선그림, 정식 그림이 오면 gameIcon이 바꿈) */
 const line = (d: string, sw = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -318,7 +319,8 @@ function cta(c: ContentDef | null, d: DiffName): string {
   const ok = !!c && c.ready && !lk!.locked;
   const sub = !c ? '준비 중' : !c.ready ? `${c.name} · 준비 중` : lk!.locked ? (lk!.need && !lockOf(c).locked ? `${c.name} · ${lk!.need}부터 깨기` : `${c.name} · Lv ${lk!.lv}에 열림`) : `${c.name} · ${d}`;
   const mk = classEmblem(heroNow(), 'md');
-  return `<button type="button" class="g-cta" id="contentGo"${ok ? '' : ' disabled'}><span class="g-mk">${mk}</span><span class="g-ct"><b>출전</b><small>${esc(sub)}</small></span>${ARROW}</button>`;
+  const cost = ok && G.save.tut >= TUT.done ? ` <span class="g-stam">${currencyAmount('stamina', staminaCost(c!))}</span>` : '';
+  return `<button type="button" class="g-cta" id="contentGo"${ok ? '' : ' disabled'}><span class="g-mk">${mk}</span><span class="g-ct"><b>출전</b><small>${esc(sub)}${cost}</small></span>${ARROW}</button>`;
 }
 
 const s = screen('s-content', '모험 선택', {
@@ -510,8 +512,7 @@ s.el.addEventListener('click', e => {
     const d = diffOf(c);
     Flow.content = c.key; Flow.diff = d; Flow.chal = 0;
     if (G.save.tut >= TUT.done) diffPick[c.key] = d;
-    // 입장 화면 없이 바로 편성 (2026-10-08): 난이도는 여기서만 고름, 공략은 편성의 시트
-    Flow.party = null; Flow.rerolls = 0;
-    go('s-party');
+    // 입장 화면 없이 바로 편성 (2026-10-08): 난이도는 여기서만 고름, 공략은 편성의 시트. 81: 입장 확인 → 스테미너를 내고 편성
+    sortie();
   }
 });

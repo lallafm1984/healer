@@ -79,7 +79,7 @@ export default async function dungeon(url, shots) {
   ok(await page.isEnabled('#depart'), '경고여도 출발 가능');
   await page.click('#s-party .tb-back'); await page.clock.runFor(50);
   await page.click('#s-content [data-diff="보통"]'); await page.clock.runFor(50);
-  await page.click('#contentGo'); await page.clock.runFor(100);
+  await page.click('#contentGo'); await page.clock.runFor(100); await entryGo(page);
 
   // ---- 편성 ----
   ok((await page.locator('#s-party .pcard').count()) === 4, '5인 파티 (나 빼고 4명)');

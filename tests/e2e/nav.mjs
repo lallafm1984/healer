@@ -64,7 +64,7 @@ export async function toParty(page, { content = 'rustfort', tab = 'dungeon', dif
     if (again && await page.isDisabled(sel) && /깨기/.test(await page.textContent(sel)) && await openDiff(page, content, diff)) return toParty(page, { content, tab, diff }, false);
     await page.click(sel); await page.clock.runFor(50);
   }
-  await page.click('#contentGo'); await page.clock.runFor(100);
+  await page.click('#contentGo'); await page.clock.runFor(100); await entryGo(page);
 }
 
 /**

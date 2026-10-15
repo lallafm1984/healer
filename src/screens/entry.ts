@@ -12,6 +12,7 @@ import { runMode } from '../game/runmode';
 import { G } from '../game/state';
 import { esc, fmt, go, mmss, screen } from './kit';
 import { currencyIcon, gameIcon } from './art';
+import { sortie } from './stamina';
 import { afxRows, flowHead, timeline } from './brief';
 
 const s = screen('s-entry', '주간 도전', { enter() { render(); } });
@@ -52,5 +53,6 @@ function render(): void {
 s.el.addEventListener('click', e => {
   const cs = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-cstep]');
   if (cs && !cs.disabled) { Flow.chal += Number(cs.dataset.cstep); render(); return; }
-  if ((e.target as HTMLElement).closest('#entryGo')) { Flow.party = null; Flow.rerolls = 0; go('s-party'); }
+  // 81: 편성 (파티원 보기) 전에 입장 확인 → 스테미너
+  if ((e.target as HTMLElement).closest('#entryGo')) sortie();
 });

@@ -80,3 +80,9 @@
 /* ---------- 직업 목록: 상점에서 파는 직업 ---------- */
 #s-char .c7-job-row.buy .c7-job-state { color: #f3c96f; }
 #s-char .c7-job-row.buy .c7-job-state > .ui-icon { color: #f3c96f; }
+
+/* ---------- 모험 선택 「출전」: 비용 (81, 출전 다음에 입장 팝업) ---------- */
+#s-content .g-ct small .g-stam { display: inline-flex; vertical-align: -2px; }
+#s-content .g-ct small .g-stam .currency-amount { display: inline-flex; align-items: center; gap: 2px; }
+#s-content .g-ct small .g-stam :is(.currency-icon, .currency-icon > .g-ic, .currency-icon > svg) { width: 1.2em; height: 1.2em; }
+#s-content .g-ct small .g-stam b { font: inherit; font-size: 1em; font-weight: 800; line-height: 1; color: #e9ffd0; }

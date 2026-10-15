@@ -1,6 +1,6 @@
 // 세로 UI 회귀: 그림 로드 (캐릭터 그림 없음, 장소·메뉴 그림은 28), 고정 출발 버튼, 좁은 메뉴, 20인/특성/전멸 배치.
 import { chromium } from 'playwright';
-import { chooseContent, departGo, pastTitle, rowContentKeys, toParty } from './nav.mjs';
+import { chooseContent, departGo, entryGo, pastTitle, rowContentKeys, toParty } from './nav.mjs';
 import { equipmentLayout } from './character.mjs';
 
 export default async function portrait(url, shots) {
@@ -210,7 +210,7 @@ export default async function portrait(url, shots) {
     ok(go.y + go.height <= tb.y + 1 && go.height >= 44, `${width}: 출전 버튼 항상 탭 위, 44px 이상`);
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_content_${width}.png` });
     // 출전 = 바로 편성 (입장 화면 합침): 가로 넘침 없음, 공략·단축칸·출발 44px 이상, 파티원 4줄이 첫 화면에서 시작
-    await page.click('#contentGo'); await page.clock.runFor(100);
+    await page.click('#contentGo'); await page.clock.runFor(100); await entryGo(page);
     const pty = await page.evaluate(() => {
       const r = el => el.getBoundingClientRect();
       const foot = r(document.querySelector('#s-party .f-foot2')), rows = [...document.querySelectorAll('#s-party .pcard')].map(r);

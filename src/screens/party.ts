@@ -2,7 +2,7 @@
  * S05 편성 (27 3-3, 시안 Party27). 2026-10-08 입장 화면(S04)을 여기로 합침: 전투 탭 「출전」 → 편성 → 출발.
  * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스 · 아이템 힌트), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭 (길드를 빼 두면 없음),
  * 권장 레벨 안내 (미달일 때만), 시작 위치 육각 미리보기 (직업 아이콘), 파티원 줄 (누르면 상세 시트).
- * 아래 고정: 위치가 저장되는 단축칸 4개 · 출발 (81: 누르면 입장 확인 팝업, 「입장」 때 스테미너를 씀).
+ * 아래 고정: 위치가 저장되는 단축칸 4개 · 출발 (81: 스테미너는 「출전」 팝업에서 이미 냄 → 바로 전투. 안 낸 판이면 출발 때 팝업).
  */
 import { CLASSES } from '../data/classes';
 import { contentOf, isRaid } from '../data/content';
@@ -26,7 +26,7 @@ import { TUT } from '../game/tutorial';
 import { classIcon, memDetailHtml, memRowHtml, ROLE_ICON } from './members';
 import { battle, esc, go, ROLE, screen, useIcon } from './kit';
 import { classEmblem, currencyAmount, LOCK, uiIcon } from './art';
-import { confirmEntry } from './stamina';
+import { payEntry } from './stamina';
 import { afxRows, afxTags, ARROW, BOOK, flowHead, guides, recommendedLevel, segTabs } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
@@ -213,8 +213,8 @@ function render(keepScroll = true): void {
   const isGuild = Flow.mode === 'guild' && guildReady();
   const m = modeNow(), stage = m.stage;
   const tutDone = G.save.tut >= TUT.done;
-  // 81: 출발 → 입장 확인 팝업에서 스테미너 (튜토리얼은 안 씀)
-  const cost = tutDone ? staminaCost(c, Flow.chal) : 0;
+  // 81: 스테미너는 「출전」에서 냄. 안 낸 판 (다른 길로 온 편성)만 출발 버튼에 비용 · 팝업
+  const cost = tutDone && !Flow.paid ? staminaCost(c, Flow.chal) : 0;
   const sub = Flow.chal ? `주간 도전 ${Flow.chal}단계` : `${Flow.diff}${m.affixes.length ? ` <span class="f-afxs">${afxTags(m.affixes)}</span>` : ''}`;
   const mark = Flow.chal ? `<span class="f-hg sm">${uiIcon('hourglass')}</span>` : markHtml(c, 'sm');
   const guideBtn = `<button class="f-gbtn" type="button" id="guideOpen" aria-haspopup="dialog">${BOOK}<span>공략</span></button>`;
@@ -277,7 +277,7 @@ s.el.addEventListener('click', e => {
     msg = setItemSlot(openSlot, it.dataset.item as ItemKey);
     render(); return;
   }
-  if (t.closest('#depart')) enter();
+  if (t.closest('#depart')) { if (Flow.paid || G.save.tut < TUT.done) depart(); else enter(); }
 });
 
 // 줄을 키보드로: Enter·Space = 누르기, Esc = 시트 닫기
@@ -295,20 +295,16 @@ s.el.addEventListener('keydown', e => {
 });
 
 /**
- * 입장 (81 2-3): 튜토리얼 뒤엔 확인 팝업 → 「입장」 때 스테미너를 쓰고 출발. 모자라면 팝업이 광고 충전 · 상점을 보여 줌.
- * 결과 화면 「다시 도전」 · 주간 도전 다음 단계도 이 길로
+ * 같은 파티로 바로 입장 (81 2-3): 확인 팝업 → 「입장」 때 스테미너를 쓰고 출발. 모자라면 팝업이 광고 충전 · 상점을 보여 줌.
+ * 결과 화면 「다시 도전」 · 주간 도전 다음 단계, 안 낸 편성의 「출발」
  */
-export function enter(): void {
-  const c = contentOf(Flow.content);
-  if (G.save.tut < TUT.done) { depart(); return; }
-  const sub = Flow.chal ? `주간 도전 ${Flow.chal}단계 · ${c.size(Flow.diff)}인` : `${Flow.diff} · ${c.size(Flow.diff)}인`;
-  confirmEntry({ name: Flow.chal ? CHAL.name : c.name, sub, cost: staminaCost(c, Flow.chal), onGo: () => { depart(); } });
-}
+export function enter(): void { payEntry(() => { depart(); }); }
 
-/** 출발 (스테미너는 enter의 팝업에서 이미 씀). 튜토리얼 탐험은 바로 이걸 부름 */
+/** 출발 (스테미너는 출전 · enter의 팝업에서 이미 냄). 튜토리얼 탐험은 바로 이걸 부름 */
 export function depart(): string {
   const c = contentOf(Flow.content);
   const tutDone = G.save.tut >= TUT.done;
+  Flow.paid = false;
   if (Flow.mode === 'guild' && guildReady()) { G.save.guild.pick = Flow.gpick.slice(); commit(); }
   const coach = Flow.coach;
   Flow.coach = null;
