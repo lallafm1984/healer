@@ -15,6 +15,12 @@ import { SKILLS } from '../data/skills';
 import { NAMED, SPECS, type SpecGroup } from '../data/specials';
 import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
 import type { TotemKind } from '../engine/types';
+import type { HeroKey } from '../data/heroes';
+import { absorbLeft, HEALER_SHIELD } from '../engine/abilities';
+import { asleep } from '../engine/astro';
+import { chargePerfect } from '../engine/healer';
+import { raining } from '../engine/shaman';
+import { sealed } from '../engine/warder';
 import { emblemColor } from '../screens/art';
 import { CLASS_GLYPH, CUT, EDGE, LINE } from '../screens/class-icons';
 import { FACTIONS, type FactionKey } from '../data/places';
@@ -827,6 +833,7 @@ export function resetBoardFx(): void {
   telsSeen = []; telsDone.clear();
   darkAt = null;
   if (B.F) for (const a of bossFxArts(B.F.enc.script)) artTexture(a); // 묶음 H 이펙트 (63 E): 첫 번째부터 보이게
+  if (B.F) for (const a of HERO_BOARD_ART[B.F.hero] ?? []) artTexture(a); // 힐러 직업 4종 판 위 그림 (80 5장)
   // 보스 판 전체 공격 PXF (256px 띠, 하나에 4–6MB): 이 전투에서 나올 수 있는 것만 읽어 두고 다른 전투 것은 내려 놓음
   const want = new Set((B.F ? bossPxfOf(B.F.enc) : []).map(pxfSheet));
   for (const k of Object.values(BOSS_PXF)) {
@@ -1125,6 +1132,44 @@ const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string 
   citadel: { color: 0xe6d3a0, art: 'board-citadel', label: '성채' },
   nova: { color: 0xd19a5e, art: 'board-supernova', label: '별' },
 };
+/** 힐러 직업 4종 판 위 그림 (80 5장): 전투 시작 때 그 직업 것만 미리 읽음 (첫 토템 · 인장부터 보이게) */
+const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
+  shaman: ['board-totem-spring', 'board-totem-earth', 'board-totem-rain', 'board-sea-spring'],
+  monk: ['board-mist', 'board-mist-pool'],
+  astrologer: ['board-star', 'board-star-mark', 'board-star-sleep', 'board-supernova'],
+  warder: ['board-seal', 'board-barrier', 'board-citadel'],
+};
+/**
+ * 칸 위에 얹는 그림의 그려진 부분 (192px 그림 중 폭 · 높이 비율, 80 5장 납품본을 잼). 판 가장자리에서 크기를 줄일 때 씀 (비율은 그대로)
+ */
+const HERO_ART_BOX: Record<string, [number, number]> = {
+  'board-totem-rain': [0.75, 0.92], 'board-mist': [0.98, 0.49], 'board-seal': [0.85, 0.96], 'board-barrier': [0.74, 0.84],
+  'board-star-mark': [0.86, 0.66], 'board-star': [0.8, 0.96], 'board-star-sleep': [0.74, 0.98],
+};
+/** 점성술사 모으는 별 (80 5장 board-star): 별 n개 자리 (칸 반지름 배, 대상 칸 가운데 기준). 차례로 선을 이음 */
+const CHARGE_STARS: [number, number][][] = [
+  [],
+  [[0, -0.1]],
+  [[-0.36, 0.12], [0.36, -0.22]],
+  [[-0.5, 0.15], [0, -0.32], [0.5, 0.12]],
+  [[-0.56, 0.2], [-0.2, -0.3], [0.2, 0.08], [0.56, -0.3]],
+  [[-0.6, 0.16], [-0.3, -0.32], [0, 0.12], [0.3, -0.32], [0.6, 0.16]],
+];
+/**
+ * 힐러 직업 4종 그림 하나 (80 5장): 가운데 (x, y) · 한 변 size. 판 밖으로 나갈 것 같으면 비율 그대로 줄임. 그렸으면 true
+ * 그림이 아직 안 읽혔으면 안 그림 (다음 프레임에 그림)
+ */
+function heroArt(pool: SpritePool, name: string, key: string, x: number, y: number, size: number, alpha = 1, shadow = false): boolean {
+  const tex = artTexture(name);
+  if (!tex) return false;
+  const [bw, bh] = HERO_ART_BOX[name] ?? [1, 1];
+  const fit = Math.min(size, (2 * (x - L.left)) / bw, (2 * (L.right - x)) / bw, (2 * (y - L.top)) / bh, (2 * (L.bottom - y)) / bh);
+  if (fit <= 0) return false;
+  if (shadow) pool.put(tex, x, y + Math.max(1, fit * 0.04), fit * 1.12, fit * 1.12, alpha * 0.6, 0x000000); // 작은 금빛 표시: 밝은 칸 (딜러 칸)에서도 읽히게 검은 그림자
+  pool.put(tex, x, y, fit, fit, alpha);
+  recordBound(key, 'hero-art', 'rect', x, y, fit * bw, fit * bh, { requestedDiameter: size, diameter: fit });
+  return true;
+}
 
 function predictedHeal(u: Unit): number {
   const F = B.F!;
@@ -1463,6 +1508,14 @@ export function render(now: number): void {
       const d = hold.d, melt = d.absorb ? Math.max(0, Math.min(1, (d.absorbLeft ?? 0) / Math.max(1, d.absorb * F.dmgMult))) : 1, k = d.swell ? Math.min(1.95, 1.35 + 0.15 * (d.stack ?? 1)) : 1.9;
       fxArt.put(hold.tex, x, y, r * k, r * k, (0.45 + 0.55 * melt) * (d.left < 2 ? 0.6 + 0.4 * pulse : 1));
     }
+    // 힐러 직업 4종 (80 5장): 떠도는 안개 = 발밑 옅은 안개 고리 · 결계사 보호막 = 칸을 감싼 금빛 막 (끝나기 2초 전 깜빡임) · 별의 잠 = 칸을 덮는 별빛 고치
+    const mist = u.hots.find(h => h.key === 'wanderMist' && h.left > 0);
+    if (mist) heroArt(fxArt, 'board-mist', `hero-mist${u.id}`, x, y + r * 0.55, r * 1.5, mist.left < 2 ? 0.35 + 0.35 * pulse : 0.7);
+    if (F.hero === 'warder' && absorbLeft(F, u) > 0) {
+      const left = Math.max(0, ...u.mods.filter(m => m.k === 'absorb' && m.src === HEALER_SHIELD).map(m => m.until - F.t));
+      heroArt(fxArt, 'board-barrier', `hero-barrier${u.id}`, x, y, r * 2.45, left < 2 ? 0.4 + 0.45 * pulse : 0.85);
+    }
+    if (asleep(F, u)) heroArt(fxArt, 'board-star-sleep', `hero-sleep${u.id}`, x, y, r * 2.1, u.sleep! - F.t < 1 ? 0.5 + 0.4 * pulse : 0.9);
     // 어둠물에 잠긴 사람: 칸 아래 40%가 물에 잠김 (물 높이가 출렁) · 받는 치유 −50%
     if (tideSet.has(u.cell)) {
       const wy = bot - 2 * r * 0.4 + (S.reducedEffects ? 0 : Math.sin(t * 3 + u.id) * s * 0.03), th = Math.max(1.5, s * 0.035);
@@ -1501,6 +1554,28 @@ export function render(now: number): void {
       else for (const [dx, dy, k] of [[-0.5, 0.88, 0.3], [0, 0.8, 0.38], [0.5, 0.88, 0.3]]) unitsG.circle(x + dx * r, y + dy * r, r * k).fill({ color: 0xf6fbff, alpha: 0.92 });
     }
     over.push({ u, x, y, deb: undefined });
+  }
+
+  // 점성술사 모으는 별 (80 5장 board-star): 모으는 동안 대상 칸 위에 별 n개를 놓고 차례로 금빛 선으로 이음. 새로 붙은 별이 반짝, 완벽 구간이면 모두 밝게
+  const ch = F.charge;
+  if (ch && ch.stars > 0) {
+    const cu = ch.uid == null ? undefined : F.party.find(v => v.id === ch.uid && v.alive);
+    const c0 = cu ? unitPos(cu) : center(ch.cell), pts = CHARGE_STARS[Math.min(ch.stars, CHARGE_STARS.length - 1)];
+    const perfect = chargePerfect(F), w = Math.max(1.5, s * 0.045);
+    const at = pts.map(([dx, dy]) => fitCenter(c0.x + dx * r, c0.y + (dy - 0.12) * r, r * 0.2)); // 이름 줄보다 조금 위
+    if (at.length > 1) {
+      for (const [width, color, alpha] of [[w + 2, C.line, 0.55], [w, C.gold, perfect ? 1 : 0.85]] as const) {
+        fxG.moveTo(at[0].x, at[0].y);
+        for (const p of at.slice(1)) fxG.lineTo(p.x, p.y);
+        fxG.stroke({ width, color, alpha, cap: 'round', join: 'round' });
+      }
+    }
+    at.forEach((p, i) => heroArt(fxArt, 'board-star', `hero-star${i}`, p.x, p.y, r * (i === at.length - 1 && !perfect ? 0.54 + 0.08 * pulse : 0.54), perfect ? 0.8 + 0.2 * pulse : 1, true));
+  }
+  // 주술사 비구름 토템 (80 5장 board-totem-rain): 비가 오는 동안 판 오른쪽 위 하늘에 떠서 천천히 흔들림
+  if (raining(F)) {
+    const size = Math.max(30, r * 1.5), bob = S.reducedEffects ? 0 : Math.sin(t * 1.6) * r * 0.05;
+    heroArt(fxArt, 'board-totem-rain', 'hero-rain', L.right - size * 0.4, L.top + size * 0.48 + bob, size, F.sham!.rainUntil - F.t < 2 ? 0.45 + 0.4 * pulse : 0.9);
   }
 
   // 밀가루 구름 (63 E 11): 체력 숫자가 숨은 동안 판 전체 (가장자리가 짙은 그림). 처음 1.2초는 짙게 덮었다가 옅어짐
@@ -1761,6 +1836,9 @@ export function render(now: number): void {
         recordBound(key, 'hot', 'circle', hx, hy, hr * 2 + 1.5, hr * 2 + 1.5);
       });
     }
+    // 결계사 인장 · 점성술사 별자리 표식 (80 5장): 칸 왼쪽 위에 작게 (지속 치유 시간 원의 반대편). 이름 · 체력 · 직업 아이콘은 그 자리 그대로, 글자 · 배지가 위에 그려짐
+    const sign = F.hero === 'warder' && sealed(F, u) ? 'board-seal' : F.hero === 'astrologer' && u.hots.some(h => h.key === 'starMark' && h.left > 0) ? 'board-star-mark' : '';
+    if (sign) heroArt(marks, sign, `hero-sign${u.id}`, x - r * 0.56, y - r * 0.44, r * (compact ? 0.46 : sign === 'board-seal' ? 0.52 : 0.66), sign === 'board-seal' && u.seal! - F.t < 2 ? 0.5 + 0.5 * pulse : 1, true);
     // 보스가 때리는 사람: 테두리 대신 칸 위 조준 표식 (테두리는 디버프 몫). 작은 칸은 디버프 이름표 왼쪽, 보통 칸은 윗줄 배지 위 꼭짓점
     const aimR = Math.max(7, s * 0.2), aimW = Math.max(1.5, aimR * 0.22);
     /** 보통 칸 배지 위 꼭짓점 줄 (조준 표식 · 차례 번호표) */
