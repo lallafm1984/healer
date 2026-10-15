@@ -77,7 +77,7 @@ export const PXF = {
   'druid-bark': skill(24, 92),
   'druid-quietwood': skill(24, 72),
   'druid-rebirth': skill(24, 98),
-  'paladin-holy-light': skill(22, 94),
+  'paladin-holy-light': skill(16, 80), // 기본 힐이라 가볍게 (Lim 2026-10-16 「너무 과하다」)
   'paladin-oath': skill(24, 90),
   'paladin-light-wave': skill(18, 88),
   'paladin-cleanse': skill(18, 92),

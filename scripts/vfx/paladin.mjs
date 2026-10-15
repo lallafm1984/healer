@@ -25,32 +25,30 @@ function link(g, x, y, s, face, a, col = AU) {
 }
 
 export default {
-  /** 빛의 손길: 위 한 점에서 아래로 넓어지는 따뜻한 금빛 원뿔 빛 (세로 빛살 결) + 천천히 내려앉는 금빛 먼지, 끝에 위에서부터 걷힘 */
+  /** 빛의 손길 (기본 힐, 자주 씀 → 가볍게, Lim 2026-10-16 「너무 과하다. 기본힐인데 그에 맞게」): 칸 위쪽 한 점에서 아래로 좁게 내려오는 금빛 원뿔 빛 + 빛살 셋 + 금빛 먼지 몇 개, 위에서부터 빨리 걷힘 */
   'paladin-holy-light': {
-    frames: 22, logical: 94, scope: 'target',
+    frames: 16, logical: 80, scope: 'target',
     draw(g, { t }) {
-      const top = -1.4, bot = 0.62, open = lerp(0.45, 1, E.out3(seg(t, 0, 0.2))), lift = E.in2(seg(t, 0.55, 1)), fade = 1 - E.in2(seg(t, 0.7, 1));
-      const y0 = lerp(top, bot, lift), w = 0.95 * open;
+      const top = -0.95, bot = 0.55, open = lerp(0.55, 1, E.out3(seg(t, 0, 0.18))), lift = E.in2(seg(t, 0.4, 1)), fade = 1 - E.in2(seg(t, 0.55, 1));
+      const y0 = lerp(top, bot, lift), w = 0.5 * open;
       if (y0 < bot - 0.05) {
-        const wAt = y => lerp(0.06, w, (y - top) / (bot - top));
-        g.save(); g.globalAlpha = fade;
-        bloom(g, gg => { gg.beginPath(); gg.moveTo(-wAt(y0), y0); gg.lineTo(wAt(y0), y0); gg.lineTo(w * 1.15, bot); gg.lineTo(-w * 1.15, bot); gg.closePath(); }, AU.glow, 0.4, 10);
-        const gr = g.createLinearGradient(0, top, 0, bot); gr.addColorStop(0, C(AU.core, 0.85)); gr.addColorStop(0.5, C(AU.light, 0.32)); gr.addColorStop(1, C(AU.body, 0.1));
+        const wAt = y => lerp(0.04, w, (y - top) / (bot - top));
+        g.save(); g.globalAlpha = fade * 0.85;
+        bloom(g, gg => { gg.beginPath(); gg.moveTo(-wAt(y0), y0); gg.lineTo(wAt(y0), y0); gg.lineTo(w, bot); gg.lineTo(-w, bot); gg.closePath(); }, AU.glow, 0.25, 7);
+        const gr = g.createLinearGradient(0, top, 0, bot); gr.addColorStop(0, C(AU.core, 0.6)); gr.addColorStop(0.55, C(AU.light, 0.18)); gr.addColorStop(1, C(AU.body, 0.04));
         g.globalCompositeOperation = 'lighter'; g.fillStyle = gr;
         g.beginPath(); g.moveTo(-wAt(y0), y0); g.lineTo(wAt(y0), y0); g.lineTo(w, bot); g.lineTo(-w, bot); g.closePath(); g.fill();
-        // 세로 빛살 결
-        for (let i = -2; i <= 2; i++) {
-          const k = i / 2.6, sh = 0.5 + 0.5 * Math.sin(t * 14 + i * 2);
-          lightStroke(g, s => ({ x: lerp(k * wAt(y0) * 0.9, k * w * 0.95, s), y: lerp(y0, bot, s) }), 0, 1, u => 0.05 * Math.sin(Math.PI * u), { rim: AU.deep, body: AU.light, core: '#ffffff', a: 0.55 + 0.35 * sh, rimW: 0.0, coreW: 0.5 });
+        for (let i = -1; i <= 1; i++) {
+          const k = i / 1.8, sh = 0.5 + 0.5 * Math.sin(t * 16 + i * 2);
+          lightStroke(g, s2 => ({ x: lerp(k * wAt(y0) * 0.9, k * w * 0.9, s2), y: lerp(y0, bot, s2) }), 0, 1, u => 0.035 * Math.sin(Math.PI * u), { rim: AU.deep, body: AU.light, core: '#ffffff', a: 0.5 + 0.3 * sh, rimW: 0, coreW: 0.5 });
         }
         g.restore();
-        // 테 (원뿔 양 옆 가장자리)
-        for (const sgn of [-1, 1]) lightStroke(g, s => ({ x: sgn * lerp(wAt(y0), w, s), y: lerp(y0, bot, s) }), 0, 1, u => 0.035 * Math.sin(Math.PI * u) ** 0.5, { rim: AU.rim, body: AU.body, core: AU.core, a: fade * 0.9, rimW: 0.012 });
+        for (const sgn of [-1, 1]) lightStroke(g, s2 => ({ x: sgn * lerp(wAt(y0), w, s2), y: lerp(y0, bot, s2) }), 0, 1, u => 0.022 * Math.sin(Math.PI * u) ** 0.5, { rim: AU.rim, body: AU.body, core: AU.core, a: fade * 0.75, rimW: 0.008 });
       }
-      glowOval(g, 0, bot, 1.0, 0.3, AU.glow, 0.8 * open * fade);
-      glowOval(g, 0, bot, 0.5, 0.35, '#ffffff', 0.7 * (1 - E.out2(seg(t, 0, 0.4))));
-      glint(g, 0, top + 0.05, 0.4 * (1 - lift) * open, AU.amber, fade, 0, 0.13);
-      particles(g, t, 6, 20, r => ({ t0: r() * 0.55, life: 0.45, x: (r() - 0.5) * 1.3, y: -0.6 + r() * 0.6, sz: 0.016 + r() * 0.016 }), (gg, p, age) => speck(gg, p.x * (0.5 + 0.5 * (p.y + 0.6)), p.y + 0.55 * age, p.sz, AU.body, (1 - age) * fade));
+      glowOval(g, 0, bot, 0.55, 0.3, AU.glow, 0.6 * open * fade);
+      glowOval(g, 0, bot, 0.3, 0.35, '#ffffff', 0.55 * (1 - E.out2(seg(t, 0, 0.35))));
+      glint(g, 0, top + 0.03, 0.22 * (1 - lift) * open, AU.amber, fade, 0, 0.14);
+      particles(g, t, 6, 8, r => ({ t0: r() * 0.4, life: 0.45, x: (r() - 0.5) * 0.7, y: -0.4 + r() * 0.5, sz: 0.014 + r() * 0.012 }), (gg, p, age) => speck(gg, p.x, p.y + 0.4 * age, p.sz, AU.body, (1 - age) * fade));
     },
   },
 
