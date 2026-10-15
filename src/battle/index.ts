@@ -130,15 +130,13 @@ function layoutBattle(): void {
   $('stage').style.minHeight = '';
   // 아래 조작판: 시안 390×844에서 230. 휠 = 조작판 높이 - 14 (시안 216), 폭의 56.5% (시안 220)
   const auxCount = Object.keys(F.tx.act).length;
-  // 아이템을 한 줄로 줄인 공간을 자원 패널에 배분한다 (특성 44 · 아이템 44 · 간격 8 · 위아래 여백 36)을 확보한다.
+  // 아이템을 한 줄로 줄인 공간을 자원 패널에 배분한다 (특성 44 · 아이템 44 · 간격 8 · 위아래 여백 28)을 확보한다.
   const controls = $('controls');
-  controls.classList.toggle('compact-controls', S.compactSkills);
-  $('battle').classList.toggle('compact-panel', S.compactSkills);
+  controls.classList.add('compact-controls');
+  $('battle').classList.add('compact-panel');
   controls.classList.toggle('paladin', F.hero === 'paladin');
   controls.classList.toggle('wheel-left', S.hand === 'left');
   const ch = Math.round(Math.min(auxCount ? 268 : 236, Math.max(auxCount ? 268 : 206, H * 0.297)));
-  layoutState = `${S.compactSkills}`;
-  ($('pauseCompact') as HTMLInputElement).checked = S.compactSkills;
   $('wheel').setAttribute('aria-label', '치유 스킬 휠');
   controls.style.setProperty('--controls-scale', '1');
   $('controls').style.height = ch + 'px';
@@ -159,47 +157,41 @@ function layoutBattle(): void {
     $('core').setAttribute('aria-label', `마나 · ${SKILLS[k].name}`);
   }
   scaleControls();
+  // 휠을 다시 만든 직후에도 장전·비활성 상태와 접근성 표시를 유지한다.
+  updateWheel();
   fitBossTitle();
   placeGiveUp();
   resizeBoard();
 }
-/** 같은 조작판을 90%부터 축소하되, 44px 터치 영역 사이에 1px 여유가 남게 배율을 올린다. */
+/** 작은 패널의 버튼은 90%부터 축소하고 가로 공간은 끝까지 쓴다. 터치 44px과 간격 1px을 보장한다. */
 function scaleControls(): void {
-  const controls = $('controls'), frame = $('controlsFrame'), base = controls.getBoundingClientRect();
-  const targets = Array.from(controls.querySelectorAll<HTMLElement>('button, #core[role="button"]'))
+  const controls = $('controls'), frame = $('controlsFrame');
+  let scale = 0.9;
+  const measure = () => Array.from(controls.querySelectorAll<HTMLElement>('button, #core[role="button"]'))
     .map(el => ({ el, rect: el.getBoundingClientRect() }))
     .filter(({ el, rect }) => rect.width > 0 && rect.height > 0 && !el.closest('[hidden]') && getComputedStyle(el).visibility !== 'hidden');
-  const boxes = (scale: number) => targets.map(({ rect }) => ({
-    x: (rect.left + rect.width / 2 - base.left) * scale, y: (rect.top + rect.height / 2 - base.top) * scale,
-    w: Math.max(44, rect.width * scale), h: Math.max(44, rect.height * scale),
-  }));
-  const overlap = (scale: number, gap = 0) => {
-    const bounds = boxes(scale);
-    return bounds.some((a, i) => bounds.slice(i + 1).some(b => Math.abs(a.x - b.x) < (a.w + b.w) / 2 + gap - 0.01 && Math.abs(a.y - b.y) < (a.h + b.h) / 2 + gap - 0.01));
-  };
-  let scale = S.compactSkills ? 0.9 : 1;
-  // 서브픽셀 경계에서 뒤쪽 형제의 투명 영역이 먼저 잡히지 않도록 간격을 둔다.
-  while (scale < 1 && overlap(scale, 1)) scale = Math.min(1, +(scale + 0.005).toFixed(3));
-  controls.style.setProperty('--controls-scale', String(scale));
-  controls.style.setProperty('--touch-min', `${44 / scale}px`);
-  frame.style.height = `${base.height * scale}px`;
-  const visualMin = targets.length ? Math.min(...targets.flatMap(({ rect }) => [rect.width * scale, rect.height * scale])) : 0;
+  const overlap = (targets: ReturnType<typeof measure>, gap = 0) => targets.some(({ rect: a }, i) =>
+    targets.slice(i + 1).some(({ rect: b }) =>
+      Math.abs(a.left + a.width / 2 - b.left - b.width / 2) < (Math.max(44, a.width) + Math.max(44, b.width)) / 2 + gap - .01
+      && Math.abs(a.top + a.height / 2 - b.top - b.height / 2) < (Math.max(44, a.height) + Math.max(44, b.height)) / 2 + gap - .01));
+  let targets: ReturnType<typeof measure>;
+  do {
+    controls.style.setProperty('--controls-scale', String(scale));
+    controls.style.setProperty('--touch-min', `${44 / scale}px`);
+    controls.style.width = `${frame.clientWidth / scale}px`;
+    targets = measure();
+    if (!overlap(targets, 1) || scale >= 1) break;
+    scale = Math.min(1, +(scale + .005).toFixed(3));
+  } while (true);
+  frame.style.height = `${controls.offsetHeight * scale}px`;
+  const visualMin = targets.length ? Math.min(...targets.flatMap(({ rect }) => [rect.width, rect.height])) : 0;
   for (const { el, rect } of targets) {
-    el.dataset.hitWidth = String(S.compactSkills ? Math.max(44, rect.width * scale) : rect.width);
-    el.dataset.hitHeight = String(S.compactSkills ? Math.max(44, rect.height * scale) : rect.height);
+    el.dataset.hitWidth = String(Math.max(44, rect.width));
+    el.dataset.hitHeight = String(Math.max(44, rect.height));
   }
-  Object.assign(controls.dataset, { uiScale: String(scale), baseControlHeight: String(base.height), visualTouchMin: visualMin.toFixed(3),
-    effectiveTouchMin: (S.compactSkills ? Math.max(44, visualMin) : visualMin).toFixed(3), hitAreasOverlap: String(overlap(scale)) });
+  Object.assign(controls.dataset, { uiScale: String(scale), baseControlHeight: String(controls.offsetHeight), visualTouchMin: visualMin.toFixed(3),
+    effectiveTouchMin: Math.max(44, visualMin).toFixed(3), hitAreasOverlap: String(overlap(targets)) });
 }
-let layoutState = '';
-function setCompact(value: boolean): void {
-  endSlot(true); endItem(true); endAux(true); endPointer(true); closeTip();
-  S.compactSkills = value; S.onSetting?.('compactSkills', value);
-  if (B.F && !$('battle').hidden) {
-    layoutBattle(); updateWheel();
-  }
-}
-$('pauseCompact').addEventListener('change', e => setCompact((e.target as HTMLInputElement).checked));
 /** 10 · 20인 판 (5인 던전 판보다 칸이 많음) */
 const raidBoard = (F: Fight) => F.cells.length > BOARDS.b10.flat().length;
 /** 레이드 판을 5인 던전 모양으로 (설정 · 일시정지, 2026-10-11 Lim 비교용). 판 그리기는 board.ts resizeBoard */
@@ -642,7 +634,6 @@ function setPause(v: boolean): void {
   $('pauseGuide').innerHTML = guideHtml(g, F);
   $('pauseGuide').scrollTop = 0;
   ($('pauseAuto') as HTMLInputElement).checked = S.auto;
-  ($('pauseCompact') as HTMLInputElement).checked = S.compactSkills;
   ($('pauseFive') as HTMLInputElement).checked = S.raidFiveLook;
   $('pauseFiveWrap').hidden = !raidBoard(F);
   $('resumeBtn').focus({ preventScroll: true });
@@ -860,7 +851,6 @@ function frame(now: number): void {
     }
     handleEvents(now);
     updateStage(now); updateWheel(); updateItems(); updateAux(); updateCastbar(); updatePreview(now);
-    if (layoutState !== `${S.compactSkills}`) layoutBattle();
     render(now);
     if (F.over && !B.overShown) { B.overShown = true; endSegment(); }
   }
@@ -911,13 +901,14 @@ function frame(now: number): void {
     S.tapKey = s.tapKey && TAP_KEYS[s.tapKey] ? s.tapKey : 'heal';
     if (s.hero && HERO_KEYS.includes(s.hero as HeroKey)) S.hero = s.hero as HeroKey;
     S.zoom = s.zoom !== false; S.auto = !!s.auto;
-    S.compactSkills = !!s.compactSkills;
+    S.compactSkills = true;
     S.reducedEffects = !!s.reducedEffects || matchMedia('(prefers-reduced-motion: reduce)').matches;
     $('battle').classList.toggle('reduced-effects', S.reducedEffects);
     setFiveLook(!!s.raidFiveLook);
     if (S.auto && S.run) S.run.auto = true;
     S.layout = validLayout(s.layout) ? { ...s.layout } : { ...DEFAULT_LAYOUT };
     applyLayout();
+    if (B.F && !$('battle').hidden) layoutBattle();
   },
   /** 전투 전 공략 (단계 레벨을 주면 그 레벨 숫자로) */
   guide: (encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: number) => guideHtml(guideModel(encKey, diff, stageLv, heroLv), null),

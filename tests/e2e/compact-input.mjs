@@ -41,22 +41,13 @@ async function installFixture(page) {
         manaFails: f.stats.manaFails, hot: f.party.map(u => u.hot), shields: f.party.map(u => u.shield),
         zenith: { ...f.tx.act.zenith }, talentUses: f.events.filter(e => e.type === 'msg' && e.text.startsWith('기도의 정점:')).length };
     };
-    const toggleMode = () => {
-      const pause = document.querySelector('#pause'), controls = document.querySelector('#controls');
-      const paused = !pause.hidden, compact = controls.classList.contains('compact-controls');
-      if (!paused) document.querySelector('#pauseBtn').click();
-      if (pause.hidden) throw new Error('입력 fixture: 일시정지 설정이 열리지 않음');
-      const setting = document.querySelector('#pauseCompact');
-      setting.click();
-      if (setting.checked !== !compact || controls.classList.contains('compact-controls') !== !compact) {
-        throw new Error('입력 fixture: 일시정지 설정으로 스킬 패널 크기가 전환되지 않음');
-      }
-      if (!paused) document.querySelector('#resumeBtn').click();
-      if (!pause.hidden !== paused) throw new Error('입력 fixture: 크기 전환 후 원래 일시정지 상태가 복구되지 않음');
+    const reflowPanel = () => {
+      window.dispatchEvent(new Event('resize'));
+      if (!document.querySelector('#controls').classList.contains('compact-controls')) throw new Error('Fixed compact panel lost');
     };
     const reset = () => {
       // 전환은 진행 중 포인터/팁만 취소한다. 장전된 대상 선택은 UI의 재탭 경로로 해제한다.
-      toggleMode(); toggleMode();
+      reflowPanel(); reflowPanel();
       for (const el of document.querySelectorAll('#wheel [aria-pressed="true"], #items .armed, #aux .armed')) el.click();
       const f = window.__proto.F;
       f.level = 100; f.cast = null; f.queued = null; f.gcd = 0; f.channel = 0; f.mana = 80;
@@ -67,25 +58,16 @@ async function installFixture(page) {
       for (const u of f.party) { u.hp = u.max * 0.6; u.hot = 0; u.shield = 0; u.debuffs = []; }
       window.dispatchEvent(new Event('resize'));
     };
-    window.__inputFixture = { point, send, tap, snap, reset, toggleMode };
+    window.__inputFixture = { point, send, tap, snap, reset, reflowPanel };
   });
 }
 
 const reset = async page => { await page.evaluate(() => window.__inputFixture.reset()); await page.clock.runFor(40); };
 const state = page => page.evaluate(() => window.__inputFixture.snap());
 const unchanged = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-async function toggleMode(page) {
-  const paused = await page.isVisible('#pause');
-  const compact = await page.locator('#controls').evaluate(el => el.classList.contains('compact-controls'));
-  if (!paused) await page.click('#pauseBtn');
-  await page.setChecked('#pauseCompact', !compact);
-  if (await page.isChecked('#pauseCompact') !== !compact
-    || await page.locator('#controls').evaluate(el => el.classList.contains('compact-controls')) !== !compact) {
-    throw new Error('일시정지 설정으로 스킬 패널 크기가 전환되지 않음');
-  }
-  if (!paused) await page.click('#resumeBtn');
+async function reflowPanel(page) {
+  await page.evaluate(() => window.dispatchEvent(new Event('resize')));
   await page.clock.runFor(40);
-  if (await page.isVisible('#pause') !== paused) throw new Error('크기 전환 후 원래 일시정지 상태가 복구되지 않음');
 }
 async function touch(page, name) {
   const p = await page.evaluate(name => { const p = window.__inputFixture.point(name); return { x: p.x, y: p.y }; }, name);
@@ -307,13 +289,13 @@ async function inputs(page, check, label) {
     await reset(page);
     r = await page.evaluate(name => {
       const q = window.__inputFixture, before = q.snap();
-      q.send(name, 'pointerdown'); q.toggleMode();
+      q.send(name, 'pointerdown'); q.reflowPanel();
       q.send(name, 'pointerup'); q.send(name, 'click', 1, { detail: 1 });
       return { before, after: q.snap() };
     }, name);
     await page.clock.runFor(40);
-    ok(unchanged(r.before, r.after), `${name} 누른 채 모드 전환은 진행 중 입력 취소`, r);
-    await toggleMode(page);
+    ok(unchanged(r.before, r.after), `${name} 누른 채 패널 재배치은 진행 중 입력 취소`, r);
+    await reflowPanel(page);
   }
 
   await reset(page);
@@ -325,7 +307,7 @@ async function inputs(page, check, label) {
     f.party[0].debuffs = [{ id: 99991, name: '입력 시험 독', type: '독', left: 12, dot: 1 }];
     f.party[1].shield = 5;
     const before = JSON.stringify(f);
-    q.toggleMode(); q.toggleMode();
+    q.reflowPanel(); q.reflowPanel();
     const same = window.__proto.F === f && JSON.stringify(f) === before;
     f.cast = null; f.queued = null; f.gcd = 0;
     q.tap('empty'); const empty = q.snap(); q.tap('board:0');
@@ -333,7 +315,7 @@ async function inputs(page, check, label) {
   });
   ok(r.same && r.empty.itemUses === 0 && r.empty.items.shield === 2 && r.after.itemUses === 1
     && r.after.items.shield === 1 && !Object.keys(r.after.casts).length && r.after.shields[0] === 8,
-  '모드 왕복은 시전·예약·자원·상태 전체와 보호 장전 보존, 빈 칸 후 올바른 대상에서만 소비', r);
+  '재배치 반복은 시전·예약·자원·상태 전체와 보호 장전 보존, 빈 칸 후 올바른 대상에서만 소비', r);
 
   for (const method of ['button', 'swipe']) {
     await reset(page);
@@ -379,8 +361,8 @@ async function beaconInputs(page, check, label) {
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await toParty(page, { content: 'rustfort', tab: 'dungeon', diff: '쉬움' });
   await departGo(page); await page.clock.runFor(3400); await installFixture(page);
-  for (const compact of [false, true]) {
-    if (await page.locator('#controls').evaluate(el => el.classList.contains('compact-controls')) !== compact) await toggleMode(page);
+  for (const compact of [true]) {
+    if (await page.locator('#controls').evaluate(el => el.classList.contains('compact-controls')) !== compact) await reflowPanel(page);
     const ok = (v, message, detail) => check(v, `${label} ${compact ? '축소' : '기본'} 봉화: ${message}`, detail);
     await reset(page);
     await page.evaluate(() => { window.__proto.F.beaconCd = 0; });
@@ -408,10 +390,10 @@ async function beaconInputs(page, check, label) {
     await page.clock.runFor(40);
     ok(waiting && await page.locator('#core').evaluate(el => el.classList.contains('beacon')),
       '두 번째 포인터는 조기 지정하지 않으며 첫 release만 한 번 장전');
-    await toggleMode(page);
+    await reflowPanel(page);
     const kept = await page.locator('#core').evaluate(el => el.classList.contains('beacon'));
-    await toggleMode(page);
-    ok(kept && await page.locator('#core').evaluate(el => el.classList.contains('beacon')), '모드 왕복 후 봉화 장전 유지');
+    await reflowPanel(page);
+    ok(kept && await page.locator('#core').evaluate(el => el.classList.contains('beacon')), '재배치 반복 후 봉화 장전 유지');
     const target = await page.evaluate(() => {
       const f = window.__proto.F, alive = f.party.filter(u => u.alive);
       const idx = alive.findIndex(u => !u.me && u.id !== f.beacon);
@@ -458,9 +440,9 @@ export default async function compactInput(url) {
         await pastTitle(page); await toParty(page, { content: 'rustfort', tab: 'dungeon', diff: '쉬움' });
         await departGo(page); await page.clock.runFor(3400); await installFixture(page);
         profiles.push(await page.evaluate(() => ({ width: innerWidth, height: innerHeight, dpr: devicePixelRatio })));
-        for (const compact of [false, true]) {
+        for (const compact of [true]) {
           if (await page.locator('#controls').evaluate(el => el.classList.contains('compact-controls')) !== compact) {
-            await toggleMode(page);
+            await reflowPanel(page);
           }
           await inputs(page, check, `${name} ${width}×${height} DPR${dpr} ${compact ? '축소' : '기본'}`);
         }

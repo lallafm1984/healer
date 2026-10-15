@@ -52,11 +52,9 @@ const savedCompact = page => page.evaluate(() => JSON.parse(localStorage.getItem
 const time = page => page.evaluate(() => window.__proto.F.t);
 const mode = page => page.locator('#controls').evaluate(el => el.classList.contains('compact-controls'));
 // 전투판의 크기 버튼 대신 기존 일시정지 설정을 사용하며 원래 pause 상태를 복구한다.
-async function toggleMode(page) {
-  const paused = await page.isVisible('#pause');
-  if (!paused) await page.click('#pauseBtn');
-  await page.setChecked('#pauseCompact', !await mode(page));
-  if (!paused) await page.click('#resumeBtn');
+async function reflowPanel(page) {
+  await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+  await page.clock.runFor(40);
 }
 const inViewport = (r, g) => r.w > 0 && r.h > 0 && r.x >= -1 && r.right <= g.width + 1 && r.y >= 70 - 1 && r.bottom <= g.height + 1;
 const readable = g => g.cellW > 0 && g.cellH > 0 && g.hp >= 12 && g.nick >= 9;
@@ -67,20 +65,15 @@ const hpBoundsValid = g => g.hpTextBounds.length === g.party
 const apart = (a, b) => a.right <= b.x + 1 || b.right <= a.x + 1 || a.bottom <= b.y + 1 || b.bottom <= a.y + 1;
 const toolbarValid = g => g.directToggles === 0 && g.targetsGone && g.targetUiNodes === 0 && g.toolbarButtons === 0;
 // 배율은 터치 44px을 지키기 위해 1일 수 있다. 순서·방향·부모·상대좌표는 같은 기본 배치여야 한다.
-const uniformLayout = (normal, compact) => {
-  const k = compact.scale, near = (a, b) => Math.abs(a - b) <= 1;
-  return normal.scale === 1 && k >= .9 && k <= 1 && compact.effectiveTouchMin >= 44 - .1
-    && normal.minSkillText >= 11.4 && compact.minSkillText >= 11.4
-    && near(compact.controls.w, normal.controls.w * k) && near(compact.controls.h, normal.controls.h * k)
-    && near(compact.frame.h, compact.baseHeight * k) && near(compact.baseHeight, normal.baseHeight)
-    && normal.layoutParts.length === compact.layoutParts.length
-    && normal.layoutParts.every((a, i) => {
-      const b = compact.layoutParts[i];
-      // 같은 구조/좌표를 축소하되 보조 글자는 실효 최소 크기로 읽기 가능하게 유지한다.
-      return a.key === b.key && a.tag === b.tag && a.parent === b.parent && a.dir === b.dir && a.art === b.art
-        && near(b.w, a.w * k) && near(b.h, a.h * k)
-        && near(b.x - compact.controls.x, (a.x - normal.controls.x) * k)
-        && near(b.y - compact.controls.y, (a.y - normal.controls.y) * k);
+const uniformLayout = (before, after) => {
+  const near = (a, b) => Math.abs(a - b) <= 1;
+  return before.compact && after.compact && after.scale >= .9 && after.scale <= 1
+    && after.effectiveTouchMin >= 43.9 && before.minSkillText >= 11.4 && after.minSkillText >= 11.4
+    && near(after.controls.w, after.width) && near(after.frame.h, after.baseHeight * after.scale)
+    && before.layoutParts.length === after.layoutParts.length
+    && before.layoutParts.every((a,i) => { const b=after.layoutParts[i];
+      return a.key===b.key && a.parent===b.parent && a.dir===b.dir && a.art===b.art
+        && near(a.w,b.w) && near(a.h,b.h) && near(a.x,b.x) && near(a.y,b.y);
     });
 };
 const castSpaceValid = g => g.cast.h === (g.compact ? 26 : 44) && g.castState.track.h === (g.compact ? 24 : 32)
@@ -224,7 +217,7 @@ async function leave(page) {
 }
 
 // 같은 JS 이벤트 안에서 전환 전후를 비교해 프레임 경과에 따른 HP/마나 변화를 리셋으로 오인하지 않는다.
-const toggleWithoutReset = page => page.evaluate(() => {
+const reflowWithoutReset = page => page.evaluate(() => {
   const f = window.__proto.F;
   const snapshot = () => JSON.stringify({
     t: f.t, mana: f.mana, hp: f.party.map(u => [u.id, u.hp, u.alive]), cd: f.cd,
@@ -233,10 +226,9 @@ const toggleWithoutReset = page => page.evaluate(() => {
   const before = snapshot();
   const paused = !document.querySelector('#pause').hidden;
   if (!paused) document.querySelector('#pauseBtn').click();
-  const control = document.querySelector('#pauseCompact');
-  control.click();
+  window.dispatchEvent(new Event('resize'));
   if (!paused) document.querySelector('#resumeBtn').click();
-  return { sameFight: window.__proto.F === f, sameState: before === snapshot(), compact: document.querySelector('#controls').classList.contains('compact-controls'), control: control.id };
+  return { sameFight: window.__proto.F === f, sameState: before === snapshot(), compact: document.querySelector('#controls').classList.contains('compact-controls'), control: document.querySelector('#pauseCompact')?.id ?? null };
 });
 
 // 휠은 pointerdown/up을 쓴다. 실제 touch API를 사용하여 축소 모드에서도 같은 입력 경로를 탄다.
@@ -274,7 +266,7 @@ export default async function compactUi(url, shots) {
           const normal = await geometry(page);
           const normalControls = await controlGeometry(page);
           const normalArt = await skillVisuals(page);
-          ok(!normal.compact && normal.party === party.n && readable(normal)
+          ok(normal.compact && normal.party === party.n && readable(normal)
             && inViewport(normal.stage, normal) && inViewport(normal.board, normal) && inViewport(normal.controls, normal)
             && normal.board.bottom <= normal.cast.y + 1 && normal.cast.bottom <= normal.controls.y + 1
             && toolbarValid(normal) && castSpaceValid(normal) && usableControls(normalControls),
@@ -282,28 +274,28 @@ export default async function compactUi(url, shots) {
 
           const takeShot = party.n === 20 || (width === 360 && height === 780 && party.n === 5);
           if (takeShot) await page.screenshot({ path: `${shots}/compact_normal_${width}x${height}_${party.n}.png` });
-          const switched = await toggleWithoutReset(page);
+          const switched = await reflowWithoutReset(page);
           await page.clock.runFor(40);
           ok(switched.sameFight && switched.sameState && switched.compact && await savedCompact(page) === true
-            && await page.isChecked('#pauseCompact') && await page.locator('#compactToggle,#compactReturn').count() === 0,
-          `${tag}: 축소 전환은 같은 전투·시간·HP·마나·쿨을 보존하고 저장`, switched);
+            && await page.locator('#pauseCompact').count() === 0 && await page.locator('#compactToggle,#compactReturn').count() === 0,
+          `${tag}: 재배치은 같은 전투·시간·HP·마나·쿨을 보존하고 저장`, switched);
 
           const compact = await geometry(page);
           const compactControls = await controlGeometry(page);
           const compactArt = await skillVisuals(page);
           measurements.push({ viewport: { width, height }, party: party.n, normal, compact, normalControls, compactControls, normalArt, compactArt });
           ok(compact.compact && readable(compact) && compact.controls.h <= normal.controls.h
-            && compact.board.h > normal.board.h && compact.cellW >= normal.cellW - 0.1 && compact.cellH >= normal.cellH - 0.1
+            && compact.board.h >= normal.board.h - 1 && compact.cellW >= normal.cellW - 0.1 && compact.cellH >= normal.cellH - 0.1
             && inViewport(compact.board, compact) && inViewport(compact.controls, compact)
             && compact.board.bottom <= compact.frame.y + 1 && uniformLayout(normal, compact)
             && castSpaceValid(compact) && toolbarValid(compact) && usableControls(compactControls)
             && compact.slots.every(r => r.hitW >= 44 - .1 && r.hitH >= 44 - .1 && inViewport(r, compact)),
           `${tag}: 같은 기본 배치/원화/글자 스타일의 균등 축소·44px 실제 hit·판 확장·시전 공간 유지`, { normal, compact, compactControls });
           ok(hpBoundsValid(normal) && hpBoundsValid(compact),
-            `${tag}: 일반/축소 실제 HP 글자 bounds 비겹침·인접 간격 0px 이상`, { normal: normal.hpTextGap, compact: compact.hpTextGap });
+            `${tag}: 작은 패널 재배치 전후 실제 HP 글자 bounds 비겹침·인접 간격 0px 이상`, { normal: normal.hpTextGap, compact: compact.hpTextGap });
           ok(learnedArtValid(normalArt) && learnedArtValid(compactArt)
             && usableControls(normalControls) && usableControls(compactControls),
-          `${tag}: 일반/축소 원화 로드·영역 유지, 원화 위 기능 배지 없음·이름/비용 구분·버튼 hit 유지`,
+          `${tag}: 작은 패널 재배치 전후 원화 로드·영역 유지, 원화 위 기능 배지 없음·이름/비용 구분·버튼 hit 유지`,
           { normal: normalArt, compact: compactArt });
           if (takeShot) await page.screenshot({ path: `${shots}/compact_small_${width}x${height}_${party.n}.png` });
 
@@ -318,7 +310,7 @@ export default async function compactUi(url, shots) {
           });
           ok(normal.targetUiNodes === 0 && compact.targetUiNodes === 0
             && normal.toolbarButtons === 0 && compact.toolbarButtons === 0,
-          `${tag}: 일반/축소 대상 버튼·목록 없음, 빈자리에 대체 버튼 없음`);
+          `${tag}: 작은 패널 재배치 전후 대상 버튼·목록 없음, 빈자리에 대체 버튼 없음`);
           const board = await page.locator('#board').boundingBox();
           await page.touchscreen.tap(board.x + target.point.x, board.y + target.point.y);
           await page.clock.runFor(80);
@@ -335,7 +327,7 @@ export default async function compactUi(url, shots) {
           // 대표 크기에서 상태·취소·재진입을 추가 검사. 행렬 전체를 불필요하게 반복하지 않는다.
           if (width === 360 && height === 780 && party.n === 5) {
             await featureCases(page, ok);
-            await pauseModeReparenting(page, ok);
+            await pauseReflow(page, ok);
             await castSpaceCases(page, ok);
             await gestureCases(page, ok, shots);
             await quakeWarningCases(page, ok);
@@ -374,8 +366,8 @@ async function skillCircleStates(page, ok, shots) {
     }, state);
     await page.clock.runFor(120);
   };
-  for (const compact of [false, true]) {
-    if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
+  for (const compact of [true]) {
+    if (await mode(page) !== compact) { await reflowPanel(page); await page.clock.runFor(40); }
     const tag = `${saved.width}×${saved.height} ${compact ? '축소' : '일반'}`;
     await fixture('ready');
     const ready = await skillVisuals(page);
@@ -409,7 +401,7 @@ async function skillCircleStates(page, ok, shots) {
     await page.evaluate(level => { window.__proto.F.level = level; window.dispatchEvent(new Event('resize')); }, saved.level);
     await fixture('ready');
   }
-  if (await mode(page) !== originalMode) { await toggleMode(page); await page.clock.runFor(40); }
+  if (await mode(page) !== originalMode) { await reflowPanel(page); await page.clock.runFor(40); }
 }
 
 async function noticeCases(page, ok) {
@@ -439,8 +431,8 @@ async function noticeCases(page, ok) {
   const nearBox = (a, b) => ['x', 'y', 'w', 'h'].every(k => Math.abs(a[k] - b[k]) <= .1);
   const inside = (r, bounds) => r.x >= bounds.x - .1 && r.right <= bounds.right + .1 && r.y >= bounds.y - .1 && r.bottom <= bounds.bottom + .1;
   const shownText = g => g.notices.filter(n => n.visible).map(n => n.text);
-  for (const compact of [false, true]) {
-    if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
+  for (const compact of [true]) {
+    if (await mode(page) !== compact) { await reflowPanel(page); await page.clock.runFor(40); }
     await page.click('#pauseBtn');
     await page.clock.runFor(7100); // 앞서 뜬 메시지가 모두 지나감
     const before = await noticeGeometry();
@@ -477,7 +469,7 @@ async function noticeCases(page, ok) {
     `${after.width}: ${compact ? '축소' : '일반'} 마지막 메시지는 3.5초 넘게 남고 7초 안에 사라짐, 전투판/시전/하단 위치 유지`, { still, after });
     await page.click('#resumeBtn');
   }
-  if (await mode(page) !== originalMode) { await toggleMode(page); await page.clock.runFor(40); }
+  if (await mode(page) !== originalMode) { await reflowPanel(page); await page.clock.runFor(40); }
 }
 
 async function bossStatusTextCases(page, ok) {
@@ -511,8 +503,8 @@ async function bossStatusTextCases(page, ok) {
     && s.textRects.length === 1 && s.textRects.every(r => r.w > 0 && r.h > 0
       && r.x >= s.hp.x - .1 && r.right <= s.hp.right + .1 && r.y >= s.hp.y - .1 && r.bottom <= s.hp.bottom + .1);
   try {
-    for (const compact of [false, true]) {
-      if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
+    for (const compact of [true]) {
+      if (await mode(page) !== compact) { await reflowPanel(page); await page.clock.runFor(40); }
       await page.evaluate(() => {
         const f = window.__proto.F, saved = window.__bossStatusFixture;
         f.vessel = { name: '백합 꽃병', fill: 50, need: 100, until: f.t + 15, shield: .5 };
@@ -541,7 +533,7 @@ async function bossStatusTextCases(page, ok) {
       delete window.__bossStatusFixture;
     });
     await page.clock.runFor(80);
-    if (await mode(page) !== originalMode) { await toggleMode(page); await page.clock.runFor(40); }
+    if (await mode(page) !== originalMode) { await reflowPanel(page); await page.clock.runFor(40); }
   }
 }
 
@@ -581,8 +573,8 @@ async function quakeWarningCases(page, ok) {
     }),
   }));
   try {
-    for (const compact of [false, true]) {
-      if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
+    for (const compact of [true]) {
+      if (await mode(page) !== compact) { await reflowPanel(page); await page.clock.runFor(40); }
       const tag = `360: ${compact ? '축소' : '일반'}`;
       await warning(true, false);
       const active = await sample(), holy = active.slots.filter(s => s.holy), ordinary = active.slots.filter(s => !s.holy);
@@ -611,7 +603,7 @@ async function quakeWarningCases(page, ok) {
       delete window.__quakeWarningFixture;
     });
     await page.clock.runFor(80);
-    if (await mode(page) !== originalMode) { await toggleMode(page); await page.clock.runFor(40); }
+    if (await mode(page) !== originalMode) { await reflowPanel(page); await page.clock.runFor(40); }
   }
 }
 
@@ -641,8 +633,8 @@ async function reducedEffectsCase(page, ok, shots) {
 async function gestureCases(page, ok, shots) {
   // legacy-ui는 일반 모드 longpress, tutorial은 기본 ← 소생을 검사한다.
   // 여기서는 두 배치 사이의 동일 입력 계약과 전환 도중 취소를 비교한다.
-  for (const compact of [false, true]) {
-    if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
+  for (const compact of [true]) {
+    if (await mode(page) !== compact) { await reflowPanel(page); await page.clock.runFor(40); }
     await page.evaluate(() => { const f = window.__proto.F; f.cast = null; f.queued = null; f.gcd = 0; f.mana = 80; f.g.p = 0; });
     const name = compact ? '축소' : '일반', selector = '#wheel [data-slot="heal"]';
     const casts = await page.evaluate(() => JSON.stringify(window.__proto.F.stats.casts));
@@ -664,13 +656,13 @@ async function gestureCases(page, ok, shots) {
     await page.dispatchEvent(selector, 'pointercancel', pointer); await page.clock.runFor(40);
     const cancelled = await page.getAttribute(selector, 'aria-pressed') === 'false';
     await page.dispatchEvent(selector, 'pointerdown', pointer);
-    await toggleMode(page);
+    await reflowPanel(page);
     await page.dispatchEvent('#wheel', 'pointerup', pointer); await page.clock.runFor(40);
     const safe = await page.evaluate(b => JSON.stringify(window.__proto.F.stats.casts) === b && !window.__proto.F.cast && !window.__proto.F.queued, casts);
     ok(cancelled && safe && await page.getAttribute(selector, 'aria-pressed') === 'false',
-      `360: ${name} pointercancel 및 누른 채 모드 전환은 스킬 장전·오발동 없음`);
+      `360: ${name} pointercancel 및 누른 채 패널 재배치은 스킬 장전·오발동 없음`);
 
-    if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
+    if (await mode(page) !== compact) { await reflowPanel(page); await page.clock.runFor(40); }
     const before = await page.evaluate(() => {
       const f = window.__proto.F, u = f.party.find(x => x.role === 'tank' && x.alive);
       f.cast = null; f.queued = null; f.gcd = 0; f.mana = 80; u.hot = 0;
@@ -783,7 +775,7 @@ async function heroVariants(page, ok, shots) {
     const normal = await controlGeometry(page);
     const normalLayout = await geometry(page);
     const normalArt = await skillVisuals(page);
-    await toggleMode(page); await page.clock.runFor(40);
+    await reflowPanel(page); await page.clock.runFor(40);
     const compact = await controlGeometry(page);
     const compactLayout = await geometry(page);
     const compactArt = await skillVisuals(page);
@@ -804,10 +796,10 @@ async function heroVariants(page, ok, shots) {
     await page.screenshot({ path: `${shots}/compact_hero_${c.hero}${c.synthetic ? '_synthetic' : ''}_down_320x640.png` });
     // 탱커 전멸 포기 버튼은 시전 막대 자리 (2026-10-13 Lim): 조작판은 게이지까지 그대로. 같은 전멸 상태끼리 비교한다.
     // 판 배치를 다시 하면 시전 막대 자리를 옮겨 넣어 버튼이 나타나는 움직임이 다시 돎: 끝난 뒤 잼
-    await toggleMode(page); await page.clock.runFor(40);
+    await reflowPanel(page); await page.clock.runFor(40);
     await page.locator('#giveUp').evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
     const normalDown = await controlGeometry(page);
-    await toggleMode(page); await page.clock.runFor(40);
+    await reflowPanel(page); await page.clock.runFor(40);
     const label = c.synthetic ? '성기사+3보조 synthetic' : { priest: '사제', druid: '드루이드', paladin: '성기사' }[c.hero];
     const tools = await inspectDirectControls(page, ok, `320: ${label} 탱커 전멸`, true);
     const g = { ...c, normal, compact, left, down, normalDown, tools, normalLayout, compactLayout, normalArt, compactArt };
@@ -824,7 +816,7 @@ async function heroVariants(page, ok, shots) {
       && down.giveUp && down.giveUpVisible && directControls && uniformLayout(normalLayout, compactLayout),
     `320: ${label} 같은 배치 균등 축소·왼손·탱커전멸 44px hit/비겹침/자원·직접 버튼 유지`, g);
     ok(learnedArtValid(normalArt) && learnedArtValid(compactArt),
-      `320: ${label} 일반/축소 최소 스킬도 원화 전체 채움·모든 이름/비용 원형 내부 유지`, { normalArt, compactArt });
+      `320: ${label} 작은 패널 재배치 전후 최소 스킬도 원화 전체 채움·모든 이름/비용 원형 내부 유지`, { normalArt, compactArt });
     await leave(page);
   }
   // 다음 fixture에 영향을 주지 않는다.
@@ -887,13 +879,13 @@ async function featureCases(page, ok) {
   await page.evaluate(() => { const f = window.__proto.F; f.cast = null; f.queued = null; f.gcd = 0; f.mana = 80; f.g.p = 0; });
   await tapSlot(page, '#wheel [data-slot="heal"]');
   const armed = await page.getAttribute('#wheel [data-slot="heal"]', 'aria-pressed') === 'true';
-  const off = await toggleWithoutReset(page); await page.clock.runFor(40);
+  const off = await reflowWithoutReset(page); await page.clock.runFor(40);
   const kept = await page.getAttribute('#wheel [data-slot="heal"]', 'aria-pressed') === 'true';
   await tapSlot(page, '#wheel [data-slot="heal"]');
   const cancelled = await page.getAttribute('#wheel [data-slot="heal"]', 'aria-pressed') === 'false';
-  ok(armed && kept && off.sameFight && off.sameState && !off.compact
+  ok(armed && kept && off.sameFight && off.sameState && off.compact
     && cancelled,
-  '360: 선택한 스킬은 모드 변경 뒤에도 유지, 같은 스킬 재탭으로 취소', { armed, kept, off, cancelled });
+  '360: 선택한 스킬은 패널 재배치 뒤에도 유지, 같은 스킬 재탭으로 취소', { armed, kept, off, cancelled });
   // 시계가 실제로 흘러 앞 단계 뒤에도 전투가 진행됨: 누르기 직전에 상태를 다시 맞추고, 실패하면 무엇이 달랐는지 남김
   await page.evaluate(() => { const f = window.__proto.F; f.cast = null; f.queued = null; f.gcd = 0; f.mana = 80; f.g.p = 0; f.party.forEach(u => { if (u.alive) u.hp = u.max; }); });
   await page.locator('#wheel [data-slot="heal"]').focus();
@@ -905,8 +897,8 @@ async function featureCases(page, ok) {
     state: await page.evaluate(() => ({ over: window.__proto.F.over, paused: !document.querySelector('#pause').hidden, focus: document.activeElement?.getAttribute('data-slot') ?? document.activeElement?.id })) });
 
   // 재사용 대기와 자원 부족은 각 모드에서 서로 다른 상태로 표시되어야 한다.
-  for (const compact of [false, true]) {
-    if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
+  for (const compact of [true]) {
+    if (await mode(page) !== compact) { await reflowPanel(page); await page.clock.runFor(40); }
     await page.evaluate(() => { const f = window.__proto.F; f.cast = null; f.queued = null; f.gcd = 0; f.cd.purify = 6; f.mana = 0; f.g.p = 0; });
     await page.clock.runFor(40);
     const states = await page.evaluate(() => {
@@ -949,19 +941,16 @@ async function featureCases(page, ok) {
     ok(prompt.native && prompt.modal && prompt.focused === 'confirmCancel' && cancelled,
       `360: ${action === 'restartBtn' ? '재시작 Escape' : '포기 취소'}는 취소 기본 초점·전투 상태 보존`, prompt);
   }
-  const was = await savedCompact(page);
-  await page.setChecked('#pauseCompact', !was); await page.clock.runFor(40);
-  ok(await savedCompact(page) === !was && await mode(page) === !was
-    && await page.isChecked('#pauseCompact') === !was && await page.locator('#compactToggle,#compactReturn').count() === 0,
-  '360: 일시정지 checkbox·저장 설정이 함께 바뀌고 전투판 크기 버튼은 없음');
+  ok(await savedCompact(page) && await mode(page) && await page.locator('#pauseCompact,#compactToggle,#compactReturn').count()===0,
+    '작은 패널 고정: 크기 전환 버튼 없음');
   await page.click('#resumeBtn'); await page.clock.runFor(40);
 }
 
-async function pauseModeReparenting(page, ok) {
-  if (await mode(page)) { await toggleMode(page); await page.clock.runFor(40); }
-  for (const compact of [true, false]) {
+async function pauseReflow(page, ok) {
+  if (await mode(page)) { await reflowPanel(page); await page.clock.runFor(40); }
+  for (const compact of [true]) {
     await page.click('#pauseBtn');
-    await page.locator('#pauseCompact').focus();
+    await page.locator('#resumeBtn').focus();
     await page.evaluate(() => {
       window.__pauseModeFight = window.__proto.F;
       window.__pauseModeSnapshot = () => {
@@ -971,7 +960,7 @@ async function pauseModeReparenting(page, ok) {
       };
       window.__pauseModeBefore = window.__pauseModeSnapshot();
     });
-    await page.keyboard.press('Space'); await page.clock.runFor(80);
+    await page.evaluate(() => window.dispatchEvent(new Event('resize'))); await page.clock.runFor(80);
     const changed = await page.evaluate(() => {
       const cast = document.querySelector('#castbar'), skill = document.querySelector('#wheel [data-slot="heal"]');
       const before = document.activeElement?.id;
@@ -985,10 +974,10 @@ async function pauseModeReparenting(page, ok) {
     });
     await page.keyboard.press('Tab');
     const trapped = await page.evaluate(() => document.querySelector('#pause').contains(document.activeElement));
-    ok(changed.compact === compact && changed.paused && changed.before === 'pauseCompact' && changed.after === 'pauseCompact'
+    ok(changed.compact === compact && changed.paused && changed.before === 'resumeBtn' && changed.after === 'resumeBtn'
       && changed.castParent === 'battle' && changed.castInert && changed.controlsInert
       && changed.sameFight && changed.sameState && trapped && await savedCompact(page) === compact,
-    '360: 설정 ' + (compact ? '축소' : '일반') + ' 전환은 동일 전투·시전·자원·checkbox 초점·행/패널 inert 유지', changed);
+    '360: 설정 ' + (compact ? '축소' : '일반') + ' 전환은 동일 전투·시전·자원·재개 버튼 초점·행/패널 inert 유지', changed);
     await page.keyboard.press('Escape'); await page.clock.runFor(80);
     const resumed = await page.evaluate(() => ({
       castInert: !!document.querySelector('#castbar').closest('[inert]'),
@@ -1013,8 +1002,8 @@ async function castSpaceCases(page, ok) {
   // 렌더 상태 fixture: 시작/연속 시전·취소 상태를 주입하고 완료만 엔진 tick으로 진행한다.
   // 자연 플레이의 시전 취소 조작을 재현했다고 주장하지 않는다.
   const nearBox = (a, b) => ['x', 'y', 'w', 'h'].every(k => Math.abs(a[k] - b[k]) <= .1);
-  for (const compact of [false, true]) {
-    if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
+  for (const compact of [true]) {
+    if (await mode(page) !== compact) { await reflowPanel(page); await page.clock.runFor(40); }
     await page.evaluate(() => {
       for (const el of document.querySelectorAll('#wheel [aria-pressed="true"]')) el.click();
       const f = window.__proto.F; f.cast = null; f.queued = null; f.channel = 0; f.gcd = 0; f.mana = 100;
@@ -1147,8 +1136,8 @@ async function persistenceAndLocks(page, ok) {
   ok(await mode(page) && await savedCompact(page) === true
     && await page.locator('#wheel [data-lock="purify"]').count() === 1,
   '360: 새 전투 재진입 시 축소 설정 복원, Lv 1의 미학습 스킬 잠금 유지');
-  for (const compact of [false, true]) {
-    if (await mode(page) !== compact) { await toggleMode(page); await page.clock.runFor(40); }
+  for (const compact of [true]) {
+    if (await mode(page) !== compact) { await reflowPanel(page); await page.clock.runFor(40); }
     const visuals = await skillVisuals(page), g = await geometry(page);
     ok(learnedArtValid(visuals.filter(r => !r.locked)) && lockedArtValid(visuals.filter(r => r.locked))
       && g.slots.every(r => r.hitW >= 44 - .1 && r.hitH >= 44 - .1 && inViewport(r, g)),
@@ -1171,17 +1160,12 @@ async function persistenceAndLocks(page, ok) {
   await page.clock.runFor(3400);
   await leave(page);
   await page.click('#s-lobby .tb-set');
-  ok(await page.isChecked('#s-settings [data-tog="compactSkills"]'), '360: 전투 밖 설정에서도 축소 상태가 표시됨');
-  await page.setChecked('#s-settings [data-tog="compactSkills"]', false);
-  ok(!await savedCompact(page) && !await page.isChecked('#s-settings [data-tog="compactSkills"]'),
-    '360: 일반 설정에서 해제하면 같은 저장키에 즉시 저장');
-  await page.setChecked('#s-settings [data-tog="compactSkills"]', true);
-  ok(await savedCompact(page) && await page.isChecked('#s-settings [data-tog="compactSkills"]'),
-    '360: 일반 설정에서 축소를 다시 켜면 즉시 저장');
+  ok(await page.locator('#s-settings [data-tog="compactSkills"]').count()===0 && await savedCompact(page),
+    '전투 밖 설정에서도 크기 전환 없이 작은 패널 고정');
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await toParty(page, { content: 'rustfort', diff: '쉬움' });
   await departGo(page); await page.clock.runFor(3400);
   ok(await savedCompact(page) === true && await mode(page)
-    && await page.isChecked('#pauseCompact') && await page.locator('#compactToggle,#compactReturn').count() === 0,
+    && await page.locator('#pauseCompact').count() === 0 && await page.locator('#compactToggle,#compactReturn').count() === 0,
   '360: 페이지 reload 뒤에도 저장된 축소 모드로 전투 시작');
 }

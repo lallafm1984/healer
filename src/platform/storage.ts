@@ -254,7 +254,7 @@ export function topLevel(d: SaveData): number {
   return d.player.level;
 }
 
-export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'right', tapKey: 'heal', zoom: true, compactSkills: false, reducedEffects: false, auto: false, devUnlock: true, allSkills: false, layout: null };
+export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'right', tapKey: 'heal', zoom: true, compactSkills: true, reducedEffects: false, auto: false, devUnlock: true, allSkills: false, layout: null };
 
 export function newSave(now = Date.now()): SaveData {
   return {
@@ -278,7 +278,7 @@ export function migrate(raw: unknown): SaveData {
   const obj = <T extends object>(v: unknown, d: T): T => (v && typeof v === 'object' && !Array.isArray(v) ? { ...d, ...(v as T) } : d);
   const out: SaveData = {
     ...base, ...o, v: SAVE_VERSION,
-    settings: obj(o.settings, base.settings),
+    settings: { ...obj(o.settings, base.settings), compactSkills: true },
     player: obj(o.player, base.player),
     // 27: 새것 점 기준 (옛 저장은 지금 가진 장비를 다 본 것으로)
     gear: gearOf(o, HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest', base.nextId),

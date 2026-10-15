@@ -39,7 +39,7 @@ function filledOverlap(a, b) {
 
 async function toggle(page) {
   await page.click('#pauseBtn');
-  await page.locator('#pauseCompact').setChecked(!await page.isChecked('#pauseCompact'));
+  await page.evaluate(() => window.dispatchEvent(new Event('resize')));
   await page.click('#resumeBtn');
   await page.clock.runFor(32);
 }
@@ -369,7 +369,7 @@ export default async function boardEdges(url, shots) {
         await page.clock.install(); await page.goto(url); await page.clock.runFor(300); await pastTitle(page);
         for (const party of PARTIES) {
           await enter(page, party);
-          for (const compact of [false, true]) {
+          for (const compact of [true]) {
             if (await page.locator('#controls').evaluate(el => el.classList.contains('compact-controls')) !== compact) await toggle(page);
             await resetAction(page);
             const label = `${profile.name} ${party.n}인 ${compact ? '축소' : '일반'}`;

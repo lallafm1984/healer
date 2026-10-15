@@ -48,8 +48,7 @@ export default async function run(url, shots) {
       await patchSave(page, { player: { level: 100 }, settings: { devUnlock: true, auto: false, allSkills: false, compactSkills: false, sound: false, vibrate: false, reducedEffects: true } });
       await pastTitle(page); await toParty(page, { tab: 'raid20', content: 'cathedral1', diff: '쉬움' });
       await departGo(page); await page.clock.runFor(6500);
-      for (const mode of ['normal', 'compact']) {
-        if (mode === 'compact') { await page.click('#pauseBtn'); await page.setChecked('#pauseCompact', true); await page.click('#resumeBtn'); }
+      for (const mode of ['compact']) {
         const key = `${width} ${mode}`;
         for (const value of [0, 25, 50, 75, 100, 19.9, 20, 99.9]) {
           await prepare(page, value); const s = await snap(page);

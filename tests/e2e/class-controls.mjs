@@ -17,8 +17,8 @@ export default async function classControls(url,shots){
     f.cd.springTotem=3;
    });await p.clock.runFor(80);
    await p.locator('#controls img').evaluateAll(is=>Promise.all(is.map(i=>i.decode())));
-   for(const compact of [false,true]){
-    await p.click('#pauseBtn');await p.setChecked('#pauseCompact',compact);await p.click('#resumeBtn');await p.clock.runFor(40);
+   for(const compact of [true]){
+    ok(await p.locator('#pauseCompact').count()===0&&await p.locator('#controls').evaluate(e=>e.classList.contains('compact-controls')),hero+' fixed compact without size toggle');
     const check=await p.evaluate(()=>{
      const c=document.querySelector('#controls'),g=document.querySelector('.job-gauge'),frame=document.querySelector('#controlsFrame'),cr=c.getBoundingClientRect(),gr=g.getBoundingClientRect(),scale=+c.dataset.uiScale;
      const items=[...document.querySelectorAll('#items .item')].map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,height:r.height};});
@@ -27,7 +27,7 @@ export default async function classControls(url,shots){
       oldFrameGone:!compact||getComputedStyle(frame,'::before').content==='none',
       aligned:Math.abs((gr.left+gr.right)-(host.left+host.right))<1&&Math.abs((gr.top+gr.bottom)-(host.top+host.bottom))<1,
       twoSlots:items.length===2&&Math.abs(items[0].top-items[1].top)<1,
-      itemsFit:items.every(r=>r.bottom<=cr.bottom-27*scale&&r.top>=gr.bottom+7*scale&&r.left>=cr.left&&r.right<=cr.right),gaugeSize:[gr.width,gr.height],items,
+      itemsFit:items.every(r=>r.bottom<=cr.bottom-19*scale&&r.top>=gr.bottom+7*scale&&r.left>=cr.left&&r.right<=cr.right),gaugeSize:[gr.width,gr.height],items,
       hitMin:+c.dataset.effectiveTouchMin,hitOverlap:c.dataset.hitAreasOverlap,bottom:cr.bottom,images:[...c.querySelectorAll('img')].every(i=>i.complete&&i.naturalWidth>0)};
     });
     const label=hero+' '+width+' '+(compact?'compact':'normal');

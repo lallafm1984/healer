@@ -29,14 +29,16 @@ describe('기기 저장', () => {
     expect(save(s, kv)).toBe(true);
     expect(load(kv)).toEqual(s);
   });
-  it('기존 저장은 기본 휠과 기존 효과로 유지한다', () => {
+  it('기존 저장도 작은 패널로 고정하고 효과와 플레이어 데이터는 유지한다', () => {
     const s = newSave(123);
     const old = JSON.parse(JSON.stringify(s));
     delete old.settings.compactSkills; delete old.settings.reducedEffects;
     const migrated = migrate(old);
-    expect(migrated.settings.compactSkills).toBe(false);
+    expect(migrated.settings.compactSkills).toBe(true);
     expect(migrated.settings.reducedEffects).toBe(false);
     expect(migrated.player).toEqual(s.player);
+    old.settings.compactSkills = false;
+    expect(migrate(old).settings.compactSkills).toBe(true);
   });
   it('깨진 저장이면 새 저장', () => {
     expect(load(mem({ [SAVE_KEY]: '{깨짐' })).v).toBe(SAVE_VERSION);
