@@ -136,13 +136,20 @@ function layoutBattle(): void {
   $('battle').classList.add('compact-panel');
   controls.classList.toggle('paladin', F.hero === 'paladin');
   controls.classList.toggle('wheel-left', S.hand === 'left');
-  const ch = Math.round(Math.min(auxCount ? 268 : 236, Math.max(auxCount ? 268 : 206, H * 0.297)));
+  // 채택 B안: 보조 특성이 없으면 폭이 바뀌어도 자원·아이템의 세로 좌표를 유지한다.
+  const ch = auxCount ? 268 : 229;
+  // 360px는 첨부 빨간 선의 중심(패널 폭 약24%)에 정렬하고, 390px는 별도 우측 보정을 유지한다.
+  const resourceShift = Math.max(0, Math.min(10.1, (W - 320) * 10.1 / 40)) + Math.max(0, Math.min(13.9, (W - 360) * 13.9 / 30));
+  controls.style.setProperty('--resource-inset', `${27.6 + resourceShift}px`);
+  controls.style.setProperty('--wheel-inset', `${17 + Math.max(0, Math.min(12, (W - 360) * .4))}px`);
   $('wheel').setAttribute('aria-label', '치유 스킬 휠');
   controls.style.setProperty('--controls-scale', '1');
   $('controls').style.height = ch + 'px';
   // 왼쪽(단축칸 쪽) = 특성 버튼 3개면 시안 20인 폭 146, 좁은 폰은 140. 여백 16·12 + 사이 8 (좁으면 12·12)
   const narrow = W < 360, sideWidth = auxCount >= 3 ? (narrow ? 140 : 146) : narrow ? 120 : 96;
-  buildWheel(Math.min(ch - 38, W * 0.565, W - sideWidth - (narrow ? 32 : 36)));
+  buildWheel(auxCount
+    ? Math.min(ch - 38, W * .565, W - sideWidth - (narrow ? 32 : 36))
+    : Math.min(ch - 28, W * .565 + 10, W - sideWidth - (narrow ? 22 : 26)));
   // 시전 여부와 관계없이 판과 조작판 사이의 독립 행을 예약한다.
   $('controlsFrame').before($('castbar'));
   // 일시정지 중 부모가 바뀌어도 이전 직계 자식의 inert가 남지 않게 한다.

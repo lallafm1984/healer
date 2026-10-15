@@ -21,14 +21,14 @@ export default async function classControls(url,shots){
     ok(await p.locator('#pauseCompact').count()===0&&await p.locator('#controls').evaluate(e=>e.classList.contains('compact-controls')),hero+' fixed compact without size toggle');
     const check=await p.evaluate(()=>{
      const c=document.querySelector('#controls'),g=document.querySelector('.job-gauge'),frame=document.querySelector('#controlsFrame'),cr=c.getBoundingClientRect(),gr=g.getBoundingClientRect(),scale=+c.dataset.uiScale;
-     const items=[...document.querySelectorAll('#items .item')].map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,height:r.height};});
+     const items=[...document.querySelectorAll('#items .item')].map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:r.width,height:r.height};});
      const compact=c.classList.contains('compact-controls'),host=document.querySelector('#gauges').getBoundingClientRect(),wheel=document.querySelector('#wheel').getBoundingClientRect();
      return {job:g.dataset.job,background:getComputedStyle(compact?frame:c).backgroundImage,frame:getComputedStyle(document.querySelector('#items .item')).backgroundImage,
       oldFrameGone:!compact||getComputedStyle(frame,'::before').content==='none',
       aligned:Math.abs((gr.left+gr.right)-(host.left+host.right))<1&&Math.abs((gr.top+gr.bottom)-(host.top+host.bottom))<1,
-      twoSlots:items.length===2&&Math.abs(items[0].top-items[1].top)<1,
-      itemsFit:items.every(r=>r.bottom<=cr.bottom-31*scale&&r.top>=gr.bottom+7*scale&&r.left>=cr.left&&r.right<=cr.right),
-      wheelFit:wheel.bottom<=cr.bottom-20*scale&&wheel.top>=cr.top+10*scale&&wheel.right<=cr.right-20*scale,
+      twoSlots:items.length===2&&Math.abs(items[0].top-items[1].top)<1&&items.every(r=>Math.abs(r.width-r.height)<1&&r.width>=44),
+      itemsFit:items.every(r=>r.bottom<=cr.bottom-20&&r.top>=gr.bottom+7*scale&&r.left>=cr.left+12&&r.right<=cr.right-12),
+      wheelFit:wheel.bottom<=cr.bottom-14&&wheel.top>=cr.top+8&&wheel.right<=cr.right-16,
       gaugeSize:[gr.width,gr.height],items,
       hitMin:+c.dataset.effectiveTouchMin,hitOverlap:c.dataset.hitAreasOverlap,bottom:cr.bottom,images:[...c.querySelectorAll('img')].every(i=>i.complete&&i.naturalWidth>0)};
     });
@@ -51,5 +51,29 @@ export default async function classControls(url,shots){
    await ctx.close();
   }
  }
- await b.close();return{fails,errs};
+ // 채택 B안의 폭별 위치와 resize 복귀. 저장을 주입한 독립 브라우저에서만 확인한다.
+ const p=await b.newPage({viewport:{width:320,height:780},isMobile:true,hasTouch:true});
+ p.on('pageerror',e=>errs.push(e.message));await p.clock.install();await p.goto(url);await p.clock.runFor(300);
+ await patchSave(p,{player:{level:100},items:[],settings:{devUnlock:true,devStamina:true}});
+ await toParty(p,{tab:'dungeon',content:'rustfort',diff:'보통'});await departGo(p);await p.clock.runFor(3400);
+ await p.evaluate(()=>{const f=window.__proto.F;f.skills.forEach(k=>k.next=Infinity);f.g.p=100;});await p.clock.runFor(80);
+ for(const hand of ['right','left']){
+  await p.evaluate(hand=>window.__battle.settings({...JSON.parse(localStorage.getItem('healer.save')).settings,hand,hero:'priest'}),hand);
+  for(const [width,inset,wheelInset] of [[320,27.6,17],[360,37.7,17],[390,51.6,29],[320,27.6,17]]){
+   await p.setViewportSize({width,height:780});await p.evaluate(()=>window.dispatchEvent(new Event('resize')));await p.clock.runFor(40);
+   await p.locator('#controls img').evaluateAll(es=>Promise.all(es.map(e=>e.decode())));
+   const g=await p.evaluate(()=>{
+    const r=e=>e.getBoundingClientRect().toJSON(),c=document.getElementById('controls');
+    return{frame:r(document.getElementById('controlsFrame')),gauge:r(document.querySelector('.job-gauge')),wheel:r(document.getElementById('wheel')),
+     items:[...document.querySelectorAll('#items .item')].map(r),overlap:c.dataset.hitAreasOverlap,scale:+c.dataset.uiScale};
+   });
+   const sideInset=hand==='right'?g.items[0].left:g.frame.right-g.items[1].right;
+   const skillInset=hand==='right'?g.frame.right-g.wheel.right:g.wheel.left;
+   ok(Math.abs(sideInset-inset)<.3&&Math.abs(skillInset-wheelInset)<.3&&Math.abs(g.gauge.height-117)<.3
+    &&Math.abs(g.items[0].top-g.frame.top-139.5)<.3&&g.items.every(r=>Math.abs(r.width-45)<.3&&Math.abs(r.height-45)<.3)
+    &&g.overlap==='false',`B안 ${width} ${hand}: 폭별 위치·정사각형·resize 복귀 `+JSON.stringify(g));
+   await p.locator('#controlsFrame').screenshot({path:shots+`/panel-b-${width}-${hand}.png`});
+  }
+ }
+ await p.close();await b.close();return{fails,errs};
 }
