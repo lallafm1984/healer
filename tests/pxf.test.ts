@@ -1,18 +1,13 @@
-/** PXF 공방 스킬 이펙트 (Lim 2026-10-11): 휠 스킬이 들어가면 그 스킬의 픽셀 이펙트 (src/art/pxf/<이름>.pxf.json → fx-pxf-<이름>.png) */
+/** 전투 이펙트 프레임 띠 (battle/pxf.ts): 손그림풍 (scripts/vfx → fx-skill-*), 보스 판 전체 공격 (Codex fx-wide-*), 남은 PXF 도트 (fx-pxf-*, QA에서 바뀌는 스킬만) */
 import { existsSync, readFileSync } from 'node:fs';
-import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { HERO_KEYS, HEROES } from '../src/data/heroes';
 import type { SkillKey } from '../src/data/skills';
-import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, heroSkillFx, isBossPxf, PXF, pxfArtName, SKILL_FX_SIZE, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, WIDE_DESIGN, wideArtName, type CommonFx, type PxfKey } from '../src/battle/pxf';
+import { ALLY_PXF, ALWAYS_FX, BOSS_PXF, bossPxfOf, COMMON_PXF, heroSkillFx, isBossPxf, PXF, pxfArtName, SKILL_FX_SIZE, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, WIDE_DESIGN, wideArtName, type CommonFx, type PxfKey } from '../src/battle/pxf';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { AB_KIND, type AbKind } from '../src/data/abilities';
 import * as E from '../src/engine';
 import { damage } from '../src/engine/core';
-// @ts-expect-error 빌드 도구 스크립트 (.mjs, 타입 없음)
-import { splitGraph, TILE_KEYS } from '../scripts/pxf-split.mjs';
-// @ts-expect-error 빌드 도구 스크립트 (.mjs, 타입 없음)
-import { renderStripRgba, WIDE_SIZE } from '../scripts/fxr.mjs';
 // @ts-expect-error 빌드 도구 스크립트 (.mjs, 타입 없음)
 import { FX, FX_SIZE } from '../scripts/vfx/index.mjs';
 
@@ -21,18 +16,6 @@ const graph = (name: string) => JSON.parse(readFileSync(new URL(`../src/art/pxf/
 const pngSize = (art: string) => {
   const b = readFileSync(new URL(`../src/art/${art}.png`, import.meta.url));
   return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
-};
-/** 우리 렌더러 (scripts/fxr/png.mjs)가 쓴 PNG의 픽셀 (RGBA 8비트 · 줄마다 필터 0만) */
-const pngPixels = (art: string) => {
-  const b = readFileSync(new URL(`../src/art/${art}.png`, import.meta.url)), w = b.readUInt32BE(16), h = b.readUInt32BE(20);
-  const idat: Buffer[] = [];
-  for (let o = 8; o < b.length;) { const n = b.readUInt32BE(o), t = b.toString('ascii', o + 4, o + 8); if (t === 'IDAT') idat.push(b.subarray(o + 8, o + 8 + n)); o += 12 + n; }
-  const raw = inflateSync(Buffer.concat(idat)), px = new Uint8Array(w * h * 4);
-  for (let y = 0; y < h; y++) {
-    if (raw[y * (w * 4 + 1)] !== 0) throw new Error(`${art}: ${y}줄 필터 ${raw[y * (w * 4 + 1)]} (fxr로 구운 띠가 아님)`);
-    px.set(raw.subarray(y * (w * 4 + 1) + 1, (y + 1) * (w * 4 + 1)), y * w * 4);
-  }
-  return { w, h, px };
 };
 /** src/art 그림 파일의 가로 · 세로 (PNG · WebP 머리), 없으면 null */
 const artSize = (name: string): { w: number; h: number } | null => {
@@ -49,66 +32,50 @@ const artSize = (name: string): { w: number; h: number } | null => {
   return null;
 };
 const KEYS = Object.keys(PXF) as PxfKey[];
-/** PXF 그래프로 만든 것 (나머지는 손그림풍 스킬 이펙트 scripts/vfx) */
-const GRAPH_KEYS = KEYS.filter(k => !PXF[k].smooth), SMOOTH_KEYS = KEYS.filter(k => PXF[k].smooth);
+/** 아직 PXF 도트 (QA에서 바뀌는 스킬), 손그림풍 (scripts/vfx), 보스 판 전체 공격 (Codex fx-wide) */
+const GRAPH_KEYS = KEYS.filter(k => !PXF[k].smooth), SMOOTH_KEYS = KEYS.filter(k => PXF[k].smooth && !isBossPxf(k)), BOSS_KEYS = KEYS.filter(isBossPxf);
 /** 아직 이펙트를 안 넣은 휠 스킬 (없음) */
 const LATER = new Set<SkillKey>([]);
 
-describe('PXF 이펙트 파일', () => {
+describe('남은 PXF 도트 (QA에서 바뀌는 스킬, 바뀌면 손그림으로 다시 만들고 지움)', () => {
+  it('직업 스킬 몇 개뿐 (전투 공통 · 파티원 능력 · 보스는 없음, Lim 2026-10-16 「도트를 모두 제거」)', () => {
+    expect(GRAPH_KEYS.every(k => /^(paladin|shaman|warder)-/.test(k))).toBe(true);
+    expect(GRAPH_KEYS.length).toBeLessThanOrEqual(5);
+  });
   for (const k of GRAPH_KEYS) {
-    it(`${k}: 게임 값이 그래프의 settings · game과 같고, 프레임 띠 · 타임라인 그림이 있음`, () => {
-      const g = graph(k), c = PXF[k], design = isBossPxf(k) ? WIDE_DESIGN : c.size;
+    it(`${k}: 게임 값이 그래프의 settings · game과 같고, 프레임 띠가 있음`, () => {
+      const g = graph(k), c = PXF[k];
       expect(g.format).toBe('pxf.graph@1');
-      expect({ size: design, frames: c.frames, fps: c.fps, loop: false }).toEqual({ size: g.settings.size, frames: g.settings.frames, fps: g.settings.fps, loop: g.settings.loop });
+      expect({ size: c.size, frames: c.frames, fps: c.fps, loop: false }).toEqual({ size: g.settings.size, frames: g.settings.frames, fps: g.settings.fps, loop: g.settings.loop });
       expect({ impactFrame: c.impactFrame, logicalSize: c.logicalSize, referenceCell: c.referenceCell })
         .toEqual({ impactFrame: g.game.impactFrame, logicalSize: g.game.logicalSize, referenceCell: g.game.referenceCell ?? 62 });
-      expect(g.game.pivot).toEqual([0.5, 0.5]); // 칸 가운데에 그림
-      expect(c.blend).toBe('normal'); // Lim 2026-10-11: 원본 색이 잘 보이게 보통 섞기
+      expect(c.blend).toBe('normal');
       expect(pngSize(pxfArtName(k))).toEqual({ w: c.size * c.cols, h: c.size * Math.ceil(c.frames / c.cols) });
-      if (!isBossPxf(k)) expect(existsSync(new URL(`../src/art/pxf/${k}.timeline.png`, import.meta.url))).toBe(true); // 다시 굽는 원본
-      else {
-        // 보스 판 전체 공격은 128px 설계를 공방에서 64px 조각 4개로 확인 (scripts/pxf-tiles.mjs): 조각 그래프가 원본을 나눈 것과 같고, 조각마다 타임라인 그림이 있음
-        expect(g.settings.size).toBe(128);
-        const { tiles } = splitGraph(g);
-        for (const q of TILE_KEYS as readonly string[]) {
-          const f = new URL(`../src/art/pxf/tiles/${k}.${q}.pxf.json`, import.meta.url);
-          if (!tiles[q]) { expect(existsSync(f), q).toBe(false); continue; }
-          expect(JSON.parse(readFileSync(f, 'utf8')), q).toEqual(tiles[q]);
-          expect(existsSync(new URL(`../src/art/pxf/tiles/${k}.${q}.timeline.png`, import.meta.url)), q).toBe(true);
-        }
-      }
+      // 맞는 순간 앞 프레임은 건너뜀, 끝까지 재생하고 사라짐
+      expect(pxfFrame(c, 0)).toBe(c.impactFrame);
+      expect(pxfFrame(c, pxfMs(c))).toBe(-1);
     });
   }
-
-  it('맞는 순간이 첫 프레임, 끝까지 재생하고 사라짐', () => {
-    const c = PXF['common-heal'];
-    expect(pxfFrame(c, 0)).toBe(1);
-    expect(pxfFrame(c, 1000 / 24)).toBe(2);
-    expect(pxfFrame(c, pxfMs(c) - 1)).toBe(13);
-    expect(pxfFrame(c, pxfMs(c))).toBe(-1);
-    expect(pxfMs(c)).toBeCloseTo((13 * 1000) / 24);
-    expect(pxfDrawSize(c, 62)).toBe(64);
-  });
 });
 
 describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 너무 허술한게 많다. 퀄리티 있게 모두 다시」)', () => {
-  type Fx = { frames: number; logical: number; scope: string };
+  type Fx = { frames: number; logical: number; scope: string; size?: number; gray?: boolean };
   const fx = FX as Record<string, Fx>;
-  it('scripts/vfx의 이펙트 = 게임의 손그림풍 이펙트 (224px)', () => {
+  it('scripts/vfx의 이펙트 = 게임의 손그림풍 이펙트 (224px, 공통 효과는 192px)', () => {
     expect(Object.keys(fx).sort()).toEqual([...SMOOTH_KEYS].sort());
     expect(FX_SIZE).toBe(SKILL_FX_SIZE);
   });
   for (const k of SMOOTH_KEYS) {
     it(`${k}: 장 수 · 그림 지름 · 재생 칸이 그리기 코드와 같고, 격자 띠가 있음 (PXF 그래프 · 예전 도트 띠는 없음)`, () => {
       const c = PXF[k], f = fx[k];
-      expect({ frames: c.frames, logical: c.logicalSize, size: c.size, cols: c.cols, impact: c.impactFrame, blend: c.blend })
-        .toEqual({ frames: f.frames, logical: f.logical, size: FX_SIZE, cols: Math.ceil(Math.sqrt(f.frames)), impact: 0, blend: 'normal' });
+      expect({ frames: c.frames, logical: c.logicalSize, size: c.size, cols: c.cols, impact: c.impactFrame, blend: c.blend, gray: c.gray })
+        .toEqual({ frames: f.frames, logical: f.logical, size: f.size ?? FX_SIZE, cols: Math.ceil(Math.sqrt(f.frames)), impact: 0, blend: 'normal', gray: !!f.gray });
       expect(pxfArtName(k)).toBe(`fx-skill-${k}`);
       expect(artSize(pxfArtName(k))).toEqual({ w: c.size * c.cols, h: c.size * Math.ceil(c.frames / c.cols) });
       expect(c.size * c.cols).toBeLessThanOrEqual(2048); // 폰 텍스처 한도 안
       const uses = Object.values(SKILL_PXF).filter(s => s!.fx === k);
-      expect(uses.length).toBe(1);
-      expect(uses[0]!.scope).toBe(f.scope);
+      expect(uses.length).toBe(ALWAYS_FX.has(k) ? 0 : 1);
+      if (uses.length) expect(uses[0]!.scope).toBe(f.scope);
       for (const old of [`pxf/${k}.pxf.json`, `pxf/${k}.timeline.png`, `fx-pxf-${k}.png`]) expect(existsSync(new URL(`../src/art/${old}`, import.meta.url)), old).toBe(false);
     });
   }
@@ -123,6 +90,9 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
     expect(heroSkillFx('priest').sort()).toEqual(['priest-flash', 'priest-guardian', 'priest-heal', 'priest-hymn', 'priest-poh', 'priest-purify', 'priest-relay', 'priest-renew', 'priest-serenity']);
     expect(heroSkillFx('druid')).toHaveLength(8);
     for (const k of heroSkillFx('monk')) expect(k.startsWith('monk-')).toBe(true);
+    // 전투 공통 효과 · 파티원 능력은 직업과 상관없이 늘 읽어 둠
+    expect([...ALWAYS_FX].sort()).toEqual([...Object.values(COMMON_PXF), ...Object.values(ALLY_PXF)].sort());
+    for (const h of HERO_KEYS) expect(heroSkillFx(h).filter(k => ALWAYS_FX.has(k))).toEqual([]);
     // art:optimize가 줄이지 않음 (fx- 규칙 256보다 먼저)
     expect(readFileSync(new URL('../scripts/art-optimize.mjs', import.meta.url), 'utf8')).toMatch(/re: \/\^fx-skill-\/, w: 1120, h: 1120/);
   });
@@ -161,21 +131,19 @@ describe('모양 표 (Lim 2026-10-11 「스킬별로 이펙트가 달라야 하�
   });
 });
 
-describe('전투 공통 효과 · 파티원 능력 (모든 효과 PXF 1단계)', () => {
+describe('전투 공통 효과 · 파티원 능력 (손그림풍, scripts/vfx/common.mjs)', () => {
   const COMMON: CommonFx[] = ['hit', 'crit', 'heal', 'dispel', 'revive', 'death', 'debuff', 'proc'];
   /** 게임이 색을 곱해 칠하는 회색 그림 (치유 = 문장 색 · 쓰러짐 = 역할 색 · 디버프 = 종류 색 · 장비 발동 = 묶음 색) */
   const GRAY = new Set<CommonFx>(['heal', 'death', 'debuff', 'proc']);
-  const gray = (c: string) => c.length === 7 && c.slice(1, 3) === c.slice(3, 5) && c.slice(3, 5) === c.slice(5, 7);
   it('공통 효과 8종 · 능력 종류 5개 모두', () => {
     expect(Object.keys(COMMON_PXF).sort()).toEqual([...COMMON].sort());
     expect(Object.keys(ALLY_PXF).sort()).toEqual(Object.keys(AB_KIND).sort());
   });
   for (const k of COMMON) {
-    it(`${k}: ${GRAY.has(k) ? '회색 팔레트 (게임이 칠함)' : '구운 색 그대로'}`, () => {
-      const key = COMMON_PXF[k]!, g = graph(key), cols = g.nodes.filter((n: { type: string }) => n.type === 'Palette' || n.type === 'Outline')
-        .flatMap((n: { type: string; params: { colors?: string[]; color?: string } }) => (n.type === 'Palette' ? n.params.colors! : [n.params.color ?? '#10142e']).map((c: string) => c.toLowerCase()));
-      expect(PXF[key].gray).toBe(GRAY.has(k));
-      if (GRAY.has(k)) expect(cols.filter((c: string) => !gray(c))).toEqual([]);
+    it(`${k}: ${GRAY.has(k) ? '회색 그림 (게임이 칠함, 굽기가 색이 섞이면 멈춤)' : '구운 색 그대로'} · 192px 손그림`, () => {
+      const key = COMMON_PXF[k]!;
+      expect({ gray: PXF[key].gray, smooth: PXF[key].smooth, size: PXF[key].size }).toEqual({ gray: GRAY.has(k), smooth: true, size: 192 });
+      expect((FX as Record<string, { gray?: boolean }>)[key].gray ?? false).toBe(GRAY.has(k));
     });
   }
   it('능력 종류마다 다른 이펙트, 휠 스킬과도 겹치지 않음', () => {
@@ -185,21 +153,23 @@ describe('전투 공통 효과 · 파티원 능력 (모든 효과 PXF 1단계)',
   });
 });
 
-describe('보스 판 전체 공격 (Lim 「보스의 판 전체 공격 이펙트를 … 픽셀 크기를 늘려서」 → 「픽셀이 좀더 디테일」)', () => {
-  const gray = (c: string) => c.length === 7 && c.slice(1, 3) === c.slice(3, 5) && c.slice(3, 5) === c.slice(5, 7);
-  it('판 전체 연출 11가지, 모두 다른 이펙트 · 다른 PXF와 안 겹침 · 외침만 회색 (세력 색을 곱함)', () => {
+describe('보스 판 전체 공격 (Codex 손그림 띠 66 `fx-wide-`, PXF 도트 띠는 2026-10-16 Lim 「도트를 모두 제거」로 지움)', () => {
+  it('판 전체 연출 11가지, 모두 다른 이펙트 · 다른 이펙트와 안 겹침 · 외침만 세력 색을 곱함 · 띠는 Codex 그림 (256 격자)', () => {
     expect(Object.keys(BOSS_PXF).sort()).toEqual(['cream-burst', 'door-open', 'heartbeat', 'hush', 'island-tilt', 'lantern', 'melt-heat', 'sandstorm', 'shockwave', 'shout', 'wedge']);
     const all = [...Object.values(SKILL_PXF).map(s => s!.fx), ...Object.values(COMMON_PXF), ...Object.values(ALLY_PXF), ...Object.values(BOSS_PXF)];
     expect(new Set(all).size).toBe(all.length);
+    expect(BOSS_KEYS.sort()).toEqual(Object.values(BOSS_PXF).sort());
     for (const [name, key] of Object.entries(BOSS_PXF)) {
+      const c = PXF[key!];
       expect(key, name).toBe(`boss-${name}`);
-      const cols = graph(key!).nodes.filter((n: { type: string }) => n.type === 'Palette' || n.type === 'Outline')
-        .flatMap((n: { type: string; params: { colors?: string[]; color?: string } }) => (n.type === 'Palette' ? n.params.colors! : [n.params.color ?? '#10142e']).map((c: string) => c.toLowerCase()));
-      expect(PXF[key!].gray, name).toBe(name === 'shout');
-      expect({ size: PXF[key!].size, cols: PXF[key!].cols }, name).toEqual({ size: 256, cols: Math.ceil(Math.sqrt(PXF[key!].frames)) });
-      expect(PXF[key!].size * PXF[key!].cols, name).toBeLessThanOrEqual(2048); // 폰 텍스처 한도 안 (한 줄로 이으면 5632px)
-      if (name === 'shout') expect(cols.filter((c: string) => !gray(c))).toEqual([]);
+      expect(c.gray, name).toBe(name === 'shout');
+      expect({ size: c.size, cols: c.cols, smooth: c.smooth, logical: c.logicalSize }, name).toEqual({ size: 256, cols: Math.ceil(Math.sqrt(c.frames)), smooth: true, logical: WIDE_DESIGN });
+      expect(c.size * c.cols, name).toBeLessThanOrEqual(2048); // 폰 텍스처 한도 안 (한 줄로 이으면 5632px)
+      expect(pxfArtName(key!), name).toBe(wideArtName(key!));
+      expect(artSize(wideArtName(key!)), name).toEqual({ w: c.size * c.cols, h: c.size * Math.ceil(c.frames / c.cols) });
+      for (const old of [`pxf/${key}.pxf.json`, `fx-pxf-${key}.png`]) expect(existsSync(new URL(`../src/art/${old}`, import.meta.url)), old).toBe(false);
     }
+    expect(existsSync(new URL('../src/art/pxf/tiles', import.meta.url))).toBe(false);
   });
   it('판 너비로 키우고 판 밖은 잘라 냄 (픽셀은 정사각형)', () => {
     const c = PXF['boss-shockwave'];
@@ -210,24 +180,8 @@ describe('보스 판 전체 공격 (Lim 「보스의 판 전체 공격 이펙트
     expect(pxfCell(c, 5)).toEqual({ x: 256, y: 256 }); // 16장 = 4×4 격자
     expect(pxfCell(PXF['boss-sandstorm'], 21)).toEqual({ x: 256, y: 1024 }); // 22장 = 5열
   });
-  for (const k of Object.values(BOSS_PXF)) {
-    it(`${k}: 띠 = 128px 설계를 우리 렌더러로 256px로 그린 것 (node scripts/fxr.mjs --wide ${k})`, () => {
-      const r = renderStripRgba(graph(k!), WIDE_SIZE, { grid: true }), png = pngPixels(pxfArtName(k!));
-      expect({ w: png.w, h: png.h, cols: r.cols }).toEqual({ w: r.w, h: r.h, cols: PXF[k!].cols });
-      expect(Buffer.from(png.px).equals(Buffer.from(r.rgba.buffer, r.rgba.byteOffset, r.rgba.length))).toBe(true);
-      // 마지막 프레임은 비어 있음 (끝나면 사라짐)
-      const last = pxfCell(PXF[k!], PXF[k!].frames - 1);
-      let alpha = 0;
-      for (let y = last.y; y < last.y + 256; y++) for (let x = last.x; x < last.x + 256; x++) alpha = Math.max(alpha, png.px[(y * png.w + x) * 4 + 3]);
-      expect(alpha).toBe(0);
-    }, 30000);
-  }
-  it('Codex 그림 띠 (66 `fx-wide-`, Lim 「도트 느낌이 아닌 이펙트로」): 들어왔으면 PXF 띠와 같은 256 격자', () => {
-    for (const [name, k] of Object.entries(BOSS_PXF)) {
-      expect(wideArtName(k!), name).toBe(`fx-wide-${name}`);
-      const c = PXF[k!], got = artSize(wideArtName(k!));
-      if (got) expect(got, name).toEqual({ w: c.size * c.cols, h: c.size * Math.ceil(c.frames / c.cols) });
-    }
+  it('Codex 그림 띠 (66 `fx-wide-`, Lim 「도트 느낌이 아닌 이펙트로」): art:optimize가 줄이지 않음', () => {
+    for (const [name, k] of Object.entries(BOSS_PXF)) expect(wideArtName(k!), name).toBe(`fx-wide-${name}`);
     // art:optimize가 줄이지 않음 (fx- 규칙 256보다 먼저)
     expect(readFileSync(new URL('../scripts/art-optimize.mjs', import.meta.url), 'utf8')).toMatch(/re: \/\^fx-wide-\/, w: 1280, h: 1280/);
   });

@@ -2,6 +2,7 @@
 // Playwright 크로미움 캔버스로 프레임마다 그려 src/art/fx-skill-<이름>.webp (224px 프레임 격자, 한 줄 ⌈√frames⌉장)로 저장한다.
 // 사용: npm run fx:bake -- <이름|직업|all> [--review <폴더>] [--contact <파일.png>] [--bg <판 사진 폴더, 기본 .sim/vfx-bg>]  (만드는 법: scripts/vfx/README.md)
 //   --review: 실제 전투 판 사진 (npm run fx:board 로 찍은 board5.png · board20.png · boards.json) 위에 게임 크기로 올린 이펙트마다 검수 시트
+//   gray (회색 그림)은 색이 섞이면 멈추고, 검수 시트에는 sample 색을 곱해 보여 줌
 //   --contact: 고른 이펙트를 한 줄씩 (탱커 칸 8장 + 밝은 칸 1장) 모은 한눈에 시트 (--review와 같이)
 import { chromium } from 'playwright';
 import { build } from 'rolldown';
@@ -15,7 +16,7 @@ const args = process.argv.slice(2);
 const opt = k => { const i = args.indexOf(`--${k}`); return i >= 0 ? args[i + 1] : undefined; };
 const want = args[0];
 if (!want) { console.error('사용: node scripts/vfx-bake.mjs <이름|직업|all> [--review 폴더 --bg 폴더]'); process.exit(1); }
-const names = want === 'all' ? Object.keys(FX) : HERO_FX[want] ?? want.split(',');
+const names = want === 'all' ? Object.keys(FX) : want.split(',').flatMap(w => HERO_FX[w] ?? [w]);
 for (const n of names) if (!FX[n]) { console.error(`없는 이펙트: ${n}`); process.exit(1); }
 const review = opt('review'), bgDir = opt('bg') ?? join(ROOT, '.sim/vfx-bg');
 if (review && !existsSync(join(bgDir, 'boards.json'))) { console.error(`판 사진이 없음 (${bgDir}): 먼저 npx vite build && npm run fx:board`); process.exit(1); }
@@ -52,8 +53,13 @@ for (const name of names) {
       peak.push(a);
       // 프레임 가장자리 (2px 띠)에 그림이 닿으면 게임에서 네모 테두리로 잘려 보임
       for (let y = 0; y < S; y++) for (const x of y < 2 || y >= S - 2 ? [...Array(S).keys()] : [0, 1, S - 2, S - 1]) { const v = d[(y * S + x) * 4 + 3]; if (v > edge) edge = v; }
+      // 회색 그림 (게임이 색을 곱함): 색이 섞였으면 굽기를 멈춤
+      if (fx.gray) for (let k = 0; k < d.length; k += 4) if (d[k + 3] > 8 && Math.max(Math.abs(d[k] - d[k + 1]), Math.abs(d[k + 1] - d[k + 2])) > 3) throw new Error(`${name}: 회색 그림에 색이 섞임 (${d[k]},${d[k + 1]},${d[k + 2]})`);
       gs.drawImage(one, (i % cols) * S, Math.floor(i / cols) * S);
-      const keep = document.createElement('canvas'); keep.width = keep.height = S; keep.getContext('2d').drawImage(one, 0, 0); frames.push(keep);
+      const keep = document.createElement('canvas'); keep.width = keep.height = S; const gk = keep.getContext('2d'); gk.drawImage(one, 0, 0);
+      // 검수 시트에서는 게임처럼 예시 색을 곱해 봄 (치유 빛 = 사제 문장 금빛 등)
+      if (fx.gray && fx.sample) { gk.globalCompositeOperation = 'multiply'; gk.fillStyle = fx.sample; gk.fillRect(0, 0, S, S); gk.globalCompositeOperation = 'destination-in'; gk.drawImage(one, 0, 0); }
+      frames.push(keep);
     }
     const webp = sheet.toDataURL('image/webp', 0.9).split(',')[1];
     let rev = null;
@@ -112,7 +118,7 @@ for (const name of names) {
       window.__rows = [...(window.__rows || []), row];
     }
     return { webp, peak, cols, rows, rev, edge };
-  }, { name, S: FX_SIZE, bg });
+  }, { name, S: FX[name].size ?? FX_SIZE, bg });
   const fx = FX[name], file = join(ROOT, 'src/art', `fx-skill-${name}.webp`);
   writeFileSync(file, Buffer.from(r.webp, 'base64'));
   if (r.rev) writeFileSync(join(review, `${name}.png`), Buffer.from(r.rev, 'base64'));

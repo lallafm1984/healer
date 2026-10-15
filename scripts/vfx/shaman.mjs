@@ -209,4 +209,26 @@ export default {
       particles(g, t, 2, 10, r => ({ t0: 0.2 + r() * 0.4, life: 0.4, x: (r() - 0.5) * 2.0 }), (gg, p, age) => speck(gg, p.x, 0.05 - 0.4 * age, 0.018, SPIRIT.light, (1 - age) * fade));
     },
   },
+  /** 샘 토템 (세운 칸, 사람이 없으면 칸에만): 바닥에 납작한 샘이 생기고 가는 물줄기가 솟아 위에서 물방울이 양옆으로 포물선을 그리며 흩뿌려짐 */
+  'shaman-spring': {
+    frames: 24, logical: 92, scope: 'target',
+    draw(g, { t }) {
+      const by = 0.62, pool = E.out3(seg(t, 0, 0.25)), fade = 1 - E.in2(seg(t, 0.65, 1)), col = Math.sin(Math.PI * seg(t, 0.05, 0.75)), H = 1.25 * E.out2(Math.min(1, col * 1.4));
+      glowOval(g, 0, by, 0.95, 0.35, W.glow, 0.7 * fade);
+      // 바닥 샘 (위에서 본 납작한 물웅덩이 + 물결)
+      g.save(); g.translate(0, by); g.scale(0.62 * pool, 0.17 * pool); g.globalAlpha = fade;
+      g.beginPath(); g.arc(0, 0, 1, 0, TAU); g.fillStyle = C(W.deep, 0.85); g.fill(); g.lineWidth = 0.16; g.strokeStyle = C(W.rim, 0.9); g.stroke();
+      g.beginPath(); g.arc(0, -0.1, 0.7, 0, TAU); g.fillStyle = C(W.body, 0.9); g.fill();
+      g.beginPath(); g.ellipse(-0.3, -0.35, 0.3, 0.18, 0, 0, TAU); g.fillStyle = C(W.foam, 0.8); g.fill(); g.restore();
+      ripple(g, 0, by, lerp(0.3, 0.9, (t * 2.5) % 1), fade * 0.7, 0.05);
+      // 가는 물줄기 (솟았다 가라앉음)
+      if (H > 0.02) lightStroke(g, s2 => ({ x: Math.sin(s2 * 6 + t * 10) * 0.02, y: lerp(by, by - H, s2) }), 0, 1, u => 0.13 * (1 - 0.5 * u), { rim: W.rim, body: W.body, core: W.foam, a: fade, rimW: 0.022, coreW: 0.4, glowCol: W.glow, glowA: 0.5 });
+      if (H > 0.1) { glow(g, 0, by - H, 0.25, W.light, 0.8 * fade); drop(g, 0, by - H - 0.04, 0.08, fade); }
+      // 양옆으로 포물선을 그리는 물방울
+      particles(g, t, 9, 14, (r, i) => ({ t0: 0.12 + (i / 14) * 0.45, life: 0.42, dir: i % 2 ? 1 : -1, vx: 0.5 + r() * 0.5, vy: 1.0 + r() * 0.4, sz: 0.04 + r() * 0.03 }), (gg, p, age) => {
+        const x = p.dir * p.vx * age, y = by - 1.2 - p.vy * age * 0.6 + 2.3 * age * age;
+        drop(gg, x, Math.min(y, by), p.sz * (1 - 0.3 * age), (1 - E.in2(age)) * fade);
+      });
+    },
+  },
 };

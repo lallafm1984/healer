@@ -39,8 +39,8 @@ const RULES = [
   { re: /^ui-/, w: 1200, h: 1200, q: 0.78 }, // 메뉴 머리 띠 · 게시판 나무틀
   // 이펙트 · 칸 무늬 (36 강화 연출, 37 4장 B·F)
   { re: /^fx-link-/, w: 256, h: 64, q: 0.86 }, // 생명 사슬 띠: 가로 4:1, 두 칸 사이에 이어 붙임
-  { re: /^fx-wide-/, w: 1280, h: 1280, q: 0.86 },
-  { re: /^fx-skill-/, w: 1120, h: 1120, q: 0.9 }, // 손그림풍 스킬 이펙트 (scripts/vfx-bake.mjs): 224px 프레임 격자 그대로 (줄이면 칸이 어긋남) // 보스 판 전체 공격 그림 띠 (66): 256px 프레임 격자 그대로 (줄이면 칸이 어긋남)
+  { re: /^fx-wide-/, w: 1280, h: 1280, q: 0.86 }, // 보스 판 전체 공격 그림 띠 (66): 256px 프레임 격자 그대로 (줄이면 칸이 어긋남)
+  { re: /^fx-skill-/, w: 1120, h: 1120, q: 0.9 }, // 손그림풍 이펙트 (scripts/vfx-bake.mjs): 224 · 192px 프레임 격자 그대로 (줄이면 칸이 어긋남)
   { re: /^fx-/, w: 256, h: 256, q: 0.86 }, // 칸 무늬 · 판 위 이펙트 (칸 40~110px) · 보스 그림 위 연출
 ];
 const ruleOf = name => RULES.find(r => r.re.test(name)) || { w: 1200, h: 1200, q: 0.8 };
@@ -60,7 +60,7 @@ let before = 0, after = 0;
 try {
   for (const f of files) {
     const name = basename(f, extname(f)), cur = join(ART, f), rule = ruleOf(name);
-    if (/^fx-pxf-/.test(name)) { console.log(`· ${name.padEnd(22)} PXF 픽셀 프레임 띠: 줄이거나 다시 저장하지 않음 (scripts/pxf-strip.mjs · fxr.mjs)`); continue; }
+    if (/^fx-pxf-/.test(name)) { console.log(`· ${name.padEnd(22)} PXF 픽셀 프레임 띠 (QA에서 바뀌는 스킬 몇 개만 남음): 줄이거나 다시 저장하지 않음`); continue; }
     let src = originalOf(name);
     if (!src) {
       // 원본 PNG가 없는 그림: 지금 파일을 한 번만 보관하고 그 보관본에서 만든다

@@ -1,10 +1,10 @@
 /**
- * PXF 공방 이펙트 (pxf.graph@1): 그래프 원본은 src/art/pxf/<이름>.pxf.json, 요청문은 src/art/pxf/requests.md.
- * 게임에는 PXF 엔진이 없어서 실제 엔진이 그린 프레임을 투명 띠로 구워 둔 src/art/fx-pxf-<이름>.png
- * (64px 프레임을 가로로 frames장, 굽기 scripts/pxf-strip.mjs)를 그린다. 보스 판 전체 공격은 128px로 설계해 (공방 확인은 64px 조각 4개, scripts/pxf-tiles.mjs)
- * 우리 렌더러 (scripts/fxr.mjs)로 256px 프레임을 격자 (cols열)로 구운 띠.
- * 값은 그래프의 settings · game 블록과 같아야 함 (tests/pxf.test.ts).
- * 2026-10-11 Lim: 사제 치유로 시험 → 「직업별 모든 스킬에」 → 전투 공통 효과 · 파티원 능력 · 보스 판 전체 공격도. 보통 섞기 · 모두 판 맨 위 층 (board.ts pxfL, Lim 「파티원에서 최상단으로」)
+ * 전투 이펙트 프레임 띠 (이름은 예전 PXF 공방 이펙트에서 옴). 모두 판 맨 위 층 (board.ts pxfL, Lim 「파티원에서 최상단으로」), 보통 섞기.
+ * - 손그림풍 (smooth, 2026-10-16 Lim 「스킬이펙트가 너무 허술」 → 「다른 기타 이펙트도 손그림으로 (도트를 모두 제거)」): scripts/vfx/<묶음>.mjs를 캔버스로 그려
+ *   src/art/fx-skill-<이름>.webp (224px · 공통 효과는 192px 격자)로 구움 (npm run fx:bake, scripts/vfx/README.md). 직업 스킬 · 전투 공통 효과 · 파티원 능력
+ * - 보스 판 전체 공격: Codex 손그림 띠 src/art/fx-wide-<이름>.webp (66 문서, 256px 격자)
+ * - 남은 PXF 도트 (64px, src/art/pxf/<이름>.pxf.json → fx-pxf-<이름>.png): QA에서 바뀌는 스킬 몇 개뿐, 바뀌면 손그림으로 다시 만들고 지움
+ * 값은 tests/pxf.test.ts가 그리기 코드 · 그림 크기와 맞춰 봄. 2026-10-11 Lim: 사제 치유로 시험 → 「직업별 모든 스킬에」 → 전투 공통 효과 · 파티원 능력 · 보스 판 전체 공격도
  */
 import type { AbKind } from '../data/abilities';
 import { BOSSES } from '../data/bosses';
@@ -46,16 +46,18 @@ export const SKILL_FX_SIZE = 224;
  * 손그림풍 스킬 이펙트 (scripts/vfx/<직업>.mjs와 장 수 · 그림 지름이 같아야 함, tests/pxf.test.ts): 첫 프레임이 들어간 순간.
  * logical = 기준 칸 62일 때 그림 지름 (칸보다 크게 그려 칸 밖까지 빛이 번짐, 범위 · 파티 스킬은 칸만 하게)
  */
-const skill = (frames: number, logical: number): PxfClip =>
-  ({ size: SKILL_FX_SIZE, frames, fps: 24, cols: Math.ceil(Math.sqrt(frames)), blend: 'normal', impactFrame: 0, logicalSize: logical, referenceCell: 62, gray: false, smooth: true });
-/** 보스 판 전체 공격 그래프의 캔버스 (settings.size · game.logicalSize) */
+const skill = (frames: number, logical: number, o: { size?: number; gray?: boolean } = {}): PxfClip =>
+  ({ size: o.size ?? SKILL_FX_SIZE, frames, fps: 24, cols: Math.ceil(Math.sqrt(frames)), blend: 'normal', impactFrame: 0, logicalSize: logical, referenceCell: 62, gray: !!o.gray, smooth: true });
+/** 전투 공통 효과 · 파티원 능력: 작고 자주 뜨므로 192px (scripts/vfx/common.mjs) */
+const small = (frames: number, logical: number, gray = false): PxfClip => skill(frames, logical, { size: 192, gray });
+/** 보스 판 전체 공격의 설계 캔버스 (판 너비 기준, game.logicalSize) */
 export const WIDE_DESIGN = 128;
 /**
- * 보스 판 전체 공격: 128px로 설계해 우리 렌더러 (scripts/fxr.mjs)로 256px로 구움 (Lim 2026-10-11 「전체공격의 픽셀이 좀더 디테일 했으면」
- * → 「공방처럼 더 고해상도로 만들 수 있는 툴」 → 256px). 프레임은 거의 정사각형 격자로 (22장 = 5×5, 1280px)
+ * 보스 판 전체 공격: Codex 손그림 띠 (66 `fx-wide-<이름>.webp`, 256px 프레임을 거의 정사각형 격자로: 22장 = 5×5, 1280px).
+ * 처음엔 PXF 도트 띠 (128px 설계 → 우리 렌더러 256px)였고 2026-10-16 Lim 「도트를 모두 제거」로 손그림 띠만 남김
  */
 const wide = (frames: number, impactFrame: number, gray = false): PxfClip =>
-  ({ ...clip(frames, impactFrame, gray), size: 256, cols: Math.ceil(Math.sqrt(frames)), logicalSize: WIDE_DESIGN });
+  ({ ...clip(frames, impactFrame, gray), size: 256, cols: Math.ceil(Math.sqrt(frames)), logicalSize: WIDE_DESIGN, smooth: true });
 
 /** 이름 = 그래프 · 프레임 띠 파일 이름 (src/art/pxf/<이름>.pxf.json → fx-pxf-<이름>.png) */
 export const PXF = {
@@ -107,10 +109,10 @@ export const PXF = {
   'astro-sleep': skill(24, 92),
   'astro-memory': skill(22, 80),
   'astro-polaris': skill(22, 100),
-  // 아직 예전 64px 도트 (PXF 그래프): 빠지거나 바뀌는 스킬 (빛 일격 · 소나기 · 샘 토템 · 빠른 인장 · 빛의 창 · 심판, QA에서 스킬을 바꾼 뒤 다시 만듦)
+  'shaman-spring': skill(24, 92),
+  // 아직 예전 64px 도트 (PXF 그래프): 빠지거나 바뀌는 스킬 (빛 일격 · 소나기 · 빠른 인장 · 빛의 창 · 심판, QA에서 스킬을 바꾼 뒤 다시 만듦)
   'paladin-holy-strike': clip(16, 2),
   'shaman-shower': clip(18, 3),
-  'shaman-spring': clip(24, 3),
   // 결계사 (79 5-5 네모 결계, 2026-10-16 Lim 「흰색이라서 퀄리티가 더 떨어져보인다. 노란 발광의 빛이나게」→ 손그림풍 노란 빛): 인장 X · 도장 · 유리판 · 깨지는 유리 · 네 말뚝 · 도는 방패 · 가로 띠 · 창 · 망치
   'warder-seal': skill(20, 92),
   'warder-quick': clip(16, 3),
@@ -122,20 +124,20 @@ export const PXF = {
   'warder-spear': clip(16, 2),
   'warder-judgment': clip(18, 5),
   // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (회색 그림은 색을 곱함)
-  'common-hit': clip(11, 0),
-  'common-crit': clip(12, 0),
-  'common-heal': clip(14, 1, true),
-  'common-dispel': clip(14, 1),
-  'common-revive': clip(20, 1),
-  'common-death': clip(18, 0, true),
-  'common-debuff': clip(16, 1, true),
-  'common-proc': clip(12, 0, true),
+  'common-hit': small(11, 74),
+  'common-crit': small(12, 66),
+  'common-heal': small(14, 64, true),
+  'common-dispel': small(14, 76),
+  'common-revive': small(20, 84),
+  'common-death': small(18, 80, true),
+  'common-debuff': small(16, 76, true),
+  'common-proc': small(12, 70, true),
   // 모든 효과 PXF 1단계 (requests.md): 파티원 능력 종류마다
-  'ally-def': clip(16, 1),
-  'ally-ctl': clip(16, 1),
-  'ally-sup': clip(16, 1),
-  'ally-heal': clip(16, 1),
-  'ally-atk': clip(14, 0),
+  'ally-def': small(16, 80),
+  'ally-ctl': small(16, 80),
+  'ally-sup': small(16, 78),
+  'ally-heal': small(16, 76),
+  'ally-atk': small(14, 82),
   // 보스 판 전체 공격 (requests.md, Lim 「픽셀 크기를 늘려서」 → 「픽셀이 좀더 디테일」 → 256px): 캔버스 = 판 너비, 판 밖은 잘라 냄. 외침은 세력 색을 곱함
   'boss-shout': wide(16, 0, true),
   'boss-lantern': wide(16, 0),
@@ -150,7 +152,8 @@ export const PXF = {
   'boss-wedge': wide(18, 1),
 } as const satisfies Record<string, PxfClip>;
 export type PxfKey = keyof typeof PXF;
-export const pxfArtName = (key: PxfKey): string => (PXF[key].smooth ? `fx-skill-${key}` : `fx-pxf-${key}`);
+/** 프레임 띠 그림 이름: 보스 판 전체 공격 = Codex 손그림 띠 fx-wide-*, 손그림풍 = fx-skill-* (scripts/vfx), 남은 PXF 도트 = fx-pxf-* */
+export const pxfArtName = (key: PxfKey): string => (key.startsWith('boss-') ? `fx-wide-${key.slice('boss-'.length)}` : PXF[key].smooth ? `fx-skill-${key}` : `fx-pxf-${key}`);
 
 /** 재생할 칸: target = 대상 칸 · area = 대상 둘레 범위 안 아군 칸마다 · party = 살아 있는 파티 전원 칸마다 */
 export type PxfScope = 'target' | 'area' | 'party';
@@ -230,6 +233,8 @@ export const COMMON_PXF: Partial<Record<CommonFx, PxfKey>> = {
 };
 /** 파티원 능력 (엔진 ability 사건): 능력 종류마다 그 파티원 칸에 */
 export const ALLY_PXF: Partial<Record<AbKind, PxfKey>> = { def: 'ally-def', ctl: 'ally-ctl', sup: 'ally-sup', heal: 'ally-heal', atk: 'ally-atk' };
+/** 어느 직업 전투에서나 뜨는 손그림풍 효과 (전투 공통 · 파티원 능력): 늘 읽어 둠 (직업 스킬은 heroSkillFx로 지금 직업 것만) */
+export const ALWAYS_FX: ReadonlySet<PxfKey> = new Set([...Object.values(COMMON_PXF), ...Object.values(ALLY_PXF)] as PxfKey[]);
 
 /**
  * 보스 판 전체 공격 (board.ts FX_LOOK의 wide 연출, Lim 2026-10-11 「보스의 판 전체 공격 이펙트를 … 픽셀 크기를 늘려서」):
@@ -259,7 +264,7 @@ export function bossPxfOf(enc: Pick<Encounter, 'script' | 'mobs'>): PxfKey[] {
 }
 /** 보스 판 전체 공격 PXF (전투마다 필요한 것만 읽음) */
 export const isBossPxf = (k: PxfKey): boolean => k.startsWith('boss-');
-/** Codex 그림 띠 (66 문서, Lim 「도트 느낌이 아닌 이펙트로」): 보스 판 전체 공격과 같은 256 격자 · 프레임, 파일이 있으면 PXF 띠 대신 씀 */
+/** Codex 그림 띠 (66 문서, Lim 「도트 느낌이 아닌 이펙트로」): 보스 판 전체 공격 (256 격자) */
 export const wideArtName = (k: PxfKey): string => `fx-wide-${k.slice('boss-'.length)}`;
 /** 띠에서 프레임 i의 왼쪽 위 (px, 띠에 구운 크기 기준) */
 export const pxfCell = (c: PxfClip, i: number): { x: number; y: number } => ({ x: (i % c.cols) * c.size, y: Math.floor(i / c.cols) * c.size });
