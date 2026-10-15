@@ -24,7 +24,7 @@ import { commit, firstDungeonNow, G, healerLevel, heroNow, itemsNow, setItemSlot
 import { TUT } from '../game/tutorial';
 import { classIcon, memDetailHtml, memRowHtml, ROLE_ICON } from './members';
 import { battle, esc, go, ROLE, screen, useIcon } from './kit';
-import { classEmblem, currencyAmount, LOCK, uiIcon } from './art';
+import { classEmblem, currencyAmount, floorArtOf, LOCK, uiIcon } from './art';
 import { payEntry } from './stamina';
 import { afxRows, afxTags, ARROW, BOOK, flowHead, guides, recommendedLevel, segTabs } from './brief';
 import { markHtml } from './content';
@@ -98,7 +98,9 @@ function boardHtml(): string {
     who.push(`${u.cls ? CLASSES[u.cls].name : ROLE[u.role].name} ${u.nick}`);
     return `<span class="f-hex${u.nick === sel ? ' on' : ''}" style="${pos}"><span class="f-hx" style="background:${ROLE[u.role].color}">${u.cls ? classIcon(u.cls) : ROLE_ICON[u.role] || ''}</span></span>`;
   }).join('');
-  return `<figure class="f-board"><div class="f-hexes${size}" role="img" aria-label="시작 위치 (자동 배치, 옮길 수 없음): 나, ${esc(who.join(', '))}" style="aspect-ratio:${W.toFixed(3)} / ${H.toFixed(3)};--ar:${(W / H).toFixed(3)};--bmax:${(W * 38).toFixed(0)}px">${cells}</div></figure>`;
+  // 위치판 뒤 = 첫 전투 판과 같은 장소 바닥 그림 (2026-10-16 손질: 맨바닥 위 칸만 떠 있던 것)
+  const floor = floorArtOf(segs[0]);
+  return `<figure class="f-board${floor ? ' has-floor' : ''}"${floor ? ` style="--floor:url('${floor}')"` : ''}><div class="f-hexes${size}" role="img" aria-label="시작 위치 (자동 배치, 옮길 수 없음): 나, ${esc(who.join(', '))}" style="aspect-ratio:${W.toFixed(3)} / ${H.toFixed(3)};--ar:${(W / H).toFixed(3)};--bmax:${(W * 38).toFixed(0)}px">${cells}</div></figure>`;
 }
 
 /** 이번 보스에 맞는 소비 아이템 힌트 (단축칸 시트) */

@@ -1,7 +1,8 @@
 import { art } from '../art';
 import type { ContentKey } from '../data/content';
 import { kindOf, type SlotKey } from '../data/equipment';
-import { artPlaces, CONTENT_PLACE, FACTIONS, floorArtName, sceneArtName, type FactionKey, type PlaceKey } from '../data/places';
+import { artPlaces, CONTENT_PLACE, ENCOUNTER_PLACE, FACTIONS, floorArtName, sceneArtName, type FactionKey, type PlaceKey } from '../data/places';
+import type { EncounterKey } from '../data/encounters';
 
 /** 화면 장식 그림 (정식 아트 전까지 임시, 16 문서) */
 export const sunSvg = `<svg viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke-linecap="round"><path d="M60 6v15M60 99v15M6 60h15M99 60h15M22 22l11 11M87 87l11 11M22 98l11-11M87 33l11-11" stroke="#0E0E15" stroke-width="12"/><path d="M60 6v15M60 99v15M6 60h15M99 60h15M22 22l11 11M87 87l11 11M22 98l11-11M87 33l11-11" stroke="#F0C46A" stroke-width="5"/></g><circle cx="60" cy="60" r="31" fill="#C9923F" stroke="#0E0E15" stroke-width="5"/><path d="M60 76c-10-6.5-16-12-16-19a8 8 0 0 1 16-3 8 8 0 0 1 16 3c0 7-6 12.5-16 19z" fill="#FFF3C8" stroke="#0E0E15" stroke-width="4" stroke-linejoin="round"/><path d="M41 48c2.5-6 7-10 13-11.5" stroke="#F6DFA0" stroke-width="4" stroke-linecap="round" fill="none"/></svg>`;
@@ -140,6 +141,11 @@ export function factionMark(f: FactionKey, size: 'sm' | 'md' | 'lg' = 'md'): str
   const img = art(`mark-${f}`);
   const inner = img ? `<img src="${img}" alt="" decoding="async" draggable="false">` : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${FACTION_PATH[f]}</svg>`;
   return `<span class="fmark fmark-${size}" style="--fc:${FACTIONS[f].color}" role="img" aria-label="${FACTIONS[f].name} 문양">${inner}</span>`;
+}
+
+/** 전투 판 바닥 그림 (전투 화면 setPlace와 같은 고르기): 그 전투 장소 → 같은 세력 장소 순서, 없으면 '' */
+export function floorArtOf(enc: EncounterKey): string {
+  return artPlaces(ENCOUNTER_PLACE[enc] || 'rustfort').map(p => art(floorArtName(p))).find(Boolean) ?? '';
 }
 
 /** 장소 그림: 풍경이 있으면 풍경, 없으면 바닥 그림 (28 4장) */

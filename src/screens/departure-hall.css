@@ -1,0 +1,45 @@
+/*
+ * 전투 탭 (모험 선택) · 입장 팝업 · 스테미너 창 (2026-10-16): 나무결 → 길드 홀 돌색 (--gk-*, 편성 · 결과 · 휴식 · 공략과 같은 한 벌, Lim 「나무색이 안 어울린다」).
+ * 테두리는 전투 머리판 · 예고 칸과 같은 황동 테 그림 (ui-sunforged-panel-frame). 고른 칸은 지금처럼 밝은 바탕 + 어두운 글자 (종이 → 금빛 돌).
+ * 장소 그림 · 주간 도전 띠 · 권장 레벨 · 화살표 · 출전 버튼 그림은 그대로. main.ts에서 stamina.css 다음에 읽음
+ */
+
+/* ---------- 분류 줄 (탐험 · 던전 · 10인 · 20인) ---------- */
+#s-content .b-cats { background: linear-gradient(#211b14, #16120e); border-bottom: 1px solid var(--gk-card-bd); box-shadow: 0 3px 8px #0009; }
+#s-content :is(.b-cat, .b-cat[aria-selected="true"], .b-dc) {
+  position: relative; border: 0; border-radius: 0;
+  background: linear-gradient(#2e261d, #1b1611); background-size: auto; background-blend-mode: normal;
+  box-shadow: inset 0 1px 0 #ffe6a614; color: var(--gk-ink2); text-shadow: 0 1px 1px #000;
+}
+/* 황동 테는 글자 자리를 바꾸지 않게 겹쳐 그림 */
+#s-content :is(.b-cat, .b-dc)::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  border: 10px solid transparent; border-image: url('../art/ui-sunforged-panel-frame.webp') 104 / 10px / 0 stretch;
+}
+#s-content .b-cat:not([aria-selected="true"]) small, #s-content .b-dc:not(.on):not(:disabled) small { color: var(--gk-mute); }
+#s-content .b-dc:not(.on):not(:disabled) small { color: #e8c46a; }
+#s-content :is(.b-cat[aria-selected="true"], .b-dc.on) {
+  background: linear-gradient(#f6e2ae, #ddb767); color: #2a1806; text-shadow: none;
+  box-shadow: inset 0 1px 0 #fff6d8, 0 0 10px #ffd34d40;
+}
+#s-content :is(.b-cat[aria-selected="true"] :is(b, small), .b-dc.on small) { color: #4a3418; text-shadow: none; }
+#s-content .b-cat[aria-selected="true"] b { color: #2a1806; }
+#s-content .b-dc:disabled { background: linear-gradient(#211b15, #15110d); color: #8f8270; }
+#s-content .b-dc:disabled small { color: #8f8270; }
+#s-content .b-dc:disabled::before { opacity: .55; }
+
+/* ---------- 아래 출전 줄 ---------- */
+#s-content .b-foot { background: linear-gradient(#1b1611, #110e0b); background-blend-mode: normal; border-top: 1px solid var(--gk-line); }
+
+/* ---------- 입장 확인 · 스테미너 창 (.admodal.st-modal) ---------- */
+.admodal.st-modal .st-pop {
+  background: var(--gk-card); background-blend-mode: normal; border: 1px solid var(--gk-edge); border-radius: 12px;
+  box-shadow: inset 0 1px 0 #ffe6a61f, 0 16px 40px #000c; color: var(--gk-ink);
+}
+.admodal.st-modal .st-pop h3 { color: var(--gk-head); text-shadow: 0 1px 1px #000; }
+.admodal.st-modal :is(.st-pop .note, .st-dest small, .st-cost small, .st-time) { color: var(--gk-mute); }
+.admodal.st-modal :is(.st-cost, .st-meter) { background: var(--gk-route); border-color: var(--gk-card-bd); }
+.admodal.st-modal .st-cost.lack { border-color: #c1574a; }
+.admodal.st-modal .st-bar { background: #0d0b08; border-color: var(--gk-card-bd); }
+.admodal.st-modal .btn:not(.primary) { background: var(--gk-btn); border: 1px solid var(--gk-edge); color: var(--gk-head); box-shadow: none; text-shadow: none; }
+.admodal.st-modal .btn:not(.primary):active:not(:disabled) { background: var(--gk-btn-on); }
