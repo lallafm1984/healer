@@ -134,21 +134,21 @@ describe('성언 (Lv 40~50)', () => {
     const u = withAdj(f, 2);
     f.g.p = 100;
     const h = cast(f, E.slotKey(f, 'heal'), u);
-    expect(h.filter(e => e.id !== u.id && e.amt === 300).length).toBe(2);
+    expect(h.filter(e => e.id !== u.id && e.amt === SKILLS.serenity.amt! * 0.5).length).toBe(2);
   });
   it('말씀의 여운: 성언 뒤 5초 마나 -50%', () => {
     const f = fight(['echoWord']); hurt(f);
-    f.g.s = 100;
-    cast(f, 'sanctify', tanks(f)[0]);
+    f.g.p = 100;
+    cast(f, 'serenity', tanks(f)[0]);
     expect(costOf(f, 'heal')).toBe(1.5);
     step(f, 5);
     expect(costOf(f, 'heal')).toBe(3);
   });
-  it('기적의 순간: 두 게이지를 바로 100%, 전투당 1회', () => {
+  it('기적의 순간: 평온 게이지를 바로 100%, 전투당 1회', () => {
     const f = fight(['miracle']);
     expect(useTalent(f, 'miracle').ok).toBe(true);
-    expect(f.g).toEqual({ p: 100, s: 100 });
-    f.g = { p: 0, s: 0 };
+    expect(f.g).toEqual({ p: 100 });
+    f.g = { p: 0 };
     expect(useTalent(f, 'miracle').reason).toMatch(/전투당 1회/);
   });
   it('아껴 둔 말씀: 게이지 200까지, 성언을 쓰면 100만 줄어듦', () => {
@@ -335,7 +335,7 @@ describe('궁극 (Lv 100)', () => {
     const f = fight(['endless']); hurt(f, 0.1);
     f.g.p = 60;
     expect(E.slotKey(f, 'heal')).toBe('serenity');
-    expect(cast(f, 'serenity', tanks(f)[0])[0].amt).toBe(300);
+    expect(cast(f, 'serenity', tanks(f)[0])[0].amt).toBe(SKILLS.serenity.amt! * 0.5);
     expect(f.g.p).toBe(0);
     expect(E.slotKey(fight([]), 'heal')).toBe('heal');
   });

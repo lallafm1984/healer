@@ -43,14 +43,14 @@ describe('잡몹 구간', () => {
 });
 
 describe('구간 이어가기', () => {
-  it('휴식 뒤 마나는 초당 10% 회복, 성언 게이지는 그대로', () => {
+  it('휴식 뒤 마나는 초당 10% 회복, 평온 게이지는 그대로', () => {
     const f = E.create({ encounter: 'gate', diff: '보통', seed: 1 });
-    f.mana = 40; f.g = { p: 60, s: 100 };
-    expect(E.restCarry(f, 3)).toEqual({ mana: 70, g: { p: 60, s: 100 } });
+    f.mana = 40; f.g = { p: 60 };
+    expect(E.restCarry(f, 3)).toEqual({ mana: 70, g: { p: 60 } });
     expect(E.restCarry(f, 30).mana).toBe(100);
     const g = E.create({ encounter: 'scrap', diff: '보통', seed: 1, carry: E.restCarry(f, 3) });
     expect(g.mana).toBe(70);
-    expect(g.g).toEqual({ p: 60, s: 100 });
+    expect(g.g).toEqual({ p: 60 });
   });
 
   it('파티는 던전 내내 같은 사람들', () => {

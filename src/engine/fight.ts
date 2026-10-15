@@ -61,7 +61,7 @@ export function create(cfg: FightConfig): Fight {
     bossMax, bossHp: bossMax, mobs: [],
     mana: 100, gcd: 0, gcdBase: R.gcd / (1 + gear.haste), cast: null, channel: 0, chTick: 0, queued: null,
     cd: { purify: 0, guardian: 0, hymn: 0 },
-    g: { p: 0, s: 0 }, symbolUsed: false, symbol: 0, level: cfg.level ?? 100,
+    g: { p: 0 }, symbolUsed: false, symbol: 0, level: cfg.level ?? 100,
     hero: cfg.hero ?? 'priest', power3: 0, beacon: null, beaconCd: 0, rebirthUsed: false, sanctuary: null, relay: null,
     totems: [], beat: 0, beatUntil: 0, shards: 0, charge: null, chargeOut: null,
     tx: null as unknown as TalentState, // 아래 newTalents
@@ -80,7 +80,7 @@ export function create(cfg: FightConfig): Fight {
   if (!cfg.proto) f.manaCut = 1 - TIER_MANA * openTiers(f.level);
   for (const k of (cfg.items || []).slice(0, 4)) if (ITEMS[k]) f.items[k] = Math.max(0, Math.min(ITEMS[k].uses, cfg.itemCap?.[k] ?? Infinity));
   if (cfg.carry) { f.mana = cfg.carry.mana; f.stats.minMana = f.mana; f.g = { ...cfg.carry.g }; }
-  if (!knowsPassive(f, 'words')) f.g = { p: 0, s: 0 };
+  if (!knowsPassive(f, 'words')) f.g = { p: 0 };
   makeParty(f, cfg.party);
   // 성기사 봉화는 첫 탱커에게 걸고 시작 (휠 가운데로 바꿈, 25 3장)
   if (f.hero === 'paladin' && f.level >= HEROES.paladin.system.lv) { const t = f.party.find(u => u.role === 'tank'); if (t) f.beacon = t.id; }

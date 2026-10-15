@@ -222,8 +222,8 @@ function invertHeal(f: Fight, u: Unit, amt: number): void {
   damage(f, u, amt / f.dmgMult, false, 'fixed');
 }
 
-/** 받은 피해 기록 칸 (초) · 칸 수 (6초, 79 4-2 별의 기억 · 긴 기억) */
-export const DMG_LOG_STEP = 0.5, DMG_LOG_N = 12;
+/** 받은 피해 기록 칸 (초) · 칸 수 (15초, 79 4-2 별의 기억 · 82 모으기: 별 5개 × 긴 기억 3초) */
+export const DMG_LOG_STEP = 0.5, DMG_LOG_N = 30;
 /** 받은 피해를 0.5초 칸 링버퍼에 (지난 칸은 비움) */
 export function logDmg(f: Fight, u: Unit, amt: number): void {
   const k = Math.floor(f.t / DMG_LOG_STEP), log = (u.dmgLog ??= new Array<number>(DMG_LOG_N).fill(0));

@@ -87,12 +87,12 @@ function run(enc: EncounterKey, seed: number, diff: '보통' | '어려움' = '�
   const talk = createTalk(() => ((r = (r * 9301 + 49297) % 233280 / 233280), r));
   talk.start(f, { seg: 0, segN: 1, cont: 0, affix: false, chal: false }, 0);
   const out: (TalkBubble & { t: number })[] = [];
-  const barks: { t: number; id: number; sit?: string }[] = [];
+  const barks: { t: number; id: number; sit?: string; dead?: boolean }[] = [];
   for (let k = 0; k < 60; k++) for (const b of talk.frame(f, k * 50, { pulling: true, paused: false })) out.push({ ...b, t: k * 50 }); // 카운트다운 3초
   while (!f.over && f.t < 700) {
     E.autoHealer(f); E.step(f);
     const now = 3000 + f.t * 1000;
-    for (const ev of f.events) if (ev.type === 'bark') barks.push({ t: now, id: ev.id, sit: ev.sit });
+    for (const ev of f.events) if (ev.type === 'bark') barks.push({ t: now, id: ev.id, sit: ev.sit, dead: !f.party.find(u => u.id === ev.id)?.alive });
     for (const b of talk.frame(f, now, { pulling: false, paused: false })) out.push({ ...b, t: now });
     f.events.length = 0;
   }
@@ -131,7 +131,8 @@ describe('전투 중 말풍선', () => {
         signals++;
         const o = out.find(x => x.t === b.t && x.id === b.id);
         expect(o, `${b.sit} t=${b.t}`).toBeTruthy();
-        if (SITS[b.sit as TalkSit].prio >= 2) expect(['call', 'alert'], `${b.sit} 말풍선 테두리`).toContain(o!.kind); // 신호는 금테·붉은 테로 눈에 띄게 (힘 빠짐 · 몸 풀림 같은 성격 알림은 보통 테)
+        // 신호는 금테·붉은 테로 눈에 띄게 (힘 빠짐 · 몸 풀림 같은 성격 알림은 보통 테). 같은 순간 쓰러진 사람의 말은 talk.ts 규칙대로 보통 테 (chat)
+        if (SITS[b.sit as TalkSit].prio >= 2) expect(['call', 'alert', ...(o!.kind === 'chat' && b.dead ? ['chat'] : [])], `${b.sit} 말풍선 테두리`).toContain(o!.kind);
       }
     }
     expect(signals).toBeGreaterThan(0);

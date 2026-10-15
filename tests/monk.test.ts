@@ -10,7 +10,7 @@ import { addDebuff, damage } from '../src/engine/core';
 import { gcdOf } from '../src/engine/healer';
 import { breathRange, misted, mistSpec, putMist } from '../src/engine/monk';
 import { hasteOf } from '../src/engine/specials';
-import { castOf, cdOf, costOf, talentReady, useTalent } from '../src/engine/talents';
+import { cdOf, costOf, talentReady, useTalent } from '../src/engine/talents';
 import { totemsOf } from '../src/engine/totems';
 
 type F = ReturnType<typeof E.create>;
@@ -153,15 +153,32 @@ describe('떠도는 안개 (79 3-2)', () => {
     expect(mistOf(u)?.rest).toBeCloseTo(M - PER, 6);
     expect(f.stats.overheal).toBeGreaterThan(0);
   });
-  it('안개 감싸기: 230 + 안개가 없으면 6초 90 (있으면 그대로)', () => {
+  it('안개 감싸기 (82): 즉시 + 안개가 없으면 6초 90 (있으면 그대로), 시전 없음 · 규칙 GCD', () => {
     const f = fight(), u = others(f)[0];
     big(u);
     expect(healOn(cast(f, 'mistWrap', u.cell), u)).toBe(SKILLS.mistWrap.amt);
-    expect(mistOf(u)!.left).toBeCloseTo(MONK.wrapMist.sec, 0);
+    expect(f.cast).toBe(null);
+    expect(gcdOf(f, 'mistWrap')).toBeCloseTo(f.gcdBase, 6);
+    expect(mistOf(u)!.left).toBeCloseTo(MONK.wrapMist.sec - gcdOf(f, 'mistWrap'), 6); // 걸고 다음 행동까지 기다린 만큼 지남
     expect(mistOf(u)!.rest).toBe(MONK.wrapMist.amt);
     putMist(f, u);
+    f.cd.mistWrap = 0;
     cast(f, 'mistWrap', u.cell);
     expect(mistOf(u)!.rest).toBe(M);
+  });
+  it('안개 감싸기 (82): 기 리듬 1마다 12% 더, 제때 쓰면 박자를 이어 줌 · 늦으면 리듬이 먼저 끊김', () => {
+    const f = fight(), u = others(f)[0];
+    big(u);
+    f.beat = 5; f.beatUntil = f.t + 1;
+    const t0 = f.t;
+    expect(healOn(cast(f, 'mistWrap', u.cell), u)).toBeCloseTo(SKILLS.mistWrap.amt! * (1 + 5 * MONK.wrap.step), 6);
+    expect(f.beat).toBe(5);
+    expect(f.beatUntil).toBeCloseTo(t0 + MONK.beat.window, 6);
+    const g = fight(), v = others(g)[0];
+    big(v);
+    g.beat = 5; g.beatUntil = g.t - 0.5;
+    expect(healOn(cast(g, 'mistWrap', v.cell), v)).toBe(SKILLS.mistWrap.amt);
+    expect(g.beat).toBe(0);
   });
   it('안개 숨결: 대상과 붙은 6칸, 안개가 걸린 아군 +50%, 20인은 2칸', () => {
     const f = fight(); hurt(f, 0.1);
@@ -412,9 +429,9 @@ describe('직업 전용 특수능력 (79 3-8)', () => {
     step(g, 3.01);
     expect(v.hp - h0).toBeCloseTo(PER * 2, 6);
   });
-  it('서두른 안개 −2초 · 빠른 감싸기 −0.3초 · 넓은 숨결 +1칸 · 깊은 누그러뜨림 +10%p', () => {
+  it('서두른 안개 −2초 · 빠른 감싸기 재사용 −1.5초 (82) · 넓은 숨결 +1칸 · 깊은 누그러뜨림 +10%p', () => {
     expect(cdOf(sp('hastyMist'), 'wanderMist')).toBeCloseTo(4, 6);
-    expect(castOf(sp('quickWrap'), 'mistWrap')).toBeCloseTo(1.2, 6);
+    expect(cdOf(sp('quickWrap'), 'mistWrap')).toBeCloseTo(SKILLS.mistWrap.cd! - 1.5, 6);
     expect(breathRange(sp('wideBreath'))).toBe(2);
     const f = sp('deepSoothe'), u = others(f)[0];
     cast(f, 'soothe', u.cell);

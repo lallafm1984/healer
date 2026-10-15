@@ -50,7 +50,7 @@ const slots = (o: Partial<Record<SlotName, SkillKey>>): Record<SlotName, SkillKe
 export const HEROES: Record<HeroKey, HeroDef> = {
   priest: {
     key: 'priest', name: '사제', line: '꾸준히 넣으면 큰 한 방이 차오릅니다.', star: 1,
-    system: { name: '성언 게이지', lv: 6, desc: '힐을 할 때마다 평온·신성화 게이지가 찹니다. 100%가 되면 휠 조각이 성언으로 바뀝니다.' },
+    system: { name: '평온 게이지', lv: 6, desc: '어떤 힐을 하든 평온 게이지가 찹니다. 100%가 되면 치유 칸이 성언: 평온으로 바뀌어 한 명을 마나 없이 크게 회복합니다.' },
     dispel: ['마법', '질병'],
     slots: slots({ basic: 'heal', fast: 'flash', hot: 'renew', aoe: 'poh', dispel: 'purify', ext: 'guardian', raid: 'hymn', unique: 'relay' }),
     tap: ['heal', 'flash', 'renew'],
@@ -195,19 +195,18 @@ export function skillAt(hero: HeroKey, slotId: string): SkillKey | null {
   return sl ? HEROES[hero].slots[sl] : null;
 }
 
-/** 스킬 → 휠 칸 이름 (사제 성언은 바뀌는 조각 자리) */
+/** 스킬 → 휠 칸 이름 (사제 성언: 평온은 치유 칸) */
 export function slotIdOf(k: SkillKey): string {
   if (SKILLS[k].core) return CORE_ID;
   if (k === 'serenity') return 'heal';
-  if (k === 'sanctify') return 'poh';
   return SLOT_ID[SKILLS[k].slot];
 }
 
-/** 직업의 스킬 목록 (휠 칸 순서, 사제는 성언 둘, 가운데 스킬이 있는 직업은 그 스킬을 끝에) */
+/** 직업의 스킬 목록 (휠 칸 순서, 사제는 성언: 평온, 가운데 스킬이 있는 직업은 그 스킬을 끝에) */
 export function heroSkills(hero: HeroKey): SkillKey[] {
   const list = heroSlotNames(hero).map(s => HEROES[hero].slots[s]!);
   const core = HEROES[hero].core;
-  return hero === 'priest' ? [...list, 'serenity', 'sanctify'] : core ? [...list, core] : list;
+  return hero === 'priest' ? [...list, 'serenity'] : core ? [...list, core] : list;
 }
 
 /**

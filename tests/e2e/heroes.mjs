@@ -37,7 +37,7 @@ export default async function heroes(url, shots) {
   ok(await page.isVisible('#s-char .c7-hc.now[data-hcard="priest"]') && /현재 직업/.test(await text('#s-char [data-hcard="priest"]')) && (await page.locator('#s-char .c7-job-sheet').count()) === 0, '사제 현재 직업 강조, 첫 목록에는 상세가 열리지 않음');
   await page.click('#s-char [data-hcard="priest"]'); await page.clock.runFor(50);
   ok(await page.isVisible('#s-char .c7-job-sheet[role="dialog"]') && /치유를 쌓아/.test(await text('#s-char #jobDetailIntro')), '현재 직업 상세 = 짧은 소개와 스킬 카드');
-  ok((await page.locator('#s-char .c7-job-skill').count()) === 10 && /마법·질병 해제/.test(await text('#s-char .c7-job-skill-grid')), '사제 스킬 8종과 성언 2종 요약');
+  ok((await page.locator('#s-char .c7-job-skill').count()) === 9 && /마법·질병 해제/.test(await text('#s-char .c7-job-skill-grid')), '사제 스킬 8종과 성언: 평온 요약 (82: 신성화 없앰)');
   ok((await page.locator('#s-char .c7-job-gear, #s-char [data-hsk]').count()) === 0 && await page.isDisabled('#s-char .c7-hcta'), '장비 수집·펼치기 제거, 현재 직업은 전환 불가');
   await page.click('#s-char .c7-dialog-close'); await page.clock.runFor(50);
   ok(await page.evaluate(() => document.activeElement?.getAttribute('data-hcard') === 'priest'), '상세 닫기 → 열었던 직업 행으로 포커스 복귀');

@@ -111,13 +111,13 @@ export const TALENTS: TalentTier[] = [
   { lv: 5, theme: '기본 강화', picks: [t('longBreath', '긴 숨결', '소생 지속 시간이 3초 늘어납니다.'), t('lightTouch', '가벼운 손끝', '순간 치유의 마나 소모가 20% 줄어듭니다.'), t('wideCircle', '넓은 원', '치유의 기원 반경이 1 늘어 반경 2가 되고, 회복량은 20% 줄어듭니다.')] },
   { lv: 10, theme: '기본 강화', picks: [t('brink', '벼랑 끝 손길', '체력 30% 이하인 대상에게 하는 힐이 25% 늘어납니다.'), t('washed', '씻어낸 자리', '정화에 성공하면 대상의 체력을 {150} 회복합니다.'), t('practiced', '손에 익은 치유', '치유 시전 시간이 0.3초 줄어듭니다.')] },
   { lv: 15, theme: '기본 강화', picks: [t('overflow', '흘러넘침', '치유로 넘친 힐량의 50%가 붙어 있는 가장 다친 아군에게 흘러갑니다.'), t('hopRenew', '옮겨 가는 소생', '소생이 끝날 때 체력이 가장 낮은 옆 아군에게 한 번 옮겨 갑니다.'), t('breather', '숨 고르기', '3초 동안 아무것도 하지 않으면 마나 재생이 100% 늘어납니다.')] },
-  { lv: 20, theme: '성언', picks: [t('fullHeart', '충만한 마음', '성언 게이지가 30% 더 빨리 찹니다.'), t('spreadSerenity', '번지는 평온', '성언: 평온이 옆 아군 2명에게도 50% 위력으로 들어갑니다.'), t('echoWord', '말씀의 여운', '성언을 쓴 뒤 5초 동안 마나 소모가 50% 줄어듭니다.')] },
-  { lv: 25, theme: '성언', picks: [t('miracle', '기적의 순간', '전투마다 한 번, 두 성언 게이지를 바로 100%로 채웁니다.', { cd: 0, dur: 0, once: true, short: '기적' }), t('savedWord', '아껴 둔 말씀', '성언 게이지를 2회분까지 모아 둘 수 있습니다.'), t('cleansingWord', '씻는 말씀', '성언: 평온이 종류와 상관없이 디버프 1개도 제거합니다.')] },
+  { lv: 20, theme: '성언', picks: [t('fullHeart', '충만한 마음', '평온 게이지가 30% 더 빨리 찹니다.'), t('spreadSerenity', '번지는 평온', '성언: 평온이 옆 아군 2명에게도 50% 위력으로 들어갑니다.'), t('echoWord', '말씀의 여운', '성언: 평온을 쓴 뒤 5초 동안 마나 소모가 50% 줄어듭니다.')] },
+  { lv: 25, theme: '성언', picks: [t('miracle', '기적의 순간', '전투마다 한 번, 평온 게이지를 바로 100%로 채웁니다.', { cd: 0, dur: 0, once: true, short: '기적' }), t('savedWord', '아껴 둔 말씀', '평온 게이지를 2회분까지 모아 둘 수 있습니다.'), t('cleansingWord', '씻는 말씀', '성언: 평온이 종류와 상관없이 디버프 1개도 제거합니다.')] },
   { lv: 30, theme: '생존', picks: [t('repay', '은혜 갚기', `내가 죽을 피해를 받으면 호감도가 가장 높은 파티원이 한 번 대신 맞습니다. 그 파티원 체력이 50% 이상일 때, 전투마다 1회 발동합니다. ${FEATURES.guild ? '호감도는 길드원은 함께 출전한 수, 공개모집은 이번 판에 내 힐을 받은 양입니다.' : '호감도는 이번 판에 내 힐을 받은 양입니다.'}`), t('twoGuard', '두 겹 수호', '수호 영혼을 2번까지 모아 둘 수 있습니다. 충전 시간은 120초입니다.'), t('firmWill', '굳은 의지', '내가 받는 피해가 20% 줄어듭니다.')] },
   { lv: 35, theme: '위기 대응', picks: [t('calmHymn', '고요한 찬가', '천상의 찬가 동안 파티원이 겁먹고 도망가지 않고, 장판 회피가 15% 늘어납니다.'), t('shelter', '쉼터', '빈 칸 1개를 20초 동안 쉼터로 만듭니다. 체력이 낮아 도망가는 파티원이 그리로 가고 초당 {30}씩 회복합니다. 재사용 대기시간은 60초입니다.', { cd: 60, dur: 20, cell: true, short: '쉼터' }), t('grief', '슬픔의 힘', '파티원이 쓰러지면 5초 동안 모든 힐이 30% 늘어납니다.')] },
   { lv: 40, theme: '범위 운영', picks: [t('doublePoh', '두 번 퍼지는 기원', '치유의 기원이 2초 뒤 50% 위력으로 한 번 더 퍼집니다.'), t('shareRenew', '나눠 주는 소생', '소생이 옆 아군 1명에게도 함께 걸립니다.'), t('quickHymn', '빨라진 찬가', '천상의 찬가 재사용 대기시간이 60초 줄어듭니다.')] },
   { lv: 45, theme: '대규모 운영', picks: [t('twoShields', '두 방패의 끈', '탱커 2명을 이어, 한쪽에 한 직접 힐의 30%가 다른 쪽에도 들어갑니다.'), t('focusOne', '한 사람만 본다', '같은 대상을 이어서 치유하면 한 번마다 10%씩, 최대 50%까지 늘어납니다.'), t('hymnTail', '찬가의 끝자락', '천상의 찬가가 끝나면 전원에게 6초 동안 {120} 회복하는 지속 힐을 겁니다.')] },
-  { lv: 50, theme: '궁극', picks: [t('zenith', '기도의 정점', '20초 동안 모든 시전이 즉시 끝나지만 마나 소모가 1.5배가 됩니다. 재사용 대기시간은 180초입니다.', { cd: 180, dur: 20, short: '정점' }), t('scatter', '흩날리는 빛', '30초 동안 모든 직접 힐이 옆 2칸에 40%씩 튑니다. 재사용 대기시간은 180초입니다.', { cd: 180, dur: 30, short: '흩빛' }), t('endless', '끊이지 않는 말씀', '게이지 50%에서도 위력 50%의 약한 성언을 쓸 수 있습니다.')] },
+  { lv: 50, theme: '궁극', picks: [t('zenith', '기도의 정점', '20초 동안 모든 시전이 즉시 끝나지만 마나 소모가 1.5배가 됩니다. 재사용 대기시간은 180초입니다.', { cd: 180, dur: 20, short: '정점' }), t('scatter', '흩날리는 빛', '30초 동안 모든 직접 힐이 옆 2칸에 40%씩 튑니다. 재사용 대기시간은 180초입니다.', { cd: 180, dur: 30, short: '흩빛' }), t('endless', '끊이지 않는 말씀', '평온 게이지 50%에서도 위력 50%의 약한 성언: 평온을 쓸 수 있습니다.')] },
 ];
 
 /**
@@ -295,7 +295,7 @@ export const TX = {
   /** 모이는 빛: 별 3개 가운데 배 · 아끼는 별비: 마나 % · 넓은 하늘: 별 4개 범위 · 회복 */
   gatherLight: 2, thriftFall: { cost: 9 }, wideSky: { range: 3, heal: -0.15 },
   /** 탱커의 기억: 몫 · 아끼는 기억: 마나 % · 긴 기억: 초 */
-  tankMemory: 0.7, thriftMemory: { cost: 8 }, longMemory: 6,
+  tankMemory: 0.7, thriftMemory: { cost: 8 }, longMemory: 3,
   /** 초신성 (◎) · 은하수 (★) */
   supernova: { cd: 180, delay: 3, range: 2, amt: 400 }, milkyWay: { cd: 180, dur: 15, shards: 2 },
 
@@ -317,7 +317,7 @@ export const TX = {
   /** 두 겹 원: 가운데 배 · 아끼는 원: 마나 % · 넓은 결계: 거리 · 두께 */
   doubleCircle: 2, thriftCircle: { cost: 7 }, wideWard: { range: 2, amt: -0.3 },
   /** 장막의 탱커: − · 장막의 숨: 마나 재생 배 · 함께 드는 짐: 거리 */
-  veilTank: 0.4, veilBreath: 2, sharedLoad: { range: 3 },
+  veilTank: 2, veilBreath: 2, sharedLoad: { sec: 10 },
   /** 성채 (◎) · 참회의 시간: 창 딜 배 · 인원 · 끝없는 심판 (★) */
   citadel: { cd: 180, dur: 12, range: 2, cut: 0.2, tick: 3, amt: 60 }, repentTime: { dps: 2, n: 5 }, endlessJudge: { cd: 180, dur: 10, cast: 1.0 },
 } as const;
@@ -536,7 +536,7 @@ export const ASTRO_TALENTS: TalentTier[] = [
   { lv: 45, theme: '대규모 운영', picks: [
     t('tankMemory', '탱커의 기억', `별의 기억이 탱커에게는 받은 피해의 ${pc(TX.tankMemory)}를 회복합니다.`),
     t('thriftMemory', '아끼는 기억', `별의 기억 마나 소모가 15%에서 ${TX.thriftMemory.cost}%로 줄어듭니다.`),
-    t('longMemory', '긴 기억', `별의 기억이 최근 ${TX.longMemory}초 동안 받은 피해를 셉니다.`)] },
+    t('longMemory', '긴 기억', `별의 기억이 별 1개마다 ${TX.longMemory}초씩 되감습니다 (원래 2초).`)] },
   { lv: 50, theme: '궁극', picks: [
     t('supernova', '초신성', `빈 칸을 골라 별을 심습니다. ${TX.supernova.delay}초 뒤 터져 ${TX.supernova.range}칸 거리 안 아군 체력을 {${TX.supernova.amt}}씩 회복합니다. 재사용 대기시간은 ${TX.supernova.cd}초입니다.`, { cd: TX.supernova.cd, dur: 0, cell: true, short: '초신성' }),
     t('starPath', '별의 길', '완벽한 별자리를 만들면 다음 별자리는 별 4개로 바로 시작합니다.'),
@@ -554,7 +554,7 @@ export const WARDER_TALENTS: TalentTier[] = [
     t('longSeal', '긴 인장', `인장 시간이 15초에서 ${TX.longSeal}초로 늘어납니다.`),
     t('cleanWard', '맑은 결계', `결계 정화로 디버프를 지우면 대상과 붙어 있는 6칸의 아군에게 {${TX.cleanWard.amt}} 보호막을 씌웁니다.`)] },
   { lv: 15, theme: '기본 강화', picks: [
-    t('firmWard', '굳은 결계', `수호 결계가 받는 피해를 ${pc(TX.firmWard)} 줄입니다.`),
+    t('firmWard', '굳은 결계', `수호 결계 보호막이 대상 최대 체력의 ${pc(TX.firmWard)}가 됩니다 (원래 30%).`),
     t('quickBarrier', '빠른 막', `빛의 막 재사용 대기가 6초에서 ${TX.quickBarrier}초로 줄어듭니다.`),
     t('sealSpread', '번지는 인장', `인장 치유 · 빠른 인장이 붙어 있는 아군 ${TX.sealSpread.n}명에게도 인장을 붙입니다.`)] },
   { lv: 20, theme: '심판', picks: [
@@ -578,9 +578,9 @@ export const WARDER_TALENTS: TalentTier[] = [
     t('thriftCircle', '아끼는 원', `결계 원 마나 소모가 10%에서 ${TX.thriftCircle.cost}%로 줄어듭니다.`),
     t('wideWard', '넓은 결계', `결계 원이 ${TX.wideWard.range}칸 거리까지 닿고, 막 두께는 ${pc(-TX.wideWard.amt)} 줄어듭니다.`)] },
   { lv: 45, theme: '대규모 운영', picks: [
-    t('veilTank', '장막의 탱커', `빛의 장막 안 탱커는 받는 피해가 ${pc(TX.veilTank)} 줄어듭니다.`),
-    t('veilBreath', '장막의 숨', '빛의 장막이 쳐진 동안 내 마나 재생이 두 배가 됩니다.'),
-    t('sharedLoad', '함께 드는 짐', `빛의 장막이 ${TX.sharedLoad.range}칸 거리까지 닿습니다.`)] },
+    t('veilTank', '장막의 탱커', `빛의 장막 보호막이 탱커에게는 ${TX.veilTank}배로 씌워집니다.`),
+    t('veilBreath', '장막의 숨', '빛의 장막을 쓰고 10초 동안 내 마나 재생이 두 배가 됩니다.'),
+    t('sharedLoad', '함께 드는 짐', `빛의 장막을 쓰고 ${TX.sharedLoad.sec}초 안에 외치는 첫 심판은 인원 제한 없이 인장이 붙은 다친 아군 모두를 회복합니다.`)] },
   { lv: 50, theme: '궁극', picks: [
     t('citadel', '성채', `빈 칸을 골라 ${TX.citadel.dur}초 동안 성채를 세웁니다. ${TX.citadel.range}칸 거리 안 아군이 받는 피해가 ${pc(TX.citadel.cut)} 줄고, ${TX.citadel.tick}초마다 {${TX.citadel.amt}} 보호막을 받습니다. 재사용 대기시간은 ${TX.citadel.cd}초입니다.`, { cd: TX.citadel.cd, dur: TX.citadel.dur, cell: true, short: '성채' }),
     t('repentTime', '참회의 시간', `빛의 창이 보스에게 두 배 피해를 주고 ${TX.repentTime.n}명을 회복합니다.`),

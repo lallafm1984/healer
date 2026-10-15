@@ -1,4 +1,4 @@
-// 성언 준비 반짝임 (Lim 2026-10-10): 평온 · 신성화 게이지가 차서 휠 칸이 성언으로 바뀌면 칸이 반짝이고 게이지 줄도 반짝임. 대상 폰 크기 (S25 · 울트라 · 플립)
+// 성언 준비 반짝임 (Lim 2026-10-10): 평온 게이지가 차서 치유 칸이 성언: 평온으로 바뀌면 칸이 반짝이고 게이지 줄도 반짝임 (82: 신성화 게이지는 없앰, 게이지 줄 하나). 대상 폰 크기 (S25 · 울트라 · 플립)
 import { chromium } from 'playwright';
 import { DEVICES } from './devices.mjs';
 import { departGo, patchSave, toParty } from './nav.mjs';
@@ -20,12 +20,12 @@ export default async function wordReady(url, shots) {
     await departGo(page); await page.clock.runFor(3100 + 300);
     const tag = `${name} ${width}×${height}`;
     /** 게이지를 바꾸고 화면이 몇 번 그려진 뒤 휠 칸 · 게이지 줄 상태 */
-    const look = async (p, s) => {
-      await page.evaluate(([p, s]) => {
+    const look = async p => {
+      await page.evaluate(p => {
         const F = window.__proto.F;
         F.skills.forEach(k => { k.next = Infinity; }); // 보스 기술은 끔 (게이지만 봄)
-        F.g.p = p; F.g.s = s;
-      }, [p, s]);
+        F.g.p = p;
+      }, p);
       await page.clock.runFor(300);
       return page.evaluate(() => {
         const one = slot => {
@@ -37,14 +37,12 @@ export default async function wordReady(url, shots) {
       });
     };
     await page.clock.runFor(100);
-    const off = await look(40, 40);
-    ok(!off.heal.holy && off.heal.name === '치유' && off.heal.anim === 'none' && off.heal.shadow === 'none' && !off.heal.sheenOn && !off.rows[0] && !off.rows[1], `${tag}: 게이지 40%면 치유 · 기원 칸 그대로 (반짝임 없음)`);
-    const on = await look(100, 40);
+    const off = await look(40);
+    ok(!off.heal.holy && off.heal.name === '치유' && off.heal.anim === 'none' && off.heal.shadow === 'none' && !off.heal.sheenOn && !off.rows[0] && off.rows.length === 1, `${tag}: 게이지 40%면 치유 칸 그대로 (반짝임 없음), 게이지 줄은 평온 하나`);
+    const on = await look(100);
     await page.clock.runFor(700);
-    ok(on.heal.holy && on.heal.name === '평온' && /wordPop/.test(on.heal.anim) && /wordGlow/.test(on.heal.anim) && on.heal.shadow !== 'none' && on.heal.sheen === 'wordSheen' && on.rows[0] && !on.rows[1] && !on.poh.holy,
-      `${tag}: 평온 100% → 치유 칸이 평온으로 바뀌고 반짝임 (금빛 테 맥동 ${on.heal.anim} · 빛줄기 ${on.heal.sheen}), 게이지 줄도`);
-    const both = await look(100, 100);
-    ok(both.poh.holy && both.poh.name === '신성화' && /wordGlow/.test(both.poh.anim) && both.poh.sheen === 'wordSheen' && both.rows[1], `${tag}: 신성화 100% → 기원 칸이 신성화로 바뀌고 반짝임`);
+    ok(on.heal.holy && on.heal.name === '평온' && /wordPop/.test(on.heal.anim) && /wordGlow/.test(on.heal.anim) && on.heal.shadow !== 'none' && on.heal.sheen === 'wordSheen' && on.rows[0] && !on.poh.holy && on.poh.name === '기원',
+      `${tag}: 평온 100% → 치유 칸이 평온으로 바뀌고 반짝임 (금빛 테 맥동 ${on.heal.anim} · 빛줄기 ${on.heal.sheen}), 게이지 줄도, 기원 칸은 그대로`);
     await page.clock.runFor(600);
     await page.locator('#controls').screenshot({ path: `${shots}/word_ready_${width}x${height}.png` });
     // 효과 줄이기: 움직임은 멈추고 금빛 테만 남음
@@ -56,7 +54,7 @@ export default async function wordReady(url, shots) {
       return r;
     });
     ok(reduced.anim === 'none' && reduced.shadow !== 'none', `${tag}: 효과 줄이기면 반짝임은 멈추고 금빛 테는 남음 (${reduced.anim} · ${reduced.shadow})`);
-    const back = await look(0, 0);
+    const back = await look(0);
     ok(!back.heal.holy && back.heal.name === '치유' && back.heal.anim === 'none' && !back.rows[0], `${tag}: 성언을 쓰면 (게이지 0) 반짝임이 꺼짐`);
     await ctx.close();
   }

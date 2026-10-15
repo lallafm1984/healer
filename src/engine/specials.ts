@@ -192,6 +192,7 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.warmCloak && u.debuffs.some(d => d.dot || d.grow)) m += v.warmCloak;
   if (v.shelterMap && f.tels.some(t => t.kind === 'zone' && t.cells.has(u.cell))) m += v.shelterMap;
   if (k === 'serenity') m += v.serenityEcho ?? 0;
+  if (k === 'poh' && v.consecratedLight && on(f, 'pohBless')) m += v.consecratedLight; // 축성의 빛 (82)
   if (k === 'oath') m += v.firmOath ?? 0;
   // 직업 전용 (42 2-9, 2026-10-14): 수호 영혼 · 지속 힐 2개 · 봉화 · 신성한 힘 가득 · 희생
   if (v.guardianLight && u.guardian > 0) m += v.guardianLight;
@@ -286,7 +287,9 @@ export function specExec(f: Fight, key: SkillKey, castTime: number): void {
     s.chain = s.chain.includes(key) ? [key] : [...s.chain, key];
     if (s.chain.length >= 4) { s.chain = []; s.until.constellation = f.t + 6; shout(f, 'constellation'); }
   }
-  if (v.graceWord && (key === 'serenity' || key === 'sanctify')) f.mana = Math.min(100, f.mana + v.graceWord); // 성언의 은혜 (42 사제 17)
+  if (v.graceWord && key === 'serenity') f.mana = Math.min(100, f.mana + v.graceWord); // 성언의 은혜 (42 사제 17)
+  if (v.consecratedLight && key === 'serenity') s.until.consecratedLight = f.t + 10; // 축성의 빛 (42 사제 13, 82): 다음 기원
+  if (key === 'poh' && on(f, 'consecratedLight')) { s.until.pohBless = f.t + castTime + 0.5; delete s.until.consecratedLight; } // 이번 기원 (시전이 끝나 나갈 때까지)
   if (v.bloomBreath && key === 'bloom') f.mana = Math.min(100, f.mana + v.bloomBreath); // 피어나는 숨 (42 드루 24)
   if (sk.slot === 'raid') {
     if (v.encore) s.until.encore = f.t + 12;
@@ -389,7 +392,6 @@ export function castCut(f: Fight, key: SkillKey): number {
   if (key === 'growth') return v.dawnDew ?? 0;
   if (key === 'rebirth') return v.quickRebirth ? 1 : 0;
   if (key === 'shower') return v.quickShower ?? 0; // 빠른 소나기 (주술 06)
-  if (key === 'mistWrap') return v.quickWrap ?? 0; // 빠른 감싸기 (수도 06)
   if (key === 'sealHeal') return v.sealHaste ?? 0; // 서두른 인장 (결계 06)
   return 0;
 }
@@ -405,6 +407,7 @@ export function cdSpec(f: Fight, key: SkillKey, cd: number): number {
   if (key === 'bloom') cd -= v.hastyBloom ?? 0;
   if (key === 'droplet') cd -= v.hastyDrop ?? 0; // 서두른 물방울 (주술 03)
   if (key === 'wanderMist') cd -= v.hastyMist ?? 0; // 서두른 안개 (수도 03)
+  if (key === 'mistWrap') cd -= v.quickWrap ?? 0; // 빠른 감싸기 (수도 06, 82: 시전 −초 → 재사용 −초)
   if (key === 'twinkle') cd -= v.hastyTwinkle ?? 0; // 서두른 반짝임 (점성 03)
   if (key === 'lightSpear') cd -= v.hastySpear ?? 0; // 서두른 창 (결계 03)
   return Math.max(0, cd);

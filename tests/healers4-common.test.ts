@@ -49,8 +49,8 @@ describe('직업 7개 데이터 (79 0장 · 1장 · 6-1)', () => {
         expect(heroOfSkill(k)).toBe(h);
       }
     }
-    expect(Object.keys(SKILLS).length).toBe(26 + 34);
-    expect(seen.size).toBe(60);
+    expect(Object.keys(SKILLS).length).toBe(25 + 34); // 82: 사제 성언: 신성화를 없앰
+    expect(seen.size).toBe(59);
   });
   it('가운데 스킬: 주술사 샘 토템 · 결계사 심판, 휠 밖 (칸 이름 core)', () => {
     expect(CORE_SKILL).toEqual({ shaman: 'springTotem', warder: 'judgment' });
@@ -72,18 +72,20 @@ describe('직업 7개 데이터 (79 0장 · 1장 · 6-1)', () => {
 });
 
 describe('스킬마다 GCD (79 6-1)', () => {
-  it('수도사 생기 손바닥 GCD 1.0초 (가속 반영), 다른 스킬은 규칙 GCD', () => {
+  it('수도사 생기 손바닥 GCD 1.0초 (가속 반영), 다른 스킬은 규칙 GCD (82: 즉시가 된 안개 감싸기도)', () => {
     const f = fight('monk');
     expect(gcdOf(f, 'vitalPalm')).toBeCloseTo(f.gcdBase / 1.5, 9);
     expect(gcdOf(f, 'mistWrap')).toBeCloseTo(f.gcdBase, 9);
+    expect(gcdOf(f, 'mistBreath')).toBeCloseTo(f.gcdBase, 9);
     use(f, 'vitalPalm', tank(f).cell);
     expect(f.gcd).toBeCloseTo(f.gcdBase / 1.5, 9);
   });
   it('GCD 0 (차 한 잔): GCD · 시전 중에도 바로 나가고 시전을 끊지 않음, GCD를 안 바꿈', () => {
     const f = fight('monk');
-    use(f, 'mistWrap', tank(f).cell);
+    use(f, 'vitalPalm', tank(f).cell);
+    f.cast = { key: 'vitalPalm', cell: tank(f).cell, uid: tank(f).id, left: 1, total: 1 }; // 82: 수도사는 시전 스킬이 없어 시전 중 상태를 직접 만듦
     const g = f.gcd, cast = f.cast;
-    expect(cast).not.toBeNull();
+    expect(g).toBeGreaterThan(0);
     const r = use(f, 'tea', 0);
     expect(r.ok).toBe(true);
     expect(r.queued).toBeFalsy();

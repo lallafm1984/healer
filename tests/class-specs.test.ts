@@ -75,11 +75,10 @@ describe('사제 17~24', () => {
     const [a, b] = pair('graceWord', 1.5); both([a, b], f => { hurt(f); f.mana = 50; f.g.p = 100; cast(f, 'serenity', tank(f)); });
     expect(a.mana - b.mana).toBeCloseTo(1.5, 6);
   });
-  it('번지는 울림: 평온을 쓰면 신성화 게이지 +, 신성화를 쓰면 평온 게이지 +', () => {
+  it('번지는 울림 (82): 평온을 쓴 뒤 평온 게이지가 그만큼에서 시작', () => {
     const [a, b] = pair('crossWord', 0.15); both([a, b], f => { hurt(f); f.g.p = 100; cast(f, 'serenity', tank(f)); });
-    expect(a.g.s - b.g.s).toBeCloseTo(15, 6);
-    both([a, b], f => { f.g.s = 100; f.g.p = 0; cast(f, 'sanctify', tank(f)); });
-    expect(a.g.p - b.g.p).toBeCloseTo(15, 6);
+    expect(a.g.p).toBeCloseTo(15, 6);
+    expect(b.g.p).toBe(0);
   });
   it('소생의 매듭: 소생이 끝까지 가면 대상이 지능 비율만큼 회복 (덮어쓰면 안 나옴)', () => {
     const [a, b] = pair('renewKnot', 0.25); both([a, b], f => { big(f); cast(f, 'renew', tank(f)); step(f, 10); });
@@ -94,10 +93,10 @@ describe('사제 17~24', () => {
     both([a, b], f => { addDebuff(f, tank(f), { name: '저주', type: '마법', left: 20 }); cast(f, 'purify', tank(f)); });
     expect(a.g.p - b.g.p).toBeCloseTo(15, 6);
   });
-  it('모두의 기도: 치유의 기원이 4명 이상 회복하면 신성화 게이지 +', () => {
+  it('모두의 기도: 치유의 기원이 4명 이상 회복하면 평온 게이지 +', () => {
     const [a, b] = pair('groupPrayer', 0.12);
     both([a, b], f => { hurt(f); cast(f, 'poh', withAdj(f, 3)); });
-    expect(a.g.s - b.g.s).toBeCloseTo(12, 6);
+    expect(a.g.p - b.g.p).toBeCloseTo(12, 6);
   });
   it('빛의 발자국: 빛의 전이 옮겨 가는 횟수 +1', () => {
     const [a, b] = pair('relayStep', 1);

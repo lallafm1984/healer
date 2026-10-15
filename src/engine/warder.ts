@@ -19,7 +19,8 @@ import type { Fight, Unit } from './types';
 
 /** 결계사 전투 상태 (빛의 장막 · 특성 재발동 · 나를 위한 막 · 창 뒤의 심판) */
 export interface WarderState {
-  veil: { cell: number; until: number; r: number } | null;
+  /** 빛의 장막을 쓴 뒤 (82): 장막의 숨 · 함께 드는 짐이 켜진 시각까지, judged = 함께 드는 짐 심판을 썼는지 */
+  veil: { until: number; judged: boolean } | null;
   stepCd: number;
   preCd: number;
   lastCd: number;
@@ -55,6 +56,7 @@ export function putSeal(f: Fight, u: Unit): void {
 export const sealTargets = (f: Fight, n: number): Unit[] => living(f).filter(u => sealed(f, u) && hurt(u) && !shun(u)).sort((a, b) => a.hp / a.max - b.hp / b.max).slice(0, n);
 /** 심판이 회복하는 최대 인원: 6명 (20인 · 10인 · 5인 보정), 넓은 심판 */
 export function judgeCount(f: Fight): number {
+  if (f.tx.on.sharedLoad && f.warder?.veil && f.warder.veil.until > f.t && !f.warder.veil.judged) return f.party.length; // 함께 드는 짐 (82): 장막 뒤 첫 심판은 인원 제한 없이
   const base = f.enc.big ? WARDER.big.judge : f.party.length >= 10 ? WARDER.raid.judge : f.party.length >= 5 ? WARDER.five.judge : WARDER.judge.n;
   return f.tx.on.wideJudge ? Math.max(TX.wideJudge, base) : base;
 }
@@ -99,6 +101,7 @@ function judgment(f: Fight): void {
   s.judgeCut = 0;
   bossHit(f, WARDER.judge.dps * (1 + (f.sp ? sv(f, 'judgeHit') : 0)));
   const vs = sealBurst(f, 'judgment', judgeCount(f), SKILLS.judgment.amt! * (1 + (f.sp ? sv(f, 'deepSeal') : 0)));
+  if (s.veil && s.veil.until > f.t && f.tx.on.sharedLoad) s.veil.judged = true;
   if (vs.length >= WARDER.price.n && heroPassive(f, '인장의 대가')) f.mana = Math.min(100, f.mana + WARDER.price.mana);
   if (f.sp && sv(f, 'judgeMana')) f.mana = Math.min(100, f.mana + vs.length * sv(f, 'judgeMana')); // 심판의 마나 (결계 17)
   emit(f, { type: 'sound', name: 'chime' });
@@ -138,15 +141,23 @@ export function warderApply(f: Fight, key: SkillKey, u: Unit): void {
     if (f.sp) aoeDone(f, u.cell, amt, r);
     emit(f, { type: 'sound', name: 'chime' });
   } else if (key === 'guardWard') {
-    const sec = guardSec(f, WARDER.guard.sec + (f.sp ? sv(f, 'longGuard') : 0)), cut = on.firmWard ? TX.firmWard : WARDER.guard.cut; // 긴 수호 (결계 04) · 굳은 결계
-    u.redu = sec; u.reduCut = cut;
-    if (f.sp) twin(f, u, v => { v.redu = sec / 2; v.reduCut = cut; }); // 쌍둥이 방패
+    // 82: 큰 보호막 (대상 최대 체력 비율, 힐 배율과 상관없이) + 인장. 긴 수호 (결계 04) · 수호의 깃 (42) · 굳은 결계
+    const sec = guardSec(f, WARDER.guard.sec + (f.sp ? sv(f, 'longGuard') : 0)), hp = on.firmWard ? TX.firmWard : WARDER.guard.hp;
+    giveAbsorb(f, u, u.max * hp, sec, WARDER.shieldCap);
+    putSeal(f, u);
+    if (f.sp) twin(f, u, v => { giveAbsorb(f, v, v.max * hp / 2, sec / 2, WARDER.shieldCap); }); // 쌍둥이 방패
+    u.lastHeal = f.t; if (u.sulking) u.sulking = false;
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'lightVeil') {
-    s.veil = { cell: u.cell, until: f.t + WARDER.veil.sec + (f.sp ? sv(f, 'longVeil') : 0), r: on.sharedLoad ? TX.sharedLoad.range : WARDER.veil.range }; // 긴 장막 (결계 07) · 함께 드는 짐
-    for (const v of near(f, u.cell, s.veil.r)) if (v !== u) noteUsed(f, 'lightVeil', v.id);
+    // 82: 파티 전원 보호막 + 인장 (장막의 탱커 2배 · 굳은 장막 결계 05 +). 장막의 숨 · 함께 드는 짐은 쓴 뒤 10초
+    const sec = WARDER.veil.sec + (f.sp ? sv(f, 'longVeil') : 0), amt = SKILLS.lightVeil.amt! * (1 + (f.sp ? sv(f, 'firmVeil') : 0)); // 긴 장막 (결계 07)
+    s.veil = { until: f.t + WARDER.veil.after, judged: false };
+    for (const v of living(f)) {
+      if (v !== f.me) noteUsed(f, 'lightVeil', v.id);
+      giveShield(f, v, amt * (on.veilTank && v.role === 'tank' ? TX.veilTank : 1), sec);
+      putSeal(f, v);
+    }
     emit(f, { type: 'sound', name: 'hymn' });
-    emit(f, { type: 'msg', text: `빛의 장막: ${Math.round(s.veil.until - f.t)}초` });
   } else if (key === 'lightSpear') {
     bossHit(f, WARDER.spear.dps * (on.repentTime ? TX.repentTime.dps : 1)); // 참회의 시간
     const vs = sealBurst(f, 'lightSpear', on.repentTime ? TX.repentTime.n : f.party.length >= 10 ? WARDER.raid.spear : WARDER.spear.n, SKILLS.lightSpear.amt!); // 참회의 시간 · 레이드 보정
@@ -173,13 +184,10 @@ export function judgeCast(f: Fight): number {
   const base = activeOn(f, 'endlessJudge') ? TX.endlessJudge.cast : f.tx.on.quickJudge ? TX.quickJudge : SKILLS.judgment.cast;
   return Math.max(0.5, base - (f.warder?.judgeCut ?? 0));
 }
-/** 받는 피해 배율: 빛의 장막 (장막의 탱커 · 굳은 장막) · 성채 · 나눠 지는 짐 (나) */
+/** 받는 피해 배율: 성채 · 나눠 지는 짐 (나). 빛의 장막은 82부터 보호막 */
 export function warderTaken(f: Fight, u: Unit): number {
-  const s = f.warder, on = f.tx.on;
+  const on = f.tx.on;
   let m = 1;
-  if (s?.veil && s.veil.until > f.t && hexDist(cellOf(f, u), f.cells[s.veil.cell]) <= s.veil.r) {
-    m *= 1 - ((on.veilTank && u.role === 'tank' ? TX.veilTank : WARDER.veil.cut) + (f.sp ? sv(f, 'firmVeil') : 0));
-  }
   if (f.totems.length) {
     const c = cellOf(f, u);
     if (f.totems.some(t => t.kind === 'citadel' && hexDist(f.cells[t.cell], c) <= TX.citadel.range)) m *= 1 - TX.citadel.cut;
@@ -246,6 +254,6 @@ export function warderDeath(f: Fight, u: Unit): void {
 export function citadel(f: Fight, cell: number): void {
   placeTotem(f, 'citadel', cell, TX.citadel.dur, { firm: true, tick: 0 });
 }
-/** 지금 빛의 장막 (화면 표시 · 자동 힐러) */
+/** 빛의 장막을 쓴 뒤 10초 (장막의 숨 · 함께 드는 짐, 자동 힐러) */
 export const veilOf = (f: Fight) => (f.warder?.veil && f.warder.veil.until > f.t ? f.warder.veil : null);
 export const citadels = (f: Fight) => totemsOf(f, 'citadel');

@@ -16,7 +16,7 @@ describe('현재 직업의 레벨업 안내', () => {
   });
 
   it.each<[HeroKey, string, string, string]>([
-    ['priest', '빛의 은총', '성언 게이지', '천상의 찬가'],
+    ['priest', '빛의 은총', '평온 게이지', '천상의 찬가'],
     ['druid', '뿌리 깊음', '군락', '고요한 숲'],
     ['paladin', '굳건한 손', '봉화', '빛의 성역'],
   ])('%s: 패시브 · 고유 시스템 · 공대 스킬도 직업에 맞게 안내', (hero, passive, system, raidSkill) => {

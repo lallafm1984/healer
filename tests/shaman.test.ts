@@ -77,6 +77,16 @@ describe('스킬', () => {
     u.hp = u.max * 0.3;
     expect(cast(f, 'ripple', u.cell).find(e => e.id === u.id)!.amt).toBe(Math.round(R * DEEP));
   });
+  it('잔물결 (82): 붙어 있는 가장 다친 아군에게 40% 한 번 튐, 다친 아군이 없으면 안 튐', () => {
+    const f = fight(), u = withAdj(f, 2), [a, b] = adj(f, u);
+    for (const x of f.party) { x.base = x.max = 5000; x.hp = x.max; }
+    u.hp = u.max * 0.9; a.hp = a.max * 0.6; b.hp = b.max * 0.8;
+    const hs = cast(f, 'ripple', u.cell);
+    expect(hs.find(e => e.id === a.id)!.amt).toBe(Math.round(R * SHAMAN.ripple.bounce));
+    expect(hs.some(e => e.id === b.id)).toBe(false);
+    a.hp = a.max; b.hp = b.max; u.hp = u.max * 0.9;
+    expect(cast(f, 'ripple', u.cell).filter(e => e.id !== u.id)).toEqual([]);
+  });
   it('물방울: 12초 · 3초마다, 재사용', () => {
     const f = fight(), u = others(f)[0];
     cast(f, 'droplet', u.cell);

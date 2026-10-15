@@ -417,8 +417,6 @@ export function autoHealer(f: Fight): void {
   const hp = healUnit(f);
   // 기원 범위는 반경 1로만 셈: 넓은 원 (반경 2)까지 세면 기원을 더 자주 써서 마나가 먼저 바닥남 (2026-10-14 168곳 비교: 5인 악몽 62 → 58%)
   const { best, score } = clusterOf(f, live, all, 180, 1);
-  // 성언 (신성화)은 옛 문턱 그대로: 3인에서 더 일찍 쓰면 게이지 값을 덜 써서 오히려 낮아짐 (3인 어려움 83 → 80%)
-  if (f.g.s >= 100 && score > (thrifty ? 450 : 900) * hp) { use(f, 'sanctify', cellIdx(best!)); return; }
   if (pct(low) < 0.35 && f.mana > 8 && can('flash')) { use(f, 'flash', cellIdx(low)); return; }
   if (score > aoeBar(f, 600, 180, 1) * hp && f.mana > 12 && can('poh')) { use(f, 'poh', cellIdx(best!)); return; }
   if (purifyNow()) return;
@@ -828,13 +826,14 @@ function autoMonk(f: Fight): void {
   const c = ctx(f, 160, br);
   if (!c) return;
   const { live, pct, low, idx, ready, g } = c;
-  /** 단일 힐 하나: 급하면 감싸기 (시전), 아니면 손바닥 (즉시) */
+  /** 단일 힐 하나: 급하면 감싸기 (82: 즉시 · 리듬 비례, 재사용 6초), 아니면 손바닥 */
   const one = (u: Unit, hurry: boolean) => (hurry && f.mana > 8 && tryUse(f, 'mistWrap', u, idx)) || (f.mana > 2 && tryUse(f, 'vitalPalm', u, idx));
   if (glassWindow(f, g, live, (u, hurry) => one(u, hurry), () => { if (!ready('clearChi')) return false; const d = cleansable(f, c); return !!d && tryUse(f, 'clearChi', d, idx); })) return;
   // 위급 (25% 아래): 탱커 버스터 중이면 누그러뜨림, 아니면 손바닥 (즉시라 먼저) → 감싸기
   const dying = live.filter(u => pct(u) < 0.25).sort((a, b) => pct(a) - pct(b))[0];
   if (dying) {
     if (c.busterOn === dying && ready('soothe') && tryUse(f, 'soothe', dying, idx)) return;
+    if (ready('mistWrap') && tryUse(f, 'mistWrap', dying, idx)) return; // 82: 감싸기도 즉시라 큰 쪽부터
     if (f.mana > 2 && tryUse(f, 'vitalPalm', dying, idx)) return;
   }
   if (c.busterOn && ready('soothe') && tryUse(f, 'soothe', c.busterOn, idx)) return;
@@ -940,7 +939,8 @@ function autoAstro(f: Fight): void {
   if (ready('clearStar')) { const d = cleansable(f, c); if (d && tryUse(f, 'clearStar', d, idx)) return; }
   // 공대 위기: 파티 평균 잃은 체력 40% 이상 → 별의 기억 (전원을 채우니 힐하면 손해인 사람이 없을 때만)
   const avg = live.reduce((a, u) => a + pct(u), 0) / live.length;
-  if (ready('starMemory') && live.length >= 3 && live.length === c.all.length && avg < 0.6) { use(f, 'starMemory', 0); return; }
+  // 82: 별의 기억도 모으기 → 별 3개 (최근 6초), 조각이 2개면 4개 (최근 8초)
+  if (ready('starMemory') && live.length >= 3 && live.length === c.all.length && avg < 0.6 && charge('starMemory', f.me, Math.min(4, 3 + Math.max(0, f.shards - 1)))) return;
   // 별비: 2칸 거리 4명 → 별 4개, 한 칸 둘레 3명 → 별 3개
   if (ready('starfall') && f.mana > 14) {
     const p = fallPlan(f, live, c.all);
@@ -975,12 +975,12 @@ function autoWarder(f: Fight): void {
   // 위급 (25% 아래): 탱커 버스터 중이면 수호 결계 → 빠른 인장
   const dying = live.filter(u => pct(u) < 0.25).sort((a, b) => pct(a) - pct(b))[0];
   if (dying) {
-    if (c.busterOn === dying && ready('guardWard') && tryUse(f, 'guardWard', dying, idx)) return;
+    if (c.busterOn === dying && !melt && ready('guardWard') && tryUse(f, 'guardWard', dying, idx)) return; // 82: 수호 결계도 보호막이라 녹는 동안은 안 씀
     if (one(dying, true)) return;
   }
   // 탱커 버스터: 막이 없거나 얇으면 빛의 막
   if (c.busterOn && !melt && ready('lightBarrier') && shieldLow(c.busterOn) && tryUse(f, 'lightBarrier', c.busterOn, idx)) return;
-  if (c.busterOn && ready('guardWard') && pct(c.busterOn) < 0.5 && tryUse(f, 'guardWard', c.busterOn, idx)) return;
+  if (c.busterOn && !melt && ready('guardWard') && pct(c.busterOn) < 0.5 && tryUse(f, 'guardWard', c.busterOn, idx)) return;
   { const bs = busterShort(f); if (bs && !off(f, bs.u) && one(bs.u, bs.soon)) return; }
   if (g.pre && ((!melt && ready('lightBarrier') && shieldLow(g.pre) && tryUse(f, 'lightBarrier', g.pre, idx)) || one(g.pre, false))) return;
   { const d = g.liftClean[0]; if (d && ready('wardCleanse') && tryUse(f, 'wardCleanse', d, idx)) return; }
@@ -996,7 +996,7 @@ function autoWarder(f: Fight): void {
   const avg = live.reduce((a, u) => a + pct(u), 0) / live.length;
   if ((aoeSoon && live.length >= 5) || (avg < 0.6 && live.length >= 3)) {
     const center = live.slice().sort((a, b) => live.filter(v => hexDist(cellOf(f, v), cellOf(f, b)) <= 2).length - live.filter(v => hexDist(cellOf(f, v), cellOf(f, a)) <= 2).length)[0];
-    if (center && ready('lightVeil') && (avg < 0.6 || f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 2)) && tryUse(f, 'lightVeil', center, idx)) return;
+    if (center && !melt && ready('lightVeil') && (avg < 0.6 || f.tels.some(t => t.kind === 'aoe' && t.impact - f.t < 2)) && tryUse(f, 'lightVeil', center, idx)) return; // 82: 전원 보호막 (녹는 동안은 안 씀)
   }
   // 결계 원: 광역 예고가 곧 오거나, 한 칸 둘레에 85% 아래 아군이 3명 이상 (막과 인장을 깔아 심판으로 이어 감)
   if (!melt && ready('wardCircle') && f.mana > 12) {

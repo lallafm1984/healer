@@ -118,7 +118,7 @@ export function cdMax(f: Fight, key: SkillKey): number {
   return cdOf(f, key);
 }
 
-/** 성언 게이지 상한: 아껴 둔 말씀이면 2회분 */
+/** 평온 게이지 상한: 아껴 둔 말씀이면 2회분 */
 export const wordCap = (f: Fight): number => (f.tx.on.savedWord ? 200 : 100);
 /** 성언을 쓸 수 있는지: 100%, 끊이지 않는 말씀이면 50%부터 (약한 성언) */
 export const wordReady = (f: Fight, g: number): boolean => g >= 100 || (!!f.tx.on.endless && g >= 50);
@@ -191,7 +191,7 @@ export function talentReady(f: Fight, key: TalentKey): ActionResult {
   if (def.active.once && a.used) return { ok: false, reason: `${def.name}: 전투당 1회` };
   if (a.cd > 0) return { ok: false, reason: `${def.name} 재사용 대기 ${Math.ceil(a.cd)}초` };
   if (a.left > 0) return { ok: false, reason: `${def.name} 효과 중` };
-  if (key === 'miracle' && f.g.p >= 100 && f.g.s >= 100) return { ok: false, reason: '성언 게이지가 이미 가득 참' };
+  if (key === 'miracle' && f.g.p >= 100) return { ok: false, reason: '평온 게이지가 이미 가득 참' };
   if (key === 'springRain' && !living(f).some(v => !sprouted(v))) return { ok: false, reason: '새싹이 없는 아군 없음' };
   if (key === 'oldTree' && !treeSum(f, oldTreeTarget(f))) return { ok: false, reason: '거둘 새싹 없음' };
   if (key === 'totemCall' && !f.totems.some(t => t.kind === 'spring' || t.kind === 'earth')) return { ok: false, reason: '옮길 토템 없음' };
@@ -213,10 +213,9 @@ export function useTalent(f: Fight, key: TalentKey, cellIdx?: number): ActionRes
   a.cd = def.active!.cd; a.left = def.active!.dur; a.used = true;
   f.tx.lastAct = f.t;
   if (key === 'miracle') {
-    const b = { p: f.g.p, s: f.g.s };
-    f.g.p = Math.max(f.g.p, 100); f.g.s = Math.max(f.g.s, 100);
-    if (b.p < 100) emit(f, { type: 'gauge', which: '평온' });
-    if (b.s < 100) emit(f, { type: 'gauge', which: '신성화' });
+    const b = f.g.p;
+    f.g.p = Math.max(f.g.p, 100);
+    if (b < 100) emit(f, { type: 'gauge', which: '평온' });
   }
   if (key === 'shelter') f.tx.shelter = cellIdx!;
   if (key === 'springRain') for (const v of living(f)) if (!sprouted(v)) putSprout(f, v); // 봄비 (77)
