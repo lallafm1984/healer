@@ -1,5 +1,6 @@
 import { buildClassGauge, updateClassGauge } from './class-gauge';
 import { classGaugeState } from './class-gauge-state';
+import { waveNeed } from '../engine/talents';
 /**
  * 전투 화면의 HTML 부분: 스킬 휠 · 단축칸 · 시전 막대 · 보스 무대(예고 대기열) · 설명 팝업 · 길게 누르기 정보 · 튜토리얼 안내 · 포기 버튼.
  * 매 프레임 바뀐 글자·클래스만 고침 (판은 board.ts가 캔버스에).
@@ -152,11 +153,12 @@ export function updateWheel(): void {
     const spent = skillUsesSpent(F, key);
     if (spent && B.armed === slot) B.armed = null;
     const lk = F.lock[key], cdv = sk.cd ? F.cd[key] || 0 : 0, cd = Math.max(cdv, lk?.left ?? 0), cost = costOf(F, key); // 진동 잠김도 재사용 대기처럼
-    const lowMana = F.mana < cost, lowPower = !!sk.power && F.power3 < (sk.powerAll ? 1 : sk.power);
-    const resource = sk.power ? `힘 ${sk.powerAll ? '1~3' : sk.power}` : cost ? `마나 ${Math.round(cost * 10) / 10}%` : '마나 0';
+    const powerNeed=key==='lightWave'?waveNeed(F):sk.power;
+    const lowMana = F.mana < cost, lowPower = !!sk.power && F.power3 < (sk.powerAll ? 1 : powerNeed!);
+    const resource = sk.power ? `힘 ${sk.powerAll ? '1~3' : powerNeed}` : cost ? `마나 ${Math.round(cost * 10) / 10}%` : '마나 0';
     setText(el.querySelector('.nm')!, sk.short);
     // 일반·축소는 같은 내용과 순서를 사용한다. 패널 바깥 배율만 바뀐다.
-    const visibleCost = sk.power ? (sk.powerAll ? '힘1+' : `힘${sk.power}`) : `${Math.round(cost * 10) / 10}%`;
+    const visibleCost = sk.power ? (sk.powerAll ? '힘1+' : `힘${powerNeed}`) : `${Math.round(cost * 10) / 10}%`;
     setText(el.querySelector('.ct')!, spent ? '' : visibleCost);
     // 공통 재사용 대기: 자기 재사용 대기보다 길면 연한 부채꼴로 (시전 중에는 누르면 시전을 끊고 바로 나가므로 안 그림)
     const gcd = !spent && !F.cast && F.gcd > cd ? F.gcd / F.gcdBase : 0;

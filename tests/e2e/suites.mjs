@@ -1,5 +1,7 @@
 import adventureDeparture from './adventure-departure.mjs';
 import classControls from './class-controls.mjs';
+import priestAura from './priest-aura.mjs';
+import paladinWave from './paladin-wave.mjs';
 import adventureNoScroll from './adventure-no-scroll.mjs';
 import adventureWeekly from './adventure-weekly.mjs';
 import adventureRewards from './adventure-rewards.mjs';
@@ -45,6 +47,8 @@ import floatSteady from './float-steady.mjs';
  */
 export const SUITES = [
   ['직업별 조작판·아이템 안전 여백', classControls, 45],
+  ['사제 평온 만충 후광', priestAura, 40],
+  ['성기사 파도 준비 후광', paladinWave, 50],
   ['공통 메뉴 헤더 크기', headerConsistency, 30],
   ['편성 두 단축칸·직업·출발 UI', partyRefinement, 30],
   ['출전 장소 선택 UI', adventureDeparture, 25],

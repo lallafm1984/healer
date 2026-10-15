@@ -43,11 +43,23 @@
 @media(max-width:359px){#battle #controls.hasaux #side{padding-left:0;padding-right:0}}
 
 /* 채택 B안. 자원·아이템은 하나의 고정 크기 묶음으로 두고 화면 폭별 위치만 조정한다.
- * 보조 특성 버튼이 있으면 기존 세로 흐름과 44px 터치 영역을 사용한다. */
-#battle #controls:not(.hasaux) #side{position:absolute;left:calc(var(--resource-inset) / var(--controls-scale));top:13.493px;width:108px;height:189.5px;max-width:none;padding:0;margin:0}
-#battle #controls:not(.hasaux) #gauges{position:absolute;left:.219px;top:0;width:107.547px;height:130.016px;max-width:none;margin:0}
-#battle #controls:not(.hasaux) #gauges .job-gauge[data-job=priest]{width:100%;height:100%}
-#battle #controls:not(.hasaux) #items{position:absolute;left:0;top:139.5px;margin:0}
-#battle #controls:not(.hasaux) #wheel{margin-right:calc(var(--wheel-inset) / var(--controls-scale) - 16px);transform:translateY(calc(-5px + 1.5px / var(--controls-scale)))}
-#battle #controls.wheel-left:not(.hasaux) #side{left:auto;right:calc(var(--resource-inset) / var(--controls-scale))}
-#battle #controls.wheel-left:not(.hasaux) #wheel{margin-left:calc(var(--wheel-inset) / var(--controls-scale) - 16px);margin-right:auto}
+ * 보조 특성 버튼은 별도 행에 두며 기본 슬롯을 움직이지 않는다. */
+#battle #controls #side{position:absolute;left:calc(var(--resource-inset) / var(--controls-scale));top:13.493px;width:108px;height:189.5px;max-width:none;padding:0;margin:0}
+#battle #controls #gauges{position:absolute;left:.219px;top:0;width:107.547px;height:130.016px;max-width:none;margin:0}
+#battle #controls #gauges .job-gauge[data-job=priest]{width:100%;height:100%}
+#battle #controls #items{position:absolute;left:0;top:139.5px;margin:0}
+#battle #controls #wheel{margin-right:calc(var(--wheel-inset) / var(--controls-scale) - 16px);transform:translateY(calc(-5px + 1.5px / var(--controls-scale)))}
+#battle #controls.wheel-left #side{left:auto;right:calc(var(--resource-inset) / var(--controls-scale))}
+#battle #controls.wheel-left #wheel{margin-left:calc(var(--wheel-inset) / var(--controls-scale) - 16px);margin-right:auto}
+
+/* B2: 모든 직업이 승인된 사제 B안의 같은 슬롯을 사용한다. */
+#battle #controls #gauges .job-gauge{width:100%;height:100%}
+#battle #controls #aux{position:absolute;left:16px;right:16px;top:calc(-54px / var(--controls-scale));width:auto;max-width:none;display:flex;justify-content:center;gap:8px}
+#battle #controls #aux[hidden]{display:none}
+#battle #controls #aux .aux{flex:0 0 50px;width:50px;height:50px;min-height:50px;max-width:50px;font-size:12px}
+/* 생성 배경은 9분할로 모서리를 보존한다. 가운데 목재/석재만 가변 폭에 맞춘다. */
+#battle.compact-panel #controlsFrame[data-panel-version=b2]{background-image:none;border:0 solid transparent;border-image:var(--class-background) 120 fill / 24px 14px / 0 stretch}
+
+#battle #controls.hasaux #items{min-height:50px;grid-auto-rows:50px;gap:8px}
+/* B3: 조작 좌표를 유지하고 왼쪽 외곽 세공만 넓게 보존한다. */
+#battle.compact-panel #controlsFrame[data-panel-version=b3]{background-image:none;border:0 solid transparent;border-image:var(--class-background) 120 fill / 24px 20px / 0 stretch}

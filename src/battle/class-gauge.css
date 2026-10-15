@@ -55,3 +55,59 @@
 [data-totem=earth] .aura-motion{animation-delay:-1.4s}
 @keyframes totem-active-breathe{0%,100%{opacity:.48;transform:translateY(0) scale(.98)}50%{opacity:.8;transform:translateY(-.5%) scale(1.035)}}
 @media(prefers-reduced-motion:reduce){.aura-motion{animation:none;opacity:.65;transform:none}}
+
+/* 사제 평온 만충: 기존 ready 원화와 같은 활성 상태를 사용한다.
+ * 그림 윗부분 안에서만 빛나며 숫자(원화 77%)·아이템·휠 영역으로 나오지 않는다. */
+.job-gauge[data-job=priest] .priest-art{z-index:1}
+.priest-aura{display:none;position:absolute;inset:0;z-index:0;pointer-events:none}
+.priest-aura *{pointer-events:none}
+.job-gauge[data-job=priest].is-ready .priest-aura{display:block}
+.priest-halo{position:absolute;left:5%;top:3%;width:90%;height:68%;border-radius:50%;background:radial-gradient(ellipse at 50% 45%,#fff5b855 0%,#f8cc6570 30%,#efb54230 53%,#efb54200 72%);animation:priest-halo-breathe 3.2s ease-in-out infinite}
+.priest-spark{position:absolute;width:5%;aspect-ratio:1;background:#fff5bc;clip-path:polygon(50% 0,61% 36%,100% 50%,61% 61%,50% 100%,38% 61%,0 50%,38% 36%);opacity:0;animation:priest-spark-twinkle 3.6s ease-in-out infinite}
+.priest-spark:nth-child(2){left:8%;top:22%;animation-delay:-.2s}
+.priest-spark:nth-child(3){left:86%;top:28%;animation-delay:-1.1s}
+.priest-spark:nth-child(4){left:24%;top:8%;width:4%;animation-delay:-2.2s}
+.priest-spark:nth-child(5){left:72%;top:10%;width:4%;animation-delay:-2.9s}
+.priest-spark:nth-child(6){left:91%;top:54%;width:3.5%;animation-delay:-1.7s}
+@keyframes priest-halo-breathe{0%,100%{opacity:.5;transform:scale(.96)}50%{opacity:.9;transform:scale(1)}}
+@keyframes priest-spark-twinkle{0%,60%,100%{opacity:0;transform:translateY(2px) scale(.55)}25%{opacity:.95;transform:translateY(-1px) scale(1)}45%{opacity:.2;transform:translateY(-2px) scale(.75)}}
+#battle.reduced-effects .priest-halo{animation:none;opacity:.6;transform:none}
+#battle.reduced-effects .priest-spark{display:none}
+@media(prefers-reduced-motion:reduce){.priest-halo{animation:none;opacity:.6;transform:none}.priest-spark{display:none}}
+
+/* 저장된 평온 200%: 레이어를 추가하지 않고 후광·발광 원화·반짝임 색상만 바꾼다. */
+.job-gauge[data-job=priest][data-aura-stage=blue] .priest-halo{background:radial-gradient(ellipse at 50% 45%,#f2fcff77 0%,#a7e9ff80 30%,#69cfff40 53%,#69cfff00 72%)}
+.job-gauge[data-job=priest][data-aura-stage=blue] .priest-spark{background:#d9f5ff}
+.job-gauge[data-job=priest][data-aura-stage=blue] .gauge-ready{filter:grayscale(1) sepia(1) saturate(2.5) hue-rotate(155deg)}
+
+/* B2 드루이드: 새 원화 자체가 세로 슬롯에 등록되어 채움과 원화가 동일 좌표를 쓴다. */
+.job-gauge[data-job=druid] .gauge-fill{filter:brightness(2.1) saturate(2.3) hue-rotate(18deg)}
+.job-gauge[data-job=druid] .gauge-ready{width:100%;height:100%;left:0;top:0;filter:brightness(2.4) saturate(2.4) hue-rotate(18deg)}
+
+.resource-art{position:absolute;container-type:size;pointer-events:none}
+.has-variant>.resource-art>.gauge-base,.has-variant>.resource-art>.fill-mask,.has-variant>.resource-art>.gauge-ready{display:none!important}
+.star-grid .star-cell{inset:auto;width:50%;height:47.75%;overflow:hidden}
+.star-source{position:absolute;width:347.4359%;height:258%;left:-124.35897%;top:-80%;pointer-events:none}
+/* 별 광휘는 셀 사각형 끝에서 잘리지 않도록 별 주변에서 부드럽게 사라진다. */
+.star-source .variant-fill,.star-source .variant-ready{mask-image:radial-gradient(ellipse 15% 19% at 50% 50.4%,#000 60%,transparent 100%)}
+
+/* 빛의 파도 준비: 원화 윤곽에 정렬한 빛. 오른쪽 봉화와 숫자는 침범하지 않는다. */
+.paladin-wave-aura{position:absolute;left:16%;top:60%;width:38%;height:35%;z-index:1;pointer-events:none;clip-path:inset(-4px -2px -3px -4px)}
+.paladin-wave-aura *{pointer-events:none}
+.paladin-wave-halo{position:absolute;inset:0;filter:drop-shadow(0 0 1.2px #fff3bf) drop-shadow(0 0 3px #edb449cc);animation:paladin-wave-breathe 3.8s ease-in-out infinite}
+.paladin-wave-cutout{position:absolute;inset:0;overflow:hidden}
+.job-gauge img.paladin-wave-source{width:263.157895%;height:285.714286%;left:-42.105263%;top:-171.428571%;right:auto;bottom:auto;filter:brightness(1.45) saturate(.9)}
+@keyframes paladin-wave-breathe{0%,100%{opacity:.72}50%{opacity:1}}
+#battle.reduced-effects .paladin-wave-halo{animation:none;opacity:.88}
+@media(prefers-reduced-motion:reduce){.paladin-wave-halo{animation:none;opacity:.88}}
+
+/* 세로형 성기사 방패: 원본 정사각형 캔버스에 contain, 가로·세로 배율 동일. */
+.paladin-shield{position:absolute;left:23%;top:0;width:54%;aspect-ratio:1;pointer-events:none}
+.paladin-shield img{object-fit:contain}
+.shield-base{filter:brightness(.48) saturate(.5)}
+.shield-segment{position:absolute;inset:0;pointer-events:none}
+.job-gauge[data-job=paladin] .shield-ready{inset:0;width:100%;height:100%;filter:brightness(1.3)}
+
+/* 봉화 대상은 시안과 같은 실제 화면 7.5px, 최대 5자. 조작판 배율에도 위치·글자 크기를 보존한다. */
+.paladin-beacon-name{position:absolute;width:calc(42px / var(--controls-scale,1));height:calc(9px / var(--controls-scale,1));font:600 calc(7.5px / var(--controls-scale,1))/calc(9px / var(--controls-scale,1)) system-ui,sans-serif;color:#fff0c8;text-align:center;white-space:nowrap;transform:translateX(-50%);text-shadow:0 1px 2px #000,0 0 2px #000;pointer-events:none;z-index:3}
+.paladin-beacon-name.is-unassigned{color:#baa98d}
