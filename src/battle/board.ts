@@ -29,7 +29,7 @@ import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, hotTimersOf
 import { CELL_RADIUS, fitBoard, hotTimerLayout } from './board-layout';
 import { BOARDS } from '../data/boards';
 import { makeCells } from '../engine/board';
-import { BOSS_PXF, bossPxfOf, COMMON_PXF, heroSkillFx, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, wideArtName, type CommonFx, type PxfKey } from './pxf';
+import { ALWAYS_FX, BOSS_PXF, bossPxfOf, COMMON_PXF, heroSkillFx, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, type CommonFx, type PxfKey } from './pxf';
 
 // ---------- 색 ----------
 const hex = (c: string) => parseInt(c.slice(1, 7), 16);
@@ -113,7 +113,7 @@ export async function initBoard(): Promise<void> {
   // 말풍선 틀 · 꼬리 · 대사 이펙트 띠는 미리 읽어 둠 (첫 말풍선이 앱 그림으로 잠깐 보였다 바뀌지 않게, 43 5장)
   for (const k of ['talk', 'call', 'alert', 'chat']) { artTexture(`ui-bubble-${k}`); artTexture(`ui-bubble-tail-${k}`); }
   for (const n of Object.keys(TALK_FX)) artTexture(`fx-talk-${n}`);
-  for (const k of Object.keys(PXF) as PxfKey[]) if (!isBossPxf(k) && !PXF[k].smooth) artTexture(pxfArtName(k)); // 첫 스킬부터 보이게 (보스 판 전체 공격 · 손그림풍 스킬 이펙트는 전투마다 resetBoardFx)
+  for (const k of Object.keys(PXF) as PxfKey[]) if (!isBossPxf(k) && (!PXF[k].smooth || ALWAYS_FX.has(k))) artTexture(pxfArtName(k)); // 첫 효과부터 보이게 (보스 판 전체 공격 · 직업 스킬 이펙트는 전투마다 resetBoardFx)
   if (B.F) resizeBoard();
   await document.fonts?.ready;
   await frameReady;
@@ -833,16 +833,16 @@ export function resetBoardFx(): void {
   darkAt = null;
   if (B.F) for (const a of bossFxArts(B.F.enc.script)) artTexture(a); // 묶음 H 이펙트 (63 E): 첫 번째부터 보이게
   if (B.F) for (const a of HERO_BOARD_ART[B.F.hero] ?? []) artTexture(a); // 힐러 직업 4종 판 위 그림 (80 5장)
-  // 보스 판 전체 공격 PXF (256px 띠, 하나에 4–6MB): 이 전투에서 나올 수 있는 것만 읽어 두고 다른 전투 것은 내려 놓음
-  const want = new Set((B.F ? bossPxfOf(B.F.enc) : []).map(pxfSheet));
+  // 보스 판 전체 공격 (Codex 손그림 256px 띠, 하나에 4–6MB): 이 전투에서 나올 수 있는 것만 읽어 두고 다른 전투 것은 내려 놓음
+  const want = new Set((B.F ? bossPxfOf(B.F.enc) : []).map(pxfArtName));
   for (const k of Object.values(BOSS_PXF)) {
-    const name = pxfSheet(k!);
+    const name = pxfArtName(k!);
     if (want.has(name)) artTexture(name); else if (artTex.has(name)) dropArt(name);
   }
   // 손그림풍 스킬 이펙트 (224px 격자, 하나에 2–5MB): 지금 직업 것만 (첫 스킬부터 보이게), 다른 직업 것은 내려 놓음
   const mine = new Set(B.F ? heroSkillFx(B.F.hero) : []);
   for (const k of Object.keys(PXF) as PxfKey[]) {
-    if (!PXF[k].smooth) continue;
+    if (!PXF[k].smooth || isBossPxf(k) || ALWAYS_FX.has(k)) continue;
     const name = pxfArtName(k);
     if (mine.has(k)) artTexture(name); else if (artTex.has(name)) dropArt(name);
   }
@@ -1049,12 +1049,10 @@ export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: nu
   B2.fx.push({ kind: 'heal', id: u.id, t0: now, crit: !starDone, seeds: Array.from({ length: crit ? 8 : 4 }, rnd), plain: glowDone });
 }
 /** 스킬 PXF 이펙트 (battle/pxf.ts): 스킬이 들어간 칸에서 맞는 순간부터 끝까지. 파티 전원 스킬은 20인이면 20개라 따로 상한 */
-/** PXF 프레임 띠 이름: 보스 판 전체 공격은 Codex 그림 띠 (66 `fx-wide-`)가 들어왔으면 그것, 없으면 PXF 띠 */
-const pxfSheet = (k: PxfKey): string => (isBossPxf(k) && art(wideArtName(k)) ? wideArtName(k) : pxfArtName(k));
-/** PXF 프레임 띠를 읽어 둠 (못 읽었으면 다시 읽기 시작하고 false) */
-export const pxfReady = (k: PxfKey): boolean => !!artTexture(pxfSheet(k));
-/** 읽어 둔 보스 판 전체 공격 PXF (화면 테스트: 전투마다 그 전투 것만) */
-export const bossPxfLoaded = (): PxfKey[] => Object.values(BOSS_PXF).filter((k): k is PxfKey => !!k && artLoaded.has(pxfSheet(k)));
+/** 프레임 띠를 읽어 둠 (못 읽었으면 다시 읽기 시작하고 false) */
+export const pxfReady = (k: PxfKey): boolean => !!artTexture(pxfArtName(k));
+/** 읽어 둔 보스 판 전체 공격 띠 (화면 테스트: 전투마다 그 전투 것만) */
+export const bossPxfLoaded = (): PxfKey[] => Object.values(BOSS_PXF).filter((k): k is PxfKey => !!k && artLoaded.has(pxfArtName(k)));
 /** PXF 이펙트를 재생 (프레임 띠를 아직 못 읽었으면 안 넣고 false: 부른 쪽이 예전 그림 · 공통 치유 빛을 대신 그림) */
 /** 사람 없는 칸에 스킬 PXF 이펙트 (판 위 물건을 세움, 79 6-1) */
 export function fxPxfCell(cell: number, pxf: PxfKey, now: number): boolean {
@@ -1210,16 +1208,15 @@ function smoothFrame(k: PxfKey, i: number): Texture | null {
   return partTex(name, tex, at.x * px + e, at.y * px + e, c.size * px - 2 * e, c.size * px - 2 * e);
 }
 /**
- * 보스 판 전체 공격 PXF (pxf.ts BOSS_PXF) 한 프레임: 캔버스를 판 너비 (세로로 길면 높이)로 키워 판 가운데에, 판 밖으로 나가는 부분은 프레임을 잘라 냄.
- * 띠는 256px 프레임 격자 (Lim 「픽셀 크기를 늘려서」 → 「픽셀이 좀더 디테일」 → 256px). 층은 다른 PXF처럼 판 맨 위.
- * Codex 그림 띠 (66 `fx-wide-`, 같은 격자)가 있으면 그것을 부드럽게 늘리고, 옆 프레임이 번져 들지 않게 반 픽셀 안쪽만 씀
+ * 보스 판 전체 공격 (pxf.ts BOSS_PXF) 한 프레임: 캔버스를 판 너비 (세로로 길면 높이)로 키워 판 가운데에, 판 밖으로 나가는 부분은 프레임을 잘라 냄.
+ * 띠는 Codex 손그림 256px 프레임 격자 (66 `fx-wide-`). 층은 다른 이펙트처럼 판 맨 위. 부드럽게 늘리고, 옆 프레임이 번져 들지 않게 반 픽셀 안쪽만 씀
  */
 function pxfWide(k: PxfKey, key: string, ms: number, tint = 0xffffff): void {
-  const c = PXF[k], i = pxfFrame(c, ms), name = pxfSheet(k), tex = i < 0 ? null : artTexture(name);
+  const c = PXF[k], i = pxfFrame(c, ms), name = pxfArtName(k), tex = i < 0 ? null : artTexture(name);
   const w = L.right - L.left, h = L.bottom - L.top;
   if (!tex || w <= 0 || h <= 0) return;
-  const smooth = name !== pxfArtName(k), mode = smooth ? 'linear' : 'nearest', e = smooth ? 0.5 : 0;
-  if (tex.source.scaleMode !== mode) tex.source.scaleMode = mode;
+  const e = 0.5;
+  if (tex.source.scaleMode !== 'linear') tex.source.scaleMode = 'linear';
   const px = tex.width / (c.cols * c.size), at = pxfCell(c, i), cr = pxfCrop(c, w, h), x = (L.left + L.right) / 2, y = (L.top + L.bottom) / 2;
   pxfArt.put(partTex(name, tex, (at.x + cr.x) * px + e, (at.y + cr.y) * px + e, cr.w * px - 2 * e, cr.h * px - 2 * e), x, y, w, h, 1, c.gray ? tint : 0xffffff);
   recordBound(key, 'fx', 'rect', x, y, w, h, { frame: i, tint: c.gray ? tint : undefined });
