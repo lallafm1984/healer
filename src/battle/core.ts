@@ -286,14 +286,34 @@ export function alarm(a: { title: string; text: string } | null): void {
   } else { noteAt = performance.now(); showNote(); }
 }
 let bannerTimer: ReturnType<typeof setTimeout> | undefined;
+/** 큰 알림이 한 줄에 안 들어갈 때 줄일 글자 크기 (px). 두 줄에 들어가는 가장 큰 크기, 끝까지 안 되면 마지막 크기로 세 줄 */
+const BANNER_FIT = [22, 20, 18, 16];
 /** 판 가운데 큰 알림 띠. tone = 색 (danger 붉게 · win 금빛 · lose 잿빛), sub = 아래 작은 줄 (글자 내용은 text만) */
 export function banner(text: string, o: { tone?: 'danger' | 'win' | 'lose'; sub?: string } = {}): void {
   const b = $('banner');
   clearTimeout(bannerTimer);
-  b.textContent = text; b.dataset.tone = o.tone ?? ''; b.dataset.sub = o.sub ?? '';
+  const main = document.createElement('span');
+  // 「·」 「→」가 줄 맨 앞에 오지 않게 앞 칸을 붙는 공백으로 (줄은 그 뒤에서 바뀜)
+  main.className = 'bn-main'; main.textContent = text.replace(/ ([·→])/g, '\u00A0$1');
+  b.replaceChildren(main); b.dataset.tone = o.tone ?? ''; b.dataset.sub = o.sub ?? '';
+  fitBanner(main);
   b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
   // 효과를 끈 때도 경고를 정적으로 보여 주고 같은 수명 뒤 숨긴다.
   bannerTimer = setTimeout(() => b.classList.remove('show'), 2600);
+}
+/** 긴 알림 (보스 페이즈 설명 등)은 어절 단위로 줄을 바꾸고 (CSS), 한 줄에 안 들어가면 두 줄에 들어갈 때까지 글자를 줄임 */
+function fitBanner(main: HTMLElement): void {
+  const lines = () => {
+    const cs = getComputedStyle(main);
+    return Math.round(main.offsetHeight / (parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.12));
+  };
+  if (lines() <= 1) return; // 판이 안 보일 때 (0줄)도 그대로
+  const base = parseFloat(getComputedStyle(main).fontSize);
+  for (const px of BANNER_FIT) {
+    if (px >= base) continue;
+    main.style.fontSize = `${px}px`;
+    if (lines() <= 2) return;
+  }
 }
 
 /** 새 화면(.screen)이 늘어나도 하나만 보이게 */

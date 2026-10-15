@@ -11,12 +11,17 @@
     linear-gradient(90deg, transparent 4%, var(--bn-line) 26%, var(--bn-hi) 50%, var(--bn-line) 74%, transparent 96%) top / 100% 2px no-repeat,
     linear-gradient(90deg, transparent 4%, var(--bn-line) 26%, var(--bn-hi) 50%, var(--bn-line) 74%, transparent 96%) bottom / 100% 2px no-repeat,
     linear-gradient(90deg, rgba(var(--bn-bg), 0), rgba(var(--bn-bg), .84) 22%, rgba(var(--bn-bg), .9) 50%, rgba(var(--bn-bg), .84) 78%, rgba(var(--bn-bg), 0));
-  font-size: 28px; font-weight: 400; line-height: 1.12; letter-spacing: .02em; color: #ffe08a; white-space: nowrap;
+  font-size: 28px; font-weight: 400; line-height: 1.12; letter-spacing: .02em; color: #ffe08a;
+  /* 긴 알림 (보스 페이즈 설명 등)이 화면 밖으로 나가던 것 (2026-10-16 Lim) → 어절 단위로 줄바꿈, 줄 길이를 고르게.
+     한 줄에 안 들어가면 core.ts fitBanner가 두 줄에 들어갈 때까지 글자를 줄임 */
+  white-space: normal; word-break: keep-all; overflow-wrap: anywhere; text-wrap: balance;
   -webkit-text-stroke: 1px #2a1806; paint-order: stroke fill;
   text-shadow: 0 2px 0 #2a1806, 0 0 16px rgba(255, 186, 74, .38);
 }
+#battle #banner .bn-main { display: block; max-width: 100%; }
 #battle #banner::after {
-  content: attr(data-sub); margin-top: 2px; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  content: attr(data-sub); margin-top: 2px; max-width: 100%;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
   font: 700 12px/1.25 var(--font-body); letter-spacing: 0; color: #eadbb7; -webkit-text-stroke: 0; text-shadow: 0 1px 0 #000;
 }
 #battle #banner[data-sub=""]::after { display: none; }
