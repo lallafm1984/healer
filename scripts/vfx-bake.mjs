@@ -1,7 +1,8 @@
 // 스킬 이펙트 굽기 (Lim 2026-10-16 「스킬이펙트가 너무 허술한게 많다. 퀄리티 있게 모두 다시」): scripts/vfx/<직업>.mjs의 그리기 함수를
 // Playwright 크로미움 캔버스로 프레임마다 그려 src/art/fx-skill-<이름>.webp (224px 프레임 격자, 한 줄 ⌈√frames⌉장)로 저장한다.
-// 사용: node scripts/vfx-bake.mjs <이름|직업|all> [--review <폴더> --bg <판 배경 폴더>]
-//   --review: 실제 전투 판 사진 (bg 폴더의 board5.png · board20.png · boards.json, 화면 테스트로 찍은 것) 위에 게임 크기로 올린 검수 시트
+// 사용: npm run fx:bake -- <이름|직업|all> [--review <폴더>] [--contact <파일.png>] [--bg <판 사진 폴더, 기본 .sim/vfx-bg>]  (만드는 법: scripts/vfx/README.md)
+//   --review: 실제 전투 판 사진 (npm run fx:board 로 찍은 board5.png · board20.png · boards.json) 위에 게임 크기로 올린 이펙트마다 검수 시트
+//   --contact: 고른 이펙트를 한 줄씩 (탱커 칸 8장 + 밝은 칸 1장) 모은 한눈에 시트 (--review와 같이)
 import { chromium } from 'playwright';
 import { build } from 'rolldown';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -16,7 +17,8 @@ const want = args[0];
 if (!want) { console.error('사용: node scripts/vfx-bake.mjs <이름|직업|all> [--review 폴더 --bg 폴더]'); process.exit(1); }
 const names = want === 'all' ? Object.keys(FX) : HERO_FX[want] ?? want.split(',');
 for (const n of names) if (!FX[n]) { console.error(`없는 이펙트: ${n}`); process.exit(1); }
-const review = opt('review'), bgDir = opt('bg');
+const review = opt('review'), bgDir = opt('bg') ?? join(ROOT, '.sim/vfx-bg');
+if (review && !existsSync(join(bgDir, 'boards.json'))) { console.error(`판 사진이 없음 (${bgDir}): 먼저 npx vite build && npm run fx:board`); process.exit(1); }
 
 // 그리기 코드를 브라우저용 한 덩어리로
 const bundle = await build({ input: join(ROOT, 'scripts/vfx/index.mjs'), write: false, output: { format: 'iife', name: 'VFX' } });
