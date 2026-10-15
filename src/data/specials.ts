@@ -316,7 +316,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['beatHaste', '수도 23', '박자의 서두름', HEAD, '희귀', 0.01, 'pct', '기 리듬 1마다 가속 +{v}', { hero: 'monk', cap: 0.02 }],
     ['palmMist', '수도 24', '손바닥 안개', NECK, '영웅', 0.15, 'pct', '생기 손바닥을 치면 {v} 확률로 안개가 없는 대상에게 6초 안개', { hero: 'monk', cap: 0.3 }],
     // 점성술사 (79 4-8). 전용 장비 밸런스로 희귀 등급 위 11종을 올림 (79 4-11)
-    ['brightShard', '점성 01', '밝은 조각', ALL, '희귀', 0.1, 'pp', '별자리가 쓰는 별 조각 1개마다 회복 +{v}', { cap: 0.3, hero: 'astrologer' }],
+    ['brightShard', '점성 01', '밝은 조각', ALL, '희귀', 0.05, 'pp', '별자리가 쓰는 별 조각 1개마다 회복 +{v}', { cap: 0.15, hero: 'astrologer' }], // 83: 모으기 시간 몫으로 올렸던 것 (79 4-11)을 첫 안으로
     ['twinPolaris', '점성 02', '쌍둥이 북극성', W, '전설', 0.3, 'pct', '북극성 회복량의 {v}가 붙어 있는 가장 다친 아군에게', { hero: 'astrologer', fixed: true }],
     ['hastyTwinkle', '점성 03', '서두른 반짝임', HANDS, '영웅', 4, 'sec', '반짝임 재사용 −{v}', { hero: 'astrologer' }],
     ['deepSleep', '점성 04', '깊은 잠', AR, '영웅', 1, 'sec', '별의 잠 시간 +{v}', { hero: 'astrologer', fixed: true }],
@@ -325,9 +325,9 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['memoryShare', '점성 07', '나누는 기억', ACC, '영웅', 0.2, 'pp', '별의 기억 회복 비율 +{v}', { hero: 'astrologer' }],
     ['markSec', '점성 08', '오래 남는 표식', NECK, '영웅', 4, 'sec', '별자리 표식 시간 +{v}', { hero: 'astrologer', fixed: true }],
     ['steadyStar', '점성 09', '고른 별빛', ALL, '고급', 0.12, 'pct', '별빛 치유 회복량 +{v}', { hero: 'astrologer', cap: 0.4, skillMod: { key: 'starHeal', kind: 'heal' } }],
-    ['sharpTwinkle', '점성 10', '날카로운 반짝임', HANDS, '희귀', 0.3, 'pct', '반짝임 회복량 +{v}', { hero: 'astrologer', cap: 0.5, skillMod: { key: 'twinkle', kind: 'heal' } }],
-    ['heavyFall', '점성 11', '무거운 별비', W_ACC, '희귀', 0.35, 'pct', '별비 회복량 +{v}', { hero: 'astrologer', cap: 0.6, skillMod: { key: 'starfall', kind: 'heal' } }],
-    ['bigPolaris', '점성 12', '큰 북극성', AR_ACC, '희귀', 0.3, 'pct', '북극성 회복량 +{v}', { hero: 'astrologer', cap: 0.5, skillMod: { key: 'polaris', kind: 'heal' } }],
+    ['sharpTwinkle', '점성 10', '날카로운 반짝임', HANDS, '희귀', 0.16, 'pct', '반짝임 회복량 +{v}', { hero: 'astrologer', cap: 0.4, skillMod: { key: 'twinkle', kind: 'heal' } }],
+    ['heavyFall', '점성 11', '무거운 별비', W_ACC, '희귀', 0.16, 'pct', '별비 회복량 +{v}', { hero: 'astrologer', cap: 0.4, skillMod: { key: 'starfall', kind: 'heal' } }],
+    ['bigPolaris', '점성 12', '큰 북극성', AR_ACC, '희귀', 0.16, 'pct', '북극성 회복량 +{v}', { hero: 'astrologer', cap: 0.4, skillMod: { key: 'polaris', kind: 'heal' } }],
     ['deepMemory', '점성 13', '깊은 기억', W_ACC, '영웅', 0.35, 'pct', '별의 기억 회복량 +{v}', { hero: 'astrologer', cap: 0.6, skillMod: { key: 'starMemory', kind: 'heal' } }],
     ['thriftStar', '점성 14', '아끼는 별빛', AR_ACC, '고급', 0.15, 'pct', '별빛 치유 마나 소모 −{v}', { hero: 'astrologer', cap: 0.4, skillMod: { key: 'starHeal', kind: 'cost' } }],
     ['sleepReturn', '점성 15', '잠의 귀환', AR, '희귀', 0.12, 'pct', '별의 잠 재사용 대기 −{v}', { hero: 'astrologer', cap: 0.3, skillMod: { key: 'starSleep', kind: 'cooldown' } }],

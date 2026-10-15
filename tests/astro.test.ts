@@ -97,16 +97,16 @@ describe('스킬', () => {
     const f = fight(); hurt(f, 0.05);
     for (const u of f.party) { u.base = u.max = 50000; u.hp = 100; }
     const u = withAdj(f, 1), v = adj(f, u)[0];
-    expect([1, 2, 3, 4].map(n => fallSpec(f, n))).toEqual([{ amt: 380, r: 0 }, { amt: 150, r: 1 }, { amt: 220, r: 1 }, { amt: 150, r: 2 }]);
+    expect([1, 2, 3, 4].map(n => fallSpec(f, n))).toEqual([{ amt: ASTRO.fall.amt[0], r: 0 }, { amt: 150, r: 1 }, { amt: 220, r: 1 }, { amt: 150, r: 2 }]);
     const hs = charge(f, 'starfall', u.cell, 4);
     expect(healOn(hs, v)).toBe(Math.round(150 * PERF));
     const g = fight(); for (const x of g.party) { x.base = x.max = 50000; x.hp = 100; }
     const w = withAdj(g, 1), z = adj(g, w)[0];
     const hs2 = charge(g, 'starfall', w.cell, 1);
-    expect(healOn(hs2, w)).toBe(380);
+    expect(healOn(hs2, w)).toBe(ASTRO.fall.amt[0]);
     expect(healOn(hs2, z)).toBe(0);
   });
-  it('북극성 (83 시전): 별 1 + 조각 = 350 · 550 · 750 · 950, 조각은 시전이 끝날 때 다 씀, 재사용 · 마나도 그때', () => {
+  it('북극성 (83 시전): 별 1 + 조각 = ASTRO.polaris, 조각은 시전이 끝날 때 다 씀, 재사용 · 마나도 그때', () => {
     const f = fight(), u = others(f)[0];
     big(u);
     f.shards = 3;
@@ -119,11 +119,11 @@ describe('스킬', () => {
     expect(hs.length).toBeGreaterThan(0);
     f.shards = 1; f.cd.twinkle = 0;
     const hs2 = charge(f, 'polaris', u.cell, 2);
-    expect(healOn(hs2, u)).toBe(550);
+    expect(healOn(hs2, u)).toBe(ASTRO.polaris[1]);
     expect(f.shards).toBe(0);
     expect(f.cd.polaris).toBe(SKILLS.polaris.cd);
     f.cd.polaris = 0;
-    expect(healOn(charge(f, 'polaris', u.cell, 4), u)).toBe(Math.round(950 * PERF));
+    expect(healOn(charge(f, 'polaris', u.cell, 4), u)).toBe(Math.round(ASTRO.polaris[3] * PERF));
   });
   it('별의 잠: 4초 피해 · 회복 · 딜 없음, 탱커가 자면 보스가 다른 사람을 침', () => {
     const f = fight(), t = f.party.find(u => u.role === 'tank')!;
@@ -220,7 +220,7 @@ describe('특성 (79 4-7)', () => {
     const f = fight(['brightPolaris']), u = others(f).find(x => x.role !== 'tank')!;
     big(u);
     const hs = charge(f, 'polaris', u.cell, 1);
-    expect(healOn(hs, u)).toBe(Math.round(350 * (1 + TX.brightPolaris.heal)));
+    expect(healOn(hs, u)).toBe(Math.round(ASTRO.polaris[0] * (1 + TX.brightPolaris.heal)));
     const g = fight(['risingPolaris']), w = others(g)[0];
     big(w);
     charge(g, 'polaris', w.cell, 4);
@@ -299,7 +299,7 @@ describe('직업 전용 특수능력 (79 4-8)', () => {
     const f = sp('brightShard'), u = others(f)[0];
     big(u);
     const hs = charge(f, 'polaris', u.cell, 4);
-    expect(healOn(hs, u)).toBe(Math.round(950 * PERF * (1 + 3 * SPECS.brightShard.val)));
+    expect(healOn(hs, u)).toBe(Math.round(ASTRO.polaris[3] * PERF * (1 + 3 * SPECS.brightShard.val)));
     const g = sp('twinPolaris'); hurt(g, 0.5);
     const w = withAdj(g, 1);
     big(w);

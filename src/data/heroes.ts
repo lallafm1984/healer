@@ -120,7 +120,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
   astrologer: {
     key: 'astrologer', name: '점성술사', line: '별 조각을 모아 별자리로 터뜨리는 힐러입니다.', star: 2,
     // 83 (Lim 「스와이프로 조작시 매우 불편」): 누르고 떼는 모으기 → 별 조각 시전
-    system: { name: '별 조각', lv: 6, desc: '별빛 치유와 반짝임이 별 조각을 1개씩 줍니다 (최대 3개). 별비 · 북극성 · 별의 기억은 시전이 끝날 때 모은 조각을 모두 써서 별 1 + 조각개로 터집니다. 조각 3개를 다 쓰면 가득 찬 별자리로 25% 더 회복합니다.' },
+    system: { name: '별 조각', lv: 6, desc: '별빛 치유와 반짝임이 별 조각을 1개씩 줍니다 (최대 3개). 별비 · 북극성 · 별의 기억은 시전이 끝날 때 모은 조각을 모두 써서 별 1 + 조각개로 터집니다. 조각 3개를 다 쓰면 가득 찬 별자리로 15% 더 회복합니다.' },
     dispel: ['마법', '독'],
     slots: slots({ basic: 'starHeal', fast: 'twinkle', hot: 'starMark', aoe: 'starfall', dispel: 'clearStar', ext: 'starSleep', raid: 'starMemory', unique: 'polaris' }),
     tap: ['starHeal', 'twinkle', 'starMark'],
