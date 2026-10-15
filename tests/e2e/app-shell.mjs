@@ -1,6 +1,6 @@
 // 앱 틀 확인: 상단 배너 영역 70dp, 타이틀 → 로비, 하단 탭, 작은 화면에서도 전투 화면이 배너 아래에 들어가는지 (09 1장·5장)
 import { chromium } from 'playwright';
-import { pastTitle, toParty } from './nav.mjs';
+import { departGo, pastTitle, toParty } from './nav.mjs';
 
 export default async function appShell(url, shots) {
   const browser = await chromium.launch();
@@ -40,7 +40,7 @@ export default async function appShell(url, shots) {
     await toParty(page, { content: 'cathedral1', tab: 'raid20' });
     ok(await page.isHidden('#tabs') && (await page.locator('#s-party .pcard').count()) === 19, `${w}: 20인 편성 = 나 빼고 19명, 탭 숨김`);
     await page.screenshot({ path: `${shots}/shell_party20_${w}.png` });
-    await page.click('#depart'); await page.clock.runFor(3100 + 5000);
+    await departGo(page); await page.clock.runFor(3100 + 5000);
     ok(await page.isHidden('#tabs') && await page.isVisible('#battle'), `${w}: 전투 중엔 탭 숨김`);
     const stage = await rect('#stage');
     const ctrl = await rect('#controls');

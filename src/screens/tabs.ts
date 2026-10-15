@@ -62,7 +62,7 @@ export function lobbyReady(): number {
 /** 시즌 패스에서 받을 단계가 있나 */
 function passReady(): boolean {
   const p = G.save.pass, lv = Math.min(PASS_LEVELS, passLevel(p.xp));
-  for (let l = 1; l <= lv; l++) if (!p.free.includes(l) || (p.premium && !p.prem.includes(l))) return true;
+  for (let l = 1; l <= lv; l++) if (!p.free.includes(l)) return true;
   return false;
 }
 function dotOf(k: TabKey): boolean {

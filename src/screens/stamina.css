@@ -1,0 +1,82 @@
+/*
+ * 스테미너 (81, 2026-10-15): 위 줄 칸 · 스테미너 창 · 입장 확인 팝업 · 상점 상품 탭 · 출발 버튼 비용 · 직업 목록 「상점」 줄.
+ * 팝업은 .admodal (a2-theme의 나무 판 재질)을 그대로 쓰고 크기 · 배치만 정한다. 마지막에 읽음.
+ */
+
+/* ---------- 위 줄: 골드 아래 스테미너 (누르면 창) ---------- */
+.ns .tb-mmo .tb-wal { max-width: 78px; }
+.ns .tb-mmo .tb-cur.tb-st { min-height: 24px; margin: -4px 0; padding: 2px 0; cursor: pointer; font: inherit; color: inherit; }
+.ns .tb-mmo .tb-cur.tb-st b { color: #c9f29e; }
+.ns .tb-mmo .tb-cur.tb-st small { font: 600 10px/1 var(--font-body); color: #d9cfb8; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #000; }
+.ns .tb-mmo .tb-cur.tb-st:focus-visible { outline: 2px solid #ffe398; outline-offset: 2px; border-radius: 4px; }
+
+/* ---------- 팝업 (스테미너 창 · 입장 확인) ---------- */
+/* 광고 자리 창 (.admodal, 같은 z)은 나중에 붙어서 이 팝업 위에 뜸 */
+.admodal.st-modal { padding: 16px; }
+.admodal .st-pop { max-width: 340px; display: flex; flex-direction: column; gap: 12px; padding: 18px 16px 16px; text-align: center; color: var(--a2-ink, #fff1d0); }
+.st-pop h3 { margin: 0; font: 800 20px/1.2 var(--font-display); color: var(--a2-brass-hi, #e8c77a); text-shadow: 0 1px 1px #211307; }
+.st-pop .note { margin: 0; font-size: 13px; line-height: 1.5; color: var(--a2-muted, #d0b994); word-break: keep-all; }
+.st-pop .st-msg { margin: 0; font-size: 13px; font-weight: 700; color: #c9f29e; }
+.st-pop .currency-icon, .st-pop .currency-icon > .g-ic, .st-pop .currency-icon > svg { width: 26px; height: 26px; }
+
+.st-dest { margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.st-dest b { font: 800 17px/1.3 var(--font-body); color: #fff4d5; overflow-wrap: anywhere; }
+.st-dest small { font-size: 13px; color: var(--a2-muted, #d0b994); }
+
+.st-cost { display: grid; grid-template-columns: auto 1fr 1fr; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: #1d140c; border: 1px solid #8a6a3c; }
+.st-cost > span { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.st-cost small { font-size: 12px; color: var(--a2-muted, #d0b994); }
+.st-cost b { font: 800 22px/1 var(--font-body); color: #c9f29e; font-variant-numeric: tabular-nums; }
+.st-cost .st-need b { color: #fff4d5; }
+.st-cost em { font-style: normal; font-size: 12px; color: #d9cfb8; font-variant-numeric: tabular-nums; }
+.st-cost.lack { border-color: #c1574a; }
+.st-cost.lack .st-have b { color: #ff9a86; }
+
+.st-meter { display: grid; grid-template-columns: auto auto 1fr; grid-template-rows: auto auto; align-items: center; column-gap: 6px; row-gap: 8px; padding: 10px 14px; border-radius: 8px; background: #1d140c; border: 1px solid #8a6a3c; }
+.st-meter > .currency-icon { grid-row: 1; }
+.st-meter > b { font: 800 26px/1 var(--font-body); color: #c9f29e; font-variant-numeric: tabular-nums; }
+.st-meter > small { justify-self: start; font: 700 14px/1 var(--font-body); color: #d9cfb8; font-variant-numeric: tabular-nums; }
+.st-bar { grid-column: 1 / -1; height: 10px; border-radius: 5px; background: #0f0a06; border: 1px solid #5f4727; overflow: hidden; }
+.st-bar i { display: block; height: 100%; background: linear-gradient(90deg, #6dbb45, #b6ec7e); }
+.st-bar.over i { background: linear-gradient(90deg, #b6ec7e, #f4e27d); }
+
+.st-time { margin: 0; display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--a2-muted, #d0b994); }
+.st-time b { color: #fff4d5; font-variant-numeric: tabular-nums; }
+
+.st-pop .row2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+.st-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.st-btns .st-ad { grid-column: 1 / -1; }
+.st-pop .btn { min-height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 15px; }
+.st-pop .btn small { font-size: 11px; opacity: .85; }
+.st-pop .btn:disabled { filter: saturate(.4) brightness(.8); }
+
+/* ---------- 출발 버튼: 비용 ---------- */
+:is(#s-entry, #s-party) .f-go .cta2 small.f-stam { display: inline-flex; }
+.f-stam .currency-amount { display: inline-flex; align-items: center; gap: 3px; }
+.f-stam .currency-icon, .f-stam .currency-icon > .g-ic, .f-stam .currency-icon > svg { width: 15px; height: 15px; }
+.f-stam .currency-amount b { font-weight: 800; color: #e9ffd0; }
+
+/* ---------- 상점: 상품 탭 · 패스 한 줄 ---------- */
+#s-shop .prow.solo { grid-template-columns: 34px minmax(0, 1fr); }
+#s-shop .cash-stam { display: flex; flex-direction: column; gap: 8px; }
+#s-shop .cash-stam h4 { margin: 0; }
+#s-shop .cash-meter {
+  display: flex; align-items: center; gap: 6px; width: 100%; min-height: 48px; padding: 6px 12px; border-radius: 8px;
+  background: #1d140c; border: 1px solid #8a6a3c; color: #fff4d5; font: inherit; text-align: left; cursor: pointer;
+}
+#s-shop .cash-meter .currency-icon, #s-shop .cash-meter .currency-icon > .g-ic, #s-shop .cash-meter .currency-icon > svg { width: 26px; height: 26px; }
+#s-shop .cash-meter b { font: 800 22px/1 var(--font-body); color: #c9f29e; font-variant-numeric: tabular-nums; }
+#s-shop .cash-meter small { font: 700 14px/1 var(--font-body); color: #d9cfb8; }
+#s-shop .cash-meter .cash-go { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 700; color: var(--a2-brass-hi, #e8c77a); }
+#s-shop .cash-meter .cash-go .ui-icon { width: 16px; height: 16px; }
+#s-shop .cash-row > .sic .emblem { width: 36px; height: 36px; }
+#s-shop .cash-row .note { margin: 2px 0 0; }
+#s-shop .cash-row.hi { outline: 2px solid #ffe398; outline-offset: 1px; }
+#s-shop .cash-row.owned > .sic { filter: saturate(.8); }
+#s-shop .cash-buy { min-width: 86px; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-weight: 800; }
+#s-shop .cash-buy small { font-size: 10px; font-weight: 600; }
+#s-shop .cash-own { display: inline-block; min-width: 56px; padding: 6px 10px; border-radius: 6px; border: 1px solid #6f9a52; color: #c9f29e; font-size: 13px; font-weight: 700; text-align: center; }
+
+/* ---------- 직업 목록: 상점에서 파는 직업 ---------- */
+#s-char .c7-job-row.buy .c7-job-state { color: #f3c96f; }
+#s-char .c7-job-row.buy .c7-job-state > .ui-icon { color: #f3c96f; }

@@ -1,15 +1,29 @@
 /**
- * 재화 (12)·상점 (15 6장, 19 11장)·시즌 패스 (15 4장) 수치. 전부 초안.
- * 원칙 (12, 15 1장): 유료 재화로 골드·재료·장비·악몽 열쇠·공훈·경험치를 사지 않는다.
+ * 재화 (12)·상점 (15 6장, 19 11장)·시즌 패스 (15 4장)·스테미너와 앱 결제 상품 (81) 수치.
+ * 81 (2026-10-15 Lim): 크리스탈 · 악몽 열쇠 · 모집권 · 월정액 · 프리미엄 패스를 없앰. 돈으로 사는 것은 광고 제거 패키지와 직업 4종뿐이고,
+ * 골드·재료·장비·공훈·경험치·스테미너 (광고 충전 빼고)는 돈으로 사지 않는다.
  */
 import type { DiffName } from './difficulty';
-import { FEATURES } from './features';
+import type { HeroKey } from './heroes';
 import type { ItemKey } from './items';
 
-// ---------- 악몽 열쇠 (12 3-4): 악몽 입장권, 입장할 때 1개 소모 ----------
-export const SHARD_MAX = 5;
-/** 제작 = 골드 1,000 + 강화석 5, 주 5회 */
-export const SHARD_CRAFT = { gold: 1000, stone: 5, weekly: 5 };
+// ---------- 스테미너 (81 2장): 입장할 때 씀 ----------
+/**
+ * 최대 100 (광고 제거 패키지 +50). 8분마다 1씩 차고, 최대치에서 멈춤 (넘는 만큼 쌓아 두지 않음).
+ * 광고 충전 = +50, 하루 3번 (오전 6시 리셋), 최대치를 넘어도 들어감
+ */
+export const STAMINA = { max: 100, bonus: 50, regenMs: 8 * 60e3, ad: 50, adDaily: 3 };
+/** 입장 비용: 탐험 5 · 던전 10 · 주간 도전 10 · 10인 레이드 15 · 20인 레이드 20 */
+export const STAMINA_COST = { explore: 5, dungeon: 10, chal: 10, raid10: 15, raid20: 20 };
+
+// ---------- 앱 결제 상품 (81 3장) ----------
+export interface Product { id: string; name: string; price: string }
+/** 광고 제거 패키지: 배너 · 전면 광고 없음, 광고 충전도 광고 없이 바로, 스테미너 최대치 +50 (한 번 사면 계정 영구) */
+export const NOADS: Product = { id: 'noads', name: '광고 제거 패키지', price: '5,500원' };
+/** 상점에서 파는 직업 (사면 레벨 조건 없이 열림). 사제 처음부터 · 드루이드 Lv 20 · 성기사 Lv 30은 무료 */
+export const PAID_HEROES: HeroKey[] = ['shaman', 'monk', 'astrologer', 'warder'];
+export const JOB_PRICE = '2,200원';
+export const jobProductId = (h: HeroKey) => `job_${h}`;
 
 // ---------- 공훈 (12 3-5, 26 6장): 레이드 보스 처치마다, 레이드마다 주 150 상한 ----------
 export const MERIT: Record<10 | 20, Record<DiffName, number>> = {
@@ -40,48 +54,27 @@ export const CHAR_SLOT = { max: 6, lv: 10, gold: [2000, 5000, 10000], iap: { id:
 /** 칸을 have개 가졌을 때 다음 칸 골드 값 */
 export const slotGold = (have: number): number => CHAR_SLOT.gold[Math.min(Math.max(0, have - 1), CHAR_SLOT.gold.length - 1)];
 
-// ---------- 크리스탈 (15 3장) ----------
-export interface CrystalPack { id: string; name: string; price: string; crystal: number }
-export const CRYSTAL_PACKS: CrystalPack[] = [
-  { id: 'c100', name: '한 줌', price: '1,200원', crystal: 100 },
-  { id: 'c500', name: '주머니', price: '5,900원', crystal: 500 },
-  { id: 'c1050', name: '상자', price: '12,000원', crystal: 1050 },
-  { id: 'c3000', name: '궤짝', price: '33,000원', crystal: 3000 },
-  { id: 'c5500', name: '금고', price: '59,000원', crystal: 5500 },
-  { id: 'c9500', name: '보물고', price: '99,000원', crystal: 9500 },
-];
-/** 월정액 「프리미엄 회원」 (15 5장) */
-export const MEMBER = { id: 'member30', price: '5,900원', days: 30, now: 300, daily: 30 };
-/** 첫 클리어마다 크리스탈 조금 (15 3장 무료 획득 「업적·첫 클리어 약 500」) */
-export const FIRST_CLEAR_CRYSTAL = 10;
-
 // ---------- 시즌 패스 (15 4장) ----------
 export const PASS_LEVELS = 50;
 export const PASS_XP = 1000;
 /** 시즌 1 「해바라기 원정」: 2026-10-05 (월) 오전 6시부터 13주. 마지막 3주는 패스 경험치 +50% */
 export const SEASON = { n: 1, name: '해바라기 원정', start: '2026-10-05', weeks: 13, catchUpWeeks: 3 };
-export const PASS_PREMIUM_CRYSTAL = 1000;
 /** 패스 경험치 (15 4-2) */
 export const PASS_GAIN = { daily: 60, chest: 100, weekly: 800, challenge: 400 };
 
-export type PassReward = { gold?: number; stone?: number; refined?: number; crystal?: number; ticket?: number; title?: string; deco?: string };
-/** 무료 라인: 표의 단계는 그대로, 나머지 단계는 강화석·골드 조금. gold는 「던전 N판」 → 판 수 (받을 때 레벨로 골드 계산) */
+export type PassReward = { gold?: number; stone?: number; refined?: number; title?: string; deco?: string };
+/**
+ * 보상 한 줄 (81: 프리미엄 라인 없앰). 표의 단계는 그대로, 나머지 단계는 강화석·골드 조금. gold는 「던전 N판」 → 판 수 (받을 때 레벨로 골드 계산).
+ * 예전 크리스탈 60 칸은 골드 2판, 모집권은 빼고 같은 칸 골드 1판
+ */
 export function passFree(lv: number): PassReward {
   const fixed: Record<number, PassReward> = {
-    1: { stone: 5 }, 5: { gold: 3 }, 10: { crystal: 60 }, 15: { refined: 2, ticket: 1 }, 20: { crystal: 60 },
-    25: { deco: '시즌 테두리 (무료형)' }, 30: { crystal: 60, ticket: 1 }, 35: { refined: 3 }, 40: { crystal: 60 },
-    45: { gold: 3, ticket: 1 }, 50: { crystal: 60, title: '모두의 힐러' },
+    1: { stone: 5 }, 5: { gold: 3 }, 10: { gold: 2 }, 15: { refined: 2, gold: 1 }, 20: { gold: 2 },
+    25: { deco: '시즌 테두리' }, 30: { gold: 3 }, 35: { refined: 3 }, 40: { gold: 2 },
+    45: { gold: 4 }, 50: { gold: 2, title: '모두의 힐러' },
   };
   return fixed[lv] || (lv % 2 ? { stone: 3 } : { gold: 1 });
 }
-/** 프리미엄 라인 = 꾸미기만 (그림은 원화 작업 때). 이름만 */
-export function passPremium(lv: number): string {
-  const fixed: Record<number, string> = {
-    1: '시즌 애드온 (기본형)', 5: '프로필 아이콘', 10: '시즌 힐 이펙트', 15: '닉네임 프레임', 20: '파티 채팅 이모트 팩',
-    25: FEATURES.guild ? '길드 휘장 장식' : '프로필 휘장 장식', 30: '시즌 힐러 의상', 35: '시즌 힐 사운드팩', 40: '정산 미터기 스킨', 45: '의상 색 변형', 50: '시즌 애드온 (완성형) · 금색 칭호',
-  };
-  return fixed[lv] || (lv % 2 ? '이모트 단품' : '프로필 꾸미기');
-}
 
-// ---------- 보상형 광고 (15 7장): 하루 상한 ----------
+// ---------- 보상형 광고 (15 7장): 하루 상한. 스테미너 충전은 STAMINA.adDaily ----------
 export const AD_LIMIT = { cont: 3, chest: 1, reroll: 2 };

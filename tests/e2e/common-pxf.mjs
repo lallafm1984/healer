@@ -3,7 +3,7 @@
 // 판 기록 열쇠는 예전 그림과 같은 앞머리 (heal12-… · death3-…), 파티원 능력은 pxf<id>-ally-<종류>-…. S25 × 5인 판
 // 끝에 찬가 정신 집중: 1초마다 회복하는 틱도 공통 치유 빛 대신 찬가 이펙트 (Lim 「스킬별로 이펙트가 달라야」)
 import { chromium } from 'playwright';
-import { patchSave, toParty } from './nav.mjs';
+import { departGo, patchSave, toParty } from './nav.mjs';
 
 export default async function commonPxf(url, shots) {
   const browser = await chromium.launch();
@@ -19,7 +19,7 @@ export default async function commonPxf(url, shots) {
     await page.goto(url); await page.clock.runFor(300);
     await patchSave(page, { player: { level: 100 }, settings: { devUnlock: true, auto: false, sound: false, vibrate: false, reducedEffects: false, zoom: false } });
     await toParty(page, { tab: 'dungeon', content: 'rustfort', diff: '쉬움' });
-    await page.click('#depart'); await page.clock.runFor(6500);
+    await departGo(page); await page.clock.runFor(6500);
     const common = await page.evaluate(() => { window.__proto.F.skills.forEach(k => { k.next = Infinity; }); return window.__proto.pxf.common; });
     ok(Object.keys(common).length === 8, `전투 공통 PXF 효과 ${Object.keys(common).length}종`, common);
     // 판 가운데에 가까운 두 사람 (A = 대부분, B = 쓰러짐), 능력이 있는 파티원

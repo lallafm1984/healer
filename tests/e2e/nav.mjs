@@ -67,6 +67,23 @@ export async function toParty(page, { content = 'rustfort', tab = 'dungeon', dif
   await page.click('#contentGo'); await page.clock.runFor(100);
 }
 
+/**
+ * 출발 → 입장 확인 팝업 「입장」 (81). 화면 테스트는 스테미너를 쓰지 않게 window.__staminaFree를 켬 (스테미너 검사는 shop.mjs).
+ * 튜토리얼 출발은 팝업 없이 바로
+ */
+export async function departGo(page, opts) {
+  await page.evaluate(() => { window.__staminaFree = true; });
+  await page.click('#depart', opts);
+  await entryGo(page);
+}
+
+/** 결과 화면 「다시 도전」 · 「n단계 도전」 뒤 입장 확인 팝업이 뜨면 「입장」 (스테미너는 쓰지 않게) */
+export async function entryGo(page) {
+  await page.evaluate(() => { window.__staminaFree = true; });
+  await page.clock.runFor(50);
+  if (await page.isVisible('.st-modal [data-st="go"]')) await page.click('.st-modal [data-st="go"]');
+}
+
 /** 편성의 실제 단축칸 순서대로 고른 소비 아이템 (시트 열림 여부와 무관). */
 export const pickedItems = page => page.evaluate(() => [...document.querySelectorAll('#s-party .f-slots .f-item[data-slot]')]
   .sort((a, b) => Number(a.dataset.slot) - Number(b.dataset.slot)).map(b => b.dataset.slotItem).filter(Boolean).join());

@@ -44,11 +44,11 @@ describe('공통 성장과 직업별 착용 조합', () => {
       expect(!!specsOf(d.gear.equipped, h).deepWord).toBe(h === 'priest');
     }
   });
-  it('해금 경계와 이전 사용 직업 보존: 드루이드 10, 성기사 20', () => {
-    G.save.player.level = 9; expect(switchHero('druid')).toBe(false);
-    G.save.player.level = 10; expect(switchHero('druid')).toBe(true);
+  it('해금 경계와 이전 사용 직업 보존: 드루이드 20, 성기사 30 (81)', () => {
+    G.save.player.level = 19; expect(switchHero('druid')).toBe(false);
+    G.save.player.level = 20; expect(switchHero('druid')).toBe(true);
     expect(heroStatus('paladin').state).toBe('locked');
-    G.save.player.level = 20; expect(switchHero('paladin')).toBe(true);
+    G.save.player.level = 30; expect(switchHero('paladin')).toBe(true);
     G.save.player.level = 1; expect(switchHero('druid')).toBe(true);
   });
   it('다른 캐릭터의 높은 레벨이나 직업을 가져오지 않음', () => {
@@ -100,12 +100,12 @@ describe('클리어 직업과 보상 횟수', () => {
   it('직업을 바꿔도 레이드 장비·공훈 상한·첫 클리어 보상을 다시 받지 않음', () => {
     const r = result({ hero: 'priest', content: 'abyss1' });
     const a = settle(G.save, r, () => .5, [], now);
-    expect(a.items).toHaveLength(1); const crystal = G.save.wallet.crystal;
+    expect(a.items).toHaveLength(1); expect(a.first).toBe(true);
     G.save.weekly.merit[10] = 150;
     switchHero('druid', now);
     const b = settle(G.save, { ...r, hero: 'druid' }, () => .5, [], now);
     expect(b.items).toHaveLength(0); expect(b.lootLocked).toBe(true); expect(b.merit).toBe(0);
-    expect(b.first).toBe(false); expect(G.save.wallet.crystal).toBe(crystal);
+    expect(b.first).toBe(false);
     expect(raidLootOpen(G.save, 'abyss1', '어려움')).toBe(false);
     expect(G.save.heroes.priest?.wins).toBe(1); expect(G.save.heroes.druid?.wins).toBe(1);
   });

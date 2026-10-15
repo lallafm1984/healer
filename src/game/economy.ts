@@ -1,19 +1,20 @@
 /**
- * 재화·임무·상점·시즌 패스 규칙 (12, 13, 15). 화면과 분리된 순수 계산 (시각·난수는 받아서 씀).
+ * 재화·임무·상점·시즌 패스·앱 결제 상품 규칙 (12, 13, 15, 81). 화면과 분리된 순수 계산 (시각·난수는 받아서 씀).
+ * 스테미너는 game/stamina.ts
  */
 import { resourceBalance, spendResource } from './resources';
 import { RAID10_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
 import {
-  BAG_MAX, CHAR_SLOT, itemPrice, MEMBER, MERIT, MERIT_GEAR_COST, MERIT_WEEK_CAP, PASS_GAIN, PASS_LEVELS, PASS_PREMIUM_CRYSTAL, PASS_XP, passFree, passPremium,
-  SHARD_CRAFT, SHARD_MAX, slotGold, type PassReward,
+  BAG_MAX, CHAR_SLOT, itemPrice, JOB_PRICE, jobProductId, MERIT, MERIT_GEAR_COST, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_GAIN, PASS_LEVELS, PASS_XP, passFree, slotGold, type PassReward,
 } from '../data/economy';
 import { FEATURES } from '../data/features';
+import { HEROES } from '../data/heroes';
 import { makeItem, rollItem, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
 import type { ItemKey } from '../data/items';
 import {
-  CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, WEEKLY, WEEKLY_LV, WEEKLY_N, type MissionDef, type RunEvent,
+  CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, WEEKLY, WEEKLY_LV, WEEKLY_N, WEEKLY_REWARD, type MissionDef, type RunEvent,
 } from '../data/missions';
 import { addXp, clearGold, xpToNext } from '../data/progression';
 import { newDaily, newWeekly, noteSpecs, topLevel, type MissionSave, type SaveData } from '../platform/storage';
@@ -33,11 +34,11 @@ function pick(pool: MissionDef[], n: number, lv: number, r: () => number, basicM
 }
 
 /** fixed = 길드를 빼 두어서 바꾼 일일 임무 수 */
-export interface Rollover { day: boolean; week: boolean; memberCrystal: number; banked: number; season: boolean; fixed: number }
+export interface Rollover { day: boolean; week: boolean; banked: number; season: boolean; fixed: number }
 
 /** 접속·화면 진입 때 부름. 날이 바뀌었으면 일일 임무 새로, 주가 바뀌었으면 주간 새로 (13 1장) */
 export function rollover(save: SaveData, now: number, r: () => number): Rollover {
-  const out: Rollover = { day: false, week: false, memberCrystal: 0, banked: 0, season: false, fixed: 0 };
+  const out: Rollover = { day: false, week: false, banked: 0, season: false, fixed: 0 };
   const day = dayKey(now), week = weekKey(now), lv = topLevel(save);
   const d = save.daily;
   if (d.day !== day) {
@@ -47,7 +48,6 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
     out.banked = banked - d.banked;
     save.daily = { ...newDaily(day), banked, missions: pick(DAILY, DAILY_N, lv, r, 2) };
     out.day = true;
-    if (isMember(save, now)) { save.wallet.crystal += MEMBER.daily; out.memberCrystal = MEMBER.daily; }
   }
   // 길드를 빼기 전에 뽑힌 길드 임무 (못 채움) → 다른 임무로. 하루 교체 횟수는 안 씀
   if (!FEATURES.guild) {
@@ -72,11 +72,9 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
   // 레벨이 올라 주간 임무가 열렸으면 (Lv 10) 이번 주 것을 바로 줌
   if (!save.weekly.missions.length && lv >= WEEKLY_LV) save.weekly.missions = pick(WEEKLY.filter(m => m.key !== 'w_raid3' || lv >= RAID10_LV), WEEKLY_N, lv, r);
   const sn = seasonOf(now).n;
-  if (save.pass.season !== sn) { save.pass = { season: sn, xp: 0, premium: false, free: [], prem: [] }; out.season = true; }
+  if (save.pass.season !== sn) { save.pass = { season: sn, xp: 0, free: [] }; out.season = true; }
   return out;
 }
-
-export const isMember = (save: SaveData, now = Date.now()) => save.member > now;
 
 // ---------- 임무 진행 ----------
 const defOf = (key: string) => DAILY.find(m => m.key === key) || WEEKLY.find(m => m.key === key)!;
@@ -112,15 +110,12 @@ export const missionReady = (s: MissionSave) => !s.got && s.n >= defOf(s.key).ne
 /** 이 레벨 「클리어 골드 1판」 (보통 A) */
 export const runGold = (lv: number) => clearGold(lv, '보통', 'A');
 
-export interface Gain { gold?: number; stone?: number; refined?: number; crystal?: number; shards?: number; ticket?: number; pass?: number; items?: GearItem[]; deco?: string; /** 처음 얻은 특수능력 (42 1-6) */ newSpecs?: string[] }
+export interface Gain { gold?: number; stone?: number; refined?: number; pass?: number; items?: GearItem[]; deco?: string; /** 처음 얻은 특수능력 (42 1-6) */ newSpecs?: string[] }
 
 function give(save: SaveData, g: Gain, now: number): Gain {
   save.player.gold += g.gold || 0;
   save.mats.stone += g.stone || 0;
   save.mats.refined += g.refined || 0;
-  save.wallet.crystal += g.crystal || 0;
-  save.wallet.shards = Math.min(SHARD_MAX, save.wallet.shards + (g.shards || 0));
-  save.wallet.ticket += g.ticket || 0;
   for (const it of g.items || []) save.gear.bag.push(it);
   if (g.items?.length) g.newSpecs = noteSpecs(save, g.items);
   if (g.deco && !save.decos.includes(g.deco)) save.decos.push(g.deco);
@@ -128,15 +123,15 @@ function give(save: SaveData, g: Gain, now: number): Gain {
   return g;
 }
 
-/** 임무 보상 받기 (13 2-1, 12 3-4): 일일 = 골드 20% + 강화석 2, 주간 = 악몽 열쇠 1 */
+/** 임무 보상 받기 (13 2-1): 일일 = 골드 20% + 강화석 2, 주간 = 골드 3판 + 강화석 5 (81, 예전 악몽 열쇠 1) */
 export function claimMission(save: SaveData, kind: 'daily' | 'weekly', i: number, now: number): Gain | string {
   const s = (kind === 'daily' ? save.daily : save.weekly).missions[i];
   if (!s || !missionReady(s)) return '아직 못 채움';
-  if (kind === 'weekly' && save.wallet.shards >= SHARD_MAX) return `악몽 열쇠가 가득 참 (최대 ${SHARD_MAX})`;
   s.got = true;
+  const gold = runGold(topLevel(save));
   return kind === 'daily'
-    ? give(save, { gold: Math.round(runGold(topLevel(save)) * MISSION_REWARD.goldShare), stone: MISSION_REWARD.stone, pass: PASS_GAIN.daily }, now)
-    : give(save, { shards: 1, pass: PASS_GAIN.weekly }, now);
+    ? give(save, { gold: Math.round(gold * MISSION_REWARD.goldShare), stone: MISSION_REWARD.stone, pass: PASS_GAIN.daily }, now)
+    : give(save, { gold: gold * WEEKLY_REWARD.runs, stone: WEEKLY_REWARD.stone, pass: PASS_GAIN.weekly }, now);
 }
 
 /** 완료 상자 장비: 레벨에 맞는 난이도 기준 (13 2-1) */
@@ -219,21 +214,14 @@ export function addPassXp(save: SaveData, amt: number, now: number): number {
 }
 export function passGain(save: SaveData, lv: number): Gain {
   const f: PassReward = passFree(lv);
-  return { gold: f.gold ? f.gold * runGold(topLevel(save)) : 0, stone: f.stone, refined: f.refined, crystal: f.crystal, ticket: f.ticket, deco: f.deco || f.title };
+  return { gold: f.gold ? f.gold * runGold(topLevel(save)) : 0, stone: f.stone, refined: f.refined, deco: f.deco || f.title };
 }
-export function claimPass(save: SaveData, lv: number, line: 'free' | 'prem', now: number): Gain | string {
+/** 패스 보상 받기 (81: 한 줄, 프리미엄 라인 없음) */
+export function claimPass(save: SaveData, lv: number, now: number): Gain | string {
   if (lv < 1 || lv > passLevel(save.pass.xp)) return '아직 못 올라감';
-  if (line === 'prem' && !save.pass.premium) return '프리미엄 패스가 필요';
-  const got = save.pass[line];
-  if (got.includes(lv)) return '이미 받음';
-  got.push(lv);
-  return line === 'free' ? give(save, passGain(save, lv), now) : give(save, { deco: passPremium(lv) }, now);
-}
-export function buyPremium(save: SaveData): string {
-  if (save.pass.premium) return '이미 있음';
-  if (save.wallet.crystal < PASS_PREMIUM_CRYSTAL) return `크리스탈 부족 (${PASS_PREMIUM_CRYSTAL.toLocaleString()} 필요)`;
-  save.wallet.crystal -= PASS_PREMIUM_CRYSTAL; save.pass.premium = true;
-  return '';
+  if (save.pass.free.includes(lv)) return '이미 받음';
+  save.pass.free.push(lv);
+  return give(save, passGain(save, lv), now);
 }
 
 // ---------- 상점 ----------
@@ -249,16 +237,6 @@ export function buyItem(save: SaveData, k: ItemKey, n = 1): string {
   return '';
 }
 
-/** 악몽 열쇠 제작 (12 3-4) */
-export function craftShard(save: SaveData): string {
-  if (save.wallet.shards >= SHARD_MAX) return `악몽 열쇠가 가득 참 (최대 ${SHARD_MAX})`;
-  if (save.weekly.craft >= SHARD_CRAFT.weekly) return `이번 주 제작 ${SHARD_CRAFT.weekly}번을 다 씀`;
-  if (resourceBalance(save, 'gold') < SHARD_CRAFT.gold) return `골드 부족 (${SHARD_CRAFT.gold.toLocaleString()} 필요)`;
-  if (resourceBalance(save, 'stone') < SHARD_CRAFT.stone) return `강화석 부족 (${SHARD_CRAFT.stone} 필요)`;
-  spendResource(save, 'gold', SHARD_CRAFT.gold); spendResource(save, 'stone', SHARD_CRAFT.stone); save.weekly.craft++; save.wallet.shards++;
-  return '';
-}
-
 /** 공훈 교환 (12 3-5): 원하는 부위 영웅 장비 1개 */
 export function exchangeMerit(save: SaveData, slot: SlotKey, r: () => number = Math.random): GearItem | string {
   if (!SLOTS.some(s => s.key === slot)) return '없는 부위';
@@ -271,7 +249,7 @@ export function exchangeMerit(save: SaveData, slot: SlotKey, r: () => number = M
   return it;
 }
 
-// ---------- 레이드 주간 규칙 · 악몽 입장 ----------
+// ---------- 레이드 주간 규칙 ----------
 /** 레이드 보스 처치 공훈 (주 150 상한, 레이드마다 따로) */
 export function meritFor(save: SaveData, raid: 10 | 20, diff: DiffName): number {
   const left = Math.max(0, MERIT_WEEK_CAP - save.weekly.merit[raid]);
@@ -282,19 +260,22 @@ export const lootKey = (_hero: HeroKey, content: string, diff: DiffName) => `${c
 /** v11 직업 접두사가 남아 있어도 보스·난이도별 수령 이력으로 처리 */
 export const raidLootOpen = (save: SaveData, content: string, diff: DiffName) => !save.weekly.loot.some(k => k.split('|').slice(-2).join('|') === lootKey(save.hero, content, diff));
 
-/** 악몽 입장 = 악몽 열쇠 1개 (12 3-4) */
-export const needsShard = (diff: DiffName) => diff === '악몽';
-export function spendShard(save: SaveData): string {
-  if (save.wallet.shards < 1) return '악몽 열쇠가 없음 (상점에서 제작하거나 주간 임무로)';
-  save.wallet.shards--;
-  return '';
+// ---------- 앱 결제 상품 (81 3장): 광고 제거 패키지 · 직업 4종. 계정 것 (shareAccount가 캐릭터마다 옮김) ----------
+export interface ProductInfo { id: string; name: string; price: string; owned: boolean }
+/** 상점에 거는 상품 (광고 제거 → 직업 순서) */
+export function products(save: SaveData): ProductInfo[] {
+  const own = (id: string) => save.bought.includes(id);
+  return [
+    { ...NOADS, owned: own(NOADS.id) },
+    ...PAID_HEROES.map(h => ({ id: jobProductId(h), name: HEROES[h].name, price: JOB_PRICE, owned: own(jobProductId(h)) })),
+  ];
 }
-
-
-/** 월정액 (15 5장): 30일 연장 + 크리스탈 300 바로 */
-export function grantMember(save: SaveData, now: number): void {
-  save.member = Math.max(save.member, now) + MEMBER.days * 24 * 3600e3;
-  save.wallet.crystal += MEMBER.now;
+/** 결제가 끝난 뒤 상품 주기 (화면이 platform/billing purchase 성공 뒤에 부름). 성공 = 빈 문자열 */
+export function grantProduct(save: SaveData, id: string): string {
+  if (!products(save).some(p => p.id === id)) return '없는 상품';
+  if (save.bought.includes(id)) return '이미 산 상품';
+  save.bought.push(id);
+  return '';
 }
 
 // ---------- 캐릭터 칸 (68 2장): 골드로 모아 사거나 앱 결제로 바로 (Lim 2026-10-12 「둘 다」) ----------

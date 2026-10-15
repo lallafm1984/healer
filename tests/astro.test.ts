@@ -61,10 +61,10 @@ const markOf = (u: U) => u.hots.find(h => h.key === 'starMark');
 const S = SKILLS.starHeal.amt!, T = SKILLS.twinkle.amt!, PERF = 1 + ASTRO.charge.perfectHeal;
 
 describe('데이터 (79 4장)', () => {
-  it('휠 8칸, 해제 마법 · 독, Lv 50 열림, 켬, 모으기 스킬 둘', () => {
+  it('휠 8칸, 해제 마법 · 독, 상점 해금, 켬, 모으기 스킬 둘', () => {
     expect(heroSkills('astrologer')).toEqual(['starHeal', 'twinkle', 'starMark', 'starfall', 'clearStar', 'starSleep', 'starMemory', 'polaris']);
     expect(HEROES.astrologer.ready).toBe(true);
-    expect(HEROES.astrologer.unlock.lv).toBe(50);
+    expect(HEROES.astrologer.unlock).toMatchObject({ buy: true }); // 81: 상점 2,200원 (예전 Lv 50)
     expect(HEROES.astrologer.dispel).toEqual(['마법', '독']);
     expect(SKILLS.starfall.charge && SKILLS.polaris.charge).toBe(true);
   });

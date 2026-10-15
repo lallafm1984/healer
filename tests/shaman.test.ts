@@ -52,10 +52,10 @@ const R = SKILLS.ripple.amt!, S = SKILLS.shower.amt!, D = SKILLS.droplet.amt!, C
 const DEEP = 1 + SHAMAN.deep.heal, DEC = SHAMAN.chain.decay;
 
 describe('데이터 (79 2장)', () => {
-  it('휠 8칸 + 가운데 샘 토템, 해제 마법 · 저주, Lv 30 열림, 켬', () => {
+  it('휠 8칸 + 가운데 샘 토템, 해제 마법 · 저주, 상점 해금, 켬', () => {
     expect(heroSkills('shaman')).toEqual(['ripple', 'shower', 'droplet', 'chainHeal', 'washing', 'earthTotem', 'rainTotem', 'spiritLink', 'springTotem']);
     expect(HEROES.shaman.ready).toBe(true);
-    expect(HEROES.shaman.unlock.lv).toBe(30);
+    expect(HEROES.shaman.unlock).toMatchObject({ buy: true }); // 81: 상점 2,200원 (예전 Lv 30)
     expect(SKILLS.springTotem).toMatchObject({ core: true, target: 'cell', cost: 4, cd: 10 });
   });
   it('특성 10단 × 3, 보조 버튼은 토템 부르기 · 물의 정령 · 바다의 자리', () => {

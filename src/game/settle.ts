@@ -13,7 +13,6 @@ import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/stora
 import { advanceTutorial, TUT } from './tutorial';
 import { guildAfter, type GuildAfter } from './guild';
 import { lootKey, meritFor, onRun, raidLootOpen, rollover } from './economy';
-import { FIRST_CLEAR_CRYSTAL } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { PUB_BONUS } from '../data/missions';
 import { CHAL, chalDropDiff } from '../data/challenge';
@@ -94,9 +93,8 @@ export interface Settlement {
   heroQuest: { hero: HeroKey; n: number; need: number; unlocked: boolean } | null;
   /** 길드원 경험치·인연 스카우트 (02 9장) */
   guild: GuildAfter | null;
-  /** 레이드 공훈 (12 3-5) · 첫 클리어 크리스탈 */
+  /** 레이드 공훈 (12 3-5) */
   merit: number;
-  crystal: number;
   /** 이번 주 이 레이드 보스·난이도 장비를 이미 받아서 장비 없음 (13 3-4) */
   lootLocked: boolean;
   /** 공개모집 일일 보너스 판 (13 2-2): 골드 ×2, 좋은 장비 등급 확률 ↑ (그 난이도 상한 안에서, 61 3-3). n = 오늘 몇 번째 */
@@ -192,9 +190,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
     };
   }
 
-  const crystal = first && play ? FIRST_CLEAR_CRYSTAL : 0;
-  save.wallet.crystal += crystal;
-
   const heroQuest = r.win ? heroWin(save, c.kind, c.key, r.diff, hero) : null;
   const guild = FEATURES.guild && roster.length && save.tut >= TUT.done ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.name, party: r.party, roster }) : null;
 
@@ -230,6 +225,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    gold, xp, levelBefore, levelUps, items, newSpecs, newDex, mats, first, best, heroQuest, guild, merit, crystal, lootLocked, pubBonus, missions, chal, cont, tutEnd,
+    gold, xp, levelBefore, levelUps, items, newSpecs, newDex, mats, first, best, heroQuest, guild, merit, lootLocked, pubBonus, missions, chal, cont, tutEnd,
   };
 }

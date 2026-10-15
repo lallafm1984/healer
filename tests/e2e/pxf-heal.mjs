@@ -2,7 +2,7 @@
 // 기본 치유 빛은 안 나옴. 보통 섞기 · 판 맨 위 층 (Lim 2026-10-11). 크기 = 칸 지름 × 64/62 (판 가장자리에선 줄어듦), 약 0.9초 뒤 사라짐. 대상 폰 크기 (S25 · 울트라 · 플립) × 5인 · 20인 판
 import { chromium } from 'playwright';
 import { DEVICES } from './devices.mjs';
-import { patchSave, toParty } from './nav.mjs';
+import { departGo, patchSave, toParty } from './nav.mjs';
 
 const BOARDS = [{ n: 5, tab: 'dungeon', content: 'rustfort' }, { n: 20, tab: 'raid20', content: 'cathedral1' }];
 
@@ -23,7 +23,7 @@ export default async function pxfHeal(url, shots) {
       for (const b of BOARDS) {
         const tag = `${name} ${width}×${height} ${b.n}인`;
         await toParty(page, { tab: b.tab, content: b.content, diff: '쉬움' });
-        await page.click('#depart'); await page.clock.runFor(6500);
+        await departGo(page); await page.clock.runFor(6500);
         // 보스 기술은 끄고, 가운데에 가까운 파티원 칸을 눌러 치유 (기본 탭 스킬). 상태 조작과 누르기는 한 번에
         const t = await page.evaluate(() => {
           const F = window.__proto.F, el = document.querySelector('#board'), r = el.getBoundingClientRect();

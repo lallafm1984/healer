@@ -11,6 +11,7 @@ import { resourceBalance, unlimitedResource, type ResourceKey } from '../game/re
 import { enhanceCost, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
 import { ALL_HERO_KEYS, HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
+import { JOB_PRICE, jobProductId } from '../data/economy';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { TALENT_TREES, type TalentKey } from '../data/talents';
 import { type TapKey } from '../platform/storage';
@@ -915,13 +916,16 @@ const HERO_STYLE: Record<HeroKey, string> = {
 };
 /** 아직 켜지 않은 직업 (직업 PR마다 ready로 켬, 79 6-2) */
 const upcomingHeroes = () => ALL_HERO_KEYS.filter(k => !HEROES[k].ready);
+/** 잠긴 직업 글: 드루이드 · 성기사 = 「Lv N 해금」, 상점 직업 = 값 (81) */
+const lockWord = (k: HeroKey) => (HEROES[k].unlock.buy ? JOB_PRICE : `Lv ${HEROES[k].unlock.lv} 해금`);
 function heroRow(k: HeroKey): string {
   const h = HEROES[k], st = heroStatus(k), open = switchOpen();
-  const word = st.state === 'now' ? '현재 직업' : st.state === 'locked' ? `Lv ${h.unlock.lv} 해금` : open.ok ? '전환 가능' : open.why;
-  const state = st.state === 'open' && !open.ok ? 'unavailable' : st.state;
-  return `<li><button type="button" class="c7-hc c7-job-row ${state}" data-hcard="${k}" aria-haspopup="dialog"${st.state === 'now' ? ' aria-current="true"' : ''} aria-label="${h.name} · ${HERO_STYLE[k]} · ${word}">
+  const word = st.state === 'now' ? '현재 직업' : st.state === 'locked' ? lockWord(k) : open.ok ? '전환 가능' : open.why;
+  const state = st.state === 'open' && !open.ok ? 'unavailable' : st.state === 'locked' && st.buy ? 'locked buy' : st.state;
+  // 상점 직업은 누르면 상점 그 상품으로 (81, Lim 「판매 캐릭터 누르면 상점으로 이동」)
+  return `<li><button type="button" class="c7-hc c7-job-row ${state}" data-hcard="${k}"${st.buy ? '' : ' aria-haspopup="dialog"'}${st.state === 'now' ? ' aria-current="true"' : ''} aria-label="${h.name} · ${HERO_STYLE[k]} · ${st.buy ? `상점 ${word} · 상점으로` : word}">
     ${classEmblem(k, 'lg')}<span class="c7-job-copy"><b>${h.name}</b><small>${HERO_STYLE[k]}</small></span>
-    <span class="c7-job-state">${word}${st.state === 'locked' ? uiIcon('lock') : st.state === 'now' ? '' : uiIcon('arrow')}</span></button></li>`;
+    <span class="c7-job-state">${word}${st.buy ? uiIcon('arrow') : st.state === 'locked' ? uiIcon('lock') : st.state === 'now' ? '' : uiIcon('arrow')}</span></button></li>`;
 }
 
 /** 직업 선택용 요약. 수치·상세 효과는 스킬 탭에서 확인한다. */
@@ -980,7 +984,7 @@ function heroDetail(k: HeroKey): string {
 
 function heroListHtml(): string {
   return `<section class="c7-jobs" aria-labelledby="jobListTitle">
-    <header class="c7-jobs-head"><div><h2 id="jobListTitle">직업 선택</h2><span>${ALL_HERO_KEYS.length}종</span></div><p>레벨·장비 유지 · 무료 전환</p></header>
+    <header class="c7-jobs-head"><div><h2 id="jobListTitle">직업 선택</h2><span>${ALL_HERO_KEYS.length}종</span></div><p>레벨·장비 유지 · 무료 전환 · 4종은 상점</p></header>
     <ul class="c7-job-list" aria-label="직업 고르기">${HERO_KEYS.map(heroRow).join('')}</ul>
     ${upcomingHeroes().length ? `<ul class="c7-job-list c7-jobs-upcoming" aria-label="곧 열림">${upcomingHeroes().map(k => { const n = HEROES[k].name; return `<li class="c7-job-row upcoming" aria-label="${n} · ${HERO_STYLE[k]} · 곧 열림">${classEmblem(k, 'lg')}<span class="c7-job-copy"><b>${n}</b><small>${HERO_STYLE[k]}</small></span><span class="c7-job-state">곧 열림${uiIcon('lock')}</span></li>`; }).join('')}</ul>` : ''}
   </section>`;
@@ -990,7 +994,7 @@ function heroListHtml(): string {
 function heroSheet(k: HeroKey): string {
   const h = HEROES[k], st = heroStatus(k), open = switchOpen();
   const available = (st.state === 'open' || st.state === 'quest') && open.ok;
-  const label = st.state === 'now' ? '현재 직업' : st.state === 'locked' ? `Lv ${h.unlock.lv} 해금` : !open.ok ? open.why : `${h.name}${josa(h.name, '으로', '로')} 전환`;
+  const label = st.state === 'now' ? '현재 직업' : st.state === 'locked' ? lockWord(k) : !open.ok ? open.why : `${h.name}${josa(h.name, '으로', '로')} 전환`;
   return `<div class="sheet-dim" data-sheetx></div><section class="sheet c7-job-sheet" data-hdet="${k}" aria-labelledby="jobDetailTitle" aria-describedby="jobDetailIntro">
     <button type="button" class="c7-dialog-close" data-sheetx aria-label="직업 상세 닫기">닫기</button>
     ${heroDetail(k)}<footer class="c7-job-footer">${msg ? `<p class="c7-msg" role="status">${esc(msg)}</p>` : ''}
@@ -1130,7 +1134,12 @@ function onClick(t: HTMLElement): boolean {
     render(); return true;
   }
   const hc = t.closest<HTMLElement>('[data-hcard]');
-  if (hc) { const k = hc.dataset.hcard as HeroKey; if (HERO_KEYS.includes(k)) { sheet = { k: 'hero', hero: k }; msg = ''; render(); } return true; }
+  if (hc) {
+    const k = hc.dataset.hcard as HeroKey;
+    if (heroStatus(k).buy) { go('s-shop', `cash:${jobProductId(k)}`); return true; }
+    if (HERO_KEYS.includes(k)) { sheet = { k: 'hero', hero: k }; msg = ''; render(); }
+    return true;
+  }
 
   // ---- 스킬 ----
   const sm = t.closest<HTMLElement>('[data-smode]');

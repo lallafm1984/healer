@@ -54,9 +54,9 @@ describe('직업 퀘스트는 없음 (68: 캐릭터 칸을 사서 만듦)', () =
     expect(heroWin(G.save, 'dungeon', 'rustfort', '어려움')).toBeNull();
     expect(G.save.heroes.druid!.wins).toBe(1);
   });
-  it('드루이드 Lv 10 · 성기사 Lv 20 해금', () => {
-    expect(HEROES.druid.unlock.lv).toBe(10);
-    expect(HEROES.paladin.unlock.lv).toBe(20);
+  it('드루이드 Lv 20 · 성기사 Lv 30 해금 (81)', () => {
+    expect(HEROES.druid.unlock.lv).toBe(20);
+    expect(HEROES.paladin.unlock.lv).toBe(30);
   });
 });
 
@@ -82,14 +82,14 @@ describe('같은 캐릭터의 무료 직업 전환 (v12)', () => {
     makeChar('druid');
     expect(heroStatus('druid').state).toBe('now');
     expect(heroStatus('priest').state).toBe('open');
-    expect(heroStatus('paladin')).toEqual({ state: 'locked', dev: false, quest: 0, need: 0 });
+    expect(heroStatus('paladin')).toEqual({ state: 'locked', dev: false, quest: 0, need: 0, buy: false });
     expect(switchHero('priest')).toBe(true);
     expect(G.save.hero).toBe('priest');
   });
   it('휠 배치·칸 탭은 직업마다 따로', () => {
     const lay = { NW: 'hymn', N: 'purify', NE: 'heal', W: 'renew', E: 'flash', SW: null, S: 'poh', SE: 'guardian' };
     G.save.settings.layout = lay; G.save.settings.tapKey = 'flash';
-    G.save.player.level = 10;
+    G.save.player.level = 20;
     switchHero('druid');
     expect(G.save.settings.layout).toBeNull();
     expect(G.save.settings.tapKey).toBe('heal');

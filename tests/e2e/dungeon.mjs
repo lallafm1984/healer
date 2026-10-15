@@ -1,6 +1,6 @@
 // 던전 흐름 (23·24): 로비 → 콘텐츠 → 난이도 → 편성 → 잡몹 구간 → 휴식 → … → 정산 → 보상 → 레벨 업. 구간은 적 체력을 깎아 빨리 넘긴다
 import { chromium } from 'playwright';
-import { chooseContent, killEnemies, pastTitle, pickedItems, rowContentKeys, toParty } from './nav.mjs';
+import { chooseContent, departGo, entryGo, killEnemies, pastTitle, pickedItems, rowContentKeys, toParty } from './nav.mjs';
 
 export default async function dungeon(url, shots) {
   const browser = await chromium.launch();
@@ -108,7 +108,7 @@ export default async function dungeon(url, shots) {
   await page.screenshot({ path: `${shots}/dungeon_party.png` });
 
   // ---- 전투: 구간 → 휴식 → 구간 ----
-  await page.click('#depart'); await page.clock.runFor(3100 + 4000);
+  await departGo(page); await page.clock.runFor(3100 + 4000);
   ok((await page.textContent('#encounterLabel')).includes('무너진 정문') && (await page.textContent('#bossName')).includes('고철 졸개'), '전투 위쪽 = 구간 이름과 지금 잡는 잡몹 모두 표시');
   ok(/녹슨 요새 1\/4 · 남은 적 4/.test(await page.textContent('#phase')), '진행 줄 = 1/4 · 남은 적');
   ok(await page.evaluate(() => window.__proto.F.party.filter(u => !u.me).map(u => u.nick).join()) === party0, '편성 화면의 파티 그대로');
@@ -225,7 +225,7 @@ export default async function dungeon(url, shots) {
 
   // ---- 잡몹 구간에서 지면 던전 실패 → 경험치 없음 (2026-10-13 Lim) ----
   const xp0 = sv.player.xp, gold0 = sv.player.gold, bag0 = sv.gear.bag.length;
-  await page.click('#again'); await page.clock.runFor(3100 + 500);
+  await page.click('#again'); await entryGo(page); await page.clock.runFor(3100 + 500);
   ok(await page.isVisible('#battle'), '다시 도전 = 같은 파티로 바로 출발');
   ok(await page.evaluate(() => window.__proto.dungeon.idx === 0 && window.__proto.F.enc.key === 'gate'), '던전 처음부터');
   const lvm = await page.evaluate(() => { const F = window.__proto.F; return { power: F.power, scale: F.scale, me: Math.round(F.me.max), gearHp: F.gear.hp || 0 }; });

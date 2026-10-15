@@ -1,6 +1,6 @@
 // 세로 UI 회귀: 그림 로드 (캐릭터 그림 없음, 장소·메뉴 그림은 28), 고정 출발 버튼, 좁은 메뉴, 20인/특성/전멸 배치.
 import { chromium } from 'playwright';
-import { chooseContent, pastTitle, rowContentKeys, toParty } from './nav.mjs';
+import { chooseContent, departGo, pastTitle, rowContentKeys, toParty } from './nav.mjs';
 import { equipmentLayout } from './character.mjs';
 
 export default async function portrait(url, shots) {
@@ -234,7 +234,7 @@ export default async function portrait(url, shots) {
     });
     await page.reload(); await page.clock.runFor(300); await pastTitle(page);
     await toParty(page, { content: 'cathedral1', tab: 'raid20' });
-    await page.click('#depart'); await page.clock.runFor(3400);
+    await departGo(page); await page.clock.runFor(3400);
     const geometry = () => page.evaluate(() => {
       const rect = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; };
       return {

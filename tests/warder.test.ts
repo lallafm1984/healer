@@ -56,10 +56,10 @@ const seal = (f: F, ...us: U[]) => { for (const u of us) u.seal = f.t + WARDER.s
 const S = SKILLS.sealHeal.amt!, J = SKILLS.judgment.amt!;
 
 describe('데이터 (79 5장)', () => {
-  it('휠 8칸 + 가운데 심판, 해제 마법 · 저주, Lv 60 열림, 켬', () => {
+  it('휠 8칸 + 가운데 심판, 해제 마법 · 저주, 상점 해금, 켬', () => {
     expect(heroSkills('warder')).toEqual(['sealHeal', 'quickSeal', 'lightBarrier', 'wardCircle', 'wardCleanse', 'guardWard', 'lightVeil', 'lightSpear', 'judgment']);
     expect(HEROES.warder.ready).toBe(true);
-    expect(HEROES.warder.unlock.lv).toBe(60);
+    expect(HEROES.warder.unlock).toMatchObject({ buy: true }); // 81: 상점 2,200원 (예전 Lv 60)
     expect(HEROES.warder.dispel).toEqual(['마법', '저주']);
     expect(HEROES.warder.core).toBe('judgment');
   });

@@ -1,5 +1,5 @@
 import { chromium } from 'playwright';
-import { pastTitle, patchSave, toParty } from './nav.mjs';
+import { departGo, pastTitle, patchSave, toParty } from './nav.mjs';
 import { DEPARTURE_DEVICES } from './adventure-no-scroll.mjs';
 
 export default async function partyRefinement(url, shots) {
@@ -58,7 +58,7 @@ export default async function partyRefinement(url, shots) {
         const after = await page.locator('#s-party .f-slots .f-item').evaluateAll(els => els.map(el => el.dataset.slotItem ?? null));
         ok(JSON.stringify(after) === JSON.stringify([null, 'shield', null, 'life']), `${tag}: 비운 자리와 배치를 재진입 후 유지`, after);
         await page.screenshot({ path: `${shots}/party-${id}-assigned.png` });
-        await page.click('#depart'); await page.clock.runFor(3400);
+        await departGo(page); await page.clock.runFor(3400);
         const battle = await page.locator('#items > .item').evaluateAll(els => els.map(el => el.dataset.item ?? null));
         ok(JSON.stringify(battle) === JSON.stringify([null, 'shield', null, 'life']), `${tag}: 실제 전투에서도 같은 네 칸 위치`, battle);
       } catch (e) { fails++; errs.push(`${id}: ${e.stack || e.message}`); console.log(`FAIL ${name}: ${e.message}`); }

@@ -2,7 +2,7 @@
 // 대상 칸 · 범위 안 아군 칸마다 · 파티 전원 칸마다 재생되고 (크기 = 칸 지름 × 64/62, 판 가장자리면 줄어듦), 끝나면 사라짐.
 // 엔진이 언제 남기는지는 tests/pxf.test.ts, 실제 탭 → 치유 시전은 pxf-heal.mjs. 여기선 기록을 직접 넣어 모든 스킬의 그림 · 칸 수를 봄. S25 × 5인 · 20인 판
 import { chromium } from 'playwright';
-import { patchSave, toParty } from './nav.mjs';
+import { departGo, patchSave, toParty } from './nav.mjs';
 
 const BOARDS = [{ n: 5, tab: 'dungeon', content: 'rustfort' }, { n: 20, tab: 'raid20', content: 'cathedral1' }];
 
@@ -21,7 +21,7 @@ export default async function skillPxf(url, shots) {
     await patchSave(page, { player: { level: 100 }, settings: { devUnlock: true, auto: false, sound: false, vibrate: false, reducedEffects: false, zoom: false } });
     for (const b of BOARDS) {
       await toParty(page, { tab: b.tab, content: b.content, diff: '쉬움' });
-      await page.click('#depart'); await page.clock.runFor(6500);
+      await departGo(page); await page.clock.runFor(6500);
       const skills = await page.evaluate(() => { window.__proto.F.skills.forEach(k => { k.next = Infinity; }); return Object.entries(window.__proto.pxf.skills); });
       ok(skills.length >= 25, `${b.n}인: PXF 이펙트가 붙은 휠 스킬 ${skills.length}개`);
       // 5인은 모든 스킬, 20인은 범위 · 파티 스킬만 (칸 수가 다름)

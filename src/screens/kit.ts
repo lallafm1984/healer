@@ -11,6 +11,7 @@ import { talentsLeft } from '../game/charinfo';
 import { apexOf, xpToNext } from '../data/progression';
 import { classEmblem, currencyIcon, gameIcon } from './art';
 import { releaseSheetDialogs, resetShellScroll } from './dialog';
+import { staminaCell } from './stamina';
 
 export const $ = (id: string) => document.getElementById(id)!;
 
@@ -75,12 +76,12 @@ export function go(id: string, arg?: unknown): void {
 export function setTabsHandler(fn: (t: TabKey | undefined) => void): void { onTabs = fn; }
 
 // ---------- 상단 바 (09 5장: 레벨·골드 고정, 전투 화면 제외) ----------
-/** 위 줄 재화 그림 (30 3장 icon-gold · icon-crystal이 오면 그 그림) */
+/** 위 줄 재화 그림 (30 3장 icon-gold, 81 스테미너 icon-stamina가 오면 그 그림) */
 const GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="6.6"/><path d="M12 2.5v2.9M12 18.6v2.9M2.5 12h2.9M18.6 12h2.9M5.3 5.3l2 2M16.7 16.7l2 2M5.3 18.7l2-2M16.7 7.3l2-2"/></svg>';
 
 /**
  * 상단 바. back이 있으면 「← 제목」 줄, 없으면 MMO 캐릭터 칸 (30 0장 공통 위 줄, 전투 Sunforged 기준 코덱스 로비 시안):
- * 황동 초상 테 직업 문장 + 알림 빨간 점 (특성 남음·새 장비) → 캐릭터 탭 · 직업 이름 + Lv + 경험치 막대 · 골드·크리스탈 · 설정 (황동 칸).
+ * 황동 초상 테 직업 문장 + 알림 빨간 점 (특성 남음·새 장비) → 캐릭터 탭 · 직업 이름 + Lv + 경험치 막대 · 골드·스테미너 (누르면 스테미너 창, 81) · 설정 (황동 칸).
  * 캐릭터 칸은 탭 루트(settings)에서만 누름. 튜토리얼 중 캐릭터 탭이 잠겼으면(첫 장비 전) 누르지 않음.
  */
 export function topBar(opts: { back?: string; title?: string; settings?: boolean } = {}): string {
@@ -103,13 +104,13 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
   return `<header class="topbar tb-mmo">${pf}
     <span class="tb-nm"><span class="tb-id"><b class="tb-cls">${esc(hero.name)}</b><small class="tb-lv">Lv. ${p.level}</small></span>
       <span class="tb-xprow"><span class="tb-xp" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}${apexOf(p.level) > 1 ? ` · 수련 +${((apexOf(p.level) - 1) * 100).toFixed(1)}%` : ''}"><i style="width:${pct.toFixed(1)}%"></i></span><small class="tb-xpt" aria-hidden="true" data-pct="${Math.floor(pct)}"></small></span></span>
-    <span class="tb-wal">${walletCell('tb-gold', '골드', 'gold', resourceBalance(s, 'gold'))}${walletCell('tb-cr', '크리스탈', 'crystal', s.wallet.crystal)}</span>
+    <span class="tb-wal">${walletCell('tb-gold', '골드', 'gold', resourceBalance(s, 'gold'))}${s.tut >= TUT.done ? staminaCell() : ''}</span>
     ${set}</header>`;
 }
 
 const compactCurrency = new Intl.NumberFormat('ko-KR', { notation: 'compact', maximumSignificantDigits: 3 });
 /** 위 줄 재화 칸은 좁아서 1만부터 단위 축약 (5.23만). 모든 화면이 로비와 같은 칸이라 같은 글. 툴팁·접근성 이름에는 전체 값 */
-function walletCell(cls: string, label: string, icon: 'gold' | 'crystal', amount: number): string {
+function walletCell(cls: string, label: string, icon: 'gold', amount: number): string {
   const full = `${label} ${fmt(amount)}`;
   return `<span class="tb-cur ${cls}" role="img" aria-label="${full}" title="${full}">${currencyIcon(icon)}<b>${amount >= 10000 ? compactCurrency.format(Math.round(amount)) : fmt(amount)}</b></span>`;
 }

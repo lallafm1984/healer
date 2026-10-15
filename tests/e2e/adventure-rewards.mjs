@@ -175,7 +175,7 @@ export default async function adventureRewards(url,shots) {
           }
           await page.keyboard.press('Escape');await page.setViewportSize({width,height});await page.clock.runFor(150);
           ok(await page.locator('.b-reward-chance').count()===0,'확률 팝오버 resize 후 Esc 닫기');
-          ok(await page.locator('[data-reward="crystal"]').count()===1,'첫 클리어 크리스탈 획득 아이콘 표시');
+          ok(await page.locator('[data-reward="crystal"]').count()===0,'첫 클리어 크리스탈 없음 (81)');
           await seed(page,{loot:['cathedral1|악몽'],cleared:true});await page.click('[data-ctab="raid20"]');await chooseContent(page,'cathedral1');await page.click('[data-diff="악몽"]');
           const claimed=await inspectProbabilities(page,[0,0,0,0,0],{maxGrade:'전설'});
           ok(claimed.ok && /이번 주 장비 수령 완료/.test(claimed.geometry.text) && await page.locator('[data-reward="crystal"]').count()===0,

@@ -208,12 +208,12 @@ export default async function lobbyA2(url, shots) {
         if (width === 320 || width === 390) {
           await patch(page, () => {
             const s = JSON.parse(localStorage.getItem('healer.save'));
-            s.player.gold = 1234567; s.wallet.crystal = 9876543;
+            s.player.gold = 1234567; s.stamina = { n: 140, at: Date.now(), day: '', ads: 0 }; s.bought = ['noads'];
             localStorage.setItem('healer.save', JSON.stringify(s));
           });
           const wallet = await page.evaluate(() => {
             const h = document.querySelector('#s-lobby .topbar').getBoundingClientRect();
-            return [['.tb-gold', 1234567], ['.tb-cr', 9876543]].map(([selector, amount]) => {
+            return [['.tb-gold', 1234567], ['.tb-st', 140]].map(([selector, amount]) => {
               const el = document.querySelector(`#s-lobby ${selector}`), label = el.querySelector('b'), r = el.getBoundingClientRect();
               const full = amount.toLocaleString('ko-KR');
               const exposed = [el.getAttribute('aria-label'), el.title, label.getAttribute('aria-label'), label.title].filter(Boolean);
@@ -222,7 +222,7 @@ export default async function lobbyA2(url, shots) {
                 inside: r.left >= h.left - 1 && r.right <= h.right + 1 && r.top >= h.top - 1 && r.bottom <= h.bottom + 1 };
             });
           });
-          ok(wallet.every(v => v.fullValueAvailable && /\d/.test(v.displayed)), `${width}: 큰 골드·크리스탈 실제 값과 축약 시 전체 수치 접근성 보존`, wallet);
+          ok(wallet.every(v => v.fullValueAvailable && /\d/.test(v.displayed)), `${width}: 큰 골드·스테미너 (140/150) 실제 값과 축약 시 전체 수치 접근성 보존`, wallet);
           const g = await layout(page), headerButtons = g.buttons.filter(b => b.rect.y < g.header.bottom);
           ok(wallet.every(v => v.inside) && headerButtons.every(b => b.rect.width >= 43.99 && b.rect.height >= 43.99 && b.center && b.edges.every(Boolean))
             && !g.overlaps.length, `${width}: 큰 재화에서도 헤더 안 배치·캐릭터/설정 44px 실제 hit 유지`, { wallet, headerButtons });

@@ -21,7 +21,7 @@ import { ENDING } from '../data/story';
 import type { BattleResult, Settlement } from '../game/settle';
 import { esc, fmt, go, mmss, screen, topBar } from './kit';
 import { currencyIcon, fxArt, gameIcon, gearIcon, placeArt, uiIcon, type CurrencyIconKey } from './art';
-import { depart } from './party';
+import { enter } from './party';
 import { sheetDialog } from './dialog';
 import { openItemDetail } from './character';
 
@@ -117,7 +117,6 @@ function lootHtml(r: BattleResult, x: Settlement): string {
   // 공개모집 일일 보너스(×2, 오늘 n/3) · 축제 주간(+20%)은 골드 칸 꼬리표로
   const fest = r.affixes?.includes('festival');
   if (x.gold) tiles.push(tile('gold', '골드', x.gold, x.pubBonus ? '<em>×2</em>' : fest ? '<em>+20%</em>' : '', x.pubBonus ? `공개모집 보너스 오늘 ${x.pubBonus}/3` : fest ? '축제 주간' : ''));
-  if (x.crystal) tiles.push(tile('crystal', '크리스탈', x.crystal, '<em>처음</em>'));
   if (x.mats.stone) tiles.push(tile('stone', '강화석', x.mats.stone));
   if (x.mats.refined) tiles.push(tile('refined', '정제 강화석', x.mats.refined));
   if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
@@ -274,14 +273,10 @@ function deferPopup(host: HTMLElement, show: () => void): boolean {
   return true;
 }
 
-/** 같은 파티로 바로 다시 (시작 위치는 새로, 주간 도전은 같은 단계). 악몽은 악몽 열쇠가 없으면 못 감 */
+/** 같은 파티로 바로 다시 (시작 위치는 새로, 주간 도전은 같은 단계). 입장 확인 팝업에서 스테미너를 씀 (81) */
 function again(): void {
   Flow.seed = newSeed();
-  const err = depart();
-  if (err) {
-    st.el.querySelector('.r-err')?.remove();
-    st.el.querySelector('.res')?.insertAdjacentHTML('afterbegin', `<p class="warnbox r-err">${esc(err)}</p>`);
-  }
+  enter();
 }
 
 /** 다음: 주간 도전은 다음 단계를 같은 파티로 바로, 그 밖엔 다음 장소 · 난이도의 편성 화면 (인원이 달라질 수 있어서) */

@@ -1,13 +1,13 @@
-/** 재화 (12)·일일 주간 (13)·상점·패스 (15)·소비 아이템 가방 (19 11장) */
+/** 재화 (12, 81)·일일 주간 (13)·상점·패스 (15)·소비 아이템 가방 (19 11장) */
 import { describe, expect, it } from 'vitest';
-import { BAG_MAX, itemPrice, MEMBER, MERIT, PASS_XP, SHARD_CRAFT, SHARD_MAX, STARTER_BAG } from '../src/data/economy';
-import { DAILY, DAILY_BASIC, WEEKLY } from '../src/data/missions';
+import { BAG_MAX, itemPrice, MERIT, PASS_XP, STARTER_BAG } from '../src/data/economy';
+import { DAILY, DAILY_BASIC, WEEKLY, WEEKLY_REWARD } from '../src/data/missions';
 import { clearGold } from '../src/data/progression';
 import * as E from '../src/engine';
 import { dayKey, daysBetween, seasonOf, weekKey } from '../src/game/clock';
 import {
-  addPassXp, buyItem, buyPremium, chalChestOf, chestState, claimChalChest, claimChest, claimMission, claimPass, craftShard, exchangeMerit, grantMember, isMember,
-  missionReady, onAct, onRun, passLevel, rollover, runGold, spendShard, swapMission,
+  addPassXp, buyItem, chalChestOf, chestState, claimChalChest, claimChest, claimMission, claimPass, exchangeMerit,
+  missionReady, onAct, onRun, passLevel, rollover, runGold, swapMission,
 } from '../src/game/economy';
 import { settle, type BattleResult } from '../src/game/settle';
 import { migrate, newSave, type SaveData } from '../src/platform/storage';
@@ -105,7 +105,7 @@ describe('일일 임무 (13 2-1)', () => {
 });
 
 describe('주간 (13 3장)', () => {
-  it('Lv 10부터 3개, 10인 레이드 열림 (Lv 45) 전엔 레이드 임무 없음, 1개 = 악몽 열쇠 1 (최대 5)', () => {
+  it('Lv 10부터 3개, 10인 레이드 열림 (Lv 45) 전엔 레이드 임무 없음, 1개 = 골드 3판 + 강화석 5 (81)', () => {
     expect(save(9).weekly.missions).toEqual([]);
     for (let i = 0; i < 20; i++) { seed = i + 3; expect(save(20).weekly.missions.some(m => m.key === 'w_raid3')).toBe(false); }
     const s = save(40);
@@ -113,20 +113,19 @@ describe('주간 (13 3장)', () => {
     s.weekly.missions = [{ key: 'w_raid3', n: 0, got: false }, { key: 'w_chest5', n: 0, got: false }, { key: 'w_hard5', n: 0, got: false }];
     for (let i = 0; i < 3; i++) onRun(s, ev({ raid: 10 }));
     expect(missionReady(s.weekly.missions[0])).toBe(true);
-    s.wallet.shards = SHARD_MAX;
-    expect(claimMission(s, 'weekly', 0, T0)).toMatch(/가득/);
-    s.wallet.shards = 1;
-    expect(claimMission(s, 'weekly', 0, T0)).toMatchObject({ shards: 1, pass: 800 });
-    expect(s.wallet.shards).toBe(2);
+    const g0 = s.player.gold, st0 = s.mats.stone;
+    expect(claimMission(s, 'weekly', 0, T0)).toMatchObject({ gold: runGold(40) * WEEKLY_REWARD.runs, stone: WEEKLY_REWARD.stone, pass: 800 });
+    expect([s.player.gold - g0, s.mats.stone - st0]).toEqual([runGold(40) * 3, 5]);
+    expect(claimMission(s, 'weekly', 0, T0)).toMatch(/못 채움/);
     expect(WEEKLY.length).toBeGreaterThanOrEqual(3);
   });
-  it('월요일 오전 6시에 리셋: 제작 횟수·공훈 상한·레이드 장비 기록, 주간 도전 기록 → 상자', () => {
+  it('월요일 오전 6시에 리셋: 공훈 상한·레이드 장비 기록, 주간 도전 기록 → 상자', () => {
     const s = save(40);
-    s.weekly.craft = 5; s.weekly.merit[10] = 150; s.weekly.loot = ['abyss1|보통']; s.weekly.chalBest = 12;
+    s.weekly.merit[10] = 150; s.weekly.loot = ['abyss1|보통']; s.weekly.chalBest = 12;
     rollover(s, new Date(2026, 9, 12, 5).getTime(), rng);
-    expect(s.weekly.craft).toBe(5);
+    expect(s.weekly.merit[10]).toBe(150);
     rollover(s, new Date(2026, 9, 12, 6).getTime(), rng);
-    expect([s.weekly.craft, s.weekly.merit[10], s.weekly.loot.length, s.weekly.chalBest, s.chalChest]).toEqual([0, 0, 0, 0, 12]);
+    expect([s.weekly.merit[10], s.weekly.loot.length, s.weekly.chalBest, s.chalChest]).toEqual([0, 0, 0, 12]);
     const r = claimChalChest(s, rng, T0);
     expect(typeof r).toBe('object');
     expect((r as { items: { grade: string }[] }).items.map(i => i.grade)).toEqual(['희귀']);
@@ -148,18 +147,13 @@ describe('주간 (13 3장)', () => {
 });
 
 describe('재화 (12)', () => {
-  it('악몽 열쇠: 제작 골드 1,000 + 강화석 5, 주 5회, 최대 5개. 악몽 입장에 1개', () => {
-    const s = save(30);
-    s.mats.stone = 100;
-    for (let i = 0; i < 5; i++) expect(craftShard(s)).toBe('');
-    expect(craftShard(s)).toMatch(/가득/);
-    s.wallet.shards = 0;
-    expect(craftShard(s)).toMatch(/5번/);
-    expect(s.player.gold).toBe(100000 - 5 * SHARD_CRAFT.gold);
-    expect(spendShard(s)).toMatch(/없음/);
-    s.wallet.shards = 1;
-    expect(spendShard(s)).toBe('');
-    expect(s.wallet.shards).toBe(0);
+  it('81: 크리스탈 · 악몽 열쇠 · 모집권 · 월정액이 저장에 없음 (옛 저장은 버림, 공훈은 그대로)', () => {
+    const d = migrate({ v: 13, createdAt: 1, wallet: { crystal: 500, shards: 3, merit: 40, ticket: 2 }, member: 9e15, firstBuy: ['c100'], pass: { season: 1, xp: 3000, premium: true, free: [1], prem: [1] }, weekly: { week: 'x', craft: 3 } });
+    expect(d.wallet).toEqual({ merit: 40 });
+    expect(['member', 'firstBuy'].filter(k => k in d)).toEqual([]);
+    expect(d.pass).toEqual({ season: 1, xp: 3000, free: [1] });
+    expect('craft' in d.weekly).toBe(false);
+    expect(d.bought).toEqual([]);
   });
   it('공훈 교환: 원하는 부위 영웅 장비 1개 = 100', () => {
     const s = save(40);
@@ -184,7 +178,7 @@ describe('재화 (12)', () => {
   it('새 저장·옛 저장(v4)은 처음 가방', () => {
     expect(newSave(1).bag).toEqual(STARTER_BAG);
     const d = migrate({ v: 4, createdAt: 1, player: { level: 20, xp: 0, gold: 5 } });
-    expect([d.bag, d.wallet.shards, d.weekly.merit[20], d.pass.xp]).toEqual([STARTER_BAG, 0, 0, 0]);
+    expect([d.bag, d.wallet.merit, d.weekly.merit[20], d.pass.xp]).toEqual([STARTER_BAG, 0, 0, 0]);
   });
 });
 
@@ -209,12 +203,12 @@ describe('정산 연결', () => {
     expect(raid().merit).toBe(0);
     expect(s.wallet.merit).toBe(150);
   });
-  it('쓴 소비 아이템은 가방에서 빠짐 (튜토리얼은 그대로), 첫 클리어 크리스탈, 임무 진행', () => {
+  it('쓴 소비 아이템은 가방에서 빠짐 (튜토리얼은 그대로), 첫 클리어 표시, 임무 진행', () => {
     const s = save(20);
     s.bag.mana = 3;
     const x = settle(s, result({ itemsUsed: { mana: 2 } }), rng, [], T0);
     expect(s.bag.mana).toBe(1);
-    expect(x.crystal).toBe(10);
+    expect(x.first).toBe(true);
     expect(s.daily.missions.some(m => m.n > 0)).toBe(true);
     const t = newSave(1); t.bag.mana = 3;
     settle(t, result({ itemsUsed: { mana: 2 } }), rng);
@@ -227,33 +221,20 @@ describe('정산 연결', () => {
   });
 });
 
-describe('시즌 패스 · 월정액 (15 4·5장)', () => {
-  it('1,000마다 1단계 (최대 50), 무료 라인 받기, 프리미엄은 크리스탈 1,000', () => {
+describe('시즌 패스 (15 4장, 81 한 줄)', () => {
+  it('1,000마다 1단계 (최대 50), 보상 받기 (프리미엄 라인 없음, 예전 크리스탈 칸은 골드)', () => {
     const s = save(20);
     expect(addPassXp(s, 2500, T0)).toBe(2500);
     expect(passLevel(s.pass.xp)).toBe(2);
     expect(passLevel(PASS_XP * 80)).toBe(50);
-    expect(claimPass(s, 3, 'free', T0)).toMatch(/못 올라감/);
-    expect(claimPass(s, 1, 'free', T0)).toMatchObject({ stone: 5 });
-    expect(claimPass(s, 1, 'free', T0)).toMatch(/이미/);
-    expect(claimPass(s, 1, 'prem', T0)).toMatch(/프리미엄/);
-    expect(buyPremium(s)).toMatch(/부족/);
-    s.wallet.crystal = 1200;
-    expect(buyPremium(s)).toBe('');
-    expect(claimPass(s, 1, 'prem', T0)).toMatchObject({ deco: '시즌 애드온 (기본형)' });
-    expect(s.decos).toContain('시즌 애드온 (기본형)');
-    expect(s.wallet.crystal).toBe(200);
+    expect(claimPass(s, 3, T0)).toMatch(/못 올라감/);
+    expect(claimPass(s, 1, T0)).toMatchObject({ stone: 5 });
+    expect(claimPass(s, 1, T0)).toMatch(/이미/);
+    addPassXp(s, 8000, T0);
+    expect(claimPass(s, 10, T0)).toMatchObject({ gold: 2 * runGold(20) });
   });
   it('따라잡기 3주는 패스 경험치 +50%', () => {
     const s = save(20);
     expect(addPassXp(s, 100, T0 + 11 * 7 * D)).toBe(150);
-  });
-  it('월정액: 300 바로 + 매일 30 (날이 바뀔 때)', () => {
-    const s = save(20);
-    grantMember(s, T0);
-    expect([isMember(s, T0), s.wallet.crystal]).toEqual([true, MEMBER.now]);
-    rollover(s, T0 + D, rng);
-    expect(s.wallet.crystal).toBe(MEMBER.now + MEMBER.daily);
-    expect(isMember(s, T0 + 31 * D)).toBe(false);
   });
 });

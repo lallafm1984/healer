@@ -1,6 +1,6 @@
 // 사제 특성 (06 6장, 27 4-5): 칸 → 아래 시트에서 고르기·풀기·저장, 프리셋 1·2·3, 전투 보조 버튼 (정점 바로 / 쉼터 장전 → 빈 칸)
 import { chromium } from 'playwright';
-import { pastTitle, patchSave, toParty } from './nav.mjs';
+import { departGo, pastTitle, patchSave, toParty } from './nav.mjs';
 
 export default async function talents(url, shots) {
   const browser = await chromium.launch();
@@ -65,7 +65,7 @@ export default async function talents(url, shots) {
   // ---- 전투: 보조 버튼 ----
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);
   await toParty(page, { content: 'rustfort' });
-  await page.click('#depart'); await page.clock.runFor(3100 + 1000);
+  await departGo(page); await page.clock.runFor(3100 + 1000);
   ok(await page.evaluate(() => { const on = window.__proto.F.tx.on; return on.shelter && on.zenith && Object.keys(on).length === 2; }), '전투 = 고른 특성 2개만 켜짐');
   ok(await page.isVisible('#aux') && (await page.locator('#aux .aux').count()) === 2, '단축칸 위 보조 버튼 2개');
   await page.dispatchEvent('#aux [data-tal="zenith"]', 'pointerdown'); await page.dispatchEvent('#aux [data-tal="zenith"]', 'pointerup'); await page.clock.runFor(100);

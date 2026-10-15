@@ -53,7 +53,7 @@ export const DAILY: MissionDef[] = [
 export const DAILY_BASIC = ['clear3', 'pub2'];
 export const DAILY_N = 5;
 
-/** 주간 임무 3개 = 악몽 열쇠 3개 (12 3-4). 10인 레이드가 열리기 전 (RAID10_LV)에는 레이드 대신 던전 임무 (13 3-1) */
+/** 주간 임무 3개 (81: 하나마다 골드 3판 + 강화석 5, 예전 악몽 열쇠 1개). 10인 레이드가 열리기 전 (RAID10_LV)에는 레이드 대신 던전 임무 (13 3-1) */
 export const WEEKLY: MissionDef[] = [
   { key: 'w_raid3', text: '레이드 보스 처치', need: 3, lv: RAID10_LV, run: e => (e.win && e.raid ? 1 : 0) },
   { key: 'w_hard5', text: '어려움 이상 던전 클리어', need: 5, lv: 10, run: e => (won(e) && !e.raid && e.diffIdx >= 2 ? 1 : 0) },
@@ -69,6 +69,8 @@ export const GUILD_GOAL = { need: 10, fame: 5, xpShare: 0.5 };
 
 /** 임무 보상 (13 2-1): 1개 = 클리어 골드의 20% + 강화석 2, 완료 상자 = 클리어 골드 1판 + 강화석 5 + 장비 1개 */
 export const MISSION_REWARD = { goldShare: 0.2, stone: 2 };
+/** 주간 임무 하나 (81): 골드 = 이 레벨 클리어 골드 × runs, 강화석 */
+export const WEEKLY_REWARD = { runs: 3, stone: 5 };
 export const CHEST_REWARD = { stone: 5 };
 /** 놓친 날 완료 상자는 2일까지 (13 7장) */
 export const CHEST_BANK = 2;

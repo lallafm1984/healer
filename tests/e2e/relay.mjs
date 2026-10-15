@@ -1,7 +1,7 @@
 // 사제 빛의 전이 (휠 8번째 칸, Lim 2026-10-11 「슬롯 한자리가 빈다」): 휠에 빈 칸 없음 · 빛이 깃든 사람 칸에 표시가 판 안, 이름·체력·배지와 안 겹침. 대상 폰 크기
 import { chromium } from 'playwright';
 import { DEVICES } from './devices.mjs';
-import { patchSave, toParty } from './nav.mjs';
+import { departGo, patchSave, toParty } from './nav.mjs';
 
 const PARTIES = [{ n: 5, tab: 'dungeon', content: 'rustfort' }, { n: 20, tab: 'raid20', content: 'cathedral1' }];
 
@@ -19,7 +19,7 @@ export default async function relay(url, shots) {
     await page.goto(url); await page.clock.runFor(300);
     await patchSave(page, { player: { level: 100 }, settings: { auto: false, devUnlock: true, sound: false, vibrate: false } });
     await toParty(page, { tab: party.tab, content: party.content, diff: '보통' });
-    await page.click('#depart'); await page.clock.runFor(3100 + 300);
+    await departGo(page); await page.clock.runFor(3100 + 300);
     const tag = `${name} ${width}×${height} ${party.n}인`;
 
     const wheel = await page.evaluate(() => ({

@@ -24,5 +24,5 @@ body { background: #0E0B09; }
 #tabs button[aria-current="page"] { color: #F0C46A; }
 #tabs button small { font-family: "Gowun Dodum", system-ui, sans-serif; font-size: 10px; opacity: 0.7; }
 
-/* 월정액 회원: 배너 없음, 자리는 그대로 비움 (15 5장) */
-body.member #adBanner span { visibility: hidden; }
+/* 광고 제거 패키지: 배너 없음, 자리는 그대로 비움 (81 3장) */
+body.noads #adBanner span { visibility: hidden; }

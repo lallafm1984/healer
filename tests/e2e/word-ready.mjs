@@ -1,7 +1,7 @@
 // 성언 준비 반짝임 (Lim 2026-10-10): 평온 · 신성화 게이지가 차서 휠 칸이 성언으로 바뀌면 칸이 반짝이고 게이지 줄도 반짝임. 대상 폰 크기 (S25 · 울트라 · 플립)
 import { chromium } from 'playwright';
 import { DEVICES } from './devices.mjs';
-import { patchSave, toParty } from './nav.mjs';
+import { departGo, patchSave, toParty } from './nav.mjs';
 
 export default async function wordReady(url, shots) {
   const browser = await chromium.launch();
@@ -17,7 +17,7 @@ export default async function wordReady(url, shots) {
     await page.goto(url); await page.clock.runFor(300);
     await patchSave(page, { player: { level: 40 } });
     await toParty(page, { tab: 'dungeon', content: 'rustfort', diff: '보통' });
-    await page.click('#depart'); await page.clock.runFor(3100 + 300);
+    await departGo(page); await page.clock.runFor(3100 + 300);
     const tag = `${name} ${width}×${height}`;
     /** 게이지를 바꾸고 화면이 몇 번 그려진 뒤 휠 칸 · 게이지 줄 상태 */
     const look = async (p, s) => {

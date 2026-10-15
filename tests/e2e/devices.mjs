@@ -1,6 +1,6 @@
 // 대상 폰 크기 (2026-10-08 Lim): 갤럭시 S25 · S25 울트라 · Z 플립 펼침. 전투 탭 → 편성 → 시트 · 주간 도전 입장 · 결과 화면이 첫 화면에 다 들어오는지
 import { chromium } from 'playwright';
-import { chooseContent, pastTitle, toParty } from './nav.mjs';
+import { chooseContent, departGo, entryGo, pastTitle, toParty } from './nav.mjs';
 
 /** CSS px (Chrome 보고 값). 울트라는 화면 배율 설정에 따라 두 가지 */
 export const DEVICES = [['S25', 360, 780], ['S25 울트라', 384, 824], ['S25 울트라 (WQHD+)', 412, 915], ['Z 플립 펼침', 360, 880]];
@@ -63,7 +63,7 @@ export default async function devices(url, shots) {
     await page.click('#s-entry .tb-back'); await page.clock.runFor(80);
     // 장소 Lv 20 이하는 장비 권장 경고가 없음 (70). 경고 버튼 검수는 Lv 24 장원에서 수행.
     await toParty(page, { tab: 'dungeon', content: 'manor', diff: '어려움' });
-    await page.click('#depart'); await page.clock.runFor(3100 + 300);
+    await departGo(page); await page.clock.runFor(3100 + 300);
 
     // 전투 머리 (2026-10-13 Lim 첨부3): 일시정지 버튼이 머리 판 황동 테 (판 끝에서 11px 안까지) 안쪽에
     const head = await box('#battle .stage-head'), pause = await box('#pauseBtn');
@@ -93,7 +93,7 @@ export default async function devices(url, shots) {
     ok(/장비가 권장/.test(await page.textContent('#s-settle .f-warns')) && /gradient/.test(gbg.bg) && !/url\(/.test(gbg.bg) && gbg.color === 'rgb(42, 24, 6)' && gbg.h >= 44 - .1,
       `${tag}: 전멸 결과 「장비」 버튼 금빛 (나무결 아님) ${JSON.stringify({ ...gbg, bg: gbg.bg.slice(0, 24) })}`);
     await page.screenshot({ path: `${shots}/device_lose_${width}x${height}.png` });
-    await page.click('#again'); await page.clock.runFor(3100 + 300);
+    await page.click('#again'); await entryGo(page); await page.clock.runFor(3100 + 300);
     ok(await page.isHidden('#giveUp'), `${tag}: 다시 도전하면 포기 버튼 없음`);
 
     // 보스 기술 예고 칸에는 기술 아이콘 없음 (2026-10-13 Lim 첨부3, 이름 · 남은 초 · 막대만)
