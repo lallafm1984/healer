@@ -4,7 +4,7 @@ import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { HERO_KEYS, HEROES } from '../src/data/heroes';
 import type { SkillKey } from '../src/data/skills';
-import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, WIDE_DESIGN, wideArtName, type CommonFx, type PxfKey } from '../src/battle/pxf';
+import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, heroSkillFx, isBossPxf, PXF, pxfArtName, SKILL_FX_SIZE, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, WIDE_DESIGN, wideArtName, type CommonFx, type PxfKey } from '../src/battle/pxf';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { AB_KIND, type AbKind } from '../src/data/abilities';
 import * as E from '../src/engine';
@@ -13,6 +13,8 @@ import { damage } from '../src/engine/core';
 import { splitGraph, TILE_KEYS } from '../scripts/pxf-split.mjs';
 // @ts-expect-error 빌드 도구 스크립트 (.mjs, 타입 없음)
 import { renderStripRgba, WIDE_SIZE } from '../scripts/fxr.mjs';
+// @ts-expect-error 빌드 도구 스크립트 (.mjs, 타입 없음)
+import { FX, FX_SIZE } from '../scripts/vfx/index.mjs';
 
 const graph = (name: string) => JSON.parse(readFileSync(new URL(`../src/art/pxf/${name}.pxf.json`, import.meta.url), 'utf8'));
 /** PNG 머리 (IHDR)의 가로 · 세로 */
@@ -47,11 +49,13 @@ const artSize = (name: string): { w: number; h: number } | null => {
   return null;
 };
 const KEYS = Object.keys(PXF) as PxfKey[];
+/** PXF 그래프로 만든 것 (나머지는 손그림풍 스킬 이펙트 scripts/vfx) */
+const GRAPH_KEYS = KEYS.filter(k => !PXF[k].smooth), SMOOTH_KEYS = KEYS.filter(k => PXF[k].smooth);
 /** 아직 이펙트를 안 넣은 휠 스킬 (없음) */
 const LATER = new Set<SkillKey>([]);
 
 describe('PXF 이펙트 파일', () => {
-  for (const k of KEYS) {
+  for (const k of GRAPH_KEYS) {
     it(`${k}: 게임 값이 그래프의 settings · game과 같고, 프레임 띠 · 타임라인 그림이 있음`, () => {
       const g = graph(k), c = PXF[k], design = isBossPxf(k) ? WIDE_DESIGN : c.size;
       expect(g.format).toBe('pxf.graph@1');
@@ -77,13 +81,50 @@ describe('PXF 이펙트 파일', () => {
   }
 
   it('맞는 순간이 첫 프레임, 끝까지 재생하고 사라짐', () => {
-    const c = PXF['heal-dust'];
-    expect(pxfFrame(c, 0)).toBe(2);
-    expect(pxfFrame(c, 1000 / 24)).toBe(3);
-    expect(pxfFrame(c, pxfMs(c) - 1)).toBe(23);
+    const c = PXF['common-heal'];
+    expect(pxfFrame(c, 0)).toBe(1);
+    expect(pxfFrame(c, 1000 / 24)).toBe(2);
+    expect(pxfFrame(c, pxfMs(c) - 1)).toBe(13);
     expect(pxfFrame(c, pxfMs(c))).toBe(-1);
-    expect(pxfMs(c)).toBeCloseTo((22 * 1000) / 24);
+    expect(pxfMs(c)).toBeCloseTo((13 * 1000) / 24);
     expect(pxfDrawSize(c, 62)).toBe(64);
+  });
+});
+
+describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 너무 허술한게 많다. 퀄리티 있게 모두 다시」)', () => {
+  type Fx = { frames: number; logical: number; scope: string };
+  const fx = FX as Record<string, Fx>;
+  it('scripts/vfx의 이펙트 = 게임의 손그림풍 이펙트 (224px)', () => {
+    expect(Object.keys(fx).sort()).toEqual([...SMOOTH_KEYS].sort());
+    expect(FX_SIZE).toBe(SKILL_FX_SIZE);
+  });
+  for (const k of SMOOTH_KEYS) {
+    it(`${k}: 장 수 · 그림 지름 · 재생 칸이 그리기 코드와 같고, 격자 띠가 있음 (PXF 그래프 · 예전 도트 띠는 없음)`, () => {
+      const c = PXF[k], f = fx[k];
+      expect({ frames: c.frames, logical: c.logicalSize, size: c.size, cols: c.cols, impact: c.impactFrame, blend: c.blend })
+        .toEqual({ frames: f.frames, logical: f.logical, size: FX_SIZE, cols: Math.ceil(Math.sqrt(f.frames)), impact: 0, blend: 'normal' });
+      expect(pxfArtName(k)).toBe(`fx-skill-${k}`);
+      expect(artSize(pxfArtName(k))).toEqual({ w: c.size * c.cols, h: c.size * Math.ceil(c.frames / c.cols) });
+      expect(c.size * c.cols).toBeLessThanOrEqual(2048); // 폰 텍스처 한도 안
+      const uses = Object.values(SKILL_PXF).filter(s => s!.fx === k);
+      expect(uses.length).toBe(1);
+      expect(uses[0]!.scope).toBe(f.scope);
+      for (const old of [`pxf/${k}.pxf.json`, `pxf/${k}.timeline.png`, `fx-pxf-${k}.png`]) expect(existsSync(new URL(`../src/art/${old}`, import.meta.url)), old).toBe(false);
+    });
+  }
+  it('들어간 순간부터 그림 · 칸보다 크게 (범위 · 파티 스킬은 칸만 하게)', () => {
+    const c = PXF['priest-heal'];
+    expect(pxfFrame(c, 0)).toBe(0);
+    expect(pxfFrame(c, pxfMs(c))).toBe(-1);
+    expect(pxfDrawSize(c, 62)).toBe(80);
+    for (const k of SMOOTH_KEYS) expect(PXF[k].logicalSize, k).toBeLessThanOrEqual(fx[k].scope === 'target' ? 100 : 84);
+  });
+  it('전투마다 지금 직업 것만 읽음 (하나에 2–5MB)', () => {
+    expect(heroSkillFx('priest').sort()).toEqual(['priest-flash', 'priest-guardian', 'priest-heal', 'priest-hymn', 'priest-poh', 'priest-purify', 'priest-relay', 'priest-renew', 'priest-serenity']);
+    expect(heroSkillFx('druid')).toHaveLength(8);
+    for (const k of heroSkillFx('monk')) expect(k.startsWith('monk-')).toBe(true);
+    // art:optimize가 줄이지 않음 (fx- 규칙 256보다 먼저)
+    expect(readFileSync(new URL('../scripts/art-optimize.mjs', import.meta.url), 'utf8')).toMatch(/re: \/\^fx-skill-\/, w: 1120, h: 1120/);
   });
 });
 

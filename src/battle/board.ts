@@ -29,7 +29,7 @@ import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, hotTimersOf
 import { CELL_RADIUS, fitBoard, hotTimerLayout } from './board-layout';
 import { BOARDS } from '../data/boards';
 import { makeCells } from '../engine/board';
-import { BOSS_PXF, bossPxfOf, COMMON_PXF, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, wideArtName, type CommonFx, type PxfKey } from './pxf';
+import { BOSS_PXF, bossPxfOf, COMMON_PXF, heroSkillFx, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, wideArtName, type CommonFx, type PxfKey } from './pxf';
 
 // ---------- 색 ----------
 const hex = (c: string) => parseInt(c.slice(1, 7), 16);
@@ -113,7 +113,7 @@ export async function initBoard(): Promise<void> {
   // 말풍선 틀 · 꼬리 · 대사 이펙트 띠는 미리 읽어 둠 (첫 말풍선이 앱 그림으로 잠깐 보였다 바뀌지 않게, 43 5장)
   for (const k of ['talk', 'call', 'alert', 'chat']) { artTexture(`ui-bubble-${k}`); artTexture(`ui-bubble-tail-${k}`); }
   for (const n of Object.keys(TALK_FX)) artTexture(`fx-talk-${n}`);
-  for (const k of Object.keys(PXF) as PxfKey[]) if (!isBossPxf(k)) artTexture(pxfArtName(k)); // 첫 스킬부터 보이게 (보스 판 전체 공격은 전투마다 resetBoardFx)
+  for (const k of Object.keys(PXF) as PxfKey[]) if (!isBossPxf(k) && !PXF[k].smooth) artTexture(pxfArtName(k)); // 첫 스킬부터 보이게 (보스 판 전체 공격 · 손그림풍 스킬 이펙트는 전투마다 resetBoardFx)
   if (B.F) resizeBoard();
   await document.fonts?.ready;
   await frameReady;
@@ -839,6 +839,13 @@ export function resetBoardFx(): void {
     const name = pxfSheet(k!);
     if (want.has(name)) artTexture(name); else if (artTex.has(name)) dropArt(name);
   }
+  // 손그림풍 스킬 이펙트 (224px 격자, 하나에 2–5MB): 지금 직업 것만 (첫 스킬부터 보이게), 다른 직업 것은 내려 놓음
+  const mine = new Set(B.F ? heroSkillFx(B.F.hero) : []);
+  for (const k of Object.keys(PXF) as PxfKey[]) {
+    if (!PXF[k].smooth) continue;
+    const name = pxfArtName(k);
+    if (mine.has(k)) artTexture(name); else if (artTex.has(name)) dropArt(name);
+  }
 }
 /**
  * 기믹 연출 (37 4장 F-1): 칸 반지름 배 크기 · 그림이 없을 때 빛 색 · 길이(ms).
@@ -1186,13 +1193,21 @@ function predictedHeal(u: Unit): number {
  * 픽셀 그림이라 가장 가까운 픽셀로 키움. 더하기 섞기는 WebGL에서만 (Canvas에서는 뒤에 그리는 것까지 번져서 보통 섞기)
  */
 function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: number, tint = 0xffffff): void {
-  const c = PXF[k], i = pxfFrame(c, ms), tex = i < 0 ? null : stripFrame(pxfArtName(k), 1, (i + 0.5) / c.frames);
+  const c = PXF[k], i = pxfFrame(c, ms), tex = i < 0 ? null : c.smooth ? smoothFrame(k, i) : stripFrame(pxfArtName(k), 1, (i + 0.5) / c.frames);
   if (!tex) return;
-  if (tex.source.scaleMode !== 'nearest') tex.source.scaleMode = 'nearest';
+  const mode = c.smooth ? 'linear' : 'nearest';
+  if (tex.source.scaleMode !== mode) tex.source.scaleMode = mode;
   const size = pxfDrawSize(c, r * 2), half = safeRadius(x, y, size / 2, 'circle');
   if (half <= 0) return;
   pxfArt.put(tex, x, y, half * 2, half * 2, 1, c.gray ? tint : 0xffffff, 0, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
   recordBound(key, 'fx', 'circle', x, y, half * 2, half * 2, { diameter: half * 2, requestedDiameter: size, frame: i, tint: c.gray ? tint : undefined });
+}
+/** 손그림풍 스킬 이펙트 (격자 띠)의 프레임 i: 부드럽게 늘리므로 옆 프레임이 번져 들지 않게 반 픽셀 안쪽만 씀 */
+function smoothFrame(k: PxfKey, i: number): Texture | null {
+  const c = PXF[k], name = pxfArtName(k), tex = artTexture(name);
+  if (!tex) return null;
+  const px = tex.width / (c.cols * c.size), at = pxfCell(c, i), e = 0.5;
+  return partTex(name, tex, at.x * px + e, at.y * px + e, c.size * px - 2 * e, c.size * px - 2 * e);
 }
 /**
  * 보스 판 전체 공격 PXF (pxf.ts BOSS_PXF) 한 프레임: 캔버스를 판 너비 (세로로 길면 높이)로 키워 판 가운데에, 판 밖으로 나가는 부분은 프레임을 잘라 냄.

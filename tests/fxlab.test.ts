@@ -146,12 +146,12 @@ describe('그래프 고치기 (src/fxlab/graph-edit)', () => {
 
 describe('게임 값과 견주기 (src/fxlab/game-link)', () => {
   it('저장소 그래프는 모두 게임 값과 같음', () => {
-    for (const k of Object.keys(PXF) as PxfKey[]) expect(gameChecks(k, graph(k)).filter(c => c.level === 'warn'), k).toEqual([]);
+    for (const k of Object.keys(PXF) as PxfKey[]) if (!PXF[k].smooth) expect(gameChecks(k, graph(k)).filter(c => c.level === 'warn'), k).toEqual([]);
   });
   it('장 수가 다르면 알려 줌', () => {
-    const g = graph('heal-dust');
+    const g = graph('common-heal');
     g.settings.frames = 20;
-    expect(gameChecks('heal-dust', g).map(c => c.text).join()).toMatch(/장 수: 그래프 20, 게임 24/);
+    expect(gameChecks('common-heal', g).map(c => c.text).join()).toMatch(/장 수: 그래프 20, 게임 14/);
   });
 });
 
@@ -165,7 +165,7 @@ describe('저장 · 굽기 창구 (scripts/fxr/dev-server, 개발 서버 전용)
   });
   it('굽는 모양: 128px 설계 = 256px 격자, 나머지 = 설계 크기 가로 띠', () => {
     expect(bakeLayout(graph('boss-wedge'))).toEqual({ size: 256, grid: true });
-    expect(bakeLayout(graph('heal-dust'))).toEqual({ size: 64, grid: false });
+    expect(bakeLayout(graph('common-heal'))).toEqual({ size: 64, grid: false });
   });
   it('저장: 저장소 모양 (2칸 들여쓰기), 검사 오류면 안 씀', () => {
     const g = newGraph(), r = saveGraph('fx-test', g, tmp);

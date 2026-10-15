@@ -26,7 +26,7 @@ import {
 import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
-import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, pxfTargets, SKILL_PXF, type PxfKey } from './pxf';
+import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, PXF, pxfTargets, SKILL_PXF, type PxfKey } from './pxf';
 import {
   bossFx, bossHealNum, fitBossTitle, updateBossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
   placeGiveUp, resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
@@ -880,6 +880,7 @@ function frame(now: number): void {
   /** 스킬 PXF 이펙트 표 · 재생할 칸 (화면 테스트) */
   pxf: {
     skills: SKILL_PXF, targets: (key: SkillKey, uid: number) => (B.F ? pxfTargets(B.F, key, uid).map(u => u.id) : []),
+    clip: (k: PxfKey) => PXF[k],
     common: COMMON_PXF, ally: (uid: number) => { const ab = B.F?.party.find(u => u.id === uid)?.ab; return ab ? ALLY_PXF[ABILITIES[ab.key].kind] ?? null : null; },
     /** 보스 판 전체 공격 (FX_LOOK wide 이름 → PXF) · 판 사각형 */
     boss: BOSS_PXF, rect: () => ({ left: L.left * L.k, right: L.right * L.k, top: L.top * L.k, bottom: L.bottom * L.k }),
