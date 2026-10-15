@@ -26,7 +26,7 @@ import {
 import { guideHtml, guideModel } from './guide';
 import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
-import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, pxfTargets, SKILL_PXF, type PxfKey } from './pxf';
+import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, PXF, pxfTargets, SKILL_PXF, type PxfKey } from './pxf';
 import {
   bossFx, bossHealNum, fitBossTitle, updateBossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
   placeGiveUp, resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
@@ -77,6 +77,7 @@ function startBattle(guideSec = 0): void {
   $('controls').classList.toggle('wheel-left', S.hand === 'left');
   $('pause').hidden = true; hidePreview(); clearToasts();
   $('giveUp').hidden = true; $('stage').classList.remove('give-up');
+  $('battle').classList.remove('over-win', 'over-lose'); $('banner').classList.remove('show');
   clearCoach();
   $('bossArt').innerHTML = bossSvg(F.enc.script, F.enc.key);
   // 인터미션 쥐떼 작은 그림 (29: mob-crypt-rats가 있을 때만)
@@ -583,7 +584,7 @@ function handleEvents(now: number): void {
         if (u && !u.me) toast(`${u.nick} 쓰러짐`, 'bad');
         break;
       case 'msg': toast(ev.text); break;
-      case 'phase': banner(ev.text); if (ev.text === '광폭화') { vibe([60, 80, 60, 80, 60], true); bossFx('rage'); } else vibe(200, true); break;
+      case 'phase': banner(ev.text, { tone: ev.text === '광폭화' ? 'danger' : undefined }); if (ev.text === '광폭화') { vibe([60, 80, 60, 80, 60], true); bossFx('rage'); } else vibe(200, true); break;
       case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`, 'good'); break;
       case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now, '봉화 지정'); break; }
       case 'mobDown': {
@@ -766,6 +767,10 @@ function endSegment(): void {
   const R = S.run!, F = B.F!;
   R.time += F.t; R.deaths += F.stats.deaths; addStats(R, F, F.stats);
   const next = F.over === 'win' && R.idx < R.segs.length - 1;
+  // 화면이 넘어가기 전 판에 결과 띠: 구간 처치 · 마지막 승리 · 전멸 (이유는 아래 줄). 지면 판을 잿빛으로
+  if (F.over === 'win') banner(next ? '처치' : '승리', { tone: 'win', sub: next ? F.enc.name : R.name });
+  else banner('전멸', { tone: 'lose', sub: F.reason });
+  $('battle').classList.add(F.over === 'win' ? 'over-win' : 'over-lose');
   // 실패는 전투 상태를 2초 보여 준 뒤 정산. 이전 판의 타이머가 새 판을 종료하지 않게 한다.
   setTimeout(() => { if (B.F === F && F.over) { if (next) showRest(); else finish('end'); } }, F.over === 'lose' ? 2000 : 1200);
 }
@@ -876,6 +881,7 @@ function frame(now: number): void {
   /** 스킬 PXF 이펙트 표 · 재생할 칸 (화면 테스트) */
   pxf: {
     skills: SKILL_PXF, targets: (key: SkillKey, uid: number) => (B.F ? pxfTargets(B.F, key, uid).map(u => u.id) : []),
+    clip: (k: PxfKey) => PXF[k],
     common: COMMON_PXF, ally: (uid: number) => { const ab = B.F?.party.find(u => u.id === uid)?.ab; return ab ? ALLY_PXF[ABILITIES[ab.key].kind] ?? null : null; },
     /** 보스 판 전체 공격 (FX_LOOK wide 이름 → PXF) · 판 사각형 */
     boss: BOSS_PXF, rect: () => ({ left: L.left * L.k, right: L.right * L.k, top: L.top * L.k, bottom: L.bottom * L.k }),

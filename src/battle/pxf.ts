@@ -9,6 +9,7 @@
 import type { AbKind } from '../data/abilities';
 import { BOSSES } from '../data/bosses';
 import type { Encounter } from '../data/encounters';
+import { heroSkills, type HeroKey } from '../data/heroes';
 import type { SkillKey } from '../data/skills';
 import { areaRadius, hexDist, living } from '../engine';
 import type { Fight, Unit } from '../engine/types';
@@ -30,10 +31,23 @@ export interface PxfClip {
   referenceCell: number;
   /** 회색 그림: 게임이 종류마다 색을 곱해 칠함 (치유 = 문장 색 · 쓰러짐 = 역할 색 · 디버프 = 종류 색 · 장비 발동 = 묶음 색) */
   gray: boolean;
+  /**
+   * 손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 너무 허술한게 많다. 퀄리티 있게 모두 다시」): PXF 그래프가 아니라 scripts/vfx/<직업>.mjs를
+   * 캔버스로 그려 구운 224px 프레임 격자 (fx-skill-<이름>.webp, node scripts/vfx-bake.mjs). 도트가 아니라 부드럽게 늘려 그림
+   */
+  smooth: boolean;
 }
 
 const clip = (frames: number, impactFrame: number, gray = false): PxfClip =>
-  ({ size: 64, frames, fps: 24, cols: frames, blend: 'normal', impactFrame, logicalSize: 64, referenceCell: 62, gray });
+  ({ size: 64, frames, fps: 24, cols: frames, blend: 'normal', impactFrame, logicalSize: 64, referenceCell: 62, gray, smooth: false });
+/** 손그림풍 스킬 이펙트 프레임 크기 (scripts/vfx/index.mjs FX_SIZE) */
+export const SKILL_FX_SIZE = 224;
+/**
+ * 손그림풍 스킬 이펙트 (scripts/vfx/<직업>.mjs와 장 수 · 그림 지름이 같아야 함, tests/pxf.test.ts): 첫 프레임이 들어간 순간.
+ * logical = 기준 칸 62일 때 그림 지름 (칸보다 크게 그려 칸 밖까지 빛이 번짐, 범위 · 파티 스킬은 칸만 하게)
+ */
+const skill = (frames: number, logical: number): PxfClip =>
+  ({ size: SKILL_FX_SIZE, frames, fps: 24, cols: Math.ceil(Math.sqrt(frames)), blend: 'normal', impactFrame: 0, logicalSize: logical, referenceCell: 62, gray: false, smooth: true });
 /** 보스 판 전체 공격 그래프의 캔버스 (settings.size · game.logicalSize) */
 export const WIDE_DESIGN = 128;
 /**
@@ -45,69 +59,66 @@ const wide = (frames: number, impactFrame: number, gray = false): PxfClip =>
 
 /** 이름 = 그래프 · 프레임 띠 파일 이름 (src/art/pxf/<이름>.pxf.json → fx-pxf-<이름>.png) */
 export const PXF = {
-  /** 치유 초록 반짝이 가루 (Lim이 만든 그래프). 그래프는 더하기 섞기지만 Lim 2026-10-11 「원본 색이 잘 보이게」 → 보통 섞기 */
-  'heal-dust': clip(24, 2),
-  // 아래는 Claude가 요청문 (requests.md)마다 그래프를 만들어 렌더링 · 확인한 것 (2026-10-11)
-  'priest-flash': clip(14, 1),
-  'priest-renew': clip(24, 2),
-  'priest-poh': clip(20, 2),
-  'priest-purify': clip(18, 0),
-  'priest-guardian': clip(24, 4),
-  'priest-hymn': clip(20, 1),
-  'priest-serenity': clip(24, 1),
-  'priest-relay': clip(20, 0),
-  'druid-sprout': clip(20, 2),
-  'druid-growth': clip(20, 2),
-  'druid-bloom': clip(18, 3),
-  'druid-wildflower': clip(24, 2),
-  'druid-cleanse': clip(18, 2),
-  'druid-bark': clip(24, 4),
-  'druid-quietwood': clip(24, 2),
-  'druid-rebirth': clip(24, 2),
-  'paladin-holy-light': clip(22, 2),
+  // 직업 스킬: 손그림풍 (scripts/vfx, Lim 2026-10-16 「퀄리티 있게 모두 다시」). 모양은 requests.md 모양 표 그대로
+  'priest-heal': skill(22, 80),
+  'priest-flash': skill(14, 90),
+  'priest-renew': skill(24, 84),
+  'priest-poh': skill(20, 74),
+  'priest-purify': skill(18, 86),
+  'priest-guardian': skill(24, 94),
+  'priest-hymn': skill(20, 70),
+  'priest-serenity': skill(24, 100),
+  'priest-relay': skill(20, 92),
+  'druid-sprout': skill(20, 80),
+  'druid-growth': skill(20, 88),
+  'druid-bloom': skill(18, 90),
+  'druid-wildflower': skill(24, 72),
+  'druid-cleanse': skill(18, 90),
+  'druid-bark': skill(24, 92),
+  'druid-quietwood': skill(24, 72),
+  'druid-rebirth': skill(24, 98),
+  'paladin-holy-light': skill(16, 80), // 기본 힐이라 가볍게 (Lim 2026-10-16 「너무 과하다」)
+  'paladin-oath': skill(24, 90),
+  'paladin-light-wave': skill(18, 88),
+  'paladin-cleanse': skill(18, 92),
+  'paladin-sacrifice': skill(22, 92),
+  'paladin-sanctuary': skill(24, 76),
+  'paladin-hand-guard': skill(24, 94),
+  'shaman-ripple': skill(20, 88),
+  'shaman-droplet': skill(20, 88),
+  'shaman-washing': skill(20, 92),
+  'shaman-chain': skill(16, 96),
+  'shaman-earth': skill(22, 94),
+  'shaman-rain': skill(20, 72),
+  'shaman-link': skill(22, 84),
+  'monk-palm': skill(14, 86),
+  'monk-wrap': skill(22, 92),
+  'monk-mist': skill(24, 90),
+  'monk-breath': skill(20, 80),
+  'monk-clear': skill(18, 90),
+  'monk-soothe': skill(24, 92),
+  'monk-wind': skill(20, 80),
+  'monk-tea': skill(24, 88),
+  'astro-star': skill(20, 88),
+  'astro-twinkle': skill(16, 86),
+  'astro-mark': skill(20, 88),
+  'astro-clear': skill(18, 92),
+  'astro-fall': skill(20, 90),
+  'astro-sleep': skill(24, 92),
+  'astro-memory': skill(22, 80),
+  'astro-polaris': skill(22, 100),
+  // 아직 예전 64px 도트 (PXF 그래프): 빠지거나 바뀌는 스킬 (빛 일격 · 소나기 · 샘 토템 · 빠른 인장 · 빛의 창 · 심판, QA에서 스킬을 바꾼 뒤 다시 만듦)
   'paladin-holy-strike': clip(16, 2),
-  'paladin-oath': clip(24, 2),
-  'paladin-light-wave': clip(18, 2),
-  'paladin-cleanse': clip(18, 2),
-  'paladin-sacrifice': clip(22, 3),
-  'paladin-sanctuary': clip(24, 3),
-  'paladin-hand-guard': clip(24, 2),
-  // 79 주술사 (물빛, requests.md 「주술사」): 휠 8개 + 가운데 샘 토템
-  'shaman-ripple': clip(20, 1),
   'shaman-shower': clip(18, 3),
-  'shaman-droplet': clip(20, 5),
-  'shaman-washing': clip(20, 2),
-  'shaman-chain': clip(14, 5),
-  'shaman-earth': clip(22, 4),
-  'shaman-rain': clip(20, 2),
-  'shaman-link': clip(22, 3),
   'shaman-spring': clip(24, 3),
-  // 79 수도사 (비취, requests.md 「수도사」): 휠 8개
-  'monk-palm': clip(14, 1),
-  'monk-wrap': clip(22, 4),
-  'monk-mist': clip(24, 4),
-  'monk-breath': clip(20, 2),
-  'monk-clear': clip(18, 3),
-  'monk-soothe': clip(24, 2),
-  'monk-wind': clip(20, 3),
-  'monk-tea': clip(24, 4),
-  // 79 점성술사 (호박, requests.md 「점성술사」): 휠 8개
-  'astro-star': clip(20, 3),
-  'astro-twinkle': clip(16, 2),
-  'astro-mark': clip(20, 4),
-  'astro-clear': clip(18, 6),
-  'astro-fall': clip(20, 6),
-  'astro-sleep': clip(24, 4),
-  'astro-memory': clip(22, 6),
-  'astro-polaris': clip(22, 6),
-  // 결계사 (79 5-5, 상아빛 네모 결계): 인장 X · 도장 · 유리판 · 깨지는 유리 · 네 말뚝 · 도는 방패 · 가로 띠 · 창 · 망치
-  'warder-seal': clip(20, 4),
+  // 결계사 (79 5-5 네모 결계, 2026-10-16 Lim 「흰색이라서 퀄리티가 더 떨어져보인다. 노란 발광의 빛이나게」→ 손그림풍 노란 빛): 인장 X · 도장 · 유리판 · 깨지는 유리 · 네 말뚝 · 도는 방패 · 가로 띠 · 창 · 망치
+  'warder-seal': skill(20, 92),
   'warder-quick': clip(16, 3),
-  'warder-barrier': clip(22, 4),
-  'warder-cleanse': clip(18, 3),
-  'warder-circle': clip(20, 4),
-  'warder-guard': clip(22, 3),
-  'warder-veil': clip(24, 5),
+  'warder-barrier': skill(22, 96),
+  'warder-cleanse': skill(18, 94),
+  'warder-circle': skill(20, 82),
+  'warder-guard': skill(22, 96),
+  'warder-veil': skill(24, 82),
   'warder-spear': clip(16, 2),
   'warder-judgment': clip(18, 5),
   // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (회색 그림은 색을 곱함)
@@ -139,13 +150,13 @@ export const PXF = {
   'boss-wedge': wide(18, 1),
 } as const satisfies Record<string, PxfClip>;
 export type PxfKey = keyof typeof PXF;
-export const pxfArtName = (key: PxfKey): string => `fx-pxf-${key}`;
+export const pxfArtName = (key: PxfKey): string => (PXF[key].smooth ? `fx-skill-${key}` : `fx-pxf-${key}`);
 
 /** 재생할 칸: target = 대상 칸 · area = 대상 둘레 범위 안 아군 칸마다 · party = 살아 있는 파티 전원 칸마다 */
 export type PxfScope = 'target' | 'area' | 'party';
 /** 휠 스킬이 들어갈 때 재생할 PXF 이펙트 (그 칸의 이번 치유는 기본 치유 빛 없이) */
 export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }>> = {
-  heal: { fx: 'heal-dust', scope: 'target' },
+  heal: { fx: 'priest-heal', scope: 'target' },
   flash: { fx: 'priest-flash', scope: 'target' },
   renew: { fx: 'priest-renew', scope: 'target' },
   poh: { fx: 'priest-poh', scope: 'area' },
@@ -205,6 +216,12 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
   lightSpear: { fx: 'warder-spear', scope: 'target' }, // 회복한 인장 칸마다 (없으면 누른 칸)
   judgment: { fx: 'warder-judgment', scope: 'target' }, // 회복한 인장 칸마다
 };
+
+/**
+ * 그 직업 스킬의 손그림풍 이펙트 (224px 격자 띠라 하나에 2–5MB): 전투마다 지금 직업 것만 읽어 두고 다른 직업 것은 내려 놓음 (board.ts resetBoardFx)
+ */
+export const heroSkillFx = (hero: HeroKey): PxfKey[] =>
+  [...new Set(heroSkills(hero).map(k => SKILL_PXF[k]?.fx).filter((k): k is PxfKey => !!k && PXF[k].smooth))];
 
 /** 전투 공통 효과 (모든 효과 PXF 1단계, requests.md): 있으면 board.ts가 예전 그림 (fx-hit · fx-heal …) 대신 그림 */
 export type CommonFx = 'hit' | 'crit' | 'heal' | 'dispel' | 'revive' | 'death' | 'debuff' | 'proc';

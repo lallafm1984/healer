@@ -286,10 +286,12 @@ export function alarm(a: { title: string; text: string } | null): void {
   } else { noteAt = performance.now(); showNote(); }
 }
 let bannerTimer: ReturnType<typeof setTimeout> | undefined;
-export function banner(text: string): void {
+/** 판 가운데 큰 알림 띠. tone = 색 (danger 붉게 · win 금빛 · lose 잿빛), sub = 아래 작은 줄 (글자 내용은 text만) */
+export function banner(text: string, o: { tone?: 'danger' | 'win' | 'lose'; sub?: string } = {}): void {
   const b = $('banner');
   clearTimeout(bannerTimer);
-  b.textContent = text; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+  b.textContent = text; b.dataset.tone = o.tone ?? ''; b.dataset.sub = o.sub ?? '';
+  b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
   // 효과를 끈 때도 경고를 정적으로 보여 주고 같은 수명 뒤 숨긴다.
   bannerTimer = setTimeout(() => b.classList.remove('show'), 2600);
 }
