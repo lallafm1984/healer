@@ -63,6 +63,9 @@ export function buildClassGauge(host: HTMLElement, controls: HTMLElement, job: H
     reveal.append(fill);mask.append(reveal);el.append(mask);
     const ready=el.querySelector<HTMLElement>('.gauge-ready')!;
     Object.assign(ready.style,{width:'112%',height:'90%',left:-135/1355*100+'%',top:-43/1161*100+'%'});
+    // 원화의 좌우 투명 공간만 뷰포트에서 제외한다. 채움·발광·숫자는 같은 원화 좌표를 유지한다.
+    const canvas=div('priest-art');
+    canvas.append(...Array.from(el.childNodes));el.append(canvas);
     return;
   }
   const c=gaugeConfig[job];

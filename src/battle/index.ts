@@ -128,9 +128,9 @@ function layoutBattle(): void {
   $('battle').classList.toggle('stage-sm', !!F.enc.big || F.party.length >= 10 || H < 720);
   // 보스 무대 높이는 시안대로 내용이 정함 (5인 186 · 20인 166, 낮은 화면은 hud27.css에서 줄임)
   $('stage').style.minHeight = '';
-  // 아래 조작판: 시안 390×844에서 230. 휠 = 조작판 높이 - 14 (시안 216), 폭의 56.5% (시안 220)
+  // 작은 조작판의 아래 모서리 장식을 피하도록 휠 위아래 공간을 확보한다.
   const auxCount = Object.keys(F.tx.act).length;
-  // 아이템을 한 줄로 줄인 공간을 자원 패널에 배분한다 (특성 44 · 아이템 44 · 간격 8 · 위아래 여백 28)을 확보한다.
+  // 아이템 한 줄과 하단 장식 여백을 확보하고 남는 높이를 자원 그림에 배분한다.
   const controls = $('controls');
   controls.classList.add('compact-controls');
   $('battle').classList.add('compact-panel');
@@ -142,7 +142,7 @@ function layoutBattle(): void {
   $('controls').style.height = ch + 'px';
   // 왼쪽(단축칸 쪽) = 특성 버튼 3개면 시안 20인 폭 146, 좁은 폰은 140. 여백 16·12 + 사이 8 (좁으면 12·12)
   const narrow = W < 360, sideWidth = auxCount >= 3 ? (narrow ? 140 : 146) : narrow ? 120 : 96;
-  buildWheel(Math.min(ch - 14, W * 0.565, W - sideWidth - (narrow ? 32 : 36)));
+  buildWheel(Math.min(ch - 38, W * 0.565, W - sideWidth - (narrow ? 32 : 36)));
   // 시전 여부와 관계없이 판과 조작판 사이의 독립 행을 예약한다.
   $('controlsFrame').before($('castbar'));
   // 일시정지 중 부모가 바뀌어도 이전 직계 자식의 inert가 남지 않게 한다.

@@ -22,17 +22,19 @@ export default async function classControls(url,shots){
     const check=await p.evaluate(()=>{
      const c=document.querySelector('#controls'),g=document.querySelector('.job-gauge'),frame=document.querySelector('#controlsFrame'),cr=c.getBoundingClientRect(),gr=g.getBoundingClientRect(),scale=+c.dataset.uiScale;
      const items=[...document.querySelectorAll('#items .item')].map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,height:r.height};});
-     const compact=c.classList.contains('compact-controls'),host=document.querySelector('#gauges').getBoundingClientRect();
+     const compact=c.classList.contains('compact-controls'),host=document.querySelector('#gauges').getBoundingClientRect(),wheel=document.querySelector('#wheel').getBoundingClientRect();
      return {job:g.dataset.job,background:getComputedStyle(compact?frame:c).backgroundImage,frame:getComputedStyle(document.querySelector('#items .item')).backgroundImage,
       oldFrameGone:!compact||getComputedStyle(frame,'::before').content==='none',
       aligned:Math.abs((gr.left+gr.right)-(host.left+host.right))<1&&Math.abs((gr.top+gr.bottom)-(host.top+host.bottom))<1,
       twoSlots:items.length===2&&Math.abs(items[0].top-items[1].top)<1,
-      itemsFit:items.every(r=>r.bottom<=cr.bottom-19*scale&&r.top>=gr.bottom+7*scale&&r.left>=cr.left&&r.right<=cr.right),gaugeSize:[gr.width,gr.height],items,
+      itemsFit:items.every(r=>r.bottom<=cr.bottom-31*scale&&r.top>=gr.bottom+7*scale&&r.left>=cr.left&&r.right<=cr.right),
+      wheelFit:wheel.bottom<=cr.bottom-20*scale&&wheel.top>=cr.top+10*scale&&wheel.right<=cr.right-20*scale,
+      gaugeSize:[gr.width,gr.height],items,
       hitMin:+c.dataset.effectiveTouchMin,hitOverlap:c.dataset.hitAreasOverlap,bottom:cr.bottom,images:[...c.querySelectorAll('img')].every(i=>i.complete&&i.naturalWidth>0)};
     });
     const label=hero+' '+width+' '+(compact?'compact':'normal');
     ok(check.job===hero&&check.background.includes('ui-class-'+hero+'-background')&&check.frame.includes('ui-class-'+hero+'-item-frame')&&check.oldFrameGone,label+' class materials');
-    ok(check.twoSlots&&check.itemsFit&&check.aligned&&check.images&&check.gaugeSize[1]>=50&&check.hitMin>=43.9&&check.hitOverlap==='false',label+' aligned gauge/items safe insets '+JSON.stringify(check));
+    ok(check.twoSlots&&check.itemsFit&&check.wheelFit&&check.aligned&&check.images&&check.gaugeSize[1]>=50&&check.hitMin>=43.9&&check.hitOverlap==='false',label+' aligned gauge/items safe insets '+JSON.stringify(check));
     await p.locator('#controlsFrame').screenshot({path:shots+'/class-controls-'+hero+'-'+width+'-'+(compact?'compact':'normal')+'.png'});
    }
    if(hero==='shaman'){
