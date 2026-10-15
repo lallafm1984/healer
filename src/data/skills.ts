@@ -121,7 +121,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   wardCircle: { name: '결계 원', short: '결계', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 20, amt: 100, target: 'area' }, // 150 → 100 (79 5-11)
   guardWard: { name: '수호 결계', short: '수호', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' }, // 82: 받는 피해 −40% (누그러뜨림과 같음) → 큰 보호막 (WARDER.guard)
   lightVeil: { name: '빛의 장막', short: '장막', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, amt: 130, target: 'none' }, // 82: 범위 피해 −25% (성역과 비슷) → 전원 보호막 + 인장
-  wardHold: { name: '결계 굳히기', short: '굳히기', slot: 'unique', lv: 15, cast: 0, cost: 3, cd: 15, amt: 30, target: 'none' }, // 2026-10-16 Lim 「결계사의 창 스킬은 변경하자 (주인공은 공격스킬을 넣지 않는다)」 → 「막 옮기기 말고 보호막 지속시간을 늘려주는 스킬」: 빛의 창 (보스 공격 + 인장 3명 160) 대신. amt = 늘린 보호막마다 더하는 두께
+  wardHold: { name: '결계 굳히기', short: '굳히기', slot: 'unique', lv: 15, cast: 0, cost: 3, cd: 20, amt: 30, target: 'none' }, // 2026-10-16 Lim 「결계사의 창 스킬은 변경하자 (주인공은 공격스킬을 넣지 않는다)」 → 「막 옮기기 말고 보호막 지속시간을 늘려주는 스킬」: 빛의 창 (보스 공격 + 인장 3명 160) 대신. amt = 늘린 보호막마다 더하는 두께
   judgment: { name: '심판', short: '심판', slot: 'fast', lv: 6, cast: 2.0, cost: 6, amt: 90, target: 'none' }, // 140 → 90 (79 5-11)
 };
 
