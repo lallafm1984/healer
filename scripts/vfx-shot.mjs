@@ -39,7 +39,7 @@ const keys = keyArg === 'all' ? Object.keys(all) : keyArg.split(',').flatMap(w =
 });
 if (!keys.length) { console.error(`없는 스킬: ${keyArg}`); process.exit(1); }
 // 이펙트 띠를 다 읽어 둠
-for (let i = 0; i < 40; i++) {
+for (let i = 0; i < 120; i++) {
   const ok = await page.evaluate(ks => ks.every(k => window.__proto.pxf.ready(window.__proto.pxf.skills[k].fx)), keys);
   if (ok) break;
   await page.clock.runFor(100); await page.waitForTimeout(80);
