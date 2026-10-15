@@ -55,7 +55,7 @@
 #battle #phase { display: inline; max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; font-size: inherit; color: inherit; overflow: visible; }
 /* 이름 줄은 이름과 등급 배지만 표시해 긴 몬스터 이름의 공간을 확보합니다. */
 #battle .boss-heading { display: flex; align-items: center; gap: 8px; min-width: 0; }
-#battle #bossName { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; font: 800 22px/1.2 var(--font-display); color: var(--ink); text-shadow: 0 2px 0 var(--line); white-space: nowrap; overflow: hidden; }
+#battle #bossName { flex: 1; min-width: 0; min-height: 1lh; display: flex; align-items: center; gap: 6px; font: 800 22px/1.2 var(--font-display); color: var(--ink); text-shadow: 0 2px 0 var(--line); white-space: nowrap; overflow: hidden; }
 #battle .boss-title-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 #battle #bossName .grade { flex: none; height: 19px; margin: 0; padding: 0 6px; border-radius: 3px; border: 1px solid var(--line); background: var(--panel-2); font: 900 11px/17px var(--font-body); color: var(--ink-2); text-shadow: none; vertical-align: 0; }
 #battle #bossName .grade.elite { background: linear-gradient(#E8C477, #B8903F); color: #2A1D08; }

@@ -146,10 +146,19 @@ describe('성언 (Lv 40~50)', () => {
   });
   it('기적의 순간: 평온 게이지를 바로 100%, 전투당 1회', () => {
     const f = fight(['miracle']);
+    expect(E.talentUsesSpent(f, 'miracle')).toBe(false);
     expect(useTalent(f, 'miracle').ok).toBe(true);
+    expect(E.talentUsesSpent(f, 'miracle')).toBe(true);
     expect(f.g).toEqual({ p: 100 });
     f.g = { p: 0 };
     expect(useTalent(f, 'miracle').reason).toMatch(/전투당 1회/);
+    expect(E.talentUsesSpent(fight(['miracle']), 'miracle')).toBe(false);
+  });
+  it('반복 사용 특성은 사용 뒤에도 전투당 횟수 소진으로 처리하지 않는다', () => {
+    const f = fight(['zenith']);
+    expect(useTalent(f, 'zenith').ok).toBe(true);
+    expect(E.talentUsesSpent(f, 'zenith')).toBe(false);
+    expect(talentReady(f, 'zenith').ok).toBe(false); // 일반 재사용 대기는 유지
   });
   it('아껴 둔 말씀: 게이지 200까지, 성언을 쓰면 100만 줄어듦', () => {
     const f = fight(['savedWord']); hurt(f, 0.1);

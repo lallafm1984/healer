@@ -67,7 +67,7 @@ const fxG = new Graphics();
 const frameL = new Container();
 const overG = new Graphics();
 const labelsL = new Container();
-/** 디버프 배지 바탕·글자: 이름·체력 글자보다 위 (2026-10-10 Lim: 이름이 배지 위로 보여 배지가 안 읽힘) */
+/** 버프·디버프 배지 바탕과 글자는 함께 이름·체력 글자보다 위에 그린다. */
 const badgeG = new Graphics();
 const badgeL = new Container();
 const topG = new Graphics();
@@ -1827,8 +1827,8 @@ export function render(now: number): void {
       const start = hotCenter(hotSpot?.x ?? x + hotLayout.x, hotSpot?.y ?? y + hotLayout.y, hr + 0.75, lower);
       hots.forEach((h, i) => {
         const hx = start.x, hy = start.y + i * hotLayout.step, key = `hot${u.id}-${h.key}`;
-        overG.circle(hx, hy, hr).fill({ color: HOT_COLOR[h.key] ?? C.teal }).stroke({ width: 1.5, color: C.line });
-        const label = labels.put(key, String(Math.ceil(h.left)), { size: Math.max(8, hr * 1.05), fill: C.line }, hx, hy + 0.5);
+        badgeG.circle(hx, hy, hr).fill({ color: HOT_COLOR[h.key] ?? C.teal }).stroke({ width: 1.5, color: C.line });
+        const label = badgeLabels.put(key, String(Math.ceil(h.left)), { size: Math.max(8, hr * 1.05), fill: C.line }, hx, hy + 0.5);
         label.scale.set(1);
         if (label.width > hr * 1.65) label.scale.x = hr * 1.65 / label.width;
         fitLabel(label, `${key}-text`, 'hot');
@@ -1942,12 +1942,12 @@ export function render(now: number): void {
     }
     hy = clamp(hy, L.top + 3.25, L.bottom - 3.25);
     if (hot.relay) {
-      overG.circle(hot.x, hy, 3.25).fill({ color: C.gold }).stroke({ width: 1.25, color: C.line });
+      badgeG.circle(hot.x, hy, 3.25).fill({ color: C.gold }).stroke({ width: 1.25, color: C.line });
       recordBound(`relay${hot.id}`, 'relay', 'circle', hot.x, hy, 7.75, 7.75);
       continue;
     }
-    overG.rect(hot.x - 3, hy - 3, 6, 6).fill({ color: C.line });
-    overG.moveTo(hot.x - 2.5, hy).lineTo(hot.x + 2.5, hy).moveTo(hot.x, hy - 2.5).lineTo(hot.x, hy + 2.5).stroke({ width: 1.5, color: C.teal });
+    badgeG.rect(hot.x - 3, hy - 3, 6, 6).fill({ color: C.line });
+    badgeG.moveTo(hot.x - 2.5, hy).lineTo(hot.x + 2.5, hy).moveTo(hot.x, hy - 2.5).lineTo(hot.x, hy + 2.5).stroke({ width: 1.5, color: C.teal });
     recordBound(`hot${hot.id}`, 'hot', 'cross', hot.x, hy, 6.5, 6.5);
   }
   // 표시된 글자 bounds만 노출한다. 값이 바뀔 때만 기록하며 전투/입력 상태에는 관여하지 않는다.

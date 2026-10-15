@@ -13,7 +13,7 @@ import { AFFIXES } from '../data/affixes';
 import { ABILITIES } from '../data/abilities';
 import { artPlaces, ENCOUNTER_PLACE, floorArtName, PLACES, sceneArtName } from '../data/places';
 import { art, cssUrl } from '../art';
-import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, setBeacon, slotKey, step, talentReady, use, useItem, useTalent, type Fight, type FightStats } from '../engine';
+import { autoHealer, create, DT, hexDist, itemReady, knowsPassive, restCarry, setBeacon, skillUsesSpent, slotKey, step, talentReady, talentUsesSpent, use, useItem, useTalent, type Fight, type FightStats } from '../engine';
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ITEM_HINT, ITEM_ICON, ratsArt } from './art';
@@ -27,7 +27,7 @@ import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
 import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, pxfTargets, SKILL_PXF, type PxfKey } from './pxf';
 import {
-  bossFx, bossHealNum, bossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
+  bossFx, bossHealNum, fitBossTitle, updateBossTitle, buildAux, buildGauges, buildItems, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openItemTip, openSkillTip, openTalentTip, openTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
   placeGiveUp, resetDmgNums, updateAux, updateCastbar, updateItems, updateStage, updateWheel,
 } from './hud';
 
@@ -81,7 +81,7 @@ function startBattle(guideSec = 0): void {
   // 인터미션 쥐떼 작은 그림 (29: mob-crypt-rats가 있을 때만)
   const adds = $('bossAdds') as HTMLImageElement; adds.hidden = true;
   if (F.enc.script === 'plague' && ratsArt()) adds.src = ratsArt(); else adds.removeAttribute('src');
-  $('bossName').innerHTML = bossTitle();
+  updateBossTitle();
   // 위치 줄 앞 = 적 무리 구간 이름 (보스 한 마리는 이름 줄에 이미 있어 비움)
   $('encounterLabel').textContent = F.bodyHp ? F.enc.name : '';
   buildStage();
@@ -158,6 +158,7 @@ function layoutBattle(): void {
     $('core').setAttribute('aria-label', `마나 · ${SKILLS[k].name}`);
   }
   scaleControls();
+  fitBossTitle();
   placeGiveUp();
   resizeBoard();
 }
@@ -212,6 +213,8 @@ $('pauseFive').addEventListener('change', e => {
 });
 new ResizeObserver(() => { if (B.F && !$('battle').hidden) resizeBoard(); }).observe($('boardWrap'));
 window.addEventListener('resize', () => { if (B.F && !$('battle').hidden) layoutBattle(); });
+document.fonts.ready.then(fitBossTitle);
+document.fonts.addEventListener('loadingdone', fitBossTitle);
 
 // ---------- 스킬 휠: 짧게 누르기 = 장전(또는 바로 사용), 잠긴 칸은 배우는 레벨 안내. 길게 누르기 = 스킬 설명 ----------
 interface Press { id: number; el: HTMLElement; lp: boolean; timer?: ReturnType<typeof setTimeout> }
@@ -287,8 +290,9 @@ function pressCore(): void {
 function pressSlot(slot: string): void {
   const F = B.F;
   if (!F || !live() || ui.pullLeft > 0) return;
-  ui.itemArmed = null; ui.talArmed = null; B.beacon = false; B.coreCell = false;
   const key = slotKey(F, slot);
+  if (skillUsesSpent(F, key)) return;
+  ui.itemArmed = null; ui.talArmed = null; B.beacon = false; B.coreCell = false;
   if (SKILLS[key].target === 'none') { doUse(key, 0); return; }
   B.armed = B.armed === slot ? null : slot;
   vibe(8);
@@ -383,6 +387,7 @@ $('aux').addEventListener('click', e => {
 
 function pressAux(key: TalentKey): void {
   const F = B.F!, def = TALENT_DEF[key];
+  if (talentUsesSpent(F, key)) return;
   if (def.active!.cell) {
     const r = talentReady(F, key);
     if (!r.ok) { if (r.reason) toast(r.reason); Snd.play('error'); return; }
@@ -422,7 +427,9 @@ function pt(e: PointerEvent) { const r = cv.getBoundingClientRect(); return { x:
 /** 스킬을 걸 수 있는 칸: 파티원 또는 헤매는 영혼 (P-SOUL) */
 const aimable = (F: Fight, idx: number): boolean => !!F.cells[idx]?.unit || F.cells[idx]?.block === 'soul';
 function doUse(key: SkillKey, idx: number): boolean {
-  const F = B.F!, res = use(F, key, idx);
+  const F = B.F!;
+  if (skillUsesSpent(F, key)) return false;
+  const res = use(F, key, idx);
   if (F.cells[idx]?.unit) ui.selectedUnitId = F.cells[idx].unit!.id;
   if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('error'); return false; }
   if (B.armed && slotKey(F, B.armed) === key) B.armed = null;
@@ -579,7 +586,7 @@ function handleEvents(now: number): void {
       case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`, 'good'); break;
       case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now, '봉화 지정'); break; }
       case 'mobDown': {
-        toast(`${ev.name} 쓰러짐`, 'good'); $('bossName').innerHTML = bossTitle();
+        toast(`${ev.name} 쓰러짐`, 'good'); updateBossTitle();
         // 판 위 적 처치 (37 4장 F-1): 감옥은 깨지고, 칸에 선 적은 연기로
         const a = F.mobs.find(m => m.id === ev.id)?.add;
         if (a?.hold != null) fxGim('jail-break', now, { id: a.on }); else if (a?.cell != null) fxGim('poof', now, { cell: a.cell });

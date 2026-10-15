@@ -39,6 +39,8 @@ export function newTalents(f: Fight): TalentState {
 export const has = (f: Fight, k: TalentKey): boolean => !!f.tx.on[k];
 /** 보조 버튼 특성이 지금 켜져 있는지 (정점·흩빛) */
 export const activeOn = (f: Fight, k: TalentKey): boolean => (f.tx.act[k]?.left ?? 0) > 0;
+/** 전투당 횟수 제한이 있는 모든 보조 특성 버튼의 공통 판정. */
+export const talentUsesSpent = (f: Fight, k: TalentKey): boolean => !!TALENT_DEF[k].active?.once && !!f.tx.act[k]?.used;
 
 /**
  * 마나 소모: 가벼운 손끝 (순간 ×0.8), 말씀의 여운 (×0.5), 기도의 정점 (×1.5), 장비 특수능력 (42, u = 대상을 알 때).
@@ -189,7 +191,7 @@ export function renewEnd(f: Fight, u: Unit): void {
 export function talentReady(f: Fight, key: TalentKey): ActionResult {
   const def = TALENT_DEF[key], a = f.tx.act[key];
   if (!def.active || !a) return { ok: false, reason: `${def.name}: 고르지 않은 특성` };
-  if (def.active.once && a.used) return { ok: false, reason: `${def.name}: 전투당 1회` };
+  if (talentUsesSpent(f, key)) return { ok: false, reason: `${def.name}: 전투당 1회` };
   if (a.cd > 0) return { ok: false, reason: `${def.name} 재사용 대기 ${Math.ceil(a.cd)}초` };
   if (a.left > 0) return { ok: false, reason: `${def.name} 효과 중` };
   if (key === 'miracle' && f.g.p >= 100) return { ok: false, reason: '평온 게이지가 이미 가득 참' };

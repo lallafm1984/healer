@@ -170,13 +170,29 @@ describe('드루이드', () => {
   });
   it('환생: 쓰러진 파티원을 40% 체력으로, 전투당 한 번', () => {
     const f = fight('druid'), d = dps(f);
+    expect(E.skillUsesSpent(f, 'rebirth')).toBe(false);
     damage(f, d, (d.max * 5) / f.dmgMult); // 레벨 · 난이도 피해 배율 (data/tune)과 상관없이 쓰러뜨림
     expect(d.alive).toBe(false);
     const r = E.use(f, 'rebirth', d.cell);
     expect(r.ok).toBe(true);
+    expect(E.skillUsesSpent(f, 'rebirth')).toBe(false); // 시전 시작만으로는 소모하지 않음
     finish(f);
     expect(d.alive).toBe(true);
     expect(f.rebirthUsed).toBe(true);
+    expect(E.skillUsesSpent(f, 'rebirth')).toBe(true);
+    damage(f, d, (d.max * 5) / f.dmgMult);
+    expect(E.use(f, 'rebirth', d.cell).ok).toBe(false);
+    expect(E.skillUsesSpent(f, 'sprout')).toBe(false);
+    expect(E.skillUsesSpent(fight('druid'), 'rebirth')).toBe(false); // 새 전투에서는 복구
+  });
+  it('환생 시전 취소 시에는 사용 횟수가 남는다', () => {
+    const f = fight('druid'), d = dps(f);
+    damage(f, d, (d.max * 5) / f.dmgMult);
+    expect(E.use(f, 'rebirth', d.cell).ok).toBe(true);
+    expect(E.use(f, 'sprout', tank(f).cell).ok).toBe(true);
+    expect(f.cast).toBeNull();
+    expect(E.skillUsesSpent(f, 'rebirth')).toBe(false);
+    expect(E.canTarget(f, 'rebirth', d.cell).ok).toBe(true);
   });
 });
 

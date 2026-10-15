@@ -18,6 +18,9 @@ import type { ActionResult, Debuff, Fight, Unit } from './types';
 export const knows = (f: Fight, key: SkillKey) => f.level >= SKILL_LEVEL[key];
 export const knowsPassive = (f: Fight, key: PassiveKey) => f.hero === 'priest' && f.level >= PASSIVE_LEVEL[key];
 
+/** 전투당 횟수 소진 여부. 엔진 판정·수동 입력·버튼 표시가 같은 기준을 사용한다. */
+export const skillUsesSpent = (f: Fight, key: SkillKey): boolean => key === 'rebirth' && f.rebirthUsed;
+
 /**
  * 휠 자리 → 실제 스킬. 휠 자리 이름은 사제 스킬 이름을 그대로 쓴다 (heal = 기본 힐 칸, poh = 광역 힐 칸 …, unique = 8번째 칸).
  * 사제는 평온 게이지가 차면 치유 → 성언: 평온 (82: 신성화는 없앰). 다른 직업은 그 칸의 직업 스킬 (25 2장)
@@ -37,7 +40,7 @@ export function canTarget(f: Fight, key: SkillKey, cellIdx: number): ActionResul
   const sk = SKILLS[key];
   if (sk.power) { const need = sk.powerAll ? 1 : key === 'lightWave' ? waveNeed(f) : sk.power; if (f.power3 < need) return { ok: false, reason: `신성한 힘 부족 (${f.power3}/${need})` }; } // 끝없는 빛 (77): 빛의 파도 2칸부터
   if (sk.target === 'dead') {
-    if (key === 'rebirth' && f.rebirthUsed) return { ok: false, reason: '환생은 전투당 1회' };
+    if (skillUsesSpent(f, key)) return { ok: false, reason: '환생은 전투당 1회' };
     const u = reviveTarget(f);
     return u ? { ok: true, u } : { ok: false, reason: '쓰러진 파티원 없음' };
   }
