@@ -4,6 +4,7 @@
  */
 import type { DiffName } from './difficulty';
 import { SKILLS, type SkillKey, type SlotName } from './skills';
+import { judgeText, SHAMAN, WARDER } from './heroConst';
 
 export type HeroKey = 'priest' | 'druid' | 'paladin' | 'shaman' | 'monk' | 'astrologer' | 'warder';
 
@@ -92,7 +93,7 @@ export const HEROES: Record<HeroKey, HeroDef> = {
   // ---------- 79 힐러 직업 4종: 상점에서 하나에 2,200원 (81, 예전 Lv 30 · 40 · 50 · 60 무료) ----------
   shaman: {
     key: 'shaman', name: '주술사', line: '다친 사람을 따라 물이 흘러가는 힐러입니다.', star: 2,
-    system: { name: '토템 칸', lv: 6, desc: '샘 토템을 아군 칸에 쓰면 그 칸에 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군을 회복합니다 (20인 레이드에서는 70%). 토템은 종류마다 하나만 서고, 그 칸에 장판이 깔리거나 예고된 공격이 떨어지거나 적이 나오면 깨집니다.' },
+    system: { name: '토템 칸', lv: 6, desc: `샘 토템을 아군 칸에 쓰면 그 칸에 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군을 회복합니다 (20인 레이드에서는 ${Math.round(SHAMAN.spring.big * 100)}%). 토템은 종류마다 하나만 서고, 그 칸에 장판이 깔리거나 예고된 공격이 떨어지거나 적이 나오면 깨집니다.` },
     dispel: ['마법', '저주'],
     slots: slots({ basic: 'ripple', fast: 'springTotem', hot: 'droplet', aoe: 'chainHeal', dispel: 'washing', ext: 'earthTotem', raid: 'rainTotem', unique: 'spiritLink' }),
     tap: ['ripple', 'droplet'],
@@ -132,13 +133,13 @@ export const HEROES: Record<HeroKey, HeroDef> = {
   },
   warder: {
     key: 'warder', name: '결계사', line: '막을 미리 씌우고, 인장으로 치유를 터뜨리는 힐러입니다.', star: 3,
-    system: { name: '심판', lv: 6, desc: '결계사의 힐과 보호막은 대상에게 15초 동안 인장을 붙입니다. 심판을 외치면 인장이 붙은 아군 중 체력이 가장 낮은 6명 (5인 던전 3명, 10인 레이드 4명)을 한꺼번에 회복합니다.' },
+    system: { name: '심판', lv: 6, desc: `결계사의 힐과 보호막은 대상에게 15초 동안 인장을 붙입니다. 심판을 외치면 인장이 붙은 아군 중 체력이 가장 낮은 ${judgeText()}을 한꺼번에 회복합니다.` },
     dispel: ['마법', '저주'],
     slots: slots({ basic: 'sealHeal', fast: 'judgment', hot: 'lightBarrier', aoe: 'wardCircle', dispel: 'wardCleanse', ext: 'guardWard', raid: 'lightVeil', unique: 'wardHold' }),
     tap: ['sealHeal', 'lightBarrier'],
     passives: [
       { name: '깨진 막의 빛', lv: 4, desc: '내 보호막이 다 깨지면 그 아군 체력을 {80} 회복합니다.' },
-      { name: '인장의 대가', lv: 10, desc: '심판이 4명 이상 회복하면 마나를 2% 돌려받습니다.' },
+      { name: '인장의 대가', lv: 10, desc: `심판이 ${WARDER.price.n}명 이상 회복하면 마나를 ${WARDER.price.mana}% 돌려받습니다.` },
     ],
     unlock: { lv: 0, how: '상점 구매', buy: true },
     ready: true,

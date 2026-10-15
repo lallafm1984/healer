@@ -31,7 +31,11 @@ export const REBIRTH = { hp: 0.4 };
  */
 export const TIER_MANA = 0.02;
 /** 직업마다 다른 특성 단 마나 보정 (없으면 TIER_MANA). 구매 직업 초반 밸런스 (QA 2026-10-16): 수도사는 손바닥 마나를 처음부터 낮추고 단 보정을 없앰 (Lv 50 마나는 그대로, 초반만 가벼움) */
-export const TIER_MANA_BY: Partial<Record<string, number>> = { monk: 0 }; // 84: 손바닥 마나 1.5 → 1.2 대신 단 보정 없음 (Lv 50 마나는 예전과 같음)
+export const TIER_MANA_BY: Partial<Record<string, number>> = {
+  monk: 0, // 84: 손바닥 마나 1.5 → 1.2 대신 단 보정 없음 (Lv 50 마나는 예전과 같음)
+  priest: 0.03, // 84 밸런스: 레벨이 오를수록 마나를 덜 씀 (어려움 10인 Lv 46~70에서 마나 바닥 40% · 사제만 −12%p)
+  druid: 0.015, // 84 밸런스: 생장 220 → 250으로 초반을 올린 몫을 후반에서 덜어 냄
+};
 
 /** 드루이드 20인 레이드 보정 (26 9-1, 2026-10-07 Lim): 들꽃 군락이 닿는 거리 (평소 1칸), 군락 보너스 붙은 칸 하나마다 (평소 10%, 최대 3칸). 20인에서는 들꽃 군락에도 군락 보너스 */
 export const DRUID_BIG = { wildRange: 2, colonyStep: 0.3 };
@@ -118,11 +122,16 @@ export const WARDER = {
   hold: { ext: 8 },
   judge: { n: 6 },
   broken: 80,
-  price: { n: 4, mana: 2 },
+  price: { n: 3, mana: 2 }, // 84: 4 → 3 (10인 심판 인원이 3명이 되어도 인장의 대가가 살아 있게)
   /** 20인 레이드 보정 (드루이드 들꽃 군락처럼): 심판 회복 인원 · 결계 원 범위 +칸 */
-  big: { judge: 6, circle: 1 },
+  big: { judge: 5, circle: 1 }, // 84 밸런스: 6 → 5 (레이드가 강하고 던전이 약해서, 빛의 막 300 → 340과 맞바꿈)
   /** 레이드 보정: 심판 회복 인원 (10인) */
-  raid: { judge: 4 },
+  raid: { judge: 3 }, // 84 밸런스: 4 → 3
   /** 5인 던전 보정: 심판 회복 인원 */
   five: { judge: 3 },
 };
+
+/** 심판 회복 인원 문장 (스킬 · 직업 설명 공통, 84) */
+export const judgeText = (): string => WARDER.five.judge === WARDER.raid.judge
+  ? `${WARDER.five.judge}명 (20인 레이드 ${WARDER.big.judge}명)`
+  : `${WARDER.five.judge}명 (10인 레이드 ${WARDER.raid.judge}명, 20인 레이드 ${WARDER.big.judge}명)`;

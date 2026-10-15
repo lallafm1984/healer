@@ -4,6 +4,7 @@
  * cost = 최대 마나 대비 %, gp = 사제 평온 게이지 충전량 (82: 성언 게이지는 평온 하나), power = 성기사 신성한 힘 소모
  */
 import { INT_BASE } from './rules';
+import { judgeText, SHAMAN } from './heroConst';
 
 export type SkillKey =
   // 사제
@@ -65,7 +66,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 
   // ---------- ② 드루이드 (25 3장) ----------
   sprout: { name: '새싹', short: '새싹', slot: 'basic', lv: 1, cast: 0, cost: 2, amt: 280, target: 'ally' },
-  growth: { name: '생장', short: '생장', slot: 'fast', lv: 1, cast: 2.0, cost: 3, amt: 220, target: 'ally' }, // 마나 4 → 3 (2026-10-14 직업 밸런스 검토: 장비 적은 초반 드루이드가 생장으로 마나가 바닥나 어려움 · 악몽 40~70%)
+  growth: { name: '생장', short: '생장', slot: 'fast', lv: 1, cast: 2.0, cost: 3, amt: 250, target: 'ally' }, // 84 밸런스: 220 → 250 (Lv 21~30 악몽 −12%p). 마나 4 → 3 (2026-10-14 직업 밸런스 검토: 장비 적은 초반 드루이드가 생장으로 마나가 바닥나 어려움 · 악몽 40~70%)
   bloom: { name: '피워 내기', short: '피움', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 12, target: 'ally' },
   wildflower: { name: '들꽃 군락', short: '들꽃', slot: 'aoe', lv: 5, cast: 2.0, cost: 10, cd: 10, amt: 160, target: 'area' },
   natureCleanse: { name: '자연 정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
@@ -116,7 +117,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 
   // ---------- ⑦ 결계사 (79 5장) ----------
   sealHeal: { name: '인장 치유', short: '인장', slot: 'basic', lv: 1, cast: 2.2, cost: 2.2, amt: 350, target: 'ally' }, // 79 5-11: 260 · 3% → 350 · 2.2% (밸런스)
-  lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 300, target: 'ally' }, // 마나 4 → 3% (79 5-11)
+  lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 340, target: 'ally' }, // 마나 4 → 3% (79 5-11), 84 밸런스: 300 → 340 (빠른 인장을 뺀 뒤 탱커가 녹는 던전)
   wardCleanse: { name: '결계 정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
   wardCircle: { name: '결계 원', short: '결계', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 20, amt: 100, target: 'area' }, // 150 → 100 (79 5-11)
   guardWard: { name: '수호 결계', short: '수호', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' }, // 82: 받는 피해 −40% (누그러뜨림과 같음) → 큰 보호막 (WARDER.guard)
@@ -160,7 +161,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   relay: { kind: '옮겨 다니는 힐', desc: '대상에게 빛을 깃들게 합니다. 빛이 깃든 아군이 피해를 받으면 체력을 {120} 회복하고, 빛은 바로 옆 칸에서 체력이 가장 낮은 다른 아군에게 옮겨 갑니다 (옆 칸에 아무도 없으면 그 자리에 남습니다). 3번 회복하거나 20초가 지나면 사라지고, 회복할 때마다 평온 게이지를 4% 채웁니다.' },
 
   sprout: { kind: '심기', desc: '12초 동안 3초마다 대상의 체력을 회복합니다. 모두 {280}입니다. 군락 범위에 들면 회복량이 늘어납니다.' },
-  growth: { kind: '심기 + 힐', desc: '대상의 체력을 즉시 {220} 회복하고, 6초 동안 {90}만큼 더 회복합니다.' },
+  growth: { kind: '심기 + 힐', desc: '대상의 체력을 즉시 {250} 회복하고, 6초 동안 {90}만큼 더 회복합니다.' },
   bloom: { kind: '거두기', desc: '대상의 지속 힐 하나를 거둬 남은 회복량의 150%를 즉시 회복합니다.' },
   wildflower: { kind: '광역 심기', desc: '대상과 붙어 있는 6칸을 7초 동안 모두 {160} 회복합니다. 처음이 크고 점점 작아집니다. 20인 레이드에서는 2칸 거리까지 닿습니다.' },
   natureCleanse: { kind: '해제', desc: '대상의 마법·저주·독 디버프를 1개 제거합니다.' },
@@ -184,7 +185,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   earthTotem: { kind: '토템', desc: '대상이 선 칸에 대지 토템을 세웁니다. 10초 동안 그 칸과 붙어 있는 6칸의 아군이 받는 피해가 15% 줄어듭니다. 토템은 그 칸에 남고 대상을 따라가지 않습니다.' },
   rainTotem: { kind: '토템 · 공대 쿨기', desc: '10초 동안 2초마다 파티 전원의 체력을 {60}씩 회복합니다. 비구름 토템은 하늘에 떠서 깨지지 않고, 그동안 다른 행동을 할 수 있습니다.' },
   spiritLink: { kind: '체력 나누기', desc: '대상과 붙어 있는 아군의 체력 비율을 모두의 평균으로 똑같이 맞춥니다. 그 뒤 6초 동안 그 아군들이 받는 피해가 10% 줄어듭니다.' },
-  springTotem: { kind: '토템 칸', desc: '고른 아군 칸에 샘 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군 체력을 {60}씩 회복합니다. 20인 레이드에서는 70%만 회복합니다.' },
+  springTotem: { kind: '토템 칸', desc: `고른 아군 칸에 샘 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군 체력을 {60}씩 회복합니다. 20인 레이드에서는 ${Math.round(SHAMAN.spring.big * 100)}%만 회복합니다.` },
 
   vitalPalm: { kind: '연타', desc: '대상의 체력을 즉시 {100} 회복합니다. 다음 행동까지 1초만 기다립니다 (가속과 상관없이 1초). 2.5초 안에 다시 치면 기 리듬이 오릅니다.' },
   mistWrap: { kind: '리듬 마무리', desc: '대상의 체력을 즉시 {140} 회복합니다. 기 리듬 1마다 12% 더 회복하고, 리듬은 끊기지 않고 이어집니다. 떠도는 안개가 없으면 6초 동안 {90} 회복하는 안개를 겁니다.' },
@@ -205,13 +206,13 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   polaris: { kind: '별자리 · 한 명', desc: '시전이 끝나면 모은 별 조각을 모두 써서 대상의 체력을 별 (1 + 조각) 1~4개에 따라 {315} · {425} · {540} · {650} 회복합니다. 조각 3개를 다 쓰면 15% 더 회복합니다.' },
 
   sealHeal: { kind: '인장 힐', desc: '대상의 체력을 {350} 회복하고 15초 동안 인장을 붙입니다.' },
-  lightBarrier: { kind: '보호막', desc: '15초 동안 대상에게 {300}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
+  lightBarrier: { kind: '보호막', desc: '15초 동안 대상에게 {340}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   wardCleanse: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
   wardCircle: { kind: '광역 보호막', desc: '대상과 붙어 있는 6칸의 아군에게 10초 동안 {100}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다. 20인 레이드에서는 2칸 거리까지 닿습니다.' },
   guardWard: { kind: '큰 보호막', desc: '8초 동안 대상에게 최대 체력의 30%만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   lightVeil: { kind: '전원 보호막', desc: '파티 전원에게 12초 동안 {130}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   wardHold: { kind: '보호막 늘리기', desc: '내가 씌운 보호막의 남은 시간을 모두 8초 늘리고, 그 보호막을 {30}씩 두껍게 합니다. 보호막이 늘어난 아군은 인장도 처음 시간으로 돌아갑니다.' },
-  judgment: { kind: '인장 터뜨리기', desc: '2초 동안 심판을 외칩니다. 인장이 붙은 아군 중 체력이 가장 낮은 6명 (5인 던전 3명, 10인 레이드 4명)을 {90}씩 회복합니다.' },
+  judgment: { kind: '인장 터뜨리기', desc: `2초 동안 심판을 외칩니다. 인장이 붙은 아군 중 체력이 가장 낮은 ${judgeText()}을 {90}씩 회복합니다.` },
 };
 
 /** 패시브 설명 (06 5장, 평온 게이지는 4장 · 82) */

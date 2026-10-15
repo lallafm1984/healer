@@ -1,7 +1,7 @@
 /** 힐러 직업 (25): 저장·직업 바꾸기 (v11 캐릭터, 68), 드루이드·성기사 고유 효과 */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TUNE } from '../src/data/tune';
-import { BEACON, DRUID_BIG, HAND_GUARD, QUIETWOOD, SANCTUARY, TIER_MANA, WAVE } from '../src/data/heroConst';
+import { BEACON, DRUID_BIG, HAND_GUARD, QUIETWOOD, SANCTUARY, TIER_MANA, TIER_MANA_BY, WAVE } from '../src/data/heroConst';
 import { HERO_KEYS, HEROES, heroSkills, skillAt, slotIdOf } from '../src/data/heroes';
 import { SKILLS } from '../src/data/skills';
 import * as E from '../src/engine';
@@ -294,15 +294,19 @@ describe('레이드 재조정 (2026-10-07: 특성·능력 포함 기준, 26 9-1)
     expect(tn).toBeGreaterThan(1);
     expect(mk('priest', 35, 'plague', '어려움').dmgMult / mk('priest', 35, 'plague', '보통').dmgMult).toBeCloseTo(1.2 * tn);
   });
-  it('특성 단 마나 보정: 세 직업 모두 열린 특성 단마다 −2%, 프로토타입은 그대로 (67 → 77)', () => {
+  it('특성 단 마나 보정: 열린 특성 단마다 직업별 비율 (기본 −2%, 84: 사제 −3% · 드루이드 −1.5%), 프로토타입은 그대로 (67 → 77)', () => {
+    expect(TIER_MANA_BY.priest).toBe(0.03);
+    expect(TIER_MANA_BY.druid).toBe(0.015);
     for (const h of ['priest', 'druid', 'paladin'] as const) {
-      expect(mk(h, 100).manaCut).toBeCloseTo(1 - TIER_MANA * 10);
-      expect(mk(h, 17).manaCut).toBeCloseTo(1 - TIER_MANA * 3);
+      const step = TIER_MANA_BY[h] ?? TIER_MANA;
+      expect(mk(h, 100).manaCut).toBeCloseTo(1 - step * 10);
+      expect(mk(h, 17).manaCut).toBeCloseTo(1 - step * 3);
       expect(mk(h, 4).manaCut).toBe(1);
     }
+    expect(mk('paladin', 100).manaCut).toBeCloseTo(1 - TIER_MANA * 10);
     expect(E.create({ encounter: 'plague', diff: '보통', seed: 7, level: 100, proto: true }).manaCut).toBe(1);
-    expect(E.costOf(mk('priest', 100), 'heal')).toBeCloseTo(3 * (1 - TIER_MANA * 10));
-    expect(E.costOf(mk('druid', 100), 'growth')).toBeCloseTo(3 * (1 - TIER_MANA * 10)); // 임시 보정 (단마다 −4%)은 없앰
+    expect(E.costOf(mk('priest', 100), 'heal')).toBeCloseTo(3 * (1 - 0.03 * 10));
+    expect(E.costOf(mk('druid', 100), 'growth')).toBeCloseTo(3 * (1 - 0.015 * 10)); // 임시 보정 (단마다 −4%)은 없앰
   });
   it('자동 힐러 3인: 셋이 붙어 크게 다치면 광역 힐 (2026-10-14 검토: 3인은 문턱을 못 넘어 광역을 안 씀)', () => {
     for (const hero of ['priest', 'druid'] as const) {
