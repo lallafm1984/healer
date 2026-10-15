@@ -1,3 +1,5 @@
+import { buildClassGauge, updateClassGauge } from './class-gauge';
+import { classGaugeState } from './class-gauge-state';
 /**
  * 전투 화면의 HTML 부분: 스킬 휠 · 단축칸 · 시전 막대 · 보스 무대(예고 대기열) · 설명 팝업 · 길게 누르기 정보 · 튜토리얼 안내 · 포기 버튼.
  * 매 프레임 바뀐 글자·클래스만 고침 (판은 board.ts가 캔버스에).
@@ -5,10 +7,8 @@
 import { ABILITIES } from '../data/abilities';
 import { NO_TANK_SEC } from '../data/armor';
 import { CLASSES } from '../data/classes';
-import { BEACON, SHAMAN } from '../data/heroConst';
-import { beatMax, beatWindow } from '../engine/monk';
-import { CONSTELLATION, shardMax, starMax, starsNow } from '../engine/astro';
-import { judgeCount, judgeReady, sealed, sealTargets } from '../engine/warder';
+import { CONSTELLATION, starMax, starsNow } from '../engine/astro';
+import { judgeReady } from '../engine/warder';
 import { canDispel, HEROES } from '../data/heroes';
 import { mobGrade } from '../data/encounters';
 import type { ItemKey } from '../data/items';
@@ -186,25 +186,10 @@ export function updateWheel(): void {
   const meter = core.querySelector('.mana-meter')!;
   if (meter.getAttribute('aria-valuenow') !== String(mana.percent)) meter.setAttribute('aria-valuenow', String(mana.percent));
   core.classList.toggle('beacon', B.beacon || B.coreCell);
-  // 직업 고유 시스템 = 단축칸 아래 작은 막대 (시안 20인): 사제 평온 (82: 한 줄) / 드루이드 새싹 걸린 인원 / 성기사 신성한 힘 · 봉화
-  const r = coreRing(F);
-  const gaugeLabels = $('gauges').querySelectorAll<HTMLElement>('.gl');
-  if (F.hero === 'paladin' && gaugeLabels[0]) setText(gaugeLabels[0], '신성한 힘');
-  $('gauges').setAttribute('aria-label', F.hero === 'paladin' ? `신성한 힘 ${r.a}, 봉화 ${r.b}`
-    : F.hero === 'druid' ? `새싹 ${r.a}명 / ${r.b}명` : F.hero === 'shaman' ? `샘 토템 ${r.a}, 대지 토템 ${r.b}` : F.hero === 'monk' ? `기 리듬 ${r.a}, 이어지는 시간 ${r.b}`
-    : F.hero === 'astrologer' ? `별 조각 ${r.a}, 다음 별자리 ${r.b}` : F.hero === 'warder' ? `인장 ${r.a}, 심판 회복 ${r.b}` : `평온 ${r.a}%`);
-  if (F.hero === 'astrologer') $('gauges').querySelectorAll('.gr')[1]?.classList.toggle('ready', starsNow(F) >= starMax(F)); // 83: 조각이 다 차면 별자리 줄이 반짝 (가득 찬 별자리)
-  // 심판 (79 5-3): 인장 붙은 아군이 없으면 가운데 버튼이 흐려짐 (모양은 Codex 몫), 3명 이상 회복할 수 있으면 심판 줄이 반짝
+  updateClassGauge($('gauges'), classGaugeState(F));
   const coreOff = F.hero === 'warder' && F.level >= SKILL_LEVEL.judgment && !judgeReady(F);
   core.classList.toggle('core-off', coreOff);
-  if (coreOff) core.setAttribute('aria-disabled', 'true'); else if (core.hasAttribute('aria-disabled')) core.removeAttribute('aria-disabled');
-  if (F.hero === 'warder') $('gauges').querySelectorAll('.gr')[1]?.classList.toggle('ready', sealTargets(F, judgeCount(F)).length >= 3);
-  setText($('gP'), r.a);
-  setText($('gS'), r.b);
-  setBar($('gPb'), r.outer);
-  setBar($('gSb'), r.inner);
-  // 성언 준비: 치유 칸이 평온으로 바뀌는 때와 같이 게이지 줄도 반짝임
-  if (F.hero === 'priest') $('gauges').querySelector('.gr')?.classList.toggle('ready', slotKey(F, 'heal') === 'serenity');
+  if (coreOff) core.setAttribute('aria-disabled', 'true'); else core.removeAttribute('aria-disabled');
 }
 function setBar(el: HTMLElement | null, v: number): void {
   if (!el) return;
@@ -214,62 +199,10 @@ function setBar(el: HTMLElement | null, v: number): void {
 
 const dispelName = (F: Fight) => { const n = SKILLS[HEROES[F.hero].slots.dispel!].name; return n + josa(n, '으로', '로'); };
 
-/** 고유 시스템 막대 한 줄: 이름 · 막대 · 값 (시안 20인) */
-const gaugeRow = (label: string, bar: string, val: string, tone: string) => `<div class="gr ${tone}"><span class="gl">${label}</span><span class="gt"><i id="${bar}"></i></span><span class="gv">${val}</span></div>`;
-/** 단축칸 아래 고유 시스템 막대 (전투 시작 때 직업에 맞게) */
+/** 승인된 직업별 배경과 분할 게이지를 같은 전투 상태에 연결합니다. */
 export function buildGauges(F: Fight): void {
-  const g = $('gauges');
-  g.innerHTML = F.hero === 'paladin' ? gaugeRow('신성한 힘', 'gPb', '<b id="gP">0/3</b>', 'gold') + gaugeRow('봉화', 'gSb', '<b id="gS">없음</b>', 'calm')
-    // 드루이드: 새싹이 걸린 인원 / 살아 있는 인원 (막대 하나)
-    : F.hero === 'druid' ? gaugeRow('새싹', 'gPb', '<b id="gP">0</b>/<b id="gS">0</b>', 'leaf') + '<i id="gSb" hidden></i>'
-    // 주술사 (79 7장 3번 첫 모양, Codex가 다듬음): 샘 토템 · 대지 토템 남은 시간
-    : F.hero === 'shaman' ? gaugeRow('샘', 'gPb', '<b id="gP">-</b>', 'calm') + gaugeRow('대지', 'gSb', '<b id="gS">-</b>', 'gold')
-    // 수도사 (79 3-3 · 7장, Codex가 다듬음): 기 리듬 · 다음 손바닥까지 남은 시간
-    : F.hero === 'monk' ? gaugeRow('리듬', 'gPb', '<b id="gP">0</b>', 'leaf') + gaugeRow('박자', 'gSb', '<b id="gS">-</b>', 'calm')
-    // 점성술사 (79 4-3 · 7장 3번, Codex가 다듬음): 모으는 별 (완벽 구간이면 반짝) · 별 조각
-    : F.hero === 'astrologer' ? gaugeRow('조각', 'gPb', '<b id="gP">0</b>', 'gold') + gaugeRow('별자리', 'gSb', '<b id="gS">-</b>', 'calm')
-    // 결계사 (79 7장 3번 첫 모양, Codex가 다듬음): 인장 붙은 아군 수 · 지금 심판하면 회복할 인원
-    : F.hero === 'warder' ? gaugeRow('인장', 'gPb', '<b id="gP">0</b>', 'gold') + gaugeRow('심판', 'gSb', '<b id="gS">-</b>', 'calm')
-    // 사제 (82): 평온 게이지 한 줄 (신성화는 없앰)
-    : gaugeRow('평온', 'gPb', '<b id="gP">0</b>%', 'calm') + '<i id="gSb" hidden></i><b id="gS" hidden></b>';
-}
-
-/** 고유 시스템 막대 두 개(0~1)와 값 글자 둘 */
-function coreRing(F: Fight): { outer: number; inner: number; a: string; b: string } {
-  if (F.hero === 'paladin') {
-    const cd = F.beaconCd > 0 ? Math.ceil(F.beaconCd) : 0;
-    const sys = HEROES.paladin.system.lv;
-    const nick = F.beacon == null ? '' : F.party.find(u => u.id === F.beacon)?.nick || '';
-    return { outer: F.power3 / 3, inner: cd ? 1 - F.beaconCd / BEACON.cd : 0, a: `${F.power3}/3`, b: F.level < sys ? `Lv ${sys}` : !nick ? '없음' : cd ? `${nick} ${cd}초` : nick };
-  }
-  if (F.hero === 'shaman') {
-    // 남은 시간 (막대 = 남은 비율). 없으면 샘은 재사용 남은 초, 대지는 -
-    const left = (k: 'spring' | 'earth') => Math.max(0, ...F.totems.filter(t => t.kind === k).map(t => t.until - F.t));
-    const sp = left('spring'), ea = left('earth'), cd = F.cd.springTotem ?? 0;
-    return { outer: sp / (SHAMAN.spring.sec + 6), inner: ea / SHAMAN.earth.sec, a: sp > 0 ? `${Math.ceil(sp)}초` : cd > 0 ? `대기 ${Math.ceil(cd)}` : '준비', b: ea > 0 ? `${Math.ceil(ea)}초` : '-' };
-  }
-  if (F.hero === 'astrologer') { // 83: 조각 n/최대 · 다음 별자리 별 수 (가득이면 금빛)
-    const mx = shardMax(F), n = starsNow(F);
-    return { outer: F.shards / mx, inner: n / starMax(F), a: `${F.shards}/${mx}`, b: `별 ${n}` };
-  }
-
-  if (F.hero === 'warder') {
-    const live = F.party.filter(u => u.alive), n = live.filter(u => sealed(F, u)).length;
-    if (F.level < SKILL_LEVEL.judgment) return { outer: live.length ? n / live.length : 0, inner: 0, a: `${n}/${live.length}`, b: `Lv ${SKILL_LEVEL.judgment}` };
-    const max = judgeCount(F), k = sealTargets(F, max).length;
-    return { outer: live.length ? n / live.length : 0, inner: k / max, a: `${n}/${live.length}`, b: `${k}/${max}` };
-  }
-  if (F.hero === 'monk') {
-    if (F.level < HEROES.monk.system.lv) return { outer: 0, inner: 0, a: '-', b: `Lv ${HEROES.monk.system.lv}` };
-    const left = F.beat > 0 ? Math.max(0, F.beatUntil - F.t) : 0;
-    return { outer: F.beat / beatMax(F), inner: left / beatWindow(F), a: `${F.beat}/${beatMax(F)}`, b: left > 0 ? `${left.toFixed(1)}초` : '-' };
-  }
-  if (F.hero === 'druid') {
-    const live = F.party.filter(u => u.alive), n = live.filter(u => u.hots.some(h => h.key === 'sprout')).length;
-    return { outer: live.length ? n / live.length : 0, inner: 0, a: String(n), b: String(live.length) };
-  }
-  // 아껴 둔 말씀 (특성)이면 200까지 모임: 링은 100에서 가득, 숫자는 그대로
-  return { outer: Math.min(1, F.g.p / 100), inner: 0, a: String(Math.floor(F.g.p)), b: '' };
+  buildClassGauge($('gauges'), $('controls'), F.hero);
+  updateClassGauge($('gauges'), classGaugeState(F));
 }
 
 // ---------- 특성 보조 버튼 (06 9장 2번: 휠 밖 버튼, 단축칸 위) ----------

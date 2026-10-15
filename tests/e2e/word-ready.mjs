@@ -32,7 +32,7 @@ export default async function wordReady(url, shots) {
           const el = document.querySelector(`#wheel .slot[data-slot="${slot}"]`), cs = getComputedStyle(el), sheen = getComputedStyle(el.querySelector('.in'), '::after');
           return { holy: el.classList.contains('holy'), name: el.querySelector('.nm').textContent, anim: cs.animationName, shadow: cs.boxShadow, sheen: sheen.animationName, sheenOn: sheen.content !== 'none' };
         };
-        const rows = [...document.querySelectorAll('#gauges .gr')].map(r => r.classList.contains('ready'));
+        const rows = [...document.querySelectorAll('#gauges .job-gauge')].map(r => r.classList.contains('is-ready'));
         return { heal: one('heal'), poh: one('poh'), rows };
       });
     };

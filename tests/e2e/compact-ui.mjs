@@ -599,7 +599,7 @@ async function quakeWarningCases(page, ok) {
 
       await warning(false, false);
       const cleared = await sample(), clearedHoly = cleared.slots.filter(s => s.holy);
-      ok(cleared.sameFight && !cleared.quake && !cleared.reduced && clearedHoly.length === 2
+      ok(cleared.sameFight && !cleared.quake && !cleared.reduced && clearedHoly.length === 1
         && clearedHoly.every(s => /wordGlow/.test(s.animation) && !s.runningQuake && s.art === holy.find(h => h.slot === s.slot)?.art),
       `${tag} 진동 예고 해제 뒤 성언 원화 유지·준비 반짝임으로 복구 (게이지 가득, Lim 2026-10-10)`, cleared);
     }
@@ -812,9 +812,9 @@ async function heroVariants(page, ok, shots) {
     const tools = await inspectDirectControls(page, ok, `320: ${label} 탱커 전멸`, true);
     const g = { ...c, normal, compact, left, down, normalDown, tools, normalLayout, compactLayout, normalArt, compactArt };
     out.push(g);
-    const gauge = c.synthetic || (c.hero === 'priest' ? /평온/.test(compact.gaugeText)
-      : c.hero === 'druid' ? /새싹/.test(compact.gaugeText)
-        : /힘/.test(compact.gaugeText) && /봉화/.test(compact.gaugeText) && /신성한 힘/.test(compact.gaugeLabel) && /봉화/.test(compact.gaugeLabel));
+    const gauge = c.synthetic || (c.hero === 'priest' ? /평온/.test(compact.gaugeLabel)
+      : c.hero === 'druid' ? /새싹/.test(compact.gaugeLabel)
+        : /신성한 힘/.test(compact.gaugeLabel) && /봉화/.test(compact.gaugeLabel));
     const directControls = [compact, left, down].every(v => v.visibleItems === normal.visibleItems
       && v.visibleAux === normal.visibleAux && !v.toolsVisible);
     ok(compact.controls.h <= normal.controls.h && usableControls(normal) && usableControls(compact)

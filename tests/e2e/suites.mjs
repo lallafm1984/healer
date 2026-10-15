@@ -1,4 +1,5 @@
 import adventureDeparture from './adventure-departure.mjs';
+import classControls from './class-controls.mjs';
 import adventureNoScroll from './adventure-no-scroll.mjs';
 import adventureWeekly from './adventure-weekly.mjs';
 import adventureRewards from './adventure-rewards.mjs';
@@ -43,6 +44,7 @@ import floatSteady from './float-steady.mjs';
  * 조각 수가 있으면 나눠 돌릴 때 그 묶음을 그만큼 쪼갬 (묶음이 run(url, shots, { k, n })에서 k번째 조각만 돌림)
  */
 export const SUITES = [
+  ['직업별 조작판·아이템 안전 여백', classControls, 45],
   ['공통 메뉴 헤더 크기', headerConsistency, 30],
   ['편성 네 단축칸·직업·출발 UI', partyRefinement, 30],
   ['출전 장소 선택 UI', adventureDeparture, 25],

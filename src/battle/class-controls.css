@@ -1,0 +1,32 @@
+/* Class materials and fixed safe insets. Button hit areas remain owned by compact.css. */
+#battle #controls,#battle #controls.hasaux{background:#100f0d var(--class-background) center/100% 100% no-repeat}
+#battle #controls::after,#battle #controls.hasaux::after{content:none}
+#battle #controls #side{padding:8px 0 16px;gap:6px;min-width:0}
+#battle #controls #gauges{order:0;flex:1 1 0;min-height:0;max-height:108px;display:grid;place-items:center;container-type:size;gap:0}
+#battle #controls #gauges .job-gauge{width:min(100cqw,116.71cqh);height:min(85.68cqw,100cqh)}
+#battle #controls #aux{order:1;flex:none}
+#battle #controls #items{order:2;flex:none;min-height:92px;grid-auto-rows:44px;gap:4px 8px}
+#battle #controls #hint{display:none}
+#battle #controls .item,#battle #controls .aux{background-image:var(--class-item-frame);background-size:100% 100%;background-position:center;border-radius:0}
+#battle #controls .item.empty{background-image:none}
+#battle #controls .item.empty::after{background-image:var(--class-item-frame);background-size:100% 100%;background-position:center}
+#battle #controls .item{padding:3px 5px;min-height:44px;flex-direction:row;justify-content:flex-start}
+#battle #controls .item>.item-art,#battle #controls.hasaux .item>.item-art{width:26px;height:30px}
+#battle #controls .item .nm{font-size:11px;position:absolute;left:30px;top:10px;line-height:1}
+#battle #controls .item .n{font-size:12px;left:38px;right:auto;bottom:7px;line-height:1}
+#battle #controls .item.empty .nm{position:static;font-size:11px}
+#battle #controls .item.empty{justify-content:center}
+#battle #controls .item.empty .empty-slot-art{display:none}
+#battle #controls .item.locked .lk{width:16px;height:18px}
+#battle #controls.wheel-left{background-position:center}
+#battle #controls.nowords #gauges{display:grid;visibility:hidden}
+#battle #gauges.locked .job-gauge{opacity:.25}
+.job-gauge[data-job=priest] .gauge-number{left:50%;top:77%;font-size:18cqh}
+.job-gauge[data-job=shaman] .gauge-number,.job-gauge[data-job=shaman] .gauge-extra,.job-gauge[data-job=monk] .gauge-extra{font-size:clamp(10px,13cqh,16px)}
+#battle.reduced-effects .job-gauge .gauge-ready,#battle.reduced-effects .job-gauge .aura-motion{animation:none!important;opacity:.65}
+.variant-art,.variant-segment,.variant-base,.variant-fill,.variant-ready{position:absolute;inset:0;pointer-events:none}
+.variant-art{z-index:2;background:var(--class-background) center/100% 100% no-repeat}.variant-ready{opacity:.45}
+.has-variant>.gauge-base,.has-variant>.fill-mask,.has-variant>.gauge-ready{display:none!important}
+.is-ready .variant-ready{animation:maximum-pulse 2.4s ease-in-out infinite}
+#battle.reduced-effects .variant-ready{animation:none!important}
+@media(prefers-reduced-motion:reduce){.is-ready .variant-ready{animation:none}}

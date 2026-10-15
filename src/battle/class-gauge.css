@@ -1,0 +1,57 @@
+.job-gauge{position:relative;isolation:isolate;overflow:hidden;aspect-ratio:1355/1161;container-type:size;width:100%}.job-gauge img{position:absolute;display:block;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}.gauge-base{z-index:0}.fill-mask,.fill-reveal{position:absolute;inset:0;pointer-events:none}.fill-mask{z-index:1}.gauge-ready{z-index:2}.job-gauge [hidden]{display:none!important}.gauge-number,.gauge-count,.gauge-extra,.gauge-earth{position:absolute;z-index:3;transform:translate(-50%,-50%);font-family:Georgia,serif;font-weight:700;line-height:1;white-space:nowrap;color:#fff2ce;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000,0 0 3px #000,0 0 5px #000}.gauge-number{font-size:17cqh}.gauge-count{font-size:12cqh}.gauge-extra{left:62%;top:84%;font-size:14cqh}.gauge-earth{left:73%;top:65%;font-size:16cqh}.job-gauge[data-job=shaman] .gauge-number{font-size:12cqh}.job-gauge[data-job=shaman] .gauge-count{font-size:16cqh}.job-gauge[data-job=paladin] .gauge-number{font-size:15cqh}.job-gauge[data-job=warder] .gauge-count{font-size:17cqh}.is-ready .gauge-ready{animation:maximum-pulse 2.4s ease-in-out infinite}.is-ready .gauge-number{color:#fffbe6}@keyframes maximum-pulse{0%,100%{opacity:.35}50%{opacity:.9}}@media(prefers-reduced-motion:reduce){.is-ready .gauge-ready{animation:none;opacity:.8}}
+.job-gauge[data-job=paladin] .gauge-ready{width:60%;height:60%;left:20%;top:3.5%}
+.job-gauge[data-job=warder] .gauge-ready{width:93.4%;height:88%;left:3.3%;top:4.2%}
+.job-gauge[data-job=monk] .gauge-ready{width:92%;height:96%;left:4%;top:0}
+.job-gauge[data-job=shaman] .gauge-number{font-size:16cqh}
+.job-gauge[data-job=shaman] .gauge-ready{width:60%;height:58%;left:7.5%;top:.3%}
+.job-gauge[data-job=shaman] .gauge-number{font-size:14cqh}
+.job-gauge[data-job=shaman] .gauge-fill{opacity:.55}
+.job-gauge[data-job=shaman].is-ready .gauge-ready{animation-name:shaman-maximum-pulse}
+@keyframes shaman-maximum-pulse{0%,100%{opacity:.15}50%{opacity:.4}}
+.job-gauge .target-active{z-index:2;filter:brightness(2.5) sepia(.4);pointer-events:none}
+@media(prefers-reduced-motion:reduce){.job-gauge[data-job=shaman].is-ready .gauge-ready{animation:none;opacity:.4}}
+/* Layout revision 2: horizontal shaman status line, raised warder seals. */
+.job-gauge[data-job=shaman] .gauge-number{font-size:12cqh}
+.job-gauge[data-job=shaman] .gauge-extra{left:88%;top:81%;font-size:12cqh}
+.job-gauge[data-job=warder] .gauge-ready{top:-7.9%}
+.job-gauge[data-job=druid] .gauge-ready{height:142%;top:-15.07%}
+.job-gauge[data-job=astrologer] .gauge-ready{height:120%;top:7.32%}
+.job-gauge[data-job=warder] .gauge-ready{width:91.16%;height:89.32%;left:5.8%;top:-3.2%}
+
+/* Shaman v3: two status groups centered beneath the two totems. */
+.job-gauge[data-job=shaman] .gauge-number{font-size:14cqh}
+.job-gauge[data-job=shaman] .gauge-extra{left:80.1%;top:81%;font-size:14cqh}
+
+/* Shaman v4: space for 9.9s / 10s; upper totems and status groups align. */
+.job-gauge[data-job=shaman] .gauge-extra{left:84.9%;top:80%;font-size:14cqh}
+.job-gauge[data-job=shaman] .gauge-ready{width:49.2%;height:47.56%;left:11.3%;top:4.1%}
+
+.job-gauge[data-job=shaman] .gauge-number,.job-gauge[data-job=shaman] .gauge-extra{font-size:13cqh}
+
+/* v5: fixed leading edge; time digits stay vertically centered on their icons. */
+.job-gauge[data-job=shaman] .gauge-number,
+.job-gauge[data-job=shaman] .gauge-extra,
+.job-gauge[data-job=monk] .gauge-extra{transform:translateY(-50%);text-align:left}
+.job-gauge[data-job=shaman] .gauge-extra{left:71.6%;top:79.7%}
+.job-gauge[data-job=monk] .gauge-extra{left:52%;top:84.9%}
+
+/* v6: activation is registered and clipped to the material surfaces. */
+.job-gauge[data-job=shaman] .gauge-fill{opacity:.95}
+.job-gauge[data-job=shaman] .surface-ready,
+.job-gauge[data-job=monk] .surface-ready{position:absolute;inset:0;width:100%;height:100%}
+.ready-surface{position:absolute;inset:0;pointer-events:none}
+.job-gauge[data-job=monk].is-ready .gauge-ready{animation-name:surface-maximum-pulse}
+@keyframes surface-maximum-pulse{0%,100%{opacity:.15}50%{opacity:.42}}
+@media(prefers-reduced-motion:reduce){.job-gauge[data-job=monk].is-ready .gauge-ready{opacity:.3}}
+
+/* v7: persistent active-state aura behind each opaque totem silhouette. */
+.totem-aura,.aura-motion{position:absolute;inset:0;pointer-events:none}
+.totem-aura{z-index:1}
+.totem-foreground{z-index:2}
+.job-gauge[data-job=shaman] .fill-mask{z-index:3}
+.job-gauge[data-job=shaman] .gauge-ready{z-index:4}
+.job-gauge[data-job=shaman] .gauge-number,.job-gauge[data-job=shaman] .gauge-extra{z-index:5}
+.aura-motion{animation:totem-active-breathe 2.8s ease-in-out infinite}
+[data-totem=earth] .aura-motion{animation-delay:-1.4s}
+@keyframes totem-active-breathe{0%,100%{opacity:.48;transform:translateY(0) scale(.98)}50%{opacity:.8;transform:translateY(-.5%) scale(1.035)}}
+@media(prefers-reduced-motion:reduce){.aura-motion{animation:none;opacity:.65;transform:none}}

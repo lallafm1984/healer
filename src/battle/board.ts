@@ -1124,8 +1124,8 @@ const HOT_COLOR: Record<string, number> = { sprout: 0x7bc67e, growth: 0xb7e07a, 
  * 판 위 물건 (79 6-1, engine/totems): 칸 바닥 색 · 그림 이름 (80 5장 board-*, 오기 전엔 바닥 색 + 안쪽 테두리). 범위 = 테두리를 그릴 거리
  */
 const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string }> = {
-  spring: { color: 0x7ec8f0, art: 'board-totem-spring', label: '샘' },
-  earth: { color: 0xc49a62, art: 'board-totem-earth', label: '대지' },
+  spring: { color: 0x7ec8f0, art: 'ui-class-board-totem-spring', label: '샘' },
+  earth: { color: 0xc49a62, art: 'ui-class-board-totem-earth', label: '대지' },
   sea: { color: 0x4fa8e0, art: 'board-sea-spring', label: '바다' },
   mist: { color: 0x6fd0b0, art: 'board-mist-pool', label: '안개' },
   citadel: { color: 0xe6d3a0, art: 'board-citadel', label: '성채' },
@@ -1133,7 +1133,7 @@ const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string 
 };
 /** 힐러 직업 4종 판 위 그림 (80 5장): 전투 시작 때 그 직업 것만 미리 읽음 (첫 토템 · 인장부터 보이게) */
 const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
-  shaman: ['board-totem-spring', 'board-totem-earth', 'board-totem-rain', 'board-sea-spring'],
+  shaman: ['ui-class-board-totem-spring', 'ui-class-board-totem-earth', 'board-totem-rain', 'board-sea-spring'],
   monk: ['board-mist', 'board-mist-pool'],
   astrologer: ['board-star', 'board-star-mark', 'board-star-sleep', 'board-supernova'],
   warder: ['board-seal', 'board-barrier', 'board-citadel'],

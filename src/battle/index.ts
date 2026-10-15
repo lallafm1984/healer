@@ -129,20 +129,20 @@ function layoutBattle(): void {
   $('stage').style.minHeight = '';
   // 아래 조작판: 시안 390×844에서 230. 휠 = 조작판 높이 - 14 (시안 216), 폭의 56.5% (시안 220)
   const auxCount = Object.keys(F.tx.act).length;
-  // 특성 버튼 줄이 있으면 버튼 44 + 아이템 2줄 + 막대 2줄이 들어가게 (낮은 화면은 막대·여백을 줄여 194)
+  // 특성 줄 44 + 아이템 92 + 분할 게이지 68 이상 + 안전 여백을 확보한다.
   const controls = $('controls');
   controls.classList.toggle('compact-controls', S.compactSkills);
   $('battle').classList.toggle('compact-panel', S.compactSkills);
   controls.classList.toggle('paladin', F.hero === 'paladin');
   controls.classList.toggle('wheel-left', S.hand === 'left');
-  const ch = Math.round(Math.min(236, Math.max(auxCount ? (short ? 194 : 218) : 178, H * 0.297)));
+  const ch = Math.round(Math.min(auxCount ? 252 : 236, Math.max(auxCount ? 242 : 178, H * 0.297)));
   layoutState = `${S.compactSkills}`;
   ($('pauseCompact') as HTMLInputElement).checked = S.compactSkills;
   $('wheel').setAttribute('aria-label', '치유 스킬 휠');
   controls.style.setProperty('--controls-scale', '1');
   $('controls').style.height = ch + 'px';
   // 왼쪽(단축칸 쪽) = 특성 버튼 3개면 시안 20인 폭 146, 좁은 폰은 140. 여백 16·12 + 사이 8 (좁으면 12·12)
-  const narrow = W < 360, sideWidth = auxCount >= 3 ? (narrow ? 140 : 146) : 96;
+  const narrow = W < 360, sideWidth = auxCount >= 3 ? (narrow ? 140 : 146) : narrow ? 120 : 96;
   buildWheel(Math.min(ch - 14, W * 0.565, W - sideWidth - (narrow ? 32 : 36)));
   // 시전 여부와 관계없이 판과 조작판 사이의 독립 행을 예약한다.
   $('controlsFrame').before($('castbar'));
