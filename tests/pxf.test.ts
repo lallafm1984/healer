@@ -1,5 +1,5 @@
-/** 전투 이펙트 프레임 띠 (battle/pxf.ts): 손그림풍 (scripts/vfx → fx-skill-*), 보스 판 전체 공격 (Codex fx-wide-*), 남은 PXF 도트 (fx-pxf-*, QA에서 바뀌는 스킬만) */
-import { existsSync, readFileSync } from 'node:fs';
+/** 전투 이펙트 프레임 띠 (battle/pxf.ts): 손그림풍 (scripts/vfx → fx-skill-*), 보스 판 전체 공격 (Codex fx-wide-*). PXF 도트는 없음 (Lim 2026-10-16 「도트를 모두 제거」) */
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { HERO_KEYS, HEROES } from '../src/data/heroes';
 import type { SkillKey } from '../src/data/skills';
@@ -11,12 +11,6 @@ import { damage } from '../src/engine/core';
 // @ts-expect-error 빌드 도구 스크립트 (.mjs, 타입 없음)
 import { FX, FX_SIZE } from '../scripts/vfx/index.mjs';
 
-const graph = (name: string) => JSON.parse(readFileSync(new URL(`../src/art/pxf/${name}.pxf.json`, import.meta.url), 'utf8'));
-/** PNG 머리 (IHDR)의 가로 · 세로 */
-const pngSize = (art: string) => {
-  const b = readFileSync(new URL(`../src/art/${art}.png`, import.meta.url));
-  return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
-};
 /** src/art 그림 파일의 가로 · 세로 (PNG · WebP 머리), 없으면 null */
 const artSize = (name: string): { w: number; h: number } | null => {
   for (const ext of ['webp', 'png']) {
@@ -32,30 +26,16 @@ const artSize = (name: string): { w: number; h: number } | null => {
   return null;
 };
 const KEYS = Object.keys(PXF) as PxfKey[];
-/** 아직 PXF 도트 (QA에서 바뀌는 스킬), 손그림풍 (scripts/vfx), 보스 판 전체 공격 (Codex fx-wide) */
-const GRAPH_KEYS = KEYS.filter(k => !PXF[k].smooth), SMOOTH_KEYS = KEYS.filter(k => PXF[k].smooth && !isBossPxf(k)), BOSS_KEYS = KEYS.filter(isBossPxf);
+/** 손그림풍 (scripts/vfx), 보스 판 전체 공격 (Codex fx-wide) */
+const SMOOTH_KEYS = KEYS.filter(k => !isBossPxf(k)), BOSS_KEYS = KEYS.filter(isBossPxf);
 /** 아직 이펙트를 안 넣은 휠 스킬 (없음) */
-const LATER = new Set<SkillKey>(['beacon']); // 2026-10-16 성기사 봉화 스킬 (빛 일격 대신): 이펙트는 전투 스킬 이펙트 스레드 몫
+const LATER = new Set<SkillKey>([]);
 
-describe('남은 PXF 도트 (QA에서 바뀌는 스킬, 바뀌면 손그림으로 다시 만들고 지움)', () => {
-  it('직업 스킬 몇 개뿐 (전투 공통 · 파티원 능력 · 보스는 없음, Lim 2026-10-16 「도트를 모두 제거」)', () => {
-    expect(GRAPH_KEYS.every(k => /^(paladin|shaman|warder)-/.test(k))).toBe(true);
-    expect(GRAPH_KEYS.length).toBeLessThanOrEqual(5);
+describe('도트 이펙트 없음 (Lim 2026-10-16 「도트를 모두 제거」)', () => {
+  it('PXF 그래프 · 도트 띠 · 조각이 하나도 없음 (src/art/pxf에는 모양 표 requests.md만)', () => {
+    expect(readdirSync(new URL('../src/art/pxf/', import.meta.url))).toEqual(['requests.md']);
+    expect(readdirSync(new URL('../src/art/', import.meta.url)).filter(f => f.startsWith('fx-pxf-'))).toEqual([]);
   });
-  for (const k of GRAPH_KEYS) {
-    it(`${k}: 게임 값이 그래프의 settings · game과 같고, 프레임 띠가 있음`, () => {
-      const g = graph(k), c = PXF[k];
-      expect(g.format).toBe('pxf.graph@1');
-      expect({ size: c.size, frames: c.frames, fps: c.fps, loop: false }).toEqual({ size: g.settings.size, frames: g.settings.frames, fps: g.settings.fps, loop: g.settings.loop });
-      expect({ impactFrame: c.impactFrame, logicalSize: c.logicalSize, referenceCell: c.referenceCell })
-        .toEqual({ impactFrame: g.game.impactFrame, logicalSize: g.game.logicalSize, referenceCell: g.game.referenceCell ?? 62 });
-      expect(c.blend).toBe('normal');
-      expect(pngSize(pxfArtName(k))).toEqual({ w: c.size * c.cols, h: c.size * Math.ceil(c.frames / c.cols) });
-      // 맞는 순간 앞 프레임은 건너뜀, 끝까지 재생하고 사라짐
-      expect(pxfFrame(c, 0)).toBe(c.impactFrame);
-      expect(pxfFrame(c, pxfMs(c))).toBe(-1);
-    });
-  }
 });
 
 describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 너무 허술한게 많다. 퀄리티 있게 모두 다시」)', () => {
@@ -66,7 +46,7 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
     expect(FX_SIZE).toBe(SKILL_FX_SIZE);
   });
   for (const k of SMOOTH_KEYS) {
-    it(`${k}: 장 수 · 그림 지름 · 재생 칸이 그리기 코드와 같고, 격자 띠가 있음 (PXF 그래프 · 예전 도트 띠는 없음)`, () => {
+    it(`${k}: 장 수 · 그림 지름 · 재생 칸이 그리기 코드와 같고, 격자 띠가 있음`, () => {
       const c = PXF[k], f = fx[k];
       expect({ frames: c.frames, logical: c.logicalSize, size: c.size, cols: c.cols, impact: c.impactFrame, blend: c.blend, gray: c.gray })
         .toEqual({ frames: f.frames, logical: f.logical, size: f.size ?? FX_SIZE, cols: Math.ceil(Math.sqrt(f.frames)), impact: 0, blend: 'normal', gray: !!f.gray });
@@ -76,7 +56,6 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
       const uses = Object.values(SKILL_PXF).filter(s => s!.fx === k);
       expect(uses.length).toBe(ALWAYS_FX.has(k) ? 0 : 1);
       if (uses.length) expect(uses[0]!.scope).toBe(f.scope);
-      for (const old of [`pxf/${k}.pxf.json`, `pxf/${k}.timeline.png`, `fx-pxf-${k}.png`]) expect(existsSync(new URL(`../src/art/${old}`, import.meta.url)), old).toBe(false);
     });
   }
   it('들어간 순간부터 그림 · 칸보다 크게 (범위 · 파티 스킬은 칸만 하게)', () => {
@@ -142,7 +121,7 @@ describe('전투 공통 효과 · 파티원 능력 (손그림풍, scripts/vfx/co
   for (const k of COMMON) {
     it(`${k}: ${GRAY.has(k) ? '회색 그림 (게임이 칠함, 굽기가 색이 섞이면 멈춤)' : '구운 색 그대로'} · 192px 손그림`, () => {
       const key = COMMON_PXF[k]!;
-      expect({ gray: PXF[key].gray, smooth: PXF[key].smooth, size: PXF[key].size }).toEqual({ gray: GRAY.has(k), smooth: true, size: 192 });
+      expect({ gray: PXF[key].gray, size: PXF[key].size }).toEqual({ gray: GRAY.has(k), size: 192 });
       expect((FX as Record<string, { gray?: boolean }>)[key].gray ?? false).toBe(GRAY.has(k));
     });
   }
@@ -163,11 +142,10 @@ describe('보스 판 전체 공격 (Codex 손그림 띠 66 `fx-wide-`, PXF 도�
       const c = PXF[key!];
       expect(key, name).toBe(`boss-${name}`);
       expect(c.gray, name).toBe(name === 'shout');
-      expect({ size: c.size, cols: c.cols, smooth: c.smooth, logical: c.logicalSize }, name).toEqual({ size: 256, cols: Math.ceil(Math.sqrt(c.frames)), smooth: true, logical: WIDE_DESIGN });
+      expect({ size: c.size, cols: c.cols, logical: c.logicalSize }, name).toEqual({ size: 256, cols: Math.ceil(Math.sqrt(c.frames)), logical: WIDE_DESIGN });
       expect(c.size * c.cols, name).toBeLessThanOrEqual(2048); // 폰 텍스처 한도 안 (한 줄로 이으면 5632px)
       expect(pxfArtName(key!), name).toBe(wideArtName(key!));
       expect(artSize(wideArtName(key!)), name).toEqual({ w: c.size * c.cols, h: c.size * Math.ceil(c.frames / c.cols) });
-      for (const old of [`pxf/${key}.pxf.json`, `fx-pxf-${key}.png`]) expect(existsSync(new URL(`../src/art/${old}`, import.meta.url)), old).toBe(false);
     }
     expect(existsSync(new URL('../src/art/pxf/tiles', import.meta.url))).toBe(false);
   });

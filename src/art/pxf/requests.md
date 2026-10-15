@@ -3,7 +3,7 @@
 **지금 기준 (2026-10-16 Lim 「스킬이펙트가 너무 허술」 → 「몬스터 공격 및 다른 기타 이펙트도 손그림 이펙트로 (도트를 모두 제거)」):**
 전투 이펙트는 PXF 도트가 아니라 손그림풍이다. 직업 스킬 · 전투 공통 효과 · 파티원 능력은 `scripts/vfx/` (만드는 법 `scripts/vfx/README.md`, `npm run fx:bake`),
 보스 판 전체 공격은 Codex 손그림 띠 `fx-wide-*` (66 문서). PXF 그래프 · 도트 띠 · 우리 렌더러 (fxr) · 개발용 이펙트 공방 (`npm run fx`)은 지웠고,
-QA에서 바뀌는 직업 스킬 몇 개 (`paladin-holy-strike` · `shaman-shower` · `warder-quick` · `warder-spear` · `warder-judgment`)의 PXF 띠만 바뀔 때까지 남는다.
+2026-10-16 QA 스킬 교체 (84) 뒤 마지막 도트 5개 (빛 일격 · 소나기 · 빠른 인장 · 빛의 창 · 망치 심판)도 지우고 봉화 · 결계 굳히기 · 인장 심판을 손그림으로 새로 만들었다. 이제 PXF 도트는 하나도 없다.
 이 문서는 **「모양 표」 (이펙트마다 다른 모양, `tests/pxf.test.ts`가 겹침을 검사)** 가 지금 기준이고, 아래 스킬별 요청문은 그 모양을 처음 PXF로 만들 때의 기록이다.
 
 ## 2026-10-16 직업 스킬은 손그림풍으로 다시 (Lim 「스킬이펙트가 너무 허술한게 많다. 퀄리티 있게 모두 다시 생성하고. 검수하여 어울리지 않으면 어울릴때까지」)
@@ -59,7 +59,7 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | priest-hymn | 떠오르는 음표 | druid-quietwood | 떨어지는 잎 + 바닥 안개 |
 | priest-serenity | 도는 햇살 빛살 | druid-rebirth | 초록 빛 기둥 + 금빛 씨앗 (기둥은 이것만) |
 |  |  | paladin-holy-light | 위에서 비추는 원뿔 빛 |
-| priest-relay | 포물선으로 날아와 튀는 꼬리 별 | paladin-holy-strike | 대각 금빛 참격 |
+| priest-relay | 포물선으로 날아와 튀는 꼬리 별 | paladin-beacon | 머리 위 봉화 그릇에 타오르는 불꽃 |
 | paladin-oath | 도는 마름모 룬 + 오각 문양 | paladin-light-wave | 쏟아져 양옆으로 부서지는 파도 |
 | paladin-cleanse | 해돋이 빛살 손바닥 | paladin-sacrifice | 내려오는 사슬 + 붉은 맥동 |
 | paladin-sanctuary | 바닥에서 솟는 반구 막 | paladin-hand-guard | 도는 팔각 봉인 문양 |
@@ -75,7 +75,7 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | boss-melt-heat | 피어오르는 아지랑이 물결 | boss-cream-burst | 사방으로 튀는 크림 덩이 |
 | boss-hush | 내려와 덮는 정적의 커튼 | boss-door-open | 벌어지는 세로 틈과 보랏빛 |
 | boss-island-tilt | 기울어지는 수평선 | boss-wedge | 가운데에 꽂히는 큰 번개 쐐기 |
-| shaman-ripple | 발밑에서 퍼지는 납작한 물결 두 겹 | shaman-shower | 위에서 쏟아지는 굵은 빗줄기와 웅덩이 |
+| shaman-ripple | 발밑에서 퍼지는 납작한 물결 두 겹 | warder-hold | 안으로 조여 두 겹으로 겹치는 네모 테와 네 변의 빛 못 |
 | shaman-droplet | 떨어져 납작하게 퍼지는 물방울 하나 | shaman-washing | 아래에서 휘감아 오르는 물줄기 두 가닥 |
 | shaman-chain | 옆에서 휘어 들어와 튀는 물줄기 | shaman-earth | 땅에서 솟는 돌 가시 셋 |
 | shaman-rain | 머리 위 작은 비구름과 가는 비 | shaman-link | 가로로 출렁이는 영혼 끈 두 줄과 매듭 |
@@ -88,10 +88,10 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | astro-clear | 위아래에서 가운데로 모였다 터지는 별가루 | astro-fall | 비스듬히 떨어져 바닥에서 튀는 작은 별 셋 |
 | astro-sleep | 세로로 긴 별빛 고치와 위에 뜬 초승달 | astro-memory | 한 바퀴 도는 시계 바늘 (끝에 별) |
 | astro-polaris | 위에서 내려와 커졌다가 작은 별들로 터지는 큰 네 갈래 별 | warder-seal | 머리 위에 엇갈려 그어지는 X자 인장 |
-| warder-quick | 위에서 쿵 찍히는 네모 도장 | warder-barrier | 몸 앞에 세워지는 네모 유리판과 비스듬한 반사광 |
+|  |  | warder-barrier | 몸 앞에 세워지는 네모 유리판과 비스듬한 반사광 |
 | warder-cleanse | 깨져 사방으로 흩어지는 유리 조각 | warder-circle | 네 모서리에 솟는 빛 말뚝 |
 | warder-guard | 몸 둘레를 도는 작은 네모 방패 셋 | warder-veil | 아래부터 층층이 쌓이는 가로 빛 띠 셋 |
-| warder-spear | 아래에서 위로 쏘아 올려지는 빛 창 | warder-judgment | 손잡이 끝을 축으로 휘둘러 내리치는 빛 망치 |
+|  |  | warder-judgment | 몸 위에서 네 갈래 빛줄기로 풀려 오르는 마름모 인장 |
 
 같은 스킬이 이어서 회복할 때도 그 스킬 그림이 나온다: 찬가 · 고요한 숲은 정신 집중 동안 1초마다 파티 전원 칸에, 빛의 전이는 빛이 깃든 사람이 회복할 때마다 그 칸에 (예전엔 공통 「치유 빛」).
 

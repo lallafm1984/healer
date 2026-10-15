@@ -187,4 +187,55 @@ export default {
       particles(g, t, 4, 14, r => ({ t0: 0.15 + r() * 0.45, life: 0.45, x: (r() - 0.5) * 1.6, y: 0.5 - r() * 0.6 }), (gg, p, age) => speck(gg, p.x, p.y - 0.4 * age, 0.02, Y.light, (1 - age) * fade));
     },
   },
+  /** 결계 굳히기 (보호막 시간 · 두께 늘리기, 굳힌 아군 칸마다): 크게 둘린 노란 네모 테가 안으로 조여 들어 안쪽 테와 두 겹으로 겹쳐 두꺼워지고, 네 변 가운데에 빛 못이 박히며 번쩍 */
+  'warder-hold': {
+    frames: 20, logical: 92, scope: 'target',
+    draw(g, { t }) {
+      const squeeze = E.in3(seg(t, 0, 0.32)), lock = bell(t, 0.28, 0.36, 0.75), fade = 1 - E.in2(seg(t, 0.6, 1)), I = 1.08;
+      glow(g, 0, 0, 1.05, Y.glow, 0.55 * fade);
+      // 안쪽 테 (처음부터 있음, 굳으며 두꺼워짐)
+      const lw = lerp(0.05, 0.11, E.out2(seg(t, 0.3, 0.45)));
+      pane(g, 0, 0, I, I, 0.45 * fade * (1 - seg(t, 0.4, 0.9)));
+      frame(g, 0, 0, I, I, lw, fade, 0, 0.7);
+      // 바깥 테 (크게 → 안쪽 테에 겹침)
+      if (t < 0.4) { const O = lerp(1.75, I + 0.16, squeeze); frame(g, 0, 0, O, O, 0.07, 0.95, 0, 0.5); }
+      else frame(g, 0, 0, I + 0.16, I + 0.16, 0.06, fade, 0, 0.6);
+      // 네 변 가운데 빛 못
+      for (const [x, y] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+        const px = x * (I / 2 + 0.04), py = y * (I / 2 + 0.04), k = E.back(seg(t, 0.3, 0.42), 2);
+        if (k <= 0) continue;
+        g.save(); g.translate(px, py); g.rotate(rad(45)); g.scale(0.08 * k, 0.08 * k); solid(g, h => h.rect(-1, -1, 2, 2), { hi: Y.core, lo: Y.body, rim: Y.rim, rimW: 0.3, a: fade, shine: 0.6 }); g.restore();
+        glint(g, px, py, 0.26 * lock, Y.glow, lock, 0, 0.12, Y.core);
+      }
+      glow(g, 0, 0, 0.6, '#ffffff', 0.6 * bell(t, 0.28, 0.33, 0.55));
+      particles(g, t, 4, 10, r => ({ t0: 0.35 + r() * 0.3, life: 0.4, x: (r() - 0.5) * I, y: (r() - 0.5) * I }), (gg, p, age) => speck(gg, p.x, p.y - 0.3 * age, 0.018, Y.light, (1 - age) * fade));
+    },
+  },
+
+  /** 심판 (인장 터뜨리기, 회복한 인장 칸마다 · 공격 아님): 몸 위에 마름모 인장 문양이 떠올라 빛나다가 네 갈래 빛줄기로 풀려 위로 퍼지고 빛 점이 몸으로 스밈 */
+  'warder-judgment': {
+    frames: 18, logical: 88, scope: 'target',
+    draw(g, { t }) {
+      const pop = E.back(seg(t, 0, 0.2), 1.8), open = E.out3(seg(t, 0.3, 0.75)), fade = 1 - E.in2(seg(t, 0.55, 1)), cy = -0.05;
+      glow(g, 0, cy, 0.8, Y.glow, 0.45 * fade);
+      // 마름모 인장 (안에 작은 네모 · 네 점), 풀리면서 커지고 옅어짐
+      const ds = 0.34 * pop * (1 + 0.35 * open), da = fade * (1 - 0.7 * open);
+      if (ds > 0.01 && da > 0) {
+        g.save(); g.translate(0, cy); g.rotate(rad(45)); g.globalAlpha = da;
+        bloom(g, h => { h.rect(-ds, -ds, ds * 2, ds * 2); h.rect(ds * 0.7, -ds * 0.7, -ds * 1.4, ds * 1.4); }, Y.glow, 0.5, 6);
+        g.beginPath(); g.rect(-ds, -ds, ds * 2, ds * 2); g.lineWidth = 0.1; g.strokeStyle = C(Y.rim, 0.9); g.stroke(); g.lineWidth = 0.06; g.strokeStyle = Y.body; g.stroke(); g.lineWidth = 0.022; g.strokeStyle = Y.core; g.stroke();
+        g.beginPath(); g.rect(-ds * 0.45, -ds * 0.45, ds * 0.9, ds * 0.9); g.lineWidth = 0.05; g.strokeStyle = C(Y.rim, 0.85); g.stroke(); g.lineWidth = 0.028; g.strokeStyle = Y.light; g.stroke();
+        g.restore();
+        for (const [x, y] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) speck(g, x * ds * 1.4 * 0.72, cy + y * ds * 1.4 * 0.72, 0.03, Y.core, da);
+      }
+      // 네 갈래 빛줄기 (위로 휘어 풀림)
+      for (const [sx, k] of [[-1, 1], [1, 1], [-0.45, 0.8], [0.45, 0.8]]) {
+        if (open <= 0) continue;
+        const P = s => ({ x: sx * lerp(0.15, 0.75, s) * k, y: cy - lerp(0.05, 0.95, s) * k + 0.25 * s * s });
+        lightStroke(g, P, Math.max(0, open - 0.6), Math.max(0.02, open), u => 0.08 * Math.sin(Math.PI * u) ** 0.6, { rim: Y.rim, body: Y.body, core: Y.core, a: fade, rimW: 0.018, glowCol: Y.glow, glowA: 0.6 });
+      }
+      glint(g, 0, cy, 0.5 * bell(t, 0.22, 0.3, 0.55), Y.glow, 1, 0, 0.12, Y.core);
+      particles(g, t, 6, 12, r => ({ t0: 0.35 + r() * 0.3, life: 0.45, x: (r() - 0.5) * 0.9, y: -0.6 + r() * 0.3 }), (gg, p, age) => speck(gg, p.x * (1 - 0.5 * age), p.y + 0.8 * age, 0.02, Y.light, (1 - age) * fade));
+    },
+  },
 };

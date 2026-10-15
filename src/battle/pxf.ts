@@ -1,9 +1,9 @@
 /**
  * 전투 이펙트 프레임 띠 (이름은 예전 PXF 공방 이펙트에서 옴). 모두 판 맨 위 층 (board.ts pxfL, Lim 「파티원에서 최상단으로」), 보통 섞기.
- * - 손그림풍 (smooth, 2026-10-16 Lim 「스킬이펙트가 너무 허술」 → 「다른 기타 이펙트도 손그림으로 (도트를 모두 제거)」): scripts/vfx/<묶음>.mjs를 캔버스로 그려
+ * - 손그림풍 (2026-10-16 Lim 「스킬이펙트가 너무 허술」 → 「다른 기타 이펙트도 손그림으로 (도트를 모두 제거)」): scripts/vfx/<묶음>.mjs를 캔버스로 그려
  *   src/art/fx-skill-<이름>.webp (224px · 공통 효과는 192px 격자)로 구움 (npm run fx:bake, scripts/vfx/README.md). 직업 스킬 · 전투 공통 효과 · 파티원 능력
  * - 보스 판 전체 공격: Codex 손그림 띠 src/art/fx-wide-<이름>.webp (66 문서, 256px 격자)
- * - 남은 PXF 도트 (64px, src/art/pxf/<이름>.pxf.json → fx-pxf-<이름>.png): QA에서 바뀌는 스킬 몇 개뿐, 바뀌면 손그림으로 다시 만들고 지움
+ * - 예전 PXF 도트 (64px 그래프 · 띠)는 모두 지움. 모양 표는 src/art/pxf/requests.md
  * 값은 tests/pxf.test.ts가 그리기 코드 · 그림 크기와 맞춰 봄. 2026-10-11 Lim: 사제 치유로 시험 → 「직업별 모든 스킬에」 → 전투 공통 효과 · 파티원 능력 · 보스 판 전체 공격도
  */
 import type { AbKind } from '../data/abilities';
@@ -31,15 +31,8 @@ export interface PxfClip {
   referenceCell: number;
   /** 회색 그림: 게임이 종류마다 색을 곱해 칠함 (치유 = 문장 색 · 쓰러짐 = 역할 색 · 디버프 = 종류 색 · 장비 발동 = 묶음 색) */
   gray: boolean;
-  /**
-   * 손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 너무 허술한게 많다. 퀄리티 있게 모두 다시」): PXF 그래프가 아니라 scripts/vfx/<직업>.mjs를
-   * 캔버스로 그려 구운 224px 프레임 격자 (fx-skill-<이름>.webp, node scripts/vfx-bake.mjs). 도트가 아니라 부드럽게 늘려 그림
-   */
-  smooth: boolean;
 }
 
-const clip = (frames: number, impactFrame: number, gray = false): PxfClip =>
-  ({ size: 64, frames, fps: 24, cols: frames, blend: 'normal', impactFrame, logicalSize: 64, referenceCell: 62, gray, smooth: false });
 /** 손그림풍 스킬 이펙트 프레임 크기 (scripts/vfx/index.mjs FX_SIZE) */
 export const SKILL_FX_SIZE = 224;
 /**
@@ -47,7 +40,7 @@ export const SKILL_FX_SIZE = 224;
  * logical = 기준 칸 62일 때 그림 지름 (칸보다 크게 그려 칸 밖까지 빛이 번짐, 범위 · 파티 스킬은 칸만 하게)
  */
 const skill = (frames: number, logical: number, o: { size?: number; gray?: boolean } = {}): PxfClip =>
-  ({ size: o.size ?? SKILL_FX_SIZE, frames, fps: 24, cols: Math.ceil(Math.sqrt(frames)), blend: 'normal', impactFrame: 0, logicalSize: logical, referenceCell: 62, gray: !!o.gray, smooth: true });
+  ({ size: o.size ?? SKILL_FX_SIZE, frames, fps: 24, cols: Math.ceil(Math.sqrt(frames)), blend: 'normal', impactFrame: 0, logicalSize: logical, referenceCell: 62, gray: !!o.gray });
 /** 전투 공통 효과 · 파티원 능력: 작고 자주 뜨므로 192px (scripts/vfx/common.mjs) */
 const small = (frames: number, logical: number, gray = false): PxfClip => skill(frames, logical, { size: 192, gray });
 /** 보스 판 전체 공격의 설계 캔버스 (판 너비 기준, game.logicalSize) */
@@ -57,9 +50,9 @@ export const WIDE_DESIGN = 128;
  * 처음엔 PXF 도트 띠 (128px 설계 → 우리 렌더러 256px)였고 2026-10-16 Lim 「도트를 모두 제거」로 손그림 띠만 남김
  */
 const wide = (frames: number, impactFrame: number, gray = false): PxfClip =>
-  ({ ...clip(frames, impactFrame, gray), size: 256, cols: Math.ceil(Math.sqrt(frames)), logicalSize: WIDE_DESIGN, smooth: true });
+  ({ size: 256, frames, fps: 24, cols: Math.ceil(Math.sqrt(frames)), blend: 'normal', impactFrame, logicalSize: WIDE_DESIGN, referenceCell: 62, gray });
 
-/** 이름 = 그래프 · 프레임 띠 파일 이름 (src/art/pxf/<이름>.pxf.json → fx-pxf-<이름>.png) */
+/** 이름 = 그리기 코드 (scripts/vfx) · 프레임 띠 파일 이름 (fx-skill-<이름>.webp, 보스는 fx-wide-*) */
 export const PXF = {
   // 직업 스킬: 손그림풍 (scripts/vfx, Lim 2026-10-16 「퀄리티 있게 모두 다시」). 모양은 requests.md 모양 표 그대로
   'priest-heal': skill(22, 80),
@@ -80,6 +73,7 @@ export const PXF = {
   'druid-quietwood': skill(24, 72),
   'druid-rebirth': skill(24, 98),
   'paladin-holy-light': skill(16, 80), // 기본 힐이라 가볍게 (Lim 2026-10-16 「너무 과하다」)
+  'paladin-beacon': skill(20, 88),
   'paladin-oath': skill(24, 90),
   'paladin-light-wave': skill(18, 88),
   'paladin-cleanse': skill(18, 92),
@@ -110,19 +104,15 @@ export const PXF = {
   'astro-memory': skill(22, 80),
   'astro-polaris': skill(22, 100),
   'shaman-spring': skill(24, 92),
-  // 아직 예전 64px 도트 (PXF 그래프): 빠지거나 바뀌는 스킬 (빛 일격 · 소나기 · 빠른 인장 · 빛의 창 · 심판, QA에서 스킬을 바꾼 뒤 다시 만듦)
-  'paladin-holy-strike': clip(16, 2),
-  'shaman-shower': clip(18, 3),
   // 결계사 (79 5-5 네모 결계, 2026-10-16 Lim 「흰색이라서 퀄리티가 더 떨어져보인다. 노란 발광의 빛이나게」→ 손그림풍 노란 빛): 인장 X · 도장 · 유리판 · 깨지는 유리 · 네 말뚝 · 도는 방패 · 가로 띠 · 창 · 망치
   'warder-seal': skill(20, 92),
-  'warder-quick': clip(16, 3),
   'warder-barrier': skill(22, 96),
   'warder-cleanse': skill(18, 94),
   'warder-circle': skill(20, 82),
   'warder-guard': skill(22, 96),
   'warder-veil': skill(24, 82),
-  'warder-spear': clip(16, 2),
-  'warder-judgment': clip(18, 5),
+  'warder-hold': skill(20, 92),
+  'warder-judgment': skill(18, 88),
   // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (회색 그림은 색을 곱함)
   'common-hit': small(11, 74),
   'common-crit': small(12, 66),
@@ -152,8 +142,8 @@ export const PXF = {
   'boss-wedge': wide(18, 1),
 } as const satisfies Record<string, PxfClip>;
 export type PxfKey = keyof typeof PXF;
-/** 프레임 띠 그림 이름: 보스 판 전체 공격 = Codex 손그림 띠 fx-wide-*, 손그림풍 = fx-skill-* (scripts/vfx), 남은 PXF 도트 = fx-pxf-* */
-export const pxfArtName = (key: PxfKey): string => (key.startsWith('boss-') ? `fx-wide-${key.slice('boss-'.length)}` : PXF[key].smooth ? `fx-skill-${key}` : `fx-pxf-${key}`);
+/** 프레임 띠 그림 이름: 보스 판 전체 공격 = Codex 손그림 띠 fx-wide-*, 나머지 = 손그림풍 fx-skill-* (scripts/vfx) */
+export const pxfArtName = (key: PxfKey): string => (key.startsWith('boss-') ? `fx-wide-${key.slice('boss-'.length)}` : `fx-skill-${key}`);
 
 /** 재생할 칸: target = 대상 칸 · area = 대상 둘레 범위 안 아군 칸마다 · party = 살아 있는 파티 전원 칸마다 */
 export type PxfScope = 'target' | 'area' | 'party';
@@ -177,6 +167,7 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
   quietwood: { fx: 'druid-quietwood', scope: 'party' },
   rebirth: { fx: 'druid-rebirth', scope: 'target' },
   holyLight: { fx: 'paladin-holy-light', scope: 'target' },
+  beacon: { fx: 'paladin-beacon', scope: 'target' }, // 봉화 지정 (84, 빛 일격 대신)
   oath: { fx: 'paladin-oath', scope: 'target' },
   lightWave: { fx: 'paladin-light-wave', scope: 'target' }, // 회복한 사람 (가장 다친 4명) 칸마다 엔진이 따로 기록 (73)
   handCleanse: { fx: 'paladin-cleanse', scope: 'target' },
@@ -213,7 +204,7 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
   wardCircle: { fx: 'warder-circle', scope: 'target' }, // 범위 (20인 2칸) 안 칸마다 엔진이 따로 기록 (79 5-2)
   guardWard: { fx: 'warder-guard', scope: 'target' },
   lightVeil: { fx: 'warder-veil', scope: 'target' }, // 장막 범위 안 칸마다 엔진이 따로 기록
-  wardHold: { fx: 'warder-spear', scope: 'target' }, // 결계 굳히기 (84, 빛의 창 대신): 새 이펙트가 올 때까지 빛의 창 그림을 임시로 (전투 스킬 이펙트 스레드에 요청)
+  wardHold: { fx: 'warder-hold', scope: 'target' }, // 결계 굳히기 (84, 빛의 창 대신): 보호막을 늘린 아군 칸마다 (없으면 내 칸)
   judgment: { fx: 'warder-judgment', scope: 'target' }, // 회복한 인장 칸마다
 };
 
@@ -221,7 +212,7 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
  * 그 직업 스킬의 손그림풍 이펙트 (224px 격자 띠라 하나에 2–5MB): 전투마다 지금 직업 것만 읽어 두고 다른 직업 것은 내려 놓음 (board.ts resetBoardFx)
  */
 export const heroSkillFx = (hero: HeroKey): PxfKey[] =>
-  [...new Set(heroSkills(hero).map(k => SKILL_PXF[k]?.fx).filter((k): k is PxfKey => !!k && PXF[k].smooth))];
+  [...new Set(heroSkills(hero).map(k => SKILL_PXF[k]?.fx).filter((k): k is PxfKey => !!k))];
 
 /** 전투 공통 효과 (모든 효과 PXF 1단계, requests.md): 있으면 board.ts가 예전 그림 (fx-hit · fx-heal …) 대신 그림 */
 export type CommonFx = 'hit' | 'crit' | 'heal' | 'dispel' | 'revive' | 'death' | 'debuff' | 'proc';

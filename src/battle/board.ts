@@ -4,7 +4,7 @@
  * 이펙트 (16 4-6): 힐 = 부드러운 빛 + 별 반짝이(사제 금·흰), 치명타 = 반짝이 2배 + 큰 별, 큰 피격 = 날카로운 빨간 자국.
  * 칸 위 이펙트는 0.4초 안에 사라지고 체력 숫자·디버프 테두리 아래에 그림.
  * 그림 (37 v0.2): 판 위 적·영혼 칸 그림(mob-), 칸 무늬(fx-cell-), 사슬 띠(fx-link-), 이펙트(fx-)가 src/art에 있으면 그 그림을, 없으면 지금 벡터 그림을 씀.
- * PXF 이펙트 (battle/pxf.ts, 2026-10-11): 휠 스킬이 들어가면 구운 픽셀 프레임 띠 (fx-pxf-*)를 대상 · 범위 · 파티 칸에서 재생 (그 칸의 치유 빛 대신). 다른 이펙트와 달리 판 맨 위 (글자·아이콘보다 위).
+ * 스킬 · 전투 공통 이펙트 (battle/pxf.ts): 휠 스킬이 들어가면 손그림풍 프레임 띠 (fx-skill-*, 2026-10-16 도트에서 바꿈)를 대상 · 범위 · 파티 칸에서 재생 (그 칸의 치유 빛 대신). 다른 이펙트와 달리 판 맨 위 (글자·아이콘보다 위).
  * 보스 판 전체 공격 (외침 · 땅 울림 …)은 판 너비로 크게 한 번 (pxfWide).
  */
 import { Application, BitmapFont, BitmapText, Container, Graphics, GraphicsPath, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
@@ -113,7 +113,7 @@ export async function initBoard(): Promise<void> {
   // 말풍선 틀 · 꼬리 · 대사 이펙트 띠는 미리 읽어 둠 (첫 말풍선이 앱 그림으로 잠깐 보였다 바뀌지 않게, 43 5장)
   for (const k of ['talk', 'call', 'alert', 'chat']) { artTexture(`ui-bubble-${k}`); artTexture(`ui-bubble-tail-${k}`); }
   for (const n of Object.keys(TALK_FX)) artTexture(`fx-talk-${n}`);
-  for (const k of Object.keys(PXF) as PxfKey[]) if (!isBossPxf(k) && (!PXF[k].smooth || ALWAYS_FX.has(k))) artTexture(pxfArtName(k)); // 첫 효과부터 보이게 (보스 판 전체 공격 · 직업 스킬 이펙트는 전투마다 resetBoardFx)
+  for (const k of ALWAYS_FX) artTexture(pxfArtName(k)); // 전투 공통 효과 · 파티원 능력은 첫 효과부터 보이게 (보스 판 전체 공격 · 직업 스킬 이펙트는 전투마다 resetBoardFx)
   if (B.F) resizeBoard();
   await document.fonts?.ready;
   await frameReady;
@@ -842,7 +842,7 @@ export function resetBoardFx(): void {
   // 손그림풍 스킬 이펙트 (224px 격자, 하나에 2–5MB): 지금 직업 것만 (첫 스킬부터 보이게), 다른 직업 것은 내려 놓음
   const mine = new Set(B.F ? heroSkillFx(B.F.hero) : []);
   for (const k of Object.keys(PXF) as PxfKey[]) {
-    if (!PXF[k].smooth || isBossPxf(k) || ALWAYS_FX.has(k)) continue;
+    if (isBossPxf(k) || ALWAYS_FX.has(k)) continue;
     const name = pxfArtName(k);
     if (mine.has(k)) artTexture(name); else if (artTex.has(name)) dropArt(name);
   }
@@ -1186,15 +1186,14 @@ function predictedHeal(u: Unit): number {
 }
 
 /**
- * PXF 이펙트 한 프레임: 대상 칸 가운데 (game.pivot 0.5, 0.5), 칸 지름 2r 기준 크기, 판 밖으로 안 나가게 줄임.
+ * 스킬 · 전투 공통 이펙트 한 프레임: 대상 칸 가운데, 칸 지름 2r 기준 크기 (logicalSize / referenceCell), 판 밖으로 안 나가게 줄임.
  * 층: 모두 판 맨 위 (pxfL, 이름 · 체력 · 말풍선 위, Lim 「파티원에서 최상단으로」). 회색 그림은 tint 색을 곱함.
- * 픽셀 그림이라 가장 가까운 픽셀로 키움. 더하기 섞기는 WebGL에서만 (Canvas에서는 뒤에 그리는 것까지 번져서 보통 섞기)
+ * 손그림풍이라 부드럽게 늘림. 더하기 섞기는 WebGL에서만 (Canvas에서는 뒤에 그리는 것까지 번져서 보통 섞기)
  */
 function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: number, tint = 0xffffff): void {
-  const c = PXF[k], i = pxfFrame(c, ms), tex = i < 0 ? null : c.smooth ? smoothFrame(k, i) : stripFrame(pxfArtName(k), 1, (i + 0.5) / c.frames);
+  const c = PXF[k], i = pxfFrame(c, ms), tex = i < 0 ? null : smoothFrame(k, i);
   if (!tex) return;
-  const mode = c.smooth ? 'linear' : 'nearest';
-  if (tex.source.scaleMode !== mode) tex.source.scaleMode = mode;
+  if (tex.source.scaleMode !== 'linear') tex.source.scaleMode = 'linear';
   const size = pxfDrawSize(c, r * 2), half = safeRadius(x, y, size / 2, 'circle');
   if (half <= 0) return;
   pxfArt.put(tex, x, y, half * 2, half * 2, 1, c.gray ? tint : 0xffffff, 0, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
