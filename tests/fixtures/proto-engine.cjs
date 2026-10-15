@@ -131,7 +131,7 @@ const Engine = (() => {
       nextId: 1,
     };
     f.bossHp = f.bossMax;
-    for (const k of (cfg.items || []).slice(0, 4)) if (ITEMS[k]) f.items[k] = ITEMS[k].uses;
+    for (const k of (cfg.items || []).slice(0, 2)) if (ITEMS[k]) f.items[k] = ITEMS[k].uses;
     f.gcdBase = 1 / (1 + gear.haste);
     makeParty(f, cfg.party);
     SCRIPTS[enc.script].init(f);

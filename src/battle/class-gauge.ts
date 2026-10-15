@@ -49,6 +49,8 @@ function resourceVariant(el: HTMLElement, job: HeroKey, max: number): void {
 export function buildClassGauge(host: HTMLElement, controls: HTMLElement, job: HeroKey): void {
   controls.dataset.job = job;
   controls.style.setProperty('--class-background', cssUrl(art('ui-class-'+job+'-background')));
+  // 축소 모드의 전체 폭 배경은 controls 바깥 프레임에서 그린다.
+  controls.parentElement?.style.setProperty('--class-background', cssUrl(art('ui-class-'+job+'-background')));
   controls.style.setProperty('--class-item-frame', cssUrl(art('ui-class-'+job+'-item-frame')));
   host.replaceChildren(); const el = div('job-gauge'); el.dataset.job = job;
   el.setAttribute('role','progressbar'); el.setAttribute('aria-valuemin','0');

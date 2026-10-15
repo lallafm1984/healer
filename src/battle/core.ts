@@ -4,6 +4,7 @@
  */
 import type { CoachKey } from '../game/tutorial';
 import type { GearStats } from '../data/gear';
+import { ITEM_SLOT_COUNT } from '../data/progression';
 import type { ItemKey } from '../data/items';
 import type { TalentKey } from '../data/talents';
 import type { AffixKey } from '../data/affixes';
@@ -89,7 +90,7 @@ export interface StartOptions {
   /** 실제 레벨 (힐량·체력) */ heroLv?: number;
   /** 단계 레벨 */ stageLv?: number;
   gearStats?: GearStats; party: RosterEntry[]; items?: ItemKey[]; slots?: number; seed?: number | null;
-  /** 화면용 네 칸 배치. 엔진은 items의 빈칸 없는 목록만 사용한다. */
+  /** 화면용 단축칸 배치 (앞 두 칸 사용). 엔진은 items의 빈칸 없는 목록만 사용한다. */
   itemLayout?: (ItemKey | null)[];
   onEnd?(r: BattleResult): void;
   /** 튜토리얼 안내 묶음 (02 11장) */
@@ -123,7 +124,7 @@ export interface Run {
 
 export const S = {
   diff: '보통', gearStats: null as GearStats | null, level: 100, heroLv: undefined as number | undefined, stageLv: undefined as number | undefined,
-  party: null as RosterEntry[] | null, items: [] as ItemKey[], itemLayout: null as (ItemKey | null)[] | null, slots: 4,
+  party: null as RosterEntry[] | null, items: [] as ItemKey[], itemLayout: null as (ItemKey | null)[] | null, slots: ITEM_SLOT_COUNT,
   sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, compactSkills: false, reducedEffects: false, raidFiveLook: false, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined, specs: undefined as Record<string, number> | undefined, stock: undefined as Partial<Record<ItemKey, number>> | undefined,
   affixes: undefined as AffixKey[] | undefined, bossMult: undefined as { hp: number; dmg: number } | undefined, limit: undefined as number | undefined, chal: 0,
   layout: { ...DEFAULT_LAYOUT } as Layout,

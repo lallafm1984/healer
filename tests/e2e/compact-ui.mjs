@@ -1055,7 +1055,7 @@ async function castSpaceCases(page, ok) {
 }
 
 async function extraInputCases(page, ok) {
-  // 실제 게임 저장과 분리된 fixture: Lv 100의 쉼터·정점, 아이템 네 개로 접근·단일 touch 처리 검증.
+  // 실제 게임 저장과 분리된 fixture: Lv 100의 쉼터·정점, 두 칸의 아이템 조합별 접근·단일 touch 처리 검증.
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     s.heroes.priest.talents = [null, null, null, null, null, null, 1, null, null, 0];
@@ -1064,10 +1064,9 @@ async function extraInputCases(page, ok) {
     localStorage.setItem('healer.save', JSON.stringify(s));
   });
   await enter(page, PARTIES[1], 100, true);
-  const tools = await inspectDirectControls(page, ok, '360: 네 아이템·보조 특성');
-  ok(tools.items.join() === 'mana,life,cleanse,shield'
-    && await page.isVisible('#items [data-item="cleanse"]') && await page.isVisible('#items [data-item="shield"]'),
-  '360: 세 번째·네 번째 아이템도 원래 패널에서 직접 접근 가능');
+  const tools = await inspectDirectControls(page, ok, '360: 두 아이템·보조 특성');
+  ok(tools.items.join() === 'mana,life' && await page.locator('#items .item').count()===2,
+    '360: 이전 네 칸 저장에서도 두 아이템만 표시·사용');
   const potionBefore = await page.evaluate(() => {
     const f = window.__proto.F; f.mana = 20; f.items.mana = 2; f.potCd = 0;
     return f.itemLog.filter(x => x.key === 'mana').length;
@@ -1081,6 +1080,13 @@ async function extraInputCases(page, ok) {
   ok(potion.uses === potionBefore + 1 && potion.left === 1 && potion.mana >= 50 && potion.mana < 52
     && !/재사용 대기/.test(potion.toast), '360: 물약 실제 touch 한 번은 사용 기록 +1·수량 −1, 후속 click 중복 없음', potion);
 
+  ok(await page.locator('#items [data-item="life"]').evaluate(e=>e.classList.contains('off')&&!!e.querySelector('.cds').textContent), '360: 두 번째 물약에도 공용 쿨 표시');
+  await tapSlot(page,'#items [data-item="life"]');
+  ok(await page.evaluate(()=>window.__proto.F.items.life===2),'360: 공용 쿨 중 두 번째 물약은 소비되지 않음');
+  await leave(page);
+  await page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('healer.save'));s.items=['cleanse','shield','cleanse','shield'];localStorage.setItem('healer.save',JSON.stringify(s));});
+  await enter(page,PARTIES[1],100,true);
+  ok((await inspectDirectControls(page,ok,'360: 두 두루마리')).items.join()==='cleanse,shield','360: 두 칸에 다른 아이템 조합도 선택 가능');
   const cleanseBefore = await page.evaluate(() => {
     const f = window.__proto.F, u = f.party.find(x => x.alive && !x.me);
     u.debuffs = [{ id: 8501, name: '축소 버튼 검증 독', type: '독', left: 12 }];
@@ -1091,13 +1097,13 @@ async function extraInputCases(page, ok) {
     left: window.__proto.F.items.cleanse, debuff: window.__proto.F.party.some(u => u.debuffs.some(d => d.id === 8501)),
     closed: !document.querySelector('#compactToolsDialog')?.open }));
   ok(cleanse.count === cleanseBefore + 1 && cleanse.left === 0 && !cleanse.debuff && cleanse.closed,
-    '360: 세 번째 아이템 직접 touch 한 번으로 해제·수량 차감 1회', cleanse);
+    '360: 첫 번째 아이템 직접 touch 한 번으로 해제·수량 차감 1회', cleanse);
   await tapSlot(page, '#items [data-item="shield"]');
   const shieldArmed = await page.locator('#items [data-item="shield"]').evaluate(el => el.classList.contains('armed'));
   await tapSlot(page, '#items [data-item="shield"]');
   ok(shieldArmed && await page.locator('#items [data-item="shield"]').evaluate(el => !el.classList.contains('armed'))
     && !await page.isVisible('#compactToolsDialog'),
-    '360: 네 번째 대상형 아이템도 직접 선택·재탭 취소 가능');
+    '360: 두 번째 대상형 아이템도 직접 선택·재탭 취소 가능');
 
   // 보조 기술에는 별도 영구 사용 로그가 없어, 프레임이 소비하기 전 성공 msg 이벤트를 참조별로 센다.
   // 이벤트를 읽기만 하고 게임의 큐·함수는 바꾸지 않는다.

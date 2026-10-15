@@ -121,10 +121,9 @@ export function starsOf(r: { win: boolean; deaths: number; overheal: number }): 
   return [r.win, r.win && r.deaths === 0, r.win && r.overheal <= STAR_OVERHEAL];
 }
 
-/** 단축칸이 하나씩 열리는 레벨 (34 8장: 특성이 Lv 50에 끝나서 당김): Lv 1 = 2칸, Lv 15 = 3칸, Lv 30 = 4칸. 지금 직업 레벨 기준 */
-export const ITEM_SLOT_LV = [1, 15, 30] as const;
-/** 소비 아이템 단축칸 수 (18 2-2, 19, 34 8장) */
-export const itemSlots = (level: number) => (level >= ITEM_SLOT_LV[2] ? 4 : level >= ITEM_SLOT_LV[1] ? 3 : 2);
+/** 소비 아이템은 레벨과 관계없이 두 칸 (2026-10-15 사용자 확정). */
+export const ITEM_SLOT_COUNT = 2;
+export const itemSlots = (_level: number) => ITEM_SLOT_COUNT;
 
 /** 길드 탭 해금 (09 1-1, 18) */
 export const GUILD_LEVEL = 15;

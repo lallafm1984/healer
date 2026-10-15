@@ -218,7 +218,7 @@ export default async function portrait(url, shots) {
       return { taps, rows: rows.length, lastTop: Math.round(rows[rows.length - 1].top), foot: Math.round(foot.top), ttl: document.querySelector('#s-party .f-ttl').scrollWidth <= document.querySelector('#s-party .f-ttl').clientWidth };
     });
     ok(await noOverflow('#s-party .f-pty') && await noOverflow('#s-party .f-foot2') && await noOverflow('#s-party .topbar') && pty.ttl, `${width}: 편성 가로 넘침·제목 잘림 없음`);
-    ok(pty.taps.every(x => x >= 44), `${width}: 편성 공략·단축칸 4개·출발·뒤로 44px 이상 (${pty.taps.join(',')})`);
+    ok(pty.taps.every(x => x >= 44), `${width}: 편성 공략·단축칸 2개·출발·뒤로 44px 이상 (${pty.taps.join(',')})`);
     ok(pty.rows === 4 && pty.lastTop < pty.foot, `${width}: 5인 편성 = 파티원 4줄이 첫 화면에서 보이기 시작 (마지막 줄 ${pty.lastTop} < 아래 ${pty.foot})`);
     if (width === 320 || width === 390) await page.screenshot({ path: `${shots}/portrait_party_${width}.png` });
 

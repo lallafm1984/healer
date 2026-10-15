@@ -9,8 +9,9 @@ describe('현재 직업의 레벨업 안내', () => {
     const items = levelUpMilestones([15, 16], hero);
     expect(items.filter(m => m.text.startsWith('스킬')).map(m => m.text)).toEqual([`스킬 「${skill}」`]);
     expect(items.map(m => m.text)).toEqual(expect.arrayContaining([
-      '탐험 「늪지 어귀」', '소비 아이템 단축칸 3칸', '특성 3단',
+      '탐험 「늪지 어귀」', '특성 3단',
     ]));
+    expect(items.some(m => /소비 아이템 단축칸/.test(m.text))).toBe(false);
     expect(items.find(m => m.text === `스킬 「${skill}」`)?.lv).toBe(15);
     expect(items.some(m => /8번째 칸|드루이드·성기사/.test(m.text))).toBe(false);
   });

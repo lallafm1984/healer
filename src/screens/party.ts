@@ -2,7 +2,7 @@
  * S05 편성 (27 3-3, 시안 Party27). 2026-10-08 입장 화면(S04)을 여기로 합침: 전투 탭 「출전」 → 편성 → 출발.
  * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스 · 아이템 힌트), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭 (길드를 빼 두면 없음),
  * 권장 레벨 안내 (미달일 때만), 시작 위치 육각 미리보기 (직업 아이콘), 파티원 줄 (누르면 상세 시트).
- * 아래 고정: 위치가 저장되는 단축칸 4개 · 출발 (81: 스테미너는 「출전」 팝업에서 이미 냄 → 바로 전투. 안 낸 판이면 출발 때 팝업).
+ * 아래 고정: 위치가 저장되는 단축칸 2개 · 출발 (81: 스테미너는 「출전」 팝업에서 이미 냄 → 바로 전투. 안 낸 판이면 출발 때 팝업).
  */
 import { CLASSES } from '../data/classes';
 import { contentOf, isRaid } from '../data/content';
@@ -12,7 +12,6 @@ import { FEATURES } from '../data/features';
 import { ENCOUNTERS } from '../data/encounters';
 import { ITEMS, type ItemKey } from '../data/items';
 import { ITEM_SLOT_COUNT, type ItemSlot } from '../data/item-loadout';
-import { ITEM_SLOT_LV } from '../data/progression';
 import { CATS, PERS } from '../data/personalities';
 import { aptOf } from '../data/guild';
 import { create, recruitParty } from '../engine';
@@ -132,18 +131,17 @@ function guildPickHtml(stage: number): string {
     ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: stage }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
 }
 
-/** 네 칸을 항상 표시한다. 빈칸과 잠긴 칸도 같은 위치에 남긴다. */
-function slotRow(slots: number, loadout: ItemSlot[]): string {
+/** 두 칸을 항상 표시한다. 빈칸도 같은 위치에 남긴다. */
+function slotRow(_slots: number, loadout: ItemSlot[]): string {
   const stock = G.save.tut >= TUT.done ? G.save.bag : null;
   const chips = Array.from({ length: ITEM_SLOT_COUNT }, (_, i) => {
     const number = `<span class="f-slot-number" aria-hidden="true">${i + 1}</span>`;
     const k = loadout[i], attrs = `data-slot="${i}" data-slots="${i}"`;
-    if (i >= slots) return `<button class="f-item locked" type="button" ${attrs} disabled aria-label="${i + 1}번 단축칸 · Lv ${ITEM_SLOT_LV[i - 1]}에 열림">${number}${LOCK}<span>잠김</span><small>Lv ${ITEM_SLOT_LV[i - 1]}</small></button>`;
     if (!k) return `<button class="f-item empty" type="button" ${attrs} aria-label="${i + 1}번 단축칸 · 빈칸 · 아이템 고르기" aria-haspopup="dialog">${number}<span>빈칸 +</span></button>`;
     const n = stock ? stock[k] || 0 : null;
     return `<button class="f-item${n === 0 ? ' zero' : ''}" type="button" ${attrs} data-slot-item="${k}" aria-label="${i + 1}번 단축칸 · ${ITEMS[k].name}${n != null ? ` · 보유 ${n}개` : ''} · 바꾸기" aria-haspopup="dialog">${number}${useIcon(k)}<span>${ITEMS[k].short}</span>${n != null ? `<small><span class="sr">남은 </span>${n}</small>` : ''}</button>`;
   }).join('');
-  return `<div class="f-slots" role="group" aria-label="단축칸 4칸 중 ${slots}칸 열림">${chips}</div>`;
+  return `<div class="f-slots" role="group" aria-label="소비 아이템 단축칸 ${ITEM_SLOT_COUNT}칸">${chips}</div>`;
 }
 
 /** 아래에서 올라오는 시트 (열 때만 그림) */
@@ -158,7 +156,7 @@ function slotSheetHtml(loadout: ItemSlot[]): string {
   const hid = sheet === 'slots' ? '' : ' hidden', ih = itemHint();
   const stock = G.save.tut >= TUT.done ? G.save.bag : null;
   const options = (Object.keys(ITEMS) as ItemKey[]).map(k => {
-    const it = ITEMS[k], at = loadout.indexOf(k), selected = at === openSlot, n = stock ? stock[k] || 0 : null;
+    const it = ITEMS[k], at = loadout.slice(0, ITEM_SLOT_COUNT).indexOf(k), selected = at === openSlot, n = stock ? stock[k] || 0 : null;
     const status = selected ? '선택됨' : at >= 0 ? `${at + 1}번 칸${loadout[openSlot] ? '과 교체' : '에서 이동'}` : '이 칸에 지정';
     return `<button type="button" class="f-item-option${selected ? ' selected' : ''}${n === 0 ? ' zero' : ''}" data-item="${k}" aria-pressed="${selected}"><span class="f-item-art">${useIcon(k)}</span><span class="f-item-copy"><b>${it.name}</b><small class="f-item-stock">${n == null ? '튜토리얼 제공' : `보유 ${n}개`}</small><span class="f-item-desc">${esc(it.desc)}</span><em class="f-item-status">${status}</em></span></button>`;
   }).join('');

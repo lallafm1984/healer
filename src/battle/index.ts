@@ -7,6 +7,7 @@ import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { BOARDS } from '../data/boards';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { ITEMS, type ItemKey } from '../data/items';
+import { ITEM_SLOT_COUNT } from '../data/progression';
 import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
 import { AFFIXES } from '../data/affixes';
@@ -129,13 +130,13 @@ function layoutBattle(): void {
   $('stage').style.minHeight = '';
   // 아래 조작판: 시안 390×844에서 230. 휠 = 조작판 높이 - 14 (시안 216), 폭의 56.5% (시안 220)
   const auxCount = Object.keys(F.tx.act).length;
-  // 특성 줄 44 + 아이템 92 + 분할 게이지 68 이상 + 안전 여백을 확보한다.
+  // 아이템을 한 줄로 줄인 공간을 자원 패널에 배분한다 (특성 44 · 아이템 44 · 간격 8 · 위아래 여백 36)을 확보한다.
   const controls = $('controls');
   controls.classList.toggle('compact-controls', S.compactSkills);
   $('battle').classList.toggle('compact-panel', S.compactSkills);
   controls.classList.toggle('paladin', F.hero === 'paladin');
   controls.classList.toggle('wheel-left', S.hand === 'left');
-  const ch = Math.round(Math.min(auxCount ? 252 : 236, Math.max(auxCount ? 242 : 178, H * 0.297)));
+  const ch = Math.round(Math.min(auxCount ? 268 : 236, Math.max(auxCount ? 268 : 206, H * 0.297)));
   layoutState = `${S.compactSkills}`;
   ($('pauseCompact') as HTMLInputElement).checked = S.compactSkills;
   $('wheel').setAttribute('aria-label', '치유 스킬 휠');
@@ -889,8 +890,8 @@ function frame(now: number): void {
   set onSetting(fn: typeof S.onSetting) { S.onSetting = fn; },
   start(o: StartOptions) {
     closeTip();
-    S.diff = o.diff; S.gearStats = o.gearStats || null; S.party = o.party; S.items = (o.items || []).slice(); S.slots = o.slots || 4; S.onEnd = o.onEnd || null;
-    S.itemLayout = o.itemLayout ? o.itemLayout.slice(0, 4) : null;
+    S.diff = o.diff; S.gearStats = o.gearStats || null; S.party = o.party; S.items = (o.items || []).slice(0, ITEM_SLOT_COUNT); S.slots = ITEM_SLOT_COUNT; S.onEnd = o.onEnd || null;
+    S.itemLayout = o.itemLayout ? o.itemLayout.slice(0, ITEM_SLOT_COUNT) : null;
     S.run = { content: o.content, name: o.name, segs: o.segs.slice(), seed0: o.seed != null ? o.seed : null, coachDone: new Set() } as Run;
     S.level = o.level || 100;
     S.heroLv = o.heroLv; S.stageLv = o.stageLv;

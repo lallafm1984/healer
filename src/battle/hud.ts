@@ -13,7 +13,7 @@ import { canDispel, HEROES } from '../data/heroes';
 import { mobGrade } from '../data/encounters';
 import type { ItemKey } from '../data/items';
 import { ITEMS, POTION_CD } from '../data/items';
-import { ITEM_SLOT_LV, itemSlots } from '../data/progression';
+import { ITEM_SLOT_COUNT } from '../data/progression';
 import { INT_BASE } from '../data/rules';
 import { healText, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { itemTip, skillTip, tipHtml } from '../game/tooltip';
@@ -236,16 +236,13 @@ export function openTalentTip(k: TalentKey, el: HTMLElement): void {
   popTip(tipHtml({ name: d.name, kind: '특성', rows: [['즉시', row]], desc: healText(d.desc, INT_BASE * F.power * F.gear.heal), note: a.cell ? '누른 뒤 빈 칸을 탭' : 'GCD·마나 없이 바로' }), el, null);
 }
 
-// ---------- 소비 아이템 단축칸 (19 2부): 2×2, 레벨에 따라 열린 칸 수가 다름 (18 2-2) ----------
-const ITEM_SLOTS = 4;
-const slotLv = (i: number) => ITEM_SLOT_LV.find(lv => itemSlots(lv) > i) ?? ITEM_SLOT_LV[2];
+// ---------- 소비 아이템 단축칸: 한 줄 두 칸 ----------
 export function buildItems(): void {
   const keys = S.itemLayout ?? Object.keys(fight().items) as ItemKey[];
   let html = '';
-  for (let i = 0; i < ITEM_SLOTS; i++) {
+  for (let i = 0; i < ITEM_SLOT_COUNT; i++) {
     const k = keys[i];
     // 시안: 잠긴 칸 = 평평한 어두운 칸 + 자물쇠 + Lv, 아이템 칸 = 네모 청동 테 + 그림 + 이름 + 오른쪽 아래 개수
-    if (i >= S.slots) { html += `<div class="item empty locked" role="img" aria-label="잠긴 칸 (Lv ${slotLv(i)})">${LOCK_SVG}<span class="nm">Lv ${slotLv(i)}</span></div>`; continue; }
     if (!k) {
       const emptyArt = art('skill-heal');
       html += `<div class="item empty" aria-hidden="true">${emptyArt ? `<img class="item-art empty-slot-art" src="${emptyArt}" alt="" aria-hidden="true" decoding="async" draggable="false">` : ''}<span class="nm">빈 칸</span></div>`;

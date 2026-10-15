@@ -92,8 +92,7 @@ export default async function dungeon(url, shots) {
   const nicks = () => page.evaluate(() => [...document.querySelectorAll('#s-party .pcard .pnick')].map(b => b.textContent).join());
   const before = await nicks(), goldBefore = (await save()).player.gold;
   const slots = await page.locator('#s-party .f-slots .f-item').evaluateAll(buttons => buttons.map(b => ({ slot: b.dataset.slot, disabled: b.disabled, label: b.getAttribute('aria-label') })));
-  ok(slots.length === 4 && slots.map(s => s.slot).join() === '0,1,2,3' && await pickedItems(page) === 'mana,life'
-    && slots[2].disabled && /Lv 15/.test(slots[2].label) && slots[3].disabled && /Lv 30/.test(slots[3].label), 'Lv 1 = 단축칸 4개 표시, 마나·생명 2칸 열림, Lv 15·30 잠금');
+  ok(slots.length === 2 && slots.map(s => s.slot).join() === '0,1' && await pickedItems(page) === 'mana,life' && slots.every(s=>!s.disabled), 'Lv 1부터 두 소비 아이템 칸 선택 가능');
   await page.click('#s-party [data-slots="0"]'); await page.clock.runFor(50);
   await page.click('#s-party .f-isheet [data-item="cleanse"]'); await page.clock.runFor(50);
   ok(await pickedItems(page) === 'cleanse,life' && await page.isVisible('#s-party .f-isheet[data-edit-slot="0"]'), '1번 단축칸을 해제로 교체, 다른 칸 유지·시트에서 결과 확인');

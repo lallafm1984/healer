@@ -216,7 +216,7 @@ describe('정산 연결', () => {
   });
   it('엔진: 가방에 남은 만큼만 단축칸 횟수 (19 11장)', () => {
     const f = E.create({ encounter: 'warden', diff: '보통', seed: 1, items: ['mana', 'life', 'cleanse'], itemCap: { mana: 0, life: 1 } });
-    expect(f.items).toEqual({ mana: 0, life: 1, cleanse: 1 });
+    expect(f.items).toEqual({ mana: 0, life: 1 });
     expect(E.create({ encounter: 'warden', diff: '보통', seed: 1, items: ['life'] }).items).toEqual({ life: 2 });
   });
 });

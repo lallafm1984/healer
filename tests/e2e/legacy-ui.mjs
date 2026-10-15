@@ -15,7 +15,7 @@ export default async function legacyUi(url, shots) {
   await page.clock.install();
   await page.goto(url);
   await page.clock.runFor(300);
-  // Lv 40 = 단축칸 4칸 (18 2-2). 프로토타입처럼 4개를 골라 둔 상태에서 시작
+  // 이전 네 칸 저장에서도 활성 두 칸만 표시하고 나머지는 보존한다.
   await patchSave(page, { player: { level: 40 }, items: ['mana', 'life', 'cleanse', 'feather'] });
 
   // ---- 편성 「공략」 시트 ----
@@ -33,25 +33,29 @@ export default async function legacyUi(url, shots) {
 
   // ---- 편성: 소비 아이템 ----
   const chips = await ev(() => [...document.querySelectorAll('#s-party .f-slots .f-item')].map(b => [b.dataset.slot, b.dataset.slotItem, b.disabled]));
-  ok(chips.length === 4 && chips.map(c => c[1]).join() === 'mana,life,cleanse,feather', `네 단축칸에 저장된 순서대로 아이템 표시 ${JSON.stringify(chips)}`);
-  ok(chips.every(c => !c[2]) && await page.locator('#s-party .f-slots').getAttribute('aria-label') === '단축칸 4칸 중 4칸 열림', 'Lv 40 = 단축칸 4칸 모두 열림');
-  // 정확한 4번 칸을 고른다. 전체 선택 개수가 아니라 해당 칸만 교체한다.
-  await page.click('#s-party [data-slots="3"]'); await page.clock.runFor(50);
+  ok(chips.length === 2 && chips.map(c => c[1]).join() === 'mana,life', `두 단축칸에 저장된 순서대로 아이템 표시 ${JSON.stringify(chips)}`);
+  ok(chips.every(c => !c[2]) && await page.locator('#s-party .f-slots').getAttribute('aria-label') === '소비 아이템 단축칸 2칸', 'Lv 40에도 두 칸 유지');
+  // 정확한 2번 칸을 고른다. 전체 선택 개수가 아니라 해당 칸만 교체한다.
+  await page.click('#s-party [data-slots="1"]'); await page.clock.runFor(50);
   await page.click('#s-party .f-isheet [data-item="medit"]'); await page.clock.runFor(50);
-  ok(await pickedItems(page) === 'mana,life,cleanse,medit' && await page.isVisible('#s-party .f-isheet[data-edit-slot="3"]'), '4번 칸만 명상으로 교체하고 시트에서 선택 결과 확인');
+  ok(await pickedItems(page) === 'mana,medit' && await page.isVisible('#s-party .f-isheet[data-edit-slot="1"]'), '2번 칸만 명상으로 교체하고 시트에서 선택 결과 확인');
   await page.click('#s-party .f-isheet [data-item="shield"]');
   ok(/탱커 강타/.test(await page.textContent('#s-party .f-isheet .f-ih')), '단축칸 시트에도 녹슨 문지기 아이템 힌트');
   await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
   const sel = await pickedItems(page);
-  ok(sel === 'mana,life,cleanse,shield', `깃털 빼고 보호 넣기 → ${sel}`);
+  ok(sel === 'mana,shield', `생명 빼고 보호 넣기 → ${sel}`);
   await page.reload(); await page.clock.runFor(300);
   await toParty(page);
   const sel2 = await pickedItems(page);
-  ok(sel2 === 'mana,life,cleanse,shield', `다시 열어도 기억 (${sel2})`);
-  await page.click('#s-party [data-slots="3"]'); await page.clock.runFor(50);
+  ok(sel2 === 'mana,shield', `다시 열어도 기억 (${sel2})`);
+  await page.click('#s-party [data-slots="1"]'); await page.clock.runFor(50);
   await page.locator('#s-party .f-isheet [data-item="shield"]').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${shots}/v6_party_items.png` });
   await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
+
+  await page.click('#s-party [data-slots="0"]');
+  await page.click('#s-party .f-isheet [data-item="cleanse"]');
+  await page.click('#s-party .f-isheet [data-shut]');
 
   // ---- 출발 → 카운트다운 ----
   await departGo(page); await page.clock.runFor(100);
@@ -70,7 +74,7 @@ export default async function legacyUi(url, shots) {
   // ---- 단축칸 ----
   ok(await page.locator('#healerImg').count() === 0, '하단 왼쪽 힐러 그림 없음');
   const slots = await ev(() => [...document.querySelectorAll('#items .item')].map(b => b.dataset.item || 'empty').join());
-  ok(slots === 'mana,life,cleanse,shield', `단축칸 4칸 = ${slots}`);
+  ok(slots === 'cleanse,shield', `단축칸 2칸 = ${slots}`);
   const boxes = await ev(() => {
     const r = el => { const b = el.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height, r: b.right, b: b.bottom }; };
     return { items: [...document.querySelectorAll('#items .item')].map(r), wheel: r(document.getElementById('wheel')), controls: r(document.getElementById('controls')), vw: innerWidth };
@@ -79,16 +83,7 @@ export default async function legacyUi(url, shots) {
   const noOverlap = boxes.items.every(b => b.r <= boxes.wheel.x + 1 || b.x >= boxes.wheel.x + boxes.wheel.w - 1);
   ok(inside && noOverlap && boxes.items[0].w >= 44, `단축칸이 하단 안, 휠과 안 겹침, 칸 ${Math.round(boxes.items[0].w)}px`);
 
-  // 마나 물약
-  await ev(() => { window.__proto.F.mana = 50; });
-  await page.dispatchEvent('#items [data-item="mana"]', 'pointerdown'); await page.dispatchEvent('#items [data-item="mana"]', 'pointerup'); await page.clock.runFor(60);
-  const m = await ev(() => ({ mana: window.__proto.F.mana, cd: window.__proto.F.potCd, left: window.__proto.F.items.mana }));
-  ok(m.mana >= 79 && m.mana < 82 && m.cd > 59 && m.left === 0, `마나 물약 +30%, 물약 쿨 60초 ${JSON.stringify(m)}`);
-  ok(await ev(() => document.querySelector('#items [data-item="life"]').classList.contains('off') && document.querySelector('#items [data-item="life"] .cds').textContent !== ''), '생명 물약도 공용 쿨 표시');
-  await ev(() => { const me = window.__proto.F.me; me.hp = me.max * 0.3; });
-  await page.dispatchEvent('#items [data-item="life"]', 'pointerdown'); await page.dispatchEvent('#items [data-item="life"]', 'pointerup'); await page.clock.runFor(60);
-  ok(/재사용 대기/.test(await page.textContent('#toast')) && await ev(() => window.__proto.F.items.life === 2), '공용 쿨 중 생명 물약 거절');
-  await page.screenshot({ path: `${shots}/v6_items_cd.png` });
+  // 물약·공용 쿨·중복 touch는 compact-ui의 두 물약 조합에서 검증한다.
 
   // 길게 누르기 = 설명, 사용 안 함
   await page.dispatchEvent('#items [data-item="cleanse"]', 'pointerdown'); await page.clock.runFor(600);
@@ -135,7 +130,7 @@ export default async function legacyUi(url, shots) {
 
   // 기록
   const run = await ev(() => window.__proto.run());
-  ok(run.items.join() === 'mana,life,cleanse,shield' && run.itemLog.map(x => x.key).join() === 'mana,cleanse,shield' && run.itemTips === 1, `runData items/itemLog/itemTips ${JSON.stringify({ items: run.items, log: run.itemLog, tips: run.itemTips })}`);
+  ok(run.items.join() === 'cleanse,shield' && run.itemLog.map(x => x.key).join() === 'cleanse,shield' && run.itemTips === 1, `runData items/itemLog/itemTips ${JSON.stringify({ items: run.items, log: run.itemLog, tips: run.itemTips })}`);
 
   // 일시정지: 자리 비움
   await page.click('#pauseBtn'); await page.clock.runFor(100);
@@ -151,7 +146,7 @@ export default async function legacyUi(url, shots) {
   await page.click('#confirmApply'); await page.clock.runFor(200);
   ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '포기', '포기 → 정산');
   ok(await page.locator('#s-settle .chat, #s-settle .plines').count() === 0, '정산에 파티 채팅·한마디 없음');
-  ok(/소비 아이템\s*마나 \d/.test(await page.textContent('#s-settle details.r-rec')) && /보상 없음/.test(await page.textContent('#s-settle .r-why')), '포기: 「보상 없음」, 전투 기록에 쓴 아이템');
+  ok(/소비 아이템\s*해제 \d/.test(await page.textContent('#s-settle details.r-rec')) && /보상 없음/.test(await page.textContent('#s-settle .r-why')), '포기: 「보상 없음」, 전투 기록에 쓴 아이템');
   ok(/경험치/.test(await page.textContent('#s-settle')) === false, '포기하면 경험치 없음');
   await page.screenshot({ path: `${shots}/v6_result.png` });
 
@@ -171,7 +166,7 @@ export default async function legacyUi(url, shots) {
   const ent = await page.textContent('#s-party .f-gsheet');
   ok(/20인/.test(ent) && /유령 성가대/.test(ent) && /노래/.test(ent), '20인 보통: 유령 성가대 공략');
   await page.click('#s-party .f-gsheet [data-shut]'); await page.clock.runFor(50);
-  await page.click('#s-party [data-slots="3"]'); await page.clock.runFor(50);
+  await page.click('#s-party [data-slots="1"]'); await page.clock.runFor(50);
   await page.click('#s-party .f-isheet [data-item="feather"]');
   await page.click('#s-party .f-isheet [data-shut]'); await page.clock.runFor(50);
   await departGo(page); await page.clock.runFor(3300);

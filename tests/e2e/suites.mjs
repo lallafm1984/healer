@@ -46,7 +46,7 @@ import floatSteady from './float-steady.mjs';
 export const SUITES = [
   ['직업별 조작판·아이템 안전 여백', classControls, 45],
   ['공통 메뉴 헤더 크기', headerConsistency, 30],
-  ['편성 네 단축칸·직업·출발 UI', partyRefinement, 30],
+  ['편성 두 단축칸·직업·출발 UI', partyRefinement, 30],
   ['출전 장소 선택 UI', adventureDeparture, 25],
   ['출전 세로 스크롤 없음 (S25·Flip·Fold)', adventureNoScroll, 45],
   ['출전 주간 도전 배치·복귀', adventureWeekly, 15],

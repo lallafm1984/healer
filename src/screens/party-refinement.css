@@ -27,7 +27,7 @@
 #s-party .f-det .pcat { width: auto; height: auto; padding: 3px 6px; font-size: 11px; line-height: 1.3; vertical-align: baseline; }
 
 #s-party .ns-foot.f-foot2 { gap: 8px; padding: 8px 14px calc(10px + env(safe-area-inset-bottom)); }
-#s-party .f-slots { position: relative; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; padding-top: 16px; }
+#s-party .f-slots { position: relative; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; padding-top: 16px; }
 #s-party .f-slab { position: absolute; left: 0; top: 0; display: block; font-size: 10px; line-height: 12px; color: #d7c39e; }
 #s-party .f-item { height: 64px; padding: 14px 3px 4px; gap: 1px; flex-direction: column; border: 1px solid #a58756; border-radius: 7px; background: #2e241a; box-shadow: inset 0 1px #f5ddb82b; font-size: 11px; }
 #s-party .f-item > :is(.g-ic,svg) { width: 26px; height: 26px; flex: none; }

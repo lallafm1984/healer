@@ -8,6 +8,7 @@ import { HEROES } from '../data/heroes';
 import { TIER_MANA } from '../data/heroConst';
 import { openTiers } from '../data/talents';
 import { TUNE } from '../data/tune';
+import { ITEM_SLOT_COUNT } from '../data/progression';
 import { ITEMS } from '../data/items';
 import { pickMember, pickNick } from '../data/nicknames';
 import { NICKS, PERS, PROTO_PERS, type PersName } from '../data/personalities';
@@ -78,7 +79,7 @@ export function create(cfg: FightConfig): Fight {
   f.tx = newTalents(f);
   // 특성 단 마나 보정: 열린 특성 단마다 마나 소모 −2% (세 직업 공통, heroConst TIER_MANA · 77). 프로토타입 일치 테스트는 그대로
   if (!cfg.proto) f.manaCut = 1 - TIER_MANA * openTiers(f.level);
-  for (const k of (cfg.items || []).slice(0, 4)) if (ITEMS[k]) f.items[k] = Math.max(0, Math.min(ITEMS[k].uses, cfg.itemCap?.[k] ?? Infinity));
+  for (const k of (cfg.items || []).slice(0, ITEM_SLOT_COUNT)) if (ITEMS[k]) f.items[k] = Math.max(0, Math.min(ITEMS[k].uses, cfg.itemCap?.[k] ?? Infinity));
   if (cfg.carry) { f.mana = cfg.carry.mana; f.stats.minMana = f.mana; f.g = { ...cfg.carry.g }; }
   if (!knowsPassive(f, 'words')) f.g = { p: 0 };
   makeParty(f, cfg.party);
