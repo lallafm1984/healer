@@ -2144,12 +2144,18 @@ export function render(now: number): void {
   if (cv.dataset.decorationBounds !== metrics) cv.dataset.decorationBounds = metrics;
 }
 
+/** 이름이 칸보다 길 때 글자 높이는 그대로 두고 가로만 이만큼까지 좁힘 (그래도 넘치면 말줄임) */
+const NICK_MIN_SX = 0.82;
 function nick(u: Unit, x: number, y: number, r: number): { x: number; y: number; w: number; h: number } {
-  // 글자 크기는 칸 크기를 따름 (cellTypography, 9px 이상). 넘치면 말줄임, 전체 이름은 길게 누르기 정보에도 남는다.
+  // 글자 크기는 칸 크기를 따름 (cellTypography, 9px 이상). 넘치면 가로만 좁히고 (레이드 칸의 다섯 글자 이름, 2026-10-16), 그래도 넘치면 말줄임.
+  // 전체 이름은 길게 누르기 정보에도 남는다. 밝은 칸 (사제 「나」 · 하늘색 · 청록)에서도 읽히게 테두리를 체력 숫자만큼 굵게
   const maxW = r * 1.45;
   const size = cellTypography(L.s).nick;
-  const text = fitPartyName(u.nick, maxW, text => measure(text, size));
-  return fitLabel(labels.put(`nk${u.id}`, text, { size, fill: C.ink, strokeW: size < 11 ? 1.5 : 2 }, x, y), `nick${u.id}`, 'nick');
+  const text = measure(u.nick, size) <= maxW ? u.nick : fitPartyName(u.nick, maxW / NICK_MIN_SX, text => measure(text, size));
+  const label = labels.put(`nk${u.id}`, text, { size, fill: C.ink, strokeW: size < 11 ? 2.25 : 3 }, x, y);
+  const w = measure(text, size);
+  if (w > maxW) label.scale.x = maxW / w;
+  return fitLabel(label, `nick${u.id}`, 'nick');
 }
 
 let lensRT: RenderTexture | null = null;

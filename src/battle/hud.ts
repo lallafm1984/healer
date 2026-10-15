@@ -401,13 +401,26 @@ function qGauge(el: HTMLElement, v: number): void {
 }
 /** 곧 떨어지는 칸 (빨강): 시전 중이거나 이 초 이하 */
 const QSOON = 5;
-/** 예고 전용 이름. 긴 정식 이름은 설명·접근성 이름에 유지한다. */
+/**
+ * 예고 칸 이름 (2026-10-16): 칸에 들어가면 정식 이름, 넘치면 글자를 조금 줄여 보고, 그래도 넘치면 이 줄임말 → 기술 아이콘 글자.
+ * 긴 정식 이름은 설명·접근성 이름에 유지한다.
+ */
 const QSHORT: Record<string, string> = {
-  '고철 휘두르기': '휘두', '쇳조각 비': '쇳비', '내려찍기': '강타', '증기 분출': '분출', '증기 폭발': '폭발',
-  '녹물 웅덩이': '녹물', '썩은 숨결': '숨결', '독침': '독침', '역병 파동': '파동', '전염': '전염', '역병 폭풍': '폭풍',
-  '지휘봉': '지휘', '크레센도': '크레', '포르테': '포르', '독창': '독창', '인터미션 끝': '복귀',
-  '고철 폭주': '폭주', '증기 폭주': '폭주', '역병 폭주': '폭주', '대합창': '합창',
+  '고철 휘두르기': '휘두르기', '쇳조각 비': '쇳조각', '내려찍기': '강타', '증기 분출': '분출', '증기 폭발': '폭발',
+  '녹물 웅덩이': '웅덩이', '썩은 숨결': '숨결', '역병 파동': '파동', '역병 폭풍': '폭풍',
+  '인터미션 끝': '복귀', '고철 폭주': '폭주', '증기 폭주': '폭주', '역병 폭주': '폭주',
 };
+/** 이름 후보를 앞에서부터 보통 크기 → 조금 줄인 크기로 넣어 보고 처음 들어가는 것을 씀. 후보가 같으면 다시 재지 않음 */
+function fitQName(nm: HTMLElement, names: string[]): void {
+  const key = names.join('|');
+  if (nm.dataset.names === key) return;
+  nm.dataset.names = key;
+  for (const n of names) for (const tight of [false, true]) {
+    nm.classList.toggle('tight', tight); nm.textContent = n;
+    if (nm.scrollWidth <= nm.clientWidth + 0.5) return;
+  }
+  nm.classList.remove('tight'); nm.textContent = names[names.length - 1];
+}
 /** 예고 칸 종류: 작은 글자 + 네모 아이콘 (시안: 버스터 = 방패에 번개, 광역 = 퍼지는 빛) */
 const QKIND: Record<string, { name: string; path: string }> = {
   buster: { name: '버스터', path: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M13 6.5l-2.5 5h3.5l-2 5"/>' },
@@ -450,7 +463,8 @@ export function updateStage(now: number): void {
   setBar($('bossFill'), pct);
   setBar($('bossLag'), pct);
   bossAura(F);
-  setText($('bossHpText'), `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · ${F.daze.name ?? '멍함'} ${Math.ceil(F.daze.until - F.t)}` : F.mobs.length && bossTaken(F) < 1 ? ' · 보호막' : ''}${F.empower ? ` · 강해짐 +${Math.round(F.empower * 100)}%` : ''}${F.weak ? ` · 약해짐 ${Math.ceil(F.weak.until - F.t)}` : ''}${watchText(F)}`);
+  if (F.over === 'win' && F.bossHp <= 0) setText($('bossHpText'), '처치');
+  else setText($('bossHpText'), `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · ${F.daze.name ?? '멍함'} ${Math.ceil(F.daze.until - F.t)}` : F.mobs.length && bossTaken(F) < 1 ? ' · 보호막' : ''}${F.empower ? ` · 강해짐 +${Math.round(F.empower * 100)}%` : ''}${F.weak ? ` · 약해짐 ${Math.ceil(F.weak.until - F.t)}` : ''}${watchText(F)}`);
   bossGauge(F);
   // 위치 줄 (시안 「녹슨 요새 4/4 · 보통」): 던전 = 이름 n/전체 · 페이즈·남은 적·난이도, 한 판 = 등급 · 페이즈·난이도
   let ph = F.phaseName ? `${F.enc.tier.split(' · ')[0]} · ${F.phaseName}` : `${F.enc.tier} · ${F.cfg.diff}`;
@@ -476,8 +490,9 @@ export function updateStage(now: number): void {
   if (now - ui.qAt > 90) {
     ui.qAt = now;
     // art = 기술 아이콘 그림 이름 (37 1장 · 4장, 없으면 '' → 종류 SVG)
-    const q = queue(F).map(it => ({ ...it, kind: it.kind as string | undefined, art: it.skill ? fightSkillArt(F, it.skill) : '' }));
-    if (F.phaseName === '인터미션' && F.interEnd) q.unshift({ name: '인터미션 끝', icon: '쥐떼', kind: 'inter', impact: F.interEnd, casting: false, art: '' });
+    // 전투가 끝나면 남은 예고는 비움 (빈 칸 3개)
+    const q = queue(F).filter(() => !F.over).map(it => ({ ...it, kind: it.kind as string | undefined, art: it.skill ? fightSkillArt(F, it.skill) : '' }));
+    if (!F.over && F.phaseName === '인터미션' && F.interEnd) q.unshift({ name: '인터미션 끝', icon: '쥐떼', kind: 'inter', impact: F.interEnd, casting: false, art: '' });
     q.splice(3);
     const queueEl = $('queue');
     let cards = Array.from(queueEl.querySelectorAll<HTMLElement>('.q'));
@@ -499,8 +514,10 @@ export function updateStage(now: number): void {
       const sec = Math.max(0, it.impact - F.t), icon = it.icon || '', hot = it.casting || sec <= QSOON;
       const el = cards[i], cls = `q${i === 0 ? ' first' : ''}${hot ? ' hot' : i === firstCool ? ' next' : ' later'}${it.casting ? ' casting' : ''}${tipMatch(icon, it.impact) ? ' tipon' : ''}`;
       if (el.className !== cls) el.className = cls;
-      setText(el.querySelector('.nm')!, QSHORT[it.name || ''] || it.icon || it.name || '기술');
       setText(el.querySelector('.sec-num')!, String(Math.ceil(sec)));
+      // 남은 초를 먼저 넣고 잼 (새 칸은 초 글자가 비어 이름 자리가 넓게 재짐)
+      const names = [...new Set([it.name, QSHORT[it.name || ''], it.icon].filter((n): n is string => !!n))];
+      fitQName(el.querySelector<HTMLElement>('.nm')!, names.length ? names : ['기술']);
       const label = `${it.name || '기술'}, ${qKind(it.kind).name}, ${Math.ceil(sec)}초 뒤${it.casting ? ', 시전 중' : ''}. 기술 설명`;
       if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
       qGauge(el.querySelector<HTMLElement>('.fill')!, sec / QWIN);
