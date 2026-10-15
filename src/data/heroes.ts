@@ -93,12 +93,12 @@ export const HEROES: Record<HeroKey, HeroDef> = {
   // ---------- 79 힐러 직업 4종: 상점에서 하나에 2,200원 (81, 예전 Lv 30 · 40 · 50 · 60 무료) ----------
   shaman: {
     key: 'shaman', name: '주술사', line: '다친 사람을 따라 물이 흘러가는 힐러입니다.', star: 2,
-    system: { name: '토템 칸', lv: 6, desc: `샘 토템을 아군 칸에 쓰면 그 칸에 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군을 회복합니다 (20인 레이드에서는 ${Math.round(SHAMAN.spring.big * 100)}%). 토템은 종류마다 하나만 서고, 그 칸에 장판이 깔리거나 예고된 공격이 떨어지거나 적이 나오면 깨집니다.` },
+    system: { name: '토템 칸', lv: 6, desc: `샘 토템을 아군 칸에 쓰면 그 칸에 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군을 회복합니다${SHAMAN.spring.big < 1 ? ` (20인 레이드에서는 ${Math.round(SHAMAN.spring.big * 100)}%)` : ''}. 토템은 종류마다 하나만 서고, 그 칸에 장판이 깔리거나 예고된 공격이 떨어지거나 적이 나오면 깨집니다.` },
     dispel: ['마법', '저주'],
     slots: slots({ basic: 'ripple', fast: 'springTotem', hot: 'droplet', aoe: 'chainHeal', dispel: 'washing', ext: 'earthTotem', raid: 'rainTotem', unique: 'spiritLink' }),
     tap: ['ripple', 'droplet'],
     passives: [
-      { name: '깊은 물', lv: 4, desc: '체력 50% 아래인 대상에게 하는 직접 힐이 30% 늘어납니다.' },
+      { name: '깊은 물', lv: SHAMAN.deep.lv, desc: `체력 ${SHAMAN.deep.hp * 100}% 아래인 대상에게 하는 직접 힐이 ${Math.round(SHAMAN.deep.heal * 100)}% 늘어납니다.` },
       { name: '밀려오는 물', lv: 10, desc: '연쇄 치유가 4명에게 닿으면 마나를 1.5% 돌려받습니다.' },
     ],
     unlock: { lv: 0, how: '상점 구매', buy: true },

@@ -4,7 +4,7 @@
  * cost = 최대 마나 대비 %, gp = 사제 평온 게이지 충전량 (82: 성언 게이지는 평온 하나), power = 성기사 신성한 힘 소모
  */
 import { INT_BASE } from './rules';
-import { judgeText, SHAMAN } from './heroConst';
+import { ASTRO, judgeText, SHAMAN } from './heroConst';
 
 export type SkillKey =
   // 사제
@@ -96,7 +96,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   springTotem: { name: '샘 토템', short: '샘', slot: 'fast', lv: 6, cast: 0, cost: 4, cd: 10, amt: 60, target: 'cell' },
 
   // ---------- ⑤ 수도사 (79 3장) ----------
-  vitalPalm: { name: '생기 손바닥', short: '손바닥', slot: 'basic', lv: 1, cast: 0, gcd: 1.0, cost: 1.2, amt: 100, target: 'ally' }, // 79 3-11: 130 → 85 (밸런스)
+  vitalPalm: { name: '생기 손바닥', short: '손바닥', slot: 'basic', lv: 1, cast: 0, gcd: 1.0, cost: 1.2, amt: 110, target: 'ally' }, // 79 3-11: 130 → 85 (밸런스), 84: 100 → 110 (Lv 1~20 · 중반 던전)
   mistWrap: { name: '안개 감싸기', short: '감싸기', slot: 'fast', lv: 1, cast: 0, cost: 5, cd: 10, amt: 140, target: 'ally' }, // 82: 1.5초 시전 230 (생장과 같은 모양) → 즉시 · 리듬 비례 (MONK.wrap). GCD 1초로는 +5~12%p라 규칙 GCD (밸런스)
   wanderMist: { name: '떠도는 안개', short: '안개', slot: 'hot', lv: 2, cast: 0, cost: 2, cd: 6, amt: 270, target: 'ally' },
   clearChi: { name: '맑은 기운', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
@@ -185,9 +185,9 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   earthTotem: { kind: '토템', desc: '대상이 선 칸에 대지 토템을 세웁니다. 10초 동안 그 칸과 붙어 있는 6칸의 아군이 받는 피해가 15% 줄어듭니다. 토템은 그 칸에 남고 대상을 따라가지 않습니다.' },
   rainTotem: { kind: '토템 · 공대 쿨기', desc: '10초 동안 2초마다 파티 전원의 체력을 {60}씩 회복합니다. 비구름 토템은 하늘에 떠서 깨지지 않고, 그동안 다른 행동을 할 수 있습니다.' },
   spiritLink: { kind: '체력 나누기', desc: '대상과 붙어 있는 아군의 체력 비율을 모두의 평균으로 똑같이 맞춥니다. 그 뒤 6초 동안 그 아군들이 받는 피해가 10% 줄어듭니다.' },
-  springTotem: { kind: '토템 칸', desc: `고른 아군 칸에 샘 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군 체력을 {60}씩 회복합니다. 20인 레이드에서는 ${Math.round(SHAMAN.spring.big * 100)}%만 회복합니다.` },
+  springTotem: { kind: '토템 칸', desc: `고른 아군 칸에 샘 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군 체력을 {60}씩 회복합니다.${SHAMAN.spring.big < 1 ? ` 20인 레이드에서는 ${Math.round(SHAMAN.spring.big * 100)}%만 회복합니다.` : ''}` },
 
-  vitalPalm: { kind: '연타', desc: '대상의 체력을 즉시 {100} 회복합니다. 다음 행동까지 1초만 기다립니다 (가속과 상관없이 1초). 2.5초 안에 다시 치면 기 리듬이 오릅니다.' },
+  vitalPalm: { kind: '연타', desc: '대상의 체력을 즉시 {110} 회복합니다. 다음 행동까지 1초만 기다립니다 (가속과 상관없이 1초). 2.5초 안에 다시 치면 기 리듬이 오릅니다.' },
   mistWrap: { kind: '리듬 마무리', desc: '대상의 체력을 즉시 {140} 회복합니다. 기 리듬 1마다 12% 더 회복하고, 리듬은 끊기지 않고 이어집니다. 떠도는 안개가 없으면 6초 동안 {90} 회복하는 안개를 겁니다.' },
   wanderMist: { kind: '옮겨 다니는 지속 힐', desc: '18초 동안 3초마다 대상의 체력을 회복합니다. 모두 {270}입니다. 회복할 때 대상 체력이 가득 차 있으면 붙어 있는 아군 중 안개가 없고 가장 많이 다친 아군에게 옮겨 갑니다.' },
   clearChi: { kind: '해제', desc: '대상의 마법·질병 디버프를 1개 제거합니다.' },
@@ -200,10 +200,10 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   twinkle: { kind: '조각 모으기 · 즉시', desc: '대상의 체력을 즉시 {210} 회복하고 별 조각을 1개 얻습니다.' },
   starMark: { kind: '표식', desc: '8초 동안 대상의 체력을 모두 {140} 회복합니다. 표식이 있는 동안 내가 대상에게 하는 다음 직접 힐이 50% 늘어납니다 (한 번).' },
   clearStar: { kind: '해제', desc: '대상의 마법·독 디버프를 1개 제거합니다.' },
-  starfall: { kind: '별자리 · 광역', desc: '시전이 끝나면 모은 별 조각을 모두 써서 별 1 + 조각개가 쏟아집니다. 별 1개: 대상 {390}, 2개: 대상과 붙어 있는 6칸 {195}씩, 3개: 같은 범위 {285}씩, 4개: 2칸 거리 안 {195}씩. 조각 3개를 다 쓰면 15% 더 회복합니다.' },
+  starfall: { kind: '별자리 · 광역', desc: `시전이 끝나면 모은 별 조각을 모두 써서 별 1 + 조각개가 쏟아집니다. 별 1개: 대상 {${ASTRO.fall.amt[0]}}, 2개: 대상과 붙어 있는 6칸 {${ASTRO.fall.amt[1]}}씩, 3개: 같은 범위 {${ASTRO.fall.amt[2]}}씩, 4개: 2칸 거리 안 {${ASTRO.fall.amt[3]}}씩. 조각 3개를 다 쓰면 15% 더 회복합니다.` },
   starSleep: { kind: '잠재우기', desc: '4초 동안 대상을 별빛 속에 재웁니다. 그동안 피해도 회복도 받지 않고, 딜도 하지 않습니다.' },
   starMemory: { kind: '별자리 · 되감기', desc: '시전이 끝나면 모은 별 조각을 모두 써서 파티 전원이 받은 피해를 되감습니다. 별 (1 + 조각) 1개마다 2초씩, 별 4개면 최근 8초 동안 받은 피해의 65%를 회복합니다. 적어도 {100}씩 회복합니다.' },
-  polaris: { kind: '별자리 · 한 명', desc: '시전이 끝나면 모은 별 조각을 모두 써서 대상의 체력을 별 (1 + 조각) 1~4개에 따라 {315} · {425} · {540} · {650} 회복합니다. 조각 3개를 다 쓰면 15% 더 회복합니다.' },
+  polaris: { kind: '별자리 · 한 명', desc: `시전이 끝나면 모은 별 조각을 모두 써서 대상의 체력을 별 (1 + 조각) 1~4개에 따라 ${ASTRO.polaris.map(n => `{${n}}`).join(' · ')} 회복합니다. 조각 3개를 다 쓰면 15% 더 회복합니다.` },
 
   sealHeal: { kind: '인장 힐', desc: '대상의 체력을 {350} 회복하고 15초 동안 인장을 붙입니다.' },
   lightBarrier: { kind: '보호막', desc: '15초 동안 대상에게 {340}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
