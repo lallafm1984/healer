@@ -236,7 +236,7 @@ export function hotTick(f: Fight, u: Unit, dt: number): void {
  * 특성 (77): 번지는 군락 (칸마다 +5%, 생장 · 들꽃에도), 이끼 자리 · 푸른 들판 (talentHot)
  */
 export function hotMult(f: Fight, u: Unit, h: { key: string }): number {
-  let m = u.redu > 0 && u.reduCut === barkCut(f) ? 1 + BARK.hot : 1;
+  let m = u.redu > 0 && f.hero === 'druid' && u.reduCut === barkCut(f) ? 1 + BARK.hot : 1; // 나무껍질은 드루이드만 (성역 0.2와 값이 같아 성기사 지속 힐이 +20% 되던 것, QA 2026-10-15)
   const colony = h.key === 'sprout' || (h.key === 'wildflower' && f.enc.big) || (!!f.tx.on.colonyAll && (h.key === 'growth' || h.key === 'wildflower'));
   if (colony && f.level >= 6) m *= 1 + colonyN(f, u) * ((f.enc.big ? DRUID_BIG.colonyStep : 0.1) + sv(f, 'wideGrove') + (f.tx.on.colonyAll ? TX.colonyAll : 0)); // 20인 보정 (26 9-1) · 넓은 군락 (42 드루 01) · 번지는 군락 (77)
   if (f.tx.hotm) m *= talentHot(f, u, h.key as SkillKey);

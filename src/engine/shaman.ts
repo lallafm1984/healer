@@ -11,7 +11,7 @@ import { hexDist } from './board';
 import { cellOf, emit, heal, healTop, living } from './core';
 import { noteUsed } from './healer';
 import { doDispel, heroHeal, heroPassive, putHot } from './heroes';
-import { activeOn } from './talents';
+import { activeOn, cdOf } from './talents';
 import { placeTotem, totemsOf } from './totems';
 import { aoeCount, aoeDone, guardSec, raidSec, sv, under } from './specials';
 import type { Fight, Hot, Totem, Unit } from './types';
@@ -197,7 +197,7 @@ export function noteCell(f: Fight, key: SkillKey, cell: number): void {
 function spendEarth(f: Fight): void {
   const s = st(f);
   s.earth = Math.max(0, s.earth - 1);
-  if (s.earthRe <= 0) s.earthRe = f.cd.earthTotem ?? SKILLS.earthTotem.cd!;
+  if (s.earthRe <= 0) s.earthRe = f.cd.earthTotem || cdOf(f, 'earthTotem'); // 충전 시간 = 실제 재사용 (생존기 단련 · 서두르는 별 등, QA 2026-10-15)
   f.cd.earthTotem = s.earth > 0 ? 0 : s.earthRe;
 }
 
@@ -240,7 +240,7 @@ export function shamanTick(f: Fight, dt: number): void {
   if (s.puddles.length) s.puddles = s.puddles.filter(p => p.until > f.t);
   if (on.twinEarth && s.earth < TX.twinEarth.n) {
     s.earthRe -= dt;
-    if (s.earthRe <= 1e-9) { s.earth++; s.earthRe = s.earth < TX.twinEarth.n ? SKILLS.earthTotem.cd! : 0; }
+    if (s.earthRe <= 1e-9) { s.earth++; s.earthRe = s.earth < TX.twinEarth.n ? cdOf(f, 'earthTotem') : 0; }
     f.cd.earthTotem = s.earth > 0 ? 0 : s.earthRe;
   }
   if (s.letFlowCd > 0) s.letFlowCd -= dt;

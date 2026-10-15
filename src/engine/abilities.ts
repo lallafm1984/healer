@@ -43,14 +43,16 @@ function endHp(u: Unit, m: Mod): void {
 /** 힐러가 거는 흡수 보호막의 출처 (79 6-1: 결계사 막 · 주술사 물의 방패 · 특성 막). 장비 특수능력 · 파티원 능력 보호막과 따로 */
 export const HEALER_SHIELD = 'healer';
 /**
- * 힐러 흡수 보호막 걸기 (79 5-2): 남은 양에 더하고 시간은 새로, 한 대상 합은 최대 체력 × cap까지. 더해진 양을 돌려줌.
+ * 힐러 흡수 보호막 걸기 (79 5-2): 남은 양에 더하고 시간은 남은 시간과 새 시간 중 긴 쪽 (짧은 막이 긴 막을 줄이지 않게, QA 2026-10-15),
+ * 한 대상 합은 최대 체력 × cap까지. 단단한 껍데기 (보호 10)도 여기서. 더해진 양을 돌려줌.
  * 피해 감소 다음에 보호막이 받음 (dmgMods 순서 그대로), 녹는 보호막 (P-MELT)에 녹음
  */
 export function giveAbsorb(f: Fight, u: Unit, amt: number, sec: number, cap: number): number {
   if (!u.alive || amt <= 0) return 0;
+  if (f.sp) amt *= 1 + (f.sp.v.hardShell ?? 0); // 단단한 껍데기 (42 보호 10)
   const m = u.mods.find(x => x.k === 'absorb' && x.src === HEALER_SHIELD);
   const left = m && m.until > f.t ? m.v : 0, v = Math.min(u.max * cap, left + amt);
-  if (m) { m.v = v; m.until = f.t + sec; } else u.mods.push({ k: 'absorb', v, until: f.t + sec, src: HEALER_SHIELD });
+  if (m) { m.v = v; m.until = Math.max(m.until, f.t + sec); } else u.mods.push({ k: 'absorb', v, until: f.t + sec, src: HEALER_SHIELD });
   return Math.max(0, v - left);
 }
 /** 힐러 흡수 보호막 남은 양 */

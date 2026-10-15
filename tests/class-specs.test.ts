@@ -1,4 +1,4 @@
-/** 직업 전용 특수능력 72종 (42 2-9, 2026-10-14 직업마다 8종 더): 데이터 · 고급부터 부위마다 고를 거리 · 엔진 훅 */
+/** 직업 전용 특수능력 (42 2-9, 2026-10-14 직업마다 24종, 7직업 168종): 데이터 · 고급부터 부위마다 고를 거리 · 엔진 훅 */
 import { describe, expect, it } from 'vitest';
 import { ITEM_GRADES, makeItem, SLOTS } from '../src/data/equipment';
 import { HERO_KEYS, heroSkills } from '../src/data/heroes';

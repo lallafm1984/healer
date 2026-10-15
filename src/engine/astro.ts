@@ -3,6 +3,7 @@
  * 조각을 모두 써서 별 1 + 조각개로 터진다 (예전 누르고 떼는 모으기는 83에서 없앰). 조각을 다 채워 쓰면 가득 찬 별자리. 별자리 표식 (다음 직접 힐 +), 별의 잠, 별의 기억 (최근 받은 피해).
  * 특성 (79 4-7)과 직업 전용 특수능력 (79 4-8)의 엔진 훅도 여기서. heroes.ts가 직업마다 나눠 부르고, 초신성은 판 위 물건 (totems.ts)
  */
+import { HEROES } from '../data/heroes';
 import { ASTRO } from '../data/heroConst';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
@@ -12,7 +13,7 @@ import { noteUsed } from './healer';
 import { doDispel, heroHeal, heroPassive, putHot } from './heroes';
 import { activeOn } from './talents';
 import { placeTotem } from './totems';
-import { aoeCount, aoeDone, sv, under } from './specials';
+import { aoeCount, aoeDone, guardSec, sv, under } from './specials';
 import type { Fight, Hot, Totem, Unit } from './types';
 
 /** 점성술사 전투 상태 (이번 별자리에 쓴 조각 · 별의 길 · 두 번째 별비 · 가득 찬 별자리 뒤 가속 · 특성 재발동) */
@@ -54,6 +55,7 @@ export const shardMax = (f: Fight): number => (f.tx.on.fifthStar ? TX.fifthStar.
 /** 가장 큰 별자리 = 1 + 조각 최대 (4, 다섯째 별 5) */
 export const starMax = (f: Fight): number => 1 + shardMax(f);
 export function gainShard(f: Fight, n: number): void {
+  if (f.level < HEROES.astrologer.system.lv) return; // 고유 시스템 별 조각은 Lv 6부터 (다른 직업 시스템과 같게, QA 2026-10-15)
   f.shards = Math.min(shardMax(f), f.shards + n);
 }
 /** 별자리 스킬: 시전이 끝날 때 조각을 모두 씀 (빠른 잇기 · 내리는 밤 · 빠른 별자리 점성 06이 시전을 줄임) */
@@ -185,7 +187,7 @@ export function astroApply(f: Fight, key: SkillKey, u: Unit): void {
     if (o.full) fullDone(f);
     st(f).used = 0;
   } else if (key === 'starSleep') {
-    u.sleep = f.t + ASTRO.sleep.sec + (f.sp ? sv(f, 'deepSleep') : 0); // 깊은 잠 (점성 04)
+    u.sleep = f.t + guardSec(f, ASTRO.sleep.sec + (f.sp ? sv(f, 'deepSleep') : 0)); // 깊은 잠 (점성 04) · 수호의 깃 (42 보호 07)
     emit(f, { type: 'sound', name: 'renew' });
     emit(f, { type: 'msg', text: `별의 잠: ${u.nick}` });
   } else if (key === 'starMemory') {
