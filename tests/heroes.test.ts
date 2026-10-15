@@ -241,15 +241,15 @@ describe('성기사', () => {
     expect(bc.hp).toBeLessThanOrEqual(bc0);
     expect(f.used!.filter(x => x.key === 'lightWave').map(x => x.uid).sort()).toEqual(healed);
   });
-  it('봉화 스킬: 빠른 힐 칸, 마나 없이 · GCD 없이, 재사용 = 봉화 바꾸기 대기 (2026-10-16)', () => {
+  it('봉화 스킬 (84): 지정 + 즉시 160 + 신성한 힘 1 + 6초 받는 피해 −10%, 재사용 = 봉화 바꾸기 대기', () => {
     expect(SKILLS.beacon.cd).toBe(BEACON.cd);
-    expect(SKILLS.beacon.cost).toBe(0);
-    expect(SKILLS.beacon.gcd).toBe(0);
-    const f = fight('paladin'), d = dps(f), m0 = f.mana;
+    const f = fight('paladin'), d = dps(f), p0 = f.power3;
+    d.max = d.base = 1e6; d.hp = 1000;
     expect(E.use(f, 'beacon', d.cell).ok).toBe(true);
     expect(f.beacon).toBe(d.id);
-    expect(f.mana).toBe(m0);
-    expect(f.gcd).toBe(0);
+    expect(d.hp).toBeGreaterThan(1000);
+    expect(f.power3).toBe(p0 + 1);
+    expect(d.mods.some(m => m.src === 'beacon' && m.k === 'cut' && m.v === BEACON.guard.cut)).toBe(true);
     expect(E.use(f, 'beacon', tank(f).cell).ok).toBe(false); // 바꾸기 대기
   });
   it('봉화 바꾸기는 10초 대기', () => {

@@ -321,7 +321,7 @@ export const TX = {
   /** 장막의 탱커: − · 장막의 숨: 마나 재생 배 · 함께 드는 짐: 거리 */
   veilTank: 2, veilBreath: 2, sharedLoad: { sec: 10 },
   /** 성채 (◎) · 참회의 시간: 창 딜 배 · 인원 · 끝없는 심판 (★) */
-  citadel: { cd: 180, dur: 12, range: 2, cut: 0.2, tick: 3, amt: 60 }, repentTime: { heal: 1 }, endlessJudge: { cd: 180, dur: 10, cast: 1.0 },
+  citadel: { cd: 180, dur: 12, range: 2, cut: 0.2, tick: 3, amt: 60 }, repentTime: { heal: 60 }, endlessJudge: { cd: 180, dur: 10, cast: 1.0 },
 } as const;
 
 /** 드루이드 (77 2장) */
@@ -585,7 +585,7 @@ export const WARDER_TALENTS: TalentTier[] = [
     t('sharedLoad', '함께 드는 짐', `빛의 장막을 쓰고 ${WARDER.veil.after}초 안에 외치는 첫 심판은 인원 제한 없이 인장이 붙은 다친 아군 모두를 회복합니다.`)] },
   { lv: 50, theme: '궁극', picks: [
     t('citadel', '성채', `빈 칸을 골라 ${TX.citadel.dur}초 동안 성채를 세웁니다. ${TX.citadel.range}칸 거리 안 아군이 받는 피해가 ${pc(TX.citadel.cut)} 줄고, ${TX.citadel.tick}초마다 {${TX.citadel.amt}} 보호막을 받습니다. 재사용 대기시간은 ${TX.citadel.cd}초입니다.`, { cd: TX.citadel.cd, dur: TX.citadel.dur, cell: true, short: '성채' }),
-    t('repentTime', '주고받는 막', '막 옮기기로 보호막을 거둔 아군은 거둔 양만큼 체력을 회복합니다.'),
+    t('repentTime', '굳힌 막의 숨', `결계 굳히기로 보호막이 늘어난 아군은 체력을 {${TX.repentTime.heal}}씩 회복합니다.`),
     t('endlessJudge', '끝없는 심판', `${TX.endlessJudge.dur}초 동안 심판이 마나를 쓰지 않고 ${TX.endlessJudge.cast.toFixed(1)}초 만에 시전됩니다. 재사용 대기시간은 ${TX.endlessJudge.cd}초입니다.`, { cd: TX.endlessJudge.cd, dur: TX.endlessJudge.dur, short: '끝없는' })] },
 ];
 

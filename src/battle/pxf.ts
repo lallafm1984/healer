@@ -213,7 +213,7 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
   wardCircle: { fx: 'warder-circle', scope: 'target' }, // 범위 (20인 2칸) 안 칸마다 엔진이 따로 기록 (79 5-2)
   guardWard: { fx: 'warder-guard', scope: 'target' },
   lightVeil: { fx: 'warder-veil', scope: 'target' }, // 장막 범위 안 칸마다 엔진이 따로 기록
-  wardShift: { fx: 'warder-spear', scope: 'target' }, // 막 옮기기 (2026-10-16 빛의 창 대신): 새 이펙트가 올 때까지 빛의 창 그림을 임시로 (전투 스킬 이펙트 스레드에 요청)
+  wardHold: { fx: 'warder-spear', scope: 'target' }, // 결계 굳히기 (84, 빛의 창 대신): 새 이펙트가 올 때까지 빛의 창 그림을 임시로 (전투 스킬 이펙트 스레드에 요청)
   judgment: { fx: 'warder-judgment', scope: 'target' }, // 회복한 인장 칸마다
 };
 

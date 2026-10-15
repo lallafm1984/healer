@@ -975,7 +975,7 @@ const SKILL_BRIEF: Record<SkillKey, string> = {
   sealHeal: '한 명 회복과 인장',
   lightBarrier: '보호막과 인장', wardCleanse: '마법·저주 해제',
   wardCircle: '주변 아군 보호막과 인장', guardWard: '큰 보호막과 인장',
-  lightVeil: '파티 전원 보호막과 인장', wardShift: '보호막을 한 명에게 모아 옮김',
+  lightVeil: '파티 전원 보호막과 인장', wardHold: '내 보호막 시간 늘리기와 인장',
   judgment: '인장 붙은 아군을 한꺼번에 회복',
 };
 

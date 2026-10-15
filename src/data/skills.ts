@@ -19,7 +19,7 @@ export type SkillKey =
   // 점성술사 (79 4장)
   | 'starHeal' | 'twinkle' | 'starMark' | 'clearStar' | 'starfall' | 'starSleep' | 'starMemory' | 'polaris'
   // 결계사 (79 5장, judgment = 가운데 스킬)
-  | 'sealHeal' | 'lightBarrier' | 'wardCleanse' | 'wardCircle' | 'guardWard' | 'lightVeil' | 'wardShift' | 'judgment';
+  | 'sealHeal' | 'lightBarrier' | 'wardCleanse' | 'wardCircle' | 'guardWard' | 'lightVeil' | 'wardHold' | 'judgment';
 
 /** 휠 8칸. unique = 8번째 칸 (직업 고유 스킬, Lv 15) */
 export type SlotName = 'basic' | 'fast' | 'hot' | 'aoe' | 'dispel' | 'ext' | 'raid' | 'unique';
@@ -75,7 +75,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 
   // ---------- ③ 성기사 (25 3장) ----------
   holyLight: { name: '빛의 손길', short: '손길', slot: 'basic', lv: 1, cast: 2.0, cost: 4, amt: 260, target: 'ally' },
-  beacon: { name: '봉화', short: '봉화', slot: 'fast', lv: 6, cast: 0, cost: 0, cd: 10, gcd: 0, target: 'ally' }, // 2026-10-16 Lim 「성기사는 봉화 지정스킬을 만들고 빛일격 스킬을 제거하자」: 가운데 버튼 대신 빠른 힐 칸. cd = heroConst BEACON.cd
+  beacon: { name: '봉화', short: '봉화', slot: 'fast', lv: 6, cast: 0, cost: 3, cd: 10, amt: 160, target: 'ally' }, // 2026-10-16 Lim 「성기사는 봉화 지정스킬을 만들고 빛일격 스킬을 제거하자」 · 「봉화 스킬에 부가적인것도 추가해서 단순하게 만들지 말자」: 지정 + 즉시 회복 + 신성한 힘 + 피해 감소. cd = heroConst BEACON.cd
   oath: { name: '빛의 서약', short: '서약', slot: 'hot', lv: 2, cast: 0, cost: 0, amt: 160, target: 'ally', power: 1, powerAll: true },
   lightWave: { name: '빛의 파도', short: '파도', slot: 'aoe', lv: 5, cast: 0, cost: 5, amt: 220, target: 'area', power: 3 }, // 마나 0 → 5% (73)
   handCleanse: { name: '정화의 손', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
@@ -121,7 +121,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   wardCircle: { name: '결계 원', short: '결계', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 20, amt: 100, target: 'area' }, // 150 → 100 (79 5-11)
   guardWard: { name: '수호 결계', short: '수호', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' }, // 82: 받는 피해 −40% (누그러뜨림과 같음) → 큰 보호막 (WARDER.guard)
   lightVeil: { name: '빛의 장막', short: '장막', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, amt: 130, target: 'none' }, // 82: 범위 피해 −25% (성역과 비슷) → 전원 보호막 + 인장
-  wardShift: { name: '막 옮기기', short: '옮기기', slot: 'unique', lv: 15, cast: 0, cost: 3, cd: 12, amt: 150, target: 'ally' }, // 2026-10-16 Lim 「결계사의 창 스킬은 변경하자 (주인공은 공격스킬을 넣지 않는다)」: 빛의 창 (보스 공격 + 인장 3명 160) 대신
+  wardHold: { name: '결계 굳히기', short: '굳히기', slot: 'unique', lv: 15, cast: 0, cost: 3, cd: 15, amt: 30, target: 'none' }, // 2026-10-16 Lim 「결계사의 창 스킬은 변경하자 (주인공은 공격스킬을 넣지 않는다)」 → 「막 옮기기 말고 보호막 지속시간을 늘려주는 스킬」: 빛의 창 (보스 공격 + 인장 3명 160) 대신. amt = 늘린 보호막마다 더하는 두께
   judgment: { name: '심판', short: '심판', slot: 'fast', lv: 6, cast: 2.0, cost: 6, amt: 90, target: 'none' }, // 140 → 90 (79 5-11)
 };
 
@@ -169,7 +169,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   rebirth: { kind: '부활', desc: '쓰러진 파티원 1명을 체력 40%로 일으킵니다. 전투당 1회 쓸 수 있습니다.' },
 
   holyLight: { kind: '힘 모으기', desc: '대상의 체력을 {260} 회복하고 신성한 힘을 1 모읍니다.' },
-  beacon: { kind: '봉화 지정', desc: '대상을 봉화로 지정합니다. 다른 사람에게 한 빛의 손길 회복량의 40% (10인 레이드 30%, 20인 레이드 25%)가 봉화 대상에게도 들어갑니다. 마나를 쓰지 않고, 다음 행동을 기다리지 않습니다.' },
+  beacon: { kind: '봉화 · 힘 모으기', desc: '대상을 봉화로 지정하고 체력을 {160} 회복합니다. 신성한 힘을 1 모으고, 대상은 6초 동안 받는 피해가 10% 줄어듭니다. 봉화 대상에게는 다른 사람에게 한 빛의 손길 회복량의 40% (10인 레이드 30%, 20인 레이드 25%)가 함께 들어갑니다.' },
   oath: { kind: '힘 쓰기 · 지속', desc: '모은 신성한 힘 1칸마다 4초 동안 {160} 회복합니다. 3칸이면 12초 동안 {480}입니다.' },
   lightWave: { kind: '힘 쓰기 · 광역', desc: '신성한 힘 3칸을 모두 써서 대상과 붙어 있는 칸 중 체력이 가장 낮은 4명을 각각 {220} 회복합니다. 봉화로는 옮겨 가지 않습니다.' },
   handCleanse: { kind: '해제', desc: '대상의 마법·독·질병 디버프를 1개 제거합니다.' },
@@ -210,7 +210,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   wardCircle: { kind: '광역 보호막', desc: '대상과 붙어 있는 6칸의 아군에게 10초 동안 {100}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다. 20인 레이드에서는 2칸 거리까지 닿습니다.' },
   guardWard: { kind: '큰 보호막', desc: '8초 동안 대상에게 최대 체력의 30%만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   lightVeil: { kind: '전원 보호막', desc: '파티 전원에게 12초 동안 {130}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
-  wardShift: { kind: '보호막 옮기기', desc: '대상에게 10초 동안 {150}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다. 다른 아군에게 씌운 내 보호막은 절반씩 거둬 대상의 보호막에 더합니다.' },
+  wardHold: { kind: '보호막 늘리기', desc: '내가 씌운 보호막의 남은 시간을 모두 8초 늘리고, 그 보호막을 {30}씩 두껍게 합니다. 보호막이 늘어난 아군은 인장도 처음 시간으로 돌아갑니다.' },
   judgment: { kind: '인장 터뜨리기', desc: '2초 동안 심판을 외칩니다. 인장이 붙은 아군 중 체력이 가장 낮은 6명 (5인 던전 3명, 10인 레이드 4명)을 {90}씩 회복합니다.' },
 };
 

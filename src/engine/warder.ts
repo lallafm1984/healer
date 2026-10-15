@@ -1,6 +1,6 @@
 /**
  * 결계사 (79 5장): 미리 막는 힐러. 힐과 보호막이 대상에게 인장을 붙이고, 가운데 버튼 심판이 인장이 붙은 가장 다친 6명을 한꺼번에 치유한다.
- * 2026-10-16 Lim 「주인공은 공격 스킬을 넣지 않는다」: 보스를 치는 것 (심판 · 빛의 창 · 거울 막)을 없애고 빛의 창 자리에 막 옮기기
+ * 2026-10-16 Lim 「주인공은 공격 스킬을 넣지 않는다」: 보스를 치는 것 (심판 · 빛의 창 · 거울 막)을 없애고 빛의 창 자리에 결계 굳히기 (84)
  * 보호막은 힐러 흡수 보호막 (abilities giveAbsorb, P-MELT에 녹음). 특성 (79 5-7)과 직업 전용 특수능력 (79 5-8)의 엔진 훅도 여기서.
  * heroes.ts가 직업마다 나눠 부르고, 성채는 판 위 물건 (totems.ts)
  */
@@ -158,22 +158,21 @@ export function warderApply(f: Fight, key: SkillKey, u: Unit): void {
       putSeal(f, v);
     }
     emit(f, { type: 'sound', name: 'hymn' });
-  } else if (key === 'wardShift') {
-    // 막 옮기기 (빛의 창 대신, 2026-10-16): 다른 아군에게 씌운 내 보호막을 절반씩 거두고 (주고받는 막: 거둔 양만큼 회복), 대상에게 기본 막 + 거둔 막
-    let got = 0;
+  } else if (key === 'wardHold') {
+    // 결계 굳히기 (빛의 창 대신, 84): 내 보호막이 있는 아군마다 남은 시간 +8초 · 두께 + · 인장 처음으로 (굳힌 막의 숨: 그 아군 회복)
+    let n = 0;
     for (const v of living(f)) {
-      if (v === u) continue;
       const m = v.mods.find(x => x.k === 'absorb' && x.src === HEALER_SHIELD && x.until > f.t);
       if (!m || m.v <= 0) continue;
-      const x = m.v * WARDER.shift.take;
-      m.v -= x; got += x;
-      if (on.repentTime) under(null, false, () => heal(f, v, x * TX.repentTime.heal, true, true)); // 주고받는 막 (특성 50)
+      m.until += WARDER.hold.ext;
+      under('wardHold', true, () => giveShield(f, v, SKILLS.wardHold.amt!, m.until - f.t));
+      putSeal(f, v);
+      noteUsed(f, 'wardHold', v.id);
+      if (on.repentTime) under(null, false, () => heal(f, v, TX.repentTime.heal, true)); // 굳힌 막의 숨 (특성 50)
+      n++;
     }
-    giveShield(f, u, SKILLS.wardShift.amt!, WARDER.shift.sec);
-    if (got > 0) giveAbsorb(f, u, got, WARDER.shift.sec, WARDER.shieldCap, true);
-    putSeal(f, u);
-    if (f.sp && sv(f, 'spearJudge')) s.judgeCut = sv(f, 'spearJudge'); // 옮긴 뒤의 심판 (결계 08)
-    u.lastHeal = f.t; if (u.sulking) u.sulking = false;
+    if (!n) noteUsed(f, 'wardHold', u.id);
+    if (f.sp && sv(f, 'spearJudge')) s.judgeCut = sv(f, 'spearJudge'); // 굳힌 뒤의 심판 (결계 08)
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'judgment') {
     judgment(f);

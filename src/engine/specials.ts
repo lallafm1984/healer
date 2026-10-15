@@ -410,7 +410,7 @@ export function cdSpec(f: Fight, key: SkillKey, cd: number): number {
   if (key === 'wanderMist') cd -= v.hastyMist ?? 0; // 서두른 안개 (수도 03)
   if (key === 'mistWrap') cd -= v.quickWrap ?? 0; // 빠른 감싸기 (수도 06, 82: 시전 −초 → 재사용 −초)
   if (key === 'twinkle') cd -= v.hastyTwinkle ?? 0; // 서두른 반짝임 (점성 03)
-  if (key === 'wardShift') cd -= v.hastySpear ?? 0; // 서두른 옮기기 (결계 03)
+  if (key === 'wardHold') cd -= v.hastySpear ?? 0; // 서두른 굳히기 (결계 03)
   return Math.max(0, cd);
 }
 

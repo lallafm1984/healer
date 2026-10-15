@@ -663,6 +663,7 @@ function autoPaladin(f: Fight): void {
     () => { if (!ready('handCleanse')) return false; const d = cleansable(f, c); return !!d && tryUse(f, 'handCleanse', d, idx); })) return;
   if (ready('sanctuary') && c.cluster.best && live.filter(u => pct(u) < 0.5).length >= Math.max(2, Math.floor(live.length / 2)) && tryUse(f, 'sanctuary', c.cluster.best, idx)) return;
   if (c.busterOn && ready('sacrifice') && tryUse(f, 'sacrifice', c.busterOn, idx)) return;
+  if (c.busterOn && ready('beacon') && tryUse(f, 'beacon', c.busterOn, idx)) return; // 봉화 (84): 강타 맞는 탱커에게 회복 + 피해 감소 + 봉화
   if (c.busterOn && ready('handGuard') && pct(c.busterOn) < 0.35 && c.busterOn.role !== 'tank' && tryUse(f, 'handGuard', c.busterOn, idx)) return;
   { const bs = busterShort(f); if (bs && !off(f, bs.u) && ((f.mana > 3 && tryUse(f, 'holyLight', bs.u, idx)))) return; }
   if (g.pre && ((f.mana > 3 && tryUse(f, 'holyLight', g.pre, idx)))) return;
@@ -695,6 +696,8 @@ function autoPaladin(f: Fight): void {
   // 헤매는 영혼: 위급한 사람이 없으면 해제로 바로, 아니면 단일 힐
   if (g.soul && pct(low) > 0.5 && f.mana > 10 && ((ready('handCleanse') && tryUse(f, 'handCleanse', g.soul, idx)) || one(g.soul))) return;
   if (g.link && pct(low) > 0.4 && one(g.link.u)) return;
+  // 봉화 (84): 재사용마다 봉화 대상 (없으면 탱커)이 다쳤으면 다시 걸어 즉시 회복 · 신성한 힘
+  { const t = live.find(u => u.id === f.beacon) ?? live.find(u => u.role === 'tank'); if (t && ready('beacon') && pct(t) < 0.9 && tryUse(f, 'beacon', t, idx)) return; }
   if (pct(low) < topUp(f, g, 0.85) && f.mana > 3) tryUse(f, 'holyLight', low, idx);
 }
 
@@ -968,7 +971,6 @@ function autoWarder(f: Fight): void {
   // 탱커 버스터: 막이 없거나 얇으면 빛의 막
   if (c.busterOn && !melt && ready('lightBarrier') && shieldLow(c.busterOn) && tryUse(f, 'lightBarrier', c.busterOn, idx)) return;
   if (c.busterOn && !melt && ready('guardWard') && pct(c.busterOn) < 0.5 && tryUse(f, 'guardWard', c.busterOn, idx)) return;
-  if (c.busterOn && !melt && ready('wardShift') && shieldLow(c.busterOn) && tryUse(f, 'wardShift', c.busterOn, idx)) return; // 막 옮기기: 강타 맞는 탱커에게 막을 모음
   { const bs = busterShort(f); if (bs && !off(f, bs.u) && one(bs.u, bs.soon)) return; }
   if (g.pre && ((!melt && ready('lightBarrier') && shieldLow(g.pre) && tryUse(f, 'lightBarrier', g.pre, idx)) || one(g.pre, false))) return;
   { const d = g.liftClean[0]; if (d && ready('wardCleanse') && tryUse(f, 'wardCleanse', d, idx)) return; }
@@ -1000,8 +1002,11 @@ function autoWarder(f: Fight): void {
   if (g.cure && pct(low) > 0.4 && one(g.cure, pct(g.cure) < 0.5)) return;
   if (g.soul && pct(low) > 0.5 && f.mana > 10 && ((ready('wardCleanse') && tryUse(f, 'wardCleanse', g.soul, idx)) || one(g.soul, false))) return;
   if (g.link && pct(low) > 0.4 && one(g.link.u, false)) return;
-  // 막 옮기기 (빛의 창 대신): 판 위 다른 아군에게 내 보호막이 있으면 체력이 가장 낮은 아군 (80% 아래)에게 모음
-  if (ready('wardShift') && pct(low) < 0.8 && live.some(v => v !== low && absorbLeft(f, v) > 0) && tryUse(f, 'wardShift', low, idx)) return;
+  // 결계 굳히기 (84, 빛의 창 대신): 내 보호막이 2명 이상에게 있고 그중 곧 끝나는 막이 있거나, 큰 광역이 곧 올 때 (녹는 동안은 안 씀)
+  if (ready('wardHold') && !melt) {
+    const ms = live.map(v => v.mods.find(m => m.k === 'absorb' && m.src === 'healer' && m.until > f.t && m.v > 0)).filter(Boolean) as { until: number }[];
+    if (ms.length >= Math.min(2, live.length) && (ms.some(m => m.until - f.t < 4) || aoeSoon) && use(f, 'wardHold', 0).ok) return;
+  }
   // 빛의 막: 재사용마다 탱커 (레이드는 다쳤을 때) → 계속 맞는 사람
   if (!melt && ready('lightBarrier') && !g.few) {
     const small = live.length <= 5;
