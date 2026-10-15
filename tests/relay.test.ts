@@ -117,14 +117,13 @@ describe('빛의 전이', () => {
     expect(f.relay!.left).toBe(RELAY.hops);
   });
 
-  it('회복할 때마다 신성화 게이지가 참 (평온 게이지는 그대로)', () => {
+  it('회복할 때마다 평온 게이지가 참 (82: 예전엔 신성화 게이지)', () => {
     const f = fight(), t = tank(f);
     put(f, t);
     landed(f);
-    f.g.p = 10; f.g.s = 10;
+    f.g.p = 10;
     damage(f, t, 200);
-    expect(f.g.p).toBe(10);
-    expect(f.g.s).toBeGreaterThanOrEqual(10 + RELAY.gs);
+    expect(f.g.p).toBeGreaterThanOrEqual(10 + RELAY.gp);
   });
 
   it('자동 힐러: Lv 15부터 씀, 프로토타입 일치 비교 (proto)에서는 안 씀', () => {

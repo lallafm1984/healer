@@ -74,7 +74,7 @@ async function resetAction(page) {
   await page.evaluate(() => {
     const f = window.__proto.F;
     Object.assign(f, { cast: null, queued: null, gcd: 0, channel: 0, mana: 90, events: [], tels: [], zones: [], abOn: false, dmgMult: 0, beacon: null });
-    f.g.p = 0; f.g.s = 0; f.cd = {};
+    f.g.p = 0; f.cd = {};
     for (const u of f.party) Object.assign(u, { hp: u.max * .6, alive: true, moving: null, react: null, fleeing: false,
       home: u.cell, homeAt: null, hot: 0, hots: [], debuffs: [],
       dps: 0, acc: 0, flash: 0, wrongUntil: 0, mistakeUntil: 0, shield: 0, immune: 0, redu: 0, guardian: 0, bulwark: 0, sacr: 0 });

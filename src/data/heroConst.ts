@@ -15,10 +15,12 @@ export const WAVE = { max: 4 };
 export const HAND_GUARD = { sec: 6 };
 /**
  * 사제 빛의 전이 (8번째 칸, Lim 2026-10-11): 회복 횟수 · 지속 (초, 쓴 때부터) · 옮겨 가는 시간 (그동안은 안 깃듦) ·
- * 옮겨 가는 거리 (칸, 그 안에 아무도 없으면 그 자리에 남음) · 회복 한 번에 채우는 신성화 게이지 %.
+ * 옮겨 가는 거리 (칸, 그 안에 아무도 없으면 그 자리에 남음) · 회복 한 번에 채우는 평온 게이지 % (82: 예전엔 신성화 게이지).
  * 2026-10-11 Lim 「너무 좋다. 너프하자. 1칸 인접, 3회 회복」: 5번 · 2칸 (없으면 가장 가까운 아군) → 3번 · 바로 옆 칸만
  */
-export const RELAY = { hops: 3, sec: 20, fly: 1, range: 1, gs: 4 };
+export const RELAY = { hops: 3, sec: 20, fly: 1, range: 1, gp: 4 };
+/** 드루이드 고요한 숲 (82): 걸린 지속 힐을 늘리는 시간 (초) · 걸린 지속 힐이 그 자리에서 바로 하는 회복 (틱 배수, 남은 회복량은 그대로). 새싹이 없는 아군에게는 새싹을 심음 */
+export const QUIETWOOD = { ext: 6, now: 1 }; // 4초 · 바로 회복 없음으로는 드루이드 −2~4%p (밸런스)
 /** 드루이드 환생: 살아나는 체력 비율 */
 export const REBIRTH = { hp: 0.4 };
 
@@ -46,6 +48,8 @@ const ASTRO_CHARGE_BASE = { ...ASTRO_CHARGE, perfectHeal: 0.15 };
  */
 export const SHAMAN = {
   droplet: { sec: 12, tick: 3, chainRange: 2 },
+  /** 잔물결 (82): 회복한 뒤 붙어 있는 (물방울이 걸린 아군은 2칸) 가장 다친 아군 1명에게 이 비율로 한 번 튐 */
+  ripple: { bounce: 0.3 },
   chain: { n: 4, decay: 0.75 },
   earth: { cut: 0.15, sec: 10 },
   rain: { sec: 10, tick: 2 },
@@ -65,6 +69,8 @@ export const SHAMAN = {
 export const MONK = {
   beat: { window: 2.5, max: 5, step: 0.06, mistFast: 3, mistCdMult: 2 },
   wrapMist: { sec: 6, amt: 90 },
+  /** 안개 감싸기 (82): 즉시 · 기 리듬 1마다 회복량 + (리듬은 이어 줌, 올리지는 않음) */
+  wrap: { step: 0.12 },
   mist: { sec: 18, tick: 3 },
   breath: { mist: 0.5 },
   soothe: { cut: 0.4, sec: 10 },
@@ -86,7 +92,8 @@ export const ASTRO = {
   fall: { amt: [380, 150, 220, 150], range: [0, 1, 1, 2] },
   polaris: [350, 550, 750, 950],
   sleep: { sec: 4 },
-  memory: { sec: 4, share: 0.5 },
+  /** 별의 기억 (82 모으기): 별 1개마다 이만큼 더 먼 피해 (초)의 share를 되감음 */
+  memory: { step: 2, share: 0.5 },
   read: 0.15,
   cycle: 3,
   autoPerfect: 0.6,
@@ -103,8 +110,10 @@ export const WARDER = {
   barrier: { sec: 15 },
   circle: { sec: 10 },
   shieldCap: 0.6,
-  guard: { cut: 0.4, sec: 8 },
-  veil: { cut: 0.25, sec: 10, range: 2 },
+  /** 수호 결계 (82): 받는 피해 −40% → 대상 최대 체력 hp만큼 보호막 + 인장 */
+  guard: { hp: 0.3, sec: 8 },
+  /** 빛의 장막 (82): 범위 피해 감소 → 파티 전원 보호막 (SKILLS.lightVeil.amt) + 인장, sec초. 장막의 숨 · 함께 드는 짐은 쓴 뒤 after초 */
+  veil: { sec: 12, after: 10 },
   spear: { dps: 0.5, n: 3 }, // 보스 딜 1.5 → 0.5초분 (79 5-11: 던전 쫄 구간을 너무 빨리 끝냄)
   judge: { dps: 0.5, n: 6 }, // 1 → 0.5초분 (79 5-11)
   broken: 80,

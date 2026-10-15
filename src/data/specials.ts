@@ -190,9 +190,9 @@ const TABLE: Record<SpecGroup, Row[]> = {
   ],
   // 2-9 직업 전용 (그 직업일 때만 켜지고, 그 직업으로 돌 때만 나옴. 직업마다 24종)
   hero: [
-    ['deepWord', '사제 01', '깊은 성언', ALL, '희귀', 0.12, 'pct', '성언 게이지 충전 +{v}', { cap: 0.6, hero: 'priest' }],
+    ['deepWord', '사제 01', '깊은 성언', ALL, '희귀', 0.12, 'pct', '평온 게이지 충전 +{v}', { cap: 0.6, hero: 'priest' }],
     ['serenityEcho', '사제 02', '평온의 여운', W, '전설', 0.2, 'pct', '성언: 평온 회복량 +{v}, 넘친 양은 4초 지속 힐로', { hero: 'priest' }],
-    ['wideSanctify', '사제 03', '넓은 신성화', W, '전설', 1, 'n', '성언: 신성화 범위 +{v}칸', { hero: 'priest', fixed: true }],
+    ['wideSanctify', '사제 03', '넓은 평온', W, '전설', 1, 'n', '성언: 평온이 대상 둘레 {v}칸 아군에게도 50%', { hero: 'priest', fixed: true }], // 82: 넓은 신성화 → 넓은 평온 (키는 저장 때문에 그대로)
     ['quickRenew', '사제 04', '짙은 소생', AR, '영웅', 0.25, 'pct', '소생 회복량 +{v}', { hero: 'priest' }],
     ['pohEcho', '사제 05', '기원의 메아리', ACC, '영웅', 0.5, 'pct', '치유의 기원이 {v} 확률로 2초 뒤 절반 한 번 더', { hero: 'priest' }],
     ['wakeGuard', '사제 06', '깨어 있는 수호', NECK, '영웅', 1, 'pct', '수호 영혼이 발동하면 대상이 지능 {v} 회복', { hero: 'priest' }],
@@ -204,7 +204,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['flowerSea', '드루 04', '들꽃 바다', W, '전설', 1, 'n', '들꽃 군락 범위 +{v}칸', { hero: 'druid', fixed: true }],
     ['thickBark', '드루 05', '굵은 껍질', AR, '영웅', 0.1, 'pp', '나무껍질 받는 피해 감소 +{v}', { hero: 'druid' }],
     ['dawnDew', '드루 06', '새벽 이슬', HANDS, '영웅', 0.3, 'sec', '생장 시전 −{v}', { hero: 'druid' }],
-    ['forestBreath', '드루 07', '숲의 숨결', ACC, '영웅', 1, 'sec', '고요한 숲 효과 시간 +{v}', { hero: 'druid', fixed: true }],
+    ['forestBreath', '드루 07', '숲의 숨결', ACC, '영웅', 1, 'sec', '고요한 숲이 늘리는 지속 힐 시간 +{v}', { hero: 'druid', fixed: true }],
     ['quickRebirth', '드루 08', '빠른 환생', NECK, '영웅', 0.2, 'pp', '환생 시전 −1초, 부활 체력 +{v}', { hero: 'druid' }],
     ['bigBeacon', '성기 01', '큰 봉화', ALL, '희귀', 0.1, 'pp', '봉화로 함께 들어가는 몫 +{v}', { cap: 0.3, hero: 'paladin' }],
     ['secondBeacon', '성기 02', '두 번째 봉화', W, '전설', 1, 'n', '봉화를 2명에게 (두 번째는 절반)', { hero: 'paladin', fixed: true }],
@@ -219,7 +219,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['urgentPrayer', '사제 10', '간절한 기도', HANDS, '희귀', 0.16, 'pct', '순간 치유 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'flash', kind: 'heal' } }],
     ['gatheredPrayer', '사제 11', '모인 기도', W_ACC, '희귀', 0.16, 'pct', '치유의 기원 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'poh', kind: 'heal' } }],
     ['sereneLight', '사제 12', '평온한 빛', AR_ACC, '희귀', 0.18, 'pct', '성언: 평온 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'serenity', kind: 'heal' } }],
-    ['consecratedLight', '사제 13', '축성의 빛', W_ACC, '영웅', 0.18, 'pct', '성언: 신성화 회복량 +{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'sanctify', kind: 'heal' } }],
+    ['consecratedLight', '사제 13', '축성의 빛', W_ACC, '영웅', 0.18, 'pct', '성언: 평온을 쓴 뒤 10초 안 첫 치유의 기원 회복량 +{v}', { hero: 'priest', cap: 0.4 }], // 82: 신성화 회복량 → 평온 다음 기원
     ['renewalVow', '사제 14', '소생의 서약', AR_ACC, '고급', 0.15, 'pct', '소생 마나 소모 −{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'renew', kind: 'cost' } }],
     ['guardianPromise', '사제 15', '수호의 약속', AR, '희귀', 0.12, 'pct', '수호 영혼 재사용 대기 −{v}', { hero: 'priest', cap: 0.3, skillMod: { key: 'guardian', kind: 'cooldown' } }],
     ['returningHymn', '사제 16', '돌아오는 찬가', NECK, '영웅', 0.1, 'pct', '천상의 찬가 재사용 대기 −{v}', { hero: 'priest', cap: 0.3, skillMod: { key: 'hymn', kind: 'cooldown' } }],
@@ -227,7 +227,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['lushGrowth', '드루 10', '무성한 생장', HANDS, '희귀', 0.16, 'pct', '생장 회복량 +{v}', { hero: 'druid', cap: 0.4, skillMod: { key: 'growth', kind: 'heal' } }],
     ['fullBloom', '드루 11', '만개의 순간', W_ACC, '희귀', 0.16, 'pct', '피워 내기 회복량 +{v}', { hero: 'druid', cap: 0.4, skillMod: { key: 'bloom', kind: 'heal' } }],
     ['vividFlowers', '드루 12', '짙은 들꽃', AR_ACC, '희귀', 0.16, 'pct', '들꽃 군락 회복량 +{v}', { hero: 'druid', cap: 0.4, skillMod: { key: 'wildflower', kind: 'heal' } }],
-    ['deepForest', '드루 13', '깊은 숲', W_ACC, '영웅', 0.18, 'pct', '고요한 숲 회복량 +{v}', { hero: 'druid', cap: 0.4, skillMod: { key: 'quietwood', kind: 'heal' } }],
+    ['deepForest', '드루 13', '깊은 숲', W_ACC, '영웅', 0.18, 'pct', '고요한 숲으로 심는 새싹 회복량 +{v}', { hero: 'druid', cap: 0.4, skillMod: { key: 'quietwood', kind: 'heal' } }],
     ['gentleRain', '드루 14', '부드러운 비', AR_ACC, '고급', 0.15, 'pct', '새싹 마나 소모 −{v}', { hero: 'druid', cap: 0.4, skillMod: { key: 'sprout', kind: 'cost' } }],
     ['barkCycle', '드루 15', '껍질의 순환', AR, '희귀', 0.12, 'pct', '나무껍질 재사용 대기 −{v}', { hero: 'druid', cap: 0.3, skillMod: { key: 'bark', kind: 'cooldown' } }],
     ['forestReturn', '드루 16', '숲의 귀환', NECK, '영웅', 0.1, 'pct', '고요한 숲 재사용 대기 −{v}', { hero: 'druid', cap: 0.3, skillMod: { key: 'quietwood', kind: 'cooldown' } }],
@@ -240,11 +240,11 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['sacredResolve', '성기 15', '희생의 결의', AR, '희귀', 0.12, 'pct', '희생 재사용 대기 −{v}', { hero: 'paladin', cap: 0.3, skillMod: { key: 'sacrifice', kind: 'cooldown' } }],
     ['returningGuard', '성기 16', '돌아오는 가호', NECK, '영웅', 0.1, 'pct', '보호의 손 재사용 대기 −{v}', { hero: 'paladin', cap: 0.3, skillMod: { key: 'handGuard', kind: 'cooldown' } }],
     // 2026-10-14 직업마다 8종 더 (42 2-9): 고급 · 희귀에서도 부위마다 고를 거리가 있게, 직업 고유 시스템 (성언 · 새싹 · 신성한 힘 · 봉화)에 붙는 효과
-    ['graceWord', '사제 17', '성언의 은혜', W_ACC, '고급', 1.5, 'mana', '성언 (평온 · 신성화)을 쓰면 마나 {v} 회복', { hero: 'priest', cap: 3 }],
-    ['crossWord', '사제 18', '번지는 울림', AR, '희귀', 0.15, 'pct', '성언을 쓰면 다른 성언 게이지 +{v}', { hero: 'priest', cap: 0.3 }],
+    ['graceWord', '사제 17', '성언의 은혜', W_ACC, '고급', 1.5, 'mana', '성언: 평온을 쓰면 마나 {v} 회복', { hero: 'priest', cap: 3 }],
+    ['crossWord', '사제 18', '번지는 울림', AR, '희귀', 0.15, 'pct', '성언: 평온을 쓴 뒤 평온 게이지가 {v}에서 시작', { hero: 'priest', cap: 0.3 }], // 82: 다른 게이지가 없어짐
     ['renewKnot', '사제 19', '소생의 매듭', ALL, '고급', 0.25, 'pct', '소생이 끝까지 가면 대상이 지능 {v} 회복', { hero: 'priest', cap: 0.6 }],
     ['clearPrayer', '사제 20', '맑은 기도', HANDS, '고급', 0.15, 'pct', '정화로 디버프를 지우면 평온 게이지 +{v}', { hero: 'priest' }],
-    ['groupPrayer', '사제 21', '모두의 기도', ACC, '희귀', 0.12, 'pct', '치유의 기원이 4명 이상 회복하면 신성화 게이지 +{v}', { hero: 'priest', cap: 0.25 }],
+    ['groupPrayer', '사제 21', '모두의 기도', ACC, '희귀', 0.12, 'pct', '치유의 기원이 4명 이상 회복하면 평온 게이지 +{v}', { hero: 'priest', cap: 0.25 }],
     ['relayStep', '사제 22', '빛의 발자국', W, '영웅', 1, 'n', '빛의 전이가 옮겨 가는 횟수 +{v}', { hero: 'priest', fixed: true }],
     ['flashThrift', '사제 23', '아끼는 순간', H_ACC, '희귀', 0.15, 'pct', '순간 치유 마나 소모 −{v}', { hero: 'priest', cap: 0.4, skillMod: { key: 'flash', kind: 'cost' } }],
     ['guardianLight', '사제 24', '영혼의 등불', AR, '희귀', 0.15, 'pct', '수호 영혼이 걸린 아군에게 하는 힐 +{v}', { hero: 'priest', cap: 0.3 }],
@@ -296,7 +296,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['hastyMist', '수도 03', '서두른 안개', HANDS, '영웅', 2, 'sec', '떠도는 안개 재사용 −{v}', { hero: 'monk' }],
     ['deepSoothe', '수도 04', '깊은 누그러뜨림', AR, '영웅', 0.1, 'pp', '누그러뜨림 받는 피해 감소 +{v}', { hero: 'monk' }],
     ['wideBreath', '수도 05', '넓은 숨결', W, '전설', 1, 'n', '안개 숨결 범위 +{v}칸', { hero: 'monk', fixed: true }],
-    ['quickWrap', '수도 06', '빠른 감싸기', HANDS, '영웅', 0.3, 'sec', '안개 감싸기 시전 −{v}', { hero: 'monk' }],
+    ['quickWrap', '수도 06', '빠른 감싸기', HANDS, '영웅', 1.5, 'sec', '안개 감싸기 재사용 −{v}', { hero: 'monk' }], // 82: 시전 −0.3초 → 즉시가 되어 재사용 −1.5초
     ['strongTea', '수도 07', '진한 차', ACC, '영웅', 2, 'mana', '차 한 잔 마나 +{v}', { hero: 'monk', fixed: true }],
     ['clearWind', '수도 08', '맑은 바람', NECK, '영웅', 1, 'n', '되살림 바람이 한 명마다 디버프를 {v}개 더 지움', { hero: 'monk', fixed: true }],
     ['steadyPalm', '수도 09', '곧은 손바닥', ALL, '고급', 0.12, 'pct', '생기 손바닥 회복량 +{v}', { hero: 'monk', cap: 0.4, skillMod: { key: 'vitalPalm', kind: 'heal' } }],
@@ -344,10 +344,10 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['deepSeal', '결계 01', '깊은 인장', ALL, '희귀', 0.03, 'pct', '심판 회복량 +{v}', { cap: 0.1, hero: 'warder' }],
     ['mirrorBarrier', '결계 02', '거울 막', W, '전설', 0.2, 'pct', '빛의 막이 다 깨지면 막은 피해의 {v}만큼 보스에게 되돌림', { hero: 'warder', fixed: true }],
     ['hastySpear', '결계 03', '서두른 창', HANDS, '영웅', 1, 'sec', '빛의 창 재사용 −{v}', { hero: 'warder' }],
-    ['longGuard', '결계 04', '긴 수호', AR, '영웅', 1, 'sec', '수호 결계 시간 +{v}', { hero: 'warder' }],
-    ['firmVeil', '결계 05', '굳은 장막', W, '전설', 0.05, 'pp', '빛의 장막 받는 피해 감소 +{v}', { hero: 'warder', fixed: true }],
+    ['longGuard', '결계 04', '긴 수호', AR, '영웅', 1, 'sec', '수호 결계 보호막 시간 +{v}', { hero: 'warder' }],
+    ['firmVeil', '결계 05', '굳은 장막', W, '전설', 0.3, 'pct', '빛의 장막 보호막 +{v}', { hero: 'warder', fixed: true }], // 82: 장막이 전원 보호막이 되어 피해 감소 +5%p → 보호막 +30%
     ['sealHaste', '결계 06', '서두른 인장', HANDS, '영웅', 0.2, 'sec', '인장 치유 시전 −{v}', { hero: 'warder' }],
-    ['longVeil', '결계 07', '긴 장막', ACC, '영웅', 1, 'sec', '빛의 장막 시간 +{v}', { hero: 'warder', fixed: true }],
+    ['longVeil', '결계 07', '긴 장막', ACC, '영웅', 1, 'sec', '빛의 장막 보호막 시간 +{v}', { hero: 'warder', fixed: true }],
     ['spearJudge', '결계 08', '창 뒤의 심판', NECK, '영웅', 0.3, 'sec', '빛의 창을 던지면 다음 심판 시전 −{v}', { hero: 'warder' }],
     ['steadySeal', '결계 09', '곧은 인장', ALL, '고급', 0.15, 'pct', '인장 치유 회복량 +{v}', { hero: 'warder', cap: 0.4, skillMod: { key: 'sealHeal', kind: 'heal' } }],
     ['swiftSeal', '결계 10', '날랜 인장', HANDS, '희귀', 0.06, 'pct', '빠른 인장 회복량 +{v}', { hero: 'warder', cap: 0.4, skillMod: { key: 'quickSeal', kind: 'heal' } }],

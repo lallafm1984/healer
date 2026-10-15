@@ -41,7 +41,7 @@ const cast = (f: F, key: Parameters<typeof E.use>[1], cell: number) => {
   return heals;
 };
 /** 모으기: 누르고 별이 want개 될 때까지 기다렸다 뗌 (want가 최대면 마지막 별 직후 = 완벽, late면 완벽 구간이 지난 뒤), 그 사이 치유 */
-const charge = (f: F, key: 'starfall' | 'polaris', cell: number, want = 4, late = false) => {
+const charge = (f: F, key: 'starfall' | 'polaris' | 'starMemory', cell: number, want = 4, late = false) => {
   expect(E.use(f, key, cell).ok).toBe(true);
   f.events.length = 0;
   let n = 0;
@@ -61,12 +61,12 @@ const markOf = (u: U) => u.hots.find(h => h.key === 'starMark');
 const S = SKILLS.starHeal.amt!, T = SKILLS.twinkle.amt!, PERF = 1 + ASTRO.charge.perfectHeal;
 
 describe('데이터 (79 4장)', () => {
-  it('휠 8칸, 해제 마법 · 독, 상점 해금, 켬, 모으기 스킬 둘', () => {
+  it('휠 8칸, 해제 마법 · 독, 상점 해금, 켬, 모으기 스킬 셋 (82: 별의 기억도)', () => {
     expect(heroSkills('astrologer')).toEqual(['starHeal', 'twinkle', 'starMark', 'starfall', 'clearStar', 'starSleep', 'starMemory', 'polaris']);
     expect(HEROES.astrologer.ready).toBe(true);
     expect(HEROES.astrologer.unlock).toMatchObject({ buy: true }); // 81: 상점 2,200원 (예전 Lv 50)
     expect(HEROES.astrologer.dispel).toEqual(['마법', '독']);
-    expect(SKILLS.starfall.charge && SKILLS.polaris.charge).toBe(true);
+    expect(SKILLS.starfall.charge && SKILLS.polaris.charge && SKILLS.starMemory.charge).toBe(true);
   });
   it('특성 10단 × 3, 보조 버튼은 내리는 밤 · 초신성 · 은하수', () => {
     expect(ASTRO_TALENTS.map(t => t.lv)).toEqual([5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
@@ -138,13 +138,37 @@ describe('스킬', () => {
     expect(asleep(f, t)).toBe(false);
     expect(taken(f, t)).toBeGreaterThan(0);
   });
-  it('별의 기억: 최근 4초 받은 피해의 50%, 적어도 100', () => {
+  it('별의 기억: 별 2개 = 최근 4초 받은 피해의 50%, 적어도 100', () => {
     const f = fight(), u = others(f)[0];
     u.base = u.max = 50000; u.hp = 40000;
     damage(f, u, 4000, false, 'fixed');
     expect(memoryAmt(f, u)).toBeCloseTo(2000, 6);
     const v = others(f)[1];
     expect(memoryAmt(f, v)).toBe(SKILLS.starMemory.amt);
+  });
+  it('별의 기억 (82 모으기): 별 1개마다 2초씩 더 먼 피해를 되감음', () => {
+    const f = fight(), u = others(f)[0];
+    f.skills.forEach(k => { k.next = Infinity; }); f.tels = [];
+    u.base = u.max = 50000; u.hp = 40000;
+    damage(f, u, 4000, false, 'fixed');
+    step(f, 5);
+    damage(f, u, 1000, false, 'fixed');
+    expect(memoryAmt(f, u, 1)).toBeCloseTo(500, 6); // 최근 2초
+    expect(memoryAmt(f, u, 2)).toBeCloseTo(500, 6); // 최근 4초
+    expect(memoryAmt(f, u, 3)).toBeCloseTo(2500, 6); // 최근 6초 (5초 전 피해까지)
+    expect(memoryAmt(f, u, 4)).toBeCloseTo(2500, 6);
+  });
+  it('별의 기억 (82): 누르고 있다 떼면 별 수만큼 · 완벽 +15% · 마나 · 재사용은 뗄 때', () => {
+    const f = fight(), u = others(f)[0];
+    f.skills.forEach(k => { k.next = Infinity; }); f.tels = [];
+    u.base = u.max = 50000; u.hp = 40000;
+    damage(f, u, 4000, false, 'fixed');
+    step(f, 1);
+    const mana = f.mana;
+    const hs = charge(f, 'starMemory', f.me.cell, 4);
+    expect(healOn(hs, u)).toBeCloseTo(memoryAmt(f, u, 4) * PERF * f.gear.heal * f.power, 0);
+    expect(f.cd.starMemory).toBe(SKILLS.starMemory.cd);
+    expect(f.mana).toBeLessThan(mana);
   });
   it('별 읽기 (Lv 4): 보스 예고가 찍힌 아군 힐 +15%', () => {
     const f = fight(), u = others(f)[0];
@@ -239,7 +263,7 @@ describe('특성 (79 4-7)', () => {
     step(h, 0.05);
     expect(h.cd.twinkle).toBe(0);
   });
-  it('탱커의 기억 70% · 긴 기억 6초', () => {
+  it('탱커의 기억 70% · 긴 기억 별 1개마다 3초 (82)', () => {
     const f = fight(['tankMemory']), t = f.party.find(u => u.role === 'tank')!;
     t.base = t.max = 50000; t.hp = 40000;
     damage(f, t, 4000, false, 'fixed');

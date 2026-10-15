@@ -73,13 +73,12 @@ const Engine = (() => {
   const SKILLS = {
     heal: { name: '치유', short: '치유', cast: 1.8, cost: 3, amt: 300, target: 'ally', gp: 20 },
     flash: { name: '순간 치유', short: '순간', cast: 1.0, cost: 6, amt: 250, target: 'ally', gp: 15 },
-    renew: { name: '소생', short: '소생', cast: 0, cost: 3, target: 'ally', gp: 5, gs: 5 },
-    poh: { name: '치유의 기원', short: '기원', cast: 2.0, cost: 10, amt: 180, target: 'area', gs: 35 },
+    renew: { name: '소생', short: '소생', cast: 0, cost: 3, target: 'ally', gp: 5 },
+    poh: { name: '치유의 기원', short: '기원', cast: 2.0, cost: 10, amt: 180, target: 'area', gp: 30 }, // 82: 신성화 게이지를 없애고 평온 하나 (TS 엔진과 같은 규칙)
     purify: { name: '정화', short: '정화', cast: 0, cost: 4, cd: 8, target: 'ally' },
     guardian: { name: '수호 영혼', short: '수호', cast: 0, cost: 2, cd: 90, target: 'ally' },
     hymn: { name: '천상의 찬가', short: '찬가', cast: 0, channel: 4, cost: 15, cd: 180, target: 'none' },
-    serenity: { name: '성언: 평온', short: '평온', cast: 0, cost: 0, amt: 600, target: 'ally' },
-    sanctify: { name: '성언: 신성화', short: '신성화', cast: 0, cost: 0, amt: 300, target: 'area' },
+    serenity: { name: '성언: 평온', short: '평온', cast: 0, cost: 0, amt: 700, target: 'ally' }, // 82: 600 → 700
   };
   const DISPELLABLE = { '질병': true, '마법': true };
 
@@ -124,7 +123,7 @@ const Engine = (() => {
       bossMax: enc.hp * (mythic && !enc.big ? MYTHIC.bossHp : 1),
       mana: 100, gcd: 0, cast: null, channel: 0, chTick: 0, queued: null,
       cd: { purify: 0, guardian: 0, hymn: 0 },
-      g: { p: 0, s: 0 }, symbolUsed: false, symbol: 0,
+      g: { p: 0 }, symbolUsed: false, symbol: 0,
       skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
       enraged: false, dpsAcc: 0, rats: [],
       items: {}, potCd: 0, medit: 0, itemLog: [],
@@ -620,7 +619,6 @@ const Engine = (() => {
   // ---------- 힐러 ----------
   function slotKey(f, slot) {
     if (slot === 'heal' && f.g.p >= 100) return 'serenity';
-    if (slot === 'poh' && f.g.s >= 100) return 'sanctify';
     return slot;
   }
   function canTarget(f, key, cellIdx) {
@@ -675,10 +673,9 @@ const Engine = (() => {
     } else if (key === 'renew') {
       u.hot = 9; u.hotTick = 0; u.lastHeal = f.t; if (u.sulking) u.sulking = false;
       emit(f, { type: 'sound', name: 'renew' });
-    } else if (key === 'poh' || key === 'sanctify') {
+    } else if (key === 'poh') {
       const c = cellOf(f, u);
       for (const v of living(f)) if (hexDist(cellOf(f, v), c) <= 1) heal(f, v, sk.amt, true);
-      if (key === 'sanctify') emit(f, { type: 'sound', name: 'chime' });
     } else if (key === 'purify') {
       const ds = u.debuffs.filter(d => DISPELLABLE[d.type]).sort((a, b) => (a.trap ? 1 : 0) - (b.trap ? 1 : 0) || (b.stack || 0) - (a.stack || 0));
       const d = ds[0];
@@ -691,14 +688,11 @@ const Engine = (() => {
       u.guardian = 10;
       emit(f, { type: 'sound', name: 'renew' });
     }
-    // 성언 게이지
-    const before = { p: f.g.p, s: f.g.s };
+    // 평온 게이지 (82: 하나)
+    const before = f.g.p;
     if (key === 'serenity') f.g.p = 0;
-    if (key === 'sanctify') f.g.s = 0;
     if (sk.gp) f.g.p = Math.min(100, f.g.p + sk.gp);
-    if (sk.gs) f.g.s = Math.min(100, f.g.s + sk.gs);
-    if (before.p < 100 && f.g.p >= 100) emit(f, { type: 'gauge', which: '평온' });
-    if (before.s < 100 && f.g.s >= 100) emit(f, { type: 'gauge', which: '신성화' });
+    if (before < 100 && f.g.p >= 100) emit(f, { type: 'gauge', which: '평온' });
   }
 
   function healerTick(f) {
@@ -856,7 +850,6 @@ const Engine = (() => {
       let s = 0; for (const v of live) if (hexDist(cellOf(f, v), cellOf(f, c)) <= 1) s += Math.min(180, v.max - v.hp);
       if (s > score) { best = c; score = s; }
     }
-    if (f.g.s >= 100 && score > (thrifty ? 450 : 900)) return use(f, 'sanctify', cellIdx(best));
     if (pct(low) < 0.35 && f.mana > 8) return use(f, 'flash', cellIdx(low));
     if (score > 600 && f.mana > 12) return use(f, 'poh', cellIdx(best));
     if (f.cd.purify <= 0 && f.mana >= 4) {

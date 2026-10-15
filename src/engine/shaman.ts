@@ -78,6 +78,12 @@ export function chainPath(f: Fight, u: Unit, n = chainN(f)): Unit[] {
   }
   return path;
 }
+/** 잔물결이 튈 곳 (82): 연쇄 치유와 같은 길 (붙어 있음, 물방울이 걸리면 2칸)에서 힐하면 손해인 사람 (뒤집힌 축복) · 떠 있는 사람은 빼고 체력 비율이 가장 낮은 아군 */
+export function rippleTo(f: Fight, u: Unit): Unit | undefined {
+  const c = cellOf(f, u);
+  return living(f).filter(v => v !== u && v.hp < healTop(v) - 1e-9 && !v.lift && !v.debuffs.some(d => d.invert) && hexDist(cellOf(f, v), c) <= (hasDrop(v) ? SHAMAN.droplet.chainRange : 1))
+    .sort((a, b) => a.hp / a.max - b.hp / b.max)[0];
+}
 /** 연쇄 치유가 닿는 인원 (긴 사슬 6명) */
 export const chainN = (f: Fight): number => (f.tx.on.longChain ? TX.longChain.n : SHAMAN.chain.n);
 
@@ -129,6 +135,7 @@ export function shamanApply(f: Fight, key: SkillKey, u: Unit): void {
   const on = f.tx.on;
   if (key === 'ripple') {
     heroHeal(f, u, SKILLS.ripple.amt!);
+    { const v = rippleTo(f, u); if (v) { noteUsed(f, 'ripple', v.id); heroHeal(f, v, SKILLS.ripple.amt! * SHAMAN.ripple.bounce); } } // 82: 붙은 가장 다친 아군에게 한 번 튐
     if (on.rippleChain) { const h = u.hots.find(x => x.key === 'droplet'); if (h) { h.rest += (h.per / h.every) * TX.rippleChain; h.left += TX.rippleChain; } } // 잔물결 이음
     spiritJump(f, u, SKILLS.ripple.amt!);
   } else if (key === 'shower') {

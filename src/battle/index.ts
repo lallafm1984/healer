@@ -455,7 +455,7 @@ function doUse(key: SkillKey, idx: number): boolean {
   if (F.cells[idx]?.unit) ui.selectedUnitId = F.cells[idx].unit!.id;
   if (!res.ok) { if (res.reason) toast(res.reason); Snd.play('error'); return false; }
   if (B.armed && slotKey(F, B.armed) === key) B.armed = null;
-  if (B.armed && (key === 'serenity' || key === 'sanctify')) B.armed = null;
+  if (B.armed && key === 'serenity') B.armed = null;
   if (SKILLS[key].cast > 0 && !res.queued && !res.same) Snd.play('cast');
   coachUsed(key);
   return true;

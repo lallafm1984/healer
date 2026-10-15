@@ -659,12 +659,12 @@ describe('2-9 직업 전용: 사제', () => {
     expect(tank(a).hots.some(h => h.key === 'serenity')).toBe(true);
     expect(tank(b).hots.length).toBe(0);
   });
-  it('넓은 신성화: 신성화 범위 +1칸', () => {
-    const [a, b] = pair('wideSanctify', 1); both([a, b], f => { hurt(f); f.g.s = 100; });
-    const far = (f: F, u: U) => f.party.find(v => E.hexDist(f.cells[v.cell], f.cells[u.cell]) === 2)!;
+  it('넓은 평온 (82, 키는 wideSanctify): 평온이 둘레 1칸 아군에게도 50%', () => {
+    const [a, b] = pair('wideSanctify', 1); both([a, b], f => { hurt(f); f.g.p = 100; });
+    const near = (f: F, u: U) => f.party.find(v => v !== u && E.hexDist(f.cells[v.cell], f.cells[u.cell]) === 1)!;
     const ua = tank(a), ub = tank(b);
-    expect(cast(a, 'sanctify', ua).some(e => e.id === far(a, ua).id)).toBe(true);
-    expect(cast(b, 'sanctify', ub).some(e => e.id === far(b, ub).id)).toBe(false);
+    expect(cast(a, 'serenity', ua).some(e => e.id === near(a, ua).id)).toBe(true);
+    expect(cast(b, 'serenity', ub).some(e => e.id === near(b, ub).id)).toBe(false);
   });
   it('짙은 소생: 소생 회복량 +', () => {
     const [a, b] = pair('quickRenew', 0.25); both([a, b], f => { hurt(f, 0.1); cast(f, 'renew', tank(f)); step(f, 10); });
@@ -729,10 +729,11 @@ describe('2-9 직업 전용: 드루이드', () => {
     both([a, b], f => { hurt(f, 0.1); cast(f, 'bark', tank(f)); cast(f, 'sprout', tank(f)); step(f, 13); });
     expect(ratio(tank(a).got, tank(b).got)).toBeCloseTo(1, 6);
   });
-  it('숲의 숨결: 고요한 숲 효과 시간 +1초', () => {
+  it('숲의 숨결 (82): 고요한 숲이 늘리는 지속 힐 시간 +1초', () => {
     const [a, b] = pair('forestBreath', 1, 'druid');
-    both([a, b], f => E.use(f, 'quietwood', 0));
-    expect(a.channel - b.channel).toBeCloseTo(1, 9);
+    both([a, b], f => { cast(f, 'sprout', tank(f)); f.gcd = 0; E.use(f, 'quietwood', 0); });
+    const left = (f: F) => tank(f).hots.find(h => h.key === 'sprout')!.left;
+    expect(left(a) - left(b)).toBeCloseTo(1, 9);
   });
 });
 

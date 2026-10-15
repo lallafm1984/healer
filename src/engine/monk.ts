@@ -166,7 +166,10 @@ export function monkApply(f: Fight, key: SkillKey, u: Unit): void {
   if (key === 'vitalPalm') {
     palm(f, u);
   } else if (key === 'mistWrap') {
-    heroHeal(f, u, SKILLS.mistWrap.amt!);
+    // 82: 즉시 · 리듬 비례. 늦었으면 (박자 시간이 지남) 리듬이 먼저 끊김, 제때면 박자를 이어 줌 (리듬은 그대로)
+    if (f.beat > 0 && f.t > f.beatUntil + 1e-9 && !activeOn(f, 'thousandHands')) beatBreak(f);
+    heroHeal(f, u, SKILLS.mistWrap.amt! * (1 + f.beat * MONK.wrap.step));
+    if (f.beat > 0) f.beatUntil = f.t + beatWindow(f);
     shortMist(f, u, MONK.wrapMist.sec, MONK.wrapMist.amt);
     if (on.embrace) { u.mods = u.mods.filter(m => m.src !== 'embrace'); u.mods.push({ k: 'cut', v: TX.embrace.cut, until: f.t + TX.embrace.sec, src: 'embrace' }); } // 품어 주기
     u.lastHeal = f.t; if (u.sulking) u.sulking = false;

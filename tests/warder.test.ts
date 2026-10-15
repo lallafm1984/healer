@@ -114,16 +114,24 @@ describe('스킬', () => {
     cast(f, 'wardCleanse', u.cell);
     expect(u.debuffs).toHaveLength(0);
   });
-  it('수호 결계 8초 받는 피해 −40% · 빛의 장막 10초 2칸 거리 −25%', () => {
+  it('수호 결계 (82): 8초 동안 최대 체력 35% 보호막 + 인장 (받는 피해 감소는 없음)', () => {
     const f = fight(), u = tank(f);
     now(f, 'guardWard', u.cell);
-    expect(taken(f, u)).toBeCloseTo(100 * (1 - WARDER.guard.cut), 6);
+    expect(absorbLeft(f, u)).toBeCloseTo(u.max * WARDER.guard.hp, 6);
+    expect(sealed(f, u)).toBe(true);
+    expect(u.redu).toBe(0);
+    step(f, WARDER.guard.sec + 0.1);
+    expect(absorbLeft(f, u)).toBe(0);
+  });
+  it('빛의 장막 (82): 파티 전원 12초 보호막 220 + 인장, 쓴 뒤 10초 표시', () => {
     const g = fight(), w = others(g)[0];
     now(g, 'lightVeil', w.cell);
-    expect(veilOf(g)!.r).toBe(WARDER.veil.range);
-    expect(taken(g, w)).toBeCloseTo(100 * (1 - WARDER.veil.cut), 6);
-    step(g, WARDER.veil.sec + 0.1);
+    for (const v of E.living(g)) { expect(absorbLeft(g, v)).toBeCloseTo(SKILLS.lightVeil.amt!, 6); expect(sealed(g, v)).toBe(true); }
+    expect(veilOf(g)).not.toBeNull();
+    step(g, WARDER.veil.after + 0.1);
     expect(veilOf(g)).toBeNull();
+    step(g, WARDER.veil.sec - WARDER.veil.after);
+    expect(absorbLeft(g, w)).toBe(0);
   });
   it('빛의 창: 보스를 치고 인장이 붙은 가장 다친 3명 (레이드 1명) 회복', () => {
     const f = fight(); hurt(f, 0.5);
@@ -211,10 +219,10 @@ describe('특성 (79 5-7)', () => {
     now(h, 'wardCleanse', x.cell);
     expect(adj(h, x).every(v => absorbLeft(h, v) === TX.cleanWard.amt)).toBe(true);
   });
-  it('굳은 결계 −50% · 빠른 막 4초 · 번지는 인장 (붙은 1명)', () => {
+  it('굳은 결계 보호막 50% (82) · 빠른 막 4초 · 번지는 인장 (붙은 1명)', () => {
     const f = fight(['firmWard']), t = tank(f);
     now(f, 'guardWard', t.cell);
-    expect(taken(f, t)).toBeCloseTo(100 * (1 - TX.firmWard), 6);
+    expect(absorbLeft(f, t)).toBeCloseTo(t.max * TX.firmWard, 6);
     expect(cdOf(fight(['quickBarrier']), 'lightBarrier')).toBe(TX.quickBarrier);
     const g = fight(['sealSpread']), u = withAdj(g, 1);
     cast(g, 'quickSeal', u.cell);
@@ -270,13 +278,18 @@ describe('특성 (79 5-7)', () => {
     now(g, 'wardCircle', dps(g)[0].cell);
     expect(absorbLeft(g, dps(g)[0])).toBeCloseTo(SKILLS.wardCircle.amt! * (1 + TX.wideWard.amt), 6);
   });
-  it('장막의 탱커 −40% · 장막의 숨 · 함께 드는 짐 3칸', () => {
-    const f = fight(['veilTank']), t = tank(f);
+  it('장막의 탱커 보호막 2배 · 함께 드는 짐: 장막 뒤 첫 심판은 인원 제한 없이 (82)', () => {
+    const f = fight(['veilTank']), t = tank(f), d = dps(f)[0];
     now(f, 'lightVeil', t.cell);
-    expect(taken(f, t)).toBeCloseTo(100 * (1 - TX.veilTank), 6);
+    expect(absorbLeft(f, t)).toBeCloseTo(SKILLS.lightVeil.amt! * TX.veilTank, 6);
+    expect(absorbLeft(f, d)).toBeCloseTo(SKILLS.lightVeil.amt!, 6);
     const g = fight(['sharedLoad']);
+    const n0 = judgeCount(g);
     cast(g, 'lightVeil', others(g)[0].cell);
-    expect(veilOf(g)!.r).toBe(TX.sharedLoad.range);
+    expect(judgeCount(g)).toBe(g.party.length);
+    hurt(g, 0.5);
+    cast(g, 'judgment', g.me.cell);
+    expect(judgeCount(g)).toBe(n0);
   });
   it('성채 (빈 칸 12초, 피해 −20%, 3초마다 보호막) · 참회의 시간 (5명) · 끝없는 심판 (마나 0, 1초)', () => {
     const f = fight(['citadel']);
@@ -341,14 +354,16 @@ describe('직업 전용 특수능력 (79 5-8)', () => {
     expect(cdOf(sp('hastySpear'), 'lightSpear')).toBeCloseTo(SKILLS.lightSpear.cd! - SPECS.hastySpear.val, 6);
     const f = sp('longGuard'), t = tank(f);
     now(f, 'guardWard', t.cell);
-    expect(t.redu).toBeCloseTo(WARDER.guard.sec + SPECS.longGuard.val, 6);
+    step(f, WARDER.guard.sec + 0.1);
+    expect(absorbLeft(f, t)).toBeGreaterThan(0); // 긴 수호: 보호막 시간 +
     const g = sp('firmVeil'), w = others(g)[0];
     now(g, 'lightVeil', w.cell);
-    expect(taken(g, w)).toBeCloseTo(100 * (1 - WARDER.veil.cut - SPECS.firmVeil.val), 6);
+    expect(absorbLeft(g, w)).toBeCloseTo(SKILLS.lightVeil.amt! * (1 + SPECS.firmVeil.val), 6);
     expect(castOf(sp('sealHaste'), 'sealHeal')).toBeCloseTo(SKILLS.sealHeal.cast - SPECS.sealHaste.val, 6);
-    const h = sp('longVeil');
-    now(h, 'lightVeil', others(h)[0].cell);
-    expect(veilOf(h)!.until - h.t).toBeCloseTo(WARDER.veil.sec + SPECS.longVeil.val, 6);
+    const h = sp('longVeil'), x = others(h)[0];
+    now(h, 'lightVeil', x.cell);
+    step(h, WARDER.veil.sec + 0.1);
+    expect(absorbLeft(h, x)).toBeGreaterThan(0); // 긴 장막: 보호막 시간 +
   });
   it('창 뒤의 심판: 빛의 창 뒤 다음 심판 시전 −', () => {
     const f = sp('spearJudge'); hurt(f, 0.5);

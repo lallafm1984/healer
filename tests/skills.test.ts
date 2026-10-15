@@ -31,11 +31,11 @@ describe('레벨별 스킬 해금', () => {
     expect(E.knows(fightAt(12), 'hymn')).toBe(true);
   });
 
-  it('성언 게이지는 Lv 6부터 차고, 그 전엔 이어받은 게이지도 0', () => {
-    const lo = E.create({ encounter: 'warden', diff: '보통', seed: 7, level: 5, carry: { mana: 80, g: { p: 60, s: 40 } } });
-    expect(lo.g).toEqual({ p: 0, s: 0 });
-    const hi = E.create({ encounter: 'warden', diff: '보통', seed: 7, level: 6, carry: { mana: 80, g: { p: 60, s: 40 } } });
-    expect(hi.g).toEqual({ p: 60, s: 40 });
+  it('평온 게이지는 Lv 6부터 차고, 그 전엔 이어받은 게이지도 0', () => {
+    const lo = E.create({ encounter: 'warden', diff: '보통', seed: 7, level: 5, carry: { mana: 80, g: { p: 60 } } });
+    expect(lo.g).toEqual({ p: 0 });
+    const hi = E.create({ encounter: 'warden', diff: '보통', seed: 7, level: 6, carry: { mana: 80, g: { p: 60 } } });
+    expect(hi.g).toEqual({ p: 60 });
     for (const [lv, filled] of [[5, false], [6, true]] as const) {
       const f = fightAt(lv);
       E.use(f, 'heal', targetIdx(f));

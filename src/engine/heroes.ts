@@ -3,7 +3,7 @@
  * healer.ts가 공통 흐름(시전·마나·GCD·예약)을 맡고, 여기서는 「맞았을 때 무슨 일이 일어나는가」만 다룬다.
  */
 import { HEROES, type HeroKey } from '../data/heroes';
-import { ASTRO_CHARGE, BARK, BEACON, HAND_GUARD, REBIRTH, SANCTUARY, SHAMAN } from '../data/heroConst';
+import { ASTRO_CHARGE, BARK, BEACON, HAND_GUARD, QUIETWOOD, REBIRTH, SANCTUARY, SHAMAN } from '../data/heroConst';
 import { shamanApply, shamanCell, shamanLethal, shamanTaken, shamanTick, shamanTotemGone } from './shaman';
 import { monkApply, monkLethal, monkTaken, monkTick } from './monk';
 import { warderApply, warderShieldBroken, warderTaken, warderTick } from './warder';
@@ -15,7 +15,7 @@ import { cellOf, emit, heal, healTop, living, onDebuffEnd } from './core';
 import { noteUsed } from './healer';
 import { reviveUnit } from './items';
 import { activeOn, adjLow, areaRadius, rescueLater, sanctuaryReach, waveMax, wildAt } from './talents';
-import { aoeCount, aoeDone, guardSec, hc, powerSpent, raidSec, specDispel, sv, twin, under } from './specials';
+import { aoeCount, aoeDone, guardSec, hc, powerSpent, raidSec, skillSpec, specDispel, sv, twin, under } from './specials';
 import { hotMult as hotMultOf } from './units';
 import type { Fight, Hot, Totem, Unit } from './types';
 
@@ -201,6 +201,20 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
     if (f.sp) twin(f, u, v => { v.redu = guardSec(f, BARK.sec) / 2; v.reduCut = barkCut(f); }); // 쌍둥이 방패
     if (f.sp && sv(f, 'barkSprout')) giveSprout(f, u, false); // 껍질 아래 새순 (42 드루 20)
     emit(f, { type: 'sound', name: 'renew' });
+  } else if (key === 'quietwood') {
+    // 82: 즉시 · 파티 전원. 걸린 지속 힐은 늘리고 (늘어난 시간 = 마지막 틱 빠르기로 회복량도), 새싹이 없는 아군에게는 새싹 (깊은 숲 42 드루 13 = 심는 새싹 회복량 +)
+    const sec = raidSec(f, 'quietwood', QUIETWOOD.ext), o = sproutSpec(f); // 길어진 노래 · 숲의 숨결 (42)
+    o.total *= 1 + skillSpec(f, 'quietwood', 'heal');
+    for (const v of living(f)) {
+      for (const h of v.hots) {
+        h.rest += (hotTail(h) / h.every) * sec; h.left += sec;
+        if (QUIETWOOD.now) heal(f, v, hotTail(h) * QUIETWOOD.now * hotMultOf(f, v, h), false); // 바로 한 번 더 (깨어나는 숲처럼 남은 회복량은 그대로)
+      }
+      if (v.hot > 0) v.hot += sec;
+      if (!hasSprout(v)) putSprout(f, v, { ...o });
+      v.lastHeal = f.t; if (v.sulking) v.sulking = false;
+    }
+    emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'rebirth') {
     const hp = (f.tx.rebirths ? TX.secondSpring.hp : REBIRTH.hp) + sv(f, 'quickRebirth'); // 두 번째 봄 (77): 두 번째는 25%
     if (u.alive || !reviveUnit(f, u, hp)) { emit(f, { type: 'msg', text: '환생 실패: 되살릴 빈 칸 없음' }); return; } // 빠른 환생 (42 드루 08)
@@ -366,19 +380,6 @@ export function heroTick(f: Fight, dt: number): void {
   }
 }
 
-/** 공대 쿨기 정신 집중 1초마다 (사제 찬가 120, 드루이드 숲 100 + 지속 힐 +2초) */
-export function heroChannelTick(f: Fight): void {
-  if (f.hero === 'druid') {
-    for (const u of living(f)) {
-      heal(f, u, 100, true);
-      // 남은 시간 +2초 = 그 지속 힐 마지막 틱 빠르기로 2초만큼 회복량도 더함 (2026-10-14 검토: 시간만 늘고 남은 회복량이 그대로라 새싹은 더 회복하지 않던 것)
-      for (const h of u.hots) { h.rest += (hotTail(h) / h.every) * 2; h.left += 2; }
-      if (u.hot > 0) u.hot += 2;
-    }
-  } else {
-    for (const u of living(f)) heal(f, u, 120, true);
-  }
-}
 
 /** 전투 시작 때 직업별 안내 (전투 화면 위쪽 문구) */
 export const heroRing = (f: Fight): { label: string; value: string } => {

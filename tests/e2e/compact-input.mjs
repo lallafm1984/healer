@@ -60,7 +60,7 @@ async function installFixture(page) {
       for (const el of document.querySelectorAll('#wheel [aria-pressed="true"], #items .armed, #aux .armed')) el.click();
       const f = window.__proto.F;
       f.level = 100; f.cast = null; f.queued = null; f.gcd = 0; f.channel = 0; f.mana = 80;
-      f.g.p = 0; f.g.s = 0; f.cd = { purify: 0, guardian: 0, hymn: 0 };
+      f.g.p = 0; f.cd = { purify: 0, guardian: 0, hymn: 0 };
       f.items.mana = 2; f.items.shield = 2; f.potCd = 0; f.itemLog = []; f.events = [];
       f.stats.casts = {}; f.stats.taps = 0; f.stats.manaFails = 0;
       for (const v of Object.values(f.tx.act)) { v.used = false; v.cd = 0; v.left = 0; }
@@ -321,7 +321,7 @@ async function inputs(page, check, label) {
     const q = window.__inputFixture, f = window.__proto.F;
     q.tap('shield');
     f.cast = { key: 'heal', uid: f.party[0].id, cell: f.party[0].cell, left: 1.2, total: 1.8 };
-    f.queued = { key: 'renew', uid: f.party[1].id }; f.gcd = 0.7; f.g.p = 42; f.g.s = 24;
+    f.queued = { key: 'renew', uid: f.party[1].id }; f.gcd = 0.7; f.g.p = 42;
     f.party[0].debuffs = [{ id: 99991, name: '입력 시험 독', type: '독', left: 12, dot: 1 }];
     f.party[1].shield = 5;
     const before = JSON.stringify(f);

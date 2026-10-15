@@ -240,8 +240,8 @@ describe('엔진: 스킬이 들어간 순간 (Fight.used)', () => {
     expect(pxfTargets(f, 'heal', f.me.id).map(u => u.id)).toEqual([f.me.id]);
   });
 
-  it('정신 집중 동안 1초마다 그 스킬로 다시 (찬가 · 고요한 숲 회복이 공통 치유 빛 대신 스킬 이펙트)', () => {
-    for (const [hero, key] of [['priest', 'hymn'], ['druid', 'quietwood']] as const) {
+  it('정신 집중 동안 1초마다 그 스킬로 다시 (찬가 회복이 공통 치유 빛 대신 스킬 이펙트, 82: 고요한 숲은 즉시라 빠짐)', () => {
+    for (const [hero, key] of [['priest', 'hymn']] as const) {
       const f = E.create({ encounter: 'warden', diff: '보통', seed: 7, level: 20, hero });
       f.skills.forEach(k => { k.next = Infinity; });
       expect(E.use(f, key, f.me.cell).ok, hero).toBe(true);

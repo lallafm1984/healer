@@ -45,7 +45,7 @@ export function validLayout(v: unknown): v is Layout {
   const keys = READ_ORDER.map(d => (o[d] as string) || null);
   return LAYOUT_SKILLS.every(k => keys.filter(x => x === k).length === 1) && keys.every(k => k === null || (LAYOUT_SKILLS as string[]).includes(k));
 }
-export const layoutLabel = (k: string) => (k === 'heal' ? '치유/평온' : k === 'poh' ? '기원/신성화' : SKILLS[k as SkillKey].name);
+export const layoutLabel = (k: string) => (k === 'heal' ? '치유/평온' : SKILLS[k as SkillKey].name);
 export const layoutText = (l: Record<string, string | null>) => READ_ORDER.filter(d => l[d]).map(d => `${ARROW[d]} ${layoutLabel(l[d]!)}`).join(' · ');
 export const layoutCode = (l: Layout) => READ_ORDER.map(d => `${d}:${l[d] || '-'}`).join(',');
 
@@ -114,7 +114,7 @@ export interface StartOptions {
 
 export interface Run {
   content: string; name: string; segs: string[]; seed0: number | null; coachDone: Set<number>;
-  idx: number; carry: { mana: number; g: { p: number; s: number } } | null; time: number; deaths: number; restSec: number;
+  idx: number; carry: { mana: number; g: { p: number } } | null; time: number; deaths: number; restSec: number;
   healed: number; overheal: number; dispels: number; dispellable: number; itemLog: { key: ItemKey; t: number }[]; auto: boolean;
   meter: MeterRow[];
   /** 광고 이어하기 횟수 (등급 최대 B) */

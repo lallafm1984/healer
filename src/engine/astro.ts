@@ -150,9 +150,9 @@ function perfectDone(f: Fight): void {
   emit(f, { type: 'msg', text: '완벽한 별자리' });
 }
 
-/** 별의 기억: 최근 4초 (긴 기억 6초) 받은 피해의 50% (탱커의 기억 70%, 나누는 기억 +), 적어도 100 (힐 배율을 거친) */
-export function memoryAmt(f: Fight, u: Unit): number {
-  const sec = f.tx.on.longMemory ? TX.longMemory : ASTRO.memory.sec;
+/** 별의 기억 (82 모으기): 별 1개마다 2초 (긴 기억 3초) 더 먼 피해의 50% (탱커의 기억 70%, 나누는 기억 +), 적어도 100 (힐 배율을 거친) */
+export function memoryAmt(f: Fight, u: Unit, stars = 2): number {
+  const sec = Math.max(1, stars) * (f.tx.on.longMemory ? TX.longMemory : ASTRO.memory.step);
   const share = (f.tx.on.tankMemory && u.role === 'tank' ? TX.tankMemory : ASTRO.memory.share) + (f.sp ? sv(f, 'memoryShare') : 0);
   return Math.max(SKILLS.starMemory.amt!, (recentDmg(f, u, sec) * share) / (f.gear.heal * f.power));
 }
@@ -186,7 +186,11 @@ export function astroApply(f: Fight, key: SkillKey, u: Unit): void {
     emit(f, { type: 'sound', name: 'renew' });
     emit(f, { type: 'msg', text: `별의 잠: ${u.nick}` });
   } else if (key === 'starMemory') {
-    for (const v of living(f)) heal(f, v, memoryAmt(f, v) * readMult(f, v), true);
+    const o = f.chargeOut ?? { stars: 2, perfect: false }; // 모으기로 뗌 (82). 모으기 밖에서 바로 부르면 별 2개 (예전 최근 4초)
+    const m = (o.perfect ? 1 + ASTRO.charge.perfectHeal : 1) * (1 + st(f).used * (f.sp ? sv(f, 'brightShard') : 0)); // 밝은 조각 (점성 01)
+    for (const v of living(f)) heal(f, v, memoryAmt(f, v, o.stars) * m * readMult(f, v), true);
+    if (o.perfect) perfectDone(f);
+    st(f).used = 0;
     emit(f, { type: 'sound', name: 'hymn' });
   }
 }

@@ -1,12 +1,12 @@
 /** 힐러 직업 (25): 저장·직업 바꾸기 (v11 캐릭터, 68), 드루이드·성기사 고유 효과 */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TUNE } from '../src/data/tune';
-import { BEACON, DRUID_BIG, HAND_GUARD, SANCTUARY, TIER_MANA, WAVE } from '../src/data/heroConst';
+import { BEACON, DRUID_BIG, HAND_GUARD, QUIETWOOD, SANCTUARY, TIER_MANA, WAVE } from '../src/data/heroConst';
 import { HERO_KEYS, HEROES, heroSkills, skillAt, slotIdOf } from '../src/data/heroes';
 import { SKILLS } from '../src/data/skills';
 import * as E from '../src/engine';
 import { damage } from '../src/engine/core';
-import { heroApply, heroChannelTick, heroHeal, heroTick, putHot } from '../src/engine/heroes';
+import { heroApply, heroHeal, heroTick, putHot } from '../src/engine/heroes';
 import { hotTick } from '../src/engine/units';
 import { heroWin } from '../src/game/settle';
 import { G, heroNow, heroStatus, makeChar, switchHero, switchOpen } from '../src/game/state';
@@ -105,7 +105,7 @@ describe('같은 캐릭터의 무료 직업 전환 (v12)', () => {
 describe('휠 칸 이름 ↔ 직업 스킬', () => {
   it('모든 직업: 칸 이름으로 찾은 스킬이 다시 같은 칸 이름', () => {
     for (const h of HERO_KEYS) for (const k of heroSkills(h)) {
-      expect(k === 'serenity' || k === 'sanctify' || skillAt(h, slotIdOf(k)) === k).toBe(true);
+      expect(k === 'serenity' || skillAt(h, slotIdOf(k)) === k).toBe(true);
     }
   });
   it('8번째 칸: 모든 직업이 채움 (사제 빛의 전이, Lim 2026-10-11)', () => {
@@ -134,17 +134,26 @@ describe('드루이드', () => {
     expect(t.hots.some(h => h.key === 'wildflower')).toBe(false);
     expect(got).toBeCloseTo(160 * f.gear.heal * f.power, 5);
   });
-  it('고요한 숲: 늘어난 시간만큼 새싹 회복량도 (2026-10-14 검토: 시간만 늘고 회복량은 280 그대로)', () => {
+  it('고요한 숲 (82): 즉시, 걸린 지속 힐은 4초 늘고 늘어난 만큼 회복량도', () => {
     const f = fight('druid'), t = tank(f);
     t.max = 1e6; t.hp = 1;
     putHot(t, 'sprout', { sec: 12, every: 3, total: 280 });
+    heroApply(f, 'quietwood', f.me);
+    expect(f.channel).toBe(0);
+    for (const u of f.party) if (u !== t) u.hots = []; // 옆 사람 새싹 (군락 +)은 빼고 늘어난 몫만
     let got = 0;
-    for (let i = 1; i <= 250; i++) {
-      const h0 = t.hp; hotTick(f, t, 0.1); got += t.hp - h0;
-      if (i % 10 === 0 && i <= 40) { const keep = f.party.map(u => u.hp); heroChannelTick(f); f.party.forEach((u, j) => { u.hp = keep[j]; }); } // 숲 직접 회복 100은 빼고 지속 힐만
-    }
+    for (let i = 1; i <= 250; i++) { const h0 = t.hp; hotTick(f, t, 0.1); got += t.hp - h0; }
     expect(t.hots.some(h => h.key === 'sprout')).toBe(false);
-    expect(got).toBeCloseTo(((280 * (12 + 8)) / 12) * f.gear.heal * f.power, 4);
+    expect(got).toBeCloseTo(((280 * (12 + QUIETWOOD.ext)) / 12) * f.gear.heal * f.power, 4);
+  });
+  it('고요한 숲 (82): 새싹이 없는 아군 모두에게 새싹, 있던 새싹은 그대로 두고 늘림', () => {
+    const f = fight('druid'), t = tank(f);
+    putHot(t, 'sprout', { sec: 12, every: 3, total: 280 });
+    const before = t.hots.find(h => h.key === 'sprout')!;
+    E.use(f, 'quietwood', 0);
+    expect(E.living(f).every(u => u.hots.some(h => h.key === 'sprout'))).toBe(true);
+    expect(t.hots.filter(h => h.key === 'sprout')).toEqual([before]);
+    expect(before.left).toBeCloseTo(12 + QUIETWOOD.ext, 9);
   });
   it('피어남은 남은 지속 힐을 거두어 1.5배로 한 번에', () => {
     const f = fight('druid'), t = tank(f);
@@ -278,7 +287,7 @@ describe('레이드 재조정 (2026-10-07: 특성·능력 포함 기준, 26 9-1)
       const [a, b, c] = f.party, near = f.cells.filter(x => !x.unit && !x.block && E.hexDist(x, f.cells[c.cell]) === 1 && E.hexDist(x, f.cells[b.cell]) <= 1)[0];
       if (E.hexDist(f.cells[a.cell], f.cells[c.cell]) > 1) { f.cells[a.cell].unit = null; a.cell = a.home = near.i; near.unit = a; } // 셋을 붙여 세움
       for (const u of f.party) u.hp = u.max * 0.4; // 순간 치유 선 (35%) 위
-      f.cd.hymn = f.cd.quietwood = 999; f.g = { p: 0, s: 0 }; f.gcd = 0;
+      f.cd.hymn = f.cd.quietwood = 999; f.g = { p: 0 }; f.gcd = 0;
       E.autoHealer(f);
       expect(f.cast?.key, hero).toBe(hero === 'priest' ? 'poh' : 'wildflower');
     }

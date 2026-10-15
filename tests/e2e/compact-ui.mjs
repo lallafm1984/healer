@@ -366,7 +366,7 @@ async function skillCircleStates(page, ok, shots) {
   const fixture = async state => {
     await page.evaluate(state => {
       const f = window.__proto.F;
-      f.cast = null; f.queued = null; f.channel = 0; f.gcd = 0; f.g.p = 0; f.g.s = 0;
+      f.cast = null; f.queued = null; f.channel = 0; f.gcd = 0; f.g.p = 0;
       f.mana = state === 'low' ? 0 : 100;
       f.cd.purify = state === 'cooling' ? 6 : 0;
       f.cd.guardian = state === 'cooling' ? 90 : 0;
@@ -553,7 +553,7 @@ async function quakeWarningCases(page, ok) {
     const f = window.__proto.F;
     window.__quakeWarningFixture = { fight: f, gauges: { ...f.g }, tels: f.tels,
       settings: JSON.parse(localStorage.getItem('healer.save')).settings };
-    f.g.p = 100; f.g.s = 100;
+    f.g.p = 100;
   });
   const warning = async (on, reduced) => {
     await page.evaluate(({ on, reduced }) => {
@@ -586,10 +586,10 @@ async function quakeWarningCases(page, ok) {
       const tag = `360: ${compact ? '축소' : '일반'}`;
       await warning(true, false);
       const active = await sample(), holy = active.slots.filter(s => s.holy), ordinary = active.slots.filter(s => !s.holy);
-      ok(active.sameFight && active.quake && !active.reduced && holy.length === 2 && ordinary.length > 0
-        && holy.some(s => /성언: 평온/.test(s.label)) && holy.some(s => /성언: 신성화/.test(s.label))
+      ok(active.sameFight && active.quake && !active.reduced && holy.length === 1 && ordinary.length > 0
+        && holy.some(s => /성언: 평온/.test(s.label))
         && active.slots.every(s => s.art && s.animation === 'quakeRim' && s.duration === '0.18s' && s.runningQuake),
-      `${tag} 진동 예고는 배운 성언 2칸·일반 스킬 모두 실제 경고 애니메이션 유지`, active);
+      `${tag} 진동 예고는 성언: 평온 칸·일반 스킬 모두 실제 경고 애니메이션 유지`, active);
 
       await warning(true, true);
       const reduced = await sample();
@@ -812,7 +812,7 @@ async function heroVariants(page, ok, shots) {
     const tools = await inspectDirectControls(page, ok, `320: ${label} 탱커 전멸`, true);
     const g = { ...c, normal, compact, left, down, normalDown, tools, normalLayout, compactLayout, normalArt, compactArt };
     out.push(g);
-    const gauge = c.synthetic || (c.hero === 'priest' ? /평온/.test(compact.gaugeText) && /신성화/.test(compact.gaugeText)
+    const gauge = c.synthetic || (c.hero === 'priest' ? /평온/.test(compact.gaugeText)
       : c.hero === 'druid' ? /새싹/.test(compact.gaugeText)
         : /힘/.test(compact.gaugeText) && /봉화/.test(compact.gaugeText) && /신성한 힘/.test(compact.gaugeLabel) && /봉화/.test(compact.gaugeLabel));
     const directControls = [compact, left, down].every(v => v.visibleItems === normal.visibleItems

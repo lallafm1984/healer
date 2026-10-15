@@ -651,7 +651,6 @@ const SKILL_LINE: Partial<Record<SkillKey, string>> = {
   guardian: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 11c1.5-2 4.5-2 6 0"/>',
   hymn: '<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>',
   serenity: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
-  sanctify: '<ellipse cx="12" cy="17" rx="9" ry="3.5"/><ellipse cx="12" cy="17" rx="4.5" ry="1.6"/><path d="M12 3v9M8.5 6.5 12 3l3.5 3.5"/>',
   relay: '<path d="M20 8.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 1 1 9 0zM11 13 3.5 20.5M9.5 10.5 5 15M13.5 14.5 9 19"/>',
   sprout: '<path d="M12 21v-8"/><path d="M12 13c-3.5 0-5.5-2.5-5.5-6 3.5 0 5.5 2.5 5.5 6zM12 13c3.5 0 5.5-2.5 5.5-6-3.5 0-5.5 2.5-5.5 6z"/>',
   growth: '<path d="M8 21c0-5 8-5 8-10S8 6 12 3"/><path d="M16 11c2 0 3.5-1 4-3-2 0-3.5 1-4 3zM9 15c-2 0-3.5-1-4-3 2 0 3.5 1 4 3z"/>',
@@ -737,14 +736,14 @@ function fitDesc(): void {
   const cs = getComputedStyle(txt);
   // 낱말 단위로 줄이 바뀌어(keep-all) 끝에 남는 자리만큼 넉넉히 1.1배
   const lines = (t: string, font: string) => { measure!.font = font; return Math.ceil((measure!.measureText(t).width * 1.1) / w); };
-  const ks = heroSkills(hero()).filter(k => k !== 'serenity' && k !== 'sanctify');
+  const ks = heroSkills(hero()).filter(k => k !== 'serenity');
   const body = Math.max(2, ...ks.map(k => lines(skDesc(k), `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`)));
   const small = `400 12px ${cs.fontFamily}`;
   const hint = Math.max(1, ...ks.map(k => lines(`${descHint(k, 'NE', hero())} 칸 탭 기본 힐입니다. Lv 15에 배웁니다.`, small)));
   box.style.height = `${112 + (body - 2) * 19 + (hint - 1) * 17}px`;
 }
 
-/** 패시브 목록 (사제: 성언 게이지 포함 4개, 다른 직업: 고유 시스템 + 패시브) */
+/** 패시브 목록 (사제: 평온 게이지 포함 4개, 다른 직업: 고유 시스템 + 패시브) */
 function passivesOf(h: HeroKey): { name: string; lv: number; desc: string; kind: string }[] {
   if (h === 'priest') return (['echo', 'grace', 'symbol', 'words'] as PassiveKey[]).map(x => ({ name: PASSIVE_NAME[x], lv: PASSIVE_LEVEL[x], desc: PASSIVE_DESC[x], kind: x === 'words' ? '고유 시스템' : '패시브' }));
   return [{ ...HEROES[h].system, kind: '고유 시스템' }, ...HEROES[h].passives.map(p => ({ ...p, kind: '패시브' }))];
@@ -752,7 +751,7 @@ function passivesOf(h: HeroKey): { name: string; lv: number; desc: string; kind:
 
 function skillRows(lay: Record<string, string | null>): string {
   const L = battle().layout, h = hero(), lv = healerLevel();
-  const rows = heroSkills(h).filter(k => k !== 'serenity' && k !== 'sanctify').map(k => {
+  const rows = heroSkills(h).filter(k => k !== 'serenity').map(k => {
     const lock = lockLv(k), d = dirOf(k, lay), open = skOpen === k, sk = SKILLS[k];
     const meta = [SKILL_INFO[k].kind, castShort(k), costShort(k), sk.cd ? `${sk.cd}초` : ''].filter(Boolean).join(' · ');
     return `<button type="button" class="c7-sk${lock ? ' locked' : ''}${d && sel === d && !swapping ? ' on' : ''}" data-skill="${k}" aria-expanded="${open}">
@@ -761,8 +760,8 @@ function skillRows(lay: Record<string, string | null>): string {
   });
   if (h === 'priest') {
     const lock = lv < PASSIVE_LEVEL.words ? PASSIVE_LEVEL.words : 0, open = skOpen === 'words';
-    rows.push(`<button type="button" class="c7-sk holy${lock ? ' locked' : ''}" data-skrow="words" aria-expanded="${open}"><span class="c7-ski">${skillIc('serenity')}</span><span class="c7-skn"><b>${SKILLS.serenity.name} · ${SKILLS.sanctify.name}</b><span>${lock ? `${LOCK}Lv ${lock}에 배움 · ` : ''}게이지 100%에서 휠 조각이 바뀜 · 마나 0</span></span><span class="c7-dir"></span></button>
-      ${open ? `<p class="c7-skd"><b>${SKILLS.serenity.name}</b> ${esc(skDesc('serenity'))}<br><b>${SKILLS.sanctify.name}</b> ${esc(skDesc('sanctify'))}</p>` : ''}`);
+    rows.push(`<button type="button" class="c7-sk holy${lock ? ' locked' : ''}" data-skrow="words" aria-expanded="${open}"><span class="c7-ski">${skillIc('serenity')}</span><span class="c7-skn"><b>${SKILLS.serenity.name}</b><span>${lock ? `${LOCK}Lv ${lock}에 배움 · ` : ''}평온 게이지 100%에서 치유 칸이 바뀜 · 마나 0</span></span><span class="c7-dir"></span></button>
+      ${open ? `<p class="c7-skd"><b>${SKILLS.serenity.name}</b> ${esc(skDesc('serenity'))}</p>` : ''}`);
   }
   const pas = passivesOf(h), open = skOpen === 'pas';
   rows.push(`<button type="button" class="c7-sk pas" data-skrow="pas" aria-expanded="${open}"><span class="c7-ski">${line('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/>')}</span><span class="c7-skn"><b>패시브 ${pas.length}</b><span>${pas.map(p => p.name).join(' · ')}</span></span><span class="c7-dir">${open ? '▴' : '▾'}</span></button>
@@ -795,7 +794,7 @@ const TALENT_ART: Record<TalentKey, SkillKey> = {
   longBreath: 'renew', lightTouch: 'flash', wideCircle: 'poh',
   brink: 'heal', washed: 'purify', practiced: 'holyLight',
   overflow: 'bloom', hopRenew: 'growth', breather: 'quietwood',
-  fullHeart: 'serenity', spreadSerenity: 'sanctify', echoWord: 'hymn',
+  fullHeart: 'serenity', spreadSerenity: 'serenity', echoWord: 'hymn',
   miracle: 'holyStrike', savedWord: 'oath', cleansingWord: 'natureCleanse',
   repay: 'sacrifice', twoGuard: 'guardian', firmWill: 'handGuard',
   calmHymn: 'hymn', shelter: 'sanctuary', grief: 'sacrifice',
@@ -943,32 +942,32 @@ const SKILL_BRIEF: Record<SkillKey, string> = {
   renew: '시간에 걸쳐 꾸준히 회복', poh: '주변 아군을 함께 회복',
   purify: '마법·질병 해제', guardian: '치명적인 피해에서 보호',
   hymn: '파티 전체를 지속 회복', relay: '아군 사이를 옮겨 가며 회복',
-  serenity: '한 명을 즉시 크게 회복', sanctify: '주변 아군을 즉시 크게 회복',
+  serenity: '한 명을 즉시 크게 회복',
   sprout: '시간에 걸쳐 꾸준히 회복', growth: '빠른 회복과 지속 치유',
   bloom: '남은 지속 치유를 즉시 회복', wildflower: '주변 아군을 함께 회복',
   natureCleanse: '마법·저주·독 해제', bark: '받는 피해 감소',
-  quietwood: '파티 전체를 지속 회복', rebirth: '쓰러진 아군 부활',
+  quietwood: '파티 전원에게 새싹 심기', rebirth: '쓰러진 아군 부활',
   holyLight: '체력 회복과 신성한 힘 충전', holyStrike: '빠른 회복과 신성한 힘 충전',
   oath: '신성한 힘으로 지속 치유', lightWave: '신성한 힘으로 주변 회복',
   handCleanse: '마법·독·질병 해제', sacrifice: '아군의 피해를 대신 받음',
   sanctuary: '주변 아군 보호와 지속 치유', handGuard: '물리 피해 차단 · 공격 불가',
-  ripple: '한 명의 체력을 크게 회복', shower: '위급한 아군을 빠르게 회복',
+  ripple: '회복하고 옆 아군에게 튐', shower: '위급한 아군을 빠르게 회복',
   droplet: '시간에 걸쳐 회복 · 연쇄 다리', washing: '마법·저주 해제',
   chainHeal: '다친 아군 사이를 튀며 회복', earthTotem: '토템 둘레 받는 피해 감소',
   rainTotem: '파티 전체를 지속 회복', spiritLink: '붙은 아군 체력 나눠 맞추기',
   springTotem: '고른 칸 둘레를 지속 회복',
-  vitalPalm: '짧은 즉시 회복 · 기 리듬', mistWrap: '빠른 회복과 안개',
+  vitalPalm: '짧은 즉시 회복 · 기 리듬', mistWrap: '리듬만큼 커지는 즉시 회복',
   wanderMist: '옮겨 다니는 지속 치유', clearChi: '마법·질병 해제',
   mistBreath: '주변 아군을 즉시 회복', soothe: '받는 피해 감소',
   reviveWind: '파티 전체 회복과 해제', tea: '마나와 기 리듬 회복',
   starHeal: '한 명 회복과 별 조각', twinkle: '즉시 회복과 별 조각',
   starMark: '지속 치유 · 다음 힐 강화', clearStar: '마법·독 해제',
   starfall: '별을 모아 범위 회복', starSleep: '잠깐 모든 피해 차단 · 공격 불가',
-  starMemory: '최근 받은 피해만큼 회복', polaris: '별을 모아 한 명 크게 회복',
+  starMemory: '별을 모아 받은 피해 되감기', polaris: '별을 모아 한 명 크게 회복',
   sealHeal: '한 명 회복과 인장', quickSeal: '빠른 회복과 인장',
   lightBarrier: '보호막과 인장', wardCleanse: '마법·저주 해제',
-  wardCircle: '주변 아군 보호막과 인장', guardWard: '받는 피해 감소',
-  lightVeil: '넓은 범위 받는 피해 감소', lightSpear: '보스 공격과 인장 회복',
+  wardCircle: '주변 아군 보호막과 인장', guardWard: '큰 보호막과 인장',
+  lightVeil: '파티 전원 보호막과 인장', lightSpear: '보스 공격과 인장 회복',
   judgment: '보스 공격과 인장 아군 회복',
 };
 

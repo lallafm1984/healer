@@ -152,7 +152,7 @@ export function updateWheel(): void {
     el.classList.toggle('cooling', cd > 0);
     el.classList.toggle('gcd', gcd > 0);
     el.classList.toggle('armed', B.armed === slot);
-    el.classList.toggle('holy', key === 'serenity' || key === 'sanctify');
+    el.classList.toggle('holy', key === 'serenity');
   }
   $('wheel').classList.toggle('quake', F.tels.some(t => t.skill.quake)); // 진동 예고: 휠 테두리가 떨림 (35 4-4)
   // 휠 가운데 = 마나 링 (시안). 마나가 모자라면 링·숫자가 빨강 (27 3-4: 위기 신호를 마나 테두리로)
@@ -166,13 +166,13 @@ export function updateWheel(): void {
   const meter = core.querySelector('.mana-meter')!;
   if (meter.getAttribute('aria-valuenow') !== String(mana.percent)) meter.setAttribute('aria-valuenow', String(mana.percent));
   core.classList.toggle('beacon', B.beacon || B.coreCell);
-  // 직업 고유 시스템 = 단축칸 아래 작은 막대 2줄 (시안 20인): 사제 평온·신성화 / 드루이드 새싹 걸린 인원 / 성기사 신성한 힘 · 봉화
+  // 직업 고유 시스템 = 단축칸 아래 작은 막대 (시안 20인): 사제 평온 (82: 한 줄) / 드루이드 새싹 걸린 인원 / 성기사 신성한 힘 · 봉화
   const r = coreRing(F);
   const gaugeLabels = $('gauges').querySelectorAll<HTMLElement>('.gl');
   if (F.hero === 'paladin' && gaugeLabels[0]) setText(gaugeLabels[0], '신성한 힘');
   $('gauges').setAttribute('aria-label', F.hero === 'paladin' ? `신성한 힘 ${r.a}, 봉화 ${r.b}`
     : F.hero === 'druid' ? `새싹 ${r.a}명 / ${r.b}명` : F.hero === 'shaman' ? `샘 토템 ${r.a}, 대지 토템 ${r.b}` : F.hero === 'monk' ? `기 리듬 ${r.a}, 이어지는 시간 ${r.b}`
-    : F.hero === 'astrologer' ? `모으는 별 ${r.a}, 별 조각 ${r.b}` : F.hero === 'warder' ? `인장 ${r.a}, 심판 회복 ${r.b}` : `평온 ${r.a}%, 신성화 ${r.b}%`);
+    : F.hero === 'astrologer' ? `모으는 별 ${r.a}, 별 조각 ${r.b}` : F.hero === 'warder' ? `인장 ${r.a}, 심판 회복 ${r.b}` : `평온 ${r.a}%`);
   if (F.hero === 'astrologer') $('gauges').querySelector('.gr')?.classList.toggle('ready', chargePerfect(F));
   // 심판 (79 5-3): 인장 붙은 아군이 없으면 가운데 버튼이 흐려짐 (모양은 Codex 몫), 3명 이상 회복할 수 있으면 심판 줄이 반짝
   const coreOff = F.hero === 'warder' && F.level >= SKILL_LEVEL.judgment && !judgeReady(F);
@@ -183,12 +183,8 @@ export function updateWheel(): void {
   setText($('gS'), r.b);
   setBar($('gPb'), r.outer);
   setBar($('gSb'), r.inner);
-  // 성언 준비: 휠 칸이 평온 · 신성화로 바뀌는 때와 같이 게이지 줄도 반짝임
-  if (F.hero === 'priest') {
-    const rows = $('gauges').querySelectorAll<HTMLElement>('.gr');
-    rows[0]?.classList.toggle('ready', slotKey(F, 'heal') === 'serenity');
-    rows[1]?.classList.toggle('ready', slotKey(F, 'poh') === 'sanctify');
-  }
+  // 성언 준비: 치유 칸이 평온으로 바뀌는 때와 같이 게이지 줄도 반짝임
+  if (F.hero === 'priest') $('gauges').querySelector('.gr')?.classList.toggle('ready', slotKey(F, 'heal') === 'serenity');
 }
 function setBar(el: HTMLElement | null, v: number): void {
   if (!el) return;
@@ -198,7 +194,7 @@ function setBar(el: HTMLElement | null, v: number): void {
 
 const dispelName = (F: Fight) => { const n = SKILLS[HEROES[F.hero].slots.dispel!].name; return n + josa(n, '으로', '로'); };
 
-/** 고유 시스템 막대 한 줄: 이름 · 막대 · 값 (시안 20인 평온·신성화) */
+/** 고유 시스템 막대 한 줄: 이름 · 막대 · 값 (시안 20인) */
 const gaugeRow = (label: string, bar: string, val: string, tone: string) => `<div class="gr ${tone}"><span class="gl">${label}</span><span class="gt"><i id="${bar}"></i></span><span class="gv">${val}</span></div>`;
 /** 단축칸 아래 고유 시스템 막대 (전투 시작 때 직업에 맞게) */
 export function buildGauges(F: Fight): void {
@@ -214,7 +210,8 @@ export function buildGauges(F: Fight): void {
     : F.hero === 'astrologer' ? gaugeRow('별', 'gPb', '<b id="gP">-</b>', 'gold') + gaugeRow('조각', 'gSb', '<b id="gS">0</b>', 'calm')
     // 결계사 (79 7장 3번 첫 모양, Codex가 다듬음): 인장 붙은 아군 수 · 지금 심판하면 회복할 인원
     : F.hero === 'warder' ? gaugeRow('인장', 'gPb', '<b id="gP">0</b>', 'gold') + gaugeRow('심판', 'gSb', '<b id="gS">-</b>', 'calm')
-    : gaugeRow('평온', 'gPb', '<b id="gP">0</b>%', 'calm') + gaugeRow('신성화', 'gSb', '<b id="gS">0</b>%', 'gold');
+    // 사제 (82): 평온 게이지 한 줄 (신성화는 없앰)
+    : gaugeRow('평온', 'gPb', '<b id="gP">0</b>%', 'calm') + '<i id="gSb" hidden></i><b id="gS" hidden></b>';
 }
 
 /** 고유 시스템 막대 두 개(0~1)와 값 글자 둘 */
@@ -251,7 +248,7 @@ function coreRing(F: Fight): { outer: number; inner: number; a: string; b: strin
     return { outer: live.length ? n / live.length : 0, inner: 0, a: String(n), b: String(live.length) };
   }
   // 아껴 둔 말씀 (특성)이면 200까지 모임: 링은 100에서 가득, 숫자는 그대로
-  return { outer: Math.min(1, F.g.p / 100), inner: Math.min(1, F.g.s / 100), a: String(Math.floor(F.g.p)), b: String(Math.floor(F.g.s)) };
+  return { outer: Math.min(1, F.g.p / 100), inner: 0, a: String(Math.floor(F.g.p)), b: '' };
 }
 
 // ---------- 특성 보조 버튼 (06 9장 2번: 휠 밖 버튼, 단축칸 위) ----------

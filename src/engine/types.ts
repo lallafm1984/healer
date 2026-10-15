@@ -568,7 +568,7 @@ export interface TalentState {
 /** 던전 구간 사이에 이어지는 것: 마나(휴식 회복 뒤), 성언 게이지 */
 export interface Carry {
   mana: number;
-  g: { p: number; s: number };
+  g: { p: number };
 }
 
 /** 보스가 아닌 적 (23). 화면 이름은 일반·정예 */
@@ -692,8 +692,8 @@ export interface Fight {
   /** 예약한 스킬 (cell = 칸을 고르는 스킬의 칸, 79 6-1) */
   queued: { key: SkillKey; uid: number | null; cell?: number } | null;
   cd: Partial<Record<SkillKey, number>>;
-  /** 성언 게이지 p = 평온, s = 신성화 */
-  g: { p: number; s: number };
+  /** 성언 게이지 p = 평온 (82: 신성화 게이지는 없앰) */
+  g: { p: number };
   symbolUsed: boolean;
   symbol: number;
   /** 힐러 레벨 (스킬·패시브 해금) */

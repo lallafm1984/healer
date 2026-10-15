@@ -1,9 +1,10 @@
 import { CORE_ID, HEROES } from '../data/heroes';
 import { DISPELLABLE, PASSIVE_LEVEL, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
-import { DT, emit, heal, living, onDebuffEnd, unitById } from './core';
+import { DT, cellOf, emit, heal, living, onDebuffEnd, unitById } from './core';
+import { hexDist } from './board';
 import { relayTick, putRelay } from './relay';
 import { totemsTick } from './totems';
-import { heroApply, heroCell, heroChannelTick, heroTick, hotCount, putHot } from './heroes';
+import { heroApply, heroCell, heroTick, hotCount, putHot } from './heroes';
 import { palmGcd } from './monk';
 import { judgeReady, warderRegen } from './warder';
 import { crisis, freeCast, gcdNow, guardSec, hasteOf, hc, later, raidSec, regenSpec, specApply, specDispel, specExec, specTick, sv, twiceBrush, twin, under } from './specials';
@@ -21,14 +22,13 @@ export const knowsPassive = (f: Fight, key: PassiveKey) => f.hero === 'priest' &
 
 /**
  * 휠 자리 → 실제 스킬. 휠 자리 이름은 사제 스킬 이름을 그대로 쓴다 (heal = 기본 힐 칸, poh = 광역 힐 칸 …, unique = 8번째 칸).
- * 사제는 성언 게이지가 차면 치유 → 평온, 기원 → 신성화. 다른 직업은 그 칸의 직업 스킬 (25 2장)
+ * 사제는 평온 게이지가 차면 치유 → 성언: 평온 (82: 신성화는 없앰). 다른 직업은 그 칸의 직업 스킬 (25 2장)
  */
 export const SLOT_OF: Record<string, SlotName> = { heal: 'basic', flash: 'fast', renew: 'hot', poh: 'aoe', purify: 'dispel', guardian: 'ext', hymn: 'raid', unique: 'unique' };
 export function slotKey(f: Fight, slot: string): SkillKey {
   if (slot === CORE_ID) return HEROES[f.hero].core ?? (slot as SkillKey); // 가운데 버튼 스킬 (79 6-1)
   if (f.hero === 'priest' && slot !== 'unique') {
     if (slot === 'heal' && wordReady(f, f.g.p)) return 'serenity';
-    if (slot === 'poh' && wordReady(f, f.g.s)) return 'sanctify';
     return slot as SkillKey;
   }
   const s = SLOT_OF[slot];
@@ -191,6 +191,7 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     if (key === 'serenity' && sv(f, 'serenityEcho') && f.stats.overheal > over0) putHot(u, 'serenity', { sec: 4, every: 1, total: (f.stats.overheal - over0) / (f.gear.heal * f.power) }); // 평온의 여운 (42 사제 02)
     if (knowsPassive(f, 'echo')) u.echo.push({ left: 4, rate: (sk.amt! * 0.15) / 4 });
     directSpread(f, key, u, amt);
+    if (key === 'serenity' && f.sp && sv(f, 'wideSanctify')) for (const v of living(f)) if (v !== u && hexDist(cellOf(f, v), cellOf(f, u)) <= sv(f, 'wideSanctify')) heal(f, v, amt * 0.5, true); // 넓은 평온 (42 사제 03, 82)
     if (key === 'serenity' && has(f, 'cleansingWord')) cleanseOne(f, u);
     if (key === 'serenity') emit(f, { type: 'sound', name: 'chime' });
   } else if (key === 'renew') {
@@ -198,15 +199,13 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     if (has(f, 'hopRenew')) u.hotHop = false;
     if (has(f, 'shareRenew')) { const v = adjLow(f, u, 1, true)[0]; if (v) { v.hot = renewSec(f); v.hotTick = 0; v.hotHop = false; } }
     emit(f, { type: 'sound', name: 'renew' });
-  } else if (key === 'poh' || key === 'sanctify') {
+  } else if (key === 'poh') {
     let amt = sk.amt!, r = 1;
-    if (key === 'sanctify') { amt *= wordPower(f.g.s); r += sv(f, 'wideSanctify'); } // 넓은 신성화 (42 사제 03)
-    if (key === 'poh' && has(f, 'wideCircle')) { r = 2; amt *= 0.8; }
+    if (has(f, 'wideCircle')) { r = 2; amt *= 0.8; }
     pohAt(f, u.cell, amt, r);
-    if (key === 'poh' && has(f, 'doublePoh')) f.tx.later.push({ at: f.t + 2, cell: u.cell, amt: amt * 0.5, r });
-    if (key === 'poh' && f.sp && sv(f, 'pohEcho') && f.rng() < sv(f, 'pohEcho')) later(f, f.t + 2, u.cell, amt * 0.5, r); // 기원의 메아리 (42 사제 05)
-    if (key === 'poh' && f.sp && hc.n >= 4 && sv(f, 'groupPrayer')) fillWords(f, 0, 100 * sv(f, 'groupPrayer')); // 모두의 기도 (42 사제 21)
-    if (key === 'sanctify') emit(f, { type: 'sound', name: 'chime' });
+    if (has(f, 'doublePoh')) f.tx.later.push({ at: f.t + 2, cell: u.cell, amt: amt * 0.5, r });
+    if (f.sp && sv(f, 'pohEcho') && f.rng() < sv(f, 'pohEcho')) later(f, f.t + 2, u.cell, amt * 0.5, r); // 기원의 메아리 (42 사제 05)
+    if (f.sp && hc.n >= 4 && sv(f, 'groupPrayer')) fillWords(f, 100 * sv(f, 'groupPrayer')); // 모두의 기도 (42 사제 21, 82: 평온 게이지)
   } else if (key === 'purify') {
     const ds = u.debuffs.filter(d => DISPELLABLE[d.type] && !d.lock).sort((a, b) => (a.trap ? 1 : 0) - (b.trap ? 1 : 0) || (b.stack || 0) - (a.stack || 0));
     const d = ds[0];
@@ -217,7 +216,7 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     onDebuffEnd(f, u, d, true);
     if (!d.trap && has(f, 'washed')) heal(f, u, 150, true); // 씻어낸 자리
     if (f.sp) specDispel(f, u, d);
-    if (f.sp && sv(f, 'clearPrayer')) fillWords(f, 100 * sv(f, 'clearPrayer'), 0); // 맑은 기도 (42 사제 20)
+    if (f.sp && sv(f, 'clearPrayer')) fillWords(f, 100 * sv(f, 'clearPrayer')); // 맑은 기도 (42 사제 20)
   } else if (key === 'guardian') {
     u.guardian = guardSec(f, 10); // 수호의 깃 (42 보호 07)
     if (f.sp) twin(f, u, v => { v.guardian = Math.max(v.guardian, guardSec(f, 10) / 2); }); // 쌍둥이 방패
@@ -226,23 +225,22 @@ function applySkill(f: Fight, key: SkillKey, u: Unit): void {
     putRelay(f, u);
     emit(f, { type: 'sound', name: 'renew' });
   }
-  // 성언 게이지
-  if (key === 'serenity') f.g.p = wordSpent(f.g.p);
-  if (key === 'sanctify') f.g.s = wordSpent(f.g.s);
-  if (f.sp && sv(f, 'crossWord') && (key === 'serenity' || key === 'sanctify')) { const x = 100 * sv(f, 'crossWord'); fillWords(f, key === 'sanctify' ? x : 0, key === 'serenity' ? x : 0); } // 번지는 울림 (42 사제 18)
-  if ((key === 'serenity' || key === 'sanctify') && has(f, 'echoWord')) f.tx.echoUntil = f.t + 5; // 말씀의 여운
-  fillWords(f, sk.gp ?? 0, sk.gs ?? 0);
+  // 평온 게이지 (82: 하나)
+  if (key === 'serenity') {
+    f.g.p = wordSpent(f.g.p);
+    if (f.sp && sv(f, 'crossWord')) f.g.p = Math.max(f.g.p, 100 * sv(f, 'crossWord')); // 번지는 울림 (42 사제 18, 82): 쓴 뒤 게이지가 이만큼에서 시작
+    if (has(f, 'echoWord')) f.tx.echoUntil = f.t + 5; // 말씀의 여운
+  }
+  fillWords(f, sk.gp ?? 0);
 }
 
-/** 성언 게이지 채우기 (06 4장): 충만한 마음 · 깊은 성언 (42 사제 01)이면 더 빨리, 신성화는 치유의 기원을 배운 뒤부터. 100%가 되는 순간 알림 */
-export function fillWords(f: Fight, gp: number, gs: number): void {
-  if (!knowsPassive(f, 'words') || (!gp && !gs)) return;
-  const before = { p: f.g.p, s: f.g.s };
-  const cap = wordCap(f), gm = (has(f, 'fullHeart') ? 1.3 : 1) * (1 + sv(f, 'deepWord'));
-  if (gp) f.g.p = Math.min(cap, f.g.p + gp * gm);
-  if (gs && knows(f, 'poh')) f.g.s = Math.min(cap, f.g.s + gs * gm);
-  if (before.p < 100 && f.g.p >= 100) emit(f, { type: 'gauge', which: '평온' });
-  if (before.s < 100 && f.g.s >= 100) emit(f, { type: 'gauge', which: '신성화' });
+/** 평온 게이지 채우기 (06 4장, 82: 게이지는 평온 하나): 충만한 마음 · 깊은 성언 (42 사제 01)이면 더 빨리. 100%가 되는 순간 알림 */
+export function fillWords(f: Fight, gp: number): void {
+  if (!knowsPassive(f, 'words') || !gp) return;
+  const before = f.g.p;
+  const gm = (has(f, 'fullHeart') ? 1.3 : 1) * (1 + sv(f, 'deepWord'));
+  f.g.p = Math.min(wordCap(f), f.g.p + gp * gm);
+  if (before < 100 && f.g.p >= 100) emit(f, { type: 'gauge', which: '평온' });
 }
 
 /** 씻는 말씀: 종류와 상관없이 디버프 1개 (지우면 터지는 함정·해제 불가는 빼고) */
@@ -278,9 +276,9 @@ export function healerTick(f: Fight): void {
     f.channel -= dt; f.chTick += dt;
     if (f.chTick >= 1 - 1e-9) {
       f.chTick -= 1;
-      const tick = () => { if (f.hero === 'priest') { for (const u of living(f)) heal(f, u, 120, true); } else heroChannelTick(f); };
+      const tick = () => { for (const u of living(f)) heal(f, u, 120, true); }; // 정신 집중 공대 쿨기는 사제 찬가뿐 (82: 고요한 숲은 즉시)
       if (f.sp) under(HEROES[f.hero].slots.raid!, false, tick); else tick();
-      noteUsed(f, HEROES[f.hero].slots.raid!, f.me.id); // 찬가 · 고요한 숲: 1초마다 그 스킬 이펙트 (Lim 「스킬별로 이펙트가 달라야」)
+      noteUsed(f, HEROES[f.hero].slots.raid!, f.me.id); // 찬가: 1초마다 그 스킬 이펙트 (Lim 「스킬별로 이펙트가 달라야」)
     }
     if (f.channel <= 1e-9 && f.sp && f.hero === 'priest' && sv(f, 'hymnBreath')) { f.channel = 0; f.mana = Math.min(100, f.mana + sv(f, 'hymnBreath')); } // 찬가의 숨결 (42 사제 07)
     // 찬가의 끝자락: 끊기지 않고 끝나면 전원 6초 지속 힐 120
