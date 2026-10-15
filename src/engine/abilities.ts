@@ -47,9 +47,9 @@ export const HEALER_SHIELD = 'healer';
  * 한 대상 합은 최대 체력 × cap까지. 단단한 껍데기 (보호 10)도 여기서. 더해진 양을 돌려줌.
  * 피해 감소 다음에 보호막이 받음 (dmgMods 순서 그대로), 녹는 보호막 (P-MELT)에 녹음
  */
-export function giveAbsorb(f: Fight, u: Unit, amt: number, sec: number, cap: number): number {
+export function giveAbsorb(f: Fight, u: Unit, amt: number, sec: number, cap: number, raw = false): number {
   if (!u.alive || amt <= 0) return 0;
-  if (f.sp) amt *= 1 + (f.sp.v.hardShell ?? 0); // 단단한 껍데기 (42 보호 10)
+  if (f.sp && !raw) amt *= 1 + (f.sp.v.hardShell ?? 0); // 단단한 껍데기 (42 보호 10). raw = 이미 씌웠던 막을 옮기는 양 (다시 곱하지 않음)
   const m = u.mods.find(x => x.k === 'absorb' && x.src === HEALER_SHIELD);
   const left = m && m.until > f.t ? m.v : 0, v = Math.min(u.max * cap, left + amt);
   if (m) { m.v = v; m.until = Math.max(m.until, f.t + sec); } else u.mods.push({ k: 'absorb', v, until: f.t + sec, src: HEALER_SHIELD });

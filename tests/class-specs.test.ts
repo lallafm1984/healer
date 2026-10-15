@@ -172,9 +172,9 @@ describe('성기사 17~24', () => {
     expect(a.power3).toBe(2);
     expect(b.power3).toBe(1);
   });
-  it('일격의 메아리: 빛 일격이 치명타면 신성한 힘 1칸 더', () => {
+  it('손길의 메아리: 빛의 손길이 치명타면 신성한 힘 1칸 더 (2026-10-16 빛 일격에서 옮김)', () => {
     const [a, b] = pair('strikeEcho', 1, 'paladin');
-    both([a, b], f => { hurt(f); f.gear.crit = 1; cast(f, 'holyStrike', dealer(f)); });
+    both([a, b], f => { hurt(f); f.gear.crit = 1; cast(f, 'holyLight', dealer(f)); });
     expect(a.power3).toBe(2);
     expect(b.power3).toBe(1);
   });

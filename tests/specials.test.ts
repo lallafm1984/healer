@@ -18,7 +18,7 @@ import { addMod } from '../src/engine/abilities';
 
 type F = ReturnType<typeof E.create>;
 type U = F['party'][number];
-type Hero = 'priest' | 'druid' | 'paladin';
+type Hero = 'priest' | 'druid' | 'paladin' | 'astrologer';
 const fight = (specs: Record<string, number> = {}, hero?: Hero) => {
   const f = E.create({ encounter: 'plague', diff: '보통', seed: 7, level: 100, hero, specs });
   f.gear.crit = 0;
@@ -185,10 +185,10 @@ describe('2-1 치유', () => {
     expect(ratio(amtOn(a, 'heal', tank(a)), amtOn(b, 'heal', tank(b)))).toBeCloseTo(1.08, 2);
     expect(ratio(amtOn(a, 'flash', tank(a)), amtOn(b, 'flash', tank(b)))).toBeCloseTo(1, 2);
   });
-  it('빠른 응급: 즉시 시전 힐만 + (빛 일격 +, 빛의 손길 그대로)', () => {
-    const [a, b] = pair('quickAid', 0.06, 'paladin'); both([a, b], f => hurt(f));
-    expect(ratio(amtOn(a, 'holyStrike', dealer(a)), amtOn(b, 'holyStrike', dealer(b)))).toBeCloseTo(1.06, 2);
-    expect(ratio(amtOn(a, 'holyLight', dealer(a)), amtOn(b, 'holyLight', dealer(b)))).toBeCloseTo(1, 2);
+  it('빠른 응급: 즉시 시전 힐만 + (반짝임 +, 별빛 치유 그대로)', () => {
+    const [a, b] = pair('quickAid', 0.06, 'astrologer'); both([a, b], f => hurt(f));
+    expect(ratio(amtOn(a, 'twinkle', dealer(a)), amtOn(b, 'twinkle', dealer(b)))).toBeCloseTo(1.06, 2);
+    expect(ratio(amtOn(a, 'starHeal', dealer(a)), amtOn(b, 'starHeal', dealer(b)))).toBeCloseTo(1, 2);
   });
   it('넘치는 정: 과치유가 체력이 가장 낮은 파티원에게', () => {
     const [a, b] = pair('overflowKind', 0.2);
@@ -749,8 +749,8 @@ describe('2-9 직업 전용: 성기사', () => {
     expect(go(a)).toBeCloseTo(260 * BEACON.raid10 * 0.5, 6); // 10인 봉화 30% (73)
     expect(go(b)).toBeCloseTo(0, 9);
   });
-  it('연타 · 단단한 서약 · 넘치는 신성한 힘 · 퍼지는 파도 · 긴 성역', () => {
-    expect(cdOf(fight({ combo: 1.5 }, 'paladin'), 'holyStrike')).toBe(SKILLS.holyStrike.cd! - 1.5);
+  it('빠른 손길 · 단단한 서약 · 넘치는 신성한 힘 · 퍼지는 파도 · 긴 성역', () => {
+    expect(castOf(fight({ combo: 0.2 }, 'paladin'), 'holyLight')).toBeCloseTo(SKILLS.holyLight.cast - 0.2, 9);
     const [a, b] = pair('firmOath', 0.15, 'paladin');
     both([a, b], f => { big(f); f.power3 = 3; cast(f, 'oath', tank(f)); step(f, 13); });
     expect(ratio(tank(a).got, tank(b).got)).toBeCloseTo(1.15, 2);

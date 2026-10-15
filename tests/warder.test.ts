@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { EncounterKey } from '../src/data/encounters';
 import { WARDER } from '../src/data/heroConst';
 import { HEROES, heroSkills } from '../src/data/heroes';
-import { SKILLS } from '../src/data/skills';
+import { SKILL_INFO, SKILLS } from '../src/data/skills';
 import { SPEC_KEYS, SPECS } from '../src/data/specials';
 import { TALENT_TIER, TALENT_TREES, TX, WARDER_TALENTS, type TalentKey } from '../src/data/talents';
 import * as E from '../src/engine';
@@ -56,12 +56,12 @@ const seal = (f: F, ...us: U[]) => { for (const u of us) u.seal = f.t + WARDER.s
 const S = SKILLS.sealHeal.amt!, J = SKILLS.judgment.amt!;
 
 describe('데이터 (79 5장)', () => {
-  it('휠 8칸 + 가운데 심판, 해제 마법 · 저주, 상점 해금, 켬', () => {
-    expect(heroSkills('warder')).toEqual(['sealHeal', 'quickSeal', 'lightBarrier', 'wardCircle', 'wardCleanse', 'guardWard', 'lightVeil', 'lightSpear', 'judgment']);
+  it('휠 8칸 (2026-10-16 가운데 버튼 · 빠른 인장 · 빛의 창을 없애고 빠른 힐 칸에 심판, 고유 칸에 막 옮기기), 해제 마법 · 저주, 상점 해금, 켬', () => {
+    expect(heroSkills('warder')).toEqual(['sealHeal', 'judgment', 'lightBarrier', 'wardCircle', 'wardCleanse', 'guardWard', 'lightVeil', 'wardShift']);
     expect(HEROES.warder.ready).toBe(true);
     expect(HEROES.warder.unlock).toMatchObject({ buy: true }); // 81: 상점 2,200원 (예전 Lv 60)
     expect(HEROES.warder.dispel).toEqual(['마법', '저주']);
-    expect(HEROES.warder.core).toBe('judgment');
+    expect(HEROES.warder.core).toBeUndefined();
   });
   it('특성 10단 × 3, 보조 버튼은 심판의 망치 · 성채 · 끝없는 심판', () => {
     expect(WARDER_TALENTS.map(t => t.lv)).toEqual([5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
@@ -74,18 +74,14 @@ describe('데이터 (79 5장)', () => {
 });
 
 describe('스킬', () => {
-  it('인장 치유 2.5초 · 빠른 인장 1.5초: 회복하고 15초 인장', () => {
+  it('인장 치유 2.5초: 회복하고 15초 인장', () => {
     const f = fight(), u = others(f)[0];
     big(u);
     expect(castOf(f, 'sealHeal', u)).toBeCloseTo(SKILLS.sealHeal.cast, 6);
     expect(healOn(cast(f, 'sealHeal', u.cell), u)).toBe(S);
     expect(u.seal! - f.t).toBeGreaterThan(WARDER.seal.sec - 0.1);
-    const w = others(f)[1];
-    big(w);
-    expect(healOn(cast(f, 'quickSeal', w.cell), w)).toBe(SKILLS.quickSeal.amt);
-    expect(sealed(f, w)).toBe(true);
     step(f, WARDER.seal.sec + 0.1);
-    expect(sealed(f, u) || sealed(f, w)).toBe(false);
+    expect(sealed(f, u)).toBe(false);
   });
   it('빛의 막: 300 보호막 + 인장, 같은 대상은 더해지되 최대 체력 60%까지', () => {
     const f = fight(), u = dps(f)[0];
@@ -133,18 +129,16 @@ describe('스킬', () => {
     step(g, WARDER.veil.sec - WARDER.veil.after);
     expect(absorbLeft(g, w)).toBe(0);
   });
-  it('빛의 창: 보스를 치고 인장이 붙은 가장 다친 3명 (레이드 1명) 회복', () => {
-    const f = fight(); hurt(f, 0.5);
-    const os = others(f);
-    seal(f, ...os);
-    const hp0 = f.bossHp;
-    const hs = cast(f, 'lightSpear', os[0].cell);
-    expect(f.bossHp).toBeLessThan(hp0);
-    expect(os.filter(v => healOn(hs, v) > 0)).toHaveLength(WARDER.spear.n);
-    const g = fight([], {}, 100, 'plague'); hurt(g, 0.5);
-    seal(g, ...others(g));
-    const hs2 = cast(g, 'lightSpear', others(g)[0].cell);
-    expect(others(g).filter(v => healOn(hs2, v) > 0)).toHaveLength(WARDER.raid.spear);
+  it('막 옮기기 (2026-10-16 빛의 창 대신): 대상에게 150 막 + 다른 아군에게 씌운 내 보호막을 절반씩 거둬 옮김, 인장', () => {
+    const f = fight(), [a, b, c] = others(f);
+    for (const x of [a, b, c]) big(x);
+    giveAbsorb(f, b, 200, 15, WARDER.shieldCap, true); giveAbsorb(f, c, 100, 15, WARDER.shieldCap, true);
+    now(f, 'wardShift', a.cell);
+    expect(absorbLeft(f, b)).toBeCloseTo(200 * (1 - WARDER.shift.take), 6);
+    expect(absorbLeft(f, c)).toBeCloseTo(100 * (1 - WARDER.shift.take), 6);
+    expect(absorbLeft(f, a)).toBeCloseTo(SKILLS.wardShift.amt! + 300 * WARDER.shift.take, 6);
+    expect(sealed(f, a)).toBe(true);
+    expect(SKILL_INFO.wardShift.desc).not.toMatch(/보스|피해를 줍니다/);
   });
   it('심판: 인장이 없으면 안 나감, 회복 인원은 3인 6 · 5인 3 · 10인 4 · 20인 6', () => {
     const f = fight();
@@ -156,14 +150,13 @@ describe('스킬', () => {
     const g = fight(); g.party = g.party.slice(0, 3);
     expect(judgeCount(g)).toBe(WARDER.judge.n);
   });
-  it('심판: 2초 시전 뒤 보스를 치고 인장이 붙은 가장 다친 아군을 90씩', () => {
+  it('심판: 2초 시전 뒤 인장이 붙은 가장 다친 아군을 90씩 (2026-10-16 보스 공격 없음)', () => {
     const f = fight(); hurt(f, 0.5);
     const os = others(f);
     seal(f, ...os);
     os[0].hp = os[0].max * 0.2;
-    const hp0 = f.bossHp;
     const hs = cast(f, 'judgment', 0);
-    expect(f.bossHp).toBeLessThan(hp0);
+    expect(SKILL_INFO.judgment.desc).not.toMatch(/보스/);
     const got = os.filter(v => healOn(hs, v) > 0);
     expect(got).toHaveLength(Math.min(os.length, WARDER.five.judge));
     expect(healOn(hs, os[0])).toBe(J);
@@ -212,7 +205,7 @@ describe('특성 (79 5-7)', () => {
     big(u); giveAbsorb(f, u, 50, 10, 1);
     expect(healOn(cast(f, 'sealHeal', u.cell), u)).toBe(Math.round(S * (1 + TX.lightOnBarrier)));
     const g = fight(['longSeal']), w = others(g)[0];
-    cast(g, 'quickSeal', w.cell);
+    cast(g, 'sealHeal', w.cell);
     expect(w.seal! - g.t).toBeGreaterThan(TX.longSeal - 2);
     const h = fight(['cleanWard']), x = withAdj(h, 1);
     addDebuff(h, x, { name: '마법', type: '마법', left: 30 });
@@ -225,7 +218,7 @@ describe('특성 (79 5-7)', () => {
     expect(absorbLeft(f, t)).toBeCloseTo(t.max * TX.firmWard, 6);
     expect(cdOf(fight(['quickBarrier']), 'lightBarrier')).toBe(TX.quickBarrier);
     const g = fight(['sealSpread']), u = withAdj(g, 1);
-    cast(g, 'quickSeal', u.cell);
+    cast(g, 'sealHeal', u.cell);
     expect(adj(g, u).filter(v => sealed(g, v))).toHaveLength(TX.sealSpread.n);
   });
   it('무거운 심판 (가장 낮은 1명 두 배) · 빠른 심판 1.5초 · 넓은 심판 8명', () => {
@@ -301,10 +294,12 @@ describe('특성 (79 5-7)', () => {
     expect(absorbLeft(f, u)).toBeGreaterThan(0);
     const h = u.hp; u.mods = []; damage(f, u, 100, false, 'fixed');
     expect(h - u.hp).toBeCloseTo(100 * (1 - TX.citadel.cut), 6);
-    const g = fight(['repentTime']); hurt(g, 0.5);
-    seal(g, ...others(g));
-    const hs = cast(g, 'lightSpear', others(g)[0].cell);
-    expect(others(g).filter(v => healOn(hs, v) > 0)).toHaveLength(Math.min(others(g).length, TX.repentTime.n));
+    const g = fight(['repentTime']), [ga, gb] = others(g); // 주고받는 막 (2026-10-16): 막 옮기기로 거둔 아군은 거둔 양만큼 회복
+    big(ga); big(gb); gb.hp = gb.max * 0.5;
+    giveAbsorb(g, gb, 200, 15, WARDER.shieldCap, true);
+    const gh = gb.hp;
+    now(g, 'wardShift', ga.cell);
+    expect(gb.hp - gh).toBeCloseTo(200 * WARDER.shift.take * TX.repentTime.heal, 6);
     const k = fight(['endlessJudge']);
     expect(useTalent(k, 'endlessJudge').ok).toBe(true);
     expect(costOf(k, 'judgment')).toBe(0);
@@ -314,15 +309,14 @@ describe('특성 (79 5-7)', () => {
 
 describe('직업 전용 특수능력 (79 5-8)', () => {
   const sp = (k: string, v = SPECS[k].val) => fight([], { [k]: v });
-  it('깊은 인장 (심판 +) · 심판의 일격 · 심판의 마나', () => {
+  it('깊은 인장 (심판 +) · 심판의 막 · 심판의 마나', () => {
     const f = sp('deepSeal'); hurt(f, 0.5);
     const os = others(f); seal(f, ...os);
     expect(healOn(cast(f, 'judgment', 0), os[0])).toBe(Math.round(J * (1 + SPECS.deepSeal.val)));
-    const a = fight(['judgeHammer']), b = fight(['judgeHammer'], { judgeHit: SPECS.judgeHit.val }); // 망치로 바로 시전 (시전 동안 파티 딜이 섞이지 않게)
-    for (const x of [a, b]) { seal(x, others(x)[0]); useTalent(x, 'judgeHammer'); }
-    const a0 = a.bossHp, b0 = b.bossHp;
-    now(a, 'judgment', 0); now(b, 'judgment', 0);
-    expect((b0 - b.bossHp) / (a0 - a.bossHp)).toBeCloseTo(1 + SPECS.judgeHit.val, 6);
+    const b = fight(['judgeHammer'], { judgeHit: SPECS.judgeHit.val }), bv = others(b)[0]; // 심판의 막 (2026-10-16 보스 피해 대신): 회복량의 비율만큼 보호막
+    big(bv); seal(b, bv); useTalent(b, 'judgeHammer');
+    now(b, 'judgment', 0);
+    expect(absorbLeft(b, bv)).toBeCloseTo(J * SPECS.judgeHit.val, 3);
     const g = sp('judgeMana'); hurt(g, 0.5);
     seal(g, ...others(g)); g.mana = 50;
     const n = Math.min(others(g).length, WARDER.five.judge);
@@ -334,9 +328,9 @@ describe('직업 전용 특수능력 (79 5-8)', () => {
     const f = sp('mirrorBarrier'), u = dps(f)[0];
     big(u); u.hp = 1000;
     now(f, 'lightBarrier', u.cell);
-    const hp0 = f.bossHp;
+    const v = adj(f, u).filter(x => x.alive).sort((a, b) => a.hp / a.max - b.hp / b.max)[0];
     damage(f, u, 400, false, 'fixed');
-    expect(f.bossHp).toBeLessThan(hp0);
+    expect(absorbLeft(f, v)).toBeCloseTo(SKILLS.lightBarrier.amt! * SPECS.mirrorBarrier.val, 3); // 거울 막 (2026-10-16 보스에게 되돌림 대신): 붙은 가장 다친 아군에게
     const g = sp('barrierSeal'), w = dps(g)[0];
     big(w); w.hp = 1000;
     now(g, 'lightBarrier', w.cell);
@@ -350,8 +344,8 @@ describe('직업 전용 특수능력 (79 5-8)', () => {
     damage(h, x, 400, false, 'fixed');
     expect(healOn(healsOf(h), x)).toBe(Math.round(WARDER.broken * (1 + SPECS.brokenMore.val)));
   });
-  it('서두른 창 · 긴 수호 · 굳은 장막 · 서두른 인장 · 긴 장막', () => {
-    expect(cdOf(sp('hastySpear'), 'lightSpear')).toBeCloseTo(SKILLS.lightSpear.cd! - SPECS.hastySpear.val, 6);
+  it('서두른 옮기기 · 긴 수호 · 굳은 장막 · 서두른 인장 · 긴 장막', () => {
+    expect(cdOf(sp('hastySpear'), 'wardShift')).toBeCloseTo(SKILLS.wardShift.cd! - SPECS.hastySpear.val, 6);
     const f = sp('longGuard'), t = tank(f);
     now(f, 'guardWard', t.cell);
     step(f, WARDER.guard.sec + 0.1);
@@ -365,28 +359,26 @@ describe('직업 전용 특수능력 (79 5-8)', () => {
     step(h, WARDER.veil.sec + 0.1);
     expect(absorbLeft(h, x)).toBeGreaterThan(0); // 긴 장막: 보호막 시간 +
   });
-  it('창 뒤의 심판: 빛의 창 뒤 다음 심판 시전 −', () => {
+  it('옮긴 뒤의 심판: 막 옮기기 뒤 다음 심판 시전 −', () => {
     const f = sp('spearJudge'); hurt(f, 0.5);
     seal(f, ...others(f));
-    cast(f, 'lightSpear', others(f)[0].cell);
+    now(f, 'wardShift', others(f)[0].cell);
     expect(castOf(f, 'judgment')).toBeCloseTo(SKILLS.judgment.cast - SPECS.spearJudge.val, 6);
   });
-  it('스킬 수치 (곧은 · 날랜 인장 · 두꺼운 원 · 촘촘한 막 · 날카로운 창 · 아끼는 막 · 귀환 · 원의 순환)', () => {
+  it('스킬 수치 (곧은 인장 · 가벼운 심판 · 두꺼운 원 · 촘촘한 막 · 두꺼운 옮기기 · 아끼는 막 · 귀환 · 원의 순환)', () => {
     const f = sp('steadySeal'), u = others(f)[0];
     big(u);
     expect(healOn(cast(f, 'sealHeal', u.cell), u)).toBe(Math.round(S * (1 + SPECS.steadySeal.val)));
-    const g = sp('swiftSeal'), w = others(g)[0];
-    big(w);
-    expect(healOn(cast(g, 'quickSeal', w.cell), w)).toBe(Math.round(SKILLS.quickSeal.amt! * (1 + SPECS.swiftSeal.val)));
+    expect(costOf(sp('swiftSeal'), 'judgment')).toBeCloseTo(costOf(fight(), 'judgment') * (1 - SPECS.swiftSeal.val), 6);
     const h = sp('denseBarrier'), x = dps(h)[0];
     now(h, 'lightBarrier', x.cell);
     expect(absorbLeft(h, x)).toBeCloseTo(SKILLS.lightBarrier.amt! * (1 + SPECS.denseBarrier.val), 3);
     const k = sp('thickCircle'), y = dps(k)[0];
     now(k, 'wardCircle', y.cell);
     expect(absorbLeft(k, y)).toBeCloseTo(SKILLS.wardCircle.amt! * (1 + SPECS.thickCircle.val), 3);
-    const m = sp('sharpSpear'); hurt(m, 0.5);
-    const z = others(m)[0]; big(z); seal(m, z);
-    expect(healOn(cast(m, 'lightSpear', z.cell), z)).toBe(Math.round(SKILLS.lightSpear.amt! * (1 + SPECS.sharpSpear.val)));
+    const m = sp('sharpSpear'), z = dps(m)[0];
+    now(m, 'wardShift', z.cell);
+    expect(absorbLeft(m, z)).toBeCloseTo(SKILLS.wardShift.amt! * (1 + SPECS.sharpSpear.val), 3);
     expect(costOf(sp('thriftBarrier'), 'lightBarrier')).toBeCloseTo(costOf(fight(), 'lightBarrier') * (1 - SPECS.thriftBarrier.val), 6);
     expect(cdOf(sp('guardReturn'), 'guardWard')).toBeCloseTo(SKILLS.guardWard.cd! * (1 - SPECS.guardReturn.val), 6);
     expect(cdOf(sp('veilReturn'), 'lightVeil')).toBeCloseTo(SKILLS.lightVeil.cd! * (1 - SPECS.veilReturn.val), 6);
@@ -395,7 +387,7 @@ describe('직업 전용 특수능력 (79 5-8)', () => {
   it('인장 손길 · 맑은 인장 · 막의 서두름', () => {
     const f = sp('sealTouch'), u = others(f)[0];
     big(u); seal(f, u);
-    expect(healOn(cast(f, 'quickSeal', u.cell), u)).toBe(Math.round(SKILLS.quickSeal.amt! * (1 + SPECS.sealTouch.val)));
+    expect(healOn(cast(f, 'sealHeal', u.cell), u)).toBe(Math.round(S * (1 + SPECS.sealTouch.val)));
     const g = sp('cleanSeal'), w = others(g)[0];
     addDebuff(g, w, { name: '마법', type: '마법', left: 30 });
     now(g, 'wardCleanse', w.cell);

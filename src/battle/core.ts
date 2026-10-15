@@ -79,7 +79,7 @@ export const TAP_KEYS: Record<string, string> = { heal: '치유 (1.8초 시전)'
 /** 그 직업의 칸 탭 후보 설명 (스킬 이름 + 시전) */
 export function tapKeysOf(hero: HeroKey): Record<string, string> {
   const o: Record<string, string> = {};
-  for (const slot of Object.keys(TAP_KEYS)) { const k = HEROES[hero].slots[SLOT_OF[slot]]; if (k) o[slot] = `${SKILLS[k].name} (${castText(k)})`; }
+  for (const slot of Object.keys(TAP_KEYS)) { const k = HEROES[hero].slots[SLOT_OF[slot]]; if (k && SKILLS[k].target === 'ally') o[slot] = `${SKILLS[k].name} (${castText(k)})`; } // 아군에게 거는 스킬만 (2026-10-16: 주술사 · 결계사 빠른 힐 칸이 샘 토템 · 심판)
   return o;
 }
 
@@ -166,7 +166,7 @@ export const ui = {
 /** 칸 탭 기본 힐: 아직 안 배운 스킬로 정해 뒀으면 기본 힐 (06 7장). 칸 이름 → 지금 직업의 스킬 */
 export function tapKey(): SkillKey {
   const k = heroSkill(S.tapKey);
-  return B.F && !knows(B.F, k) ? heroSkill('heal') : k;
+  return (B.F && !knows(B.F, k)) || SKILLS[k].target !== 'ally' ? heroSkill('heal') : k;
 }
 
 // ---------- 글자 ----------

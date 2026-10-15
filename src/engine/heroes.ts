@@ -227,16 +227,20 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
 /** 성기사 */
 function paladin(f: Fight, key: SkillKey, u: Unit): void {
   const sk = SKILLS[key], on = f.tx.on;
-  if (key === 'holyLight' || key === 'holyStrike') {
+  if (key === 'beacon') { // 봉화 (2026-10-16: 가운데 버튼 대신 빠른 힐 칸 스킬, 재사용 = 바꾸기 대기)
+    f.beacon = u.id; f.beaconCd = BEACON.cd;
+    emit(f, { type: 'beacon', id: u.id });
+    emit(f, { type: 'msg', text: `봉화: ${u.nick}` });
+  } else if (key === 'holyLight') {
     let amt = sk.amt!;
-    if (key === 'holyStrike' && on.heavyStrike) amt *= 1 + Math.min(TX.heavyStrike.max, (1 - u.hp / u.max) * TX.heavyStrike.per); // 무거운 일격 (77)
-    if (key === 'holyLight') f.tx.freeLight = false; // 모아 둔 빛 (77): 이번 손길이 마나 없이 나감
+    if (on.heavyStrike) amt *= 1 + Math.min(TX.heavyStrike.max, (1 - u.hp / u.max) * TX.heavyStrike.per); // 무거운 손길 (77, 2026-10-16 빛 일격에서 옮김)
+    f.tx.freeLight = false; // 모아 둔 빛 (77): 이번 손길이 마나 없이 나감
     heroHeal(f, u, amt);
-    if (key === 'holyLight' && on.twinHands) { const v = adjLow(f, u, 1)[0]; if (v) heal(f, v, amt * TX.twinHands, true); } // 두 손의 빛 (77)
+    if (on.twinHands) { const v = adjLow(f, u, 1)[0]; if (v) heal(f, v, amt * TX.twinHands, true); } // 두 손의 빛 (77)
     let gain = activeOn(f, 'dawnVow') ? TX.dawnVow.gain : 1; // 새벽의 맹세 (77)
     if (f.sp) {
-      if (key === 'holyLight' && sv(f, 'risingPower') && f.rng() < sv(f, 'risingPower')) gain++; // 차오르는 힘 (42 성기 19)
-      if (key === 'holyStrike' && sv(f, 'strikeEcho') && hc.crit) gain++; // 일격의 메아리 (42 성기 23)
+      if (sv(f, 'risingPower') && f.rng() < sv(f, 'risingPower')) gain++; // 차오르는 힘 (42 성기 19)
+      if (sv(f, 'strikeEcho') && hc.crit) gain++; // 손길의 메아리 (42 성기 23, 2026-10-16 빛 일격에서 옮김)
     }
     const was = f.power3;
     f.power3 = Math.min(powerMax(f), f.power3 + gain);

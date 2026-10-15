@@ -188,7 +188,7 @@ export const TX = {
   devotionPath: { min: 2, mana: 4 },
   /** 나눠 주는 서약: 옆 칸 1명에게 이 위력 */
   shareOath: 0.5,
-  /** 무거운 일격: 잃은 체력 1%마다 +, 최대 */
+  /** 무거운 손길 (키는 heavyStrike, 2026-10-16 빛 일격을 없애며 빛의 손길로): 잃은 체력 1%마다 +, 최대 */
   heavyStrike: { per: 1, max: 0.5 },
   /** 곧은 마음: 봉화 대상에게 직접 힐 마나 − */
   steadyHeart: 0.25,
@@ -228,7 +228,7 @@ export const TX = {
   tankLight: 0.25,
   /** 빛의 울림: 봉화 대상에게 직접 힐하면 붙은 아군에게 이 몫 */
   beaconRing: 0.25,
-  /** 새벽의 맹세: 빛의 손길 · 빛 일격이 모으는 신성한 힘, 그동안 빛의 서약 · 빛의 파도 회복량 + */
+  /** 새벽의 맹세: 빛의 손길이 모으는 신성한 힘, 그동안 빛의 서약 · 빛의 파도 회복량 + */
   dawnVow: { gain: 2, heal: 0.3 },
   /** 끝없는 빛: 빛의 파도가 쓰는 신성한 힘 (평소 3칸 모두) */
   endlessLight: 2,
@@ -236,9 +236,9 @@ export const TX = {
   allKnight: { n: 3, share: 0.7 },
 
   // ---------- 주술사 (79 2-7) ----------
-  /** 빠른 잔물결: 잔물결 시전 −초 · 잔잔한 소나기: 소나기 마나 − · 갈라지는 물방울: 붙은 다친 아군 1명에게 이 위력 물방울 */
+  /** 빠른 잔물결: 잔물결 시전 −초 · 잔잔한 물결: 잔물결 마나 − · 갈라지는 물방울: 붙은 다친 아군 1명에게 이 위력 물방울 */
   quickRipple: 0.3, calmShower: 0.2, splitDrop: 0.5,
-  /** 돌 물방울: 물방울이 걸린 아군 받는 피해 − · 잔물결 이음: 물방울 +초 · 흩뿌리는 소나기: 붙은 가장 낮은 1명에게 몫 */
+  /** 돌 물방울: 물방울이 걸린 아군 받는 피해 − · 잔물결 이음: 물방울 +초 · 흩뿌리는 물결: 처음 튄 아군 말고 붙은 다친 1명에게 한 번 더 몫 */
   stoneDrop: 0.05, rippleChain: 3, sprayShower: 0.35,
   /** 뿌리 내린 토템: 토템 칸 받는 피해 감소 (둘레는 그대로) · 번지는 씻김: 붙은 아군 몇 명 */
   rootTotem: 0.3, washSpread: { n: 1 },
@@ -248,7 +248,7 @@ export const TX = {
   waterShield: { max: 90, sec: 10 }, totemCall: { cd: 20 }, freshSpring: { range: 2, heal: 0.3 },
   /** 대지의 품: 토템 범위 안 내 받는 피해 − · 흘려보내기: 내 체력 선 · 재발동 · 나를 지키는 샘: 버티는 체력 */
   earthGrace: 0.2, letFlow: { hp: 0.4, cd: 45 }, springSelf: { hp: 0.3 },
-  /** 급류: 체력 선 아래 소나기 + · 경계하는 토템 재발동 · 마지막 샘 재발동 */
+  /** 급류: 체력 선 아래 잔물결 + · 경계하는 토템 재발동 · 마지막 샘 재발동 */
   rapids: { hp: 0.35, heal: 0.3 }, alertTotem: { cd: 10 }, lastSpring: { cd: 30 },
   /** 되돌아오는 사슬: 첫 대상에게 이 위력 · 긴 사슬: 인원 · 마나 +%p */
   returnChain: 0.5, longChain: { n: 6, cost: 2 },
@@ -321,7 +321,7 @@ export const TX = {
   /** 장막의 탱커: − · 장막의 숨: 마나 재생 배 · 함께 드는 짐: 거리 */
   veilTank: 2, veilBreath: 2, sharedLoad: { sec: 10 },
   /** 성채 (◎) · 참회의 시간: 창 딜 배 · 인원 · 끝없는 심판 (★) */
-  citadel: { cd: 180, dur: 12, range: 2, cut: 0.2, tick: 3, amt: 60 }, repentTime: { dps: 2, n: 5 }, endlessJudge: { cd: 180, dur: 10, cast: 1.0 },
+  citadel: { cd: 180, dur: 12, range: 2, cut: 0.2, tick: 3, amt: 60 }, repentTime: { heal: 1 }, endlessJudge: { cd: 180, dur: 10, cast: 1.0 },
 } as const;
 
 /** 드루이드 (77 2장) */
@@ -375,8 +375,8 @@ export const PALADIN_TALENTS: TalentTier[] = [
     t('devotionPath', '헌신의 길', `헌신이 신성한 힘 ${TX.devotionPath.min}칸을 한 번에 쓸 때도 발동하고, 돌려받는 마나가 ${TX.devotionPath.mana}%로 늘어납니다.`),
     t('shareOath', '나눠 주는 서약', `빛의 서약이 옆 칸에서 체력이 가장 낮은 아군 1명에게도 ${pc(TX.shareOath)} 위력으로 걸립니다.`)] },
   { lv: 10, theme: '기본 강화', picks: [
-    t('heavyStrike', '무거운 일격', `빛 일격이 대상이 잃은 체력 1%마다 ${TX.heavyStrike.per}%씩, 최대 ${pc(TX.heavyStrike.max)} 더 회복합니다.`),
-    t('steadyHeart', '곧은 마음', `봉화 대상에게 직접 쓰는 빛의 손길 · 빛 일격은 마나 소모가 ${pc(TX.steadyHeart)} 줄어듭니다.`),
+    t('heavyStrike', '무거운 손길', `빛의 손길이 대상이 잃은 체력 1%마다 ${TX.heavyStrike.per}%씩, 최대 ${pc(TX.heavyStrike.max)} 더 회복합니다.`),
+    t('steadyHeart', '곧은 마음', `봉화 대상에게 직접 쓰는 빛의 손길은 마나 소모가 ${pc(TX.steadyHeart)} 줄어듭니다.`),
     t('twinHands', '두 손의 빛', `빛의 손길 회복량의 ${pc(TX.twinHands)}가 대상 옆 칸에서 체력이 가장 낮은 아군 1명에게도 들어갑니다.`)] },
   { lv: 15, theme: '기본 강화', picks: [
     t('guardOath', '굳은 서약', `빛의 서약이 걸린 아군이 받는 피해가 ${pc(TX.guardOath)} 줄어듭니다.`),
@@ -384,7 +384,7 @@ export const PALADIN_TALENTS: TalentTier[] = [
     t('waveEcho', '파도의 여운', `빛의 파도로 회복한 아군에게 ${TX.waveEcho.sec}초 동안 {${TX.waveEcho.amt}} 회복하는 지속 힐을 겁니다.`)] },
   { lv: 20, theme: '봉화', picks: [
     t('beaconWeight', '빛의 무게', `봉화 대상이 받는 피해가 ${pc(TX.beaconWeight)} 줄어듭니다.`),
-    t('beaconBreath', '봉화의 숨', `빛의 손길 · 빛 일격의 봉화 몫이 들어갈 때마다 마나를 ${TX.beaconBreath.mana}% 돌려받습니다.`),
+    t('beaconBreath', '봉화의 숨', `빛의 손길의 봉화 몫이 들어갈 때마다 마나를 ${TX.beaconBreath.mana}% 돌려받습니다.`),
     t('beaconDrift', '번지는 봉화', `봉화 대상의 체력이 ${pc(TX.beaconDrift)} 이상이면 봉화 몫이 봉화 대상 옆 칸에서 가장 다친 아군에게 대신 들어갑니다.`)] },
   { lv: 25, theme: '신성한 힘', picks: [
     t('resolveFill', '가득 찬 빛', `신성한 힘을 가득 채우고, ${TX.resolveFill.sec}초 동안 빛의 서약 · 빛의 파도 회복량이 ${pc(TX.resolveFill.heal)} 늘어납니다. 재사용 대기시간은 60초입니다.`, { cd: 60, dur: TX.resolveFill.sec, short: '가득' }),
@@ -407,7 +407,7 @@ export const PALADIN_TALENTS: TalentTier[] = [
     t('beaconRing', '빛의 울림', `봉화 대상에게 직접 힐을 하면 그 회복량의 ${pc(TX.beaconRing)}가 봉화 대상과 붙은 아군 모두에게 퍼집니다.`),
     t('waveMarch', '빛의 행진', '빛의 파도를 쓰면 신성한 힘 1칸을 돌려받습니다.')] },
   { lv: 50, theme: '궁극', picks: [
-    t('dawnVow', '새벽의 맹세', `20초 동안 빛의 손길 · 빛 일격이 신성한 힘을 ${TX.dawnVow.gain}칸씩 모으고, 빛의 서약 · 빛의 파도 회복량이 ${pc(TX.dawnVow.heal)} 늘어납니다. 재사용 대기시간은 180초입니다.`, { cd: 180, dur: 20, short: '새벽' }),
+    t('dawnVow', '새벽의 맹세', `20초 동안 빛의 손길이 신성한 힘을 ${TX.dawnVow.gain}칸씩 모으고, 빛의 서약 · 빛의 파도 회복량이 ${pc(TX.dawnVow.heal)} 늘어납니다. 재사용 대기시간은 180초입니다.`, { cd: 180, dur: 20, short: '새벽' }),
     t('endlessLight', '끝없는 빛', `빛의 파도가 신성한 힘을 모두 쓰지 않고 ${TX.endlessLight}칸만 씁니다. 위력은 그대로입니다.`),
     t('allKnight', '모두의 기사', `봉화 몫이 봉화 대상 대신, 봉화 대상과 그 옆 칸 아군 중 체력 비율이 가장 낮은 ${TX.allKnight.n}명에게 ${pc(TX.allKnight.share)}씩 들어갑니다.`)] },
 ];
@@ -417,12 +417,12 @@ export const PALADIN_TALENTS: TalentTier[] = [
 export const SHAMAN_TALENTS: TalentTier[] = [
   { lv: 5, theme: '기본 강화', picks: [
     t('quickRipple', '빠른 잔물결', `잔물결 시전 시간이 ${TX.quickRipple}초 줄어듭니다.`),
-    t('calmShower', '잔잔한 소나기', `소나기의 마나 소모가 ${pc(TX.calmShower)} 줄어듭니다.`),
+    t('calmShower', '잔잔한 물결', `잔물결의 마나 소모가 ${pc(TX.calmShower)} 줄어듭니다.`),
     t('splitDrop', '갈라지는 물방울', `물방울을 걸면 붙어 있는 다친 아군 1명에게도 ${pc(TX.splitDrop)} 위력의 물방울이 걸립니다.`)] },
   { lv: 10, theme: '기본 강화', picks: [
     t('stoneDrop', '돌 물방울', `물방울이 걸린 아군이 받는 피해가 ${pc(TX.stoneDrop)} 줄어듭니다.`),
     t('rippleChain', '잔물결 이음', `잔물결로 물방울이 걸린 대상을 치유하면 물방울 시간이 ${TX.rippleChain}초 늘어납니다 (회복량도 그만큼).`),
-    t('sprayShower', '흩뿌리는 소나기', `소나기 회복량의 ${pc(TX.sprayShower)}가 붙어 있는 아군 중 체력 비율이 가장 낮은 1명에게 들어갑니다.`)] },
+    t('sprayShower', '흩뿌리는 물결', `잔물결이 처음 튄 아군 말고 붙어 있는 다친 아군 1명에게 한 번 더 튑니다 (${pc(TX.sprayShower)}).`)] },
   { lv: 15, theme: '기본 강화', picks: [
     t('rootTotem', '뿌리 내린 토템', `대지 토템이 선 칸의 아군은 받는 피해가 ${pc(TX.rootTotem)} 줄어듭니다 (둘레 6칸은 그대로 15%).`),
     t('dropChain', '물방울 사슬', '연쇄 치유가 물방울이 걸린 아군에게 튈 때는 회복량이 줄지 않습니다.'),
@@ -440,7 +440,7 @@ export const SHAMAN_TALENTS: TalentTier[] = [
     t('letFlow', '흘려보내기', `내 체력이 ${pc(TX.letFlow.hp)} 아래로 내려가면 나에게 물방울이 저절로 걸리고 바로 한 번 회복합니다. 재발동 대기 ${TX.letFlow.cd}초.`),
     t('springSelf', '나를 지키는 샘', `내가 죽을 피해를 받으면 판 위의 샘 토템이 깨지고 대신 체력 ${pc(TX.springSelf.hp)}로 버팁니다. 전투마다 1회.`)] },
   { lv: 35, theme: '위기 대응', picks: [
-    t('rapids', '급류', `체력 ${pc(TX.rapids.hp)} 아래 대상에게 하는 소나기가 ${pc(TX.rapids.heal)} 더 회복합니다.`),
+    t('rapids', '급류', `체력 ${pc(TX.rapids.hp)} 아래 대상에게 하는 잔물결이 ${pc(TX.rapids.heal)} 더 회복합니다.`),
     t('alertTotem', '경계하는 토템', `광역 예고가 뜨면 샘 토템이 바로 한 번 회복합니다. 재발동 대기 ${TX.alertTotem.cd}초.`),
     t('lastSpring', '마지막 샘', `파티원이 쓰러지면 그 칸에 마나 없이 샘 토템이 섭니다 (지금 샘 토템은 사라짐). 재발동 대기 ${TX.lastSpring.cd}초.`)] },
   { lv: 40, theme: '범위 운영', picks: [
@@ -452,7 +452,7 @@ export const SHAMAN_TALENTS: TalentTier[] = [
     t('rainBreath', '비의 숨', `비구름 토템이 떠 있는 동안 내 마나 소모가 ${pc(TX.rainBreath)} 줄어듭니다.`),
     t('stormChain', '폭풍 사슬', '비구름 토템이 떠 있는 동안 연쇄 치유가 바로 시전됩니다.')] },
   { lv: 50, theme: '궁극', picks: [
-    t('waterSpirit', '물의 정령', `${TX.waterSpirit.dur}초 동안 잔물결과 소나기가 연쇄 치유처럼 붙어 있는 다친 아군 ${TX.waterSpirit.n}명에게 튑니다 (${TX.waterSpirit.share.map(pc).join(' · ')}). 재사용 대기시간은 ${TX.waterSpirit.cd}초입니다.`, { cd: TX.waterSpirit.cd, dur: TX.waterSpirit.dur, short: '정령' }),
+    t('waterSpirit', '물의 정령', `${TX.waterSpirit.dur}초 동안 잔물결이 연쇄 치유처럼 붙어 있는 다친 아군 ${TX.waterSpirit.n}명에게 튑니다 (${TX.waterSpirit.share.map(pc).join(' · ')}). 재사용 대기시간은 ${TX.waterSpirit.cd}초입니다.`, { cd: TX.waterSpirit.cd, dur: TX.waterSpirit.dur, short: '정령' }),
     t('endlessChain', '끝없는 사슬', `연쇄 치유가 튈 때 줄어드는 몫이 25%에서 ${pc(1 - TX.endlessChain)}로 줄어듭니다.`),
     t('seaSeat', '바다의 자리', `빈 칸을 골라 ${TX.seaSeat.dur}초 동안 큰 샘을 엽니다. ${TX.seaSeat.range}칸 거리 안 아군을 ${TX.seaSeat.tick}초마다 {${TX.seaSeat.amt}}씩 회복하고, 깨지지 않습니다. 재사용 대기시간은 ${TX.seaSeat.cd}초입니다.`, { cd: TX.seaSeat.cd, dur: TX.seaSeat.dur, cell: true, short: '바다' })] },
 ];
@@ -558,7 +558,7 @@ export const WARDER_TALENTS: TalentTier[] = [
   { lv: 15, theme: '기본 강화', picks: [
     t('firmWard', '굳은 결계', `수호 결계 보호막이 대상 최대 체력의 ${pc(TX.firmWard)}가 됩니다 (원래 30%).`),
     t('quickBarrier', '빠른 막', `빛의 막 재사용 대기가 6초에서 ${TX.quickBarrier}초로 줄어듭니다.`),
-    t('sealSpread', '번지는 인장', `인장 치유 · 빠른 인장이 붙어 있는 아군 ${TX.sealSpread.n}명에게도 인장을 붙입니다.`)] },
+    t('sealSpread', '번지는 인장', `인장 치유가 붙어 있는 아군 ${TX.sealSpread.n}명에게도 인장을 붙입니다.`)] },
   { lv: 20, theme: '심판', picks: [
     t('heavyJudge', '무거운 심판', '심판이 체력이 가장 낮은 1명에게는 두 배로 회복합니다.'),
     t('quickJudge', '빠른 심판', `심판 시전 시간이 2.0초에서 ${TX.quickJudge}초로 줄어듭니다.`),
@@ -585,7 +585,7 @@ export const WARDER_TALENTS: TalentTier[] = [
     t('sharedLoad', '함께 드는 짐', `빛의 장막을 쓰고 ${WARDER.veil.after}초 안에 외치는 첫 심판은 인원 제한 없이 인장이 붙은 다친 아군 모두를 회복합니다.`)] },
   { lv: 50, theme: '궁극', picks: [
     t('citadel', '성채', `빈 칸을 골라 ${TX.citadel.dur}초 동안 성채를 세웁니다. ${TX.citadel.range}칸 거리 안 아군이 받는 피해가 ${pc(TX.citadel.cut)} 줄고, ${TX.citadel.tick}초마다 {${TX.citadel.amt}} 보호막을 받습니다. 재사용 대기시간은 ${TX.citadel.cd}초입니다.`, { cd: TX.citadel.cd, dur: TX.citadel.dur, cell: true, short: '성채' }),
-    t('repentTime', '참회의 시간', `빛의 창이 보스에게 두 배 피해를 주고 ${TX.repentTime.n}명을 회복합니다.`),
+    t('repentTime', '주고받는 막', '막 옮기기로 보호막을 거둔 아군은 거둔 양만큼 체력을 회복합니다.'),
     t('endlessJudge', '끝없는 심판', `${TX.endlessJudge.dur}초 동안 심판이 마나를 쓰지 않고 ${TX.endlessJudge.cast.toFixed(1)}초 만에 시전됩니다. 재사용 대기시간은 ${TX.endlessJudge.cd}초입니다.`, { cd: TX.endlessJudge.cd, dur: TX.endlessJudge.dur, short: '끝없는' })] },
 ];
 

@@ -191,7 +191,7 @@ describe('신규 전용 효과: 실제 엔진 훅', () => {
 
 describe('실제 스킬 시전과 지속 치유 연결', () => {
   for (const [hero,key,spec] of [
-    ['priest','heal','steadyPrayer'], ['druid','sprout','tenderSprout'], ['paladin','holyStrike','radiantStrike'],
+    ['priest','heal','steadyPrayer'], ['druid','sprout','tenderSprout'], ['paladin','holyLight','faithfulLight'],
   ] as const) it(`${hero} ${key}: 시전 또는 지속 틱에 장비 효과 적용`, () => {
     const amount = (on:boolean) => {
       const f=E.create({encounter:'warden',diff:'보통',seed:14,level:100,hero,specs:on?{[spec]:SPECS[spec].val}:{}});

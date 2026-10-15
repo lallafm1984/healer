@@ -643,7 +643,7 @@ function drawPreview(u: Unit): void {
   for (const d of u.debuffs) items.push(`${d.name} (${d.type}${d.stack ? ` ${d.stack}중첩` : ''}, ${Math.ceil(d.left)}초)${!canDispel(F.hero, d.type) ? ` · ${hero.name} 해제 불가` : d.trap ? ' · 해제하면 옆 칸으로 퍼짐' : ` · ${dispelName(F)} 해제`}`);
   if (u.hot > 0) items.push(`소생 ${Math.ceil(u.hot)}초`);
   for (const h of u.hots) items.push(`${h.name} ${Math.ceil(h.left)}초 (남은 회복 ${Math.round(h.rest)})`);
-  if (F.beacon === u.id) items.push(`봉화: 다른 사람에게 한 빛의 손길 · 빛 일격의 ${Math.round(beaconShare(F) * 100)}%가 함께 들어감`);
+  if (F.beacon === u.id) items.push(`봉화: 다른 사람에게 한 빛의 손길의 ${Math.round(beaconShare(F) * 100)}%가 함께 들어감`);
   if (u.redu > 0 && !u.immune) items.push(`받는 피해 -${Math.round(u.reduCut * 100)}% ${Math.ceil(u.redu)}초`);
   if (u.sacr > 0) items.push(`희생 ${Math.ceil(u.sacr)}초 (받는 피해 30%를 내가 대신)`);
   if (u.immune > 0) items.push(`보호의 손 ${Math.ceil(u.immune)}초 (물리 피해 무시, 딜 멈춤)`);

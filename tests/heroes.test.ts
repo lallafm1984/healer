@@ -241,8 +241,16 @@ describe('성기사', () => {
     expect(bc.hp).toBeLessThanOrEqual(bc0);
     expect(f.used!.filter(x => x.key === 'lightWave').map(x => x.uid).sort()).toEqual(healed);
   });
-  it('빛 일격 재사용 8초 (73)', () => {
-    expect(SKILLS.holyStrike.cd).toBe(8);
+  it('봉화 스킬: 빠른 힐 칸, 마나 없이 · GCD 없이, 재사용 = 봉화 바꾸기 대기 (2026-10-16)', () => {
+    expect(SKILLS.beacon.cd).toBe(BEACON.cd);
+    expect(SKILLS.beacon.cost).toBe(0);
+    expect(SKILLS.beacon.gcd).toBe(0);
+    const f = fight('paladin'), d = dps(f), m0 = f.mana;
+    expect(E.use(f, 'beacon', d.cell).ok).toBe(true);
+    expect(f.beacon).toBe(d.id);
+    expect(f.mana).toBe(m0);
+    expect(f.gcd).toBe(0);
+    expect(E.use(f, 'beacon', tank(f).cell).ok).toBe(false); // 바꾸기 대기
   });
   it('봉화 바꾸기는 10초 대기', () => {
     const f = fight('paladin'), d = dps(f);

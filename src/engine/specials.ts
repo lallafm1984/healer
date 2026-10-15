@@ -198,7 +198,7 @@ export function healSpec(f: Fight, u: Unit, direct: boolean): number {
   if (v.guardianLight && u.guardian > 0) m += v.guardianLight;
   if (v.deepRoots && direct && !tick && u.hots.length + (u.hot > 0 ? 1 : 0) >= 2) m += v.deepRoots;
   if (v.beaconKeeper && direct && !tick && f.beacon === u.id) m += v.beaconKeeper;
-  if (v.fullPower && direct && !tick && (k === 'holyLight' || k === 'holyStrike') && f.power3 >= 3 + sv(f, 'morePower')) m += v.fullPower;
+  if (v.fullPower && direct && !tick && k === 'holyLight' && f.power3 >= 3 + sv(f, 'morePower')) m += v.fullPower;
   if (v.sacrificeLight && u.sacr > 0) m += v.sacrificeLight;
   return 1 + m;
 }
@@ -390,8 +390,8 @@ export function castCut(f: Fight, key: SkillKey): number {
   const v = f.sp!.v;
   if (key === 'flash') return v.flashLight ?? 0;
   if (key === 'growth') return v.dawnDew ?? 0;
+  if (key === 'holyLight') return v.combo ?? 0; // 빠른 손길 (성기 03, 2026-10-16 빛 일격을 없애며)
   if (key === 'rebirth') return v.quickRebirth ? 1 : 0;
-  if (key === 'shower') return v.quickShower ?? 0; // 빠른 소나기 (주술 06)
   if (key === 'sealHeal') return v.sealHaste ?? 0; // 서두른 인장 (결계 06)
   if (key === 'starfall' || key === 'polaris' || key === 'starMemory') return v.perfectWin ?? 0; // 빠른 별자리 (점성 06, 83: 완벽 구간 + → 별자리 시전 −)
   return 0;
@@ -404,13 +404,13 @@ export function cdSpec(f: Fight, key: SkillKey, cd: number): number {
   if (slot === 'raid') cd *= 1 - (v.hurryStar ?? 0);
   if (slot === 'ext') cd *= 1 - (v.survivalDrill ?? 0);
   if (slot === 'dispel') cd -= v.cleanHands ?? 0;
-  if (key === 'holyStrike') cd -= v.combo ?? 0;
   if (key === 'bloom') cd -= v.hastyBloom ?? 0;
   if (key === 'droplet') cd -= v.hastyDrop ?? 0; // 서두른 물방울 (주술 03)
+  if (key === 'springTotem') cd -= v.quickShower ?? 0; // 서두른 샘 (주술 06, 소나기를 없애며 2026-10-16)
   if (key === 'wanderMist') cd -= v.hastyMist ?? 0; // 서두른 안개 (수도 03)
   if (key === 'mistWrap') cd -= v.quickWrap ?? 0; // 빠른 감싸기 (수도 06, 82: 시전 −초 → 재사용 −초)
   if (key === 'twinkle') cd -= v.hastyTwinkle ?? 0; // 서두른 반짝임 (점성 03)
-  if (key === 'lightSpear') cd -= v.hastySpear ?? 0; // 서두른 창 (결계 03)
+  if (key === 'wardShift') cd -= v.hastySpear ?? 0; // 서두른 옮기기 (결계 03)
   return Math.max(0, cd);
 }
 

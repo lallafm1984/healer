@@ -38,7 +38,7 @@ export interface HeroDef {
    */
   unlock: { lv: number; how: string; quest?: HeroQuest; buy?: boolean };
   /** 가운데 버튼 스킬 (주술사 샘 토템 · 결계사 심판, 79 6-1). 휠 배치에는 안 들어감 */
-  core?: SkillKey;
+  core?: SkillKey; // 2026-10-16 Lim 「가운데 버튼 기획을 제거」: 어느 직업도 쓰지 않음 (주술사 샘 토템 · 결계사 심판은 빠른 힐 칸)
   /** 게임에 켠 직업 (79 6-1: 공통 준비에서는 데이터만 두고, 직업 PR마다 하나씩 켬). false면 직업 목록 · 저장 · 시뮬에서 빠지고 「곧 열림」으로 보임 */
   ready: boolean;
 }
@@ -77,10 +77,10 @@ export const HEROES: Record<HeroKey, HeroDef> = {
   },
   paladin: {
     key: 'paladin', name: '성기사', line: '탱커 한 명을 끝까지 지키는 힐러입니다.', star: 2,
-    system: { name: '봉화', lv: 6, desc: '봉화를 지정한 파티원에게, 다른 사람에게 한 빛의 손길 · 빛 일격 회복량의 40%가 함께 들어갑니다. 10인 레이드는 30%, 20인 레이드는 25%입니다.' },
+    system: { name: '봉화', lv: 6, desc: '봉화 스킬로 지정한 파티원에게, 다른 사람에게 한 빛의 손길 회복량의 40%가 함께 들어갑니다. 10인 레이드는 30%, 20인 레이드는 25%입니다.' },
     dispel: ['마법', '독', '질병'],
-    slots: slots({ basic: 'holyLight', fast: 'holyStrike', hot: 'oath', aoe: 'lightWave', dispel: 'handCleanse', ext: 'sacrifice', raid: 'sanctuary', unique: 'handGuard' }),
-    tap: ['holyLight', 'holyStrike', 'oath'],
+    slots: slots({ basic: 'holyLight', fast: 'beacon', hot: 'oath', aoe: 'lightWave', dispel: 'handCleanse', ext: 'sacrifice', raid: 'sanctuary', unique: 'handGuard' }),
+    tap: ['holyLight', 'oath'],
     passives: [
       { name: '굳건한 손', lv: 4, desc: '탱커에게 하는 직접 힐이 10% 늘어납니다.' },
       { name: '헌신', lv: 10, desc: '신성한 힘 3칸을 한 번에 쓰면 마나를 2% 회복합니다.' },
@@ -92,21 +92,20 @@ export const HEROES: Record<HeroKey, HeroDef> = {
   // ---------- 79 힐러 직업 4종: 상점에서 하나에 2,200원 (81, 예전 Lv 30 · 40 · 50 · 60 무료) ----------
   shaman: {
     key: 'shaman', name: '주술사', line: '다친 사람을 따라 물이 흘러가는 힐러입니다.', star: 2,
-    system: { name: '토템 칸', lv: 6, desc: '가운데 버튼을 누르고 칸을 고르면 그 칸에 샘 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군을 회복합니다 (20인 레이드에서는 70%). 토템은 종류마다 하나만 서고, 그 칸에 장판이 깔리거나 예고된 공격이 떨어지거나 적이 나오면 깨집니다.' },
+    system: { name: '토템 칸', lv: 6, desc: '샘 토템을 아군 칸에 쓰면 그 칸에 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군을 회복합니다 (20인 레이드에서는 70%). 토템은 종류마다 하나만 서고, 그 칸에 장판이 깔리거나 예고된 공격이 떨어지거나 적이 나오면 깨집니다.' },
     dispel: ['마법', '저주'],
-    slots: slots({ basic: 'ripple', fast: 'shower', hot: 'droplet', aoe: 'chainHeal', dispel: 'washing', ext: 'earthTotem', raid: 'rainTotem', unique: 'spiritLink' }),
-    tap: ['ripple', 'shower', 'droplet'],
+    slots: slots({ basic: 'ripple', fast: 'springTotem', hot: 'droplet', aoe: 'chainHeal', dispel: 'washing', ext: 'earthTotem', raid: 'rainTotem', unique: 'spiritLink' }),
+    tap: ['ripple', 'droplet'],
     passives: [
       { name: '깊은 물', lv: 4, desc: '체력 50% 아래인 대상에게 하는 직접 힐이 30% 늘어납니다.' },
       { name: '밀려오는 물', lv: 10, desc: '연쇄 치유가 4명에게 닿으면 마나를 1.5% 돌려받습니다.' },
     ],
     unlock: { lv: 0, how: '상점 구매', buy: true },
-    core: 'springTotem',
     ready: true,
   },
   monk: {
     key: 'monk', name: '수도사', line: '손을 쉬지 않을수록 힘이 붙는 힐러입니다.', star: 3,
-    system: { name: '기 리듬', lv: 6, desc: '생기 손바닥을 2.5초 안에 이어 치면 기 리듬이 올라 (최대 5) 손바닥 회복량이 리듬마다 6% 늘어납니다. 리듬 3부터는 떠도는 안개가 두 배로 빨리 돌아옵니다. 늦으면 리듬이 0으로 내려갑니다.' },
+    system: { name: '기 리듬', lv: 1, desc: '생기 손바닥을 2.5초 안에 이어 치면 기 리듬이 올라 (최대 5) 손바닥 회복량이 리듬마다 6% 늘어납니다. 리듬 3부터는 떠도는 안개가 두 배로 빨리 돌아옵니다. 늦으면 리듬이 0으로 내려갑니다.' },
     dispel: ['마법', '질병'],
     slots: slots({ basic: 'vitalPalm', fast: 'mistWrap', hot: 'wanderMist', aoe: 'mistBreath', dispel: 'clearChi', ext: 'soothe', raid: 'reviveWind', unique: 'tea' }),
     tap: ['vitalPalm', 'mistWrap', 'wanderMist'],
@@ -132,17 +131,16 @@ export const HEROES: Record<HeroKey, HeroDef> = {
     ready: true,
   },
   warder: {
-    key: 'warder', name: '결계사', line: '막을 미리 씌우고, 공격으로 치유를 터뜨리는 힐러입니다.', star: 3,
-    system: { name: '심판', lv: 6, desc: '결계사의 힐과 보호막은 대상에게 15초 동안 인장을 붙입니다. 가운데 버튼으로 심판을 외치면 보스를 치고, 인장이 붙은 아군 중 체력이 가장 낮은 6명 (5인 던전 3명, 10인 레이드 4명)을 한꺼번에 회복합니다.' },
+    key: 'warder', name: '결계사', line: '막을 미리 씌우고, 인장으로 치유를 터뜨리는 힐러입니다.', star: 3,
+    system: { name: '심판', lv: 6, desc: '결계사의 힐과 보호막은 대상에게 15초 동안 인장을 붙입니다. 심판을 외치면 인장이 붙은 아군 중 체력이 가장 낮은 6명 (5인 던전 3명, 10인 레이드 4명)을 한꺼번에 회복합니다.' },
     dispel: ['마법', '저주'],
-    slots: slots({ basic: 'sealHeal', fast: 'quickSeal', hot: 'lightBarrier', aoe: 'wardCircle', dispel: 'wardCleanse', ext: 'guardWard', raid: 'lightVeil', unique: 'lightSpear' }),
-    tap: ['sealHeal', 'quickSeal', 'lightBarrier'],
+    slots: slots({ basic: 'sealHeal', fast: 'judgment', hot: 'lightBarrier', aoe: 'wardCircle', dispel: 'wardCleanse', ext: 'guardWard', raid: 'lightVeil', unique: 'wardShift' }),
+    tap: ['sealHeal', 'lightBarrier'],
     passives: [
       { name: '깨진 막의 빛', lv: 4, desc: '내 보호막이 다 깨지면 그 아군 체력을 {80} 회복합니다.' },
       { name: '인장의 대가', lv: 10, desc: '심판이 4명 이상 회복하면 마나를 2% 돌려받습니다.' },
     ],
     unlock: { lv: 0, how: '상점 구매', buy: true },
-    core: 'judgment',
     ready: true,
   },
 };

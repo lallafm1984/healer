@@ -95,11 +95,12 @@ describe('기 리듬 (79 3-3)', () => {
     step(f, 2.6);
     expect(f.beat).toBe(0);
   });
-  it('Lv 6 전에는 리듬이 안 오름', () => {
-    const f = fight([], {}, { level: 5 }), u = others(f)[0];
+  it('기 리듬은 Lv 1부터 (2026-10-16 구매 직업 초반 밸런스: 예전 Lv 6)', () => {
+    expect(HEROES.monk.system.lv).toBe(1);
+    const f = fight([], {}, { level: 1 }), u = others(f)[0];
     big(u);
-    expect(healOn(cast(f, 'vitalPalm', u.cell), u)).toBe(P);
-    expect(f.beat).toBe(0);
+    expect(healOn(cast(f, 'vitalPalm', u.cell), u)).toBe(Math.round(P * (1 + MONK.beat.step)));
+    expect(f.beat).toBe(1);
   });
   it('리듬 3부터 떠도는 안개 재사용이 두 배로 빨리 돎', () => {
     const f = fight(), u = others(f)[0];
