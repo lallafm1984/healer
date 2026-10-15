@@ -117,7 +117,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 
   // ---------- ⑦ 결계사 (79 5장) ----------
   sealHeal: { name: '인장 치유', short: '인장', slot: 'basic', lv: 1, cast: 2.2, cost: 2.2, amt: 350, target: 'ally' }, // 79 5-11: 260 · 3% → 350 · 2.2% (밸런스)
-  lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 340, target: 'ally' }, // 마나 4 → 3% (79 5-11), 84 밸런스: 300 → 340 (빠른 인장을 뺀 뒤 탱커가 녹는 던전)
+  lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 300, target: 'ally' }, // 마나 4 → 3% (79 5-11). 84 밸런스에서 340을 시험했으나 Lv 1~20만 세지고 막 녹이기 던전은 그대로라 300
   wardCleanse: { name: '결계 정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
   wardCircle: { name: '결계 원', short: '결계', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 20, amt: 100, target: 'area' }, // 150 → 100 (79 5-11)
   guardWard: { name: '수호 결계', short: '수호', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' }, // 82: 받는 피해 −40% (누그러뜨림과 같음) → 큰 보호막 (WARDER.guard)
@@ -206,7 +206,7 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   polaris: { kind: '별자리 · 한 명', desc: `시전이 끝나면 모은 별 조각을 모두 써서 대상의 체력을 별 (1 + 조각) 1~4개에 따라 ${ASTRO.polaris.map(n => `{${n}}`).join(' · ')} 회복합니다. 조각 3개를 다 쓰면 15% 더 회복합니다.` },
 
   sealHeal: { kind: '인장 힐', desc: '대상의 체력을 {350} 회복하고 15초 동안 인장을 붙입니다.' },
-  lightBarrier: { kind: '보호막', desc: '15초 동안 대상에게 {340}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
+  lightBarrier: { kind: '보호막', desc: '15초 동안 대상에게 {300}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
   wardCleanse: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
   wardCircle: { kind: '광역 보호막', desc: '대상과 붙어 있는 6칸의 아군에게 10초 동안 {100}만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다. 20인 레이드에서는 2칸 거리까지 닿습니다.' },
   guardWard: { kind: '큰 보호막', desc: '8초 동안 대상에게 최대 체력의 30%만큼 피해를 막는 보호막을 씌우고 인장을 붙입니다.' },
