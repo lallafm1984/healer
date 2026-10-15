@@ -22,10 +22,10 @@ export default async function classControls(url,shots){
     const check=await p.evaluate(()=>{
      const c=document.querySelector('#controls'),g=document.querySelector('.job-gauge'),frame=document.querySelector('#controlsFrame'),cr=c.getBoundingClientRect(),gr=g.getBoundingClientRect(),scale=+c.dataset.uiScale;
      const items=[...document.querySelectorAll('#items .item')].map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,height:r.height};});
-     const compact=c.classList.contains('compact-controls'),itemRight=Math.max(...items.map(r=>r.right));
+     const compact=c.classList.contains('compact-controls'),host=document.querySelector('#gauges').getBoundingClientRect();
      return {job:g.dataset.job,background:getComputedStyle(compact?frame:c).backgroundImage,frame:getComputedStyle(document.querySelector('#items .item')).backgroundImage,
       oldFrameGone:!compact||getComputedStyle(frame,'::before').content==='none',
-      aligned:Math.abs(gr.right-itemRight)<1,
+      aligned:Math.abs((gr.left+gr.right)-(host.left+host.right))<1&&Math.abs((gr.top+gr.bottom)-(host.top+host.bottom))<1,
       twoSlots:items.length===2&&Math.abs(items[0].top-items[1].top)<1,
       itemsFit:items.every(r=>r.bottom<=cr.bottom-27*scale&&r.top>=gr.bottom+7*scale&&r.left>=cr.left&&r.right<=cr.right),gaugeSize:[gr.width,gr.height],items,
       hitMin:+c.dataset.effectiveTouchMin,hitOverlap:c.dataset.hitAreasOverlap,bottom:cr.bottom,images:[...c.querySelectorAll('img')].every(i=>i.complete&&i.naturalWidth>0)};

@@ -5,7 +5,7 @@
 #battle.compact-panel #controlsFrame::before{content:none}
 #battle.compact-panel #controls,#battle.compact-panel #controls.hasaux{background:none}
 #battle #controls #side{padding:8px 0 28px;gap:8px;min-width:0}
-#battle #controls #gauges{order:0;flex:1 1 0;min-height:0;max-height:none;display:grid;grid-template-columns:minmax(0,1fr);place-items:center end;container-type:size;gap:0}
+#battle #controls #gauges{order:0;flex:1 1 0;min-height:0;max-height:none;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;container-type:size;gap:0}
 #battle #controls #gauges,#battle #controls #items{max-width:146px;align-self:flex-end}
 #battle #controls #gauges .job-gauge{width:min(100cqw,116.71cqh);height:min(85.68cqw,100cqh)}
 #battle #controls #aux{order:1;flex:none}
@@ -29,7 +29,7 @@
 .job-gauge[data-job=shaman] .gauge-number,.job-gauge[data-job=shaman] .gauge-extra,.job-gauge[data-job=monk] .gauge-extra{font-size:clamp(10px,13cqh,16px)}
 #battle.reduced-effects .job-gauge .gauge-ready,#battle.reduced-effects .job-gauge .aura-motion{animation:none!important;opacity:.65}
 .variant-art,.variant-segment,.variant-base,.variant-fill,.variant-ready{position:absolute;inset:0;pointer-events:none}
-.variant-art{z-index:2;background:var(--class-background) center/100% 100% no-repeat}.variant-ready{opacity:.45}
+.variant-art{z-index:2}.variant-ready{opacity:.45}
 .has-variant>.gauge-base,.has-variant>.fill-mask,.has-variant>.gauge-ready{display:none!important}
 .is-ready .variant-ready{animation:maximum-pulse 2.4s ease-in-out infinite}
 #battle.reduced-effects .variant-ready{animation:none!important}
