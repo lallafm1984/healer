@@ -155,7 +155,12 @@ export default async function portrait(url, shots) {
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_shop_${width}.png` });
     await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(80);
     ok(await loaded('#s-content .b-gate img') && await page.locator('#s-content .b-region').count() >= 2 && await noOverflow('#s-content .b-body'), `${width}: 전투 탭 풍경 미리보기 + 장소 카드, 가로 넘침 없음`);
-    ok(await bgLoaded('#s-content .b-cats') && await bgLoaded('#s-content .b-cat[aria-selected="true"]') && await bgLoaded('#s-content .b-cat[aria-selected="false"]'), `${width}: 분류 뒤 배경 + 활성·비활성 공용 탭 재질 로드`);
+    // 2026-10-16: 분류 탭은 나무결 그림 대신 길드 홀 돌색 + 황동 테 (::before border-image)
+    const catFrame = sel => page.locator(sel).first().evaluate(async el => {
+      const u = getComputedStyle(el, '::before').borderImageSource.match(/url\("?([^")]+)"?\)/)?.[1];
+      return !!u && !/url\(/.test(getComputedStyle(el).backgroundImage) && await new Promise(res => { const i = new Image(); i.onload = () => res(i.naturalWidth > 0); i.onerror = () => res(false); i.src = u; });
+    });
+    ok(await catFrame('#s-content .b-cat[aria-selected="true"]') && await catFrame('#s-content .b-cat[aria-selected="false"]'), `${width}: 활성·비활성 분류 탭 = 돌색 + 황동 테 로드`);
     // 로비 첨탑 이름표 → 전투 탭 10인 레이드
     await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(80);
     await page.click('#s-lobby .lb-raid'); await page.clock.runFor(80);

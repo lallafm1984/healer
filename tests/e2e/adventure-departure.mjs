@@ -45,11 +45,12 @@ export default async function adventureDeparture(url, shots) {
     ok(!shape.overflow && !shape.inlineList && shape.ctaBottom <= shape.tabsTop+1, `${width}: 본문 하위목록 없음·가로 넘침 없음·출전 고정`);
     const art = await page.evaluate(async () => {
       const q = s => document.querySelector(s);
-      const backgrounds = ['.b-cats','.b-cat[aria-selected="true"]','.b-cat[aria-selected="false"]'].map(s=>getComputedStyle(q(s)).backgroundImage);
-      const urls=backgrounds.flatMap(s=>[...s.matchAll(/url\("?([^\")]+)"?\)/g)].map(m=>m[1]));
-      return urls.length===3 && (await Promise.all(urls.map(src=>new Promise(res=>{const i=new Image();i.onload=()=>res(i.naturalWidth>0);i.onerror=()=>res(false);i.src=src;})))).every(Boolean);
+      // 2026-10-16 전투 흐름 손질: 나무결 탭 그림 → 길드 홀 돌색 (그림 없음) + 전투 머리판과 같은 황동 테 (::before border-image)
+      const flat = ['.b-cats','.b-cat[aria-selected="true"]','.b-cat[aria-selected="false"]'].every(s=>!/url\(/.test(getComputedStyle(q(s)).backgroundImage));
+      const urls=['.b-cat[aria-selected="true"]','.b-cat[aria-selected="false"]'].flatMap(s=>[...getComputedStyle(q(s),'::before').borderImageSource.matchAll(/url\("?([^\")]+)"?\)/g)].map(m=>m[1]));
+      return flat && urls.length===2 && (await Promise.all(urls.map(src=>new Promise(res=>{const i=new Image();i.onload=()=>res(i.naturalWidth>0);i.onerror=()=>res(false);i.src=src;})))).every(Boolean);
     });
-    ok(art, `${width}: 생성한 탭 2종·배경 실제 로드`);
+    ok(art, `${width}: 분류 탭 = 돌색 (나무결 그림 없음) + 황동 테 실제 로드`);
     await shownImagesReady(page);
     await page.screenshot({path:`${shots}/departure-explore-${width}.png`});
     // Lv 14: 탐험 줄 = 열린 6곳만 레벨 순 (Lv 15 늪지 어귀부터 숨김)

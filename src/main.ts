@@ -47,6 +47,7 @@ import './screens/level-up.css';
 import './screens/class-jobs.css';
 import './battle/popovers.css';
 import './screens/stamina.css';
+import './screens/departure-hall.css';
 import './battle/class-gauge.css';
 import './battle/class-controls.css';
 import './battle';
