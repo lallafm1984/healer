@@ -1,5 +1,5 @@
 /**
- * 장비 특수능력 166종 = 공통 94 + 직업 전용 72 (42, Lim 2026-10-09 「장신구 및 장비에서 더 다양한 특수능력 100여 종」) + 이름 있는 장신구 (42 3장).
+ * 장비 특수능력 262종 = 공통 94 + 직업 전용 168 (7직업 × 24) (42, Lim 2026-10-09 「장신구 및 장비에서 더 다양한 특수능력 100여 종」) + 이름 있는 장신구 (42 3장).
  * 장비 한 줄 = { key, roll }. 값 = 영웅 최대값 × 등급 배율 (data/equipment GRADE_MULT) × 굴림 (60~100%), fixed면 굴리지 않음.
  * 같은 특수능력이 여러 장비에 있으면 더함 (cap까지), 재사용 대기(cd)가 있는 발동은 가장 좋은 것 하나만 (42 1-3).
  * 효과는 engine/specials.ts가 엔진 훅에 붙임. ready = 엔진에 붙어서 드롭에 나와도 되는 것.
@@ -94,7 +94,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['sunHandful', '발동 01', '햇살 한 줌', ALL, '고급', 0.12, 'pct', '힐을 시전하면 8% 확률로 8초 동안 가속 +{v}', { cd: 20 }],
     ['wishStar', '발동 02', '별똥별 소원', ACC, '희귀', 0.08, 'pct', '치명타 힐이 나면 6초 동안 치명타 +{v}', { cd: 15 }],
     ['windStep', '발동 03', '바람 탄 발걸음', HANDS, '영웅', 1, 'n', '즉시 시전 스킬을 3번 이어 쓰면 다음 시전 힐이 즉시', { cd: 12, fixed: true }],
-    ['beeDance', '발동 04', '꿀벌의 춤', W, '희귀', 0.4, 'pct', '직접 힐 5번마다 다음 힐 회복량 +{v}'],
+    ['beeDance', '발동 04', '꿀벌의 춤', W, '희귀', 0.4, 'pct', '힐 스킬 5번마다 다음 힐 회복량 +{v}'],
     ['rainbow', '발동 05', '무지개 조각', ACC, '고급', 0.1, 'pct', '힐을 시전하면 5% 확률로 10초 동안 회복량 +{v}', { cd: 25 }],
     ['brimming', '발동 06', '기운 넘침', AR, '고급', 0.06, 'pct', '마나 90% 위일 때 회복량 +{v}'],
     ['resolve', '발동 07', '굳센 결의', ACC, '희귀', 0.2, 'pct', '파티원이 쓰러지면 10초 동안 가속 +{v} (전투당 2번)'],
@@ -116,11 +116,11 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['lastStand', '보호 04', '마지막 버팀', CHEST, '고급', 0.25, 'pct', '내 체력이 40% 아래로 내려가면 8초 동안 받는 피해 −{v} (전투당 1번)'],
     ['holdTogether', '보호 05', '함께 버티기', AR, '희귀', 0.06, 'pct', '광역 힐을 맞은 파티원은 4초 동안 광역 피해 −{v}'],
     ['lastBreath', '보호 06', '마지막 숨', ACC, '영웅', 1, 'n', '파티원이 쓰러질 피해를 받으면 체력 1로 버팀 (전투당 1번)', { fixed: true }],
-    ['guardFeather', '보호 07', '수호의 깃', ALL, '희귀', 0.25, 'pct', '생존기 (수호 영혼 · 나무껍질 · 희생) 효과 시간 +{v}'],
+    ['guardFeather', '보호 07', '수호의 깃', ALL, '희귀', 0.25, 'pct', '생존기 (외부 생존기 칸 스킬) 효과 시간 +{v}'],
     ['warmCloak', '보호 08', '따뜻한 망토', AR, '고급', 0.1, 'pct', '지속 피해 디버프가 걸린 아군에게 하는 힐 +{v}'],
     ['risingLight', '보호 09', '일어서는 빛', ACC, '희귀', 0.2, 'pp', '부활한 파티원 체력 +{v}, 5초 동안 받는 피해 −30%'],
     ['hardShell', '보호 10', '단단한 껍데기', ALL, '고급', 0.15, 'pct', '내가 거는 보호막 +{v}', { cap: 0.45 }],
-    ['twinShield', '보호 11', '쌍둥이 방패', W, '영웅', 1, 'n', '생존기를 쓰면 옆 칸 1명에게도 절반 효과', { fixed: true }],
+    ['twinShield', '보호 11', '쌍둥이 방패', W, '영웅', 1, 'n', '생존기를 쓰면 옆 칸 1명에게도 절반 효과 (토템 · 별의 잠 제외)', { fixed: true }],
     ['shelterMap', '보호 12', '피난처 지도', HEAD, '희귀', 0.12, 'pct', '장판 예고 칸에 있는 아군에게 하는 힐 +{v}'],
     ['prop', '보호 13', '버팀목', AR, '희귀', 0.05, 'pct', '탱커가 2명이면 체력이 더 낮은 탱커가 받는 피해 −{v}'],
     ['starVeil', '보호 14', '별빛 장막', ACC, '영웅', 0.08, 'pct', '체력 50% 아래 아군이 3명 이상이면 4초 동안 파티 전원 받는 피해 −{v}', { cd: 30 }],
@@ -173,7 +173,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['cutBeat', '지원 05', '끊기 박자', HEAD, '희귀', 0.05, 'pct', '파티원이 보스 시전을 끊으면 6초 동안 보스가 받는 피해 +{v}'],
     ['leadOn', '지원 06', '앞장서기', CHEST, '고급', 0.1, 'pct', '지속 힐이 걸린 탱커의 딜 +{v}'],
     ['march', '지원 07', '신나는 행진', CHEST, '희귀', 0.15, 'pct', '파티원 이동이 {v} 빨라짐 (장판을 더 잘 피함)'],
-    ['eliteHunter', '지원 08', '정예 사냥꾼', W, '희귀', 0.08, 'pct', '정예 · 판 위 적에게 주는 파티 딜 +{v}'],
+    ['eliteHunter', '지원 08', '정예 사냥꾼', W, '희귀', 0.08, 'pct', '정예 · 졸개가 판 위에 있는 동안 파티 딜 +{v}'],
     ['quickPeer', '지원 09', '눈치 빠른 동료', HEAD, '영웅', 0.3, 'sec', '파티원이 장판을 피하는 반응이 {v} 빨라짐', { fixed: true }],
     ['brightMorning', '지원 10', '활기찬 아침', ACC, '고급', 0.06, 'pct', '전투 시작 15초 동안 파티 딜 +{v}'],
   ],
@@ -193,8 +193,8 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['deepWord', '사제 01', '깊은 성언', ALL, '희귀', 0.12, 'pct', '평온 게이지 충전 +{v}', { cap: 0.6, hero: 'priest' }],
     ['serenityEcho', '사제 02', '평온의 여운', W, '전설', 0.2, 'pct', '성언: 평온 회복량 +{v}, 넘친 양은 4초 지속 힐로', { hero: 'priest' }],
     ['wideSanctify', '사제 03', '넓은 평온', W, '전설', 1, 'n', '성언: 평온이 대상 둘레 {v}칸 아군에게도 50%', { hero: 'priest', fixed: true }], // 82: 넓은 신성화 → 넓은 평온 (키는 저장 때문에 그대로)
-    ['quickRenew', '사제 04', '짙은 소생', AR, '영웅', 0.25, 'pct', '소생 회복량 +{v}', { hero: 'priest' }],
-    ['pohEcho', '사제 05', '기원의 메아리', ACC, '영웅', 0.5, 'pct', '치유의 기원이 {v} 확률로 2초 뒤 절반 한 번 더', { hero: 'priest' }],
+    ['quickRenew', '사제 04', '짙은 소생', AR, '영웅', 0.25, 'pct', '소생 회복량 +{v}', { hero: 'priest', cap: 0.5 }],
+    ['pohEcho', '사제 05', '기원의 메아리', ACC, '영웅', 0.5, 'pct', '치유의 기원이 {v} 확률로 2초 뒤 절반 한 번 더', { hero: 'priest', cap: 0.6 }],
     ['wakeGuard', '사제 06', '깨어 있는 수호', NECK, '영웅', 1, 'pct', '수호 영혼이 발동하면 대상이 지능 {v} 회복', { hero: 'priest' }],
     ['hymnBreath', '사제 07', '찬가의 숨결', ACC, '전설', 3, 'mana', '천상의 찬가 마나 소모 −50%, 끊기지 않고 끝나면 마나 {v} 회복', { hero: 'priest' }],
     ['flashLight', '사제 08', '순간의 빛', HANDS, '영웅', 0.3, 'sec', '순간 치유 시전 −{v}', { hero: 'priest' }],
@@ -202,7 +202,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['sproutHop', '드루 02', '옮겨 가는 새싹', W, '전설', 1, 'n', '새싹이 끝까지 가면 옆 칸 1명에게 절반 시간 새싹', { hero: 'druid', fixed: true }],
     ['hastyBloom', '드루 03', '서두른 꽃', HANDS, '영웅', 3, 'sec', '피워 내기 재사용 −{v}', { hero: 'druid' }],
     ['flowerSea', '드루 04', '들꽃 바다', W, '전설', 1, 'n', '들꽃 군락 범위 +{v}칸', { hero: 'druid', fixed: true }],
-    ['thickBark', '드루 05', '굵은 껍질', AR, '영웅', 0.1, 'pp', '나무껍질 받는 피해 감소 +{v}', { hero: 'druid' }],
+    ['thickBark', '드루 05', '굵은 껍질', AR, '영웅', 0.1, 'pp', '나무껍질 받는 피해 감소 +{v}', { hero: 'druid', cap: 0.2 }],
     ['dawnDew', '드루 06', '새벽 이슬', HANDS, '영웅', 0.3, 'sec', '생장 시전 −{v}', { hero: 'druid' }],
     ['forestBreath', '드루 07', '숲의 숨결', ACC, '영웅', 1, 'sec', '고요한 숲이 늘리는 지속 힐 시간 +{v}', { hero: 'druid', fixed: true }],
     ['quickRebirth', '드루 08', '빠른 환생', NECK, '영웅', 0.2, 'pp', '환생 시전 −1초, 부활 체력 +{v}', { hero: 'druid' }],
@@ -268,8 +268,8 @@ const TABLE: Record<SpecGroup, Row[]> = {
     // 깊은 샘 · 흐르는 물결 · 굵은 물방울 · 샘 긷기 · 토템 곁 · 대지의 울림은 전용장비 밸런스 (79 2-11)로 올림: 전용 특수능력 장비에서 세 직업 평균보다 던전 · 20인 악몽이 6%p 낮던 것
     ['deepSpring', '주술 01', '깊은 샘', ALL, '희귀', 0.15, 'pct', '샘 토템 회복량 +{v}', { cap: 0.4, hero: 'shaman' }],
     ['puddle', '주술 02', '물웅덩이', W, '전설', 0.1, 'pct', '물방울이 끝까지 가면 그 칸에 6초 웅덩이: 위에 선 아군 받는 피해 −{v}', { hero: 'shaman', fixed: true }],
-    ['hastyDrop', '주술 03', '서두른 물방울', HANDS, '영웅', 2, 'sec', '물방울 재사용 −{v}', { hero: 'shaman' }],
-    ['hardEarth', '주술 04', '굳은 대지', AR, '영웅', 0.1, 'pp', '대지 토템 받는 피해 감소 +{v}', { hero: 'shaman' }],
+    ['hastyDrop', '주술 03', '서두른 물방울', HANDS, '영웅', 2, 'sec', '물방울 재사용 −{v}', { hero: 'shaman', cap: 2 }],
+    ['hardEarth', '주술 04', '굳은 대지', AR, '영웅', 0.1, 'pp', '대지 토템 받는 피해 감소 +{v}', { hero: 'shaman', cap: 0.2 }],
     ['tallSpring', '주술 05', '마르지 않는 샘', W, '전설', 6, 'sec', '샘 토템 시간 +{v}', { hero: 'shaman', fixed: true }],
     ['quickShower', '주술 06', '빠른 소나기', HANDS, '영웅', 0.3, 'sec', '소나기 시전 −{v}', { hero: 'shaman' }],
     ['longRain', '주술 07', '긴 비', ACC, '영웅', 2, 'sec', '비구름 토템 시간 +{v}', { hero: 'shaman', fixed: true }],
@@ -294,7 +294,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['deepBeat', '수도 01', '깊은 박자', ALL, '희귀', 0.01, 'pp', '기 리듬 1마다 손바닥 +{v}', { cap: 0.02, hero: 'monk' }],
     ['twinMist', '수도 02', '갈라지는 안개', W, '전설', 1, 'n', '떠도는 안개가 처음 옮겨 갈 때 둘로 나뉨 (남은 회복량 그대로 둘)', { hero: 'monk', fixed: true }],
     ['hastyMist', '수도 03', '서두른 안개', HANDS, '영웅', 2, 'sec', '떠도는 안개 재사용 −{v}', { hero: 'monk' }],
-    ['deepSoothe', '수도 04', '깊은 누그러뜨림', AR, '영웅', 0.1, 'pp', '누그러뜨림 받는 피해 감소 +{v}', { hero: 'monk' }],
+    ['deepSoothe', '수도 04', '깊은 누그러뜨림', AR, '영웅', 0.1, 'pp', '누그러뜨림 받는 피해 감소 +{v}', { hero: 'monk', cap: 0.2 }],
     ['wideBreath', '수도 05', '넓은 숨결', W, '전설', 1, 'n', '안개 숨결 범위 +{v}칸', { hero: 'monk', fixed: true }],
     ['quickWrap', '수도 06', '빠른 감싸기', HANDS, '영웅', 1.5, 'sec', '안개 감싸기 재사용 −{v}', { hero: 'monk' }], // 82: 시전 −0.3초 → 즉시가 되어 재사용 −1.5초
     ['strongTea', '수도 07', '진한 차', ACC, '영웅', 2, 'mana', '차 한 잔 마나 +{v}', { hero: 'monk', fixed: true }],
@@ -318,7 +318,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     // 점성술사 (79 4-8). 전용 장비 밸런스로 희귀 등급 위 11종을 올림 (79 4-11)
     ['brightShard', '점성 01', '밝은 조각', ALL, '희귀', 0.05, 'pp', '별자리가 쓰는 별 조각 1개마다 회복 +{v}', { cap: 0.15, hero: 'astrologer' }], // 83: 모으기 시간 몫으로 올렸던 것 (79 4-11)을 첫 안으로
     ['twinPolaris', '점성 02', '쌍둥이 북극성', W, '전설', 0.3, 'pct', '북극성 회복량의 {v}가 붙어 있는 가장 다친 아군에게', { hero: 'astrologer', fixed: true }],
-    ['hastyTwinkle', '점성 03', '서두른 반짝임', HANDS, '영웅', 4, 'sec', '반짝임 재사용 −{v}', { hero: 'astrologer' }],
+    ['hastyTwinkle', '점성 03', '서두른 반짝임', HANDS, '영웅', 4, 'sec', '반짝임 재사용 −{v}', { hero: 'astrologer', cap: 4.5 }],
     ['deepSleep', '점성 04', '깊은 잠', AR, '영웅', 1, 'sec', '별의 잠 시간 +{v}', { hero: 'astrologer', fixed: true }],
     ['wideFall', '점성 05', '쏟아지는 별', W, '전설', 3, 'mana', '별비가 5명 이상에게 닿으면 마나 {v} 회복', { hero: 'astrologer', fixed: true }],
     ['perfectWin', '점성 06', '빠른 별자리', HANDS, '영웅', 0.3, 'sec', '별비 · 북극성 · 별의 기억 시전 −{v}', { hero: 'astrologer' }], // 83: 완벽 구간 → 별자리 시전 (키는 저장 때문에 그대로)
@@ -334,7 +334,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['memoryReturn', '점성 16', '기억의 귀환', NECK, '영웅', 0.2, 'pct', '별의 기억 재사용 대기 −{v}', { hero: 'astrologer', cap: 0.4, skillMod: { key: 'starMemory', kind: 'cooldown' } }],
     ['shardMana', '점성 17', '조각의 마나', W_ACC, '고급', 0.2, 'mana', '별 조각을 쓰면 조각마다 마나 {v} 회복', { hero: 'astrologer', cap: 0.5 }],
     ['readMore', '점성 18', '더 읽는 별', ALL, '고급', 0.08, 'pct', '보스 예고가 찍힌 아군에게 하는 힐 +{v}', { hero: 'astrologer', cap: 0.3 }],
-    ['markEcho', '점성 19', '옮겨 가는 표식', ACC, '희귀', 1, 'n', '표식 보너스를 쓰면 표식이 붙어 있는 다친 아군 1명에게 옮겨 감', { hero: 'astrologer', fixed: true }],
+    ['markEcho', '점성 19', '옮겨 가는 표식', ACC, '희귀', 1, 'n', '표식 보너스를 쓰면 표식이 옆 칸에서 표식이 없는 다친 아군 1명에게 옮겨 감', { hero: 'astrologer', fixed: true }],
     ['clearMark', '점성 20', '맑은 표식', HANDS, '고급', 1, 'n', '맑은 별빛으로 디버프를 지우면 대상에게 표식', { hero: 'astrologer', fixed: true }],
     ['polarisCd', '점성 21', '북극성의 순환', CHEST, '고급', 0.12, 'pct', '북극성 재사용 대기 −{v}', { hero: 'astrologer', cap: 0.3, skillMod: { key: 'polaris', kind: 'cooldown' } }],
     ['fallCd', '점성 22', '별비의 순환', W_ACC, '희귀', 0.3, 'pct', '별비 재사용 대기 −{v}', { hero: 'astrologer', cap: 0.45, skillMod: { key: 'starfall', kind: 'cooldown' } }],
@@ -358,7 +358,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['guardReturn', '결계 15', '수호의 귀환', AR, '희귀', 0.05, 'pct', '수호 결계 재사용 대기 −{v}', { hero: 'warder', cap: 0.3, skillMod: { key: 'guardWard', kind: 'cooldown' } }],
     ['veilReturn', '결계 16', '장막의 귀환', NECK, '영웅', 0.05, 'pct', '빛의 장막 재사용 대기 −{v}', { hero: 'warder', cap: 0.3, skillMod: { key: 'lightVeil', kind: 'cooldown' } }],
     ['judgeMana', '결계 17', '심판의 마나', W_ACC, '고급', 0.05, 'mana', '심판이 회복한 1명마다 마나 {v} 회복', { hero: 'warder', cap: 0.3 }],
-    ['sealTouch', '결계 18', '인장 손길', ALL, '고급', 0.06, 'pct', '인장이 붙은 아군에게 하는 직접 힐 +{v}', { hero: 'warder', cap: 0.3 }],
+    ['sealTouch', '결계 18', '인장 손길', ALL, '고급', 0.06, 'pct', '인장이 붙은 아군에게 쓰는 인장 치유 · 빠른 인장 +{v}', { hero: 'warder', cap: 0.3 }],
     ['barrierSeal', '결계 19', '막의 인장', ACC, '희귀', 1, 'n', '보호막이 다 깨지면 그 아군 인장 시간이 처음으로', { hero: 'warder', fixed: true }],
     ['cleanSeal', '결계 20', '맑은 인장', HANDS, '고급', 1, 'n', '결계 정화로 디버프를 지우면 대상에게 인장', { hero: 'warder', fixed: true }],
     ['judgeHit', '결계 21', '심판의 일격', CHEST, '고급', 0.1, 'pct', '심판 보스 피해 +{v}', { hero: 'warder', cap: 0.5 }],
@@ -710,7 +710,7 @@ export function fmtSpec(v: number, unit: SpecUnit): string {
     case 'pct': return `${r1(v * 100)}%`;
     case 'pp': return `${r1(v * 100)}%p`;
     case 'sec': return `${r1(v)}초`;
-    case 'mana': return `${r1(v)}%`;
+    case 'mana': return `${Math.round(v * 100) / 100}%`;
     case 'n': return r1(v);
   }
 }

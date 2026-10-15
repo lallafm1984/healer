@@ -173,7 +173,7 @@ function druid(f: Fight, key: SkillKey, u: Unit): void {
   } else if (key === 'bloom') {
     const h = u.hots.slice().sort((a, b) => b.rest - a.rest)[0];
     let amt = 0;
-    if (h) { u.hots = u.hots.filter(x => x !== h); amt = h.rest * 1.5; heroHeal(f, u, amt); }
+    if (h) { amt = h.rest * 1.5; heroHeal(f, u, amt); u.hots = u.hots.filter(x => x !== h); } // 지우기 전에 회복: 뿌리 깊음 (지속 힐 2개 이상)이 거두는 것도 셈
     else if (u.hot > 0) { const rest = Math.ceil(u.hot / 3) * 80; u.hot = 0; amt = rest * 1.5; heroHeal(f, u, amt); }
     if (amt && on.seedScatter) for (const v of adjLow(f, u, TX.seedScatter.n)) heal(f, v, amt * TX.seedScatter.share, true); // 흩날리는 꽃씨 (77)
     if (f.sp && sv(f, 'pollen')) giveSprout(f, sproutless(f, u), true); // 꽃가루 (42 드루 19)
@@ -294,8 +294,8 @@ function paladin(f: Fight, key: SkillKey, u: Unit): void {
 
 /** 헌신 (Lv 10 패시브): 신성한 힘 3칸을 한 번에 쓰면 마나 2%. 헌신의 길 (77)이면 2칸부터 3% */
 function devotion(f: Fight, n: number): void {
-  if (!heroPassive(f, '헌신')) return;
   const p = f.tx.on.devotionPath;
+  if (!p && !heroPassive(f, '헌신')) return; // 헌신의 길 (Lv 5 단)은 패시브 헌신 (Lv 10) 전에도 (QA 2026-10-15)
   if (n >= (p ? TX.devotionPath.min : 3)) f.mana = Math.min(100, f.mana + (p ? TX.devotionPath.mana : 2));
 }
 /** 빛의 서약 · 빛의 파도 회복량 (77): 새벽의 맹세 · 가득 찬 빛가 켜져 있는 동안 */

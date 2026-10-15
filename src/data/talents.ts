@@ -4,7 +4,9 @@
  * 세 직업 모두 단 구조 · 열리는 레벨 · 보조 버튼 규칙이 같다 (77 1장). 드루이드 · 성기사 수치는 TX 한 곳에서 (설명 문장도 TX를 씀)
  */
 import { FEATURES } from './features';
+import { DRUID_BIG, WARDER } from './heroConst';
 import type { HeroKey } from './heroes';
+import { SKILLS } from './skills';
 
 export type PriestTalentKey =
   | 'longBreath' | 'lightTouch' | 'wideCircle'
@@ -338,7 +340,7 @@ export const DRUID_TALENTS: TalentTier[] = [
     t('mossBed', '이끼 자리', `새싹을 건 칸에 ${TX.mossBed.sec}초 동안 이끼가 깔립니다. 이끼 위에 선 아군은 지속 힐을 ${pc(TX.mossBed.hot)} 더 받습니다. 자리를 옮기면 받지 못합니다.`)] },
   { lv: 20, theme: '군락', picks: [
     t('twinSprout', '두 겹 새싹', `한 아군에게 새싹을 2개까지 겹쳐 걸 수 있습니다. 겹쳐 건 새싹은 ${pc(TX.twinSprout)} 위력으로 따로 회복합니다.`),
-    t('colonyAll', '번지는 군락', `군락 보너스가 붙은 칸마다 ${pc(0.1 + TX.colonyAll)}로 늘고 생장 · 들꽃 군락의 지속 힐에도 붙습니다. 5인 이하 파티에서는 옆에 새싹이 없어도 1칸은 붙은 것으로 칩니다.`),
+    t('colonyAll', '번지는 군락', `군락 보너스가 붙은 칸마다 ${pc(0.1 + TX.colonyAll)} (20인 레이드 ${pc(DRUID_BIG.colonyStep + TX.colonyAll)})로 늘고 생장 · 들꽃 군락의 지속 힐에도 붙습니다. 5인 이하 파티에서는 옆에 새싹이 없어도 1칸은 붙은 것으로 칩니다.`),
     t('wideRoots', '뻗는 뿌리', `5인 이하 파티에서는 옆에 새싹이 없어도 군락이 ${TX.wideRoots.min}칸 붙은 것으로 칩니다. 레이드에서는 대신 2칸 떨어진 새싹까지 군락으로 칩니다.`)] },
   { lv: 25, theme: '군락', picks: [
     t('springRain', '봄비', '전투마다 한 번, 새싹이 없는 모든 아군에게 새싹을 겁니다.', { cd: 0, dur: 0, once: true, short: '봄비' }),
@@ -444,7 +446,7 @@ export const SHAMAN_TALENTS: TalentTier[] = [
   { lv: 40, theme: '범위 운영', picks: [
     t('returnChain', '되돌아오는 사슬', `연쇄 치유가 끝나면 첫 대상에게 ${pc(TX.returnChain)} 위력으로 한 번 더 돌아옵니다.`),
     t('overflowChain', '넘치는 사슬', '연쇄 치유로 넘친 회복량이 다음에 튀는 대상의 회복량에 더해집니다.'),
-    t('longChain', '긴 사슬', `연쇄 치유가 ${TX.longChain.n}명까지 닿고, 마나 소모가 ${TX.longChain.cost}% 늘어납니다.`)] },
+    t('longChain', '긴 사슬', `연쇄 치유가 ${TX.longChain.n}명까지 닿고, 마나 소모가 ${SKILLS.chainHeal.cost}%에서 ${SKILLS.chainHeal.cost + TX.longChain.cost}%로 늘어납니다.`)] },
   { lv: 45, theme: '대규모 운영', picks: [
     t('twinEarth', '두 대지', '대지 토템을 2번까지 모아 둘 수 있고, 판 위에 2개까지 섭니다.'),
     t('rainBreath', '비의 숨', `비구름 토템이 떠 있는 동안 내 마나 소모가 ${pc(TX.rainBreath)} 줄어듭니다.`),
@@ -531,7 +533,7 @@ export const ASTRO_TALENTS: TalentTier[] = [
     t('fallingStar', '떨어지는 별', `파티원 체력이 ${pc(TX.fallingStar.hp)} 아래로 떨어지면 반짝임 재사용 대기가 바로 끝납니다. 재발동 대기 ${TX.fallingStar.cd}초.`)] },
   { lv: 40, theme: '범위 운영', picks: [
     t('gatherLight', '모이는 빛', '별 3개 별비는 가운데 대상에게 두 배로 회복합니다.'),
-    t('thriftFall', '아끼는 별비', `별비 마나 소모가 12%에서 ${TX.thriftFall.cost}%로 줄어듭니다.`),
+    t('thriftFall', '아끼는 별비', `별비 마나 소모가 ${SKILLS.starfall.cost}%에서 ${TX.thriftFall.cost}%로 줄어듭니다.`),
     t('wideSky', '넓은 하늘', `별 4개 별비가 ${TX.wideSky.range}칸 거리까지 닿고, 회복량은 ${pc(-TX.wideSky.heal)} 줄어듭니다.`)] },
   { lv: 45, theme: '대규모 운영', picks: [
     t('tankMemory', '탱커의 기억', `별의 기억이 탱커에게는 받은 피해의 ${pc(TX.tankMemory)}를 회복합니다.`),
@@ -576,11 +578,11 @@ export const WARDER_TALENTS: TalentTier[] = [
   { lv: 40, theme: '범위 운영', picks: [
     t('doubleCircle', '두 겹 원', '결계 원의 가운데 대상은 두 배 두께의 막을 받습니다.'),
     t('thriftCircle', '아끼는 원', `결계 원 마나 소모가 10%에서 ${TX.thriftCircle.cost}%로 줄어듭니다.`),
-    t('wideWard', '넓은 결계', `결계 원이 ${TX.wideWard.range}칸 거리까지 닿고, 막 두께는 ${pc(-TX.wideWard.amt)} 줄어듭니다.`)] },
+    t('wideWard', '넓은 결계', `결계 원이 ${TX.wideWard.range}칸 거리 (20인 레이드 ${TX.wideWard.range + WARDER.big.circle}칸)까지 닿고, 막 두께는 ${pc(-TX.wideWard.amt)} 줄어듭니다.`)] },
   { lv: 45, theme: '대규모 운영', picks: [
     t('veilTank', '장막의 탱커', `빛의 장막 보호막이 탱커에게는 ${TX.veilTank}배로 씌워집니다.`),
-    t('veilBreath', '장막의 숨', '빛의 장막을 쓰고 10초 동안 내 마나 재생이 두 배가 됩니다.'),
-    t('sharedLoad', '함께 드는 짐', `빛의 장막을 쓰고 ${TX.sharedLoad.sec}초 안에 외치는 첫 심판은 인원 제한 없이 인장이 붙은 다친 아군 모두를 회복합니다.`)] },
+    t('veilBreath', '장막의 숨', `빛의 장막을 쓰고 ${WARDER.veil.after}초 동안 내 마나 재생이 두 배가 됩니다.`),
+    t('sharedLoad', '함께 드는 짐', `빛의 장막을 쓰고 ${WARDER.veil.after}초 안에 외치는 첫 심판은 인원 제한 없이 인장이 붙은 다친 아군 모두를 회복합니다.`)] },
   { lv: 50, theme: '궁극', picks: [
     t('citadel', '성채', `빈 칸을 골라 ${TX.citadel.dur}초 동안 성채를 세웁니다. ${TX.citadel.range}칸 거리 안 아군이 받는 피해가 ${pc(TX.citadel.cut)} 줄고, ${TX.citadel.tick}초마다 {${TX.citadel.amt}} 보호막을 받습니다. 재사용 대기시간은 ${TX.citadel.cd}초입니다.`, { cd: TX.citadel.cd, dur: TX.citadel.dur, cell: true, short: '성채' }),
     t('repentTime', '참회의 시간', `빛의 창이 보스에게 두 배 피해를 주고 ${TX.repentTime.n}명을 회복합니다.`),

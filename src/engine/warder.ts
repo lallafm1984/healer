@@ -14,7 +14,7 @@ import { noteUsed } from './healer';
 import { doDispel, heroHeal, heroPassive } from './heroes';
 import { activeOn } from './talents';
 import { placeTotem, totemsOf } from './totems';
-import { aoeCount, aoeDone, guardSec, healSpec, sv, twin, under } from './specials';
+import { aoeCount, aoeDone, guardSec, healSpec, raidSec, sv, twin, under } from './specials';
 import type { Fight, Unit } from './types';
 
 /** 결계사 전투 상태 (빛의 장막 · 특성 재발동 · 나를 위한 막 · 창 뒤의 심판) */
@@ -150,7 +150,7 @@ export function warderApply(f: Fight, key: SkillKey, u: Unit): void {
     emit(f, { type: 'sound', name: 'renew' });
   } else if (key === 'lightVeil') {
     // 82: 파티 전원 보호막 + 인장 (장막의 탱커 2배 · 굳은 장막 결계 05 +). 장막의 숨 · 함께 드는 짐은 쓴 뒤 10초
-    const sec = WARDER.veil.sec + (f.sp ? sv(f, 'longVeil') : 0), amt = SKILLS.lightVeil.amt! * (1 + (f.sp ? sv(f, 'firmVeil') : 0)); // 긴 장막 (결계 07)
+    const sec = raidSec(f, 'lightVeil', WARDER.veil.sec) + (f.sp ? sv(f, 'longVeil') : 0), amt = SKILLS.lightVeil.amt! * (1 + (f.sp ? sv(f, 'firmVeil') : 0)); // 긴 장막 (결계 07)
     s.veil = { until: f.t + WARDER.veil.after, judged: false };
     for (const v of living(f)) {
       if (v !== f.me) noteUsed(f, 'lightVeil', v.id);

@@ -50,13 +50,13 @@ const slots = (o: Partial<Record<SlotName, SkillKey>>): Record<SlotName, SkillKe
 export const HEROES: Record<HeroKey, HeroDef> = {
   priest: {
     key: 'priest', name: '사제', line: '꾸준히 넣으면 큰 한 방이 차오릅니다.', star: 1,
-    system: { name: '평온 게이지', lv: 6, desc: '어떤 힐을 하든 평온 게이지가 찹니다. 100%가 되면 치유 칸이 성언: 평온으로 바뀌어 한 명을 마나 없이 크게 회복합니다.' },
+    system: { name: '평온 게이지', lv: 6, desc: '치유 · 순간 치유 · 소생 · 치유의 기원 · 빛의 전이로 평온 게이지가 찹니다. 100%가 되면 치유 칸이 성언: 평온으로 바뀌어 한 명을 마나 없이 크게 회복합니다.' },
     dispel: ['마법', '질병'],
     slots: slots({ basic: 'heal', fast: 'flash', hot: 'renew', aoe: 'poh', dispel: 'purify', ext: 'guardian', raid: 'hymn', unique: 'relay' }),
     tap: ['heal', 'flash', 'renew'],
     passives: [
       { name: '메아리 치유', lv: 1, desc: '치유·순간 치유·평온 힐량의 15%를 4초에 걸쳐 추가로 회복합니다.' },
-      { name: '빛의 은총', lv: 4, desc: '소생이 걸린 대상에게 하는 직접 힐이 10% 늘어납니다.' },
+      { name: '빛의 은총', lv: 4, desc: '소생이 걸린 대상에게 하는 치유 · 순간 치유가 10% 늘어납니다.' },
       { name: '상징', lv: 10, desc: '전투마다 한 번, 마나가 30% 아래로 내려가면 5초 동안 마나 회복이 4배가 됩니다.' },
     ],
     unlock: { lv: 1, how: '처음부터' },
