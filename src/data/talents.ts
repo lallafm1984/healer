@@ -283,11 +283,11 @@ export const TX = {
   /** 새긴 표식: 표식 보너스 · 표식의 숨: 마나 · 이어진 표식: 인원 */
   etchedMark: 0.8, markBreath: { mana: 1 }, linkedMark: { n: 1 },
   /** 빛나는 북극성: 체력 선 · + · 빠른 잇기: 별 하나 초 · 맑은 밤: 별 2 · 3 범위 · 회복 */
-  brightPolaris: { hp: 0.5, heal: 0.25 }, quickLink: 0.4, clearNight: { range: 2, heal: -0.2 },
+  brightPolaris: { hp: 0.5, heal: 0.25 }, quickLink: 0.5, clearNight: { range: 2, heal: -0.2 },
   /** 한 점: 탱커 북극성 + · 세 조각: 조각 최대 · 다섯째 별: 최대 · 별비 · 북극성 */
-  onePoint: 0.2, threeShards: 3, fifthStar: { max: 5, fall: 200, polaris: 1150 },
+  onePoint: 0.2, threeShards: 2, fifthStar: { max: 5, fall: 200, polaris: 1150 },
   /** 떠오르는 북극성: 완벽하면 재사용 −초 · 내리는 밤 (★) · 두 번째 별비: 초 뒤 · 위력 */
-  risingPolaris: 10, fallingNight: { cd: 90, dur: 10, mult: 2 }, secondStarfall: { delay: 2, share: 0.5 },
+  risingPolaris: 10, fallingNight: { cd: 90, dur: 10 }, secondStarfall: { delay: 2, share: 0.5 },
   /** 지지 않는 별: 잠 초 · 차분한 손: 모으는 동안 − · 별 무리: 조각마다 − */
   unfading: { sec: 4 }, calmHands: 0.3, starCrowd: 0.08,
   /** 예언 · 내다본 손 · 떨어지는 별: 재발동 대기 */
@@ -511,19 +511,19 @@ export const ASTRO_TALENTS: TalentTier[] = [
     t('linkedMark', '이어진 표식', `표식을 걸면 붙어 있는 다친 아군 ${TX.linkedMark.n}명에게도 표식이 걸립니다.`)] },
   { lv: 15, theme: '기본 강화', picks: [
     t('brightPolaris', '빛나는 북극성', `체력 ${pc(TX.brightPolaris.hp)} 아래 대상에게 하는 북극성이 ${pc(TX.brightPolaris.heal)} 늘어납니다.`),
-    t('quickLink', '빠른 잇기', `별이 0.5초 대신 ${TX.quickLink}초마다 이어집니다.`),
+    t('quickLink', '빠른 잇기', `별비 · 북극성 · 별의 기억 시전 시간이 ${TX.quickLink}초 줄어듭니다.`),
     t('clearNight', '맑은 밤', `별비 별 2 · 3개 범위가 ${TX.clearNight.range}칸 거리로 넓어지고, 회복량은 ${pc(-TX.clearNight.heal)} 줄어듭니다.`)] },
   { lv: 20, theme: '별자리', picks: [
     t('onePoint', '한 점', `탱커에게 하는 북극성이 ${pc(TX.onePoint)} 늘어납니다.`),
-    t('threeShards', '세 조각', `별 조각을 ${TX.threeShards}개까지 모아 둘 수 있습니다.`),
-    t('fifthStar', '다섯째 별', `별이 ${TX.fifthStar.max}개까지 이어집니다. 별 5개 별비는 2칸 거리 안 {${TX.fifthStar.fall}}씩, 북극성은 {${TX.fifthStar.polaris}}입니다.`)] },
+    t('threeShards', '넉넉한 조각', `반짝임이 별 조각을 ${TX.threeShards}개 줍니다.`),
+    t('fifthStar', '다섯째 별', `별 조각을 ${TX.fifthStar.max - 1}개까지 모아 별이 ${TX.fifthStar.max}개까지 이어집니다. 별 5개 별비는 2칸 거리 안 {${TX.fifthStar.fall}}씩, 북극성은 {${TX.fifthStar.polaris}}입니다.`)] },
   { lv: 25, theme: '별자리', picks: [
-    t('risingPolaris', '떠오르는 북극성', `완벽한 북극성은 재사용 대기가 ${TX.risingPolaris}초 줄어듭니다.`),
-    t('fallingNight', '내리는 밤', `${TX.fallingNight.dur}초 동안 별이 두 배로 빨리 이어집니다. 재사용 대기시간은 ${TX.fallingNight.cd}초입니다.`, { cd: TX.fallingNight.cd, dur: TX.fallingNight.dur, short: '밤' }),
-    t('secondStarfall', '두 번째 별비', `완벽한 별비는 ${TX.secondStarfall.delay}초 뒤 같은 자리에 ${pc(TX.secondStarfall.share)} 위력으로 한 번 더 쏟아집니다.`)] },
+    t('risingPolaris', '떠오르는 북극성', `가득 찬 북극성은 재사용 대기가 ${TX.risingPolaris}초 줄어듭니다.`),
+    t('fallingNight', '내리는 밤', `${TX.fallingNight.dur}초 동안 별비 · 북극성 · 별의 기억이 바로 시전됩니다. 재사용 대기시간은 ${TX.fallingNight.cd}초입니다.`, { cd: TX.fallingNight.cd, dur: TX.fallingNight.dur, short: '밤' }),
+    t('secondStarfall', '두 번째 별비', `가득 찬 별비는 ${TX.secondStarfall.delay}초 뒤 같은 자리에 ${pc(TX.secondStarfall.share)} 위력으로 한 번 더 쏟아집니다.`)] },
   { lv: 30, theme: '생존', picks: [
     t('unfading', '지지 않는 별', `내가 죽을 피해를 받으면 대신 나에게 별의 잠이 걸립니다 (${TX.unfading.sec}초, 그동안 행동은 됨). 전투마다 1회.`),
-    t('calmHands', '차분한 손', `별을 모으는 동안 내가 받는 피해가 ${pc(TX.calmHands)} 줄어듭니다.`),
+    t('calmHands', '차분한 손', `시전하는 동안 내가 받는 피해가 ${pc(TX.calmHands)} 줄어듭니다.`),
     t('starCrowd', '별 무리', `별 조각 1개마다 내가 받는 피해가 ${pc(TX.starCrowd)} 줄어듭니다.`)] },
   { lv: 35, theme: '위기 대응', picks: [
     t('prophecy', '예언', `탱커 버스터 예고가 뜨면 그 탱커에게 표식이 저절로 걸립니다. 재발동 대기 ${TX.prophecy.cd}초.`),
@@ -539,7 +539,7 @@ export const ASTRO_TALENTS: TalentTier[] = [
     t('longMemory', '긴 기억', `별의 기억이 별 1개마다 ${TX.longMemory}초씩 되감습니다 (원래 2초).`)] },
   { lv: 50, theme: '궁극', picks: [
     t('supernova', '초신성', `빈 칸을 골라 별을 심습니다. ${TX.supernova.delay}초 뒤 터져 ${TX.supernova.range}칸 거리 안 아군 체력을 {${TX.supernova.amt}}씩 회복합니다. 재사용 대기시간은 ${TX.supernova.cd}초입니다.`, { cd: TX.supernova.cd, dur: 0, cell: true, short: '초신성' }),
-    t('starPath', '별의 길', '완벽한 별자리를 만들면 다음 별자리는 별 4개로 바로 시작합니다.'),
+    t('starPath', '별의 길', '가득 찬 별자리를 터뜨리면 다음 별자리는 조각이 없어도 가득 찬 별자리가 됩니다.'),
     t('milkyWay', '은하수', `${TX.milkyWay.dur}초 동안 별빛 치유가 바로 시전되고 별 조각을 ${TX.milkyWay.shards}개씩 줍니다. 재사용 대기시간은 ${TX.milkyWay.cd}초입니다.`, { cd: TX.milkyWay.cd, dur: TX.milkyWay.dur, short: '은하수' })] },
 ];
 

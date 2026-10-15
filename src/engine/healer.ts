@@ -7,12 +7,10 @@ import { totemsTick } from './totems';
 import { heroApply, heroCell, heroTick, hotCount, putHot } from './heroes';
 import { palmGcd } from './monk';
 import { judgeReady, warderRegen } from './warder';
-import { crisis, freeCast, gcdNow, guardSec, hasteOf, hc, later, raidSec, regenSpec, specApply, specDispel, specExec, specTick, sv, twiceBrush, twin, under } from './specials';
+import { crisis, freeCast, gcdNow, guardSec, hc, later, raidSec, regenSpec, specApply, specDispel, specExec, specTick, sv, twiceBrush, twin, under } from './specials';
 import { orderHeal } from './bossParts';
 import { reviveTarget } from './items';
 import { adjLow, castOf, cdOf, costOf, directSpread, focusMult, has, overflow, pohAt, renewSec, spendGuard, talentTick, waveNeed, wordCap, wordPower, wordReady, wordSpent } from './talents';
-import { ASTRO_CHARGE } from '../data/heroConst';
-import { chargeSpec, chargeStartStars } from './heroes';
 import { TX } from '../data/talents';
 import type { ActionResult, Debuff, Fight, Unit } from './types';
 
@@ -79,8 +77,6 @@ export function use(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
   if (f.over) return { ok: false };
   const sk = SKILLS[key];
   if (!knows(f, key)) return { ok: false, reason: `${sk.name}: Lv ${SKILL_LEVEL[key]}에 배움` };
-  if (f.charge) return { ok: false, reason: '별을 모으는 중' }; // 모으는 동안 다른 스킬은 무시 (예약 안 함, 79 6-3)
-  if (sk.charge) return chargeStart(f, key, cellIdx);
   const tg = canTarget(f, key, cellIdx);
   if (!tg.ok) return tg;
   if (tg.u && tg.u.debuffs.length && invertTap(f, key, tg.u)) return { ok: false, reason: '뒤집힌 축복: 힐이 피해가 됨 (한 번 더 누르면 사용)' };
@@ -313,89 +309,6 @@ export function healerTick(f: Fight): void {
       else { f.stats.queueLost++; if (!tg.ok && tg.reason) emit(f, { type: 'msg', text: tg.reason }); }
     }
   }
-  if (f.charge) chargeTick(f, dt);
   if (f.sp) specTick(f, dt, pohAt);
   f.stats.minMana = Math.min(f.stats.minMana, f.mana);
-}
-
-// ---------- 모으기 (점성술사 별자리 잇기, 79 4-3 · 6-1) ----------
-/**
- * 모으기 시작 (휠 조각을 누름): 재사용 · 마나 확인 (마나는 뗄 때 씀). GCD 중이면 GCD가 끝난 뒤 별이 모이기 시작하고, 시작할 때 GCD를 건다 (시전처럼).
- * 시전 · 정신 집중 중이면 끊고 시작 (사람이 다른 스킬을 누른 것과 같음)
- */
-export function chargeStart(f: Fight, key: SkillKey, cellIdx: number): ActionResult {
-  const sk = SKILLS[key];
-  const tg = canTarget(f, key, cellIdx);
-  if (!tg.ok) return tg;
-  if (sk.cd && (f.cd[key] ?? 0) > 0) return { ok: false, reason: `${sk.name} 재사용 대기 ${Math.ceil(f.cd[key]!)}초` };
-  if (f.lock[key]) return { ok: false, reason: `${sk.name} 잠김 ${Math.ceil(f.lock[key]!.left)}초 (진동)` };
-  if (f.mana < costOf(f, key, tg.u)) { f.stats.manaFails++; return { ok: false, reason: '마나 부족' }; }
-  if (f.channel > 0) { f.channel = 0; f.stats.hymnBroken++; emit(f, { type: 'msg', text: `${SKILLS[HEROES[f.hero].slots.raid!].name} 끊김` }); }
-  if (f.cast) { f.cast = null; f.stats.cancels++; f.gcd = 0; }
-  f.queued = null;
-  const u = tg.u;
-  f.charge = { key, uid: u ? u.id : null, cell: u ? u.cell : cellIdx, t0: f.t + Math.max(0, f.gcd), acc: 0, stars: 0, full: null };
-  if (f.gcd <= 0) chargeBegin(f);
-  return { ok: true };
-}
-/** 별이 모이기 시작: 시작 별 (1 + 조각) · GCD */
-function chargeBegin(f: Fight): void {
-  const c = f.charge!, sp = chargeSpec(f);
-  c.t0 = f.t;
-  c.stars = Math.min(sp.max, Math.max(1, chargeStartStars(f)));
-  if (c.stars >= sp.max) c.full = f.t;
-  if (f.sp) f.gcdBase = gcdNow(f);
-  f.gcd = gcdOf(f, c.key);
-  f.tx.lastAct = f.t;
-}
-/** 모으기 한 틱: 별 +1 (가속을 받음), 마지막 별 뒤 ASTRO_CHARGE.auto초가 지나면 저절로 터짐, 대상이 쓰러지면 북극성은 취소 · 별비는 그 칸 그대로 */
-function chargeTick(f: Fight, dt: number): void {
-  const c = f.charge!;
-  const u = c.uid == null ? undefined : unitById(f, c.uid);
-  if (c.uid != null && (!u || !u.alive)) {
-    if (SKILLS[c.key].target === 'ally') { f.charge = null; emit(f, { type: 'msg', text: `대상이 쓰러져 ${SKILLS[c.key].name} 취소` }); return; }
-  } else if (u) c.cell = u.moving ? u.moving.from : u.cell;
-  if (c.stars === 0) { // GCD가 끝나기를 기다리는 중
-    if (f.gcd > 0) return;
-    chargeBegin(f);
-    if (c.release) { chargeRelease(f); return; }
-  }
-  const sp = chargeSpec(f);
-  if (c.stars < sp.max) {
-    c.acc += dt * (1 + hasteOf(f));
-    while (c.acc >= sp.step - 1e-9 && c.stars < sp.max) { c.acc -= sp.step; c.stars++; }
-    if (c.stars >= sp.max) c.full = f.t;
-  }
-  if (c.autoAt != null && f.t + 1e-9 >= c.autoAt) { chargeRelease(f); return; }
-  if (c.full != null && f.t - c.full >= ASTRO_CHARGE.auto - 1e-9) chargeRelease(f, true);
-}
-/** 지금 떼면 완벽한 별자리인지 (마지막 별이 뜬 뒤 완벽 구간 안) */
-export const chargePerfect = (f: Fight): boolean => !!f.charge && f.charge.full != null && f.t - f.charge.full <= chargeSpec(f).perfect + 1e-9;
-/**
- * 뗌: 그때 별 수로 발동 (완벽 구간이면 완벽). 마나 · 재사용은 이때. 저절로 터지면 (late) 완벽 아님.
- * 아직 GCD를 기다리는 중이면 시작하자마자 터지게 표시만 함
- */
-export function chargeRelease(f: Fight, late = false): ActionResult {
-  const c = f.charge;
-  if (!c) return { ok: false };
-  if (c.stars === 0) { c.release = true; return { ok: true, queued: true }; }
-  const sk = SKILLS[c.key], perfect = !late && chargePerfect(f);
-  const u = c.uid == null ? undefined : unitById(f, c.uid);
-  f.charge = null;
-  if (sk.target === 'ally' && (!u || !u.alive)) { emit(f, { type: 'msg', text: `대상이 쓰러져 ${sk.name} 취소` }); return { ok: false }; }
-  const cost = costOf(f, c.key, u);
-  if (f.mana < cost) { f.stats.manaFails++; emit(f, { type: 'msg', text: '마나 부족' }); return { ok: false, reason: '마나 부족' }; }
-  f.mana -= cost;
-  if (sk.cd) f.cd[c.key] = cdOf(f, c.key);
-  f.stats.casts[c.key] = (f.stats.casts[c.key] || 0) + 1;
-  // 범위 별비는 대상이 쓰러져도 그 칸 그대로 (chargeOut.cell이 가운데). 효과 문맥의 대상은 살아 있는 대상, 없으면 나
-  f.chargeOut = { stars: c.stars, perfect, cell: c.cell };
-  try { apply(f, c.key, u && u.alive ? u : f.me); } finally { f.chargeOut = null; }
-  return { ok: true };
-}
-/** 취소 (조각 밖에서 뗌): 마나 · 재사용 없이, 건 GCD만 남음 */
-export function chargeCancel(f: Fight): void {
-  if (!f.charge) return;
-  f.charge = null;
-  f.stats.cancels++;
 }

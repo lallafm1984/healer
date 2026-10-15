@@ -1,6 +1,6 @@
 import { ABILITIES } from '../data/abilities';
 import { armorFactor } from '../data/armor';
-import { ASTRO, MONK, RELAY, SHAMAN } from '../data/heroConst';
+import { MONK, RELAY, SHAMAN } from '../data/heroConst';
 import { HEROES } from '../data/heroes';
 import { DISPELLABLE, SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
@@ -9,14 +9,14 @@ import { ROD_HP } from './bossParts';
 import { cellOf, healTop, living, submerged, unitById } from './core';
 import { sv } from './specials';
 import { create, step } from './fight';
-import { canTarget, chargeRelease, knows, use } from './healer';
+import { canTarget, knows, use } from './healer';
 import { setBeacon } from './heroes';
 import { reviveTarget } from './items';
 import { dangerAt } from './movement';
 import { areaRadius, castOf, talentReady, useTalent, waveMax, waveNeed } from './talents';
 import { chainPath } from './shaman';
 import { breathRange, misted } from './monk';
-import { asleep, fallSpec } from './astro';
+import { asleep, fallSpec, starsNow } from './astro';
 import { circleRange, judgeReady, sealed, sealTargets } from './warder';
 import { absorbLeft } from './abilities';
 import { totemBreaks } from './totems';
@@ -821,7 +821,7 @@ function breathAt(f: Fight, live: Unit[], all: Unit[], r: number): { best: Unit 
 
 function autoMonk(f: Fight): void {
   // 차 한 잔은 GCD를 안 써서 시전 · GCD 중에도: 마나 85% 아래면 재사용마다
-  if (!f.over && !f.charge && knows(f, 'tea') && (f.cd.tea ?? 0) <= 0 && f.mana < 85 && !f.lock.tea) use(f, 'tea', 0);
+  if (!f.over && knows(f, 'tea') && (f.cd.tea ?? 0) <= 0 && f.mana < 85 && !f.lock.tea) use(f, 'tea', 0);
   const br = breathRange(f);
   const c = ctx(f, 160, br);
   if (!c) return;
@@ -877,51 +877,39 @@ function autoMonk(f: Fight): void {
   if (f.beat >= MONK.beat.mistFast && f.mana > 50) tryUse(f, 'vitalPalm', tank, idx);
 }
 
-// ---------- 점성술사 자동 힐러 (79 4-9): 별을 모았다 터뜨림 ----------
+// ---------- 점성술사 자동 힐러 (79 4-9, 83): 별 조각을 모았다 별자리 시전으로 터뜨림 ----------
 const marked = (u: Unit) => u.hots.some(h => h.key === 'starMark' && h.left > 2);
 /**
- * 모으는 중: 바라는 별 수 (want)가 되면 뗌, 끝까지 모으면 60%는 완벽 구간 안 · 40%는 0.5~1.0초 사이 (전투 난수).
- * 피할 장판이 내 칸에 오면 지금 별 수로 바로
+ * 별비 자리 (83: 별 수 = 지금 조각으로 정해짐): 75% 아래 아군이 별 4개 (2칸 거리)면 4명, 별 3개 (한 칸 둘레)면 3명, 별 2개면 4명 이상일 때 그 가운데.
+ * 조각이 없으면 (별 1개 한 명) 안 씀. 힐하면 손해인 사람이 범위에 들면 안 씀
  */
-function astroCharging(f: Fight): void {
-  const c = f.charge!;
-  if (c.stars === 0) return;
-  if (c.want != null && c.stars >= c.want) { chargeRelease(f); return; }
-  if (dangerAt(f, f.me.cell) && c.stars >= 2) { chargeRelease(f); return; }
-  if (c.full != null && c.autoAt == null) c.autoAt = c.full + (f.rng() < ASTRO.autoPerfect ? f.rng() * ASTRO.charge.perfect * 0.9 : ASTRO.charge.perfect + 0.05 + f.rng() * 0.45);
-}
-/** 별비 자리: 바라는 별 수와 가운데 (75% 아래 아군: 2칸 거리 안 4명 → 별 4개, 한 칸 둘레 3명 → 별 3개). 힐하면 손해인 사람이 범위에 들면 안 씀 */
-function fallPlan(f: Fight, live: Unit[], all: Unit[]): { u: Unit; want: number } | null {
+function fallPlan(f: Fight, live: Unit[], all: Unit[]): Unit | null {
+  const stars = starsNow(f);
+  if (stars < 2) return null;
   const low = (v: Unit) => v.hp < healTop(v) * 0.75;
-  const score = (c: Unit, r: number) => { let n = 0; for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= r) { if (off(f, v)) return -1; if (low(v)) n++; } return n; };
-  const r4 = fallSpec(f, 4).r, r3 = fallSpec(f, 3).r;
-  let b4: { u: Unit; n: number } | null = null, b3: { u: Unit; n: number } | null = null;
+  const r = fallSpec(f, stars).r, need = Math.min(stars >= 4 ? 4 : stars === 3 ? 3 : 4, live.length);
+  let best: { u: Unit; n: number } | null = null;
   for (const c of live) {
-    const n4 = score(c, r4), n3 = score(c, r3);
-    if (n4 >= Math.min(4, live.length) && (!b4 || n4 > b4.n)) b4 = { u: c, n: n4 };
-    if (n3 >= Math.min(3, live.length) && (!b3 || n3 > b3.n)) b3 = { u: c, n: n3 };
+    let n = 0;
+    for (const v of all) if (hexDist(cellOf(f, v), cellOf(f, c)) <= r) { if (off(f, v)) { n = -1; break; } if (low(v)) n++; }
+    if (n >= need && (!best || n > best.n)) best = { u: c, n };
   }
-  return b4 ? { u: b4.u, want: 4 } : b3 ? { u: b3.u, want: 3 } : null;
+  return best?.u ?? null;
 }
 
 function autoAstro(f: Fight): void {
-  if (f.charge) { astroCharging(f); return; }
   const c = ctx(f, 220, 1);
   if (!c) return;
   const { live, pct, low, idx, ready, g } = c;
-  /** 모으기 스킬 시작: 바라는 별 수까지 (최대면 끝까지) */
-  const charge = (k: SkillKey, u: Unit, want?: number): boolean => {
-    if (!ready(k) || !tryUse(f, k, u, idx) || !f.charge) return false;
-    if (want != null) f.charge.want = want;
-    return true;
-  };
+  /** 별자리 시전 (83) */
+  const charge = (k: SkillKey, u: Unit): boolean => ready(k) && tryUse(f, k, u, idx);
   const one = (u: Unit, hurry: boolean) => (hurry && ready('twinkle') && tryUse(f, 'twinkle', u, idx)) || (f.mana > 3 && tryUse(f, 'starHeal', u, idx));
   if (glassWindow(f, g, live, (u, hurry) => one(u, hurry), () => { if (!ready('clearStar')) return false; const d = cleansable(f, c); return !!d && tryUse(f, 'clearStar', d, idx); })) return;
-  // 위급 (25% 아래): 반짝임 → 북극성을 별 1~2개 (조각이 있으면 하나 더)에서 뗌
+  // 위급 (25% 아래): 반짝임 → 북극성 (지금 조각대로)
   const dying = live.filter(u => pct(u) < 0.25 && !asleep(f, u)).sort((a, b) => pct(a) - pct(b))[0];
   if (dying) {
     if (ready('twinkle') && tryUse(f, 'twinkle', dying, idx)) return;
-    if (knows(f, 'polaris') && charge('polaris', dying, Math.min(4, 2 + f.shards))) return;
+    if (knows(f, 'polaris') && charge('polaris', dying)) return;
   }
   // 탱커 버스터: 별의 잠은 쓰지 않음 → 표식을 미리, 예고가 떨어진 뒤 북극성
   if (c.busterOn && !marked(c.busterOn) && f.mana > 3 && tryUse(f, 'starMark', c.busterOn, idx)) return;
@@ -939,16 +927,16 @@ function autoAstro(f: Fight): void {
   if (ready('clearStar')) { const d = cleansable(f, c); if (d && tryUse(f, 'clearStar', d, idx)) return; }
   // 공대 위기: 파티 평균 잃은 체력 40% 이상 → 별의 기억 (전원을 채우니 힐하면 손해인 사람이 없을 때만)
   const avg = live.reduce((a, u) => a + pct(u), 0) / live.length;
-  // 82: 별의 기억도 모으기 → 별 3개 (최근 6초), 조각이 2개면 4개 (최근 8초)
-  if (ready('starMemory') && live.length >= 3 && live.length === c.all.length && avg < 0.6 && charge('starMemory', f.me, Math.min(4, 3 + Math.max(0, f.shards - 1)))) return;
-  // 별비: 2칸 거리 4명 → 별 4개, 한 칸 둘레 3명 → 별 3개
+  // 83: 별의 기억도 시전 (지금 조각대로 별 1 + 조각개 = 별마다 2초)
+  if (ready('starMemory') && live.length >= 3 && live.length === c.all.length && avg < 0.6 && charge('starMemory', f.me)) return;
+  // 별비: 지금 조각으로 정해진 별 수의 범위에 다친 아군이 모여 있으면 (fallPlan)
   if (ready('starfall') && f.mana > 14) {
     const p = fallPlan(f, live, c.all);
-    if (p && charge('starfall', p.u, p.want)) return;
+    if (p && charge('starfall', p)) return;
   }
-  // 북극성: 탱커 (또는 계속 맞는 사람) 체력 55% 아래면 끝까지
+  // 북극성: 탱커 (또는 계속 맞는 사람) 체력 55% 아래면, 조각이 2개 넘게 모였거나 40% 아래일 때
   { const t = live.filter(u => (u.role === 'tank' || g.hit.includes(u)) && pct(u) < 0.55 && !asleep(f, u)).sort((a, b) => pct(a) - pct(b))[0];
-    if (t && knows(f, 'polaris') && charge('polaris', t)) return; }
+    if (t && knows(f, 'polaris') && (f.shards >= 2 || pct(t) < 0.4) && charge('polaris', t)) return; }
   if (g.cure && pct(low) > 0.4 && one(g.cure, pct(g.cure) < 0.5)) return;
   if (g.soul && pct(low) > 0.5 && f.mana > 10 && ((ready('clearStar') && tryUse(f, 'clearStar', g.soul, idx)) || one(g.soul, false))) return;
   if (g.link && pct(low) > 0.4 && one(g.link.u, false)) return;

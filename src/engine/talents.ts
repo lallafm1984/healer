@@ -11,7 +11,7 @@ import { barkCut, powerMax, putHot, putSprout } from './heroes';
 import { aoeCount, aoeDone, castCut, castMult, cdSpec, costSpec, freeCast, hasteOf, sv } from './specials';
 import { callTotems, raining, seaSeat, shamanDeath } from './shaman';
 import { breathRange, chiBurst, gatherMist, monkCost, monkDeath } from './monk';
-import { astroCost, instantStar, supernova } from './astro';
+import { astroCost, CONSTELLATION, instantStar, supernova } from './astro';
 import { citadel, judgeCast, warderCost, warderDeath } from './warder';
 import type { ActionResult, Fight, TalentState, Unit } from './types';
 
@@ -96,8 +96,9 @@ export function castOf(f: Fight, key: SkillKey, u?: Unit): number {
   if (f.sp && freeCast(f, key)) return 0;
   if (key === 'chainHeal' && f.tx.on.stormChain && raining(f)) return 0; // 폭풍 사슬 (79 2-7)
   if (instantStar(f, key)) return 0; // 은하수 (79 4-7)
+  if (CONSTELLATION.has(key) && activeOn(f, 'fallingNight')) return 0; // 내리는 밤 (83: 별자리 스킬 바로 시전)
   const cut = (key === 'heal' && f.tx.on.practiced) || (key === 'holyLight' && f.tx.on.swiftLight) ? (key === 'heal' ? 0.3 : TX.swiftLight)
-    : key === 'ripple' && f.tx.on.quickRipple ? TX.quickRipple : key === 'starHeal' && f.tx.on.brightStar ? TX.brightStar : 0; // 빠른 잔물결 (79 2-7) · 밝은 별 (79 4-7)
+    : key === 'ripple' && f.tx.on.quickRipple ? TX.quickRipple : key === 'starHeal' && f.tx.on.brightStar ? TX.brightStar : CONSTELLATION.has(key) && f.tx.on.quickLink ? TX.quickLink : 0; // 빠른 잔물결 (79 2-7) · 밝은 별 (79 4-7) · 빠른 잇기 (83)
   const quick = key === 'holyLight' && f.tx.on.quickHand && u && u.hp <= u.max * TX.quickHand.hp ? TX.quickHand.cast : 1;
   const b = base - cut - (f.sp ? castCut(f, key) : 0);
   return ((Math.max(0.5, b) * quick) / (1 + hasteOf(f))) * (f.slow && f.t < f.slow.until ? f.slow.mult : 1) * (f.sp ? castMult(f) : 1); // 깨진 시간 (05 5-E) · 낙타 털실 반지

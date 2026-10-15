@@ -393,6 +393,7 @@ export function castCut(f: Fight, key: SkillKey): number {
   if (key === 'rebirth') return v.quickRebirth ? 1 : 0;
   if (key === 'shower') return v.quickShower ?? 0; // 빠른 소나기 (주술 06)
   if (key === 'sealHeal') return v.sealHaste ?? 0; // 서두른 인장 (결계 06)
+  if (key === 'starfall' || key === 'polaris' || key === 'starMemory') return v.perfectWin ?? 0; // 빠른 별자리 (점성 06, 83: 완벽 구간 + → 별자리 시전 −)
   return 0;
 }
 

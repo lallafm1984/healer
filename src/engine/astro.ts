@@ -1,6 +1,6 @@
 /**
- * 점성술사 (79 4장): 모으기를 타는 힐러. 별비 · 북극성은 누르고 있는 동안 별이 이어지고 (모으기 엔진은 healer.ts chargeStart · chargeRelease),
- * 떼면 별 수만큼 터진다. 별빛 치유 · 반짝임이 주는 별 조각으로 다음 별자리를 미리 이어 둔다. 별자리 표식 (다음 직접 힐 +), 별의 잠, 별의 기억 (최근 받은 피해).
+ * 점성술사 (79 4장, 83 별 조각 시전): 별빛 치유 · 반짝임이 별 조각을 모으고, 별자리 스킬 (별비 · 북극성 · 별의 기억)은 시전이 끝날 때
+ * 조각을 모두 써서 별 1 + 조각개로 터진다 (예전 누르고 떼는 모으기는 83에서 없앰). 조각을 다 채워 쓰면 가득 찬 별자리. 별자리 표식 (다음 직접 힐 +), 별의 잠, 별의 기억 (최근 받은 피해).
  * 특성 (79 4-7)과 직업 전용 특수능력 (79 4-8)의 엔진 훅도 여기서. heroes.ts가 직업마다 나눠 부르고, 초신성은 판 위 물건 (totems.ts)
  */
 import { ASTRO } from '../data/heroConst';
@@ -15,7 +15,7 @@ import { placeTotem } from './totems';
 import { aoeCount, aoeDone, sv, under } from './specials';
 import type { Fight, Hot, Totem, Unit } from './types';
 
-/** 점성술사 전투 상태 (이번 별자리에 쓴 조각 · 별의 길 · 두 번째 별비 · 완벽의 서두름 · 특성 재발동) */
+/** 점성술사 전투 상태 (이번 별자리에 쓴 조각 · 별의 길 · 두 번째 별비 · 가득 찬 별자리 뒤 가속 · 특성 재발동) */
 export interface AstroState {
   used: number;
   path: boolean;
@@ -48,26 +48,29 @@ const adjHurt = (f: Fight, u: Unit, n: number): Unit[] => {
 /** 별의 잠에 들어 있는지 (피해 · 회복 · 딜 없음) */
 export const asleep = (f: Fight, u: Unit): boolean => u.sleep != null && u.sleep > f.t;
 
-// ---------- 별 조각 · 모으기 ----------
-/** 별 조각 최대 (세 조각 3) */
-export const shardMax = (f: Fight): number => (f.tx.on.threeShards ? TX.threeShards : ASTRO.shard.max);
+// ---------- 별 조각 · 별자리 (83) ----------
+/** 별 조각 최대 (다섯째 별이면 4) */
+export const shardMax = (f: Fight): number => (f.tx.on.fifthStar ? TX.fifthStar.max - 1 : ASTRO.shard.max);
+/** 가장 큰 별자리 = 1 + 조각 최대 (4, 다섯째 별 5) */
+export const starMax = (f: Fight): number => 1 + shardMax(f);
 export function gainShard(f: Fight, n: number): void {
   f.shards = Math.min(shardMax(f), f.shards + n);
 }
-/** 모으기 수치: 최대 별 (다섯째 별 5) · 별 하나 시간 (빠른 잇기 0.4, 내리는 밤 동안 절반) · 완벽 구간 (완벽의 틈 +) */
-export function astroChargeSpec(f: Fight): { max: number; step: number; perfect: number } {
-  const on = f.tx.on;
-  const step = (on.quickLink ? TX.quickLink : ASTRO.charge.step) / (activeOn(f, 'fallingNight') ? TX.fallingNight.mult : 1);
-  return { max: on.fifthStar ? TX.fifthStar.max : ASTRO.charge.max, step, perfect: ASTRO.charge.perfect + (f.sp ? sv(f, 'perfectWin') : 0) };
-}
-/** 모으기 시작 별: 1 + 조각 (조각은 다 씀). 별의 길이면 4개로. 쓴 조각 수를 기억 (밝은 조각 · 조각의 마나) */
-export function astroStartStars(f: Fight): number {
-  const s = st(f), used = f.shards;
+/** 별자리 스킬: 시전이 끝날 때 조각을 모두 씀 (빠른 잇기 · 내리는 밤 · 빠른 별자리 점성 06이 시전을 줄임) */
+export const CONSTELLATION = new Set<SkillKey>(['starfall', 'polaris', 'starMemory']);
+/** 지금 별자리를 터뜨리면 별 몇 개인지 (조각은 쓰지 않음, 화면 · 자동 힐러) */
+export const starsNow = (f: Fight): number => (f.astro?.path ? starMax(f) : Math.min(starMax(f), 1 + f.shards));
+/**
+ * 별자리를 터뜨림 (별자리 스킬 효과를 낼 때): 조각을 모두 써서 별 = 1 + 조각, 별의 길이면 가득. 가득 찬 별자리 = 별 최대.
+ * 쓴 조각 수를 기억 (밝은 조각 점성 01) · 조각의 마나 (점성 17)
+ */
+export function constellation(f: Fight): { stars: number; full: boolean } {
+  const s = st(f), used = f.shards, stars = starsNow(f);
   f.shards = 0;
   s.used = used;
-  if (used && f.sp && sv(f, 'shardMana')) f.mana = Math.min(100, f.mana + used * sv(f, 'shardMana')); // 조각의 마나 (점성 17)
-  if (s.path) { s.path = false; return ASTRO.charge.max; } // 별의 길 (특성)
-  return 1 + used;
+  s.path = false;
+  if (used && f.sp && sv(f, 'shardMana')) f.mana = Math.min(100, f.mana + used * sv(f, 'shardMana'));
+  return { stars, full: stars >= starMax(f) };
 }
 
 // ---------- 표식 ----------
@@ -113,44 +116,43 @@ export function fallSpec(f: Fight, stars: number): { amt: number; r: number } {
   if (stars === 4 && on.wideSky) { r = TX.wideSky.range; amt *= 1 + TX.wideSky.heal; }
   return { amt, r };
 }
-function starfall(f: Fight, u: Unit): void {
-  const o = f.chargeOut ?? { stars: 1, perfect: false, cell: u.cell };
-  const s = st(f), { amt, r } = fallSpec(f, o.stars);
-  const m = (o.perfect ? 1 + ASTRO.charge.perfectHeal : 1) * (1 + s.used * (f.sp ? sv(f, 'brightShard') : 0)) * (f.enc.big ? ASTRO.big.fall : 1); // 밝은 조각 (점성 01) · 20인 보정
-  const center = f.cells[o.cell]?.unit;
-  const vs = r === 0 ? (center && center.alive ? [center] : u.alive && u.cell === o.cell ? [u] : []) : near(f, o.cell, r);
+function starfall(f: Fight, u: Unit, o: { stars: number; full: boolean }): void {
+  const s = st(f), { amt, r } = fallSpec(f, o.stars), cell = u.cell;
+  const m = (o.full ? 1 + ASTRO.star.fullHeal : 1) * (1 + s.used * (f.sp ? sv(f, 'brightShard') : 0)) * (f.enc.big ? ASTRO.big.fall : 1); // 밝은 조각 (점성 01) · 20인 보정
+  const center = u;
+  const vs = r === 0 ? [u] : near(f, cell, r);
   if (f.sp) aoeCount(f, vs.length);
   for (const v of vs) {
     if (v !== center) noteUsed(f, 'starfall', v.id);
     direct(f, v, amt * m * (f.tx.on.gatherLight && o.stars === 3 && v === center ? TX.gatherLight : 1)); // 모이는 빛
   }
   if (vs.length >= 5 && f.sp && sv(f, 'wideFall')) f.mana = Math.min(100, f.mana + sv(f, 'wideFall')); // 쏟아지는 별 (점성 05)
-  if (f.sp) aoeDone(f, o.cell, amt, r);
-  if (o.perfect && f.tx.on.secondStarfall) s.later.push({ at: f.t + TX.secondStarfall.delay, cell: o.cell, stars: o.stars }); // 두 번째 별비
+  if (f.sp) aoeDone(f, cell, amt, r);
+  if (o.full && f.tx.on.secondStarfall) s.later.push({ at: f.t + TX.secondStarfall.delay, cell, stars: o.stars }); // 두 번째 별비
   emit(f, { type: 'sound', name: 'chime' });
 }
-function polaris(f: Fight, u: Unit): void {
-  const o = f.chargeOut ?? { stars: 1, perfect: false, cell: u.cell }, on = f.tx.on, s = st(f);
+function polaris(f: Fight, u: Unit, o: { stars: number; full: boolean }): void {
+  const on = f.tx.on, s = st(f);
   let amt = o.stars >= 5 ? TX.fifthStar.polaris : ASTRO.polaris[Math.max(1, o.stars) - 1];
-  if (o.perfect) amt *= 1 + ASTRO.charge.perfectHeal;
+  if (o.full) amt *= 1 + ASTRO.star.fullHeal;
   amt *= 1 + s.used * (f.sp ? sv(f, 'brightShard') : 0); // 밝은 조각 (점성 01)
   if (on.brightPolaris && u.hp < u.max * TX.brightPolaris.hp) amt *= 1 + TX.brightPolaris.heal; // 빛나는 북극성
   if (on.onePoint && u.role === 'tank') amt *= 1 + TX.onePoint; // 한 점
   direct(f, u, amt);
   if (f.sp && sv(f, 'twinPolaris')) { const v = adjHurt(f, u, 1)[0]; if (v) heal(f, v, amt * sv(f, 'twinPolaris'), true); } // 쌍둥이 북극성 (점성 02)
-  if (o.perfect && on.risingPolaris) f.cd.polaris = Math.max(0, (f.cd.polaris ?? 0) - TX.risingPolaris); // 떠오르는 북극성
+  if (o.full && on.risingPolaris) f.cd.polaris = Math.max(0, (f.cd.polaris ?? 0) - TX.risingPolaris); // 떠오르는 북극성
   emit(f, { type: 'sound', name: 'chime' });
 }
-/** 완벽한 별자리 (모으기 스킬이 완벽 구간에서 터짐): 별의 순환 (Lv 10) · 별의 길 · 완벽의 서두름 */
-function perfectDone(f: Fight): void {
+/** 가득 찬 별자리 (83: 조각을 다 채워 터뜨림, 예전 완벽 타이밍): 별의 순환 (Lv 10) · 별의 길 · 가득 찬 별의 서두름 (점성 23) */
+function fullDone(f: Fight): void {
   const s = st(f);
   if (heroPassive(f, '별의 순환')) f.mana = Math.min(100, f.mana + ASTRO.cycle);
   if (f.tx.on.starPath) s.path = true;
   if (f.sp && sv(f, 'perfectHaste')) s.hasteUntil = f.t + 4;
-  emit(f, { type: 'msg', text: '완벽한 별자리' });
+  emit(f, { type: 'msg', text: '가득 찬 별자리' });
 }
 
-/** 별의 기억 (82 모으기): 별 1개마다 2초 (긴 기억 3초) 더 먼 피해의 50% (탱커의 기억 70%, 나누는 기억 +), 적어도 100 (힐 배율을 거친) */
+/** 별의 기억 (82 · 83 별자리): 별 1개마다 2초 (긴 기억 3초) 더 먼 피해의 50% (탱커의 기억 70%, 나누는 기억 +), 적어도 100 (힐 배율을 거친) */
 export function memoryAmt(f: Fight, u: Unit, stars = 2): number {
   const sec = Math.max(1, stars) * (f.tx.on.longMemory ? TX.longMemory : ASTRO.memory.step);
   const share = (f.tx.on.tankMemory && u.role === 'tank' ? TX.tankMemory : ASTRO.memory.share) + (f.sp ? sv(f, 'memoryShare') : 0);
@@ -166,7 +168,7 @@ export function astroApply(f: Fight, key: SkillKey, u: Unit): void {
   } else if (key === 'twinkle') {
     const amt = SKILLS.twinkle.amt!;
     direct(f, u, amt);
-    gainShard(f, 1);
+    gainShard(f, f.tx.on.threeShards ? TX.threeShards : 1); // 넉넉한 조각 (83)
     if (on.scatterTwinkle) { const v = adjHurt(f, u, 1)[0]; if (v) heal(f, v, amt * TX.scatterTwinkle, true); } // 흩어지는 반짝임
   } else if (key === 'starMark') {
     putMark(f, u);
@@ -178,18 +180,19 @@ export function astroApply(f: Fight, key: SkillKey, u: Unit): void {
     doDispel(f, u);
     if (u.debuffs.length < n && f.sp && sv(f, 'clearMark')) putMark(f, u); // 맑은 표식 (점성 20)
   } else if (key === 'starfall' || key === 'polaris') {
-    if (key === 'starfall') starfall(f, u); else polaris(f, u);
-    if (f.chargeOut?.perfect) perfectDone(f);
+    const o = constellation(f);
+    if (key === 'starfall') starfall(f, u, o); else polaris(f, u, o);
+    if (o.full) fullDone(f);
     st(f).used = 0;
   } else if (key === 'starSleep') {
     u.sleep = f.t + ASTRO.sleep.sec + (f.sp ? sv(f, 'deepSleep') : 0); // 깊은 잠 (점성 04)
     emit(f, { type: 'sound', name: 'renew' });
     emit(f, { type: 'msg', text: `별의 잠: ${u.nick}` });
   } else if (key === 'starMemory') {
-    const o = f.chargeOut ?? { stars: 2, perfect: false }; // 모으기로 뗌 (82). 모으기 밖에서 바로 부르면 별 2개 (예전 최근 4초)
-    const m = (o.perfect ? 1 + ASTRO.charge.perfectHeal : 1) * (1 + st(f).used * (f.sp ? sv(f, 'brightShard') : 0)); // 밝은 조각 (점성 01)
+    const o = constellation(f); // 83: 시전이 끝날 때 조각을 모두 씀 (별 1개마다 2초)
+    const m = (o.full ? 1 + ASTRO.star.fullHeal : 1) * (1 + st(f).used * (f.sp ? sv(f, 'brightShard') : 0)); // 밝은 조각 (점성 01)
     for (const v of living(f)) heal(f, v, memoryAmt(f, v, o.stars) * m * readMult(f, v), true);
-    if (o.perfect) perfectDone(f);
+    if (o.full) fullDone(f);
     st(f).used = 0;
     emit(f, { type: 'sound', name: 'hymn' });
   }
@@ -204,11 +207,11 @@ export function astroCost(f: Fight, key: SkillKey): number {
   if (key === 'starMemory' && on.thriftMemory) return TX.thriftMemory.cost / SKILLS.starMemory.cost;
   return 1;
 }
-/** 받는 피해 배율: 차분한 손 (모으는 동안 나) · 별 무리 (조각마다 나) */
+/** 받는 피해 배율: 차분한 손 (83: 시전하는 동안 나) · 별 무리 (조각마다 나) */
 export function astroTaken(f: Fight, u: Unit): number {
   if (!u.me) return 1;
   let m = 1;
-  if (f.tx.on.calmHands && f.charge) m *= 1 - TX.calmHands;
+  if (f.tx.on.calmHands && f.cast) m *= 1 - TX.calmHands;
   if (f.tx.on.starCrowd && f.shards) m *= 1 - TX.starCrowd * f.shards;
   return m;
 }
@@ -271,5 +274,5 @@ export function astroTotemGone(f: Fight, t: Totem, broken: boolean): void {
 
 /** 별빛 치유 즉시 (은하수 ★) */
 export const instantStar = (f: Fight, key: SkillKey): boolean => key === 'starHeal' && activeOn(f, 'milkyWay');
-/** 완벽의 서두름 (점성 23): 완벽한 별자리 뒤 4초 가속 */
+/** 가득 찬 별의 서두름 (점성 23): 가득 찬 별자리 뒤 4초 가속 */
 export const astroHaste = (f: Fight): number => (f.astro && f.astro.hasteUntil > f.t ? sv(f, 'perfectHaste') : 0);
