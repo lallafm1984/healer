@@ -60,7 +60,6 @@ let before = 0, after = 0;
 try {
   for (const f of files) {
     const name = basename(f, extname(f)), cur = join(ART, f), rule = ruleOf(name);
-    if (/^fx-pxf-/.test(name)) { console.log(`· ${name.padEnd(22)} PXF 픽셀 프레임 띠 (QA에서 바뀌는 스킬 몇 개만 남음): 줄이거나 다시 저장하지 않음`); continue; }
     let src = originalOf(name);
     if (!src) {
       // 원본 PNG가 없는 그림: 지금 파일을 한 번만 보관하고 그 보관본에서 만든다

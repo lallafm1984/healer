@@ -210,4 +210,33 @@ export default {
       particles(g, t, 7, 10, r => ({ t0: 0.7 + r() * 0.1, life: 0.3, a: r() * TAU }), (gg, p, age) => speck(gg, Math.cos(p.a) * 0.9 * (1 - age), Math.sin(p.a) * 0.9 * (1 - age), 0.02, AU.light, 1 - age));
     },
   },
+  /** 봉화 (대상 지정 + 회복 + 피해 감소): 머리 위에 작은 금빛 봉화 그릇이 놓여 불꽃이 확 타오르고, 불티가 오르며 몸 둘레로 따뜻한 금빛이 한 번 감쌌다 남음 */
+  'paladin-beacon': {
+    frames: 20, logical: 88, scope: 'target',
+    draw(g, { t }) {
+      const pop = E.back(seg(t, 0, 0.2), 1.8), fire = E.out3(seg(t, 0.08, 0.3)), fade = 1 - E.in2(seg(t, 0.62, 1)), by = -0.55;
+      glow(g, 0, 0.1, 1.0, AU.glow, 0.45 * fade);
+      glowOval(g, 0, 0.1, 0.85, 1.1, AU.amber, 0.3 * bell(t, 0.15, 0.35, 1));
+      // 불꽃 (그릇 위, 일렁임)
+      const fh = 0.5 * fire * (1 + 0.12 * Math.sin(t * 30)), sway = Math.sin(t * 24) * 0.05;
+      if (fh > 0.02) {
+        g.save(); g.translate(0, by - 0.02); g.scale(fh * 0.55, fh);
+        const fl = h => { h.beginPath(); h.moveTo(sway * 2, -1); h.bezierCurveTo(0.35, -0.55, 0.9, -0.2, 0.75, 0.12); h.quadraticCurveTo(0.55, 0.45, 0, 0.42); h.quadraticCurveTo(-0.55, 0.45, -0.75, 0.12); h.bezierCurveTo(-0.9, -0.2, -0.35, -0.55, sway * 2, -1); h.closePath(); };
+        bloom(g, fl, AU.amber, 0.7 * fade, 5);
+        solid(g, fl, { hi: '#fff3b0', lo: '#ff8a2a', rim: '#3a1a06', rimW: 0.07, a: fade, shine: 0.3, y0: -1, y1: 0.4 });
+        g.save(); g.translate(0, 0.12); g.scale(0.5, 0.55); fl(g); g.fillStyle = C('#fffde8', 0.95 * fade); g.fill(); g.restore();
+        g.restore();
+      }
+      // 봉화 그릇 (받침 달린 금빛 사발)
+      g.save(); g.translate(0, by + 0.12); g.scale(0.3 * pop, 0.3 * pop);
+      const bowl = h => { h.beginPath(); h.moveTo(-0.9, -0.25); h.lineTo(0.9, -0.25); h.quadraticCurveTo(0.8, 0.45, 0.25, 0.5); h.lineTo(0.18, 0.78); h.lineTo(0.5, 0.95); h.lineTo(-0.5, 0.95); h.lineTo(-0.18, 0.78); h.lineTo(-0.25, 0.5); h.quadraticCurveTo(-0.8, 0.45, -0.9, -0.25); h.closePath(); };
+      solid(g, bowl, { hi: AU.light, lo: AU.deep, rim: AU.rim, rimW: 0.08, a: fade, shine: 0.6, y0: -0.25, y1: 0.95 });
+      g.globalAlpha = fade; g.strokeStyle = C(AU.rim, 0.8); g.lineWidth = 0.08; g.beginPath(); g.moveTo(-0.7, 0.05); g.lineTo(0.7, 0.05); g.stroke();
+      g.restore();
+      // 불티
+      particles(g, t, 5, 12, r => ({ t0: 0.12 + r() * 0.5, life: 0.4, x: (r() - 0.5) * 0.3, sz: 0.022 + r() * 0.015 }), (gg, p, age) => speck(gg, p.x + Math.sin(age * 9 + p.x * 20) * 0.08, by - 0.4 - 0.6 * age, p.sz, AU.body, (1 - age) * fade));
+      // 몸 둘레 따뜻한 빛 (피해 감소) 빛 점 몇 개가 돌며 내려옴
+      for (let i = 0; i < 4; i++) { const a = t * 6 + (i * TAU) / 4, d = 0.55, b = bell(t, 0.25 + i * 0.04, 0.4 + i * 0.04, 0.95); glint(g, Math.cos(a) * d, 0.2 + Math.sin(a) * d * 0.45, 0.14 * b, AU.glow, b, a, 0.15); }
+    },
+  },
 };

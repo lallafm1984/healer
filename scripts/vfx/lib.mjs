@@ -124,7 +124,7 @@ export function comet(g, P, s0, s1, { w = 0.12, rim = '#202838', body = '#ffd56b
 /** 경로 mk를 흐리게 더해 빛 번짐으로 (blur = 프레임 px) */
 export function bloom(g, mk, col, a = 0.7, blur = 6) {
   if (a <= 0) return;
-  g.save(); g.globalCompositeOperation = 'lighter'; g.filter = `blur(${blur}px)`; mk(g); g.fillStyle = C(col, a); g.fill(); g.restore();
+  g.save(); g.globalCompositeOperation = 'lighter'; g.filter = `blur(${blur}px)`; g.beginPath(); mk(g); g.fillStyle = C(col, a); g.fill(); g.restore();
 }
 /** 반짝이 가루 하나: 아주 작은 빛점 + 빛 번짐, phase로 깜빡임 */
 export function speck(g, x, y, r, col, a = 1, tw = 0) {
@@ -160,20 +160,20 @@ export const path = {
 export function solid(g, mk, { hi = '#fff3c0', lo = '#c08020', rim = '#0e0e15', rimW = 0.06, a = 1, shine = 0.5, y0 = -1, y1 = 1 } = {}) {
   if (a <= 0) return;
   g.save(); g.globalAlpha = a; g.lineJoin = 'round';
-  mk(g); g.lineWidth = rimW * 2; g.strokeStyle = rim; g.stroke();
+  g.beginPath(); mk(g); g.lineWidth = rimW * 2; g.strokeStyle = rim; g.stroke();
   const gr = g.createLinearGradient(-0.3, y0, 0.3, y1); gr.addColorStop(0, hi); gr.addColorStop(1, lo);
   g.fillStyle = gr; g.fill();
-  if (shine > 0) { g.save(); mk(g); g.clip(); g.globalCompositeOperation = 'lighter'; const sh = g.createLinearGradient(-1, -1, 0.2, 0.2); sh.addColorStop(0, C('#ffffff', 0.55 * shine)); sh.addColorStop(0.45, C('#ffffff', 0)); g.fillStyle = sh; g.fillRect(-2, -2, 4, 4); g.restore(); }
+  if (shine > 0) { g.save(); g.beginPath(); mk(g); g.clip(); g.globalCompositeOperation = 'lighter'; const sh = g.createLinearGradient(-1, -1, 0.2, 0.2); sh.addColorStop(0, C('#ffffff', 0.55 * shine)); sh.addColorStop(0.45, C('#ffffff', 0)); g.fillStyle = sh; g.fillRect(-2, -2, 4, 4); g.restore(); }
   g.restore();
 }
 /** 빛 덩어리 모양 (외곽선 대신 자기 어두운 테 + 흰 심 + 빛 번짐) */
 export function energy(g, mk, { rim = '#5a3a08', body = '#ffcf5a', core = '#ffffff', a = 1, rimW = 0.05, glowCol = null, glowR = 0.5, coreScale = 0.55 } = {}) {
   if (a <= 0) return;
   g.save(); g.globalAlpha = a; g.lineJoin = 'round';
-  if (glowCol) { g.save(); g.globalCompositeOperation = 'lighter'; g.filter = `blur(${Math.max(1, glowR * 10)}px)`; mk(g); g.fillStyle = C(glowCol, 0.7); g.fill(); g.restore(); }
-  mk(g); g.lineWidth = rimW * 2; g.strokeStyle = C(rim, 0.95); g.stroke();
+  if (glowCol) { g.save(); g.globalCompositeOperation = 'lighter'; g.filter = `blur(${Math.max(1, glowR * 10)}px)`; g.beginPath(); mk(g); g.fillStyle = C(glowCol, 0.7); g.fill(); g.restore(); }
+  g.beginPath(); mk(g); g.lineWidth = rimW * 2; g.strokeStyle = C(rim, 0.95); g.stroke();
   g.fillStyle = body; g.fill();
-  g.save(); g.scale(coreScale, coreScale); mk(g); g.fillStyle = C(core, 0.9); g.fill(); g.restore();
+  g.save(); g.scale(coreScale, coreScale); g.beginPath(); mk(g); g.fillStyle = C(core, 0.9); g.fill(); g.restore();
   g.restore();
 }
 

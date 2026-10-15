@@ -2,7 +2,7 @@
 
 Lim 2026-10-16 「스킬이펙트가 너무 허술」 → 64px 도트 (PXF) 대신 캔버스로 직접 그린 224px 이펙트. Lim 「손그림 이펙트 기능이 마음에드니 앞으로 다른 세션에서도 사용가능하게」.
 전투 이펙트는 모두 이 방식이다 (Lim 2026-10-16 「다른 기타 이펙트도 손그림 이펙트로 (도트를 모두 제거)」): 직업 스킬 · 전투 공통 효과 `common-*` · 파티원 능력 `ally-*` (`common.mjs`).
-보스 판 전체 공격 `boss-*`는 Codex 손그림 띠 `fx-wide-*`. PXF 도트 · 공방 도구는 지웠다 (QA에서 바뀌는 스킬 몇 개의 띠만 바뀔 때까지 남음).
+보스 판 전체 공격 `boss-*`는 Codex 손그림 띠 `fx-wide-*`. PXF 도트 · 공방 도구는 모두 지웠다 (다시 만들지 않음).
 
 ## 한 바퀴
 
@@ -34,9 +34,8 @@ npx vite build && npm run fx:shot -- warder --sheet .sim/vfx-shots/warder.png --
 ## 게임에 걸기
 
 1. `src/battle/pxf.ts` `PXF`에 `'<이름>': skill(frames, logical)` (공통 효과는 `small(frames, logical, gray)`, 그리기 코드와 같은 값, 다르면 `tests/pxf.test.ts`가 실패), 스킬이면 `SKILL_PXF`에 `<스킬 키>: { fx: '<이름>', scope }` (공통 효과는 `COMMON_PXF` · `ALLY_PXF`, 늘 읽어 둠 `ALWAYS_FX`).
-2. 예전 PXF 그래프가 있던 이름이면 `src/art/pxf/<이름>.pxf.json` · `.timeline.png` · `src/art/fx-pxf-<이름>.png`를 지움.
-3. `src/art/pxf/requests.md` 「모양 표」에 한 줄 (이펙트마다 다른 모양, 표에 없는 모양으로).
-4. `npx vitest run tests/pxf.test.ts` · `tsc` · 빌드, 화면은 `fx:shot`으로 바꾼 스킬만 (S25 · 울트라 · 플립). e2e는 `E2E_ONLY="직업별 스킬 PXF,사제 치유 반짝이"`.
+2. `src/art/pxf/requests.md` 「모양 표」에 한 줄 (이펙트마다 다른 모양, 표에 없는 모양으로).
+3. `npx vitest run tests/pxf.test.ts` · `tsc` · 빌드, 화면은 `fx:shot`으로 바꾼 스킬만 (S25 · 울트라 · 플립). e2e는 `E2E_ONLY="직업별 스킬 PXF,사제 치유 반짝이"`.
 
 게임은 부드럽게 늘려 그리고 (`board.ts` `smoothFrame`), 띠가 하나에 2–5MB라 전투마다 지금 직업 것만 미리 읽음 (`heroSkillFx`, 공통 효과 · 파티원 능력은 늘). 설정 「시각 효과 줄이기」가 켜져 있으면 안 그림.
 
