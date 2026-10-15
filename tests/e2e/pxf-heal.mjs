@@ -1,5 +1,5 @@
 // 사제 치유 PXF 이펙트 (Lim 2026-10-11 시험): 칸을 눌러 치유가 들어가면 그 칸 가운데에 「치유 초록 반짝이 가루」 프레임이 재생되고
-// 기본 치유 빛은 안 나옴. 보통 섞기 · 판 맨 위 층 (Lim 2026-10-11). 크기 = 칸 지름 × 64/62 (판 가장자리에선 줄어듦), 약 0.9초 뒤 사라짐. 대상 폰 크기 (S25 · 울트라 · 플립) × 5인 · 20인 판
+// 기본 치유 빛은 안 나옴. 보통 섞기 · 판 맨 위 층 (Lim 2026-10-11). 2026-10-16 손그림풍 (scripts/vfx): 크기 = 칸 지름 × 80/62 (판 가장자리에선 줄어듦), 약 0.9초 뒤 사라짐. 대상 폰 크기 (S25 · 울트라 · 플립) × 5인 · 20인 판
 import { chromium } from 'playwright';
 import { DEVICES } from './devices.mjs';
 import { departGo, patchSave, toParty } from './nav.mjs';
@@ -47,7 +47,7 @@ export default async function pxfHeal(url, shots) {
           const g = await page.evaluate(id => {
             const d = JSON.parse(document.querySelector('#board').dataset.decorationBounds || '[]'), F = window.__proto.F;
             const body = d.find(b => b.key === `body${id}`); // 대상 칸 (옮겨 가는 중이면 그리는 자리)
-            return { pxf: d.filter(b => b.key.startsWith(`pxf${id}-heal-dust-`)).map(b => ({ ...b, dx: b.x - body.x, dy: b.y - body.y })), plain: d.filter(b => b.key.startsWith(`heal${id}-`) || b.key.startsWith(`heal-glow${id}-`)),
+            return { pxf: d.filter(b => b.key.startsWith(`pxf${id}-priest-heal-`)).map(b => ({ ...b, dx: b.x - body.x, dy: b.y - body.y })), plain: d.filter(b => b.key.startsWith(`heal${id}-`) || b.key.startsWith(`heal-glow${id}-`)),
               healed: F.stats.casts.heal >= 1 && !F.cast };
           }, t.id);
           landed ||= g.healed;
@@ -61,17 +61,17 @@ export default async function pxfHeal(url, shots) {
           }
         }
         const frames = [...new Set(seen.map(x => x.frame))].sort((a, c) => a - c);
-        const want = 2 * t.s * 0.93 * 64 / 62;
+        const want = 2 * t.s * 0.93 * 80 / 62;
         // 시계가 실제로도 흘러서 (느린 화면은 0.1초 사이에 여러 프레임) 본 프레임 수는 기기마다 다름: 맞는 순간 근처에서 시작해 넘어가기만 보면 됨
-        ok(landed && frames.length >= 2 && frames[0] <= 4, `${tag}: 치유가 들어가면 반짝이 가루 재생 (본 프레임 ${frames.join(',')})`, { frames });
+        ok(landed && frames.length >= 2 && frames[0] <= 2, `${tag}: 치유가 들어가면 반짝이 가루 재생 (본 프레임 ${frames.join(',')})`, { frames });
         // 피하는 중인 칸은 1px 안팎으로 떨리고 (fleeing) 이펙트는 칸 자리 그대로
         ok(seen.every(x => Math.abs(x.dx) < 1.5 && Math.abs(x.dy) < 1.5 && Math.abs(x.w - x.h) < 0.01),
           `${tag}: 대상 칸 가운데 정사각`, seen.slice(0, 2));
         ok(seen.every(x => Math.abs(x.requestedDiameter - want) < 0.5 && x.diameter <= x.requestedDiameter + 0.01),
-          `${tag}: 크기 = 칸 지름 × 64/62 (${want.toFixed(1)}px, 판 가장자리면 줄어듦)`, seen.slice(0, 2));
+          `${tag}: 크기 = 칸 지름 × 80/62 (${want.toFixed(1)}px, 판 가장자리면 줄어듦)`, seen.slice(0, 2));
         ok(plain.length === 0, `${tag}: 이 치유엔 기본 치유 빛 없음`, plain.slice(0, 2));
         await page.clock.runFor(600);
-        const left = await page.evaluate(id => JSON.parse(document.querySelector('#board').dataset.decorationBounds || '[]').filter(b => b.key.startsWith(`pxf${id}-heal-dust-`)).length, t.id);
+        const left = await page.evaluate(id => JSON.parse(document.querySelector('#board').dataset.decorationBounds || '[]').filter(b => b.key.startsWith(`pxf${id}-priest-heal-`)).length, t.id);
         ok(left === 0, `${tag}: 약 0.9초 뒤 사라짐`);
         await page.click('#pauseBtn'); await page.click('#quitBtn'); await page.click('#confirmApply');
         await page.clock.runFor(120); await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(80);
