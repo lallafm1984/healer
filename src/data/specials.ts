@@ -316,12 +316,12 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['beatHaste', '수도 23', '박자의 서두름', HEAD, '희귀', 0.01, 'pct', '기 리듬 1마다 가속 +{v}', { hero: 'monk', cap: 0.02 }],
     ['palmMist', '수도 24', '손바닥 안개', NECK, '영웅', 0.15, 'pct', '생기 손바닥을 치면 {v} 확률로 안개가 없는 대상에게 6초 안개', { hero: 'monk', cap: 0.3 }],
     // 점성술사 (79 4-8). 전용 장비 밸런스로 희귀 등급 위 11종을 올림 (79 4-11)
-    ['brightShard', '점성 01', '밝은 조각', ALL, '희귀', 0.1, 'pp', '별 조각 1개마다 다음 별자리 회복 +{v}', { cap: 0.3, hero: 'astrologer' }],
+    ['brightShard', '점성 01', '밝은 조각', ALL, '희귀', 0.1, 'pp', '별자리가 쓰는 별 조각 1개마다 회복 +{v}', { cap: 0.3, hero: 'astrologer' }],
     ['twinPolaris', '점성 02', '쌍둥이 북극성', W, '전설', 0.3, 'pct', '북극성 회복량의 {v}가 붙어 있는 가장 다친 아군에게', { hero: 'astrologer', fixed: true }],
     ['hastyTwinkle', '점성 03', '서두른 반짝임', HANDS, '영웅', 4, 'sec', '반짝임 재사용 −{v}', { hero: 'astrologer' }],
     ['deepSleep', '점성 04', '깊은 잠', AR, '영웅', 1, 'sec', '별의 잠 시간 +{v}', { hero: 'astrologer', fixed: true }],
     ['wideFall', '점성 05', '쏟아지는 별', W, '전설', 3, 'mana', '별비가 5명 이상에게 닿으면 마나 {v} 회복', { hero: 'astrologer', fixed: true }],
-    ['perfectWin', '점성 06', '완벽의 틈', HANDS, '영웅', 0.2, 'sec', '완벽한 별자리 구간 +{v}', { hero: 'astrologer' }],
+    ['perfectWin', '점성 06', '빠른 별자리', HANDS, '영웅', 0.3, 'sec', '별비 · 북극성 · 별의 기억 시전 −{v}', { hero: 'astrologer' }], // 83: 완벽 구간 → 별자리 시전 (키는 저장 때문에 그대로)
     ['memoryShare', '점성 07', '나누는 기억', ACC, '영웅', 0.2, 'pp', '별의 기억 회복 비율 +{v}', { hero: 'astrologer' }],
     ['markSec', '점성 08', '오래 남는 표식', NECK, '영웅', 4, 'sec', '별자리 표식 시간 +{v}', { hero: 'astrologer', fixed: true }],
     ['steadyStar', '점성 09', '고른 별빛', ALL, '고급', 0.12, 'pct', '별빛 치유 회복량 +{v}', { hero: 'astrologer', cap: 0.4, skillMod: { key: 'starHeal', kind: 'heal' } }],
@@ -338,7 +338,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['clearMark', '점성 20', '맑은 표식', HANDS, '고급', 1, 'n', '맑은 별빛으로 디버프를 지우면 대상에게 표식', { hero: 'astrologer', fixed: true }],
     ['polarisCd', '점성 21', '북극성의 순환', CHEST, '고급', 0.12, 'pct', '북극성 재사용 대기 −{v}', { hero: 'astrologer', cap: 0.3, skillMod: { key: 'polaris', kind: 'cooldown' } }],
     ['fallCd', '점성 22', '별비의 순환', W_ACC, '희귀', 0.3, 'pct', '별비 재사용 대기 −{v}', { hero: 'astrologer', cap: 0.45, skillMod: { key: 'starfall', kind: 'cooldown' } }],
-    ['perfectHaste', '점성 23', '완벽의 서두름', HEAD, '희귀', 0.2, 'pct', '완벽한 별자리 뒤 4초 동안 가속 +{v}', { hero: 'astrologer', cap: 0.4 }],
+    ['perfectHaste', '점성 23', '가득 찬 별의 서두름', HEAD, '희귀', 0.2, 'pct', '가득 찬 별자리 뒤 4초 동안 가속 +{v}', { hero: 'astrologer', cap: 0.4 }],
     ['shardStart', '점성 24', '품고 온 조각', NECK, '영웅', 2, 'n', '전투 시작에 별 조각 {v}개', { hero: 'astrologer', fixed: true }],
     // 결계사 (79 5-8). 전용 장비 밸런스로 21종을 낮추고 곧은 인장 하나만 올림 (79 5-11)
     ['deepSeal', '결계 01', '깊은 인장', ALL, '희귀', 0.03, 'pct', '심판 회복량 +{v}', { cap: 0.1, hero: 'warder' }],

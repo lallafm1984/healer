@@ -7,9 +7,7 @@ import { SPEC_KEYS, SPECS } from '../src/data/specials';
 import { ASTRO_TALENTS, TALENT_TIER, TALENT_TREES, TX, type TalentKey } from '../src/data/talents';
 import * as E from '../src/engine';
 import { addDebuff, damage, heal, unitById } from '../src/engine/core';
-import { chargeRelease } from '../src/engine/healer';
-import { chargeSpec } from '../src/engine/heroes';
-import { asleep, fallSpec, memoryAmt, putMark, readMult } from '../src/engine/astro';
+import { asleep, fallSpec, memoryAmt, putMark, readMult, shardMax, starMax, starsNow } from '../src/engine/astro';
 import { aggroTarget } from '../src/engine/bossParts';
 import { hasteOf } from '../src/engine/specials';
 import { castOf, cdOf, costOf, useTalent } from '../src/engine/talents';
@@ -40,15 +38,10 @@ const cast = (f: F, key: Parameters<typeof E.use>[1], cell: number) => {
   while ((f.cast || f.gcd > 0 || f.queued) && n++ < 200) { E.step(f); heals.push(...healsOf(f)); f.events.length = 0; }
   return heals;
 };
-/** 모으기: 누르고 별이 want개 될 때까지 기다렸다 뗌 (want가 최대면 마지막 별 직후 = 완벽, late면 완벽 구간이 지난 뒤), 그 사이 치유 */
-const charge = (f: F, key: 'starfall' | 'polaris' | 'starMemory', cell: number, want = 4, late = false) => {
-  expect(E.use(f, key, cell).ok).toBe(true);
-  f.events.length = 0;
-  let n = 0;
-  while (f.charge && f.charge.stars < want && n++ < 400) { E.step(f); f.events.length = 0; }
-  if (late && f.charge && f.charge.full != null) step(f, 0.6);
-  chargeRelease(f);
-  return healsOf(f);
+/** 별자리 시전 (83): 조각을 want − 1개로 두고 시전해 별 want개로 터뜨림 (want가 최대면 가득 찬 별자리), 그 사이 치유 */
+const charge = (f: F, key: 'starfall' | 'polaris' | 'starMemory', cell: number, want = 4) => {
+  f.shards = want - 1;
+  return cast(f, key, cell);
 };
 const healOn = (hs: { id: number; amt: number }[], u: U) => hs.filter(e => e.id === u.id).reduce((a, e) => a + e.amt, 0);
 const others = (f: F) => f.party.filter(u => !u.me);
@@ -58,15 +51,16 @@ const hurt = (f: F, pct = 0.5) => { for (const u of f.party) u.hp = u.max * pct;
 const big = (u: U) => { u.base = u.max = 50000; u.hp = 100; };
 const taken = (f: F, u: U) => { const h = u.hp; damage(f, u, 100, false, 'fixed'); return h - u.hp; };
 const markOf = (u: U) => u.hots.find(h => h.key === 'starMark');
-const S = SKILLS.starHeal.amt!, T = SKILLS.twinkle.amt!, PERF = 1 + ASTRO.charge.perfectHeal;
+const S = SKILLS.starHeal.amt!, T = SKILLS.twinkle.amt!, PERF = 1 + ASTRO.star.fullHeal;
 
 describe('데이터 (79 4장)', () => {
-  it('휠 8칸, 해제 마법 · 독, 상점 해금, 켬, 모으기 스킬 셋 (82: 별의 기억도)', () => {
+  it('휠 8칸, 해제 마법 · 독, 상점 해금, 켬, 별자리 시전 스킬 셋 (83: 모으기를 없앰)', () => {
     expect(heroSkills('astrologer')).toEqual(['starHeal', 'twinkle', 'starMark', 'starfall', 'clearStar', 'starSleep', 'starMemory', 'polaris']);
     expect(HEROES.astrologer.ready).toBe(true);
     expect(HEROES.astrologer.unlock).toMatchObject({ buy: true }); // 81: 상점 2,200원 (예전 Lv 50)
     expect(HEROES.astrologer.dispel).toEqual(['마법', '독']);
-    expect(SKILLS.starfall.charge && SKILLS.polaris.charge && SKILLS.starMemory.charge).toBe(true);
+    expect([SKILLS.starfall.cast, SKILLS.polaris.cast, SKILLS.starMemory.cast].every(c => c > 0)).toBe(true);
+    expect(ASTRO.shard.max).toBe(3);
   });
   it('특성 10단 × 3, 보조 버튼은 내리는 밤 · 초신성 · 은하수', () => {
     expect(ASTRO_TALENTS.map(t => t.lv)).toEqual([5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
@@ -99,7 +93,7 @@ describe('스킬', () => {
     expect(markOf(u)?.bonus).toBe(false);
     expect(healOn(cast(f, 'starHeal', u.cell), u)).toBe(S);
   });
-  it('별비: 별 수마다 회복 · 범위 (1 대상 · 2 · 3 붙은 6칸 · 4 2칸 거리), 완벽 +15%', () => {
+  it('별비: 별 수마다 회복 · 범위 (1 대상 · 2 · 3 붙은 6칸 · 4 2칸 거리), 가득 찬 별자리 +15%', () => {
     const f = fight(); hurt(f, 0.05);
     for (const u of f.party) { u.base = u.max = 50000; u.hp = 100; }
     const u = withAdj(f, 1), v = adj(f, u)[0];
@@ -108,24 +102,28 @@ describe('스킬', () => {
     expect(healOn(hs, v)).toBe(Math.round(150 * PERF));
     const g = fight(); for (const x of g.party) { x.base = x.max = 50000; x.hp = 100; }
     const w = withAdj(g, 1), z = adj(g, w)[0];
-    const hs2 = charge(g, 'starfall', w.cell, 1, true);
+    const hs2 = charge(g, 'starfall', w.cell, 1);
     expect(healOn(hs2, w)).toBe(380);
     expect(healOn(hs2, z)).toBe(0);
   });
-  it('북극성: 별 1~4 = 350 · 550 · 750 · 950, 조각만큼 별을 단 채 시작, 재사용 · 마나는 뗄 때', () => {
+  it('북극성 (83 시전): 별 1 + 조각 = 350 · 550 · 750 · 950, 조각은 시전이 끝날 때 다 씀, 재사용 · 마나도 그때', () => {
     const f = fight(), u = others(f)[0];
     big(u);
-    f.shards = 2;
+    f.shards = 3;
     const m0 = f.mana;
     expect(E.use(f, 'polaris', u.cell).ok).toBe(true);
-    expect(f.charge!.stars).toBe(3);
+    expect(f.cast?.key).toBe('polaris');
     expect(f.mana).toBe(m0);
-    let n = 0;
-    while (f.charge!.stars < 4 && n++ < 100) E.step(f);
-    f.events.length = 0;
-    chargeRelease(f);
-    expect(healOn(healsOf(f), u)).toBe(Math.round(950 * PERF));
+    expect(f.shards).toBe(3);
+    const hs = cast(f, 'twinkle', u.cell); // 시전 중 다른 스킬 = 시전 취소 (보통 시전과 같음)
+    expect(hs.length).toBeGreaterThan(0);
+    f.shards = 1; f.cd.twinkle = 0;
+    const hs2 = charge(f, 'polaris', u.cell, 2);
+    expect(healOn(hs2, u)).toBe(550);
+    expect(f.shards).toBe(0);
     expect(f.cd.polaris).toBe(SKILLS.polaris.cd);
+    f.cd.polaris = 0;
+    expect(healOn(charge(f, 'polaris', u.cell, 4), u)).toBe(Math.round(950 * PERF));
   });
   it('별의 잠: 4초 피해 · 회복 · 딜 없음, 탱커가 자면 보스가 다른 사람을 침', () => {
     const f = fight(), t = f.party.find(u => u.role === 'tank')!;
@@ -158,7 +156,7 @@ describe('스킬', () => {
     expect(memoryAmt(f, u, 3)).toBeCloseTo(2500, 6); // 최근 6초 (5초 전 피해까지)
     expect(memoryAmt(f, u, 4)).toBeCloseTo(2500, 6);
   });
-  it('별의 기억 (82): 누르고 있다 떼면 별 수만큼 · 완벽 +15% · 마나 · 재사용은 뗄 때', () => {
+  it('별의 기억 (82 · 83): 시전이 끝날 때 별 수만큼 · 가득 찬 별자리 +15% · 마나 · 재사용', () => {
     const f = fight(), u = others(f)[0];
     f.skills.forEach(k => { k.next = Infinity; }); f.tels = [];
     u.base = u.max = 50000; u.hp = 40000;
@@ -176,15 +174,16 @@ describe('스킬', () => {
     f.tels.push({ id: 1, kind: 'aoe', impact: f.t + 3, cells: new Set([u.cell]), units: [], skill: {} } as never);
     expect(readMult(f, u)).toBeCloseTo(1 + ASTRO.read, 6);
   });
-  it('별의 순환 (Lv 10): 완벽한 별자리마다 마나 2%', () => {
+  it('별의 순환 (Lv 10): 가득 찬 별자리마다 마나 3%', () => {
     const f = fight(), u = others(f)[0];
     big(u);
+    f.shards = shardMax(f);
     E.use(f, 'polaris', u.cell);
-    let n = 0;
-    while (f.charge!.stars < 4 && n++ < 100) E.step(f);
     f.mana = 50;
-    chargeRelease(f);
-    expect(f.mana).toBeCloseTo(50 - costOf(f, 'polaris') + ASTRO.cycle, 6);
+    let n = 0;
+    while (f.cast && n++ < 400) E.step(f);
+    expect(f.mana).toBeGreaterThan(50 - costOf(f, 'polaris') + ASTRO.cycle - 1e-6);
+    expect(f.mana).toBeLessThan(50 - costOf(f, 'polaris') + ASTRO.cycle + 3); // 시전 동안 마나 재생만큼 더
   });
 });
 
@@ -204,21 +203,23 @@ describe('특성 (79 4-7)', () => {
     cast(g, 'starMark', w.cell);
     expect(adj(g, w).some(v => markOf(v))).toBe(true);
   });
-  it('빠른 잇기 0.4초 · 다섯째 별 5개 · 내리는 밤 두 배 빨리 · 세 조각', () => {
-    expect(chargeSpec(fight(['quickLink'])).step).toBeCloseTo(0.4, 6);
-    expect(chargeSpec(fight(['fifthStar'])).max).toBe(5);
+  it('빠른 잇기 −0.5초 · 다섯째 별 (조각 4 · 별 5) · 내리는 밤 별자리 즉시 · 넉넉한 조각 (반짝임 2개) (83)', () => {
+    expect(castOf(fight(['quickLink']), 'starfall')).toBeCloseTo(SKILLS.starfall.cast - TX.quickLink, 6);
+    expect(castOf(fight(['quickLink']), 'starHeal')).toBeCloseTo(SKILLS.starHeal.cast, 6);
+    const e = fight(['fifthStar']);
+    expect([shardMax(e), starMax(e)]).toEqual([4, 5]);
     const f = fight(['fallingNight']);
     useTalent(f, 'fallingNight');
-    expect(chargeSpec(f).step).toBeCloseTo(0.25, 6);
+    expect(['starfall', 'polaris', 'starMemory'].map(k => castOf(f, k as 'starfall'))).toEqual([0, 0, 0]);
     const g = fight(['threeShards']), u = others(g)[0];
     big(u);
-    for (let i = 0; i < 4; i++) cast(g, 'starHeal', u.cell);
-    expect(g.shards).toBe(3);
+    cast(g, 'twinkle', u.cell);
+    expect(g.shards).toBe(TX.threeShards);
   });
   it('빛나는 북극성 · 한 점 · 떠오르는 북극성', () => {
     const f = fight(['brightPolaris']), u = others(f).find(x => x.role !== 'tank')!;
     big(u);
-    const hs = charge(f, 'polaris', u.cell, 1, true);
+    const hs = charge(f, 'polaris', u.cell, 1);
     expect(healOn(hs, u)).toBe(Math.round(350 * (1 + TX.brightPolaris.heal)));
     const g = fight(['risingPolaris']), w = others(g)[0];
     big(w);
@@ -230,7 +231,7 @@ describe('특성 (79 4-7)', () => {
     expect(fallSpec(fight(['wideSky']), 4)).toEqual({ amt: 150 * 0.85, r: 3 });
     const f = fight(['gatherLight']); for (const x of f.party) { x.base = x.max = 50000; x.hp = 100; }
     const u = withAdj(f, 1);
-    const hs = charge(f, 'starfall', u.cell, 3, true);
+    const hs = charge(f, 'starfall', u.cell, 3);
     expect(healOn(hs, u)).toBe(Math.round(220 * 2));
   });
   it('지지 않는 별: 죽을 피해 → 별의 잠 (1회) · 차분한 손 · 별 무리', () => {
@@ -287,9 +288,8 @@ describe('특성 (79 4-7)', () => {
     const h = fight(['starPath']), w = others(h)[0];
     big(w);
     charge(h, 'polaris', w.cell, 4);
-    h.cd.starfall = 0;
-    E.use(h, 'starfall', w.cell);
-    expect(h.charge!.stars).toBe(4);
+    expect(h.shards).toBe(0);
+    expect(starsNow(h)).toBe(4); // 별의 길: 조각이 없어도 다음 별자리는 가득
   });
 });
 
@@ -297,31 +297,30 @@ describe('직업 전용 특수능력 (79 4-8)', () => {
   const sp = (k: string, v = SPECS[k].val) => fight([], { [k]: v });
   it('밝은 조각: 조각마다 다음 별자리 + · 쌍둥이 북극성', () => {
     const f = sp('brightShard'), u = others(f)[0];
-    big(u); f.shards = 2;
+    big(u);
     const hs = charge(f, 'polaris', u.cell, 4);
-    expect(healOn(hs, u)).toBe(Math.round(950 * PERF * (1 + 2 * SPECS.brightShard.val)));
+    expect(healOn(hs, u)).toBe(Math.round(950 * PERF * (1 + 3 * SPECS.brightShard.val)));
     const g = sp('twinPolaris'); hurt(g, 0.5);
     const w = withAdj(g, 1);
     big(w);
-    const hs2 = charge(g, 'polaris', w.cell, 1, true);
+    const hs2 = charge(g, 'polaris', w.cell, 1);
     expect(adj(g, w).some(v => healOn(hs2, v) > 0)).toBe(true);
   });
-  it('서두른 반짝임 −초 · 깊은 잠 +1초 · 완벽의 틈 +0.2초 · 오래 남는 표식 +4초', () => {
+  it('서두른 반짝임 −초 · 깊은 잠 +1초 · 빠른 별자리 −0.3초 (83) · 오래 남는 표식 +4초', () => {
     expect(cdOf(sp('hastyTwinkle'), 'twinkle')).toBeCloseTo(SKILLS.twinkle.cd! - SPECS.hastyTwinkle.val, 6);
     const f = sp('deepSleep'), u = others(f)[0];
     const t0 = f.t;
     E.use(f, 'starSleep', u.cell);
     expect(u.sleep! - t0).toBeCloseTo(ASTRO.sleep.sec + 1, 6);
-    expect(chargeSpec(sp('perfectWin')).perfect).toBeCloseTo(ASTRO.charge.perfect + SPECS.perfectWin.val, 6);
+    expect(castOf(sp('perfectWin'), 'polaris')).toBeCloseTo(SKILLS.polaris.cast - SPECS.perfectWin.val, 6);
     const g = sp('markSec'), w = others(g)[0];
     putMark(g, w);
     expect(markOf(w)!.left).toBe(ASTRO.mark.sec + 4);
   });
   it('쏟아지는 별 · 조각의 마나 · 맑은 표식 · 옮겨 가는 표식', () => {
-    const f = sp('shardMana'), u = others(f)[0];
-    big(u); f.shards = 2; f.mana = 50;
-    E.use(f, 'polaris', u.cell);
-    expect(f.mana).toBeCloseTo(50 + 2 * SPECS.shardMana.val, 6);
+    const [f, f0] = [sp('shardMana'), fight()];
+    for (const x of [f, f0]) { const u = others(x)[0]; big(u); x.shards = 2; x.mana = 50; cast(x, 'polaris', u.cell); }
+    expect(f.mana - f0.mana).toBeCloseTo(2 * SPECS.shardMana.val, 6); // 시전이 끝날 때 조각마다
     const g = sp('clearMark'), w = others(g)[0];
     addDebuff(g, w, { name: '독', type: '독', left: 30 });
     cast(g, 'clearStar', w.cell);
@@ -332,7 +331,7 @@ describe('직업 전용 특수능력 (79 4-8)', () => {
     cast(h, 'twinkle', x.cell);
     expect(adj(h, x).some(v => markOf(v)?.bonus)).toBe(true);
   });
-  it('완벽의 서두름: 완벽 뒤 4초 가속 · 품고 온 조각: 전투 시작 조각 2', () => {
+  it('가득 찬 별의 서두름: 가득 찬 별자리 뒤 4초 가속 · 품고 온 조각: 전투 시작 조각 2', () => {
     const f = sp('perfectHaste'), u = others(f)[0];
     big(u);
     const h0 = hasteOf(f);

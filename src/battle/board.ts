@@ -17,8 +17,7 @@ import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type 
 import type { TotemKind } from '../engine/types';
 import type { HeroKey } from '../data/heroes';
 import { absorbLeft, HEALER_SHIELD } from '../engine/abilities';
-import { asleep } from '../engine/astro';
-import { chargePerfect } from '../engine/healer';
+import { asleep, CONSTELLATION, starMax, starsNow } from '../engine/astro';
 import { raining } from '../engine/shaman';
 import { sealed } from '../engine/warder';
 import { emblemColor } from '../screens/art';
@@ -1556,12 +1555,12 @@ export function render(now: number): void {
     over.push({ u, x, y, deb: undefined });
   }
 
-  // 점성술사 모으는 별 (80 5장 board-star): 모으는 동안 대상 칸 위에 별 n개를 놓고 차례로 금빛 선으로 이음. 새로 붙은 별이 반짝, 완벽 구간이면 모두 밝게
-  const ch = F.charge;
-  if (ch && ch.stars > 0) {
-    const cu = ch.uid == null ? undefined : F.party.find(v => v.id === ch.uid && v.alive);
-    const c0 = cu ? unitPos(cu) : center(ch.cell), pts = CHARGE_STARS[Math.min(ch.stars, CHARGE_STARS.length - 1)];
-    const perfect = chargePerfect(F), w = Math.max(1.5, s * 0.045);
+  // 점성술사 별자리 시전 (80 5장 board-star, 83): 별비 · 북극성 · 별의 기억을 시전하는 동안 대상 칸 위에 별 (1 + 조각)개를 금빛 선으로 이음. 가득 찬 별자리면 모두 밝게
+  const ch = F.hero === 'astrologer' && F.cast && CONSTELLATION.has(F.cast.key) ? F.cast : null;
+  if (ch) {
+    const stars = starsNow(F), cu = F.party.find(v => v.id === ch.uid && v.alive);
+    const c0 = cu ? unitPos(cu) : center(ch.cell), pts = CHARGE_STARS[Math.min(stars, CHARGE_STARS.length - 1)];
+    const perfect = stars >= starMax(F), w = Math.max(1.5, s * 0.045);
     const at = pts.map(([dx, dy]) => fitCenter(c0.x + dx * r, c0.y + (dy - 0.12) * r, r * 0.2)); // 이름 줄보다 조금 위
     if (at.length > 1) {
       for (const [width, color, alpha] of [[w + 2, C.line, 0.55], [w, C.gold, perfect ? 1 : 0.85]] as const) {

@@ -642,8 +642,6 @@ export interface Totem { kind: TotemKind; cell: number; until: number; tick: num
  * t0 = 별이 모이기 시작하는 시각 (GCD 중에 누르면 GCD가 끝난 뒤), acc = 다음 별까지 모은 시간, stars = 지금 별 수, full = 마지막 별이 뜬 시각,
  * release = 시작 전에 뗌 (시작하자마자 터짐), autoAt = 자동 힐러가 뗄 시각
  */
-export interface Charge { key: SkillKey; uid: number | null; cell: number; t0: number; acc: number; stars: number; full: number | null; release?: boolean; autoAt?: number; /** 자동 힐러: 이 별 수가 되면 뗌 */ want?: number }
-
 /** 파티 전체에 걸린 능력 효과 */
 export interface PartyAb {
   /** 위협의 외침: 보스 피해 감소 */
@@ -725,10 +723,8 @@ export interface Fight {
   /** 수도사 기 리듬 (79 3-3): 리듬 · 이 시각까지 다음 손바닥이 없으면 내려감 */
   beat: number;
   beatUntil: number;
-  /** 점성술사 별 조각 (79 4-3) · 모으는 중인 별자리 · 막 터진 별자리 (별 수 · 완벽 · 가운데 칸, 효과를 내는 동안만) */
+  /** 점성술사 별 조각 (79 4-3, 83: 모으기를 없애고 별자리 시전이 다 씀) */
   shards: number;
-  charge: Charge | null;
-  chargeOut: { stars: number; perfect: boolean; cell: number } | null;
   /** 사제 특성 (06 6장) */
   tx: TalentState;
   /** 특성 단 마나 보정 배율 (열린 특성 단마다 −2%, 세 직업 공통 heroConst TIER_MANA). 프로토타입은 1 */

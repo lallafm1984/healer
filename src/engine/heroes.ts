@@ -3,11 +3,11 @@
  * healer.ts가 공통 흐름(시전·마나·GCD·예약)을 맡고, 여기서는 「맞았을 때 무슨 일이 일어나는가」만 다룬다.
  */
 import { HEROES, type HeroKey } from '../data/heroes';
-import { ASTRO_CHARGE, BARK, BEACON, HAND_GUARD, QUIETWOOD, REBIRTH, SANCTUARY, SHAMAN } from '../data/heroConst';
+import { BARK, BEACON, HAND_GUARD, QUIETWOOD, REBIRTH, SANCTUARY, SHAMAN } from '../data/heroConst';
 import { shamanApply, shamanCell, shamanLethal, shamanTaken, shamanTick, shamanTotemGone } from './shaman';
 import { monkApply, monkLethal, monkTaken, monkTick } from './monk';
 import { warderApply, warderShieldBroken, warderTaken, warderTick } from './warder';
-import { astroApply, astroChargeSpec, astroLethal, astroStartStars, astroTaken, astroTick, astroTotemGone, readMult } from './astro';
+import { astroApply, astroLethal, astroTaken, astroTick, astroTotemGone, readMult } from './astro';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
 import { hexDist } from './board';
@@ -347,18 +347,6 @@ export const NEW_HERO = (f: Fight): boolean => f.hero !== 'priest' && f.hero !==
 /** 힐러가 건 흡수 보호막 (src HEALER_SHIELD)이 피해로 다 깨짐: 결계사 깨진 막의 빛 (79 5-4) */
 export function shieldBroken(f: Fight, u: Unit): void {
   if (f.hero === 'warder') warderShieldBroken(f, u);
-}
-/** 모으기 수치 (79 4-3): 최대 별 · 별 하나 시간 (가속 전) · 완벽 구간. 점성술사 특성 · 특수능력이 바꿈 */
-export function chargeSpec(f: Fight): { max: number; step: number; perfect: number } {
-  if (f.hero === 'astrologer') return astroChargeSpec(f);
-  return { max: ASTRO_CHARGE.max, step: ASTRO_CHARGE.step, perfect: ASTRO_CHARGE.perfect };
-}
-/** 모으기를 시작할 때 단 별: 1 + 별 조각 (조각은 다 씀, 79 4-3) */
-export function chargeStartStars(f: Fight): number {
-  if (f.hero === 'astrologer') return astroStartStars(f);
-  const n = 1 + f.shards;
-  f.shards = 0;
-  return n;
 }
 
 /** 직업 고유 시스템의 한 틱 (성역 범위 회복·봉화 대기, 79 직업은 그 직업 파일) */

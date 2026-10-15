@@ -118,14 +118,15 @@ export const HEROES: Record<HeroKey, HeroDef> = {
     ready: true,
   },
   astrologer: {
-    key: 'astrologer', name: '점성술사', line: '별을 이어 모았다가 한 번에 터뜨리는 힐러입니다.', star: 3,
-    system: { name: '별자리 잇기', lv: 6, desc: '별비와 북극성은 누르고 있는 동안 별이 0.5초마다 하나씩 4개까지 이어지고, 떼면 별 수만큼 크게 터집니다. 4번째 별 뒤 0.5초 안에 떼면 완벽한 별자리로 15% 더 회복합니다. 별빛 치유와 반짝임이 주는 별 조각으로 다음 별자리를 미리 이어 둡니다.' },
+    key: 'astrologer', name: '점성술사', line: '별 조각을 모아 별자리로 터뜨리는 힐러입니다.', star: 2,
+    // 83 (Lim 「스와이프로 조작시 매우 불편」): 누르고 떼는 모으기 → 별 조각 시전
+    system: { name: '별 조각', lv: 6, desc: '별빛 치유와 반짝임이 별 조각을 1개씩 줍니다 (최대 3개). 별비 · 북극성 · 별의 기억은 시전이 끝날 때 모은 조각을 모두 써서 별 1 + 조각개로 터집니다. 조각 3개를 다 쓰면 가득 찬 별자리로 25% 더 회복합니다.' },
     dispel: ['마법', '독'],
     slots: slots({ basic: 'starHeal', fast: 'twinkle', hot: 'starMark', aoe: 'starfall', dispel: 'clearStar', ext: 'starSleep', raid: 'starMemory', unique: 'polaris' }),
     tap: ['starHeal', 'twinkle', 'starMark'],
     passives: [
       { name: '별 읽기', lv: 4, desc: '보스 예고가 찍힌 아군에게 하는 힐이 15% 늘어납니다.' },
-      { name: '별의 순환', lv: 10, desc: '완벽한 별자리를 만들 때마다 마나를 3% 돌려받습니다.' },
+      { name: '별의 순환', lv: 10, desc: '가득 찬 별자리를 터뜨릴 때마다 마나를 3% 돌려받습니다.' },
     ],
     unlock: { lv: 0, how: '상점 구매', buy: true },
     ready: true,

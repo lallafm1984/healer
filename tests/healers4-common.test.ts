@@ -1,6 +1,5 @@
 /** 79 힐러 직업 4종 공통 준비 (6-1): 직업 7개 데이터 · 스킬마다 GCD · 모으기 · 가운데 스킬 · 판 위 물건 · 보스 딜 · 힐러 보호막 · 받은 피해 기록 */
 import { describe, expect, it } from 'vitest';
-import { ASTRO_CHARGE } from '../src/data/heroConst';
 import { ALL_HERO_KEYS, CORE_ID, CORE_SKILL, HERO_KEYS, HEROES, heroOfSkill, heroSkills, heroSlotNames, skillAt, slotIdOf, UPDATE_HEROES, type HeroKey } from '../src/data/heroes';
 import { SKILL_INFO, SKILLS, type SkillKey } from '../src/data/skills';
 import { TALENT_TREES } from '../src/data/talents';
@@ -8,7 +7,7 @@ import * as E from '../src/engine';
 import { absorbLeft, giveAbsorb } from '../src/engine/abilities';
 import { damage, recentDmg } from '../src/engine/core';
 import { bossHit } from '../src/engine/fight';
-import { chargeCancel, chargeRelease, gcdOf, slotKey, use } from '../src/engine/healer';
+import { gcdOf, slotKey, use } from '../src/engine/healer';
 import { placeTotem, totemsOf } from '../src/engine/totems';
 import { BASE_HEROES } from '../src/sim/balance';
 import { migrate } from '../src/platform/storage';
@@ -95,67 +94,24 @@ describe('스킬마다 GCD (79 6-1)', () => {
   });
 });
 
-describe('모으기 (점성술사 별자리 잇기, 79 4-3)', () => {
+describe('별자리 시전 (점성술사 별 조각, 83: 누르고 떼는 모으기를 없앰)', () => {
   const ready = () => { const f = fight('astrologer'); f.gear.haste = 0; return f; };
-  it('누르면 별 1개, 0.5초마다 1개씩 4개까지, 모으는 동안 다른 스킬은 무시 (예약 안 함)', () => {
+  it('별비 · 북극성 · 별의 기억은 보통 시전, 시전 중 다른 스킬을 누르면 그쪽으로 바뀜 (모으기 없음)', () => {
     const f = ready(), t = tank(f);
+    for (const k of ['starfall', 'polaris', 'starMemory'] as const) expect(SKILLS[k].cast).toBeGreaterThan(0);
     expect(use(f, 'starfall', t.cell).ok).toBe(true);
-    expect(f.charge!.stars).toBe(1);
-    expect(use(f, 'starHeal', t.cell).ok).toBe(false);
-    expect(f.queued).toBeNull();
-    run(f, 0.55);
-    expect(f.charge!.stars).toBe(2);
-    run(f, 1.0);
-    expect(f.charge!.stars).toBe(4);
-    expect(f.charge!.full).not.toBeNull();
+    expect(f.cast?.key).toBe('starfall');
+    expect('charge' in f).toBe(false);
   });
-  it('뗄 때 마나 · 재사용, 완벽 구간 안이면 완벽', () => {
+  it('시전이 끝날 때 조각을 모두 써서 별 1 + 조각개, 마나 · 재사용은 그때', () => {
     const f = ready(), t = tank(f), m0 = f.mana;
-    use(f, 'polaris', t.cell);
-    run(f, 1.6); // 4번째 별 (1.5초) 뒤 0.1초
-    let out: unknown = null;
-    const orig = f.chargeOut;
-    expect(orig).toBeNull();
-    expect(chargeRelease(f).ok).toBe(true);
-    out = f.cd.polaris;
-    expect(out).toBe(SKILLS.polaris.cd);
-    expect(f.mana).toBeLessThan(m0);
-  });
-  it('마지막 별 뒤 1초가 지나도 안 떼면 저절로 터짐 (완벽 아님)', () => {
-    const f = ready(), t = tank(f);
-    use(f, 'starfall', t.cell);
-    run(f, 1.5 + ASTRO_CHARGE.auto + 0.1);
-    expect(f.charge).toBeNull();
-    expect(f.cd.starfall).toBeGreaterThan(0);
-  });
-  it('취소: 마나 · 재사용 없이, 북극성 대상이 쓰러지면 취소', () => {
-    const f = ready(), t = tank(f), m0 = f.mana;
-    use(f, 'polaris', t.cell);
-    chargeCancel(f);
-    expect(f.charge).toBeNull();
-    expect(f.mana).toBeCloseTo(m0, 1);
-    expect(f.cd.polaris ?? 0).toBe(0);
-    use(f, 'polaris', t.cell);
-    t.hp = 1; damage(f, t, 1e9, false, 'fixed');
-    run(f, 0.1);
-    expect(f.charge).toBeNull();
-    expect(f.cd.polaris ?? 0).toBe(0);
-  });
-  it('GCD 중에 누르면 GCD가 끝난 뒤 별이 모이기 시작', () => {
-    const f = ready(), t = tank(f);
-    use(f, 'twinkle', t.cell);
-    expect(f.gcd).toBeGreaterThan(0);
-    use(f, 'starfall', t.cell);
-    expect(f.charge!.stars).toBe(0);
-    run(f, f.gcdBase + 0.1);
-    expect(f.charge!.stars).toBe(2); // 반짝임이 준 조각 1 + 1 (79 4-3)
-  });
-  it('별 조각이 있으면 그만큼 별을 단 채로 시작 (조각은 다 씀)', () => {
-    const f = ready(), t = tank(f);
     f.shards = 2;
-    use(f, 'starfall', t.cell);
-    expect(f.charge!.stars).toBe(3);
+    use(f, 'polaris', t.cell);
+    expect(f.shards).toBe(2); // 시전 중에는 아직 안 씀
+    run(f, SKILLS.polaris.cast + 0.1);
     expect(f.shards).toBe(0);
+    expect(f.cd.polaris).toBeGreaterThan(SKILLS.polaris.cd! - 0.5);
+    expect(f.mana).toBeLessThan(m0);
   });
 });
 

@@ -46,8 +46,6 @@ export interface SkillDef {
   powerAll?: boolean;
   /** 이 스킬의 GCD (초, 가속 전). 없으면 규칙 GCD (1.5). 0 = GCD를 안 쓰고 GCD · 시전 중에도 바로 나감 (수도사 차 한 잔, 79 6-1) */
   gcd?: number;
-  /** 모으기 (점성술사 별자리 잇기, 79 4-3): 누르고 있는 동안 별이 모이고 떼면 발동. 마나 · 재사용은 뗄 때 */
-  charge?: true;
   /** 휠 밖 가운데 버튼 스킬 (주술사 샘 토템 · 결계사 심판, 79 6-1). 휠 배치에는 안 들어감 */
   core?: true;
 }
@@ -112,10 +110,10 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   twinkle: { name: '반짝임', short: '반짝', slot: 'fast', lv: 1, cast: 0, cost: 4, cd: 9, amt: 240, target: 'ally' }, // 마나 5 → 4 (79 4-11)
   starMark: { name: '별자리 표식', short: '표식', slot: 'hot', lv: 2, cast: 0, cost: 1.5, amt: 160, target: 'ally' }, // 120 · 3% → 160 · 1.5% (79 4-11)
   clearStar: { name: '맑은 별빛', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
-  starfall: { name: '별비', short: '별비', slot: 'aoe', lv: 5, cast: 0, charge: true, cost: 12, cd: 12, target: 'area' },
+  starfall: { name: '별비', short: '별비', slot: 'aoe', lv: 5, cast: 1.5, cost: 12, cd: 12, target: 'area' }, // 83: 모으기 → 시전 (별 = 1 + 조각), 2.0초로는 던전 · 레이드 −3~7%p라 1.5초
   starSleep: { name: '별의 잠', short: '잠', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 120, target: 'ally' },
-  starMemory: { name: '별의 기억', short: '기억', slot: 'raid', lv: 12, cast: 0, charge: true, cost: 15, cd: 180, amt: 100, target: 'none' }, // 82: 즉시 (최근 4초) → 모으기 (별 1개마다 2초)
-  polaris: { name: '북극성', short: '북극성', slot: 'unique', lv: 15, cast: 0, charge: true, cost: 5, cd: 20, target: 'ally' }, // 마나 8 → 5% · 재사용 30 → 20초 (79 4-11)
+  starMemory: { name: '별의 기억', short: '기억', slot: 'raid', lv: 12, cast: 1.5, cost: 15, cd: 180, amt: 100, target: 'none' }, // 82: 즉시 (최근 4초) → 별 1개마다 2초, 83: 모으기 → 시전
+  polaris: { name: '북극성', short: '북극성', slot: 'unique', lv: 15, cast: 1.5, cost: 5, cd: 20, target: 'ally' }, // 마나 8 → 5% · 재사용 30 → 20초 (79 4-11), 83: 모으기 → 시전
 
   // ---------- ⑦ 결계사 (79 5장) ----------
   sealHeal: { name: '인장 치유', short: '인장', slot: 'basic', lv: 1, cast: 2.5, cost: 2.2, amt: 350, target: 'ally' }, // 79 5-11: 260 · 3% → 350 · 2.2% (밸런스)
@@ -200,14 +198,14 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   reviveWind: { kind: '공대 쿨기 · 해제', desc: '파티 전원의 체력을 즉시 {350}씩 회복하고, 한 명마다 마법·질병 디버프를 1개씩 제거합니다. 함정 디버프와 해제가 막힌 디버프는 건드리지 않습니다.' },
   tea: { kind: '마나', desc: '마나를 5% 회복하고 기 리듬을 2 올립니다. 마나를 쓰지 않고, 다음 행동을 기다리지 않습니다.' },
 
-  starHeal: { kind: '조각 모으기', desc: '대상의 체력을 {320} 회복하고 별 조각을 1개 얻습니다 (최대 2개).' },
+  starHeal: { kind: '조각 모으기', desc: '대상의 체력을 {320} 회복하고 별 조각을 1개 얻습니다 (최대 3개).' },
   twinkle: { kind: '조각 모으기 · 즉시', desc: '대상의 체력을 즉시 {240} 회복하고 별 조각을 1개 얻습니다.' },
   starMark: { kind: '표식', desc: '8초 동안 대상의 체력을 모두 {160} 회복합니다. 표식이 있는 동안 내가 대상에게 하는 다음 직접 힐이 50% 늘어납니다 (한 번).' },
   clearStar: { kind: '해제', desc: '대상의 마법·독 디버프를 1개 제거합니다.' },
-  starfall: { kind: '모으기 · 광역', desc: '누르고 있는 동안 별이 모이고, 떼면 별이 쏟아집니다. 별 1개: 대상 {380}, 2개: 대상과 붙어 있는 6칸 {150}씩, 3개: 같은 범위 {220}씩, 4개: 2칸 거리 안 {150}씩. 20인 레이드에서는 90%만 회복합니다.' },
+  starfall: { kind: '별자리 · 광역', desc: '시전이 끝나면 모은 별 조각을 모두 써서 별 1 + 조각개가 쏟아집니다. 별 1개: 대상 {380}, 2개: 대상과 붙어 있는 6칸 {150}씩, 3개: 같은 범위 {220}씩, 4개: 2칸 거리 안 {150}씩. 조각 3개를 다 쓰면 25% 더 회복합니다.' },
   starSleep: { kind: '잠재우기', desc: '4초 동안 대상을 별빛 속에 재웁니다. 그동안 피해도 회복도 받지 않고, 딜도 하지 않습니다.' },
-  starMemory: { kind: '모으기 · 되감기', desc: '누르고 있는 동안 별이 모이고, 떼면 파티 전원이 받은 피해를 되감습니다. 별 1개마다 2초씩, 별 4개면 최근 8초 동안 받은 피해의 50%를 회복합니다. 적어도 {100}씩 회복합니다.' },
-  polaris: { kind: '모으기 · 한 명', desc: '누르고 있는 동안 별이 모이고, 떼면 대상의 체력을 별 1~4개에 따라 {350} · {550} · {750} · {950} 회복합니다.' },
+  starMemory: { kind: '별자리 · 되감기', desc: '시전이 끝나면 모은 별 조각을 모두 써서 파티 전원이 받은 피해를 되감습니다. 별 (1 + 조각) 1개마다 2초씩, 별 4개면 최근 8초 동안 받은 피해의 50%를 회복합니다. 적어도 {100}씩 회복합니다.' },
+  polaris: { kind: '별자리 · 한 명', desc: '시전이 끝나면 모은 별 조각을 모두 써서 대상의 체력을 별 (1 + 조각) 1~4개에 따라 {350} · {550} · {750} · {950} 회복합니다. 조각 3개를 다 쓰면 25% 더 회복합니다.' },
 
   sealHeal: { kind: '인장 힐', desc: '대상의 체력을 {350} 회복하고 15초 동안 인장을 붙입니다.' },
   quickSeal: { kind: '인장 힐 · 빠른', desc: '대상의 체력을 {220} 회복하고 15초 동안 인장을 붙입니다.' },

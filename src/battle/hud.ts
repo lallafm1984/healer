@@ -7,10 +7,8 @@ import { NO_TANK_SEC } from '../data/armor';
 import { CLASSES } from '../data/classes';
 import { BEACON, SHAMAN } from '../data/heroConst';
 import { beatMax, beatWindow } from '../engine/monk';
-import { shardMax } from '../engine/astro';
+import { CONSTELLATION, shardMax, starMax, starsNow } from '../engine/astro';
 import { judgeCount, judgeReady, sealed, sealTargets } from '../engine/warder';
-import { chargePerfect } from '../engine/healer';
-import { chargeSpec } from '../engine/heroes';
 import { canDispel, HEROES } from '../data/heroes';
 import { mobGrade } from '../data/encounters';
 import type { ItemKey } from '../data/items';
@@ -172,8 +170,8 @@ export function updateWheel(): void {
   if (F.hero === 'paladin' && gaugeLabels[0]) setText(gaugeLabels[0], '신성한 힘');
   $('gauges').setAttribute('aria-label', F.hero === 'paladin' ? `신성한 힘 ${r.a}, 봉화 ${r.b}`
     : F.hero === 'druid' ? `새싹 ${r.a}명 / ${r.b}명` : F.hero === 'shaman' ? `샘 토템 ${r.a}, 대지 토템 ${r.b}` : F.hero === 'monk' ? `기 리듬 ${r.a}, 이어지는 시간 ${r.b}`
-    : F.hero === 'astrologer' ? `모으는 별 ${r.a}, 별 조각 ${r.b}` : F.hero === 'warder' ? `인장 ${r.a}, 심판 회복 ${r.b}` : `평온 ${r.a}%`);
-  if (F.hero === 'astrologer') $('gauges').querySelector('.gr')?.classList.toggle('ready', chargePerfect(F));
+    : F.hero === 'astrologer' ? `별 조각 ${r.a}, 다음 별자리 ${r.b}` : F.hero === 'warder' ? `인장 ${r.a}, 심판 회복 ${r.b}` : `평온 ${r.a}%`);
+  if (F.hero === 'astrologer') $('gauges').querySelectorAll('.gr')[1]?.classList.toggle('ready', starsNow(F) >= starMax(F)); // 83: 조각이 다 차면 별자리 줄이 반짝 (가득 찬 별자리)
   // 심판 (79 5-3): 인장 붙은 아군이 없으면 가운데 버튼이 흐려짐 (모양은 Codex 몫), 3명 이상 회복할 수 있으면 심판 줄이 반짝
   const coreOff = F.hero === 'warder' && F.level >= SKILL_LEVEL.judgment && !judgeReady(F);
   core.classList.toggle('core-off', coreOff);
@@ -207,7 +205,7 @@ export function buildGauges(F: Fight): void {
     // 수도사 (79 3-3 · 7장, Codex가 다듬음): 기 리듬 · 다음 손바닥까지 남은 시간
     : F.hero === 'monk' ? gaugeRow('리듬', 'gPb', '<b id="gP">0</b>', 'leaf') + gaugeRow('박자', 'gSb', '<b id="gS">-</b>', 'calm')
     // 점성술사 (79 4-3 · 7장 3번, Codex가 다듬음): 모으는 별 (완벽 구간이면 반짝) · 별 조각
-    : F.hero === 'astrologer' ? gaugeRow('별', 'gPb', '<b id="gP">-</b>', 'gold') + gaugeRow('조각', 'gSb', '<b id="gS">0</b>', 'calm')
+    : F.hero === 'astrologer' ? gaugeRow('조각', 'gPb', '<b id="gP">0</b>', 'gold') + gaugeRow('별자리', 'gSb', '<b id="gS">-</b>', 'calm')
     // 결계사 (79 7장 3번 첫 모양, Codex가 다듬음): 인장 붙은 아군 수 · 지금 심판하면 회복할 인원
     : F.hero === 'warder' ? gaugeRow('인장', 'gPb', '<b id="gP">0</b>', 'gold') + gaugeRow('심판', 'gSb', '<b id="gS">-</b>', 'calm')
     // 사제 (82): 평온 게이지 한 줄 (신성화는 없앰)
@@ -228,10 +226,11 @@ function coreRing(F: Fight): { outer: number; inner: number; a: string; b: strin
     const sp = left('spring'), ea = left('earth'), cd = F.cd.springTotem ?? 0;
     return { outer: sp / (SHAMAN.spring.sec + 6), inner: ea / SHAMAN.earth.sec, a: sp > 0 ? `${Math.ceil(sp)}초` : cd > 0 ? `대기 ${Math.ceil(cd)}` : '준비', b: ea > 0 ? `${Math.ceil(ea)}초` : '-' };
   }
-  if (F.hero === 'astrologer') {
-    const sp = chargeSpec(F), st = F.charge ? F.charge.stars : 0, mx = shardMax(F);
-    return { outer: st / sp.max, inner: F.shards / mx, a: F.charge ? `${st}/${sp.max}` : '-', b: `${F.shards}/${mx}` };
+  if (F.hero === 'astrologer') { // 83: 조각 n/최대 · 다음 별자리 별 수 (가득이면 금빛)
+    const mx = shardMax(F), n = starsNow(F);
+    return { outer: F.shards / mx, inner: n / starMax(F), a: `${F.shards}/${mx}`, b: `별 ${n}` };
   }
+
   if (F.hero === 'warder') {
     const live = F.party.filter(u => u.alive), n = live.filter(u => sealed(F, u)).length;
     if (F.level < SKILL_LEVEL.judgment) return { outer: live.length ? n / live.length : 0, inner: 0, a: `${n}/${live.length}`, b: `Lv ${SKILL_LEVEL.judgment}` };
@@ -320,14 +319,10 @@ export function updateItems(): void {
 export function updateCastbar(): void {
   const F = fight();
   let label: string, detail = '', p = 0, left = '';
-  if (F.charge) { // 점성술사 모으기 (79 4-3 · 7장 4번, Codex가 다듬음): 별 n/최대, 완벽 구간이면 「완벽」
-    const c = F.charge, sp = chargeSpec(F), u = c.uid == null ? null : F.party.find(x => x.id === c.uid);
-    label = c.stars === 0 ? `${SKILLS[c.key].short} 준비` : `${SKILLS[c.key].short}${u ? ` → ${u.nick}` : ''} · 별 ${c.stars}/${sp.max}${chargePerfect(F) ? ' · 완벽' : ''}`;
-    p = c.stars / sp.max;
-    left = '';
-  } else if (F.cast) {
+  if (F.cast) {
     const u = F.party.find(x => x.id === F.cast!.uid);
     label = `${SKILLS[F.cast.key].short} → ${u ? u.nick : ''}`;
+    if (F.hero === 'astrologer' && CONSTELLATION.has(F.cast.key)) label += ` · 별 ${starsNow(F)}${starsNow(F) >= starMax(F) ? ' · 가득' : ''}`; // 83: 별자리 시전 = 지금 조각으로 터질 별 수
     p = 1 - F.cast.left / F.cast.total;
     left = Math.max(0, F.cast.left).toFixed(1);
   } else if (F.channel > 0) {
@@ -360,7 +355,7 @@ export function updateCastbar(): void {
       detail = `${selected.nick}, ${selected.alive ? `체력 ${hp}` : '쓰러짐'}. ${selected.debuffs.length ? selected.debuffs.map(d => `${d.name} (${d.type}), ${Math.ceil(d.left)}초${d.stack ? `, ${d.stack}중첩` : ''}, ${!canDispel(F.hero, d.type) ? '해제 불가' : d.trap ? '해제 주의: 옆 칸으로 전파' : '해제 가능'}`).join('. ') : '디버프 없음'}`;
     } else label = `칸을 탭하면 ${SKILLS[tapKey()].name}`;
   }
-  const casting = !!F.cast || F.channel > 0 || !!F.charge;
+  const casting = !!F.cast || F.channel > 0;
   setText($('castLabel'), label);
   $('castLabel').title = detail || label;
   $('castLabel').setAttribute('aria-label', detail || label);
