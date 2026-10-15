@@ -1,0 +1,56 @@
+/* 전투 화면 손질 (2026-10-16): 큰 알림 띠 · 구간 끝 · 빈 예고 칸. 마지막에 읽혀 앞 테마 규칙을 덮는다 */
+
+/* 큰 알림 띠 (전투 시작! · 광폭화 · 페이즈 · 처치 · 승리 · 전멸): 글자만 떠서 파티원 이름 · 말풍선과 겹쳐 읽히지 않던 것 →
+   가운데가 짙고 양끝이 사라지는 띠 + 위아래 금선. 글자 내용은 그대로 text, 아래 작은 줄은 data-sub */
+#battle #banner {
+  --bn-line: #b98a3e; --bn-hi: #ffe6a6; --bn-bg: 12, 9, 6;
+  top: 42%; transform: translateY(-50%); z-index: 3;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 50px; padding: 6px 28px 7px; box-sizing: border-box;
+  background:
+    linear-gradient(90deg, transparent 4%, var(--bn-line) 26%, var(--bn-hi) 50%, var(--bn-line) 74%, transparent 96%) top / 100% 2px no-repeat,
+    linear-gradient(90deg, transparent 4%, var(--bn-line) 26%, var(--bn-hi) 50%, var(--bn-line) 74%, transparent 96%) bottom / 100% 2px no-repeat,
+    linear-gradient(90deg, rgba(var(--bn-bg), 0), rgba(var(--bn-bg), .84) 22%, rgba(var(--bn-bg), .9) 50%, rgba(var(--bn-bg), .84) 78%, rgba(var(--bn-bg), 0));
+  font-size: 28px; font-weight: 400; line-height: 1.12; letter-spacing: .02em; color: #ffe08a; white-space: nowrap;
+  -webkit-text-stroke: 1px #2a1806; paint-order: stroke fill;
+  text-shadow: 0 2px 0 #2a1806, 0 0 16px rgba(255, 186, 74, .38);
+}
+#battle #banner::after {
+  content: attr(data-sub); margin-top: 2px; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  font: 700 12px/1.25 var(--font-body); letter-spacing: 0; color: #eadbb7; -webkit-text-stroke: 0; text-shadow: 0 1px 0 #000;
+}
+#battle #banner[data-sub=""]::after { display: none; }
+#battle #banner[data-tone="danger"] { --bn-line: #a8321f; --bn-hi: #ffb39f; --bn-bg: 34, 7, 5; color: #ffb09c; text-shadow: 0 2px 0 #3a0a05, 0 0 16px rgba(255, 70, 45, .5); }
+#battle #banner[data-tone="win"] { font-size: 32px; color: #ffe9a8; text-shadow: 0 2px 0 #2a1806, 0 0 20px rgba(255, 206, 102, .6); }
+#battle #banner[data-tone="lose"] { --bn-line: #6d5f4c; --bn-hi: #cdbfa6; --bn-bg: 10, 9, 8; font-size: 32px; color: #e6dccb; text-shadow: 0 2px 0 #14100c, 0 0 14px rgba(0, 0, 0, .7); }
+#battle #banner.show { animation: bannerShow 2.6s forwards; }
+@keyframes bannerShow {
+  0% { opacity: 0; transform: translateY(-50%) scale(1.18, .55); }
+  7% { opacity: 1; transform: translateY(-50%) scale(1); }
+  80% { opacity: 1; transform: translateY(-50%); }
+  100% { opacity: 0; transform: translateY(-50%); }
+}
+
+/* 구간 끝: 지면 판을 잿빛으로 (화면이 결과로 넘어가기 전 2초) */
+#battle #board { transition: filter .5s ease-out; }
+#battle.over-lose #board { filter: grayscale(.75) brightness(.72); }
+
+/* 빈 예고 칸: 채워진 칸과 같은 테라 빈 상자처럼 보이던 것 → 어두운 홈 + 가운데 작은 마름모 */
+#battle #queue .q-empty, #battle.stage-sm #queue .q-empty, #battle.short-battle #queue .q-empty {
+  background: #0d0b08; box-shadow: inset 0 2px 7px rgba(0, 0, 0, .75);
+}
+#battle #queue .q-empty::after { opacity: .42; }
+#battle #queue .q-empty::before {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px;
+  transform: translate(-50%, -50%) rotate(45deg); background: #4a3a20; box-shadow: 0 0 0 1px #000;
+}
+
+/* 예고 칸 이름 (hud.ts fitQName): 정식 이름이 넘칠 때 한 번 줄여 보는 크기 */
+#battle #queue .q .nm.tight, #battle #queue .q.hot .nm.tight { font-size: 10.5px; letter-spacing: -.02em; }
+
+/* 나무결 → 길드 홀 돌색 (2026-10-13 Lim 「나무색이 안 어울린다」, 결과 · 휴식 · 공략 · 편성과 같은 한 벌 --gk-card): 머리판 · 예고 칸 · 설명 창 · 일시정지.
+   금테 그림 (sunforged 판 테 · 초상 테)은 그대로. 아래 스킬 판은 이 파일 몫이 아님 */
+#battle .stage-head::before { background-color: #1e1914; background-image: linear-gradient(#2b231b, #1a1510); background-size: auto; }
+#battle #queue .q:not(.hot) { background-color: #1b1611; background-image: linear-gradient(#251e17, #16120d); background-size: auto; }
+#battle :is(#pause .card, #preview, #coach, #tip) { background-color: #1e1914; background-image: linear-gradient(#272019, #1c1712); background-size: auto; }
+#battle #tip::after, #battle #preview::after { background-color: #1c1712; }
