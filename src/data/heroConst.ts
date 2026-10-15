@@ -64,6 +64,8 @@ export const SHAMAN = {
  */
 export const MONK = {
   beat: { window: 2.5, max: 5, step: 0.06, mistFast: 3, mistCdMult: 2 },
+  /** 생기 손바닥 다음 행동 대기 하한 (초, 가속이 높아도 이보다 짧아지지 않음. 천 개의 손은 따로). 0 = 하한 없음 */
+  palmGcdMin: 0,
   wrapMist: { sec: 6, amt: 90 },
   /** 안개 감싸기 (82): 즉시 · 기 리듬 1마다 회복량 + (리듬은 이어 줌, 올리지는 않음) */
   wrap: { step: 0.12 },
