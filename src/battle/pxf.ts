@@ -107,18 +107,18 @@ export const PXF = {
   'astro-sleep': skill(24, 92),
   'astro-memory': skill(22, 80),
   'astro-polaris': skill(22, 100),
-  // 아직 예전 64px 도트 (PXF 그래프): 빠지거나 바뀌는 스킬 (빛 일격 · 소나기 · 샘 토템 · 결계사, QA에서 스킬을 바꾼 뒤 다시 만듦)
+  // 아직 예전 64px 도트 (PXF 그래프): 빠지거나 바뀌는 스킬 (빛 일격 · 소나기 · 샘 토템 · 빠른 인장 · 빛의 창 · 심판, QA에서 스킬을 바꾼 뒤 다시 만듦)
   'paladin-holy-strike': clip(16, 2),
   'shaman-shower': clip(18, 3),
   'shaman-spring': clip(24, 3),
-  // 결계사 (79 5-5, 상아빛 네모 결계): 인장 X · 도장 · 유리판 · 깨지는 유리 · 네 말뚝 · 도는 방패 · 가로 띠 · 창 · 망치
-  'warder-seal': clip(20, 4),
+  // 결계사 (79 5-5 네모 결계, 2026-10-16 Lim 「흰색이라서 퀄리티가 더 떨어져보인다. 노란 발광의 빛이나게」→ 손그림풍 노란 빛): 인장 X · 도장 · 유리판 · 깨지는 유리 · 네 말뚝 · 도는 방패 · 가로 띠 · 창 · 망치
+  'warder-seal': skill(20, 92),
   'warder-quick': clip(16, 3),
-  'warder-barrier': clip(22, 4),
-  'warder-cleanse': clip(18, 3),
-  'warder-circle': clip(20, 4),
-  'warder-guard': clip(22, 3),
-  'warder-veil': clip(24, 5),
+  'warder-barrier': skill(22, 96),
+  'warder-cleanse': skill(18, 94),
+  'warder-circle': skill(20, 82),
+  'warder-guard': skill(22, 96),
+  'warder-veil': skill(24, 82),
   'warder-spear': clip(16, 2),
   'warder-judgment': clip(18, 5),
   // 모든 효과 PXF 1단계 (requests.md): 전투 공통 효과 (회색 그림은 색을 곱함)
