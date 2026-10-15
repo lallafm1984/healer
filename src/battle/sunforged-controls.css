@@ -121,6 +121,11 @@
   font: 700 var(--skill-state-size)/1 var(--font-body);
   color: #c4e8ff;
 }
+/* 횟수 소진은 시간이 지나도 풀리지 않는 비활성 상태. 설명용 길게 누르기는 유지한다. */
+#battle #controls .slot.spent { cursor: default; }
+#battle #controls .slot.spent .nm { top: 38%; color: #d5d1c6; }
+#battle #controls .slot.spent .ct { display: none; }
+#battle #controls .slot.spent .cds { top: 60%; color: #d5d1c6; font-size: calc(var(--skill-state-size) * .85); }
 #battle #controls .slot.armed::after { content: none; }
 #battle #controls .slot.armed,
 #battle #controls .slot.aim,
@@ -292,6 +297,9 @@
 #battle #controls .aux .cd { inset: 7%; pointer-events: none; }
 #battle #controls .item .cds,
 #battle #controls .aux .cds { color: #92cfff; }
+#battle #controls .aux.spent { cursor: default; }
+#battle #controls .aux.spent .nm { position: absolute; inset: 7px 0 auto; z-index: 3; font-size: 11px; line-height: 1; }
+#battle #controls .aux.spent .cds { inset: 23px 0 auto; color: #e2ded2; font-size: 9px; line-height: 1; white-space: nowrap; }
 #battle #controls .item.empty { background: none; filter: none; isolation: isolate; }
 /* 비활성 소켓만 어둡게 한다. ::before는 축소 모드 터치 영역의 소유이므로 사용하지 않는다. */
 #battle #controls .item.empty::after {

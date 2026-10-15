@@ -18,7 +18,7 @@ import { INT_BASE } from '../data/rules';
 import { healText, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { itemTip, skillTip, tipHtml } from '../game/tooltip';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
-import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, slotKey, type Fight, type Unit } from '../engine';
+import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, skillUsesSpent, slotKey, talentUsesSpent, type Fight, type Unit } from '../engine';
 import { art, cssUrl } from '../art';
 import { ITEM_ICON, skillMark } from './art';
 import { center, L, screenCenter } from './board';
@@ -46,7 +46,25 @@ export const guideOf = (F: Fight, encKey = F.enc.key) => guideModel(encKey, F.cf
 /** 일반·정예 구간은 지금 잡는 적 이름과 등급을 같이 (HTML, 이름은 데이터라 그대로) */
 export function bossTitle(): string {
   const F = fight(), m = F.mobs.find(x => x.alive && !x.add); // 쫄(P-ADD)은 이름 줄에 안 씀
-  return m ? `<span class="boss-title-text">${m.name}</span><small class="grade${m.elite ? ' elite' : ''}">${mobGrade(m)}</small>` : F.enc.name;
+  return m ? `<span class="boss-title-text">${m.name}</span><small class="grade${m.elite ? ' elite' : ''}">${mobGrade(m)}</small>` : `<span class="boss-title-text">${F.enc.name}</span>`;
+}
+
+/** 긴 이름만 실제 남은 너비에 맞춰 축소한다. 등급 배지 크기와 이름 줄 높이는 유지한다. */
+export function fitBossTitle(): void {
+  const title = $('bossName').querySelector<HTMLElement>('.boss-title-text');
+  if (!title || !title.getClientRects().length) return;
+  title.style.removeProperty('font-size');
+  let size = parseFloat(getComputedStyle(title).fontSize);
+  // 짧은 이름으로 교체되거나 화면이 넓어지면 위에서 원래 CSS 크기로 복원한다.
+  for (let i = 0; i < 3 && title.clientWidth > 0 && title.scrollWidth > title.clientWidth; i++) {
+    size *= Math.max(1, title.clientWidth - 1) / title.scrollWidth;
+    title.style.fontSize = `${size}px`;
+  }
+}
+
+export function updateBossTitle(): void {
+  $('bossName').innerHTML = bossTitle();
+  fitBossTitle();
 }
 
 // ---------- 스킬 휠 (시안: 청동 3px 링 · 방사 그라데이션 칸, 가운데 = 마나 링) ----------
@@ -131,23 +149,27 @@ export function updateWheel(): void {
     if (!el.dataset.slot) continue;
     const slot = el.dataset.slot!, key = slotKey(F, slot), sk = SKILLS[key];
     setSlotArt(el, key);
+    const spent = skillUsesSpent(F, key);
+    if (spent && B.armed === slot) B.armed = null;
     const lk = F.lock[key], cdv = sk.cd ? F.cd[key] || 0 : 0, cd = Math.max(cdv, lk?.left ?? 0), cost = costOf(F, key); // 진동 잠김도 재사용 대기처럼
     const lowMana = F.mana < cost, lowPower = !!sk.power && F.power3 < (sk.powerAll ? 1 : sk.power);
     const resource = sk.power ? `힘 ${sk.powerAll ? '1~3' : sk.power}` : cost ? `마나 ${Math.round(cost * 10) / 10}%` : '마나 0';
     setText(el.querySelector('.nm')!, sk.short);
     // 일반·축소는 같은 내용과 순서를 사용한다. 패널 바깥 배율만 바뀐다.
     const visibleCost = sk.power ? (sk.powerAll ? '힘1+' : `힘${sk.power}`) : `${Math.round(cost * 10) / 10}%`;
-    setText(el.querySelector('.ct')!, visibleCost);
+    setText(el.querySelector('.ct')!, spent ? '' : visibleCost);
     // 공통 재사용 대기: 자기 재사용 대기보다 길면 연한 부채꼴로 (시전 중에는 누르면 시전을 끊고 바로 나가므로 안 그림)
-    const gcd = !F.cast && F.gcd > cd ? F.gcd / F.gcdBase : 0;
-    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', cd > 0 && !gcd ? `${Math.min(1, cd / (lk && lk.left >= cdv ? lk.total : cdMax(F, key))) * 100}%` : gcd > 0 ? `${Math.min(1, gcd) * 100}%` : '0%');
-    setText(el.querySelector('.cds')!, cd > 0 ? `${Math.ceil(cd)}초` : '');
-    const label = `${sk.name}, ${lk ? `진동으로 잠김 ${Math.ceil(cd)}초` : cd > 0 ? `재사용 대기 ${Math.ceil(cd)}초` : resource}${lowMana ? ', 마나 부족' : lowPower ? ', 신성한 힘 부족' : ''}${B.armed === slot ? ', 선택됨. 대상 선택 또는 다시 눌러 취소' : ''}`;
+    const gcd = !spent && !F.cast && F.gcd > cd ? F.gcd / F.gcdBase : 0;
+    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', spent ? '100%' : cd > 0 && !gcd ? `${Math.min(1, cd / (lk && lk.left >= cdv ? lk.total : cdMax(F, key))) * 100}%` : gcd > 0 ? `${Math.min(1, gcd) * 100}%` : '0%');
+    setText(el.querySelector('.cds')!, spent ? '사용 완료' : cd > 0 ? `${Math.ceil(cd)}초` : '');
+    const label = `${sk.name}, ${spent ? '사용 완료, 전투당 사용 횟수 소진' : lk ? `진동으로 잠김 ${Math.ceil(cd)}초` : cd > 0 ? `재사용 대기 ${Math.ceil(cd)}초` : resource}${lowMana ? ', 마나 부족' : lowPower ? ', 신성한 힘 부족' : ''}${B.armed === slot ? ', 선택됨. 대상 선택 또는 다시 눌러 취소' : ''}`;
     if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
     el.setAttribute('aria-pressed', String(B.armed === slot));
-    el.classList.toggle('off', cd > 0 || lowMana || lowPower);
+    el.setAttribute('aria-disabled', String(spent));
+    el.classList.toggle('spent', spent);
+    el.classList.toggle('off', spent || cd > 0 || lowMana || lowPower);
     el.classList.toggle('resource-low', lowMana || lowPower);
-    el.classList.toggle('cooling', cd > 0);
+    el.classList.toggle('cooling', spent || cd > 0);
     el.classList.toggle('gcd', gcd > 0);
     el.classList.toggle('armed', B.armed === slot);
     el.classList.toggle('holy', key === 'serenity');
@@ -262,11 +284,15 @@ export function updateAux(): void {
   for (const el of $('aux').querySelectorAll<HTMLElement>('.aux[data-tal]')) {
     const k = el.dataset.tal as TalentKey, a = F.tx.act[k], def = TALENT_DEF[k].active!;
     if (!a) continue;
-    const on = activeOn(F, k), spent = !!def.once && a.used;
-    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', !on && a.cd > 0 ? `${(a.cd / def.cd) * 100}%` : '0%');
-    setText(el.querySelector('.cds')!, on ? String(Math.ceil(a.left)) : a.cd > 0 ? String(Math.ceil(a.cd)) : spent ? '✓' : '');
+    const on = activeOn(F, k), spent = talentUsesSpent(F, k);
+    if (spent && ui.talArmed === k) ui.talArmed = null;
+    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', spent ? '100%' : !on && a.cd > 0 ? `${(a.cd / def.cd) * 100}%` : '0%');
+    setText(el.querySelector('.cds')!, spent ? '사용 완료' : on ? String(Math.ceil(a.left)) : a.cd > 0 ? String(Math.ceil(a.cd)) : '');
+    el.setAttribute('aria-disabled', String(spent));
+    el.setAttribute('aria-label', `${TALENT_DEF[k].name}${spent ? ', 사용 완료, 전투당 사용 횟수 소진' : ''}`);
+    el.classList.toggle('spent', spent);
     el.classList.toggle('on', on);
-    el.classList.toggle('off', !on && (a.cd > 0 || spent));
+    el.classList.toggle('off', spent || (!on && a.cd > 0));
     el.classList.toggle('armed', ui.talArmed === k);
   }
 }
