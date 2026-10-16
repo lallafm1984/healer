@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ALL_DIFFS, CONTENT, chainOpen, contentOf, isLeveling, RAID10_LV, stageOf } from '../src/data/content';
 import type { DiffName } from '../src/data/difficulty';
 import { DROP_TABLES, dropTable, ITEM_GRADES, LEVELING_TIERS, lootTier, SLOTS, type ItemGrade } from '../src/data/equipment';
-import { rampPlace, rampRefLevel, RAMP_LV } from '../src/data/progression';
+import { rampDiffs, rampFour, rampPlace, rampRefLevel, RAMP_LV } from '../src/data/progression';
 import { gearGradeOdds } from '../src/data/reward-preview';
 import { fitOf, guide, rankStages } from '../src/game/guide';
 import { settle, type BattleResult } from '../src/game/settle';
@@ -59,10 +59,12 @@ describe('적합도 (fitOf)', () => {
     expect(f(2)).toEqual(['여유', '여유', '적정', '도전']);
     expect(f(3.5)).toEqual(['여유', '여유', '여유', '적정']);
   });
-  it('순차 구간 장소는 70의 길에서 그 난이도에 들어가는 레벨 기준 (어려움 · 악몽 = 밸런스 기준 플레이어와 같음), 장비 조건 없음', () => {
+  it('순차 구간 장소는 70 · 90의 길에서 그 난이도에 들어가는 레벨 기준 (어려움 · 악몽 = 밸런스 기준 플레이어와 같음), 장비 조건 없음', () => {
     for (const x of CONTENT.filter(y => rampPlace(y) && y.ready)) {
       for (const d of ['어려움', '악몽'] as const) expect(rampRefLevel(x, d), `${x.name} ${d}`).toBe(rampLevel(x, d));
       expect(rampRefLevel(x, '쉬움')).toBeLessThanOrEqual(rampRefLevel(x, '보통')!);
+      // 장소 Lv 10~20: 네 난이도 모두 그 장소 레벨 ~ +1에 들어감 (한 곳 110%라 넘친 몫이 쌓여 뒤쪽 장소는 어려움 · 악몽 전에 한 레벨 오름)
+      if (rampFour(x)) for (const d of ALL_DIFFS) expect(rampRefLevel(x, d)! - x.stageLv, `${x.name} ${d}`).toBeOneOf([0, 1]);
     }
     const plateau = contentOf('plateau'); // 어려움 적 Lv 5, 열리는 레벨 Lv 3
     expect(fitOf(plateau, '어려움', 3, 0)).toBe('적정');
@@ -140,7 +142,7 @@ describe('모험 길잡이 (guide)', () => {
     }
   });
 
-  it('튜토리얼 뒤 길잡이만 따라가면 Lv 20까지 70 순서 그대로 (다시 하기 · 어려움 없이 35판에 Lv 21)', () => {
+  it('튜토리얼 뒤 길잡이만 따라가면 Lv 20까지 70 · 90 순서 그대로 (다시 하기 없이, 장소 Lv 10부터 네 난이도, 56판에 Lv 21)', () => {
     G.save.player.level = 2; G.save.clears.plateau = rec('쉬움');
     G.save.player.xp = 202; // 녹슨 고원 쉬움 첫 클리어
     G.save.settings.devStamina = true; // 순서만 봄: 같은 시각에 35판이라 휴식 무제한 (휴식은 tests/stamina.test.ts, 90)
@@ -148,13 +150,13 @@ describe('모험 길잡이 (guide)', () => {
     while (G.save.player.level <= RAMP_LV && runs < 80) {
       const g = guide()!;
       if (G.save.clears[g.content]?.[g.diff]) repeats++;
-      expect(ALL_DIFFS.indexOf(g.diff), `${g.content} ${g.diff}`).toBeLessThanOrEqual(1);
+      expect(rampDiffs(contentOf(g.content)), `${g.content} ${g.diff}`).toContain(g.diff);
       settle(G.save, { content: g.content, diff: g.diff, win: true, quit: false, reason: '', segIdx: 0, segN: 1, time: 60, restSec: 0, deaths: 1,
         healed: 1, overheal: 0, dispels: 0, dispellable: 0, endMana: 1, minMana: 1, auto: false, party: [], detail: [] }, rngFrom(runs));
       runs++;
     }
     expect(repeats).toBe(0);
-    expect(runs).toBe(35); // 녹슨 고원 쉬움부터 두꺼비 왕국 수련궁 쉬움까지 (수련궁 쉬움에서 Lv 21, 70 4장)
+    expect(runs).toBe(56); // 녹슨 고원 쉬움부터 두꺼비 왕국 수련궁 보통까지 (넘친 몫이 쌓여 수련궁 보통에서 Lv 21. 예전 쉬움 · 보통 길은 35판)
     expect(G.save.player.level).toBe(21);
   });
 });
