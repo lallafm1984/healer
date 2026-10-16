@@ -208,11 +208,16 @@ export function buildGauges(F: Fight): void {
 }
 
 // ---------- 특성 보조 버튼 (06 9장 2번: 휠 밖 버튼, 단축칸 위) ----------
+// 일곱 직업 모두 같은 자리: 왼쪽 묶음 안 아이템 줄 바로 위 (동시에 최대 3개, 2026-10-16). 장비 효과는 버튼을 만들지 않는다
 export function buildAux(): void {
   const keys = Object.keys(fight().tx.act) as TalentKey[];
   $('aux').hidden = !keys.length;
+  $('aux').dataset.n = String(keys.length);
   $('controls').classList.toggle('hasaux', keys.length > 0); // 보조 버튼 자리: 아래 안내 글은 뺌
-  $('aux').innerHTML = keys.map(k => `<button class="aux" type="button" data-tal="${k}" aria-label="${TALENT_DEF[k].name}"><span class="nm">${TALENT_DEF[k].active!.short}</span><span class="cd"></span><span class="cds"></span></button>`).join('');
+  $('aux').innerHTML = keys.map(k => {
+    const pic = art(`talent-${k}`); // 특성 그림 (78). 없으면 이름만
+    return `<button class="aux" type="button" data-tal="${k}" aria-label="${TALENT_DEF[k].name}">${pic ? `<img class="aux-art" src="${pic}" alt="" aria-hidden="true" decoding="async" draggable="false">` : ''}<span class="nm">${TALENT_DEF[k].active!.short}</span><span class="cd"></span><span class="cds"></span></button>`;
+  }).join('');
 }
 export function updateAux(): void {
   const F = fight();

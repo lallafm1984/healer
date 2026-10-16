@@ -27,7 +27,8 @@ export default async function classControls(url,shots){
      const fr=frame.getBoundingClientRect(),rel=e=>{const r=e.getBoundingClientRect();return[r.x-fr.x,r.y-fr.y,r.width,r.height];},aux=document.querySelector('#aux').getBoundingClientRect(),cast=document.querySelector('#castbar').getBoundingClientRect();
      return {job:g.dataset.job,background:getComputedStyle(compact?frame:c).backgroundImage+' '+getComputedStyle(frame).borderImageSource,
       positions:[rel(g),rel(document.querySelector('#wheel')),...[...document.querySelectorAll('#items .item,#wheel .slot,#core')].map(rel)],
-      auxCount:document.querySelectorAll('#aux .aux').length,auxFit:aux.height===0||(aux.bottom<=fr.top-4&&aux.top>=cast.bottom),
+      auxCount:document.querySelectorAll('#aux .aux').length,auxFit:aux.height===0||(aux.top>=gr.bottom&&aux.bottom<=Math.min(...items.map(r=>r.top))&&aux.left>=fr.left+(innerWidth<360?6:12)&&aux.right<=wheel.left&&aux.top>fr.top),
+      board:document.querySelector('#boardWrap').getBoundingClientRect().height,frameTop:fr.top,
       timersFit:[...g.querySelectorAll('.gauge-number,.gauge-extra')].filter(e=>e.textContent).every(e=>{const r=e.getBoundingClientRect();return r.left>=gr.left-1&&r.right<=gr.right+1&&r.top>=gr.top-1&&r.bottom<=gr.bottom+1;}),
       touchClear:[...c.querySelectorAll('button')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;}).every(e=>{const r=e.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return hit===e||e.contains(hit);}),frame:getComputedStyle(document.querySelector('#items .item')).backgroundImage,
       oldFrameGone:!compact||getComputedStyle(frame,'::before').content==='none',
@@ -39,8 +40,9 @@ export default async function classControls(url,shots){
       hitMin:+c.dataset.effectiveTouchMin,hitOverlap:c.dataset.hitAreasOverlap,bottom:cr.bottom,images:[...c.querySelectorAll('img')].every(i=>i.complete&&i.naturalWidth>0)};
     });
     const label=hero+' '+width+' '+(hasAux?'aux':'base');
-    if(hero==='priest'&&!hasAux)baseline[width]=check.positions;
-    ok(check.positions.every((r,i)=>r.every((v,k)=>Math.abs(v-baseline[width][i][k])<.35)),label+' 사제 B안 공통 좌표');
+    if(hero==='priest'&&!hasAux)baseline[width]={positions:check.positions,board:check.board,frameTop:check.frameTop};
+    // 보조 특성 버튼 (2026-10-16): 왼쪽 묶음 안 아이템 줄 위. 전투판 · 조작판 크기와 휠 · 아이템 좌표는 그대로, 자원 그림만 줄어듦
+    ok(check.positions.every((r,i)=>(hasAux&&i===0)||r.every((v,k)=>Math.abs(v-baseline[width].positions[i][k])<.35))&&Math.abs(check.board-baseline[width].board)<.5&&Math.abs(check.frameTop-baseline[width].frameTop)<.5,label+' 사제 B안 공통 좌표 · 전투판 크기 그대로');
     ok(check.auxCount===(hasAux?auxPicks[hero].filter(x=>x!==null).length:0)&&check.auxFit&&check.timersFit&&check.touchClear,label+' 보조 행·타이머·터치 비침범 '+JSON.stringify(check));
     ok(check.job===hero&&check.background.includes('ui-class-'+hero+'-background')&&check.frame.includes('ui-class-'+hero+'-item-frame')&&check.oldFrameGone,label+' class materials');
     ok(check.twoSlots&&check.itemsFit&&check.wheelFit&&check.aligned&&check.images&&check.gaugeSize[1]>=50&&check.hitMin>=43.9&&check.hitOverlap==='false',label+' aligned gauge/items safe insets '+JSON.stringify(check));
