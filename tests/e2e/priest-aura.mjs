@@ -8,7 +8,7 @@ export default async function priestAura(url,shots){
  try{for(const width of [320,360,390]){
   const p=await b.newPage({viewport:{width,height:780},isMobile:true,hasTouch:true});p.on('pageerror',e=>errs.push(e.message));
   await p.clock.install();await p.goto(url);await p.clock.runFor(300);
-  await patchSave(p,{player:{level:100},items:['mana','life'],settings:{devUnlock:true,devStamina:true,auto:false,reducedEffects:false}});
+  await patchSave(p,{player:{level:100},settings:{devUnlock:true,devStamina:true,auto:false,reducedEffects:false}});
   await toParty(p,{tab:'dungeon',content:'rustfort',diff:'보통'});await departGo(p);await p.clock.runFor(3400);
   const state=async(value,saved=false)=>{
    await p.evaluate(([value,saved])=>{const f=window.__proto.F;f.tx.on.savedWord=saved;f.g.p=value;f.skills.forEach(k=>k.next=Infinity);f.party.forEach(u=>{u.dps=0;u.hp=u.max*.5;});f.gcd=0;f.cast=null;f.queued=null;},[value,saved]);
@@ -16,14 +16,14 @@ export default async function priestAura(url,shots){
   };
   const snap=()=>p.evaluate(()=>{
    const q=s=>document.querySelector(s),r=e=>e.getBoundingClientRect().toJSON(),g=q('.job-gauge'),a=q('.priest-aura'),n=q('.gauge-number'),halo=q('.priest-halo');
-   const aura=r(a),number=r(n),art=r(g),wheel=r(q('#wheel')),items=r(q('#items'));
+   const aura=r(a),number=r(n),art=r(g),wheel=r(q('#wheel')),aux=q('#aux'),items=aux&&aux.getClientRects().length?r(aux):{top:Infinity}; // 소비 아이템 줄 (#items)은 2026-10-16 특성 버튼 줄 (#aux)로
    const pieces=[halo,...g.querySelectorAll('.priest-spark')];
    return{stage:g.dataset.auraStage,sparkColor:getComputedStyle(g.querySelector('.priest-spark')).backgroundColor,lightFilter:getComputedStyle(g.querySelector('.gauge-ready')).filter,ready:g.dataset.ready==='true',value:window.__proto.F.g.p,cast:window.__proto.F.stats.casts.serenity||0,
     visible:getComputedStyle(a).display!=='none',count:document.querySelectorAll('.priest-aura').length,sparks:g.querySelectorAll('.priest-spark').length,
     passive:[a,...pieces].every(e=>getComputedStyle(e).pointerEvents==='none'),anim:getComputedStyle(halo).animationName,
     bounds:pieces.every(e=>{const b=r(e);return b.left>=art.left&&b.right<=art.right&&b.top>=art.top&&b.bottom<number.top;}),
     separate:aura.right<=wheel.left&&aura.bottom<=items.top,numberFront:+getComputedStyle(n).zIndex>+getComputedStyle(a).zIndex,
-    targetsClear:[...document.querySelectorAll('#wheel button,#items .item')].every(e=>{const b=r(e),hit=document.elementFromPoint(b.x+b.width/2,b.y+b.height/2);return hit===e||e.contains(hit);}),
+    targetsClear:[...document.querySelectorAll('#wheel button,#aux .slot')].every(e=>{const b=r(e),hit=document.elementFromPoint(b.x+b.width/2,b.y+b.height/2);return hit===e||e.contains(hit);}),
     activeAnimations:a.getAnimations({subtree:true}).length};
   });
   const cast=async()=>{

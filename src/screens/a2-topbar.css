@@ -146,7 +146,7 @@
     --a2-header-height: 54px; --a2-header-portrait: 44px;
     --a2-header-name-size: 17px; --a2-header-name-gap: 4px;
   }
-  .ns .tb-mmo .tb-cur.tb-st { min-height: 40px; padding-block: 2px; row-gap: 2px; }
+  .ns .tb-mmo .tb-cur.tb-st { min-height: 44px; padding-block: 2px; row-gap: 2px; } /* 낮은 판 (54)에서도 터치 44px (QA 2026-10-16, 예전 40) */
   .ns .tb-mmo .tb-xp { height: 12px; }
   /* 골드 줄이 막대 아래로 내려가도 낮은 판 (54) 안에 들게 (91) */
   .ns .tb-mmo .tb-nm { gap: 2px; }

@@ -104,8 +104,10 @@ export default async function adventureRewards(url,shots) {
           const expected=await inspectProbabilities(page,TABLES[tab][diff]);
           ok(expected.ok,`${tag} ${tab}/${diff}: 최고등급 색 장비 아이콘 1개·나오는 등급만 확률표·합 100%`,expected);
           const rewards=await page.locator('.b-scene-reward').evaluateAll(els=>els.map(el=>({key:el.dataset.reward,p:Number(el.dataset.probability),name:el.getAttribute('aria-label')})));
-          ok(rewards.length>2 && rewards.every(r=>r.name && Number.isFinite(r.p) && r.p>=0 && r.p<=1)
-            && await page.locator('.b-pop,[data-drops]').count()===0,`${tag} ${tab}: 이름 있는 보상 아이콘·상세 팝업 제거`,rewards);
+          // 장비 · 골드 (+ 레이드 공훈). 강화석은 91에서 없앰 (#192) → 던전은 둘
+          ok(rewards.length>=2 && rewards.some(r=>r.key==='gear') && rewards.some(r=>r.key==='gold') && !rewards.some(r=>r.key==='stone')
+            && rewards.every(r=>r.name && Number.isFinite(r.p) && r.p>=0 && r.p<=1)
+            && await page.locator('.b-pop,[data-drops]').count()===0,`${tag} ${tab}: 이름 있는 보상 아이콘 (장비 · 골드)·상세 팝업 제거`,rewards);
           const mainText=await page.locator('#s-content').innerText();
           ok(!/A\s*평가|보너스 제외|좌우로?\s*넘겨/.test(mainText),`${tag} ${tab}: 보상 기준·지역 넘기기 보조문구를 메인에서 제거`);
           const selected=await page.locator('#contentGo').innerText(),bad=[];
