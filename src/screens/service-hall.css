@@ -1,0 +1,52 @@
+/*
+ * 임무 · 설정 · 상점 (2026-10-17 Lim 「추천으로」 = 시안 B): 나무결 → 길드 홀 돌색 (--gk-* 한 벌, 전투 탭 · 편성 · 결과 · 휴식 · 공략과 같음).
+ * 바탕 = 평평한 어두운 돌, 판 · 줄 = 돌 카드 + 진한 금테, 제목 · 줄 이름 = 노란 글자, 보통 버튼 · 칩 = 돌 버튼 + 금테, 고른 칩 · 탭 = 밝은 돌 + 노란 글자.
+ * 위 정보창 (나무 판) · 하단 탭 · 붉은 주 버튼 그림 · 상점 그림 · 진행 막대 채움 · 효능 초록 · 받음 흐림은 그대로.
+ * 설정은 묶음마다 카드. main.ts에서 departure-hall.css 다음에 읽음 (a2-theme의 .ns:not(#s-lobby) 나무결보다 뒤)
+ */
+:is(#s-shop, #s-missions, #s-settings).ns {
+  background: var(--gk-bg); background-color: #15120e; background-blend-mode: normal; color: var(--gk-ink);
+  --ink: var(--gk-ink); --ink-2: var(--gk-ink2); --mute: var(--gk-mute); --dim: var(--gk-mute); --edge: var(--gk-card-bd); --edge-dim: var(--gk-card-bd);
+}
+
+/* ---------- 판 · 줄 ---------- */
+:is(#s-shop, #s-missions, #s-settings).ns :is(.panel, .mrow, .srow, .prow:not(.head), .shop-wallet > span, .group) {
+  background: var(--gk-card); background-blend-mode: normal; border-width: 1px; border-color: var(--gk-card-bd); border-radius: 10px; box-shadow: none; color: var(--gk-ink);
+}
+:is(#s-shop, #s-missions, #s-settings).ns :is(.h, .sec, .group > h2, .panel :is(h2, h4), .mrow > div > b, .srow b, .shop-wallet b) { color: var(--gk-head); text-shadow: none; }
+:is(#s-shop, #s-missions, #s-settings).ns :is(.note:not(.use), .sec small, .panel h4 small, .mrow small, .srow small:not(.full), .shop-wallet small, .group > p, .prow.head, .done) { color: var(--gk-mute); }
+:is(#s-missions, #s-shop) :is(.mrow, .passhead) .bar { background: #0d0b08; border-color: var(--gk-card-bd); }
+
+/* ---------- 버튼 · 칩 (주 버튼 = 붉은 그림 그대로) ---------- */
+:is(#s-shop, #s-missions, #s-settings).ns :is(.btn, .btn2):not(.primary):not(.hot),
+:is(#s-shop, #s-missions, #s-settings).ns .chip {
+  background: var(--gk-btn); background-blend-mode: normal; border: 1px solid var(--gk-edge); border-radius: 8px; box-shadow: none; color: var(--gk-ink); text-shadow: none;
+}
+:is(#s-shop, #s-missions, #s-settings).ns :is(.btn, .btn2):not(.primary):not(.hot) small { color: var(--gk-ink2); }
+:is(#s-shop, #s-missions, #s-settings).ns :is(.btn, .btn2):not(.primary):not(.hot):active,
+:is(#s-shop, #s-missions, #s-settings).ns .chip:active { background: var(--gk-btn-on); }
+:is(#s-shop, #s-missions, #s-settings).ns :is(.btn, .btn2):not(.primary):not(.hot):disabled,
+:is(#s-shop, #s-missions, #s-settings).ns .chip:disabled { background: #1a1612; border-color: var(--gk-card-bd); color: var(--gk-mute); filter: none; }
+:is(#s-shop, #s-missions, #s-settings).ns :is(.btn, .btn2):not(.primary):not(.hot):disabled small { color: var(--gk-mute); }
+:is(#s-shop, #s-missions, #s-settings).ns .chip[aria-pressed="true"] { background: var(--gk-btn-on); border-color: var(--gk-accent); color: var(--gk-head); }
+:is(#s-shop, #s-missions, #s-settings).ns :is(.btn, .chip, .subtabs button):focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+
+/* ---------- 상점 ---------- */
+/* 탭: 접힌 돌 탭, 고른 탭은 금테 + 노란 글자 (아래 줄과 이어짐) */
+#s-shop.ns .subtabs { background: #15120e; border-bottom-color: var(--gk-edge); }
+#s-shop.ns .subtabs button { background: var(--gk-btn); background-blend-mode: normal; border-color: var(--gk-card-bd); color: var(--gk-ink2); }
+#s-shop.ns .subtabs button[aria-selected="true"] { background: var(--gk-btn-on); border-color: var(--gk-edge); color: var(--gk-head); }
+#s-shop .shop-hero { border-bottom-color: var(--gk-edge); }
+#s-shop.ns .prow.open { border-color: var(--gk-edge); }
+#s-shop.ns .prow:not(.open):not(.head) { color: var(--gk-mute); border-style: dashed; }
+#s-shop :is(.srow small.full, .pass-archive > summary) { color: var(--gk-head); }
+#s-shop .pass-archive { border-top-color: var(--gk-line); }
+#s-shop .cash-meter { background: var(--gk-route); border-color: var(--gk-card-bd); }
+#s-shop.ns .srow > .sic { background: #15120e; }
+
+/* ---------- 설정: 묶음마다 카드 ---------- */
+#s-settings .settings { gap: 10px; }
+#s-settings.ns .group { padding: 12px 14px; border-style: solid; }
+#s-settings.ns .group.dev { border-style: dashed; }
+#s-settings .toggle { color: var(--gk-ink); }
+#s-settings .toggle input { width: 22px; height: 22px; accent-color: var(--gk-accent); }
