@@ -3,12 +3,14 @@
  * 새 기믹은 여기에 부품 하나를 더하고, 보스 데이터에서 이름과 값으로 부른다.
  */
 import { ABILITIES } from '../data/abilities';
+import type { DamageAim } from '../data/armor';
 import type { AddDef, AddDown, AddJob, BossDef, DebuffDef, DebuffEnd, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
 import { HEROES } from '../data/heroes';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
+import { modsTaken } from './abilities';
 import { hexDist } from './board';
-import { addDebuff, bark, cellOf, damage, DT, emit, empowerBoss, hasAbsorb, heal, healFlow, lend, living, onDebuffEnd, randomTargets, setMax, spread, unitById } from './core';
+import { addDebuff, bark, cellOf, damage, DT, emit, empowerBoss, hasAbsorb, heal, healFlow, lend, living, onDebuffEnd, randomTargets, setMax, spread, takenAmt, unitById } from './core';
 import { dangerAt, finishMove, moveTo, scheduleReaction, scheduleReactions, zoneOf } from './movement';
 import { hotTick, stepAway } from './units';
 import { frontCell, frontTank } from './position';
@@ -33,6 +35,33 @@ export function aggroTarget(f: Fight): Unit | null {
 export function autoHit(f: Fight, tk: Unit, base: number): void {
   const r = f.rng();
   damage(f, tk, base * (0.7 + 0.6 * r), false, 'tank');
+}
+
+/**
+ * 강타 예고 숫자 (battle/board.ts 칸 위 「-N」): 예고에 찍힌 사람이 맞을 때 받을 양. damage()와 같은 계산 (core takenAmt · abilities modsTaken).
+ * 탱커 강타 (P-TANK)는 탱커 기준 수치라 탱커가 아닌 사람이 맞으면 직업군 방어력만큼 큼 (근접 5/3배 · 원거리 · 힐러 7/3배), 보물 욕심 (P-GREED)은 원거리 기준.
+ * 흡수 보호막 · 희생 · 대신 맞기 · 나눔 사슬은 빼고 (맞는 순간에 나뉨). 숫자가 없는 기술은 0
+ */
+export function telDmg(f: Fight, tel: Telegraph, u: Unit): number {
+  const s = tel.skill, base = s.dmg ?? s.greed ?? 0;
+  if (!base) return 0;
+  const ahead = Math.max(0, tel.impact - f.t), aim: DamageAim = s.dmg != null ? 'tank' : 'party';
+  const amt = takenAmt(f, u, base, false, aim, ahead);
+  return f.abOn || u.mods.length ? amt * modsTaken(f, u, false, ahead) : amt;
+}
+
+/** 같이 떨어지는 강타 (초): 이 안이면 한 번에 맞는 것으로 더함 */
+export const BUSTER_TOGETHER = 0.5;
+/**
+ * 이 사람 칸 위 강타 예고 숫자: 가장 먼저 떨어지는 강타 + 그와 같이 (BUSTER_TOGETHER 안) 떨어지는 강타 피해의 합
+ * (악몽 등껍질 박치기 둘이 남은 탱커 하나에게 같은 때). 숫자가 없으면 null
+ */
+export function busterOn(f: Fight, u: Unit): { tel: Telegraph; dmg: number } | null {
+  const hits: { t: Telegraph; d: number }[] = [];
+  for (const t of f.tels) if (t.kind === 'buster' && t.units.includes(u.id)) { const d = telDmg(f, t, u); if (d > 0) hits.push({ t, d }); }
+  if (!hits.length) return null;
+  const tel = hits.reduce((a, b) => (b.t.impact < a.t.impact ? b : a)).t;
+  return { tel, dmg: hits.reduce((a, h) => a + (h.t.impact - tel.impact < BUSTER_TOGETHER ? h.d : 0), 0) };
 }
 
 /** 기술이 도는 조건 */

@@ -2,7 +2,7 @@
 export { autoHealer, simulate } from './auto';
 export { hexDist } from './board';
 export { aggroTarget, bossTick, queue, type QueueEntry } from './bosses';
-export { bossTaken, CHAIN_GROW, focusOrder, isRod, ORDER_NUM, ROD_HP } from './bossParts';
+export { bossTaken, busterOn, CHAIN_GROW, focusOrder, isRod, ORDER_NUM, ROD_HP, telDmg } from './bossParts';
 export { submerged, TIDE_CUT } from './core';
 export { DT, living } from './core';
 export { create, recruitParty, rollParty, step } from './fight';

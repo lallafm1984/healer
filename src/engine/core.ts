@@ -1,6 +1,7 @@
 import { armorFactor, type DamageAim } from '../data/armor';
 import { SPREAD } from '../data/bosses';
 import { HEROES } from '../data/heroes';
+import { SANCTUARY } from '../data/heroConst';
 import { hexDist } from './board';
 import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
@@ -266,6 +267,26 @@ export const hasAbsorb = (f: Fight, u: Unit): boolean => u.mods.some(m => m.k ==
 const affinity = (u: Unit): number => (u.gid != null ? 1e9 + u.runs : u.got);
 
 /**
+ * 이 사람이 받을 양 (보스 배율 · 받는 피해 증가 · 직업군 방어력 · 위치 · 장비 · 특성 · 직업 · 보호 · 피해 감소). damage()와 강타 예고 숫자 (bossParts telDmg)가 같이 씀.
+ * ahead = 맞을 때까지 남은 초: 보호 · 피해 감소는 그때도 남아 있어야 줄임 (성역은 그때도 그 칸이 성역이면). damage()는 0 = 지금
+ */
+export function takenAmt(f: Fight, u: Unit, amt: number, magic: boolean, aim: DamageAim, ahead = 0): number {
+  amt *= f.dmgMult;
+  if (u.debuffs.length) { const v = u.debuffs.reduce((x, d) => x + (d.vuln ?? 0) * (d.stack ?? 1), 0); if (v) amt *= 1 + v; } // 가시 · 공허 (P-SWAP)
+  if (f.armor) amt *= armorFactor(u.role, aim);
+  if (f.R.pos && u.role === 'ranged') amt *= posTaken(f, u); // 위치 규칙: 레이드 판 1 · 2열 원거리는 +50%
+  if (f.sp) amt *= dmgSpec(f, u); // 장비 특수능력 (42 보호 · 지원 · 기믹)
+  if (u.me && f.tx.on.firmWill) amt *= 0.8; // 굳은 의지 (06 6장)
+  if (f.tx.cut) amt *= talentTaken(f, u, magic); // 드루이드 · 성기사 특성 (77)
+  if (NEW_HERO(f)) amt *= heroTaken(f, u, magic); // 79 직업 (토템 · 생존기 · 특성)
+  if (u.me && f.gear.endure) amt *= 1 - f.gear.endure; // 장비 인내 (34 6-4)
+  if (u.shield > ahead) amt *= 0.6;
+  if (u.redu > ahead) amt *= 1 - u.reduCut;
+  else if (ahead > 0 && f.sanctuary && f.sanctuary.end > f.t + ahead && f.sanctuary.cells.has(u.cell)) amt *= 1 - SANCTUARY.cut; // 성역은 서 있는 동안 틱마다 다시 걸림
+  return amt;
+}
+
+/**
  * 피해. magic = 보스 광역·장판·지속 피해 (평타·버스터·적 근접은 물리, 17 수호기사).
  * aim = 수치를 누구 기준으로 적었나 (data/armor.ts). 직업군 방어력은 둘 다 줄이고, fixed는 무시 (34 9-3)
  */
@@ -277,17 +298,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     const o = shareWith(f, u);
     if (o) { const half = (amt * (f.armor ? armorFactor(u.role, aim) : 1)) / 2; shared(() => { damage(f, u, half, magic, 'fixed'); damage(f, o, half, magic, 'fixed'); }); return; }
   }
-  amt *= f.dmgMult;
-  if (u.debuffs.length) { const v = u.debuffs.reduce((x, d) => x + (d.vuln ?? 0) * (d.stack ?? 1), 0); if (v) amt *= 1 + v; } // 가시 · 공허 (P-SWAP)
-  if (f.armor) amt *= armorFactor(u.role, aim);
-  if (f.R.pos && u.role === 'ranged') amt *= posTaken(f, u); // 위치 규칙: 레이드 판 1 · 2열 원거리는 +50%
-  if (f.sp) amt *= dmgSpec(f, u); // 장비 특수능력 (42 보호 · 지원 · 기믹)
-  if (u.me && f.tx.on.firmWill) amt *= 0.8; // 굳은 의지 (06 6장)
-  if (f.tx.cut) amt *= talentTaken(f, u, magic); // 드루이드 · 성기사 특성 (77)
-  if (NEW_HERO(f)) amt *= heroTaken(f, u, magic); // 79 직업 (토템 · 생존기 · 특성)
-  if (u.me && f.gear.endure) amt *= 1 - f.gear.endure; // 장비 인내 (34 6-4)
-  if (u.shield > 0) amt *= 0.6;
-  if (u.redu > 0) amt *= 1 - u.reduCut;
+  amt = takenAmt(f, u, amt, magic, aim);
   if (f.abOn || u.mods.length) { // 파티원 능력 (17) · 특수능력 보호막 · 피해 감소 (42)
     const had = !!f.sp?.v.warmPebble && hasAbsorb(f, u);
     amt = dmgMods(f, u, amt, magic);

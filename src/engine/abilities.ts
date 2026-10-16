@@ -100,6 +100,20 @@ export function dmgMods(f: Fight, u: Unit, amt: number, magic: boolean): number 
   return amt;
 }
 
+/**
+ * dmgMods의 배율만 (부작용 없음, 강타 예고 숫자): ahead초 뒤 맞을 때. 줄이는 효과는 그때도 남아 있을 때만, 늘리는 효과 (vuln)는 지금 걸려 있으면.
+ * 흡수 보호막 · 나눠 받기 · 무시 (imm · spell)는 빼고 (맞는 순간에만 정해짐)
+ */
+export function modsTaken(f: Fight, u: Unit, magic: boolean, ahead: number): number {
+  const at = f.t + ahead;
+  let x = f.ab.weakUntil > at ? 1 - f.ab.weak : 1;
+  for (const m of u.mods) {
+    if (m.k === 'vuln' && m.until > f.t) x *= 1 + m.v;
+    else if (m.until > at && (m.k === 'cut' || (m.k === 'mcut' && magic))) x *= 1 - m.v;
+  }
+  return x;
+}
+
 /** 마법 디버프 막기 (주문 반사·그림자 망토) */
 export function blocksDebuff(f: Fight, u: Unit, type: string): boolean {
   if (type !== '마법') return false;

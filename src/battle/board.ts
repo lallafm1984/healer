@@ -9,12 +9,11 @@
  */
 import { Application, BitmapFont, BitmapText, Container, Graphics, GraphicsPath, Matrix, NineSliceSprite, Rectangle, RenderTexture, Sprite, Text, Texture, TilingSprite, type TextStyleFontWeight } from 'pixi.js';
 import { art } from '../art';
-import { armorFactor } from '../data/armor';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { SKILLS } from '../data/skills';
 import { TALENT_DEF } from '../data/talents';
 import { NAMED, SPECS, type SpecGroup } from '../data/specials';
-import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
+import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, busterOn, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
 import type { TotemKind } from '../engine/types';
 import type { HeroKey } from '../data/heroes';
 import { absorbLeft, HEALER_SHIELD } from '../engine/abilities';
@@ -2017,13 +2016,12 @@ export function render(now: number): void {
       hexPoly(overG, x, y, r * 0.96).stroke({ width: w * 1.3, color: 0xd8c7a8, alpha: 0.95 });
       if (jail === focusOrder(F)[0]) overG.circle(x, y, r * 0.8).stroke({ width: Math.max(2.5, s * 0.06), color: C.gold, alpha: 0.6 + 0.4 * pulse });
     }
-    const bt = F.tels.find(tl => tl.kind === 'buster' && tl.units.includes(u.id));
-    const bd = bt ? bt.skill.dmg ?? (bt.skill.greed != null ? bt.skill.greed * (F.armor ? armorFactor(u.role, 'party') : 1) : 0) : 0; // 보물 욕심은 원거리 기준 값 × 직업군 방어력
-    if (bt && bd) {
-      const sh = u.shield > bt.impact - F.t ? 0.6 : 1; // 맞을 때까지 보호 (u.shield)가 남아 있으면 -40%
-      const dmg = Math.round(bd * F.dmgMult * sh), lethal = dmg >= u.hp + (u.guardian > 0 ? 1e9 : 0);
+    // 맞을 때 실제로 받을 양 (engine busterOn = damage()와 같은 계산): 탱커 강타가 탱커 아닌 사람에게 가면 직업군 방어력만큼 큼 (2026-10-16 Lim 「예상보다 많이 깎여 한방에 죽음」)
+    const bo = busterOn(F, u);
+    if (bo) {
+      const dmg = Math.ceil(bo.dmg - 1e-6), lethal = bo.dmg >= u.hp + (u.guardian > 0 ? 1e9 : 0), greed = bo.tel.skill.greed != null; // 체력 글자처럼 올림 (보이는 숫자보다 더 깎이지 않게)
       // 강타 예고 숫자는 이름·체력 글자보다 위 (배지 층, 2026-10-11 Lim): 숫자 뒤 바탕이 이름에 덮여 안 읽혔음
-      pill(badgeG, badgeLabels, `bus${u.id}`, x, y + r * 0.2, `${bt.skill.greed != null ? '금화 ' : ''}-${dmg}`, lethal ? C.danger : bt.skill.greed != null ? C.gold : 0xffb25b, C.dark, fs(0.3, 11));
+      pill(badgeG, badgeLabels, `bus${u.id}`, x, y + r * 0.2, `${greed ? '금화 ' : ''}-${dmg}`, lethal ? C.danger : greed ? C.gold : 0xffb25b, C.dark, fs(0.3, 11));
     }
     // 띄워 올리기 · 연쇄 번개 예고 (56 5장 화면): 칸 아래 회오리 · 위 번개 구름 + 남은 초
     const lc = F.tels.find(tl => (tl.skill.lift || tl.skill.chain) && !tl.fake && tl.units.includes(u.id));
