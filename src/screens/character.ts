@@ -8,7 +8,7 @@
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
  */
 import { resourceBalance, unlimitedResource, type ResourceKey } from '../game/resources';
-import { enhanceCost, enhanceGain, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
+import { ENHANCE_DROP_FROM, enhanceCost, enhanceGain, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
 import { ALL_HERO_KEYS, HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
 import { JOB_PRICE, jobProductId } from '../data/economy';
@@ -237,6 +237,22 @@ function gainHtml(it: GearItem, from: number, to: number): string {
   if (!rows.length) return '';
   return `<ul class="c7-enh-gain" aria-label="오른 옵션">${rows.map(g => `<li><span>${STATS[g.k].name}</span><b>+${isPointStat(g.k) ? fmt(g.d) : `${g.d.toFixed(1)}%`}</b></li>`).join('')}</ul>`;
 }
+/**
+ * 다음 강화 미리 보기 (2026-10-16 Lim 「+5 → +6 하단에 장비의 옵션별 능력치 상승 수치도, 퀄리티 있게」): 옵션 줄마다 지금 값 → 강화 뒤 값과 오르는 몫.
+ * 값은 장비 상세와 같은 글자 (지능 · 체력 수치, 나머지 %), 오르는 몫도 보이는 값끼리의 차이. 특수능력은 강화로 오르지 않아 넣지 않음
+ */
+function enhancePreviewHtml(it: GearItem, to: number): string {
+  const lv = G.save.player.level;
+  const rows = enhanceGain(it, it.plus, to, lv);
+  if (!rows.length) return '';
+  const shown = (k: StatKey, v: number) => (isPointStat(k) ? Math.round(toPoints(k, v, lv)) : Number(pc(v)));
+  const li = rows.map(r => {
+    const name = STATS[r.stat].name, a = optTxt(r.stat, r.before, lv), b = optTxt(r.stat, r.after, lv);
+    const d = shown(r.stat, r.after) - shown(r.stat, r.before), dt = isPointStat(r.stat) ? fmt(d) : `${d.toFixed(1)}%`;
+    return `<li data-stat="${r.stat}" aria-label="${name} ${a}에서 ${b}로 ${dt} 상승"><span class="c7-epv-ic" aria-hidden="true">${statIc(STAT_ART[r.stat])}</span><span class="c7-epv-name">${name}</span><span class="c7-epv-from">${a}</span><span class="c7-epv-arrow" aria-hidden="true"></span><b class="c7-epv-to">${b}</b><em class="c7-epv-up${d > 1e-9 ? '' : ' none'}">+${dt}</em></li>`;
+  }).join('');
+  return `<section class="c7-enh-preview" aria-label="강화 뒤 능력치"><h4><span>능력치 상승</span></h4><ul>${li}</ul></section>`;
+}
 /** 장비 그림 (36 4-2 · 4-3): 이름 있는 장신구 → 종류 → 부위 (item-<부위>) → 부위 선 아이콘. 빈칸은 부위 그림 */
 const itemIc = (x: SlotKey | Parameters<typeof gearIcon>[0]) => gearIcon(typeof x === 'string' ? { slot: x } : x);
 
@@ -250,6 +266,8 @@ const STAT_LINE = {
   stamina: line('<path d="M12 3l7 3v5c0 5-3.2 8.4-7 10-3.8-1.6-7-5-7-10V6z"/>', 2.2),
 };
 const statIc = (k: keyof typeof STAT_LINE) => gameIcon(k, STAT_LINE[k], 'stat');
+/** 장비 능력치 → 능력치 그림 이름 (능력치 판과 같은 그림) */
+const STAT_ART: Record<StatKey, keyof typeof STAT_LINE> = { int: 'heal', hp: 'hp', crit: 'crit', haste: 'haste', spirit: 'regen', endure: 'stamina' };
 
 /** ① 장비 칸 (시안 .slot): 칸 바탕 = 등급 색 (2026-10-16 Lim, 등급 글자 칩 없음 · 등급은 접근 가능한 이름에) · 강화 +n · 더 좋은 장비 초록 ↑ · 빈칸은 가방 개수 */
 /** 특수능력 묶음 표식 (36 I `spec-*`): 그림이 있으면 그림, 없으면 묶음 글자. trinket = 도감 고유 칸의 이름 있는 장신구 키 (36 4-3 그림, 없으면 글자) */
@@ -566,8 +584,9 @@ function confirmHtml(): string {
     ? `<div class="c7-confirm-cost"><span>획득 재료</span><div>${amounts}</div></div><p id="gearConfirmDesc">분해한 장비는 되돌릴 수 없습니다.</p>`
     : `${status}<div class="c7-enh-next">
       <div class="c7-confirm-step">${c ? `${result ? '<small>다음 강화</small>' : ''}+${it.plus} <span>→</span> +${c.to}` : `최대 강화 +${MAX_PLUS}`}</div>
+      ${c ? enhancePreviewHtml(it, c.to) : ''}
       ${c ? enhanceMaterials(c) : ''}
-      <div class="c7-confirm-rate" id="gearConfirmDesc">${c ? `<span>성공률 ${Math.round(c.rate * 100)}%</span>` : '최대 강화 도달'}</div>
+      <div class="c7-confirm-rate" id="gearConfirmDesc">${c ? `<span>성공률 ${Math.round(c.rate * 100)}%</span>${it.plus >= ENHANCE_DROP_FROM ? `<span class="c7-enh-drop" data-drop>실패 시 강화 등급 1 하락 (+${it.plus} → +${c.fail})</span>` : ''}` : '최대 강화 도달'}</div>
       </div>
       ${pending.error ? `<p class="c7-lack" role="status">${esc(pending.error)}</p>` : ''}`;
   // 버튼에는 짧게 (「강화석 부족」): 판정은 enhanceTry와 같은 enhanceLack
