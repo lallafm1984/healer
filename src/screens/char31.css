@@ -42,7 +42,6 @@
 
 /* ---------- 틀 ---------- */
 #s-char .c7-body { padding: 12px 12px calc(var(--tabs-h) + 16px); gap: 10px; }
-#s-char .c7-body.c7-tsheet-on { padding-bottom: calc(var(--tabs-h) + 150px); }
 #s-char .c7-fill { flex: 1; }
 #s-char .c7-msg { margin: 0; }
 #s-char .note { margin: 0; }
@@ -397,15 +396,6 @@
 #s-char .c7-pk.off { cursor: default; }
 #s-char .c7-pk.off .c7-tn > svg { width: 20px; height: 20px; }
 #s-char .c7-tprep { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-/* 특성 설명: 탭 막대 위에 붙는 시트 (어둡게 안 함) */
-#s-char .sheet.c7-tsheet { bottom: var(--tabs-h); max-height: 50%; flex-direction: row; align-items: center; gap: 12px; padding: 12px 14px 14px; border-radius: 12px 12px 0 0; }
-#s-char .c7-tsi { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; border: 2px solid #D9B26A; background: radial-gradient(circle at 50% 35%, #6A5230, #2A2018 75%); box-shadow: 0 0 0 1px var(--line); color: #FFE08A; }
-#s-char .c7-tsi > svg { width: 22px; height: 22px; }
-#s-char .c7-tst { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-#s-char .c7-tsh { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; }
-#s-char .c7-tsh b { font: 800 17px var(--font-display); color: var(--gold-hi); }
-#s-char .c7-tsd { font-size: 13px; line-height: 1.5; color: var(--ink); }
-#s-char .c7-cta.c7-tgo { flex: none; width: 92px; height: 50px; font-size: 18px; }
 
 /* ---------- 직업 ① 금빛 막대에 걸린 천 깃발 (3개보다 많으면 가로 스크롤) ---------- */
 #s-char .c7-hero { gap: 8px; }

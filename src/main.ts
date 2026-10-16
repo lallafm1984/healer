@@ -50,6 +50,7 @@ import './screens/stamina.css';
 import './screens/departure-hall.css';
 import './battle/class-gauge.css';
 import './battle/class-controls.css';
+import './screens/talent-sheet.css';
 import './battle';
 import './screens/title';
 import './screens/lobby';
