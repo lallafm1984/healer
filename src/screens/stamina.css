@@ -1,11 +1,11 @@
 /*
- * 스테미너 (81, 2026-10-15): 위 줄 칸 · 스테미너 창 · 입장 확인 팝업 · 상점 상품 탭 · 출발 버튼 비용 · 직업 목록 「상점」 줄.
+ * 휴식 (90, 예전 81 입장 비용): 위 줄 칸 · 휴식 창 · 입장 확인 팝업 · 상점 상품 탭 · 출발 버튼 비용 · 직업 목록 「상점」 줄.
  * 팝업은 .admodal (a2-theme의 나무 판 재질)을 그대로 쓰고 크기 · 배치만 정한다. 마지막에 읽음.
  */
 
-/* 위 줄 스테미너 칸 (고리 · 다음 +1까지)은 a2-topbar.css 한 곳 (2026-10-16) */
+/* 위 줄 휴식 칸 (고리 · 다음 +1까지)은 a2-topbar.css 한 곳 (2026-10-16) */
 
-/* ---------- 팝업 (스테미너 창 · 입장 확인) ---------- */
+/* ---------- 팝업 (휴식 창 · 입장 확인) ---------- */
 /* 광고 자리 창 (.admodal, 같은 z)은 나중에 붙어서 이 팝업 위에 뜸 */
 .admodal.st-modal { padding: 16px; }
 .admodal .st-pop { max-width: 340px; display: flex; flex-direction: column; gap: 12px; padding: 18px 16px 16px; text-align: center; color: var(--a2-ink, #fff1d0); }
@@ -18,7 +18,7 @@
 .st-dest b { font: 800 17px/1.3 var(--font-body); color: #fff4d5; overflow-wrap: anywhere; }
 .st-dest small { font-size: 13px; color: var(--a2-muted, #d0b994); }
 
-/* 소모 · 보유 · 입장 후 칸 (무제한 · 부족이면 두 칸). 색은 departure-hall.css */
+/* 보유 · 소모 두 칸 (휴식 0이면 빨간 테 + 「보상 1/3」). 색은 departure-hall.css */
 .st-cost { margin: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 10px 4px; border-radius: 8px; background: #1d140c; border: 1px solid #8a6a3c; }
 .st-cost .st-c { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .st-cost .st-c + .st-c { border-left: 1px solid #5f4727; }
@@ -29,6 +29,8 @@
 .st-cost .st-need b { color: #fff4d5; }
 .st-cost.lack { border-color: #c1574a; }
 .st-cost.lack .st-have b { color: #ff9a86; }
+/* 휴식 0 (90): 칸 아래 짧게 「보상 1/3」 (긴 안내 문장 없이, Lim 2026-10-16) */
+.st-pop .st-cut { margin: -4px 0 0; font: 800 15px/1.2 var(--font-body); color: #ff9a86; }
 
 .st-meter { display: grid; grid-template-columns: auto auto 1fr; grid-template-rows: auto auto; align-items: center; column-gap: 6px; row-gap: 8px; padding: 10px 14px; border-radius: 8px; background: #1d140c; border: 1px solid #8a6a3c; }
 .st-meter > .currency-icon { grid-row: 1; }

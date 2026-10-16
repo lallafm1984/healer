@@ -80,7 +80,7 @@ export interface Settings {
   allSkills: boolean;
   /** 개발 빌드: 강화석 · 정제 강화석 비용을 무시하고 실제 보유량은 차감하지 않음. 옛 저장엔 없음 = 꺼짐 */
   devStones?: boolean;
-  /** 개발 빌드: 입장할 때 스테미너를 쓰지 않음 (81). 옛 저장엔 없음 = 꺼짐 */
+  /** 개발 빌드 「휴식 무제한」 (90, 81 때 이름 그대로): 휴식이 줄지 않고 보상은 늘 그대로. 옛 저장엔 없음 = 꺼짐 */
   devStamina?: boolean;
   /** 스킬 휠 8방향 배치 (09 S17). null = 기본 배치 */
   layout: Record<string, string | null> | null;
@@ -156,7 +156,7 @@ export interface WeeklySave {
 export interface PassSave { season: number; xp: number; free: number[] }
 
 /**
- * 스테미너 (81 2장, 계정): n = 지금 값 (광고 충전으로 최대치를 넘을 수 있음), at = 다음 1이 차기 시작한 시각 (ms, 최대치 이상이면 마지막으로 본 시각).
+ * 휴식 (90, 81 2장 때 이름 stamina 그대로, 계정): n = 지금 값 (광고 충전으로 최대치를 넘을 수 있음), at = 다음 1이 차기 시작한 시각 (ms, 최대치 이상이면 마지막으로 본 시각).
  * day · ads = 광고 충전 횟수를 센 날 (오전 6시 리셋 날짜 키)과 그날 횟수
  */
 export interface StaminaSave { n: number; at: number; day: string; ads: number }
@@ -214,7 +214,7 @@ export interface SaveData {
   daily: DailySave;
   weekly: WeeklySave;
   pass: PassSave;
-  /** v14 (81): 스테미너 (계정) */
+  /** v14 (81): 휴식 (90, 계정) */
   stamina: StaminaSave;
   /** v14 (81): 산 앱 결제 상품 id (계정, 광고 제거 패키지 · 직업). 예전 월정액 · 크리스탈 · 첫 구매 기록은 없앰 */
   bought: string[];
@@ -319,7 +319,7 @@ function passOf(v: unknown, d: PassSave): PassSave {
   return { season: typeof p.season === 'number' ? p.season : d.season, xp: typeof p.xp === 'number' ? p.xp : d.xp, free: Array.isArray(p.free) ? p.free.filter(n => typeof n === 'number') : [] };
 }
 
-/** 스테미너: 깨졌거나 없으면 가득 (v14 처음 = 가득 찬 채로 시작) */
+/** 휴식: 깨졌거나 없으면 가득 (v14 처음 = 가득 찬 채로 시작) */
 function staminaOf(v: unknown, d: StaminaSave): StaminaSave {
   const s = v as Partial<StaminaSave> | null;
   if (!s || typeof s !== 'object' || typeof s.n !== 'number' || !isFinite(s.n) || typeof s.at !== 'number') return d;
@@ -342,7 +342,7 @@ function rosterOf(v: unknown, hero: HeroKey, now: number): Roster {
 export const charKey = (id: number) => `healer.char.${id}`;
 
 /**
- * 계정 것을 새 캐릭터 저장으로 옮김 (68 3장): 설정 (휠 배치 · 칸 탭은 캐릭터 것) · 산 상품 · 스테미너 (81) · 패스 · 캐릭터 목록.
+ * 계정 것을 새 캐릭터 저장으로 옮김 (68 3장): 설정 (휠 배치 · 칸 탭은 캐릭터 것) · 산 상품 · 휴식 (81 · 90) · 패스 · 캐릭터 목록.
  * 나머지 (재료 · 장비 · 도감 · 임무 · 광고 횟수 · 기록)는 캐릭터마다
  */
 export function shareAccount(from: SaveData, to: SaveData): void {

@@ -134,7 +134,7 @@ function dest(): { content: ContentKey; diff: DiffName } {
   }
   return { content: 'rustfort', diff: '쉬움' };
 }
-/** 출전: 입장 확인 → 스테미너를 내고 편성으로 (81) */
+/** 출전: 입장 확인 → 편성으로 (81 · 90) */
 function toParty(to: { content: ContentKey; diff: DiffName }): void {
   Flow.content = to.content; Flow.diff = to.diff; Flow.chal = 0;
   sortie();
@@ -180,7 +180,7 @@ function buildings(): string {
   const gOpen = guildOpen(s), apps = (s.guild.post?.cands.length || 0) + s.guild.scouts.length;
   const gLine = !gOpen.ok ? gOpen.why : apps ? `지원자 ${apps}명` : `길드원 ${s.guild.members.length}/${capOf(s).cap}`;
   const plates = plate(`lb-raid${raidLock ? ' lock' : ''}`, ' data-go="s-content" data-arg="raid10"', gameIcon('raid', uiIcon('star')), '첨탑',
-    raidLock ? `10인 레이드 · Lv ${raid.unlockLv}에 열림` : `10인 레이드 · 스테미너 ${STAMINA_COST.raid10}`)
+    raidLock ? `10인 레이드 · Lv ${raid.unlockLv}에 열림` : `10인 레이드 · 휴식 ${STAMINA_COST.raid10}`)
     + (FEATURES.guild ? plate(`lb-guild${gOpen.ok ? '' : ' lock'}`, ' data-go="s-guild"', gameIcon('guild', uiIcon('guild'), 'tab'), '길드 회관', esc(gLine), gOpen.ok && apps ? `<i class="g-badge">${apps}</i>` : '') : '')
     + plate('lb-shop', ' data-go="s-shop" data-arg="cash"', gameIcon('shop', uiIcon('shop'), 'tab'), '잡화점', '상품 · 공훈');
   return `<div class="lb-side lb-right">${plates}</div>`;

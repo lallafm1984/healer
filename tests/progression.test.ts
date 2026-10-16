@@ -283,6 +283,7 @@ describe('초반 순차 레벨링 (70): Lv 20까지 쉬움 · 보통 첫 클리�
 
   it.each([['C', 5], ['A', 1], ['S', 0]] as const)('튜토리얼 뒤 장소마다 쉬움 → 보통만 (등급 %s): 다시 하기 · 어려움 없이 다음 장소가 늘 열려 있음', (_g, deaths) => {
     const s = newSave(1);
+    s.settings.devStamina = true; // 순서만 봄: 같은 시각에 여러 판이라 휴식 무제한 (휴식은 tests/stamina.test.ts, 90)
     addXp(s.player, xpToNext(1)); // 첫 전투 → Lv 2 (screens/tutorial)
     s.tut = TUT.explore;
     play(s, 'plateau', '쉬움', deaths);

@@ -8,7 +8,7 @@ import type { BattleResult, Settlement } from './settle';
 export const Flow: {
   /** 출발부터 정산까지 유지 (구간 사이 휴식 포함). 직업·캐릭터 전환 금지 */
   running?: boolean;
-  /** 이번 편성의 스테미너를 이미 냄 (81: 「출전」 팝업에서 내고 편성으로 감, 출발하면 끔) */
+  /** 이번 편성은 입장 확인을 거침 (81 · 90: 「출전」 팝업 「입장」 뒤 편성으로 감, 출발하면 끔) */
   paid?: boolean;
   content: ContentKey;
   diff: DiffName;

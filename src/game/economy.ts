@@ -1,6 +1,6 @@
 /**
  * 재화·임무·상점·시즌 패스·앱 결제 상품 규칙 (12, 13, 15, 81). 화면과 분리된 순수 계산 (시각·난수는 받아서 씀).
- * 스테미너는 game/stamina.ts
+ * 휴식 (90, 코드 이름 stamina)은 game/stamina.ts
  */
 import { RAID10_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';

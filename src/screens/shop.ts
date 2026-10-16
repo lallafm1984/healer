@@ -1,6 +1,6 @@
 /**
  * S18 상점 · S19 시즌 패스 (09, 15 6장, 12, 81). 하위 탭: 상품 · 공훈 · 패스. 골드 탭 (소비 아이템)은 2026-10-16 소비 아이템과 함께 없앰.
- * 81 (2026-10-15 Lim): 크리스탈 · 악몽 열쇠 · 월정액 · 프리미엄 패스를 없앰. 상품 탭 = 스테미너 광고 충전 · 광고 제거 패키지 5,500원 · 직업 4종 하나에 2,200원.
+ * 81 (2026-10-15 Lim): 크리스탈 · 악몽 열쇠 · 월정액 · 프리미엄 패스를 없앰. 상품 탭 = 휴식 광고 충전 (90) · 광고 제거 패키지 5,500원 · 직업 4종 하나에 2,200원.
  * 결제는 자리만 (platform/billing.ts). 개발 빌드는 누르면 결제 없이 바로 받음.
  */
 import { resourceBalance } from '../game/resources';
@@ -110,7 +110,7 @@ const JOB_LINE: Record<string, string> = {
   shaman: '토템 · 연쇄 치유', monk: '연속 치유 · 안개', astrologer: '별자리 · 집중 치유', warder: '보호막 · 공격 치유',
 };
 
-/** 상품 탭 (81 3장): 스테미너 충전 · 광고 제거 패키지 (그림 icon-noads, 81 4장) · 직업 4종 */
+/** 상품 탭 (81 3장 · 90): 휴식 충전 · 광고 제거 패키지 (그림 icon-noads, 81 4장) · 직업 4종 */
 function cashHtml(): string {
   const dev = G.save.settings.devUnlock, own = (id: string) => G.save.bought.includes(id);
   const buyBtn = (id: string, price: string) => own(id)
@@ -119,11 +119,11 @@ function cashHtml(): string {
   const row = (id: string, icon: string, name: string, line: string) =>
     `<li class="srow cash-row${own(id) ? ' owned' : ''}${st.focus === id ? ' hi' : ''}" data-prod="${id}"><span class="sic">${icon}</span><div><b>${esc(name)}</b><p class="note">${line}</p></div><div class="sbuy">${buyBtn(id, products(G.save).find(p => p.id === id)!.price)}</div></li>`;
   const v = staminaView(G.save, Date.now());
-  return `<section class="panel cash-stam"><h4>스테미너</h4>
-      <button class="cash-meter" type="button" data-stamina-open aria-label="스테미너 창 열기">${currencyIcon('stamina')}<b data-stam-n>${v.unlimited ? '∞' : fmt(v.n)}</b><small data-stam-max>/${v.max}</small><span class="cash-go">충전 ${uiIcon('arrow')}</span></button>
-      <p class="note">8분마다 1씩 찹니다. 광고 충전 +${STAMINA.ad} · 하루 ${STAMINA.adDaily}번</p></section>
+  return `<section class="panel cash-stam"><h4>휴식</h4>
+      <button class="cash-meter" type="button" data-stamina-open aria-label="휴식 창 열기">${currencyIcon('rest')}<b data-stam-n>${v.unlimited ? '∞' : fmt(v.n)}</b><small data-stam-max>/${v.max}</small><span class="cash-go">충전 ${uiIcon('arrow')}</span></button>
+      <p class="note">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 0이면 보상 1/3 · 광고 충전 +${STAMINA.ad} · 하루 ${STAMINA.adDaily}번</p></section>
     <h3 class="sec">광고 제거 패키지</h3>
-    <ul class="slist">${row(NOADS.id, gameIcon('noads', uiIcon('star')), NOADS.name, `배너 · 전면 광고 없음 · 광고 충전도 바로 · 스테미너 최대 +${STAMINA.bonus}`)}</ul>
+    <ul class="slist">${row(NOADS.id, gameIcon('noads', uiIcon('star')), NOADS.name, `배너 · 전면 광고 없음 · 휴식 충전도 바로 · 휴식 최대 +${STAMINA.bonus}`)}</ul>
     <h3 class="sec">직업 <small>사면 레벨 조건 없이 바로 열림 · 모든 캐릭터</small></h3>
     <ul class="slist">${PAID_HEROES.map(h => row(jobProductId(h), classEmblem(h, 'md'), HEROES[h].name, JOB_LINE[h])).join('')}</ul>
     <p class="note">${dev ? '개발 빌드: 누르면 결제 없이 바로 받음' : esc(STORE_WHY)}</p>`;
@@ -145,7 +145,7 @@ s.el.addEventListener('click', async e => {
     if (!r.ok) { st.msg = r.why || '구매 안 됨'; render(); return; }
     const err = grantProduct(save, id);
     const hero = PAID_HEROES.find(h => jobProductId(h) === id);
-    st.msg = err || (hero ? `${HEROES[hero].name} 해금 · 캐릭터 → 직업에서 전환` : `${NOADS.name} · 스테미너 최대 +${STAMINA.bonus}`) + (r.test ? ' (시험 구매)' : '');
+    st.msg = err || (hero ? `${HEROES[hero].name} 해금 · 캐릭터 → 직업에서 전환` : `${NOADS.name} · 휴식 최대 +${STAMINA.bonus}`) + (r.test ? ' (시험 구매)' : '');
     commit(); syncAds(); render(); refreshCells();
   }
 });

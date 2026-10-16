@@ -327,7 +327,7 @@ function charName(h: HeroKey, name: string): string {
   return `${base} ${n}`;
 }
 
-/** 지금 캐릭터를 쉬게 두고 next로: 둘 다 날 · 주를 넘기고, 계정 것 (설정 · 산 것 · 스테미너 · 패스 · 목록)을 옮김 (캐릭터를 바꿔 스테미너 · 패스를 두 번 쓰지 않게) */
+/** 지금 캐릭터를 쉬게 두고 next로: 둘 다 날 · 주를 넘기고, 계정 것 (설정 · 산 것 · 휴식 · 패스 · 목록)을 옮김 (캐릭터를 바꿔 휴식 · 패스를 두 번 쓰지 않게) */
 function swapTo(next: SaveData, id: number, now: number): void {
   const cur = G.save;
   rollover(cur, now, Math.random);

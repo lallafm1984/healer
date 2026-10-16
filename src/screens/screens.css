@@ -300,6 +300,9 @@ button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer;
 .admodal { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(7, 5, 4, 0.8); }
 .admodal .panel { width: 100%; max-width: 360px; }
 .admodal .row2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+.admodal .row1 { display: grid; }
+/* 전면 광고 시험 창 (90): 결과 화면 팝업 (레벨 업 · 엔딩)보다 위 */
+.admodal.ad-inter { z-index: 95; }
 
 /* 어픽스·던전 레벨 단계·주간 도전 (07 3장, 13 3-2) */
 .afxlist ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }

@@ -130,12 +130,12 @@ function stars(c: ContentDef, d: DiffName): string {
   return `<span class="sr">별 ${n}개</span><span aria-hidden="true">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span>`;
 }
 
-/** 레이드: 이번 주 장비 받음 (보스마다 난이도별 주 1회) · 입장 스테미너 (81). 정보 줄 오른쪽에 붙여서 관문 높이를 다른 분류와 맞춤 */
+/** 레이드: 이번 주 장비 받음 (보스마다 난이도별 주 1회) · 클리어 때 쓰는 휴식 (90). 정보 줄 오른쪽에 붙여서 관문 높이를 다른 분류와 맞춤 */
 function lootLine(c: ContentDef): string {
   if (c.kind !== 'raid' || G.save.tut < TUT.done) return '';
   const got = ALL_DIFFS.map(d => !raidLootOpen(G.save, c.key, d));
   const dots = `<span class="b-loot" role="img" aria-label="이번 주 장비 ${ALL_DIFFS.map((d, i) => `${d} ${got[i] ? '받음' : '아직'}`).join(', ')}" title="이번 주 장비: 쉬움 · 보통 · 어려움 · 악몽">${got.map(g => `<i${g ? ' class="got"' : ''}></i>`).join('')}</span>`;
-  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">장비</span>${dots}<span class="cap">${currencyAmount('stamina', staminaCost(c))}</span></span>`;
+  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">장비</span>${dots}<span class="cap">${currencyAmount('rest', staminaCost(c))}</span></span>`;
 }
 
 /** 지금 고른 장소 (장소 줄 안에서): 기억한 것 → 길잡이 추천 (86) → 첫 장소 (장소가 없는 분류면 null) */
@@ -308,7 +308,7 @@ function cta(c: ContentDef | null, d: DiffName): string {
   const ok = !!c && c.ready && !lk!.locked;
   const sub = !c ? '준비 중' : !c.ready ? `${c.name} · 준비 중` : lk!.locked ? (lk!.need && !lockOf(c).locked ? `${c.name} · ${lk!.need}부터 깨기` : `${c.name} · Lv ${lk!.lv}에 열림`) : `${c.name} · ${d}`;
   const mk = classEmblem(heroNow(), 'md');
-  const cost = ok && G.save.tut >= TUT.done ? ` <span class="g-stam">${currencyAmount('stamina', staminaCost(c!))}</span>` : '';
+  const cost = ok && G.save.tut >= TUT.done ? ` <span class="g-stam">${currencyAmount('rest', staminaCost(c!))}</span>` : '';
   return `<button type="button" class="g-cta" id="contentGo"${ok ? '' : ' disabled'}><span class="g-mk">${mk}</span><span class="g-ct"><b>출전</b><small>${esc(sub)}${cost}</small></span>${ARROW}</button>`;
 }
 
@@ -511,7 +511,7 @@ s.el.addEventListener('click', e => {
     const d = diffOf(c);
     Flow.content = c.key; Flow.diff = d; Flow.chal = 0;
     if (G.save.tut >= TUT.done) diffPick[c.key] = d;
-    // 입장 화면 없이 바로 편성 (2026-10-08): 난이도는 여기서만 고름, 공략은 편성의 시트. 81: 입장 확인 → 스테미너를 내고 편성
+    // 입장 화면 없이 바로 편성 (2026-10-08): 난이도는 여기서만 고름, 공략은 편성의 시트. 81 · 90: 입장 확인 → 편성
     sortie();
   }
 });

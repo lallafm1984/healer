@@ -23,6 +23,8 @@ import { esc, fmt, mmss, screen, topBar } from './kit';
 import { currencyIcon, fxArt, gameIcon, gearIcon, placeArt, uiIcon, type CurrencyIconKey } from './art';
 import { enter } from './party';
 import { sortie } from './stamina';
+import { adsFree } from '../game/stamina';
+import { adClockMs, interstitialDue, interstitialOff, showInterstitial } from '../platform/ads';
 import { sheetDialog } from './dialog';
 import { openItemDetail } from './character';
 
@@ -114,16 +116,24 @@ function tipHtml(r: BattleResult, x: Settlement): string {
 function lootHtml(r: BattleResult, x: Settlement): string {
   const tiles: string[] = [];
   // 재화는 한 줄 칩 (그림 · +값 · 이름, 2026-10-13 Lim 「골드 · 강화석 UI 점검」). 골드는 v16 (2026-10-16)에 없앰
-  const tile = (k: CurrencyIconKey, label: string, v: number) => `<span class="r-cur"><span class="r-ci">${currencyIcon(k)}</span><span class="r-cv"><b>+${fmt(v)}</b><small>${label}</small></span></span>`;
-  if (x.mats.stone) tiles.push(tile('stone', '강화석', x.mats.stone));
-  if (x.mats.refined) tiles.push(tile('refined', '정제 강화석', x.mats.refined));
+  // 휴식 (90): 강화석 · 정제 강화석 그림 왼쪽 위 꼬리표 (휴식 · 1/3), 경험치 줄 끝 「휴식」 · 「휴식 없음 1/3」 (튜토리얼은 없음)
+  const rest = restTag(x), mark = !x.rest ? '' : x.rest.cut ? '<em class="r-rest-em cut">1/3</em>' : '<em class="r-rest-em">휴식</em>';
+  const tile = (k: CurrencyIconKey, label: string, v: number, em = '') => `<span class="r-cur"><span class="r-ci">${currencyIcon(k)}${em}</span><span class="r-cv"><b>+${fmt(v)}</b><small>${label}</small></span></span>`;
+  if (x.mats.stone) tiles.push(tile('stone', '강화석', x.mats.stone, mark));
+  if (x.mats.refined) tiles.push(tile('refined', '정제 강화석', x.mats.refined, mark));
   if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
   return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
       <h2 class="r-lh" tabindex="-1">획득 보상${x.pubBonus ? ` <small>공개모집 보너스 ${x.pubBonus}/3</small>` : ''}</h2>
       ${itemsHtml(x)}
       ${tiles.length ? `<div class="r-curs">${tiles.join('')}</div>` : ''}
-      ${xpRow(x, !!r.affixes?.includes('festival'))}
+      ${xpRow(x, !!r.affixes?.includes('festival'), rest)}
     </section>`;
+}
+
+/** 휴식 표시 (90): 휴식으로 받음 = 「휴식」, 휴식이 0이라 1/3 = 「휴식 없음 1/3」 */
+function restTag(x: Settlement): string {
+  if (!x.rest) return '';
+  return x.rest.cut ? '<small class="r-rest cut">휴식 없음 1/3</small>' : '<small class="r-rest">휴식</small>';
 }
 
 /** 받은 장비를 누르면 캐릭터 메뉴와 같은 상세를 연다. 별도의 새 특수능력 띠는 표시하지 않는다. */
@@ -157,12 +167,12 @@ function itemRow(id: number): string {
 }
 
 /** 경험치 줄: 바 + 받은 양 + 지금 레벨 (오르면 강조) */
-/** fest = 축제 주간 (경험치 +20%, v16) */
-function xpRow(x: Settlement, fest = false): string {
+/** fest = 축제 주간 (경험치 +20%, v16), rest = 휴식 표시 (90) */
+function xpRow(x: Settlement, fest = false, rest = ''): string {
   const p = G.save.player, need = xpToNext(p.level), up = x.levelUps.length > 0;
   const w = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
   return `<div class="r-xpw${up ? ' up' : ''}"><span class="r-lv" aria-hidden="true">${up ? `<small>Lv ${x.levelBefore} →</small>` : '<small>Lv</small>'}<b>${p.level}</b></span>
-      <div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${fmt(x.xp)}${fest ? ' <small>축제 +20%</small>' : ''}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em></span></div></div>`;
+      <div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${fmt(x.xp)}${fest ? ' <small>축제 +20%</small>' : ''}${rest ? ` ${rest}` : ''}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em></span></div></div>`;
 }
 
 /** 진 판: 어디서 졌는지 (구간 점 · 적 남은 체력) · 힌트 (있을 때만). 진 판은 경험치 없음 (2026-10-13 Lim) */
@@ -243,6 +253,27 @@ function nextOf(r: BattleResult, x: Settlement): { label: string; sub: string } 
   return { label: `다음 ${{ explore: '탐험', dungeon: '던전', raid: '레이드', event: '이벤트' }[c.kind]}`, sub: `${c.name} · ${n.diff}` };
 }
 
+/**
+ * 전면 광고 (90): 클리어한 판의 결과 화면에서 나가는 버튼 (다음 · 다시 도전 · 나가기 · 위 정보창 · 알림 줄)을 누를 때,
+ * 마지막 광고 뒤 화면에 떠 있던 시간이 10분을 넘었으면 한 번 띄우고, 닫히면 원래 누른 버튼대로 감.
+ * Lv 10 전 · 튜토리얼 · 진 판 · 포기 · 광고 제거 패키지면 없음. 못 불러오면 그냥 감 (시계 그대로)
+ */
+let adPass = false;
+st.el.addEventListener('click', e => {
+  if (adPass) return;
+  const b = (e.target as HTMLElement).closest<HTMLElement>('#again, #next, [data-go]');
+  const r = Flow.result, x = Flow.settle;
+  if (!b || !r || !x || interstitialOff()) return;
+  const tutDone = G.save.tut >= TUT.done && !x.tutEnd;
+  if (!interstitialDue({ won: r.win && !r.quit, level: G.save.player.level, tutDone, adsFree: adsFree(G.save), ms: adClockMs() })) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  void showInterstitial().then(() => {
+    if (st.el.hidden || !b.isConnected) return;
+    adPass = true;
+    try { b.click(); } finally { adPass = false; }
+  });
+}, true);
+
 st.el.addEventListener('click', e => {
   const t = e.target as HTMLElement;
   const reward = t.closest<HTMLElement>('[data-reward-item]');
@@ -272,7 +303,7 @@ function deferPopup(host: HTMLElement, show: () => void): boolean {
   return true;
 }
 
-/** 같은 파티로 바로 다시 (시작 위치는 새로, 주간 도전은 같은 단계). 입장 확인 팝업에서 스테미너를 씀 (81) */
+/** 같은 파티로 바로 다시 (시작 위치는 새로, 주간 도전은 같은 단계). 입장 확인 팝업을 거침 (81 · 90) */
 function again(): void {
   Flow.seed = newSeed();
   enter();
@@ -286,7 +317,7 @@ function next(): void {
   const n = nextRun(r.content, r.diff);
   if (!n) return;
   Flow.content = n.content; Flow.diff = n.diff; Flow.chal = 0;
-  sortie(); // 81: 입장 확인 → 스테미너를 내고 편성으로
+  sortie(); // 81 · 90: 입장 확인 → 편성으로
 }
 
 // ---------- 엔딩 글 (59 4-4 · 11 6장 햇살 축제) ----------

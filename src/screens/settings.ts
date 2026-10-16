@@ -40,7 +40,7 @@ function render(): void {
         ${tog('devUnlock', '레벨 잠금 무시 (던전·레이드)')}
         ${tog('allSkills', '스킬 전부 열기 (레벨 무관)')}
         ${tog('devStones', '강화석·정제 강화석 무제한')}<p>켜진 재화는 보유량과 관계없이 사용할 수 있으며 차감되지 않습니다. 끄면 실제 보유량으로 돌아옵니다.</p>
-        ${tog('devStamina', '스테미너 무제한')}<p>입장 확인은 그대로 뜨고 스테미너는 줄지 않습니다.</p>
+        ${tog('devStamina', '휴식 무제한')}<p>클리어해도 휴식이 줄지 않고 보상은 늘 그대로입니다.</p>
         <button class="btn" type="button" id="devMaxLevel"${Flow.running || G.save.player.level >= MAX_LEVEL ? ' disabled' : ''}>${G.save.player.level >= MAX_LEVEL ? `${MAX_LEVEL}레벨 적용됨` : `${MAX_LEVEL}레벨로 변경`}</button>
         <p id="devLevelStatus" role="status">현재 Lv. ${G.save.player.level}${Flow.running ? ' · 정산 후 변경 가능' : ' · 장비·재화 유지'}</p>
         <button class="btn" type="button" id="tutAgain">${G.save.tut < TUT.done ? '튜토리얼 건너뛰기' : '튜토리얼 다시 보기 (레벨·장비는 그대로)'}</button>
