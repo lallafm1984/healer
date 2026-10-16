@@ -51,6 +51,23 @@ export default async function adventureDeparture(url, shots) {
       return flat && urls.length===2 && (await Promise.all(urls.map(src=>new Promise(res=>{const i=new Image();i.onload=()=>res(i.naturalWidth>0);i.onerror=()=>res(false);i.src=src;})))).every(Boolean);
     });
     ok(art, `${width}: 분류 탭 = 돌색 (나무결 그림 없음) + 황동 테 실제 로드`);
+    // 2026-10-16 Lim 「선택 배경이 테두리보다 삐져나온다」 · 「난이도는 코덱스 그림으로 탭과 다른 버튼」
+    const look = await page.evaluate(async () => {
+      const q = s => document.querySelector(`#s-content ${s}`);
+      const tab = getComputedStyle(q('.b-cat[aria-selected="true"]'));
+      const dcs = [...document.querySelectorAll('#s-content .b-dc')].map(el => {
+        const cs = getComputedStyle(el), b = getComputedStyle(el, '::before');
+        return { diff: el.dataset.diff, on: el.classList.contains('on'), src: b.borderImageSource, filter: b.filter, inset: b.inset,
+          plain: cs.backgroundImage === 'none' && cs.backgroundColor === 'rgba(0, 0, 0, 0)' && cs.boxShadow === 'none' };
+      });
+      const want = { '쉬움': 'easy', '보통': 'normal', '어려움': 'hard', '악몽': 'nightmare' };
+      const loaded = await Promise.all(dcs.map(d => new Promise(res => { const i = new Image(); i.onload = () => res(i.naturalWidth > 0); i.onerror = () => res(false); i.src = d.src.replace(/^url\("?|"?\)$/g, ''); })));
+      return { tabInside: /calc\(100% - 6px\)/.test(tab.backgroundSize) && tab.boxShadow === 'none' && tab.backgroundColor === 'rgba(0, 0, 0, 0)',
+        plates: dcs.length === 4 && dcs.every((d, i) => d.src.includes(`ui-diff-${want[d.diff]}`) && loaded[i] && d.inset === '0px' && d.plain),
+        lit: dcs.filter(d => d.on).length === 1 && dcs.every(d => d.on === (d.filter === 'none')) };
+    });
+    ok(look.tabInside, `${width}: 고른 분류 탭 바탕이 황동 테 안쪽에만 (바깥 빛 · 바탕색 없음)`);
+    ok(look.plates && look.lit, `${width}: 난이도 = 색 법랑 명판 4종 그림 로드 · 칸 밖으로 안 나감 · 고른 칸만 밝음`);
     await shownImagesReady(page);
     await page.screenshot({path:`${shots}/departure-explore-${width}.png`});
     // Lv 14: 탐험 줄 = 열린 6곳만 레벨 순 (Lv 15 늪지 어귀부터 숨김)

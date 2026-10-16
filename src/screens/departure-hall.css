@@ -6,27 +6,49 @@
 
 /* ---------- 분류 줄 (탐험 · 던전 · 10인 · 20인) ---------- */
 #s-content .b-cats { background: linear-gradient(#211b14, #16120e); border-bottom: 1px solid var(--gk-card-bd); box-shadow: 0 3px 8px #0009; }
-#s-content :is(.b-cat, .b-cat[aria-selected="true"], .b-dc) {
+/* 바탕은 황동 테 안쪽에만 (2026-10-16 Lim 「선택 배경이 테두리보다 삐져나온다」): 테 그림의 고리가 칸 가장자리에서 약 2px 안쪽에서 시작해
+ * 바탕을 3px 줄여 칠함. 바깥 빛 · 가장자리 밝은 줄도 테 밖으로 나가므로 없앰 */
+#s-content :is(.b-cat, .b-cat[aria-selected="true"]) {
   position: relative; border: 0; border-radius: 0;
-  background: linear-gradient(#2e261d, #1b1611); background-size: auto; background-blend-mode: normal;
-  box-shadow: inset 0 1px 0 #ffe6a614; color: var(--gk-ink2); text-shadow: 0 1px 1px #000;
+  background: linear-gradient(#2e261d, #1b1611) center / calc(100% - 6px) calc(100% - 6px) no-repeat; background-blend-mode: normal;
+  box-shadow: none; color: var(--gk-ink2); text-shadow: 0 1px 1px #000;
 }
 /* 황동 테는 글자 자리를 바꾸지 않게 겹쳐 그림 */
-#s-content :is(.b-cat, .b-dc)::before {
+#s-content .b-cat::before {
   content: ''; position: absolute; inset: 0; pointer-events: none;
   border: 10px solid transparent; border-image: url('../art/ui-sunforged-panel-frame.webp') 104 / 10px / 0 stretch;
 }
-#s-content .b-cat:not([aria-selected="true"]) small, #s-content .b-dc:not(.on):not(:disabled) small { color: var(--gk-mute); }
-#s-content .b-dc:not(.on):not(:disabled) small { color: #e8c46a; }
-#s-content :is(.b-cat[aria-selected="true"], .b-dc.on) {
-  background: linear-gradient(#f6e2ae, #ddb767); color: #2a1806; text-shadow: none;
-  box-shadow: inset 0 1px 0 #fff6d8, 0 0 10px #ffd34d40;
+#s-content .b-cat:not([aria-selected="true"]) small { color: var(--gk-mute); }
+#s-content .b-cat[aria-selected="true"] {
+  background-image: linear-gradient(#fff6d8 0 1px, #f6e2ae 1px, #ddb767); color: #2a1806; text-shadow: none;
 }
-#s-content :is(.b-cat[aria-selected="true"] :is(b, small), .b-dc.on small) { color: #4a3418; text-shadow: none; }
+#s-content .b-cat[aria-selected="true"] :is(b, small) { color: #4a3418; text-shadow: none; }
 #s-content .b-cat[aria-selected="true"] b { color: #2a1806; }
-#s-content .b-dc:disabled { background: linear-gradient(#211b15, #15110d); color: #8f8270; }
-#s-content .b-dc:disabled small { color: #8f8270; }
-#s-content .b-dc:disabled::before { opacity: .55; }
+
+/* ---------- 난이도 (쉬움 · 보통 · 어려움 · 악몽) ----------
+ * 2026-10-16 Lim 「탭과 난이도 버튼이 똑같다, 난이도는 코덱스 그림으로 탭과 다른 버튼」: 난이도마다 색 법랑 명판 (ui-diff-*, 굵은 황동 테 · 네 귀 리벳, Codex).
+ * 고른 칸만 제 색으로 밝게, 나머지는 어둡게 눌러 둠. 명판은 ::before (필터가 글자에 안 걸리게), 9칸 늘림이라 리벳 · 테 굵기는 칸 크기와 관계없이 그대로.
+ * 바깥 빛 · 그림자 없음 (명판 밖으로 아무것도 나가지 않게) */
+#s-content :is(.b-dc, .b-dc.on) {
+  position: relative; isolation: isolate; border: 0; border-radius: 0; background: none; box-shadow: none;
+  color: #fff4dc; text-shadow: 0 1px 0 #000, 0 0 3px #000;
+}
+#s-content .b-dc::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  border: 13px solid transparent; border-image: url('../art/ui-diff-normal.webp') 52 fill / 13px / 0 stretch;
+  filter: brightness(.5) saturate(.55);
+}
+#s-content .b-dc[data-diff="쉬움"]::before { border-image-source: url('../art/ui-diff-easy.webp'); }
+#s-content .b-dc[data-diff="어려움"]::before { border-image-source: url('../art/ui-diff-hard.webp'); }
+#s-content .b-dc[data-diff="악몽"]::before { border-image-source: url('../art/ui-diff-nightmare.webp'); }
+#s-content .b-dc small { color: #f2d48a; text-shadow: 0 1px 0 #000, 0 0 3px #000; }
+#s-content .b-dc:not(.on):not(:disabled) { color: #d9cbb0; }
+#s-content .b-dc.on { color: #fff; }
+#s-content .b-dc.on::before { filter: none; }
+#s-content .b-dc.on small { color: #ffe27a; }
+#s-content .b-dc:disabled { color: #9d917f; }
+#s-content .b-dc:disabled small { color: #9d917f; }
+#s-content .b-dc:disabled::before { filter: grayscale(1) brightness(.38); }
 
 /* ---------- 아래 출전 줄 ---------- */
 #s-content .b-foot { background: linear-gradient(#1b1611, #110e0b); background-blend-mode: normal; border-top: 1px solid var(--gk-line); }
