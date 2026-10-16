@@ -12,6 +12,7 @@ import { art } from '../art';
 import { armorFactor } from '../data/armor';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { SKILLS } from '../data/skills';
+import { TALENT_DEF } from '../data/talents';
 import { NAMED, SPECS, type SpecGroup } from '../data/specials';
 import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
 import type { TotemKind } from '../engine/types';
@@ -844,7 +845,7 @@ export function resetBoardFx(): void {
   telsSeen = []; telsDone.clear();
   darkAt = null;
   if (B.F) for (const a of bossFxArts(B.F.enc.script)) artTexture(a); // 묶음 H 이펙트 (63 E): 첫 번째부터 보이게
-  if (B.F) for (const a of HERO_BOARD_ART[B.F.hero] ?? []) artTexture(a); // 힐러 직업 4종 판 위 그림 (80 5장)
+  if (B.F) for (const a of HERO_BOARD_ART[B.F.hero] ?? []) artTexture(a); // 직업별 판 위 그림
   // 보스 판 전체 공격 (Codex 손그림 256px 띠, 하나에 4–6MB): 이 전투에서 나올 수 있는 것만 읽어 두고 다른 전투 것은 내려 놓음
   const want = new Set((B.F ? bossPxfOf(B.F.enc) : []).map(pxfArtName));
   for (const k of Object.values(BOSS_PXF)) {
@@ -1170,9 +1171,33 @@ const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string;
 };
 /** 선 물건 그림 한 변 (칸 반지름 배) · 그림마다 그려진 부분 (폭 · 높이 비율, 2026-10-16 납품본을 잼): 그려진 부분이 칸 안에 꽉 차게 */
 const STAND_SIZE = 1.5;
-const STAND_BOX: Record<string, [number, number]> = { 'board-totem-spring': [0.72, 0.95], 'board-totem-earth': [0.75, 0.91] };
-/** 힐러 직업 4종 판 위 그림 (80 5장): 전투 시작 때 그 직업 것만 미리 읽음 (첫 토템 · 인장부터 보이게) */
+const STAND_BOX: Record<string, [number, number]> = {
+  'board-totem-spring': [0.72, 0.95], 'board-totem-earth': [0.75, 0.91],
+  'board-shelter': [0.84, 0.9], 'board-sanctuary': [0.94, 0.86], 'board-moss': [0.91, 0.45],
+};
+/** 그림마다 한 변 (칸 반지름 배, 없으면 STAND_SIZE): 넓은 성역 돔 · 납작한 이끼는 칸 폭 안에 들게 줄임. 이끼는 그림 아래쪽에 그려져 있어 칸 가운데에 두면 발밑에 깔림 */
+const STAND_SCALE: Record<string, number> = { 'board-sanctuary': 1.38, 'board-moss': 1.3 };
+/** 그림마다 불투명도 (없으면 1): 성역 돔은 빛 막이라 아래 직업 칸 색 (체력)이 비치게 */
+const STAND_ALPHA: Record<string, number> = { 'board-sanctuary': 0.82 };
+/**
+ * 선 물건 하나 (토템 · 쉼터 · 빛의 성역 · 이끼 자리, 2026-10-16 Lim 「토템 위치는 고정, 이름 · 체력 뒤 직업 칸 색 위에 가운데 크게, 캐릭터가 이동해도 그 자리」):
+ * 칸 가운데 (standL: 직업 칸 색 위, 아이콘 · 이름 · 체력 · 배지 아래), 세울 때 0.25초 솟아오름 (바닥 기준, at = 세운 시각), 끝나기 2초 전 깜빡임. 그림이 아직 안 읽혔으면 false
+ */
+function putStand(key: string, artName: string, x: number, y: number, r: number, at: number, end: boolean, pulse: number): boolean {
+  const tex = artTexture(artName);
+  if (!tex) return false;
+  const rise = S.reducedEffects ? 1 : Math.min(1, Math.max(0, ((B.F?.t ?? 0) - at) / 0.25)), k = 0.6 + 0.4 * (1 - (1 - rise) ** 2);
+  const [bw, bh] = STAND_BOX[artName] ?? [1, 1], size = r * (STAND_SCALE[artName] ?? STAND_SIZE), w = size * bw, half = (size * bh) / 2;
+  const q = fitCenter(x, y, w / 2, half);
+  stands.put(tex, q.x, q.y + half * (1 - k), size * k, size * k, (end ? 0.5 + 0.5 * pulse : 1) * (STAND_ALPHA[artName] ?? 1));
+  recordBound(`stand-${key}`, 'stand', 'rect', q.x, q.y, w, size * bh, { diameter: size });
+  return true;
+}
+/** 직업별 판 위 그림 (80 5장 · 사제 쉼터 · 드루이드 이끼 · 성기사 성역): 전투 시작 때 그 직업 것만 미리 읽음 (첫 토템 · 인장 · 쉼터부터 보이게) */
 const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
+  priest: ['board-shelter'],
+  druid: ['board-moss'],
+  paladin: ['board-sanctuary'],
   shaman: ['board-totem-spring', 'board-totem-earth', 'board-totem-rain', 'board-sea-spring'],
   monk: ['board-mist', 'board-mist-pool'],
   astrologer: ['board-star', 'board-star-mark', 'board-star-sleep', 'board-supernova'],
@@ -1423,30 +1448,31 @@ export function render(now: number): void {
     }
     // 녹는 보호막: 열기 동안 칸마다 주황 아지랑이 (그림 52가 오면 fx)
     if (melting) hexPoly(cellsG, p.x, p.y, r).fill({ color: MELT, alpha: 0.07 + 0.08 * zpulse });
-    // 성기사 빛의 성역: 금빛 바닥, 끝나기 2초 전 깜빡임
-    if (F.sanctuary && F.sanctuary.cells.has(i)) hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: F.sanctuary.end - F.t < 2 ? 0.08 + 0.14 * pulse : 0.2 });
-    // 드루이드 이끼 자리 (특성 77): 이끼 초록 바닥, 끝나기 2초 전 깜빡임 (정식 바닥 그림은 78 그림 요청)
-    { const mu = F.tx.moss?.get(i); if (mu != null && mu > F.t) hexPoly(cellsG, p.x, p.y, r).fill({ color: HOT_COLOR.sprout, alpha: mu - F.t < 2 ? 0.06 + 0.12 * pulse : 0.16 }); }
+    // 성기사 빛의 성역: 금빛 바닥, 끝나기 2초 전 깜빡임. 가운데 칸에 성역 그림 (board-sanctuary, 선 물건)
+    const sanc = F.sanctuary;
+    if (sanc && sanc.cells.has(i)) {
+      hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: sanc.end - F.t < 2 ? 0.08 + 0.14 * pulse : 0.2 });
+      if (sanc.cell === i) putStand(`sanctuary${i}`, 'board-sanctuary', p.x, p.y, r, sanc.at ?? -Infinity, sanc.end - F.t < 2, pulse);
+    }
+    // 드루이드 이끼 자리 (특성 77): 이끼 초록 바닥 + 발밑 이끼 (board-moss, 선 물건이라 사람이 서 있어도 보임), 끝나기 2초 전 깜빡임
+    { const mu = F.tx.moss?.get(i); if (mu != null && mu > F.t) {
+      hexPoly(cellsG, p.x, p.y, r).fill({ color: HOT_COLOR.sprout, alpha: mu - F.t < 2 ? 0.06 + 0.12 * pulse : 0.16 });
+      putStand(`moss${i}`, 'board-moss', p.x, p.y, r, -Infinity, mu - F.t < 2, pulse); // 새싹을 다시 걸 때마다 시간이 늘어나 솟아오름 없음
+    } }
     // 판 위 물건 (79 6-1: 토템 · 샘 · 성채 · 초신성): 그림 (80 5장)이 있으면 그 그림, 없으면 바닥 색 + 안쪽 테두리. 끝나기 2초 전 깜빡임
     for (const tm of F.totems) if (tm.cell === i) {
       const look = TOTEM_LOOK[tm.kind], end = tm.until - F.t < 2, tex = artTexture(look.art);
       hexPoly(cellsG, p.x, p.y, r).fill({ color: look.color, alpha: end ? 0.08 + 0.14 * pulse : 0.22 });
-      if (tex && look.stand) {
-        // 선 물건 (2026-10-16 Lim 「토템 위치는 고정, 이름 · 체력 뒤 직업 칸 색 위에 가운데 크게, 캐릭터가 이동해도 그 자리」): 칸 가운데, 세울 때 0.25초 솟아오름 (바닥 기준)
-        const rise = S.reducedEffects ? 1 : Math.min(1, Math.max(0, (F.t - tm.at) / 0.25)), k = 0.6 + 0.4 * (1 - (1 - rise) ** 2);
-        // 한 칸에 토템 하나 (engine/totems ONE_PER_CELL): 새로 세우면 앞 토템은 엔진에서 사라짐
-        const [bw, bh] = STAND_BOX[look.art] ?? [1, 1], size = r * STAND_SIZE, w = size * bw, half = (size * bh) / 2;
-        const q = fitCenter(p.x, p.y, w / 2, half);
-        stands.put(tex, q.x, q.y + half * (1 - k), size * k, size * k, end ? 0.5 + 0.5 * pulse : 1);
-        recordBound(`stand-${tm.kind}${i}`, 'stand', 'rect', q.x, q.y, w, size * bh, { diameter: size });
-      } else if (tex) decals.put(tex, p.x, p.y, cellArt, cellArt, end ? 0.5 + 0.5 * pulse : 1);
+      // 선 물건: 한 칸에 토템 하나 (engine/totems ONE_PER_CELL): 새로 세우면 앞 토템은 엔진에서 사라짐
+      if (tex && look.stand) putStand(`${tm.kind}${i}`, look.art, p.x, p.y, r, tm.at, end, pulse);
+      else if (tex) decals.put(tex, p.x, p.y, cellArt, cellArt, end ? 0.5 + 0.5 * pulse : 1);
       else hexPoly(cellsG, p.x, p.y, r * 0.62).stroke({ width: 2.5, color: look.color, alpha: 0.9 });
     }
-    // 사제 쉼터 (특성): 금빛 바닥 + 안쪽 테두리, 끝나기 2초 전 깜빡임
+    // 사제 쉼터 (특성): 금빛 바닥 + 쉼터 천막 (board-shelter, 선 물건: 도망 온 사람이 들어가도 이름 · 체력 뒤에 보임), 끝나기 2초 전 깜빡임. 그림이 오기 전엔 안쪽 테두리
     if (F.tx.shelter === i) {
-      const left = F.tx.act.shelter?.left ?? 0;
+      const left = F.tx.act.shelter?.left ?? 0, dur = TALENT_DEF.shelter.active!.dur;
       hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: left < 2 ? 0.1 + 0.16 * pulse : 0.26 });
-      hexPoly(cellsG, p.x, p.y, r * 0.72).stroke({ width: 2.5, color: C.gold, alpha: 0.8 });
+      if (!putStand(`shelter${i}`, 'board-shelter', p.x, p.y, r, F.t - (dur - left), left < 2, pulse)) hexPoly(cellsG, p.x, p.y, r * 0.72).stroke({ width: 2.5, color: C.gold, alpha: 0.8 });
     }
   });
   // 장전된 범위 미리보기
