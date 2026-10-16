@@ -6,15 +6,16 @@ import { RAID10_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
 import {
-  CHAR_SLOT, JOB_PRICE, jobProductId, MERIT, MERIT_GEAR_COST, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_GAIN, PASS_LEVELS, PASS_XP, passFree, type PassReward,
+  CHAR_SLOT, JOB_PRICE, jobProductId, MERIT, MERIT_GEAR_COST, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_GAIN, PASS_LEVELS, PASS_XP, passFree, slotGold, type PassReward,
 } from '../data/economy';
+import { resourceBalance, spendResource } from './resources';
 import { FEATURES } from '../data/features';
 import { HEROES } from '../data/heroes';
 import { HERO_FROM, makeItem, rollItem, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
 import {
   CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, WEEKLY, WEEKLY_LV, WEEKLY_N, WEEKLY_REWARD, type MissionDef, type RunEvent,
 } from '../data/missions';
-import { addXp, MAX_LEVEL, xpToNext } from '../data/progression';
+import { addXp, clearGold, MAX_LEVEL, xpToNext } from '../data/progression';
 import { newDaily, newWeekly, noteSpecs, topLevel, type MissionSave, type SaveData } from '../platform/storage';
 import { dayKey, daysBetween, seasonOf, weekKey } from './clock';
 import { TUT } from './tutorial';
@@ -95,8 +96,8 @@ export function onRun(save: SaveData, e: RunEvent): string[] {
   return done;
 }
 
-/** 강화·완료 상자 같은 행동 */
-export function onAct(save: SaveData, act: 'enhance' | 'chest'): void {
+/** 장비 판매 · 완료 상자 같은 행동 (판매는 한 개마다 1) */
+export function onAct(save: SaveData, act: 'sell' | 'chest'): void {
   bump(save.daily.missions, m => (m.act === act ? 1 : 0));
   bump(save.weekly.missions, m => (m.act === act ? 1 : 0));
 }
@@ -105,11 +106,13 @@ export const missionDef = defOf;
 export const missionReady = (s: MissionSave) => !s.got && s.n >= defOf(s.key).need;
 
 // ---------- 보상 ----------
-export interface Gain { stone?: number; refined?: number; pass?: number; items?: GearItem[]; deco?: string; /** 처음 얻은 특수능력 (42 1-6) */ newSpecs?: string[] }
+/** 이 레벨 「클리어 골드 1판」 (보통 A, 12 3-1). 임무 · 상자 · 패스 골드의 기준 */
+export const runGold = (lv: number) => clearGold(lv, '보통', 'A');
+
+export interface Gain { gold?: number; pass?: number; items?: GearItem[]; deco?: string; /** 처음 얻은 특수능력 (42 1-6) */ newSpecs?: string[] }
 
 function give(save: SaveData, g: Gain, now: number): Gain {
-  save.mats.stone += g.stone || 0;
-  save.mats.refined += g.refined || 0;
+  save.player.gold += g.gold || 0;
   for (const it of g.items || []) save.gear.bag.push(it);
   if (g.items?.length) g.newSpecs = noteSpecs(save, g.items);
   if (g.deco && !save.decos.includes(g.deco)) save.decos.push(g.deco);
@@ -117,14 +120,15 @@ function give(save: SaveData, g: Gain, now: number): Gain {
   return g;
 }
 
-/** 임무 보상 받기 (13 2-1): 일일 = 강화석 2, 주간 = 강화석 5 (+ 패스 경험치). v16: 골드 몫 없앰 */
+/** 임무 보상 받기 (13 2-1): 일일 = 클리어 골드의 20%, 주간 = 클리어 골드 3판 (81) (+ 패스 경험치). 91: v16의 강화석 → #172 전 골드 */
 export function claimMission(save: SaveData, kind: 'daily' | 'weekly', i: number, now: number): Gain | string {
   const s = (kind === 'daily' ? save.daily : save.weekly).missions[i];
   if (!s || !missionReady(s)) return '아직 못 채움';
   s.got = true;
+  const gold = runGold(topLevel(save));
   return kind === 'daily'
-    ? give(save, { stone: MISSION_REWARD.stone, pass: PASS_GAIN.daily }, now)
-    : give(save, { stone: WEEKLY_REWARD.stone, pass: PASS_GAIN.weekly }, now);
+    ? give(save, { gold: Math.round(gold * MISSION_REWARD.goldShare), pass: PASS_GAIN.daily }, now)
+    : give(save, { gold: gold * WEEKLY_REWARD.runs, pass: PASS_GAIN.weekly }, now);
 }
 
 /** 완료 상자 장비: 레벨에 맞는 난이도 기준 (13 2-1), 등급대는 내 레벨 (86) */
@@ -147,7 +151,7 @@ export function claimChest(save: SaveData, r: () => number, now: number, double 
   const my = save.player.level;
   const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero, classLoot: true, lv: my, tierLv: my }); // 지금 직업 전용 70% (72)
   if (!double) onAct(save, 'chest');
-  return give(save, { stone: CHEST_REWARD.stone, pass: double ? 0 : PASS_GAIN.chest, items: [it] }, now);
+  return give(save, { gold: runGold(my) * CHEST_REWARD.runs, pass: double ? 0 : PASS_GAIN.chest, items: [it] }, now);
 }
 
 /** 하루 1회 무료 교체 (13 2-1) */
@@ -178,14 +182,14 @@ export function claimGuildGoal(save: SaveData): string {
 
 /**
  * 주간 도전 월요일 상자 (13 3-2): 지난주 최고 단계 기준 장비 등급 보장 (2026-10-13 Lim): 5단계 고급 1 · 10 희귀 1 · 15 영웅 1 · 20 영웅 2.
- * 1~4단계는 강화석만 (예전: 고급 1 · 5 희귀 · 10 영웅 · 15 영웅 2 · 20 영웅 3). 영웅은 받는 캐릭터가 Lv 45부터 (그 전엔 희귀, 88). 전설은 Lv 100 20인 레이드만
- * 강화석 = 5 × (1 + 단계 ÷ 5) (v16: 예전 「골드 그 판 수」를 강화석으로, 1~4단계 5 · 5~9단계 10 … 20단계 25)
+ * 1~4단계는 골드만 (예전: 고급 1 · 5 희귀 · 10 영웅 · 15 영웅 2 · 20 영웅 3). 영웅은 받는 캐릭터가 Lv 45부터 (그 전엔 희귀, 88). 전설은 Lv 100 20인 레이드만
+ * 골드 = 받는 캐릭터 레벨 클리어 골드 × goldRuns (1 + 단계 ÷ 5 판: 1~4단계 1 · 5~9단계 2 … 20단계 5. v16 강화석이던 것을 91에서 #172 전 골드로)
  */
-export function chalChestOf(stage: number, level = MAX_LEVEL): { grades: ItemGrade[]; stone: number } {
+export function chalChestOf(stage: number, level = MAX_LEVEL): { grades: ItemGrade[]; goldRuns: number } {
   // 88: 영웅은 Lv 45 (HERO_FROM)부터. 그 전엔 희귀로 (초반은 희귀까지)
   const hero: ItemGrade = level >= HERO_FROM ? '영웅' : '희귀';
   const grades: ItemGrade[] = stage >= 20 ? [hero, hero] : stage >= 15 ? [hero] : stage >= 10 ? ['희귀'] : stage >= 5 ? ['고급'] : [];
-  return { grades, stone: 5 * (1 + Math.floor(stage / 5)) };
+  return { grades, goldRuns: 1 + Math.floor(stage / 5) };
 }
 export function claimChalChest(save: SaveData, r: () => number, now: number): Gain | string {
   const stage = save.chalChest;
@@ -197,7 +201,7 @@ export function claimChalChest(save: SaveData, r: () => number, now: number): Ga
   // 장비 (아이템 레벨)는 받는 캐릭터 레벨 기준 (2026-10-13 Lim 「보상시 해당 캐릭터 레벨에 기반해서」)
   const lv = save.player.level, c = chalChestOf(stage, lv);
   const items = c.grades.map(g => makeItem(r, SLOTS[Math.floor(r() * SLOTS.length)].key, g, save.nextId++, undefined, { hero: h, classLoot: true, lv }));
-  return give(save, { stone: c.stone, items, pass: PASS_GAIN.challenge }, now);
+  return give(save, { gold: c.goldRuns * runGold(lv), items, pass: PASS_GAIN.challenge }, now);
 }
 
 // ---------- 시즌 패스 ----------
@@ -208,9 +212,9 @@ export function addPassXp(save: SaveData, amt: number, now: number): number {
   save.pass.xp += x;
   return x;
 }
-export function passGain(_save: SaveData, lv: number): Gain {
+export function passGain(save: SaveData, lv: number): Gain {
   const f: PassReward = passFree(lv);
-  return { stone: f.stone, refined: f.refined, deco: f.deco || f.title };
+  return { gold: (f.runs ?? 0) * runGold(topLevel(save)) + (f.gold ?? 0), deco: f.deco || f.title };
 }
 /** 패스 보상 받기 (81: 한 줄, 프리미엄 라인 없음) */
 export function claimPass(save: SaveData, lv: number, now: number): Gain | string {
@@ -262,20 +266,36 @@ export function grantProduct(save: SaveData, id: string): string {
   return '';
 }
 
-// ---------- 캐릭터 칸 (68 2장): 앱 결제 (v16: 예전 골드로 사는 길은 골드와 함께 없앰) ----------
+// ---------- 캐릭터 칸 (68 2장): 골드로 모아 사거나 앱 결제로 바로 (Lim 2026-10-12 「둘 다」, v16에서 골드와 함께 뺐다가 91에서 되살림) ----------
 export interface SlotOffer {
   /** 산 칸 수 (처음 1) · 최대 */
   have: number; max: number;
-  /** 앱 결제로 살 수 있음 / 아니면 이유 (레벨 조건 없음) */
+  /** 다음 칸 골드 값 · 골드로 살 때 필요한 지금 캐릭터 레벨 */
+  gold: number; lv: number;
+  /** 골드로 살 수 있음 / 아니면 이유 */
+  ok: boolean; why: string;
+  /** 앱 결제로 살 수 있음 / 아니면 이유 (레벨 · 골드 조건 없음) */
   cash: boolean; cashWhy: string;
   /** 앱 결제 상품 (platform/billing purchase에 id) */
   iap: { id: string; name: string; price: string };
 }
 
 export function slotOffer(save: SaveData): SlotOffer {
-  const have = save.roster.slots;
+  const have = save.roster.slots, gold = slotGold(have), lv = CHAR_SLOT.lv;
   const cashWhy = have >= CHAR_SLOT.max ? `칸이 가득 참 (최대 ${CHAR_SLOT.max})` : save.tut < TUT.done ? '튜토리얼을 마치면 살 수 있음' : '';
-  return { have, max: CHAR_SLOT.max, cash: !cashWhy, cashWhy, iap: CHAR_SLOT.iap };
+  const why = cashWhy
+    || (save.player.level < lv && !save.settings.devUnlock ? `이 캐릭터 Lv ${lv}부터` : '')
+    || (resourceBalance(save, 'gold') < gold ? `골드 부족 (${gold.toLocaleString('ko-KR')} 필요)` : '');
+  return { have, max: CHAR_SLOT.max, gold, lv, ok: !why, why, cash: !cashWhy, cashWhy, iap: CHAR_SLOT.iap };
+}
+
+/** 지금 캐릭터 골드로 칸 하나 사기. 성공 = 빈 문자열, 아니면 이유 */
+export function buySlot(save: SaveData): string {
+  const o = slotOffer(save);
+  if (!o.ok) return o.why;
+  spendResource(save, 'gold', o.gold);
+  save.roster.slots++;
+  return '';
 }
 
 /** 앱 결제가 끝난 뒤 칸 하나 주기 (화면이 purchase(CHAR_SLOT.iap.id) 성공 뒤에 부름). 성공 = 빈 문자열 */

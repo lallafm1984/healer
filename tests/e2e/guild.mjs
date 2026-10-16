@@ -1,5 +1,5 @@
 // 출시판은 길드를 빼 둠 (src/data/features.ts, 2026-10-09). FEATURES.guild를 켜면 scripts/e2e.mjs에 다시 넣을 것. 지금은 guild-off.mjs가 돈다.
-// 길드 (30 시안 「길드 게시판」, 09 S12~S14, 02 9장, 17): 잠금 → 게시판(home) → 팻말 「영입」 모집 공고 → 영입 → 팻말 「길드원」 상세(훈련·육성 포인트·방출 확인)
+// 길드 (30 시안 「길드 게시판」, 09 S12~S14, 02 9장, 17): 잠금 → 게시판(home) → 팻말 「영입」 골드 모집 → 영입 → 팻말 「길드원」 상세(훈련·육성 포인트·방출 확인)
 // → 게시판 「길드파티로 출전」 = 전투 탭 → 입장 → 편성이 길드파티 → 편성 「길드파티」 → 출발 → 보상에 길드원 경험치 → 좁은·넓은 화면 넘침
 import { chromium } from 'playwright';
 import { departGo, killEnemies, pastTitle, toParty } from './nav.mjs';
@@ -26,7 +26,7 @@ export default async function guild(url, shots) {
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-guild') && /Lv 15에 열림/.test(await text('#s-guild .lockline')), 'Lv 1 = 길드 잠금 (Lv 15)');
 
-  await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 30; localStorage.setItem('healer.save', JSON.stringify(s)); });
+  await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 30; s.player.gold = 20000; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
   ok(/새벽의 손/.test(await text('#s-guild h2')) && /정원 0\/6/.test(await text('#s-guild h2')), 'Lv 30 = 길드 열림, 정원 0/6');
   ok(await page.isVisible('#s-guild .g-home .g-board') && (await page.locator('#s-guild .g-board .g-note').count()) === 6, '탭에 들어오면 게시판 (쪽지 6장)');
@@ -37,13 +37,13 @@ export default async function guild(url, shots) {
   const sgn = await page.locator('#s-guild .g-sign').evaluateAll(els => els.map(e => [e.dataset.sub, Math.round(e.getBoundingClientRect().height)]));
   ok(sgn.length === 2 && sgn[0][0] === 'members' && sgn[1][0] === 'recruit' && sgn.every(x => x[1] >= 44), `나무 팻말 2개 (길드원·영입, 44px 이상) ${JSON.stringify(sgn)}`);
 
-  // ---- 모집 공고 → 영입 (v16: 골드 비용 없음) ----
+  // ---- 골드 모집 → 영입 ----
   await page.click('#s-guild .g-sign[data-sub="recruit"]'); await page.clock.runFor(50);
   ok(await page.isVisible('#s-guild .g-sub [data-sub="home"]'), '영입 화면에 「게시판」 팻말');
   ok((await page.locator('#s-guild [data-post]').count()) === 3, '모집 공고 3단계');
   await page.click('#s-guild [data-post="normal"]'); await page.clock.runFor(50);
   let sv = await save();
-  ok(sv.guild.post?.cands.length === 3, '일반 공고 = 지원자 3명');
+  ok(sv.player.gold === 19500 && sv.guild.post?.cands.length === 3, `일반 공고 = 골드 500, 지원자 3명 (${sv.player.gold})`);
   ok((await page.locator('#s-guild [data-hire]').count()) === 3 && (await page.locator('#s-guild .pab').count()) >= 3 && (await page.locator('#s-guild .papt').count()) >= 3, '지원자 카드 = 능력·자질 표시');
   ok((await text('#s-guild [role="tab"][data-sub="recruit"] .g-badge')) === '3', '지원자 있으면 팻말에 빨간 숫자 3');
   await page.screenshot({ path: `${shots}/guild_recruit.png` });
@@ -58,12 +58,14 @@ export default async function guild(url, shots) {
   await page.click('#s-guild [role="tab"][data-sub="members"]'); await page.clock.runFor(50);
   await page.click(`#s-guild [data-mem="${m0.id}"]`); await page.clock.runFor(50);
   ok(await page.isVisible('#s-guild .mdetail') && /남은 1점/.test(await text('#s-guild .mdetail')), `상세 열림, Lv ${m0.lv} = 육성 포인트 1점`);
+  const g0 = sv.player.gold;
   await page.click('#s-guild [data-train]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.guild.members[0].lv === m0.lv + 1, '훈련 +1 Lv');
+  ok(sv.guild.members[0].lv === m0.lv + 1 && sv.player.gold === g0 - m0.lv * 30, `훈련 +1 Lv: 골드 ${m0.lv * 30}`);
+  const lv1 = sv.guild.members[0].lv, g1 = sv.player.gold;
   await page.click('#s-guild [data-pt="star"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.guild.members[0].star === 1, '능력 ★+1');
+  ok(sv.guild.members[0].star === 1 && sv.player.gold === g1 - lv1 * 100, `능력 ★+1: 골드 ${lv1 * 100}`);
   ok(await page.isDisabled('#s-guild [data-pt="star"]') && await page.isDisabled('#s-guild [data-pt="0"]'), '포인트 다 쓰면 버튼 꺼짐');
   ok(/★1\/5/.test(await text('#s-guild .mdetail')), '상세에 ★1/5');
   await page.click('#s-guild [data-release]'); await page.clock.runFor(50);

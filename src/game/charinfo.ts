@@ -2,7 +2,7 @@
  * 내 힐러 요약 (27 2장 로비 힐러 카드 · 4-1 캐릭터 머리 · 4-2 능력치 판).
  * 장비 점수 = 장착 장비 itemScore 합 × 10 (편성 화면 권장 장비 경고와 같은 기준). 「전투력」이라는 말은 쓰지 않는다.
  */
-import { avgScore, gearStatsOf, ITEM_GRADES, itemScore, itemSpecs, KINDS, specLineValue, LOOK_WORD, lookOf, PLACE_KINDS, SLOTS, slotName, STATS, type GearItem, type ItemGrade, type KindDef, type SlotKey } from '../data/equipment';
+import { gearStatsOf, itemScore, itemSpecs, KINDS, specLineValue, LOOK_WORD, lookOf, PLACE_KINDS, SLOTS, slotName, STATS, type GearItem, type KindDef, type SlotKey } from '../data/equipment';
 import { dexKeys, type DexTab } from '../data/dex';
 import { FACTIONS, type FactionKey } from '../data/places';
 import { uniqueOf, uniqueValue } from '../data/uniques';
@@ -47,7 +47,7 @@ export function specRows(it: GearItem): SpecRow[] {
   const nm = namedOf(it.named);
   if (nm) out.push({ key: nm.key, name: nm.name, group: 'named', badge: '고유', text: specText(nm, nm.val), roll: null, off: dup(nm.key), i: null });
   const un = uniqueOf(it.unique), ud = un && SPECS[un.spec];
-  if (un && ud) out.push({ key: ud.key, name: `${ud.name} (고유)`, group: ud.group, badge: '고유', text: specText(ud, uniqueValue(un, it.grade)), roll: null, off: dup(ud.key), i: null });
+  if (un && ud) out.push({ key: ud.key, name: `${ud.name} (고유)`, group: ud.group, badge: '고유', text: specText(ud, uniqueValue(un, it.grade, it.uniqueMult)), roll: null, off: dup(ud.key), i: null });
   for (const [i, l] of (it.specs ?? []).entries()) {
     const d = SPECS[l.key];
     if (!d) continue;
@@ -99,14 +99,6 @@ export function dexRows(tab: DexTab): DexRow[] {
     const u = uniqueOf(a)!, d = SPECS[u.spec];
     return { key, got, slot: u.slot, kind: u.kind, unique: a, name: u.name, text: `${d.name} (고유): ${specText(d, uniqueValue(u, '전설'))}`, hint: `Lv 100 · ${u.placeName} 어려움 · 악몽에서 · ${slotName(u.slot)} 전설` };
   });
-}
-
-/** 장착 평균 등급·강화 (빈칸은 0점으로 셈): 희귀 +3 → { grade: '희귀', plus: 3 } */
-export function gearAvg(): { grade: ItemGrade | null; plus: number } {
-  const avg = avgScore(G.save.gear.equipped, G.save.player.level);
-  if (avg < 1) return { grade: null, plus: 0 };
-  const gi = Math.min(ITEM_GRADES.length - 1, Math.floor(avg) - 1);
-  return { grade: ITEM_GRADES[gi], plus: Math.round((avg - Math.floor(avg)) * 10) };
 }
 
 /** 가방에 지금 장비보다 점수가 높은 장비가 있는 부위 */

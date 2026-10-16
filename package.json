@@ -17,7 +17,6 @@
     "android": "npm run build && cap sync android",
     "sim:dungeon": "rolldown scripts/sim-dungeon.ts --platform node --format esm -o .sim/sim-dungeon.mjs && node .sim/sim-dungeon.mjs",
     "sim:heroes": "rolldown scripts/sim-heroes.ts --platform node --format esm -o .sim/sim-heroes.mjs && node .sim/sim-heroes.mjs",
-    "sim:enhance": "rolldown scripts/sim-enhance.ts --platform node --format esm -o .sim/sim-enhance.mjs && node .sim/sim-enhance.mjs",
     "sim:raids": "rolldown scripts/sim-raids.ts --platform node --format esm -o .sim/sim-raids.mjs && node .sim/sim-raids.mjs",
     "balance": "rolldown scripts/balance.ts --platform node --format esm -o .sim/balance.mjs && node .sim/balance.mjs",
     "gap": "rolldown scripts/gap.ts --platform node --format esm -o .sim/gap.mjs && node .sim/gap.mjs",

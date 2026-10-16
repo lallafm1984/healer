@@ -214,7 +214,7 @@ describe('다른 직업이면 꺼짐', () => {
 describe('드롭 출처와 가방 (72)', () => {
   const now = new Date(2026, 9, 14, 12).getTime();
   const fresh = (hero: Hero) => {
-    G.save = newSave(now); G.save.tut = 3; G.save.player = { level: 60, xp: 0 };
+    G.save = newSave(now); G.save.tut = 3; G.save.player = { level: 60, xp: 0, gold: 0 };
     G.save.hero = hero; rollover(G.save, now, () => 0.5);
   };
   it('공훈 교환도 지금 직업 전용 약 70% (다른 직업 전용은 안 나옴)', () => {

@@ -13,17 +13,18 @@ import { ALL_DIFFS, contentOf, isLeveling, raidSize, stageOf, type ContentDef, t
 import type { DiffName } from '../data/difficulty';
 import { AFFIXES } from '../data/affixes';
 import { CHAL } from '../data/challenge';
-import { clearMats, GRADE_STYLE, ITEM_GRADES, type ItemGrade } from '../data/equipment';
+import { GRADE_STYLE, ITEM_GRADES, type ItemGrade } from '../data/equipment';
 import { gearGradeOdds } from '../data/reward-preview';
 import { HEROES } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
+import { clearGold, EXPLORE_REWARD } from '../data/progression';
 import { art, cssUrl } from '../art';
 import { weekRemaining } from '../game/clock';
 import { meritFor, raidLootOpen } from '../game/economy';
 import { staminaCost } from '../game/stamina';
 import { Flow } from '../game/flow';
 import { fitNow, FIT_TEXT, guide, guideCtx, rankStages, type Stage } from '../game/guide';
-import { chalGate, weekAffixes } from '../game/runmode';
+import { chalGate, runMode, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { esc, fmt, go, previous, screen, topBar } from './kit';
@@ -235,9 +236,10 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   const currency = (key: CurrencyIconKey, name: string, amount: number, color: string, basis = '클리어 시', probability = 1) => {
     items.push({ key, name, label: fmt(amount), icon: currencyIcon(key), color, probability, basis });
   };
-  const mats = clearMats(d, raid, c.kind === 'explore');
-  if (mats.stone) currency('stone', '강화석', mats.stone, '#C3B899');
-  if (mats.refined) currency('refined', '정제 강화석', mats.refined, '#A6DEF0');
+  // 클리어 골드 (91, #172 전과 같은 칸): 이 판 적 레벨 · A 평가, 탐험은 EXPLORE_REWARD
+  const stage = runMode(G.save, c, d, { chal: 0 }).stage;
+  const gold = Math.round(clearGold(stage, d, 'A', raid) * (play && c.kind === 'explore' ? EXPLORE_REWARD : 1));
+  currency('gold', '골드', gold, '#DDB563', '클리어 시 · A 평가');
   if (play && raid) {
     const merit = meritFor(G.save, raid, d);
     currency('merit', '공훈', merit, '#E6BA6F', merit ? '클리어 시' : '이번 주 공훈 한도 도달', merit ? 1 : 0);

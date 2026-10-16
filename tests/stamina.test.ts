@@ -6,7 +6,7 @@ import { HEROES } from '../src/data/heroes';
 import { grantProduct, products } from '../src/game/economy';
 import { Flow } from '../src/game/flow';
 import { settle, type BattleResult } from '../src/game/settle';
-import { adCharge, adsFree, restCutMat, restCutXp, staminaCost, staminaMax, staminaView, syncStamina, useRest } from '../src/game/stamina';
+import { adCharge, adsFree, restCut, staminaCost, staminaMax, staminaView, syncStamina, useRest } from '../src/game/stamina';
 import { G, heroStatus, switchHero } from '../src/game/state';
 import { interstitialDue } from '../src/platform/ads';
 import { migrate, newSave, type SaveData } from '../src/platform/storage';
@@ -64,15 +64,8 @@ describe('클리어할 때 쓰는 휴식 (90)', () => {
     expect(useRest(s, 20, T0)).toEqual({ used: 0, cut: false });
     expect(staminaView(s, T0)).toMatchObject({ n: 0, unlimited: true });
   });
-  it('1/3: 경험치는 반올림 (1 이상), 강화석 · 정제 강화석은 기댓값 1/3 (확률로 올림)', () => {
-    expect([restCutXp(0), restCutXp(1), restCutXp(100), restCutXp(1000)]).toEqual([0, 1, 33, 333]);
-    expect([restCutMat(0, () => 0), restCutMat(3, () => 0), restCutMat(6, () => 0.99)]).toEqual([0, 1, 2]);
-    let seed = 7;
-    const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    for (const n of [1, 2, 4]) {
-      const avg = Array.from({ length: 6000 }, () => restCutMat(n, rng)).reduce((a, b) => a + b, 0) / 6000;
-      expect(avg).toBeCloseTo(n / 3, 1);
-    }
+  it('1/3: 경험치 · 골드 반올림 (1 이상, 91: 예전 강화석 · 정제 강화석 자리에 골드)', () => {
+    expect([restCut(0), restCut(1), restCut(100), restCut(1000)]).toEqual([0, 1, 33, 333]);
   });
 });
 
@@ -82,7 +75,7 @@ describe('정산의 휴식 (90 settle)', () => {
     healed: 1000, overheal: 100, dispels: 0, dispellable: 0, endMana: 40, minMana: 20, auto: false, party: [], detail: [], stage: 30, ...o,
   });
   const lv30 = (): SaveData => { const s = fresh(); s.player.level = 30; s.clears.rustfort = { '악몽': { stars: 3, grade: 'S', best: 100, n: 1 } }; return s; };
-  it('휴식이 있으면 던전 10을 쓰고 경험치 · 강화석 · 정제 강화석 그대로, 0이면 1/3 · 장비는 그대로', () => {
+  it('휴식이 있으면 던전 10을 쓰고 경험치 · 골드 그대로, 0이면 1/3 · 장비는 그대로', () => {
     const a = lv30(), b = lv30();
     b.stamina.n = 0;
     const xa = settle(a, run(), () => 0.5, [], T0), xb = settle(b, run(), () => 0.5, [], T0);
@@ -91,9 +84,9 @@ describe('정산의 휴식 (90 settle)', () => {
     expect(xb.rest).toEqual({ used: 0, cut: true });
     expect(b.stamina.n).toBe(0);
     expect(xb.xp).toBe(Math.round(xa.xp / 3));
-    // 던전 악몽 = 강화석 4 · 정제 1 → 1/3 (rng 0.5: 4/3 → 1 + (0.33 > 0.5 ? 1 : 0) = 1, 1/3 → 0)
-    expect(xa.mats).toEqual({ stone: 4, refined: 1 });
-    expect(xb.mats).toEqual({ stone: 1, refined: 0 });
+    expect(xa.gold).toBeGreaterThan(0);
+    expect(xb.gold).toBe(Math.round(xa.gold / 3));
+    expect([a.player.gold, b.player.gold]).toEqual([xa.gold, xb.gold]);
     expect(xb.items.length).toBe(1);
   });
   it('진 판 · 포기 · 튜토리얼은 휴식을 쓰지 않음 (rest = null)', () => {

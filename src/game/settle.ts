@@ -4,10 +4,10 @@
 import { ALL_DIFFS, contentOf, raidSize, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
-import { clearMats, rollItem, type GearItem } from '../data/equipment';
+import { rollItem, type GearItem } from '../data/equipment';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
-import { addXp, clearXp, EXPLORE_REWARD, gradeOf, inRamp, rampXp, starsOf, type Grade } from '../data/progression';
+import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, inRamp, rampXp, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
 import { guildAfter, type GuildAfter } from './guild';
@@ -17,7 +17,7 @@ import { PUB_BONUS } from '../data/missions';
 import { CHAL, chalDropDiff } from '../data/challenge';
 import type { RosterEntry } from '../engine/types';
 import type { AffixKey } from '../data/affixes';
-import { restCutMat, restCutXp, staminaCost, useRest, type RestUse } from './stamina';
+import { restCut, staminaCost, useRest, type RestUse } from './stamina';
 
 /** 전투 화면이 끝날 때 넘겨주는 결과 (던전이면 구간 전체 합) */
 export interface BattleResult {
@@ -80,8 +80,8 @@ export interface Settlement {
   newSpecs: string[];
   /** 그 장비로 처음 채운 장비 도감 칸 (34 6-10 ④, 결과 화면 「장비 도감 +n」) */
   newDex: string[];
-  /** 받은 강화 재료 (12 1장) */
-  mats: { stone: number; refined: number };
+  /** 받은 골드 (12 3-1 클리어 골드, 91에서 되살림. 휴식이 0이면 1/3) */
+  gold: number;
   /** 이 콘텐츠·난이도 첫 클리어 */
   first: boolean;
   /** 최고 기록 경신 */
@@ -104,7 +104,7 @@ export interface Settlement {
   cont: number;
   /** 이 판으로 튜토리얼이 끝남 (녹슨 고원 탐험 클리어, 34 5-2) */
   tutEnd: boolean;
-  /** 휴식 (90): 클리어한 판만. used = 쓴 휴식, cut = 휴식이 0이라 경험치 · 강화석 · 정제 강화석 1/3. 튜토리얼 · 진 판 · 포기는 null */
+  /** 휴식 (90): 클리어한 판만. used = 쓴 휴식, cut = 휴식이 0이라 경험치 · 골드 1/3 (91). 튜토리얼 · 진 판 · 포기는 null */
   rest: RestUse | null;
 }
 
@@ -139,24 +139,27 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const pubBonus = play && r.win && pub && (c.kind === 'dungeon' || c.kind === 'raid') && save.daily.pub < PUB_BONUS.runs ? ++save.daily.pub : 0;
   // 축제 주간 (주간 도전 어픽스): 경험치 +20% (v16, 예전 골드 +20%)
   const festival = r.affixes?.includes('festival') ? CHAL.festivalXp : 1;
-  // 탐험은 짧고 쉬워서 경험치를 줄임 (튜토리얼이 끝난 뒤, 32 3-3)
+  // 탐험은 짧고 쉬워서 골드 · 경험치를 줄임 (튜토리얼이 끝난 뒤, 32 3-3)
   const kind = play && c.kind === 'explore' ? EXPLORE_REWARD : 1;
   // 따라잡기·장소 레벨 차이 보정 없음. 경험치는 직업 레벨·난이도·등급·콘텐츠 배율로만 정함.
   // Lv 20까지는 장소 Lv 20까지의 탐험 · 던전이 장소가 정한 경험치 (70): 쉬움 · 보통을 처음 깨면 다음 장소 레벨 (주간 도전은 빼고)
   // 진 판 (전멸 · 포기)은 경험치 없음 (2026-10-13 Lim)
-  // 휴식 (90): 클리어하면 콘텐츠 몫만큼 씀. 휴식이 0이면 경험치 · 강화석 · 정제 강화석 1/3 (장비 · 공훈 · 임무 · 상자는 그대로)
+  // 휴식 (90): 클리어하면 콘텐츠 몫만큼 씀. 휴식이 0이면 경험치 · 골드 1/3 (91, 장비 · 공훈 · 임무 · 상자는 그대로)
   const rest = play && r.win && !r.quit ? useRest(save, staminaCost(c, r.chal), now) : null;
   const xp0 = !r.win || r.quit ? 0
     : !r.chal && inRamp(c, p.level) ? rampXp(c, r.diff, { first: !save.clears[r.content]?.[r.diff], grade, win: r.win })
     : Math.max(1, Math.round(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind * festival));
-  const xp = rest?.cut ? restCutXp(xp0) : xp0;
+  const xp = rest?.cut ? restCut(xp0) : xp0;
+  // 클리어 골드 (12 3-1, 91에서 되살림): 이 판 적 레벨 · 난이도 · 등급 · 레이드 배율, 탐험 × EXPLORE_REWARD. 휴식이 0이면 1/3
+  const gold0 = r.win ? Math.round(clearGold(stage, r.diff, grade!, raid) * kind) : 0;
+  const gold = rest?.cut ? restCut(gold0) : gold0;
   const levelBefore = p.level;
+  p.gold += gold;
   const levelUps = addXp(p, xp);
 
   const items: GearItem[] = [];
   let newSpecs: string[] = [], newDex: string[] = [];
-  const mats = r.win ? clearMats(r.diff, raid, c.kind === 'explore') : { stone: 0, refined: 0 };
-  // 레이드 장비는 보스마다 난이도별 주 1회 (13 3-4). 그 뒤엔 재료·공훈만
+  // 레이드 장비는 보스마다 난이도별 주 1회 (13 3-4). 그 뒤엔 골드·공훈만
   const lootLocked = play && r.win && !!raid && !raidLootOpen(save, c.key, r.diff);
   let merit = 0;
   if (r.win) {
@@ -171,8 +174,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
       newSpecs = noteSpecs(save, items);
       if (play && raid) save.weekly.loot.push(lootKey(save.hero, c.key, r.diff));
     }
-    if (rest?.cut) { mats.stone = restCutMat(mats.stone, rng); mats.refined = restCutMat(mats.refined, rng); }
-    save.mats.stone += mats.stone; save.mats.refined += mats.refined;
     if (play && raid) { merit = meritFor(save, raid, r.diff); save.weekly.merit[raid] += merit; save.wallet.merit += merit; }
   }
 
@@ -226,6 +227,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, mats, first, best, heroQuest, guild, merit, lootLocked, pubBonus, missions, chal, cont, tutEnd, rest,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, merit, lootLocked, pubBonus, missions, chal, cont, tutEnd, rest,
   };
 }

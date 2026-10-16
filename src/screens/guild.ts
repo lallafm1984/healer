@@ -3,13 +3,14 @@
  * home = 길드 홀 벽 + 나무 게시판 + 양피지 쪽지 (길드원 · 모집 공고 · 주간 목표 · 인연 스카우트 · 정원 · 안내)
  *        + 나무 팻말 「길드원」「영입」 + 「길드파티로 출전」 (편성이 길드파티로 시작).
  * members = 길드원 목록 → 누르면 바로 아래에 상세 (훈련·육성 포인트·능력 다시 뽑기·초기화·방출).
- * recruit = 모집 공고(후보 3명 중 1명) · 인연 스카우트.
+ * recruit = 골드 모집 공고(후보 3명 중 1명) · 인연 스카우트.
  * 게시판·쪽지·도장 그림(ui-board · ui-note · ui-seal)이 오면 그 그림, 없으면 CSS 게시판 (guild30.css).
  */
+import { resourceBalance } from '../game/resources';
 import { art } from '../art';
 import { ABILITIES, STAR5, starFx } from '../data/abilities';
 import { CLASSES } from '../data/classes';
-import { APT_NAMES, aptOf, guildCap, pointsAt, pointsUsed, POSTS, type GuildMember, type PostTier } from '../data/guild';
+import { APT_NAMES, aptOf, guildCap, pointCost, pointsAt, pointsUsed, POSTS, REROLL_GOLD, RESET_GOLD, SCOUT_GOLD, trainCost, type GuildMember, type PostTier } from '../data/guild';
 import { GUILD_GOAL } from '../data/missions';
 import { GUILD_LEVEL, MAX_LEVEL, xpToNext } from '../data/progression';
 import { Flow } from '../game/flow';
@@ -18,7 +19,7 @@ import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { cardHtml, memDetailHtml, ROLE_ICON, type CardData } from './members';
 import { esc, fmt, go, ROLE, screen, topBar } from './kit';
-import { gameIcon, LOCK } from './art';
+import { currencyAmount, gameIcon, LOCK } from './art';
 
 type Sub = 'home' | 'members' | 'recruit';
 const st: { sub: Sub; sel: number | null; msg: string; ask: number | null } = { sub: 'home', sel: null, msg: '', ask: null };
@@ -31,6 +32,7 @@ const svg = (d: string, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="
 const FLAG = svg('<path d="M6 21V4"/><path d="M6 4h11l-2 4 2 4H6"/>');
 const ARROW = svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 2.4).replace('<svg', '<svg class="g-arrow"');
 const BACK = svg('<path d="M19 12H5M11 6l-6 6 6 6"/>', 2.4);
+const goldCost = (value: number) => currencyAmount('gold', value);
 
 /**
  * 정식 그림 (30 문서 3장): ui-board 게시판 나무틀 · ui-note 양피지가 있으면 .art = 9칸 늘리기(border-image)로 그림,
@@ -71,7 +73,7 @@ function render(): void {
     s.el.innerHTML = `${topBar({ settings: true })}<div class="ns-body g-home g-lock">
       ${board('g-hboard', '<h2 class="g-plq"><b>길드</b><small>길드 홀</small></h2>', `<div class="g-notes g-locknotes">${note('n-lock', `<h3 class="lockline">${LOCK}${esc(open.why)}</h3>
         <p>지금 Lv ${topLevel(G.save)}</p>
-        <p class="m">길드원을 영입해 직접 편성합니다. 모집 공고와 인연 스카우트로 모읍니다.</p>`)}</div>`)}
+        <p class="m">길드원을 영입해 직접 편성합니다. 골드 모집 공고와 인연 스카우트로 모읍니다.</p>`)}</div>`)}
     </div>`;
     return;
   }
@@ -108,17 +110,18 @@ function homeHtml(open: { dev: boolean }): string {
     ? note('n-mem', `<h3>길드원<small>${n}/${cap.cap} · 누르면 육성</small></h3>${rows}
         <p class="m">${more > 0 ? `외 ${more}명${anyPts ? ' · ' : ''}` : ''}${anyPts ? '초록 숫자 = 남은 육성 포인트' : more > 0 ? '' : '전투력 순'}</p>`, ' role="button" tabindex="0" data-sub="members"')
     : note('n-mem empty', `<h3>길드원<small>0/${cap.cap}</small></h3><p>아직 길드원 없음</p>
-        <p class="m">「영입」에서 모집 공고를 내거나, 공개모집에서 잘 살려 준 파티원을 스카우트</p>`, ' role="button" tabindex="0" data-sub="recruit"');
+        <p class="m">「영입」에서 골드 모집 공고를 내거나, 공개모집에서 잘 살려 준 파티원을 스카우트</p>`, ' role="button" tabindex="0" data-sub="recruit"');
+  const minGold = Math.min(...Object.values(POSTS).map(p => p.gold));
   const full = n >= cap.cap;
   const postNote = g.post
     ? note('n-post', `<h3>모집 공고</h3><p>${POSTS[g.post.tier].name} 공고</p><p class="m">지원자 ${g.post.cands.length}명 · 1명 영입</p>${seal('data-sub="recruit"', '보기')}`)
-    : note('n-post', `<h3>모집 공고</h3><p>${full ? '정원이 다 참' : '공고 없음'}</p>${seal('data-sub="recruit"', full ? '보기' : '공고 내기', full)}`);
+    : note('n-post', `<h3>모집 공고</h3><p>${full ? '정원이 다 참' : '공고 없음'}</p><p class="m">${goldCost(minGold)}부터</p>${seal('data-sub="recruit"', full ? '보기' : '공고 내기', full)}`);
   const goalNote = note('n-goal', `<h3>주간 목표</h3><p>길드파티로 클리어</p>
     <span class="g-nbar"><i style="width:${Math.min(100, (w.n / need) * 100).toFixed(0)}%"></i></span>
     <p class="m">${w.got ? `달성 · 명성 +${GUILD_GOAL.fame} 받음` : w.n >= need ? `${need} / ${need} · 임무에서 명성 +${GUILD_GOAL.fame}` : `${w.n} / ${need} · 명성 +${GUILD_GOAL.fame}`}</p>`);
   const sc = g.scouts[0];
   const scoutNote = note('n-scout', `<h3>인연 스카우트</h3>${sc
-    ? `<p>대기 ${g.scouts.length}명 · ${esc(sc.nick)} (${CLASSES[sc.cls].name})</p><p class="m">S·A 클리어에서</p>`
+    ? `<p>대기 ${g.scouts.length}명 · ${esc(sc.nick)} (${CLASSES[sc.cls].name})</p><p class="m">${goldCost(SCOUT_GOLD)} · S·A 클리어에서</p>`
     : `<p>대기 없음</p><p class="m">공개모집 S·A 클리어 때 내 힐을 가장 많이 받은 파티원</p>`}`);
   const cs = capSteps();
   const capNote = note('n-cap', `<h3>정원</h3><p>Lv ${cs.now.lv} · ${cs.now.cap}명</p><p class="m">${cs.next ? `다음: Lv ${cs.next.lv} · ${cs.next.cap}명` : '최대 정원'}</p>`);
@@ -156,7 +159,7 @@ function subHtml(open: { dev: boolean }): string {
 
 function membersHtml(): string {
   const g = G.save.guild;
-  if (!g.members.length) return `${note('g-paper', `<h3>길드원</h3><p>아직 길드원 없음</p><p class="m">「영입」에서 모집 공고를 내거나, 공개모집에서 잘 살려 준 파티원을 스카우트</p>`)}
+  if (!g.members.length) return `${note('g-paper', `<h3>길드원</h3><p>아직 길드원 없음</p><p class="m">「영입」에서 골드 모집 공고를 내거나, 공개모집에서 잘 살려 준 파티원을 스카우트</p>`)}
     <button class="btn primary" type="button" data-sub="recruit">영입하기</button>`;
   const list = g.members.slice().sort((a, b) => powerOf(b) - powerOf(a));
   return `<ul class="pcards gmembers">${list.map(m => cardHtml({ ...m, apt: aptOf(m), power: powerOf(m) }, { attrs: `data-mem="${m.id}" role="button" tabindex="0"`, cls: `tap${st.sel === m.id ? ' on' : ''}`, desc: false }) + (st.sel === m.id ? detailHtml(m) : '')).join('')}</ul>
@@ -164,10 +167,11 @@ function membersHtml(): string {
 }
 
 function detailHtml(m: GuildMember): string {
-  const a = ABILITIES[m.ab], apt = aptOf(m), pts = pointsAt(m.lv) - pointsUsed(m);
+  const a = ABILITIES[m.ab], apt = aptOf(m), pts = pointsAt(m.lv) - pointsUsed(m), pc = pointCost(m.lv);
   const fx = starFx(a, m.star);
   const need = xpToNext(m.lv), xpPct = isFinite(need) ? Math.min(100, (m.xp / need) * 100) : 100;
   const atCap = m.lv >= topLevel(G.save);
+  const gold = resourceBalance(G.save, 'gold');
   const btn = (attr: string, label: string, sub: string, dis: boolean, cls = '') => `<button class="btn${cls ? ` ${cls}` : ''}" type="button" ${attr}${dis ? ' disabled' : ''}>${label}<small>${sub}</small></button>`;
   return `<li class="panel mdetail">
     <p class="mxp">경험치 <span class="bar"><i style="width:${xpPct.toFixed(0)}%"></i></span> ${fmt(m.xp)} / ${isFinite(need) ? fmt(need) : '최대'} · 출전 ${m.runs}번</p>
@@ -175,30 +179,30 @@ function detailHtml(m: GuildMember): string {
     <p class="mute">능력 ★${m.star}/5${m.star ? ` · 효과 ×${fx.eff.toFixed(2)}${fx.cd < 1 ? ` · 쿨 ×${fx.cd.toFixed(1)}` : ''}${fx.early ? ' · 조금 일찍 씀' : ''}` : ''}${m.star >= 5 ? ` · ★5: ${STAR5[a.kind]}` : ''}</p>
     <h4>육성 포인트 <small>남은 ${pts}점 · Lv 20부터 10레벨마다 1점 (최대 9)</small></h4>
     <div class="gbtns">
-      ${[0, 1, 2].map(i => btn(`data-pt="${i}"`, `${APT_NAMES[i]} +1`, apt[i] >= 5 ? '최대' : '포인트 1', !pts || apt[i] >= 5)).join('')}
-      ${btn('data-pt="star"', '능력 ★+1', m.star >= 5 ? '최대' : '포인트 1', !pts || m.star >= 5)}
+      ${[0, 1, 2].map(i => btn(`data-pt="${i}"`, `${APT_NAMES[i]} +1`, apt[i] >= 5 ? '최대' : goldCost(pc), !pts || apt[i] >= 5 || gold < pc)).join('')}
+      ${btn('data-pt="star"', '능력 ★+1', m.star >= 5 ? '최대' : goldCost(pc), !pts || m.star >= 5 || gold < pc)}
     </div>
     <div class="gbtns">
-      ${btn('data-train', '훈련 +1 Lv', atCap ? '내 레벨까지' : `Lv ${m.lv + 1}`, atCap, 'primary')}
-      ${btn('data-reroll', '능력 다시 뽑기', '같은 직업 능력 중', false)}
-      ${btn('data-reset', '포인트 초기화', '쓴 포인트 돌려받기', !pointsUsed(m))}
+      ${btn('data-train', '훈련 +1 Lv', atCap ? '내 레벨까지' : goldCost(trainCost(m.lv)), atCap || gold < trainCost(m.lv), 'primary')}
+      ${btn('data-reroll', '능력 다시 뽑기', goldCost(REROLL_GOLD), gold < REROLL_GOLD)}
+      ${btn('data-reset', '포인트 초기화', goldCost(RESET_GOLD), !pointsUsed(m) || gold < RESET_GOLD)}
       ${btn('data-release', st.ask === m.id ? '한 번 더 누르면 방출' : '방출', st.ask === m.id ? '되돌릴 수 없음' : '길드에서 내보냄', false, st.ask === m.id ? 'danger' : 'ghost')}
     </div>
   </li>`;
 }
 
 function recruitHtml(): string {
-  const g = G.save.guild, cap = capOf(G.save), full = g.members.length >= cap.cap;
+  const g = G.save.guild, cap = capOf(G.save), full = g.members.length >= cap.cap, gold = resourceBalance(G.save, 'gold');
   const tiers = Object.keys(POSTS) as PostTier[];
   const post = g.post;
-  return `${note('g-paper g-posts', `<h3>모집 공고<small>정원 ${g.members.length}/${cap.cap}</small></h3>
-      <div class="gbtns posts">${tiers.map(t => `<button class="btn" type="button" data-post="${t}"${full ? ' disabled' : ''}>${POSTS[t].name} 공고<small>${esc(POSTS[t].desc.split(',')[0])}</small></button>`).join('')}</div>
-      <p class="g-recruit-status">${full ? '정원이 다 찼습니다.' : '지원자 3명 중 1명 영입'}</p>
+  return `${note('g-paper g-posts', `<h3>골드 모집<small>정원 ${g.members.length}/${cap.cap}</small></h3>
+      <div class="gbtns posts">${tiers.map(t => `<button class="btn" type="button" data-post="${t}"${full || gold < POSTS[t].gold ? ' disabled' : ''}>${POSTS[t].name} 공고<small>${goldCost(POSTS[t].gold)}</small></button>`).join('')}</div>
+      <p class="g-recruit-status">${full ? '정원이 다 찼습니다.' : gold < POSTS.normal.gold ? `골드 부족 · 보유 ${fmt(gold)}` : '지원자 3명 중 1명 영입 · 추가 비용 없음'}</p>
       <details class="g-recruit-info"><summary>공고별 지원자 차이</summary><p class="m">${tiers.map(t => `<b>${POSTS[t].name}</b> ${POSTS[t].desc}`).join('<br>')}</p></details>`)}
     ${post ? `<h3 class="g-tag">지원자 ${post.cands.length}명 <small>${POSTS[post.tier].name} 공고 · 1명만 영입</small></h3>
       <ul class="pcards">${post.cands.map((c, i) => recruitCard({ ...c, apt: aptOf(c), power: powerOf(c) }, `data-hire="${i}"`, full, '추가 비용 없음')).join('')}</ul>` : ''}
-    <h3 class="g-tag">인연 스카우트</h3>
-    ${g.scouts.length ? `<ul class="pcards">${g.scouts.map((c, i) => recruitCard({ ...c, apt: c.apt0 }, `data-scout="${i}"`, full, `${esc(c.from)}에서${full ? '<br>정원 가득' : ''}`)).join('')}</ul>`
+    <h3 class="g-tag">인연 스카우트 <small>${goldCost(SCOUT_GOLD)}</small></h3>
+    ${g.scouts.length ? `<ul class="pcards">${g.scouts.map((c, i) => recruitCard({ ...c, apt: c.apt0 }, `data-scout="${i}"`, full || gold < SCOUT_GOLD, `${esc(c.from)}에서<br>${full ? '정원 가득' : gold < SCOUT_GOLD ? `골드 부족 · 보유 ${fmt(gold)}` : goldCost(SCOUT_GOLD)}`)).join('')}</ul>`
       : memo('공개모집으로 S·A 등급 클리어를 하면, 살아남은 파티원 중 내 힐을 가장 많이 받은 사람이 호감도가 가득 차 여기 남음.')}`;
 }
 

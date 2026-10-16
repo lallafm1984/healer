@@ -107,7 +107,7 @@ async function charge(): Promise<boolean> {
 export function openStamina(): void {
   const render = (msg = '') => {
     const el = show('st-info', `<h3 id="stTitle">휴식</h3>${meter()}${timeRows()}
-      <p class="note">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 클리어하면 콘텐츠만큼 쓰고, 0이면 경험치 · 강화석 보상이 1/3입니다. 광고 충전은 최대치를 넘어도 들어갑니다.</p>
+      <p class="note">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 클리어하면 콘텐츠만큼 쓰고, 0이면 경험치 · 골드 보상이 1/3입니다. 광고 충전은 최대치를 넘어도 들어갑니다.</p>
       ${msg ? `<p class="st-msg" role="status">${esc(msg)}</p>` : ''}
       <div class="st-btns">${adButton(true)}<button class="btn" type="button" data-st="shop">상점</button><button class="btn" type="button" data-st="no">닫기</button></div>`);
     el.onclick = async e => {

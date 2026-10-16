@@ -5,11 +5,11 @@ import { lvPower } from '../src/data/progression';
 import { RULES } from '../src/data/rules';
 import { heroStats, statParts } from '../src/game/charinfo';
 import {
-  bestGearPlan, equipBest, G, isNewGear, lowGradeIds, markGearSeen, newGearCount, pickTalent, salvage, setTalentPreset, talentPreset, talentsNow, toggleLock,
+  bestGearPlan, equipBest, G, isNewGear, lowGradeIds, markGearSeen, newGearCount, pickTalent, sell, setTalentPreset, talentPreset, talentsNow, toggleLock,
 } from '../src/game/state';
 import { load, migrate, newSave, save, type KV } from '../src/platform/storage';
 
-const item = (o: Partial<GearItem> = {}): GearItem => ({ id: 1, slot: 'head', kind: '', grade: '희귀', plus: 0, name: '', lines: [], ...o });
+const item = (o: Partial<GearItem> = {}): GearItem => ({ id: 1, slot: 'head', kind: '', grade: '희귀', name: '', lines: [], ...o });
 const mem = (): KV & { data: Record<string, string> } => ({
   data: {},
   getItem(k) { return this.data[k] ?? null; },
@@ -18,11 +18,11 @@ const mem = (): KV & { data: Record<string, string> } => ({
 
 describe('장비 잠금 (27 4-3)', () => {
   beforeEach(() => { G.save = newSave(1); });
-  it('잠그면 분해에서 빠지고, 「일반·고급 모두」에도 안 들어감', () => {
+  it('잠그면 판매에서 빠지고, 「일반·고급 모두」에도 안 들어감', () => {
     G.save.gear.bag = [item({ id: 1, grade: '일반' }), item({ id: 2, grade: '고급' }), item({ id: 3, grade: '희귀' })];
     expect(toggleLock(2)).toBe(true);
     expect(lowGradeIds()).toEqual([1]);
-    const r = salvage([1, 2, 3]);
+    const r = sell([1, 2, 3]);
     expect(r.n).toBe(2);
     expect(G.save.gear.bag.map(x => x.id)).toEqual([2]);
   });
@@ -48,10 +48,11 @@ describe('장비 잠금 (27 4-3)', () => {
 describe('추천 장착 (27 4-2)', () => {
   beforeEach(() => { G.save = newSave(1); });
   it('부위마다 점수가 가장 높은 장비, 바뀌는 부위만', () => {
-    G.save.gear.equipped = { weapon: item({ id: 1, slot: 'weapon', grade: '희귀', plus: 5 }), head: item({ id: 2, slot: 'head', grade: '고급' }) };
+    // 91: 점수 = 실제 옵션 값 (굴림 · 아이템 레벨 배율 포함). 지팡이 주 옵션 지능 + 종류 옵션 가속
+    G.save.gear.equipped = { weapon: item({ id: 1, slot: 'weapon', grade: '희귀', fixedRolls: [1.2, 1.2] }), head: item({ id: 2, slot: 'head', grade: '고급' }) };
     G.save.gear.bag = [
-      item({ id: 3, slot: 'weapon', grade: '영웅' }), // 4.0 > 3.5
-      item({ id: 4, slot: 'weapon', grade: '희귀', plus: 9 }), // 3.9
+      item({ id: 3, slot: 'weapon', grade: '영웅', fixedRolls: [1.2, 1.2] }), // 5.55 > 5.11
+      item({ id: 4, slot: 'weapon', grade: '희귀', fixedRolls: [1.25, 1.25] }), // 5.32
       item({ id: 5, slot: 'head', grade: '고급' }), // 같으면 지금 것
       item({ id: 6, slot: 'ring', grade: '일반' }), // 빈칸
       item({ id: 7, slot: 'ring', grade: '일반' }), // 같은 점수면 앞의 것
@@ -164,7 +165,7 @@ describe('능력치 판 · 출처 (27 4-2)', () => {
   beforeEach(() => { G.save = newSave(1); G.save.player.level = 40; });
   it('몫을 더하면 합계', () => {
     G.save.gear.equipped = {
-      weapon: item({ id: 1, slot: 'weapon', grade: '영웅', plus: 3 }),
+      weapon: item({ id: 1, slot: 'weapon', grade: '영웅', fixedRolls: [1.3, 0.9] }),
       chest: item({ id: 2, slot: 'chest', grade: '영웅' }),
       head: item({ id: 3, slot: 'head', grade: '희귀' }),
     };
@@ -182,7 +183,7 @@ describe('능력치 판 · 출처 (27 4-2)', () => {
     expect(heroStats().regen).toBeCloseTo(st.regen);
   });
   it('장비 한 개 몫을 6부위 더하면 장비 능력치', () => {
-    const eq = Object.fromEntries(SLOTS.map((s, i) => [s.key, item({ id: i + 1, slot: s.key, grade: (['일반', '고급', '희귀', '영웅', '전설', '희귀'] as const)[i], plus: i })]));
+    const eq = Object.fromEntries(SLOTS.map((s, i) => [s.key, item({ id: i + 1, slot: s.key, grade: (['일반', '고급', '희귀', '영웅', '전설', '희귀'] as const)[i], lv: 30 + i })]));
     const st = gearStatsOf(eq, 40), sum = noStats();
     for (const s of SLOTS) { const x = itemStats(eq[s.key], 40); for (const k of STAT_KEYS) sum[k] += x[k]; }
     expect(1 + sum.int).toBeCloseTo(st.heal);

@@ -36,16 +36,24 @@ export interface GuildMember {
 }
 
 export type PostTier = 'normal' | 'better' | 'best';
-/** 모집 공고 (12 3-3): 후보 3명 중 1명. v16 (2026-10-16): 골드를 없애 비용 없음 (길드를 되살릴 때 비용을 다시 정함) */
-export const POSTS: Record<PostTier, { name: string; lv: [number, number]; desc: string }> = {
-  normal: { name: '일반', lv: [-6, -3], desc: '내 레벨보다 3~6 낮은 지원자' },
-  better: { name: '고급', lv: [-3, -1], desc: '내 레벨보다 1~3 낮은 지원자, 고급 능력이 조금 더' },
-  best: { name: '명문', lv: [-1, 0], desc: '내 레벨 근처 지원자, 자질 ●4 이상 40%, 고급·희귀 능력이 더' },
+/** 골드 모집 공고 (12 3-3): 일반 500 · 고급 2,000 · 명문 8,000. 후보 3명 중 1명 */
+export const POSTS: Record<PostTier, { name: string; gold: number; lv: [number, number]; desc: string }> = {
+  normal: { name: '일반', gold: 500, lv: [-6, -3], desc: '내 레벨보다 3~6 낮은 지원자' },
+  better: { name: '고급', gold: 2000, lv: [-3, -1], desc: '내 레벨보다 1~3 낮은 지원자, 고급 능력이 조금 더' },
+  best: { name: '명문', gold: 8000, lv: [-1, 0], desc: '내 레벨 근처 지원자, 자질 ●4 이상 40%, 고급·희귀 능력이 더' },
 };
 export const POST_CANDS = 3;
 
 /** 인연 스카우트 (12 3-3, 02 9-3 ②): 공개모집에서 잘 살려 준 파티원. 목록은 최근 순 최대 */
+export const SCOUT_GOLD = 300;
 export const SCOUT_MAX = 8;
+/** 길드원 훈련 1레벨 = 길드원 레벨 × 30 골드 (12 3-3) */
+export const trainCost = (lv: number) => lv * 30;
+/** 능력 다시 뽑기 · 육성 포인트 초기화 (17 8-1) */
+export const REROLL_GOLD = 3000;
+export const RESET_GOLD = 5000;
+/** 육성 포인트 1점 골드 = 길드원 레벨 × 100 */
+export const pointCost = (lv: number) => lv * 100;
 /** 육성 포인트 (17 8-1): Lv 20·30 … 100에 1점씩, 모두 9점 */
 export const pointsAt = (lv: number) => Math.max(0, Math.min(9, Math.floor(lv / 10) - 1));
 export const pointsUsed = (m: GuildMember) => m.aptUp[0] + m.aptUp[1] + m.aptUp[2] + m.star;

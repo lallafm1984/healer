@@ -12,7 +12,7 @@ import { rngFrom } from '../src/engine/rng';
 import { claimChalChest, raidLootOpen, rollover } from '../src/game/economy';
 import { Flow } from '../src/game/flow';
 import { settle, type BattleResult } from '../src/game/settle';
-import { equip, G, heroStatus, makeChar, pickChar, salvage, switchHero } from '../src/game/state';
+import { equip, G, heroStatus, makeChar, pickChar, sell, switchHero } from '../src/game/state';
 import { migrate, newSave, save, load, heroSaveOf, type KV } from '../src/platform/storage';
 
 const now = new Date(2026, 9, 14, 12).getTime();
@@ -24,7 +24,7 @@ const result = (o: Partial<BattleResult> = {}): BattleResult => ({
 const owned = () => [...G.save.gear.bag, ...Object.values(G.save.gear.equipped).filter(x => !!x)].map(x => x!.id).sort((a,b) => a-b);
 const fresh = () => {
   G.save = newSave(now); G.save.tut = 3; G.save.settings.devUnlock = false;
-  G.save.player = { level: 30, xp: 123 }; G.save.mats = { stone: 78, refined: 9 };
+  G.save.player = { level: 30, xp: 123, gold: 7809 };
   G.save.roster.slots = 2; rollover(G.save, now, () => .5); Flow.running = false;
 };
 afterEach(() => { Flow.running = false; });
@@ -32,15 +32,15 @@ afterEach(() => { Flow.running = false; });
 describe('공통 성장과 직업별 착용 조합', () => {
   beforeEach(fresh);
   it('무료 전환은 현재 캐릭터·레벨·경험치·재화·진행을 그대로 유지', () => {
-    const d = G.save, snapshot = JSON.stringify([d.player, d.mats, d.daily, d.weekly, d.wallet, d.clears, d.guild, d.pass]);
-    const w = makeItem(() => .5, 'weapon', '희귀', 1); w.plus = 5; w.specs = [{ key: 'deepWord', roll: 1 }];
+    const d = G.save, snapshot = JSON.stringify([d.player, d.daily, d.weekly, d.wallet, d.clears, d.guild, d.pass]);
+    const w = makeItem(() => .5, 'weapon', '희귀', 1); w.rr = 5; w.specs = [{ key: 'deepWord', roll: 1 }];
     d.gear.equipped.weapon = w;
     for (const h of ['druid', 'paladin', 'priest'] as const) {
       expect(switchHero(h, now)).toBe(true);
       expect(G.save).toBe(d); expect(d.roster.cur).toBe(1); expect(d.roster.chars).toHaveLength(1);
-      expect(JSON.stringify([d.player, d.mats, d.daily, d.weekly, d.wallet, d.clears, d.guild, d.pass])).toBe(snapshot);
+      expect(JSON.stringify([d.player, d.daily, d.weekly, d.wallet, d.clears, d.guild, d.pass])).toBe(snapshot);
       expect(d.gear.equipped.weapon).toBe(w);
-      expect(d.gear.equipped.weapon!.plus).toBe(5);
+      expect(d.gear.equipped.weapon!.rr).toBe(5);
       expect(!!specsOf(d.gear.equipped, h).deepWord).toBe(h === 'priest');
     }
   });
@@ -56,17 +56,17 @@ describe('공통 성장과 직업별 착용 조합', () => {
     expect(G.save.roster.cur).toBe(2); expect(G.save.player.level).toBe(1);
     expect(switchHero('druid')).toBe(false);
     expect(switchHero('priest')).toBe(true);
-    expect(G.save.player).toEqual({ level: 1, xp: 0 });
+    expect(G.save.player).toEqual({ level: 1, xp: 0, gold: 0 });
     expect(pickChar(1, now)).toBe(true); expect(G.save.player.level).toBe(30);
   });
-  it('아이템 ID로 세팅을 복원하며 강화된 같은 실물을 사용, 분해한 아이템은 재생성하지 않음', () => {
+  it('아이템 ID로 세팅을 복원하며 재설정한 같은 실물을 사용, 판매한 아이템은 재생성하지 않음', () => {
     const one = makeItem(() => .5, 'weapon', '희귀', 1), two = makeItem(() => .5, 'weapon', '희귀', 2);
     G.save.gear.equipped.weapon = one; G.save.gear.bag = [two];
-    switchHero('druid'); equip(2); two.plus = 7;
+    switchHero('druid'); equip(2); two.rr = 3;
     switchHero('priest'); expect(G.save.gear.equipped.weapon?.id).toBe(1);
-    switchHero('druid'); expect(G.save.gear.equipped.weapon).toBe(two); expect(two.plus).toBe(7);
+    switchHero('druid'); expect(G.save.gear.equipped.weapon).toBe(two); expect(two.rr).toBe(3);
     expect(owned()).toEqual([1,2]);
-    salvage([1]); switchHero('priest');
+    sell([1]); switchHero('priest');
     expect(owned()).toEqual([2]); expect(G.save.gear.equipped.weapon).toBeUndefined();
     switchHero('druid'); expect(owned()).toEqual([2]); expect(G.save.gear.equipped.weapon?.id).toBe(2);
   });
@@ -91,7 +91,7 @@ describe('공통 성장과 직업별 착용 조합', () => {
     const s = migrate(raw);
     expect(s.roster).toEqual(raw.roster); expect(s.gear).toEqual(raw.gear); expect(s.player).toEqual(raw.player);
     expect(s.weekly.loot).toEqual(['abyss1|보통']);
-    expect(s.roster.chars[0].park!.player).toEqual({ level: 30, xp: 123 });
+    expect(s.roster.chars[0].park!.player).toEqual({ level: 30, xp: 123, gold: 7809 }); // 쉬는 캐릭터는 불러올 때 따로 migrate
   });
 });
 

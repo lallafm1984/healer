@@ -4,7 +4,7 @@ import { chainNeed, chainOpen, contentOf, type ContentDef } from '../data/conten
 import type { DiffName } from '../data/difficulty';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { TALENT_TREES, TALENTS } from '../data/talents';
-import { enhanceCost, itemName, itemScore, MAX_PLUS, REROLL_LEVEL, REROLL_PICK_LEVEL, rerollCost, rerollLine, rerollSpec, salvageOf, SLOTS, type GearItem, type GearLine, type SlotKey } from '../data/equipment';
+import { itemName, itemScore, REROLL_LEVEL, REROLL_PICK_LEVEL, rerollCost, rerollLine, rerollSpec, sellGold, SLOTS, type GearItem, type GearLine, type SlotKey } from '../data/equipment';
 import type { SpecLine } from '../data/specials';
 import { MAX_LEVEL } from '../data/progression';
 import { heroSaveOf, load, loadChar, newSave, noteSpecs, parkChar, save, shareAccount, topLevel, wipeChars, type HeroSave, type SaveData } from '../platform/storage';
@@ -105,51 +105,13 @@ export function findItem(id: number): GearItem | null {
   return Object.values(g.equipped).find(x => x?.id === id) || g.bag.find(x => x.id === id) || null;
 }
 
-/**
- * 강화 한 번 (확률 강화, +5 이상에서 실패하면 1단계 하락, 87). 성공은 빈 문자열, 실패·모자람은 보여 줄 글.
- * 결과는 누른 순간 저장 (껐다 켜서 다시 굴리지 못하게). roll은 테스트에서 성공·실패를 고정할 때
- */
-export function enhance(id: number, roll: () => number = Math.random): string {
-  const o = enhanceTry(id, roll);
-  return typeof o === 'string' ? o : enhanceMsg(o);
-}
-/** 강화 한 번의 결과 (연출용) */
-export interface EnhanceOutcome { id: number; ok: boolean; from: number; to: number }
-export const enhanceMsg = (o: EnhanceOutcome) => (o.ok ? '' : '강화 실패');
-/** 모자란 재료 (없으면 '') */
-export function enhanceLack(it: GearItem): string {
-  const c = enhanceCost(it);
-  if (!c) return `이미 +${MAX_PLUS}`;
-  if (resourceBalance(G.save, 'stone') < c.stone) return `강화석 부족 (${c.stone}개 필요)`;
-  if (resourceBalance(G.save, 'refined') < c.refined) return `정제 강화석 부족 (${c.refined}개 필요)`;
-  return '';
-}
-/**
- * 강화 한 번 (34 6-5): 누른 순간 굴려서 저장에 먼저 넣음 (연출은 보여 주기만, 7-4). 실패하면 enhanceCost의 fail 단계 (+1~+5 강화는 그대로, +5 이상은 1단계 하락, 87).
- * 무작위 옵션은 바뀌지 않는다. 못 하면 이유 글
- */
-export function enhanceTry(id: number, roll: () => number = Math.random): EnhanceOutcome | string {
-  const it = findItem(id);
-  if (!it) return '장비 없음';
-  const lack = enhanceLack(it);
-  if (lack) return lack;
-  const c = enhanceCost(it)!;
-  spendResource(G.save, 'stone', c.stone);
-  spendResource(G.save, 'refined', c.refined);
-  const from = it.plus, ok = roll() < c.rate;
-  it.plus = ok ? c.to : c.fail;
-  if (G.save.tut >= TUT.done) onAct(G.save, 'enhance');
-  commit();
-  return { id, ok, from, to: it.plus };
-}
-
 /** 재설정할 줄: 무작위 옵션 (line) · 특수능력 (spec, 전설 고유 능력은 고유 능력끼리, 이름 있는 장신구 · 고유 장비 효과는 안 됨) */
 export type RerollKind = 'line' | 'spec';
 /** 재설정 결과: err = 못 한 이유, alt = Lv 60부터 둘째 후보 (pickReroll로 바꿀 수 있음, 시트를 닫으면 사라짐) */
 export interface RerollResult { err: string; alt?: GearLine | SpecLine }
 export const rerollOpen = () => topLevel(G.save) >= REROLL_LEVEL;
 /**
- * 재설정 (34 6-8 · 42 1-6): 그 줄 하나를 다시 굴림. 비용 = 정제 강화석 (특수능력 3배, 이 장비에서 할수록 비쌈, v16 골드 없앰).
+ * 재설정 (34 6-8 · 42 1-6): 그 줄 하나를 다시 굴림 (91: Lv 20부터, 옵션은 같은 50~160% 굴림). 비용 = 골드 (아이템 레벨 · 등급, 특수능력 3배, 이 장비에서 할수록 비쌈).
  * Lv 60부터 후보 2개: 첫 후보를 바로 넣고 둘째를 돌려줌
  */
 export function reroll(id: number, kind: RerollKind, i: number, r: () => number = Math.random): RerollResult {
@@ -158,8 +120,8 @@ export function reroll(id: number, kind: RerollKind, i: number, r: () => number 
   if (!rerollOpen()) return { err: `재설정은 Lv ${REROLL_LEVEL}부터` };
   if (kind === 'line' ? !it.lines?.[i] : !it.specs?.[i]) return { err: '없는 줄' };
   const c = rerollCost(it, kind === 'spec');
-  if (resourceBalance(G.save, 'refined') < c.refined) return { err: `정제 강화석 부족 (${c.refined}개 필요)` };
-  spendResource(G.save, 'refined', c.refined); it.rr = (it.rr ?? 0) + 1;
+  if (resourceBalance(G.save, 'gold') < c.gold) return { err: `골드 부족 (${c.gold.toLocaleString('ko-KR')} 필요)` };
+  spendResource(G.save, 'gold', c.gold); it.rr = (it.rr ?? 0) + 1;
   const pick = topLevel(G.save) >= REROLL_PICK_LEVEL;
   let alt: GearLine | SpecLine | undefined;
   if (kind === 'line') {
@@ -185,21 +147,22 @@ export function pickReroll(id: number, kind: RerollKind, i: number, alt: GearLin
   return true;
 }
 
-/** 가방 장비 분해 (착용 중인 것·잠긴 것은 안 됨). 받은 재료 합 */
-export function salvage(ids: number[]): { n: number; stone: number; refined: number } {
-  const g = G.save.gear, got = { n: 0, stone: 0, refined: 0 };
+/** 가방 장비 판매 (91, 예전 분해 자리. 착용 중인 것·잠긴 것은 안 됨). 받은 골드 합. 한 개마다 일일 임무 「장비 판매」 1 */
+export function sell(ids: number[]): { n: number; gold: number } {
+  const g = G.save.gear, got = { n: 0, gold: 0 };
   for (const id of ids) {
     const i = g.bag.findIndex(x => x.id === id);
     if (i < 0 || g.bag[i].lock) continue;
-    const v = salvageOf(g.bag[i]);
+    const v = sellGold(g.bag[i]);
     g.bag.splice(i, 1);
     for (const h of HERO_KEYS) {
       const refs = G.save.heroes[h]?.loadout;
       if (refs) for (const { key } of SLOTS) if (refs[key] === id) delete refs[key];
     }
-    got.n++; got.stone += v.stone; got.refined += v.refined;
+    got.n++; got.gold += v;
+    if (G.save.tut >= TUT.done) onAct(G.save, 'sell');
   }
-  G.save.mats.stone += got.stone; G.save.mats.refined += got.refined;
+  G.save.player.gold += got.gold;
   if (got.n) commit();
   return got;
 }
@@ -209,7 +172,7 @@ export function claimDex(): DexReward & { steps: number } {
   const g = G.save.gear, due = dexDue(g.dex.length, g.dexPaid);
   if (!due.steps) return due;
   g.dexPaid += due.steps;
-  G.save.mats.stone += due.stone; G.save.mats.refined += due.refined;
+  G.save.player.gold += due.gold;
   commit();
   return due;
 }

@@ -71,7 +71,7 @@ export const SUITES = [
   ['던전 흐름', dungeon, 26],
   ['첫 5분 튜토리얼', tutorial, 37],
   ['캐릭터 탭', character, 6],
-  ['장비 강화·분해', gear, 8],
+  ['장비 판매·옵션', gear, 8],
   ['힐러 직업', heroes, 17],
   ['사제 특성', talents, 8],
   ['성언 준비 반짝임', wordReady, 25],

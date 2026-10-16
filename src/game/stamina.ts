@@ -1,6 +1,6 @@
 /**
  * 휴식 보너스 (90, 2026-10-16 Lim): 입장은 언제나 됨. 휴식은 최대 100 (광고 제거 패키지 +50), 15분마다 1, 최대치에서 멈춤 (넘는 만큼 쌓아 두지 않음).
- * 클리어할 때 (진 판 · 포기 아님) 휴식이 1 이상이면 콘텐츠 몫만큼 쓰고 (0 아래로 안 감) 보상 그대로, 0이면 경험치 · 강화석 · 정제 강화석이 1/3 (정산 settle.ts).
+ * 클리어할 때 (진 판 · 포기 아님) 휴식이 1 이상이면 콘텐츠 몫만큼 쓰고 (0 아래로 안 감) 보상 그대로, 0이면 경험치 · 골드가 1/3 (정산 settle.ts, 91: 예전 강화석 · 정제 강화석).
  * 광고 충전 +30은 하루 3번 (오전 6시 리셋)이고 최대치를 넘어도 들어감.
  * 코드 · 저장 이름은 81 때 그대로 stamina (save.stamina = n · at · day · ads). 저장 형식은 바뀌지 않음.
  * 기기 시계 기준이라 시계를 앞당겼다 되돌리면 그 시각이 다시 올 때까지 차지 않음. 화면과 분리된 순수 계산 (시각은 받아서 씀)
@@ -64,7 +64,7 @@ export function staminaView(save: SaveData, now: number): StaminaView {
   return { n: s.n, max, next, full: lack ? next + (lack - 1) * STAMINA.regenMs : 0, adsLeft: Math.max(0, STAMINA.adDaily - s.ads), unlimited: unlimitedStamina(save) };
 }
 
-/** 휴식으로 받은 판 (보상 그대로) · 휴식 없이 받은 판 (경험치 · 강화석 · 정제 강화석 1/3) */
+/** 휴식으로 받은 판 (보상 그대로) · 휴식 없이 받은 판 (경험치 · 골드 1/3) */
 export interface RestUse { used: number; cut: boolean }
 
 /**
@@ -83,12 +83,8 @@ export function useRest(save: SaveData, cost: number, now: number): RestUse {
   return { used, cut: false };
 }
 
-/** 휴식 없는 판의 몫 (1/3). 경험치처럼 큰 수는 반올림 (1 이상), 강화석처럼 작은 수는 기댓값이 1/3이 되게 확률로 올림 */
-export const restCutXp = (xp: number): number => (xp > 0 ? Math.max(1, Math.round(xp * REST_CUT)) : 0);
-export function restCutMat(n: number, rng: () => number): number {
-  const v = n * REST_CUT, lo = Math.floor(v + 1e-9), f = v - lo;
-  return lo + (f > 1e-9 && rng() < f ? 1 : 0);
-}
+/** 휴식 없는 판의 몫 (1/3): 경험치 · 골드, 반올림 (1 이상) */
+export const restCut = (n: number): number => (n > 0 ? Math.max(1, Math.round(n * REST_CUT)) : 0);
 
 /** 광고 충전 한 번 (+30, 최대치를 넘어도 들어감). 광고는 부른 쪽이 먼저 보여 줌. 성공 = 빈 문자열 */
 export function adCharge(save: SaveData, now: number): string {

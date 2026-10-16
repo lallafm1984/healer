@@ -7,7 +7,7 @@ import {
 import { codexKeys, FEATURED, NAMED, namedOf, namedsFor, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, type CodexGroup } from '../src/data/specials';
 import { CONTENT, contentOf, type ContentKey } from '../src/data/content';
 import { rngFrom } from '../src/engine/rng';
-import { migrate, newSave, noteSpecs } from '../src/platform/storage';
+import { migrate, newSave, noteSpecs, SAVE_VERSION } from '../src/platform/storage';
 import { exchangeMerit } from '../src/game/economy';
 import { GEAR_SPECS, GEARS, presetSpecs, type GearId } from '../src/data/gear';
 import { uniquesFor } from '../src/data/uniques';
@@ -66,7 +66,7 @@ describe('드롭 줄 수 · 부위 · 등급', () => {
     expect(its.flatMap(it => it.specs!).filter(l => SPECS[l.key].hero).every(l => SPECS[l.key].hero === 'paladin')).toBe(true);
   });
   it('특수능력 줄은 장비 점수에 더해짐', () => {
-    const a: GearItem = { id: 1, slot: 'ring', kind: 'ring', grade: '영웅', plus: 0, name: '', lines: [], specs: [] };
+    const a: GearItem = { id: 1, slot: 'ring', kind: 'ring', grade: '영웅', name: '', lines: [], specs: [] };
     expect(itemScore({ ...a, specs: [{ key: 'warmTouch', roll: 1 }] }, 30)).toBeGreaterThan(itemScore(a, 30));
   });
 });
@@ -158,7 +158,7 @@ describe('장소마다 잘 나오는 장비 종류 (39 4장)', () => {
 });
 
 describe('착용 장비 → 전투 특수능력 값 (42 1-3 · 1-5)', () => {
-  const item = (id: number, slot: SlotKey, specs: GearItem['specs'], named?: string): GearItem => ({ id, slot, kind: slot, grade: '영웅', plus: 0, name: '', lines: [], specs, named });
+  const item = (id: number, slot: SlotKey, specs: GearItem['specs'], named?: string): GearItem => ({ id, slot, kind: slot, grade: '영웅', name: '', lines: [], specs, named });
   it('값은 더하고 (상한까지), 재사용 대기 · 고정 값은 가장 좋은 것 하나, 직업 전용은 그 직업일 때만', () => {
     const eq = {
       weapon: item(1, 'weapon', [{ key: 'warmTouch', roll: 1 }, { key: 'deepWord', roll: 1 }]),
@@ -220,11 +220,11 @@ describe('저장 · 도감 (42 1-6)', () => {
     ];
     const a = migrate(JSON.parse(JSON.stringify(o))).gear.bag, b = migrate(JSON.parse(JSON.stringify(o))).gear.bag;
     expect(b).toEqual(a);
-    expect(migrate(JSON.parse(JSON.stringify({ ...o, v: 9, gear: { ...o.gear, bag: a } }))).gear.bag).toEqual(a); // 이미 바뀐 장비는 그대로
+    expect(migrate(JSON.parse(JSON.stringify({ ...o, v: SAVE_VERSION, gear: { ...o.gear, bag: a } }))).gear.bag).toEqual(a); // 이미 바뀐 장비는 그대로 (v17: 굴림을 또 나누지 않음)
     const [un, nm, leg, legNm] = a;
     expect(un.unique).toBeUndefined();
     expect(un.specs).toEqual([{ key: 'shieldFriend', roll: 1 }]); // 고정 특수능력이 보통 특수능력 한 줄로
-    expect(un).toMatchObject({ kind: 'gauntlet', look: 'abyss', name: '성스러운 별밤 건틀릿', plus: 1 }); // 생김새는 고유 장비 자리 (61 3-4: 가라앉은 대성당 1구역 = 심연) 세력
+    expect(un).toMatchObject({ kind: 'gauntlet', look: 'abyss', name: '성스러운 별밤 건틀릿' }); // 91: 강화 단계는 지움. 생김새는 고유 장비 자리 (61 3-4: 가라앉은 대성당 1구역 = 심연) 세력
     expect(un.lines.map(l => l.stat)).toEqual(['haste', 'spirit']); // 영웅 손 = 주 옵션 + 종류 옵션 + 무작위 2줄: 종류 옵션(인내)과 겹친 줄 · 넘친 줄은 빠짐
     expect(nm.named).toBeUndefined();
     expect(nm.specs).toHaveLength(1);
@@ -234,7 +234,7 @@ describe('저장 · 도감 (42 1-6)', () => {
   });
   it('처음 얻은 특수능력만 새것으로 알려 줌', () => {
     const s = newSave(1);
-    const it: GearItem = { id: 1, slot: 'neck', kind: 'neck', grade: '영웅', plus: 0, name: '', lines: [], specs: [{ key: 'warmTouch', roll: 1 }], named: 'rustyCog' };
+    const it: GearItem = { id: 1, slot: 'neck', kind: 'neck', grade: '영웅', name: '', lines: [], specs: [{ key: 'warmTouch', roll: 1 }], named: 'rustyCog' };
     expect(noteSpecs(s, [it]).sort()).toEqual(['rustyCog', 'warmTouch']);
     expect(noteSpecs(s, [{ ...it, id: 2 }])).toEqual([]);
     expect(s.gear.codex.sort()).toEqual(['rustyCog', 'warmTouch']);
@@ -247,7 +247,7 @@ describe('저장 · 도감 (42 1-6)', () => {
   it('묶음 하나를 다 모으면 칭호를 받음 (한 번만)', () => {
     const s = newSave(1);
     const keys = codexKeys('mana');
-    const it = (id: number, ks: string[]): GearItem => ({ id, slot: 'ring', kind: 'ring', grade: '영웅', plus: 0, name: '', lines: [], specs: ks.map(key => ({ key, roll: 1 })) });
+    const it = (id: number, ks: string[]): GearItem => ({ id, slot: 'ring', kind: 'ring', grade: '영웅', name: '', lines: [], specs: ks.map(key => ({ key, roll: 1 })) });
     noteSpecs(s, [it(1, keys.slice(0, -1))]);
     expect(s.decos).not.toContain(SPEC_TITLES.mana);
     noteSpecs(s, [it(2, keys.slice(-1))]);

@@ -1,14 +1,14 @@
 /**
- * 길드 (02 9장, 12 3-3, 17 8장): 영입(모집 공고·인연 스카우트), 육성(훈련·육성 포인트·능력 다시 뽑기), 길드파티 편성, 판 뒤 경험치.
- * v16 (2026-10-16 Lim 골드 없앰): 길드는 빼 둔 기능이라 (FEATURES.guild) 골드 비용만 없애 둠. 되살릴 때 비용을 다시 정함.
+ * 길드 (02 9장, 12 3-3, 17 8장): 영입(골드 모집·인연 스카우트), 육성(훈련·육성 포인트·능력 다시 뽑기), 길드파티 편성, 판 뒤 경험치.
  * 화면과 분리된 규칙. 난수는 받아서 씀 (테스트에서 고정).
  */
+import { resourceBalance, spendResource } from './resources';
 import { AB_ODDS, rollAbility } from '../data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
 import {
-  aptOf, guildCap, memberPower, POST_CANDS, POSTS, pointsAt, pointsUsed, rollApt, SCOUT_MAX,
+  aptOf, guildCap, memberPower, POST_CANDS, POSTS, pointCost, pointsAt, pointsUsed, REROLL_GOLD, RESET_GOLD, rollApt, SCOUT_GOLD, SCOUT_MAX, trainCost,
   type GuildMember, type PostTier,
 } from '../data/guild';
 import { pickNick } from '../data/nicknames';
@@ -51,10 +51,12 @@ export function makeCandidate(save: SaveData, r: () => number, tier: PostTier, t
   return { id: 0, nick, cls, pers, lv, xp: 0, apt0, aptUp: [0, 0, 0], ab: rollAbility(cls, r, AB_ODDS[tier]), star: 0, runs: 0 };
 }
 
-/** 모집 공고 (12 3-3). 실패하면 이유 */
+/** 골드 모집 공고 (12 3-3). 실패하면 이유 */
 export function postRecruit(save: SaveData, tier: PostTier, r: () => number): string {
-  const g = save.guild;
+  const g = save.guild, p = POSTS[tier];
   if (g.members.length >= capOf(save).cap) return `정원 ${capOf(save).cap}명이 다 참`;
+  if (resourceBalance(save, 'gold') < p.gold) return `골드 부족 (${p.gold.toLocaleString()} 필요)`;
+  spendResource(save, 'gold', p.gold);
   const taken = new Set<string>();
   const cands: GuildMember[] = [];
   for (let i = 0; i < POST_CANDS; i++) { const c = makeCandidate(save, r, tier, taken); taken.add(c.nick); cands.push(c); }
@@ -80,11 +82,13 @@ export function hire(save: SaveData, i: number): string {
   return '';
 }
 
-/** 인연 스카우트 (12 3-3) */
+/** 인연 스카우트 (12 3-3: 300 골드) */
 export function scoutHire(save: SaveData, i: number): string {
   const g = save.guild, s = g.scouts[i];
   if (!s) return '후보 없음';
   if (g.members.length >= capOf(save).cap) return `정원 ${capOf(save).cap}명이 다 참`;
+  if (resourceBalance(save, 'gold') < SCOUT_GOLD) return `골드 부족 (${SCOUT_GOLD} 필요)`;
+  spendResource(save, 'gold', SCOUT_GOLD);
   const { from: _f, ...rest } = s;
   join(save, { ...rest, xp: 0, aptUp: [0, 0, 0], star: 0, runs: 0 });
   g.scouts.splice(i, 1);
@@ -93,38 +97,46 @@ export function scoutHire(save: SaveData, i: number): string {
 
 const memberOf = (save: SaveData, id: number) => save.guild.members.find(m => m.id === id) || null;
 
-/** 훈련 1레벨 (12 3-3). 길드원 레벨 상한 = 가장 높은 직업 레벨 (34 4장 8번) */
+/** 훈련 1레벨 (12 3-3: 길드원 레벨 × 30). 길드원 레벨 상한 = 가장 높은 직업 레벨 (34 4장 8번) */
 export function train(save: SaveData, id: number): string {
   const m = memberOf(save, id);
   if (!m) return '길드원 없음';
   if (m.lv >= topLevel(save)) return '내 레벨까지만';
-  m.lv++; m.xp = 0;
+  const c = trainCost(m.lv);
+  if (resourceBalance(save, 'gold') < c) return `골드 부족 (${c.toLocaleString()} 필요)`;
+  spendResource(save, 'gold', c); m.lv++; m.xp = 0;
   return '';
 }
 
-/** 육성 포인트 1점 (17 8-1): 자질 1칸(●5까지) 또는 능력 ★1단계(★5까지) */
+/** 육성 포인트 1점 (17 8-1): 자질 1칸(●5까지) 또는 능력 ★1단계(★5까지). 골드 = 레벨 × 100 */
 export function spendPoint(save: SaveData, id: number, what: 0 | 1 | 2 | 'star'): string {
   const m = memberOf(save, id);
   if (!m) return '길드원 없음';
   if (pointsUsed(m) >= pointsAt(m.lv)) return '남은 육성 포인트 없음';
   if (what === 'star' ? m.star >= 5 : m.apt0[what] + m.aptUp[what] >= 5) return '이미 최대';
+  const c = pointCost(m.lv);
+  if (resourceBalance(save, 'gold') < c) return `골드 부족 (${c.toLocaleString()} 필요)`;
+  spendResource(save, 'gold', c);
   if (what === 'star') m.star++; else m.aptUp[what]++;
   return '';
 }
 
-/** 육성 포인트 초기화 */
+/** 육성 포인트 초기화 (5,000) */
 export function resetPoints(save: SaveData, id: number): string {
   const m = memberOf(save, id);
   if (!m) return '길드원 없음';
   if (!pointsUsed(m)) return '쓴 포인트 없음';
-  m.aptUp = [0, 0, 0]; m.star = 0;
+  if (resourceBalance(save, 'gold') < RESET_GOLD) return `골드 부족 (${RESET_GOLD.toLocaleString()} 필요)`;
+  spendResource(save, 'gold', RESET_GOLD); m.aptUp = [0, 0, 0]; m.star = 0;
   return '';
 }
 
-/** 능력 다시 뽑기. 같은 직업 10개 중 무작위, ★은 유지 */
+/** 능력 다시 뽑기 (3,000). 같은 직업 10개 중 무작위, ★은 유지 */
 export function rerollAbility(save: SaveData, id: number, r: () => number): string {
   const m = memberOf(save, id);
   if (!m) return '길드원 없음';
+  if (resourceBalance(save, 'gold') < REROLL_GOLD) return `골드 부족 (${REROLL_GOLD.toLocaleString()} 필요)`;
+  spendResource(save, 'gold', REROLL_GOLD);
   m.ab = rollAbility(m.cls, r);
   return '';
 }

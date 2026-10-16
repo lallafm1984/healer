@@ -1,5 +1,6 @@
 /**
- * 힐러 성장·보상 수치 (P1 초안). 근거: 02 부록 B(경험치 곡선), 18 2-2(레벨 마일스톤). 클리어 골드 (12 3-1)는 2026-10-16 골드와 함께 없앰. 소비 아이템 칸 (19)은 2026-10-16 없앰.
+ * 힐러 성장·보상 수치 (P1 초안). 근거: 02 부록 B(경험치 곡선), 12 3-1(골드), 18 2-2(레벨 마일스톤). 소비 아이템 칸 (19)은 2026-10-16 없앰.
+ * 클리어 골드는 2026-10-16 #172에서 골드와 함께 없앴다가 같은 날 91 (디아2식 장비)에서 되살림.
  * 경험치 지급량은 문서에 없어 새로 정함 (24 문서). Lv 1~100 곡선은 18 1장 도달 시점에 맞춤 (xpShare, 2026-10-07).
  */
 import type { DiffName } from './difficulty';
@@ -29,12 +30,20 @@ export type Grade = 'S' | 'A' | 'B' | 'C';
 /** 정산 등급: 던전 전체 쓰러진 파티원 수 (프로토타입과 같음) */
 export const gradeOf = (deaths: number): Grade => (deaths === 0 ? 'S' : deaths === 1 ? 'A' : deaths <= 3 ? 'B' : 'C');
 
-/** 경험치 배율 (12 3-1) */
+/** 골드·경험치 배율 (12 3-1) */
 export const REWARD_DIFF: Record<DiffName, number> = { '쉬움': 0.8, '보통': 1.0, '어려움': 1.3, '악몽': 1.6 };
 export const REWARD_GRADE: Record<Grade, number> = { S: 1.2, A: 1.1, B: 1.0, C: 0.9 };
 
-/** 탐험 경험치 배율 (32 3-3): 구간 1개라 짧고 쉬움. 적 레벨이 내 레벨이 되며 던전보다 나은 파밍 자리가 되지 않게 */
+/** 레이드 보스 1마리 골드 배율 (26 6장): 10인 ×1.5, 20인 ×2.2 (레벨 맞춤으로 2·3에서 낮춤, 32 3-2) */
+export const RAID_GOLD = { 10: 1.5, 20: 2.2 } as const;
+/** 탐험 골드·경험치 배율 (32 3-3): 구간 1개라 짧고 쉬움. 적 레벨이 내 레벨이 되며 던전보다 나은 파밍 자리가 되지 않게 */
 export const EXPLORE_REWARD = 0.35;
+
+/** 클리어 골드 = (50 + 10 × 적 레벨) × 난이도 × 등급. 레이드는 보스 1마리마다 × RAID_GOLD (12 3-1). raid = 레이드 인원 (0 = 던전·탐험) */
+export function clearGold(stageLv: number, diff: DiffName, grade: Grade, raid: 0 | 10 | 20 = 0): number {
+  const g = (50 + 10 * stageLv) * REWARD_DIFF[diff] * REWARD_GRADE[grade];
+  return Math.round(raid ? g * RAID_GOLD[raid] : g);
+}
 
 /**
  * 클리어 경험치 = 지금 레벨에서 필요한 양의 이 비율 × 난이도 × 등급 (18 1장 도달 시점에 맞춤).

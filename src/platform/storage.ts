@@ -3,7 +3,7 @@
  * 지금은 localStorage. 앱에서 OS가 웹 저장소를 지울 위험이 보이면 Capacitor Preferences로 바꾼다.
  */
 import type { DiffName } from '../data/difficulty';
-import { itemName, kindOf, LEGEND, lookOf, randomLines, rollLines, takenStats, rollSpecs, specCount, specKeysOf, SLOTS, SPEC_LINES, type Equipped, type GearItem } from '../data/equipment';
+import { itemName, kindOf, LEGEND, lookOf, RANDOM_BASE, randomLines, rollLines, takenStats, rollSpecs, specCount, specKeysOf, SLOTS, SPEC_LINES, type Equipped, type GearItem } from '../data/equipment';
 import { uniqueOf } from '../data/uniques';
 import { namedOf, SPECS } from '../data/specials';
 import { rngFrom } from '../engine/rng';
@@ -16,8 +16,13 @@ import { STAMINA } from '../data/economy';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-/** v15 (2026-10-16 Lim): 소비 아이템 단축칸 · 가방을 없앰. v16 (2026-10-16 Lim): 골드를 없앰 (옛 저장의 골드는 버림) */
-export const SAVE_VERSION = 16;
+/**
+ * v15 (2026-10-16 Lim): 소비 아이템 단축칸 · 가방을 없앰. v16 (2026-10-16 Lim): 골드를 없앰 (옛 저장의 골드는 버림).
+ * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
+ */
+export const SAVE_VERSION = 17;
+/** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
+export const MAT_GOLD = { stone: 100, refined: 500 };
 
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
@@ -70,16 +75,14 @@ export interface Settings {
   compactSkills: boolean;
   /** 전투 정보는 유지하고 흔들림·부유 숫자 등 시각 효과를 줄임 */
   reducedEffects: boolean;
-  /** 강화 연출 짧게 (0.5초, 34 7-3). 옛 저장엔 없음 = 꺼짐 */
-  quickEnhance?: boolean;
   /** 개발 빌드: 자동 힐러로 구경 */
   auto: boolean;
   /** 개발 빌드: 콘텐츠 레벨 잠금 무시 (아직 레벨을 올릴 콘텐츠가 적어서) */
   devUnlock: boolean;
   /** 개발 빌드: 레벨과 상관없이 스킬 전부 (06 7장 해금 무시) */
   allSkills: boolean;
-  /** 개발 빌드: 강화석 · 정제 강화석 비용을 무시하고 실제 보유량은 차감하지 않음. 옛 저장엔 없음 = 꺼짐 */
-  devStones?: boolean;
+  /** 개발 빌드: 골드 비용을 무시하고 실제 보유량은 차감하지 않음 (91, 예전 devStones 강화석 무제한). 옛 저장엔 없음 = 꺼짐 */
+  devGold?: boolean;
   /** 개발 빌드 「휴식 무제한」 (90, 81 때 이름 그대로): 휴식이 줄지 않고 보상은 늘 그대로. 옛 저장엔 없음 = 꺼짐 */
   devStamina?: boolean;
   /** 스킬 휠 8방향 배치 (09 S17). null = 기본 배치 */
@@ -186,16 +189,14 @@ export interface SaveData {
   /** 처음 만든 시각 (ms) */
   createdAt: number;
   settings: Settings;
-  /** v12: 현재 캐릭터의 공통 레벨·경험치. 직업 전환으로 변경하지 않음. v16: 골드 없앰 */
-  player: { level: number; xp: number };
+  /** v12: 현재 캐릭터의 공통 레벨·경험치·골드. 직업 전환으로 변경하지 않음. v16: 골드 없앰, v17 (91): 골드 다시 */
+  player: { level: number; xp: number; gold: number };
   /**
    * v12: equipped · bag · seen = 현재 캐릭터 공용 장비. 직업별 loadout은 이 실물의 ID를 참조.
    * seen = 캐릭터 › 장비 화면을 나갈 때까지 확인한 장비 id (이보다 큰 id = 새것 점). 옛 저장엔 없어서 migrate가 채움.
    * codex = 얻은 적 있는 특수능력 · 이름 있는 장신구 키 (도감, 42 1-6). v8부터, 옛 저장은 가진 장비로 채움. 도감 · 장비 도감은 계정
    */
   gear: { equipped: Equipped; bag: GearItem[]; seen?: number; codex: string[]; /** 장비 도감 칸 (34 6-10 ④, data/dex). 옛 저장은 가진 장비로 채움 */ dex: string[]; /** 장비 도감 보상을 받은 단계 수 */ dexPaid: number };
-  /** 강화 재료 (12 1장): 강화석 (+1~+5), 정제 강화석 (+6~+10) */
-  mats: { stone: number; refined: number };
   /** 콘텐츠 → 난이도 → 기록 */
   clears: Record<string, Partial<Record<DiffName, ClearRecord>>>;
   /** 로비에 보여 줄 지난 판 한마디 */
@@ -251,7 +252,7 @@ export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'r
 export function newSave(now = Date.now()): SaveData {
   return {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
-    player: { level: 1, xp: 0 }, gear: { equipped: {}, bag: [], seen: 0, codex: [], dex: [], dexPaid: 0 }, mats: { stone: 0, refined: 0 }, clears: {}, last: null, nextId: 1, tut: 0,
+    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0, codex: [], dex: [], dexPaid: 0 }, clears: {}, last: null, nextId: 1, tut: 0,
     hero: 'priest', heroes: {}, guild: newGuild(),
     wallet: { merit: 0 }, daily: newDaily(), weekly: newWeekly(),
     pass: { season: 0, xp: 0, free: [] }, stamina: newStamina(now), bought: [], chalOpen: 1, decos: [], chalChest: 0,
@@ -274,7 +275,6 @@ export function migrate(raw: unknown): SaveData {
     player: obj(o.player, base.player),
     // 27: 새것 점 기준 (옛 저장은 지금 가진 장비를 다 본 것으로)
     gear: gearOf(o, HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest', base.nextId),
-    mats: obj(o.mats, base.mats),
     clears: obj(o.clears, {}),
     last: o.last && typeof o.last === 'object' ? o.last : null,
     nextId: typeof o.nextId === 'number' ? o.nextId : base.nextId,
@@ -299,9 +299,17 @@ export function migrate(raw: unknown): SaveData {
   };
   // v14 (81): 월정액 · 첫 구매 기록은 버림 (크리스탈 상품이 없어짐). v15: 소비 아이템 단축칸 (items) · 가방 (bag)도 버림
   for (const k of ['member', 'firstBuy', 'items', 'bag'] as const) delete (out as unknown as Record<string, unknown>)[k];
-  // v16: 골드 · 골드 무제한 개발 옵션을 버림 (쓰는 곳이 없어짐)
-  delete (out.player as Record<string, unknown>).gold;
-  delete (out.settings as unknown as Record<string, unknown>).devGold;
+  // v17 (91): 골드 다시. 골드는 0부터 (v16이 버린 옛 골드는 되살리지 않음), 남은 강화석 · 정제 강화석을 골드로. 강화석 무제한 → 골드 무제한
+  const legacy = o as unknown as { mats?: { stone?: unknown; refined?: unknown }; settings?: { devStones?: unknown } };
+  if ((o.v ?? 0) < 17) {
+    const n = (x: unknown) => (typeof x === 'number' && isFinite(x) ? Math.max(0, x) : 0);
+    out.player.gold = n(legacy.mats?.stone) * MAT_GOLD.stone + n(legacy.mats?.refined) * MAT_GOLD.refined;
+    if (legacy.settings?.devStones) out.settings.devGold = true;
+    // 일일 임무 「장비 강화」 → 「장비 판매」 (진행 그대로)
+    for (const m of out.daily.missions) if (m.key === 'enhance2') m.key = 'sell2';
+  } else if (typeof out.player.gold !== 'number' || !isFinite(out.player.gold)) out.player.gold = 0;
+  for (const k of ['mats'] as const) delete (out as unknown as Record<string, unknown>)[k];
+  for (const k of ['devStones', 'quickEnhance'] as const) delete (out.settings as unknown as Record<string, unknown>)[k];
   // 「레이드 판을 5인 던전 모양으로」 설정은 버림: 모든 판이 5인 던전 모양 (2026-10-16 Lim, 저장 형식은 그대로 v16)
   delete (out.settings as unknown as Record<string, unknown>).raidFiveLook;
   delete (out.weekly as unknown as Record<string, unknown>).craft;
@@ -410,9 +418,8 @@ function splitChars(d: SaveData, now: number): void {
     Object.assign(c, {
       hero: h, heroes: { [h]: hero }, tut: d.tut, nextId: d.nextId,
       settings: { ...d.settings, layout: s ? s.layout : d.settings.layout, tapKey: s ? s.tapKey : d.settings.tapKey },
-      player: { level: lv, xp: s ? s.xp ?? 0 : d.player.xp },
+      player: { level: lv, xp: s ? s.xp ?? 0 : d.player.xp, gold: mine ? d.player.gold : 0 },
       gear: { equipped: g?.equipped ?? {}, bag: g?.bag ?? [], seen: g?.seen ?? d.nextId - 1, codex: mine ? d.gear.codex : [], dex: mine ? d.gear.dex : [], dexPaid: mine ? d.gear.dexPaid : 0 },
-      mats: mine ? d.mats : c.mats,
       wallet: { merit: merit.n },
       clears: mine ? d.clears : Object.fromEntries(Object.entries(d.clears).filter(([k]) => (CONTENT.find(x => x.key === k)?.unlockLv ?? 1) <= lv)),
       last: h === cur ? d.last : null,
@@ -479,11 +486,14 @@ function gearByHero(d: SaveData): void {
  * 전설은 고유 장비 · 이름 있는 장신구가 아니면 첫 특수능력이 고유 능력 (1.5배). 88부터 전설은 특수능력 1줄을 더 가짐 (고유 능력이 이미 있는 장비만 남김, 옛 전설은 그대로).
  * 굴림은 장비 id로 정해서 몇 번 불러도 같음. 이름은 등급 말 + 종류
  */
-function upgradeItem(it: GearItem, hero: HeroKey, level: number): GearItem {
+function upgradeItem(it: GearItem, hero: HeroKey, level: number, v: number): GearItem {
   if (!it || typeof it !== 'object') return it;
-  const c: GearItem & { set?: unknown; top?: unknown } = { ...it };
+  const c: GearItem & { set?: unknown; top?: unknown; plus?: unknown } = { ...it };
   delete c.set;
   delete c.top;
+  // v17 (91): 강화 단계를 지움. 무작위 옵션 굴림은 기준값 (최대값의 RANDOM_BASE) 대비로 바꿔 값 그대로 (0.6~1 → 0.75~1.25). 주 · 종류 옵션 굴림은 없음 = 1, 고유 능력 배율은 없음 = 1.5
+  delete c.plus;
+  if (v < 17 && Array.isArray(c.lines)) c.lines = c.lines.map(l => (l && typeof l.roll === 'number' ? { ...l, roll: Math.round((l.roll / RANDOM_BASE) * 1e4) / 1e4 } : l));
   // 아이템 레벨 (2026-10-13): 옛 장비는 읽을 때 그 직업 레벨 (지금 성능 그대로에서 시작해 레벨이 오르면 약해짐)
   if (typeof c.lv !== 'number') c.lv = Math.max(1, Math.round(level) || 1);
   const k = kindOf(c), n = randomLines(k, c.grade);
@@ -518,10 +528,10 @@ function upgradeItem(it: GearItem, hero: HeroKey, level: number): GearItem {
 
 /** 장비 칸 (v8: 옛 장비 특수능력 굴림, 도감에 가진 장비의 특수능력을 채움) */
 function gearOf(o: Partial<SaveData>, hero: HeroKey, nextId: number): SaveData['gear'] {
-  const g = o.gear, lv = typeof o.player?.level === 'number' ? o.player.level : 1;
+  const g = o.gear, lv = typeof o.player?.level === 'number' ? o.player.level : 1, v = o.v ?? 0;
   const equipped: Equipped = {};
-  if (g?.equipped && typeof g.equipped === 'object') for (const [k, it] of Object.entries(g.equipped)) if (it) equipped[k as keyof Equipped] = upgradeItem(it, hero, lv);
-  const bag = Array.isArray(g?.bag) ? g!.bag.map(it => upgradeItem(it, hero, lv)) : [];
+  if (g?.equipped && typeof g.equipped === 'object') for (const [k, it] of Object.entries(g.equipped)) if (it) equipped[k as keyof Equipped] = upgradeItem(it, hero, lv, v);
+  const bag = Array.isArray(g?.bag) ? g!.bag.map(it => upgradeItem(it, hero, lv, v)) : [];
   // 가진 장비의 특수능력은 늘 도감에 (옛 저장 · migrate가 굴린 줄 포함)
   const codex = Array.isArray(g?.codex) ? g!.codex.filter(k => typeof k === 'string') : [];
   for (const it of [...SLOTS.map(s => equipped[s.key]), ...bag]) if (it) for (const k of specKeysOf(it)) if (!codex.includes(k)) codex.push(k);
@@ -568,8 +578,8 @@ function heroesOf(o: Partial<SaveData>): SaveData['heroes'] {
     const gs = hs[h]?.gear;
     if (!gs) continue;
     const equipped: Equipped = {}, lv = hs[h]?.level ?? (typeof o.player?.level === 'number' ? o.player.level : 1);
-    if (gs.equipped && typeof gs.equipped === 'object') for (const [k, it] of Object.entries(gs.equipped)) if (it) equipped[k as keyof Equipped] = upgradeItem(it, h, lv);
-    hs[h] = { ...hs[h]!, gear: { equipped, bag: Array.isArray(gs.bag) ? gs.bag.map(it => upgradeItem(it, h, lv)) : [], seen: typeof gs.seen === 'number' ? gs.seen : 0 } };
+    if (gs.equipped && typeof gs.equipped === 'object') for (const [k, it] of Object.entries(gs.equipped)) if (it) equipped[k as keyof Equipped] = upgradeItem(it, h, lv, o.v ?? 0);
+    hs[h] = { ...hs[h]!, gear: { equipped, bag: Array.isArray(gs.bag) ? gs.bag.map(it => upgradeItem(it, h, lv, o.v ?? 0)) : [], seen: typeof gs.seen === 'number' ? gs.seen : 0 } };
   }
   if ((o.v ?? 0) >= 6) return hs;
   const level = typeof o.player?.level === 'number' ? o.player.level : 1, xp = typeof o.player?.xp === 'number' ? o.player.xp : 0;
