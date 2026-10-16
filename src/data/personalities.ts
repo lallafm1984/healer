@@ -80,6 +80,12 @@ export interface Personality {
   learn?: { react: number; dodge: number; stepReact: number; stepDodge: number; max: number };
 }
 
+/**
+ * 관심종자 삐짐 제한 (2026-10-16 Lim 「삐짐이 너무 자주 · 힐해 주고 끝나면 또 삐짐」, 04 4장): 한 번 삐진 뒤에는 again초 동안 직접 힐을
+ * 못 받아야 다시 삐지고, 한 전투에 max번까지. 삐진 지 long초가 지나면 혼자 풀림 (풀림 말은 힐로 풀 때만). 프로토타입 일치 판 (cfg.proto)은 옛 규칙
+ */
+export const SULK = { again: 60, max: 2, long: 25 };
+
 export const PERS = {
   '신중파': { star: 1, cat: '회피', ch: '신', react: 0.5, dodge: 0.10, dps: 0.9, desc: '가장 먼저 피합니다. 딜은 조금 약합니다.', barks: ['조심!', '다음 패턴 피해'] },
   '딜 욕심쟁이': { star: 2, cat: '회피', ch: '딜', react: 1.8, dodge: -0.15, dps: 1.2, greedy: true, desc: '예고가 끝나기 직전까지 딜하다가 늦게 피합니다.', barks: ['한 대만 더!', '딜 1등 찍었다 ㅋ'] },
@@ -88,7 +94,7 @@ export const PERS = {
   '허세꾼': { star: 3, cat: '회피', ch: '허', brave: 0.7, desc: '체력이 70% 이상이면 장판을 피하지 않습니다.', barks: ['안 아파!', '이 정도쯤이야'] },
   '외톨이': { star: 1, cat: '위치', ch: '외', dist: -1, desc: '아군과 떨어진 칸에 섭니다. 광역 힐 범위 밖에 있기 쉽습니다.', barks: ['…'] },
   '사교형': { star: 1, cat: '위치', ch: '사', dist: 1, desc: '아군 옆에 붙습니다. 광역 힐 효율이 좋습니다.', barks: ['같이 가자!', '다들 모여~'] },
-  '관심종자': { star: 3, cat: '관계', ch: '관', attention: 12, desc: '12초 동안 힐을 못 받으면 삐져서 딜이 25% 줄어듭니다.', barks: ['힐러님 나 안 보여?', '나도 좀 봐줘…'] },
+  '관심종자': { star: 3, cat: '관계', ch: '관', attention: 12, desc: `12초 동안 힐을 못 받으면 삐져서 딜이 25% 줄어듭니다. 힐을 받거나 ${SULK.long}초가 지나면 풀리고, 한 전투에 ${SULK.max}번까지 삐집니다.`, barks: ['힐러님 나 안 보여?', '나도 좀 봐줘…'] },
   '감사형': { star: 1, cat: '관계', ch: '감', thanks: true, desc: '힐을 받으면 3초 동안 딜이 10% 늘어납니다.', barks: ['ㄱㅅㄱㅅ', '덕분에 살았다!'] },
   '겁쟁이': { star: 3, cat: '감정', ch: '겁', flee: 0.5, noTank: true, desc: '체력이 50% 아래면 뒷줄로 도망가 딜을 멈추고, 80%가 되면 돌아옵니다.', barks: ['으악 도망!', '나 빠질게 무서워'] },
   // ---------- 75 문서: 20종 추가 (2026-10-14) ----------

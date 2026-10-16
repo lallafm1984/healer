@@ -13,7 +13,7 @@ import { dropDone } from './shaman';
 import { mistHop } from './monk';
 import { frontCell, posDps } from './position';
 import { persDps, persIgnoresZone, persThink } from './persona';
-import type { PersName } from '../data/personalities';
+import { SULK, type PersName } from '../data/personalities';
 import type { Cell, Debuff, Fight, Hot, Unit } from './types';
 
 /** 비켜 설 디버프: 보스를 키우는 옮겨붙음 (P-JUMP) · 부풀기 (P-SWELL, 46 4-1 성격 포인트) */
@@ -173,7 +173,25 @@ function think(f: Fight, u: Unit): void {
       else if (f.t >= u.homeAt) { u.homeAt = null; moveTo(f, u, h); return; }
     } else u.homeAt = null;
   }
-  if (u.p.attention && !u.sulking && f.t - u.lastHeal > u.p.attention && f.t > 8) { u.sulking = true; bark(f, u, null, true, 'sulk'); }
+  if (u.p.attention) sulkThink(f, u, u.p.attention);
+}
+
+/** 관심종자 삐짐 (04 4장): attention초 동안 직접 힐을 못 받으면 삐짐 (딜 −25%). 다시 삐짐 · 횟수 · 혼자 풀림은 SULK (2026-10-16) */
+function sulkThink(f: Fight, u: Unit, after: number): void {
+  if (f.cfg.proto) { // 프로토타입 일치: 힐을 받을 때까지, 몇 번이든
+    if (!u.sulking && f.t - u.lastHeal > after && f.t > 8) { u.sulking = true; bark(f, u, null, true, 'sulk'); }
+    return;
+  }
+  if (u.sulking) {
+    if (f.t - (u.sulkFrom ?? f.t) >= SULK.long) { u.sulking = false; u.sulkOff = f.t; }
+    return;
+  }
+  const n = u.sulkN ?? 0;
+  if (n >= SULK.max || f.t <= 8) return;
+  if (f.t - Math.max(u.lastHeal, u.sulkOff ?? 0) > (n ? SULK.again : after)) {
+    u.sulking = true; u.sulkN = n + 1; u.sulkFrom = f.t;
+    bark(f, u, null, true, 'sulk');
+  }
 }
 
 /** 쉼터가 있으면 도망 대신 쉼터로 가는 성격과 체력 (06 6장. 소심이는 아직 없는 성격) */
