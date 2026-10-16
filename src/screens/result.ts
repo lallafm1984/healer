@@ -2,6 +2,7 @@
  * 결과 화면 (09 S08 정산 + S09 보상을 한 화면으로, 2026-10-08) · P04 레벨업 팝업.
  * 이기면 첫 화면에 등급·별·받은 것, 지면 어디서 졌는지·힌트. 지표·딜미터기는 「전투 기록」에 접어 둠 (지면 펼침)
  */
+import { FEATURES } from '../data/features';
 import { contentOf, type ContentKey } from '../data/content';
 import { avgScore, GRADE_STYLE, kindOf, qualityOf, recommendedFor, slotName, type ItemGrade } from '../data/equipment';
 import { CLASSES } from '../data/classes';
@@ -103,6 +104,12 @@ function head(r: BattleResult, x: Settlement, key: ContentKey, name: string): st
     ${chal}${x.cont ? `<p class="note center r-cont">광고로 이어 함 ${x.cont}번 · 등급 최대 B</p>` : ''}`;
 }
 
+/**
+ * 하루 첫 3판 (던전 · 레이드) 장비 확률 보너스 (13 2-2). 길드가 꺼져 있으면 모든 판이 공개모집이라 「오늘의 보너스」 + 무엇이 오르는지
+ * (2026-10-16 QA 「추천대로」: 「공개모집 보너스 1/3」은 뜻이 안 보였음)
+ */
+const pubBonusText = (n: number) => (FEATURES.guild ? `공개모집 보너스 ${n}/3` : `오늘의 보너스 ${n}/3 · 장비 확률 ↑`);
+
 /** 튜토리얼 안내 (09 4장 · 34 5-2): 녹슨 고원 클리어 = 끝 (첫 장비는 정산에서 바로 장착), 녹슨 요새 쉬움 첫 클리어 = 다음은 보통 */
 function tipHtml(r: BattleResult, x: Settlement): string {
   const it = x.items[0], worn = !!it && G.save.gear.equipped[it.slot]?.id === it.id;
@@ -123,7 +130,7 @@ function lootHtml(r: BattleResult, x: Settlement): string {
   if (x.gold) tiles.push(tile('gold', '골드', x.gold, mark));
   if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
   return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
-      <h2 class="r-lh" tabindex="-1">획득 보상${x.pubBonus ? ` <small>공개모집 보너스 ${x.pubBonus}/3</small>` : ''}</h2>
+      <h2 class="r-lh" tabindex="-1">획득 보상${x.pubBonus ? ` <small>${pubBonusText(x.pubBonus)}</small>` : ''}</h2>
       ${itemsHtml(x)}
       ${tiles.length ? `<div class="r-curs">${tiles.join('')}</div>` : ''}
       ${xpRow(x, !!r.affixes?.includes('festival'), rest)}

@@ -427,7 +427,7 @@ describe('2-4 마나', () => {
     const [a, b] = pair('lightBreath', 0.3); both([a, b], f => { tank(f).hp = tank(f).max; f.mana = 50; cast(f, 'flash', tank(f)); });
     expect(a.mana - b.mana).toBeCloseTo(0.3, 6);
   });
-  it('휴식의 차: 던전 구간 사이 휴식 마나 회복 +', () => {
+  it('정비의 차: 던전 구간 사이 정비 때 마나 회복 +', () => {
     const [a, b] = pair('restTea', 0.5); both([a, b], f => { f.mana = 10; });
     expect(E.restCarry(a, 3).mana).toBeCloseTo(10 + 30 * 1.5, 6);
     expect(E.restCarry(b, 3).mana).toBeCloseTo(40, 6);
