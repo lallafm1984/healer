@@ -21,10 +21,10 @@ export default async function shop(url, shots) {
   await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 40; s.mats.stone = 20; localStorage.setItem('healer.save', JSON.stringify(s)); });
 
   // ---- 로비 → 임무 ----
-  // A2 간판은 분류와 클리어 때 쓰는 휴식을 두 줄로 표시한다. 장식 구분자 대신 실제 보이는 두 정보를 검사한다.
+  // 레이드 팻말 (예전 첨탑): 분류 + 열림 레벨. 휴식은 입장 비용이 아니라 적지 않는다 (90, 2026-10-16 A안)
   const raidLabel = await page.locator('#s-lobby .lb-raid').innerText();
-  ok(/일일 0\/5/.test(await text('#s-lobby .lb-missions')) && /첨탑/.test(raidLabel)
-    && /10인 레이드/.test(raidLabel) && /휴식 15/.test(raidLabel), '로비 이름표: 임무 일일 0/5 · 첨탑 = 10인 레이드 휴식 15');
+  ok(/일일 0\/5/.test(await text('#s-lobby .lb-missions')) && /레이드/.test(raidLabel)
+    && /10인 레이드/.test(raidLabel) && /Lv 45에 열림/.test(raidLabel) && !/휴식/.test(raidLabel), '로비 이름표: 임무 일일 0/5 · 레이드 = 10인 레이드 Lv 45에 열림');
   await page.click('#s-lobby .lb-missions .lb-main'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-missions') && (await page.locator('#s-missions .mlist').first().locator('.mrow').count()) === 5, '임무 화면: 일일 5개');
   ok((await page.locator('#s-missions .mlist').nth(1).locator('.mrow').count()) === 3, 'Lv 40 = 주간 임무 3개');

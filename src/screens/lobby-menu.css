@@ -1,0 +1,19 @@
+/*
+ * 로비 메뉴 A안 「마을 표지판」 (2026-10-16 Lim). 마을 · 위 정보창 · 하단 탭 · 목표 · 출전은 그대로.
+ * 왼쪽 소켓 = 오늘 할 일 (임무 · 주간 도전 · 휴식 충전), 오른쪽 팻말 = 마을 건물 (레이드 · 대장간 · 잡화점).
+ * 맨 위 레이드만 매달린 막대 팻말, 아래 팻말은 잡화점과 같은 황동 테 나무판.
+ */
+#s-lobby .lb-right { gap: 7px; }
+#s-lobby .lb-plate.lb-forge, #s-lobby .lb-plate.lb-guild {
+  padding-top: 5px; background-image: url('../art/a2-shop-sign-r6.png'); background-size: 102.103% 89.954%; background-position: 55% 50%;
+}
+#s-lobby :is(.lb-forge, .lb-guild) .lb-pt { padding-left: 18px; }
+#s-lobby .lb-plate .g-badge { top: -6px; right: -4px; }
+
+/* 휴식 충전 소켓: 재화 그림 (베개 위 초승달)은 다른 소켓 그림보다 여백이 커서 조금 크게 */
+#s-lobby .lb-rest .lb-sock > .currency-icon { display: grid; place-items: center; width: 40px; height: 40px; max-width: 90%; max-height: 100%; }
+#s-lobby .lb-rest .currency-icon > .g-ic { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 1px #251301); }
+
+@container (max-width: 379px) {
+  #s-lobby :is(.lb-forge, .lb-guild) .lb-pt { padding-left: 13px; }
+}
