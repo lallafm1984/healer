@@ -68,7 +68,8 @@
 #s-party .f-rt .f-nd { width: 14px; height: 14px; border-radius: 50%; background: var(--gk-chip); border: 2px solid var(--gk-mute); transition: transform .15s; }
 #s-party .f-rt.elite .f-nd { border-color: var(--gk-edge); }
 #s-party .f-rt.boss .f-nd { width: 18px; height: 18px; border-radius: 3px; transform: rotate(45deg); border-color: #b0302a; background: #6a1d17; }
-#s-party .f-rt .f-nl { color: inherit; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 1px 6px; border-radius: 999px; }
+/* 구간 이름: 칸 안에서 두 줄까지 (정비 화면 구간 줄과 같은 규칙, QA 2026-10-17) */
+#s-party .f-rt .f-nl { color: inherit; box-sizing: border-box; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; word-break: keep-all; overflow-wrap: anywhere; text-align: center; line-height: 1.2; padding: 1px 5px; border-radius: 8px; }
 #s-party .f-rt[aria-selected="true"] { color: var(--gk-ink); font-weight: 800; }
 #s-party .f-rt[aria-selected="true"] .f-nd { box-shadow: 0 0 0 3px var(--gk-route), 0 0 0 5px var(--gk-accent); }
 #s-party .f-rt.boss[aria-selected="true"] .f-nd { transform: rotate(45deg) scale(1.12); }

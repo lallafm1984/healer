@@ -31,7 +31,8 @@
   position: relative; z-index: 1; width: 24px; height: 24px; box-sizing: border-box; display: grid; place-items: center; border-radius: 50%;
   border: 2px solid var(--gk-mute); background: var(--gk-chip); font: normal 900 12px/1 var(--font-body); color: var(--gk-mute);
 }
-#rest .rest-steps li > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 6px; border-radius: 999px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+/* 구간 이름: 칸 너비 안에서 두 줄까지 (예전엔 한 줄 말줄임인데 안쪽 여백만큼 칸을 넘어 옆 이름 · 금빛 알약과 겹쳤음, QA 2026-10-17) */
+#rest .rest-steps li > span { box-sizing: border-box; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; word-break: keep-all; overflow-wrap: anywhere; text-align: center; line-height: 1.2; padding: 1px 5px; border-radius: 8px; font-weight: 700; text-shadow: 0 1px 2px #000; }
 #rest .rest-steps li.done > i { border-color: var(--gk-edge); background: var(--gk-btn-on); color: var(--gk-head); }
 #rest .rest-steps li.done > span { color: var(--gk-ink); }
 #rest .rest-steps li.next > i { border-color: var(--gk-accent); background: var(--gk-accent); color: var(--gk-accent-ink); box-shadow: 0 0 10px #ffd34d88; }
@@ -64,7 +65,8 @@
 }
 #rest .rest-art :is(svg, img, .boss-illustration) { width: 56px; height: 56px; object-fit: contain; }
 #rest .rest-id { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-#rest .rest-id > b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 19px/1.15 var(--font-display); color: var(--gk-head); }
+/* 다음 상대 이름: 두 줄까지 (「눈사람 조수 뽀득이」처럼 긴 이름이 「뽀...」로 잘렸음, QA 2026-10-17) */
+#rest .rest-id > b { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; word-break: keep-all; overflow-wrap: anywhere; font: 800 19px/1.15 var(--font-display); color: var(--gk-head); }
 #rest .rest-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 #rest .rest-tags i { padding: 0 7px; border-radius: 999px; background: var(--gk-chip); font: normal 700 11px/18px var(--font-body); color: var(--gk-chip-ink); white-space: nowrap; }
 #rest .rest-tags i.diff { background: var(--gk-accent); color: var(--gk-accent-ink); }
