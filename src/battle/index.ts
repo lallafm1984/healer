@@ -84,8 +84,8 @@ function startBattle(guideSec = 0): void {
   const adds = $('bossAdds') as HTMLImageElement; adds.hidden = true;
   if (F.enc.script === 'plague' && ratsArt()) adds.src = ratsArt(); else adds.removeAttribute('src');
   updateBossTitle();
-  // 위치 줄 앞 = 적 무리 구간 이름 (보스 한 마리는 이름 줄에 이미 있어 비움)
-  $('encounterLabel').textContent = F.bodyHp ? F.enc.name : '';
+  // 위치 줄은 「장소 · 난이도」만 (2026-10-16 Lim, hud.ts updateStage): 앞의 적 무리 이름은 비움
+  $('encounterLabel').textContent = '';
   buildStage();
   $('battle').classList.toggle('compact', !!F.enc.big);
   setPlace(F.enc.key);

@@ -52,10 +52,10 @@ export default async function places(url, shots, part) {
     await toParty(page, { content: p.key, tab: p.tab });
     ok(await page.isVisible('#s-party') && await page.isEnabled('#depart'), `${p.key} (${tag}): 편성 화면, 출발 가능`);
     await departGo(page); await page.clock.runFor(3100 + 500);
-    const run = await page.evaluate(() => { const R = window.__proto.dungeon, F = window.__proto.F; return { segs: R.segs.slice(), enc: F.enc.key, name: F.enc.name }; });
-    // 보스 한 마리는 이름 줄에, 무리 구간은 위치 줄 앞에 이름
-    const top = `${await page.textContent('#encounterLabel')} ${await page.textContent('#bossName')}`;
-    ok(run.enc === run.segs[0] && top.includes(run.name), `${p.key}: 첫 구간 ${run.name} 시작 (${run.segs.length}구간)`);
+    const run = await page.evaluate(() => { const R = window.__proto.dungeon, F = window.__proto.F; return { segs: R.segs.slice(), enc: F.enc.key, name: F.enc.name, place: R.name, diff: F.cfg.diff }; });
+    // 위치 줄 = 「장소 · 난이도」만 (2026-10-16 Lim), 줄 안에 다 들어감
+    const loc = await page.evaluate(() => { const el = document.querySelector('#battle .stage-loc'); return { phase: document.getElementById('phase').textContent, label: document.getElementById('encounterLabel').textContent, fits: el.scrollWidth <= el.clientWidth + .5 }; });
+    ok(run.enc === run.segs[0] && loc.phase === `${run.place} · ${run.diff}` && !loc.label && loc.fits, `${p.key}: 첫 구간 ${run.name} 시작 (${run.segs.length}구간) · 위치 줄 「${loc.phase}」`, loc);
     ok(!BAD.test(await page.textContent('#battle')), `${p.key}: 전투 화면에 NaN · undefined 없음`);
     await page.screenshot({ path: `${shots}/place_${p.key}_battle_${size}.png` });
 
