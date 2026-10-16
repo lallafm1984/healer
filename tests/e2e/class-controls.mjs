@@ -44,7 +44,7 @@ export default async function classControls(url,shots){
     if(hero==='priest'&&!hasAux)baseline[width]={positions:check.positions,board:check.board,frameTop:check.frameTop};
     // 특성 버튼 (2026-10-16): 예전 소비 아이템 자리. 전투판 · 조작판 크기와 휠 좌표는 그대로, 특성 버튼이 없으면 자원 그림만 커짐
     ok(check.positions.every((r,i)=>(hasAux&&i===0)||r.every((v,k)=>Math.abs(v-baseline[width].positions[i][k])<.35))&&Math.abs(check.board-baseline[width].board)<.5&&Math.abs(check.frameTop-baseline[width].frameTop)<.5,label+' 사제 B안 공통 좌표 · 전투판 크기 그대로');
-    ok(check.auxCount===(hasAux?auxPicks[hero].filter(x=>x!==null).length:0)&&check.slotCount===(['priest','monk'].includes(hero)?3:2)&&check.auxFit&&check.timersFit&&check.touchClear,label+' 특성 버튼 · 타이머 · 터치 비침범 '+JSON.stringify(check));
+    ok(check.auxCount===(hasAux?auxPicks[hero].filter(x=>x!==null).length:0)&&check.slotCount===check.auxCount&&check.auxFit&&check.timersFit&&check.touchClear,label+' 특성 버튼 · 타이머 · 터치 비침범 '+JSON.stringify(check));
     ok(check.job===hero&&check.background.includes('ui-class-'+hero+'-background')&&check.oldFrameGone,label+' class materials');
     ok(check.talRow&&check.talFit&&check.wheelFit&&check.aligned&&check.images&&check.gaugeSize[1]>=50&&check.hitMin>=43.9&&check.hitOverlap==='false',label+' aligned gauge/talents safe insets '+JSON.stringify(check));
     await p.locator('#controlsFrame').screenshot({path:shots+'/class-controls-'+hero+'-'+width+'-'+(hasAux?'aux':'base')+'.png'});
@@ -94,8 +94,8 @@ export default async function classControls(url,shots){
    });
    const sideInset=hand==='right'?g.side.left:g.frame.right-g.side.right;
    const skillInset=hand==='right'?g.frame.right-g.wheel.right:g.wheel.left;
-   // 버튼 특성을 안 고른 판도 특성 칸 (빈 칸)이 남고 자원 그림은 그대로 (2026-10-16 Lim)
-   ok(Math.abs(sideInset-inset)<.3&&Math.abs(skillInset-wheelInset)<.3&&Math.abs(g.gauge.height-117)<.3
+   // 보이는 특성 버튼이 없는 판: 안 찍은 · 잠긴 칸은 숨기고 자원 그림이 가득 (1.3배, 117 → 152.1, 2026-10-16 Lim)
+   ok(Math.abs(sideInset-inset)<.3&&Math.abs(skillInset-wheelInset)<.3&&Math.abs(g.gauge.height-117*1.3)<.5
     &&g.overlap==='false',`B안 ${width} ${hand}: 폭별 위치·자원 그림·resize 복귀 `+JSON.stringify(g));
    await p.locator('#controlsFrame').screenshot({path:shots+`/panel-b-${width}-${hand}.png`});
   }
