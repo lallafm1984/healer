@@ -11,7 +11,7 @@ import { astroApply, astroLethal, astroTaken, astroTick, astroTotemGone, readMul
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
 import { hexDist } from './board';
-import { cellOf, emit, heal, healTop, living, onDebuffEnd } from './core';
+import { cellOf, emit, heal, healFlow, healTop, living, onDebuffEnd } from './core';
 import { noteUsed } from './healer';
 import { reviveUnit } from './items';
 import { activeOn, adjLow, areaRadius, rescueLater, sanctuaryReach, waveMax, wildAt } from './talents';
@@ -371,7 +371,7 @@ export function heroTick(f: Fight, dt: number): void {
     if (!s.cells.has(u.cell)) { if (u.reduCut === SANCTUARY.cut) u.redu = 0; continue; }
     u.redu = Math.max(u.redu, dt * 2); u.reduCut = SANCTUARY.cut;
     const hps = s.hps ?? SANCTUARY.hps; // 넓은 성역 (77)
-    if (f.sp) under('sanctuary', false, () => heal(f, u, hps * dt, false)); else heal(f, u, hps * dt, false);
+    if (f.sp) under('sanctuary', false, () => healFlow(f, u, hps * dt)); else healFlow(f, u, hps * dt);
   }
 }
 

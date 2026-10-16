@@ -1,6 +1,6 @@
 /** 전투 판의 파티원 칸 표시 계산. 전투 상태는 변경하지 않는다. */
 import { canDispel, type HeroKey } from '../data/heroes';
-import type { Debuff, Unit } from '../engine/types';
+import type { Debuff, Mod, Unit } from '../engine/types';
 
 /** 소생 → 새싹 → 생장 → 들꽃 → 서약, 그 뒤 특성 지속 힐 (남은 꽃 · 파도의 여운, 77), 79 직업 지속 힐 (물방울) */
 const HOT_TIMER_ORDER = ['renew', 'sprout', 'growth', 'wildflower', 'oath', 'bloom', 'lightWave', 'droplet', 'wanderMist', 'starMark'];
@@ -15,6 +15,18 @@ export function hotTimersOf(u: Pick<Unit, 'hot' | 'hots'>): { key: string; left:
     .sort((a, b) => hotTimerOrder(a.key) - hotTimerOrder(b.key) || a.key.localeCompare(b.key));
 }
 
+/**
+ * 보호막 시간 (모든 직업 공통, 2026-10-16 Lim 「실드는 지속 힐 아이콘처럼 왼쪽에 파란 아이콘으로 시간」): 칸 왼쪽 위 파란 원 하나.
+ * 흡수 보호막 (mods absorb)만. 내가 건 힐러 보호막 (src 'healer', 다시 걸 때를 보는 것)이 있으면 그 시간, 없으면 가장 오래 남은 것.
+ * amt = 남은 흡수량 합 (길게 누르기 정보). 보호 두루마리 (u.shield, 받는 피해 −40%)는 흡수량이 없어 흰 이중 테두리 그대로
+ */
+export function shieldTimerOf(u: Pick<Unit, 'mods'>, t: number): { left: number; amt: number } | null {
+  const on = u.mods.filter((m: Mod) => m.k === 'absorb' && m.until > t && m.v > 1e-9);
+  if (!on.length) return null;
+  const own = on.filter(m => m.src === 'healer'), pick = own.length ? own : on;
+  return { left: Math.max(...pick.map(m => m.until - t)), amt: on.reduce((a, m) => a + m.v, 0) };
+}
+
 export function cellTypography(scale: number): { compact: boolean; hp: number; nick: number; debuff: number } {
   const compact = scale < 36;
   return {
@@ -27,12 +39,8 @@ export function cellTypography(scale: number): { compact: boolean; hp: number; n
   };
 }
 
-/** 0%/100%가 살아 있는 극소 HP나 아직 덜 찬 HP를 오인시키지 않도록 안쪽으로 반올림한다. */
-export function healthDisplay(hp: number, max: number): { ratio: number; percent: number; critical: boolean } {
-  const ratio = max > 0 ? Math.max(0, Math.min(1, hp / max)) : 0;
-  const percent = ratio === 0 ? 0 : ratio === 1 ? 100 : Math.max(1, Math.min(99, Math.round(ratio * 100)));
-  return { ratio, percent, critical: ratio > 0 && ratio < 0.3 };
-}
+/** 칸 체력 글자: 모든 판 (3 · 5인 · 레이드 작은 칸)이 같은 체력 숫자 (2026-10-16 Lim 「레이드도 3 · 5인과 같은 표시, % 제거」). 살아 있는 극소 체력도 0이 아니게 올림, 영원한 저녁은 ? */
+export const hpLabelText = (hp: number, dark = false): string => (dark ? '?' : String(Math.ceil(Math.max(0, hp))));
 
 /** 글꼴 크기를 줄이지 않고 이름을 말줄임한다. 전체 이름은 길게 누르기 정보에서 제공한다. */
 export function fitPartyName(name: string, maxWidth: number, measure: (text: string) => number): string {

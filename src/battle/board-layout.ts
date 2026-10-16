@@ -12,6 +12,12 @@ export function hotTimerLayout(scale: number, count: number) {
   return { radius, step: radius * 2 + 2, x: r * (multi ? 0.62 : 0.56), y: -r * 0.44 };
 }
 
+/** 보호막 시간 원 (2026-10-16): 지속 힐 원 하나일 때의 자리 · 크기를 칸 왼쪽으로 뒤집음 (x는 칸 가운데에서 왼쪽으로 음수) */
+export function shieldTimerLayout(scale: number) {
+  const hot = hotTimerLayout(scale, 1);
+  return { radius: hot.radius, x: -hot.x, y: hot.y };
+}
+
 export function fitBoard(cells: readonly BoardPoint[], width: number, height: number, insets: BoardInsets = {}) {
   const W = Math.max(1, width), H = Math.max(1, height);
   const requestedLeft = Math.max(0, insets.left || 0) + EDGE;

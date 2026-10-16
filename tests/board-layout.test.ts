@@ -1,11 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { CELL_RADIUS, fitBoard, hotTimerLayout, type BoardInsets, type BoardPoint } from '../src/battle/board-layout';
+import { CELL_RADIUS, fitBoard, hotTimerLayout, shieldTimerLayout, type BoardInsets, type BoardPoint } from '../src/battle/board-layout';
 import { BOARDS } from '../src/data/boards';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { makeCells } from '../src/engine/board';
 
 type Layout = ReturnType<typeof fitBoard>;
 const EPS = 1e-7;
+
+describe('보호막 시간 원 (2026-10-16 Lim)', () => {
+  it.each([36, 43, 51.77, 60, 80])('칸 크기 %d: 지속 힐 원 하나와 같은 크기 · 칸 왼쪽으로 뒤집은 자리, 칸 안', scale => {
+    const hot = hotTimerLayout(scale, 1), sh = shieldTimerLayout(scale), r = scale * CELL_RADIUS;
+    expect(sh.radius).toBe(hot.radius);
+    expect(sh.x).toBe(-hot.x);
+    expect(sh.y).toBe(hot.y);
+    expect(sh.x - sh.radius).toBeGreaterThan(-r * Math.cos(Math.PI / 6) - 1); // 칸 왼쪽 변 안 (1px 테두리 여유)
+    expect(sh.x + sh.radius).toBeLessThan(-scale * 0.17); // 가운데 직업 아이콘 자리와 안 겹침
+  });
+});
 
 describe('지속 치유 시간의 세로 배치', () => {
   it.each([36, 43, 60, 80])('칸 크기 %i에서 효과 2~5개의 테두리가 겹치지 않고 칸 높이 안에 남는다', scale => {

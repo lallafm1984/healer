@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, hotTimersOf, primaryDebuff } from '../src/battle/party-display';
-import type { Debuff, Hot } from '../src/engine/types';
+import { cellTypography, debuffDisplay, fitPartyName, hotTimersOf, hpLabelText, primaryDebuff, shieldTimerOf } from '../src/battle/party-display';
+import type { Debuff, Hot, Mod } from '../src/engine/types';
 
 const debuff = (extra: Partial<Debuff> = {}): Debuff => ({ id: 1, name: '부패', type: '질병', left: 4.1, ...extra });
 const hot = (key: Hot['key'], left: number): Hot => ({ key, left, name: key, every: 2, tick: 2, per: 10, i: 0, rest: 30 });
@@ -23,6 +23,17 @@ describe('모든 직업의 지속 치유 시간', () => {
     expect(hotTimersOf({ hot: 0, hots: [hot('sprout', 0), hot('growth', -1), hot('oath', 0.2)] })
       .map(h => [h.key, h.left])).toEqual([['oath', 0.2]]);
     expect(hotTimersOf({ hot: -1, hots: [] })).toEqual([]);
+  });
+});
+
+describe('모든 직업의 보호막 시간', () => {
+  const ab = (src: string, v: number, until: number): Mod => ({ k: 'absorb', v, until, src });
+  it('내가 건 힐러 보호막 시간을 먼저, 남은 흡수량은 모두 더함', () => {
+    expect(shieldTimerOf({ mods: [ab('bubble', 50, 18), ab('healer', 120, 13)] }, 10)).toEqual({ left: 3, amt: 170 });
+  });
+  it('힐러 보호막이 없으면 가장 오래 남은 것, 끝났거나 다 깎인 막 · 다른 효과는 빼고 없으면 null', () => {
+    expect(shieldTimerOf({ mods: [ab('iceBarrier', 40, 14), ab('bubble', 30, 16)] }, 10)).toEqual({ left: 6, amt: 70 });
+    expect(shieldTimerOf({ mods: [ab('healer', 0, 20), ab('healer', 50, 9), { k: 'cut', v: 0.3, until: 20, src: 'x' }] }, 10)).toBeNull();
   });
 });
 
@@ -50,14 +61,12 @@ describe('작은 전투 칸 표시', () => {
     expect(cellTypography(36).hp).toBeGreaterThanOrEqual(cellTypography(35.9).hp);
     expect(cellTypography(40).hp).toBeGreaterThanOrEqual(cellTypography(36).hp);
   });
-  it('살아 있는 극소 HP와 아직 덜 찬 HP를 0%/100%로 표시하지 않는다', () => {
-    expect(healthDisplay(0.01, 1000)).toEqual({ ratio: 0.00001, percent: 1, critical: true });
-    expect(healthDisplay(999.9, 1000).percent).toBe(99);
-    expect(healthDisplay(1000, 1000).percent).toBe(100);
-    expect(healthDisplay(0, 1000)).toEqual({ ratio: 0, percent: 0, critical: false });
-    expect(healthDisplay(100, 0).ratio).toBe(0);
-    expect(healthDisplay(300, 1000).critical).toBe(false);
-    expect(healthDisplay(299, 1000).critical).toBe(true);
+  it('작은 레이드 칸도 3 · 5인과 같은 체력 숫자 (% 없음), 살아 있는 극소 체력은 1, 영원한 저녁은 ?', () => {
+    expect(hpLabelText(6398.2)).toBe('6399');
+    expect(hpLabelText(0.01)).toBe('1');
+    expect(hpLabelText(0)).toBe('0');
+    expect(hpLabelText(500, true)).toBe('?');
+    expect(hpLabelText(1234.5)).not.toMatch(/%/);
   });
   it('닉네임을 축소하지 않고 유니코드 문자를 보존해 말줄임한다', () => {
     const measure = (text: string) => Array.from(text).length * 11;

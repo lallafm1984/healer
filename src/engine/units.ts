@@ -1,7 +1,7 @@
 import { hexDist } from './board';
 import { BARK, DRUID_BIG } from '../data/heroConst';
 import { SKILLS, type SkillKey } from '../data/skills';
-import { bark, cellOf, damage, DT, emit, hasAbsorb, heal, hpLineTick, linger, onDebuffEnd, submerged } from './core';
+import { bark, cellOf, damage, DT, emit, flowTick, hasAbsorb, heal, healFlow, hpLineTick, linger, onDebuffEnd, submerged } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
 import { adjLow, calmFor, renewEnd, talentHot } from './talents';
 import { TX } from '../data/talents';
@@ -59,6 +59,7 @@ export function unitTick(f: Fight, u: Unit): void {
   const dt = DT;
   if (u.flash > 0) u.flash -= dt;
   if (!u.alive) return;
+  if (u.flow) flowTick(f, u);
   if (u.lift) { // 띄워 올리기 (P-LIFT, 56 5장): 하늘에서는 붙어 있던 지속 힐 · 지속 피해만 돌고, 시간이 되면 내려옴
     linger(() => carried(f, u, dt));
     if (u.alive && u.lift && f.t + 1e-9 >= u.lift.until) land(f, u);
@@ -88,7 +89,7 @@ function carried(f: Fight, u: Unit, dt: number): boolean {
   if (u.redu > 0) u.redu -= dt;
   if (u.sacr > 0) u.sacr -= dt;
   if (u.immune > 0) u.immune -= dt;
-  for (const e of u.echo) { heal(f, u, e.rate * dt, false); e.left -= dt; }
+  for (const e of u.echo) { healFlow(f, u, e.rate * dt); e.left -= dt; }
   u.echo = u.echo.filter(e => e.left > 0);
   if (u.guardian > 0) u.guardian -= dt;
   if (u.shield > 0) u.shield -= dt;

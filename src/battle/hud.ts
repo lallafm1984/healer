@@ -27,6 +27,7 @@ import { center, L, screenCenter } from './board';
 import { $, alarm, arrowOf, B, DIR_VEC, DIRS, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
 import { guideModel, iconColor } from './guide';
 import { manaMeter } from './mana-meter';
+import { shieldTimerOf } from './party-display';
 import { fightSkillArt, skillArtImg } from './skillArt';
 
 const fight = () => B.F!;
@@ -645,6 +646,7 @@ function drawPreview(u: Unit): void {
   for (const d of u.debuffs) items.push(`${d.name} (${d.type}${d.stack ? ` ${d.stack}중첩` : ''}, ${Math.ceil(d.left)}초)${!canDispel(F.hero, d.type) ? ` · ${hero.name} 해제 불가` : d.trap ? ' · 해제하면 옆 칸으로 퍼짐' : ` · ${dispelName(F)} 해제`}`);
   if (u.hot > 0) items.push(`소생 ${Math.ceil(u.hot)}초`);
   for (const h of u.hots) items.push(`${h.name} ${Math.ceil(h.left)}초 (남은 회복 ${Math.round(h.rest)})`);
+  { const sh = shieldTimerOf(u, F.t); if (sh) items.push(`보호막 ${Math.ceil(sh.left)}초 (남은 흡수 ${Math.round(sh.amt).toLocaleString('ko-KR')})`); }
   if (F.beacon === u.id) items.push(`봉화: 다른 사람에게 한 빛의 손길의 ${Math.round(beaconShare(F) * 100)}%가 함께 들어감`);
   if (u.redu > 0 && !u.immune) items.push(`받는 피해 -${Math.round(u.reduCut * 100)}% ${Math.ceil(u.redu)}초`);
   if (u.sacr > 0) items.push(`희생 ${Math.ceil(u.sacr)}초 (받는 피해 30%를 내가 대신)`);

@@ -104,9 +104,27 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
     u.lastHeal = f.t;
     if (u.sulking) u.sulking = false;
     if (u.p.thanks) { u.thanks = 3; if (f.rng() < 0.35) bark(f, u, null, false, 'thanks'); }
-  }
+  } else if (flowing) { const w = (u.flow ??= { amt: 0, eff: 0, t0: f.t }); w.amt += amt; w.eff += eff; }
+  else if (eff >= 0.5) emit(f, { type: 'tick', id: u.id, amt: Math.round(amt), eff: Math.round(eff), crit }); // 지속 · 간접 회복도 숫자 (2026-10-16 Lim 「비구름 회복량이 안 보임」)
   if (f.sp && !raw) afterHeal(f, u, amt, eff, crit, direct, hp0);
   return eff;
+}
+
+/** 흐르는 회복 숫자를 모으는 시간 (초): 틱 (0.05초)마다 숫자가 뜨면 못 읽음 */
+export const FLOW_SEC = 1;
+let flowing = false;
+/** 초마다 조금씩 차는 회복 (성역 · 메아리 · 쉼터 · 모이는 안개, amt = 이번 틱 몫): 회복은 그대로, 숫자는 FLOW_SEC씩 모아 tick 사건 하나로 */
+export function healFlow(f: Fight, u: Unit, amt: number): number {
+  const was = flowing;
+  flowing = true;
+  try { return heal(f, u, amt, false); } finally { flowing = was; }
+}
+/** 모아 둔 흐르는 회복을 숫자 하나로 (파티원 한 틱에서) */
+export function flowTick(f: Fight, u: Unit): void {
+  const w = u.flow!;
+  if (f.t - w.t0 < FLOW_SEC - 1e-9) return;
+  u.flow = undefined;
+  if (w.eff >= 0.5) emit(f, { type: 'tick', id: u.id, amt: Math.round(w.amt), eff: Math.round(w.eff), crit: false });
 }
 
 /** 요정 고리 (P-GROW, 48 5장): 고리 안에 선 사람이 치유를 받으면 한 겹 자람 (둘레 1칸씩, every초에 한 번, 최대 max겹) */
@@ -321,7 +339,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     // 쓰러지면 칸을 비운다 → 다른 파티원이 그 칸으로 이동할 수 있음 (2026-10-07 Lim)
     if (u.moving) { const to = f.cells[u.moving.to]; if (to.unit === u) to.unit = null; }
     { const here = f.cells[u.cell]; if (here.unit === u) here.unit = null; }
-    u.alive = false; u.hp = 0; u.debuffs = []; u.hot = 0; u.hots = []; u.echo = []; u.moving = null; u.react = null; u.shield = 0; u.redu = 0; u.sacr = 0; u.immune = 0; u.diedAt = f.t;
+    u.alive = false; u.hp = 0; u.debuffs = []; u.hot = 0; u.hots = []; u.echo = []; u.flow = undefined; u.moving = null; u.react = null; u.shield = 0; u.redu = 0; u.sacr = 0; u.immune = 0; u.diedAt = f.t;
     if (u.mods.length) { u.mods = []; u.max = u.base; }
     if (u.max < u.base) u.max = u.base;
     f.stats.deaths++;
