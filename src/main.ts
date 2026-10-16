@@ -68,11 +68,11 @@ import './screens/shop';
 import './screens/missions';
 import './screens/tutorial';
 import { enterFullscreen } from './platform/fullscreen';
-import { commit, refreshDay, syncAds } from './game/state';
+import { commit, G, refreshDay, syncAds } from './game/state';
 import { go } from './screens/kit';
 import { pushSettings } from './screens/settings';
 import { mountTabs } from './screens/tabs';
-import { applyArtVars } from './art';
+import { applyArtVars, warmArt } from './art';
 
 applyArtVars();
 mountTabs(document.getElementById('tabs')!);
@@ -82,3 +82,6 @@ refreshDay();
 syncAds();
 go('s-title');
 void enterFullscreen();
+// 메뉴 · 로비 · 조작판 그림을 미리 디코딩 (지금 직업 조작판만). 장소 · 보스 · 이펙트 그림은 그 화면에서 (2026-10-17 Lim 「처음 페이지 열 때 살짝 느림」)
+const hero = G.save.hero;
+warmArt(n => /^(a2-|icon-|tab-|emblem-|mark-|village-|adventure-|party-|equipment-|stat-|ui-(?!class-))/.test(n) || n.startsWith(`ui-class-${hero}-`));
