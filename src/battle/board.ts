@@ -62,6 +62,8 @@ const cv = $('board') as HTMLCanvasElement;
 const root = new Container();
 const cellsG = new Graphics();
 const unitsG = new Graphics();
+/** 칸 위에 선 물건 (주술사 샘 토템, 2026-10-16 Lim): 칸 가운데 고정, 파티원 칸 채움 (직업 색) 위 · 직업 아이콘 · 이름 · 체력 · 배지 · 이펙트 아래 */
+const standL = new Container();
 const glowL = new Container();
 const fxG = new Graphics();
 const frameL = new Container();
@@ -70,8 +72,6 @@ const labelsL = new Container();
 /** 버프·디버프 배지 바탕과 글자는 함께 이름·체력 글자보다 위에 그린다. */
 const badgeG = new Graphics();
 const badgeL = new Container();
-/** 칸 위에 선 물건 (주술사 샘 토템, 2026-10-16): 이름·체력·배지 위, 말풍선·떠오르는 숫자·스킬 이펙트(pxfL) 아래 */
-const standL = new Container();
 const topG = new Graphics();
 const topL = new Container();
 const lensL = new Container();
@@ -86,7 +86,7 @@ const markL = new Container();
 /** 말풍선 그림 (43 5장): 틀 뒤 이펙트 띠 · 틀 9조각 · 꼬리·감정 아이콘·앞 이펙트 띠. 대사 글자(topL)는 그 위 */
 const bubbleL = new Container(), bubbleBackL = new Container(), sliceL = new Container(), bubbleFrontL = new Container();
 bubbleL.addChild(bubbleBackL, sliceL, bubbleFrontL);
-root.addChild(cellsG, decalL, unitsG, glowL, fxG, fxArtL, frameL, overG, markL, emblemL, labelsL, badgeG, badgeL, standL, topG, bubbleL, topL, lensL, pxfL);
+root.addChild(cellsG, decalL, unitsG, standL, glowL, fxG, fxArtL, frameL, overG, markL, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL, pxfL);
 
 let dpr = 1;
 /** 판 그림 좌표 (Pixi root 안). k = 그림 → 화면 배율: 보통 1, 「레이드 판 5인 던전 모양」이면 1보다 작음 (화면 좌표 = 그림 좌표 × k) */
@@ -830,7 +830,7 @@ const B2 = {
   lastFlash: {} as Record<number, number>, lens: null as { idx: number; t0: number } | null, lastRender: 0, n: 0,
 };
 export function resetBoardFx(): void {
-  B2.floats = []; B2.bubbles = []; B2.fx = []; B2.disp = {}; B2.hitFx = {}; B2.shake = {}; B2.lastFlash = {}; B2.lens = null; seenZones.clear(); standSpots.clear();
+  B2.floats = []; B2.bubbles = []; B2.fx = []; B2.disp = {}; B2.hitFx = {}; B2.shake = {}; B2.lastFlash = {}; B2.lens = null; seenZones.clear();
   telsSeen = []; telsDone.clear();
   darkAt = null;
   if (B.F) for (const a of bossFxArts(B.F.enc.script)) artTexture(a); // 묶음 H 이펙트 (63 E): 첫 번째부터 보이게
@@ -1129,7 +1129,7 @@ export function lensAt(idx: number, now: number): void { B2.lens = { idx, t0: no
 const HOT_COLOR: Record<string, number> = { sprout: 0x7bc67e, growth: 0xb7e07a, wildflower: 0xe59ac0, oath: 0xf0c46a, bloom: 0xf3c7d6, lightWave: 0xffe7a3, droplet: 0x7ec8f0, wanderMist: 0x6fd0b0, starMark: 0xe8b04a };
 /**
  * 판 위 물건 (79 6-1, engine/totems): 칸 바닥 색 · 그림 이름 (80 5장 board-*, 오기 전엔 바닥 색 + 안쪽 테두리). 범위 = 테두리를 그릴 거리
- * stand = 바닥 무늬가 아니라 칸 위에 선 물건으로 그림 (standL: 이름 · 체력 위 층, 바닥은 색만). 샘 토템은 스킬 아이콘과 같은 나무 그루터기 분수 (2026-10-16)
+ * stand = 바닥 무늬가 아니라 칸 위에 선 물건 (standL): 사람이 서 있어도 그 칸 가운데에 크게, 이름 · 체력 뒤. 샘 토템 = 스킬 아이콘과 같은 나무 그루터기 분수 (2026-10-16)
  */
 const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string; stand?: boolean }> = {
   spring: { color: 0x7ec8f0, art: 'board-totem-spring', label: '샘', stand: true },
@@ -1139,6 +1139,8 @@ const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string;
   citadel: { color: 0xe6d3a0, art: 'board-citadel', label: '성채' },
   nova: { color: 0xd19a5e, art: 'board-supernova', label: '별' },
 };
+/** 선 물건 그림 한 변 (칸 반지름 배) · 그 안에서 그려진 부분 (폭 · 높이 비율, board-totem-spring 납품본을 잼): 그려진 부분이 칸 안에 꽉 차게 */
+const STAND_SIZE = 1.5, STAND_W = 0.72, STAND_H = 0.95;
 /** 힐러 직업 4종 판 위 그림 (80 5장): 전투 시작 때 그 직업 것만 미리 읽음 (첫 토템 · 인장부터 보이게) */
 const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
   shaman: ['board-totem-spring', 'ui-class-board-totem-earth', 'board-totem-rain', 'board-sea-spring'],
@@ -1176,73 +1178,6 @@ function heroArt(pool: SpritePool, name: string, key: string, x: number, y: numb
   pool.put(tex, x, y, fit, fit, alpha);
   recordBound(key, 'hero-art', 'rect', x, y, fit * bw, fit * bh, { requestedDiameter: size, diameter: fit });
   return true;
-}
-/** 칸 위에 선 물건 그림의 그려진 부분 (192px 그림 중 폭 · 높이 비율, 2026-10-16 납품본을 잼, 가운데 정렬) */
-const STAND_BOX: Record<string, [number, number]> = { 'board-totem-spring': [0.72, 0.95] };
-/** 선 물건 그림 높이 (칸 반지름 배). 사람이 선 칸은 직업 아이콘 자리 크기, 빈 칸은 크게 */
-const STAND_H = { slot: 0.66, empty: 1.24 };
-/** 직업 아이콘 자리를 못 쓸 때 (디버프 배지가 씀 · 빈 칸) 찾는 자리: 칸 가운데에서 칸 반지름 배, 그림 가운데가 칸 (반지름 0.95) 안. 가까운 곳부터 */
-const STAND_AT: readonly (readonly [number, number])[] = (() => {
-  const out: [number, number][] = [];
-  for (let j = -5; j <= 5; j++) for (let i = -4; i <= 4; i++) {
-    const dx = i * 0.2, dy = j * 0.19;
-    if (Math.abs(dx) <= 0.95 * COS30 && Math.abs(dy) <= 0.95 - Math.abs(dx) / Math.sqrt(3)) out.push([dx, dy]);
-  }
-  return out.sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]));
-})();
-/** 줄여 볼 크기 (최대 높이 배) */
-const STAND_SHRINK = [1, 0.9, 0.8, 0.72, 0.64, 0.56];
-/** 선 물건마다 지난 프레임 자리 (칸 가운데에서 px · 크기): 배지가 생겼다 사라질 때마다 자리를 옮겨 다니지 않게 */
-const standSpots = new Map<string, { dx: number; dy: number; h: number; near: boolean }>();
-/** 디버프 배지 옆 자리는 조준 표식처럼 칸 밖으로 조금 더 나가도 됨 (칸 반지름 배) */
-const NEAR_TOL = 0.3;
-/** 선 물건이 가리지 않는 표시 (decorationBounds kind) */
-const STAND_HARD = new Set(['hp', 'nick', 'debuff', 'role', 'hot', 'aggro', 'pill', 'relay', 'hero-art']);
-/**
- * 사람이 선 칸의 선 물건 자리 = 직업 아이콘 자리 (2026-10-16 Lim 「체력을 가리면 다른 방법으로」). 그림 바닥은 이름 바로 위,
- * 보통 칸에서 보스가 때리는 사람이면 위쪽이 꼭짓점 조준 표식 아래까지 (작은 칸 조준 표식은 디버프 배지 때처럼 토템 옆으로 비킴)
- */
-function standSlot(name: string, x: number, y: number, r: number, compact: boolean, nickBox: PillBox, underAim: boolean): PillBox {
-  const [bw, bh] = STAND_BOX[name] ?? [1, 1], full = r * STAND_H.slot;
-  const bottom = Math.min(y - r * (compact ? 0.79 : 0.4) + full / 2, nickBox.y - nickBox.h / 2 - 1);
-  const top = underAim ? Math.max(bottom - full, y - r * 0.98 + Math.max(7, L.s * 0.2) * 1.11 + 1) : bottom - full; // 조준 표식 반지름 · 테두리 (render aimR · aimW)
-  const h = bottom - top, w = (h / bh) * bw, p = fitCenter(x, (top + bottom) / 2, w / 2, h / 2);
-  return { x: p.x, y: p.y, w, h };
-}
-/**
- * 칸 위에 선 물건 자리 (2026-10-16, 샘 토템). 이름 · 체력 위 층이라 말풍선 자리 규칙처럼 이름 · 체력 · 디버프 배지 · 표식 (hard)은 절대 안 가림.
- * 사람이 선 칸은 render가 직업 아이콘 자리에 바로 놓고, 여기서는 그 자리를 못 쓸 때: near (디버프 배지 옆) 먼저, 그다음 칸 안 격자.
- * 높이 maxH부터 줄여 가며 가장 큰 크기에서 덜 가리는 · 칸 밖으로 덜 나가는 · 가까운 자리. 지난 자리가 아직 괜찮으면 더 큰 자리가 날 때만 옮김. 없으면 null
- */
-function standSpot(id: string, name: string, cx: number, cy: number, maxH: number, hard: readonly PillBox[],
-  near: (w: number, h: number) => [number, number][] = () => [], tol = 0.12): { x: number; y: number; size: number; w: number; h: number } | null {
-  const [bw, bh] = STAND_BOX[name] ?? [1, 1], r = L.s * 0.93;
-  /** 칸 (pointy 육각, 반지름 r) 밖으로 나간 거리 */
-  const outBy = (px: number, py: number) => Math.max(0, Math.abs(px) - r * COS30, Math.abs(px) / Math.sqrt(3) + Math.abs(py) - r);
-  const look = (dx: number, dy: number, h: number, bonus: number) => {
-    const size = h / bh, w = size * bw, x = cx + dx, y = cy + dy, lim = (bonus > 0 ? Math.max(tol, NEAR_TOL) : tol) * r;
-    if (x - w / 2 < L.left || x + w / 2 > L.right || y - h / 2 < L.top || y + h / 2 > L.bottom) return null;
-    // 그림 상자 네 모서리가 칸 밖으로 tol (칸 반지름 배) 넘게 나가면 옆 칸 것으로 읽힘 → 안 씀
-    const outs = [outBy(dx - w / 2, dy - h / 2), outBy(dx + w / 2, dy - h / 2), outBy(dx - w / 2, dy + h / 2), outBy(dx + w / 2, dy + h / 2)];
-    if (Math.max(...outs) > lim) return null;
-    const box = { x, y, w, h };
-    if (hard.some(o => coverOf(box, o) > 0)) return null;
-    // 칸 밖으로 삐져나간 만큼 · 가운데에서 먼 만큼 · 위쪽이면 조금 (물건은 바닥에 섬)
-    const out = outs.reduce((t, v) => t + v, 0) / 4 / h;
-    return { x, y, size, w, h, dx, dy, near: bonus > 0, score: out * 0.8 + (Math.hypot(dx, dy) / r) * 0.3 + (dy < 0 ? 0.1 : 0) - bonus };
-  };
-  let best: ReturnType<typeof look> = null;
-  for (const k of STAND_SHRINK) {
-    const h = maxH * k, w = (h / bh) * bw;
-    for (const [dx, dy] of near(w, h)) { const c = look(dx, dy, h, 1); if (c && (!best || c.score < best.score)) best = c; }
-    for (const [ax, ay] of STAND_AT) { const c = look(ax * r, ay * r, h, 0); if (c && (!best || c.score < best.score)) best = c; }
-    if (best) break;
-  }
-  const prev = standSpots.get(id), kept = prev ? look(prev.dx, prev.dy, prev.h, prev.near ? 1 : 0) : null;
-  const pick = kept && best && best.h <= kept.h + 0.01 ? kept : best;
-  if (!pick) { standSpots.delete(id); return null; }
-  standSpots.set(id, { dx: pick.dx, dy: pick.dy, h: pick.h, near: pick.near });
-  return pick;
 }
 
 function predictedHeal(u: Unit): number {
@@ -1466,8 +1401,13 @@ export function render(now: number): void {
     for (const tm of F.totems) if (tm.cell === i) {
       const look = TOTEM_LOOK[tm.kind], end = tm.until - F.t < 2, tex = artTexture(look.art);
       hexPoly(cellsG, p.x, p.y, r).fill({ color: look.color, alpha: end ? 0.08 + 0.14 * pulse : 0.22 });
-      if (tex && look.stand) continue; // 선 물건은 글자를 다 놓은 뒤 standArt로
-      if (tex) decals.put(tex, p.x, p.y, cellArt, cellArt, end ? 0.5 + 0.5 * pulse : 1);
+      if (tex && look.stand) {
+        // 선 물건 (2026-10-16 Lim 「토템 위치는 고정, 이름 · 체력 뒤 직업 칸 색 위에 가운데 크게, 캐릭터가 이동해도 그 자리」): 칸 가운데, 세울 때 0.25초 솟아오름 (바닥 기준)
+        const rise = S.reducedEffects ? 1 : Math.min(1, Math.max(0, (F.t - tm.at) / 0.25)), k = 0.6 + 0.4 * (1 - (1 - rise) ** 2);
+        const size = r * STAND_SIZE, half = (size * STAND_H) / 2, q = fitCenter(p.x, p.y, (size * STAND_W) / 2, half);
+        stands.put(tex, q.x, q.y + half * (1 - k), size * k, size * k, end ? 0.5 + 0.5 * pulse : 1);
+        recordBound(`stand-${tm.kind}${i}`, 'stand', 'rect', q.x, q.y, size * STAND_W, size * STAND_H, { diameter: size });
+      } else if (tex) decals.put(tex, p.x, p.y, cellArt, cellArt, end ? 0.5 + 0.5 * pulse : 1);
       else hexPoly(cellsG, p.x, p.y, r * 0.62).stroke({ width: 2.5, color: look.color, alpha: 0.9 });
     }
     // 사제 쉼터 (특성): 금빛 바닥 + 안쪽 테두리, 끝나기 2초 전 깜빡임
@@ -1836,9 +1776,6 @@ export function render(now: number): void {
   const hpBounds: { id: number; cell: number; text: string; x: number; y: number; w: number; h: number; sx: number }[] = [];
   /** 작은 칸 아래 가운데 표시 (지속 힐 + · 빛의 전이 금빛 점): 배지를 다 놓은 뒤 그림 */
   const smallHots: { id: number; x: number; y: number; relay?: boolean }[] = [];
-  /** 칸 위에 선 물건 (샘 토템)이 있는 칸 → 그림 이름 (그림이 읽힌 뒤부터) · 그 칸 사람의 직업 아이콘 자리에 놓은 그림 상자 */
-  const standCells = new Map(F.totems.filter(tm => TOTEM_LOOK[tm.kind].stand && artTexture(TOTEM_LOOK[tm.kind].art)).map(tm => [tm.cell, TOTEM_LOOK[tm.kind].art]));
-  const slotAt = new Map<number, PillBox>();
   for (const { u, x, y, deb } of over) {
     let debBadge: ReturnType<typeof pill> | undefined;
     const hots = hotTimersOf(u), hasHot = hots.length > 0;
@@ -1846,10 +1783,7 @@ export function render(now: number): void {
     // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만). 「나」 = 직업 문장 (27 3-4)
     const em = u.me ? emblemTexture(F.hero) : null;
     // 위쪽 한 줄은 직업 아이콘 또는 디버프 배지 (디버프가 있으면 배지가 그 자리를 씀, 칸 색이 직업을 보여 줌)
-    // 샘 토템이 선 칸 (2026-10-16 Lim 「체력을 가리면 다른 방법으로」): 토템이 서 있는 동안 직업 아이콘 (「나」는 직업 문장) 자리에 토템, 칸 색이 직업을 보여 줌.
-    // 디버프 배지가 그 자리를 쓰면 칸 안 빈자리 (standSpot). 작은 칸 조준 표식은 디버프 배지 때처럼 토템 옆으로
-    const slotArt = deb ? undefined : standCells.get(u.cell);
-    if (slotArt) { /* 이름을 놓은 뒤 자리를 잡음 */ } else if (em && !deb) {
+    if (em && !deb) {
       const d = Math.max(14, s * 0.5);
       if (meEmblem.texture !== em) meEmblem.texture = em;
       meEmblem.width = meEmblem.height = d;
@@ -1865,9 +1799,7 @@ export function render(now: number): void {
       recordBound(`role${u.id}`, 'role', 'icon', ep.x, ep.y, half * 2, half * 2);
     }
     // 작은 칸: 배지 · 이름 · 체력 세 줄이 서로와 위 칸 체력에 닿지 않게 (배지 0.81 · 이름 0.24, 2026-10-10)
-    const nickBox = nick(u, x, y + r * (compact ? -0.24 : 0.13), r);
-    const slotBox = slotArt ? standSlot(slotArt, x, y, r, compact, nickBox, tank === u && !compact) : undefined;
-    if (slotBox) { slotAt.set(u.cell, slotBox); recordBound(`role${u.id}`, 'role', 'icon', slotBox.x, slotBox.y, slotBox.w, slotBox.h); }
+    nick(u, x, y + r * (compact ? -0.24 : 0.13), r);
     const health = healthDisplay(u.hp, u.max);
     // 영원한 저녁 (05 6-G): 숫자 없이 채움 색만
     const hpText = F.dark ? '?' : `${compact ? `${health.percent}%` : Math.ceil(u.hp)}`;
@@ -1936,11 +1868,10 @@ export function render(now: number): void {
       const br = aimR, bw = aimW;
       let bx = x, by = y - r * 0.98;
       if (debBadge && !compact) by = peakY;
-      else if (debBadge || (compact && slotBox)) {
-        const side = (debBadge ?? slotBox)!;
-        bx = side.x - side.w / 2 - br - bw / 2 - 1;
-        if (bx - br - bw / 2 < L.left) bx = side.x + side.w / 2 + br + bw / 2 + 1;
-        by = debBadge ? debBadge.y : y - r * 0.81;
+      else if (debBadge) {
+        bx = debBadge.x - debBadge.w / 2 - br - bw / 2 - 1;
+        if (bx - br - bw / 2 < L.left) bx = debBadge.x + debBadge.w / 2 + br + bw / 2 + 1;
+        by = debBadge.y;
       }
       ({ x: bx, y: by } = fitCenter(bx, by, br + bw / 2));
       overG.circle(bx, by, br).fill({ color: C.cell }).stroke({ width: bw, color: C.danger });
@@ -2041,39 +1972,6 @@ export function render(now: number): void {
     badgeG.moveTo(hot.x - 2.5, hy).lineTo(hot.x + 2.5, hy).moveTo(hot.x, hy - 2.5).lineTo(hot.x, hy + 2.5).stroke({ width: 1.5, color: C.teal });
     recordBound(`hot${hot.id}`, 'hot', 'cross', hot.x, hy, 6.5, 6.5);
   }
-  // 칸 위에 선 물건 (샘 토템, 2026-10-16): 이름 · 체력 · 배지를 다 놓은 뒤 그 위 층에. 서 있는 동안만, 끝나기 2초 전 깜빡임, 세울 때 0.25초 솟아오름
-  if (F.totems.some(tm => TOTEM_LOOK[tm.kind].stand)) {
-    // 이름 · 체력 · 디버프 배지 · 직업 아이콘 · 지속 힐 원 · 조준 표식 · 번호표 · 인장은 안 가림 (디버프 고리는 칸 둘레라 뺌)
-    const hard: PillBox[] = decorationBounds.filter(b => STAND_HARD.has(b.kind) && !(b.kind === 'debuff' && b.shape === 'hex'));
-    const live = new Set<string>();
-    for (const tm of F.totems) {
-      const look = TOTEM_LOOK[tm.kind], tex = look.stand ? artTexture(look.art) : null;
-      if (!tex) continue;
-      const id = `${tm.kind}@${tm.at}`, c = center(tm.cell);
-      live.add(id);
-      const sl = slotAt.get(tm.cell);
-      let spot: { x: number; y: number; size: number; w: number; h: number } | null;
-      if (sl) { spot = { ...sl, size: sl.h / (STAND_BOX[look.art] ?? [1, 1])[1] }; standSpots.delete(id); }
-      else {
-        // 디버프 배지가 직업 아이콘 자리를 쓰면 배지 옆 (같은 줄 바닥에 섬), 아니면 칸 안 빈자리. 빈 칸은 크게
-        const u = F.party.find(v => v.alive && v.cell === tm.cell), db = u ? decorationBounds.find(o => o.key === `deb${u.id}`) : undefined;
-        const hb = u ? decorationBounds.find(o => o.key === `hp${u.id}`) : undefined, nb = u ? decorationBounds.find(o => o.key === `nick${u.id}`) : undefined;
-        // 배지 줄 양옆 (조준 표식처럼), 그다음 체력 숫자 양옆 (이름 아래 · 체력 줄, 작은 칸은 여기만 빔)
-        const near = db ? (w: number, h: number): [number, number][] => {
-          const l = db.left - 1 - w / 2 - c.x, rt = db.right + 1 + w / 2 - c.x, out: [number, number][] = [[l, db.y - c.y], [l, db.bottom - h / 2 - c.y], [rt, db.y - c.y], [rt, db.bottom - h / 2 - c.y]];
-          if (hb && nb) { const hy = Math.max(hb.y, nb.bottom + 1 + h / 2) - c.y; out.push([hb.left - 1 - w / 2 - c.x, hy], [hb.right + 1 + w / 2 - c.x, hy]); }
-          return out;
-        } : undefined;
-        spot = standSpot(id, look.art, c.x, c.y, r * (u ? STAND_H.slot : STAND_H.empty), hard, near, u ? 0.12 : 0.3);
-      }
-      if (!spot) continue;
-      const rise = S.reducedEffects ? 1 : Math.min(1, Math.max(0, (F.t - tm.at) / 0.25)), k = 0.6 + 0.4 * (1 - (1 - rise) ** 2);
-      stands.put(tex, spot.x, spot.y + (spot.h * (1 - k)) / 2, spot.size * k, spot.size * k, tm.until - F.t < 2 ? 0.5 + 0.5 * pulse : 1);
-      recordBound(`stand-${id}`, 'stand', 'rect', spot.x, spot.y, spot.w, spot.h, { diameter: spot.size });
-      hard.push(spot); // 두 개의 샘 (특성): 두 번째 토템은 첫 번째와 안 겹치게
-    }
-    for (const id of standSpots.keys()) if (!live.has(id)) standSpots.delete(id);
-  } else standSpots.clear();
   // 표시된 글자 bounds만 노출한다. 값이 바뀔 때만 기록하며 전투/입력 상태에는 관여하지 않는다.
   let neighborGap = Infinity;
   for (let i = 0; i < hpBounds.length; i++) for (let j = i + 1; j < hpBounds.length; j++) {
