@@ -70,8 +70,6 @@ export interface Settings {
   compactSkills: boolean;
   /** 전투 정보는 유지하고 흔들림·부유 숫자 등 시각 효과를 줄임 */
   reducedEffects: boolean;
-  /** 10 · 20인 레이드 판도 5인 던전 칸 모양으로 그리고 칸 크기 비율대로 줄임 (2026-10-11 Lim 비교용). 옛 저장엔 없음 = 꺼짐 */
-  raidFiveLook?: boolean;
   /** 강화 연출 짧게 (0.5초, 34 7-3). 옛 저장엔 없음 = 꺼짐 */
   quickEnhance?: boolean;
   /** 개발 빌드: 자동 힐러로 구경 */
@@ -304,6 +302,8 @@ export function migrate(raw: unknown): SaveData {
   // v16: 골드 · 골드 무제한 개발 옵션을 버림 (쓰는 곳이 없어짐)
   delete (out.player as Record<string, unknown>).gold;
   delete (out.settings as unknown as Record<string, unknown>).devGold;
+  // 「레이드 판을 5인 던전 모양으로」 설정은 버림: 모든 판이 5인 던전 모양 (2026-10-16 Lim, 저장 형식은 그대로 v16)
+  delete (out.settings as unknown as Record<string, unknown>).raidFiveLook;
   delete (out.weekly as unknown as Record<string, unknown>).craft;
   if ((o.v ?? 0) < 10) gearByHero(out);
   if ((o.v ?? 0) < 11) splitChars(out, out.createdAt);

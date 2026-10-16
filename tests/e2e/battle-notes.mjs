@@ -10,9 +10,7 @@ import { departGo, patchSave, toParty } from './nav.mjs';
 const BOARDS = [
   { n: 3, tab: 'explore', content: 'plateau' },
   { n: 5, tab: 'dungeon', content: 'rustfort' },
-  { n: 10, tab: 'raid10', content: 'abyss1' },
-  { n: 20, tab: 'raid20', content: 'cathedral1' },
-  // 「레이드 판 5인 던전 모양」 설정 (판을 줄여 그림: 화면 좌표 = 그림 좌표 × k)
+  // 10 · 20인은 5인 던전 모양 (2026-10-16 Lim 기본, 판을 줄여 그림: 화면 좌표 = 그림 좌표 × k)
   { n: 10, tab: 'raid10', content: 'abyss1', five: true },
   { n: 20, tab: 'raid20', content: 'cathedral1', five: true },
 ];
@@ -30,10 +28,10 @@ export default async function battleNotes(url, shots) {
     page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
     await page.clock.install({ time: new Date(2026, 9, 11, 12) });
     await page.goto(url); await page.clock.runFor(300);
-    await patchSave(page, { player: { level: 60 }, settings: { auto: false, sound: false, vibrate: false, raidFiveLook: !!board.five } });
+    await patchSave(page, { player: { level: 60 }, settings: { auto: false, sound: false, vibrate: false } });
     await toParty(page, { tab: board.tab, content: board.content, diff: '쉬움' });
     await departGo(page); await page.clock.runFor(3100 + 300);
-    const tag = `${name} ${width}×${height} ${board.n}인${board.five ? ' (5인 모양)' : ''}`;
+    const tag = `${name} ${width}×${height} ${board.n}인`;
     if (board.five) ok(await page.evaluate(() => document.querySelector('#board').dataset.cellLook === 'five'), `${tag}: 5인 던전 모양으로 줄여 그림`);
     // 판 위 사람이 죽거나 움직이지 않게 체력을 채우며 진행
     const fill = () => page.evaluate(() => { const F = window.__proto.F; F.party.forEach(u => { if (u.alive) u.hp = u.max; }); });
@@ -52,7 +50,7 @@ export default async function battleNotes(url, shots) {
           r: Number(cv.dataset.cellScale) * 0.93, text: el.textContent };
       });
       const cellTop = cv.y + p.y - g.r;
-      if (name === 'S25') await page.screenshot({ path: `${shots}/notes_preview_${board.n}${board.five ? 'f' : ''}_${where === '맨 윗줄' ? 'top' : 'bottom'}.png` });
+      if (name === 'S25') await page.screenshot({ path: `${shots}/notes_preview_${board.n}_${where === '맨 윗줄' ? 'top' : 'bottom'}.png` });
       ok(!g.hidden && g.bottom <= cellTop + .5 && g.top >= 70 - .5 && g.left >= 0 && g.right <= width + .5 && !g.noarrow && /체력|쓰러짐/.test(g.text),
         `${tag}: ${where} 칸을 길게 누르면 상세창이 그 칸 위쪽 (아래 끝 ${Math.round(g.bottom)} ≤ 칸 위 ${Math.round(cellTop)}${g.brief ? ', 설명 접음' : ''})`, g);
       await page.mouse.up(); await page.clock.runFor(1000);
@@ -120,7 +118,7 @@ export default async function battleNotes(url, shots) {
       ok(skipped ? !skipped.later.onBoard && !skipped.toasts.some(t => t.includes('폭탄! 다들 흩어져!')) : !!board.five,
         `${tag}: 판에 붙일 자리가 없는 기믹 말풍선은 생략 (전투 메시지로도 안 넘김)${skipped ? '' : ' · 모두 자리 있음'}`, skipped);
     }
-    if (name === 'S25') await page.screenshot({ path: `${shots}/notes_bubbles_${board.n}${board.five ? 'f' : ''}.png` });
+    if (name === 'S25') await page.screenshot({ path: `${shots}/notes_bubbles_${board.n}.png` });
 
     await ctx.close();
   }

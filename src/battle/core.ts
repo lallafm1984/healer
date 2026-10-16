@@ -119,7 +119,7 @@ export interface Run {
 export const S = {
   diff: '보통', gearStats: null as GearStats | null, level: 100, heroLv: undefined as number | undefined, stageLv: undefined as number | undefined,
   party: null as RosterEntry[] | null,
-  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, compactSkills: true, reducedEffects: false, raidFiveLook: false, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined, specs: undefined as Record<string, number> | undefined,
+  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, compactSkills: true, reducedEffects: false, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined, specs: undefined as Record<string, number> | undefined,
   affixes: undefined as AffixKey[] | undefined, bossMult: undefined as { hp: number; dmg: number } | undefined, limit: undefined as number | undefined, chal: 0,
   layout: { ...DEFAULT_LAYOUT } as Layout,
   run: null as Run | null, onEnd: null as ((r: BattleResult) => void) | null, coach: null as CoachKey | null,

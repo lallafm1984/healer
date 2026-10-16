@@ -92,7 +92,7 @@ async function geometry(page) {
     return { viewport: { w: innerWidth, h: innerHeight, dpr: devicePixelRatio }, canvas: { x: r.x, y: r.y, w: r.width, h: r.height,
       pixelW: canvas.width, pixelH: canvas.height }, cells, sx, sy, ox: a.x - a.px * sx, oy: a.y - a.py * sy,
       s: Number(d.cellScale), cellW: Number(d.cellWidth), cellH: Number(d.cellHeight), hp: Number(d.hpFontSize), nick: Number(d.nickFontSize),
-      smallCells: d.compactCells === 'true', compact: document.querySelector('#controls').classList.contains('compact-controls'),
+      k: Number(d.drawScale || 1), compact: document.querySelector('#controls').classList.contains('compact-controls'),
       safe: { left: Number(d.boardSafeLeft), right: Number(d.boardSafeRight), top: Number(d.boardSafeTop), bottom: Number(d.boardSafeBottom) },
       insets: { left: Number(d.boardInsetLeft), right: Number(d.boardInsetRight) }, fitAxis: d.boardFitAxis,
       hpBounds: JSON.parse(d.hpTextBounds || '[]'), decorations: JSON.parse(d.decorationBounds || '[]'),
@@ -123,14 +123,14 @@ function checkGeometry(g, ok, label) {
   const centered = Math.abs((body.left + body.right) / 2 - (g.safe.left + g.safe.right) / 2) < EPS;
   const axisFits = g.fitAxis === 'horizontal' ? Math.abs(margins.left) < EPS && Math.abs(margins.right) < EPS : g.fitAxis === 'vertical';
   ok(bodyFits && centered && axisFits && g.safe.left >= 2 - EPS && g.canvas.w - g.safe.right >= 2 - EPS
-    && g.hp >= 12 && g.nick >= 9,
-  `${label}: 실제 body 외곽선 허용 경계·중앙 배치·제약축 준수`, { safe: g.safe, margins, fitAxis: g.fitAxis, hp: g.hp, smallCells: g.smallCells });
+    && g.hp >= 14 * g.k - .01 && g.nick >= 9 * g.k - .01, // 10 · 20인은 5인 칸 글자 × 배율 (2026-10-16 Lim 모든 판 5인 모양)
+  `${label}: 실제 body 외곽선 허용 경계·중앙 배치·제약축 준수`, { safe: g.safe, margins, fitAxis: g.fitAxis, hp: g.hp, k: g.k });
   const dpr = Math.min(3, g.viewport.dpr);
   ok(Math.abs(g.canvas.pixelW - Math.round(g.canvas.w) * dpr) <= 1 && Math.abs(g.canvas.pixelH - Math.round(g.canvas.h) * dpr) <= 1,
     `${label}: CSS 좌표와 캔버스 backing DPR 크기 일치`, g.canvas);
   const hp = g.hpBounds.map(rectOf);
   ok(hp.length === g.party && hp.every((a, i) => hp.slice(i + 1).every(b => separated(a, b))),
-    `${label}: 표시 방식 경계 포함 실제 HP 글자 bounds 비겹침`, { hp: g.hp, smallCells: g.smallCells, labels: hp.map(x => x.text) });
+    `${label}: 표시 방식 경계 포함 실제 HP 글자 bounds 비겹침`, { hp: g.hp, k: g.k, labels: hp.map(x => x.text) });
   return { body, margins };
 }
 

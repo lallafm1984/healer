@@ -49,14 +49,14 @@ export default async function relay(url, shots) {
         const sep = (a, b) => a.right <= b.left + 0.05 || b.right <= a.left + 0.05 || a.bottom <= b.top + 0.05 || b.bottom <= a.top + 0.05;
         const others = bounds.filter(b => ['hp', 'nick', 'hot', 'role', 'aggro', 'pill'].includes(b.kind) || b.kind === 'debuff' && b.shape === 'pill');
         return {
-          small: d.compactCells === 'true', mark,
+          mark,
           inside: !!mark && mark.left >= safe.left - 0.05 && mark.right <= safe.right + 0.05 && mark.top >= safe.top - 0.05 && mark.bottom <= safe.bottom + 0.05,
           hits: mark ? others.filter(b => !sep(mark, b)).map(b => b.key) : [],
         };
       });
     };
     const plain = await look();
-    ok(!!plain.mark && plain.inside && plain.hits.length === 0, `${tag}: 탱커 칸 빛의 전이 표시가 판 안, 다른 표시와 안 겹침 (${plain.small ? '작은 칸 금빛 점' : '보통 칸 왼쪽 위'})`, plain);
+    ok(!!plain.mark && plain.inside && plain.hits.length === 0, `${tag}: 탱커 칸 빛의 전이 표시가 판 안, 다른 표시와 안 겹침 (칸 왼쪽 위)`, plain);
     await page.locator('#board').screenshot({ path: `${shots}/relay_${party.n}_${width}x${height}.png` });
     const busy = await look({ deb: true, hot: true });
     ok(!!busy.mark && busy.inside && busy.hits.length === 0, `${tag}: 디버프 배지 · 지속 힐이 함께 있어도 빛의 전이 표시가 안 겹침`, busy);

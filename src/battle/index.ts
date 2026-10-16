@@ -4,7 +4,6 @@
  */
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
-import { BOARDS } from '../data/boards';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
@@ -192,18 +191,6 @@ function scaleControls(): void {
   Object.assign(controls.dataset, { uiScale: String(scale), baseControlHeight: String(controls.offsetHeight), visualTouchMin: visualMin.toFixed(3),
     effectiveTouchMin: Math.max(44, visualMin).toFixed(3), hitAreasOverlap: String(overlap(targets)) });
 }
-/** 10 · 20인 판 (5인 던전 판보다 칸이 많음) */
-const raidBoard = (F: Fight) => F.cells.length > BOARDS.b10.flat().length;
-/** 레이드 판을 5인 던전 모양으로 (설정 · 일시정지, 2026-10-11 Lim 비교용). 판 그리기는 board.ts resizeBoard */
-function setFiveLook(value: boolean): void {
-  if (S.raidFiveLook === value) return;
-  S.raidFiveLook = value;
-  if (B.F && !$('battle').hidden) resizeBoard();
-}
-$('pauseFive').addEventListener('change', e => {
-  const v = (e.target as HTMLInputElement).checked;
-  setFiveLook(v); S.onSetting?.('raidFiveLook', v);
-});
 new ResizeObserver(() => { if (B.F && !$('battle').hidden) resizeBoard(); }).observe($('boardWrap'));
 window.addEventListener('resize', () => { if (B.F && !$('battle').hidden) layoutBattle(); });
 document.fonts.ready.then(fitBossTitle);
@@ -600,8 +587,6 @@ function setPause(v: boolean): void {
   $('pauseGuide').innerHTML = guideHtml(g, F);
   $('pauseGuide').scrollTop = 0;
   ($('pauseAuto') as HTMLInputElement).checked = S.auto;
-  ($('pauseFive') as HTMLInputElement).checked = S.raidFiveLook;
-  $('pauseFiveWrap').hidden = !raidBoard(F);
   $('resumeBtn').focus({ preventScroll: true });
 }
 function setPauseInert(value: boolean): void {
@@ -855,7 +840,7 @@ function frame(now: number): void {
     Snd.init();
     startBattle(0);
   },
-  settings(s: { sound?: boolean; vibrate?: boolean; hand?: string; tapKey?: string; zoom?: boolean; auto?: boolean; layout?: unknown; hero?: string; compactSkills?: boolean; reducedEffects?: boolean; raidFiveLook?: boolean }) {
+  settings(s: { sound?: boolean; vibrate?: boolean; hand?: string; tapKey?: string; zoom?: boolean; auto?: boolean; layout?: unknown; hero?: string; compactSkills?: boolean; reducedEffects?: boolean }) {
     S.sound = !!s.sound; S.vibe = !!s.vibrate; S.hand = s.hand === 'left' ? 'left' : 'right';
     S.tapKey = s.tapKey && TAP_KEYS[s.tapKey] ? s.tapKey : 'heal';
     if (s.hero && HERO_KEYS.includes(s.hero as HeroKey)) S.hero = s.hero as HeroKey;
@@ -863,7 +848,6 @@ function frame(now: number): void {
     S.compactSkills = true;
     S.reducedEffects = !!s.reducedEffects || matchMedia('(prefers-reduced-motion: reduce)').matches;
     $('battle').classList.toggle('reduced-effects', S.reducedEffects);
-    setFiveLook(!!s.raidFiveLook);
     if (S.auto && S.run) S.run.auto = true;
     S.layout = validLayout(s.layout) ? { ...s.layout } : { ...DEFAULT_LAYOUT };
     applyLayout();
