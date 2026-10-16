@@ -167,55 +167,72 @@ export default {
 
   // ── 파티원 능력 (능력 종류마다, 내 힐 스킬과 헷갈리지 않게 종류 색을 분명히) ──
 
-  /** 방어 🛡: 칸 앞에 하늘색 · 강철빛 둥근 방패가 번쩍 나타나 단단하게 한 번 울리고 (테두리 고리가 퍼짐) 흐려짐 */
+  /** 방어 🛡 (2026-10-16 검수 다시: 파란 원판 → 황동 둥근 방패): 칸 앞에 황동 테 · 청동 판 · 무쇠 방패 꼭지 방패가 튀어나와 「쾅」 금빛 고리가 퍼지고 테에서 불티가 튐 */
   'ally-def': {
     frames: 16, logical: 80, scope: 'target', size: SMALL,
     draw(g, { t }) {
-      const pop = E.back(seg(t, 0, 0.22), 2), fade = 1 - E.in2(seg(t, 0.35, 0.9)), ring = seg(t, 0.12, 0.7);
-      glow(g, 0, 0.05, 0.75, '#7ab8ff', 0.55 * fade);
-      ringGlow(g, 0, 0.05, lerp(0.35, 0.95, E.out3(ring)), 0.1, '#9fd0ff', 0.8 * (1 - ring), 1);
-      g.save(); g.translate(0, 0.05); g.scale(0.36 * pop, 0.36 * pop);
-      solid(g, h => { h.beginPath(); h.arc(0, 0, 1, 0, TAU); }, { hi: '#e8f4ff', lo: '#4a78b0', rim: '#14243e', rimW: 0.08, a: fade * 0.82, shine: 0.7 });
-      g.globalAlpha = fade * 0.82; g.beginPath(); g.arc(0, 0, 0.72, 0, TAU); g.lineWidth = 0.08; g.strokeStyle = '#14243e'; g.stroke();
-      g.beginPath(); g.arc(0, 0, 0.2, 0, TAU); g.fillStyle = '#c8dcf0'; g.fill(); g.lineWidth = 0.07; g.stroke();
+      const pop = E.back(seg(t, 0, 0.2), 2.2), fade = 1 - E.in2(seg(t, 0.42, 0.92)), ring = seg(t, 0.1, 0.62), cy = -0.02;
+      glow(g, 0, cy, 0.8, '#ffc864', 0.5 * fade);
+      ringGlow(g, 0, cy, lerp(0.38, 0.98, E.out3(ring)), 0.11, '#ffd98a', 0.85 * (1 - ring), 1);
+      g.save(); g.translate(0, cy); g.scale(0.38 * pop, 0.38 * pop);
+      // 황동 테 → 청동 판 → 무쇠 꼭지 (굵은 어두운 외곽선, 왼쪽 위 빛)
+      solid(g, h => { h.beginPath(); h.arc(0, 0, 1, 0, TAU); }, { hi: '#ffe7a0', lo: '#8a5a1c', rim: '#1a0f06', rimW: 0.09, a: fade, shine: 0.55 });
+      solid(g, h => { h.beginPath(); h.arc(0, 0, 0.76, 0, TAU); }, { hi: '#e8a868', lo: '#6e3a1a', rim: '#2a1608', rimW: 0.05, a: fade, shine: 0.35 });
+      g.globalAlpha = fade;
+      for (let i = 0; i < 4; i++) { const a = rad(45 + i * 90); g.beginPath(); g.arc(Math.cos(a) * 0.88, Math.sin(a) * 0.88, 0.07, 0, TAU); g.fillStyle = '#fff0c0'; g.fill(); g.lineWidth = 0.035; g.strokeStyle = '#2a1608'; g.stroke(); }
+      solid(g, h => { h.beginPath(); h.arc(0, 0, 0.28, 0, TAU); }, { hi: '#dfe6ee', lo: '#4a5868', rim: '#10141c', rimW: 0.05, a: fade, shine: 0.8 });
       g.restore();
-      glint(g, -0.2, -0.18, 0.3 * bell(t, 0.1, 0.22, 0.5), '#9fd0ff', 1, rad(20), 0.12);
+      glint(g, -0.2, cy - 0.2, 0.34 * bell(t, 0.08, 0.2, 0.5), '#ffe7a0', 1, rad(20), 0.12);
+      if (t > 0.12) particles(g, seg(t, 0.12, 1), 21, 8, r => ({ t0: 0, life: 0.5 + r() * 0.35, a: r() * TAU, sp: 0.35 + r() * 0.3, sz: 0.02 + r() * 0.018 }), (gg, p, age) => {
+        const d = 0.4 + p.sp * E.out2(age); speck(gg, Math.cos(p.a) * d, cy + Math.sin(p.a) * d, p.sz, '#ffcf6a', (1 - age) * fade);
+      });
     },
   },
 
-  /** 방해 ✋: 칸 위쪽에서 보라 사슬 고리 · 작은 별이 원을 그리며 휘감았다가 바깥으로 튕겨 나감 */
+  /** 방해 ✋ (다시: 흩어진 보라 고리 → 조여드는 보라 사슬 띠): 칸 위쪽을 보라 사슬 띠가 감아 조이고 앞쪽에 매듭이 맺힌 뒤 빛가루로 풀려 사라짐 */
   'ally-ctl': {
     frames: 16, logical: 80, scope: 'target', size: SMALL,
     draw(g, { t }) {
-      const fade = 1 - E.in2(seg(t, 0.55, 1)), spin = t * TAU * 0.8, fling = E.in2(seg(t, 0.5, 1)), cy = -0.35;
-      glowOval(g, 0, cy, 0.8, 0.5, '#a070f0', 0.55 * fade);
-      for (let i = 0; i < 6; i++) {
-        const a = spin + (i * TAU) / 6, r = 0.58 + 0.6 * fling, z = Math.sin(a), x = Math.cos(a) * r, y = cy + z * r * 0.38;
-        g.save(); g.translate(x, y); g.rotate(a + Math.PI / 2); g.globalAlpha = fade * (z > 0 ? 1 : 0.6);
-        const face = Math.abs(Math.cos(a * 2));
-        g.beginPath(); g.ellipse(0, 0, 0.13 * (0.35 + 0.65 * face), 0.1, 0, 0, TAU);
-        g.lineWidth = 0.075; g.strokeStyle = '#1e0e3a'; g.stroke(); g.lineWidth = 0.045; g.strokeStyle = '#a070f0'; g.stroke(); g.lineWidth = 0.015; g.strokeStyle = '#e8d8ff'; g.stroke();
-        g.restore();
+      const grab = E.out3(seg(t, 0, 0.38)), fade = 1 - E.in2(seg(t, 0.6, 1)), cy = -0.32, spin = t * 1.6;
+      const rx = lerp(0.82, 0.5, grab), ry = rx * 0.36;
+      glowOval(g, 0, cy, 0.85, 0.45, '#a070f0', 0.5 * fade);
+      const E1 = (a0, a1) => s => { const a = lerp(a0, a1, s) + spin; return { x: Math.cos(a) * rx, y: cy + Math.sin(a) * ry }; };
+      const band = { rim: '#1e0e3a', body: '#a070f0', core: '#ecdcff', rimW: 0.022, coreW: 0.4, glowCol: '#b58aff', glowA: 0.5 };
+      // 뒤쪽 반 (옅게) → 앞쪽 반 (진하게): 칸 위를 둘러 감은 띠
+      lightStroke(g, E1(Math.PI, TAU), 0, grab, () => 0.075, { ...band, a: 0.55 * fade });
+      lightStroke(g, E1(0, Math.PI), 0, grab, () => 0.085, { ...band, a: fade });
+      // 사슬 마디 (앞쪽 반에 짧은 고리)
+      for (let i = 0; i < 5; i++) {
+        const s = (i + 0.5) / 5; if (s > grab) continue; const q = E1(0, Math.PI)(s);
+        g.save(); g.translate(q.x, q.y); g.rotate(rad(90) + (i % 2) * rad(90)); g.globalAlpha = fade;
+        g.beginPath(); g.ellipse(0, 0, 0.07, 0.045, 0, 0, TAU); g.lineWidth = 0.045; g.strokeStyle = '#1e0e3a'; g.stroke(); g.lineWidth = 0.022; g.strokeStyle = '#d6bcff'; g.stroke(); g.restore();
       }
-      for (let i = 0; i < 3; i++) { const a = -spin * 1.3 + (i * TAU) / 3, r = 0.35 + 0.5 * fling; glint(g, Math.cos(a) * r, cy + Math.sin(a) * r * 0.4, 0.15 * fade, '#c8a8ff', fade, a, 0.15, '#ffffff'); }
+      // 앞쪽 매듭
+      const k = bell(t, 0.3, 0.42, 0.85);
+      if (k > 0) { const q = E1(0, Math.PI)(0.5); g.save(); g.translate(q.x, q.y); g.scale(0.11 * k + 0.001, 0.11 * k + 0.001); solid(g, h => path.diamond(h, 0.7), { hi: '#f0e0ff', lo: '#6a3ab8', rim: '#1e0e3a', rimW: 0.18, a: fade, shine: 0.6 }); g.restore(); }
+      if (t > 0.55) particles(g, seg(t, 0.55, 1), 33, 9, r => ({ t0: r() * 0.2, life: 0.6, a: r() * TAU, sz: 0.018 + r() * 0.016 }), (gg, p, age) => {
+        const d = 0.2 + 0.5 * E.out2(age); speck(gg, Math.cos(p.a) * rx * (1 + d), cy + Math.sin(p.a) * ry * (1 + d) - 0.2 * age, p.sz, '#c8a8ff', 1 - age);
+      });
     },
   },
 
-  /** 지원 ⚑: 칸 아래에서 금빛 위쪽 화살표 (∧) 셋이 차례로 솟아오르고 깃발 같은 빛 띠가 펄럭이며 사라짐 */
+  /** 지원 ⚑ (다시: 갈매기 화살표 → 금빛 기운 기둥): 칸 아래에서 금빛 빛기둥이 솟아오르며 불티가 올라가고, 위에서 네 갈래 반짝임이 터지며 사라짐 */
   'ally-sup': {
     frames: 16, logical: 78, scope: 'target', size: SMALL,
     draw(g, { t }) {
-      const fade = 1 - E.in2(seg(t, 0.6, 1));
-      glowOval(g, 0, 0.4, 0.75, 0.4, '#ffc84a', 0.55 * (1 - E.out2(seg(t, 0, 0.7))));
-      for (let i = 0; i < 3; i++) {
-        const u = seg(t, i * 0.12, i * 0.12 + 0.6), y = lerp(0.62, -0.55 + i * 0.05, E.out2(u)), a = bell(u, 0, 0.12, 1) * fade, w = 0.32 - i * 0.04;
-        if (a <= 0) continue;
-        const pts = [[-w, y + w * 0.75], [0, y], [w, y + w * 0.75]];
-        lightStroke(g, s => (s < 0.5 ? { x: lerp(pts[0][0], pts[1][0], s * 2), y: lerp(pts[0][1], pts[1][1], s * 2) } : { x: lerp(pts[1][0], pts[2][0], (s - 0.5) * 2), y: lerp(pts[1][1], pts[2][1], (s - 0.5) * 2) }), 0, 1, () => 0.1, { rim: '#3a2408', body: '#ffd56b', core: '#fffbe0', a, rimW: 0.022, coreW: 0.45, glowCol: '#ffc84a', glowA: 0.6 });
-      }
-      // 펄럭이는 빛 띠
-      const r = seg(t, 0.1, 0.8);
-      lightStroke(g, s => ({ x: lerp(-0.55, 0.55, s), y: -0.7 + Math.sin(s * 7 - t * 14) * 0.07 }), 0.5 - r / 2, 0.5 + r / 2, u => 0.07 * Math.sin(Math.PI * u), { rim: '#3a2408', body: '#ffe08a', core: '#ffffff', a: fade * 0.9, rimW: 0.016 });
+      const rise = E.out3(seg(t, -0.2, 0.35)), fade = 1 - E.in2(seg(t, 0.55, 1)), top = lerp(0.6, -0.85, rise); // 첫 장부터 반쯤 솟은 기둥 (밑변 가로줄이 체력 숫자를 긋지 않게)
+      glowOval(g, 0, 0.55, 0.7, 0.32, '#ffc84a', 0.6 * fade);
+      // 기둥: 가장자리 어두운 테 · 금빛 몸 · 흰 심 (세로 빛 획 둘)
+      // 칸 양옆 (글자 밖)에서 솟아 칸 위에서 모이는 두 줄기: 이름 · 체력 줄을 가로지르지 않게
+      for (const x of [-0.62, 0.62]) lightStroke(g, s => ({ x: x * (1 - 0.7 * s * s), y: lerp(0.6, top, s) }), 0, 1, u => 0.065 * (1 - 0.55 * u), { rim: '#3a2408', body: '#ffd56b', core: '#fffbe0', a: 0.9 * fade, rimW: 0.018, coreW: 0.45, glowCol: '#ffc84a', glowA: 0.55 });
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const gr = g.createLinearGradient(0, 0.62, 0, top);
+      gr.addColorStop(0, C('#ffd56b', 0.22 * fade)); gr.addColorStop(1, C('#fff4c0', 0));
+      g.fillStyle = gr; g.beginPath(); g.moveTo(-0.62, 0.62); g.lineTo(0.62, 0.62); g.lineTo(0.18, top); g.lineTo(-0.18, top); g.closePath(); g.fill(); g.restore();
+      // 올라가는 불티
+      particles(g, t, 44, 10, r => ({ t0: r() * 0.4, life: 0.45 + r() * 0.3, x: (r() < 0.5 ? -1 : 1) * (0.4 + r() * 0.3), sz: 0.02 + r() * 0.02 }), (gg, p, age) => speck(gg, p.x, lerp(0.55, -0.75, E.out2(age)), p.sz, '#ffe08a', (1 - age) * fade));
+      const b = bell(t, 0.25, 0.38, 0.75);
+      glint(g, 0, -0.82, 0.32 * b, '#ffd56b', b, 0, 0.14);
     },
   },
 

@@ -1,7 +1,7 @@
 // 게임 그림 최적화 (28·29 문서): src/art/의 그림을 화면에 나오는 크기에 맞춰 줄이고 WebP로 다시 저장한다.
 // 원본: 저장소 밖 ../나혼자힐러/리소스/generated-*-originals/<이름>.png (Codex 원본, 가장 최근 폴더)를 먼저 쓰고,
 // 없으면 지금 src/art 파일을 ../나혼자힐러/리소스/art-앱원본/에 한 번 보관해 두고 그걸 원본으로 쓴다 (여러 번 돌려도 화질이 깎이지 않게).
-// 인코더는 Playwright의 Chromium (따로 설치할 도구 없음). 사용: npm run art:optimize  (-- --dry 는 결과만 보기)
+// 인코더는 Playwright의 Chromium (따로 설치할 도구 없음). 사용: npm run art:optimize  (-- --dry 는 결과만 보기, -- --only=이름,이름 은 그 그림만)
 import { chromium } from 'playwright';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
@@ -12,11 +12,13 @@ const ART = join(ROOT, 'src/art');
 const RES = resolve(ROOT, '../나혼자힐러/리소스');
 const KEEP = join(RES, 'art-앱원본');
 const dry = process.argv.includes('--dry');
+const only = process.argv.find(a => a.startsWith('--only='))?.slice(7).split(',').filter(Boolean);
 
 /** 이름 앞머리 → 최대 가로·세로(px)와 품질. 화면 최대 크기 × 기기 배율 3 정도 */
 const RULES = [
   { re: /^emblem-/, w: 256, h: 256, q: 0.86 }, // 직업 문장: 금테 원 안 24~112px
   { re: /^mark-/, w: 192, h: 192, q: 0.86 }, // 세력 문양: 24~56px
+  { re: /^board-/, w: 192, h: 192, q: 0.86 }, // 판 위 물건 · 칸 표시 (토템 · 쉼터 · 인장 등): 칸 지름 40~110px
   { re: /^(boss|mob)-/, w: 640, h: 640, q: 0.82 }, // 보스 무대 원형 초상·공략
   { re: /^floor-/, w: 1024, h: 1024, q: 0.74 }, // 전투 진형 판 뒤 (위에 칸·숫자가 올라감)
   { re: /^village-/, w: 2048, h: 2048, q: 0.84 }, // 로비 살아 있는 마을 (853×1844 좌표 그대로, 크기 줄이지 않음)
@@ -40,6 +42,7 @@ const RULES = [
   { re: /^ui-/, w: 1200, h: 1200, q: 0.78 }, // 메뉴 머리 띠 · 게시판 나무틀
   // 이펙트 · 칸 무늬 (36 강화 연출, 37 4장 B·F)
   { re: /^fx-link-/, w: 256, h: 64, q: 0.86 }, // 생명 사슬 띠: 가로 4:1, 두 칸 사이에 이어 붙임
+  { re: /^fx-edge-/, w: 512, h: 128, q: 0.86 }, // 칸 테두리 띠 (89): 육각 여섯 변에 한 장씩, 위 = 칸 바깥쪽
   { re: /^fx-wide-/, w: 1280, h: 1280, q: 0.86 }, // 보스 판 전체 공격 그림 띠 (66): 256px 프레임 격자 그대로 (줄이면 칸이 어긋남)
   { re: /^fx-skill-/, w: 1120, h: 1120, q: 0.9 }, // 손그림풍 이펙트 (scripts/vfx-bake.mjs): 224 · 192px 프레임 격자 그대로 (줄이면 칸이 어긋남)
   { re: /^fx-/, w: 256, h: 256, q: 0.86 }, // 칸 무늬 · 판 위 이펙트 (칸 40~110px) · 보스 그림 위 연출
@@ -54,7 +57,7 @@ function originalOf(name) {
   return null;
 }
 
-const files = readdirSync(ART).filter(f => /\.(webp|png|jpe?g)$/i.test(f));
+const files = readdirSync(ART).filter(f => /\.(webp|png|jpe?g)$/i.test(f) && (!only || only.includes(basename(f, extname(f)))));
 const browser = await chromium.launch();
 const page = await browser.newPage();
 let before = 0, after = 0;
