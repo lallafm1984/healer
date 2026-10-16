@@ -53,6 +53,6 @@ function render(): void {
 s.el.addEventListener('click', e => {
   const cs = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-cstep]');
   if (cs && !cs.disabled) { Flow.chal += Number(cs.dataset.cstep); render(); return; }
-  // 81: 편성 (파티원 보기) 전에 입장 확인 → 스테미너
+  // 81 · 90: 편성 (파티원 보기) 전에 입장 확인
   if ((e.target as HTMLElement).closest('#entryGo')) sortie();
 });

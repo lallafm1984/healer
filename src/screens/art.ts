@@ -159,11 +159,11 @@ export function placeArt(c: ContentKey): { url: string; scene: boolean; place: P
   return { url: '', scene: false, place };
 }
 
-// 재화 그림: 그림(icon-<이름>)이 오면 그 그림, 없으면 임시 그림 (33 그림 요청). 81: 크리스탈 · 악몽 열쇠 · 모집권 없앰, 스테미너 더함. v16: 골드 없앰
+// 재화 그림: 그림(icon-<이름>)이 오면 그 그림, 없으면 임시 그림 (33 그림 요청). 81: 크리스탈 · 악몽 열쇠 · 모집권 없앰. v16: 골드 없앰. 90: 입장 비용 → 휴식 (icon-rest)
 const svg = (body: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
 const CURRENCY_ART = {
-  // 스테미너 (81): icon-stamina 그림이 올 때까지 임시 번개 (81 4장 그림 요청)
-  stamina: svg('<path d="M13.5 2.5L5 13.2h5.6L9.4 21.5 19 9.8h-5.7z" fill="#9BDD6A" stroke="#264A16" stroke-width="1.6" stroke-linejoin="round"/><path d="M12.6 5.6l-4.3 5.6" stroke="#E9FFD0" stroke-width="1.2" stroke-linecap="round"/>'),
+  // 휴식 (90): 베개 위 초승달 (icon-rest, Codex). 그림이 없을 때만 이 달
+  rest: svg('<path d="M15.5 3.2A8.6 8.6 0 1 0 20.8 15 7 7 0 0 1 15.5 3.2z" fill="#E9B83C" stroke="#4A2A12" stroke-width="1.6" stroke-linejoin="round"/>'),
   stone: svg('<path d="M12 3l7.5 4.5v9L12 21l-7.5-4.5v-9z" fill="#8C8577" stroke="#3B352C" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9" stroke="#5E574B" stroke-width="1"/>'),
   refined: svg('<path d="M12 3l7.5 4.5v9L12 21l-7.5-4.5v-9z" fill="#BFE3F2" stroke="#2F5568" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9" stroke="#7FAFC4" stroke-width="1"/>'),
   merit: svg('<path d="M8 2h8l-2 7h-4z" fill="#B23A2E" stroke="#4A1712" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="15" r="6" fill="#D9A441" stroke="#6B4A14" stroke-width="1.6"/><path d="M12 11.5l1 2.2 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.3-1.7-1.6 2.3-.3z" fill="#FFF0C2"/>'),
@@ -171,7 +171,7 @@ const CURRENCY_ART = {
 export type CurrencyIconKey = keyof typeof CURRENCY_ART;
 /** 재화 이름과 아이콘의 유일한 등록부. 메뉴별 재화 그림·SVG·이모지를 만들지 않는다. */
 export const CURRENCY_NAMES: Record<CurrencyIconKey, string> = {
-  stamina: '스테미너', stone: '강화석', refined: '정제 강화석', merit: '공훈',
+  rest: '휴식', stone: '강화석', refined: '정제 강화석', merit: '공훈',
 };
 /** 모든 메뉴가 같은 src/art/icon-<key>.webp와 공통 대체 아이콘을 공유한다. */
 export function currencyIcon(key: CurrencyIconKey): string {

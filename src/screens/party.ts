@@ -2,7 +2,7 @@
  * S05 편성 (27 3-3, 시안 Party27). 2026-10-08 입장 화면(S04)을 여기로 합침: 전투 탭 「출전」 → 편성 → 출발.
  * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭 (길드를 빼 두면 없음),
  * 권장 레벨 안내 (미달일 때만), 시작 위치 육각 미리보기 (직업 아이콘), 파티원 줄 (누르면 상세 시트).
- * 아래 고정: 출발 (81: 스테미너는 「출전」 팝업에서 이미 냄 → 바로 전투. 안 낸 판이면 출발 때 팝업). 소비 아이템 단축칸은 2026-10-16 없앰.
+ * 아래 고정: 출발 (81 · 90: 「출전」 입장 확인을 거쳤으면 바로 전투. 안 거친 판이면 출발 때 팝업). 소비 아이템 단축칸은 2026-10-16 없앰.
  */
 import { CLASSES } from '../data/classes';
 import { contentOf, isRaid } from '../data/content';
@@ -169,7 +169,7 @@ function render(keepScroll = true): void {
   const isGuild = Flow.mode === 'guild' && guildReady();
   const m = modeNow(), stage = m.stage;
   const tutDone = G.save.tut >= TUT.done;
-  // 81: 스테미너는 「출전」에서 냄. 안 낸 판 (다른 길로 온 편성)만 출발 버튼에 비용 · 팝업
+  // 81 · 90: 입장 확인은 「출전」에서. 안 거친 판 (다른 길로 온 편성)만 출발 버튼에 클리어 때 쓰는 휴식 · 팝업
   const cost = tutDone && !Flow.paid ? staminaCost(c, Flow.chal) : 0;
   const sub = Flow.chal ? `주간 도전 ${Flow.chal}단계` : `${Flow.diff}${m.affixes.length ? ` <span class="f-afxs">${afxTags(m.affixes)}</span>` : ''}`;
   const mark = Flow.chal ? `<span class="f-hg sm">${uiIcon('hourglass')}</span>` : markHtml(c, 'sm');
@@ -188,7 +188,7 @@ function render(keepScroll = true): void {
     </div>
     <footer class="ns-foot f-foot2">
       <div class="f-btns">
-        <button class="f-go" type="button" id="depart"${cost ? ` aria-label="출발 · 스테미너 ${cost}"` : ''}><span class="cta2"><span class="f-gt">출발</span>${cost ? `<small class="f-stam">${currencyAmount('stamina', cost)}</small>` : ''}</span>${ARROW}</button>
+        <button class="f-go" type="button" id="depart"${cost ? ` aria-label="출발 · 휴식 ${cost}"` : ''}><span class="cta2"><span class="f-gt">출발</span>${cost ? `<small class="f-stam">${currencyAmount('rest', cost)}</small>` : ''}</span>${ARROW}</button>
       </div>
     </footer>
     ${sheet === 'guide' ? guideSheetHtml() : sheet === 'mem' ? memSheetHtml(stage) : ''}`;
@@ -239,12 +239,12 @@ s.el.addEventListener('keydown', e => {
 });
 
 /**
- * 같은 파티로 바로 입장 (81 2-3): 확인 팝업 → 「입장」 때 스테미너를 쓰고 출발. 모자라면 팝업이 광고 충전 · 상점을 보여 줌.
+ * 같은 파티로 바로 입장 (81 2-3 · 90): 확인 팝업 → 「입장」이면 출발 (휴식은 클리어할 때 씀, 0이면 팝업이 광고 충전을 보여 줌).
  * 결과 화면 「다시 도전」 · 주간 도전 다음 단계, 안 낸 편성의 「출발」
  */
 export function enter(): void { payEntry(() => { depart(); }); }
 
-/** 출발 (스테미너는 출전 · enter의 팝업에서 이미 냄). 튜토리얼 탐험은 바로 이걸 부름 */
+/** 출발 (입장 확인은 출전 · enter의 팝업에서 거침). 튜토리얼 탐험은 바로 이걸 부름 */
 export function depart(): string {
   const c = contentOf(Flow.content);
   Flow.paid = false;

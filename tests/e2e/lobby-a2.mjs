@@ -223,10 +223,10 @@ export default async function lobbyA2(url, shots) {
                 inside: r.left >= h.left - 1 && r.right <= h.right + 1 && r.top >= h.top - 1 && r.bottom <= h.bottom + 1 };
             });
           });
-          ok(wallet.every(v => v.fullValueAvailable && /\d/.test(v.displayed)), `${width}: 스테미너 (140/150, 골드 칸은 2026-10-16 없앰) 실제 값 접근성 보존`, wallet);
+          ok(wallet.every(v => v.fullValueAvailable && /\d/.test(v.displayed)), `${width}: 휴식 (140/150, 골드 칸은 2026-10-16 없앰) 실제 값 접근성 보존`, wallet);
           const g = await layout(page), headerButtons = g.buttons.filter(b => b.rect.y < g.header.bottom);
           ok(wallet.every(v => v.inside) && headerButtons.every(b => b.rect.width >= 43.99 && b.rect.height >= 43.99 && b.center && b.edges.every(Boolean))
-            && !g.overlaps.length, `${width}: 넘친 스테미너에서도 헤더 안 배치·캐릭터/설정 44px 실제 hit 유지`, { wallet, headerButtons });
+            && !g.overlaps.length, `${width}: 넘친 휴식에서도 헤더 안 배치·캐릭터/설정 44px 실제 hit 유지`, { wallet, headerButtons });
           await page.screenshot({ path: `${shots}/lobby_a2_large_wallet_${width}.png` });
           report.states.push({ width, wallet });
         }

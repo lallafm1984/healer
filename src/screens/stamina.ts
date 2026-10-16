@@ -1,13 +1,13 @@
 /**
- * 스테미너 화면 조각 (81 2장): 위 줄 칸 · 스테미너 창 (다음 충전 시간 · 광고 충전) · 입장 확인 팝업.
- * 규칙은 game/stamina.ts. 팝업은 .admodal 위에 그리고, 닫으면 연 버튼으로 초점을 돌려준다.
+ * 휴식 화면 조각 (90, 예전 81 2장): 위 줄 칸 · 휴식 창 (다음 충전 시간 · 광고 충전) · 입장 확인 팝업.
+ * 규칙은 game/stamina.ts (코드 이름은 stamina 그대로). 팝업은 .admodal 위에 그리고, 닫으면 연 버튼으로 초점을 돌려준다.
  */
 import { CHAL } from '../data/challenge';
 import { contentOf } from '../data/content';
 import { STAMINA } from '../data/economy';
 import { Flow } from '../game/flow';
 import { commit, G } from '../game/state';
-import { adCharge, adsFree, spendStamina, staminaClock, staminaCost, staminaView } from '../game/stamina';
+import { adCharge, adsFree, staminaClock, staminaCost, staminaView } from '../game/stamina';
 import { TUT } from '../game/tutorial';
 import { showRewarded } from '../platform/ads';
 import { currencyIcon } from './art';
@@ -17,13 +17,13 @@ const view = () => staminaView(G.save, Date.now());
 const amount = (n: number, unlimited: boolean) => (unlimited ? '∞' : fmt(n));
 
 /**
- * 위 줄 (topBar) 스테미너 칸: 누르면 스테미너 창. 숫자 · 고리 · 시간은 1초마다 고침 (refreshCells).
- * 2026-10-16 Lim 「8분에 1씩 차는것도 UI로」: 번개 둘레 고리가 다음 +1까지 차고, 숫자 아래 초록 「+1」 배지 + 남은 시간 (가득이면 「가득」).
+ * 위 줄 (topBar) 휴식 칸: 누르면 휴식 창. 숫자 · 고리 · 시간은 1초마다 고침 (refreshCells).
+ * 2026-10-16 Lim 「8분에 1씩 차는것도 UI로」: 달 그림 둘레 고리가 다음 +1까지 차고 (90: 15분), 숫자 아래 초록 「+1」 배지 + 남은 시간 (가득이면 「가득」).
  * 「+1 4:59」가 「14:59」로 읽혀서 (Lim) +1은 글자가 아니라 배지로 떼어 둠
  */
 export function staminaCell(): string {
   const v = view(), label = staminaLabel();
-  return `<button class="tb-cur tb-st" type="button" data-stamina-open aria-label="${label}" title="${label}"><span class="tb-st-ic" data-stam-ring style="--p:${ringOf(v).toFixed(3)}">${currencyIcon('stamina')}</span><span class="tb-st-v"><b data-stam-n>${amount(v.n, v.unlimited)}</b><small data-stam-max>/${v.max}</small></span><small class="tb-st-t"><i class="tb-st-plus" aria-hidden="true"${charging(v) ? '' : ' hidden'}>+1</i><span data-stam-tb>${nextText(v)}</span></small></button>`;
+  return `<button class="tb-cur tb-st" type="button" data-stamina-open aria-label="${label}" title="${label}"><span class="tb-st-ic" data-stam-ring style="--p:${ringOf(v).toFixed(3)}">${currencyIcon('rest')}</span><span class="tb-st-v"><b data-stam-n>${amount(v.n, v.unlimited)}</b><small data-stam-max>/${v.max}</small></span><small class="tb-st-t"><i class="tb-st-plus" aria-hidden="true"${charging(v) ? '' : ' hidden'}>+1</i><span data-stam-tb>${nextText(v)}</span></small></button>`;
 }
 /** 고리 채움 (0~1): 다음 +1까지 지난 몫. 가득 · 무제한이면 1 */
 const ringOf = (v: ReturnType<typeof view>) => (v.unlimited || !v.next ? 1 : Math.min(1, Math.max(0, 1 - v.next / STAMINA.regenMs)));
@@ -33,7 +33,7 @@ const charging = (v: ReturnType<typeof view>) => !v.unlimited && !!v.next;
 const nextText = (v: ReturnType<typeof view>) => (v.unlimited ? '무제한' : v.next ? staminaClock(v.next) : '가득');
 function staminaLabel(): string {
   const v = view();
-  return `스테미너 ${v.unlimited ? '무제한' : `${v.n} / ${v.max}`}${!v.unlimited && v.next ? ` · 다음 1까지 ${staminaClock(v.next)}` : ''}`;
+  return `휴식 ${v.unlimited ? '무제한' : `${v.n} / ${v.max}`}${!v.unlimited && v.next ? ` · 다음 1까지 ${staminaClock(v.next)}` : ''}`;
 }
 
 // ---------- 팝업 틀 ----------
@@ -73,14 +73,14 @@ document.addEventListener('keydown', e => {
 /** 미터 줄: 아이콘 · 지금/최대 · 막대 */
 function meter(extraCls = ''): string {
   const v = view(), pct = v.unlimited ? 100 : Math.min(100, (v.n / v.max) * 100);
-  return `<div class="st-meter${extraCls}">${currencyIcon('stamina')}<b data-stam-n>${amount(v.n, v.unlimited)}</b><small data-stam-max>/${v.max}</small>
+  return `<div class="st-meter${extraCls}">${currencyIcon('rest')}<b data-stam-n>${amount(v.n, v.unlimited)}</b><small data-stam-max>/${v.max}</small>
     <span class="st-bar${v.n > v.max ? ' over' : ''}" aria-hidden="true"><i style="width:${pct.toFixed(1)}%"></i></span></div>`;
 }
 
 /** 다음 충전 · 가득까지 */
 function timeRows(): string {
   const v = view();
-  if (v.unlimited) return '<p class="st-time">개발 빌드 · 스테미너 무제한</p>';
+  if (v.unlimited) return '<p class="st-time">개발 빌드 · 휴식 무제한</p>';
   if (!v.next) return `<p class="st-time">${v.n > v.max ? '최대치 넘음 · 쓰면 다시 참' : '가득 참'}</p>`;
   return `<p class="st-time"><span>다음 +1 <b data-stam-next>${staminaClock(v.next)}</b></span><span>가득까지 <b data-stam-full>${staminaClock(v.full)}</b></span></p>`;
 }
@@ -95,7 +95,7 @@ function adButton(primary: boolean): string {
 /** 광고 보고 충전. 했으면 true */
 async function charge(): Promise<boolean> {
   if (view().adsLeft <= 0) return false;
-  if (!(await showRewarded(`스테미너 +${STAMINA.ad}`, adsFree(G.save)))) return false;
+  if (!(await showRewarded(`휴식 +${STAMINA.ad}`, adsFree(G.save)))) return false;
   const err = adCharge(G.save, Date.now());
   if (err) return false;
   commit();
@@ -103,11 +103,11 @@ async function charge(): Promise<boolean> {
   return true;
 }
 
-// ---------- 스테미너 창 (위 줄 칸 · 상점) ----------
+// ---------- 휴식 창 (위 줄 칸 · 상점) ----------
 export function openStamina(): void {
   const render = (msg = '') => {
-    const el = show('st-info', `<h3 id="stTitle">스테미너</h3>${meter()}${timeRows()}
-      <p class="note">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 최대치에서 멈추고, 광고 충전은 최대치를 넘어도 들어갑니다.</p>
+    const el = show('st-info', `<h3 id="stTitle">휴식</h3>${meter()}${timeRows()}
+      <p class="note">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 클리어하면 콘텐츠만큼 쓰고, 0이면 경험치 · 강화석 보상이 1/3입니다. 광고 충전은 최대치를 넘어도 들어갑니다.</p>
       ${msg ? `<p class="st-msg" role="status">${esc(msg)}</p>` : ''}
       <div class="st-btns">${adButton(true)}<button class="btn" type="button" data-st="shop">상점</button><button class="btn" type="button" data-st="no">닫기</button></div>`);
     el.onclick = async e => {
@@ -116,42 +116,36 @@ export function openStamina(): void {
       const k = b.dataset.st;
       if (k === 'no') close();
       else if (k === 'shop') { close(); go('s-shop', 'cash'); }
-      else if (k === 'ad' && await charge()) render(`스테미너 +${STAMINA.ad}`);
+      else if (k === 'ad' && await charge()) render(`휴식 +${STAMINA.ad}`);
     };
   };
   render();
 }
 
-// ---------- 입장 확인 (81 2-3): 「입장」을 누를 때 씀. 모자라면 광고 충전 · 상점 ----------
+// ---------- 입장 확인 (81 2-3 · 90): 언제나 「입장」. 휴식은 클리어할 때 씀, 0이면 「보상 1/3」 + 광고 충전 ----------
 export interface EntryOpts { name: string; sub: string; cost: number; onGo(): void }
 
 export function confirmEntry(o: EntryOpts): void {
   const render = (msg = '') => {
-    const v = view(), lack = !v.unlimited && v.n < o.cost;
-    // 보유 (왼쪽) · 소모 (오른쪽) 두 칸 (Lim 2026-10-16: 보유는 지금 값만, 입장 후 값 · 안내 문장 없음)
+    const v = view(), cut = !v.unlimited && v.n < 1;
+    // 보유 (왼쪽) · 소모 (오른쪽) 두 칸 (Lim 2026-10-16: 보유는 지금 값만, 입장 후 값 · 안내 문장 없음). 휴식 0이면 짧게 「보상 1/3」 (긴 안내 문장 없이)
     const cell = (cls: string, label: string, val: string) => `<div class="st-c ${cls}"><dt>${label}</dt><dd>${val}</dd></div>`;
-    const cost = `<dl class="st-cost${lack ? ' lack' : ''}">
+    const cost = `<dl class="st-cost${cut ? ' lack' : ''}">
       ${cell('st-have', '보유', `<b data-stam-n>${amount(v.n, v.unlimited)}</b>`)}
-      ${cell('st-need', '소모', `${currencyIcon('stamina')}<b>${o.cost}</b>`)}</dl>`;
+      ${cell('st-need', '소모', `${currencyIcon('rest')}<b>${o.cost}</b>`)}</dl>`;
     const dest = `<p class="st-dest"><b>${esc(o.name)}</b><small>${esc(o.sub)}</small></p>`;
-    const el = lack
-      ? show('st-entry lack', `<h3 id="stTitle">스테미너 부족</h3>${dest}${cost}${timeRows()}
-        ${msg ? `<p class="st-msg" role="status">${esc(msg)}</p>` : ''}
-        <div class="st-btns">${adButton(true)}<button class="btn" type="button" data-st="shop">상점</button><button class="btn" type="button" data-st="no">닫기</button></div>`)
-      : show('st-entry', `<h3 id="stTitle">입장</h3>${dest}${cost}
-        ${msg ? `<p class="st-msg" role="status">${esc(msg)}</p>` : ''}
-        <div class="row2"><button class="btn" type="button" data-st="no">취소</button><button class="btn primary" type="button" data-st="go">입장</button></div>`);
+    const el = show(`st-entry${cut ? ' cut' : ''}`, `<h3 id="stTitle">입장</h3>${dest}${cost}
+      ${cut ? '<p class="st-cut">보상 1/3</p>' : ''}
+      ${msg ? `<p class="st-msg" role="status">${esc(msg)}</p>` : ''}
+      ${cut ? `<div class="st-btns">${adButton(false)}</div>` : ''}
+      <div class="row2"><button class="btn" type="button" data-st="no">취소</button><button class="btn primary" type="button" data-st="go">입장</button></div>`);
     el.onclick = async e => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-st]');
       if (!b || b.disabled) { if (e.target === el) close(); return; }
       const k = b.dataset.st;
       if (k === 'no') close();
-      else if (k === 'shop') { close(); go('s-shop', 'cash'); }
-      else if (k === 'ad') { if (await charge()) render(`스테미너 +${STAMINA.ad}`); }
+      else if (k === 'ad') { if (await charge()) render(`휴식 +${STAMINA.ad}`); }
       else if (k === 'go') {
-        const err = spendStamina(G.save, o.cost, Date.now());
-        if (err) { render(err); return; }
-        commit();
         pop?.remove(); pop = null; opener = null;
         o.onGo();
       }
@@ -168,14 +162,14 @@ export function payEntry(onGo: () => void): void {
 }
 
 /**
- * 출전 (Lim 2026-10-15 「출전 버튼 다음에 팝업」): 파티원을 보기 전에 스테미너를 내고 편성으로. 파티원이 마음에 안 들어
- * 나갔다가 다시 출전하면 다시 냄. 편성 「출발」은 낸 판이면 바로 전투 (party.ts)
+ * 출전 (Lim 2026-10-15 「출전 버튼 다음에 팝업」): 파티원을 보기 전에 입장 확인을 거쳐 편성으로.
+ * 편성 「출발」은 확인한 판이면 바로 전투 (party.ts). 휴식은 클리어할 때 씀 (90)
  */
 export function sortie(): void {
   payEntry(() => { Flow.party = null; Flow.rerolls = 0; Flow.paid = G.save.tut >= TUT.done; go('s-party'); });
 }
 
-// ---------- 1초마다: 보이는 스테미너 숫자 · 시간 ----------
+// ---------- 1초마다: 보이는 휴식 숫자 · 시간 ----------
 export function refreshCells(): void {
   if (typeof document === 'undefined') return;
   const v = view();

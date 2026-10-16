@@ -84,7 +84,7 @@ describe('캐릭터마다 따로, 계정은 같이 (68 3장)', () => {
     pickChar(1, DAY);
     expect([G.save.mats.stone, G.save.clears.rustfort?.보통?.stars, G.save.daily.missions[0].n]).toEqual([7, 3, 1]);
   });
-  it('설정 · 산 상품 · 스테미너 · 패스는 계정 (휠 배치 · 칸 탭은 캐릭터, 81)', () => {
+  it('설정 · 산 상품 · 휴식 · 패스는 계정 (휠 배치 · 칸 탭은 캐릭터, 81)', () => {
     makeChar('druid', '', DAY);
     const s = G.save;
     s.settings.sound = false; s.settings.tapKey = 'flash';
@@ -96,7 +96,7 @@ describe('캐릭터마다 따로, 계정은 같이 (68 3장)', () => {
     pickChar(2, DAY);
     expect([G.save.stamina.n, G.save.settings.tapKey]).toEqual([12, 'flash']);
   });
-  it('스테미너 광고 충전은 캐릭터를 바꿔도 하루 3번 (계정, 81)', () => {
+  it('휴식 광고 충전은 캐릭터를 바꿔도 하루 3번 (계정, 81)', () => {
     makeChar('druid', '', DAY);
     for (let i = 0; i < 3; i++) expect(adCharge(G.save, NEXT_DAY)).toBe('');
     pickChar(1, NEXT_DAY);

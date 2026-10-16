@@ -68,7 +68,7 @@ export async function toParty(page, { content = 'rustfort', tab = 'dungeon', dif
 }
 
 /**
- * 출발 → 입장 확인 팝업 「입장」 (81). 화면 테스트는 스테미너를 쓰지 않게 window.__staminaFree를 켬 (스테미너 검사는 shop.mjs).
+ * 출발 → 입장 확인 팝업 「입장」 (81). 화면 테스트는 휴식이 줄지 않게 window.__staminaFree를 켬 (휴식 검사는 shop.mjs, 90).
  * 튜토리얼 출발은 팝업 없이 바로
  */
 export async function departGo(page, opts) {
@@ -77,7 +77,7 @@ export async function departGo(page, opts) {
   await entryGo(page);
 }
 
-/** 결과 화면 「다시 도전」 · 「n단계 도전」 뒤 입장 확인 팝업이 뜨면 「입장」 (스테미너는 쓰지 않게) */
+/** 결과 화면 「다시 도전」 · 「n단계 도전」 뒤 입장 확인 팝업이 뜨면 「입장」 (휴식은 줄지 않게) */
 export async function entryGo(page) {
   await page.evaluate(() => { window.__staminaFree = true; });
   await page.clock.runFor(50);

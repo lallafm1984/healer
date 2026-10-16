@@ -1,4 +1,4 @@
-// 재화·임무·상점 (12, 13, 15, 81, 09 S18·S19·S22): 로비 임무 카드 → 임무 받기·교체·완료 상자 → 상점 상품·공훈·패스 → 스테미너 입장 확인
+// 재화·임무·상점 (12, 13, 15, 81, 90, 09 S18·S19·S22): 로비 임무 카드 → 임무 받기·교체·완료 상자 → 상점 상품·공훈·패스 → 입장 확인 (휴식)
 import { chromium } from 'playwright';
 import { chooseContent, openDiff, pastTitle } from './nav.mjs';
 
@@ -21,10 +21,10 @@ export default async function shop(url, shots) {
   await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 40; s.mats.stone = 20; localStorage.setItem('healer.save', JSON.stringify(s)); });
 
   // ---- 로비 → 임무 ----
-  // A2 간판은 분류와 입장 스테미너를 두 줄로 표시한다. 장식 구분자 대신 실제 보이는 두 정보를 검사한다.
+  // A2 간판은 분류와 클리어 때 쓰는 휴식을 두 줄로 표시한다. 장식 구분자 대신 실제 보이는 두 정보를 검사한다.
   const raidLabel = await page.locator('#s-lobby .lb-raid').innerText();
   ok(/일일 0\/5/.test(await text('#s-lobby .lb-missions')) && /첨탑/.test(raidLabel)
-    && /10인 레이드/.test(raidLabel) && /스테미너 15/.test(raidLabel), '로비 이름표: 임무 일일 0/5 · 첨탑 = 10인 레이드 스테미너 15');
+    && /10인 레이드/.test(raidLabel) && /휴식 15/.test(raidLabel), '로비 이름표: 임무 일일 0/5 · 첨탑 = 10인 레이드 휴식 15');
   await page.click('#s-lobby .lb-missions .lb-main'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-missions') && (await page.locator('#s-missions .mlist').first().locator('.mrow').count()) === 5, '임무 화면: 일일 5개');
   ok((await page.locator('#s-missions .mlist').nth(1).locator('.mrow').count()) === 3, 'Lv 40 = 주간 임무 3개');
@@ -91,12 +91,12 @@ export default async function shop(url, shots) {
     && (await page.locator('#s-shop [data-prod^="job_"] .cash-buy').allInnerTexts()).every(t => /2,200원/.test(t)), '상품: 광고 제거 5,500원 · 직업 4종 2,200원');
   await page.click('#s-shop [data-iap="noads"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.bought.includes('noads') && await page.evaluate(() => document.body.classList.contains('noads')) && /\/150/.test(await text('#s-shop .tb-st')), '광고 제거: 배너 숨김 · 스테미너 최대 150');
+  ok(sv.bought.includes('noads') && await page.evaluate(() => document.body.classList.contains('noads')) && /\/150/.test(await text('#s-shop .tb-st')), '광고 제거: 배너 숨김 · 휴식 최대 150');
   await page.click('#s-shop [data-iap="job_monk"]'); await page.clock.runFor(50);
   ok((await save()).bought.includes('job_monk') && /보유/.test(await text('#s-shop [data-prod="job_monk"]')), '직업 구매: 수도사 보유');
   await page.screenshot({ path: `${shots}/shop_cash.png` });
 
-  // ---- 입장 확인 (81): 「출전」 다음 팝업 (파티원 보기 전), 던전 10, 모자라면 광고 충전. 편성 「출발」은 바로 전투 ----
+  // ---- 입장 확인 (81 · 90): 「출전」 다음 팝업 (파티원 보기 전), 언제나 「입장」, 휴식은 입장 때 안 씀 (클리어 때). 0이면 「보상 1/3」 + 광고 충전 ----
   const toGate = async n => {
     await page.evaluate(n => { const s = JSON.parse(localStorage.getItem('healer.save')); s.stamina = { n, at: Date.now(), day: '', ads: 0 }; localStorage.setItem('healer.save', JSON.stringify(s)); }, n);
     await page.reload(); await page.clock.runFor(300);
@@ -107,27 +107,31 @@ export default async function shop(url, shots) {
     await page.click('#s-content [data-diff="어려움"]'); await page.clock.runFor(50);
   };
   await toGate(12);
-  ok(/10/.test(await text('#contentGo')), '출전 버튼: 스테미너 10');
+  ok(/10/.test(await text('#contentGo')), '출전 버튼: 휴식 10');
   await page.click('#contentGo'); await page.clock.runFor(50);
-  ok(await page.isVisible('.st-modal .st-entry:not(.lack)') && /입장/.test(await text('.st-modal h3')) && await page.isVisible('#s-content') && !(await page.isVisible('#s-party')), '출전 = 입장 확인 팝업 (편성 · 파티원 전)');
+  ok(await page.isVisible('.st-modal .st-entry:not(.cut)') && /입장/.test(await text('.st-modal h3')) && await page.isVisible('#s-content') && !(await page.isVisible('#s-party'))
+    && !(await page.isVisible('.st-modal .st-cut')), '출전 = 입장 확인 팝업 (편성 · 파티원 전, 휴식 있으면 「보상 1/3」 없음)');
   await page.click('.st-modal [data-st="go"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-party') && (await save()).stamina.n === 2 && !/10/.test(await text('#depart')), '입장 = 스테미너 12 → 2 · 편성 (출발 버튼엔 비용 없음)');
+  ok(await page.isVisible('#s-party') && (await save()).stamina.n === 12 && !/10/.test(await text('#depart')), '입장 = 휴식 그대로 12 (클리어 때 씀) · 편성 (출발 버튼엔 비용 없음)');
   await page.click('#depart'); await page.clock.runFor(3100 + 300);
-  ok(await page.isVisible('#battle') && !(await page.isVisible('.st-modal')) && (await save()).stamina.n === 2, '편성 출발 = 팝업 없이 바로 전투 (다시 안 냄)');
-  await toGate(2);
+  ok(await page.isVisible('#battle') && !(await page.isVisible('.st-modal')) && (await save()).stamina.n === 12, '편성 출발 = 팝업 없이 바로 전투');
+  await toGate(0);
   await page.click('#contentGo'); await page.clock.runFor(50);
-  ok(await page.isVisible('.st-modal .st-entry.lack') && /부족/.test(await text('.st-modal h3')) && await page.locator('.st-modal [data-st="go"]').count() === 0, '모자라면 입장 대신 광고 충전 · 상점');
+  ok(await page.isVisible('.st-modal .st-entry.cut') && /입장/.test(await text('.st-modal h3')) && /보상 1\/3/.test(await text('.st-modal .st-cut'))
+    && await page.locator('.st-modal [data-st="go"]').count() === 1 && await page.locator('.st-modal [data-st="ad"]').count() === 1, '휴식 0 = 그래도 「입장」 · 「보상 1/3」 · 광고 충전');
+  await page.screenshot({ path: `${shots}/shop_entry_cut.png` });
   await page.click('.st-modal [data-st="ad"]'); await page.clock.runFor(50);
-  ok(!(await page.isVisible('.admodal [data-ad]')) && await page.isVisible('.st-modal .st-entry:not(.lack)'), '광고 제거 패키지 = 광고 없이 바로 +50 → 입장 가능');
+  ok(!(await page.isVisible('.admodal [data-ad]')) && await page.isVisible('.st-modal .st-entry:not(.cut)'), '광고 제거 패키지 = 광고 없이 바로 +30 → 「보상 1/3」 사라짐');
   sv = await save();
-  ok(sv.stamina.n === 52 && sv.stamina.ads === 1, '광고 충전: 2 → 52, 오늘 1번');
+  ok(sv.stamina.n === 30 && sv.stamina.ads === 1, '광고 충전: 0 → 30, 오늘 1번');
   await page.screenshot({ path: `${shots}/shop_entry.png` });
   await page.click('.st-modal [data-st="go"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-party') && (await save()).stamina.n === 42, '입장 = 52 → 42 · 편성');
+  ok(await page.isVisible('#s-party') && (await save()).stamina.n === 30, '입장 = 휴식 그대로 30 · 편성');
   await page.click('#s-party .tb-back'); await page.clock.runFor(100);
   await page.click('#contentGo'); await page.clock.runFor(50);
+  ok(await page.isVisible('.st-modal [data-st="go"]'), '편성에서 나갔다 다시 출전 = 입장 확인 다시');
   await page.click('.st-modal [data-st="go"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-party') && (await save()).stamina.n === 32, '편성에서 나갔다 다시 출전 = 다시 냄 (42 → 32)');
+  ok(await page.isVisible('#s-party') && (await save()).stamina.n === 30, '다시 출전해도 휴식 그대로');
 
   await ctx.close();
   await browser.close();

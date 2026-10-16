@@ -5,12 +5,12 @@
  * 520 이하 커버에서는 모든 탭 루트의 MMO 정보창을 출전과 같이 숨긴다. 상세·편성은 뒤로 가기를 위해 44px 헤더를 남긴다.
  * sunforged-ui.css 뒤에서 읽으며 출전 전용 헤더 크기 중복 규칙은 두지 않는다.
  *
- * 2026-10-16 Lim 「골드 아이콘 제거 · 경험치 줄이 너무 길다 · 스테미너와 8분에 1씩 차는 것을 UI로 · 메뉴 버튼이 헤드와 안 어울린다」
+ * 2026-10-16 Lim 「골드 아이콘 제거 · 경험치 줄이 너무 길다 · 8분에 1씩 차는 것을 UI로 (90: 휴식 15분) · 메뉴 버튼이 헤드와 안 어울린다」
  * → A · B · C 사진 중 Lim이 B안 (나무 판 그대로) + 「충전 칸 배경이 나무 판과 어울리게」:
- * 판은 나무 그림 (a2-header-v3) 그대로. 경험치는 짧은 홈 막대 안에 % 글자. 스테미너는 판에 파인 나무 홈 패널 (a2-header-stamina-plate, Codex)
+ * 판은 나무 그림 (a2-header-v3) 그대로. 경험치는 짧은 홈 막대 안에 % 글자. 휴식 (90)은 판에 파인 나무 홈 패널 (a2-header-stamina-plate, Codex)
  * 위에 청동 고리 번개 (고리가 다음 +1까지 8분 동안 참) · 지금/최대 · 초록 「+1」 배지 + 남은 시간 (「+1 4:59」가 「14:59」로 읽혀 배지로 뗌, Lim).
  * 설정은 초상과 같은 둥근 황동 테 (a2-portrait-v3). 화면 높이 800 이하 (S25)는 이름 · 경험치 줄을 줄여 위아래 여백을 울트라처럼 남김 (Lim).
- * 위 줄 스테미너 규칙은 여기 한 곳 (stamina.css에 두지 않음).
+ * 위 줄 휴식 칸 규칙은 여기 한 곳 (stamina.css에 두지 않음).
  */
 .ns {
   --a2-header-height: 80px;
@@ -49,7 +49,7 @@
 }
 .ns .tb-mmo .tb-xpt::before { content: none; }
 
-/* 스테미너: 판에 파인 나무 홈 패널 · 청동 고리 번개 · 지금/최대 · 다음 +1까지 */
+/* 휴식 (90): 판에 파인 나무 홈 패널 · 청동 고리 달 그림 · 지금/최대 · 다음 +1까지 */
 .ns .tb-mmo .tb-wal { flex: none; max-width: none; gap: 0; }
 .ns .tb-mmo .tb-cur.tb-st {
   display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; align-items: center; column-gap: 5px; row-gap: 3px;

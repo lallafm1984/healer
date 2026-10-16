@@ -216,7 +216,7 @@ describe('클리어 재료', () => {
     expect(clearMats('보통', 10)).toEqual({ stone: 3, refined: 2 });
     expect(clearMats('악몽', 20)).toEqual({ stone: 5, refined: 6 });
   });
-  it('탐험은 정산도 강화석 절반 (스테미너가 던전의 절반)', () => {
+  it('탐험은 정산도 강화석 절반 (휴식 몫이 던전의 절반)', () => {
     const s = newSave(1);
     const x = settle(s, res({ content: 'plateau' as BattleResult['content'], diff: '악몽' }), () => 0.5);
     expect(x.mats).toEqual({ stone: 2, refined: 0 });

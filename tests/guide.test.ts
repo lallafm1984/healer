@@ -143,6 +143,7 @@ describe('모험 길잡이 (guide)', () => {
   it('튜토리얼 뒤 길잡이만 따라가면 Lv 20까지 70 순서 그대로 (다시 하기 · 어려움 없이 35판에 Lv 21)', () => {
     G.save.player.level = 2; G.save.clears.plateau = rec('쉬움');
     G.save.player.xp = 202; // 녹슨 고원 쉬움 첫 클리어
+    G.save.settings.devStamina = true; // 순서만 봄: 같은 시각에 35판이라 휴식 무제한 (휴식은 tests/stamina.test.ts, 90)
     let runs = 1, repeats = 0;
     while (G.save.player.level <= RAMP_LV && runs < 80) {
       const g = guide()!;
