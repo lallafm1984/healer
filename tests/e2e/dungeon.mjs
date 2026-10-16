@@ -108,8 +108,9 @@ export default async function dungeon(url, shots) {
 
   // ---- 전투: 구간 → 휴식 → 구간 ----
   await departGo(page); await page.clock.runFor(3100 + 4000);
-  ok((await page.textContent('#encounterLabel')).includes('무너진 정문') && (await page.textContent('#bossName')).includes('고철 졸개'), '전투 위쪽 = 구간 이름과 지금 잡는 잡몹 모두 표시');
-  ok(/녹슨 요새 1\/4 · 남은 적 4/.test(await page.textContent('#phase')), '진행 줄 = 1/4 · 남은 적');
+  // 위치 줄 = 「장소 · 난이도」만 (2026-10-16 Lim 「전체적으로 통일되게 장소명과 난이도만」), 구간 진행은 시간 줄 점
+  ok(!(await page.textContent('#encounterLabel')) && (await page.textContent('#bossName')).includes('고철 졸개'), '전투 위쪽 = 지금 잡는 잡몹 이름 (위치 줄 앞 구간 이름 없음)');
+  ok(/^녹슨 요새 · (쉬움|보통|어려움|악몽)$/.test(await page.textContent('#phase')) && await page.locator('#segDots i').count() === 4, `위치 줄 = 장소 · 난이도 (${await page.textContent('#phase')}) · 구간 점 4개`);
   ok(await page.evaluate(() => window.__proto.F.party.filter(u => !u.me).map(u => u.nick).join()) === party0, '편성 화면의 파티 그대로');
   const clsNow = await page.evaluate(() => [...document.querySelectorAll('#s-party .pcard')].map(c => c.dataset.cls).join());
   ok(await page.evaluate(() => window.__proto.F.party.filter(u => !u.me).map(u => u.cls).join()) === clsNow, `전투 파티원 직업 = 편성 화면 (${clsNow})`);

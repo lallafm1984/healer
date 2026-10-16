@@ -11,6 +11,7 @@ import { CLASSES } from '../data/classes';
 import { CONSTELLATION, starMax, starsNow } from '../engine/astro';
 import { judgeReady } from '../engine/warder';
 import { canDispel, HEROES } from '../data/heroes';
+import { contentOf, type ContentKey } from '../data/content';
 import { mobGrade } from '../data/encounters';
 import type { ItemKey } from '../data/items';
 import { ITEMS, POTION_CD } from '../data/items';
@@ -473,13 +474,9 @@ export function updateStage(now: number): void {
   if (F.over === 'win' && F.bossHp <= 0) setText($('bossHpText'), '처치');
   else setText($('bossHpText'), `${Math.ceil(F.bossHp).toLocaleString('ko-KR')} · ${Math.ceil(pct * 100)}%${F.invuln ? ' · 무적' : F.daze ? ` · ${F.daze.name ?? '멍함'} ${Math.ceil(F.daze.until - F.t)}` : F.mobs.length && bossTaken(F) < 1 ? ' · 보호막' : ''}${F.empower ? ` · 강해짐 +${Math.round(F.empower * 100)}%` : ''}${F.weak ? ` · 약해짐 ${Math.ceil(F.weak.until - F.t)}` : ''}${watchText(F)}`);
   bossGauge(F);
-  // 위치 줄 (시안 「녹슨 요새 4/4 · 보통」): 던전 = 이름 n/전체 · 페이즈·남은 적·난이도, 한 판 = 등급 · 페이즈·난이도
-  let ph = F.phaseName ? `${F.enc.tier.split(' · ')[0]} · ${F.phaseName}` : `${F.enc.tier} · ${F.cfg.diff}`;
-  if (R.segs.length > 1) {
-    const left = F.mobs.filter(m => m.alive && !m.add).length;
-    ph = `${R.name} ${R.idx + 1}/${R.segs.length} · ${F.phaseName || (F.bodyHp ? `남은 적 ${left}` : F.cfg.diff)}`;
-  }
-  setText($('phase'), ph);
+  // 위치 줄 (2026-10-16 Lim 「전체적으로 통일되게 장소명과 난이도만, 잘리지 않게」): 모든 전투 「장소 · 난이도」, 주간 도전은 「장소 · 도전 n단계」.
+  // 구간 진행은 시간 줄 점, 페이즈는 큰 알림, 적 이름은 이름 줄이 보여 줌
+  setText($('phase'), `${contentOf(R.content as ContentKey)?.name ?? R.name} · ${S.chal ? `도전 ${S.chal}단계` : F.cfg.diff}`);
   const adds = $('bossAdds'), ratsOn = F.rats.length > 0 && adds.hasAttribute('src');
   if (adds.hidden === ratsOn) adds.hidden = !ratsOn;
   // 시간 줄 (시안 「0:42 · 광폭까지 3:48」). 탱커 공백 (35 6-4)이면 광폭까지 남은 초를 빨갛게
