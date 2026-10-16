@@ -24,7 +24,8 @@ const errs = [];
 page.on('pageerror', e => errs.push(e.message));
 await page.clock.install({ time: new Date(2026, 9, 16, 12) });
 await page.goto(url); await page.clock.runFor(300);
-await patchSave(page, { player: { level: 100 }, settings: { devUnlock: true, auto: false, sound: false, vibrate: false, reducedEffects: false, zoom: false, hero } });
+await page.evaluate(h => { const s = JSON.parse(localStorage.getItem('healer.save')); s.hero = h; localStorage.setItem('healer.save', JSON.stringify(s)); }, hero); // 직업 (저장의 hero)
+await patchSave(page, { player: { level: 100 }, settings: { devUnlock: true, auto: false, sound: false, vibrate: false, reducedEffects: false, zoom: false } });
 const b = BOARDS[board];
 await toParty(page, { tab: b.tab, content: b.content, diff: '쉬움' });
 await departGo(page); await page.clock.runFor(6500);

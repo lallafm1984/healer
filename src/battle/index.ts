@@ -532,22 +532,39 @@ cv.addEventListener('lostpointercapture', e => endPointer(true, e));
 cv.addEventListener('contextmenu', e => e.preventDefault());
 
 // ---------- 전투 사건 → 소리·진동·알림·판 효과 ----------
+/** 연쇄 치유가 다음 사람에게 튀어 보이는 간격 (ms): 이펙트에서 물줄기가 닿는 데 4장 (0.17초) */
+const CHAIN_STEP_MS = 160;
 function handleEvents(now: number): void {
   const F = B.F!;
   let healSnd = false, critSnd = false;
   // 스킬 PXF 이펙트 (battle/pxf.ts): 들어간 휠 스킬마다 대상 · 범위 · 파티 칸에. 그 칸의 이번 치유는 치유 빛 없이
   const plain = new Set<number>();
+  // 연쇄 치유 (Lim 2026-10-16 「연쇄는 순차적으로 발동되게, 지금은 이펙트가 동시에 나온다」): 엔진은 한 틱에 모두 회복하지만
+  // 판에서는 튄 순서대로 (첫 대상 → 튄 사람) CHAIN_STEP_MS씩 늦춰 이펙트 · 치유 숫자가 하나씩 이어서 터지게.
+  // 물줄기는 앞 사람 (첫 대상은 나) 쪽에서 들어오게 돌려 그림 (이펙트 그림은 왼쪽에서 들어옴)
+  const later = new Map<number, number>();
+  let chained = 0, chainFrom: number = F.me.cell;
   for (const { key, uid, cell } of F.used?.splice(0) ?? []) {
     const fx = SKILL_PXF[key]?.fx;
     if (fx && cell != null) { fxPxfCell(cell, fx, now); continue; } // 사람 없는 칸에 세운 판 위 물건 (79 6-1)
-    if (fx) for (const v of pxfTargets(F, key, uid)) if (fxPxf(v, fx, now)) plain.add(v.id); // 못 그리면 공통 치유 빛 · 해제 빛을 대신
+    let wait = 0, rot: number | undefined;
+    if (key === 'chainHeal') {
+      const v = F.party.find(x => x.id === uid);
+      wait = CHAIN_STEP_MS * chained++;
+      if (v) {
+        const a = screenCenter(chainFrom), b = screenCenter(v.cell);
+        rot = v.cell === chainFrom ? -Math.PI / 2 - Math.PI : Math.atan2(a.y - b.y, a.x - b.x) - Math.PI; // 내가 첫 대상이면 위에서
+        chainFrom = v.cell;
+      }
+    }
+    if (fx) for (const v of pxfTargets(F, key, uid)) if (fxPxf(v, fx, now + wait, rot != null ? { rot } : undefined)) { plain.add(v.id); if (wait) later.set(v.id, wait); } // 못 그리면 공통 치유 빛 · 해제 빛을 대신
   }
   for (const ev of F.events) {
     const u = 'id' in ev ? F.party.find(x => x.id === ev.id) ?? F.souls.find(x => x.id === ev.id) : undefined;
     switch (ev.type) {
       case 'heal': {
         if (!u) break;
-        fxHeal(u, ev.eff, ev.amt, ev.crit, now, !ev.item && plain.has(ev.id));
+        fxHeal(u, ev.eff, ev.amt, ev.crit, now + (ev.item ? 0 : later.get(ev.id) ?? 0), !ev.item && plain.has(ev.id));
         if (ev.crit) critSnd = true; else healSnd = true;
         break;
       }
