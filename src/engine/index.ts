@@ -10,7 +10,7 @@ export { canTarget, knows, knowsPassive, skillUsesSpent, SLOT_OF, slotKey, use }
 export { beaconShare, heroPassive, heroRing, hotCount, setBeacon } from './heroes';
 export { reviveTarget } from './revive';
 export { rngFrom } from './rng';
-export { activeOn, areaRadius, cdMax, costOf, talentReady, talentUsesSpent, useTalent } from './talents';
+export { activeOn, areaRadius, cdMax, costOf, talentReady, talentSlots, talentUsesSpent, useTalent, type TalentSlot } from './talents';
 export { partyDps, unitDps } from './units';
 export type * from './types';
 export { restCarry, segmentConfig, simulateDungeon, type DungeonResult, type DungeonRunConfig } from './dungeon';

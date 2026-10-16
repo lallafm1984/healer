@@ -29,8 +29,14 @@
 #battle #controls .item.empty .empty-slot-art{display:none}
 #battle #controls .item.locked .lk{width:16px;height:18px}
 #battle #controls.wheel-left{background-position:center}
-#battle #controls.nowords #gauges{display:grid;visibility:hidden}
-#battle #gauges.locked .job-gauge{opacity:.25}
+/* 레벨이 모자라 잠긴 자원 그림 (사제 평온 Lv 6): 숨기지 않고 어둡게 + 자물쇠 · 배우는 레벨 (2026-10-16 Lim, 휠의 잠긴 칸과 같은 결) */
+#battle #controls #gauges.locked,#battle #controls.nowords #gauges{display:grid;visibility:visible}
+#battle #gauges.locked .job-gauge{opacity:.8;filter:grayscale(1) brightness(.45)}
+#battle #gauges.locked :is(.gauge-number,.gauge-extra,.gauge-count){visibility:hidden}
+#battle #gauges .gauge-lock{position:absolute;left:50%;top:50%;z-index:5;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:3px;pointer-events:none}
+#battle #gauges .gauge-lock .slot-lock{display:block;width:20px;height:20px;color:#eee9de;filter:drop-shadow(0 1px 1px #080706)}
+#battle #gauges .gauge-lock .lk{display:block;width:100%;height:100%}
+#battle #gauges .gauge-lock b{font:700 14px/1 var(--font-body);color:#d5d1c6;text-shadow:-1px -1px 1px #080605,1px -1px 1px #080605,-1px 1px 1px #080605,1px 1px 1px #080605}
 .job-gauge[data-job=priest] .gauge-number{left:50%;top:77%;font-size:18cqh}
 .job-gauge[data-job=shaman] .gauge-number,.job-gauge[data-job=shaman] .gauge-extra,.job-gauge[data-job=monk] .gauge-extra{font-size:clamp(10px,13cqh,16px)}
 #battle.reduced-effects .job-gauge .gauge-ready,#battle.reduced-effects .job-gauge .aura-motion{animation:none!important;opacity:.65}
@@ -53,8 +59,8 @@
 /* B2: 모든 직업이 승인된 사제 B안의 같은 슬롯을 사용한다. */
 #battle #controls #gauges .job-gauge{width:100%;height:100%}
 
-/* 특성 버튼 (2026-10-16 Lim: 소비 아이템을 없애고 그 자리에, 스킬 버튼과 같은 원형 · 재사용 대기 표시, B안).
- * 왼쪽 묶음의 예전 아이템 줄 자리. 쓸 수 있는 버튼 특성만 보이고 (직업마다 최대 2개, 사제 · 수도사 3개), 하나도 없으면 자원 그림을 키운다.
+/* 특성 버튼 (2026-10-16 Lim: 소비 아이템을 없애고 그 자리에, 스킬 버튼과 같은 원형 · 재사용 대기 표시).
+ * 왼쪽 묶음의 예전 아이템 줄 자리. 버튼 특성이 있는 단마다 한 칸 (직업마다 2칸, 사제 · 수도사 3칸): 고른 버튼 특성 · 잠긴 단 · 안 고른 단 (빈 칸).
  * 조작판 · 전투판 크기와 휠 좌표는 특성과 관계없이 그대로. 두 개면 예전 아이템 두 칸과 같은 자리, 세 개면 묶음보다 조금 넓게
  * (버튼 사이 간격 = 축소 0.9에서 터치 44px + 1px) */
 #battle #controls #aux{position:absolute;left:50%;top:139.5px;right:auto;width:max-content;max-width:none;transform:translateX(-50%);display:flex;justify-content:center;gap:8px;--slot:50px}
@@ -75,8 +81,10 @@
 #battle #controls #aux[data-n="3"]{transform:translateX(calc(-50% - 3px))}
 #battle #controls.wheel-left #aux[data-n="3"]{transform:translateX(calc(-50% + 3px))}
 }
-/* 특성 버튼이 하나도 없으면 자원 그림을 1.2배로 키워 묶음 가운데에 (봉화 이름은 class-gauge.ts가 --gauge-scale로 화면 1.4px 간격 유지) */
-#battle #controls:not(.hasaux) #gauges{--gauge-scale:1.2;transform:translateY(16px) scale(var(--gauge-scale));transform-origin:50% 0}
+/* 잠긴 단 (자물쇠 + Lv) · 버튼 특성을 안 고른 단 (빈 칸)도 칸을 남기고 휠의 잠긴 칸 · 빈 칸처럼 어둡게 (2026-10-16 Lim 「저레벨이면 왼쪽이 비어 이상하다」) */
+#battle #controls .slot.tal.locked{filter:brightness(.72) saturate(.55)}
+#battle #controls .slot.tal.locked .slot-lock{top:36%}
+#battle #controls .slot.tal.locked .ct{top:66%}
 /* 생성 배경은 9분할로 모서리를 보존한다. 가운데 목재/석재만 가변 폭에 맞춘다. */
 #battle.compact-panel #controlsFrame[data-panel-version=b2]{background-image:none;border:0 solid transparent;border-image:var(--class-background) 120 fill / 24px 14px / 0 stretch}
 
