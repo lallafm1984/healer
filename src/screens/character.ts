@@ -221,7 +221,7 @@ function lookFx(it: GearItem, at: 'b' | 's'): string {
 }
 
 /** 이름 글자 색 (등급 색을 밝게, 시안 CharGear27) */
-const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#8BEA9C', '희귀': '#8DBEFF', '영웅': '#D7A6FF', '전설': '#FFC07A' };
+const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#8BEA9C', '희귀': '#8DBEFF', '영웅': '#D7A6FF', '전설': '#FFE680' };
 /** 등급 색 · 글자 색, 세력 생김새면 세력 색 (안쪽 테두리, 34 6-10 ②) */
 const gvars = (it: GearItem) => `--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}${it.look ? `;--lk:${FACTIONS[it.look].color}` : ''}`;
 const plusTxt = (it: GearItem) => (it.plus ? ` +${it.plus}` : '');
@@ -294,7 +294,7 @@ function slotHtml(key: SlotKey, better: SlotKey[]): string {
         <span class="c7-sq">${itemIc(key)}${up}</span><b>${name}</b></button>`;
   }
   return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(it.name)}${plusTxt(it)} · ${it.grade}${specLabel(it)}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
-      <span class="c7-sq${it.plus >= MAX_PLUS ? ' max' : ''}">${itemIc(it)}${lookFx(it, 's')}${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${specDots(it)}${up}</span>
+      <span class="c7-sq${it.plus >= MAX_PLUS ? ' max' : ''}${it.grade === LEGEND ? ' lg' : ''}">${itemIc(it)}${lookFx(it, 's')}${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${specDots(it)}${up}</span>
       <b>${it.lock ? LOCK : ''}${name}</b></button>`;
 }
 
@@ -328,7 +328,7 @@ function bagCell(it: GearItem): string {
   const vs = vsWorn(it), nw = isNewGear(it);
   const label = `${it.grade} ${slotName(it.slot)} · ${it.name}${plusTxt(it)}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${vs > 0 ? ' · 지금 장비보다 좋음' : vs < 0 ? ' · 지금 장비보다 나쁨' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
   const arrow = vs > 0 ? '<span class="up" aria-hidden="true">▲</span>' : vs < 0 ? '<span class="dn" aria-hidden="true">▼</span>' : '';
-  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${lookFx(it, 'b')}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${arrow}${nw ? '<span class="nw" aria-hidden="true"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
+  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}${it.grade === LEGEND ? ' lg' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${lookFx(it, 'b')}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${arrow}${nw ? '<span class="nw" aria-hidden="true"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
 }
 
 const grip = '<span class="grip" aria-hidden="true"></span>';
@@ -526,7 +526,7 @@ function itemSheet(id: number): string {
   const cmpCap = worn ? '' : cur ? '착용 장비 대비' : '빈 장비칸 대비';
   // 특수능력 (42 1-3 · 1-5): 묶음 표식 · 이름 · 효과 · 굴림 막대, 꺼진 줄은 회색 + 이유. 전설은 「고유 능력」 (Lim 2026-10-11 「전설에만 고유 능력」)
   const sp = specRows(it), legend = it.grade === LEGEND;
-  const spec = sp.length ? `<div class="c7-cmpw${legend ? ' c7-legend' : ''}"><h3 class="h-rule c7-h3">${legend ? '고유 능력' : '특수능력'}<span class="rule"></span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${specBadge(s.group, s.badge)}</span><span class="c7-spt"><b>${esc(s.name)}${SPECS[s.key]?.hero ? ` <small>${HEROES[SPECS[s.key].hero!].name} 전용</small>` : ''}</b><span class="cap">${esc(s.text.replace(/^내가 거는 보호막 /, '보호막 '))}</span></span>${s.off ? `<span class="cap c7-spoff">${/전용$/.test(s.off) ? '비활성' : s.off}</span>` : rrOn && s.roll != null ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(s.roll * 100)}%"><i style="width:${Math.round(rollFill(s.roll) * 100)}%"></i></span>` : ''}${s.i != null ? rrBtn('spec', s.i, s.name) : ''}</div>`).join('')}${rrAltHtml(it, 'spec')}</div>` : '';
+  const spec = sp.length ? `<div class="c7-cmpw${legend ? ' c7-legend' : ''}"><h3 class="h-rule c7-h3">${legend ? (sp.length > 1 ? '고유 능력 · 특수능력' : '고유 능력') : '특수능력'}<span class="rule"></span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${specBadge(s.group, s.badge)}</span><span class="c7-spt"><b>${esc(s.name)}${SPECS[s.key]?.hero ? ` <small>${HEROES[SPECS[s.key].hero!].name} 전용</small>` : ''}</b><span class="cap">${esc(s.text.replace(/^내가 거는 보호막 /, '보호막 '))}</span></span>${s.off ? `<span class="cap c7-spoff">${/전용$/.test(s.off) ? '비활성' : s.off}</span>` : rrOn && s.roll != null ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(s.roll * 100)}%"><i style="width:${Math.round(rollFill(s.roll) * 100)}%"></i></span>` : ''}${s.i != null ? rrBtn('spec', s.i, s.name) : ''}</div>`).join('')}${rrAltHtml(it, 'spec')}</div>` : '';
   const c = enhanceCost(it);
 
   const sv = salvageOf(it);

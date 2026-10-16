@@ -136,7 +136,11 @@ describe('주간 (13 3장)', () => {
     s.heroes.druid = { ...(s.heroes.druid ?? {}), level: 80 } as never; // 다른 캐릭터가 더 높아도 이 캐릭터 레벨로
     s.chalChest = 20;
     const r = claimChalChest(s, rng, T0) as { items: { grade: string; lv?: number }[]; stone: number };
-    expect(r.items.map(i => [i.grade, i.lv])).toEqual([['영웅', 30], ['영웅', 30]]);
+    expect(r.items.map(i => [i.grade, i.lv])).toEqual([['희귀', 30], ['희귀', 30]]); // 88: 영웅은 받는 캐릭터 Lv 45부터, 그 전엔 희귀
+    expect(chalChestOf(20, 44).grades).toEqual(['희귀', '희귀']);
+    expect(chalChestOf(15, 45).grades).toEqual(['영웅']);
+    const h = save(50); h.chalChest = 20;
+    expect((claimChalChest(h, rng, T0) as { items: { grade: string }[] }).items.map(i => i.grade)).toEqual(['영웅', '영웅']);
     expect([1, 4, 5, 10, 20].map(n => chalChestOf(n).stone)).toEqual([5, 5, 10, 15, 25]);
     expect(r.stone).toBe(25);
     const t = save(30); t.chalChest = 3;

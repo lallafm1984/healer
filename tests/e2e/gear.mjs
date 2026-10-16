@@ -94,11 +94,8 @@ export default async function gear(url, shots) {
   ok((await page.locator('#s-char .c7-gsheet .c7-opts .c7-cmp').count()) === 3 && /착용 중/.test(await text('#s-char .c7-gsheet .c7-gname')) && (await page.locator('#s-char .c7-gsheet .c7-opts :is(.c7-up, .c7-dn, .c7-roll)').count()) === 0 && !/주 능력치|고정|줄 추가/.test(sh), '착용 장비 옵션: 희귀 = 3줄 (주 · 종류 · 무작위), 오른쪽은 비움 (착용 중), 「주 능력치」 · 「고정」 · 「2줄 추가」 없음 (Lim 2026-10-11)');
   ok(await page.isDisabled('#s-char [data-salv1="101"]') && /착용 중/.test(await text('#s-char [data-salv1="101"]')), '착용 중인 장비는 개별 분해 불가');
   const migratedSpec = (await save()).gear.equipped.head.specs;
-  ok(migratedSpec.length === 1 && (await page.locator('#s-char .c7-gsheet .c7-spec').count()) === 1
-    && /특수능력/.test(sh) && await page.isVisible('#s-char .c7-gsheet .c7-spec .c7-spg')
-    && (await text('#s-char .c7-gsheet .c7-spec .c7-spt b')).trim().length > 0
-    && (await text('#s-char .c7-gsheet .c7-spec .c7-spt .cap')).trim().length > 0,
-  '옛 희귀 장비 = 특수능력 1줄 (후보 추가와 무관하게 저장·묶음 표식·이름·효과 표시)');
+  ok(migratedSpec.length === 0 && (await page.locator('#s-char .c7-gsheet .c7-spec').count()) === 0 && !/특수능력/.test(sh),
+  '옛 희귀 장비 (특수능력 줄 없음) = 특수능력 없음 (88: 특수능력은 영웅부터)');
   // 확률 강화 (34 6-5): 굴림을 고정해서 누름 (0 = 성공, 0.99 = 실패). pop = 연출이 끝난 뒤 팝업 글자 (다음 강화 비용·확률)
   let pop = '';
   const enh = async r => {
@@ -210,7 +207,7 @@ export default async function gear(url, shots) {
   await closeSheet();
   await page.click('#s-char .c7-bag[data-gitem="303"]'); await page.clock.runFor(50);
   sh = await text('#s-char .c7-gsheet');
-  ok((await page.locator('#s-char .c7-gsheet .c7-opts .c7-cmp').count()) === 4 && /고유 능력/.test(sh) && /든든한 등 \(고유\)/.test(sh) && (await page.locator('#s-char .c7-gsheet .c7-legend .c7-spec').count()) === 1, '전설 = 옵션 4줄 + 고유 능력 1줄 (특수능력 칸 이름이 「고유 능력」)');
+  ok((await page.locator('#s-char .c7-gsheet .c7-opts .c7-cmp').count()) === 5 && /고유 능력/.test(sh) && /든든한 등 \(고유\)/.test(sh) && (await page.locator('#s-char .c7-gsheet .c7-legend .c7-spec').count()) === 1, '전설 = 옵션 5줄 (88) + 고유 능력 1줄 (특수능력 칸 이름이 「고유 능력」)');
   await page.locator('#s-char .c7-gsheet').screenshot({ path: `${shots}/gear_legend.png` });
   await closeSheet();
 

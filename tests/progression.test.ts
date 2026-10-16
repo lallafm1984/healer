@@ -145,7 +145,7 @@ describe('장비 (02 10장)', () => {
     expect(gearStatsOf({}, 1)).toEqual(gearStats('none'));
     expect(avgScore(all('희귀', 5), 30)).toBeCloseTo(3.5);
   });
-  it('드롭 등급 비율이 표를 따름, 전설은 20인 악몽 · Lv 50부터 (61 3장)', () => {
+  it('드롭 등급 비율이 표를 따름, 전설은 20인 · Lv 100부터 (61 3장 · 88)', () => {
     const rng = rngFrom(7);
     const count = (diff: '보통' | '악몽', level: number, raid: 0 | 10 | 20 = 0) => {
       const c: Record<string, number> = {};
@@ -158,8 +158,8 @@ describe('장비 (02 10장)', () => {
     }
     expect(count('악몽', 100)['전설']).toBeUndefined();
     expect(count('악몽', 100, 10)['전설']).toBeUndefined();
-    expect(count('악몽', 10, 20)['전설']).toBeUndefined();
-    expect(count('악몽', 80, 20)['전설']).toBeGreaterThan(200);
+    expect(count('악몽', 99, 20)['전설']).toBeUndefined(); // 88: 전설은 Lv 100부터
+    expect(count('악몽', 100, 20)['전설']).toBeGreaterThan(4000 * 0.05 * 0.7);
   });
   it('S 등급이면 상위 등급이 조금 더 잘 나옴', () => {
     const avg = (g: 'S' | 'C') => { const rng = rngFrom(3); let s = 0; for (let i = 0; i < 4000; i++) s += ITEM_GRADES.indexOf(rollItem(rng, '보통', g, 1, i).grade); return s / 4000; };
@@ -210,7 +210,7 @@ describe('정산 (09 S08·S09)', () => {
     for (let i = 0; i < 40; i++) {
       const e = settle(s, result({ content: 'plateau', diff: '악몽', deaths: 0 }), rngFrom(i));
       expect(e.items.length).toBe(1);
-      expect(['고급', '희귀', '영웅']).toContain(e.items[0].grade);
+      expect(['일반', '고급', '희귀']).toContain(e.items[0].grade); // 88: 첫 등급대 악몽 일반 · 고급 · 희귀 (초반은 희귀까지)
     }
   });
   it('주간 도전 클리어 장비 = 단계 표 (2026-10-13 Lim: 1~9 보통 · 10~14 어려움 · 15~ 악몽), 1개', () => {
@@ -230,10 +230,11 @@ describe('정산 (09 S08·S09)', () => {
     expect([...top(3)].every(g => g === '일반' || g === '고급')).toBe(true);
     expect(top(12).has('희귀')).toBe(true);
     expect(top(12).has('영웅')).toBe(false);
-    expect(top(16).has('영웅')).toBe(true);
-    expect([...top(3, 30)].every(g => g === '고급' || g === '희귀')).toBe(true);
+    expect(top(16).has('영웅')).toBe(false); // 88: 영웅은 Lv 45부터
+    expect([...top(3, 30)].every(g => g !== '영웅')).toBe(true);
     expect(top(12, 30).has('영웅')).toBe(false);
-    expect([...top(16, 30)].every(g => g === '희귀' || g === '영웅')).toBe(true);
+    expect([...top(16, 30)].every(g => g === '고급' || g === '희귀')).toBe(true); // 둘째 등급대 악몽 바닥 고급
+    expect(top(16, 100).has('영웅')).toBe(true);
   });
   it('다시 깨면 별·등급·최고 기록은 좋은 쪽을 남김', () => {
     const s = newSave(1);

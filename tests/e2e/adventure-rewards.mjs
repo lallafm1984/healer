@@ -2,13 +2,14 @@ import { chromium } from 'playwright';
 import { chooseContent, pastTitle, shownImagesReady } from './nav.mjs';
 import { DEPARTURE_DEVICES, departureLayout, layoutIssues } from './adventure-no-scroll.mjs';
 
-// 실제 A 클리어 확률: 기본표에 rollGrade의 +0.02를 적용, 공개모집 보정은 제외.
+// 실제 A 클리어 확률 (88): 바탕 표 (일반 ~ 희귀)에 +0.02를 밀고, 영웅 · 전설은 따로 (Lv 100: 최대값 × 1.1). 공개모집 보정은 제외.
+// 녹슨 요새는 장소 Lv 5 (첫 등급대, 영웅 없음), 레이드는 적 레벨 = 내 레벨 100. 모든 칸이 낮은 등급부터 차례로 줄어듦 (Lim 07:49)
 const GRADES=['일반','고급','희귀','영웅','전설'];
-const GRADE_COLORS=['#C8C8C8','#3FD85A','#4A9BFF','#BE6EFF','#FF962E'];
+const GRADE_COLORS=['#C8C8C8','#3FD85A','#4A9BFF','#BE6EFF','#FFD23F'];
 const TABLES={
-  dungeon:{쉬움:[100,0,0,0,0],보통:[58,42,0,0,0],어려움:[13,55,32,0,0],악몽:[0,33,50,17,0]},
-  raid10:{쉬움:[0,58,42,0,0],보통:[0,28,72,0,0],어려움:[0,0,73,27,0],악몽:[0,0,48,52,0]},
-  raid20:{쉬움:[0,48,52,0,0],보통:[0,18,82,0,0],어려움:[0,0,63,37,0],악몽:[0,0,33,55,12]},
+  dungeon:{쉬움:[100,0,0,0,0],보통:[68,32,0,0,0],어려움:[48,35,17,0,0],악몽:[38,35,27,0,0]},
+  raid10:{쉬움:[0,58*.978,42*.978,2.2,0],보통:[0,53*.945,47*.945,5.5,0],어려움:[0,0,83.5,16.5,0],악몽:[0,0,72.5,27.5,0]},
+  raid20:{쉬움:[0,53*.956,47*.956,4.4,0],보통:[0,0,91.2,8.8,0],어려움:[0,0,75.8,22,2.2],악몽:[0,0,61.5,33,5.5]},
 };
 
 async function seed(page,{level=100,devUnlock=false,loot=[],cleared=false,merit=0}={}) {
@@ -61,7 +62,7 @@ async function inspectProbabilities(page,expected,{maxGrade,keepOpen=false}={}) 
   const wanted=GRADES.map((grade,i)=>({grade,p:expected[i]})).reverse().filter(w=>w.p>0);
   const geometry=await probabilityBounds(page),sum=values.reduce((n,v)=>n+v.p,0),expectedSum=expected.reduce((n,p)=>n+p,0);
   const rows=values.length===wanted.length && values.every((v,i)=>v.grade===wanted[i].grade && Math.abs(v.p-wanted[i].p)<1e-6
-    && v.text.includes(v.grade) && [...v.text.matchAll(/(\d+(?:\.\d+)?)\s*%/g)].some(m=>Math.abs(Number(m[1])-v.p)<1e-4));
+    && v.text.includes(v.grade) && [...v.text.matchAll(/(\d+(?:\.\d+)?)\s*%/g)].some(m=>Math.abs(Number(m[1])-v.p)<0.0051)); // 화면은 소수 둘째 자리까지
   const icon=icons.length===1 && !oldCount && icons[0].max===highest && icons[0].color===color && icons[0].border===rgb
     && icons[0].p===(expectedSum?1:0) && (expectedSum?icons[0].name.includes(highest):/수령 완료/.test(icons[0].label));
   const ok=rows && icon && Math.abs(sum-expectedSum)<1e-6 && geometry.inside && geometry.closeInside && !geometry.scroll && !geometry.clipped.length && !geometry.occluded.length;
@@ -189,19 +190,21 @@ export default async function adventureRewards(url,shots) {
             });
             await page.clock.setSystemTime(new Date(nextWeek));
             if(trigger==='render')await page.click('[data-diff="악몽"]');else await page.click('[data-reward="gear"]');
-            const reset=await inspectProbabilities(page,[0,0,33,55,12],{keepOpen:true});
+            const reset=await inspectProbabilities(page,TABLES.raid20.악몽,{keepOpen:true});
             ok(reset.ok && await page.locator('[data-reward="merit"]').getAttribute('data-probability')==='1'
               && (await page.locator('[data-reward="merit"] small').innerText()).trim()==='30'
               && await page.locator('[data-reward="crystal"]').count()===0,
             `월요일 06시를 지난 뒤 ${trigger==='render'?'난이도 재표시':'장비 아이콘 클릭'}: 장비·공훈 갱신, 첫클리어 상태 유지`,reset);
-            ok(Math.abs(Number(await page.locator('.b-reward-chance [data-grade="전설"]').getAttribute('data-probability'))-.12)<1e-6
-              && /12%/.test(await page.locator('.b-reward-chance [data-grade="전설"]').innerText()),`주간 경계 ${trigger}: 확률 표도 새 주 전설 12%`);
+            ok(Math.abs(Number(await page.locator('.b-reward-chance [data-grade="전설"]').getAttribute('data-probability'))-.055)<1e-6
+              && /5\.5%/.test(await page.locator('.b-reward-chance [data-grade="전설"]').innerText()),`주간 경계 ${trigger}: 확률 표도 새 주 전설 5.5%`);
             await page.keyboard.press('Escape');
           }
-          for(const level of [49,50]) {
+          for(const level of [99,100]) {
+            // 88: 전설은 Lv 100부터. Lv 99 영웅 = 30% × 55/56 × 1.1
+            const h=30*55/56*1.1;
             await seed(page,{level,devUnlock:true});await page.click('[data-ctab="raid20"]');await chooseContent(page,'cathedral1');await page.click('[data-diff="악몽"]');
-            const state=await inspectProbabilities(page,level<50?[0,0,33,67,0]:[0,0,33,55,12]);
-            ok(state.ok,`Lv${level}: 실제 최고등급 ${level<50?'영웅·전설 0%':'전설·전설 12%'}와 등급별 확률 일치`,state);
+            const state=await inspectProbabilities(page,level<100?[0,0,100-h,h,0]:TABLES.raid20.악몽);
+            ok(state.ok,`Lv${level}: 실제 최고등급 ${level<100?'영웅·전설 0%':'전설 5.5%'}와 등급별 확률 일치`,state);
           }
         }
         // 긴 실제 이름과 잠금 안내가 함께 나와도 중앙 제목을 줄이거나 가리지 않는다.

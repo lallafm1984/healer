@@ -192,8 +192,8 @@
 #s-char .c7-lost .cap { font-size: 12px; }
 #s-char .c7-lost > span:not(.cap) { white-space: nowrap; }
 #s-char .c7-lost .c7-dn { font-size: 12px; }
-/* 전설 고유 능력: 주황 금테 */
-#s-char .c7-legend .c7-spec { border-radius: 6px; padding-left: 6px; padding-right: 6px; background: linear-gradient(90deg, rgba(255, 150, 46, 0.16), rgba(255, 150, 46, 0.03)); box-shadow: inset 0 0 0 1px rgba(255, 192, 122, 0.4); }
+/* 전설 고유 능력: 노란 금테 (88, 전설 = 노란색) */
+#s-char .c7-legend .c7-spec { border-radius: 6px; padding-left: 6px; padding-right: 6px; background: linear-gradient(90deg, rgba(255, 210, 63, 0.18), rgba(255, 210, 63, 0.03)); box-shadow: inset 0 0 0 1px rgba(255, 226, 122, 0.45); }
 #s-char .c7-legend .c7-spt > b { color: #FFC07A; }
 #s-char .c7-rec > b { padding: 4px 0; font-size: 13px; line-height: 1.35; }
 #s-char .c7-rec s { text-decoration: none; font-weight: 400; color: var(--mute); }

@@ -3,7 +3,7 @@
  * 지금은 localStorage. 앱에서 OS가 웹 저장소를 지울 위험이 보이면 Capacitor Preferences로 바꾼다.
  */
 import type { DiffName } from '../data/difficulty';
-import { itemName, kindOf, LEGEND, lookOf, randomLines, rollLines, takenStats, rollSpecs, specCount, specKeysOf, SLOTS, type Equipped, type GearItem } from '../data/equipment';
+import { itemName, kindOf, LEGEND, lookOf, randomLines, rollLines, takenStats, rollSpecs, specCount, specKeysOf, SLOTS, SPEC_LINES, type Equipped, type GearItem } from '../data/equipment';
 import { uniqueOf } from '../data/uniques';
 import { namedOf, SPECS } from '../data/specials';
 import { rngFrom } from '../engine/rng';
@@ -476,7 +476,7 @@ function gearByHero(d: SaveData): void {
  * 특수능력 줄이 없으면 등급만큼 굴림 (v8, 42 1-1, 직업 전용은 그 저장의 지금 직업 것).
  * v9 옵션 정비 (Lim 2026-10-11): 무작위 옵션은 새 줄 수만큼 앞에서부터 남김 (굴림 유지, 모자라면 굴림). v13은 각성 추가값과 최고 강화 기록을 제거한다.
  * 고유 능력은 전설만: 희귀 · 영웅 고유 장비는 고정 특수능력을 보통 줄 (굴림 최대)로, 이름 있는 장신구는 특수능력 1줄 굴림으로 바꾸고 떨어진 장소 생김새.
- * 전설은 고유 장비 · 이름 있는 장신구가 아니면 첫 특수능력이 고유 능력 (1.5배), 둘째 줄은 없앰.
+ * 전설은 고유 장비 · 이름 있는 장신구가 아니면 첫 특수능력이 고유 능력 (1.5배). 88부터 전설은 특수능력 1줄을 더 가짐 (고유 능력이 이미 있는 장비만 남김, 옛 전설은 그대로).
  * 굴림은 장비 id로 정해서 몇 번 불러도 같음. 이름은 등급 말 + 종류
  */
 function upgradeItem(it: GearItem, hero: HeroKey, level: number): GearItem {
@@ -507,8 +507,11 @@ function upgradeItem(it: GearItem, hero: HeroKey, level: number): GearItem {
     if (un || nm) { const look = lookOf((un ?? nm)!.place); if (look) c.look = look; }
     delete c.unique; delete c.named;
     c.specs = c.specs.filter(l => !l.legend);
-  } else if (c.unique || c.named) c.specs = [];
-  else if (!c.specs.some(l => l.legend)) c.specs = c.specs.slice(0, 1).map(l => ({ key: l.key, roll: 1, legend: true as const }));
+  } else if (c.unique || c.named) c.specs = c.specs.filter(l => !l.legend).slice(0, SPEC_LINES[LEGEND]); // 88: 고유 능력 + 특수능력 1줄 (옛 전설은 0줄 그대로)
+  else {
+    const lg = c.specs.find(l => l.legend) ?? (c.specs[0] && { key: c.specs[0].key, roll: 1, legend: true as const });
+    c.specs = lg ? [lg, ...c.specs.filter(l => !l.legend && l.key !== lg.key).slice(0, c.specs.some(l => l.legend) ? SPEC_LINES[LEGEND] : 0)] : [];
+  }
   c.name = itemName(c);
   return c;
 }

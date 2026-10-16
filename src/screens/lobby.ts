@@ -80,7 +80,7 @@ const trkHead = () => `<span class="trk-h">${gameIcon('a2-goal-book-r6', uiIcon(
  */
 const GATES: { lv: number; from: number; name: string; grade: ItemGrade }[] = [
   { lv: RAID10_LV, from: RAID10_LV - 10, name: '심연의 탑', grade: '희귀' }, // 10인 열림은 레벨표를 따라감 (69)
-  { lv: 70, from: 55, name: '가라앉은 대성당', grade: '영웅' },
+  { lv: 70, from: 55, name: '가라앉은 대성당', grade: '희귀' }, // 88: 영웅은 Lv 45부터 드물게라 20인 문도 희귀 6부위 (밸런스 기준 악몽 희귀 +5)
 ];
 /** 레이드 문 시기면 목표 칸 = 체크 목록. 누르면 아직 안 된 첫 줄의 화면 (길드·캐릭터) */
 function gateTracker(): string {

@@ -63,7 +63,7 @@ export function codexRows(g: CodexGroup): CodexRow[] {
   const have = G.save.gear.codex;
   return codexKeys(g).map(key => {
     const got = have.includes(key), nm = namedOf(key);
-    if (nm) return { key, got, name: nm.name, text: specText(nm, nm.val), hint: `${nm.placeName} 악몽에서 · ${slotName(nm.slot)} 전설` };
+    if (nm) return { key, got, name: nm.name, text: specText(nm, nm.val), hint: `Lv 100 · ${nm.placeName} 어려움 · 악몽에서 · ${slotName(nm.slot)} 전설` };
     const d = SPECS[key];
     const where = d.slots.length === SLOTS.length ? '모든 부위' : d.slots.map(slotName).join(' · ');
     const feat = Object.keys(FEATURED).filter(p => FEATURED[p].includes(key)).map(p => contentOf(p as ContentKey).name);
@@ -94,10 +94,10 @@ export function dexRows(tab: DexTab): DexRow[] {
     }
     if (tab === 'named') {
       const n = namedOf(a)!;
-      return { key, got, slot: n.slot, named: a, name: n.name, text: specText(n, n.val), hint: `${n.placeName} 악몽에서 · ${slotName(n.slot)} 전설` };
+      return { key, got, slot: n.slot, named: a, name: n.name, text: specText(n, n.val), hint: `Lv 100 · ${n.placeName} 어려움 · 악몽에서 · ${slotName(n.slot)} 전설` };
     }
     const u = uniqueOf(a)!, d = SPECS[u.spec];
-    return { key, got, slot: u.slot, kind: u.kind, unique: a, name: u.name, text: `${d.name} (고유): ${specText(d, uniqueValue(u, '전설'))}`, hint: `${u.placeName} 악몽에서 · ${slotName(u.slot)} 전설` };
+    return { key, got, slot: u.slot, kind: u.kind, unique: a, name: u.name, text: `${d.name} (고유): ${specText(d, uniqueValue(u, '전설'))}`, hint: `Lv 100 · ${u.placeName} 어려움 · 악몽에서 · ${slotName(u.slot)} 전설` };
   });
 }
 

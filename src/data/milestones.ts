@@ -31,7 +31,10 @@ const BASE: Record<number, Milestone[]> = {
 export const MILESTONES: Record<number, Milestone[]> = { ...BASE };
 const addFirst = (lv: number, m: Milestone) => { MILESTONES[lv] = [m, ...(MILESTONES[lv] ?? [])]; };
 const raid10 = contentOf('abyss1'), raid20 = contentOf('cathedral1');
-addFirst(raid20.diffUnlock!['악몽']!, { text: '20인 레이드 악몽 (전설 장비)', live: true });
+addFirst(raid20.diffUnlock!['악몽']!, { text: '20인 레이드 악몽', live: true });
+// 88: 영웅은 10인 레이드가 열리는 Lv 45부터 드물게 (레벨이 오를수록 늘어남), 전설 (노란색)은 Lv 100부터 20인 레이드에서 (equipment HERO_FROM · LEGEND_LEVEL)
+addFirst(MAX_LEVEL, { text: '전설 장비 (노란색, 20인 레이드 어려움 · 악몽)', live: true });
+addFirst(raid10.unlockLv, { text: '영웅 장비 (드물게, 레벨이 오를수록 늘어남)', live: true });
 addFirst(raid20.unlockLv, { text: `20인 레이드 「가라앉은 대성당」`, live: true });
 addFirst(raid10.diffUnlock!['악몽']!, { text: '10인 레이드 악몽', live: true });
 addFirst(raid10.unlockLv, { text: '10인 레이드 「심연의 탑」', live: true });
