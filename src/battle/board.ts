@@ -1993,15 +1993,11 @@ export function render(now: number): void {
       let bx = x, by = y - r * 0.98;
       if (debBadge) by = peakY;
       ({ x: bx, y: by } = fitCenter(bx, by, br + bw / 2));
-      // 칼날 넷이 안쪽을 겨누는 무쇠 표식 그림 (board-aggro-mark, 2026-10-16 검수: 총 조준경 모양이 판타지 판에서 튀었음). 자리 · 크기 상자는 그대로
-      const at = artTexture('board-aggro-mark');
-      if (at) marks.put(at, bx, by, (br + bw / 2) * 2.2, (br + bw / 2) * 2.2);
-      else {
-        overG.circle(bx, by, br).fill({ color: C.cell }).stroke({ width: bw, color: C.danger });
-        overG.circle(bx, by, br * 0.4).moveTo(bx, by - br * 0.8).lineTo(bx, by - br * 0.22).moveTo(bx, by + br * 0.22).lineTo(bx, by + br * 0.8)
-          .moveTo(bx - br * 0.8, by).lineTo(bx - br * 0.22, by).moveTo(bx + br * 0.22, by).lineTo(bx + br * 0.8, by)
-          .stroke({ width: Math.max(1.2, br * 0.18), color: C.tankMark, cap: 'round' });
-      }
+      // 빨간 원 + 십자 (2026-10-16 #184에서 그림으로 바꿨다가 Lim 「탱커에 붙은 공격 표식 아이콘만 그전으로 원복」, 도형 그대로 둠)
+      overG.circle(bx, by, br).fill({ color: C.cell }).stroke({ width: bw, color: C.danger });
+      overG.circle(bx, by, br * 0.4).moveTo(bx, by - br * 0.8).lineTo(bx, by - br * 0.22).moveTo(bx, by + br * 0.22).lineTo(bx, by + br * 0.8)
+        .moveTo(bx - br * 0.8, by).lineTo(bx - br * 0.22, by).moveTo(bx + br * 0.22, by).lineTo(bx + br * 0.8, by)
+        .stroke({ width: Math.max(1.2, br * 0.18), color: C.tankMark, cap: 'round' });
       recordBound(`aggro${u.id}`, 'aggro', 'circle', bx, by, br * 2 + bw, br * 2 + bw);
     }
     if (F.rats && F.rats.includes(u.id)) pill(overG, labels, `rat${u.id}`, x - r * 0.05, y + r * 0.95, '쥐떼', 0xb9a38a, C.dark, fs(0.18, 9));
