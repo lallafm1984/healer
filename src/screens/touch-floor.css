@@ -1,0 +1,15 @@
+/*
+ * 터치 44px 바닥 (QA 2026-10-17 디자인 · UI 구조 점검): 화면마다 같은 기준으로 재어 44px보다 작던 버튼만 모음.
+ * 겉 크기를 키워도 자리가 남는 것은 키우고, 줄 · 칸 모양을 지켜야 하는 작은 칩은 투명 터치 영역 (::after)만 넓힌다. main.ts에서 마지막에 읽음.
+ */
+/* 하위 탭 (상점 상품 · 공훈 · 시즌 패스 등): 38 → 44 */
+.ns .subtabs button { min-height: 44px; }
+.ns .subtabs button[aria-selected="true"] { min-height: 46px; } /* 고른 탭은 예전처럼 아래 테두리만큼 2px 더 (42 · 38 → 46 · 44) */
+/* 캐릭터 › 스킬 「설명 보기 · 배치 바꾸기」: 40 → 44 */
+#s-char .c7-mode button { min-height: 44px; }
+/* 특성 프리셋 1 · 2 · 3 (34px 원): 터치만 44 */
+#s-char .c7-pre::after { inset: -5px; }
+/* 도감 시트 묶음 칩 (32px)과 아래 버튼 (40px) */
+#s-char .sheet .c7-fc { position: relative; }
+#s-char .sheet .c7-fc::after { content: ''; position: absolute; inset: -6px -2px; }
+#s-char .sheet .c7-bagf .btn2 { min-height: 44px; }
