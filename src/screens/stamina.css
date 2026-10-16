@@ -23,12 +23,15 @@
 .st-dest b { font: 800 17px/1.3 var(--font-body); color: #fff4d5; overflow-wrap: anywhere; }
 .st-dest small { font-size: 13px; color: var(--a2-muted, #d0b994); }
 
-.st-cost { display: grid; grid-template-columns: auto 1fr 1fr; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: #1d140c; border: 1px solid #8a6a3c; }
-.st-cost > span { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.st-cost small { font-size: 12px; color: var(--a2-muted, #d0b994); }
-.st-cost b { font: 800 22px/1 var(--font-body); color: #c9f29e; font-variant-numeric: tabular-nums; }
+/* 소모 · 보유 · 입장 후 칸 (무제한 · 부족이면 두 칸). 색은 departure-hall.css */
+.st-cost { margin: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 10px 4px; border-radius: 8px; background: #1d140c; border: 1px solid #8a6a3c; }
+.st-cost .st-c { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.st-cost .st-c + .st-c { border-left: 1px solid #5f4727; }
+.st-cost dt { font-size: 12px; line-height: 1; color: var(--a2-muted, #d0b994); }
+.st-cost dd { margin: 0; min-height: 26px; display: flex; align-items: center; justify-content: center; gap: 3px; }
+.st-cost dd .currency-icon, .st-cost dd .currency-icon > .g-ic, .st-cost dd .currency-icon > svg { width: 22px; height: 22px; }
+.st-cost b { font: 800 24px/1 var(--font-body); color: #c9f29e; font-variant-numeric: tabular-nums; }
 .st-cost .st-need b { color: #fff4d5; }
-.st-cost em { font-style: normal; font-size: 12px; color: #d9cfb8; font-variant-numeric: tabular-nums; }
 .st-cost.lack { border-color: #c1574a; }
 .st-cost.lack .st-have b { color: #ff9a86; }
 

@@ -133,15 +133,18 @@ function guildPickHtml(stage: number): string {
     ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: stage }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
 }
 
-/** 두 칸을 항상 표시한다. 빈칸도 같은 위치에 남긴다. */
+/**
+ * 두 칸을 항상 표시한다. 빈칸도 같은 위치에 남긴다.
+ * 칸 = 황동 홈 (그림 · 칸 번호) + 이름 · 보유 (2026-10-16 Lim 「칸이 넓고 여백이 많다」: 가운데 작은 그림 대신 가로로 채움)
+ */
 function slotRow(_slots: number, loadout: ItemSlot[]): string {
   const stock = G.save.tut >= TUT.done ? G.save.bag : null;
   const chips = Array.from({ length: ITEM_SLOT_COUNT }, (_, i) => {
-    const number = `<span class="f-slot-number" aria-hidden="true">${i + 1}</span>`;
+    const sock = (inner: string) => `<span class="f-item-sock">${inner}<span class="f-slot-number" aria-hidden="true">${i + 1}</span></span>`;
     const k = loadout[i], attrs = `data-slot="${i}" data-slots="${i}"`;
-    if (!k) return `<button class="f-item empty" type="button" ${attrs} aria-label="${i + 1}번 단축칸 · 빈칸 · 아이템 고르기" aria-haspopup="dialog">${number}<span>빈칸 +</span></button>`;
+    if (!k) return `<button class="f-item empty" type="button" ${attrs} aria-label="${i + 1}번 단축칸 · 빈칸 · 아이템 고르기" aria-haspopup="dialog">${sock('<span class="f-item-plus" aria-hidden="true">+</span>')}<span class="f-item-tx"><b>빈칸</b><small>아이템 고르기</small></span></button>`;
     const n = stock ? stock[k] || 0 : null;
-    return `<button class="f-item${n === 0 ? ' zero' : ''}" type="button" ${attrs} data-slot-item="${k}" aria-label="${i + 1}번 단축칸 · ${ITEMS[k].name}${n != null ? ` · 보유 ${n}개` : ''} · 바꾸기" aria-haspopup="dialog">${number}${useIcon(k)}<span>${ITEMS[k].short}</span>${n != null ? `<small><span class="sr">남은 </span>${n}</small>` : ''}</button>`;
+    return `<button class="f-item${n === 0 ? ' zero' : ''}" type="button" ${attrs} data-slot-item="${k}" aria-label="${i + 1}번 단축칸 · ${ITEMS[k].name}${n != null ? ` · 보유 ${n}개` : ''} · 바꾸기" aria-haspopup="dialog">${sock(useIcon(k))}<span class="f-item-tx"><b>${ITEMS[k].name}</b>${n != null ? `<small>보유 ${n}</small>` : ''}</span></button>`;
   }).join('');
   return `<div class="f-slots" role="group" aria-label="소비 아이템 단축칸 ${ITEM_SLOT_COUNT}칸">${chips}</div>`;
 }

@@ -1,7 +1,7 @@
 /*
  * 편성 (출전) 화면 길드 홀 색 (2026-10-13 Lim 「장비 권장은 제거, 레벨 권장 수치만, 내 정보는 빼고 · 나무결 배경과 함께 UI 스타일·색 변경」).
  * 결과 · 주간 도전 입장 · 공략 창과 같은 한 벌: 나무결 없이 평평한 어두운 돌색 · 금테 카드 · 노란 제목 (--gk-*, guide-sheet.css).
- * 위 정보창 (a2-topbar.css) · 붉은 「출발」 그림 · 역할 색 칸 · 성격 칩 색은 그대로. main.ts 맨 뒤에서 읽음 (a2-adventure-theme · party-refinement 위)
+ * 위 정보창 (a2-topbar.css) · 역할 색 칸 · 성격 칩 색은 그대로. 「출발」은 2026-10-16부터 금빛 주 버튼 (아래). main.ts 맨 뒤에서 읽음 (a2-adventure-theme · party-refinement 위)
  */
 #s-party {
   background-color: #15120e; background-image: linear-gradient(#1d1812, #15120e 240px); background-blend-mode: normal;
@@ -43,14 +43,63 @@
 #s-party.ns .pcard.f-mem .f-ri { border: 1px solid var(--gk-edge); border-radius: 8px; box-shadow: inset 0 0 0 1px #0000002e, 0 1px 2px #0008; }
 #s-party.ns .pcard.f-mem .f-ps { border-color: #00000040; }
 
-/* ---------- 아래 고정 줄: 단축칸 넷 ---------- */
+/* ---------- 아래 고정 줄: 단축칸 둘 · 출발 ----------
+ * 단축칸 (2026-10-16 Lim 「칸이 너무 넓고 여백이 많다」): 가운데 작은 그림 대신 가로 한 줄 = 황동 홈 (그림 · 칸 번호) + 이름 · 보유.
+ * 홈은 위 정보창 · 전투 소비 칸과 같은 ui-sunforged-item-socket. 칸 높이 54 (화면이 낮으면 50 · 44) */
 #s-party.ns .ns-foot.f-foot2 { background: #15120e; border-top: 1px solid var(--gk-line); box-shadow: 0 -6px 14px #0006; }
-#s-party.ns .f-item:not(.empty):not(.locked) { background: var(--gk-card); border: 1px solid var(--gk-edge); box-shadow: inset 0 1px 0 #ffffff12; color: var(--gk-ink); }
-#s-party.ns .f-item.empty { background: var(--gk-route); border: 1px dashed var(--gk-card-bd); color: var(--gk-mute); }
+#s-party.ns .f-slots { gap: 8px; padding-top: 0; }
+#s-party.ns .f-item {
+  height: 54px; padding: 0 10px 0 6px; flex-direction: row; justify-content: flex-start; gap: 9px;
+  border-radius: 10px; text-align: left; font-size: 13px;
+}
+#s-party.ns .f-item:not(.empty):not(.locked) { background: var(--gk-card); border: 1px solid var(--gk-edge); box-shadow: inset 0 1px 0 #ffe7a81a, 0 2px 0 #000a; color: var(--gk-ink); }
+#s-party.ns .f-item.empty { background: var(--gk-route); border: 1px dashed var(--gk-edge); box-shadow: none; color: var(--gk-mute); }
 #s-party.ns .f-item.locked { background: #17130f; border: 1px solid var(--gk-line); color: #8d8070; }
-#s-party.ns .f-item small { background: #0d0b09d9; border: 0; color: var(--gk-ink); }
-#s-party.ns .f-item .f-slot-number { color: var(--gk-mute); }
-#s-party.ns .f-item.zero, #s-party.ns .f-item.zero small { color: var(--gk-mute); }
+#s-party.ns .f-item:active { transform: translateY(1px); }
+#s-party.ns .f-item[aria-expanded="true"] { border-color: var(--gk-accent); box-shadow: 0 0 0 1px var(--gk-accent); }
+#s-party.ns .f-item > .f-item-sock {
+  position: relative; flex: none; width: 42px; height: 42px; overflow: visible; display: grid; place-items: center;
+  background: url('../art/ui-sunforged-item-socket.webp') center / 100% 100% no-repeat;
+}
+#s-party.ns .f-item-sock > :is(.g-ic, svg) { width: 30px; height: 30px; margin: 0; }
+#s-party.ns .f-item-sock > .f-item-plus { font: 400 24px/1 var(--font-display); color: var(--gk-head); }
+#s-party.ns .f-item .f-slot-number {
+  position: absolute; left: -4px; top: -4px; min-width: 16px; height: 16px; padding: 0 3px; box-sizing: border-box; border-radius: 8px;
+  display: grid; place-items: center; background: #0d0b09; border: 1px solid var(--gk-edge); color: var(--gk-head); font: 800 10px/1 var(--font-body);
+}
+#s-party.ns .f-item > .f-item-tx { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+#s-party.ns .f-item-tx b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 14px/1.15 var(--font-body); color: var(--gk-ink); }
+#s-party.ns .f-item .f-item-tx small {
+  position: static; display: block; min-width: 0; height: auto; padding: 0; border: 0; border-radius: 0; background: none;
+  overflow: hidden; text-overflow: ellipsis; font: 600 11px/1.2 var(--font-body); color: var(--gk-mute);
+}
+#s-party.ns .f-item.empty .f-item-tx b { color: var(--gk-ink2); }
+#s-party.ns .f-item.zero .f-item-sock > :is(.g-ic, svg) { filter: grayscale(.8) brightness(.7); }
+#s-party.ns .f-item.zero .f-item-tx small { color: #ff9a86; }
+@media (max-height: 700px) {
+  #s-party.ns .f-item { height: 50px; }
+  #s-party.ns .f-item > .f-item-sock { width: 38px; height: 38px; }
+  #s-party.ns .f-item-sock > :is(.g-ic, svg) { width: 27px; height: 27px; }
+}
+@media (max-height: 520px) {
+  #s-party.ns .f-item { height: 44px; padding-left: 4px; gap: 6px; }
+  #s-party.ns .f-item > .f-item-sock { width: 34px; height: 34px; }
+  #s-party.ns .f-item-sock > :is(.g-ic, svg) { width: 24px; height: 24px; }
+  #s-party.ns .f-item-tx b { font-size: 13px; }
+}
+
+/* 출발 (Lim 「출발 버튼이 이질감」): 빨간 출전 그림 대신 결과 「다음」 · 입장 팝업과 같은 금빛 주 버튼. 주간 도전 「편성으로」도 같은 버튼 */
+:is(#s-entry, #s-party).ns .f-go {
+  border: 1px solid #b8862e; border-radius: 12px;
+  background: linear-gradient(#ffe07a, #f0b93a 55%, #d99a24);
+  box-shadow: inset 0 1px 0 #fff8d8, inset 0 -3px 0 #b07a1a, 0 3px 0 #000a; color: #2a1806;
+}
+:is(#s-entry, #s-party).ns .f-go .f-gt { color: #2a1806; text-shadow: 0 1px 0 #fff2c080; }
+:is(#s-entry, #s-party).ns .f-go .cta2 small { color: #5a3a0e; }
+:is(#s-entry, #s-party).ns .f-go .f-stam .currency-amount b { color: #2a1806; }
+:is(#s-entry, #s-party).ns .f-go > svg { stroke: #2a1806; }
+:is(#s-entry, #s-party).ns .f-go:active:not(:disabled) { transform: translateY(2px); background: linear-gradient(#f0c853, #d99a24); box-shadow: inset 0 1px 0 #fff8d8, inset 0 -1px 0 #b07a1a, 0 1px 0 #000a; }
+:is(#s-entry, #s-party).ns .f-go:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
 
 /* ---------- 파티원 상세 · 단축칸 고르기 시트: 공략 창과 같은 바탕 ---------- */
 #app .ns .sheet:is(.f-msheet, .f-isheet) { background: var(--gk-bg); background-blend-mode: normal; border-color: var(--gk-edge); color: var(--gk-ink); }

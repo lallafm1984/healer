@@ -31,15 +31,41 @@
 /* ---------- 아래 출전 줄 ---------- */
 #s-content .b-foot { background: linear-gradient(#1b1611, #110e0b); background-blend-mode: normal; border-top: 1px solid var(--gk-line); }
 
-/* ---------- 입장 확인 · 스테미너 창 (.admodal.st-modal) ---------- */
+/* ---------- 입장 확인 · 스테미너 창 (.admodal.st-modal) ----------
+ * 2026-10-16 Lim 「입장 버튼이 팝업과 따로 논다」: 돌 카드 + 분류 칸과 같은 황동 테 그림, 제목 양옆 금줄.
+ * 버튼은 결과 · 휴식과 같은 한 벌 (모서리 10 · 금테 1px · 같은 글꼴, 주 버튼만 금빛). 빨간 출전 그림 (a2-depart-v3)은 쓰지 않음 */
 .admodal.st-modal .st-pop {
-  background: var(--gk-card); background-blend-mode: normal; border: 1px solid var(--gk-edge); border-radius: 12px;
-  box-shadow: inset 0 1px 0 #ffe6a61f, 0 16px 40px #000c; color: var(--gk-ink);
+  position: relative; gap: 14px; padding: 24px 22px 22px;
+  background: var(--gk-card); background-blend-mode: normal; border: 0; border-radius: 4px;
+  box-shadow: inset 0 0 0 1px #000, inset 0 0 24px #0008, 0 18px 44px #000d; color: var(--gk-ink);
 }
-.admodal.st-modal .st-pop h3 { color: var(--gk-head); text-shadow: 0 1px 1px #000; }
-.admodal.st-modal :is(.st-pop .note, .st-dest small, .st-cost small, .st-time) { color: var(--gk-mute); }
-.admodal.st-modal :is(.st-cost, .st-meter) { background: var(--gk-route); border-color: var(--gk-card-bd); }
+.admodal.st-modal .st-pop::before {
+  content: ''; position: absolute; inset: -3px; pointer-events: none;
+  border: 16px solid transparent; border-image: url('../art/ui-sunforged-panel-frame.webp') 104 / 16px / 0 stretch;
+}
+.admodal.st-modal .st-pop h3 { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 22px; color: var(--gk-head); text-shadow: 0 2px 2px #000; }
+.admodal.st-modal .st-pop h3::before,
+.admodal.st-modal .st-pop h3::after { content: ''; flex: 0 1 46px; height: 2px; border-radius: 1px; background: linear-gradient(90deg, #ffd34d00, var(--gk-edge)); }
+.admodal.st-modal .st-pop h3::after { background: linear-gradient(90deg, var(--gk-edge), #ffd34d00); }
+.admodal.st-modal .st-dest b { font-size: 18px; color: var(--gk-ink); }
+.admodal.st-modal :is(.st-pop .note, .st-dest small, .st-cost dt, .st-time) { color: var(--gk-mute); }
+.admodal.st-modal :is(.st-cost, .st-meter) { background: var(--gk-route); border-color: var(--gk-card-bd); box-shadow: inset 0 2px 6px #0009; }
+.admodal.st-modal .st-cost .st-c + .st-c { border-left-color: var(--gk-line); }
+.admodal.st-modal .st-cost .st-need b { color: var(--gk-num); }
 .admodal.st-modal .st-cost.lack { border-color: #c1574a; }
 .admodal.st-modal .st-bar { background: #0d0b08; border-color: var(--gk-card-bd); }
-.admodal.st-modal .btn:not(.primary) { background: var(--gk-btn); border: 1px solid var(--gk-edge); color: var(--gk-head); box-shadow: none; text-shadow: none; }
-.admodal.st-modal .btn:not(.primary):active:not(:disabled) { background: var(--gk-btn-on); }
+
+.admodal.st-modal .st-pop .btn {
+  min-height: 50px; padding: 0 8px; border: 1px solid var(--gk-edge); border-radius: 10px;
+  background: var(--gk-btn); box-shadow: inset 0 1px 0 #ffe7a81a, 0 2px 0 #000a; color: var(--gk-head); text-shadow: none;
+  font: 400 18px/1.1 var(--font-display);
+}
+.admodal.st-modal .st-pop .btn.primary {
+  background: linear-gradient(#ffe07a, #f0b93a 55%, #d99a24); border-color: #b8862e;
+  box-shadow: inset 0 1px 0 #fff8d8, inset 0 -2px 0 #b07a1a, 0 2px 0 #000a; color: #2a1806;
+}
+.admodal.st-modal .st-pop .btn small { font: 700 11px/1.2 var(--font-body); opacity: 1; color: var(--gk-mute); }
+.admodal.st-modal .st-pop .btn.primary small { color: #5a3a0e; }
+.admodal.st-modal .st-pop .btn:active:not(:disabled) { transform: translateY(1px); background: var(--gk-btn-on); }
+.admodal.st-modal .st-pop .btn.primary:active:not(:disabled) { background: linear-gradient(#f0c853, #d99a24); }
+.admodal.st-modal .st-pop .btn:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
