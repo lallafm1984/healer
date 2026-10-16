@@ -1,6 +1,7 @@
 /** 재화 (12, 81)·일일 주간 (13)·상점·패스 (15). 소비 아이템 가방 (19 11장)은 2026-10-16 없앰 */
 import { describe, expect, it } from 'vitest';
 import { MERIT, PASS_XP } from '../src/data/economy';
+import { FEATURES } from '../src/data/features';
 import { DAILY, DAILY_BASIC, WEEKLY, WEEKLY_REWARD } from '../src/data/missions';
 import { clearGold } from '../src/data/progression';
 import { dayKey, daysBetween, seasonOf, weekKey } from '../src/game/clock';
@@ -48,6 +49,20 @@ describe('리셋 시각 (13 1장: 오전 6시, 월요일)', () => {
 });
 
 describe('일일 임무 (13 2-1)', () => {
+  it('pub2: 길드가 꺼지면 「탐험 클리어」 (던전 클리어와 겹치지 않게, 2026-10-17 Lim), 켜면 공개모집 던전 · 레이드', () => {
+    const pub2 = DAILY.find(m => m.key === 'pub2')!, was = FEATURES.guild;
+    try {
+      FEATURES.guild = false;
+      expect(pub2.text).toBe('탐험 클리어');
+      expect(pub2.run!(ev({ dungeon: false, explore: true }))).toBe(1);
+      expect(pub2.run!(ev())).toBe(0); // 던전 승리는 clear3 몫
+      expect(pub2.run!(ev({ dungeon: false, explore: true, win: false }))).toBe(0);
+      FEATURES.guild = true;
+      expect(pub2.text).toBe('공개모집으로 클리어');
+      expect(pub2.run!(ev())).toBe(1);
+      expect(pub2.run!(ev({ dungeon: false, explore: true }))).toBe(0);
+    } finally { FEATURES.guild = was; }
+  });
   it('날이 바뀌면 5개, 단순 판 수 임무는 2개까지, 레벨에 맞는 것만', () => {
     for (let i = 0; i < 30; i++) {
       seed = i + 1;
