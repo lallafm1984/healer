@@ -1,7 +1,8 @@
 /**
  * 재화 (12)·상점 (15 6장, 19 11장)·시즌 패스 (15 4장)·스테미너와 앱 결제 상품 (81) 수치.
  * 81 (2026-10-15 Lim): 크리스탈 · 악몽 열쇠 · 모집권 · 월정액 · 프리미엄 패스를 없앰. 돈으로 사는 것은 광고 제거 패키지와 직업 4종뿐이고,
- * 골드·재료·장비·공훈·경험치·스테미너 (광고 충전 빼고)는 돈으로 사지 않는다.
+ * 재료·장비·공훈·경험치·스테미너 (광고 충전 빼고)는 돈으로 사지 않는다.
+ * v16 (2026-10-16 Lim 「소비 아이템이 없어졌으므로 골드가 필요 없게 되었다」): 골드를 없앰. 강화는 강화석 · 정제 강화석만.
  */
 import type { DiffName } from './difficulty';
 import type { HeroKey } from './heroes';
@@ -33,14 +34,12 @@ export const MERIT_WEEK_CAP = 150;
 /** 원하는 부위 영웅 장비 1개 */
 export const MERIT_GEAR_COST = 100;
 
-// ---------- 캐릭터 칸 (68 2장): 칸 하나에 캐릭터 하나. Lim 2026-10-12 「둘 다」 = 골드로 모아 사거나 앱 결제로 바로 ----------
+// ---------- 캐릭터 칸 (68 2장): 칸 하나에 캐릭터 하나 ----------
 /**
- * 처음 1칸, 최대 6칸. 골드는 사는 캐릭터 것이고 그 캐릭터 Lv 10부터. gold[i] = (i + 2)번째 칸 값 (넘으면 끝 값).
- * 앱 결제는 레벨 조건 없이 (튜토리얼 뒤) 바로
+ * 처음 1칸, 최대 6칸. 앱 결제는 레벨 조건 없이 (튜토리얼 뒤) 바로.
+ * 예전 골드로 사는 길 (Lim 2026-10-12 「둘 다」)은 v16에서 골드를 없애며 뺌. 캐릭터 선택 화면이 지금 없어 칸을 사는 화면도 없음 (81)
  */
-export const CHAR_SLOT = { max: 6, lv: 10, gold: [2000, 5000, 10000], iap: { id: 'charslot', name: '캐릭터 칸', price: '2,200원' } };
-/** 칸을 have개 가졌을 때 다음 칸 골드 값 */
-export const slotGold = (have: number): number => CHAR_SLOT.gold[Math.min(Math.max(0, have - 1), CHAR_SLOT.gold.length - 1)];
+export const CHAR_SLOT = { max: 6, iap: { id: 'charslot', name: '캐릭터 칸', price: '2,200원' } };
 
 // ---------- 시즌 패스 (15 4장) ----------
 export const PASS_LEVELS = 50;
@@ -50,18 +49,18 @@ export const SEASON = { n: 1, name: '해바라기 원정', start: '2026-10-05', 
 /** 패스 경험치 (15 4-2) */
 export const PASS_GAIN = { daily: 60, chest: 100, weekly: 800, challenge: 400 };
 
-export type PassReward = { gold?: number; stone?: number; refined?: number; title?: string; deco?: string };
+export type PassReward = { stone?: number; refined?: number; title?: string; deco?: string };
 /**
- * 보상 한 줄 (81: 프리미엄 라인 없앰). 표의 단계는 그대로, 나머지 단계는 강화석·골드 조금. gold는 「던전 N판」 → 판 수 (받을 때 레벨로 골드 계산).
- * 예전 크리스탈 60 칸은 골드 2판, 모집권은 빼고 같은 칸 골드 1판
+ * 보상 한 줄 (81: 프리미엄 라인 없앰). 표의 단계는 그대로, 나머지 단계는 강화석 조금.
+ * v16 (골드 없앰): 예전 「골드 N판」 칸은 강화석 3 × N (예전 크리스탈 60 칸 = 골드 2판, 모집권 칸 = 골드 1판이었음)
  */
 export function passFree(lv: number): PassReward {
   const fixed: Record<number, PassReward> = {
-    1: { stone: 5 }, 5: { gold: 3 }, 10: { gold: 2 }, 15: { refined: 2, gold: 1 }, 20: { gold: 2 },
-    25: { deco: '시즌 테두리' }, 30: { gold: 3 }, 35: { refined: 3 }, 40: { gold: 2 },
-    45: { gold: 4 }, 50: { gold: 2, title: '모두의 힐러' },
+    1: { stone: 5 }, 5: { stone: 9 }, 10: { stone: 6 }, 15: { refined: 2, stone: 3 }, 20: { stone: 6 },
+    25: { deco: '시즌 테두리' }, 30: { stone: 9 }, 35: { refined: 3 }, 40: { stone: 6 },
+    45: { stone: 12 }, 50: { stone: 6, title: '모두의 힐러' },
   };
-  return fixed[lv] || (lv % 2 ? { stone: 3 } : { gold: 1 });
+  return fixed[lv] || { stone: 3 };
 }
 
 // ---------- 보상형 광고 (15 7장): 하루 상한. 스테미너 충전은 STAMINA.adDaily ----------

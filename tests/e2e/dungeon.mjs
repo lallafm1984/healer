@@ -29,7 +29,7 @@ export default async function dungeon(url, shots) {
   ok(await page.getAttribute('#s-content', 'data-selected-content') === 'rustfort' && /녹슨 요새/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo'), '녹슨 요새가 골라져 있고 출전 가능');
   ok(await page.getAttribute('#s-content [data-diff="쉬움"]', 'aria-pressed') === 'true' && await page.isDisabled('#s-content [data-diff="보통"]') && /쉬움 깨기/.test(await page.textContent('#s-content [data-diff="보통"]')), '난이도 기본 = 쉬움, 보통은 「쉬움 깨기」로 잠김 (61 사슬, 개발 빌드도)');
   ok(await page.getAttribute('#s-content .b-level', 'aria-label') === '권장 레벨 5' && /Lv\.\s*5/.test(await page.textContent('#s-content .b-level')), '관문 권장 레벨 = Lv. 5 (장소 레벨, 61 1-2)');
-  ok(await page.locator('#s-content .b-gate [data-reward="gold"]').count()===1
+  ok(await page.locator('#s-content .b-gate [data-reward="gold"]').count()===0 && await page.locator('#s-content .b-gate [data-reward="stone"]').count()===1
     && await page.locator('#s-content [data-drops],#s-content .b-pop').count()===0, '장면 안 획득 보상 아이콘 표시·기존 보상 상세 제거');
   await page.click('#s-content [data-reward="gear"]'); await page.clock.runFor(50);
   const drops = await page.textContent('#s-content .b-reward-chance');
@@ -90,13 +90,13 @@ export default async function dungeon(url, shots) {
   ok(/다루기 난이도/.test(msheet) && !/단단한 몸|신성한 갑옷/.test(msheet) && (await page.locator('#s-party .f-hex.on').count()) === 1, '탱커 줄을 누르면 상세 시트 (성격, 직업 패시브 없음 69) + 위치판 칸 빛남');
   await page.click('#s-party .f-msheet [data-shut]'); await page.clock.runFor(50);
   const nicks = () => page.evaluate(() => [...document.querySelectorAll('#s-party .pcard .pnick')].map(b => b.textContent).join());
-  const before = await nicks(), goldBefore = (await save()).player.gold;
+  const before = await nicks(), stoneBefore = (await save()).mats.stone;
   ok(await page.locator('#s-party .f-slots, #s-party .f-isheet').count() === 0, '편성에 소비 아이템 단축칸 없음 (2026-10-16 없앰)');
   ok(await page.locator('#s-party #reroll, #s-party #adReroll').count() === 0, '편성에서 다시 뽑기·광고 다시 뽑기 버튼 제거');
   const departAt = await page.locator('#depart').boundingBox(), footAt = await page.locator('#s-party .f-foot2').boundingBox();
   ok(Math.abs(departAt.x + departAt.width / 2 - footAt.x - footAt.width / 2) <= 1, '출발 버튼은 편성 하단 중앙');
   const party0 = await nicks();
-  ok(party0.split(',').length === 4 && party0 === before && (await save()).player.gold === goldBefore, '단축칸 준비 중 파티 유지·골드 소모 없음');
+  ok(party0.split(',').length === 4 && party0 === before && (await save()).mats.stone === stoneBefore, '단축칸 준비 중 파티 유지·재료 소모 없음');
   await page.screenshot({ path: `${shots}/dungeon_party.png` });
 
   // ---- 전투: 구간 → 휴식 → 구간 ----
@@ -179,7 +179,7 @@ export default async function dungeon(url, shots) {
   await page.clock.runFor(1500);
   ok(await page.isVisible('#s-settle') && (await page.textContent('#s-settle h1')) === '던전 클리어!첫 클리어', '마지막 보스 → 던전 클리어 + 첫 클리어 배지');
   ok(/[SABC]/.test(await page.textContent('#s-settle .grade')) && (await page.locator('#s-settle .r-stars li').count()) === 3 && /클리어 \d+:\d\d/.test(await page.textContent('#s-settle .r-stars')), '머리 = 등급 + 별 칸 3개 (클리어 시간)');
-  ok(await page.isVisible('#s-settle .r-loot .r-item') && /골드/.test(await page.textContent('#s-settle .r-curs')) && /경험치 \+/.test(await page.textContent('#s-settle .r-xp')), '받은 것 (장비 · 골드 · 경험치)이 같은 화면에');
+  ok(await page.isVisible('#s-settle .r-loot .r-item') && /강화석/.test(await page.textContent('#s-settle .r-curs')) && !/골드/.test(await page.textContent('#s-settle .r-loot')) && /경험치 \+/.test(await page.textContent('#s-settle .r-xp')), '받은 것 (장비 · 강화석 · 경험치)이 같은 화면에, 골드 없음 (2026-10-16)');
   const rb = await page.evaluate(() => { const r = document.querySelector('#s-settle .r-loot').getBoundingClientRect(), f = document.querySelector('#s-settle .ns-foot').getBoundingClientRect(); return { bottom: Math.round(r.bottom), foot: Math.round(f.top) }; });
   ok(rb.bottom <= rb.foot, `받은 것이 첫 화면에 다 보임 ${JSON.stringify(rb)}`);
   ok((await page.locator('#s-settle .r-rec').getAttribute('open')) === null, '이기면 전투 기록은 접힘');
@@ -200,7 +200,7 @@ export default async function dungeon(url, shots) {
   await page.click('#s-settle .lvpop button'); await page.clock.runFor(50);
   ok(await page.locator('#s-settle .lvpop').count() === 0 && await page.locator('[inert]').count() === 0, '확인 후 팝업 닫힘 · 배경 조작 복구');
   let sv = await save();
-  ok(sv.player.level === 3 && sv.player.gold > 0 && sv.gear.bag.length === 1, `저장: Lv 3, 골드 ${sv.player.gold}, 가방에 장비 1개 (클리어마다 1개, 2026-10-13)`);
+  ok(sv.player.level === 3 && !('gold' in sv.player) && sv.mats.stone > 0 && sv.gear.bag.length === 1, `저장: Lv 3, 강화석 ${sv.mats.stone}, 골드 없음, 가방에 장비 1개 (클리어마다 1개, 2026-10-13)`);
   ok(sv.clears.rustfort['보통'].n === 1 && sv.last.win, '저장: 녹슨 요새 보통 클리어 기록');
   ok(await page.locator('#s-settle .r-loot [data-reward-item]').count() === 1 && !/도감|새 특수능력!/.test(await page.textContent('#s-settle .r-loot')), '획득 장비는 상세 보기 카드, 도감·새 특수능력 안내 없음');
   const beforeDetail = JSON.stringify(await save());
@@ -217,7 +217,7 @@ export default async function dungeon(url, shots) {
   await page.screenshot({ path: `${shots}/dungeon_reward.png` });
 
   // ---- 잡몹 구간에서 지면 던전 실패 → 경험치 없음 (2026-10-13 Lim) ----
-  const xp0 = sv.player.xp, gold0 = sv.player.gold, bag0 = sv.gear.bag.length;
+  const xp0 = sv.player.xp, stone0 = sv.mats.stone, bag0 = sv.gear.bag.length;
   await page.click('#again'); await entryGo(page); await page.clock.runFor(3100 + 500);
   ok(await page.isVisible('#battle'), '다시 도전 = 같은 파티로 바로 출발');
   ok(await page.evaluate(() => window.__proto.dungeon.idx === 0 && window.__proto.F.enc.key === 'gate'), '던전 처음부터');
@@ -243,7 +243,7 @@ export default async function dungeon(url, shots) {
   ok(await page.locator('#s-settle .r-rec').getAttribute('open') !== null && (await page.textContent('#s-settle .r-rec summary')).trim() === '전투 기록'
     && !/경험치|오버힐|마나 최저/.test(await page.textContent('#s-settle .res')), '지면 전투 기록 펼침 · 경험치 줄 · 지표 칩 · 「내 치유」 요약 없음');
   sv = await save();
-  ok(sv.player.gold === gold0 && sv.player.xp === xp0 && sv.gear.bag.length === bag0, `지면 골드·장비·경험치 없음 (${xp0} → ${sv.player.xp})`);
+  ok(sv.mats.stone === stone0 && sv.player.xp === xp0 && sv.gear.bag.length === bag0, `지면 재료·장비·경험치 없음 (${xp0} → ${sv.player.xp})`);
   ok((await page.textContent('#again')) === '다시 도전', '실패 결과에 다시 도전');
   await page.screenshot({ path: `${shots}/dungeon_lose.png` });
   await ctx.close();

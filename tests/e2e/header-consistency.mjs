@@ -11,7 +11,7 @@ async function headerGeometry(page, screen) {
     const apart=(a,b)=>a.right<=b.left+1 || a.left>=b.right-1 || a.bottom<=b.top+1 || a.top>=b.bottom-1;
     const rect=box(header),viewport={left:0,top:0,right:innerWidth,bottom:innerHeight};
     const mmo=header.classList.contains('tb-mmo');
-    const selectors=mmo?'.tb-pf,.tb-nm,.tb-wal,.tb-set':'.tb-back,.tb-title,.tb-gold,.f-em,.f-tb,.f-gbtn';
+    const selectors=mmo?'.tb-pf,.tb-nm,.tb-wal,.tb-set':'.tb-back,.tb-title,.tb-set,.f-em,.f-tb,.f-gbtn';
     const parts=[...header.querySelectorAll(selectors)].filter(visible).map(el=>({selector:el.className,rect:box(el)}));
     const outside=parts.filter(p=>!within(p.rect,rect) || !within(p.rect,viewport));
     const overlaps=parts.flatMap((p,i)=>parts.slice(i+1).filter(q=>!apart(p.rect,q.rect)).map(q=>`${p.selector}/${q.selector}`));
@@ -44,7 +44,7 @@ export default async function headerConsistency(url,shots) {
         const expectedPortrait=height<=700?44:height<=800?50:width<359?54:70;
         page.on('pageerror',e=>errs.push(`${id}: ${e.message}`));page.on('console',m=>{if(m.type()==='error')errs.push(`${id}: ${m.text()}`);});
         await page.clock.install();await page.goto(url);await page.clock.runFor(300);
-        await page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('healer.save'));s.tut=99;s.player.level=100;s.player.gold=12700;s.stamina={n:140,at:Date.now(),day:'',ads:0};s.bought=['noads'];s.settings.devUnlock=false;localStorage.setItem('healer.save',JSON.stringify(s));});
+        await page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('healer.save'));s.tut=99;s.player.level=100;s.stamina={n:140,at:Date.now(),day:'',ads:0};s.bought=['noads'];s.settings.devUnlock=false;localStorage.setItem('healer.save',JSON.stringify(s));});
         await page.reload();await page.clock.runFor(300);await pastTitle(page);await page.evaluate(()=>document.fonts.ready);
         const headers=[];
         for(const[tab,screen,label]of[['lobby','#s-lobby','로비'],['battle','#s-content','전투'],['char','#s-char','캐릭터'],['shop','#s-shop','상점']]) {

@@ -2,11 +2,10 @@
 import { describe, expect, it } from 'vitest';
 import { MERIT, PASS_XP } from '../src/data/economy';
 import { DAILY, DAILY_BASIC, WEEKLY, WEEKLY_REWARD } from '../src/data/missions';
-import { clearGold } from '../src/data/progression';
 import { dayKey, daysBetween, seasonOf, weekKey } from '../src/game/clock';
 import {
   addPassXp, chalChestOf, chestState, claimChalChest, claimChest, claimMission, claimPass, exchangeMerit,
-  missionReady, onAct, onRun, passLevel, rollover, runGold, swapMission,
+  missionReady, onAct, onRun, passLevel, rollover, swapMission,
 } from '../src/game/economy';
 import { settle, type BattleResult } from '../src/game/settle';
 import { migrate, newSave, type SaveData } from '../src/platform/storage';
@@ -17,9 +16,9 @@ const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 const T0 = new Date(2026, 9, 7, 12).getTime();
 const H = 3600e3, D = 24 * H;
 
-function save(level = 20, gold = 100000): SaveData {
+function save(level = 20): SaveData {
   const s = newSave(1);
-  s.tut = 3; s.player.level = level; s.player.gold = gold;
+  s.tut = 3; s.player.level = level;
   rollover(s, T0, rng);
   return s;
 }
@@ -57,7 +56,7 @@ describe('일일 임무 (13 2-1)', () => {
       expect(s.daily.missions.every(m => DAILY.find(d => d.key === m.key)!.lv <= 3)).toBe(true);
     }
   });
-  it('판·강화로 채우고 받기: 골드 = 클리어 1판의 20%, 강화석 2, 패스 경험치 60', () => {
+  it('판·강화로 채우고 받기: 강화석 2, 패스 경험치 60 (v16: 골드 없음)', () => {
     const s = save(20);
     s.daily.missions = [{ key: 'clear3', n: 0, got: false }, { key: 'nodeath', n: 0, got: false }, { key: 'enhance2', n: 0, got: false }, { key: 'dispel10', n: 0, got: false }, { key: 'guild2', n: 0, got: false }];
     expect(onRun(s, ev())).toEqual(['사망자 0명으로 클리어']);
@@ -66,23 +65,24 @@ describe('일일 임무 (13 2-1)', () => {
     onAct(s, 'enhance'); onAct(s, 'enhance'); onAct(s, 'enhance');
     expect(s.daily.missions[2].n).toBe(2);
     expect(claimMission(s, 'daily', 0, T0)).toBe('아직 못 채움');
-    const g0 = s.player.gold, st0 = s.mats.stone;
+    const st0 = s.mats.stone;
     const r = claimMission(s, 'daily', 1, T0);
-    expect(r).toMatchObject({ gold: Math.round(runGold(20) * 0.2), stone: 2, pass: 60 });
-    expect([s.player.gold - g0, s.mats.stone - st0, s.pass.xp]).toEqual([Math.round(runGold(20) * 0.2), 2, 60]);
+    expect(r).toEqual({ stone: 2, pass: 60 });
+    expect([s.mats.stone - st0, s.pass.xp]).toEqual([2, 60]);
     expect(claimMission(s, 'daily', 1, T0)).toBe('아직 못 채움');
   });
-  it('완료 상자: 5개 다 받으면 1번 (골드 1판 + 강화석 5 + 장비 1개), 광고로 한 번 더', () => {
+  it('완료 상자: 5개 다 받으면 1번 (강화석 5 + 장비 1개), 광고로 한 번 더', () => {
     const s = save(20);
     expect(claimChest(s, rng, T0)).toMatch(/5개/);
     s.daily.missions.forEach(m => { m.n = 99; m.got = true; });
     expect(chestState(s).today).toBe(true);
     const bag = s.gear.bag.length;
     const r = claimChest(s, rng, T0);
-    expect(r).toMatchObject({ gold: runGold(20), stone: 5, pass: 100 });
+    expect(r).toMatchObject({ stone: 5, pass: 100 });
+    expect(r).not.toHaveProperty('gold');
     expect(s.gear.bag.length).toBe(bag + 1);
     expect(claimChest(s, rng, T0)).toMatch(/5개/);
-    expect(claimChest(s, rng, T0, true)).toMatchObject({ gold: runGold(20), stone: 5 });
+    expect(claimChest(s, rng, T0, true)).toMatchObject({ stone: 5 });
     expect(claimChest(s, rng, T0, true)).toMatch(/먼저/);
   });
   it('놓친 날 상자는 2일까지 쌓임, 접속한 날 못 받은 건 안 쌓임 (13 7장)', () => {
@@ -104,7 +104,7 @@ describe('일일 임무 (13 2-1)', () => {
 });
 
 describe('주간 (13 3장)', () => {
-  it('Lv 10부터 3개, 10인 레이드 열림 (Lv 45) 전엔 레이드 임무 없음, 1개 = 골드 3판 + 강화석 5 (81)', () => {
+  it('Lv 10부터 3개, 10인 레이드 열림 (Lv 45) 전엔 레이드 임무 없음, 1개 = 강화석 5 (v16: 골드 3판 없앰)', () => {
     expect(save(9).weekly.missions).toEqual([]);
     for (let i = 0; i < 20; i++) { seed = i + 3; expect(save(20).weekly.missions.some(m => m.key === 'w_raid3')).toBe(false); }
     const s = save(40);
@@ -112,9 +112,9 @@ describe('주간 (13 3장)', () => {
     s.weekly.missions = [{ key: 'w_raid3', n: 0, got: false }, { key: 'w_chest5', n: 0, got: false }, { key: 'w_hard5', n: 0, got: false }];
     for (let i = 0; i < 3; i++) onRun(s, ev({ raid: 10 }));
     expect(missionReady(s.weekly.missions[0])).toBe(true);
-    const g0 = s.player.gold, st0 = s.mats.stone;
-    expect(claimMission(s, 'weekly', 0, T0)).toMatchObject({ gold: runGold(40) * WEEKLY_REWARD.runs, stone: WEEKLY_REWARD.stone, pass: 800 });
-    expect([s.player.gold - g0, s.mats.stone - st0]).toEqual([runGold(40) * 3, 5]);
+    const st0 = s.mats.stone;
+    expect(claimMission(s, 'weekly', 0, T0)).toEqual({ stone: WEEKLY_REWARD.stone, pass: 800 });
+    expect(s.mats.stone - st0).toBe(5);
     expect(claimMission(s, 'weekly', 0, T0)).toMatch(/못 채움/);
     expect(WEEKLY.length).toBeGreaterThanOrEqual(3);
   });
@@ -130,18 +130,20 @@ describe('주간 (13 3장)', () => {
     expect((r as { items: { grade: string }[] }).items.map(i => i.grade)).toEqual(['희귀']);
     expect(s.chalChest).toBe(0);
   });
-  it('주간 도전 상자 (2026-10-13 Lim): 5단계 고급 1 · 10 희귀 1 · 15 영웅 1 · 20 영웅 2, 1~4단계는 골드만. 장비 · 골드는 받는 캐릭터 레벨', () => {
+  it('주간 도전 상자 (2026-10-13 Lim): 5단계 고급 1 · 10 희귀 1 · 15 영웅 1 · 20 영웅 2, 1~4단계는 강화석만 (v16). 장비는 받는 캐릭터 레벨', () => {
     expect([1, 4, 5, 9, 10, 14, 15, 19, 20].map(n => chalChestOf(n).grades.join('+'))).toEqual(['', '', '고급', '고급', '희귀', '희귀', '영웅', '영웅', '영웅+영웅']);
     const s = save(30);
     s.heroes.druid = { ...(s.heroes.druid ?? {}), level: 80 } as never; // 다른 캐릭터가 더 높아도 이 캐릭터 레벨로
     s.chalChest = 20;
-    const r = claimChalChest(s, rng, T0) as { items: { grade: string; lv?: number }[]; gold: number };
+    const r = claimChalChest(s, rng, T0) as { items: { grade: string; lv?: number }[]; stone: number };
     expect(r.items.map(i => [i.grade, i.lv])).toEqual([['영웅', 30], ['영웅', 30]]);
-    expect(r.gold).toBe(chalChestOf(20).goldRuns * runGold(30));
+    expect([1, 4, 5, 10, 20].map(n => chalChestOf(n).stone)).toEqual([5, 5, 10, 15, 25]);
+    expect(r.stone).toBe(25);
     const t = save(30); t.chalChest = 3;
-    const g = claimChalChest(t, rng, T0) as { items?: unknown[]; gold: number };
+    const st0 = t.mats.stone;
+    const g = claimChalChest(t, rng, T0) as { items?: unknown[]; stone: number };
     expect(g.items ?? []).toEqual([]);
-    expect(g.gold).toBe(chalChestOf(3).goldRuns * runGold(30));
+    expect([g.stone, t.mats.stone - st0]).toEqual([5, 5]);
   });
 });
 
@@ -172,11 +174,9 @@ describe('재화 (12)', () => {
 });
 
 describe('정산 연결', () => {
-  it('공개모집 일일 보너스: 이긴 판 첫 3번 골드 ×2', () => {
+  it('공개모집 일일 보너스: 이긴 판 첫 3번 (좋은 장비 확률, v16: 골드 ×2 없앰)', () => {
     const s = save(20);
-    const golds = [0, 1, 2, 3].map(() => settle(s, result(), rng, [], T0).gold);
-    const base = clearGold(7, '보통', 'S'); // 녹슨 요새 보통 적 레벨 = 장소 Lv 5 + 2 (61 1-2)
-    expect(golds).toEqual([base * 2, base * 2, base * 2, base]);
+    expect([0, 1, 2, 3].map(() => settle(s, result(), rng, [], T0).pubBonus)).toEqual([1, 2, 3, 0]);
     expect(settle(s, result(), rng, [], T0).pubBonus).toBe(0);
   });
   it('레이드: 공훈 (주 150 상한), 장비는 보스·난이도마다 주 1번', () => {
@@ -201,7 +201,7 @@ describe('정산 연결', () => {
 });
 
 describe('시즌 패스 (15 4장, 81 한 줄)', () => {
-  it('1,000마다 1단계 (최대 50), 보상 받기 (프리미엄 라인 없음, 예전 크리스탈 칸은 골드)', () => {
+  it('1,000마다 1단계 (최대 50), 보상 받기 (프리미엄 라인 없음, 예전 골드 칸은 강화석 3 × 판 수)', () => {
     const s = save(20);
     expect(addPassXp(s, 2500, T0)).toBe(2500);
     expect(passLevel(s.pass.xp)).toBe(2);
@@ -210,7 +210,8 @@ describe('시즌 패스 (15 4장, 81 한 줄)', () => {
     expect(claimPass(s, 1, T0)).toMatchObject({ stone: 5 });
     expect(claimPass(s, 1, T0)).toMatch(/이미/);
     addPassXp(s, 8000, T0);
-    expect(claimPass(s, 10, T0)).toMatchObject({ gold: 2 * runGold(20) });
+    expect(claimPass(s, 10, T0)).toMatchObject({ stone: 6 });
+    expect(claimPass(s, 2, T0)).toMatchObject({ stone: 3 });
   });
   it('따라잡기 3주는 패스 경험치 +50%', () => {
     const s = save(20);

@@ -36,5 +36,3 @@ export const Flow: {
 
 export const newSeed = () => (Math.random() * 1e9) | 0;
 
-/** 다시 뽑기 비용: 1회 무료, 그다음 10·20·30… 골드 (02 9장 "1회 무료 후 회당 증가") */
-export const rerollCost = (n: number) => (n < 1 ? 0 : 10 * n);

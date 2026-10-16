@@ -24,7 +24,7 @@ const result = (o: Partial<BattleResult> = {}): BattleResult => ({
 const owned = () => [...G.save.gear.bag, ...Object.values(G.save.gear.equipped).filter(x => !!x)].map(x => x!.id).sort((a,b) => a-b);
 const fresh = () => {
   G.save = newSave(now); G.save.tut = 3; G.save.settings.devUnlock = false;
-  G.save.player = { level: 30, xp: 123, gold: 456 }; G.save.mats = { stone: 78, refined: 9 };
+  G.save.player = { level: 30, xp: 123 }; G.save.mats = { stone: 78, refined: 9 };
   G.save.roster.slots = 2; rollover(G.save, now, () => .5); Flow.running = false;
 };
 afterEach(() => { Flow.running = false; });
@@ -56,7 +56,7 @@ describe('공통 성장과 직업별 착용 조합', () => {
     expect(G.save.roster.cur).toBe(2); expect(G.save.player.level).toBe(1);
     expect(switchHero('druid')).toBe(false);
     expect(switchHero('priest')).toBe(true);
-    expect(G.save.player.level).toBe(1); expect(G.save.player.gold).toBe(0);
+    expect(G.save.player).toEqual({ level: 1, xp: 0 });
     expect(pickChar(1, now)).toBe(true); expect(G.save.player.level).toBe(30);
   });
   it('아이템 ID로 세팅을 복원하며 강화된 같은 실물을 사용, 분해한 아이템은 재생성하지 않음', () => {
@@ -91,7 +91,7 @@ describe('공통 성장과 직업별 착용 조합', () => {
     const s = migrate(raw);
     expect(s.roster).toEqual(raw.roster); expect(s.gear).toEqual(raw.gear); expect(s.player).toEqual(raw.player);
     expect(s.weekly.loot).toEqual(['abyss1|보통']);
-    expect(s.roster.chars[0].park!.player).toEqual({ level: 30, xp: 123, gold: 456 });
+    expect(s.roster.chars[0].park!.player).toEqual({ level: 30, xp: 123 });
   });
 });
 

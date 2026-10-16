@@ -3,12 +3,7 @@
  * 팝업은 .admodal (a2-theme의 나무 판 재질)을 그대로 쓰고 크기 · 배치만 정한다. 마지막에 읽음.
  */
 
-/* ---------- 위 줄: 골드 아래 스테미너 (누르면 창) ---------- */
-.ns .tb-mmo .tb-wal { max-width: 78px; }
-.ns .tb-mmo .tb-cur.tb-st { min-height: 24px; margin: -4px 0; padding: 2px 0; cursor: pointer; font: inherit; color: inherit; }
-.ns .tb-mmo .tb-cur.tb-st b { color: #c9f29e; }
-.ns .tb-mmo .tb-cur.tb-st small { font: 600 10px/1 var(--font-body); color: #d9cfb8; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #000; }
-.ns .tb-mmo .tb-cur.tb-st:focus-visible { outline: 2px solid #ffe398; outline-offset: 2px; border-radius: 4px; }
+/* 위 줄 스테미너 칸 (고리 · 다음 +1까지)은 a2-topbar.css 한 곳 (2026-10-16) */
 
 /* ---------- 팝업 (스테미너 창 · 입장 확인) ---------- */
 /* 광고 자리 창 (.admodal, 같은 z)은 나중에 붙어서 이 팝업 위에 뜸 */

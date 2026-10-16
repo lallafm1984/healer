@@ -20,7 +20,7 @@ export default async function guildOff(url, shots) {
   // 옛 저장: 길드원 2명 + 지난 길드파티 편성 + 오늘 일일 임무에 「길드파티로 클리어」. 개발 빌드 「레벨 잠금 무시」도 켠 채로
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
-    s.player.level = 30; s.player.gold = 20000; s.settings.devUnlock = true;
+    s.player.level = 30; s.settings.devUnlock = true;
     const m = (id, nick, cls) => ({ id, nick, cls, pers: '신중파', traits: [], lv: 28, xp: 0, apt0: [3, 3, 3], aptUp: [0, 0, 0], ab: 'warrior.shieldBlock', star: 0, runs: 3 });
     s.guild.members = [m(1, '옛길드탱커', 'warrior'), m(2, '옛길드딜러', 'warrior')];
     s.guild.pick = [1, 2]; s.guild.nextId = 3;

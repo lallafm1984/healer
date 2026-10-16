@@ -42,12 +42,12 @@ describe('장비는 캐릭터마다 (v10 직업마다 → v11 캐릭터마다, 6
     expect(pickChar(2)).toBe(true);
     expect(G.save.gear.bag.map(x => x.id)).toEqual([20]);
   });
-  it('도감 · 재료 · 골드도 캐릭터마다 (67에선 계정이었음)', () => {
-    G.save.gear.codex = ['a']; G.save.gear.dex = ['b']; G.save.mats.stone = 9; G.save.player.gold = 50;
+  it('도감 · 재료도 캐릭터마다 (67에선 계정이었음)', () => {
+    G.save.gear.codex = ['a']; G.save.gear.dex = ['b']; G.save.mats.stone = 9;
     makeChar('druid');
-    expect([G.save.gear.codex, G.save.gear.dex, G.save.mats.stone, G.save.player.gold]).toEqual([[], [], 0, 0]);
+    expect([G.save.gear.codex, G.save.gear.dex, G.save.mats.stone]).toEqual([[], [], 0]);
     pickChar(1);
-    expect([G.save.gear.codex, G.save.gear.dex, G.save.mats.stone, G.save.player.gold]).toEqual([['a'], ['b'], 9, 50]);
+    expect([G.save.gear.codex, G.save.gear.dex, G.save.mats.stone]).toEqual([['a'], ['b'], 9]);
   });
   it('새 캐릭터는 장비 번호 · 새것 점 기준도 처음부터', () => {
     makeChar('druid');
@@ -73,12 +73,12 @@ describe('옛 저장 나누기 (v9 → v10 → v11)', () => {
     expect(s.hero).toBe('druid');
     expect(s.gear.equipped).toEqual({});
     expect(s.gear.bag.map(x => x.id)).toEqual([3]);
-    expect(s.player.gold).toBe(0);
+    expect(s.player).not.toHaveProperty('gold'); // v16: 골드 없앰
     const p = s.roster.chars[0].park!;
     expect(p.hero).toBe('priest');
     expect(p.gear.equipped.weapon?.id).toBe(1);
     expect(p.gear.bag.map(x => x.id)).toEqual([2]);
-    expect(p.player.gold).toBe(5);
+    expect(p.player).not.toHaveProperty('gold');
     expect(s.heroes.priest).toBeUndefined();
     expect(s.weekly.loot).toEqual(['abyss1|보통']);
     expect(p.weekly.loot).toEqual([]);
@@ -91,9 +91,9 @@ describe('옛 저장 나누기 (v9 → v10 → v11)', () => {
     });
     expect(s.gear.equipped.weapon?.id).toBe(1);
     expect(s.gear.bag.map(x => x.id)).toEqual([2]);
-    expect(s.player.gold).toBe(5);
+    expect(s.player).not.toHaveProperty('gold');
     const p = s.roster.chars.find(c => c.hero === 'druid')!.park!;
-    expect([p.gear.equipped, p.gear.bag, p.player.gold, p.player.level]).toEqual([{}, [], 0, 30]);
+    expect([p.gear.equipped, p.gear.bag, p.player.level]).toEqual([{}, [], 30]);
   });
   it('v11 저장은 다시 나누지 않음', () => {
     const d = newSave(1);

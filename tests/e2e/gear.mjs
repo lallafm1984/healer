@@ -31,7 +31,7 @@ export default async function gear(url, shots) {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     // set = 옛 저장의 세트 장비 (세트를 없앤 뒤엔 불러올 때 보통 장비로 바뀜)
     const it = (id, slot, grade, set, plus = 0) => ({ id, slot, grade, plus, name: set ? `새벽 순례자의 ${slot}` : `${grade} ${slot}`, ...(set ? { set: 'dawn' } : {}) });
-    s.player.level = 30; s.player.gold = 1000; s.mats = { stone: 8, refined: 0 };
+    s.player.level = 30; s.mats = { stone: 8, refined: 0 };
     s.gear.equipped = { head: it(101, 'head', '희귀', true), chest: it(102, 'chest', '희귀', true), weapon: it(103, 'weapon', '고급', false) };
     s.gear.bag = [it(201, 'hands', '일반', false), it(202, 'ring', '고급', false), it(203, 'neck', '희귀', true)];
     s.gear.seen = 0;
@@ -123,18 +123,18 @@ export default async function gear(url, shots) {
   await page.click('#s-char [data-enh="101"]'); await page.clock.runFor(50);
   ok(await page.isVisible('#s-char .c7-confirm') && JSON.stringify(await save()) === beforeEnh, '강화 확인 전에는 재화와 장비 유지');
   pop = await text('#s-char .c7-confirm');
-  ok(/\+0 → \+1/.test(pop) && (await text('#s-char .c7-confirm [data-material="gold"] [data-cost]')).trim() === '10' && (await text('#s-char .c7-confirm [data-material="stone"] [data-have]')).trim() === '8' && /성공률 100%/.test(pop), '강화 팝업: 다음 단계·공통 비용 아이콘·보유 강화석·성공 확률');
+  ok(/\+0 → \+1/.test(pop) && (await page.locator('#s-char .c7-confirm [data-material="gold"]').count()) === 0 && (await text('#s-char .c7-confirm [data-material="stone"] [data-cost]')).trim() === '1' && (await text('#s-char .c7-confirm [data-material="stone"] [data-have]')).trim() === '8' && /성공률 100%/.test(pop), '강화 팝업: 다음 단계·강화석만 (골드 없음)·보유 강화석·성공 확률');
   await page.click('#s-char .c7-confirm [data-confirmcancel]'); await page.clock.runFor(50);
   ok(JSON.stringify(await save()) === beforeEnh && await page.isVisible('#s-char .c7-gsheet'), '강화 취소는 상세로 복귀하며 비용 없음');
   await enh(0);
   let sv = await save();
-  ok(sv.gear.equipped.head.plus === 1 && sv.player.gold === 990 && sv.mats.stone === 7, '강화 +1: 골드 10·강화석 1 씀');
+  ok(sv.gear.equipped.head.plus === 1 && !('gold' in sv.player) && sv.mats.stone === 7, '강화 +1: 강화석 1만 씀');
   await enh(0);
   sv = await save();
-  ok(sv.gear.equipped.head.plus === 2 && sv.player.gold === 950 && /성공률 90%/.test(pop) && !/실패 시|실패해도|하락|유지/.test(pop), '+2 (골드 40·강화석 2), 팝업은 성공률 90%만 표시, 실패 안내 문구 없음');
+  ok(sv.gear.equipped.head.plus === 2 && sv.mats.stone === 5 && /성공률 90%/.test(pop) && !/실패 시|실패해도|하락|유지/.test(pop), '+2 (강화석 2), 팝업은 성공률 90%만 표시, 실패 안내 문구 없음');
   await enh(0.99);
   sv = await save();
-  ok(sv.gear.equipped.head.plus === 2 && sv.player.gold === 860 && sv.mats.stone === 2 && !/강화 실패/.test(await text('#s-char .c7-gsheet')) && !/하락|유지|그대로/.test(pop), '+3 실패: 현재 +2와 능력치는 유지하고 재료만 소비, 하락·유지 설명 없음');
+  ok(sv.gear.equipped.head.plus === 2 && sv.mats.stone === 2 && !/강화 실패/.test(await text('#s-char .c7-gsheet')) && !/하락|유지|그대로/.test(pop), '+3 실패: 현재 +2와 능력치는 유지하고 재료만 소비, 하락·유지 설명 없음');
   ok(!(await page.isDisabled('#s-char [data-enh="101"]')), '재료가 모자라도 상세의 강화 버튼은 팝업을 엶');
   await page.click('#s-char [data-enh="101"]'); await page.clock.runFor(50);
   ok(await page.isDisabled('#s-char [data-confirmgo]') && /강화석 부족/.test(await text('#s-char [data-confirmgo]')) && (await page.locator('#s-char .c7-confirm [data-material="stone"].short').count()) === 1, '강화석이 모자라면 팝업에서 모자란 재료 빨간 표시 + 강화 버튼 꺼짐과 이유');
@@ -165,13 +165,13 @@ export default async function gear(url, shots) {
   await page.click('#s-char [data-salv1="201"]'); await page.clock.runFor(50);
   await page.click('#s-char [data-confirmgo]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.gear.bag.length === 2 && !sv.gear.bag.some(x => x.id === 201) && sv.gear.bag.some(x => x.id === 202) && sv.gear.bag.some(x => x.id === 203) && sv.player.gold === 865 && sv.mats.stone === 3, '개별 분해는 고른 일반 장비만 제거, 골드 +5 · 강화석 +1');
-  ok(!(await page.locator('#s-char .sheet').count()) && /2개/.test(await text('#s-char .c7-inventory-count')) && (await page.getAttribute('#s-char .gmats .currency-amount:first-child', 'aria-label')) === '강화석 3' && /분해: 골드 \+5/.test(await text('#s-char')), '분해 직후 인벤토리 복귀, 개수·재료·결과 안내 갱신');
+  ok(sv.gear.bag.length === 2 && !sv.gear.bag.some(x => x.id === 201) && sv.gear.bag.some(x => x.id === 202) && sv.gear.bag.some(x => x.id === 203) && sv.mats.stone === 3, '개별 분해는 고른 일반 장비만 제거, 강화석 +1');
+  ok(!(await page.locator('#s-char .sheet').count()) && /2개/.test(await text('#s-char .c7-inventory-count')) && (await page.getAttribute('#s-char .gmats .currency-amount:first-child', 'aria-label')) === '강화석 3' && /분해: 강화석 \+1/.test(await text('#s-char')), '분해 직후 인벤토리 복귀, 개수·재료·결과 안내 갱신');
   await page.click('#s-char .c7-bag[data-gitem="202"]'); await page.clock.runFor(50);
   await page.click('#s-char [data-salv1="202"]'); await page.clock.runFor(50);
   await page.click('#s-char [data-confirmgo]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.gear.bag.length === 1 && sv.gear.bag[0].id === 203 && sv.gear.bag[0].lock && sv.player.gold === 880 && sv.mats.stone === 4, `고급 장비 개별 분해 뒤 잠긴 장비 유지, 골드 +15 · 강화석 +1 (${sv.player.gold}, ${sv.mats.stone})`);
+  ok(sv.gear.bag.length === 1 && sv.gear.bag[0].id === 203 && sv.gear.bag[0].lock && sv.mats.stone === 4, `고급 장비 개별 분해 뒤 잠긴 장비 유지, 강화석 +1 (${sv.mats.stone})`);
   ok(/1개/.test(await text('#s-char .c7-inventory-count')) && (await page.locator('#s-char .c7-bag').count()) === 1 && (await page.getAttribute('#s-char .gmats .currency-amount:first-child', 'aria-label')) === '강화석 4', '남은 인벤토리 1개·강화석 4 표시');
 
   // ---- 인벤토리 상세에서 수동 장착 ----
@@ -369,28 +369,27 @@ export default async function gear(url, shots) {
   // 개발 옵션: 실제 설정 입력 → 새로 고침 → 잔액 0 강화/구매 → 옵션 해제.
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
-    s.player.gold = 0; s.mats = { stone: 0, refined: 0 };
-    s.settings.devGold = false; s.settings.devStones = false;
+    s.mats = { stone: 0, refined: 0 };
+    s.settings.devStones = false;
     s.gear.equipped.head = { id: 901, slot: 'head', kind: 'hood', grade: '영웅', plus: 2, top: 3, lv: 30,
       lines: [{ stat: 'crit', roll: 0.8, up: 0.02 }, { stat: 'haste', roll: 0.8 }], specs: [], name: '' };
     localStorage.setItem('healer.save', JSON.stringify(s));
   });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await page.click('#s-lobby [data-go="s-settings"]'); await page.clock.runFor(100);
-  await page.locator('[data-tog="devGold"]').check();
+  ok((await page.locator('[data-tog="devGold"]').count()) === 0, '설정에 골드 무제한 없음 (골드는 2026-10-16 없앰)');
   await page.locator('[data-tog="devStones"]').check();
   await page.clock.runFor(100);
-  ok((await save()).settings.devGold && (await save()).settings.devStones, '설정에서 골드·강화석 무제한을 각각 켜고 저장');
-  ok((await text('#s-settings .tb-gold b')).trim() === '∞', '설정의 골드 보유량도 ∞');
+  ok((await save()).settings.devStones, '설정에서 강화석 무제한을 켜고 저장');
   await page.locator('#s-settings .group.dev').screenshot({ path: `${shots}/resources_unlimited_settings.png` });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
-  ok((await text('#s-char .tb-gold b')).trim() === '∞' && (await page.locator('#s-char .gmats b').allTextContents()).every(v => v === '∞'), '새로 켜도 무한 설정 유지: 상단 골드·인벤토리 두 재료 ∞');
+  ok((await page.locator('#s-char .tb-gold').count()) === 0 && (await page.locator('#s-char .gmats b').allTextContents()).every(v => v === '∞'), '새로 켜도 무한 설정 유지: 인벤토리 두 재료 ∞, 위 줄 골드 없음');
   await page.click('#s-char [data-gitem="901"]'); await page.clock.runFor(50);
   ok(!/각성/.test(await text('#s-char .c7-gsheet')) && !(await save()).gear.equipped.head.lines.some(l => 'up' in l), '이전 각성 추가값과 각성 표시 제거');
   const oldLines = JSON.stringify((await save()).gear.equipped.head.lines);
   await page.click('#s-char [data-enh="901"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-char .c7-confirm [data-have]').allTextContents()).every(v => v === '∞') && !(await page.isDisabled('#s-char [data-confirmgo]')), '실제 잔액 0이어도 팝업의 골드·강화석 ∞, 강화 가능');
+  ok((await page.locator('#s-char .c7-confirm [data-have]').allTextContents()).every(v => v === '∞') && !(await page.isDisabled('#s-char [data-confirmgo]')), '실제 잔액 0이어도 팝업의 강화석 ∞, 강화 가능');
   await page.locator('#s-char .c7-confirm').screenshot({ path: `${shots}/resources_unlimited_enhance.png` });
   await page.evaluate(() => { window.__rnd = Math.random; Math.random = () => 0; });
   await page.click('#s-char [data-confirmgo]'); await page.clock.runFor(50);
@@ -398,21 +397,20 @@ export default async function gear(url, shots) {
   await page.clock.runFor(4000);
   await page.evaluate(() => { Math.random = window.__rnd; });
   let unlimitedSave = await save();
-  ok(unlimitedSave.gear.equipped.head.plus === 3 && JSON.stringify(unlimitedSave.gear.equipped.head.lines) === oldLines && unlimitedSave.player.gold === 0 && unlimitedSave.mats.stone === 0, '무한 강화 후 단계만 상승하고 무작위 옵션·실제 재화는 그대로');
+  ok(unlimitedSave.gear.equipped.head.plus === 3 && JSON.stringify(unlimitedSave.gear.equipped.head.lines) === oldLines && unlimitedSave.mats.stone === 0, '무한 강화 후 단계만 상승하고 무작위 옵션·실제 재화는 그대로');
   ok(await page.isVisible('#s-char .c7-confirm') && !/각성/.test(await text('#s-char .c7-confirm')), '결과 팝업 유지 및 각성 문구 제거');
   await page.click('#s-char .c7-confirm [data-confirmcancel]'); await page.clock.runFor(50);
   await page.click('#s-char .c7-gsheet button[data-sheetx]'); await page.clock.runFor(50);
   // 상점 골드 탭 (소비 아이템)은 2026-10-16 없앰: 설정에서 무한 재화를 끄고 실제 잔액만 확인
   await page.click('#tabs [data-tab="shop"]'); await page.clock.runFor(100);
   await page.click('#s-shop [data-go="s-settings"]'); await page.clock.runFor(100);
-  await page.locator('[data-tog="devGold"]').uncheck();
   await page.locator('[data-tog="devStones"]').uncheck();
   await page.click('#s-settings .tb-back'); await page.clock.runFor(100);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
-  ok((await text('#s-char .tb-gold b')).trim() === '0' && (await page.locator('#s-char .gmats b').allTextContents()).every(v => v === '0'), '설정 해제 후 실제 골드·강화석 0 표시');
+  ok((await page.locator('#s-char .gmats b').allTextContents()).every(v => v === '0'), '설정 해제 후 실제 강화석 0 표시');
   await page.click('#s-char [data-gitem="901"]'); await page.clock.runFor(50);
   await page.click('#s-char [data-enh="901"]'); await page.clock.runFor(50);
-  ok(await page.isDisabled('#s-char [data-confirmgo]') && /골드 부족/.test(await text('#s-char .c7-confirm')), '설정 해제 시 비용 부족으로 강화 차단');
+  ok(await page.isDisabled('#s-char [data-confirmgo]') && /강화석 부족/.test(await text('#s-char .c7-confirm')), '설정 해제 시 비용 부족으로 강화 차단');
 
   await ctx.close();
   await browser.close();

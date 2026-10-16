@@ -20,9 +20,9 @@ import { migrate, newSave, SAVE_VERSION, type SaveData } from '../src/platform/s
 
 let seed = 1;
 const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-function save(level = 15, gold = 100000): SaveData {
+function save(level = 15): SaveData {
   const s = newSave(1);
-  s.tut = 3; s.player.level = level; s.player.gold = gold; s.settings.devUnlock = false;
+  s.tut = 3; s.player.level = level; s.settings.devUnlock = false;
   return s;
 }
 const mem = (o: Partial<GuildMember> = {}): GuildMember => ({
@@ -88,17 +88,15 @@ describe('열림 · 정원 (02 9-2, 18)', () => {
 
 describe('영입 (02 9-3, 12 3-3)', () => {
   beforeEach(() => { seed = 7; });
-  it('골드 모집: 공고 비용, 지원자 3명, 레벨은 공고 등급 범위 (내 레벨 위로 안 감)', () => {
-    const s = save(30, 10000);
+  it('모집 공고: 지원자 3명, 레벨은 공고 등급 범위 (내 레벨 위로 안 감). v16: 골드 비용 없음', () => {
+    const s = save(30);
     expect(postRecruit(s, 'best', rng)).toBe('');
-    expect(s.player.gold).toBe(2000);
     expect(s.guild.post!.cands.length).toBe(3);
     for (const c of s.guild.post!.cands) {
       expect(c.lv).toBeGreaterThanOrEqual(29); expect(c.lv).toBeLessThanOrEqual(30);
       expect(ABILITIES[c.ab].cls).toBe(c.cls);
       expect(new Set(s.guild.post!.cands.map(x => x.nick)).size).toBe(3);
     }
-    expect(postRecruit(s, 'best', rng)).toMatch(/골드 부족/);
     expect(hire(s, 1)).toBe('');
     expect(s.guild.members.length).toBe(1);
     expect(s.guild.post).toBeNull();
@@ -116,40 +114,38 @@ describe('영입 (02 9-3, 12 3-3)', () => {
     for (let i = 0; i < 6; i++) add(s);
     expect(postRecruit(s, 'normal', rng)).toMatch(/정원/);
   });
-  it('인연 스카우트 300 골드', () => {
-    const s = save(15, 299);
+  it('인연 스카우트 (v16: 골드 비용 없음)', () => {
+    const s = save(15);
     s.guild.scouts.push({ nick: '칼날', cls: 'rogue', pers: '감사형', lv: 12, apt0: [3, 4, 3], ab: 'rogue.kick', from: '녹슨 요새' });
-    expect(scoutHire(s, 0)).toMatch(/골드 부족/);
-    s.player.gold = 300;
     expect(scoutHire(s, 0)).toBe('');
-    expect([s.player.gold, s.guild.scouts.length, s.guild.members[0].nick, s.guild.members[0].ab]).toEqual([0, 0, '칼날', 'rogue.kick']);
+    expect([s.guild.scouts.length, s.guild.members[0].nick, s.guild.members[0].ab]).toEqual([0, '칼날', 'rogue.kick']);
   });
 });
 
 describe('육성 (17 8장, 12 3-3)', () => {
-  it('훈련: 레벨 × 30 골드, 내 레벨까지만', () => {
-    const s = save(15, 1000), m = add(s, { lv: 14 });
+  it('훈련: 내 레벨까지만', () => {
+    const s = save(15), m = add(s, { lv: 14 });
     expect(train(s, m.id)).toBe('');
-    expect([m.lv, s.player.gold]).toEqual([15, 1000 - 420]);
+    expect(m.lv).toBe(15);
     expect(train(s, m.id)).toMatch(/내 레벨/);
   });
-  it('육성 포인트: Lv 20부터 10레벨마다 1점 (최대 9), 1점 = 레벨 × 100 골드, 자질·★ 최대 5', () => {
+  it('육성 포인트: Lv 20부터 10레벨마다 1점 (최대 9), 자질·★ 최대 5', () => {
     expect([19, 20, 29, 30, 100].map(pointsAt)).toEqual([0, 1, 1, 2, 9]);
-    const s = save(50, 100000), m = add(s, { lv: 40, apt0: [4, 3, 3] });
+    const s = save(50), m = add(s, { lv: 40, apt0: [4, 3, 3] });
     expect(spendPoint(s, m.id, 0)).toBe('');
     expect(spendPoint(s, m.id, 0)).toMatch(/최대/);
     expect(spendPoint(s, m.id, 'star')).toBe('');
     expect(spendPoint(s, m.id, 'star')).toBe('');
     expect(spendPoint(s, m.id, 1)).toMatch(/포인트 없음/);
-    expect([m.aptUp, m.star, s.player.gold]).toEqual([[1, 0, 0], 2, 100000 - 3 * 4000]);
+    expect([m.aptUp, m.star]).toEqual([[1, 0, 0], 2]);
     expect(resetPoints(s, m.id)).toBe('');
-    expect([m.aptUp, m.star, s.player.gold]).toEqual([[0, 0, 0], 0, 100000 - 12000 - 5000]);
+    expect([m.aptUp, m.star]).toEqual([[0, 0, 0], 0]);
   });
-  it('능력 다시 뽑기 3,000: 같은 직업 안에서, ★ 유지', () => {
+  it('능력 다시 뽑기: 같은 직업 안에서, ★ 유지', () => {
     seed = 3;
-    const s = save(30, 3000), m = add(s, { star: 2 });
+    const s = save(30), m = add(s, { star: 2 });
     expect(rerollAbility(s, m.id, rng)).toBe('');
-    expect([ABILITIES[m.ab].cls, m.star, s.player.gold]).toEqual(['warrior', 2, 0]);
+    expect([ABILITIES[m.ab].cls, m.star]).toEqual(['warrior', 2]);
   });
   it('전투력 (17 9-3): Lv 30 · 자질 9 · 일반 능력 = 3,000', () => {
     expect(memberPower({ lv: 30, apt: [3, 3, 3], ab: 'warrior.shieldBlock', star: 0 })).toBe(3000);
