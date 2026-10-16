@@ -765,6 +765,8 @@ interface Fx {
   kind: 'heal' | 'hit' | 'dispel' | 'death' | 'revive' | 'art' | 'pxf'; id: number; t0: number; crit?: boolean; color?: number; seeds?: number[]; x?: number; y?: number;
   /** PXF 이펙트 (kind 'pxf', battle/pxf.ts). tag = 판 기록 열쇠 앞머리 (전투 공통 효과는 예전 그림과 같은 heal · death …, 없으면 pxf), color = 회색 그림에 곱할 색 */
   pxf?: PxfKey; tag?: string;
+  /** 이펙트를 돌려 그림 (라디안): 연쇄 치유 물줄기가 앞 사람 쪽에서 들어오게 */
+  rot?: number;
   /** 치유 빛 없이 숫자 · 치명타 별만 (그 칸에 스킬 PXF 이펙트가 나올 때) */
   plain?: boolean;
   /** 기믹 연출 (kind 'art'): 그림 fx-<name>, 칸 · 날아갈 사람 · 판 전체 · 길이(ms) */
@@ -1037,7 +1039,7 @@ function landFx(F: NonNullable<typeof B.F>, name: string, tl: Telegraph, now: nu
   for (const row of rows.values()) fxGim(name, now, { row });
 }
 const rnd = () => Math.random();
-/** plain = 이 칸에 스킬 PXF 이펙트가 나와서 치유 빛은 안 그림 (숫자 · 치명타 별은 그대로) */
+/** plain = 이 칸에 스킬 PXF 이펙트가 나와서 치유 빛은 안 그림 (숫자 · 치명타 별은 그대로). now가 지금보다 뒤면 그때 뜸 (연쇄 치유) */
 export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: number, plain = false): void {
   if (!L.ok || S.reducedEffects) return;
   const over = eff < amt * 0.25; // 거의 다 넘친 힐은 회색으로 작게
@@ -1063,7 +1065,7 @@ export function fxPxfCell(cell: number, pxf: PxfKey, now: number): boolean {
   B2.fx.push({ kind: 'pxf', id: -1, t0: now, pxf, dur: pxfMs(PXF[pxf]), x: p.x, y: p.y, tag: `cell${cell}-` });
   return true;
 }
-export function fxPxf(u: Unit, pxf: PxfKey, now: number, o: { color?: number; tag?: string; x?: number; y?: number } = {}): boolean {
+export function fxPxf(u: Unit, pxf: PxfKey, now: number, o: { color?: number; tag?: string; x?: number; y?: number; rot?: number } = {}): boolean {
   if (!L.ok || S.reducedEffects || B2.fx.length >= 100) return false;
   if (!pxfReady(pxf)) return false;
   B2.fx.push({ kind: 'pxf', id: u.id, t0: now, pxf, dur: pxfMs(PXF[pxf]), ...o });
@@ -1198,13 +1200,13 @@ function predictedHeal(u: Unit): number {
  * 층: 모두 판 맨 위 (pxfL, 이름 · 체력 · 말풍선 위, Lim 「파티원에서 최상단으로」). 회색 그림은 tint 색을 곱함.
  * 손그림풍이라 부드럽게 늘림. 더하기 섞기는 WebGL에서만 (Canvas에서는 뒤에 그리는 것까지 번져서 보통 섞기)
  */
-function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: number, tint = 0xffffff): void {
+function pxfFx(k: PxfKey, key: string, x: number, y: number, r: number, ms: number, tint = 0xffffff, rot = 0): void {
   const c = PXF[k], i = pxfFrame(c, ms), tex = i < 0 ? null : smoothFrame(k, i);
   if (!tex) return;
   if (tex.source.scaleMode !== 'linear') tex.source.scaleMode = 'linear';
   const size = pxfDrawSize(c, r * 2), half = safeRadius(x, y, size / 2, 'circle');
   if (half <= 0) return;
-  pxfArt.put(tex, x, y, half * 2, half * 2, 1, c.gray ? tint : 0xffffff, 0, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
+  pxfArt.put(tex, x, y, half * 2, half * 2, 1, c.gray ? tint : 0xffffff, rot, c.blend === 'add' && app?.renderer.name !== 'canvas' ? 'add' : 'normal');
   recordBound(key, 'fx', 'circle', x, y, half * 2, half * 2, { diameter: half * 2, requestedDiameter: size, frame: i, tint: c.gray ? tint : undefined });
 }
 /** 손그림풍 스킬 이펙트 (격자 띠)의 프레임 i: 부드럽게 늘리므로 옆 프레임이 번져 들지 않게 반 픽셀 안쪽만 씀 */
@@ -1622,7 +1624,7 @@ export function render(now: number): void {
     if (e.kind === 'pxf') {
       if (e.wide) { pxfWide(e.pxf!, `pxf-${e.pxf}-${e.t0}`, now - e.t0, e.color); continue; }
       const u = F.party.find(x => x.id === e.id), p = e.x != null ? { x: e.x, y: e.y! } : u ? unitPos(u) : null;
-      if (p) pxfFx(e.pxf!, e.tag ? `${e.tag}${e.id}-${e.t0}` : `pxf${e.id}-${e.pxf}-${e.t0}`, p.x, p.y, r, now - e.t0, e.color);
+      if (p) pxfFx(e.pxf!, e.tag ? `${e.tag}${e.id}-${e.t0}` : `pxf${e.id}-${e.pxf}-${e.t0}`, p.x, p.y, r, now - e.t0, e.color, e.rot);
       continue;
     }
     const k = (now - e.t0) / FX_MS;
@@ -2029,6 +2031,7 @@ export function render(now: number): void {
   const floatGone = new Set<Float>();
   for (const fl of B2.floats) {
     floatLast.delete(fl);
+    if (now < fl.t0) continue; // 아직 안 뜬 숫자 (연쇄 치유가 차례로 튐)
     const u = F.party.find(q => q.id === fl.id);
     if (!u) { floatGone.add(fl); continue; }
     const base = unitPos(u), k = (now - fl.t0) / 900, rise = S.reducedEffects ? 0 : k * s * (fl.label ? 0.3 : 0.6);
