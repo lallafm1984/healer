@@ -1,7 +1,7 @@
 /** 장비 강화·분해·드롭 (02 10장, 12 3장) */
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  avgScore, clearMats, ENHANCE_RATE, enhanceCost, equippedStats, gearStatsOf, ilvMult, pctLvMult, itemName, itemScore, itemStats, kindsOf, makeItem, OPTION_LINES, optionsOf, randomLines, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, takenStats, STAT_POINT, isPointStat, toPoints, type GearItem,
+  avgScore, clearMats, ENHANCE_DROP_FROM, ENHANCE_RATE, enhanceCost, equippedStats, gearStatsOf, ilvMult, pctLvMult, itemName, itemScore, itemStats, kindsOf, makeItem, OPTION_LINES, optionsOf, randomLines, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, takenStats, STAT_POINT, isPointStat, toPoints, type GearItem,
 } from '../src/data/equipment';
 import { HEALER_HP } from '../src/game/charinfo';
 import { INT_BASE, RULES } from '../src/data/rules';
@@ -15,33 +15,44 @@ import { rngFrom } from '../src/engine/rng';
 import { settle, type BattleResult } from '../src/game/settle';
 import { enhance, G, salvage } from '../src/game/state';
 import { migrate, newSave } from '../src/platform/storage';
+import type { DiffName } from '../src/data/difficulty';
 
 const item = (o: Partial<GearItem> = {}): GearItem => ({ id: 1, slot: 'head', kind: '', grade: '희귀', plus: 0, name: '', lines: [], ...o });
 
-describe('강화 (확률 강화, 실패해도 현재 단계 유지)', () => {
+describe('강화 (확률 강화, +5 이상 실패하면 1단계 하락, 87)', () => {
   beforeEach(() => { G.save = newSave(1); });
-  it('비용 (시도 한 번): +1~+5 강화석 단계만큼, +6~+10 정제 강화석 1·2·2·3·3 (v16: 골드 없음, 등급과 관계없음)', () => {
-    expect(enhanceCost(item())).toEqual({ stone: 1, refined: 0, to: 1, rate: 1, fail: 0 });
-    expect(enhanceCost(item({ plus: 4 }))).toEqual({ stone: 5, refined: 0, to: 5, rate: 0.7, fail: 4 });
-    expect(enhanceCost(item({ plus: 5, grade: '영웅' }))).toEqual({ stone: 0, refined: 1, to: 6, rate: 0.6, fail: 5 });
-    expect(enhanceCost(item({ plus: 6 }))).toMatchObject({ stone: 0, refined: 2, to: 7 });
-    expect(enhanceCost(item({ plus: 7 }))).toMatchObject({ refined: 2, to: 8 });
-    expect(enhanceCost(item({ plus: 8 }))).toMatchObject({ refined: 3, to: 9 });
-    expect(enhanceCost(item({ plus: 9, grade: '전설' }))).toEqual({ stone: 0, refined: 3, to: 10, rate: 0.35, fail: 9 });
+  it('비용 (시도 한 번): +1~+5 강화석 단계만큼, +6~+10 정제 강화석 2·3·4·5·6 (87, 등급과 관계없음)', () => {
+    expect(enhanceCost(item())).toEqual({ stone: 1, refined: 0, to: 1, rate: 0.9, fail: 0 });
+    expect(enhanceCost(item({ plus: 4 }))).toEqual({ stone: 5, refined: 0, to: 5, rate: 0.55, fail: 4 });
+    expect(enhanceCost(item({ plus: 5, grade: '영웅' }))).toEqual({ stone: 0, refined: 2, to: 6, rate: 0.5, fail: 4 });
+    expect(enhanceCost(item({ plus: 6 }))).toMatchObject({ stone: 0, refined: 3, to: 7, fail: 5 });
+    expect(enhanceCost(item({ plus: 7 }))).toMatchObject({ refined: 4, to: 8 });
+    expect(enhanceCost(item({ plus: 8 }))).toMatchObject({ refined: 5, to: 9 });
+    expect(enhanceCost(item({ plus: 9, grade: '전설' }))).toEqual({ stone: 0, refined: 6, to: 10, rate: 0.3, fail: 8 });
     expect(enhanceCost(item({ plus: 10 }))).toBeNull();
   });
-  it('성공 확률은 단계가 오를수록 낮아지고, +1은 늘 성공 · 모든 단계에서 실패해도 그대로', () => {
-    expect(ENHANCE_RATE.slice(1)).toEqual([1, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5, 0.45, 0.4, 0.35]);
+  it('성공 확률: 90%부터 +4까지 10%p씩, 그 뒤 5%p씩 (+10 = 30%). +1~+5 강화는 실패해도 그대로, +6~+10 강화는 1단계 하락', () => {
+    expect(ENHANCE_RATE.slice(1)).toEqual([0.9, 0.8, 0.7, 0.6, 0.55, 0.5, 0.45, 0.4, 0.35, 0.3]);
     for (let i = 2; i < ENHANCE_RATE.length; i++) expect(ENHANCE_RATE[i]).toBeLessThan(ENHANCE_RATE[i - 1]);
-    for (let plus = 0; plus < 10; plus++) expect(enhanceCost(item({ plus }))!.fail).toBe(plus);
+    for (let plus = 0; plus < 10; plus++) expect(enhanceCost(item({ plus }))!.fail).toBe(plus >= ENHANCE_DROP_FROM ? plus - 1 : plus);
+    expect(ENHANCE_DROP_FROM).toBe(5);
   });
-  it.each([1, 2, 3, 4, 5, 6, 7, 8, 9])('+%i 실패 시 장비 전체를 유지하고 시도 비용만 차감', plus => {
+  it.each([1, 2, 3, 4])('+%i 실패 시 장비 전체를 유지하고 시도 비용만 차감', plus => {
     const gear = item({ id: 7, plus, lines: [{ stat: 'crit', roll: 0.8 }] });
     if (plus % 2) G.save.gear.bag = [gear]; else G.save.gear.equipped.head = gear;
     G.save.mats = { stone: 30, refined: 10 };
     const before = structuredClone(gear), cost = enhanceCost(gear)!;
     expect(enhance(7, () => 0.999)).toBe('강화 실패');
     expect(gear).toEqual(before);
+    expect(G.save.mats).toEqual({ stone: 30 - cost.stone, refined: 10 - cost.refined });
+  });
+  it.each([5, 6, 7, 8, 9])('+%i 실패 시 1단계 하락, 옵션 · 특수능력은 그대로, 시도 비용만 차감', plus => {
+    const gear = item({ id: 7, plus, lines: [{ stat: 'crit', roll: 0.8 }] });
+    if (plus % 2) G.save.gear.bag = [gear]; else G.save.gear.equipped.head = gear;
+    G.save.mats = { stone: 30, refined: 10 };
+    const before = structuredClone(gear), cost = enhanceCost(gear)!;
+    expect(enhance(7, () => 0.999)).toBe('강화 실패');
+    expect(gear).toEqual({ ...before, plus: plus - 1 });
     expect(G.save.mats).toEqual({ stone: 30 - cost.stone, refined: 10 - cost.refined });
   });
   it('모자라면 이유, 성공하면 한 단계 오름 (재료만 씀, v16 골드 없음)', () => {
@@ -53,12 +64,13 @@ describe('강화 (확률 강화, 실패해도 현재 단계 유지)', () => {
     expect(enhance(7, () => 0)).toBe('');
     expect([it.plus, G.save.mats.stone]).toEqual([1, 0]);
     it.plus = 5;
-    expect(enhance(7, () => 0)).toMatch(/정제 강화석 부족/);
     G.save.mats.refined = 1;
+    expect(enhance(7, () => 0)).toMatch(/정제 강화석 부족 \(2개 필요\)/);
+    G.save.mats.refined = 2;
     expect(enhance(7, () => 0)).toBe('');
     expect([it.plus, G.save.mats.refined]).toEqual([6, 0]);
   });
-  it('실패: 단계는 유지하고 재료는 소비, 대성공 없음', () => {
+  it('실패: +1~+5 강화는 단계 유지, +6 강화부터 하락 (+5 → +4는 다시 강화석으로), 대성공 없음', () => {
     const it = item({ id: 7, plus: 4 });
     G.save.gear.bag = [it];
     G.save.mats.stone = 20;
@@ -67,11 +79,16 @@ describe('강화 (확률 강화, 실패해도 현재 단계 유지)', () => {
     it.plus = 1;
     expect(enhance(7, () => 0.99)).toBe('강화 실패');
     expect(it.plus).toBe(1);
-    // 성공 확률 바로 아래 굴림은 성공 (90% → 0.899)
+    // 성공 확률 바로 아래 굴림은 성공 (+3 70% → 0.699)
     it.plus = 2;
-    expect(enhance(7, () => 0.899)).toBe('');
+    expect(enhance(7, () => 0.699)).toBe('');
     expect(it.plus).toBe(3);
-    expect(enhance(7, () => 0.8)).toBe('강화 실패');
+    expect(enhance(7, () => 0.6)).toBe('강화 실패');
+    expect(it.plus).toBe(3);
+    it.plus = 5;
+    G.save.mats.refined = 2;
+    expect(enhance(7, () => 0.5)).toBe('강화 실패');
+    expect([it.plus, G.save.mats.refined]).toEqual([4, 0]);
   });
 });
 
@@ -187,11 +204,20 @@ describe('클리어 재료', () => {
     content: 'rustfort', diff: '보통', win: true, quit: false, reason: '', segIdx: 3, segN: 4, time: 360, restSec: 30, deaths: 0,
     healed: 7000, overheal: 1000, dispels: 0, dispellable: 0, endMana: 20, minMana: 5, auto: false, party: [], detail: [], ...o,
   });
-  it('던전 강화석 (난이도마다 +1), 레이드는 정제 강화석도 (34 6-9로 2배)', () => {
+  it('강화석 = 탐험 · 던전 (난이도마다 +1, 탐험은 절반 올림), 정제 강화석 = 던전 악몽 1 · 레이드 (87)', () => {
     expect(clearMats('쉬움', 0)).toEqual({ stone: 1, refined: 0 });
-    expect(clearMats('악몽', 0)).toEqual({ stone: 4, refined: 0 });
+    expect(clearMats('어려움', 0)).toEqual({ stone: 3, refined: 0 });
+    expect(clearMats('악몽', 0)).toEqual({ stone: 4, refined: 1 });
+    expect(['쉬움', '보통', '어려움', '악몽'].map(d => clearMats(d as DiffName, 0, true))).toEqual([1, 1, 2, 2].map(stone => ({ stone, refined: 0 })));
+    expect(['쉬움', '보통', '어려움', '악몽'].map(d => clearMats(d as DiffName, 10).refined)).toEqual([1, 2, 3, 4]);
+    expect(['쉬움', '보통', '어려움', '악몽'].map(d => clearMats(d as DiffName, 20).refined)).toEqual([2, 3, 4, 6]);
     expect(clearMats('보통', 10)).toEqual({ stone: 3, refined: 2 });
     expect(clearMats('악몽', 20)).toEqual({ stone: 5, refined: 6 });
+  });
+  it('탐험은 정산도 강화석 절반 (스테미너가 던전의 절반)', () => {
+    const s = newSave(1);
+    const x = settle(s, res({ content: 'plateau' as BattleResult['content'], diff: '악몽' }), () => 0.5);
+    expect(x.mats).toEqual({ stone: 2, refined: 0 });
   });
   it('정산에 들어가고 저장됨, 지면 없음', () => {
     const s = newSave(1);

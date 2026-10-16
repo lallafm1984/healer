@@ -105,7 +105,7 @@ export function findItem(id: number): GearItem | null {
 }
 
 /**
- * 강화 한 번 (확률 강화, 실패해도 현재 단계 유지). 성공은 빈 문자열, 실패·모자람은 보여 줄 글.
+ * 강화 한 번 (확률 강화, +5 이상에서 실패하면 1단계 하락, 87). 성공은 빈 문자열, 실패·모자람은 보여 줄 글.
  * 결과는 누른 순간 저장 (껐다 켜서 다시 굴리지 못하게). roll은 테스트에서 성공·실패를 고정할 때
  */
 export function enhance(id: number, roll: () => number = Math.random): string {
@@ -124,7 +124,7 @@ export function enhanceLack(it: GearItem): string {
   return '';
 }
 /**
- * 강화 한 번 (34 6-5): 누른 순간 굴려서 저장에 먼저 넣음 (연출은 보여 주기만, 7-4). 실패해도 현재 단계를 유지한다.
+ * 강화 한 번 (34 6-5): 누른 순간 굴려서 저장에 먼저 넣음 (연출은 보여 주기만, 7-4). 실패하면 enhanceCost의 fail 단계 (+1~+5 강화는 그대로, +5 이상은 1단계 하락, 87).
  * 무작위 옵션은 바뀌지 않는다. 못 하면 이유 글
  */
 export function enhanceTry(id: number, roll: () => number = Math.random): EnhanceOutcome | string {

@@ -149,7 +149,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   const items: GearItem[] = [];
   let newSpecs: string[] = [], newDex: string[] = [];
-  const mats = r.win ? clearMats(r.diff, raid) : { stone: 0, refined: 0 };
+  const mats = r.win ? clearMats(r.diff, raid, c.kind === 'explore') : { stone: 0, refined: 0 };
   // 레이드 장비는 보스마다 난이도별 주 1회 (13 3-4). 그 뒤엔 재료·공훈만
   const lootLocked = play && r.win && !!raid && !raidLootOpen(save, c.key, r.diff);
   let merit = 0;

@@ -22,8 +22,10 @@ describe('각성 없는 강화', () => {
     expect(roll).toHaveBeenCalledTimes(1);
     expect(itemStats(gear, 30).int).toBeGreaterThan(stats.int);
     expect(itemStats(gear, 30).crit).toBeCloseTo(stats.crit * (1 + 0.08 * to) / (1 + 0.08 * (to - 1))); // 2026-10-16: 강화가 무작위 옵션에도
-    expect(enhanceTry(5, () => 0.99)).toEqual({ id: 5, ok: false, from: to, to });
-    expect(enhanceTry(5, () => 0)).toEqual({ id: 5, ok: true, from: to, to: to + 1 });
+    // +5 이상에서 실패하면 1단계 하락 (87), 다시 성공하면 그 다음 단계
+    const fell = to >= 5 ? to - 1 : to;
+    expect(enhanceTry(5, () => 0.99)).toEqual({ id: 5, ok: false, from: to, to: fell });
+    expect(enhanceTry(5, () => 0)).toEqual({ id: 5, ok: true, from: fell, to: fell + 1 });
     expect(gear.lines).toEqual(lines);
     expect(gear).not.toHaveProperty('top');
   });
