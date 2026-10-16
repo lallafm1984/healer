@@ -106,7 +106,8 @@ function head(r: BattleResult, x: Settlement, key: ContentKey, name: string): st
 /** 튜토리얼 안내 (09 4장 · 34 5-2): 녹슨 고원 클리어 = 끝 (첫 장비는 정산에서 바로 장착), 녹슨 요새 쉬움 첫 클리어 = 다음은 보통 */
 function tipHtml(r: BattleResult, x: Settlement): string {
   const it = x.items[0], worn = !!it && G.save.gear.equipped[it.slot]?.id === it.id;
-  if (x.tutEnd && worn) return '<p class="coachtip"><b>첫 장비</b>를 바로 장착했습니다. 튜토리얼은 여기까지</p>';
+  // 튜토리얼 끝: 다음에 할 일 (로비 「출전」 = 길잡이가 고른 다음 장소)까지 (QA 2026-10-16, 처음 하는 사람이 다음을 몰랐음)
+  if (x.tutEnd && worn) return '<p class="coachtip"><b>첫 장비</b>를 바로 장착했습니다. 튜토리얼은 여기까지. 로비의 <b>「출전」</b>을 누르면 다음 장소로 갑니다.</p>';
   if (x.tutEnd) return '<p class="coachtip">튜토리얼은 여기까지! Lv 3에 탐험 <b>잿빛 공동묘지</b>, Lv 5에 첫 던전 <b>녹슨 요새</b></p>';
   if (r.content === 'rustfort' && x.first && r.diff === '쉬움' && !G.save.clears.rustfort?.['보통']) return '<p class="coachtip">첫 던전 클리어! 다음은 녹슨 요새 <b>보통</b></p>';
   return '';

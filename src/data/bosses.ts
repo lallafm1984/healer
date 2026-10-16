@@ -3771,8 +3771,8 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     ],
     flow: [
       { p: 'when', if: { phase: 1, hpBelow: 0.65 }, do: [
-        { p: 'phase', n: 0, name: '인터미션 · 악몽 열쇠 강탈' }, { p: 'inter', sec: 20 }, { p: 'start', skill: 'jail', in: 1 }, { p: 'start', skill: 'shard', in: 2 },
-        { p: 'text', text: '악몽 열쇠 강탈: 감옥 둘, 군주가 나를 노림' },
+        { p: 'phase', n: 0, name: '인터미션 · 심연 조각 강탈' }, { p: 'inter', sec: 20 }, { p: 'start', skill: 'jail', in: 1 }, { p: 'start', skill: 'shard', in: 2 },
+        { p: 'text', text: '심연 조각 강탈: 감옥 둘, 군주가 나를 노림' },
       ] },
       { p: 'when', if: { phase: 0, interOver: true }, do: [
         { p: 'phase', n: 2, name: '2페이즈 · 보랏빛 폭풍' }, { p: 'interEnd' }, { p: 'period', skill: 'wave', sec: 20 },

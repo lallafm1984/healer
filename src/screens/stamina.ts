@@ -131,7 +131,7 @@ export function confirmEntry(o: EntryOpts): void {
     // 보유 (왼쪽) · 소모 (오른쪽) 두 칸 (Lim 2026-10-16: 보유는 지금 값만, 입장 후 값 · 안내 문장 없음). 휴식 0이면 짧게 「보상 1/3」 (긴 안내 문장 없이)
     const cell = (cls: string, label: string, val: string) => `<div class="st-c ${cls}"><dt>${label}</dt><dd>${val}</dd></div>`;
     const cost = `<dl class="st-cost${cut ? ' lack' : ''}">
-      ${cell('st-have', '보유', `<b data-stam-n>${amount(v.n, v.unlimited)}</b>`)}
+      ${cell('st-have', '보유', `${currencyIcon('rest')}<b data-stam-n>${amount(v.n, v.unlimited)}</b>`)}
       ${cell('st-need', '소모', `${currencyIcon('rest')}<b>${o.cost}</b>`)}</dl>`;
     const dest = `<p class="st-dest"><b>${esc(o.name)}</b><small>${esc(o.sub)}</small></p>`;
     const el = show(`st-entry${cut ? ' cut' : ''}`, `<h3 id="stTitle">입장</h3>${dest}${cost}

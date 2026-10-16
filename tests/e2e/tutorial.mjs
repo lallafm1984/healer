@@ -1,7 +1,7 @@
 // 첫 5분 튜토리얼 (02 11장, 09 4장, 34 5-2): 이야기 → 2인 첫 전투(탭 힐 안내) → Lv 2 소생 → 3인 탐험(소생·순간 치유 안내) → 첫 장비 = 끝
 // → Lv 5에 첫 던전 녹슨 요새 안내 → 쉬움 클리어. 탭은 튜토리얼 동안 잠금. 구간은 적 체력을 깎아 빨리 넘긴다
 import { chromium } from 'playwright';
-import { chooseContent, departGo, killEnemies } from './nav.mjs';
+import { chooseContent, departGo, entryGo, killEnemies } from './nav.mjs';
 
 export default async function tutorial(url, shots) {
   const browser = await chromium.launch();
@@ -100,7 +100,8 @@ export default async function tutorial(url, shots) {
   ok(await page.isVisible('#rest'), '잡몹 구간 끝 → 휴식');
   await page.click('#restGo'); await page.clock.runFor(3100 + 500);
   ok(await page.evaluate(() => window.__proto.F.enc.key === 'patrol'), '계속 → 고철 순찰병');
-  await page.evaluate(() => { const u = window.__proto.F.party.find(x => x.role === 'ranged'); u.hp = u.max * 0.4; });
+  // 딜러는 근접 · 원거리 반반이라 (76) 원거리가 없는 판도 있음: 탱커 · 나 말고 한 명
+  await page.evaluate(() => { const u = window.__proto.F.party.find(x => !x.me && x.role !== 'tank'); u.hp = u.max * 0.4; });
   await page.clock.runFor(200);
   c = await coach();
   ok(c?.need === 'flash' && /순간 치유/.test(c.text), '체력 50% 아래 → 순간 치유 안내');
@@ -139,12 +140,14 @@ export default async function tutorial(url, shots) {
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true' && await page.getAttribute('#s-content', 'data-selected-content') === 'rustfort'
     && await page.getAttribute('#s-content [data-diff="쉬움"]', 'aria-pressed') === 'true' && !(await page.locator('#s-content .coachtip').count()) && !(await page.isVisible('#contentGo.hi-pulse')), '전투 탭: 던전 5인 · 녹슨 요새 · 쉬움이 골라져 있음 (안내 상자 · 「출전」 반짝임 없음, 2026-10-13 Lim)');
-  // 로비 「바로 출전」 = 녹슨 요새 편성으로 바로 (모험 선택 건너뜀, 입장 화면 없음)
+  // 로비 「바로 출전」 = 모험 선택을 건너뛰고 입장 확인 (81 「출전 다음에 팝업」) → 녹슨 요새 편성
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);
   await page.click('#lobbyStart'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-party') && /녹슨 요새/.test(await page.textContent('#s-party .topbar')) && /쉬움/.test(await page.textContent('#s-party .topbar')), '바로 출전 = 녹슨 요새 쉬움 편성');
+  ok(await page.isVisible('.st-modal [data-st="go"]') && /녹슨 요새/.test(await page.textContent('.st-modal')) && /쉬움/.test(await page.textContent('.st-modal')), '바로 출전 = 녹슨 요새 쉬움 입장 확인');
+  await entryGo(page); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-party') && /녹슨 요새/.test(await page.textContent('#s-party .topbar')) && /쉬움/.test(await page.textContent('#s-party .topbar')), '입장 → 녹슨 요새 쉬움 편성');
   const partyCoach = await page.textContent('#s-party .coachtip');
-  ok(/공략/.test(partyCoach) && /단축칸/.test(partyCoach) && /출발/.test(partyCoach) && !/다시\s*뽑기/.test(partyCoach), '편성: 공략·단축칸·출발 안내, 다시 뽑기 문구 없음');
+  ok(/공략/.test(partyCoach) && /출발/.test(partyCoach) && !/단축칸|다시\s*뽑기/.test(partyCoach), '편성: 공략·출발 안내 (단축칸은 소비 아이템과 함께 없앰), 다시 뽑기 문구 없음');
   await page.screenshot({ path: `${shots}/tut_party.png` });
 
   // ---- 녹슨 요새 쉬움: 전투 안내 팝업 없이 4구간 → 끝 (2026-10-13 Lim) ----
