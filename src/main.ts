@@ -49,6 +49,7 @@ import './screens/class-jobs.css';
 import './battle/popovers.css';
 import './screens/stamina.css';
 import './screens/departure-hall.css';
+import './screens/service-hall.css';
 import './screens/guide.css';
 import './screens/legend.css';
 import './screens/gear-d2.css';

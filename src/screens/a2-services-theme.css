@@ -1,11 +1,12 @@
 /* A2 서비스 화면 재질 (2026-10-11).
- * 상점 4탭 · 임무 · 설정 · 타이틀 · 이야기/튜토리얼 · 길드/준비 중.
+ * 타이틀 · 이야기/튜토리얼 · 길드/준비 중 (상점 · 임무 · 설정은 service-hall.css).
  * 화면 등록, 길드 feature flag, 배치/크기, 상태색과 진행 막대는 기존 계약을 유지한다.
  * 공통 header/nav/.btn/.sheet는 상위 테마 담당. 여기서는 화면 전용 표면만 덮는다.
  */
 
-/* 그림이 있는 타이틀/이야기/길드 배경은 보존한다. */
-:is(#s-shop, #s-missions, #s-settings, #s-tut) {
+/* 그림이 있는 타이틀/이야기/길드 배경은 보존한다.
+ * 상점 · 임무 · 설정은 2026-10-17부터 길드 홀 돌색 (service-hall.css). 여기는 튜토리얼 단계 카드만 나무결. */
+#s-tut {
   background-color: #35291d;
   background-image: var(--a2-wood);
   background-blend-mode: soft-light;
@@ -15,147 +16,13 @@
   color: var(--a2-ink);
 }
 
-:is(#s-shop, #s-missions, #s-settings, #s-tut) :is(.h, .sec),
-#s-settings .group > h2 {
+#s-tut :is(.h, .sec) {
   color: var(--a2-brass-hi);
   text-shadow: 0 1px 1px #211307;
 }
 
-:is(#s-shop, #s-missions, #s-settings, #s-tut) .sec small,
-#s-settings .group > p,
-#s-missions .note {
+#s-tut .sec small {
   color: var(--a2-muted);
-}
-
-/* 상점: 지갑/상품/공훈/패스/회원 패널. 아이템 효능의 초록색은 건드리지 않는다. */
-#s-shop :is(.srow, .panel, .shop-wallet > span, .prow:not(.head)),
-#s-missions :is(.mrow, .panel) {
-  background-color: #59402a;
-  background-image: var(--a2-wood);
-  background-blend-mode: soft-light;
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-  border-color: var(--a2-brass);
-  color: var(--a2-ink);
-  box-shadow: inset 0 1px 0 #e8c77a36, 0 2px 4px #160d0770;
-}
-
-#s-shop :is(.srow b, .shop-wallet b),
-#s-shop .panel :is(h2, h4),
-#s-missions .panel :is(h2, h4),
-#s-missions .mrow > div > b {
-  color: var(--a2-ink);
-}
-
-#s-shop .note:not(.use),
-#s-shop .srow small:not(.full),
-#s-shop .shop-wallet small,
-#s-shop .panel h4 small,
-#s-missions .panel h4 small,
-#s-missions .mrow small {
-  color: var(--a2-muted);
-}
-
-#s-shop .srow small.full,
-#s-shop .pass-archive > summary {
-  color: var(--a2-brass-hi);
-}
-
-#s-shop .shop-hero {
-  border-bottom-color: var(--a2-brass);
-}
-
-#s-shop .shop-hero h2 {
-  color: var(--a2-ink);
-}
-
-#s-shop .shop-hero .eyebrow {
-  color: var(--a2-brass-hi);
-}
-
-/* 이 구매 버튼에는 별도 기존 규칙이 있으므로 기본 .btn 재질과 맞춘다. */
-#s-shop .btn.mini.buy {
-  background: #382515 var(--a2-wood) center / cover no-repeat;
-  border-color: var(--a2-brass-hi);
-  color: var(--a2-ink);
-  box-shadow: inset 0 1px 0 #e8c77a52, 0 1px 2px #160d0770;
-}
-
-#s-shop .btn.mini.buy small {
-  color: var(--a2-ink);
-}
-
-#s-shop .btn.mini.buy:disabled {
-  background-color: #211a14;
-  background-blend-mode: multiply;
-  border-color: #756146;
-  color: var(--a2-muted);
-  box-shadow: none;
-}
-
-#s-shop .btn.mini.buy:disabled small {
-  color: var(--a2-muted);
-}
-
-#s-shop .prow.head {
-  color: var(--a2-muted);
-}
-
-#s-shop.ns .prow.open {
-  border-color: var(--a2-brass-hi);
-}
-
-#s-shop .prow:not(.open):not(.head) {
-  color: var(--a2-muted);
-  border-color: #806746;
-}
-
-#s-shop .pass-archive {
-  border-top-color: var(--a2-brass);
-}
-
-/* 완료/받음, 프리미엄 보상, 희귀도와 막대 fill의 의미색은 그대로 둔다. */
-#s-shop .passhead .bar,
-#s-missions .mrow .bar {
-  background-color: #1b120b;
-  border-color: #806039;
-}
-
-/* 설정: 선택/비선택 색을 종이/목재로 구분하되 버튼 크기는 유지한다. */
-#s-settings .toggle {
-  color: var(--a2-ink);
-}
-
-#s-settings .toggle input {
-  accent-color: var(--a2-brass-hi);
-}
-
-#s-settings.ns .chip {
-  background: #332215 var(--a2-wood) center / cover no-repeat;
-  border-color: var(--a2-brass);
-  color: var(--a2-ink);
-  box-shadow: inset 0 1px 0 #e8c77a26;
-}
-
-#s-settings.ns .chip[aria-pressed="true"] {
-  background: #f0deba var(--a2-paper) center / cover no-repeat;
-  background-blend-mode: normal;
-  border-color: var(--a2-brass-hi);
-  color: var(--a2-paper-ink);
-  text-shadow: none;
-  box-shadow: inset 0 0 0 1px #fff2d5, 0 1px 3px #160d0770;
-}
-
-#s-settings.ns .chip:disabled {
-  background-color: #211a14;
-  background-blend-mode: multiply;
-  border-color: #756146;
-  color: var(--a2-muted);
-}
-
-#s-settings .group.dev {
-  border-top-color: var(--a2-brass);
 }
 
 /* 타이틀/이야기: 기존 배경 그림과 문장 배치는 유지한다. */
