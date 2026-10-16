@@ -9,7 +9,7 @@
  * 떨어진 곳의 적 레벨. 지능 · 체력 옵션은 수치 (아이템 레벨이 높을수록 크고 장비마다 고정, STAT_POINT · toPoints),
  * 치명타 · 가속 · 정신력 · 인내는 고정 % (레벨업해도 안 바뀜, Lim 「10%가 9%로 떨어지면 헷갈림」). 특수능력은 그대로.
  */
-import { RAID10_LV, type ContentDef } from './content';
+import { contentOf, RAID10_LV, type ContentDef } from './content';
 import type { DiffName } from './difficulty';
 import type { GearStats, GradeName } from './gear';
 import type { HeroKey } from './heroes';
@@ -143,51 +143,66 @@ export const lineMax = (stat: StatKey, slot: SlotKey, grade: ItemGrade) => STATS
 
 /**
  * 바탕 등급 확률 (61 3장 → 88, 2026-10-16 Lim). 순서 = ITEM_GRADES, 일반 ~ 희귀만. 영웅 · 전설은 heroChance · legendChance로 따로 (dropOdds).
- * Lim 07:25 「초반에는 희귀까지만」 · 07:49 「일반이 제일 높고, 고급, 희귀 순으로 낮아야 정상」: 모든 칸이 나오는 가장 낮은 등급 (바닥)부터 차례로 줄어듦.
- * 0 = 레벨링 (탐험 · 던전, 장소 Lv 1~20), 10 · 20 = 레이드 인원. 레이드는 어려움 · 악몽 바닥이 희귀 (영웅 · 전설로만 차이)
+ * Lim 07:25 「초반에는 희귀까지만」 · 07:49 「일반이 제일 높고, 고급, 희귀 순으로 낮아야 정상」 · 09:36 「칸마다 난이도 및 레벨에 따라서 최소 등급」:
+ * 칸 (콘텐츠 · 난이도 · 레벨대)마다 최소 등급 (minGrade = 표에서 나오는 가장 낮은 등급)이 있고, 그 등급부터 차례로 줄어듦.
+ * 0 = 레벨링 (탐험 · 던전, 장소 Lv 1~20), 10 · 20 = 레이드 인원 (적 = 내 레벨이라 레벨대 없음)
+ *
+ * 최소 등급         쉬움   보통   어려움  악몽
+ *   장소 Lv 1~20    일반   일반   고급    고급
+ *   장소 Lv 21~44   일반   고급   고급    희귀
+ *   장소 Lv 45~69   고급   고급   희귀    희귀
+ *   장소 Lv 70~     고급   희귀   희귀    희귀
+ *   10인 레이드     고급   희귀   희귀    희귀
+ *   20인 레이드     희귀   희귀   희귀    희귀
  */
 export const DROP_TABLES: Record<0 | 10 | 20, Record<DiffName, number[]>> = {
   0: {
     '쉬움': [1, 0, 0, 0, 0],
     '보통': [0.7, 0.3, 0, 0, 0],
-    '어려움': [0.5, 0.35, 0.15, 0, 0],
-    '악몽': [0.4, 0.35, 0.25, 0, 0],
+    '어려움': [0, 0.8, 0.2, 0, 0],
+    '악몽': [0, 0.65, 0.35, 0, 0],
   },
   10: {
     '쉬움': [0, 0.6, 0.4, 0, 0],
-    '보통': [0, 0.55, 0.45, 0, 0],
+    '보통': [0, 0, 1, 0, 0],
     '어려움': [0, 0, 1, 0, 0],
     '악몽': [0, 0, 1, 0, 0],
   },
   20: {
-    '쉬움': [0, 0.55, 0.45, 0, 0],
+    '쉬움': [0, 0, 1, 0, 0],
     '보통': [0, 0, 1, 0, 0],
     '어려움': [0, 0, 1, 0, 0],
     '악몽': [0, 0, 1, 0, 0],
   },
 };
 /**
- * 탐험 · 던전 바탕 표의 등급대 (86, 2026-10-16 Lim 「중 후반에도 등급에 맞지 않는 장비를 보상으로」): 장소 레벨로 표가 올라감.
- * 0 = 장소 Lv 1~20 (위 DROP_TABLES[0]), 1 = Lv 21~44 (어려움 · 악몽 바닥 고급: 이 구간 길잡이가 주로 보내는 칸이라 일반이 안 나오게), 2 = Lv 45~ (10인 레이드가 열리는 레벨, 바닥 고급).
- * 같은 난이도에서 어느 등급 이상 확률도 앞 등급대보다 줄지 않고, 같은 난이도 10인 레이드보다 위가 아님. 표마다 바닥부터 차례로 줄어듦 (88)
+ * 탐험 · 던전 바탕 표의 레벨대 (86 · 88): 장소 레벨로 최소 등급이 오름. 0 = 장소 Lv 1~20 (위 DROP_TABLES[0]), 1 = Lv 21~44,
+ * 2 = Lv 45~69 (10인 레이드가 열리는 레벨), 3 = Lv 70~ (20인 레이드가 열리는 레벨).
+ * 같은 난이도에서 어느 등급 이상 확률도 앞 레벨대보다 줄지 않고, 같은 난이도 10인 레이드보다 위가 아님. 표마다 최소 등급부터 차례로 줄어듦
  */
-export const LOOT_TIER_LV = [1, RAMP_LV + 1, RAID10_LV] as const;
+export const LOOT_TIER_LV = [1, RAMP_LV + 1, RAID10_LV, contentOf('cathedral1').unlockLv] as const;
 export const LEVELING_TIERS: Record<DiffName, number[]>[] = [
   DROP_TABLES[0],
   {
     '쉬움': [0.7, 0.3, 0, 0, 0],
-    '보통': [0.5, 0.35, 0.15, 0, 0],
-    '어려움': [0, 0.65, 0.35, 0, 0],
-    '악몽': [0, 0.55, 0.45, 0, 0],
+    '보통': [0, 0.7, 0.3, 0, 0],
+    '어려움': [0, 0.6, 0.4, 0, 0],
+    '악몽': [0, 0, 1, 0, 0],
   },
   {
     '쉬움': [0, 0.7, 0.3, 0, 0],
     '보통': [0, 0.6, 0.4, 0, 0],
-    '어려움': [0, 0.55, 0.45, 0, 0],
-    '악몽': [0, 0.52, 0.48, 0, 0],
+    '어려움': [0, 0, 1, 0, 0],
+    '악몽': [0, 0, 1, 0, 0],
+  },
+  {
+    '쉬움': [0, 0.6, 0.4, 0, 0],
+    '보통': [0, 0, 1, 0, 0],
+    '어려움': [0, 0, 1, 0, 0],
+    '악몽': [0, 0, 1, 0, 0],
   },
 ];
-/** 장소 레벨 → 등급대 (0 · 1 · 2) */
+/** 장소 레벨 → 레벨대 (0 · 1 · 2 · 3) */
 export const lootTier = (placeLv: number) => LOOT_TIER_LV.reduce((t, lv, i) => (placeLv >= lv ? i : t), 0);
 /**
  * 그 콘텐츠 · 난이도 바탕 표 (raid = 레이드 인원, 0 = 탐험 · 던전). tierLv = 탐험 · 던전 등급대를 정하는 레벨
@@ -196,6 +211,8 @@ export const lootTier = (placeLv: number) => LOOT_TIER_LV.reduce((t, lv, i) => (
 export const dropTable = (diff: DiffName, raid: 0 | 10 | 20 = 0, tierLv = 1): number[] => (raid ? DROP_TABLES[raid][diff] : LEVELING_TIERS[lootTier(tierLv)][diff]);
 /** 확률에서 나올 수 있는 가장 높은 등급 (상한) */
 export const topGrade = (table: number[]): ItemGrade => ITEM_GRADES[table.reduce((m, p, i) => (p > 0 ? i : m), 0)];
+/** 최소 등급 (88 v0.2): 확률에서 나오는 가장 낮은 등급 */
+export const minGrade = (table: number[]): ItemGrade => ITEM_GRADES[Math.max(0, table.findIndex(p => p > 0))];
 
 /**
  * 영웅 확률 (88, Lim 「점점 레벨이 중반부터 희박하게 영웅」): 난이도 · 콘텐츠마다 Lv 100 최대값 × 레벨 오름 (heroRamp).
