@@ -1,6 +1,6 @@
 /**
  * 장비 도감 (34 6-10 ④): 종류 30 · 세력 생김새 · 이름 있는 장신구 · 고유 무기 · 방어구. 처음 얻을 때 칸이 채워짐 (등급 상관없이).
- * 보상: DEX_STEP칸마다 강화석 (다섯 번째마다 정제 강화석도, v16 골드 없앰), 묶음을 다 채우면 칭호. 능력치 보너스는 없음 (세트처럼 되지 않게).
+ * 보상: DEX_STEP칸마다 골드 (다섯 번째마다 더, 91: v16 강화석 · 정제 강화석 → 골드), 묶음을 다 채우면 칭호. 능력치 보너스는 없음 (세트처럼 되지 않게).
  * 칸 키: k:<종류> · l:<세력>:<종류> · n:<이름 있는 장신구> · u:<고유 장비>
  */
 import { hasLookArt, KINDS, LOOKS, type GearItem } from './equipment';
@@ -39,15 +39,15 @@ export const dexTabOf = (key: string): DexTab | undefined => ({ k: 'kind', l: 'l
 
 /** 보상 단계: DEX_STEP칸마다 한 번 */
 export const DEX_STEP = 10;
-export interface DexReward { stone: number; refined: number }
-/** n번째 보상 (1부터): 강화석 5, 다섯 번째마다 정제 강화석 2 */
-export const dexReward = (n: number): DexReward => ({ stone: 5, refined: n % 5 === 0 ? 2 : 0 });
+export interface DexReward { gold: number }
+/** n번째 보상 (1부터): 골드 600 (#172 전 값), 다섯 번째마다 1,000 더 (예전 정제 강화석 2 × 500, 91) */
+export const DEX_GOLD = { step: 600, fifth: 1000 };
+export const dexReward = (n: number): DexReward => ({ gold: DEX_GOLD.step + (n % 5 === 0 ? DEX_GOLD.fifth : 0) });
 /** 받을 수 있는 보상 (채운 칸 수 · 이미 받은 단계 수) */
 export function dexDue(have: number, paid: number): DexReward & { steps: number } {
-  const out = { stone: 0, refined: 0, steps: 0 };
+  const out = { gold: 0, steps: 0 };
   for (let n = paid + 1; n <= Math.floor(have / DEX_STEP); n++) {
-    const r = dexReward(n);
-    out.stone += r.stone; out.refined += r.refined; out.steps++;
+    out.gold += dexReward(n).gold; out.steps++;
   }
   return out;
 }

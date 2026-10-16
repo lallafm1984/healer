@@ -30,8 +30,8 @@ export interface MissionDef {
   lv: number;
   /** 판 하나가 몇 칸 채우는지 */
   run?: (e: RunEvent) => number;
-  /** 다른 행동 (강화 등) */
-  act?: 'enhance' | 'chest';
+  /** 다른 행동 (장비 판매 · 완료 상자) */
+  act?: 'sell' | 'chest';
   /** 길드가 있어야 함 (길드를 빼 두면 안 뽑힘, features.ts) */
   guild?: true;
 }
@@ -46,14 +46,15 @@ export const DAILY: MissionDef[] = [
   { key: 'nodeath', text: '사망자 0명으로 클리어', need: 1, lv: 1, run: e => (won(e) && e.deaths === 0 ? 1 : 0) },
   { key: 'mana20', text: '남은 마나 20% 이상으로 클리어', need: 1, lv: 1, run: e => (won(e) && e.endManaPct >= 20 ? 1 : 0) },
   { key: 'clumsy', text: '「덜렁이」·「허세꾼」이 있는 파티로 클리어', need: 1, lv: 15, run: e => (won(e) && e.pers.some(p => p === '덜렁이' || p === '허세꾼') ? 1 : 0) },
-  { key: 'enhance2', text: '장비 강화', need: 2, lv: 1, act: 'enhance' },
+  // 91: 강화를 없애 「장비 강화」 → 「장비 판매」 (옛 저장의 enhance2는 migrate가 sell2로)
+  { key: 'sell2', text: '장비 판매', need: 2, lv: 1, act: 'sell' },
   { key: 'guild2', text: '길드파티로 클리어', need: 2, lv: 15, guild: true, run: e => (won(e) && !e.pub ? 1 : 0) },
 ];
 /** 한 판 수만 세는 기본 임무는 2개까지 (13 2-1) */
 export const DAILY_BASIC = ['clear3', 'pub2'];
 export const DAILY_N = 5;
 
-/** 주간 임무 3개 (하나마다 강화석 5. 81에서 악몽 열쇠 1개 → 골드 3판, v16에서 골드 없앰). 10인 레이드가 열리기 전 (RAID10_LV)에는 레이드 대신 던전 임무 (13 3-1) */
+/** 주간 임무 3개 (하나마다 골드 3판. 81에서 악몽 열쇠 1개 → 골드 3판, v16 강화석 5, 91 다시 골드 3판). 10인 레이드가 열리기 전 (RAID10_LV)에는 레이드 대신 던전 임무 (13 3-1) */
 export const WEEKLY: MissionDef[] = [
   { key: 'w_raid3', text: '레이드 보스 처치', need: 3, lv: RAID10_LV, run: e => (e.win && e.raid ? 1 : 0) },
   { key: 'w_hard5', text: '어려움 이상 던전 클리어', need: 5, lv: 10, run: e => (won(e) && !e.raid && e.diffIdx >= 2 ? 1 : 0) },
@@ -67,11 +68,14 @@ export const WEEKLY_LV = 10;
 /** 길드 주간 목표 (13 3장): 길드파티로 클리어 → 명성 + 길드원 전원 훈련 경험치 */
 export const GUILD_GOAL = { need: 10, fame: 5, xpShare: 0.5 };
 
-/** 임무 보상 (13 2-1): 1개 = 강화석 2, 완료 상자 = 강화석 5 + 장비 1개 (v16: 골드 몫 없앰) */
-export const MISSION_REWARD = { stone: 2 };
-/** 주간 임무 하나: 강화석 (v16: 예전 골드 3판 없앰) */
-export const WEEKLY_REWARD = { stone: 5 };
-export const CHEST_REWARD = { stone: 5 };
+/**
+ * 임무 보상 (13 2-1): 1개 = 클리어 골드의 20%, 완료 상자 = 클리어 골드 1판 + 장비 1개. 클리어 골드 1판 = 그 레벨 보통 A (economy runGold).
+ * v16에서 골드 몫을 강화석으로 바꿨다가 91 (디아2식, 강화석 없앰)에서 #172 전 골드 값으로
+ */
+export const MISSION_REWARD = { goldShare: 0.2 };
+/** 주간 임무 하나 (81): 골드 = 이 레벨 클리어 골드 × runs */
+export const WEEKLY_REWARD = { runs: 3 };
+export const CHEST_REWARD = { runs: 1 };
 /** 놓친 날 완료 상자는 2일까지 (13 7장) */
 export const CHEST_BANK = 2;
 /** 공개모집 일일 보너스 (13 2-2): 첫 3판 좋은 장비 등급 확률 ↑ (그 난이도 상한 안에서, 61 3-3). 예전 골드 ×2는 v16에서 없앰 */

@@ -3,11 +3,11 @@
  * 던전·레이드는 2026-10-08부터 입장 화면 없이 전투 탭 「출전」 → 편성 (난이도는 전투 탭에서만, 적 레벨 = 내 레벨 (32), 공략은 편성의 시트).
  */
 import { contentOf } from '../data/content';
-import { clearXp } from '../data/progression';
+import { clearGold, clearXp } from '../data/progression';
 import { Flow } from '../game/flow';
 import { chalChestOf } from '../game/economy';
 import { CHAL, chalDropDiff } from '../data/challenge';
-import { clearMats, dropTable, topGrade } from '../data/equipment';
+import { dropTable, topGrade } from '../data/equipment';
 import { runMode } from '../game/runmode';
 import { G } from '../game/state';
 import { esc, fmt, go, mmss, screen } from './kit';
@@ -25,10 +25,10 @@ function render(): void {
   const m = runMode(G.save, c, d, { chal: Flow.chal });
   const segs = c.fights(d), best = G.save.weekly.chalBest, bm = m.bossMult!;
   const festival = m.affixes.includes('festival');
-  const stone = clearMats(d, 0).stone;
+  const gold = clearGold(m.stage, d, 'A');
   const xp = Math.round(clearXp(G.save.player.level, d, 'A', { win: true }) * (festival ? CHAL.festivalXp : 1));
   const box = best ? chalChestOf(best) : null;
-  const chestReward = box ? [...[...new Set(box.grades)].map(grade => `${grade} ${box.grades.filter(g => g === grade).length}개`), `강화석 ${box.stone}`].join(' · ') : '';
+  const chestReward = box ? [...[...new Set(box.grades)].map(grade => `${grade} ${box.grades.filter(g => g === grade).length}개`), `골드 ${box.goldRuns}판`].join(' · ') : '';
   s.el.innerHTML = `${flowHead('s-content', CHAL.name, `${esc(c.name)} ${d} · ${c.size(d)}인`)}
     <div class="ns-body f-ebody">
       <section class="pn wc-overview" aria-label="도전 단계">
@@ -41,7 +41,7 @@ function render(): void {
       <section class="pn f-sec wc-affixes"><h2 class="h-rule">이번 주 어픽스<span class="rule"></span><span class="cap">월요일 06:00 갱신</span></h2>${afxRows(m.affixes)}</section>
       <section class="pn f-sec wc-route"><h2 class="h-rule">구간<span class="rule"></span><span class="cap">${segs.length}개 구간</span></h2>${timeline(segs)}</section>
       <section class="pn f-sec f-rw wc-rewards"><h2 class="h-rule">보상<span class="rule"></span><span class="cap">클리어마다 · 장비 ${topGrade(dropTable(chalDropDiff(Flow.chal), 0, G.save.player.level))}까지</span></h2>
-        <div class="wc-reward-grid"><div>${gameIcon('gear', '')}<span>장비<b>1개</b></span></div><div>${currencyIcon('stone')}<span>강화석<b>${fmt(stone)}</b></span></div><div>${gameIcon('a2-goal-book-r6', '')}<span>경험치<b>약 ${fmt(xp)}</b></span></div></div>
+        <div class="wc-reward-grid"><div>${gameIcon('gear', '')}<span>장비<b>1개</b></span></div><div>${currencyIcon('gold')}<span>골드<b>${fmt(gold)}</b></span></div><div>${gameIcon('a2-goal-book-r6', '')}<span>경험치<b>약 ${fmt(xp)}</b></span></div></div>
         ${festival ? '<p class="wc-festival">축제 주간 · 경험치 +20%</p>' : ''}
         <div class="wc-chest">${gameIcon('chest', '')}<div><span>월요일 상자 <small>이번 주 최고 단계 기준</small></span>${chestReward ? `<b>${chestReward}</b>` : ''}</div></div>
         <div class="wc-milestones" aria-label="월요일 상자 단계별 보상">${[5, 10, 15, 20].map(stage => { const reward = chalChestOf(stage); return `<span${best >= stage ? ' class="reached"' : ''}><small>${stage}단계</small><b>${reward.grades[0]} ${reward.grades.length}개</b></span>`; }).join('')}</div>

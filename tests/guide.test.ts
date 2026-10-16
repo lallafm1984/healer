@@ -2,7 +2,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ALL_DIFFS, CONTENT, chainOpen, contentOf, isLeveling, RAID10_LV, stageOf } from '../src/data/content';
 import type { DiffName } from '../src/data/difficulty';
-import { DROP_TABLES, dropTable, ITEM_GRADES, LEVELING_TIERS, lootTier, SLOTS, type ItemGrade } from '../src/data/equipment';
+import { DROP_TABLES, dropTable, ITEM_GRADES, LEVELING_TIERS, lootTier, RECOMMENDED, type ItemGrade } from '../src/data/equipment';
+import { presetGear } from './fixtures/preset-gear';
 import { rampDiffs, rampFour, rampPlace, rampRefLevel, RAMP_LV } from '../src/data/progression';
 import { gearGradeOdds } from '../src/data/reward-preview';
 import { fitOf, guide, rankStages } from '../src/game/guide';
@@ -43,21 +44,23 @@ describe('적합도 (fitOf)', () => {
     expect(fitOf(c, '쉬움', 28, 0)).toBe('도전');
     expect(fitOf(c, '보통', 28, 0)).toBe('위험');
   });
-  it('권장 장비 (어려움 고급 2점 · 악몽 희귀 +5 3.5점)에 못 미치면 적어도 도전', () => {
-    expect(fitOf(c, '어려움', 34, 2)).toBe('적정');
-    expect(fitOf(c, '어려움', 34, 1.9)).toBe('도전');
+  // 권장 장비 점수 (91: 프리셋 장비 점수, 어려움 고급 · 악몽 희귀 × 1.4 = 예전 희귀 +5)
+  const ADV = RECOMMENDED['어려움']!.score, RARE = RECOMMENDED['악몽']!.score;
+  it('권장 장비 (어려움 고급 · 악몽 희귀, 프리셋 장비 점수)에 못 미치면 적어도 도전', () => {
+    expect(fitOf(c, '어려움', 34, ADV)).toBe('적정');
+    expect(fitOf(c, '어려움', 34, ADV - 0.1)).toBe('도전');
     expect(fitOf(c, '악몽', 39, 0)).toBe('도전'); // 여유 (−3)여도 장비가 없으면 도전
     // Lv 4 녹슨 고원: 쉬움 · 보통은 여유, 어려움 · 악몽만 적정 (예전엔 네 칸 모두 적정)
     expect((['쉬움', '보통', '어려움', '악몽'] as const).map(d => fitOf(contentOf('plateau'), d, 4, 0))).toEqual(['여유', '여유', '적정', '적정']);
     expect(fitOf(c, '악몽', 46, 0)).toBe('도전'); // −10
-    expect(fitOf(c, '악몽', 58, 3)).toBe('도전'); // −22여도 장비가 모자라면 도전 (88: 예전엔 레벨이 많이 앞서면 적정)
-    expect(fitOf(c, '악몽', 36, 3.5)).toBe('적정');
+    expect(fitOf(c, '악몽', 58, RARE - 0.5)).toBe('도전'); // −22여도 장비가 모자라면 도전 (88: 예전엔 레벨이 많이 앞서면 적정)
+    expect(fitOf(c, '악몽', 36, RARE)).toBe('적정');
   });
   it('레이드 (88): 적이 내 레벨이라 권장 장비를 채운 가장 어려운 난이도가 적정, 쉬운 쪽 여유 · 어려운 쪽 도전', () => {
     const r = contentOf('abyss1'), f = (g: number) => (['쉬움', '보통', '어려움', '악몽'] as const).map(d => fitOf(r, d, 60, g));
     expect(f(0)).toEqual(['여유', '적정', '도전', '도전']);
-    expect(f(2)).toEqual(['여유', '여유', '적정', '도전']);
-    expect(f(3.5)).toEqual(['여유', '여유', '여유', '적정']);
+    expect(f(ADV)).toEqual(['여유', '여유', '적정', '도전']);
+    expect(f(RARE)).toEqual(['여유', '여유', '여유', '적정']);
   });
   it('순차 구간 장소는 70 · 90의 길에서 그 난이도에 들어가는 레벨 기준 (어려움 · 악몽 = 밸런스 기준 플레이어와 같음), 장비 조건 없음', () => {
     for (const x of CONTENT.filter(y => rampPlace(y) && y.ready)) {
@@ -110,10 +113,8 @@ describe('장소 레벨대 장비 등급 (86)', () => {
 
 describe('모험 길잡이 (guide)', () => {
   beforeEach(() => { G.save = newSave(1); G.save.settings.devUnlock = true; G.save.tut = TUT.done; });
-  const wear = (grade: ItemGrade, plus: number) => {
-    let id = 9000;
-    for (const s of SLOTS) G.save.gear.equipped[s.key] = { id: id++, slot: s.key, kind: '', grade, plus, name: 'x', lines: [], lv: G.save.player.level };
-  };
+  /** 프리셋 세기 장비 (91: 고급 × 1 · 희귀 × 1.4 = 예전 +0 · +5) */
+  const wear = (grade: ItemGrade, mult: number) => { G.save.gear.equipped = presetGear(grade, mult, G.save.player.level); };
 
   it('개발 빌드 「레벨 잠금 무시」로 열린 곳은 추천하지 않음', () => {
     G.save.player.level = 5;
@@ -121,13 +122,13 @@ describe('모험 길잡이 (guide)', () => {
     expect(guide()).toEqual({ content: 'rustfort', diff: '쉬움' });
   });
 
-  it('장비에 따라 난이도: 없으면 보통 · 고급이면 어려움 · 희귀 +5면 악몽 (모두 적 레벨 = 내 레벨 근처)', () => {
+  it('장비에 따라 난이도: 없으면 보통 · 고급이면 어려움 · 희귀 (× 1.4, 예전 +5)면 악몽 (모두 적 레벨 = 내 레벨 근처)', () => {
     G.save.player.level = 40;
     const at = () => { const g = guide()!; return { d: g.diff, gap: stageOf(contentOf(g.content), g.diff) - 40 }; };
     expect(at().d).toBe('보통');
-    wear('고급', 0);
+    wear('고급', 1);
     expect(at().d).toBe('어려움');
-    wear('희귀', 5);
+    wear('희귀', 1.4);
     expect(at()).toEqual({ d: '악몽', gap: 0 });
   });
 

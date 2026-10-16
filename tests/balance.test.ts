@@ -80,7 +80,7 @@ describe('기준 조건과 목표 (26 9-2)', () => {
     expect(recommendedFor(contentOf('plateau'), '어려움')).toBeNull();
     expect(recommendedFor(contentOf('plateau'), '악몽')).toBeNull();
     expect(recommendedFor(contentOf('mossroot'), '어려움')?.label).toBe('고급');
-    expect(recommendedFor(contentOf('abyss1'), '악몽')?.label).toBe('희귀 +5');
+    expect(recommendedFor(contentOf('abyss1'), '악몽')?.label).toBe('희귀');
   });
   it('보정을 넘기면 data/tune 대신 그 값', () => {
     const a = E.create({ encounter: 'plague', diff: '어려움', seed: 1, level: 35 });

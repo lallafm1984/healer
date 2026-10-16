@@ -2,7 +2,7 @@
  * 고유 무기 · 방어구 (34 6-10 ③, Lim 2026-10-10 「장비 갯수를 매우 다양하게」).
  * 떨어지는 곳 (Lim 2026-10-11 「20인 악몽으로 모음」, 61 3-4): 20인 레이드 31구역에 열림 레벨 순으로 고르게 (구역마다 2~4개, 같은 구역 · 부위는 하나), 그 구역 악몽 전설에서만.
  * 아래 묶음 주석 · 이름 · 효과는 처음 만든 보스에서 온 것 (예전엔 그 던전 · 레이드 칸에서 떨어졌음).
- * 효과 = 그 보스 기믹에 맞는 특수능력 하나를 UNIQUE_MULT배 값으로 고정 (굴림 없음) = 그 전설의 고유 능력 (data/equipment makeItem).
+ * 효과 = 그 보스 기믹에 맞는 특수능력 하나를 고유 능력 배율 (91: 1.3~1.7 굴림, 평균 UNIQUE_MULT)로 = 그 전설의 고유 능력 (data/equipment makeLegend).
  * 나오는 규칙은 이름 있는 장신구와 같음: 그 장소에서 그 부위 전설이 나오면 NAMED_CHANCE (Lim 2026-10-11 「전설에만 고유 능력」). 그림 = item-unique-<키> (그림 요청 50)
  */
 import type { ItemGrade, SlotKey } from './equipment';
@@ -21,6 +21,7 @@ export interface UniqueDef {
   spec: string;
 }
 
+/** 고유 능력 배율 평균 (91 전에는 고정값). 옛 장비 · 도감 표시는 이 값 */
 export const UNIQUE_MULT = 1.5;
 
 export const UNIQUES: UniqueDef[] = [
@@ -120,5 +121,5 @@ export const uniqueOf = (key: string | undefined) => (key ? UNIQUES.find(u => u.
 /** 그 장소 · 부위에서 나오는 고유 장비 */
 /** 그 장소 · 부위에서 나오는 고유 장비 (20인 구역, 61 3-4). 목록이지만 지금은 구역 · 부위마다 하나 */
 export const uniquesFor = (place: string, slot: SlotKey) => UNIQUES.filter(u => u.place === place && u.slot === slot);
-/** 고정 특수능력 값: 그 등급 최대 굴림 × UNIQUE_MULT. 값 고정 특수능력은 그대로 */
-export const uniqueValue = (u: UniqueDef, grade: ItemGrade) => (SPECS[u.spec]?.fixed ? SPECS[u.spec].val : specValue(u.spec, grade, 1) * UNIQUE_MULT);
+/** 고정 특수능력 값: 그 등급 최대 굴림 × 고유 능력 배율 (91: 장비마다 1.3~1.7 굴림 GearItem.uniqueMult, 없으면 UNIQUE_MULT). 값 고정 특수능력은 그대로 */
+export const uniqueValue = (u: UniqueDef, grade: ItemGrade, mult = UNIQUE_MULT) => (SPECS[u.spec]?.fixed ? SPECS[u.spec].val : specValue(u.spec, grade, 1) * mult);

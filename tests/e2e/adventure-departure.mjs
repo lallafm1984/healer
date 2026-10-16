@@ -82,7 +82,7 @@ export default async function adventureDeparture(url, shots) {
     await chooseContent(page,'plateau'); await page.click('[data-diff="보통"]');
     ok(/Lv\.\s*3/.test(await page.locator('.b-level').innerText()), `${width}: 난이도 변경에 권장 레벨 갱신`);
     const rewardSelector='[data-reward="gear"]';
-    ok(await page.locator('.b-gate [data-reward="gold"]').count()===0 && await page.locator('.b-gate [data-reward="stone"]').count()===1
+    ok(await page.locator('.b-gate [data-reward="gold"]').count()===1 && await page.locator('.b-gate [data-reward="stone"]').count()===0
       && await page.locator('.b-pop,[data-drops]').count()===0, `${width}: 장면 안 보상 아이콘·기존 상세 팝업 제거`);
     await page.click(rewardSelector);
     ok(await page.locator('.b-reward-chance').isVisible() && /58%/.test(await page.locator('.b-reward-chance').innerText())

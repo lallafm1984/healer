@@ -49,6 +49,17 @@
 }
 .ns .tb-mmo .tb-xpt::before { content: none; }
 
+/*
+ * 골드 (91, 2026-10-16 Lim 「골드 재화를 다시 넣자」): 경험치 막대 오른쪽에 그림 + 수 (1만부터 줄여 씀).
+ * 이름 칸이 좁으면 (S25 · 플립 · 울트라 384) 막대 아래 줄로 내려감 (막대 · 골드가 겹치거나 휴식 판을 덮지 않게)
+ */
+.ns .tb-mmo .tb-xprow { flex-wrap: wrap; row-gap: 3px; }
+.ns .tb-mmo .tb-xprow .tb-xp { flex-basis: 84px; }
+.ns .tb-mmo .tb-cur.tb-gold-mmo { flex: none; gap: 3px; margin-left: 8px; }
+.ns .tb-mmo .tb-gold-mmo .currency-icon { display: inline-grid; place-items: center; width: 16px; height: 16px; }
+.ns .tb-mmo .tb-gold-mmo .currency-icon :is(img, svg) { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 1px #000); }
+.ns .tb-mmo .tb-gold-mmo b { font: 800 12px/1 var(--font-body); color: #ffe2a0; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #000; }
+
 /* 휴식 (90): 판에 파인 나무 홈 패널 · 청동 고리 달 그림 · 지금/최대 · 다음 +1까지 */
 .ns .tb-mmo .tb-wal { flex: none; max-width: none; gap: 0; }
 .ns .tb-mmo .tb-cur.tb-st {
@@ -108,8 +119,17 @@
   background: url('../art/a2-portrait-v3.png') center / 100% 100% no-repeat; color: #fff4d5;
 }
 
+/* 「← 제목」 줄의 골드 (91, #172 전 자리): 제목 오른쪽 끝 */
+.ns .topbar:not(.tb-mmo) .tb-cur.tb-gold { display: inline-flex; align-items: center; gap: 4px; flex: none; height: auto; margin-left: auto; padding: 0 2px; border: 0; background: none; }
+.ns .topbar:not(.tb-mmo) .tb-gold .currency-icon { display: inline-grid; place-items: center; width: 20px; height: 20px; }
+.ns .topbar:not(.tb-mmo) .tb-gold .currency-icon :is(img, svg) { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 1px #000); }
+.ns .topbar:not(.tb-mmo) .tb-gold b { font: 800 15px/1 var(--font-body); color: #ffe2a0; font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px #000; }
+.ns .topbar:not(.tb-mmo) .tb-gold + .tb-set { margin-left: 6px; }
+
 @media (max-width: 359px) {
   .ns { --a2-header-portrait: 54px; --a2-header-name-size: 20px; }
+  .ns .tb-mmo .tb-cur.tb-gold-mmo { margin-left: 5px; }
+  .ns .tb-mmo .tb-gold-mmo b { font-size: 12px; }
   .ns .topbar.tb-mmo { gap: 5px; padding-left: 5px; padding-right: 5px; }
   .ns .tb-mmo .tb-lv { font-size: 10px; }
   .ns .tb-mmo .tb-xp { width: 92px; }
@@ -128,6 +148,11 @@
   }
   .ns .tb-mmo .tb-cur.tb-st { min-height: 40px; padding-block: 2px; row-gap: 2px; }
   .ns .tb-mmo .tb-xp { height: 12px; }
+  /* 골드 줄이 막대 아래로 내려가도 낮은 판 (54) 안에 들게 (91) */
+  .ns .tb-mmo .tb-nm { gap: 2px; }
+  .ns .tb-mmo .tb-xprow { row-gap: 1px; }
+  .ns .tb-mmo .tb-gold-mmo .currency-icon { width: 13px; height: 13px; }
+  .ns .tb-mmo .tb-gold-mmo b { font-size: 11px; }
 }
 @media (max-height: 520px) {
   .ns { --a2-header-height: 44px; }

@@ -2,13 +2,13 @@
  * 캐릭터 탭 (27 4장 기능, 31 시안 CharGear31 · CharSkill31 · CharTalent31 · CharClass31 — 30 로비·전투·길드와 같은 테마). 캐릭터 그림 없음.
  * 위 = 공통 위 줄(topBar) + 하위 탭 4칸 [장비][스킬][특성][직업] (전투 탭 분류 칸 모양, 아이콘 + 이름).
  * 장비: 무기고(ui-char) · 좌우 장비 칸 6개 · 중앙 능력치 · 바로 펼친 인벤토리(필터·정렬·좋음/나쁨 화살표)
- *       + 아래 시트(아이템 탭 → 상세 (옵션마다 지금 장비와 차이) · 장착·강화·잠금·개별 분해 · 능력치 출처 · 도감)
+ *       + 아래 시트(아이템 탭 → 상세 (옵션마다 지금 장비와 차이 · 그 장비 범위) · 장착·잠금·판매 · 능력치 출처 · 도감). 91: 강화 없음 (디아2식)
  * 스킬: [설명 보기 | 배치 바꾸기] · 마법진 위 휠 3×3 금테 메달 · 양피지 설명 · 칸 탭 기본 힐 · 스킬 줄 목록
  * 특성: 프리셋 · 특성 노드 · 고르기 시트 / 직업: 일곱 직업 비교 목록 · 상태 표시 · 소개와 스킬 카드 상세
  * 그림(item- · skill- · stat- · icon-skills · icon-talent · ui-magic-circle)은 gameIcon으로 감쌈: 파일이 오면 그 그림, 없으면 선 아이콘·CSS.
  */
-import { resourceBalance, unlimitedResource, type ResourceKey } from '../game/resources';
-import { ENHANCE_DROP_FROM, enhanceCost, enhanceGain, GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, lineValue, MAX_PLUS, optionsOf, rerollCost, rollFill, salvageOf, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
+import { resourceBalance } from '../game/resources';
+import { GRADE_STYLE, ITEM_GRADES, itemScore, itemStats, LEGEND, lineValue, optFill, optionsOf, qualityOf, rerollCost, rollFill, sellGold, SLOTS, slotName, STAT_KEYS, STATS, isPointStat, toPoints, type GearItem, type GearLine, type ItemGrade, type SlotKey, type StatKey } from '../data/equipment';
 import { ALL_HERO_KEYS, HERO_KEYS, heroSkills, HEROES, skillAt, slotIdOf, type HeroKey } from '../data/heroes';
 import { TALENT_LEVEL } from '../data/progression';
 import { JOB_PRICE, jobProductId } from '../data/economy';
@@ -20,13 +20,13 @@ import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, type DexTab } from '../da
 import { betterSlots, codexRows, dexRows, specRows, statParts, talentsLeft, vsWorn } from '../game/charinfo';
 import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, specText, specValue, type CodexGroup, type SpecGroup, type SpecLine } from '../data/specials';
 import {
-  claimDex, commit, enhanceLack, enhanceTry, equip, findItem, G, healerLevel, heroSave, heroStatus, isNewGear, markGearSeen, newGearCount, pickReroll, pickTalent, reroll, rerollOpen, salvage,
-  setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleLock, type EnhanceOutcome, type RerollKind,
+  claimDex, commit, equip, findItem, G, healerLevel, heroSave, heroStatus, isNewGear, markGearSeen, newGearCount, pickReroll, pickTalent, reroll, rerollOpen, sell,
+  setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleLock, type RerollKind,
 } from '../game/state';
 import { Flow } from '../game/flow';
 import type { Settlement } from '../game/settle';
 import { art } from '../art';
-import { classEmblem, currencyAmount, currencyIcon, CURRENCY_NAMES, fxArt, gameIcon, gearIcon, LOCK, trinketArt, uiIcon } from './art';
+import { classEmblem, currencyAmount, fxArt, gameIcon, gearIcon, LOCK, trinketArt, uiIcon } from './art';
 import { battle, current, go, esc, fmt, josa, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 import { sheetDialog } from './dialog';
@@ -42,12 +42,6 @@ let codexG: CodexGroup = 'heal';
 let dexT: DexTab = 'kind';
 /** 장비 상세의 재설정 모드 (34 6-8): 줄마다 ↻ 버튼. rrAlt = Lv 60 둘째 후보 (시트를 닫으면 사라짐) */
 let rrOn = false;
-/** 저장된 강화 결과의 시각 연출. 종료는 결과를 지우거나 추가 강화를 실행하지 않는다. at = 시작 시각 (탭으로 건너뛰기 판단) */
-type EnhanceFx = EnhanceOutcome & { quick: boolean; duration: number; at: number };
-let efx: EnhanceFx | null = null;
-let efxTimer: ReturnType<typeof setTimeout> | undefined;
-/** 지금 전면 레이어에 붙어 있는 연출. 화면을 다시 그려도 같은 연출이면 DOM을 그대로 둬서 처음부터 다시 돌거나 끊기지 않게 한다. */
-let fxShown: EnhanceFx | null = null;
 let rrAlt: { id: number; kind: RerollKind; i: number; alt: GearLine | SpecLine } | null = null;
 
 let sub: Sub = 'gear';
@@ -56,8 +50,8 @@ let sel: string | null = null;
 let swapping = false;
 let msg = '';
 let sheet: Sheet = null;
-/** 확인 전에는 재화와 장비를 변경하지 않는다. */
-let pending: { kind: 'enhance' | 'salvage'; id: number; plus: number; result?: EnhanceOutcome; error?: string } | null = null;
+/** 판매 확인 (91, 예전 분해): 확인 전에는 재화와 장비를 변경하지 않는다. */
+let pending: { kind: 'sell'; id: number } | null = null;
 /** 지난번에 그린 시트 (같은 시트를 다시 그릴 땐 올라오는 움직임 없이) */
 let sheetKey = '';
 /** 다른 화면에서는 장비 정보를 읽기 전용으로 표시한다. 배경 화면은 유지한다. */
@@ -72,7 +66,7 @@ const s = screen('s-char', '캐릭터', {
       if (sub !== arg) finishInventoryVisit();
       sub = arg as Sub;
     }
-    sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null; rrOn = false; rrAlt = null; efx = null;
+    sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null; rrOn = false; rrAlt = null;
     render(false);
   },
   leave() { finishInventoryVisit(); },
@@ -85,18 +79,11 @@ export function openItemDetail(id: number, onClose: () => void): boolean {
   if (!findItem(id) || current === s.el.id || itemOverlay) return false;
   itemOverlay = { origin: current, previousSub: sub, onClose };
   sub = 'gear'; sheet = { k: 'item', id }; pending = null; msg = ''; sheetKey = '';
-  rrOn = false; rrAlt = null; efx = null; clearTimeout(efxTimer);
+  rrOn = false; rrAlt = null;
   s.el.classList.add('c7-item-overlay'); s.el.hidden = false;
   render(false);
   return true;
 }
-/** 전면 연출은 고정 광고/앱 틀의 쌓임 순서와 클리핑 밖에서 표시한다. */
-const screenFxHost = document.createElement('div');
-screenFxHost.id = 'gearEnhanceFx';
-screenFxHost.setAttribute('aria-hidden', 'true');
-document.body.appendChild(screenFxHost);
-// 전면 연출은 마지막 페이드(screenFxExit)가 실제로 끝난 뒤에 닫는다. 고정 타이머만 쓰면 폰에서 첫 장면이 늦게 그려진 만큼 끝이 잘렸다.
-screenFxHost.addEventListener('animationend', e => { if (efx && e.target === screenFxHost.firstElementChild) endFx(); });
 
 /** 지금 휠 배치 (저장이 없거나 틀리면 기본) */
 export function layoutNow(): Record<string, string | null> {
@@ -117,13 +104,12 @@ const TREE = '<path d="M12 5v5M12 10l-5 4M12 10l5 4M7 14v4M17 14v4"/><circle cx=
 
 function render(keep = true, resetInventory = false): void {
   modal.beforeRender();
-  // 화면 이동이나 분해로 대상이 사라지면 모달만 정리하고 원래 화면에 돌아간다.
+  // 화면 이동이나 판매로 대상이 사라지면 모달만 정리하고 원래 화면에 돌아간다.
   if (itemOverlay && (current !== itemOverlay.origin || !sheet || sheet.k !== 'item' || !findItem(sheet.id))) {
     const context = itemOverlay;
     itemOverlay = null; sub = context.previousSub; sheet = null; pending = null; sheetKey = '';
-    efx = null; clearTimeout(efxTimer);
     s.el.hidden = true; s.el.classList.remove('c7-item-overlay'); s.el.innerHTML = '';
-    modal.sync(null, []); syncScreenFx();
+    modal.sync(null, []);
     if (current === context.origin) context.onClose();
     return;
   }
@@ -131,7 +117,7 @@ function render(keep = true, resetInventory = false): void {
   const top = keep && old ? old.scrollTop : 0;
   const inventoryTop = keep && !resetInventory ? s.el.querySelector<HTMLElement>('.c7-bags')?.scrollTop ?? 0 : 0;
   if (sub === 'gear' && !itemOverlay) inventoryVisited = true;
-  // 시트가 가리키던 것이 없어졌으면 (분해한 장비 등) 시트도 닫음
+  // 시트가 가리키던 것이 없어졌으면 (판매한 장비 등) 시트도 닫음
   const sh = sheetHtml();
   if (!sh) { sheet = null; pending = null; }
   const body = itemOverlay ? '' : sub === 'gear' ? gearHtml() : sub === 'skill' ? skillHtml() : sub === 'hero' ? heroListHtml() : talentHtml();
@@ -154,7 +140,6 @@ function render(keep = true, resetInventory = false): void {
     : sheet.k === 'item' ? [`item:${sheet.id}`] : sheet.k === 'codex' ? ['dex', 'codex'] : [sheet.k];
   if (pending) path.push(`confirm:${pending.kind}`);
   modal.sync(path.length ? s.el.querySelector<HTMLElement>(pending ? '.c7-confirm' : '.sheet') : null, path);
-  syncScreenFx();
 }
 
 /** 하위 탭 4칸: 새 장비 = 장비 빨간 점, 남은 특성 = 특성 빨간 점 */
@@ -194,7 +179,7 @@ const gradeIdx = (it: GearItem) => ITEM_GRADES.indexOf(it.grade);
 /** 정렬 버튼을 누를 때마다 점수 → 등급 → 새것 */
 const SORTS: Record<BagSort, { name: string; next: BagSort; cmp: (a: GearItem, b: GearItem) => number }> = {
   score: { name: '점수순', next: 'grade', cmp: (a, b) => itemScore(b, G.save.player.level) - itemScore(a, G.save.player.level) || slotIdx(a) - slotIdx(b) || b.id - a.id },
-  grade: { name: '등급순', next: 'new', cmp: (a, b) => gradeIdx(b) - gradeIdx(a) || slotIdx(a) - slotIdx(b) || b.plus - a.plus },
+  grade: { name: '등급순', next: 'new', cmp: (a, b) => gradeIdx(b) - gradeIdx(a) || slotIdx(a) - slotIdx(b) || itemScore(b, G.save.player.level) - itemScore(a, G.save.player.level) },
   new: { name: '새것순', next: 'score', cmp: (a, b) => b.id - a.id },
 };
 let bagFilter: BagFilter = 'all';
@@ -224,35 +209,13 @@ function lookFx(it: GearItem, at: 'b' | 's'): string {
 const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#8BEA9C', '희귀': '#8DBEFF', '영웅': '#D7A6FF', '전설': '#FFE680' };
 /** 등급 색 · 글자 색, 세력 생김새면 세력 색 (안쪽 테두리, 34 6-10 ②) */
 const gvars = (it: GearItem) => `--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}${it.look ? `;--lk:${FACTIONS[it.look].color}` : ''}`;
-const plusTxt = (it: GearItem) => (it.plus ? ` +${it.plus}` : '');
+/** 품질 (91): 희귀 이상 굴림 평균 130% 「정교한」 · 145% 「완벽한」. 이름 앞 작은 말 (성능은 굴림 그대로) */
+const qualityTxt = (it: GearItem) => { const q = qualityOf(it); return q ? `${q} ` : ''; };
+const qualityTag = (it: GearItem) => { const q = qualityOf(it); return q ? `<span class="c7-q" data-q="${q}">${q}</span> ` : ''; };
 /** 비율 → 퍼센트: 소수 둘째 자리 이하를 버리고 한 자리 고정. 부동소수점 경계 오차만 보정한다. */
 const pc = (x: number) => (Math.sign(x) * Math.trunc((Math.abs(x) + Number.EPSILON) * 1000) / 10).toFixed(1);
 /** 옵션 값 글자 (2026-10-13 Lim): 지능 · 체력은 수치 (정수, 천 단위 쉼표), 치명타 · 가속 · 정신력 · 인내는 고정 % */
 const optTxt = (k: StatKey, v: number, lv: number) => (isPointStat(k) ? fmt(Math.round(toPoints(k, v, lv))) : `${pc(v)}%`);
-/** 강화로 오른 옵션 (2026-10-16 Lim 「강화성공시 증가 수치를 보여주자」): 화면에 보이는 값 (수치 반올림 · % 한 자리) 기준 차이, 안 바뀌어 보이는 줄은 뺌 */
-function gainHtml(it: GearItem, from: number, to: number): string {
-  const lv = G.save.player.level;
-  const shown = (k: StatKey, v: number) => (isPointStat(k) ? Math.round(toPoints(k, v, lv)) : Number(pc(v)));
-  const rows = enhanceGain(it, from, to, lv).map(g => ({ k: g.stat, d: shown(g.stat, g.after) - shown(g.stat, g.before) })).filter(g => g.d > 1e-9);
-  if (!rows.length) return '';
-  return `<ul class="c7-enh-gain" aria-label="오른 옵션">${rows.map(g => `<li><span>${STATS[g.k].name}</span><b>+${isPointStat(g.k) ? fmt(g.d) : `${g.d.toFixed(1)}%`}</b></li>`).join('')}</ul>`;
-}
-/**
- * 다음 강화 미리 보기 (2026-10-16 Lim 「+5 → +6 하단에 장비의 옵션별 능력치 상승 수치도, 퀄리티 있게」): 옵션 줄마다 지금 값 → 강화 뒤 값과 오르는 몫.
- * 값은 장비 상세와 같은 글자 (지능 · 체력 수치, 나머지 %), 오르는 몫도 보이는 값끼리의 차이. 특수능력은 강화로 오르지 않아 넣지 않음
- */
-function enhancePreviewHtml(it: GearItem, to: number): string {
-  const lv = G.save.player.level;
-  const rows = enhanceGain(it, it.plus, to, lv);
-  if (!rows.length) return '';
-  const shown = (k: StatKey, v: number) => (isPointStat(k) ? Math.round(toPoints(k, v, lv)) : Number(pc(v)));
-  const li = rows.map(r => {
-    const name = STATS[r.stat].name, a = optTxt(r.stat, r.before, lv), b = optTxt(r.stat, r.after, lv);
-    const d = shown(r.stat, r.after) - shown(r.stat, r.before), dt = isPointStat(r.stat) ? fmt(d) : `${d.toFixed(1)}%`;
-    return `<li data-stat="${r.stat}" aria-label="${name} ${a}에서 ${b}로 ${dt} 상승"><span class="c7-epv-ic" aria-hidden="true">${statIc(STAT_ART[r.stat])}</span><span class="c7-epv-name">${name}</span><span class="c7-epv-from">${a}</span><span class="c7-epv-arrow" aria-hidden="true"></span><b class="c7-epv-to">${b}</b><em class="c7-epv-up${d > 1e-9 ? '' : ' none'}">+${dt}</em></li>`;
-  }).join('');
-  return `<section class="c7-enh-preview" aria-label="강화 뒤 능력치"><h4><span>능력치 상승</span></h4><ul>${li}</ul></section>`;
-}
 /** 장비 그림 (36 4-2 · 4-3): 이름 있는 장신구 → 종류 → 부위 (item-<부위>) → 부위 선 아이콘. 빈칸은 부위 그림 */
 const itemIc = (x: SlotKey | Parameters<typeof gearIcon>[0]) => gearIcon(typeof x === 'string' ? { slot: x } : x);
 
@@ -266,10 +229,8 @@ const STAT_LINE = {
   stamina: line('<path d="M12 3l7 3v5c0 5-3.2 8.4-7 10-3.8-1.6-7-5-7-10V6z"/>', 2.2),
 };
 const statIc = (k: keyof typeof STAT_LINE) => gameIcon(k, STAT_LINE[k], 'stat');
-/** 장비 능력치 → 능력치 그림 이름 (능력치 판과 같은 그림) */
-const STAT_ART: Record<StatKey, keyof typeof STAT_LINE> = { int: 'heal', hp: 'hp', crit: 'crit', haste: 'haste', spirit: 'regen', endure: 'stamina' };
 
-/** ① 장비 칸 (시안 .slot): 칸 바탕 = 등급 색 (2026-10-16 Lim, 등급 글자 칩 없음 · 등급은 접근 가능한 이름에) · 강화 +n · 더 좋은 장비 초록 ↑ · 빈칸은 가방 개수 */
+/** ① 장비 칸 (시안 .slot): 칸 바탕 = 등급 색 (2026-10-16 Lim, 등급 글자 칩 없음 · 등급은 접근 가능한 이름에) · 더 좋은 장비 초록 ↑ · 빈칸은 가방 개수 (91: 강화 +n 없음) */
 /** 특수능력 묶음 표식 (36 I `spec-*`): 그림이 있으면 그림, 없으면 묶음 글자. trinket = 도감 고유 칸의 이름 있는 장신구 키 (36 4-3 그림, 없으면 글자) */
 const specBadge = (g: CodexGroup, label: string, trinket?: string) => {
   if (g !== 'named') return gameIcon(SPEC_GROUPS[g].icon.replace(/^spec-/, ''), label, 'spec');
@@ -293,8 +254,8 @@ function slotHtml(key: SlotKey, better: SlotKey[]): string {
     return `<button type="button" class="gtile c7-slot empty" data-gslot="${key}"${n ? '' : ' disabled'} aria-label="${name} 빈칸${n ? ` · 가방에 ${n}개` : ''}">
         <span class="c7-sq">${itemIc(key)}${up}</span><b>${name}</b></button>`;
   }
-  return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(it.name)}${plusTxt(it)} · ${it.grade}${specLabel(it)}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
-      <span class="c7-sq${it.plus >= MAX_PLUS ? ' max' : ''}${it.grade === LEGEND ? ' lg' : ''}">${itemIc(it)}${lookFx(it, 's')}${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${specDots(it)}${up}</span>
+  return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(qualityTxt(it) + it.name)} · ${it.grade}${specLabel(it)}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
+      <span class="c7-sq${it.grade === LEGEND ? ' lg' : ''}">${itemIc(it)}${lookFx(it, 's')}${specDots(it)}${up}</span>
       <b>${it.lock ? LOCK : ''}${name}</b></button>`;
 }
 
@@ -323,12 +284,12 @@ function gearHtml(): string {
     ${inventoryHtml()}`;
 }
 
-/** 가방 칸: 장비 그림 + 등급 색 + +N + 지금 장비보다 점수가 높으면 초록 ▲ · 낮으면 빨간 ▼ (Lim 2026-10-11) + 새 점 */
+/** 가방 칸: 장비 그림 + 등급 색 + 지금 장비보다 점수가 높으면 초록 ▲ · 낮으면 빨간 ▼ (Lim 2026-10-11) + 새 점 */
 function bagCell(it: GearItem): string {
   const vs = vsWorn(it), nw = isNewGear(it);
-  const label = `${it.grade} ${slotName(it.slot)} · ${it.name}${plusTxt(it)}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${vs > 0 ? ' · 지금 장비보다 좋음' : vs < 0 ? ' · 지금 장비보다 나쁨' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
+  const label = `${it.grade} ${slotName(it.slot)} · ${qualityTxt(it)}${it.name}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${vs > 0 ? ' · 지금 장비보다 좋음' : vs < 0 ? ' · 지금 장비보다 나쁨' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
   const arrow = vs > 0 ? '<span class="up" aria-hidden="true">▲</span>' : vs < 0 ? '<span class="dn" aria-hidden="true">▼</span>' : '';
-  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}${it.grade === LEGEND ? ' lg' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${lookFx(it, 'b')}${it.plus ? `<em>+${it.plus}</em>` : ''}${specDots(it)}${arrow}${nw ? '<span class="nw" aria-hidden="true"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
+  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}${it.grade === LEGEND ? ' lg' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${lookFx(it, 'b')}${specDots(it)}${arrow}${nw ? '<span class="nw" aria-hidden="true"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
 }
 
 const grip = '<span class="grip" aria-hidden="true"></span>';
@@ -336,7 +297,7 @@ const dim = '<div class="sheet-dim" data-sheetx></div>';
 const updn = (v: number, unit = '') => (v > 0 ? `<span class="c7-up">▲${v}${unit}</span>` : v < 0 ? `<span class="c7-dn">▼${-v}${unit}</span>` : '<span class="cap">같음</span>');
 
 /**
- * 장비 아래에 항상 보이는 5열 인벤토리. 아이템을 누르면 상세에서 장착·분해한다.
+ * 장비 아래에 항상 보이는 5열 인벤토리. 아이템을 누르면 상세에서 장착·판매한다.
  * 위쪽(착용 장비·능력치)은 움직이지 않고 이 목록만 스크롤 (Lim 2026-10-12): 머리 두 줄 = [인벤토리 · 개수 · 재료] [분류 4칸 · 정렬],
  * 목록은 하단 메뉴 바로 위까지 남은 높이를 다 씀 (최소 3줄). 빈칸은 보이는 줄까지 fillBags가 채움
  */
@@ -349,7 +310,7 @@ function inventoryHtml(): string {
   const used = list.length;
   const emptySlots = EMPTY_CELL.repeat(Math.max(15, Math.ceil(used / 5) * 5) - used);
   return `<section class="c7-inventory" aria-label="인벤토리">
-      <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3><span class="c7-inventory-count">${all.length}개</span><span class="cap gmats">${currencyAmount('stone', resourceBalance(G.save, 'stone'))}${currencyAmount('refined', resourceBalance(G.save, 'refined'))}</span></header>
+      <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3><span class="c7-inventory-count">${all.length}개</span><span class="cap gmats">${goldHave()}</span></header>
       <div class="c7-inventory-tools"><div class="c7-fcs" role="group" aria-label="인벤토리 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div><button type="button" class="btn2 c7-sort" data-bsort aria-label="정렬: ${SORTS[bagSort].name}"${all.length ? '' : ' disabled'}>${SORTS[bagSort].name} ▾</button></div>
       ${msg && !sheet ? `<p class="note warn c7-msg" role="status">${esc(msg)}</p>` : ''}
       <div class="c7-bags" role="region" aria-label="인벤토리 아이템" tabindex="0">${list.map(bagCell).join('')}${emptySlots}</div></section>`;
@@ -412,8 +373,8 @@ function dexSheet(): string {
   const tab = DEX_TABS.find(t => t.key === dexT)!, rows = dexRows(dexT), got = rows.filter(r => r.got).length, done = G.save.decos.includes(tab.title);
   const next = (Math.floor(have.length / DEX_STEP) + 1) * DEX_STEP;
   const reward = due.steps
-    ? `<button type="button" class="btn2 hot" data-dexclaim>보상 받기 ${currencyAmount('stone', due.stone)}${due.refined ? ` ${currencyAmount('refined', due.refined)}` : ''}</button>`
-    : `<span class="cap">${next <= all ? `${next}칸을 채우면 강화석 (지금 ${have.length})` : '보상을 모두 받았습니다'}</span>`;
+    ? `<button type="button" class="btn2 hot" data-dexclaim>보상 받기 ${currencyAmount('gold', due.gold)}</button>`
+    : `<span class="cap">${next <= all ? `${next}칸을 채우면 골드 (지금 ${have.length})` : '보상을 모두 받았습니다'}</span>`;
   const count = (t: DexTab) => dexKeys(t).filter(k => have.includes(k)).length;
   const pop = dexPop && !G.save.settings.reducedEffects ? fxArt('fx-dex-reward', 'c7-dexpop') : '';
   dexPop = false;
@@ -428,13 +389,18 @@ function dexSheet(): string {
       <div class="c7-bagf"><span class="cap">처음 얻으면 칸이 채워짐 · 능력치 보너스 없음</span>${fill}<button type="button" class="btn2" data-codex>특수능력 ${codexHave(SPEC_GROUP_KEYS)}/${SPEC_KEYS.length}</button><button type="button" class="btn2" data-sheetx>닫기</button></div></section>`;
 }
 
-/** 장비 상세 시트 (27 4-3, 시안 GearSheet27): 지금 장비와 비교 ▲▼ · 강화 · 잠금 · 분해 · 장착(강화와 별개) */
+/** 장비 상세 시트 (27 4-3, 시안 GearSheet27): 지금 장비와 비교 ▲▼ · 그 장비 범위 · 잠금 · 판매 · 장착 */
 /** 재설정 ↻ 버튼 (재설정 모드일 때만) */
 const rrBtn = (kind: RerollKind, i: number, name: string) => (rrOn ? `<button type="button" class="c7-rr" data-rr="${kind}:${i}" aria-label="${esc(name)} 다시 굴림">↻</button>` : '');
-/** 재설정 비용 줄 (34 6-8): 무작위 옵션 한 줄 · 특수능력 한 줄 (3배), 가진 정제 강화석 */
+/** 재설정 비용 줄 (34 6-8): 무작위 옵션 한 줄 · 특수능력 한 줄 (3배), 가진 골드 (91) */
 function rrCostHtml(it: GearItem): string {
-  const a = rerollCost(it, false), b = rerollCost(it, true);
-  return `<p class="cap c7-rrcost">한 줄 다시 굴림 · 옵션 ${currencyAmount('refined', a.refined)} · 특수능력 ${currencyAmount('refined', b.refined, { have: resourceBalance(G.save, 'refined') })}</p>`;
+  const a = rerollCost(it, false), b = rerollCost(it, true), have = resourceBalance(G.save, 'gold');
+  return `<p class="cap c7-rrcost">한 줄 다시 굴림 · 옵션 ${currencyAmount('gold', a.gold)} · 특수능력 ${currencyAmount('gold', b.gold, isFinite(have) ? { have } : {})}</p>`;
+}
+/** 가진 골드 (인벤토리 머리). 개발 빌드 골드 무제한이면 ∞ */
+function goldHave(): string {
+  const have = resourceBalance(G.save, 'gold');
+  return currencyAmount('gold', isFinite(have) ? have : '∞');
 }
 /** Lv 60 재설정 둘째 후보: 「이걸로」 누르면 바꿈 */
 function rrAltHtml(it: GearItem, kind: RerollKind): string {
@@ -444,57 +410,6 @@ function rrAltHtml(it: GearItem, kind: RerollKind): string {
   else { const l = rrAlt.alt as SpecLine, d = SPECS[l.key]; txt = `${d.name} · ${specText(d, specValue(l.key, it.grade, l.roll))}`; }
   return `<div class="c7-rralt"><span class="cap">다른 후보</span><b>${esc(txt)}</b><button type="button" class="btn2" data-rrpick>이걸로</button></div>`;
 }
-
-/** 전면 연출을 보여 줄 수 있나 (효과 줄이기 · 기기의 동작 줄이기면 팝업 안의 짧은 연출만) */
-const screenFxOn = () => !G.save.settings.reducedEffects && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/** 결과 저장 후 전면 연출. */
-function playFx(o: EnhanceOutcome, quick: boolean): void {
-  const duration = (quick ? 500 : o.ok ? 2400 : 2200);
-  efx = { ...o, quick, duration, at: performance.now() };
-  clearTimeout(efxTimer);
-  // 전면 연출은 animationend로 닫고, 타이머는 애니메이션이 돌지 않을 때(앱이 뒤로 감 등)의 안전장치
-  efxTimer = setTimeout(endFx, screenFxOn() ? duration + 1500 : duration);
-  vibe(o.ok ? [15] : [30, 40, 30]);
-  warmFx();
-}
-/**
- * 연출 중 탭 (34 7-3 「탭 = 건너뛰고 결과」): 팝업은 닫지 않고 결과 화면으로. 결과 글자가 다 뜨기 전(앞 45%)의 탭은 무시해
- * 번쩍임과 결과 공개는 끝까지 보이게 한다. 건너뛸 때는 짧게 사라짐 (.skip의 animationend로 닫힘).
- */
-function skipFx(): void {
-  if (!efx || performance.now() - efx.at < efx.duration * 0.45) return;
-  const root = screenFxHost.firstElementChild;
-  if (root && !root.classList.contains('skip')) root.classList.add('skip');
-  else if (!root) endFx();
-}
-function endFx(): void {
-  clearTimeout(efxTimer);
-  if (!efx) return;
-  efx = null;
-  render();
-}
-/** 전면 레이어는 새 연출이 시작될 때만 새로 붙이고, 같은 연출이 이어지는 동안은 건드리지 않는다. */
-function syncScreenFx(): void {
-  const f = efx && !s.el.hidden && pending?.kind === 'enhance' && pending.id === efx.id && screenFxOn() ? efx : null;
-  if (f === fxShown) return;
-  fxShown = f;
-  screenFxHost.innerHTML = f ? screenEnhanceFx(f) : '';
-}
-/** 전면 연출 그림은 처음 강화할 때 늦게 떠서 장면이 비지 않도록 미리 풀어 둔다. */
-const fxWarm: HTMLImageElement[] = [];
-function warmFx(): void {
-  if (fxWarm.length) return;
-  for (const name of ['fx-enhance-spark', 'fx-enhance-crack']) {
-    const u = art(name);
-    if (!u) continue;
-    const img = new Image();
-    img.src = u;
-    img.decode?.().catch(() => { /* 그림이 없거나 못 풀면 연출만 그림 없이 */ });
-    fxWarm.push(img);
-  }
-}
-const vibe = (p: number[]) => { if (G.save.settings.vibrate && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(p); };
 
 function itemSheet(id: number): string {
   const it = findItem(id);
@@ -511,14 +426,14 @@ function itemSheet(id: number): string {
     return Math.abs(x) >= 10 ? Math.round(x) : Math.round(x * 10) / 10;
   };
   const row = (k: string, v: string, right: string, cls = '') => `<div class="c7-cmp${cls}"><span>${k}</span><b>${v}</b>${right}</div>`;
-  // 연출 그림 (36 4-4 G · 4-6 J)은 효과 줄이기면 빼고 CSS 연출만
-  const calm = !!G.save.settings.reducedEffects;
-  // 옵션 줄 (Lim 2026-10-11): 왼쪽 = 능력치 · 값, 오른쪽 = 지금 장비와 차이 ▲▼ (착용 중이면 비움). 재설정 모드면 무작위 옵션 오른쪽에 굴림 막대 + ↻
+  // 옵션 줄 (Lim 2026-10-11): 왼쪽 = 능력치 · 값, 오른쪽 = 지금 장비와 차이 ▲▼ (착용 중이면 비움). 재설정 모드면 무작위 옵션 오른쪽에 굴림 막대 + ↻.
+  // 값 아래 작은 글자 = 이 장비에서 그 줄이 나올 수 있는 범위 (91 디아2식: 굴림 50% ~ 160%), 굴림 막대 = (굴림 − 50%) ÷ 110%
   const opts = optionsOf(it, lv), has = new Set(opts.map(o => o.stat));
   const own = opts.map(o => {
     const l = o.line != null ? it.lines[o.line] : null;
-    const right = rrOn && l ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(l.roll * 100)}%"><i style="width:${Math.round(rollFill(l.roll) * 100)}%"></i></span>${rrBtn('line', o.line!, STATS[o.stat].name)}` : worn || rrOn ? '' : d1(o.stat) === 0 ? '<span class="c7-same" aria-label="같음">—</span>' : updn(d1(o.stat));
-    return row(STATS[o.stat].name, `+${optTxt(o.stat, o.v, lv)}`, right);
+    const right = rrOn && l ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(l.roll * 100)}%"><i style="width:${Math.round(optFill(l.roll) * 100)}%"></i></span>${rrBtn('line', o.line!, STATS[o.stat].name)}` : worn || rrOn ? '' : d1(o.stat) === 0 ? '<span class="c7-same" aria-label="같음">—</span>' : updn(d1(o.stat));
+    const range = `${optTxt(o.stat, o.lo, lv)}~${optTxt(o.stat, o.hi, lv)}`;
+    return row(STATS[o.stat].name, `+${optTxt(o.stat, o.v, lv)}<small class="c7-rng" aria-label="범위 ${range}">${range}</small>`, right);
   }).join('');
   // 지금 장비에만 있는 능력치: 빠지는 만큼 ▼ 한 줄로
   const lost = worn || rrOn ? [] : STAT_KEYS.filter(k => !has.has(k) && b[k] > 0);
@@ -527,118 +442,45 @@ function itemSheet(id: number): string {
   // 특수능력 (42 1-3 · 1-5): 묶음 표식 · 이름 · 효과 · 굴림 막대, 꺼진 줄은 회색 + 이유. 전설은 「고유 능력」 (Lim 2026-10-11 「전설에만 고유 능력」)
   const sp = specRows(it), legend = it.grade === LEGEND;
   const spec = sp.length ? `<div class="c7-cmpw${legend ? ' c7-legend' : ''}"><h3 class="h-rule c7-h3">${legend ? (sp.length > 1 ? '고유 능력 · 특수능력' : '고유 능력') : '특수능력'}<span class="rule"></span></h3>${sp.map(s => `<div class="c7-spec${s.off ? ' off' : ''}" data-g="${s.group}"><span class="c7-spg">${specBadge(s.group, s.badge)}</span><span class="c7-spt"><b>${esc(s.name)}${SPECS[s.key]?.hero ? ` <small>${HEROES[SPECS[s.key].hero!].name} 전용</small>` : ''}</b><span class="cap">${esc(s.text.replace(/^내가 거는 보호막 /, '보호막 '))}</span></span>${s.off ? `<span class="cap c7-spoff">${/전용$/.test(s.off) ? '비활성' : s.off}</span>` : rrOn && s.roll != null ? `<span class="c7-roll" role="img" aria-label="굴림 ${Math.round(s.roll * 100)}%"><i style="width:${Math.round(rollFill(s.roll) * 100)}%"></i></span>` : ''}${s.i != null ? rrBtn('spec', s.i, s.name) : ''}</div>`).join('')}${rrAltHtml(it, 'spec')}</div>` : '';
-  const c = enhanceCost(it);
-
-  const sv = salvageOf(it);
-  // 강화 연출: 성공 = 번쩍 + 새 단계, 실패 = 흔들림. 짧게 = 0.5초
-  const f = !pending && efx && efx.id === it.id ? efx : null;
-  const fxCls = f ? ` fx ${f.ok ? 'fx-ok' : 'fx-fail'}${f.quick ? ' fx-quick' : ''}` : '';
-  const fxRes = f ? `<b class="c7-fxres" aria-live="polite">${f.ok ? `+${f.to}` : '강화 실패'}</b>` : '';
-  // 망치 (0.4 · 0.7 · 1.0초, 짧게면 없음) · 불꽃 (CSS 반짝이 자리에 그림) · 실패하면 금 간 조각 (36 4-4 G)
-  const fxOn = f ? `<span class="c7-fxring" aria-hidden="true"></span><span class="c7-fxspark" aria-hidden="true">${calm ? '' : fxArt('fx-enhance-spark', 'c7-fxspi')}</span>${f.quick || calm ? '' : fxArt('fx-enhance-hammer', 'c7-fxham')}${f.ok || calm ? '' : fxArt('fx-enhance-crack', 'c7-fxcrk')}` : '';
-  const max10 = it.plus >= MAX_PLUS ? ' max' : '';
-  return `${dim}<section class="sheet c7-gsheet${fxCls}" role="dialog" aria-labelledby="gearSheetTitle" style="${gvars(it)}">
+  return `${dim}<section class="sheet c7-gsheet" role="dialog" aria-labelledby="gearSheetTitle" style="${gvars(it)}">
       <div class="c7-dialog-head"><h3 id="gearSheetTitle">장비 상세</h3><button type="button" class="btn2 c7-dialog-close" data-sheetx aria-label="장비 상세 닫기">닫기</button></div>
-      <div class="c7-ghead"><span class="c7-gic${max10}">${itemIc(it)}${fxOn}${fxRes}</span>
-        <span class="c7-gname"><b>${esc(it.name)}${it.plus ? ` <i>+${it.plus}</i>` : ''}</b><span class="cap">${sub2}</span></span></div>
+      <div class="c7-ghead"><span class="c7-gic">${itemIc(it)}</span>
+        <span class="c7-gname"><b>${qualityTag(it)}${esc(it.name)}</b><span class="cap">${sub2}</span></span></div>
       <div class="c7-cmpw c7-opts"><h3 class="h-rule c7-h3">능력치<span class="rule"></span><span class="cap">${rrOn ? '재설정할 줄의 ↻' : cmpCap}</span>${!readOnly && rerollOpen() && (it.lines.length || it.specs?.length) ? `<button type="button" class="btn2 c7-rrb" data-rrmode aria-pressed="${rrOn}">재설정</button>` : ''}</h3>${rrOn ? rrCostHtml(it) : ''}${own}${lostHtml}${rrAltHtml(it, 'line')}</div>
       ${spec}
-      ${readOnly ? '' : `<section class="c7-enh-section" aria-label="강화">
-        <button type="button" class="c7-enhance-button" data-enh="${it.id}"${c ? '' : ' disabled'}>${c ? '강화' : '최대 강화'}</button>
-      </section>
-      ${msg ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
+      ${readOnly ? '' : `${msg ? `<p class="note warn c7-msg">${esc(msg)}</p>` : ''}
       <div class="c7-sbtns">
         <button type="button" class="c7-sb c7-lockb" data-lock="${it.id}" aria-pressed="${!!it.lock}">${uiIcon('lock')}<small>${it.lock ? '잠김' : '잠금'}</small></button>
-        <button type="button" class="c7-sb c7-salvb" data-salv1="${it.id}"${worn || it.lock ? ' disabled' : ''}>분해<small>${worn ? '착용 중' : it.lock ? '잠김' : currencyAmount('stone', sv.stone)}</small></button>
+        <button type="button" class="c7-sb c7-salvb" data-sell1="${it.id}"${worn || it.lock ? ' disabled' : ''}>판매<small>${worn ? '착용 중' : it.lock ? '잠김' : currencyAmount('gold', sellGold(it))}</small></button>
         <button type="button" class="c7-cta" data-equip="${it.id}"${worn ? ' disabled' : ''}>${worn ? '착용 중' : '장착'}</button>
       </div>`}</section>`;
 }
 
-/** 강화 팝업의 보유/비용 표 (장비 상세에는 강화 버튼만 둔다, Lim 2026-10-14). 재화 이름은 공통 아이콘의 접근성 설명으로 제공한다. */
-function enhanceMaterials(c: NonNullable<ReturnType<typeof enhanceCost>>): string {
-  const rows: { key: ResourceKey; have: number; cost: number }[] = [
-    ...(c.stone ? [{ key: 'stone' as const, have: G.save.mats.stone, cost: c.stone }] : []),
-    ...(c.refined ? [{ key: 'refined' as const, have: G.save.mats.refined, cost: c.refined }] : []),
-  ];
-  // 무제한 옵션이 켜진 재화는 실제 잔액 대신 ∞를 표시한다.
-  const inf = (k: ResourceKey) => unlimitedResource(G.save, k);
-  return `<div class="c7-enh-materials" role="table" aria-label="강화 재료 보유량 및 비용">
-    <div class="c7-material-head" role="row"><span role="columnheader" class="sr">재화</span><span role="columnheader">보유</span><span role="columnheader">강화 비용</span></div>
-    ${rows.map(r => `<div class="c7-material-row${!inf(r.key) && r.have < r.cost ? ' short' : ''}" role="row" data-material="${r.key}"><span role="rowheader" aria-label="${CURRENCY_NAMES[r.key]}">${currencyIcon(r.key)}</span><b role="cell" data-have aria-label="${CURRENCY_NAMES[r.key]} 보유 ${inf(r.key) ? '무제한' : fmt(r.have)}">${inf(r.key) ? '∞' : fmt(r.have)}</b><b role="cell" data-cost aria-label="${CURRENCY_NAMES[r.key]} 강화 비용 ${fmt(r.cost)}">${fmt(r.cost)}</b></div>`).join('')}
-  </div>`;
-}
-
-/** 강화는 확인창을 유지한 채 한 번씩 실행하고, 결과와 다음 비용을 갱신한다. */
+/** 판매 확인창 (91, 예전 분해 확인). 판매한 장비는 되돌릴 수 없음 */
 function confirmHtml(): string {
   if (!pending) return '';
   const it = findItem(pending.id);
   if (!it) return '';
-  const dismantle = pending.kind === 'salvage', c = enhanceCost(it), reward = salvageOf(it);
-  const f = !dismantle && efx?.id === it.id ? efx : null, result = pending.result;
-  const fxCls = f ? ` fx ${f.ok ? 'fx-ok' : 'fx-fail'}${f.quick ? ' fx-quick' : ''}` : '';
-  // 팝업 안 장식(빛 고리 · 불꽃 · 알갱이)은 전면 연출이 그대로 덮어서 보이지 않고 폰 그래픽만 잡아먹어 뺐다. 연출 중엔 강화 전 단계를 보여 줘 결과를 미리 드러내지 않는다.
-  const shownPlus = f ? f.from : it.plus;
-  const amounts = `${reward.stone ? currencyAmount('stone', reward.stone) : ''}${reward.refined ? currencyAmount('refined', reward.refined) : ''}`;
-  const status = result?.ok ? `<div class="c7-enh-result success${f ? ' revealing' : ''}" role="status" aria-live="polite"><b>강화 성공</b><span>+${result.from} → +${result.to}</span>${gainHtml(it, result.from, result.to)}</div>` : '';
-  const details = dismantle
-    ? `<div class="c7-confirm-cost"><span>획득 재료</span><div>${amounts}</div></div><p id="gearConfirmDesc">분해한 장비는 되돌릴 수 없습니다.</p>`
-    : `${status}<div class="c7-enh-next">
-      <div class="c7-confirm-step">${c ? `${result ? '<small>다음 강화</small>' : ''}+${it.plus} <span>→</span> +${c.to}` : `최대 강화 +${MAX_PLUS}`}</div>
-      ${c ? enhancePreviewHtml(it, c.to) : ''}
-      ${c ? enhanceMaterials(c) : ''}
-      <div class="c7-confirm-rate" id="gearConfirmDesc">${c ? `<span>성공률 ${Math.round(c.rate * 100)}%</span>${it.plus >= ENHANCE_DROP_FROM ? `<span class="c7-enh-drop" data-drop>실패 시 강화 등급 1 하락 (+${it.plus} → +${c.fail})</span>` : ''}` : '최대 강화 도달'}</div>
-      </div>
-      ${pending.error ? `<p class="c7-lack" role="status">${esc(pending.error)}</p>` : ''}`;
-  // 버튼에는 짧게 (「강화석 부족」): 판정은 enhanceTry와 같은 enhanceLack
-  const lack = !dismantle && c ? enhanceLack(it).replace(/ \(.*\)$/, '') : '';
-  return `<button type="button" class="sheet-dim c7-confirm-dim" data-confirmcancel aria-label="${result ? '강화 팝업 닫기' : '확인 취소'}" tabindex="-1"></button>
-    <section class="sheet c7-confirm still${!dismantle ? ' c7-enhance-dialog' : ''}${fxCls}" role="dialog" aria-labelledby="gearConfirmTitle" aria-describedby="gearConfirmDesc" aria-busy="${!!f}">
-      <h3 id="gearConfirmTitle">${dismantle ? '장비 분해' : '장비 강화'}</h3>
-      <div class="c7-confirm-item${!dismantle ? ' c7-enhance-item' : ''}" style="${gvars(it)}"><span class="c7-confirm-icon${!dismantle ? ' c7-gic' : ''}">${itemIc(it)}</span><b>${esc(it.name)}${shownPlus ? ` +${shownPlus}` : ''}</b></div>
-      ${details}
-      <div class="c7-confirm-actions"><button type="button" data-confirmcancel>${result ? '닫기' : '취소'}</button><button type="button" class="hot" data-confirmgo${!dismantle && (f || !c || lack) ? ' disabled' : ''}>${dismantle ? '분해하기' : f ? '강화 중' : !c ? '최대 강화' : lack || (result ? '한 번 더 강화' : '강화하기')}</button></div>
+  return `<button type="button" class="sheet-dim c7-confirm-dim" data-confirmcancel aria-label="확인 취소" tabindex="-1"></button>
+    <section class="sheet c7-confirm still" role="dialog" aria-labelledby="gearConfirmTitle" aria-describedby="gearConfirmDesc">
+      <h3 id="gearConfirmTitle">장비 판매</h3>
+      <div class="c7-confirm-item" style="${gvars(it)}"><span class="c7-confirm-icon">${itemIc(it)}</span><b>${qualityTag(it)}${esc(it.name)}</b></div>
+      <div class="c7-confirm-cost"><span>받는 골드</span><div>${currencyAmount('gold', sellGold(it))}</div></div><p id="gearConfirmDesc">판매한 장비는 되돌릴 수 없습니다.</p>
+      <div class="c7-confirm-actions"><button type="button" data-confirmcancel>취소</button><button type="button" class="hot" data-confirmgo>판매하기</button></div>
     </section>`;
-}
-
-/** 강화 결과는 화면 전면에서 연출한다. 결과 저장/반복 실행과는 독립된 시각 레이어다 (붙이는 때는 syncScreenFx). */
-function screenEnhanceFx(f: EnhanceFx): string {
-  const it = findItem(f.id);
-  if (!it) return '';
-  const particles = Array.from({ length: f.quick ? 18 : 48 }, (_, n) => `<i style="--a:${n * 137.508}deg;--r:${38 + n % 9 * 5}vmax;--delay:${n % 5 * 25}ms;--spin:${n * 47}deg;--size:${3 + n % 4}px"></i>`).join('');
-  // 실패해 떨어지면 (87, +5 이상) 성공처럼 「+7 → +6」, 그대로면 지금 단계만
-  const level = f.ok || f.to < f.from ? `+${f.from} → +${f.to}` : `+${f.to}`;
-  return `<div class="c7-screen-fx ${f.ok ? 'success' : 'failure'}${f.quick ? ' quick' : ''}" style="--screen-fx-duration:${f.duration}ms" aria-hidden="true" data-enhance-fx="${f.ok ? 'success' : 'failure'}">
-    <div class="c7-screen-veil"></div><div class="c7-screen-rays"></div><div class="c7-screen-flare"></div>
-    <div class="c7-screen-wave wave-1"></div><div class="c7-screen-wave wave-2"></div><div class="c7-screen-wave wave-3"></div>
-    <div class="c7-screen-art">${fxArt(f.ok ? 'fx-enhance-spark' : 'fx-enhance-crack', 'c7-screen-burst')}</div>
-    ${f.ok ? '' : `<svg class="c7-screen-fracture" viewBox="0 0 360 640" preserveAspectRatio="none"><path d="M180 320l-51-44-24-68-47-26L0 82m129 194l-62 14-25-32L0 248M180 320l54-63 11-69 49-32 66-63m-126 164l52 7 35-47 39-11M180 320l-30 85-54 22-14 80-55 63L0 640m150-235l42 45-2 108 35 42 11 40M180 320l77 61 4 57 62 26 37 77m-103-160l50-22 53 26"/></svg>`}
-    <div class="c7-screen-particles">${particles}</div>
-    <div class="c7-screen-result"><span class="c7-screen-item" style="${gvars(it)}">${itemIc(it)}</span><strong>${f.ok ? '강화 성공' : '강화 실패'}</strong><b>${level}</b></div>
-  </div>`;
 }
 
 /** 확인창에서만 실행한다. 실행 전에 대상을 다시 확인하고, 중복 클릭은 무시한다. */
 function confirmAction(): void {
   const action = pending;
   if (!action) return;
-  if (efx) return;
   const it = findItem(action.id);
-  if (!it || sheet?.k !== 'item' || sheet.id !== action.id || it.plus !== action.plus) { pending = null; render(); return; }
-  if (action.kind === 'enhance') {
-    const o = enhanceTry(action.id);
-    if (typeof o === 'string') action.error = o;
-    else {
-      action.plus = o.to; action.result = o; action.error = '';
-      msg = '';
-      playFx(o, !!G.save.settings.quickEnhance || !!G.save.settings.reducedEffects || window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    }
-    render(); return;
-  }
   pending = null;
+  if (!it || sheet?.k !== 'item' || sheet.id !== action.id) { render(); return; }
   const visibleIds = Array.from(s.el.querySelectorAll<HTMLElement>('.c7-inventory [data-gitem]')).map(el => Number(el.dataset.gitem));
   const index = visibleIds.indexOf(action.id), next = visibleIds[index + 1] ?? visibleIds[index - 1];
-  const r = salvage([action.id]);
-  msg = r.n ? `분해: 강화석 +${r.stone}${r.refined ? ` · 정제 강화석 +${r.refined}` : ''}` : '';
+  const r = sell([action.id]);
+  msg = r.n ? `판매: 골드 +${fmt(r.gold)}` : '';
   if (r.n) { sheet = null; rrOn = false; rrAlt = null; }
   render();
   if (r.n) {
@@ -1054,11 +896,11 @@ function heroSheet(k: HeroKey): string {
 // ---------- 누르기 ----------
 /** 장비·능력치·도감 시트는 펼쳐진 인벤토리로 돌아가며 스크롤과 포커스를 유지한다. */
 function closeSheet(): void {
-  if (pending) { pending = null; efx = null; clearTimeout(efxTimer); render(); return; }
+  if (pending) { pending = null; render(); return; }
   const talentReturn = sheet?.k === 'talent' ? `${sheet.i}:${sheet.j}` : null;
   const closingItem = sheet?.k === 'item' ? sheet : null;
   const inventoryReturn = closingItem && !G.save.gear.bag.some(it => it.id === closingItem.id) ? closingItem.inventoryIndex : undefined;
-  rrOn = false; rrAlt = null; efx = null; clearTimeout(efxTimer);
+  rrOn = false; rrAlt = null;
   sheet = sheet?.k === 'codex' ? { k: 'dex' } : null;
   msg = ''; render();
   if (talentReturn) focusTalentControl(`[data-tcell="${talentReturn}"]`);
@@ -1081,14 +923,10 @@ function onClick(t: HTMLElement): boolean {
     return true;
   }
   if (pending) {
-    // 강화 연출 중에는 바깥(어두운 바탕)을 눌러도 팝업을 닫지 않고 연출만 건너뜀 (예전엔 팝업과 연출이 함께 사라져 끊겨 보였다)
-    if (efx && pending.kind === 'enhance') skipFx();
-    else if (t.closest('[data-confirmgo]')) confirmAction();
+    if (t.closest('[data-confirmgo]')) confirmAction();
     else if (t.closest('[data-confirmcancel], [data-sheetx]')) closeSheet();
     return true;
   }
-  // 강화 연출 중 아무 데나 누르면 연출 끝 (누른 것은 그대로 처리, 34 7-3)
-  if (efx && !t.closest('[data-enh]')) endFx();
   const tab = t.closest<HTMLElement>('[data-csub]');
   if (tab) { go('s-char', tab.dataset.csub); return true; }
   if (t.closest('[data-sheetx]')) { closeSheet(); return true; }
@@ -1112,18 +950,11 @@ function onClick(t: HTMLElement): boolean {
   if (lk) { toggleLock(Number(lk.dataset.lock)); msg = ''; render(); return true; }
   const eq = t.closest<HTMLElement>('[data-equip]');
   if (eq) { wornNow = Number(eq.dataset.equip); equip(wornNow); msg = ''; render(); return true; }
-  const en = t.closest<HTMLButtonElement>('[data-enh]');
-  if (en) {
-    if (en.disabled) return true;
-    const it = findItem(Number(en.dataset.enh));
-    if (it) pending = { kind: 'enhance', id: it.id, plus: it.plus };
-    render(); return true;
-  }
-  const s1 = t.closest<HTMLButtonElement>('[data-salv1]');
+  const s1 = t.closest<HTMLButtonElement>('[data-sell1]');
   if (s1) {
     if (s1.disabled) return true;
-    const it = findItem(Number(s1.dataset.salv1));
-    if (it) pending = { kind: 'salvage', id: it.id, plus: it.plus };
+    const it = findItem(Number(s1.dataset.sell1));
+    if (it) pending = { kind: 'sell', id: it.id };
     render();
     return true;
   }
@@ -1142,7 +973,7 @@ function onClick(t: HTMLElement): boolean {
   if (dt) { dexT = dt.dataset.dext as DexTab; render(); return true; }
   if (t.closest('[data-dexclaim]')) {
     const got = claimDex();
-    msg = got.steps ? `도감 보상: 강화석 ${got.stone}${got.refined ? ` · 정제 강화석 ${got.refined}` : ''}` : '';
+    msg = got.steps ? `도감 보상: 골드 ${fmt(got.gold)}` : '';
     dexPop = got.steps > 0;
     render(); return true;
   }
@@ -1224,7 +1055,7 @@ s.el.addEventListener('pointerdown', e => {
   dragY = sh && sh.scrollTop <= 0 && !t.closest('button') ? e.clientY : null;
 });
 s.el.addEventListener('pointerup', e => {
-  if (dragY != null && sheet && !efx && e.clientY - dragY > 60) closeSheet();
+  if (dragY != null && sheet && e.clientY - dragY > 60) closeSheet();
   dragY = null;
 });
 

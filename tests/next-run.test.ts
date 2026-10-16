@@ -2,7 +2,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { contentOf, stageOf } from '../src/data/content';
 import type { DiffName } from '../src/data/difficulty';
-import { SLOTS, type ItemGrade } from '../src/data/equipment';
+import type { ItemGrade } from '../src/data/equipment';
+import { presetGear } from './fixtures/preset-gear';
 import { guide } from '../src/game/guide';
 import { nextRun } from '../src/game/next-run';
 import { G } from '../src/game/state';
@@ -12,10 +13,8 @@ const clear = (key: string, ...ds: DiffName[]) => {
   const rec = (G.save.clears as Record<string, Partial<Record<DiffName, unknown>>>)[key] ??= {};
   for (const d of ds) rec[d] = { stars: 3, grade: 'S', best: 100, n: 1 };
 };
-const wear = (grade: ItemGrade, plus = 5) => {
-  let id = 9000;
-  for (const s of SLOTS) G.save.gear.equipped[s.key] = { id: id++, slot: s.key, kind: '', grade, plus, name: 'x', lines: [], lv: G.save.player.level };
-};
+/** 프리셋 세기 장비 (91: 희귀 × 1.4 = 예전 희귀 +5) */
+const wear = (grade: ItemGrade, mult = 1.4) => { G.save.gear.equipped = presetGear(grade, mult, G.save.player.level); };
 
 describe('결과 화면 다음 갈 곳', () => {
   beforeEach(() => { G.save = newSave(1); G.save.settings.devUnlock = false; });

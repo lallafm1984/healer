@@ -19,13 +19,13 @@ const result = (o: Partial<BattleResult> = {}): BattleResult => ({
 describe('저장 이전 (34 3-4 → 68 v11)', () => {
   it('옛 저장의 레벨·경험치를 열린 모든 직업에 넣고 (v6), 해 본 직업마다 캐릭터로 (v11). 퀘스트 중인 직업은 캐릭터 없음', () => {
     const s = migrate({
-      v: 5, hero: 'druid', player: { level: 30, xp: 120, gold: 9 },
+      v: 5, hero: 'druid', player: { level: 30, xp: 120, gold: 9 }, mats: { stone: 3, refined: 1 },
       heroes: { druid: { layout: null, tapKey: 'heal', unlocked: true, quest: 1, wins: 4 }, paladin: { layout: null, tapKey: 'heal', unlocked: false, quest: 0, wins: 0 } },
     });
     expect(s.v).toBe(SAVE_VERSION);
-    expect(s.player).toEqual({ level: 30, xp: 120 }); // v16: 옛 저장 골드는 버림
+    expect(s.player).toEqual({ level: 30, xp: 120, gold: 800 }); // v16이 버린 옛 골드는 없음, v17: 강화석 3 · 정제 1 → 300 + 500
     expect(s.roster.chars.map(c => [c.hero, c.level])).toEqual([['priest', 30], ['druid', 30]]);
-    expect(s.roster.chars[0].park!.player).toEqual({ level: 30, xp: 120 });
+    expect(s.roster.chars[0].park!.player).toEqual({ level: 30, xp: 120, gold: 0 });
     expect(heroLevelOf(s, 'priest')).toBe(30);
     expect(s.heroes.druid!.wins).toBe(4);
     expect(heroLevelOf(s, 'paladin')).toBe(30);
@@ -48,14 +48,14 @@ describe('캐릭터마다 레벨 (34 3장 → 68)', () => {
     G.save.tut = TUT.done;
     G.save.settings.devUnlock = false;
     G.save.roster.slots = 3;
-    G.save.player.level = 25; G.save.player.xp = 40;
+    G.save.player.level = 25; G.save.player.xp = 40; G.save.player.gold = 777;
   });
-  it('새 캐릭터는 Lv 1부터, 돌아오면 원래 레벨', () => {
+  it('새 캐릭터는 Lv 1 · 골드 0부터, 돌아오면 원래 레벨 · 골드', () => {
     expect(makeChar('druid')).toBe('');
-    expect(G.save.player).toEqual({ level: 1, xp: 0 });
+    expect(G.save.player).toEqual({ level: 1, xp: 0, gold: 0 });
     G.save.player.level = 4;
     expect(pickChar(1)).toBe(true);
-    expect(G.save.player).toEqual({ level: 25, xp: 40 });
+    expect(G.save.player).toEqual({ level: 25, xp: 40, gold: 777 });
     expect(heroLevelOf(G.save, 'druid')).toBe(25);
     expect(G.save.roster.chars.find(c => c.id === 2)!.level).toBe(4);
   });

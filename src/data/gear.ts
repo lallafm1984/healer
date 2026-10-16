@@ -11,15 +11,21 @@ export interface GearPreset {
   label: string;
   /** 6부위 공통 등급 */
   g: GradeName;
-  /** 강화 단계 */
+  /**
+   * 옵션 배율 (91 디아2식, 예전 강화 배율 자리): 고급 1 · 희귀 · 영웅 1.4 = 예전 +0 · +5 · +5 (밸런스 기준 세기 그대로).
+   * 실제 장비는 아이템 레벨 배율 (equipment ilvBonus)로 Lv 40쯤 1.4
+   */
+  m: number;
+  /** 프로토타입 일치 테스트용 예전 강화 단계 (protoGearStats) */
   u: number;
 }
 
+/** 키 이름은 예전 그대로 (adv0 · rare5 · epic5, 밸런스 표 · 시뮬이 씀), 보이는 이름만 등급 (91 「이름만 고급 · 희귀 · 영웅」) */
 export const GEARS: Record<GearId, GearPreset> = {
-  none: { label: '장비 없음', g: '없음', u: 0 },
-  adv0: { label: '고급 +0', g: '고급', u: 0 },
-  rare5: { label: '희귀 +5', g: '희귀', u: 5 },
-  epic5: { label: '영웅 +5', g: '영웅', u: 5 },
+  none: { label: '장비 없음', g: '없음', m: 0, u: 0 },
+  adv0: { label: '고급', g: '고급', m: 1, u: 0 },
+  rare5: { label: '희귀', g: '희귀', m: 1.4, u: 5 },
+  epic5: { label: '영웅', g: '영웅', m: 1.4, u: 5 },
 };
 
 /**
@@ -90,9 +96,9 @@ export function protoGearStats(id: GearId): GearStats {
   return { heal: g === '없음' ? 1 : 1 + 6 * (h + 0.005 * u), regen: 1 + 0.03 * n, haste: 0.02 * n, crit: 0.02 * n };
 }
 
-/** 프리셋 능력치: 6부위 모두 그 등급 · 강화의 기댓값 장비 (data/equipment presetStats). ilv = 아이템 레벨 (그 장소 적 레벨, % 옵션 배율) */
+/** 프리셋 능력치: 6부위 모두 그 등급의 기댓값 장비 × 옵션 배율 (data/equipment presetStats). ilv = 아이템 레벨 (그 장소 적 레벨, % 옵션 배율) */
 export function gearStats(id: GearId, ilv?: number): GearStats {
-  const { g, u } = GEARS[id];
+  const { g, m } = GEARS[id];
   if (g === '없음') return { heal: 1, regen: 1, haste: 0, crit: 0, hp: 0, endure: 0 };
-  return statsToGear(presetStats(g, u, ilv));
+  return statsToGear(presetStats(g, m, ilv));
 }

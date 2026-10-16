@@ -3,7 +3,7 @@
  * 이기면 첫 화면에 등급·별·받은 것, 지면 어디서 졌는지·힌트. 지표·딜미터기는 「전투 기록」에 접어 둠 (지면 펼침)
  */
 import { contentOf, type ContentKey } from '../data/content';
-import { avgScore, GRADE_STYLE, kindOf, recommendedFor, slotName, type ItemGrade } from '../data/equipment';
+import { avgScore, GRADE_STYLE, kindOf, qualityOf, recommendedFor, slotName, type ItemGrade } from '../data/equipment';
 import { CLASSES } from '../data/classes';
 import { HEROES, type HeroKey } from '../data/heroes';
 import { STAR_OVERHEAL, xpToNext } from '../data/progression';
@@ -115,12 +115,11 @@ function tipHtml(r: BattleResult, x: Settlement): string {
 /** 받은 것: 장비 줄 (클리어마다 1개) · 재화 칸 · 경험치 줄 */
 function lootHtml(r: BattleResult, x: Settlement): string {
   const tiles: string[] = [];
-  // 재화는 한 줄 칩 (그림 · +값 · 이름, 2026-10-13 Lim 「골드 · 강화석 UI 점검」). 골드는 v16 (2026-10-16)에 없앰
-  // 휴식 (90): 강화석 · 정제 강화석 그림 왼쪽 위 꼬리표 (휴식 · 1/3), 경험치 줄 끝 「휴식」 · 「휴식 없음 1/3」 (튜토리얼은 없음)
+  // 재화는 한 줄 칩 (그림 · +값 · 이름, 2026-10-13 Lim 「골드 · 강화석 UI 점검」). 골드는 v16에 없앴다가 91에서 다시 (강화석 · 정제 강화석 대신)
+  // 휴식 (90): 골드 그림 왼쪽 위 꼬리표 (휴식 · 1/3), 경험치 줄 끝 「휴식」 · 「휴식 없음 1/3」 (튜토리얼은 없음)
   const rest = restTag(x), mark = !x.rest ? '' : x.rest.cut ? '<em class="r-rest-em cut">1/3</em>' : '<em class="r-rest-em">휴식</em>';
   const tile = (k: CurrencyIconKey, label: string, v: number, em = '') => `<span class="r-cur"><span class="r-ci">${currencyIcon(k)}${em}</span><span class="r-cv"><b>+${fmt(v)}</b><small>${label}</small></span></span>`;
-  if (x.mats.stone) tiles.push(tile('stone', '강화석', x.mats.stone, mark));
-  if (x.mats.refined) tiles.push(tile('refined', '정제 강화석', x.mats.refined, mark));
+  if (x.gold) tiles.push(tile('gold', '골드', x.gold, mark));
   if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
   return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
       <h2 class="r-lh" tabindex="-1">획득 보상${x.pubBonus ? ` <small>공개모집 보너스 ${x.pubBonus}/3</small>` : ''}</h2>
@@ -154,14 +153,16 @@ function itemRow(id: number): string {
   // 특수능력 이름 (42)
   const sp = specKeysOf(it);
   const spTxt = sp.length ? `<small class="r-sp">${sp.map(k => esc(specName(k))).join(' · ')}</small>` : '';
-  // 영웅 · 전설은 장비 칸 뒤로 등급 색 빛기둥 (36 4-6 fx-loot-beam, 흰 그림을 등급 색으로 칠함). 효과 줄이기면 움직이지 않음
-  const bu = it.grade === '영웅' || it.grade === '전설' ? art('fx-loot-beam') : '';
+  // 영웅 · 전설은 장비 칸 뒤로 등급 색 빛기둥 (36 4-6 fx-loot-beam, 흰 그림을 등급 색으로 칠함). 효과 줄이기면 움직이지 않음.
+  // 품질 (91): 「정교한」 · 「완벽한」 희귀 이상도 같은 빛기둥 (이름 앞 작은 말)
+  const q = qualityOf(it);
+  const bu = it.grade === '영웅' || it.grade === '전설' || q ? art('fx-loot-beam') : '';
   const beam = bu ? `<span class="r-beam${G.save.settings.reducedEffects ? ' calm' : ''}" style="--beam:url('${bu}')" aria-hidden="true"></span>` : '';
   // 전설 (고유 장비 · 이름 있는 장신구, 88)은 빛기둥 위에 리본 · 별이 한 번 퍼짐 (50 E fx-unique-drop, 장비 칸 뒤). 효과 줄이기면 없음
   const drop = it.grade === '전설' && !G.save.settings.reducedEffects ? fxArt('fx-unique-drop', 'r-udrop') : '';
-  return `<button type="button" class="r-item" data-reward-item="${id}" aria-haspopup="dialog" aria-label="${esc(it.name)}${it.plus ? ` +${it.plus}` : ''} 상세 보기" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
+  return `<button type="button" class="r-item" data-reward-item="${id}" aria-haspopup="dialog" aria-label="${q ? `${q} ` : ''}${esc(it.name)} 상세 보기" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
       ${beam}${drop}<span class="r-ic${it.grade === '전설' ? ' lg' : ''}">${gearIcon(it)}</span>
-      <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><span class="r-gs"><i class="r-gr">${it.grade}</i><span class="r-sc">점수 ${sc}${delta}</span><small>${slotName(it.slot)} · ${esc(kindOf(it).name)}</small></span>${spTxt}</span>
+      <span class="r-nm"><b>${q ? `<span class="r-q" data-q="${q}">${q}</span> ` : ''}${esc(it.name)}</b><span class="r-gs"><i class="r-gr">${it.grade}</i><span class="r-sc">점수 ${sc}${delta}</span><small>${slotName(it.slot)} · ${esc(kindOf(it).name)}</small></span>${spTxt}</span>
       ${act}
     </button>`;
 }

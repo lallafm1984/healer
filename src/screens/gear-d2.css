@@ -1,0 +1,16 @@
+/*
+ * 디아2식 장비 (91, 2026-10-16 Lim): 장비 상세 옵션 줄의 범위 글자 (굴림 50% ~ 160% 값) · 품질 작은 말 (정교한 · 완벽한).
+ * 장비 상세 모양 (gear-detail.css, 2026-10-13 승인)은 그대로 두고 값 칸 아래 작은 줄과 이름 앞 작은 표만 더함.
+ */
+#app #s-char .c7-gsheet .c7-cmp > b .c7-rng {
+  display: block; margin-top: 1px; font: 500 11px/1.25 var(--font-body); letter-spacing: -.01em;
+  color: var(--detail-muted, #c9bda8); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+#app #s-char .c7-gsheet .c7-cmp { padding-block: 3px; }
+/* 품질: 이름 앞 작은 금빛 표 (성능은 굴림 그대로, 말만). 완벽한 = 더 밝은 금 + 빛 */
+:is(#s-char, #s-settle) :is(.c7-q, .r-q) {
+  display: inline-block; margin-right: 2px; padding: 0 5px; border-radius: 4px; vertical-align: 2px;
+  font: 800 11px/1.55 var(--font-body); letter-spacing: -.02em; color: #2a1c08; text-shadow: none; white-space: nowrap;
+  background: linear-gradient(#f3dc9a, #c99a3f); box-shadow: inset 0 1px 0 #fff6d8aa, 0 1px 1px #0008;
+}
+:is(#s-char, #s-settle) :is(.c7-q, .r-q)[data-q="완벽한"] { background: linear-gradient(#fff3bd, #f0a63a); box-shadow: inset 0 1px 0 #fff, 0 0 7px #ffd36aaa, 0 1px 1px #0008; }

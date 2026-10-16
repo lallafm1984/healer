@@ -3,10 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { chalDropDiff } from '../src/data/challenge';
 import { CLASSES } from '../src/data/classes';
 import { CONTENT, contentOf, isLeveling, stageOf } from '../src/data/content';
-import { avgScore, dropTable, gearStatsOf, ITEM_GRADES, rollItem, SLOTS, type Equipped } from '../src/data/equipment';
+import { avgScore, dropTable, gearStatsOf, ITEM_GRADES, presetScore, RECOMMENDED, rollItem, type Equipped } from '../src/data/equipment';
+import { presetGear } from './fixtures/preset-gear';
 import { gearStats } from '../src/data/gear';
 import { RULES } from '../src/data/rules';
-import { addXp, clearXp, gradeOf, inRamp, lvPower, lvPowerProto, RAMP_FIRST, RAMP_FIRST_FOUR, RAMP_FOUR_LV, RAMP_LV, RAMP_REPEAT, rampDiffs, rampShare, rampSpan, rampXp, starsOf, xpToNext } from '../src/data/progression';
+import { addXp, clearGold, clearXp, gradeOf, inRamp, lvPower, lvPowerProto, RAMP_FIRST, RAMP_FIRST_FOUR, RAMP_FOUR_LV, RAMP_LV, RAMP_REPEAT, rampDiffs, rampShare, rampSpan, rampXp, starsOf, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
 import { heal } from '../src/engine/core';
 import { rngFrom } from '../src/engine';
@@ -140,10 +141,17 @@ describe('레벨 배율 (07 4장, 18 2-1)', () => {
 });
 
 describe('장비 (02 10장)', () => {
-  it('장비 없음 = 프리셋 none, 평균 점수 = 등급 + 강화/10 (추가 옵션 굴림 없을 때)', () => {
-    const all = (grade: '고급' | '희귀' | '영웅', plus: number): Equipped => Object.fromEntries(SLOTS.map((s, i) => [s.key, { id: i, slot: s.key, kind: '', grade, plus, name: '', lines: [] }]));
-    expect(gearStatsOf({}, 1)).toEqual(gearStats('none'));
-    expect(avgScore(all('희귀', 5), 30)).toBeCloseTo(3.5);
+  it('장비 없음 = 프리셋 none, 평균 점수 = 옵션 값 ÷ 한 줄 기준 합 (91), 권장 장비 점수 = 그 프리셋 장비 점수', () => {
+    const none: Equipped = {};
+    expect(gearStatsOf(none, 1)).toEqual(gearStats('none'));
+    expect(avgScore(none, 30)).toBe(0);
+    expect(RECOMMENDED['어려움']!.score).toBeCloseTo(presetScore('고급', 1));
+    expect(RECOMMENDED['악몽']!.score).toBeCloseTo(presetScore('희귀', 1.4));
+    // 프리셋 세기 장비 (첫 종류 · 5% 여유)는 그 레벨에서 권장 점수 이상, 1.4 대신 1이면 (예전 희귀 +0) 악몽 권장에 못 미침
+    for (const lv of [25, 40, 70]) {
+      expect(avgScore(presetGear('희귀', 1.4, lv), lv)).toBeGreaterThanOrEqual(RECOMMENDED['악몽']!.score);
+      expect(avgScore(presetGear('희귀', 1, lv), lv)).toBeLessThan(RECOMMENDED['악몽']!.score);
+    }
   });
   it('드롭 등급 비율이 표를 따름, 전설은 20인 · Lv 100부터 (61 3장 · 88)', () => {
     const rng = rngFrom(7);
@@ -166,7 +174,7 @@ describe('장비 (02 10장)', () => {
     expect(avg('S')).toBeGreaterThan(avg('C') + 0.03);
   });
   it('전투에 착용 장비 능력치가 들어감', () => {
-    const st = gearStatsOf({ weapon: { id: 1, slot: 'weapon', kind: 'staff', grade: '영웅', plus: 0, name: '', lines: [{ stat: 'hp', roll: 1 }] } }, 30);
+    const st = gearStatsOf({ weapon: { id: 1, slot: 'weapon', kind: 'staff', grade: '영웅', name: '', lines: [{ stat: 'hp', roll: 1 }] } }, 30);
     const f = E.create({ encounter: 'warden', diff: '보통', seed: 1, gearStats: st });
     expect(f.gear).toEqual({ ...st, heal: st.heal * RULES.heal }); // 지능에는 치유 배율이 곱해짐 (34 1-6)
   });
@@ -180,15 +188,15 @@ const result = (o: Partial<BattleResult> = {}): BattleResult => ({
 });
 
 describe('정산 (09 S08·S09)', () => {
-  it('클리어: 등급·별·경험치·장비 1개, 기록 저장 (골드는 v16에 없앰)', () => {
+  it('클리어: 등급·별·골드·경험치·장비 1개, 기록 저장 (골드는 v16에 없앴다가 91에서 다시)', () => {
     const s = newSave(1);
     const x = settle(s, result(), rngFrom(1));
     expect(x.grade).toBe('A');
     expect(x.stars).toEqual([true, false, true]);
     expect(x.overhealPct).toBe(30);
     expect(x.dispelPct).toBeNull();
-    expect(x).not.toHaveProperty('gold');
-    expect(s.player).not.toHaveProperty('gold');
+    expect(x.gold).toBe(clearGold(stageOf(contentOf('rustfort'), '보통'), '보통', 'A'));
+    expect(s.player.gold).toBe(x.gold);
     // Lv 20까지는 장소가 정한 경험치 (70): 녹슨 요새 보통 첫 클리어 = 장소 몫 60%
     expect(x.xp).toBe(rampXp(contentOf('rustfort'), '보통', { first: true, grade: 'A', win: true }));
     expect(x.levelUps).toEqual([2, 3]);
@@ -244,12 +252,12 @@ describe('정산 (09 S08·S09)', () => {
     expect(x.best).toBe(true);
     expect(s.clears.rustfort!['보통']).toEqual({ stars: 3, grade: 'S', best: 300, n: 2 });
   });
-  it('지면 (전멸) 장비·경험치 모두 없음 (2026-10-13 Lim, 예전 20%). 포기도 없음', () => {
+  it('지면 (전멸) 골드·장비·경험치 모두 없음 (2026-10-13 Lim, 예전 20%). 포기도 없음', () => {
     const s = newSave(1);
     const x = settle(s, result({ win: false, segIdx: 1 }), rngFrom(1));
-    expect([x.grade, x.items, x.xp]).toEqual([null, [], 0]);
+    expect([x.grade, x.items, x.xp, x.gold]).toEqual([null, [], 0, 0]);
     expect(rampXp(contentOf('rustfort'), '보통', { first: true, grade: null, win: false })).toBe(0);
-    expect(s.player).toMatchObject({ level: 1, xp: 0 });
+    expect(s.player).toMatchObject({ level: 1, xp: 0, gold: 0 });
     expect(s.clears).toEqual({});
     const q = settle(s, result({ win: false, quit: true }), rngFrom(1));
     expect(q.xp).toBe(0);
