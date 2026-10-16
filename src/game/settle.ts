@@ -210,7 +210,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   const tot2 = r.healed + r.overheal;
   const missions = play && !r.quit && !r.auto ? onRun(save, {
-    win: r.win, dungeon: c.kind === 'dungeon' || c.kind === 'raid', raid, pub, diffIdx: ALL_DIFFS.indexOf(r.diff), deaths: r.deaths,
+    win: r.win, dungeon: c.kind === 'dungeon' || c.kind === 'raid', explore: c.kind === 'explore', raid, pub, diffIdx: ALL_DIFFS.indexOf(r.diff), deaths: r.deaths,
     overhealPct: tot2 ? Math.round((r.overheal / tot2) * 100) : 0, endManaPct: r.endMana, dispels: r.dispels,
     pers: r.party.map(p => p.pers || '').filter(Boolean), chal: chal?.inTime ? chal.stage : 0,
   }) : [];

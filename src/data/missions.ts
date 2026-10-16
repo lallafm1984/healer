@@ -10,6 +10,8 @@ export interface RunEvent {
   win: boolean;
   /** 던전·레이드 (탐험·튜토리얼은 아님) */
   dungeon: boolean;
+  /** 탐험 (옛 기록 · 테스트에는 없을 수 있음) */
+  explore?: boolean;
   raid: 0 | 10 | 20;
   /** 공개모집 (길드파티가 아님) */
   pub: boolean;
@@ -41,8 +43,8 @@ const won = (e: RunEvent) => e.win && e.dungeon;
 
 export const DAILY: MissionDef[] = [
   { key: 'clear3', text: '던전 클리어', need: 3, lv: 1, run: e => (won(e) ? 1 : 0) },
-  // 길드를 빼 두면 모든 판이 공개모집이라 이름만 「던전 · 레이드 클리어」 (2026-10-16 QA 「추천대로」. 빼면 Lv 1~4 일일 임무가 4개라 그대로 둠)
-  { key: 'pub2', get text() { return FEATURES.guild ? '공개모집으로 클리어' : '던전 · 레이드 클리어'; }, need: 2, lv: 1, run: e => (won(e) && e.pub ? 1 : 0) },
+  // 길드를 빼 두면 모든 판이 공개모집이라 「던전 클리어」와 겹침 → 그동안은 「탐험 클리어」 (2026-10-17 Lim 「추천대로」, 보상 그대로). 길드를 켜면 예전 임무
+  { key: 'pub2', get text() { return FEATURES.guild ? '공개모집으로 클리어' : '탐험 클리어'; }, need: 2, lv: 1, run: e => (FEATURES.guild ? (won(e) && e.pub ? 1 : 0) : (e.win && e.explore ? 1 : 0)) },
   { key: 'dispel10', text: '해제 성공', need: 10, lv: 5, run: e => e.dispels },
   { key: 'overheal', text: '오버힐 30% 이하로 클리어', need: 1, lv: 10, run: e => (won(e) && e.overhealPct <= 30 ? 1 : 0) },
   { key: 'nodeath', text: '사망자 0명으로 클리어', need: 1, lv: 1, run: e => (won(e) && e.deaths === 0 ? 1 : 0) },
