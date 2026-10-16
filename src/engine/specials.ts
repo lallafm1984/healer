@@ -8,7 +8,7 @@ import { INT_BASE } from '../data/rules';
 import { namedOf, SPECS } from '../data/specials';
 import { SKILLS, type SkillKey, type SlotName } from '../data/skills';
 import { hexDist } from './board';
-import { addMod } from './abilities';
+import { addMod, shieldShown } from './abilities';
 import { cellOf, emit, heal, living, onDebuffEnd, submerged } from './core';
 import { rainHaste, totemSide } from './shaman';
 import { beatHaste, mistTouch } from './monk';
@@ -233,6 +233,7 @@ function shield(f: Fight, u: Unit, amt: number, sec: number, src: string): void 
   const old = u.mods.find(m => m.k === 'absorb' && m.src === src && m.until > f.t);
   const v = Math.min(u.max * 0.5, (old ? old.v : 0) + amt);
   addMod(u, { k: 'absorb', v, until: f.t + sec, src });
+  shieldShown(f, u, v - (old ? old.v : 0));
   if (!old) shout(f, src, u);
 }
 

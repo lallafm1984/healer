@@ -6,7 +6,7 @@ import { DRUID_BIG, HAND_GUARD, WAVE } from '../data/heroConst';
 import { TALENT_DEF, talentKeys, TX, type TalentKey } from '../data/talents';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
-import { cellOf, emit, heal, living } from './core';
+import { cellOf, emit, heal, healFlow, living } from './core';
 import { barkCut, powerMax, putHot, putSprout } from './heroes';
 import { aoeCount, aoeDone, castCut, castMult, cdSpec, costSpec, freeCast, hasteOf, sv } from './specials';
 import { callTotems, raining, seaSeat, shamanDeath } from './shaman';
@@ -262,7 +262,7 @@ export function talentTick(f: Fight, dt: number): void {
   }
   if (tx.shelter >= 0) {
     const u = f.cells[tx.shelter].unit;
-    if (u && u.alive && !u.moving && u.cell === tx.shelter) heal(f, u, SHELTER_HPS * dt, false);
+    if (u && u.alive && !u.moving && u.cell === tx.shelter) healFlow(f, u, SHELTER_HPS * dt);
   }
   if (tx.on.twoGuard) {
     if (tx.guard < 2) {

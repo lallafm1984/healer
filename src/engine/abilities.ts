@@ -53,7 +53,12 @@ export function giveAbsorb(f: Fight, u: Unit, amt: number, sec: number, cap: num
   const m = u.mods.find(x => x.k === 'absorb' && x.src === HEALER_SHIELD);
   const left = m && m.until > f.t ? m.v : 0, v = Math.min(u.max * cap, left + amt);
   if (m) { m.v = v; m.until = Math.max(m.until, f.t + sec); } else u.mods.push({ k: 'absorb', v, until: f.t + sec, src: HEALER_SHIELD });
+  shieldShown(f, u, v - left);
   return Math.max(0, v - left);
+}
+/** 흡수 보호막이 더해진 양을 화면에 (파란 숫자, 회복 숫자와 같은 자리). 모든 보호막 (힐러 · 장비 특수능력 · 파티원 능력)이 여기를 지남 */
+export function shieldShown(f: Fight, u: Unit, amt: number): void {
+  if (amt >= 0.5) emit(f, { type: 'shield', id: u.id, amt: Math.round(amt) });
 }
 /** 힐러 흡수 보호막 남은 양 */
 export const absorbLeft = (f: Fight, u: Unit): number => u.mods.reduce((a, m) => a + (m.k === 'absorb' && m.src === HEALER_SHIELD && m.until > f.t ? m.v : 0), 0);
@@ -464,7 +469,12 @@ function apply(f: Fight, u: Unit, a: AbilityDef, fx: Fx, e: number, ctx: Ctx): v
       allyHeal(f, u, Math.min(back - u.hp, u.max * Math.min(fx.v * e, fx.v * 1.25)));
       break;
     }
-    case 'absorb': addMod(u, { k: 'absorb', v: u.max * fx.v * e, until: f.t + fx.sec, src }); break;
+    case 'absorb': {
+      const old = u.mods.find(m => m.k === 'absorb' && m.src === src && m.until > f.t), v = u.max * fx.v * e;
+      addMod(u, { k: 'absorb', v, until: f.t + fx.sec, src });
+      shieldShown(f, u, v - (old ? old.v : 0));
+      break;
+    }
     case 'spell': addMod(u, { k: 'spell', v: 1, until: ctx.tel ? ctx.tel.impact + 0.3 : f.t + 5, src }); break;
     case 'iceBlock': {
       const until = f.t + fx.sec;

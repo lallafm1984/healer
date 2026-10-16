@@ -8,7 +8,7 @@ import { HEROES } from '../data/heroes';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
-import { addDebuff, bark, cellOf, damage, DT, emit, empowerBoss, hasAbsorb, heal, lend, living, onDebuffEnd, randomTargets, setMax, spread, unitById } from './core';
+import { addDebuff, bark, cellOf, damage, DT, emit, empowerBoss, hasAbsorb, heal, healFlow, lend, living, onDebuffEnd, randomTargets, setMax, spread, unitById } from './core';
 import { dangerAt, finishMove, moveTo, scheduleReaction, scheduleReactions, zoneOf } from './movement';
 import { hotTick, stepAway } from './units';
 import { frontCell, frontTank } from './position';
@@ -653,7 +653,7 @@ export function soulsTick(f: Fight): void {
   for (const u of f.souls.slice()) {
     if (u.hot > 0) { u.hot -= DT; u.hotTick += DT; if (u.hotTick >= 3 - 1e-9) { u.hotTick -= 3; heal(f, u, 80, false); } }
     if (u.hots.length) hotTick(f, u, DT);
-    for (const x of u.echo) { heal(f, u, x.rate * DT, false); x.left -= DT; }
+    for (const x of u.echo) { healFlow(f, u, x.rate * DT); x.left -= DT; }
     u.echo = u.echo.filter(x => x.left > 0);
     if (u.soul!.cleansed || u.hp >= u.max - 1e-6) soulEnd(f, u, true);
     else if (f.t + 1e-9 >= u.soul!.until) soulEnd(f, u, false);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, hotTimersOf, primaryDebuff } from '../src/battle/party-display';
-import type { Debuff, Hot } from '../src/engine/types';
+import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, hotTimersOf, primaryDebuff, shieldTimerOf } from '../src/battle/party-display';
+import type { Debuff, Hot, Mod } from '../src/engine/types';
 
 const debuff = (extra: Partial<Debuff> = {}): Debuff => ({ id: 1, name: '부패', type: '질병', left: 4.1, ...extra });
 const hot = (key: Hot['key'], left: number): Hot => ({ key, left, name: key, every: 2, tick: 2, per: 10, i: 0, rest: 30 });
@@ -23,6 +23,17 @@ describe('모든 직업의 지속 치유 시간', () => {
     expect(hotTimersOf({ hot: 0, hots: [hot('sprout', 0), hot('growth', -1), hot('oath', 0.2)] })
       .map(h => [h.key, h.left])).toEqual([['oath', 0.2]]);
     expect(hotTimersOf({ hot: -1, hots: [] })).toEqual([]);
+  });
+});
+
+describe('모든 직업의 보호막 시간', () => {
+  const ab = (src: string, v: number, until: number): Mod => ({ k: 'absorb', v, until, src });
+  it('내가 건 힐러 보호막 시간을 먼저, 남은 흡수량은 모두 더함', () => {
+    expect(shieldTimerOf({ mods: [ab('bubble', 50, 18), ab('healer', 120, 13)] }, 10)).toEqual({ left: 3, amt: 170 });
+  });
+  it('힐러 보호막이 없으면 가장 오래 남은 것, 끝났거나 다 깎인 막 · 다른 효과는 빼고 없으면 null', () => {
+    expect(shieldTimerOf({ mods: [ab('iceBarrier', 40, 14), ab('bubble', 30, 16)] }, 10)).toEqual({ left: 6, amt: 70 });
+    expect(shieldTimerOf({ mods: [ab('healer', 0, 20), ab('healer', 50, 9), { k: 'cut', v: 0.3, until: 20, src: 'x' }] }, 10)).toBeNull();
   });
 });
 

@@ -25,8 +25,8 @@ import { CLASS_GLYPH, CUT, EDGE, LINE } from '../screens/class-icons';
 import { FACTIONS, type FactionKey } from '../data/places';
 import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
-import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, hotTimersOf, primaryDebuff } from './party-display';
-import { CELL_RADIUS, fitBoard, hotTimerLayout } from './board-layout';
+import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, hotTimersOf, primaryDebuff, shieldTimerOf } from './party-display';
+import { CELL_RADIUS, fitBoard, hotTimerLayout, shieldTimerLayout } from './board-layout';
 import { BOARDS } from '../data/boards';
 import { makeCells } from '../engine/board';
 import { ALWAYS_FX, BOSS_PXF, bossPxfOf, COMMON_PXF, heroSkillFx, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, type CommonFx, type PxfKey } from './pxf';
@@ -49,6 +49,11 @@ const TIDE_TINT: Record<string, [number, number]> = { sea: [0x1f8f8b, 0x9ff3ec],
 const C = {
   cell: 0x15120e, cellLine: 0x2c241b, line: 0x080605, ink: 0xf1e4c8, dead: 0x8a7f6a, gold: 0xf0c46a, white: 0xffffff,
   zone: 0xe2402e, zoneHi: 0xff6a4a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0x4dff7c, over: 0xa99a7e,
+  /**
+   * 보호막 (2026-10-16 Lim 「실드는 파란색」): 떠오르는 숫자 · 시간 원. 치유 민트 · 초록과 다른 파랑.
+   * 원은 짙은 코발트 + 흰 숫자: 물방울 지속 힐 원 (밝은 하늘색 + 검은 숫자) · 마법 디버프 배지 (#3D8BFF 캡슐 + 검은 글자)와 밝기 · 글자색으로 구분
+   */
+  shield: 0x66a6ff, shieldFill: 0x1f55c8,
   empty: 0x2c241b, dangerBg: 0x3b1514, bronze: 0x5c4424, frame: 0x9c7a3c, dark: 0x12100c,
 };
 const FONT = '"Noto Sans KR", "Apple SD Gothic Neo", sans-serif';
@@ -77,6 +82,8 @@ const topL = new Container();
 const lensL = new Container();
 /** PXF 이펙트 (battle/pxf.ts): Lim 2026-10-11 「모든 UI보다 위」 → 글자·아이콘·배지·숫자·말풍선·확대 미리보기보다 위, 판 맨 위 */
 const pxfL = new Container();
+/** 떠오르는 회복 · 보호막 · 피해 숫자만 PXF 위 (2026-10-16 Lim 「비구름 회복량이 안 보임」: 칸마다 뜨는 구름 그림이 숫자를 덮음). 능력 이름 · 부활 글자는 topL 그대로 */
+const numL = new Container();
 const emblemL = new Container();
 /** 칸 무늬 · 판 위 적 그림 (칸 채움 위, 파티원 칸 아래) · 그림 이펙트 (파티원 칸 위, 테두리·글자 아래) */
 const decalL = new Container();
@@ -86,7 +93,7 @@ const markL = new Container();
 /** 말풍선 그림 (43 5장): 틀 뒤 이펙트 띠 · 틀 9조각 · 꼬리·감정 아이콘·앞 이펙트 띠. 대사 글자(topL)는 그 위 */
 const bubbleL = new Container(), bubbleBackL = new Container(), sliceL = new Container(), bubbleFrontL = new Container();
 bubbleL.addChild(bubbleBackL, sliceL, bubbleFrontL);
-root.addChild(cellsG, decalL, unitsG, standL, glowL, fxG, fxArtL, frameL, overG, markL, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL, pxfL);
+root.addChild(cellsG, decalL, unitsG, standL, glowL, fxG, fxArtL, frameL, overG, markL, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL, pxfL, numL);
 
 let dpr = 1;
 /** 판 그림 좌표 (Pixi root 안). k = 그림 → 화면 배율: 보통 1, 「레이드 판 5인 던전 모양」이면 1보다 작음 (화면 좌표 = 그림 좌표 × k) */
@@ -171,7 +178,7 @@ export function resizeBoard(): void {
   // 칸 모양 (배치 · 글자 크기 · 배지 · 아이콘 · 테두리 · 이펙트)은 칸 크기 하나로만 정해지므로 5인 칸과 똑같은 모양이 비율대로 작아짐
   const five = S.raidFiveLook ? fitBoard(FIVE_CELLS, r.width, r.height, { left, right }).s : 0;
   const k = five > s ? s / five : 1;
-  if (k !== L.k) { labels.clear(); badgeLabels.clear(); tops.clear(); } // 글자 해상도를 새 배율에 맞춤
+  if (k !== L.k) { labels.clear(); badgeLabels.clear(); tops.clear(); nums.clear(); } // 글자 해상도를 새 배율에 맞춤
   Object.assign(L, layout, { ok: true, k });
   if (k < 1) Object.assign(L, { s: five, W: layout.W / k, H: layout.H / k, ox: layout.ox / k, oy: layout.oy / k, left: layout.left / k, right: layout.right / k, top: layout.top / k, bottom: layout.bottom / k });
   root.scale.set(k);
@@ -573,8 +580,9 @@ class Labels {
 const labels = new Labels(labelsL);
 const badgeLabels = new Labels(badgeL);
 const tops = new Labels(topL);
+const nums = new Labels(numL);
 // 웹 글꼴이 늦게 오면 글자·숫자 글꼴을 다시 만듦
-document.fonts?.addEventListener?.('loadingdone', () => { labels.clear(); badgeLabels.clear(); tops.clear(); if (ready) installNumFont(); });
+document.fonts?.addEventListener?.('loadingdone', () => { labels.clear(); badgeLabels.clear(); tops.clear(); nums.clear(); if (ready) installNumFont(); });
 
 const mctx = document.createElement('canvas').getContext('2d')!;
 function measure(text: string, size: number, font = FONT, weight = W_TEXT): number { mctx.font = `${weight} ${size}px ${font}`; return mctx.measureText(text).width; }
@@ -778,7 +786,7 @@ interface Fx {
  * id = 숫자가 가리키는 파티원 (그 칸 근처에만 뜸). dx · dy = 떠오르기 시작하는 자리, 그 사람 칸 가운데에서 칸 크기 배수 (걸어가는 사람 숫자는 따라감)
  * ox · oy = 자리를 잡으며 떠오르는 길에서 비킨 만큼 (칸 크기 배수, 다음 프레임에도 같은 만큼 비켜 올라감) · at · rise = 지난 프레임에 그린 자리 · 올라간 높이
  */
-interface Float { dx: number; dy: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean; id: number; ox?: number; oy?: number; at?: PillBox; rise?: number }
+interface Float { dx: number; dy: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean; id: number; ox?: number; oy?: number; at?: PillBox; rise?: number; shield?: boolean; num?: boolean }
 /** 말풍선 종류 (41·43 문서): talk 반응·잡담 · call 기믹·신호 (금테) · alert 위기 (붉은 테, 흔들림) · chat 쓰러진 사람의 파티 채팅 (회색) */
 export type BubbleKind = 'talk' | 'call' | 'alert' | 'chat';
 /** emote = 왼쪽 감정 아이콘 emote-<이름> (43 4장 B) · cheer = 승리 한마디 (fx-talk-cheer) */
@@ -1039,11 +1047,25 @@ function landFx(F: NonNullable<typeof B.F>, name: string, tl: Telegraph, now: nu
   for (const row of rows.values()) fxGim(name, now, { row });
 }
 const rnd = () => Math.random();
-/** plain = 이 칸에 스킬 PXF 이펙트가 나와서 치유 빛은 안 그림 (숫자 · 치명타 별은 그대로). now가 지금보다 뒤면 그때 뜸 (연쇄 치유) */
-export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: number, plain = false): void {
+/**
+ * 회복 · 보호막 숫자는 모두 여기 (2026-10-16 Lim 「모든 직업 회복량을 같은 색 · 같은 자리」): 일곱 직업 직접 힐 · 지속 힐 틱 · 토템 · 비구름 · 봉화 나눔 · 물약 · 보호막.
+ * 자리 = 그 사람 칸 가운데에서 HEAL_AT (칸 크기 배수, 흔들지 않음. 겹치면 아래 떠오르는 숫자 자리 잡기가 비킴),
+ * 색 = 보통 민트 · 치명타 초록 (크게) · 거의 다 넘침 회갈색 (작게) · 보호막 파랑 · 뒤집힌 축복 빨강. 엔진 heal() · giveAbsorb()를 거치면 사건이 옴
+ */
+const HEAL_AT = { dx: 0, dy: -0.3 };
+function healNumber(u: Unit, text: string, now: number, o: { crit?: boolean; over?: boolean; shield?: boolean; fill?: number } = {}): void {
+  if (B2.floats.length >= 40) return;
+  B2.floats.push({ ...HEAL_AT, text, crit: !!o.crit, over: !!o.over, shield: o.shield, fill: o.fill, t0: now, n: B2.n++, id: u.id, num: true });
+}
+/**
+ * plain = 이 칸에 스킬 PXF 이펙트가 나와서 치유 빛은 안 그림 (숫자 · 치명타 별은 그대로). now가 지금보다 뒤면 그때 뜸 (연쇄 치유).
+ * tick = 지속 · 간접 회복 (엔진 tick 사건): 숫자만 (빛 · 칸 반짝임은 그 효과 그림이 맡음)
+ */
+export function fxHeal(u: Unit, eff: number, amt: number, crit: boolean, now: number, plain = false, tick = false): void {
   if (!L.ok || S.reducedEffects) return;
   const over = eff < amt * 0.25; // 거의 다 넘친 힐은 회색으로 작게
-  if (B2.floats.length < 40) B2.floats.push({ dx: (rnd() - 0.5) * 0.5, dy: -0.3, text: `+${eff}`, crit: crit && !over, over, t0: now, n: B2.n++, id: u.id });
+  healNumber(u, `+${eff}`, now, { crit: crit && !over, over });
+  if (tick) return;
   B2.hitFx[u.id] = now;
   if (B2.fx.length >= 60 || over || (plain && !crit)) return;
   // 모든 효과 PXF 1단계: 치유 빛 (힐러 문장 색) · 치명타 별. 프레임 띠를 아직 못 읽은 것만 예전 그림으로
@@ -1086,10 +1108,15 @@ export function fxRevive(u: Unit, now: number, label = '부활', plain = false):
   B2.hitFx[u.id] = now;
   if (!plain && !commonFx(u, 'revive', now)) B2.fx.push({ kind: 'revive', id: u.id, t0: now });
 }
-/** 뒤집힌 축복 (35 8장 「치유 반전」): 이 칸에 들어간 치유가 빨간 피해 숫자로 */
+/** 뒤집힌 축복 (35 8장 「치유 반전」): 이 칸에 들어간 치유가 빨간 피해 숫자로 (회복 숫자 자리) */
 export function fxHurt(u: Unit, amt: number, now: number): void {
-  if (!L.ok || S.reducedEffects || amt < 1 || B2.floats.length >= 40) return;
-  B2.floats.push({ dx: (rnd() - 0.5) * 0.5, dy: -0.3, text: `-${amt}`, crit: false, over: false, t0: now, n: B2.n++, fill: 0xff5a3d, id: u.id });
+  if (!L.ok || S.reducedEffects || amt < 1) return;
+  healNumber(u, `-${amt}`, now, { fill: 0xff5a3d });
+}
+/** 흡수 보호막 (엔진 shield 사건): 회복 숫자 자리에 파란 숫자 (더해진 양) */
+export function fxShield(u: Unit, amt: number, now: number): void {
+  if (!L.ok || S.reducedEffects || amt < 1) return;
+  healNumber(u, `+${amt}`, now, { shield: true });
 }
 /** 실수 방지로 힐이 안 나감: 칸만 흔들림 */
 export function fxShake(u: Unit, now: number): void {
@@ -1098,7 +1125,7 @@ export function fxShake(u: Unit, now: number): void {
 /** 파티원 능력 회복: 연두색 + 작은 십자 (내 힐과 구분, 17 7장) */
 export function fxAllyHeal(u: Unit, amt: number, now: number): void {
   if (!L.ok || S.reducedEffects || amt < 1 || B2.floats.length >= 40) return;
-  B2.floats.push({ dx: 0.25, dy: -0.1, text: `✚${amt}`, crit: false, over: false, t0: now, n: B2.n++, fill: 0xc8f07a, id: u.id });
+  B2.floats.push({ dx: 0.25, dy: -0.1, text: `✚${amt}`, crit: false, over: false, t0: now, n: B2.n++, fill: 0xc8f07a, id: u.id, num: true });
 }
 /** 파티원 능력 사용: 칸 위에 능력 이름 (17 7장) */
 export function fxAbility(u: Unit, name: string, now: number): void {
@@ -1314,7 +1341,7 @@ export function render(now: number): void {
   const typography = cellTypography(s), compact = typography.compact;
   const rdt = Math.min(0.1, Math.max(0, (now - (B2.lastRender || now)) / 1000)); B2.lastRender = now;
   for (const g of [cellsG, unitsG, fxG, overG, badgeG, topG]) g.clear();
-  labels.begin(); badgeLabels.begin(); tops.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); marks.begin(); stands.begin(); pxfArt.begin(); stripUsed = 0;
+  labels.begin(); badgeLabels.begin(); tops.begin(); nums.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); marks.begin(); stands.begin(); pxfArt.begin(); stripUsed = 0;
   bubbleBack.begin(); bubbleFront.begin(); sliceUsed = 0;
   telsSeen = F.tels.slice(); // 다음 impact 사건이 어느 기술인지 (fxImpact)
   const fs = (k: number, min: number) => Math.max(min, s * k);
@@ -1779,12 +1806,14 @@ export function render(now: number): void {
   // 보통 칸 배지 글자: 가장 긴 「×저주 12」와 지속 힐 원이 칸 폭 한 줄에 안 들어가는 판은 전부 짧은 글자 「×저12」 (작은 칸과 같음)
   const shortBadge = compact || measure('×저주 12', typography.debuff) + typography.debuff * 0.7 + 1.5 > r * COS30 * 2 - 2 * (hotR + 0.75) - 1;
   const hpBounds: { id: number; cell: number; text: string; x: number; y: number; w: number; h: number; sx: number }[] = [];
-  /** 작은 칸 아래 가운데 표시 (지속 힐 + · 빛의 전이 금빛 점): 배지를 다 놓은 뒤 그림 */
-  const smallHots: { id: number; x: number; y: number; relay?: boolean }[] = [];
+  /** 작은 칸 아래 가운데 표시 (지속 힐 + · 빛의 전이 금빛 점 · 보호막 파란 점): 배지를 다 놓은 뒤 그림 */
+  const smallHots: { id: number; x: number; y: number; relay?: boolean; shield?: boolean }[] = [];
+  const shieldLayout = shieldTimerLayout(s);
   for (const { u, x, y, deb } of over) {
     let debBadge: ReturnType<typeof pill> | undefined;
     const hots = hotTimersOf(u), hasHot = hots.length > 0;
     const hotLayout = hotTimerLayout(s, hots.length);
+    const shieldT = shieldTimerOf(u, F.t);
     // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만). 「나」 = 직업 문장 (27 3-4)
     const em = u.me ? emblemTexture(F.hero) : null;
     // 위쪽 한 줄은 직업 아이콘 또는 디버프 배지 (디버프가 있으면 배지가 그 자리를 씀, 칸 색이 직업을 보여 줌)
@@ -1828,7 +1857,9 @@ export function render(now: number): void {
     }
     const relay = F.relay && F.relay.id === u.id && F.t >= F.relay.flyUntil; // 날아가는 중에는 연출 (relay-fly)만
     if (compact && relay) { const p = fitCenter(x + (hasHot ? 7.5 : 0), Math.max(y + r * 0.68, hpBox.y + hpBox.h / 2 + 4.25), 3.25); smallHots.push({ id: u.id, x: p.x, y: p.y, relay: true }); }
-    let hotSpot: { x: number; y: number } | null = null;
+    // 작은 칸 보호막: 지속 힐 + 왼쪽 파란 점 (시간은 길게 누르기 정보에, 지속 힐과 같은 축약 기준)
+    if (compact && shieldT) { const p = fitCenter(x - (hasHot || relay ? 7.5 : 0), Math.max(y + r * 0.68, hpBox.y + hpBox.h / 2 + 4.25), 3.25); smallHots.push({ id: u.id, x: p.x, y: p.y, shield: true }); }
+    let hotSpot: { x: number; y: number } | null = null, shieldSpot: { x: number; y: number } | null = null;
     if (deb) {
       const jail = deb.jail ? F.mobs.find(m => m.alive && m.add?.hold === deb.id) : undefined;
       // 다른 종류 디버프도 함께 걸려 있으면 배지 글자 끝에 + (종류는 길게 누르기 정보에). 배지 밖에 따로 그리면 작은 칸에서 위 칸 체력 숫자에 닿는다
@@ -1840,13 +1871,16 @@ export function render(now: number): void {
         // 보통 칸 (2026-10-10): 배지를 직업 아이콘 자리 (윗줄)에. 꼭짓점에 두면 위 칸 체력 숫자와 겹친다 (10인 울트라·플립은 거의 다 가림).
         // 윗변은 위 칸 체력 숫자 아래 (글자 상자의 위아래 여백 2px는 겹쳐도 안 보임)
         const h = fsD * 1.32 + 1.5, below = hpBox.y + hpBox.h / 2 - 1.5 * s - 1 + h / 2;
-        const hr = hasHot ? hotLayout.radius + 0.75 : 0, half = r * COS30;
+        const hr = hasHot ? hotLayout.radius + 0.75 : 0, sr = shieldT ? shieldLayout.radius + 0.75 : 0, half = r * COS30;
         let text = badgeText(shortBadge), w = measure(text, fsD) + fsD * 0.7 + 1.5;
-        if (w > half * 2 - (hr ? hr * 2 + 1 : 0)) { text = badgeText(true); w = measure(text, fsD) + fsD * 0.7 + 1.5; }
-        const hx = Math.min(x + hotLayout.x, x + half - hr);
-        debBadge = pill(badgeG, badgeLabels, `deb${u.id}`, hr ? Math.min(x, hx - hr - 1 - w / 2) : x, Math.max(y - r * 0.4, below), text, color, C.dark, fsD);
-        // 지속 힐 원은 배지 오른쪽 같은 줄
+        if (w > half * 2 - (hr ? hr * 2 + 1 : 0) - (sr ? sr * 2 + 1 : 0)) { text = badgeText(true); w = measure(text, fsD) + fsD * 0.7 + 1.5; }
+        const hx = Math.min(x + hotLayout.x, x + half - hr), sx = Math.max(x + shieldLayout.x, x - half + sr);
+        let bx = hr ? Math.min(x, hx - hr - 1 - w / 2) : x;
+        if (sr) bx = Math.max(bx, sx + sr + 1 + w / 2);
+        debBadge = pill(badgeG, badgeLabels, `deb${u.id}`, bx, Math.max(y - r * 0.4, below), text, color, C.dark, fsD);
+        // 지속 힐 원은 배지 오른쪽, 보호막 원은 배지 왼쪽 같은 줄
         if (hr) hotSpot = fitCenter(Math.max(hx, debBadge.x + debBadge.w / 2 + 1 + hr), debBadge.y, hr);
+        if (sr) shieldSpot = fitCenter(Math.min(sx, debBadge.x - debBadge.w / 2 - 1 - sr), debBadge.y, sr);
       }
     }
     if (!compact && hasHot) {
@@ -1862,9 +1896,19 @@ export function render(now: number): void {
         recordBound(key, 'hot', 'circle', hx, hy, hr * 2 + 1.5, hr * 2 + 1.5);
       });
     }
-    // 결계사 인장 · 점성술사 별자리 표식 (80 5장): 칸 왼쪽 위에 작게 (지속 치유 시간 원의 반대편). 이름 · 체력 · 직업 아이콘은 그 자리 그대로, 글자 · 배지가 위에 그려짐
-    const sign = F.hero === 'warder' && sealed(F, u) ? 'board-seal' : F.hero === 'astrologer' && u.hots.some(h => h.key === 'starMark' && h.left > 0) ? 'board-star-mark' : '';
-    if (sign) heroArt(marks, sign, `hero-sign${u.id}`, x - r * 0.56, y - r * 0.44, r * (compact ? 0.46 : sign === 'board-seal' ? 0.52 : 0.66), sign === 'board-seal' && u.seal! - F.t < 2 ? 0.5 + 0.5 * pulse : 1, true);
+    // 보호막 시간 (2026-10-16 Lim): 지속 힐 원을 칸 왼쪽으로 뒤집은 자리 · 같은 크기, 짙은 파란 원 + 흰 숫자. 배지가 있으면 배지 왼쪽 같은 줄.
+    // 왼쪽 위 열은 보호막 원이 맨 위, 그 아래로 차례 번호표 · 빛의 전이 · 인장 · 별자리 표식 (leftY = 다음 것의 윗변)
+    let leftY: number | null = null;
+    if (!compact && shieldT) {
+      const sr = shieldLayout.radius, p = shieldSpot ?? hotCenter(x + shieldLayout.x, y + shieldLayout.y, sr + 0.75, sr + 0.75), key = `shield${u.id}`;
+      badgeG.circle(p.x, p.y, sr).fill({ color: C.shieldFill }).stroke({ width: 1.5, color: C.line });
+      const label = badgeLabels.put(key, String(Math.ceil(shieldT.left)), { size: Math.max(8, sr * 1.05), fill: C.white }, p.x, p.y + 0.5);
+      label.scale.set(1);
+      if (label.width > sr * 1.65) label.scale.x = sr * 1.65 / label.width;
+      fitLabel(label, `${key}-text`, 'shield');
+      recordBound(key, 'shield', 'circle', p.x, p.y, sr * 2 + 1.5, sr * 2 + 1.5);
+      leftY = p.y + sr + 0.75;
+    }
     // 보스가 때리는 사람: 테두리 대신 칸 위 조준 표식 (테두리는 디버프 몫). 작은 칸은 디버프 이름표 왼쪽, 보통 칸은 윗줄 배지 위 꼭짓점
     const aimR = Math.max(7, s * 0.2), aimW = Math.max(1.5, aimR * 0.22);
     /** 보통 칸 배지 위 꼭짓점 줄 (조준 표식 · 차례 번호표) */
@@ -1930,23 +1974,31 @@ export function render(now: number): void {
     // 신기루 숫자 (54 4-1): 걷히기 전까지 진짜 번호와 똑같이 보임
     const ok = F.order ? (F.order.fake && F.order.fake.id === u.id && F.t < F.order.fake.until ? F.order.fake.num : F.order.ids.indexOf(u.id)) : -1;
     // 보통 칸에 배지가 있으면 윗줄 왼쪽이 배지 자리라 꼭짓점 줄로 (조준 표식이 있으면 그 왼쪽)
-    const markAt = (text: string, size: number) => !peakY ? { x: x - r * 0.55, y: y - r * 0.42 }
+    // 왼쪽 위에 보호막 원이 있으면 그 아래 (왼쪽 열)
+    const markAt = (text: string, size: number) => !peakY ? { x: x - r * 0.55, y: leftY != null ? leftY + 1 + (size * 1.32 + 1.5) / 2 : y - r * 0.42 }
       : { x: tank === u ? x - aimR - aimW / 2 - 1 - (measure(text, size) + size * 0.7) / 2 : x, y: peakY };
     let markBox: PillBox | undefined;
     if (F.order && ok >= F.order.i) { const m = markAt(ORDER_NUM[ok], fs(0.3, 12)); markBox = pill(overG, labels, `ord${u.id}`, m.x, m.y, ORDER_NUM[ok], ok === F.order.i ? C.gold : 0xd9dde6, C.dark, fs(0.3, 12), ok === F.order.i ? 0.75 + 0.25 * pulse : 1); }
     else if (u.debuffs.some(d => d.invert)) { const m = markAt('✕', fs(0.28, 11)); markBox = pill(overG, labels, `inv${u.id}`, m.x, m.y, '✕', 0x7fa88c, C.dark, fs(0.28, 11)); }
+    if (markBox && !peakY && leftY != null) leftY = markBox.y + markBox.h / 2;
     // 빛의 전이 (사제 8번째 칸): 보통 칸은 왼쪽 위 (지속 힐 원 반대편) 금빛 원 + 흰 빛 구슬.
     // 윗줄에 배지가 있거나 왼쪽 위에 차례 번호표 · ✕가 있으면 꼭짓점 줄에서 조준 표식 · 번호표 오른쪽
     if (relay && !compact) {
       const dr = Math.max(7, s * 0.19);
       let p: { x: number; y: number };
-      if (!peakY && !markBox) p = hotCenter(x - r * 0.56, y - r * 0.44, dr + 0.75, dr + 0.75);
+      if (!peakY && (!markBox || leftY != null)) { p = hotCenter(x - r * 0.56, leftY != null ? leftY + 1 + dr : y - r * 0.44, dr + 0.75, dr + 0.75); if (leftY != null) leftY = p.y + dr; }
       else {
         const right = Math.max(tank === u ? x + aimR + aimW / 2 : -Infinity, markBox ? markBox.x + markBox.w / 2 : -Infinity);
         p = fitCenter(isFinite(right) ? right + 1 + dr : x, peakY || y - r * 0.98, dr + 0.75);
       }
       marks.put(relayMark(), p.x, p.y, dr * 2, dr * 2);
       recordBound(`relay${u.id}`, 'relay', 'circle', p.x, p.y, dr * 2, dr * 2);
+    }
+    // 결계사 인장 · 점성술사 별자리 표식 (80 5장): 칸 왼쪽 위에 작게 (지속 치유 시간 원의 반대편, 보호막 원이 있으면 그 아래). 이름 · 체력 · 직업 아이콘은 그 자리 그대로, 글자 · 배지가 위에 그려짐
+    const sign = F.hero === 'warder' && sealed(F, u) ? 'board-seal' : F.hero === 'astrologer' && u.hots.some(h => h.key === 'starMark' && h.left > 0) ? 'board-star-mark' : '';
+    if (sign) {
+      const size = r * (compact ? 0.46 : sign === 'board-seal' ? 0.52 : 0.66) * (leftY != null ? 0.85 : 1), half = (size * HERO_ART_BOX[sign][1]) / 2; // 보호막 원 아래로 내려가면 이름에 덜 걸리게 조금 작게
+      heroArt(marks, sign, `hero-sign${u.id}`, x - r * 0.56, leftY != null ? leftY + 1 + half : y - r * 0.44, size, sign === 'board-seal' && u.seal! - F.t < 2 ? 0.5 + 0.5 * pulse : 1, true);
     }
     if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
     else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
@@ -1971,6 +2023,11 @@ export function render(now: number): void {
     if (hot.relay) {
       badgeG.circle(hot.x, hy, 3.25).fill({ color: C.gold }).stroke({ width: 1.25, color: C.line });
       recordBound(`relay${hot.id}`, 'relay', 'circle', hot.x, hy, 7.75, 7.75);
+      continue;
+    }
+    if (hot.shield) {
+      badgeG.circle(hot.x, hy, 3.25).fill({ color: C.shieldFill }).stroke({ width: 1.25, color: C.line });
+      recordBound(`shield${hot.id}`, 'shield', 'circle', hot.x, hy, 7.75, 7.75);
       continue;
     }
     badgeG.rect(hot.x - 3, hy - 3, 6, 6).fill({ color: C.line });
@@ -2015,7 +2072,7 @@ export function render(now: number): void {
   }
 
   // 실제 최종 HP·이름·상태 표시를 먼저 보호한다. 일시 연출은 다른 연출과도 겹치지 않는다.
-  const transientOccupied: PillBox[] = decorationBounds.filter(b => ['hp', 'nick', 'hot', 'debuff', 'role', 'aggro', 'pill'].includes(b.kind));
+  const transientOccupied: PillBox[] = decorationBounds.filter(b => ['hp', 'nick', 'hot', 'shield', 'debuff', 'role', 'aggro', 'pill'].includes(b.kind));
   // 떠오르는 숫자 (2026-10-12 Lim 「힐 수치 등 숫자 위치가 흔들린다」): 처음 잡은 자리에서 비킨 만큼을 지키며 올라감.
   // 예전엔 프레임마다 빈자리를 새로 찾아, 올라가다 이름 · 체력 · 다른 숫자에 닿으면 옆 · 위 자리로 튀거나 두 자리 사이를 오갔다
   // (빌드 131, S25 5인 숫자 82개 중 76개가 한 번 이상 튐, 최대 80px).
@@ -2034,7 +2091,7 @@ export function render(now: number): void {
     if (!u) { floatGone.add(fl); continue; }
     const base = unitPos(u), k = (now - fl.t0) / 900, rise = S.reducedEffects ? 0 : k * s * (fl.label ? 0.3 : 0.6);
     const size = fl.label ? fs(0.22, 10) : fl.crit ? fs(0.36, 14) : fl.over || fl.fill ? fs(0.22, 10) : fs(0.27, 11);
-    const label = tops.put(`fl${fl.n}`, fl.text, { size, fill: fl.fill ?? (fl.crit ? C.crit : fl.over ? C.over : C.heal), strokeW: 3, num: !fl.fill },
+    const label = (fl.num ? nums : tops).put(`fl${fl.n}`, fl.text, { size, fill: fl.fill ?? (fl.shield ? C.shield : fl.crit ? C.crit : fl.over ? C.over : C.heal), strokeW: 3, num: !fl.fill },
       base.x + (fl.dx + (fl.ox ?? 0)) * s, base.y + (fl.dy + (fl.oy ?? 0)) * s - rise, S.reducedEffects ? 1 : 1 - k * k, 1);
     // 치명타 치유 = 선명한 초록 (C.crit, 보통 치유 민트보다 진하고 1.3배 크게. 2026-10-10 Lim: 노랑은 치유와 안 어울리고 부활·능력 글자와 헷갈림)
     // 처음 0.15초 크게 튀었다가 제 크기로 (색만으로 구분하지 않게)
@@ -2162,7 +2219,7 @@ export function render(now: number): void {
   for (let i = glowUsed; i < glows.length; i++) glows[i].visible = false;
   for (let i = hexFramesUsed; i < hexFrames.length; i++) hexFrames[i].visible = false;
   for (let i = sliceUsed; i < slices.length; i++) slices[i].visible = false;
-  labels.end(); badgeLabels.end(); tops.end(); decals.end(); fxArt.end(); marks.end(); stands.end(); pxfArt.end(); bubbleBack.end(); bubbleFront.end();
+  labels.end(); badgeLabels.end(); tops.end(); nums.end(); decals.end(); fxArt.end(); marks.end(); stands.end(); pxfArt.end(); bubbleBack.end(); bubbleFront.end();
   for (let i = stripUsed; i < strips.length; i++) strips[i].visible = false;
   lensL.visible = false;
   app.renderer.render(app.stage);

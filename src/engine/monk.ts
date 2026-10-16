@@ -8,7 +8,7 @@ import { HEROES } from '../data/heroes';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
 import { hexDist } from './board';
-import { cellOf, emit, heal, healTop, living, onDebuffEnd } from './core';
+import { cellOf, emit, heal, healFlow, healTop, living, onDebuffEnd } from './core';
 import { noteUsed } from './healer';
 import { dispellable, doDispel, heroHeal, heroPassive, putHot } from './heroes';
 import { activeOn } from './talents';
@@ -266,7 +266,7 @@ export function monkTick(f: Fight, dt: number): void {
   for (const u of f.party) for (const h of u.hots) if (h.key === 'wanderMist' && h.every !== every) { h.every = every; h.tick = Math.min(h.tick, every); } // 안개 폭풍
   for (const t of f.totems) { // 모이는 안개 샘 (특성): 그 칸과 붙은 아군 초당 회복
     if (t.kind !== 'mist') continue;
-    under('wanderMist', true, () => { for (const v of near(f, t.cell, 1)) heal(f, v, TX.gatherMist.hps * dt, false); });
+    under('wanderMist', true, () => { for (const v of near(f, t.cell, 1)) healFlow(f, v, TX.gatherMist.hps * dt); });
   }
   if (!s.calmUsed && heroPassive(f, '고요한 호흡') && f.mana < MONK.calm.mana * 100) { // 고요한 호흡 (Lv 10)
     s.calmUsed = true; s.calmUntil = f.t + MONK.calm.sec;

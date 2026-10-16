@@ -1,6 +1,6 @@
 /** 전투 판의 파티원 칸 표시 계산. 전투 상태는 변경하지 않는다. */
 import { canDispel, type HeroKey } from '../data/heroes';
-import type { Debuff, Unit } from '../engine/types';
+import type { Debuff, Mod, Unit } from '../engine/types';
 
 /** 소생 → 새싹 → 생장 → 들꽃 → 서약, 그 뒤 특성 지속 힐 (남은 꽃 · 파도의 여운, 77), 79 직업 지속 힐 (물방울) */
 const HOT_TIMER_ORDER = ['renew', 'sprout', 'growth', 'wildflower', 'oath', 'bloom', 'lightWave', 'droplet', 'wanderMist', 'starMark'];
@@ -13,6 +13,18 @@ const hotTimerOrder = (key: string) => {
 export function hotTimersOf(u: Pick<Unit, 'hot' | 'hots'>): { key: string; left: number }[] {
   return [...(u.hot > 0 ? [{ key: 'renew', left: u.hot }] : []), ...u.hots.filter(h => h.left > 0)]
     .sort((a, b) => hotTimerOrder(a.key) - hotTimerOrder(b.key) || a.key.localeCompare(b.key));
+}
+
+/**
+ * 보호막 시간 (모든 직업 공통, 2026-10-16 Lim 「실드는 지속 힐 아이콘처럼 왼쪽에 파란 아이콘으로 시간」): 칸 왼쪽 위 파란 원 하나.
+ * 흡수 보호막 (mods absorb)만. 내가 건 힐러 보호막 (src 'healer', 다시 걸 때를 보는 것)이 있으면 그 시간, 없으면 가장 오래 남은 것.
+ * amt = 남은 흡수량 합 (길게 누르기 정보). 보호 두루마리 (u.shield, 받는 피해 −40%)는 흡수량이 없어 흰 이중 테두리 그대로
+ */
+export function shieldTimerOf(u: Pick<Unit, 'mods'>, t: number): { left: number; amt: number } | null {
+  const on = u.mods.filter((m: Mod) => m.k === 'absorb' && m.until > t && m.v > 1e-9);
+  if (!on.length) return null;
+  const own = on.filter(m => m.src === 'healer'), pick = own.length ? own : on;
+  return { left: Math.max(...pick.map(m => m.until - t)), amt: on.reduce((a, m) => a + m.v, 0) };
 }
 
 export function cellTypography(scale: number): { compact: boolean; hp: number; nick: number; debuff: number } {

@@ -193,6 +193,8 @@ export interface Unit {
   hotHop?: boolean;
   guardian: number;
   shield: number;
+  /** 초마다 조금씩 차는 회복 (healFlow)을 모으는 중: 1초가 지나면 숫자 하나 (tick 사건) */
+  flow?: { amt: number; eff: number; t0: number };
   debuffs: Debuff[];
   /** 퍼지는 박동에 맞음 (첫 햇살 조약돌: 다음 직접 힐 +15%, 59 6장). 그 장신구가 있을 때만 붙음 */
   pulsed?: boolean;
@@ -417,6 +419,13 @@ export type FightEvent =
   /** 파티원 말풍선. sit = 상황 (41 문서, 프로토타입 규칙이면 없음) */
   | { type: 'bark'; id: number; text: string; sit?: BarkSit }
   | { type: 'heal'; id: number; amt: number; eff: number; crit: boolean; item?: boolean }
+  /**
+   * 지속 · 간접 회복 (지속 힐 틱 · 토템 · 비구름 · 봉화 나눔 …, 직접 힐 아닌 heal): 화면은 직접 힐과 같은 숫자 · 같은 자리 (빛 · 소리는 없음).
+   * 다 넘친 것 (eff 0)은 안 냄. 초마다 조금씩 차는 회복 (healFlow)은 1초씩 모아 한 번에
+   */
+  | { type: 'tick'; id: number; amt: number; eff: number; crit: boolean }
+  /** 흡수 보호막을 씌움 (amt = 더해진 양): 화면은 회복 숫자와 같은 자리에 파란 숫자 */
+  | { type: 'shield'; id: number; amt: number }
   | { type: 'sound'; name: string }
   | { type: 'msg'; text: string }
   | { type: 'death'; id: number }

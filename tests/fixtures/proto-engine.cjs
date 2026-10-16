@@ -248,8 +248,18 @@ const Engine = (() => {
       u.lastHeal = f.t;
       if (u.sulking) { u.sulking = false; }
       if (u.p.thanks) { u.thanks = 3; if (f.rng() < 0.35) bark(f, u); }
-    }
+    } else if (flowing) { const w = (u.flow ??= { amt: 0, eff: 0, t0: f.t }); w.amt += amt; w.eff += eff; }
+    else if (eff >= 0.5) emit(f, { type: 'tick', id: u.id, amt: Math.round(amt), eff: Math.round(eff), crit }); // TS 엔진 화면 사건 (2026-10-16): 지속 · 간접 회복 숫자
     return eff;
+  }
+  // TS 엔진 healFlow · flowTick (2026-10-16): 초마다 조금씩 차는 회복 숫자는 1초씩 모아 tick 하나로
+  let flowing = false;
+  function healFlow(f, u, amt) { flowing = true; try { return heal(f, u, amt, false); } finally { flowing = false; } }
+  function flowTick(f, u) {
+    const w = u.flow;
+    if (f.t - w.t0 < 1 - 1e-9) return;
+    u.flow = undefined;
+    if (w.eff >= 0.5) emit(f, { type: 'tick', id: u.id, amt: Math.round(w.amt), eff: Math.round(w.eff), crit: false });
   }
 
   function damage(f, u, amt) {
@@ -269,7 +279,7 @@ const Engine = (() => {
       // 쓰러지면 칸을 비운다 → 다른 파티원이 그 칸으로 이동할 수 있음 (2026-10-07 Lim). 화면에는 흐린 흔적만 남김
       if (u.moving) { const to = f.cells[u.moving.to]; if (to.unit === u) to.unit = null; }
       { const here = f.cells[u.cell]; if (here.unit === u) here.unit = null; }
-      u.alive = false; u.hp = 0; u.debuffs = []; u.hot = 0; u.echo = []; u.moving = null; u.react = null; u.shield = 0; u.diedAt = f.t;
+      u.alive = false; u.hp = 0; u.debuffs = []; u.hot = 0; u.echo = []; u.flow = undefined; u.moving = null; u.react = null; u.shield = 0; u.diedAt = f.t;
       if (u.max < u.base) u.max = u.base;
       f.stats.deaths++;
       emit(f, { type: 'death', id: u.id });
@@ -538,8 +548,9 @@ const Engine = (() => {
     const dt = DT;
     if (u.flash > 0) u.flash -= dt;
     if (!u.alive) return;
+    if (u.flow) flowTick(f, u);
     if (u.hot > 0) { u.hot -= dt; u.hotTick += dt; if (u.hotTick >= 3 - 1e-9) { u.hotTick -= 3; heal(f, u, 80, false); } }
-    for (const e of u.echo) { heal(f, u, e.rate * dt, false); e.left -= dt; }
+    for (const e of u.echo) { healFlow(f, u, e.rate * dt); e.left -= dt; }
     u.echo = u.echo.filter(e => e.left > 0);
     if (u.guardian > 0) u.guardian -= dt;
     if (u.shield > 0) u.shield -= dt;
