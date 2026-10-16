@@ -640,7 +640,7 @@ export interface FightStats {
 
 /** 판 위 물건 (79 6-1): 토템 · 샘 · 성채 · 초신성. 칸 위에 서지만 길을 막지 않음. tick = 다음 효과까지 남은 초, at = 세운 시각 */
 export type TotemKind = 'spring' | 'earth' | 'sea' | 'mist' | 'citadel' | 'nova';
-export interface Totem { kind: TotemKind; cell: number; until: number; tick: number; at: number; /** 깨지지 않음 (바다의 자리 · 초신성 등) */ firm?: boolean }
+export interface Totem { kind: TotemKind; cell: number; until: number; tick: number; at: number; /** 세울 때 받은 시간 (초, 특성 · 특수능력으로 늘어난 길이 그대로. 토템 부르기가 이만큼 다시 채움). 없으면 until − at */ dur?: number; /** 깨지지 않음 (바다의 자리 · 초신성 등) */ firm?: boolean }
 
 /**
  * 모으기 (점성술사 별자리 잇기, 79 4-3): key 스킬을 uid (범위면 cell 중심)에게 모으는 중.

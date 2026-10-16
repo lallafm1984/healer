@@ -19,7 +19,7 @@ import { breathRange, misted } from './monk';
 import { asleep, fallSpec, starsNow } from './astro';
 import { circleRange, judgeReady, sealed, sealTargets } from './warder';
 import { absorbLeft } from './abilities';
-import { shamanTotemAt, totemBreaks } from './totems';
+import { ONE_PER_CELL, shamanTotemAt, totemBreaks } from './totems';
 import { TX } from '../data/talents';
 import type { Debuff, Fight, FightConfig, Telegraph, Unit } from './types';
 
@@ -450,6 +450,30 @@ export function autoHealer(f: Fight): void {
 }
 
 /**
+ * 토템 부르기 (2026-10-16 시간 · 재사용 초기화): 아껴 두었다가 값이 클 때만 (부를 때마다 재사용 대기).
+ * ① 대지 토템이 곧 끝남 (2초 아래): 시간을 다시 채우고 대지 재사용도 0
+ * ② 대지 토템이 판에 없고 재사용이 15초 넘게 남음: 다음 강타에 다시 세울 수 있게 (샘은 덤으로 다시 채움)
+ * ③ 토템에 붙은 아군이 1명 이하 (토템이 무리에서 떨어짐)
+ * 갈 칸: 붙은 아군이 가장 많은 안전한 칸 (장판 · 예고 · 깨질 칸 뺌), 같으면 탱커가 붙은 칸 → 모자란 체력 합. 3명 (파티가 더 적으면 전원)이 안 모이면 안 씀
+ */
+function autoTotemCall(f: Fight, live: Unit[]): void {
+  const mine = f.totems.filter(t => ONE_PER_CELL.has(t.kind)), earth = mine.find(t => t.kind === 'earth');
+  const near1 = (cell: number) => live.filter(v => hexDist(cellOf(f, v), f.cells[cell]) <= 1);
+  const ending = !!earth && earth.until - f.t < 2;
+  const reset = !earth && (f.cd.earthTotem ?? 0) > 15;
+  const stray = mine.some(t => near1(t.cell).length <= 1);
+  if (!ending && !reset && !stray) return;
+  let best = -1, bn = 0, bw = -1;
+  for (const c of f.cells) {
+    if (c.block || dangerAt(f, c.i) || totemBreaks(f, c.i) || f.tels.some(t => t.cells.has(c.i))) continue;
+    const vs = near1(c.i);
+    const w = (vs.some(v => v.role === 'tank') ? 1e9 : 0) + vs.reduce((a, v) => a + Math.max(0, healTop(v) - v.hp), 0);
+    if (vs.length > bn || (vs.length === bn && w > bw)) { best = c.i; bn = vs.length; bw = w; }
+  }
+  if (best >= 0 && bn >= Math.min(3, live.length)) useTalent(f, 'totemCall', best);
+}
+
+/**
  * 보조 버튼 특성 (GCD 밖). 사제: 여럿이 다치면 정점·흩빛, 위급하면 기적, 도망가는 파티원이 있으면 뒤쪽 빈 칸에 쉼터.
  * 드루이드 (77): 여럿이 다치거나 광역이 곧 오면 봄비 · 숲의 기억, 누가 아주 낮고 거둘 새싹이 넉넉하면 고목.
  * 성기사 (77): 여럿이 다치거나 위급하면 가득 찬 빛 (힘이 모자랄 때), 여럿이 다치면 새벽의 맹세
@@ -480,19 +504,18 @@ function autoTalents(f: Fight): void {
   }
   if (act.resolveFill && f.power3 < 2 && (many || pct(low) < 0.3) && talentReady(f, 'resolveFill').ok) useTalent(f, 'resolveFill');
   if (act.dawnVow && many && talentReady(f, 'dawnVow').ok) useTalent(f, 'dawnVow');
-  // 주술사 (79 2-7): 여럿이 다치면 물의 정령, 여럿이 다쳤고 모인 칸이 있으면 바다의 자리, 토템 범위에 아무도 없으면 토템 부르기
+  // 주술사 (79 2-7): 여럿이 다치면 물의 정령, 여럿이 다쳤고 모인 칸이 있으면 바다의 자리, 토템 부르기는 값이 클 때만 (autoTotemCall)
   if (act.waterSpirit && many && talentReady(f, 'waterSpirit').ok) useTalent(f, 'waterSpirit');
-  if ((act.seaSeat && (many || aoeSoon) && talentReady(f, 'seaSeat').ok) || (act.totemCall && talentReady(f, 'totemCall').ok)) {
-    const r = act.seaSeat ? TX.seaSeat.range : 1;
+  if (act.seaSeat && (many || aoeSoon) && talentReady(f, 'seaSeat').ok) {
     let best = -1, bn = 0;
     for (const c of f.cells) {
-      if (c.block || (act.seaSeat && c.unit) || dangerAt(f, c.i) || totemBreaks(f, c.i)) continue;
-      const n = live.filter(v => hexDist(cellOf(f, v), c) <= r).length;
+      if (c.block || c.unit || dangerAt(f, c.i) || totemBreaks(f, c.i)) continue;
+      const n = live.filter(v => hexDist(cellOf(f, v), c) <= TX.seaSeat.range).length;
       if (n > bn) { bn = n; best = c.i; }
     }
-    if (act.seaSeat && best >= 0 && bn >= 3) useTalent(f, 'seaSeat', best);
-    else if (act.totemCall && best >= 0 && bn >= 3 && f.totems.some(t => (t.kind === 'spring' || t.kind === 'earth') && live.filter(v => hexDist(cellOf(f, v), f.cells[t.cell]) <= 1).length <= 1)) useTalent(f, 'totemCall', best);
+    if (best >= 0 && bn >= 3) useTalent(f, 'seaSeat', best);
   }
+  if (act.totemCall && talentReady(f, 'totemCall').ok) autoTotemCall(f, live);
   // 수도사 (79 3-7): 여럿이 다치면 천 개의 손 · 안개 폭풍 (안개가 3명 이상), 모인 칸에 안개 샘 · 기 폭발 (리듬 3 이상)
   if (act.thousandHands && many && talentReady(f, 'thousandHands').ok) useTalent(f, 'thousandHands');
   if (act.mistStorm && (many || aoeSoon) && live.filter(v => v.hots.some(h => h.key === 'wanderMist')).length >= 3 && talentReady(f, 'mistStorm').ok) useTalent(f, 'mistStorm');

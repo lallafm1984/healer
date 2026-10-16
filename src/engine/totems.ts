@@ -21,7 +21,7 @@ export function placeTotem(f: Fight, kind: TotemKind, cell: number, sec: number,
   const max = o.max ?? 1;
   for (const old of same.slice(0, Math.max(0, same.length - max + 1))) { f.totems = f.totems.filter(t => t !== old); totemGone(f, old, false); }
   if (ONE_PER_CELL.has(kind)) for (const old of f.totems.filter(t => t.cell === cell && ONE_PER_CELL.has(t.kind))) { f.totems = f.totems.filter(t => t !== old); totemGone(f, old, false); }
-  const t: Totem = { kind, cell, until: f.t + sec, tick: o.tick ?? 0, at: f.t, firm: o.firm };
+  const t: Totem = { kind, cell, until: f.t + sec, tick: o.tick ?? 0, at: f.t, dur: sec, firm: o.firm };
   f.totems.push(t);
   return t;
 }
@@ -47,9 +47,4 @@ export function totemsTick(f: Fight): void {
       totemGone(f, t, true);
     }
   }
-}
-
-/** 물건을 다른 칸으로 옮김 (주술사 특성 토템 부르기): 남은 시간은 그대로 */
-export function moveTotem(t: Totem, cell: number): void {
-  t.cell = cell;
 }
