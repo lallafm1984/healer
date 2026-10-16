@@ -80,11 +80,7 @@
 #battle #controls { position: absolute; left: 0; bottom: 0; width: 100%; transform: scale(var(--controls-scale, 1)); transform-origin: center bottom; }
 #battle #controls.compact-controls .slot:has(.sic) .dir { position: absolute; top: -2px; left: 50%; z-index: 1; margin: 0; transform: translateX(-50%); filter: drop-shadow(0 0 1.5px #0D0B09); }
 /* 투명 터치 영역만 확장한다. 표시되는 버튼 크기와 순서·간격은 바꾸지 않는다. */
-#battle #controls.compact-controls .slot,
-#battle #controls.compact-controls .item,
-#battle #controls.compact-controls .aux,
-#battle #controls.compact-controls #core { overflow: visible; }
-#battle #controls.compact-controls .item .cd,
+#battle #controls.compact-controls .slot,#battle #controls.compact-controls .aux,#battle #controls.compact-controls #core { overflow: visible; }
 #battle #controls.compact-controls .aux .cd { border-radius: inherit; }
 #battle #controls.compact-controls [data-hit-width]::before { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, var(--touch-min)); height: max(100%, var(--touch-min)); transform: translate(-50%, -50%); background: transparent; pointer-events: auto; }
 

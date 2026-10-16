@@ -75,12 +75,6 @@
 #battle #manaNum { font-size: 24px; }
 #battle #manaNum small { margin-top: 2px; color: #BDAE91; }
 #battle #side { align-self: stretch; height: auto; justify-content: center; gap: 6px; }
-#battle #items { width: 100%; max-width: 112px; gap: 6px; }
-#battle .item { min-width: 44px; min-height: 44px; border: 1px solid #5C5246; border-radius: 10px; background: linear-gradient(145deg, #473B2F, #32281B); box-shadow: 0 2px 0 #14100B; }
-#battle .item svg { width: 46%; max-height: 27px; }
-#battle .item .nm { font-size: 10px; }
-#battle .item.empty { border-style: dashed; border-color: #4F4337; box-shadow: none; background: rgba(26, 20, 14, .36); }
-#battle .item.armed { border-color: #f0c46a; box-shadow: 0 0 0 3px #c9923f, 0 0 14px rgba(240, 196, 106, .7); }
 #battle #aux { gap: 4px; max-width: 140px; }
 #battle .aux { flex: 0 0 44px; width: 44px; height: 44px; min-width: 44px; min-height: 44px; max-width: 44px; border-width: 1px; border-color: #b18e4d; border-radius: 12px; }
 #battle .aux.on, #battle .aux.armed { border-color: #f0c46a; box-shadow: 0 0 0 2px #c9923f, 0 0 14px rgba(240, 196, 106, .7); }
@@ -100,7 +94,6 @@
 #battle.short-battle #encounterLabel { display: none; }
 #battle.short-battle .stage-main { gap: 4px; }
 #battle.short-battle #bossName { font-size: 18px; }
-#battle.short-battle #items { max-width: 100px; gap: 4px; }
 #battle.short-battle #side { gap: 4px; }
 #battle.short-battle #hint { display: none; }
 #battle.short-battle #castbar { flex-basis: 28px; }

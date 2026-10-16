@@ -15,11 +15,7 @@ const paths = {
   shop: '<path d="M5 9h14l1 12H4zM8 9V6a4 4 0 0 1 8 0v3"/>',
   quest: '<path d="M8 4H5v17h14V4h-3M8 2h8v5H8zM8 12h8M8 16h5"/>',
   arrow: '<path d="M4 12h16m-6-6 6 6-6 6"/>',
-  gem: '<path d="m3 8 4-5h10l4 5-9 13zM3 8h18M7 3l5 18 5-18"/>',
-  coin: '<circle cx="12" cy="12" r="9"/><path d="m12 7 4 5-4 5-4-5z"/>',
-  key: '<circle cx="7.5" cy="12" r="3.5"/><path d="M11 12h9.5M16.5 12v3.2M19.5 12v2.6"/>',
   star: '<path d="m12 3 3 6 6 1-4 5 1 6-6-3-6 3 1-6-4-5 6-1z"/>',
-  leaf: '<path d="M5 19C-1 8 10 3 21 3c0 11-5 20-16 16ZM5 19l10-10"/>',
   // 장비 부위 (캐릭터 장비 칸)
   weapon: '<path d="M6 21 15.5 8"/><circle cx="17" cy="6" r="3"/>',
   head: '<path d="M5 19c0-8 3-14 7-14s7 6 7 14z"/><path d="M9 19c0-4 1.5-7 3-7s3 3 3 7"/>',
@@ -29,9 +25,7 @@ const paths = {
   neck: '<path d="M5 3c0 7 3 11 7 11s7-4 7-11"/><path d="m12 14-2.5 3 2.5 3.5 2.5-3.5z"/>',
   lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   hourglass: '<path d="M7 3h10M7 21h10M8 3v2c0 3 4 5 4 7s-4 4-4 7v2M16 3v2c0 3-4 5-4 7s4 4 4 7v2"/>',
-  ad: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/>',
 } as const;
-export type UiIconKey = keyof typeof paths;
 /** extra = 'in': 글자 안에 끼우는 크기 (글자 높이에 맞춤) */
 export function uiIcon(key: keyof typeof paths, extra = ''): string {
   return `<svg class="ui-icon${extra ? ` ${extra}` : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[key]}</svg>`;

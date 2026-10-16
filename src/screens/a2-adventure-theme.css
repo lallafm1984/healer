@@ -287,17 +287,12 @@
 #battle .stage-time,
 #battle #timer { color: #f0dfbd; }
 #battle #controls #hint { color: var(--a2-muted); }
-#battle #controls .item,
-#battle #controls .aux,
-#battle #controls #giveUp,
-#battle #controls .item.empty::after {
+#battle #controls .aux,#battle #controls #giveUp {
   background-image: url('../art/a2-tab-idle-v3.webp');
   background-size: 103.913043% 108.613861%;
   background-position: 12.962963% 55.172414%;
   background-repeat: no-repeat;
 }
-/* Empty items already own a dimmed pseudo-element; keep that single layer. */
-#battle #controls .item.empty { background-image: none; }
 
 /* Live pause, confirmation/accessibility dialogs and skill/boss tooltips. */
 #battle #pause .card,
@@ -314,13 +309,6 @@
 }
 #battle #pauseSub { color: var(--a2-muted); }
 #battle #tip::after, #battle #preview::after { background-color: #3b2513; border-color: var(--a2-brass); }
-:is(#s-party .f-gsheet, #battle #pauseGuide) :is(.gd-hp, .gd-phases li, .gs:not(.enr)) {
-  background-color: #332214;
-  background-image: var(--a2-wood);
-  background-size: cover;
-  background-repeat: no-repeat;
-  border-color: #8c6439;
-}
 :is(#s-party .f-gsheet, #battle #pauseGuide) .gd-phases li.cur {
   border-color: var(--a2-brass-hi);
   background-color: #594023;

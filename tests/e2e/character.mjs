@@ -130,7 +130,9 @@ export default async function character(url, shots) {
   ok(/벼랑 끝 손길/.test(await text('#s-char .c7-tsheet')) && /Lv 10/.test(await text('#s-char .c7-tsheet')) && /고르기/.test(await text('#s-char .c7-tsheet [data-talent="1:0"]')), '칸을 누르면 아래 시트 (이름·Lv·설명·고르기)');
   // 가짜 시계와 무관하게 CSS 등장 애니메이션의 마지막 프레임을 캡처한다.
   await page.screenshot({ path: `${shots}/char_talent.png`, animations: 'disabled' });
-  await page.click('#s-char .c7-tsum'); await page.clock.runFor(50);
+  // 시트가 위쪽 (.top)에 뜨면 요약 줄 (.c7-tsum)을 덮으니 아래쪽 빈 곳을 누름
+  { const pt = await page.evaluate(() => { for (let y = innerHeight - 90; y > 80; y -= 7) for (let x = 6; x < innerWidth - 6; x += 9) { const el = document.elementFromPoint(x, y); if (el && el.closest('#s-char') && !el.closest('.sheet, [data-tcell], button, a, #tabs')) return { x, y }; } return null; });
+    await page.mouse.click(pt.x, pt.y); } await page.clock.runFor(50);
   ok(!(await page.isVisible('#s-char .c7-tsheet')), '시트 밖을 누르면 닫힘');
   await page.click('#s-char [data-csub="skill"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char .c7-sk.locked').count()) === 0 && (await page.locator('#s-char .lslot.locked').count()) === 0, 'Lv 25 = 스킬·패시브 다 열림');

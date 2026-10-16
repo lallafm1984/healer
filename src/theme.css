@@ -84,8 +84,8 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 .ns .prow.head { background: none; border: 0; box-shadow: none; }
 .ns .lslot:not(.empty):not(.locked) { border-color: var(--frame); }
 .ns .lslot small { color: var(--mana); }
-.wdet, .coachtip { background: rgba(13, 11, 9, 0.96); border-radius: 6px; }
-.coachtip b, .wdet b { color: var(--gold-hi); }
+.coachtip { background: rgba(13, 11, 9, 0.96); border-radius: 6px; }
+.coachtip b { color: var(--gold-hi); }
 
 /* ---------- 버튼 · 칩 ---------- */
 .btn, .ns .btn { border: 1px solid #7A5C2E; border-radius: 6px; background: linear-gradient(#3A3024, #2A221A); box-shadow: 0 0 0 1px var(--line), inset 0 1px 0 rgba(217, 178, 106, 0.2); color: var(--ink); }
@@ -158,13 +158,10 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 .shop-wallet > span:last-child b, .shop-wallet small { grid-column: 1 / -1; text-align: center; }
 .shop-wallet small { font-size: 10px; color: var(--mute); }
 .ns .srow { padding: 10px 12px; border: 1px solid var(--edge); border-radius: 6px; background: var(--pnl); box-shadow: var(--pnl-shadow); }
-.ns .srow > .sic, .ns .ir-top > .sic { position: relative; flex: none; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 4px; border: 2px solid #7A5C2E; background: radial-gradient(circle at 50% 40%, #3A3024, #1A1511 80%); box-shadow: 0 0 0 1px var(--line); }
+.ns .srow > .sic { position: relative; flex: none; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 4px; border: 2px solid #7A5C2E; background: radial-gradient(circle at 50% 40%, #3A3024, #1A1511 80%); box-shadow: 0 0 0 1px var(--line); }
 .ns .sic svg { width: 30px; height: 30px; }
 .ns .sic .ui-icon { width: 24px; height: 24px; color: var(--frame-hi); }
 .sic .stack { position: absolute; right: 2px; bottom: 0; font: normal 900 11px var(--font-body); color: #FFFFFF; text-shadow: 0 1px 0 #000, 0 0 2px #000; }
-.ns .srow.itemrow { flex-direction: column; align-items: stretch; gap: 6px; }
-.ir-top { display: flex; align-items: center; gap: 10px; }
-.ir-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .srow b { font-size: 15px; font-weight: 700; color: var(--ink); }
 .srow small.full { font-weight: 700; color: var(--gold-hi); }
 .ns .srow .note.use { margin: 0; font-size: 13px; color: var(--heal); }
@@ -238,10 +235,6 @@ button:focus-visible, textarea:focus-visible { outline-color: var(--gold-hi); }
 #battle #core { border: 3px solid var(--frame-hi); background: #15120E; box-shadow: 0 0 0 1px var(--line); }
 #battle #manaNum { font: 900 22px var(--font-body); }
 #battle #manaNum small { font: 400 10px var(--font-body); color: var(--ink-2); }
-#battle .item { border: 2px solid #7A5C2E; border-radius: 4px; background: linear-gradient(#3A3024, #211B15); box-shadow: 0 0 0 1px var(--line), inset 0 1px 0 rgba(217, 178, 106, 0.3); }
-#battle .item .nm { color: var(--ink-2); }
-#battle .item .n { font-weight: 900; color: #FFFFFF; text-shadow: 0 1px 0 #000, 0 0 2px #000; }
-#battle .item.empty { border: 1px solid var(--edge-dim); background: #15120E; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6); }
 #battle .aux { border-color: var(--frame-hi); border-radius: 4px; background: linear-gradient(#4A3A1E, #2E2412); color: var(--gold-hi); }
 #battle #gauges { color: var(--ink-2); }
 #battle #gauges b { color: var(--gold-hi); }

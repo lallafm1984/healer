@@ -20,8 +20,6 @@ export const HEALER_HP = 550;
 
 /** 장비 한 개 점수 (보여 주는 값, 지금 레벨 기준: 아이템 레벨이 낮으면 줄어듦) */
 export const scoreOf = (it?: GearItem | null) => Math.round(itemScore(it ?? undefined, G.save.player.level) * 10);
-/** 장착 장비 점수 합 */
-export const gearScore = () => SLOTS.reduce((a, s) => a + scoreOf(G.save.gear.equipped[s.key]), 0);
 
 /** 특수능력 · 이름 있는 장신구 이름 (도감 키 → 이름) */
 export const specName = (key: string) => SPECS[key]?.name ?? namedOf(key)?.name ?? key;
@@ -106,8 +104,6 @@ export function betterSlots(): SlotKey[] {
   const eq = G.save.gear.equipped, lv = G.save.player.level;
   return SLOTS.filter(s => G.save.gear.bag.some(it => it.slot === s.key && itemScore(it, lv) > itemScore(eq[s.key], lv))).map(s => s.key);
 }
-/** 이 장비가 같은 부위의 착용 장비보다 좋은가 */
-export const isBetter = (it: GearItem) => itemScore(it, G.save.player.level) > itemScore(G.save.gear.equipped[it.slot], G.save.player.level);
 /** 가방 화살표 (Lim 2026-10-11): 같은 부위 착용 장비보다 점수가 높으면 1 · 낮으면 −1 · 같거나 착용 중이면 0 (빈칸이면 1) */
 export function vsWorn(it: GearItem): 1 | -1 | 0 {
   const w = G.save.gear.equipped[it.slot];

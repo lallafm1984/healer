@@ -14,8 +14,8 @@ import { Flow } from '../game/flow';
 import { G, heroNow, newGearCount } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { TUT } from '../game/tutorial';
-import { go, screen, setTabsHandler, topBar, type TabKey } from './kit';
-import { classEmblem, gameIcon, LOCK, uiIcon } from './art';
+import { go, setTabsHandler, type TabKey } from './kit';
+import { classEmblem, gameIcon, uiIcon } from './art';
 
 export interface TabDef {
   key: TabKey;
@@ -36,16 +36,6 @@ const ALL_TABS: TabDef[] = [
 export const TABS = ALL_TABS.filter(t => t.key !== 'guild' || FEATURES.guild);
 
 const HOME = '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/></svg>';
-
-const ph = screen('s-tab', '준비 중인 탭', {
-  enter(arg) {
-    const t = TABS.find(x => x.key === arg) || TABS[TABS.length - 1];
-    ph.tab = t.key;
-    const locked = t.lv && topLevel(G.save) < t.lv;
-    ph.el.innerHTML = `${topBar({ settings: true })}<div class="ns-body tabph"><h2 class="h">${t.name}</h2>
-      ${locked ? `<p class="lockline">${LOCK}Lv ${t.lv}에 열림 (지금 Lv ${topLevel(G.save)})</p>` : '<p class="note">준비 중</p>'}</div>`;
-  },
-});
 
 /** 튜토리얼 중엔 로비·전투만 (09 4장). 캐릭터 탭은 첫 장비를 얻으면 열림 */
 function tutLocked(k: TabKey): boolean {

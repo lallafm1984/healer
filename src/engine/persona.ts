@@ -260,9 +260,6 @@ export function persThink(f: Fight, u: Unit): boolean {
   return false;
 }
 
-/** 침착함: 옮겨붙는 디버프면 회피율과 상관없이 꼭 비켜 섬 */
-export const persCalm = (u: Unit): boolean => !!u.p.calm;
-
 /** 영웅이 대신 맞아 주는 몫 (맞을 피해에서 뺄 양). 영웅이 쓰러졌거나 시간이 지나면 0 */
 export function coverPart(f: Fight, u: Unit, amt: number): { by: Unit; part: number } | null {
   const c = u.coverBy;

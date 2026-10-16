@@ -269,57 +269,20 @@
 #battle #controls #core.low #manaNum { color: #ff9789; }
 
 /* 아이템의 검은 판·황동 모서리도 이미지로 유지한다. 실시간 수량/재사용 대기층은 기존 DOM이다. */
-#battle #controls .item,
-#battle #controls .item.empty,
-#battle #controls .aux,
-#battle #controls #giveUp {
+#battle #controls .aux,#battle #controls #giveUp {
   border: 2px solid transparent;
   border-radius: 0;
   background: transparent url('../art/ui-sunforged-item-socket.webp') center / 100% 100% no-repeat border-box;
   box-shadow: none;
   color: #f7ebcc;
 }
-#battle #controls .item > svg,
-#battle #controls .item > .item-art {
-  flex: none;
-  width: 30px;
-  height: 30px;
-  max-height: none;
-  object-fit: contain;
-  pointer-events: none;
-}
-#battle #controls .item > .item-art { width: 38px; height: 38px; }
-#battle #controls.hasaux .item > svg,
-#battle #controls.hasaux .item > .item-art { width: 30px; height: 30px; }
-#battle #controls .item .nm { font: 600 12px/1.1 var(--font-body); color: #f8edcf; text-shadow: 0 1px 1px #080605; }
-#battle #controls .item .n { right: 5px; bottom: 3px; font-size: 14px; font-weight: 700; color: #fff9e9; text-shadow: 0 1px 1px #080605; }
-#battle #controls .item .cd,
 #battle #controls .aux .cd { inset: 7%; pointer-events: none; }
-#battle #controls .item .cds,
 #battle #controls .aux .cds { color: #92cfff; }
 #battle #controls .aux.spent { cursor: default; }
 #battle #controls .aux.spent .nm { position: absolute; inset: 7px 0 auto; z-index: 3; font-size: 11px; line-height: 1; }
 #battle #controls .aux.spent .cds { inset: 23px 0 auto; color: #e2ded2; font-size: 9px; line-height: 1; white-space: nowrap; }
-#battle #controls .item.empty { background: none; filter: none; isolation: isolate; }
-/* 비활성 소켓만 어둡게 한다. ::before는 축소 모드 터치 영역의 소유이므로 사용하지 않는다. */
-#battle #controls .item.empty::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  z-index: -1;
-  background: url('../art/ui-sunforged-item-socket.webp') center / 100% 100% no-repeat;
-  filter: brightness(.6) saturate(.4);
-  pointer-events: none;
-}
-#battle #controls .item.empty .nm { font-size: calc(12px / var(--controls-scale, 1)); color: #eadfc3; }
-#battle #controls .item.empty > .lk { width: 26px; height: 26px; filter: grayscale(1) brightness(.6); }
-#battle #controls .item.empty > .empty-slot-art { width: 27px; height: 27px; opacity: .38; filter: grayscale(1) brightness(.6); }
-#battle #controls.hasaux .item.empty > .lk,
-#battle #controls.hasaux .item.empty > .empty-slot-art { width: 24px; height: 24px; }
-#battle #controls .item.used .n { color: #b8aa92; }
-#battle #controls .item.armed,
-#battle #controls .aux.on,
-#battle #controls .aux.armed { outline: 2px solid #fff1aa; outline-offset: -4px; box-shadow: none; }
+
+#battle #controls .aux.on,#battle #controls .aux.armed { outline: 2px solid #fff1aa; outline-offset: -4px; box-shadow: none; }
 #battle #controls .aux .nm { color: #fff0cb; text-shadow: var(--ol1); }
 
 /* 수치와 막대는 편집 가능한 게임 데이터이며, 테두리만 그림으로 입힌다. */
@@ -338,10 +301,3 @@
 #battle #controls #gauges .gr.ready .gt i { background: linear-gradient(90deg, #deb654, #fff3c4 50%, #deb654) 0 0 / 200% 100%; animation: wordBar 1.2s linear infinite; }
 @keyframes wordBar { to { background-position: -200% 0; } }
 #battle #controls #hint { color: #cabaa0; }
-#battle.short-battle #controls .item > .item-art { width: 28px; height: 28px; }
-#battle.short-battle #controls.hasaux .item > .item-art { width: 26px; height: 26px; }
-
-@media (max-width: 359px) {
-  #battle #controls .item .nm { font-size: 11px; }
-  #battle #controls .item .n { right: 4px; font-size: 13px; }
-}

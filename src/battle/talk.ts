@@ -621,5 +621,3 @@ export function createTalk(rand: () => number = Math.random) {
 
   return { start, frame };
 }
-
-export type Talk = ReturnType<typeof createTalk>;

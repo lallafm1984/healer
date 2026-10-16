@@ -13,7 +13,7 @@ import { contentOf, RAID10_LV, type ContentDef } from './content';
 import type { DiffName } from './difficulty';
 import type { GearStats, GradeName } from './gear';
 import type { HeroKey } from './heroes';
-import { CONTENT_PLACE, FACTIONS, PLACES, type FactionKey } from './places';
+import { CONTENT_PLACE, PLACES, type FactionKey } from './places';
 import { apexOf, lvPower, MAX_LEVEL, RAMP_LV, rampPlace } from './progression';
 import { INT_BASE, RULES } from './rules';
 import { FEATURED, namedOf, namedsFor, SPEC_KEYS, SPECS, specTotals, specUseful, specValue, type SpecLine, type SpecOn } from './specials';
@@ -387,8 +387,6 @@ export const lookOf = (place: string | undefined): FactionKey | undefined => {
   const p = place ? CONTENT_PLACE[place as keyof typeof CONTENT_PLACE] : undefined;
   return p ? PLACES[p].faction : undefined;
 };
-/** 생김새 색 (세력 색): 그림이 없는 생김새는 종류 그림 + 이 색 테두리 */
-export const lookColor = (f: FactionKey) => FACTIONS[f].color;
 
 /** 이름: 등급 말 + (세력 말) + 종류 (「축복받은 두건」 · 「축복받은 산호 두건」). 이름 있는 장신구 · 고유 장비는 그 이름 (「녹슨 톱니」) */
 export const itemName = (it: { slot: SlotKey; kind?: string; grade: ItemGrade; named?: string; unique?: string; look?: FactionKey }) =>
@@ -641,20 +639,6 @@ export function makeLegend(r: () => number, id: number, o: DropCtx = {}): GearIt
 /** 특수능력 한 줄 값 (전설 고유 능력은 그 장비 고유 능력 배율, 91) */
 export const specLineValue = (it: GearItem, l: SpecLine) => (l.legend ? legendValue(l.key, it.grade, it.uniqueMult) : specValue(l.key, it.grade, l.roll));
 
-/**
- * 출전 전 보상 팝업 (61 3-4): 그 장소에서 상한 등급 (top)까지 나올 수 있는 고유 장비 · 이름 있는 장신구. makeItem과 같은 조건으로 읽음
- * (나오는 등급 조건을 바꾸면 여기도 같이)
- */
-export function placeSpecials(place: string, top: ItemGrade): { name: string; slot: SlotKey; min: ItemGrade; unique: boolean }[] {
-  const ti = ITEM_GRADES.indexOf(top), out: { name: string; slot: SlotKey; min: ItemGrade; unique: boolean }[] = [];
-  for (const s of SLOTS) {
-    if (ti < ITEM_GRADES.indexOf(LEGEND)) continue; // 전설만 (Lim 2026-10-11 「전설에만 고유 능력」)
-    for (const un of uniquesFor(place, s.key)) out.push({ name: un.name, slot: s.key, min: LEGEND, unique: true });
-    for (const nm of namedsFor(place, s.key)) out.push({ name: nm.name, slot: s.key, min: LEGEND, unique: false });
-  }
-  return out;
-}
-
 /** 장비 한 개의 특수능력 값 (이름 있는 장신구 고유 효과 · 고유 장비 고정 특수능력 + 줄마다 값) */
 export function itemSpecs(it: GearItem | null | undefined): SpecOn[] {
   if (!it) return [];
@@ -879,14 +863,3 @@ export const RECOMMENDED: Record<DiffName, { label: string; score: number } | nu
  * 플레이어의 드롭 장비로 맞춤 (sim/ramp, 2026-10-13 Lim 「Lv 1 어려움이 자동 힐로 안 깨짐」)
  */
 export const recommendedFor = (c: ContentDef, d: DiffName) => (rampPlace(c) ? null : RECOMMENDED[d]);
-
-/** 지금 장비를 한 줄로 (예: "고급 3 · 일반 2 · 빈칸 1") */
-export function gearSummary(eq: Equipped): string {
-  const cnt = new Map<string, number>();
-  for (const s of SLOTS) {
-    const k = eq[s.key]?.grade ?? '빈칸';
-    cnt.set(k, (cnt.get(k) || 0) + 1);
-  }
-  const order = [...[...ITEM_GRADES].reverse(), '빈칸'];
-  return order.filter(k => cnt.has(k)).map(k => `${k} ${cnt.get(k)}`).join(' · ');
-}

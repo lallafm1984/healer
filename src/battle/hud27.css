@@ -152,20 +152,7 @@
 #battle .aux { flex: none; width: auto; min-width: 44px; max-width: none; height: 44px; min-height: 44px; aspect-ratio: auto; border: 2px solid var(--frame-hi); border-radius: 4px; background: linear-gradient(#4A3A1E, #2E2412); box-shadow: 0 0 0 1px var(--line), inset 0 1px 0 rgba(255, 220, 160, 0.3); font: 700 14px var(--font-display); color: var(--gold-hi); }
 #battle .aux .cds { font: 900 17px var(--font-body); color: #FFFFFF; text-shadow: var(--ol1); }
 #battle .aux.on, #battle .aux.armed { border-color: var(--gold-hi); }
-/* 아이템 칸: 네모 4px, 청동 테 2px, 그림 · 이름 · 오른쪽 아래 개수. 높이는 남는 만큼 44~60 */
-#battle #items { flex: 0 1 auto; min-height: 96px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(44px, 60px); gap: 8px; }
-#battle #controls.hasaux #items { gap: 6px; min-height: 94px; grid-auto-rows: minmax(44px, 54px); }
-#battle .item { height: auto; min-width: 44px; min-height: 44px; aspect-ratio: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 0; border: 2px solid #7A5C2E; border-radius: 4px; background: linear-gradient(#3A3024, #211B15); box-shadow: 0 0 0 1px var(--line), inset 0 1px 0 rgba(217, 178, 106, 0.3); color: var(--ink); }
-#battle .item svg { width: 28px; height: 28px; max-height: none; }
-#battle #controls.hasaux .item svg { width: 24px; height: 24px; }
-#battle .item .nm { font-size: 11px; line-height: 1.3; color: var(--ink-2); }
-#battle .item .n { top: auto; right: 5px; bottom: 2px; font-size: 13px; font-weight: 900; line-height: 1.2; color: #FFFFFF; text-shadow: var(--ol1); }
-#battle .item.used .n { color: var(--mute); }
-#battle .item .cds { font: 900 20px var(--font-body); color: var(--gold-hi); text-shadow: var(--ol1); }
-/* 잠긴 칸 · 빈 칸: 평평한 어두운 칸 + 자물쇠 + Lv */
-#battle .item.empty { gap: 2px; border: 1px solid var(--edge-dim); background: var(--bg); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6); cursor: default; }
-#battle .item.empty .lk { width: 14px; height: 14px; color: var(--dim); }
-#battle .item.empty .nm { font-size: 11px; color: var(--mute); }
+
 /* 고유 시스템 = 작은 막대 2줄 (시안 20인 평온 · 신성화) */
 #battle #gauges { flex: none; display: flex; flex-direction: column; flex-wrap: nowrap; justify-content: flex-start; gap: 7px; font-size: 12px; line-height: 1.2; color: var(--ink-2); }
 #battle #gauges .gr { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -174,7 +161,6 @@
 #battle #gauges .gt i { display: block; width: 0; height: 100%; background: linear-gradient(#E6DCC4, #B8AC92); }
 #battle #gauges .gold .gt i { background: var(--bar-cast); }
 #battle #gauges .leaf .gt i { background: linear-gradient(#B7E07A, #7BC67E 50%, #4E8F52); }
-#battle #gauges .gv { flex: none; min-width: 28px; max-width: 70px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 #battle #gauges b { font-weight: 400; color: inherit; }
 #battle #hint { flex: none; font-size: 12px; line-height: 1.4; color: var(--mute); text-align: center; }
 /* 스킬 휠 칸: 청동 3px 링, 안쪽 방사 그라데이션, 화살표(금) · 이름(굵게) · 마나 비용(파랑) */
@@ -254,7 +240,6 @@
 #battle.short-battle #castbar { padding: 2px 12px 6px; }
 #battle.short-battle #castTrack { height: 28px; }
 #battle.short-battle #side { gap: 6px; padding: 6px 0 4px; }
-#battle.short-battle #controls #items { max-width: 146px; gap: 4px; min-height: 92px; grid-auto-rows: minmax(44px, 50px); }
 #battle.short-battle #gauges { gap: 4px; font-size: 11px; }
 #battle.short-battle #gauges .gr { height: 13px; line-height: 13px; }
 
