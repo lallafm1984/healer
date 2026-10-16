@@ -250,7 +250,7 @@ const STAT_LINE = {
 };
 const statIc = (k: keyof typeof STAT_LINE) => gameIcon(k, STAT_LINE[k], 'stat');
 
-/** ① 장비 칸 (시안 .slot): 등급 색 테두리·빛 · 등급 글자 칩 · 강화 +n · 더 좋은 장비 초록 ↑ · 빈칸 점선 + 가방 개수 */
+/** ① 장비 칸 (시안 .slot): 칸 바탕 = 등급 색 (2026-10-16 Lim, 등급 글자 칩 없음 · 등급은 접근 가능한 이름에) · 강화 +n · 더 좋은 장비 초록 ↑ · 빈칸은 가방 개수 */
 /** 특수능력 묶음 표식 (36 I `spec-*`): 그림이 있으면 그림, 없으면 묶음 글자. trinket = 도감 고유 칸의 이름 있는 장신구 키 (36 4-3 그림, 없으면 글자) */
 const specBadge = (g: CodexGroup, label: string, trinket?: string) => {
   if (g !== 'named') return gameIcon(SPEC_GROUPS[g].icon.replace(/^spec-/, ''), label, 'spec');
@@ -275,7 +275,7 @@ function slotHtml(key: SlotKey, better: SlotKey[]): string {
         <span class="c7-sq">${itemIc(key)}${up}</span><b>${name}</b></button>`;
   }
   return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(it.name)}${plusTxt(it)} · ${it.grade}${specLabel(it)}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
-      <span class="c7-sq${it.plus >= MAX_PLUS ? ' max' : ''}">${itemIc(it)}${lookFx(it, 's')}<i class="c7-gl">${it.grade[0]}</i>${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${specDots(it)}${up}</span>
+      <span class="c7-sq${it.plus >= MAX_PLUS ? ' max' : ''}">${itemIc(it)}${lookFx(it, 's')}${it.plus ? `<i class="c7-pl">+${it.plus}</i>` : ''}${specDots(it)}${up}</span>
       <b>${it.lock ? LOCK : ''}${name}</b></button>`;
 }
 

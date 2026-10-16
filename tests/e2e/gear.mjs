@@ -53,7 +53,7 @@ export default async function gear(url, shots) {
 
   // ---- 받침대 좌우 장비 칸 ----
   const t101 = await text('#s-char .gtile[data-gitem="101"]');
-  ok((await page.locator('#s-char .gtile').count()) === 6 && /희/.test(await text('#s-char .gtile[data-gitem="101"] .c7-gl')) && /머리/.test(t101) && /두건/.test(await page.getAttribute('#s-char .gtile[data-gitem="101"]', 'aria-label')) && (await page.locator('#s-char .c7-slot > small').count()) === 0, '장비 칸 6개: 그림·등급·부위 이름, 종류는 접근 가능한 이름에 유지하고 보조문구 없음');
+  ok((await page.locator('#s-char .gtile').count()) === 6 && (await page.locator('#s-char .gtile .c7-gl').count()) === 0 && /희귀/.test(await page.getAttribute('#s-char .gtile[data-gitem="101"]', 'aria-label')) && /머리/.test(t101) && /두건/.test(await page.getAttribute('#s-char .gtile[data-gitem="101"]', 'aria-label')) && (await page.locator('#s-char .c7-slot > small').count()) === 0, '장비 칸 6개: 그림·부위 이름, 등급은 칸 바탕 색 (글자 칩 없음)과 접근 가능한 이름, 종류도 접근 가능한 이름에 유지하고 보조문구 없음');
   ok(/가방에 1개/.test(await page.getAttribute('#s-char .gtile[data-gslot="hands"]', 'aria-label')) && (await page.locator('#s-char .gtile[data-gslot="hands"] .c7-better').count()) === 1 && await page.isVisible('#s-char [data-csub="gear"] .rdot'), '빈칸: 가방 개수는 접근 가능한 이름, 초록 ↑·장비 탭 빨간 점 유지');
   ok(/3개/.test(await text('#s-char .c7-inventory-count')) && (await page.locator('#s-char .c7-acts, #s-char [data-bag], #s-char [data-rec], #s-char [data-salvbag]').count()) === 0, '인벤토리 개수 3개, 별도 가방·추천·분해 버튼 없음');
 
