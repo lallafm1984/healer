@@ -3,7 +3,6 @@ import type { ClassKey } from '../data/classes';
 import type { Difficulty, DiffName } from '../data/difficulty';
 import type { Encounter, EncounterKey } from '../data/encounters';
 import type { GearId, GearStats } from '../data/gear';
-import type { ItemKey } from '../data/items';
 import type { Personality, PersName } from '../data/personalities';
 import type { Rules } from '../data/rules';
 import type { HeroKey } from '../data/heroes';
@@ -418,7 +417,7 @@ export interface Zone {
 export type FightEvent =
   /** 파티원 말풍선. sit = 상황 (41 문서, 프로토타입 규칙이면 없음) */
   | { type: 'bark'; id: number; text: string; sit?: BarkSit }
-  | { type: 'heal'; id: number; amt: number; eff: number; crit: boolean; item?: boolean }
+  | { type: 'heal'; id: number; amt: number; eff: number; crit: boolean }
   /**
    * 지속 · 간접 회복 (지속 힐 틱 · 토템 · 비구름 · 봉화 나눔 …, 직접 힐 아닌 heal): 화면은 직접 힐과 같은 숫자 · 같은 자리 (빛 · 소리는 없음).
    * 다 넘친 것 (eff 0)은 안 냄. 초마다 조금씩 차는 회복 (healFlow)은 1초씩 모아 한 번에
@@ -432,13 +431,13 @@ export type FightEvent =
   | { type: 'debuff'; id: number; dtype: string }
   | { type: 'phase'; text: string }
   | { type: 'impact'; kind?: TelKind }
-  | { type: 'dispel'; id: number; trap?: boolean; item?: boolean }
+  /** ally = 파티원 능력의 해제 (내 해제가 아님: 진동 · 해제 빛 없음) */
+  | { type: 'dispel'; id: number; trap?: boolean; ally?: boolean }
   /** 체력 선 디버프가 채워져서 사라짐 (쇠약·완치 표식, 35 3-A) */
   | { type: 'cure'; id: number; name: string }
   | { type: 'gauge'; which: string }
   | { type: 'beacon'; id: number }
   | { type: 'revive'; id: number }
-  | { type: 'item'; key: ItemKey; note: string }
   /** 파티원 공격 한 방 (uid = 때린 파티원) */
   | { type: 'hit'; uid: number; amt: number }
   /** 뒤집힌 축복: 치유가 피해로 (빨간 숫자) · 실수 방지로 칸만 흔들림 */
@@ -496,8 +495,6 @@ export interface FightConfig {
   board?: BoardId;
   /** 없으면 시드로 공개모집 파티를 뽑음 */
   party?: RosterEntry[];
-  /** 단축칸 (최대 4개) */
-  items?: ItemKey[];
   /** 던전 앞 구간에서 이어받는 것 (23 4장) */
   carry?: Carry;
   /** 힐러 레벨: 이 레벨까지 배운 스킬·패시브만 씀 (06 7장). 없으면 전부 (시뮬·옛 테스트) */
@@ -510,8 +507,6 @@ export interface FightConfig {
   stageLv?: number;
   /** 사제 특성: 단마다 고른 칸 번호 (06 6장). 없으면 특성 없음 */
   talents?: (number | null)[];
-  /** 가방에 남은 소비 아이템 (19 11장). 없으면 제한 없음 */
-  itemCap?: Partial<Record<ItemKey, number>>;
   /** 직업군 방어력 (34 9-2). false면 끔 = 프로토타입과 같음 (parity 테스트) */
   armor?: boolean;
   /** 프로토타입 규칙 (34 이전 숫자·시전·GCD, data/rules PROTO_RULES). 난이도 보정(tune)도 안 씀. parity 테스트 전용 */
@@ -636,7 +631,6 @@ export interface FightStats {
   cancels: number;
   manaFails: number;
   hymnBroken: number;
-  itemDispels?: number;
   /** 파티원 능력 사용 횟수 · 능력 회복량 */
   abUses?: number;
   abHeal?: number;
@@ -769,10 +763,6 @@ export interface Fight {
   /** 보스 체력 = 몸통(보스가 아닌 적 포함) 체력 합 (일반·정예 구간, 유령 성가대). 쫄(add)은 빼고 셈 */
   bodyHp: boolean;
   rats: number[];
-  items: Partial<Record<ItemKey, number>>;
-  potCd: number;
-  medit: number;
-  itemLog: { key: ItemKey; t: number }[];
   stats: FightStats;
   nextId: number;
   party: Unit[];

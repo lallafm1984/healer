@@ -536,7 +536,7 @@ function apply(f: Fight, u: Unit, a: AbilityDef, fx: Fx, e: number, ctx: Ctx): v
       if (!v || !d) break;
       v.debuffs = v.debuffs.filter(x => x !== d);
       onDebuffEnd(f, v, d, true);
-      emit(f, { type: 'dispel', id: v.id, item: true });
+      emit(f, { type: 'dispel', id: v.id, ally: true });
       break;
     }
     case 'share': if (ctx.target) addMod(ctx.target, { k: 'share', v: Math.min(0.6, fx.v * e), until: f.t + fx.sec, src, by: u.id }); break;

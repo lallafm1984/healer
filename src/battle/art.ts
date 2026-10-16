@@ -1,7 +1,6 @@
-/** 전투 아트. 보스·잡몹은 생성 원화(src/art의 boss-·mob-, 29 문서), 없으면 벡터 그림. 소비 아이템은 벡터 그림. */
+/** 전투 아트. 보스·잡몹은 생성 원화(src/art의 boss-·mob-, 29 문서), 없으면 벡터 그림. */
 import { art } from '../art';
 import { BOSSES, type BossDef } from '../data/bosses';
-import type { ItemKey } from '../data/items';
 import type { FactionKey } from '../data/places';
 import type { Mob, Unit } from '../engine/types';
 import { SKILLS, type SkillKey, type SlotName } from '../data/skills';
@@ -24,23 +23,6 @@ export function skillMark(key: SkillKey): string {
   const path = key === 'relay' ? RELAY_MARK : key === 'handGuard' ? '<path d="M7 12V6a1.5 1.5 0 0 1 3 0v5-8a1.5 1.5 0 0 1 3 0v8-6a1.5 1.5 0 0 1 3 0v7-3a1.5 1.5 0 0 1 3 0v6c0 4-3 7-7 7-3 0-5-2-6-4L3 13a1.5 1.5 0 0 1 2-2z"/>' : SKILL_MARK[SKILLS[key].slot];
   return `<svg class="skill-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
 }
-
-const potion = (c: string) => `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12.5 6h7v4.2a9 9 0 1 1-7 0z" fill="${c}" stroke="#0B0B12" stroke-width="2" stroke-linejoin="round"/><rect x="11.5" y="3" width="9" height="4" rx="1.2" fill="#C9923F" stroke="#0B0B12" stroke-width="1.6"/><ellipse cx="12.8" cy="20" rx="1.8" ry="3" fill="rgba(255,255,255,.5)"/></svg>`;
-const scroll = (mark: string) => `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="7" width="18" height="18" rx="2" fill="#E9DDBC" stroke="#0B0B12" stroke-width="2"/><rect x="5" y="4" width="22" height="5" rx="2.5" fill="#B98F4E" stroke="#0B0B12" stroke-width="1.8"/><rect x="5" y="23" width="22" height="5" rx="2.5" fill="#B98F4E" stroke="#0B0B12" stroke-width="1.8"/>${mark}</svg>`;
-export const ITEM_ICON: Record<ItemKey, string> = {
-  mana: potion('#4C8FE0'),
-  medit: potion('#51C6C0'),
-  life: potion('#D9342B'),
-  cleanse: scroll('<path d="M16 11.5l1.3 3.2 3.2 1.3-3.2 1.3-1.3 3.2-1.3-3.2-3.2-1.3 3.2-1.3z" fill="#2E9A94" stroke="#0B0B12" stroke-width="1"/>'),
-  shield: scroll('<path d="M16 11l5 1.8v3.4c0 3-2.2 4.8-5 5.8-2.8-1-5-2.8-5-5.8v-3.4z" fill="#F0C46A" stroke="#0B0B12" stroke-width="1.4"/>'),
-  feather: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M25 4C15 6 9 13 8.5 24l2.2 1.6c3-1.2 5.2-3.8 6.3-7l3.8-.8-2.9-1.2 4.6-3.9-3.8.2C21.6 10.3 23.8 7.4 25 4z" fill="#F6F0E0" stroke="#0B0B12" stroke-width="1.8" stroke-linejoin="round"/><path d="M21 9L6 28" stroke="#C9923F" stroke-width="1.8" stroke-linecap="round"/></svg>`,
-};
-// 보스 궁합 힌트 (19 9장 등록)
-export const ITEM_HINT: Record<string, string> = {
-  warden: '💡 녹슨 문지기는 탱커 강타가 셈. 보호 두루마리를 강타 직전 탱커에게 걸면 버티기 쉬움',
-  plague: '💡 역병 군주의 독침은 사제가 못 지움 (드루이드·성기사는 지움). 해제 두루마리로도 지울 수 있음',
-  choir: '💡 유령 성가대의 독창은 3명이라 해제가 모자람. 해제 두루마리 한 장이면 한 번에 지움',
-};
 
 /**
  * 보스 무대 원형 초상·공략 그림 이름 (29 4장). 전투(구간)마다 앞에서부터 있는 그림을 쓴다.

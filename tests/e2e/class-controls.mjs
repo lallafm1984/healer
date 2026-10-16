@@ -8,7 +8,7 @@ export default async function classControls(url,shots){
   for(const hero of ['priest','druid','paladin','shaman','monk','astrologer','warder']){for(const hasAux of [false,true]){
    const ctx=await b.newContext({viewport:{width,height},isMobile:true,hasTouch:true}),p=await ctx.newPage();
    p.on('pageerror',e=>errs.push(e.message));await p.clock.install();await p.goto(url);await p.clock.runFor(300);
-   await patchSave(p,{player:{level:100},items:['mana','life'],bag:{mana:9,life:9},settings:{devUnlock:true,devStamina:true,auto:false}});
+   await patchSave(p,{player:{level:100},settings:{devUnlock:true,devStamina:true,auto:false}});
    await p.evaluate(([hero,picks])=>{const s=JSON.parse(localStorage.getItem('healer.save'));s.hero=hero;s.bought??={};s.bought['job_'+hero]=true;s.heroes[hero]??={};s.heroes[hero].talents=picks;localStorage.setItem('healer.save',JSON.stringify(s));},[hero,hasAux?auxPicks[hero]:Array(10).fill(null)]);
    await p.reload();await p.clock.runFor(300);await toParty(p,{tab:'dungeon',content:'rustfort',diff:'보통'});await departGo(p);await p.clock.runFor(3400);
    await p.evaluate(()=>{
@@ -22,30 +22,31 @@ export default async function classControls(url,shots){
     ok(await p.locator('#pauseCompact').count()===0&&await p.locator('#controls').evaluate(e=>e.classList.contains('compact-controls')),hero+' fixed compact without size toggle');
     const check=await p.evaluate(()=>{
      const c=document.querySelector('#controls'),g=document.querySelector('.job-gauge'),frame=document.querySelector('#controlsFrame'),cr=c.getBoundingClientRect(),gr=g.getBoundingClientRect(),scale=+c.dataset.uiScale;
-     const items=[...document.querySelectorAll('#items .item')].map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:r.width,height:r.height};});
+     // 2026-10-16: 소비 아이템을 없애고 그 자리에 특성 버튼 (스킬과 같은 원형). 없으면 자원 그림을 키움
+     const tals=[...document.querySelectorAll('#aux [data-tal]')].map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:r.width,height:r.height,round:e.classList.contains('slot')};});
      const compact=c.classList.contains('compact-controls'),host=document.querySelector('#gauges').getBoundingClientRect(),wheel=document.querySelector('#wheel').getBoundingClientRect();
      const fr=frame.getBoundingClientRect(),rel=e=>{const r=e.getBoundingClientRect();return[r.x-fr.x,r.y-fr.y,r.width,r.height];},aux=document.querySelector('#aux').getBoundingClientRect(),cast=document.querySelector('#castbar').getBoundingClientRect();
      return {job:g.dataset.job,background:getComputedStyle(compact?frame:c).backgroundImage+' '+getComputedStyle(frame).borderImageSource,
-      positions:[rel(g),rel(document.querySelector('#wheel')),...[...document.querySelectorAll('#items .item,#wheel .slot,#core')].map(rel)],
-      auxCount:document.querySelectorAll('#aux .aux').length,auxFit:aux.height===0||(aux.top>=gr.bottom&&aux.bottom<=Math.min(...items.map(r=>r.top))&&aux.left>=fr.left+(innerWidth<360?6:12)&&aux.right<=wheel.left&&aux.top>fr.top),
+      positions:[rel(g),rel(document.querySelector('#wheel')),...[...document.querySelectorAll('#wheel .slot,#core')].map(rel)],
+      auxCount:tals.length,auxFit:aux.height===0||(aux.top>=gr.bottom&&aux.bottom<=cr.bottom-20&&aux.left>=fr.left+(innerWidth<360?6:12)&&aux.right<=wheel.left),
       board:document.querySelector('#boardWrap').getBoundingClientRect().height,frameTop:fr.top,
       timersFit:[...g.querySelectorAll('.gauge-number,.gauge-extra')].filter(e=>e.textContent).every(e=>{const r=e.getBoundingClientRect();return r.left>=gr.left-1&&r.right<=gr.right+1&&r.top>=gr.top-1&&r.bottom<=gr.bottom+1;}),
-      touchClear:[...c.querySelectorAll('button')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;}).every(e=>{const r=e.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return hit===e||e.contains(hit);}),frame:getComputedStyle(document.querySelector('#items .item')).backgroundImage,
+      touchClear:[...c.querySelectorAll('button')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;}).every(e=>{const r=e.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return hit===e||e.contains(hit);}),
       oldFrameGone:!compact||getComputedStyle(frame,'::before').content==='none',
       aligned:Math.abs((gr.left+gr.right)-(host.left+host.right))<1&&Math.abs((gr.top+gr.bottom)-(host.top+host.bottom))<1,
-      twoSlots:items.length===2&&Math.abs(items[0].top-items[1].top)<1&&items.every(r=>Math.abs(r.width-r.height)<1&&r.width>=44),
-      itemsFit:items.every(r=>r.bottom<=cr.bottom-20&&r.top>=gr.bottom+7*scale&&r.left>=cr.left+12&&r.right<=cr.right-12),
+      talRow:tals.every(r=>r.round&&Math.abs(r.top-tals[0].top)<1&&Math.abs(r.width-r.height)<1&&r.width>=40),
+      talFit:tals.every(r=>r.bottom<=cr.bottom-20&&r.top>=gr.bottom+7*scale&&r.left>=cr.left+(innerWidth<360?6:12)&&r.right<=wheel.left),
       wheelFit:wheel.bottom<=cr.bottom-14&&wheel.top>=cr.top+8&&wheel.right<=cr.right-16,
-      gaugeSize:[gr.width,gr.height],items,
+      gaugeSize:[gr.width,gr.height],tals,
       hitMin:+c.dataset.effectiveTouchMin,hitOverlap:c.dataset.hitAreasOverlap,bottom:cr.bottom,images:[...c.querySelectorAll('img')].every(i=>i.complete&&i.naturalWidth>0)};
     });
     const label=hero+' '+width+' '+(hasAux?'aux':'base');
     if(hero==='priest'&&!hasAux)baseline[width]={positions:check.positions,board:check.board,frameTop:check.frameTop};
-    // 보조 특성 버튼 (2026-10-16): 왼쪽 묶음 안 아이템 줄 위. 전투판 · 조작판 크기와 휠 · 아이템 좌표는 그대로, 자원 그림만 줄어듦
+    // 특성 버튼 (2026-10-16): 예전 소비 아이템 자리. 전투판 · 조작판 크기와 휠 좌표는 그대로, 특성 버튼이 없으면 자원 그림만 커짐
     ok(check.positions.every((r,i)=>(hasAux&&i===0)||r.every((v,k)=>Math.abs(v-baseline[width].positions[i][k])<.35))&&Math.abs(check.board-baseline[width].board)<.5&&Math.abs(check.frameTop-baseline[width].frameTop)<.5,label+' 사제 B안 공통 좌표 · 전투판 크기 그대로');
-    ok(check.auxCount===(hasAux?auxPicks[hero].filter(x=>x!==null).length:0)&&check.auxFit&&check.timersFit&&check.touchClear,label+' 보조 행·타이머·터치 비침범 '+JSON.stringify(check));
-    ok(check.job===hero&&check.background.includes('ui-class-'+hero+'-background')&&check.frame.includes('ui-class-'+hero+'-item-frame')&&check.oldFrameGone,label+' class materials');
-    ok(check.twoSlots&&check.itemsFit&&check.wheelFit&&check.aligned&&check.images&&check.gaugeSize[1]>=50&&check.hitMin>=43.9&&check.hitOverlap==='false',label+' aligned gauge/items safe insets '+JSON.stringify(check));
+    ok(check.auxCount===(hasAux?auxPicks[hero].filter(x=>x!==null).length:0)&&check.auxFit&&check.timersFit&&check.touchClear,label+' 특성 버튼 · 타이머 · 터치 비침범 '+JSON.stringify(check));
+    ok(check.job===hero&&check.background.includes('ui-class-'+hero+'-background')&&check.oldFrameGone,label+' class materials');
+    ok(check.talRow&&check.talFit&&check.wheelFit&&check.aligned&&check.images&&check.gaugeSize[1]>=50&&check.hitMin>=43.9&&check.hitOverlap==='false',label+' aligned gauge/talents safe insets '+JSON.stringify(check));
     await p.locator('#controlsFrame').screenshot({path:shots+'/class-controls-'+hero+'-'+width+'-'+(hasAux?'aux':'base')+'.png'});
    }
    if(hasAux&&width===320)await p.screenshot({path:shots+'/class-controls-'+hero+'-'+width+'-aux-screen.png'});
@@ -78,7 +79,7 @@ export default async function classControls(url,shots){
  // 채택 B안의 폭별 위치와 resize 복귀. 저장을 주입한 독립 브라우저에서만 확인한다.
  const p=await b.newPage({viewport:{width:320,height:780},isMobile:true,hasTouch:true});
  p.on('pageerror',e=>errs.push(e.message));await p.clock.install();await p.goto(url);await p.clock.runFor(300);
- await patchSave(p,{player:{level:100},items:[],settings:{devUnlock:true,devStamina:true,auto:false}});
+ await patchSave(p,{player:{level:100},settings:{devUnlock:true,devStamina:true,auto:false}});
  await toParty(p,{tab:'dungeon',content:'rustfort',diff:'보통'});await departGo(p);await p.clock.runFor(3400);
  await p.evaluate(()=>{const f=window.__proto.F;f.skills.forEach(k=>k.next=Infinity);f.g.p=100;});await p.clock.runFor(80);
  for(const hand of ['right','left']){
@@ -89,13 +90,13 @@ export default async function classControls(url,shots){
    const g=await p.evaluate(()=>{
     const r=e=>e.getBoundingClientRect().toJSON(),c=document.getElementById('controls');
     return{frame:r(document.getElementById('controlsFrame')),gauge:r(document.querySelector('.job-gauge')),wheel:r(document.getElementById('wheel')),
-     items:[...document.querySelectorAll('#items .item')].map(r),overlap:c.dataset.hitAreasOverlap,scale:+c.dataset.uiScale};
+     side:r(document.getElementById('side')),overlap:c.dataset.hitAreasOverlap,scale:+c.dataset.uiScale};
    });
-   const sideInset=hand==='right'?g.items[0].left:g.frame.right-g.items[1].right;
+   const sideInset=hand==='right'?g.side.left:g.frame.right-g.side.right;
    const skillInset=hand==='right'?g.frame.right-g.wheel.right:g.wheel.left;
-   ok(Math.abs(sideInset-inset)<.3&&Math.abs(skillInset-wheelInset)<.3&&Math.abs(g.gauge.height-117)<.3
-    &&Math.abs(g.items[0].top-g.frame.top-139.5)<.3&&g.items.every(r=>Math.abs(r.width-45)<.3&&Math.abs(r.height-45)<.3)
-    &&g.overlap==='false',`B안 ${width} ${hand}: 폭별 위치·정사각형·resize 복귀 `+JSON.stringify(g));
+   // 특성 버튼이 없는 판: 자원 그림 1.2배 (117 → 140.4)
+   ok(Math.abs(sideInset-inset)<.3&&Math.abs(skillInset-wheelInset)<.3&&Math.abs(g.gauge.height-117*1.2)<.5
+    &&g.overlap==='false',`B안 ${width} ${hand}: 폭별 위치·자원 그림·resize 복귀 `+JSON.stringify(g));
    await p.locator('#controlsFrame').screenshot({path:shots+`/panel-b-${width}-${hand}.png`});
   }
  }

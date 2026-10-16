@@ -13,7 +13,7 @@ import { TX } from '../data/talents';
 import { hexDist } from './board';
 import { cellOf, emit, heal, healFlow, healTop, living, onDebuffEnd } from './core';
 import { noteUsed } from './healer';
-import { reviveUnit } from './items';
+import { reviveUnit } from './revive';
 import { activeOn, adjLow, areaRadius, rescueLater, sanctuaryReach, waveMax, wildAt } from './talents';
 import { aoeCount, aoeDone, guardSec, hc, powerSpent, raidSec, skillSpec, specDispel, sv, twin, under } from './specials';
 import { hotMult as hotMultOf } from './units';

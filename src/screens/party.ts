@@ -1,8 +1,8 @@
 /**
  * S05 편성 (27 3-3, 시안 Party27). 2026-10-08 입장 화면(S04)을 여기로 합침: 전투 탭 「출전」 → 편성 → 출발.
- * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스 · 아이템 힌트), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭 (길드를 빼 두면 없음),
+ * 위: 이름 · 난이도 · 어픽스 + 「공략」(시트: 구간 노드 줄 · 보스별 공략 · 어픽스), 공개모집 · 길드파티(Lv 15, 02 9-2) 폴더 탭 (길드를 빼 두면 없음),
  * 권장 레벨 안내 (미달일 때만), 시작 위치 육각 미리보기 (직업 아이콘), 파티원 줄 (누르면 상세 시트).
- * 아래 고정: 위치가 저장되는 단축칸 2개 · 출발 (81: 스테미너는 「출전」 팝업에서 이미 냄 → 바로 전투. 안 낸 판이면 출발 때 팝업).
+ * 아래 고정: 출발 (81: 스테미너는 「출전」 팝업에서 이미 냄 → 바로 전투. 안 낸 판이면 출발 때 팝업). 소비 아이템 단축칸은 2026-10-16 없앰.
  */
 import { CLASSES } from '../data/classes';
 import { contentOf, isRaid } from '../data/content';
@@ -10,8 +10,6 @@ import { CHAL } from '../data/challenge';
 import { gearStatsOf, specsOf } from '../data/equipment';
 import { FEATURES } from '../data/features';
 import { ENCOUNTERS } from '../data/encounters';
-import { ITEMS, type ItemKey } from '../data/items';
-import { ITEM_SLOT_COUNT, type ItemSlot } from '../data/item-loadout';
 import { CATS, PERS } from '../data/personalities';
 import { aptOf } from '../data/guild';
 import { create, recruitParty } from '../engine';
@@ -20,10 +18,10 @@ import { autoPick, guildOpen, guildRoster, powerOf, slotsOf, togglePick } from '
 import { staminaCost } from '../game/stamina';
 import { runMode } from '../game/runmode';
 import { settle } from '../game/settle';
-import { commit, firstDungeonNow, G, healerLevel, heroNow, itemsNow, setItemSlot, talentsNow } from '../game/state';
+import { commit, firstDungeonNow, G, healerLevel, heroNow, talentsNow } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { classIcon, memDetailHtml, memRowHtml, ROLE_ICON } from './members';
-import { battle, esc, go, ROLE, screen, useIcon } from './kit';
+import { battle, esc, go, ROLE, screen } from './kit';
 import { classEmblem, currencyAmount, floorArtOf, LOCK, uiIcon } from './art';
 import { payEntry } from './stamina';
 import { afxRows, afxTags, ARROW, BOOK, flowHead, guides, recommendedLevel, segTabs } from './brief';
@@ -46,16 +44,12 @@ const s = screen('s-party', '파티 편성', {
 });
 const modal = sheetDialog(s.el, shut);
 let msg = '', gmsg = '';
-/** 열린 시트: 단축칸 고르기 · 공략 · 파티원 상세 */
-let sheet: 'slots' | 'guide' | 'mem' | null = null;
+/** 열린 시트: 공략 · 파티원 상세 */
+let sheet: 'guide' | 'mem' | null = null;
 /** 상세 시트로 연 파티원 줄 */
 let openRow = -1;
 /** 공략 시트에서 고른 구간 (-1 = 처음 열 때 마지막 구간) */
 let gseg = -1;
-/** 고르기 시트를 연 정확한 단축칸. */
-let openSlot = 0;
-
-const BULB = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg>';
 
 const firstEnc = () => ENCOUNTERS[contentOf(Flow.content).fights(Flow.diff)[0]];
 /** 이번 판 적 레벨·어픽스 (적 = 내 레벨, 어픽스는 난이도 · 주간 도전, 32) */
@@ -103,12 +97,6 @@ function boardHtml(): string {
   return `<figure class="f-board${floor ? ' has-floor' : ''}"${floor ? ` style="--floor:url('${floor}')"` : ''}><div class="f-hexes${size}" role="img" aria-label="시작 위치 (자동 배치, 옮길 수 없음): 나, ${esc(who.join(', '))}" style="aspect-ratio:${W.toFixed(3)} / ${H.toFixed(3)};--ar:${(W / H).toFixed(3)};--bmax:${(W * 38).toFixed(0)}px">${cells}</div></figure>`;
 }
 
-/** 이번 보스에 맞는 소비 아이템 힌트 (단축칸 시트) */
-function itemHint(): string {
-  const segs = contentOf(Flow.content).fights(Flow.diff);
-  return battle().itemHint(ENCOUNTERS[segs[segs.length - 1]].script).replace(/^💡\s*/, '');
-}
-
 /** 직업 없는 옛 파티 줄 (시뮬·옛 테스트용 파티) */
 function plainRow(m: { role: string; nick: string; pers: keyof typeof PERS }): string {
   const p = PERS[m.pers];
@@ -133,22 +121,6 @@ function guildPickHtml(stage: number): string {
     ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: stage }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
 }
 
-/**
- * 두 칸을 항상 표시한다. 빈칸도 같은 위치에 남긴다.
- * 칸 = 황동 홈 (그림 · 칸 번호) + 이름 · 보유 (2026-10-16 Lim 「칸이 넓고 여백이 많다」: 가운데 작은 그림 대신 가로로 채움)
- */
-function slotRow(_slots: number, loadout: ItemSlot[]): string {
-  const stock = G.save.tut >= TUT.done ? G.save.bag : null;
-  const chips = Array.from({ length: ITEM_SLOT_COUNT }, (_, i) => {
-    const sock = (inner: string) => `<span class="f-item-sock">${inner}<span class="f-slot-number" aria-hidden="true">${i + 1}</span></span>`;
-    const k = loadout[i], attrs = `data-slot="${i}" data-slots="${i}"`;
-    if (!k) return `<button class="f-item empty" type="button" ${attrs} aria-label="${i + 1}번 단축칸 · 빈칸 · 아이템 고르기" aria-haspopup="dialog">${sock('<span class="f-item-plus" aria-hidden="true">+</span>')}<span class="f-item-tx"><b>빈칸</b><small>아이템 고르기</small></span></button>`;
-    const n = stock ? stock[k] || 0 : null;
-    return `<button class="f-item${n === 0 ? ' zero' : ''}" type="button" ${attrs} data-slot-item="${k}" aria-label="${i + 1}번 단축칸 · ${ITEMS[k].name}${n != null ? ` · 보유 ${n}개` : ''} · 바꾸기" aria-haspopup="dialog">${sock(useIcon(k))}<span class="f-item-tx"><b>${ITEMS[k].name}</b>${n != null ? `<small>보유 ${n}</small>` : ''}</span></button>`;
-  }).join('');
-  return `<div class="f-slots" role="group" aria-label="소비 아이템 단축칸 ${ITEM_SLOT_COUNT}칸">${chips}</div>`;
-}
-
 /** 아래에서 올라오는 시트 (열 때만 그림) */
 const sheetBox = (cls: string, label: string, inner: string) => {
   const close = '<button class="btn2 f-shut" type="button" data-shut>닫기</button>';
@@ -156,26 +128,9 @@ const sheetBox = (cls: string, label: string, inner: string) => {
   return `<div class="sheet-dim" data-shut></div><section class="sheet ${cls}" role="dialog" aria-modal="true" aria-label="${esc(label)}" tabindex="-1"><span class="grip"></span>${body}</section>`;
 };
 
-/** 단축칸 고르기 시트 (캐릭터 › 스킬의 단축칸과 같은 저장). 닫혀 있어도 그려 둠 (칸 수·아이템 설명) */
-function slotSheetHtml(loadout: ItemSlot[]): string {
-  const hid = sheet === 'slots' ? '' : ' hidden', ih = itemHint();
-  const stock = G.save.tut >= TUT.done ? G.save.bag : null;
-  const options = (Object.keys(ITEMS) as ItemKey[]).map(k => {
-    const it = ITEMS[k], at = loadout.slice(0, ITEM_SLOT_COUNT).indexOf(k), selected = at === openSlot, n = stock ? stock[k] || 0 : null;
-    const status = selected ? '선택됨' : at >= 0 ? `${at + 1}번 칸${loadout[openSlot] ? '과 교체' : '에서 이동'}` : '이 칸에 지정';
-    return `<button type="button" class="f-item-option${selected ? ' selected' : ''}${n === 0 ? ' zero' : ''}" data-item="${k}" aria-pressed="${selected}"><span class="f-item-art">${useIcon(k)}</span><span class="f-item-copy"><b>${it.name}</b><small class="f-item-stock">${n == null ? '튜토리얼 제공' : `보유 ${n}개`}</small><span class="f-item-desc">${esc(it.desc)}</span><em class="f-item-status">${status}</em></span></button>`;
-  }).join('');
-  return `<div class="sheet-dim" data-shut${hid}></div><section class="sheet f-isheet" role="dialog" aria-modal="true" aria-label="${openSlot + 1}번 단축칸 아이템" data-edit-slot="${openSlot}" tabindex="-1"${hid}><span class="grip"></span>
-    <h2 class="h-rule">${openSlot + 1}번 단축칸 아이템<span class="rule"></span></h2>
-    ${ih ? `<p class="f-ih">${BULB}<span>${esc(ih)}</span></p>` : ''}
-    <div class="f-item-options">${options}</div>
-    ${sheet === 'slots' && msg ? `<p class="note warn" role="status">${esc(msg)}</p>` : ''}
-    <div class="f-item-actions"><button class="btn2" type="button" data-item-clear${loadout[openSlot] ? '' : ' disabled'}>이 칸 비우기</button><button class="btn2 f-shut" type="button" data-shut>닫기</button></div></section>`;
-}
-
 /**
  * 공략 시트 (2026-10-12 한눈에): 머리 (장소 · 난이도 · 인원) · 어픽스 · 구간 길 = 탭 (보스 하나면 탭 없이) · 고른 구간 공략.
- * 처음 열면 마지막 구간 (최종 보스). 난이도 수치 칸 · 아이템 힌트는 Lim 「빼기」 (2026-10-12 13:33, 아이템 힌트는 단축칸 시트에만)
+ * 처음 열면 마지막 구간 (최종 보스). 난이도 수치 칸은 Lim 「빼기」 (2026-10-12 13:33)
  */
 function guideSheetHtml(): string {
   const c = contentOf(Flow.content), segs = c.fights(Flow.diff), m = modeNow();
@@ -208,9 +163,7 @@ function memSheetHtml(stage: number): string {
 function render(keepScroll = true): void {
   modal.beforeRender();
   const scroll = keepScroll ? s.el.querySelector<HTMLElement>('.ns-body')?.scrollTop || 0 : 0;
-  const itemScroll = sheet === 'slots' ? s.el.querySelector<HTMLElement>('.f-item-options')?.scrollTop || 0 : 0;
   const c = contentOf(Flow.content);
-  const { slots, loadout } = itemsNow();
   const go2 = guildOpen(G.save);
   const guildTab = !go2.ok ? ` ${LOCK}${go2.why.replace('에 열림', '')}` : !G.save.guild.members.length ? ' · 길드원 없음' : '';
   const isGuild = Flow.mode === 'guild' && guildReady();
@@ -227,26 +180,22 @@ function render(keepScroll = true): void {
   s.el.innerHTML = `${flowHead(Flow.chal ? 's-entry' : 's-content', Flow.chal ? CHAL.name : c.name, sub, mark, guideBtn)}
     ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="파티 모집"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티${guildTab}</button></nav>` : ''}
     <div class="ns-body f-pty">
-      ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">보스 기술은 「공략」에서 확인. 단축칸을 준비하면 「출발」.</p>' : ''}
+      ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">보스 기술은 「공략」에서 확인한 뒤 「출발」.</p>' : ''}
       ${tutDone ? recommendedLevel(stage) : ''}
       ${boardHtml()}
       ${isGuild ? guildPickHtml(stage) : `<section class="pn f-mems"><ul class="pcards">${rows}</ul></section>`}
       ${msg && !sheet ? `<p class="note warn">${esc(msg)}</p>` : ''}
     </div>
     <footer class="ns-foot f-foot2">
-      ${slotRow(slots, loadout)}
       <div class="f-btns">
         <button class="f-go" type="button" id="depart"${cost ? ` aria-label="출발 · 스테미너 ${cost}"` : ''}><span class="cta2"><span class="f-gt">출발</span>${cost ? `<small class="f-stam">${currencyAmount('stamina', cost)}</small>` : ''}</span>${ARROW}</button>
       </div>
     </footer>
-    ${slotSheetHtml(loadout)}
     ${sheet === 'guide' ? guideSheetHtml() : sheet === 'mem' ? memSheetHtml(stage) : ''}`;
   msg = '';
   const body = s.el.querySelector<HTMLElement>('.ns-body');
   if (body) body.scrollTop = scroll;
-  const itemList = s.el.querySelector<HTMLElement>('.f-item-options');
-  if (itemList) itemList.scrollTop = itemScroll;
-  modal.sync(sheet ? s.el.querySelector<HTMLElement>('.sheet:not([hidden])') : null, sheet ? [`${sheet}:${sheet === 'mem' ? openRow : sheet === 'slots' ? openSlot : ''}`] : []);
+  modal.sync(sheet ? s.el.querySelector<HTMLElement>('.sheet:not([hidden])') : null, sheet ? [`${sheet}:${sheet === 'mem' ? openRow : ''}`] : []);
 }
 
 /** 시트 열기·닫기. 닫으면 연 버튼으로 초점을 돌려줌 */
@@ -272,14 +221,6 @@ s.el.addEventListener('click', e => {
   if (t.closest('#autoPick')) { G.save.guild.pick = []; Flow.gpick = autoPick(G.save, firstEnc()); compose(); render(); return; }
   const pr = t.closest<HTMLElement>('[data-prow]');
   if (pr) { openRow = Number(pr.dataset.prow); openSheet('mem', `[data-prow="${openRow}"]`); return; }
-  const slot = t.closest<HTMLButtonElement>('[data-slots]');
-  if (slot && !slot.disabled) { openSlot = Number(slot.dataset.slot); openSheet('slots', `.f-slots [data-slot="${openSlot}"]`); return; }
-  if (t.closest('[data-item-clear]')) { msg = setItemSlot(openSlot, null); render(); return; }
-  const it = t.closest<HTMLElement>('[data-item]');
-  if (it) {
-    msg = setItemSlot(openSlot, it.dataset.item as ItemKey);
-    render(); return;
-  }
   if (t.closest('#depart')) { if (Flow.paid || G.save.tut < TUT.done) depart(); else enter(); }
 });
 
@@ -306,19 +247,16 @@ export function enter(): void { payEntry(() => { depart(); }); }
 /** 출발 (스테미너는 출전 · enter의 팝업에서 이미 냄). 튜토리얼 탐험은 바로 이걸 부름 */
 export function depart(): string {
   const c = contentOf(Flow.content);
-  const tutDone = G.save.tut >= TUT.done;
   Flow.paid = false;
   if (Flow.mode === 'guild' && guildReady()) { G.save.guild.pick = Flow.gpick.slice(); commit(); }
   const coach = Flow.coach;
   Flow.coach = null;
-  const { slots, items, loadout } = itemsNow();
   const m = modeNow();
   Flow.running = true;
   battle().start({
     content: c.key, name: Flow.chal ? `도전 ${Flow.chal}단계` : c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: m.stage, gearStats: gearStatsOf(G.save.gear.equipped, G.save.player.level),
     affixes: m.affixes, bossMult: m.bossMult, limit: m.limit, chal: m.chal || undefined,
-    party: Flow.party!, items, itemLayout: loadout, slots, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(), specs: specsOf(G.save.gear.equipped, heroNow()),
-    stock: tutDone ? { ...G.save.bag } : undefined,
+    party: Flow.party!, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(), specs: specsOf(G.save.gear.equipped, heroNow()),
     onEnd(r) {
       Flow.result = r;
       Flow.settle = settle(G.save, r, Math.random, Flow.party!);

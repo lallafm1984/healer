@@ -206,7 +206,7 @@ function notesHtml(x: Settlement): string {
   return out.length ? `<div class="r-notes">${out.join('')}</div>` : '';
 }
 
-/** 전투 기록 (접힘, 지면 펼침): 딜미터기 상위 5명 · 마지막 전투·소비 아이템 · (개발 빌드) 플레이 기록. 지표 칩 · 「내 치유」 요약은 뺌 (2026-10-13 Lim) */
+/** 전투 기록 (접힘, 지면 펼침): 딜미터기 상위 5명 · 마지막 전투 · (개발 빌드) 플레이 기록. 지표 칩 · 「내 치유」 요약은 뺌 (2026-10-13 Lim) */
 function recordHtml(r: BattleResult, open: boolean): string {
   const multi = r.segN > 1;
   const dev = G.save.settings.devUnlock && r.dev?.length

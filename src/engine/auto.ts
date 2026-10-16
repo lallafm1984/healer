@@ -11,7 +11,7 @@ import { sv } from './specials';
 import { create, step } from './fight';
 import { canTarget, knows, use } from './healer';
 import { setBeacon } from './heroes';
-import { reviveTarget } from './items';
+import { reviveTarget } from './revive';
 import { dangerAt } from './movement';
 import { areaRadius, castOf, talentReady, useTalent, waveMax, waveNeed } from './talents';
 import { chainPath, freeBeside } from './shaman';

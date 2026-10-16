@@ -12,12 +12,12 @@ import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
 import type { GuildMember, PostTier } from '../data/guild';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { CONTENT } from '../data/content';
-import { STAMINA, STARTER_BAG } from '../data/economy';
-import type { ItemKey } from '../data/items';
+import { STAMINA } from '../data/economy';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-export const SAVE_VERSION = 14;
+/** v15 (2026-10-16 Lim): 소비 아이템 단축칸 · 가방을 없앰 */
+export const SAVE_VERSION = 15;
 
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
@@ -200,8 +200,6 @@ export interface SaveData {
   gear: { equipped: Equipped; bag: GearItem[]; seen?: number; codex: string[]; /** 장비 도감 칸 (34 6-10 ④, data/dex). 옛 저장은 가진 장비로 채움 */ dex: string[]; /** 장비 도감 보상을 받은 단계 수 */ dexPaid: number };
   /** 강화 재료 (12 1장): 강화석 (+1~+5), 정제 강화석 (+6~+10) */
   mats: { stone: number; refined: number };
-  /** 소비 아이템 단축칸 구성. null은 빈자리이며 옛 압축 배열도 같은 순서로 읽는다. */
-  items: (ItemKey | null)[];
   /** 콘텐츠 → 난이도 → 기록 */
   clears: Record<string, Partial<Record<DiffName, ClearRecord>>>;
   /** 로비에 보여 줄 지난 판 한마디 */
@@ -217,8 +215,6 @@ export interface SaveData {
   guild: GuildSave;
   /** v5: 재화 (12). v14 (81): 크리스탈 · 악몽 열쇠 · 모집권을 없애고 공훈만 */
   wallet: { merit: number };
-  /** v5: 소비 아이템 가방 (19 11장, 종류마다 최대 20) */
-  bag: Partial<Record<ItemKey, number>>;
   daily: DailySave;
   weekly: WeeklySave;
   pass: PassSave;
@@ -259,9 +255,9 @@ export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'r
 export function newSave(now = Date.now()): SaveData {
   return {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
-    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0, codex: [], dex: [], dexPaid: 0 }, mats: { stone: 0, refined: 0 }, items: ['mana', 'life'], clears: {}, last: null, nextId: 1, tut: 0,
+    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0, codex: [], dex: [], dexPaid: 0 }, mats: { stone: 0, refined: 0 }, clears: {}, last: null, nextId: 1, tut: 0,
     hero: 'priest', heroes: {}, guild: newGuild(),
-    wallet: { merit: 0 }, bag: { ...STARTER_BAG }, daily: newDaily(), weekly: newWeekly(),
+    wallet: { merit: 0 }, daily: newDaily(), weekly: newWeekly(),
     pass: { season: 0, xp: 0, free: [] }, stamina: newStamina(now), bought: [], chalOpen: 1, decos: [], chalChest: 0,
     roster: newRoster('priest', now),
   };
@@ -283,7 +279,6 @@ export function migrate(raw: unknown): SaveData {
     // 27: 새것 점 기준 (옛 저장은 지금 가진 장비를 다 본 것으로)
     gear: gearOf(o, HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest', base.nextId),
     mats: obj(o.mats, base.mats),
-    items: Array.isArray(o.items) ? o.items : base.items,
     clears: obj(o.clears, {}),
     last: o.last && typeof o.last === 'object' ? o.last : null,
     nextId: typeof o.nextId === 'number' ? o.nextId : base.nextId,
@@ -294,9 +289,8 @@ export function migrate(raw: unknown): SaveData {
     heroes: heroesOf(o),
     // v4: 길드 (옛 저장은 빈 길드)
     guild: guildOf(o.guild),
-    // v5: 재화·가방·임무·패스 (옛 저장은 처음 가방부터). v14 (81): 공훈만 남기고 크리스탈 · 악몽 열쇠 · 모집권은 버림
+    // v5: 재화·임무·패스. v14 (81): 공훈만 남기고 크리스탈 · 악몽 열쇠 · 모집권은 버림
     wallet: { merit: typeof o.wallet?.merit === 'number' ? o.wallet.merit : 0 },
-    bag: obj(o.bag, base.bag),
     daily: o.daily && typeof o.daily === 'object' ? { ...base.daily, ...o.daily, ads: obj(o.daily.ads, base.daily.ads) } : base.daily,
     weekly: o.weekly && typeof o.weekly === 'object' ? { ...base.weekly, ...o.weekly, merit: obj(o.weekly.merit, base.weekly.merit), guild: obj(o.weekly.guild, base.weekly.guild) } : base.weekly,
     pass: passOf(o.pass, base.pass),
@@ -307,8 +301,8 @@ export function migrate(raw: unknown): SaveData {
     chalChest: typeof o.chalChest === 'number' ? o.chalChest : 0,
     roster: rosterOf(o.roster, HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest', base.createdAt),
   };
-  // v14 (81): 월정액 · 첫 구매 기록은 버림 (크리스탈 상품이 없어짐)
-  for (const k of ['member', 'firstBuy'] as const) delete (out as unknown as Record<string, unknown>)[k];
+  // v14 (81): 월정액 · 첫 구매 기록은 버림 (크리스탈 상품이 없어짐). v15: 소비 아이템 단축칸 (items) · 가방 (bag)도 버림
+  for (const k of ['member', 'firstBuy', 'items', 'bag'] as const) delete (out as unknown as Record<string, unknown>)[k];
   delete (out.weekly as unknown as Record<string, unknown>).craft;
   if ((o.v ?? 0) < 10) gearByHero(out);
   if ((o.v ?? 0) < 11) splitChars(out, out.createdAt);
@@ -413,11 +407,11 @@ function splitChars(d: SaveData, now: number): void {
     const g = s ? s.gear : { equipped: d.gear.equipped, bag: d.gear.bag, seen: d.gear.seen ?? d.nextId - 1 };
     const merit = s ? { n: s.merit?.n ?? 0, got: s.merit?.week === week ? s.merit.got : { 10: 0, 20: 0 } } : { n: d.wallet.merit, got: d.weekly.merit };
     Object.assign(c, {
-      hero: h, heroes: { [h]: hero }, tut: d.tut, nextId: d.nextId, items: [...d.items],
+      hero: h, heroes: { [h]: hero }, tut: d.tut, nextId: d.nextId,
       settings: { ...d.settings, layout: s ? s.layout : d.settings.layout, tapKey: s ? s.tapKey : d.settings.tapKey },
       player: { level: lv, xp: s ? s.xp ?? 0 : d.player.xp, gold: mine ? d.player.gold : 0 },
       gear: { equipped: g?.equipped ?? {}, bag: g?.bag ?? [], seen: g?.seen ?? d.nextId - 1, codex: mine ? d.gear.codex : [], dex: mine ? d.gear.dex : [], dexPaid: mine ? d.gear.dexPaid : 0 },
-      mats: mine ? d.mats : c.mats, bag: mine ? d.bag : c.bag,
+      mats: mine ? d.mats : c.mats,
       wallet: { merit: merit.n },
       clears: mine ? d.clears : Object.fromEntries(Object.entries(d.clears).filter(([k]) => (CONTENT.find(x => x.key === k)?.unlockLv ?? 1) <= lv)),
       last: h === cur ? d.last : null,
@@ -609,9 +603,8 @@ function store(): KV | null {
   try { return globalThis.localStorage ?? null; } catch { return null; }
 }
 
-/** 프로토타입 화면이 따로 쓰던 키 (스킬 배치·단축칸). 처음 v2로 올릴 때 한 번 가져온다 */
+/** 프로토타입 화면이 따로 쓰던 키 (스킬 배치). 처음 v2로 올릴 때 한 번 가져온다 */
 const OLD_LAYOUT = 'nhh.skillLayout.v1';
-const OLD_ITEMS = 'nhh.items.v1';
 
 export function load(kv: KV | null = store()): SaveData {
   try {
@@ -622,8 +615,6 @@ export function load(kv: KV | null = store()): SaveData {
       try {
         const lay = kv?.getItem(OLD_LAYOUT);
         if (lay) d.settings.layout = JSON.parse(lay);
-        const it = kv?.getItem(OLD_ITEMS);
-        if (it) { const a = JSON.parse(it); if (Array.isArray(a)) d.items = a; }
       } catch { /* 옛 값이 깨졌으면 기본값 */ }
     }
     // v11 캐릭터 나누기 직후: 쉬는 캐릭터를 바로 따로 키에 씀

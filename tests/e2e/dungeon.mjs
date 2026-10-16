@@ -1,6 +1,6 @@
 // 던전 흐름 (23·24): 로비 → 콘텐츠 → 난이도 → 편성 → 잡몹 구간 → 휴식 → … → 정산 → 보상 → 레벨 업. 구간은 적 체력을 깎아 빨리 넘긴다
 import { chromium } from 'playwright';
-import { chooseContent, departGo, entryGo, killEnemies, pastTitle, pickedItems, rowContentKeys, toParty } from './nav.mjs';
+import { chooseContent, departGo, entryGo, killEnemies, pastTitle, rowContentKeys, toParty } from './nav.mjs';
 
 export default async function dungeon(url, shots) {
   const browser = await chromium.launch();
@@ -91,14 +91,7 @@ export default async function dungeon(url, shots) {
   await page.click('#s-party .f-msheet [data-shut]'); await page.clock.runFor(50);
   const nicks = () => page.evaluate(() => [...document.querySelectorAll('#s-party .pcard .pnick')].map(b => b.textContent).join());
   const before = await nicks(), goldBefore = (await save()).player.gold;
-  const slots = await page.locator('#s-party .f-slots .f-item').evaluateAll(buttons => buttons.map(b => ({ slot: b.dataset.slot, disabled: b.disabled, label: b.getAttribute('aria-label') })));
-  ok(slots.length === 2 && slots.map(s => s.slot).join() === '0,1' && await pickedItems(page) === 'mana,life' && slots.every(s=>!s.disabled), 'Lv 1부터 두 소비 아이템 칸 선택 가능');
-  await page.click('#s-party [data-slots="0"]'); await page.clock.runFor(50);
-  await page.click('#s-party .f-isheet [data-item="cleanse"]'); await page.clock.runFor(50);
-  ok(await pickedItems(page) === 'cleanse,life' && await page.isVisible('#s-party .f-isheet[data-edit-slot="0"]'), '1번 단축칸을 해제로 교체, 다른 칸 유지·시트에서 결과 확인');
-  await page.click('#s-party .f-isheet [data-item="mana"]');
-  await page.keyboard.press('Escape'); await page.clock.runFor(50);
-  ok(await pickedItems(page) === 'mana,life' && await page.locator('#s-party [data-slots="0"]').evaluate(el => el === document.activeElement), '1번 칸 마나 복원·Esc로 해당 칸 초점 복귀');
+  ok(await page.locator('#s-party .f-slots, #s-party .f-isheet').count() === 0, '편성에 소비 아이템 단축칸 없음 (2026-10-16 없앰)');
   ok(await page.locator('#s-party #reroll, #s-party #adReroll').count() === 0, '편성에서 다시 뽑기·광고 다시 뽑기 버튼 제거');
   const departAt = await page.locator('#depart').boundingBox(), footAt = await page.locator('#s-party .f-foot2').boundingBox();
   ok(Math.abs(departAt.x + departAt.width / 2 - footAt.x - footAt.width / 2) <= 1, '출발 버튼은 편성 하단 중앙');

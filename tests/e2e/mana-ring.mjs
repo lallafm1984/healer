@@ -8,7 +8,7 @@ const snap = page => page.evaluate(() => {
     fill: core.style.getPropertyValue('--m'), aria: meter.getAttribute('aria-valuenow'),
     low: core.classList.contains('low'), empty: core.classList.contains('mana-empty'), full: core.classList.contains('mana-full'),
     paint: getComputedStyle(meter, '::after').backgroundImage, opacity: getComputedStyle(meter, '::after').opacity,
-    casts: f.stats.casts.renew || 0, potions: f.items.mana, potionUses: f.itemLog.length };
+    casts: f.stats.casts.renew || 0 };
 });
 const aligned = s => s.text === String(Math.floor(s.mana)) && s.fill === `${s.text}%` && s.aria === s.text;
 const prepare = async (page, mana) => {
@@ -65,9 +65,8 @@ export default async function run(url, shots) {
         check(`${key} 소비로 저마나 경계 진입`, low.mana === 18 && low.low && aligned(low), low);
         await page.evaluate(() => { window.__proto.F.gear.regen = 1; }); await page.clock.runFor(5000); const safe = await snap(page);
         check(`${key} 회복으로 저마나 색 해제`, safe.mana >= 20 && !safe.low && aligned(safe), safe);
-        await prepare(page, 90); await page.evaluate(() => { window.__proto.F.items.mana = 2; }); await page.clock.runFor(100);
-        const potionBefore = await snap(page); await page.locator('#items [data-item="mana"]').tap(); await page.clock.runFor(100); const potionAfter = await snap(page);
-        check(`${key} 물약 1회 소비·100 상한·호 가득`, potionAfter.potions === potionBefore.potions - 1 && potionAfter.potionUses === potionBefore.potionUses + 1 && potionAfter.mana === 100 && potionAfter.full && aligned(potionAfter), potionAfter);
+        await prepare(page, 100); const full = await snap(page); // 마나 물약 확인은 2026-10-16 소비 아이템과 함께 없앰
+        check(`${key} 100 상한·호 가득`, full.mana === 100 && full.full && aligned(full), full);
         await prepare(page, 0); const zeroBefore = await snap(page); await renew(page); const zeroAfter = await snap(page);
         check(`${key} 0에서 유료 스킬 실패 후 음수·잔상 없음`, zeroAfter.mana === 0 && zeroAfter.casts === zeroBefore.casts && zeroAfter.opacity === '0' && aligned(zeroAfter), zeroAfter);
         await page.screenshot({ path: `${shots}/mana-ring-${width}-${mode}.png` });

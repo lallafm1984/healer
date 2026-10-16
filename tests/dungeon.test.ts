@@ -62,7 +62,7 @@ describe('구간 이어가기', () => {
   it('자동 힐러 기준 보통·장비 없음은 대부분 클리어', () => {
     let wins = 0;
     for (let seed = 1; seed <= 20; seed++) {
-      const r = E.simulateDungeon({ dungeon: 'rustfort', diff: '보통', gear: 'none', seed, items: ['mana', 'life'] });
+      const r = E.simulateDungeon({ dungeon: 'rustfort', diff: '보통', gear: 'none', seed });
       expect(r.fights.map(f => f.enc.key)).toEqual(DUNGEONS.rustfort.segments.slice(0, r.fights.length));
       if (r.win) wins++;
     }

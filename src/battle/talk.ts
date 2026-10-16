@@ -26,7 +26,7 @@ const EMOTES: Record<string, TalkSit[]> = {
   sword: ['abAtk', 'adds', 'swarm', 'marchAdd', 'boss5'],
   flame: ['enraged', 'enrageSoon', 'noTank', 'partyLow'],
   run: ['flee', 'shelter', 'fixate', 'dodgeOk'],
-  mana: ['manaLow', 'manaEmpty', 'manaPot'],
+  mana: ['manaLow', 'manaEmpty'],
 };
 const EMOTE_OF = new Map<TalkSit, string>(Object.entries(EMOTES).flatMap(([e, sits]) => sits.map(s => [s, e] as const)));
 /** 승리 한마디 (43 4장 C fx-talk-cheer) */
@@ -353,7 +353,6 @@ export function createTalk(rand: () => number = Math.random) {
           if (k) add(({ def: 'abDef', heal: 'abHeal', sup: 'abSup', ctl: 'abCtl', atk: 'abAtk' } as const)[k], u);
           break;
         }
-        case 'item': if (ev.key === 'mana' || ev.key === 'medit') add('manaPot'); break;
         case 'mobDown': {
           const m = f.mobs.find(x => x.id === ev.id);
           if (m?.add) { if (m.add.job?.p !== 'jail') add('addDown'); }

@@ -4,7 +4,7 @@
  * 기준 조건 (26 9-2, Lim 2026-10-07 「추천으로 모두」): 열림 레벨 (난이도만 잠긴 건 그 레벨), 그 레벨에서 열린 특성
  * (세 직업 모두 빌드 A·B·C 번갈아, 77. 예전 드루이드·성기사는 임시 보정), 공개모집 파티원 능력 1개, 권장 장비 (쉬움·보통 없음, 어려움 고급, 악몽 희귀 +5)와
  * 그 등급의 대표 특수능력 (data/gear GEAR_SPECS, 42 1-7),
- * 단축칸 마나·생명 물약, 던전은 그 레벨의 난이도 어픽스. 세 직업 평균.
+ * 던전은 그 레벨의 난이도 어픽스. 세 직업 평균.
  * 목표 (26 9-2): 보통 거의 100% (95% 아래면 낮춤), 어려움 약 85%, 악몽 약 75%. 38 0-6에 처음 적은 「보통 85 · 어려움 60~70」은
  * 악몽보다 어려움이 어려워지는 숫자라 9-2로 맞춤 (2026-10-09).
  * 바쁨 하한 (Lim 2026-10-10 「초반에도 힐러가 충분히 바빠야 재미 있는데 조작이 너무 한가하다」): 쉬움 · 보통은 클리어율이 목표 안이어도
@@ -19,7 +19,6 @@ import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { gearStatsOf, specsOf } from '../data/equipment';
 import { classSpecs, presetSpecs, type GearId } from '../data/gear';
 import type { HeroKey } from '../data/heroes';
-import type { ItemKey } from '../data/items';
 import { TALENTS } from '../data/talents';
 import type { Tune, TuneTable } from '../data/tune';
 import { autoHealer } from '../engine/auto';
@@ -43,7 +42,6 @@ export const TARGET: Record<DiffName, { min: number; max: number; aim: number }>
 export const BUSY: Partial<Record<DiffName, number>> = { '쉬움': 19, '보통': 24 };
 /** 권장 장비 (data/equipment RECOMMENDED: 어려움 고급, 악몽 희귀 +5) */
 export const STD_GEAR: Record<DiffName, GearId> = { '쉬움': 'none', '보통': 'none', '어려움': 'adv0', '악몽': 'rare5' };
-const ITEMS: ItemKey[] = ['mana', 'life'];
 /** 던전 구간 사이 휴식 (초, scripts/sim-dungeon과 같음) */
 const REST = 10;
 const MAX_T = 700;
@@ -85,7 +83,7 @@ export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number,
   let carry: Carry | undefined, time = 0, heals = 0;
   for (let i = 0; i < segs.length; i++) {
     const f = create({
-      encounter: segs[i], diff: d, seed: seed + i * 7919, items: ITEMS, hero, level: lv, heroLv: lv, stageLv: s.lv,
+      encounter: segs[i], diff: d, seed: seed + i * 7919, hero, level: lv, heroLv: lv, stageLv: s.lv,
       talents: build(lv, seed % 3), party, affixes: s.affixes.length ? s.affixes : undefined, carry, tune, ...gear, // 특성은 세 직업 모두 빌드 A · B · C 번갈아 (77)
     });
     const hp0 = f.party.reduce((a, u) => a + u.hp, 0);

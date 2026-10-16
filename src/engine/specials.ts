@@ -373,6 +373,7 @@ export function costSpec(f: Fight, key: SkillKey, u?: Unit): number {
   if (u && u.hp > u.max * 0.8 && HEAL_SLOT.has(sk.slot)) cut += v.thrifty ?? 0;
   if (f.t < 15) cut += v.firstCup ?? 0;
   if (bossPct(f) < 0.2) cut += v.dusk ?? 0;
+  if (v.potionRegular && f.party.some(x => !x.alive && !x.me)) cut += v.potionRegular; // 남은 자의 각오 (마나 09, 2026-10-16 물약을 없애며 「물약 단골」을 바꿈. 키는 저장 장비 때문에 그대로)
   if (sk.slot === 'raid') cut += v.raidBreath ?? 0;
   if (v.frozenHourglass && on(f, 'frozenHourglass')) cut += v.frozenHourglass;
   if (v.silverBookmark && f.mana < 50 && isSingle(key)) cut += v.silverBookmark; // 은빛 책갈피 (46 6장)

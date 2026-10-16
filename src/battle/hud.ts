@@ -2,7 +2,7 @@ import { buildClassGauge, updateClassGauge } from './class-gauge';
 import { classGaugeState } from './class-gauge-state';
 import { waveNeed } from '../engine/talents';
 /**
- * 전투 화면의 HTML 부분: 스킬 휠 · 단축칸 · 시전 막대 · 보스 무대(예고 대기열) · 설명 팝업 · 길게 누르기 정보 · 튜토리얼 안내 · 포기 버튼.
+ * 전투 화면의 HTML 부분: 스킬 휠 · 특성 버튼 · 시전 막대 · 보스 무대(예고 대기열) · 설명 팝업 · 길게 누르기 정보 · 튜토리얼 안내 · 포기 버튼.
  * 매 프레임 바뀐 글자·클래스만 고침 (판은 board.ts가 캔버스에).
  */
 import { ABILITIES } from '../data/abilities';
@@ -13,16 +13,13 @@ import { judgeReady } from '../engine/warder';
 import { canDispel, HEROES } from '../data/heroes';
 import { contentOf, type ContentKey } from '../data/content';
 import { mobGrade } from '../data/encounters';
-import type { ItemKey } from '../data/items';
-import { ITEMS, POTION_CD } from '../data/items';
-import { ITEM_SLOT_COUNT } from '../data/progression';
 import { INT_BASE } from '../data/rules';
 import { healText, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
-import { itemTip, skillTip, tipHtml } from '../game/tooltip';
+import { skillTip, tipHtml } from '../game/tooltip';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
 import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, skillUsesSpent, slotKey, talentUsesSpent, type Fight, type Unit } from '../engine';
 import { art, cssUrl } from '../art';
-import { ITEM_ICON, skillMark } from './art';
+import { skillMark } from './art';
 import { center, L, screenCenter } from './board';
 import { $, alarm, arrowOf, B, DIR_VEC, DIRS, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
 import { guideModel, iconColor } from './guide';
@@ -209,32 +206,36 @@ export function buildGauges(F: Fight): void {
   updateClassGauge($('gauges'), classGaugeState(F));
 }
 
-// ---------- 특성 보조 버튼 (06 9장 2번: 휠 밖 버튼, 단축칸 위) ----------
-// 일곱 직업 모두 같은 자리: 왼쪽 묶음 안 아이템 줄 바로 위 (동시에 최대 3개, 2026-10-16). 장비 효과는 버튼을 만들지 않는다
+// ---------- 특성 버튼 (06 9장 2번 · 2026-10-16 Lim: 소비 아이템을 없애고 그 자리에, 스킬 버튼과 같은 원형 · 재사용 대기 표시) ----------
+// 쓸 수 있는 버튼 특성만 보임 (B안). 하나도 없으면 자원 그림을 키움 (class-controls.css). 직업마다 최대 2개, 사제 · 수도사 3개. 장비 효과는 버튼을 만들지 않는다
 export function buildAux(): void {
-  const keys = Object.keys(fight().tx.act) as TalentKey[];
-  $('aux').hidden = !keys.length;
-  $('aux').dataset.n = String(keys.length);
-  $('controls').classList.toggle('hasaux', keys.length > 0); // 보조 버튼 자리: 아래 안내 글은 뺌
-  $('aux').innerHTML = keys.map(k => {
+  const keys = Object.keys(fight().tx.act) as TalentKey[], aux = $('aux');
+  aux.hidden = !keys.length;
+  aux.dataset.n = String(keys.length);
+  $('controls').classList.toggle('hasaux', keys.length > 0);
+  aux.innerHTML = keys.map(k => {
     const pic = art(`talent-${k}`); // 특성 그림 (78). 없으면 이름만
-    return `<button class="aux" type="button" data-tal="${k}" aria-label="${TALENT_DEF[k].name}">${pic ? `<img class="aux-art" src="${pic}" alt="" aria-hidden="true" decoding="async" draggable="false">` : ''}<span class="nm">${TALENT_DEF[k].active!.short}</span><span class="cd"></span><span class="cds"></span></button>`;
+    return `<button class="slot tal" type="button" data-tal="${k}" aria-label="${TALENT_DEF[k].name}"><span class="cd"></span><span class="in">${pic ? `<img class="sic" src="${pic}" alt="" decoding="async" draggable="false">` : ''}<span class="nm">${TALENT_DEF[k].active!.short}</span><span class="ct"></span><span class="cds"></span></span></button>`;
   }).join('');
 }
+/** 휠 스킬과 같은 표시: 재사용 대기 = 어두운 그림 + 부채꼴 + 남은 초, 효과 중 = 금빛 테 + 남은 초, 횟수 소진 = 사용 완료 */
 export function updateAux(): void {
   const F = fight();
-  for (const el of $('aux').querySelectorAll<HTMLElement>('.aux[data-tal]')) {
+  for (const el of $('aux').querySelectorAll<HTMLElement>('[data-tal]')) {
     const k = el.dataset.tal as TalentKey, a = F.tx.act[k], def = TALENT_DEF[k].active!;
     if (!a) continue;
-    const on = activeOn(F, k), spent = talentUsesSpent(F, k);
+    const on = activeOn(F, k), spent = talentUsesSpent(F, k), cd = !spent && !on ? a.cd : 0;
     if (spent && ui.talArmed === k) ui.talArmed = null;
-    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', spent ? '100%' : !on && a.cd > 0 ? `${(a.cd / def.cd) * 100}%` : '0%');
-    setText(el.querySelector('.cds')!, spent ? '사용 완료' : on ? String(Math.ceil(a.left)) : a.cd > 0 ? String(Math.ceil(a.cd)) : '');
+    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', spent ? '100%' : cd > 0 ? `${Math.min(1, cd / def.cd) * 100}%` : '0%');
+    setText(el.querySelector('.ct')!, on ? `${Math.ceil(a.left)}초` : '');
+    setText(el.querySelector('.cds')!, spent ? '사용 완료' : cd > 0 ? `${Math.ceil(cd)}초` : '');
+    const label = `${TALENT_DEF[k].name}, ${spent ? '사용 완료, 전투당 사용 횟수 소진' : on ? `효과 중 ${Math.ceil(a.left)}초` : cd > 0 ? `재사용 대기 ${Math.ceil(cd)}초` : '사용 가능'}${ui.talArmed === k ? ', 선택됨. 칸 선택 또는 다시 눌러 취소' : ''}`;
+    if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
+    el.setAttribute('aria-pressed', String(ui.talArmed === k));
     el.setAttribute('aria-disabled', String(spent));
-    el.setAttribute('aria-label', `${TALENT_DEF[k].name}${spent ? ', 사용 완료, 전투당 사용 횟수 소진' : ''}`);
     el.classList.toggle('spent', spent);
     el.classList.toggle('on', on);
-    el.classList.toggle('off', spent || (!on && a.cd > 0));
+    el.classList.toggle('cooling', spent || cd > 0);
     el.classList.toggle('armed', ui.talArmed === k);
   }
 }
@@ -243,41 +244,6 @@ export function openTalentTip(k: TalentKey, el: HTMLElement): void {
   const row = a.once ? '전투당 1회' : `${a.dur}초 · 재사용 대기 ${a.cd}초`;
   const F = fight();
   popTip(tipHtml({ name: d.name, kind: '특성', rows: [['즉시', row]], desc: healText(d.desc, INT_BASE * F.power * F.gear.heal), note: a.cell ? '누른 뒤 빈 칸을 탭' : 'GCD·마나 없이 바로' }), el, null);
-}
-
-// ---------- 소비 아이템 단축칸: 한 줄 두 칸 ----------
-export function buildItems(): void {
-  const keys = S.itemLayout ?? Object.keys(fight().items) as ItemKey[];
-  let html = '';
-  for (let i = 0; i < ITEM_SLOT_COUNT; i++) {
-    const k = keys[i];
-    // 시안: 잠긴 칸 = 평평한 어두운 칸 + 자물쇠 + Lv, 아이템 칸 = 네모 청동 테 + 그림 + 이름 + 오른쪽 아래 개수
-    if (!k) {
-      const emptyArt = art('skill-heal');
-      html += `<div class="item empty" aria-hidden="true">${emptyArt ? `<img class="item-art empty-slot-art" src="${emptyArt}" alt="" aria-hidden="true" decoding="async" draggable="false">` : ''}<span class="nm">빈 칸</span></div>`;
-      continue;
-    }
-    // 소비 아이템 그림 (36 4-1 item-use-*) → 옛 물약 그림 → 벡터
-    const painted = art(`item-use-${k}`) || art(`ui-sunforged-potion-${k}`);
-    const icon = painted ? `<img class="item-art" src="${painted}" alt="" aria-hidden="true" decoding="async" draggable="false">` : ITEM_ICON[k];
-    html += `<button class="item" type="button" data-item="${k}" aria-label="${ITEMS[k].name}">${icon}<span class="nm">${ITEMS[k].short}</span><span class="n"></span><span class="cd"></span><span class="cds"></span></button>`;
-  }
-  $('items').innerHTML = html;
-}
-export function updateItems(): void {
-  const F = fight();
-  for (const el of $('items').querySelectorAll<HTMLElement>('.item[data-item]')) {
-    const key = el.dataset.item as ItemKey, it = ITEMS[key], left = F.items[key] || 0;
-    const cd = it.kind === 'potion' && left > 0 ? F.potCd : 0;
-    setText(el.querySelector('.n')!, String(left));
-    const label = `${it.name} ${left}개`;
-    if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
-    el.querySelector<HTMLElement>('.cd')!.style.setProperty('--p', cd > 0 ? `${(cd / POTION_CD) * 100}%` : '0%');
-    setText(el.querySelector('.cds')!, cd > 0 ? String(Math.ceil(cd)) : '');
-    el.classList.toggle('off', left <= 0 || cd > 0);
-    el.classList.toggle('used', left <= 0);
-    el.classList.toggle('armed', ui.itemArmed === key);
-  }
 }
 
 // ---------- 시전 막대 (시안: 화면 폭 막대 안에 「스킬 → 대상」 · 남은 초, 채움 끝에 밝은 선) ----------
@@ -572,11 +538,6 @@ export function openSkillTip(key: SkillKey, el: HTMLElement): void {
   const lock = B.F && !knows(B.F, key) ? SKILL_LEVEL[key] : 0;
   popTip(tipHtml(skillTip(key, lock, B.F ? INT_BASE * B.F.power * B.F.gear.heal : undefined)), el, { skill: key });
 }
-export function openItemTip(key: ItemKey, el: HTMLElement): void {
-  const img = art(`item-use-${key}`); // 소비 아이템 그림 (36 4-1), 없으면 벡터
-  popTip(tipHtml(itemTip(key, `<span class="iic">${img ? `<img src="${img}" alt="" decoding="async" draggable="false">` : ITEM_ICON[key]}</span>`, fight().items[key] || 0)), el, { item: key });
-  ui.itemTips++;
-}
 export function closeTip(): void {
   clearTimeout(ui.tipTimer);
   ui.tip = null;
@@ -656,7 +617,7 @@ function drawPreview(u: Unit): void {
   for (const z of F.zones) if (z.tide && z.cells.has(u.cell)) items.push(`어둠물에 잠김 ${Math.ceil(z.end - F.t)}초 (받는 치유 −50%)`); // 어둠물 밀물 (59 5장)
   for (const d of u.debuffs) if ((d.debtLeft ?? 0) > 0) items.push(`남은 빚 ${Math.round(d.debtLeft!)} (넘친 치유가 갚음, ${Math.ceil(d.left)}초 뒤 남은 빚만큼 피해)`); // 빌린 생명
   for (const z of F.zones) if (z.ring && z.cells.has(u.cell)) items.push(`${z.ring.name} 안 ${Math.ceil(z.end - F.t)}초 (${z.ring.n < z.ring.max ? `치유를 받으면 한 겹 자람, ${z.ring.n}/${z.ring.max}겹` : `다 자람 ${z.ring.max}겹`})`); // 요정 고리 (48 5장)
-  if (u.shield > 0) items.push(`보호 두루마리 ${Math.ceil(u.shield)}초 (받는 피해 -40%)`);
+  if (u.shield > 0) items.push(`보호 ${Math.ceil(u.shield)}초 (받는 피해 -40%)`);
   for (const g of F.glass) { const g0 = g.rec.get(u.id); if (g0 != null && u.alive) items.push(`${g.name} ${Math.ceil(g.until - F.t)}초 뒤 체력 ${Math.round(g0 * 100)}%로 돌아감 (금빛 선)`); } // 모래시계 (54 5장)
   if (F.melt && F.t < F.melt.until && u.alive) items.push(`${F.melt.name} ${Math.ceil(F.melt.until - F.t)}초: 보호막 · 외부 생존기가 빨리 녹음`); // 녹는 보호막 (51 5장)
   if (items.length) lines.push(`<div class="pv-effects pv-section"><span class="pv-label">현재 효과</span><ul>${items.map(x => `<li>${x}</li>`).join('')}</ul></div>`);

@@ -80,7 +80,7 @@ export interface DebuffDef {
   dot?: number;
   /** 지우면 터지는 함정 (지울 수 없음 표시) */
   trap?: boolean;
-  /** 해제로 안 지워짐 (쇠약·완치 표식). 정화 두루마리도 못 지움 */
+  /** 해제로 안 지워짐 (쇠약·완치 표식) */
   lock?: boolean;
   /** 체력 비율이 이 값 이상이 되면 바로 사라짐 (P-WOUND 0.9, P-FULL 1). end는 안 함 */
   cureAt?: number;
@@ -1246,7 +1246,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
       BUSTER('두꺼운 사전', '사전', 8, 16, U.tank(0.55)),
       ...([['books', 2, 1], ['books2', 3, 2]] as const).map(([key, n, phase]): SkillDef => ({
         key, name: '마나 먹는 책', icon: '책', kind: 'instant', first: 16, period: 30, cast: 0, when: { phase: [phase] },
-        how: '책이 살아 있는 동안 한 권마다 내 마나가 샘. 딜러가 빨리 잡게 딜러 침묵 (쉿!)부터 지우고, 마나가 바닥나기 전에 물약',
+        how: '책이 살아 있는 동안 한 권마다 내 마나가 샘. 딜러가 빨리 잡게 딜러 침묵 (쉿!)부터 지우고, 마나가 바닥나기 전에 아끼는 힐로',
         effect: { p: 'adds', n, add: { name: '마나 먹는 책', short: '책', art: 'mob-drain-book', hp: 0.015, dmg: 0, every: 2, at: 'random', job: { p: 'drain', pct: 0.4 } } },
       })),
       { key: 'order', name: '제자리에 꽂기', icon: '꽂기', kind: 'instant', first: 24, period: 35, cast: 2,
@@ -1493,7 +1493,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         effect: { p: 'debuff', n, pick: 'tel', debuff: { name: '덥석!', type: '물리', left: 10, dot: U.dps(0.03), lock: true, hide: true, noMove: true, noDps: true, untilBossLoss: 0.04 } },
       })),
       { key: 'gold', name: '금화 더미', icon: '금화', kind: 'instant', first: 19, period: 35, cast: 0,
-        how: '금화 더미가 살아 있는 동안 한 개마다 내 마나가 샘. 마나 물약 · 아끼는 힐로 버티기',
+        how: '금화 더미가 살아 있는 동안 한 개마다 내 마나가 샘. 아끼는 힐로 버티기',
         effect: { p: 'adds', n: 2, nMythic: 3, add: { name: '금화 더미', short: '금화', art: 'mob-gold-pile', hp: 0.015, dmg: 0, every: 2, at: 'random', job: { p: 'drain', pct: 0.4 } } } },
       { key: 'rain', name: '금화 비', icon: '금비', kind: 'aoe', first: 22, period: 25, cast: 3, warn: 'aoe', effect: { p: 'all', dmg: U.dps(0.22) } },
     ],

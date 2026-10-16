@@ -1,5 +1,5 @@
 /**
- * 힐러 성장·보상 수치 (P1 초안). 근거: 02 부록 B(경험치 곡선), 12 3-1(골드), 18 2-2(레벨 마일스톤), 19(소비 아이템 칸).
+ * 힐러 성장·보상 수치 (P1 초안). 근거: 02 부록 B(경험치 곡선), 12 3-1(골드), 18 2-2(레벨 마일스톤). 소비 아이템 칸 (19)은 2026-10-16 없앰.
  * 경험치 지급량은 문서에 없어 새로 정함 (24 문서). Lv 1~100 곡선은 18 1장 도달 시점에 맞춤 (xpShare, 2026-10-07).
  */
 import type { DiffName } from './difficulty';
@@ -121,9 +121,6 @@ export function starsOf(r: { win: boolean; deaths: number; overheal: number }): 
   return [r.win, r.win && r.deaths === 0, r.win && r.overheal <= STAR_OVERHEAL];
 }
 
-/** 소비 아이템은 레벨과 관계없이 두 칸 (2026-10-15 사용자 확정). */
-export const ITEM_SLOT_COUNT = 2;
-export const itemSlots = (_level: number) => ITEM_SLOT_COUNT;
 
 /** 길드 탭 해금 (09 1-1, 18) */
 export const GUILD_LEVEL = 15;

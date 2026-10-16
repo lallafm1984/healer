@@ -1,4 +1,4 @@
-// 재화·임무·상점 (12, 13, 15, 81, 09 S18·S19·S22): 로비 임무 카드 → 임무 받기·교체·완료 상자 → 상점 골드·공훈·패스·상품 → 스테미너 입장 확인
+// 재화·임무·상점 (12, 13, 15, 81, 09 S18·S19·S22): 로비 임무 카드 → 임무 받기·교체·완료 상자 → 상점 상품·공훈·패스 → 스테미너 입장 확인
 import { chromium } from 'playwright';
 import { chooseContent, openDiff, pastTitle } from './nav.mjs';
 
@@ -56,16 +56,12 @@ export default async function shop(url, shots) {
   ok(sv.player.gold > w0.player.gold && sv.mats.stone === w0.mats.stone + 5 && !('shards' in sv.wallet), '주간 임무 = 골드 3판 + 강화석 5 (악몽 열쇠 없음)');
   await page.screenshot({ path: `${shots}/shop_missions.png`, fullPage: true });
 
-  // ---- 상점: 골드 ----
+  // ---- 상점: 골드 탭 (소비 아이템)은 2026-10-16 없앰. 첫 탭 = 상품 ----
   await page.click('#s-missions .tb-back'); await page.clock.runFor(50);
   await page.click('#tabs [data-tab="shop"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-shop') && (await page.locator('#s-shop .srow').count()) >= 6 && !/악몽 열쇠/.test(await text('#s-shop')), '상점 탭: 소비 아이템 6 (악몽 열쇠 제작 없음)');
-  const b0 = await save();
-  await page.click('#s-shop [data-buy="mana"][data-n="1"]'); await page.clock.runFor(50);
-  sv = await save();
-  ok(sv.bag.mana === b0.bag.mana + 1 && sv.player.gold === b0.player.gold - (100 + 5 * 40), '마나 물약 1개 = 100 + 5 × Lv');
-  ok(await page.locator('#s-shop [data-buy="feather"]').count() === 0, '부활 깃털은 안 팖');
-  await page.screenshot({ path: `${shots}/shop_gold.png` });
+  ok(await page.isVisible('#s-shop') && await page.getAttribute('#s-shop [data-sub="cash"]', 'aria-selected') === 'true'
+    && (await page.locator('#s-shop [data-sub="gold"], #s-shop [data-buy]').count()) === 0 && !/악몽 열쇠|소비 아이템/.test(await text('#s-shop')), '상점 탭: 상품이 첫 탭, 골드 탭 · 소비 아이템 없음');
+  await page.screenshot({ path: `${shots}/shop_first.png` });
 
   // ---- 공훈 ----
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.wallet.merit = 120; localStorage.setItem('healer.save', JSON.stringify(s)); });

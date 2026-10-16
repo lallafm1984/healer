@@ -402,15 +402,12 @@ export default async function gear(url, shots) {
   ok(await page.isVisible('#s-char .c7-confirm') && !/각성/.test(await text('#s-char .c7-confirm')), '결과 팝업 유지 및 각성 문구 제거');
   await page.click('#s-char .c7-confirm [data-confirmcancel]'); await page.clock.runFor(50);
   await page.click('#s-char .c7-gsheet button[data-sheetx]'); await page.clock.runFor(50);
+  // 상점 골드 탭 (소비 아이템)은 2026-10-16 없앰: 설정에서 무한 재화를 끄고 실제 잔액만 확인
   await page.click('#tabs [data-tab="shop"]'); await page.clock.runFor(100);
-  const manaBefore = (await save()).bag.mana;
-  await page.click('#s-shop [data-buy="mana"][data-n="1"]'); await page.clock.runFor(100);
-  ok((await save()).bag.mana === manaBefore + 1 && (await save()).player.gold === 0, '상점 구매에도 무한 골드 적용: 구매 가능·잔액 차감 없음');
   await page.click('#s-shop [data-go="s-settings"]'); await page.clock.runFor(100);
   await page.locator('[data-tog="devGold"]').uncheck();
   await page.locator('[data-tog="devStones"]').uncheck();
   await page.click('#s-settings .tb-back'); await page.clock.runFor(100);
-  ok(await page.isDisabled('#s-shop [data-buy="mana"][data-n="1"]'), '골드 무한 해제 시 잔액 0으로 구매 불가');
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
   ok((await text('#s-char .tb-gold b')).trim() === '0' && (await page.locator('#s-char .gmats b').allTextContents()).every(v => v === '0'), '설정 해제 후 실제 골드·강화석 0 표시');
   await page.click('#s-char [data-gitem="901"]'); await page.clock.runFor(50);

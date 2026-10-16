@@ -10,7 +10,7 @@ export interface AffixDef { name: string; desc: string; tip: string; good?: bool
 
 export const AFFIXES: Record<AffixKey, AffixDef> = {
   rage: { name: '격노', desc: '보스 체력 30% 아래부터 보스 피해 +30%', tip: '막판 대비 공대 쿨기를 남겨 둠' },
-  plague: { name: '역병', desc: '25초마다 2명에게 역병 독 (10초 지속 피해)', tip: '독을 못 지우는 직업은 해제 두루마리·지속 힐' },
+  plague: { name: '역병', desc: '25초마다 2명에게 역병 독 (10초 지속 피해)', tip: '독을 못 지우는 직업은 지속 힐로 버티기' },
   unstable: { name: '불안정', desc: '30초마다 1명에게 함정 ⚠ (지우면 주변 폭발, 두면 그 사람만 피해)', tip: '지우지 말고 체력으로 버팀' },
   dry: { name: '메마름', desc: '받는 치유 -20%', tip: '효율 힐 위주, 마나 관리' },
   contagion: { name: '전염병', desc: '30초마다 무작위 2명에게 질병', tip: '해제 재사용 대기 배분' },

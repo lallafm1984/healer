@@ -215,7 +215,7 @@ describe('자질·길드원 레벨 (17 9-1)', () => {
   });
   it('보통 자동 힐러: 공개모집 능력 파티로도 깰 수 있음 (역병 군주 희귀 +5)', () => {
     let win = 0;
-    for (let s = 1; s <= 6; s++) if (E.simulate({ encounter: 'plague', diff: '보통', gear: 'rare5', seed: s, items: ['mana', 'life'], party: E.recruitParty('plague', s, { abilities: true }) }).over === 'win') win++;
+    for (let s = 1; s <= 6; s++) if (E.simulate({ encounter: 'plague', diff: '보통', gear: 'rare5', seed: s, party: E.recruitParty('plague', s, { abilities: true }) }).over === 'win') win++;
     expect(win).toBeGreaterThanOrEqual(5);
   });
 });

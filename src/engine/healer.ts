@@ -10,7 +10,7 @@ import { palmGcd } from './monk';
 import { judgeReady, warderRegen } from './warder';
 import { crisis, freeCast, gcdNow, guardSec, hc, later, raidSec, regenSpec, specApply, specDispel, specExec, specTick, sv, twiceBrush, twin, under } from './specials';
 import { orderHeal } from './bossParts';
-import { reviveTarget } from './items';
+import { reviveTarget } from './revive';
 import { adjLow, castOf, cdOf, costOf, directSpread, focusMult, has, overflow, pohAt, renewSec, spendGuard, talentTick, waveNeed, wordCap, wordPower, wordReady, wordSpent } from './talents';
 import { TX } from '../data/talents';
 import type { ActionResult, Debuff, Fight, Unit } from './types';
@@ -257,14 +257,12 @@ function cleanseOne(f: Fight, u: Unit): void {
 /** 힐러 한 틱: 마나 재생, 재사용 대기, 찬가, 시전 완료, 예약 실행 */
 export function healerTick(f: Fight): void {
   const dt = DT;
-  let regen = f.R.regen * f.gear.regen * f.enc.manaCoef * (f.symbol > 0 ? 4 : 1) * (f.medit > 0 ? 1 + 1.5 * (1 + sv(f, 'potionRegular')) : 1); // 물약 단골 (42 마나 09)
+  let regen = f.R.regen * f.gear.regen * f.enc.manaCoef * (f.symbol > 0 ? 4 : 1);
   if (f.sp) regen *= regenSpec(f); // 샘물 한 모금 · 고요한 순간 · 두꺼비 부적 (42)
   if (f.tx.on.calmBreath) regen *= 1 + TX.calmBreath * f.power3; // 고른 호흡 (77)
   if (f.hero === 'warder' && f.tx.any) regen *= warderRegen(f); // 막의 숨 · 장막의 숨 (79 5-7)
   if (f.cast || f.channel > 0) f.tx.lastAct = f.t;
   else if (f.tx.on.breather && f.t - f.tx.lastAct >= 3 - 1e-9) regen *= 2; // 숨 고르기
-  if (f.medit > 0) f.medit -= dt;
-  if (f.potCd > 0) f.potCd = Math.max(0, f.potCd - dt);
   f.mana = Math.min(100, f.mana + regen * dt);
   if (f.symbol > 0) f.symbol -= dt;
   if (!f.symbolUsed && f.mana < 30 && knowsPassive(f, 'symbol')) { f.symbolUsed = true; f.symbol = 5; emit(f, { type: 'msg', text: '상징: 5초간 마나 회복 4배' }); }

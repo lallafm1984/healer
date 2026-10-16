@@ -1,13 +1,12 @@
 /**
  * 프로토타입 엔진(tests/fixtures/proto-engine.cjs, prototype/engine.js 사본)과
  * TypeScript 엔진이 같은 시드·같은 입력에서 똑같이 움직이는지 확인한다.
- * 직업군 방어력(34 9-2)은 프로토타입에 없어서 끄고 (armor: false), 숫자·시전·GCD는 프로토타입 규칙으로 (proto: true, 34 1장 이전 값) 비교한다.
+ * 소비 아이템은 2026-10-16 없앰 (프로토타입 사본에는 남아 있지만 쓰지 않음). 직업군 방어력(34 9-2)은 프로토타입에 없어서 끄고 (armor: false), 숫자·시전·GCD는 프로토타입 규칙으로 (proto: true, 34 1장 이전 값) 비교한다.
  */
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 import { ENCOUNTERS, PROTO_ENCOUNTERS } from '../src/data/encounters';
 import type { GearId } from '../src/data/gear';
-import type { ItemKey } from '../src/data/items';
 import type { SkillKey } from '../src/data/skills';
 import * as E from '../src/engine';
 import type { Fight } from '../src/engine';
@@ -18,8 +17,8 @@ const P: any = require('./fixtures/proto-engine.cjs');
 function snap(f: any) {
   return {
     t: f.t, k: f.k, over: f.over, reason: f.reason, bossHp: f.bossHp, mana: f.mana, gcd: f.gcd,
-    phase: f.phase, phaseName: f.phaseName, nextId: f.nextId, g: f.g, cd: f.cd, items: f.items, potCd: f.potCd,
-    cast: f.cast, queued: f.queued, stats: f.stats, itemLog: f.itemLog,
+    phase: f.phase, phaseName: f.phaseName, nextId: f.nextId, g: f.g, cd: f.cd,
+    cast: f.cast, queued: f.queued, stats: f.stats,
     party: f.party.map((u: any) => ({
       id: u.id, role: u.role, pers: u.pers, nick: u.nick, hp: u.hp, max: u.max, alive: u.alive, cell: u.cell,
       hot: u.hot, shield: u.shield || 0, guardian: u.guardian, fleeing: u.fleeing, sulking: u.sulking, moving: u.moving,
@@ -44,7 +43,7 @@ describe('자동 힐러 한 판 결과가 프로토타입과 같음', () => {
   for (const { enc, diff } of CASES) {
     it(`${enc} ${diff}`, () => {
       for (const gear of GEARS) for (const seed of [1, 7, 42, 1234, 99991]) {
-        const cfg = { encounter: enc, diff, gear, seed, items: ['mana', 'life', 'cleanse', 'feather'] as ItemKey[], armor: false, proto: true };
+        const cfg = { encounter: enc, diff, gear, seed, armor: false, proto: true };
         const a = P.simulate(cfg);
         const b = E.simulate(cfg);
         expect(snapTs(b), `${enc} ${diff} ${gear} seed ${seed}`).toEqual(snap(a));
@@ -53,14 +52,12 @@ describe('자동 힐러 한 판 결과가 프로토타입과 같음', () => {
   }
 });
 
-describe('사람 입력(탭·휠·아이템)을 섞어도 틱마다 같음', () => {
+describe('사람 입력(탭·휠)을 섞어도 틱마다 같음', () => {
   const SLOTS: SkillKey[] = ['heal', 'flash', 'renew', 'poh', 'purify', 'guardian', 'hymn'];
-  const ITEMS: ItemKey[] = ['mana', 'medit', 'life', 'cleanse', 'shield', 'feather'];
   for (const { enc, diff } of CASES) {
     it(`${enc} ${diff}`, () => {
       for (const seed of [3, 11, 2026]) {
-        const items = [ITEMS[seed % 6], ITEMS[(seed + 1) % 6], ITEMS[(seed + 3) % 6], 'feather'] as ItemKey[];
-        const cfg = { encounter: enc, diff, gear: 'adv0' as GearId, seed, items, armor: false, proto: true };
+        const cfg = { encounter: enc, diff, gear: 'adv0' as GearId, seed, armor: false, proto: true };
         const a = P.create(cfg);
         const b = E.create(cfg);
         const input = E.rngFrom(seed * 31 + 5); // 입력용 난수 (전투 난수와 따로)
@@ -72,10 +69,6 @@ describe('사람 입력(탭·휠·아이템)을 섞어도 틱마다 같음', () 
             const ka = P.slotKey(a, slot), kb = E.slotKey(b, slot);
             expect(kb).toBe(ka);
             expect(E.use(b, kb, cell)).toEqual(P.use(a, ka, cell));
-          } else if (r < 0.065) {
-            const key = items[Math.floor(input() * items.length)];
-            const cell = Math.floor(input() * a.cells.length);
-            expect(E.useItem(b, key, cell)).toEqual(P.useItem(a, key, cell));
           } else if (r < 0.5) {
             P.autoHealer(a); E.autoHealer(b);
           }

@@ -72,17 +72,17 @@ describe('캐릭터 목록', () => {
 
 describe('캐릭터마다 따로, 계정은 같이 (68 3장)', () => {
   beforeEach(() => fresh());
-  it('골드 · 재료 · 공훈 · 소비 아이템 · 도감 · 기록 · 임무 · 칭호는 캐릭터마다', () => {
+  it('골드 · 재료 · 공훈 · 도감 · 기록 · 임무 · 칭호는 캐릭터마다', () => {
     const s = G.save;
-    s.player.gold = 900; s.mats = { stone: 7, refined: 2 }; s.wallet.merit = 3; s.bag.mana = 17;
+    s.player.gold = 900; s.mats = { stone: 7, refined: 2 }; s.wallet.merit = 3;
     s.gear.codex = ['x']; s.clears.rustfort = { 보통: { stars: 3, grade: 'A', best: 100, n: 2 } }; s.decos = ['칭호'];
     s.daily.missions[0].n = 1;
     makeChar('druid', '', DAY);
     const d = G.save;
-    expect([d.player.gold, d.mats, d.wallet.merit, d.bag.mana, d.gear.codex, d.clears, d.decos]).toEqual([0, { stone: 0, refined: 0 }, 0, 5, [], {}, []]);
+    expect([d.player.gold, d.mats, d.wallet.merit, d.gear.codex, d.clears, d.decos]).toEqual([0, { stone: 0, refined: 0 }, 0, [], {}, []]);
     expect(d.daily.missions.every(m => m.n === 0)).toBe(true);
     pickChar(1, DAY);
-    expect([G.save.player.gold, G.save.mats.stone, G.save.bag.mana, G.save.clears.rustfort?.보통?.stars, G.save.daily.missions[0].n]).toEqual([900, 7, 17, 3, 1]);
+    expect([G.save.player.gold, G.save.mats.stone, G.save.clears.rustfort?.보통?.stars, G.save.daily.missions[0].n]).toEqual([900, 7, 3, 1]);
   });
   it('설정 · 산 상품 · 스테미너 · 패스는 계정 (휠 배치 · 칸 탭은 캐릭터, 81)', () => {
     makeChar('druid', '', DAY);
@@ -202,17 +202,17 @@ describe('옛 저장 나누기 v10 → v11 (68 4장)', () => {
     expect(s.roster.chars.map(c => [c.id, c.hero, c.level])).toEqual([[1, 'priest', 40], [2, 'druid', 12]]);
     expect([s.roster.cur, s.roster.slots, s.roster.next]).toEqual([1, 2, 3]);
   });
-  it('계정 것은 가장 높은 캐릭터에게, 나머지는 골드 0 · 처음 가방 · 자기 장비 도감 · 들어갈 수 있는 장소 기록만', () => {
+  it('계정 것은 가장 높은 캐릭터에게, 나머지는 골드 0 · 자기 장비 도감 · 들어갈 수 있는 장소 기록만', () => {
     const own = makeItem(rng, 'weapon', '희귀', 5);
     const s = v10({
-      hero: 'priest', player: { level: 40, xp: 0, gold: 10 }, mats: { stone: 4, refined: 1 }, bag: { mana: 19 }, decos: ['t'],
+      hero: 'priest', player: { level: 40, xp: 0, gold: 10 }, mats: { stone: 4, refined: 1 }, bag: { mana: 19 }, decos: ['t'], // bag = v15 전 소비 아이템 가방 (불러오면 버림)
       gear: { equipped: {}, bag: [], seen: 0, codex: ['k'], dex: ['d'], dexPaid: 2 },
       clears: { plateau: { 보통: { stars: 3, grade: 'A', best: 50, n: 1 } }, abyss1: { 보통: { stars: 2, grade: 'B', best: 400, n: 1 } } },
       heroes: { druid: hs(12, { gear: { equipped: { weapon: own }, bag: [], seen: 0 } }) },
     });
-    expect([s.player.gold, s.mats.stone, s.bag.mana, s.gear.codex, s.gear.dexPaid, s.decos]).toEqual([10, 4, 19, ['k'], 2, ['t']]);
+    expect([s.player.gold, s.mats.stone, 'bag' in s, s.gear.codex, s.gear.dexPaid, s.decos]).toEqual([10, 4, false, ['k'], 2, ['t']]);
     const d = s.roster.chars[1].park!;
-    expect([d.hero, d.player.level, d.player.gold, d.mats.stone, d.bag.mana, d.gear.dexPaid, d.tut]).toEqual(['druid', 12, 0, 0, 5, 0, TUT.done]);
+    expect([d.hero, d.player.level, d.player.gold, d.mats.stone, 'bag' in d, d.gear.dexPaid, d.tut]).toEqual(['druid', 12, 0, 0, false, 0, TUT.done]);
     expect(d.gear.equipped.weapon?.id).toBe(5);
     expect(d.gear.dex.length).toBeGreaterThan(0);
     expect(Object.keys(d.clears)).toEqual(['plateau']);

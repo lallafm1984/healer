@@ -82,7 +82,7 @@ describe('대사 데이터 규칙', () => {
 /** 자동 힐러로 한 판 돌리며 말풍선 모으기 (화면 시계 = 전투 시간) */
 function run(enc: EncounterKey, seed: number, diff: '보통' | '어려움' = '보통') {
   const party = E.recruitParty(enc, seed, { abilities: true });
-  const f = E.create({ encounter: enc, diff, seed, party, items: ['mana', 'life', 'cleanse', 'feather'], gear: 'adv0' });
+  const f = E.create({ encounter: enc, diff, seed, party, gear: 'adv0' });
   let r = seed / 1000;
   const talk = createTalk(() => ((r = (r * 9301 + 49297) % 233280 / 233280), r));
   talk.start(f, { seg: 0, segN: 1, cont: 0, affix: false, chal: false }, 0);
@@ -350,7 +350,7 @@ describe('전투 중 말풍선', () => {
   });
 
   it('프로토타입 규칙 판에는 상황 이름을 안 붙임 (parity)', () => {
-    const f = E.create({ encounter: 'plague', diff: '어려움', seed: 7, gear: 'adv0', proto: true, armor: false, items: ['mana', 'life', 'cleanse', 'feather'] });
+    const f = E.create({ encounter: 'plague', diff: '어려움', seed: 7, gear: 'adv0', proto: true, armor: false });
     let n = 0;
     while (!f.over && f.t < 400) {
       E.autoHealer(f); E.step(f);

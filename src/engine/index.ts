@@ -8,7 +8,7 @@ export { DT, living } from './core';
 export { create, recruitParty, rollParty, step } from './fight';
 export { canTarget, knows, knowsPassive, skillUsesSpent, SLOT_OF, slotKey, use } from './healer';
 export { beaconShare, heroPassive, heroRing, hotCount, setBeacon } from './heroes';
-export { itemReady, reviveTarget, useItem } from './items';
+export { reviveTarget } from './revive';
 export { rngFrom } from './rng';
 export { activeOn, areaRadius, cdMax, costOf, talentReady, talentUsesSpent, useTalent } from './talents';
 export { partyDps, unitDps } from './units';

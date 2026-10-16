@@ -5,16 +5,14 @@
 import type { DiffName } from '../src/data/difficulty';
 import type { GearId } from '../src/data/gear';
 import { HERO_KEYS } from '../src/data/heroes';
-import type { ItemKey } from '../src/data/items';
 import { simulate, simulateDungeon } from '../src/engine';
 
 const N = Number(process.argv[2] || 30);
-const items: ItemKey[] = ['mana', 'life'];
 const GEARS: GearId[] = ['none', 'adv0', 'rare5', 'epic5'];
 const rows: [string, DiffName[], (hero: typeof HERO_KEYS[number], diff: DiffName, gear: GearId, seed: number) => boolean][] = [
-  ['녹슨 요새', ['보통', '어려움', '악몽'], (hero, diff, gear, seed) => simulateDungeon({ dungeon: 'rustfort', diff, gear, seed, items, hero }).win],
-  ['녹슨 문지기', ['보통', '어려움'], (hero, diff, gear, seed) => simulate({ encounter: 'warden', diff, gear, seed, items, hero }).over === 'win'],
-  ['역병 군주 10인', ['쉬움', '보통', '어려움'], (hero, diff, gear, seed) => simulate({ encounter: 'plague', diff, gear, seed, items, hero }).over === 'win'],
+  ['녹슨 요새', ['보통', '어려움', '악몽'], (hero, diff, gear, seed) => simulateDungeon({ dungeon: 'rustfort', diff, gear, seed, hero }).win],
+  ['녹슨 문지기', ['보통', '어려움'], (hero, diff, gear, seed) => simulate({ encounter: 'warden', diff, gear, seed, hero }).over === 'win'],
+  ['역병 군주 10인', ['쉬움', '보통', '어려움'], (hero, diff, gear, seed) => simulate({ encounter: 'plague', diff, gear, seed, hero }).over === 'win'],
 ];
 for (const [name, diffs, run] of rows) {
   console.log(`\n${name} (${N}판, 장비 ${GEARS.join('/')})`);
