@@ -26,7 +26,7 @@ import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
 import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, PXF, pxfTargets, SKILL_PXF, type PxfKey } from './pxf';
 import {
-  bossFx, bossHealNum, fitBossTitle, updateBossTitle, buildAux, buildGauges, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openSkillTip, openTalentTip, openTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
+  bossFx, bossHealNum, fitBossTitle, updateBossTitle, buildAux, buildGauges, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openSkillTip, openTalentTip, openTip, releaseTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
   placeGiveUp, resetDmgNums, updateAux, updateCastbar, updateStage, updateWheel,
 } from './hud';
 
@@ -242,6 +242,7 @@ function endSlot(cancelled: boolean, e?: PointerEvent): void {
   const P = slotPress; slotPress = null;
   if (!P) return;
   clearTimeout(P.timer);
+  if (P.lp) releaseTip();
   if (P.lp || cancelled || !live()) return;
   if (P.core) { pressCore(); return; }
   if (P.lock) { toast(`${SKILLS[P.lock].name}: Lv ${SKILL_LEVEL[P.lock]}에 배움`); Snd.play('error'); return; }
@@ -305,6 +306,7 @@ function endAux(cancelled: boolean, e?: PointerEvent): void {
   const P = auxPress; auxPress = null;
   if (!P) return;
   clearTimeout(P.timer);
+  if (P.lp) releaseTip();
   if (P.lp || cancelled || !live()) return;
   pressAux(P.key);
 }
