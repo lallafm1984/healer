@@ -7,11 +7,20 @@ import { emit } from './core';
 import { totemGone } from './heroes';
 import type { Fight, Totem, TotemKind } from './types';
 
-/** 그 종류의 물건을 칸에 세움. 종류마다 max개까지, 넘으면 가장 오래된 것이 사라짐 (79 2-3 「종류마다 하나」, 특성 두 개의 샘 · 두 대지면 2) */
+/** 한 칸에 하나만 서는 토템: 주술사 샘 · 대지 (2026-10-16 Lim 「그 칸에 토템이 이미 있으면 전 토템은 없어지고 새로 세운 것만」, 그림 · 효과 모두) */
+export const ONE_PER_CELL: ReadonlySet<TotemKind> = new Set<TotemKind>(['spring', 'earth']);
+/** 그 칸에 서 있는 샘 · 대지 토템 */
+export const shamanTotemAt = (f: Fight, cell: number): Totem | undefined => f.totems.find(t => t.cell === cell && ONE_PER_CELL.has(t.kind));
+
+/**
+ * 그 종류의 물건을 칸에 세움. 종류마다 max개까지, 넘으면 가장 오래된 것이 사라짐 (79 2-3 「종류마다 하나」, 특성 두 개의 샘 · 두 대지면 2).
+ * 샘 · 대지 토템은 그 칸에 서 있던 샘 · 대지 토템을 밀어냄 (ONE_PER_CELL)
+ */
 export function placeTotem(f: Fight, kind: TotemKind, cell: number, sec: number, o: { max?: number; firm?: boolean; tick?: number } = {}): Totem {
   const same = f.totems.filter(t => t.kind === kind).sort((a, b) => a.at - b.at);
   const max = o.max ?? 1;
   for (const old of same.slice(0, Math.max(0, same.length - max + 1))) { f.totems = f.totems.filter(t => t !== old); totemGone(f, old, false); }
+  if (ONE_PER_CELL.has(kind)) for (const old of f.totems.filter(t => t.cell === cell && ONE_PER_CELL.has(t.kind))) { f.totems = f.totems.filter(t => t !== old); totemGone(f, old, false); }
   const t: Totem = { kind, cell, until: f.t + sec, tick: o.tick ?? 0, at: f.t, firm: o.firm };
   f.totems.push(t);
   return t;

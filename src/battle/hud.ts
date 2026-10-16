@@ -294,7 +294,7 @@ export function updateCastbar(): void {
     label = `${SKILLS[HEROES[F.hero].core!].name}: 세울 칸 선택`;
   } else if (B.armed) {
     const k = slotKey(F, B.armed);
-    label = `${SKILLS[k].name} 장전: ${SKILLS[k].target === 'area' ? '누른 채 범위를 보고 떼기' : '대상 칸 선택'}`;
+    label = `${SKILLS[k].name} 장전: ${SKILLS[k].target === 'area' ? '누른 채 범위를 보고 떼기' : SKILLS[k].target === 'cell' ? '세울 칸 선택 (빈 칸도)' : '대상 칸 선택'}`;
   } else if (F.queued) {
     label = `다음: ${SKILLS[F.queued.key].name}`;
     p = F.gcd > 0 ? F.gcd / F.gcdBase : 0;

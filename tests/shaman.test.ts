@@ -134,6 +134,20 @@ describe('스킬', () => {
     expect(taken(f, v)).toBeCloseTo(85, 6);
     expect(taken(f, far)).toBeCloseTo(100, 6);
   });
+  it('샘 · 대지 토템: 빈 칸에도 세움 (2026-10-16 Lim), 무너진 바닥은 안 됨', () => {
+    const f = fight(), free = f.cells.filter(c => !c.unit && !c.block && f.party.some(v => v.alive && E.hexDist(f.cells[v.cell], c) === 1)).map(c => c.i);
+    expect(SKILLS.earthTotem.target).toBe('cell');
+    expect(SKILLS.springTotem.target).toBe('cell');
+    cast(f, 'earthTotem', free[0]);
+    expect(totemsOf(f, 'earth')[0].cell).toBe(free[0]);
+    const nb = f.party.find(v => v.alive && E.hexDist(f.cells[v.cell], f.cells[free[0]]) === 1)!;
+    expect(taken(f, nb)).toBeCloseTo(85, 6); // 빈 칸 토템도 붙은 칸 아군을 지킴
+    cast(f, 'springTotem', free[1]);
+    expect(totemsOf(f, 'spring')[0].cell).toBe(free[1]);
+    const hole = f.cells.find(c => !c.unit && !c.block && !free.slice(0, 2).includes(c.i))!;
+    hole.block = 'hole';
+    expect(E.canTarget(f, 'earthTotem', hole.i).ok).toBe(false);
+  });
   it('비구름 토템: 채널 아님, 10초 동안 2초마다 전원 (5번)', () => {
     const f = fight(); hurt(f, 0.2);
     const u = others(f)[0];
@@ -267,14 +281,26 @@ describe('특성 (79 2-7)', () => {
     springPulse(f, f.totems[0]);
     expect(absorbLeft(f, u)).toBeCloseTo(Math.min(SP, TX.waterShield.max), 6);
   });
-  it('토템 부르기: 샘 · 대지를 고른 칸으로 (남은 시간 그대로)', () => {
+  it('토템 부르기: 나중에 세운 토템은 고른 칸, 앞 토템은 바로 옆 칸으로 (한 칸에 하나, 남은 시간 그대로)', () => {
     const f = fight(['totemCall']), cs = f.cells.filter(c => !c.block).map(c => c.i);
     expect(talentReady(f, 'totemCall').ok).toBe(false);
     placeTotem(f, 'spring', cs[0], 15); placeTotem(f, 'earth', cs[1], 10);
     const until = f.totems.map(t => t.until);
     expect(useTalent(f, 'totemCall', cs[2]).ok).toBe(true);
-    expect(f.totems.map(t => t.cell)).toEqual([cs[2], cs[2]]);
+    const [spring, earth] = f.totems;
+    expect(earth.cell).toBe(cs[2]);
+    expect(E.hexDist(f.cells[spring.cell], f.cells[cs[2]])).toBe(1);
     expect(f.totems.map(t => t.until)).toEqual(until);
+  });
+  it('한 칸에 토템 하나: 토템이 선 칸에 새로 세우면 앞 토템은 그림 · 효과 모두 없어짐 (2026-10-16 Lim)', () => {
+    const f = fight(), u = withAdj(f, 1);
+    cast(f, 'springTotem', u.cell);
+    cast(f, 'earthTotem', u.cell);
+    expect(f.totems.map(t => [t.kind, t.cell])).toEqual([['earth', u.cell]]);
+    f.cd = {};
+    cast(f, 'springTotem', u.cell);
+    expect(f.totems.map(t => [t.kind, t.cell])).toEqual([['spring', u.cell]]);
+    expect(taken(f, u)).toBeCloseTo(100, 6); // 대지 토템 효과도 끝남
   });
   it('대지의 품: 내가 토템 범위 안이면 −20%', () => {
     const f = fight(['earthGrace']), me = f.me;
@@ -437,9 +463,12 @@ describe('직업 전용 특수능력 (79 2-8)', () => {
     step(f, 0.05);
     expect(u.hp - h0).toBeCloseTo(Math.min(SP, u.max - h0), 0);
   });
-  it('대지의 울림: 확률로 그 칸에 샘도 (마나 없이)', () => {
+  it('대지의 울림: 확률로 붙은 칸에 샘도 (마나 없이, 한 칸에 토템 하나)', () => {
     const f = sp('earthEcho', 1), u = others(f)[0];
     cast(f, 'earthTotem', u.cell);
-    expect(totemsOf(f, 'spring').map(t => t.cell)).toEqual([u.cell]);
+    expect(totemsOf(f, 'earth').map(t => t.cell)).toEqual([u.cell]);
+    const sp0 = totemsOf(f, 'spring');
+    expect(sp0.length).toBe(1);
+    expect(E.hexDist(f.cells[sp0[0].cell], f.cells[u.cell])).toBe(1);
   });
 });

@@ -290,7 +290,7 @@ const TABLE: Record<SpecGroup, Row[]> = {
     ['washDrop', '주술 20', '씻김 물방울', HANDS, '고급', 1, 'n', '씻김으로 디버프를 지우면 대상에게 절반 물방울', { hero: 'shaman', fixed: true }],
     ['totemMend', '주술 21', '토템의 마지막 물', CHEST, '고급', 1, 'n', '샘 토템이 깨질 때 범위 안 아군에게 샘 회복 한 번', { hero: 'shaman', fixed: true }],
     ['chainBreath', '주술 22', '사슬의 숨', W_ACC, '희귀', 0.12, 'pct', '연쇄 치유 마나 소모 −{v}', { hero: 'shaman', cap: 0.3, skillMod: { key: 'chainHeal', kind: 'cost' } }],
-    ['earthEcho', '주술 23', '대지의 울림', HEAD, '희귀', 0.3, 'pct', '대지 토템을 세우면 {v} 확률로 그 칸에 샘 토템도 (마나 없이)', { hero: 'shaman', cap: 0.6 }],
+    ['earthEcho', '주술 23', '대지의 울림', HEAD, '희귀', 0.3, 'pct', '대지 토템을 세우면 {v} 확률로 붙은 칸에 샘 토템도 (마나 없이)', { hero: 'shaman', cap: 0.6 }],
     ['rainHaste', '주술 24', '비의 서두름', NECK, '영웅', 0.1, 'pct', '비구름 토템 동안 가속 +{v}', { hero: 'shaman' }],
     // 수도사 (79 3-8). 깊은 박자 · 따뜻한 감싸기 · 짙은 안개 · 박자의 서두름은 전용 장비 밸런스로 낮춤 (79 3-11)
     ['deepBeat', '수도 01', '깊은 박자', ALL, '희귀', 0.01, 'pp', '기 리듬 1마다 손바닥 +{v}', { cap: 0.02, hero: 'monk' }],

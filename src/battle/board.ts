@@ -1144,8 +1144,6 @@ const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string;
 /** 선 물건 그림 한 변 (칸 반지름 배) · 그림마다 그려진 부분 (폭 · 높이 비율, 2026-10-16 납품본을 잼): 그려진 부분이 칸 안에 꽉 차게 */
 const STAND_SIZE = 1.5;
 const STAND_BOX: Record<string, [number, number]> = { 'board-totem-spring': [0.72, 0.95], 'board-totem-earth': [0.75, 0.91] };
-/** 한 칸에 선 물건이 둘 (샘 + 대지 · 두 개의 샘)이면 이만큼 줄여 나란히 */
-const STAND_PAIR = 0.72;
 /** 힐러 직업 4종 판 위 그림 (80 5장): 전투 시작 때 그 직업 것만 미리 읽음 (첫 토템 · 인장부터 보이게) */
 const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
   shaman: ['board-totem-spring', 'board-totem-earth', 'board-totem-rain', 'board-sea-spring'],
@@ -1403,19 +1401,17 @@ export function render(now: number): void {
     // 드루이드 이끼 자리 (특성 77): 이끼 초록 바닥, 끝나기 2초 전 깜빡임 (정식 바닥 그림은 78 그림 요청)
     { const mu = F.tx.moss?.get(i); if (mu != null && mu > F.t) hexPoly(cellsG, p.x, p.y, r).fill({ color: HOT_COLOR.sprout, alpha: mu - F.t < 2 ? 0.06 + 0.12 * pulse : 0.16 }); }
     // 판 위 물건 (79 6-1: 토템 · 샘 · 성채 · 초신성): 그림 (80 5장)이 있으면 그 그림, 없으면 바닥 색 + 안쪽 테두리. 끝나기 2초 전 깜빡임
-    const standHere = F.totems.filter(tm => tm.cell === i && TOTEM_LOOK[tm.kind].stand);
     for (const tm of F.totems) if (tm.cell === i) {
       const look = TOTEM_LOOK[tm.kind], end = tm.until - F.t < 2, tex = artTexture(look.art);
       hexPoly(cellsG, p.x, p.y, r).fill({ color: look.color, alpha: end ? 0.08 + 0.14 * pulse : 0.22 });
       if (tex && look.stand) {
         // 선 물건 (2026-10-16 Lim 「토템 위치는 고정, 이름 · 체력 뒤 직업 칸 색 위에 가운데 크게, 캐릭터가 이동해도 그 자리」): 칸 가운데, 세울 때 0.25초 솟아오름 (바닥 기준)
         const rise = S.reducedEffects ? 1 : Math.min(1, Math.max(0, (F.t - tm.at) / 0.25)), k = 0.6 + 0.4 * (1 - (1 - rise) ** 2);
-        const [bw, bh] = STAND_BOX[look.art] ?? [1, 1], n = standHere.length, j = standHere.indexOf(tm);
-        const size = r * STAND_SIZE * (n > 1 ? STAND_PAIR : 1), w = size * bw, half = (size * bh) / 2;
-        const pitch = size * Math.max(...standHere.map(o => (STAND_BOX[TOTEM_LOOK[o.kind].art] ?? [1, 1])[0])) * 1.04;
-        const q = fitCenter(p.x + (j - (n - 1) / 2) * pitch, p.y, w / 2, half);
+        // 한 칸에 토템 하나 (engine/totems ONE_PER_CELL): 새로 세우면 앞 토템은 엔진에서 사라짐
+        const [bw, bh] = STAND_BOX[look.art] ?? [1, 1], size = r * STAND_SIZE, w = size * bw, half = (size * bh) / 2;
+        const q = fitCenter(p.x, p.y, w / 2, half);
         stands.put(tex, q.x, q.y + half * (1 - k), size * k, size * k, end ? 0.5 + 0.5 * pulse : 1);
-        recordBound(`stand-${tm.kind}${i}-${j}`, 'stand', 'rect', q.x, q.y, w, size * bh, { diameter: size });
+        recordBound(`stand-${tm.kind}${i}`, 'stand', 'rect', q.x, q.y, w, size * bh, { diameter: size });
       } else if (tex) decals.put(tex, p.x, p.y, cellArt, cellArt, end ? 0.5 + 0.5 * pulse : 1);
       else hexPoly(cellsG, p.x, p.y, r * 0.62).stroke({ width: 2.5, color: look.color, alpha: 0.9 });
     }
@@ -2005,6 +2001,8 @@ export function render(now: number): void {
       const c0 = F.cells[areaCenter];
       const ar = areaRadius(F, armedKey);
       F.cells.forEach((c, i) => { if (hexDist(c, c0) <= ar) { const p = center(i); hexPoly(overG, p.x, p.y, ringRadius(`armed-area${i}`, 'hex', p.x, p.y, r * 1.04, 3)).fill({ color: C.white, alpha: 0.14 }).stroke({ width: 3, color: hex(SEL) }); } });
+    } else if (SKILLS[armedKey].target === 'cell') { // 칸에 세우는 스킬 (주술사 토템): 무너진 바닥 말고 모든 칸 (빈 칸도)
+      F.cells.forEach((c, i) => { if (c.block !== 'hole') { const p = center(i); hexPoly(overG, p.x, p.y, ringRadius(`armed-cell${i}`, 'hex', p.x, p.y, r * 1.04, 2)).stroke({ width: 2, color: C.white, alpha: 0.3 + 0.4 * pulse }); } });
     } else for (const u of F.party) if (u.alive) { const p = center(u.cell); hexPoly(overG, p.x, p.y, ringRadius(`armed${u.id}`, 'hex', p.x, p.y, r * 1.04, 2)).stroke({ width: 2, color: C.white, alpha: 0.3 + 0.4 * pulse }); }
   }
   // 쉼터 장전: 빈 칸을 금빛 테두리로

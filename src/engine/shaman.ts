@@ -12,7 +12,7 @@ import { cellOf, emit, heal, healTop, living } from './core';
 import { noteUsed } from './healer';
 import { doDispel, heroHeal, heroPassive, putHot } from './heroes';
 import { activeOn, cdOf } from './talents';
-import { placeTotem, totemsOf } from './totems';
+import { ONE_PER_CELL, placeTotem, shamanTotemAt, totemBreaks, totemsOf } from './totems';
 import { aoeCount, aoeDone, guardSec, raidSec, sv, under } from './specials';
 import type { Fight, Hot, Totem, Unit } from './types';
 
@@ -160,12 +160,6 @@ export function shamanApply(f: Fight, key: SkillKey, u: Unit): void {
     }
   } else if (key === 'chainHeal') {
     chainHeal(f, u);
-  } else if (key === 'earthTotem') {
-    placeTotem(f, 'earth', u.cell, guardSec(f, SHAMAN.earth.sec), { max: on.twinEarth ? TX.twinEarth.n : 1 });
-    if (on.twinEarth) spendEarth(f);
-    if (f.sp && sv(f, 'earthEcho') && f.rng() < sv(f, 'earthEcho')) placeTotem(f, 'spring', u.cell, springSec(f), { max: on.twinSpring ? TX.twinSpring.n : 1, tick: SHAMAN.spring.tick }); // 대지의 울림 (주술 23)
-    emit(f, { type: 'sound', name: 'renew' });
-    emit(f, { type: 'msg', text: `대지 토템: ${u.nick}` });
   } else if (key === 'rainTotem') {
     const s = st(f);
     s.rainUntil = f.t + raidSec(f, 'rainTotem', SHAMAN.rain.sec) + sv(f, 'longRain'); s.rainTick = SHAMAN.rain.tick;
@@ -176,11 +170,22 @@ export function shamanApply(f: Fight, key: SkillKey, u: Unit): void {
   }
 }
 
-/** 칸에 쓰는 스킬: 샘 토템 (가운데 버튼 → 칸, 79 2-3) */
+/** 칸에 쓰는 스킬: 샘 · 대지 토템 (79 2-3). 고른 칸에 세움, 빈 칸도 됨 (2026-10-16 Lim) */
 export function shamanCell(f: Fight, key: SkillKey, cell: number): void {
-  if (key !== 'springTotem') return;
-  placeTotem(f, 'spring', cell, springSec(f), { max: f.tx.on.twinSpring ? TX.twinSpring.n : 1, tick: SHAMAN.spring.tick });
-  noteCell(f, 'springTotem', cell);
+  const on = f.tx.on;
+  if (key === 'springTotem') {
+    placeTotem(f, 'spring', cell, springSec(f), { max: on.twinSpring ? TX.twinSpring.n : 1, tick: SHAMAN.spring.tick });
+  } else if (key === 'earthTotem') {
+    placeTotem(f, 'earth', cell, guardSec(f, SHAMAN.earth.sec), { max: on.twinEarth ? TX.twinEarth.n : 1 });
+    if (on.twinEarth) spendEarth(f);
+    if (f.sp && sv(f, 'earthEcho') && f.rng() < sv(f, 'earthEcho')) { // 대지의 울림 (주술 23): 한 칸에 토템 하나라 붙은 빈 토템 자리에
+      const at = freeBeside(f, cell);
+      if (at != null) { placeTotem(f, 'spring', at, springSec(f), { max: on.twinSpring ? TX.twinSpring.n : 1, tick: SHAMAN.spring.tick }); noteCell(f, 'springTotem', at); }
+    }
+    const u = f.cells[cell]?.unit;
+    emit(f, { type: 'msg', text: u ? `대지 토템: ${u.nick}` : '대지 토템' });
+  } else return;
+  noteCell(f, key, cell);
   emit(f, { type: 'sound', name: 'renew' });
 }
 /** 칸에 그리는 이펙트 (판 위 물건): 그 칸에 선 사람이 있으면 그 사람, 없으면 칸 */
@@ -311,7 +316,22 @@ export function shamanDeath(f: Fight, u: Unit): void {
 
 /** 토템 부르기 (특성 ◎): 판 위 내 샘 · 대지 토템을 고른 칸으로 (남은 시간 그대로) */
 export function callTotems(f: Fight, cell: number): void {
-  for (const t of f.totems) if (t.kind === 'spring' || t.kind === 'earth') t.cell = cell;
+  // 한 칸에 토템 하나 (2026-10-16): 가장 나중에 세운 것이 고른 칸, 나머지는 그 옆 빈 토템 자리 (자리가 없으면 사라짐)
+  const ts = f.totems.filter(t => ONE_PER_CELL.has(t.kind)).reverse().sort((a, b) => b.at - a.at); // 같은 때 세웠으면 뒤에 들어간 것이 나중
+  for (const t of ts) t.cell = -1; // 옮기는 동안 판에서 뺌
+  ts.forEach((t, i) => { t.cell = i === 0 ? cell : freeBeside(f, cell) ?? -1; });
+  for (const t of ts) if (t.cell < 0) { f.totems = f.totems.filter(x => x !== t); shamanTotemGone(f, t, false); }
+}
+/** 칸 옆 (1칸) 토템 없는 자리: 무너지거나 막힌 칸 · 깨질 칸은 빼고, 붙은 아군이 가장 많은 곳. 없으면 null */
+export function freeBeside(f: Fight, cell: number): number | null {
+  const c0 = f.cells[cell], live = living(f);
+  let best: number | null = null, bn = -1;
+  for (const c of f.cells) {
+    if (hexDist(c, c0) !== 1 || c.block || totemBreaks(f, c.i) || shamanTotemAt(f, c.i)) continue;
+    const n = live.filter(v => hexDist(cellOf(f, v), c) <= 1).length;
+    if (n > bn) { bn = n; best = c.i; }
+  }
+  return best;
 }
 /** 바다의 자리 (특성 ◎): 깨지지 않는 큰 샘 */
 export function seaSeat(f: Fight, cell: number): void {

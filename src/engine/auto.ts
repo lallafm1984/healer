@@ -14,12 +14,12 @@ import { setBeacon } from './heroes';
 import { reviveTarget } from './items';
 import { dangerAt } from './movement';
 import { areaRadius, castOf, talentReady, useTalent, waveMax, waveNeed } from './talents';
-import { chainPath } from './shaman';
+import { chainPath, freeBeside } from './shaman';
 import { breathRange, misted } from './monk';
 import { asleep, fallSpec, starsNow } from './astro';
 import { circleRange, judgeReady, sealed, sealTargets } from './warder';
 import { absorbLeft } from './abilities';
-import { totemBreaks } from './totems';
+import { shamanTotemAt, totemBreaks } from './totems';
 import { TX } from '../data/talents';
 import type { Debuff, Fight, FightConfig, Telegraph, Unit } from './types';
 
@@ -726,6 +726,7 @@ function springCell(f: Fight, live: Unit[]): { cell: number; n: number } | null 
   const offs = living(f).filter(v => off(f, v));
   for (const c of f.cells) {
     if (c.block || totemBreaks(f, c.i) || f.tels.some(t => t.cells.has(c.i)) || dangerAt(f, c.i)) continue;
+    if (shamanTotemAt(f, c.i)?.kind === 'earth') continue; // 한 칸에 토템 하나: 대지 토템을 밀어내지 않음
     if (offs.some(v => hexDist(cellOf(f, v), c) <= r)) continue; // 힐하면 손해인 사람이 범위에 들면 안 세움
     let n = 0, w = 0;
     for (const v of live) if (hexDist(cellOf(f, v), c) <= r) {
@@ -752,8 +753,9 @@ function autoShaman(f: Fight): void {
     if (ready('spiritLink') && vs.length >= 2 && vs.reduce((a, v) => a + v.hp / v.max, 0) / vs.length >= 0.6 && tryUse(f, 'spiritLink', dying, idx)) return;
     if (one(dying, true)) return;
   }
-  // 탱커 버스터: 대지 토템을 탱커 칸에, 모자라면 잔물결로 채움
-  if (c.busterOn && ready('earthTotem') && !f.totems.some(t => t.kind === 'earth' && hexDist(f.cells[t.cell], cellOf(f, c.busterOn!)) <= 1) && tryUse(f, 'earthTotem', c.busterOn, idx)) return;
+  // 탱커 버스터: 대지 토템을 탱커 칸에 (샘 토템이 서 있으면 붙은 빈 토템 자리, 범위 1칸이라 탱커도 지킴), 모자라면 잔물결로 채움
+  const earthAt = (u: Unit) => { const at = idx(u); return shamanTotemAt(f, at)?.kind === 'spring' ? freeBeside(f, at) ?? at : at; };
+  if (c.busterOn && ready('earthTotem') && !f.totems.some(t => t.kind === 'earth' && hexDist(f.cells[t.cell], cellOf(f, c.busterOn!)) <= 1) && tryUse(f, 'earthTotem', c.busterOn, earthAt)) return;
   { const bs = busterShort(f); if (bs && !off(f, bs.u) && one(bs.u, bs.soon)) return; }
   if (g.pre && one(g.pre, true)) return;
   // 띄워 올리기: 예고 동안 해제 → 물방울 (떠 있는 동안은 미리 건 지속 힐만 닿음)
