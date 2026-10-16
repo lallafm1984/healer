@@ -129,8 +129,6 @@ function layoutBattle(): void {
   $('battle').classList.toggle('stage-sm', !!F.enc.big || F.party.length >= 10 || H < 720);
   // 보스 무대 높이는 시안대로 내용이 정함 (5인 186 · 20인 166, 낮은 화면은 hud27.css에서 줄임)
   $('stage').style.minHeight = '';
-  // 작은 조작판의 아래 모서리 장식을 피하도록 휠 위아래 공간을 확보한다.
-  const auxCount = Object.keys(F.tx.act).length;
   // 아이템 한 줄과 하단 장식 여백을 확보하고 남는 높이를 자원 그림에 배분한다.
   const controls = $('controls');
   controls.classList.add('compact-controls');
@@ -139,9 +137,9 @@ function layoutBattle(): void {
   controls.classList.toggle('wheel-left', S.hand === 'left');
   // 채택 B안: 직업·보조 특성과 무관하게 자원·아이템·휠의 좌표를 유지한다.
   const ch = 229;
-  // 보조 특성은 기본 패널 위 독립 행을 사용한다. 자원·아이템·휠 좌표는 그대로다.
-  controls.append($('aux'));
-  $('controlsFrame').style.marginTop = auxCount ? '56px' : '0';
+  // 보조 특성 버튼은 왼쪽 묶음 안 아이템 줄 바로 위 (2026-10-16 Lim: 따로 줄을 두면 엉뚱한 곳 · 판 크기가 바뀜).
+  // 조작판 · 전투판 크기와 아이템 · 휠 좌표는 그대로, 자원 그림만 줄인다 (class-controls.css).
+  $('items').before($('aux'));
   // 360px는 첨부 빨간 선의 중심(패널 폭 약24%)에 정렬하고, 390px는 별도 우측 보정을 유지한다.
   const resourceShift = Math.max(0, Math.min(10.1, (W - 320) * 10.1 / 40)) + Math.max(0, Math.min(13.9, (W - 360) * 13.9 / 30));
   controls.style.setProperty('--resource-inset', `${27.6 + resourceShift}px`);

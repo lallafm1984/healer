@@ -43,7 +43,7 @@ export default async function paladinWave(url,shots){
    await p.evaluate(name=>{const f=window.__proto.F;f.beacon=name===null?null:f.party[0].id;if(name!==null)f.party[0].nick=name;},name);await p.clock.runFor(40);
    const label=await p.evaluate(()=>{
     const q=s=>document.querySelector(s),e=q('.paladin-beacon-name'),r=e.getBoundingClientRect(),a=q('.resource-art').getBoundingClientRect(),i=q('#items').getBoundingClientRect(),w=q('#wheel').getBoundingClientRect();const range=document.createRange();range.selectNodeContents(e);
-    return {text:e.textContent,title:e.title,description:q('.job-gauge').getAttribute('aria-label'),safe:r.bottom<i.top&&r.right<w.left&&r.top>=a.top+a.height*440/464&&range.getBoundingClientRect().width<=r.width,
+    return {text:e.textContent,title:e.title,description:q('.job-gauge').getAttribute('aria-label'),safe:r.bottom<i.top&&r.right<w.left&&[...document.querySelectorAll('#aux .aux')].every(b=>{const x=b.getBoundingClientRect();return r.bottom<=x.top||r.right<=x.left||r.left>=x.right;})&&r.top>=a.top+a.height*440/464&&range.getBoundingClientRect().width<=r.width,
      registered:Math.abs((r.left+r.width/2)-(a.left+a.width*375/542))<.1&&Math.abs(r.top-(a.top+a.height*440/464+1.4))<.1,
      hit:!e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)),gap:i.top-r.bottom};
    });

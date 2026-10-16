@@ -43,7 +43,7 @@
 @media(max-width:359px){#battle #controls.hasaux #side{padding-left:0;padding-right:0}}
 
 /* 채택 B안. 자원·아이템은 하나의 고정 크기 묶음으로 두고 화면 폭별 위치만 조정한다.
- * 보조 특성 버튼은 별도 행에 두며 기본 슬롯을 움직이지 않는다. */
+ * 보조 특성 버튼은 같은 묶음 안 아이템 줄 바로 위에 둔다 (아래 「보조 특성 버튼」). */
 #battle #controls #side{position:absolute;left:calc(var(--resource-inset) / var(--controls-scale));top:13.493px;width:108px;height:189.5px;max-width:none;padding:0;margin:0}
 #battle #controls #gauges{position:absolute;left:.219px;top:0;width:107.547px;height:130.016px;max-width:none;margin:0}
 #battle #controls #gauges .job-gauge[data-job=priest]{width:100%;height:100%}
@@ -54,9 +54,31 @@
 
 /* B2: 모든 직업이 승인된 사제 B안의 같은 슬롯을 사용한다. */
 #battle #controls #gauges .job-gauge{width:100%;height:100%}
-#battle #controls #aux{position:absolute;left:16px;right:16px;top:calc(-54px / var(--controls-scale));width:auto;max-width:none;display:flex;justify-content:center;gap:8px}
+
+/* 보조 특성 버튼 (2026-10-16 Lim 「엉뚱한 곳을 차지하고 판 크기가 바뀜」): 판과 조작판 사이에 따로 줄을 두지 않는다.
+ * 왼쪽 묶음 안 아이템 줄 바로 위. 조작판 · 전투판 크기와 아이템 · 휠 좌표는 특성과 관계없이 그대로, 자원 그림만 위로 줄인다.
+ * 두 개면 아이템 두 칸과 같은 세로줄, 세 개 (사제 · 수도사)면 묶음보다 조금 넓게. 버튼 사이 간격 = 축소 0.9에서 터치 44px + 1px */
+#battle #controls #aux{position:absolute;left:50%;top:87.5px;right:auto;width:max-content;max-width:none;transform:translateX(-50%);display:flex;justify-content:center;gap:12px}
+#battle #controls #aux[data-n="3"]{gap:4px}
 #battle #controls #aux[hidden]{display:none}
-#battle #controls #aux .aux{flex:0 0 50px;width:50px;height:50px;min-height:50px;max-width:50px;font-size:12px}
+#battle #controls #aux .aux{flex:0 0 46px;width:46px;height:46px;min-width:0;min-height:46px;max-width:46px;padding:0;font-size:10px}
+#battle #controls .aux>.aux-art{position:absolute;left:7px;top:3px;width:32px;height:30px;object-fit:contain;pointer-events:none}
+#battle #controls .aux .nm{position:absolute;left:0;right:0;bottom:4px;z-index:4;font:700 10px/1 var(--font-body);text-align:center;white-space:nowrap}
+#battle #controls .aux.on .nm{opacity:1}
+#battle #controls.hasaux #gauges{--aux-gauge:.63;transform:scale(var(--aux-gauge));transform-origin:50% 0}
+/* 줄인 자원 그림의 숫자는 덜 줄이고 (원래의 약 80%), 봉화 이름은 원래 크기 그대로 */
+/* 성기사는 봉화 이름이 그림 아래에 붙어 보조 버튼과 겹치지 않게 조금 더 줄이고 위로 */
+#battle #controls.hasaux.paladin #gauges{--aux-gauge:.6;transform:translateY(-3px) scale(var(--aux-gauge))}
+#battle #controls.hasaux #gauges :is(.gauge-number,.gauge-count,.gauge-extra,.gauge-earth){transform-origin:0 0;scale:1.25}
+#battle #controls.hasaux #gauges .paladin-beacon-name{transform-origin:0 0;scale:calc(1 / var(--aux-gauge))}
+/* 세 개 줄은 왼쪽 테두리 장식에서 조금 떨어지게 휠 쪽으로 4px */
+#battle #controls #aux[data-n="3"]{transform:translateX(calc(-50% + 4px))}
+#battle #controls.wheel-left #aux[data-n="3"]{transform:translateX(calc(-50% - 4px))}
+/* 360px보다 좁으면 휠이 가까워 세 개 줄을 바깥 테두리 쪽으로 (터치 44px · 휠과 1px 이상) */
+@media(max-width:359px){
+#battle #controls #aux[data-n="3"]{transform:translateX(calc(-50% - 3px))}
+#battle #controls.wheel-left #aux[data-n="3"]{transform:translateX(calc(-50% + 3px))}
+}
 /* 생성 배경은 9분할로 모서리를 보존한다. 가운데 목재/석재만 가변 폭에 맞춘다. */
 #battle.compact-panel #controlsFrame[data-panel-version=b2]{background-image:none;border:0 solid transparent;border-image:var(--class-background) 120 fill / 24px 14px / 0 stretch}
 
