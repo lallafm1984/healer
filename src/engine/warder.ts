@@ -9,7 +9,8 @@ import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
 import { absorbLeft, giveAbsorb, HEALER_SHIELD } from './abilities';
 import { hexDist } from './board';
-import { cellOf, emit, heal, healTop, living } from './core';
+import { hurt, near, shun } from './allies';
+import { cellOf, emit, heal, living } from './core';
 import { noteUsed } from './healer';
 import { doDispel, heroHeal, heroPassive } from './heroes';
 import { activeOn } from './talents';
@@ -33,9 +34,6 @@ export interface WarderState {
 }
 export const newWarder = (): WarderState => ({ veil: null, stepCd: 0, preCd: 0, lastCd: 0, selfAt: 0, judgeCut: 0, barrier: new Map(), telSeen: 0 });
 const st = (f: Fight): WarderState => (f.warder ??= newWarder());
-const hurt = (v: Unit) => v.hp < healTop(v) - 1e-9;
-const shun = (v: Unit) => v.debuffs.length > 0 && v.debuffs.some(d => d.invert);
-const near = (f: Fight, c: number, r: number) => { const x = f.cells[c]; return living(f).filter(v => hexDist(cellOf(f, v), x) <= r); };
 const adjLowest = (f: Fight, u: Unit, n: number, pick: (v: Unit) => boolean = () => true): Unit[] => {
   const c = cellOf(f, u);
   return living(f).filter(v => v !== u && !shun(v) && pick(v) && hexDist(cellOf(f, v), c) === 1).sort((a, b) => a.hp / a.max - b.hp / b.max).slice(0, n);

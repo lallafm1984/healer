@@ -23,7 +23,6 @@
  * Equipment keeps the armory visible. */
 #s-char[data-sub="gear"] { background-color: #15120e; }
 
-#s-char[data-sub] :is(.c7-stats, .c7-sklist, .c7-tiers, .c7-plq, .c7-enh, .c7-dialog-head),
 #s-char[data-sub] .sheet {
   background-color: var(--c7-palette-panel);
   background-image: var(--a2-wood);

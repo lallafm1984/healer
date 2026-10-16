@@ -5,7 +5,7 @@
  */
 
 /* 그림이 있는 타이틀/이야기/길드 배경은 보존한다. */
-:is(#s-shop, #s-missions, #s-settings, #s-tut, #s-tab) {
+:is(#s-shop, #s-missions, #s-settings, #s-tut) {
   background-color: #35291d;
   background-image: var(--a2-wood);
   background-blend-mode: soft-light;
@@ -15,16 +15,15 @@
   color: var(--a2-ink);
 }
 
-:is(#s-shop, #s-missions, #s-settings, #s-tut, #s-tab) :is(.h, .sec),
+:is(#s-shop, #s-missions, #s-settings, #s-tut) :is(.h, .sec),
 #s-settings .group > h2 {
   color: var(--a2-brass-hi);
   text-shadow: 0 1px 1px #211307;
 }
 
-:is(#s-shop, #s-missions, #s-settings, #s-tut, #s-tab) .sec small,
+:is(#s-shop, #s-missions, #s-settings, #s-tut) .sec small,
 #s-settings .group > p,
-#s-missions .note,
-#s-tab .note {
+#s-missions .note {
   color: var(--a2-muted);
 }
 
@@ -73,16 +72,6 @@
 
 #s-shop .shop-hero .eyebrow {
   color: var(--a2-brass-hi);
-}
-
-#s-shop :is(.srow > .sic, .ir-top > .sic) {
-  background-color: #26190e;
-  background-image: var(--a2-wood);
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-  border-color: var(--a2-brass);
-  box-shadow: inset 0 0 6px #140c08a6;
 }
 
 /* 이 구매 버튼에는 별도 기존 규칙이 있으므로 기본 .btn 재질과 맞춘다. */
@@ -208,11 +197,6 @@
 #s-tut .learn :is(h2, p) {
   color: var(--a2-paper-ink);
   text-shadow: none;
-}
-
-/* s-tab은 현재 등록된 준비 중/잠금 안내. 숨김 상태나 진입 조건은 바꾸지 않는다. */
-#s-tab .lockline {
-  color: var(--a2-muted);
 }
 
 /* 길드는 등록돼 있으나 FEATURES.guild=false. 기존 게시판/쪽지 그림과 레이아웃은 유지한다. */

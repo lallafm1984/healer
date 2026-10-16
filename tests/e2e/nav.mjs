@@ -1,11 +1,10 @@
 // 새 화면 흐름 도우미: 타이틀 → 로비 → 전투 탭(모험 선택·난이도) → 편성 (09 S01~S05, 27 1장)
 
-/** 저장을 고쳐 넣고 다시 읽음 (레벨·단축칸 등). 화면은 타이틀부터 */
+/** 저장을 고쳐 넣고 다시 읽음 (레벨 · 설정 등). 화면은 타이틀부터 */
 export async function patchSave(page, patch) {
   await page.evaluate(p => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     Object.assign(s.player, p.player || {});
-    if (p.items) s.items = p.items;
     if (p.settings) Object.assign(s.settings, p.settings);
     localStorage.setItem('healer.save', JSON.stringify(s));
   }, patch);

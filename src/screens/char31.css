@@ -198,11 +198,6 @@
 #s-char .c7-rec > b { padding: 4px 0; font-size: 13px; line-height: 1.35; }
 #s-char .c7-rec s { text-decoration: none; font-weight: 400; color: var(--mute); }
 #s-char .c7-rec em { font-style: normal; }
-#s-char .c7-enh { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px; background: var(--bg-0); border: 1px solid var(--edge-dim); }
-#s-char .c7-enh > span:first-child { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-#s-char .c7-enh b { font-size: 14px; font-weight: 700; }
-#s-char .c7-enh > .cap { flex: none; max-width: 40%; text-align: right; }
-#s-char .c7-rate em { font-style: normal; }
 #s-char .c7-lack { color: #F07060; font-weight: 700; }
 #s-char .c7-sbtns { display: flex; gap: 8px; }
 #s-char .c7-sb {
@@ -553,65 +548,19 @@
 #s-char .c7-dots > i.off { background: #6E6658; box-shadow: 0 0 0 1px #0D0B09; }
 /* ---------- 강화 연출 (34 7장): 움직임은 transform만, 끝난 뒤 모양은 연출 없는 모양과 같음 ---------- */
 #s-char .c7-gsheet { --fxd: 1.5s; }
-#s-char .c7-gsheet.fx-quick { --fxd: 0.5s; }
 #s-char .fx .c7-gic { z-index: 2; animation: efxLift var(--fxd) ease-out both; }
-#s-char .fx-fail .c7-gic { animation: efxLift var(--fxd) ease-out both, efxShake calc(var(--fxd) * 0.25) calc(var(--fxd) * 0.75) linear both; }
-#s-char .c7-fxring {
-  position: absolute; inset: -6px; border-radius: 50%; border: 3px solid #FFF6D8; box-shadow: 0 0 18px #FFE7A8; pointer-events: none;
-  transform: scale(0); animation: efxRing var(--fxd) ease-out both;
-}
-#s-char .fx-fail .c7-fxring { display: none; }
-#s-char .c7-fxspark {
-  position: absolute; inset: -14px; pointer-events: none; transform: scale(0);
-  background: radial-gradient(circle at 20% 30%, #FFE7A8 0 2px, transparent 3px), radial-gradient(circle at 80% 25%, #FFD27A 0 2px, transparent 3px),
-    radial-gradient(circle at 70% 80%, #FFF6D8 0 2px, transparent 3px), radial-gradient(circle at 25% 75%, #FFB86B 0 2px, transparent 3px);
-  animation: efxSpark var(--fxd) linear both;
-}
-#s-char .fx-quick .c7-fxspark { display: none; }
-#s-char .c7-fxres {
-  position: absolute; left: 50%; top: -14px; z-index: 3; white-space: nowrap; pointer-events: none; transform: translateX(-50%) scale(0);
-  font: 900 18px/1 var(--font-display); color: var(--gold-hi); text-shadow: 0 0 6px #000, 0 1px 0 #000;
-  animation: efxPop var(--fxd) ease-out both;
-}
-#s-char .fx-fail .c7-fxres { color: #FF8A7A; font-size: 14px; animation-name: efxDrop; }
 /* +10: 테두리에 등급 색 빛이 남음 */
 #s-char .c7-gic.max, #s-char .c7-sq.max { box-shadow: 0 0 0 1px var(--line), 0 0 18px color-mix(in srgb, var(--g) 70%, transparent), 0 0 4px var(--g); }
 @keyframes efxLift { 0% { transform: none; } 23% { transform: translateY(-6px) scale(1.2); } 27% { transform: translateY(-6px) scale(1.2) rotate(-4deg); } 33% { transform: translateY(-6px) scale(1.2); } 47% { transform: translateY(-6px) scale(1.2) rotate(4deg); } 53% { transform: translateY(-6px) scale(1.2); } 67% { transform: translateY(-6px) scale(1.2) rotate(-4deg); } 73% { transform: translateY(-6px) scale(1.2); } 100% { transform: none; } }
-@keyframes efxShake { 0%, 100% { translate: 0; } 20% { translate: -7px 0; } 40% { translate: 7px 0; } 60% { translate: -5px 0; } 80% { translate: 4px 0; } }
-@keyframes efxRing { 0%, 74% { transform: scale(0); } 86% { transform: scale(1.6); } 100% { transform: scale(0); } }
-@keyframes efxSpark { 0%, 25% { transform: scale(0); } 28% { transform: scale(1); } 34% { transform: scale(0); } 46% { transform: scale(0); } 48% { transform: scale(1.1) rotate(40deg); } 54% { transform: scale(0); } 66% { transform: scale(0); } 68% { transform: scale(1.2) rotate(80deg); } 74%, 100% { transform: scale(0); } }
-@keyframes efxPop { 0%, 74% { transform: translateX(-50%) scale(0); } 82% { transform: translateX(-50%) scale(1.6); } 92%, 100% { transform: translateX(-50%) scale(1); } }
-@keyframes efxDrop { 0%, 74% { transform: translateX(-50%) translateY(-10px) scale(0); } 80% { transform: translateX(-50%) translateY(-10px) scale(1); } 92%, 100% { transform: translateX(-50%) translateY(6px) scale(1); } }
-@media (prefers-reduced-motion: reduce) { #s-char .fx .c7-gic, #s-char .c7-fxring, #s-char .c7-fxspark { animation: none; } #s-char .c7-fxres { animation-duration: 0.01s; } }
+@media (prefers-reduced-motion: reduce) { #s-char .fx .c7-gic { animation: none; } }
 #s-char .c7-spg .g-ic { display: block; width: 22px; height: 22px; }
 #s-char .c7-spg:has(.g-ic) { min-width: 0; padding: 0; border: 0; }
 /* ---------- 강화 · 새 특수능력 그림 (36 4-4 G · 4-6 J): 그림이 있을 때만 들어옴, 움직임은 CSS. 자리는 차지하지 않음 ---------- */
-/* 불꽃 그림은 장비 그림 뒤로 (36 5장: 장비를 가리지 않게) */
-#s-char .c7-fxspark:has(> img) { z-index: -1; background: none; }
-#s-char .c7-fxspi { display: block; width: 100%; height: 100%; object-fit: contain; }
-#s-char .fx-ok .c7-fxspark:has(> img) { animation-name: efxSparkOk; }
-/* 망치: 손잡이 끝을 축으로 장비 왼쪽 위에서 세 번 내리침 (0.4 · 0.7 · 1.0초 = 27 · 47 · 67%) */
-#s-char .c7-fxham {
-  position: absolute; left: -10px; top: -38px; z-index: 3; width: 52px; height: 52px; object-fit: contain; pointer-events: none;
-  transform-origin: 18% 88%; opacity: 0; animation: efxHam var(--fxd) linear both;
-}
-/* 실패 (34 7-2): 흔들릴 때 금 간 조각이 튐 */
-#s-char .c7-fxcrk {
-  position: absolute; left: 50%; top: 50%; z-index: 3; width: 104px; height: 104px; margin: -52px 0 0 -52px; object-fit: contain; pointer-events: none;
-  opacity: 0; animation: efxCrack var(--fxd) ease-out both;
-}
+
 /* 도감: 지난 판에 처음 얻은 칸은 표식 위에서 한 번 터짐 · 고유 칸 = 장신구 그림 (못 얻은 칸은 실루엣) */
 #s-char .c7-spg { position: relative; }
 #s-char .c7-spnew { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; object-fit: contain; pointer-events: none; opacity: 0; animation: efxNew 1s 0.2s ease-out both; }
 #s-char .c7-spec.unk[data-g="named"] .c7-spg .g-ic { filter: brightness(0) drop-shadow(0 0 1px var(--spc)); }
-@keyframes efxHam {
-  0% { opacity: 0; transform: rotate(-30deg); } 8% { opacity: 1; transform: rotate(-15deg); }
-  22% { transform: rotate(-20deg); } 27% { transform: rotate(36deg); } 33% { transform: rotate(-12deg); }
-  42% { transform: rotate(-20deg); } 47% { transform: rotate(36deg); } 53% { transform: rotate(-12deg); }
-  62% { opacity: 1; transform: rotate(-20deg); } 67% { opacity: 1; transform: rotate(36deg); } 76%, 100% { opacity: 0; transform: rotate(20deg); }
-}
-@keyframes efxSparkOk { 0%, 25% { transform: scale(0); } 28% { transform: scale(1); } 34%, 46% { transform: scale(0); } 48% { transform: scale(1.1) rotate(40deg); } 54%, 66% { transform: scale(0); } 68% { transform: scale(1.2) rotate(80deg); } 74% { transform: scale(0); } 82% { transform: scale(1.5) rotate(120deg); } 94%, 100% { transform: scale(0) rotate(140deg); } }
-@keyframes efxCrack { 0%, 74% { opacity: 0; transform: scale(0.3); } 78% { opacity: 1; transform: scale(0.8); } 100% { opacity: 0; transform: scale(1.5) rotate(12deg); } }
 @keyframes efxNew { 0% { opacity: 0; transform: scale(0.2); } 30% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1.4); } }
 /* 장비 도감 (50 E): 처음 채운 칸에 도장이 한 번 찍힘 (fx-dex-fill) · 「보상 받기」 뒤 보상 줄에서 동전 · 보석이 위로 (fx-dex-reward) */
 #s-char .c7-dexfill { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; object-fit: contain; pointer-events: none; opacity: 0; animation: efxSeal 1.2s 0.25s ease-out both; }
@@ -626,7 +575,7 @@
 }
 #s-char .c7-lookfx::after { content: ''; position: absolute; inset: 0; background: var(--shim) center / contain no-repeat; mix-blend-mode: screen; opacity: 0.55; }
 @keyframes efxShim { 0% { opacity: 1; clip-path: inset(0 100% 0 0); } 45% { opacity: 1; clip-path: inset(0 0 0 0); } 100% { opacity: 0; clip-path: inset(0 0 0 0); } }
-@media (prefers-reduced-motion: reduce) { #s-char .c7-fxham, #s-char .c7-fxcrk, #s-char .c7-fxawk, #s-char .c7-spnew, #s-char .c7-dexfill, #s-char .c7-dexpop, #s-char .c7-lookfx { display: none; } }
+@media (prefers-reduced-motion: reduce) { #s-char .c7-fxawk,#s-char .c7-spnew,#s-char .c7-dexfill,#s-char .c7-dexpop,#s-char .c7-lookfx { display: none; } }
 
 /* 직업 전환: 공통 성장 안내와 직업별 장비 수집. 기존 양피지·금테 색상을 계승 */
 #s-char .c7-job-gear { margin: 12px 0; padding: 10px 0; border-block: 1px solid #98774966; }

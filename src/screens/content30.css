@@ -85,28 +85,13 @@
 #s-content .b-rwbtn { margin: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
 #s-content .b-rwbtn:focus-visible .b-rb { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
 #s-content .b-rwi { position: absolute; top: -6px; right: -7px; width: 14px; height: 14px; border-radius: 50%; background: #2A1E12; border: 1px solid var(--rc); font: italic 800 10px/12px Georgia, serif; text-align: center; color: #FFF3D2; }
-/* 얻는 장비 팝업: 화면 위 어두운 막 + 보상 칸 위 작은 카드 */
-#s-content .b-popwrap { position: absolute; inset: 0; z-index: 30; background: rgba(8, 6, 4, 0.45); }
-#s-content .b-pop { position: absolute; max-height: calc(100% - 16px); overflow-y: auto; padding: 10px 12px 12px; border-radius: 8px; border: 2px solid #D9B26A; box-shadow: 0 0 0 2px #3A2410, 0 10px 28px rgba(0, 0, 0, 0.75); background: linear-gradient(#2A2018, #17120D); color: var(--ink-2); font-size: 12px; line-height: 1.4; outline: none; }
-#s-content .b-poph { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
-#s-content .b-poph b { font: 400 16px var(--font-display); color: var(--gold-hi); }
-#s-content .b-poph small { flex: 1; min-width: 0; color: #C9BC9E; font-size: 11px; }
-#s-content .b-popx { flex: none; width: 28px; height: 28px; margin: -6px -6px 0 0; padding: 0; border: 0; background: none; font-size: 20px; line-height: 1; color: #C9BC9E; cursor: pointer; }
-#s-content .b-pgr { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 10px; }
-#s-content .b-pgr li { display: inline-flex; align-items: center; gap: 4px; color: var(--gc); font-weight: 700; }
-#s-content .b-pgr li i { width: 9px; height: 9px; border-radius: 2px; background: var(--gc); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6); }
-#s-content .b-pgr li b { color: #FFF3D2; }
-#s-content .b-pop p { margin: 4px 0 0; }
-#s-content .b-pop p .cap { display: block; margin-bottom: 1px; }
-#s-content .b-psp { display: block; color: var(--gc); font-weight: 700; }
-#s-content .b-psp small { margin-left: 4px; font-weight: 400; color: #C9BC9E; }
+
 #s-content .b-pnote { color: #A99C80; font-size: 11px; }
 /* 레이드: 정보 줄 오른쪽 이번 주 「장비」 점 4개 (쉬움 · 보통 · 어려움 · 악몽) · 악몽 열쇠 */
 #s-content .b-lootrow { margin-left: auto; padding-left: 6px; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 #s-content .b-loot { display: inline-flex; gap: 3px; margin-right: 3px; }
 #s-content .b-loot i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--frame); }
 #s-content .b-loot i.got { background: var(--gold-hi); border-color: var(--gold-hi); }
-
 
 /* ---------- 장소 문양 줄 (고른 곳 = 금빛 링 + 빛, 준비 중 = 회색 + 「준비」, 잠김 = 자물쇠) ---------- */
 /* 화면 끝까지 닿는 가로 넘김 줄. 칸 너비 = 한 화면에 5칸 반 (반쯤 보이는 칸 = 더 있음), 적으면 가운데. 넘길 쪽 끝만 흐림 (data-more = l · r, content.ts) */

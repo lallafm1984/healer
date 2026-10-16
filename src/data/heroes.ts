@@ -13,9 +13,6 @@ export interface HeroPassive { name: string; lv: number; desc: string }
 /** 직업 퀘스트 (25 5-4): 그 직업으로 조건을 채우면 해금. content가 없으면 아무 던전 */
 export interface HeroQuest { name: string; text: string; need: number; content?: string; minDiff?: DiffName }
 
-/** 예전 직업 바꾸기가 열리던 레벨 (25 4-1). v11부터 캐릭터 선택이라 로직엔 안 씀 (68), 옛 화면 문구용 */
-export const HERO_SWITCH_LV = 10;
-
 export interface HeroDef {
   key: HeroKey;
   name: string;
@@ -153,9 +150,6 @@ export const HERO_KEYS = ALL_HERO_KEYS.filter(h => HEROES[h].ready);
 /** 가운데 버튼 스킬이 있는 직업 → 그 스킬 (79 6-1) */
 export const CORE_SKILL: Partial<Record<HeroKey, SkillKey>> = Object.fromEntries(ALL_HERO_KEYS.filter(h => HEROES[h].core).map(h => [h, HEROES[h].core!]));
 
-/** 그 직업의 칸 → 스킬 */
-export const heroSlot = (hero: HeroKey, slot: SlotName): SkillKey | null => HEROES[hero].slots[slot];
-
 /** 스킬 → 직업 (설명 화면에서 역참조) */
 export const heroOfSkill = (key: SkillKey): HeroKey => ALL_HERO_KEYS.find(h => Object.values(HEROES[h].slots).includes(key) || HEROES[h].core === key) || 'priest';
 
@@ -168,17 +162,6 @@ export const canDispel = (hero: HeroKey, type: string) => HEROES[hero].dispel.in
 /** 휠에 놓을 수 있는 칸 (고유 칸이 없는 직업은 7칸) */
 export const heroSlotNames = (hero: HeroKey): SlotName[] =>
   (['basic', 'fast', 'hot', 'aoe', 'dispel', 'ext', 'raid', 'unique'] as SlotName[]).filter(s => HEROES[hero].slots[s]);
-
-/** 칸 이름 (휠 배치 화면) */
-export const SLOT_LABEL: Record<SlotName, string> = {
-  basic: '기본 힐', fast: '빠른 힐', hot: '지속 힐', aoe: '광역 힐', dispel: '해제', ext: '외부 생존기', raid: '공대 쿨기', unique: '고유',
-};
-
-/** 그 직업에서 그 칸의 스킬 이름 (없으면 빈 칸) */
-export function slotLabel(hero: HeroKey, slot: SlotName): string {
-  const k = HEROES[hero].slots[slot];
-  return k ? SKILLS[k].name : SLOT_LABEL[slot];
-}
 
 /** 휠 칸 이름 (저장·배치에 쓰는 이름 = 사제 스킬 이름, 8번째 칸 = unique). engine SLOT_OF의 반대 */
 export const SLOT_ID: Record<SlotName, string> = { basic: 'heal', fast: 'flash', hot: 'renew', aoe: 'poh', dispel: 'purify', ext: 'guardian', raid: 'hymn', unique: 'unique' };

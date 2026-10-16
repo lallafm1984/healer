@@ -7,8 +7,8 @@ import { HEROES } from '../data/heroes';
 import { ASTRO } from '../data/heroConst';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
-import { hexDist } from './board';
-import { cellOf, emit, heal, healTop, living, recentDmg } from './core';
+import { adjHurt, near } from './allies';
+import { emit, heal, living, recentDmg } from './core';
 import { noteUsed } from './healer';
 import { doDispel, heroHeal, heroPassive, putHot } from './heroes';
 import { activeOn } from './talents';
@@ -36,14 +36,6 @@ const st = (f: Fight): AstroState => {
   f.astro = newAstro();
   if (f.sp && sv(f, 'shardStart')) f.shards = Math.min(shardMax(f), sv(f, 'shardStart'));
   return f.astro;
-};
-const hurt = (v: Unit) => v.hp < healTop(v) - 1e-9;
-/** 저절로 가는 회복 (이어진 표식 · 흩어지는 반짝임 · 쌍둥이 북극성)이 고르지 않는 아군: 뒤집힌 축복 */
-const shun = (v: Unit) => v.debuffs.length > 0 && v.debuffs.some(d => d.invert);
-const near = (f: Fight, c: number, r: number) => { const x = f.cells[c]; return living(f).filter(v => hexDist(cellOf(f, v), x) <= r); };
-const adjHurt = (f: Fight, u: Unit, n: number): Unit[] => {
-  const c = cellOf(f, u);
-  return living(f).filter(v => v !== u && hurt(v) && !shun(v) && hexDist(cellOf(f, v), c) === 1).sort((a, b) => a.hp / a.max - b.hp / b.max).slice(0, n);
 };
 
 /** 별의 잠에 들어 있는지 (피해 · 회복 · 딜 없음) */

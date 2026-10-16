@@ -25,21 +25,10 @@
   background-color: #2d1c0e;
 }
 
-/* Readable dark wood surfaces; no ornamental image stretches behind paragraphs. */
-#s-char :is(.c7-stats, .c7-sklist, .c7-tiers, .c7-plq, .c7-enh, .c7-dialog-head) {
-  background-color: #56371f;
-  background-image: var(--a2-wood);
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-blend-mode: multiply;
-  border-color: var(--a2-brass);
-  color: var(--a2-ink);
-}
 #s-char :is(.c7-stats, .c7-sklist, .c7-tiers, .c7-plq) {
   border-radius: 11px;
   box-shadow: inset 0 1px 0 #e8c77a66, inset 0 -2px 0 #24130766, 0 3px 7px #140c0766;
 }
-#s-char .c7-enh { border-radius: 9px; }
 #s-char .c7-dialog-head {
   background-color: #704926;
   border-bottom-color: var(--a2-brass);

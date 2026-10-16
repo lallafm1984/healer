@@ -8,11 +8,12 @@ import { HEROES } from '../data/heroes';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { TX } from '../data/talents';
 import { hexDist } from './board';
-import { cellOf, emit, heal, healFlow, healTop, living, onDebuffEnd } from './core';
+import { adjHurt, hurt, near, shun } from './allies';
+import { cellOf, emit, heal, healFlow, living, onDebuffEnd } from './core';
 import { noteUsed } from './healer';
 import { dispellable, doDispel, heroHeal, heroPassive, putHot } from './heroes';
 import { activeOn } from './talents';
-import { placeTotem, totemsOf } from './totems';
+import { placeTotem } from './totems';
 import { aoeCount, aoeDone, guardSec, specDispel, sv, twin, under } from './specials';
 import type { Fight, Hot, Unit } from './types';
 
@@ -33,10 +34,6 @@ export interface MonkState {
 export const newMonk = (): MonkState => ({ calmUntil: -1, calmUsed: false, windUntil: -1, lastPalm: -1, mistBodyCd: 0, crisisCd: 0, againUsed: false, telSeen: 0 });
 
 const st = (f: Fight): MonkState => (f.monk ??= newMonk());
-const near = (f: Fight, c: number, r: number) => { const x = f.cells[c]; return living(f).filter(v => hexDist(cellOf(f, v), x) <= r); };
-const hurt = (v: Unit) => v.hp < healTop(v) - 1e-9;
-/** 저절로 가는 회복 (옮겨 가는 안개 · 튀는 손바닥)이 고르지 않는 아군: 뒤집힌 축복 (힐이 피해가 됨) */
-const shun = (v: Unit) => v.debuffs.length > 0 && v.debuffs.some(d => d.invert);
 const hasMist = (u: Unit) => u.hots.some(h => h.key === 'wanderMist');
 
 /** 안개 숨결 범위: 1칸 + 넓은 숨결 (수도 05) + 20인 보정 */
@@ -142,10 +139,6 @@ function palm(f: Fight, u: Unit): void {
   if (f.sp && sv(f, 'palmMist') && !hasMist(u) && f.rng() < sv(f, 'palmMist')) shortMist(f, u, MONK.wrapMist.sec); // 손바닥 안개 (수도 24)
 }
 /** 붙어 있는 다친 아군 (체력 비율이 낮은 순) n명 */
-const adjHurt = (f: Fight, u: Unit, n: number): Unit[] => {
-  const c = cellOf(f, u);
-  return living(f).filter(v => v !== u && hurt(v) && !shun(v) && hexDist(cellOf(f, v), c) === 1).sort((a, b) => a.hp / a.max - b.hp / b.max).slice(0, n);
-};
 
 /** 되살림 바람 해제: 함정 · 해제 막힘은 건너뛰고 지울 수 있는 마법 · 질병 n개 (79 3-2) */
 function windDispel(f: Fight, u: Unit, n: number): void {
@@ -304,5 +297,3 @@ export function chiBurst(f: Fight, cell: number): void {
 export const mistTouch = (f: Fight, u: Unit): number => (misted(f, u) ? sv(f, 'mistTouch') : 0);
 /** 박자의 서두름 (수도 23): 리듬마다 가속 */
 export const beatHaste = (f: Fight): number => (f.hero === 'monk' ? f.beat * sv(f, 'beatHaste') : 0);
-/** 안개 샘이 판 위에 있는지 (자동 힐러) */
-export const mistPools = (f: Fight) => totemsOf(f, 'mist');

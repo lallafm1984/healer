@@ -101,8 +101,6 @@
 #s-content .b-chal .b-hg .g-ic { width: 26px; height: 26px; }
 #s-content .b-chal small { order: 1; font-size: 11px; }
 #s-content .b-chal .b-tg { order: 2; position: static; transform: none; margin-left: auto; border: 0; background: none; color: #d7bf96; }
-#s-content .b-pop .b-rws { margin: 12px 0 16px; }
-#s-content .b-pop .b-lootrow { display: flex; justify-content: flex-end; margin: 6px 0 10px; }
 #s-content .b-foot { padding-top: 6px; }
 #s-content :is(.b-region,.b-pl,.b-cat,.b-dc,.b-reward-link):focus-visible { outline: 2px solid #ffdfa0; outline-offset: 2px; }
 @media (max-width: 359px) {

@@ -28,15 +28,9 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 [hidden] { display: none !important; }
 .screen { position: absolute; inset: 0; display: flex; flex-direction: column; }
 
-/* ---------- 메뉴 ---------- */
-#menu { overflow-y: auto; padding: 18px 16px 24px; gap: 18px; }
-.brand { display: flex; align-items: flex-end; gap: 12px; }
-.brand h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 34px; line-height: 1; color: var(--gold-hi); text-shadow: 0 2px 0 var(--line); }
-.brand p { margin: 6px 0 0; color: var(--mute); font-size: 13px; }
 .group { display: flex; flex-direction: column; gap: 8px; }
 .group > h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 17px; letter-spacing: 0.02em; }
 .group > h2 small { font-family: var(--font-body); color: var(--mute); font-size: 12px; margin-left: 6px; }
-.enc-list { display: grid; gap: 8px; }
 .enc { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 10px; text-align: left; background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 8px 12px 8px 8px; cursor: pointer; }
 .enc svg { width: 52px; height: 52px; }
 .enc b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 17px; }
@@ -56,12 +50,7 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 .btn { border: 2px solid var(--line); background: var(--panel-2); border-radius: 12px; padding: 10px 14px; font-size: 14px; cursor: pointer; }
 .btn.primary { background: var(--gold); color: #1A1308; font-family: var(--font-display); font-size: 22px; padding: 12px 18px; width: 100%; box-shadow: 0 4px 0 var(--line); }
 .btn.primary:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--line); }
-.howto { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; margin: 0; padding: 12px; background: var(--panel); border: 2px solid var(--line); border-radius: 14px; font-size: 13px; line-height: 1.4; }
-.howto dt { font-family: var(--font-display); color: var(--gold-hi); white-space: nowrap; }
-.howto dd { margin: 0; }
-/* 스킬 배치 편집 (로비) */
-.lwrap { display: flex; gap: 14px; align-items: center; }
-.lgrid { display: grid; grid-template-columns: repeat(3, 58px); grid-auto-rows: 58px; gap: 6px; flex: none; }
+
 .lslot, .lcore { border-radius: 50%; border: 2.5px solid var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; padding: 0; position: relative; }
 .lslot { background: radial-gradient(circle at 35% 30%, #4C3F30, #2E261C); cursor: pointer; }
 .lslot b { font-family: var(--font-display); font-weight: 400; font-size: 15px; margin-top: 6px; }
@@ -71,7 +60,6 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 .lslot.empty b { font-family: var(--font-body); font-size: 11px; color: var(--mute); }
 .lslot[aria-pressed="true"] { border-color: var(--gold-hi); box-shadow: 0 0 0 3px var(--gold), 0 0 14px rgba(240, 196, 106, 0.6); }
 .lcore { background: #1E1812; color: #9FD3FF; font-size: 12px; border-color: #362D22; }
-.lside { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; min-width: 0; }
 .btn:disabled { opacity: 0.45; cursor: default; }
 .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--mute); cursor: pointer; }
 .toggle input { accent-color: var(--gold); width: 18px; height: 18px; }
@@ -195,8 +183,7 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 #hint { font-size: 11px; color: var(--mute); text-align: center; line-height: 1.35; }
 #gauges { display: flex; gap: 10px; font-size: 11px; color: var(--mute); font-variant-numeric: tabular-nums; }
 #gauges b { color: var(--gold-hi); font-weight: 700; }
-#gauges.locked { visibility: hidden; } /* 성언 게이지는 Lv 6부터 (06 7장) */
-#controls.nowords #ringP, #controls.nowords #ringS { visibility: hidden; }
+#gauges.locked { visibility: hidden; } 
 
 .overlay { position: absolute; inset: 0; background: rgba(10, 8, 6, 0.78); display: grid; place-items: center; padding: 16px; z-index: 5; }
 .card { width: 100%; max-width: 360px; background: var(--panel); border: 2px solid var(--gold); border-radius: 18px; padding: 18px 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -214,7 +201,6 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 
 /* ---------- 보스 공략 (전투 전 화면과 일시정지가 같은 마크업) ---------- */
 .gd-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
-#guideBody { padding: 16px 16px 20px; }
 .gd { display: flex; flex-direction: column; gap: 10px; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
 .gd-top { display: grid; grid-template-columns: 60px minmax(0, 1fr); gap: 12px; align-items: center; }
 .gd-art svg { width: 60px; height: 60px; display: block; }
@@ -223,9 +209,6 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold-hi)
 .tag { font-size: 12px; line-height: 1.5; padding: 0 8px; border-radius: 999px; background: var(--panel-2); border: 1.5px solid var(--line); white-space: nowrap; }
 .tag.diff { background: var(--gold); color: #1A1308; font-weight: 700; }
 .tag.enr { color: #FFB3AA; }
-.gd-sub { margin: 5px 0 0; font-size: 12px; line-height: 1.4; color: var(--mute); }
-.gd-hp { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--mute); background: var(--panel); border: 2px solid var(--line); border-radius: 10px; padding: 6px 10px; }
-.gd-hp b { color: var(--ink); font-variant-numeric: tabular-nums; }
 .gd-h { margin: 6px 0 0; font-family: var(--font-display); font-weight: 400; font-size: 18px; }
 .gd-h small { font-family: var(--font-body); font-size: 11px; color: var(--mute); margin-left: 6px; }
 .gd-phases { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -275,12 +258,6 @@ em.now { font-style: normal; font-size: 11px; font-weight: 700; line-height: 1.6
 #tip::after { content: ""; position: absolute; left: var(--ax, 50%); bottom: -7px; width: 10px; height: 10px; background: rgb(23, 19, 15); border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: translateX(-50%) rotate(45deg); }
 #tip.below::after { bottom: auto; top: -7px; border: 0; border-left: 2px solid var(--gold); border-top: 2px solid var(--gold); }
 
-/* ---------- 결과 ---------- */
-#result { overflow-y: auto; padding: 18px 16px 24px; gap: 14px; }
-#resTitle { margin: 6px 0 0; text-align: center; font-family: var(--font-display); font-weight: 400; font-size: 40px; text-shadow: 0 3px 0 var(--line); }
-#resTitle.win { color: var(--gold-hi); }
-#resTitle.lose { color: #E77B6E; }
-#resSub { margin: 0; text-align: center; color: var(--mute); font-size: 13px; }
 #grade { align-self: center; width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-display); font-size: 34px; background: var(--gold); color: #1A1308; border: 3px solid var(--line); }
 .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
 .stats div { background: var(--panel); border: 2px solid var(--line); border-radius: 12px; padding: 8px 10px; }
@@ -294,7 +271,6 @@ em.now { font-style: normal; font-size: 11px; font-weight: 700; line-height: 1.6
 .scale button[aria-pressed="true"] { background: var(--gold); color: #1A1308; font-weight: 700; }
 .scale-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--mute); }
 textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertical; background: #17130F; color: var(--ink); border: 2px solid var(--line); border-radius: 10px; padding: 8px; font-family: inherit; font-size: 14px; }
-#saveNote { font-size: 12px; color: var(--mute); margin: 0; }
 /* ---------- MMO 느낌 (19 1부) ---------- */
 #pull { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(10, 8, 6, 0.62); pointer-events: none; }
 #pullNum { font-family: var(--font-display); font-weight: 400; font-size: 84px; line-height: 1; color: var(--gold-hi); text-shadow: 0 4px 0 var(--line); }
@@ -313,25 +289,7 @@ textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertic
 .aux.on { border-color: var(--gold-hi); box-shadow: 0 0 0 2px var(--gold), 0 0 14px rgba(240, 196, 106, 0.8); }
 .aux.on .nm { opacity: 0.35; }
 .aux.armed { border-color: var(--gold-hi); box-shadow: 0 0 0 3px var(--gold), 0 0 14px rgba(240, 196, 106, 0.7); }
-
-/* ---------- 소비 아이템 단축칸 (19 9장): 하단 왼쪽, 힐러 그림 자리 ---------- */
-#items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 100%; max-width: 132px; }
-.item { position: relative; aspect-ratio: 1; border-radius: 12px; border: 2.5px solid var(--line); background: radial-gradient(circle at 35% 30%, #45382A, #282018); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 2px 0 3px; cursor: pointer; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; color: var(--ink); }
-.item svg { width: 52%; height: auto; display: block; position: relative; z-index: 1; pointer-events: none; }
-.item .nm { font-size: 11px; line-height: 1; position: relative; z-index: 1; pointer-events: none; }
-.item .n { position: absolute; right: 4px; top: 2px; font-size: 11px; font-weight: 700; color: var(--gold-hi); z-index: 2; font-variant-numeric: tabular-nums; text-shadow: 0 1px 0 var(--line); pointer-events: none; }
-.item .cd { position: absolute; inset: 0; background: conic-gradient(rgba(10, 8, 6, 0.8) var(--p, 0%), transparent 0); z-index: 2; pointer-events: none; }
-.item .cds { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-display); font-size: 20px; z-index: 3; text-shadow: 0 1px 0 var(--line); pointer-events: none; }
-.item.off { filter: saturate(0.35) brightness(0.7); }
-.item.used .n { color: var(--mute); }
-.item.armed { border-color: var(--gold-hi); box-shadow: 0 0 0 3px var(--gold), 0 0 14px rgba(240, 196, 106, 0.7); }
-.item.empty { border-style: dashed; border-color: #473D30; background: transparent; cursor: default; color: var(--mute); }
-.item.flash { animation: itemFlash 0.45s ease-out; }
-@keyframes itemFlash { from { box-shadow: 0 0 0 4px #FFFFFF, 0 0 18px rgba(255, 255, 255, 0.8); } to { box-shadow: none; } }
 .compact #hint { display: none; }
-.ichip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px 5px 7px; }
-.ichip svg { width: 20px; height: 20px; flex: none; }
-#tip .iic svg, #tip .iic img { width: 22px; height: 22px; display: block; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }
 
 /* 던전 구간 사이 휴식 (09 S07, 23 4장) */
@@ -361,7 +319,6 @@ textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertic
 #coach .btn { margin-top: 8px; width: 100%; min-height: 40px; }
 .slot.coach-hi { box-shadow: 0 0 0 3px var(--gold-hi), 0 0 16px rgba(240, 196, 106, 0.8); animation: coachPulse 0.9s ease-in-out infinite alternate; }
 @keyframes coachPulse { from { transform: scale(1); } to { transform: scale(1.08); } }
-
 
 #preview .trait b { color: var(--gold-hi); }
 /* 적 등급 (2026-10-07 Lim: 잡몹 대신 일반·정예) */
