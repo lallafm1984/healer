@@ -88,11 +88,14 @@
 #s-settle .r-ic { width: 56px; height: 56px; border-radius: 8px; }
 #s-settle .r-nm { gap: 3px; }
 #s-settle .r-nm b { font-size: 18px; text-shadow: 0 1px 1px #000; }
+/* 이름이 길면 (「정교한」 표 + 「축복받은 별밤 사슬 조끼」) 「…」 대신 두 줄까지 */
+#s-settle .r-nm b { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; word-break: keep-all; overflow-wrap: anywhere; }
 #s-settle .r-nm small:not(.r-sp) { min-width: 0; font-size: 12px; color: var(--gk-mute); }
 #s-settle .r-nm small.r-sp { color: var(--gk-head); }
-#s-settle .r-gs { display: flex; align-items: center; gap: 6px; min-width: 0; }
+#s-settle .r-gs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; }
 #s-settle .r-gs > * { flex: none; }
-#s-settle .r-gs > small { flex: 1 1 auto; }
+/* 부위 · 종류: 칸이 모자라면 「…」 대신 아래 줄로 (S25에서 「목걸이 · 별 목…」, QA 2026-10-17) */
+#s-settle .r-gs > small { flex: 1 0 auto; max-width: 100%; }
 #s-settle .r-gr {
   flex: none; padding: 0 7px; border-radius: 999px; font: normal 800 11px/18px var(--font-body);
   color: #160c05; background: var(--gi);
