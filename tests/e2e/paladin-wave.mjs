@@ -16,7 +16,7 @@ export default async function paladinWave(url,shots){
    if(o.lift)f.party.forEach(u=>u.lift={until:f.t+100,fall:1,aim:'party'});
   },o);await p.clock.runFor(40);};
   const snap=()=>p.evaluate(()=>{
-   const q=s=>document.querySelector(s),r=e=>e.getBoundingClientRect(),a=q('.paladin-wave-aura'),g=q('.job-gauge'),ar=r(a),gr=r(g),wr=r(q('#wheel')),it=r(q('#items'));
+   const q=s=>document.querySelector(s),r=e=>e.getBoundingClientRect(),a=q('.paladin-wave-aura'),g=q('.job-gauge'),ar=r(a),gr=r(g),wr=r(q('#wheel')),it=q('#aux:not([hidden])')?r(q('#aux')):{top:r(q('#side')).bottom};
    return {on:!a.hidden&&g.dataset.waveReady==='true',count:g.querySelectorAll('.paladin-wave-aura').length,registeredLayer:+getComputedStyle(a).zIndex>+getComputedStyle(g.querySelector('.gauge-base')).zIndex&&+getComputedStyle(a).zIndex<+getComputedStyle(g.querySelector('.gauge-number')).zIndex,
     passive:[a,...a.children].every(e=>getComputedStyle(e).pointerEvents==='none'),contained:a.hidden||(ar.left>=gr.left&&ar.right<=gr.right&&ar.top>=gr.top&&ar.bottom<=gr.bottom&&ar.right<wr.left&&ar.bottom<it.top),
     touch:[...document.querySelectorAll('#controls button')].filter(e=>r(e).width>0).every(e=>{const x=r(e),hit=document.elementFromPoint(x.x+x.width/2,x.y+x.height/2);return hit===e||e.contains(hit);}),

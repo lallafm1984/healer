@@ -49,9 +49,9 @@ export default async function talents(url, shots) {
   await pick(9, 0); // 기도의 정점
   ok((await mine())[6] === 1 && (await mine())[9] === 0, '쉼터 · 기도의 정점 고름');
   await page.click('#s-char [data-tcell="9:0"]'); await page.clock.runFor(50);
-  ok(/보조 버튼/.test(await text('#s-char .c7-tsheet')), '보조 버튼 특성 표시 (시트)');
+  ok(/특성 버튼으로 나옵니다/.test(await text('#s-char .c7-tsheet')), '버튼 특성 표시 (시트)');
   await page.screenshot({ path: `${shots}/talent_pick.png`, animations: 'disabled' });
-  await page.click('#s-char .c7-tsum'); await page.clock.runFor(50);
+  await page.click('#s-char .c7-tsheet [data-sheetx]'); await page.clock.runFor(50); // 시트가 요약 줄을 덮어 (#164) 닫기 버튼으로
 
   // ---- 프리셋 ----
   await page.click('#s-char [data-preset="1"]'); await page.clock.runFor(50);
@@ -62,7 +62,8 @@ export default async function talents(url, shots) {
   sv = await save();
   ok(sv.heroes.priest.preset === 0 && (await mine())[6] === 1 && (await mine())[9] === 0 && sv.heroes.priest.presets[1][0] === 2 && await page.getAttribute('#s-char [data-preset="0"]', 'aria-pressed') === 'true', '프리셋 1로 돌아오면 쉼터·정점 그대로, 프리셋 2 고름도 저장');
 
-  // ---- 전투: 보조 버튼 ----
+  // ---- 전투: 특성 버튼 ----
+  if (await page.isVisible('#s-char .c7-tsheet')) { await page.click('#s-char .c7-tsheet [data-sheetx]'); await page.clock.runFor(50); } // 열린 특성 시트가 아래 탭을 덮음 (#164)
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);
   await toParty(page, { content: 'rustfort' });
   await departGo(page); await page.clock.runFor(3100 + 1000);
