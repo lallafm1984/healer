@@ -229,7 +229,7 @@ function recordHtml(r: BattleResult, open: boolean): string {
 
 /**
  * 아래 버튼 (2026-10-13 Lim): [나가기 = 로비] [다시 도전] [다음 탐험 · 던전 · 레이드 (갈 곳 · 난이도)].
- * 다음 갈 곳은 game/next-run (탐험 · 던전은 쉬움 → 보통 → 다음 장소, 기획 70). 주간 도전은 다음 단계가 열렸을 때 「n단계 도전」.
+ * 다음 갈 곳은 game/next-run (탐험 · 던전은 길잡이의 길: 장소 Lv 1~9 쉬움 → 보통, 10~20 네 난이도 → 다음 장소, 기획 70 · 90). 주간 도전은 다음 단계가 열렸을 때 「n단계 도전」.
  * 지거나 갈 곳이 없으면 [나가기] [다시 도전]. 튜토리얼 중엔 로비 하나
  */
 function footHtml(r: BattleResult, x: Settlement, tut: boolean): string {

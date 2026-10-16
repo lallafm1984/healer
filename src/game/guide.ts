@@ -7,14 +7,14 @@
  *   −2 이하 여유 · −1 ~ +1 적정 (88: 예전 −2 ~ +1이라 Lv 4 녹슨 고원 네 칸이 모두 적정이었음) · +2 ~ +3 도전 · +4 이상 위험. 권장 장비 (어려움 고급 · 악몽 희귀 +5)에 못 미치면 적어도 도전.
  *   클리어율 목표 (보통 95 · 어려움 85 · 악몽 75%)를 잰 조건이 「적 레벨 = 내 레벨 · 권장 장비」라서 적정 = 그 목표 근처.
  * 추천 순서:
- *   - 순차 구간 (내 Lv 20 이하, 70): 적정인 쉬움 · 보통 첫 클리어를 장소 레벨 순 · 쉬움 → 보통 (70의 길 그대로, 어려움 없이).
+ *   - 순차 구간 (내 Lv 20 이하, 70 · 90): 적정인 길 첫 클리어 (장소 Lv 1~9 쉬움 · 보통, 10~20 네 난이도, rampDiffs)를 장소 레벨 순 · 쉬운 난이도부터.
  *   - 그 뒤: 적정인 칸 가운데 어려운 난이도 (등급 · 경험치가 큼) → 안 깬 곳 → 적 레벨 높은 곳 (아이템 레벨) → 장소 레벨 높은 곳.
  *   적정이 없으면 여유 가운데 적 레벨 높은 곳, 그것도 없으면 도전 가운데 낮은 곳.
  */
 import { ALL_DIFFS, CONTENT, isLeveling, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { avgScore, recommendedFor } from '../data/equipment';
-import { RAMP_LV, rampRefLevel, rampXp } from '../data/progression';
+import { RAMP_LV, rampDiffs, rampRefLevel, rampXp } from '../data/progression';
 import { G, lockOf } from './state';
 
 export type Fit = '여유' | '적정' | '도전' | '위험';
@@ -74,10 +74,11 @@ export function rankStages(ctx: GuideCtx): Stage[] {
     }
   }
   const fit = all.filter(x => x.fit === '적정');
-  // 순차 구간: 쉬움 · 보통 첫 클리어를 장소 레벨 순 (지금 장소 보통 → 다음 장소 쉬움). 70의 길 그대로
+  // 순차 구간: 길 첫 클리어를 장소 레벨 순 (장소 Lv 1~9 쉬움 → 보통, 10~20 쉬움 → 보통 → 어려움 → 악몽, 그다음 장소 쉬움). 70 · 90의 길 그대로
   if (ctx.level <= RAMP_LV) {
-    const ramp = fit.filter(x => di(x.d) <= 1).sort((a, b) => Number(b.first) - Number(a.first) || a.c.stageLv - b.c.stageLv || di(a.d) - di(b.d) || b.xp - a.xp);
-    if (ramp.some(x => x.first)) return [...ramp, ...rest(fit.filter(x => di(x.d) > 1)), ...fallback(all)].map(stage);
+    const onPath = (x: Cand) => rampDiffs(x.c).includes(x.d);
+    const ramp = fit.filter(onPath).sort((a, b) => Number(b.first) - Number(a.first) || a.c.stageLv - b.c.stageLv || di(a.d) - di(b.d) || b.xp - a.xp);
+    if (ramp.some(x => x.first)) return [...ramp, ...rest(fit.filter(x => !onPath(x))), ...fallback(all)].map(stage);
   }
   return [...rest(fit), ...fallback(all)].map(stage);
 }
