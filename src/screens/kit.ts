@@ -1,5 +1,4 @@
 /** 화면 공통 도구: 화면 틀 만들기, 이동, 상단 바, 글자 이스케이프 */
-import { resourceBalance } from '../game/resources';
 import type { GearStats } from '../data/gear';
 import { HEROES, type HeroKey } from '../data/heroes';
 import type { RosterEntry } from '../engine';
@@ -8,7 +7,7 @@ import { TUT, type CoachKey } from '../game/tutorial';
 import { G, heroNow, newGearCount } from '../game/state';
 import { talentsLeft } from '../game/charinfo';
 import { apexOf, xpToNext } from '../data/progression';
-import { classEmblem, currencyIcon } from './art';
+import { classEmblem } from './art';
 import { releaseSheetDialogs, resetShellScroll } from './dialog';
 import { staminaCell } from './stamina';
 
@@ -74,20 +73,21 @@ export function go(id: string, arg?: unknown): void {
 
 export function setTabsHandler(fn: (t: TabKey | undefined) => void): void { onTabs = fn; }
 
-// ---------- 상단 바 (09 5장: 레벨·골드 고정, 전투 화면 제외) ----------
-/** 위 줄 재화 그림 (30 3장 icon-gold, 81 스테미너 icon-stamina가 오면 그 그림) */
+// ---------- 상단 바 (09 5장: 레벨 고정, 전투 화면 제외. 골드는 2026-10-16에 없앰) ----------
 const GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="6.6"/><path d="M12 2.5v2.9M12 18.6v2.9M2.5 12h2.9M18.6 12h2.9M5.3 5.3l2 2M16.7 16.7l2 2M5.3 18.7l2-2M16.7 7.3l2-2"/></svg>';
 
 /**
  * 상단 바. back이 있으면 「← 제목」 줄, 없으면 MMO 캐릭터 칸 (30 0장 공통 위 줄, 전투 Sunforged 기준 코덱스 로비 시안):
- * 황동 초상 테 직업 문장 + 알림 빨간 점 (특성 남음·새 장비) → 캐릭터 탭 · 직업 이름 + Lv + 경험치 막대 · 골드·스테미너 (누르면 스테미너 창, 81) · 설정 (황동 칸).
+ * 황동 초상 테 직업 문장 + 알림 빨간 점 (특성 남음·새 장비) → 캐릭터 탭 · 직업 이름 + Lv + 짧은 경험치 막대 (% 글자는 막대 안) ·
+ * 스테미너 (8분에 1씩 차는 고리 + 다음 +1까지 시간, 누르면 스테미너 창, 81) · 설정 (초상과 같은 둥근 황동 테).
+ * 2026-10-16 Lim: 골드 칸 없앰 · 경험치 줄 짧게 · 스테미너 충전을 보이게 · 설정 버튼을 정보창과 같은 결로 (모양 · 색은 a2-topbar.css).
  * 캐릭터 칸은 탭 루트(settings)에서만 누름. 튜토리얼 중 캐릭터 탭이 잠겼으면(첫 장비 전) 누르지 않음.
  */
 export function topBar(opts: { back?: string; title?: string; settings?: boolean } = {}): string {
   const s = G.save, p = s.player;
   const set = opts.settings ? `<button class="tb-set" type="button" data-go="s-settings" aria-label="설정"><span class="tb-ring2">${GEAR_SVG}</span></button>` : '';
   if (opts.back) {
-    return `<header class="topbar"><button class="tb-back" type="button" data-go="${opts.back}" aria-label="뒤로">←</button><b class="tb-title">${esc(opts.title || '')}</b><span class="tb-gold" aria-label="골드">${currencyIcon('gold')} <b>${fmt(resourceBalance(s, 'gold'))}</b></span>${set}</header>`;
+    return `<header class="topbar"><button class="tb-back" type="button" data-go="${opts.back}" aria-label="뒤로">←</button><b class="tb-title">${esc(opts.title || '')}</b>${set}</header>`;
   }
   const need = xpToNext(p.level);
   const pct = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
@@ -102,16 +102,9 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
     : `<span class="tb-pf" role="img" aria-label="${esc(hero.name)} Lv ${p.level}">${pfIn}</span>`;
   return `<header class="topbar tb-mmo">${pf}
     <span class="tb-nm"><span class="tb-id"><b class="tb-cls">${esc(hero.name)}</b><small class="tb-lv">Lv. ${p.level}</small></span>
-      <span class="tb-xprow"><span class="tb-xp" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}${apexOf(p.level) > 1 ? ` · 수련 +${((apexOf(p.level) - 1) * 100).toFixed(1)}%` : ''}"><i style="width:${pct.toFixed(1)}%"></i></span><small class="tb-xpt" aria-hidden="true" data-pct="${Math.floor(pct)}"></small></span></span>
-    <span class="tb-wal">${walletCell('tb-gold', '골드', 'gold', resourceBalance(s, 'gold'))}${s.tut >= TUT.done ? staminaCell() : ''}</span>
+      <span class="tb-xprow"><span class="tb-xp" role="img" aria-label="경험치 ${Math.floor(pct)}%" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}${apexOf(p.level) > 1 ? ` · 수련 +${((apexOf(p.level) - 1) * 100).toFixed(1)}%` : ''}"><i style="width:${pct.toFixed(1)}%"></i><small class="tb-xpt" aria-hidden="true">${isFinite(need) ? `${Math.floor(pct)}%` : 'MAX'}</small></span></span></span>
+    ${s.tut >= TUT.done ? `<span class="tb-wal">${staminaCell()}</span>` : ''}
     ${set}</header>`;
-}
-
-const compactCurrency = new Intl.NumberFormat('ko-KR', { notation: 'compact', maximumSignificantDigits: 3 });
-/** 위 줄 재화 칸은 좁아서 1만부터 단위 축약 (5.23만). 모든 화면이 로비와 같은 칸이라 같은 글. 툴팁·접근성 이름에는 전체 값 */
-function walletCell(cls: string, label: string, icon: 'gold', amount: number): string {
-  const full = `${label} ${fmt(amount)}`;
-  return `<span class="tb-cur ${cls}" role="img" aria-label="${full}" title="${full}">${currencyIcon(icon)}<b>${amount >= 10000 ? compactCurrency.format(Math.round(amount)) : fmt(amount)}</b></span>`;
 }
 
 /** [data-go] 버튼 = 그 화면으로 */

@@ -28,7 +28,7 @@ export default async function challenge(url, shots) {
   await page.goto(url);
   await page.clock.runFor(300);
   await pastTitle(page);
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 36; s.player.gold = 50000; s.settings.devUnlock = false; localStorage.setItem('healer.save', JSON.stringify(s)); });
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 36; s.settings.devUnlock = false; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
 
   // ---- 로비: 레이드 문 (18 3-3, 10인 열림 Lv 45의 10레벨 전부터) ----
@@ -85,13 +85,13 @@ export default async function challenge(url, shots) {
   await page.screenshot({ path: `${shots}/challenge_entry.png`, fullPage: true });
   await page.click('#entryGo'); await page.clock.runFor(100); await entryGo(page);
   ok(/주간 도전 1단계/.test(await text('#s-party .topbar')) && (await page.locator('#reroll, #adReroll').count()) === 0, '주간 도전 편성: 다시 뽑기·광고 다시 뽑기 버튼 없음');
-  const g0 = (await save()).player.gold, ads0 = (await save()).daily.ads.reroll;
+  const st0 = (await save()).mats.stone, ads0 = (await save()).daily.ads.reroll;
   const departAt = await page.locator('#depart').boundingBox(), footAt = await page.locator('#s-party .f-foot2').boundingBox();
   ok(Math.abs(departAt.x + departAt.width / 2 - footAt.x - footAt.width / 2) <= 1, '주간 도전 출발 버튼은 하단 중앙');
   await page.click('#guideOpen'); await page.clock.runFor(50);
   await page.keyboard.press('Escape'); await page.clock.runFor(50);
   let sv = await save();
-  ok(sv.daily.ads.reroll === ads0 && sv.player.gold === g0, '주간 도전 공략 확인 중 골드·광고 횟수 그대로');
+  ok(sv.daily.ads.reroll === ads0 && sv.mats.stone === st0, '주간 도전 공략 확인 중 재료·광고 횟수 그대로');
   await departGo(page); await page.clock.runFor(3100 + 300);
   const cf = await F(() => { const f = window.__proto.F; return { dry: !!f.aff?.on.dry, con: !!f.aff?.on.contagion, stage: f.cfg.stageLv }; });
   ok(cf.dry && cf.con && cf.stage === 30 && /\/ 7:00/.test(await text('#timer')), `도전 전투: 메마름·전염병, 단계 레벨 = 내 레벨, 타이머 / 7:00 (${JSON.stringify(cf)})`);

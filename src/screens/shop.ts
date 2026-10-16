@@ -41,7 +41,6 @@ export function gainText(g: Gain): string { return gainParts(g, false); }
 export function gainHtml(g: Gain): string { return gainParts(g, true); }
 function gainParts(g: Gain, icons: boolean): string {
   const out: string[] = [];
-  if (g.gold) out.push(icons ? currencyAmount('gold', g.gold, { prefix: '+' }) : `골드 +${fmt(g.gold)}`);
   if (g.stone) out.push(icons ? currencyAmount('stone', g.stone, { prefix: '+' }) : `강화석 +${g.stone}`);
   if (g.refined) out.push(icons ? currencyAmount('refined', g.refined, { prefix: '+' }) : `정제 강화석 +${g.refined}`);
   if (g.items?.length) out.push(g.items.map(i => icons ? esc(i.name) : i.name).join(', '));

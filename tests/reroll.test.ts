@@ -1,6 +1,6 @@
 /** 재설정 (34 6-8 · 42 1-6): Lv 50부터 한 줄 다시 굴림, 특수능력은 같은 묶음 안에서 3배 비용, Lv 60부터 후보 2개 */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { kindOf, REROLL_GOLD, rerollCost, rerollLine, rerollSpec, SPEC_REROLL_MULT, type GearItem } from '../src/data/equipment';
+import { kindOf, rerollCost, rerollLine, rerollSpec, SPEC_REROLL_MULT, type GearItem } from '../src/data/equipment';
 import { SPECS } from '../src/data/specials';
 import { rngFrom } from '../src/engine/rng';
 import { G, pickReroll, reroll } from '../src/game/state';
@@ -14,16 +14,16 @@ const ring = (o: Partial<GearItem> = {}): GearItem => ({
 const setup = (level: number) => {
   G.save = newSave(1);
   G.save.player.level = level;
-  G.save.player.gold = 100000;
   G.save.mats.refined = 50;
   G.save.gear.bag = [ring()];
 };
 
 describe('비용', () => {
-  it('옵션 한 줄 = 등급 기본 골드 + 정제 강화석 1, 할 때마다 기본값만큼 비싸짐, 특수능력은 3배', () => {
-    expect(rerollCost(ring(), false)).toEqual({ gold: REROLL_GOLD['영웅'], refined: 1 });
-    expect(rerollCost(ring({ rr: 2 }), false)).toEqual({ gold: REROLL_GOLD['영웅'] * 3, refined: 1 });
-    expect(rerollCost(ring(), true)).toEqual({ gold: REROLL_GOLD['영웅'] * SPEC_REROLL_MULT, refined: SPEC_REROLL_MULT });
+  it('옵션 한 줄 = 정제 강화석 1, 같은 장비에서 할 때마다 1배씩 비싸짐, 특수능력은 3배 (v16: 골드 없음)', () => {
+    expect(rerollCost(ring(), false)).toEqual({ refined: 1 });
+    expect(rerollCost(ring({ rr: 2 }), false)).toEqual({ refined: 3 });
+    expect(rerollCost(ring(), true)).toEqual({ refined: SPEC_REROLL_MULT });
+    expect(rerollCost(ring({ rr: 1 }), true)).toEqual({ refined: SPEC_REROLL_MULT * 2 });
   });
 });
 
@@ -70,11 +70,9 @@ describe('재설정 하기', () => {
     expect(it.lines[2]).toEqual(before.lines[2]);
     expect(it.specs).toEqual(before.specs);
     expect(it.rr).toBe(1);
-    expect(G.save.player.gold).toBe(100000 - REROLL_GOLD['영웅']);
     expect(G.save.mats.refined).toBe(49);
     reroll(7, 'spec', 0, rngFrom(4));
-    expect(G.save.player.gold).toBe(100000 - REROLL_GOLD['영웅'] - REROLL_GOLD['영웅'] * 2 * SPEC_REROLL_MULT);
-    expect(G.save.mats.refined).toBe(49 - SPEC_REROLL_MULT);
+    expect(G.save.mats.refined).toBe(49 - SPEC_REROLL_MULT * 2);
     expect(G.save.gear.codex).toContain(G.save.gear.bag[0].specs![0].key);
   });
   it('재료가 모자라면 아무것도 안 바뀜', () => {

@@ -18,7 +18,7 @@ export default async function dialogs(url, shots) {
       await page.evaluate(() => {
         const saved = JSON.parse(localStorage.getItem('healer.save'));
         const item = (id, slot) => ({ id, slot, grade: '희귀', plus: 0, name: `검수 ${slot}` });
-        saved.player.level = 80; saved.player.gold = 1000;
+        saved.player.level = 80;
         saved.mats = { stone: 10, refined: 0 };
         saved.gear.equipped = { head: item(901, 'head') };
         saved.gear.bag = [item(902, 'ring'), item(903, 'neck')];

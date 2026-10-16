@@ -4,11 +4,11 @@
  */
 import { AD_LIMIT } from '../data/economy';
 import { adsFree } from '../game/stamina';
-import { GUILD_GOAL, MISSION_REWARD, WEEKLY_LV, WEEKLY_REWARD } from '../data/missions';
+import { CHEST_REWARD, GUILD_GOAL, MISSION_REWARD, WEEKLY_LV, WEEKLY_REWARD } from '../data/missions';
 import { FEATURES } from '../data/features';
 import { GUILD_LEVEL } from '../data/progression';
 import { hhmm, untilReset } from '../game/clock';
-import { chalChestOf, chestState, claimChalChest, claimChest, claimGuildGoal, claimMission, missionDef, missionReady, runGold, swapMission } from '../game/economy';
+import { chalChestOf, chestState, claimChalChest, claimChest, claimGuildGoal, claimMission, missionDef, missionReady, swapMission } from '../game/economy';
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { showRewarded } from '../platform/ads';
@@ -31,30 +31,29 @@ function row(kind: 'daily' | 'weekly', i: number): string {
 function render(): void {
   const d = G.save.daily, w = G.save.weekly, lv = topLevel(G.save);
   const ch = chestState(G.save), gotN = d.missions.filter(m => m.got).length;
-  const gold = Math.round(runGold(lv) * MISSION_REWARD.goldShare);
   const g = w.guild;
   const adLeft = AD_LIMIT.chest - d.ads.chest;
   s.el.innerHTML = `${topBar({ back: 's-lobby', title: '임무' })}
     <div class="ns-body missions">
       ${st.msg ? `<p class="warnbox">${esc(st.msg)}</p>` : ''}
       <h3 class="sec">일일 임무 <small>${gotN}/${d.missions.length} · 리셋까지 ${hhmm(untilReset())}</small></h3>
-      <p class="note">1개마다 ${currencyAmount('gold', gold)} · ${currencyAmount('stone', MISSION_REWARD.stone)} · 패스 경험치${d.swapped ? '' : ' · 하루 1번 무료 교체'}</p>
+      <p class="note">1개마다 ${currencyAmount('stone', MISSION_REWARD.stone)} · 패스 경험치${d.swapped ? '' : ' · 하루 1번 무료 교체'}</p>
       <ul class="mlist">${d.missions.map((_, i) => row('daily', i)).join('')}</ul>
       <section class="panel chest">
-        <h4>완료 상자 <small>임무 5개를 다 받으면 · ${currencyAmount('gold', '1판')} + ${currencyAmount('stone', 5)} + 장비 1개</small></h4>
+        <h4>완료 상자 <small>임무 5개를 다 받으면 · ${currencyAmount('stone', CHEST_REWARD.stone)} + 장비 1개</small></h4>
         ${ch.banked ? `<p class="note">놓친 날 상자 ${ch.banked}개 (최대 2일)</p>` : ''}
         <div class="gbtns">
           <button class="btn primary" type="button" id="chest"${ch.today || ch.banked ? '' : ' disabled'}>${ch.today ? '오늘 상자 열기' : ch.banked ? '놓친 날 상자 열기' : d.chest ? '오늘 상자 받음' : `${gotN}/5`}</button>
           ${d.chest && !d.chest2 ? `<button class="btn" type="button" id="chest2"${adLeft > 0 || adsFree(G.save) ? '' : ' disabled'}>${adsFree(G.save) ? '한 번 더 (광고 없음)' : '광고 보고 한 번 더'}</button>` : ''}
         </div>
       </section>
-      ${lv >= WEEKLY_LV ? `<h3 class="sec">주간 임무 <small>1개마다 ${currencyAmount('gold', runGold(lv) * WEEKLY_REWARD.runs)} · ${currencyAmount('stone', WEEKLY_REWARD.stone)} · 월요일 오전 6시 리셋</small></h3>
+      ${lv >= WEEKLY_LV ? `<h3 class="sec">주간 임무 <small>1개마다 ${currencyAmount('stone', WEEKLY_REWARD.stone)} · 월요일 오전 6시 리셋</small></h3>
         <ul class="mlist">${w.missions.map((_, i) => row('weekly', i)).join('')}</ul>` : `<p class="note">주간 임무는 Lv ${WEEKLY_LV}부터</p>`}
       ${FEATURES.guild && lv >= GUILD_LEVEL ? `<section class="panel"><h4>길드 주간 목표 <small>길드파티로 클리어 ${g.n}/${GUILD_GOAL.need}</small></h4>
         <p class="note">명성 +${GUILD_GOAL.fame} · 길드원 전원 경험치 (다음 레벨까지의 절반)</p>
         <button class="btn" type="button" id="guildGoal"${g.got || g.n < GUILD_GOAL.need ? ' disabled' : ''}>${g.got ? '받음' : '받기'}</button></section>` : ''}
       ${G.save.chalChest ? `<section class="panel"><h4>주간 도전 상자 <small>지난주 최고 ${G.save.chalChest}단계</small></h4>
-        <p class="note">${chalChestOf(G.save.chalChest).grades.length ? `${chalChestOf(G.save.chalChest).grades.join(' · ')} 보장` : '골드 (장비는 5단계부터)'}</p>
+        <p class="note">${chalChestOf(G.save.chalChest).grades.length ? `${chalChestOf(G.save.chalChest).grades.join(' · ')} 보장 · ` : ''}${currencyAmount('stone', chalChestOf(G.save.chalChest).stone)}${chalChestOf(G.save.chalChest).grades.length ? '' : ' (장비는 5단계부터)'}</p>
         <button class="btn primary" type="button" id="chalChest">열기</button></section>` : ''}
     </div>`;
   st.msg = '';

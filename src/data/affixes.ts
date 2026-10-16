@@ -19,7 +19,7 @@ export const AFFIXES: Record<AffixKey, AffixDef> = {
   frenzy: { name: '폭주하는 쫄', desc: '보스가 아닌 적 체력·피해 +30%', tip: '쫄에게 맞는 줄에 범위 힐' },
   echo: { name: '메아리', desc: '지운 디버프가 10% 확률로 옆 칸에 옮겨감', tip: '해제 타이밍' },
   panic: { name: '동요', desc: '파티원 체력 30% 아래가 되면 3초 패닉 (공격 안 함)', tip: '체력 30% 위로 유지' },
-  festival: { name: '축제 주간', desc: '골드 +20%', tip: '가볍게 즐기는 주', good: true },
+  festival: { name: '축제 주간', desc: '경험치 +20%', tip: '가볍게 즐기는 주', good: true },
 };
 
 /** 던전 난이도 어픽스 (32 2장): 쉬움·보통 없음. Lv 30부터 어려움·악몽 격노, Lv 50부터 악몽 역병 추가 (lv = 내 레벨) */

@@ -72,6 +72,8 @@
   font: 800 15px/1.2 var(--font-display); letter-spacing: .02em; color: var(--gk-head);
 }
 #s-settle .r-lh::before, #s-settle .r-lh::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gk-edge), transparent); }
+/* 공개모집 보너스 판 (좋은 장비 확률, 오늘 n/3): 제목 옆 작은 글. 예전 골드 ×2 꼬리표 자리 (2026-10-16 골드 없앰) */
+#s-settle .r-lh small { font: 600 12px/1 var(--font-body); color: var(--gk-mute); letter-spacing: 0; }
 
 /* 장비 카드: 등급 색 왼쪽 띠 · 어두운 속 · 등급 칩 + 점수 알약 */
 #s-settle .r-item {

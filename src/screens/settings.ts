@@ -39,7 +39,6 @@ function render(): void {
         ${tog('auto', '자동 치유 (일시정지에서도 켜고 끔)')}
         ${tog('devUnlock', '레벨 잠금 무시 (던전·레이드)')}
         ${tog('allSkills', '스킬 전부 열기 (레벨 무관)')}
-        ${tog('devGold', '골드 무제한')}
         ${tog('devStones', '강화석·정제 강화석 무제한')}<p>켜진 재화는 보유량과 관계없이 사용할 수 있으며 차감되지 않습니다. 끄면 실제 보유량으로 돌아옵니다.</p>
         ${tog('devStamina', '스테미너 무제한')}<p>입장 확인은 그대로 뜨고 스테미너는 줄지 않습니다.</p>
         <button class="btn" type="button" id="devMaxLevel"${Flow.running || G.save.player.level >= MAX_LEVEL ? ' disabled' : ''}>${G.save.player.level >= MAX_LEVEL ? `${MAX_LEVEL}레벨 적용됨` : `${MAX_LEVEL}레벨로 변경`}</button>

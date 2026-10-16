@@ -4,7 +4,7 @@
  * 한 장비 = 옵션 (능력치 줄) 일반 1 · 고급 2 · 희귀 3 · 영웅 4 · 전설 4줄 (Lim 2026-10-11): 주 옵션 (무기 · 머리 · 손 지능, 몸통 체력) → 종류 옵션 → 무작위 옵션.
  * 주 옵션 · 종류 옵션은 굴림 없음, 무작위 옵션은 60~100% 굴림. 장신구는 주 옵션이 없어 종류 옵션부터.
  * 특수능력은 옵션과 따로: 고급 가끔 · 희귀 · 영웅 1줄, 전설은 고유 능력 1줄 (특수능력 1.5배 또는 고유 장비 · 이름 있는 장신구 효과).
- * 강화 +1~+10 (확률, 실패하면 단계 유지 · 시도 비용만, 34 6-5 · 12 3-2 · CLAUDE.md 2026-10-14) · 분해 (골드 + 강화석, 12 3-1). 떨어지는 장비는 모두 +0.
+ * 강화 +1~+10 (확률, 실패하면 단계 유지 · 시도 비용만, 34 6-5 · 12 3-2 · CLAUDE.md 2026-10-14) · 분해 (강화석, 12 3-1, v16 골드 없앰). 떨어지는 장비는 모두 +0.
  * 아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비의 성능을 달리 하자」 · 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」):
  * 떨어진 곳의 적 레벨. 지능 · 체력 옵션은 수치 (아이템 레벨이 높을수록 크고 장비마다 고정, STAT_POINT · toPoints),
  * 치명타 · 가속 · 정신력 · 인내는 고정 % (레벨업해도 안 바뀜, Lim 「10%가 9%로 떨어지면 헷갈림」). 특수능력은 그대로.
@@ -530,13 +530,15 @@ export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B'
 /** 재설정이 열리는 레벨 (계정 최고 직업 레벨), 후보 2개 중 고르기 */
 export const REROLL_LEVEL = 50;
 export const REROLL_PICK_LEVEL = 60;
-/** 추가 옵션 한 줄 재설정 골드 (등급 기본값 = 강화 기본값 × 25). 같은 장비에서 할 때마다 기본값만큼 더 비쌈 */
-export const REROLL_GOLD: Record<ItemGrade, number> = { '일반': 75, '고급': 125, '희귀': 250, '영웅': 500, '전설': 1000 };
-/** 특수능력 재설정은 골드 · 정제 강화석 3배 (42 1-6) */
+/** 특수능력 재설정은 정제 강화석 3배 (42 1-6) */
 export const SPEC_REROLL_MULT = 3;
-export function rerollCost(it: GearItem, spec: boolean): { gold: number; refined: number } {
+/**
+ * 재설정 한 번: 정제 강화석 1개 (특수능력 3개). 같은 장비에서 할 때마다 1배씩 더 비쌈 (rr = 이 장비에서 한 횟수).
+ * v16 (2026-10-16 Lim 골드 없앰): 예전에 골드가 맡던 「할수록 비쌈」을 정제 강화석으로
+ */
+export function rerollCost(it: GearItem, spec: boolean): { refined: number } {
   const m = spec ? SPEC_REROLL_MULT : 1;
-  return { gold: REROLL_GOLD[it.grade] * (1 + (it.rr ?? 0)) * m, refined: m };
+  return { refined: m * (1 + (it.rr ?? 0)) };
 }
 /** 무작위 옵션 i번 줄 다시 굴림: 종류 옵션 (둘 다) · 다른 줄과 다른 능력치 (지금 능력치도 나올 수 있음) */
 export function rerollLine(r: () => number, it: GearItem, i: number): GearLine {
@@ -645,12 +647,10 @@ export function presetStats(grade: ItemGrade, plus: number, ilv?: number): StatS
 
 // ---------- 강화·분해 (12 3장) ----------
 export const MAX_PLUS = 10;
-/** 등급 기본값: 시도 한 번의 골드 = 기본값 × 목표 단계². 확률 강화라 실패 없을 때 값(10/20/40/80/160)의 ¼ (34 6-5) */
-export const ENHANCE_BASE: Record<ItemGrade, number> = { '일반': 3, '고급': 5, '희귀': 10, '영웅': 20, '전설': 40 };
 /** 목표 단계별 성공 확률 (34 6-5, Lim 2026-10-09: 확률 강화 · 대성공 없음). 칸 번호 = 목표 단계 */
 export const ENHANCE_RATE = [0, 1, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5, 0.45, 0.4, 0.35];
 export interface EnhanceCost {
-  gold: number; stone: number; refined: number;
+  stone: number; refined: number;
   /** 성공하면 이 단계 */
   to: number;
   /** 성공 확률 (0~1) */
@@ -658,12 +658,17 @@ export interface EnhanceCost {
   /** 실패하면 현재 단계 유지 */
   fail: number;
 }
-/** 다음 단계 강화 한 번의 비용·확률: +1~+5 강화석 목표 단계만큼, +6~+10 정제 강화석 1개. 다 올렸으면 null */
+/**
+ * +6~+10 시도 한 번의 정제 강화석 (목표 단계 → 개수). v16 (2026-10-16): 골드를 없애며 +6~+10은 골드가 더 빠듯했던 몫을 정제 강화석으로 옮김
+ * (예전 1개씩 + 골드일 때 레이드만 돌면 2.4~4.5배 빨라짐 → 영웅 기준 예전 속도: 기댓값 11.3 → 26.2개)
+ */
+export const ENHANCE_REFINED: Record<number, number> = { 6: 1, 7: 2, 8: 2, 9: 3, 10: 3 };
+/** 다음 단계 강화 한 번의 비용·확률: +1~+5 강화석 목표 단계만큼, +6~+10 정제 강화석 ENHANCE_REFINED (v16: 골드 없음). 다 올렸으면 null */
 export function enhanceCost(it: GearItem): EnhanceCost | null {
   const to = it.plus + 1;
   if (to > MAX_PLUS) return null;
   return {
-    gold: ENHANCE_BASE[it.grade] * to * to, stone: to <= 5 ? to : 0, refined: to > 5 ? 1 : 0, to,
+    stone: to <= 5 ? to : 0, refined: ENHANCE_REFINED[to] ?? 0, to,
     rate: ENHANCE_RATE[to], fail: it.plus,
   };
 }
@@ -676,14 +681,13 @@ export function clearMats(diff: DiffName, raid: 0 | 10 | 20): { stone: number; r
 }
 
 /**
- * 분해: 골드 (등급값 + 강화 단계당 10%), 강화석 (등급 비례), 정제 강화석 (영웅·전설). 골드 · 강화석은 처음 값 (12 3장)의 절반 (34 6-9: 보스마다 드롭 때 줄임).
- * 2026-10-13 클리어마다 1개로 돌아온 뒤에도 절반 그대로 (Lim 「유지하자」: 강화가 약 25% 느려지고 골드는 거의 같음)
+ * 분해: 강화석 (등급 비례), 정제 강화석 (영웅·전설). 강화석은 처음 값 (12 3장)의 절반 (34 6-9: 보스마다 드롭 때 줄임).
+ * 2026-10-13 클리어마다 1개로 돌아온 뒤에도 절반 그대로 (Lim 「유지하자」: 강화가 약 25% 느려짐). v16 (2026-10-16): 골드 없앰
  */
-export const SALVAGE_GOLD: Record<ItemGrade, number> = { '일반': 5, '고급': 15, '희귀': 40, '영웅': 100, '전설': 250 };
 export const SALVAGE_STONE: Record<ItemGrade, number> = { '일반': 1, '고급': 1, '희귀': 2, '영웅': 3, '전설': 5 };
 export const SALVAGE_REFINED: Record<ItemGrade, number> = { '일반': 0, '고급': 0, '희귀': 0, '영웅': 1, '전설': 2 };
-export function salvageOf(it: GearItem): { gold: number; stone: number; refined: number } {
-  return { gold: Math.round(SALVAGE_GOLD[it.grade] * (1 + 0.1 * it.plus)), stone: SALVAGE_STONE[it.grade], refined: SALVAGE_REFINED[it.grade] };
+export function salvageOf(it: GearItem): { stone: number; refined: number } {
+  return { stone: SALVAGE_STONE[it.grade], refined: SALVAGE_REFINED[it.grade] };
 }
 
 /**

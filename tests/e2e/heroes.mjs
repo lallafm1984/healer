@@ -63,7 +63,7 @@ export default async function heroes(url, shots) {
   await page.click('#s-char [data-hero="druid"]'); await page.clock.runFor(50);
   ok((await save()).hero === 'druid' && /드루이드/.test(await text('#s-char .topbar .tb-cls')) && await page.isVisible('#s-char .c7-hc.now[data-hcard="druid"]'), '드루이드로 바꿈 → 저장, 위 줄·지금 직업 깃발');
   const sv = await save();
-  ok(sv.player.level === 10 && sv.player.xp === beforeSwitch.player.xp && sv.player.gold === beforeSwitch.player.gold && sv.roster.cur === beforeSwitch.roster.cur && sv.roster.chars.length === beforeSwitch.roster.chars.length, '직업 전환: 공통 레벨·경험치·골드·캐릭터 유지');
+  ok(sv.player.level === 10 && sv.player.xp === beforeSwitch.player.xp && sv.mats.stone === beforeSwitch.mats.stone && sv.roster.cur === beforeSwitch.roster.cur && sv.roster.chars.length === beforeSwitch.roster.chars.length, '직업 전환: 공통 레벨·경험치·재료·캐릭터 유지');
   ok(/현재 직업/.test(await text('#s-char [data-hcard="druid"]')) && /전환 가능/.test(await text('#s-char [data-hcard="priest"]')), '전환 후 현재 직업과 전환 가능 상태 갱신');
   await page.click('#s-char [data-hcard="druid"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char .c7-job-skill').count()) === 8 && /마법·저주·독 해제/.test(await text('#s-char .c7-job-skill-grid')), '드루이드 스킬 8종 및 해제 요약');

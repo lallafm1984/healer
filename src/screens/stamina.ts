@@ -16,11 +16,21 @@ import { esc, fmt, go } from './kit';
 const view = () => staminaView(G.save, Date.now());
 const amount = (n: number, unlimited: boolean) => (unlimited ? '∞' : fmt(n));
 
-/** 위 줄 (topBar) 스테미너 칸: 누르면 스테미너 창. 숫자는 1초마다 고침 (tick) */
+/**
+ * 위 줄 (topBar) 스테미너 칸: 누르면 스테미너 창. 숫자 · 고리 · 시간은 1초마다 고침 (refreshCells).
+ * 2026-10-16 Lim 「8분에 1씩 차는것도 UI로」: 번개 둘레 고리가 다음 +1까지 차고, 숫자 아래 초록 「+1」 배지 + 남은 시간 (가득이면 「가득」).
+ * 「+1 4:59」가 「14:59」로 읽혀서 (Lim) +1은 글자가 아니라 배지로 떼어 둠
+ */
 export function staminaCell(): string {
   const v = view(), label = staminaLabel();
-  return `<button class="tb-cur tb-st" type="button" data-stamina-open aria-label="${label}" title="${label}">${currencyIcon('stamina')}<b data-stam-n>${amount(v.n, v.unlimited)}</b><small data-stam-max>/${v.max}</small></button>`;
+  return `<button class="tb-cur tb-st" type="button" data-stamina-open aria-label="${label}" title="${label}"><span class="tb-st-ic" data-stam-ring style="--p:${ringOf(v).toFixed(3)}">${currencyIcon('stamina')}</span><span class="tb-st-v"><b data-stam-n>${amount(v.n, v.unlimited)}</b><small data-stam-max>/${v.max}</small></span><small class="tb-st-t"><i class="tb-st-plus" aria-hidden="true"${charging(v) ? '' : ' hidden'}>+1</i><span data-stam-tb>${nextText(v)}</span></small></button>`;
 }
+/** 고리 채움 (0~1): 다음 +1까지 지난 몫. 가득 · 무제한이면 1 */
+const ringOf = (v: ReturnType<typeof view>) => (v.unlimited || !v.next ? 1 : Math.min(1, Math.max(0, 1 - v.next / STAMINA.regenMs)));
+/** 차는 중 (다음 +1까지 시간이 있음) */
+const charging = (v: ReturnType<typeof view>) => !v.unlimited && !!v.next;
+/** 숫자 아래 한 줄: 다음 +1까지 남은 시간 (앞의 「+1」은 배지) · 가득 · 무제한 */
+const nextText = (v: ReturnType<typeof view>) => (v.unlimited ? '무제한' : v.next ? staminaClock(v.next) : '가득');
 function staminaLabel(): string {
   const v = view();
   return `스테미너 ${v.unlimited ? '무제한' : `${v.n} / ${v.max}`}${!v.unlimited && v.next ? ` · 다음 1까지 ${staminaClock(v.next)}` : ''}`;
@@ -173,6 +183,12 @@ export function refreshCells(): void {
   document.querySelectorAll<HTMLElement>('[data-stam-max]').forEach(el => { el.textContent = `/${v.max}`; });
   document.querySelectorAll<HTMLElement>('[data-stam-next]').forEach(el => { el.textContent = staminaClock(v.next); });
   document.querySelectorAll<HTMLElement>('[data-stam-full]').forEach(el => { el.textContent = staminaClock(v.full); });
+  document.querySelectorAll<HTMLElement>('[data-stam-tb]').forEach(el => {
+    el.textContent = nextText(v);
+    const plus = el.previousElementSibling as HTMLElement | null;
+    if (plus?.classList.contains('tb-st-plus')) plus.hidden = !charging(v);
+  });
+  document.querySelectorAll<HTMLElement>('[data-stam-ring]').forEach(el => { el.style.setProperty('--p', ringOf(v).toFixed(3)); });
   document.querySelectorAll<HTMLElement>('[data-stamina-open]').forEach(el => { const l = staminaLabel(); el.setAttribute('aria-label', l); el.title = l; });
 }
 

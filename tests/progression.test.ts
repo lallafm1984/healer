@@ -6,7 +6,7 @@ import { CONTENT, contentOf, isLeveling, stageOf } from '../src/data/content';
 import { avgScore, dropTable, gearStatsOf, ITEM_GRADES, rollItem, SLOTS, type Equipped } from '../src/data/equipment';
 import { gearStats } from '../src/data/gear';
 import { RULES } from '../src/data/rules';
-import { addXp, clearGold, clearXp, gradeOf, inRamp, lvPower, lvPowerProto, RAMP_FIRST, RAMP_LV, RAMP_REPEAT, rampSpan, rampXp, starsOf, xpToNext } from '../src/data/progression';
+import { addXp, clearXp, gradeOf, inRamp, lvPower, lvPowerProto, RAMP_FIRST, RAMP_LV, RAMP_REPEAT, rampSpan, rampXp, starsOf, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
 import { heal } from '../src/engine/core';
 import { rngFrom } from '../src/engine';
@@ -54,12 +54,6 @@ describe('경험치·레벨 (02 부록 B)', () => {
     while (p.level < 15 && runs < 200) { addXp(p, clearXp(p.level, '보통', 'A', { win: true })); runs++; }
     expect(runs).toBeGreaterThanOrEqual(12);
     expect(runs).toBeLessThanOrEqual(25);
-  });
-  it('골드 = (50 + 10 × 단계) × 난이도 × 등급, 레이드 보스 10인 ×1.5 · 20인 ×2.2 (12 3-1, 32 3장)', () => {
-    expect(clearGold(23, '보통', 'A')).toBe(308);
-    expect(clearGold(1, '보통', 'B')).toBe(60);
-    expect(clearGold(35, '어려움', 'S', 10)).toBe(Math.round(400 * 1.3 * 1.2 * 1.5));
-    expect(clearGold(70, '보통', 'A', 20)).toBe(Math.round(750 * 1.1 * 2.2));
   });
   it('등급·별·단축칸', () => {
     expect([0, 1, 2, 3, 4].map(gradeOf)).toEqual(['S', 'A', 'B', 'B', 'C']);
@@ -186,15 +180,15 @@ const result = (o: Partial<BattleResult> = {}): BattleResult => ({
 });
 
 describe('정산 (09 S08·S09)', () => {
-  it('클리어: 등급·별·골드·경험치·장비 1개, 기록 저장', () => {
+  it('클리어: 등급·별·경험치·장비 1개, 기록 저장 (골드는 v16에 없앰)', () => {
     const s = newSave(1);
     const x = settle(s, result(), rngFrom(1));
     expect(x.grade).toBe('A');
     expect(x.stars).toEqual([true, false, true]);
     expect(x.overhealPct).toBe(30);
     expect(x.dispelPct).toBeNull();
-    expect(x.gold).toBe(clearGold(stageOf(contentOf('rustfort'), '보통'), '보통', 'A'));
-    expect(s.player.gold).toBe(x.gold);
+    expect(x).not.toHaveProperty('gold');
+    expect(s.player).not.toHaveProperty('gold');
     // Lv 20까지는 장소가 정한 경험치 (70): 녹슨 요새 보통 첫 클리어 = 장소 몫 60%
     expect(x.xp).toBe(rampXp(contentOf('rustfort'), '보통', { first: true, grade: 'A', win: true }));
     expect(x.levelUps).toEqual([2, 3]);
@@ -244,10 +238,10 @@ describe('정산 (09 S08·S09)', () => {
     expect(x.best).toBe(true);
     expect(s.clears.rustfort!['보통']).toEqual({ stars: 3, grade: 'S', best: 300, n: 2 });
   });
-  it('지면 (전멸) 골드·장비·경험치 모두 없음 (2026-10-13 Lim, 예전 20%). 포기도 없음', () => {
+  it('지면 (전멸) 장비·경험치 모두 없음 (2026-10-13 Lim, 예전 20%). 포기도 없음', () => {
     const s = newSave(1);
     const x = settle(s, result({ win: false, segIdx: 1 }), rngFrom(1));
-    expect([x.grade, x.gold, x.items, x.xp]).toEqual([null, 0, [], 0]);
+    expect([x.grade, x.items, x.xp]).toEqual([null, [], 0]);
     expect(rampXp(contentOf('rustfort'), '보통', { first: true, grade: null, win: false })).toBe(0);
     expect(s.player).toMatchObject({ level: 1, xp: 0 });
     expect(s.clears).toEqual({});

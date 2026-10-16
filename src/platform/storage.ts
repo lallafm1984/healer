@@ -16,8 +16,8 @@ import { STAMINA } from '../data/economy';
 import type { Grade } from '../data/progression';
 
 export const SAVE_KEY = 'healer.save';
-/** v15 (2026-10-16 Lim): 소비 아이템 단축칸 · 가방을 없앰 */
-export const SAVE_VERSION = 15;
+/** v15 (2026-10-16 Lim): 소비 아이템 단축칸 · 가방을 없앰. v16 (2026-10-16 Lim): 골드를 없앰 (옛 저장의 골드는 버림) */
+export const SAVE_VERSION = 16;
 
 /** 칸 탭 기본 힐 = 휠 칸 (이름은 사제 스킬 이름 그대로: heal = 기본 힐 칸, flash = 빠른 힐 칸, renew = 지속 힐 칸) */
 export type TapKey = 'heal' | 'flash' | 'renew';
@@ -80,8 +80,6 @@ export interface Settings {
   devUnlock: boolean;
   /** 개발 빌드: 레벨과 상관없이 스킬 전부 (06 7장 해금 무시) */
   allSkills: boolean;
-  /** 개발 빌드: 골드 비용을 무시하고 실제 보유 골드는 차감하지 않음. 옛 저장엔 없음 = 꺼짐 */
-  devGold?: boolean;
   /** 개발 빌드: 강화석 · 정제 강화석 비용을 무시하고 실제 보유량은 차감하지 않음. 옛 저장엔 없음 = 꺼짐 */
   devStones?: boolean;
   /** 개발 빌드: 입장할 때 스테미너를 쓰지 않음 (81). 옛 저장엔 없음 = 꺼짐 */
@@ -167,7 +165,7 @@ export interface StaminaSave { n: number; at: number; day: string; ads: number }
 export const newStamina = (now: number): StaminaSave => ({ n: STAMINA.max, at: now, day: '', ads: 0 });
 
 /**
- * 캐릭터 하나 (68, v11): 칸 하나에 캐릭터 하나, 직업은 만들 때 고정. 캐릭터마다 따로 계정처럼 (골드 · 장비 · 도감 · 임무 · 기록 전부).
+ * 캐릭터 하나 (68, v11): 칸 하나에 캐릭터 하나, 직업은 만들 때 고정. 캐릭터마다 따로 계정처럼 (장비 · 도감 · 임무 · 기록 전부).
  * 지금 캐릭터 저장은 SAVE_KEY, 쉬는 캐릭터는 charKey(id)에 통째로
  */
 export interface CharMeta {
@@ -190,8 +188,8 @@ export interface SaveData {
   /** 처음 만든 시각 (ms) */
   createdAt: number;
   settings: Settings;
-  /** v12: 현재 캐릭터의 공통 레벨·경험치·골드. 직업 전환으로 변경하지 않음 */
-  player: { level: number; xp: number; gold: number };
+  /** v12: 현재 캐릭터의 공통 레벨·경험치. 직업 전환으로 변경하지 않음. v16: 골드 없앰 */
+  player: { level: number; xp: number };
   /**
    * v12: equipped · bag · seen = 현재 캐릭터 공용 장비. 직업별 loadout은 이 실물의 ID를 참조.
    * seen = 캐릭터 › 장비 화면을 나갈 때까지 확인한 장비 id (이보다 큰 id = 새것 점). 옛 저장엔 없어서 migrate가 채움.
@@ -255,7 +253,7 @@ export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'r
 export function newSave(now = Date.now()): SaveData {
   return {
     v: SAVE_VERSION, createdAt: now, settings: { ...DEFAULT_SETTINGS },
-    player: { level: 1, xp: 0, gold: 0 }, gear: { equipped: {}, bag: [], seen: 0, codex: [], dex: [], dexPaid: 0 }, mats: { stone: 0, refined: 0 }, clears: {}, last: null, nextId: 1, tut: 0,
+    player: { level: 1, xp: 0 }, gear: { equipped: {}, bag: [], seen: 0, codex: [], dex: [], dexPaid: 0 }, mats: { stone: 0, refined: 0 }, clears: {}, last: null, nextId: 1, tut: 0,
     hero: 'priest', heroes: {}, guild: newGuild(),
     wallet: { merit: 0 }, daily: newDaily(), weekly: newWeekly(),
     pass: { season: 0, xp: 0, free: [] }, stamina: newStamina(now), bought: [], chalOpen: 1, decos: [], chalChest: 0,
@@ -303,6 +301,9 @@ export function migrate(raw: unknown): SaveData {
   };
   // v14 (81): 월정액 · 첫 구매 기록은 버림 (크리스탈 상품이 없어짐). v15: 소비 아이템 단축칸 (items) · 가방 (bag)도 버림
   for (const k of ['member', 'firstBuy', 'items', 'bag'] as const) delete (out as unknown as Record<string, unknown>)[k];
+  // v16: 골드 · 골드 무제한 개발 옵션을 버림 (쓰는 곳이 없어짐)
+  delete (out.player as Record<string, unknown>).gold;
+  delete (out.settings as unknown as Record<string, unknown>).devGold;
   delete (out.weekly as unknown as Record<string, unknown>).craft;
   if ((o.v ?? 0) < 10) gearByHero(out);
   if ((o.v ?? 0) < 11) splitChars(out, out.createdAt);
@@ -342,7 +343,7 @@ export const charKey = (id: number) => `healer.char.${id}`;
 
 /**
  * 계정 것을 새 캐릭터 저장으로 옮김 (68 3장): 설정 (휠 배치 · 칸 탭은 캐릭터 것) · 산 상품 · 스테미너 (81) · 패스 · 캐릭터 목록.
- * 나머지 (골드 · 재료 · 장비 · 도감 · 임무 · 광고 횟수 · 기록)는 캐릭터마다
+ * 나머지 (재료 · 장비 · 도감 · 임무 · 광고 횟수 · 기록)는 캐릭터마다
  */
 export function shareAccount(from: SaveData, to: SaveData): void {
   to.settings = { ...from.settings, layout: to.settings.layout, tapKey: to.settings.tapKey };
@@ -409,7 +410,7 @@ function splitChars(d: SaveData, now: number): void {
     Object.assign(c, {
       hero: h, heroes: { [h]: hero }, tut: d.tut, nextId: d.nextId,
       settings: { ...d.settings, layout: s ? s.layout : d.settings.layout, tapKey: s ? s.tapKey : d.settings.tapKey },
-      player: { level: lv, xp: s ? s.xp ?? 0 : d.player.xp, gold: mine ? d.player.gold : 0 },
+      player: { level: lv, xp: s ? s.xp ?? 0 : d.player.xp },
       gear: { equipped: g?.equipped ?? {}, bag: g?.bag ?? [], seen: g?.seen ?? d.nextId - 1, codex: mine ? d.gear.codex : [], dex: mine ? d.gear.dex : [], dexPaid: mine ? d.gear.dexPaid : 0 },
       mats: mine ? d.mats : c.mats,
       wallet: { merit: merit.n },

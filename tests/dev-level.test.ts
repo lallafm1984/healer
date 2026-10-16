@@ -15,7 +15,7 @@ describe('개발 옵션: 100레벨로 변경', () => {
     vi.stubGlobal('localStorage', kv);
     G.save = newSave(1);
     G.save.tut = 99;
-    G.save.player = { level: 16, xp: 1234, gold: 1080 };
+    G.save.player = { level: 16, xp: 1234 };
     G.save.wallet.merit = 80;
     G.save.mats = { stone: 12, refined: 3 };
     G.save.gear.bag = [{ ...makeItem(() => 0.5, 'neck', '희귀', 7, 'medal', { lv: 16 }), plus: 2 }];
@@ -32,7 +32,7 @@ describe('개발 옵션: 100레벨로 변경', () => {
     expect(setTestMaxLevel()).toBe(true);
     expect(G.save).toEqual(expected);
     const restored = load();
-    expect(restored.player).toEqual({ level: 100, xp: 0, gold: 1080 });
+    expect(restored.player).toEqual({ level: 100, xp: 0 });
     expect(restored.gear).toEqual(expected.gear);
     expect(restored.roster.chars.find(c => c.id === restored.roster.cur)?.level).toBe(100);
     expect(heroStatus('paladin').state).toBe('open');

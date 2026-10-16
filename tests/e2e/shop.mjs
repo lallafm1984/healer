@@ -18,7 +18,7 @@ export default async function shop(url, shots) {
   await page.goto(url);
   await page.clock.runFor(300);
   await pastTitle(page);
-  await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 40; s.player.gold = 50000; s.mats.stone = 20; localStorage.setItem('healer.save', JSON.stringify(s)); });
+  await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 40; s.mats.stone = 20; localStorage.setItem('healer.save', JSON.stringify(s)); });
 
   // ---- 로비 → 임무 ----
   // A2 간판은 분류와 입장 스테미너를 두 줄로 표시한다. 장식 구분자 대신 실제 보이는 두 정보를 검사한다.
@@ -38,10 +38,10 @@ export default async function shop(url, shots) {
   ok(await page.isVisible('#s-lobby .lb-missions .g-qm') && await page.isVisible('#lbClaim') && (await text('#s-lobby .lb-missions .g-badge')) === '6', '로비 게시판: 받을 것 있음 = 노란 「!」 + 빨간 숫자 6');
   await page.click('#s-lobby .lb-missions .lb-main'); await page.clock.runFor(100);
   ok((await page.locator('#s-missions [data-claim]').count()) === 6, '받을 임무 6개 (일일 5 + 주간 1)');
-  const g0 = (await save()).player.gold;
+  const d0 = (await save()).mats.stone;
   for (let i = 0; i < 5; i++) { await page.click('#s-missions [data-claim="daily"]'); await page.clock.runFor(30); }
   sv = await save();
-  ok(sv.daily.missions.every(m => m.got) && sv.player.gold > g0 && sv.pass.xp === 300, `일일 5개 받기: 골드 +${sv.player.gold - g0}, 패스 경험치 300`);
+  ok(sv.daily.missions.every(m => m.got) && sv.mats.stone === d0 + 10 && !('gold' in sv.player) && sv.pass.xp === 300, `일일 5개 받기: 강화석 +${sv.mats.stone - d0}, 패스 경험치 300 (골드 없음)`);
   await page.click('#s-missions #chest'); await page.clock.runFor(50);
   sv = await save();
   ok(sv.daily.chest && sv.pass.xp === 400 && /완료 상자/.test(await text('#s-missions .warnbox')), '완료 상자 열기 (패스 +100)');
@@ -53,7 +53,7 @@ export default async function shop(url, shots) {
   const w0 = await save();
   await page.click('#s-missions [data-claim="weekly"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.player.gold > w0.player.gold && sv.mats.stone === w0.mats.stone + 5 && !('shards' in sv.wallet), '주간 임무 = 골드 3판 + 강화석 5 (악몽 열쇠 없음)');
+  ok(sv.mats.stone === w0.mats.stone + 5 && !('shards' in sv.wallet), '주간 임무 = 강화석 5 (악몽 열쇠 · 골드 없음)');
   await page.screenshot({ path: `${shots}/shop_missions.png`, fullPage: true });
 
   // ---- 상점: 골드 탭 (소비 아이템)은 2026-10-16 없앰. 첫 탭 = 상품 ----

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { diffAffixes, WEEKLY_AFFIXES } from '../src/data/affixes';
 import { CHAL, CHAL_ROTA, chalLimit, chalMult } from '../src/data/challenge';
 import { ALL_DIFFS, contentOf, stageOf } from '../src/data/content';
-import { clearGold, clearXp, EXPLORE_REWARD } from '../src/data/progression';
+import { clearXp, EXPLORE_REWARD } from '../src/data/progression';
 import * as E from '../src/engine';
 import { affDebuffEnd, affixTick, affHeal } from '../src/engine/affixes';
 import { heal } from '../src/engine/core';
@@ -160,12 +160,12 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
     expect(WEEKLY_AFFIXES).toContain('unstable');
     expect(CHAL_ROTA.some(w => w.includes('unstable'))).toBe(true);
   });
-  it('적 레벨로 골드·경험치를 셈, 어픽스도 적 레벨 기준', () => {
+  it('적 레벨 기준 어픽스 · 경험치는 내 레벨 기준 (골드는 2026-10-16 없앰)', () => {
     const s = save(34), m = runMode(s, contentOf('snowlab'), '어려움', { chal: 0 });
-    s.daily.pub = 3; // 공개모집 보너스(×2)는 뺌
     expect(m).toMatchObject({ stage: 34, affixes: ['rage'], chal: 0 });
     const x = settle(s, result({ content: 'snowlab', diff: '어려움', stage: m.stage, affixes: m.affixes }), rng, [], T0);
-    expect(x.gold).toBe(clearGold(34, '어려움', 'S'));
+    expect(x).not.toHaveProperty('gold');
+    expect(s.player).not.toHaveProperty('gold');
     expect(x.xp).toBe(clearXp(34, '어려움', 'S', { win: true }));
     // 내 레벨이 높아도 녹슨 요새 어려움은 Lv 9 · 격노 없음
     expect(runMode(save(52), contentOf('rustfort'), '어려움', { chal: 0 })).toMatchObject({ stage: 9, affixes: [] });
@@ -224,12 +224,10 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
     const ex = contentOf('plateau');
     expect(runMode(save(60), ex, '악몽', { chal: 0 }).affixes).toEqual([]);
   });
-  it('탐험은 튜토리얼 뒤 골드·경험치 ×0.35', () => {
+  it('탐험은 튜토리얼 뒤 경험치 ×0.35', () => {
     const ex = contentOf('plateau');
-    const s = save(30); s.daily.pub = 3;
-    const d = settle(s, result({ diff: '보통', stage: 28 }), rng, [], T0);
+    const s = save(30);
     const e = settle(s, result({ content: ex.key, diff: '보통', stage: 28 }), rng, [], T0);
-    expect(e.gold).toBe(Math.round(d.gold * EXPLORE_REWARD));
     expect(e.xp).toBe(Math.round(clearXp(30, '보통', 'S', { win: true }) * EXPLORE_REWARD));
   });
 });
@@ -287,11 +285,11 @@ describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
     expect(s.chalOpen).toBe(2);
   });
 
-  it('축제 주간 골드 +20%', () => {
-    const s = save();
-    const a = settle(s, result({ stage: 30 }), rng, [], T0).gold;
-    const b = settle(s, result({ stage: 30, affixes: ['festival', 'frenzy'] }), rng, [], T0).gold;
-    expect(b).toBe(Math.round(a * 1.2));
+  it('축제 주간 경험치 +20% (v16, 예전 골드 +20%)', () => {
+    const a = settle(save(), result({ stage: 30 }), rng, [], T0).xp;
+    const b = settle(save(), result({ stage: 30, affixes: ['festival', 'frenzy'] }), rng, [], T0).xp;
+    expect(b).toBe(Math.round(clearXp(30, '보통', 'S', { win: true }) * 1.2));
+    expect(a).toBe(clearXp(30, '보통', 'S', { win: true }));
   });
 });
 

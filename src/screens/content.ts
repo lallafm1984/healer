@@ -15,13 +15,12 @@ import { avgScore, clearMats, GRADE_STYLE, ITEM_GRADES, recommendedFor, type Ite
 import { gearGradeOdds } from '../data/reward-preview';
 import { HEROES } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
-import { clearGold, EXPLORE_REWARD } from '../data/progression';
 import { art, cssUrl } from '../art';
 import { weekRemaining } from '../game/clock';
 import { meritFor, raidLootOpen } from '../game/economy';
 import { staminaCost } from '../game/stamina';
 import { Flow } from '../game/flow';
-import { chalGate, runMode, weekAffixes } from '../game/runmode';
+import { chalGate, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { esc, fmt, go, previous, screen, topBar } from './kit';
@@ -36,8 +35,6 @@ const ICON = {
   raid: line('<path d="M6.5 16v-4.5a5.5 5.5 0 0 1 11 0V16l1.5 2h-14z"/><path d="M10 20.5h4"/>'),
   hourglass: line('<path d="M7 3h10M7 21h10M8 3v2c0 3 4 5 4 7s-4 4-4 7v2M16 3v2c0 3-4 5-4 7s4 4 4 7v2"/>', 2.2),
   gear: line('<path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12 7l5 5"/>'),
-  gold: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="#E8B23A" stroke="#7A5418" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="#B9831F" stroke-width="1.6"/></svg>',
-  crystal: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12l3 5-9 11L3 9z" fill="#7FC8FF" stroke="#1E4A7A" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 9h18M9 4l3 16 3-16" fill="none" stroke="#1E4A7A" stroke-width="1.2"/></svg>',
 };
 const PREV = line('<path d="M15 6l-6 6 6 6"/>', 2.6);
 const NEXT = line('<path d="M9 6l6 6-6 6"/>', 2.6);
@@ -249,9 +246,6 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   const currency = (key: CurrencyIconKey, name: string, amount: number, color: string, basis = '클리어 시', probability = 1) => {
     items.push({ key, name, label: fmt(amount), icon: currencyIcon(key), color, probability, basis });
   };
-  const stage = runMode(G.save, c, d, { chal: 0 }).stage;
-  const gold = Math.round(clearGold(stage, d, 'A', raid) * (play && c.kind === 'explore' ? EXPLORE_REWARD : 1));
-  currency('gold', '골드', gold, '#DDB563', '클리어 시 · A 평가 · 보너스 제외');
   const mats = clearMats(d, raid);
   if (mats.stone) currency('stone', '강화석', mats.stone, '#C3B899');
   if (mats.refined) currency('refined', '정제 강화석', mats.refined, '#A6DEF0');

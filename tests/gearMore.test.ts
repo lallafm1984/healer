@@ -176,9 +176,9 @@ describe('장비 도감 (34 6-10 ④)', () => {
     noteDex(s, KINDS.map((k, i) => ({ id: i, slot: k.slot, kind: k.key, grade: '일반', plus: 0, name: '', lines: [] })));
     expect(s.decos).toContain('장비 감정사');
     expect(dexDue(9, 0).steps).toBe(0);
-    expect(dexDue(30, 0)).toEqual({ gold: 1800, stone: 15, refined: 0, steps: 3 });
-    expect(dexDue(52, 3)).toEqual({ gold: 1200, stone: 10, refined: 2, steps: 2 });
-    expect(dexReward(DEX_STEP / DEX_STEP).gold).toBe(600);
+    expect(dexDue(30, 0)).toEqual({ stone: 15, refined: 0, steps: 3 });
+    expect(dexDue(52, 3)).toEqual({ stone: 10, refined: 2, steps: 2 });
+    expect(dexReward(DEX_STEP / DEX_STEP)).toEqual({ stone: 5, refined: 0 });
   });
 });
 

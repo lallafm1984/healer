@@ -113,19 +113,16 @@ function tipHtml(r: BattleResult, x: Settlement): string {
 /** 받은 것: 장비 줄 (클리어마다 1개) · 재화 칸 · 경험치 줄 */
 function lootHtml(r: BattleResult, x: Settlement): string {
   const tiles: string[] = [];
-  // 재화는 한 줄 칩 (그림 · +값 · 이름, 2026-10-13 Lim 「골드 · 강화석 UI 점검」)
-  const tile = (k: CurrencyIconKey, label: string, v: number, tag = '', sr = '') => `<span class="r-cur"${sr ? ` aria-label="${label} +${fmt(v)} · ${sr}"` : ''}><span class="r-ci">${currencyIcon(k)}${tag}</span><span class="r-cv"><b>+${fmt(v)}</b><small>${label}</small></span></span>`;
-  // 공개모집 일일 보너스(×2, 오늘 n/3) · 축제 주간(+20%)은 골드 칸 꼬리표로
-  const fest = r.affixes?.includes('festival');
-  if (x.gold) tiles.push(tile('gold', '골드', x.gold, x.pubBonus ? '<em>×2</em>' : fest ? '<em>+20%</em>' : '', x.pubBonus ? `공개모집 보너스 오늘 ${x.pubBonus}/3` : fest ? '축제 주간' : ''));
+  // 재화는 한 줄 칩 (그림 · +값 · 이름, 2026-10-13 Lim 「골드 · 강화석 UI 점검」). 골드는 v16 (2026-10-16)에 없앰
+  const tile = (k: CurrencyIconKey, label: string, v: number) => `<span class="r-cur"><span class="r-ci">${currencyIcon(k)}</span><span class="r-cv"><b>+${fmt(v)}</b><small>${label}</small></span></span>`;
   if (x.mats.stone) tiles.push(tile('stone', '강화석', x.mats.stone));
   if (x.mats.refined) tiles.push(tile('refined', '정제 강화석', x.mats.refined));
   if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
   return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
-      <h2 class="r-lh" tabindex="-1">획득 보상</h2>
+      <h2 class="r-lh" tabindex="-1">획득 보상${x.pubBonus ? ` <small>공개모집 보너스 ${x.pubBonus}/3</small>` : ''}</h2>
       ${itemsHtml(x)}
       ${tiles.length ? `<div class="r-curs">${tiles.join('')}</div>` : ''}
-      ${xpRow(x)}
+      ${xpRow(x, !!r.affixes?.includes('festival'))}
     </section>`;
 }
 
@@ -160,11 +157,12 @@ function itemRow(id: number): string {
 }
 
 /** 경험치 줄: 바 + 받은 양 + 지금 레벨 (오르면 강조) */
-function xpRow(x: Settlement): string {
+/** fest = 축제 주간 (경험치 +20%, v16) */
+function xpRow(x: Settlement, fest = false): string {
   const p = G.save.player, need = xpToNext(p.level), up = x.levelUps.length > 0;
   const w = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
   return `<div class="r-xpw${up ? ' up' : ''}"><span class="r-lv" aria-hidden="true">${up ? `<small>Lv ${x.levelBefore} →</small>` : '<small>Lv</small>'}<b>${p.level}</b></span>
-      <div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${fmt(x.xp)}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em></span></div></div>`;
+      <div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${fmt(x.xp)}${fest ? ' <small>축제 +20%</small>' : ''}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em></span></div></div>`;
 }
 
 /** 진 판: 어디서 졌는지 (구간 점 · 적 남은 체력) · 힌트 (있을 때만). 진 판은 경험치 없음 (2026-10-13 Lim) */

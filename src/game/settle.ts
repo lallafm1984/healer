@@ -7,7 +7,7 @@ import type { HeroKey } from '../data/heroes';
 import { clearMats, rollItem, type GearItem } from '../data/equipment';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
-import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, inRamp, rampXp, starsOf, type Grade } from '../data/progression';
+import { addXp, clearXp, EXPLORE_REWARD, gradeOf, inRamp, rampXp, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
 import { guildAfter, type GuildAfter } from './guild';
@@ -70,7 +70,6 @@ export interface Settlement {
   stars: boolean[];
   overhealPct: number;
   dispelPct: number | null;
-  gold: number;
   xp: number;
   levelBefore: number;
   levelUps: number[];
@@ -94,7 +93,7 @@ export interface Settlement {
   merit: number;
   /** 이번 주 이 레이드 보스·난이도 장비를 이미 받아서 장비 없음 (13 3-4) */
   lootLocked: boolean;
-  /** 공개모집 일일 보너스 판 (13 2-2): 골드 ×2, 좋은 장비 등급 확률 ↑ (그 난이도 상한 안에서, 61 3-3). n = 오늘 몇 번째 */
+  /** 공개모집 일일 보너스 판 (13 2-2): 좋은 장비 등급 확률 ↑ (그 난이도 상한 안에서, 61 3-3). n = 오늘 몇 번째 */
   pubBonus: number;
   /** 이 판으로 다 채운 임무 */
   missions: string[];
@@ -135,24 +134,23 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   // 공개모집 일일 보너스: 오늘 첫 3번 (이긴 판만 셈, 13 2-2)
   const pub = !roster.some(e => e.gid != null);
   const pubBonus = play && r.win && pub && (c.kind === 'dungeon' || c.kind === 'raid') && save.daily.pub < PUB_BONUS.runs ? ++save.daily.pub : 0;
-  const festival = r.affixes?.includes('festival') ? CHAL.festivalGold : 1;
-  // 탐험은 짧고 쉬워서 골드·경험치를 줄임 (튜토리얼이 끝난 뒤, 32 3-3)
+  // 축제 주간 (주간 도전 어픽스): 경험치 +20% (v16, 예전 골드 +20%)
+  const festival = r.affixes?.includes('festival') ? CHAL.festivalXp : 1;
+  // 탐험은 짧고 쉬워서 경험치를 줄임 (튜토리얼이 끝난 뒤, 32 3-3)
   const kind = play && c.kind === 'explore' ? EXPLORE_REWARD : 1;
-  const gold = r.win ? Math.round(clearGold(stage, r.diff, grade!, raid) * kind * (pubBonus ? PUB_BONUS.gold : 1) * festival) : 0;
   // 따라잡기·장소 레벨 차이 보정 없음. 경험치는 직업 레벨·난이도·등급·콘텐츠 배율로만 정함.
   // Lv 20까지는 장소 Lv 20까지의 탐험 · 던전이 장소가 정한 경험치 (70): 쉬움 · 보통을 처음 깨면 다음 장소 레벨 (주간 도전은 빼고)
   // 진 판 (전멸 · 포기)은 경험치 없음 (2026-10-13 Lim)
   const xp = !r.win || r.quit ? 0
     : !r.chal && inRamp(c, p.level) ? rampXp(c, r.diff, { first: !save.clears[r.content]?.[r.diff], grade, win: r.win })
-    : Math.max(1, Math.round(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind));
+    : Math.max(1, Math.round(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind * festival));
   const levelBefore = p.level;
-  p.gold += gold;
   const levelUps = addXp(p, xp);
 
   const items: GearItem[] = [];
   let newSpecs: string[] = [], newDex: string[] = [];
   const mats = r.win ? clearMats(r.diff, raid) : { stone: 0, refined: 0 };
-  // 레이드 장비는 보스마다 난이도별 주 1회 (13 3-4). 그 뒤엔 골드·공훈만
+  // 레이드 장비는 보스마다 난이도별 주 1회 (13 3-4). 그 뒤엔 재료·공훈만
   const lootLocked = play && r.win && !!raid && !raidLootOpen(save, c.key, r.diff);
   let merit = 0;
   if (r.win) {
@@ -220,6 +218,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    gold, xp, levelBefore, levelUps, items, newSpecs, newDex, mats, first, best, heroQuest, guild, merit, lootLocked, pubBonus, missions, chal, cont, tutEnd,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, mats, first, best, heroQuest, guild, merit, lootLocked, pubBonus, missions, chal, cont, tutEnd,
   };
 }

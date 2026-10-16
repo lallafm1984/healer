@@ -124,7 +124,7 @@ export default async function adventureRewards(url,shots) {
               const grades=await inspectProbabilities(page,TABLES[tab][diff],{keepOpen:true});
               if(!grades.ok || /장비 1개|보너스 제외/.test(state.text))bad.push({key:reward.key,issue:'grade probability table or basis line',grades,text:state.text});
             }
-            if(reward.key==='gear' || (tab==='dungeon' && reward.key==='gold'))
+            if(reward.key==='gear' || (tab==='dungeon' && reward.key==='stone'))
               await page.screenshot({path:`${shots}/departure-reward-chance-${reward.key}-${tab}-${id}-${width}x${height}.png`});
             await page.keyboard.press('Escape');await page.clock.runFor(20);
             if(await pop.count() || !await button.evaluate(el=>document.activeElement===el))bad.push({key:reward.key,issue:'Escape or return focus failed'});

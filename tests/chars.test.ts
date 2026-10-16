@@ -3,9 +3,9 @@
  * 같이 쓰는 건 설정 · 산 것 · 캐릭터 칸. 칸은 골드로 모아 사거나 앱 결제로 바로 (Lim 「둘 다」)
  */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { CHAR_SLOT, slotGold } from '../src/data/economy';
+import { CHAR_SLOT } from '../src/data/economy';
 import { makeItem } from '../src/data/equipment';
-import { buySlot, grantSlot, rollover, slotOffer } from '../src/game/economy';
+import { grantSlot, rollover, slotOffer } from '../src/game/economy';
 import { charList, G, makeChar, pickChar, resetSave } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
 import { adCharge } from '../src/game/stamina';
@@ -72,17 +72,17 @@ describe('캐릭터 목록', () => {
 
 describe('캐릭터마다 따로, 계정은 같이 (68 3장)', () => {
   beforeEach(() => fresh());
-  it('골드 · 재료 · 공훈 · 도감 · 기록 · 임무 · 칭호는 캐릭터마다', () => {
+  it('재료 · 공훈 · 도감 · 기록 · 임무 · 칭호는 캐릭터마다', () => {
     const s = G.save;
-    s.player.gold = 900; s.mats = { stone: 7, refined: 2 }; s.wallet.merit = 3;
+    s.mats = { stone: 7, refined: 2 }; s.wallet.merit = 3;
     s.gear.codex = ['x']; s.clears.rustfort = { 보통: { stars: 3, grade: 'A', best: 100, n: 2 } }; s.decos = ['칭호'];
     s.daily.missions[0].n = 1;
     makeChar('druid', '', DAY);
     const d = G.save;
-    expect([d.player.gold, d.mats, d.wallet.merit, d.gear.codex, d.clears, d.decos]).toEqual([0, { stone: 0, refined: 0 }, 0, [], {}, []]);
+    expect([d.mats, d.wallet.merit, d.gear.codex, d.clears, d.decos]).toEqual([{ stone: 0, refined: 0 }, 0, [], {}, []]);
     expect(d.daily.missions.every(m => m.n === 0)).toBe(true);
     pickChar(1, DAY);
-    expect([G.save.player.gold, G.save.mats.stone, G.save.clears.rustfort?.보통?.stars, G.save.daily.missions[0].n]).toEqual([900, 7, 3, 1]);
+    expect([G.save.mats.stone, G.save.clears.rustfort?.보통?.stars, G.save.daily.missions[0].n]).toEqual([7, 3, 1]);
   });
   it('설정 · 산 상품 · 스테미너 · 패스는 계정 (휠 배치 · 칸 탭은 캐릭터, 81)', () => {
     makeChar('druid', '', DAY);
@@ -109,25 +109,14 @@ describe('캐릭터마다 따로, 계정은 같이 (68 3장)', () => {
   });
 });
 
-describe('캐릭터 칸 (68 2장, Lim 「둘 다」)', () => {
+describe('캐릭터 칸 (68 2장, v16: 골드로 사는 길 없앰)', () => {
   beforeEach(() => fresh(1));
-  it('골드: 지금 캐릭터 Lv 10부터, 2번째 2,000 · 3번째 5,000 · 그 뒤 10,000, 최대 6칸', () => {
-    expect([slotGold(1), slotGold(2), slotGold(3), slotGold(5)]).toEqual([2000, 5000, 10000, 10000]);
-    G.save.player.level = 9; G.save.player.gold = 99999;
-    expect(slotOffer(G.save)).toMatchObject({ have: 1, max: 6, gold: 2000, ok: false, cash: true });
-    expect(buySlot(G.save)).toMatch(/Lv 10/);
-    G.save.player.level = 10; G.save.player.gold = 1999;
-    expect(buySlot(G.save)).toMatch(/골드 부족/);
-    G.save.player.gold = 7000;
-    expect(buySlot(G.save)).toBe('');
-    expect([G.save.roster.slots, G.save.player.gold]).toEqual([2, 5000]);
-    expect(buySlot(G.save)).toBe('');
-    expect([G.save.roster.slots, G.save.player.gold]).toEqual([3, 0]);
-    G.save.roster.slots = CHAR_SLOT.max; G.save.player.gold = 99999;
-    expect(buySlot(G.save)).toMatch(/가득/);
+  it('최대 6칸, 골드 값은 없음', () => {
+    expect(slotOffer(G.save)).toEqual({ have: 1, max: 6, cash: true, cashWhy: '', iap: CHAR_SLOT.iap });
+    G.save.roster.slots = CHAR_SLOT.max;
     expect(grantSlot(G.save)).toMatch(/가득/);
   });
-  it('앱 결제: 레벨 · 골드 조건 없이 (튜토리얼 뒤)', () => {
+  it('앱 결제: 레벨 조건 없이 (튜토리얼 뒤)', () => {
     G.save.player.level = 1;
     expect(slotOffer(G.save).iap).toEqual(CHAR_SLOT.iap);
     expect(grantSlot(G.save)).toBe('');
@@ -135,15 +124,10 @@ describe('캐릭터 칸 (68 2장, Lim 「둘 다」)', () => {
     G.save.tut = TUT.explore;
     expect(grantSlot(G.save)).toMatch(/튜토리얼/);
   });
-  it('개발 빌드 「레벨 잠금 무시」는 레벨만 넘김 (골드는 냄)', () => {
-    G.save.settings.devUnlock = true; G.save.player.gold = 2000;
-    expect(buySlot(G.save)).toBe('');
-    expect(G.save.player.gold).toBe(0);
-  });
-  it('산 칸은 계정: 다른 캐릭터에서도 그대로, 칸 값은 그 캐릭터 골드', () => {
+  it('산 칸은 계정: 다른 캐릭터에서도 그대로', () => {
     G.save.roster.slots = 2;
     makeChar('druid', '', DAY);
-    expect(slotOffer(G.save)).toMatchObject({ have: 2, gold: 5000, ok: false });
+    expect(slotOffer(G.save)).toMatchObject({ have: 2 });
     pickChar(1, DAY);
     expect(G.save.roster.slots).toBe(2);
   });
@@ -152,7 +136,7 @@ describe('캐릭터 칸 (68 2장, Lim 「둘 다」)', () => {
 describe('기기 저장 (캐릭터마다 키)', () => {
   const two = (kv: KV): SaveData => {
     const d = newSave(1);
-    d.tut = TUT.done; d.roster.slots = 2; d.player.gold = 300;
+    d.tut = TUT.done; d.roster.slots = 2; d.player.xp = 300;
     save(d, kv);
     G.save = load(kv);
     return G.save;
@@ -166,7 +150,7 @@ describe('기기 저장 (캐릭터마다 키)', () => {
     save(G.save, kv);
     expect(log).toEqual([`set ${charKey(1)}`, 'set healer.save', `del ${charKey(2)}`]);
     expect(G.save.roster.chars.every(c => !c.park)).toBe(true);
-    expect(JSON.parse(m.get(charKey(1))!).player.gold).toBe(300);
+    expect(JSON.parse(m.get(charKey(1))!).player.xp).toBe(300);
     expect(JSON.parse(m.get('healer.save')!).hero).toBe('druid');
     expect(JSON.parse(m.get(charKey(1))!).roster).toBeUndefined();
   });
@@ -178,7 +162,7 @@ describe('기기 저장 (캐릭터마다 키)', () => {
     G.save = load(kv);
     expect(G.save.hero).toBe('druid');
     const p = loadChar(G.save, 1, kv)!;
-    expect([p.hero, p.player.gold]).toEqual(['priest', 300]);
+    expect([p.hero, p.player.xp]).toEqual(['priest', 300]);
   });
   it('저장 지우고 처음부터: 캐릭터 키도 모두 지움', () => {
     const { kv, m } = memKV();
@@ -202,7 +186,7 @@ describe('옛 저장 나누기 v10 → v11 (68 4장)', () => {
     expect(s.roster.chars.map(c => [c.id, c.hero, c.level])).toEqual([[1, 'priest', 40], [2, 'druid', 12]]);
     expect([s.roster.cur, s.roster.slots, s.roster.next]).toEqual([1, 2, 3]);
   });
-  it('계정 것은 가장 높은 캐릭터에게, 나머지는 골드 0 · 자기 장비 도감 · 들어갈 수 있는 장소 기록만', () => {
+  it('계정 것은 가장 높은 캐릭터에게, 나머지는 자기 장비 도감 · 들어갈 수 있는 장소 기록만 (옛 골드는 v16에서 버림)', () => {
     const own = makeItem(rng, 'weapon', '희귀', 5);
     const s = v10({
       hero: 'priest', player: { level: 40, xp: 0, gold: 10 }, mats: { stone: 4, refined: 1 }, bag: { mana: 19 }, decos: ['t'], // bag = v15 전 소비 아이템 가방 (불러오면 버림)
@@ -210,9 +194,9 @@ describe('옛 저장 나누기 v10 → v11 (68 4장)', () => {
       clears: { plateau: { 보통: { stars: 3, grade: 'A', best: 50, n: 1 } }, abyss1: { 보통: { stars: 2, grade: 'B', best: 400, n: 1 } } },
       heroes: { druid: hs(12, { gear: { equipped: { weapon: own }, bag: [], seen: 0 } }) },
     });
-    expect([s.player.gold, s.mats.stone, 'bag' in s, s.gear.codex, s.gear.dexPaid, s.decos]).toEqual([10, 4, false, ['k'], 2, ['t']]);
+    expect(['gold' in s.player, s.mats.stone, 'bag' in s, s.gear.codex, s.gear.dexPaid, s.decos]).toEqual([false, 4, false, ['k'], 2, ['t']]);
     const d = s.roster.chars[1].park!;
-    expect([d.hero, d.player.level, d.player.gold, d.mats.stone, 'bag' in d, d.gear.dexPaid, d.tut]).toEqual(['druid', 12, 0, 0, false, 0, TUT.done]);
+    expect([d.hero, d.player.level, 'gold' in d.player, d.mats.stone, 'bag' in d, d.gear.dexPaid, d.tut]).toEqual(['druid', 12, false, 0, false, 0, TUT.done]);
     expect(d.gear.equipped.weapon?.id).toBe(5);
     expect(d.gear.dex.length).toBeGreaterThan(0);
     expect(Object.keys(d.clears)).toEqual(['plateau']);

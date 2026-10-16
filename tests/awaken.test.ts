@@ -12,7 +12,7 @@ const head = (plus = 0): GearItem => ({
 describe('각성 없는 강화', () => {
   beforeEach(() => {
     G.save = newSave(1);
-    G.save.player.gold = 1e7; G.save.mats.stone = 999; G.save.mats.refined = 999;
+    G.save.mats.stone = 999; G.save.mats.refined = 999;
   });
   it.each([3, 6, 9])('+%i 성공·실패·재성공에도 무작위 옵션 종류 · 굴림은 그대로, 값은 강화 배율만큼', to => {
     const gear = head(to - 1);

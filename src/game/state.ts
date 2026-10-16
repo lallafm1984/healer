@@ -119,7 +119,6 @@ export const enhanceMsg = (o: EnhanceOutcome) => (o.ok ? '' : '강화 실패');
 export function enhanceLack(it: GearItem): string {
   const c = enhanceCost(it);
   if (!c) return `이미 +${MAX_PLUS}`;
-  if (resourceBalance(G.save, 'gold') < c.gold) return `골드 부족 (${c.gold.toLocaleString()} 필요)`;
   if (resourceBalance(G.save, 'stone') < c.stone) return `강화석 부족 (${c.stone}개 필요)`;
   if (resourceBalance(G.save, 'refined') < c.refined) return `정제 강화석 부족 (${c.refined}개 필요)`;
   return '';
@@ -134,7 +133,6 @@ export function enhanceTry(id: number, roll: () => number = Math.random): Enhanc
   const lack = enhanceLack(it);
   if (lack) return lack;
   const c = enhanceCost(it)!;
-  spendResource(G.save, 'gold', c.gold);
   spendResource(G.save, 'stone', c.stone);
   spendResource(G.save, 'refined', c.refined);
   const from = it.plus, ok = roll() < c.rate;
@@ -150,7 +148,7 @@ export type RerollKind = 'line' | 'spec';
 export interface RerollResult { err: string; alt?: GearLine | SpecLine }
 export const rerollOpen = () => topLevel(G.save) >= REROLL_LEVEL;
 /**
- * 재설정 (34 6-8 · 42 1-6): 그 줄 하나를 다시 굴림. 비용 = 골드 + 정제 강화석 (특수능력 3배, 이 장비에서 할수록 비쌈).
+ * 재설정 (34 6-8 · 42 1-6): 그 줄 하나를 다시 굴림. 비용 = 정제 강화석 (특수능력 3배, 이 장비에서 할수록 비쌈, v16 골드 없앰).
  * Lv 60부터 후보 2개: 첫 후보를 바로 넣고 둘째를 돌려줌
  */
 export function reroll(id: number, kind: RerollKind, i: number, r: () => number = Math.random): RerollResult {
@@ -159,9 +157,8 @@ export function reroll(id: number, kind: RerollKind, i: number, r: () => number 
   if (!rerollOpen()) return { err: `재설정은 Lv ${REROLL_LEVEL}부터` };
   if (kind === 'line' ? !it.lines?.[i] : !it.specs?.[i]) return { err: '없는 줄' };
   const c = rerollCost(it, kind === 'spec');
-  if (resourceBalance(G.save, 'gold') < c.gold) return { err: `골드 부족 (${c.gold.toLocaleString()} 필요)` };
   if (resourceBalance(G.save, 'refined') < c.refined) return { err: `정제 강화석 부족 (${c.refined}개 필요)` };
-  spendResource(G.save, 'gold', c.gold); spendResource(G.save, 'refined', c.refined); it.rr = (it.rr ?? 0) + 1;
+  spendResource(G.save, 'refined', c.refined); it.rr = (it.rr ?? 0) + 1;
   const pick = topLevel(G.save) >= REROLL_PICK_LEVEL;
   let alt: GearLine | SpecLine | undefined;
   if (kind === 'line') {
@@ -187,9 +184,9 @@ export function pickReroll(id: number, kind: RerollKind, i: number, alt: GearLin
   return true;
 }
 
-/** 가방 장비 분해 (착용 중인 것·잠긴 것은 안 됨). 받은 골드·재료 합 */
-export function salvage(ids: number[]): { n: number; gold: number; stone: number; refined: number } {
-  const g = G.save.gear, got = { n: 0, gold: 0, stone: 0, refined: 0 };
+/** 가방 장비 분해 (착용 중인 것·잠긴 것은 안 됨). 받은 재료 합 */
+export function salvage(ids: number[]): { n: number; stone: number; refined: number } {
+  const g = G.save.gear, got = { n: 0, stone: 0, refined: 0 };
   for (const id of ids) {
     const i = g.bag.findIndex(x => x.id === id);
     if (i < 0 || g.bag[i].lock) continue;
@@ -199,9 +196,9 @@ export function salvage(ids: number[]): { n: number; gold: number; stone: number
       const refs = G.save.heroes[h]?.loadout;
       if (refs) for (const { key } of SLOTS) if (refs[key] === id) delete refs[key];
     }
-    got.n++; got.gold += v.gold; got.stone += v.stone; got.refined += v.refined;
+    got.n++; got.stone += v.stone; got.refined += v.refined;
   }
-  G.save.player.gold += got.gold; G.save.mats.stone += got.stone; G.save.mats.refined += got.refined;
+  G.save.mats.stone += got.stone; G.save.mats.refined += got.refined;
   if (got.n) commit();
   return got;
 }
@@ -211,7 +208,7 @@ export function claimDex(): DexReward & { steps: number } {
   const g = G.save.gear, due = dexDue(g.dex.length, g.dexPaid);
   if (!due.steps) return due;
   g.dexPaid += due.steps;
-  G.save.player.gold += due.gold; G.save.mats.stone += due.stone; G.save.mats.refined += due.refined;
+  G.save.mats.stone += due.stone; G.save.mats.refined += due.refined;
   commit();
   return due;
 }
@@ -353,7 +350,7 @@ export function pickChar(id: number, now = Date.now()): boolean {
 }
 
 /**
- * 빈 칸에 새 캐릭터 만들기 (68 2장): Lv 1 · 골드 0 · 맨몸 · 처음 가방 · 빈 도감, 튜토리얼은 계정에 한 번이라 건너뜀.
+ * 빈 칸에 새 캐릭터 만들기 (68 2장): Lv 1 · 맨몸 · 빈 도감, 튜토리얼은 계정에 한 번이라 건너뜀.
  * 만들면 그 캐릭터로 바뀜. 성공 = 빈 문자열, 아니면 이유
  */
 export function makeChar(h: HeroKey, name = '', now = Date.now()): string {

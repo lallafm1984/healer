@@ -394,8 +394,8 @@ function dexSheet(): string {
   const tab = DEX_TABS.find(t => t.key === dexT)!, rows = dexRows(dexT), got = rows.filter(r => r.got).length, done = G.save.decos.includes(tab.title);
   const next = (Math.floor(have.length / DEX_STEP) + 1) * DEX_STEP;
   const reward = due.steps
-    ? `<button type="button" class="btn2 hot" data-dexclaim>보상 받기 ${currencyAmount('gold', due.gold)} ${currencyAmount('stone', due.stone)}${due.refined ? ` ${currencyAmount('refined', due.refined)}` : ''}</button>`
-    : `<span class="cap">${next <= all ? `${next}칸을 채우면 골드 · 강화석 (지금 ${have.length})` : '보상을 모두 받았습니다'}</span>`;
+    ? `<button type="button" class="btn2 hot" data-dexclaim>보상 받기 ${currencyAmount('stone', due.stone)}${due.refined ? ` ${currencyAmount('refined', due.refined)}` : ''}</button>`
+    : `<span class="cap">${next <= all ? `${next}칸을 채우면 강화석 (지금 ${have.length})` : '보상을 모두 받았습니다'}</span>`;
   const count = (t: DexTab) => dexKeys(t).filter(k => have.includes(k)).length;
   const pop = dexPop && !G.save.settings.reducedEffects ? fxArt('fx-dex-reward', 'c7-dexpop') : '';
   dexPop = false;
@@ -416,7 +416,7 @@ const rrBtn = (kind: RerollKind, i: number, name: string) => (rrOn ? `<button ty
 /** 재설정 비용 줄 (34 6-8): 무작위 옵션 한 줄 · 특수능력 한 줄 (3배), 가진 정제 강화석 */
 function rrCostHtml(it: GearItem): string {
   const a = rerollCost(it, false), b = rerollCost(it, true);
-  return `<p class="cap c7-rrcost">한 줄 다시 굴림 · 옵션 ${currencyAmount('gold', a.gold)} ${currencyAmount('refined', a.refined)} · 특수능력 ${currencyAmount('gold', b.gold)} ${currencyAmount('refined', b.refined, { have: resourceBalance(G.save, 'refined') })}</p>`;
+  return `<p class="cap c7-rrcost">한 줄 다시 굴림 · 옵션 ${currencyAmount('refined', a.refined)} · 특수능력 ${currencyAmount('refined', b.refined, { have: resourceBalance(G.save, 'refined') })}</p>`;
 }
 /** Lv 60 재설정 둘째 후보: 「이걸로」 누르면 바꿈 */
 function rrAltHtml(it: GearItem, kind: RerollKind): string {
@@ -538,8 +538,7 @@ function itemSheet(id: number): string {
 
 /** 강화 팝업의 보유/비용 표 (장비 상세에는 강화 버튼만 둔다, Lim 2026-10-14). 재화 이름은 공통 아이콘의 접근성 설명으로 제공한다. */
 function enhanceMaterials(c: NonNullable<ReturnType<typeof enhanceCost>>): string {
-  const rows: { key: 'gold' | 'stone' | 'refined'; have: number; cost: number }[] = [
-    { key: 'gold', have: G.save.player.gold, cost: c.gold },
+  const rows: { key: ResourceKey; have: number; cost: number }[] = [
     ...(c.stone ? [{ key: 'stone' as const, have: G.save.mats.stone, cost: c.stone }] : []),
     ...(c.refined ? [{ key: 'refined' as const, have: G.save.mats.refined, cost: c.refined }] : []),
   ];
@@ -561,7 +560,7 @@ function confirmHtml(): string {
   const fxCls = f ? ` fx ${f.ok ? 'fx-ok' : 'fx-fail'}${f.quick ? ' fx-quick' : ''}` : '';
   // 팝업 안 장식(빛 고리 · 불꽃 · 알갱이)은 전면 연출이 그대로 덮어서 보이지 않고 폰 그래픽만 잡아먹어 뺐다. 연출 중엔 강화 전 단계를 보여 줘 결과를 미리 드러내지 않는다.
   const shownPlus = f ? f.from : it.plus;
-  const amounts = `${currencyAmount('gold', reward.gold)}${reward.stone ? currencyAmount('stone', reward.stone) : ''}${reward.refined ? currencyAmount('refined', reward.refined) : ''}`;
+  const amounts = `${reward.stone ? currencyAmount('stone', reward.stone) : ''}${reward.refined ? currencyAmount('refined', reward.refined) : ''}`;
   const status = result?.ok ? `<div class="c7-enh-result success${f ? ' revealing' : ''}" role="status" aria-live="polite"><b>강화 성공</b><span>+${result.from} → +${result.to}</span>${gainHtml(it, result.from, result.to)}</div>` : '';
   const details = dismantle
     ? `<div class="c7-confirm-cost"><span>획득 재료</span><div>${amounts}</div></div><p id="gearConfirmDesc">분해한 장비는 되돌릴 수 없습니다.</p>`
@@ -619,7 +618,7 @@ function confirmAction(): void {
   const visibleIds = Array.from(s.el.querySelectorAll<HTMLElement>('.c7-inventory [data-gitem]')).map(el => Number(el.dataset.gitem));
   const index = visibleIds.indexOf(action.id), next = visibleIds[index + 1] ?? visibleIds[index - 1];
   const r = salvage([action.id]);
-  msg = r.n ? `분해: 골드 +${fmt(r.gold)} · 강화석 +${r.stone}${r.refined ? ` · 정제 강화석 +${r.refined}` : ''}` : '';
+  msg = r.n ? `분해: 강화석 +${r.stone}${r.refined ? ` · 정제 강화석 +${r.refined}` : ''}` : '';
   if (r.n) { sheet = null; rrOn = false; rrAlt = null; }
   render();
   if (r.n) {
@@ -1123,7 +1122,7 @@ function onClick(t: HTMLElement): boolean {
   if (dt) { dexT = dt.dataset.dext as DexTab; render(); return true; }
   if (t.closest('[data-dexclaim]')) {
     const got = claimDex();
-    msg = got.steps ? `도감 보상: 골드 ${fmt(got.gold)} · 강화석 ${got.stone}${got.refined ? ` · 정제 강화석 ${got.refined}` : ''}` : '';
+    msg = got.steps ? `도감 보상: 강화석 ${got.stone}${got.refined ? ` · 정제 강화석 ${got.refined}` : ''}` : '';
     dexPop = got.steps > 0;
     render(); return true;
   }
