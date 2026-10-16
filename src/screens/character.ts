@@ -141,11 +141,12 @@ function render(keep = true, resetInventory = false): void {
   // 화면 바탕(무기고 그림)의 밝기·흐림이 하위 탭마다 다름 (char31.css #s-char[data-sub])
   s.el.dataset.sub = sub;
   s.el.innerHTML = itemOverlay ? `${sh}${confirmHtml()}` : `${topBar({ settings: true })}${tabsHtml()}
-    <div class="ns-body c7-body c7-${sub}${sheet?.k === 'talent' ? ' c7-tsheet-on' : ''}">${body}</div>${sh}${confirmHtml()}`;
+    <div class="ns-body c7-body c7-${sub}">${body}</div>${sh}${confirmHtml()}`;
   if (still) s.el.querySelector('.sheet')?.classList.add('still');
   if (sub === 'skill') fitDesc();
   const nb = s.el.querySelector<HTMLElement>('.ns-body');
   if (nb && top) nb.scrollTop = top;
+  placeTalentSheet();
   const inventory = s.el.querySelector<HTMLElement>('.c7-bags');
   bagWatch?.disconnect();
   if (inventory) { fillBags(); bagWatch?.observe(inventory); inventory.scrollTop = inventoryTop; }
@@ -900,19 +901,41 @@ function talentHtml(): string {
     <section class="c7-tiers" aria-label="특성 나무">${rows}</section>`;
 }
 
-/** 특성 설명 시트 (탭 막대 위, 어둡게 하지 않음). 고른 특성이면 「풀기」 = pickTalent 다시 누름과 같음 */
+/**
+ * 특성 설명 창 (탭 막대 위, 어둡게 하지 않음). 고른 특성이면 「풀기」 = pickTalent 다시 누름과 같음.
+ * 2026-10-16 Lim: 입장 팝업 (#160)과 같은 돌 카드 · 황동 테 · 금빛 주 버튼 + 돌색 「닫기」, 「이 단에서 한 가지 선택 · 변경 비용 없음」 글은 없앰
+ */
 function talentSheet(i: number, j: number): string {
   const h = hero(), t = TALENT_TREES[h][i], p = t?.picks[j];
   if (!p || t.lv > healerLevel()) return '';
-  const cur = (heroSave(h).talents || [])[i] ?? null;
+  const chosen = (heroSave(h).talents || [])[i] === j;
   return `<section class="sheet c7-tsheet" role="dialog" aria-label="특성 설명">
-      <header class="c7-tooltip-head"><span class="c7-tsi${p.active ? ' active' : ''}">${talentIcon(p.key)}</span>
-        <span class="c7-tsh"><b>${p.name}</b><span class="cap">Lv ${t.lv} · ${p.active ? '사용 효과' : '지속 효과'}</span></span>
-        <button type="button" class="c7-tclose" data-sheetx aria-label="특성 설명 닫기">닫기</button></header>
-      <span class="c7-tsd">${esc(healText(p.desc, statParts().int.total))}</span>
-      ${p.active ? '<span class="c7-tactive-note">보조 버튼 · 전투 화면 단축칸 위에 표시됩니다.</span>' : ''}
-      <footer class="c7-tooltip-foot"><span>${cur === j ? '현재 선택한 특성' : '이 단에서 한 가지 선택'}<small>변경 비용 없음</small></span>
-        <button type="button" class="c7-cta c7-tgo${cur === j ? ' chosen' : ''}" data-talent="${i}:${j}">${cur === j ? '풀기' : '고르기'}</button></footer></section>`;
+      <header class="c7-tp-head"><span class="c7-tp-ic${p.active ? ' active' : ''}">${talentIcon(p.key)}</span>
+        <span class="c7-tp-tt"><b>${p.name}</b><span class="c7-tp-tags"><i>Lv ${t.lv}</i><i>${p.active ? '사용 효과' : '지속 효과'}</i>${chosen ? '<i class="on">선택 중</i>' : ''}</span></span></header>
+      <p class="c7-tp-desc">${esc(healText(p.desc, statParts().int.total))}</p>
+      ${p.active ? '<p class="c7-tp-note">보조 버튼 · 전투 화면 단축칸 위에 표시됩니다.</p>' : ''}
+      <footer class="c7-tp-btns"><button type="button" class="c7-tp-btn c7-tclose" data-sheetx aria-label="특성 설명 닫기">닫기</button>
+        <button type="button" class="c7-tp-btn${chosen ? '' : ' primary'}" data-talent="${i}:${j}">${chosen ? '풀기' : '고르기'}</button></footer></section>`;
+}
+
+/**
+ * 특성 설명 창은 목록에 여백을 붙이지 않음 (2026-10-16 Lim 「맨 아래에서 누르면 더 스크롤된다」), 스크롤도 건드리지 않음.
+ * 아래 자리가 누른 단 (세 선택지)을 가리면 하위 탭 바로 아래로, 그래도 가리면 (화면 가운데 단 · 긴 설명) 하위 탭을 덮는 자리까지. 덜 가리는 쪽
+ */
+function placeTalentSheet(): void {
+  if (sheet?.k !== 'talent') return;
+  const sh = s.el.querySelector<HTMLElement>('.c7-tsheet'), nodes = s.el.querySelector<HTMLElement>(`[data-tier="${sheet.i}"] .c7-tnodes`);
+  const tabs = s.el.querySelector<HTMLElement>('.c7-tabs');
+  if (!sh || !nodes || !tabs) return;
+  const t = nodes.getBoundingClientRect(), h = sh.offsetHeight;
+  // 올라오는 움직임 (translate) 중이라 세로 이동만큼 뺀 자리
+  const low = sh.getBoundingClientRect().top - new DOMMatrixReadOnly(getComputedStyle(sh).transform).m42;
+  const tb = tabs.getBoundingClientRect();
+  const over = (top: number) => Math.max(0, Math.min(t.bottom, top + h) - Math.max(t.top, top));
+  const top = [tb.bottom + 8, tb.top].reduce((a, b) => (over(b) < over(a) ? b : a));
+  if (over(top) >= over(low)) return;
+  sh.classList.add('top');
+  sh.style.top = `${top}px`;
 }
 
 // ---------- 직업: 선택 시안 1 (2026-10-14), 일곱 직업을 한 목록에서 비교 ----------

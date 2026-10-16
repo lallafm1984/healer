@@ -44,13 +44,13 @@
   background-color: #704926;
   border-bottom-color: var(--a2-brass);
 }
-#s-char :is(.c7-dialog-head h3, .c7-h, .c7-sh, .c7-psc b, .c7-tsh b) {
+#s-char :is(.c7-dialog-head h3, .c7-h, .c7-sh, .c7-psc b) {
   color: var(--a2-ink);
 }
 #s-char :is(.c7-hnote, .c7-h small, .c7-sh small, .c7-sv small, .c7-plq small, .c7-skn span, .c7-tsum small, .c7-soont) {
   color: var(--a2-muted);
 }
-#s-char :is(.c7-sv b, .c7-slot > b, .c7-sk, .c7-tsd) { color: var(--a2-ink); }
+#s-char :is(.c7-sv b, .c7-slot > b, .c7-sk) { color: var(--a2-ink); }
 #s-char :is(.c7-cmp, .c7-src, .c7-spec, .c7-sk) { border-top-color: #b98a4645; }
 
 /* Cream paper remains reserved for explanations and selected controls. */
@@ -136,7 +136,7 @@
 
 /* Skill/talent sockets keep their functional state outlines, blue mana core and paths. */
 #s-char .c7-wh:not(.core):not(.empty):not(.locked),
-#s-char :is(.c7-ski, .c7-tn, .c7-tsi) {
+#s-char :is(.c7-ski, .c7-tn) {
   background-color: #56371f;
   background-image: var(--a2-wood);
   background-size: cover;

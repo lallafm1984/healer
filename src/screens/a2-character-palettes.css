@@ -95,15 +95,13 @@
 #s-char[data-sub="talent"] .c7-pk small {
   background-color: var(--c7-palette-panel);
 }
-#s-char[data-sub="talent"] :is(.c7-tsum small, .c7-tsh .cap, .c7-tactive-note, .c7-tooltip-foot small),
+#s-char[data-sub="talent"] .c7-tsum small,
 #s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) small {
   color: var(--c7-palette-muted);
 }
 #s-char[data-sub="talent"] .c7-tier:not(.locked) .c7-tl em { color: #cbb3e3; }
 #s-char[data-sub="talent"] .c7-pre:not([aria-pressed="true"]):not(:disabled),
-#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn,
-#s-char[data-sub="talent"] .c7-tsi,
-#s-char[data-sub="talent"] .c7-tclose:not(:disabled) {
+#s-char[data-sub="talent"] .c7-pk:not(.off):not([aria-pressed="true"]) .c7-tn {
   background-color: var(--c7-palette-surface);
   background-image: none;
 }
@@ -126,9 +124,3 @@
 }
 #s-char[data-sub="talent"] .c7-tpath .d { stroke: #c3add6; }
 #s-char[data-sub="talent"] .c7-tier { border-bottom-color: #b998d324; }
-#s-char[data-sub="talent"] .sheet.c7-tsheet {
-  background-color: var(--c7-palette-deep);
-  background-image: none;
-  box-shadow: inset 0 0 0 3px #49325e, 0 -6px 26px #000a;
-}
-#s-char[data-sub="talent"] .c7-tooltip-foot { border-top-color: #ba9acb3b; }

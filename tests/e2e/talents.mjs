@@ -112,9 +112,12 @@ export default async function talents(url, shots) {
       });
       ok(safe, `${width} ${label}: 설명 닫기·CTA 44px 이상, 시트 안에 표시되고 탭바와 겹치지 않음`);
       if (label === 'last') {
-        await p.locator('#s-char .ns-body').evaluate(el => { el.scrollTop = el.scrollHeight; });
-        const lastReachable = await p.evaluate(() => document.querySelector('#s-char [data-tcell="9:0"]').getBoundingClientRect().bottom <= document.querySelector('#s-char .c7-tsheet').getBoundingClientRect().top);
-        ok(lastReachable, `${width}: 시트 열린 채 최하단 선택지까지 스크롤 가능`);
+        // 2026-10-16 Lim: 시트가 목록에 여백을 붙이지 않음 (스크롤 범위 그대로), 누른 단을 가리면 시트가 위로
+        const lastSeen = await p.evaluate(() => {
+          const c = document.querySelector('#s-char [data-tier="9"] .c7-tnodes').getBoundingClientRect(), sh = document.querySelector('#s-char .c7-tsheet').getBoundingClientRect();
+          return c.bottom <= sh.top || c.top >= sh.bottom;
+        });
+        ok(lastSeen, `${width}: 시트가 누른 최하단 단을 가리지 않음`);
       }
       await p.getByRole('button', { name: '특성 설명 닫기', exact: true }).click();
       ok(!(await p.isVisible('#s-char .c7-tsheet')), `${width} ${label}: 명시적 닫기 버튼`);

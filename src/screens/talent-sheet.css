@@ -1,0 +1,61 @@
+/*
+ * 특성 설명 창 (2026-10-16 Lim 「팝업 디자인을 다시」): 입장 팝업 (departure-hall.css .st-pop, #160)과 같은 한 벌.
+ * 길드 홀 돌 카드 (--gk-*, guide-sheet.css) + 분류 칸과 같은 황동 테 그림, 돌색 「닫기」 · 「풀기」 + 금빛 주 버튼 「고르기」.
+ * 목록에 아래 여백을 붙이지 않고 스크롤도 그대로: 아래 자리가 누른 단을 가리면 탭 바로 아래로 (.top, character.ts placeTalentSheet)
+ */
+#s-char .sheet.c7-tsheet {
+  left: 50%; right: auto; top: auto; bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom) + 10px);
+  width: calc(100% - 24px); max-width: 456px; max-height: none; overflow: visible;
+  display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 15px 16px 14px;
+  background: var(--gk-card); background-blend-mode: normal; border: 0; border-radius: 4px;
+  box-shadow: inset 0 0 0 1px #000, inset 0 0 24px #0008, 0 14px 40px #000d; color: var(--gk-ink); text-shadow: none;
+}
+#s-char .sheet.c7-tsheet::before {
+  content: ''; position: absolute; inset: -3px; pointer-events: none;
+  border: 16px solid transparent; border-image: url('../art/ui-sunforged-panel-frame.webp') 104 / 16px / 0 stretch;
+}
+#s-char .sheet.c7-tsheet.top { bottom: auto; }
+#s-char .sheet.c7-tsheet.top:not(.still) { animation-name: c7-tp-down; }
+@keyframes c7-tp-down { from { transform: translate(-50%, -16px); opacity: 0; } }
+
+#s-char .c7-tp-head { display: flex; align-items: center; gap: 12px; }
+#s-char .c7-tp-ic {
+  flex: none; width: 50px; height: 50px; display: grid; place-items: center; overflow: hidden;
+  border-radius: 50%; border: 2px solid var(--gk-edge); background: var(--gk-route);
+  box-shadow: 0 0 0 2px #0d0b08, 0 0 12px #ffd34d26, inset 0 0 0 1px #ffe7a833; color: var(--gk-head);
+}
+#s-char .c7-tp-ic.active { border-radius: 8px; }
+#s-char .c7-tp-ic > .g-ic { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+#s-char .c7-tp-ic > svg { width: 26px; height: 26px; }
+#s-char .c7-tp-tt { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+#s-char .c7-tp-tt > b { font: 400 21px/1.15 var(--font-display); color: var(--gk-head); text-shadow: 0 2px 2px #000; overflow-wrap: anywhere; }
+#s-char .c7-tp-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+#s-char .c7-tp-tags > i {
+  padding: 2px 8px; border-radius: 999px; border: 1px solid var(--gk-card-bd); background: var(--gk-chip);
+  color: var(--gk-chip-ink); font: normal 700 11px/1.4 var(--font-body);
+}
+#s-char .c7-tp-tags > i.on { border-color: #b8862e; background: var(--gk-accent); color: var(--gk-accent-ink); }
+
+#s-char .c7-tp-desc {
+  margin: 0; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--gk-card-bd); background: var(--gk-route);
+  box-shadow: inset 0 2px 6px #0009; color: var(--gk-ink); font: 500 14px/1.55 var(--font-body); word-break: keep-all; overflow-wrap: anywhere;
+}
+#s-char .c7-tp-note { margin: -4px 2px 0; color: var(--gk-mute); font-size: 12px; line-height: 1.45; }
+
+#s-char .c7-tp-btns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 10px; }
+#s-char .c7-tp-btn {
+  min-height: 48px; padding: 0 8px; border: 1px solid var(--gk-edge); border-radius: 10px;
+  background: var(--gk-btn); box-shadow: inset 0 1px 0 #ffe7a81a, 0 2px 0 #000a; color: var(--gk-head); text-shadow: none;
+  font: 400 18px/1.1 var(--font-display); cursor: pointer;
+}
+#s-char .c7-tp-btn.primary {
+  background: linear-gradient(#ffe07a, #f0b93a 55%, #d99a24); border-color: #b8862e;
+  box-shadow: inset 0 1px 0 #fff8d8, inset 0 -2px 0 #b07a1a, 0 2px 0 #000a; color: #2a1806;
+}
+#s-char .c7-tp-btn:active { transform: translateY(1px); background: var(--gk-btn-on); }
+#s-char .c7-tp-btn.primary:active { background: linear-gradient(#f0c853, #d99a24); }
+#s-char .c7-tp-btn:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+@media (max-width: 350px) {
+  #s-char .sheet.c7-tsheet { padding: 14px 13px 13px; }
+  #s-char .c7-tp-tt > b { font-size: 19px; }
+}
