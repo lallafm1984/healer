@@ -24,12 +24,13 @@ export const GEARS: Record<GearId, GearPreset> = {
 
 /**
  * 프리셋의 대표 특수능력 (42 1-7 「시뮬 장비 프리셋에 등급별 대표 특수능력 조합」): 부위마다 줄 수 기댓값만큼, 흔한 공통 특수능력,
- * 굴림은 가운데 값. 고급은 20%로 1줄이라 6부위 ≈ 1줄, 희귀 · 영웅은 부위마다 1줄. 직업 전용 · 이름 있는 장신구는 넣지 않음.
+ * 굴림은 가운데 값. 영웅은 부위마다 1줄 (88: 일반 · 고급 · 희귀는 특수능력 없음). 직업 전용 · 이름 있는 장신구는 넣지 않음.
  */
 export const GEAR_SPECS: Record<GearId, readonly string[]> = {
   none: [],
-  adv0: ['warmTouch'],
-  rare5: ['wideEmbrace', 'brimming', 'sturdyBack', 'pouch', 'cheerFlag', 'springSip'],
+  // 88: 특수능력은 영웅부터. 고급 · 희귀는 그 몫을 옵션 줄 배율로 (LINE_MULT)
+  adv0: [],
+  rare5: [],
   epic5: ['wideEmbrace', 'brimming', 'sturdyBack', 'pouch', 'cheerFlag', 'springSip'],
 };
 /** 프리셋 특수능력 값 (전투 시작 specs). 장비 없음이면 빈 값 */

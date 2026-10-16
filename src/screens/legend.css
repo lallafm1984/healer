@@ -1,0 +1,11 @@
+/*
+ * 전설 (88, 2026-10-16 Lim 「노란색 (전설) 아이템」): 장비 칸 · 가방 · 결과 화면 장비 그림 위 노란 테 (Codex ui-legend-rim, 가운데가 비어 있음).
+ * 등급 색 (--g = 노랑)은 그대로 칸 바탕 · 빛기둥에 쓰고, 테는 그 위에 겹침. +강화 · 특수능력 점 · 화살표는 테 위로. main.ts에서 guide.css 다음에 읽음
+ */
+#s-char .c7-sq.lg::after, #s-char .c7-bag.lg::after, .r-item > .r-ic.lg::after {
+  content: ''; position: absolute; z-index: 1; inset: -4%; pointer-events: none;
+  background: url('../art/ui-legend-rim.webp') center / 100% 100% no-repeat;
+  filter: drop-shadow(0 0 3px #ffd23f88);
+}
+#s-char .c7-bag.lg::after { inset: -3px; }
+#s-char .c7-sq.lg > :is(.c7-pl, .c7-dots, .c7-better), #s-char .c7-bag.lg > :is(em, .c7-dots, .up, .dn, .nw, .lk) { z-index: 2; }

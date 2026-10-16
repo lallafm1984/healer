@@ -219,7 +219,8 @@ interface SceneReward {
 /** 기본 A 평가 기준. 공개모집·주간 도전 보너스는 편성 전 확정되지 않으므로 제외한다. */
 function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   const raid = raidSize(c), play = G.save.tut >= TUT.done;
-  const odds = gearGradeOdds(d, raid, G.save.player.level, 'A', false, c.stageLv);
+  // 등급대 · 영웅 레벨 (88): 탐험 · 던전은 장소 레벨, 레이드는 적 레벨 (= 내 레벨, 열림 레벨 아래로 안 내려감)
+  const lv = G.save.player.level, odds = gearGradeOdds(d, raid, lv, 'A', false, raid ? Math.max(lv, stageOf(c, d)) : c.stageLv);
   const lootOpen = !play || !raid || raidLootOpen(G.save, c.key, d);
   const maxGrade = [...ITEM_GRADES].reverse().find(g => odds[g] > 0) ?? ITEM_GRADES[0];
   const items: SceneReward[] = [{

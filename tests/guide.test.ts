@@ -36,20 +36,28 @@ describe('난이도 열림 (86): 앞 난이도를 깼거나, 적 레벨이 내 �
 
 describe('적합도 (fitOf)', () => {
   const c = contentOf('snowlab'); // 장소 Lv 30: 적 Lv 30 · 32 · 34 · 36
-  it('적 레벨 − 내 레벨: −3 이하 여유 · −2 ~ +1 적정 · +2 ~ +3 도전 · +4 이상 위험', () => {
-    expect(fitOf(c, '쉬움', 33, 0)).toBe('여유');
-    expect(fitOf(c, '쉬움', 32, 0)).toBe('적정');
+  it('적 레벨 − 내 레벨: −2 이하 여유 · −1 ~ +1 적정 (88) · +2 ~ +3 도전 · +4 이상 위험', () => {
+    expect(fitOf(c, '쉬움', 32, 0)).toBe('여유');
+    expect(fitOf(c, '쉬움', 31, 0)).toBe('적정');
     expect(fitOf(c, '쉬움', 29, 0)).toBe('적정');
     expect(fitOf(c, '쉬움', 28, 0)).toBe('도전');
     expect(fitOf(c, '보통', 28, 0)).toBe('위험');
   });
-  it('권장 장비 (어려움 고급 2점 · 악몽 희귀 +5 3.5점)에 못 미치면 적어도 도전, 레벨 세기가 1.5배 넘게 앞서면 한 단계만', () => {
+  it('권장 장비 (어려움 고급 2점 · 악몽 희귀 +5 3.5점)에 못 미치면 적어도 도전', () => {
     expect(fitOf(c, '어려움', 34, 2)).toBe('적정');
     expect(fitOf(c, '어려움', 34, 1.9)).toBe('도전');
     expect(fitOf(c, '악몽', 39, 0)).toBe('도전'); // 여유 (−3)여도 장비가 없으면 도전
-    expect(fitOf(c, '악몽', 46, 0)).toBe('도전'); // −10: 레벨 세기 1.3배
-    expect(fitOf(c, '악몽', 58, 0)).toBe('적정'); // −22: 레벨 세기 1.5배 넘음 → 여유에서 한 단계만
+    // Lv 4 녹슨 고원: 쉬움 · 보통은 여유, 어려움 · 악몽만 적정 (예전엔 네 칸 모두 적정)
+    expect((['쉬움', '보통', '어려움', '악몽'] as const).map(d => fitOf(contentOf('plateau'), d, 4, 0))).toEqual(['여유', '여유', '적정', '적정']);
+    expect(fitOf(c, '악몽', 46, 0)).toBe('도전'); // −10
+    expect(fitOf(c, '악몽', 58, 3)).toBe('도전'); // −22여도 장비가 모자라면 도전 (88: 예전엔 레벨이 많이 앞서면 적정)
     expect(fitOf(c, '악몽', 36, 3.5)).toBe('적정');
+  });
+  it('레이드 (88): 적이 내 레벨이라 권장 장비를 채운 가장 어려운 난이도가 적정, 쉬운 쪽 여유 · 어려운 쪽 도전', () => {
+    const r = contentOf('abyss1'), f = (g: number) => (['쉬움', '보통', '어려움', '악몽'] as const).map(d => fitOf(r, d, 60, g));
+    expect(f(0)).toEqual(['여유', '적정', '도전', '도전']);
+    expect(f(2)).toEqual(['여유', '여유', '적정', '도전']);
+    expect(f(3.5)).toEqual(['여유', '여유', '여유', '적정']);
   });
   it('순차 구간 장소는 70의 길에서 그 난이도에 들어가는 레벨 기준 (어려움 · 악몽 = 밸런스 기준 플레이어와 같음), 장비 조건 없음', () => {
     for (const x of CONTENT.filter(y => rampPlace(y) && y.ready)) {
@@ -89,11 +97,11 @@ describe('장소 레벨대 장비 등급 (86)', () => {
         healed: 1, overheal: 0, dispels: 0, dispellable: 0, endMana: 1, minMana: 1, auto: false, party: [], detail: [] }, rngFrom(i + 1)).items[0].grade);
       return seen;
     };
-    expect(grades('abyssedge').has('고급')).toBe(false);
-    expect(grades('plateau').has('고급')).toBe(true);
+    expect(grades('abyssedge').has('일반')).toBe(false); // 둘째 등급대 악몽은 바닥이 고급 (88)
+    expect(grades('plateau').has('일반')).toBe(true);
   });
   it('출전 화면 확률 = 그 장소 등급대 표', () => {
-    expect(gearGradeOdds('쉬움', 0, 30, 'B', false, contentOf('snowlab').stageLv)['고급']).toBeCloseTo(0.8, 9);
+    expect(gearGradeOdds('쉬움', 0, 30, 'B', false, contentOf('snowlab').stageLv)['고급']).toBeCloseTo(0.3, 9);
     expect(gearGradeOdds('쉬움', 0, 30, 'B', false, contentOf('plateau').stageLv)['일반']).toBeCloseTo(1, 9);
   });
 });

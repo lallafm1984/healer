@@ -1,7 +1,7 @@
 /** 장비 강화·분해·드롭 (02 10장, 12 3장) */
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  avgScore, clearMats, ENHANCE_DROP_FROM, ENHANCE_RATE, enhanceCost, equippedStats, gearStatsOf, ilvMult, pctLvMult, itemName, itemScore, itemStats, kindsOf, makeItem, OPTION_LINES, optionsOf, randomLines, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, takenStats, STAT_POINT, isPointStat, toPoints, type GearItem,
+  avgScore, clearMats, ENHANCE_DROP_FROM, ENHANCE_RATE, enhanceCost, equippedStats, gearStatsOf, ilvMult, pctLvMult, itemName, itemScore, itemStats, kindsOf, makeItem, OPTION_LINES, optionsOf, randomLines, rollItem, salvageOf, SLOTS, STAT_KEYS, statsToGear, takenStats, STAT_POINT, isPointStat, toPoints, LINE_MULT, type GearItem,
 } from '../src/data/equipment';
 import { HEALER_HP } from '../src/game/charinfo';
 import { INT_BASE, RULES } from '../src/data/rules';
@@ -137,28 +137,30 @@ describe('세트 없음', () => {
 
 describe('아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비의 성능을 달리 하자」)', () => {
   const staff = (lv?: number) => item({ slot: 'weapon', kind: 'staff', grade: '영웅', lv });
+  // 영웅 줄 배율 (88: 1 → 1.25)
+  const H = LINE_MULT['영웅'];
   it('지능 · 체력 = 지금 값 × 아이템 레벨 세기 ÷ 내 레벨 세기: 같은 레벨이면 그대로, 낮은 곳 장비는 레벨이 오를수록 약해짐', () => {
-    expect(itemStats(staff(100), 100).int).toBeCloseTo(0.12);
-    expect(itemStats(staff(30), 30).int).toBeCloseTo(0.12);
-    expect(itemStats(staff(), 100).int).toBeCloseTo(0.12); // 아이템 레벨 없음 = 배율 1
+    expect(itemStats(staff(100), 100).int).toBeCloseTo(0.12 * H);
+    expect(itemStats(staff(30), 30).int).toBeCloseTo(0.12 * H);
+    expect(itemStats(staff(), 100).int).toBeCloseTo(0.12 * H); // 아이템 레벨 없음 = 배율 1
     // 녹슨 고원 악몽 (적 Lv 7) 영웅 지팡이를 Lv 100이 끼면 약 1/10
     expect(ilvMult(7, 100)).toBeCloseTo(str(7) / str(100));
-    expect(itemStats(staff(7), 100).int).toBeCloseTo(0.12 * str(7) / str(100));
-    expect(itemStats(staff(7), 100).int).toBeLessThan(0.015);
+    expect(itemStats(staff(7), 100).int).toBeCloseTo(0.12 * H * str(7) / str(100));
+    expect(itemStats(staff(7), 100).int).toBeLessThan(0.015 * H);
     expect(ilvMult(50, 100)).toBeGreaterThan(0.44); // Lv 50 장비를 Lv 100에서 = 약 45% (정점 수련 포함)
     expect(ilvMult(50, 100)).toBeLessThan(0.46);
     // 내 레벨보다 높은 곳 장비는 더 셈 (Lv 3에서 녹슨 고원 어려움 = 적 Lv 5)
-    expect(itemStats(staff(5), 3).int).toBeGreaterThan(0.12);
+    expect(itemStats(staff(5), 3).int).toBeGreaterThan(0.12 * H);
     // 지능 · 체력은 주 옵션 · 무작위 옵션 · 강화 모두 같은 배율, 치명타 · 가속 · 정신력 · 인내는 내 레벨과 상관없는 % (Lim 「10%가 9%로 떨어지면 헷갈림」)
     const it = { ...staff(10), plus: 5, lines: [{ stat: 'spirit' as const, roll: 1 }, { stat: 'hp' as const, roll: 0.8 }] };
     const same = optionsOf(it, 10), low = optionsOf(it, 20);
     for (let i = 0; i < same.length; i++) expect(low[i].v).toBeCloseTo(same[i].v * (same[i].stat === 'int' || same[i].stat === 'hp' ? ilvMult(10, 20) : 1));
     // 2026-10-16 Lim 「레벨별로 모든 수치가 레벨에 맞게」: % 옵션은 아이템 레벨로 75~125% (그 장비에서는 레벨업해도 그대로)
-    expect(itemStats(staff(7), 100).haste).toBeCloseTo(0.05 * 1.3 * pctLvMult(7));
+    expect(itemStats(staff(7), 100).haste).toBeCloseTo(0.05 * 1.3 * H * pctLvMult(7));
     expect(itemStats(staff(7), 30).haste).toBeCloseTo(itemStats(staff(7), 100).haste);
-    expect(itemStats(staff(100), 100).haste).toBeCloseTo(0.05 * 1.3 * 1.25);
-    expect(itemStats(staff(1), 1).haste).toBeCloseTo(0.05 * 1.3 * 0.75);
-    expect(itemStats(staff(50), 50).haste).toBeCloseTo(0.05 * 1.3, 2);
+    expect(itemStats(staff(100), 100).haste).toBeCloseTo(0.05 * 1.3 * H * 1.25);
+    expect(itemStats(staff(1), 1).haste).toBeCloseTo(0.05 * 1.3 * H * 0.75);
+    expect(itemStats(staff(50), 50).haste).toBeCloseTo(0.05 * 1.3 * H, 2);
     expect(gearStatsOf({ weapon: staff(7) }, 100).heal).toBeLessThan(gearStatsOf({ weapon: staff(100) }, 100).heal);
   });
   it('옵션은 % 대신 수치 (Lim 「아이템 수치를 퍼센트가 아닌 수치로 하여 레벨별 아이템으로」): 장비마다 고정, 아이템 레벨이 높을수록 큼', () => {
@@ -168,9 +170,9 @@ describe('아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비�
     expect(isPointStat('int') && isPointStat('hp')).toBe(true);
     expect(['crit', 'haste', 'spirit', 'endure'].some(k => isPointStat(k as never))).toBe(false);
     const pts = (it: GearItem, lv: number) => toPoints('int', itemStats(it, lv).int, lv);
-    // Lv 100 장소 영웅 지팡이 지능 ≈ 226 (정점 수련 포함), 녹슨 고원 악몽 것 ≈ 20. 내 레벨이 바뀌어도 수치는 그대로
-    expect(Math.round(pts(staff(100), 100))).toBe(Math.round(0.12 * 180 * str(100)));
-    expect(Math.round(pts(staff(7), 100))).toBe(Math.round(0.12 * 180 * str(7)));
+    // Lv 100 장소 영웅 지팡이 지능 ≈ 283 (정점 수련 포함), 녹슨 고원 악몽 것 ≈ 25. 내 레벨이 바뀌어도 수치는 그대로
+    expect(Math.round(pts(staff(100), 100))).toBe(Math.round(0.12 * H * 180 * str(100)));
+    expect(Math.round(pts(staff(7), 100))).toBe(Math.round(0.12 * H * 180 * str(7)));
     for (const lv of [1, 30, 100]) expect(pts(staff(7), lv)).toBeCloseTo(pts(staff(7), 7));
     expect(pts(staff(100), 100)).toBeGreaterThan(pts(staff(7), 100) * 9);
   });
@@ -230,8 +232,8 @@ describe('클리어 재료', () => {
 });
 
 describe('장비 종류 · 옵션 (34 6-2 ~ 6-5)', () => {
-  it('옵션 줄 수 (Lim 2026-10-11): 일반 1 · 고급 2 · 희귀 3 · 영웅 4 · 전설 4, 특수능력 · 고유 능력 줄은 따로', () => {
-    expect(OPTION_LINES).toEqual({ '일반': 1, '고급': 2, '희귀': 3, '영웅': 4, '전설': 4 });
+  it('옵션 줄 수 (Lim 2026-10-11, 88 전설 5): 일반 1 · 고급 2 · 희귀 3 · 영웅 4 · 전설 5, 특수능력 · 고유 능력 줄은 따로', () => {
+    expect(OPTION_LINES).toEqual({ '일반': 1, '고급': 2, '희귀': 3, '영웅': 4, '전설': 5 });
     const r = rngFrom(5);
     for (let i = 0; i < 3000; i++) {
       const it = rollItem(r, '악몽', 'S', 60, i);
@@ -252,29 +254,30 @@ describe('장비 종류 · 옵션 (34 6-2 ~ 6-5)', () => {
     }
   });
   it('강화는 주 · 종류 · 무작위 옵션 모두 +8%씩 (2026-10-16 Lim 「특수능력을 제외한 모든 옵션」)', () => {
-    const staff = item({ slot: 'weapon', kind: 'staff', grade: '영웅' });
-    expect(itemStats(staff, 30).int).toBeCloseTo(0.12);
-    expect(itemStats(staff, 30).haste).toBeCloseTo(0.05 * 1.3);
+    const staff = item({ slot: 'weapon', kind: 'staff', grade: '영웅' }), H = LINE_MULT['영웅'], R = LINE_MULT['희귀'];
+    expect(itemStats(staff, 30).int).toBeCloseTo(0.12 * H);
+    expect(itemStats(staff, 30).haste).toBeCloseTo(0.05 * 1.3 * H);
     expect(itemStats(staff, 30).hp).toBe(0);
     const s5 = itemStats({ ...staff, plus: 5 }, 30);
-    expect(s5.int).toBeCloseTo(0.12 * 1.4);
-    expect(s5.haste).toBeCloseTo(0.05 * 1.3 * 1.4);
+    expect(s5.int).toBeCloseTo(0.12 * H * 1.4);
+    expect(s5.haste).toBeCloseTo(0.05 * 1.3 * H * 1.4);
     const l5 = itemStats({ ...staff, plus: 5, lines: [{ stat: 'crit', roll: 1 }] }, 30);
-    expect(l5.crit).toBeCloseTo(0.04 * 1.3 * 1.4);
+    expect(l5.crit).toBeCloseTo(0.04 * 1.3 * H * 1.4);
     const robe = itemStats(item({ slot: 'chest', kind: 'robe', grade: '희귀', plus: 10 }), 30);
-    expect(robe.hp).toBeCloseTo(0.18 * 0.85 * 1.8);
-    expect(robe.spirit).toBeCloseTo(0.08 * 1.3 * 0.85 * 1.8);
+    expect(robe.hp).toBeCloseTo(0.18 * R * 1.8);
+    expect(robe.spirit).toBeCloseTo(0.08 * 1.3 * R * 1.8);
     expect(robe.int).toBe(0);
     const signet = itemStats(item({ slot: 'ring', kind: 'signet', grade: '영웅', plus: 5 }), 30);
     expect(signet.int).toBe(0);
-    expect(signet.haste).toBeCloseTo(0.05 * 1.4);
+    expect(signet.haste).toBeCloseTo(0.05 * H * 1.4);
   });
   it('무작위 옵션 값 = 능력치 기준값 × 부위 배율 × 등급 배율 × 굴림', () => {
     const it = item({ slot: 'hands', kind: 'gloves', grade: '전설', lines: [{ stat: 'crit', roll: 0.75 }, { stat: 'spirit', roll: 1 }] });
     const s = itemStats(it, 30);
-    expect(s.crit).toBeCloseTo(0.04 * 1.3 * 1.2 * 0.75);
-    expect(s.spirit).toBeCloseTo(0.08 * 1.3 * 1.2);
-    expect(s.int).toBeCloseTo(0.1 * 1.2);
+    const L = LINE_MULT['전설'];
+    expect(s.crit).toBeCloseTo(0.04 * 1.3 * L * 0.75);
+    expect(s.spirit).toBeCloseTo(0.08 * 1.3 * L);
+    expect(s.int).toBeCloseTo(0.1 * L);
   });
   it('치명타 · 가속 · 인내는 합 상한까지, 지능은 45% 넘는 몫이 절반 (2026-10-12)', () => {
     const g = statsToGear({ int: 0.5, hp: 0.4, crit: 0.7, haste: 0.6, spirit: 0.3, endure: 0.45 });
@@ -287,13 +290,9 @@ describe('장비 종류 · 옵션 (34 6-2 ~ 6-5)', () => {
       const st = equippedStats(eq, 30);
       for (const k of STAT_KEYS) sum[k] += st[k] / n;
     }
-    const p = gearStats('rare5');
-    expect(1 + sum.int).toBeCloseTo(p.heal, 2);
-    expect(1 + sum.spirit).toBeCloseTo(p.regen, 2);
-    expect(sum.crit).toBeCloseTo(p.crit, 2);
-    expect(sum.haste).toBeCloseTo(p.haste, 2);
-    expect(sum.hp).toBeCloseTo(p.hp!, 2);
-    expect(sum.endure).toBeCloseTo(p.endure!, 2);
+    // 지능은 45% 넘는 몫이 절반 (statsToGear) → 표본 합도 같은 변환으로 비교 (88: 희귀 줄 배율 1.15라 넘음)
+    const p = gearStats('rare5'), q = statsToGear(sum as never);
+    for (const k of ['heal', 'regen', 'crit', 'haste', 'hp', 'endure'] as const) expect(Math.abs(q[k]! - p[k]!), k).toBeLessThan(0.01);
   });
   it('전투: 체력은 내 최대 체력, 인내는 내가 받는 피해를 줄임', () => {
     const base = E.create({ encounter: 'warden', diff: '보통', seed: 1 });

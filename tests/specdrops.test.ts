@@ -1,7 +1,7 @@
 /** 특수능력이 붙는 장비 (42 1장 · 3장): 등급별 줄 수 · 부위 · 최소 등급 · 직업 전용 · 자주 나오는 것 · 이름 있는 장신구 · 저장 · 도감 */
 import { describe, expect, it } from 'vitest';
 import {
-  FEATURED_WEIGHT, ITEM_GRADES, itemName, itemScore, KIND_WEIGHT, KINDS, makeItem, NAMED_CHANCE, PLACE_KINDS, rollItem, rollSpecs, SLOTS, SPEC_ADV, SPEC_LINES, specKeysOf, specsOf,
+  FEATURED_WEIGHT, ITEM_GRADES, itemName, itemScore, KIND_WEIGHT, KINDS, makeItem, makeLegend, PLACE_KINDS, rollItem, rollSpecs, SLOTS, SPEC_LINES, specKeysOf, specsOf,
   type GearItem, type ItemGrade, type SlotKey,
 } from '../src/data/equipment';
 import { codexKeys, FEATURED, NAMED, namedOf, namedsFor, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, type CodexGroup } from '../src/data/specials';
@@ -10,6 +10,7 @@ import { rngFrom } from '../src/engine/rng';
 import { migrate, newSave, noteSpecs } from '../src/platform/storage';
 import { exchangeMerit } from '../src/game/economy';
 import { GEAR_SPECS, GEARS, presetSpecs, type GearId } from '../src/data/gear';
+import { uniquesFor } from '../src/data/uniques';
 
 const gi = (g: ItemGrade) => ITEM_GRADES.indexOf(g);
 const many = (n: number, f: (r: () => number, i: number) => GearItem) => {
@@ -18,16 +19,14 @@ const many = (n: number, f: (r: () => number, i: number) => GearItem) => {
 };
 
 describe('드롭 줄 수 · 부위 · 등급', () => {
-  it('일반 0줄 · 희귀 · 영웅 1줄 · 전설은 고유 능력 1줄 (굴림 없이 최대 × 1.5), 고급은 20% 안팎으로 1줄', () => {
-    for (const g of ['일반', '희귀', '영웅', '전설'] as const) for (const it of many(300, (r, i) => makeItem(r, SLOTS[i % 6].key, g, i))) {
-      expect(it.specs!.length).toBe(SPEC_LINES[g]);
+  it('특수능력은 영웅부터 (88, Lim): 일반 · 고급 · 희귀 0줄 · 영웅 1줄 · 전설은 고유 능력 1줄 (굴림 없이 최대 × 1.5) + 특수능력 1줄', () => {
+    expect(SPEC_LINES).toEqual({ '일반': 0, '고급': 0, '희귀': 0, '영웅': 1, '전설': 1 });
+    for (const g of ITEM_GRADES) for (const it of many(300, (r, i) => makeItem(r, SLOTS[i % 6].key, g, i))) {
+      expect(it.specs!.length).toBe(SPEC_LINES[g] + (g === '전설' ? 1 : 0));
       expect(new Set(it.specs!.map(l => SPECS[l.key].group)).size).toBe(it.specs!.length);
-      expect(it.specs!.every(l => !!l.legend === (g === '전설'))).toBe(true);
-      if (g === '전설') expect(it.specs![0].roll).toBe(1);
+      expect(it.specs!.filter(l => l.legend).length).toBe(g === '전설' ? 1 : 0);
+      if (g === '전설') expect(it.specs![0]).toMatchObject({ roll: 1, legend: true });
     }
-    const adv = many(4000, (r, i) => makeItem(r, SLOTS[i % 6].key, '고급', i));
-    expect(adv.every(it => it.specs!.length <= 1)).toBe(true);
-    expect(adv.filter(it => it.specs!.length).length / adv.length).toBeCloseTo(SPEC_ADV, 1);
   });
   it('그 부위에 나오는 것 · 최소 등급 이하만, 값 고정이면 굴림 1, 아니면 0.6~1', () => {
     for (const it of many(3000, (r, i) => makeItem(r, SLOTS[i % 6].key, ITEM_GRADES[1 + (i % 4)], i))) for (const l of it.specs!) {
@@ -73,25 +72,27 @@ describe('드롭 줄 수 · 부위 · 등급', () => {
 });
 
 describe('이름 있는 장신구 (42 3장, Lim 2026-10-11 「전설에만 고유 능력」)', () => {
-  it('전설 · 그 장소 · 그 부위에서 25% 안팎, 고유 효과가 고유 능력 (다른 특수능력 없음), 이름은 장신구 이름', () => {
+  it('전설 (88): 그 20인 구역의 고유 장비 · 이름 있는 장신구가 고르게, 고유 효과가 고유 능력 + 특수능력 1줄, 이름은 장신구 이름', () => {
     const cog = NAMED.find(n => n.key === 'rustyCog')!;
-    const its = many(4000, (r, i) => makeItem(r, cog.slot, '전설', i, undefined, { place: cog.place }));
-    const named = its.filter(it => it.named);
-    expect(named.length / its.length).toBeCloseTo(NAMED_CHANCE, 1);
+    const pool = SLOTS.reduce((n, s) => n + uniquesFor(cog.place, s.key).length + namedsFor(cog.place, s.key).length, 0);
+    const its = many(3000, (r, i) => makeLegend(r, i, { place: cog.place })!);
+    expect(its.every(it => it.grade === '전설' && (!!it.named || !!it.unique))).toBe(true);
+    const named = its.filter(it => it.named === 'rustyCog');
+    expect(named.length / its.length).toBeGreaterThan(0.7 / pool);
+    expect(named.length / its.length).toBeLessThan(1.3 / pool);
     for (const it of named) {
-      expect(it.named).toBe('rustyCog');
+      expect(it.slot).toBe(cog.slot);
       expect(it.name).toBe('녹슨 톱니');
       expect(itemName(it)).toBe('녹슨 톱니');
-      expect(it.specs).toEqual([]);
+      expect(it.specs).toHaveLength(1);
+      expect(it.specs![0].legend).toBeUndefined();
     }
-    for (const it of its.filter(x => !x.named)) expect(it.specs).toMatchObject([{ roll: 1, legend: true }]);
   });
-  it('전설이 아니면 · 다른 부위 · 다른 장소에서는 안 나옴', () => {
+  it('전설이 아니면 · 20인 구역이 아니면 안 나옴', () => {
     const cog = NAMED.find(n => n.key === 'rustyCog')!;
-    for (const g of ['일반', '고급', '희귀', '영웅'] as const) expect(many(1000, (r, i) => makeItem(r, cog.slot, g, i, undefined, { place: cog.place })).some(it => it.named)).toBe(false);
-    // 다른 부위: 그 구역 반지 것만 (목걸이 것은 안 나옴)
-    expect(many(2000, (r, i) => makeItem(r, 'ring', '전설', i, undefined, { place: cog.place })).every(it => !it.named || namedOf(it.named)!.slot === 'ring')).toBe(true);
-    expect(many(2000, (r, i) => makeItem(r, cog.slot, '전설', i, undefined, { place: 'marsh' })).some(it => it.named)).toBe(false);
+    for (const g of ITEM_GRADES) expect(many(500, (r, i) => makeItem(r, cog.slot, g, i, undefined, { place: cog.place })).some(it => it.named || it.unique)).toBe(false);
+    expect(makeLegend(rngFrom(1), 1, { place: 'marsh' })).toBeNull();
+    expect(namedOf('rustyCog')!.slot).toBe(cog.slot);
   });
   it('떨어지는 장소는 모두 있는 장소 (20인 구역, 같은 부위가 여럿이면 그중 하나)', () => {
     for (const n of NAMED) {
@@ -128,17 +129,31 @@ describe('장소마다 잘 나오는 장비 종류 (39 4장)', () => {
     const old = many(6000, (r, i) => rollItem(r, '보통', 'B', 30, i));
     for (const s of SLOTS) expect(old.filter(it => it.slot === s.key).length / old.length).toBeCloseTo(1 / 6, 1);
   });
-  it('등급 상한 (61 3장): 탐험 · 던전 쉬움 일반 · 보통 고급 · 어려움 희귀 · 악몽 영웅, 레이드 쉬움 · 보통 희귀 · 어려움 영웅, 전설은 20인 악몽만', () => {
-    const top = (diff: '쉬움' | '보통' | '어려움' | '악몽', raid: 0 | 10 | 20) => {
-      const its = many(3000, (r, i) => rollItem(r, diff, 'S', 100, i, { place: 'abyssedge', raid, bonus: true }));
+  it('등급 (88, Lim 「초반에는 희귀까지만 · 중반부터 희박하게 영웅 · 전설은 100레벨부터」)', () => {
+    const DS = ['쉬움', '보통', '어려움', '악몽'] as const;
+    const top = (diff: (typeof DS)[number], raid: 0 | 10 | 20, lv: number) => {
+      const its = many(3000, (r, i) => rollItem(r, diff, 'S', lv, i, { place: 'cathedral1', raid, bonus: true, tierLv: lv }));
       return ITEM_GRADES[Math.max(...its.map(it => gi(it.grade)))];
     };
-    expect([top('쉬움', 0), top('보통', 0), top('어려움', 0), top('악몽', 0)]).toEqual(['일반', '고급', '희귀', '영웅']);
-    expect([top('쉬움', 10), top('보통', 10), top('어려움', 10), top('악몽', 10)]).toEqual(['희귀', '희귀', '영웅', '영웅']);
-    expect([top('쉬움', 20), top('보통', 20), top('어려움', 20), top('악몽', 20)]).toEqual(['희귀', '희귀', '영웅', '전설']);
-    // 10인 악몽은 어려움보다 영웅이 잘 나옴
-    const epic = (diff: '어려움' | '악몽') => many(3000, (r, i) => rollItem(r, diff, 'B', 100, i, { raid: 10 })).filter(it => it.grade === '영웅').length;
-    expect(epic('악몽')).toBeGreaterThan(epic('어려움') * 1.5);
+    // Lv 44까지는 어디서든 희귀까지 (탐험 · 던전 쉬움은 고급까지)
+    expect(DS.map(d => top(d, 0, 44))).toEqual(['고급', '희귀', '희귀', '희귀']);
+    expect(DS.map(d => top(d, 10, 44))).toEqual(['희귀', '희귀', '희귀', '희귀']);
+    // Lv 100: 영웅 (탐험 · 던전 쉬움은 없음), 전설은 20인 어려움 · 악몽만
+    expect(DS.map(d => top(d, 0, 100))).toEqual(['희귀', '영웅', '영웅', '영웅']);
+    expect(DS.map(d => top(d, 10, 100))).toEqual(['영웅', '영웅', '영웅', '영웅']);
+    expect(DS.map(d => top(d, 20, 100))).toEqual(['영웅', '영웅', '전설', '전설']);
+    expect(top('악몽', 20, 99)).toBe('영웅');
+    // 영웅은 레벨이 오를수록 늘어남 (10인 악몽)
+    const epic = (lv: number) => many(4000, (r, i) => rollItem(r, '악몽', 'B', lv, i, { raid: 10, tierLv: lv })).filter(it => it.grade === '영웅').length;
+    const [e50, e75, e100] = [epic(50), epic(75), epic(100)];
+    expect(e50).toBeGreaterThan(0);
+    expect(e50).toBeLessThan(4000 * 0.05);
+    expect(e75).toBeGreaterThan(e50 * 2);
+    expect(e100).toBeGreaterThan(e75 * 1.3);
+    // 20인 전설은 그 구역의 고유 장비 · 이름 있는 장신구
+    const lg = many(3000, (r, i) => rollItem(r, '악몽', 'S', 100, i, { place: 'cathedral1', raid: 20, bonus: true })).filter(it => it.grade === '전설');
+    expect(lg.length).toBeGreaterThan(0);
+    expect(lg.every(it => !!it.unique || !!it.named)).toBe(true);
   });
 });
 
@@ -163,10 +178,12 @@ describe('착용 장비 → 전투 특수능력 값 (42 1-3 · 1-5)', () => {
 });
 
 describe('시뮬 프리셋 대표 특수능력 (42 1-7)', () => {
-  it('장비 없음은 빈 값, 고급 1줄, 희귀 · 영웅은 부위마다 1줄 (공통 특수능력, 그 부위 · 등급에 나오는 것)', () => {
+  it('장비 없음 · 고급 · 희귀는 빈 값 (88: 특수능력은 영웅부터), 영웅은 부위마다 1줄 (공통 특수능력, 그 부위 · 등급에 나오는 것)', () => {
     expect(presetSpecs('none', 'priest')).toEqual({});
-    expect(GEAR_SPECS.adv0.length).toBe(1);
-    for (const id of ['rare5', 'epic5'] as GearId[]) expect(GEAR_SPECS[id].length).toBe(SLOTS.length);
+    expect(presetSpecs('adv0', 'priest')).toEqual({});
+    expect(presetSpecs('rare5', 'priest')).toEqual({});
+    expect(GEAR_SPECS.adv0.length + GEAR_SPECS.rare5.length).toBe(0);
+    expect(GEAR_SPECS.epic5.length).toBe(SLOTS.length);
     for (const id of Object.keys(GEARS) as GearId[]) {
       const g = GEARS[id].g;
       GEAR_SPECS[id].forEach((k, i) => {
@@ -178,8 +195,7 @@ describe('시뮬 프리셋 대표 특수능력 (42 1-7)', () => {
     }
   });
   it('값 = 그 등급 · 가운데 굴림, 등급이 오르면 커짐', () => {
-    expect(presetSpecs('adv0', 'priest').warmTouch).toBeCloseTo(0.06 * 0.6 * 0.8);
-    expect(presetSpecs('epic5', 'druid').wideEmbrace).toBeGreaterThan(presetSpecs('rare5', 'druid').wideEmbrace);
+    expect(presetSpecs('epic5', 'druid').wideEmbrace).toBeCloseTo(0.06 * 1 * 0.8);
   });
 });
 
@@ -188,7 +204,7 @@ describe('저장 · 도감 (42 1-6)', () => {
     const old = { v: 7, hero: 'priest', nextId: 9, gear: { equipped: { weapon: { id: 3, slot: 'weapon', kind: 'staff', grade: '전설', plus: 2, name: 'x', lines: [] } }, bag: [{ id: 5, slot: 'ring', kind: 'ring', grade: '희귀', plus: 0, name: 'y', lines: [] }], seen: 4 } };
     const a = migrate(JSON.parse(JSON.stringify(old))), b = migrate(JSON.parse(JSON.stringify(old)));
     expect(a.gear.equipped.weapon!.specs).toMatchObject([{ roll: 1, legend: true }]); // 전설은 고유 능력 한 줄
-    expect(a.gear.bag[0].specs!.length).toBe(1);
+    expect(a.gear.bag[0].specs!.length).toBe(0); // 88: 희귀는 특수능력 없음
     expect(a.gear).toEqual(b.gear);
     expect(migrate(JSON.parse(JSON.stringify(a))).gear).toEqual(a.gear);
     expect(a.gear.codex.sort()).toEqual([...new Set([...specKeysOf(a.gear.equipped.weapon!), ...specKeysOf(a.gear.bag[0])])].sort());
@@ -213,8 +229,8 @@ describe('저장 · 도감 (42 1-6)', () => {
     expect(nm.named).toBeUndefined();
     expect(nm.specs).toHaveLength(1);
     expect(leg.specs).toEqual([{ key: 'warmTouch', roll: 1, legend: true }]);
-    expect(leg.lines).toHaveLength(3);
-    expect(legNm).toMatchObject({ named: 'rustyCog', specs: [], name: '녹슨 톱니' });
+    expect(leg.lines).toHaveLength(4); // 88: 전설 옵션 5줄 (반지 = 종류 1 + 무작위 4)
+    expect(legNm).toMatchObject({ named: 'rustyCog', specs: [{ key: 'warmTouch', roll: 0.8 }], name: '녹슨 톱니' }); // 88: 고유 능력 + 특수능력 1줄
   });
   it('처음 얻은 특수능력만 새것으로 알려 줌', () => {
     const s = newSave(1);

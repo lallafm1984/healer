@@ -49,6 +49,7 @@ import './battle/popovers.css';
 import './screens/stamina.css';
 import './screens/departure-hall.css';
 import './screens/guide.css';
+import './screens/legend.css';
 import './battle/class-gauge.css';
 import './battle/class-controls.css';
 import './screens/talent-sheet.css';

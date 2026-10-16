@@ -38,7 +38,7 @@ function resArt(k: ContentKey): string {
 }
 
 /** 이름 글자 색 (캐릭터 탭과 같음) */
-const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#8BEA9C', '희귀': '#8DBEFF', '영웅': '#D7A6FF', '전설': '#FFC07A' };
+const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#8BEA9C', '희귀': '#8DBEFF', '영웅': '#D7A6FF', '전설': '#FFE680' };
 
 function render(): void {
   resultModal.beforeRender();
@@ -147,10 +147,10 @@ function itemRow(id: number): string {
   // 영웅 · 전설은 장비 칸 뒤로 등급 색 빛기둥 (36 4-6 fx-loot-beam, 흰 그림을 등급 색으로 칠함). 효과 줄이기면 움직이지 않음
   const bu = it.grade === '영웅' || it.grade === '전설' ? art('fx-loot-beam') : '';
   const beam = bu ? `<span class="r-beam${G.save.settings.reducedEffects ? ' calm' : ''}" style="--beam:url('${bu}')" aria-hidden="true"></span>` : '';
-  // 고유 장비는 빛기둥 위에 리본 · 별이 한 번 퍼짐 (50 E fx-unique-drop, 장비 칸 뒤). 효과 줄이기면 없음
-  const drop = it.unique && !G.save.settings.reducedEffects ? fxArt('fx-unique-drop', 'r-udrop') : '';
+  // 전설 (고유 장비 · 이름 있는 장신구, 88)은 빛기둥 위에 리본 · 별이 한 번 퍼짐 (50 E fx-unique-drop, 장비 칸 뒤). 효과 줄이기면 없음
+  const drop = it.grade === '전설' && !G.save.settings.reducedEffects ? fxArt('fx-unique-drop', 'r-udrop') : '';
   return `<button type="button" class="r-item" data-reward-item="${id}" aria-haspopup="dialog" aria-label="${esc(it.name)}${it.plus ? ` +${it.plus}` : ''} 상세 보기" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
-      ${beam}${drop}<span class="r-ic">${gearIcon(it)}</span>
+      ${beam}${drop}<span class="r-ic${it.grade === '전설' ? ' lg' : ''}">${gearIcon(it)}</span>
       <span class="r-nm"><b>${esc(it.name)}${it.plus ? ` +${it.plus}` : ''}</b><span class="r-gs"><i class="r-gr">${it.grade}</i><span class="r-sc">점수 ${sc}${delta}</span><small>${slotName(it.slot)} · ${esc(kindOf(it).name)}</small></span>${spTxt}</span>
       ${act}
     </button>`;

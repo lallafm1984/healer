@@ -1,7 +1,7 @@
 /** v12: 한 캐릭터 공통 성장, 직업별 세팅, 출전 직업 장비 보상 */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { UNIQUES } from '../src/data/uniques';
-import { ITEM_GRADES, itemSpecs, makeItem, SLOTS, specsOf } from '../src/data/equipment';
+import { ITEM_GRADES, itemSpecs, makeItem, makeLegend, SLOTS, specsOf } from '../src/data/equipment';
 import { HERO_KEYS } from '../src/data/heroes';
 import { SPECS, SPEC_KEYS, specTotals } from '../src/data/specials';
 import * as E from '../src/engine';
@@ -111,13 +111,15 @@ describe('클리어 직업과 보상 횟수', () => {
   });
   it('드롭·클리어 기록은 결과의 출전 직업 기준', () => {
     const rng = rngFrom(7);
-    const xs = Array.from({length:100}, () => settle(G.save, result({ hero: 'druid' }), rng, [], now));
+    // 88: 특수능력은 영웅부터 → 영웅이 나오는 곳 (Lv 100 장소 악몽)
+    G.save.player.level = 100;
+    const xs = Array.from({length:100}, () => settle(G.save, result({ hero: 'druid', content: 'dawn', diff: '악몽', stage: 100 }), rng, [], now));
     const defs = xs.flatMap(x => x.items).flatMap(itemSpecs).map(s => SPECS[s.key]).filter(d => d?.hero);
     expect(defs.length).toBeGreaterThan(0); expect(defs.every(d => d.hero === 'druid')).toBe(true);
     expect(G.save.heroes.druid?.wins).toBe(100); expect(G.save.heroes.priest?.wins ?? 0).toBe(0);
   });
   it('주간 상자는 다른 직업에서 받아도 최고 기록 직업 장비, 한 번만 지급', () => {
-    G.save.chalChest = 20; G.save.chalChestHero = 'druid';
+    G.save.chalChest = 20; G.save.chalChestHero = 'druid'; G.save.player.level = 60; // 88: 영웅 상자는 Lv 45부터
     const g = claimChalChest(G.save, () => .1, now);
     expect(typeof g).toBe('object'); if (typeof g === 'string') throw new Error(g);
     expect(g.items).toHaveLength(2);
@@ -137,26 +139,26 @@ describe('직업별 드롭 풀', () => {
       expect(ds).toHaveLength(24); expect(ds.filter(d => d.skillMod).length).toBeGreaterThanOrEqual(8);
     }
   });
-  it('전 부위 희귀·영웅·일반 전설: 1줄 유지, 전용 약 70%, 타 직업 효과 없음', () => {
+  it('전 부위 영웅 1줄 · 일반 전설 2줄 (고유 능력 + 특수능력, 88), 영웅 전용 약 70%, 타 직업 효과 없음', () => {
     const r = rngFrom(714); let jobs = 0, count = 0;
-    for (const hero of HERO_KEYS) for (const slot of SLOTS) for (const grade of ['희귀','영웅','전설'] as const) for (let i=0; i<80; i++) {
+    for (const hero of HERO_KEYS) for (const slot of SLOTS) for (const grade of ['영웅','전설'] as const) for (let i=0; i<80; i++) {
       const it = makeItem(r, slot.key, grade, i, undefined, { hero, classLoot: true });
       const specs = itemSpecs(it).map(s => SPECS[s.key]);
       const job = specs.filter(d => d.hero);
-      expect(job.every(d => d.hero === hero)).toBe(true); jobs += job.length; count++;
+      expect(job.every(d => d.hero === hero)).toBe(true);
+      if (grade === '영웅') { jobs += job.length; count++; }
       expect(new Set(specs.map(d => d.group)).size).toBe(specs.length);
-      expect(specs.length).toBe(1);
+      expect(specs.length).toBe(grade === '영웅' ? 1 : 2);
       for (const d of specs) expect(ITEM_GRADES.indexOf(d.min)).toBeLessThanOrEqual(ITEM_GRADES.indexOf(grade));
     }
     expect(jobs/count).toBeGreaterThan(.67); expect(jobs/count).toBeLessThan(.73);
   });
-  it('등급·전설 고유 효과 계약 유지: 일반은 특수능력 없음, 고급은 확률, 고유 전설은 원래 효과', () => {
-    expect(itemSpecs(makeItem(() => .1, 'weapon', '일반', 1, undefined, { hero: 'priest', classLoot: true }))).toEqual([]);
-    const r = rngFrom(7), advanced = Array.from({length:100},(_,i) => makeItem(r,'head','고급',i,undefined,{hero:'druid',classLoot:true}));
-    expect(advanced.some(it => !it.specs?.length)).toBe(true); expect(advanced.some(it => it.specs?.length)).toBe(true);
-    const def = UNIQUES[0];
-    const un = makeItem(() => 0, def.slot, '전설', 1, undefined, { hero:'priest', classLoot:true, place:def.place });
-    expect(un.unique).toBeTruthy(); expect(itemSpecs(un)).toHaveLength(1);
+  it('등급·전설 고유 효과 계약: 일반 · 고급 · 희귀는 특수능력 없음 (88), 고유 전설은 원래 효과 + 특수능력 1줄', () => {
+    for (const g of ['일반', '고급', '희귀'] as const) expect(itemSpecs(makeItem(rngFrom(3), 'weapon', g, 1, undefined, { hero: 'priest', classLoot: true }))).toEqual([]);
+    const def = UNIQUES[0], r = rngFrom(7);
+    let un = makeLegend(r, 1, { hero:'priest', classLoot:true, place:def.place })!;
+    for (let i = 0; !un.unique && i < 200; i++) un = makeLegend(r, 1, { hero:'priest', classLoot:true, place:def.place })!;
+    expect(un.unique).toBeTruthy(); expect(itemSpecs(un)).toHaveLength(2);
   });
 });
 

@@ -10,11 +10,11 @@ import {
 } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { HEROES } from '../data/heroes';
-import { makeItem, rollItem, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
+import { HERO_FROM, makeItem, rollItem, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
 import {
   CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, WEEKLY, WEEKLY_LV, WEEKLY_N, WEEKLY_REWARD, type MissionDef, type RunEvent,
 } from '../data/missions';
-import { addXp, xpToNext } from '../data/progression';
+import { addXp, MAX_LEVEL, xpToNext } from '../data/progression';
 import { newDaily, newWeekly, noteSpecs, topLevel, type MissionSave, type SaveData } from '../platform/storage';
 import { dayKey, daysBetween, seasonOf, weekKey } from './clock';
 import { TUT } from './tutorial';
@@ -178,11 +178,13 @@ export function claimGuildGoal(save: SaveData): string {
 
 /**
  * 주간 도전 월요일 상자 (13 3-2): 지난주 최고 단계 기준 장비 등급 보장 (2026-10-13 Lim): 5단계 고급 1 · 10 희귀 1 · 15 영웅 1 · 20 영웅 2.
- * 1~4단계는 강화석만 (예전: 고급 1 · 5 희귀 · 10 영웅 · 15 영웅 2 · 20 영웅 3). 전설은 20인 레이드 악몽에서만 (61 3장)
+ * 1~4단계는 강화석만 (예전: 고급 1 · 5 희귀 · 10 영웅 · 15 영웅 2 · 20 영웅 3). 영웅은 받는 캐릭터가 Lv 45부터 (그 전엔 희귀, 88). 전설은 Lv 100 20인 레이드만
  * 강화석 = 5 × (1 + 단계 ÷ 5) (v16: 예전 「골드 그 판 수」를 강화석으로, 1~4단계 5 · 5~9단계 10 … 20단계 25)
  */
-export function chalChestOf(stage: number): { grades: ItemGrade[]; stone: number } {
-  const grades: ItemGrade[] = stage >= 20 ? ['영웅', '영웅'] : stage >= 15 ? ['영웅'] : stage >= 10 ? ['희귀'] : stage >= 5 ? ['고급'] : [];
+export function chalChestOf(stage: number, level = MAX_LEVEL): { grades: ItemGrade[]; stone: number } {
+  // 88: 영웅은 Lv 45 (HERO_FROM)부터. 그 전엔 희귀로 (초반은 희귀까지)
+  const hero: ItemGrade = level >= HERO_FROM ? '영웅' : '희귀';
+  const grades: ItemGrade[] = stage >= 20 ? [hero, hero] : stage >= 15 ? [hero] : stage >= 10 ? ['희귀'] : stage >= 5 ? ['고급'] : [];
   return { grades, stone: 5 * (1 + Math.floor(stage / 5)) };
 }
 export function claimChalChest(save: SaveData, r: () => number, now: number): Gain | string {
@@ -193,7 +195,7 @@ export function claimChalChest(save: SaveData, r: () => number, now: number): Ga
   save.chalChest = 0;
   delete save.chalChestHero;
   // 장비 (아이템 레벨)는 받는 캐릭터 레벨 기준 (2026-10-13 Lim 「보상시 해당 캐릭터 레벨에 기반해서」)
-  const c = chalChestOf(stage), lv = save.player.level;
+  const lv = save.player.level, c = chalChestOf(stage, lv);
   const items = c.grades.map(g => makeItem(r, SLOTS[Math.floor(r() * SLOTS.length)].key, g, save.nextId++, undefined, { hero: h, classLoot: true, lv }));
   return give(save, { stone: c.stone, items, pass: PASS_GAIN.challenge }, now);
 }
