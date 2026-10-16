@@ -281,16 +281,58 @@ describe('특성 (79 2-7)', () => {
     springPulse(f, f.totems[0]);
     expect(absorbLeft(f, u)).toBeCloseTo(Math.min(SP, TX.waterShield.max), 6);
   });
-  it('토템 부르기: 나중에 세운 토템은 고른 칸, 앞 토템은 바로 옆 칸으로 (한 칸에 하나, 남은 시간 그대로)', () => {
+  it('토템 부르기: 나중에 세운 토템은 고른 칸, 앞 토템은 바로 옆 칸으로 (한 칸에 하나), 옮긴 토템 시간은 처음 길이로 · 샘 · 대지 재사용 초기화 (2026-10-16 Lim)', () => {
     const f = fight(['totemCall']), cs = f.cells.filter(c => !c.block).map(c => c.i);
     expect(talentReady(f, 'totemCall').ok).toBe(false);
     placeTotem(f, 'spring', cs[0], 15); placeTotem(f, 'earth', cs[1], 10);
-    const until = f.totems.map(t => t.until);
+    f.t += 7; f.cd.springTotem = 3; f.cd.earthTotem = 83;
     expect(useTalent(f, 'totemCall', cs[2]).ok).toBe(true);
     const [spring, earth] = f.totems;
     expect(earth.cell).toBe(cs[2]);
     expect(E.hexDist(f.cells[spring.cell], f.cells[cs[2]])).toBe(1);
-    expect(f.totems.map(t => t.until)).toEqual(until);
+    expect(spring.until - f.t).toBeCloseTo(15, 6);
+    expect(earth.until - f.t).toBeCloseTo(10, 6);
+    expect(f.cd.springTotem).toBe(0);
+    expect(f.cd.earthTotem).toBe(0);
+    expect(f.tx.act.totemCall!.cd).toBe(TX.totemCall.cd);
+    expect(talentReady(f, 'totemCall').ok).toBe(false);
+  });
+  it('토템 부르기: 처음 길이 = 세울 때 받은 시간 (마르지 않는 샘 +6초), 두 번 불러도 같음', () => {
+    const f = fight(['totemCall'], { tallSpring: SPECS.tallSpring.val }), c = emptyCell(f);
+    expect(E.use(f, 'springTotem', c).ok).toBe(true);
+    const full = SHAMAN.spring.sec + SPECS.tallSpring.val;
+    expect(totemsOf(f, 'spring')[0].dur).toBeCloseTo(full, 6);
+    for (const to of [f.cells.find(x => !x.block && x.i !== c)!.i, c]) {
+      f.t += 10; f.tx.act.totemCall!.cd = 0;
+      expect(useTalent(f, 'totemCall', to).ok).toBe(true);
+      expect(totemsOf(f, 'spring')[0].until - f.t).toBeCloseTo(full, 6);
+    }
+  });
+  it('토템 부르기 + 두 대지: 대지 충전을 모두 채움', () => {
+    const f = fight(['totemCall', 'twinEarth']), [a, b] = others(f);
+    cast(f, 'earthTotem', a.cell); cast(f, 'earthTotem', b.cell);
+    expect(f.cd.earthTotem).toBeGreaterThan(80);
+    expect(useTalent(f, 'totemCall', a.cell).ok).toBe(true);
+    step(f, 0.1);
+    expect(f.cd.earthTotem).toBe(0);
+    cast(f, 'earthTotem', a.cell);
+    expect(f.cd.earthTotem).toBe(0); // 충전이 하나 더 남음
+  });
+  it('자동 힐러 토템 부르기: 대지 토템이 곧 끝나면 불러 다시 채우고 (대지 재사용도 0), 부르기 재사용 동안은 안 부름', () => {
+    const f = fight(['totemCall']), a = withAdj(f, 2), b = adj(f, a)[0];
+    cast(f, 'springTotem', a.cell); cast(f, 'earthTotem', b.cell);
+    const earth = totemsOf(f, 'earth')[0];
+    f.gcd = 1; // 스킬은 안 쓰고 보조 버튼 특성만 봄
+    E.autoHealer(f);
+    expect(f.tx.act.totemCall!.cd).toBe(0); // 아직 쓸 때가 아님 (대지 10초 남음 · 토템 곁에 아군)
+    earth.until = f.t + 1;
+    E.autoHealer(f);
+    expect(f.tx.act.totemCall!.cd).toBe(TX.totemCall.cd);
+    expect(earth.until - f.t).toBeCloseTo(earth.dur!, 6);
+    expect(f.cd.earthTotem).toBe(0);
+    earth.until = f.t + 1;
+    E.autoHealer(f);
+    expect(earth.until - f.t).toBeCloseTo(1, 6);
   });
   it('한 칸에 토템 하나: 토템이 선 칸에 새로 세우면 앞 토템은 그림 · 효과 모두 없어짐 (2026-10-16 Lim)', () => {
     const f = fight(), u = withAdj(f, 1);

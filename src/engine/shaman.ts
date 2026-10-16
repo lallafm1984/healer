@@ -314,13 +314,21 @@ export function shamanDeath(f: Fight, u: Unit): void {
   noteCell(f, 'springTotem', u.cell);
 }
 
-/** 토템 부르기 (특성 ◎): 판 위 내 샘 · 대지 토템을 고른 칸으로 (남은 시간 그대로) */
+/**
+ * 토템 부르기 (특성 ◎, 2026-10-16 Lim 「부르기가 너무 안 좋다 … 토템 재시간 초기화」): 판 위 내 샘 · 대지 토템을 고른 칸으로 옮기고
+ * 옮긴 토템은 세울 때 받은 시간 (dur)으로 다시 채움. 샘 · 대지 토템 재사용 대기도 0 (두 대지면 충전을 모두 채움)
+ */
 export function callTotems(f: Fight, cell: number): void {
   // 한 칸에 토템 하나 (2026-10-16): 가장 나중에 세운 것이 고른 칸, 나머지는 그 옆 빈 토템 자리 (자리가 없으면 사라짐)
   const ts = f.totems.filter(t => ONE_PER_CELL.has(t.kind)).reverse().sort((a, b) => b.at - a.at); // 같은 때 세웠으면 뒤에 들어간 것이 나중
   for (const t of ts) t.cell = -1; // 옮기는 동안 판에서 뺌
   ts.forEach((t, i) => { t.cell = i === 0 ? cell : freeBeside(f, cell) ?? -1; });
-  for (const t of ts) if (t.cell < 0) { f.totems = f.totems.filter(x => x !== t); shamanTotemGone(f, t, false); }
+  for (const t of ts) {
+    if (t.cell < 0) { f.totems = f.totems.filter(x => x !== t); shamanTotemGone(f, t, false); }
+    else { t.dur ??= t.until - t.at; t.until = f.t + t.dur; } // 지속 시간 초기화 (회복 간격은 그대로 이어 감)
+  }
+  f.cd.springTotem = 0; f.cd.earthTotem = 0; // 재사용 대기 초기화
+  if (f.tx.on.twinEarth) { const s = st(f); s.earth = TX.twinEarth.n; s.earthRe = 0; }
 }
 /** 칸 옆 (1칸) 토템 없는 자리: 무너지거나 막힌 칸 · 깨질 칸은 빼고, 붙은 아군이 가장 많은 곳. 없으면 null */
 export function freeBeside(f: Fight, cell: number): number | null {

@@ -244,8 +244,8 @@ export const TX = {
   rootTotem: 0.3, washSpread: { n: 1 },
   /** 샘지기: 토템 칸 샘 회복 배 · 샘의 숨: 샘 토템 마나 · 두 개의 샘: 개수 */
   keeperSpring: 2, springBreath: { cost: 2 }, twinSpring: { n: 2 },
-  /** 물의 방패: 가득 찬 아군 보호막 최대 · 초 · 토템 부르기 재사용 · 넓은 샘: 거리 · 회복량 − */
-  waterShield: { max: 90, sec: 10 }, totemCall: { cd: 20 }, freshSpring: { range: 2, heal: 0.3 },
+  /** 물의 방패: 가득 찬 아군 보호막 최대 · 초 · 토템 부르기 재사용 (옮긴 토템 시간 · 샘 · 대지 재사용을 초기화하므로 이 값이 밸런스 손잡이. 2026-10-16 Lv 25+ 어려움 · 악몽 300곳 × 30판: 30초면 다른 두 갈래보다 +4.8%p, 40초 +1.4%p) · 넓은 샘: 거리 · 회복량 − */
+  waterShield: { max: 90, sec: 10 }, totemCall: { cd: 40 }, freshSpring: { range: 2, heal: 0.3 },
   /** 대지의 품: 토템 범위 안 내 받는 피해 − · 흘려보내기: 내 체력 선 · 재발동 · 나를 지키는 샘: 버티는 체력 */
   earthGrace: 0.2, letFlow: { hp: 0.4, cd: 45 }, springSelf: { hp: 0.3 },
   /** 급류: 체력 선 아래 잔물결 + · 경계하는 토템 재발동 · 마지막 샘 재발동 */
@@ -433,7 +433,7 @@ export const SHAMAN_TALENTS: TalentTier[] = [
     t('twinSpring', '두 개의 샘', '샘 토템을 2개까지 세울 수 있습니다. 세 번째를 세우면 가장 오래된 것이 사라집니다.')] },
   { lv: 25, theme: '토템', picks: [
     t('waterShield', '물의 방패', `샘 토템이 체력이 가득 찬 아군을 회복하면 그만큼 보호막을 씌웁니다 (최대 {${TX.waterShield.max}}, ${TX.waterShield.sec}초).`),
-    t('totemCall', '토템 부르기', `판 위의 내 샘 · 대지 토템을 고른 칸으로 옮깁니다. 한 칸에는 토템 하나만 서므로 나중에 세운 토템이 그 칸, 나머지는 바로 옆 칸에 섭니다. 남은 시간은 그대로입니다. 재사용 대기시간은 ${TX.totemCall.cd}초입니다.`, { cd: TX.totemCall.cd, dur: 0, cell: true, short: '부르기' }),
+    t('totemCall', '토템 부르기', `판 위의 내 샘 · 대지 토템을 고른 칸으로 옮기고, 옮긴 토템의 지속 시간을 처음 길이로 되돌립니다. 샘 · 대지 토템의 재사용 대기시간도 초기화합니다. 한 칸에는 토템 하나만 서므로 나중에 세운 토템이 그 칸, 나머지는 바로 옆 칸에 섭니다. 재사용 대기시간은 ${TX.totemCall.cd}초입니다.`, { cd: TX.totemCall.cd, dur: 0, cell: true, short: '부르기' }),
     t('freshSpring', '넓은 샘', `샘 토템이 ${TX.freshSpring.range}칸 거리까지 닿고, 회복량은 ${pc(TX.freshSpring.heal)} 줄어듭니다.`)] },
   { lv: 30, theme: '생존', picks: [
     t('earthGrace', '대지의 품', `내가 샘 토템이나 대지 토템 범위 안에 있으면 받는 피해가 ${pc(TX.earthGrace)} 줄어듭니다.`),
