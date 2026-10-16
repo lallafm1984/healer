@@ -73,6 +73,7 @@ import { go } from './screens/kit';
 import { pushSettings } from './screens/settings';
 import { mountTabs } from './screens/tabs';
 import { applyArtVars, warmArt } from './art';
+import { prepareVillage } from './screens/village';
 
 applyArtVars();
 mountTabs(document.getElementById('tabs')!);
@@ -83,5 +84,6 @@ syncAds();
 go('s-title');
 void enterFullscreen();
 // 메뉴 · 로비 · 조작판 그림을 미리 디코딩 (지금 직업 조작판만). 장소 · 보스 · 이펙트 그림은 그 화면에서 (2026-10-17 Lim 「처음 페이지 열 때 살짝 느림」)
+prepareVillage(); // 로비 마을 (Pixi · 나무 · 집 · 구름 그림)도 타이틀에서 미리
 const hero = G.save.hero;
 warmArt(n => /^(a2-|icon-|tab-|emblem-|mark-|village-|adventure-|party-|equipment-|stat-|ui-(?!class-))/.test(n) || n.startsWith(`ui-class-${hero}-`));

@@ -173,8 +173,20 @@ class Village {
   mount(slot: Element): void {
     if (this.host.parentElement !== slot) slot.appendChild(this.host);
     this.measure();
-    if (!this.app && !this.failed) this.init().catch(() => { this.failed = true; this.destroyApp(); });
+    if (!this.app && !this.failed) this.start();
     else this.playback();
+  }
+
+  /**
+   * 로비를 열기 전에 Pixi와 마을 그림을 미리 준비 (타이틀 화면에서). 예전엔 로비를 처음 열 때 읽기 시작해
+   * 바탕 그림만 먼저 보이고 나무 · 집 · 구름이 뒤에 나타났음 (2026-10-17 Lim 「첫 로비 화면에서 나무 등 살짝 늦게 나옴」)
+   */
+  prepare(): void {
+    if (!this.app && !this.failed) this.start();
+  }
+
+  private start(): void {
+    this.init().catch(() => { this.failed = true; this.destroyApp(); });
   }
 
   private async init(): Promise<void> {
@@ -448,6 +460,11 @@ function rendererName(app: Application): string {
 }
 
 let scene: Village | null = null;
+/** 로비를 열기 전에 마을을 미리 준비 (타이틀이 뜬 뒤) */
+export function prepareVillage(): void {
+  scene ??= new Village();
+  scene.prepare();
+}
 /** 로비 무대 자리 (.lb-canvas)에 마을을 붙임 */
 export function mountVillage(slot: Element | null): void {
   if (!slot) return;
