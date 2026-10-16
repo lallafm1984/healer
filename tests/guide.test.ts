@@ -73,8 +73,8 @@ describe('적합도 (fitOf)', () => {
 });
 
 describe('장소 레벨대 장비 등급 (86)', () => {
-  it('등급대: 장소 Lv 1~20 = 61 표 그대로, 21~44, 45~ (10인이 열리는 레벨)', () => {
-    expect([1, RAMP_LV, RAMP_LV + 1, RAID10_LV - 1, RAID10_LV, 100].map(lootTier)).toEqual([0, 0, 1, 1, 2, 2]);
+  it('레벨대: 장소 Lv 1~20 · 21~44 · 45~69 (10인이 열리는 레벨) · 70~ (20인이 열리는 레벨)', () => {
+    expect([1, RAMP_LV, RAMP_LV + 1, RAID10_LV - 1, RAID10_LV, 69, 70, 100].map(lootTier)).toEqual([0, 0, 1, 1, 2, 2, 3, 3]);
     expect(LEVELING_TIERS[0]).toBe(DROP_TABLES[0]);
     expect(dropTable('보통')).toBe(DROP_TABLES[0]['보통']);
     expect(dropTable('악몽', 20, 1)).toBe(DROP_TABLES[20]['악몽']); // 레이드는 장소 레벨과 상관없음
@@ -89,7 +89,7 @@ describe('장소 레벨대 장비 등급 (86)', () => {
       }
     }
   });
-  it('정산 드롭은 장소 레벨 표: Lv 50이 장소 Lv 44 악몽 (둘째 등급대)에서 고급이 안 나옴, 녹슨 고원 악몽 (첫 등급대)은 나옴', () => {
+  it('정산 드롭은 장소 레벨 표: 장소 Lv 44 악몽은 희귀만 (최소 희귀), 녹슨 고원 악몽은 고급 · 희귀 (최소 고급)', () => {
     const grades = (content: BattleResult['content']) => {
       const s = newSave(1); s.tut = TUT.done; s.player.level = 50; s.daily.pub = 3;
       const seen = new Set<ItemGrade>();
@@ -97,8 +97,8 @@ describe('장소 레벨대 장비 등급 (86)', () => {
         healed: 1, overheal: 0, dispels: 0, dispellable: 0, endMana: 1, minMana: 1, auto: false, party: [], detail: [] }, rngFrom(i + 1)).items[0].grade);
       return seen;
     };
-    expect(grades('abyssedge').has('일반')).toBe(false); // 둘째 등급대 악몽은 바닥이 고급 (88)
-    expect(grades('plateau').has('일반')).toBe(true);
+    expect([...grades('abyssedge')]).toEqual(['희귀']); // 둘째 레벨대 악몽 최소 희귀 (88 v0.2)
+    expect([...grades('plateau')].sort()).toEqual(['고급', '희귀']);
   });
   it('출전 화면 확률 = 그 장소 등급대 표', () => {
     expect(gearGradeOdds('쉬움', 0, 30, 'B', false, contentOf('snowlab').stageLv)['고급']).toBeCloseTo(0.3, 9);

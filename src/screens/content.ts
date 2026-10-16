@@ -223,12 +223,14 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   const lv = G.save.player.level, odds = gearGradeOdds(d, raid, lv, 'A', false, raid ? Math.max(lv, stageOf(c, d)) : c.stageLv);
   const lootOpen = !play || !raid || raidLootOpen(G.save, c.key, d);
   const maxGrade = [...ITEM_GRADES].reverse().find(g => odds[g] > 0) ?? ITEM_GRADES[0];
+  // 칸마다 최소 등급 (88 v0.2, Lim 「칸마다 난이도 및 레벨에 따라서 최소 등급」): 확률 창 아래 한 줄
+  const minG = ITEM_GRADES.find(g => odds[g] > 0) ?? ITEM_GRADES[0];
   const items: SceneReward[] = [{
     key: 'gear', name: '장비 등급별 확률', label: lootOpen ? maxGrade : '수령 완료', icon: gameIcon('gear', ICON.gear),
     color: GRADE_STYLE[maxGrade].color, probability: lootOpen ? 1 : 0, maxGrade,
     gradeOdds: Object.fromEntries(ITEM_GRADES.map(g => [g, lootOpen ? odds[g] : 0])) as Record<ItemGrade, number>,
-    // 등급표만 (2026-10-13 Lim: 「장비 1개 · 보너스 제외」 빼기). 이번 주에 받았으면 그 한 줄
-    basis: lootOpen ? '' : '이번 주 장비 수령 완료',
+    // 등급표 + 최소 등급 (2026-10-13 Lim: 「장비 1개 · 보너스 제외」 빼기). 이번 주에 받았으면 그 한 줄
+    basis: lootOpen ? `최소 ${minG}` : '이번 주 장비 수령 완료',
   }];
   const currency = (key: CurrencyIconKey, name: string, amount: number, color: string, basis = '클리어 시', probability = 1) => {
     items.push({ key, name, label: fmt(amount), icon: currencyIcon(key), color, probability, basis });
