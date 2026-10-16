@@ -118,16 +118,19 @@ export interface EntryOpts { name: string; sub: string; cost: number; onGo(): vo
 export function confirmEntry(o: EntryOpts): void {
   const render = (msg = '') => {
     const v = view(), lack = !v.unlimited && v.n < o.cost;
-    const after = v.unlimited ? '∞' : fmt(v.n - o.cost);
-    const cost = `<div class="st-cost${lack ? ' lack' : ''}">${currencyIcon('stamina')}<span class="st-need"><small>필요</small><b>${o.cost}</b></span>
-      <span class="st-have"><small>보유</small><b data-stam-n>${amount(v.n, v.unlimited)}</b>${lack ? '' : `<em aria-label="입장 후 ${after}">→ ${after}</em>`}</span></div>`;
+    // 소모 · 보유 · 입장 후 한 줄 (Lim 2026-10-16 「→ ∞」 정리): 무제한이거나 모자라면 「입장 후」 칸은 뺌
+    const cell = (cls: string, label: string, val: string) => `<div class="st-c ${cls}"><dt>${label}</dt><dd>${val}</dd></div>`;
+    const cost = `<dl class="st-cost${lack ? ' lack' : ''}${v.unlimited || lack ? '' : ' three'}">
+      ${cell('st-need', '소모', `${currencyIcon('stamina')}<b>${o.cost}</b>`)}
+      ${cell('st-have', '보유', `<b data-stam-n>${amount(v.n, v.unlimited)}</b>`)}
+      ${v.unlimited || lack ? '' : cell('st-after', '입장 후', `<b data-stam-after="${o.cost}">${fmt(v.n - o.cost)}</b>`)}</dl>`;
     const dest = `<p class="st-dest"><b>${esc(o.name)}</b><small>${esc(o.sub)}</small></p>`;
     const el = lack
       ? show('st-entry lack', `<h3 id="stTitle">스테미너 부족</h3>${dest}${cost}${timeRows()}
         ${msg ? `<p class="st-msg" role="status">${esc(msg)}</p>` : ''}
         <div class="st-btns">${adButton(true)}<button class="btn" type="button" data-st="shop">상점</button><button class="btn" type="button" data-st="no">닫기</button></div>`)
       : show('st-entry', `<h3 id="stTitle">입장</h3>${dest}${cost}
-        <p class="note">입장하면 스테미너를 씁니다. 지거나 포기해도 돌려받지 않습니다.</p>
+        <p class="note">${v.unlimited ? '개발 빌드 「스테미너 무제한」이라 입장해도 줄지 않습니다.' : '입장하면 스테미너를 씁니다. 지거나 포기해도 돌려받지 않습니다.'}</p>
         ${msg ? `<p class="st-msg" role="status">${esc(msg)}</p>` : ''}
         <div class="row2"><button class="btn" type="button" data-st="no">취소</button><button class="btn primary" type="button" data-st="go">입장</button></div>`);
     el.onclick = async e => {
@@ -169,6 +172,7 @@ export function refreshCells(): void {
   if (typeof document === 'undefined') return;
   const v = view();
   document.querySelectorAll<HTMLElement>('[data-stam-n]').forEach(el => { el.textContent = amount(v.n, v.unlimited); });
+  document.querySelectorAll<HTMLElement>('[data-stam-after]').forEach(el => { el.textContent = amount(v.n - Number(el.dataset.stamAfter), v.unlimited); });
   document.querySelectorAll<HTMLElement>('[data-stam-max]').forEach(el => { el.textContent = `/${v.max}`; });
   document.querySelectorAll<HTMLElement>('[data-stam-next]').forEach(el => { el.textContent = staminaClock(v.next); });
   document.querySelectorAll<HTMLElement>('[data-stam-full]').forEach(el => { el.textContent = staminaClock(v.full); });
