@@ -63,7 +63,7 @@ async function enter(page, party) {
       u.home = u.cell; u.homeAt = null; u.p = { ...u.p, flee: 0 };
     });
     window.__edgeTargets = { left: cells[left.i].unit.id, right: cells[right.i].unit.id, bottom: cells[bottom.i].unit.id };
-    window.__edgeTopology = JSON.stringify(cells.map(c => [c.i, c.q, c.r, c.px, c.py, c.unit?.id ?? null]));
+    window.__edgeTopology = JSON.stringify(cells.map(c => [c.i, c.q, c.r, c.px, c.py]));
   });
   await resetAction(page);
   await page.clock.runFor(1800); // 전투 시작 배너/기존 부유 효과 종료.
@@ -100,7 +100,8 @@ async function geometry(page) {
         visible: getComputedStyle(cast).visibility !== 'hidden', pointer: getComputedStyle(cast).pointerEvents,
         parent: cast.parentElement.id, casting: cast.classList.contains('is-casting'),
         trackVisible: getComputedStyle(document.querySelector('#castTrack')).visibility !== 'hidden' },
-      topologyStable: window.__edgeTopology === JSON.stringify(f.cells.map(c => [c.i, c.q, c.r, c.px, c.py, c.unit?.id ?? null])),
+      // 판 칸 좌표 · 인접관계만 (파티원은 전투 중 위치 규칙 #123으로 움직일 수 있어 칸의 사람은 비교하지 않음)
+      topologyStable: window.__edgeTopology === JSON.stringify(f.cells.map(c => [c.i, c.q, c.r, c.px, c.py])),
       renderer: window.__proto.renderer, party: f.party.length,
     };
   });
@@ -255,7 +256,7 @@ async function riskState(page) {
       for (const u of units) { u.home = u.cell; u.homeAt = null; }
     }
     // 배치 변경은 fixture 작성 단계에만 허용. 이후 resize/모드 변경은 이 topology를 보존해야 한다.
-    window.__edgeTopology = JSON.stringify(f.cells.map(c => [c.i, c.q, c.r, c.px, c.py, c.unit?.id ?? null]));
+    window.__edgeTopology = JSON.stringify(f.cells.map(c => [c.i, c.q, c.r, c.px, c.py]));
     window.__edgeRiskFight = f;
     return { t: f.t, paint: document.querySelector('#board').dataset.decorationBounds };
   });

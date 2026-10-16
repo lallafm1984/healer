@@ -39,7 +39,7 @@ const geometry = page => page.evaluate(() => {
     slots: [...document.querySelectorAll('#wheel button')].filter(visible).map(el => ({ ...box(el),
       hitW: Number(el.dataset.hitWidth), hitH: Number(el.dataset.hitHeight) })),
     cellW: Number(cv.dataset.cellWidth), cellH: Number(cv.dataset.cellHeight),
-    hp: Number(cv.dataset.hpFontSize), nick: Number(cv.dataset.nickFontSize),
+    hp: Number(cv.dataset.hpFontSize), nick: Number(cv.dataset.nickFontSize), k: Number(cv.dataset.drawScale || 1),
     hpTextGap: cv.dataset.hpTextMinNeighborGap === '' ? null : Number(cv.dataset.hpTextMinNeighborGap),
     hpTextBounds: JSON.parse(cv.dataset.hpTextBounds || '[]'),
     paintBottom: Number(cv.dataset.boardSafeBottom),
@@ -57,7 +57,8 @@ async function reflowPanel(page) {
   await page.clock.runFor(40);
 }
 const inViewport = (r, g) => r.w > 0 && r.h > 0 && r.x >= -1 && r.right <= g.width + 1 && r.y >= 70 - 1 && r.bottom <= g.height + 1;
-const readable = g => g.cellW > 0 && g.cellH > 0 && g.hp >= 12 && g.nick >= 9;
+// 10 · 20인은 5인 칸 모양을 판 배율 k만큼 줄여 그림: 글자도 5인 기준 (체력 14 · 이름 9) × k, 최소 크기 예외 없음 (2026-10-16 Lim, #179 · #193)
+const readable = g => g.cellW > 0 && g.cellH > 0 && g.hp >= 12 * Math.min(1, g.k) - .01 && g.nick >= 9 * Math.min(1, g.k) - .01;
 const hpBoundsValid = g => g.hpTextBounds.length === g.party
   && (g.hpTextGap === null || (Number.isFinite(g.hpTextGap) && g.hpTextGap >= 0))
   && g.hpTextBounds.every((a, i) => a.w > 0 && a.h > 0 && g.hpTextBounds.slice(i + 1).every(b =>
@@ -270,7 +271,7 @@ export default async function compactUi(url, shots) {
             && inViewport(normal.stage, normal) && inViewport(normal.board, normal) && inViewport(normal.controls, normal)
             && normal.board.bottom <= normal.cast.y + 1 && normal.cast.bottom <= normal.controls.y + 1
             && toolbarValid(normal) && castSpaceValid(normal) && usableControls(normalControls),
-          `${tag}: 일반 모드 광고·판/HUD 경계·HP 12px/이름 11px·대상 버튼 없이 시전행 예약`, normal);
+          `${tag}: 일반 모드 광고·판/HUD 경계·HP 12px/이름 9px (10 · 20인은 × 판 배율)·대상 버튼 없이 시전행 예약`, normal);
 
           const takeShot = party.n === 20 || (width === 360 && height === 780 && party.n === 5);
           if (takeShot) await page.screenshot({ path: `${shots}/compact_normal_${width}x${height}_${party.n}.png` });
