@@ -5,7 +5,7 @@
 
 /* Four sub-tabs reuse the painted lobby tabs at the existing 48px height. */
 #s-char .c7-tab {
-  background: url('../art/a2-tab-idle-v3.png') 12.962963% 55.172414% / 103.913043% 108.613861% no-repeat;
+  background: url('../art/a2-tab-idle-v3.webp') 12.962963% 55.172414% / 103.913043% 108.613861% no-repeat;
   border-color: transparent;
   border-radius: 9px;
   box-shadow: none;
@@ -13,7 +13,7 @@
   text-shadow: 0 1px 2px #241307;
 }
 #s-char .c7-tab[aria-selected="true"] {
-  background: url('../art/a2-tab-active-v3.png') 50% 30.508475% / 101.670146% 112.317328% no-repeat;
+  background: url('../art/a2-tab-active-v3.webp') 50% 30.508475% / 101.670146% 112.317328% no-repeat;
   border-color: transparent;
   box-shadow: none;
   color: var(--a2-paper-ink);
@@ -86,7 +86,7 @@
 
 /* The existing central/class emblems use the same painted brass frame as the lobby. */
 #s-char :is(.c7-bigem, .c7-cem) {
-  background: url('../art/a2-portrait-v3.png') 48.076923% 39.669421% / 109.043478% 110.679612% no-repeat;
+  background: url('../art/a2-portrait-v3.webp') 48.076923% 39.669421% / 109.043478% 110.679612% no-repeat;
   box-shadow: none;
 }
 #s-char .c7-bigem { padding: 16px; }
@@ -99,7 +99,7 @@
 #s-char :is(.c7-bigem, .c7-cem) .emblem img { width: 100%; height: 100%; }
 #s-char .c7-bigem [aria-label="사제 문장 · 햇살 성표"] img,
 #s-char .c7-cem [aria-label="사제 문장 · 햇살 성표"] img {
-  content: url('../art/icon-a2-priest-v3.png');
+  content: url('../art/icon-a2-priest-v3.webp');
 }
 
 /* Character-specific switches and utility controls. Existing hit boxes stay intact. */
@@ -166,7 +166,7 @@
 /* Local action classes are not shared .btn controls. Keep the familiar red action cue. */
 #s-char .c7-acts .g-sign,
 #s-char .c7-recb {
-  background: url('../art/a2-tab-idle-v3.png') 12.962963% 55.172414% / 103.913043% 108.613861% no-repeat;
+  background: url('../art/a2-tab-idle-v3.webp') 12.962963% 55.172414% / 103.913043% 108.613861% no-repeat;
   background-blend-mode: normal;
   border-color: transparent;
   border-radius: 10px;

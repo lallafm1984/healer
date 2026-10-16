@@ -4,10 +4,10 @@
  * 배경 크기와 위치는 생성 PNG의 alpha>16 외곽을 기준으로 투명 여백만 보정한다.
  * 원본 PNG와 이전 자산은 덮어쓰지 않는다. */
 #s-lobby {
-  --a2-socket: url('../art/a2-socket-v3.png');
-  --a2-wood-sign: url('../art/a2-sign-v3.png');
-  --a2-goal: url('../art/a2-goal-v4.png');
-  --a2-depart: url('../art/a2-depart-v3.png');
+  --a2-socket: url('../art/a2-socket-v3.webp');
+  --a2-wood-sign: url('../art/a2-sign-v3.webp');
+  --a2-goal: url('../art/a2-goal-v4.webp');
+  --a2-depart: url('../art/a2-depart-v3.webp');
 }
 #s-lobby .lb-sc .lb-main {
   background-size: 105.641492% 109.805511%;
@@ -28,17 +28,17 @@
 /* 메뉴 전체 높이는 유지하고 석재 상단 여백을 2px → 6px로 맞춘다. */
 body:has(#s-lobby:not([hidden])) #tabs {
   padding-top: 6px;
-  background-image: url('../art/a2-bottom-stone-v4.png');
+  background-image: url('../art/a2-bottom-stone-v4.webp');
   background-size: 100% 160.532151%;
   background-position: 50% 45.054945%;
 }
 body:has(#s-lobby:not([hidden])) #tabs button {
-  background-image: url('../art/a2-tab-idle-v3.png');
+  background-image: url('../art/a2-tab-idle-v3.webp');
   background-size: 103.913043% 108.613861%;
   background-position: 12.962963% 55.172414%;
 }
 body:has(#s-lobby:not([hidden])) #tabs button[aria-current="page"] {
-  background-image: url('../art/a2-tab-active-v3.png');
+  background-image: url('../art/a2-tab-active-v3.webp');
   background-size: 101.670146% 112.317328%;
   background-position: 50% 30.508475%;
 }

@@ -84,9 +84,11 @@ export default async function lobbyA2(url, shots) {
     ok(!outside.length && g.bodyWidth <= g.viewport.width + 1 && g.cta.bottom <= g.tabs.y + 1 && g.goal.bottom <= g.tabs.y + 1,
       `${name}: 화면·안전영역 안, 목표·출전은 하단 메뉴 위`, outside);
     ok(Math.abs(g.tabs.bottom - (g.viewport.height - safeBottom)) <= 1, `${name}: 하단 메뉴 safe-area ${safeBottom}px 확보`, g.tabs);
-    ok(Math.abs(g.header.y - 70) <= 1 && Math.abs(g.header.height - 80) <= 1 && Math.abs(g.world.y - 150) <= 1
-      && Math.abs(g.world.width - g.viewport.width) <= 1 && Math.abs(g.world.height - (g.viewport.height - 218 - safeBottom)) <= 1,
-      `${name}: 기존 배너 70·정보창 80·탭 68px와 동적 배경 표시 영역 보존`, { header: g.header, world: g.world });
+    // 위 정보창 높이는 화면 높이에 따라 80 · 64 (800 이하, S25) · 54 (700 이하) (a2-topbar.css --a2-header-height, #172)
+    const headH = g.viewport.height <= 700 ? 54 : g.viewport.height <= 800 ? 64 : 80;
+    ok(Math.abs(g.header.y - 70) <= 1 && Math.abs(g.header.height - headH) <= 1 && Math.abs(g.world.y - (70 + headH)) <= 1
+      && Math.abs(g.world.width - g.viewport.width) <= 1 && Math.abs(g.world.height - (g.viewport.height - 70 - headH - 68 - safeBottom)) <= 1,
+      `${name}: 기존 배너 70·정보창 ${headH}·탭 68px와 동적 배경 표시 영역 보존`, { header: g.header, world: g.world });
     ok(JSON.stringify(g.nav) === JSON.stringify(['lobby', 'battle', 'char', 'shop']), `${name}: 기존 하단 메뉴 4개 유지`, g.nav);
     const clipped = g.text.filter(t => t.clipped);
     ok(!clipped.length && !g.text.some(t => t.overlapsProgress), `${name}: 메뉴·목표·출전 한글 잘림과 진행 숫자 침범 없음`, g.text.filter(t => t.clipped || t.overlapsProgress));

@@ -186,7 +186,7 @@
 #s-content .g-cta,
 :is(#s-entry, #s-party) .f-go {
   background-color: transparent;
-  background-image: url('../art/a2-depart-v3.png');
+  background-image: url('../art/a2-depart-v3.webp');
   background-size: 101.295775% 107.891492%;
   background-position: 8.695652% 17.1875%;
   background-repeat: no-repeat;
@@ -291,7 +291,7 @@
 #battle #controls .aux,
 #battle #controls #giveUp,
 #battle #controls .item.empty::after {
-  background-image: url('../art/a2-tab-idle-v3.png');
+  background-image: url('../art/a2-tab-idle-v3.webp');
   background-size: 103.913043% 108.613861%;
   background-position: 12.962963% 55.172414%;
   background-repeat: no-repeat;

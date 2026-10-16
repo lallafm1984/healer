@@ -103,7 +103,10 @@ export default async function lobbyLiving(url, shots) {
           `${width}: 패스 바로가기 제거, 출전 44px 터치 영역·하단 hit test 정상`, hit);
         await page.screenshot({ path: `${shots}/lobby_living_${width}.png` });
         await page.touchscreen.tap(hit.cta.x + hit.cta.width / 2, hit.cta.bottom - 2); await page.clock.runFor(100);
-        ok(await page.isVisible('#s-party'), `${width}: 출전 버튼 하단 실제 터치 → 편성`);
+        // 출전 다음에 입장 확인 팝업 (81 「출전 버튼 다음에 팝업」) → 「입장」 → 편성
+        const popup = await page.isVisible('.st-modal [data-st="go"]');
+        await entryGo(page); await page.clock.runFor(100);
+        ok(popup && await page.isVisible('#s-party'), `${width}: 출전 버튼 하단 실제 터치 → 입장 확인 → 편성`);
         await page.locator('#s-party .tb-back').tap(); await page.clock.runFor(100);
         await page.locator('#tabs [data-tab="lobby"]').tap(); await page.clock.runFor(100);
         await page.locator('#s-lobby .lb-shop').tap(); await page.clock.runFor(100);

@@ -15,7 +15,7 @@
   --c7-palette-paper-muted: #6a4c2c;
 }
 #s-char[data-sub="gear"]::before {
-  background: #21170f url('../art/equipment-armory-v1.png') center 70px / 100% auto no-repeat;
+  background: #21170f url('../art/equipment-armory-v1.webp') center 70px / 100% auto no-repeat;
 }
 #s-char .c7-tab::before {
   content: ''; inset: 4px; border-radius: 2px;
@@ -45,11 +45,11 @@
 }
 #s-char[data-sub="gear"] .c7-slot .c7-sq {
   flex: none; border: 0; border-radius: 3px;
-  background: url('../art/equipment-slot-v1.png') center / 120% 122% no-repeat;
+  background: url('../art/equipment-slot-v1.webp') center / 120% 122% no-repeat;
   box-shadow: none;
 }
 #s-char[data-sub="gear"] .c7-slot.empty .c7-sq {
-  background: url('../art/equipment-slot-v1.png') center / 120% 122% no-repeat;
+  background: url('../art/equipment-slot-v1.webp') center / 120% 122% no-repeat;
   border: 0;
 }
 #s-char[data-sub="gear"] .c7-slot .c7-sq > .g-ic { width: 84%; height: 84%; }
@@ -66,7 +66,7 @@
 #s-char[data-sub="gear"] .c7-mid { padding-top: 0; }
 #s-char[data-sub="gear"] .c7-mid .c7-stats {
   padding: 11px 12px 8px; gap: 3px; border: 0; border-radius: 0;
-  background: url('../art/equipment-stats-paper-v1.png') center / 100% 100% no-repeat;
+  background: url('../art/equipment-stats-paper-v1.webp') center / 100% 100% no-repeat;
   box-shadow: none; color: #35220f;
 }
 #s-char[data-sub="gear"] .c7-sh {
@@ -147,11 +147,11 @@
 /* Skills, talents and classes use the same armory, cream paper and plain controls. */
 #s-char[data-sub]:not([data-sub="gear"])::before {
   inset: 0 0 var(--tabs-h);
-  background: #21170f url('../art/equipment-armory-v1.png') center 70px / 100% auto no-repeat;
+  background: #21170f url('../art/equipment-armory-v1.webp') center 70px / 100% auto no-repeat;
   opacity: .65; filter: none;
 }
 #s-char[data-sub] .c7-parch {
-  background: url('../art/equipment-stats-paper-v1.png') center / 100% 100% no-repeat;
+  background: url('../art/equipment-stats-paper-v1.webp') center / 100% 100% no-repeat;
   background-blend-mode: normal; border: 0; border-radius: 0;
   color: #35220f; box-shadow: none;
 }

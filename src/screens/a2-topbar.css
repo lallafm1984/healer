@@ -18,17 +18,17 @@
   --a2-header-name-size: 21px;
   --a2-header-name-gap: 7px;
   --a2-header-set: 44px;
-  --a2-header-wood: url('../art/a2-header-v3.png') 50% 50.70922% / 100% 163.800905% no-repeat;
+  --a2-header-wood: url('../art/a2-header-v3.webp') 50% 50.70922% / 100% 163.800905% no-repeat;
 }
 .ns .topbar.tb-mmo { height: var(--a2-header-height); gap: 7px; padding: 0 9px 0 8px; background: transparent; box-shadow: none; }
 .ns .topbar.tb-mmo::before { inset: 0; border: 0; background: var(--a2-header-wood); }
 .ns .tb-mmo .tb-pf {
   width: var(--a2-header-portrait); height: var(--a2-header-portrait);
-  background: url('../art/a2-portrait-v3.png') 48.076923% 39.669421% / 109.043478% 110.679612% no-repeat;
+  background: url('../art/a2-portrait-v3.webp') 48.076923% 39.669421% / 109.043478% 110.679612% no-repeat;
 }
 .ns .tb-mmo .tb-pf::after { content: none; }
 .ns .tb-mmo .tb-em { width: 77%; height: 77%; }
-.ns .tb-em [aria-label="사제 문장 · 햇살 성표"] img { content: url('../art/icon-a2-priest-v3.png'); }
+.ns .tb-em [aria-label="사제 문장 · 햇살 성표"] img { content: url('../art/icon-a2-priest-v3.webp'); }
 
 /* 이름 · 레벨 · 경험치 (짧은 홈 막대, % 글자는 막대 안) */
 .ns .tb-mmo .tb-nm { gap: var(--a2-header-name-gap); padding: 0 0 0 1px; transform: translateY(-1px); }
@@ -100,7 +100,7 @@
 /* 설정: 초상과 같은 둥근 황동 테 */
 .ns .tb-mmo .tb-set {
   flex: none; width: var(--a2-header-set); height: var(--a2-header-set); min-width: 44px; min-height: 44px; margin: 0; padding: 0;
-  border: 0; border-radius: 50%; background: url('../art/a2-portrait-v3.png') center / 100% 100% no-repeat; color: #fff4d5;
+  border: 0; border-radius: 50%; background: url('../art/a2-portrait-v3.webp') center / 100% 100% no-repeat; color: #fff4d5;
 }
 .ns .tb-mmo .tb-set:active { filter: brightness(.92); }
 .ns .tb-mmo .tb-set:focus-visible { outline: 2px solid #ffe398; outline-offset: 1px; }
@@ -116,7 +116,7 @@
 .ns .topbar.f-hd .f-ttl { font: 800 21px/1.15 var(--font-display); letter-spacing: -.05em; color: #fff4d5; text-shadow: 0 2px 2px #000; }
 .ns .topbar:not(.tb-mmo) .tb-set {
   flex: none; width: 44px; height: 44px; margin-left: auto; border: 0; border-radius: 50%;
-  background: url('../art/a2-portrait-v3.png') center / 100% 100% no-repeat; color: #fff4d5;
+  background: url('../art/a2-portrait-v3.webp') center / 100% 100% no-repeat; color: #fff4d5;
 }
 
 /* 「← 제목」 줄의 골드 (91, #172 전 자리): 제목 오른쪽 끝 */
@@ -146,7 +146,7 @@
     --a2-header-height: 54px; --a2-header-portrait: 44px;
     --a2-header-name-size: 17px; --a2-header-name-gap: 4px;
   }
-  .ns .tb-mmo .tb-cur.tb-st { min-height: 40px; padding-block: 2px; row-gap: 2px; }
+  .ns .tb-mmo .tb-cur.tb-st { min-height: 44px; padding-block: 2px; row-gap: 2px; } /* 낮은 판 (54)에서도 터치 44px (QA 2026-10-16, 예전 40) */
   .ns .tb-mmo .tb-xp { height: 12px; }
   /* 골드 줄이 막대 아래로 내려가도 낮은 판 (54) 안에 들게 (91) */
   .ns .tb-mmo .tb-nm { gap: 2px; }

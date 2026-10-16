@@ -85,10 +85,11 @@ export default async function adventureDeparture(url, shots) {
     ok(await page.locator('.b-gate [data-reward="gold"]').count()===1 && await page.locator('.b-gate [data-reward="stone"]').count()===0
       && await page.locator('.b-pop,[data-drops]').count()===0, `${width}: 장면 안 보상 아이콘·기존 상세 팝업 제거`);
     await page.click(rewardSelector);
-    ok(await page.locator('.b-reward-chance').isVisible() && /58%/.test(await page.locator('.b-reward-chance').innerText())
+    // 88 (#183): 낮은 등급일수록 확률이 높게 → 녹슨 고원 보통 일반 68% · 고급 32% (값은 tests/reward-preview.test.ts)
+    ok(await page.locator('.b-reward-chance').isVisible() && /68%/.test(await page.locator('.b-reward-chance [data-grade="일반"]').innerText())
       && await page.locator('.b-reward-chance [data-grade]').count()===2
-      && /42%/.test(await page.locator('.b-reward-chance [data-grade="고급"]').innerText())
-      && await page.locator('.b-reward-chance').getAttribute('aria-modal')==='false', `${width}: 장비 아이콘은 나오는 등급 일반 58%·고급 42%만 확률 표 (2026-10-13 Lim)`);
+      && /32%/.test(await page.locator('.b-reward-chance [data-grade="고급"]').innerText())
+      && await page.locator('.b-reward-chance').getAttribute('aria-modal')==='false', `${width}: 장비 아이콘은 나오는 등급 일반 68%·고급 32%만 확률 표 (88) 「${(await page.locator('.b-reward-chance').innerText()).replace(/\s+/g, ' ')}」`);
     if(width===390) {
       const ctaBeforeResize=await page.locator('#contentGo').innerText();
       for(const [rw,rh] of [[360,330],[360,360],[690,829]]) {
