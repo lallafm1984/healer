@@ -67,13 +67,16 @@ export default {
       const by = 0.6, fade = 1 - E.in2(seg(t, 0.55, 1));
       glowOval(g, 0, by, 1.0, 0.35, W.glow, 0.75 * (1 - E.out2(seg(t, 0, 0.6))));
       glowOval(g, 0, by, 0.4, 0.4, '#ffffff', 0.8 * (1 - E.out3(seg(t, 0, 0.25))));
-      ripple(g, 0, by, lerp(0.15, 1.0, E.out3(seg(t, 0, 0.7))), fade * (1 - seg(t, 0.4, 0.9)), 0.08);
-      ripple(g, 0, by, lerp(0.05, 0.65, E.out3(seg(t, 0.15, 0.85))), fade * bell(t, 0.12, 0.25, 1), 0.06);
+      // 사제 치유처럼 몸통에도 물빛 (QA 2026-10-16 Lim 「이펙트 퀄리티는 사제 기준」: 발밑 고리만이라 맞은 칸이 잘 안 보였음)
+      glow(g, 0, 0.15, 1.0, W.glow, 0.5 * (1 - E.out2(seg(t, 0, 0.6))));
+      glow(g, 0, 0.2, 0.45, '#ffffff', 0.6 * (1 - E.out3(seg(t, 0, 0.25))));
+      ripple(g, 0, by, lerp(0.15, 1.0, E.out3(seg(t, 0, 0.7))), fade * (1 - seg(t, 0.4, 0.9)), 0.1);
+      ripple(g, 0, by, lerp(0.05, 0.65, E.out3(seg(t, 0.15, 0.85))), fade * bell(t, 0.12, 0.25, 1), 0.075);
       // 가운데 물기둥 (톡 튀었다 가라앉음)
-      const col = Math.sin(Math.PI * seg(t, 0, 0.45)) * 0.38;
-      if (col > 0.01) lightStroke(g, s => ({ x: 0, y: lerp(by, by - col, s) }), 0, 1, u => 0.11 * (1 - u * 0.6), { rim: W.rim, body: W.body, core: W.foam, a: fade, rimW: 0.022 });
-      if (col > 0.05) drop(g, 0, by - col - 0.08, 0.08, fade);
-      spray(g, t, 3, 9, 0, by, { up: 0.9, spread: 1.2, size: 0.04 });
+      const col = Math.sin(Math.PI * seg(t, 0, 0.45)) * 0.7;
+      if (col > 0.01) lightStroke(g, s => ({ x: 0, y: lerp(by, by - col, s) }), 0, 1, u => 0.15 * (1 - u * 0.6), { rim: W.rim, body: W.body, core: W.foam, a: fade, rimW: 0.024 });
+      if (col > 0.05) drop(g, 0, by - col - 0.1, 0.12, fade);
+      spray(g, t, 3, 14, 0, by, { up: 1.1, spread: 1.3, size: 0.05 });
     },
   },
 
@@ -90,14 +93,15 @@ export default {
       }
       const u = seg(t, hit, 1);
       glowOval(g, 0, yHit + 0.1, 0.9, 0.55, W.glow, 0.85 * (1 - E.out2(u)));
+      glow(g, 0, 0.15, 0.95, W.glow, 0.45 * (1 - E.out2(seg(u, 0, 0.7)))); // 몸통까지 스미는 물빛 (사제 기준)
       glow(g, 0, yHit + 0.05, 0.4, '#ffffff', 1 - E.out3(seg(u, 0, 0.35)));
       // 왕관처럼 튀는 짧은 물줄기 + 옅게 퍼지는 물막 (점점 몸에 스며 옅어짐)
       const sq = E.out3(seg(u, 0, 0.3));
-      g.save(); g.translate(0, yHit + 0.12); g.scale(lerp(0.2, 0.5, sq), lerp(0.08, 0.11, sq)); g.globalAlpha = fade * (1 - seg(u, 0.25, 0.8));
+      g.save(); g.translate(0, yHit + 0.12); g.scale(lerp(0.22, 0.62, sq), lerp(0.09, 0.13, sq)); g.globalAlpha = fade * (1 - seg(u, 0.25, 0.8));
       g.beginPath(); g.arc(0, 0, 1, 0, TAU); g.fillStyle = C(W.body, 0.75); g.fill(); g.lineWidth = 0.2; g.strokeStyle = C(W.rim, 0.8); g.stroke(); g.restore();
       for (let i = 0; i < 6; i++) {
-        const a = rad(-90 + (i - 2.5) * 30), L = 0.42 * E.out3(seg(u, 0, 0.35)) * (i % 2 ? 0.75 : 1);
-        lightStroke(g, s2 => ({ x: Math.cos(a) * lerp(0.08, L, s2) * 1.1, y: yHit + 0.12 + Math.sin(a) * lerp(0.05, L, s2) + 0.25 * u * u * s2 }), 0, 1, uu => 0.07 * (1 - uu * 0.6) * (1 - u), { rim: W.rim, body: W.light, core: W.foam, a: fade, rimW: 0.018 });
+        const a = rad(-90 + (i - 2.5) * 30), L = 0.58 * E.out3(seg(u, 0, 0.35)) * (i % 2 ? 0.75 : 1);
+        lightStroke(g, s2 => ({ x: Math.cos(a) * lerp(0.08, L, s2) * 1.1, y: yHit + 0.12 + Math.sin(a) * lerp(0.05, L, s2) + 0.25 * u * u * s2 }), 0, 1, uu => 0.1 * (1 - uu * 0.6) * (1 - u), { rim: W.rim, body: W.light, core: W.foam, a: fade, rimW: 0.02 });
       }
       spray(g, u, 7, 12, 0, yHit + 0.05, { up: 1.2, spread: 1.6, size: 0.06, a: fade });
       // 몸으로 스며드는 반짝이
@@ -153,19 +157,19 @@ export default {
       const P = bez([-1.5, 0.05], [-1.1, -0.55], [-0.45, -0.5], [0, 0.02]);
       const s = lerp(0.3, 1, E.in2(seg(t, 0, hit)));
       if (t < hit + 0.12) waterRibbon(g, P, Math.max(0, s - 0.65), Math.max(0.02, s), u => 0.24 * u ** 0.6, 1 - seg(t, hit, hit + 0.12), 1);
-      if (t < hit) { const p = P(s); drop(g, p.x, p.y, 0.1, 1); }
+      if (t < hit) { const p = P(s); drop(g, p.x, p.y, 0.14, 1); }
       const b = bell(t, hit - 0.04, hit + 0.02, hit + 0.42);
       glow(g, 0, 0.02, 1.05, W.glow, 0.95 * b);
       glow(g, 0, 0.02, 0.5, '#ffffff', b);
       if (t >= hit) {
         const u = seg(t, hit, 1);
-        ripple(g, 0, 0.08, lerp(0.25, 0.95, E.out3(u)), (1 - u) * fade, 0.07);
+        ripple(g, 0, 0.08, lerp(0.25, 0.95, E.out3(u)), (1 - u) * fade, 0.095);
         // 물보라 (사방으로 짧은 물줄기, 들어온 쪽 반대로 더 길게)
         for (let i = 0; i < 9; i++) {
-          const a = (i * TAU) / 9 + 0.2, L = (0.45 + 0.25 * Math.max(0, Math.cos(a))) * E.out3(seg(u, 0, 0.4));
-          lightStroke(g, s2 => ({ x: Math.cos(a) * lerp(0.1, L, s2), y: 0.02 + Math.sin(a) * lerp(0.1, L, s2) * 0.8 + 0.2 * u * u * s2 }), 0, 1, uu => 0.1 * (1 - uu) * (1 - u), { rim: W.rim, body: W.light, core: W.foam, a: fade, rimW: 0.02 });
+          const a = (i * TAU) / 9 + 0.2, L = (0.55 + 0.3 * Math.max(0, Math.cos(a))) * E.out3(seg(u, 0, 0.4));
+          lightStroke(g, s2 => ({ x: Math.cos(a) * lerp(0.1, L, s2), y: 0.02 + Math.sin(a) * lerp(0.1, L, s2) * 0.8 + 0.2 * u * u * s2 }), 0, 1, uu => 0.14 * (1 - uu) * (1 - u), { rim: W.rim, body: W.light, core: W.foam, a: fade, rimW: 0.022 });
         }
-        spray(g, u, 2, 10, 0, 0.02, { up: 0.8, spread: 1.6, size: 0.045, a: fade });
+        spray(g, u, 2, 14, 0, 0.02, { up: 0.9, spread: 1.7, size: 0.055, a: fade });
         for (let i = 0; i < 5; i++) { const a = rad(-140 + i * 55), d = 0.25 + 0.4 * E.out2(u); bubble(g, Math.cos(a) * d, 0.02 + Math.sin(a) * d * 0.7 - 0.25 * u, 0.04, (1 - u) * fade); }
       }
     },

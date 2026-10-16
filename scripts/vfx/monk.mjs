@@ -24,8 +24,9 @@ export default {
     draw(g, { t }) {
       const pop = t < 0.18 ? E.out3(t / 0.18) : 1 - E.in2(seg(t, 0.18, 0.7)), fade = 1 - E.in2(seg(t, 0.35, 1));
       glow(g, 0, 0, 0.85, J.glow, 0.7 * (1 - E.out2(seg(t, 0, 0.6))));
+      glow(g, 0, 0, 0.55, '#ffffff', 0.7 * (1 - E.out3(seg(t, 0, 0.25)))); // 맞는 순간 흰 빛 (사제 기준, QA 2026-10-16)
       if (pop > 0.01) {
-        g.save(); g.scale(0.38 * pop, 0.38 * pop); g.rotate(t * 8);
+        g.save(); g.scale(0.48 * pop, 0.48 * pop); g.rotate(t * 8);
         glow(g, 0, 0, 1.8, J.glow, 0.7);
         const orb = gg => { gg.beginPath(); gg.arc(0, 0, 1, 0, TAU); };
         orb(g); const gr = g.createRadialGradient(-0.3, -0.3, 0.1, 0, 0, 1); gr.addColorStop(0, J.white); gr.addColorStop(0.5, J.light); gr.addColorStop(1, J.deep); g.fillStyle = gr; g.fill();
@@ -38,11 +39,11 @@ export default {
       const d = 0.35 + 0.45 * E.out3(seg(t, 0, 0.5));
       for (const sgn of [-1, 1]) {
         const y = sgn * d, L = 0.55 * (1 - 0.3 * seg(t, 0.3, 1));
-        brush(g, s => ({ x: lerp(-L, L, s), y: y + Math.sin(s * Math.PI) * sgn * 0.06 }), 0, 1, 0.12, fade);
+        brush(g, s => ({ x: lerp(-L, L, s), y: y + Math.sin(s * Math.PI) * sgn * 0.06 }), 0, 1, 0.155, fade);
       }
       for (let i = 0; i < 4; i++) {
         const a = rad(45 + i * 90), r = 0.3 + 0.55 * E.out2(seg(t, 0.05, 0.6)), b = bell(t, 0.05, 0.15, 0.7);
-        g.save(); g.translate(Math.cos(a) * r, Math.sin(a) * r); g.scale(0.07 * b, 0.11 * b); energy(g, gg => path.diamond(gg, 0.6), { rim: J.rim, body: J.pale, core: '#ffffff', rimW: 0.25 }); g.restore();
+        g.save(); g.translate(Math.cos(a) * r, Math.sin(a) * r); g.scale(0.09 * b, 0.14 * b); energy(g, gg => path.diamond(gg, 0.6), { rim: J.rim, body: J.pale, core: '#ffffff', rimW: 0.25 }); g.restore();
       }
     },
   },
@@ -73,13 +74,14 @@ export default {
     draw(g, { t }) {
       const by = 0.5;
       glowOval(g, 0, by, 0.9, 0.35, J.glow, 0.5 * (1 - E.out2(seg(t, 0, 0.7))));
+      glow(g, 0, 0.1, 0.95, J.glow, 0.4 * bell(t, 0, 0.2, 0.9)); // 안개에 감싸인 몸통 (사제 기준, QA 2026-10-16)
       for (let i = 0; i < 3; i++) {
         const u = seg(t, i * 0.1, i * 0.1 + 0.85), a = Math.min(1, u * 6 + (i ? 0 : 0.6)) * (1 - E.in2(seg(u, 0.5, 1))), x = lerp(-0.65 + i * 0.4, 0.05 + i * 0.4, E.out2(u)), y = by - 0.18 * i + Math.sin(u * 6 + i) * 0.04;
-        puff(g, x, y, (0.42 - i * 0.05) * (0.75 + 0.25 * E.out2(u)), a, 7 + i * 13, 0.62);
+        puff(g, x, y, (0.53 - i * 0.06) * (0.75 + 0.25 * E.out2(u)), a, 7 + i * 13, 0.62);
         // 안개 뒤를 따라 가는 비취 결 (흐르는 방향)
         brush(g, s => ({ x: lerp(x - 0.45, x - 0.05, s), y: y + 0.06 + Math.sin(s * 5 + t * 8) * 0.025 }), 0, 1, 0.05, a * 0.8, J.light);
       }
-      particles(g, t, 7, 10, r => ({ t0: r() * 0.6, life: 0.35, x: (r() - 0.5) * 1.2, y: by - r() * 0.3 }), (gg, p, age) => speck(gg, p.x + 0.3 * age, p.y - 0.15 * age, 0.016, J.pale, 1 - age));
+      particles(g, t, 7, 16, r => ({ t0: r() * 0.6, life: 0.35, x: (r() - 0.5) * 1.2, y: by - r() * 0.5 }), (gg, p, age) => speck(gg, p.x + 0.3 * age, p.y - 0.15 * age, 0.024, J.pale, 1 - age));
     },
   },
 
@@ -88,10 +90,11 @@ export default {
     frames: 20, logical: 80, scope: 'area',
     draw(g, { t }) {
       const u = E.out3(seg(t, 0, 0.6)), fade = 1 - E.in2(seg(t, 0.5, 1));
-      glow(g, 0, 0.1, 0.8, J.glow, 0.6 * (1 - E.out2(seg(t, 0, 0.5))));
-      puff(g, 0, 0.1, 0.45 * (1 - 0.4 * u), (1 - E.out2(seg(t, 0, 0.55))), 4, 0.8);
+      glow(g, 0, 0.1, 0.9, J.glow, 0.75 * (1 - E.out2(seg(t, 0, 0.5))));
+      glow(g, 0, 0.1, 0.45, '#ffffff', 0.55 * (1 - E.out3(seg(t, 0, 0.25)))); // 사제 기준 첫 순간 흰 빛 (QA 2026-10-16)
+      puff(g, 0, 0.1, 0.55 * (1 - 0.4 * u), (1 - E.out2(seg(t, 0, 0.55))), 4, 0.8);
       for (const sgn of [-1, 1]) {
-        puff(g, sgn * lerp(0.15, 0.7, u), 0.12, lerp(0.28, 0.4, u), fade, sgn > 0 ? 11 : 17, 0.6);
+        puff(g, sgn * lerp(0.15, 0.7, u), 0.12, lerp(0.34, 0.48, u), fade, sgn > 0 ? 11 : 17, 0.6);
         brush(g, s => ({ x: sgn * lerp(0.35, lerp(0.45, 1.0, u), s), y: 0.3 + Math.sin(s * 4) * 0.03 }), 0, 1, 0.05, fade * 0.8, J.light);
       }
       particles(g, t, 8, 12, r => ({ t0: r() * 0.15, life: 0.55, dir: r() < 0.5 ? -1 : 1, sp: 0.6 + r() * 0.5, y: (r() - 0.5) * 0.4 }), (gg, p, age) => speck(gg, p.dir * (0.15 + p.sp * E.out2(age)), 0.1 + p.y - 0.1 * age, 0.02, J.pale, (1 - age) * fade));
@@ -159,15 +162,16 @@ export default {
     frames: 24, logical: 88, scope: 'target',
     draw(g, { t }) {
       const pop = E.back(seg(t, 0, 0.2), 1.6), fade = 1 - E.in2(seg(t, 0.7, 1)), cy = 0.45;
-      glowOval(g, 0, cy + 0.1, 0.8, 0.4, J.glow, 0.55 * fade);
+      glowOval(g, 0, cy + 0.1, 0.8, 0.4, J.glow, 0.7 * fade);
+      glow(g, 0, 0.05, 0.9, J.glow, 0.4 * bell(t, 0, 0.2, 0.85)); // 찻김이 감싼 몸통 (사제 기준, QA 2026-10-16)
       // 김 (S자 두 줄)
       for (const [x0, ph, d] of [[-0.1, 0, 0.1], [0.12, 2.2, 0.18]]) {
         const u = seg(t, d, d + 0.65), P = s => ({ x: x0 + Math.sin(s * 5.5 + ph + t * 4) * 0.12, y: lerp(cy - 0.2, cy - 1.2, s) });
-        if (u > 0) lightStroke(g, P, Math.max(0, u - 0.6), u, w0 => 0.07 * Math.sin(Math.PI * w0), { rim: '#7aa898', body: J.white, core: '#ffffff', a: fade * 0.9 * (1 - seg(u, 0.7, 1)), rimW: 0.015, glowCol: J.glow, glowA: 0.4 });
+        if (u > 0) lightStroke(g, P, Math.max(0, u - 0.6), u, w0 => 0.1 * Math.sin(Math.PI * w0), { rim: '#7aa898', body: J.white, core: '#ffffff', a: fade * 0.9 * (1 - seg(u, 0.7, 1)), rimW: 0.015, glowCol: J.glow, glowA: 0.4 });
       }
       // 찻잔
       if (pop > 0) {
-        g.save(); g.translate(0, cy); g.scale(0.36 * pop, 0.36 * pop); g.globalAlpha = fade;
+        g.save(); g.translate(0, cy); g.scale(0.46 * pop, 0.46 * pop); g.globalAlpha = fade;
         const cup = gg => { gg.beginPath(); gg.moveTo(-0.75, -0.35); gg.lineTo(0.75, -0.35); gg.quadraticCurveTo(0.72, 0.45, 0.3, 0.55); gg.lineTo(-0.3, 0.55); gg.quadraticCurveTo(-0.72, 0.45, -0.75, -0.35); gg.closePath(); };
         // 손잡이
         g.beginPath(); g.ellipse(0.82, 0.02, 0.22, 0.22, 0, 0, TAU); g.lineWidth = 0.26; g.strokeStyle = J.rim; g.stroke(); g.lineWidth = 0.13; g.strokeStyle = J.mid; g.stroke();

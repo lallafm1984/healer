@@ -23,15 +23,22 @@ export default {
     draw(g, { t }) {
       const pop = lerp(0.5, 1, E.back(seg(t, 0, 0.2), 1.8)), fade = 1 - E.in2(seg(t, 0.6, 1)), sy = -0.6;
       glowOval(g, 0, 0, 0.95, 0.9, NIGHT.glow, 0.35 * (1 - E.out2(seg(t, 0, 0.7))));
+      // 사제 치유처럼 몸통에도 빛 (QA 2026-10-16 Lim 「이펙트 퀄리티는 사제 기준」: 별만 머리 위에 작게 떠서 맞은 칸이 잘 안 보였음)
+      glow(g, 0, 0.15, 1.05, AM.glow, 0.5 * (1 - E.out2(seg(t, 0, 0.6))));
+      glow(g, 0, 0.1, 0.5, '#ffffff', 0.65 * (1 - E.out3(seg(t, 0, 0.3))));
+      const shaft = 1 - E.out2(seg(t, 0.05, 0.55));
+      if (shaft > 0.02) lightStroke(g, s2 => ({ x: 0, y: lerp(sy, 0.3, s2) }), 0, 1, u => 0.2 * (1 - 0.5 * u), { rim: NIGHT.rim, body: AM.light, core: '#ffffff', a: shaft * fade, rimW: 0.02, glowCol: AM.glow, glowA: 0.6 });
       glow(g, 0, sy, 0.55, '#ffffff', 0.6 * (1 - E.out3(seg(t, 0, 0.3))));
-      star5(g, 0, sy, 0.38 * pop * (1 - 0.35 * seg(t, 0.3, 1)), t * 2.4, fade);
+      star5(g, 0, sy, 0.5 * pop * (1 - 0.35 * seg(t, 0.3, 1)), t * 2.4, fade);
       // 떨어지는 마름모 빛 방울
-      particles(g, t, 3, 9, (r, i) => ({ t0: 0.08 + i * 0.06, life: 0.45, x: (r() - 0.5) * 0.7, sz: 0.05 + r() * 0.03 }), (gg, p, age) => {
+      particles(g, t, 3, 12, (r, i) => ({ t0: 0.06 + i * 0.045, life: 0.45, x: (r() - 0.5) * 0.85, sz: 0.06 + r() * 0.035 }), (gg, p, age) => {
         const y = sy + 0.2 + 1.0 * E.in2(age), k = (1 - age) * fade;
         glow(gg, p.x, y, p.sz * 3, AM.glow, 0.5 * k);
         gg.save(); gg.translate(p.x, y); gg.scale(p.sz * 0.6, p.sz); energy(gg, h => path.diamond(h, 0.6), { rim: AM.rim, body: AM.light, core: '#ffffff', rimW: 0.2, a: k }); gg.restore();
       });
-      for (let i = 0; i < 3; i++) { const a = t * 3 + i * 2.1, b = bell(t, 0.1 + i * 0.1, 0.25 + i * 0.1, 0.6 + i * 0.1); twinkle(g, Math.cos(a) * 0.5, sy + Math.sin(a) * 0.2, 0.14 * b, b, a); }
+      for (let i = 0; i < 3; i++) { const a = t * 3 + i * 2.1, b = bell(t, 0.1 + i * 0.1, 0.25 + i * 0.1, 0.6 + i * 0.1); twinkle(g, Math.cos(a) * 0.55, sy + Math.sin(a) * 0.22, 0.2 * b, b, a); }
+      // 몸에서 떠오르는 별가루 (사제 치유의 반짝이 가루처럼)
+      particles(g, t, 17, 22, r => ({ t0: r() * 0.4, life: 0.45 + r() * 0.3, x: (r() - 0.5) * 1.3, y0: 0.55 + r() * 0.3, rise: 0.6 + r() * 0.6, sz: 0.016 + r() * 0.02, ph: r() * 9 }), (gg, p, age) => speck(gg, p.x * (1 - 0.3 * age), p.y0 - p.rise * E.out2(age), p.sz, p.ph > 4.5 ? AM.light : NIGHT.star, bell(age, 0, 0.15, 1) * fade, 0.5 + 0.5 * Math.sin(p.ph + age * 16)));
     },
   },
 
@@ -40,16 +47,18 @@ export default {
     frames: 16, logical: 86, scope: 'target',
     draw(g, { t }) {
       glow(g, 0, 0, 0.9, NIGHT.glow, 0.4 * (1 - E.out2(seg(t, 0, 0.7))));
+      glow(g, 0, 0.05, 0.95, AM.glow, 0.45 * (1 - E.out2(seg(t, 0, 0.55))));
+      glow(g, 0, 0, 0.45, '#ffffff', 0.6 * (1 - E.out3(seg(t, 0, 0.25))));
       const pts = [[0, -0.62], [-0.55, 0.42], [0.55, 0.42]];
       // 세 별을 잇는 옅은 삼각 빛
       const tri = bell(t, 0.25, 0.45, 0.9);
-      g.save(); g.globalAlpha = tri * 0.6; g.beginPath(); pts.forEach(([x, y]) => g.lineTo(x, y)); g.closePath(); g.lineWidth = 0.05; g.strokeStyle = C(NIGHT.mid, 0.9); g.stroke(); g.lineWidth = 0.02; g.strokeStyle = AM.light; g.stroke(); g.restore();
+      g.save(); g.globalAlpha = tri * 0.6; g.beginPath(); pts.forEach(([x, y]) => g.lineTo(x, y)); g.closePath(); g.lineWidth = 0.075; g.strokeStyle = C(NIGHT.mid, 0.9); g.stroke(); g.lineWidth = 0.032; g.strokeStyle = AM.light; g.stroke(); g.restore();
       pts.forEach(([x, y], i) => {
         const b = i === 0 ? 1 - E.in2(seg(t, 0.05, 0.55)) : bell(t, i * 0.14, i * 0.14 + 0.1, i * 0.14 + 0.55);
-        twinkle(g, x, y, 0.55 * b, b, rad(i * 15));
-        speck(g, x, y, 0.035 * b, '#ffffff', b);
+        twinkle(g, x, y, 0.75 * b, b, rad(i * 15));
+        speck(g, x, y, 0.05 * b, '#ffffff', b);
       });
-      particles(g, t, 5, 10, r => ({ t0: 0.1 + r() * 0.5, life: 0.35, x: (r() - 0.5) * 1.2, y: (r() - 0.5) * 1.1 }), (gg, p, age) => speck(gg, p.x, p.y, 0.018, AM.light, Math.sin(Math.PI * age)));
+      particles(g, t, 5, 18, r => ({ t0: 0.05 + r() * 0.5, life: 0.35, x: (r() - 0.5) * 1.3, y: (r() - 0.5) * 1.15 }), (gg, p, age) => speck(gg, p.x, p.y, 0.026, AM.light, Math.sin(Math.PI * age)));
     },
   },
 
@@ -58,20 +67,25 @@ export default {
     frames: 20, logical: 88, scope: 'target',
     draw(g, { t }) {
       const fade = 1 - E.in2(seg(t, 0.62, 1)), pts = [[-0.58, -0.45], [0.02, -0.88], [0.6, -0.4]];
+      // 첫 장부터 보이게: 맞는 순간 몸 위 흰 빛 (예전엔 0장째가 비어 있었음, README 「첫 프레임 = 들어간 순간」)
+      glow(g, 0, -0.1, 0.75, AM.glow, 0.55 * (1 - E.out2(seg(t, 0, 0.4))));
+      glow(g, 0, -0.15, 0.4, '#ffffff', 0.6 * (1 - E.out3(seg(t, 0, 0.22))));
       glowOval(g, 0, -0.65, 0.85, 0.5, NIGHT.glow, 0.55 * bell(t, 0, 0.2, 1));
       glowOval(g, 0, -0.65, 0.55, 0.45, NIGHT.mid, 0.4 * bell(t, 0, 0.2, 1), false);
       for (let i = 0; i < 2; i++) {
         const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], k = E.out2(seg(t, 0.12 + i * 0.16, 0.3 + i * 0.16));
-        if (k > 0) lightStroke(g, s => ({ x: lerp(x0, x1, s), y: lerp(y0, y1, s) }), 0, k, () => 0.07, { rim: NIGHT.rim, body: AM.light, core: '#ffffff', a: fade, rimW: 0.018, glowCol: AM.glow, glowA: 0.5 });
+        if (k > 0) lightStroke(g, s => ({ x: lerp(x0, x1, s), y: lerp(y0, y1, s) }), 0, k, () => 0.095, { rim: NIGHT.rim, body: AM.light, core: '#ffffff', a: fade, rimW: 0.02, glowCol: AM.glow, glowA: 0.6 });
       }
       pts.forEach(([x, y], i) => {
         const on = E.back(seg(t, i * 0.16, i * 0.16 + 0.15), 2);
         if (on <= 0) return;
-        star5(g, x, y, 0.19 * on, rad(i * 20), fade, 0.8);
-        twinkle(g, x, y, 0.3 * bell(t, i * 0.16, i * 0.16 + 0.06, i * 0.16 + 0.3), 1);
+        star5(g, x, y, 0.26 * on, rad(i * 20), fade, 0.9);
+        twinkle(g, x, y, 0.4 * bell(t, i * 0.16, i * 0.16 + 0.06, i * 0.16 + 0.3), 1);
       });
       // 별자리에서 대상에게 내리는 빛 가루
-      particles(g, t, 8, 10, r => ({ t0: 0.3 + r() * 0.3, life: 0.4, x: (r() - 0.5) * 0.9 }), (gg, p, age) => speck(gg, p.x, -0.55 + 0.9 * age, 0.02, AM.light, (1 - age) * fade));
+      particles(g, t, 8, 16, r => ({ t0: 0.28 + r() * 0.3, life: 0.4, x: (r() - 0.5) * 1.0 }), (gg, p, age) => speck(gg, p.x, -0.55 + 0.95 * age, 0.03, AM.light, (1 - age) * fade));
+      // 별자리 빛이 내려앉은 몸 (표식이 붙었다는 것이 칸에서도 보이게)
+      glow(g, 0, 0.1, 0.85, AM.glow, 0.45 * bell(t, 0.3, 0.45, 0.95));
     },
   },
 
@@ -114,14 +128,16 @@ export default {
         const d = i * 0.12, hit = d + 0.28, x1 = (i - 1) * 0.42, P = s => ({ x: lerp(x1 - 0.9, x1, s), y: lerp(by - 1.55, by, s) });
         if (t < hit) {
           const s = E.in2(seg(t, d, hit));
-          if (t >= d) { comet(g, P, Math.max(0, s - 0.45), s, { w: 0.14, rim: NIGHT.rim, body: AM.light, core: '#ffffff', glowCol: AM.glow, head: 0 }); const p = P(s); star5(g, p.x, p.y, 0.21, t * 9 + i, 1); }
+          if (t >= d) { comet(g, P, Math.max(0, s - 0.45), s, { w: 0.18, rim: NIGHT.rim, body: AM.light, core: '#ffffff', glowCol: AM.glow, head: 0 }); const p = P(s); star5(g, p.x, p.y, 0.28, t * 9 + i, 1); }
         } else {
           const u = seg(t, hit, hit + 0.45);
-          glowOval(g, x1, by, 0.4, 0.4, AM.glow, 0.9 * (1 - u));
+          glowOval(g, x1, by, 0.55, 0.45, AM.glow, 1 - u);
           for (let k = 0; k < 5; k++) { const a = rad(-160 + k * 35), r = 0.1 + 0.32 * E.out2(u); speck(g, x1 + Math.cos(a) * r, by + Math.sin(a) * r * 0.9 + 0.3 * u * u, 0.025, AM.light, (1 - u) * fade); }
-          twinkle(g, x1, by - 0.05, 0.3 * (1 - E.out2(u)), 1 - u);
+          twinkle(g, x1, by - 0.05, 0.42 * (1 - E.out2(u)), 1 - u);
         }
       }
+      // 별이 떨어진 몸 전체 (회복이 들어간 칸)
+      glow(g, 0, 0.15, 1.0, AM.glow, 0.45 * bell(t, 0.26, 0.4, 0.85));
     },
   },
 
