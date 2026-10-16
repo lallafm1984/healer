@@ -13,7 +13,7 @@ export type SkillKey =
   | 'sprout' | 'growth' | 'bloom' | 'wildflower' | 'natureCleanse' | 'bark' | 'quietwood' | 'rebirth'
   // 성기사
   | 'holyLight' | 'beacon' | 'oath' | 'lightWave' | 'handCleanse' | 'sacrifice' | 'sanctuary' | 'handGuard'
-  // 주술사 (79 2장, springTotem = 가운데 스킬)
+  // 주술사 (79 2장). 샘 · 대지 토템은 칸을 고름 (빈 칸도 됨, 2026-10-16 Lim)
   | 'ripple' | 'droplet' | 'washing' | 'chainHeal' | 'earthTotem' | 'rainTotem' | 'spiritLink' | 'springTotem'
   // 수도사 (79 3장)
   | 'vitalPalm' | 'mistWrap' | 'wanderMist' | 'clearChi' | 'mistBreath' | 'soothe' | 'reviveWind' | 'tea'
@@ -90,7 +90,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   droplet: { name: '물방울', short: '방울', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 4, amt: 330, target: 'ally' },
   washing: { name: '씻김', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
   chainHeal: { name: '연쇄 치유', short: '연쇄', slot: 'aoe', lv: 5, cast: 2.5, cost: 10, amt: 300, target: 'ally' },
-  earthTotem: { name: '대지 토템', short: '대지', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' },
+  earthTotem: { name: '대지 토템', short: '대지', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'cell' },
   rainTotem: { name: '비구름 토템', short: '비구름', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, amt: 60, target: 'none' },
   spiritLink: { name: '영혼 잇기', short: '잇기', slot: 'unique', lv: 15, cast: 0, cost: 5, cd: 120, target: 'ally' },
   springTotem: { name: '샘 토템', short: '샘', slot: 'fast', lv: 6, cast: 0, cost: 4, cd: 10, amt: 60, target: 'cell' },
@@ -182,10 +182,10 @@ export const SKILL_INFO: Record<SkillKey, { kind: string; desc: string }> = {
   droplet: { kind: '다리 · 지속 힐', desc: '12초 동안 3초마다 대상의 체력을 회복합니다. 모두 {330}입니다. 물방울이 걸린 아군에게는 연쇄 치유가 2칸 거리까지 튑니다.' },
   washing: { kind: '해제', desc: '대상의 마법·저주 디버프를 1개 제거합니다.' },
   chainHeal: { kind: '튀는 광역', desc: '대상의 체력을 {300} 회복하고, 붙어 있는 다친 아군에게 튑니다. 체력 비율이 가장 낮은 아군에게 먼저 튀고, 튈 때마다 회복량이 25% 줄며, 모두 4명까지 닿습니다.' },
-  earthTotem: { kind: '토템', desc: '대상이 선 칸에 대지 토템을 세웁니다. 10초 동안 그 칸과 붙어 있는 6칸의 아군이 받는 피해가 15% 줄어듭니다. 토템은 그 칸에 남고 대상을 따라가지 않습니다.' },
+  earthTotem: { kind: '토템', desc: '고른 칸에 대지 토템을 세웁니다. 빈 칸에도 세울 수 있습니다. 10초 동안 그 칸과 붙어 있는 6칸의 아군이 받는 피해가 15% 줄어듭니다. 토템은 그 칸에 남고 사람을 따라가지 않습니다.' },
   rainTotem: { kind: '토템 · 공대 쿨기', desc: '10초 동안 2초마다 파티 전원의 체력을 {60}씩 회복합니다. 비구름 토템은 하늘에 떠서 깨지지 않고, 그동안 다른 행동을 할 수 있습니다.' },
   spiritLink: { kind: '체력 나누기', desc: '대상과 붙어 있는 아군의 체력 비율을 모두의 평균으로 똑같이 맞춥니다. 그 뒤 6초 동안 그 아군들이 받는 피해가 10% 줄어듭니다.' },
-  springTotem: { kind: '토템 칸', desc: `고른 아군 칸에 샘 토템을 세웁니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군 체력을 {60}씩 회복합니다.${SHAMAN.spring.big < 1 ? ` 20인 레이드에서는 ${Math.round(SHAMAN.spring.big * 100)}%만 회복합니다.` : ''}` },
+  springTotem: { kind: '토템 칸', desc: `고른 칸에 샘 토템을 세웁니다. 빈 칸에도 세울 수 있습니다. 15초 동안 3초마다 그 칸과 붙어 있는 6칸의 아군 체력을 {60}씩 회복합니다.${SHAMAN.spring.big < 1 ? ` 20인 레이드에서는 ${Math.round(SHAMAN.spring.big * 100)}%만 회복합니다.` : ''}` },
 
   vitalPalm: { kind: '연타', desc: '대상의 체력을 즉시 {110} 회복합니다. 다음 행동까지 1초만 기다립니다 (가속과 상관없이 1초). 2.5초 안에 다시 치면 기 리듬이 오릅니다.' },
   mistWrap: { kind: '리듬 마무리', desc: '대상의 체력을 즉시 {140} 회복합니다. 기 리듬 1마다 12% 더 회복하고, 리듬은 끊기지 않고 이어집니다. 떠도는 안개가 없으면 6초 동안 {90} 회복하는 안개를 겁니다.' },

@@ -433,7 +433,7 @@ export const SHAMAN_TALENTS: TalentTier[] = [
     t('twinSpring', '두 개의 샘', '샘 토템을 2개까지 세울 수 있습니다. 세 번째를 세우면 가장 오래된 것이 사라집니다.')] },
   { lv: 25, theme: '토템', picks: [
     t('waterShield', '물의 방패', `샘 토템이 체력이 가득 찬 아군을 회복하면 그만큼 보호막을 씌웁니다 (최대 {${TX.waterShield.max}}, ${TX.waterShield.sec}초).`),
-    t('totemCall', '토템 부르기', `판 위의 내 샘 · 대지 토템을 고른 칸으로 옮깁니다. 남은 시간은 그대로입니다. 재사용 대기시간은 ${TX.totemCall.cd}초입니다.`, { cd: TX.totemCall.cd, dur: 0, cell: true, short: '부르기' }),
+    t('totemCall', '토템 부르기', `판 위의 내 샘 · 대지 토템을 고른 칸으로 옮깁니다. 한 칸에는 토템 하나만 서므로 나중에 세운 토템이 그 칸, 나머지는 바로 옆 칸에 섭니다. 남은 시간은 그대로입니다. 재사용 대기시간은 ${TX.totemCall.cd}초입니다.`, { cd: TX.totemCall.cd, dur: 0, cell: true, short: '부르기' }),
     t('freshSpring', '넓은 샘', `샘 토템이 ${TX.freshSpring.range}칸 거리까지 닿고, 회복량은 ${pc(TX.freshSpring.heal)} 줄어듭니다.`)] },
   { lv: 30, theme: '생존', picks: [
     t('earthGrace', '대지의 품', `내가 샘 토템이나 대지 토템 범위 안에 있으면 받는 피해가 ${pc(TX.earthGrace)} 줄어듭니다.`),

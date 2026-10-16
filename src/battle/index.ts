@@ -426,8 +426,10 @@ document.addEventListener('pointerdown', e => {
 // ---------- 판 입력: 탭 = 기본 힐, 칸에서 8방향 쓸기 = 그 방향 스킬, 길게 누르기 = 정보 ----------
 const cv = $('board') as HTMLCanvasElement;
 function pt(e: PointerEvent) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
-/** 스킬을 걸 수 있는 칸: 파티원 또는 헤매는 영혼 (P-SOUL) */
-const aimable = (F: Fight, idx: number): boolean => !!F.cells[idx]?.unit || F.cells[idx]?.block === 'soul';
+/** 스킬을 걸 수 있는 칸: 파티원 또는 헤매는 영혼 (P-SOUL). 칸에 세우는 스킬 (주술사 샘 · 대지 토템)은 빈 칸도 (2026-10-16 Lim) */
+const aimable = (F: Fight, idx: number, key?: SkillKey | null): boolean => (!!key && SKILLS[key].target === 'cell' && !!F.cells[idx]) || !!F.cells[idx]?.unit || F.cells[idx]?.block === 'soul';
+/** 쓸기 방향의 휠 스킬 */
+const dirKey = (F: Fight, d: ReturnType<typeof swipeDir>): SkillKey | null => { const it = d ? dirSlot(d) : null; return it && it.key ? slotKey(F, it.key) : null; };
 function doUse(key: SkillKey, idx: number): boolean {
   const F = B.F!;
   if (skillUsesSpent(F, key)) return false;
@@ -461,7 +463,8 @@ cv.addEventListener('pointermove', e => {
   const p = pt(e); P.x = p.x; P.y = p.y;
   if (Math.hypot(P.x - P.x0, P.y - P.y0) > 12) { P.moved = true; clearTimeout(P.timer); }
   // 장전한 스킬이 없을 때, 파티원 칸에서 시작한 쓸기는 방향 스킬 (쓰는 동안 휠과 칸에 미리 보여줌)
-  const nd = !B.armed && !ui.itemArmed && P.idx >= 0 && aimable(F, P.idx) ? swipeDir(P.x - P.x0, P.y - P.y0) : null;
+  const sd = !B.armed && !ui.itemArmed && P.idx >= 0 ? swipeDir(P.x - P.x0, P.y - P.y0) : null;
+  const nd = sd && aimable(F, P.idx, dirKey(F, sd)) ? sd : null;
   if (nd !== P.dir) { P.dir = nd; if (nd) vibe(5); }
 });
 function endPointer(cancelled: boolean, e?: PointerEvent): void {
@@ -507,7 +510,7 @@ function endPointer(cancelled: boolean, e?: PointerEvent): void {
   if (!B.armed && P.moved) {
     const d = swipeDir(dx, dy), it = d ? dirSlot(d) : null;
     if (!d) { ui.swipeCancel++; return; } // 쓸다가 제자리로 돌아오면 취소
-    if (P.idx < 0 || !aimable(F, P.idx)) { F.stats.missTaps++; return; }
+    if (P.idx < 0 || !aimable(F, P.idx, dirKey(F, d))) { F.stats.missTaps++; return; }
     if (!it || !it.key) { toast('이 방향은 비어 있음'); ui.swipeEmpty++; return; }
     ui.swipes[d] = (ui.swipes[d] || 0) + 1;
     const sk = slotKey(F, it.key);
@@ -517,7 +520,7 @@ function endPointer(cancelled: boolean, e?: PointerEvent): void {
   if (!area && P.moved && Math.hypot(dx, dy) > 30) return;
   const idx = area ? hit(P.x, P.y) : P.idx;
   if (idx < 0) { F.stats.missTaps++; return; }
-  if (!aimable(F, idx)) { F.stats.emptyTaps++; return; }
+  if (!aimable(F, idx, key)) { F.stats.emptyTaps++; return; }
   // 터치 정확도: 칸 중심에서 떨어진 정도(칸 크기 대비), 0.7초 안에 옆 칸으로 다시 지정 = 오탭 추정
   const c = screenCenter(idx), nowT = performance.now();
   ui.tapOff.push(Math.hypot(P.x - c.x, P.y - c.y) / (L.s * L.k));
