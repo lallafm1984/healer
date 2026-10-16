@@ -39,12 +39,8 @@ export function cellTypography(scale: number): { compact: boolean; hp: number; n
   };
 }
 
-/** 0%/100%가 살아 있는 극소 HP나 아직 덜 찬 HP를 오인시키지 않도록 안쪽으로 반올림한다. */
-export function healthDisplay(hp: number, max: number): { ratio: number; percent: number; critical: boolean } {
-  const ratio = max > 0 ? Math.max(0, Math.min(1, hp / max)) : 0;
-  const percent = ratio === 0 ? 0 : ratio === 1 ? 100 : Math.max(1, Math.min(99, Math.round(ratio * 100)));
-  return { ratio, percent, critical: ratio > 0 && ratio < 0.3 };
-}
+/** 칸 체력 글자: 모든 판 (3 · 5인 · 레이드 작은 칸)이 같은 체력 숫자 (2026-10-16 Lim 「레이드도 3 · 5인과 같은 표시, % 제거」). 살아 있는 극소 체력도 0이 아니게 올림, 영원한 저녁은 ? */
+export const hpLabelText = (hp: number, dark = false): string => (dark ? '?' : String(Math.ceil(Math.max(0, hp))));
 
 /** 글꼴 크기를 줄이지 않고 이름을 말줄임한다. 전체 이름은 길게 누르기 정보에서 제공한다. */
 export function fitPartyName(name: string, maxWidth: number, measure: (text: string) => number): string {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, hotTimersOf, primaryDebuff, shieldTimerOf } from '../src/battle/party-display';
+import { cellTypography, debuffDisplay, fitPartyName, hotTimersOf, hpLabelText, primaryDebuff, shieldTimerOf } from '../src/battle/party-display';
 import type { Debuff, Hot, Mod } from '../src/engine/types';
 
 const debuff = (extra: Partial<Debuff> = {}): Debuff => ({ id: 1, name: '부패', type: '질병', left: 4.1, ...extra });
@@ -61,14 +61,12 @@ describe('작은 전투 칸 표시', () => {
     expect(cellTypography(36).hp).toBeGreaterThanOrEqual(cellTypography(35.9).hp);
     expect(cellTypography(40).hp).toBeGreaterThanOrEqual(cellTypography(36).hp);
   });
-  it('살아 있는 극소 HP와 아직 덜 찬 HP를 0%/100%로 표시하지 않는다', () => {
-    expect(healthDisplay(0.01, 1000)).toEqual({ ratio: 0.00001, percent: 1, critical: true });
-    expect(healthDisplay(999.9, 1000).percent).toBe(99);
-    expect(healthDisplay(1000, 1000).percent).toBe(100);
-    expect(healthDisplay(0, 1000)).toEqual({ ratio: 0, percent: 0, critical: false });
-    expect(healthDisplay(100, 0).ratio).toBe(0);
-    expect(healthDisplay(300, 1000).critical).toBe(false);
-    expect(healthDisplay(299, 1000).critical).toBe(true);
+  it('작은 레이드 칸도 3 · 5인과 같은 체력 숫자 (% 없음), 살아 있는 극소 체력은 1, 영원한 저녁은 ?', () => {
+    expect(hpLabelText(6398.2)).toBe('6399');
+    expect(hpLabelText(0.01)).toBe('1');
+    expect(hpLabelText(0)).toBe('0');
+    expect(hpLabelText(500, true)).toBe('?');
+    expect(hpLabelText(1234.5)).not.toMatch(/%/);
   });
   it('닉네임을 축소하지 않고 유니코드 문자를 보존해 말줄임한다', () => {
     const measure = (text: string) => Array.from(text).length * 11;

@@ -25,7 +25,7 @@ import { CLASS_GLYPH, CUT, EDGE, LINE } from '../screens/class-icons';
 import { FACTIONS, type FactionKey } from '../data/places';
 import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
-import { cellTypography, debuffDisplay, fitPartyName, healthDisplay, hotTimersOf, primaryDebuff, shieldTimerOf } from './party-display';
+import { cellTypography, debuffDisplay, fitPartyName, hotTimersOf, hpLabelText, primaryDebuff, shieldTimerOf } from './party-display';
 import { CELL_RADIUS, fitBoard, hotTimerLayout, shieldTimerLayout } from './board-layout';
 import { BOARDS } from '../data/boards';
 import { makeCells } from '../engine/board';
@@ -1834,12 +1834,12 @@ export function render(now: number): void {
     }
     // 작은 칸: 배지 · 이름 · 체력 세 줄이 서로와 위 칸 체력에 닿지 않게 (배지 0.81 · 이름 0.24, 2026-10-10)
     nick(u, x, y + r * (compact ? -0.24 : 0.13), r);
-    const health = healthDisplay(u.hp, u.max);
-    // 영원한 저녁 (05 6-G): 숫자 없이 채움 색만
-    const hpText = F.dark ? '?' : `${compact ? `${health.percent}%` : Math.ceil(u.hp)}`;
+    // 영원한 저녁 (05 6-G): 숫자 없이 채움 색만. 작은 레이드 칸도 3 · 5인처럼 체력 숫자 (2026-10-16 Lim 「% 표시 제거」)
+    const hpText = hpLabelText(u.hp, !!F.dark);
     const hpY = y + r * (compact ? 0.25 : 0.6);
+    // 보호막이 있는 동안 체력 숫자는 보호막 파랑 (2026-10-16 Lim, 떠오르는 파란 숫자와 같은 색)
     const hpLabel = labels.put(`hp${u.id}`, hpText, {
-      size: typography.hp, fill: C.white, weight: W_NUM, strokeW: compact ? 1.5 : 2.5, num: !compact,
+      size: typography.hp, fill: shieldT ? C.shield : C.white, weight: W_NUM, strokeW: compact ? 1.5 : 2.5, num: !compact,
     }, x, hpY);
     // Bitmap atlas의 획/패딩 때문에 100%가 옆 칸까지 번지지 않게 실제 렌더 폭을 제한한다.
     // 세로 글자 크기·문자 내용은 유지하고, 필요한 경우 가로만 압축한다.
@@ -2072,7 +2072,8 @@ export function render(now: number): void {
   }
 
   // 실제 최종 HP·이름·상태 표시를 먼저 보호한다. 일시 연출은 다른 연출과도 겹치지 않는다.
-  const transientOccupied: PillBox[] = decorationBounds.filter(b => ['hp', 'nick', 'hot', 'shield', 'debuff', 'role', 'aggro', 'pill'].includes(b.kind));
+  // 탱커 조준 표식 (aggro)은 비키지 않고 그 위에 겹쳐 뜸 (2026-10-16 Lim 「타겟 마크 때문에 숫자가 옆으로 뜸」, 숫자 층이 맨 위)
+  const transientOccupied: PillBox[] = decorationBounds.filter(b => ['hp', 'nick', 'hot', 'shield', 'debuff', 'role', 'pill'].includes(b.kind));
   // 떠오르는 숫자 (2026-10-12 Lim 「힐 수치 등 숫자 위치가 흔들린다」): 처음 잡은 자리에서 비킨 만큼을 지키며 올라감.
   // 예전엔 프레임마다 빈자리를 새로 찾아, 올라가다 이름 · 체력 · 다른 숫자에 닿으면 옆 · 위 자리로 튀거나 두 자리 사이를 오갔다
   // (빌드 131, S25 5인 숫자 82개 중 76개가 한 번 이상 튐, 최대 80px).
@@ -2102,6 +2103,9 @@ export function render(now: number): void {
     const occupied = floatLast.size ? transientOccupied.concat([...floatLast.values()]) : transientOccupied;
     // 자리가 없으면 자기 직업 아이콘 위는 덮어도 됨 (칸 색이 직업을 보여 줌). 작은 칸 가운데 사람은 이 자리뿐
     const roleFree = own ? occupied.filter(o => (o as DecorationBound).key !== `role${own.id}`) : occupied;
+    // 회복 · 보호막 · 피해 숫자는 처음부터 자기 직업 아이콘 · 조준 표식 위에 겹쳐 모든 칸 같은 자리 (2026-10-16 Lim 「타겟 마크 위에 겹쳐서」).
+    // 맨 윗줄 (탱커 1열)은 아이콘 위로 올라갈 자리가 판 밖이라 예전엔 옆으로 비켰음
+    const open = fl.num ? roleFree : occupied;
     let p: PillBox | null;
     if (fl.at) {
       const stay = (px: number, py: number, occ: readonly PillBox[]): PillBox | null => {
@@ -2118,7 +2122,7 @@ export function render(now: number): void {
       const near = (px: number, py: number) => (px - x) ** 2 + (py - y) ** 2 <= (r * 0.9) ** 2 && closer(px, py);
       const roomy = (occ: readonly PillBox[]) => occ.map(o => ((o as DecorationBound).kind === 'hp' ? { ...o, w: o.w + o.h * 0.6 } : o));
       const box = { x, y, w, h };
-      p = transientSpot(box, roomy(occupied), near) ?? transientSpot(box, occupied, near)
+      p = transientSpot(box, roomy(open), near) ?? transientSpot(box, open, near)
         ?? (own ? transientSpot(box, roomy(roleFree), near) ?? transientSpot(box, roleFree, near) : null);
     }
     if (!p) {
