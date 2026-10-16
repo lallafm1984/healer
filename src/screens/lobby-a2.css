@@ -3,10 +3,10 @@
 #s-lobby {
   --a2-cream: #fff4d5;
   --a2-ink: #2b1b0d;
-  --a2-wood-sign: url('../art/a2-wood-sign.png');
-  --a2-socket: url('../art/a2-side-socket.png');
-  --a2-goal: url('../art/a2-goal-card.png');
-  --a2-depart: url('../art/a2-depart-button-r6.png');
+  --a2-wood-sign: url('../art/a2-wood-sign.webp');
+  --a2-socket: url('../art/a2-side-socket.webp');
+  --a2-goal: url('../art/a2-goal-card.webp');
+  --a2-depart: url('../art/a2-depart-button-r6.webp');
 }
 
 /* 위 정보창은 모든 화면 공통 a2-topbar.css (로비 기준 크기) */
@@ -53,7 +53,7 @@
   background: var(--a2-wood-sign) 48.148% 25% / 103.03% 105.941% no-repeat; box-shadow: none;
   color: var(--a2-cream); text-shadow: 0 1px 1px #271202;
 }
-#s-lobby .lb-plate.lb-shop { padding-top: 5px; background-image: url('../art/a2-shop-sign-r6.png'); background-size: 102.103% 89.954%; background-position: 55% 50%; }
+#s-lobby .lb-plate.lb-shop { padding-top: 5px; background-image: url('../art/a2-shop-sign-r6.webp'); background-size: 102.103% 89.954%; background-position: 55% 50%; }
 #s-lobby .lb-plate.lb-raid { height: 65px; padding-top: 11px; }
 #s-lobby .lb-plate > .g-ic { width: 29px; height: 34px; transform: translateX(-1px) scale(1.35); transform-origin: 50% 50%; }
 #s-lobby .lb-pt { box-sizing: border-box; gap: 2px; text-align: left; }
@@ -114,16 +114,16 @@
 /* 전역 하단 내비게이션은 로비가 보일 때만 A2 프레임을 사용한다. 기존 높이 68px/safe-area는 유지한다. */
 body:has(#s-lobby:not([hidden])) #adBanner span { visibility: hidden; }
 body:has(#s-lobby:not([hidden])) #tabs {
-  gap: 4px; padding: 2px 20px 5px; background: url('../art/a2-bottom-plinth.png') 87.5% 57.56% / 100.384% 200.533% no-repeat; box-shadow: none;
+  gap: 4px; padding: 2px 20px 5px; background: url('../art/a2-bottom-plinth.webp') 87.5% 57.56% / 100.384% 200.533% no-repeat; box-shadow: none;
 }
 body:has(#s-lobby:not([hidden])) #tabs::before { content: none; }
 body:has(#s-lobby:not([hidden])) #tabs button {
   min-height: 44px; padding: 4px 3px 5px; gap: 1px; border: 0;
-  background: url('../art/a2-tab-idle.png') 50% 51.23% / 105.532% 130.012% no-repeat;
+  background: url('../art/a2-tab-idle.webp') 50% 51.23% / 105.532% 130.012% no-repeat;
   font: 700 13px/1.15 var(--font-body); color: #fff4d5; letter-spacing: -.04em;
 }
 body:has(#s-lobby:not([hidden])) #tabs button[aria-current="page"] {
-  background-image: url('../art/a2-tab-active.png'); background-size: 105.159% 129.06%; background-position: 50.685% 50.42%; color: #2b1b0d; text-shadow: none;
+  background-image: url('../art/a2-tab-active.webp'); background-size: 105.159% 129.06%; background-position: 50.685% 50.42%; color: #2b1b0d; text-shadow: none;
 }
 body:has(#s-lobby:not([hidden])) #tabs .tab-sock { width: 30px; height: 30px; padding: 0; background: none; outline: none; }
 body:has(#s-lobby:not([hidden])) #tabs .tab-sock > .g-ic { width: 30px; height: 30px; transform: scale(1.3); }
@@ -170,7 +170,7 @@ body:has(#s-lobby:not([hidden])) #tabs button:focus-visible { outline: 3px solid
   #s-lobby .lb-caption > small { font-size: 9px; }
   #s-lobby .lb-sock > .g-ic { width: 27px; height: 27px; }
   #s-lobby .lb-plate { height: 48px; min-height: 44px; }
-  #s-lobby .lb-plate.lb-shop { padding-top: 5px; background-image: url('../art/a2-shop-sign-r6.png'); background-size: 102.103% 89.954%; background-position: 55% 50%; }
+  #s-lobby .lb-plate.lb-shop { padding-top: 5px; background-image: url('../art/a2-shop-sign-r6.webp'); background-size: 102.103% 89.954%; background-position: 55% 50%; }
 #s-lobby .lb-plate.lb-raid { height: 60px; padding-top: 14px; }
 }
 @media (max-width: 359px) {

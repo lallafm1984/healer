@@ -5,7 +5,7 @@
  */
 #s-lobby .lb-right { gap: 7px; }
 #s-lobby .lb-plate.lb-forge, #s-lobby .lb-plate.lb-guild {
-  padding-top: 5px; background-image: url('../art/a2-shop-sign-r6.png'); background-size: 102.103% 89.954%; background-position: 55% 50%;
+  padding-top: 5px; background-image: url('../art/a2-shop-sign-r6.webp'); background-size: 102.103% 89.954%; background-position: 55% 50%;
 }
 #s-lobby :is(.lb-forge, .lb-guild) .lb-pt { padding-left: 18px; }
 #s-lobby .lb-plate .g-badge { top: -6px; right: -4px; }
