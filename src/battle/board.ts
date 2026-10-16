@@ -28,6 +28,7 @@ import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, 
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, hotTimersOf, hpLabelText, primaryDebuff, shieldTimerOf } from './party-display';
 import { CELL_RADIUS, fitBoard, hotTimerLayout, shieldTimerLayout } from './board-layout';
+import { DEBUFF_EDGE, GIM_ICON, MARK_ART } from './board-marks';
 import { BOARDS } from '../data/boards';
 import { makeCells } from '../engine/board';
 import { ALWAYS_FX, BOSS_PXF, bossPxfOf, COMMON_PXF, heroSkillFx, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, type CommonFx, type PxfKey } from './pxf';
@@ -44,7 +45,8 @@ const SAND = 0xe9c46a;
 /** 묶음 F (56 5장): 띄워 올리기 하늘색 · 연쇄 번개 노랑 */
 const SKY = 0x9fd8f5, BOLT = 0xffe066;
 /** 묶음 G (59 5장): 어둠물 검보라 · 물결 · 빌린 생명 보라 (심연의 정예 #8A7CFF) */
-const TIDE = 0x241a4d, TIDE_HI = 0x8a7cff, DEBT = 0x8a7cff, DEBT_HI = 0xd6ceff;
+// 빚 띠는 어둠물 물선과 다른 자홍빛 보라 (2026-10-16 QA: 「잠기면 빚 2배」로 함께 걸리는데 같은 색이었음)
+const TIDE = 0x241a4d, TIDE_HI = 0x8a7cff, DEBT = 0xb456d6, DEBT_HI = 0xf0cdfa;
 /** 묶음 H 밀물 물 색 (63 E 6 · 13, tideTail): 짠물 청록 · 독 연못 초록 */
 const TIDE_TINT: Record<string, [number, number]> = { sea: [0x1f8f8b, 0x9ff3ec], poison: [0x2f5a24, 0x3cc24a] };
 const C = {
@@ -91,10 +93,12 @@ const decalL = new Container();
 const fxArtL = new Container();
 /** 칸 위 작은 그림 표시 (빛의 전이): 테두리 위, 글자 아래 */
 const markL = new Container();
+/** 칸 테두리 그림 (2026-10-16 검수, fx-edge-* 띠 · fx-ring-* 고리): 디버프 · 힐러 표시 · 강타 예고 · 장판 위 사람. 도형 테두리 (overG) 바로 위, 작은 표시 · 글자 아래 */
+const ringL = new Container();
 /** 말풍선 그림 (43 5장): 틀 뒤 이펙트 띠 · 틀 9조각 · 꼬리·감정 아이콘·앞 이펙트 띠. 대사 글자(topL)는 그 위 */
 const bubbleL = new Container(), bubbleBackL = new Container(), sliceL = new Container(), bubbleFrontL = new Container();
 bubbleL.addChild(bubbleBackL, sliceL, bubbleFrontL);
-root.addChild(cellsG, decalL, unitsG, standL, glowL, fxG, fxArtL, frameL, overG, markL, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL, pxfL, numL);
+root.addChild(cellsG, decalL, unitsG, standL, glowL, fxG, fxArtL, frameL, overG, ringL, markL, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL, pxfL, numL);
 
 let dpr = 1;
 /** 판 그림 좌표 (Pixi root 안). k = 그림 → 화면 배율: 보통 1, 「레이드 판 5인 던전 모양」이면 1보다 작음 (화면 좌표 = 그림 좌표 × k) */
@@ -123,6 +127,7 @@ export async function initBoard(): Promise<void> {
   // 말풍선 틀 · 꼬리 · 대사 이펙트 띠는 미리 읽어 둠 (첫 말풍선이 앱 그림으로 잠깐 보였다 바뀌지 않게, 43 5장)
   for (const k of ['talk', 'call', 'alert', 'chat']) { artTexture(`ui-bubble-${k}`); artTexture(`ui-bubble-tail-${k}`); }
   for (const n of Object.keys(TALK_FX)) artTexture(`fx-talk-${n}`);
+  for (const n of MARK_ART) artTexture(n); // 칸 테두리 · 표식 그림 (2026-10-16 검수): 처음 나올 때 도형으로 잠깐 보이지 않게
   for (const k of ALWAYS_FX) artTexture(pxfArtName(k)); // 전투 공통 효과 · 파티원 능력은 첫 효과부터 보이게 (보스 판 전체 공격 · 직업 스킬 이펙트는 전투마다 resetBoardFx)
   if (B.F) resizeBoard();
   await document.fonts?.ready;
@@ -506,7 +511,30 @@ class SpritePool {
   }
   end(): void { for (let i = this.used; i < this.list.length; i++) this.list[i].visible = false; }
 }
+const ringArt = new SpritePool(ringL);
 const decals = new SpritePool(decalL), fxArt = new SpritePool(fxArtL), marks = new SpritePool(markL), stands = new SpritePool(standL), pxfArt = new SpritePool(pxfL), bubbleBack = new SpritePool(bubbleBackL), bubbleFront = new SpritePool(bubbleFrontL);
+/**
+ * 칸 테두리 · 표식 그림 (2026-10-16 Lim 「원형으로 표시하던 것들은 알기 쉽게 이미지화」, 89 문서 · QA · 디자이너 검수):
+ * fx-edge-* = 가로 띠 그림 (위 = 칸 바깥쪽)을 육각 여섯 변에 한 장씩 → 칸 모양 그대로 맞음. fx-ring-* = 둥근 고리 한 장.
+ * 그림이 아직 안 읽혔으면 앞의 도형 테두리를 그대로 그림
+ */
+function edgeRing(name: string, x: number, y: number, R: number, band: number, alpha = 1): boolean {
+  const tex = artTexture(name);
+  if (!tex) return false;
+  const pts = hexPts(x, y, R);
+  // 꼭짓점 이음매가 비지 않게 변 길이보다 조금 길게 (띠 끝은 그림에서 흐려짐). hexPts는 시계 방향 → 그림 아래 (+y)가 칸 안쪽을 향함
+  for (let k = 0; k < 6; k++) {
+    const [ax, ay] = pts[k], [bx, by] = pts[(k + 1) % 6];
+    ringArt.put(tex, (ax + bx) / 2, (ay + by) / 2, R * 1.16, band, alpha, 0xffffff, Math.atan2(by - ay, bx - ax));
+  }
+  return true;
+}
+function roundRing(name: string, x: number, y: number, R: number, alpha = 1): boolean {
+  const tex = artTexture(name);
+  if (!tex) return false;
+  ringArt.put(tex, x, y, R * 2, R * 2, alpha);
+  return true;
+}
 /** 생명 사슬 띠 (fx-link-*): 가로로 이어 붙이는 그림을 두 칸 사이에 깔아 돌림 */
 const strips: TilingSprite[] = [];
 let stripUsed = 0;
@@ -1367,7 +1395,7 @@ export function render(now: number): void {
   const typography = cellTypography(s);
   const rdt = Math.min(0.1, Math.max(0, (now - (B2.lastRender || now)) / 1000)); B2.lastRender = now;
   for (const g of [cellsG, unitsG, fxG, overG, badgeG, topG]) g.clear();
-  labels.begin(); badgeLabels.begin(); tops.begin(); nums.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); marks.begin(); stands.begin(); pxfArt.begin(); stripUsed = 0;
+  labels.begin(); badgeLabels.begin(); tops.begin(); nums.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); marks.begin(); stands.begin(); ringArt.begin(); pxfArt.begin(); stripUsed = 0;
   bubbleBack.begin(); bubbleFront.begin(); sliceUsed = 0;
   telsSeen = F.tels.slice(); // 다음 impact 사건이 어느 기술인지 (fxImpact)
   const fs = (k: number, min: number) => Math.max(min, s * k);
@@ -1442,13 +1470,17 @@ export function render(now: number): void {
       else dashPoly(cellsG, hexPts(p.x, p.y, r * 0.9), 6, 4, Math.max(2, s * 0.05), tideHi, 0.5 + 0.5 * pulse);
     } else if (telSet.has(i)) {
       const om = omenCells.get(i); // 점괘 칸은 빨강을 옅게 + 점괘 무늬
-      hexPoly(cellsG, p.x, p.y, r).fill({ color: C.tel, alpha: om ? 0.08 + 0.12 * pulse : 0.14 + 0.24 * pulse });
+      hexPoly(cellsG, p.x, p.y, r).fill({ color: C.tel, alpha: om ? 0.08 + 0.12 * pulse : warnTex ? 0.06 + 0.14 * pulse : 0.14 + 0.24 * pulse });
       if (om) decals.put(om, p.x, p.y, cellArt, cellArt, 0.75 + 0.25 * pulse);
       else if (warnTex) decals.put(warnTex, p.x, p.y, cellArt, cellArt, 0.5 + 0.5 * pulse);
       else dashPoly(cellsG, hexPts(p.x, p.y, r * 0.9), 6, 4, Math.max(2, s * 0.05), C.zoneHi, 0.5 + 0.5 * pulse);
     }
-    // 녹는 보호막: 열기 동안 칸마다 주황 아지랑이 (그림 52가 오면 fx)
-    if (melting) hexPoly(cellsG, p.x, p.y, r).fill({ color: MELT, alpha: 0.07 + 0.08 * zpulse });
+    // 녹는 보호막: 열기 동안 칸마다 주황 아지랑이 + 불티 그림 (fx-melt-embers, 2026-10-16 검수: 주황 칠만으로는 거의 안 보였음)
+    if (melting) {
+      hexPoly(cellsG, p.x, p.y, r).fill({ color: MELT, alpha: 0.05 + 0.06 * zpulse });
+      const mt = artTexture('fx-melt-embers');
+      if (mt) fxArt.put(mt, p.x, p.y - r * 0.1 * zpulse, r * 1.7, r * 1.7, 0.45 + 0.3 * zpulse);
+    }
     // 성기사 빛의 성역: 금빛 바닥, 끝나기 2초 전 깜빡임. 가운데 칸에 성역 그림 (board-sanctuary, 선 물건)
     const sanc = F.sanctuary;
     if (sanc && sanc.cells.has(i)) {
@@ -1485,7 +1517,8 @@ export function render(now: number): void {
     if (!u.alive) continue;
     if (!u.debuffs.some(x => x.trap)) continue;
     const c0 = F.cells[u.cell];
-    F.cells.forEach((c, i) => { if (hexDist(c, c0) === 1) { const p = center(i); dashPoly(cellsG, hexPts(p.x, p.y, r * 0.98), 3, 4, 2.5, hex(DEB['질병'])); } });
+    // 그림 띠는 칸 위 층이라 사람이 선 이웃 칸도 보임 (2026-10-16 QA: 점선이 카드 아래라 빈칸만 표시됐음)
+    F.cells.forEach((c, i) => { if (hexDist(c, c0) === 1) { const p = c.unit ? unitPos(c.unit) : center(i); if (!edgeRing('fx-edge-disease', p.x, p.y, r * 0.95, Math.max(4, s * 0.12), 0.55 + 0.25 * zpulse)) dashPoly(cellsG, hexPts(p.x, p.y, r * 0.98), 3, 4, 2.5, hex(DEB['질병'])); } });
   }
 
   // 연쇄 번개 예고 (56 5장 화면): 번개 구름 옆 칸 테두리가 옅게 번쩍 (튈 수 있는 곳)
@@ -1493,7 +1526,7 @@ export function render(now: number): void {
     const v = F.party.find(x => x.id === id);
     if (!v?.alive) continue;
     const c0 = F.cells[v.cell];
-    F.cells.forEach((c, i) => { if (hexDist(c, c0) === 1 && !c.block) { const p = center(i); dashPoly(cellsG, hexPts(p.x, p.y, r * 0.96), 5, 4, Math.max(2, s * 0.05), BOLT, 0.25 + 0.45 * pulse); } });
+    F.cells.forEach((c, i) => { if (hexDist(c, c0) === 1 && !c.block) { const p = c.unit ? unitPos(c.unit) : center(i); if (!edgeRing('fx-edge-spark', p.x, p.y, r * 0.95, Math.max(4, s * 0.12), 0.35 + 0.55 * pulse)) dashPoly(cellsG, hexPts(p.x, p.y, r * 0.96), 5, 4, Math.max(2, s * 0.05), BOLT, 0.25 + 0.45 * pulse); } });
   }
   // 파티원
   const busterIds = new Set<number>(); for (const tl of F.tels) if (tl.kind === 'buster') tl.units.forEach(id => busterIds.add(id));
@@ -1570,15 +1603,21 @@ export function render(now: number): void {
     }
     const hold = u.debuffs.length ? holdOf(F.enc.script, u) : null; // 묶음 H 얼음 갑옷 · 거품 (63 E 3 · 9)
     const swell = u.debuffs.find(d => d.swell);
-    if (swell && hold?.d !== swell) unitsG.circle(x, y + r * 0.1, r * Math.min(0.85, 0.3 + 0.12 * (swell.stack ?? 1))).fill({ color: 0x7ee36a, alpha: 0.16 }).stroke({ width: Math.max(1.5, s * 0.04), color: 0x7ee36a, alpha: 0.75 });
+    if (swell && hold?.d !== swell) {
+      const sr = r * Math.min(0.95, 0.45 + 0.12 * (swell.stack ?? 1)), st = artTexture('fx-swell-bubble'); // 거품 그림 (2026-10-16 검수), 중첩만큼 커짐
+      if (st) fxArt.put(st, x, y + r * 0.05, sr * 2, sr * 2, swell.left < 2 ? 0.55 + 0.35 * pulse : 0.9);
+      else unitsG.circle(x, y + r * 0.1, r * Math.min(0.85, 0.3 + 0.12 * (swell.stack ?? 1))).fill({ color: 0x7ee36a, alpha: 0.16 }).stroke({ width: Math.max(1.5, s * 0.04), color: 0x7ee36a, alpha: 0.75 });
+    }
     const flip = u.debuffs.find(d => d.end?.p === 'flip');
     if (flip) hexPoly(unitsG, x, y, r).fill({ color: 0xffd166, alpha: flip.left < 1 ? 0.15 + 0.3 * pulse : 0.15 });
     // 묶음 C (48 5장 화면): 넘어가는 포자 = 칸 아래쪽 솜뭉치 (남은 막이 적을수록 작게), 끝나기 2초 전 깜빡임
     const puff = u.debuffs.find(d => d.end?.p === 'pass');
     if (puff) {
       const k = Math.max(0.45, Math.min(1, (puff.absorbLeft ?? 0) / Math.max(1, (puff.absorb ?? 1) * F.dmgMult)));
-      const pr = r * 0.2 * k, py = y + r * 0.42, a = puff.left < 2 ? 0.55 + 0.4 * pulse : 0.9;
-      for (const [dx, dy] of [[-1.1, 0.2], [0, -0.35], [1.1, 0.2], [0, 0.45]]) unitsG.circle(x + dx * pr, py + dy * pr, pr).fill({ color: 0xfbe4ee, alpha: a }).stroke({ width: 1.2, color: RING_HI, alpha: a * 0.8 });
+      const pr = r * 0.2 * k, py = y + r * 0.42, a = puff.left < 2 ? 0.55 + 0.4 * pulse : 0.9, pt = artTexture('board-spore-puff');
+      // 포자 솜뭉치 그림 (2026-10-16 검수): 체력 숫자 뒤가 아니라 칸 왼쪽 아래 모서리, 남은 막이 적을수록 작게
+      if (pt) fxArt.put(pt, x - r * 0.5, y + r * 0.5, r * 0.78 * k, r * 0.78 * k, a);
+      else for (const [dx, dy] of [[-1.1, 0.2], [0, -0.35], [1.1, 0.2], [0, 0.45]]) unitsG.circle(x + dx * pr, py + dy * pr, pr).fill({ color: 0xfbe4ee, alpha: a }).stroke({ width: 1.2, color: RING_HI, alpha: a * 0.8 });
     }
     // 모자 뽑기 (48 5장): 칸 위에 모자 그림 (뒤집힘 실크해트 · 상한 고깔모자 · 완치 왕관 모자)
     const hat = u.debuffs.find(d => d.art), hatTex = hat ? artTexture(hat.art!) : null;
@@ -1602,10 +1641,10 @@ export function render(now: number): void {
       fillBand(unitsG, x, y, r, wy, bot, tideC, 0.55);
       fillBand(unitsG, x, y, r, wy - th, wy + th, tideHi, 0.9);
     }
-    // 장판 위에 선 사람: 칸 전체에 붉은 빛 + 빗금 (체력 위험 깜빡임과 구분)
+    // 장판 위에 선 사람: 칸 전체에 붉은 빛 + 칸 둘레 불길 그림 (아래 테두리 단계 fx-edge-flame). 그림이 없을 때만 빗금 (2026-10-16 검수: 빗금은 폰에서 거의 안 보였음)
     if (zoneSet.has(u.cell)) {
-      hexPoly(unitsG, x, y, r).fill({ color: C.zone, alpha: 0.2 + 0.08 * zpulse });
-      hatchHex(unitsG, x, y, r * 0.94, Math.max(7, s * 0.22)).stroke({ width: Math.max(1.5, s * 0.04), color: C.zoneHi, alpha: 0.4 });
+      hexPoly(unitsG, x, y, r).fill({ color: C.zone, alpha: 0.18 + 0.08 * zpulse });
+      if (!artTexture('fx-edge-flame')) hatchHex(unitsG, x, y, r * 0.94, Math.max(7, s * 0.22)).stroke({ width: Math.max(1.5, s * 0.04), color: C.zoneHi, alpha: 0.4 });
     }
     if (!S.reducedEffects && u.flash > 0) hexPoly(unitsG, x, y, r).fill({ color: 0xff503c, alpha: Math.min(1, u.flash * 1.4) });
     const hk = (now - (B2.hitFx[u.id] ?? -1e9)) / 300;
@@ -1739,12 +1778,20 @@ export function render(now: number): void {
   const focus = focusOrder(F)[0];
   for (const m of F.mobs) if (m.alive && m.add?.cell != null) {
     const a = m.add, p = center(a.cell!);
-    hexPoly(cellsG, p.x, p.y, r * 0.92).fill({ color: 0x3b1514, alpha: 0.92 }).stroke({ width: Math.max(2.5, s * 0.07), color: C.danger, alpha: 0.9 });
+    // 적 칸 = 그을린 무쇠 바탕 + 붉게 달아오른 테 그림 (fx-edge-ember, 2026-10-16 검수: 평면 빨간 판이 황동 파티 칸 옆에서 가장 싸 보였음)
+    const ember = !!artTexture('fx-edge-ember');
+    hexPoly(cellsG, p.x, p.y, r * 0.92).fill({ color: ember ? 0x2a1715 : 0x3b1514, alpha: 0.92 });
+    if (!ember || !edgeRing('fx-edge-ember', p.x, p.y, r * 0.9, Math.max(5, s * 0.15))) hexPoly(cellsG, p.x, p.y, r * 0.92).stroke({ width: Math.max(2.5, s * 0.07), color: C.danger, alpha: 0.9 });
     fillBand(cellsG, p.x, p.y, r * 0.92, p.y + r * 0.92 - 2 * r * 0.92 * (m.hp / m.max), p.y + r * 0.92, C.danger, 0.28);
     if (m === focus) {
-      const ro = r * 0.98, ri = r * 0.62;
-      overG.circle(p.x, p.y, r * 0.8).moveTo(p.x - ro, p.y).lineTo(p.x - ri, p.y).moveTo(p.x + ri, p.y).lineTo(p.x + ro, p.y).moveTo(p.x, p.y - ro).lineTo(p.x, p.y - ri)
-        .stroke({ width: Math.max(2.5, s * 0.06), color: C.gold, alpha: 0.6 + 0.4 * pulse });
+      // 일점사: 금빛 칼날 표식 (icon-gim-focus)을 칸 왼쪽 위에 (탱커 조준 표식과 다른 모양, 판 밖으로 안 뻗음)
+      const ft = artTexture('icon-gim-focus'), fz = r * 0.62;
+      if (ft) { const fp = fitCenter(p.x - r * 0.56, p.y - r * 0.52, fz / 2); marks.put(ft, fp.x, fp.y, fz, fz, 0.75 + 0.25 * pulse); }
+      else {
+        const ro = r * 0.98, ri = r * 0.62;
+        overG.circle(p.x, p.y, r * 0.8).moveTo(p.x - ro, p.y).lineTo(p.x - ri, p.y).moveTo(p.x + ri, p.y).lineTo(p.x + ro, p.y).moveTo(p.x, p.y - ro).lineTo(p.x, p.y - ri)
+          .stroke({ width: Math.max(2.5, s * 0.06), color: C.gold, alpha: 0.6 + 0.4 * pulse });
+      }
     }
     // 이름 · 체력 %는 파티원 칸과 같은 자리 (이웃한 적 칸끼리 글자가 겹치지 않게 알약 대신 글자만). 칸 그림(37 4장 E)이 있으면 이름 대신 그림
     const mt = artTexture(addArtName(m));
@@ -1765,7 +1812,7 @@ export function render(now: number): void {
     const p = center(u.cell), frac = Math.max(0, Math.min(1, u.hp / u.max)), rr = r * 0.92;
     hexPoly(cellsG, p.x, p.y, rr).fill({ color: 0x8fd8e0, alpha: 0.16 + 0.1 * pulse });
     fillBand(cellsG, p.x, p.y, rr, p.y + rr - 2 * rr * frac, p.y + rr, 0xbff3f0, 0.5);
-    dashPoly(cellsG, hexPts(p.x, p.y, rr), 5, 4, Math.max(2, s * 0.06), 0xd8fbff, 0.9);
+    if (!edgeRing('fx-edge-mist', p.x, p.y, rr * 0.98, Math.max(5, s * 0.15), 0.8 + 0.2 * pulse)) dashPoly(cellsG, hexPts(p.x, p.y, rr), 5, 4, Math.max(2, s * 0.06), 0xd8fbff, 0.9);
     if (castTarget === u.id) hexPoly(overG, p.x, p.y, r * 1.04).stroke({ width: 3, color: hex(SEL) });
     const st = artTexture(soulArtName(u));
     if (st) decals.put(st, p.x, p.y - r * 0.18, r * 1.15, r * 1.15, 0.7 + 0.15 * pulse);
@@ -1781,6 +1828,9 @@ export function render(now: number): void {
     const pa = unitPos(a), pb = unitPos(b), w = Math.max(2.5, s * 0.07);
     const near = l.kind === 'balance' && Math.abs(a.hp / a.max - b.hp / b.max) > l.gap * 0.75;
     const lt = artTexture(l.kind === 'share' ? 'fx-link-chain' : 'fx-link-thread');
+    // 묶인 두 칸에 사슬 고리 그림 (icon-gim-link, 2026-10-16 QA: 선이 사이 칸을 지나가 그 사람도 묶인 것처럼 보였음). 칸 오른쪽 아래
+    const kt = artTexture('icon-gim-link');
+    if (kt) for (const q of [pa, pb]) { const kp = fitCenter(q.x + r * 0.6, q.y + r * 0.42, r * 0.22); marks.put(kt, kp.x, kp.y, r * 0.46, r * 0.46, near ? 0.6 + 0.4 * pulse : 1); }
     if (lt) { strip(lt, pa.x, pa.y, pb.x, pb.y, w * 3, near ? 0.5 + 0.5 * pulse : 0.95); if (!near) continue; }
     if (l.kind === 'share') {
       const len = Math.hypot(pb.x - pa.x, pb.y - pa.y), n = Math.max(1, Math.floor(len / (w * 3)));
@@ -1800,21 +1850,28 @@ export function render(now: number): void {
   for (const o of over) {
     const { u, x, y } = o;
     o.deb = primaryDebuff(u.debuffs);
-    if (zoneSet.has(u.cell) || telSet.has(u.cell)) { const w = Math.max(2.5, s * 0.09); hexPoly(overG, x, y, ringRadius(`zone${u.id}`, 'hex', x, y, r * 1.02, w)).stroke({ width: w, color: 0xff5a3d, alpha: zoneSet.has(u.cell) ? 1 : 0.4 + 0.6 * pulse }); }
-    if (u.guardian > 0) dashCircle(overG, x, y, ringRadius(`guardian${u.id}`, 'circle', x, y, r * 1.1, 3), 2, 4, 3, melting ? MELT : C.ink, 0.9);
-    // 보호 (빛 그릇 보호막 등, u.shield): 흰 이중 테두리 (황토 질병·빨간 탱커 표시와 구분), 끝나기 2초 전 깜빡임
+    // 장판 위 (깔림 = 늘 · 예고 = 깜빡임): 칸 둘레 불길 그림 (fx-edge-flame). 체력 위험 빨간 외곽선 · 강타 예고와 다른 모양 (2026-10-16 QA: 빨간 테 넷이 같아 보였음)
+    if (zoneSet.has(u.cell) || telSet.has(u.cell)) {
+      const w = Math.max(2.5, s * 0.09), R = ringRadius(`zone${u.id}`, 'hex', x, y, r * 1.02, w), a = zoneSet.has(u.cell) ? 1 : 0.4 + 0.6 * pulse;
+      if (!edgeRing('fx-edge-flame', x, y, R + w * 0.3, Math.max(6, s * 0.2), a)) hexPoly(overG, x, y, R).stroke({ width: w, color: 0xff5a3d, alpha: a });
+    }
+    // 힐러 표시 (25 3장 → 2026-10-16 검수: 선 굵기 · 점선으로만 갈리던 여섯 표시를 모양이 다른 그림으로). 반지름 · 끝나기 2초 전 깜빡임은 그대로, 녹는 열기 동안은 그림 위에 불티 (칸마다 fx-melt-embers)
+    if (u.guardian > 0) { const R = ringRadius(`guardian${u.id}`, 'circle', x, y, r * 1.1, 3); if (!roundRing('fx-ring-guardian', x, y, R + 2, 0.95)) dashCircle(overG, x, y, R, 2, 4, 3, melting ? MELT : C.ink, 0.9); } // 수호: 깃털 고리
+    // 보호 (빛 그릇 보호막 등, u.shield): 빛 유리 띠 (그림 없으면 흰 이중 테두리)
     if (u.shield > 0) {
       const a = u.shield < 2 ? 0.35 + 0.6 * pulse : 0.95;
       const outer = ringRadius(`shield-outer${u.id}`, 'hex', x, y, r * 1.2, 2);
       const inner = ringRadius(`shield-inner${u.id}`, 'hex', x, y, r * 1.12, 2, 'ring', outer - r * 0.08);
-      hexPoly(overG, x, y, inner).stroke({ width: 2, color: melting ? MELT : 0xedeff7, alpha: a });
-      hexPoly(overG, x, y, outer).stroke({ width: 2, color: melting ? MELT : 0xedeff7, alpha: a });
+      if (!edgeRing('fx-edge-glass', x, y, (inner + outer) / 2, Math.max(5, outer - inner + s * 0.08), a)) {
+        hexPoly(overG, x, y, inner).stroke({ width: 2, color: melting ? MELT : 0xedeff7, alpha: a });
+        hexPoly(overG, x, y, outer).stroke({ width: 2, color: melting ? MELT : 0xedeff7, alpha: a });
+      }
     }
-    // 직업 스킬 표시 (25 3장): 피해 감소(나무껍질·성역) 초록 테두리, 희생 금색 점선, 보호의 손 흰 두꺼운 테두리, 봉화 금색 점선 원
-    if (u.immune > 0) { const w = Math.max(3, s * 0.1); hexPoly(overG, x, y, ringRadius(`immune${u.id}`, 'hex', x, y, r * 1.14, w)).stroke({ width: w, color: 0xffffff, alpha: u.immune < 2 ? 0.35 + 0.6 * pulse : 0.95 }); }
-    else if (u.redu > 0) hexPoly(overG, x, y, ringRadius(`reduction${u.id}`, 'hex', x, y, r * 1.1, 2.5)).stroke({ width: 2.5, color: melting && u.redu > 0.5 ? MELT : HOT_COLOR.sprout, alpha: u.redu < 2 ? 0.35 + 0.6 * pulse : 0.9 });
-    if (u.sacr > 0) dashPoly(overG, hexPts(x, y, ringRadius(`sacrifice${u.id}`, 'hex', x, y, r * 1.16, 2)), 5, 4, 2, melting ? MELT : C.gold);
-    if (F.beacon === u.id) dashCircle(overG, x, y, ringRadius(`beacon${u.id}`, 'circle', x, y, r * 1.22, 2.5), 3, 5, 2.5, C.gold, 0.95);
+    // 보호의 손 = 판금 띠, 피해 감소 (나무껍질 · 성역) = 나무껍질 띠, 희생 = 금 사슬 띠, 봉화 = 화로 불꽃 고리
+    if (u.immune > 0) { const w = Math.max(3, s * 0.1), R = ringRadius(`immune${u.id}`, 'hex', x, y, r * 1.14, w), a = u.immune < 2 ? 0.35 + 0.6 * pulse : 0.95; if (!edgeRing('fx-edge-plate', x, y, R, Math.max(6, s * 0.15), a)) hexPoly(overG, x, y, R).stroke({ width: w, color: 0xffffff, alpha: a }); }
+    else if (u.redu > 0) { const R = ringRadius(`reduction${u.id}`, 'hex', x, y, r * 1.1, 2.5), a = u.redu < 2 ? 0.35 + 0.6 * pulse : 0.9; if (!edgeRing('fx-edge-bark', x, y, R, Math.max(5, s * 0.13), a)) hexPoly(overG, x, y, R).stroke({ width: 2.5, color: melting && u.redu > 0.5 ? MELT : HOT_COLOR.sprout, alpha: a }); }
+    if (u.sacr > 0) { const R = ringRadius(`sacrifice${u.id}`, 'hex', x, y, r * 1.16, 2); if (!edgeRing('fx-link-chain', x, y, R, Math.max(4, s * 0.1))) dashPoly(overG, hexPts(x, y, R), 5, 4, 2, melting ? MELT : C.gold); }
+    if (F.beacon === u.id) { const R = ringRadius(`beacon${u.id}`, 'circle', x, y, r * 1.22, 2.5); if (!roundRing('fx-ring-beacon', x, y, R + 3, 0.95)) dashCircle(overG, x, y, R, 3, 5, 2.5, C.gold, 0.95); }
     if (castTarget === u.id) hexPoly(overG, x, y, ringRadius(`cast${u.id}`, 'hex', x, y, r * 1.12, 3)).stroke({ width: 3, color: hex(SEL) });
     if (ui.selectedUnitId === u.id) {
       hexPoly(overG, x, y, ringRadius(`selected${u.id}`, 'hex', x, y, r * 1.04, 2.5)).stroke({ width: 2.5, color: C.white });
@@ -1826,7 +1883,11 @@ export function render(now: number): void {
   for (const { u, x, y, deb } of over) if (deb) {
     const w = Math.max(3, s * 0.13), col = hex(DEB[deb.type] || '#E5433D');
     const dr = ringRadius(`debuff-ring${u.id}`, 'hex', x, y, r * 0.88, w, 'debuff');
-    if (deb.trap) dashPoly(overG, hexPts(x, y, dr), 6, 4, w, col); else hexPoly(overG, x, y, dr).stroke({ width: w, color: col });
+    // 종류별 그림 띠 (독 진액 · 마법 서리 · 저주 가시 · 질병 포자, 2026-10-16 검수): 해제 종류 색은 그대로. 함정은 깜빡임 (그림이 없으면 점선)
+    const edge = DEBUFF_EDGE[deb.type];
+    if (!edge || !edgeRing(edge, x, y, dr, w * 1.9, deb.trap ? 0.55 + 0.45 * pulse : 1)) {
+      if (deb.trap) dashPoly(overG, hexPts(x, y, dr), 6, 4, w, col); else hexPoly(overG, x, y, dr).stroke({ width: w, color: col });
+    }
   }
   let meShown = false;
   const hotR = Math.max(7, s * 0.19);
@@ -1893,6 +1954,9 @@ export function render(now: number): void {
       // 지속 힐 원은 배지 오른쪽, 보호막 원은 배지 왼쪽 같은 줄
       if (hr) hotSpot = fitCenter(Math.max(hx, debBadge.x + debBadge.w / 2 + 1 + hr), debBadge.y, hr);
       if (sr) shieldSpot = fitCenter(Math.min(sx, debBadge.x - debBadge.w / 2 - 1 - sr), debBadge.y, sr);
+      // 기믹 디버프는 배지 왼쪽 끝에 그 기믹 그림 (매혹 · 치유 상한 · 빚 · 부풀기 · 뒤집힘 · 포자 · 함정 · 쇠약, 2026-10-16 QA)
+      const gim = GIM_ICON.find(([f]) => f(deb))?.[1], gt = gim ? artTexture(gim) : null;
+      if (gt) { const z = debBadge.h * 1.5, gp = fitCenter(debBadge.x - debBadge.w / 2 - z * 0.4, debBadge.y, z / 2); marks.put(gt, gp.x, gp.y, z, z); recordBound(`gim${u.id}`, 'mark', 'icon', gp.x, gp.y, z, z); }
     }
     if (hasHot) {
       const hr = hotLayout.radius, lower = hr + 0.75 + (hots.length - 1) * hotLayout.step;
@@ -1929,10 +1993,15 @@ export function render(now: number): void {
       let bx = x, by = y - r * 0.98;
       if (debBadge) by = peakY;
       ({ x: bx, y: by } = fitCenter(bx, by, br + bw / 2));
-      overG.circle(bx, by, br).fill({ color: C.cell }).stroke({ width: bw, color: C.danger });
-      overG.circle(bx, by, br * 0.4).moveTo(bx, by - br * 0.8).lineTo(bx, by - br * 0.22).moveTo(bx, by + br * 0.22).lineTo(bx, by + br * 0.8)
-        .moveTo(bx - br * 0.8, by).lineTo(bx - br * 0.22, by).moveTo(bx + br * 0.22, by).lineTo(bx + br * 0.8, by)
-        .stroke({ width: Math.max(1.2, br * 0.18), color: C.tankMark, cap: 'round' });
+      // 칼날 넷이 안쪽을 겨누는 무쇠 표식 그림 (board-aggro-mark, 2026-10-16 검수: 총 조준경 모양이 판타지 판에서 튀었음). 자리 · 크기 상자는 그대로
+      const at = artTexture('board-aggro-mark');
+      if (at) marks.put(at, bx, by, (br + bw / 2) * 2.2, (br + bw / 2) * 2.2);
+      else {
+        overG.circle(bx, by, br).fill({ color: C.cell }).stroke({ width: bw, color: C.danger });
+        overG.circle(bx, by, br * 0.4).moveTo(bx, by - br * 0.8).lineTo(bx, by - br * 0.22).moveTo(bx, by + br * 0.22).lineTo(bx, by + br * 0.8)
+          .moveTo(bx - br * 0.8, by).lineTo(bx - br * 0.22, by).moveTo(bx + br * 0.22, by).lineTo(bx + br * 0.8, by)
+          .stroke({ width: Math.max(1.2, br * 0.18), color: C.tankMark, cap: 'round' });
+      }
       recordBound(`aggro${u.id}`, 'aggro', 'circle', bx, by, br * 2 + bw, br * 2 + bw);
     }
     if (F.rats && F.rats.includes(u.id)) pill(overG, labels, `rat${u.id}`, x - r * 0.05, y + r * 0.95, '쥐떼', 0xb9a38a, C.dark, fs(0.18, 9));
@@ -1974,7 +2043,8 @@ export function render(now: number): void {
     if (busterIds.has(u.id)) {
       // 중앙 십자선은 이름과 HP를 지나지 않는다. 상단 타깃 표식과 바깥 위험 링으로 예고한다.
       const mark = ringRadius(`buster${u.id}`, 'hex', x, y, r * 1.02, 3);
-      hexPoly(overG, x, y, mark).stroke({ width: 3, color: C.tel, alpha: 0.6 + 0.4 * pulse });
+      // 금 간 붉은 기운 + 무쇠 가시 띠 (fx-edge-buster, 2026-10-16 검수: 평면 빨간 선 한 줄이라 장판 위 · 체력 위험 테와 같아 보였음)
+      if (!edgeRing('fx-edge-buster', x, y, mark + s * 0.04, Math.max(6, s * 0.21), 0.65 + 0.35 * pulse)) hexPoly(overG, x, y, mark).stroke({ width: 3, color: C.tel, alpha: 0.6 + 0.4 * pulse });
     }
     // 차례 (P-ORDER): 은쟁반 번호표, 받은 번호는 꺼지고 다음 번호는 금빛. 직업 그림 왼쪽 (이름을 안 가리게)
     // 신기루 숫자 (54 4-1): 걷히기 전까지 진짜 번호와 똑같이 보임
@@ -1985,7 +2055,12 @@ export function render(now: number): void {
       : { x: tank === u ? x - aimR - aimW / 2 - 1 - (measure(text, size) + size * 0.7) / 2 : x, y: peakY };
     let markBox: PillBox | undefined;
     if (F.order && ok >= F.order.i) { const m = markAt(ORDER_NUM[ok], fs(0.3, 12)); markBox = pill(overG, labels, `ord${u.id}`, m.x, m.y, ORDER_NUM[ok], ok === F.order.i ? C.gold : 0xd9dde6, C.dark, fs(0.3, 12), ok === F.order.i ? 0.75 + 0.25 * pulse : 1); }
-    else if (u.debuffs.some(d => d.invert)) { const m = markAt('✕', fs(0.28, 11)); markBox = pill(overG, labels, `inv${u.id}`, m.x, m.y, '✕', 0x7fa88c, C.dark, fs(0.28, 11)); }
+    else if (u.debuffs.some(d => d.invert)) {
+      // 뒤집힌 축복: 그림 (icon-gim-invert, 힐하면 피해). ✕ 알약은 「해제 불가 ×」로 읽혀 그림으로 바꿈 (2026-10-16 QA · CLAUDE.md × 금지 규칙)
+      const it = artTexture('icon-gim-invert'), z = fs(0.28, 11) * 1.75, m = markAt('✕', fs(0.28, 11));
+      if (it) { marks.put(it, m.x, m.y, z, z); markBox = { x: m.x, y: m.y, w: z, h: z }; recordBound(`inv${u.id}`, 'mark', 'icon', m.x, m.y, z, z); }
+      else markBox = pill(overG, labels, `inv${u.id}`, m.x, m.y, '✕', 0x7fa88c, C.dark, fs(0.28, 11));
+    }
     if (markBox && !peakY && leftY != null) leftY = markBox.y + markBox.h / 2;
     // 빛의 전이 (사제 8번째 칸): 보통 칸은 왼쪽 위 (지속 힐 원 반대편) 금빛 원 + 흰 빛 구슬.
     // 윗줄에 배지가 있거나 왼쪽 위에 차례 번호표 · ✕가 있으면 꼭짓점 줄에서 조준 표식 · 번호표 오른쪽
@@ -2201,7 +2276,7 @@ export function render(now: number): void {
   for (let i = glowUsed; i < glows.length; i++) glows[i].visible = false;
   for (let i = hexFramesUsed; i < hexFrames.length; i++) hexFrames[i].visible = false;
   for (let i = sliceUsed; i < slices.length; i++) slices[i].visible = false;
-  labels.end(); badgeLabels.end(); tops.end(); nums.end(); decals.end(); fxArt.end(); marks.end(); stands.end(); pxfArt.end(); bubbleBack.end(); bubbleFront.end();
+  labels.end(); badgeLabels.end(); tops.end(); nums.end(); decals.end(); fxArt.end(); marks.end(); stands.end(); ringArt.end(); pxfArt.end(); bubbleBack.end(); bubbleFront.end();
   for (let i = stripUsed; i < strips.length; i++) strips[i].visible = false;
   lensL.visible = false;
   app.renderer.render(app.stage);
