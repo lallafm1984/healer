@@ -5,13 +5,15 @@
  * 레벨이 모자란 장소는 숨기고 레벨이 되면 보여 줌. 다 잠긴 분류는 다음에 열릴 한 곳만 잠긴 채로 보여 줌.
  * 장면 안 보상 아이콘을 누르면 그 보상의 확률만 표시. 주간 도전은 던전 분류 바로 아래 독립 버튼.
  * 분류마다 장소, 장소마다 난이도와 장소 줄의 가로 위치를 기억한다 (모듈 변수, 저장 안 함). 화면 세로 스크롤은 없다.
+ * 모험 길잡이 (86): 추천 칸 (game/guide)이 바뀌었으면 들어올 때 그 분류 · 장소 · 난이도를 고른 채로. 분류 탭 점 · 장소 카드 「추천」 ·
+ * 난이도 칸 적합도 (여유 · 적정 · 도전 · 위험)와 「추천」.
  */
 import { adventureContents, adventureRegionOf, adventureTabOf, type AdventureTab } from '../data/adventure-regions';
-import { ALL_DIFFS, CONTENT, contentOf, isLeveling, raidSize, stageOf, type ContentDef, type ContentKey } from '../data/content';
+import { ALL_DIFFS, contentOf, isLeveling, raidSize, stageOf, type ContentDef, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { AFFIXES } from '../data/affixes';
 import { CHAL } from '../data/challenge';
-import { avgScore, clearMats, GRADE_STYLE, ITEM_GRADES, recommendedFor, type ItemGrade } from '../data/equipment';
+import { clearMats, GRADE_STYLE, ITEM_GRADES, type ItemGrade } from '../data/equipment';
 import { gearGradeOdds } from '../data/reward-preview';
 import { HEROES } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
@@ -20,6 +22,7 @@ import { weekRemaining } from '../game/clock';
 import { meritFor, raidLootOpen } from '../game/economy';
 import { staminaCost } from '../game/stamina';
 import { Flow } from '../game/flow';
+import { fitNow, FIT_TEXT, guide, guideCtx, rankStages, type Stage } from '../game/guide';
 import { chalGate, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
@@ -88,6 +91,9 @@ let drawnViewport = '';
 let rewardKey: string | null = null;
 /** 다음 그리기에서 고른 장소를 가로 줄 가운데로 (‹ › · 화면 크기 변화) */
 let centerNext = false;
+/** 지금 그리는 추천 칸 (render마다 다시 셈) · 마지막으로 화면을 옮겨 준 추천 (같은 추천이면 고른 것을 그대로 둠) */
+let gd: Stage | null = null;
+let shownGuide = '';
 
 const viewportStamp = () => `${s.el.clientWidth}/${s.el.clientHeight}/${innerWidth}/${innerHeight}/${visualViewport?.width}/${visualViewport?.height}`;
 
@@ -132,35 +138,11 @@ function lootLine(c: ContentDef): string {
   return `<span class="b-lootrow"><span class="cap" aria-hidden="true">장비</span>${dots}<span class="cap">${currencyAmount('stamina', staminaCost(c))}</span></span>`;
 }
 
-/**
- * 추천 리본 (27 3-1): 내 레벨·장비로 「처음 깨기 좋은」 장소 1곳.
- * 콘텐츠마다 아직 안 깬 가장 낮은 열린 난이도를 봄 (탐험 · 던전은 쉬움부터 사슬, 레이드는 보통부터).
- * 탐험 · 던전은 내 레벨 +1 이하, 레이드는 레벨이 되고 권장 장비를 채우면 후보.
- * 적 레벨이 가장 높은 것 (같으면 탐험보다 던전·레이드)
- */
-function recommended(): ContentKey | null {
-  const lv = G.save.player.level, mine = avgScore(G.save.gear.equipped, lv);
-  let best: { k: ContentKey; s: number } | null = null;
-  for (const c of CONTENT) {
-    if (c.hidden || !c.ready || lockOf(c).locked) continue;
-    const rec = G.save.clears[c.key] || {}, lvl = isLeveling(c);
-    for (const d of (lvl ? ALL_DIFFS : ['보통', '어려움', '악몽']) as DiffName[]) {
-      if (rec[d]) continue;
-      const st = stageOf(c, d), r = recommendedFor(c, d);
-      if (lockOf(c, d).locked || (lvl ? st > lv + 1 : lv < st) || (r && mine < r.score)) break;
-      const sc = st * 10 + (c.kind === 'explore' ? 0 : 1);
-      if (!best || sc > best.s) best = { k: c.key, s: sc };
-      break;
-    }
-  }
-  return best ? best.k : null;
-}
-
-/** 지금 고른 장소 (장소 줄 안에서): 기억한 것 → 추천 → 첫 장소 (장소가 없는 분류면 null) */
+/** 지금 고른 장소 (장소 줄 안에서): 기억한 것 → 길잡이 추천 (86) → 첫 장소 (장소가 없는 분류면 null) */
 function current(): ContentDef | null {
   const list = shownOf(tab);
   if (!list.length) return null;
-  const c = list.find(x => x.key === pick[tab]) || list.find(x => x.key === recommended()) || list[0];
+  const c = list.find(x => x.key === pick[tab]) || list.find(x => x.key === gd?.content) || list[0];
   selectContent(c);
   return c;
 }
@@ -170,13 +152,16 @@ function selectContent(c: ContentDef): void {
 }
 
 /**
- * 고른 난이도: 기억한 것 → (첫 던전 녹슨 요새는 쉬움, 09 4장) → 아직 안 깬 가장 낮은 열린 난이도 (탐험 · 던전은 쉬움부터, 레이드는 보통부터)
- * → 다 깼으면 열린 가장 높은 난이도
+ * 고른 난이도: 기억한 것 → (첫 던전 녹슨 요새는 쉬움, 09 4장) → 길잡이가 이 장소에서 고르는 난이도 (86: 추천 칸이면 그 난이도, 아니면 이 장소의 적정 칸 가운데 길잡이 순서로 첫 칸)
+ * → 아직 안 깬 가장 낮은 열린 난이도 (탐험 · 던전은 쉬움부터, 레이드는 보통부터) → 다 깼으면 열린 가장 높은 난이도
  */
 function diffOf(c: ContentDef): DiffName {
   const m = diffPick[c.key];
   if (m && !diffLocked(c, m).locked) return m;
   if (c.key === 'rustfort' && firstDungeonNow()) return '쉬움';
+  if (gd?.content === c.key) return gd.diff;
+  const here = isLeveling(c) ? rankStages(guideCtx()).find(x => x.content === c.key && fitNow(c, x.diff) === '적정') : null;
+  if (here && !diffLocked(c, here.diff).locked) return here.diff;
   const rec = G.save.clears[c.key] || {}, lvl = isLeveling(c);
   let last: DiffName = lvl ? '쉬움' : '보통';
   for (const d of (lvl ? ALL_DIFFS : ['보통', '어려움', '악몽']) as DiffName[]) {
@@ -200,7 +185,8 @@ function cats(): string {
     const raid = k.icon === 'raid', [top, cap] = raid ? k.name.split(' ') : [k.name, `${sizes.join('·')}인`];
     const sub = !list.length ? '준비 중' : lock ? `${LOCK}Lv ${lv}` : cap;
     const label = `${k.name}${!list.length ? ' · 준비 중' : lock ? ` · Lv ${lv}에 열림` : raid ? '' : ` · ${cap}`}`;
-    return `<button type="button" class="b-cat" role="tab" data-ctab="${k.kind}" aria-selected="${k.kind === tab}" aria-label="${label}"><span class="b-ci">${catIcon(k)}</span><span aria-hidden="true"><b>${top}</b><small>${sub}</small></span></button>`;
+    const rec = !!gd && k.kind !== tab && tabOf(contentOf(gd.content)) === k.kind;
+    return `<button type="button" class="b-cat" role="tab" data-ctab="${k.kind}" aria-selected="${k.kind === tab}" aria-label="${label}${rec ? ' · 추천 있음' : ''}"><span class="b-ci">${catIcon(k)}</span><span aria-hidden="true"><b>${top}</b><small>${sub}</small></span>${rec ? '<i class="b-rec-dot" aria-hidden="true"></i>' : ''}</button>`;
   }).join('')}</nav>`;
 }
 
@@ -233,7 +219,7 @@ interface SceneReward {
 /** 기본 A 평가 기준. 공개모집·주간 도전 보너스는 편성 전 확정되지 않으므로 제외한다. */
 function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   const raid = raidSize(c), play = G.save.tut >= TUT.done;
-  const odds = gearGradeOdds(d, raid, G.save.player.level);
+  const odds = gearGradeOdds(d, raid, G.save.player.level, 'A', false, c.stageLv);
   const lootOpen = !play || !raid || raidLootOpen(G.save, c.key, d);
   const maxGrade = [...ITEM_GRADES].reverse().find(g => odds[g] > 0) ?? ITEM_GRADES[0];
   const items: SceneReward[] = [{
@@ -290,20 +276,26 @@ function placeRow(c: ContentDef): string {
   return `<section class="b-region-section" aria-labelledby="bRegionTitle">
     <div class="b-section-title"><h2 id="bRegionTitle">장소 선택</h2></div>
     <nav class="b-regions" aria-label="${esc(KINDS.find(k => k.kind === tab)!.name)} 장소">${shownOf(tab).map(x => {
-      const on = x.key === c.key, off = isOff(x);
-      const label = `${x.name} · ${!x.ready ? '준비 중' : off ? `Lv ${lockOf(x).lv}에 열림` : `Lv ${x.unlockLv}`}`;
-      return `<button type="button" class="b-region${on ? ' on' : ''}" data-content="${x.key}" aria-pressed="${on}" aria-label="${esc(label)}">
-        <img src="${placeArt(x.key).url}" alt="" loading="lazy" decoding="async"><span class="b-region-name">${esc(SHORT[x.key] ?? x.name)}</span><small>Lv ${x.unlockLv}</small></button>`;
+      const on = x.key === c.key, off = isOff(x), rec = gd?.content === x.key;
+      const label = `${x.name} · ${!x.ready ? '준비 중' : off ? `Lv ${lockOf(x).lv}에 열림` : `Lv ${x.unlockLv}`}${rec ? ` · 추천 ${gd!.diff}` : ''}`;
+      return `<button type="button" class="b-region${on ? ' on' : ''}${rec ? ' rec' : ''}" data-content="${x.key}" aria-pressed="${on}" aria-label="${esc(label)}">
+        <img src="${placeArt(x.key).url}" alt="" loading="lazy" decoding="async"><span class="b-region-name">${esc(SHORT[x.key] ?? x.name)}</span><small>Lv ${x.unlockLv}</small>${rec ? '<span class="b-rec" aria-hidden="true">추천</span>' : ''}</button>`;
     }).join('')}</nav>
   </section>`;
 }
 
-/** 난이도 4칸: 이름 + 별. 그 난이도만 잠겼으면 자물쇠 Lv, 앞 난이도를 못 깼으면 자물쇠 「쉬움 깨기」 (61 1-1). 준비 중 장소는 못 고름 */
+/**
+ * 난이도 4칸: 이름 + 별. 그 난이도만 잠겼으면 자물쇠 Lv, 앞 난이도를 못 깼으면 자물쇠 「쉬움 깨기」 (61 1-1). 준비 중 장소는 못 고름.
+ * 열린 칸 위 꼬리표 (86): 길잡이 추천 칸은 「추천」, 나머지는 적합도 (여유 · 적정 · 도전 · 위험, 내 레벨 · 장비 기준)
+ */
 function diffs(c: ContentDef, d: DiffName): string {
   return `<div class="b-df" role="group" aria-label="난이도">${ALL_DIFFS.map(x => {
     const l = diffLocked(c, x), dis = !c.ready || l.locked, on = c.ready && x === d;
     const sub = !c.ready || !l.locked ? stars(c, x) : l.need ? `${LOCK}${l.need} 깨기<span class="sr">면 열림</span>` : `${LOCK}Lv ${l.lv}`;
-    return `<button type="button" class="b-dc${on ? ' on' : ''}" data-diff="${x}" aria-pressed="${on}"${dis ? ' disabled' : ''}>${x}<small>${sub}</small></button>`;
+    const fit = dis ? null : fitNow(c, x), rec = !dis && gd?.content === c.key && gd.diff === x;
+    const tag = rec ? '<span class="b-fit rec" aria-hidden="true">추천</span>' : fit ? `<span class="b-fit" data-fit="${fit}" aria-hidden="true">${fit}</span>` : '';
+    const sr = fit ? `<span class="sr"> · ${rec ? '추천 · ' : ''}${fit} (${FIT_TEXT[fit]})</span>` : '';
+    return `<button type="button" class="b-dc${on ? ' on' : ''}" data-diff="${x}"${fit ? ` data-fit="${fit}"` : ''} aria-pressed="${on}"${dis ? ' disabled' : ''}>${x}<small>${sub}</small>${sr}${tag}</button>`;
   }).join('')}</div>`;
 }
 
@@ -330,6 +322,15 @@ const s = screen('s-content', '모험 선택', {
     }
     // 첫 던전 안내 차례면 녹슨 요새를 짚어 줌 (분류를 골라 들어왔거나 편성에서 돌아오면 그대로)
     else if (!arg && firstDungeonNow()) { tab = 'dungeon'; selectContent(contentOf('rustfort')); }
+    // 길잡이 추천이 지난번과 다르면 (레벨 업 · 클리어 · 장비) 그 칸을 고른 채로 (86). 같으면 마지막에 고른 그대로
+    else if (!arg && G.save.tut >= TUT.done) {
+      const g = guide(), k = g ? `${g.content}/${g.diff}` : '';
+      if (g && k !== shownGuide) {
+        const c = contentOf(g.content);
+        tab = tabOf(c); selectContent(c); diffPick[c.key] = g.diff;
+      }
+      shownGuide = k;
+    }
     render(false);
   },
 });
@@ -341,6 +342,7 @@ function render(keep = true): void {
   // 장소 줄 위치: 같은 분류 안에서 다시 그리면 이어서 (분류가 바뀌면 고른 장소 가운데)
   const plr = s.el.querySelector<HTMLElement>('.b-regions');
   const plFrom = keep && plr && drawnTab === tab ? plr.scrollLeft : null;
+  gd = G.save.tut >= TUT.done ? guide() : null;
   const c = current(), region = c ? adventureRegionOf(c).key : null;
   const list = shownOf(tab), d = c ? diffOf(c) : '보통';
   const rewardFrom = keep && s.el.dataset.selectedContent === c?.key && s.el.dataset.selectedDiff === d

@@ -1,6 +1,9 @@
-// 결과 화면 「다음」 갈 곳 (2026-10-13 Lim): 탐험 · 던전은 기획 70 순서 (쉬움 → 보통 → 다음 장소), 레이드는 다음 장소
+// 결과 화면 「다음」 갈 곳: 탐험 · 던전은 모험 길잡이 (86) 추천 가운데 방금 깬 칸이 아닌 첫 곳 (Lv 20까지는 70 순서), 레이드는 다음 장소
 import { beforeEach, describe, expect, it } from 'vitest';
+import { contentOf, stageOf } from '../src/data/content';
 import type { DiffName } from '../src/data/difficulty';
+import { SLOTS, type ItemGrade } from '../src/data/equipment';
+import { guide } from '../src/game/guide';
 import { nextRun } from '../src/game/next-run';
 import { G } from '../src/game/state';
 import { newSave } from '../src/platform/storage';
@@ -9,41 +12,40 @@ const clear = (key: string, ...ds: DiffName[]) => {
   const rec = (G.save.clears as Record<string, Partial<Record<DiffName, unknown>>>)[key] ??= {};
   for (const d of ds) rec[d] = { stars: 3, grade: 'S', best: 100, n: 1 };
 };
+const wear = (grade: ItemGrade, plus = 5) => {
+  let id = 9000;
+  for (const s of SLOTS) G.save.gear.equipped[s.key] = { id: id++, slot: s.key, kind: '', grade, plus, name: 'x', lines: [], lv: G.save.player.level };
+};
 
 describe('결과 화면 다음 갈 곳', () => {
   beforeEach(() => { G.save = newSave(1); G.save.settings.devUnlock = false; });
 
-  it('쉬움을 처음 깨면 같은 장소 보통', () => {
+  it('순차 구간: 쉬움을 처음 깨면 같은 장소 보통', () => {
     G.save.player.level = 2; clear('plateau', '쉬움');
     expect(nextRun('plateau', '쉬움')).toEqual({ content: 'plateau', diff: '보통' });
   });
 
-  it('보통까지 깨면 같은 분류 다음 장소의 쉬움 (레벨 순)', () => {
+  it('순차 구간: 보통까지 깨면 다음 장소 쉬움 (같은 판을 다시 깨도)', () => {
     G.save.player.level = 3; clear('plateau', '쉬움', '보통');
     expect(nextRun('plateau', '보통')).toEqual({ content: 'scrapheap', diff: '쉬움' });
-    // 쉬움을 다시 깬 판에서도 보통을 이미 깼으면 다음 장소로
     expect(nextRun('plateau', '쉬움')).toEqual({ content: 'scrapheap', diff: '쉬움' });
   });
 
-  it('다음 장소는 아직 안 깬 가장 낮은 열린 난이도, 다 깼으면 지금 난이도', () => {
-    G.save.player.level = 20; clear('plateau', '쉬움', '보통'); clear('scrapheap', '쉬움');
-    expect(nextRun('plateau', '보통')).toEqual({ content: 'scrapheap', diff: '보통' });
-    clear('scrapheap', '보통', '어려움', '악몽');
-    expect(nextRun('plateau', '어려움')).toEqual({ content: 'scrapheap', diff: '어려움' });
-  });
-
-  it('다음 장소가 레벨로 잠겼으면 같은 장소 다음 난이도, 그것도 없으면 없음', () => {
-    G.save.player.level = 2; clear('plateau', '쉬움', '보통');
-    expect(nextRun('plateau', '보통')).toEqual({ content: 'plateau', diff: '어려움' });
-    clear('plateau', '어려움', '악몽');
-    expect(nextRun('plateau', '악몽')).toBeNull();
-  });
-
-  it('던전도 같은 길 (녹슨 요새 → 녹슨 광산)', () => {
+  it('분류를 넘어 감: 고철 더미 언덕 (탐험) 보통 → 녹슨 요새 (던전) 쉬움', () => {
+    G.save.player.level = 5; clear('plateau', '쉬움', '보통'); clear('scrapheap', '쉬움', '보통');
+    expect(nextRun('scrapheap', '보통')).toEqual({ content: 'rustfort', diff: '쉬움' });
     G.save.player.level = 6; clear('rustfort', '쉬움');
     expect(nextRun('rustfort', '쉬움')).toEqual({ content: 'rustfort', diff: '보통' });
-    clear('rustfort', '보통');
-    expect(nextRun('rustfort', '보통')).toEqual({ content: 'mine', diff: '쉬움' });
+  });
+
+  it('순차 구간 뒤: 장비가 되면 적 레벨이 내 레벨인 악몽, 방금 깬 칸이면 그다음 추천', () => {
+    G.save.player.level = 50; wear('희귀');
+    const g = guide()!;
+    expect(g.diff).toBe('악몽');
+    expect(stageOf(contentOf(g.content), g.diff)).toBe(50);
+    const n = nextRun(g.content, g.diff)!;
+    expect(n).not.toEqual(g);
+    expect(n.diff).toBe('악몽');
   });
 
   it('레이드는 다음 장소를 지금 난이도로, 악몽이 레벨로 잠겼으면 가장 낮은 열린 난이도', () => {

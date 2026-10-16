@@ -127,7 +127,7 @@ export function claimMission(save: SaveData, kind: 'daily' | 'weekly', i: number
     : give(save, { stone: WEEKLY_REWARD.stone, pass: PASS_GAIN.weekly }, now);
 }
 
-/** 완료 상자 장비: 레벨에 맞는 난이도 기준 (13 2-1) */
+/** 완료 상자 장비: 레벨에 맞는 난이도 기준 (13 2-1), 등급대는 내 레벨 (86) */
 const chestDiff = (lv: number): DiffName => (lv >= RAID10_LV ? '어려움' : '보통');
 
 /** 일일 완료 상자: 오늘 것 (임무 5개 받음) 또는 놓친 날 쌓인 것 */
@@ -145,7 +145,7 @@ export function claimChest(save: SaveData, r: () => number, now: number, double 
   else save.daily.banked--;
   // 장비는 지금 직업 레벨로 (장비가 직업마다, 2026-10-12)
   const my = save.player.level;
-  const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero, classLoot: true, lv: my }); // 지금 직업 전용 70% (72)
+  const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero, classLoot: true, lv: my, tierLv: my }); // 지금 직업 전용 70% (72)
   if (!double) onAct(save, 'chest');
   return give(save, { stone: CHEST_REWARD.stone, pass: double ? 0 : PASS_GAIN.chest, items: [it] }, now);
 }

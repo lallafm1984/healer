@@ -38,8 +38,9 @@ export default async function challenge(url, shots) {
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 30; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
 
-  // ---- 콘텐츠: 주간 도전 카드 ----
+  // ---- 콘텐츠: 주간 도전 카드 (던전 분류. 들어오면 길잡이 추천 분류라 던전을 누름, 86) ----
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
+  await page.click('#s-content [data-ctab="dungeon"]'); await page.clock.runFor(50);
   const card = await text('#s-content [data-chal]');
   ok(/주간 도전/.test(card) && /모래시계 시련/.test(card) && /메마름/.test(card) && /전염병/.test(card), '던전 분류의 주간 도전 버튼 (이번 주 메마름·전염병, 화면 읽기 글)');
   // ---- 적 레벨 = 장소 레벨 + 난이도 (61, 2026-10-11), 어픽스는 그 적 레벨 (32) ----
@@ -49,6 +50,7 @@ export default async function challenge(url, shots) {
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.clears.snowlab = { '보통': { stars: 3, grade: 'A', best: 100, n: 1 } }; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
+  await page.click('#s-content [data-ctab="dungeon"]'); await page.clock.runFor(50);
   await chooseContent(page, 'snowlab');
   await page.click('#s-content [data-diff="어려움"]'); await page.clock.runFor(50);
   ok(await page.getAttribute('#s-content .b-level', 'aria-label') === '권장 레벨 34' && (await page.locator('#s-content .b-gate .b-afx').count()) === 0, '눈꽃 연구소 어려움 = 권장 레벨 34, 상세 어픽스는 편성·공략에서 확인');
@@ -79,6 +81,7 @@ export default async function challenge(url, shots) {
   await page.clock.runFor(1200); if (await page.isVisible('#s-settle .lvpop')) { await page.click('#s-settle .lvpop button'); await page.clock.runFor(50); }
   await page.click('#s-settle [data-go="s-lobby"]'); await page.clock.runFor(100);
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
+  await page.click('#s-content [data-ctab="dungeon"]'); await page.clock.runFor(50);
   await page.click('#s-content [data-chal]'); await page.clock.runFor(100);
   const ent = await text('#s-entry');
   ok((await text('#s-entry .chalstep b')) === '1단계' && await page.isDisabled('#s-entry [data-cstep="1"]') && /7:00/.test(ent) && /메마름/.test(ent) && !/제한시간 안에 깨면|실패해도 단계 유지|광고 이어하기 없음/.test(ent), '도전 입장: 1단계 · 제한 7:00 · 이번 주 어픽스, 하단 규칙 문구 없음');

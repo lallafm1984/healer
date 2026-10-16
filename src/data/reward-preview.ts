@@ -3,8 +3,8 @@ import type { DiffName } from './difficulty';
 import { dropTable, GRADE_BONUS, ITEM_GRADES, PUB_GRADE_BONUS, rollGrade, type ItemGrade } from './equipment';
 import type { Grade } from './progression';
 
-export function gearGradeOdds(diff: DiffName, raid: 0 | 10 | 20, level: number, grade: Grade = 'A', publicBonus = false): Record<ItemGrade, number> {
-  const table = dropTable(diff, raid), bonus = publicBonus ? PUB_GRADE_BONUS : 0;
+export function gearGradeOdds(diff: DiffName, raid: 0 | 10 | 20, level: number, grade: Grade = 'A', publicBonus = false, tierLv = 1): Record<ItemGrade, number> {
+  const table = dropTable(diff, raid, tierLv), bonus = publicBonus ? PUB_GRADE_BONUS : 0;
   const shift = GRADE_BONUS[grade] + bonus;
   const edges = new Set([0, 1]);
   let sum = 0;

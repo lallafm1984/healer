@@ -677,10 +677,15 @@ export function chainNeed(c: ContentDef, d: DiffName): DiffName | null {
   return isLeveling(c) && !c.hidden && i > 0 ? ALL_DIFFS[i - 1] : null;
 }
 
-/** 그 난이도가 사슬로 열렸는지: 앞 난이도나 그 위를 한 번이라도 깼으면 (옛 저장에서 보통부터 깬 장소도 이어짐) */
-export function chainOpen(c: ContentDef, d: DiffName, clears: Partial<Record<DiffName, unknown>> | undefined): boolean {
+/**
+ * 그 난이도가 사슬로 열렸는지: 앞 난이도나 그 위를 한 번이라도 깼으면 (옛 저장에서 보통부터 깬 장소도 이어짐).
+ * level을 주면 그 난이도 적 레벨이 내 레벨 이하일 때도 열림 (86, 2026-10-16 Lim 「컨텐츠를 찾아가면서 깨야 하는 불친절함」):
+ * 레벨이 지나간 장소의 어려움 · 악몽을 쉬움부터 다시 깨지 않아도 됨. 내 레벨보다 높은 난이도만 사슬이 막음
+ */
+export function chainOpen(c: ContentDef, d: DiffName, clears: Partial<Record<DiffName, unknown>> | undefined, level?: number): boolean {
   const need = chainNeed(c, d);
   if (!need) return true;
+  if (level != null && stageOf(c, d) <= level) return true;
   return ALL_DIFFS.slice(ALL_DIFFS.indexOf(need)).some(x => !!clears?.[x]);
 }
 

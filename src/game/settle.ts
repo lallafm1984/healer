@@ -157,8 +157,9 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
     if (!lootLocked) {
       // 클리어마다 1개 (탐험 · 던전 · 레이드 모두, 2026-10-13 Lim 「클리어시 장비는 무조건 한개」. 예전 던전은 보스마다 1개).
       // 등급은 콘텐츠 · 난이도 표 (61 3장: 탐험 · 던전 쉬움 일반 ~ 악몽 영웅, 전설은 20인 악몽만). 주간 도전은 단계 표 (chalDropDiff: 1~9 보통 · 10~14 어려움 · 15~ 악몽).
+      // 탐험 · 던전 등급대는 장소 레벨 (86: Lv 21 · 45부터 한 단계씩 위 표), 주간 도전은 내 레벨.
       // 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장). 아이템 레벨 = 이 판 적 레벨 (2026-10-13)
-      items.push(rollItem(rng, r.chal ? chalDropDiff(r.chal) : r.diff, grade!, levelBefore, save.nextId++, { hero, classLoot: true, place: c.key, raid, bonus: !!pubBonus, lv: stage }));
+      items.push(rollItem(rng, r.chal ? chalDropDiff(r.chal) : r.diff, grade!, levelBefore, save.nextId++, { hero, classLoot: true, place: c.key, raid, bonus: !!pubBonus, lv: stage, tierLv: r.chal ? levelBefore : c.stageLv }));
       save.gear.bag.push(...items);
       newDex = noteDex(save, items);
       newSpecs = noteSpecs(save, items);
