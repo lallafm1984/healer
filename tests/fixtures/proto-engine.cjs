@@ -262,11 +262,23 @@ const Engine = (() => {
     if (w.eff >= 0.5) emit(f, { type: 'tick', id: u.id, amt: Math.round(w.amt), eff: Math.round(w.eff), crit: false });
   }
 
+  // TS 엔진 dripDamage · dripTick (2026-10-16): 받은 피해 숫자 (dmg 사건), 틱마다 드는 피해는 1초씩 모아 하나로
+  let dripping = false;
+  function dripDamage(f, u, amt) { dripping = true; try { damage(f, u, amt); } finally { dripping = false; } }
+  function dripTick(f, u, now) {
+    const w = u.drip;
+    if (!now && f.t - w.t0 < 1 - 1e-9) return;
+    u.drip = undefined;
+    if (w.amt >= 0.5) emit(f, { type: 'dmg', id: u.id, amt: Math.round(w.amt) });
+  }
+
   function damage(f, u, amt) {
     if (!u.alive || amt <= 0) return;
     amt *= f.dmgMult;
     if (u.shield > 0) amt *= 0.6;
     u.hp -= amt;
+    if (dripping) { const w = (u.drip ??= { amt: 0, t0: f.t }); w.amt += amt; }
+    else if (amt >= 0.5) emit(f, { type: 'dmg', id: u.id, amt: Math.round(amt) });
     if (amt > u.max * 0.15) u.flash = 0.35;
     if (u.hp <= 0) {
       if (u.guardian > 0) {
@@ -279,6 +291,7 @@ const Engine = (() => {
       // 쓰러지면 칸을 비운다 → 다른 파티원이 그 칸으로 이동할 수 있음 (2026-10-07 Lim). 화면에는 흐린 흔적만 남김
       if (u.moving) { const to = f.cells[u.moving.to]; if (to.unit === u) to.unit = null; }
       { const here = f.cells[u.cell]; if (here.unit === u) here.unit = null; }
+      if (u.drip) dripTick(f, u, true);
       u.alive = false; u.hp = 0; u.debuffs = []; u.hot = 0; u.echo = []; u.flow = undefined; u.moving = null; u.react = null; u.shield = 0; u.diedAt = f.t;
       if (u.max < u.base) u.max = u.base;
       f.stats.deaths++;
@@ -469,7 +482,7 @@ const Engine = (() => {
           for (const u of living(f)) if (u.debuffs.length) addDebuff(f, u, { name: '독침', type: '독', left: 12, dot: 15 });
         }
         if (f.phase === 0) {
-          for (const id of f.rats) { const u = f.party.find(x => x.id === id); if (u) damage(f, u, 30 * DT); }
+          for (const id of f.rats) { const u = f.party.find(x => x.id === id); if (u) dripDamage(f, u, 30 * DT); }
           if (f.t >= f.interEnd) {
             f.phase = 2; f.phaseName = '2페이즈'; f.invuln = false; f.rats = [];
             f.contagion.next = f.t + 10; f.pulse.next = f.t + 22; f.pulse.period = 25;
@@ -549,6 +562,7 @@ const Engine = (() => {
     if (u.flash > 0) u.flash -= dt;
     if (!u.alive) return;
     if (u.flow) flowTick(f, u);
+    if (u.drip) dripTick(f, u);
     if (u.hot > 0) { u.hot -= dt; u.hotTick += dt; if (u.hotTick >= 3 - 1e-9) { u.hotTick -= 3; heal(f, u, 80, false); } }
     for (const e of u.echo) { healFlow(f, u, e.rate * dt); e.left -= dt; }
     u.echo = u.echo.filter(e => e.left > 0);
@@ -557,12 +571,12 @@ const Engine = (() => {
     if (u.thanks > 0) u.thanks -= dt;
     for (const d of u.debuffs.slice()) {
       d.left -= dt;
-      if (d.dot) damage(f, u, d.dot * dt);
+      if (d.dot) dripDamage(f, u, d.dot * dt);
       if (!u.alive) return;
       if (d.left <= 0) { u.debuffs = u.debuffs.filter(x => x !== d); onDebuffEnd(f, u, d, false); }
     }
     if (!u.alive) return;
-    for (const z of f.zones) if (z.cells.has(u.cell)) damage(f, u, z.dps * dt);
+    for (const z of f.zones) if (z.cells.has(u.cell)) dripDamage(f, u, z.dps * dt);
     if (!u.alive) return;
     if (u.moving) { u.moving.left -= dt; if (u.moving.left <= 0) finishMove(f, u); }
     if (u.react && f.t >= u.react.at && !u.moving) doReact(f, u);

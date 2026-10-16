@@ -120,6 +120,21 @@ export function healFlow(f: Fight, u: Unit, amt: number): number {
   flowing = true;
   try { return heal(f, u, amt, false); } finally { flowing = was; }
 }
+let dripping = false;
+/** 틱마다 조금씩 드는 피해 (장판 · 지속 피해 · 쥐 떼 · 줄 피해, amt = 이번 틱 몫): 피해는 그대로, 숫자는 FLOW_SEC씩 모아 dmg 사건 하나로 */
+export function dripDamage(f: Fight, u: Unit, amt: number, magic = false, aim: DamageAim = 'party'): void {
+  const was = dripping;
+  dripping = true;
+  try { damage(f, u, amt, magic, aim); } finally { dripping = was; }
+}
+/** 모아 둔 틱 피해를 숫자 하나로 (파티원 한 틱에서 · 쓰러질 때는 바로) */
+export function dripTick(f: Fight, u: Unit, now = false): void {
+  const w = u.drip!;
+  if (!now && f.t - w.t0 < FLOW_SEC - 1e-9) return;
+  u.drip = undefined;
+  if (w.amt >= 0.5) emit(f, { type: 'dmg', id: u.id, amt: Math.round(w.amt) });
+}
+
 /** 모아 둔 흐르는 회복을 숫자 하나로 (파티원 한 틱에서) */
 export function flowTick(f: Fight, u: Unit): void {
   const w = u.flow!;
@@ -331,6 +346,8 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     abHurt(f, u); // 거합 반격
   }
   u.hp -= amt;
+  if (dripping) { const w = (u.drip ??= { amt: 0, t0: f.t }); w.amt += amt; } // 피해 숫자 (화면 빨간 숫자): 틱 피해는 모아서
+  else if (amt >= 0.5) emit(f, { type: 'dmg', id: u.id, amt: Math.round(amt) });
   if (f.hero === 'astrologer') logDmg(f, u, amt); // 별의 기억 (79 4-2): 보호막 · 피해 감소 뒤 실제로 받은 피해
   if (u.ps) persHurt(f, u, amt); // 몰입형 · 완벽주의자 (75)
   if (f.sp) afterHurt(f, u, u.hp + amt);
@@ -350,6 +367,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     // 쓰러지면 칸을 비운다 → 다른 파티원이 그 칸으로 이동할 수 있음 (2026-10-07 Lim)
     if (u.moving) { const to = f.cells[u.moving.to]; if (to.unit === u) to.unit = null; }
     { const here = f.cells[u.cell]; if (here.unit === u) here.unit = null; }
+    if (u.drip) dripTick(f, u, true); // 쓰러지기 전 모아 둔 틱 피해
     u.alive = false; u.hp = 0; u.debuffs = []; u.hot = 0; u.hots = []; u.echo = []; u.flow = undefined; u.moving = null; u.react = null; u.shield = 0; u.redu = 0; u.sacr = 0; u.immune = 0; u.diedAt = f.t;
     if (u.mods.length) { u.mods = []; u.max = u.base; }
     if (u.max < u.base) u.max = u.base;
