@@ -29,6 +29,8 @@
 #battle #castbar.has-msg.is-casting #toast::after, #battle #castbar.has-msg.is-casting #toast::before,
 #battle #castbar.has-msg.is-gcd #toast::after, #battle #castbar.has-msg.is-gcd #toast::before { display: block; }
 #battle #castbar.has-msg.is-gcd #toast::after { opacity: .5; }
+/* 메시지가 떠 있으면 시전 막대 글자는 숨김 (메시지 아래 선 + 남은 초로 대신). 메시지가 0.22초 서서히 나타나는 동안 「치유 → 이름」이 비쳐 두 글이 겹쳐 보였음 */
+#battle #castbar.has-msg #castTrack { visibility: hidden; }
 #battle.reduced-effects #toast .toast.on { animation: none; }
 
 /* 탱커 전멸: 상단 적 기술 예고의 하단 선에 중심을 걸친 오른쪽 벽 전광판. */

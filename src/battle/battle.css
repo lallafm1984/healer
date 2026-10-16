@@ -350,7 +350,6 @@ textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertic
 
 /* 튜토리얼 안내 (02 11장): 판 아래쪽 카드, 짚는 칸이 아래쪽이면 위로 */
 #coach { position: absolute; left: 12px; right: 12px; bottom: 10px; z-index: 6; background: rgba(26, 21, 16, 0.96); border: 2px solid var(--gold-hi); border-radius: 14px; padding: 10px 12px; font-size: 14px; line-height: 1.5; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45); }
-#coach.top { bottom: auto; top: 10px; }
 /* 쓸기 안내: 짚은 칸 가운데에서 쓸 방향으로 금색 화살표, 손끝 점이 그 방향으로 움직임 */
 #swipeHint { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
 #swipeHint .sw { position: absolute; height: 6px; margin-top: -3px; transform-origin: 0 50%; border-radius: 3px; background: linear-gradient(90deg, rgba(240, 196, 106, 0.15), var(--gold-hi)); }

@@ -20,7 +20,7 @@ import { TALENT_DEF, type TalentKey } from '../data/talents';
 import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, skillUsesSpent, slotKey, talentSlots, talentUsesSpent, telDmg, type Fight, type Unit } from '../engine';
 import { art, cssUrl } from '../art';
 import { skillMark } from './art';
-import { center, L, screenCenter } from './board';
+import { L, screenCenter } from './board';
 import { $, alarm, arrowOf, B, DIR_VEC, DIRS, josa, mmss, ROLE, S, Snd, tapKey, toast, ui, vibe, type Dir } from './core';
 import { guideModel, iconColor } from './guide';
 import { manaMeter } from './mana-meter';
@@ -508,7 +508,9 @@ export function updateStage(now: number): void {
       // 숫자는 칸 위 강타 예고와 같은 엔진 계산 (telDmg, 체력 글자처럼 올림. 예전엔 기술 피해 × 배율이라 칸 위 「-1961」과 1 다르게 「1960」)
       const tgt = F.party.find(u => firstBuster.units.includes(u.id));
       const amt = tgt ? telDmg(F, firstBuster, tgt) : firstBuster.skill.dmg! * F.dmgMult;
-      ui.busterHint = true; toast(`${firstBuster.skill.name}: 탱커에게 ${Math.ceil(amt - 1e-6)} 피해. 미리 채우거나 수호 영혼`);
+      // 권하는 생존기는 그 직업의 외부 생존기 칸 (사제 수호 영혼 · 드루이드 나무껍질 …), 아직 안 배웠으면 미리 채우기만
+      const ext = slotKey(F, 'guardian'), tip = knows(F, ext) ? `미리 채우거나 ${SKILLS[ext].name}` : '미리 채워 두기';
+      ui.busterHint = true; toast(`${firstBuster.skill.name}: 탱커에게 ${Math.ceil(amt - 1e-6)} 피해. ${tip}`);
     }
   }
   $('battle').classList.toggle('aoe', F.tels.some(t => t.kind === 'aoe'));
@@ -702,10 +704,26 @@ export function coachCheck(): void {
   const hint = st.swipe && u ? swipeArrowHtml(u, st.swipe) : ''; // 쓸기 안내: 짚은 칸에서 쓸 방향으로 화살표
   coachEl.innerHTML = `<p>${text}</p>${st.need || st.freeze === false ? '' : '<button class="btn primary" type="button" data-coach-ok>확인</button>'}`;
   swipeEl.innerHTML = hint; swipeEl.hidden = !hint;
-  coachEl.classList.toggle('top', !!u && center(u.cell).y > L.H / 2);
   coachEl.hidden = false;
+  placeCoach(F, u);
+  $('banner').classList.remove('show'); // 「전투 시작!」 같은 큰 띠는 거둠 (안내와 함께 짚은 칸 체력을 가렸음)
   if (st.slot) $('wheel').querySelector(`.slot[data-slot="${st.slot}"]`)?.classList.add('coach-hi');
   Snd.play('tick'); vibe(15);
+}
+/**
+ * 안내창 높이: 짚은 칸은 절대 가리지 않고, 그다음 내 칸 · 다른 파티원 칸을 가장 덜 가리는 자리 (같으면 아래쪽).
+ * 예전엔 위 · 아래 둘 중 하나라 2 · 3인 판에서 내 칸 (체력)을 늘 가렸음
+ */
+function placeCoach(F: Fight, u: Unit | undefined): void {
+  const wrapH = $('boardWrap').clientHeight, h = coachEl.offsetHeight, pad = 10, r = L.s * L.k * 0.95;
+  const cells = F.party.map(p => ({ y: screenCenter(p.cell).y, w: u && p.id === u.id ? 1000 : p.me ? 4 : 1 }));
+  let best = Math.max(pad, wrapH - pad - h), bestScore = Infinity;
+  for (let top = Math.max(pad, wrapH - pad - h); top >= pad; top -= 4) {
+    // 가린 높이 × 무게 + 아래에서 멀수록 조금 (같으면 아래쪽)
+    const score = cells.reduce((sum, c) => sum + c.w * Math.max(0, Math.min(top + h, c.y + r) - Math.max(top, c.y - r)), 0) + (wrapH - pad - h - top) * 0.01;
+    if (score < bestScore - 1e-6) { bestScore = score; best = top; }
+  }
+  coachEl.style.top = `${Math.round(best)}px`; coachEl.style.bottom = 'auto';
 }
 export function clearCoach(): void {
   ui.coach = null; coachEl.hidden = true; swipeEl.hidden = true; swipeEl.innerHTML = '';
