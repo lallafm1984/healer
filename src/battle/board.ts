@@ -751,6 +751,15 @@ function pill(g: Graphics, lb: Labels, key: string, x: number, y: number, text: 
   recordBound(key, kind, 'pill', p.x, p.y, w + 1.5, h + 1.5);
   return { ...p, w: w + 1.5, h: h + 1.5 };
 }
+/** 칸 아래 꼭짓점 알약 여럿 (상태 · 때리는 적 · 쥐떼): 한 줄에 가로로 나란히, 묶음 가운데가 칸 가운데 (판 밖으로 나가면 묶음째 안쪽으로) */
+function lowPills(list: { key: string; text: string; bg: number; fg: number }[], x: number, y: number, size: number): void {
+  if (!list.length) return;
+  const gap = 2, ws = list.map(p => measure(p.text, size) + size * 0.7 + 1.5), total = ws.reduce((a, w) => a + w, 0) + gap * (list.length - 1);
+  let cx = Math.min(Math.max(x, L.left + total / 2 + 0.75), L.right - total / 2 - 0.75);
+  if (L.right - L.left < total + 1.5) cx = (L.left + L.right) / 2;
+  let left = cx - total / 2;
+  list.forEach((p, i) => { pill(overG, labels, p.key, left + ws[i] / 2, y, p.text, p.bg, p.fg, size); left += ws[i] + gap; });
+}
 /** 지속 힐 원 (디버프 배지가 없을 때 오른쪽 위). 배지가 있으면 배지 줄 오른쪽 (hotSpot) */
 function hotCenter(x: number, y: number, radius: number, lower: number): { x: number; y: number } {
   const p = fitCenter(x, y, radius);
@@ -1235,8 +1244,8 @@ const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
  * 칸 위에 얹는 그림의 그려진 부분 (192px 그림 중 폭 · 높이 비율, 80 5장 납품본을 잼). 판 가장자리에서 크기를 줄일 때 씀 (비율은 그대로)
  */
 const HERO_ART_BOX: Record<string, [number, number]> = {
-  'board-totem-rain': [0.75, 0.92], 'board-mist': [0.98, 0.49], 'board-seal': [0.85, 0.96], 'board-barrier': [0.74, 0.84],
-  'board-star-mark': [0.86, 0.66], 'board-star': [0.8, 0.96], 'board-star-sleep': [0.74, 0.98],
+  'board-totem-rain': [0.75, 0.92], 'board-mist': [0.98, 0.49], 'board-seal': [0.85, 0.96], 'board-barrier': [0.79, 1],
+  'board-star-mark': [0.99, 0.79], 'board-star': [0.8, 0.96], 'board-star-sleep': [0.79, 1], // 결계 · 별의 잠 · 별자리 표식은 2026-10-16 굵게 다시 그림 (89)
 };
 /** 점성술사 모으는 별 (80 5장 board-star): 별 n개 자리 (칸 반지름 배, 대상 칸 가운데 기준). 차례로 선을 이음 */
 const CHARGE_STARS: [number, number][][] = [
@@ -1631,9 +1640,9 @@ export function render(now: number): void {
     if (mist) heroArt(fxArt, 'board-mist', `hero-mist${u.id}`, x, y + r * 0.55, r * 1.5, mist.left < 2 ? 0.35 + 0.35 * pulse : 0.7);
     if (F.hero === 'warder' && absorbLeft(F, u) > 0) {
       const left = Math.max(0, ...u.mods.filter(m => m.k === 'absorb' && m.src === HEALER_SHIELD).map(m => m.until - F.t));
-      heroArt(fxArt, 'board-barrier', `hero-barrier${u.id}`, x, y, r * 2.45, left < 2 ? 0.4 + 0.45 * pulse : 0.85);
+      heroArt(fxArt, 'board-barrier', `hero-barrier${u.id}`, x, y, r * 2.06, left < 2 ? 0.4 + 0.45 * pulse : 0.85);
     }
-    if (asleep(F, u)) heroArt(fxArt, 'board-star-sleep', `hero-sleep${u.id}`, x, y, r * 2.1, u.sleep! - F.t < 1 ? 0.5 + 0.4 * pulse : 0.9);
+    if (asleep(F, u)) heroArt(fxArt, 'board-star-sleep', `hero-sleep${u.id}`, x, y, r * 2.06, u.sleep! - F.t < 1 ? 0.5 + 0.4 * pulse : 0.9);
     // 어둠물에 잠긴 사람: 칸 아래 40%가 물에 잠김 (물 높이가 출렁) · 받는 치유 −50%
     if (tideSet.has(u.cell)) {
       const wy = bot - 2 * r * 0.4 + (S.reducedEffects ? 0 : Math.sin(t * 3 + u.id) * s * 0.03), th = Math.max(1.5, s * 0.035);
@@ -1999,10 +2008,12 @@ export function render(now: number): void {
         .stroke({ width: Math.max(1.2, br * 0.18), color: C.tankMark, cap: 'round' });
       recordBound(`aggro${u.id}`, 'aggro', 'circle', bx, by, br * 2 + bw, br * 2 + bw);
     }
-    if (F.rats && F.rats.includes(u.id)) pill(overG, labels, `rat${u.id}`, x - r * 0.05, y + r * 0.95, '쥐떼', 0xb9a38a, C.dark, fs(0.18, 9));
+    // 칸 아래 꼭짓점 알약 (성격 상태 · 때리는 적 이름 · 쥐떼): 같이 걸리면 가로로 나란히 (2026-10-16 Lim 「겹치면 수평으로 나란히」, 아래 lowPills)
+    const low: { key: string; text: string; bg: number; fg: number }[] = [];
     // 판 위 적이 때리는 사람 (부탱커·딜러) · 자폭 쫄이 노리는 사람: 그 적 이름 (35 3-I)
     const add = F.mobs.find(m => m.alive && m.add && m.add.on === u.id && (m.add.dmg > 0 || m.add.job?.p === 'smash' || m.add.job?.p === 'fixate'));
-    if (add) pill(overG, labels, `add${u.id}`, x - r * 0.05, y + r * 0.95, add.add!.short, add.add!.job?.p === 'fixate' ? C.danger : 0xe8b4a8, add.add!.job?.p === 'fixate' ? C.white : C.dark, fs(0.18, 9));
+    if (add) low.push({ key: `add${u.id}`, text: add.add!.short, bg: add.add!.job?.p === 'fixate' ? C.danger : 0xe8b4a8, fg: add.add!.job?.p === 'fixate' ? C.white : C.dark });
+    if (F.rats && F.rats.includes(u.id)) low.push({ key: `rat${u.id}`, text: '쥐떼', bg: 0xb9a38a, fg: C.dark });
     // 감옥 (P-JAIL): 갇힌 사람 칸에 창살 (감옥 체력은 디버프 배지). 딜러가 깨는 중이면 금빛 과녁
     const jail = F.mobs.find(m => m.alive && m.add?.hold != null && m.add.on === u.id);
     if (jail) {
@@ -2013,8 +2024,13 @@ export function render(now: number): void {
         for (let k = -2; k <= 2; k++) { const h = k === -2 || k === 2 ? 0.5 : 0.84; overG.moveTo(x + k * r * 0.3, y - r * h).lineTo(x + k * r * 0.3, y + r * h); }
         overG.stroke({ width: w, color: 0xd8c7a8, alpha: 0.75 });
       }
-      hexPoly(overG, x, y, r * 0.96).stroke({ width: w * 1.3, color: 0xd8c7a8, alpha: 0.95 });
-      if (jail === focusOrder(F)[0]) overG.circle(x, y, r * 0.8).stroke({ width: Math.max(2.5, s * 0.06), color: C.gold, alpha: 0.6 + 0.4 * pulse });
+      if (!jt) hexPoly(overG, x, y, r * 0.96).stroke({ width: w * 1.3, color: 0xd8c7a8, alpha: 0.95 }); // 감옥 그림이 있으면 창살 그림만 (2026-10-16 디자이너 검수 17: 테가 세 겹이었음)
+      if (jail === focusOrder(F)[0]) {
+        // 딜러가 깨는 중: 판 위 적 일점사와 같은 금빛 칼날 표식 (금빛 과녁 원 대신)
+        const ft = artTexture('icon-gim-focus'), fz = r * 0.62;
+        if (ft) { const fp = fitCenter(x + r * 0.56, y - r * 0.52, fz / 2); marks.put(ft, fp.x, fp.y, fz, fz, 0.75 + 0.25 * pulse); }
+        else overG.circle(x, y, r * 0.8).stroke({ width: Math.max(2.5, s * 0.06), color: C.gold, alpha: 0.6 + 0.4 * pulse });
+      }
     }
     // 맞을 때 실제로 받을 양 (engine busterOn = damage()와 같은 계산): 탱커 강타가 탱커 아닌 사람에게 가면 직업군 방어력만큼 큼 (2026-10-16 Lim 「예상보다 많이 깎여 한방에 죽음」)
     const bo = busterOn(F, u);
@@ -2048,7 +2064,17 @@ export function render(now: number): void {
     const markAt = (text: string, size: number) => !peakY ? { x: x - r * 0.55, y: leftY != null ? leftY + 1 + (size * 1.32 + 1.5) / 2 : y - r * 0.42 }
       : { x: tank === u ? x - aimR - aimW / 2 - 1 - (measure(text, size) + size * 0.7) / 2 : x, y: peakY };
     let markBox: PillBox | undefined;
-    if (F.order && ok >= F.order.i) { const m = markAt(ORDER_NUM[ok], fs(0.3, 12)); markBox = pill(overG, labels, `ord${u.id}`, m.x, m.y, ORDER_NUM[ok], ok === F.order.i ? C.gold : 0xd9dde6, C.dark, fs(0.3, 12), ok === F.order.i ? 0.75 + 0.25 * pulse : 1); }
+    if (F.order && ok >= F.order.i) {
+      // 은쟁반 번호패 그림 (board-order-token, 2026-10-16 Lim 「다음 그림도」) 위에 숫자, 다음 번호는 금빛으로 물들이고 깜빡임. 그림이 없으면 예전 알약
+      const tt = artTexture('board-order-token'), size = fs(0.3, 12), z = size * 1.75, m = markAt(ORDER_NUM[ok], size), now1 = ok === F.order.i, a = now1 ? 0.75 + 0.25 * pulse : 1;
+      if (tt) {
+        const tp = fitCenter(m.x, m.y, z / 2);
+        marks.put(tt, tp.x, tp.y, z, z, a, now1 ? 0xffd36a : 0xffffff);
+        badgeLabels.put(`ord${u.id}`, String(ok + 1), { size: size * 0.95, fill: C.dark, weight: W_NUM }, tp.x, tp.y + size * 0.04, a);
+        markBox = { x: tp.x, y: tp.y, w: z, h: z };
+        recordBound(`ord${u.id}`, 'pill', 'icon', tp.x, tp.y, z, z);
+      } else markBox = pill(overG, labels, `ord${u.id}`, m.x, m.y, ORDER_NUM[ok], now1 ? C.gold : 0xd9dde6, C.dark, size, a);
+    }
     else if (u.debuffs.some(d => d.invert)) {
       // 뒤집힌 축복: 그림 (icon-gim-invert, 힐하면 피해). ✕ 알약은 「해제 불가 ×」로 읽혀 그림으로 바꿈 (2026-10-16 QA · CLAUDE.md × 금지 규칙)
       const it = artTexture('icon-gim-invert'), z = fs(0.28, 11) * 1.75, m = markAt('✕', fs(0.28, 11));
@@ -2072,15 +2098,16 @@ export function render(now: number): void {
     // 결계사 인장 · 점성술사 별자리 표식 (80 5장): 칸 왼쪽 위에 작게 (지속 치유 시간 원의 반대편, 보호막 원이 있으면 그 아래). 이름 · 체력 · 직업 아이콘은 그 자리 그대로, 글자 · 배지가 위에 그려짐
     const sign = F.hero === 'warder' && sealed(F, u) ? 'board-seal' : F.hero === 'astrologer' && u.hots.some(h => h.key === 'starMark' && h.left > 0) ? 'board-star-mark' : '';
     if (sign) {
-      const size = r * (sign === 'board-seal' ? 0.52 : 0.66) * (leftY != null ? 0.85 : 1), half = (size * HERO_ART_BOX[sign][1]) / 2; // 보호막 원 아래로 내려가면 이름에 덜 걸리게 조금 작게
+      const size = r * (sign === 'board-seal' ? 0.52 : 0.57) * (leftY != null ? 0.85 : 1), half = (size * HERO_ART_BOX[sign][1]) / 2; // 보호막 원 아래로 내려가면 이름에 덜 걸리게 조금 작게
       heroArt(marks, sign, `hero-sign${u.id}`, x - r * 0.56, leftY != null ? leftY + 1 + half : y - r * 0.44, size, sign === 'board-seal' && u.seal! - F.t < 2 ? 0.5 + 0.5 * pulse : 1, true);
     }
     if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
     else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
     const st = u.lift ? ([`하늘 ${Math.max(0, Math.ceil(u.lift.until - F.t))}`, '#9FD8F5'] as const) : u.pulled ? ([`끌림 ${Math.ceil(u.pulled.until - F.t)}`, '#C98B5A'] as const) : u.fleeing ? (['도망', '#DB9B57'] as const) : u.sulking ? (['삐짐', '#D68FA6'] as const)
       : u.ps?.panicUntil != null && F.t < u.ps.panicUntil ? (['당황', '#D68FA6'] as const) : u.ps?.rageUntil != null && F.t < u.ps.rageUntil ? (['분노', '#E0705A'] as const) : null; // 소심이 · 다혈질 (75)
-    if (st && s >= 40) pill(overG, labels, `st${u.id}`, x, y + r * 0.95, st[0], hex(st[1]), C.dark, fs(0.18, 9));
+    if (st && s >= 40) low.unshift({ key: `st${u.id}`, text: st[0], bg: hex(st[1]), fg: C.dark });
     else if (st) hexPoly(overG, x, y, ringRadius(`status${u.id}`, 'hex', x, y, r * 0.95, 3)).stroke({ width: 3, color: hex(st[1]), alpha: 0.5 + 0.5 * pulse });
+    lowPills(low, x, y + r * 0.95, fs(0.18, 9));
   }
   // 표시된 글자 bounds만 노출한다. 값이 바뀔 때만 기록하며 전투/입력 상태에는 관여하지 않는다.
   let neighborGap = Infinity;
