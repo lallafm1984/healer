@@ -289,3 +289,15 @@
 #s-guild .pcard.tap.on {
   border-color: var(--a2-brass-hi);
 }
+
+/* 튜토리얼 단계 카드 (QA 2026-10-16): 이긴 카드는 다음 장소 그림을 이야기 화면처럼 어둡게 깔고, 배운 스킬은 그림 + 글 */
+#s-tut[style*="--tut-art"] {
+  background: linear-gradient(rgba(28, 22, 15, 0.55), rgba(28, 22, 15, 0.92) 52%, #1C160F 78%), var(--tut-art) center 30% / cover no-repeat;
+  background-blend-mode: normal; /* 위 공통 규칙의 soft-light가 어둡게 까는 층을 지웠음 */
+}
+#s-tut .story > .h { font-size: 30px; }
+#s-tut.ns .panel.learn { display: flex; flex-direction: row; align-items: center; gap: 12px; text-align: left; }
+#s-tut .learn-art { flex: none; width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--a2-brass); background: #1c140c; display: grid; place-items: center; overflow: hidden; box-shadow: 0 2px 4px #160d0770; }
+#s-tut .learn-art:empty { display: none; }
+#s-tut .learn-art > .g-ic { width: 100%; height: 100%; object-fit: contain; }
+#s-tut .learn > div { min-width: 0; }

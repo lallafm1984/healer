@@ -11,7 +11,7 @@ import { commit, G, healerLevel } from '../game/state';
 import { DUO_PARTY, TUT } from '../game/tutorial';
 import { battle, go, screen } from './kit';
 import { depart } from './party';
-import { classEmblem } from './art';
+import { classEmblem, gameIcon, placeArt } from './art';
 
 const DEV_SKIP = '<button class="btn ghost" type="button" id="tutSkip">튜토리얼 건너뛰기 (개발 빌드)</button>';
 
@@ -68,15 +68,19 @@ const card = screen('s-tut', '튜토리얼', {
   enter(arg) {
     const lose = arg === 'lose' || arg === 'quit';
     if (lose) {
+      card.el.style.removeProperty('--tut-art');
       card.el.innerHTML = `<div class="ns-body story"><h2 class="h">${arg === 'quit' ? '튜토리얼 중단' : '탱커가 쓰러짐'}</h2>
         ${arg === 'quit' ? '<p>첫 전투를 중단했습니다. 같은 단계에서 다시 시작할 수 있습니다.</p>' : '<p>탱커 칸을 자주 탭하기. 탭 한 번에 치유 한 번.</p><p>체력이 반쯤 줄었을 때 미리 탭하면 넉넉함.</p>'}</div>
         <footer class="ns-foot col"><button class="btn primary" type="button" id="tutRetry">다시 하기</button>${DEV_SKIP}</footer>`;
       return;
     }
+    // 다음 장소 그림을 이야기 화면처럼 어둡게 깔고, 배운 스킬은 그림과 함께 (예전엔 나무결에 글만, 아래 절반이 비었음)
+    const next = placeArt('plateau').url;
+    card.el.style.setProperty('--tut-art', next ? `url('${next}')` : 'none');
     card.el.innerHTML = `<div class="ns-body story">
       <h2 class="h">첫 파티 성공!</h2>
-      <section class="panel learn"><h2>Lv ${G.save.player.level} · 새 스킬 「소생」</h2>
-        <p>칸에 걸어 두면 9초 동안 저절로 차는 힐. 칸에서 휠과 같은 방향으로 쓸어서도 쓸 수 있음.</p></section>
+      <section class="panel learn"><span class="learn-art">${gameIcon('renew', '', 'skill')}</span><div><h2>Lv ${G.save.player.level} · 새 스킬 「소생」</h2>
+        <p>칸에 걸어 두면 9초 동안 저절로 차는 힐. 칸에서 휠과 같은 방향으로 쓸어서도 쓸 수 있음.</p></div></section>
       <p>다음은 <b>3인 탐험 「녹슨 고원」</b>. 파티 찾기로 두 명이 들어옴.</p>
     </div>
     <footer class="ns-foot col"><button class="btn primary" type="button" id="tutNext">탐험 출발</button>${DEV_SKIP}</footer>`;
