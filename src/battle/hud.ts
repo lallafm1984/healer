@@ -243,7 +243,7 @@ export function openTalentTip(k: TalentKey, el: HTMLElement): void {
   const d = TALENT_DEF[k], a = d.active!;
   const row = a.once ? '전투당 1회' : `${a.dur}초 · 재사용 대기 ${a.cd}초`;
   const F = fight();
-  popTip(tipHtml({ name: d.name, kind: '특성', rows: [['즉시', row]], desc: healText(d.desc, INT_BASE * F.power * F.gear.heal), note: a.cell ? '누른 뒤 빈 칸을 탭' : 'GCD·마나 없이 바로' }), el, null);
+  popTip(tipHtml({ name: d.name, kind: '특성', rows: [['즉시', row]], desc: healText(d.desc, INT_BASE * F.power * F.gear.heal), note: a.cell ? '누른 뒤 빈 칸을 탭' : 'GCD·마나 없이 바로' }), el, { tal: k, held: true });
 }
 
 // ---------- 시전 막대 (시안: 화면 폭 막대 안에 「스킬 → 대상」 · 남은 초, 채움 끝에 밝은 선) ----------
@@ -512,19 +512,27 @@ export function updateStage(now: number): void {
   }
 }
 
-// ---------- 설명 팝업 (보스 기술 · 스킬 · 아이템 같은 모양) ----------
+// ---------- 설명 팝업 (보스 기술 · 스킬 · 특성 같은 모양) ----------
 // 예고 칸을 누르면 그 기술이 무엇인지 한 줄로. 게임은 멈추지 않음. 같은 칸 다시 누르기 / 다른 곳 누르기 / 4초 뒤 닫힘.
+// 스킬 · 특성 버튼을 길게 눌러 연 팝업은 누르는 동안 유지, 손을 떼고 3초 뒤 또는 아무 곳이나 누르면 닫힘 (2026-10-16 Lim).
 // 팝업은 pointer-events: none 이라 아래 판 터치·쓸기를 막지 않음
-const TIP_MS = 4000;
+const TIP_MS = 4000, TIP_KEEP = 3000;
 /** 같은 기술이 대기열에 두 번 있을 수 있어, 누른 그 회차를 맞을 시각(impact)으로 따라감 */
 export const tipMatch = (ic: string, imp: number) => !!ui.tip && ui.tip.ic === ic && Math.abs(imp - (ui.tip.imp ?? -1e9)) < 0.2;
-function popTip(html: string, el: HTMLElement, tip: typeof ui.tip): void {
+function popTip(html: string, el: HTMLElement, tip: NonNullable<typeof ui.tip>): void {
   const t = $('tip');
   t.innerHTML = html; t.hidden = false;
   ui.tip = tip;
   placeTip(el);
   clearTimeout(ui.tipTimer);
-  ui.tipTimer = setTimeout(closeTip, TIP_MS);
+  if (!tip.held) ui.tipTimer = setTimeout(closeTip, TIP_MS);
+}
+/** 길게 눌러 연 스킬 · 특성 팝업에서 손을 뗐을 때: TIP_KEEP 뒤 닫힘 (그 전에 아무 곳이나 누르면 바로 닫힘) */
+export function releaseTip(): void {
+  if (!ui.tip?.held) return;
+  ui.tip.held = false;
+  clearTimeout(ui.tipTimer);
+  ui.tipTimer = setTimeout(closeTip, TIP_KEEP);
 }
 export function openTip(ic: string, qEl: HTMLElement): void {
   const F = fight(), s = guideOf(F).skills.find(x => x.ic === ic);
@@ -536,7 +544,7 @@ export function openTip(ic: string, qEl: HTMLElement): void {
 }
 export function openSkillTip(key: SkillKey, el: HTMLElement): void {
   const lock = B.F && !knows(B.F, key) ? SKILL_LEVEL[key] : 0;
-  popTip(tipHtml(skillTip(key, lock, B.F ? INT_BASE * B.F.power * B.F.gear.heal : undefined)), el, { skill: key });
+  popTip(tipHtml(skillTip(key, lock, B.F ? INT_BASE * B.F.power * B.F.gear.heal : undefined)), el, { skill: key, held: true });
 }
 export function closeTip(): void {
   clearTimeout(ui.tipTimer);

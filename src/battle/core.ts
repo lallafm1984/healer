@@ -153,7 +153,8 @@ export const ui = {
   coach: null as Coach | null,
   /** 쉼터 장전 중 (빈 칸 탭) */
   talArmed: null as TalentKey | null,
-  tip: null as { ic?: string; imp?: number; skill?: SkillKey } | null, tipTimer: 0 as unknown as ReturnType<typeof setTimeout>,
+  /** 떠 있는 설명 팝업: 예고 칸 (ic · imp) · 스킬 · 특성. held = 길게 눌러 연 팝업 (손을 뗄 때까지 유지) */
+  tip: null as { ic?: string; imp?: number; skill?: SkillKey; tal?: TalentKey; held?: boolean } | null, tipTimer: 0 as unknown as ReturnType<typeof setTimeout>,
   restAt: 0, restMana: null as number | null, lastResult: null as BattleResult | null,
 };
 
