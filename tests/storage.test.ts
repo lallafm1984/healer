@@ -40,6 +40,14 @@ describe('기기 저장', () => {
     old.settings.compactSkills = false;
     expect(migrate(old).settings.compactSkills).toBe(true);
   });
+  it('「레이드 판을 5인 던전 모양으로」 설정은 버리고 (모든 판이 5인 모양) 다른 설정은 유지', () => {
+    const old = JSON.parse(JSON.stringify(newSave(123)));
+    old.settings.raidFiveLook = true; old.settings.hand = 'left';
+    const migrated = migrate(old);
+    expect(migrated.settings).not.toHaveProperty('raidFiveLook');
+    expect(migrated.settings.hand).toBe('left');
+    expect(migrated.v).toBe(SAVE_VERSION);
+  });
   it('깨진 저장이면 새 저장', () => {
     expect(load(mem({ [SAVE_KEY]: '{깨짐' })).v).toBe(SAVE_VERSION);
   });

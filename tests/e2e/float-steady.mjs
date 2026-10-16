@@ -8,16 +8,15 @@ import { departGo, patchSave, toParty } from './nav.mjs';
 const BOARDS = {
   3: { n: 3, tab: 'explore', content: 'plateau' },
   5: { n: 5, tab: 'dungeon', content: 'rustfort' },
+  // 10 · 20인은 5인 던전 모양 (2026-10-16 Lim 기본)
   10: { n: 10, tab: 'raid10', content: 'abyss1' },
   20: { n: 20, tab: 'raid20', content: 'cathedral1' },
-  '10f': { n: 10, tab: 'raid10', content: 'abyss1', five: true },
-  '20f': { n: 20, tab: 'raid20', content: 'cathedral1', five: true },
 };
 /** 폰마다 판 (S25는 전부, 울트라 · 플립은 판 둘씩) */
 const RUNS = [
-  ['S25', 360, 780, [3, 5, 10, 20, '10f', '20f']],
+  ['S25', 360, 780, [3, 5, 10, 20]],
   ['S25 울트라', 384, 824, [5, 20]],
-  ['Z 플립 펼침', 360, 880, [10, '20f']],
+  ['Z 플립 펼침', 360, 880, [10, 20]],
 ];
 /** 한 프레임에 이만큼 넘게 자기 칸과 따로 움직이면 튐 (올라가는 속도는 프레임당 1px 안팎) */
 const JUMP = 3;
@@ -35,10 +34,10 @@ export default async function floatSteady(url, shots) {
     page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
     await page.clock.install({ time: new Date(2026, 9, 12, 12) });
     await page.goto(url); await page.clock.runFor(300);
-    await patchSave(page, { player: { level: 60 }, settings: { auto: true, sound: false, vibrate: false, reducedEffects: false, raidFiveLook: !!board.five } });
+    await patchSave(page, { player: { level: 60 }, settings: { auto: true, sound: false, vibrate: false, reducedEffects: false } });
     await toParty(page, { tab: board.tab, content: board.content, diff: '보통' });
     await departGo(page); await page.clock.runFor(3100 + 300);
-    const tag = `${name} ${width}×${height} ${board.n}인${board.five ? ' (5인 모양)' : ''}`;
+    const tag = `${name} ${width}×${height} ${board.n}인`;
     // 판을 새로 그린 프레임마다 숫자 자리 · 그 사람 칸 자리를 적음 (가짜 시계는 프레임 순서가 가끔 뒤바뀌어 나중에 시각으로 정렬)
     await page.evaluate(() => {
       window.__floatTrace = [];

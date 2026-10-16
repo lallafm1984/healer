@@ -27,13 +27,14 @@ export function shieldTimerOf(u: Pick<Unit, 'mods'>, t: number): { left: number;
   return { left: Math.max(...pick.map(m => m.until - t)), amt: on.reduce((a, m) => a + m.v, 0) };
 }
 
-export function cellTypography(scale: number): { compact: boolean; hp: number; nick: number; debuff: number } {
-  const compact = scale < 36;
+/**
+ * 칸 글자 크기 (판 그림 좌표). 모든 판이 5인 던전 칸 모양이라 (2026-10-16 Lim, 레이드 전용 작은 칸 없앰) 대상 폰에서 scale은 50 이상,
+ * 10 · 20인은 판 전체를 줄여 그려 글자도 같은 비율로 작아짐
+ */
+export function cellTypography(scale: number): { hp: number; nick: number; debuff: number } {
   return {
-    compact,
-    // 칸을 확대해 절대 HP 표시로 바뀌는 경계에서도 글자가 14→12px로 줄지 않는다.
-    hp: compact ? Math.max(12, Math.min(14, scale * 0.4)) : Math.max(14, scale * 0.28),
-    // 이름은 칸 크기를 따라 작아짐 (2026-10-10 Lim): 작은 칸 (10·20인)은 0.3배, 9px까지. 큰 칸은 예전처럼 0.24배 (11px 이상)
+    hp: Math.max(14, scale * 0.28),
+    // 이름: 0.24배 (11px 이상), 칸이 아주 작으면 0.3배 · 9px까지 (2026-10-10 Lim)
     nick: Math.min(Math.max(9, scale * 0.3), Math.max(11, scale * 0.24)),
     debuff: Math.max(11, scale * 0.2),
   };
@@ -57,28 +58,28 @@ export function fitPartyName(name: string, maxWidth: number, measure: (text: str
 export type DispelState = 'available' | 'unavailable' | 'dangerous';
 const TYPE_SHORT: Record<string, string> = { 질병: '질', 독: '독', 마법: '마', 저주: '저' };
 
-export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
+export function debuffDisplay(debuff: Debuff, hero: HeroKey, short = false): {
   text: string; detail: string; state: DispelState; seconds: number;
 } {
   const seconds = Math.max(0, Math.ceil(debuff.left));
   // 함정은 실제로 해제되며 폭발한다. 해제불가와 혼동하지 않는다.
   const state: DispelState = debuff.lock || !canDispel(hero, debuff.type) ? 'unavailable' : debuff.trap ? 'dangerous' : 'available';
   // 칸 위 배지에는 해제 불가·함정 기호(×/!)를 붙이지 않습니다. 상세 설명에서만 안내합니다.
-  const kind = compact ? TYPE_SHORT[debuff.type] ?? '?' : debuff.type;
+  const kind = short ? TYPE_SHORT[debuff.type] ?? '?' : debuff.type;
   // 마력 역류 (P-RECOIL): 배지에 중첩 수 (내 칸의 숫자)
-  if (debuff.count) return { text: `${compact ? '' : '역류 '}${debuff.stack ?? 0}중`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초, ${debuff.stack ?? 0}중첩 · 스킬을 쓸 때마다 1중첩, 끝나거나 지우면 중첩만큼 피해 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (일찍 지울수록 덜 아픔)'}`, state, seconds };
+  if (debuff.count) return { text: `${short ? '' : '역류 '}${debuff.stack ?? 0}중`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초, ${debuff.stack ?? 0}중첩 · 스킬을 쓸 때마다 1중첩, 끝나거나 지우면 중첩만큼 피해 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (일찍 지울수록 덜 아픔)'}`, state, seconds };
   if (debuff.link) return { // 생명 사슬 (P-LINK)
-    text: `${compact ? '사슬' : debuff.name} ${seconds}`,
+    text: `${short ? '사슬' : debuff.name} ${seconds}`,
     detail: `${debuff.name} · ${seconds}초 · ${debuff.link.kind === 'share' ? '이어진 두 사람이 받는 피해·치유를 반씩 나눔' : '이어진 두 사람 체력 차이가 크게 벌어지면 끊어지며 둘 다 피해'} · 해제 불가`,
     state, seconds,
   };
   // 부풀기 (P-SWELL, 46 5장): 배지에 중첩 수. 지우면 이웃만, 두면 본인 + 이웃이 터짐
-  if (debuff.swell) return { text: `${compact ? '' : '거품 '}${debuff.stack ?? 1}중`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초, ${debuff.stack ?? 1}중첩 · ${debuff.swell.every}초마다 1중첩 (최대 ${debuff.swell.max}) · 지우면 이웃 칸이 중첩만큼, 두면 끝날 때 본인과 이웃 칸이 더 크게 터짐 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (적을 때 · 옆에 사람이 적을 때)'}`, state, seconds };
+  if (debuff.swell) return { text: `${short ? '' : '거품 '}${debuff.stack ?? 1}중`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초, ${debuff.stack ?? 1}중첩 · ${debuff.swell.every}초마다 1중첩 (최대 ${debuff.swell.max}) · 지우면 이웃 칸이 중첩만큼, 두면 끝날 때 본인과 이웃 칸이 더 크게 터짐 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (적을 때 · 옆에 사람이 적을 때)'}`, state, seconds };
   // 뒤집힘 저주 (P-FLIP): 끝날 때 체력 비율이 뒤집힘
-  if (debuff.end?.p === 'flip') return { text: `${compact ? '' : '뒤집 '}${seconds}`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초 · 끝날 때 체력 비율이 뒤집힘 (80% → 20%, 30% → 70%) · 높으면 힐을 멈추고 낮으면 둠 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (지우면 그냥 사라짐)'}`, state, seconds };
+  if (debuff.end?.p === 'flip') return { text: `${short ? '' : '뒤집 '}${seconds}`, detail: `${debuff.name} · ${debuff.type} · ${seconds}초 · 끝날 때 체력 비율이 뒤집힘 (80% → 20%, 30% → 70%) · 높으면 힐을 멈추고 낮으면 둠 · ${state === 'unavailable' ? '이 직업으로 해제 불가' : '해제 가능 (지우면 그냥 사라짐)'}`, state, seconds };
   // 빌린 생명 (P-DEBT, 59 5장): 배지에 남은 빚 (불어날수록 커짐)
-  if (debuff.debt) { const amt = Math.round(debuff.debtLeft ?? 0); return { text: `빚 ${compact && amt >= 1000 ? `${(amt / 1000).toFixed(amt >= 10000 ? 0 : 1)}k` : amt}`, detail: `${debuff.name} · ${seconds}초 · 남은 빚 ${amt} (초마다 +${Math.round(debuff.debt.grow * 100)}%, 어둠물에 잠기면 2배) · 이 사람에게 넘친 치유가 빚을 갚음 · 시간이 다 되면 남은 빚만큼 피해 · 해제 불가`, state, seconds }; }
-  if (debuff.jail) return { text: `${compact ? '감옥' : debuff.name}`, detail: `${debuff.name} · 딜 0 · 못 움직임 · 딜러가 감옥을 깨면 풀림 · 해제 불가`, state, seconds: 0 };
+  if (debuff.debt) { const amt = Math.round(debuff.debtLeft ?? 0); return { text: `빚 ${short && amt >= 1000 ? `${(amt / 1000).toFixed(amt >= 10000 ? 0 : 1)}k` : amt}`, detail: `${debuff.name} · ${seconds}초 · 남은 빚 ${amt} (초마다 +${Math.round(debuff.debt.grow * 100)}%, 어둠물에 잠기면 2배) · 이 사람에게 넘친 치유가 빚을 갚음 · 시간이 다 되면 남은 빚만큼 피해 · 해제 불가`, state, seconds }; }
+  if (debuff.jail) return { text: `${short ? '감옥' : debuff.name}`, detail: `${debuff.name} · 딜 0 · 못 움직임 · 딜러가 감옥을 깨면 풀림 · 해제 불가`, state, seconds: 0 };
   const action = debuff.lock ? (debuff.cureAt != null ? `해제 불가, 체력 ${Math.round(debuff.cureAt * 100)}% 이상이면 사라짐`
     : debuff.untilBossLoss != null ? `해제 불가, 보스 체력 ${Math.round(debuff.untilBossLoss * 100)}% 깎으면 풀림` : '해제 불가')
     : state === 'unavailable' ? '이 직업으로 해제 불가' : state === 'dangerous' ? '해제 시 전염 폭발' : '해제 가능';
@@ -92,7 +93,7 @@ export function debuffDisplay(debuff: Debuff, hero: HeroKey, compact = false): {
     : debuff.drain ? ` · 마나 초당 -${debuff.drain}`
     : debuff.end?.p === 'pass' ? ` · 치유 흡수 막 ${Math.round(debuff.absorbLeft ?? 0)}, 지우면 가장 건강한 아군에게 넘어감, 두면 끝날 때 남은 막만큼 피해` : '';
   return {
-    text: `${kind}${compact ? '' : ' '}${seconds}`,
+    text: `${kind}${short ? '' : ' '}${seconds}`,
     detail: `${debuff.name} · ${debuff.type} · ${seconds}초${stack}${heal}${more} · ${action}`,
     state,
     seconds,

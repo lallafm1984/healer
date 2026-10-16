@@ -33,7 +33,7 @@ function render(): void {
       <section class="group"><h2>스킬 휠 위치</h2><div class="chips">${chip('hand', 'right', st.hand, '오른쪽 (오른손)')}${chip('hand', 'left', st.hand, '왼쪽 (왼손)')}</div>
         <button class="btn" type="button" id="toSkills">칸 탭 기본 힐 · 스킬 배치 → 캐릭터</button></section>
       <section class="group"><h2>20인 판</h2>${tog('zoom', '탭한 칸 확대해 보여주기 (0.3초)')}</section>
-      <section class="group"><h2>전투 화면</h2>${tog('reducedEffects', '시각 효과 줄이기')}<p>피해 숫자·흔들림·반짝임을 줄입니다. 위험·체력·해제 정보는 유지합니다.</p>${tog('raidFiveLook', '레이드 판을 5인 던전 모양으로')}<p>10·20인 레이드 칸도 5인 던전 칸과 같은 배치로 그리고, 글자·아이콘·이펙트를 칸 크기 비율대로 줄입니다. 비교용이라 작은 칸에서는 글자가 작아집니다.</p></section>
+      <section class="group"><h2>전투 화면</h2>${tog('reducedEffects', '시각 효과 줄이기')}<p>피해 숫자·흔들림·반짝임을 줄입니다. 위험·체력·해제 정보는 유지합니다.</p></section>
       <section class="group"><h2>장비</h2>${tog('quickEnhance', '강화 연출 짧게')}<p>강화할 때 망치질 연출 없이 0.5초 안에 결과를 보여 줍니다.</p></section>
       <section class="group dev"><h2>개발 빌드</h2>
         ${tog('auto', '자동 치유 (일시정지에서도 켜고 끔)')}
