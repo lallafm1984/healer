@@ -73,7 +73,7 @@ export default async function dialogs(url, shots) {
       await page.click('#s-char .c7-bag[data-gitem="903"]'); await page.clock.runFor(50);
       await page.keyboard.press('Escape'); await page.clock.runFor(50);
       ok(await page.isVisible('#s-char .c7-inventory') && !(await page.locator('#s-char .sheet').count()) && await page.evaluate(() => document.activeElement?.matches('.c7-bag[data-gitem="903"]') && !document.querySelector('#tabs').inert), `${label} Escape → 상시 인벤토리의 원래 아이템 포커스 복귀·배경 해제`);
-      ok((await page.locator('#s-char .c7-inventory [data-dex]').count()) === 0, `${label} 인벤토리 도감 버튼 제거`);
+      ok((await page.locator('#s-char .c7-inventory [data-dex]').count()) === 1, `${label} 인벤토리 도감 버튼 (34 6-10 ④, QA 2026-10-17에 되살림: 없으면 도감 보상을 받을 길이 없음)`);
       await page.click('#s-char .c7-bag[data-gitem="903"]'); await page.clock.runFor(50);
       // 91: 강화 확인창은 없어짐, 판매 확인창으로 같은 중첩 모달 규칙을 봄
       await page.click('#s-char [data-sell1="903"]'); await page.clock.runFor(50);

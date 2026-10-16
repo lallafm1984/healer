@@ -71,7 +71,11 @@ export default async function gear(url, shots) {
   ok(await page.getAttribute('#s-char .c7-bag:first-child', 'data-gitem') === '203', '새것순 = 최근 장비 먼저');
   await page.click('#s-char [data-bsort]'); await page.clock.runFor(50);
   await page.screenshot({ path: `${shots}/gear_list.png` });
-  ok((await page.locator('#s-char .c7-inventory [data-dex]').count()) === 0, '인벤토리에 도감 버튼 없음');
+  // 도감 버튼 (34 6-10 ④): 누르면 장비 도감, 거기서 특수능력 도감으로 (QA 2026-10-17에 되살림)
+  ok((await page.locator('#s-char .c7-inventory [data-dex]').count()) === 1, '인벤토리 도감 버튼');
+  await page.click('#s-char .c7-inventory [data-dex]'); await page.clock.runFor(80);
+  ok(await page.isVisible('#s-char .c7-dex') && await page.isVisible('#s-char .c7-dex [data-codex]'), '도감 버튼 → 장비 도감 (특수능력 도감 가는 버튼)');
+  await page.keyboard.press('Escape'); await page.clock.runFor(80);
 
   // 분류에서 보이지 않은 장비도 장비 화면을 나가면 확인 처리. 비교 화살표는 남는다.
   ok((await save()).gear.seen === 0, '장비 화면을 보는 동안에는 새 장비 확인 상태를 저장하지 않음');
