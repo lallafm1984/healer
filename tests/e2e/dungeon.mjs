@@ -119,10 +119,10 @@ export default async function dungeon(url, shots) {
   const pv = await page.textContent('#preview');
   await page.mouse.up(); await page.clock.runFor(50);
   ok(/(전사|수호기사) · 탱커/.test(pv) && !/(단단한 몸|신성한 갑옷)/.test(pv), `길게 누르면 직업, 패시브 없음 (${pv.slice(0, 40)})`);
-  // Lv 1 = 치유·순간 치유만 (06 7장). 나머지 휠 칸은 잠금, 성언 게이지 숨김
+  // Lv 1 = 치유·순간 치유만 (06 7장). 나머지 휠 칸은 잠금, 평온 게이지는 숨기지 않고 어둡게 + 자물쇠 · Lv 6 (#182)
   const locked = await page.evaluate(() => [...document.querySelectorAll('#wheel .slot.locked')].map(b => b.dataset.lock).sort().join());
   ok(locked === 'guardian,hymn,poh,purify,relay,renew', `Lv 1 휠: 안 배운 스킬 잠금 (${locked})`);
-  ok(await page.evaluate(() => getComputedStyle(document.getElementById('gauges')).visibility === 'hidden'), 'Lv 1: 성언 게이지 숨김');
+  ok(await page.evaluate(() => { const g = document.getElementById('gauges'), l = g.querySelector('.gauge-lock'); return getComputedStyle(g).visibility !== 'hidden' && !!l && /Lv 6/.test(l.textContent); }), 'Lv 1: 평온 게이지는 잠김 표시 (자물쇠 · Lv 6, #182)');
   await page.dispatchEvent('#wheel .slot[data-lock="renew"]', 'pointerdown'); await page.dispatchEvent('#wheel .slot[data-lock="renew"]', 'pointerup');
   await page.clock.runFor(50);
   ok(/소생: Lv 2에 배움/.test(await page.textContent('#toast')), '잠긴 칸을 누르면 「Lv 2에 배움」');
@@ -217,8 +217,9 @@ export default async function dungeon(url, shots) {
   ok(await page.locator('#s-char .c7-gsheet').count() === 0 && await page.locator('[inert]').count() === 0 && await page.evaluate(() => document.activeElement?.hasAttribute('data-reward-item')), '상세 닫기 후 정산 카드로 포커스·입력 복구');
   ok(JSON.stringify(await save()) === beforeDetail, '보상 장비 상세 조회는 저장 데이터를 변경하지 않음');
   const nx = await page.textContent('#s-settle #next');
-  ok(/^다음 탐험/.test(nx) && /고철 더미 언덕 · 쉬움/.test(nx) && (await page.textContent('#s-settle [data-go="s-lobby"]')).trim() === '나가기' && (await page.textContent('#again')) === '다시 도전',
-    `아래 버튼: 나가기 · 다시 도전 · 다음 = 길잡이 추천 (Lv 3: 열린 곳 가운데 첫 클리어 경험치가 큰 고철 더미 언덕 쉬움, 86 · 70) 「${nx}」`);
+  // 순차 레벨링 길 (70 · 90, #188): 안 깬 첫 장소부터. 이 테스트는 튜토리얼을 건너뛰어 녹슨 고원 (Lv 1)이 아직 안 깨짐
+  ok(/^다음 탐험/.test(nx) && /녹슨 고원 · 쉬움/.test(nx) && (await page.textContent('#s-settle [data-go="s-lobby"]')).trim() === '나가기' && (await page.textContent('#again')) === '다시 도전',
+    `아래 버튼: 나가기 · 다시 도전 · 다음 = 길잡이 추천 (순차 길: 안 깬 첫 장소 녹슨 고원 쉬움, 70 · 90) 「${nx}」`);
   await page.screenshot({ path: `${shots}/dungeon_reward.png` });
 
   // ---- 잡몹 구간에서 지면 던전 실패 → 경험치 없음 (2026-10-13 Lim) ----
@@ -235,7 +236,7 @@ export default async function dungeon(url, shots) {
   await page.clock.runFor(300);
   const td = await page.evaluate(() => { const F = window.__proto.F; return { over: F.over, tank: F.party.some(u => u.role === 'tank' && u.alive), alive: F.party.filter(u => u.alive && !u.me).length }; });
   ok(td.over === null && !td.tank && td.alive > 0, `탱커가 모두 쓰러져도 전투 계속 ${JSON.stringify(td)}`);
-  ok(await page.isVisible('#giveUp') && await page.isVisible('#hint'), '탱커 전멸 → 포기 버튼 (조작판 안내 줄은 그대로)');
+  ok(await page.isVisible('#giveUp'), '탱커 전멸 → 포기 버튼 (조작판 안내 줄은 B안에서 없앰)');
   await page.locator('#giveUp').evaluate(el => Promise.all(el.getAnimations().map(a => a.finished)));
   const gb = await page.evaluate(() => { const g = document.getElementById('giveUp'), r = g.getBoundingClientRect(), q = document.getElementById('queue').getBoundingClientRect(), s = document.getElementById('stage').getBoundingClientRect(), heal = document.querySelector('#wheel [data-dir="NE"]'); return { parent: g.parentElement.id, edge: Math.abs(r.right - s.right), line: Math.abs((r.top + r.bottom) / 2 - q.bottom), straddles: r.top < q.bottom && r.bottom > q.bottom, healAvailable: !heal.inert && getComputedStyle(heal).opacity === '1' }; });
   ok(gb.parent === 'stage' && gb.edge <= 1 && gb.line <= 1 && gb.straddles && gb.healAvailable, `포기 전광판의 중심이 적 예고 하단 선에 걸침 · 하단 치유 유지 ${JSON.stringify(gb)}`);

@@ -3,6 +3,7 @@
  * 「수호 영혼으로 탱커 살리기」는 직업마다 위기 기술이 달라서 뺌 (사제만 할 수 있음).
  */
 import { RAID10_LV } from './content';
+import { FEATURES } from './features';
 
 /** 판 하나가 끝났을 때 임무가 보는 값 */
 export interface RunEvent {
@@ -40,7 +41,8 @@ const won = (e: RunEvent) => e.win && e.dungeon;
 
 export const DAILY: MissionDef[] = [
   { key: 'clear3', text: '던전 클리어', need: 3, lv: 1, run: e => (won(e) ? 1 : 0) },
-  { key: 'pub2', text: '공개모집으로 클리어', need: 2, lv: 1, run: e => (won(e) && e.pub ? 1 : 0) },
+  // 길드를 빼 두면 모든 판이 공개모집이라 이름만 「던전 · 레이드 클리어」 (2026-10-16 QA 「추천대로」. 빼면 Lv 1~4 일일 임무가 4개라 그대로 둠)
+  { key: 'pub2', get text() { return FEATURES.guild ? '공개모집으로 클리어' : '던전 · 레이드 클리어'; }, need: 2, lv: 1, run: e => (won(e) && e.pub ? 1 : 0) },
   { key: 'dispel10', text: '해제 성공', need: 10, lv: 5, run: e => e.dispels },
   { key: 'overheal', text: '오버힐 30% 이하로 클리어', need: 1, lv: 10, run: e => (won(e) && e.overhealPct <= 30 ? 1 : 0) },
   { key: 'nodeath', text: '사망자 0명으로 클리어', need: 1, lv: 1, run: e => (won(e) && e.deaths === 0 ? 1 : 0) },

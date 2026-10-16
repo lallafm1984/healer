@@ -6,7 +6,7 @@ import type { Carry, Fight, FightConfig } from './types';
 
 /** 휴식 뒤 다음 구간으로 넘길 것 (23 4장): 마나는 쉰 만큼 회복, 평온 게이지는 그대로 */
 export function restCarry(f: Fight, restSec: number): Carry {
-  return { mana: Math.min(100, f.mana + REST_MANA_PER_SEC * restSec * (1 + sv(f, 'restTea'))), g: { ...f.g } }; // 휴식의 차 (42 마나 06)
+  return { mana: Math.min(100, f.mana + REST_MANA_PER_SEC * restSec * (1 + sv(f, 'restTea'))), g: { ...f.g } }; // 정비의 차 (42 마나 06, 예전 이름 휴식의 차)
 }
 
 export interface DungeonRunConfig extends Omit<FightConfig, 'encounter' | 'carry'> {

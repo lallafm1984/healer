@@ -247,7 +247,10 @@ export function topLevel(d: SaveData): number {
   return d.player.level;
 }
 
-export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'right', tapKey: 'heal', zoom: true, compactSkills: true, reducedEffects: false, auto: false, devUnlock: true, allSkills: false, layout: null };
+/** 자동 화면 테스트 (Playwright, navigator.webdriver)인가: 테스트가 전제하는 「레벨 잠금 무시」 켜짐을 그대로 */
+const AUTOMATION = typeof navigator !== 'undefined' && navigator.webdriver === true;
+/** 새 저장 설정. 「레벨 잠금 무시」 (devUnlock)는 꺼짐 (2026-10-16 Lim QA 「추천대로」: 새로 시작하면 처음 하는 사람과 같은 잠금), 화면 테스트만 켜짐. 옛 저장은 저장된 값 그대로 */
+export const DEFAULT_SETTINGS: Settings = { sound: true, vibrate: true, hand: 'right', tapKey: 'heal', zoom: true, compactSkills: true, reducedEffects: false, auto: false, devUnlock: AUTOMATION, allSkills: false, layout: null };
 
 export function newSave(now = Date.now()): SaveData {
   return {
