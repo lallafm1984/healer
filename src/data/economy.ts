@@ -5,7 +5,6 @@
  */
 import type { DiffName } from './difficulty';
 import type { HeroKey } from './heroes';
-import type { ItemKey } from './items';
 
 // ---------- 스테미너 (81 2장): 입장할 때 씀 ----------
 /**
@@ -33,17 +32,6 @@ export const MERIT: Record<10 | 20, Record<DiffName, number>> = {
 export const MERIT_WEEK_CAP = 150;
 /** 원하는 부위 영웅 장비 1개 */
 export const MERIT_GEAR_COST = 100;
-
-// ---------- 소비 아이템 (19 11장): 골드로 사고 가방에 쌓음 ----------
-/** 한 종류 최대 */
-export const BAG_MAX = 20;
-/** 레벨 비례 가격. 부활 깃털은 상점에 없음 (레이드 드롭·주간 보상만) */
-export const ITEM_PRICE: Partial<Record<ItemKey, [number, number]>> = {
-  mana: [100, 5], medit: [120, 6], life: [80, 4], cleanse: [200, 8], shield: [180, 7],
-};
-export const itemPrice = (k: ItemKey, lv: number): number | null => (ITEM_PRICE[k] ? ITEM_PRICE[k]![0] + ITEM_PRICE[k]![1] * lv : null);
-/** 처음 가방 (새 저장·옛 저장 고칠 때) */
-export const STARTER_BAG: Record<ItemKey, number> = { mana: 5, medit: 3, life: 5, cleanse: 3, shield: 3, feather: 1 };
 
 // ---------- 캐릭터 칸 (68 2장): 칸 하나에 캐릭터 하나. Lim 2026-10-12 「둘 다」 = 골드로 모아 사거나 앱 결제로 바로 ----------
 /**

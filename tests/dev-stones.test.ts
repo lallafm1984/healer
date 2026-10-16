@@ -1,6 +1,5 @@
 /** 개발 빌드 「강화석 무제한」 (Lim 2026-10-14 강화 테스트): 강화석 · 정제 강화석은 따지지도 쓰지도 않고 골드는 씀 */
-import { BAG_MAX } from '../src/data/economy';
-import { buyItem, buySlot } from '../src/game/economy';
+import { buySlot } from '../src/game/economy';
 import { postRecruit } from '../src/game/guild';
 import { resourceBalance } from '../src/game/resources';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -86,12 +85,7 @@ describe('골드·강화석 무제한 공통 처리', () => {
     G.save.player.level = 49;
     expect(reroll(7, 'line', 0).err).toMatch(/Lv 50/);
   });
-  it('상점 구매는 무료, 가방 상한은 유지', () => {
-    G.save.bag.mana = 0;
-    expect(buyItem(G.save, 'mana', 5)).toBe('');
-    expect(G.save.bag.mana).toBe(5);
-    G.save.bag.mana = BAG_MAX;
-    expect(buyItem(G.save, 'mana')).toMatch(/가방이 가득/);
+  it('강화 상한은 유지 (상점 소비 아이템은 2026-10-16 없앰)', () => {
     expect(G.save.player.gold).toBe(0);
     expect(G.save.mats.stone).toBe(0);
     G.save.gear.bag[0].plus = 10;

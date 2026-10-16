@@ -1,27 +1,25 @@
 /**
- * S18 상점 · S19 시즌 패스 (09, 15 6장, 12, 81). 하위 탭: 골드 · 공훈 · 패스 · 상품.
+ * S18 상점 · S19 시즌 패스 (09, 15 6장, 12, 81). 하위 탭: 상품 · 공훈 · 패스. 골드 탭 (소비 아이템)은 2026-10-16 소비 아이템과 함께 없앰.
  * 81 (2026-10-15 Lim): 크리스탈 · 악몽 열쇠 · 월정액 · 프리미엄 패스를 없앰. 상품 탭 = 스테미너 광고 충전 · 광고 제거 패키지 5,500원 · 직업 4종 하나에 2,200원.
  * 결제는 자리만 (platform/billing.ts). 개발 빌드는 누르면 결제 없이 바로 받음.
  */
 import { resourceBalance } from '../game/resources';
-import { BAG_MAX, itemPrice, MERIT_GEAR_COST, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_LEVELS, PASS_XP, SEASON, STAMINA, jobProductId } from '../data/economy';
+import { MERIT_GEAR_COST, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_LEVELS, PASS_XP, SEASON, STAMINA, jobProductId } from '../data/economy';
 import { SLOTS, type SlotKey } from '../data/equipment';
 import { HEROES } from '../data/heroes';
-import { ITEMS, type ItemKey } from '../data/items';
 import { seasonOf } from '../game/clock';
-import { buyItem, claimPass, exchangeMerit, grantProduct, passGain, passLevel, products, type Gain } from '../game/economy';
+import { claimPass, exchangeMerit, grantProduct, passGain, passLevel, products, type Gain } from '../game/economy';
 import { commit, G, refreshDay, syncAds } from '../game/state';
-import { topLevel } from '../platform/storage';
 import { purchase, STORE_WHY } from '../platform/billing';
-import { esc, fmt, screen, topBar, useIcon } from './kit';
+import { esc, fmt, screen, topBar } from './kit';
 import { classEmblem, currencyAmount, currencyIcon, gameIcon, uiIcon, type CurrencyIconKey } from './art';
 import { refreshCells } from './stamina';
 import { staminaView } from '../game/stamina';
 
-type Sub = 'gold' | 'merit' | 'pass' | 'cash';
-const SUBS: [Sub, string][] = [['gold', '골드'], ['merit', '공훈'], ['pass', '시즌 패스'], ['cash', '상품']];
+type Sub = 'merit' | 'pass' | 'cash';
+const SUBS: [Sub, string][] = [['cash', '상품'], ['merit', '공훈'], ['pass', '시즌 패스']];
 /** focus = 들어올 때 강조할 상품 (캐릭터 → 직업에서 잠긴 직업을 누르면 「cash:job_shaman」) */
-const st: { sub: Sub; msg: string; focus: string } = { sub: 'gold', msg: '', focus: '' };
+const st: { sub: Sub; msg: string; focus: string } = { sub: 'cash', msg: '', focus: '' };
 
 const s = screen('s-shop', '상점', {
   tab: 'shop',
@@ -68,27 +66,11 @@ function render(): void {
       <header class="art-hero shop-hero"><div class="ah-copy"><p class="eyebrow">모험가 상점</p><h2>${SUBS.find(([k]) => k === st.sub)![1]}</h2></div></header>
       ${st.sub === 'cash' ? '' : wallet()}
       ${st.msg ? `<p class="warnbox" role="status">${esc(st.msg)}</p>` : ''}
-      ${st.sub === 'gold' ? goldHtml() : st.sub === 'merit' ? meritHtml() : st.sub === 'pass' ? passHtml() : cashHtml()}
+      ${st.sub === 'merit' ? meritHtml() : st.sub === 'pass' ? passHtml() : cashHtml()}
     </div>`;
   const archive = s.el.querySelector<HTMLDetailsElement>('.pass-archive');
   if (archive) archive.open = passOpen;
   st.msg = '';
-}
-
-function goldHtml(): string {
-  const lv = topLevel(G.save), gold = resourceBalance(G.save, 'gold');
-  const rows = (Object.keys(ITEMS) as ItemKey[]).map(k => {
-    const price = itemPrice(k, lv), have = G.save.bag[k] || 0;
-    // 가격은 버튼 안에 (살 수 있는 만큼). 가방이 가득이면 「가득」
-    const btn = (n: number) => {
-      const m = Math.min(n, BAG_MAX - have);
-      return `<button class="btn mini buy" type="button" data-buy="${k}" data-n="${n}"${price == null || have >= BAG_MAX || gold < price! * m ? ' disabled' : ''}>${n}개<small>${have >= BAG_MAX ? '가득' : currencyAmount('gold', price! * m)}</small></button>`;
-    };
-    // 위 줄 = 아이콘·이름·구매 버튼, 아래 줄 = 설명 (좁은 화면에서도 설명이 한 줄을 다 씀)
-    return `<li class="srow itemrow"><div class="ir-top"><span class="sic">${useIcon(k)}${have ? `<i class="stack">${have}</i>` : ''}</span><div class="ir-name"><b>${ITEMS[k].name}</b><small${have >= BAG_MAX ? ' class="full"' : ''}>가방 ${have}/${BAG_MAX}${have >= BAG_MAX ? ' · 가득' : ''}</small></div>
-      ${price == null ? '<small class="mute">레이드 드롭·주간 보상만</small>' : `<div class="sbuy">${btn(1)}${btn(5)}</div>`}</div><p class="note use">사용: ${esc(ITEMS[k].desc)}</p></li>`;
-  }).join('');
-  return `<h3 class="sec">소비 아이템 <small>레벨 비례 가격 · 종류마다 최대 ${BAG_MAX}</small></h3><ul class="slist">${rows}</ul>`;
 }
 
 function meritHtml(): string {
@@ -152,8 +134,6 @@ s.el.addEventListener('click', async e => {
   const t = e.target as HTMLElement, save = G.save;
   const sub = t.closest<HTMLElement>('[data-sub]');
   if (sub) { st.sub = sub.dataset.sub as Sub; st.focus = ''; render(); return; }
-  const b = t.closest<HTMLElement>('[data-buy]');
-  if (b) { const k = b.dataset.buy as ItemKey, n = Number(b.dataset.n); const err = buyItem(save, k, n); st.msg = err || `${ITEMS[k].name} 구매 · 가방 ×${save.bag[k]}`; commit(); render(); return; }
   const ex = t.closest<HTMLElement>('[data-ex]');
   if (ex) { const r = exchangeMerit(save, ex.dataset.ex as SlotKey); st.msg = typeof r === 'string' ? r : `교환: ${r.name} (가방)`; commit(); render(); return; }
   const pa = t.closest<HTMLElement>('[data-pass]');

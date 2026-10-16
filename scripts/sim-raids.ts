@@ -6,13 +6,11 @@ import { HERO_KEYS, type HeroKey } from '../src/data/heroes';
 import type { DiffName } from '../src/data/difficulty';
 import type { EncounterKey } from '../src/data/encounters';
 import { presetSpecs, type GearId } from '../src/data/gear';
-import type { ItemKey } from '../src/data/items';
 import { TALENTS } from '../src/data/talents';
 import { recruitParty, simulate } from '../src/engine';
 
 const N = Number(process.argv[2] || 20);
 const only = process.argv[3];
-const items: ItemKey[] = ['mana', 'life'];
 /** 레이드 · 난이도마다 들어가는 레벨 (10인 Lv 35 / 악몽 50, 20인 Lv 70 / 악몽 80) */
 const RAIDS: { name: string; enc: EncounterKey; lv: Partial<Record<DiffName, number>> }[] = [
   { name: '역병 군주 10인', enc: 'plague', lv: { '보통': 35, '어려움': 35, '악몽': 50 } },
@@ -28,7 +26,7 @@ export function winRate(enc: EncounterKey, diff: DiffName, lv: number, gear: Gea
   let w = 0;
   for (let s = 1; s <= n; s++) {
     const f = simulate({
-      encounter: enc, diff, gear, seed: s, items, hero, level: lv, heroLv: lv, stageLv: lv,
+      encounter: enc, diff, gear, seed: s, hero, level: lv, heroLv: lv, stageLv: lv,
       talents: build(lv, s % 3), // 세 직업 모두 특성 트리 (77)
       party: recruitParty(enc, s, { abilities: true }),
       specs: presetSpecs(gear, hero),

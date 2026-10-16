@@ -1775,7 +1775,7 @@ export function render(now: number): void {
     o.deb = primaryDebuff(u.debuffs);
     if (zoneSet.has(u.cell) || telSet.has(u.cell)) { const w = Math.max(2.5, s * 0.09); hexPoly(overG, x, y, ringRadius(`zone${u.id}`, 'hex', x, y, r * 1.02, w)).stroke({ width: w, color: 0xff5a3d, alpha: zoneSet.has(u.cell) ? 1 : 0.4 + 0.6 * pulse }); }
     if (u.guardian > 0) dashCircle(overG, x, y, ringRadius(`guardian${u.id}`, 'circle', x, y, r * 1.1, 3), 2, 4, 3, melting ? MELT : C.ink, 0.9);
-    // 보호 두루마리: 흰 이중 테두리 (황토 질병·빨간 탱커 표시와 구분), 끝나기 2초 전 깜빡임
+    // 보호 (빛 그릇 보호막 등, u.shield): 흰 이중 테두리 (황토 질병·빨간 탱커 표시와 구분), 끝나기 2초 전 깜빡임
     if (u.shield > 0) {
       const a = u.shield < 2 ? 0.35 + 0.6 * pulse : 0.95;
       const outer = ringRadius(`shield-outer${u.id}`, 'hex', x, y, r * 1.2, 2);
@@ -1949,7 +1949,7 @@ export function render(now: number): void {
     const bt = F.tels.find(tl => tl.kind === 'buster' && tl.units.includes(u.id));
     const bd = bt ? bt.skill.dmg ?? (bt.skill.greed != null ? bt.skill.greed * (F.armor ? armorFactor(u.role, 'party') : 1) : 0) : 0; // 보물 욕심은 원거리 기준 값 × 직업군 방어력
     if (bt && bd) {
-      const sh = u.shield > bt.impact - F.t ? 0.6 : 1; // 맞을 때까지 보호 두루마리가 남아 있으면 -40%
+      const sh = u.shield > bt.impact - F.t ? 0.6 : 1; // 맞을 때까지 보호 (u.shield)가 남아 있으면 -40%
       const dmg = Math.round(bd * F.dmgMult * sh), lethal = dmg >= u.hp + (u.guardian > 0 ? 1e9 : 0);
       // 강타 예고 숫자는 이름·체력 글자보다 위 (배지 층, 2026-10-11 Lim): 숫자 뒤 바탕이 이름에 덮여 안 읽혔음
       pill(badgeG, badgeLabels, `bus${u.id}`, x, y + r * 0.2, `${bt.skill.greed != null ? '금화 ' : ''}-${dmg}`, lethal ? C.danger : bt.skill.greed != null ? C.gold : 0xffb25b, C.dark, fs(0.3, 11));
@@ -2062,9 +2062,8 @@ export function render(now: number): void {
       F.cells.forEach((c, i) => { if (c.block !== 'hole') { const p = center(i); hexPoly(overG, p.x, p.y, ringRadius(`armed-cell${i}`, 'hex', p.x, p.y, r * 1.04, 2)).stroke({ width: 2, color: C.white, alpha: 0.3 + 0.4 * pulse }); } });
     } else for (const u of F.party) if (u.alive) { const p = center(u.cell); hexPoly(overG, p.x, p.y, ringRadius(`armed${u.id}`, 'hex', p.x, p.y, r * 1.04, 2)).stroke({ width: 2, color: C.white, alpha: 0.3 + 0.4 * pulse }); }
   }
-  // 쉼터 장전: 빈 칸을 금빛 테두리로
+  // 칸 특성 장전 (쉼터 등): 빈 칸을 금빛 테두리로
   if (ui.talArmed) F.cells.forEach((c, i) => { if (!c.unit) { const p = center(i); hexPoly(overG, p.x, p.y, ringRadius(`talent-armed${i}`, 'hex', p.x, p.y, r * 0.96, 2.5)).stroke({ width: 2.5, color: C.gold, alpha: 0.35 + 0.5 * pulse }); } });
-  if (!armedKey && ui.itemArmed) for (const u of F.party) if (u.alive) { const p = center(u.cell); hexPoly(overG, p.x, p.y, ringRadius(`item-armed${u.id}`, 'hex', p.x, p.y, r * 1.04, 2.5)).stroke({ width: 2.5, color: C.gold, alpha: 0.35 + 0.5 * pulse }); }
   // 튜토리얼 안내가 짚는 칸
   if (ui.coach && ui.coach.uid != null) {
     const cu = F.party.find(u => u.id === ui.coach!.uid);

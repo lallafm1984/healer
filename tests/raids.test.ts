@@ -120,7 +120,7 @@ describe('20인 유령 성가대 (26 4-3)', () => {
   });
   it('보통 자동 힐러 (영웅 장비)로 깰 수 있음', () => {
     let win = 0;
-    for (let s = 1; s <= 5; s++) if (E.simulate({ encounter: 'choir', diff: '보통', gear: 'epic5', seed: s, items: ['mana', 'life'] }).over === 'win') win++;
+    for (let s = 1; s <= 5; s++) if (E.simulate({ encounter: 'choir', diff: '보통', gear: 'epic5', seed: s }).over === 'win') win++;
     expect(win).toBeGreaterThanOrEqual(3);
   });
 });

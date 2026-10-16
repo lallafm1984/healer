@@ -6,9 +6,7 @@ import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { TALENT_TREES, TALENTS } from '../data/talents';
 import { enhanceCost, itemName, itemScore, MAX_PLUS, REROLL_LEVEL, REROLL_PICK_LEVEL, rerollCost, rerollLine, rerollSpec, salvageOf, SLOTS, type GearItem, type GearLine, type SlotKey } from '../data/equipment';
 import type { SpecLine } from '../data/specials';
-import type { ItemKey } from '../data/items';
-import { activeItemKeys, assignItemSlot, itemLoadoutOf, type ItemSlot } from '../data/item-loadout';
-import { itemSlots, MAX_LEVEL } from '../data/progression';
+import { MAX_LEVEL } from '../data/progression';
 import { heroSaveOf, load, loadChar, newSave, noteSpecs, parkChar, save, shareAccount, topLevel, wipeChars, type HeroSave, type SaveData } from '../platform/storage';
 import { firstDungeonDue, TUT } from './tutorial';
 import { onAct, rollover, type Rollover } from './economy';
@@ -85,31 +83,6 @@ export function firstDungeonNow(): boolean {
 
 /** v12 공통 레벨: 직업을 바꿔 콘텐츠 레벨 제한을 우회할 수 없음. 기존 화면 호출 호환 */
 export function otherHeroFor(_lv: number): { hero: HeroKey; lv: number } | null { return null; }
-
-/** 지금 쓸 수 있는 단축칸 구성 (열린 칸 수만큼) */
-export function itemsNow() {
-  const n = itemSlots(G.save.player.level);
-  const loadout = itemLoadoutOf(G.save.items);
-  return { slots: n, items: activeItemKeys(loadout, G.save.player.level), loadout };
-}
-
-/** 선택한 정확한 단축칸만 지정·해제한다. 같은 아이템은 중복 장착 대신 자리 교환. */
-export function setItemSlot(slot: number, key: ItemSlot): string {
-  const result = assignItemSlot(G.save.items, G.save.player.level, slot, key);
-  if (result.msg) return result.msg;
-  G.save.items = result.loadout;
-  commit();
-  return '';
-}
-
-/** 옛 선택 UI 호환: 뺀 자리는 비워 두고, 추가는 첫 빈칸에 넣는다. */
-export function toggleItem(k: ItemKey): string {
-  const { slots, loadout } = itemsNow(), active = loadout.slice(0, slots);
-  const old = active.indexOf(k);
-  if (old >= 0) return setItemSlot(old, null);
-  const empty = active.indexOf(null);
-  return empty < 0 ? `단축칸 ${slots}칸이 가득 참. 뺄 아이템부터 누르기` : setItemSlot(empty, k);
-}
 
 /** 가방의 장비를 착용. 원래 끼던 것은 가방으로 */
 export function equip(id: number): GearItem | null {

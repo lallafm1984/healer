@@ -15,7 +15,6 @@ async function installFixture(page) {
   await page.evaluate(() => {
     const selectors = { heal: '#wheel [data-slot="heal"]', renew: '#wheel [data-slot="renew"]',
       flash: '#wheel [data-slot="flash"]', purify: '#wheel [data-slot="purify"]', hymn: '#wheel [data-slot="hymn"]',
-      mana: '#items [data-item="mana"]', shield: '#items [data-item="shield"]',
       zenith: '#aux [data-tal="zenith"]', shelter: '#aux [data-tal="shelter"]' };
     const point = name => {
       if (name.startsWith('board:') || name === 'empty') {
@@ -37,9 +36,9 @@ async function installFixture(page) {
     const snap = () => {
       const f = window.__proto.F;
       return { casts: { ...f.stats.casts }, cast: f.cast ? { ...f.cast } : null, queued: f.queued ? { ...f.queued } : null,
-        mana: f.mana, items: { ...f.items }, itemUses: f.itemLog.length, taps: f.stats.taps, channel: f.channel,
+        mana: f.mana, taps: f.stats.taps, channel: f.channel,
         manaFails: f.stats.manaFails, hot: f.party.map(u => u.hot), shields: f.party.map(u => u.shield),
-        zenith: { ...f.tx.act.zenith }, talentUses: f.events.filter(e => e.type === 'msg' && e.text.startsWith('기도의 정점:')).length };
+        zenith: { ...f.tx.act.zenith }, shelter: f.tx.shelter, talentUses: f.events.filter(e => e.type === 'msg' && e.text.startsWith('기도의 정점:')).length };
     };
     const reflowPanel = () => {
       window.dispatchEvent(new Event('resize'));
@@ -48,11 +47,11 @@ async function installFixture(page) {
     const reset = () => {
       // 전환은 진행 중 포인터/팁만 취소한다. 장전된 대상 선택은 UI의 재탭 경로로 해제한다.
       reflowPanel(); reflowPanel();
-      for (const el of document.querySelectorAll('#wheel [aria-pressed="true"], #items .armed, #aux .armed')) el.click();
+      for (const el of document.querySelectorAll('#wheel [aria-pressed="true"], #aux .armed')) el.click();
       const f = window.__proto.F;
       f.level = 100; f.cast = null; f.queued = null; f.gcd = 0; f.channel = 0; f.mana = 80;
       f.g.p = 0; f.cd = { purify: 0, guardian: 0, hymn: 0 };
-      f.items.mana = 2; f.items.shield = 2; f.potCd = 0; f.itemLog = []; f.events = [];
+      f.events = []; f.tx.shelter = -1;
       f.stats.casts = {}; f.stats.taps = 0; f.stats.manaFails = 0;
       for (const v of Object.values(f.tx.act)) { v.used = false; v.cd = 0; v.left = 0; }
       for (const u of f.party) { u.hp = u.max * 0.6; u.hot = 0; u.shield = 0; u.debuffs = []; }
@@ -76,9 +75,9 @@ async function touch(page, name) {
 
 async function haloInputs(page, ok) {
   if (!await page.locator('#controls').evaluate(el => el.classList.contains('compact-controls'))) return;
-  for (const name of ['renew', 'mana']) {
+  // 특성 버튼 (2026-10-16 소비 아이템 자리, 원형)도 표시보다 큰 44px 터치 halo
+  for (const name of ['renew', 'zenith']) {
     await reset(page);
-    if (name === 'mana') await page.evaluate(() => { window.__proto.F.mana = 20; });
     const point = await page.evaluate(name => {
       const { el, x, y } = window.__inputFixture.point(name), r = el.getBoundingClientRect();
       const w = Number(el.dataset.hitWidth), h = Number(el.dataset.hitHeight);
@@ -109,8 +108,8 @@ async function haloInputs(page, ok) {
         '스킬 halo 실제 touch와 후속 click 뒤 대상 선택은 소생 1회만 적용', s);
     } else {
       const s = await state(page);
-      ok(s.itemUses === 1 && s.items.mana === 1 && s.mana >= 50 && !Object.keys(s.casts).length,
-        '아이템 halo 실제 touch와 후속 click은 물약 1개만 소비', s);
+      ok(s.talentUses === 1 && s.zenith.used && !Object.keys(s.casts).length,
+        '특성 버튼 halo 실제 touch와 후속 click은 정점 1번만 사용', s);
     }
   }
 }
@@ -213,25 +212,22 @@ async function inputs(page, check, label) {
     && r.after.casts.renew === 1 && !r.after.casts.flash && !r.after.casts.heal && !r.after.queued,
   '다른 스킬/판의 두 번째 포인터는 첫 스킬 선택을 덮거나 조기 종료하지 않음', r);
 
-  for (const name of ['mana', 'zenith']) {
+  for (const name of ['zenith']) {
     await reset(page);
     r = await page.evaluate(name => {
       const q = window.__inputFixture;
-      window.__proto.F.mana = 20;
       q.send(name, 'pointerdown', 1); q.send(name, 'pointerdown', 2);
       q.send(name, 'pointerup', 2); q.send(name, 'pointercancel', 2);
       q.tap('renew', 3); const waiting = q.snap();
       q.send(name, 'pointerup', 1); q.send(name, 'pointerup', 2);
       q.send(name, 'click', 1, { detail: 1 }); return { waiting, after: q.snap() };
     }, name);
-    ok(r.waiting.itemUses === 0 && r.waiting.talentUses === 0
-      && (name === 'mana' ? r.after.itemUses === 1 && r.after.items.mana === 1 && r.after.mana === 50
-        : r.after.talentUses === 1 && r.after.zenith.used),
-    `${name === 'mana' ? '물약' : '보조 기술'} 멀티포인터/후속 click은 첫 포인터 사용 1회`, r);
+    ok(r.waiting.talentUses === 0 && r.after.talentUses === 1 && r.after.zenith.used,
+    '특성 버튼 멀티포인터/후속 click은 첫 포인터 사용 1회', r);
   }
 
   for (const cancellation of ['pointercancel', 'lostpointercapture', 'drag-out']) {
-    for (const name of ['renew', 'mana', 'zenith', 'board:0']) {
+    for (const name of ['renew', 'zenith', 'board:0']) {
       if (cancellation === 'drag-out' && name.startsWith('board')) continue;
       await reset(page);
       r = await page.evaluate(({ name, cancellation }) => {
@@ -249,7 +245,7 @@ async function inputs(page, check, label) {
     }
   }
 
-  for (const name of ['renew', 'mana', 'zenith', 'board:0']) {
+  for (const name of ['renew', 'zenith', 'board:0']) {
     await reset(page);
     await page.evaluate(name => window.__inputFixture.send(name, 'pointerdown'), name);
     await page.clock.runFor(500);
@@ -261,7 +257,7 @@ async function inputs(page, check, label) {
     ok(showed && unchanged(r.before, r.after), `${name} 길게 누른 뒤 release/click은 설명만 표시하고 사용 없음`, r);
   }
 
-  for (const name of ['renew', 'mana', 'zenith', 'board:0']) {
+  for (const name of ['renew', 'zenith', 'board:0']) {
     await reset(page);
     const before = await page.evaluate(name => {
       const q = window.__inputFixture, before = q.snap();
@@ -285,7 +281,7 @@ async function inputs(page, check, label) {
       `${name} 누른 채 일시정지·재시작 확인 취소는 타이머·늦은 release 취소, 대상 UI 없음`, { before, after });
   }
 
-  for (const name of ['renew', 'mana', 'zenith', 'board:0']) {
+  for (const name of ['renew', 'zenith', 'board:0']) {
     await reset(page);
     r = await page.evaluate(name => {
       const q = window.__inputFixture, before = q.snap();
@@ -301,7 +297,7 @@ async function inputs(page, check, label) {
   await reset(page);
   r = await page.evaluate(() => {
     const q = window.__inputFixture, f = window.__proto.F;
-    q.tap('shield');
+    q.tap('shelter');
     f.cast = { key: 'heal', uid: f.party[0].id, cell: f.party[0].cell, left: 1.2, total: 1.8 };
     f.queued = { key: 'renew', uid: f.party[1].id }; f.gcd = 0.7; f.g.p = 42;
     f.party[0].debuffs = [{ id: 99991, name: '입력 시험 독', type: '독', left: 12, dot: 1 }];
@@ -310,12 +306,12 @@ async function inputs(page, check, label) {
     q.reflowPanel(); q.reflowPanel();
     const same = window.__proto.F === f && JSON.stringify(f) === before;
     f.cast = null; f.queued = null; f.gcd = 0;
-    q.tap('empty'); const empty = q.snap(); q.tap('board:0');
-    return { same, empty, after: q.snap() };
+    q.tap('board:0'); const occupied = q.snap();
+    const cell = q.point('empty').cell; q.tap('empty');
+    return { same, occupied, cell, after: q.snap() };
   });
-  ok(r.same && r.empty.itemUses === 0 && r.empty.items.shield === 2 && r.after.itemUses === 1
-    && r.after.items.shield === 1 && !Object.keys(r.after.casts).length && r.after.shields[0] === 8,
-  '재배치 반복은 시전·예약·자원·상태 전체와 보호 장전 보존, 빈 칸 후 올바른 대상에서만 소비', r);
+  ok(r.same && r.occupied.shelter === -1 && r.after.shelter === r.cell && !Object.keys(r.after.casts).length,
+  '재배치 반복은 시전·예약·자원·상태 전체와 쉼터 장전 보존, 사람 칸이 아니라 빈 칸에서만 사용', r);
 
   for (const method of ['button', 'swipe']) {
     await reset(page);
@@ -346,7 +342,7 @@ async function inputs(page, check, label) {
   await page.clock.runFor(40);
   const before = await state(page);
   await touch(page, '#wheel [data-lock="purify"]'); s = await state(page);
-  ok(!Object.keys(s.casts).length && !s.cast && !s.queued && s.itemUses === before.itemUses
+  ok(!Object.keys(s.casts).length && !s.cast && !s.queued && s.talentUses === before.talentUses
     && /Lv 3/.test(await page.textContent('#toast')), '잠긴 버튼 실제 touch는 해금 안내만 표시', s);
   await reset(page);
 }
@@ -435,7 +431,7 @@ export default async function compactInput(url) {
           s.heroes.priest.talents = [null, null, null, null, null, null, 1, null, null, 0];
           localStorage.setItem('healer.save', JSON.stringify(s));
         });
-        await patchSave(page, { player: { level: 100 }, items: ['mana', 'shield'],
+        await patchSave(page, { player: { level: 100 },
           settings: { compactSkills: false, auto: false, allSkills: false, devUnlock: true, sound: false, vibrate: false } });
         await pastTitle(page); await toParty(page, { content: 'rustfort', tab: 'dungeon', diff: '쉬움' });
         await departGo(page); await page.clock.runFor(3400); await installFixture(page);

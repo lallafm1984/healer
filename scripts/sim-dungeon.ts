@@ -11,7 +11,6 @@ import type { DiffName } from '../src/data/difficulty';
 import { ENCOUNTERS } from '../src/data/encounters';
 import type { GearId } from '../src/data/gear';
 import type { HeroKey } from '../src/data/heroes';
-import type { ItemKey } from '../src/data/items';
 import { simulateDungeon } from '../src/engine';
 
 const dungeon = (process.argv[2] || 'rustfort') as DungeonKey;
@@ -20,19 +19,18 @@ const level = process.argv[4] && process.argv[4] !== '-' ? Number(process.argv[4
 const hero = (process.argv[5] || 'priest') as HeroKey;
 const DIFFS: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
 const GEARS: GearId[] = ['none', 'adv0', 'rare5', 'epic5'];
-const items: ItemKey[] = ['mana', 'life'];
 const segs = DUNGEONS[dungeon].segments;
 const stageLv = CONTENT.find(c => c.key === dungeon)?.stageLv ?? 1;
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
 
-console.log(`${hero} · ${DUNGEONS[dungeon].name} · ${N}판씩 · 단축칸 ${items.join(',')} · 휴식 10초 · 힐러 ${level ? `Lv ${level} (힐량 ×${(lvPower(Math.max(level, stageLv)) / lvPower(stageLv)).toFixed(2)})` : '스킬 전부'} · 단계 Lv ${stageLv}`);
+console.log(`${hero} · ${DUNGEONS[dungeon].name} · ${N}판씩 · 휴식 10초 · 힐러 ${level ? `Lv ${level} (힐량 ×${(lvPower(Math.max(level, stageLv)) / lvPower(stageLv)).toFixed(2)})` : '스킬 전부'} · 단계 Lv ${stageLv}`);
 console.log(`구간: ${segs.map(k => ENCOUNTERS[k].name).join(' → ')}`);
 for (const diff of DIFFS) for (const gear of GEARS) {
   let wins = 0, time = 0;
   const lost: Record<string, number> = {};
   const per = segs.map(() => ({ n: 0, win: 0, t: 0, deaths: 0, mana: 0, minMana: 0 }));
   for (let seed = 1; seed <= N; seed++) {
-    const r = simulateDungeon({ dungeon, diff, gear, seed, items, level, heroLv: level, stageLv, hero });
+    const r = simulateDungeon({ dungeon, diff, gear, seed, level, heroLv: level, stageLv, hero });
     if (r.win) { wins++; time += r.time; }
     else { const f = r.fights[r.fights.length - 1]; const why = f.over ? f.reason : '시간 초과'; lost[why] = (lost[why] || 0) + 1; }
     r.fights.forEach((f, i) => {

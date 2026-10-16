@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ARMOR, armorFactor, NO_TANK_RAMP, NO_TANK_SEC } from '../src/data/armor';
 import * as E from '../src/engine';
 import { damage } from '../src/engine/core';
+import { reviveUnit } from '../src/engine/revive';
 import type { Fight, Unit } from '../src/engine';
 
 const steps = (f: Fight, sec: number) => { const end = f.t + sec; while (!f.over && f.t < end) { E.step(f); f.events.length = 0; } };
@@ -69,12 +70,12 @@ describe('탱커 공백: 「탱커 없음」 카운트다운 → 광폭화 (35 6
   });
 
   it('카운트다운 중에 탱커를 일으키면 멈추고 광폭화 안 함', () => {
-    const f = E.create({ encounter: 'plague', diff: '보통', seed: 3, items: ['feather'] });
+    const f = E.create({ encounter: 'plague', diff: '보통', seed: 3 });
     steps(f, 1);
     for (const u of f.party) if (u.role === 'tank') kill(u);
     steps(f, 4);
     expect(f.noTankAt).not.toBeNull();
-    expect(E.useItem(f, 'feather', 0).ok).toBe(true);
+    expect(reviveUnit(f, E.reviveTarget(f)!, 0.3)).toBe(true);
     steps(f, 0.1);
     expect(f.noTankAt).toBeNull();
     steps(f, NO_TANK_SEC);

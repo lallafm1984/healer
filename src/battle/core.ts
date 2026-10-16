@@ -4,8 +4,6 @@
  */
 import type { CoachKey } from '../game/tutorial';
 import type { GearStats } from '../data/gear';
-import { ITEM_SLOT_COUNT } from '../data/progression';
-import type { ItemKey } from '../data/items';
 import type { TalentKey } from '../data/talents';
 import type { AffixKey } from '../data/affixes';
 import { DEB_COLOR, HEROES, type HeroKey } from '../data/heroes';
@@ -89,9 +87,7 @@ export interface StartOptions {
   /** 힐러 레벨 (스킬 해금) */ level: number;
   /** 실제 레벨 (힐량·체력) */ heroLv?: number;
   /** 단계 레벨 */ stageLv?: number;
-  gearStats?: GearStats; party: RosterEntry[]; items?: ItemKey[]; slots?: number; seed?: number | null;
-  /** 화면용 단축칸 배치 (앞 두 칸 사용). 엔진은 items의 빈칸 없는 목록만 사용한다. */
-  itemLayout?: (ItemKey | null)[];
+  gearStats?: GearStats; party: RosterEntry[]; seed?: number | null;
   onEnd?(r: BattleResult): void;
   /** 튜토리얼 안내 묶음 (02 11장) */
   coach?: CoachKey | null;
@@ -101,8 +97,6 @@ export interface StartOptions {
   talents?: (number | null)[];
   /** 착용 장비 특수능력 값 (42). 없으면 특수능력 없음 */
   specs?: Record<string, number>;
-  /** 가방에 있는 소비 아이템 (19 11장). 없으면 제한 없음 (튜토리얼·시험) */
-  stock?: Partial<Record<ItemKey, number>>;
   /** 어픽스 (07 3장, 13 3-3) */
   affixes?: AffixKey[];
   /** 보스·적 배율 (주간 도전 단계) */
@@ -116,7 +110,7 @@ export interface StartOptions {
 export interface Run {
   content: string; name: string; segs: string[]; seed0: number | null; coachDone: Set<number>;
   idx: number; carry: { mana: number; g: { p: number } } | null; time: number; deaths: number; restSec: number;
-  healed: number; overheal: number; dispels: number; dispellable: number; itemLog: { key: ItemKey; t: number }[]; auto: boolean;
+  healed: number; overheal: number; dispels: number; dispellable: number; auto: boolean;
   meter: MeterRow[];
   /** 광고 이어하기 횟수 (등급 최대 B) */
   cont: number;
@@ -124,8 +118,8 @@ export interface Run {
 
 export const S = {
   diff: '보통', gearStats: null as GearStats | null, level: 100, heroLv: undefined as number | undefined, stageLv: undefined as number | undefined,
-  party: null as RosterEntry[] | null, items: [] as ItemKey[], itemLayout: null as (ItemKey | null)[] | null, slots: ITEM_SLOT_COUNT,
-  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, compactSkills: true, reducedEffects: false, raidFiveLook: false, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined, specs: undefined as Record<string, number> | undefined, stock: undefined as Partial<Record<ItemKey, number>> | undefined,
+  party: null as RosterEntry[] | null,
+  sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, compactSkills: true, reducedEffects: false, raidFiveLook: false, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined, specs: undefined as Record<string, number> | undefined,
   affixes: undefined as AffixKey[] | undefined, bossMult: undefined as { hp: number; dmg: number } | undefined, limit: undefined as number | undefined, chal: 0,
   layout: { ...DEFAULT_LAYOUT } as Layout,
   run: null as Run | null, onEnd: null as ((r: BattleResult) => void) | null, coach: null as CoachKey | null,
@@ -154,12 +148,12 @@ export const ui = {
   selectedUnitId: null as number | null,
   pointer: null as Pointer | null, lastHealSnd: 0, tickSec: null as number | null, lowFlags: {} as Record<number, boolean>, lastLowVibe: 0, qAt: 0,
   vibeAt: 0, vibedTel: new Set<number>(), lastHeart: 0, debSnd: {} as Record<string, number>, tapOff: [] as number[], lastTap: null as { idx: number; t: number } | null, retarget: 0,
-  touchSeen: false, pullLeft: 0, pullShown: null as number | null, guideSec: 0, skillTips: 0, itemTips: 0, busterHint: false,
+  touchSeen: false, pullLeft: 0, pullShown: null as number | null, guideSec: 0, skillTips: 0, busterHint: false,
   swipes: {} as Record<string, number>, swipeCancel: 0, swipeEmpty: 0,
-  itemArmed: null as ItemKey | null, coach: null as Coach | null,
+  coach: null as Coach | null,
   /** 쉼터 장전 중 (빈 칸 탭) */
   talArmed: null as TalentKey | null,
-  tip: null as { ic?: string; imp?: number; skill?: SkillKey; item?: ItemKey } | null, tipTimer: 0 as unknown as ReturnType<typeof setTimeout>,
+  tip: null as { ic?: string; imp?: number; skill?: SkillKey } | null, tipTimer: 0 as unknown as ReturnType<typeof setTimeout>,
   restAt: 0, restMana: null as number | null, lastResult: null as BattleResult | null,
 };
 

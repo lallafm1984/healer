@@ -1,6 +1,5 @@
 /** 화면 공통 도구: 화면 틀 만들기, 이동, 상단 바, 글자 이스케이프 */
 import { resourceBalance } from '../game/resources';
-import { ITEMS, type ItemKey } from '../data/items';
 import type { GearStats } from '../data/gear';
 import { HEROES, type HeroKey } from '../data/heroes';
 import type { RosterEntry } from '../engine';
@@ -9,7 +8,7 @@ import { TUT, type CoachKey } from '../game/tutorial';
 import { G, heroNow, newGearCount } from '../game/state';
 import { talentsLeft } from '../game/charinfo';
 import { apexOf, xpToNext } from '../data/progression';
-import { classEmblem, currencyIcon, gameIcon } from './art';
+import { classEmblem, currencyIcon } from './art';
 import { releaseSheetDialogs, resetShellScroll } from './dialog';
 import { staminaCell } from './stamina';
 
@@ -121,23 +120,11 @@ document.addEventListener('click', e => {
   if (b && b.closest('#app')) go(b.dataset.go!, b.dataset.arg);
 });
 
-/** 소비 아이템 그림 (36 4-1 item-use-<키>, 음식 · 나중 아이템도 같은 이름). 없으면 전투 벡터 그림 */
-export const useIcon = (k: string): string => gameIcon(`use-${k}`, battle().itemIcon(k), 'item');
-
-/** 단축칸 고르기 칩 (편성·캐릭터): 튜토리얼 뒤엔 가방 개수 (19 11장) */
-export function itemChipsHtml(items: ItemKey[]): string {
-  const stock = G.save.tut >= 3 ? G.save.bag : null;
-  return `<div class="chips items">${(Object.keys(ITEMS) as ItemKey[]).map(k => {
-    const n = stock ? stock[k] || 0 : null;
-    return `<button class="chip ichip${n === 0 ? ' empty' : ''}" type="button" data-item="${k}" aria-pressed="${items.includes(k)}">${useIcon(k)}${ITEMS[k].name}${n != null ? ` <small>×${n}</small>` : ''}</button>`;
-  }).join('')}</div>`;
-}
-
 // ---------- 전투 화면 입구 (battle/index.ts가 window.__battle로 엶) ----------
 export interface BattleApi {
   start(o: {
     content: string; name: string; segs: string[]; diff: string; /** 힐러 레벨 (스킬 해금) */ level: number; /** 실제 레벨 (힐량·체력) */ heroLv: number; /** 단계 레벨 */ stageLv: number; gearStats: GearStats; party: RosterEntry[];
-    items: ItemKey[]; itemLayout?: (ItemKey | null)[]; slots: number; seed: number; onEnd(r: BattleResult): void;
+    seed: number; onEnd(r: BattleResult): void;
     /** 튜토리얼 안내 묶음 (02 11장) */
     coach?: CoachKey | null;
     /** 힐러 직업 (25) */
@@ -146,8 +133,6 @@ export interface BattleApi {
     talents?: (number | null)[];
     /** 착용 장비 특수능력 값 (42, data/equipment specsOf) */
     specs?: Record<string, number>;
-    /** 가방에 있는 소비 아이템 (19 11장) */
-    stock?: Partial<Record<ItemKey, number>>;
     /** 어픽스·보스 배율·제한시간 (32 난이도 어픽스, 13 3-2 주간 도전) */
     affixes?: string[]; bossMult?: { hp: number; dmg: number }; limit?: number; chal?: number;
   }): void;
@@ -157,8 +142,6 @@ export interface BattleApi {
   /** 전투 전 공략. 단계 레벨을 주면 그 레벨 숫자로 */
   guide(encKey: string, diff: string, stageLv?: number, heroLv?: number): string;
   bossSvg(script: string, key?: string): string;
-  itemIcon(k: string): string;
-  itemHint(script: string): string;
   layout: {
     GRID: (string | null)[]; ARROW: Record<string, string>; READ_ORDER: string[]; DEFAULT_LAYOUT: Record<string, string | null>;
     LAYOUT_SKILLS: string[]; valid(v: unknown): boolean; label(k: string): string; text(l: Record<string, string | null>): string;

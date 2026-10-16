@@ -8,8 +8,6 @@ import { HEROES } from '../data/heroes';
 import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
 import { openTiers } from '../data/talents';
 import { TUNE } from '../data/tune';
-import { ITEM_SLOT_COUNT } from '../data/progression';
-import { ITEMS } from '../data/items';
 import { pickMember, pickNick } from '../data/nicknames';
 import { NICKS, PERS, PROTO_PERS, type PersName } from '../data/personalities';
 import { POS_RULES, PROTO_RULES, RULES } from '../data/rules';
@@ -70,7 +68,6 @@ export function create(cfg: FightConfig): Fight {
     abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDot: null }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
     enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null, empower: 0, lock: {}, watch: null, stagger: null, souls: [], links: [], vessel: null, melt: null, glass: [], bless: null, weak: null, expose: null, sp: cfg.proto ? null : newSpecs(cfg.specs), hold: null, sub: null, loose: null, slow: null, cheer: null, dark: false, split: false,
-    items: {}, potCd: 0, medit: 0, itemLog: [],
     stats: { healed: 0, overheal: 0, deaths: 0, minMana: 100, dispels: 0, dispellable: 0, trapPops: 0, queueLost: 0, casts: {}, taps: 0, missTaps: 0, emptyTaps: 0, cancels: 0, manaFails: 0, hymnBroken: 0 },
     nextId: 1,
     party: [],
@@ -79,7 +76,6 @@ export function create(cfg: FightConfig): Fight {
   f.tx = newTalents(f);
   // 특성 단 마나 보정: 열린 특성 단마다 마나 소모 −2% (세 직업 공통, heroConst TIER_MANA · 77). 프로토타입 일치 테스트는 그대로
   if (!cfg.proto) f.manaCut = 1 - (TIER_MANA_BY[f.hero] ?? TIER_MANA) * openTiers(f.level);
-  for (const k of (cfg.items || []).slice(0, ITEM_SLOT_COUNT)) if (ITEMS[k]) f.items[k] = Math.max(0, Math.min(ITEMS[k].uses, cfg.itemCap?.[k] ?? Infinity));
   if (cfg.carry) { f.mana = cfg.carry.mana; f.stats.minMana = f.mana; f.g = { ...cfg.carry.g }; }
   if (!knowsPassive(f, 'words')) f.g = { p: 0 };
   makeParty(f, cfg.party);

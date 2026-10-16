@@ -39,14 +39,13 @@ describe('수치 단위 (35 1-2)', () => {
 });
 
 describe('해제 불가 (lock)', () => {
-  it('직업 해제·정화 두루마리로 안 지워짐, 판에는 해제 불가로 보임', () => {
-    const f = E.create({ encounter: 'warden', diff: '보통', seed: 1, items: ['cleanse'] });
+  it('직업 해제로 안 지워짐, 판에는 해제 불가로 보임', () => {
+    const f = E.create({ encounter: 'warden', diff: '보통', seed: 1 });
     quiet(f);
     const u = dealer(f);
     addDebuff(f, u, { ...WOUND });
     doDispel(f, u);
     expect(u.debuffs.map(d => d.name)).toEqual(['쇠약']);
-    expect(E.useItem(f, 'cleanse', 0).ok).toBe(false);
     expect(u.debuffs).toHaveLength(1);
     expect(E.canTarget(f, 'purify', u.cell).ok).toBe(false);
   });

@@ -913,7 +913,7 @@ function talentSheet(i: number, j: number): string {
       <header class="c7-tp-head"><span class="c7-tp-ic${p.active ? ' active' : ''}">${talentIcon(p.key)}</span>
         <span class="c7-tp-tt"><b>${p.name}</b><span class="c7-tp-tags"><i>Lv ${t.lv}</i><i>${p.active ? '사용 효과' : '지속 효과'}</i>${chosen ? '<i class="on">선택 중</i>' : ''}</span></span></header>
       <p class="c7-tp-desc">${esc(healText(p.desc, statParts().int.total))}</p>
-      ${p.active ? '<p class="c7-tp-note">보조 버튼 · 전투 화면 단축칸 위에 표시됩니다.</p>' : ''}
+      ${p.active ? '<p class="c7-tp-note">사용 버튼 · 전투 화면 왼쪽 아래에 표시됩니다.</p>' : ''}
       <footer class="c7-tp-btns"><button type="button" class="c7-tp-btn c7-tclose" data-sheetx aria-label="특성 설명 닫기">닫기</button>
         <button type="button" class="c7-tp-btn${chosen ? '' : ' primary'}" data-talent="${i}:${j}">${chosen ? '풀기' : '고르기'}</button></footer></section>`;
 }

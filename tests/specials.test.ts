@@ -10,7 +10,7 @@ import { addDebuff, damage, heal } from '../src/engine/core';
 import { areaRadius, castOf, cdOf, costOf } from '../src/engine/talents';
 import { critBonus, dmgSpec, during, hasteOf, healSpec, hotDone, intAmt, specBuster, specCut, specPhase, specTel } from '../src/engine/specials';
 import { moveTo, scheduleReactions } from '../src/engine/movement';
-import { reviveUnit } from '../src/engine/items';
+import { reviveUnit } from '../src/engine/revive';
 import { orderHeal, runEffect } from '../src/engine/bossParts';
 import type { BossSkill, Telegraph } from '../src/engine';
 import { putHot } from '../src/engine/heroes';
@@ -442,13 +442,11 @@ describe('2-4 마나', () => {
     const [a] = pair('dusk', 0.2); a.bossHp = a.bossMax * 0.1;
     expect(costOf(a, 'flash')).toBeCloseTo(6 * 0.8, 9);
   });
-  it('물약 단골: 마나 물약 · 명상의 물약 회복량 +', () => {
-    const [a, b] = pair('potionRegular', 0.3);
-    both([a, b], f => { f.items = { mana: 1, medit: 1 }; f.mana = 10; E.useItem(f, 'mana'); });
-    expect(a.mana).toBeCloseTo(10 + 39, 6);
-    expect(b.mana).toBeCloseTo(40, 6);
-    both([a, b], f => { f.potCd = 0; E.useItem(f, 'medit'); });
-    expect(ratio(gain(a, 10, 1), gain(b, 10, 1))).toBeCloseTo((1 + 1.5 * 1.3) / 2.5, 6);
+  it('남은 자의 각오 (예전 물약 단골): 파티원이 쓰러져 있으면 마나 소모 −', () => {
+    const [a] = pair('potionRegular', 0.2);
+    expect(costOf(a, 'flash')).toBeCloseTo(6, 9);
+    a.party.find(u => !u.me)!.alive = false;
+    expect(costOf(a, 'flash')).toBeCloseTo(6 * 0.8, 9);
   });
   it('고요한 순간: 3초 동안 스킬을 안 쓰면 정신력 +', () => {
     const [a, b] = pair('stillMoment', 0.8);

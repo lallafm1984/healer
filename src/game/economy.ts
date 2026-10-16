@@ -7,12 +7,11 @@ import { RAID10_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
 import {
-  BAG_MAX, CHAR_SLOT, itemPrice, JOB_PRICE, jobProductId, MERIT, MERIT_GEAR_COST, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_GAIN, PASS_LEVELS, PASS_XP, passFree, slotGold, type PassReward,
+  CHAR_SLOT, JOB_PRICE, jobProductId, MERIT, MERIT_GEAR_COST, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_GAIN, PASS_LEVELS, PASS_XP, passFree, slotGold, type PassReward,
 } from '../data/economy';
 import { FEATURES } from '../data/features';
 import { HEROES } from '../data/heroes';
 import { makeItem, rollItem, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
-import type { ItemKey } from '../data/items';
 import {
   CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, WEEKLY, WEEKLY_LV, WEEKLY_N, WEEKLY_REWARD, type MissionDef, type RunEvent,
 } from '../data/missions';
@@ -225,18 +224,6 @@ export function claimPass(save: SaveData, lv: number, now: number): Gain | strin
 }
 
 // ---------- 상점 ----------
-/** 소비 아이템 사기 (19 11장, 15 6-4) */
-export function buyItem(save: SaveData, k: ItemKey, n = 1): string {
-  const price = itemPrice(k, topLevel(save));
-  if (price == null) return '상점에서 안 팖';
-  const have = save.bag[k] || 0;
-  n = Math.min(n, BAG_MAX - have);
-  if (n <= 0) return `가방이 가득 참 (최대 ${BAG_MAX})`;
-  if (resourceBalance(save, 'gold') < price * n) return `골드 부족 (${(price * n).toLocaleString()} 필요)`;
-  spendResource(save, 'gold', price * n); save.bag[k] = have + n;
-  return '';
-}
-
 /** 공훈 교환 (12 3-5): 원하는 부위 영웅 장비 1개 */
 export function exchangeMerit(save: SaveData, slot: SlotKey, r: () => number = Math.random): GearItem | string {
   if (!SLOTS.some(s => s.key === slot)) return '없는 부위';

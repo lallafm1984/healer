@@ -7,7 +7,7 @@ import { gearStatsOf, specsOf } from '../data/equipment';
 import { addXp, xpToNext } from '../data/progression';
 import { recruitParty } from '../engine';
 import { Flow, newSeed } from '../game/flow';
-import { commit, G, healerLevel, itemsNow } from '../game/state';
+import { commit, G, healerLevel } from '../game/state';
 import { DUO_PARTY, TUT } from '../game/tutorial';
 import { battle, go, screen } from './kit';
 import { depart } from './party';
@@ -40,10 +40,9 @@ story.el.addEventListener('click', e => {
 /** 2인 첫 전투: 탱커 1 + 나, 쉬움 */
 function startDuo(): void {
   const c = contentOf('tutorial');
-  const { slots, items, loadout } = itemsNow();
   battle().start({
     content: c.key, name: c.name, segs: c.fights('쉬움'), diff: '쉬움', level: healerLevel(), heroLv: G.save.player.level, stageLv: c.stageLv, gearStats: gearStatsOf(G.save.gear.equipped, G.save.player.level),
-    party: DUO_PARTY, items, itemLayout: loadout, slots, seed: newSeed(), coach: 'duo', hero: 'priest', specs: specsOf(G.save.gear.equipped, 'priest'),
+    party: DUO_PARTY, seed: newSeed(), coach: 'duo', hero: 'priest', specs: specsOf(G.save.gear.equipped, 'priest'),
     onEnd(r) {
       if (!r.win) { go('s-tut', r.quit ? 'quit' : 'lose'); return; }
       // 첫 전투를 깨면 Lv 2 (소생). 다시 보기로 하는 거면 레벨은 그대로

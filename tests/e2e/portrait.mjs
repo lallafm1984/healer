@@ -227,13 +227,12 @@ export default async function portrait(url, shots) {
     ok(pty.rows === 4 && pty.lastTop < pty.foot, `${width}: 5인 편성 = 파티원 4줄이 첫 화면에서 보이기 시작 (마지막 줄 ${pty.lastTop} < 아래 ${pty.foot})`);
     if (width === 320 || width === 390) await page.screenshot({ path: `${shots}/portrait_party_${width}.png` });
 
-    // 최고 레벨의 최대 보조 버튼 3개 + 소비 아이템 4칸 조건을 만든다.
+    // 최고 레벨의 최대 특성 버튼 3개 조건을 만든다 (소비 아이템은 2026-10-16 없앰).
     await page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem('healer.save'));
       s.player.level = 100;
       s.heroes.priest ||= { layout: null, tapKey: 'heal', unlocked: true, quest: 0, wins: 0 };
       s.heroes.priest.talents = [null, null, null, null, 0, null, 1, null, null, 0];
-      s.items = ['mana', 'life', 'cleanse', 'shield'];
       s.settings.devSkills = true;
       localStorage.setItem('healer.save', JSON.stringify(s));
     });
@@ -244,7 +243,7 @@ export default async function portrait(url, shots) {
       const rect = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; };
       return {
         stage: rect(document.querySelector('#stage')), board: rect(document.querySelector('#boardWrap')), controls: rect(document.querySelector('#controls')),
-        buttons: [...document.querySelectorAll('#items button, #aux button, #pauseBtn')].filter(el => el.getClientRects().length).map(rect),
+        buttons: [...document.querySelectorAll('#aux button, #pauseBtn')].filter(el => el.getClientRects().length).map(rect),
         wheel: rect(document.querySelector('#wheel')),
       };
     });

@@ -5,7 +5,6 @@ import { ALL_DIFFS, contentOf, raidSize, stageOf, type ContentKey } from '../dat
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
 import { clearMats, rollItem, type GearItem } from '../data/equipment';
-import type { ItemKey } from '../data/items';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
 import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, inRamp, rampXp, starsOf, type Grade } from '../data/progression';
@@ -45,7 +44,7 @@ export interface BattleResult {
   auto: boolean;
   /** got = 내 힐로 회복한 양 (인연 스카우트), gid = 길드원 id */
   party: { nick: string; pers: PersName | null; role: string; alive: boolean; got?: number; gid?: number }[];
-  /** 전투 기록에 보이는 줄 (마지막 전투 · 소비 아이템) */
+  /** 전투 기록에 보이는 줄 (마지막 전투) */
   detail: [string, string][];
   /** 플레이 테스트 기록 (탭 · 오탭 · 쓸기 등): 레벨 잠금 무시(개발 빌드)를 켰을 때만 보여 줌 */
   dev?: [string, string][];
@@ -54,8 +53,6 @@ export interface BattleResult {
   left?: { pct: number; mobs: boolean };
   /** 딜미터기 (구간 전체 합) */
   meter?: MeterRow[];
-  /** 쓴 소비 아이템 (가방에서 뺌, 19 11장) */
-  itemsUsed?: Partial<Record<ItemKey, number>>;
   /** 적 레벨 (= 내 레벨, 32·주간 도전). 없으면 콘텐츠 기본 */
   stage?: number;
   affixes?: AffixKey[];
@@ -172,8 +169,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
     save.mats.stone += mats.stone; save.mats.refined += mats.refined;
     if (play && raid) { merit = meritFor(save, raid, r.diff); save.weekly.merit[raid] += merit; save.wallet.merit += merit; }
   }
-  // 쓴 소비 아이템은 가방에서 뺌 (튜토리얼은 그대로)
-  if (save.tut >= TUT.done) for (const [k, n] of Object.entries(r.itemsUsed || {}) as [ItemKey, number][]) save.bag[k] = Math.max(0, (save.bag[k] || 0) - n);
 
   let first = false, best = false;
   if (r.win) {

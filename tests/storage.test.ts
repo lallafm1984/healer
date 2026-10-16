@@ -8,13 +8,13 @@ const mem = (init: Record<string, string> = {}): KV & { data: Record<string, str
 });
 
 describe('기기 저장', () => {
-  it('처음이면 새 저장: Lv 1, 골드 0, 장비 없음, 단축칸 마나·생명', () => {
+  it('처음이면 새 저장: Lv 1, 골드 0, 장비 없음, 소비 아이템 단축칸 없음', () => {
     const s = load(mem());
     expect(s.v).toBe(SAVE_VERSION);
     expect(s.settings).toEqual(DEFAULT_SETTINGS);
     expect(s.player).toEqual({ level: 1, xp: 0, gold: 0 });
     expect(s.gear).toEqual({ equipped: {}, bag: [], seen: 0, codex: [], dex: [], dexPaid: 0 });
-    expect(s.items).toEqual(['mana', 'life']);
+    expect('items' in s).toBe(false);
   });
   it('저장 후 다시 읽으면 같음', () => {
     const kv = mem();
@@ -47,12 +47,12 @@ describe('기기 저장', () => {
     const s = migrate({ v: 1, createdAt: 5, settings: { sound: false, vibrate: true, hand: 'right' } });
     expect(s).toEqual({ ...newSave(5), settings: { ...DEFAULT_SETTINGS, sound: false } });
   });
-  it('v1에서 올릴 때 프로토타입 화면이 따로 쓰던 스킬 배치·단축칸을 가져옴', () => {
+  it('v1에서 올릴 때 프로토타입 화면이 따로 쓰던 스킬 배치를 가져옴 (단축칸은 2026-10-16 없앰)', () => {
     const lay = { NW: 'hymn', N: 'purify', NE: 'heal', W: 'renew', E: 'flash', SW: null, S: 'poh', SE: 'guardian' };
     const kv = mem({ [SAVE_KEY]: JSON.stringify({ v: 1, createdAt: 1, settings: {} }), 'nhh.skillLayout.v1': JSON.stringify(lay), 'nhh.items.v1': '["mana","cleanse"]' });
     const s = load(kv);
     expect(s.settings.layout).toEqual(lay);
-    expect(s.items).toEqual(['mana', 'cleanse']);
+    expect('items' in s).toBe(false);
   });
   it('저장소가 없어도 멈추지 않음', () => {
     expect(save(newSave(), null)).toBe(false);

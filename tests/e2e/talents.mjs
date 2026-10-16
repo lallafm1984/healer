@@ -67,14 +67,14 @@ export default async function talents(url, shots) {
   await toParty(page, { content: 'rustfort' });
   await departGo(page); await page.clock.runFor(3100 + 1000);
   ok(await page.evaluate(() => { const on = window.__proto.F.tx.on; return on.shelter && on.zenith && Object.keys(on).length === 2; }), '전투 = 고른 특성 2개만 켜짐');
-  ok(await page.isVisible('#aux') && (await page.locator('#aux .aux').count()) === 2, '단축칸 위 보조 버튼 2개');
+  ok(await page.isVisible('#aux') && (await page.locator('#aux [data-tal]').count()) === 2, '왼쪽 아래 특성 버튼 2개');
   await page.dispatchEvent('#aux [data-tal="zenith"]', 'pointerdown'); await page.dispatchEvent('#aux [data-tal="zenith"]', 'pointerup'); await page.clock.runFor(100);
-  ok(await page.evaluate(() => window.__proto.F.tx.act.zenith.left > 0) && await page.isVisible('#aux .aux.on[data-tal="zenith"]'), '정점 = 바로 켜짐');
+  ok(await page.evaluate(() => window.__proto.F.tx.act.zenith.left > 0) && await page.isVisible('#aux [data-tal].on[data-tal="zenith"]'), '정점 = 바로 켜짐');
   await page.dispatchEvent('#aux [data-tal="shelter"]', 'pointerdown'); await page.dispatchEvent('#aux [data-tal="shelter"]', 'pointerup'); await page.clock.runFor(50);
-  ok(await page.isVisible('#aux .aux.armed[data-tal="shelter"]') && /빈 칸 선택/.test(await text('#toast')), '쉼터 = 장전, 빈 칸 안내');
+  ok(await page.isVisible('#aux [data-tal].armed[data-tal="shelter"]') && /빈 칸 선택/.test(await text('#toast')), '쉼터 = 장전, 빈 칸 안내');
   const empty = await page.evaluate(() => window.__proto.F.cells.findIndex(c => !c.unit));
   await tapCell(empty);
-  ok(await page.evaluate(i => window.__proto.F.tx.shelter === i, empty) && !(await page.isVisible('#aux .aux.armed')), '빈 칸 탭 = 그 칸이 쉼터');
+  ok(await page.evaluate(i => window.__proto.F.tx.shelter === i, empty) && !(await page.isVisible('#aux [data-tal].armed')), '빈 칸 탭 = 그 칸이 쉼터');
   await page.screenshot({ path: `${shots}/talent_battle.png` });
 
   await ctx.close();

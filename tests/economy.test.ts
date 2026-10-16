@@ -1,12 +1,11 @@
-/** 재화 (12, 81)·일일 주간 (13)·상점·패스 (15)·소비 아이템 가방 (19 11장) */
+/** 재화 (12, 81)·일일 주간 (13)·상점·패스 (15). 소비 아이템 가방 (19 11장)은 2026-10-16 없앰 */
 import { describe, expect, it } from 'vitest';
-import { BAG_MAX, itemPrice, MERIT, PASS_XP, STARTER_BAG } from '../src/data/economy';
+import { MERIT, PASS_XP } from '../src/data/economy';
 import { DAILY, DAILY_BASIC, WEEKLY, WEEKLY_REWARD } from '../src/data/missions';
 import { clearGold } from '../src/data/progression';
-import * as E from '../src/engine';
 import { dayKey, daysBetween, seasonOf, weekKey } from '../src/game/clock';
 import {
-  addPassXp, buyItem, chalChestOf, chestState, claimChalChest, claimChest, claimMission, claimPass, exchangeMerit,
+  addPassXp, chalChestOf, chestState, claimChalChest, claimChest, claimMission, claimPass, exchangeMerit,
   missionReady, onAct, onRun, passLevel, rollover, runGold, swapMission,
 } from '../src/game/economy';
 import { settle, type BattleResult } from '../src/game/settle';
@@ -165,20 +164,10 @@ describe('재화 (12)', () => {
     expect(s.wallet.merit).toBe(50);
     expect(exchangeMerit(s, 'ring')).toMatch(/부족/);
   });
-  it('소비 아이템: 레벨 비례 가격, 종류마다 최대 20, 깃털은 안 팖', () => {
-    const s = save(20);
-    expect(itemPrice('mana', 20)).toBe(200);
-    expect(itemPrice('feather', 20)).toBeNull();
-    s.bag.mana = 18;
-    expect(buyItem(s, 'mana', 5)).toBe('');
-    expect([s.bag.mana, s.player.gold]).toEqual([BAG_MAX, 100000 - 2 * 200]);
-    expect(buyItem(s, 'mana')).toMatch(/가득/);
-    expect(buyItem(s, 'feather')).toMatch(/안 팖/);
-  });
-  it('새 저장·옛 저장(v4)은 처음 가방', () => {
-    expect(newSave(1).bag).toEqual(STARTER_BAG);
-    const d = migrate({ v: 4, createdAt: 1, player: { level: 20, xp: 0, gold: 5 } });
-    expect([d.bag, d.wallet.merit, d.weekly.merit[20], d.pass.xp]).toEqual([STARTER_BAG, 0, 0, 0]);
+  it('소비 아이템 가방 · 단축칸은 없음 (2026-10-16): 새 저장에 없고 옛 저장 (v14)의 것은 버림', () => {
+    expect(['bag' in newSave(1), 'items' in newSave(1)]).toEqual([false, false]);
+    const d = migrate({ v: 14, createdAt: 1, player: { level: 20, xp: 0, gold: 5 }, bag: { mana: 3 }, items: ['mana', 'life'] });
+    expect(['bag' in d, 'items' in d, d.wallet.merit, d.weekly.merit[20], d.pass.xp]).toEqual([false, false, 0, 0, 0]);
   });
 });
 
@@ -203,21 +192,11 @@ describe('정산 연결', () => {
     expect(raid().merit).toBe(0);
     expect(s.wallet.merit).toBe(150);
   });
-  it('쓴 소비 아이템은 가방에서 빠짐 (튜토리얼은 그대로), 첫 클리어 표시, 임무 진행', () => {
+  it('첫 클리어 표시, 임무 진행', () => {
     const s = save(20);
-    s.bag.mana = 3;
-    const x = settle(s, result({ itemsUsed: { mana: 2 } }), rng, [], T0);
-    expect(s.bag.mana).toBe(1);
+    const x = settle(s, result(), rng, [], T0);
     expect(x.first).toBe(true);
     expect(s.daily.missions.some(m => m.n > 0)).toBe(true);
-    const t = newSave(1); t.bag.mana = 3;
-    settle(t, result({ itemsUsed: { mana: 2 } }), rng);
-    expect(t.bag.mana).toBe(3);
-  });
-  it('엔진: 가방에 남은 만큼만 단축칸 횟수 (19 11장)', () => {
-    const f = E.create({ encounter: 'warden', diff: '보통', seed: 1, items: ['mana', 'life', 'cleanse'], itemCap: { mana: 0, life: 1 } });
-    expect(f.items).toEqual({ mana: 0, life: 1 });
-    expect(E.create({ encounter: 'warden', diff: '보통', seed: 1, items: ['life'] }).items).toEqual({ life: 2 });
   });
 });
 

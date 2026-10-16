@@ -17,7 +17,7 @@ const geometry = page => page.evaluate(() => {
   const cv = document.querySelector('#board');
   const controls = document.querySelector('#controls');
   const cast = document.querySelector('#castbar'), style = getComputedStyle(cast), track = document.querySelector('#castTrack');
-  const layoutParts = [...controls.querySelectorAll('#wheel,#side,#core,#items,#aux,#gauges,#wheel button,#items [data-item],#aux button')]
+  const layoutParts = [...controls.querySelectorAll('#wheel,#side,#core,#aux,#gauges,#wheel button,#aux button')]
     .filter(visible).map(el => ({ key: el.id || el.dataset.slot || el.dataset.item || el.dataset.tal || `lock:${el.dataset.lock}`,
       tag: el.tagName, parent: el.parentElement.id, dir: el.dataset.dir || '',
       art: [...el.querySelectorAll('img.sic')].map(img => img.getAttribute('src')).join('|'),
@@ -684,7 +684,7 @@ const controlGeometry = page => page.evaluate(() => {
   const box = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; };
   const visible = el => !!el && !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
   const root = document.querySelector('#controls');
-  const parts = [...root.querySelectorAll('#wheel button, #items [data-item], #aux button, #core[role="button"]')]
+  const parts = [...root.querySelectorAll('#wheel button, #aux button, #core[role="button"]')]
     .filter(visible)
     .map(el => {
       const r = box(el), cx = r.x + r.w / 2, cy = r.y + r.h / 2;
@@ -708,9 +708,7 @@ const controlGeometry = page => page.evaluate(() => {
     aux: root.querySelectorAll('#aux button').length,
     left: root.classList.contains('wheel-left'), giveUp: !document.querySelector('#giveUp').hidden,
     giveUpVisible: visible(document.querySelector('#giveUp')), toolsVisible: visible(document.querySelector('#compactToolsBtn')),
-    visibleItems: [...root.querySelectorAll('#items > *')].filter(visible).length,
-    visibleAux: [...root.querySelectorAll('#aux button')].filter(visible).length,
-    extraItemsVisible: [...root.querySelectorAll('#items > :nth-child(n+3)')].some(visible) };
+    visibleAux: [...root.querySelectorAll('#aux button')].filter(visible).length };
 });
 
 function usableControls(g) {
@@ -729,9 +727,8 @@ async function inspectDirectControls(page, ok, label, expectGiveUp = false) {
   const g = await page.evaluate(() => {
     const f = window.__proto.F, root = document.querySelector('#controls');
     const visible = el => !!el && !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
-    const buttons = [...root.querySelectorAll('#items [data-item],#aux [data-tal]')].filter(visible);
+    const buttons = [...root.querySelectorAll('#aux [data-tal]')].filter(visible);
     return {
-      items: buttons.filter(b => b.dataset.item).map(b => b.dataset.item), expectedItems: Object.keys(f.items),
       talents: buttons.filter(b => b.dataset.tal).map(b => b.dataset.tal), expectedTalents: Object.keys(f.tx.act),
       giveUp: visible(document.querySelector('#giveUp')), toolsVisible: visible(document.querySelector('#compactToolsBtn')),
       sizes: buttons.map(b => { const r = b.getBoundingClientRect(); return { w: r.width, h: r.height,
@@ -739,9 +736,9 @@ async function inspectDirectControls(page, ok, label, expectGiveUp = false) {
         within: r.x >= 0 && r.right <= innerWidth + 1 && r.y >= 70 && r.bottom <= innerHeight + 1 }; }),
     };
   });
-  ok(g.items.join() === g.expectedItems.join() && g.talents.join() === g.expectedTalents.join()
+  ok(g.talents.join() === g.expectedTalents.join()
     && g.giveUp === expectGiveUp && !g.toolsVisible && g.sizes.every(r => r.hitW >= 44 - .1 && r.hitH >= 44 - .1 && r.within),
-  label + ': 기존 패널에서 모든 아이템/특성/포기 직접 접근·44px hit·화면 내부 유지', g);
+  label + ': 기존 패널에서 모든 특성/포기 직접 접근·44px hit·화면 내부 유지', g);
   await page.locator('#pauseBtn').focus(); await page.keyboard.press('Enter');
   const stopped = await time(page);
   await page.clock.runFor(120);
@@ -807,8 +804,7 @@ async function heroVariants(page, ok, shots) {
     const gauge = c.synthetic || (c.hero === 'priest' ? /평온/.test(compact.gaugeLabel)
       : c.hero === 'druid' ? /새싹/.test(compact.gaugeLabel)
         : /신성한 힘/.test(compact.gaugeLabel) && /봉화/.test(compact.gaugeLabel));
-    const directControls = [compact, left, down].every(v => v.visibleItems === normal.visibleItems
-      && v.visibleAux === normal.visibleAux && !v.toolsVisible);
+    const directControls = [compact, left, down].every(v => v.visibleAux === normal.visibleAux && !v.toolsVisible);
     ok(compact.controls.h <= normal.controls.h && usableControls(normal) && usableControls(compact)
       && usableControls(left) && usableControls(normalDown) && usableControls(down)
       && normalDown.gaugeVisible === down.gaugeVisible && normalDown.giveUpVisible === down.giveUpVisible
@@ -1044,55 +1040,15 @@ async function castSpaceCases(page, ok) {
 }
 
 async function extraInputCases(page, ok) {
-  // 실제 게임 저장과 분리된 fixture: Lv 100의 쉼터·정점, 두 칸의 아이템 조합별 접근·단일 touch 처리 검증.
+  // 실제 게임 저장과 분리된 fixture: Lv 100의 쉼터·정점 특성 버튼 접근·단일 touch 처리 검증 (소비 아이템은 2026-10-16 없앰).
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     s.heroes.priest.talents = [null, null, null, null, null, null, 1, null, null, 0];
-    s.items = ['mana', 'life', 'cleanse', 'shield'];
-    s.bag = { ...s.bag, mana: 10, life: 10, cleanse: 10, shield: 10 };
     localStorage.setItem('healer.save', JSON.stringify(s));
   });
   await enter(page, PARTIES[1], 100, true);
-  const tools = await inspectDirectControls(page, ok, '360: 두 아이템·보조 특성');
-  ok(tools.items.join() === 'mana,life' && await page.locator('#items .item').count()===2,
-    '360: 이전 네 칸 저장에서도 두 아이템만 표시·사용');
-  const potionBefore = await page.evaluate(() => {
-    const f = window.__proto.F; f.mana = 20; f.items.mana = 2; f.potCd = 0;
-    return f.itemLog.filter(x => x.key === 'mana').length;
-  });
-  await tapSlot(page, '#items [data-item="mana"]');
-  const potion = await page.evaluate(() => {
-    const f = window.__proto.F;
-    return { uses: f.itemLog.filter(x => x.key === 'mana').length, left: f.items.mana, mana: f.mana,
-      toast: document.querySelector('#toast').textContent };
-  });
-  ok(potion.uses === potionBefore + 1 && potion.left === 1 && potion.mana >= 50 && potion.mana < 52
-    && !/재사용 대기/.test(potion.toast), '360: 물약 실제 touch 한 번은 사용 기록 +1·수량 −1, 후속 click 중복 없음', potion);
-
-  ok(await page.locator('#items [data-item="life"]').evaluate(e=>e.classList.contains('off')&&!!e.querySelector('.cds').textContent), '360: 두 번째 물약에도 공용 쿨 표시');
-  await tapSlot(page,'#items [data-item="life"]');
-  ok(await page.evaluate(()=>window.__proto.F.items.life===2),'360: 공용 쿨 중 두 번째 물약은 소비되지 않음');
-  await leave(page);
-  await page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('healer.save'));s.items=['cleanse','shield','cleanse','shield'];localStorage.setItem('healer.save',JSON.stringify(s));});
-  await enter(page,PARTIES[1],100,true);
-  ok((await inspectDirectControls(page,ok,'360: 두 두루마리')).items.join()==='cleanse,shield','360: 두 칸에 다른 아이템 조합도 선택 가능');
-  const cleanseBefore = await page.evaluate(() => {
-    const f = window.__proto.F, u = f.party.find(x => x.alive && !x.me);
-    u.debuffs = [{ id: 8501, name: '축소 버튼 검증 독', type: '독', left: 12 }];
-    return f.itemLog.filter(x => x.key === 'cleanse').length;
-  });
-  await tapSlot(page, '#items [data-item="cleanse"]');
-  const cleanse = await page.evaluate(() => ({ count: window.__proto.F.itemLog.filter(x => x.key === 'cleanse').length,
-    left: window.__proto.F.items.cleanse, debuff: window.__proto.F.party.some(u => u.debuffs.some(d => d.id === 8501)),
-    closed: !document.querySelector('#compactToolsDialog')?.open }));
-  ok(cleanse.count === cleanseBefore + 1 && cleanse.left === 0 && !cleanse.debuff && cleanse.closed,
-    '360: 첫 번째 아이템 직접 touch 한 번으로 해제·수량 차감 1회', cleanse);
-  await tapSlot(page, '#items [data-item="shield"]');
-  const shieldArmed = await page.locator('#items [data-item="shield"]').evaluate(el => el.classList.contains('armed'));
-  await tapSlot(page, '#items [data-item="shield"]');
-  ok(shieldArmed && await page.locator('#items [data-item="shield"]').evaluate(el => !el.classList.contains('armed'))
-    && !await page.isVisible('#compactToolsDialog'),
-    '360: 두 번째 대상형 아이템도 직접 선택·재탭 취소 가능');
+  await inspectDirectControls(page, ok, '360: 특성 버튼');
+  ok(await page.locator('#items, #battle .item[data-item]').count() === 0, '360: 소비 아이템 칸 없음');
 
   // 보조 기술에는 별도 영구 사용 로그가 없어, 프레임이 소비하기 전 성공 msg 이벤트를 참조별로 센다.
   // 이벤트를 읽기만 하고 게임의 큐·함수는 바꾸지 않는다.
@@ -1124,11 +1080,6 @@ async function extraInputCases(page, ok) {
     && !await page.isVisible('#compactToolsDialog'),
     '360: 대상형 보조 기술도 직접 touch 한 번으로 장전, 재탭 한 번으로 취소');
   await leave(page);
-  await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('healer.save'));
-    s.items = ['mana', 'life'];
-    localStorage.setItem('healer.save', JSON.stringify(s));
-  });
 }
 
 async function persistenceAndLocks(page, ok) {

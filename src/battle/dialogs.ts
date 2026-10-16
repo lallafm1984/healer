@@ -8,28 +8,24 @@ export interface BattleDialogCallbacks {
   /** 일시정지 메뉴를 열지 않는 raw pause setter. */
   setPaused(value: boolean): void;
   act(kind: BattleConfirmKind): void;
-  getUsedItems(): number;
 }
 export interface BattleDialogs {
   confirm(kind: BattleConfirmKind): void;
   closeAll(): void;
 }
 
-export function battleConfirmation(kind: BattleConfirmKind, usedItems: number): { title: string; message: string; action: string; detail?: string } {
-  const used = Math.max(0, Math.floor(usedItems));
+export function battleConfirmation(kind: BattleConfirmKind): { title: string; message: string; action: string; detail?: string } {
   if (kind === 'restart') return {
     title: '처음부터 다시 시작할까요?', action: '전체 구간 다시 시작',
     message: '이번 도전의 모든 구간 진행과 전투 기록을 초기화하고, 같은 파티로 첫 구간부터 다시 시작합니다.',
   };
-  const items = used ? ` 이미 사용한 소비 아이템 ${used}개는 사용한 것으로 정산됩니다.` : ' 이번 도전에서 사용한 소비 아이템은 없습니다.';
   if (kind === 'quit') return {
     title: '보상 없이 나갈까요?', action: '보상 없이 나가기',
-    message: `이번 도전을 종료하고 보상 없이 나갑니다.${items}`,
+    message: '이번 도전을 종료하고 보상 없이 나갑니다.',
   };
   return {
     title: '현재 전투를 포기하시겠습니까?', action: '포기하기',
     message: '현재 전투를 종료하고\n전멸과 같은 실패로 정산합니다.',
-    detail: used ? `사용한 소비 아이템 ${used}개는 반환되지 않습니다.` : undefined,
   };
 }
 
@@ -98,7 +94,7 @@ export function initBattleDialogs(callbacks: BattleDialogCallbacks): BattleDialo
   function confirm(kind: BattleConfirmKind): void {
     const session = open(confirmDialog, kind);
     if (!session) return;
-    const text = battleConfirmation(kind, callbacks.getUsedItems());
+    const text = battleConfirmation(kind);
     confirmTitle.textContent = text.title;
     confirmMessage.textContent = text.message;
     confirmDetail.textContent = text.detail ?? '';
