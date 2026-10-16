@@ -711,8 +711,8 @@ export interface Fight {
   beaconCd: number;
   /** 드루이드 환생을 썼는지 (전투당 1회) */
   rebirthUsed: boolean;
-  /** 성기사 빛의 성역: 칸과 끝나는 시각 */
-  sanctuary: { cells: Set<number>; end: number; hps?: number } | null;
+  /** 성기사 빛의 성역: 칸과 끝나는 시각 · 가운데 칸 · 연 시각 (판 위 그림 board-sanctuary 자리) */
+  sanctuary: { cells: Set<number>; end: number; hps?: number; cell?: number; at?: number } | null;
   /** 사제 빛의 전이 (8번째 칸): 빛이 깃든 사람 id · 남은 회복 · 사라지는 시각 · 이 시각까지 옮겨 가는 중 (아직 안 깃듦). 하나만 */
   relay: { id: number; left: number; until: number; flyUntil: number } | null;
   /** 판 위 물건 (주술사 토템 · 수도사 안개 샘 · 결계사 성채 · 점성술사 초신성, 79 6-1) */

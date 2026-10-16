@@ -288,7 +288,7 @@ function paladin(f: Fight, key: SkillKey, u: Unit): void {
   } else if (key === 'sanctuary') {
     const c = cellOf(f, u), reach = sanctuaryReach(f); // 넓은 성역 (77): 2칸, 초당 회복 −25%
     const sec = raidSec(f, 'sanctuary', SANCTUARY.sec); // 길어진 노래 · 긴 성역 (42)
-    f.sanctuary = { cells: new Set(f.cells.filter(x => hexDist(x, c) <= reach.r).map(x => x.i)), end: f.t + sec, hps: SANCTUARY.hps * reach.hps };
+    f.sanctuary = { cells: new Set(f.cells.filter(x => hexDist(x, c) <= reach.r).map(x => x.i)), end: f.t + sec, hps: SANCTUARY.hps * reach.hps, cell: c.i, at: f.t };
     emit(f, { type: 'sound', name: 'chime' });
     emit(f, { type: 'msg', text: `빛의 성역: ${sec}초` });
   } else if (key === 'handGuard') {
