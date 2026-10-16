@@ -6,7 +6,7 @@
  *  아래 리넨 목표표 + 붉은 「출전」은 바깥 하단을 맞추며, 로비 패스 바로가기는 두지 않는다.
  * 받기·열기는 그 자리에서. 튜토리얼 중엔 다음 목표 + 출전 + 안내만.
  */
-import { CONTENT, contentOf, RAID10_LV, type ContentKey } from '../data/content';
+import { contentOf, RAID10_LV, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { ITEM_GRADES, recommendedFor, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
@@ -17,6 +17,7 @@ import { nextMilestone } from '../data/milestones';
 import { weekRemaining } from '../game/clock';
 import { chestState, claimChalChest, claimChest, claimMission, missionReady } from '../game/economy';
 import { Flow } from '../game/flow';
+import { guide } from '../game/guide';
 import { capOf, guildOpen } from '../game/guild';
 import { chalGate } from '../game/runmode';
 import { commit, firstDungeonNow, G, lockOf, refreshDay } from '../game/state';
@@ -45,21 +46,16 @@ const shortGoalText = (g: Goal) => goalText(g).replace(/(?:스킬|탐험|던전|
 /** 두 번째 줄은 「 · 」 사이에서만 줄을 바꾼다 (장소 이름 「역병 약초 / 온실」처럼 이름 중간에서 끊기지 않게) */
 const shortGoalHtml = (g: Goal) => shortGoalText(g).split(' · ').map((part, i, all) => `<span class="nb">${esc(part)}${i < all.length - 1 ? ' ·' : ''}</span>`).join(' ');
 
-/** 아직 한 번도 안 깬 열린 장소 (탐험 · 던전, 낮은 레벨부터, 34 5-2). 첫 던전 녹슨 요새는 쉬움, 나머지는 보통 */
-function freshPlace(): { content: ContentKey; diff: DiffName } | null {
-  const c = CONTENT.filter(x => x.ready && !x.hidden && x.kind !== 'raid' && !lockOf(x).locked && !G.save.clears[x.key])
-    .sort((a, b) => a.unlockLv - b.unlockLv)[0];
-  return c ? { content: c.key, diff: c.key === 'rustfort' ? '쉬움' : '보통' } : null;
-}
-
-/** 다음 목표 줄: 안 깬 열린 장소 → 녹슨 요새 아직 안 깬 난이도 → 다음 레벨 마일스톤 (이 빌드에 있는 것) */
+/** 다음 목표 줄: 모험 길잡이 추천 (86: 지금 레벨 · 장비에 맞는 탐험 · 던전 한 칸) → 다음 레벨 마일스톤 (이 빌드에 있는 것) */
 function goals(): Goal[] {
   const out: Goal[] = [];
-  const rec = G.save.clears.rustfort, lvNow = G.save.player.level;
-  const fresh = freshPlace();
-  if (fresh) out.push({ title: contentOf(fresh.content).name, tag: fresh.diff, sub: '클리어', prog: '0/1', to: fresh });
-  const diff = rec && (['보통', '어려움', '악몽'] as const).find(d => !rec[d]);
-  if (diff) out.push({ title: '녹슨 요새', tag: diff, sub: '클리어', prog: '0/1', to: { content: 'rustfort', diff } });
+  const lvNow = G.save.player.level;
+  // 처음 깨는 칸이면 「클리어 0/1」, 다시 도는 칸이면 「추천 Lv n」(적 레벨)
+  const g = guide();
+  if (g) {
+    const c = contentOf(g.content), first = !G.save.clears[c.key]?.[g.diff];
+    out.push({ title: c.name, tag: g.diff, sub: first ? '클리어' : '추천', prog: first ? '0/1' : `Lv ${stageOf(c, g.diff)}`, to: g });
+  }
   let lv = lvNow;
   for (let i = 0; i < 20; i++) {
     const m = nextMilestone(lv, G.save.hero);
@@ -123,18 +119,20 @@ function tracker(): string {
     : `<div class="lb-trk">${inner}</div>`;
 }
 
-/** 「출전」 목적지: 첫 던전 차례면 녹슨 요새 쉬움 → 지난 판의 콘텐츠·난이도 → 안 깬 열린 장소 → 녹슨 요새의 아직 안 깬 난이도 */
+/**
+ * 「출전」 목적지: 첫 던전 차례면 녹슨 요새 쉬움 → 모험 길잡이 추천 (86, 2026-10-16 Lim 「각 컨텐츠를 찾아가면서 깨야 하는 불친절함」.
+ * 예전엔 지난 판 그대로 → 레벨이 올라도 같은 곳을 가리켰음) → 지난 판 → 녹슨 요새
+ */
 function dest(): { content: ContentKey; diff: DiffName } {
   if (firstDungeonNow()) return { content: 'rustfort', diff: '쉬움' };
+  const g = guide();
+  if (g) return g;
   const last = G.save.last;
   if (last) {
     const c = contentOf(last.content as ContentKey);
     if (c && c.ready && !lockOf(c, last.diff).locked) return { content: c.key, diff: last.diff };
   }
-  const fresh = freshPlace();
-  if (fresh) return fresh;
-  const rec = G.save.clears.rustfort || {};
-  return { content: 'rustfort', diff: (['보통', '어려움', '악몽'] as const).find(d => !rec[d]) || '어려움' };
+  return { content: 'rustfort', diff: '쉬움' };
 }
 /** 출전: 입장 확인 → 스테미너를 내고 편성으로 (81) */
 function toParty(to: { content: ContentKey; diff: DiffName }): void {

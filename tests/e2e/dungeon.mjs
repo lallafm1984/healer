@@ -25,7 +25,12 @@ export default async function dungeon(url, shots) {
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
 
   // ---- 콘텐츠 선택 (30 출정 관문: 장소 고르기 → 출전) ----
-  ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true', '콘텐츠 기본 탭 = 던전 5인');
+  // 모험 길잡이 (86): 들어오면 지금 레벨에 맞는 칸 (Lv 1 = 탐험 녹슨 고원 쉬움)을 고른 채로, 난이도 칸 위 「추천」
+  ok(await page.getAttribute('#s-content [data-ctab="explore"]', 'aria-selected') === 'true' && await page.getAttribute('#s-content', 'data-selected-content') === 'plateau'
+    && await page.getAttribute('#s-content [data-diff="쉬움"]', 'aria-pressed') === 'true' && (await page.textContent('#s-content [data-diff="쉬움"] .b-fit')) === '추천'
+    && (await page.locator('#s-content .b-region.rec[data-content="plateau"]').count()) === 1, '처음 들어오면 길잡이 추천 = 탐험 · 녹슨 고원 · 쉬움 (카드 · 난이도 「추천」)');
+  await page.click('#s-content [data-ctab="dungeon"]'); await page.clock.runFor(50);
+  ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true' && (await page.locator('#s-content [data-ctab="explore"] .b-rec-dot').count()) === 1, '던전 5인으로 바꾸면 추천이 있는 탐험 칸에 금빛 점');
   ok(await page.getAttribute('#s-content', 'data-selected-content') === 'rustfort' && /녹슨 요새/.test(await page.textContent('#s-content .b-gate')) && await page.isEnabled('#contentGo'), '녹슨 요새가 골라져 있고 출전 가능');
   ok(await page.getAttribute('#s-content [data-diff="쉬움"]', 'aria-pressed') === 'true' && await page.isDisabled('#s-content [data-diff="보통"]') && /쉬움 깨기/.test(await page.textContent('#s-content [data-diff="보통"]')), '난이도 기본 = 쉬움, 보통은 「쉬움 깨기」로 잠김 (61 사슬, 개발 빌드도)');
   ok(await page.getAttribute('#s-content .b-level', 'aria-label') === '권장 레벨 5' && /Lv\.\s*5/.test(await page.textContent('#s-content .b-level')), '관문 권장 레벨 = Lv. 5 (장소 레벨, 61 1-2)');
@@ -212,8 +217,8 @@ export default async function dungeon(url, shots) {
   ok(await page.locator('#s-char .c7-gsheet').count() === 0 && await page.locator('[inert]').count() === 0 && await page.evaluate(() => document.activeElement?.hasAttribute('data-reward-item')), '상세 닫기 후 정산 카드로 포커스·입력 복구');
   ok(JSON.stringify(await save()) === beforeDetail, '보상 장비 상세 조회는 저장 데이터를 변경하지 않음');
   const nx = await page.textContent('#s-settle #next');
-  ok(/^다음 던전/.test(nx) && /녹슨 광산 · 쉬움/.test(nx) && (await page.textContent('#s-settle [data-go="s-lobby"]')).trim() === '나가기' && (await page.textContent('#again')) === '다시 도전',
-    `아래 버튼: 나가기 · 다시 도전 · 다음 던전 (보통을 깨면 다음 장소 쉬움, 기획 70) 「${nx}」`);
+  ok(/^다음 탐험/.test(nx) && /고철 더미 언덕 · 쉬움/.test(nx) && (await page.textContent('#s-settle [data-go="s-lobby"]')).trim() === '나가기' && (await page.textContent('#again')) === '다시 도전',
+    `아래 버튼: 나가기 · 다시 도전 · 다음 = 길잡이 추천 (Lv 3: 열린 곳 가운데 첫 클리어 경험치가 큰 고철 더미 언덕 쉬움, 86 · 70) 「${nx}」`);
   await page.screenshot({ path: `${shots}/dungeon_reward.png` });
 
   // ---- 잡몹 구간에서 지면 던전 실패 → 경험치 없음 (2026-10-13 Lim) ----

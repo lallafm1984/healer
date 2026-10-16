@@ -166,12 +166,13 @@ export default async function lobbyA2(url, shots) {
             const s = JSON.parse(localStorage.getItem('healer.save'));
             s.player.level = 12; localStorage.setItem('healer.save', JSON.stringify(s));
           });
-          ok(/녹슨 고원/.test(await page.textContent(`${lobby} .lb-trk`)) && /잿빛 공동묘지/.test(await page.getAttribute('#lobbyStart', 'aria-label')),
-            '지난 판 있음: 다음 목표와 출전 목적지를 각각 계산');
+          // 모험 길잡이 (86): 지난 판이 있어도 다음 목표 · 출전 모두 지금 레벨에 맞는 칸 (Lv 12 = 교단 숲속 야영지 쉬움)
+          ok(/교단 숲속 야영지/.test(await page.textContent(`${lobby} .lb-trk`)) && /교단 숲속 야영지 쉬움/.test(await page.getAttribute('#lobbyStart', 'aria-label')),
+            '지난 판 있음: 다음 목표 · 출전 = 길잡이 추천 (지난 판 잿빛 공동묘지가 아님)');
           checkLayout(await layout(page), '390 지난 판 있음');
           await page.screenshot({ path: `${shots}/lobby_a2_last_run.png` });
-          // 「다시」 소켓은 뺐다 (Lim 2026-10-12): 지난 판이 있어도 없고, 지난 판은 「출전」이 이어 간다
-          ok(await page.locator('#lbAgain, #s-lobby .lb-again').count() === 0, '지난 판 있어도 「다시」 소켓 없음 (출전이 지난 판으로)');
+          // 「다시」 소켓은 뺐다 (Lim 2026-10-12): 지난 판이 있어도 없음 (같은 곳 다시는 결과 화면 「다시 도전」)
+          ok(await page.locator('#lbAgain, #s-lobby .lb-again').count() === 0, '지난 판 있어도 「다시」 소켓 없음');
           for (const [level, title, target] of [[40, '심연의 탑', '45'], [60, '가라앉은 대성당', '70']]) {
             await patch(page, () => {
               const s = JSON.parse(localStorage.getItem('healer.save'));

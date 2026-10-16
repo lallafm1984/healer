@@ -215,11 +215,13 @@ describe('정산 (09 S08·S09)', () => {
   });
   it('주간 도전 클리어 장비 = 단계 표 (2026-10-13 Lim: 1~9 보통 · 10~14 어려움 · 15~ 악몽), 1개', () => {
     expect([1, 9, 10, 14, 15, 20].map(chalDropDiff)).toEqual(['보통', '보통', '어려움', '어려움', '악몽', '악몽']);
-    const top = (stage: number) => {
-      const s = newSave(1); s.tut = TUT.done; s.player.level = 30; s.daily.pub = 3;
+    // 등급대는 내 레벨 (86): Lv 10 = 첫 등급대 (61 표), Lv 30 = 둘째 등급대 (바닥이 한 칸 위)
+    const top = (stage: number, level = 10) => {
+      const s = newSave(1); s.tut = TUT.done; s.player.level = level; s.daily.pub = 3;
       const seen = new Set<string>();
       for (let i = 0; i < 60; i++) {
-        const x = settle(s, result({ chal: stage, stage: 30, deaths: 0 }), rngFrom(i + 1));
+        s.player.level = level; s.player.xp = 0; // 경험치로 레벨이 오르면 등급대가 바뀜
+        const x = settle(s, result({ chal: stage, stage: level, deaths: 0 }), rngFrom(i + 1));
         expect(x.items.length).toBe(1);
         seen.add(x.items[0].grade);
       }
@@ -229,6 +231,9 @@ describe('정산 (09 S08·S09)', () => {
     expect(top(12).has('희귀')).toBe(true);
     expect(top(12).has('영웅')).toBe(false);
     expect(top(16).has('영웅')).toBe(true);
+    expect([...top(3, 30)].every(g => g === '고급' || g === '희귀')).toBe(true);
+    expect(top(12, 30).has('영웅')).toBe(false);
+    expect([...top(16, 30)].every(g => g === '희귀' || g === '영웅')).toBe(true);
   });
   it('다시 깨면 별·등급·최고 기록은 좋은 쪽을 남김', () => {
     const s = newSave(1);

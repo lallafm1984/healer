@@ -90,6 +90,31 @@ export function rampXp(c: ContentDef, diff: DiffName, o: { first: boolean; grade
   return Math.max(1, Math.round(o.first || !o.grade ? x : x * REWARD_GRADE[o.grade]));
 }
 
+/**
+ * 순차 레벨링 구간 장소의 난이도별 기준 레벨 (70): 튜토리얼 (Lv 2) 뒤 구간 장소를 레벨 순으로 쉬움 → 보통 첫 클리어만 할 때 그 난이도에 들어가는 레벨.
+ * 쉬움 = 그 장소에 왔을 때, 보통 = 쉬움을 깬 뒤, 어려움 = 보통을 깬 뒤 (70 9장 밸런스 기준 플레이어, sim/ramp와 같음), 악몽 = 거기서 어려움을 한 번 더 깬 뒤.
+ * 출전 화면 난이도 적합도 · 모험 길잡이 (86)가 씀 (예: 녹슨 요새 보통은 적 Lv 7이지만 Lv 5에 들어가는 칸). 구간 밖 장소는 null
+ */
+const rampRefs = new Map<ContentKey, Record<DiffName, number>>();
+export function rampRefLevel(c: ContentDef, d: DiffName): number | null {
+  if (!rampPlace(c)) return null;
+  if (!rampRefs.size) {
+    const p = { level: 1, xp: 0 };
+    const first = (x: ContentDef, d: DiffName, q: { level: number; xp: number }) => addXp(q, rampXp(x, d, { first: true, grade: 'A', win: true }));
+    addXp(p, xpToNext(1));
+    for (const x of CONTENT.filter(y => rampPlace(y) && y.ready).sort((a, b) => a.stageLv - b.stageLv)) {
+      const easy = p.level;
+      first(x, '쉬움', p);
+      const normal = p.level;
+      first(x, '보통', p);
+      const q = { ...p };
+      first(x, '어려움', q);
+      rampRefs.set(x.key, { '쉬움': easy, '보통': normal, '어려움': p.level, '악몽': q.level });
+    }
+  }
+  return rampRefs.get(c.key)?.[d] ?? null;
+}
+
 /** 경험치를 더하고 오른 레벨 목록을 돌려줌 */
 export function addXp(p: { level: number; xp: number }, amt: number): number[] {
   const ups: number[] = [];

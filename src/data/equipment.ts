@@ -9,12 +9,12 @@
  * 떨어진 곳의 적 레벨. 지능 · 체력 옵션은 수치 (아이템 레벨이 높을수록 크고 장비마다 고정, STAT_POINT · toPoints),
  * 치명타 · 가속 · 정신력 · 인내는 고정 % (레벨업해도 안 바뀜, Lim 「10%가 9%로 떨어지면 헷갈림」). 특수능력은 그대로.
  */
-import type { ContentDef } from './content';
+import { RAID10_LV, type ContentDef } from './content';
 import type { DiffName } from './difficulty';
 import type { GearStats, GradeName } from './gear';
 import type { HeroKey } from './heroes';
 import { CONTENT_PLACE, FACTIONS, PLACES, type FactionKey } from './places';
-import { apexOf, lvPower, rampPlace } from './progression';
+import { apexOf, lvPower, RAMP_LV, rampPlace } from './progression';
 import { INT_BASE, RULES } from './rules';
 import { FEATURED, namedOf, namedsFor, SPEC_KEYS, SPECS, specTotals, specUseful, specValue, type SpecLine, type SpecOn } from './specials';
 import { UNIQUE_MULT, uniqueOf, uniquesFor, uniqueValue } from './uniques';
@@ -139,7 +139,7 @@ export const lineMax = (stat: StatKey, slot: SlotKey, grade: ItemGrade) => STATS
 
 /**
  * 등급 확률 (61 3장, 2026-10-11 Lim). 순서 = ITEM_GRADES. 0 = 레벨링 (탐험 · 던전), 10 · 20 = 레이드 인원.
- * 탐험 · 던전: 쉬움 일반 · 보통 고급까지 · 어려움 희귀까지 · 악몽 영웅까지.
+ * 탐험 · 던전: 쉬움 일반 · 보통 고급까지 · 어려움 희귀까지 · 악몽 영웅까지 (장소 Lv 1~20. 그 위 장소는 LEVELING_TIERS, 86).
  * 10인 · 20인: 쉬움 · 보통 희귀까지 · 어려움 영웅까지 · 악몽은 10인 영웅 (확률 높게) · 20인만 전설.
  */
 export const DROP_TABLES: Record<0 | 10 | 20, Record<DiffName, number[]>> = {
@@ -162,8 +162,35 @@ export const DROP_TABLES: Record<0 | 10 | 20, Record<DiffName, number[]>> = {
     '악몽': [0, 0, 0.35, 0.55, 0.1],
   },
 };
-/** 그 콘텐츠 · 난이도 등급 확률 (raid = 레이드 인원, 0 = 탐험 · 던전) */
-export const dropTable = (diff: DiffName, raid: 0 | 10 | 20 = 0): number[] => DROP_TABLES[raid][diff];
+/**
+ * 탐험 · 던전 장비 등급대 (86, 2026-10-16 Lim 「중 후반에도 등급에 맞지 않는 장비를 보상으로」): 장소 레벨로 표가 올라감.
+ * 0 = 장소 Lv 1~20 (위 DROP_TABLES[0] 그대로, 순차 레벨링 구간 밸런스가 이 드롭으로 잼), 1 = Lv 21~44, 2 = Lv 45~ (10인 레이드가 열리는 레벨).
+ * 올라가는 방식: 아래 등급이 위로 모임 (바닥이 오름). 같은 난이도에서 어느 등급 이상 확률도 앞 등급대보다 줄지 않고, 같은 난이도 10인 레이드보다는 아래.
+ * 전설은 그대로 20인 악몽만. 레이드 표는 장소 레벨과 상관없음
+ */
+export const LOOT_TIER_LV = [1, RAMP_LV + 1, RAID10_LV] as const;
+export const LEVELING_TIERS: Record<DiffName, number[]>[] = [
+  DROP_TABLES[0],
+  {
+    '쉬움': [0.2, 0.8, 0, 0, 0],
+    '보통': [0, 0.85, 0.15, 0, 0],
+    '어려움': [0, 0.5, 0.5, 0, 0],
+    '악몽': [0, 0, 0.85, 0.15, 0],
+  },
+  {
+    '쉬움': [0, 0.8, 0.2, 0, 0],
+    '보통': [0, 0.4, 0.6, 0, 0],
+    '어려움': [0, 0, 0.9, 0.1, 0],
+    '악몽': [0, 0, 0.75, 0.25, 0],
+  },
+];
+/** 장소 레벨 → 등급대 (0 · 1 · 2) */
+export const lootTier = (placeLv: number) => LOOT_TIER_LV.reduce((t, lv, i) => (placeLv >= lv ? i : t), 0);
+/**
+ * 그 콘텐츠 · 난이도 등급 확률 (raid = 레이드 인원, 0 = 탐험 · 던전). tierLv = 탐험 · 던전 등급대를 정하는 레벨
+ * (장소 레벨, 주간 도전 · 일일 상자는 내 레벨). 없으면 첫 등급대 (61 표)
+ */
+export const dropTable = (diff: DiffName, raid: 0 | 10 | 20 = 0, tierLv = 1): number[] => (raid ? DROP_TABLES[raid][diff] : LEVELING_TIERS[lootTier(tierLv)][diff]);
 /** 표에서 나올 수 있는 가장 높은 등급 (상한) */
 export const topGrade = (table: number[]): ItemGrade => ITEM_GRADES[table.reduce((m, p, i) => (p > 0 ? i : m), 0)];
 
@@ -406,7 +433,7 @@ export function pickKind(r: () => number, place: string): KindDef {
  */
 /** 효과 1줄 계약을 유지하며 전용 빌드와 기존 공용 빌드를 함께 제공 */
 export const CLASS_LOOT_CHANCE = 0.7;
-export interface DropCtx { hero?: HeroKey; /** 클리어 보상: 효과가 붙는 장비는 전용 70% / 공용 30% (고유 전설 제외) */ classLoot?: boolean; place?: string; raid?: 0 | 10 | 20; bonus?: boolean; cap?: ItemGrade; /** 아이템 레벨 (떨어진 곳의 적 레벨) */ lv?: number }
+export interface DropCtx { hero?: HeroKey; /** 클리어 보상: 효과가 붙는 장비는 전용 70% / 공용 30% (고유 전설 제외) */ classLoot?: boolean; place?: string; raid?: 0 | 10 | 20; bonus?: boolean; cap?: ItemGrade; /** 아이템 레벨 (떨어진 곳의 적 레벨) */ lv?: number; /** 탐험 · 던전 등급대 레벨 (장소 레벨, 86 · dropTable) */ tierLv?: number }
 
 /**
  * 특수능력 n줄 굴림: 그 부위 · 최소 등급 이하 · (직업 전용은 그 직업) 중에서, 장소의 자주 나오는 3개는 4배.
@@ -522,7 +549,7 @@ export function rollGrade(r: () => number, table: number[], grade: 'S' | 'A' | '
 export function rollItem(r: () => number, diff: DiffName, grade: 'S' | 'A' | 'B' | 'C', level: number, id: number, o: DropCtx = {}): GearItem {
   const k = o.place && PLACE_KINDS[o.place] ? pickKind(r, o.place) : undefined;
   const slot = k ? k.slot : SLOTS[Math.floor(r() * SLOTS.length)].key;
-  const g = rollGrade(r, dropTable(diff, o.raid ?? 0), grade, level, o.bonus ? PUB_GRADE_BONUS : 0);
+  const g = rollGrade(r, dropTable(diff, o.raid ?? 0, o.tierLv), grade, level, o.bonus ? PUB_GRADE_BONUS : 0);
   return makeItem(r, slot, o.cap && ITEM_GRADES.indexOf(g) > ITEM_GRADES.indexOf(o.cap) ? o.cap : g, id, k?.key, o);
 }
 
