@@ -1129,21 +1129,24 @@ export function lensAt(idx: number, now: number): void { B2.lens = { idx, t0: no
 const HOT_COLOR: Record<string, number> = { sprout: 0x7bc67e, growth: 0xb7e07a, wildflower: 0xe59ac0, oath: 0xf0c46a, bloom: 0xf3c7d6, lightWave: 0xffe7a3, droplet: 0x7ec8f0, wanderMist: 0x6fd0b0, starMark: 0xe8b04a };
 /**
  * 판 위 물건 (79 6-1, engine/totems): 칸 바닥 색 · 그림 이름 (80 5장 board-*, 오기 전엔 바닥 색 + 안쪽 테두리). 범위 = 테두리를 그릴 거리
- * stand = 바닥 무늬가 아니라 칸 위에 선 물건 (standL): 사람이 서 있어도 그 칸 가운데에 크게, 이름 · 체력 뒤. 샘 토템 = 스킬 아이콘과 같은 나무 그루터기 분수 (2026-10-16)
+ * stand = 바닥 무늬가 아니라 칸 위에 선 물건 (standL): 사람이 서 있어도 그 칸 가운데에 크게, 이름 · 체력 뒤. 샘 · 대지 토템 = 스킬 아이콘과 같은 그림 (2026-10-16)
  */
 const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string; stand?: boolean }> = {
   spring: { color: 0x7ec8f0, art: 'board-totem-spring', label: '샘', stand: true },
-  earth: { color: 0xc49a62, art: 'ui-class-board-totem-earth', label: '대지' },
+  earth: { color: 0xc49a62, art: 'board-totem-earth', label: '대지', stand: true },
   sea: { color: 0x4fa8e0, art: 'board-sea-spring', label: '바다' },
   mist: { color: 0x6fd0b0, art: 'board-mist-pool', label: '안개' },
   citadel: { color: 0xe6d3a0, art: 'board-citadel', label: '성채' },
   nova: { color: 0xd19a5e, art: 'board-supernova', label: '별' },
 };
-/** 선 물건 그림 한 변 (칸 반지름 배) · 그 안에서 그려진 부분 (폭 · 높이 비율, board-totem-spring 납품본을 잼): 그려진 부분이 칸 안에 꽉 차게 */
-const STAND_SIZE = 1.5, STAND_W = 0.72, STAND_H = 0.95;
+/** 선 물건 그림 한 변 (칸 반지름 배) · 그림마다 그려진 부분 (폭 · 높이 비율, 2026-10-16 납품본을 잼): 그려진 부분이 칸 안에 꽉 차게 */
+const STAND_SIZE = 1.5;
+const STAND_BOX: Record<string, [number, number]> = { 'board-totem-spring': [0.72, 0.95], 'board-totem-earth': [0.75, 0.91] };
+/** 한 칸에 선 물건이 둘 (샘 + 대지 · 두 개의 샘)이면 이만큼 줄여 나란히 */
+const STAND_PAIR = 0.72;
 /** 힐러 직업 4종 판 위 그림 (80 5장): 전투 시작 때 그 직업 것만 미리 읽음 (첫 토템 · 인장부터 보이게) */
 const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
-  shaman: ['board-totem-spring', 'ui-class-board-totem-earth', 'board-totem-rain', 'board-sea-spring'],
+  shaman: ['board-totem-spring', 'board-totem-earth', 'board-totem-rain', 'board-sea-spring'],
   monk: ['board-mist', 'board-mist-pool'],
   astrologer: ['board-star', 'board-star-mark', 'board-star-sleep', 'board-supernova'],
   warder: ['board-seal', 'board-barrier', 'board-citadel'],
@@ -1398,15 +1401,19 @@ export function render(now: number): void {
     // 드루이드 이끼 자리 (특성 77): 이끼 초록 바닥, 끝나기 2초 전 깜빡임 (정식 바닥 그림은 78 그림 요청)
     { const mu = F.tx.moss?.get(i); if (mu != null && mu > F.t) hexPoly(cellsG, p.x, p.y, r).fill({ color: HOT_COLOR.sprout, alpha: mu - F.t < 2 ? 0.06 + 0.12 * pulse : 0.16 }); }
     // 판 위 물건 (79 6-1: 토템 · 샘 · 성채 · 초신성): 그림 (80 5장)이 있으면 그 그림, 없으면 바닥 색 + 안쪽 테두리. 끝나기 2초 전 깜빡임
+    const standHere = F.totems.filter(tm => tm.cell === i && TOTEM_LOOK[tm.kind].stand);
     for (const tm of F.totems) if (tm.cell === i) {
       const look = TOTEM_LOOK[tm.kind], end = tm.until - F.t < 2, tex = artTexture(look.art);
       hexPoly(cellsG, p.x, p.y, r).fill({ color: look.color, alpha: end ? 0.08 + 0.14 * pulse : 0.22 });
       if (tex && look.stand) {
         // 선 물건 (2026-10-16 Lim 「토템 위치는 고정, 이름 · 체력 뒤 직업 칸 색 위에 가운데 크게, 캐릭터가 이동해도 그 자리」): 칸 가운데, 세울 때 0.25초 솟아오름 (바닥 기준)
         const rise = S.reducedEffects ? 1 : Math.min(1, Math.max(0, (F.t - tm.at) / 0.25)), k = 0.6 + 0.4 * (1 - (1 - rise) ** 2);
-        const size = r * STAND_SIZE, half = (size * STAND_H) / 2, q = fitCenter(p.x, p.y, (size * STAND_W) / 2, half);
+        const [bw, bh] = STAND_BOX[look.art] ?? [1, 1], n = standHere.length, j = standHere.indexOf(tm);
+        const size = r * STAND_SIZE * (n > 1 ? STAND_PAIR : 1), w = size * bw, half = (size * bh) / 2;
+        const pitch = size * Math.max(...standHere.map(o => (STAND_BOX[TOTEM_LOOK[o.kind].art] ?? [1, 1])[0])) * 1.04;
+        const q = fitCenter(p.x + (j - (n - 1) / 2) * pitch, p.y, w / 2, half);
         stands.put(tex, q.x, q.y + half * (1 - k), size * k, size * k, end ? 0.5 + 0.5 * pulse : 1);
-        recordBound(`stand-${tm.kind}${i}`, 'stand', 'rect', q.x, q.y, size * STAND_W, size * STAND_H, { diameter: size });
+        recordBound(`stand-${tm.kind}${i}-${j}`, 'stand', 'rect', q.x, q.y, w, size * bh, { diameter: size });
       } else if (tex) decals.put(tex, p.x, p.y, cellArt, cellArt, end ? 0.5 + 0.5 * pulse : 1);
       else hexPoly(cellsG, p.x, p.y, r * 0.62).stroke({ width: 2.5, color: look.color, alpha: 0.9 });
     }
