@@ -203,6 +203,10 @@ export interface Unit {
   wrongUntil: number;
   fleeing: boolean;
   sulking: boolean;
+  /** 관심종자 삐짐: 이번 전투에 삐진 횟수 · 삐진 때 · 혼자 풀린 때 (SULK) */
+  sulkN?: number;
+  sulkFrom?: number;
+  sulkOff?: number;
   lastHeal: number;
   thanks: number;
   flash: number;

@@ -451,7 +451,7 @@ export function createTalk(rand: () => number = Math.random) {
       else if (guard && !s.guard) add('guardOn', u);
       if (hots > s.hots) add('hotOn', u);
       if (u.pulled && !s.pulled) add('pulled', u);
-      if (!u.sulking && s.sulking) add('sulkEnd', u);
+      if (!u.sulking && s.sulking && u.lastHeal >= (u.sulkFrom ?? 0)) add('sulkEnd', u); // 혼자 풀리면 (SULK.long) 말 없음
       if (!u.fleeing && s.fleeing) add('fleeBack', u);
       // 피함 (엔진이 이미 말한 사람은 빼고) · 마법사 이동
       if (u.moving && !s.moving && !u.fleeing && !barked.has(u.id)) {

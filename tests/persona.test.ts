@@ -1,9 +1,9 @@
 /** 파티원 성격 30종 (75 문서): 새 20종의 데이터와 전투 행동 */
 import { describe, expect, it } from 'vitest';
-import { PERS, PERS_NAMES, PROTO_PERS, type PersName } from '../src/data/personalities';
+import { PERS, PERS_NAMES, PROTO_PERS, SULK, type PersName } from '../src/data/personalities';
 import type { ClassKey } from '../src/data/classes';
 import * as E from '../src/engine';
-import { addDebuff, damage } from '../src/engine/core';
+import { addDebuff, damage, heal } from '../src/engine/core';
 import { moveTo } from '../src/engine/movement';
 import { persDps, persGuard, persReact } from '../src/engine/persona';
 import { stepAway, unitDps } from '../src/engine/units';
@@ -222,6 +222,41 @@ describe('전투 전체', () => {
     const a = E.simulate({ encounter: 'warden', diff: '보통', gear: 'rare5', seed: 5 });
     const b = E.simulate({ encounter: 'warden', diff: '보통', gear: 'rare5', seed: 5 });
     expect([a.over, a.t, a.bossHp, a.stats.deaths]).toEqual([b.over, b.t, b.bossHp, b.stats.deaths]);
+  });
+});
+
+describe('관심종자 삐짐 (2026-10-16 Lim 「너무 자주 · 힐해 주고 끝나면 또 삐짐」)', () => {
+  /** 보스 기술 · 딜을 끄고 sec초 (삐짐 말 횟수를 셈) */
+  const quiet = (f: F) => { f.skills.forEach(s => { s.next = Infinity; }); f.party.forEach(u => { u.dps = 0; }); };
+  const run = (f: F, sec: number) => { let n = 0; const end = f.t + sec; while (f.t < end - 1e-9 && !f.over) { E.step(f); n += f.events.filter(e => e.type === 'bark' && e.sit === 'sulk').length; f.events.length = 0; } return n; };
+
+  it('12초에 삐짐 → 힐로 풀림 → 60초 안엔 다시 안 삐짐 → 두 번째 뒤 25초면 혼자 풀리고 그 판엔 더 안 삐짐', () => {
+    const f = fight('관심종자'); quiet(f);
+    const u = hero(f);
+    expect(run(f, 11.5)).toBe(0);
+    expect(run(f, 1)).toBe(1);
+    expect(u.sulking).toBe(true);
+    heal(f, u, 1, true);
+    expect(u.sulking).toBe(false);
+    const healed = f.t;
+    expect(run(f, SULK.again - 1)).toBe(0);
+    expect(u.sulking).toBe(false);
+    expect(run(f, 1.5)).toBe(1);
+    expect(u.sulking).toBe(true);
+    expect(f.t - healed).toBeGreaterThan(SULK.again);
+    expect(run(f, SULK.long - 1)).toBe(0);
+    expect(u.sulking).toBe(true);
+    run(f, 1.5);
+    expect(u.sulking).toBe(false);
+    expect(run(f, 200)).toBe(0); // 한 전투 SULK.max번까지
+    expect(u.sulkN).toBe(SULK.max);
+  });
+
+  it('프로토타입 일치 판은 옛 규칙 (힐 받고 12초면 또 삐짐)', () => {
+    const f = E.create({ encounter: 'warden', diff: '보통', seed: 1, proto: true, party: [R('tank', 'warrior', '신중파', '탱'), R('melee', 'rogue', '관심종자', '주인공')] });
+    quiet(f);
+    const u = hero(f);
+    for (let i = 0; i < 4; i++) { run(f, 13); expect(u.sulking, `${i + 1}번째`).toBe(true); heal(f, u, 1, true); } // 프로토타입 말에는 sit이 없음
   });
 });
 
