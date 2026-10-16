@@ -586,7 +586,8 @@ function screenEnhanceFx(f: EnhanceFx): string {
   const it = findItem(f.id);
   if (!it) return '';
   const particles = Array.from({ length: f.quick ? 18 : 48 }, (_, n) => `<i style="--a:${n * 137.508}deg;--r:${38 + n % 9 * 5}vmax;--delay:${n % 5 * 25}ms;--spin:${n * 47}deg;--size:${3 + n % 4}px"></i>`).join('');
-  const level = f.ok ? `+${f.from} → +${f.to}` : `+${f.to}`;
+  // 실패해 떨어지면 (87, +5 이상) 성공처럼 「+7 → +6」, 그대로면 지금 단계만
+  const level = f.ok || f.to < f.from ? `+${f.from} → +${f.to}` : `+${f.to}`;
   return `<div class="c7-screen-fx ${f.ok ? 'success' : 'failure'}${f.quick ? ' quick' : ''}" style="--screen-fx-duration:${f.duration}ms" aria-hidden="true" data-enhance-fx="${f.ok ? 'success' : 'failure'}">
     <div class="c7-screen-veil"></div><div class="c7-screen-rays"></div><div class="c7-screen-flare"></div>
     <div class="c7-screen-wave wave-1"></div><div class="c7-screen-wave wave-2"></div><div class="c7-screen-wave wave-3"></div>

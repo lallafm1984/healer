@@ -647,37 +647,49 @@ export function presetStats(grade: ItemGrade, plus: number, ilv?: number): StatS
 
 // ---------- 강화·분해 (12 3장) ----------
 export const MAX_PLUS = 10;
-/** 목표 단계별 성공 확률 (34 6-5, Lim 2026-10-09: 확률 강화 · 대성공 없음). 칸 번호 = 목표 단계 */
-export const ENHANCE_RATE = [0, 1, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5, 0.45, 0.4, 0.35];
+/**
+ * 목표 단계별 성공 확률 (34 6-5, Lim 2026-10-09: 확률 강화 · 대성공 없음). 칸 번호 = 목표 단계.
+ * 87 (2026-10-16 Lim 「강화 확률이 너무 높다」): 예전 100 · 95 · 90 · 80 · 70 · 60 · 50 · 45 · 40 · 35% → 90%부터 10%p씩, +5부터 5%p씩
+ */
+export const ENHANCE_RATE = [0, 0.9, 0.8, 0.7, 0.6, 0.55, 0.5, 0.45, 0.4, 0.35, 0.3];
+/** 이 단계 이상에서 강화하다 실패하면 1단계 떨어짐 (87, Lim 「5~10까지 강화할 때는 실패 시 1등급 하락」). +1~+5 강화는 실패해도 그대로 */
+export const ENHANCE_DROP_FROM = 5;
 export interface EnhanceCost {
   stone: number; refined: number;
   /** 성공하면 이 단계 */
   to: number;
   /** 성공 확률 (0~1) */
   rate: number;
-  /** 실패하면 현재 단계 유지 */
+  /** 실패하면 이 단계 (+5 이상이면 1 낮음, 아니면 그대로) */
   fail: number;
 }
 /**
- * +6~+10 시도 한 번의 정제 강화석 (목표 단계 → 개수). v16 (2026-10-16): 골드를 없애며 +6~+10은 골드가 더 빠듯했던 몫을 정제 강화석으로 옮김
- * (예전 1개씩 + 골드일 때 레이드만 돌면 2.4~4.5배 빨라짐 → 영웅 기준 예전 속도: 기댓값 11.3 → 26.2개)
+ * +6~+10 시도 한 번의 정제 강화석 (목표 단계 → 개수). 87 (2026-10-16): 확률을 낮추고 실패 하락을 넣으며 2 · 3 · 4 · 5 · 6
+ * (+5 → +10 기댓값 정제 강화석 약 280 · 강화석 약 140 · 시도 약 116번, 20인 악몽만 돌면 한 부위 약 46판. 예전 26개 · 약 5판)
  */
-export const ENHANCE_REFINED: Record<number, number> = { 6: 1, 7: 2, 8: 2, 9: 3, 10: 3 };
+export const ENHANCE_REFINED: Record<number, number> = { 6: 2, 7: 3, 8: 4, 9: 5, 10: 6 };
 /** 다음 단계 강화 한 번의 비용·확률: +1~+5 강화석 목표 단계만큼, +6~+10 정제 강화석 ENHANCE_REFINED (v16: 골드 없음). 다 올렸으면 null */
 export function enhanceCost(it: GearItem): EnhanceCost | null {
   const to = it.plus + 1;
   if (to > MAX_PLUS) return null;
   return {
     stone: to <= 5 ? to : 0, refined: ENHANCE_REFINED[to] ?? 0, to,
-    rate: ENHANCE_RATE[to], fail: it.plus,
+    rate: ENHANCE_RATE[to], fail: it.plus >= ENHANCE_DROP_FROM ? it.plus - 1 : it.plus,
   };
 }
 
-/** 클리어 재료 (12 1장): 던전은 강화석 조금, 레이드는 정제 강화석도 (보스 처치). 레이드 정제 강화석은 확률 강화 · 재설정 때문에 2배 (34 6-9) */
+/**
+ * 클리어 재료 (12 1장 · 87 3장): 강화석 = 탐험 · 던전 (+1~+5), 정제 강화석 = 던전 악몽 · 레이드 (+6~+10), 둘 다 난이도가 높을수록 많이.
+ * 탐험은 스테미너가 던전의 절반이라 강화석도 절반 (올림, 87: 예전엔 같아서 스테미너당 2배). 던전 악몽 정제 1개 (87: 레이드 전 +6 · +7 맛보기).
+ * 레이드 정제 강화석: 10인 1 · 2 · 3 · 4, 20인 2 · 3 · 4 · 6 (87: 예전 10인 2 · 2 · 2 · 4, 20인 4 · 4 · 4 · 6은 쉬움 · 보통이 너무 후했음)
+ */
 const DIFF_STEP: Record<DiffName, number> = { '쉬움': 0, '보통': 1, '어려움': 2, '악몽': 3 };
-export function clearMats(diff: DiffName, raid: 0 | 10 | 20): { stone: number; refined: number } {
-  if (!raid) return { stone: 1 + DIFF_STEP[diff], refined: 0 };
-  return { stone: 2 + DIFF_STEP[diff], refined: 2 * ((raid === 20 ? 2 : 1) + (diff === '악몽' ? 1 : 0)) };
+const RAID_REFINED: Record<10 | 20, number[]> = { 10: [1, 2, 3, 4], 20: [2, 3, 4, 6] };
+export function clearMats(diff: DiffName, raid: 0 | 10 | 20, explore = false): { stone: number; refined: number } {
+  const n = DIFF_STEP[diff];
+  if (raid) return { stone: 2 + n, refined: RAID_REFINED[raid][n] };
+  if (explore) return { stone: Math.ceil((1 + n) / 2), refined: 0 };
+  return { stone: 1 + n, refined: diff === '악몽' ? 1 : 0 };
 }
 
 /**

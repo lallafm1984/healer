@@ -246,7 +246,7 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   const currency = (key: CurrencyIconKey, name: string, amount: number, color: string, basis = '클리어 시', probability = 1) => {
     items.push({ key, name, label: fmt(amount), icon: currencyIcon(key), color, probability, basis });
   };
-  const mats = clearMats(d, raid);
+  const mats = clearMats(d, raid, c.kind === 'explore');
   if (mats.stone) currency('stone', '강화석', mats.stone, '#C3B899');
   if (mats.refined) currency('refined', '정제 강화석', mats.refined, '#A6DEF0');
   if (play && raid) {

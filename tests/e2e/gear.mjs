@@ -113,7 +113,7 @@ export default async function gear(url, shots) {
     ok(await page.isVisible('#s-char .c7-confirm') && (await page.isVisible('#s-char .c7-enh-result')) === (r < .9) && JSON.stringify(await save()) === saved, '연출 종료 후 팝업 유지·성공만 결과 표시·자동 추가 강화 없음');
     pop = await text('#s-char .c7-confirm');
     if (r === 0.99) {
-      ok((await text('#s-char .c7-confirm-rate')).trim() === '성공률 90%' && (await page.locator('#s-char .c7-confirm .c7-enh-result').count()) === 0 && !/강화 실패/.test(pop), '실패 결과 항목 제거: 성공률·다음 비용만 표시하고 실패·하락·유지 설명 없음');
+      ok((await text('#s-char .c7-confirm-rate')).trim() === '성공률 70%' && (await page.locator('#s-char .c7-confirm .c7-enh-result').count()) === 0 && !/강화 실패/.test(pop), '실패 결과 항목 제거: 성공률·다음 비용만 표시하고 실패·하락·유지 설명 없음');
       await page.locator('#s-char .c7-confirm').screenshot({ path: `${shots}/gear_failure_no_drop.png` });
     }
     await page.evaluate(() => { Math.random = window.__rnd; });
@@ -123,7 +123,7 @@ export default async function gear(url, shots) {
   await page.click('#s-char [data-enh="101"]'); await page.clock.runFor(50);
   ok(await page.isVisible('#s-char .c7-confirm') && JSON.stringify(await save()) === beforeEnh, '강화 확인 전에는 재화와 장비 유지');
   pop = await text('#s-char .c7-confirm');
-  ok(/\+0 → \+1/.test(pop) && (await page.locator('#s-char .c7-confirm [data-material="gold"]').count()) === 0 && (await text('#s-char .c7-confirm [data-material="stone"] [data-cost]')).trim() === '1' && (await text('#s-char .c7-confirm [data-material="stone"] [data-have]')).trim() === '8' && /성공률 100%/.test(pop), '강화 팝업: 다음 단계·강화석만 (골드 없음)·보유 강화석·성공 확률');
+  ok(/\+0 → \+1/.test(pop) && (await page.locator('#s-char .c7-confirm [data-material="gold"]').count()) === 0 && (await text('#s-char .c7-confirm [data-material="stone"] [data-cost]')).trim() === '1' && (await text('#s-char .c7-confirm [data-material="stone"] [data-have]')).trim() === '8' && /성공률 90%/.test(pop), '강화 팝업: 다음 단계·강화석만 (골드 없음)·보유 강화석·성공 확률 (87: +1도 90%)');
   await page.click('#s-char .c7-confirm [data-confirmcancel]'); await page.clock.runFor(50);
   ok(JSON.stringify(await save()) === beforeEnh && await page.isVisible('#s-char .c7-gsheet'), '강화 취소는 상세로 복귀하며 비용 없음');
   await enh(0);
@@ -131,7 +131,7 @@ export default async function gear(url, shots) {
   ok(sv.gear.equipped.head.plus === 1 && !('gold' in sv.player) && sv.mats.stone === 7, '강화 +1: 강화석 1만 씀');
   await enh(0);
   sv = await save();
-  ok(sv.gear.equipped.head.plus === 2 && sv.mats.stone === 5 && /성공률 90%/.test(pop) && !/실패 시|실패해도|하락|유지/.test(pop), '+2 (강화석 2), 팝업은 성공률 90%만 표시, 실패 안내 문구 없음');
+  ok(sv.gear.equipped.head.plus === 2 && sv.mats.stone === 5 && /성공률 70%/.test(pop) && !/실패 시|실패해도|하락|유지/.test(pop), '+2 (강화석 2), 팝업은 성공률 70%만 표시, 실패 안내 문구 없음');
   await enh(0.99);
   sv = await save();
   ok(sv.gear.equipped.head.plus === 2 && sv.mats.stone === 2 && !/강화 실패/.test(await text('#s-char .c7-gsheet')) && !/하락|유지|그대로/.test(pop), '+3 실패: 현재 +2와 능력치는 유지하고 재료만 소비, 하락·유지 설명 없음');

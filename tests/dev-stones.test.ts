@@ -25,7 +25,7 @@ describe('강화석 무제한', () => {
     expect(G.save.mats.stone).toBe(0);
     // +6부터 드는 정제 강화석도 쓰지 않음
     G.save.gear.equipped.neck = neck(6);
-    expect(enhanceCost(neck(6))!.refined).toBe(2);
+    expect(enhanceCost(neck(6))!.refined).toBe(3);
     expect(enhanceTry(7, () => 0)).toMatchObject({ ok: true, to: 7 });
     expect(G.save.mats.refined).toBe(0);
   });
