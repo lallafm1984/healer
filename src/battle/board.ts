@@ -62,6 +62,8 @@ const cv = $('board') as HTMLCanvasElement;
 const root = new Container();
 const cellsG = new Graphics();
 const unitsG = new Graphics();
+/** 칸 위에 선 물건 (주술사 샘 토템, 2026-10-16 Lim): 칸 가운데 고정, 파티원 칸 채움 (직업 색) 위 · 직업 아이콘 · 이름 · 체력 · 배지 · 이펙트 아래 */
+const standL = new Container();
 const glowL = new Container();
 const fxG = new Graphics();
 const frameL = new Container();
@@ -84,7 +86,7 @@ const markL = new Container();
 /** 말풍선 그림 (43 5장): 틀 뒤 이펙트 띠 · 틀 9조각 · 꼬리·감정 아이콘·앞 이펙트 띠. 대사 글자(topL)는 그 위 */
 const bubbleL = new Container(), bubbleBackL = new Container(), sliceL = new Container(), bubbleFrontL = new Container();
 bubbleL.addChild(bubbleBackL, sliceL, bubbleFrontL);
-root.addChild(cellsG, decalL, unitsG, glowL, fxG, fxArtL, frameL, overG, markL, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL, pxfL);
+root.addChild(cellsG, decalL, unitsG, standL, glowL, fxG, fxArtL, frameL, overG, markL, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL, pxfL);
 
 let dpr = 1;
 /** 판 그림 좌표 (Pixi root 안). k = 그림 → 화면 배율: 보통 1, 「레이드 판 5인 던전 모양」이면 1보다 작음 (화면 좌표 = 그림 좌표 × k) */
@@ -495,7 +497,7 @@ class SpritePool {
   }
   end(): void { for (let i = this.used; i < this.list.length; i++) this.list[i].visible = false; }
 }
-const decals = new SpritePool(decalL), fxArt = new SpritePool(fxArtL), marks = new SpritePool(markL), pxfArt = new SpritePool(pxfL), bubbleBack = new SpritePool(bubbleBackL), bubbleFront = new SpritePool(bubbleFrontL);
+const decals = new SpritePool(decalL), fxArt = new SpritePool(fxArtL), marks = new SpritePool(markL), stands = new SpritePool(standL), pxfArt = new SpritePool(pxfL), bubbleBack = new SpritePool(bubbleBackL), bubbleFront = new SpritePool(bubbleFrontL);
 /** 생명 사슬 띠 (fx-link-*): 가로로 이어 붙이는 그림을 두 칸 사이에 깔아 돌림 */
 const strips: TilingSprite[] = [];
 let stripUsed = 0;
@@ -1127,18 +1129,21 @@ export function lensAt(idx: number, now: number): void { B2.lens = { idx, t0: no
 const HOT_COLOR: Record<string, number> = { sprout: 0x7bc67e, growth: 0xb7e07a, wildflower: 0xe59ac0, oath: 0xf0c46a, bloom: 0xf3c7d6, lightWave: 0xffe7a3, droplet: 0x7ec8f0, wanderMist: 0x6fd0b0, starMark: 0xe8b04a };
 /**
  * 판 위 물건 (79 6-1, engine/totems): 칸 바닥 색 · 그림 이름 (80 5장 board-*, 오기 전엔 바닥 색 + 안쪽 테두리). 범위 = 테두리를 그릴 거리
+ * stand = 바닥 무늬가 아니라 칸 위에 선 물건 (standL): 사람이 서 있어도 그 칸 가운데에 크게, 이름 · 체력 뒤. 샘 토템 = 스킬 아이콘과 같은 나무 그루터기 분수 (2026-10-16)
  */
-const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string }> = {
-  spring: { color: 0x7ec8f0, art: 'ui-class-board-totem-spring', label: '샘' },
+const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string; stand?: boolean }> = {
+  spring: { color: 0x7ec8f0, art: 'board-totem-spring', label: '샘', stand: true },
   earth: { color: 0xc49a62, art: 'ui-class-board-totem-earth', label: '대지' },
   sea: { color: 0x4fa8e0, art: 'board-sea-spring', label: '바다' },
   mist: { color: 0x6fd0b0, art: 'board-mist-pool', label: '안개' },
   citadel: { color: 0xe6d3a0, art: 'board-citadel', label: '성채' },
   nova: { color: 0xd19a5e, art: 'board-supernova', label: '별' },
 };
+/** 선 물건 그림 한 변 (칸 반지름 배) · 그 안에서 그려진 부분 (폭 · 높이 비율, board-totem-spring 납품본을 잼): 그려진 부분이 칸 안에 꽉 차게 */
+const STAND_SIZE = 1.5, STAND_W = 0.72, STAND_H = 0.95;
 /** 힐러 직업 4종 판 위 그림 (80 5장): 전투 시작 때 그 직업 것만 미리 읽음 (첫 토템 · 인장부터 보이게) */
 const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
-  shaman: ['ui-class-board-totem-spring', 'ui-class-board-totem-earth', 'board-totem-rain', 'board-sea-spring'],
+  shaman: ['board-totem-spring', 'ui-class-board-totem-earth', 'board-totem-rain', 'board-sea-spring'],
   monk: ['board-mist', 'board-mist-pool'],
   astrologer: ['board-star', 'board-star-mark', 'board-star-sleep', 'board-supernova'],
   warder: ['board-seal', 'board-barrier', 'board-citadel'],
@@ -1306,7 +1311,7 @@ export function render(now: number): void {
   const typography = cellTypography(s), compact = typography.compact;
   const rdt = Math.min(0.1, Math.max(0, (now - (B2.lastRender || now)) / 1000)); B2.lastRender = now;
   for (const g of [cellsG, unitsG, fxG, overG, badgeG, topG]) g.clear();
-  labels.begin(); badgeLabels.begin(); tops.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); marks.begin(); pxfArt.begin(); stripUsed = 0;
+  labels.begin(); badgeLabels.begin(); tops.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); marks.begin(); stands.begin(); pxfArt.begin(); stripUsed = 0;
   bubbleBack.begin(); bubbleFront.begin(); sliceUsed = 0;
   telsSeen = F.tels.slice(); // 다음 impact 사건이 어느 기술인지 (fxImpact)
   const fs = (k: number, min: number) => Math.max(min, s * k);
@@ -1396,7 +1401,13 @@ export function render(now: number): void {
     for (const tm of F.totems) if (tm.cell === i) {
       const look = TOTEM_LOOK[tm.kind], end = tm.until - F.t < 2, tex = artTexture(look.art);
       hexPoly(cellsG, p.x, p.y, r).fill({ color: look.color, alpha: end ? 0.08 + 0.14 * pulse : 0.22 });
-      if (tex) decals.put(tex, p.x, p.y, cellArt, cellArt, end ? 0.5 + 0.5 * pulse : 1);
+      if (tex && look.stand) {
+        // 선 물건 (2026-10-16 Lim 「토템 위치는 고정, 이름 · 체력 뒤 직업 칸 색 위에 가운데 크게, 캐릭터가 이동해도 그 자리」): 칸 가운데, 세울 때 0.25초 솟아오름 (바닥 기준)
+        const rise = S.reducedEffects ? 1 : Math.min(1, Math.max(0, (F.t - tm.at) / 0.25)), k = 0.6 + 0.4 * (1 - (1 - rise) ** 2);
+        const size = r * STAND_SIZE, half = (size * STAND_H) / 2, q = fitCenter(p.x, p.y, (size * STAND_W) / 2, half);
+        stands.put(tex, q.x, q.y + half * (1 - k), size * k, size * k, end ? 0.5 + 0.5 * pulse : 1);
+        recordBound(`stand-${tm.kind}${i}`, 'stand', 'rect', q.x, q.y, size * STAND_W, size * STAND_H, { diameter: size });
+      } else if (tex) decals.put(tex, p.x, p.y, cellArt, cellArt, end ? 0.5 + 0.5 * pulse : 1);
       else hexPoly(cellsG, p.x, p.y, r * 0.62).stroke({ width: 2.5, color: look.color, alpha: 0.9 });
     }
     // 사제 쉼터 (특성): 금빛 바닥 + 안쪽 테두리, 끝나기 2초 전 깜빡임
@@ -2143,7 +2154,7 @@ export function render(now: number): void {
   for (let i = glowUsed; i < glows.length; i++) glows[i].visible = false;
   for (let i = hexFramesUsed; i < hexFrames.length; i++) hexFrames[i].visible = false;
   for (let i = sliceUsed; i < slices.length; i++) slices[i].visible = false;
-  labels.end(); badgeLabels.end(); tops.end(); decals.end(); fxArt.end(); marks.end(); pxfArt.end(); bubbleBack.end(); bubbleFront.end();
+  labels.end(); badgeLabels.end(); tops.end(); decals.end(); fxArt.end(); marks.end(); stands.end(); pxfArt.end(); bubbleBack.end(); bubbleFront.end();
   for (let i = stripUsed; i < strips.length; i++) strips[i].visible = false;
   lensL.visible = false;
   app.renderer.render(app.stage);
