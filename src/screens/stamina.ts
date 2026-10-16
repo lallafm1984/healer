@@ -118,11 +118,11 @@ export interface EntryOpts { name: string; sub: string; cost: number; onGo(): vo
 export function confirmEntry(o: EntryOpts): void {
   const render = (msg = '') => {
     const v = view(), lack = !v.unlimited && v.n < o.cost;
-    // 소모 · 보유 두 칸 (Lim 2026-10-16: 보유는 지금 값만, 입장 후 값 · 안내 문장 없음)
+    // 보유 (왼쪽) · 소모 (오른쪽) 두 칸 (Lim 2026-10-16: 보유는 지금 값만, 입장 후 값 · 안내 문장 없음)
     const cell = (cls: string, label: string, val: string) => `<div class="st-c ${cls}"><dt>${label}</dt><dd>${val}</dd></div>`;
     const cost = `<dl class="st-cost${lack ? ' lack' : ''}">
-      ${cell('st-need', '소모', `${currencyIcon('stamina')}<b>${o.cost}</b>`)}
-      ${cell('st-have', '보유', `<b data-stam-n>${amount(v.n, v.unlimited)}</b>`)}</dl>`;
+      ${cell('st-have', '보유', `<b data-stam-n>${amount(v.n, v.unlimited)}</b>`)}
+      ${cell('st-need', '소모', `${currencyIcon('stamina')}<b>${o.cost}</b>`)}</dl>`;
     const dest = `<p class="st-dest"><b>${esc(o.name)}</b><small>${esc(o.sub)}</small></p>`;
     const el = lack
       ? show('st-entry lack', `<h3 id="stTitle">스테미너 부족</h3>${dest}${cost}${timeRows()}
