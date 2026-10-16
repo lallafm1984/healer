@@ -154,7 +154,7 @@ export function buildClassGauge(host: HTMLElement, controls: HTMLElement, job: H
       // 채택 시안의 원화 좌표(봉화 중심375, 하단440). 슬롯 밖 여백에 놓아 원화와 프레임은 유지한다.
       const name=span('paladin-beacon-name');
       name.style.left=((w-(r-l)*scale)/2+(375-l)*scale)+'px';
-      name.style.top=`calc(${(h-(b-t)*scale)/2+(440-t)*scale}px + 1.4px / var(--controls-scale, 1) / var(--gauge-scale, 1))`; // 특성 버튼이 없어 자원 그림을 키워도 화면 1.4px
+      name.style.top=`calc(${(h-(b-t)*scale)/2+(440-t)*scale}px + 1.4px / var(--controls-scale, 1))`;
       host.append(name);
     }
   }

@@ -5,7 +5,7 @@
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
-import { SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
+import { PASSIVE_LEVEL, PASSIVE_NAME, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
 import { AFFIXES } from '../data/affixes';
 import { ABILITIES } from '../data/abilities';
@@ -25,7 +25,7 @@ import { initBattleDialogs } from './dialogs';
 import { createTalk } from './talk';
 import { ALLY_PXF, BOSS_PXF, bossPxfOf, COMMON_PXF, PXF, pxfTargets, SKILL_PXF, type PxfKey } from './pxf';
 import {
-  bossFx, bossHealNum, fitBossTitle, updateBossTitle, buildAux, buildGauges, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openSkillTip, openTalentTip, openTip, releaseTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
+  bossFx, bossHealNum, fitBossTitle, LOCK_SVG, updateBossTitle, buildAux, buildGauges, buildStage, buildWheel, clearCoach, closeTip, coachCheck, coachUsed, dmgNum, guideOf, openSkillTip, openTalentTip, openTip, releaseTip, showPreview, hidePreview, keepPreview, previewKept, updatePreview, tipMatch,
   placeGiveUp, resetDmgNums, updateAux, updateCastbar, updateStage, updateWheel,
 } from './hud';
 
@@ -93,6 +93,8 @@ function startBattle(guideSec = 0): void {
   buildGauges(F);
   $('gauges').classList.toggle('locked', !words);
   $('controls').classList.toggle('nowords', !words);
+  // 레벨이 모자라 잠긴 자원 그림도 어둡게 보이고 자물쇠 + 배우는 레벨 (2026-10-16 Lim, 휠의 잠긴 칸과 같은 표시)
+  if (!words) $('gauges').insertAdjacentHTML('beforeend', `<span class="gauge-lock" role="img" aria-label="${PASSIVE_NAME.words} 잠김, Lv ${PASSIVE_LEVEL.words}에 배움"><span class="slot-lock" aria-hidden="true">${LOCK_SVG}</span><b>Lv ${PASSIVE_LEVEL.words}</b></span>`);
   $('controls').classList.toggle('paladin', F.hero === 'paladin');
   // 최종 고유 게이지와 잠금 상태가 정해진 뒤 한 번만 크기·터치 영역을 측정한다.
   layoutBattle();
@@ -302,6 +304,12 @@ $('aux').addEventListener('pointerup', e => endAux(false, e));
 $('aux').addEventListener('pointercancel', e => endAux(true, e));
 $('aux').addEventListener('lostpointercapture', e => endAux(true, e));
 $('aux').addEventListener('contextmenu', e => e.preventDefault());
+// 잠긴 특성 칸: 휠의 잠긴 칸처럼 누르면 열리는 레벨 안내
+const talentLockToast = (el: HTMLElement) => { toast(`특성 버튼: Lv ${el.dataset.tlock}에 열림`); Snd.play('error'); };
+$('aux').addEventListener('pointerup', e => {
+  const l = (e.target as Element).closest<HTMLElement>('[data-tlock]');
+  if (l && live() && ui.pullLeft <= 0 && !pointerBusy() && e.button === 0) talentLockToast(l);
+});
 
 // 키보드/보조 기술이 만드는 click은 pointer 경로와 한 번만 실행한다.
 function assistiveClick(e: MouseEvent): boolean {
@@ -320,6 +328,8 @@ $('wheel').addEventListener('keydown', e => {
   if ((e.target as HTMLElement).id === 'core' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); if (!pointerBusy()) pressCore(); }
 });
 $('aux').addEventListener('click', e => {
+  const lock = (e.target as Element).closest<HTMLElement>('[data-tlock]');
+  if (lock && assistiveClick(e) && live() && ui.pullLeft <= 0 && !pointerBusy()) { talentLockToast(lock); return; }
   const key = (e.target as Element).closest<HTMLElement>('[data-tal]')?.dataset.tal as TalentKey | undefined;
   if (assistiveClick(e) && key && live() && ui.pullLeft <= 0 && !pointerBusy()) pressAux(key);
 });

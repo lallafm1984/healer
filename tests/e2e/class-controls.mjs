@@ -28,7 +28,7 @@ export default async function classControls(url,shots){
      const fr=frame.getBoundingClientRect(),rel=e=>{const r=e.getBoundingClientRect();return[r.x-fr.x,r.y-fr.y,r.width,r.height];},aux=document.querySelector('#aux').getBoundingClientRect(),cast=document.querySelector('#castbar').getBoundingClientRect();
      return {job:g.dataset.job,background:getComputedStyle(compact?frame:c).backgroundImage+' '+getComputedStyle(frame).borderImageSource,
       positions:[rel(g),rel(document.querySelector('#wheel')),...[...document.querySelectorAll('#wheel .slot,#core')].map(rel)],
-      auxCount:tals.length,auxFit:aux.height===0||(aux.top>=gr.bottom&&aux.bottom<=cr.bottom-20&&aux.left>=fr.left+(innerWidth<360?6:12)&&aux.right<=wheel.left),
+      auxCount:tals.length,slotCount:document.querySelectorAll('#aux > .slot.tal').length,auxFit:aux.height===0||(aux.top>=gr.bottom&&aux.bottom<=cr.bottom-20&&aux.left>=fr.left+(innerWidth<360?6:12)&&aux.right<=wheel.left),
       board:document.querySelector('#boardWrap').getBoundingClientRect().height,frameTop:fr.top,
       timersFit:[...g.querySelectorAll('.gauge-number,.gauge-extra')].filter(e=>e.textContent).every(e=>{const r=e.getBoundingClientRect();return r.left>=gr.left-1&&r.right<=gr.right+1&&r.top>=gr.top-1&&r.bottom<=gr.bottom+1;}),
       touchClear:[...c.querySelectorAll('button')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;}).every(e=>{const r=e.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return hit===e||e.contains(hit);}),
@@ -44,7 +44,7 @@ export default async function classControls(url,shots){
     if(hero==='priest'&&!hasAux)baseline[width]={positions:check.positions,board:check.board,frameTop:check.frameTop};
     // 특성 버튼 (2026-10-16): 예전 소비 아이템 자리. 전투판 · 조작판 크기와 휠 좌표는 그대로, 특성 버튼이 없으면 자원 그림만 커짐
     ok(check.positions.every((r,i)=>(hasAux&&i===0)||r.every((v,k)=>Math.abs(v-baseline[width].positions[i][k])<.35))&&Math.abs(check.board-baseline[width].board)<.5&&Math.abs(check.frameTop-baseline[width].frameTop)<.5,label+' 사제 B안 공통 좌표 · 전투판 크기 그대로');
-    ok(check.auxCount===(hasAux?auxPicks[hero].filter(x=>x!==null).length:0)&&check.auxFit&&check.timersFit&&check.touchClear,label+' 특성 버튼 · 타이머 · 터치 비침범 '+JSON.stringify(check));
+    ok(check.auxCount===(hasAux?auxPicks[hero].filter(x=>x!==null).length:0)&&check.slotCount===(['priest','monk'].includes(hero)?3:2)&&check.auxFit&&check.timersFit&&check.touchClear,label+' 특성 버튼 · 타이머 · 터치 비침범 '+JSON.stringify(check));
     ok(check.job===hero&&check.background.includes('ui-class-'+hero+'-background')&&check.oldFrameGone,label+' class materials');
     ok(check.talRow&&check.talFit&&check.wheelFit&&check.aligned&&check.images&&check.gaugeSize[1]>=50&&check.hitMin>=43.9&&check.hitOverlap==='false',label+' aligned gauge/talents safe insets '+JSON.stringify(check));
     await p.locator('#controlsFrame').screenshot({path:shots+'/class-controls-'+hero+'-'+width+'-'+(hasAux?'aux':'base')+'.png'});
@@ -94,8 +94,8 @@ export default async function classControls(url,shots){
    });
    const sideInset=hand==='right'?g.side.left:g.frame.right-g.side.right;
    const skillInset=hand==='right'?g.frame.right-g.wheel.right:g.wheel.left;
-   // 특성 버튼이 없는 판: 자원 그림 1.2배 (117 → 140.4)
-   ok(Math.abs(sideInset-inset)<.3&&Math.abs(skillInset-wheelInset)<.3&&Math.abs(g.gauge.height-117*1.2)<.5
+   // 버튼 특성을 안 고른 판도 특성 칸 (빈 칸)이 남고 자원 그림은 그대로 (2026-10-16 Lim)
+   ok(Math.abs(sideInset-inset)<.3&&Math.abs(skillInset-wheelInset)<.3&&Math.abs(g.gauge.height-117)<.3
     &&g.overlap==='false',`B안 ${width} ${hand}: 폭별 위치·자원 그림·resize 복귀 `+JSON.stringify(g));
    await p.locator('#controlsFrame').screenshot({path:shots+`/panel-b-${width}-${hand}.png`});
   }

@@ -3,7 +3,7 @@
  * 보조 버튼 특성 (기적 · 쉼터 · 정점 · 흩빛 · 봄비 · 숲의 기억 · 고목 · 결의 · 새벽)은 GCD 밖에서 바로 쓰고 마나도 안 든다
  */
 import { DRUID_BIG, HAND_GUARD, WAVE } from '../data/heroConst';
-import { TALENT_DEF, talentKeys, TX, type TalentKey } from '../data/talents';
+import { TALENT_DEF, TALENT_TREES, talentKeys, TX, type TalentKey } from '../data/talents';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { hexDist } from './board';
 import { cellOf, emit, heal, healFlow, living } from './core';
@@ -37,6 +37,20 @@ export function newTalents(f: Fight): TalentState {
 }
 
 export const has = (f: Fight, k: TalentKey): boolean => !!f.tx.on[k];
+/** 조작판 특성 칸 하나: 고른 버튼 특성 · 레벨이 모자라 잠긴 단 · 열렸지만 버튼 특성을 안 고른 단 */
+export type TalentSlot = { kind: 'tal'; key: TalentKey } | { kind: 'lock'; lv: number } | { kind: 'empty'; lv: number };
+/**
+ * 그 직업의 특성 버튼 칸 (일곱 직업 같은 규칙): 버튼 특성이 있는 단마다 한 칸, 단 순서. 직업마다 2칸 (사제 · 수도사 3칸).
+ * 2026-10-16 Lim 「레벨이 안 돼서 못 쓰는 것도 기존 UI를 보여 주고 어둡게」: 잠긴 단 · 안 고른 단도 칸을 남김
+ */
+export function talentSlots(f: Fight): TalentSlot[] {
+  return TALENT_TREES[f.hero].flatMap((tier, i): TalentSlot[] => {
+    if (!tier.picks.some(p => p.active)) return [];
+    if (tier.lv > f.level) return [{ kind: 'lock', lv: tier.lv }];
+    const p = f.cfg.talents?.[i], key = p != null ? tier.picks[p]?.key : undefined;
+    return key && f.tx.act[key] ? [{ kind: 'tal', key }] : [{ kind: 'empty', lv: tier.lv }];
+  });
+}
 /** 보조 버튼 특성이 지금 켜져 있는지 (정점·흩빛) */
 export const activeOn = (f: Fight, k: TalentKey): boolean => (f.tx.act[k]?.left ?? 0) > 0;
 /** 전투당 횟수 제한이 있는 모든 보조 특성 버튼의 공통 판정. */

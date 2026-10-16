@@ -17,7 +17,7 @@ import { INT_BASE } from '../data/rules';
 import { healText, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { skillTip, tipHtml } from '../game/tooltip';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
-import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, skillUsesSpent, slotKey, talentUsesSpent, type Fight, type Unit } from '../engine';
+import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, skillUsesSpent, slotKey, talentSlots, talentUsesSpent, type Fight, type Unit } from '../engine';
 import { art, cssUrl } from '../art';
 import { skillMark } from './art';
 import { center, L, screenCenter } from './board';
@@ -74,7 +74,7 @@ const DIR_PATH: Record<Dir, string> = {
   S: 'M12 4v16M6 14l6 6 6-6', SW: 'M18 6L6 18M6 10v8h8', W: 'M20 12H4M10 6l-6 6 6 6', NW: 'M18 18L6 6M14 6H6v8',
 };
 const dirSvg = (d: Dir) => `<svg class="dir" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${DIR_PATH[d]}"/></svg>`;
-const LOCK_SVG = '<svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+export const LOCK_SVG = '<svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 
 export function buildWheel(D: number): void {
   const w = $('wheel'), F = B.F;
@@ -207,14 +207,17 @@ export function buildGauges(F: Fight): void {
 }
 
 // ---------- 특성 버튼 (06 9장 2번 · 2026-10-16 Lim: 소비 아이템을 없애고 그 자리에, 스킬 버튼과 같은 원형 · 재사용 대기 표시) ----------
-// 쓸 수 있는 버튼 특성만 보임 (B안). 하나도 없으면 자원 그림을 키움 (class-controls.css). 직업마다 최대 2개, 사제 · 수도사 3개. 장비 효과는 버튼을 만들지 않는다
+// 버튼 특성이 있는 단마다 한 칸 (직업마다 2칸, 사제 · 수도사 3칸): 고른 버튼 특성 · 잠긴 단 (자물쇠 + Lv) · 버튼 특성을 안 고른 단 (빈 칸). 장비 효과는 버튼을 만들지 않는다
 export function buildAux(): void {
-  const keys = Object.keys(fight().tx.act) as TalentKey[], aux = $('aux');
-  aux.hidden = !keys.length;
-  aux.dataset.n = String(keys.length);
-  $('controls').classList.toggle('hasaux', keys.length > 0);
-  aux.innerHTML = keys.map(k => {
-    const pic = art(`talent-${k}`); // 특성 그림 (78). 없으면 이름만
+  // 2026-10-16 Lim 「저레벨이면 왼쪽이 비어 이상하다 · 레벨이 안 되면 기존 UI를 보여 주고 어둡게」: 버튼 특성 단마다 칸을 늘 남김
+  const slots = talentSlots(fight()), aux = $('aux');
+  aux.hidden = !slots.length;
+  aux.dataset.n = String(slots.length);
+  $('controls').classList.toggle('hasaux', slots.length > 0);
+  aux.innerHTML = slots.map(sl => {
+    if (sl.kind === 'lock') return `<button class="slot tal locked" type="button" data-tlock="${sl.lv}" aria-label="특성 버튼, 잠김, Lv ${sl.lv}에 열림"><span class="in"><span class="slot-lock" aria-hidden="true">${LOCK_SVG}</span><span class="ct">Lv ${sl.lv}</span></span></button>`;
+    if (sl.kind === 'empty') return `<div class="slot tal empty" role="img" aria-label="특성 버튼 빈 칸 (Lv ${sl.lv} 단에서 버튼 특성을 고르지 않음)"><span class="in"><span class="ct">빈 칸</span></span></div>`;
+    const k = sl.key, pic = art(`talent-${k}`); // 특성 그림 (78). 없으면 이름만
     return `<button class="slot tal" type="button" data-tal="${k}" aria-label="${TALENT_DEF[k].name}"><span class="cd"></span><span class="in">${pic ? `<img class="sic" src="${pic}" alt="" decoding="async" draggable="false">` : ''}<span class="nm">${TALENT_DEF[k].active!.short}</span><span class="ct"></span><span class="cds"></span></span></button>`;
   }).join('');
 }
