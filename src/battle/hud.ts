@@ -207,17 +207,16 @@ export function buildGauges(F: Fight): void {
 }
 
 // ---------- 특성 버튼 (06 9장 2번 · 2026-10-16 Lim: 소비 아이템을 없애고 그 자리에, 스킬 버튼과 같은 원형 · 재사용 대기 표시) ----------
-// 버튼 특성이 있는 단마다 한 칸 (직업마다 2칸, 사제 · 수도사 3칸): 고른 버튼 특성 · 잠긴 단 (자물쇠 + Lv) · 버튼 특성을 안 고른 단 (빈 칸). 장비 효과는 버튼을 만들지 않는다
+// 고른 버튼 특성만 보임 (직업마다 최대 2개, 사제 · 수도사 3개). 장비 효과는 버튼을 만들지 않는다.
+// 2026-10-16 Lim 「특성을 안 찍었을 때와 비활성화일 땐 가려 줘, 1개면 가운데, 스킬 자원 그림이 가득 차게」: 잠긴 단 · 안 고른 단은 칸을 두지 않고,
+// 보이는 버튼이 없으면 자원 그림을 키움 (class-controls.css)
 export function buildAux(): void {
-  // 2026-10-16 Lim 「저레벨이면 왼쪽이 비어 이상하다 · 레벨이 안 되면 기존 UI를 보여 주고 어둡게」: 버튼 특성 단마다 칸을 늘 남김
-  const slots = talentSlots(fight()), aux = $('aux');
-  aux.hidden = !slots.length;
-  aux.dataset.n = String(slots.length);
-  $('controls').classList.toggle('hasaux', slots.length > 0);
-  aux.innerHTML = slots.map(sl => {
-    if (sl.kind === 'lock') return `<button class="slot tal locked" type="button" data-tlock="${sl.lv}" aria-label="특성 버튼, 잠김, Lv ${sl.lv}에 열림"><span class="in"><span class="slot-lock" aria-hidden="true">${LOCK_SVG}</span><span class="ct">Lv ${sl.lv}</span></span></button>`;
-    if (sl.kind === 'empty') return `<div class="slot tal empty" role="img" aria-label="특성 버튼 빈 칸 (Lv ${sl.lv} 단에서 버튼 특성을 고르지 않음)"><span class="in"><span class="ct">빈 칸</span></span></div>`;
-    const k = sl.key, pic = art(`talent-${k}`); // 특성 그림 (78). 없으면 이름만
+  const keys = talentSlots(fight()).flatMap(s => (s.kind === 'tal' ? [s.key] : [])), aux = $('aux');
+  aux.hidden = !keys.length;
+  aux.dataset.n = String(keys.length);
+  $('controls').classList.toggle('hasaux', keys.length > 0);
+  aux.innerHTML = keys.map(k => {
+    const pic = art(`talent-${k}`); // 특성 그림 (78). 없으면 이름만
     return `<button class="slot tal" type="button" data-tal="${k}" aria-label="${TALENT_DEF[k].name}"><span class="cd"></span><span class="in">${pic ? `<img class="sic" src="${pic}" alt="" decoding="async" draggable="false">` : ''}<span class="nm">${TALENT_DEF[k].active!.short}</span><span class="ct"></span><span class="cds"></span></span></button>`;
   }).join('');
 }

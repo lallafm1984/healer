@@ -304,12 +304,6 @@ $('aux').addEventListener('pointerup', e => endAux(false, e));
 $('aux').addEventListener('pointercancel', e => endAux(true, e));
 $('aux').addEventListener('lostpointercapture', e => endAux(true, e));
 $('aux').addEventListener('contextmenu', e => e.preventDefault());
-// 잠긴 특성 칸: 휠의 잠긴 칸처럼 누르면 열리는 레벨 안내
-const talentLockToast = (el: HTMLElement) => { toast(`특성 버튼: Lv ${el.dataset.tlock}에 열림`); Snd.play('error'); };
-$('aux').addEventListener('pointerup', e => {
-  const l = (e.target as Element).closest<HTMLElement>('[data-tlock]');
-  if (l && live() && ui.pullLeft <= 0 && !pointerBusy() && e.button === 0) talentLockToast(l);
-});
 
 // 키보드/보조 기술이 만드는 click은 pointer 경로와 한 번만 실행한다.
 function assistiveClick(e: MouseEvent): boolean {
@@ -328,8 +322,6 @@ $('wheel').addEventListener('keydown', e => {
   if ((e.target as HTMLElement).id === 'core' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); if (!pointerBusy()) pressCore(); }
 });
 $('aux').addEventListener('click', e => {
-  const lock = (e.target as Element).closest<HTMLElement>('[data-tlock]');
-  if (lock && assistiveClick(e) && live() && ui.pullLeft <= 0 && !pointerBusy()) { talentLockToast(lock); return; }
   const key = (e.target as Element).closest<HTMLElement>('[data-tal]')?.dataset.tal as TalentKey | undefined;
   if (assistiveClick(e) && key && live() && ui.pullLeft <= 0 && !pointerBusy()) pressAux(key);
 });
