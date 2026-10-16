@@ -21,6 +21,7 @@ import './screens/sunforged-ui.css';
 import './screens/lobby-a2.css';
 import './screens/lobby-a2-fidelity.css';
 import './screens/lobby-life.css';
+import './screens/lobby-menu.css';
 import './screens/a2-theme.css';
 import './screens/a2-character-theme.css';
 import './screens/a2-character-controls.css';

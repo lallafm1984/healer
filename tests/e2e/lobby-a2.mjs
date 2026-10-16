@@ -1,7 +1,7 @@
 // A2 목재·리넨 로비: 실제 DOM 입력/상태/반응형 회귀. 시안과의 픽셀 동일성을 주장하는 테스트는 아니다.
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { pastTitle } from './nav.mjs';
+import { entryGo, pastTitle } from './nav.mjs';
 
 const lobby = '#s-lobby';
 const village = `${lobby} .lb-village`;
@@ -118,24 +118,27 @@ export default async function lobbyA2(url, shots) {
         await cdp.detach(); await tick(page);
 
         const c = (await layout(page)).cta;
-        await page.touchscreen.tap(c.x + c.width / 2, c.bottom - 2); await tick(page);
+        // 출전 → 입장 확인 팝업 (81) → 편성
+        await page.touchscreen.tap(c.x + c.width / 2, c.bottom - 2); await tick(page); await entryGo(page); await tick(page);
         ok(await page.isVisible('#s-party') && /녹슨 고원/.test(await page.textContent('#s-party .topbar')), `${width}: 출전 하단 터치 → 실제 목적지 편성`);
         await page.locator('#s-party .tb-back').tap(); await tick(page); await goLobby(page);
-        await page.locator(`${lobby} .lb-trk`).tap(); await tick(page);
+        await page.locator(`${lobby} .lb-trk`).tap(); await tick(page); await entryGo(page); await tick(page);
         ok(await page.isVisible('#s-party') && /녹슨 고원/.test(await page.textContent('#s-party .topbar')), `${width}: 다음 목표 터치 → 목표 편성`);
         await page.locator('#s-party .tb-back').tap(); await tick(page); await goLobby(page);
 
         await page.locator(`${lobby} .lb-raid`).tap(); await tick(page);
-        ok(await page.isVisible('#s-content') && await page.getAttribute('#s-content [data-ctab="raid10"]', 'aria-selected') === 'true', `${width}: 첨탑 → 10인 레이드 기능 유지`);
+        ok(await page.isVisible('#s-content') && await page.getAttribute('#s-content [data-ctab="raid10"]', 'aria-selected') === 'true', `${width}: 레이드 → 10인 레이드 탭`);
         await goLobby(page); await page.locator(`${lobby} .lb-shop`).tap(); await tick(page);
-        ok(await page.isVisible('#s-shop') && await page.locator('#s-shop .srow').count() >= 7, `${width}: 잡화점 → 골드 상점`);
+        ok(await page.isVisible('#s-shop') && await page.getAttribute('#s-shop [data-sub="cash"]', 'aria-selected') === 'true', `${width}: 잡화점 → 상점 상품 탭 (골드 탭은 2026-10-16 없앰)`);
         await goLobby(page); await page.locator(`${lobby} .lb-missions .lb-main`).tap(); await tick(page);
         ok(await page.isVisible('#s-missions'), `${width}: 임무 → 임무 화면`);
         await page.locator('#s-missions .tb-back').tap(); await tick(page);
         ok(await page.isVisible(lobby), `${width}: 임무 닫기 → 로비`);
-        await page.locator(`${lobby} .lb-chest .lb-main`).tap(); await tick(page);
-        ok(await page.isVisible('#s-missions'), `${width}: 닫힌 일일 상자 → 임무 진행 화면`);
-        await page.locator('#s-missions .tb-back').tap(); await tick(page);
+        // 일일 상자 소켓은 임무에 합침 (2026-10-16 A안), 대장간 = 캐릭터 › 장비
+        ok(await page.locator(`${lobby} .lb-chest, #lbChest`).count() === 0, `${width}: 일일 상자 소켓 없음 (임무에 합침)`);
+        await page.locator(`${lobby} .lb-forge`).tap(); await tick(page);
+        ok(await page.isVisible('#s-char') && await page.getAttribute('#s-char nav [data-csub="gear"]', 'aria-selected') === 'true', `${width}: 대장간 → 캐릭터 장비`);
+        await goLobby(page);
         await page.locator(`${lobby} .lb-chal .lb-main`).tap(); await tick(page);
         ok(await page.isVisible('#s-content') && await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true', `${width}: 주간 도전 → 던전 선택 화면`);
         await goLobby(page); await page.locator(`${lobby} .tb-set`).tap(); await tick(page);
@@ -166,8 +169,9 @@ export default async function lobbyA2(url, shots) {
             const s = JSON.parse(localStorage.getItem('healer.save'));
             s.player.level = 12; localStorage.setItem('healer.save', JSON.stringify(s));
           });
-          // 모험 길잡이 (86): 지난 판이 있어도 다음 목표 · 출전 모두 지금 레벨에 맞는 칸 (Lv 12 = 교단 숲속 야영지 쉬움)
-          ok(/교단 숲속 야영지/.test(await page.textContent(`${lobby} .lb-trk`)) && /교단 숲속 야영지 쉬움/.test(await page.getAttribute('#lobbyStart', 'aria-label')),
+          // 모험 길잡이 (86): 지난 판이 있어도 다음 목표 · 출전 모두 지금 레벨에 맞는 같은 칸 (추천 칸은 레벨표 · 90 순차 구간에 따라 바뀌니 이름은 고정하지 않음)
+          const trkTitle = (await page.textContent(`${lobby} .lb-trk .trk-t`)).trim(), startLabel = await page.getAttribute('#lobbyStart', 'aria-label');
+          ok(!/잿빛 공동묘지/.test(trkTitle + startLabel) && startLabel.includes(trkTitle),
             '지난 판 있음: 다음 목표 · 출전 = 길잡이 추천 (지난 판 잿빛 공동묘지가 아님)');
           checkLayout(await layout(page), '390 지난 판 있음');
           await page.screenshot({ path: `${shots}/lobby_a2_last_run.png` });
@@ -201,8 +205,7 @@ export default async function lobbyA2(url, shots) {
           await page.locator('#lbClaim').tap(); await tick(page);
           const after = await readSave(page);
           ok(after.daily.missions.every(m => m.got) && after.mats.stone > before.mats.stone && /일일 5\/5/.test(await page.textContent(`${lobby} .lb-missions`)), '임무 일괄 수령 후 강화석·진행 즉시 갱신');
-          await page.locator('#lbChest').tap(); await tick(page);
-          ok((await readSave(page)).daily.chest && /내일 다시/.test(await page.textContent(`${lobby} .lb-chest`)), '일일 상자 열기 후 상태 즉시 갱신');
+          ok(after.daily.chest && await page.locator('#lbClaim').count() === 0, '「!」 한 번에 일일 상자까지 열림 (일일 상자를 임무에 합침)');
           await page.locator('#lbChal').tap(); await tick(page);
           ok((await readSave(page)).chalChest === 0 && await page.locator('#lbChal').count() === 0, '주간 도전 상자 수령 후 기본 바로가기 복구');
         }

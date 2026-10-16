@@ -52,9 +52,9 @@ export default async function portrait(url, shots) {
     // A2 목재·리넨 부품: 의미별 메뉴 아이콘과 독립 목표/출전 재질이 실제로 읽히는지.
     const lobbyIcons = '#s-lobby .lb-sock .g-ic, #s-lobby .lb-plate > .g-ic, #s-lobby .lb-cta > .g-ic';
     const iconsLoaded = await loaded(lobbyIcons) && (await Promise.all([
-      '.lb-missions .g-ic', '.lb-chal .g-ic', '.lb-chest .g-ic', '.lb-raid > .g-ic', '.lb-shop > .g-ic', '.lb-cta > .g-ic',
+      '.lb-missions .g-ic', '.lb-chal .g-ic', '.lb-raid > .g-ic', '.lb-forge > .g-ic', '.lb-shop > .g-ic', '.lb-cta > .g-ic',
     ].map(selector => loaded(`#s-lobby ${selector}`)))).every(Boolean);
-    ok(iconsLoaded, `${width}: 로비 소켓·패널·출전 그림 (임무·주간 도전·일일 상자·첨탑·잡화점·출전) decode`);
+    ok(iconsLoaded, `${width}: 로비 소켓·패널·출전 그림 (임무·주간 도전·레이드·대장간·잡화점·출전) decode`);
     ok(await bgLoaded('#s-lobby .lb-main') && await bgLoaded('#s-lobby .lb-trk') && await bgLoaded('#lobbyStart')
       && await bgLoaded('#s-lobby .topbar', '::before') && await bgLoaded('#tabs button[aria-current="page"]') && await bgLoaded('#tabs button:not([aria-current])'),
       `${width}: A2 소켓·독립 목표·붉은 출전·위 정보창·하단 탭 재질 로드`);
@@ -89,8 +89,8 @@ export default async function portrait(url, shots) {
       const items = g ? g.items : [];
       const outside = items.filter(b => !inside(b.rect)), overJourney = items.filter(b => !apart(b.rect, g.journey));
       const overEach = items.filter((b, i) => items.some((o, j) => j !== i && !apart(b.rect, o.rect)));
-      // 소켓 3개 (임무·주간 도전·일일 상자) + 패널 2개 (첨탑·잡화점). 길드 회관은 길드를 빼 두어 없음, 「다시」 소켓은 없음 (2026-10-12)
-      ok(items.length === 5 && !outside.length && inside(g.journey), `${label}: 소켓 3개·패널 2개·목표 패널 모두 잘림 없이 장면 안`);
+      // 소켓 2개 (임무·주간 도전, 휴식이 가득이라 휴식 충전 없음) + 패널 3개 (레이드·대장간·잡화점) (2026-10-16 A안). 길드 회관은 길드를 빼 두어 없음, 「다시」 소켓은 없음 (2026-10-12)
+      ok(items.length === 5 && !outside.length && inside(g.journey), `${label}: 소켓 2개·패널 3개·목표 패널 모두 잘림 없이 장면 안`);
       ok(items.length === 5 && !overJourney.length && !overEach.length, `${label}: 소켓·패널끼리, 목표·출전 패널과 겹침 없음`);
       if (outside.length || overJourney.length || overEach.length) console.log(JSON.stringify({ label, outside, overJourney, overEach, world: g.world, journey: g.journey }));
     };
@@ -161,10 +161,10 @@ export default async function portrait(url, shots) {
       return !!u && !/url\(/.test(getComputedStyle(el).backgroundImage) && await new Promise(res => { const i = new Image(); i.onload = () => res(i.naturalWidth > 0); i.onerror = () => res(false); i.src = u; });
     });
     ok(await catFrame('#s-content .b-cat[aria-selected="true"]') && await catFrame('#s-content .b-cat[aria-selected="false"]'), `${width}: 활성·비활성 분류 탭 = 돌색 + 황동 테 로드`);
-    // 로비 첨탑 이름표 → 전투 탭 10인 레이드
+    // 로비 레이드 팻말 → 전투 탭 10인 레이드 (20인이 열리기 전)
     await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(80);
     await page.click('#s-lobby .lb-raid'); await page.clock.runFor(80);
-    ok(await page.getAttribute('#s-content [data-ctab="raid10"]', 'aria-selected') === 'true', `${width}: 로비 첨탑 → 10인 레이드 탭`);
+    ok(await page.getAttribute('#s-content [data-ctab="raid10"]', 'aria-selected') === 'true', `${width}: 로비 레이드 → 10인 레이드 탭`);
     // 분류 = 탐험 · 던전 · 10인 레이드 · 20인 레이드 (2026-10-09 이벤트 탭 뺌). 레이드 탭엔 그 인원 레이드만
     const cats = await page.evaluate(() => [...document.querySelectorAll('#s-content [data-ctab]')].map(b => `${b.dataset.ctab}:${b.getAttribute('aria-label')}`).join());
     ok(/^explore:탐험[^,]*,dungeon:던전[^,]*,raid10:10인 레이드[^,]*,raid20:20인 레이드[^,]*$/.test(cats) && !/이벤트/.test(await page.textContent('#s-content .b-cats')), `${width}: 분류 4칸 = 탐험·던전·10인 레이드·20인 레이드, 이벤트 없음 (${cats})`);

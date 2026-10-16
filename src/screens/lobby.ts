@@ -1,16 +1,19 @@
 /**
  * S02 로비 = 살아 있는 마을 + A2 목재·리넨 UI (2026-10-11 채택 시안). 캐릭터 그림 없음.
  * 위 정보창(공통 topBar) 아래 ~ 하단 탭 위의 마을 장면(village.ts)은 그대로 유지하고 UI만 겹친다:
- *  왼쪽 원형 소켓 = 임무 (받을 것 있으면 노란 「!」 = 한 번에 받기) · 주간 도전 · 일일 상자,
- *  오른쪽 황동 패널 = 첨탑 (10인 레이드) · 길드 회관 (길드를 빼 두면 없음) · 잡화점. 「다시」 소켓은 뺐다 (Lim 2026-10-12, 지난 판은 「출전」이 이어 감),
- *  아래 리넨 목표표 + 붉은 「출전」은 바깥 하단을 맞추며, 로비 패스 바로가기는 두지 않는다.
+ *  메뉴 = 2026-10-16 Lim A안 「마을 표지판」 (그날까지의 기획 반영: 휴식 보너스 90, 레이드 10 · 20인, 상점 상품 81, 장비 정리 · 재설정):
+ *  왼쪽 원형 소켓 = 오늘 할 일: 임무 (일일 상자를 합침, 받을 것 있으면 노란 「!」 = 임무 보상 + 상자 한 번에) · 주간 도전 · 휴식 충전 (모자랄 때만),
+ *  오른쪽 나무 팻말 = 마을 건물: 레이드 (예전 첨탑) · 길드 회관 (길드를 빼 두면 없음) · 대장간 · 잡화점. 「다시」 소켓은 뺐다 (Lim 2026-10-12, 지난 판은 「출전」이 이어 감),
+ *  아래 리넨 목표표 + 붉은 「출전」(모험 길잡이 추천 칸)은 바깥 하단을 맞추며, 로비 패스 바로가기는 두지 않는다.
  * 받기·열기는 그 자리에서. 튜토리얼 중엔 다음 목표 + 출전 + 안내만.
  */
 import { contentOf, RAID10_LV, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import { ITEM_GRADES, recommendedFor, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
-import { STAMINA_COST } from '../data/economy';
+import { jobProductId, STAMINA, STAMINA_COST } from '../data/economy';
+import { HERO_KEYS, HEROES } from '../data/heroes';
+import { adventureTabOf } from '../data/adventure-regions';
 import { FEATURES } from '../data/features';
 import { guildCap } from '../data/guild';
 import { nextMilestone } from '../data/milestones';
@@ -20,11 +23,12 @@ import { Flow } from '../game/flow';
 import { guide } from '../game/guide';
 import { capOf, guildOpen } from '../game/guild';
 import { chalGate } from '../game/runmode';
-import { commit, firstDungeonNow, G, lockOf, refreshDay } from '../game/state';
+import { commit, firstDungeonNow, G, lockOf, newGearCount, refreshDay } from '../game/state';
+import { adsFree, staminaView } from '../game/stamina';
 import { TUT } from '../game/tutorial';
 import { esc, screen, topBar } from './kit';
 import { art } from '../art';
-import { gameIcon, uiIcon } from './art';
+import { currencyIcon, gameIcon, uiIcon } from './art';
 import { sortie } from './stamina';
 import { gainText } from './shop';
 import { mountVillage } from './village';
@@ -144,47 +148,89 @@ function toParty(to: { content: ContentKey; diff: DiffName }): void {
 function socket(cls: string, attrs: string, icon: string, name: string, sub: string, extra = ''): string {
   return `<div class="lb-sc ${cls}"><button type="button" class="lb-main"${attrs}><span class="lb-sock">${icon}</span><span class="lb-caption"><b>${name}</b>${sub ? `<small>${sub}</small>` : ''}</span></button>${extra}</div>`;
 }
+/** 나무 팻말 버튼: 그림 + 이름 + 상태 두 줄 */
+const plate = (cls: string, attrs: string, icon: string, name: string, lines: string[], extra = '') =>
+  `<button type="button" class="lb-plate ${cls}"${attrs} aria-label="${esc(name)} · ${esc(lines.join(' · '))}">${icon}<span class="lb-pt"><b>${name}</b><span>${lines.map(line => `<span>${line}</span>`).join('')}</span></span>${chevron()}${extra}</button>`;
 
-/** 왼쪽 소켓: 임무 · 주간 도전 · 일일 상자 */
-function shortcuts(): string {
-  const s = G.save, d = s.daily, w = s.weekly;
-  // 임무: 받을 것이 있으면 소켓 위 노란 「!」 (= 한 번에 받기) + 빨간 숫자. 소켓은 임무 화면
+/** 오늘 받을 것: 임무 (일일 · 주간) + 일일 상자 (임무 5개를 다 받으면, 놓친 날 2일까지) */
+function today() {
+  const s = G.save, d = s.daily, w = s.weekly, ch = chestState(s);
   const dGot = d.missions.filter(m => m.got).length, wGot = w.missions.filter(m => m.got).length;
   const ready = d.missions.filter(missionReady).length + w.missions.filter(missionReady).length;
-  const mLine = `일일 ${dGot}/${d.missions.length}${w.missions.length ? ` · 주간 ${wGot}/${w.missions.length}` : ''}`;
-  const missions = socket(`lb-missions${ready ? ' hot' : ''}`, ` data-go="s-missions" aria-label="임무 · ${mLine}${ready ? ` · 받을 보상 ${ready}` : ''}"`,
-    gameIcon('mission', uiIcon('quest')), '임무', `일일 ${dGot}/${d.missions.length}`,
-    ready ? `<i class="g-badge" aria-hidden="true">${ready}</i><button type="button" class="lb-claim" id="lbClaim" aria-label="임무 보상 ${ready}개 받기"><span class="g-qm" aria-hidden="true">!</span></button>` : '');
-  // 주간 도전: 이번 주 남은 날 (잠기면 해금 레벨). 도전 상자가 있으면 소켓 = 받기
-  const cg = chalGate(s), left = weekRemaining();
-  const chalIcon = gameIcon('challenge', uiIcon('hourglass'));
-  const chal = s.chalChest
-    ? socket('lb-chal hot', ' id="lbChal" aria-label="주간 도전 상자 받기"', chalIcon, '주간 도전', '상자 받기', '<i class="g-badge" aria-hidden="true">!</i>')
-    : socket(`lb-chal${cg.ok ? '' : ' off'}`, ` data-go="s-content" data-arg="dungeon" aria-label="주간 도전 · ${esc(CHAL.name)} · ${cg.ok ? `${left} 남음` : `Lv ${cg.lv}에 열림`}"`,
-      chalIcon, '주간 도전', cg.ok ? `${left} 남음` : `Lv ${cg.lv}`);
-  // 일일 상자: 열 수 있으면 소켓 = 열기 (쌓인 날이 있으면 개수). 닫혀 있으면 여는 조건 진행 (임무 n/5 받음) 또는 「내일 다시」
-  const ch = chestState(s), open = ch.today || ch.banked > 0, n = (ch.today ? 1 : 0) + ch.banked;
-  const chestIcon = gameIcon('chest', uiIcon('chest'));
-  const chest = open
-    ? socket('lb-chest hot', ` id="lbChest" aria-label="일일 상자 열기${n > 1 ? ` · ${n}개` : ''}"`, chestIcon, '일일 상자', n > 1 ? `열기 ×${n}` : '열기', '<i class="g-badge" aria-hidden="true">!</i>')
-    : socket('lb-chest off', ' data-go="s-missions"', chestIcon, '일일 상자', d.chest ? '내일 다시' : `임무 ${dGot}/${d.missions.length}`);
-  return `<nav class="lb-side lb-left" aria-label="마을 바로가기">${missions}${chal}${chest}</nav>`;
+  const chests = (ch.today ? 1 : 0) + ch.banked;
+  const line = `일일 ${dGot}/${d.missions.length}${w.missions.length ? ` · 주간 ${wGot}/${w.missions.length}` : ''}`;
+  return { d, dGot, ready, chests, line, done: d.chest };
 }
 
-/** 오른쪽 황동 패널: 첨탑 = 10인 레이드, 길드 회관 (길드를 빼 두면 없음), 잡화점 */
-function buildings(): string {
-  const s = G.save;
-  const raid = contentOf('abyss1'), raidLock = lockOf(raid).locked;
-  const plate = (cls: string, attrs: string, icon: string, name: string, sub: string, extra = '') =>
-    `<button type="button" class="lb-plate ${cls}"${attrs} aria-label="${esc(name)} · ${esc(sub)}">${icon}<span class="lb-pt"><b>${name}</b><span>${sub.split(' · ').map(line => `<span>${line}</span>`).join('')}</span></span>${chevron()}${extra}</button>`;
-  const gOpen = guildOpen(s), apps = (s.guild.post?.cands.length || 0) + s.guild.scouts.length;
-  const gLine = !gOpen.ok ? gOpen.why : apps ? `지원자 ${apps}명` : `길드원 ${s.guild.members.length}/${capOf(s).cap}`;
-  const plates = plate(`lb-raid${raidLock ? ' lock' : ''}`, ' data-go="s-content" data-arg="raid10"', gameIcon('raid', uiIcon('star')), '첨탑',
-    raidLock ? `10인 레이드 · Lv ${raid.unlockLv}에 열림` : `10인 레이드 · 휴식 ${STAMINA_COST.raid10}`)
-    + (FEATURES.guild ? plate(`lb-guild${gOpen.ok ? '' : ' lock'}`, ' data-go="s-guild"', gameIcon('guild', uiIcon('guild'), 'tab'), '길드 회관', esc(gLine), gOpen.ok && apps ? `<i class="g-badge">${apps}</i>` : '') : '')
-    + plate('lb-shop', ' data-go="s-shop" data-arg="cash"', gameIcon('shop', uiIcon('shop'), 'tab'), '잡화점', '상품 · 공훈');
-  return `<div class="lb-side lb-right">${plates}</div>`;
+/** 임무 소켓 (일일 상자를 합침): 받을 것이 있으면 노란 「!」 = 임무 보상 + 상자를 한 번에 */
+function missionSock(): string {
+  const t = today(), n = t.ready + t.chests;
+  const sub = !t.ready && t.chests ? '상자 열기' : `일일 ${t.dGot}/${t.d.missions.length}`;
+  return socket(`lb-missions${n ? ' hot' : ''}`, ` data-go="s-missions" aria-label="임무 · ${t.line}${t.chests ? ' · 일일 상자' : ''}${n ? ` · 받을 것 ${n}` : ''}"`,
+    gameIcon('mission', uiIcon('quest')), '임무', sub,
+    n ? `<i class="g-badge" aria-hidden="true">${n}</i><button type="button" class="lb-claim" id="lbClaim" aria-label="임무 보상 · 일일 상자 ${n}개 받기"><span class="g-qm" aria-hidden="true">!</span></button>` : '');
 }
+/** 주간 도전: 이번 주 남은 날 (잠기면 해금 레벨). 도전 상자가 있으면 소켓 = 받기 */
+function chalSock(): string {
+  const s = G.save, cg = chalGate(s), left = weekRemaining();
+  const icon = gameIcon('challenge', uiIcon('hourglass'));
+  return s.chalChest
+    ? socket('lb-chal hot', ' id="lbChal" aria-label="주간 도전 상자 받기"', icon, '주간 도전', '상자 받기', '<i class="g-badge" aria-hidden="true">!</i>')
+    : socket(`lb-chal${cg.ok ? '' : ' off'}`, ` data-go="s-content" data-arg="dungeon" aria-label="주간 도전 · ${esc(CHAL.name)} · ${cg.ok ? `${left} 남음` : `Lv ${cg.lv}에 열림`}"`,
+      icon, '주간 도전', cg.ok ? `${left} 남음` : `Lv ${cg.lv}`);
+}
+/**
+ * 레이드 (예전 「첨탑」, 10인 Lv 45 · 20인 Lv 70): 열림은 실제 레벨로 적음 (개발 빌드 「레벨 잠금 무시」여도),
+ * 둘째 줄 = 이번 주 받은 레이드 장비 수 (보스 × 난이도마다 주 1회). 휴식은 입장 비용이 아니라 적지 않는다 (90).
+ * 누르면 지난 판이 레이드면 그 인원 탭, 아니면 열린 것 중 큰 레이드 탭
+ */
+function raidPlate(): string {
+  const s = G.save, lv = s.player.level, r10 = contentOf('abyss1'), r20 = contentOf('cathedral1');
+  const open = lv >= r10.unlockLv, both = lv >= r20.unlockLv, got = s.weekly.loot.length;
+  const last = s.last && contentOf(s.last.content as ContentKey);
+  const tab = last?.kind === 'raid' ? adventureTabOf(last) : both ? 'raid20' : 'raid10';
+  return plate(`lb-raid${open ? '' : ' lock'}`, ` data-go="s-content" data-arg="${tab}"`, gameIcon(both ? 'raid20' : 'raid', uiIcon('star')), '레이드',
+    [both ? '10인 · 20인' : '10인 레이드', !open ? `Lv ${r10.unlockLv}에 열림` : got ? `주간 장비 ${got}` : '주 1회 장비']);
+}
+
+/**
+ * 대장간 (2026-10-16 새로): 필요 없는 장비 정리 (분해 → 장비 개편 뒤 판매 · 골드) · 옵션 재설정. 빨간 숫자 = 가방의 새 장비.
+ * 지금은 캐릭터 › 장비로 감. 장비 개편 작업이 판매 · 재설정 화면을 따로 열면 그 화면으로 바꾼다
+ */
+function forgePlate(): string {
+  const n = newGearCount();
+  return plate('lb-forge', ' data-go="s-char" data-arg="gear"', gameIcon('forge', uiIcon('char')), '대장간', ['장비 정리', '옵션 재설정'], n ? `<i class="g-badge" aria-label="새 장비 ${n}">${n}</i>` : '');
+}
+
+/** 길드 회관 (길드를 빼 두면 없음) */
+function guildPlate(): string {
+  if (!FEATURES.guild) return '';
+  const s = G.save, gOpen = guildOpen(s), apps = (s.guild.post?.cands.length || 0) + s.guild.scouts.length;
+  const line = !gOpen.ok ? gOpen.why : apps ? `지원자 ${apps}명` : `길드원 ${s.guild.members.length}/${capOf(s).cap}`;
+  return plate(`lb-guild${gOpen.ok ? '' : ' lock'}`, ' data-go="s-guild"', gameIcon('guild', uiIcon('guild'), 'tab'), '길드 회관', [esc(line)], gOpen.ok && apps ? `<i class="g-badge">${apps}</i>` : '');
+}
+
+/** 잡화점 = 상점 상품 탭: 광고 제거 · 새 직업 (공훈은 나중 콘텐츠, 시즌 패스는 상점 안에만) */
+function shopPlate(): string {
+  const s = G.save, noads = adsFree(s), jobs = HERO_KEYS.filter(h => HEROES[h].unlock.buy && !s.bought.includes(jobProductId(h))).length;
+  const lines = [noads ? '' : '광고 제거', jobs ? `새 직업 ${jobs}` : '', !noads || jobs ? '' : '시즌 패스'].filter(Boolean);
+  return plate('lb-shop', ' data-go="s-shop" data-arg="cash"', gameIcon('shop', uiIcon('shop'), 'tab'), '잡화점', lines);
+}
+
+/**
+ * 휴식 충전: 휴식이 던전 한 판 몫 (10) 밑이고 충전할 수 있을 때만 왼쪽 맨 아래에 나옴 (다른 소켓 자리는 그대로).
+ * 0이면 클리어 보상이 1/3이라 빛남. 누르면 휴식 창 (광고 +30 하루 3번, 광고 제거면 바로)
+ */
+function restSock(): string {
+  const v = staminaView(G.save, Date.now());
+  if (v.unlimited || v.n >= STAMINA_COST.dungeon || !v.adsLeft) return '';
+  return socket(`lb-rest${v.n < 1 ? ' hot' : ''}`, ` data-stamina-open aria-label="휴식 충전 · 휴식 ${v.n}/${v.max}"`, currencyIcon('rest'), '휴식 충전',
+    `${adsFree(G.save) ? '바로' : '광고'} +${STAMINA.ad}`, v.n < 1 ? '<i class="g-badge" aria-hidden="true">!</i>' : '');
+}
+
+/** 왼쪽 = 오늘 할 일 소켓 (임무 · 주간 도전 · 휴식이 모자랄 때 휴식 충전), 오른쪽 = 마을 건물 팻말 (레이드 · 길드 회관 · 대장간 · 잡화점) */
+const menus = () => `<nav class="lb-side lb-left" aria-label="오늘 할 일">${missionSock()}${chalSock()}${restSock()}</nav>
+  <nav class="lb-side lb-right" aria-label="마을 건물">${raidPlate()}${guildPlate()}${forgePlate()}${shopPlate()}</nav>`;
 
 /** 아래 독립된 목표표 + 「출전」 (지난 판 → 안 깬 장소). 시즌 패스는 상점에만 둔다. */
 function journey(): string {
@@ -205,7 +251,7 @@ function render(): void {
       <div class="lb-world">
         <div class="lb-stage"></div>
         <div class="lb-ui">
-          <div class="lb-mid">${tutDone ? shortcuts() + buildings() : ''}</div>
+          <div class="lb-mid">${tutDone ? menus() : ''}</div>
           ${firstDungeonNow() ? '<p class="coachtip lb-coach">첫 던전 <b>녹슨 요새</b>가 열림. 「출전」 누르기</p>' : ''}
           ${journey()}
         </div>
@@ -225,16 +271,22 @@ s.el.addEventListener('click', e => {
   const gr = t.closest<HTMLElement>('[data-goal]');
   if (gr) { const g = goals()[Number(gr.dataset.goal)]; if (g?.to) toParty(g.to); return; }
   if (t.closest('#lbClaim')) {
-    // 받을 수 있는 임무를 한 번에 (주간은 악몽 열쇠가 가득이면 남김)
+    // 받을 수 있는 임무를 한 번에
     const got: string[] = [];
     for (const kind of ['daily', 'weekly'] as const) (kind === 'daily' ? save.daily : save.weekly).missions.forEach((m, i) => {
       if (!missionReady(m)) return;
       const r = claimMission(save, kind, i, now);
       got.push(typeof r === 'string' ? r : gainText(r));
     });
-    st.msg = got.length ? `임무 보상: ${got.join(' · ')}` : '';
+    // 이어서 일일 상자 (임무 5개를 다 받으면 열림 · 놓친 날 쌓인 것, 최대 2일)도 같이. 광고로 한 번 더는 임무 화면에서
+    for (let i = 0; i < 3; i++) {
+      const ch = chestState(save);
+      if (!ch.today && !ch.banked) break;
+      const r = claimChest(save, Math.random, now);
+      got.push(typeof r === 'string' ? r : `상자 ${gainText(r)}`);
+    }
+    st.msg = got.length ? `받음: ${got.join(' · ')}` : '';
     commit(); render(); return;
   }
-  if (t.closest('#lbChest')) { const r = claimChest(save, Math.random, now); st.msg = typeof r === 'string' ? r : `일일 상자: ${gainText(r)}`; commit(); render(); return; }
   if (t.closest('#lbChal')) { const r = claimChalChest(save, Math.random, now); st.msg = typeof r === 'string' ? r : `주간 도전 상자: ${gainText(r)}`; commit(); render(); }
 });
