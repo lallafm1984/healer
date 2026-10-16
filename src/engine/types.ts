@@ -194,6 +194,8 @@ export interface Unit {
   shield: number;
   /** 초마다 조금씩 차는 회복 (healFlow)을 모으는 중: 1초가 지나면 숫자 하나 (tick 사건) */
   flow?: { amt: number; eff: number; t0: number };
+  /** 틱마다 드는 피해 (dripDamage)를 FLOW_SEC씩 모으는 중 → dmg 사건 하나 (화면 빨간 숫자) */
+  drip?: { amt: number; t0: number };
   debuffs: Debuff[];
   /** 퍼지는 박동에 맞음 (첫 햇살 조약돌: 다음 직접 힐 +15%, 59 6장). 그 장신구가 있을 때만 붙음 */
   pulsed?: boolean;
@@ -440,8 +442,13 @@ export type FightEvent =
   | { type: 'revive'; id: number }
   /** 파티원 공격 한 방 (uid = 때린 파티원) */
   | { type: 'hit'; uid: number; amt: number }
-  /** 뒤집힌 축복: 치유가 피해로 (빨간 숫자) · 실수 방지로 칸만 흔들림 */
+  /** 뒤집힌 축복: 치유가 피해로 (말풍선 반응. 숫자는 dmg 사건) */
   | { type: 'hurt'; id: number; amt: number }
+  /**
+   * 파티원이 받은 피해 (체력이 실제로 준 양, 보호막에 다 막히면 안 냄): 화면은 회복 숫자 자리에 빨간 숫자 (2026-10-16 Lim 「피해를 입으면 빨간 숫자로」).
+   * 장판 · 지속 피해처럼 틱마다 드는 피해 (dripDamage)는 1초씩 모아 하나로
+   */
+  | { type: 'dmg'; id: number; amt: number }
   | { type: 'shake'; id: number }
   /** 치유하는 쫄이 보스를 회복 */
   | { type: 'bossHeal'; amt: number; name: string }

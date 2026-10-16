@@ -824,7 +824,8 @@ interface Fx {
  * id = 숫자가 가리키는 파티원 (그 칸 근처에만 뜸). dx · dy = 떠오르기 시작하는 자리, 그 사람 칸 가운데에서 칸 크기 배수 (걸어가는 사람 숫자는 따라감)
  * ox · oy = 자리를 잡으며 떠오르는 길에서 비킨 만큼 (칸 크기 배수, 다음 프레임에도 같은 만큼 비켜 올라감) · at · rise = 지난 프레임에 그린 자리 · 올라간 높이
  */
-interface Float { dx: number; dy: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean; id: number; ox?: number; oy?: number; at?: PillBox; rise?: number; shield?: boolean; num?: boolean }
+/** dmg = 받은 피해 빨간 숫자 (big = 체력 1/4 이상 한 방, 회복 숫자 크기) */
+interface Float { dx: number; dy: number; text: string; crit: boolean; over: boolean; t0: number; n: number; fill?: number; label?: boolean; id: number; ox?: number; oy?: number; at?: PillBox; rise?: number; shield?: boolean; num?: boolean; dmg?: boolean; big?: boolean }
 /** 말풍선 종류 (41·43 문서): talk 반응·잡담 · call 기믹·신호 (금테) · alert 위기 (붉은 테, 흔들림) · chat 쓰러진 사람의 파티 채팅 (회색) */
 export type BubbleKind = 'talk' | 'call' | 'alert' | 'chat';
 /** emote = 왼쪽 감정 아이콘 emote-<이름> (43 4장 B) · cheer = 승리 한마디 (fx-talk-cheer) */
@@ -1146,10 +1147,21 @@ export function fxRevive(u: Unit, now: number, label = '부활', plain = false):
   B2.hitFx[u.id] = now;
   if (!plain && !commonFx(u, 'revive', now)) B2.fx.push({ kind: 'revive', id: u.id, t0: now });
 }
-/** 뒤집힌 축복 (35 8장 「치유 반전」): 이 칸에 들어간 치유가 빨간 피해 숫자로 (회복 숫자 자리) */
-export function fxHurt(u: Unit, amt: number, now: number): void {
-  if (!L.ok || S.reducedEffects || amt < 1) return;
-  healNumber(u, `-${amt}`, now, { fill: 0xff5a3d });
+/** 받은 피해 숫자 색: 회복 (민트 · 초록 · 회갈색) · 보호막 파랑 · 파티원 능력 연두와 안 겹치는 빨강 */
+const DMG_TEXT = 0xff5a3d;
+/** 한꺼번에 떠 있는 피해 숫자 (떠오르는 숫자는 모두 40개까지라 회복 숫자 자리를 남김: 20인 광역 한 번 = 20개) */
+const DMG_FLOATS = 24;
+/**
+ * 파티원이 받은 피해 (엔진 dmg 사건, 뒤집힌 축복 포함. 2026-10-16 Lim 「피해를 입으면 빨간 숫자로 피해 표시도 남기자」):
+ * 회복 숫자와 같은 자리 · 같은 자리 잡기 (이름 · 체력 글자는 비키고, 자리가 없으면 안 뜸). 장판 · 지속 피해는 엔진이 1초씩 모아 옴.
+ * 체력 1/4 이상 한 방은 회복 숫자 크기, 나머지는 작게 (회복 숫자가 먼저 읽히게, 자리도 회복 숫자가 먼저 잡음)
+ */
+export function fxDamage(u: Unit, amt: number, now: number): void {
+  if (!L.ok || S.reducedEffects || amt < 1 || B2.floats.length >= 40) return;
+  let n = 0;
+  for (const fl of B2.floats) if (fl.dmg) n++;
+  if (n >= DMG_FLOATS) return;
+  B2.floats.push({ ...HEAL_AT, text: `-${amt}`, crit: false, over: false, fill: DMG_TEXT, dmg: true, big: amt >= u.max * 0.25, t0: now, n: B2.n++, id: u.id, num: true });
 }
 /** 흡수 보호막 (엔진 shield 사건): 회복 숫자 자리에 파란 숫자 (더해진 양) */
 export function fxShield(u: Unit, amt: number, now: number): void {
@@ -2159,14 +2171,16 @@ export function render(now: number): void {
   // 아직 안 그린 숫자의 지난 자리도 비워 둠: 먼저 뜬 숫자가 올라가다 나중 숫자 자리를 빼앗아 밀어내지 않게
   const floatLast = new Map(B2.floats.filter(fl => fl.at).map(fl => [fl, fl.at!]));
   const floatGone = new Set<Float>();
-  for (const fl of B2.floats) {
+  // 회복 · 보호막 숫자가 먼저 자리를 잡고 피해 숫자는 남은 자리 (이미 뜬 피해 숫자 자리는 floatLast가 지켜 줌)
+  const order = B2.floats.some(fl => fl.dmg) ? [...B2.floats.filter(fl => !fl.dmg), ...B2.floats.filter(fl => fl.dmg)] : B2.floats;
+  for (const fl of order) {
     floatLast.delete(fl);
     if (now < fl.t0) continue; // 아직 안 뜬 숫자 (연쇄 치유가 차례로 튐)
     const u = F.party.find(q => q.id === fl.id);
     if (!u) { floatGone.add(fl); continue; }
     const base = unitPos(u), k = (now - fl.t0) / 900, rise = S.reducedEffects ? 0 : k * s * (fl.label ? 0.3 : 0.6);
-    const size = fl.label ? fs(0.22, 10) : fl.crit ? fs(0.36, 14) : fl.over || fl.fill ? fs(0.22, 10) : fs(0.27, 11);
-    const label = (fl.num ? nums : tops).put(`fl${fl.n}`, fl.text, { size, fill: fl.fill ?? (fl.shield ? C.shield : fl.crit ? C.crit : fl.over ? C.over : C.heal), strokeW: 3, num: !fl.fill },
+    const size = fl.label ? fs(0.22, 10) : fl.crit ? fs(0.36, 14) : fl.big ? fs(0.27, 11) : fl.over || fl.fill ? fs(0.22, 10) : fs(0.27, 11);
+    const label = (fl.num ? nums : tops).put(`fl${fl.n}`, fl.text, { size, fill: fl.fill ?? (fl.shield ? C.shield : fl.crit ? C.crit : fl.over ? C.over : C.heal), strokeW: 3, num: !fl.fill || !!fl.dmg },
       base.x + (fl.dx + (fl.ox ?? 0)) * s, base.y + (fl.dy + (fl.oy ?? 0)) * s - rise, S.reducedEffects ? 1 : 1 - k * k, 1);
     // 치명타 치유 = 선명한 초록 (C.crit, 보통 치유 민트보다 진하고 1.3배 크게. 2026-10-10 Lim: 노랑은 치유와 안 어울리고 부활·능력 글자와 헷갈림)
     // 처음 0.15초 크게 튀었다가 제 크기로 (색만으로 구분하지 않게)

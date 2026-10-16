@@ -15,7 +15,7 @@ import { autoHealer, create, DT, hexDist, knowsPassive, restCarry, setBeacon, sk
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ratsArt } from './art';
-import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxAllyHeal, fxCure, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxHurt, fxPxf, fxPxfCell, fxImpact, fxRevive, fxShake, fxShield, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, type BubbleKind } from './board';
+import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxAllyHeal, fxCure, fxDamage, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxPxf, fxPxfCell, fxImpact, fxRevive, fxShake, fxShield, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, type BubbleKind } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, clearToasts, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
@@ -549,7 +549,7 @@ function handleEvents(now: number): void {
       }
       case 'spec': if (u) fxSpec(u, ev.name, now); break; // 장비 특수능력이 켜짐 (42): 칸 위 금색 이름 + fx-proc · 마지막 숨 fx-endure (36 J)
       case 'aheal': if (u) fxAllyHeal(u, ev.amt, now); break;
-      case 'hurt': if (u) fxHurt(u, ev.amt, now); break; // 뒤집힌 축복
+      case 'dmg': if (u) fxDamage(u, ev.amt, now); break; // 받은 피해: 회복 숫자 자리에 빨간 숫자 (뒤집힌 축복도 이것, hurt 사건은 말풍선만)
       case 'bossHeal': bossHealNum(ev.amt); bossFx('mend'); break; // 치유하는 쫄
       // 기믹 연출 (37 4장 F-1): 칸·사람이 없으면 보스 그림 위
       case 'fx': if (ev.cell == null && ev.on == null && !ev.all) bossFx(ev.name); else fxGim(ev.name, now, { id: ev.on, cell: ev.cell, to: ev.to, all: ev.all }); break;

@@ -10,7 +10,7 @@ import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { modsTaken } from './abilities';
 import { hexDist } from './board';
-import { addDebuff, bark, cellOf, damage, DT, emit, empowerBoss, hasAbsorb, heal, healFlow, lend, living, onDebuffEnd, randomTargets, setMax, spread, takenAmt, unitById } from './core';
+import { addDebuff, bark, cellOf, damage, dripDamage, DT, emit, empowerBoss, hasAbsorb, heal, healFlow, lend, living, onDebuffEnd, randomTargets, setMax, spread, takenAmt, unitById } from './core';
 import { dangerAt, finishMove, moveTo, scheduleReaction, scheduleReactions, zoneOf } from './movement';
 import { hotTick, stepAway } from './units';
 import { frontCell, frontTank } from './position';
@@ -1506,12 +1506,12 @@ export function runFlow(f: Fight, steps: FlowStep[]): void {
     switch (st.p) {
       case 'when': if (flowIf(f, st.if)) for (const d of st.do) flowDo(f, d); break;
       case 'rats':
-        if (f.phase === st.phase) for (const id of f.rats) { const u = unitById(f, id); if (u) damage(f, u, st.dps * DT); }
+        if (f.phase === st.phase) for (const id of f.rats) { const u = unitById(f, id); if (u) dripDamage(f, u, st.dps * DT); }
         break;
       case 'song': {
         if (f.phase !== st.phase) break;
         const cols = new Set(Array.from({ length: st.bodies }, (_, i) => i).filter(i => f.mobs[i].alive).flatMap(i => Array.from({ length: st.per }, (_, k) => i * st.per + k)));
-        for (const u of living(f)) if (cols.has(cellOf(f, u).col)) damage(f, u, st.dps * DT, true);
+        for (const u of living(f)) if (cols.has(cellOf(f, u).col)) dripDamage(f, u, st.dps * DT, true);
         break;
       }
     }

@@ -1,7 +1,7 @@
 import { hexDist } from './board';
 import { BARK, DRUID_BIG } from '../data/heroConst';
 import { SKILLS, type SkillKey } from '../data/skills';
-import { bark, cellOf, damage, DT, emit, flowTick, hasAbsorb, heal, healFlow, hpLineTick, linger, onDebuffEnd, submerged } from './core';
+import { bark, cellOf, DT, dripDamage, dripTick, emit, flowTick, hasAbsorb, heal, healFlow, hpLineTick, linger, onDebuffEnd, submerged } from './core';
 import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
 import { adjLow, calmFor, renewEnd, talentHot } from './talents';
 import { TX } from '../data/talents';
@@ -60,13 +60,14 @@ export function unitTick(f: Fight, u: Unit): void {
   if (u.flash > 0) u.flash -= dt;
   if (!u.alive) return;
   if (u.flow) flowTick(f, u);
+  if (u.drip) dripTick(f, u);
   if (u.lift) { // 띄워 올리기 (P-LIFT, 56 5장): 하늘에서는 붙어 있던 지속 힐 · 지속 피해만 돌고, 시간이 되면 내려옴
     linger(() => carried(f, u, dt));
     if (u.alive && u.lift && f.t + 1e-9 >= u.lift.until) land(f, u);
     return;
   }
   if (!carried(f, u, dt)) return;
-  for (const z of f.zones) if (z.cells.has(u.cell) && !(u.debuffs.length && u.debuffs.some(d => d.hide))) damage(f, u, z.dps * dt, true);
+  for (const z of f.zones) if (z.cells.has(u.cell) && !(u.debuffs.length && u.debuffs.some(d => d.hide))) dripDamage(f, u, z.dps * dt, true);
   if (!u.alive) return;
   if (u.moving) { u.moving.left -= dt; if (u.moving.left <= 0) finishMove(f, u); }
   if (u.pulled) pullTick(f, u);
@@ -107,11 +108,11 @@ function carried(f: Fight, u: Unit, dt: number): boolean {
     if (d.untilBossLoss != null && f.bossHp <= d.bossAt! - f.bossMax * d.untilBossLoss + 1e-9) { // 삼키기: 보스를 그만큼 깎으면 풀림
       u.debuffs = u.debuffs.filter(x => x !== d); emit(f, { type: 'cure', id: u.id, name: d.name }); continue;
     }
-    if (d.grow) { if (d.stack) damage(f, u, d.stack * d.grow.dot * dt * (f.sp ? dotSpec(f, d) : 1), true); }
+    if (d.grow) { if (d.stack) dripDamage(f, u, d.stack * d.grow.dot * dt * (f.sp ? dotSpec(f, d) : 1), true); }
     else if (d.dot) {
       const x = (d.stackMax ? d.dot * (d.stack ?? 1) * dt : d.dot * dt) * (f.sp ? dotSpec(f, d) : 1); // 감기약 · 해독초 · 상처 소독 … (42 2-5 · 2-8)
       const hp0 = u.hp;
-      damage(f, u, x, true);
+      dripDamage(f, u, x, true);
       if (d.feed && !f.over) f.bossHp = Math.min(f.bossMax, f.bossHp + Math.max(0, hp0 - u.hp) * d.feed); // 젊음의 갈망: 빨아들인 만큼 보스 회복
     }
     if (!u.alive) return false;
