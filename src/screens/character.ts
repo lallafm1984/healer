@@ -392,10 +392,14 @@ function dexSheet(): string {
 /** 장비 상세 시트 (27 4-3, 시안 GearSheet27): 지금 장비와 비교 ▲▼ · 그 장비 범위 · 잠금 · 판매 · 장착 */
 /** 재설정 ↻ 버튼 (재설정 모드일 때만) */
 const rrBtn = (kind: RerollKind, i: number, name: string) => (rrOn ? `<button type="button" class="c7-rr" data-rr="${kind}:${i}" aria-label="${esc(name)} 다시 굴림">↻</button>` : '');
-/** 재설정 비용 줄 (34 6-8): 무작위 옵션 한 줄 · 특수능력 한 줄 (3배), 가진 골드 (91) */
+/** 재설정 비용 줄 (34 6-8): 무작위 옵션 한 줄 · 특수능력 한 줄 (3배) 중 그 장비에 있는 줄만, 가진 골드 (91). 희귀까지는 특수능력이 없어 옵션만 */
 function rrCostHtml(it: GearItem): string {
-  const a = rerollCost(it, false), b = rerollCost(it, true), have = resourceBalance(G.save, 'gold');
-  return `<p class="cap c7-rrcost">한 줄 다시 굴림 · 옵션 ${currencyAmount('gold', a.gold)} · 특수능력 ${currencyAmount('gold', b.gold, isFinite(have) ? { have } : {})}</p>`;
+  const have = resourceBalance(G.save, 'gold');
+  const parts: [string, number][] = [];
+  if (it.lines.length) parts.push(['옵션', rerollCost(it, false).gold]);
+  if (it.specs?.length) parts.push(['특수능력', rerollCost(it, true).gold]);
+  const last = parts.length - 1;
+  return `<p class="cap c7-rrcost">한 줄 다시 굴림 · ${parts.map(([name, gold], i) => `${name} ${currencyAmount('gold', gold, i === last && isFinite(have) ? { have } : {})}`).join(' · ')}</p>`;
 }
 /** 가진 골드 (인벤토리 머리). 개발 빌드 골드 무제한이면 ∞ */
 function goldHave(): string {
@@ -580,7 +584,7 @@ function descBox(lay: Record<string, string | null>): string {
   if (!sel) return `<section class="c7-sdesc c7-parch" aria-live="polite"><h3>스킬 휠<small>칸을 누르면 설명</small></h3>
       <p class="c7-sdt">전투에서 칸을 그 방향으로 쓸면 그 스킬을 씁니다. 칸을 탭하면 칸 탭 기본 힐을 씁니다.</p></section>`;
   if (!k) return `<section class="c7-sdesc c7-parch" aria-live="polite"><h3>비어 있음<small>휠 ${L.ARROW[sel]}</small></h3>
-      <p class="c7-sdt">특성 스킬 자리 (P2). 배치 바꾸기로 다른 스킬과 바꿀 수 있습니다.</p></section>`;
+      <p class="c7-sdt">빈 자리입니다. 배치 바꾸기로 다른 스킬을 이 자리로 옮길 수 있습니다.</p></section>`;
   const lock = lockLv(k), sk = SKILLS[k];
   const meta = [costShort(k), castShort(k), sk.cd ? `재사용 ${sk.cd}초` : '', `Lv ${SKILL_LEVEL[k]}`].filter(Boolean).join(' · ');
   return `<section class="c7-sdesc c7-parch" aria-live="polite"><h3>${sk.name}<small>${meta}</small></h3>

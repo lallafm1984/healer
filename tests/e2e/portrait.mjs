@@ -146,7 +146,7 @@ export default async function portrait(url, shots) {
     ok(equipment.centered && equipment.viewport && equipment.valuesFit, `${width}: 중앙 능력치 6줄이 좌우 슬롯 사이·액션행 위, 텍스트 겹침·화면 클립 없음 (${JSON.stringify(equipment)})`);
     await page.screenshot({ path: `${shots}/portrait_character_${width}.png`, animations: 'disabled' });
     await page.click('#s-char nav [data-csub="hero"]'); await page.clock.runFor(80);
-    ok(await page.locator('#s-char [data-hcard] .emblem').count() === 3 && await noHeroArt(), `${width}: 구현된 세 직업 = 직업 문장`);
+    ok(await page.locator('#s-char [data-hcard] .emblem').count() === 7 && await noHeroArt(), `${width}: 일곱 직업 = 직업 문장 (79 직업 4종이 들어와 7)`);
     await page.click('#s-char nav [data-csub="skill"]'); await page.clock.runFor(80);
     ok(await noOverflow('#s-char .ns-body'), `${width}: 스킬 휠 편집 가로 넘침 없음`);
     await page.click('#tabs [data-tab="shop"]'); await page.clock.runFor(80);
@@ -243,14 +243,15 @@ export default async function portrait(url, shots) {
       const rect = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; };
       return {
         stage: rect(document.querySelector('#stage')), board: rect(document.querySelector('#boardWrap')), controls: rect(document.querySelector('#controls')),
-        buttons: [...document.querySelectorAll('#aux button, #pauseBtn')].filter(el => el.getClientRects().length).map(rect),
+        // 조작판 버튼은 겉 크기가 축소 0.9로 41px여도 투명 터치 영역 (data-hit-width, compact.css ::before)이 44px (battle/index.ts layoutBattle)
+        buttons: [...document.querySelectorAll('#aux button, #pauseBtn')].filter(el => el.getClientRects().length).map(el => ({ ...rect(el), hw: Math.max(el.getBoundingClientRect().width, Number(el.dataset.hitWidth) || 0), hh: Math.max(el.getBoundingClientRect().height, Number(el.dataset.hitHeight) || 0) })),
         wheel: rect(document.querySelector('#wheel')),
       };
     });
     const g = await geometry();
     ok(await page.evaluate(() => document.getElementById('battle').dataset.place) === 'cathedral' && await bgLoaded('#boardWrap'), `${width}: 20인 판 뒤 대성당 바닥 그림`);
     ok(g.stage.y >= 70 && g.controls.bottom <= height + 1 && g.board.h >= 120, `${width}: 20인 무대·판·조작 화면 안 (판 ${Math.round(g.board.h)}px)`);
-    ok(g.buttons.every(r => r.w >= 44 && r.h >= 44 && r.x >= 0 && r.right <= width + 1 && r.bottom <= height + 1), `${width}: 최대 특성·아이템 버튼 44px 및 화면 경계`);
+    ok(g.buttons.length >= 4 && g.buttons.every(r => r.hw >= 44 && r.hh >= 44 && r.x >= 0 && r.right <= width + 1 && r.bottom <= height + 1), `${width}: 최대 특성 버튼 3개 · 일시정지 터치 44px 및 화면 경계 ${JSON.stringify(g.buttons.map(r => [Math.round(r.x), Math.round(r.w), Math.round(r.hw), Math.round(r.right), Math.round(r.bottom)]))}`);
     ok(g.buttons.filter(r => r.y >= g.controls.y).every(r => r.right <= g.wheel.x + 1 || r.x >= g.wheel.right - 1), `${width}: 특성·아이템과 휠 겹침 없음`);
     // 원화는 내부 원을 가득 채워 크롭한다. 그림의 사각형 전체를 원 안에 요구하지 않고
     // 실제 원형 마스크와 cover를 확인한다. 글자는 위아래 1/4 지점의 원 폭으로 잼.

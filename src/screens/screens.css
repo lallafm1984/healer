@@ -289,6 +289,8 @@ button.gtile { text-align: left; font: inherit; color: inherit; cursor: pointer;
 .mrow .bar, .passhead .bar { flex: 1 1 100%; height: 6px; border-radius: 999px; background: #0E0B09; overflow: hidden; border: 1px solid #362D22; }
 .mrow .bar i, .passhead .bar i { display: block; height: 100%; background: linear-gradient(90deg, #8FD18B, #D9E77A); }
 .mrow.got { opacity: 0.6; }
+/* 「받기」 (.btn.primary의 width 100%)가 줄을 다 차지해 임무 이름이 한 글자씩 세로로 깨졌음 */
+.mrow > .btn.mini { flex: none; width: auto; }
 .done, .prow i { font-style: normal; font-size: 12px; color: var(--mute); }
 .passhead p { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .passhead .bar { flex: 1 1 120px; display: inline-block; }

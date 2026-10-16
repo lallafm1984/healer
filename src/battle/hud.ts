@@ -17,7 +17,7 @@ import { INT_BASE } from '../data/rules';
 import { healText, SKILL_LEVEL, SKILLS, type SkillKey } from '../data/skills';
 import { skillTip, tipHtml } from '../game/tooltip';
 import { TALENT_DEF, type TalentKey } from '../data/talents';
-import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, skillUsesSpent, slotKey, talentSlots, talentUsesSpent, type Fight, type Unit } from '../engine';
+import { activeOn, beaconShare, bossTaken, cdMax, costOf, knows, queue, skillUsesSpent, slotKey, talentSlots, talentUsesSpent, telDmg, type Fight, type Unit } from '../engine';
 import { art, cssUrl } from '../art';
 import { skillMark } from './art';
 import { center, L, screenCenter } from './board';
@@ -504,7 +504,12 @@ export function updateStage(now: number): void {
     } else ui.tickSec = null;
     for (const tl of F.tels) if ((tl.kind === 'buster' || tl.kind === 'aoe') && tl.impact - F.t <= 1 && !ui.vibedTel.has(tl.id)) { ui.vibedTel.add(tl.id); vibe(40); }
     const firstBuster = F.tels.find(tl => tl.kind === 'buster' && tl.skill.dmg);
-    if (firstBuster && !ui.busterHint && !S.auto) { ui.busterHint = true; toast(`${firstBuster.skill.name}: 탱커에게 ${Math.round(firstBuster.skill.dmg! * F.dmgMult)} 피해. 미리 채우거나 수호 영혼`); }
+    if (firstBuster && !ui.busterHint && !S.auto) {
+      // 숫자는 칸 위 강타 예고와 같은 엔진 계산 (telDmg, 체력 글자처럼 올림. 예전엔 기술 피해 × 배율이라 칸 위 「-1961」과 1 다르게 「1960」)
+      const tgt = F.party.find(u => firstBuster.units.includes(u.id));
+      const amt = tgt ? telDmg(F, firstBuster, tgt) : firstBuster.skill.dmg! * F.dmgMult;
+      ui.busterHint = true; toast(`${firstBuster.skill.name}: 탱커에게 ${Math.ceil(amt - 1e-6)} 피해. 미리 채우거나 수호 영혼`);
+    }
   }
   $('battle').classList.toggle('aoe', F.tels.some(t => t.kind === 'aoe'));
   // 탱커 전멸 시 적 기술 예고 줄 하단에 오른쪽 벽 전광판을 펼친다. 전투는 계속.

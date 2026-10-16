@@ -13,8 +13,6 @@ import { placeArt } from './art';
 const svg = (d: string, sw = 2.2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const BACK = svg('<path d="M19 12H5M11 6l-6 6 6 6"/>');
 export const ARROW = svg('<path d="M5 12h14M13 6l6 6-6 6"/>');
-/** 악몽 열쇠 (악몽 입장권) */
-export const KEY = svg('<circle cx="7.5" cy="12" r="3.5"/><path d="M11 12h9.5M16.5 12v3.2M19.5 12v2.6"/>', 2);
 /** 공략 (펼친 책) */
 export const BOOK = svg('<path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5z"/><path d="M12 6.5v13"/>', 2);
 
