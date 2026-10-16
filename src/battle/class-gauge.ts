@@ -18,7 +18,8 @@ function resourceVariant(el: HTMLElement, job: HeroKey, max: number): void {
     const key=String(max);if(el.dataset.variant===key)return;
     el.dataset.variant=key;el.classList.add('has-variant');el.querySelector('.variant-art')?.remove();
     const layer=div('variant-art star-grid');
-    const cells=max===4?[[0,2],[50,2],[0,51],[50,51]]:[[25,2],[0,51],[50,51]];
+    // 아래 줄 별을 위로 당겨 위아래 간격을 좁힘 (2026-10-16 Lim B안 「주술사와 점성술사는 위아래 간격을 좁게」, 예전 51)
+    const low=38,cells=max===4?[[0,2],[50,2],[0,low],[50,low]]:[[25,2],[0,low],[50,low]];
     for(const [x,y] of cells){
       const piece=div('variant-segment star-cell'),source=div('star-source');
       Object.assign(piece.style,{left:x+'%',top:y+'%'});
@@ -126,6 +127,13 @@ export function buildClassGauge(host: HTMLElement, controls: HTMLElement, job: H
       motion.append(light);aura.append(motion);
       const front=img(job,'base','totem-foreground');front.style.clipPath=polygon(points);el.append(aura,front);
     });
+  }
+  if(job==='shaman'){
+    // 아래 숫자 줄 (모래시계 · 되돌림, 원화 y 331~410)을 위로 당겨 토템 (y 53~227)과 간격을 좁힘 (2026-10-16 Lim B안 「위아래 간격을 좁게」).
+    // 같은 원화를 두 장으로 잘라 아래 장만 옮김. 숫자도 같은 줄이라 함께
+    el.querySelector<HTMLElement>('.gauge-base')!.style.clipPath='inset(0 0 33% 0)';
+    const low=div('shaman-low'),lowArt=img(job,'base','gauge-base');lowArt.style.clipPath='inset(67% 0 0 0)';
+    low.append(lowArt,el.querySelector('.gauge-number')!,el.querySelector('.gauge-extra')!);el.append(low);
   }
   if(job==='shaman'||job==='monk'){
     const ready=div('gauge-ready surface-ready');
