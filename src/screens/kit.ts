@@ -7,8 +7,7 @@ import { TUT, type CoachKey } from '../game/tutorial';
 import { G, heroNow, newGearCount } from '../game/state';
 import { talentsLeft } from '../game/charinfo';
 import { apexOf, xpToNext } from '../data/progression';
-import { classEmblem, currencyIcon } from './art';
-import { resourceBalance } from '../game/resources';
+import { classEmblem } from './art';
 import { releaseSheetDialogs, resetShellScroll } from './dialog';
 import { staminaCell } from './stamina';
 
@@ -76,7 +75,7 @@ export function setTabsHandler(fn: (t: TabKey | undefined) => void): void { onTa
 /** 화면은 그대로 두고 하단 탭 (빨간 점)만 다시 그림 */
 export function refreshTabs(): void { if (current) onTabs?.(screens.get(current)?.tab); }
 
-// ---------- 상단 바 (09 5장: 레벨 · 골드 고정, 전투 화면 제외. 골드는 2026-10-16 #172에 없앴다가 91에서 다시) ----------
+// ---------- 상단 바 (09 5장: 레벨 고정, 전투 화면 제외. 골드 칸은 2026-10-17 Lim 「헤드에서 골드 재화는 빼자」로 없앰, 보유 골드는 쓰는 화면 안에) ----------
 const GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="6.6"/><path d="M12 2.5v2.9M12 18.6v2.9M2.5 12h2.9M18.6 12h2.9M5.3 5.3l2 2M16.7 16.7l2 2M5.3 18.7l2-2M16.7 7.3l2-2"/></svg>';
 
 /**
@@ -84,14 +83,15 @@ const GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
  * 황동 초상 테 직업 문장 + 알림 빨간 점 (특성 남음·새 장비) → 캐릭터 탭 · 직업 이름 + Lv + 짧은 경험치 막대 (% 글자는 막대 안) ·
  * 휴식 (15분에 1씩 차는 고리 + 다음 +1까지 시간, 누르면 휴식 창, 90) · 설정 (초상과 같은 둥근 황동 테).
  * 2026-10-16 Lim: 골드 칸 없앰 · 경험치 줄 짧게 · 충전을 보이게 · 설정 버튼을 정보창과 같은 결로 (모양 · 색은 a2-topbar.css).
- * 91 (같은 날, 골드 다시): 경험치 막대 오른쪽에 골드 (그림 + 수, 1만부터 줄여 씀). 「← 제목」 줄은 오른쪽에 골드 (#172 전 자리)
+ * 91에서 골드가 돌아오며 막대 옆 · 「← 제목」 줄 오른쪽에 골드를 다시 넣었다가, 2026-10-17 Lim 「헤드에서 골드 재화는 빼자」로 다시 뺌.
+ * 보유 골드는 골드를 쓰는 캐릭터 › 장비 (판매 · 재설정) 화면 안에 보인다. 위 정보창에 다시 넣지 않는다.
  * 캐릭터 칸은 탭 루트(settings)에서만 누름. 튜토리얼 중 캐릭터 탭이 잠겼으면(첫 장비 전) 누르지 않음.
  */
 export function topBar(opts: { back?: string; title?: string; settings?: boolean } = {}): string {
   const s = G.save, p = s.player;
   const set = opts.settings ? `<button class="tb-set" type="button" data-go="s-settings" aria-label="설정"><span class="tb-ring2">${GEAR_SVG}</span></button>` : '';
   if (opts.back) {
-    return `<header class="topbar"><button class="tb-back" type="button" data-go="${opts.back}" aria-label="뒤로">←</button><b class="tb-title">${esc(opts.title || '')}</b>${goldCell('tb-gold')}${set}</header>`;
+    return `<header class="topbar"><button class="tb-back" type="button" data-go="${opts.back}" aria-label="뒤로">←</button><b class="tb-title">${esc(opts.title || '')}</b>${set}</header>`;
   }
   const need = xpToNext(p.level);
   const pct = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
@@ -106,17 +106,9 @@ export function topBar(opts: { back?: string; title?: string; settings?: boolean
     : `<span class="tb-pf" role="img" aria-label="${esc(hero.name)} Lv ${p.level}">${pfIn}</span>`;
   return `<header class="topbar tb-mmo">${pf}
     <span class="tb-nm"><span class="tb-id"><b class="tb-cls">${esc(hero.name)}</b><small class="tb-lv">Lv. ${p.level}</small></span>
-      <span class="tb-xprow"><span class="tb-xp" role="img" aria-label="경험치 ${Math.floor(pct)}%" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}${apexOf(p.level) > 1 ? ` · 수련 +${((apexOf(p.level) - 1) * 100).toFixed(1)}%` : ''}"><i style="width:${pct.toFixed(1)}%"></i><small class="tb-xpt" aria-hidden="true">${isFinite(need) ? `${Math.floor(pct)}%` : 'MAX'}</small></span>${goldCell('tb-gold-mmo')}</span></span>
+      <span class="tb-xprow"><span class="tb-xp" role="img" aria-label="경험치 ${Math.floor(pct)}%" title="경험치 ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}${apexOf(p.level) > 1 ? ` · 수련 +${((apexOf(p.level) - 1) * 100).toFixed(1)}%` : ''}"><i style="width:${pct.toFixed(1)}%"></i><small class="tb-xpt" aria-hidden="true">${isFinite(need) ? `${Math.floor(pct)}%` : 'MAX'}</small></span></span></span>
     ${s.tut >= TUT.done ? `<span class="tb-wal">${staminaCell()}</span>` : ''}
     ${set}</header>`;
-}
-
-const compactGold = new Intl.NumberFormat('ko-KR', { notation: 'compact', maximumSignificantDigits: 3 });
-/** 위 줄 골드 칸 (91): 좁아서 1만부터 단위 축약 (5.23만, #172 전과 같음). 툴팁 · 접근성 이름에는 전체 값. 개발 빌드 골드 무제한이면 ∞ */
-function goldCell(cls: string): string {
-  const n = resourceBalance(G.save, 'gold'), full = isFinite(n) ? `골드 ${fmt(n)}` : '골드 무제한';
-  const shown = !isFinite(n) ? '∞' : n >= 10000 ? compactGold.format(Math.floor(n)) : fmt(n);
-  return `<span class="tb-cur ${cls}" role="img" aria-label="${full}" title="${full}">${currencyIcon('gold')}<b>${shown}</b></span>`;
 }
 
 /** [data-go] 버튼 = 그 화면으로 */
