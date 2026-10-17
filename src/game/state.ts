@@ -19,17 +19,24 @@ export const G: { save: SaveData } = { save: load() };
 
 export function commit(): void { save(G.save); }
 
-/** 인벤토리를 마지막으로 나간 뒤 획득한 장비. 성능 비교와 알림은 별개입니다. */
-export const isNewGear = (it: GearItem): boolean => it.id > (G.save.gear.seen ?? 0);
+/**
+ * 새것 (빨간 점): seen보다 나중에 얻었고 아직 상세를 열어 보지 않은 장비 (2026-10-17 Lim 「장비 상세보기 후 없어지게」).
+ * 화면을 나가도 그대로이고, 그 장비 상세를 열거나 장착하면 그 하나만 꺼짐. 성능 비교와 알림은 별개입니다.
+ */
+export const isNewGear = (it: GearItem): boolean => it.id > (G.save.gear.seen ?? 0) && !G.save.gear.opened?.includes(it.id);
 export const newGearCount = (): number => G.save.gear.bag.filter(isNewGear).length;
 
-/** 장비 화면을 나가면 필터·스크롤 위치와 관계없이 보유 장비를 모두 확인 처리합니다. */
-export function markGearSeen(): void {
+/** 그 장비를 본 것으로 (상세 열기 · 장착). 바뀌었으면 true. 새것이 다 꺼지면 seen을 올리고 opened를 비움 */
+export function markGearOpened(id: number): boolean {
   const g = G.save.gear;
-  const top = Math.max(g.seen ?? 0, ...g.bag.map(it => it.id), ...SLOTS.map(s => g.equipped[s.key]?.id ?? 0));
-  if (top <= (g.seen ?? 0)) return;
-  g.seen = top;
+  if (id <= (g.seen ?? 0) || g.opened?.includes(id)) return false;
+  const own = [...g.bag.map(it => it.id), ...SLOTS.map(s => g.equipped[s.key]?.id ?? 0)];
+  if (!own.includes(id)) return false;
+  const opened = [...(g.opened ?? []), id].filter(x => own.includes(x));
+  if (g.bag.some(it => it.id > (g.seen ?? 0) && !opened.includes(it.id))) g.opened = opened;
+  else { g.seen = Math.max(g.seen ?? 0, ...own); delete g.opened; }
   commit();
+  return true;
 }
 
 /** 광고 제거 패키지를 샀으면 배너를 숨김 (81 3장) */
@@ -95,7 +102,8 @@ export function equip(id: number): GearItem | null {
   g.bag.splice(i, 1);
   if (old) g.bag.push(old);
   g.equipped[it.slot] = it;
-  commit();
+  // 고른 장비는 본 것으로 (나중에 벗어도 새것 점이 다시 켜지지 않게)
+  if (!markGearOpened(it.id)) commit();
   return old || null;
 }
 
