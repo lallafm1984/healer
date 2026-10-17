@@ -104,13 +104,6 @@ export function betterSlots(): SlotKey[] {
   const eq = G.save.gear.equipped, lv = G.save.player.level;
   return SLOTS.filter(s => G.save.gear.bag.some(it => it.slot === s.key && itemScore(it, lv) > itemScore(eq[s.key], lv))).map(s => s.key);
 }
-/** 가방 화살표 (Lim 2026-10-11): 같은 부위 착용 장비보다 점수가 높으면 1 · 낮으면 −1 · 같거나 착용 중이면 0 (빈칸이면 1) */
-export function vsWorn(it: GearItem): 1 | -1 | 0 {
-  const w = G.save.gear.equipped[it.slot];
-  if (w?.id === it.id) return 0;
-  const d = scoreOf(it) - scoreOf(w);
-  return d > 0 ? 1 : d < 0 ? -1 : 0;
-}
 
 /** 열렸는데 아직 안 고른 특성 단 수 (지금 직업 트리, 튜토리얼 중엔 0) */
 export function talentsLeft(): number {

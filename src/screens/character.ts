@@ -17,7 +17,7 @@ import { TALENT_TREES, type TalentKey } from '../data/talents';
 import { type TapKey } from '../platform/storage';
 import { FACTIONS } from '../data/places';
 import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, type DexTab } from '../data/dex';
-import { betterSlots, codexRows, dexRows, specRows, statParts, talentsLeft, vsWorn } from '../game/charinfo';
+import { betterSlots, codexRows, dexRows, specRows, statParts, talentsLeft } from '../game/charinfo';
 import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, specText, specValue, type CodexGroup, type SpecGroup, type SpecLine } from '../data/specials';
 import {
   claimDex, commit, equip, findItem, G, healerLevel, heroSave, heroStatus, isNewGear, markGearOpened, newGearCount, pickReroll, pickTalent, reroll, rerollOpen, sell,
@@ -289,12 +289,11 @@ function gearHtml(): string {
     ${inventoryHtml()}`;
 }
 
-/** 가방 칸: 장비 그림 + 등급 색 + 지금 장비보다 점수가 높으면 초록 ▲ · 낮으면 빨간 ▼ (Lim 2026-10-11) + 새 점 */
+/** 가방 칸: 장비 그림 + 등급 색 + 새 점. 지금 장비와의 ▲▼ 비교 배지는 없음 (2026-10-17 Lim 「인벤토리에서 아이템 강함 아이콘을 모두 제거」, 비교는 상세 시트 옵션 줄에서) */
 function bagCell(it: GearItem): string {
-  const vs = vsWorn(it), nw = isNewGear(it);
-  const label = `${it.grade} ${slotName(it.slot)} · ${qualityTxt(it)}${it.name}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${vs > 0 ? ' · 지금 장비보다 좋음' : vs < 0 ? ' · 지금 장비보다 나쁨' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
-  const arrow = vs > 0 ? '<span class="up" aria-hidden="true">▲</span>' : vs < 0 ? '<span class="dn" aria-hidden="true">▼</span>' : '';
-  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}${it.grade === LEGEND ? ' lg' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${newFx(it, 'b')}${specDots(it)}${arrow}${nw ? '<span class="nw" aria-hidden="true"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
+  const nw = isNewGear(it);
+  const label = `${it.grade} ${slotName(it.slot)} · ${qualityTxt(it)}${it.name}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
+  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}${it.grade === LEGEND ? ' lg' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${newFx(it, 'b')}${specDots(it)}${nw ? '<span class="nw" aria-hidden="true"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
 }
 
 const grip = '<span class="grip" aria-hidden="true"></span>';

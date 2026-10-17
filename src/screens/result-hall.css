@@ -104,7 +104,6 @@
   display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 999px;
   background: var(--gk-chip); box-shadow: inset 0 0 0 1px var(--gk-card-bd); font: 700 12px/18px var(--font-body); color: var(--gk-ink); white-space: nowrap;
 }
-#s-settle .r-sc em { font-style: normal; font-weight: 900; }
 #s-settle .r-on { padding: 2px 8px; border-radius: 999px; background: #1f4a2a; box-shadow: inset 0 0 0 1px #6fd08c; font-weight: 800; }
 #s-settle .r-loot.many { gap: 8px; padding-top: 8px; }
 #s-settle .r-loot.many .r-item { min-height: 54px; padding-top: 4px; padding-bottom: 4px; }

@@ -1,4 +1,4 @@
-// 장비 (27 4-2·4-3, 09 S10·S11, 31 시안 · A2 테마): 좌우 장비 칸 + 가운데 능력치 판, 바로 아래 인벤토리(필터·정렬·▲▼·3줄 내부 스크롤), 상세 시트(옵션 줄마다 지금 장비와 차이 · 그 장비 범위 · 잠금 · 판매 · 장착). 91: 강화 없음 · 골드. 세트 없음 (옛 저장의 세트 장비도 보통 장비로)
+// 장비 (27 4-2·4-3, 09 S10·S11, 31 시안 · A2 테마): 좌우 장비 칸 + 가운데 능력치 판, 바로 아래 인벤토리(필터·정렬·3줄 내부 스크롤, 2026-10-17 칸 위 ▲▼ 없음), 상세 시트(옵션 줄마다 지금 장비와 차이 · 그 장비 범위 · 잠금 · 판매 · 장착). 91: 강화 없음 · 골드. 세트 없음 (옛 저장의 세트 장비도 보통 장비로)
 import { chromium } from 'playwright';
 import { pastTitle } from './nav.mjs';
 import { equipmentLayout } from './character.mjs';
@@ -60,7 +60,7 @@ export default async function gear(url, shots) {
   // ---- 장비 아래 인벤토리 ----
   ok((await page.locator('#s-char .gmats .currency-icon img').count()) === 1 && !/골드|강화석/.test(await text('#s-char .gmats')), '골드는 실제 아이콘과 수량만 표시, 이름은 접근성 정보로 유지 (91: 강화석 없음)');
   ok(await page.isVisible('#s-char .c7-inventory') && !(await page.locator('#s-char .sheet').count()) && (await page.getAttribute('#s-char .gmats .currency-amount:first-child', 'aria-label')) === '골드 800', '장비 진입 즉시 인벤토리·골드 표시, 가방 모달 없음');
-  ok((await page.locator('#s-char .c7-bag').count()) === 3 && (await page.locator('#s-char .c7-bag .nw').count()) === 3 && (await page.locator('#s-char .c7-bag .up').count()) === 3 && (await page.locator('#s-char .c7-bag .dn').count()) === 0 && /지금 장비보다 좋음/.test(await page.getAttribute('#s-char .c7-bag[data-gitem="201"]', 'aria-label')), '인벤토리 5열 격자: 새것 점 · 빈칸보다 좋으니 모두 ▲');
+  ok((await page.locator('#s-char .c7-bag').count()) === 3 && (await page.locator('#s-char .c7-bag .nw').count()) === 3 && (await page.locator('#s-char .c7-bag :is(.up, .dn)').count()) === 0 && !/[▲▼]|지금 장비보다/.test((await text('#s-char .c7-bags')) + await page.getAttribute('#s-char .c7-bag[data-gitem="201"]', 'aria-label')), '인벤토리 5열 격자: 새것 점, 강함 비교 ▲▼ 없음 (2026-10-17 Lim)');
   await page.click('#s-char [data-bfilter="acc"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-char .c7-bag').count()) === 2, '필터 「장신구」 = 반지·목걸이');
   ok((await page.locator('#s-char [data-bfilter]').count()) === 4 && (await page.locator('#s-char [data-bfilter="set"]').count()) === 0, '필터 4개 (「세트」 없음)');
@@ -88,7 +88,7 @@ export default async function gear(url, shots) {
   ok((await page.locator('#s-char .c7-bag[data-gitem="203"] .nw').count()) === 0 && (await page.locator('#s-char .c7-bag .nw').count()) === 2 && JSON.stringify((await save()).gear.opened) === '[203]' && /새 장비 2개/.test(await pfLabel()), '상세를 연 장비만 새것 점이 꺼짐 (저장 · 초상 알림 함께)');
   for (const id of ['201', '202']) { await page.click(`#s-char .c7-bag[data-gitem="${id}"]`); await page.clock.runFor(50); await closeSheet(); }
   const seenAll = await save();
-  ok((await page.locator('#s-char .c7-bag .nw').count()) === 0 && (await page.locator('#s-char .c7-bag .up').count()) === 3 && !(await page.isVisible('#s-char [data-csub="gear"] .rdot')) && !/새 장비/.test(await pfLabel()) && seenAll.gear.seen === 203 && !('opened' in seenAll.gear), '새 장비를 다 열어 보면 새것 점 · 장비 탭 점 · 초상 알림이 꺼지고, 비교 화살표는 유지');
+  ok((await page.locator('#s-char .c7-bag .nw').count()) === 0 && !(await page.isVisible('#s-char [data-csub="gear"] .rdot')) && !/새 장비/.test(await pfLabel()) && seenAll.gear.seen === 203 && !('opened' in seenAll.gear), '새 장비를 다 열어 보면 새것 점 · 장비 탭 점 · 초상 알림이 꺼짐');
 
   ok(!(await text('#s-char .c7-stat:nth-child(5) b')).startsWith('+'), '정신력 합계 앞에 + 없음');
   ok((await page.locator('#s-char .c7-stat b').allTextContents()).slice(2).every(value => /^[+]?\d+\.\d%$/.test(value)), '퍼센트 능력치는 소수 한 자리 고정 표시');
@@ -157,7 +157,7 @@ export default async function gear(url, shots) {
   });
   ok(!emptyRows.note && emptyRows.empties >= 15 && emptyRows.empties % 5 === 0, `장비가 없으면 안내 문구 없이 빈칸만 3줄 이상 유지 (${JSON.stringify(emptyRows)})`);
 
-  // ---- 가방 ▲▼ · 옵션 차이 · 빠지는 옵션 · 전설 고유 능력 (Lim 2026-10-11) ----
+  // ---- 옵션 차이 · 빠지는 옵션 · 전설 고유 능력 (Lim 2026-10-11). 가방 칸 ▲▼는 2026-10-17 Lim이 뺌 ----
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     const it = (id, slot, kind, grade, lines, specs = []) => ({ id, slot, kind, grade, name: '', lines, specs });
@@ -166,7 +166,7 @@ export default async function gear(url, shots) {
   });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
-  ok((await page.locator('#s-char .c7-bag[data-gitem="301"] .dn').count()) === 1 && (await page.locator('#s-char .c7-bag[data-gitem="302"] .up').count()) === 1 && /지금 장비보다 나쁨/.test(await page.getAttribute('#s-char .c7-bag[data-gitem="301"]', 'aria-label')), '인벤토리: 착용 두건보다 점수가 낮은 일반 두건 = 빨간 ▼, 높은 영웅 모자 = 초록 ▲');
+  ok((await page.locator('#s-char .c7-bag :is(.up, .dn)').count()) === 0 && !/지금 장비보다/.test(await page.getAttribute('#s-char .c7-bag[data-gitem="301"]', 'aria-label')), '인벤토리: 착용 두건보다 낮거나 높아도 칸 위 ▲▼ 없음 (비교는 상세 옵션 줄)');
   await page.locator('#s-char .c7-inventory').screenshot({ path: `${shots}/gear_bag_arrows.png` });
   await page.click('#s-char .c7-bag[data-gitem="301"]'); await page.clock.runFor(50);
   sh = await text('#s-char .c7-gsheet .c7-opts');
