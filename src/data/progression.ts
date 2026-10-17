@@ -5,6 +5,7 @@
  */
 import type { DiffName } from './difficulty';
 import { CONTENT, isLeveling, type ContentDef, type ContentKey } from './content';
+import { REST_XP_SCALE } from './economy';
 
 export const MAX_LEVEL = 100;
 
@@ -60,6 +61,11 @@ export function clearXp(level: number, diff: DiffName, grade: Grade | null, opts
   const x = xpToNext(level) * xpShare(level) * REWARD_DIFF[diff] * g * (opts.raid ? XP_RAID[opts.raid] : 1);
   return Math.max(1, Math.round(x));
 }
+/**
+ * 내가 깬 판의 클리어 경험치 (휴식 판 기준, 90 · 2026-10-17 Lim): clearXp (+ 탐험 · 축제 배율) × REST_XP_SCALE (2/3). 정산 · 주간 도전 미리 보기가 이 값을 씀.
+ * 휴식이 없으면 정산에서 다시 1/REST_BONUS (= 예전 휴식 0 값). 장소 경험치 (rampXp) · 길드원 경험치에는 안 씀
+ */
+export const playXp = (xp: number): number => (xp > 0 ? Math.max(1, Math.round(xp * REST_XP_SCALE)) : 0);
 
 /**
  * 초반 순차 레벨링 (70, Lim 2026-10-12): 내 레벨이 RAMP_LV 이하일 때 장소 Lv RAMP_LV까지의 탐험 · 던전은 경험치를 장소가 정함
