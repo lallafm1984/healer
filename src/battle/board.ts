@@ -94,10 +94,16 @@ const fxArtL = new Container();
 const markL = new Container();
 /** 칸 테두리 그림 (2026-10-16 검수, fx-edge-* 띠 · fx-ring-* 고리): 디버프 · 힐러 표시 · 강타 예고 · 장판 위 사람. 도형 테두리 (overG) 바로 위, 작은 표시 · 글자 아래 */
 const ringL = new Container();
+/**
+ * 칸 위 상태 그림 (걸린 동안 겹침 · 부풀기 거품 · 포자 솜뭉치 · 모자 · 떠도는 안개 · 결계 · 별의 잠 · 감옥 · 띄워 올리기 · 번개 구름):
+ * 2026-10-16 Lim 「테두리는 상태 그림보다 아래」 → 칸 테두리 (도형 overG · 그림 ringL) 바로 위. 그 위에 overTopG (탱커 조준 · 칸 아래 알약 · ? !), 작은 표식 · 글자
+ */
+const statusArtL = new Container();
+const overTopG = new Graphics();
 /** 말풍선 그림 (43 5장): 틀 뒤 이펙트 띠 · 틀 9조각 · 꼬리·감정 아이콘·앞 이펙트 띠. 대사 글자(topL)는 그 위 */
 const bubbleL = new Container(), bubbleBackL = new Container(), sliceL = new Container(), bubbleFrontL = new Container();
 bubbleL.addChild(bubbleBackL, sliceL, bubbleFrontL);
-root.addChild(cellsG, decalL, unitsG, standL, glowL, fxG, fxArtL, frameL, overG, ringL, markL, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL, pxfL, numL);
+root.addChild(cellsG, decalL, unitsG, standL, glowL, fxG, fxArtL, frameL, overG, ringL, statusArtL, overTopG, markL, emblemL, labelsL, badgeG, badgeL, topG, bubbleL, topL, lensL, pxfL, numL);
 
 let dpr = 1;
 /** 판 그림 좌표 (Pixi root 안). k = 그림 → 화면 배율: 보통 1, 「레이드 판 5인 던전 모양」이면 1보다 작음 (화면 좌표 = 그림 좌표 × k) */
@@ -510,7 +516,7 @@ class SpritePool {
   }
   end(): void { for (let i = this.used; i < this.list.length; i++) this.list[i].visible = false; }
 }
-const ringArt = new SpritePool(ringL);
+const ringArt = new SpritePool(ringL), statusArt = new SpritePool(statusArtL);
 const decals = new SpritePool(decalL), fxArt = new SpritePool(fxArtL), marks = new SpritePool(markL), stands = new SpritePool(standL), pxfArt = new SpritePool(pxfL), bubbleBack = new SpritePool(bubbleBackL), bubbleFront = new SpritePool(bubbleFrontL);
 /**
  * 칸 테두리 · 표식 그림 (2026-10-16 Lim 「원형으로 표시하던 것들은 알기 쉽게 이미지화」, 89 문서 · QA · 디자이너 검수):
@@ -758,7 +764,7 @@ function lowPills(list: { key: string; text: string; bg: number; fg: number }[],
   let cx = Math.min(Math.max(x, L.left + total / 2 + 0.75), L.right - total / 2 - 0.75);
   if (L.right - L.left < total + 1.5) cx = (L.left + L.right) / 2;
   let left = cx - total / 2;
-  list.forEach((p, i) => { pill(overG, labels, p.key, left + ws[i] / 2, y, p.text, p.bg, p.fg, size); left += ws[i] + gap; });
+  list.forEach((p, i) => { pill(overTopG, labels, p.key, left + ws[i] / 2, y, p.text, p.bg, p.fg, size); left += ws[i] + gap; });
 }
 /** 지속 힐 원 (디버프 배지가 없을 때 오른쪽 위). 배지가 있으면 배지 줄 오른쪽 (hotSpot) */
 function hotCenter(x: number, y: number, radius: number, lower: number): { x: number; y: number } {
@@ -1414,8 +1420,8 @@ export function render(now: number): void {
   const zpulse = S.reducedEffects ? 0.65 : 0.5 + 0.5 * Math.sin(t * 4); // 장판은 천천히
   const typography = cellTypography(s);
   const rdt = Math.min(0.1, Math.max(0, (now - (B2.lastRender || now)) / 1000)); B2.lastRender = now;
-  for (const g of [cellsG, unitsG, fxG, overG, badgeG, topG]) g.clear();
-  labels.begin(); badgeLabels.begin(); tops.begin(); nums.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); marks.begin(); stands.begin(); ringArt.begin(); pxfArt.begin(); stripUsed = 0;
+  for (const g of [cellsG, unitsG, fxG, overG, overTopG, badgeG, topG]) g.clear();
+  labels.begin(); badgeLabels.begin(); tops.begin(); nums.begin(); glowUsed = 0; hexFramesUsed = 0; decorationBounds.length = 0; decals.begin(); fxArt.begin(); marks.begin(); stands.begin(); ringArt.begin(); statusArt.begin(); pxfArt.begin(); stripUsed = 0;
   bubbleBack.begin(); bubbleFront.begin(); sliceUsed = 0;
   telsSeen = F.tels.slice(); // 다음 impact 사건이 어느 기술인지 (fxImpact)
   const fs = (k: number, min: number) => Math.max(min, s * k);
@@ -1625,7 +1631,7 @@ export function render(now: number): void {
     const swell = u.debuffs.find(d => d.swell);
     if (swell && hold?.d !== swell) {
       const sr = r * Math.min(0.95, 0.45 + 0.12 * (swell.stack ?? 1)), st = artTexture('fx-swell-bubble'); // 거품 그림 (2026-10-16 검수), 중첩만큼 커짐
-      if (st) fxArt.put(st, x, y + r * 0.05, sr * 2, sr * 2, swell.left < 2 ? 0.55 + 0.35 * pulse : 0.9);
+      if (st) statusArt.put(st, x, y + r * 0.05, sr * 2, sr * 2, swell.left < 2 ? 0.55 + 0.35 * pulse : 0.9);
       else unitsG.circle(x, y + r * 0.1, r * Math.min(0.85, 0.3 + 0.12 * (swell.stack ?? 1))).fill({ color: 0x7ee36a, alpha: 0.16 }).stroke({ width: Math.max(1.5, s * 0.04), color: 0x7ee36a, alpha: 0.75 });
     }
     const flip = u.debuffs.find(d => d.end?.p === 'flip');
@@ -1636,25 +1642,25 @@ export function render(now: number): void {
       const k = Math.max(0.45, Math.min(1, (puff.absorbLeft ?? 0) / Math.max(1, (puff.absorb ?? 1) * F.dmgMult)));
       const pr = r * 0.2 * k, py = y + r * 0.42, a = puff.left < 2 ? 0.55 + 0.4 * pulse : 0.9, pt = artTexture('board-spore-puff');
       // 포자 솜뭉치 그림 (2026-10-16 검수): 체력 숫자 뒤가 아니라 칸 왼쪽 아래 모서리, 남은 막이 적을수록 작게
-      if (pt) fxArt.put(pt, x - r * 0.5, y + r * 0.5, r * 0.78 * k, r * 0.78 * k, a);
+      if (pt) statusArt.put(pt, x - r * 0.5, y + r * 0.5, r * 0.78 * k, r * 0.78 * k, a);
       else for (const [dx, dy] of [[-1.1, 0.2], [0, -0.35], [1.1, 0.2], [0, 0.45]]) unitsG.circle(x + dx * pr, py + dy * pr, pr).fill({ color: 0xfbe4ee, alpha: a }).stroke({ width: 1.2, color: RING_HI, alpha: a * 0.8 });
     }
     // 모자 뽑기 (48 5장): 칸 위에 모자 그림 (뒤집힘 실크해트 · 상한 고깔모자 · 완치 왕관 모자)
     const hat = u.debuffs.find(d => d.art), hatTex = hat ? artTexture(hat.art!) : null;
-    if (hatTex) fxArt.put(hatTex, x, y - r * 0.6, r * 0.95, r * 0.95);
+    if (hatTex) statusArt.put(hatTex, x, y - r * 0.6, r * 0.95, r * 0.95);
     // 묶음 H (63 E 3 · 9): 걸린 동안 칸 위에 겹침 (가운데가 빈 그림). 얼음 갑옷은 녹을수록 옅게, 거품은 중첩만큼 커짐, 끝나기 2초 전 깜빡임
     if (hold) {
       const d = hold.d, melt = d.absorb ? Math.max(0, Math.min(1, (d.absorbLeft ?? 0) / Math.max(1, d.absorb * F.dmgMult))) : 1, k = d.swell ? Math.min(1.95, 1.35 + 0.15 * (d.stack ?? 1)) : 1.9;
-      fxArt.put(hold.tex, x, y, r * k, r * k, (0.45 + 0.55 * melt) * (d.left < 2 ? 0.6 + 0.4 * pulse : 1));
+      statusArt.put(hold.tex, x, y, r * k, r * k, (0.45 + 0.55 * melt) * (d.left < 2 ? 0.6 + 0.4 * pulse : 1));
     }
     // 힐러 직업 4종 (80 5장): 떠도는 안개 = 발밑 옅은 안개 고리 · 결계사 보호막 = 칸을 감싼 금빛 막 (끝나기 2초 전 깜빡임) · 별의 잠 = 칸을 덮는 별빛 고치
     const mist = u.hots.find(h => h.key === 'wanderMist' && h.left > 0);
-    if (mist) heroArt(fxArt, 'board-mist', `hero-mist${u.id}`, x, y + r * 0.55, r * 1.5, mist.left < 2 ? 0.35 + 0.35 * pulse : 0.7);
+    if (mist) heroArt(statusArt, 'board-mist', `hero-mist${u.id}`, x, y + r * 0.55, r * 1.5, mist.left < 2 ? 0.35 + 0.35 * pulse : 0.7);
     if (F.hero === 'warder' && absorbLeft(F, u) > 0) {
       const left = Math.max(0, ...u.mods.filter(m => m.k === 'absorb' && m.src === HEALER_SHIELD).map(m => m.until - F.t));
-      heroArt(fxArt, 'board-barrier', `hero-barrier${u.id}`, x, y, r * 2.06, left < 2 ? 0.4 + 0.45 * pulse : 0.85);
+      heroArt(statusArt, 'board-barrier', `hero-barrier${u.id}`, x, y, r * 2.06, left < 2 ? 0.4 + 0.45 * pulse : 0.85);
     }
-    if (asleep(F, u)) heroArt(fxArt, 'board-star-sleep', `hero-sleep${u.id}`, x, y, r * 2.06, u.sleep! - F.t < 1 ? 0.5 + 0.4 * pulse : 0.9);
+    if (asleep(F, u)) heroArt(statusArt, 'board-star-sleep', `hero-sleep${u.id}`, x, y, r * 2.06, u.sleep! - F.t < 1 ? 0.5 + 0.4 * pulse : 0.9);
     // 어둠물에 잠긴 사람: 칸 아래 40%가 물에 잠김 (물 높이가 출렁) · 받는 치유 −50%
     if (tideSet.has(u.cell)) {
       const wy = bot - 2 * r * 0.4 + (S.reducedEffects ? 0 : Math.sin(t * 3 + u.id) * s * 0.03), th = Math.max(1.5, s * 0.035);
@@ -1689,7 +1695,7 @@ export function render(now: number): void {
     }
     if (u.lift) { // 떠 있는 구름 (그림 57 E가 오면 fx-cloud-ride)
       const ct = artTexture('fx-cloud-ride');
-      if (ct) fxArt.put(ct, x, y + r * 0.8, r * 1.9, r * 0.95);
+      if (ct) statusArt.put(ct, x, y + r * 0.8, r * 1.9, r * 0.95);
       else for (const [dx, dy, k] of [[-0.5, 0.88, 0.3], [0, 0.8, 0.38], [0.5, 0.88, 0.3]]) unitsG.circle(x + dx * r, y + dy * r, r * k).fill({ color: 0xf6fbff, alpha: 0.92 });
     }
     over.push({ u, x, y, deb: undefined });
@@ -2014,8 +2020,9 @@ export function render(now: number): void {
       if (debBadge) by = peakY;
       ({ x: bx, y: by } = fitCenter(bx, by, br + bw / 2));
       // 빨간 원 + 십자 (2026-10-16 #184에서 그림으로 바꿨다가 Lim 「탱커에 붙은 공격 표식 아이콘만 그전으로 원복」, 도형 그대로 둠)
-      overG.circle(bx, by, br).fill({ color: C.cell }).stroke({ width: bw, color: C.danger });
-      overG.circle(bx, by, br * 0.4).moveTo(bx, by - br * 0.8).lineTo(bx, by - br * 0.22).moveTo(bx, by + br * 0.22).lineTo(bx, by + br * 0.8)
+      // 상태 그림보다 위 (overTopG): 모양 · 자리 · 크기는 그대로
+      overTopG.circle(bx, by, br).fill({ color: C.cell }).stroke({ width: bw, color: C.danger });
+      overTopG.circle(bx, by, br * 0.4).moveTo(bx, by - br * 0.8).lineTo(bx, by - br * 0.22).moveTo(bx, by + br * 0.22).lineTo(bx, by + br * 0.8)
         .moveTo(bx - br * 0.8, by).lineTo(bx - br * 0.22, by).moveTo(bx + br * 0.22, by).lineTo(bx + br * 0.8, by)
         .stroke({ width: Math.max(1.2, br * 0.18), color: C.tankMark, cap: 'round' });
       recordBound(`aggro${u.id}`, 'aggro', 'circle', bx, by, br * 2 + bw, br * 2 + bw);
@@ -2030,7 +2037,7 @@ export function render(now: number): void {
     const jail = F.mobs.find(m => m.alive && m.add?.hold != null && m.add.on === u.id);
     if (jail) {
       const w = Math.max(2.5, s * 0.07), jt = artTexture(debuffFxArt(F.enc.script, 'hold', jail.name) || addArtName(jail)); // 물거품 감옥 = fx-bubble-trap (63 E 9)
-      if (jt) fxArt.put(jt, x, y, r * 1.9, r * 1.9); // 감옥 그림 (37 4장 E-14): 가운데가 비어 파티원 칸이 보임
+      if (jt) statusArt.put(jt, x, y, r * 1.9, r * 1.9); // 감옥 그림 (37 4장 E-14): 가운데가 비어 파티원 칸이 보임
       else {
         hexPoly(overG, x, y, r * 0.96).fill({ color: 0x4a3f33, alpha: 0.45 });
         for (let k = -2; k <= 2; k++) { const h = k === -2 || k === 2 ? 0.5 : 0.84; overG.moveTo(x + k * r * 0.3, y - r * h).lineTo(x + k * r * 0.3, y + r * h); }
@@ -2056,7 +2063,7 @@ export function render(now: number): void {
     if (lc) {
       const col = lc.skill.lift ? SKY : BOLT, left = Math.max(0, Math.ceil(lc.impact - F.t));
       const gt = artTexture(lc.skill.lift ? 'fx-lift-warn' : 'fx-chain-cloud');
-      if (gt) fxArt.put(gt, x, lc.skill.lift ? y + r * 0.55 : y - r * 0.75, r * 1.3, r * 0.9, 0.75 + 0.25 * pulse);
+      if (gt) statusArt.put(gt, x, lc.skill.lift ? y + r * 0.55 : y - r * 0.75, r * 1.3, r * 0.9, 0.75 + 0.25 * pulse);
       else if (lc.skill.lift) dashCircle(overG, x, y + r * 0.5, r * 0.5, 5, 4, Math.max(2, s * 0.06), col, 0.6 + 0.4 * pulse);
       else overG.ellipse(x, y - r * 0.8, r * 0.42, r * 0.18).fill({ color: 0x4a4e66, alpha: 0.85 }).stroke({ width: 2, color: col, alpha: 0.6 + 0.4 * pulse });
       // 남은 초도 강타 예고와 같은 자리 · 같은 층 (이름·체력 글자 위)
@@ -2085,13 +2092,13 @@ export function render(now: number): void {
         badgeLabels.put(`ord${u.id}`, String(ok + 1), { size: size * 0.95, fill: C.dark, weight: W_NUM }, tp.x, tp.y + size * 0.04, a);
         markBox = { x: tp.x, y: tp.y, w: z, h: z };
         recordBound(`ord${u.id}`, 'pill', 'icon', tp.x, tp.y, z, z);
-      } else markBox = pill(overG, labels, `ord${u.id}`, m.x, m.y, ORDER_NUM[ok], now1 ? C.gold : 0xd9dde6, C.dark, size, a);
+      } else markBox = pill(overTopG, labels, `ord${u.id}`, m.x, m.y, ORDER_NUM[ok], now1 ? C.gold : 0xd9dde6, C.dark, size, a);
     }
     else if (u.debuffs.some(d => d.invert)) {
       // 뒤집힌 축복: 그림 (icon-gim-invert, 힐하면 피해). ✕ 알약은 「해제 불가 ×」로 읽혀 그림으로 바꿈 (2026-10-16 QA · CLAUDE.md × 금지 규칙)
       const it = artTexture('icon-gim-invert'), z = fs(0.28, 11) * 1.75, m = markAt('✕', fs(0.28, 11));
       if (it) { marks.put(it, m.x, m.y, z, z); markBox = { x: m.x, y: m.y, w: z, h: z }; recordBound(`inv${u.id}`, 'mark', 'icon', m.x, m.y, z, z); }
-      else markBox = pill(overG, labels, `inv${u.id}`, m.x, m.y, '✕', 0x7fa88c, C.dark, fs(0.28, 11));
+      else markBox = pill(overTopG, labels, `inv${u.id}`, m.x, m.y, '✕', 0x7fa88c, C.dark, fs(0.28, 11));
     }
     if (markBox && !peakY && leftY != null) leftY = markBox.y + markBox.h / 2;
     // 빛의 전이 (사제 8번째 칸): 보통 칸은 왼쪽 위 (지속 힐 원 반대편) 금빛 원 + 흰 빛 구슬.
@@ -2113,8 +2120,8 @@ export function render(now: number): void {
       const size = r * (sign === 'board-seal' ? 0.52 : 0.57) * (leftY != null ? 0.85 : 1), half = (size * HERO_ART_BOX[sign][1]) / 2; // 보호막 원 아래로 내려가면 이름에 덜 걸리게 조금 작게
       heroArt(marks, sign, `hero-sign${u.id}`, x - r * 0.56, leftY != null ? leftY + 1 + half : y - r * 0.44, size, sign === 'board-seal' && u.seal! - F.t < 2 ? 0.5 + 0.5 * pulse : 1, true);
     }
-    if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
-    else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
+    if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overTopG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
+    else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overTopG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
     const st = u.lift ? ([`하늘 ${Math.max(0, Math.ceil(u.lift.until - F.t))}`, '#9FD8F5'] as const) : u.pulled ? ([`끌림 ${Math.ceil(u.pulled.until - F.t)}`, '#C98B5A'] as const) : u.fleeing ? (['도망', '#DB9B57'] as const) : u.sulking ? (['삐짐', '#D68FA6'] as const)
       : u.ps?.panicUntil != null && F.t < u.ps.panicUntil ? (['당황', '#D68FA6'] as const) : u.ps?.rageUntil != null && F.t < u.ps.rageUntil ? (['분노', '#E0705A'] as const) : null; // 소심이 · 다혈질 (75)
     if (st && s >= 40) low.unshift({ key: `st${u.id}`, text: st[0], bg: hex(st[1]), fg: C.dark });
@@ -2311,7 +2318,7 @@ export function render(now: number): void {
   for (let i = glowUsed; i < glows.length; i++) glows[i].visible = false;
   for (let i = hexFramesUsed; i < hexFrames.length; i++) hexFrames[i].visible = false;
   for (let i = sliceUsed; i < slices.length; i++) slices[i].visible = false;
-  labels.end(); badgeLabels.end(); tops.end(); nums.end(); decals.end(); fxArt.end(); marks.end(); stands.end(); ringArt.end(); pxfArt.end(); bubbleBack.end(); bubbleFront.end();
+  labels.end(); badgeLabels.end(); tops.end(); nums.end(); decals.end(); fxArt.end(); marks.end(); stands.end(); ringArt.end(); statusArt.end(); pxfArt.end(); bubbleBack.end(); bubbleFront.end();
   for (let i = stripUsed; i < strips.length; i++) strips[i].visible = false;
   lensL.visible = false;
   app.renderer.render(app.stage);
