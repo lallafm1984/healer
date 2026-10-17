@@ -79,8 +79,11 @@ export default async function adventureDeparture(url, shots) {
       && await page.evaluate(()=>document.activeElement?.dataset.content==='alley'), `${width}: 장소 카드를 누르면 팝업 없이 바로 출전 장소로·포커스 유지`);
     await page.click('[data-ctab="dungeon"]'); await page.click('[data-ctab="explore"]');
     ok(await page.locator('[data-content="alley"]').getAttribute('aria-pressed')==='true', `${width}: 분류를 바꿨다 와도 고른 장소 기억`);
-    await chooseContent(page,'plateau'); await page.click('[data-diff="보통"]');
-    ok(/Lv\.\s*3/.test(await page.locator('.b-level').innerText()), `${width}: 난이도 변경에 권장 레벨 갱신`);
+    // 92: 순차 구간 장소의 권장 레벨 = 길에서 그 난이도에 들어가는 레벨 (녹슨 고원 어려움 적 Lv 5 → Lv 3, 보통 적 Lv 3 → Lv 2)
+    await chooseContent(page,'plateau'); await page.click('[data-diff="어려움"]');
+    const lvHard=await page.locator('.b-level').innerText();
+    await page.click('[data-diff="보통"]');
+    ok(/Lv\.\s*3/.test(lvHard) && /Lv\.\s*2/.test(await page.locator('.b-level').innerText()), `${width}: 난이도 변경에 권장 레벨 갱신`);
     const rewardSelector='[data-reward="gear"]';
     ok(await page.locator('.b-gate [data-reward="gold"]').count()===1 && await page.locator('.b-gate [data-reward="stone"]').count()===0
       && await page.locator('.b-pop,[data-drops]').count()===0, `${width}: 장면 안 보상 아이콘·기존 상세 팝업 제거`);

@@ -1,12 +1,12 @@
 // 모험 길잡이 · 난이도 레벨 열림 · 장소 레벨대 장비 등급 (86, 2026-10-16 Lim 「불친절함」 · 「등급에 맞지 않는 장비」)
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ALL_DIFFS, CONTENT, chainOpen, contentOf, isLeveling, RAID10_LV, stageOf } from '../src/data/content';
+import { ALL_DIFFS, CONTENT, chainOpen, contentOf, isLeveling, RAID10_LV, stageOf, type ContentDef } from '../src/data/content';
 import type { DiffName } from '../src/data/difficulty';
-import { DROP_TABLES, dropTable, ITEM_GRADES, LEVELING_TIERS, lootTier, RECOMMENDED, type ItemGrade } from '../src/data/equipment';
+import { DROP_TABLES, dropTable, ITEM_GRADES, LEVELING_TIERS, lootTier, presetScore, RECOMMENDED, type ItemGrade } from '../src/data/equipment';
 import { presetGear } from './fixtures/preset-gear';
 import { rampDiffs, rampFour, rampPlace, rampRefLevel, RAMP_LV } from '../src/data/progression';
 import { gearGradeOdds } from '../src/data/reward-preview';
-import { fitOf, guide, rankStages } from '../src/game/guide';
+import { diffStep, fitOf, guide, lvStep, rankStages, recLevel } from '../src/game/guide';
 import { settle, type BattleResult } from '../src/game/settle';
 import { G, lockOf } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
@@ -35,45 +35,59 @@ describe('난이도 열림 (86): 앞 난이도를 깼거나, 적 레벨이 내 �
   });
 });
 
-describe('적합도 (fitOf)', () => {
+describe('적합도 (fitOf, 92: 난이도 + 레벨 + 장비)', () => {
   const c = contentOf('snowlab'); // 장소 Lv 30: 적 Lv 30 · 32 · 34 · 36
-  it('적 레벨 − 내 레벨: −2 이하 여유 · −1 ~ +1 적정 (88) · +2 ~ +3 도전 · +4 이상 위험', () => {
-    expect(fitOf(c, '쉬움', 32, 0)).toBe('여유');
-    expect(fitOf(c, '쉬움', 31, 0)).toBe('적정');
-    expect(fitOf(c, '쉬움', 29, 0)).toBe('적정');
-    expect(fitOf(c, '쉬움', 28, 0)).toBe('도전');
-    expect(fitOf(c, '보통', 28, 0)).toBe('위험');
+  // 권장 장비 점수 (91: 프리셋 장비 점수, 어려움 고급 · 악몽 희귀 × 1.4 = 예전 희귀 +5), 한 단계 위 = 영웅 × 1.4 + 특수능력 1줄
+  const ADV = RECOMMENDED['어려움']!.score, RARE = RECOMMENDED['악몽']!.score, EPIC = presetScore('영웅', 1.4, 1);
+  const four = (x: ContentDef, lv: number, g: number) => ALL_DIFFS.map(d => fitOf(x, d, lv, g));
+
+  it('난이도 몫: 클리어율 목표 (쉬움 99 · 보통 97 · 어려움 85 · 악몽 75%)대로 −2 · −1 · 0 · +2, 순차 구간 Lv 10~20 장소 악몽은 길이라 0', () => {
+    expect(ALL_DIFFS.map(d => diffStep(c, d))).toEqual([-2, -1, 0, 2]);
+    expect(diffStep(contentOf('greenhouse'), '악몽')).toBe(0);
+    expect(diffStep(contentOf('rustfort'), '악몽')).toBe(2); // 장소 Lv 1~9 악몽은 길이 아님
   });
-  // 권장 장비 점수 (91: 프리셋 장비 점수, 어려움 고급 · 악몽 희귀 × 1.4 = 예전 희귀 +5)
-  const ADV = RECOMMENDED['어려움']!.score, RARE = RECOMMENDED['악몽']!.score;
-  it('권장 장비 (어려움 고급 · 악몽 희귀, 프리셋 장비 점수)에 못 미치면 적어도 도전', () => {
-    expect(fitOf(c, '어려움', 34, ADV)).toBe('적정');
-    expect(fitOf(c, '어려움', 34, ADV - 0.1)).toBe('도전');
-    expect(fitOf(c, '악몽', 39, 0)).toBe('도전'); // 여유 (−3)여도 장비가 없으면 도전
-    // Lv 4 녹슨 고원: 쉬움 · 보통은 여유, 어려움 · 악몽만 적정 (예전엔 네 칸 모두 적정)
-    expect((['쉬움', '보통', '어려움', '악몽'] as const).map(d => fitOf(contentOf('plateau'), d, 4, 0))).toEqual(['여유', '여유', '적정', '적정']);
-    expect(fitOf(c, '악몽', 46, 0)).toBe('도전'); // −10
-    expect(fitOf(c, '악몽', 58, RARE - 0.5)).toBe('도전'); // −22여도 장비가 모자라면 도전 (88: 예전엔 레벨이 많이 앞서면 적정)
-    expect(fitOf(c, '악몽', 36, RARE)).toBe('적정');
+  it('레벨 몫: 모자라면 2레벨마다 +1, 앞서면 레벨 힘이 12% 늘 때마다 −1 (Lv 20 넘으면 1~3레벨 앞서도 클리어율이 거의 같음)', () => {
+    expect([30, 31, 32, 34, 36].map(r => lvStep(r, 30))).toEqual([0, 0, 1, 2, 3]);
+    expect(lvStep(30, 34)).toBe(0); // 힘 +11%
+    expect(lvStep(30, 35)).toBe(-1); // 힘 +14%
+    expect(lvStep(2, 4)).toBe(-2); // 낮은 레벨은 한 레벨 차이도 큼 (+28%)
   });
-  it('레이드 (88): 적이 내 레벨이라 권장 장비를 채운 가장 어려운 난이도가 적정, 쉬운 쪽 여유 · 어려운 쪽 도전', () => {
-    const r = contentOf('abyss1'), f = (g: number) => (['쉬움', '보통', '어려움', '악몽'] as const).map(d => fitOf(r, d, 60, g));
-    expect(f(0)).toEqual(['여유', '적정', '도전', '도전']);
-    expect(f(ADV)).toEqual(['여유', '여유', '적정', '도전']);
-    expect(f(RARE)).toEqual(['여유', '여유', '여유', '적정']);
+  it('어려움 · 권장 장비면 내 레벨 칸이 적정, 악몽은 권장 장비여도 도전 (예전엔 적정이라 75% 칸을 추천)', () => {
+    expect(four(c, 34, ADV)).toEqual(['여유', '여유', '적정', '위험']); // 악몽은 장비 미달 (+2)
+    expect(fitOf(c, '악몽', 36, RARE)).toBe('도전');
+    expect(fitOf(c, '악몽', 36, EPIC)).toBe('적정'); // 한 단계 위 장비 (시뮬 영웅 92%)
+    expect(fitOf(c, '악몽', 41, RARE)).toBe('적정'); // 힘 +12% 앞섬
+    expect(fitOf(c, '어려움', 34, ADV - 0.1)).toBe('도전'); // 권장 장비 미달은 적어도 도전
+    expect(fitOf(c, '악몽', 39, 0)).toBe('위험');
+    expect(fitOf(c, '악몽', 58, RARE - 0.5)).toBe('도전'); // 레벨이 한참 앞서도 장비가 모자라면 도전 (88)
+    expect(four(c, 28, 0)).toEqual(['적정', '적정', '위험', '위험']);
   });
-  it('순차 구간 장소는 70 · 90의 길에서 그 난이도에 들어가는 레벨 기준 (어려움 · 악몽 = 밸런스 기준 플레이어와 같음), 장비 조건 없음', () => {
+  it('레이드: 적이 내 레벨이라 레벨 몫 없음, 장비 몫만', () => {
+    const r = contentOf('abyss1');
+    expect(four(r, 60, 0)).toEqual(['여유', '적정', '도전', '위험']);
+    expect(four(r, 60, ADV)).toEqual(['여유', '여유', '적정', '위험']);
+    expect(four(r, 60, RARE)).toEqual(['여유', '여유', '적정', '도전']);
+    expect(four(r, 60, EPIC)).toEqual(['여유', '여유', '적정', '적정']);
+  });
+  it('순차 구간 장소는 70 · 90의 길에서 그 난이도에 들어가는 레벨 기준 (어려움 · 악몽 = 밸런스 기준 플레이어와 같음), 장비 몫 없음', () => {
     for (const x of CONTENT.filter(y => rampPlace(y) && y.ready)) {
       for (const d of ['어려움', '악몽'] as const) expect(rampRefLevel(x, d), `${x.name} ${d}`).toBe(rampLevel(x, d));
       expect(rampRefLevel(x, '쉬움')).toBeLessThanOrEqual(rampRefLevel(x, '보통')!);
       // 장소 Lv 10~20: 네 난이도 모두 그 장소 레벨 ~ +1에 들어감 (한 곳 110%라 넘친 몫이 쌓여 뒤쪽 장소는 어려움 · 악몽 전에 한 레벨 오름)
       if (rampFour(x)) for (const d of ALL_DIFFS) expect(rampRefLevel(x, d)! - x.stageLv, `${x.name} ${d}`).toBeOneOf([0, 1]);
     }
-    const plateau = contentOf('plateau'); // 어려움 적 Lv 5, 열리는 레벨 Lv 3
-    expect(fitOf(plateau, '어려움', 3, 0)).toBe('적정');
+    expect(four(contentOf('plateau'), 4, 0)).toEqual(['여유', '여유', '적정', '적정']);
+    expect(four(contentOf('rustfort'), 5, 0)).toEqual(['여유', '적정', '적정', '도전']);
     expect(rampRefLevel(contentOf('rustfort'), '보통')).toBe(5); // 적 Lv 7이지만 쉬움을 깬 Lv 5에 들어가는 칸
-    expect(fitOf(contentOf('rustfort'), '보통', 5, 0)).toBe('적정');
     expect(rampRefLevel(contentOf('snowlab'), '보통')).toBeNull();
+  });
+  it('2026-10-17 Lim 「내 레벨이 11인데 권장레벨 16이 추천」: 역병 약초 온실 악몽은 적 Lv 16이지만 길에서 Lv 11에 들어가는 칸 → 권장 레벨 11 · 적정', () => {
+    const g = contentOf('greenhouse');
+    expect(stageOf(g, '악몽')).toBe(16);
+    expect(recLevel(g, '악몽')).toBe(11);
+    expect(four(g, 11, 0)).toEqual(['여유', '적정', '적정', '적정']);
+    expect(recLevel(c, '악몽')).toBe(36); // 그 밖 장소는 적 레벨
+    expect(recLevel(contentOf('abyss1'), '보통')).toBe(stageOf(contentOf('abyss1'), '보통'));
   });
 });
 
@@ -122,24 +136,28 @@ describe('모험 길잡이 (guide)', () => {
     expect(guide()).toEqual({ content: 'rustfort', diff: '쉬움' });
   });
 
-  it('장비에 따라 난이도: 없으면 보통 · 고급이면 어려움 · 희귀 (× 1.4, 예전 +5)면 악몽 (모두 적 레벨 = 내 레벨 근처)', () => {
+  it('장비에 따라 난이도 (92): 없으면 보통 · 고급이면 어려움 · 희귀면 악몽을 레벨이 앞선 곳에서 · 영웅이면 내 레벨 악몽', () => {
     G.save.player.level = 40;
     const at = () => { const g = guide()!; return { d: g.diff, gap: stageOf(contentOf(g.content), g.diff) - 40 }; };
     expect(at().d).toBe('보통');
     wear('고급', 1);
-    expect(at().d).toBe('어려움');
+    expect(at()).toEqual({ d: '어려움', gap: 0 });
     wear('희귀', 1.4);
-    expect(at()).toEqual({ d: '악몽', gap: 0 });
+    expect(at().d).toBe('악몽');
+    expect(at().gap).toBeLessThanOrEqual(-5); // 레벨 힘 +12% 앞서야 적정 (내 레벨 악몽은 도전, 클리어율 목표 75%)
+    // 영웅 × 1.4 + 특수능력 1줄 세기 (한 단계 위 장비)
+    const top = rankStages({ level: 40, gear: presetScore('영웅', 1.4, 1), clears: {}, open: (c, d) => !lockOf(c).locked && !lockOf(c, d).locked })[0];
+    expect({ d: top.diff, gap: stageOf(contentOf(top.content), top.diff) - 40 }).toEqual({ d: '악몽', gap: 0 });
   });
 
-  it('추천은 늘 적정 칸 (있으면), 탐험 · 던전만', () => {
+  it('추천은 적정 칸 (있으면), 순차 구간의 길 첫 클리어는 들어가는 레벨이 내 레벨 ±1이면 쉬움 (여유)도. 탐험 · 던전만', () => {
     for (const lv of [2, 9, 15, 25, 33, 47, 60, 77, 90, 100]) {
       G.save.player.level = lv;
       const list = rankStages({ level: lv, gear: 0, clears: {}, open: (c, d) => !lockOf(c).dev && !lockOf(c).locked && !lockOf(c, d).locked && !lockOf(c, d).dev });
       expect(list.length, `Lv ${lv}`).toBeGreaterThan(0);
-      const top = contentOf(list[0].content);
+      const top = contentOf(list[0].content), d = list[0].diff, path = lv <= RAMP_LV && rampDiffs(top).includes(d) && Math.abs(rampRefLevel(top, d)! - lv) <= 1;
       expect(isLeveling(top)).toBe(true);
-      expect(fitOf(top, list[0].diff, lv, 0), `Lv ${lv} ${top.name} ${list[0].diff}`).toBe('적정');
+      expect(path || fitOf(top, d, lv, 0) === '적정', `Lv ${lv} ${top.name} ${d}`).toBe(true);
     }
   });
 

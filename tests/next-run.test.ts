@@ -37,11 +37,11 @@ describe('결과 화면 다음 갈 곳', () => {
     expect(nextRun('rustfort', '쉬움')).toEqual({ content: 'rustfort', diff: '보통' });
   });
 
-  it('순차 구간 뒤: 장비가 되면 적 레벨이 내 레벨인 악몽, 방금 깬 칸이면 그다음 추천', () => {
+  it('순차 구간 뒤: 장비가 되면 레벨이 앞선 곳 악몽 (92: 내 레벨 악몽은 도전), 방금 깬 칸이면 그다음 추천', () => {
     G.save.player.level = 50; wear('희귀');
     const g = guide()!;
     expect(g.diff).toBe('악몽');
-    expect(stageOf(contentOf(g.content), g.diff)).toBe(50);
+    expect(stageOf(contentOf(g.content), g.diff)).toBeLessThanOrEqual(45);
     const n = nextRun(g.content, g.diff)!;
     expect(n).not.toEqual(g);
     expect(n.diff).toBe('악몽');

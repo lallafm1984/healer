@@ -23,7 +23,7 @@ import { weekRemaining } from '../game/clock';
 import { meritFor, raidLootOpen } from '../game/economy';
 import { staminaCost } from '../game/stamina';
 import { Flow } from '../game/flow';
-import { fitNow, FIT_TEXT, guide, guideCtx, rankStages, type Stage } from '../game/guide';
+import { fitNow, FIT_TEXT, guide, guideCtx, rankStages, recLevel, type Stage } from '../game/guide';
 import { chalGate, runMode, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
@@ -257,7 +257,7 @@ function rewards(c: ContentDef, d: DiffName): string {
   </section>`;
 }
 
-/** 작은 풍경 미리보기. 장소와 권장 레벨만 크게 표시한다. */
+/** 작은 풍경 미리보기. 장소와 권장 레벨 (92: 그 칸을 맞춘 플레이어 레벨, 순차 구간 장소는 길에서 들어가는 레벨)만 크게 표시한다. */
 function gate(c: ContentDef, d: DiffName, many: boolean): string {
   const pa = placeArt(c.key), lk = lockOf(c), pl = PLACES[pa.place];
   const other = lk.locked ? otherHeroFor(lk.lv) : null;
@@ -266,7 +266,7 @@ function gate(c: ContentDef, d: DiffName, many: boolean): string {
   return `<section class="b-gate${status ? ' off' : ''}" aria-label="출전할 곳 · ${esc(c.name)}">
     ${scene}<div class="b-gate-shade"></div>
     <div class="b-gt"><span class="b-gn"><small>${esc(adventureRegionOf(c).name)}</small><b>${esc(c.name)}</b></span></div>
-    <div class="b-level" aria-label="권장 레벨 ${stageOf(c, d)}"><span>권장 레벨</span><strong><small>Lv.</small> ${stageOf(c, d)}</strong></div>
+    <div class="b-level" aria-label="권장 레벨 ${recLevel(c, d)}"><span>권장 레벨</span><strong><small>Lv.</small> ${recLevel(c, d)}</strong></div>
     ${many ? `<button type="button" class="b-arw prev" data-step="-1" aria-label="이전 장소">${PREV}</button><button type="button" class="b-arw next" data-step="1" aria-label="다음 장소">${NEXT}</button>` : ''}
     ${status ? `<span class="b-st">${lk.locked && !other ? LOCK : ''}${status}</span>` : ''}
     ${rewards(c, d)}
