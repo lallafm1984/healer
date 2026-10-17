@@ -23,7 +23,7 @@ import { weekRemaining } from '../game/clock';
 import { meritFor, raidLootOpen } from '../game/economy';
 import { staminaCost } from '../game/stamina';
 import { Flow } from '../game/flow';
-import { fitNow, FIT_TEXT, guide, guideCtx, rankStages, recLevel, type Stage } from '../game/guide';
+import { fitNow, fitShown, FIT_TEXT, guide, guideCtx, rankStages, recLevel, type Stage } from '../game/guide';
 import { chalGate, runMode, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
@@ -291,13 +291,14 @@ function placeRow(c: ContentDef): string {
 
 /**
  * 난이도 4칸: 이름 + 별. 그 난이도만 잠겼으면 자물쇠 Lv, 앞 난이도를 못 깼으면 자물쇠 「쉬움 깨기」 (61 1-1). 준비 중 장소는 못 고름.
- * 열린 칸 위 꼬리표 (86): 길잡이 추천 칸은 「추천」, 나머지는 적합도 (여유 · 적정 · 도전 · 위험, 내 레벨 · 장비 기준)
+ * 열린 칸 위 꼬리표 (86): 길잡이 추천 칸은 「추천」, 나머지는 적합도 (여유 · 적정 · 도전 · 위험, 내 레벨 · 장비 기준).
+ * 지금 레벨로 못 들어가는 칸 (장소 · 난이도 레벨 잠금, 개발 빌드로 연 곳)은 꼬리표 없이 잠금 표시만 (fitShown)
  */
 function diffs(c: ContentDef, d: DiffName): string {
   return `<div class="b-df" role="group" aria-label="난이도">${ALL_DIFFS.map(x => {
     const l = diffLocked(c, x), dis = !c.ready || l.locked, on = c.ready && x === d;
     const sub = !c.ready || !l.locked ? stars(c, x) : l.need ? `${LOCK}${l.need} 깨기<span class="sr">면 열림</span>` : `${LOCK}Lv ${l.lv}`;
-    const fit = dis ? null : fitNow(c, x), rec = !dis && gd?.content === c.key && gd.diff === x;
+    const fit = dis ? null : fitShown(c, x), rec = !dis && gd?.content === c.key && gd.diff === x;
     const tag = rec ? '<span class="b-fit rec" aria-hidden="true">추천</span>' : fit ? `<span class="b-fit" data-fit="${fit}" aria-hidden="true">${fit}</span>` : '';
     const sr = fit ? `<span class="sr"> · ${rec ? '추천 · ' : ''}${fit} (${FIT_TEXT[fit]})</span>` : '';
     return `<button type="button" class="b-dc${on ? ' on' : ''}" data-diff="${x}"${fit ? ` data-fit="${fit}"` : ''} aria-pressed="${on}"${dis ? ' disabled' : ''}>${x}<small>${sub}</small>${sr}${tag}</button>`;
