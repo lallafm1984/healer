@@ -11,6 +11,8 @@
  * 위에 청동 고리 번개 (고리가 다음 +1까지 8분 동안 참) · 지금/최대 · 초록 「+1」 배지 + 남은 시간 (「+1 4:59」가 「14:59」로 읽혀 배지로 뗌, Lim).
  * 설정은 초상과 같은 둥근 황동 테 (a2-portrait-v3). 화면 높이 800 이하 (S25)는 이름 · 경험치 줄을 줄여 위아래 여백을 울트라처럼 남김 (Lim).
  * 위 줄 휴식 칸 규칙은 여기 한 곳 (stamina.css에 두지 않음).
+ * 골드는 91에서 막대 옆 · 「← 제목」 줄에 다시 넣었다가 2026-10-17 Lim 「헤드에서 골드 재화는 빼자 · 닉네임이 UI 테두리에 걸치지 않게」로 뺌
+ * (S25 · 플립 · 울트라 384는 골드 줄이 막대 아래로 내려가 이름이 판 위 테두리에 걸렸음). 위 정보창에 재화 칸을 다시 넣지 않는다.
  */
 .ns {
   --a2-header-height: 80px;
@@ -48,17 +50,6 @@
   font: 700 10px/1 var(--font-body); color: #fff6dc; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #000, 0 0 3px #000;
 }
 .ns .tb-mmo .tb-xpt::before { content: none; }
-
-/*
- * 골드 (91, 2026-10-16 Lim 「골드 재화를 다시 넣자」): 경험치 막대 오른쪽에 그림 + 수 (1만부터 줄여 씀).
- * 이름 칸이 좁으면 (S25 · 플립 · 울트라 384) 막대 아래 줄로 내려감 (막대 · 골드가 겹치거나 휴식 판을 덮지 않게)
- */
-.ns .tb-mmo .tb-xprow { flex-wrap: wrap; row-gap: 3px; }
-.ns .tb-mmo .tb-xprow .tb-xp { flex-basis: 84px; }
-.ns .tb-mmo .tb-cur.tb-gold-mmo { flex: none; gap: 3px; margin-left: 8px; }
-.ns .tb-mmo .tb-gold-mmo .currency-icon { display: inline-grid; place-items: center; width: 16px; height: 16px; }
-.ns .tb-mmo .tb-gold-mmo .currency-icon :is(img, svg) { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 1px #000); }
-.ns .tb-mmo .tb-gold-mmo b { font: 800 12px/1 var(--font-body); color: #ffe2a0; font-variant-numeric: tabular-nums; text-shadow: 0 1px 1px #000; }
 
 /* 휴식 (90): 판에 파인 나무 홈 패널 · 청동 고리 달 그림 · 지금/최대 · 다음 +1까지 */
 .ns .tb-mmo .tb-wal { flex: none; max-width: none; gap: 0; }
@@ -119,17 +110,8 @@
   background: url('../art/a2-portrait-v3.webp') center / 100% 100% no-repeat; color: #fff4d5;
 }
 
-/* 「← 제목」 줄의 골드 (91, #172 전 자리): 제목 오른쪽 끝 */
-.ns .topbar:not(.tb-mmo) .tb-cur.tb-gold { display: inline-flex; align-items: center; gap: 4px; flex: none; height: auto; margin-left: auto; padding: 0 2px; border: 0; background: none; }
-.ns .topbar:not(.tb-mmo) .tb-gold .currency-icon { display: inline-grid; place-items: center; width: 20px; height: 20px; }
-.ns .topbar:not(.tb-mmo) .tb-gold .currency-icon :is(img, svg) { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 1px #000); }
-.ns .topbar:not(.tb-mmo) .tb-gold b { font: 800 15px/1 var(--font-body); color: #ffe2a0; font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px #000; }
-.ns .topbar:not(.tb-mmo) .tb-gold + .tb-set { margin-left: 6px; }
-
 @media (max-width: 359px) {
   .ns { --a2-header-portrait: 54px; --a2-header-name-size: 20px; }
-  .ns .tb-mmo .tb-cur.tb-gold-mmo { margin-left: 5px; }
-  .ns .tb-mmo .tb-gold-mmo b { font-size: 12px; }
   .ns .topbar.tb-mmo { gap: 5px; padding-left: 5px; padding-right: 5px; }
   .ns .tb-mmo .tb-lv { font-size: 10px; }
   .ns .tb-mmo .tb-xp { width: 92px; }
@@ -148,11 +130,6 @@
   }
   .ns .tb-mmo .tb-cur.tb-st { min-height: 44px; padding-block: 2px; row-gap: 2px; } /* 낮은 판 (54)에서도 터치 44px (QA 2026-10-16, 예전 40) */
   .ns .tb-mmo .tb-xp { height: 12px; }
-  /* 골드 줄이 막대 아래로 내려가도 낮은 판 (54) 안에 들게 (91) */
-  .ns .tb-mmo .tb-nm { gap: 2px; }
-  .ns .tb-mmo .tb-xprow { row-gap: 1px; }
-  .ns .tb-mmo .tb-gold-mmo .currency-icon { width: 13px; height: 13px; }
-  .ns .tb-mmo .tb-gold-mmo b { font-size: 11px; }
 }
 @media (max-height: 520px) {
   .ns { --a2-header-height: 44px; }

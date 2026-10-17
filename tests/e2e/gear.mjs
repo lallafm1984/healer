@@ -351,7 +351,7 @@ export default async function gear(url, shots) {
   await page.locator('#s-settings .group.dev').screenshot({ path: `${shots}/resources_unlimited_settings.png` });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
-  ok((await page.locator('#s-char .gmats b').allTextContents()).every(v => v === '∞') && (await text('#s-char .tb-gold-mmo b')) === '∞', '새로 켜도 무한 설정 유지: 인벤토리 · 위 줄 골드 ∞');
+  ok((await page.locator('#s-char .gmats b').allTextContents()).every(v => v === '∞') && (await page.locator('#s-char .topbar .currency-icon[data-currency="gold"]').count()) === 0, '새로 켜도 무한 설정 유지: 인벤토리 골드 ∞ (위 정보창에는 골드 없음, 2026-10-17)');
   await page.click('#s-char [data-gitem="901"]'); await page.clock.runFor(50);
   ok(!/각성|강화/.test(await text('#s-char .c7-gsheet')) && !(await save()).gear.equipped.head.lines.some(l => 'up' in l), '이전 각성 추가값과 각성 · 강화 표시 제거');
   await page.click('#s-char [data-rrmode]'); await page.clock.runFor(50);
