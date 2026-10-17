@@ -60,7 +60,7 @@ export const PXF = {
   'priest-renew': skill(24, 84),
   'priest-poh': skill(20, 74),
   'priest-purify': skill(18, 86),
-  'priest-guardian': skill(24, 94),
+  'priest-guardian': skill(24, 98),
   'priest-hymn': skill(20, 70),
   'priest-serenity': skill(24, 100),
   'priest-relay': skill(20, 92),

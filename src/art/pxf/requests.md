@@ -57,7 +57,7 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | priest-renew | 감아 오르는 이중 나선 | druid-bloom | 피는 분홍 꽃 한 송이 |
 | priest-poh | 퍼지는 금빛 고리 (스킬 중 고리는 이것만) | druid-wildflower | 바닥에 피는 들꽃 줄 |
 | priest-purify | 떨어진 물방울의 왕관 물보라 | druid-cleanse | 휘감는 청록 바람 |
-| priest-guardian | 감싸는 금빛 날개 두 장 | druid-bark | 맞물리는 나무판 육각 |
+| priest-guardian | 펼쳤다 감싸듯 접히는 깃털 날개 두 장 (Codex 날개 그림) | druid-bark | 맞물리는 나무판 육각 |
 | priest-hymn | 떠오르는 음표 | druid-quietwood | 떨어지는 잎 + 바닥 안개 |
 | priest-serenity | 터져 소용돌이치며 솟는 금빛 반짝이 가루 폭풍 (치유 강화판) | druid-rebirth | 초록 빛 기둥 + 금빛 씨앗 (기둥은 이것만) |
 |  |  | paladin-holy-light | 위에서 비추는 원뿔 빛 |
