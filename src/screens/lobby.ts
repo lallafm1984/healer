@@ -19,17 +19,15 @@ import { guildCap } from '../data/guild';
 import { nextMilestone } from '../data/milestones';
 import { weekRemaining } from '../game/clock';
 import { chestState, claimChalChest, claimChest, claimMission, missionReady } from '../game/economy';
-import { Flow } from '../game/flow';
 import { guide } from '../game/guide';
 import { capOf, guildOpen } from '../game/guild';
 import { chalGate } from '../game/runmode';
 import { commit, firstDungeonNow, G, lockOf, newGearCount, refreshDay } from '../game/state';
 import { adsFree, staminaView } from '../game/stamina';
 import { TUT } from '../game/tutorial';
-import { esc, screen, topBar } from './kit';
+import { esc, go, screen, topBar } from './kit';
 import { art } from '../art';
 import { currencyIcon, gameIcon, uiIcon } from './art';
-import { sortie } from './stamina';
 import { gainText } from './shop';
 import { mountVillage } from './village';
 
@@ -40,7 +38,7 @@ const st = { msg: '' };
 
 /**
  * 목표 한 줄. title = 큰 제목 (장소 이름 · Lv n), tag = 난이도 표, sub = 설명, prog = 진행 n/m,
- * to = 누르면 그 콘텐츠의 편성 화면
+ * to = 누르면 그 장소 · 난이도가 골라진 모험 선택 화면
  */
 interface Goal { title: string; tag?: DiffName; sub: string; prog: string; to?: { content: ContentKey; diff: DiffName } }
 /** 목표 한 줄 글 (aria · 두 번째 줄) */
@@ -107,7 +105,7 @@ function gateTracker(): string {
     : `<div class="lb-trk gate">${inner}</div>`;
 }
 
-/** 다음 목표 칸: 첫 목표 = 큰 제목 + 난이도 표 + 진행, 둘째 목표 = 흐린 한 줄. 누르면 첫 목적지 편성 화면 */
+/** 다음 목표 칸: 첫 목표 = 큰 제목 + 난이도 표 + 진행, 둘째 목표 = 흐린 한 줄. 누르면 첫 목적지가 골라진 모험 선택 화면 */
 function tracker(): string {
   const gate = gateTracker();
   if (gate) return gate;
@@ -138,10 +136,9 @@ function dest(): { content: ContentKey; diff: DiffName } {
   }
   return { content: 'rustfort', diff: '쉬움' };
 }
-/** 출전: 입장 확인 → 편성으로 (81 · 90) */
-function toParty(to: { content: ContentKey; diff: DiffName }): void {
-  Flow.content = to.content; Flow.diff = to.diff; Flow.chal = 0;
-  sortie();
+/** 출전 · 다음 목표: 그 장소 · 난이도를 골라 둔 모험 선택 화면으로 (2026-10-17 Lim 「바로 시작이 아닌 해당 화면으로」). 그 화면 「출전」 → 입장 확인 → 편성 (81 · 90) */
+function toAdventure(to: { content: ContentKey; diff: DiffName }): void {
+  go('s-content', to);
 }
 
 /** 원형 소켓 바로가기: 전투 스킬 칸과 같은 spell-socket 안에 그림, 아래 이름 + 짧은 상태 */
@@ -267,9 +264,9 @@ function render(): void {
 
 s.el.addEventListener('click', e => {
   const t = e.target as HTMLElement, save = G.save, now = Date.now();
-  if (t.closest('#lobbyStart')) { toParty(dest()); return; }
+  if (t.closest('#lobbyStart')) { toAdventure(dest()); return; }
   const gr = t.closest<HTMLElement>('[data-goal]');
-  if (gr) { const g = goals()[Number(gr.dataset.goal)]; if (g?.to) toParty(g.to); return; }
+  if (gr) { const g = goals()[Number(gr.dataset.goal)]; if (g?.to) toAdventure(g.to); return; }
   if (t.closest('#lbClaim')) {
     // 받을 수 있는 임무를 한 번에
     const got: string[] = [];

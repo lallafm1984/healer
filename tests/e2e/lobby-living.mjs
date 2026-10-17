@@ -120,7 +120,7 @@ export default async function lobbyLiving(url, shots) {
           const baselineRenders = baselineEnd.renders - baseline.renders;
           for (let cycle = 1; cycle <= 3; cycle++) {
             for (const tab of ['char', 'shop', 'party']) {
-              if (tab === 'party') { await page.locator('#lobbyStart').tap(); await entryGo(page); }
+              if (tab === 'party') { await page.locator('#lobbyStart').tap(); await page.clock.runFor(100); await page.locator('#contentGo').tap(); await entryGo(page); }
               else await page.locator(`#tabs [data-tab="${tab}"]`).tap();
               await page.clock.runFor(100);
               const hidden = await sample(page); await page.clock.runFor(1000); const hiddenEnd = await sample(page);
