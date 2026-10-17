@@ -12,6 +12,20 @@ export function hotTimerLayout(scale: number, count: number) {
   return { radius, step: radius * 2 + 2, x: r * (multi ? 0.62 : 0.56), y: -r * 0.44 };
 }
 
+/** 판 위 상자 (가운데 · 너비 · 높이) */
+export interface BoardBox { x: number; y: number; w: number; h: number }
+/** 1px 띄우고 겹치지 않음. 바로 옆에 붙여 고른 자리 (떠오르는 숫자 후보)가 부동소수 오차로 「겹침」이 되지 않게 아주 조금 봐줌 */
+export function clearOf(occupied: readonly BoardBox[], x: number, y: number, w: number, h: number): boolean {
+  return occupied.every(b => Math.abs(x - b.x) >= (w + b.w) / 2 + 1 - 1e-6 || Math.abs(y - b.y) >= (h + b.h) / 2 + 1 - 1e-6);
+}
+/** 떠오르는 숫자 (회복 · 보호막 · 피해 · 능력 이름)가 비키는 판 기록 종류: 이름 · 체력 · 지속 힐 원 · 보호막 원 · 디버프 배지 · 직업 아이콘 · 알약 */
+const FLOAT_AVOID = new Set(['hp', 'nick', 'hot', 'shield', 'debuff', 'role', 'pill']);
+/**
+ * 떠오르는 숫자가 비킬 판 기록. 칸만 한 육각 테두리 (디버프 테 debuff-ring)는 빼고: 피하면 칸 전체가 막혀 디버프가 걸린 사람 숫자가
+ * 판 맨 위 (윗줄)로만 밀려나고 다른 줄은 아예 못 떴다 (2026-10-17 Lim 「포자 솜뭉치의 피해 표시가 최상단만 뜨고 다른 데는 안 됨」)
+ */
+export const floatBlocks = (b: { kind: string; shape: string }): boolean => FLOAT_AVOID.has(b.kind) && b.shape !== 'hex';
+
 /** 보호막 시간 원 (2026-10-16): 지속 힐 원 하나일 때의 자리 · 크기를 칸 왼쪽으로 뒤집음 (x는 칸 가운데에서 왼쪽으로 음수) */
 export function shieldTimerLayout(scale: number) {
   const hot = hotTimerLayout(scale, 1);
