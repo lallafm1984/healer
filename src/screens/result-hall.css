@@ -134,18 +134,18 @@
 #s-settle .r-lv small { font: 700 11px/34px var(--font-body); color: #d9c2f5; }
 #s-settle .r-lv b { font: 900 18px/34px var(--font-body); }
 #s-settle .r-xpw.up .r-lv { background: linear-gradient(#7a4fb4, #3d2163); box-shadow: inset 0 0 0 1px #e0c2ff, 0 0 12px #b07ae899; }
-#s-settle .r-xp { flex: 1; min-width: 0; height: 28px; border: 1px solid var(--gk-card-bd); border-radius: 999px; background: #0d0b08; }
+#s-settle .r-xpc { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+#s-settle .r-xp { align-self: stretch; height: 28px; border: 1px solid var(--gk-card-bd); border-radius: 999px; background: #0d0b08; }
 #s-settle .r-xp span { padding: 0 12px; line-height: 24px; font-size: 13px; }
 #s-settle .r-xp em { font-weight: 800; }
 
-/* 휴식 (90): 강화석 그림 꼬리표 · 경험치 줄 꼬리표. 휴식 = 남빛 (위 정보창 달 그림과 같은 결), 휴식 없음 1/3 = 빨강 */
-#s-settle .r-ci em.r-rest-em { background: #33407a; border-color: #cdd7ff; }
-#s-settle .r-ci em.r-rest-em.cut { background: #C8281E; border-color: #FFE7A8; }
-#s-settle .r-xp small.r-rest {
-  display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; vertical-align: 1px;
-  font: 800 10px/16px var(--font-body); color: #e6ebff; background: #33407a; box-shadow: inset 0 0 0 1px #8d9bd8;
+/* 휴식 보너스 (90 · 2026-10-17): 골드 이름 옆 · 경험치 바 아래 남빛 꼬리표 (위 정보창 달 그림과 같은 결). 휴식 없이 받은 판은 꼬리표 없음 */
+#s-settle .r-cv .r-rest-tag,
+#s-settle .r-xpc small.r-rest {
+  display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; vertical-align: 1px; white-space: nowrap;
+  font: 800 10px/16px var(--font-body); font-style: normal; color: #e6ebff; background: #33407a; box-shadow: inset 0 0 0 1px #8d9bd8;
 }
-#s-settle .r-xp small.r-rest.cut { color: #fff; background: #8f1f18; box-shadow: inset 0 0 0 1px #f0a08e; }
+#s-settle .r-xpc small.r-rest { margin-left: 10px; }
 
 /* ---------- 진 판: 구간 길 ---------- */
 #s-settle .r-prog { gap: 10px; padding: 12px; }

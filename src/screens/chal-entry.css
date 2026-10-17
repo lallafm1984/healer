@@ -84,6 +84,8 @@
 #s-entry .wc-reward-grid > div > span:not(.currency-icon) { color: #b8a98e; font-size: 10px; line-height: 1.4; }
 #s-entry .wc-reward-grid b { display: block; color: #f2e2c0; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 #s-entry .wc-festival { margin: -3px 0 6px; font-size: 10px; color: #e4ca87; text-align: center; }
+/* 휴식 보너스 (90 · 2026-10-17): 골드 · 경험치가 휴식 보너스가 든 합계일 때 남빛 작은 알약 */
+#s-entry .wc-rest { align-self: center; justify-self: center; width: max-content; margin: -3px auto 6px; padding: 0 8px; border-radius: 999px; font: 800 10px/16px var(--font-body); color: #e6ebff; background: #33407a; box-shadow: inset 0 0 0 1px #8d9bd8; }
 #s-entry .wc-chest { display: flex; align-items: center; gap: 8px; padding-top: 6px; border-top: 1px solid #a5875640; }
 #s-entry .wc-chest > img { width: 28px; height: 28px; flex: none; object-fit: contain; }
 #s-entry .wc-chest > div { min-width: 0; }

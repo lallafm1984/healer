@@ -124,10 +124,11 @@ function tipHtml(r: BattleResult, x: Settlement): string {
 function lootHtml(r: BattleResult, x: Settlement): string {
   const tiles: string[] = [];
   // 재화는 한 줄 칩 (그림 · +값 · 이름, 2026-10-13 Lim 「골드 · 강화석 UI 점검」). 골드는 v16에 없앴다가 91에서 다시 (강화석 · 정제 강화석 대신)
-  // 휴식 (90): 골드 그림 왼쪽 위 꼬리표 (휴식 · 1/3), 경험치 줄 끝 「휴식」 · 「휴식 없음 1/3」 (튜토리얼은 없음)
-  const rest = restTag(x), mark = !x.rest ? '' : x.rest.cut ? '<em class="r-rest-em cut">1/3</em>' : '<em class="r-rest-em">휴식</em>';
-  const tile = (k: CurrencyIconKey, label: string, v: number, em = '') => `<span class="r-cur"><span class="r-ci">${currencyIcon(k)}${em}</span><span class="r-cv"><b>+${fmt(v)}</b><small>${label}</small></span></span>`;
-  if (x.gold) tiles.push(tile('gold', '골드', x.gold, mark));
+  // 휴식 보너스 (90 · 2026-10-17 Lim 「휴식이 있으면 보너스를 준다고 해야 반감을 적게」): 받은 판은 골드 합계 옆 남빛 「휴식 보너스」 ·
+  // 경험치 바 아래 「휴식 보너스 +N」 (보너스 몫). 휴식 없이 받은 판은 숫자만 (꼬리표 · 빨간 색 없음). 튜토리얼은 없음
+  const bonus = x.restBonus, rest = restTag(x);
+  const tile = (k: CurrencyIconKey, label: string, v: number, tag = '') => `<span class="r-cur"><span class="r-ci">${currencyIcon(k)}</span><span class="r-cv"><b>+${fmt(v)}</b><small>${label}${tag}</small></span></span>`;
+  if (x.gold) tiles.push(tile('gold', '골드', x.gold, bonus ? ' <i class="r-rest-tag">휴식 보너스</i>' : ''));
   if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
   return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
       <h2 class="r-lh" tabindex="-1">획득 보상${x.pubBonus ? ` <small>${pubBonusText(x.pubBonus)}</small>` : ''}</h2>
@@ -137,10 +138,9 @@ function lootHtml(r: BattleResult, x: Settlement): string {
     </section>`;
 }
 
-/** 휴식 표시 (90): 휴식으로 받음 = 「휴식」, 휴식이 0이라 1/3 = 「휴식 없음 1/3」 */
+/** 경험치 줄 휴식 보너스 (90): 받은 판만 바 아래 「휴식 보너스 +N」 (경험치에 들어 있는 보너스 몫, 바 안은 S25에서 잘림) */
 function restTag(x: Settlement): string {
-  if (!x.rest) return '';
-  return x.rest.cut ? '<small class="r-rest cut">휴식 없음 1/3</small>' : '<small class="r-rest">휴식</small>';
+  return x.restBonus?.xp ? `<small class="r-rest">휴식 보너스 +${fmt(x.restBonus.xp)}</small>` : '';
 }
 
 /** 받은 장비를 누르면 캐릭터 메뉴와 같은 상세를 연다. 별도의 새 특수능력 띠는 표시하지 않는다. */
@@ -174,12 +174,12 @@ function itemRow(id: number): string {
 }
 
 /** 경험치 줄: 바 + 받은 양 + 지금 레벨 (오르면 강조) */
-/** fest = 축제 주간 (경험치 +20%, v16), rest = 휴식 표시 (90) */
+/** fest = 축제 주간 (경험치 +20%, v16), rest = 휴식 보너스 꼬리표 (90) */
 function xpRow(x: Settlement, fest = false, rest = ''): string {
   const p = G.save.player, need = xpToNext(p.level), up = x.levelUps.length > 0;
   const w = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
   return `<div class="r-xpw${up ? ' up' : ''}"><span class="r-lv" aria-hidden="true">${up ? `<small>Lv ${x.levelBefore} →</small>` : '<small>Lv</small>'}<b>${p.level}</b></span>
-      <div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${fmt(x.xp)}${fest ? ' <small>축제 +20%</small>' : ''}${rest ? ` ${rest}` : ''}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em></span></div></div>`;
+      <div class="r-xpc"><div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)}${x.restBonus?.xp ? ` (휴식 보너스 +${fmt(x.restBonus.xp)})` : ''} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${fmt(x.xp)}${fest ? ' <small>축제 +20%</small>' : ''}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em></span></div>${rest}</div></div>`;
 }
 
 /** 진 판: 어디서 졌는지 (구간 점 · 적 남은 체력) · 힌트 (있을 때만). 진 판은 경험치 없음 (2026-10-13 Lim) */

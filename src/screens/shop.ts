@@ -4,7 +4,7 @@
  * 결제는 자리만 (platform/billing.ts). 개발 빌드는 누르면 결제 없이 바로 받음.
  */
 import { resourceBalance } from '../game/resources';
-import { MERIT_GEAR_COST, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_LEVELS, PASS_XP, SEASON, STAMINA, jobProductId } from '../data/economy';
+import { MERIT_GEAR_COST, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_LEVELS, PASS_XP, REST_BONUS, SEASON, STAMINA, jobProductId } from '../data/economy';
 import { SLOTS, type SlotKey } from '../data/equipment';
 import { HEROES } from '../data/heroes';
 import { seasonOf } from '../game/clock';
@@ -120,7 +120,7 @@ function cashHtml(): string {
   const v = staminaView(G.save, Date.now());
   return `<section class="panel cash-stam"><h4>휴식</h4>
       <button class="cash-meter" type="button" data-stamina-open aria-label="휴식 창 열기">${currencyIcon('rest')}<b data-stam-n>${v.unlimited ? '∞' : fmt(v.n)}</b><small data-stam-max>/${v.max}</small><span class="cash-go">충전 ${uiIcon('arrow')}</span></button>
-      <p class="note">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 0이면 보상 1/3 · 광고 충전 +${STAMINA.ad} · 하루 ${STAMINA.adDaily}번</p></section>
+      <p class="note">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 휴식이 있으면 클리어 경험치 · 골드 휴식 보너스 ×${REST_BONUS} · 광고 충전 +${STAMINA.ad} · 하루 ${STAMINA.adDaily}번</p></section>
     <h3 class="sec">광고 제거 패키지</h3>
     <ul class="slist">${row(NOADS.id, gameIcon('noads', uiIcon('star')), NOADS.name, `배너 · 전면 광고 없음 · 휴식 충전도 바로 · 휴식 최대 +${STAMINA.bonus}`)}</ul>
     <h3 class="sec">직업 <small>사면 레벨 조건 없이 바로 열림 · 모든 캐릭터</small></h3>

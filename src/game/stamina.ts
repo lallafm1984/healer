@@ -1,6 +1,7 @@
 /**
  * 휴식 보너스 (90, 2026-10-16 Lim): 입장은 언제나 됨. 휴식은 최대 100 (광고 제거 패키지 +50), 15분마다 1, 최대치에서 멈춤 (넘는 만큼 쌓아 두지 않음).
- * 클리어할 때 (진 판 · 포기 아님) 휴식이 1 이상이면 콘텐츠 몫만큼 쓰고 (0 아래로 안 감) 보상 그대로, 0이면 경험치 · 골드가 1/3 (정산 settle.ts, 91: 예전 강화석 · 정제 강화석).
+ * 클리어할 때 (진 판 · 포기 아님) 휴식이 1 이상이면 콘텐츠 몫만큼 쓰고 (0 아래로 안 감) 경험치 · 골드에 휴식 보너스 (× REST_BONUS), 0이면 기본 보상
+ * (정산 settle.ts). 2026-10-17 Lim: 「0이면 줄어듦」이 아니라 「있으면 보너스」로 보이게 (계산은 그대로, 기본 = 휴식 보상의 1/REST_BONUS).
  * 광고 충전 +30은 하루 3번 (오전 6시 리셋)이고 최대치를 넘어도 들어감.
  * 코드 · 저장 이름은 81 때 그대로 stamina (save.stamina = n · at · day · ads). 저장 형식은 바뀌지 않음.
  * 기기 시계 기준이라 시계를 앞당겼다 되돌리면 그 시각이 다시 올 때까지 차지 않음. 화면과 분리된 순수 계산 (시각은 받아서 씀)
@@ -16,7 +17,7 @@ export const adsFree = (save: SaveData): boolean => save.bought.includes(NOADS.i
 export const staminaMax = (save: SaveData): number => STAMINA.max + (adsFree(save) ? STAMINA.bonus : 0);
 /** 화면 테스트는 window.__staminaFree = true면 휴식 무제한 (window.__villageMotion처럼, 휴식 자체 검사는 e2e shop) */
 const testFree = (): boolean => typeof window !== 'undefined' && !!(window as unknown as { __staminaFree?: boolean }).__staminaFree;
-/** 개발 빌드 「휴식 무제한」: 클리어해도 줄지 않고 보상은 늘 그대로 (실제 값은 그대로 두고 표시만 ∞) */
+/** 개발 빌드 「휴식 무제한」: 클리어해도 줄지 않고 휴식 보너스가 늘 붙음 (실제 값은 그대로 두고 표시만 ∞) */
 export const unlimitedStamina = (save: SaveData): boolean => !!save.settings.devStamina || testFree();
 
 /** 클리어할 때 쓰는 휴식: 탐험 5 · 던전 10 · 주간 도전 10 · 10인 레이드 15 · 20인 레이드 20 */
@@ -64,27 +65,36 @@ export function staminaView(save: SaveData, now: number): StaminaView {
   return { n: s.n, max, next, full: lack ? next + (lack - 1) * STAMINA.regenMs : 0, adsLeft: Math.max(0, STAMINA.adDaily - s.ads), unlimited: unlimitedStamina(save) };
 }
 
-/** 휴식으로 받은 판 (보상 그대로) · 휴식 없이 받은 판 (경험치 · 골드 1/3) */
-export interface RestUse { used: number; cut: boolean }
+/** 클리어한 판의 휴식: used = 쓴 휴식, bonus = 휴식 보너스를 받음 (휴식 1 이상 · 무제한). bonus가 아니면 기본 보상 */
+export interface RestUse { used: number; bonus: boolean }
 
 /**
- * 클리어할 때 (90): 휴식이 1 이상이면 cost만큼 쓰고 (0 아래로 안 감) 보상 그대로, 0이면 쓰지 않고 보상 1/3.
- * 무제한 (개발 빌드 · 화면 테스트)이면 쓰지 않고 그대로
+ * 클리어할 때 (90): 휴식이 1 이상이면 cost만큼 쓰고 (0 아래로 안 감) 휴식 보너스, 0이면 쓰지 않고 기본 보상.
+ * 무제한 (개발 빌드 · 화면 테스트)이면 쓰지 않고 휴식 보너스
  */
 export function useRest(save: SaveData, cost: number, now: number): RestUse {
   syncStamina(save, now);
-  if (unlimitedStamina(save)) return { used: 0, cut: false };
+  if (unlimitedStamina(save)) return { used: 0, bonus: true };
   const s = save.stamina, max = staminaMax(save);
-  if (s.n < 1) return { used: 0, cut: true };
+  if (s.n < 1) return { used: 0, bonus: false };
   // 가득 차 있었으면 지금부터 15분을 셈 (최대치에서는 시계가 멈춰 있음)
   if (s.n >= max) s.at = Math.max(s.at, now);
   const used = Math.min(s.n, cost);
   s.n -= used;
-  return { used, cut: false };
+  return { used, bonus: true };
 }
 
-/** 휴식 없는 판의 몫 (1/3): 경험치 · 골드, 반올림 (1 이상) */
-export const restCut = (n: number): number => (n > 0 ? Math.max(1, Math.round(n * REST_CUT)) : 0);
+/** 지금 클리어하면 휴식 보너스를 받는지 (입장 팝업 · 미리 보는 보상): 휴식 1 이상 또는 무제한 */
+export const restReady = (save: SaveData, now: number): boolean => { const v = staminaView(save, now); return v.unlimited || v.n >= 1; };
+/** 기본 보상 (휴식 없음): 경험치 · 골드의 1/REST_BONUS, 반올림 (1 이상) */
+export const restBase = (n: number): number => (n > 0 ? Math.max(1, Math.round(n * REST_CUT)) : 0);
+/** 휴식 보너스 몫 = 휴식으로 받는 값 − 기본 보상 (기본 × 배수로 다시 셈하지 않음: 반올림 때문에 값이 달라짐) */
+export const restBonusOf = (n: number): number => n - restBase(n);
+/** 미리 보는 경험치 · 골드 (출전 · 주간 도전): 지금 클리어하면 받을 값. 휴식 보너스를 받으면 그대로 (bonus), 아니면 기본 보상 */
+export function restPreview(save: SaveData, n: number, now: number): { value: number; bonus: boolean } {
+  const bonus = restReady(save, now);
+  return { value: bonus ? n : restBase(n), bonus };
+}
 
 /** 광고 충전 한 번 (+30, 최대치를 넘어도 들어감). 광고는 부른 쪽이 먼저 보여 줌. 성공 = 빈 문자열 */
 export function adCharge(save: SaveData, now: number): string {
