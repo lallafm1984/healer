@@ -16,6 +16,7 @@ import { create, recruitParty } from '../engine';
 import { Flow, newSeed } from '../game/flow';
 import { autoPick, guildOpen, guildRoster, powerOf, slotsOf, togglePick } from '../game/guild';
 import { staminaCost } from '../game/stamina';
+import { recLevel } from '../game/guide';
 import { runMode } from '../game/runmode';
 import { settle } from '../game/settle';
 import { commit, firstDungeonNow, G, healerLevel, heroNow, talentsNow } from '../game/state';
@@ -181,7 +182,7 @@ function render(keepScroll = true): void {
     ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="파티 모집"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티${guildTab}</button></nav>` : ''}
     <div class="ns-body f-pty">
       ${c.key === 'rustfort' && firstDungeonNow() ? '<p class="coachtip">보스 기술은 「공략」에서 확인한 뒤 「출발」.</p>' : ''}
-      ${tutDone ? recommendedLevel(stage) : ''}
+      ${tutDone ? recommendedLevel(Flow.chal ? stage : recLevel(c, Flow.diff)) : ''}
       ${boardHtml()}
       ${isGuild ? guildPickHtml(stage) : `<section class="pn f-mems"><ul class="pcards">${rows}</ul></section>`}
       ${msg && !sheet ? `<p class="note warn">${esc(msg)}</p>` : ''}

@@ -26,6 +26,7 @@ import { restCarry } from '../engine/dungeon';
 import { create, recruitParty, step } from '../engine/fight';
 import type { Carry } from '../engine/types';
 import { SKILLS } from '../data/skills';
+import { rampFour } from '../data/progression';
 import { rampLevel, rampPlayer, usesRamp } from './ramp';
 
 /** 목표 클리어율 (%). 쉬움·보통은 아래 선만 (넘으면 그대로), 어려움·악몽은 min~max 안. aim = 배율을 찾을 때 겨누는 값 */
@@ -35,6 +36,8 @@ export const TARGET: Record<DiffName, { min: number; max: number; aim: number }>
   '어려움': { min: 78, max: 92, aim: 85 },
   '악몽': { min: 68, max: 82, aim: 75 },
 };
+/** 칸의 목표 (92): 순차 구간 Lv 10~20 장소 악몽은 레벨 길 (90)이라 어려움과 같은 목표 (2026-10-17 Lim 「적정의 난이도가 너무 힘겹게 클리어된다」) */
+export const targetOf = (c: ContentDef | undefined, d: DiffName) => TARGET[c && d === '악몽' && rampFour(c) ? '어려움' : d];
 /**
  * 바쁨 하한 (쉬움 · 보통): 파티가 받는 피해 ÷ 치유 한 번 (사제 치유, 지능의 100%)을 분당. GCD 1.5초면 분당 40번이 끝이라
  * 보통 24 = 피해만 따라가도 GCD의 60%, 넘친 치유 · 해제까지 치면 거의 쉬지 않고 누름. 쉬움은 그 0.8 (난이도 피해 배율과 같은 비)
@@ -157,7 +160,7 @@ export function placeTune(t: TuneTable, c: ContentDef, d: DiffName): Tune | null
 }
 
 export type Verdict = 'ok' | 'easy' | 'hard';
-export const verdictOf = (d: DiffName, rate: number): Verdict => (rate < TARGET[d].min ? 'hard' : rate > TARGET[d].max ? 'easy' : 'ok');
+export const verdictOf = (d: DiffName, rate: number, c?: ContentDef): Verdict => { const t = targetOf(c, d); return rate < t.min ? 'hard' : rate > t.max ? 'easy' : 'ok'; };
 
 export interface Row {
   key: ContentKey;
@@ -173,26 +176,26 @@ export interface Row {
 }
 
 /** 쉬움 · 보통인데 클리어율은 목표 안이고 바쁨 하한 아래 */
-export const tooIdle = (d: DiffName, m: Measure): boolean => BUSY[d] != null && verdictOf(d, m.rate) === 'ok' && m.busy < BUSY[d]! - 0.5;
+export const tooIdle = (d: DiffName, m: Measure, c?: ContentDef): boolean => BUSY[d] != null && verdictOf(d, m.rate, c) === 'ok' && m.busy < BUSY[d]! - 0.5;
 
 /** 장소 하나 · 난이도 하나: 지금 값으로 재고, 목표 밖이면 (search) 피해 배율을 찾음 */
 export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, search = true): Row {
   const cur = placeTune(t, c, d);
-  let now = measure(c, d, n), verdict = verdictOf(d, now.rate);
+  let now = measure(c, d, n), verdict = verdictOf(d, now.rate, c);
   // 목표 밖이면 판 수를 두 배로 다시 재서 확인 (선 근처의 흔들림으로 값을 자꾸 바꾸지 않게)
-  if (search && verdict !== 'ok') { now = measure(c, d, n * 2); verdict = verdictOf(d, now.rate); }
+  if (search && verdict !== 'ok') { now = measure(c, d, n * 2); verdict = verdictOf(d, now.rate, c); }
   const row: Row = { key: c.key, name: c.name, diff: d, std: standard(c, d), cur, now, verdict };
   if (!search) return row;
   const base = cur ?? {};
   const seen = new Map<number, Measure>();
   const at = (dmg: number) => { if (!seen.has(dmg)) seen.set(dmg, measure(c, d, n, { ...base, dmg })); return seen.get(dmg)!.rate; };
   if (verdict === 'ok') {
-    if (!tooIdle(d, now)) return row;
+    if (!tooIdle(d, now, c)) return row;
     // 바쁨 하한: 받는 피해는 배율에 거의 비례 → 하한까지 올린 배율 (덜 오르면 세 번까지 다시).
     // 클리어율은 목표값 (aim, 찾기와 같이 1 차이까지) 아래로 내리지 않음: 넘으면 마지막으로 괜찮던 배율과 그 사이에서 목표값에 맞춤
-    const curDmg = base.dmg ?? 1, aim = TARGET[d].aim, floor = aim - 1;
+    const curDmg = base.dmg ?? 1, aim = targetOf(c, d).aim, floor = aim - 1;
     let ok = curDmg, m = now;
-    for (let i = 0; i < 3 && tooIdle(d, m); i++) {
+    for (let i = 0; i < 3 && tooIdle(d, m, c); i++) {
       const want = Math.ceil(ok * (BUSY[d]! / m.busy) * 100) / 100;
       if (want - ok < 0.015) break;
       if (at(want) >= floor) { ok = want; m = seen.get(want)!; continue; }
@@ -207,7 +210,7 @@ export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, 
   // 쉬움·보통은 아래 선만: 지금보다 쉽게만 (지금 배율 아래에서 찾음)
   const curDmg = base.dmg ?? 1;
   const hi = lowerOnly(d) ? curDmg : HI;
-  const r = findDmg(at, TARGET[d].aim, LO, hi);
+  const r = findDmg(at, targetOf(c, d).aim, LO, hi);
   const dmg = lowerOnly(d) && r.rate >= TARGET[d].aim - 1 ? closeIn(at, d, r.dmg, curDmg) : r.dmg;
   row.next = { dmg, m: seen.get(dmg)! };
   return row;

@@ -29,7 +29,7 @@ const GAP = 20;
 const mTxt = (m: Measure) => `${String(Math.round(m.rate)).padStart(3)}% (${BASE_HEROES.map(h => `${short[h]} ${m.byHero[h]}`).join(' · ')}${gapOf(m) >= GAP ? ` · 격차 ${gapOf(m)}` : ''}) ${m.time ? fmtT(m.time) : '-'} · 바쁨 ${m.busy.toFixed(1)}/분`;
 const why = (m: Measure) => Object.entries(m.fails).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${k} ${n}`).join(' · ');
 const mark = { ok: '✓', easy: '쉬움 ↑', hard: '어려움 ↓' };
-const markOf = (d: (typeof diffs)[number], m: Measure) => (tooIdle(d, m) ? '한가함 ↑' : mark[verdictOf(d, m.rate)]);
+const markOf = (d: (typeof diffs)[number], m: Measure, c?: (typeof places)[number]) => (tooIdle(d, m, c) ? '한가함 ↑' : mark[verdictOf(d, m.rate, c)]);
 
 console.log(`자동 밸런스 (38 0-6) · 직업마다 ${N}판 · 목표 ${diffs.map(d => `${d} ${TARGET[d].min}~${TARGET[d].max}%${BUSY[d] ? ` · 바쁨 ${BUSY[d]}/분 이상` : ''}`).join(' / ')}${check ? ' · 재기만' : ''}`);
 const rows: Row[] = [];
@@ -43,7 +43,7 @@ for (const c of places) {
     const r = balanceOne(TUNE, c, d, N, !check);
     rows.push(r);
     const f = why(r.now);
-    console.log(`  ${d.padEnd(3)} ${stdLabel(r.std)} ${tuneTxt(r.cur)} → ${mTxt(r.now)} ${markOf(d, r.now)}${f ? ` | 실패: ${f}` : ''}`);
+    console.log(`  ${d.padEnd(3)} ${stdLabel(r.std)} ${tuneTxt(r.cur)} → ${mTxt(r.now)} ${markOf(d, r.now, c)}${f ? ` | 실패: ${f}` : ''}`);
     if (r.next) console.log(`      → dmg ${r.next.dmg} = ${mTxt(r.next.m)}`);
   }
 }
@@ -58,9 +58,9 @@ if (report) {
   ];
   for (const r of rows) {
     const c = places.find(x => x.key === r.key)!, m = r.next?.m ?? r.now;
-    lines.push(`| ${c.name} | ${kind(c)} | ${r.diff} | Lv ${r.std.lv}${r.std.heroLv != null ? ` (내 Lv ${r.std.heroLv})` : ''} · ${r.std.gear === 'ramp' ? '드롭 장비' : r.std.gear}${r.std.affixes.length ? ` · ${r.std.affixes.join('+')}` : ''} | ${tuneTxt(r.next ? { ...(r.cur ?? {}), dmg: r.next.dmg } : r.cur)} | ${Math.round(m.rate)}% | ${BASE_HEROES.map(h => m.byHero[h] ?? 0).join(' · ')} | ${m.time ? fmtT(m.time) : '-'} | ${m.busy.toFixed(1)} | ${markOf(r.diff, m)} | ${why(m) || '-'} |`);
+    lines.push(`| ${c.name} | ${kind(c)} | ${r.diff} | Lv ${r.std.lv}${r.std.heroLv != null ? ` (내 Lv ${r.std.heroLv})` : ''} · ${r.std.gear === 'ramp' ? '드롭 장비' : r.std.gear}${r.std.affixes.length ? ` · ${r.std.affixes.join('+')}` : ''} | ${tuneTxt(r.next ? { ...(r.cur ?? {}), dmg: r.next.dmg } : r.cur)} | ${Math.round(m.rate)}% | ${BASE_HEROES.map(h => m.byHero[h] ?? 0).join(' · ')} | ${m.time ? fmtT(m.time) : '-'} | ${m.busy.toFixed(1)} | ${markOf(r.diff, m, c)} | ${why(m) || '-'} |`);
   }
-  const off = rows.filter(r => verdictOf(r.diff, (r.next?.m ?? r.now).rate) !== 'ok' || tooIdle(r.diff, r.next?.m ?? r.now));
+  const off = rows.filter(r => { const c = places.find(x => x.key === r.key); return verdictOf(r.diff, (r.next?.m ?? r.now).rate, c) !== 'ok' || tooIdle(r.diff, r.next?.m ?? r.now, c); });
   const gaps = rows.filter(r => gapOf(r.next?.m ?? r.now) >= GAP);
   lines.push('', off.length ? `목표 밖 ${off.length}칸: ${off.map(r => `${r.name} ${r.diff}`).join(' · ')}` : '모든 칸이 목표 안.', '');
   lines.push(gaps.length ? `직업 격차 ${GAP}%p 이상 ${gaps.length}칸 (원인을 따로 봄): ${gaps.map(r => `${r.name} ${r.diff} ${BASE_HEROES.map(h => (r.next?.m ?? r.now).byHero[h] ?? 0).join('/')}`).join(' · ')}` : `직업 격차 ${GAP}%p 이상 없음.`, '');
