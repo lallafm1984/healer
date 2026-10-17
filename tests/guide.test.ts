@@ -6,7 +6,7 @@ import { DROP_TABLES, dropTable, ITEM_GRADES, LEVELING_TIERS, lootTier, presetSc
 import { presetGear } from './fixtures/preset-gear';
 import { rampDiffs, rampFour, rampPlace, rampRefLevel, RAMP_LV } from '../src/data/progression';
 import { gearGradeOdds } from '../src/data/reward-preview';
-import { diffStep, fitOf, guide, lvStep, rankStages, recLevel } from '../src/game/guide';
+import { diffStep, fitOf, fitShown, guide, lvStep, rankStages, recLevel } from '../src/game/guide';
 import { settle, type BattleResult } from '../src/game/settle';
 import { G, lockOf } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
@@ -129,6 +129,22 @@ describe('모험 길잡이 (guide)', () => {
   beforeEach(() => { G.save = newSave(1); G.save.settings.devUnlock = true; G.save.tut = TUT.done; });
   /** 프리셋 세기 장비 (91: 고급 × 1 · 희귀 × 1.4 = 예전 +0 · +5) */
   const wear = (grade: ItemGrade, mult: number) => { G.save.gear.equipped = presetGear(grade, mult, G.save.player.level); };
+
+  it('출전 화면 꼬리표는 지금 레벨로 들어갈 수 있는 칸만 (2026-10-17 Lim 「지금 레벨로 진입 못하는 레이드의 난이도 버튼이 적정」)', () => {
+    const raid = contentOf('abyss1'); // 10인 Lv 45, 악몽 Lv 60
+    G.save.settings.devUnlock = false; G.save.player.level = 11;
+    expect(ALL_DIFFS.map(d => fitShown(raid, d))).toEqual([null, null, null, null]);
+    G.save.settings.devUnlock = true; // 개발 빌드로 들어갈 수 있어도 실제 레벨로는 못 들어감
+    expect(ALL_DIFFS.map(d => fitShown(raid, d))).toEqual([null, null, null, null]);
+    G.save.player.level = 45;
+    expect(ALL_DIFFS.map(d => fitShown(raid, d))).toEqual(['여유', '적정', '도전', null]); // 장비 없음, 악몽은 Lv 60
+    G.save.player.level = 60;
+    expect(fitShown(raid, '악몽')).toBe('위험');
+    // 탐험 · 던전: 앞 난이도를 못 깬 칸 · 레벨이 모자란 장소도 없음
+    G.save.player.level = 11;
+    expect(ALL_DIFFS.map(d => fitShown(contentOf('greenhouse'), d))).toEqual(['여유', null, null, null]); // 적 Lv 12 · 14 · 16 > 11, 앞 난이도를 안 깸
+    expect(fitShown(contentOf('snowlab'), '쉬움')).toBeNull(); // 장소 Lv 30
+  });
 
   it('개발 빌드 「레벨 잠금 무시」로 열린 곳은 추천하지 않음', () => {
     G.save.player.level = 5;

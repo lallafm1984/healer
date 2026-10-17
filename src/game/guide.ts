@@ -129,7 +129,7 @@ const fallback = (all: Cand[]) => [
 const stage = (x: Cand): Stage => ({ content: x.c.key, diff: x.d });
 
 /** 실제 레벨로 들어갈 수 있는지 (개발 빌드 「레벨 잠금 무시」로 열린 곳은 추천하지 않음) */
-const realOpen = (c: ContentDef, d: DiffName) => {
+export const realOpen = (c: ContentDef, d: DiffName) => {
   const p = lockOf(c), l = lockOf(c, d);
   return !p.locked && !p.dev && !l.locked && !l.dev;
 };
@@ -147,3 +147,9 @@ export function fitNow(c: ContentDef, d: DiffName): Fit {
   const lv = G.save.player.level;
   return fitOf(c, d, lv, avgScore(G.save.gear.equipped, lv));
 }
+
+/**
+ * 출전 화면 난이도 칸 꼬리표 (여유 · 적정 · 도전 · 위험): 지금 레벨로 들어갈 수 있는 칸만. 장소 · 난이도가 레벨로 잠겼거나
+ * (개발 빌드 「레벨 잠금 무시」로 열린 곳 포함) 앞 난이도를 못 깼거나 준비 중이면 없음 (2026-10-17 Lim 「지금 레벨로 진입 못하는 레이드의 난이도 버튼이 적정」)
+ */
+export const fitShown = (c: ContentDef, d: DiffName): Fit | null => (c.ready && realOpen(c, d) ? fitNow(c, d) : null);
