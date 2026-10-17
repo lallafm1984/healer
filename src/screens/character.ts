@@ -20,14 +20,14 @@ import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, type DexTab } from '../da
 import { betterSlots, codexRows, dexRows, specRows, statParts, talentsLeft, vsWorn } from '../game/charinfo';
 import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, specText, specValue, type CodexGroup, type SpecGroup, type SpecLine } from '../data/specials';
 import {
-  claimDex, commit, equip, findItem, G, healerLevel, heroSave, heroStatus, isNewGear, markGearSeen, newGearCount, pickReroll, pickTalent, reroll, rerollOpen, sell,
+  claimDex, commit, equip, findItem, G, healerLevel, heroSave, heroStatus, isNewGear, markGearOpened, newGearCount, pickReroll, pickTalent, reroll, rerollOpen, sell,
   setTalentPreset, switchHero, switchOpen, TALENT_PRESETS, talentPreset, toggleLock, type RerollKind,
 } from '../game/state';
 import { Flow } from '../game/flow';
 import type { Settlement } from '../game/settle';
 import { art } from '../art';
-import { classEmblem, currencyAmount, fxArt, gameIcon, gearIcon, LOCK, trinketArt, uiIcon } from './art';
-import { battle, current, go, esc, fmt, josa, screen, topBar } from './kit';
+import { classEmblem, currencyAmount, fxArt, gameIcon, gearArt, gearIcon, LOCK, trinketArt, uiIcon } from './art';
+import { battle, current, go, esc, fmt, josa, refreshTabs, screen, topBar } from './kit';
 import { pushSettings } from './settings';
 import { sheetDialog } from './dialog';
 
@@ -62,14 +62,10 @@ const s = screen('s-char', '캐릭터', {
   enter(arg) {
     if (itemOverlay) sub = itemOverlay.previousSub;
     itemOverlay = null; s.el.classList.remove('c7-item-overlay');
-    if (SUBS.some(x => x.key === arg)) {
-      if (sub !== arg) finishInventoryVisit();
-      sub = arg as Sub;
-    }
+    if (SUBS.some(x => x.key === arg)) sub = arg as Sub;
     sel = null; swapping = false; msg = ''; sheet = null; pending = null; skOpen = null; rrOn = false; rrAlt = null;
     render(false);
   },
-  leave() { finishInventoryVisit(); },
 });
 const modal = sheetDialog(s.el, closeSheet);
 
@@ -116,7 +112,12 @@ function render(keep = true, resetInventory = false): void {
   const old = s.el.querySelector<HTMLElement>('.ns-body');
   const top = keep && old ? old.scrollTop : 0;
   const inventoryTop = keep && !resetInventory ? s.el.querySelector<HTMLElement>('.c7-bags')?.scrollTop ?? 0 : 0;
-  if (sub === 'gear' && !itemOverlay) inventoryVisited = true;
+  // 장비 상세를 열면 그 장비의 새것 점을 끔 (2026-10-17 Lim). 위 정보창 초상 · 장비 탭 점은 이 그리기에서,
+  // 하단 「캐릭터」 탭 점은 켜짐이 바뀔 때만 다시 그림 (상세 · 추천 장착 · 판매 · 특성)
+  if (sheet?.k === 'item') markGearOpened(sheet.id);
+  const dotNow = newGearCount() > 0 || talentsLeft() > 0;
+  if (dotNow !== tabDot) { tabDot = dotNow; refreshTabs(); }
+  twinkleN = 0;
   // 시트가 가리키던 것이 없어졌으면 (판매한 장비 등) 시트도 닫음
   const sh = sheetHtml();
   if (!sh) { sheet = null; pending = null; }
@@ -185,24 +186,28 @@ const SORTS: Record<BagSort, { name: string; next: BagSort; cmp: (a: GearItem, b
 let bagFilter: BagFilter = 'all';
 let bagSort: BagSort = 'score';
 
-/** 상세·필터를 열어도 새 점은 유지하며, 장비 하위 탭이나 캐릭터 화면을 나갈 때 확인합니다. */
-let inventoryVisited = false;
-function finishInventoryVisit(): void {
-  if (!inventoryVisited || itemOverlay) return;
-  inventoryVisited = false;
-  markGearSeen();
-}
-
-/** 세력 생김새 반짝 (50 E fx-look-shimmer): 새 장비가 가방 칸 · 장비 칸에 처음 보일 때 한 번, 흰 그림을 세력 색으로. 시트가 열려 있거나 효과 줄이기면 없음 */
-const shimmered = new Set<string>();
+/**
+ * 새 장비 반짝 (2026-10-17 Lim 「반짝하는 걸로 바꾸고 퀄리티를 올려줘」, 예전 50 E fx-look-shimmer 대각선 쓸기 대신):
+ * 새 장비가 가방 칸 · 장비 칸에 처음 보일 때 (앱을 켠 동안 칸마다 한 번) 장비 그림 모양 위로 빛이 비스듬히 지나가고,
+ * Codex 별빛 (fx-gear-twinkle)이 오른쪽 위에서 크게 · 왼쪽 아래에서 작게 반짝. 칸마다 조금씩 늦게 (차례로 반짝).
+ * 시각 효과 줄이기면 움직임 없이 오른쪽 위 작은 별빛만 (새것인 동안). 시트가 열려 있으면 없음
+ */
+const twinkled = new Set<string>();
+/** 하단 「캐릭터」 탭에 마지막으로 그린 빨간 점 */
+let tabDot = false;
+/** 이번 그리기에서 반짝인 칸 수 (차례로 늦게) */
+let twinkleN = 0;
 /** 이번 방문에 장착한 장비 (장비 칸 반짝용) */
 let wornNow = 0;
-function lookFx(it: GearItem, at: 'b' | 's'): string {
-  if (!it.look || sheet || G.save.settings.reducedEffects || !(isNewGear(it) || (at === 's' && wornNow === it.id))) return '';
-  const u = art('fx-look-shimmer'), k = `${at}${it.id}`;
-  if (!u || shimmered.has(k)) return '';
-  shimmered.add(k);
-  return `<span class="c7-lookfx" style="--shim:url('${u}')" aria-hidden="true"></span>`;
+function newFx(it: GearItem, at: 'b' | 's'): string {
+  const star = art('fx-gear-twinkle');
+  if (sheet || !star) return '';
+  if (G.save.settings.reducedEffects) return at === 'b' && isNewGear(it) ? `<span class="c7-twk calm" aria-hidden="true"><img class="c7-twk-a" src="${star}" alt=""></span>` : '';
+  const k = `${at}${it.id}`;
+  if (twinkled.has(k) || !(isNewGear(it) || (at === 's' && wornNow === it.id))) return '';
+  twinkled.add(k);
+  const ia = gearArt(it), d = (Math.min(twinkleN++, 10) * 0.09).toFixed(2);
+  return `<span class="c7-twk" style="--d:${d}s${ia ? `;--ia:url('${ia}')` : ''}" aria-hidden="true">${ia ? '<i class="c7-twk-sheen"></i>' : ''}<i class="c7-twk-glow"></i><img class="c7-twk-a" src="${star}" alt=""><img class="c7-twk-b" src="${star}" alt=""></span>`;
 }
 
 /** 이름 글자 색 (등급 색을 밝게, 시안 CharGear27) */
@@ -255,7 +260,7 @@ function slotHtml(key: SlotKey, better: SlotKey[]): string {
         <span class="c7-sq">${itemIc(key)}${up}</span><b>${name}</b></button>`;
   }
   return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(qualityTxt(it) + it.name)} · ${it.grade}${specLabel(it)}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
-      <span class="c7-sq${it.grade === LEGEND ? ' lg' : ''}">${itemIc(it)}${lookFx(it, 's')}${specDots(it)}${up}</span>
+      <span class="c7-sq${it.grade === LEGEND ? ' lg' : ''}">${itemIc(it)}${newFx(it, 's')}${specDots(it)}${up}</span>
       <b>${it.lock ? LOCK : ''}${name}</b></button>`;
 }
 
@@ -289,7 +294,7 @@ function bagCell(it: GearItem): string {
   const vs = vsWorn(it), nw = isNewGear(it);
   const label = `${it.grade} ${slotName(it.slot)} · ${qualityTxt(it)}${it.name}${it.lv != null ? ` · Lv ${it.lv}` : ''}${specLabel(it)}${vs > 0 ? ' · 지금 장비보다 좋음' : vs < 0 ? ' · 지금 장비보다 나쁨' : ''}${nw ? ' · 새것' : ''}${it.lock ? ' · 잠김' : ''}`;
   const arrow = vs > 0 ? '<span class="up" aria-hidden="true">▲</span>' : vs < 0 ? '<span class="dn" aria-hidden="true">▼</span>' : '';
-  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}${it.grade === LEGEND ? ' lg' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${lookFx(it, 'b')}${specDots(it)}${arrow}${nw ? '<span class="nw" aria-hidden="true"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
+  return `<button type="button" class="c7-bag${it.lock ? ' lock' : ''}${it.grade === LEGEND ? ' lg' : ''}" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${esc(label)}">${itemIc(it)}${newFx(it, 'b')}${specDots(it)}${arrow}${nw ? '<span class="nw" aria-hidden="true"></span>' : ''}${it.lock ? `<span class="lk">${uiIcon('lock')}</span>` : ''}</button>`;
 }
 
 const grip = '<span class="grip" aria-hidden="true"></span>';

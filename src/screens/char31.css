@@ -568,15 +568,49 @@
 #s-char .c7-dexpop { position: absolute; z-index: 3; left: 50%; bottom: 0; width: 104px; height: 104px; margin-left: -52px; object-fit: contain; pointer-events: none; opacity: 0; transform-origin: 50% 100%; animation: efxFount 1.3s ease-out both; }
 @keyframes efxSeal { 0% { opacity: 0; transform: scale(1.8); } 25% { opacity: 1; transform: scale(0.92); } 35% { transform: scale(1); } 70% { opacity: 1; } 100% { opacity: 0; transform: scale(1.08); } }
 @keyframes efxFount { 0% { opacity: 0; transform: translateY(16px) scale(0.5); } 30% { opacity: 1; transform: translateY(-4px) scale(1); } 100% { opacity: 0; transform: translateY(-28px) scale(1.06); } }
-/* 세력 생김새 반짝 (50 E fx-look-shimmer): 흰 그림 모양(mask)에 세력 색 + 흰 그림을 겹쳐 가운데를 밝게. 칸 안에서 한 번 쓸고 사라짐, 자리는 차지하지 않음 */
-#s-char .c7-lookfx {
-  position: absolute; inset: 2px; pointer-events: none; background: var(--lk);
-  -webkit-mask: var(--shim) center / contain no-repeat; mask: var(--shim) center / contain no-repeat;
-  opacity: 0; animation: efxShim 0.9s 0.35s ease-out both;
+/*
+ * 새 장비 반짝 (2026-10-17 Lim 「반짝하는 걸로 바꾸고 퀄리티를 올려줘」, 예전 fx-look-shimmer 대각선 쓸기 대신).
+ * ① 장비 그림 모양 (mask = 그 장비 그림) 위로 크림빛 띠가 왼쪽 위 → 오른쪽 아래로 지나감 ② 칸 오른쪽 위가 잠깐 등급 빛으로 밝아짐
+ * ③ Codex 별빛 (fx-gear-twinkle)이 오른쪽 위에서 크게 반짝 ④ 조금 뒤 왼쪽 아래에서 작게. 칸마다 --d만큼 늦게 (차례로 반짝).
+ * 자리는 차지하지 않고, 별빛 가시는 칸 밖으로 조금 나감. 시각 효과 줄이기 (.calm) · 동작 줄이기면 움직임 없이 작은 별빛만
+ */
+#s-char .c7-twk { position: absolute; inset: 0; z-index: 4; border-radius: inherit; pointer-events: none; }
+#s-char .c7-twk-sheen {
+  position: absolute; inset: 4px; -webkit-mask: var(--ia) center / contain no-repeat; mask: var(--ia) center / contain no-repeat;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 240, 200, 0.2) 46%, rgba(255, 252, 240, 0.85) 50%, rgba(255, 226, 150, 0.3) 53.5%, transparent 57%) 100% 0 / 300% 100% no-repeat;
+  mix-blend-mode: screen; opacity: 0; animation: twkSheen 0.7s var(--d) cubic-bezier(0.35, 0.1, 0.3, 1) both;
 }
-#s-char .c7-lookfx::after { content: ''; position: absolute; inset: 0; background: var(--shim) center / contain no-repeat; mix-blend-mode: screen; opacity: 0.55; }
-@keyframes efxShim { 0% { opacity: 1; clip-path: inset(0 100% 0 0); } 45% { opacity: 1; clip-path: inset(0 0 0 0); } 100% { opacity: 0; clip-path: inset(0 0 0 0); } }
-@media (prefers-reduced-motion: reduce) { #s-char .c7-fxawk,#s-char .c7-spnew,#s-char .c7-dexfill,#s-char .c7-dexpop,#s-char .c7-lookfx { display: none; } }
+#s-char .c7-twk-glow {
+  position: absolute; inset: 0; border-radius: inherit; mix-blend-mode: screen; opacity: 0;
+  background: radial-gradient(circle at 70% 28%, rgba(255, 249, 228, 0.9), color-mix(in srgb, var(--gi, #FFE680) 45%, transparent) 26%, transparent 64%);
+  animation: twkGlow 0.9s calc(var(--d) + 0.2s) ease-out both;
+}
+#s-char .c7-twk-a, #s-char .c7-twk-b { position: absolute; max-width: none; object-fit: contain; opacity: 0; will-change: transform, opacity; }
+/* 큰 별빛: 가운데 = 칸 (70%, 28%), 칸 크기만큼 */
+#s-char .c7-twk-a { width: 104%; height: 104%; left: 18%; top: -24%; animation: twkStar 1s calc(var(--d) + 0.2s) cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+/* 작은 별빛: 가운데 = 칸 (25%, 74%) */
+#s-char .c7-twk-b { width: 58%; height: 58%; left: -4%; top: 45%; animation: twkStar2 0.8s calc(var(--d) + 0.5s) cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+@keyframes twkSheen { 0% { opacity: 1; background-position: 100% 0; } 85% { opacity: 1; } 100% { opacity: 0; background-position: 0 0; } }
+@keyframes twkGlow { 0% { opacity: 0; } 28% { opacity: 0.85; } 100% { opacity: 0; } }
+@keyframes twkStar {
+  0% { opacity: 0; transform: scale(0.08) rotate(-40deg); }
+  26% { opacity: 1; transform: scale(1.08) rotate(0deg); }
+  40% { transform: scale(0.84) rotate(4deg); }
+  56% { opacity: 1; transform: scale(0.96) rotate(8deg); }
+  100% { opacity: 0; transform: scale(0.12) rotate(32deg); }
+}
+@keyframes twkStar2 {
+  0% { opacity: 0; transform: scale(0.1) rotate(30deg); }
+  32% { opacity: 1; transform: scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: scale(0.1) rotate(-25deg); }
+}
+/* 시각 효과 줄이기: 새것인 동안 오른쪽 위에 작은 별빛 그대로 (▲▼ 표는 그 위) */
+#s-char .c7-twk.calm { z-index: auto; }
+#s-char .c7-twk.calm .c7-twk-a { width: 50%; height: 50%; left: 47%; top: 4%; opacity: 0.9; animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  #s-char .c7-fxawk,#s-char .c7-spnew,#s-char .c7-dexfill,#s-char .c7-dexpop,#s-char .c7-twk-sheen,#s-char .c7-twk-glow,#s-char .c7-twk-b { display: none; }
+  #s-char .c7-twk-a { width: 50%; height: 50%; left: 47%; top: 4%; opacity: 0.9; animation: none; }
+}
 
 /* 직업 전환: 공통 성장 안내와 직업별 장비 수집. 기존 양피지·금테 색상을 계승 */
 #s-char .c7-job-gear { margin: 12px 0; padding: 10px 0; border-block: 1px solid #98774966; }

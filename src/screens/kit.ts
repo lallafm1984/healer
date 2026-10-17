@@ -73,6 +73,8 @@ export function go(id: string, arg?: unknown): void {
 }
 
 export function setTabsHandler(fn: (t: TabKey | undefined) => void): void { onTabs = fn; }
+/** 화면은 그대로 두고 하단 탭 (빨간 점)만 다시 그림 */
+export function refreshTabs(): void { if (current) onTabs?.(screens.get(current)?.tab); }
 
 // ---------- 상단 바 (09 5장: 레벨 · 골드 고정, 전투 화면 제외. 골드는 2026-10-16 #172에 없앴다가 91에서 다시) ----------
 const GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="6.6"/><path d="M12 2.5v2.9M12 18.6v2.9M2.5 12h2.9M18.6 12h2.9M5.3 5.3l2 2M16.7 16.7l2 2M5.3 18.7l2-2M16.7 7.3l2-2"/></svg>';

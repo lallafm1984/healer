@@ -79,10 +79,14 @@ export const TRINKET_ART: Record<string, string> = {
 export const trinketArt = (named?: string): string => (named && TRINKET_ART[named] ? art(`item-trinket-${TRINKET_ART[named]}`) : '');
 /** 장비 그림 (36 4-2 · 4-3 · 50 5장): 고유 장비 → 이름 있는 장신구 → 세력 생김새 (item-<부위>-<종류>-<세력>) → 종류 (모르는 종류 = 부위 첫 종류) → 부위 (item-<부위>) → 부위 선 아이콘 */
 export function gearIcon(it: { slot: SlotKey; kind?: string; named?: string; unique?: string; look?: FactionKey }): string {
-  const k = kindOf(it).key;
-  const img = (it.unique ? art(`item-unique-${it.unique}`) : '') || trinketArt(it.named)
-    || (it.look ? art(`item-${it.slot}-${k}-${it.look}`) : '') || art(KIND_ART[k] ?? '') || art(`item-${it.slot}`);
+  const img = gearArt(it);
   return img ? `<img class="g-ic" src="${img}" alt="" decoding="async" draggable="false">` : uiIcon(it.slot);
+}
+/** 장비 그림 주소 (gearIcon과 같은 순서). 없으면 '' (새 장비 반짝이 그림 모양으로 빛을 씌울 때도 씀) */
+export function gearArt(it: { slot: SlotKey; kind?: string; named?: string; unique?: string; look?: FactionKey }): string {
+  const k = kindOf(it).key;
+  return (it.unique ? art(`item-unique-${it.unique}`) : '') || trinketArt(it.named)
+    || (it.look ? art(`item-${it.slot}-${k}-${it.look}`) : '') || art(KIND_ART[k] ?? '') || art(`item-${it.slot}`);
 }
 /** 연출 그림 한 장 (36 4-4 · 4-6 fx-*): 없으면 '' (CSS 연출만) */
 export const fxArt = (name: string, cls: string): string => {

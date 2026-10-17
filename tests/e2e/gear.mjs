@@ -77,15 +77,18 @@ export default async function gear(url, shots) {
   ok(await page.isVisible('#s-char .c7-dex') && await page.isVisible('#s-char .c7-dex [data-codex]'), '도감 버튼 → 장비 도감 (특수능력 도감 가는 버튼)');
   await page.keyboard.press('Escape'); await page.clock.runFor(80);
 
-  // 분류에서 보이지 않은 장비도 장비 화면을 나가면 확인 처리. 비교 화살표는 남는다.
-  ok((await save()).gear.seen === 0, '장비 화면을 보는 동안에는 새 장비 확인 상태를 저장하지 않음');
-  await page.click('#s-char [data-bfilter="weapon"]'); await page.clock.runFor(50);
+  // 새것 점 (2026-10-17 Lim 「장비 상세보기 후 없어지게」): 장비 화면을 나가도 그대로, 그 장비 상세를 열어 봐야 그 하나만 꺼짐. 비교 화살표는 남는다.
+  const pfLabel = () => page.getAttribute('#s-char .tb-pf', 'aria-label');
   await page.click('#s-char [data-csub="skill"]'); await page.clock.runFor(50);
-  ok((await save()).gear.seen === 203 && !(await page.isVisible('#s-char [data-csub="gear"] .rdot')), '비어 있는 분류에서도 장비 화면을 나가면 전체 확인 처리');
-  ok(!/새 장비/.test(await page.getAttribute('#s-char .tb-pf', 'aria-label')), '새 장비에 관한 상단 알림 제거');
+  ok((await save()).gear.seen === 0 && await page.isVisible('#s-char [data-csub="gear"] .rdot') && /새 장비 3개/.test(await pfLabel()), '장비 화면을 나가도 새것 · 장비 탭 빨간 점 · 초상 알림 유지');
   await page.click('#s-char [data-csub="gear"]'); await page.clock.runFor(50);
-  await page.click('#s-char [data-bfilter="all"]'); await page.clock.runFor(50);
-  ok((await page.locator('#s-char .c7-bag .nw').count()) === 0 && (await page.locator('#s-char .c7-bag .up').count()) === 3, '재진입하면 빨간 새것 점은 사라지고 비교 화살표는 유지');
+  ok((await page.locator('#s-char .c7-bag .nw').count()) === 3, '다시 들어와도 열어 보지 않은 장비는 새것 점');
+  await page.click('#s-char .c7-bag[data-gitem="203"]'); await page.clock.runFor(50);
+  await closeSheet();
+  ok((await page.locator('#s-char .c7-bag[data-gitem="203"] .nw').count()) === 0 && (await page.locator('#s-char .c7-bag .nw').count()) === 2 && JSON.stringify((await save()).gear.opened) === '[203]' && /새 장비 2개/.test(await pfLabel()), '상세를 연 장비만 새것 점이 꺼짐 (저장 · 초상 알림 함께)');
+  for (const id of ['201', '202']) { await page.click(`#s-char .c7-bag[data-gitem="${id}"]`); await page.clock.runFor(50); await closeSheet(); }
+  const seenAll = await save();
+  ok((await page.locator('#s-char .c7-bag .nw').count()) === 0 && (await page.locator('#s-char .c7-bag .up').count()) === 3 && !(await page.isVisible('#s-char [data-csub="gear"] .rdot')) && !/새 장비/.test(await pfLabel()) && seenAll.gear.seen === 203 && !('opened' in seenAll.gear), '새 장비를 다 열어 보면 새것 점 · 장비 탭 점 · 초상 알림이 꺼지고, 비교 화살표는 유지');
 
   ok(!(await text('#s-char .c7-stat:nth-child(5) b')).startsWith('+'), '정신력 합계 앞에 + 없음');
   ok((await page.locator('#s-char .c7-stat b').allTextContents()).slice(2).every(value => /^[+]?\d+\.\d%$/.test(value)), '퍼센트 능력치는 소수 한 자리 고정 표시');

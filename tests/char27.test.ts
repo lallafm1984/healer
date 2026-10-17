@@ -5,7 +5,7 @@ import { lvPower } from '../src/data/progression';
 import { RULES } from '../src/data/rules';
 import { heroStats, statParts } from '../src/game/charinfo';
 import {
-  bestGearPlan, equipBest, G, isNewGear, lowGradeIds, markGearSeen, newGearCount, pickTalent, sell, setTalentPreset, talentPreset, talentsNow, toggleLock,
+  bestGearPlan, equip, equipBest, G, isNewGear, lowGradeIds, markGearOpened, newGearCount, pickTalent, sell, setTalentPreset, talentPreset, talentsNow, toggleLock,
 } from '../src/game/state';
 import { load, migrate, newSave, save, type KV } from '../src/platform/storage';
 
@@ -131,33 +131,52 @@ describe('새것 점 기준 (gear.seen)', () => {
     o.nextId = 12;
     expect(migrate(o).gear.seen).toBe(11);
   });
-  it('성능과 무관하게 새로 얻은 장비만 알리며, 확인 처리 후 다음 획득부터 다시 알림', () => {
+  it('성능과 무관하게 새로 얻은 장비만 알리고, 상세를 연 장비만 하나씩 꺼짐 (2026-10-17 Lim)', () => {
     G.save.gear.seen = 2;
     G.save.gear.equipped.head = item({ id: 1, grade: '영웅' });
     const old = item({ id: 2, slot: 'ring', grade: '전설' });
-    const fresh = item({ id: 3, grade: '일반' });
-    G.save.gear.bag = [old, fresh];
-    expect(newGearCount()).toBe(1);
+    const a = item({ id: 3, grade: '일반' }), b = item({ id: 4, slot: 'weapon' });
+    G.save.gear.bag = [old, a, b];
+    expect(newGearCount()).toBe(2);
     expect(isNewGear(old)).toBe(false);
-    expect(isNewGear(fresh)).toBe(true);
-    markGearSeen();
-    expect(newGearCount()).toBe(0);
-    expect(G.save.gear.bag).toEqual([old, fresh]);
-    G.save.gear.bag.push(item({ id: 4, slot: 'weapon' }));
-    expect(newGearCount()).toBe(1);
-    expect(isNewGear(fresh)).toBe(false);
+    expect(markGearOpened(3)).toBe(true);
+    expect([isNewGear(a), isNewGear(b), newGearCount()]).toEqual([false, true, 1]);
+    expect(G.save.gear.opened).toEqual([3]);
+    expect(G.save.gear.seen).toBe(2);
+    // 이미 연 장비 · 옛 장비 · 없는 장비는 그대로
+    expect([markGearOpened(3), markGearOpened(2), markGearOpened(99)]).toEqual([false, false, false]);
+    expect(G.save.gear.bag).toEqual([old, a, b]);
   });
-  it('다른 분류와 착용한 장비까지 확인 처리하고, 저장 후에도 유지', () => {
+  it('새것이 다 꺼지면 기준을 올리고 opened를 비움, 다음 획득부터 다시 알림', () => {
     G.save.gear.bag = [item({ id: 10, slot: 'weapon' }), item({ id: 11, slot: 'neck' })];
     G.save.gear.equipped.head = item({ id: 12 });
-    markGearSeen();
-    expect(G.save.gear.seen).toBe(12);
+    markGearOpened(11);
+    expect(G.save.gear.opened).toEqual([11]);
+    markGearOpened(10);
+    expect([G.save.gear.seen, G.save.gear.opened, newGearCount()]).toEqual([12, undefined, 0]);
     const kv = mem(); save(G.save, kv);
     expect(load(kv).gear.seen).toBe(12);
-    G.save.gear.bag = [];
-    G.save.gear.equipped = {};
-    markGearSeen();
-    expect(G.save.gear.seen).toBe(12);
+    G.save.gear.bag.push(item({ id: 13, slot: 'ring' }));
+    expect(newGearCount()).toBe(1);
+  });
+  it('판 장비는 opened에서 빠지고, 장착한 장비는 본 것으로 (벗어도 새것 점이 다시 켜지지 않음)', () => {
+    G.save.gear.bag = [item({ id: 20, slot: 'weapon' }), item({ id: 21, slot: 'neck' }), item({ id: 22, slot: 'ring' })];
+    markGearOpened(20);
+    G.save.gear.bag = G.save.gear.bag.filter(x => x.id !== 20);
+    markGearOpened(21);
+    expect(G.save.gear.opened).toEqual([21]);
+    equip(22);
+    expect([G.save.gear.seen, newGearCount()]).toEqual([22, 0]);
+    G.save.gear.bag.push(G.save.gear.equipped.ring!); delete G.save.gear.equipped.ring;
+    expect(newGearCount()).toBe(0);
+  });
+  it('저장 · 옛 저장: opened는 seen보다 큰 숫자만 남기고, 없으면 빈 것', () => {
+    const s = newSave(1); s.gear.seen = 5;
+    (s.gear as { opened?: unknown }).opened = [3, 7, 7, 'x', 9];
+    const m = migrate(JSON.parse(JSON.stringify(s)));
+    expect(m.gear.opened).toEqual([7, 9]);
+    const o = JSON.parse(JSON.stringify(newSave(1))); o.v = 17;
+    expect('opened' in migrate(o).gear).toBe(false);
   });
 });
 

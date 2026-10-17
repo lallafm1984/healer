@@ -193,10 +193,11 @@ export interface SaveData {
   player: { level: number; xp: number; gold: number };
   /**
    * v12: equipped · bag · seen = 현재 캐릭터 공용 장비. 직업별 loadout은 이 실물의 ID를 참조.
-   * seen = 캐릭터 › 장비 화면을 나갈 때까지 확인한 장비 id (이보다 큰 id = 새것 점). 옛 저장엔 없어서 migrate가 채움.
+   * seen = 새것 점 기준 id (이보다 큰 id = 새것 점). 옛 저장엔 없어서 migrate가 채움.
+   * opened = seen보다 큰 id 가운데 상세를 열어 봤거나 장착한 장비 (2026-10-17 Lim, 새것 점은 장비마다 상세를 본 뒤 꺼짐). 새것이 다 꺼지면 seen을 올리고 지움.
    * codex = 얻은 적 있는 특수능력 · 이름 있는 장신구 키 (도감, 42 1-6). v8부터, 옛 저장은 가진 장비로 채움. 도감 · 장비 도감은 계정
    */
-  gear: { equipped: Equipped; bag: GearItem[]; seen?: number; codex: string[]; /** 장비 도감 칸 (34 6-10 ④, data/dex). 옛 저장은 가진 장비로 채움 */ dex: string[]; /** 장비 도감 보상을 받은 단계 수 */ dexPaid: number };
+  gear: { equipped: Equipped; bag: GearItem[]; seen?: number; opened?: number[]; codex: string[]; /** 장비 도감 칸 (34 6-10 ④, data/dex). 옛 저장은 가진 장비로 채움 */ dex: string[]; /** 장비 도감 보상을 받은 단계 수 */ dexPaid: number };
   /** 콘텐츠 → 난이도 → 기록 */
   clears: Record<string, Partial<Record<DiffName, ClearRecord>>>;
   /** 로비에 보여 줄 지난 판 한마디 */
@@ -542,7 +543,10 @@ function gearOf(o: Partial<SaveData>, hero: HeroKey, nextId: number): SaveData['
   const dex = Array.isArray(g?.dex) ? g!.dex.filter(k => typeof k === 'string') : [];
   for (const it of [...SLOTS.map(s => equipped[s.key]), ...bag]) if (it) for (const k of dexKeysOf(it)) if (!dex.includes(k)) dex.push(k);
   const dexPaid = typeof g?.dexPaid === 'number' ? g.dexPaid : 0;
-  return { equipped, bag, seen: typeof g?.seen === 'number' ? g.seen : (typeof o.nextId === 'number' ? o.nextId : nextId) - 1, codex, dex, dexPaid };
+  const seen = typeof g?.seen === 'number' ? g.seen : (typeof o.nextId === 'number' ? o.nextId : nextId) - 1;
+  // 새것 점을 장비마다 끄기 (2026-10-17): 옛 저장엔 없음 = 아직 연 장비 없음. seen 아래 · 숫자 아닌 값은 버림
+  const opened = Array.isArray(g?.opened) ? [...new Set(g!.opened.filter(n => typeof n === 'number' && n > seen))] : [];
+  return { equipped, bag, seen, ...(opened.length ? { opened } : {}), codex, dex, dexPaid };
 }
 
 /**
