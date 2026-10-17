@@ -17,7 +17,7 @@ import { TALENT_TREES, type TalentKey } from '../data/talents';
 import { type TapKey } from '../platform/storage';
 import { FACTIONS } from '../data/places';
 import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, type DexTab } from '../data/dex';
-import { betterSlots, codexRows, dexRows, specRows, statParts, talentsLeft } from '../game/charinfo';
+import { codexRows, dexRows, specRows, statParts, talentsLeft } from '../game/charinfo';
 import { codexKeys, NAMED, SPEC_GROUPS, SPEC_KEYS, SPEC_TITLES, SPECS, specText, specValue, type CodexGroup, type SpecGroup, type SpecLine } from '../data/specials';
 import {
   claimDex, commit, equip, findItem, G, healerLevel, heroSave, heroStatus, isNewGear, markGearOpened, newGearCount, pickReroll, pickTalent, reroll, rerollOpen, sell,
@@ -235,7 +235,7 @@ const STAT_LINE = {
 };
 const statIc = (k: keyof typeof STAT_LINE) => gameIcon(k, STAT_LINE[k], 'stat');
 
-/** ① 장비 칸 (시안 .slot): 칸 바탕 = 등급 색 (2026-10-16 Lim, 등급 글자 칩 없음 · 등급은 접근 가능한 이름에) · 더 좋은 장비 초록 ↑ · 빈칸은 가방 개수 (91: 강화 +n 없음) */
+/** ① 장비 칸 (시안 .slot): 칸 바탕 = 등급 색 (2026-10-16 Lim, 등급 글자 칩 없음 · 등급은 접근 가능한 이름에) · 빈칸은 가방 개수 (91: 강화 +n 없음). 더 좋은 장비 초록 ↑는 없음 (2026-10-17 Lim) */
 /** 특수능력 묶음 표식 (36 I `spec-*`): 그림이 있으면 그림, 없으면 묶음 글자. trinket = 도감 고유 칸의 이름 있는 장신구 키 (36 4-3 그림, 없으면 글자) */
 const specBadge = (g: CodexGroup, label: string, trinket?: string) => {
   if (g !== 'named') return gameIcon(SPEC_GROUPS[g].icon.replace(/^spec-/, ''), label, 'spec');
@@ -251,16 +251,15 @@ function specDots(it: GearItem): string {
 }
 const specLabel = (it: GearItem) => { const n = specRows(it).length; return n ? ` · 특수능력 ${n}줄` : ''; };
 
-function slotHtml(key: SlotKey, better: SlotKey[]): string {
+function slotHtml(key: SlotKey): string {
   const it = G.save.gear.equipped[key], name = slotName(key);
-  const up = better.includes(key) ? '<i class="c7-better" aria-hidden="true">↑</i>' : '';
   if (!it) {
     const n = G.save.gear.bag.filter(x => x.slot === key).length;
     return `<button type="button" class="gtile c7-slot empty" data-gslot="${key}"${n ? '' : ' disabled'} aria-label="${name} 빈칸${n ? ` · 가방에 ${n}개` : ''}">
-        <span class="c7-sq">${itemIc(key)}${up}</span><b>${name}</b></button>`;
+        <span class="c7-sq">${itemIc(key)}</span><b>${name}</b></button>`;
   }
-  return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(qualityTxt(it) + it.name)} · ${it.grade}${specLabel(it)}${it.lock ? ' · 잠김' : ''}${up ? ' · 가방에 더 좋은 장비' : ''}">
-      <span class="c7-sq${it.grade === LEGEND ? ' lg' : ''}">${itemIc(it)}${newFx(it, 's')}${specDots(it)}${up}</span>
+  return `<button type="button" class="gtile c7-slot" data-gitem="${it.id}" style="${gvars(it)}" aria-label="${name} · ${esc(qualityTxt(it) + it.name)} · ${it.grade}${specLabel(it)}${it.lock ? ' · 잠김' : ''}">
+      <span class="c7-sq${it.grade === LEGEND ? ' lg' : ''}">${itemIc(it)}${newFx(it, 's')}${specDots(it)}</span>
       <b>${it.lock ? LOCK : ''}${name}</b></button>`;
 }
 
@@ -279,8 +278,7 @@ function statsHtml(): string {
 }
 
 function gearHtml(): string {
-  const better = betterSlots();
-  const col = (keys: SlotKey[]) => `<div class="c7-col">${keys.map(k => slotHtml(k, better)).join('')}</div>`;
+  const col = (keys: SlotKey[]) => `<div class="c7-col">${keys.map(k => slotHtml(k)).join('')}</div>`;
   const keys = SLOTS.map(x => x.key);
   return `<section class="c7-stage" aria-label="착용 장비 · 능력치">
       ${col(keys.slice(0, 3))}

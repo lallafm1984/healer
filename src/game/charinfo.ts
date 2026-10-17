@@ -99,11 +99,6 @@ export function dexRows(tab: DexTab): DexRow[] {
   });
 }
 
-/** 가방에 지금 장비보다 점수가 높은 장비가 있는 부위 */
-export function betterSlots(): SlotKey[] {
-  const eq = G.save.gear.equipped, lv = G.save.player.level;
-  return SLOTS.filter(s => G.save.gear.bag.some(it => it.slot === s.key && itemScore(it, lv) > itemScore(eq[s.key], lv))).map(s => s.key);
-}
 
 /** 열렸는데 아직 안 고른 특성 단 수 (지금 직업 트리, 튜토리얼 중엔 0) */
 export function talentsLeft(): number {

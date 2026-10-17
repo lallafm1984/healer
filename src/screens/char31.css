@@ -85,10 +85,6 @@
 /* 장비 그림(item-): 테두리 안쪽 4px만 남기고 칸을 거의 채움 */
 #s-char .c7-sq > .g-ic { width: calc(100% - 8px); height: calc(100% - 8px); }
 #s-char .c7-pl { position: absolute; right: 3px; bottom: 1px; font: normal 900 13px/1 var(--font-body); color: #FFFFFF; text-shadow: 0 0 3px #000, 0 1px 0 #000; }
-#s-char .c7-better {
-  position: absolute; right: -7px; top: -7px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%;
-  background: #2E7A3A; border: 1.5px solid #B9F5C4; font: normal 900 12px/1 var(--font-body); color: #FFFFFF;
-}
 #s-char .c7-slot > b { margin-top: 4px; display: inline-flex; align-items: center; gap: 2px; font: 700 12px/1.2 var(--font-display); color: var(--ink); text-shadow: 0 1px 2px #000; }
 #s-char .c7-slot > b .ui-icon.in { width: 11px; height: 11px; margin: 0; }
 #s-char .c7-slot > small { font-size: 10.5px; line-height: 1.25; color: #C9BC9E; white-space: nowrap; text-shadow: 0 1px 2px #000; }

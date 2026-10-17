@@ -62,7 +62,6 @@
 }
 /* 특수능력 점은 비어 있는 왼쪽 위로: 아래 가운데에 두면 +10 같은 강화 수치의 + 를 가림 */
 #s-char[data-sub="gear"] .c7-slot .c7-dots { left: 4px; top: 4px; bottom: auto; transform: none; }
-#s-char[data-sub="gear"] .c7-slot .c7-better { width: 13px; height: 13px; font-size: 9px; right: -3px; top: -2px; }
 #s-char[data-sub="gear"] .c7-mid { padding-top: 0; }
 #s-char[data-sub="gear"] .c7-mid .c7-stats {
   padding: 11px 12px 8px; gap: 3px; border: 0; border-radius: 0;

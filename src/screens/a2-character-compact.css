@@ -21,8 +21,6 @@
 #s-char .c7-slot { width: 62px; gap: 0; }
 #s-char .c7-slot .c7-sq { width: var(--c7-sq); height: var(--c7-sq); }
 #s-char .c7-slot > b { margin-top: 1px; font-size: 12px; line-height: 14px; }
-/* 칸 사이가 좁아도 더 좋은 장비 화살표가 위 칸 이름을 덮지 않게 조금 안쪽으로 */
-#s-char .c7-gear .c7-slot .c7-better { right: -5px; top: -4px; }
 #s-char .c7-mid { display: flex; flex-direction: column; align-items: stretch; min-width: 0; min-height: 0; padding: 2px 0 0; }
 #s-char .c7-mid::before { content: none; }
 #s-char .c7-mid .c7-stats {
