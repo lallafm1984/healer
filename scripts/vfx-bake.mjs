@@ -6,7 +6,7 @@
 //   --contact: 고른 이펙트를 한 줄씩 (탱커 칸 8장 + 밝은 칸 1장) 모은 한눈에 시트 (--review와 같이)
 import { chromium } from 'playwright';
 import { build } from 'rolldown';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FX, FX_SIZE, HERO_FX } from './vfx/index.mjs';
@@ -29,6 +29,13 @@ const browser = await chromium.launch();
 const page = await browser.newPage();
 await page.setContent('<!doctype html><body style="margin:0;background:#000"></body>');
 await page.addScriptTag({ content: code });
+// 그리기에 쓰는 손그림 그림 (scripts/vfx/assets/<이름>.webp|png, Codex로 그린 깃털 날개 등): 이름 → Image (lib.mjs asset)
+const ASSETS = join(ROOT, 'scripts/vfx/assets');
+const assets = existsSync(ASSETS) ? readdirSync(ASSETS).filter(f => /\.(webp|png)$/.test(f)).map(f => ({ name: f.replace(/\.\w+$/, ''), src: `data:image/${f.endsWith('png') ? 'png' : 'webp'};base64,${readFileSync(join(ASSETS, f)).toString('base64')}` })) : [];
+await page.evaluate(async list => {
+  window.VFX_ASSETS = {};
+  await Promise.all(list.map(a => new Promise((res, rej) => { const im = new Image(); im.onload = () => { window.VFX_ASSETS[a.name] = im; res(); }; im.onerror = rej; im.src = a.src; })));
+}, assets);
 const bg = review && bgDir ? {
   meta: JSON.parse(readFileSync(join(bgDir, 'boards.json'), 'utf8')),
   b5: `data:image/png;base64,${readFileSync(join(bgDir, 'board5.png')).toString('base64')}`,

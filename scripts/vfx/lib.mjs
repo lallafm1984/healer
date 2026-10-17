@@ -210,6 +210,10 @@ export function leafAt(g, x, y, size, rot, { hi = '#c8f07a', lo = '#2f8a3a', rim
   g.restore();
 }
 
+// ── 손그림 그림 (scripts/vfx/assets, 굽기가 읽어 둠) ─────────────
+/** 그림 이름 → Image (굽기 페이지에서만 있음, 없으면 null: 그리기 함수가 도형으로 대신) */
+export const asset = name => globalThis.VFX_ASSETS?.[name] ?? null;
+
 // ── 프레임 그리기 (굽기 · 검수 공통) ───────────────────────
 /** 이펙트 하나의 프레임 i를 S×S 캔버스 g에 (투명 배경에서 시작) */
 export function drawFrame(g, fx, i, S) {

@@ -1,5 +1,5 @@
 // 사제: 흰빛 · 크림 · 연금색 + 하늘빛 강조 (치유 · 소생만 초록, 치유는 Lim이 만든 「초록 반짝이 가루 구름」을 그대로 다시 그림)
-import { bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, lerp, lightStroke, particles, path, rad, ribbonPath, ringGlow, seg, solid, speck, taper, TAU } from './lib.mjs';
+import { asset, bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, lerp, lightStroke, particles, path, rad, ribbonPath, ringGlow, seg, solid, speck, taper, TAU } from './lib.mjs';
 
 const GOLD = { rim: '#5a3c0c', body: '#ffd56b', core: '#fffbe8', glow: '#ffcf6a' };
 const SKY = '#8fd6ff', SKY_DEEP = '#2e6fb8', NAVY = '#1d2a4a';
@@ -173,17 +173,31 @@ export default {
     },
   },
 
-  /** 수호 영혼: 양옆에서 감싸듯 접혀 들어오는 금빛 날개 두 장 + 머리 위 후광, 끝에 빛 깃털로 흩어짐 */
+  /** 수호 영혼 (Lim 2026-10-17 「수호 이펙트 날개 디테일을 올려줘」): Codex로 그린 깃털 날개 그림 (scripts/vfx/assets/guardian-wing, 깃털 세 겹 · 깃대 · 금빛 테)을
+   *  양 어깨에 붙여, 크게 펼쳐졌다가 몸을 감싸듯 접혀 들어오고, 빛이 깃털을 한 번 훑은 뒤 머리 위 후광과 함께 위로 걷히며 빛 깃털로 흩어짐 */
   'priest-guardian': {
-    frames: 24, logical: 94, scope: 'target',
+    frames: 24, logical: 98, scope: 'target',
     draw(g, { t }) {
-      const open = 1 - E.out3(seg(t, 0, 0.42)), a = 1 - E.in2(seg(t, 0.62, 0.95)), lift = -0.12 * E.inOut(seg(t, 0.5, 1));
-      glow(g, 0, -0.05, 1.25, GOLD.glow, 0.6 * (1 - E.in2(seg(t, 0, 0.9))));
-      glow(g, 0, 0, 0.55, '#ffffff', 0.8 * (1 - E.out3(seg(t, 0, 0.3))));
-      bloom(g, gg => { gg.beginPath(); gg.ellipse(0, -0.1 + lift, lerp(0.75, 1.15, open), 0.75, 0, 0, TAU); }, GOLD.glow, 0.35 * a, 10);
+      const open = 1 - E.inOut(seg(t, 0.02, 0.4)), a = 1 - E.in2(seg(t, 0.64, 0.96)), lift = -0.14 * E.inOut(seg(t, 0.5, 1));
+      glow(g, 0, -0.05, 1.35, GOLD.glow, 0.6 * (1 - E.in2(seg(t, 0, 0.92))));
+      glow(g, 0, 0, 0.6, '#ffffff', 0.85 * (1 - E.out3(seg(t, 0, 0.3))));
+      const img = asset('guardian-wing');
       g.save(); g.translate(0, lift);
-      wing(g, -0.16, -0.08, -1, open, a, 1.08);
-      wing(g, 0.16, -0.08, 1, open, a, 1.08);
+      for (const side of [-1, 1]) {
+        if (img) {
+          // 그림의 날개 뿌리 (왼쪽 아래 0.06, 0.86)를 어깨에: 펼침 = 위 바깥으로 솟음, 접힘 = 몸 앞쪽으로 감쌈
+          // 펼침: 뿌리는 몸 뒤 가운데, 끝은 양옆 위로 (39°) / 접힘: 뿌리가 칸 양옆으로 가 날개가 거의 곧게 서서 칸을 감쌈 (가운데 이름 · 체력은 비움)
+          const L = lerp(1.18, 1.0, 1 - open), rot = rad(lerp(32, -6, open)), sx = lerp(0.8, 1, open);
+          g.save(); g.translate(side * lerp(0.36, 0.12, open), lerp(-0.02, -0.14, open)); g.scale(side, 1); g.rotate(-rot);
+          g.globalAlpha = a; g.scale(sx, 1);
+          bloom(g, gg => { gg.beginPath(); gg.ellipse(L * 0.5, -L * 0.45, L * 0.5, L * 0.3, rad(-40), 0, TAU); }, GOLD.glow, 0.4, 9);
+          g.drawImage(img, -L * 0.06, -L * 0.86, L, L);
+          // 깃털을 한 번 훑는 빛 (날개 그림 위에만)
+          const sw = seg(t, 0.32, 0.62);
+          if (sw > 0 && sw < 1) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = a * 0.55 * Math.sin(Math.PI * sw); g.drawImage(img, -L * 0.06, -L * 0.86, L, L); }
+          g.restore();
+        } else wing(g, side * 0.16, -0.08, side, open, a, 1.08); // 그림이 없으면 예전 도형 깃털
+      }
       g.restore();
       // 후광
       const h = bell(t, 0.1, 0.35, 0.95), hy = -0.98 + lift;
@@ -191,14 +205,15 @@ export default {
       g.save(); g.translate(0, hy); g.scale(1, 0.3); g.globalAlpha = h; g.beginPath(); g.arc(0, 0, 0.32, 0, TAU);
       g.lineWidth = 0.15; g.strokeStyle = C(GOLD.rim, 0.85); g.stroke(); g.lineWidth = 0.09; g.strokeStyle = GOLD.body; g.stroke(); g.lineWidth = 0.035; g.strokeStyle = '#fff'; g.stroke(); g.restore();
       // 빛 깃털 · 반짝이로 흩어짐
-      particles(g, t, 21, 14, r => ({ t0: 0.55 + r() * 0.15, life: 0.35 + r() * 0.1, x: (r() - 0.5) * 1.7, y: -0.6 + r() * 0.9, rot: r() * 6, big: r() < 0.4 }), (gg, p, age) => {
-        const x = p.x * (1 + 0.25 * age), y = p.y - 0.3 * age;
-        if (p.big) glint(gg, x, y, 0.16 * (1 - age), GOLD.glow, 1 - age, p.rot, 0.15);
-        else speck(gg, x, y, 0.022, GOLD.glow, 1 - age);
+      particles(g, t, 21, 18, r => ({ t0: 0.5 + r() * 0.2, life: 0.38 + r() * 0.1, x: (r() - 0.5) * 1.9, y: -0.7 + r() * 1.0, rot: r() * 6, big: r() < 0.4 }), (gg, p, age) => {
+        const x = p.x * (1 + 0.25 * age), y = p.y - 0.35 * age;
+        if (p.big) {
+          gg.save(); gg.translate(x, y); gg.rotate(p.rot + age * 2); gg.scale(0.13 * (1 - 0.4 * age), 0.13 * (1 - 0.4 * age));
+          solid(gg, h2 => featherPath(h2, 0.24), { hi: '#fffdf2', lo: '#f0b648', rim: '#4a300a', rimW: 0.2, a: (1 - age) * 0.95, shine: 0.5, y0: -1, y1: 0 }); gg.restore();
+        } else speck(gg, x, y, 0.022, GOLD.glow, 1 - age);
       });
     },
   },
-
   /** 천상의 찬가 (파티 전원 · 1초마다 다시): 좌우로 살랑이며 떠오르는 금빛 음표 셋 + 반짝이 */
   'priest-hymn': {
     frames: 20, logical: 70, scope: 'party',
