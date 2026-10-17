@@ -8,4 +8,4 @@
   filter: drop-shadow(0 0 3px #ffd23f88);
 }
 #s-char .c7-bag.lg::after { inset: -3px; }
-#s-char .c7-sq.lg > :is(.c7-pl, .c7-dots, .c7-better), #s-char .c7-bag.lg > :is(em, .c7-dots, .up, .dn, .nw, .lk) { z-index: 2; }
+#s-char .c7-sq.lg > :is(.c7-pl, .c7-dots, .c7-better), #s-char .c7-bag.lg > :is(em, .c7-dots, .nw, .lk) { z-index: 2; }

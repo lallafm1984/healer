@@ -149,15 +149,13 @@ function itemsHtml(x: Settlement): string {
   return x.items.map(it => itemRow(it.id)).join('');
 }
 
-/** 장비 카드: 부위 그림(등급 색 테두리) · 이름 / 등급 칩 · 점수 (지금 장비보다 ▲▼, 빈 칸이면 「빈칸」) · 부위·종류 / 특수능력 · 입고 있으면 「장착함」 */
+/** 장비 카드: 부위 그림(등급 색 테두리) · 이름 / 등급 칩 · 점수 · 부위·종류 / 특수능력 · 입고 있으면 「장착함」. 지금 장비와의 ▲▼ · 「빈칸」 비교는 없음 (2026-10-17 Lim 「전투 결과도 마찬가지」) */
 function itemRow(id: number): string {
   const eq = G.save.gear.equipped;
   const it = G.save.gear.bag.find(b => b.id === id) || Object.values(eq).find(b => b?.id === id);
   if (!it) return '';
-  const worn = eq[it.slot]?.id === it.id, cur = worn ? null : eq[it.slot] ?? null;
-  const sc = scoreOf(it), d = sc - scoreOf(cur);
+  const worn = eq[it.slot]?.id === it.id, sc = scoreOf(it);
   const act = worn ? '<span class="r-on">장착함</span>' : '';
-  const delta = worn ? '' : !cur ? '<em class="up">빈칸</em>' : d > 0 ? `<em class="up">▲${d}</em>` : d < 0 ? `<em class="dn">▼${-d}</em>` : '';
   // 특수능력 이름 (42)
   const sp = specKeysOf(it);
   const spTxt = sp.length ? `<small class="r-sp">${sp.map(k => esc(specName(k))).join(' · ')}</small>` : '';
@@ -170,7 +168,7 @@ function itemRow(id: number): string {
   const drop = it.grade === '전설' && !G.save.settings.reducedEffects ? fxArt('fx-unique-drop', 'r-udrop') : '';
   return `<button type="button" class="r-item" data-reward-item="${id}" aria-haspopup="dialog" aria-label="${q ? `${q} ` : ''}${esc(it.name)} 상세 보기" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
       ${beam}${drop}<span class="r-ic${it.grade === '전설' ? ' lg' : ''}">${gearIcon(it)}</span>
-      <span class="r-nm"><b>${q ? `<span class="r-q" data-q="${q}">${q}</span> ` : ''}${esc(it.name)}</b><span class="r-gs"><i class="r-gr">${it.grade}</i><span class="r-sc">점수 ${sc}${delta}</span><small>${slotName(it.slot)} · ${esc(kindOf(it).name)}</small></span>${spTxt}</span>
+      <span class="r-nm"><b>${q ? `<span class="r-q" data-q="${q}">${q}</span> ` : ''}${esc(it.name)}</b><span class="r-gs"><i class="r-gr">${it.grade}</i><span class="r-sc">점수 ${sc}</span><small>${slotName(it.slot)} · ${esc(kindOf(it).name)}</small></span>${spTxt}</span>
       ${act}
     </button>`;
 }
