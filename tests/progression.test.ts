@@ -7,14 +7,14 @@ import { avgScore, dropTable, gearStatsOf, ITEM_GRADES, presetScore, RECOMMENDED
 import { presetGear } from './fixtures/preset-gear';
 import { gearStats } from '../src/data/gear';
 import { RULES } from '../src/data/rules';
-import { addXp, clearGold, clearXp, gradeOf, inRamp, playXp, lvPower, lvPowerProto, RAMP_FIRST, RAMP_FIRST_FOUR, RAMP_FOUR_LV, RAMP_LV, RAMP_REPEAT, rampDiffs, rampShare, rampSpan, rampXp, starsOf, xpToNext } from '../src/data/progression';
+import { addXp, clearGold, clearXp, gradeOf, inRamp, restRun, lvPower, lvPowerProto, RAMP_FIRST, RAMP_FIRST_FOUR, RAMP_FOUR_LV, RAMP_LV, RAMP_REPEAT, rampDiffs, rampShare, rampSpan, rampXp, starsOf, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
 import { heal } from '../src/engine/core';
 import { rngFrom } from '../src/engine';
 import { settle, type BattleResult } from '../src/game/settle';
 import { newSave } from '../src/platform/storage';
 import { TUT } from '../src/game/tutorial';
-import { REST_XP_SCALE } from '../src/data/economy';
+import { REST_RUN_SCALE } from '../src/data/economy';
 import { restBase } from '../src/game/stamina';
 
 describe('경험치·레벨 (02 부록 B)', () => {
@@ -291,19 +291,21 @@ describe('초반 순차 레벨링 (70 · 90): 장소 Lv 1~9 쉬움 · 보통, 10
     expect(ramp.reduce((a, c) => a + rampSpan(c), 0)).toBe([...Array(20).keys()].reduce((a, i) => a + xpToNext(i + 1), 0));
   });
 
-  it.each([['C', 5], ['A', 1], ['S', 0]] as const)('튜토리얼 뒤 장소마다 길 (Lv 1~9 쉬움 → 보통, 10~20 쉬움 → 악몽)만 (등급 %s): 다시 하기 없이 다음 장소가 늘 열려 있음', (_g, deaths) => {
+  it.each([['C', 5], ['A', 1], ['S', 0]] as const)('튜토리얼 뒤 장소마다 길 (Lv 1~9 쉬움 → 보통, 10~20 쉬움 → 악몽) 첫 클리어 (등급 %s) = 장소 몫의 110% × 휴식 판 2/3 (2026-10-17 Lim 「1레벨부터」): 길만으로는 Lv 21에 못 미침 (길잡이가 다시 하기를 넣음, guide.test)', (_g, deaths) => {
     const s = newSave(1);
     s.settings.devStamina = true; // 순서만 봄: 같은 시각에 여러 판이라 휴식 무제한 (휴식은 tests/stamina.test.ts, 90)
     addXp(s.player, xpToNext(1)); // 첫 전투 → Lv 2 (screens/tutorial)
     s.tut = TUT.explore;
     play(s, 'plateau', '쉬움', deaths);
     expect(s.tut).toBe(TUT.done);
-    for (const c of ramp) {
-      expect(s.player.level, `${c.name} (Lv ${c.unlockLv})에 들어갈 때`).toBeGreaterThanOrEqual(c.unlockLv);
-      for (const d of rampDiffs(c)) if (!s.clears[c.key]?.[d] && s.player.level <= RAMP_LV) play(s, c.key, d, deaths);
+    let got = 0;
+    for (const c of ramp) for (const d of rampDiffs(c)) if (!s.clears[c.key]?.[d] && s.player.level <= RAMP_LV) {
+      const x = play(s, c.key, d, deaths).xp;
+      expect(x).toBe(restRun(rampXp(c, d, { first: true, grade: gradeOf(deaths), win: true })));
+      got += x;
     }
-    // 두꺼비 왕국 수련궁 (Lv 20)에서 Lv 21 (이끼 뿌리 사원), 너무 앞서지 않음 (Lv 21부터는 길 밖)
-    expect(s.player.level).toBe(21);
+    expect(s.player.level).toBeLessThan(21);
+    expect(got).toBeGreaterThan(0);
   });
 
   it('장소 Lv 10~20 (90): 쉬움 21% · 보통 25% · 어려움 30% · 악몽 34%, 합은 Lv 1~9의 쉬움 + 보통 (110%)과 같음, 다시 하기는 그 몫 × RAMP_REPEAT × 등급', () => {
@@ -314,18 +316,19 @@ describe('초반 순차 레벨링 (70 · 90): 장소 Lv 1~9 쉬움 · 보통, 10
     expect(RAMP_FOUR_LV).toBe(10);
     expect([rampDiffs(contentOf('crypt')), rampDiffs(contentOf('greenhouse')), rampDiffs(c)]).toEqual([['쉬움', '보통'], ['쉬움', '보통', '어려움', '악몽'], ['쉬움', '보통', '어려움', '악몽']]);
     expect([rampShare(contentOf('crypt'), '어려움'), rampShare(c, '어려움')]).toEqual([0.7, 0.3]);
+    // 정산은 휴식 판 = × REST_RUN_SCALE (90, 2026-10-17 Lim)
     const s = newSave(1); s.tut = TUT.done; s.player.level = 11;
-    expect(play(s, 'sewer', '악몽', 0).xp).toBe(Math.round(span * 0.34));
-    expect(play(s, 'sewer', '악몽', 0).xp).toBe(Math.round(span * 0.34 * RAMP_REPEAT * 1.2));
+    expect(play(s, 'sewer', '악몽', 0).xp).toBe(restRun(Math.round(span * 0.34)));
+    expect(play(s, 'sewer', '악몽', 0).xp).toBe(restRun(Math.round(span * 0.34 * RAMP_REPEAT * 1.2)));
   });
 
   it('첫 클리어는 등급과 상관없이 같음, 다시 깨면 RAMP_REPEAT × 등급, 지거나 포기하면 0', () => {
     const c = contentOf('cemetery'), span = rampSpan(c);
     const s = newSave(1); s.tut = TUT.done; s.player.level = 7;
-    expect(play(s, 'cemetery', '보통', 5).xp).toBe(Math.round(span * RAMP_FIRST['보통']));
+    expect(play(s, 'cemetery', '보통', 5).xp).toBe(restRun(Math.round(span * RAMP_FIRST['보통'])));
     const t = newSave(1); t.tut = TUT.done; t.player.level = 7;
-    expect(play(t, 'cemetery', '보통', 0).xp).toBe(Math.round(span * RAMP_FIRST['보통']));
-    expect(play(t, 'cemetery', '보통', 0).xp).toBe(Math.round(span * RAMP_FIRST['보통'] * RAMP_REPEAT * 1.2));
+    expect(play(t, 'cemetery', '보통', 0).xp).toBe(restRun(Math.round(span * RAMP_FIRST['보통'])));
+    expect(play(t, 'cemetery', '보통', 0).xp).toBe(restRun(Math.round(span * RAMP_FIRST['보통'] * RAMP_REPEAT * 1.2)));
     expect(play(t, 'cemetery', '쉬움', 0, false).xp).toBe(0);
     expect(settle(t, result({ content: 'cemetery', diff: '쉬움', win: false, quit: true }), rngFrom(1)).xp).toBe(0);
     // 어려움 · 악몽은 더 많이 주지만 쉬움 + 보통만으로 충분
@@ -340,19 +343,25 @@ describe('초반 순차 레벨링 (70 · 90): 장소 Lv 1~9 쉬움 · 보통, 10
     expect(inRamp(contentOf('abyss1'), 1)).toBe(false);
     expect(inRamp(contentOf('tutorial'), 1)).toBe(false);
     const s = newSave(1); s.tut = TUT.done; s.daily.pub = 3; s.player.level = 21;
-    expect(play(s, 'rustfort', '보통', 1).xp).toBe(playXp(clearXp(21, '보통', 'A', { win: true })));
+    expect(play(s, 'rustfort', '보통', 1).xp).toBe(restRun(clearXp(21, '보통', 'A', { win: true })));
     const t = newSave(1); t.tut = TUT.done; t.daily.pub = 3; t.player.level = 20;
-    expect(settle(t, result({ content: 'rustfort', diff: '보통', chal: 1, stage: 20 }), rngFrom(1)).xp).toBe(playXp(clearXp(20, '보통', 'A', { win: true })));
+    expect(settle(t, result({ content: 'rustfort', diff: '보통', chal: 1, stage: 20 }), rngFrom(1)).xp).toBe(restRun(clearXp(20, '보통', 'A', { win: true })));
   });
-  it('클리어 경험치 휴식 판 = clearXp × 2/3 (2026-10-17 Lim: 기본 = 예전 휴식 판의 1/3, 휴식 보너스 ×2), 장소 경험치 (Lv 20까지)는 그대로', () => {
-    expect(REST_XP_SCALE).toBeCloseTo(2 / 3, 9);
-    expect([playXp(0), playXp(1), playXp(3), playXp(300), playXp(1000)]).toEqual([0, 1, 2, 200, 667]);
+  it('휴식 판 = 예전 × 2/3 (2026-10-17 Lim: 기본 = 예전 휴식 판의 1/3, 휴식 보너스 ×2, Lv 1부터 장소 경험치 · 골드도), 튜토리얼 판은 그대로', () => {
+    expect(REST_RUN_SCALE).toBeCloseTo(2 / 3, 9);
+    expect([restRun(0), restRun(1), restRun(3), restRun(300), restRun(1000)]).toEqual([0, 1, 2, 200, 667]);
     // 휴식 0 = 휴식 판 ÷ REST_BONUS ≈ 예전 휴식 0 (clearXp ÷ 3)
     const full = clearXp(40, '보통', 'A', { win: true });
-    expect(Math.abs(restBase(playXp(full)) - full / 3)).toBeLessThanOrEqual(1);
-    // Lv 20까지 장소 첫 클리어는 그대로 (첫날 Lv 10 길)
+    expect(Math.abs(restBase(restRun(full)) - full / 3)).toBeLessThanOrEqual(1);
+    // Lv 20까지 장소 경험치 · 클리어 골드도 휴식 판 2/3 (Lim 「1레벨부터 골드와 함께」)
     const s = newSave(1); s.tut = TUT.done; s.daily.pub = 3; s.player.level = 12;
-    const c = contentOf('greenhouse');
-    expect(play(s, c.key, '쉬움', 1).xp).toBe(rampXp(c, '쉬움', { first: true, grade: 'A', win: true }));
+    const c = contentOf('greenhouse'), x = play(s, c.key, '쉬움', 1);
+    expect(x.xp).toBe(restRun(rampXp(c, '쉬움', { first: true, grade: 'A', win: true })));
+    expect(x.gold).toBe(restRun(clearGold(x.items[0].lv!, '쉬움', 'A')));
+    // 튜토리얼 판 (휴식을 안 씀)은 예전 값 그대로
+    const t = newSave(1); t.player.level = 2;
+    const tx = play(t, 'plateau', '쉬움', 1);
+    expect(tx.xp).toBe(rampXp(contentOf('plateau'), '쉬움', { first: true, grade: 'A', win: true }));
+    expect(tx.rest).toBeNull();
   });
 });

@@ -177,21 +177,24 @@ describe('모험 길잡이 (guide)', () => {
     }
   });
 
-  it('튜토리얼 뒤 길잡이만 따라가면 Lv 20까지 70 · 90 순서 그대로 (다시 하기 없이, 장소 Lv 10부터 네 난이도, 56판에 Lv 21)', () => {
+  it('튜토리얼 뒤 길잡이만 따라가면 Lv 21까지 늘 추천이 있음 (막히는 칸 없음, 휴식 판 = 예전의 2/3라 다시 하기가 끼어 87판, 예전 56판)', () => {
     G.save.player.level = 2; G.save.clears.plateau = rec('쉬움');
     G.save.player.xp = 202; // 녹슨 고원 쉬움 첫 클리어
-    G.save.settings.devStamina = true; // 순서만 봄: 같은 시각에 35판이라 휴식 무제한 (휴식은 tests/stamina.test.ts, 90)
+    G.save.settings.devStamina = true; // 순서만 봄: 같은 시각에 여러 판이라 휴식 무제한 (휴식은 tests/stamina.test.ts, 90)
     let runs = 1, repeats = 0;
-    while (G.save.player.level <= RAMP_LV && runs < 80) {
-      const g = guide()!;
-      if (G.save.clears[g.content]?.[g.diff]) repeats++;
-      expect(rampDiffs(contentOf(g.content)), `${g.content} ${g.diff}`).toContain(g.diff);
-      settle(G.save, { content: g.content, diff: g.diff, win: true, quit: false, reason: '', segIdx: 0, segN: 1, time: 60, restSec: 0, deaths: 1,
-        healed: 1, overheal: 0, dispels: 0, dispellable: 0, endMana: 1, minMana: 1, auto: false, party: [], detail: [] }, rngFrom(runs));
+    while (G.save.player.level <= RAMP_LV && runs < 200) {
+      const g = guide();
+      expect(g, `Lv ${G.save.player.level} ${runs}판째 추천 없음`).not.toBeNull();
+      expect(rampPlace(contentOf(g!.content)), `${g!.content} ${g!.diff}`).toBe(true);
+      if (G.save.clears[g!.content]?.[g!.diff]) repeats++;
+      const xp = settle(G.save, { content: g!.content, diff: g!.diff, win: true, quit: false, reason: '', segIdx: 0, segN: 1, time: 60, restSec: 0, deaths: 1,
+        healed: 1, overheal: 0, dispels: 0, dispellable: 0, endMana: 1, minMana: 1, auto: false, party: [], detail: [] }, rngFrom(runs)).xp;
+      expect(xp).toBeGreaterThan(0);
       runs++;
     }
-    expect(repeats).toBe(0);
-    expect(runs).toBe(56); // 녹슨 고원 쉬움부터 두꺼비 왕국 수련궁 보통까지 (넘친 몫이 쌓여 수련궁 보통에서 Lv 21. 예전 쉬움 · 보통 길은 35판)
+    // 2026-10-17 Lim 「1레벨부터 골드와 함께 적용」: 첫 클리어 길만으로는 다음 장소 레벨에 모자라 다시 하기 (21판) · 지나온 장소 어려움 · 악몽이 낌
     expect(G.save.player.level).toBe(21);
+    expect(runs).toBe(87);
+    expect(repeats).toBe(21);
   });
 });

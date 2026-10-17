@@ -65,46 +65,31 @@ export function staminaView(save: SaveData, now: number): StaminaView {
   return { n: s.n, max, next, full: lack ? next + (lack - 1) * STAMINA.regenMs : 0, adsLeft: Math.max(0, STAMINA.adDaily - s.ads), unlimited: unlimitedStamina(save) };
 }
 
-/** 클리어한 판의 휴식: used = 쓴 휴식, bonus = 휴식 보너스를 받음 (휴식 1 이상 · 무제한). bonus가 아니면 기본 보상 */
-export interface RestUse { used: number; bonus: boolean }
+/** 클리어한 판의 휴식: used = 쓴 휴식, share = 받는 휴식 보너스 몫 (0 ~ 1 = 쓴 휴식 ÷ 콘텐츠 몫, 무제한 1). 0이면 기본 보상 */
+export interface RestUse { used: number; share: number }
 
 /**
- * 클리어할 때 (90): 휴식이 1 이상이면 cost만큼 쓰고 (0 아래로 안 감) 휴식 보너스, 0이면 쓰지 않고 기본 보상.
- * 무제한 (개발 빌드 · 화면 테스트)이면 쓰지 않고 휴식 보너스
+ * 클리어할 때 (90): 휴식이 있으면 cost만큼 쓰고 휴식 보너스. 모자라면 있는 만큼 다 쓰고 보너스도 그만큼 (비례, 2026-10-17: 휴식 3 · 던전 10 = 3/10).
+ * 0이면 쓰지 않고 기본 보상. 무제한 (개발 빌드 · 화면 테스트)이면 쓰지 않고 휴식 보너스 전부
  */
 export function useRest(save: SaveData, cost: number, now: number): RestUse {
   syncStamina(save, now);
-  if (unlimitedStamina(save)) return { used: 0, bonus: true };
+  if (unlimitedStamina(save) || cost <= 0) return { used: 0, share: 1 };
   const s = save.stamina, max = staminaMax(save);
-  if (s.n < 1) return { used: 0, bonus: false };
+  if (s.n < 1) return { used: 0, share: 0 };
   // 가득 차 있었으면 지금부터 15분을 셈 (최대치에서는 시계가 멈춰 있음)
   if (s.n >= max) s.at = Math.max(s.at, now);
   const used = Math.min(s.n, cost);
   s.n -= used;
-  return { used, bonus: true };
+  return { used, share: used / cost };
 }
 
-/**
- * 지금 클리어하면 쓸 휴식 (입장 팝업 「소모」 · 편성 출발 버튼, 2026-10-17 Lim 「실제 쓰는 값」): useRest와 같은 규칙.
- * 0이면 0, 모자라면 남은 만큼 (min(보유, 비용)), 무제한이면 비용 그대로 (보이는 값만, 실제로는 안 씀)
- */
-export function restSpend(save: SaveData, cost: number, now: number): number {
-  const v = staminaView(save, now);
-  if (v.unlimited) return cost;
-  return v.n < 1 ? 0 : Math.min(v.n, cost);
-}
-
-/** 지금 클리어하면 휴식 보너스를 받는지 (입장 팝업 · 미리 보는 보상): 휴식 1 이상 또는 무제한 */
-export const restReady = (save: SaveData, now: number): boolean => { const v = staminaView(save, now); return v.unlimited || v.n >= 1; };
-/** 기본 보상 (휴식 없음): 경험치 · 골드의 1/REST_BONUS, 반올림 (1 이상) */
+/** 기본 보상 (휴식 없음): 휴식 판 경험치 · 골드의 1/REST_BONUS, 반올림 (1 이상). 미리 보는 보상 (출전 · 주간 도전)도 이 값 (보너스는 결과에서만) */
 export const restBase = (n: number): number => (n > 0 ? Math.max(1, Math.round(n * REST_CUT)) : 0);
-/** 휴식 보너스 몫 = 휴식으로 받는 값 − 기본 보상 (기본 × 배수로 다시 셈하지 않음: 반올림 때문에 값이 달라짐) */
+/** 휴식 보너스 몫 = 휴식 판 값 − 기본 보상 (기본 × 배수로 다시 셈하지 않음: 반올림 때문에 값이 달라짐) */
 export const restBonusOf = (n: number): number => n - restBase(n);
-/** 미리 보는 경험치 · 골드 (출전 · 주간 도전): 지금 클리어하면 받을 값. 휴식 보너스를 받으면 그대로 (bonus), 아니면 기본 보상 */
-export function restPreview(save: SaveData, n: number, now: number): { value: number; bonus: boolean } {
-  const bonus = restReady(save, now);
-  return { value: bonus ? n : restBase(n), bonus };
-}
+/** 받는 값 = 기본 + 보너스 몫 × share (비례, useRest). 휴식 판 값 n, share 1이면 n 그대로 */
+export const restGain = (n: number, share: number): number => restBase(n) + Math.round(restBonusOf(n) * Math.max(0, Math.min(1, share)));
 
 /** 광고 충전 한 번 (+30, 최대치를 넘어도 들어감). 광고는 부른 쪽이 먼저 보여 줌. 성공 = 빈 문자열 */
 export function adCharge(save: SaveData, now: number): string {

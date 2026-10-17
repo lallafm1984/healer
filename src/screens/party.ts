@@ -15,7 +15,6 @@ import { aptOf } from '../data/guild';
 import { create, recruitParty } from '../engine';
 import { Flow, newSeed } from '../game/flow';
 import { autoPick, guildOpen, guildRoster, powerOf, slotsOf, togglePick } from '../game/guild';
-import { restSpend, staminaCost } from '../game/stamina';
 import { recLevel } from '../game/guide';
 import { runMode } from '../game/runmode';
 import { settle } from '../game/settle';
@@ -23,8 +22,7 @@ import { commit, firstDungeonNow, G, healerLevel, heroNow, talentsNow } from '..
 import { TUT } from '../game/tutorial';
 import { classIcon, memDetailHtml, memRowHtml, ROLE_ICON } from './members';
 import { battle, esc, go, ROLE, screen } from './kit';
-import { classEmblem, currencyAmount, floorArtOf, LOCK, uiIcon } from './art';
-import { payEntry } from './stamina';
+import { classEmblem, floorArtOf, LOCK, uiIcon } from './art';
 import { afxRows, afxTags, ARROW, BOOK, flowHead, guides, recommendedLevel, segTabs } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
@@ -170,9 +168,6 @@ function render(keepScroll = true): void {
   const isGuild = Flow.mode === 'guild' && guildReady();
   const m = modeNow(), stage = m.stage;
   const tutDone = G.save.tut >= TUT.done;
-  // 81 · 90: 입장 확인은 「출전」에서. 안 거친 판 (다른 길로 온 편성)만 출발 버튼에 클리어 때 쓰는 휴식 · 팝업
-  // 출발 버튼의 휴식 = 클리어할 때 실제로 쓸 값 (입장 팝업 「소모」와 같음, restSpend). 0이면 숫자를 두지 않음
-  const cost = tutDone && !Flow.paid ? restSpend(G.save, staminaCost(c, Flow.chal), Date.now()) : 0;
   const sub = Flow.chal ? `주간 도전 ${Flow.chal}단계` : `${Flow.diff}${m.affixes.length ? ` <span class="f-afxs">${afxTags(m.affixes)}</span>` : ''}`;
   const mark = Flow.chal ? `<span class="f-hg sm">${uiIcon('hourglass')}</span>` : markHtml(c, 'sm');
   const guideBtn = `<button class="f-gbtn" type="button" id="guideOpen" aria-haspopup="dialog">${BOOK}<span>공략</span></button>`;
@@ -190,7 +185,7 @@ function render(keepScroll = true): void {
     </div>
     <footer class="ns-foot f-foot2">
       <div class="f-btns">
-        <button class="f-go" type="button" id="depart"${cost ? ` aria-label="출발 · 휴식 ${cost}"` : ''}><span class="cta2"><span class="f-gt">출발</span>${cost ? `<small class="f-stam">${currencyAmount('rest', cost)}</small>` : ''}</span>${ARROW}</button>
+        <button class="f-go" type="button" id="depart"><span class="cta2"><span class="f-gt">출발</span></span>${ARROW}</button>
       </div>
     </footer>
     ${sheet === 'guide' ? guideSheetHtml() : sheet === 'mem' ? memSheetHtml(stage) : ''}`;
@@ -223,7 +218,8 @@ s.el.addEventListener('click', e => {
   if (t.closest('#autoPick')) { G.save.guild.pick = []; Flow.gpick = autoPick(G.save, firstEnc()); compose(); render(); return; }
   const pr = t.closest<HTMLElement>('[data-prow]');
   if (pr) { openRow = Number(pr.dataset.prow); openSheet('mem', `[data-prow="${openRow}"]`); return; }
-  if (t.closest('#depart')) { if (Flow.paid || G.save.tut < TUT.done) depart(); else enter(); }
+  // 출발 = 바로 전투 (90 · 2026-10-17 Lim: 출전 전 휴식 팝업 없앰, 전투 전에는 휴식 표시 없음)
+  if (t.closest('#depart')) depart();
 });
 
 // 줄을 키보드로: Enter·Space = 누르기, Esc = 시트 닫기
@@ -240,16 +236,9 @@ s.el.addEventListener('keydown', e => {
   if (row && row === e.target) { e.preventDefault(); row.click(); }
 });
 
-/**
- * 같은 파티로 바로 입장 (81 2-3 · 90): 확인 팝업 → 「입장」이면 출발 (휴식은 클리어할 때 씀, 0이면 팝업이 광고 충전을 보여 줌).
- * 결과 화면 「다시 도전」 · 주간 도전 다음 단계, 안 낸 편성의 「출발」
- */
-export function enter(): void { payEntry(() => { depart(); }); }
-
-/** 출발 (입장 확인은 출전 · enter의 팝업에서 거침). 튜토리얼 탐험은 바로 이걸 부름 */
+/** 출발: 편성 「출발」 · 결과 화면 「다시 도전」 · 주간 도전 다음 단계 (같은 파티로 바로). 튜토리얼 탐험도 이걸 부름. 휴식은 클리어할 때 씀 (90) */
 export function depart(): string {
   const c = contentOf(Flow.content);
-  Flow.paid = false;
   if (Flow.mode === 'guild' && guildReady()) { G.save.guild.pick = Flow.gpick.slice(); commit(); }
   const coach = Flow.coach;
   Flow.coach = null;

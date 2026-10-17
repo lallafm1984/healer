@@ -96,10 +96,8 @@ export default async function shop(url, shots) {
   ok((await save()).bought.includes('job_monk') && /보유/.test(await text('#s-shop [data-prod="job_monk"]')), '직업 구매: 수도사 보유');
   await page.screenshot({ path: `${shots}/shop_cash.png` });
 
-  // ---- 입장 확인 (81 · 90): 「출전」 다음 팝업 (파티원 보기 전), 언제나 「입장」, 휴식은 입장 때 안 씀 (클리어 때).
-  // 2026-10-17 Lim: 휴식이 있으면 남빛 「휴식 보너스 ×N」, 0이면 중립색 「휴식이 있으면 보너스 ×N」 + 광고 충전 (「1/3」 · 빨간 테 없음) ----
-  // 「소모」 = 클리어할 때 실제로 쓸 휴식 (Lim 「실제 쓰는 값」): 12 → 10 · 2 → 2 · 0 → 0
-  const use = async () => (await text('.st-modal .st-need b')).trim();
+  // ---- 출전 (90 · 2026-10-17 Lim 「출전전 휴식 팝업은 제거」): 입장 확인 팝업 없이 바로 편성 → 출발 = 바로 전투.
+  // 전투 전에는 휴식 표시 없음 (출전 · 출발 버튼에 휴식 숫자 없음), 휴식은 클리어할 때 씀. 충전은 위 휴식 칸 · 로비 소켓 · 상점 ----
   const toGate = async n => {
     await page.evaluate(n => { const s = JSON.parse(localStorage.getItem('healer.save')); s.stamina = { n, at: Date.now(), day: '', ads: 0 }; localStorage.setItem('healer.save', JSON.stringify(s)); }, n);
     await page.reload(); await page.clock.runFor(300);
@@ -110,39 +108,26 @@ export default async function shop(url, shots) {
     await page.click('#s-content [data-diff="어려움"]'); await page.clock.runFor(50);
   };
   await toGate(12);
-  ok(/10/.test(await text('#contentGo')), '출전 버튼: 휴식 10');
-  await page.click('#contentGo'); await page.clock.runFor(50);
-  ok(await page.isVisible('.st-modal .st-entry:not(.empty)') && /입장/.test(await text('.st-modal h3')) && await page.isVisible('#s-content') && !(await page.isVisible('#s-party'))
-    && /^휴식 보너스 ×\d+$/.test((await text('.st-modal .st-bonus:not(.off)')).trim()) && !/1\/3/.test(await text('.st-modal')), '출전 = 입장 확인 팝업 (편성 · 파티원 전, 휴식 있으면 「휴식 보너스 ×N」)');
-  ok(await use() === '10', `휴식 12 · 던전 10 = 「소모」 10 (${await use()})`);
-  await page.click('.st-modal [data-st="go"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-party') && (await save()).stamina.n === 12 && !/10/.test(await text('#depart')), '입장 = 휴식 그대로 12 (클리어 때 씀) · 편성 (출발 버튼엔 비용 없음)');
+  ok(!/휴식|10/.test(await text('#contentGo')) && (await page.locator('#contentGo .currency-icon').count()) === 0, '출전 버튼: 휴식 숫자 없음');
+  await page.click('#contentGo'); await page.clock.runFor(100);
+  ok(!(await page.isVisible('.st-modal')) && await page.isVisible('#s-party') && (await save()).stamina.n === 12, '출전 = 입장 확인 팝업 없이 바로 편성 (휴식 그대로 12)');
+  ok(!/10/.test(await text('#depart')) && (await page.locator('#depart .currency-icon').count()) === 0, '편성 출발 버튼: 휴식 숫자 없음');
   await page.click('#depart'); await page.clock.runFor(3100 + 300);
-  ok(await page.isVisible('#battle') && !(await page.isVisible('.st-modal')) && (await save()).stamina.n === 12, '편성 출발 = 팝업 없이 바로 전투');
-  await toGate(2);
-  await page.click('#contentGo'); await page.clock.runFor(50);
-  ok(await page.isVisible('.st-modal .st-entry:not(.empty)') && await use() === '2' && !/10/.test(await text('.st-modal .st-cost')), `휴식 2 = 「소모」 2 (남은 만큼, 원래 비용 10은 안 적음) (${await use()})`);
-  await page.click('.st-modal [data-st="no"]'); await page.clock.runFor(50);
+  ok(await page.isVisible('#battle') && !(await page.isVisible('.st-modal')) && (await save()).stamina.n === 12, '편성 출발 = 팝업 없이 바로 전투 (휴식은 클리어할 때)');
   await toGate(0);
-  await page.click('#contentGo'); await page.clock.runFor(50);
-  ok(await use() === '0', `휴식 0 = 「소모」 0 (${await use()})`);
-  ok(await page.isVisible('.st-modal .st-entry.empty') && /입장/.test(await text('.st-modal h3')) && /^휴식이 있으면 보너스 ×\d+$/.test((await text('.st-modal .st-bonus.off')).trim())
-    && !/1\/3|줄|감소/.test(await text('.st-modal'))
-    && await page.locator('.st-modal [data-st="go"]').count() === 1 && await page.locator('.st-modal [data-st="ad"]').count() === 1, '휴식 0 = 그래도 「입장」 · 「휴식이 있으면 보너스 ×N」 · 광고 충전');
-  await page.screenshot({ path: `${shots}/shop_entry_empty.png` });
-  await page.click('.st-modal [data-st="ad"]'); await page.clock.runFor(50);
-  ok(!(await page.isVisible('.admodal [data-ad]')) && await page.isVisible('.st-modal .st-entry:not(.empty)') && await page.isVisible('.st-modal .st-bonus:not(.off)'), '광고 제거 패키지 = 광고 없이 바로 +30 → 「휴식 보너스 ×N」');
-  ok(await use() === '10', `충전 뒤 「소모」 0 → 10 (${await use()})`);
-  sv = await save();
-  ok(sv.stamina.n === 30 && sv.stamina.ads === 1, '광고 충전: 0 → 30, 오늘 1번');
-  await page.screenshot({ path: `${shots}/shop_entry.png` });
-  await page.click('.st-modal [data-st="go"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-party') && (await save()).stamina.n === 30, '입장 = 휴식 그대로 30 · 편성');
+  await page.click('#contentGo'); await page.clock.runFor(100);
+  ok(!(await page.isVisible('.st-modal')) && await page.isVisible('#s-party'), '휴식 0이어도 출전 = 바로 편성');
+  // 휴식 충전은 위 휴식 칸의 휴식 창에서 (광고 제거 패키지 = 광고 없이 바로)
   await page.click('#s-party .tb-back'); await page.clock.runFor(100);
-  await page.click('#contentGo'); await page.clock.runFor(50);
-  ok(await page.isVisible('.st-modal [data-st="go"]'), '편성에서 나갔다 다시 출전 = 입장 확인 다시');
-  await page.click('.st-modal [data-st="go"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-party') && (await save()).stamina.n === 30, '다시 출전해도 휴식 그대로');
+  await page.click('#s-content [data-stamina-open]'); await page.clock.runFor(50);
+  ok(await page.isVisible('.st-modal .st-info') && /모자라면 있는 만큼 쓰고 보너스도 그만큼/.test(await text('.st-modal .note')) && !/1\/3|줄어|감소/.test(await text('.st-modal')), '휴식 창: 휴식 보너스 · 비례 안내 (깎임 말 없음)');
+  await page.screenshot({ path: `${shots}/shop_rest_window.png` });
+  await page.click('.st-modal [data-st="ad"]'); await page.clock.runFor(50);
+  sv = await save();
+  ok(!(await page.isVisible('.admodal [data-ad]')) && sv.stamina.n === 30 && sv.stamina.ads === 1, '광고 충전: 0 → 30, 오늘 1번 (광고 제거 패키지 = 광고 없이 바로)');
+  await page.click('.st-modal [data-st="no"]'); await page.clock.runFor(50);
+  await page.click('#contentGo'); await page.clock.runFor(100);
+  ok(!(await page.isVisible('.st-modal')) && await page.isVisible('#s-party') && (await save()).stamina.n === 30, '충전 뒤 다시 출전 = 바로 편성, 휴식 그대로 30');
 
   await ctx.close();
   await browser.close();

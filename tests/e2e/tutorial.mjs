@@ -140,14 +140,12 @@ export default async function tutorial(url, shots) {
   await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(100);
   ok(await page.getAttribute('#s-content [data-ctab="dungeon"]', 'aria-selected') === 'true' && await page.getAttribute('#s-content', 'data-selected-content') === 'rustfort'
     && await page.getAttribute('#s-content [data-diff="쉬움"]', 'aria-pressed') === 'true' && !(await page.locator('#s-content .coachtip').count()) && !(await page.isVisible('#contentGo.hi-pulse')), '전투 탭: 던전 5인 · 녹슨 요새 · 쉬움이 골라져 있음 (안내 상자 · 「출전」 반짝임 없음, 2026-10-13 Lim)');
-  // 로비 「출전」 = 녹슨 요새 · 쉬움이 골라진 모험 선택 (2026-10-17 Lim 「바로 시작이 아닌 해당 화면으로」) → 「출전」 → 입장 확인 (81) → 편성
+  // 로비 「출전」 = 녹슨 요새 · 쉬움이 골라진 모험 선택 (2026-10-17 Lim 「바로 시작이 아닌 해당 화면으로」) → 「출전」 → 바로 편성 (2026-10-17 Lim: 입장 확인 팝업 없앰)
   await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(100);
   await page.click('#lobbyStart'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-content') && await page.getAttribute('#s-content', 'data-selected-content') === 'rustfort' && await page.getAttribute('#s-content', 'data-selected-diff') === '쉬움' && !(await page.isVisible('.st-modal')), '로비 출전 = 녹슨 요새 쉬움이 골라진 모험 선택 (바로 입장 확인 아님)');
   await page.click('#contentGo'); await page.clock.runFor(100);
-  ok(await page.isVisible('.st-modal [data-st="go"]') && /녹슨 요새/.test(await page.textContent('.st-modal')) && /쉬움/.test(await page.textContent('.st-modal')), '모험 선택 출전 = 녹슨 요새 쉬움 입장 확인');
-  await entryGo(page); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-party') && /녹슨 요새/.test(await page.textContent('#s-party .topbar')) && /쉬움/.test(await page.textContent('#s-party .topbar')), '입장 → 녹슨 요새 쉬움 편성');
+  ok(!(await page.isVisible('.st-modal')) && await page.isVisible('#s-party') && /녹슨 요새/.test(await page.textContent('#s-party .topbar')) && /쉬움/.test(await page.textContent('#s-party .topbar')), '모험 선택 출전 = 바로 녹슨 요새 쉬움 편성 (입장 확인 팝업 없음)');
   const partyCoach = await page.textContent('#s-party .coachtip');
   ok(/공략/.test(partyCoach) && /출발/.test(partyCoach) && !/단축칸|다시\s*뽑기/.test(partyCoach), '편성: 공략·출발 안내 (단축칸은 소비 아이템과 함께 없앰), 다시 뽑기 문구 없음');
   await page.screenshot({ path: `${shots}/tut_party.png` });
