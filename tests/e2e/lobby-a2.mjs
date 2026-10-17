@@ -120,13 +120,16 @@ export default async function lobbyA2(url, shots) {
         await cdp.detach(); await tick(page);
 
         const c = (await layout(page)).cta;
-        // 출전 → 입장 확인 팝업 (81) → 편성
-        await page.touchscreen.tap(c.x + c.width / 2, c.bottom - 2); await tick(page); await entryGo(page); await tick(page);
-        ok(await page.isVisible('#s-party') && /녹슨 고원/.test(await page.textContent('#s-party .topbar')), `${width}: 출전 하단 터치 → 실제 목적지 편성`);
+        // 출전 → 그 장소 · 난이도가 골라진 모험 선택 (2026-10-17 Lim 「바로 시작이 아닌 해당 화면으로」) → 「출전」 → 입장 확인 팝업 (81) → 편성
+        const picked = () => page.evaluate(() => { const el = document.querySelector('#s-content'); return !el.hidden && el.dataset.selectedContent === 'plateau' && !!el.dataset.selectedDiff && !document.querySelector('.st-modal'); });
+        await page.touchscreen.tap(c.x + c.width / 2, c.bottom - 2); await tick(page);
+        ok(await picked(), `${width}: 출전 하단 터치 → 실제 목적지가 골라진 모험 선택`);
+        await page.locator('#contentGo').tap(); await tick(page); await entryGo(page); await tick(page);
+        ok(await page.isVisible('#s-party') && /녹슨 고원/.test(await page.textContent('#s-party .topbar')), `${width}: 모험 선택 출전 → 실제 목적지 편성`);
         await page.locator('#s-party .tb-back').tap(); await tick(page); await goLobby(page);
-        await page.locator(`${lobby} .lb-trk`).tap(); await tick(page); await entryGo(page); await tick(page);
-        ok(await page.isVisible('#s-party') && /녹슨 고원/.test(await page.textContent('#s-party .topbar')), `${width}: 다음 목표 터치 → 목표 편성`);
-        await page.locator('#s-party .tb-back').tap(); await tick(page); await goLobby(page);
+        await page.locator(`${lobby} .lb-trk`).tap(); await tick(page);
+        ok(await picked(), `${width}: 다음 목표 터치 → 목표가 골라진 모험 선택`);
+        await goLobby(page);
 
         await page.locator(`${lobby} .lb-raid`).tap(); await tick(page);
         ok(await page.isVisible('#s-content') && await page.getAttribute('#s-content [data-ctab="raid10"]', 'aria-selected') === 'true', `${width}: 레이드 → 10인 레이드 탭`);

@@ -187,7 +187,7 @@ function cats(): string {
     const sub = !list.length ? '준비 중' : lock ? `${LOCK}Lv ${lv}` : cap;
     const label = `${k.name}${!list.length ? ' · 준비 중' : lock ? ` · Lv ${lv}에 열림` : raid ? '' : ` · ${cap}`}`;
     const rec = !!gd && k.kind !== tab && tabOf(contentOf(gd.content)) === k.kind;
-    return `<button type="button" class="b-cat" role="tab" data-ctab="${k.kind}" aria-selected="${k.kind === tab}" aria-label="${label}${rec ? ' · 추천 있음' : ''}"><span class="b-ci">${catIcon(k)}</span><span aria-hidden="true"><b>${top}</b><small>${sub}</small></span>${rec ? '<i class="b-rec-dot" aria-hidden="true"></i>' : ''}</button>`;
+    return `<button type="button" class="b-cat" role="tab" data-ctab="${k.kind}" aria-selected="${k.kind === tab}" aria-label="${label}${rec ? ' · 추천 있음' : ''}"><span class="b-ci">${catIcon(k)}</span><span class="b-cl" aria-hidden="true"><b>${top}</b><small>${sub}</small></span>${rec ? '<i class="b-rec-dot" aria-hidden="true"></i>' : ''}</button>`;
   }).join('')}</nav>`;
 }
 
@@ -317,12 +317,19 @@ function cta(c: ContentDef | null, d: DiffName): string {
 
 const s = screen('s-content', '모험 선택', {
   tab: 'battle',
-  // arg = 열 분류 (로비: 주간 도전 → dungeon, 첨탑 → raid10). 없으면 마지막 고른 분류
+  // arg = 열 분류 (로비: 주간 도전 → dungeon, 첨탑 → raid10) 또는 고를 장소 · 난이도 (로비 「출전」 · 다음 목표). 없으면 마지막 고른 분류
   enter(arg) {
     rewardKey = null;
     if (KINDS.some(t => t.kind === arg)) tab = arg as Tab;
+    const to = arg && typeof arg === 'object' ? arg as Pick<typeof Flow, 'content' | 'diff'> : null;
+    // 로비 「출전」 · 다음 목표: 바로 편성으로 가지 않고 그 장소 · 난이도를 골라 둔 이 화면 (2026-10-17 Lim 「바로 시작이 아닌 해당 화면으로」)
+    if (to) {
+      const c = contentOf(to.content), g = G.save.tut >= TUT.done ? guide() : null;
+      tab = tabOf(c); selectContent(c); diffPick[c.key] = to.diff;
+      shownGuide = g ? `${g.content}/${g.diff}` : '';
+    }
     // 편성에서 돌아오면 그 장소·난이도가 골라진 채로 (로비 「바로 출전」으로 갔다 와도. 주간 도전은 따로)
-    if (previous === 's-party' && !Flow.chal && G.save.tut >= TUT.done) {
+    else if (previous === 's-party' && !Flow.chal && G.save.tut >= TUT.done) {
       const c = contentOf(Flow.content);
       if (!c.hidden) { tab = tabOf(c); selectContent(c); diffPick[c.key] = Flow.diff; }
     }

@@ -18,7 +18,8 @@
 #s-content .b-ci { flex: none; width: 20px; height: 20px; display: grid; place-items: center; }
 #s-content .b-ci > svg { width: 20px; height: 20px; }
 #s-content .b-ci:has(.g-ic) { width: 28px; height: 28px; }
-#s-content .b-cat > span:last-child { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+/* 이름 + 둘째 줄. 추천 점 (b-rec-dot)이 뒤에 붙어도 두 줄 그대로 (예전 span:last-child는 점이 붙은 칸만 한 줄이 됐음) */
+#s-content .b-cat > .b-cl { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
 #s-content .b-cat b { font: 700 14px/1.15 var(--font-display); white-space: nowrap; }
 #s-content .b-cat small { display: inline-flex; align-items: center; font-size: 10px; color: var(--dim); white-space: nowrap; }
 #s-content .b-cat small .ui-icon.in { width: 10px; height: 10px; margin-right: 1px; }
