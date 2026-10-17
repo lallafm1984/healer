@@ -3,6 +3,7 @@ import { bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, lerp, lig
 
 const GOLD = { rim: '#5a3c0c', body: '#ffd56b', core: '#fffbe8', glow: '#ffcf6a' };
 const SKY = '#8fd6ff', SKY_DEEP = '#2e6fb8', NAVY = '#1d2a4a';
+const YEL = { glow: '#ffd23f', amber: '#ffb020' };
 const GREEN = { rim: '#0f3b2e', deep: '#1f8f63', mid: '#4fd39a', pale: '#b8f5d8', white: '#f4fff8' };
 
 /** 음표 (8분 음표: 기운 둥근 머리 + 기둥 + 깃발). 머리 가운데 (0,0), 크기 1 = 머리 폭 */
@@ -219,26 +220,42 @@ export default {
     },
   },
 
-  /** 성언: 평온 (가장 강한 치유): 천천히 도는 햇살 빛살. 긴 빛살 · 짧은 빛살이 번갈아, 가운데 흰 원판은 빨리 작아짐 */
+  /** 성언: 평온 (가장 강한 치유, Lim 2026-10-17 「치유처럼 파티클이 많이 들어간 노란색 화려한 치유 강화판」): 치유의 반짝이 가루 구름을 금빛으로 키운 것.
+   *  흰 금빛이 펑 터지며 금빛 가루가 사방으로 퍼졌다가 두 갈래 소용돌이로 몸을 감아 솟고, 큰 네 갈래 반짝임이 차례로 톡톡 터지며 위로 빛가루 분수가 흩날림 */
   'priest-serenity': {
     frames: 24, logical: 100, scope: 'target',
     draw(g, { t }) {
-      const grow = E.out3(seg(t, 0, 0.28)), fade = 1 - E.in2(seg(t, 0.5, 0.97)), rot = rad(28) * t - rad(8);
-      glow(g, 0, 0, 1.55, GOLD.glow, 0.7 * fade * grow);
-      glow(g, 0, 0, 0.85, '#ffffff', 1 - E.out3(seg(t, 0, 0.4)));
-      bloom(g, gg => { for (let i = 0; i < 10; i++) { const a = rot + (i * TAU) / 10; gg.moveTo(0, 0); gg.lineTo(Math.cos(a - 0.08) * 1.4 * grow, Math.sin(a - 0.08) * 1.4 * grow); gg.lineTo(Math.cos(a + 0.08) * 1.4 * grow, Math.sin(a + 0.08) * 1.4 * grow); gg.closePath(); } }, GOLD.glow, 0.45 * fade, 8);
-      for (let i = 0; i < 20; i++) {
-        const long = i % 2 === 0, a = rot + (i * TAU) / 20, pulse = long ? 1 : 0.55 + 0.12 * Math.sin(t * 12 + i);
-        const L = (long ? 1.45 : 0.95) * pulse * grow * lerp(1, 0.88, seg(t, 0.5, 1)), r0 = 0.32 * (1 - 0.5 * seg(t, 0, 0.4));
-        const P = s => ({ x: Math.cos(a) * lerp(r0, L, s), y: Math.sin(a) * lerp(r0, L, s) });
-        lightStroke(g, P, 0, 1, taper(long ? 0.15 : 0.1, 0.04, 0.96), { rim: '#4a3008', body: long ? GOLD.body : '#ffeab0', core: '#ffffff', a: fade * (long ? 1 : 0.85), rimW: 0.02, coreW: 0.45 });
+      const fade = 1 - E.in2(seg(t, 0.58, 1)), burst = 1 - E.out3(seg(t, 0, 0.32));
+      // 터지는 금빛 (첫 장부터 크게) · 몸 둘레 따뜻한 빛
+      glow(g, 0, 0.05, 1.45, YEL.glow, 0.55 * fade);
+      glow(g, 0, 0.05, 0.9, '#ffffff', 0.9 * burst);
+      glow(g, 0, 0.3, 0.7, YEL.amber, 0.25 * fade);
+      // 가루 구름 (흐린 금빛 덩이 여섯이 돌며 떠오름)
+      for (let i = 0; i < 6; i++) {
+        const a = i * 1.05 + t * 3.2, rr = 0.3 + 0.45 * E.out2(t), y = lerp(0.4, -0.45, E.out2(t)) + Math.sin(a) * 0.14;
+        bloom(g, gg => { gg.beginPath(); gg.arc(Math.cos(a) * rr, y, 0.32 + 0.1 * Math.sin(i + t * 4), 0, TAU); }, i % 2 ? YEL.glow : YEL.amber, 0.2 * fade, 9);
       }
-      const disc = 0.45 * (1 - E.out2(seg(t, 0, 0.45)));
-      if (disc > 0.01) { g.save(); g.scale(disc, disc); energy(g, gg => { gg.beginPath(); gg.arc(0, 0, 1, 0, TAU); }, { rim: '#4a3008', body: '#fff3c4', core: '#ffffff', rimW: 0.09, a: fade }); g.restore(); }
-      for (let i = 0; i < 8; i++) { const a = -rot * 1.5 + (i * TAU) / 8 + 0.2, b = bell(t, 0.1 + (i % 4) * 0.05, 0.3 + (i % 4) * 0.05, 0.75 + (i % 3) * 0.05), d = 1.05 + 0.15 * (i % 2); glint(g, Math.cos(a) * d, Math.sin(a) * d, 0.2 * b, i % 2 ? SKY : GOLD.glow, b, a, 0.15); }
+      // 사방으로 터져 퍼지는 금빛 가루 (처음 한 번)
+      particles(g, t, 31, 40, r => ({ t0: r() * 0.06, life: 0.42 + r() * 0.3, a: r() * TAU, sp: 0.7 + r() * 0.8, sz: 0.014 + r() * 0.022, ph: r() * 9 }), (gg, p, age) => {
+        const d = 0.1 + p.sp * E.out3(age);
+        speck(gg, Math.cos(p.a) * d, 0.05 + Math.sin(p.a) * d * 0.85 - 0.25 * age * age, p.sz, age < 0.4 ? '#fff6c8' : YEL.glow, (1 - age) * fade, 0.5 + 0.5 * Math.sin(p.ph + age * 20));
+      });
+      // 두 갈래 소용돌이 금빛 가루 (몸을 감아 솟음, 치유보다 많고 크게)
+      particles(g, t, 11, 76, r => ({ t0: 0.05 + r() * 0.4, life: 0.48 + r() * 0.35, a0: r() * TAU, rr: 0.25 + r() * 0.75, y0: 0.65 + r() * 0.3, rise: 1.0 + r() * 0.8, sz: 0.013 + r() * 0.026, spin: (r() < 0.5 ? -1 : 1) * (1.4 + r()), ph: r() * 9 }), (gg, p, age) => {
+        const ang = p.a0 + p.spin * age * 2.6, rr = p.rr * (1 - 0.35 * age), x = Math.cos(ang) * rr, y = p.y0 - p.rise * E.out2(age) + Math.sin(ang) * rr * 0.24;
+        speck(gg, x, y, p.sz, Math.sin(ang) > 0 ? '#fff3b0' : YEL.glow, bell(age, 0, 0.12, 1) * fade, 0.5 + 0.5 * Math.sin(p.ph + age * 18));
+      });
+      // 위로 흩날리는 빛가루 분수
+      particles(g, t, 17, 22, r => ({ t0: 0.15 + r() * 0.45, life: 0.4 + r() * 0.2, x: (r() - 0.5) * 0.5, vx: (r() - 0.5) * 1.1, vy: 1.3 + r() * 0.6, sz: 0.016 + r() * 0.014 }), (gg, p, age) => {
+        speck(gg, p.x + p.vx * age, -0.2 - p.vy * age + 1.1 * age * age, p.sz, '#fff8d8', (1 - age) * fade);
+      });
+      // 큰 네 갈래 반짝임 (차례로 톡톡, 치유보다 크고 많이)
+      particles(g, t, 5, 12, (r, i) => ({ t0: 0.02 + i * 0.05 + r() * 0.03, life: 0.3, x: (r() - 0.5) * 1.5, y: 0.45 - r() * 1.15, rot: r() }), (gg, p, age) => glint(gg, p.x, p.y - age * 0.2, 0.3 * Math.sin(Math.PI * age), YEL.glow, fade, p.rot, 0.12, '#ffffff'));
+      // 가운데 큰 별 반짝임 (터질 때)
+      glint(g, 0, 0.0, 0.95 * burst, YEL.amber, 1, rad(45) * t, 0.1, '#ffffff');
+      glint(g, 0, 0.0, 0.6 * burst, YEL.glow, 1, rad(45) + rad(45) * t, 0.13, '#ffffff');
     },
   },
-
   /** 빛의 전이: 왼쪽 위에서 포물선으로 날아와 칸 아래에서 통 튀는 꼬리 별 (빛 구슬 + 꼬리), 튈 때 반짝임 셋, 두 번 깜빡이다 작아짐 */
   'priest-relay': {
     frames: 20, logical: 92, scope: 'target',
