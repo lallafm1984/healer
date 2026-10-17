@@ -53,7 +53,7 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | 이름 | 모양 | 이름 | 모양 |
 |---|---|---|---|
 | priest-heal (사제 치유) | 초록 반짝이 가루 구름 | druid-sprout | 돋아나는 새싹 |
-| priest-flash | 가로 섬광 줄기 | druid-growth | 터지는 연두 구슬 → 도는 잎사귀 |
+| priest-flash | 가로 섬광 줄기 (Codex 섬광 그림, 네 갈래 별 · 하늘빛 겹줄) | druid-growth | 터지는 연두 구슬 → 도는 잎사귀 |
 | priest-renew | 감아 오르는 이중 나선 | druid-bloom | 피는 분홍 꽃 한 송이 |
 | priest-poh | 퍼지는 금빛 고리 (스킬 중 고리는 이것만) | druid-wildflower | 바닥에 피는 들꽃 줄 |
 | priest-purify | 떨어진 물방울의 왕관 물보라 | druid-cleanse | 휘감는 청록 바람 |

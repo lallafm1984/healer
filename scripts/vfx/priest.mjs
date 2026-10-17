@@ -57,31 +57,35 @@ export default {
     },
   },
 
-  /** 순간 치유: 가로 섬광 줄기. 가운데에서 좌우로 번쩍 늘어나는 흰 금빛 빛줄기 + 긴 네 갈래 반짝임 + 옆으로 튀는 빛 조각 */
+  /** 순간 치유 (Lim 2026-10-17 「순간 힐도 디테일을 올려줘」): Codex로 그린 섬광 그림 (scripts/vfx/assets/priest-flash: 흰 금빛 가로 빛줄기 + 하늘빛 겹줄 +
+   *  가운데 네 갈래 별 · 마름모 반짝이)이 가운데에서 좌우로 번쩍 펼쳐지고, 위아래로 얇아지며 바깥 끝부터 사라짐. 이름 글자 위 (아이콘과 이름 사이)를 지나 이름에 줄을 긋지 않음 */
   'priest-flash': {
-    frames: 14, logical: 90, scope: 'target',
+    frames: 14, logical: 92, scope: 'target',
     draw(g, { t }) {
-      const grow = E.out4(seg(t, 0, 0.28)), fade = 1 - E.in2(seg(t, 0.3, 1)), L = 1.35 * grow, thin = lerp(1, 0.2, E.in2(seg(t, 0.15, 1)));
-      glowOval(g, 0, 0, 1.4 * grow + 0.3, 0.3, GOLD.glow, 0.9 * fade);
-      glowOval(g, 0, 0, 0.6, 1, '#ffffff', 0.95 * (1 - E.out3(seg(t, 0, 0.35))));
-      glowOval(g, 0, 0, 0.75, 1.6, SKY, 0.4 * (1 - E.out2(seg(t, 0, 0.4))), true, 0);
-      const beam = (y, w, k, body) => lightStroke(g, s => ({ x: lerp(-L, L, s) * k, y }), 0, 1, u => w * thin * Math.sin(Math.PI * u) ** 0.6,
-        { rim: NAVY, body, core: '#ffffff', a: fade, rimW: 0.02, coreW: 0.5, glowCol: SKY, glowA: 0.7 });
-      beam(0, 0.24, 1, GOLD.body);
-      const side = E.out3(seg(t, 0.04, 0.4));
-      beam(-0.24, 0.07, 0.7 * side, '#dff3ff'); beam(0.24, 0.07, 0.7 * side, '#dff3ff');
-      glint(g, 0, 0, lerp(0.95, 0.3, E.out2(seg(t, 0, 0.7))), SKY, fade, 0, 0.11);
-      glint(g, 0, 0, lerp(0.5, 0.15, seg(t, 0, 0.7)), GOLD.glow, fade, rad(45), 0.16);
-      // 옆으로 튀는 빛 조각
-      particles(g, t, 3, 16, r => ({ t0: r() * 0.18, life: 0.4 + r() * 0.35, y: (r() - 0.5) * 0.5, dir: r() < 0.5 ? -1 : 1, sp: 0.9 + r() * 0.7, sz: 0.022 + r() * 0.02 }), (gg, p, age) => {
-        const x = p.dir * (0.25 + p.sp * E.out2(age)), y = p.y * (1 + age) - 0.15 * age, a = 1 - age;
+      const cy = -0.25, grow = E.out4(seg(t, 0, 0.26)), fade = 1 - E.in2(seg(t, 0.32, 1)), thin = lerp(1, 0.35, E.in2(seg(t, 0.2, 1)));
+      glowOval(g, 0, cy, 1.4 * grow + 0.3, 0.28, GOLD.glow, 0.75 * fade);
+      glowOval(g, 0, cy, 0.6, 1, '#ffffff', 0.9 * (1 - E.out3(seg(t, 0, 0.32))));
+      glowOval(g, 0, cy, 0.75, 1.5, SKY, 0.35 * (1 - E.out2(seg(t, 0, 0.4))), true, 0);
+      const img = asset('priest-flash');
+      if (img) {
+        // 그림 = 프레임 너비만큼 (가운데가 칸 가운데), 가로로 펼쳐지고 세로로 얇아짐. 끝에는 바깥 끝부터 지워지게 가로로 조금 줄며 옅어짐
+        const W = 2.85, sx = lerp(0.12, 1, grow) * lerp(1, 0.86, seg(t, 0.5, 1)), sy = thin;
+        g.save(); g.translate(0, cy); g.scale(sx, sy); g.globalAlpha = fade;
+        g.drawImage(img, -W / 2, -W / 2, W, W);
+        // 처음 두세 장은 더 밝게 (흰빛을 한 번 더 더함)
+        const flash = 1 - E.out2(seg(t, 0, 0.3));
+        if (flash > 0) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = fade * 0.7 * flash; g.drawImage(img, -W / 2, -W / 2, W, W); }
+        g.restore();
+      }
+      // 옆으로 튀는 빛 조각 (그림의 반짝이와 함께)
+      particles(g, t, 3, 14, r => ({ t0: r() * 0.18, life: 0.4 + r() * 0.35, y: (r() - 0.5) * 0.4, dir: r() < 0.5 ? -1 : 1, sp: 0.9 + r() * 0.7, sz: 0.02 + r() * 0.018 }), (gg, p, age) => {
+        const x = p.dir * (0.25 + p.sp * E.out2(age)), y = cy + p.y * (1 + age) - 0.12 * age, a = (1 - age) * fade;
         gg.save(); gg.globalCompositeOperation = 'lighter'; gg.strokeStyle = C(age < 0.4 ? '#ffffff' : SKY, a); gg.lineWidth = p.sz;
-        gg.beginPath(); gg.moveTo(x - p.dir * 0.22 * (1 - age), y + 0.03); gg.lineTo(x, y); gg.stroke(); gg.restore();
+        gg.beginPath(); gg.moveTo(x - p.dir * 0.2 * (1 - age), y + 0.02); gg.lineTo(x, y); gg.stroke(); gg.restore();
         speck(gg, x, y, p.sz * 0.6, SKY, a);
       });
     },
   },
-
   /** 소생 (초록): 감아 오르는 이중 나선. 에메랄드 · 민트 빛 꼬리 두 줄이 엇갈리며 칸 아래에서 위로, 꼭대기에서 반짝이며 흩어짐 */
   'priest-renew': {
     frames: 24, logical: 84, scope: 'target',
