@@ -83,7 +83,7 @@ export interface Settings {
   allSkills: boolean;
   /** 개발 빌드: 골드 비용을 무시하고 실제 보유량은 차감하지 않음 (91, 예전 devStones 강화석 무제한). 옛 저장엔 없음 = 꺼짐 */
   devGold?: boolean;
-  /** 개발 빌드 「휴식 무제한」 (90, 81 때 이름 그대로): 휴식이 줄지 않고 보상은 늘 그대로. 옛 저장엔 없음 = 꺼짐 */
+  /** 개발 빌드 「휴식 무제한」 (90, 81 때 이름 그대로): 휴식이 줄지 않고 휴식 보너스가 늘 붙음. 옛 저장엔 없음 = 꺼짐 */
   devStamina?: boolean;
   /** 스킬 휠 8방향 배치 (09 S17). null = 기본 배치 */
   layout: Record<string, string | null> | null;

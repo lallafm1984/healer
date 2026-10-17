@@ -4,7 +4,7 @@
  */
 import { CHAL } from '../data/challenge';
 import { contentOf } from '../data/content';
-import { STAMINA } from '../data/economy';
+import { REST_BONUS, STAMINA } from '../data/economy';
 import { Flow } from '../game/flow';
 import { commit, G } from '../game/state';
 import { adCharge, adsFree, staminaClock, staminaCost, staminaView } from '../game/stamina';
@@ -107,7 +107,7 @@ async function charge(): Promise<boolean> {
 export function openStamina(): void {
   const render = (msg = '') => {
     const el = show('st-info', `<h3 id="stTitle">휴식</h3>${meter()}${timeRows()}
-      <p class="note">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 클리어하면 콘텐츠만큼 쓰고, 0이면 경험치 · 골드 보상이 1/3입니다. 광고 충전은 최대치를 넘어도 들어갑니다.</p>
+      <p class="note">${STAMINA.regenMs / 60e3}분마다 1씩 찹니다. 휴식이 있으면 클리어할 때 콘텐츠만큼 쓰고 경험치 · 골드를 휴식 보너스로 ×${REST_BONUS} 받습니다. 광고 충전은 최대치를 넘어도 들어갑니다.</p>
       ${msg ? `<p class="st-msg" role="status">${esc(msg)}</p>` : ''}
       <div class="st-btns">${adButton(true)}<button class="btn" type="button" data-st="shop">상점</button><button class="btn" type="button" data-st="no">닫기</button></div>`);
     el.onclick = async e => {
@@ -122,22 +122,24 @@ export function openStamina(): void {
   render();
 }
 
-// ---------- 입장 확인 (81 2-3 · 90): 언제나 「입장」. 휴식은 클리어할 때 씀, 0이면 「보상 1/3」 + 광고 충전 ----------
+// ---------- 입장 확인 (81 2-3 · 90): 언제나 「입장」. 휴식은 클리어할 때 씀. 휴식이 있으면 「휴식 보너스 ×N」, 0이면 「휴식이 있으면 보너스 ×N」 + 광고 충전 ----------
 export interface EntryOpts { name: string; sub: string; cost: number; onGo(): void }
 
 export function confirmEntry(o: EntryOpts): void {
   const render = (msg = '') => {
-    const v = view(), cut = !v.unlimited && v.n < 1;
-    // 보유 (왼쪽) · 소모 (오른쪽) 두 칸 (Lim 2026-10-16: 보유는 지금 값만, 입장 후 값 · 안내 문장 없음). 휴식 0이면 짧게 「보상 1/3」 (긴 안내 문장 없이)
+    const v = view(), empty = !v.unlimited && v.n < 1;
+    // 보유 (왼쪽) · 소모 (오른쪽) 두 칸 (Lim 2026-10-16: 보유는 지금 값만, 입장 후 값 · 안내 문장 없음).
+    // 2026-10-17 Lim 「휴식이 있으면 보너스를 준다고 해야 반감을 적게」: 휴식이 있으면 남빛 「휴식 보너스 ×N」, 0이면 빨간 테 없이 중립색 「휴식이 있으면 보너스 ×N」 + 광고 충전
     const cell = (cls: string, label: string, val: string) => `<div class="st-c ${cls}"><dt>${label}</dt><dd>${val}</dd></div>`;
-    const cost = `<dl class="st-cost${cut ? ' lack' : ''}">
+    const cost = `<dl class="st-cost">
       ${cell('st-have', '보유', `${currencyIcon('rest')}<b data-stam-n>${amount(v.n, v.unlimited)}</b>`)}
       ${cell('st-need', '소모', `${currencyIcon('rest')}<b>${o.cost}</b>`)}</dl>`;
     const dest = `<p class="st-dest"><b>${esc(o.name)}</b><small>${esc(o.sub)}</small></p>`;
-    const el = show(`st-entry${cut ? ' cut' : ''}`, `<h3 id="stTitle">입장</h3>${dest}${cost}
-      ${cut ? '<p class="st-cut">보상 1/3</p>' : ''}
+    const bonus = empty ? `<p class="st-bonus off">휴식이 있으면 보너스 ×${REST_BONUS}</p>` : `<p class="st-bonus">휴식 보너스 ×${REST_BONUS}</p>`;
+    const el = show(`st-entry${empty ? ' empty' : ''}`, `<h3 id="stTitle">입장</h3>${dest}${cost}
+      ${bonus}
       ${msg ? `<p class="st-msg" role="status">${esc(msg)}</p>` : ''}
-      ${cut ? `<div class="st-btns">${adButton(false)}</div>` : ''}
+      ${empty ? `<div class="st-btns">${adButton(false)}</div>` : ''}
       <div class="row2"><button class="btn" type="button" data-st="no">취소</button><button class="btn primary" type="button" data-st="go">입장</button></div>`);
     el.onclick = async e => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-st]');

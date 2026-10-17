@@ -1,12 +1,12 @@
 /** 휴식 보너스 (90, 예전 81 스테미너) · 전면 광고 · 앱 결제 상품 · 직업 해금 (81, 2026-10-15 Lim) */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { contentOf } from '../src/data/content';
-import { INTERSTITIAL, jobProductId, NOADS, PAID_HEROES, STAMINA } from '../src/data/economy';
+import { INTERSTITIAL, jobProductId, NOADS, PAID_HEROES, REST_BONUS, STAMINA } from '../src/data/economy';
 import { HEROES } from '../src/data/heroes';
 import { grantProduct, products } from '../src/game/economy';
 import { Flow } from '../src/game/flow';
 import { settle, type BattleResult } from '../src/game/settle';
-import { adCharge, adsFree, restCut, staminaCost, staminaMax, staminaView, syncStamina, useRest } from '../src/game/stamina';
+import { adCharge, adsFree, restBase, restBonusOf, restPreview, restReady, staminaCost, staminaMax, staminaView, syncStamina, useRest } from '../src/game/stamina';
 import { G, heroStatus, switchHero } from '../src/game/state';
 import { interstitialDue } from '../src/platform/ads';
 import { migrate, newSave, type SaveData } from '../src/platform/storage';
@@ -25,7 +25,7 @@ describe('휴식 회복 (90)', () => {
   it('15분마다 1 (하루 96, 가득까지 25시간), 최대치에서 멈춤. 가득일 때 쓰면 그때부터 15분을 셈', () => {
     const s = fresh();
     syncStamina(s, T0 + 5 * H); // 5시간 동안 가득 → 넘친 시간은 쌓이지 않음
-    expect(useRest(s, 10, T0 + 5 * H)).toEqual({ used: 10, cut: false });
+    expect(useRest(s, 10, T0 + 5 * H)).toEqual({ used: 10, bonus: true });
     expect(staminaView(s, T0 + 5 * H)).toMatchObject({ n: 90, next: 15 * M, full: 150 * M });
     expect(staminaView(s, T0 + 5 * H + 15 * M - 1).n).toBe(90);
     expect(staminaView(s, T0 + 5 * H + 15 * M).n).toBe(91);
@@ -49,23 +49,35 @@ describe('클리어할 때 쓰는 휴식 (90)', () => {
       staminaCost(contentOf('abyss1')), staminaCost(contentOf('cathedral1')),
     ]).toEqual([5, 10, 10, 15, 20]);
   });
-  it('1 이상이면 몫만큼 쓰고 (0 아래로 안 감) 보상 그대로, 0이면 쓰지 않고 1/3', () => {
+  it('1 이상이면 몫만큼 쓰고 (0 아래로 안 감) 휴식 보너스, 0이면 쓰지 않고 기본 보상', () => {
     const s = fresh();
     s.stamina.n = 14;
-    expect(useRest(s, 10, T0)).toEqual({ used: 10, cut: false });
-    expect(useRest(s, 15, T0)).toEqual({ used: 4, cut: false });
+    expect(useRest(s, 10, T0)).toEqual({ used: 10, bonus: true });
+    expect(useRest(s, 15, T0)).toEqual({ used: 4, bonus: true });
     expect(s.stamina.n).toBe(0);
-    expect(useRest(s, 5, T0)).toEqual({ used: 0, cut: true });
+    expect(useRest(s, 5, T0)).toEqual({ used: 0, bonus: false });
     expect(s.stamina.n).toBe(0);
   });
-  it('개발 빌드 「휴식 무제한」: 줄지 않고 0이어도 보상 그대로', () => {
+  it('개발 빌드 「휴식 무제한」: 줄지 않고 0이어도 휴식 보너스', () => {
     const s = fresh();
     s.settings.devStamina = true; s.stamina.n = 0;
-    expect(useRest(s, 20, T0)).toEqual({ used: 0, cut: false });
+    expect(useRest(s, 20, T0)).toEqual({ used: 0, bonus: true });
     expect(staminaView(s, T0)).toMatchObject({ n: 0, unlimited: true });
   });
-  it('1/3: 경험치 · 골드 반올림 (1 이상, 91: 예전 강화석 · 정제 강화석 자리에 골드)', () => {
-    expect([restCut(0), restCut(1), restCut(100), restCut(1000)]).toEqual([0, 1, 33, 333]);
+  it('기본 보상 = 휴식 보상의 1/REST_BONUS (반올림, 1 이상), 휴식 보너스 몫 = 휴식 보상 − 기본 (기본 × 배수로 다시 셈하지 않음)', () => {
+    expect(REST_BONUS).toBe(2); // 2026-10-17 Lim 「휴식 보너스는 두배로」 (예전 기본 1/3)
+    expect([restBase(0), restBase(1), restBase(3), restBase(100), restBase(1001)]).toEqual([0, 1, 2, 50, 501]);
+    expect([restBonusOf(0), restBonusOf(1), restBonusOf(3), restBonusOf(100), restBonusOf(1001)]).toEqual([0, 0, 1, 50, 500]);
+    for (const n of [1, 2, 7, 100, 1234]) expect(restBase(n) + restBonusOf(n)).toBe(n);
+  });
+  it('미리 보는 보상: 휴식이 있으면 휴식 보상 (보너스), 0이면 기본 보상 (받을 값보다 크게 보이지 않게)', () => {
+    const s = fresh();
+    s.stamina.n = 3;
+    expect([restReady(s, T0), restPreview(s, 300, T0)]).toEqual([true, { value: 300, bonus: true }]);
+    s.stamina.n = 0;
+    expect([restReady(s, T0), restPreview(s, 300, T0)]).toEqual([false, { value: 150, bonus: false }]);
+    s.settings.devStamina = true;
+    expect(restPreview(s, 300, T0)).toEqual({ value: 300, bonus: true });
   });
 });
 
@@ -75,19 +87,22 @@ describe('정산의 휴식 (90 settle)', () => {
     healed: 1000, overheal: 100, dispels: 0, dispellable: 0, endMana: 40, minMana: 20, auto: false, party: [], detail: [], stage: 30, ...o,
   });
   const lv30 = (): SaveData => { const s = fresh(); s.player.level = 30; s.clears.rustfort = { '악몽': { stars: 3, grade: 'S', best: 100, n: 1 } }; return s; };
-  it('휴식이 있으면 던전 10을 쓰고 경험치 · 골드 그대로, 0이면 1/3 · 장비는 그대로', () => {
+  it('휴식이 있으면 던전 10을 쓰고 경험치 · 골드 휴식 보너스 (보너스 몫 기록), 0이면 기본 보상 · 장비는 휴식과 상관없음', () => {
     const a = lv30(), b = lv30();
     b.stamina.n = 0;
     const xa = settle(a, run(), () => 0.5, [], T0), xb = settle(b, run(), () => 0.5, [], T0);
-    expect(xa.rest).toEqual({ used: 10, cut: false });
+    expect(xa.rest).toEqual({ used: 10, bonus: true });
     expect(a.stamina.n).toBe(90);
-    expect(xb.rest).toEqual({ used: 0, cut: true });
+    expect(xb.rest).toEqual({ used: 0, bonus: false });
     expect(b.stamina.n).toBe(0);
-    expect(xb.xp).toBe(Math.round(xa.xp / 3));
+    expect(xb.xp).toBe(Math.round(xa.xp / REST_BONUS));
     expect(xa.gold).toBeGreaterThan(0);
-    expect(xb.gold).toBe(Math.round(xa.gold / 3));
+    expect(xb.gold).toBe(Math.round(xa.gold / REST_BONUS));
     expect([a.player.gold, b.player.gold]).toEqual([xa.gold, xb.gold]);
     expect(xb.items.length).toBe(1);
+    // 휴식 보너스 몫 = 휴식 보상 − 기본 보상, 기본만 받은 판은 null (결과 화면 꼬리표 없음)
+    expect(xa.restBonus).toEqual({ xp: xa.xp - xb.xp, gold: xa.gold - xb.gold });
+    expect(xb.restBonus).toBeNull();
   });
   it('진 판 · 포기 · 튜토리얼은 휴식을 쓰지 않음 (rest = null)', () => {
     const s = lv30();
@@ -99,8 +114,8 @@ describe('정산의 휴식 (90 settle)', () => {
   });
   it('주간 도전은 10, 레이드는 10인 15', () => {
     const s = lv30();
-    expect(settle(s, run({ chal: 3, limit: 9999 }), () => 0.5, [], T0).rest).toEqual({ used: 10, cut: false });
-    expect(settle(s, run({ content: 'abyss1', diff: '보통', segIdx: 0, segN: 1 }), () => 0.5, [], T0).rest).toEqual({ used: 15, cut: false });
+    expect(settle(s, run({ chal: 3, limit: 9999 }), () => 0.5, [], T0).rest).toEqual({ used: 10, bonus: true });
+    expect(settle(s, run({ content: 'abyss1', diff: '보통', segIdx: 0, segN: 1 }), () => 0.5, [], T0).rest).toEqual({ used: 15, bonus: true });
     expect(s.stamina.n).toBe(75);
   });
 });
@@ -111,8 +126,8 @@ describe('휴식 광고 충전 (90)', () => {
     s.stamina.n = 90;
     expect(adCharge(s, T0)).toBe('');
     expect(staminaView(s, T0 + H)).toMatchObject({ n: 120, next: 0 });
-    expect(useRest(s, 20, T0 + H)).toEqual({ used: 20, cut: false });
-    expect(useRest(s, 10, T0 + H)).toEqual({ used: 10, cut: false });
+    expect(useRest(s, 20, T0 + H)).toEqual({ used: 20, bonus: true });
+    expect(useRest(s, 10, T0 + H)).toEqual({ used: 10, bonus: true });
     expect(staminaView(s, T0 + H + 15 * M).n).toBe(91);
   });
   it('하루 3번, 오전 6시에 다시 3번', () => {

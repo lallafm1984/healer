@@ -11,7 +11,7 @@ import { contentOf, RAID10_LV, stageOf, type ContentKey } from '../data/content'
 import type { DiffName } from '../data/difficulty';
 import { ITEM_GRADES, recommendedFor, SLOTS, type ItemGrade } from '../data/equipment';
 import { CHAL } from '../data/challenge';
-import { jobProductId, STAMINA, STAMINA_COST } from '../data/economy';
+import { jobProductId, REST_BONUS, STAMINA, STAMINA_COST } from '../data/economy';
 import { HERO_KEYS, HEROES } from '../data/heroes';
 import { adventureTabOf } from '../data/adventure-regions';
 import { FEATURES } from '../data/features';
@@ -216,12 +216,12 @@ function shopPlate(): string {
 
 /**
  * 휴식 충전: 휴식이 던전 한 판 몫 (10) 밑이고 충전할 수 있을 때만 왼쪽 맨 아래에 나옴 (다른 소켓 자리는 그대로).
- * 0이면 클리어 보상이 1/3이라 빛남. 누르면 휴식 창 (광고 +30 하루 3번, 광고 제거면 바로)
+ * 0이면 휴식 보너스 (클리어 경험치 · 골드 × REST_BONUS)를 못 받아 빛남. 누르면 휴식 창 (광고 +30 하루 3번, 광고 제거면 바로)
  */
 function restSock(): string {
   const v = staminaView(G.save, Date.now());
   if (v.unlimited || v.n >= STAMINA_COST.dungeon || !v.adsLeft) return '';
-  return socket(`lb-rest${v.n < 1 ? ' hot' : ''}`, ` data-stamina-open aria-label="휴식 충전 · 휴식 ${v.n}/${v.max}"`, currencyIcon('rest'), '휴식 충전',
+  return socket(`lb-rest${v.n < 1 ? ' hot' : ''}`, ` data-stamina-open aria-label="휴식 충전 · 휴식 ${v.n}/${v.max} · 휴식이 있으면 보너스 ×${REST_BONUS}"`, currencyIcon('rest'), '휴식 충전',
     `${adsFree(G.save) ? '바로' : '광고'} +${STAMINA.ad}`, v.n < 1 ? '<i class="g-badge" aria-hidden="true">!</i>' : '');
 }
 

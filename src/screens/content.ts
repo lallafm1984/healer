@@ -21,7 +21,7 @@ import { clearGold, EXPLORE_REWARD } from '../data/progression';
 import { art, cssUrl } from '../art';
 import { weekRemaining } from '../game/clock';
 import { meritFor, raidLootOpen } from '../game/economy';
-import { staminaCost } from '../game/stamina';
+import { restPreview, staminaCost } from '../game/stamina';
 import { Flow } from '../game/flow';
 import { fitNow, fitShown, FIT_TEXT, guide, guideCtx, rankStages, recLevel, type Stage } from '../game/guide';
 import { chalGate, runMode, weekAffixes } from '../game/runmode';
@@ -236,10 +236,12 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   const currency = (key: CurrencyIconKey, name: string, amount: number, color: string, basis = '클리어 시', probability = 1) => {
     items.push({ key, name, label: fmt(amount), icon: currencyIcon(key), color, probability, basis });
   };
-  // 클리어 골드 (91, #172 전과 같은 칸): 이 판 적 레벨 · A 평가, 탐험은 EXPLORE_REWARD
+  // 클리어 골드 (91, #172 전과 같은 칸): 이 판 적 레벨 · A 평가, 탐험은 EXPLORE_REWARD.
+  // 지금 받을 값 (90 · 2026-10-17): 휴식이 있으면 휴식 보너스가 든 합계 + 「휴식 보너스」, 없으면 기본 보상 (미리 본 숫자보다 적게 받지 않게)
   const stage = runMode(G.save, c, d, { chal: 0 }).stage;
-  const gold = Math.round(clearGold(stage, d, 'A', raid) * (play && c.kind === 'explore' ? EXPLORE_REWARD : 1));
-  currency('gold', '골드', gold, '#DDB563', '클리어 시 · A 평가');
+  const full = Math.round(clearGold(stage, d, 'A', raid) * (play && c.kind === 'explore' ? EXPLORE_REWARD : 1));
+  const gold = play ? restPreview(G.save, full, Date.now()) : { value: full, bonus: false };
+  currency('gold', '골드', gold.value, '#DDB563', `클리어 시 · A 평가${gold.bonus ? ' · 휴식 보너스' : ''}`);
   if (play && raid) {
     const merit = meritFor(G.save, raid, d);
     currency('merit', '공훈', merit, '#E6BA6F', merit ? '클리어 시' : '이번 주 공훈 한도 도달', merit ? 1 : 0);
