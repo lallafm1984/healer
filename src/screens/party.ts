@@ -15,7 +15,7 @@ import { aptOf } from '../data/guild';
 import { create, recruitParty } from '../engine';
 import { Flow, newSeed } from '../game/flow';
 import { autoPick, guildOpen, guildRoster, powerOf, slotsOf, togglePick } from '../game/guild';
-import { staminaCost } from '../game/stamina';
+import { restSpend, staminaCost } from '../game/stamina';
 import { recLevel } from '../game/guide';
 import { runMode } from '../game/runmode';
 import { settle } from '../game/settle';
@@ -171,7 +171,8 @@ function render(keepScroll = true): void {
   const m = modeNow(), stage = m.stage;
   const tutDone = G.save.tut >= TUT.done;
   // 81 · 90: 입장 확인은 「출전」에서. 안 거친 판 (다른 길로 온 편성)만 출발 버튼에 클리어 때 쓰는 휴식 · 팝업
-  const cost = tutDone && !Flow.paid ? staminaCost(c, Flow.chal) : 0;
+  // 출발 버튼의 휴식 = 클리어할 때 실제로 쓸 값 (입장 팝업 「소모」와 같음, restSpend). 0이면 숫자를 두지 않음
+  const cost = tutDone && !Flow.paid ? restSpend(G.save, staminaCost(c, Flow.chal), Date.now()) : 0;
   const sub = Flow.chal ? `주간 도전 ${Flow.chal}단계` : `${Flow.diff}${m.affixes.length ? ` <span class="f-afxs">${afxTags(m.affixes)}</span>` : ''}`;
   const mark = Flow.chal ? `<span class="f-hg sm">${uiIcon('hourglass')}</span>` : markHtml(c, 'sm');
   const guideBtn = `<button class="f-gbtn" type="button" id="guideOpen" aria-haspopup="dialog">${BOOK}<span>공략</span></button>`;
