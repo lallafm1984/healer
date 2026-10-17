@@ -56,7 +56,7 @@ const wide = (frames: number, impactFrame: number, gray = false): PxfClip =>
 export const PXF = {
   // 직업 스킬: 손그림풍 (scripts/vfx, Lim 2026-10-16 「퀄리티 있게 모두 다시」). 모양은 requests.md 모양 표 그대로
   'priest-heal': skill(22, 80),
-  'priest-flash': skill(14, 90),
+  'priest-flash': skill(14, 92),
   'priest-renew': skill(24, 84),
   'priest-poh': skill(20, 74),
   'priest-purify': skill(18, 86),

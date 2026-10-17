@@ -29,7 +29,7 @@ npx vite build && npm run fx:shot -- warder --sheet .sim/vfx-shots/warder.png --
 - `logical`: 기준 칸 62일 때 그림 지름. 한 명 대상 80–100 (칸 밖까지 빛이 번짐), 범위 · 파티 · 칸마다 기록되는 것 70–84.
 - `scope`: `battle/pxf.ts` `SKILL_PXF`의 재생 칸과 같게 (`target` · `area` · `party`).
 - `draw(g, { t, f, n, px })`: 좌표는 **칸 가운데 (0, 0), 1 = 칸 반지름 (육각 꼭짓점), 위 = −y**. `t` 0–1 진행, `px` = 프레임 1px. 칸 글자는 아이콘 y ≈ −0.4, 이름 ≈ 0.13, 체력 ≈ 0.62라 가운데를 오래 덮지 말 것. 가장자리 14%는 자동으로 둥글게 지워짐.
-- 손그림 그림 쓰기: 도형으로 모자란 디테일 (깃털 날개 등)은 Codex CLI로 그린 그림을 `scripts/vfx/assets/<이름>.webp` (512px 안팎)에 두고 `asset('<이름>')`로 `g.drawImage` (굽기가 읽어 둠, 없으면 null → 도형으로 대신). 원본 · 프롬프트는 `나혼자힐러/리소스/generated-ui-<날짜>-originals/`, `생성기록.csv` · `65`에 적음. 예: 사제 수호 영혼 날개 `guardian-wing`.
+- 손그림 그림 쓰기: 도형으로 모자란 디테일 (깃털 날개 등)은 Codex CLI로 그린 그림을 `scripts/vfx/assets/<이름>.webp` (512px 안팎)에 두고 `asset('<이름>')`로 `g.drawImage` (굽기가 읽어 둠, 없으면 null → 도형으로 대신). 원본 · 프롬프트는 `나혼자힐러/리소스/generated-ui-<날짜>-originals/`, `생성기록.csv` · `65`에 적음. 예: 사제 수호 영혼 날개 `guardian-wing` · 순간 치유 섬광 `priest-flash`.
 - 도구 (`lib.mjs`): `glow` · `glowOval` (빛 번짐) · `glint` (네 갈래 반짝임) · `speck` (빛가루) · `comet` (꼬리 빛) · `lightStroke` (테 → 몸 → 흰 심 획) · `solid` (굵은 어두운 테 물체) · `energy` (빛 덩어리) · `bloom` (흐린 빛) · `leafAt` · `path.*` (별 · 잎 · 꽃잎 · 물방울 · 초승달 · 마름모 · 다각형) · `particles` (시드 고정 입자) · `E` (가속 곡선) · `seg` · `bell`.
 
 ## 게임에 걸기
