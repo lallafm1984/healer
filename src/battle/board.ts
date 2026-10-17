@@ -26,7 +26,7 @@ import { FACTIONS, type FactionKey } from '../data/places';
 import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
 import { cellTypography, debuffDisplay, fitPartyName, hotTimersOf, hpLabelText, primaryDebuff, shieldTimerOf } from './party-display';
-import { CELL_RADIUS, fitBoard, hotTimerLayout, shieldTimerLayout } from './board-layout';
+import { CELL_RADIUS, clearOf, fitBoard, floatBlocks, hotTimerLayout, shieldTimerLayout } from './board-layout';
 import { DEBUFF_EDGE, GIM_ICON, MARK_ART } from './board-marks';
 import { BOARDS } from '../data/boards';
 import { makeCells } from '../engine/board';
@@ -674,9 +674,6 @@ function fitLabel(label: Label, key: string, kind: string): { x: number; y: numb
 }
 interface PillBox { x: number; y: number; w: number; h: number }
 /** (x, y) 가운데 w × h 상자가 occupied 어느 것과도 1px 넘게 떨어져 있음 */
-function clearOf(occupied: readonly PillBox[], x: number, y: number, w: number, h: number): boolean {
-  return occupied.every(b => Math.abs(x - b.x) >= (w + b.w) / 2 + 1 || Math.abs(y - b.y) >= (h + b.h) / 2 + 1);
-}
 /**
  * 보조 연출만 실제 글자/상태 bounds를 피한다. 빈 자리가 없으면 해당 프레임에서 생략한다.
  * near = 받아 줄 자리 (떠오르는 숫자는 자기 칸 근처만: 멀리 밀려나면 다른 사람 숫자로 읽힘)
@@ -2166,7 +2163,7 @@ export function render(now: number): void {
 
   // 실제 최종 HP·이름·상태 표시를 먼저 보호한다. 일시 연출은 다른 연출과도 겹치지 않는다.
   // 탱커 조준 표식 (aggro)은 비키지 않고 그 위에 겹쳐 뜸 (2026-10-16 Lim 「타겟 마크 때문에 숫자가 옆으로 뜸」, 숫자 층이 맨 위)
-  const transientOccupied: PillBox[] = decorationBounds.filter(b => ['hp', 'nick', 'hot', 'shield', 'debuff', 'role', 'pill'].includes(b.kind));
+  const transientOccupied: PillBox[] = decorationBounds.filter(floatBlocks);
   // 떠오르는 숫자 (2026-10-12 Lim 「힐 수치 등 숫자 위치가 흔들린다」): 처음 잡은 자리에서 비킨 만큼을 지키며 올라감.
   // 예전엔 프레임마다 빈자리를 새로 찾아, 올라가다 이름 · 체력 · 다른 숫자에 닿으면 옆 · 위 자리로 튀거나 두 자리 사이를 오갔다
   // (빌드 131, S25 5인 숫자 82개 중 76개가 한 번 이상 튐, 최대 80px).

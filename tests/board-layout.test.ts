@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CELL_RADIUS, fitBoard, hotTimerLayout, shieldTimerLayout, type BoardInsets, type BoardPoint } from '../src/battle/board-layout';
+import { CELL_RADIUS, clearOf, fitBoard, floatBlocks, hotTimerLayout, shieldTimerLayout, type BoardInsets, type BoardPoint } from '../src/battle/board-layout';
 import { BOARDS } from '../src/data/boards';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { makeCells } from '../src/engine/board';
@@ -223,5 +223,20 @@ describe('보스전 판 (Lim 2026-10-10: 5인은 그전처럼 10칸, 10인은 20
     expect(expectContained(makeCells(BOARDS.b10), five).width).toBeCloseTo(five.right - five.left, 7);
     expect(five.s / size('b25').s).toBeGreaterThan(1.3);
     expect(size('b25').s / size('b36').s).toBeGreaterThan(1.15);
+  });
+});
+
+describe('떠오르는 숫자가 비킬 것 (2026-10-17 Lim 「포자 솜뭉치의 피해 표시가 최상단만 뜨고 다른 데는 안 됨」)', () => {
+  it('디버프 칸 테두리 (칸만 한 육각)는 안 비킴: 비키면 칸 전체가 막혀 윗줄만 판 맨 위로 뜨고 다른 줄은 못 뜸', () => {
+    expect(floatBlocks({ kind: 'debuff', shape: 'hex' })).toBe(false);
+    expect(floatBlocks({ kind: 'debuff', shape: 'pill' })).toBe(true); // 디버프 배지는 비킴
+    for (const kind of ['hp', 'nick', 'hot', 'shield', 'role', 'pill']) expect(floatBlocks({ kind, shape: 'text' })).toBe(true);
+    for (const kind of ['ring', 'aggro', 'fx', 'stand', 'float']) expect(floatBlocks({ kind, shape: 'circle' })).toBe(false); // 숫자 층이 맨 위라 덮어도 됨 (떠 있는 다른 숫자는 따로 비킴)
+  });
+  it('바로 옆에 붙인 자리는 부동소수 오차가 있어도 빈자리', () => {
+    const badge = { x: 90.3, y: 234.1 - 19.3, w: 44.9, h: 16 }, h = 15;
+    const y = badge.y - (badge.h + h) / 2 - 1; // 배지 바로 위 (transientSpot 후보)
+    expect(clearOf([badge], badge.x, y, 11.3, h)).toBe(true);
+    expect(clearOf([badge], badge.x, y + 0.01, 11.3, h)).toBe(false);
   });
 });
