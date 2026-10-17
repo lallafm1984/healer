@@ -7,7 +7,7 @@ import type { HeroKey } from '../data/heroes';
 import { rollItem, type GearItem } from '../data/equipment';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
-import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, inRamp, playXp, rampXp, starsOf, type Grade } from '../data/progression';
+import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, inRamp, rampXp, restRun, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
 import { guildAfter, type GuildAfter } from './guild';
@@ -17,7 +17,7 @@ import { PUB_BONUS } from '../data/missions';
 import { CHAL, chalDropDiff } from '../data/challenge';
 import type { RosterEntry } from '../engine/types';
 import type { AffixKey } from '../data/affixes';
-import { restBase, restBonusOf, staminaCost, useRest, type RestUse } from './stamina';
+import { restBase, restGain, staminaCost, useRest, type RestUse } from './stamina';
 
 /** 전투 화면이 끝날 때 넘겨주는 결과 (던전이면 구간 전체 합) */
 export interface BattleResult {
@@ -104,9 +104,9 @@ export interface Settlement {
   cont: number;
   /** 이 판으로 튜토리얼이 끝남 (녹슨 고원 탐험 클리어, 34 5-2) */
   tutEnd: boolean;
-  /** 휴식 (90): 클리어한 판만. used = 쓴 휴식, bonus = 휴식 보너스를 받음 (아니면 기본 보상). 튜토리얼 · 진 판 · 포기는 null */
+  /** 휴식 (90): 클리어한 판만. used = 쓴 휴식, share = 받은 휴식 보너스 몫 (비례, 0이면 기본 보상). 튜토리얼 · 진 판 · 포기는 null */
   rest: RestUse | null;
-  /** 휴식 보너스 몫 (xp · gold에 들어 있음, 결과 화면 「휴식 보너스 +N」). 휴식 보너스를 안 받은 판은 null */
+  /** 휴식 보너스 몫 (xp · gold에 들어 있음, 결과 화면 기본 → 「휴식 보너스!」 + N). 휴식 보너스를 안 받은 판은 null */
   restBonus: { xp: number; gold: number } | null;
 }
 
@@ -146,18 +146,19 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   // 따라잡기·장소 레벨 차이 보정 없음. 경험치는 직업 레벨·난이도·등급·콘텐츠 배율로만 정함.
   // Lv 20까지는 장소 Lv 20까지의 탐험 · 던전이 장소가 정한 경험치 (70): 쉬움 · 보통을 처음 깨면 다음 장소 레벨 (주간 도전은 빼고)
   // 진 판 (전멸 · 포기)은 경험치 없음 (2026-10-13 Lim)
-  // 휴식 (90): 클리어하면 콘텐츠 몫만큼 쓰고 경험치 · 골드에 휴식 보너스. 휴식이 0이면 기본 보상 (= 1/REST_BONUS, 장비 · 공훈 · 임무 · 상자는 휴식과 상관없음).
-  // 클리어 경험치 휴식 판 = clearXp × REST_XP_SCALE (playXp, 2026-10-17 Lim: 기본 = 예전 휴식 판 1/3, 휴식 판 = 그 × 2). 장소 경험치 (rampXp)는 그대로
+  // 휴식 (90): 클리어하면 콘텐츠 몫만큼 쓰고 경험치 · 골드에 휴식 보너스 (모자라면 있는 만큼 쓰고 보너스도 그만큼, 비례). 0이면 기본 보상
+  // (= 휴식 판의 1/REST_BONUS, 장비 · 공훈 · 임무 · 상자는 휴식과 상관없음). 휴식 판 = 예전 값 × REST_RUN_SCALE (restRun, 2026-10-17 Lim:
+  // 기본 = 예전 휴식 판 1/3, 휴식 보너스 ×2, Lv 1부터 장소 경험치 · 골드도). 튜토리얼 판 (휴식을 안 씀)은 예전 값 그대로, 꼬리표 없음
   const rest = play && r.win && !r.quit ? useRest(save, staminaCost(c, r.chal), now) : null;
+  const run = (n: number) => (play ? restRun(n) : n > 0 ? Math.max(1, Math.round(n)) : 0);
   const xp0 = !r.win || r.quit ? 0
-    : !r.chal && inRamp(c, p.level) ? rampXp(c, r.diff, { first: !save.clears[r.content]?.[r.diff], grade, win: r.win })
-    : Math.max(1, playXp(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind * festival));
-  const noBonus = !!rest && !rest.bonus;
-  const xp = noBonus ? restBase(xp0) : xp0;
-  // 클리어 골드 (12 3-1, 91에서 되살림): 이 판 적 레벨 · 난이도 · 등급 · 레이드 배율, 탐험 × EXPLORE_REWARD. 휴식이 0이면 기본 보상
-  const gold0 = r.win ? Math.round(clearGold(stage, r.diff, grade!, raid) * kind) : 0;
-  const gold = noBonus ? restBase(gold0) : gold0;
-  const restBonus = rest?.bonus ? { xp: restBonusOf(xp0), gold: restBonusOf(gold0) } : null;
+    : run(!r.chal && inRamp(c, p.level) ? rampXp(c, r.diff, { first: !save.clears[r.content]?.[r.diff], grade, win: r.win })
+      : clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind * festival);
+  // 클리어 골드 (12 3-1, 91에서 되살림): 이 판 적 레벨 · 난이도 · 등급 · 레이드 배율, 탐험 × EXPLORE_REWARD
+  const gold0 = r.win ? run(clearGold(stage, r.diff, grade!, raid) * kind) : 0;
+  const share = rest ? rest.share : 1;
+  const xp = restGain(xp0, share), gold = restGain(gold0, share);
+  const restBonus = rest && rest.share > 0 && (xp > restBase(xp0) || gold > restBase(gold0)) ? { xp: xp - restBase(xp0), gold: gold - restBase(gold0) } : null;
   const levelBefore = p.level;
   p.gold += gold;
   const levelUps = addXp(p, xp);

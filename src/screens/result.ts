@@ -22,7 +22,7 @@ import { ENDING } from '../data/story';
 import type { BattleResult, Settlement } from '../game/settle';
 import { esc, fmt, mmss, screen, topBar } from './kit';
 import { currencyIcon, fxArt, gameIcon, gearIcon, placeArt, uiIcon, type CurrencyIconKey } from './art';
-import { enter } from './party';
+import { depart } from './party';
 import { sortie } from './stamina';
 import { adsFree } from '../game/stamina';
 import { adClockMs, interstitialDue, interstitialOff, showInterstitial } from '../platform/ads';
@@ -49,17 +49,21 @@ function render(): void {
   const c = contentOf(r.content);
   const won = r.win && !r.quit;
   const tut = G.save.tut < TUT.done || x.tutEnd;
+  // 휴식 보너스 연출은 이 판 처음 그릴 때 한 번 (다시 그리면 합계 그대로), 시각 효과 줄이기면 없음
+  const anim = won && !!x.restBonus && !G.save.settings.reducedEffects && !restPlayed.has(x);
+  if (anim) restPlayed.add(x);
   // 위 정보창은 로비 · 출전과 같은 모양 (설정 칸까지, 2026-10-13 Lim 「헤더 정렬」)
   st.el.innerHTML = `${topBar({ settings: true })}
     <div class="ns-body res">
       ${head(r, x, c.key, c.name)}
       ${tipHtml(r, x)}
-      ${won ? lootHtml(r, x) : loseHtml(r, x)}
+      ${won ? lootHtml(r, x, anim) : loseHtml(r, x)}
       ${notesHtml(x)}
       ${recordHtml(r, !won)}
     </div>
     ${footHtml(r, x, tut)}`;
   resultModal.sync(null, []);
+  if (anim) playRestBonus(st.el, x);
   // 심연의 심장을 처음 멈추면 엔딩 글 (59 4-4, 한 번만). 레벨업 팝업이 있으면 그 위에
   if (won && r.content === 'heart3' && x.first && !ended.has(x) && Object.values(G.save.clears.heart3 ?? {}).reduce((a, c) => a + (c?.n ?? 0), 0) === 1) {
     ended.add(x);
@@ -71,7 +75,36 @@ function render(): void {
     setTimeout(() => { if (Flow.settle === x && !st.el.hidden) showLevelUp(st.el, x.levelUps, r.hero ?? heroNow()); }, 1100);
   }
 }
-const shown = new WeakSet<object>(), ended = new WeakSet<object>();
+const shown = new WeakSet<object>(), ended = new WeakSet<object>(), restPlayed = new WeakSet<object>();
+
+/**
+ * 휴식 보너스 연출 (90 · 2026-10-17 Lim 「결과창에서 휴식보너스가 있으면 휴식 보너스가 적용되어 보너스라고 하면서 적용하자」):
+ * 기본 값 (휴식 없을 때 값)이 먼저 뜨고, 0.3초 뒤 「휴식 보너스!」 띠와 함께 경험치 · 골드 숫자가 보너스만큼 올라감 (0.7초) → 「휴식 보너스 +N」.
+ * 레벨 업 팝업 (1.1초) 전에 끝남. 띠는 1.8초에 사라짐. 시계는 setTimeout (화면 테스트의 page.clock으로 멈춤 · 진행)
+ */
+const REST_FX = { start: 300, count: 700, steps: 14, hide: 1800 };
+function playRestBonus(root: HTMLElement, x: Settlement): void {
+  const fx = root.querySelector<HTMLElement>('.r-restfx');
+  if (!fx) return;
+  const nums = Array.from(root.querySelectorAll<HTMLElement>('[data-rc-to]'));
+  const live = () => Flow.settle === x && fx.isConnected;
+  setTimeout(() => {
+    if (!live()) return;
+    fx.classList.add('on');
+    for (let i = 1; i <= REST_FX.steps; i++) {
+      setTimeout(() => {
+        if (!live()) return;
+        const k = 1 - (1 - i / REST_FX.steps) ** 2;
+        for (const el of nums) {
+          const a = Number(el.dataset.rcFrom), b = Number(el.dataset.rcTo);
+          el.textContent = fmt(i === REST_FX.steps ? b : Math.round(a + (b - a) * k));
+        }
+        if (i === REST_FX.steps) root.querySelectorAll('.r-rest-pend').forEach(e => e.classList.remove('r-rest-pend'));
+      }, (REST_FX.count / REST_FX.steps) * i);
+    }
+  }, REST_FX.start);
+  setTimeout(() => { if (live()) fx.classList.add('off'); }, REST_FX.hide);
+}
 
 /** 머리: 제목 · 장소·난이도·어픽스 · (이기면) 등급 + 별 칸 3개, (지면) 원인 */
 function head(r: BattleResult, x: Settlement, key: ContentKey, name: string): string {
@@ -120,27 +153,29 @@ function tipHtml(r: BattleResult, x: Settlement): string {
   return '';
 }
 
-/** 받은 것: 장비 줄 (클리어마다 1개) · 재화 칸 · 경험치 줄 */
-function lootHtml(r: BattleResult, x: Settlement): string {
+/** 받은 것: 장비 줄 (클리어마다 1개) · 재화 칸 · 경험치 줄. anim = 휴식 보너스 연출 (기본 값부터 올라감) */
+function lootHtml(r: BattleResult, x: Settlement, anim = false): string {
   const tiles: string[] = [];
   // 재화는 한 줄 칩 (그림 · +값 · 이름, 2026-10-13 Lim 「골드 · 강화석 UI 점검」). 골드는 v16에 없앴다가 91에서 다시 (강화석 · 정제 강화석 대신)
-  // 휴식 보너스 (90 · 2026-10-17 Lim 「휴식이 있으면 보너스를 준다고 해야 반감을 적게」): 받은 판은 골드 합계 옆 남빛 「휴식 보너스」 ·
-  // 경험치 바 아래 「휴식 보너스 +N」 (보너스 몫). 휴식 없이 받은 판은 숫자만 (꼬리표 · 빨간 색 없음). 튜토리얼은 없음
-  const bonus = x.restBonus, rest = restTag(x);
-  const tile = (k: CurrencyIconKey, label: string, v: number, tag = '') => `<span class="r-cur"><span class="r-ci">${currencyIcon(k)}</span><span class="r-cv"><b>+${fmt(v)}</b><small>${label}${tag}</small></span></span>`;
-  if (x.gold) tiles.push(tile('gold', '골드', x.gold, bonus ? ' <i class="r-rest-tag">휴식 보너스</i>' : ''));
+  // 휴식 보너스 (90 · 2026-10-17 Lim): 받은 판은 골드 이름 옆 · 경험치 바 아래 남빛 「휴식 보너스 +N」 (받은 보너스 몫, 비례면 그만큼).
+  // 연출이면 기본 값부터 올라가고 꼬리표는 다 오른 뒤 (playRestBonus). 휴식 없이 받은 판은 숫자만 (꼬리표 · 빨간 색 없음). 튜토리얼은 없음
+  const gb = x.restBonus?.gold ?? 0;
+  const tile = (k: CurrencyIconKey, label: string, v: number, add = 0) => `<span class="r-cur"><span class="r-ci">${currencyIcon(k)}</span><span class="r-cv"><b>+${countUp(v, add, anim)}</b><small>${label}${add ? ` <i class="r-rest-tag${anim ? ' r-rest-pend' : ''}">휴식 보너스 +${fmt(add)}</i>` : ''}</small></span></span>`;
+  if (x.gold) tiles.push(tile('gold', '골드', x.gold, gb));
   if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
+  const fx = anim ? `<div class="r-restfx" aria-hidden="true"><span>${currencyIcon('rest')}<b>휴식 보너스!</b></span></div>` : '';
   return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
       <h2 class="r-lh" tabindex="-1">획득 보상${x.pubBonus ? ` <small>${pubBonusText(x.pubBonus)}</small>` : ''}</h2>
       ${itemsHtml(x)}
       ${tiles.length ? `<div class="r-curs">${tiles.join('')}</div>` : ''}
-      ${xpRow(x, !!r.affixes?.includes('festival'), rest)}
+      ${xpRow(x, !!r.affixes?.includes('festival'), anim)}
+      ${fx}
     </section>`;
 }
 
-/** 경험치 줄 휴식 보너스 (90): 받은 판만 바 아래 「휴식 보너스 +N」 (경험치에 들어 있는 보너스 몫, 바 안은 S25에서 잘림) */
-function restTag(x: Settlement): string {
-  return x.restBonus?.xp ? `<small class="r-rest">휴식 보너스 +${fmt(x.restBonus.xp)}</small>` : '';
+/** 숫자 v (휴식 보너스 add가 든 합계). 연출이면 기본 값 (v − add)부터 보이고 playRestBonus가 v까지 올림. <data>: 경험치 바의 span · i 규칙이 안 걸리게 */
+function countUp(v: number, add: number, anim: boolean): string {
+  return anim && add ? `<data value="${v}" data-rc-from="${v - add}" data-rc-to="${v}">${fmt(v - add)}</data>` : fmt(v);
 }
 
 /** 받은 장비를 누르면 캐릭터 메뉴와 같은 상세를 연다. 별도의 새 특수능력 띠는 표시하지 않는다. */
@@ -174,12 +209,14 @@ function itemRow(id: number): string {
 }
 
 /** 경험치 줄: 바 + 받은 양 + 지금 레벨 (오르면 강조) */
-/** fest = 축제 주간 (경험치 +20%, v16), rest = 휴식 보너스 꼬리표 (90) */
-function xpRow(x: Settlement, fest = false, rest = ''): string {
+/** fest = 축제 주간 (경험치 +20%, v16), anim = 휴식 보너스 연출 (90). 휴식 보너스 꼬리표는 바 아래 (바 안은 S25에서 잘림) */
+function xpRow(x: Settlement, fest = false, anim = false): string {
+  const xb = x.restBonus?.xp ?? 0;
+  const rest = xb ? `<small class="r-rest${anim ? ' r-rest-pend' : ''}">휴식 보너스 +${fmt(xb)}</small>` : '';
   const p = G.save.player, need = xpToNext(p.level), up = x.levelUps.length > 0;
   const w = isFinite(need) ? Math.min(100, (p.xp / need) * 100) : 100;
   return `<div class="r-xpw${up ? ' up' : ''}"><span class="r-lv" aria-hidden="true">${up ? `<small>Lv ${x.levelBefore} →</small>` : '<small>Lv</small>'}<b>${p.level}</b></span>
-      <div class="r-xpc"><div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)}${x.restBonus?.xp ? ` (휴식 보너스 +${fmt(x.restBonus.xp)})` : ''} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${fmt(x.xp)}${fest ? ' <small>축제 +20%</small>' : ''}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em></span></div>${rest}</div></div>`;
+      <div class="r-xpc"><div class="xpbar r-xp${up ? ' up' : ''}" aria-label="경험치 +${fmt(x.xp)}${x.restBonus?.xp ? ` (휴식 보너스 +${fmt(x.restBonus.xp)})` : ''} · Lv ${p.level} · ${fmt(p.xp)} / ${isFinite(need) ? fmt(need) : '최대'}"><i style="width:${w}%"></i><span><b>경험치 +${countUp(x.xp, xb, anim)}${fest ? ' <small>축제 +20%</small>' : ''}</b><em>${up ? '레벨 업!' : `${Math.floor(w)}%`}</em></span></div>${rest}</div></div>`;
 }
 
 /** 진 판: 어디서 졌는지 (구간 점 · 적 남은 체력) · 힌트 (있을 때만). 진 판은 경험치 없음 (2026-10-13 Lim) */
@@ -313,7 +350,7 @@ function deferPopup(host: HTMLElement, show: () => void): boolean {
 /** 같은 파티로 바로 다시 (시작 위치는 새로, 주간 도전은 같은 단계). 입장 확인 팝업을 거침 (81 · 90) */
 function again(): void {
   Flow.seed = newSeed();
-  enter();
+  depart();
 }
 
 /** 다음: 주간 도전은 다음 단계를 같은 파티로 바로, 그 밖엔 다음 장소 · 난이도의 편성 화면 (인원이 달라질 수 있어서) */
@@ -324,7 +361,7 @@ function next(): void {
   const n = nextRun(r.content, r.diff);
   if (!n) return;
   Flow.content = n.content; Flow.diff = n.diff; Flow.chal = 0;
-  sortie(); // 81 · 90: 입장 확인 → 편성으로
+  sortie(); // 편성으로 (90: 입장 확인 팝업 없음)
 }
 
 // ---------- 엔딩 글 (59 4-4 · 11 6장 햇살 축제) ----------

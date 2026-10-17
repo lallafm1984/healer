@@ -67,8 +67,7 @@ export async function toParty(page, { content = 'rustfort', tab = 'dungeon', dif
 }
 
 /**
- * 출발 → 입장 확인 팝업 「입장」 (81). 화면 테스트는 휴식이 줄지 않게 window.__staminaFree를 켬 (휴식 검사는 shop.mjs, 90).
- * 튜토리얼 출발은 팝업 없이 바로
+ * 편성 「출발」 = 바로 전투 (2026-10-17 Lim: 입장 확인 팝업 없앰). 화면 테스트는 휴식이 줄지 않게 window.__staminaFree를 켬 (휴식 검사는 shop.mjs, 90)
  */
 export async function departGo(page, opts) {
   await page.evaluate(() => { window.__staminaFree = true; });
@@ -76,11 +75,10 @@ export async function departGo(page, opts) {
   await entryGo(page);
 }
 
-/** 결과 화면 「다시 도전」 · 「n단계 도전」 뒤 입장 확인 팝업이 뜨면 「입장」 (휴식은 줄지 않게) */
+/** 출전 · 「다시 도전」 · 「n단계 도전」 뒤: 휴식이 줄지 않게 하고 한 박자 (예전 입장 확인 팝업 자리, 2026-10-17에 없앰) */
 export async function entryGo(page) {
   await page.evaluate(() => { window.__staminaFree = true; });
   await page.clock.runFor(50);
-  if (await page.isVisible('.st-modal [data-st="go"]')) await page.click('.st-modal [data-st="go"]');
 }
 
 /** 전투 중 남은 적 체력을 거의 0으로 → 다음 틱에 구간 끝 */

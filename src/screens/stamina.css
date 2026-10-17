@@ -1,11 +1,11 @@
 /*
- * 휴식 (90, 예전 81 입장 비용): 위 줄 칸 · 휴식 창 · 입장 확인 팝업 · 상점 상품 탭 · 출발 버튼 비용 · 직업 목록 「상점」 줄.
+ * 휴식 (90, 예전 81 입장 비용): 위 줄 칸 · 휴식 창 · 상점 상품 탭 · 직업 목록 「상점」 줄 (입장 확인 팝업 · 출발 버튼 휴식은 2026-10-17에 없앰).
  * 팝업은 .admodal (a2-theme의 나무 판 재질)을 그대로 쓰고 크기 · 배치만 정한다. 마지막에 읽음.
  */
 
 /* 위 줄 휴식 칸 (고리 · 다음 +1까지)은 a2-topbar.css 한 곳 (2026-10-16) */
 
-/* ---------- 팝업 (휴식 창 · 입장 확인) ---------- */
+/* ---------- 팝업 (휴식 창) ---------- */
 /* 광고 자리 창 (.admodal, 같은 z)은 나중에 붙어서 이 팝업 위에 뜸 */
 .admodal.st-modal { padding: 16px; }
 .admodal .st-pop { max-width: 340px; display: flex; flex-direction: column; gap: 12px; padding: 18px 16px 16px; text-align: center; color: var(--a2-ink, #fff1d0); }
@@ -13,29 +13,6 @@
 .st-pop .note { margin: 0; font-size: 13px; line-height: 1.5; color: var(--a2-muted, #d0b994); word-break: keep-all; }
 .st-pop .st-msg { margin: 0; font-size: 13px; font-weight: 700; color: #c9f29e; }
 .st-pop .currency-icon, .st-pop .currency-icon > .g-ic, .st-pop .currency-icon > svg { width: 26px; height: 26px; }
-
-.st-dest { margin: 0; display: flex; flex-direction: column; gap: 2px; }
-.st-dest b { font: 800 17px/1.3 var(--font-body); color: #fff4d5; overflow-wrap: anywhere; }
-.st-dest small { font-size: 13px; color: var(--a2-muted, #d0b994); }
-
-/* 보유 · 소모 두 칸. 색은 departure-hall.css */
-.st-cost { margin: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 10px 4px; border-radius: 8px; background: #1d140c; border: 1px solid #8a6a3c; }
-.st-cost .st-c { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.st-cost .st-c + .st-c { border-left: 1px solid #5f4727; }
-.st-cost dt { font-size: 12px; line-height: 1; color: var(--a2-muted, #d0b994); }
-.st-cost dd { margin: 0; min-height: 26px; display: flex; align-items: center; justify-content: center; gap: 3px; }
-.st-cost dd .currency-icon, .st-cost dd .currency-icon > .g-ic, .st-cost dd .currency-icon > svg { width: 22px; height: 22px; }
-.st-cost b { font: 800 24px/1 var(--font-body); color: #c9f29e; font-variant-numeric: tabular-nums; }
-.st-cost .st-need b { color: #fff4d5; }
-/*
- * 휴식 보너스 (90 · 2026-10-17 Lim 「휴식이 있으면 보너스」): 칸 아래 짧게. 휴식이 있으면 남빛 알약 「휴식 보너스 ×N」 (위 정보창 달 그림 결),
- * 0이면 빨간 테 · 빨간 글 없이 중립색 「휴식이 있으면 보너스 ×N」 (+ 광고 충전 버튼)
- */
-.st-pop .st-bonus {
-  align-self: center; margin: -4px 0 0; padding: 3px 12px; border-radius: 999px;
-  font: 800 14px/1.3 var(--font-body); color: #e6ebff; background: #33407a; box-shadow: inset 0 0 0 1px #8d9bd8;
-}
-.st-pop .st-bonus.off { padding: 0; background: none; box-shadow: none; font-weight: 700; color: var(--a2-muted, #d0b994); }
 
 .st-meter { display: grid; grid-template-columns: auto auto 1fr; grid-template-rows: auto auto; align-items: center; column-gap: 6px; row-gap: 8px; padding: 10px 14px; border-radius: 8px; background: #1d140c; border: 1px solid #8a6a3c; }
 .st-meter > .currency-icon { grid-row: 1; }
@@ -48,18 +25,11 @@
 .st-time { margin: 0; display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--a2-muted, #d0b994); }
 .st-time b { color: #fff4d5; font-variant-numeric: tabular-nums; }
 
-.st-pop .row2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
 .st-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .st-btns .st-ad { grid-column: 1 / -1; }
 .st-pop .btn { min-height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 15px; }
 .st-pop .btn small { font-size: 11px; opacity: .85; }
 .st-pop .btn:disabled { filter: saturate(.4) brightness(.8); }
-
-/* ---------- 출발 버튼: 비용 ---------- */
-:is(#s-entry, #s-party) .f-go .cta2 small.f-stam { display: inline-flex; }
-.f-stam .currency-amount { display: inline-flex; align-items: center; gap: 3px; }
-.f-stam .currency-icon, .f-stam .currency-icon > .g-ic, .f-stam .currency-icon > svg { width: 15px; height: 15px; }
-.f-stam .currency-amount b { font-weight: 800; color: #e9ffd0; }
 
 /* ---------- 상점: 상품 탭 · 패스 한 줄 ---------- */
 #s-shop .prow.solo { grid-template-columns: 34px minmax(0, 1fr); }
@@ -86,8 +56,3 @@
 #s-char .c7-job-row.buy .c7-job-state { color: #f3c96f; }
 #s-char .c7-job-row.buy .c7-job-state > .ui-icon { color: #f3c96f; }
 
-/* ---------- 모험 선택 「출전」: 비용 (81, 출전 다음에 입장 팝업) ---------- */
-#s-content .g-ct small .g-stam { display: inline-flex; vertical-align: -2px; }
-#s-content .g-ct small .g-stam .currency-amount { display: inline-flex; align-items: center; gap: 2px; }
-#s-content .g-ct small .g-stam :is(.currency-icon, .currency-icon > .g-ic, .currency-icon > svg) { width: 1.2em; height: 1.2em; }
-#s-content .g-ct small .g-stam b { font: inherit; font-size: 1em; font-weight: 800; line-height: 1; color: #e9ffd0; }

@@ -96,7 +96,6 @@
 }
 :is(#s-entry, #s-party).ns .f-go .f-gt { color: #2a1806; text-shadow: 0 1px 0 #fff2c080; }
 :is(#s-entry, #s-party).ns .f-go .cta2 small { color: #5a3a0e; }
-:is(#s-entry, #s-party).ns .f-go .f-stam .currency-amount b { color: #2a1806; }
 :is(#s-entry, #s-party).ns .f-go > svg { stroke: #2a1806; }
 :is(#s-entry, #s-party).ns .f-go:active:not(:disabled) { transform: translateY(2px); background: linear-gradient(#f0c853, #d99a24); box-shadow: inset 0 1px 0 #fff8d8, inset 0 -1px 0 #b07a1a, 0 1px 0 #000a; }
 :is(#s-entry, #s-party).ns .f-go:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }

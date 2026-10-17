@@ -17,18 +17,18 @@ import { GRADE_STYLE, ITEM_GRADES, type ItemGrade } from '../data/equipment';
 import { gearGradeOdds } from '../data/reward-preview';
 import { HEROES } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
-import { clearGold, EXPLORE_REWARD } from '../data/progression';
+import { clearGold, EXPLORE_REWARD, restRun } from '../data/progression';
 import { art, cssUrl } from '../art';
 import { weekRemaining } from '../game/clock';
 import { meritFor, raidLootOpen } from '../game/economy';
-import { restPreview, staminaCost } from '../game/stamina';
+import { restBase } from '../game/stamina';
 import { Flow } from '../game/flow';
 import { fitNow, fitShown, FIT_TEXT, guide, guideCtx, rankStages, recLevel, type Stage } from '../game/guide';
 import { chalGate, runMode, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { esc, fmt, go, previous, screen, topBar } from './kit';
-import { classEmblem, currencyAmount, currencyIcon, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
+import { classEmblem, currencyIcon, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
 import { sortie } from './stamina';
 
 /** 선 아이콘 (시안 Battle30 임시 선그림, 정식 그림이 오면 gameIcon이 바꿈) */
@@ -131,12 +131,12 @@ function stars(c: ContentDef, d: DiffName): string {
   return `<span class="sr">별 ${n}개</span><span aria-hidden="true">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span>`;
 }
 
-/** 레이드: 이번 주 장비 받음 (보스마다 난이도별 주 1회) · 클리어 때 쓰는 휴식 (90). 정보 줄 오른쪽에 붙여서 관문 높이를 다른 분류와 맞춤 */
+/** 레이드: 이번 주 장비 받음 (보스마다 난이도별 주 1회). 정보 줄 오른쪽에 붙여서 관문 높이를 다른 분류와 맞춤. 휴식은 전투 전에 안 보여 줌 (90 · 2026-10-17) */
 function lootLine(c: ContentDef): string {
   if (c.kind !== 'raid' || G.save.tut < TUT.done) return '';
   const got = ALL_DIFFS.map(d => !raidLootOpen(G.save, c.key, d));
   const dots = `<span class="b-loot" role="img" aria-label="이번 주 장비 ${ALL_DIFFS.map((d, i) => `${d} ${got[i] ? '받음' : '아직'}`).join(', ')}" title="이번 주 장비: 쉬움 · 보통 · 어려움 · 악몽">${got.map(g => `<i${g ? ' class="got"' : ''}></i>`).join('')}</span>`;
-  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">장비</span>${dots}<span class="cap">${currencyAmount('rest', staminaCost(c))}</span></span>`;
+  return `<span class="b-lootrow"><span class="cap" aria-hidden="true">장비</span>${dots}</span>`;
 }
 
 /** 지금 고른 장소 (장소 줄 안에서): 기억한 것 → 길잡이 추천 (86) → 첫 장소 (장소가 없는 분류면 null) */
@@ -237,11 +237,10 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
     items.push({ key, name, label: fmt(amount), icon: currencyIcon(key), color, probability, basis });
   };
   // 클리어 골드 (91, #172 전과 같은 칸): 이 판 적 레벨 · A 평가, 탐험은 EXPLORE_REWARD.
-  // 지금 받을 값 (90 · 2026-10-17): 휴식이 있으면 휴식 보너스가 든 합계 + 「휴식 보너스」, 없으면 기본 보상 (미리 본 숫자보다 적게 받지 않게)
+  // 기본 값 (90 · 2026-10-17 Lim): 휴식이 없을 때 받는 값 (휴식 판 restRun의 1/REST_BONUS). 휴식 보너스는 결과 화면에서만. 튜토리얼 판은 예전 값 그대로
   const stage = runMode(G.save, c, d, { chal: 0 }).stage;
-  const full = Math.round(clearGold(stage, d, 'A', raid) * (play && c.kind === 'explore' ? EXPLORE_REWARD : 1));
-  const gold = play ? restPreview(G.save, full, Date.now()) : { value: full, bonus: false };
-  currency('gold', '골드', gold.value, '#DDB563', `클리어 시 · A 평가${gold.bonus ? ' · 휴식 보너스' : ''}`);
+  const raw = clearGold(stage, d, 'A', raid) * (play && c.kind === 'explore' ? EXPLORE_REWARD : 1);
+  currency('gold', '골드', play ? restBase(restRun(raw)) : Math.round(raw), '#DDB563', '클리어 시 · A 평가');
   if (play && raid) {
     const merit = meritFor(G.save, raid, d);
     currency('merit', '공훈', merit, '#E6BA6F', merit ? '클리어 시' : '이번 주 공훈 한도 도달', merit ? 1 : 0);
@@ -313,8 +312,8 @@ function cta(c: ContentDef | null, d: DiffName): string {
   const ok = !!c && c.ready && !lk!.locked;
   const sub = !c ? '준비 중' : !c.ready ? `${c.name} · 준비 중` : lk!.locked ? (lk!.need && !lockOf(c).locked ? `${c.name} · ${lk!.need}부터 깨기` : `${c.name} · Lv ${lk!.lv}에 열림`) : `${c.name} · ${d}`;
   const mk = classEmblem(heroNow(), 'md');
-  const cost = ok && G.save.tut >= TUT.done ? ` <span class="g-stam">${currencyAmount('rest', staminaCost(c!))}</span>` : '';
-  return `<button type="button" class="g-cta" id="contentGo"${ok ? '' : ' disabled'}><span class="g-mk">${mk}</span><span class="g-ct"><b>출전</b><small>${esc(sub)}${cost}</small></span>${ARROW}</button>`;
+  // 휴식 (클리어 때 쓰는 몫)은 전투 전에 안 보여 줌 (90 · 2026-10-17 Lim: 출전 전 휴식 팝업 · 출발 버튼 휴식과 함께 없앰)
+  return `<button type="button" class="g-cta" id="contentGo"${ok ? '' : ' disabled'}><span class="g-mk">${mk}</span><span class="g-ct"><b>출전</b><small>${esc(sub)}</small></span>${ARROW}</button>`;
 }
 
 const s = screen('s-content', '모험 선택', {

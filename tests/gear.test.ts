@@ -5,7 +5,7 @@ import {
 } from '../src/data/equipment';
 import { HEALER_HP } from '../src/game/charinfo';
 import { INT_BASE, RULES } from '../src/data/rules';
-import { apexOf, clearGold, EXPLORE_REWARD, lvPower, RAID_GOLD } from '../src/data/progression';
+import { apexOf, clearGold, EXPLORE_REWARD, lvPower, RAID_GOLD, restRun } from '../src/data/progression';
 /** 레벨 세기 = 레벨 배율 × 정점 수련 (힐러 지능 · 체력과 같은 눈금) */
 const str = (l: number) => lvPower(l) * apexOf(l);
 import { gearStats } from '../src/data/gear';
@@ -169,7 +169,7 @@ describe('클리어 골드 (12 3-1, 91에서 되살림)', () => {
     expect(y.gold).toBe(0);
     s.tut = TUT.done; s.player.level = 30;
     const z = settle(s, res({ content: 'cemetery' as BattleResult['content'], diff: '악몽' }), () => 0.5);
-    expect(z.gold).toBe(Math.round(clearGold(z.items[0].lv!, '악몽', z.grade!) * EXPLORE_REWARD));
+    expect(z.gold).toBe(restRun(clearGold(z.items[0].lv!, '악몽', z.grade!) * EXPLORE_REWARD)); // 튜토리얼 뒤 휴식 판 = 예전의 2/3 (90, 2026-10-17), 튜토리얼 판은 그대로
   });
 });
 

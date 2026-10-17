@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { diffAffixes, WEEKLY_AFFIXES } from '../src/data/affixes';
 import { CHAL, CHAL_ROTA, chalLimit, chalMult } from '../src/data/challenge';
 import { ALL_DIFFS, contentOf, stageOf } from '../src/data/content';
-import { clearGold, clearXp, EXPLORE_REWARD, playXp } from '../src/data/progression';
+import { clearGold, clearXp, EXPLORE_REWARD, restRun } from '../src/data/progression';
 import * as E from '../src/engine';
 import { affDebuffEnd, affixTick, affHeal } from '../src/engine/affixes';
 import { heal } from '../src/engine/core';
@@ -164,8 +164,8 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
     const s = save(34), m = runMode(s, contentOf('snowlab'), '어려움', { chal: 0 });
     expect(m).toMatchObject({ stage: 34, affixes: ['rage'], chal: 0 });
     const x = settle(s, result({ content: 'snowlab', diff: '어려움', stage: m.stage, affixes: m.affixes }), rng, [], T0);
-    expect(x.gold).toBe(clearGold(34, '어려움', 'S'));
-    expect(x.xp).toBe(playXp(clearXp(34, '어려움', 'S', { win: true })));
+    expect(x.gold).toBe(restRun(clearGold(34, '어려움', 'S'))); // 휴식 판 = 예전의 2/3 (90, 2026-10-17)
+    expect(x.xp).toBe(restRun(clearXp(34, '어려움', 'S', { win: true })));
     // 내 레벨이 높아도 녹슨 요새 어려움은 Lv 9 · 격노 없음
     expect(runMode(save(52), contentOf('rustfort'), '어려움', { chal: 0 })).toMatchObject({ stage: 9, affixes: [] });
   });
@@ -195,7 +195,7 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
         settle(same, result({ content, diff, stage: 52 }), rng, [], T0),
         settle(high, result({ content, diff, stage: 70 }), rng, [], T0),
       ];
-      const xp = playXp(clearXp(52, diff, 'S', { win: true }) * kind);
+      const xp = restRun(clearXp(52, diff, 'S', { win: true }) * kind);
       expect(rewards.map(x => x.xp)).toEqual([xp, xp, xp]);
       expect(low.player.xp).toBe(xp);
     }
@@ -211,7 +211,7 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
   it('레이드 경험치 배율 유지', () => {
     const r = save(90); r.daily.pub = 3;
     const y = settle(r, result({ content: 'abyss1', diff: '보통', stage: 90, segIdx: 0, segN: 1 }), rng, [], T0);
-    expect(y.xp).toBe(playXp(clearXp(90, '보통', 'S', { raid: 10, win: true })));
+    expect(y.xp).toBe(restRun(clearXp(90, '보통', 'S', { raid: 10, win: true })));
   });
   it('레이드·탐험은 어픽스 없음. 열림 레벨 전에 들어가면 (개발 빌드) 열림 레벨', () => {
     expect(runMode(save(90), contentOf('abyss1'), '보통', { chal: 0 }).stage).toBe(90);
@@ -229,7 +229,7 @@ describe('적 레벨 = 내 레벨 − 2, 어픽스는 난이도 (32, 2026-10-08)
     const d = settle(s, result({ diff: '보통', stage: 28 }), rng, [], T0);
     const e = settle(s, result({ content: ex.key, diff: '보통', stage: 28 }), rng, [], T0);
     expect(e.gold).toBe(Math.round(d.gold * EXPLORE_REWARD));
-    expect(e.xp).toBe(playXp(clearXp(30, '보통', 'S', { win: true }) * EXPLORE_REWARD));
+    expect(e.xp).toBe(restRun(clearXp(30, '보통', 'S', { win: true }) * EXPLORE_REWARD));
   });
 });
 
@@ -289,8 +289,8 @@ describe('주간 도전 「모래시계 시련」 (13 3-2)', () => {
   it('축제 주간 경험치 +20% (v16, 예전 골드 +20%. 91에서 골드를 되살려도 경험치 그대로)', () => {
     const a = settle(save(), result({ stage: 30 }), rng, [], T0);
     const b = settle(save(), result({ stage: 30, affixes: ['festival', 'frenzy'] }), rng, [], T0);
-    expect(b.xp).toBe(playXp(clearXp(30, '보통', 'S', { win: true }) * 1.2));
-    expect(a.xp).toBe(playXp(clearXp(30, '보통', 'S', { win: true })));
+    expect(b.xp).toBe(restRun(clearXp(30, '보통', 'S', { win: true }) * 1.2));
+    expect(a.xp).toBe(restRun(clearXp(30, '보통', 'S', { win: true })));
     expect(b.gold).toBe(a.gold);
   });
 });

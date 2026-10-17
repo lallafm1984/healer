@@ -1,5 +1,5 @@
 /*
- * 전투 탭 (모험 선택) · 입장 팝업 · 휴식 창 (2026-10-16): 나무결 → 길드 홀 돌색 (--gk-*, 편성 · 결과 · 휴식 · 공략과 같은 한 벌, Lim 「나무색이 안 어울린다」).
+ * 전투 탭 (모험 선택) · 휴식 창 (2026-10-16, 입장 팝업은 2026-10-17에 없앰): 나무결 → 길드 홀 돌색 (--gk-*, 편성 · 결과 · 휴식 · 공략과 같은 한 벌, Lim 「나무색이 안 어울린다」).
  * 테두리는 전투 머리판 · 예고 칸과 같은 황동 테 그림 (ui-sunforged-panel-frame). 고른 칸은 지금처럼 밝은 바탕 + 어두운 글자 (종이 → 금빛 돌).
  * 장소 그림 · 주간 도전 띠 · 권장 레벨 · 화살표 · 출전 버튼 그림은 그대로. main.ts에서 stamina.css 다음에 읽음
  */
@@ -53,7 +53,7 @@
 /* ---------- 아래 출전 줄 ---------- */
 #s-content .b-foot { background: linear-gradient(#1b1611, #110e0b); background-blend-mode: normal; border-top: 1px solid var(--gk-line); }
 
-/* ---------- 입장 확인 · 휴식 창 (.admodal.st-modal) ----------
+/* ---------- 휴식 창 (.admodal.st-modal) ----------
  * 2026-10-16 Lim 「입장 버튼이 팝업과 따로 논다」: 돌 카드 + 분류 칸과 같은 황동 테 그림, 제목 양옆 금줄.
  * 버튼은 결과 · 휴식과 같은 한 벌 (모서리 10 · 금테 1px · 같은 글꼴, 주 버튼만 금빛). 빨간 출전 그림 (a2-depart-v3)은 쓰지 않음 */
 .admodal.st-modal .st-pop {
@@ -69,11 +69,8 @@
 .admodal.st-modal .st-pop h3::before,
 .admodal.st-modal .st-pop h3::after { content: ''; flex: 0 1 46px; height: 2px; border-radius: 1px; background: linear-gradient(90deg, #ffd34d00, var(--gk-edge)); }
 .admodal.st-modal .st-pop h3::after { background: linear-gradient(90deg, var(--gk-edge), #ffd34d00); }
-.admodal.st-modal .st-dest b { font-size: 18px; color: var(--gk-ink); }
-.admodal.st-modal :is(.st-pop .note, .st-dest small, .st-cost dt, .st-time, .st-pop .st-bonus.off) { color: var(--gk-mute); }
-.admodal.st-modal :is(.st-cost, .st-meter) { background: var(--gk-route); border-color: var(--gk-card-bd); box-shadow: inset 0 2px 6px #0009; }
-.admodal.st-modal .st-cost .st-c + .st-c { border-left-color: var(--gk-line); }
-.admodal.st-modal .st-cost .st-need b { color: var(--gk-num); }
+.admodal.st-modal :is(.st-pop .note, .st-time) { color: var(--gk-mute); }
+.admodal.st-modal .st-meter { background: var(--gk-route); border-color: var(--gk-card-bd); box-shadow: inset 0 2px 6px #0009; }
 .admodal.st-modal .st-bar { background: #0d0b08; border-color: var(--gk-card-bd); }
 
 .admodal.st-modal .st-pop .btn {

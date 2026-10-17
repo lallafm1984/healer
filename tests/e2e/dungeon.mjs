@@ -215,7 +215,9 @@ export default async function dungeon(url, shots) {
   ok(await page.locator('#s-char .c7-opts .c7-cmp').count() > 0, '읽기 전용 상세에 장비 능력치 표시');
   await page.click('#s-char .c7-dialog-close'); await page.clock.runFor(50);
   ok(await page.locator('#s-char .c7-gsheet').count() === 0 && await page.locator('[inert]').count() === 0 && await page.evaluate(() => document.activeElement?.hasAttribute('data-reward-item')), '상세 닫기 후 정산 카드로 포커스·입력 복구');
-  ok(JSON.stringify(await save()) === beforeDetail, '보상 장비 상세 조회는 저장 데이터를 변경하지 않음');
+  // 상세를 열면 그 장비의 새것 점만 꺼짐 (#215 gear.opened · seen), 그 밖의 저장은 그대로 (휴식 시계 at은 1초마다 맞춤이라 뺌)
+  const unseen = sv => { const s = typeof sv === 'string' ? JSON.parse(sv) : sv; delete s.gear.opened; delete s.gear.seen; delete s.stamina.at; return JSON.stringify(s); };
+  ok(unseen(await save()) === unseen(beforeDetail), '보상 장비 상세 조회는 저장 데이터를 변경하지 않음 (새것 점 표시 빼고)');
   const nx = await page.textContent('#s-settle #next');
   // 순차 레벨링 길 (70 · 90, #188): 안 깬 첫 장소부터. 이 테스트는 튜토리얼을 건너뛰어 녹슨 고원 (Lv 1)이 아직 안 깨짐
   ok(/^다음 탐험/.test(nx) && /녹슨 고원 · 쉬움/.test(nx) && (await page.textContent('#s-settle [data-go="s-lobby"]')).trim() === '나가기' && (await page.textContent('#again')) === '다시 도전',
