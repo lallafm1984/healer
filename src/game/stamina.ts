@@ -84,6 +84,16 @@ export function useRest(save: SaveData, cost: number, now: number): RestUse {
   return { used, bonus: true };
 }
 
+/**
+ * 지금 클리어하면 쓸 휴식 (입장 팝업 「소모」 · 편성 출발 버튼, 2026-10-17 Lim 「실제 쓰는 값」): useRest와 같은 규칙.
+ * 0이면 0, 모자라면 남은 만큼 (min(보유, 비용)), 무제한이면 비용 그대로 (보이는 값만, 실제로는 안 씀)
+ */
+export function restSpend(save: SaveData, cost: number, now: number): number {
+  const v = staminaView(save, now);
+  if (v.unlimited) return cost;
+  return v.n < 1 ? 0 : Math.min(v.n, cost);
+}
+
 /** 지금 클리어하면 휴식 보너스를 받는지 (입장 팝업 · 미리 보는 보상): 휴식 1 이상 또는 무제한 */
 export const restReady = (save: SaveData, now: number): boolean => { const v = staminaView(save, now); return v.unlimited || v.n >= 1; };
 /** 기본 보상 (휴식 없음): 경험치 · 골드의 1/REST_BONUS, 반올림 (1 이상) */

@@ -7,7 +7,7 @@ import { contentOf } from '../data/content';
 import { REST_BONUS, STAMINA } from '../data/economy';
 import { Flow } from '../game/flow';
 import { commit, G } from '../game/state';
-import { adCharge, adsFree, staminaClock, staminaCost, staminaView } from '../game/stamina';
+import { adCharge, adsFree, restSpend, staminaClock, staminaCost, staminaView } from '../game/stamina';
 import { TUT } from '../game/tutorial';
 import { showRewarded } from '../platform/ads';
 import { currencyIcon } from './art';
@@ -129,11 +129,12 @@ export function confirmEntry(o: EntryOpts): void {
   const render = (msg = '') => {
     const v = view(), empty = !v.unlimited && v.n < 1;
     // 보유 (왼쪽) · 소모 (오른쪽) 두 칸 (Lim 2026-10-16: 보유는 지금 값만, 입장 후 값 · 안내 문장 없음).
+    // 소모 = 클리어할 때 실제로 쓸 휴식 (2026-10-17 Lim 「실제 쓰는 값」, restSpend): 0이면 0 · 모자라면 남은 만큼. 원래 비용은 따로 안 적음. 1초마다 보유와 함께 고침 (data-stam-use)
     // 2026-10-17 Lim 「휴식이 있으면 보너스를 준다고 해야 반감을 적게」: 휴식이 있으면 남빛 「휴식 보너스 ×N」, 0이면 빨간 테 없이 중립색 「휴식이 있으면 보너스 ×N」 + 광고 충전
     const cell = (cls: string, label: string, val: string) => `<div class="st-c ${cls}"><dt>${label}</dt><dd>${val}</dd></div>`;
     const cost = `<dl class="st-cost">
       ${cell('st-have', '보유', `${currencyIcon('rest')}<b data-stam-n>${amount(v.n, v.unlimited)}</b>`)}
-      ${cell('st-need', '소모', `${currencyIcon('rest')}<b>${o.cost}</b>`)}</dl>`;
+      ${cell('st-need', '소모', `${currencyIcon('rest')}<b data-stam-use="${o.cost}">${fmt(restSpend(G.save, o.cost, Date.now()))}</b>`)}</dl>`;
     const dest = `<p class="st-dest"><b>${esc(o.name)}</b><small>${esc(o.sub)}</small></p>`;
     const bonus = empty ? `<p class="st-bonus off">휴식이 있으면 보너스 ×${REST_BONUS}</p>` : `<p class="st-bonus">휴식 보너스 ×${REST_BONUS}</p>`;
     const el = show(`st-entry${empty ? ' empty' : ''}`, `<h3 id="stTitle">입장</h3>${dest}${cost}
@@ -177,6 +178,7 @@ export function refreshCells(): void {
   const v = view();
   document.querySelectorAll<HTMLElement>('[data-stam-n]').forEach(el => { el.textContent = amount(v.n, v.unlimited); });
   document.querySelectorAll<HTMLElement>('[data-stam-max]').forEach(el => { el.textContent = `/${v.max}`; });
+  document.querySelectorAll<HTMLElement>('[data-stam-use]').forEach(el => { el.textContent = fmt(restSpend(G.save, Number(el.dataset.stamUse), Date.now())); });
   document.querySelectorAll<HTMLElement>('[data-stam-next]').forEach(el => { el.textContent = staminaClock(v.next); });
   document.querySelectorAll<HTMLElement>('[data-stam-full]').forEach(el => { el.textContent = staminaClock(v.full); });
   document.querySelectorAll<HTMLElement>('[data-stam-tb]').forEach(el => {

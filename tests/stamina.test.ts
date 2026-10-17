@@ -6,7 +6,7 @@ import { HEROES } from '../src/data/heroes';
 import { grantProduct, products } from '../src/game/economy';
 import { Flow } from '../src/game/flow';
 import { settle, type BattleResult } from '../src/game/settle';
-import { adCharge, adsFree, restBase, restBonusOf, restPreview, restReady, staminaCost, staminaMax, staminaView, syncStamina, useRest } from '../src/game/stamina';
+import { adCharge, adsFree, restBase, restBonusOf, restPreview, restReady, restSpend, staminaCost, staminaMax, staminaView, syncStamina, useRest } from '../src/game/stamina';
 import { G, heroStatus, switchHero } from '../src/game/state';
 import { interstitialDue } from '../src/platform/ads';
 import { migrate, newSave, type SaveData } from '../src/platform/storage';
@@ -57,6 +57,17 @@ describe('클리어할 때 쓰는 휴식 (90)', () => {
     expect(s.stamina.n).toBe(0);
     expect(useRest(s, 5, T0)).toEqual({ used: 0, bonus: false });
     expect(s.stamina.n).toBe(0);
+  });
+  it('입장 팝업 「소모」 = 클리어할 때 실제로 쓸 휴식 (2026-10-17 Lim 「실제 쓰는 값」): useRest와 같은 값, 무제한이면 비용 그대로', () => {
+    const s = fresh();
+    for (const [n, cost, want] of [[40, 10, 10], [2, 10, 2], [0, 10, 0], [14, 15, 14], [100, 20, 20]]) {
+      s.stamina = { n, at: T0, day: '', ads: 0 };
+      expect(restSpend(s, cost, T0)).toBe(want);
+      expect(s.stamina.n).toBe(n); // 보기만 함
+      expect(useRest(s, cost, T0).used).toBe(want);
+    }
+    s.settings.devStamina = true; s.stamina.n = 0;
+    expect(restSpend(s, 15, T0)).toBe(15);
   });
   it('개발 빌드 「휴식 무제한」: 줄지 않고 0이어도 휴식 보너스', () => {
     const s = fresh();
