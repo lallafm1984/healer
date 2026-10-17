@@ -1,7 +1,7 @@
 /** 직업별 레벨 (34 3·4장 → 68 캐릭터마다): 레벨·경험치·길드·상점·임무 기준 모두 그 캐릭터 레벨. 따라잡기 경험치는 없음 (34 v0.2) */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { contentOf } from '../src/data/content';
-import { clearXp, gradeOf, rampXp } from '../src/data/progression';
+import { clearXp, gradeOf, playXp, rampXp } from '../src/data/progression';
 import * as E from '../src/engine';
 import { raidLootOpen } from '../src/game/economy';
 import { capOf } from '../src/game/guild';
@@ -82,7 +82,7 @@ describe('캐릭터마다 레벨 (34 3장 → 68)', () => {
     const x = settle(G.save, result({ stage: 10 }), () => 0.5);
     expect(x.xp).toBe(rampXp(contentOf('rustfort'), '보통', { first: true, grade: gradeOf(0), win: true }));
     G.save.player.level = 30;
-    expect(settle(G.save, result({ stage: 30 }), () => 0.5).xp).toBe(clearXp(30, '보통', gradeOf(0), { win: true }));
+    expect(settle(G.save, result({ stage: 30 }), () => 0.5).xp).toBe(playXp(clearXp(30, '보통', gradeOf(0), { win: true })));
     expect('catchUp' in x).toBe(false);
   });
   it('레이드 주 1회 장비는 캐릭터마다', () => {

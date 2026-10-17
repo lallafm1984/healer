@@ -7,7 +7,7 @@ import type { HeroKey } from '../data/heroes';
 import { rollItem, type GearItem } from '../data/equipment';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
-import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, inRamp, rampXp, starsOf, type Grade } from '../data/progression';
+import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, inRamp, playXp, rampXp, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
 import { guildAfter, type GuildAfter } from './guild';
@@ -146,11 +146,12 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   // 따라잡기·장소 레벨 차이 보정 없음. 경험치는 직업 레벨·난이도·등급·콘텐츠 배율로만 정함.
   // Lv 20까지는 장소 Lv 20까지의 탐험 · 던전이 장소가 정한 경험치 (70): 쉬움 · 보통을 처음 깨면 다음 장소 레벨 (주간 도전은 빼고)
   // 진 판 (전멸 · 포기)은 경험치 없음 (2026-10-13 Lim)
-  // 휴식 (90): 클리어하면 콘텐츠 몫만큼 쓰고 경험치 · 골드에 휴식 보너스. 휴식이 0이면 기본 보상 (= 1/REST_BONUS, 장비 · 공훈 · 임무 · 상자는 휴식과 상관없음)
+  // 휴식 (90): 클리어하면 콘텐츠 몫만큼 쓰고 경험치 · 골드에 휴식 보너스. 휴식이 0이면 기본 보상 (= 1/REST_BONUS, 장비 · 공훈 · 임무 · 상자는 휴식과 상관없음).
+  // 클리어 경험치 휴식 판 = clearXp × REST_XP_SCALE (playXp, 2026-10-17 Lim: 기본 = 예전 휴식 판 1/3, 휴식 판 = 그 × 2). 장소 경험치 (rampXp)는 그대로
   const rest = play && r.win && !r.quit ? useRest(save, staminaCost(c, r.chal), now) : null;
   const xp0 = !r.win || r.quit ? 0
     : !r.chal && inRamp(c, p.level) ? rampXp(c, r.diff, { first: !save.clears[r.content]?.[r.diff], grade, win: r.win })
-    : Math.max(1, Math.round(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind * festival));
+    : Math.max(1, playXp(clearXp(p.level, r.diff, grade, { raid, win: r.win }) * kind * festival));
   const noBonus = !!rest && !rest.bonus;
   const xp = noBonus ? restBase(xp0) : xp0;
   // 클리어 골드 (12 3-1, 91에서 되살림): 이 판 적 레벨 · 난이도 · 등급 · 레이드 배율, 탐험 × EXPLORE_REWARD. 휴식이 0이면 기본 보상

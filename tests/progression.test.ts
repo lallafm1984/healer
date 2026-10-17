@@ -7,13 +7,15 @@ import { avgScore, dropTable, gearStatsOf, ITEM_GRADES, presetScore, RECOMMENDED
 import { presetGear } from './fixtures/preset-gear';
 import { gearStats } from '../src/data/gear';
 import { RULES } from '../src/data/rules';
-import { addXp, clearGold, clearXp, gradeOf, inRamp, lvPower, lvPowerProto, RAMP_FIRST, RAMP_FIRST_FOUR, RAMP_FOUR_LV, RAMP_LV, RAMP_REPEAT, rampDiffs, rampShare, rampSpan, rampXp, starsOf, xpToNext } from '../src/data/progression';
+import { addXp, clearGold, clearXp, gradeOf, inRamp, playXp, lvPower, lvPowerProto, RAMP_FIRST, RAMP_FIRST_FOUR, RAMP_FOUR_LV, RAMP_LV, RAMP_REPEAT, rampDiffs, rampShare, rampSpan, rampXp, starsOf, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
 import { heal } from '../src/engine/core';
 import { rngFrom } from '../src/engine';
 import { settle, type BattleResult } from '../src/game/settle';
 import { newSave } from '../src/platform/storage';
 import { TUT } from '../src/game/tutorial';
+import { REST_XP_SCALE } from '../src/data/economy';
+import { restBase } from '../src/game/stamina';
 
 describe('경험치·레벨 (02 부록 B)', () => {
   it('필요 경험치 = 100 × 레벨^1.6', () => {
@@ -338,8 +340,19 @@ describe('초반 순차 레벨링 (70 · 90): 장소 Lv 1~9 쉬움 · 보통, 10
     expect(inRamp(contentOf('abyss1'), 1)).toBe(false);
     expect(inRamp(contentOf('tutorial'), 1)).toBe(false);
     const s = newSave(1); s.tut = TUT.done; s.daily.pub = 3; s.player.level = 21;
-    expect(play(s, 'rustfort', '보통', 1).xp).toBe(clearXp(21, '보통', 'A', { win: true }));
+    expect(play(s, 'rustfort', '보통', 1).xp).toBe(playXp(clearXp(21, '보통', 'A', { win: true })));
     const t = newSave(1); t.tut = TUT.done; t.daily.pub = 3; t.player.level = 20;
-    expect(settle(t, result({ content: 'rustfort', diff: '보통', chal: 1, stage: 20 }), rngFrom(1)).xp).toBe(clearXp(20, '보통', 'A', { win: true }));
+    expect(settle(t, result({ content: 'rustfort', diff: '보통', chal: 1, stage: 20 }), rngFrom(1)).xp).toBe(playXp(clearXp(20, '보통', 'A', { win: true })));
+  });
+  it('클리어 경험치 휴식 판 = clearXp × 2/3 (2026-10-17 Lim: 기본 = 예전 휴식 판의 1/3, 휴식 보너스 ×2), 장소 경험치 (Lv 20까지)는 그대로', () => {
+    expect(REST_XP_SCALE).toBeCloseTo(2 / 3, 9);
+    expect([playXp(0), playXp(1), playXp(3), playXp(300), playXp(1000)]).toEqual([0, 1, 2, 200, 667]);
+    // 휴식 0 = 휴식 판 ÷ REST_BONUS ≈ 예전 휴식 0 (clearXp ÷ 3)
+    const full = clearXp(40, '보통', 'A', { win: true });
+    expect(Math.abs(restBase(playXp(full)) - full / 3)).toBeLessThanOrEqual(1);
+    // Lv 20까지 장소 첫 클리어는 그대로 (첫날 Lv 10 길)
+    const s = newSave(1); s.tut = TUT.done; s.daily.pub = 3; s.player.level = 12;
+    const c = contentOf('greenhouse');
+    expect(play(s, c.key, '쉬움', 1).xp).toBe(rampXp(c, '쉬움', { first: true, grade: 'A', win: true }));
   });
 });

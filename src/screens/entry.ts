@@ -3,7 +3,7 @@
  * 던전·레이드는 2026-10-08부터 입장 화면 없이 전투 탭 「출전」 → 편성 (난이도는 전투 탭에서만, 적 레벨 = 내 레벨 (32), 공략은 편성의 시트).
  */
 import { contentOf } from '../data/content';
-import { clearGold, clearXp } from '../data/progression';
+import { clearGold, clearXp, playXp } from '../data/progression';
 import { Flow } from '../game/flow';
 import { chalChestOf } from '../game/economy';
 import { CHAL, chalDropDiff } from '../data/challenge';
@@ -28,7 +28,7 @@ function render(): void {
   const festival = m.affixes.includes('festival');
   // 지금 받을 값 (90 · 2026-10-17): 휴식이 있으면 휴식 보너스가 든 합계 + 「휴식 보너스」, 없으면 기본 보상
   const now = Date.now(), gold = restPreview(G.save, clearGold(m.stage, d, 'A'), now);
-  const xp = restPreview(G.save, Math.round(clearXp(G.save.player.level, d, 'A', { win: true }) * (festival ? CHAL.festivalXp : 1)), now);
+  const xp = restPreview(G.save, playXp(clearXp(G.save.player.level, d, 'A', { win: true }) * (festival ? CHAL.festivalXp : 1)), now);
   const box = best ? chalChestOf(best) : null;
   const chestReward = box ? [...[...new Set(box.grades)].map(grade => `${grade} ${box.grades.filter(g => g === grade).length}개`), `골드 ${box.goldRuns}판`].join(' · ') : '';
   s.el.innerHTML = `${flowHead('s-content', CHAL.name, `${esc(c.name)} ${d} · ${c.size(d)}인`)}
