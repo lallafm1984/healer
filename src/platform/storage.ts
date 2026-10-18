@@ -104,7 +104,6 @@ export interface ClearRecord {
   n: number;
 }
 
-/** 인연 스카우트 후보 (02 9-3 ②): 공개모집에서 잘 살려 줘서 호감도가 가득 찬 파티원 */
 /** 길드 v2 (93 · 97, v19): Lv 15에 결성 이야기로 열림 */
 export interface GuildSave {
   name: string;
@@ -686,6 +685,7 @@ function memberOf(raw: unknown): GuildMember | null {
     id: n(m.id, 0), nick: m.nick, cls: m.cls as ClassKey, pers: m.pers as PersName, ab: typeof m.ab === 'string' ? m.ab : '',
     lv: Math.max(1, Math.round(n(m.lv, 1))), xp: Math.max(0, n(m.xp, 0)), stats, learn: n(m.learn, prof.learn), steady: n(m.steady, prof.steady),
     sxp: Math.max(0, n(m.sxp, 0)), votes: Array.isArray(m.votes) ? m.votes.filter(Array.isArray).slice(-5) as GuildMember['votes'] : [],
+    know: m.know && typeof m.know === 'object' ? Object.fromEntries(Object.entries(m.know).filter(([, x]) => typeof x === 'number' && Number.isFinite(x) && x > 0)) : {},
     runs: Math.max(0, n(m.runs, 0)), joined: n(m.joined, 0), ...(m.story ? { story: m.story } : {}),
   };
 }
@@ -701,7 +701,7 @@ function oldMember(raw: unknown, nextId: number): GuildMember | null {
   return {
     id: typeof o.id === 'number' ? o.id : nextId, nick: o.nick, cls: o.cls, pers: o.pers, ab: typeof o.ab === 'string' ? o.ab : p?.ab ?? '',
     lv: Math.max(1, Math.round(o.lv ?? 1)), xp: Math.max(0, o.xp ?? 0), stats: { ...prof.stats }, learn: prof.learn, steady: prof.steady,
-    sxp: 0, votes: [], runs: Math.max(0, o.runs ?? 0), joined: 0,
+    sxp: 0, votes: [], know: {}, runs: Math.max(0, o.runs ?? 0), joined: 0,
   };
 }
 

@@ -143,20 +143,26 @@ export interface FmFx {
   /** 판단: 생존 능력 체력 기준 (더함) · 낙천가 · 비관론자 치우침을 남기는 몫 */ guard: number; bias: number;
   /** 집중: 악몽 · 레이드 · 보스 30% 아래에서 반응 · 회피 보너스 (낮아도 빼지 않음) */ focus: number;
 }
+/**
+ * 능력치 한 칸의 효과 크기 (97 「다 키운 길드 목표에 맞춰 sim으로 정한다」): 아래 표의 1 · 20 끝값을 10 값 쪽으로 이만큼만 씀.
+ * 1이면 표 그대로. 다 키운 길드 (93 7-3)가 악몽 85% 안팎이 되게 맞춤 (sim이 바꿔 볼 수 있게 객체)
+ */
+export const FM_FX = { scale: 1 };
 export function fmFx(st: Stats, off = 0): FmFx {
-  const s = (k: StatKey) => st[k] + off;
+  const s = (k: StatKey) => st[k] + off, S = FM_FX.scale;
+  const f = (k: StatKey, a1: number, a10: number, a20: number) => lerp3(s(k), a10 + (a1 - a10) * S, a10, a10 + (a20 - a10) * S);
   return {
-    dps: lerp3(s('atk'), 0.85, 1, 1.15),
-    hp: lerp3(s('tough'), 0.9, 1, 1.1),
-    taken: lerp3(s('armor'), 1.05, 1, 0.92),
-    move: lerp3(s('agility'), 1.15, 1, 0.8),
-    dodge: lerp3(s('evade'), -0.05, 0, 0.05),
-    homeWait: lerp3(s('position'), 1.5, 1, 0.4),
-    adds: lerp3(s('adds'), 1, 1, 1.15),
-    cd: lerp3(s('skill'), 1.05, 1, 0.85), cut: lerp3(s('skill'), -0.05, 0, 0.1),
-    react: lerp3(s('react'), 1.2, 1, 0.8),
-    retry: lerp3(s('composure'), 1.3, 1, 0.6), flee: lerp3(s('composure'), 1.1, 1, 0.8), panic: lerp3(s('composure'), 1.15, 1, 0.7),
-    guard: lerp3(s('judgment'), -0.045, 0, 0.05), bias: lerp3(s('judgment'), 1.3, 1, 0.4),
-    focus: lerp3(s('focus'), 0, 0, 0.1),
+    dps: f('atk', 0.85, 1, 1.15),
+    hp: f('tough', 0.9, 1, 1.1),
+    taken: f('armor', 1.05, 1, 0.92),
+    move: f('agility', 1.15, 1, 0.8),
+    dodge: f('evade', -0.05, 0, 0.05),
+    homeWait: f('position', 1.5, 1, 0.4),
+    adds: f('adds', 1, 1, 1.15),
+    cd: f('skill', 1.05, 1, 0.85), cut: f('skill', -0.05, 0, 0.1),
+    react: f('react', 1.2, 1, 0.8),
+    retry: f('composure', 1.3, 1, 0.6), flee: f('composure', 1.1, 1, 0.8), panic: f('composure', 1.15, 1, 0.7),
+    guard: f('judgment', -0.045, 0, 0.05), bias: f('judgment', 1.3, 1, 0.4),
+    focus: f('focus', 0, 0, 0.1),
   };
 }

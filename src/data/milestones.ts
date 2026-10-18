@@ -13,7 +13,7 @@ export interface Milestone { text: string; live: boolean; hero?: HeroKey }
 const BASE: Record<number, Milestone[]> = {
   5: [{ text: '특성 1단', live: true }],
   10: [{ text: '특성 2단', live: true }, { text: '주간 임무', live: true }, { text: '공개모집 직업 +6종', live: false }],
-  15: [{ text: '특성 3단', live: true }, ...(FEATURES.guild ? [{ text: '길드 (골드 모집·인연 스카우트)', live: true }] : [])],
+  15: [{ text: '특성 3단', live: true }, ...(FEATURES.guild ? [{ text: '길드 (원정대 결성 · 영입)', live: true }] : [])],
   20: [{ text: '직업 전환 · 드루이드 해금', live: true, hero: 'druid' }, { text: '특성 4단', live: true }, { text: '주간 도전 「모래시계 시련」', live: true }],
   25: [{ text: '특성 5단', live: true }],
   30: [{ text: '직업 전환 · 성기사 해금', live: true, hero: 'paladin' }, { text: '특성 6단', live: true }, { text: '어려움·악몽 던전에 어픽스 「격노」', live: true }],

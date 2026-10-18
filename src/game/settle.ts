@@ -89,7 +89,7 @@ export interface Settlement {
   best: boolean;
   /** 직업 퀘스트 진행 (25 5-4): 그 판으로 퀘스트가 오른 직업, 다 채우면 unlocked */
   heroQuest: { hero: HeroKey; n: number; need: number; unlocked: boolean } | null;
-  /** 길드원 경험치·인연 스카우트 (02 9장) */
+  /** 길드원 경험치 · 능력치 · 공략 숙지 · 명성 (93 · 97) */
   guild: GuildAfter | null;
   /** 인연 (93 3-2): 이 판에서 오른 점수 (이긴 판만) */
   bond: import('./bond').BondGain[];
@@ -125,7 +125,7 @@ export function heroWin(save: SaveData, _kind: string, _content: string, _diff: 
   return null;
 }
 
-/** roster = 전투에 넘긴 편성 (길드원 경험치·인연 스카우트). 없으면 길드 정산 안 함 */
+/** roster = 전투에 넘긴 편성 (길드원 경험치 · 능력치 · 공략 숙지). 길드원이 없으면 길드 정산 안 함 */
 export function settle(save: SaveData, r: BattleResult, rng: () => number, roster: RosterEntry[] = [], now = Date.now()): Settlement {
   const c = contentOf(r.content);
   const hero = r.hero ?? save.hero;
@@ -208,7 +208,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const bond = play ? recordBond(save, r, grade === 'S') : [];
   // 길드 v2 (93 · 97): 결성 (Lv 15 · 튜토리얼 뒤 첫 판), 판 뒤 길드원 경험치 · 능력치 · 명성 · 첫 처치
   const founded = FEATURES.guild && play ? foundGuild(save) : null;
-  const guild = FEATURES.guild && play && roster.some(e => e.gid != null) ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.key, kind: c.kind, party: r.party, roster }) : null;
+  const guild = FEATURES.guild && play && roster.some(e => e.gid != null) ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.key, kind: c.kind, party: r.party, roster, encs: c.fights(r.diff) }) : null;
 
   // 주간 도전: 제한시간 안에 깨면 기록·다음 단계 (실패해도 단계 유지)
   let chal: Settlement['chal'] = null;

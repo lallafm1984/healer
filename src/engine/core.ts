@@ -1,5 +1,6 @@
 import { armorFactor, type DamageAim } from '../data/armor';
 import { BOND, bondSize } from '../data/bond';
+import { KNOW } from '../data/guild';
 import { healThreat, takenThreat } from './threat';
 import { SPREAD } from '../data/bosses';
 import { HEROES } from '../data/heroes';
@@ -303,6 +304,7 @@ export function takenAmt(f: Fight, u: Unit, amt: number, magic: boolean, aim: Da
   if (f.R.pos && u.role === 'ranged') amt *= posTaken(f, u); // 위치 규칙: 레이드 판 1 · 2열 원거리는 +50%
   if (f.sp) amt *= dmgSpec(f, u); // 장비 특수능력 (42 보호 · 지원 · 기믹)
   if (u.me && f.tx.on.firmWill) amt *= 0.8; // 굳은 의지 (06 6장)
+  if (u.know) amt *= KNOW.taken[u.know]; // 길드원 공략 숙지 (93 5-4)
   if (f.tx.cut) amt *= talentTaken(f, u, magic); // 드루이드 · 성기사 특성 (77)
   if (NEW_HERO(f)) amt *= heroTaken(f, u, magic); // 79 직업 (토템 · 생존기 · 특성)
   if (u.me && f.gear.endure) amt *= 1 - f.gear.endure; // 장비 인내 (34 6-4)

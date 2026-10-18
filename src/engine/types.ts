@@ -256,6 +256,8 @@ export interface Unit {
   gotLow?: number;
   /** 길드원 「한 일」 (97): 장판을 피한 수 · 옮긴 수 · 끊은 수 · 맞은 강타 수 · 쫄에게 준 딜 */
   did?: { dodge: number; move: number; cut: number; buster: number; adds: number };
+  /** 길드원 공략 숙지 단계 (93 5-4): 이 전투에서 0~3 */
+  know?: number;
   /** 짝꿍 (95): 짝 (아군 id). 붙어 있으면 둘 다 회피 + */
   pairWith?: number;
   /** 칭찬왕 · 보은형 (95): 체력 25% 아래로 내려간 적 있음 (60% 위로 오면 살아남) */
@@ -265,7 +267,7 @@ export interface Unit {
   cheerUp?: number;
   /** 영웅이 대신 맞아 줌: until까지 받는 피해의 share를 id가 */
   coverBy?: { id: number; until: number; share: number };
-  /** 내 힐로 회복한 양 (인연 스카우트, 12 1장) */
+  /** 내 힐로 회복한 양 (인연 점수 · 은혜 갚기, 93 3-2) */
   got: number;
   /** 눈치 자질 (17 9-1): 반응 시간 배율, 회피 보정 */
   senseReact: number;
@@ -322,6 +324,8 @@ export interface RosterEntry {
   lv?: number;
   /** 길드원 버릇 (93 13-1 · 97): 침착 · 판단이 정한 단점 배율 (반응이 느린 몫 · 회피 −). 없으면 1 */
   habit?: number;
+  /** 길드원 공략 숙지 (93 5-4): 전투 (구간) 키 → 단계 1~3. 그 전투에서만 반응 · 회피 */
+  know?: Partial<Record<string, number>>;
   /** 길드원 id */
   gid?: number;
   /** 인연 점수 (93 3-2): 은혜 갚기 호감도 (06 6장). 공개모집 · 길드원 모두 */

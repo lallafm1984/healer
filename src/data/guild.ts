@@ -7,7 +7,6 @@
 import type { ClassKey } from './classes';
 import { lerp3, ROLE_CORE, STAT_KEYS, type StatKey, type Stats } from './fm';
 import type { PersName } from './personalities';
-import type { DiffName } from './difficulty';
 
 // ---------- 인연 Lv (93 3-3) ----------
 /** 누적 점수 → 인연 Lv 0~12 (0 처음 · 1 아는 사이 · 2 친구 · 3~11 길드원 · 12 단짝) */
@@ -69,9 +68,11 @@ export interface GuildMember {
   stats: Stats;
   learn: number;
   steady: number;
-  /** 능력치 경험 (차면 한 칸 +1) · 최근 5판의 「한 일」 표 */
+  /** 쌓인 능력치 점수 (레벨업마다 학습력만큼, 1점 = 한 칸 +1) · 최근 5판의 「한 일」 표 */
   sxp: number;
   votes: StatKey[][];
+  /** 공략 숙지 점수 (93 5-4): 전투 (구간) 키 → 함께 이긴 만큼 (학습력이 빠르기) */
+  know: Record<string, number>;
   /** 출전 수 · 들어온 때 (ms) */
   runs: number;
   joined: number;
@@ -85,22 +86,32 @@ export const lowStageXp = (gap: number) => Math.max(0.3, 1 - 0.1 * gap);
 /** 쉬는 명단 (출전 안 한 길드원)도 이긴 판 경험치의 30% */
 export const REST_SHARE = 0.3;
 
-/** 능력치 경험: 이긴 판 +1 · 어려움 +2 · 악몽 +3, 첫 처치 +3 (같은 판에 나간 사람은 모두 같은 양) */
-export const SXP: Record<DiffName, number> & { first: number } = { '쉬움': 1, '보통': 1, '어려움': 2, '악몽': 3, first: 3 };
-/** 한 칸 +1에 드는 경험: 높을수록 많이 (20에 가까울수록 느림), 학습력 1 → ×1.6 · 10 → ×1 · 20 → ×0.6 */
-export const statNeed = (v: number, learn: number) => Math.round((2 + 0.5 * Math.max(0, v - 8)) * lerp3(learn, 1.6, 1, 0.6) * 10) / 10;
+/**
+ * 능력치는 레벨업할 때 오름 (Lim 10-18 「능력치는 레벨업시 오르게 하자」): 레벨 하나에 학습력만큼 점수 (1 → 0.07 · 10 → 0.1 · 20 → 0.13, 소수는 쌓아 둠),
+ * 1점 = 오를 칸 (`statWeights`) 하나 +1. 출전 · 후원 · 쉬는 판 어디서 오른 레벨이든 같음.
+ * 결성 (Lv 15)부터 Lv 100까지 보통 학습력이면 약 8칸 (학습력 20이면 11칸): 능력치 한 칸이 판 전체에 크게 들어서 (모두 +1이면 악몽 +11%p) 다 키운 길드가 93 7-3 목표 (어려움 90 · 악몽 85 안팎)에 맞게
+ */
+export const statPerLevel = (learn: number) => lerp3(learn, 0.07, 0.1, 0.13);
 /** 능력치 상한 = 12 + 그 사람 레벨 ÷ 12 (Lv 24 = 14 · Lv 96 = 20). 처음부터 높게 태어난 칸은 그대로 */
 export const statCap = (lv: number) => Math.min(20, 12 + Math.floor(lv / 12));
+/**
+ * 잠재력: 칸마다 타고난 값에서 최대 +N (학습력 1 · 10 · 20 → POT). 다 키운 길드가 약한 칸을 모두 메우면 악몽이 96%라 (93 7-3 목표 85%) 이 한도로 맞춤.
+ * 타고난 값 = 1000명 줄의 그 사람 능력치 (스토리 동료는 고정 능력치를 덧씀)
+ */
+export const POT: number[] = [2, 4, 6];
+export const statPot = (learn: number) => Math.round(lerp3(learn, POT[0], POT[1], POT[2]));
+/** 이 칸이 더 오를 수 있는 끝 = min(상한, 타고난 값 + 잠재력), 처음부터 그보다 높으면 그대로 */
+export const statTop = (birth: number, lv: number, learn: number) => Math.max(birth, Math.min(statCap(lv), birth + statPot(learn)));
 
 /**
- * 오를 칸 고르기 무게 (97 「그 판에서 한 일」): 역할 핵심 넷 2 · 나머지 1, 최근 표 1장에 +1.5, 그 사람 평균보다 이미 높은 칸은 반, 20에 가까울수록 덜, 상한이면 0
+ * 오를 칸 고르기 무게 (97 「그 판에서 한 일」): 역할 핵심 넷 2 · 나머지 1, 최근 표 1장에 +1.5, 그 사람 평균보다 이미 높은 칸은 반, 20에 가까울수록 덜, 끝 (상한 · 잠재력)이면 0
  */
-export function statWeights(m: Pick<GuildMember, 'stats' | 'votes' | 'lv'>, role: 'tank' | 'melee' | 'ranged'): Record<StatKey, number> {
-  const cap = statCap(m.lv), avg = STAT_KEYS.reduce((a, k) => a + m.stats[k], 0) / STAT_KEYS.length;
+export function statWeights(m: Pick<GuildMember, 'stats' | 'votes' | 'lv' | 'learn'>, role: 'tank' | 'melee' | 'ranged', birth: Stats): Record<StatKey, number> {
+  const avg = STAT_KEYS.reduce((a, k) => a + m.stats[k], 0) / STAT_KEYS.length;
   const out = {} as Record<StatKey, number>;
   for (const k of STAT_KEYS) {
     const v = m.stats[k];
-    if (v >= cap || v >= 20) { out[k] = 0; continue; }
+    if (v >= statTop(birth[k], m.lv, m.learn) || v >= 20) { out[k] = 0; continue; }
     let w = ROLE_CORE[role].includes(k) ? 2 : 1;
     for (const vote of m.votes) if (vote.includes(k)) w += 1.5;
     if (v > avg) w *= 0.5;
@@ -134,6 +145,15 @@ export function deedOf(x: { did: { dodge: number; move: number; cut: number; bus
   const best = sc.reduce((a, b) => (b[1] > a[1] ? b : a));
   return best[1] >= 0.5 ? best[0] : undefined;
 }
+
+// ---------- 공략 숙지 (93 5-4 · 97 「학습력 = 숙지 속도」) ----------
+/**
+ * 그 전투를 함께 이긴 만큼 점수 (학습력 1 → 0.7 · 10 → 1 · 20 → 1.4), 0.5 · 3 · 6점에서 1 · 2 · 3단계 (보통 학습력이면 1 · 3 · 6번).
+ * 그 전투에서만: 반응 시간 × · 회피 + · 받는 피해 × (언제 맞고 언제 비킬지 앎). 공개모집은 없음. 크기는 길드 밸런스 (93 7-3)로 맞춤
+ */
+export const KNOW = { at: [0.5, 3, 6], react: [1, 0.95, 0.9, 0.8], dodge: [0, 0.01, 0.03, 0.05], taken: [1, 0.99, 0.987, 0.985] };
+export const knowGain = (learn: number) => lerp3(learn, 0.7, 1, 1.4);
+export const knowStage = (pt: number) => KNOW.at.filter(x => pt + 1e-9 >= x).length;
 
 /** 버릇 = 침착 · 판단 (97 · 93 13-1): 두 칸 평균 1 → 단점 ×1.2 · 10 → ×1 · 20 → ×1/3 (길드원만, 공개모집은 그대로) */
 export const habitOf = (st: Stats) => lerp3((st.composure + st.judgment) / 2, 1.2, 1, 1 / 3);

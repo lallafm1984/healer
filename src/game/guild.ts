@@ -7,10 +7,10 @@ import { ABILITIES, AB_ODDS, rollAbility } from '../data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
-import { dayOffset, memberLevel, profileOf, STAT_KEYS, type StatKey } from '../data/fm';
+import { dayOffset, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
   APP_DAYS, appsPerDay, BOND_JOIN, bondLv, DEED_STATS, DEED_WHY, FAME, FRIEND_LV, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POSTS, REST_SHARE, rerollGold,
-  starOfBond, STORY, statNeed, statWeights, SXP, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type PostKind, type StoryKey,
+  knowGain, knowStage, starOfBond, STORY, statPerLevel, statWeights, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type PostKind, type StoryKey,
 } from '../data/guild';
 import { PARTY_POOL, STORY_NICKS, type PoolMember } from '../data/nicknames';
 import { PERS } from '../data/personalities';
@@ -53,7 +53,7 @@ const isAway = (save: SaveData, nick: string) => save.guild.away.some(m => m.nic
 export function newMember(save: SaveData, p: Pick<Person, 'nick' | 'cls' | 'pers' | 'ab'>, lv: number, story?: StoryKey): GuildMember {
   const prof = profileOf(p.nick, p.pers);
   const stats = { ...prof.stats, ...(story ? STORY[story].boost : {}) };
-  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: Math.max(1, Math.min(topLevel(save), lv)), xp: 0, stats, learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], runs: 0, joined: Date.now(), ...(story ? { story } : {}) };
+  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: Math.max(1, Math.min(topLevel(save), lv)), xp: 0, stats, learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], know: {}, runs: 0, joined: Date.now(), ...(story ? { story } : {}) };
 }
 /** 그 사람의 지금 레벨 (공개모집과 같은 세상 레벨: 내 Lv × 빠르기) */
 export const worldLevel = (save: SaveData, p: Pick<Person, 'fm'>) => memberLevel(p.fm.speed, topLevel(save));
@@ -211,11 +211,14 @@ export function release(save: SaveData, id: number): boolean {
 }
 
 // ---------- 길드파티 편성 ----------
+/** 공략 숙지 단계 (전투 키 → 1~3, 0은 뺌) */
+export const knowStages = (m: Pick<GuildMember, 'know'>): Record<string, number> =>
+  Object.fromEntries(Object.entries(m.know).map(([k, p]) => [k, knowStage(p)] as const).filter(([, s]) => s > 0));
 /** 전투에 넘기는 길드원: 자기 레벨 · 능력치 (그날 꾸준함 흔들림) · 인연 ★ · 버릇 (침착 · 판단) */
 export function memberEntry(save: SaveData, m: GuildMember, seed = 1): RosterEntry {
   return {
     role: CLASSES[m.cls].role, pers: m.pers, nick: m.nick, cls: m.cls, ab: m.ab, star: starOfBond(bondOf(save, m.nick)), lv: m.lv, pub: true,
-    fm: { stats: { ...m.stats }, off: dayOffset(m.steady, seed, m.nick) }, habit: habitOf(m.stats), gid: m.id, bond: bondPt(save, m.nick),
+    fm: { stats: { ...m.stats }, off: dayOffset(m.steady, seed, m.nick) }, habit: habitOf(m.stats), gid: m.id, bond: bondPt(save, m.nick), know: knowStages(m),
   };
 }
 
@@ -274,8 +277,8 @@ export const guildNicks = (save: SaveData): Set<string> => new Set(save.guild.me
 /** 길드파티 = 파티원 자리 절반 이상이 길드원 (명성 · 첫 처치 · 주간 목표 · 일일 임무 「길드파티로 클리어」 모두 이 기준) */
 export const isGuildParty = (roster: readonly RosterEntry[]) => roster.some(e => e.gid != null) && roster.filter(e => e.gid != null).length * 2 >= roster.length;
 export interface GuildAfter {
-  /** 출전한 길드원: 레벨 경험치 · 레벨 업 · 오른 능력치 (왜) */
-  members: { nick: string; xp: number; ups: number[]; stats: { k: StatKey; to: number; why: string }[] }[];
+  /** 출전한 길드원: 레벨 경험치 · 레벨 업 · 오른 능력치 (왜) · 오른 보스 공략 숙지 단계 */
+  members: { nick: string; xp: number; ups: number[]; stats: { k: StatKey; to: number; why: string }[]; know?: { enc: string; stage: number } }[];
   /** 쉬는 명단이 받은 경험치 합 */
   rest: number;
   fame: number;
@@ -299,19 +302,25 @@ export function memberXp(m: Pick<GuildMember, 'lv'>, o: { stage: number; diff: D
   return Math.round(base * (gap > 0 ? lowStageXp(gap) : 1));
 }
 
-/** 능력치 경험을 더하고, 차는 만큼 한 칸씩 +1 (오를 칸 = 역할 핵심 · 최근 「한 일」 표 무게, 97) */
-export function growStats(m: GuildMember, add: number, deed: Deed | undefined, r: () => number): { k: StatKey; to: number; why: string }[] {
+/** 타고난 능력치 (1000명 줄의 그 사람, 스토리 동료는 고정 능력치를 덧씀): 잠재력의 바탕 */
+export const birthStats = (m: Pick<GuildMember, 'nick' | 'pers' | 'story'>): Stats => ({ ...profileOf(m.nick, m.pers).stats, ...(m.story ? STORY[m.story].boost : {}) });
+/** 모아 두는 점수 (오를 칸이 없을 때, 레벨 상한이 오르면 씀) */
+const SXP_BANK = 3;
+
+/**
+ * 능력치는 레벨업할 때 (Lim 10-18): 오른 레벨마다 학습력만큼 점수, 1점마다 오를 칸 하나 +1 (역할 핵심 · 최근 「한 일」 표 무게, 97).
+ * deed = 출전한 판에서 한 일 (쉬는 판은 표 없음). 끝 (상한 · 잠재력)에 닿은 칸은 안 오르고, 오를 칸이 없으면 점수를 3점까지 모아 둠
+ */
+export function growStats(m: GuildMember, levels: number, deed: Deed | undefined, r: () => number): { k: StatKey; to: number; why: string }[] {
   if (deed) m.votes = [...m.votes, DEED_STATS[deed]].slice(-VOTE_KEEP);
-  m.sxp += add;
-  const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', out: { k: StatKey; to: number; why: string }[] = [];
-  for (let guard = 0; guard < 20; guard++) {
-    const w = statWeights(m, role), tot = STAT_KEYS.reduce((a, k) => a + w[k], 0);
-    if (tot <= 0) { m.sxp = Math.min(m.sxp, 10); break; } // 모두 상한: 경험은 조금만 모아 둠 (레벨이 오르면 상한이 열림)
+  m.sxp = Math.round((m.sxp + levels * statPerLevel(m.learn)) * 1000) / 1000;
+  const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', birth = birthStats(m), out: { k: StatKey; to: number; why: string }[] = [];
+  while (m.sxp + 1e-9 >= 1) {
+    const w = statWeights(m, role, birth), tot = STAT_KEYS.reduce((a, k) => a + w[k], 0);
+    if (tot <= 0) { m.sxp = Math.min(m.sxp, SXP_BANK); break; }
     let x = r() * tot, k: StatKey = STAT_KEYS[0];
     for (const s of STAT_KEYS) { x -= w[s]; if (x <= 0) { k = s; break; } }
-    const need = statNeed(m.stats[k], m.learn);
-    if (m.sxp + 1e-9 < need) break;
-    m.sxp -= need; m.stats[k]++;
+    m.sxp = Math.round((m.sxp - 1) * 1000) / 1000; m.stats[k]++;
     out.push({ k, to: m.stats[k], why: deed && DEED_STATS[deed].includes(k) ? DEED_WHY[deed] : '' });
   }
   return out;
@@ -319,11 +328,11 @@ export function growStats(m: GuildMember, add: number, deed: Deed | undefined, r
 
 /**
  * 판 뒤 길드 정산 (93 6-1 · 97). party = 전투가 끝날 때 파티원 (deed = 그 판에서 가장 두드러진 일), roster = 전투에 넘긴 편성, kind = 콘텐츠 종류.
- * 이긴 판만: 출전한 길드원 레벨 경험치 · 능력치 경험, 쉬는 명단 레벨 경험치 30%, 길드파티 (자리 절반 이상이 길드원)면 명성 · 길드 첫 처치 · 주간 목표 출전 기록
+ * 이긴 판만: 출전한 길드원 레벨 경험치 (레벨업하면 능력치) · 공략 숙지, 쉬는 명단 레벨 경험치 30%, 길드파티 (자리 절반 이상이 길드원)면 명성 · 길드 첫 처치 · 주간 목표 출전 기록
  */
 export function guildAfter(
   save: SaveData, r: () => number,
-  o: { win: boolean; quit: boolean; grade: Grade | null; diff: DiffName; stage: number; raid: 0 | 10 | 20; content: string; kind: string; party: { nick: string; deed?: Deed }[]; roster: RosterEntry[] },
+  o: { win: boolean; quit: boolean; grade: Grade | null; diff: DiffName; stage: number; raid: 0 | 10 | 20; content: string; kind: string; party: { nick: string; deed?: Deed }[]; roster: RosterEntry[]; encs?: readonly string[] },
 ): GuildAfter {
   const g = save.guild, out: GuildAfter = { members: [], rest: 0, fame: 0, first: false };
   if (o.quit || !o.win) return out;
@@ -338,10 +347,18 @@ export function guildAfter(
     m.runs++;
     const xp = memberXp(m, o);
     const ups = addMemberXp(m, xp, cap);
-    const stats = growStats(m, SXP[o.diff] + (first ? SXP.first : 0), o.party.find(p => p.nick === m.nick)?.deed, r);
-    out.members.push({ nick: m.nick, xp, ups, stats });
+    const stats = growStats(m, ups.length, o.party.find(p => p.nick === m.nick)?.deed, r);
+    // 공략 숙지 (93 5-4): 이긴 판의 전투마다 학습력만큼, 보스 (마지막 전투) 단계가 오르면 결과 줄
+    const boss = o.encs?.[o.encs.length - 1], kb = boss ? knowStage(m.know[boss] ?? 0) : 0;
+    for (const k of new Set(o.encs ?? [])) m.know[k] = Math.round(((m.know[k] ?? 0) + knowGain(m.learn)) * 100) / 100;
+    const ka = boss ? knowStage(m.know[boss]) : 0;
+    out.members.push({ nick: m.nick, xp, ups, stats, ...(boss && ka > kb ? { know: { enc: boss, stage: ka } } : {}) });
   }
-  for (const m of g.members) if (!went.has(m.id)) { const xp = Math.round(memberXp(m, o) * REST_SHARE); addMemberXp(m, xp, cap); out.rest += xp; }
+  for (const m of g.members) if (!went.has(m.id)) {
+    const xp = Math.round(memberXp(m, o) * REST_SHARE), ups = addMemberXp(m, xp, cap);
+    out.rest += xp;
+    if (ups.length) growStats(m, ups.length, undefined, r); // 쉬는 판에 오른 레벨도 능력치
+  }
   if (guildParty) {
     g.wins++;
     out.fame = o.raid === 20 ? FAME.raid20 : o.raid === 10 ? FAME.raid10 : FAME.win;
