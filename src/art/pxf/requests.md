@@ -87,11 +87,11 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | monk-wrap | 몸을 비스듬히 감아 도는 안개 리본 (Codex 안개 고리) | monk-mist | 옆으로 흘러가는 안개 뭉치 셋 (Codex 안개 구름) |
 | monk-breath | 가운데에서 양옆으로 훅 퍼지는 안개 숨 | monk-clear | 위에서 아래로 쓸어내리는 세로 기 줄 셋 (Codex 붓 획) |
 | monk-soothe | 점점 납작해지는 가로 물결선 (Codex 물결 획, 머리 위 · 발밑) | monk-wind | 비스듬히 쓸어 올리며 끝이 말리는 바람 선과 꽃잎 (Codex 붓 바람 · 꽃잎) |
-| monk-tea | 김이 오르는 찻잔 (Codex 비취 찻잔) | astro-star | 머리 위에서 도는 오각 별과 떨어지는 빛 방울 |
-| astro-twinkle | 삼각형으로 차례로 깜빡이는 작은 별 셋 | astro-mark | 머리 위에 점 셋이 선으로 이어지는 작은 별자리 |
-| astro-clear | 위아래에서 가운데로 모였다 터지는 별가루 | astro-fall | 비스듬히 떨어져 바닥에서 튀는 작은 별 셋 |
-| astro-sleep | 세로로 긴 별빛 고치와 위에 뜬 초승달 | astro-memory | 한 바퀴 도는 시계 바늘 (끝에 별) |
-| astro-polaris | 위에서 내려와 커졌다가 작은 별들로 터지는 큰 네 갈래 별 | warder-seal | 머리 위에 엇갈려 그어지는 X자 인장 |
+| monk-tea | 김이 오르는 찻잔 (Codex 비취 찻잔) | astro-star | 머리 위에서 도는 오각 별과 떨어지는 빛 방울 (Codex 오각 별) |
+| astro-twinkle | 삼각형으로 차례로 깜빡이는 작은 별 셋 (Codex 네 갈래 별) | astro-mark | 머리 위에 점 셋이 선으로 이어지는 작은 별자리 (Codex 네 갈래 별) |
+| astro-clear | 위아래에서 가운데로 모였다 터지는 별가루 (Codex 여섯 갈래 별) | astro-fall | 비스듬히 떨어져 바닥에서 튀는 작은 별 셋 (Codex 꼬리별) |
+| astro-sleep | 세로로 긴 별빛 고치와 위에 뜬 초승달 (Codex 고치 · 초승달) | astro-memory | 한 바퀴 도는 시계 바늘 (끝에 별) (Codex 금빛 바늘) |
+| astro-polaris | 위에서 내려와 커졌다가 작은 별들로 터지는 큰 네 갈래 별 (Codex 북극성) | warder-seal | 머리 위에 엇갈려 그어지는 X자 인장 |
 |  |  | warder-barrier | 몸 앞을 둥글게 감싸는 얇은 빛 막과 흐르는 물결 결 |
 | warder-cleanse | 깨져 사방으로 흩어지는 유리 조각 | warder-circle | 빛 점이 발밑에 그려 닫는 원 문양과 여섯 꽃잎 호 |
 | warder-guard | 가로 · 세로 빛 띠로 그려지는 지구본 같은 둥근 결계 | warder-veil | 발밑에서 솟아오르는 주름진 빛 장막 |
