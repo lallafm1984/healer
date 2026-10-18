@@ -62,7 +62,7 @@ function startBattle(guideSec = 0): void {
   // 전투 시작 카운트다운 3초 (19 4장 6번). 자동 힐러 구경은 바로 시작
   ui.pullLeft = S.auto ? 0 : 3; ui.pullShown = null;
   $('pull').hidden = !(ui.pullLeft > 0);
-  talk.start(F, { seg: R.idx, segN: R.segs.length, cont: R.cont || 0, affix: !!S.affixes?.length, chal: !!S.chal }, performance.now());
+  talk.start(F, { seg: R.idx, segN: R.segs.length, cont: R.cont || 0, affix: !!S.affixes?.length, chal: !!S.chal, guildFirst: S.guildFirst }, performance.now());
   B.armed = null; B.paused = false; B.overShown = false; B.beacon = false; B.coreCell = false;
   Object.assign(ui, {
     guideSec, skillTips: 0, lowFlags: {}, tickSec: null, busterHint: false, swipes: {}, swipeCancel: 0, swipeEmpty: 0,
@@ -864,7 +864,7 @@ function frame(now: number): void {
     S.hero = o.hero && HERO_KEYS.includes(o.hero) ? o.hero : 'priest';
     S.talents = Array.isArray(o.talents) ? o.talents.slice() : undefined;
     S.specs = o.specs && Object.keys(o.specs).length ? { ...o.specs } : undefined;
-    S.affixes = o.affixes?.length ? o.affixes.slice() : undefined; S.bossMult = o.bossMult; S.limit = o.limit; S.chal = o.chal || 0;
+    S.affixes = o.affixes?.length ? o.affixes.slice() : undefined; S.bossMult = o.bossMult; S.limit = o.limit; S.chal = o.chal || 0; S.guildFirst = !!o.guildFirst;
     applyLayout();
     resetRun();
     Snd.init();

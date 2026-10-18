@@ -105,6 +105,8 @@ export interface StartOptions {
   limit?: number;
   /** 주간 도전 단계 (결과에 그대로) */
   chal?: number;
+  /** 길드파티가 이 장소 · 난이도를 처음 깨는 판 (93 길드 첫 킬 대사) */
+  guildFirst?: boolean;
 }
 
 export interface Run {
@@ -122,7 +124,7 @@ export const S = {
   diff: '보통', gearStats: null as GearStats | null, level: 100, heroLv: undefined as number | undefined, stageLv: undefined as number | undefined,
   party: null as RosterEntry[] | null,
   sound: true, vibe: true, auto: false, tapKey: 'heal' as string, hand: 'right', zoom: true, compactSkills: true, reducedEffects: false, hero: 'priest' as HeroKey, talents: undefined as (number | null)[] | undefined, specs: undefined as Record<string, number> | undefined,
-  affixes: undefined as AffixKey[] | undefined, bossMult: undefined as { hp: number; dmg: number } | undefined, limit: undefined as number | undefined, chal: 0,
+  affixes: undefined as AffixKey[] | undefined, bossMult: undefined as { hp: number; dmg: number } | undefined, limit: undefined as number | undefined, chal: 0, guildFirst: false,
   layout: { ...DEFAULT_LAYOUT } as Layout,
   run: null as Run | null, onEnd: null as ((r: BattleResult) => void) | null, coach: null as CoachKey | null,
   onSetting: null as ((key: string, val: unknown) => void) | null,

@@ -208,7 +208,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const bond = play ? recordBond(save, r, grade === 'S') : [];
   // 길드 v2 (93 · 97): 결성 (Lv 15 · 튜토리얼 뒤 첫 판), 판 뒤 길드원 경험치 · 능력치 · 명성 · 첫 처치
   const founded = FEATURES.guild && play ? foundGuild(save) : null;
-  const guild = FEATURES.guild && play && roster.some(e => e.gid != null) ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.key, kind: c.kind, party: r.party, roster, encs: c.fights(r.diff) }) : null;
+  const guild = FEATURES.guild && play && roster.some(e => e.gid != null) ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.key, kind: c.kind, party: r.party, roster, encs: c.fights(r.diff), time: r.time }) : null;
 
   // 주간 도전: 제한시간 안에 깨면 기록·다음 단계 (실패해도 단계 유지)
   let chal: Settlement['chal'] = null;

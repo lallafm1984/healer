@@ -122,12 +122,14 @@ export interface GuildSave {
   fame: number;
   wins: number;
   firsts: string[];
+  /** 기록판 (93 9-3): 길드 첫 처치마다 장소|난이도 · 날짜 · 걸린 초 · 함께한 길드원 (최근 200) */
+  firstLog: { key: string; day: string; sec: number; nicks: string[] }[];
   nextId: number;
   /** 규모마다 지난 편성 (탐험 3 · 5인 · 10 · 20인, 길드원 id) */
   picks: Partial<Record<'3' | '5' | '10' | '20', number[]>>;
 }
 
-export const newGuild = (): GuildSave => ({ name: GUILD_NAME, founded: false, storySeen: false, members: [], away: [], post: null, apps: [], appsDay: '', fame: 0, wins: 0, firsts: [], nextId: 1, picks: {} });
+export const newGuild = (): GuildSave => ({ name: GUILD_NAME, founded: false, storySeen: false, members: [], away: [], post: null, apps: [], appsDay: '', fame: 0, wins: 0, firsts: [], firstLog: [], nextId: 1, picks: {} });
 
 /** 임무 하나: 진행 · 보상 받음 */
 export interface MissionSave { key: string; n: number; got: boolean }
@@ -247,7 +249,7 @@ export interface SaveData {
 }
 
 /** 인연 한 사람 (v18) */
-export interface BondRec { pt: number; met: number; wins: number; saved: number; mvp: number }
+export interface BondRec { pt: number; met: number; wins: number; saved: number; mvp: number; /** 처음 만난 판 (날짜 · 콘텐츠 키, 기록 카드) */ first?: { day: string; at: string } }
 
 export const newDaily = (day = ''): DailySave => ({ day, missions: [], swapped: false, chest: false, banked: 0, pub: 0, ads: { cont: 0, chest: 0, reroll: 0 }, chest2: false });
 export const newWeekly = (week = ''): WeeklySave => ({ week, missions: [], merit: { 10: 0, 20: 0 }, loot: [], chalBest: 0, guild: { n: 0, got: false } });
@@ -292,7 +294,7 @@ function usersOf(v: unknown): Record<string, BondRec> {
   for (const [k, r] of Object.entries(v as Record<string, unknown>)) {
     if (!k || !r || typeof r !== 'object') continue;
     const o = r as Partial<BondRec>;
-    out[k] = { pt: n(o.pt), met: n(o.met), wins: n(o.wins), saved: n(o.saved), mvp: n(o.mvp) };
+    out[k] = { pt: n(o.pt), met: n(o.met), wins: n(o.wins), saved: n(o.saved), mvp: n(o.mvp), ...(o.first && typeof o.first.day === 'string' && typeof o.first.at === 'string' ? { first: { day: o.first.day, at: o.first.at } } : {}) };
   }
   return out;
 }
@@ -667,6 +669,7 @@ function guildOf(v: unknown, users: Record<string, BondRec>, ver: number): Guild
     apps: Array.isArray(g.apps) ? g.apps.flatMap(a => { const m = a && typeof a === 'object' ? memberOf((a as { m?: unknown }).m) : null; return m ? [{ m, until: String((a as { until?: unknown }).until ?? '') }] : []; }) : [],
     appsDay: typeof g.appsDay === 'string' ? g.appsDay : '',
     fame: num(g.fame), wins: num(g.wins), firsts: Array.isArray(g.firsts) ? g.firsts.filter((x): x is string => typeof x === 'string') : [],
+    firstLog: Array.isArray(g.firstLog) ? g.firstLog.flatMap(x => (x && typeof x === 'object' && typeof x.key === 'string' ? [{ key: x.key, day: String(x.day ?? ''), sec: num(x.sec), nicks: Array.isArray(x.nicks) ? x.nicks.filter((y): y is string => typeof y === 'string').slice(0, 25) : [] }] : [])).slice(-200) : [],
     nextId: num(g.nextId, 1),
     picks: g.picks && typeof g.picks === 'object' ? Object.fromEntries(Object.entries(g.picks).filter(([k, v]) => ['3', '5', '10', '20'].includes(k) && Array.isArray(v)).map(([k, v]) => [k, (v as unknown[]).filter((x): x is number => typeof x === 'number')])) : {},
   };

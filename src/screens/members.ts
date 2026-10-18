@@ -5,6 +5,7 @@ import { bondName } from '../data/guild';
 import { CATS, PERS, type PersName } from '../data/personalities';
 import { abilityStars, ROLE_CORE, seedOf, STAT_GROUPS, STAT_NAMES, starText, type Stats } from '../data/fm';
 import { classGlyphSvg } from './class-icons';
+import { gameIcon } from './art';
 import { esc, ROLE } from './kit';
 
 /** 능력 한 줄: 종류 아이콘 + 이름 + ★ + 등급 + 효과 (+ 쓰는 때) */
@@ -35,7 +36,8 @@ export function bondHtml(lv: number, member = false): string {
   if (lv <= 0) return '';
   const cls = lv >= 12 ? 'gold' : lv >= 2 ? 'red' : 'line';
   const name = lv >= 12 || member ? bondName(lv) : lv >= 2 ? '친구' : '아는 사이'; // 길드 밖 사람은 인연 Lv가 높아도 「친구」
-  return `<span class="bond ${cls}" role="img" aria-label="인연 ${name}${lv >= 3 ? ` Lv ${lv}` : ''}">${lv >= 2 ? '♥' : '♡'}${lv >= 3 ? `<small>${lv}</small>` : ''}</span>`;
+  const icon = gameIcon(lv >= 12 ? 'bond-3' : lv >= 2 ? 'bond-2' : 'bond-1', lv >= 2 ? '♥' : '♡'); // 그림 (93 11장), 없으면 글자 하트
+  return `<span class="bond ${cls}" role="img" aria-label="인연 ${name}${lv >= 3 ? ` Lv ${lv}` : ''}">${icon}${lv >= 3 ? `<small>${lv}</small>` : ''}</span>`;
 }
 
 export interface CardData {

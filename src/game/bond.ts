@@ -4,6 +4,7 @@
  * 점수 규칙 · 역할 차이 보정은 data/bond.ts
  */
 import { bondPoints, type BondUnit } from '../data/bond';
+import { dayKey } from './clock';
 import { bondLv } from '../data/guild';
 import type { BattleResult } from './settle';
 import type { BondRec, SaveData } from '../platform/storage';
@@ -18,7 +19,11 @@ export const newBondRec = (): BondRec => ({ pt: 0, met: 0, wins: 0, saved: 0, mv
 export function recordBond(save: SaveData, r: BattleResult, s: boolean): BondGain[] {
   const party = r.party.filter(p => p.role === 'tank' || p.role === 'melee' || p.role === 'ranged');
   if (!party.length) return [];
-  for (const p of party) (save.users[p.nick] ??= newBondRec()).met++;
+  for (const p of party) {
+    const rec = (save.users[p.nick] ??= newBondRec());
+    if (!rec.met && !rec.first) rec.first = { day: dayKey(), at: r.content }; // 기록 카드 「함께한 첫 판」 (93 9-3)
+    rec.met++;
+  }
   if (!r.win || r.quit) return [];
   const units: BondUnit[] = party.map(p => ({ nick: p.nick, role: p.role as BondUnit['role'], alive: p.alive, got: p.got ?? 0, low: p.low ?? 1, rescued: !!p.rescued }));
   const { pts, helped, saved } = bondPoints(units, party.length + 1, s);

@@ -16,6 +16,8 @@ import type { BossSkill, Fight } from '../src/engine';
 
 /** 96 어그로 상황: 어그로와 이어진 성격 29종만 자기 대사 (나머지는 역할 · 공통) */
 const AGGRO96: TalkSit[] = ['aggroSteal', 'aggroEase', 'aggroWarn', 'aggroRegain', 'aggroHealer', 'aggroLevel'];
+/** 93 길드 상황: 성격마다 3줄 (버릇 참음은 단점이 있는 성격만), 「길드」 글자는 이 상황에서만 */
+const GUILD93: TalkSit[] = ['guildMeet', 'guildGo', 'guildSaved', 'guildKnow', 'guildTame', 'guildFirst', 'guildBuddy'];
 const ALLY_SITS: TalkSit[] = ['allyDown', 'tankDown', 'allyRevived', 'swallowedOther', 'jailOther', 'charmOther', 'aggroWarn'];
 const sources: [string, TalkLines][] = [
   ...Object.entries(PERS_LINES).map(([k, v]) => [`성격 ${k}`, v] as [string, TalkLines]),
@@ -26,14 +28,14 @@ const sources: [string, TalkLines][] = [
 const visLen = (t: string) => [...t.replace(/\{(ally|tank|boss)\}/g, '12345')].length;
 
 describe('대사 데이터 규칙', () => {
-  it('앱 문장 규칙: 「요」로 끝나지 않고, 짧고, 이모지·종·길드 없음', () => {
+  it('앱 문장 규칙: 「요」로 끝나지 않고, 짧고, 이모지·종 없음, 「길드」는 길드 상황에서만', () => {
     const bad: string[] = [];
     for (const [name, lines] of sources) for (const [sit, arr] of Object.entries(lines)) for (const t of arr!) {
       if (/요[\s!?.~…ㅠㅜㅋㅎ^]*$/.test(t)) bad.push(`${name}.${sit} 요: ${t}`);
       if (visLen(t) > 18) bad.push(`${name}.${sit} 길이: ${t}`);
       if (/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(t)) bad.push(`${name}.${sit} 이모지: ${t}`);
       if (/종탑|종소리|종지기|종루|종 조각/.test(t)) bad.push(`${name}.${sit} 종: ${t}`);
-      if (/길드/.test(t)) bad.push(`${name}.${sit} 길드: ${t}`);
+      if (/길드/.test(t) && !GUILD93.includes(sit as TalkSit)) bad.push(`${name}.${sit} 길드: ${t}`);
       for (const m of t.matchAll(/\{[^}]*\}/g)) if (!['{ally}', '{tank}', '{boss}'].includes(m[0])) bad.push(`${name}.${sit} 자리표시: ${t}`);
       if (t.includes('{ally}') && !ALLY_SITS.includes(sit as TalkSit)) bad.push(`${name}.${sit} {ally}: ${t}`);
       if (!t.trim()) bad.push(`${name}.${sit} 빈 대사`);
@@ -48,6 +50,7 @@ describe('대사 데이터 규칙', () => {
         const only = (SITS[sit] as { pers?: readonly string[] }).pers;
         if (only && !only.includes(p)) expect(lines[sit], `${p}.${sit}`).toBeUndefined();
         else if (AGGRO96.includes(sit)) { if (lines[sit]) expect(lines[sit]!.length, `${p}.${sit}`).toBeGreaterThanOrEqual(5); }
+        else if (GUILD93.includes(sit)) expect(lines[sit]?.length ?? 0, `${p}.${sit}`).toBeGreaterThanOrEqual(3);
         else if (only || !fresh) expect(lines[sit]?.length ?? 0, `${p}.${sit}`).toBeGreaterThanOrEqual(fresh ? 8 : 2);
         else if (lines[sit]) expect(lines[sit]!.length, `${p}.${sit}`).toBeGreaterThanOrEqual(2);
       }
@@ -366,5 +369,51 @@ describe('전투 중 말풍선', () => {
       f.events.length = 0;
     }
     expect(n).toBeGreaterThan(0);
+  });
+});
+
+describe('길드 대사 (93 9-2)', () => {
+  /** 카운트다운 3초 동안 나온 첫 말 (난수 0 = 확률 통과) */
+  const opening = (mod: (p: ReturnType<typeof E.recruitParty>) => void, o: { guildFirst?: boolean } = {}) => {
+    const party = E.recruitParty('warden', 3, { abilities: true });
+    mod(party);
+    const f = E.create({ encounter: 'warden', diff: '보통', seed: 3, party });
+    const talk = createTalk(() => 0);
+    talk.start(f, { seg: 0, segN: 1, cont: 0, affix: false, chal: false, ...o }, 0);
+    const out: TalkBubble[] = [];
+    for (let k = 0; k < 60; k++) out.push(...talk.frame(f, k * 50, { pulling: true, paused: false }));
+    return { f, talk, out };
+  };
+  it('판 시작: 길드파티 = 원정대 출발 (길드원), 단짝이 있으면 단짝, 공개모집의 친구 = 아는 얼굴, 아무도 없으면 인사', () => {
+    const go = opening(p => { p[0].gid = 1; p[1].gid = 2; p[0].bond = 8; p[1].bond = 8; });
+    expect(go.out[0].sit).toBe('guildGo');
+    expect(go.f.party.find(u => u.id === go.out[0].id)!.gid).not.toBeUndefined();
+    const buddy = opening(p => { p[0].gid = 1; p[1].gid = 2; p[1].bond = 330; });
+    expect(buddy.out[0].sit).toBe('guildBuddy');
+    expect(buddy.f.party.find(u => u.id === buddy.out[0].id)!.bond).toBe(330);
+    const meet = opening(p => { p[2].bond = 4; });
+    expect(meet.out[0].sit).toBe('guildMeet');
+    expect(meet.f.party.find(u => u.id === meet.out[0].id)!.bond).toBe(4);
+    expect(opening(() => {}).out[0].sit).toBe('hello');
+  });
+  it('길드 첫 킬: 마지막 구간을 이긴 길드 첫 처치 판이면 길드원이 「길드 첫 킬」', () => {
+    const { f, talk } = opening(p => { p[0].gid = 1; p[1].gid = 2; }, { guildFirst: true });
+    talk.frame(f, 4000, { pulling: false, paused: false }); // 카운트다운 끝 「가자」
+    f.events.push({ type: 'over', result: 'win' } as never);
+    const end = talk.frame(f, 9000, { pulling: false, paused: false });
+    expect(end[0].sit).toBe('guildFirst');
+    expect(f.party.find(u => u.id === end[0].id)!.gid).not.toBeUndefined();
+  });
+  it('외운 패턴: 숙지 3단계 길드원이 새 예고를 보면 한 번', () => {
+    const party = E.recruitParty('warden', 3, { abilities: true });
+    party[0] = { ...party[0], gid: 1, know: { warden: 3 } };
+    const f = E.create({ encounter: 'warden', diff: '보통', seed: 3, party });
+    const talk = createTalk(() => 0);
+    talk.start(f, { seg: 0, segN: 1, cont: 0, affix: false, chal: false }, 0);
+    for (let k = 0; k < 60; k++) talk.frame(f, k * 50, { pulling: true, paused: false });
+    const sits: string[] = [];
+    while (!f.over && f.t < 60) { E.autoHealer(f); E.step(f); for (const b of talk.frame(f, 3000 + f.t * 1000, { pulling: false, paused: false })) sits.push(b.sit ?? ''); f.events.length = 0; }
+    expect(sits.filter(s => s === 'guildKnow').length).toBeLessThanOrEqual(1);
+    expect(f.party.find(u => u.gid === 1)!.know).toBe(3);
   });
 });

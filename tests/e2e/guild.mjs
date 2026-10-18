@@ -7,7 +7,7 @@ import { departGo, killEnemies, pastTitle, toParty } from './nav.mjs';
 
 const RANGED = ['mage', 'archer', 'hunter'];
 /** 1000명 줄 (src/data/nicknames.ts)의 사람: 딜러 넷 · 탱커 하나 (결성 · 친구 초대) */
-const USERS = { 불꽃남자: 9, 메테오: 7, 회피의신: 6, 컨트롤장인: 5, 독수리눈: 4, 방패든양: 20 };
+const USERS = { 불꽃남자: 9, 메테오: 7, 회피의신: 6, 컨트롤장인: 5, 독수리눈: 4, 방패든양: 20, 감자도적: 1 };
 
 export default async function guild(url, shots) {
   const browser = await chromium.launch();
@@ -158,6 +158,26 @@ export default async function guild(url, shots) {
   ok(sv.guild.members.find(m => m.nick === '불꽃남자').boost === 5, '출전한 판은 후원 판을 안 씀');
   ok(sv.guild.fame === 4 && sv.guild.firsts.length === 1 && sv.guild.members.filter(m => m.runs === 1).length === 4 && sv.weekly.guild.n === 1, `저장: 명성 4 · 첫 처치 1 · 출전 1번 ×4 · 주간 목표 1 (${sv.guild.fame})`);
   await page.screenshot({ path: `${shots}/guild_reward.png` });
+
+  // ---- 기록판 · 명부 (93 9-3 · 3-4) ----
+  await patch(() => {});
+  await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
+  ok((await page.locator('#s-guild .g-first').count()) === 1 && /녹슨 요새/.test(await text('#s-guild .g-firsts')) && (await page.locator('#s-guild .g-raid tbody tr').count()) >= 1, '현황 기록: 길드 첫 처치 (장소 · 날짜 · 시간 · 길드원) · 레이드 진척 표');
+  const mem1 = (await save()).guild.members[1];
+  await page.click('#s-guild .subtabs [data-sub="members"]'); await page.clock.runFor(50);
+  await page.click(`#s-guild [data-mem="${mem1.id}"] .f-mt`); await page.clock.runFor(50);
+  ok((await page.locator('#s-guild .g-msheet .g-mrec li').count()) === 3 && /함께 이긴 판/.test(await text('#s-guild .g-mrec')) && /함께 깬 곳/.test(await text('#s-guild .g-msheet')), '길드원 기록 카드: 함께 이긴 판 · 생명의 은인 · 딜 1등 · 가장 많이 함께 깬 곳');
+  await shut();
+  await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
+  const head = await text('#s-guild .g-recruit');
+  ok(/만난 모험가 \d+\/1000/.test(head) && /단짝 \d/.test(head), '명부 머리: 만난 모험가 n/1000 · 친구 · 길드원 · 단짝');
+  await page.click('#roster'); await page.clock.runFor(50);
+  const all = await page.locator('#s-guild [data-friend]').count();
+  await page.click('#rfriend'); await page.clock.runFor(50);
+  const fr2 = await page.locator('#s-guild [data-friend]').count();
+  ok(all > fr2 && fr2 >= 1, `명부 펼침 ${all}명 → 친구만 ${fr2}명`);
+  await page.click('#rfriend'); await page.clock.runFor(50);
+  await page.click('#roster'); await page.clock.runFor(50);
 
   // ---- S25 · 울트라 · 플립: 가로 넘침 없음, 출전 버튼 탭 위, 이름 안 잘림, 성격 칩이 직업 · Lv를 안 덮음 (보상 화면엔 탭 막대가 없어 다시 읽음) ----
   await patch(() => {});

@@ -194,3 +194,33 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 /* 시트 안 붉은 주 버튼: 다른 버튼과 같은 높이 · 글 크기 */
 #s-guild .sheet .gbtns .btn.primary { font-size: 15px; line-height: 1.2; }
 #s-guild .sheet .gbtns .btn.primary small { font-size: 11px; }
+
+/* ---------- 기록판 (93 9-3): 길드 첫 처치 · 레이드 진척 · 길드원 기록 카드 ---------- */
+#s-guild .g-rech { display: flex; align-items: baseline; gap: 6px; margin: 6px 0 0; font: 800 13px var(--font-display); color: var(--gk-head); }
+#s-guild .g-rech small { font: 500 11px var(--font-body); color: var(--gk-mute); }
+#s-guild .g-firsts { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+#s-guild .g-first { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#s-guild .g-first .sic { width: 32px; height: 32px; flex: none; }
+#s-guild .g-first .sic > .g-ic { width: 28px; height: 28px; }
+#s-guild .g-first > div { min-width: 0; }
+#s-guild .g-first b { font: 700 13px var(--font-body); color: var(--gk-ink); }
+#s-guild .g-first b small { margin-left: 4px; font-weight: 500; color: var(--gk-ink2); }
+#s-guild .g-first .note { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#s-guild .g-raid { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+#s-guild .g-raid th { padding: 2px 0; font: 600 11px var(--font-body); color: var(--gk-mute); text-align: center; }
+#s-guild .g-raid tbody th { text-align: left; color: var(--gk-ink2); }
+#s-guild .g-raid td { padding: 3px 0; text-align: center; color: var(--gk-ink2); border-top: 1px solid var(--gk-line); }
+#s-guild .g-raid td.some { color: var(--gk-ink); font-weight: 700; }
+#s-guild .g-raid td.all { color: #ffd34d; font-weight: 800; }
+#s-guild .sheet .g-mrec { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 6px 0; list-style: none; border-top: 1px solid var(--gk-line); border-bottom: 1px solid var(--gk-line); }
+#s-guild .sheet .g-mrec li { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+#s-guild .sheet .g-mrec b { font: 800 16px/1.1 var(--font-body); color: var(--gk-num); }
+#s-guild .sheet .g-mrec small { font-size: 10.5px; color: var(--gk-ink2); }
+/* 명부 (93 3-4) */
+#s-guild .g-roster { border-top: 0; }
+#s-guild .g-list .g-roster:not(:first-child) { border-top: 1px solid var(--gk-line); }
+#s-guild .g-rmore, #s-guild .g-r0 { padding: 8px 12px; list-style: none; }
+
+/* 그림 (93 11장): 길드 Lv 깃발 · 결성 이야기 배경 · 숙지 두루마리 */
+#s-guild .gh-stats .gh-lv .g-ic { width: 16px; height: 16px; }
+#s-guild.ns .panel.g-story { background: linear-gradient(180deg, #15120eb8, #15120ef2 75%), var(--art-scene-guild-found, linear-gradient(180deg, #2a2116, #1c1712)) center 35% / cover no-repeat; }
