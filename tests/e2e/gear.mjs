@@ -359,8 +359,7 @@ export default async function gear(url, shots) {
   let unlimitedSave = await save();
   ok(unlimitedSave.gear.equipped.head.rr === 1 && unlimitedSave.player.gold === 0, '실제 잔액 0이어도 재설정 (Lv 20부터), 실제 골드는 그대로');
   await page.click('#s-char .c7-gsheet button[data-sheetx]'); await page.clock.runFor(50);
-  await page.click('#tabs [data-tab="shop"]'); await page.clock.runFor(100);
-  await page.click('#s-shop [data-go="s-settings"]'); await page.clock.runFor(100);
+  await page.click('#s-char [data-go="s-settings"]'); await page.clock.runFor(100);
   await page.locator('[data-tog="devGold"]').uncheck();
   await page.click('#s-settings .tb-back'); await page.clock.runFor(100);
   await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);

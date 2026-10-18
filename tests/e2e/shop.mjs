@@ -57,8 +57,11 @@ export default async function shop(url, shots) {
   await page.screenshot({ path: `${shots}/shop_missions.png`, fullPage: true });
 
   // ---- 상점: 골드 탭 (소비 아이템)은 2026-10-16 없앰. 첫 탭 = 상품 ----
+  // 상점은 하단 탭이 아니라 로비 「잡화점」에서 (2026-10-18 Lim), 뒤로 = 로비
   await page.click('#s-missions .tb-back'); await page.clock.runFor(50);
-  await page.click('#tabs [data-tab="shop"]'); await page.clock.runFor(100);
+  ok(await page.locator('#tabs [data-tab="shop"]').count() === 0, '하단 탭에 상점 없음');
+  await page.click('#s-lobby .lb-shop'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-shop .tb-back') && await page.isHidden('#tabs'), '잡화점 → 상점 (탭 막대 없이 ← 상점)');
   ok(await page.isVisible('#s-shop') && await page.getAttribute('#s-shop [data-sub="cash"]', 'aria-selected') === 'true'
     && (await page.locator('#s-shop [data-sub="gold"], #s-shop [data-buy]').count()) === 0 && !/악몽 열쇠|소비 아이템/.test(await text('#s-shop')), '상점 탭: 상품이 첫 탭, 골드 탭 · 소비 아이템 없음');
   await page.screenshot({ path: `${shots}/shop_first.png` });
@@ -66,7 +69,7 @@ export default async function shop(url, shots) {
   // ---- 공훈 ----
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.wallet.merit = 120; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
-  await page.click('#tabs [data-tab="shop"]'); await page.clock.runFor(100);
+  await page.click('#s-lobby .lb-shop'); await page.clock.runFor(100);
   await page.click('#s-shop [data-sub="merit"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-shop .mgear [data-ex]').count()) === 6 && !/세트/.test(await text('#s-shop')), '공훈 = 영웅 장비 6부위 (세트 없음)');
   await page.click('#s-shop [data-ex="ring"]'); await page.clock.runFor(50);
@@ -78,7 +81,9 @@ export default async function shop(url, shots) {
   ok(/패스 Lv 1\/50/.test(await text('#s-shop .passhead')) && (await page.locator('#s-shop .prow').count()) === 51, '패스 50단계 (일일 300 + 상자 100 + 주간 800 = Lv 1)');
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.pass.xp = 2100; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.reload(); await page.clock.runFor(300); await pastTitle(page);
-  await page.click('#tabs [data-tab="shop"]'); await page.clock.runFor(100);
+  ok(Number(await text('#s-lobby .lb-shop .g-badge')) >= 1 && await page.isVisible('#tabs [data-tab="lobby"] .rdot'), '받을 패스 단계 = 로비 잡화점 빨간 숫자 · 로비 탭 점');
+  await page.click('#s-lobby .lb-shop'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-shop [data-sub="pass"] .rdot'), '상점 안 패스 탭에 빨간 점');
   await page.click('#s-shop [data-sub="pass"]'); await page.clock.runFor(50);
   const st0 = (await save()).player.gold;
   await page.click('#s-shop [data-pass="1"]'); await page.clock.runFor(50);
@@ -91,7 +96,7 @@ export default async function shop(url, shots) {
     && (await page.locator('#s-shop [data-prod^="job_"] .cash-buy').allInnerTexts()).every(t => /2,200원/.test(t)), '상품: 광고 제거 5,500원 · 직업 4종 2,200원');
   await page.click('#s-shop [data-iap="noads"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.bought.includes('noads') && await page.evaluate(() => document.body.classList.contains('noads')) && /\/150/.test(await text('#s-shop .tb-st')), '광고 제거: 배너 숨김 · 휴식 최대 150');
+  ok(sv.bought.includes('noads') && await page.evaluate(() => document.body.classList.contains('noads')) && /\/150/.test(await text('#s-shop .cash-meter')), '광고 제거: 배너 숨김 · 휴식 최대 150');
   await page.click('#s-shop [data-iap="job_monk"]'); await page.clock.runFor(50);
   ok((await save()).bought.includes('job_monk') && /보유/.test(await text('#s-shop [data-prod="job_monk"]')), '직업 구매: 수도사 보유');
   await page.screenshot({ path: `${shots}/shop_cash.png` });

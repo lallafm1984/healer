@@ -89,7 +89,7 @@ export default async function lobbyA2(url, shots) {
     ok(Math.abs(g.header.y - 70) <= 1 && Math.abs(g.header.height - headH) <= 1 && Math.abs(g.world.y - (70 + headH)) <= 1
       && Math.abs(g.world.width - g.viewport.width) <= 1 && Math.abs(g.world.height - (g.viewport.height - 70 - headH - 68 - safeBottom)) <= 1,
       `${name}: 기존 배너 70·정보창 ${headH}·탭 68px와 동적 배경 표시 영역 보존`, { header: g.header, world: g.world });
-    ok(JSON.stringify(g.nav) === JSON.stringify(['lobby', 'battle', 'char', 'shop']), `${name}: 기존 하단 메뉴 4개 유지`, g.nav);
+    ok(JSON.stringify(g.nav) === JSON.stringify(['lobby', 'battle', 'char', 'guild']), `${name}: 하단 메뉴 4개 = 로비 · 전투 · 캐릭터 · 길드 (상점은 로비 잡화점, 2026-10-18)`, g.nav);
     const clipped = g.text.filter(t => t.clipped);
     ok(!clipped.length && !g.text.some(t => t.overlapsProgress), `${name}: 메뉴·목표·출전 한글 잘림과 진행 숫자 침범 없음`, g.text.filter(t => t.clipped || t.overlapsProgress));
     ok(g.text.every(t => !t.outside), `${name}: 실시간 한글 줄은 각 버튼/목표표 안에 배치`, g.text.filter(t => t.outside));
@@ -135,7 +135,11 @@ export default async function lobbyA2(url, shots) {
         ok(await page.isVisible('#s-content') && await page.getAttribute('#s-content [data-ctab="raid10"]', 'aria-selected') === 'true', `${width}: 레이드 → 10인 레이드 탭`);
         await goLobby(page); await page.locator(`${lobby} .lb-shop`).tap(); await tick(page);
         ok(await page.isVisible('#s-shop') && await page.getAttribute('#s-shop [data-sub="cash"]', 'aria-selected') === 'true', `${width}: 잡화점 → 상점 상품 탭 (골드 탭은 2026-10-16 없앰)`);
-        await goLobby(page); await page.locator(`${lobby} .lb-missions .lb-main`).tap(); await tick(page);
+        // 상점은 탭 막대 없이 「← 상점」, 뒤로 = 로비 (2026-10-18 상점은 로비에서만)
+        ok(await page.isHidden('#tabs'), `${width}: 상점에는 하단 탭 막대 없음`);
+        await page.locator('#s-shop .tb-back').tap(); await tick(page);
+        ok(await page.isVisible(lobby), `${width}: 상점 ← 뒤로 → 로비`);
+        await page.locator(`${lobby} .lb-missions .lb-main`).tap(); await tick(page);
         ok(await page.isVisible('#s-missions'), `${width}: 임무 → 임무 화면`);
         await page.locator('#s-missions .tb-back').tap(); await tick(page);
         ok(await page.isVisible(lobby), `${width}: 임무 닫기 → 로비`);
@@ -150,7 +154,7 @@ export default async function lobbyA2(url, shots) {
         ok(await page.isVisible('#s-settings'), `${width}: 설정 열기`);
         await page.locator('#s-settings .tb-back').tap(); await tick(page);
         ok(await page.isVisible(lobby), `${width}: 설정 닫기 → 로비`);
-        for (const [tab, screen] of [['battle', '#s-content'], ['char', '#s-char'], ['shop', '#s-shop']]) {
+        for (const [tab, screen] of [['battle', '#s-content'], ['char', '#s-char'], ['guild', '#s-guild']]) {
           await page.locator(`#tabs [data-tab="${tab}"]`).tap(); await tick(page);
           ok(await page.isVisible(screen), `${width}: 하단 ${tab} 메뉴 실행`);
           await goLobby(page);
@@ -194,7 +198,8 @@ export default async function lobbyA2(url, shots) {
             const g = await layout(page); checkLayout(g, `390 Lv ${level} 목표`);
             await page.screenshot({ path: `${shots}/lobby_a2_gate_${level}.png` });
             await page.locator(`${lobby} .lb-trk.gate`).tap(); await tick(page);
-            ok(await page.isVisible('#s-char') && await page.getAttribute('#s-char nav [data-csub="gear"]', 'aria-selected') === 'true', `Lv ${level}: 미완료 장비 목표 → 캐릭터 장비`);
+            // 길드를 켠 뒤 (2026-10-18) 첫 미완료 줄 = 길드원 → 길드 탭
+            ok(/길드원/.test(gate) && await page.isVisible('#s-guild'), `Lv ${level}: 미완료 길드원 목표 → 길드`);
             await goLobby(page); report.states.push({ level, gate, geometry: g });
           }
           await patch(page, () => {

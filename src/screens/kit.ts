@@ -28,7 +28,7 @@ export const ROLE: Record<string, { name: string; short: string; color: string }
 };
 
 // ---------- 화면 이동 ----------
-export type TabKey = 'lobby' | 'battle' | 'char' | 'guild' | 'shop';
+export type TabKey = 'lobby' | 'battle' | 'char' | 'guild';
 
 export interface Screen {
   el: HTMLElement;
