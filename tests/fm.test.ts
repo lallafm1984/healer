@@ -1,0 +1,158 @@
+/** 파티원 능력치 FM식 (97 문서): 1000명 고정 능력치 · 학습력 · 꾸준함 · 빠르기, 공개모집 저마다 레벨, 능력치 → 엔진 값, 능력 ★ */
+import { describe, expect, it } from 'vitest';
+import { CLASSES } from '../src/data/classes';
+import { abilityStars, dayOffset, fmFx, LV_BAND, memberLevel, profileOf, STAT_KEYS, starText, type Stats } from '../src/data/fm';
+import { PARTY_POOL, pickMember } from '../src/data/nicknames';
+import * as E from '../src/engine';
+
+const ALL = Object.values(PARTY_POOL).flat();
+const flat = (v: number): Stats => Object.fromEntries(STAT_KEYS.map(k => [k, v])) as Stats;
+
+describe('1000명 능력치', () => {
+  it('닉네임마다 고정 (다시 계산해도 같음), 능력치 · 학습력 · 꾸준함은 1~20 정수', () => {
+    for (const m of ALL) {
+      expect(profileOf(m.nick, m.pers)).toEqual(m.fm);
+      for (const v of [...Object.values(m.fm.stats), m.fm.learn, m.fm.steady]) {
+        expect(Number.isInteger(v), m.nick).toBe(true);
+        expect(v, m.nick).toBeGreaterThanOrEqual(1);
+        expect(v, m.nick).toBeLessThanOrEqual(20);
+      }
+    }
+  });
+
+  it('평균은 10 근처 (= 예전 파티원), 대부분 8~13', () => {
+    const vs = ALL.flatMap(m => Object.values(m.fm.stats));
+    const avg = vs.reduce((a, b) => a + b, 0) / vs.length;
+    expect(avg).toBeGreaterThan(9.6);
+    expect(avg).toBeLessThan(10.4);
+    expect(vs.filter(v => v >= 8 && v <= 13).length / vs.length).toBeGreaterThan(0.7);
+  });
+
+  it('빠르기: 40%는 함께 크는 사람 (0.95~1.1배), 나머지는 0.02~0.95배', () => {
+    const fast = ALL.filter(m => m.fm.speed >= 0.95).length / ALL.length;
+    expect(fast).toBeGreaterThan(0.35);
+    expect(fast).toBeLessThan(0.45);
+    for (const m of ALL) {
+      expect(m.fm.speed).toBeGreaterThanOrEqual(0.02);
+      expect(m.fm.speed).toBeLessThanOrEqual(1.1);
+    }
+    expect(memberLevel(1, 30)).toBe(30);
+    expect(memberLevel(0.02, 30)).toBe(1);
+    expect(memberLevel(1.1, 100)).toBe(100);
+  });
+
+  it('성격 결: 높게 나오는 칸이 낮게 나오는 칸보다 평균이 높음 (딜 욕심쟁이 공격 · 침착)', () => {
+    const g = ALL.filter(m => m.pers === '딜 욕심쟁이');
+    const avg = (k: keyof Stats) => g.reduce((a, m) => a + m.fm.stats[k], 0) / g.length;
+    expect(avg('atk')).toBeGreaterThan(avg('composure') + 2);
+  });
+});
+
+describe('능력치 → 엔진 값', () => {
+  it('모두 10이면 예전 값 그대로 (배율 1 · 더함 0)', () => {
+    const fx = fmFx(flat(10));
+    for (const k of ['dps', 'hp', 'taken', 'move', 'homeWait', 'adds', 'cd', 'react', 'retry', 'flee', 'panic', 'bias'] as const) expect(fx[k], k).toBeCloseTo(1, 9);
+    for (const k of ['dodge', 'cut', 'guard', 'focus'] as const) expect(fx[k], k).toBeCloseTo(0, 9);
+  });
+
+  it('97 표 끝 값 (1 → 20)', () => {
+    const lo = fmFx(flat(1)), hi = fmFx(flat(20));
+    expect([lo.dps, hi.dps]).toEqual([0.85, 1.15]);
+    expect([lo.hp, hi.hp]).toEqual([0.9, 1.1]);
+    expect([lo.taken, hi.taken]).toEqual([1.05, 0.92]);
+    expect([lo.move, hi.move]).toEqual([1.15, 0.8]);
+    expect([lo.react, hi.react]).toEqual([1.2, 0.8]);
+    expect([lo.adds, hi.adds]).toEqual([1, 1.15]); // 쫄 처리 · 집중은 낮아도 빼지 않음
+    expect([lo.focus, hi.focus]).toEqual([0, 0.1]);
+  });
+
+  it('꾸준함: 20이면 흔들림 없음, 1이면 ±2.5 안, 같은 판 · 같은 사람이면 같은 값', () => {
+    for (let s = 1; s <= 50; s++) {
+      expect(Math.abs(dayOffset(20, s, '방패든양'))).toBe(0);
+      const d = dayOffset(1, s, '방패든양');
+      expect(Math.abs(d)).toBeLessThanOrEqual(2.5);
+      expect(dayOffset(1, s, '방패든양')).toBe(d);
+    }
+    expect(new Set(Array.from({ length: 20 }, (_, s) => dayOffset(5, s, '방패든양').toFixed(3))).size).toBeGreaterThan(10);
+  });
+
+  it('공개모집 파티원은 엔진 유닛에 능력치 효과가 붙음 (맷집 → 최대 체력)', () => {
+    const party = E.recruitParty('plague', 3, { abilities: true });
+    const f = E.create({ encounter: 'plague', diff: '보통', seed: 3, party });
+    for (const r of party) {
+      const u = f.party.find(x => x.nick === r.nick)!;
+      expect(u.fm, r.nick).toEqual(fmFx(r.fm!.stats, r.fm!.off));
+    }
+    // 같은 사람 능력치만 바꾸면 체력이 그만큼
+    const tough = party.map(r => ({ ...r, fm: { stats: { ...r.fm!.stats, tough: 20 }, off: 0 } }));
+    const weak = party.map(r => ({ ...r, fm: { stats: { ...r.fm!.stats, tough: 1 }, off: 0 } }));
+    const hp = (p: typeof party) => E.create({ encounter: 'plague', diff: '보통', seed: 3, party: p }).party.filter(u => !u.me).map(u => u.max);
+    const a = hp(tough), b = hp(weak);
+    a.forEach((v, i) => expect(v / b[i]).toBeCloseTo(1.1 / 0.9, 5));
+  });
+
+  it('튜토리얼 파티 (스킬 없음)는 능력치 · 레벨 없음', () => {
+    for (const m of E.recruitParty('plague', 5, { myLv: 30, stageLv: 30 })) {
+      expect(m.fm).toBeUndefined();
+      expect(m.lv).toBeUndefined();
+    }
+  });
+});
+
+describe('공개모집 저마다 레벨 (세상 모험가)', () => {
+  it('칸 레벨 ±1인 사람부터 (내 Lv × 빠르기), 공개모집 표시', () => {
+    let near = 0, n = 0;
+    for (const [my, stage] of [[30, 30], [50, 20], [60, 58], [100, 100], [10, 10]] as const) {
+      for (let s = 1; s <= 40; s++) {
+        for (const m of E.recruitParty('choir', s, { abilities: true, myLv: my, stageLv: stage })) {
+          n++;
+          expect(m.pub).toBe(true);
+          expect(m.lv).toBeDefined();
+          if (Math.abs(m.lv! - stage) <= LV_BAND[0]) near++;
+          expect(Math.abs(m.lv! - stage), `${my}/${stage} ${m.nick} ${m.lv}`).toBeLessThanOrEqual(LV_BAND[1]);
+        }
+      }
+    }
+    // 내 Lv 50 · 칸 Lv 20 (20인)처럼 그 레벨 사람이 적으면 ±3까지 넓힘
+    expect(near / n).toBeGreaterThan(0.9);
+  });
+
+  it('세상 레벨에 칸 레벨 근처 사람이 없으면 가장 가까운 (빠른) 사람', () => {
+    const p = pickMember('warrior', () => 0.5, new Set(), { tank: true, lv: { my: 10, stage: 30 } })!;
+    expect(memberLevel(p.fm.speed, 10)).toBe(11);
+  });
+
+  it('내 레벨이 칸보다 낮으면 세상 레벨 = 칸 레벨 (힐러 힘과 같은 규칙), 칸 ±1인 사람', () => {
+    for (let s = 1; s <= 20; s++) for (const m of E.recruitParty('plague', s, { abilities: true, myLv: 4, stageLv: 11 })) expect(Math.abs(m.lv! - 11), m.nick).toBeLessThanOrEqual(1);
+  });
+
+  it('레벨이 칸보다 높은 사람은 그만큼 강함 (적 레벨 위로 막지 않음)', () => {
+    const party = E.recruitParty('choir', 1, { abilities: true, myLv: 40, stageLv: 40 });
+    const up = party.map(r => ({ ...r, lv: 43 })), down = party.map(r => ({ ...r, lv: 37 }));
+    const hp = (p: typeof party) => E.create({ encounter: 'choir', diff: '보통', seed: 1, party: p, stageLv: 40 }).party.filter(u => !u.me).map(u => u.max);
+    const a = hp(up), b = hp(down);
+    a.forEach((v, i) => expect(v).toBeGreaterThan(b[i]));
+  });
+});
+
+describe('능력 ★', () => {
+  it('½ 단위 ★½ ~ ★★★★★, 평균 10이면 ★★, 역할 핵심이 높으면 더 많음', () => {
+    expect(abilityStars(flat(10), 'tank')).toBe(2);
+    expect(abilityStars(flat(1), 'tank')).toBe(0.5);
+    expect(abilityStars(flat(20), 'tank')).toBe(5);
+    const core = { ...flat(10), tough: 14, armor: 14, position: 14, judgment: 14 };
+    expect(abilityStars(core, 'tank')).toBeGreaterThan(abilityStars(core, 'ranged'));
+    expect(starText(3.5)).toBe('★★★½');
+    expect(starText(2)).toBe('★★');
+  });
+
+  it('1000명 분포: ★★ 언저리가 가장 많고 ★★★★ 이상은 드묾', () => {
+    const st = ALL.map(m => {
+      const cls = (Object.keys(PARTY_POOL) as (keyof typeof PARTY_POOL)[]).find(k => PARTY_POOL[k].includes(m))!;
+      return abilityStars(m.fm.stats, CLASSES[cls].role as 'tank' | 'melee' | 'ranged');
+    });
+    const mid = st.filter(v => v >= 1.5 && v <= 2.5).length / st.length;
+    expect(mid).toBeGreaterThan(0.5);
+    expect(st.filter(v => v >= 4).length / st.length).toBeLessThan(0.05);
+  });
+});

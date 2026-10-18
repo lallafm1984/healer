@@ -64,7 +64,7 @@ describe('공개모집 파티원', () => {
   it('성격과 직업 스킬만 가짐 (특성 없음)', () => {
     for (let s = 1; s <= 100; s++) {
       for (const m of E.recruitParty('plague', s, { abilities: true })) {
-        expect(Object.keys(m).sort()).toEqual(['ab', 'cls', 'nick', 'pers', 'role']);
+        expect(Object.keys(m).sort()).toEqual(['ab', 'cls', 'fm', 'nick', 'pers', 'role']); // fm = 97 능력치 · 그날 컨디션
       }
     }
   });

@@ -1,5 +1,5 @@
 /**
- * 파티원 200명 (74 문서, 2026-10-14 Lim 「닉네임과 직업을 매칭」 · 「파티원 마다 스킬 및 성격을 부여」):
+ * 파티원 1000명 (74 · 97 문서, 처음 200명, 2026-10-14 Lim 「닉네임과 직업을 매칭」 · 「파티원 마다 스킬 및 성격을 부여」):
  * MMO 유저 닉네임 2~5자 + 성격 + 직업 스킬을 묶어 둔 목록. 공개모집은 직업을 정한 뒤 그 직업 목록에서 한 명을 뽑는다.
  * 직업군 비율 = 탱커 25% · 근접 30% · 원거리 45% → 전사 · 수호기사 25 · 도적 · 광전사 · 검사 20 · 마법사 · 궁수 · 사냥꾼 30
  * 성격 30종 (75)은 직업마다 고르게: 탱커 직업은 탱커 가능 25종을 1명씩, 원거리 직업은 30종을 1명씩, 근접 세 직업은 30종을 2번씩 나눠 가졌고,
@@ -10,13 +10,17 @@
  * 스토리 동료 이름(10 문서 2장)은 STORY_NICKS로 따로 두고 무작위로 뽑지 않는다.
  */
 import type { ClassKey } from './classes';
+import { LV_BAND, memberLevel, profileOf, type FmProfile } from './fm';
 import { PERS, type PersName } from './personalities';
+import { MORE_ROWS } from './pool-more';
 
 export interface PoolMember {
   nick: string;
   pers: PersName;
   /** 직업 스킬 키 (abilities.ts, 직업.키) */
   ab: string;
+  /** 능력치 12 · 학습력 · 꾸준함 · 빠르기 (97 FM, 닉네임 씨앗으로 고정) */
+  fm: FmProfile;
 }
 
 type Row = [nick: string, pers: PersName, ab: string];
@@ -80,9 +84,9 @@ const ROWS: Record<ClassKey, Row[]> = {
   ],
 };
 
-/** 직업별 파티원 (이름 · 성격 · 직업 스킬) */
+/** 직업별 파티원 1000명 (이름 · 성격 · 직업 스킬 · 능력치): 예전 200명 (ROWS) + 새 800명 (pool-more, 97 FM). 직업마다 ×5 */
 export const PARTY_POOL = Object.fromEntries(
-  Object.entries(ROWS).map(([cls, rows]) => [cls, rows.map(([nick, pers, ab]): PoolMember => ({ nick, pers, ab: `${cls}.${ab}` }))]),
+  Object.entries(ROWS).map(([cls, rows]) => [cls, [...rows, ...MORE_ROWS[cls as ClassKey]].map(([nick, pers, ab]): PoolMember => ({ nick, pers, ab: `${cls}.${ab}`, fm: profileOf(nick, pers) }))]),
 ) as unknown as Record<ClassKey, readonly PoolMember[]>;
 
 /** 직업별 닉네임만 */
@@ -96,10 +100,12 @@ export const RARE_WEIGHT = 0.4;
 
 /**
  * 공개모집 파티원 1명 (75): 그 직업 목록에서 안 쓴 사람 중, 저레벨 던전이면 희귀 빼고 · 탱커는 ★1만 · ★★★는 파티당 1명까지 (04 6-F).
- * 희귀 성격은 가중치 0.4. 맞는 사람이 없으면 조건을 하나씩 풀고, 다 썼으면 null
+ * 희귀 성격은 가중치 0.4. 맞는 사람이 없으면 조건을 하나씩 풀고, 다 썼으면 null.
+ * lv (97 FM 「세상 모험가」): 그 사람 레벨 (내 Lv × 빠르기)이 칸 레벨 ±1인 사람만, 모자라면 ±3, 그래도 없으면 칸 레벨에 가장 가까운 사람들
  */
-export function pickMember(cls: ClassKey, r: () => number, used: ReadonlySet<string>, o: { low?: boolean; tank?: boolean; hard?: number } = {}): PoolMember | null {
-  const free = PARTY_POOL[cls].filter(m => !used.has(m.nick) && (o.tank ? !('noTank' in PERS[m.pers]) : !('tankOnly' in PERS[m.pers]))); // 탱커 묶음 (95)은 탱커로만
+export function pickMember(cls: ClassKey, r: () => number, used: ReadonlySet<string>, o: { low?: boolean; tank?: boolean; hard?: number; lv?: { my: number; stage: number } } = {}): PoolMember | null {
+  let free = PARTY_POOL[cls].filter(m => !used.has(m.nick) && (o.tank ? !('noTank' in PERS[m.pers]) : !('tankOnly' in PERS[m.pers]))); // 탱커 묶음 (95)은 탱커로만
+  if (o.lv && free.length) free = inBand(free, o.lv.my, o.lv.stage);
   const rare = (m: PoolMember) => 'rare' in PERS[m.pers];
   const strict = free.filter(m => !o.low || (!rare(m) && (!o.tank || PERS[m.pers].star === 1) && ((o.hard ?? 0) < 1 || PERS[m.pers].star < 3)));
   const list = strict.length ? strict : free;
@@ -108,6 +114,14 @@ export function pickMember(cls: ClassKey, r: () => number, used: ReadonlySet<str
   let x = r() * list.reduce((a, m) => a + w(m), 0);
   for (const m of list) { x -= w(m); if (x < 0) return m; }
   return list[list.length - 1];
+}
+
+/** 칸 레벨 띠 (LV_BAND)에 드는 사람. 띠마다 넓혀 보고, 아무도 없으면 가장 가까운 레벨의 사람들 */
+function inBand(list: PoolMember[], my: number, stage: number): PoolMember[] {
+  const gap = (m: PoolMember) => Math.abs(memberLevel(m.fm.speed, my) - stage);
+  for (const b of LV_BAND) { const l = list.filter(m => gap(m) <= b); if (l.length) return l; }
+  const best = Math.min(...list.map(gap));
+  return list.filter(m => gap(m) === best);
 }
 
 /**

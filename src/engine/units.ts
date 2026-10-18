@@ -143,14 +143,14 @@ function think(f: Fight, u: Unit): void {
     else {
       const rate = dodgeRate(f, u);
       if (f.rng() < rate) { const c = pickCell(f, u, { safe: true }); if (c) moveTo(f, u, c); else u.retryAt = f.t + 1.5; }
-      else u.retryAt = f.t + 1.5 + f.rng() * 1.5;
+      else u.retryAt = f.t + (1.5 + f.rng() * 1.5) * (u.fm?.retry ?? 1); // 침착 (97 FM)
     }
     return;
   }
   if (u.ps && persThink(f, u)) return; // 새 성격 20종 (75)
   // 도망: 겁쟁이 (50%). 쉼터가 있으면 신중파도 40% 아래에서 쉼터로 (사제 특성, 06 6장)
   const shelter = shelterFor(f);
-  const fleeAt = (u.p.flee && f.mentors && mentored(f, u) ? u.p.flee / 2 : u.p.flee) || (shelter && u.pers && SHELTER_GO.includes(u.pers) ? SHELTER_GO_HP : 0); // 큰형 옆이면 반 (95)
+  const fleeAt = (u.p.flee ? u.p.flee * (f.mentors && mentored(f, u) ? 0.5 : 1) * (u.fm?.flee ?? 1) : 0) || (shelter && u.pers && SHELTER_GO.includes(u.pers) ? SHELTER_GO_HP : 0); // 큰형 옆이면 반 (95) · 침착 (97 FM)
   if (fleeAt || u.fleeing) {
     if (!u.fleeing && fleeAt && u.hp / u.max < fleeAt && !calmFor(f, u) && !((u.ab || u.mods.length) && abFear(f, u))) {
       const c = shelter || pickCell(f, u, { safe: true, back: true });
@@ -172,7 +172,7 @@ function think(f: Fight, u: Unit): void {
   if (!u.fleeing && !u.pulled && !(u.padUntil != null && u.padUntil > f.t) && !(u.awayUntil != null && u.awayUntil > f.t) && u.home >= 0 && u.cell !== u.home) {
     const h = f.cells[u.home];
     if (!h.unit && !h.block && !dangerAt(f, u.home)) {
-      if (u.homeAt == null) u.homeAt = u.p.homebody ? f.t : f.t + 1 + (u.p.react && u.p.react < 1 ? 1 : 0) + (u.p.edge?.back ?? 0); // 집돌이 바로 · 모서리파 늦게 (95)
+      if (u.homeAt == null) u.homeAt = u.p.homebody ? f.t : f.t + (u.fm?.homeWait ?? 1) + (u.p.react && u.p.react < 1 ? 1 : 0) + (u.p.edge?.back ?? 0); // 집돌이 바로 · 모서리파 늦게 (95) · 위치 잡기 (97 FM)
       else if (f.t >= u.homeAt) { u.homeAt = null; moveTo(f, u, h); if (u.p.homebody) bark(f, u, null, false, 'homeBack'); return; }
     } else u.homeAt = null;
   }

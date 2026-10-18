@@ -60,7 +60,7 @@ function roll(): void {
   Flow.seed = newSeed();
   openRow = -1;
   // 공개모집 파티원도 능력 1개 (17 3장). 튜토리얼 파티는 능력 없음
-  Flow.pub = recruitParty(segs[0], Flow.seed, { abilities: G.save.tut >= TUT.done });
+  Flow.pub = recruitParty(segs[0], Flow.seed, { abilities: G.save.tut >= TUT.done, myLv: G.save.player.level, stageLv: modeNow().stage }); // 97 FM: 칸 레벨 ±1인 모험가
 }
 
 /** 전투에 넘길 파티: 공개모집 그대로, 또는 고른 길드원 + 빈자리는 공개모집 */
@@ -117,7 +117,7 @@ function guildPickHtml(stage: number): string {
       const on = Flow.gpick.includes(m.id);
       return memRowHtml({ ...m, apt: aptOf(m) }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
     }).join('')}
-    ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: stage }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
+    ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: m.lv ?? stage }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
 }
 
 /** 아래에서 올라오는 시트 (열 때만 그림) */

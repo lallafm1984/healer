@@ -3,6 +3,7 @@ import { ABILITIES, AB_GRADE, AB_KIND } from '../data/abilities';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { APT_NAMES } from '../data/guild';
 import { CATS, PERS, type PersName } from '../data/personalities';
+import { abilityStars, starText, type Stats } from '../data/fm';
 import { classGlyphSvg } from './class-icons';
 import { esc, ROLE } from './kit';
 
@@ -28,7 +29,12 @@ export interface CardData {
   star?: number;
   apt?: [number, number, number];
   power?: number;
+  /** 능력치 (97 FM, 공개모집 1000명). 있으면 능력 ★ */
+  fm?: { stats: Stats };
 }
+
+/** 능력 ★ 글 (97 FM): 역할 핵심에 무게를 둔 능력치 합. 능력치가 없는 사람 (길드원 · 옛 파티)은 빈 글 */
+const fmStars = (m: CardData): string => (m.fm ? starText(abilityStars(m.fm.stats, CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged')) : '');
 
 /** 역할 아이콘 (27 시안 Party27): 탱커 방패 · 근접 칼 · 원거리 화살 */
 const roleSvg = (d: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -47,7 +53,7 @@ export function classIcon(cls: ClassKey): string {
 }
 
 /**
- * 파티원 줄 (27 3-3 편성, 2026-10-08 줄임): 역할 칸 · 닉네임 · 직업 · Lv · 성격 칩 / 능력 「이름」. 설명은 누르면 시트 (memDetailHtml).
+ * 파티원 줄 (27 3-3 편성, 2026-10-08 줄임): 역할 칸 · 닉네임 · 직업 · Lv · 성격 칩 / 직업 스킬 「이름」 · 오른쪽 끝 능력 ★ (97, 공개모집). 설명은 누르면 시트 (memDetailHtml).
  * 성격은 분류색 바탕에 전체 이름만 표시한다. 다루기 ★ 개수는 상세 시트에 둔다.
  */
 export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; note?: string; on?: boolean } = {}): string {
@@ -58,13 +64,13 @@ export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra
   const hard = p.star >= 3;
   return `<li class="pcard f-mem${o.cls ? ` ${o.cls}` : ''}${o.on ? ' on' : ''}" ${o.attrs || ''}><span class="f-ri" style="background:${ROLE[c.role].color}">${classIcon(m.cls)}</span>
     <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b><span class="cap">${c.name}${m.lv ? ` · Lv ${m.lv}` : ''}${o.note ? ` · ${o.note}` : ''}</span><span class="f-sp"></span><span class="f-ps${hard ? ' hard' : ''}" style="--pers-color:${CATS[p.cat]}">${hard ? '<span class="sr">다루기 어려움 </span>' : ''}${esc(m.pers)}</span></span>
-    <span class="f-l2"><span class="f-ab">${ab}</span></span></div>${o.extra || ''}</li>`;
+    <span class="f-l2"><span class="f-ab">${ab}</span>${m.fm ? `<span class="f-fm">능력 <b>${fmStars(m)}</b></span>` : ''}</span></div>${o.extra || ''}</li>`;
 }
 
 /** 파티원 상세 (편성의 줄을 누르면 시트): 능력 · 자질 · 성격 (다루기 ★) */
 export function memDetailHtml(m: CardData): string {
   const p = PERS[m.pers];
-  return `<div class="f-det">${abHtml(m.ab, m.star || 0)}${m.apt ? aptHtml(m.apt) : ''}
+  return `<div class="f-det">${m.fm ? `<p class="pfm">능력 <b>${fmStars(m)}</b></p>` : ''}${abHtml(m.ab, m.star || 0)}${m.apt ? aptHtml(m.apt) : ''}
     <p><b class="f-ps" style="--pers-color:${CATS[p.cat]}">${esc(m.pers)}</b> <span class="f-star"><span class="sr">다루기 난이도 </span>${'★'.repeat(p.star)}</span> · ${esc(p.desc)}</p></div>`;
 }
 

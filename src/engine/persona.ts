@@ -324,7 +324,7 @@ export function persZoneImpact(f: Fight, tel: Telegraph): void {
 export function persDebuff(f: Fight, u: Unit): void {
   if (!u.ps || !u.p.panic || u.me) return;
   if (!(u.ps.panicUntil != null && f.t < u.ps.panicUntil)) bark(f, u, null, true, 'panic');
-  u.ps.panicUntil = f.t + u.p.panic * (mentored(f, u) ? 0.5 : 1); // 큰형 옆이면 반 (95)
+  u.ps.panicUntil = f.t + u.p.panic * (mentored(f, u) ? 0.5 : 1) * (u.fm?.panic ?? 1); // 큰형 옆이면 반 (95) · 침착 (97 FM)
   u.ps.panicMoveAt = f.t;
 }
 

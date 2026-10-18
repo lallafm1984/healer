@@ -83,6 +83,7 @@ export function moveTo(f: Fight, u: Unit, c: Cell | null): boolean {
   if (u.mods.length) time *= moveMods(u); // 치타의 상·돌진
   if (f.sp && !u.me) time *= 1 - sv(f, 'march'); // 신나는 행진 (42 지원 07)
   if (u.ps) time *= persMove(u); // 느림보 (75)
+  if (u.fm) time *= u.fm.move; // 발놀림 (97 FM)
   c.unit = u;
   u.moving = { from: from.i, to: c.i, left: time, total: time };
   return true;
@@ -111,6 +112,7 @@ export function scheduleReaction(f: Fight, tel: Telegraph, u: Unit): void {
   if (u.mods.length) rt *= reactMods(u); // 기합·매의 눈
   if (f.sp && !u.me) rt = Math.max(0.1, rt - sv(f, 'quickPeer')); // 눈치 빠른 동료 (42 지원 09)
   if (f.mood != null && f.t < f.mood && !u.me) rt *= f.moodReact!; // 분위기메이커 (95): 시작 10초 모두
+  if (u.fm && u.fm.focus > 0 && bigStage(f)) rt *= 1 - u.fm.focus; // 집중 (97 FM): 악몽 · 레이드 · 보스 30% 아래
   if (u.ps && inZ) {
     rt = rt * persReact(f, u, tel) + persLate(f, u); // 뉴비 · 완벽주의자 · 끈기형 (75 · 95) · 끊기 욕심 (95)
     if (u.p.foresee) rt = Math.max(0.05, rt - u.p.foresee.lead); // 예언가 (95)
@@ -150,8 +152,12 @@ export function dodgeRate(f: Fight, u: Unit): number {
 }
 
 function dodgeBase(f: Fight, u: Unit): number {
-  return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0) + calmDodge(f, u) + (u.ps ? persDodge(f, u) : 0) + (u.pairWith != null ? pairDodge(f, u) : 0)));
+  return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0) + calmDodge(f, u) + (u.ps ? persDodge(f, u) : 0) + (u.pairWith != null ? pairDodge(f, u) : 0)
+    + (u.fm && u.fm.focus > 0 && bigStage(f) ? u.fm.focus / 2 : 0))); // 집중 (97 FM)
 }
+
+/** 집중 (97 FM)이 힘을 내는 판: 악몽 · 레이드 (10인 넘게) · 보스 체력 30% 아래 */
+export const bigStage = (f: Fight): boolean => f.mythic || f.party.length >= 10 || (!f.invuln && f.bossMax > 0 && f.bossHp <= f.bossMax * 0.3);
 
 export function doReact(f: Fight, u: Unit): void {
   const r = u.react!; u.react = null;
@@ -198,7 +204,7 @@ export function doReact(f: Fight, u: Unit): void {
     else { bark(f, u, '피할 곳이 없어!', true, 'noEscape'); u.retryAt = f.t + 1.5; }
   } else {
     u.mistakeUntil = Math.max(f.t, (impact || f.t) - 0.5) + 0.5;
-    u.retryAt = (impact || f.t) + 1.5 + f.rng() * 2.5;
+    u.retryAt = (impact || f.t) + (1.5 + f.rng() * 2.5) * (u.fm?.retry ?? 1); // 침착 (97 FM)
     bark(f, u, null, true, 'mistake'); // 실수 신호 (04 6-1)
   }
 }
