@@ -82,7 +82,7 @@ export const PXF = {
   'druid-quietwood': skill(24, 72),
   'druid-rebirth': skill(24, 98),
   'paladin-holy-light': skill(16, 80), // 기본 힐이라 가볍게 (Lim 2026-10-16 「너무 과하다」)
-  'paladin-beacon': skill(20, 88, { size: 384 }), // 봉화 그릇 · 불꽃 그림이 뭉개지지 않게 384px 프레임 (10-19 Lim)
+  'paladin-beacon': skill(20, 100, { size: 384 }), // 봉화 그릇 · 불꽃 그림이 뭉개지지 않게 384px 프레임 (10-19 Lim)
   'paladin-oath': skill(24, 90),
   'paladin-light-wave': skill(20, 88),
   'paladin-cleanse': skill(20, 92, { size: 384 }), // 손 그림이 뭉개지지 않게 384px 프레임 (10-19 Lim 「이미지에 신경써보자」)

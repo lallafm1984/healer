@@ -1274,7 +1274,7 @@ function putStand(key: string, artName: string, x: number, y: number, r: number,
   return true;
 }
 /** 봉화 대상 고리 반지름 (칸 반지름 배): 육각 꼭짓점 바로 바깥 (고리 위 불꽃 여섯이 꼭짓점 자리) */
-const BEACON_R = 1.08;
+const BEACON_R = 1.08; // 고리 위 불꽃 다섯이 위 · 옆 꼭짓점, 맨 아래 꼭짓점은 봉화를 걸 때 그릇 · 불꽃 이펙트 자리
 /** 비구름이 판에 나타난 시각 (ms, 비가 그치면 null): 나타날 때 톡 부푸는 연출 */
 let rainShownAt: number | null = null;
 /** 0–1 → 살짝 넘쳤다 돌아오는 진행 (톡 부풂) */
