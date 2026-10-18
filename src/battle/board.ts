@@ -30,7 +30,7 @@ import { CELL_RADIUS, clearOf, fitBoard, floatBlocks, hotTimerLayout, shieldTime
 import { DEBUFF_EDGE, GIM_ICON, MARK_ART } from './board-marks';
 import { BOARDS } from '../data/boards';
 import { makeCells } from '../engine/board';
-import { ALWAYS_FX, BOSS_PXF, bossPxfOf, COMMON_PXF, heroSkillFx, isBossPxf, loopFrame, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, TOTEM_STAND, type CommonFx, type PxfKey } from './pxf';
+import { ALWAYS_FX, BEACON_RING, BOSS_PXF, bossPxfOf, COMMON_PXF, heroSkillFx, isBossPxf, loopFrame, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, TOTEM_STAND, type CommonFx, type PxfKey } from './pxf';
 
 // ---------- 색 ----------
 const hex = (c: string) => parseInt(c.slice(1, 7), 16);
@@ -1936,7 +1936,13 @@ export function render(now: number): void {
     if (u.immune > 0) { const w = Math.max(3, s * 0.1), R = ringRadius(`immune${u.id}`, 'hex', x, y, r * 1.14, w), a = u.immune < 2 ? 0.35 + 0.6 * pulse : 0.95; if (!edgeRing('fx-edge-plate', x, y, R, Math.max(6, s * 0.15), a)) hexPoly(overG, x, y, R).stroke({ width: w, color: 0xffffff, alpha: a }); }
     else if (u.redu > 0) { const R = ringRadius(`reduction${u.id}`, 'hex', x, y, r * 1.1, 2.5), a = u.redu < 2 ? 0.35 + 0.6 * pulse : 0.9; if (!edgeRing('fx-edge-bark', x, y, R, Math.max(5, s * 0.13), a)) hexPoly(overG, x, y, R).stroke({ width: 2.5, color: melting && u.redu > 0.5 ? MELT : HOT_COLOR.sprout, alpha: a }); }
     if (u.sacr > 0) { const R = ringRadius(`sacrifice${u.id}`, 'hex', x, y, r * 1.16, 2); if (!edgeRing('fx-link-chain', x, y, R, Math.max(4, s * 0.1))) dashPoly(overG, hexPts(x, y, R), 5, 4, 2, melting ? MELT : C.gold); }
-    if (F.beacon === u.id) { const R = ringRadius(`beacon${u.id}`, 'circle', x, y, r * 1.22, 2.5); if (!roundRing('fx-ring-beacon', x, y, R + 3, 0.95)) dashCircle(overG, x, y, R, 3, 5, 2.5, C.gold, 0.95); }
+    // 봉화 = 칸 둘레 금빛 고리 루프 (paladin-beacon-loop: 숨 쉬는 고리 · 일렁이는 작은 불꽃 여섯 · 도는 혜성 · 불티, 2026-10-18 Lim 「봉화대상의 동그란 이미지도 파티클로 루프되게」).
+    // 고리가 예전 원 자리 (R)에 오게 프레임 한 변 = 2R ÷ BEACON_RING. 시각 효과 줄이기면 첫 장에서 멈춤. 띠가 아직 안 읽혔으면 예전 점선 원
+    if (F.beacon === u.id) {
+      const R = ringRadius(`beacon${u.id}`, 'circle', x, y, r * 1.22, 2.5), lp = PXF['paladin-beacon-loop'], lt = smoothFrame('paladin-beacon-loop', S.reducedEffects ? 0 : loopFrame(lp, t));
+      if (lt) { if (lt.source.scaleMode !== 'linear') lt.source.scaleMode = 'linear'; const d = (2 * R) / BEACON_RING; ringArt.put(lt, x, y, d, d, 1); }
+      else dashCircle(overG, x, y, R, 3, 5, 2.5, C.gold, 0.95);
+    }
     // 어그로 (96 5번 A): 위협이 뺏는 선의 90%인 딜러 = 주황 경고 띠 (fx-edge-threat)가 천천히 깜빡임 (뺏기 약 0.5초 전, 미리 보호막 · 지속 힐). 뺏으면 조준 표식이 옮겨감
     if (F.thr?.warn.includes(u.id) && F.thr.steal?.id !== u.id) { const R = ringRadius(`threat${u.id}`, 'hex', x, y, r * 1.1, 3), a = S.reducedEffects ? 0.85 : 0.5 + 0.5 * zpulse; if (!edgeRing('fx-edge-threat', x, y, R, Math.max(6, s * 0.16), a)) hexPoly(overG, x, y, R).stroke({ width: 3, color: C.threat, alpha: a }); }
     if (castTarget === u.id) hexPoly(overG, x, y, ringRadius(`cast${u.id}`, 'hex', x, y, r * 1.12, 3)).stroke({ width: 3, color: hex(SEL) });
