@@ -14,9 +14,9 @@ const priestWindow = [[677,183],[716,240],[786,286],[842,341],[875,400],[889,470
 let cache = '';
 /**
  * 주술사 자원 그림 배치 (원화 542 × 464 좌표, 2026-10-18): 토템 둘을 가운데로 40씩 모으고 (사이 6), 아래 줄 (원화 y 331~409)을 토템 바로 밑으로 93 올림.
- * 아래 줄 = [모래시계 42][6][남은 시간 「19.8」까지][14][되돌림 64][6][재사용 대기 두 자리], 끝까지 칸 안. crop = 그린 부분 (칸 폭에 맞춰 약 0.39배)
+ * 아래 줄 = 토템마다 [모래시계 36][4][남은 시간] (샘 · 대지, 둘 다 「19.8」이어도 칸 안). 재사용 대기 (되돌림 그림)는 스킬 버튼에 보여 뺌 (2026-10-18 Lim). crop = 그린 부분 (칸 폭에 맞춰 약 0.39배)
  */
-const SHAMAN_PACK={totem:40,lowY:-93,icon:.8,hourglass:42,reset:-9,numLeft:(191-42)/542*100,extraLeft:(357+9)/542*100,crop:[144.1,50,408.9,313] as [number,number,number,number]};
+const SHAMAN_PACK={totem:40,lowY:-93,icon:.7,hourglass:37,earthGlass:178,numLeft:(181-37)/542*100,extraLeft:(322-178)/542*100,crop:[144.1,50,408.9,313] as [number,number,number,number]};
 /** Extra resource slots reuse the approved sprite as independently placed UI pieces. */
 function resourceVariant(el: HTMLElement, job: HeroKey, max: number): void {
   if(job==='astrologer'){
@@ -152,8 +152,8 @@ export function buildClassGauge(host: HTMLElement, controls: HTMLElement, job: H
     el.querySelector('.gauge-ready')!.replaceWith(ready);
   }
   if(job==='shaman'){
-    // 2026-10-18 Lim 「주술사 자원 토템 그림이 너무 작음, 사제 자원 크기를 기준으로 큼직하게」: 같은 원화를 네 묶음 (샘 토템 · 대지 토템 · 모래시계 + 남은 시간 · 되돌림 + 재사용 대기)으로 나눠
-    // 가운데로 모으고 (원화 좌표 · 채움 · 빛은 묶음 안에서 그대로) 아래 crop을 좁혀 키움. 숫자는 글자 크기 그대로, 아래 아이콘은 숫자가 칸 안에 들게 0.8배
+    // 2026-10-18 Lim 「주술사 자원 토템 그림이 너무 작음, 사제 자원 크기를 기준으로 큼직하게」: 같은 원화를 네 묶음 (샘 토템 · 대지 토템 · 토템마다 모래시계 + 남은 시간)으로 나눠
+    // 가운데로 모으고 (원화 좌표 · 채움 · 빛은 묶음 안에서 그대로) 아래 crop을 좁혀 키움. 숫자는 글자 크기 그대로, 아래 모래시계는 숫자가 칸 안에 들게 0.7배
     const top=el.querySelector<HTMLElement>(':scope>.gauge-base')!,ready=el.querySelector<HTMLElement>(':scope>.gauge-ready')!,low=el.querySelector<HTMLElement>(':scope>.shaman-low')!;
     const fills=[...el.querySelectorAll<HTMLElement>(':scope>.fill-mask')],auras=[...el.querySelectorAll<HTMLElement>(':scope>.totem-aura')],fronts=[...el.querySelectorAll<HTMLElement>(':scope>.totem-foreground')];
     const group=(name:string,dx:number,dy=0)=>{const g=div('shaman-group');g.dataset.group=name;g.style.transform=`translate(${dx/542*100}%,${dy/464*100}%)`;return g;};
@@ -166,10 +166,10 @@ export function buildClassGauge(host: HTMLElement, controls: HTMLElement, job: H
     spring.append(springTop,auras[0],fronts[0],...fills.filter((_,i)=>c.groups?.[i]===0),ready);
     earth.append(top,auras[1],fronts[1],...fills.filter((_,i)=>c.groups?.[i]===1));
     const lowArt=low.querySelector<HTMLElement>('.gauge-base')!,num=low.querySelector<HTMLElement>('.gauge-number')!,extra=low.querySelector<HTMLElement>('.gauge-extra')!;
-    const hourglass=group('hourglass',SHAMAN_PACK.hourglass,SHAMAN_PACK.lowY),reset=group('reset',SHAMAN_PACK.reset,SHAMAN_PACK.lowY);
-    const icon=(clip:string,cx:number,cy:number)=>{const e=lowArt.cloneNode() as HTMLElement;e.style.clipPath=clip;e.style.transformOrigin=`${cx/542*100}% ${cy/464*100}%`;e.style.transform=`scale(${SHAMAN_PACK.icon})`;return e;};
-    hourglass.append(icon('inset(67% 50% 0 0)',122,367.5),num);reset.append(icon('inset(67% 0 0 50%)',328,370),extra);
-    low.remove();el.append(spring,earth,hourglass,reset);
+    const hourglass=group('hourglass',SHAMAN_PACK.hourglass,SHAMAN_PACK.lowY),earthGlass=group('earth-hourglass',SHAMAN_PACK.earthGlass,SHAMAN_PACK.lowY);
+    const glass=()=>{const e=lowArt.cloneNode() as HTMLElement;e.style.clipPath='inset(67% 50% 0 0)';e.style.transformOrigin=`${122/542*100}% ${367.5/464*100}%`;e.style.transform=`scale(${SHAMAN_PACK.icon})`;return e;};
+    hourglass.append(glass(),num);earthGlass.append(glass(),extra);
+    low.remove();el.append(spring,earth,hourglass,earthGlass);
   }
   if(job==='warder') [425,678,930].forEach(x=>{
     const target=img(job,'base','target-active');
@@ -199,7 +199,7 @@ export function buildClassGauge(host: HTMLElement, controls: HTMLElement, job: H
 /** Artwork stays fixed; the reveal, numeric data and activation layers follow live combat state. */
 export function updateClassGauge(host: HTMLElement, s: ClassGaugeState): void {
   const el=host.firstElementChild as HTMLElement;if(!el)return;
-  const signature=JSON.stringify({...s,count:Math.round(s.count*10)/10,remaining:Math.round(s.remaining*10)/10,cooldown:Math.ceil(s.cooldown),percent:Math.round(s.percent*10)/10});if(cache===signature)return;cache=signature;
+  const signature=JSON.stringify({...s,count:Math.round(s.count*10)/10,remaining:Math.round(s.remaining*10)/10,earthRemaining:Math.round(s.earthRemaining*10)/10,percent:Math.round(s.percent*10)/10});if(cache===signature)return;cache=signature;
   const job=el.dataset.job as HeroKey,full=job==='priest'?s.priestAura!=='off':s.percent>=100;
   if(job==='priest')el.dataset.auraStage=s.priestAura;
   if(job==='paladin'){
@@ -215,8 +215,9 @@ export function updateClassGauge(host: HTMLElement, s: ClassGaugeState): void {
   el.setAttribute('aria-valuenow',String(Math.min(s.count,s.max)));el.setAttribute('aria-valuemax',String(s.max));
   el.setAttribute('aria-label',s.description);el.setAttribute('aria-valuetext',s.description);host.title=s.description;host.setAttribute('aria-label',s.description);
   el.querySelector<HTMLElement>('.gauge-ready')!.hidden=!full;
-  el.querySelector('.gauge-number')!.textContent=job==='priest'?s.count+'%':job==='shaman'?s.remaining.toFixed(1).replace(/\.0$/,''):'';
-  el.querySelector('.gauge-extra')!.textContent=job==='shaman'?String(Math.ceil(s.cooldown)):job==='monk'?s.remaining.toFixed(1):'';
+  const sec=(v:number)=>v.toFixed(1).replace(/\.0$/,'');
+  el.querySelector('.gauge-number')!.textContent=job==='priest'?s.count+'%':job==='shaman'?sec(s.remaining):'';
+  el.querySelector('.gauge-extra')!.textContent=job==='shaman'?sec(s.earthRemaining):job==='monk'?s.remaining.toFixed(1):'';
   el.querySelectorAll<HTMLElement>('.variant-segment').forEach((piece,i)=>{
     piece.querySelector<HTMLElement>('.variant-fill')!.hidden=i>=s.count;
     piece.querySelector<HTMLElement>('.variant-ready')!.hidden=!full;
@@ -228,7 +229,9 @@ export function updateClassGauge(host: HTMLElement, s: ClassGaugeState): void {
   if(job==='warder')el.querySelectorAll<HTMLElement>('.target-active').forEach((e,i)=>e.hidden=i>=Math.ceil(s.targets/Math.max(1,s.targetMax)*3));
   el.querySelectorAll<HTMLElement>('.fill-mask').forEach((m,i)=>{
     const c=job==='priest'?null:gaugeConfig[job];
-    const n=job==='priest'?s.percent/100:job==='shaman'?((c!.groups?.[i]??i)===0?(i===0?s.percent/100:s.remaining>0?1:0):s.earth?1:0):Math.max(0,Math.min(1,s.percent/100*c!.masks.length-i));
+    // 주술사: 샘 물방울 · 대지 호박 보석 (묶음마다 첫 조각)이 남은 시간만큼 위에서부터 비고, 나머지 조각은 서 있는 동안 켜짐
+    const earthFirst=job==='shaman'?c!.groups!.indexOf(1):-1;
+    const n=job==='priest'?s.percent/100:job==='shaman'?((c!.groups?.[i]??i)===0?(i===0?s.percent/100:s.remaining>0?1:0):i===earthFirst?Math.min(1,s.earthRemaining/s.earthMax):s.earth?1:0):Math.max(0,Math.min(1,s.percent/100*c!.masks.length-i));
     m.hidden=n<=0;
     const ys=(job==='priest'?priestWindow:c!.masks[i]).map(v=>v[1]),lo=Math.min(...ys),hi=Math.max(...ys);
     (m.firstElementChild as HTMLElement).style.clipPath=n>=1?'none':`inset(${(hi-(hi-lo)*n)/1161*100}% 0 0 0)`;
