@@ -2,6 +2,7 @@
  * 전투 화면 (P1 새 전투 화면, 21 계획). 프로토타입 v11 화면을 TypeScript로 옮기고 판은 PixiJS로 그림.
  * 메뉴·정산은 새 화면(src/screens)이 맡고, 여기는 전투·휴식·일시정지만. 새 화면은 window.__battle로 부름.
  */
+import { isRescue } from '../data/bond';
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
@@ -35,7 +36,7 @@ const talk = createTalk();
 const curKey = () => S.run!.segs[S.run!.idx] as EncounterKey;
 /** 처음부터 다시 (같은 파티, 같은 콘텐츠) */
 function resetRun(): void {
-  Object.assign(S.run!, { idx: 0, carry: null, time: 0, deaths: 0, restSec: 0, healed: 0, overheal: 0, dispels: 0, dispellable: 0, auto: S.auto, meter: [], cont: 0 });
+  Object.assign(S.run!, { idx: 0, carry: null, time: 0, deaths: 0, restSec: 0, healed: 0, overheal: 0, dispels: 0, dispellable: 0, auto: S.auto, meter: [], cont: 0, bond: {} });
 }
 
 // ---------- 전투 시작 ----------
@@ -660,7 +661,7 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
     segIdx: R.idx, segN: R.segs.length, time: R.time, restSec: R.restSec, deaths: R.deaths,
     healed: R.healed, overheal: R.overheal, dispels: R.dispels, dispellable: R.dispellable,
     endMana: Math.floor(f.mana), minMana: Math.floor(st.minMana), auto: !!(S.auto || R.auto),
-    party: f.party.filter(u => !u.me).map(u => ({ nick: u.nick, pers: u.pers, role: u.role, alive: u.alive, got: Math.round(u.got), gid: u.gid })),
+    party: f.party.filter(u => !u.me).map(u => { const b = R.bond?.[u.nick]; return { nick: u.nick, pers: u.pers, role: u.role, alive: u.alive, got: Math.round(b?.got ?? u.got), gid: u.gid, low: Math.round((b?.low ?? 1) * 1000) / 1000, rescued: !!b?.rescued && u.alive }; }),
     detail, dev, left, segNames: R.segs.map(k => ENCOUNTERS[k as EncounterKey].name), meter: R.meter.map(r => ({ ...r })),
     stage: S.stageLv, affixes: S.affixes?.slice(), chal: S.chal || undefined, limit: S.limit, cont: R.cont || undefined, giveUp: how === 'giveUp' || undefined,
   } as BattleResult;
@@ -673,6 +674,18 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
 function addStats(R: Run, f: Fight, st: FightStats): void {
   R.healed += st.healed; R.overheal += st.overheal; R.dispels += st.dispels; R.dispellable += st.dispellable;
   addMeter(R.meter, f.party);
+  addBond(R, f);
+}
+/** 인연 (93 3-2): 구간마다 파티원이 받은 내 치유 · 가장 낮았던 체력 · 생명의 은인을 던전 전체로 */
+function addBond(R: Run, f: Fight): void {
+  const b = (R.bond ??= {});
+  for (const u of f.party) {
+    if (u.me || u.role === 'healer') continue;
+    const low = u.low ?? 1, x = (b[u.nick] ??= { got: 0, low: 1, rescued: false });
+    x.got += u.got;
+    x.low = Math.min(x.low, low);
+    if (isRescue({ role: u.role, low, alive: u.alive, rescued: u.got - (u.gotLow ?? 0) > 0 })) x.rescued = true;
+  }
 }
 function tapAccuracy() {
   const a = ui.tapOff;

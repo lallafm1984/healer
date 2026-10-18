@@ -1,6 +1,7 @@
 /**
  * 전투가 끝난 뒤 정산(09 S08)·보상(S09)을 계산하고 저장에 반영한다. 화면과 분리된 순수 계산 (난수는 받아서 씀).
  */
+import { recordBond } from './bond';
 import { ALL_DIFFS, contentOf, raidSize, stageOf, type ContentKey } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
@@ -43,8 +44,8 @@ export interface BattleResult {
   endMana: number;
   minMana: number;
   auto: boolean;
-  /** got = 내 힐로 회복한 양 (인연 스카우트), gid = 길드원 id */
-  party: { nick: string; pers: PersName | null; role: string; alive: boolean; got?: number; gid?: number }[];
+  /** got = 내 힐로 회복한 양 (구간 합, 인연), gid = 길드원 id, low = 가장 낮았던 체력 비율, rescued = 생명의 은인 (93 3-2, data/bond) */
+  party: { nick: string; pers: PersName | null; role: string; alive: boolean; got?: number; gid?: number; low?: number; rescued?: boolean }[];
   /** 전투 기록에 보이는 줄 (마지막 전투) */
   detail: [string, string][];
   /** 플레이 테스트 기록 (탭 · 오탭 · 쓸기 등): 레벨 잠금 무시(개발 빌드)를 켰을 때만 보여 줌 */
@@ -90,6 +91,8 @@ export interface Settlement {
   heroQuest: { hero: HeroKey; n: number; need: number; unlocked: boolean } | null;
   /** 길드원 경험치·인연 스카우트 (02 9장) */
   guild: GuildAfter | null;
+  /** 인연 (93 3-2): 이 판에서 오른 점수 (이긴 판만) */
+  bond: import('./bond').BondGain[];
   /** 레이드 공훈 (12 3-5) */
   merit: number;
   /** 이번 주 이 레이드 보스·난이도 장비를 이미 받아서 장비 없음 (13 3-4) */
@@ -221,6 +224,9 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
     pers: r.party.map(p => p.pers || '').filter(Boolean), chal: chal?.inTime ? chal.stage : 0,
   }) : [];
 
+  // 인연 (93 3-2, 사슬 3번): 튜토리얼이 끝난 뒤 모든 판 (자동 전투도), 길드가 꺼져 있어도. 진 판은 만남만
+  const bond = play ? recordBond(save, r, grade === 'S') : [];
+
   // 파티원 한마디는 넣지 않음 (Lim: 결과 채팅 연출 뺌)
   if (!r.quit) save.last = { content: r.content, diff: r.diff, win: r.win, grade };
   const tutEnd = advanceTutorial(save, r.content, r.win && !r.quit);
@@ -233,6 +239,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, merit, lootLocked, pubBonus, missions, chal, cont, tutEnd, rest, restBonus,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, merit, lootLocked, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, bond,
   };
 }

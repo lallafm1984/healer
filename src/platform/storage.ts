@@ -20,7 +20,7 @@ export const SAVE_KEY = 'healer.save';
  * v15 (2026-10-16 Lim): 소비 아이템 단축칸 · 가방을 없앰. v16 (2026-10-16 Lim): 골드를 없앰 (옛 저장의 골드는 버림).
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
-export const SAVE_VERSION = 17;
+export const SAVE_VERSION = 18;
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
 export const MAT_GOLD = { stone: 100, refined: 500 };
 
@@ -232,7 +232,12 @@ export interface SaveData {
   chalChestHero?: HeroKey;
   /** v11: 캐릭터 목록 (계정, 68). 캐릭터를 바꿀 때 shareAccount가 새 캐릭터 저장으로 옮김 */
   roster: Roster;
+  /** v18: 인연 (길드 v2 93 3-2, game/bond): 만난 파티원 닉네임 → 점수 · 만난 판 · 함께 이긴 판 · 살려 준 횟수 · 딜 1등. 캐릭터마다 */
+  users: Record<string, BondRec>;
 }
+
+/** 인연 한 사람 (v18) */
+export interface BondRec { pt: number; met: number; wins: number; saved: number; mvp: number }
 
 export const newDaily = (day = ''): DailySave => ({ day, missions: [], swapped: false, chest: false, banked: 0, pub: 0, ads: { cont: 0, chest: 0, reroll: 0 }, chest2: false });
 export const newWeekly = (week = ''): WeeklySave => ({ week, missions: [], merit: { 10: 0, 20: 0 }, loot: [], chalBest: 0, guild: { n: 0, got: false } });
@@ -262,12 +267,25 @@ export function newSave(now = Date.now()): SaveData {
     hero: 'priest', heroes: {}, guild: newGuild(),
     wallet: { merit: 0 }, daily: newDaily(), weekly: newWeekly(),
     pass: { season: 0, xp: 0, free: [] }, stamina: newStamina(now), bought: [], chalOpen: 1, decos: [], chalChest: 0,
-    roster: newRoster('priest', now),
+    roster: newRoster('priest', now), users: {},
   };
 }
 
 /** 캐릭터 하나짜리 목록 (새 저장: 사제, 튜토리얼) */
 export const newRoster = (hero: HeroKey, now: number, level = 1): Roster => ({ cur: 1, slots: 1, next: 2, chars: [{ id: 1, hero, name: HEROES[hero].name, level, at: now }] });
+
+/** v18 인연 명부: 숫자가 아닌 칸은 0, 모르는 사람 꼴은 버림 */
+function usersOf(v: unknown): Record<string, BondRec> {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return {};
+  const out: Record<string, BondRec> = {};
+  const n = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : 0);
+  for (const [k, r] of Object.entries(v as Record<string, unknown>)) {
+    if (!k || !r || typeof r !== 'object') continue;
+    const o = r as Partial<BondRec>;
+    out[k] = { pt: n(o.pt), met: n(o.met), wins: n(o.wins), saved: n(o.saved), mvp: n(o.mvp) };
+  }
+  return out;
+}
 
 /** 옛 버전 저장을 지금 버전으로. 모르는 값은 새 저장 기본값으로 채움 */
 export function migrate(raw: unknown): SaveData {
@@ -296,6 +314,8 @@ export function migrate(raw: unknown): SaveData {
     daily: o.daily && typeof o.daily === 'object' ? { ...base.daily, ...o.daily, ads: obj(o.daily.ads, base.daily.ads) } : base.daily,
     weekly: o.weekly && typeof o.weekly === 'object' ? { ...base.weekly, ...o.weekly, merit: obj(o.weekly.merit, base.weekly.merit), guild: obj(o.weekly.guild, base.weekly.guild) } : base.weekly,
     pass: passOf(o.pass, base.pass),
+    // v18: 인연 (옛 저장은 빈 명부. 옛 길드원 · 스카우트 옮기기는 길드 v2 핵심 PR에서)
+    users: usersOf(o.users),
     stamina: staminaOf(o.stamina, base.stamina),
     bought: Array.isArray(o.bought) ? o.bought.filter((k): k is string => typeof k === 'string') : [],
     chalOpen: typeof o.chalOpen === 'number' ? o.chalOpen : 1,

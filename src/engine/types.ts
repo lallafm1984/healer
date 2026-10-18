@@ -251,6 +251,9 @@ export interface Unit {
   thrCool?: number;
   /** 강타 예고를 맞은 시각 (어그로: 탱커 집중) */
   busterAt?: number;
+  /** 인연 (93 3-2): 이 전투에서 가장 낮았던 체력 비율 · 그때까지 받은 내 치유 (생명의 은인 = 그 뒤로 내 힐을 받고 끝까지 삶) */
+  low?: number;
+  gotLow?: number;
   /** 짝꿍 (95): 짝 (아군 id). 붙어 있으면 둘 다 회피 + */
   pairWith?: number;
   /** 칭찬왕 · 보은형 (95): 체력 25% 아래로 내려간 적 있음 (60% 위로 오면 살아남) */

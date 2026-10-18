@@ -105,7 +105,7 @@ describe('저장 v17 (91): 강화 없앰 · 골드 다시', () => {
     expect(MAT_GOLD).toEqual({ stone: 100, refined: 500 });
     const s = migrate(v16());
     expect(s.v).toBe(SAVE_VERSION);
-    expect(SAVE_VERSION).toBe(17);
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(17); // v18 (인연 명부) 뒤에도 v17 옮기기는 그대로
     expect(s.player.gold).toBe(37 * 100 + 12 * 500);
     expect('mats' in s).toBe(false);
     expect(s.settings.devGold).toBe(true);
