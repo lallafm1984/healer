@@ -455,9 +455,9 @@ export interface SkillDef {
   warn?: string;
   /** 끊기 가능 ✋ (17 7장) */
   cut?: boolean;
-  /** 버스터 피해 (탱커 기준) */
+  /** 버스터 피해 (탱커 기준). 강타 예고면 엔진이 탱커 강타 배율을 곱함 (data/rules HAZARD.buster) */
   dmg?: number;
-  /** 장판 초당 피해 · 지속 (없으면 남는 장판 없음) */
+  /** 장판 초당 피해 · 지속 (없으면 남는 장판 없음). 피할 수 있는 장판이면 엔진이 장판 배율을 곱함 (HAZARD.zone, 맞는 순간 피해도) */
   dps?: number;
   dur?: number;
   /** 장판 예고가 맞는 순간 그 칸에 선 사람 한 번 피해 (피난처 배치기·천장 무너짐) */

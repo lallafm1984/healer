@@ -12,13 +12,14 @@ import { bossSvg } from './art';
 import { bossSkillArt, gimArt, mobSkillArt, skillArtImg } from './skillArt';
 import { BOSSES, type DebuffDef, type SkillDef, type SkillEffect } from '../data/bosses';
 import { bossNums } from './guideNums';
+import { RULES, zoneDps } from '../data/rules';
 import { ARROW, heroSkill, ICON_COLOR, iga, josa, mmss, READ_ORDER, S, secT } from './core';
 
-// 숫자는 엔진에서 읽는다: 기술 이름·아이콘·첫 시각·주기·예고·탱커 피해·장판 초당 피해/지속은 시험 전투(E.create)의 skills에서,
+// 숫자는 엔진에서 읽는다: 기술 이름·아이콘·첫 시각·주기·예고·탱커 피해·장판 맞는 순간 · 초당 피해/지속은 시험 전투(E.create)의 skills에서 (장판 · 강타 배율 data/rules HAZARD가 들어간 값),
 // 피해 배율·회피는 E.DIFFS에서, 보스·파티 체력(악몽 배율 포함)은 시험 전투에서.
 // 기술 안쪽 숫자 (평타·광역 피해, 디버프, 페이즈 문턱)는 보스 데이터(data/bosses.ts)에서 읽어 GB로 모음
 type Num = any;
-interface ProbeSkill { name: string; icon: string; next: number; period: number; cast: number; dmg: number; dps: number; dur: number }
+interface ProbeSkill { name: string; icon: string; next: number; period: number; cast: number; dmg: number; dps: number; dur: number; hitDmg: number }
 interface Probe { sk: Record<string, ProbeSkill>; m: number; bossMax: number; hp: { tank: number; dps: number; me: number } }
 const probeCache: Record<string, Probe> = {};
 /** 시험 전투 하나로 숫자를 읽음. 단계 레벨 배율(24 10장)을 넣어야 레이드 숫자가 전투와 같음 */
@@ -27,7 +28,7 @@ function probe(encKey: EncounterKey, diff: DiffName, stageLv?: number, heroLv?: 
   if (!probeCache[k]) {
     const f = create({ encounter: encKey, diff, seed: 1, stageLv, heroLv });
     const sk: Record<string, ProbeSkill> = {};
-    for (const s of f.skills) sk[s.key] = { name: s.name ?? '', icon: s.icon ?? '', next: s.next, period: s.period, cast: s.cast, dmg: s.dmg ?? 0, dps: s.dps ?? 0, dur: s.dur ?? 0 };
+    for (const s of f.skills) sk[s.key] = { name: s.name ?? '', icon: s.icon ?? '', next: s.next, period: s.period, cast: s.cast, dmg: s.dmg ?? 0, dps: s.dps ?? 0, dur: s.dur ?? 0, hitDmg: s.hitDmg ?? 0 };
     // 2인·3인 판엔 근접이 없을 수 있어서 딜러 아무나
     const hp = (r: Role) => Math.round((f.party.find(u => u.role === r) || f.party.find(u => u.role !== 'tank' && !u.me) || { max: 600 }).max);
     probeCache[k] = { sk, m: f.dmgMult, bossMax: f.bossMax, hp: { tank: hp('tank'), dps: hp('melee'), me: hp('healer') } };
@@ -304,11 +305,11 @@ const flipHow = (d: DebuffDef) => `끝날 때 체력이 높으면 낮아지니 �
 const linkPairs = (e: Extract<SkillEffect, { p: 'link' }>, c: GuideCtx): number => (c.mythic && e.pairsMythic) || e.pairs || 1;
 /** 기술 효과 → [무엇, 어떻게] */
 function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: ProbeSkill | undefined): [string, string] {
-  const { n } = c;
-  if (!e && d.fixed && d.cells?.p === 'ring') return [`💓 판 가운데부터 바깥으로 박동이 ${d.cells.of}겹 퍼짐: 겹마다 0.5초 차이로 그 겹에 선 사람 모두 <b>${n(d.hitDmg ?? 0)}</b>${d.hitDebt ? ` · 빌린 생명이 걸린 사람은 남은 빚 +${pctT(d.hitDebt)}` : ''} (피할 수 없음)`, `가운데 사람부터 차례로 맞으니 ${act('poh', RO)} · ${act('renew', EUL)} 미리 채우기`];
-  if (!e && d.fixed) return [`${d.cells?.p === 'flow' ? `세로 줄을 ${d.cells.every}초마다 한 줄씩 훑으며 그 줄에 선 사람` : `${ROW_NAME[d.cells?.p === 'line' ? d.cells.at : 'mid']}에 선 사람`} 모두 <b>${n(d.hitDmg ?? 0)}</b>${d.hitDebuff ? ` + ${debuffText(d.hitDebuff, n)}` : ''} (피할 수 없음)`, `맞기 전에 그 줄을 ${act('poh', RO)} · ${act('renew', EUL)} 미리 채우기`];
+  const { n } = c, hit = ps?.hitDmg ?? d.hitDmg ?? 0;
+  if (!e && d.fixed && d.cells?.p === 'ring') return [`💓 판 가운데부터 바깥으로 박동이 ${d.cells.of}겹 퍼짐: 겹마다 0.5초 차이로 그 겹에 선 사람 모두 <b>${n(hit)}</b>${d.hitDebt ? ` · 빌린 생명이 걸린 사람은 남은 빚 +${pctT(d.hitDebt)}` : ''} (피할 수 없음)`, `가운데 사람부터 차례로 맞으니 ${act('poh', RO)} · ${act('renew', EUL)} 미리 채우기`];
+  if (!e && d.fixed) return [`${d.cells?.p === 'flow' ? `세로 줄을 ${d.cells.every}초마다 한 줄씩 훑으며 그 줄에 선 사람` : `${ROW_NAME[d.cells?.p === 'line' ? d.cells.at : 'mid']}에 선 사람`} 모두 <b>${n(hit)}</b>${d.hitDebuff ? ` + ${debuffText(d.hitDebuff, n)}` : ''} (피할 수 없음)`, `맞기 전에 그 줄을 ${act('poh', RO)} · ${act('renew', EUL)} 미리 채우기`];
   if (!e && d.cells?.p === 'tide') { const rows = c.mythic && d.cells.rowsMythic ? d.cells.rowsMythic : d.cells.rows; return [`🌊 판 아래 ${rows}줄이 ${secT(d.dur ?? 0)} 동안 어둠물에 잠김: 잠긴 칸에 선 사람은 <b>받는 치유 −${pctT(TIDE_CUT)}</b> (지속 힐 · 광역 힐도)${d.dps ? ` · 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}. 파티원은 위쪽 빈 칸으로 비키지만 빈 칸이 모자라면 남음${d.cells.islands ? `. 🏝 잠길 줄 가운데 ${(c.mythic && d.cells.islandsMythic) || d.cells.islands}칸은 물 위 섬 (안 잠김)` : ''}`, '예고 동안 아래 줄 사람을 채우고, 잠긴 동안은 다른 사람 · 보호막, 물이 빠지면 몰아 채우기']; }
-  if (!e) return d.cells ? [`장판${d.hitDmg ? `: 맞는 순간 그 칸 <b>${n(d.hitDmg)}</b>` : ''}${d.dps ? `${d.hitDmg ? ',' : ':'} 안에 있으면 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}${d.dur ? ` (${secT(d.dur)})` : ''}`, '파티원이 알아서 피함. 늦게 피하는 사람을 채우기'] : ['', ''];
+  if (!e) return d.cells ? [`장판${d.hitDmg ? `: 맞는 순간 그 칸 <b>${n(hit)}</b>` : ''}${d.dps ? `${d.hitDmg ? ',' : ':'} 안에 있으면 초당 <b>${n(ps?.dps ?? d.dps)}</b>` : ''}${d.dur ? ` (${secT(d.dur)})` : ''}`, '파티원이 알아서 피함. 늦게 피하는 사람을 채우기'] : ['', ''];
   switch (e.p) {
     case 'tank': return [`${d.target === 'offtank' ? '보스를 안 맞는 탱커' : '탱커'}에게 <b>${n(ps?.dmg ?? d.dmg ?? 0)}</b> 피해${e.debuff ? ` + ${debuffText(e.debuff, n)}` : ''}`, e.debuff?.swap ? '교대한 탱커에게도 지속 힐을 걸어 두기' : '예고가 뜨면 탱커를 미리 가득 채우기'];
     case 'hunt': return [`그 순간 체력 비율이 가장 낮은 탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : (e.n ?? 1)}명에게 <b>${n(e.dmg)}</b> 피해`, '예고 동안 가장 낮은 사람을 먼저 채우기'];
@@ -336,7 +337,7 @@ function effectText(d: SkillDef, e: SkillEffect | undefined, c: GuideCtx, ps: Pr
     case 'cycle': return e.random
       ? [`탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : e.n}명에게 셋 중 하나: ${e.debuffs.map(x => debuffText(x, n)).join(' / ')}`, '칸 위 모자를 보고 다르게: 뒤집힘은 힐 멈춤 · 상한은 지우거나 보호막 · 완치는 몰아서 채우기']
       : [`${e.n}명에게 디버프를 차례로 (${e.debuffs.map(x => x.type).join(' → ')})`, '지울 수 있는 것부터 지우기'];
-    case 'ring': return [`탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : e.n}명 발밑에 고리 ${secT(e.sec)} (안에 있으면 초당 <b>${n(e.dps)}</b>). 안에서 치유를 받으면 한 겹 자람 (최대 ${c.mythic && e.maxMythic != null ? e.maxMythic : e.max}겹)`,
+    case 'ring': return [`탱커 아닌 ${c.mythic && e.nMythic ? e.nMythic : e.n}명 발밑에 고리 ${secT(e.sec)} (안에 있으면 초당 <b>${n(zoneDps(RULES, e.dps))}</b>). 안에서 치유를 받으면 한 겹 자람 (최대 ${c.mythic && e.maxMythic != null ? e.maxMythic : e.max}겹)`,
       '고리 안 사람은 걸어 나올 때까지 힐을 미루기 (위급하면 예외). 광역 힐은 고리를 피해서'];
     case 'soul': return [`빈 칸에 「${e.name}」${(e.n ?? 1) > 1 ? ` ${e.n}개` : ''}. ${secT(e.sec)} 안에 단일 힐로 가득 채우면 ${e.win.text}`, `영혼 칸에 ${act('heal', EUL)} 넣기${(e.n ?? 1) > 1 ? ' (낮은 칸부터 돌아가며)' : ''}`];
     case 'link': return [`${linkPairs(e, c) > 1 ? `${linkPairs(e, c)}쌍을` : '두 사람을'} 「${e.name}」으로 ${secT(e.sec)} 이음`, e.kind === 'balance' ? '두 사람 체력 비율을 비슷하게' : '둘이 피해 · 치유를 나눔'];
