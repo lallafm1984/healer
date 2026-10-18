@@ -30,7 +30,7 @@ import { CELL_RADIUS, clearOf, fitBoard, floatBlocks, hotTimerLayout, shieldTime
 import { DEBUFF_EDGE, GIM_ICON, MARK_ART } from './board-marks';
 import { BOARDS } from '../data/boards';
 import { makeCells } from '../engine/board';
-import { ALWAYS_FX, BOSS_PXF, bossPxfOf, COMMON_PXF, heroSkillFx, isBossPxf, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, type CommonFx, type PxfKey } from './pxf';
+import { ALWAYS_FX, BOSS_PXF, bossPxfOf, COMMON_PXF, heroSkillFx, isBossPxf, loopFrame, PXF, pxfArtName, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, TOTEM_STAND, type CommonFx, type PxfKey } from './pxf';
 
 // ---------- 색 ----------
 const hex = (c: string) => parseInt(c.slice(1, 7), 16);
@@ -1211,11 +1211,13 @@ export function lensAt(idx: number, now: number): void { B2.lens = { idx, t0: no
 const HOT_COLOR: Record<string, number> = { sprout: 0x7bc67e, growth: 0xb7e07a, wildflower: 0xe59ac0, oath: 0xf0c46a, bloom: 0xf3c7d6, lightWave: 0xffe7a3, droplet: 0x7ec8f0, wanderMist: 0x6fd0b0, starMark: 0xe8b04a };
 /**
  * 판 위 물건 (79 6-1, engine/totems): 칸 바닥 색 · 그림 이름 (80 5장 board-*, 오기 전엔 바닥 색 + 안쪽 테두리). 범위 = 테두리를 그릴 거리
- * stand = 바닥 무늬가 아니라 칸 위에 선 물건 (standL): 사람이 서 있어도 그 칸 가운데에 크게, 이름 · 체력 뒤. 샘 · 대지 토템 = 스킬 아이콘과 같은 그림 (2026-10-16)
+ * stand = 바닥 무늬가 아니라 칸 위에 선 물건 (standL): 사람이 서 있어도 그 칸 가운데에 크게, 이름 · 체력 뒤.
+ * 샘 · 대지 토템 = 주술사 자원 그림 (조작판 왼쪽)의 토템을 잘라 낸 그림 + 뒤 빛 (aura, 자원 그림의 뒤 빛과 같은 숨쉬기) + 그림 위 루프 (loop)
+ * (2026-10-18 Lim 「판 위 토템이 퀄리티가 떨어지고 이질감, 스킬 자원의 토템과 같은 디자인으로, 이펙트가 루프로 돌게, 크기는 지금보다 작게」. 예전 16일 그림은 스킬 아이콘 모양)
  */
-const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string; stand?: boolean }> = {
-  spring: { color: 0x7ec8f0, art: 'board-totem-spring', label: '샘', stand: true },
-  earth: { color: 0xc49a62, art: 'board-totem-earth', label: '대지', stand: true },
+const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string; stand?: boolean; aura?: string; loop?: PxfKey; phase?: number }> = {
+  spring: { color: 0x7ec8f0, art: 'board-totem-spring', label: '샘', stand: true, aura: 'board-totem-spring-aura', loop: 'shaman-spring-loop' },
+  earth: { color: 0xc49a62, art: 'board-totem-earth', label: '대지', stand: true, aura: 'board-totem-earth-aura', loop: 'shaman-earth-loop', phase: 0.5 },
   sea: { color: 0x4fa8e0, art: 'board-sea-spring', label: '바다' },
   mist: { color: 0x6fd0b0, art: 'board-mist-pool', label: '안개' },
   citadel: { color: 0xe6d3a0, art: 'board-citadel', label: '성채' },
@@ -1224,24 +1226,42 @@ const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string;
 /** 선 물건 그림 한 변 (칸 반지름 배) · 그림마다 그려진 부분 (폭 · 높이 비율, 2026-10-16 납품본을 잼): 그려진 부분이 칸 안에 꽉 차게 */
 const STAND_SIZE = 1.5;
 const STAND_BOX: Record<string, [number, number]> = {
-  'board-totem-spring': [0.72, 0.95], 'board-totem-earth': [0.75, 0.91],
+  'board-totem-spring': [0.76, 0.93], 'board-totem-earth': [0.74, 0.91],
   'board-shelter': [0.84, 0.9], 'board-sanctuary': [0.94, 0.86], 'board-moss': [0.91, 0.45],
 };
 /** 그림마다 한 변 (칸 반지름 배, 없으면 STAND_SIZE): 넓은 성역 돔 · 납작한 이끼는 칸 폭 안에 들게 줄임. 이끼는 그림 아래쪽에 그려져 있어 칸 가운데에 두면 발밑에 깔림 */
-const STAND_SCALE: Record<string, number> = { 'board-sanctuary': 1.38, 'board-moss': 1.3 };
+const STAND_SCALE: Record<string, number> = { 'board-sanctuary': 1.38, 'board-moss': 1.3, 'board-totem-spring': TOTEM_STAND, 'board-totem-earth': TOTEM_STAND };
+/** 그림마다 칸 가운데에서 아래로 (칸 반지름 배, 없으면 0): 토템 꼭대기 보석 (물방울 · 돌 왕관)이 직업 아이콘에 가리지 않고 아이콘과 이름 사이에 보이게 조금 내림 */
+const STAND_DY: Record<string, number> = { 'board-totem-spring': 0.1, 'board-totem-earth': 0.1 };
+/** 뒤 빛 그림 (aura) 한 변 = 선 물건 그림 한 변 × 이 값 (같은 가운데로 잘라 냄: 게이지 원화 좌표 640 ÷ 470) */
+const AURA_SCALE = 640 / 470;
 /** 그림마다 불투명도 (없으면 1): 성역 돔은 빛 막이라 아래 직업 칸 색 (체력)이 비치게 */
 const STAND_ALPHA: Record<string, number> = { 'board-sanctuary': 0.82 };
 /**
  * 선 물건 하나 (토템 · 쉼터 · 빛의 성역 · 이끼 자리, 2026-10-16 Lim 「토템 위치는 고정, 이름 · 체력 뒤 직업 칸 색 위에 가운데 크게, 캐릭터가 이동해도 그 자리」):
  * 칸 가운데 (standL: 직업 칸 색 위, 아이콘 · 이름 · 체력 · 배지 아래), 세울 때 0.25초 솟아오름 (바닥 기준, at = 세운 시각), 끝나기 2초 전 깜빡임. 그림이 아직 안 읽혔으면 false
  */
-function putStand(key: string, artName: string, x: number, y: number, r: number, at: number, end: boolean, pulse: number): boolean {
+function putStand(key: string, artName: string, x: number, y: number, r: number, at: number, end: boolean, pulse: number, extra: { aura?: string; loop?: PxfKey; phase?: number } = {}): boolean {
   const tex = artTexture(artName);
   if (!tex) return false;
   const rise = S.reducedEffects ? 1 : Math.min(1, Math.max(0, ((B.F?.t ?? 0) - at) / 0.25)), k = 0.6 + 0.4 * (1 - (1 - rise) ** 2);
   const [bw, bh] = STAND_BOX[artName] ?? [1, 1], size = r * (STAND_SCALE[artName] ?? STAND_SIZE), w = size * bw, half = (size * bh) / 2;
-  const q = fitCenter(x, y, w / 2, half);
-  stands.put(tex, q.x, q.y + half * (1 - k), size * k, size * k, (end ? 0.5 + 0.5 * pulse : 1) * (STAND_ALPHA[artName] ?? 1));
+  const q = fitCenter(x, y + r * (STAND_DY[artName] ?? 0), w / 2, half), cy = q.y + half * (1 - k), alpha = (end ? 0.5 + 0.5 * pulse : 1) * (STAND_ALPHA[artName] ?? 1), sec = performance.now() / 1000;
+  // 뒤 빛: 자원 그림 (class-gauge.css totem-active-breathe)과 같은 2.8초 숨쉬기, 시각 효과 줄이기면 멈춘 판 (0.65)
+  const auraTex = extra.aura ? artTexture(extra.aura) : null;
+  if (auraTex) {
+    const b = S.reducedEffects ? 0.5 : 0.5 - 0.5 * Math.cos(((sec / 2.8 + (extra.phase ?? 0)) % 1) * Math.PI * 2);
+    const sa = size * k * AURA_SCALE * (S.reducedEffects ? 1 : 0.98 + 0.055 * b);
+    stands.put(auraTex, q.x, cy - (S.reducedEffects ? 0 : size * 0.005 * b), sa, sa, alpha * (S.reducedEffects ? 0.65 : 0.48 + 0.32 * b));
+  }
+  stands.put(tex, q.x, cy, size * k, size * k, alpha);
+  // 그림 위에서 도는 루프 (이름 · 체력 아래 같은 층): 그림 크기에 맞춰 (루프 그리기 코드가 TOTEM_STAND 크기로 보석 자리를 잡음). 시각 효과 줄이기면 안 그림
+  const lp = extra.loop && !S.reducedEffects ? PXF[extra.loop] : null, lt = lp ? smoothFrame(extra.loop!, loopFrame(lp, sec + (extra.phase ?? 0) * 1.5)) : null;
+  if (lp && lt) {
+    if (lt.source.scaleMode !== 'linear') lt.source.scaleMode = 'linear';
+    const d = (pxfDrawSize(lp, r * 2) * k * (STAND_SCALE[artName] ?? STAND_SIZE)) / TOTEM_STAND;
+    stands.put(lt, q.x, cy, d, d, alpha);
+  }
   recordBound(`stand-${key}`, 'stand', 'rect', q.x, q.y, w, size * bh, { diameter: size });
   return true;
 }
@@ -1250,7 +1270,7 @@ const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
   priest: ['board-shelter'],
   druid: ['board-moss'],
   paladin: ['board-sanctuary'],
-  shaman: ['board-totem-spring', 'board-totem-earth', 'board-totem-rain', 'board-sea-spring'],
+  shaman: ['board-totem-spring', 'board-totem-earth', 'board-totem-spring-aura', 'board-totem-earth-aura', 'board-totem-rain', 'board-sea-spring'],
   monk: ['board-mist', 'board-mist-pool'],
   astrologer: ['board-star', 'board-star-mark', 'board-star-sleep', 'board-supernova'],
   warder: ['board-seal', 'board-barrier', 'board-citadel'],
@@ -1520,7 +1540,7 @@ export function render(now: number): void {
       const look = TOTEM_LOOK[tm.kind], end = tm.until - F.t < 2, tex = artTexture(look.art);
       hexPoly(cellsG, p.x, p.y, r).fill({ color: look.color, alpha: end ? 0.08 + 0.14 * pulse : 0.22 });
       // 선 물건: 한 칸에 토템 하나 (engine/totems ONE_PER_CELL): 새로 세우면 앞 토템은 엔진에서 사라짐
-      if (tex && look.stand) putStand(`${tm.kind}${i}`, look.art, p.x, p.y, r, tm.at, end, pulse);
+      if (tex && look.stand) putStand(`${tm.kind}${i}`, look.art, p.x, p.y, r, tm.at, end, pulse, look);
       else if (tex) decals.put(tex, p.x, p.y, cellArt, cellArt, end ? 0.5 + 0.5 * pulse : 1);
       else hexPoly(cellsG, p.x, p.y, r * 0.62).stroke({ width: 2.5, color: look.color, alpha: 0.9 });
     }

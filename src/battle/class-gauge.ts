@@ -12,6 +12,11 @@ const div = (cls: string) => { const e = document.createElement('div'); e.classN
 const span = (cls: string) => { const e = document.createElement('span'); e.className = cls; e.setAttribute('aria-hidden','true'); return e; };
 const priestWindow = [[677,183],[716,240],[786,286],[842,341],[875,400],[889,470],[889,586],[858,578],[826,568],[792,565],[756,572],[723,589],[691,620],[677,652],[663,620],[631,590],[597,573],[561,566],[526,568],[491,580],[465,590],[465,470],[476,402],[505,342],[561,286],[636,240]];
 let cache = '';
+/**
+ * 주술사 자원 그림 배치 (원화 542 × 464 좌표, 2026-10-18): 토템 둘을 가운데로 40씩 모으고 (사이 6), 아래 줄 (원화 y 331~409)을 토템 바로 밑으로 93 올림.
+ * 아래 줄 = [모래시계 42][6][남은 시간 「19.8」까지][14][되돌림 64][6][재사용 대기 두 자리], 끝까지 칸 안. crop = 그린 부분 (칸 폭에 맞춰 약 0.39배)
+ */
+const SHAMAN_PACK={totem:40,lowY:-93,icon:.8,hourglass:42,reset:-9,numLeft:(191-42)/542*100,extraLeft:(357+9)/542*100,crop:[144.1,50,408.9,313] as [number,number,number,number]};
 /** Extra resource slots reuse the approved sprite as independently placed UI pieces. */
 function resourceVariant(el: HTMLElement, job: HeroKey, max: number): void {
   if(job==='astrologer'){
@@ -146,13 +151,33 @@ export function buildClassGauge(host: HTMLElement, controls: HTMLElement, job: H
     });
     el.querySelector('.gauge-ready')!.replaceWith(ready);
   }
+  if(job==='shaman'){
+    // 2026-10-18 Lim 「주술사 자원 토템 그림이 너무 작음, 사제 자원 크기를 기준으로 큼직하게」: 같은 원화를 네 묶음 (샘 토템 · 대지 토템 · 모래시계 + 남은 시간 · 되돌림 + 재사용 대기)으로 나눠
+    // 가운데로 모으고 (원화 좌표 · 채움 · 빛은 묶음 안에서 그대로) 아래 crop을 좁혀 키움. 숫자는 글자 크기 그대로, 아래 아이콘은 숫자가 칸 안에 들게 0.8배
+    const top=el.querySelector<HTMLElement>(':scope>.gauge-base')!,ready=el.querySelector<HTMLElement>(':scope>.gauge-ready')!,low=el.querySelector<HTMLElement>(':scope>.shaman-low')!;
+    const fills=[...el.querySelectorAll<HTMLElement>(':scope>.fill-mask')],auras=[...el.querySelectorAll<HTMLElement>(':scope>.totem-aura')],fronts=[...el.querySelectorAll<HTMLElement>(':scope>.totem-foreground')];
+    const group=(name:string,dx:number,dy=0)=>{const g=div('shaman-group');g.dataset.group=name;g.style.transform=`translate(${dx/542*100}%,${dy/464*100}%)`;return g;};
+    const spring=group('spring',SHAMAN_PACK.totem),earth=group('earth',-SHAMAN_PACK.totem);
+    // 가까워진 두 토템 사이에서 뒤 빛이 옆 토템에 번지지 않게 안쪽 가장자리만 부드럽게 지움 (원화 x: 샘 222→246 · 대지 312→336, 옮긴 뒤 둘 사이 가운데 근처)
+    const fade=(e:HTMLElement,g:string)=>{e.style.maskImage=e.style.webkitMaskImage=g;};
+    fade(auras[0],`linear-gradient(to right,#000 ${222/542*100}%,transparent ${246/542*100}%)`);fade(auras[1],`linear-gradient(to right,transparent ${312/542*100}%,#000 ${336/542*100}%)`);
+    // 바탕 원화 (위 2/3)는 묶음마다 자기 토템 쪽만 (사이 원화 x 239 · 319)
+    const springTop=top.cloneNode() as HTMLElement;springTop.style.clipPath=`inset(0 ${(542-239)/542*100}% 33% 0)`;top.style.clipPath=`inset(0 0 33% ${319/542*100}%)`;
+    spring.append(springTop,auras[0],fronts[0],...fills.filter((_,i)=>c.groups?.[i]===0),ready);
+    earth.append(top,auras[1],fronts[1],...fills.filter((_,i)=>c.groups?.[i]===1));
+    const lowArt=low.querySelector<HTMLElement>('.gauge-base')!,num=low.querySelector<HTMLElement>('.gauge-number')!,extra=low.querySelector<HTMLElement>('.gauge-extra')!;
+    const hourglass=group('hourglass',SHAMAN_PACK.hourglass,SHAMAN_PACK.lowY),reset=group('reset',SHAMAN_PACK.reset,SHAMAN_PACK.lowY);
+    const icon=(clip:string,cx:number,cy:number)=>{const e=lowArt.cloneNode() as HTMLElement;e.style.clipPath=clip;e.style.transformOrigin=`${cx/542*100}% ${cy/464*100}%`;e.style.transform=`scale(${SHAMAN_PACK.icon})`;return e;};
+    hourglass.append(icon('inset(67% 50% 0 0)',122,367.5),num);reset.append(icon('inset(67% 0 0 50%)',328,370),extra);
+    low.remove();el.append(spring,earth,hourglass,reset);
+  }
   if(job==='warder') [425,678,930].forEach(x=>{
     const target=img(job,'base','target-active');
     target.style.clipPath=polygon([[x,932],[x+25,938],[x+40,951],[x+45,970],[x+40,989],[x+25,1004],[x+52,1017],[x+76,1031],[x+87,1048],[x+78,1061],[x+50,1070],[x,1074],[x-50,1070],[x-78,1061],[x-87,1048],[x-76,1031],[x-52,1017],[x-25,1004],[x-40,989],[x-45,970],[x-40,951],[x-25,938]]);
     el.append(target);
   });
   // 기존 원화의 투명 여백만 제외한다. 프레임·슬롯 좌표는 직업별로 바꾸지 않는다.
-  const crop:Partial<Record<HeroKey,[number,number,number,number]>>={paladin:[84,14,443,442],shaman:[85,45,525,420],monk:[100,20,450,440],warder:[90,65,465,435]};
+  const crop:Partial<Record<HeroKey,[number,number,number,number]>>={paladin:[84,14,443,442],shaman:SHAMAN_PACK.crop,monk:[100,20,450,440],warder:[90,65,465,435]};
   const bounds=crop[job];
   if(bounds){
     const [l,t,r,b]=bounds,w=107.547,h=130.016,scale=Math.min(w*.96/(r-l),h*.96/(b-t)),canvas=div('resource-art');
@@ -168,6 +193,7 @@ export function buildClassGauge(host: HTMLElement, controls: HTMLElement, job: H
   }
   const num=el.querySelector<HTMLElement>('.gauge-number')!;
   num.style.left=c.pos[0]+'%';num.style.top=c.pos[1]+'%';
+  if(job==='shaman'){num.style.left=SHAMAN_PACK.numLeft+'%';el.querySelector<HTMLElement>('.gauge-extra')!.style.left=SHAMAN_PACK.extraLeft+'%';}
 }
 
 /** Artwork stays fixed; the reveal, numeric data and activation layers follow live combat state. */

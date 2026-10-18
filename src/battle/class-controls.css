@@ -82,7 +82,9 @@
  * 주술사 1.18 · 점성술사 1.2배 (위아래는 class-gauge.ts가 좁힘) · 결계사 1.1. 수도사는 원래 칸 높이를 거의 다 써서 (124/130) 그대로. 위쪽을 기준으로 키워 특성 버튼과는 간격이 더 남음.
    상자 (#gauges 안 가운데, 특성 버튼보다 7px 위)는 그대로 두고 안쪽 그림만 키움 (상자 밖 좌우로는 조금 나가도 됨) */
 #battle #controls.hasaux #gauges .job-gauge:is([data-job=shaman],[data-job=astrologer],[data-job=warder]){overflow:visible}
-#battle #controls.hasaux #gauges .job-gauge[data-job=shaman]>.resource-art{transform:scale(1.18);transform-origin:50% 0}
 #battle #controls.hasaux #gauges .job-gauge[data-job=astrologer]>.star-grid{transform:scale(1.2);transform-origin:50% 0}
 #battle #controls.hasaux #gauges .job-gauge[data-job=warder]>.resource-art{transform:translateY(3px) scale(1.1);transform-origin:50% 0}
-.job-gauge[data-job=shaman] .shaman-low{position:absolute;inset:0;transform:translateY(-13%);pointer-events:none;z-index:3}
+/* 주술사 (2026-10-18 Lim 「토템 그림이 너무 작음, 사제 자원 크기를 기준으로 큼직하게」): 토템 둘 · 아래 숫자 줄 묶음을 가운데로 모아 칸 폭을 채움 (class-gauge.ts SHAMAN_PACK).
+ * 특성 버튼이 없을 때 칸 전체가 1.3배가 되면 좌우가 넘쳐서 안쪽 그림만 0.86배 (= 1.12배) + 아래 특성 버튼 자리 가운데로 */
+.job-gauge[data-job=shaman] .shaman-group{position:absolute;inset:0;pointer-events:none}
+#battle #controls:not(.hasaux) #gauges .job-gauge[data-job=shaman]>.resource-art{transform:translateY(9%) scale(.86);transform-origin:50% 0}
