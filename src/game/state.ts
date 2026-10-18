@@ -349,14 +349,22 @@ export function switchOpen(): { ok: boolean; dev: boolean; why: string } {
 
 /**
  * 직업 해금 (81): 드루이드 · 성기사는 지금 캐릭터 레벨 (Lv 20 · 30), 상점 직업 (unlock.buy)은 산 계정이면 레벨 조건 없이.
- * 이전에 해금한 직업 (그 직업으로 바꾼 적 있음)은 레벨 · 구매와 관계없이 보존. buy = 잠겼고 상점에서 사야 열림
+ * 이전에 해금한 직업 (그 직업으로 바꾼 적 있음)은 레벨 · 구매와 관계없이 보존. buy = 잠겼고 상점에서 사야 열림.
+ * 개발 빌드 「전 직업 선택」 (`devJobs`)이 켜져 있으면 잠긴 직업도 open (dev), 그 직업으로 바꿔도 해금 기록은 남기지 않음
  */
 export function heroStatus(h: HeroKey): { state: 'now' | 'open' | 'quest' | 'locked'; dev: boolean; quest: number; need: number; buy: boolean } {
   const info = { dev: false, quest: 0, need: 0, buy: false };
   if (h === G.save.hero) return { state: 'now', ...info };
+  if (heroEarned(h)) return { state: 'open', ...info };
+  // 개발 빌드 「전 직업 선택」: 잠긴 직업도 열림 (dev = 이 설정 덕에 열림, 상점으로 보내지 않음)
+  if (G.save.settings.devJobs) return { state: 'open', ...info, dev: true };
+  return { state: 'locked', ...info, buy: !!HEROES[h].unlock.buy };
+}
+
+/** 개발 설정 없이 열린 직업: 예전에 해금 · 산 직업 · 레벨 조건 */
+function heroEarned(h: HeroKey): boolean {
   const u = HEROES[h].unlock;
-  const open = !!G.save.heroes[h]?.unlocked || (u.buy ? G.save.bought.includes(jobProductId(h)) : G.save.player.level >= u.lv);
-  return { state: open ? 'open' : 'locked', ...info, buy: !open && !!u.buy };
+  return !!G.save.heroes[h]?.unlocked || (u.buy ? G.save.bought.includes(jobProductId(h)) : G.save.player.level >= u.lv);
 }
 
 /** v12: 같은 캐릭터에서 직업·스킬·착용 조합만 전환. 보상·성장·실물 장비는 공유 */
@@ -365,7 +373,8 @@ export function switchHero(h: HeroKey, now = Date.now()): boolean {
   const d = G.save, old = heroSaveOf(d, d.hero), next = heroSaveOf(d, h);
   old.layout = d.settings.layout ? { ...d.settings.layout } : null;
   old.tapKey = d.settings.tapKey;
-  old.unlocked = true;
+  // 「전 직업 선택」으로만 들어간 직업은 해금으로 남기지 않음 (설정을 끄면 다시 잠김)
+  if (heroEarned(d.hero)) old.unlocked = true;
   old.loadout = Object.fromEntries(Object.entries(d.gear.equipped).filter(([, it]) => !!it).map(([slot, it]) => [slot, it!.id]));
   if (next.loadout) {
     const owned = new Map([...d.gear.bag, ...Object.values(d.gear.equipped).filter((it): it is GearItem => !!it)].map(it => [it.id, it]));
@@ -376,7 +385,8 @@ export function switchHero(h: HeroKey, now = Date.now()): boolean {
     }
     d.gear.bag = [...owned.values()];
   }
-  d.hero = h; next.unlocked = true;
+  if (heroEarned(h)) next.unlocked = true;
+  d.hero = h;
   d.settings.layout = next.layout ? { ...next.layout } : null;
   d.settings.tapKey = next.tapKey;
   const me = d.roster.chars.find(c => c.id === d.roster.cur);

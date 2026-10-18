@@ -51,6 +51,25 @@ describe('공통 성장과 직업별 착용 조합', () => {
     G.save.player.level = 30; expect(switchHero('paladin')).toBe(true);
     G.save.player.level = 1; expect(switchHero('druid')).toBe(true);
   });
+  it('개발 빌드 「전 직업 선택」: 켜면 잠긴 직업 · 상점 직업도 전환, 끄면 다시 잠김 (직업 설정은 남음)', () => {
+    G.save.player.level = 5;
+    expect(heroStatus('druid').state).toBe('locked');
+    expect(heroStatus('shaman')).toMatchObject({ state: 'locked', buy: true });
+    G.save.settings.devJobs = true;
+    for (const h of HERO_KEYS) if (h !== 'priest') expect(heroStatus(h)).toMatchObject({ state: 'open', dev: true, buy: false });
+    expect(switchHero('shaman')).toBe(true);
+    heroSaveOf(G.save, 'shaman').talents = [1];
+    expect(switchHero('paladin')).toBe(true);
+    G.save.settings.devJobs = false;
+    expect(heroStatus('shaman')).toMatchObject({ state: 'locked', buy: true });
+    expect(heroStatus('paladin').state).toBe('now');
+    expect(switchHero('priest')).toBe(true);
+    expect(switchHero('paladin')).toBe(false);
+    expect(G.save.heroes.shaman?.talents).toEqual([1]);
+    expect(G.save.bought).toEqual([]);
+    G.save.player.level = 20; G.save.settings.devJobs = true;
+    expect(heroStatus('druid')).toMatchObject({ state: 'open', dev: false });
+  });
   it('다른 캐릭터의 높은 레벨이나 직업을 가져오지 않음', () => {
     makeChar('paladin', '', now);
     expect(G.save.roster.cur).toBe(2); expect(G.save.player.level).toBe(1);
