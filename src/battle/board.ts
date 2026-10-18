@@ -1273,6 +1273,8 @@ function putStand(key: string, artName: string, x: number, y: number, r: number,
   recordBound(`stand-${key}`, 'stand', 'rect', q.x, q.y, w, size * bh, { diameter: size });
   return true;
 }
+/** 봉화 대상 고리 반지름 (칸 반지름 배): 육각 꼭짓점 바로 바깥 (고리 위 불꽃 여섯이 꼭짓점 자리) */
+const BEACON_R = 1.08;
 /** 비구름이 판에 나타난 시각 (ms, 비가 그치면 null): 나타날 때 톡 부푸는 연출 */
 let rainShownAt: number | null = null;
 /** 0–1 → 살짝 넘쳤다 돌아오는 진행 (톡 부풂) */
@@ -1936,10 +1938,10 @@ export function render(now: number): void {
     if (u.immune > 0) { const w = Math.max(3, s * 0.1), R = ringRadius(`immune${u.id}`, 'hex', x, y, r * 1.14, w), a = u.immune < 2 ? 0.35 + 0.6 * pulse : 0.95; if (!edgeRing('fx-edge-plate', x, y, R, Math.max(6, s * 0.15), a)) hexPoly(overG, x, y, R).stroke({ width: w, color: 0xffffff, alpha: a }); }
     else if (u.redu > 0) { const R = ringRadius(`reduction${u.id}`, 'hex', x, y, r * 1.1, 2.5), a = u.redu < 2 ? 0.35 + 0.6 * pulse : 0.9; if (!edgeRing('fx-edge-bark', x, y, R, Math.max(5, s * 0.13), a)) hexPoly(overG, x, y, R).stroke({ width: 2.5, color: melting && u.redu > 0.5 ? MELT : HOT_COLOR.sprout, alpha: a }); }
     if (u.sacr > 0) { const R = ringRadius(`sacrifice${u.id}`, 'hex', x, y, r * 1.16, 2); if (!edgeRing('fx-link-chain', x, y, R, Math.max(4, s * 0.1))) dashPoly(overG, hexPts(x, y, R), 5, 4, 2, melting ? MELT : C.gold); }
-    // 봉화 = 칸 둘레 금빛 고리 루프 (paladin-beacon-loop: 숨 쉬는 고리 · 일렁이는 작은 불꽃 여섯 · 도는 혜성 · 불티, 2026-10-18 Lim 「봉화대상의 동그란 이미지도 파티클로 루프되게」).
+    // 봉화 = 칸 둘레 금빛 고리 루프 (고리는 칸 테두리에 딱 맞게 BEACON_R, 2026-10-18 Lim 「봉화 주변 원형이 너무 넓다. 딱맞게 조금 줄여줘」, 예전 1.22) (paladin-beacon-loop: 숨 쉬는 고리 · 일렁이는 작은 불꽃 여섯 · 도는 혜성 · 불티, 2026-10-18 Lim 「봉화대상의 동그란 이미지도 파티클로 루프되게」).
     // 고리가 예전 원 자리 (R)에 오게 프레임 한 변 = 2R ÷ BEACON_RING. 시각 효과 줄이기면 첫 장에서 멈춤. 띠가 아직 안 읽혔으면 예전 점선 원
     if (F.beacon === u.id) {
-      const R = ringRadius(`beacon${u.id}`, 'circle', x, y, r * 1.22, 2.5), lp = PXF['paladin-beacon-loop'], lt = smoothFrame('paladin-beacon-loop', S.reducedEffects ? 0 : loopFrame(lp, t));
+      const R = ringRadius(`beacon${u.id}`, 'circle', x, y, r * BEACON_R, 2.5), lp = PXF['paladin-beacon-loop'], lt = smoothFrame('paladin-beacon-loop', S.reducedEffects ? 0 : loopFrame(lp, t));
       if (lt) { if (lt.source.scaleMode !== 'linear') lt.source.scaleMode = 'linear'; const d = (2 * R) / BEACON_RING; ringArt.put(lt, x, y, d, d, 1); }
       else dashCircle(overG, x, y, R, 3, 5, 2.5, C.gold, 0.95);
     }
