@@ -30,6 +30,8 @@ export interface Rules {
   cd?: Partial<Record<SkillKey, number>>;
   /** 위치 규칙 (없으면 끔) */
   pos?: PosRules;
+  /** 장판 · 탱커 강타 피해 배율 (없으면 데이터 값 그대로) */
+  hazard?: HazardRules;
 }
 
 /**
@@ -52,7 +54,29 @@ export interface PosRules {
 }
 export const POS_RULES: PosRules = { tankRows: 1, meleeRows: 2, rangedRows: 2, rangedMinRows: 5, rangedDps: 0.5, rangedTaken: 1.5 };
 
-export const RULES: Rules = { lv: lvPower, apex: apexOf, enemy: 0.95, enemyDmg: 0.85, heal: 0.6, gcd: 1.5, hasteCap: 0.5, baseCrit: 0, regen: 0.7, pos: POS_RULES };
+/**
+ * 장판 · 탱커 강타 피해 배율 (2026-10-18 Lim 「장판 피해는 너무 약하고 탱커를 치는 강타 계열은 너무 세다. 장판이 약해서 그 스킬이 의미가 없다」).
+ * 보스 데이터 값 (data/bosses.ts)에 엔진이 곱한다 (engine/bosses.ts fromDef · 요정 고리 · 졸개 오라). 보스 공략 · 강타 예고 숫자 · 자동 힐러도 곱한 값을 읽는다.
+ * 피할 수 있는 장판만: 못 피하는 줄 피해 (fixed, P-ROW) · 어둠물 밀물 (P-TIDE)은 그대로. 탱커 강타 = 탱커 기준 수치 (dmg)가 있는 강타 예고 (탱커 교대 · 비늘 방패 돌진 포함).
+ * 지목 공격 (보물 욕심 · 신기루 창 · 끌기)은 그대로
+ */
+export interface HazardRules {
+  /** 피할 수 있는 장판 피해 배율: 맞는 순간 (hitDmg) · 남는 장판 초당 (dps) · 요정 고리 · 졸개 오라 */
+  zone: number;
+  /** 장판 맞는 순간 피해 상한 (원거리 · 힐러 기준, 레벨 1 · 보통 값): 배율로 이보다 커지지 않음 (원래 이보다 큰 값은 그대로) */
+  zoneHitCap: number;
+  /** 탱커 강타 피해 배율 */
+  buster: number;
+}
+export const HAZARD: HazardRules = { zone: 2, zoneHitCap: 480, buster: 0.7 };
+/** 장판 초당 피해 (요정 고리 · 오라 포함) */
+export const zoneDps = (R: Rules, dps: number): number => dps * (R.hazard?.zone ?? 1);
+/** 장판 맞는 순간 피해 */
+export const zoneHit = (R: Rules, dmg: number): number => (R.hazard ? Math.max(dmg, Math.min(dmg * R.hazard.zone, R.hazard.zoneHitCap)) : dmg);
+/** 탱커 강타 피해 */
+export const busterDmg = (R: Rules, dmg: number): number => dmg * (R.hazard?.buster ?? 1);
+
+export const RULES: Rules = { lv: lvPower, apex: apexOf, enemy: 0.95, enemyDmg: 0.85, heal: 0.6, gcd: 1.5, hasteCap: 0.5, baseCrit: 0, regen: 0.7, pos: POS_RULES, hazard: HAZARD };
 
 /** 34 이전 값: 숫자 ×2.5 · 레벨마다 +0.08, 적 = 내 레벨과 같은 세기, GCD 1.0, 기본 치명 5%, 마나 재생 1%, 시전이 짧음 */
 export const PROTO_RULES: Rules = {

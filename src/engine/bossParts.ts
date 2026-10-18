@@ -6,6 +6,7 @@ import { ABILITIES } from '../data/abilities';
 import type { DamageAim } from '../data/armor';
 import type { AddDef, AddDown, AddJob, BossDef, DebuffDef, DebuffEnd, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
 import { HEROES } from '../data/heroes';
+import { zoneDps } from '../data/rules';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { modsTaken } from './abilities';
@@ -647,7 +648,7 @@ function spawnRing(f: Fight, s: BossSkill, e: Extract<SkillEffect, { p: 'ring' }
   const name = s.name ?? '요정 고리', max = f.mythic && e.maxMythic != null ? e.maxMythic : e.max;
   for (const u of ts) {
     const c = u.moving ? u.moving.to : u.cell;
-    f.zones.push({ id: f.nextId++, cells: new Set([c]), end: f.t + e.sec, dps: e.dps, ring: { center: c, n: 0, max, every: e.every, at: -Infinity, name } });
+    f.zones.push({ id: f.nextId++, cells: new Set([c]), end: f.t + e.sec, dps: zoneDps(f.R, e.dps), ring: { center: c, n: 0, max, every: e.every, at: -Infinity, name } });
     emit(f, { type: 'fx', name: 'ring-grow', cell: c });
   }
   if (ts.length) emit(f, { type: 'msg', text: `${name}: ${ts.map(u => u.nick).join(' · ')} 발밑에 고리. 안에서 치유를 받으면 자람` });
@@ -1089,7 +1090,7 @@ function spawnAdd(f: Fight, a: AddDef, at?: Cell): void {
   c.block = 'add';
   if (a.aura) {
     const id = f.nextId++;
-    f.zones.push({ id, cells: new Set(f.cells.filter(x => hexDist(x, c) === 1 && !x.block).map(x => x.i)), end: Infinity, dps: a.aura });
+    f.zones.push({ id, cells: new Set(f.cells.filter(x => hexDist(x, c) === 1 && !x.block).map(x => x.i)), end: Infinity, dps: zoneDps(f.R, a.aura) });
     m.add!.zone = id;
   }
   if (j) m.add!.jobAt = f.t + (j.p === 'bomb' || j.p === 'hatch' || j.p === 'hoard' ? j.sec : j.p === 'march' ? marchEvery(f, j.every) : 'every' in j ? j.every : Infinity);

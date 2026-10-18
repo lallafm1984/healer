@@ -4,6 +4,7 @@
  */
 import { NO_TANK_RAMP, NO_TANK_SEC } from '../data/armor';
 import { BOSSES, type SkillDef } from '../data/bosses';
+import { busterDmg, zoneDps, zoneHit } from '../data/rules';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abDecoy, abOnTel } from './abilities';
 import { affChaos } from './affixes';
@@ -26,9 +27,11 @@ function skill(f: Fight, s: SkillSpec): BossSkill {
 /** 데이터의 기술 하나를 전투 기술로 (테스트에서 부품을 따로 돌릴 때도) */
 export function fromDef(f: Fight, d: SkillDef): BossSkill {
   const e = d.effect, z = d.cells;
+  const dodge = d.kind === 'zone' && !d.fixed && z?.p !== 'tide'; // 피할 수 있는 장판 (장판 배율, data/rules HAZARD)
   const s = skill(f, {
     key: d.key, name: d.name, icon: d.icon, kind: d.kind, hidden: d.hidden, next: d.first ?? Infinity, period: d.period, cast: d.cast,
-    warn: d.warn, cut: d.cut || e?.p === 'counter', dmg: d.dmg, dps: d.dps != null ? d.dps * (f.mythic && d.dpsMythic ? d.dpsMythic : 1) : undefined, dur: d.dur,
+    warn: d.warn, cut: d.cut || e?.p === 'counter', dmg: d.dmg != null && d.kind === 'buster' ? busterDmg(f.R, d.dmg) : d.dmg,
+    dps: d.dps != null ? (dodge ? zoneDps(f.R, d.dps) : d.dps) * (f.mythic && d.dpsMythic ? d.dpsMythic : 1) : undefined, dur: d.dur,
     active: whenFn(d.when),
     target: d.target === 'tank' ? g => { const tk = aggroTarget(g); return tk ? [tk.id] : []; }
       : d.target === 'offtank' ? g => { const tk = aggroTarget(g), off = living(g).find(u => u.role === 'tank' && u !== tk) ?? tk; return off ? [off.id] : []; }
@@ -40,7 +43,7 @@ export function fromDef(f: Fight, d: SkillDef): BossSkill {
     fire: e ? g => runEffect(g, s, e) : undefined,
     hit: e ? (g, tel) => runEffect(g, s, e, tel) : undefined,
     cellsFor: z ? g => zoneCells(g, s, z) : e?.p === 'tower' ? g => padCells(g, e.n) : undefined,
-    flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg, hitDebuff: d.hitDebuff, hitFx: d.hitFx, safe: z?.p === 'safe' || undefined, quake: e?.p === 'quake' || e?.p === 'beat' || undefined,
+    flowEvery: z?.p === 'flow' ? z.every : undefined, hitDmg: d.hitDmg != null && dodge ? zoneHit(f.R, d.hitDmg) : d.hitDmg, hitDebuff: d.hitDebuff, hitFx: d.hitFx, safe: z?.p === 'safe' || undefined, quake: e?.p === 'quake' || e?.p === 'beat' || undefined,
     pulse: z?.p === 'ring' || undefined, hitDebt: d.hitDebt,
     stunOnCut: e?.p === 'counter' ? e.stun : undefined, pads: e?.p === 'tower' || undefined, fixed: d.fixed, soak: e?.p === 'share' || undefined,
     greed: e?.p === 'greed' ? e.dmg : undefined, hunt: e?.p === 'hunt' || undefined, mirage: d.mirage, glass: e?.p === 'glass' || undefined,
