@@ -24,6 +24,7 @@ npx vite build && npm run fx:shot -- warder --sheet .sim/vfx-shots/warder.png --
 `scripts/vfx/<직업>.mjs`의 `export default { '<직업>-<이름>': { frames, logical, scope, draw(g, k) } }`, 새 직업 파일은 `index.mjs`에 더함.
 
 - `size` (선택): 프레임 크기, 기본 224. 작고 자주 뜨는 공통 효과는 192 (`battle/pxf.ts` `small()`).
+- `loop` · `fps` (선택): 판 위 물건이 서 있는 동안 계속 도는 루프 (마지막 장 다음이 첫 장, 굽기가 마지막 장을 비우지 않음). `t` = 장 번호 ÷ 장 수라 사인 · 입자 시간은 한 바퀴에 정수 번 돌게 (`frac` · `wave`). 게임은 `pxf.ts` `loop(frames, logical, fps)` + `HERO_LOOP_FX` (그 직업 전투에서만 읽음), `board.ts` 선 물건 (`TOTEM_LOOK.loop`)이 그림 위 · 이름 아래에 그림. 예: 주술사 샘 · 대지 토템 `shaman-spring-loop` · `shaman-earth-loop` (토템 그림 크기 `TOTEM_STAND` = `shaman.mjs` `TOTEM`).
 - `gray` · `sample` (선택): 회색 단계로만 그림 → 게임이 종류 색을 곱함 (치유 빛 · 쓰러짐 · 디버프 · 장비 발동). 굽기가 색이 섞이면 멈추고, 검수 시트는 `sample` 색을 곱해 보여 줌.
 - `frames`: 24fps 한 번 재생 장 수 (11–24). **첫 프레임 = 스킬이 들어간 순간**이라 0장째부터 크게 보여야 함 (서서히 나타나는 앞부분 없음). 마지막 장은 굽기가 비움.
 - `logical`: 기준 칸 62일 때 그림 지름. 한 명 대상 80–100 (칸 밖까지 빛이 번짐), 범위 · 파티 · 칸마다 기록되는 것 70–84.

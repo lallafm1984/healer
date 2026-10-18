@@ -3,6 +3,8 @@ import { HEROES } from '../data/heroes';
 import { shardMax, starsNow } from '../engine/astro';
 import { beatMax } from '../engine/monk';
 import { springSec } from '../engine/shaman';
+import { guardSec } from '../engine/specials';
+import { SHAMAN } from '../data/heroConst';
 import { wordCap } from '../engine/talents';
 import { costOf } from '../engine/talents';
 import { canTarget, knows } from '../engine/healer';
@@ -10,7 +12,9 @@ import { SKILLS } from '../data/skills';
 import { judgeCount, sealed, sealTargets } from '../engine/warder';
 
 export interface ClassGaugeState {
-  count: number; max: number; percent: number; remaining: number; cooldown: number;
+  count: number; max: number; percent: number; remaining: number;
+  /** 주술사 대지 토템 남은 시간 · 처음 길이 (2026-10-18 Lim 「대지 토템도 샘 토템처럼 지속시간」, 재사용 시간은 스킬 버튼에 보여 자원 칸에서 뺌) */
+  earthRemaining: number; earthMax: number;
   earth: boolean; targets: number; targetMax: number; description: string;
   priestAura: 'off' | 'gold' | 'blue';
   paladinWaveReady: boolean;
@@ -33,7 +37,7 @@ export function paladinWaveReady(f: Fight): boolean {
 }
 export function classGaugeState(f: Fight): ClassGaugeState {
   const live = f.party.filter(u => u.alive);
-  const s: ClassGaugeState = { count: 0, max: 1, percent: 0, remaining: 0, cooldown: 0, earth: false, targets: 0, targetMax: 3, description: '', priestAura: 'off', paladinWaveReady:false, beaconName:null };
+  const s: ClassGaugeState = { count: 0, max: 1, percent: 0, remaining: 0, earthRemaining: 0, earthMax: 1, earth: false, targets: 0, targetMax: 3, description: '', priestAura: 'off', paladinWaveReady:false, beaconName:null };
   switch (f.hero) {
     case 'priest':
       s.count = Math.floor(f.g.p); s.max = 100; s.description = `평온 ${s.count}%`; break;
@@ -47,9 +51,10 @@ export function classGaugeState(f: Fight): ClassGaugeState {
       s.description = `신성한 힘 ${s.count}/3, 빛의 파도 ${s.paladinWaveReady?'사용 가능':'대기'}, 봉화 ${s.beaconName || '미지정'}, 변경 대기 ${Math.ceil(f.beaconCd)}초`; break;
     case 'shaman':
       s.remaining = Math.max(0, ...f.totems.filter(t => t.kind === 'spring').map(t => t.until - f.t));
-      s.count = s.remaining; s.max = springSec(f); s.cooldown = Math.max(0, f.cd.springTotem ?? 0);
-      s.earth = f.totems.some(t => t.kind === 'earth' && t.until > f.t);
-      s.description = `샘 토템 ${s.remaining.toFixed(1)}초, 재사용 대기 ${s.cooldown.toFixed(1)}초, 대지 토템 ${s.earth ? '활성' : '비활성'}`; break;
+      s.count = s.remaining; s.max = springSec(f);
+      s.earthRemaining = Math.max(0, ...f.totems.filter(t => t.kind === 'earth').map(t => t.until - f.t));
+      s.earthMax = guardSec(f, SHAMAN.earth.sec); s.earth = s.earthRemaining > 0;
+      s.description = `샘 토템 ${s.remaining.toFixed(1)}초, 대지 토템 ${s.earthRemaining.toFixed(1)}초`; break;
     case 'monk':
       s.max = beatMax(f); s.count = f.level >= HEROES.monk.system.lv ? f.beat : 0;
       s.remaining = s.count > 0 ? Math.max(0, f.beatUntil - f.t) : 0;

@@ -221,8 +221,9 @@ export function drawFrame(g, fx, i, S) {
   const half = fx.logical / 62, k = S / 2 / half;
   g.translate(S / 2, S / 2); g.scale(k, k);
   g.lineCap = 'round'; g.lineJoin = 'round';
-  const t = fx.frames > 1 ? i / (fx.frames - 1) : 0;
-  fx.draw(g, { t, f: i, n: fx.frames, px: 1 / k, sec: i / 24 });
+  // 루프 (loop: 판 위에 서 있는 동안 계속 도는 그림): t = i / 장 수라 마지막 장 다음이 첫 장으로 이어짐. 한 번 재생은 0–1 끝까지
+  const t = fx.loop ? i / fx.frames : fx.frames > 1 ? i / (fx.frames - 1) : 0;
+  fx.draw(g, { t, f: i, n: fx.frames, px: 1 / k, sec: i / (fx.fps ?? 24) });
   // 가장자리를 둥글게 지움: 프레임 밖으로 나가는 빛이 게임에서 네모 테두리로 잘려 보이지 않게 (바깥 14%에서 사라짐)
   g.globalCompositeOperation = 'destination-in';
   const m = g.createRadialGradient(0, 0, half * 0.84, 0, 0, half * 0.99);

@@ -59,10 +59,35 @@ function bubble(g, x, y, r, a = 1) {
   g.restore();
 }
 
+/** 위로 떠오르는 물빛 알갱이 (흰 심 + 물빛 번짐, 반짝임): 잔물결 · 토템 루프 공통 */
+function rise(g, x, y, sz, a, tw, col = W.light) {
+  if (a <= 0) return;
+  glow(g, x, y, sz * 4.5, W.glow, 0.5 * a, true);
+  speck(g, x, y, sz, col, a, tw);
+}
+/** 0–1이 한 바퀴인 루프 시간의 소수부 · 사인 (k = 한 바퀴에 몇 번, 정수여야 이음매 없음) */
+const frac = v => v - Math.floor(v);
+const wave = (t, k = 1, ph = 0) => 0.5 + 0.5 * Math.sin(TAU * (t * k + ph));
+/**
+ * 판 위 토템 (board-totem-spring · earth = 주술사 자원 그림의 토템을 잘라 낸 것)과 같은 자리 · 크기: 토템 그림 한 변 = 칸 반지름 × TOTEM (battle/pxf.ts TOTEM_STAND),
+ * 자른 네모 한 변 = 게이지 원화 (1355 좌표) 470. 토템 가운데 기준 원화 좌표 → 칸 반지름 단위
+ */
+export const TOTEM = 1.1;
+const tp = (x, y) => ({ x: (x * TOTEM) / 470, y: (y * TOTEM) / 470 });
+/** 작은 돌 조각 (대지 토템 루프): 다섯 · 여섯 모 돌, 거의 검은 테 */
+function pebble(g, x, y, sz, rot, a, n = 6) {
+  if (a <= 0 || sz <= 0) return;
+  g.save(); g.translate(x, y); g.rotate(rot); g.scale(sz, sz * 0.85);
+  solid(g, h => { h.beginPath(); for (let j = 0; j < n; j++) { const aa = (j * TAU) / n, r2 = 0.8 + 0.25 * Math.sin(j * 2.7 + n); h.lineTo(Math.cos(aa) * r2, Math.sin(aa) * r2); } h.closePath(); }, { hi: STONE.light, lo: STONE.dark, rim: STONE.rim, rimW: 0.2, a, shine: 0.35 });
+  g.restore();
+}
+const AMBER = { rim: '#5a2a06', body: '#f0a03a', light: '#ffd27a', glow: '#ffb347' };
+
 export default {
-  /** 잔물결: 발밑에 물방울이 톡 떨어진 자리에서 위에서 본 납작한 물결 두 겹이 차례로 퍼지고 작은 물방울이 튐 */
+  /** 잔물결: 발밑에 물방울이 톡 떨어진 자리에서 위에서 본 납작한 물결 두 겹이 차례로 퍼지고 작은 물방울이 튐.
+   *  퍼지는 물결 자리에서 파란 빛 알갱이 · 물거품 · 짧은 빛줄기가 몸을 따라 위로 떠오름 (Lim 2026-10-18 「물결 이펙트가 덜 화려함, 위로 파란 파티클이 올라가게」) */
   'shaman-ripple': {
-    frames: 20, logical: 88, scope: 'target',
+    frames: 24, logical: 88, scope: 'target',
     draw(g, { t }) {
       const by = 0.6, fade = 1 - E.in2(seg(t, 0.55, 1));
       glowOval(g, 0, by, 1.0, 0.35, W.glow, 0.75 * (1 - E.out2(seg(t, 0, 0.6))));
@@ -77,21 +102,56 @@ export default {
       if (col > 0.01) lightStroke(g, s => ({ x: 0, y: lerp(by, by - col, s) }), 0, 1, u => 0.15 * (1 - u * 0.6), { rim: W.rim, body: W.body, core: W.foam, a: fade, rimW: 0.024 });
       if (col > 0.05) drop(g, 0, by - col - 0.1, 0.12, fade);
       spray(g, t, 3, 14, 0, by, { up: 1.1, spread: 1.3, size: 0.05 });
+      // 위로 떠오르는 물빛: 몸을 감싸는 옅은 기둥 + 흐린 물빛 덩이 + 물결 고리에서 태어나 흔들리며 오르는 파란 알갱이 · 물거품 · 가는 빛줄기, 꼭대기에서 반짝
+      glowOval(g, 0, -0.05, 0.66, 1.7, W.glow, 0.38 * bell(t, 0.05, 0.3, 0.85));
+      for (let i = 0; i < 3; i++) {
+        const u = seg(t, 0.08 + i * 0.08, 0.75 + i * 0.06), a = i * 2.1 + t * 4, x = Math.cos(a) * 0.32, y = lerp(0.5, -0.55, E.out2(u));
+        if (u > 0 && u < 1) bloom(g, h => { h.beginPath(); h.arc(x, y, 0.24 + 0.06 * Math.sin(i + t * 5), 0, TAU); }, i % 2 ? W.glow : W.deep, 0.32 * Math.sin(Math.PI * u), 7);
+      }
+      particles(g, t, 21, 58, r => ({ t0: 0.03 + r() * 0.5, life: 0.42 + r() * 0.32, a: r() * TAU, rr: 0.2 + r() * 0.8, rise: 1.0 + r() * 0.75, sz: 0.016 + r() * 0.028, sway: (r() - 0.5) * 0.2, ph: r() * 9 }), (gg, p, age) => {
+        const x = Math.cos(p.a) * p.rr * (1 - 0.3 * age) + p.sway * Math.sin(age * 7 + p.ph), y = by + Math.sin(p.a) * p.rr * 0.32 - p.rise * E.out2(age);
+        rise(gg, x, y, p.sz * (1 - 0.35 * age), bell(age, 0, 0.12, 1), 0.5 + 0.5 * Math.sin(p.ph + age * 20), Math.sin(p.ph) > 0 ? W.light : W.foam);
+      });
+      particles(g, t, 23, 10, r => ({ t0: 0.06 + r() * 0.4, life: 0.5 + r() * 0.2, x: (r() - 0.5) * 1.2, sz: 0.035 + r() * 0.025, ph: r() * 9 }), (gg, p, age) =>
+        bubble(gg, p.x + Math.sin(age * 9 + p.ph) * 0.05, by - 0.05 - 1.25 * E.out2(age), p.sz * (1 - 0.3 * age), bell(age, 0, 0.15, 1) * 0.95));
+      // 가는 빛줄기 (아래 → 위로 솟는 짧은 물빛 선, 꼬리는 흐리게)
+      particles(g, t, 25, 9, r => ({ t0: 0.05 + r() * 0.35, life: 0.3 + r() * 0.12, x: (r() - 0.5) * 1.25, len: 0.2 + r() * 0.16 }), (gg, p, age) => {
+        const y = by - 0.15 - 1.3 * E.out2(age);
+        lightStroke(gg, s2 => ({ x: p.x, y: lerp(y + p.len, y, s2) }), 0, 1, u => 0.03 * u, { rim: W.rim, body: W.body, core: W.foam, a: bell(age, 0, 0.2, 1) * 0.9, rimW: 0.008, glowCol: W.glow, glowA: 0.6 });
+      });
+      particles(g, t, 27, 7, (r, i) => ({ t0: 0.22 + i * 0.07 + r() * 0.04, life: 0.28, x: (r() - 0.5) * 1.15, y: -0.35 - r() * 0.45, rot: r() }), (gg, p, age) => glint(gg, p.x, p.y - age * 0.1, 0.19 * Math.sin(Math.PI * age), W.glow, 1, p.rot, 0.13, W.foam));
     },
   },
 
-  /** 물방울 (지속): 머리 위에서 큰 물방울 하나가 떨어져 닿는 순간 납작하게 퍼지고, 작은 물방울이 튀고 반짝이가 스며듦 */
+  /** 물방울 (지속): 머리 위에서 큰 물방울 하나가 떨어져 닿는 순간 납작하게 퍼지고, 작은 물방울이 튀고 반짝이가 스며듦.
+   *  떨어지는 동안 물방울 자리에서 빛 알갱이가 흩날리고, 닿는 순간 파란 빛 알갱이가 사방으로 퍼짐 (Lim 2026-10-18 「물방울이 떨어지면서 파티클이 퍼지는 연출」) */
   'shaman-droplet': {
-    frames: 20, logical: 88, scope: 'target',
+    frames: 22, logical: 88, scope: 'target',
     draw(g, { t }) {
-      const hit = 0.2, yHit = -0.3, fade = 1 - E.in2(seg(t, 0.55, 1));
+      const hit = 0.21, yHit = -0.3, fade = 1 - E.in2(seg(t, 0.55, 1)), fallY = v => lerp(-1.15, yHit, E.in2(seg(v, 0, hit)));
+      // 떨어지며 흩날린 빛 알갱이 (떨어진 뒤에도 잠깐 남아 옆으로 퍼지며 사라짐)
+      particles(g, t, 31, 28, (r, i) => ({ t0: (i / 28) * hit * 0.95, life: 0.32 + r() * 0.26, dx: (r() - 0.5) * 1.0, dy: (r() - 0.6) * 0.3, sz: 0.016 + r() * 0.022, ph: r() * 9 }), (gg, p, age) => {
+        const x = p.dx * E.out2(age), y = fallY(p.t0) - 0.12 + p.dy * age + 0.14 * age * age;
+        rise(gg, x, y, p.sz * (1 - 0.3 * age), (1 - E.in2(age)) * 0.95, 0.5 + 0.5 * Math.sin(p.ph + age * 16));
+      });
       if (t < hit) {
-        const u = E.in2(seg(t, 0, hit)), y = lerp(-1.15, yHit, u);
+        const u = E.in2(seg(t, 0, hit)), y = fallY(t);
         comet(g, s => ({ x: 0, y: lerp(y - 0.5, y - 0.15, s) }), 0, 1, { w: 0.12, rim: W.rim, body: W.body, core: W.foam, glowCol: W.glow, head: 0, a: 0.8 });
         drop(g, 0, y, 0.24, 1, 1 + 0.15 * u);
         return;
       }
       const u = seg(t, hit, 1);
+      // 닿는 순간 사방으로 퍼지는 빛 알갱이 (납작한 원을 따라 바깥으로, 위쪽 반이 더 많고 천천히 가라앉음) + 바깥으로 튀는 작은 물방울
+      ringGlow(g, 0, yHit + 0.1, lerp(0.15, 0.95, E.out3(seg(u, 0, 0.5))), 0.07, W.glow, 0.7 * (1 - seg(u, 0, 0.55)), 0.45);
+      particles(g, u, 33, 52, r => ({ t0: r() * 0.12, life: 0.45 + r() * 0.35, a: r() < 0.7 ? -Math.PI * r() : Math.PI * r(), sp: 0.6 + r() * 0.8, sz: 0.016 + r() * 0.026, ph: r() * 9 }), (gg, p, age) => {
+        const d = p.sp * E.out3(age), x = Math.cos(p.a) * d * 1.1, y = yHit + 0.08 + Math.sin(p.a) * d * 0.55 + 0.3 * age * age;
+        rise(gg, x, y, p.sz * (1 - 0.35 * age), bell(age, 0, 0.08, 1) * fade, 0.5 + 0.5 * Math.sin(p.ph + age * 18), Math.sin(p.ph) > 0 ? W.light : W.foam);
+      });
+      particles(g, u, 37, 10, (r, i) => ({ t0: r() * 0.06, life: 0.4 + r() * 0.15, a: rad(-170 + i * 18 + r() * 8), sp: 0.65 + r() * 0.45, sz: 0.035 + r() * 0.02 }), (gg, p, age) => {
+        const d = p.sp * E.out2(age), x = Math.cos(p.a) * d * 1.15, y = yHit + 0.06 + Math.sin(p.a) * d * 0.5 + 0.9 * age * age;
+        drop(gg, x, y, p.sz * (1 - 0.4 * age), (1 - E.in2(age)) * fade);
+      });
+      particles(g, u, 35, 6, (r, i) => ({ t0: 0.02 + i * 0.05, life: 0.3, a: rad(-165 + i * 30 + r() * 10), d: 0.45 + r() * 0.3, rot: r() }), (gg, p, age) => glint(gg, Math.cos(p.a) * p.d, yHit + Math.sin(p.a) * p.d * 0.5, 0.17 * Math.sin(Math.PI * age), W.glow, fade, p.rot, 0.13, W.foam));
       glowOval(g, 0, yHit + 0.1, 0.9, 0.55, W.glow, 0.85 * (1 - E.out2(u)));
       glow(g, 0, 0.15, 0.95, W.glow, 0.45 * (1 - E.out2(seg(u, 0, 0.7)))); // 몸통까지 스미는 물빛 (사제 기준)
       glow(g, 0, yHit + 0.05, 0.4, '#ffffff', 1 - E.out3(seg(u, 0, 0.35)));
@@ -289,6 +349,57 @@ export default {
         const x = p.dir * p.vx * age, y = by - 1.2 - p.vy * age * 0.6 + 2.3 * age * age;
         drop(gg, x, Math.min(y, by), p.sz * (1 - 0.3 * age), (1 - E.in2(age)) * fade);
       });
+    },
+  },
+
+  /** 샘 토템이 서 있는 동안 도는 루프 (Lim 2026-10-18 「판 위 토템을 자원 그림의 토템과 같은 디자인으로, 이펙트가 루프로 돌게」): 토템 그림 위에 겹침.
+   *  꼭대기 물방울 보석이 숨 쉬듯 빛나고, 보석 끝에서 작은 물방울이 분수처럼 솟아 양옆으로 떨어지며, 물빛 알갱이가 천천히 떠오름. 3초 한 바퀴 */
+  'shaman-spring-loop': {
+    frames: 36, fps: 12, loop: true, logical: 64, scope: 'target',
+    draw(g, { t }) {
+      const gem = tp(0, -112), top = tp(0, -205), base = tp(0, 200);
+      glow(g, gem.x, gem.y, 0.36, W.glow, 0.2 + 0.22 * wave(t, 2));
+      glow(g, gem.x, gem.y - 0.02, 0.16, '#ffffff', 0.08 + 0.14 * wave(t, 2));
+      glint(g, gem.x - 0.06, gem.y - 0.06, 0.15 * bell(frac(t * 2 + 0.6), 0, 0.12, 0.3), W.glow, 1, 0.3, 0.13, W.foam);
+      // 발밑 잔물결 (한 바퀴에 두 번, 옅게)
+      for (const k of [0, 0.5]) { const a = frac(t * 2 + k); ripple(g, 0, base.y + 0.02, lerp(0.18, 0.62, E.out2(a)), 0.38 * (1 - a) * seg(a, 0, 0.1), 0.045); }
+      // 분수: 보석 끝에서 솟아 양옆으로 포물선을 그리며 떨어지는 물방울 (한 바퀴에 두 번씩, 엇갈려)
+      for (let i = 0; i < 8; i++) {
+        const side = i % 2 ? 1 : -1, spread = 0.75 + 0.35 * ((i * 7) % 5) / 4, a = frac(t * 2 + i / 8);
+        const x = side * lerp(0.03, 0.52, a) * spread, y = top.y - 0.95 * a + 1.95 * a * a;
+        drop(g, x, y, 0.042 + 0.012 * (i % 3), seg(a, 0, 0.06) * (1 - seg(a, 0.72, 1)) * 0.95);
+      }
+      // 떠오르는 물빛 알갱이
+      for (let i = 0; i < 14; i++) {
+        const a = frac(t + i / 14), x0 = ((i * 37) % 13) / 12 - 0.5;
+        rise(g, x0 * 1.25 + 0.05 * Math.sin(TAU * (a * 2 + i * 0.3)), lerp(base.y, -0.82, a), 0.012 + 0.008 * (i % 3), bell(a, 0, 0.2, 1) * 0.85, wave(a, 3, i * 0.17));
+      }
+    },
+  },
+  /** 대지 토템이 서 있는 동안 도는 루프: 가운데 호박 보석 · 돌 왕관이 번갈아 은은하게 빛나고, 작은 돌 조각 셋이 왕관 둘레를 천천히 돌며 (뒤로 갈 때는 왕관 뒤로 숨음)
+   *  호박빛 흙먼지가 발밑에서 떠오름. 3초 한 바퀴 */
+  'shaman-earth-loop': {
+    frames: 36, fps: 12, loop: true, logical: 64, scope: 'target',
+    draw(g, { t }) {
+      const gem = tp(0, 56), crown = tp(0, -150), base = tp(0, 200);
+      glow(g, gem.x, gem.y, 0.3, AMBER.glow, 0.16 + 0.2 * wave(t, 2));
+      glow(g, crown.x, crown.y, 0.42, AMBER.glow, 0.1 + 0.14 * wave(t, 2, 0.5));
+      glint(g, gem.x + 0.05, gem.y - 0.05, 0.14 * bell(frac(t * 2 + 0.25), 0, 0.12, 0.3), AMBER.glow, 1, 0.4, 0.13, '#fff4d8');
+      glowOval(g, 0, base.y + 0.04, 0.62, 0.28, AMBER.glow, 0.12 + 0.12 * wave(t, 1));
+      // 왕관 둘레를 도는 돌 조각 (한 바퀴 3초): 앞쪽 (sin > 0)은 크고 진하게, 뒤쪽은 작고 옅게 + 왕관에 가려지는 가운데에선 사라짐
+      for (let i = 0; i < 3; i++) {
+        const ang = TAU * (t + i / 3), x = Math.cos(ang) * 0.5, y = crown.y + 0.1 + Math.sin(ang) * 0.12 + 0.03 * Math.sin(TAU * (t * 2 + i / 3)), front = Math.sin(ang) > 0;
+        const hide = front ? 1 : seg(Math.abs(x), 0.22, 0.42), a = (front ? 1 : 0.6) * hide;
+        glow(g, x, y, 0.12, AMBER.glow, 0.35 * a);
+        pebble(g, x, y, (front ? 0.07 : 0.055) + 0.008 * i, ang * 0.5 + i, a, 5 + (i % 2));
+      }
+      // 떠오르는 호박빛 흙먼지
+      for (let i = 0; i < 14; i++) {
+        const a = frac(t + i / 14), x0 = ((i * 41) % 13) / 12 - 0.5;
+        const x = x0 * 1.25 + 0.06 * Math.sin(TAU * (a * 2 + i * 0.21)), y = lerp(base.y + 0.02, -0.8, E.out2(a));
+        glow(g, x, y, 0.06, AMBER.glow, 0.45 * bell(a, 0, 0.2, 1));
+        speck(g, x, y, 0.011 + 0.007 * (i % 3), i % 2 ? AMBER.light : AMBER.body, bell(a, 0, 0.2, 1) * 0.85, wave(a, 3, i * 0.13));
+      }
     },
   },
 };

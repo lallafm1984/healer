@@ -54,7 +54,7 @@ for (const name of names) {
     let edge = 0;
     const frames = [];
     for (let i = 0; i < fx.frames; i++) {
-      if (i < fx.frames - 1) lib.drawFrame(g1, fx, i, S); else g1.clearRect(0, 0, S, S); // 마지막 프레임은 비움 (끝나면 사라짐)
+      if (fx.loop || i < fx.frames - 1) lib.drawFrame(g1, fx, i, S); else g1.clearRect(0, 0, S, S); // 마지막 프레임은 비움 (끝나면 사라짐). 루프는 비우지 않음
       const d = g1.getImageData(0, 0, S, S).data;
       let a = 0; for (let k = 3; k < d.length; k += 4) if (d[k] > a) a = d[k];
       peak.push(a);

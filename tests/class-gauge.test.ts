@@ -31,12 +31,13 @@ describe('직업 게이지의 실제 전투 상태',()=>{
       }
     }
   });
-  it('주술사의 긴 샘과 긴 재사용 대기 숫자를 시안 한계로 자르지 않는다',()=>{
+  it('주술사: 샘 · 대지 토템 남은 시간 (재사용 대기는 스킬 버튼에, 2026-10-18 Lim), 긴 시간도 자르지 않는다',()=>{
     const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'shaman'});
     f.totems=[{kind:'spring',cell:0,until:f.t+20,tick:1,at:f.t},{kind:'earth',cell:1,until:f.t+3,tick:1,at:f.t}];
     f.cd.springTotem=24;
-    expect(classGaugeState(f)).toMatchObject({remaining:20,cooldown:24,earth:true});
-    f.t+=21;expect(classGaugeState(f)).toMatchObject({remaining:0,earth:false});
+    expect(classGaugeState(f)).toMatchObject({remaining:20,earthRemaining:3,earthMax:10,earth:true});
+    expect(classGaugeState(f).description).toBe('샘 토템 20.0초, 대지 토템 3.0초');
+    f.t+=21;expect(classGaugeState(f)).toMatchObject({remaining:0,earthRemaining:0,earth:false});
   });
   it('특성으로 증가한 별 조각과 기 리듬의 최대치를 따른다',()=>{
     const f=create({encounter:'warden',diff:'보통',seed:7,level:100,hero:'astrologer'});

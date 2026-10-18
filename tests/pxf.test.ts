@@ -3,13 +3,15 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { HERO_KEYS, HEROES } from '../src/data/heroes';
 import type { SkillKey } from '../src/data/skills';
-import { ALLY_PXF, ALWAYS_FX, BOSS_PXF, bossPxfOf, COMMON_PXF, heroSkillFx, isBossPxf, PXF, pxfArtName, SKILL_FX_SIZE, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, WIDE_DESIGN, wideArtName, type CommonFx, type PxfKey } from '../src/battle/pxf';
+import { ALLY_PXF, ALWAYS_FX, BOSS_PXF, bossPxfOf, COMMON_PXF, HERO_LOOP_FX, heroSkillFx, isBossPxf, loopFrame, PXF, pxfArtName, SKILL_FX_SIZE, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, TOTEM_STAND, WIDE_DESIGN, wideArtName, type CommonFx, type PxfKey } from '../src/battle/pxf';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { AB_KIND, type AbKind } from '../src/data/abilities';
 import * as E from '../src/engine';
 import { damage } from '../src/engine/core';
 // @ts-expect-error 빌드 도구 스크립트 (.mjs, 타입 없음)
 import { FX, FX_SIZE } from '../scripts/vfx/index.mjs';
+// @ts-expect-error 빌드 도구 스크립트 (.mjs, 타입 없음)
+import { TOTEM as SHAMAN_TOTEM } from '../scripts/vfx/shaman.mjs';
 
 /** src/art 그림 파일의 가로 · 세로 (PNG · WebP 머리), 없으면 null */
 const artSize = (name: string): { w: number; h: number } | null => {
@@ -39,7 +41,7 @@ describe('도트 이펙트 없음 (Lim 2026-10-16 「도트를 모두 제거」)
 });
 
 describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 너무 허술한게 많다. 퀄리티 있게 모두 다시」)', () => {
-  type Fx = { frames: number; logical: number; scope: string; size?: number; gray?: boolean };
+  type Fx = { frames: number; logical: number; scope: string; size?: number; gray?: boolean; loop?: boolean; fps?: number };
   const fx = FX as Record<string, Fx>;
   it('scripts/vfx의 이펙트 = 게임의 손그림풍 이펙트 (224px, 공통 효과는 192px)', () => {
     expect(Object.keys(fx).sort()).toEqual([...SMOOTH_KEYS].sort());
@@ -48,13 +50,13 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
   for (const k of SMOOTH_KEYS) {
     it(`${k}: 장 수 · 그림 지름 · 재생 칸이 그리기 코드와 같고, 격자 띠가 있음`, () => {
       const c = PXF[k], f = fx[k];
-      expect({ frames: c.frames, logical: c.logicalSize, size: c.size, cols: c.cols, impact: c.impactFrame, blend: c.blend, gray: c.gray })
-        .toEqual({ frames: f.frames, logical: f.logical, size: f.size ?? FX_SIZE, cols: Math.ceil(Math.sqrt(f.frames)), impact: 0, blend: 'normal', gray: !!f.gray });
+      expect({ frames: c.frames, logical: c.logicalSize, size: c.size, cols: c.cols, impact: c.impactFrame, blend: c.blend, gray: c.gray, fps: c.fps })
+        .toEqual({ frames: f.frames, logical: f.logical, size: f.size ?? FX_SIZE, cols: Math.ceil(Math.sqrt(f.frames)), impact: 0, blend: 'normal', gray: !!f.gray, fps: f.fps ?? 24 });
       expect(pxfArtName(k)).toBe(`fx-skill-${k}`);
       expect(artSize(pxfArtName(k))).toEqual({ w: c.size * c.cols, h: c.size * Math.ceil(c.frames / c.cols) });
       expect(c.size * c.cols).toBeLessThanOrEqual(2048); // 폰 텍스처 한도 안
       const uses = Object.values(SKILL_PXF).filter(s => s!.fx === k);
-      expect(uses.length).toBe(ALWAYS_FX.has(k) ? 0 : 1);
+      expect(uses.length).toBe(ALWAYS_FX.has(k) || f.loop ? 0 : 1); // 판 위 물건 루프는 스킬 기록이 아님 (board.ts 선 물건)
       if (uses.length) expect(uses[0]!.scope).toBe(f.scope);
     });
   }
@@ -64,6 +66,16 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
     expect(pxfFrame(c, pxfMs(c))).toBe(-1);
     expect(pxfDrawSize(c, 62)).toBe(80);
     for (const k of SMOOTH_KEYS) expect(PXF[k].logicalSize, k).toBeLessThanOrEqual(fx[k].scope === 'target' ? 100 : 84);
+  });
+  it('판 위 토템 루프 (Lim 2026-10-18 「이펙트가 루프로 돌게」): 주술사 전투에서만 읽고, 토템 그림 크기가 그리기 코드와 같고, 프레임이 이어 돎', () => {
+    const loops = Object.keys(fx).filter(k => fx[k].loop);
+    expect(loops.sort()).toEqual(['shaman-earth-loop', 'shaman-spring-loop']);
+    expect([...HERO_LOOP_FX.shaman!].sort()).toEqual(loops.sort());
+    for (const k of loops) expect(heroSkillFx('shaman')).toContain(k);
+    for (const h of HERO_KEYS) if (h !== 'shaman') expect(heroSkillFx(h).filter(k => loops.includes(k))).toEqual([]);
+    expect(SHAMAN_TOTEM).toBe(TOTEM_STAND);
+    const c = PXF['shaman-spring-loop'];
+    expect([loopFrame(c, 0), loopFrame(c, (c.frames - 0.5) / c.fps), loopFrame(c, c.frames / c.fps), loopFrame(c, -0.01)]).toEqual([0, c.frames - 1, 0, c.frames - 1]);
   });
   it('전투마다 지금 직업 것만 읽음 (하나에 2–5MB)', () => {
     expect(heroSkillFx('priest').sort()).toEqual(['priest-flash', 'priest-guardian', 'priest-heal', 'priest-hymn', 'priest-poh', 'priest-purify', 'priest-relay', 'priest-renew', 'priest-serenity']);

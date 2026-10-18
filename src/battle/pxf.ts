@@ -43,6 +43,13 @@ const skill = (frames: number, logical: number, o: { size?: number; gray?: boole
   ({ size: o.size ?? SKILL_FX_SIZE, frames, fps: 24, cols: Math.ceil(Math.sqrt(frames)), blend: 'normal', impactFrame: 0, logicalSize: logical, referenceCell: 62, gray: !!o.gray });
 /** 전투 공통 효과 · 파티원 능력: 작고 자주 뜨므로 192px (scripts/vfx/common.mjs) */
 const small = (frames: number, logical: number, gray = false): PxfClip => skill(frames, logical, { size: 192, gray });
+/**
+ * 판 위 선 물건이 서 있는 동안 계속 도는 손그림풍 루프 (scripts/vfx loop: true): 마지막 장 다음이 첫 장, fps 초당 장 수.
+ * board.ts가 선 물건 그림 위 (이름 · 체력 아래)에 그 물건 크기에 맞춰 그림 (2026-10-18 Lim 「판 위 토템 … 이펙트가 루프로 돌게」)
+ */
+const loop = (frames: number, logical: number, fps: number): PxfClip => ({ ...skill(frames, logical), fps });
+/** 주술사 샘 · 대지 토템 그림 (board-totem-*, 자원 그림의 토템을 잘라 낸 네모) 한 변 = 칸 반지름 × 이 값. 루프 그리기 코드 (scripts/vfx/shaman.mjs TOTEM)도 같은 값 */
+export const TOTEM_STAND = 1.1;
 /** 보스 판 전체 공격의 설계 캔버스 (판 너비 기준, game.logicalSize) */
 export const WIDE_DESIGN = 128;
 /**
@@ -80,8 +87,8 @@ export const PXF = {
   'paladin-sacrifice': skill(22, 92),
   'paladin-sanctuary': skill(24, 76),
   'paladin-hand-guard': skill(24, 94),
-  'shaman-ripple': skill(20, 88),
-  'shaman-droplet': skill(20, 88),
+  'shaman-ripple': skill(24, 88),
+  'shaman-droplet': skill(22, 88),
   'shaman-washing': skill(22, 96),
   'shaman-chain': skill(16, 100),
   'shaman-earth': skill(22, 94),
@@ -104,6 +111,9 @@ export const PXF = {
   'astro-memory': skill(22, 80),
   'astro-polaris': skill(22, 100),
   'shaman-spring': skill(24, 92),
+  // 판 위 토템이 서 있는 동안 도는 루프 (스킬 기록이 아니라 board.ts 선 물건): 3초 한 바퀴
+  'shaman-spring-loop': loop(36, 64, 12),
+  'shaman-earth-loop': loop(36, 64, 12),
   // 결계사 (79 5-5 네모 결계, 2026-10-16 Lim 「흰색이라서 퀄리티가 더 떨어져보인다. 노란 발광의 빛이나게」→ 손그림풍 노란 빛): 인장 X · 도장 · 유리판 · 깨지는 유리 · 네 말뚝 · 도는 방패 · 가로 띠 · 창 · 망치
   'warder-seal': skill(20, 92),
   'warder-barrier': skill(22, 96),
@@ -212,7 +222,11 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
  * 그 직업 스킬의 손그림풍 이펙트 (224px 격자 띠라 하나에 2–5MB): 전투마다 지금 직업 것만 읽어 두고 다른 직업 것은 내려 놓음 (board.ts resetBoardFx)
  */
 export const heroSkillFx = (hero: HeroKey): PxfKey[] =>
-  [...new Set(heroSkills(hero).map(k => SKILL_PXF[k]?.fx).filter((k): k is PxfKey => !!k))];
+  [...new Set([...heroSkills(hero).map(k => SKILL_PXF[k]?.fx).filter((k): k is PxfKey => !!k), ...(HERO_LOOP_FX[hero] ?? [])])];
+/** 직업별 판 위 선 물건 루프 (스킬 기록이 아님): 그 직업 전투에서만 같이 읽어 둠 */
+export const HERO_LOOP_FX: Partial<Record<HeroKey, PxfKey[]>> = { shaman: ['shaman-spring-loop', 'shaman-earth-loop'] };
+/** 루프 클립이면 지금 시각 (초)의 프레임 */
+export const loopFrame = (c: PxfClip, sec: number): number => ((Math.floor(sec * c.fps) % c.frames) + c.frames) % c.frames;
 
 /** 전투 공통 효과 (모든 효과 PXF 1단계, requests.md): 있으면 board.ts가 예전 그림 (fx-hit · fx-heal …) 대신 그림 */
 export type CommonFx = 'hit' | 'crit' | 'heal' | 'dispel' | 'revive' | 'death' | 'debuff' | 'proc';
