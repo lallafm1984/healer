@@ -39,15 +39,20 @@ describe('닉네임 데이터', () => {
     expect(ALL.filter(n => taken.has(n))).toEqual([]);
   });
 
-  it('성격 30종을 직업마다 고르게: 탱커 직업 25종 · 원거리 30종 1명씩, 근접 세 직업은 30종을 2번씩', () => {
+  it('성격을 직업마다 고르게 (75 · 95): 한 직업 안에서 안 겹침, 탱커 직업엔 탱커 불가 없음 · 딜러 직업엔 탱커 묶음 없음, 탱커 묶음은 두 탱커 직업에 1명씩, 다른 성격은 3명 넘게', () => {
     for (const k of RECRUIT_CLASSES) {
-      const ps = PARTY_POOL[k].map(m => m.pers);
+      const ps = PARTY_POOL[k].map(m => m.pers), tank = CLASSES[k].role === 'tank';
       expect(new Set(ps).size, k).toBe(ps.length);
-      if (CLASSES[k].role === 'tank') expect(ps.every(p => !('noTank' in PERS[p]))).toBe(true);
-      if (CLASSES[k].role !== 'melee') expect(ps.length).toBe(CLASSES[k].role === 'tank' ? 25 : 30);
+      expect(ps.filter(p => (tank ? 'noTank' : 'tankOnly') in PERS[p]), k).toEqual([]);
+      if (tank) expect(PERS_NAMES.filter(p => 'tankOnly' in PERS[p] && !ps.includes(p)), k).toEqual([]);
     }
-    const melee = RECRUIT_CLASSES.filter(k => CLASSES[k].role === 'melee').flatMap(k => PARTY_POOL[k].map(m => m.pers));
-    for (const p of PERS_NAMES) expect(melee.filter(x => x === p).length, p).toBe(2);
+    const all = Object.values(PARTY_POOL).flat();
+    for (const p of PERS_NAMES) expect(all.filter(m => m.pers === p).length, p).toBeGreaterThanOrEqual('tankOnly' in PERS[p] ? 2 : 3);
+    // 생존기 성격 (미리미리 · 아슬아슬)은 방어 능력, 끊기 욕심은 끊기 능력을 가진 파티원 (95)
+    for (const m of all) {
+      if (m.pers === '미리미리' || m.pers === '아슬아슬') expect(ABILITIES[m.ab].kind, m.nick).toBe('def');
+      if (m.pers === '끊기 욕심') expect(ABILITIES[m.ab].fx.e, m.nick).toBe('interrupt');
+    }
   });
 
   it('직업 스킬은 그 직업 것, 등급은 공개모집 확률대로 (탱커 16 · 7 · 2, 근접 13 · 6 · 1, 원거리 20 · 8 · 2)', () => {

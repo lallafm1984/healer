@@ -9,7 +9,7 @@ import { relayHurt } from './relay';
 import { heroLethal, heroTaken, NEW_HERO } from './heroes';
 import { posTaken } from './position';
 import { talentDeath, talentTaken } from './talents';
-import { coverPart, persDebuff, persDeath, persHurt } from './persona';
+import { coverPart, persDebuff, persDeath, persHealTaken, persHurt, sturdyTaken } from './persona';
 import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, shieldGone, specDeath, specDebtPaid, specDebuffEnd, specFlip, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
@@ -66,6 +66,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   if (f.links.length && !sharing) { const o = shareWith(f, u); if (o) return shared(() => heal(f, u, amt / 2, direct, true) + heal(f, o, amt / 2, direct, true)); } // 생명 사슬 나눔형
   if (f.bless && f.t < f.bless.until) amt *= f.bless.heal; // 영혼 축복 (P-SOUL): 받는 치유 증가
   if (u.mods.length) amt *= healMods(f, u); // 광란 (받는 치유 +30%), 얼음 방패 (치유 없음)
+  if (u.ps) amt *= persHealTaken(u, direct); // 지속힐 체질 · 큰 힐 체질 · 자립형 (95)
   if (f.aff) amt *= affHeal(f); // 메마름 (받는 치유 -20%)
   if (f.zones.length) ringFeed(f, u); // 요정 고리 (P-GROW): 안에서 치유를 받으면 자람
   if (u.debuffs.length) {
@@ -295,6 +296,7 @@ export function takenAmt(f: Fight, u: Unit, amt: number, magic: boolean, aim: Da
   if (f.tx.cut) amt *= talentTaken(f, u, magic); // 드루이드 · 성기사 특성 (77)
   if (NEW_HERO(f)) amt *= heroTaken(f, u, magic); // 79 직업 (토템 · 생존기 · 특성)
   if (u.me && f.gear.endure) amt *= 1 - f.gear.endure; // 장비 인내 (34 6-4)
+  if (f.sturdy) amt *= sturdyTaken(f, u); // 든든이 옆 (95)
   if (u.shield > ahead) amt *= 0.6;
   if (u.redu > ahead) amt *= 1 - u.reduCut;
   else if (ahead > 0 && f.sanctuary && f.sanctuary.end > f.t + ahead && f.sanctuary.cells.has(u.cell)) amt *= 1 - SANCTUARY.cut; // 성역은 서 있는 동안 틱마다 다시 걸림

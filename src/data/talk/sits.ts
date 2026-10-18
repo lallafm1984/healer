@@ -227,6 +227,19 @@ export const SITS = {
   shaken: S('장판', '멘탈 흔들림', 'self', 2, 0.8, '한 번에 크게 맞아 8초 동안 딜 −20%, 반응이 느려짐', { pers: ['완벽주의자'] }),
   learned: S('장판', '패턴 익힘', 'self', 1, 0.8, '같은 보스 기술을 세 번째 보고 익숙해짐 (반응 빨라짐)', { pers: ['뉴비'] }),
 
+  // ---------- 95 문서 1차 (손버릇 · 탱커 · 힐 15종, 2026-10-18). 엔진이 그 성격에서만 냄 ----------
+  hoardUse: S('파티', '아껴 둔 스킬', 'self', 1, 0.8, '위기 (누가 체력 35% 아래 · 보스 30% 아래)가 와서 아껴 둔 직업 스킬을 씀 (효과 ×1.25)', { pers: ['쿨 아끼미'] }),
+  spamUse: S('파티', '스킬 난사', 'self', 1, 0.3, '직업 스킬 쿨이 돌자마자 또 씀 (정작 필요할 때 없을 수 있음)', { pers: ['스킬 난사'] }),
+  cutTry: S('보스', '끊기 노림', 'self', 1, 0.7, '보스가 끊을 수 있는 기술을 시전함. 먼저 끊으러 감 (그동안 장판을 늦게 봄)', { pers: ['끊기 욕심'] }),
+  addHunt: S('보스', '쫄 사냥', 'self', 1, 0.8, '판 위에 쫄이 나와 쫄부터 잡으러 감 (쫄 딜 +30%, 보스 딜 −10%)', { pers: ['쫄 사냥꾼'] }),
+  oneTrack: S('보스', '쫄 무시', 'self', 2, 0.8, '쫄이 나왔는데 무시하고 보스만 침 (쫄이 남아 다른 사람이 맞음)', { pers: ['외골수'] }),
+  preGuard: S('보스', '미리 생존기', 'self', 1, 0.6, '탱커가 강타 예고를 보자마자 생존기를 켬 (다음 강타 · 위기 때는 없을 수 있음)', { pers: ['미리미리'] }),
+  clutchOk: S('보스', '딱 맞춘 생존기', 'self', 1, 0.7, '탱커가 강타 직전에 생존기를 딱 맞춰 켬 (효과 ×1.2)', { pers: ['아슬아슬'] }),
+  clutchLate: S('보스', '생존기 늦음', 'self', 2, 1, '탱커가 강타 직전에 생존기를 켜려다 늦어 강타를 그대로 맞음 (힐러가 탱커를 채워야 함)', { pers: ['아슬아슬'] }),
+  gather: S('기믹', '쫄 모으기', 'self', 1, 0.7, '딜러를 때리는 쫄을 탱커가 다 끌어와 한곳에 모음 (모인 쫄은 딜이 더 듦, 탱커가 많이 맞음)', { pers: ['쫄 모으기'] }),
+  aggroSlip: S('보스', '어그로 놓침', 'self', 2, 1, '탱커가 어그로를 놓쳐 1.5초 동안 보스가 딜러를 때림. 머쓱해하며 다시 잡음', { pers: ['어그로 흘림'] }),
+  selfCare: S('위기', '셀프 회복', 'self', 1, 0.7, '탱커가 체력 40% 아래라 스스로 최대 체력 15%를 회복함 (30초에 한 번)', { pers: ['자급자족'] }),
+
   // ---------- 끝 (보스가 쓰러지거나 전멸한 뒤 화면이 넘어가기 전 1초쯤) ----------
   win: S('끝', '승리', 'any', 2, 1, '마지막 구간 승리'),
   winClean: S('끝', '완벽한 승리', 'any', 2, 1, '아무도 안 쓰러지고 승리'),
@@ -246,4 +259,5 @@ export type TalkLines = Partial<Record<TalkSit, readonly string[]>>;
 /** 엔진 말풍선(bark)이 알려 주는 상황 */
 export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived'
   | 'slowMove' | 'follow' | 'wander' | 'luckLost' | 'luckBack' | 'cover' | 'selfish' | 'cheer' | 'rival' | 'rage' | 'calmStep' | 'optimist' | 'pessimist'
-  | 'panic' | 'panicEnd' | 'allIn' | 'tired' | 'warmUp' | 'focusBroken' | 'shaken' | 'learned'>;
+  | 'panic' | 'panicEnd' | 'allIn' | 'tired' | 'warmUp' | 'focusBroken' | 'shaken' | 'learned'
+  | 'hoardUse' | 'spamUse' | 'cutTry' | 'addHunt' | 'oneTrack' | 'preGuard' | 'clutchOk' | 'clutchLate' | 'gather' | 'aggroSlip' | 'selfCare'>;

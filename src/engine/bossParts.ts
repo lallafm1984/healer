@@ -15,6 +15,7 @@ import { addDebuff, bark, cellOf, damage, dripDamage, DT, emit, empowerBoss, has
 import { dangerAt, finishMove, moveTo, scheduleReaction, scheduleReactions, zoneOf } from './movement';
 import { hotTick, stepAway } from './units';
 import { frontCell, frontTank } from './position';
+import { slipHit } from './persona';
 import { during, immune, specBeat, specBroken, specLand, specPhase, specRod, specVessel, specQuake, specReveal, specRewind, specTideEbb, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
@@ -78,7 +79,7 @@ export function whenFn(w: SkillWhen | undefined): BossSkill['active'] {
 export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegraph): void {
   switch (e.p) {
     case 'auto': {
-      const tk = aggroTarget(f);
+      const tk0 = aggroTarget(f), tk = f.persOn ? slipHit(f, tk0) : tk0; // 어그로 흘림 (95): 놓친 동안 딜러가 맞음
       // 끌려온 사람이 있으면 탱커와 번갈아 맞음 (P-PULL)
       const pulled = f.party.filter(u => u.alive && u.pulled && u !== tk);
       if (pulled.length) {
@@ -87,6 +88,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         const u = tk ? (i === 0 ? null : pulled[i - 1]) : pulled[i];
         if (u) { damage(f, u, u.pulled!.dmg, false, 'party'); return; }
       }
+      if (tk && tk !== tk0) { damage(f, tk, e.dmg * (0.7 + 0.6 * f.rng()), false, 'fixed'); return; } // 흘린 평타: 탱커가 받았을 만큼 (딜러 방어력 배율 없이)
       if (tk) autoHit(f, tk, e.dmg);
       return;
     }

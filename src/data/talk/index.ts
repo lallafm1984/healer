@@ -37,6 +37,21 @@ import { LINES as bloomer } from './pers/bloomer';
 import { LINES as focused } from './pers/focused';
 import { LINES as perfectionist } from './pers/perfectionist';
 import { LINES as newbie } from './pers/newbie';
+import { LINES as hoarder } from './pers/hoarder';
+import { LINES as spammer } from './pers/spammer';
+import { LINES as kicker } from './pers/kicker';
+import { LINES as addhunter } from './pers/addhunter';
+import { LINES as onetrack } from './pers/onetrack';
+import { LINES as early } from './pers/early';
+import { LINES as clutch } from './pers/clutch';
+import { LINES as gatherer } from './pers/gatherer';
+import { LINES as slippery } from './pers/slippery';
+import { LINES as sturdy } from './pers/sturdy';
+import { LINES as selfcare } from './pers/selfcare';
+import { LINES as shieldfan } from './pers/shieldfan';
+import { LINES as hotlover } from './pers/hotlover';
+import { LINES as bigheal } from './pers/bigheal';
+import { LINES as selfreliant } from './pers/selfreliant';
 import { ROLE_LINES } from './roles';
 import type { TalkLines, TalkSit } from './sits';
 
@@ -51,6 +66,10 @@ export const PERS_LINES: Record<PersName, TalkLines> = {
   '영웅': hero, '이기주의자': selfish, '응원단장': cheerleader, '경쟁심': rival, '다혈질': hothead,
   '침착함': calm, '낙천가': optimist, '비관론자': pessimist, '소심이': timid, '승부사': gambler,
   '용두사미': fizzle, '대기만성': bloomer, '몰입형': focused, '완벽주의자': perfectionist, '뉴비': newbie,
+  // 95 문서 1차: 손버릇 · 탱커 · 힐 15종 (대표 상황만, 나머지는 직업 · 역할 · 공통으로 넘김)
+  '쿨 아끼미': hoarder, '스킬 난사': spammer, '끊기 욕심': kicker, '쫄 사냥꾼': addhunter, '외골수': onetrack,
+  '미리미리': early, '아슬아슬': clutch, '쫄 모으기': gatherer, '어그로 흘림': slippery, '든든이': sturdy, '자급자족': selfcare,
+  '보호막 애호가': shieldfan, '지속힐 체질': hotlover, '큰 힐 체질': bigheal, '자립형': selfreliant,
 };
 
 export interface Speaker { pers: PersName | null; cls: ClassKey | null; role: Role }
@@ -60,7 +79,7 @@ const W = { pers: 0.65, cls: 0.2, role: 0.15 };
 /** 탱커가 말하는 버스터·쫄·큰 쫄·부탱커는 탱커 1인칭 대사를 더 자주 */
 const TANK_SITS: TalkSit[] = ['buster', 'busterOk', 'adds', 'eliteAdd', 'offTank'];
 
-/** 이 사람이 이 상황에서 쓸 대사 묶음과 비중. 성격·직업·역할 대사가 하나도 없으면 공통 대사 */
+/** 이 사람이 이 상황에서 쓸 대사 묶음과 비중. 성격·직업·역할 대사가 하나도 없으면 공통 대사 (95 새 성격은 대표 상황만 있어서 나머지는 직업·역할로 넘어감) */
 export function talkSources(sit: TalkSit, s: Speaker): { lines: readonly string[]; w: number }[] {
   const out: { lines: readonly string[]; w: number }[] = [];
   const add = (lines: readonly string[] | undefined, w: number) => { if (lines?.length) out.push({ lines, w }); };

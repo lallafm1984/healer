@@ -743,8 +743,10 @@ export interface Fight {
   manaCut: number;
   /** 능력을 가진 파티원이 있음 (없으면 능력 코드를 안 탐 = 프로토타입과 같음) */
   abOn: boolean;
-  /** 새 20종 성격이 있는 전투 (75 문서): 없으면 성격 훅을 안 봄 */
+  /** 새 성격 (75 · 95 문서)이 있는 전투: 없으면 성격 훅을 안 봄 */
   persOn?: boolean;
+  /** 든든이 (95): 옆 아군 받는 피해를 줄이는 탱커들 (없으면 undefined) */
+  sturdy?: Unit[];
   ab: PartyAb;
   /** 어픽스 (없으면 null = 프로토타입과 같음) */
   aff: AffixState | null;

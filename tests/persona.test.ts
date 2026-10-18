@@ -1,4 +1,4 @@
-/** 파티원 성격 30종 (75 문서): 새 20종의 데이터와 전투 행동 */
+/** 파티원 성격 30종 (75 문서): 새 20종의 데이터와 전투 행동 (95 1차 15종은 persona95.test) */
 import { describe, expect, it } from 'vitest';
 import { PERS, PERS_NAMES, PROTO_PERS, SULK, type PersName } from '../src/data/personalities';
 import type { ClassKey } from '../src/data/classes';
@@ -21,15 +21,16 @@ const hero = (f: F) => f.party.find(u => u.nick === '주인공')!;
 const bark = (f: F, sit: string) => f.events.some(e => e.type === 'bark' && e.sit === sit);
 
 describe('데이터', () => {
-  it('30종: 앞 10종은 프로토타입 순서, 분류 5개, ★ 9 · 16 · 5, 탱커 불가 5, 희귀 4', () => {
-    expect(PERS_NAMES.length).toBe(30);
+  it('75의 30종: 앞 10종은 프로토타입 순서, 분류 5개, ★ 9 · 16 · 5, 탱커 불가 5, 희귀 4 (뒤에 95 1차 15종, persona95.test)', () => {
+    expect(PERS_NAMES.length).toBe(45);
     expect(PROTO_PERS).toEqual(['신중파', '딜 욕심쟁이', '고집불통', '덜렁이', '허세꾼', '외톨이', '사교형', '관심종자', '감사형', '겁쟁이']);
-    const all = Object.values(PERS) as { star: number; cat: string; ch: string; noTank?: boolean; rare?: boolean; desc: string }[];
+    const old = PERS_NAMES.slice(0, 30);
+    const all = old.map(p => PERS[p]) as { star: number; cat: string; ch: string; noTank?: boolean; rare?: boolean; desc: string }[];
     expect([1, 2, 3].map(s => all.filter(p => p.star === s).length)).toEqual([9, 16, 5]);
     expect(new Set(all.map(p => p.cat))).toEqual(new Set(['회피', '위치', '관계', '감정', '리듬']));
-    expect(PERS_NAMES.filter(p => 'noTank' in PERS[p])).toEqual(['덜렁이', '겁쟁이', '따라쟁이', '방랑자', '소심이']);
-    expect(PERS_NAMES.filter(p => 'rare' in PERS[p])).toEqual(['눈치백단', '미신쟁이', '경쟁심', '몰입형']);
-    expect(new Set(all.map(p => p.ch)).size).toBe(30);
+    expect(old.filter(p => 'noTank' in PERS[p])).toEqual(['덜렁이', '겁쟁이', '따라쟁이', '방랑자', '소심이']);
+    expect(old.filter(p => 'rare' in PERS[p])).toEqual(['눈치백단', '미신쟁이', '경쟁심', '몰입형']);
+    expect(new Set(Object.values(PERS).map(p => p.ch)).size).toBe(PERS_NAMES.length);
     for (const p of all) expect(p.desc).toMatch(/니다\.$/);
   });
 
@@ -208,7 +209,7 @@ describe('회피 · 위기', () => {
 
 describe('전투 전체', () => {
   it('새 20종이 섞인 파티로 여러 판을 끝까지 돌려도 숫자가 깨지지 않음', () => {
-    const fresh = PERS_NAMES.slice(10) as PersName[];
+    const fresh = PERS_NAMES.slice(10, 30) as PersName[];
     const tankOk = fresh.filter(p => !('noTank' in PERS[p]));
     for (let s = 0; s < 12; s++) {
       const pick = (i: number, list: PersName[]) => list[(s * 3 + i) % list.length];

@@ -68,6 +68,8 @@ describe('독안개 늪', () => {
   it('보통 적 레벨 (Lv 17, 61 1-2) 자동 힐러, 보통이면 거의 다 깸 (장비 없음)', () => {
     let wins = 0;
     for (let s = 1; s <= 20; s++) if (E.simulateDungeon({ dungeon: 'swamp', diff: '보통', seed: s, level: stageOf(contentOf('swamp'), '보통'), gear: 'none' }).win) wins++;
-    expect(wins).toBeGreaterThanOrEqual(19);
+    // 18판: 힐러 회피 굴림이 빗나가 두꺼비 배치기 (장판 × 2, 94)에 장비 없는 힐러가 한 방에 쓰러지는 판이 시드 1~60에 5판 (main도 같음, 55/60).
+    // 시드 1~20에서 몇 판이 걸리는지는 파티 뽑기에 따라 1~2판 (95 성격 1차로 파티원 성격이 바뀌어 2판)
+    expect(wins).toBeGreaterThanOrEqual(18);
   }, 20_000); // 자동 밸런스 기준 20판은 CI 기본 5초를 넘을 수 있음
 });

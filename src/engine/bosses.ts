@@ -7,6 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import { busterDmg, zoneDps, zoneHit } from '../data/rules';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abDecoy, abOnTel } from './abilities';
+import { persCast } from './persona';
 import { affChaos } from './affixes';
 import { addsTick, aggroTarget, applyDebuff, backTargets, chainWarn, frontTargets, decoyOpen, flowNext, MIRAGE_REVEAL, glassTick, greedTargets, linkedOnes, liftWarn, mirageTick, preferTargets, mirageUp, orderNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, tideEbb, tideRise, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
@@ -167,6 +168,7 @@ export function bossTick(f: Fight): void {
     const fakeGap = s.decoy ? decoyOpen(f, s) : false; // 가짜 반격 틈: 이번 틈이 신기루인지 · 다음 틈 시각
     if (!s.active(f)) continue;
     if (f.daze && s.mob == null) continue; // 멍한 보스는 그 차례를 건너뜀 (차례 성공)
+    if (f.persOn && s.cut) persCast(f); // 끊기 욕심 (95): 시전을 노려봄
     if (f.abOn) {
       // 파티원 능력 (17 7장): 기절한 적은 기술을 안 씀, 끊기 가능 기술은 시전 시작에 끊길 수 있음
       if (s.mob != null && (f.mobs.find(m => m.id === s.mob)?.stun || 0) > f.t) continue;

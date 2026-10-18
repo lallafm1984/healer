@@ -4,7 +4,7 @@ import { abMoved, dodgeMods, moveMods, reactMods } from './abilities';
 import { sv } from './specials';
 import { calmDodge } from './talents';
 import { posPref } from './position';
-import { followPref, persDodge, persIgnoresZone, persMove, persReact } from './persona';
+import { followPref, persDodge, persIgnoresZone, persLate, persMove, persReact } from './persona';
 import type { Cell, Fight, Role, Telegraph, Unit, Zone } from './types';
 
 export type Zone3 = 'front' | 'mid' | 'back';
@@ -109,7 +109,7 @@ export function scheduleReaction(f: Fight, tel: Telegraph, u: Unit): void {
   rt *= u.senseReact; // 눈치 자질 (17 9-1)
   if (u.mods.length) rt *= reactMods(u); // 기합·매의 눈
   if (f.sp && !u.me) rt = Math.max(0.1, rt - sv(f, 'quickPeer')); // 눈치 빠른 동료 (42 지원 09)
-  if (u.ps && inZ) rt *= persReact(f, u, tel); // 뉴비 · 완벽주의자 (75)
+  if (u.ps && inZ) rt = rt * persReact(f, u, tel) + persLate(f, u); // 뉴비 · 완벽주의자 (75) · 끊기 욕심 (95)
   if (inZ) {
     let at = f.t + rt;
     if (u.p.greedy) at = Math.max(at, tel.impact - 0.3);
