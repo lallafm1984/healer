@@ -27,6 +27,28 @@ export function shieldTimerOf(u: Pick<Unit, 'mods'>, t: number): { left: number;
   return { left: Math.max(...pick.map(m => m.until - t)), amt: on.reduce((a, m) => a + m.v, 0) };
 }
 
+/** 방어 생존기 시간 원 순서 (아래로) */
+export const GUARD_TIMER_ORDER = ['guardian', 'bark', 'soothe', 'immune', 'sacrifice', 'sleep'] as const;
+export type GuardTimerKey = typeof GUARD_TIMER_ORDER[number];
+
+/**
+ * 방어 생존기 시간 (모든 직업 공통, 2026-10-18 Lim 「드루이드의 껍질처럼 방어관련 스킬의 지속 시간을 왼쪽에 표시해줘」): 보호막 원 아래로 효과마다 원 하나.
+ * 대상에게 거는 것만: 수호 영혼 · 나무껍질 (나무의 몸) · 누그러뜨림 · 보호의 손 · 희생 · 별의 잠. 순서는 고정 (남은 시간 · 다시 건 순서로 바꾸지 않음).
+ * 성역 (서 있는 동안 틱마다 다시 참) · 대지 토템은 칸에 세우는 것이라 바닥 그림 그대로, 흡수 보호막 (수호 결계 등)은 보호막 원
+ */
+export function guardTimersOf(u: Pick<Unit, 'guardian' | 'redu' | 'immune' | 'sacr' | 'sleep'>, t: number, hero: HeroKey): { key: GuardTimerKey; left: number }[] {
+  const on: Record<GuardTimerKey, number> = {
+    guardian: u.guardian,
+    // 받는 피해 감소 (u.redu)는 드루이드 나무껍질 · 수도사 누그러뜨림 · 성기사 성역이 같이 씀
+    bark: hero === 'druid' ? u.redu : 0,
+    soothe: hero === 'monk' ? u.redu : 0,
+    immune: u.immune,
+    sacrifice: u.sacr,
+    sleep: u.sleep != null ? u.sleep - t : 0,
+  };
+  return GUARD_TIMER_ORDER.filter(key => on[key] > 0).map(key => ({ key, left: on[key] }));
+}
+
 /**
  * 칸 글자 크기 (판 그림 좌표). 모든 판이 5인 던전 칸 모양이라 (2026-10-16 Lim, 레이드 전용 작은 칸 없앰) 대상 폰에서 scale은 50 이상,
  * 10 · 20인은 판 전체를 줄여 그려 글자도 같은 비율로 작아짐
