@@ -77,7 +77,7 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | boss-melt-heat | 피어오르는 아지랑이 물결 | boss-cream-burst | 사방으로 튀는 크림 덩이 |
 | boss-hush | 내려와 덮는 정적의 커튼 | boss-door-open | 벌어지는 세로 틈과 보랏빛 |
 | boss-island-tilt | 기울어지는 수평선 | boss-wedge | 가운데에 꽂히는 큰 번개 쐐기 |
-| shaman-ripple | 발밑에서 퍼지는 납작한 물결 두 겹 (위로 떠오르는 파란 알갱이) | warder-hold | 조여 덮이는 둥근 빛 막과 네 곳의 빛 매듭 · 빛실 |
+| shaman-ripple | 발밑에서 퍼지는 납작한 물결 두 겹 (위로 떠오르는 파란 알갱이) | warder-hold | 조여 덮이는 둥근 빛 막과 네 곳의 빛 매듭 · 빛실 (Codex 빛 막 · 매듭) |
 | shaman-droplet | 떨어져 납작하게 퍼지는 물방울 하나 (흩날리고 사방으로 퍼지는 빛 알갱이) | shaman-washing | 아래에서 휘감아 오르는 물줄기 두 가닥 |
 | shaman-chain | 옆에서 휘어 들어와 튀는 물줄기 | shaman-earth | 땅에서 솟는 돌 가시 셋 (갈라진 땅 · 흙먼지, Codex 돌 가시 그림) |
 | shaman-rain | 머리 위 작은 비구름과 가는 비 (Codex 비구름 그림) | shaman-link | 가로로 출렁이는 영혼 끈 두 줄과 매듭 |
@@ -91,11 +91,11 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | astro-twinkle | 삼각형으로 차례로 깜빡이는 작은 별 셋 (Codex 네 갈래 별) | astro-mark | 머리 위에 점 셋이 선으로 이어지는 작은 별자리 (Codex 네 갈래 별) |
 | astro-clear | 위아래에서 가운데로 모였다 터지는 별가루 (Codex 여섯 갈래 별) | astro-fall | 비스듬히 떨어져 바닥에서 튀는 작은 별 셋 (Codex 꼬리별) |
 | astro-sleep | 세로로 긴 별빛 고치와 위에 뜬 초승달 (Codex 고치 · 초승달) | astro-memory | 한 바퀴 도는 시계 바늘 (끝에 별) (Codex 금빛 바늘) |
-| astro-polaris | 위에서 내려와 커졌다가 작은 별들로 터지는 큰 네 갈래 별 (Codex 북극성) | warder-seal | 머리 위에 엇갈려 그어지는 X자 인장 |
-|  |  | warder-barrier | 몸 앞을 둥글게 감싸는 얇은 빛 막과 흐르는 물결 결 |
-| warder-cleanse | 깨져 사방으로 흩어지는 유리 조각 | warder-circle | 빛 점이 발밑에 그려 닫는 원 문양과 여섯 꽃잎 호 |
-| warder-guard | 가로 · 세로 빛 띠로 그려지는 지구본 같은 둥근 결계 | warder-veil | 발밑에서 솟아오르는 주름진 빛 장막 |
-|  |  | warder-judgment | 몸 위에서 네 갈래 빛줄기로 풀려 오르는 마름모 인장 |
+| astro-polaris | 위에서 내려와 커졌다가 작은 별들로 터지는 큰 네 갈래 별 (Codex 북극성) | warder-seal | 머리 위에 엇갈려 그어지는 X자 인장 (Codex X자 인장) |
+|  |  | warder-barrier | 몸 앞을 둥글게 감싸는 얇은 빛 막과 흐르는 물결 결 (Codex 빛 막) |
+| warder-cleanse | 깨져 사방으로 흩어지는 유리 조각 (Codex 유리판 · 조각) | warder-circle | 빛 점이 발밑에 그려 닫는 원 문양과 여섯 꽃잎 호 (Codex 원 문양) |
+| warder-guard | 가로 · 세로 빛 띠로 그려지는 지구본 같은 둥근 결계 (Codex 빛 띠 지구본) | warder-veil | 발밑에서 솟아오르는 주름진 빛 장막 (Codex 장막) |
+|  |  | warder-judgment | 몸 위에서 네 갈래 빛줄기로 풀려 오르는 마름모 인장 (Codex 마름모 인장) |
 
 같은 스킬이 이어서 회복할 때도 그 스킬 그림이 나온다: 찬가 · 고요한 숲은 정신 집중 동안 1초마다 파티 전원 칸에, 빛의 전이는 빛이 깃든 사람이 회복할 때마다 그 칸에 (예전엔 공통 「치유 빛」).
 
