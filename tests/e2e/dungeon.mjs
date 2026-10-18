@@ -196,7 +196,7 @@ export default async function dungeon(url, shots) {
   await page.clock.runFor(1200);
   ok(await page.isVisible('#s-settle .lvpop'), '레벨 업 팝업 (첫 클리어로 Lv 3: Lv 20까지는 장소가 정한 경험치, 70)');
   const pop = await page.textContent('#s-settle .lvpop');
-  ok(await page.getAttribute('#s-settle .lvnum', 'aria-label') === 'Lv 1에서 3로 레벨 업' && /소생/.test(pop) && /정화/.test(pop) && !/준비 중/.test(pop), '팝업: Lv 1 → 3, 스킬 「소생」 · 「정화」 열림');
+  ok(await page.getAttribute('#s-settle .lvnum', 'aria-label') === 'Lv 1에서 3로 레벨 업' && /소생/.test(pop) && !/정화/.test(pop) && !/준비 중/.test(pop), '팝업: Lv 1 → 3, 스킬 「소생」 열림 (해제 「정화」는 Lv 7, 2026-10-18 해금 레벨 검토)');
   ok(!/힐량·체력/.test(pop), '팝업: 배율 줄 없음 (적이 내 레벨을 따라옴, 32)');
   ok(await page.evaluate(() => { const d = document.querySelector('#s-settle .lvpop [role="dialog"]'); return d.getAttribute('aria-modal') === 'true' && d.contains(document.activeElement); }), '레벨 업 모달로 포커스 이동');
   await page.keyboard.press('Tab'); await page.keyboard.press('Tab');
