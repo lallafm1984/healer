@@ -1,6 +1,6 @@
 // 2026-10-09 빼 두었던 길드를 2026-10-18 다시 켬 (Lim 「메뉴의 상점을 빼고 길드를 넣자」, features.ts). 꺼 두면 guild-off.mjs.
-// 길드 (30 시안 「길드 게시판」, 09 S12~S14, 02 9장, 17): 잠금 → 게시판(home) → 팻말 「영입」 골드 모집 → 영입 → 팻말 「길드원」 상세(훈련·육성 포인트·방출 확인)
-// → 게시판 「길드파티로 출전」 = 전투 탭 → 입장 → 편성이 길드파티 → 편성 「길드파티」 → 출발 → 보상에 길드원 경험치 → 좁은·넓은 화면 넘침
+// 길드 (2026-10-18 상점 · 편성과 같은 길드 홀 돌색, 09 S12~S14, 02 9장, 17): 잠금 → 현황 → 영입 탭 골드 모집 → 지원자 시트 → 영입 → 길드원 탭 육성 시트 (훈련·육성 포인트·방출 확인)
+// → 현황 「길드파티로 출전」 = 전투 탭 → 입장 → 편성이 길드파티 → 편성 「길드파티」 → 출발 → 보상에 길드원 경험치 → 좁은·넓은 화면 넘침
 import { chromium } from 'playwright';
 import { departGo, killEnemies, pastTitle, toParty } from './nav.mjs';
 
@@ -24,40 +24,44 @@ export default async function guild(url, shots) {
   // ---- 잠금: Lv 15 (개발 빌드 「레벨 잠금 무시」를 끄면) ----
   await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.settings.devUnlock = false; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-guild') && /Lv 15에 열림/.test(await text('#s-guild .lockline')), 'Lv 1 = 길드 잠금 (Lv 15)');
+  ok(await page.isVisible('#s-guild') && /Lv 15에 열림/.test(await text('#s-guild .lockline')) && (await page.locator('#s-guild .g-feat').count()) === 3, 'Lv 1 = 길드 잠금 (Lv 15) · 열리면 할 것 셋');
 
+  // ---- 2026-10-18 상점 · 편성과 같은 길드 홀 돌색: 하위 탭 · 길드 홀 머리 · 카드 ----
   await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.level = 30; s.player.gold = 20000; localStorage.setItem('healer.save', JSON.stringify(s)); });
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
-  ok(/새벽의 손/.test(await text('#s-guild h2')) && /정원 0\/6/.test(await text('#s-guild h2')), 'Lv 30 = 길드 열림, 정원 0/6');
-  ok(await page.isVisible('#s-guild .g-home .g-board') && (await page.locator('#s-guild .g-board .g-note').count()) === 6, '탭에 들어오면 게시판 (쪽지 6장)');
-  ok(/아직 길드원 없음/.test(await text('#s-guild .n-mem')), '빈 길드 안내 (길드원 쪽지)');
-  ok(/정원/.test(await text('#s-guild .n-cap')) && /다음: Lv 45 · 12명/.test(await text('#s-guild .n-cap')), `정원 쪽지: 다음 단계 (${(await text('#s-guild .n-cap')).replace(/\s+/g, ' ')})`);
-  ok(/0 \/ 10/.test(await text('#s-guild .n-goal')), '주간 목표 쪽지 0/10');
+  const hero = await text('#s-guild .guild-hero');
+  ok(/새벽의 손/.test(hero) && /정원 0\/6/.test(hero) && /명성 0/.test(hero), 'Lv 30 = 길드 열림, 머리에 이름 · 정원 0/6 · 명성');
+  const tabs = await page.locator('#s-guild .subtabs [role="tab"]').evaluateAll(els => els.map(e => [e.dataset.sub, e.getAttribute('aria-selected')]));
+  ok(JSON.stringify(tabs) === JSON.stringify([['home', 'true'], ['members', 'false'], ['recruit', 'false']]), `하위 탭 셋 (현황 고름) ${JSON.stringify(tabs)}`);
+  ok(await page.locator('#s-guild .g-board, #s-guild .g-note, #s-guild .g-sign').count() === 0, '나무 게시판 · 쪽지 · 팻말 없음');
+  ok(/아직 길드원 없음/.test(await text('#s-guild .g-empty')), '빈 길드 안내 카드');
+  ok(/0 \/ 10/.test(await text('#s-guild .g-goal')), '주간 목표 카드 0/10');
   ok(/영입하러 가기/.test(await text('#guildGo')), '길드원 0명 = 아래 버튼 「영입하러 가기」');
-  const sgn = await page.locator('#s-guild .g-sign').evaluateAll(els => els.map(e => [e.dataset.sub, Math.round(e.getBoundingClientRect().height)]));
-  ok(sgn.length === 2 && sgn[0][0] === 'members' && sgn[1][0] === 'recruit' && sgn.every(x => x[1] >= 44), `나무 팻말 2개 (길드원·영입, 44px 이상) ${JSON.stringify(sgn)}`);
+  ok((await page.locator('#s-guild .g-recrow').count()) === 2, '영입 요약 줄 둘 (모집 공고 · 인연 스카우트)');
 
   // ---- 골드 모집 → 영입 ----
-  await page.click('#s-guild .g-sign[data-sub="recruit"]'); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-guild .g-sub [data-sub="home"]'), '영입 화면에 「게시판」 팻말');
-  ok((await page.locator('#s-guild [data-post]').count()) === 3, '모집 공고 3단계');
+  await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
+  ok((await page.locator('#s-guild [data-post]').count()) === 3, '모집 공고 3단계 (상점 줄 모양)');
   await page.click('#s-guild [data-post="normal"]'); await page.clock.runFor(50);
   let sv = await save();
   ok(sv.player.gold === 19500 && sv.guild.post?.cands.length === 3, `일반 공고 = 골드 500, 지원자 3명 (${sv.player.gold})`);
-  ok((await page.locator('#s-guild [data-hire]').count()) === 3 && (await page.locator('#s-guild .pab').count()) >= 3 && (await page.locator('#s-guild .papt').count()) >= 3, '지원자 카드 = 능력·자질 표시');
-  ok((await text('#s-guild [role="tab"][data-sub="recruit"] .g-badge')) === '3', '지원자 있으면 팻말에 빨간 숫자 3');
+  ok((await page.locator('#s-guild .g-list [data-hire]').count()) === 3 && (await page.locator('#s-guild .g-list .f-ps').count()) === 3, '지원자 줄 = 편성과 같은 줄 (성격 칩) + 영입 버튼');
+  ok(await page.isVisible('#s-guild .subtabs [data-sub="recruit"] .rdot') && /돌아갑니다/.test(await text('#s-guild .g-status')), '지원자 있으면 영입 탭 빨간 점 · 새 공고를 내면 지금 지원자는 돌아간다는 안내');
+  await page.click('#s-guild [data-cand="0"]'); await page.clock.runFor(50);
+  ok(await page.isVisible('#s-guild .g-msheet') && (await page.locator('#s-guild .g-msheet .f-det').count()) === 1, '지원자 줄 누르면 아래 시트 (능력 · 자질 · 성격)');
+  await page.click('#s-guild .g-msheet .f-shut'); await page.clock.runFor(50);
   await page.screenshot({ path: `${shots}/guild_recruit.png` });
   const cand = sv.guild.post.cands[0];
-  await page.click('#s-guild [data-hire="0"]'); await page.clock.runFor(50);
+  await page.click('#s-guild .g-list [data-hire="0"]'); await page.clock.runFor(50);
   sv = await save();
   const m0 = sv.guild.members[0];
   ok(sv.guild.members.length === 1 && sv.guild.post === null && m0.nick === cand.nick && m0.lv >= 24 && m0.lv <= 27, `영입: ${m0.nick} Lv ${m0.lv} (내 레벨 -6~-3)`);
   ok(/영입 완료/.test(await text('#s-guild .warnbox')), '영입 완료 안내');
 
-  // ---- 상세: 훈련 · 육성 포인트 · 방출 확인 ----
-  await page.click('#s-guild [role="tab"][data-sub="members"]'); await page.clock.runFor(50);
+  // ---- 육성 시트: 훈련 · 육성 포인트 · 방출 확인 ----
+  await page.click('#s-guild .subtabs [data-sub="members"]'); await page.clock.runFor(50);
   await page.click(`#s-guild [data-mem="${m0.id}"]`); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-guild .mdetail') && /남은 1점/.test(await text('#s-guild .mdetail')), `상세 열림, Lv ${m0.lv} = 육성 포인트 1점`);
+  ok(await page.isVisible('#s-guild .g-msheet') && /남은 1점/.test(await text('#s-guild .g-msheet')), `시트 열림, Lv ${m0.lv} = 육성 포인트 1점`);
   const g0 = sv.player.gold;
   await page.click('#s-guild [data-train]'); await page.clock.runFor(50);
   sv = await save();
@@ -67,21 +71,20 @@ export default async function guild(url, shots) {
   sv = await save();
   ok(sv.guild.members[0].star === 1 && sv.player.gold === g1 - lv1 * 100, `능력 ★+1: 골드 ${lv1 * 100}`);
   ok(await page.isDisabled('#s-guild [data-pt="star"]') && await page.isDisabled('#s-guild [data-pt="0"]'), '포인트 다 쓰면 버튼 꺼짐');
-  ok(/★1\/5/.test(await text('#s-guild .mdetail')), '상세에 ★1/5');
+  ok(/★1\/5/.test(await text('#s-guild .g-msheet')), '시트에 ★1/5');
   await page.click('#s-guild [data-release]'); await page.clock.runFor(50);
   ok(/한 번 더 누르면 방출/.test(await text('#s-guild [data-release]')) && (await save()).guild.members.length === 1, '방출 첫 누름 = 확인만');
-  await page.locator('#s-guild .ns-body').screenshot({ path: `${shots}/guild_member.png` });
-  await page.click(`#s-guild [data-mem="${m0.id}"]`); await page.clock.runFor(50);
-  ok(!(await page.isVisible('#s-guild .mdetail')), '다시 누르면 상세 닫힘');
+  await page.locator('#s-guild .g-msheet').screenshot({ path: `${shots}/guild_member.png` });
+  await page.click('#s-guild .g-msheet .f-shut'); await page.clock.runFor(50);
+  ok(!(await page.isVisible('#s-guild .g-msheet')), '닫기 = 시트 닫힘');
 
-  // ---- 게시판: 길드원 쪽지 · 「길드파티로 출전」 → 전투 탭 → 입장 → 편성이 길드파티 ----
-  await page.click('#s-guild [data-sub="home"]'); await page.clock.runFor(50);
-  ok(new RegExp(m0.nick).test(await text('#s-guild .n-mem')) && /1\/6/.test(await text('#s-guild .g-sign[data-sub="members"]')), `게시판 길드원 쪽지에 ${m0.nick}, 팻말 1/6`);
+  // ---- 현황: 길드원 줄 · 「길드파티로 출전」 → 전투 탭 → 출전 → 편성이 길드파티 ----
+  await page.click('#s-guild .subtabs [data-sub="home"]'); await page.clock.runFor(50);
+  ok(new RegExp(m0.nick).test(await text('#s-guild .g-list')) && /1\/6/.test(await text('#s-guild .subtabs [data-sub="members"]')), `현황 길드원 줄에 ${m0.nick}, 길드원 탭 1/6`);
   ok(/길드파티로 출전/.test(await text('#guildGo')) && /주간 목표 0\/10/.test(await text('#guildGo')), '아래 버튼 「길드파티로 출전」 · 주간 목표 0/10');
-  await page.click('#s-guild .n-mem'); await page.clock.runFor(50);
-  ok(await page.isVisible('#s-guild .g-sub .gmembers'), '길드원 쪽지 누르면 길드원 목록');
+  await page.click('#s-guild .subtabs [data-sub="members"]'); await page.clock.runFor(50);
   await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
-  ok(await page.isVisible('#s-guild .g-home'), '길드 탭을 다시 누르면 게시판');
+  ok(await page.getAttribute('#s-guild .subtabs [data-sub="home"]', 'aria-selected') === 'true', '길드 탭을 다시 누르면 현황');
   await page.click('#guildGo'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-content'), '「길드파티로 출전」 = 전투 탭 (모험 고르기)');
   await toParty(page);
@@ -121,20 +124,21 @@ export default async function guild(url, shots) {
   ok(sv.guild.members[0].runs === 1 && sv.guild.fame === 1, `저장: 출전 1번, 명성 1`);
   await page.screenshot({ path: `${shots}/guild_reward.png` });
 
-  // ---- 좁은·넓은 화면: 가로 넘침 없음, 출전 버튼 탭 위 (보상 화면엔 탭 막대가 없어 다시 읽음) ----
+  // ---- 좁은·넓은 화면: 가로 넘침 없음, 출전 버튼 탭 위, 줄 이름 · 직업이 잘리지 않음 (보상 화면엔 탭 막대가 없어 다시 읽음) ----
   await patch(() => {});
-  for (const [w, h] of [[320, 640], [430, 932]]) {
+  for (const [w, h] of [[320, 640], [360, 780], [360, 880], [430, 932]]) {
     await page.setViewportSize({ width: w, height: h });
     await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
     const fit = () => page.locator('#s-guild .ns-body').evaluate(el => el.scrollWidth <= el.clientWidth + 1);
-    const cta = await page.locator('#guildGo').boundingBox(), tabs = await page.locator('#tabs').boundingBox();
-    ok(await fit() && cta.y + cta.height <= tabs.y + 1 && cta.height >= 44, `${w}: 게시판 가로 넘침 없음, 출전 버튼 탭 위`);
+    const cta = await page.locator('#guildGo').boundingBox(), tabsBox = await page.locator('#tabs').boundingBox();
+    ok(await fit() && cta.y + cta.height <= tabsBox.y + 1 && cta.height >= 44, `${w}×${h}: 현황 가로 넘침 없음, 출전 버튼 탭 위`);
     if (w === 320) await page.screenshot({ path: `${shots}/guild_home_320.png` });
-    await page.click('#s-guild .g-sign[data-sub="members"]'); await page.clock.runFor(50);
-    const navOk = await page.locator('#s-guild .g-subnav .g-sign').evaluateAll(els => els.every(e => e.scrollWidth <= e.clientWidth + 1 && e.getBoundingClientRect().height >= 44));
-    ok(await fit() && navOk, `${w}: 길드원 화면 가로 넘침 없음, 팻말 3개 글자 안 넘침`);
-    await page.click('#s-guild [role="tab"][data-sub="recruit"]'); await page.clock.runFor(50);
-    ok(await fit(), `${w}: 영입 화면 가로 넘침 없음`);
+    await page.click('#s-guild .subtabs [data-sub="members"]'); await page.clock.runFor(50);
+    const clip = await page.locator('#s-guild .g-list .pnick').evaluateAll(els => els.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent));
+    ok(await fit() && !clip.length, `${w}×${h}: 길드원 줄 가로 넘침 · 이름 잘림 없음 ${JSON.stringify(clip)}`);
+    await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
+    ok(await fit(), `${w}×${h}: 영입 화면 가로 넘침 없음`);
+    await page.click('#s-guild .subtabs [data-sub="home"]'); await page.clock.runFor(50);
   }
 
   await ctx.close();
