@@ -1,0 +1,162 @@
+/**
+ * 파티원 능력치 FM식 (97 문서, Lim 2026-10-18 「fm과 함께 길드 v2를 모두 적용하자」): 능력치 12개 (1~20, 10 = 예전 값) + 숨은 학습력 · 꾸준함,
+ * 공개모집 1000명의 자기 레벨 (내 Lv × 빠르기). 사람마다 닉네임에서 고정 씨앗을 만들어 계산하고 저장하지 않는다.
+ * 능력치 하나는 전투 엔진 값 하나만 바꾼다 (보이기만 하는 숫자 없음). 효과 범위는 97 표의 1 → 20, 10은 예전 값.
+ */
+import type { PersName } from './personalities';
+import type { Role } from '../engine/types';
+
+export const STAT_KEYS = ['atk', 'tough', 'armor', 'agility', 'evade', 'position', 'adds', 'skill', 'react', 'composure', 'judgment', 'focus'] as const;
+export type StatKey = (typeof STAT_KEYS)[number];
+export const STAT_NAMES: Record<StatKey, string> = {
+  atk: '공격', tough: '맷집', armor: '방어', agility: '발놀림', evade: '회피', position: '위치 잡기',
+  adds: '쫄 처리', skill: '기술 숙련', react: '반응', composure: '침착', judgment: '판단', focus: '집중',
+};
+/** 묶음 (상세 세 칸 × 네 줄) */
+export const STAT_GROUPS: { name: string; keys: StatKey[] }[] = [
+  { name: '신체', keys: ['atk', 'tough', 'armor', 'agility'] },
+  { name: '기술', keys: ['evade', 'position', 'adds', 'skill'] },
+  { name: '정신', keys: ['react', 'composure', 'judgment', 'focus'] },
+];
+/** 역할 핵심 넷 (굵게 · 능력 ★ 무게) */
+export const ROLE_CORE: Record<Exclude<Role, 'healer'>, StatKey[]> = {
+  tank: ['tough', 'armor', 'position', 'judgment'],
+  melee: ['atk', 'evade', 'agility', 'react'],
+  ranged: ['atk', 'react', 'adds', 'skill'],
+};
+
+export type Stats = Record<StatKey, number>;
+/** 한 사람: 능력치 12 · 학습력 · 꾸준함 (1~20) · 빠르기 (레벨 = 내 Lv × 빠르기) */
+export interface FmProfile { stats: Stats; learn: number; steady: number; speed: number }
+
+/** 성격 결 (97 「1000명 표의 능력치 결」): 높게 · 낮게 나오기 쉬운 칸 (평균 ±GRAIN) */
+export const GRAIN = 2;
+const G = (hi: StatKey[], lo: StatKey[]) => ({ hi, lo });
+export const PERS_GRAIN: Record<PersName, { hi: StatKey[]; lo: StatKey[] }> = {
+  '신중파': G(['judgment', 'react'], ['adds']), '딜 욕심쟁이': G(['atk', 'adds'], ['react', 'composure']), '고집불통': G(['tough', 'armor'], ['react']),
+  '덜렁이': G(['agility'], ['evade', 'judgment']), '허세꾼': G(['tough', 'focus'], ['judgment']), '외톨이': G(['focus', 'position'], ['adds']),
+  '사교형': G(['position', 'composure'], ['focus']), '관심종자': G(['atk'], ['composure', 'judgment']), '감사형': G(['composure', 'position'], ['adds']),
+  '겁쟁이': G(['evade', 'agility'], ['composure', 'focus']), '눈치백단': G(['react', 'evade'], ['atk']), '느림보': G(['tough', 'composure'], ['agility', 'react']),
+  '따라쟁이': G(['position'], ['judgment']), '방랑자': G(['agility'], ['position']), '미신쟁이': G(['focus'], ['judgment']),
+  '영웅': G(['tough', 'armor'], ['evade']), '이기주의자': G(['evade'], ['position']), '응원단장': G(['composure'], ['atk']),
+  '경쟁심': G(['atk', 'focus'], ['composure']), '다혈질': G(['atk'], ['composure', 'judgment']), '침착함': G(['composure', 'judgment'], ['agility']),
+  '낙천가': G(['composure'], ['judgment']), '비관론자': G(['judgment'], ['focus']), '소심이': G(['evade'], ['composure', 'focus']),
+  '승부사': G(['focus', 'atk'], ['composure']), '용두사미': G(['atk'], ['focus']), '대기만성': G(['focus', 'tough'], ['react']),
+  '몰입형': G(['focus', 'adds'], ['position']), '완벽주의자': G(['skill', 'judgment'], ['composure']), '뉴비': G(['agility'], ['judgment', 'react']),
+  '쿨 아끼미': G(['judgment', 'skill'], ['atk']), '스킬 난사': G(['skill', 'atk'], ['judgment']), '끊기 욕심': G(['skill', 'react'], ['evade']),
+  '쫄 사냥꾼': G(['adds', 'atk'], ['focus']), '외골수': G(['atk', 'focus'], ['adds']), '미리미리': G(['judgment', 'armor'], ['focus']),
+  '아슬아슬': G(['react', 'focus'], ['composure']), '쫄 모으기': G(['tough', 'position'], ['armor']), '어그로 흘림': G(['atk'], ['position', 'judgment']),
+  '든든이': G(['tough', 'armor'], ['agility']), '자급자족': G(['tough', 'composure'], ['position']), '보호막 애호가': G(['atk'], ['tough']),
+  '지속힐 체질': G(['tough'], ['react']), '큰 힐 체질': G(['atk'], ['tough']), '자립형': G(['composure', 'tough'], ['position']),
+  '예언가': G(['react', 'judgment'], ['composure']), '점프광': G(['agility', 'evade'], ['atk']), '참을성': G(['tough', 'composure'], ['evade']),
+  '모서리파': G(['evade'], ['position']), '얼음땡': G(['agility'], ['composure', 'react']), '앞장이': G(['atk', 'tough'], ['evade']),
+  '뒷줄파': G(['evade'], ['atk']), '짝꿍': G(['position', 'composure'], ['focus']), '양보왕': G(['judgment'], ['atk']),
+  '집돌이': G(['position'], ['agility']), '대타': G(['tough', 'armor'], ['atk']), '큰형': G(['composure', 'judgment'], ['agility']),
+  '분위기메이커': G(['composure'], ['focus']), '칭찬왕': G(['judgment'], ['adds']), '보은형': G(['evade'], ['adds']),
+  '샘쟁이': G(['atk'], ['composure']), '울보': G(['evade'], ['composure']), '오뚝이': G(['tough', 'composure'], ['react']),
+  '예민형': G(['react'], ['composure']), '신바람': G(['evade', 'agility'], ['judgment']), '화풀이': G(['atk', 'tough'], ['composure']),
+  '폭주기관차': G(['atk'], ['judgment', 'evade']), '쉬엄쉬엄': G(['composure'], ['focus']), '타이밍 장인': G(['focus', 'judgment'], ['agility']),
+  '끈기형': G(['focus', 'composure'], ['atk']),
+};
+
+/** 닉네임 → 고정 씨앗 (FNV-1a) */
+export function seedOf(text: string): number {
+  let h = 0x811c9dc5;
+  for (const ch of text) { h ^= ch.codePointAt(0)!; h = Math.imul(h, 0x01000193); }
+  return h >>> 0;
+}
+function rngOf(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+/** 대략 정규분포 (세 번 더함), 평균 0 · 표준편차 약 1 */
+const normal = (r: () => number) => (r() + r() + r() - 1.5) * 2;
+const clampStat = (x: number) => Math.max(1, Math.min(20, Math.round(x)));
+
+/** 능력치 표준편차 (평균 10, 대부분 8~13 · 97) */
+export const STAT_SD = 1.8;
+/** 빠르기 (97 「A를 고르면 붙는 규칙」 2번): 40%는 함께 크는 사람 0.95~1.1배, 60%는 천천히 크는 사람 0.02~0.95배 */
+export const SPEED = { fastShare: 0.4, fast: [0.95, 1.1], slow: [0.02, 0.95] } as const;
+
+/** 1000명 한 사람의 고정 능력치 (닉네임 씨앗 + 성격 결) */
+export function profileOf(nick: string, pers: PersName): FmProfile {
+  const r = rngOf(seedOf(`fm:${nick}`));
+  const grain = PERS_GRAIN[pers];
+  const stats = {} as Stats;
+  for (const k of STAT_KEYS) {
+    const lean = grain?.hi.includes(k) ? GRAIN : grain?.lo.includes(k) ? -GRAIN : 0;
+    stats[k] = clampStat(10 + lean + normal(r) * STAT_SD);
+  }
+  const learn = clampStat(1 + r() * 19.999 - 0.5);
+  const steady = clampStat(10 + normal(r) * 4);
+  const fast = r() < SPEED.fastShare, u = r();
+  const speed = fast ? SPEED.fast[0] + u * (SPEED.fast[1] - SPEED.fast[0]) : SPEED.slow[0] + u * (SPEED.slow[1] - SPEED.slow[0]);
+  return { stats, learn, steady, speed };
+}
+
+/** 공개모집 파티원 레벨: 내 Lv × 빠르기 (반올림, 1~100) */
+export const memberLevel = (speed: number, myLv: number): number => Math.max(1, Math.min(100, Math.round(myLv * speed)));
+/** 칸 레벨 ±이만큼인 사람만 모집에 나옴, 모자라면 넓힘 */
+export const LV_BAND = [1, 3] as const;
+
+/** 능력 ★ (½ 단위, ★½ ~ ★★★★★): 역할 핵심 넷 60% + 나머지 여덟 40% */
+export function abilityStars(stats: Stats, role: Exclude<Role, 'healer'>): number {
+  const core = ROLE_CORE[role];
+  const c = core.reduce((a, k) => a + stats[k], 0) / core.length;
+  const o = STAT_KEYS.filter(k => !core.includes(k)).reduce((a, k) => a + stats[k], 0) / (STAT_KEYS.length - core.length);
+  const score = c * 0.6 + o * 0.4;
+  return Math.max(0.5, Math.min(5, Math.round(score - 5.8) / 2)); // 평균 10 → ★★, 방패든양 예 (핵심 14 · 나머지 10.6) → ★★★½
+}
+/** ★ 글자 (★★★½) */
+export const starText = (n: number): string => '★'.repeat(Math.floor(n)) + (n % 1 ? '½' : '');
+
+/** 꾸준함 (97 숨은 능력치): 판마다 능력치 전체가 ±amp 안에서 함께 오르내림. 꾸준함 1 = ±2.5, 20 = 0. 판 시드 · 닉네임으로 한 번 굴림 */
+export function dayOffset(steady: number, fightSeed: number, nick: string): number {
+  const amp = 2.5 * (20 - Math.max(1, Math.min(20, steady))) / 19;
+  const r = rngOf(seedOf(`day:${fightSeed}:${nick}`));
+  return (r() * 2 - 1) * amp;
+}
+
+/** 1 → 10 → 20 사이를 직선으로 (10 = 예전 값) */
+export function lerp3(s: number, at1: number, at10: number, at20: number): number {
+  const x = Math.max(1, Math.min(20, s));
+  return x <= 10 ? at1 + (at10 - at1) * (x - 1) / 9 : at10 + (at20 - at10) * (x - 10) / 10;
+}
+
+/** 능력치 → 전투 엔진 값 (97 표). 칸 하나 = 값 하나 */
+export interface FmFx {
+  /** 공격: 딜 배율 */ dps: number;
+  /** 맷집: 최대 체력 배율 */ hp: number;
+  /** 방어: 받는 피해 배율 */ taken: number;
+  /** 발놀림: 한 칸 옮기는 시간 배율 */ move: number;
+  /** 회피: 장판 피하기 확률 (더함) */ dodge: number;
+  /** 위치 잡기: 피한 뒤 제자리로 돌아오기까지 기다림 (초) */ homeWait: number;
+  /** 쫄 처리: 판 위 적 (쫄 · 일점사)에 주는 딜 배율 */ adds: number;
+  /** 기술 숙련: 직업 스킬 재사용 배율 · 끊기 성공률 (더함) */ cd: number; cut: number;
+  /** 반응: 예고를 보고 움직이기까지 시간 배율 */ react: number;
+  /** 침착: 못 피한 뒤 다시 움직이기까지 배율 · 겁쟁이 도망 체력 · 소심이 당황 시간 배율 */ retry: number; flee: number; panic: number;
+  /** 판단: 생존 능력 체력 기준 (더함) · 낙천가 · 비관론자 치우침을 남기는 몫 */ guard: number; bias: number;
+  /** 집중: 악몽 · 레이드 · 보스 30% 아래에서 반응 · 회피 보너스 (낮아도 빼지 않음) */ focus: number;
+}
+export function fmFx(st: Stats, off = 0): FmFx {
+  const s = (k: StatKey) => st[k] + off;
+  return {
+    dps: lerp3(s('atk'), 0.85, 1, 1.15),
+    hp: lerp3(s('tough'), 0.9, 1, 1.1),
+    taken: lerp3(s('armor'), 1.05, 1, 0.92),
+    move: lerp3(s('agility'), 1.15, 1, 0.8),
+    dodge: lerp3(s('evade'), -0.05, 0, 0.05),
+    homeWait: lerp3(s('position'), 1.5, 1, 0.4),
+    adds: lerp3(s('adds'), 1, 1, 1.15),
+    cd: lerp3(s('skill'), 1.05, 1, 0.85), cut: lerp3(s('skill'), -0.05, 0, 0.1),
+    react: lerp3(s('react'), 1.2, 1, 0.8),
+    retry: lerp3(s('composure'), 1.3, 1, 0.6), flee: lerp3(s('composure'), 1.1, 1, 0.8), panic: lerp3(s('composure'), 1.15, 1, 0.7),
+    guard: lerp3(s('judgment'), -0.045, 0, 0.05), bias: lerp3(s('judgment'), 1.3, 1, 0.4),
+    focus: lerp3(s('focus'), 0, 0, 0.1),
+  };
+}

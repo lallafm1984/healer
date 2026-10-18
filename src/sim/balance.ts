@@ -78,7 +78,7 @@ export type SpecMode = 'common' | 'class';
 /** 한 판: 장소의 구간을 차례로 (구간 사이 휴식, 파티는 첫 구간에서 뽑은 그대로). tune을 주면 모든 구간에 그 값 (data/tune 대신) */
 export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number, tune?: Tune, specs: SpecMode = 'common'): Run {
   const segs = c.fights(d), s = standard(c, d);
-  const party = recruitParty(segs[0], seed, { abilities: true });
+  const party = recruitParty(segs[0], seed, { abilities: true, myLv: s.heroLv ?? s.lv, stageLv: s.lv }); // 97 FM: 저마다 레벨 (칸 ±1)
   // 순차 레벨링 기준이면 시드마다 그 플레이어의 드롭 장비 (레벨은 시드와 상관없음)
   const rp = s.gear === 'ramp' ? rampPlayer(c, d, hero, seed) : null, lv = s.heroLv ?? s.lv;
   const gear = rp ? { gearStats: gearStatsOf(rp.eq, rp.lv), specs: specsOf(rp.eq, hero) }

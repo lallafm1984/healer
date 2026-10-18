@@ -240,6 +240,8 @@ export interface Unit {
   mods: Mod[];
   /** 성격 상태 (75 문서, 새 20종만) */
   ps?: PersState;
+  /** 능력치가 정한 전투 값 (97 FM, 공개모집 1000명). 없으면 예전 값 */
+  fm?: import('../data/fm').FmFx;
   /** 짝꿍 (95): 짝 (아군 id). 붙어 있으면 둘 다 회피 + */
   pairWith?: number;
   /** 칭찬왕 · 보은형 (95): 체력 25% 아래로 내려간 적 있음 (60% 위로 오면 살아남) */
@@ -310,6 +312,10 @@ export interface RosterEntry {
   gid?: number;
   /** 길드원: 함께 출전한 수 (은혜 갚기 호감도, 06 6장) */
   runs?: number;
+  /** 공개모집 (97 FM): lv가 그 사람 자기 레벨 (칸 레벨 상한 없음) */
+  pub?: boolean;
+  /** 능력치 12 (97 FM) · 이번 판 꾸준함 흔들림 (모든 칸에 더함) */
+  fm?: { stats: import('../data/fm').Stats; off: number };
 }
 
 export type TelKind = 'buster' | 'aoe' | 'zone' | 'instant';

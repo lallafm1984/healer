@@ -298,6 +298,7 @@ export function takenAmt(f: Fight, u: Unit, amt: number, magic: boolean, aim: Da
   if (NEW_HERO(f)) amt *= heroTaken(f, u, magic); // 79 직업 (토템 · 생존기 · 특성)
   if (u.me && f.gear.endure) amt *= 1 - f.gear.endure; // 장비 인내 (34 6-4)
   if (f.sturdy) amt *= sturdyTaken(f, u); // 든든이 옆 (95)
+  if (u.fm) amt *= u.fm.taken; // 방어 (97 FM)
   if (u.shield > ahead) amt *= 0.6;
   if (u.redu > ahead) amt *= 1 - u.reduCut;
   else if (ahead > 0 && f.sanctuary && f.sanctuary.end > f.t + ahead && f.sanctuary.cells.has(u.cell)) amt *= 1 - SANCTUARY.cut; // 성역은 서 있는 동안 틱마다 다시 걸림

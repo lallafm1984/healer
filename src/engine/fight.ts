@@ -9,6 +9,7 @@ import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
 import { openTiers } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { pickMember, pickNick } from '../data/nicknames';
+import { dayOffset, fmFx, memberLevel } from '../data/fm';
 import { NICKS, PERS, PROTO_PERS, type PersName } from '../data/personalities';
 import { POS_RULES, PROTO_RULES, RULES } from '../data/rules';
 import { makeCells } from './board';
@@ -133,7 +134,7 @@ export const meleeCap = (enc: Encounter): number => Math.max(0, BOARDS[enc.board
  * 같은 직업은 5인 1명 · 10인 2명 · 20인 3명까지 (자리가 모자라면 가장 적은 직업부터 더 넣음).
  * 저레벨 던전은 희귀 성격 없이 · 탱커 ★1 · ★★★ 파티당 1명 (04 6-F).
  */
-export function recruitParty(encKey: EncounterKey, seed: number, opts: { abilities?: boolean } = {}): RosterEntry[] {
+export function recruitParty(encKey: EncounterKey, seed: number, opts: { abilities?: boolean; myLv?: number; stageLv?: number } = {}): RosterEntry[] {
   const list: RosterEntry[] = partyRoles(encKey, seed).map(role => ({ role, pers: '신중파', nick: '' }));
   const rng = rngFrom(Math.imul(seed, 0x9e3779b1) ^ 0x85ebca6b);
   const max = sameClassMax(list.length + 1);
@@ -151,9 +152,17 @@ export function recruitParty(encKey: EncounterKey, seed: number, opts: { abiliti
   const nr = rngFrom(Math.imul(seed, 0x27d4eb2f) ^ 0x165667b1);
   const used = new Set<string>(), low = !!ENCOUNTERS[encKey].lowLevel;
   let hard = 0;
+  // 97 FM: 내 레벨 · 칸 레벨을 알면 저마다 레벨 (칸 ±1인 사람만), 능력치 · 이번 판 꾸준함 흔들림 (판 시드). 튜토리얼 파티 (스킬 없음)는 예전 그대로.
+  // 세상 레벨 = 내 레벨과 칸 레벨 중 높은 쪽 (힐러 힘 max(내 Lv, 칸 Lv)와 같은 규칙): 내가 칸보다 낮으면 (Lv 1~20 성장 길의 어려움 · 악몽) 칸 레벨 근처 사람이 없어 모집이 칸보다 크게 약했음
+  const fm = !!opts.abilities;
+  const lv = fm && opts.myLv != null && opts.stageLv != null ? { my: Math.max(opts.myLv, opts.stageLv), stage: opts.stageLv } : undefined;
   for (const m of list) {
-    const p = pickMember(m.cls!, nr, used, { low, tank: m.role === 'tank', hard });
-    if (p) { m.nick = p.nick; m.pers = p.pers; if (opts.abilities) m.ab = p.ab; }
+    const p = pickMember(m.cls!, nr, used, { low, tank: m.role === 'tank', hard, lv });
+    if (p) {
+      m.nick = p.nick; m.pers = p.pers; if (opts.abilities) m.ab = p.ab;
+      if (fm) m.fm = { stats: p.fm.stats, off: dayOffset(p.fm.steady, seed, p.nick) };
+      if (lv) { m.lv = memberLevel(p.fm.speed, lv.my); m.pub = true; }
+    }
     else { m.nick = pickNick(m.cls!, nr, used); if (opts.abilities) m.ab = rollAbility(m.cls!, nr); } // 목록을 다 씀 (거의 없음): 이름 뒤 숫자
     if (PERS[m.pers].star === 3) hard++;
     used.add(m.nick);
@@ -167,20 +176,24 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
   const add = (role: Role, pers: PersName | null, nick: string, cls?: ClassKey, r?: RosterEntry): Unit => {
     const c = cls ? CLASSES[cls] : null;
     // 길드원은 자기 레벨 배율 (적 레벨 위로는 안 감, 34 4장 8번), 공개모집은 콘텐츠 단계 배율. 자질 공격·맷집 (17 9-1)
-    const own = r?.lv ? f.R.lv(Math.min(r.lv, f.cfg.stageLv ?? r.lv)) * f.R.enemy : f.scale;
+    const own = r?.lv ? f.R.lv(r.pub ? r.lv : Math.min(r.lv, f.cfg.stageLv ?? r.lv)) * f.R.enemy : f.scale; // 공개모집은 자기 레벨 그대로 (97 FM)
     const lv = role === 'healer' ? f.power : own;
     const apt = r?.apt;
     let base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;
     let dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult * own;
     if (apt) { base *= APT.tough[aptIdx(apt[1])]; dps *= APT.atk[aptIdx(apt[0])]; }
+    const fx = r?.fm && !apt ? fmFx(r.fm.stats, r.fm.off) : undefined;
+ // 능력치 (97 FM). 자질이 있는 길드원은 예전대로
+    if (fx) { base *= fx.hp; dps *= fx.dps; }
     if (role === 'healer' && f.gear.hp) base *= 1 + f.gear.hp; // 장비 체력 (34 6-5)
     const u: Unit = {
       id: f.nextId++, role, cls: c ? c.key : null, acc: 0, dealt: 0, pers, p: pers ? PERS[pers] : {}, nick, base, max: base, hp: base, dps, alive: true,
       cell: -1, home: -1, hot: 0, hotTick: 0, hots: [], redu: 0, reduCut: 0, sacr: 0, immune: 0, echo: [], guardian: 0, shield: 0, debuffs: [], moving: null, react: null,
       retryAt: 0, mistakeUntil: 0, wrongUntil: 0, fleeing: false, sulking: false, lastHeal: 0, thanks: 0, flash: 0,
       barkAt: -10, ignoreZone: 0, homeAt: null, diedAt: 0, me: role === 'healer',
-      ab: null, mods: [], got: 0, senseReact: apt ? APT.react[aptIdx(apt[2])] : 1, senseDodge: apt ? APT.dodge[aptIdx(apt[2])] : 0, gid: r?.gid, runs: r?.runs ?? 0,
+      ab: null, mods: [], got: 0, senseReact: apt ? APT.react[aptIdx(apt[2])] : fx ? fx.react : 1, senseDodge: apt ? APT.dodge[aptIdx(apt[2])] : fx ? fx.dodge : 0, gid: r?.gid, runs: r?.runs ?? 0,
     };
+    if (fx) u.fm = fx;
     units.push(u);
     return u;
   };
@@ -278,7 +291,7 @@ function partyHits(f: Fight): void {
  * 95: 쫄 사냥꾼은 쫄에게 ×add · 보스에게 ×boss, 쫄 모으기 탱커에게 쫄이 모여 있으면 쫄에게 ×aoe
  */
 function hitAdds(f: Fight, d: number, u: Unit): void {
-  const hunt = u.p.addHunter, am = (hunt?.add ?? 1) * (f.persOn ? gatherMult(f) : 1);
+  const hunt = u.p.addHunter, am = (hunt?.add ?? 1) * (f.persOn ? gatherMult(f) : 1) * (u.fm?.adds ?? 1); // 쫄 처리 (97 FM)
   let left = d, cleaved = false;
   for (const m of focusOrder(f)) { // 일점사 (P-FOCUS): 먼저 잡을 것부터
     if (left <= 1e-9) break;

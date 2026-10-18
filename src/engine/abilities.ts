@@ -225,8 +225,8 @@ function check(f: Fight, u: Unit, a: AbilityDef, tr: Trig): Unit | true | null {
   switch (tr.t) {
     case 'low': {
       if (tr.noZone && (u.moving || f.zones.some(z => z.cells.has(u.cell)) || f.tels.some(t => t.kind === 'zone' && t.cells.has(u.cell)))) return null;
-      let thr = tr.hp + starFx(a, u.ab!.star).early;
-      if (u.p.lateGuard || u.p.earlyGuard) thr = persGuard(u, thr); // 낙천가 · 비관론자 (75)
+      let thr = tr.hp + starFx(a, u.ab!.star).early + (u.fm?.guard ?? 0); // 판단 (97 FM)
+      if (u.p.lateGuard || u.p.earlyGuard) thr += (persGuard(u, thr) - thr) * (u.fm?.bias ?? 1); // 낙천가 · 비관론자 (75), 판단이 높으면 치우침이 줄어듦 (97 FM)
       if (a.kind === 'heal') {
         if (u.ab!.odd != null) thr = u.ab!.odd;
         else if (u.p.flee) thr = Math.max(thr, u.p.flee); // 겁쟁이: 도망치면서
@@ -362,7 +362,7 @@ export function abCut(f: Fight, s: BossSkill): boolean {
 /** 끊기 능력을 쓰고 성공 확률 (능력 · ★)로 굴림 */
 function tryCut(f: Fight, u: Unit, a: AbilityDef, s: BossSkill): boolean {
   const st = starFx(a, u.ab!.star);
-  const p = Math.min(1, (a.fx as { v: number }).v * st.eff * (u.p.hoard ? u.p.hoard.boost : 1) + (u.ab!.star >= 5 ? 0.15 : 0) + (u.p.cutter?.up ?? 0)); // 쿨 아끼미 (위기에만 씀) · 끊기 욕심 (95)
+  const p = Math.min(1, (a.fx as { v: number }).v * st.eff * (u.p.hoard ? u.p.hoard.boost : 1) + (u.ab!.star >= 5 ? 0.15 : 0) + (u.p.cutter?.up ?? 0) + (u.fm?.cut ?? 0)); // 쿨 아끼미 (위기에만 씀) · 끊기 욕심 (95) · 기술 숙련 (97 FM)
   const ok = p >= 1 || f.rng() < p;
   use(f, u, a, {});
   emit(f, { type: 'msg', text: `${u.nick} ${a.name}: ${s.name || '기술'} ${ok ? '끊음' : '끊기 실패'}` });
@@ -431,7 +431,7 @@ interface Ctx { tel?: Telegraph; target?: Unit }
 function use(f: Fight, u: Unit, a: AbilityDef, ctx: Ctx, boost = 1): void {
   const s = u.ab!, st = starFx(a, s.star);
   s.uses++;
-  if (a.cd > 0) s.ready = f.t + a.cd * st.cd;
+  if (a.cd > 0) s.ready = f.t + a.cd * st.cd * (u.fm?.cd ?? 1); // 기술 숙련 (97 FM)
   f.stats.abUses = (f.stats.abUses || 0) + 1;
   emit(f, { type: 'ability', id: u.id, name: a.name });
   if (u.p.hoard) { boost *= u.p.hoard.boost; bark(f, u, null, false, 'hoardUse'); }
