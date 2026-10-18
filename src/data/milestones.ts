@@ -1,4 +1,5 @@
 import { CONTENT, contentOf } from './content';
+import { REROLL_LEVEL, REROLL_PICK_LEVEL } from './equipment';
 import { FEATURES } from './features';
 import { HEROES, type HeroKey } from './heroes';
 import { MAX_LEVEL } from './progression';
@@ -19,9 +20,8 @@ const BASE: Record<number, Milestone[]> = {
   35: [{ text: '특성 7단', live: true }],
   40: [{ text: '특성 8단', live: true }],
   45: [{ text: '특성 9단', live: true }],
-  50: [{ text: '특성 10단 (완성)', live: true }, { text: '장비 재설정 (옵션 · 특수능력 한 줄)', live: true }, { text: '악몽 던전에 어픽스 「역병」', live: true }, { text: '직업 칭호', live: false }],
+  50: [{ text: '특성 10단 (완성)', live: true }, { text: '악몽 던전에 어픽스 「역병」', live: true }, { text: '직업 칭호', live: false }],
   51: [{ text: '정점 수련 (레벨마다 지능·체력 +0.3%)', live: true }],
-  60: [{ text: '장비 재설정 후보 2개 중 고르기', live: true }],
   100: [{ text: '직업 색 힐 이펙트 · 칭호', live: false }],
 };
 /**
@@ -30,6 +30,10 @@ const BASE: Record<number, Milestone[]> = {
  */
 export const MILESTONES: Record<number, Milestone[]> = { ...BASE };
 const addFirst = (lv: number, m: Milestone) => { MILESTONES[lv] = [m, ...(MILESTONES[lv] ?? [])]; };
+const addLast = (lv: number, m: Milestone) => { MILESTONES[lv] = [...(MILESTONES[lv] ?? []), m]; };
+// 장비 재설정 (#192)은 equipment 레벨을 따라감 (2026-10-18 해금 레벨 검토: 예전엔 Lv 50에 떴음)
+addLast(REROLL_LEVEL, { text: '장비 재설정 (옵션 · 특수능력 한 줄)', live: true });
+addLast(REROLL_PICK_LEVEL, { text: '장비 재설정 후보 2개 중 고르기', live: true });
 const raid10 = contentOf('abyss1'), raid20 = contentOf('cathedral1');
 addFirst(raid20.diffUnlock!['악몽']!, { text: '20인 레이드 악몽', live: true });
 // 88: 영웅은 10인 레이드가 열리는 Lv 45부터 드물게 (레벨이 오를수록 늘어남), 전설 (노란색)은 Lv 100부터 20인 레이드에서 (equipment HERO_FROM · LEGEND_LEVEL)

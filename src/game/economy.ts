@@ -10,11 +10,10 @@ import {
   CHAR_SLOT, JOB_PRICE, jobProductId, MERIT, MERIT_GEAR_COST, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_GAIN, PASS_LEVELS, PASS_XP, passFree, slotGold, type PassReward,
 } from '../data/economy';
 import { resourceBalance, spendResource } from './resources';
-import { FEATURES } from '../data/features';
 import { HEROES } from '../data/heroes';
 import { HERO_FROM, makeItem, rollItem, SLOTS, type GearItem, type ItemGrade, type SlotKey } from '../data/equipment';
 import {
-  CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, WEEKLY, WEEKLY_LV, WEEKLY_N, WEEKLY_REWARD, type MissionDef, type RunEvent,
+  CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, missionOpen, WEEKLY, WEEKLY_LV, WEEKLY_N, WEEKLY_REWARD, type MissionDef, type RunEvent,
 } from '../data/missions';
 import { clearGold, MAX_LEVEL } from '../data/progression';
 import { newDaily, newWeekly, noteSpecs, topLevel, type MissionSave, type SaveData } from '../platform/storage';
@@ -22,8 +21,8 @@ import { dayKey, daysBetween, seasonOf, weekKey } from './clock';
 import { TUT } from './tutorial';
 
 // ---------- 리셋 ----------
-function pick(pool: MissionDef[], n: number, lv: number, r: () => number, basicMax = n, skip: string[] = []): MissionSave[] {
-  const can = pool.filter(m => m.lv <= lv && !skip.includes(m.key) && (!m.guild || FEATURES.guild));
+function pick(pool: MissionDef[], n: number, lv: number, hero: HeroKey, r: () => number, basicMax = n, skip: string[] = []): MissionSave[] {
+  const can = pool.filter(m => missionOpen(m, lv, hero) && !skip.includes(m.key));
   const out: MissionSave[] = [];
   while (out.length < n && can.length) {
     const i = Math.floor(r() * can.length), m = can.splice(i, 1)[0];
@@ -33,7 +32,7 @@ function pick(pool: MissionDef[], n: number, lv: number, r: () => number, basicM
   return out;
 }
 
-/** fixed = 길드를 빼 두어서 바꾼 일일 임무 수 */
+/** fixed = 지금 못 채워서 바꾼 일일 임무 수 (길드를 빼 둠 · 직업을 바꿈) */
 export interface Rollover { day: boolean; week: boolean; banked: number; season: boolean; fixed: number }
 
 /** 접속·화면 진입 때 부름. 날이 바뀌었으면 일일 임무 새로, 주가 바뀌었으면 주간 새로 (13 1장) */
@@ -46,19 +45,19 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
     const missed = d.day ? Math.max(0, daysBetween(d.day, day) - 1) : 0;
     const banked = Math.min(CHEST_BANK, d.banked + missed);
     out.banked = banked - d.banked;
-    save.daily = { ...newDaily(day), banked, missions: pick(DAILY, DAILY_N, lv, r, 2) };
+    save.daily = { ...newDaily(day), banked, missions: pick(DAILY, DAILY_N, lv, save.hero, r, 2) };
     out.day = true;
   }
-  // 길드를 빼기 전에 뽑힌 길드 임무 (못 채움) → 다른 임무로. 하루 교체 횟수는 안 씀
-  if (!FEATURES.guild) {
-    const ms = save.daily.missions;
-    ms.forEach((m, i) => {
-      if (m.got || !DAILY.find(x => x.key === m.key)?.guild) return;
-      const basic = ms.filter((x, j) => j !== i && DAILY_BASIC.includes(x.key)).length;
-      const nw = pick(DAILY, 1, lv, r, 2 - basic, ms.map(x => x.key))[0];
-      if (nw) { ms[i] = nw; out.fixed++; }
-    });
-  }
+  // 지금 못 채우는 임무 → 다른 임무로. 하루 교체 횟수는 안 씀
+  // (길드를 빼기 전에 뽑힌 길드 임무, 직업을 바꿔 아직 지울 디버프가 없는 「해제 성공」)
+  const ms = save.daily.missions;
+  ms.forEach((m, i) => {
+    const def = DAILY.find(x => x.key === m.key);
+    if (m.got || !def || missionOpen(def, lv, save.hero)) return;
+    const basic = ms.filter((x, j) => j !== i && DAILY_BASIC.includes(x.key)).length;
+    const nw = pick(DAILY, 1, lv, save.hero, r, 2 - basic, ms.map(x => x.key))[0];
+    if (nw) { ms[i] = nw; out.fixed++; }
+  });
   if (save.weekly.week !== week) {
     // 지난주 주간 도전 기록 → 월요일 상자 (13 3-2)
     // 상자는 그 기록을 세운 직업이 받음 (장비가 직업마다, 2026-10-12)
@@ -66,11 +65,11 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
       if (save.weekly.chalBest >= save.chalChest) save.chalChestHero = save.weekly.chalHero;
       save.chalChest = Math.max(save.chalChest, save.weekly.chalBest);
     }
-    save.weekly = { ...newWeekly(week), missions: lv >= WEEKLY_LV ? pick(lv >= RAID10_LV ? WEEKLY : WEEKLY.filter(m => m.key !== 'w_raid3'), WEEKLY_N, lv, r) : [] };
+    save.weekly = { ...newWeekly(week), missions: lv >= WEEKLY_LV ? pick(lv >= RAID10_LV ? WEEKLY : WEEKLY.filter(m => m.key !== 'w_raid3'), WEEKLY_N, lv, save.hero, r) : [] };
     out.week = true;
   }
   // 레벨이 올라 주간 임무가 열렸으면 (Lv 10) 이번 주 것을 바로 줌
-  if (!save.weekly.missions.length && lv >= WEEKLY_LV) save.weekly.missions = pick(WEEKLY.filter(m => m.key !== 'w_raid3' || lv >= RAID10_LV), WEEKLY_N, lv, r);
+  if (!save.weekly.missions.length && lv >= WEEKLY_LV) save.weekly.missions = pick(WEEKLY.filter(m => m.key !== 'w_raid3' || lv >= RAID10_LV), WEEKLY_N, lv, save.hero, r);
   const sn = seasonOf(now).n;
   if (save.pass.season !== sn) { save.pass = { season: sn, xp: 0, free: [] }; out.season = true; }
   return out;
@@ -161,7 +160,7 @@ export function swapMission(save: SaveData, i: number, r: () => number): string 
   if (!s || s.got) return '바꿀 수 없음';
   if (d.swapped) return '오늘 교체를 이미 씀';
   const basic = d.missions.filter((m, j) => j !== i && DAILY_BASIC.includes(m.key)).length;
-  const nw = pick(DAILY, 1, topLevel(save), r, 2 - basic, d.missions.map(m => m.key))[0];
+  const nw = pick(DAILY, 1, topLevel(save), save.hero, r, 2 - basic, d.missions.map(m => m.key))[0];
   if (!nw) return '바꿀 임무가 없음';
   d.missions[i] = nw; d.swapped = true;
   return '';

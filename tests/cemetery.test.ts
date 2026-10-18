@@ -19,7 +19,7 @@ describe('잿빛 공동묘지', () => {
   });
 
   it('교단 신도 「부패」: 질병, 최대 체력 −10%, 지우면 돌아옴', () => {
-    const f = E.create({ encounter: 'ashyard', diff: '보통', seed: 3, level: 3 });
+    const f = E.create({ encounter: 'ashyard', diff: '보통', seed: 3, level: 7 });
     let hit: E.Unit | undefined;
     while (!f.over && f.t < 30 && !hit) { E.step(f); f.events.length = 0; hit = f.party.find(u => u.debuffs.some(d => d.name === '부패')); }
     expect(hit).toBeDefined();

@@ -57,7 +57,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   flash: { name: '순간 치유', short: '순간', slot: 'fast', lv: 1, cast: 1.5, cost: 6, amt: 250, target: 'ally', gp: 15 },
   renew: { name: '소생', short: '소생', slot: 'hot', lv: 2, cast: 0, cost: 3, target: 'ally', gp: 5 },
   poh: { name: '치유의 기원', short: '기원', slot: 'aoe', lv: 5, cast: 2.5, cost: 10, amt: 180, target: 'area', gp: 30 }, // 82: 신성화 게이지 35 → 평온 게이지 30 (신성화 몫을 평온 700과 함께 메움, 밸런스)
-  purify: { name: '정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
+  purify: { name: '정화', short: '정화', slot: 'dispel', lv: 7, cast: 0, cost: 4, cd: 4, target: 'ally' },
   guardian: { name: '수호 영혼', short: '수호', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' },
   hymn: { name: '천상의 찬가', short: '찬가', slot: 'raid', lv: 12, cast: 0, channel: 4, cost: 15, cd: 180, target: 'none' },
   serenity: { name: '성언: 평온', short: '평온', slot: 'basic', lv: 6, cast: 0, cost: 0, amt: 700, target: 'ally' }, // 82: 600 → 700 (신성화를 없앤 몫, 밸런스)
@@ -69,7 +69,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   growth: { name: '생장', short: '생장', slot: 'fast', lv: 1, cast: 2.0, cost: 3, amt: 250, target: 'ally' }, // 84 밸런스: 220 → 250 (Lv 21~30 악몽 −12%p). 마나 4 → 3 (2026-10-14 직업 밸런스 검토: 장비 적은 초반 드루이드가 생장으로 마나가 바닥나 어려움 · 악몽 40~70%)
   bloom: { name: '피워 내기', short: '피움', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 12, target: 'ally' },
   wildflower: { name: '들꽃 군락', short: '들꽃', slot: 'aoe', lv: 5, cast: 2.0, cost: 10, cd: 10, amt: 160, target: 'area' },
-  natureCleanse: { name: '자연 정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
+  natureCleanse: { name: '자연 정화', short: '정화', slot: 'dispel', lv: 7, cast: 0, cost: 4, cd: 4, target: 'ally' },
   bark: { name: '나무껍질', short: '껍질', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 60, target: 'ally' },
   quietwood: { name: '고요한 숲', short: '숲', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, target: 'none' }, // 82: 4초 정신 집중 (찬가와 같은 모양) → 즉시 전원 새싹 · 지속 힐 연장 (QUIETWOOD)
   rebirth: { name: '환생', short: '환생', slot: 'unique', lv: 15, cast: 3.0, cost: 5, target: 'dead' },
@@ -79,7 +79,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   beacon: { name: '봉화', short: '봉화', slot: 'fast', lv: 6, cast: 0, cost: 3, cd: 10, amt: 160, target: 'ally' }, // 2026-10-16 Lim 「성기사는 봉화 지정스킬을 만들고 빛일격 스킬을 제거하자」 · 「봉화 스킬에 부가적인것도 추가해서 단순하게 만들지 말자」 · 「너무 좋다. 신성한 힘 1 증가 제거」: 지정 + 즉시 회복 + 피해 감소. cd = heroConst BEACON.cd
   oath: { name: '빛의 서약', short: '서약', slot: 'hot', lv: 2, cast: 0, cost: 0, amt: 160, target: 'ally', power: 1, powerAll: true },
   lightWave: { name: '빛의 파도', short: '파도', slot: 'aoe', lv: 5, cast: 0, cost: 5, amt: 220, target: 'area', power: 3 }, // 마나 0 → 5% (73)
-  handCleanse: { name: '정화의 손', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
+  handCleanse: { name: '정화의 손', short: '정화', slot: 'dispel', lv: 7, cast: 0, cost: 4, cd: 4, target: 'ally' },
   sacrifice: { name: '희생', short: '희생', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' },
   sanctuary: { name: '빛의 성역', short: '성역', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, target: 'area' },
   handGuard: { name: '보호의 손', short: '보호', slot: 'unique', lv: 15, cast: 0, cost: 2, cd: 300, target: 'ally' },
@@ -88,7 +88,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   // 79 첫 안 300 · 3% / 250 · 6% / 210 · 재사용 6 / 320 / 80 / 30 → 간격 검사 (79 2-11, 세 직업 평균 ±5%p)로 고침: 사제 메아리 · 성언, 드루이드 싼 새싹, 성기사 봉화 같은 덤이 없어 기본 힐 효율을 올림
   ripple: { name: '잔물결', short: '물결', slot: 'basic', lv: 1, cast: 2.0, cost: 2.2, amt: 280, target: 'ally' }, // 82: 330 → 280 + 한 번 튐 30% (SHAMAN.ripple, 밸런스)
   droplet: { name: '물방울', short: '방울', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 4, amt: 330, target: 'ally' },
-  washing: { name: '씻김', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
+  washing: { name: '씻김', short: '정화', slot: 'dispel', lv: 7, cast: 0, cost: 4, cd: 4, target: 'ally' },
   chainHeal: { name: '연쇄 치유', short: '연쇄', slot: 'aoe', lv: 5, cast: 2.5, cost: 10, amt: 300, target: 'ally' },
   earthTotem: { name: '대지 토템', short: '대지', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'cell' },
   rainTotem: { name: '비구름 토템', short: '비구름', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, amt: 60, target: 'none' },
@@ -99,7 +99,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   vitalPalm: { name: '생기 손바닥', short: '손바닥', slot: 'basic', lv: 1, cast: 0, gcd: 1.0, cost: 1.2, amt: 110, target: 'ally' }, // 79 3-11: 130 → 85 (밸런스), 84: 100 → 110 (Lv 1~20 · 중반 던전)
   mistWrap: { name: '안개 감싸기', short: '감싸기', slot: 'fast', lv: 1, cast: 0, cost: 5, cd: 10, amt: 140, target: 'ally' }, // 82: 1.5초 시전 230 (생장과 같은 모양) → 즉시 · 리듬 비례 (MONK.wrap). GCD 1초로는 +5~12%p라 규칙 GCD (밸런스)
   wanderMist: { name: '떠도는 안개', short: '안개', slot: 'hot', lv: 2, cast: 0, cost: 2, cd: 6, amt: 270, target: 'ally' },
-  clearChi: { name: '맑은 기운', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
+  clearChi: { name: '맑은 기운', short: '정화', slot: 'dispel', lv: 7, cast: 0, cost: 4, cd: 4, target: 'ally' },
   mistBreath: { name: '안개 숨결', short: '숨결', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 15, amt: 160, target: 'area' },
   soothe: { name: '누그러뜨림', short: '누그러', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 120, target: 'ally' },
   reviveWind: { name: '되살림 바람', short: '바람', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, amt: 350, target: 'none' },
@@ -109,7 +109,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   starHeal: { name: '별빛 치유', short: '별빛', slot: 'basic', lv: 1, cast: 2.0, cost: 2.0, amt: 250, target: 'ally' }, // 79 4-11: 270 · 3% → 320 · 2.2%, 83 (힐량 내림): 280 · 2%
   twinkle: { name: '반짝임', short: '반짝', slot: 'fast', lv: 1, cast: 0, cost: 4, cd: 9, amt: 210, target: 'ally' }, // 마나 5 → 4 (79 4-11)
   starMark: { name: '별자리 표식', short: '표식', slot: 'hot', lv: 2, cast: 0, cost: 1.5, amt: 140, target: 'ally' }, // 120 · 3% → 160 · 1.5% (79 4-11)
-  clearStar: { name: '맑은 별빛', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
+  clearStar: { name: '맑은 별빛', short: '정화', slot: 'dispel', lv: 7, cast: 0, cost: 4, cd: 4, target: 'ally' },
   starfall: { name: '별비', short: '별비', slot: 'aoe', lv: 5, cast: 1.5, cost: 10, cd: 8, target: 'area' }, // 83: 모으기 → 시전 (별 = 1 + 조각) 1.5초. 힐량을 내린 몫은 마나 12 → 10% · 재사용 12 → 8초로
   starSleep: { name: '별의 잠', short: '잠', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 120, target: 'ally' },
   starMemory: { name: '별의 기억', short: '기억', slot: 'raid', lv: 12, cast: 1.5, cost: 15, cd: 180, amt: 100, target: 'none' }, // 82: 즉시 (최근 4초) → 별 1개마다 2초, 83: 모으기 → 시전
@@ -118,7 +118,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
   // ---------- ⑦ 결계사 (79 5장) ----------
   sealHeal: { name: '인장 치유', short: '인장', slot: 'basic', lv: 1, cast: 2.2, cost: 2.2, amt: 350, target: 'ally' }, // 79 5-11: 260 · 3% → 350 · 2.2% (밸런스)
   lightBarrier: { name: '빛의 막', short: '막', slot: 'hot', lv: 2, cast: 0, cost: 3, cd: 6, amt: 300, target: 'ally' }, // 마나 4 → 3% (79 5-11). 84 밸런스에서 340을 시험했으나 Lv 1~20만 세지고 막 녹이기 던전은 그대로라 300
-  wardCleanse: { name: '결계 정화', short: '정화', slot: 'dispel', lv: 3, cast: 0, cost: 4, cd: 4, target: 'ally' },
+  wardCleanse: { name: '결계 정화', short: '정화', slot: 'dispel', lv: 7, cast: 0, cost: 4, cd: 4, target: 'ally' },
   wardCircle: { name: '결계 원', short: '결계', slot: 'aoe', lv: 5, cast: 0, cost: 10, cd: 20, amt: 100, target: 'area' }, // 150 → 100 (79 5-11)
   guardWard: { name: '수호 결계', short: '수호', slot: 'ext', lv: 8, cast: 0, cost: 2, cd: 90, target: 'ally' }, // 82: 받는 피해 −40% (누그러뜨림과 같음) → 큰 보호막 (WARDER.guard)
   lightVeil: { name: '빛의 장막', short: '장막', slot: 'raid', lv: 12, cast: 0, cost: 15, cd: 180, amt: 130, target: 'none' }, // 82: 범위 피해 −25% (성역과 비슷) → 전원 보호막 + 인장
