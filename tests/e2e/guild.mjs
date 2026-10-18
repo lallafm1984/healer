@@ -117,6 +117,11 @@ export default async function guild(url, shots) {
   const picked = await page.locator('#s-party [data-gpick].picked').count();
   ok(await page.getAttribute('#s-party [data-mode="guild"]', 'aria-selected') === 'true' && picked === 4, `편성이 길드파티로 시작 (5인 = 길드원 4) ${picked}`);
   ok((await page.locator('#s-party [data-gpick] .bond').count()) >= 5, '편성 길드원 줄에 인연 하트');
+  // 추천 편성 (93 7-1): 보스 특징에 맞는 스킬 · 숙지로 고르고 이유 칩
+  ok(/추천 편성/.test(await text('#autoPick')), '버튼 「추천 편성」');
+  await page.click('#autoPick'); await page.clock.runFor(50);
+  const why = await page.locator('#s-party .f-why .chip').allTextContents();
+  ok((await page.locator('#s-party [data-gpick].picked').count()) === 4 && why.length >= 1 && why.every(w => /→|숙지/.test(w)), `추천 편성 = 4명 + 이유 칩 ${JSON.stringify(why)}`);
   await page.screenshot({ path: `${shots}/guild_party.png` });
   await departGo(page); await page.clock.runFor(3100 + 500);
   const inFight = await page.evaluate(() => window.__proto.F.party.filter(u => u.gid != null).map(u => ({ nick: u.nick, ab: u.ab?.key, bond: u.bond, did: !!u.did })));
@@ -134,6 +139,7 @@ export default async function guild(url, shots) {
   const rw = await text('#s-settle .r-notes');
   ok(/길드원 경험치 \+\d/.test(rw) && /명성 \+4/.test(rw) && /길드 첫 처치/.test(rw), '결과: 길드원 경험치 · 명성 +4 · 길드 첫 처치');
   ok(/인연 \+\d/.test(rw), '결과: 인연 +N');
+  ok(/공략 숙지 1단계: /.test(rw), '결과: 공략 숙지 1단계 (보스 이름 · 길드원)');
   sv = await save();
   ok(sv.guild.fame === 4 && sv.guild.firsts.length === 1 && sv.guild.members.filter(m => m.runs === 1).length === 4 && sv.weekly.guild.n === 1, `저장: 명성 4 · 첫 처치 1 · 출전 1번 ×4 · 주간 목표 1 (${sv.guild.fame})`);
   await page.screenshot({ path: `${shots}/guild_reward.png` });

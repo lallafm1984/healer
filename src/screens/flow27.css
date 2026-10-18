@@ -208,6 +208,11 @@
 #s-party .f-det .f-star { letter-spacing: 0; }
 #s-party .pickhead { margin: 0; flex-wrap: wrap; align-items: center; }
 #s-party .pickhead #autoPick { margin-left: auto; min-height: 44px; }
+/* 추천 편성 이유 (93 7-1): 「장판 → 연막」 · 「공략 숙지 3단계 · 이름」 */
+#s-party .f-why { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; }
+#s-party .f-why .chip { min-height: 24px; padding: 2px 8px; border-radius: 12px; font: 700 11px/1.4 var(--font-body); white-space: nowrap; }
+/* 길드원 줄 둘째 줄의 작은 표 (숙지 n · 예전 길드원) */
+.pcard.f-mem .f-l2 > .f-tag { flex: none; padding: 0 5px; border: 1px solid #ffffff2e; border-radius: 6px; font-size: 10.5px; line-height: 16px; white-space: nowrap; }
 #s-party .f-adrr { align-self: flex-start; }
 /* 단축칸 한 줄 칩 (아래 고정, 칸 높이 44) */
 .f-slots { display: flex; align-items: center; gap: 6px; }

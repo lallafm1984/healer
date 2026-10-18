@@ -9,12 +9,13 @@
 import { resourceBalance } from '../game/resources';
 import { ABILITIES, STAR5, starFx } from '../data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
-import { BOND_STEPS, bondName, FRIEND_LV, POSTS, postGold, rerollGold, starOfBond, statCap, statNeed, type GuildMember, type PostKind, type PostRole } from '../data/guild';
+import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
+import { BOND_STEPS, bondName, FRIEND_LV, POSTS, postGold, rerollGold, starOfBond, statCap, statPerLevel, statPot, type GuildMember, type PostKind, type PostRole } from '../data/guild';
 import { GUILD_GOAL } from '../data/missions';
 import { GUILD_LEVEL, xpToNext } from '../data/progression';
 import { dayKey, daysBetween } from '../game/clock';
 import { Flow } from '../game/flow';
-import { bondOf, bondPt, capOf, foundGuild, friendsOf, full, guildOpen, hire, hireApp, inviteFriend, postRecruit, refreshApps, release, rerollAbility, worldLevel } from '../game/guild';
+import { bondOf, bondPt, capOf, foundGuild, knowStages, friendsOf, full, guildOpen, hire, hireApp, inviteFriend, postRecruit, refreshApps, release, rerollAbility, worldLevel } from '../game/guild';
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { memDetailHtml, memRowHtml, type CardData } from './members';
@@ -249,20 +250,29 @@ function detailHtml(m: GuildMember): string {
   const next = b >= 12 ? null : BOND_STEPS[b + 1], pt = bondPt(G.save, m.nick);
   const fx = a ? starFx(a, star) : null;
   const gold = resourceBalance(G.save, 'gold'), rg = rerollGold(topLevel(G.save));
-  const sneed = statNeed(10, m.learn), cap = statCap(m.lv);
+  const per = statPerLevel(m.learn), cap = statCap(m.lv), pot = statPot(m.learn);
   const btn = (attr: string, label: string, sub: string, dis: boolean, cls = '') => `<button class="btn${cls ? ` ${cls}` : ''}" type="button" ${attr}${dis ? ' disabled' : ''}>${label}<small>${sub}</small></button>`;
   const d = card(m, b, star, true);
   return `${sheetHead(d)}
     <p class="g-xp"><span>경험치</span><span class="bar"><i style="width:${xpPct.toFixed(0)}%"></i></span><small>${fmt(m.xp)} / ${isFinite(need) ? fmt(need) : '최대'} · 출전 ${m.runs}번 · 내 레벨까지</small></p>
     <p class="g-xp"><span>인연</span><span class="bar"><i style="width:${next ? Math.min(100, (pt / next) * 100).toFixed(0) : 100}%"></i></span><small>${bondName(b)} Lv ${b} · ${next ? `다음 ${fmt(pt)} / ${fmt(next)}` : '최고'}</small></p>
     ${memDetailHtml(d)}
-    <p class="note">능력치 경험 ${m.sxp.toFixed(1)} · 한 칸에 약 ${sneed} (높을수록 많이) · 상한 ${cap} (Lv에 따라) · 함께 이긴 판마다 쌓임</p>
+    <p class="note">능력치: 레벨업할 때 오름 · 다음 한 칸까지 레벨 ${Math.max(1, Math.ceil((1 - m.sxp) / per - 1e-9))} (학습력) · 상한 ${cap} (Lv에 따라) · 칸마다 타고난 값에서 +${pot}까지</p>
+    ${knowHtml(m)}
     ${a ? `<p class="note">직업 스킬 ★${star}/5${fx && star ? ` · 효과 ×${fx.eff.toFixed(2)}${fx.cd < 1 ? ` · 쿨 ×${fx.cd.toFixed(1)}` : ''}` : ''}${star >= 5 ? ` · ★5: ${STAR5[a.kind]}` : ' · 인연이 깊어지면 오름'} · 쓰는 때: ${esc(a.when)}</p>` : ''}
     <h4 class="g-sh">관리 <small>보유 ${goldCost(gold)}</small></h4>
     <div class="gbtns">
       ${btn('data-reroll', '스킬 다시 뽑기', m.story ? '고유 스킬' : goldCost(rg), !!m.story || gold < rg)}
       ${btn('data-release', st.ask === m.id ? '한 번 더 누르면 보냄' : '보내기', st.ask === m.id ? '인연은 그대로' : '친구 목록으로', !!m.story, st.ask === m.id ? 'danger' : 'ghost')}
     </div>`;
+}
+
+/** 공략 숙지 (93 5-4): 단계가 높은 전투 3개 + 그 밖 수 */
+function knowHtml(m: GuildMember): string {
+  const ks = Object.entries(knowStages(m)).sort((a, b) => b[1] - a[1] || (m.know[b[0]] ?? 0) - (m.know[a[0]] ?? 0));
+  if (!ks.length) return '<p class="note g-know">공략 숙지 없음 · 함께 이긴 전투마다 그 전투에서 반응 · 회피가 좋아짐</p>';
+  const top = ks.slice(0, 3).map(([k, s]) => `${esc(ENCOUNTERS[k as EncounterKey]?.name ?? k)} ${s}단계`).join(' · ');
+  return `<p class="note g-know">공략 숙지 ${top}${ks.length > 3 ? ` 외 ${ks.length - 3}곳` : ''}</p>`;
 }
 
 function openSheet(x: NonNullable<Sheet>, from: string): void {

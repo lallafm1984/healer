@@ -13,6 +13,7 @@ import { ENCOUNTERS } from '../data/encounters';
 import { CATS, PERS } from '../data/personalities';
 import { create, recruitParty } from '../engine';
 import { withBond } from '../game/bond';
+import { recommendPick } from '../game/recommend';
 import { Flow, newSeed } from '../game/flow';
 import { autoPick, bondOf, guildNicks, guildOpen, guildRoster, memberEntry, savePick, sizeKey, slotsOf, togglePick } from '../game/guild';
 import { recLevel } from '../game/guide';
@@ -37,12 +38,14 @@ const s = screen('s-party', '파티 편성', {
       Flow.gpick = guildReady() ? autoPick(G.save, firstEnc()) : [];
       compose();
     }
-    sheet = null; openRow = -1;
+    sheet = null; openRow = -1; recWhy = [];
     render(false);
   },
 });
 const modal = sheetDialog(s.el, shut);
 let msg = '', gmsg = '';
+/** 추천 편성 이유 칩 (누른 뒤, 손으로 바꾸면 지움) */
+let recWhy: string[] = [];
 /** 열린 시트: 공략 · 파티원 상세 */
 let sheet: 'guide' | 'mem' | null = null;
 /** 상세 시트로 연 파티원 줄 */
@@ -112,13 +115,16 @@ function guildPickHtml(stage: number): string {
   const fill = Flow.party!.filter(e => e.gid == null);
   const list = ms.slice().sort((a, b) => (Flow.gpick.includes(b.id) ? 1 : 0) - (Flow.gpick.includes(a.id) ? 1 : 0) || b.lv - a.lv);
   const under = picked.filter(m => m!.lv < stage).length;
-  return `<p class="pickhead"><b>길드원 ${picked.length}/${sl.tank + sl.dps}</b><small>탱커 ${tanks}/${sl.tank} · 딜러 ${picked.length - tanks}/${sl.dps}${fill.length ? ` · 빈자리 ${fill.length} = 공개모집` : ''}</small><button class="btn2" type="button" id="autoPick">자동 편성</button></p>
+  const encs = contentOf(Flow.content).fights(Flow.diff), boss = encs[encs.length - 1];
+  return `<p class="pickhead"><b>길드원 ${picked.length}/${sl.tank + sl.dps}</b><small>탱커 ${tanks}/${sl.tank} · 딜러 ${picked.length - tanks}/${sl.dps}${fill.length ? ` · 빈자리 ${fill.length} = 공개모집` : ''}</small><button class="btn2" type="button" id="autoPick">추천 편성</button></p>
+    ${recWhy.length ? `<p class="f-why" aria-label="추천 이유">${recWhy.map(w => `<span class="chip">${esc(w)}</span>`).join('')}</p>` : ''}
     ${gmsg ? `<p class="warnbox">${esc(gmsg)}</p>` : ''}
     ${under ? `<p class="warnbox">권장 레벨(Lv ${stage})보다 낮은 길드원 ${under}명: 체력·딜이 낮음</p>` : ''}
     <section class="pn f-mems"><ul class="pcards">${list.map(m => {
       const on = Flow.gpick.includes(m.id);
       const e = memberEntry(G.save, m, Flow.seed);
-      return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, bond: bondOf(G.save, m.nick), member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
+      const ks = e.know?.[boss] ?? 0; // 이 보스 공략 숙지 (93 7-1)
+      return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, bond: bondOf(G.save, m.nick), member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, tag: ks ? `숙지 ${ks}` : '', extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
     }).join('')}
     ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: m.lv ?? stage, bond: bondOf(G.save, m.nick) }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
 }
@@ -217,8 +223,8 @@ s.el.addEventListener('click', e => {
   const md = t.closest<HTMLElement>('[data-mode]');
   if (md && !md.hasAttribute('disabled')) { Flow.mode = md.dataset.mode as 'public' | 'guild'; compose(); render(); return; }
   const gp = t.closest<HTMLElement>('[data-gpick]');
-  if (gp) { const r = togglePick(G.save, firstEnc(), Flow.gpick, Number(gp.dataset.gpick)); Flow.gpick = r.pick; gmsg = r.msg; compose(); render(); gmsg = ''; return; }
-  if (t.closest('#autoPick')) { Flow.gpick = autoPick(G.save, firstEnc(), true); compose(); render(); return; }
+  if (gp) { const r = togglePick(G.save, firstEnc(), Flow.gpick, Number(gp.dataset.gpick)); Flow.gpick = r.pick; gmsg = r.msg; if (!r.msg) recWhy = []; compose(); render(); gmsg = ''; return; }
+  if (t.closest('#autoPick')) { const r = recommendPick(G.save, firstEnc(), contentOf(Flow.content).fights(Flow.diff), modeNow().stage); Flow.gpick = r.pick; recWhy = r.why; compose(); render(); return; }
   const pr = t.closest<HTMLElement>('[data-prow]');
   if (pr) { openRow = Number(pr.dataset.prow); openSheet('mem', `[data-prow="${openRow}"]`); return; }
   // 출발 = 바로 전투 (90 · 2026-10-17 Lim: 출전 전 휴식 팝업 없앰, 전투 전에는 휴식 표시 없음)

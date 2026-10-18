@@ -9,15 +9,17 @@ import { CLASSES, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
 import {
-  BOND_JOIN, bondLv, deedOf, FAME, guildLvOf, habitOf, POSTS, postGold, REST_SHARE, rerollGold, starOfBond, statCap, statNeed, statWeights, STORY, SXP, type GuildMember,
+  BOND_JOIN, bondLv, deedOf, FAME, guildLvOf, habitOf, KNOW, knowGain, knowStage, POSTS, postGold, REST_SHARE, rerollGold, starOfBond, statCap, statPerLevel, statPot, statTop, statWeights, STORY, type GuildMember,
 } from '../src/data/guild';
 import { DAILY, GUILD_GOAL } from '../src/data/missions';
 import { PARTY_POOL, STORY_NICKS } from '../src/data/nicknames';
 import { PERS } from '../src/data/personalities';
 import { clearXp, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
+import { takenAmt } from '../src/engine/core';
 import { claimGuildGoal, rollover } from '../src/game/economy';
 import * as Gd from '../src/game/guild';
+import { abilityFeatures, encFeatures, REC, recommendPick, recScore } from '../src/game/recommend';
 import { settle, type BattleResult } from '../src/game/settle';
 import { TUT } from '../src/game/tutorial';
 import { migrate, newSave, SAVE_VERSION, type SaveData } from '../src/platform/storage';
@@ -315,31 +317,39 @@ describe('출전 경험 (97): 레벨', () => {
   });
 });
 
-describe('출전 경험 (97): 능력치', () => {
+describe('능력치는 레벨업할 때 (Lim 10-18)', () => {
   const mem = (o: Partial<GuildMember> = {}): GuildMember => ({ ...Gd.newMember(save(100), Gd.personOf(nickOf('warrior'))!, 40), ...o });
-  it('한 칸 +1에 드는 경험: 높을수록 많이, 학습력 1 ×1.6 · 10 ×1 · 20 ×0.6. 상한 = 12 + Lv ÷ 12', () => {
-    expect([statNeed(8, 10), statNeed(12, 10), statNeed(18, 10), statNeed(8, 1), statNeed(8, 20)]).toEqual([2, 4, 7, 3.2, 1.2]);
+  it('레벨 하나에 학습력 1 → 0.07 · 10 → 0.1 · 20 → 0.13점. 끝 = min(상한 12 + Lv ÷ 12, 타고난 값 + 잠재력), 처음부터 높으면 그대로', () => {
+    expect([1, 10, 20].map(l => +statPerLevel(l).toFixed(2))).toEqual([0.07, 0.1, 0.13]);
     expect([1, 23, 24, 60, 96, 100].map(statCap)).toEqual([12, 13, 14, 17, 20, 20]);
+    expect([1, 10, 20].map(statPot)).toEqual([2, 4, 6]);
+    expect([statTop(8, 40, 10), statTop(13, 40, 10), statTop(18, 40, 10), statTop(5, 1, 20)]).toEqual([12, 15, 18, 11]);
   });
-  it('오를 칸 무게: 역할 핵심 2 · 나머지 1, 「한 일」 표 +1.5, 상한이면 0', () => {
+  it('오를 칸 무게: 역할 핵심 2 · 나머지 1, 「한 일」 표 +1.5, 끝이면 0', () => {
     const flat = Object.fromEntries(Object.keys(mem().stats).map(k => [k, 10])) as GuildMember['stats'];
-    const w = statWeights({ stats: flat, votes: [], lv: 40 }, 'tank');
+    const w = statWeights({ stats: flat, votes: [], lv: 40, learn: 10 }, 'tank', flat);
     expect([w.tough, w.atk]).toEqual([2, 1]);
-    const v = statWeights({ stats: flat, votes: [['evade', 'react']], lv: 40 }, 'tank');
+    const v = statWeights({ stats: flat, votes: [['evade', 'react']], lv: 40, learn: 10 }, 'tank', flat);
     expect(v.evade).toBe(2.5);
-    expect(statWeights({ stats: { ...flat, atk: 15 }, votes: [], lv: 40 }, 'tank').atk).toBe(0); // Lv 40 상한 15
+    expect(statWeights({ stats: { ...flat, atk: 14 }, votes: [], lv: 40, learn: 10 }, 'tank', flat).atk).toBe(0); // 타고난 10 + 잠재력 4
+    expect(statWeights({ stats: { ...flat, atk: 15 }, votes: [], lv: 40, learn: 10 }, 'tank', { ...flat, atk: 13 }).atk).toBe(0); // Lv 40 상한 15
   });
-  it('경험이 차는 만큼 한 칸씩 +1, 표는 최근 5장, 모두 상한이면 경험은 조금만 모아 둠', () => {
+  it('오른 레벨만큼 점수, 1점마다 한 칸 +1, 표는 최근 5장, 오를 칸이 없으면 3점까지 모아 둠', () => {
     seed = 9;
-    const m = mem({ sxp: 0 }), sum = () => Object.values(m.stats).reduce((a, b) => a + b, 0), before = sum();
+    const m = mem({ sxp: 0, learn: 10 }), sum = () => Object.values(m.stats).reduce((a, b) => a + b, 0), before = sum();
     let ups = 0;
-    for (let i = 0; i < 6; i++) ups += Gd.growStats(m, 3, 'dodge', rng).length;
-    expect(ups).toBeGreaterThan(0);
-    expect(sum() - before).toBe(ups);
+    for (let i = 0; i < 60; i++) ups += Gd.growStats(m, 1, 'dodge', rng).length; // 레벨 60개 × 0.1 = 6점
+    expect(ups).toBe(6);
+    expect(sum() - before).toBe(6);
     expect(m.votes.length).toBe(5);
-    const capped = mem({ lv: 1, stats: Object.fromEntries(Object.keys(m.stats).map(k => [k, 12])) as GuildMember['stats'] });
-    expect(Gd.growStats(capped, 50, undefined, rng)).toEqual([]);
-    expect(capped.sxp).toBe(10);
+    expect(Gd.growStats(m, 0, undefined, rng)).toEqual([]);
+    const slow = mem({ sxp: 0, learn: 1 });
+    expect([Gd.growStats(slow, 14, undefined, rng).length, slow.sxp]).toEqual([0, 0.98]);
+    expect(Gd.growStats(slow, 1, undefined, rng).length).toBe(1);
+    const top = mem({ lv: 1, learn: 10 });
+    top.stats = Object.fromEntries(Object.entries(Gd.birthStats(top)).map(([k, v]) => [k, statTop(v, 1, 10)])) as GuildMember['stats'];
+    expect(Gd.growStats(top, 500, undefined, rng)).toEqual([]);
+    expect(top.sxp).toBe(3);
   });
   it('「한 일」 표: 판 크기와 상관없이 가장 두드러진 일 하나, 모자라면 없음', () => {
     const did = { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0 };
@@ -376,12 +386,11 @@ describe('판 뒤 길드 정산 (93 6-1)', () => {
     expect(rest.xp).toBe(Math.round(full * REST_SHARE));
     expect(r.rest).toBe(rest.xp);
     expect(b.votes).toEqual([['atk']]);
-    expect(a.sxp + r.members[0].stats.length).toBeGreaterThan(0);
+    expect(r.members[0].stats.length).toBe(Math.floor(r.members[0].ups.length * statPerLevel(a.learn) + 1e-9)); // 레벨업만큼
     expect(s.weekly.guild.ran).toEqual([a.nick, b.nick]);
-    // 두 번째: 첫 처치 없음, 어려움은 능력치 경험 2
+    // 두 번째: 첫 처치 없음
     const r2 = after(s, roster);
     expect([r2.fame, r2.first]).toEqual([FAME.win, false]);
-    expect(SXP['어려움']).toBe(2);
     expect(after(s, roster, { raid: 10 }).fame).toBe(FAME.raid10);
     expect(after(s, roster, { raid: 20 }).fame).toBe(FAME.raid20);
   });
@@ -455,5 +464,75 @@ describe('저장 v19 (길드 v2)', () => {
     const g = migrate({ v: 19, guild: { founded: true, members: [{ id: 2, nick, cls: 'rogue', pers: PARTY_POOL.rogue[2].pers, ab: 'rogue.kick', lv: 9, stats: { atk: 30 } }], nextId: 3 } }).guild;
     expect(g.members[0].stats.atk).toBe(PARTY_POOL.rogue[2].fm.stats.atk);
     expect([g.members.length, g.nextId, g.founded]).toEqual([1, 3, true]);
+  });
+});
+
+describe('공략 숙지 (93 5-4): 전투마다 함께 이긴 만큼, 학습력이 빠르기', () => {
+  it('점수 0.5 · 3 · 6에서 1 · 2 · 3단계, 한 판에 학습력 1 → 0.7 · 10 → 1 · 20 → 1.4', () => {
+    expect([0, 0.49, 0.5, 2.99, 3, 6, 50].map(knowStage)).toEqual([0, 0, 1, 1, 2, 3, 3]);
+    expect([1, 10, 20].map(l => +knowGain(l).toFixed(2))).toEqual([0.7, 1, 1.4]);
+  });
+  it('이긴 판의 전투마다 쌓이고, 보스 (마지막 전투) 단계가 오르면 결과에, 진 판은 안 쌓임', () => {
+    const s = save(30), a = add(s, 'warrior', 0, { learn: 10 }), b = add(s, 'mage', 0, { learn: 10 });
+    const roster = Gd.guildRoster(s, [a.id, b.id], E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }), ENCOUNTERS.warden);
+    const o = { win: true, quit: false, grade: 'A' as const, diff: '보통' as const, stage: 30, raid: 0 as const, content: 'rustfort', kind: 'dungeon', party: [], roster, encs: ['gate', 'warden'] };
+    const r1 = Gd.guildAfter(s, rng, o);
+    expect(a.know).toEqual({ gate: 1, warden: 1 });
+    expect(r1.members[0].know).toEqual({ enc: 'warden', stage: 1 });
+    Gd.guildAfter(s, rng, o);
+    const r3 = Gd.guildAfter(s, rng, o);
+    expect([a.know.warden, r3.members[0].know]).toEqual([3, { enc: 'warden', stage: 2 }]);
+    expect(Gd.guildAfter(s, rng, o).members[0].know).toBeUndefined(); // 4번째: 단계 그대로
+    Gd.guildAfter(s, rng, { ...o, win: false });
+    expect(a.know.warden).toBe(4);
+    expect(Gd.memberEntry(s, a).know).toEqual({ gate: 2, warden: 2 });
+  });
+  it('엔진: 그 전투에서만 반응 시간 × · 회피 + · 받는 피해 ×, 공개모집은 없음', () => {
+    const s = save(30), m = add(s, 'warrior', 0);
+    m.know = { warden: 6 };
+    const e = Gd.memberEntry(s, m);
+    const f = E.create({ encounter: 'warden', diff: '보통', seed: 1, party: [e, ...E.recruitParty('warden', 1, { abilities: true }).slice(1)], stageLv: 30 });
+    const g = E.create({ encounter: 'warden', diff: '보통', seed: 1, party: [{ ...e, know: undefined }, ...E.recruitParty('warden', 1, { abilities: true }).slice(1)], stageLv: 30 });
+    const u = f.party.find(x => x.gid === m.id)!, v = g.party.find(x => x.gid === m.id)!;
+    expect(u.know).toBe(3);
+    expect(u.senseReact / v.senseReact).toBeCloseTo(KNOW.react[3]);
+    expect(u.senseDodge - v.senseDodge).toBeCloseTo(KNOW.dodge[3]);
+    expect(takenAmt(f, u, 100, false, 'fixed') / takenAmt(g, v, 100, false, 'fixed')).toBeCloseTo(KNOW.taken[3]);
+    const h = E.create({ encounter: 'scrap', diff: '보통', seed: 1, party: [e, ...E.recruitParty('scrap', 1, { abilities: true }).slice(1)], stageLv: 30 });
+    expect(h.party.find(x => x.gid === m.id)!.know).toBeUndefined();
+  });
+  it('저장: 숙지는 그대로, 이상한 값은 버림', () => {
+    const s = save(30), m = add(s, 'warrior', 0);
+    m.know = { warden: 3.5, plague: -1, x: Number.NaN };
+    expect(migrate(JSON.parse(JSON.stringify(s))).guild.members[0].know).toEqual({ warden: 3.5 });
+  });
+});
+
+describe('추천 편성 (93 7-1)', () => {
+  it('보스 특징: 역병 군주 = 독 · 질병 · 끊기 · 광역 · 장판, 일반 구간 = 쫄', () => {
+    const p = encFeatures('plague');
+    for (const f of ['poison', 'cut', 'aoe', 'zone'] as const) expect(p.has(f), f).toBe(true);
+    expect(encFeatures('gate').has('adds')).toBe(true);
+    expect(abilityFeatures(ABILITIES['paladin.cleanse'])).toEqual(['poison']);
+    expect(abilityFeatures(ABILITIES['paladin.avenger'])).toEqual(['cut']);
+    expect(abilityFeatures(ABILITIES['warrior.shieldBlock'])).toEqual(['buster']);
+  });
+  it('특징에 맞는 스킬 · 숙지가 점수를 올리고 이유 칩, 다루기 어려운 성격은 버릇을 고친 만큼 덜 깎음, 레벨이 모자라면 깎음', () => {
+    const s = save(30);
+    const flat = (v: number) => Object.fromEntries(Object.keys(add(save(), 'mage').stats).map(k => [k, v])) as GuildMember['stats'];
+    const a = add(s, 'paladin', 0, { ab: 'paladin.devotion', pers: '신중파', stats: flat(10), lv: 30 });
+    const b = add(s, 'paladin', 1, { ab: 'paladin.cleanse', pers: '신중파', stats: flat(10), lv: 30 });
+    const r = recommendPick(s, ENCOUNTERS.warden, ['plague'], 30);
+    expect(r.pick[0]).toBe(b.id);
+    expect(r.why).toContain('독 · 질병 → 독소 정화');
+    a.know = { plague: 6 };
+    const r2 = recommendPick(s, ENCOUNTERS.warden, ['plague'], 30);
+    expect(r2.pick[0]).toBe(a.id); // 숙지 3단계 (+2.4)가 스킬 맞춤 (+1.2)보다 큼
+    expect(r2.why[0]).toBe(`공략 숙지 3단계 · ${a.nick}`);
+    const hard = (Object.keys(PERS) as (keyof typeof PERS)[]).find(k => PERS[k].star === 3 && !('tankOnly' in PERS[k]))!;
+    const c = add(s, 'mage', 1, { pers: hard, stats: flat(10) }), calm = add(s, 'mage', 2, { pers: hard, ab: c.ab, stats: { ...flat(10), composure: 20, judgment: 20 } });
+    expect(recScore(s, calm, ['plague'], 30).score).toBeGreaterThan(recScore(s, c, ['plague'], 30).score + REC.hard3 * 0.7);
+    const low = add(s, 'mage', 3, { pers: '신중파', stats: flat(10), lv: 26 }), ok = add(s, 'mage', 4, { pers: '신중파', stats: flat(10), lv: 30, ab: low.ab });
+    expect(recScore(s, ok, ['plague'], 30).score - recScore(s, low, ['plague'], 30).score).toBeCloseTo(4 * REC.lvGap);
   });
 });
