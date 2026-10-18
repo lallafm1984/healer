@@ -97,30 +97,41 @@ function paintedFlame(g, x, y, h, a, ph = 0) {
 }
 
 export default {
-  /** 빛의 손길 (기본 힐, 자주 씀 → 짧게, Lim 2026-10-16 「너무 과하다」): 광선 없이 (2026-10-18 Lim 「광선은 제거하고 노란 파티클이 내려오도록」)
-   *  머리 위 작은 별빛에서 노란 빛 알갱이가 짧은 꼬리를 끌며 대상에게 쏟아져 내리고, 닿는 자리에서 톡톡 반짝이며 발밑이 따뜻하게 빛난 뒤 금빛 가루가 살짝 떠오름 */
+  /** 빛의 손길 (기본 힐): 광선 없이 (Lim 2026-10-18 「광선은 제거하고 노란 파티클이 내려오도록」 → 「손길은 좀더 화려하게」)
+   *  머리 위에서 별빛이 번쩍 터지며 짧은 빛살이 사방으로 튀고, 노란 빛 알갱이 · 작은 별이 꼬리를 끌며 대상에게 쏟아져 내림.
+   *  닿는 순간 몸이 금빛으로 번쩍이고 발밑에 빛 물결 두 겹이 퍼지며, 반짝이 가루가 소용돌이치며 떠오름. 기본 힐이라 길이는 짧게 (16장) */
   'paladin-holy-light': {
     frames: 16, logical: 80, scope: 'target',
     draw(g, { t }) {
-      const top = -1.0, bot = 0.58, fade = 1 - E.in2(seg(t, 0.6, 1));
-      glowOval(g, 0, bot - 0.05, 0.6, 0.3, AU.glow, 0.55 * bell(t, 0.1, 0.35, 1));
-      glowOval(g, 0, bot - 0.05, 0.3, 0.36, '#ffffff', 0.5 * bell(t, 0.15, 0.3, 0.6));
-      glow(g, 0, top + 0.02, 0.4, AU.glow, 0.35 * (1 - seg(t, 0, 0.5)));
-      glint(g, 0, top + 0.02, 0.22 * bell(t, 0, 0.1, 0.45), AU.amber, 1, 0, 0.13, AU.core);
-      // 쏟아져 내리는 노란 빛 알갱이 (꼬리 + 빛 번짐, 위에서 넓게 퍼져 몸 쪽으로 모임)
-      // 첫 장부터 보이게 일부는 이미 내려오는 중 (t0 < 0), 시작 높이를 흩어 위에 뭉치지 않게
-      particles(g, t, 6, 60, r => ({ t0: -0.15 + r() * 0.55, life: 0.32 + r() * 0.2, x0: (r() - 0.5) * 1.15, x1: (r() - 0.5) * 0.75, y0: top - 0.15 + r() * 0.45, y1: -0.15 + r() * 0.75, sz: 0.012 + r() * 0.022, ph: r() * 9, big: r() < 0.14 }), (gg, p, age) => {
-        const k = E.in2(age) * 0.55 + age * 0.45, x = lerp(p.x0, p.x1, age), y = lerp(p.y0, p.y1, k), al = bell(age, 0, 0.1, 1) * fade, pa = Math.max(0, age - 0.16), prev = lerp(p.y0, p.y1, E.in2(pa) * 0.55 + pa * 0.45);
+      const top = -1.0, bot = 0.58, fade = 1 - E.in2(seg(t, 0.62, 1)), star = 1 - E.out2(seg(t, 0, 0.45));
+      // 머리 위 별빛 터짐 (큰 반짝임 + 짧은 빛살 여덟)
+      glow(g, 0, top + 0.05, 0.55, AU.glow, 0.6 * star);
+      glow(g, 0, top + 0.05, 0.22, '#ffffff', 0.9 * star);
+      glint(g, 0, top + 0.05, 0.36 * bell(t, 0, 0.1, 0.5), AU.amber, 1, t * 2, 0.12, AU.core);
+      for (let i = 0; i < 8; i++) {
+        const ang = (i * TAU) / 8 + 0.2, u = E.out3(seg(t, 0, 0.32)), d0 = 0.08 + 0.3 * u, d1 = d0 + 0.18 * (1 - u) + 0.05;
+        if (u < 1) lightStroke(g, s2 => ({ x: Math.cos(ang) * lerp(d0, d1, s2), y: top + 0.05 + Math.sin(ang) * lerp(d0, d1, s2) * 0.8 }), 0, 1, uu => 0.028 * (1 - uu), { rim: AU.deep, body: AU.light, core: AU.core, a: (1 - u) * 0.9, rimW: 0 });
+      }
+      // 쏟아져 내리는 노란 빛 알갱이 (꼬리 + 빛 번짐, 첫 장부터 일부는 내려오는 중)
+      particles(g, t, 6, 84, r => ({ t0: -0.15 + r() * 0.55, life: 0.3 + r() * 0.2, x0: (r() - 0.5) * 1.3, x1: (r() - 0.5) * 0.8, y0: top - 0.12 + r() * 0.45, y1: -0.2 + r() * 0.8, sz: 0.012 + r() * 0.024, ph: r() * 9 }), (gg, p, age) => {
+        const k = E.in2(age) * 0.55 + age * 0.45, x = lerp(p.x0, p.x1, age), y = lerp(p.y0, p.y1, k), al = bell(age, 0, 0.1, 1) * fade, pa = Math.max(0, age - 0.16), py = lerp(p.y0, p.y1, E.in2(pa) * 0.55 + pa * 0.45);
         gg.save(); gg.globalCompositeOperation = 'lighter'; gg.lineCap = 'round';
-        const gr = gg.createLinearGradient(x, prev, x, y); gr.addColorStop(0, C(AU.body, 0)); gr.addColorStop(1, C(AU.light, 0.8 * al));
-        gg.strokeStyle = gr; gg.lineWidth = p.sz * 1.3; gg.beginPath(); gg.moveTo(lerp(p.x0, p.x1, pa), prev); gg.lineTo(x, y); gg.stroke(); gg.restore();
+        const gr = gg.createLinearGradient(x, py, x, y); gr.addColorStop(0, C(AU.body, 0)); gr.addColorStop(1, C(AU.light, 0.85 * al));
+        gg.strokeStyle = gr; gg.lineWidth = p.sz * 1.3; gg.beginPath(); gg.moveTo(lerp(p.x0, p.x1, pa), py); gg.lineTo(x, y); gg.stroke(); gg.restore();
         glow(gg, x, y, p.sz * 5, AU.glow, 0.5 * al);
         speck(gg, x, y, p.sz, age < 0.5 ? AU.core : AU.light, al, 0.5 + 0.5 * Math.sin(p.ph + age * 20));
-        if (p.big && age > 0.85) glint(gg, x, y, 0.13 * Math.sin(Math.PI * seg(age, 0.85, 1)), AU.glow, al, p.ph, 0.13, AU.core);
       });
-      // 닿는 자리 톡톡 반짝임
-      particles(g, t, 7, 10, (r, i) => ({ t0: 0.2 + i * 0.035 + r() * 0.03, life: 0.22, x: (r() - 0.5) * 0.8, y: -0.1 + r() * 0.7, rot: r() }), (gg, p, age) => glint(gg, p.x, p.y, 0.15 * Math.sin(Math.PI * age), AU.glow, fade, p.rot, 0.13, AU.core));
-      goldSwirl(g, t, 11, 22, { y0: 0.55, rise: 0.8, rr: 0.55, t0: 0.25, span: 0.3, a: fade });
+      // 함께 내려오는 작은 별 (돌며 떨어짐)
+      particles(g, t, 8, 12, r => ({ t0: -0.05 + r() * 0.4, life: 0.4 + r() * 0.15, x0: (r() - 0.5) * 1.1, y1: -0.1 + r() * 0.6, rot: r() * 6, sz: 0.09 + r() * 0.06 }), (gg, p, age) =>
+        glint(gg, p.x0 * (1 - 0.4 * age), lerp(top, p.y1, E.in2(age) * 0.5 + age * 0.5), p.sz * Math.sin(Math.PI * Math.min(1, age * 1.4)), AU.glow, fade, p.rot + age * 5, 0.14, AU.core));
+      // 닿는 순간 몸이 번쩍 + 발밑 빛 물결 두 겹
+      const land = bell(t, 0.18, 0.3, 0.7);
+      glow(g, 0, 0.12, 0.85, AU.glow, 0.55 * land);
+      glow(g, 0, 0.1, 0.35, '#ffffff', 0.55 * bell(t, 0.2, 0.28, 0.5));
+      for (const [d, k] of [[0.22, 1], [0.34, 0.7]]) ringGlow(g, 0, bot, lerp(0.15, 0.95, E.out3(seg(t, d, d + 0.45))), 0.07, AU.light, k * fade * (1 - seg(t, d + 0.1, d + 0.5)), 0.3);
+      glowOval(g, 0, bot - 0.03, 0.6, 0.3, AU.glow, 0.6 * bell(t, 0.15, 0.35, 1));
+      particles(g, t, 7, 12, (r, i) => ({ t0: 0.2 + i * 0.03 + r() * 0.03, life: 0.22, x: (r() - 0.5) * 0.9, y: -0.15 + r() * 0.75, rot: r() }), (gg, p, age) => glint(gg, p.x, p.y, 0.16 * Math.sin(Math.PI * age), AU.glow, fade, p.rot, 0.13, AU.core));
+      goldSwirl(g, t, 11, 40, { y0: 0.55, rise: 1.0, rr: 0.65, t0: 0.22, span: 0.35, a: fade });
     },
   },
 
@@ -155,63 +166,87 @@ export default {
     },
   },
 
-  /** 빛의 파도 (회복한 칸마다, 네 칸 동시): Codex 금빛 파도 마루 (paladin-crest, ∩ 모양 · 끝이 말린 물마루)가 위에서 쏟아져 내려와 닿는 순간 번쩍 부서지며
-   *  양옆으로 넓게 퍼져 사라지고, 금빛 물보라 · 불똥이 위와 양옆으로 튀고 반짝이 가루가 떠오름 */
+  /** 빛의 파도 (회복한 칸마다, Lim 2026-10-18 「파도도 파티클을 좀더 과하게 하고 화려하게」): Codex 금빛 파도 마루 (paladin-crest)가 반짝이 커튼을 끌며
+   *  위에서 쏟아져 내려와, 닿는 순간 큰 흰 금빛 섬광과 납작한 빛 충격파 두 겹이 터지고 물마루가 양옆으로 넓게 부서짐. 금빛 물보라 · 불똥이 위와 양옆으로
+   *  잔뜩 튀고, 빛 분수가 솟았다 흩날리며, 반짝이 가루가 소용돌이치며 떠오름 */
   'paladin-light-wave': {
-    frames: 18, logical: 88, scope: 'target',
+    frames: 20, logical: 88, scope: 'target',
     draw(g, { t }) {
-      const hit = 0.22, fade = 1 - E.in2(seg(t, 0.5, 1));
+      const hit = 0.2, fade = 1 - E.in2(seg(t, 0.55, 1)), fall = y => lerp(-0.85, 0.05, E.in2(seg(y, 0, hit)));
+      // 쏟아지는 마루가 끄는 반짝이 커튼 (마루 위로 흩날림)
+      particles(g, t, 3, 34, r => ({ t0: r() * hit * 0.9, life: 0.3 + r() * 0.25, x: (r() - 0.5) * 1.4, sz: 0.012 + r() * 0.02, ph: r() * 9 }), (gg, p, age) => {
+        const y = fall(p.t0) - 0.25 - 0.3 * age;
+        speck(gg, p.x + Math.sin(age * 8 + p.ph) * 0.04, y, p.sz, age < 0.4 ? AU.core : AU.light, (1 - age) * 0.95, 0.5 + 0.5 * Math.sin(p.ph + age * 18));
+      });
       if (t < hit + 0.04) {
-        const u = E.in2(seg(t, 0, hit)), y = lerp(-0.85, 0.05, u), a = 1 - seg(t, hit, hit + 0.04);
-        glowOval(g, 0, y, 0.85, 0.45, AU.glow, 0.55 * a);
-        if (!pic(g, 'paladin-crest', 0, y, 1.55, a, { sy: lerp(0.8, 1, u) })) lightStroke(g, s2 => ({ x: lerp(-0.7, 0.7, s2), y: y - Math.sin(Math.PI * s2) * 0.4 }), 0, 1, () => 0.2, { rim: AU.rim, body: AU.body, core: '#fff', a });
-        goldFall(g, t, 3, 12, { w: 1.2, y0: -1.1, y1: y, span: hit * 0.8, a: 0.9 });
+        const u = E.in2(seg(t, 0, hit)), y = fall(t), a = 1 - seg(t, hit, hit + 0.04);
+        glowOval(g, 0, y, 0.95, 0.5, AU.glow, 0.65 * a);
+        if (!pic(g, 'paladin-crest', 0, y, 1.6, a, { sy: lerp(0.8, 1, u), add: 0.3 })) lightStroke(g, s2 => ({ x: lerp(-0.7, 0.7, s2), y: y - Math.sin(Math.PI * s2) * 0.4 }), 0, 1, () => 0.2, { rim: AU.rim, body: AU.body, core: '#fff', a });
       }
-      const b = bell(t, hit - 0.05, hit + 0.02, hit + 0.42);
-      glowOval(g, 0, 0.3, 1.1, 0.5, AU.glow, 0.95 * b);
-      glow(g, 0, 0.28, 0.5, '#ffffff', b);
+      // 닿는 순간: 큰 섬광 + 충격파 두 겹
+      const b = bell(t, hit - 0.05, hit + 0.02, hit + 0.45);
+      glowOval(g, 0, 0.3, 1.25, 0.55, AU.glow, 1 * b);
+      glow(g, 0, 0.26, 0.6, '#ffffff', 0.95 * bell(t, hit - 0.03, hit + 0.02, hit + 0.25));
+      glint(g, 0, 0.22, 0.45 * bell(t, hit, hit + 0.04, hit + 0.25), AU.amber, 1, 0.3, 0.1, AU.core);
+      for (const [d, k] of [[hit, 1], [hit + 0.1, 0.75]]) ringGlow(g, 0, 0.42, lerp(0.2, 1.2, E.out3(seg(t, d, d + 0.45))), 0.09, AU.light, k * fade * (1 - seg(t, d + 0.12, d + 0.5)), 0.35);
       if (t >= hit) {
         const u = seg(t, hit, 1);
-        // 부서진 물마루가 양옆으로 넓게 퍼지며 납작해짐
-        pic(g, 'paladin-crest', 0, 0.12 + 0.12 * u, 1.55 * (1 + 0.55 * E.out2(u)), (1 - E.in2(seg(u, 0, 0.75))) * 0.9, { sy: lerp(0.9, 0.45, E.out2(u)), add: 0.5 * (1 - seg(u, 0, 0.3)) });
-        // 물보라 (위로 · 양옆으로 포물선)
-        particles(g, u, 4, 34, r => ({ t0: r() * 0.08, life: 0.5 + r() * 0.35, x: (r() - 0.5) * 1.1, vx: (r() - 0.5) * 1.6, vy: 0.7 + r() * 0.9, sz: 0.016 + r() * 0.024, ph: r() * 9 }), (gg, p, age) =>
-          speck(gg, p.x + p.vx * age, 0.25 - p.vy * age + 1.4 * age * age, p.sz * (1 - 0.3 * age), age < 0.4 ? AU.core : AU.light, (1 - E.in2(age)) * fade, 0.5 + 0.5 * Math.sin(p.ph + age * 20)));
-        goldBurst(g, u, 9, 16, { y: 0.28, sp: 1.0, sq: 0.45, a: fade, grav: 0.2 });
-        goldSwirl(g, u, 12, 18, { y0: 0.55, rise: 0.9, rr: 0.7, span: 0.3, a: fade });
+        pic(g, 'paladin-crest', 0, 0.12 + 0.12 * u, 1.6 * (1 + 0.6 * E.out2(u)), (1 - E.in2(seg(u, 0, 0.75))) * 0.9, { sy: lerp(0.9, 0.45, E.out2(u)), add: 0.6 * (1 - seg(u, 0, 0.3)) });
+        // 물보라 (위로 · 양옆으로 포물선, 잔뜩)
+        particles(g, u, 4, 72, r => ({ t0: r() * 0.1, life: 0.5 + r() * 0.4, x: (r() - 0.5) * 1.2, vx: (r() - 0.5) * 2.0, vy: 0.7 + r() * 1.1, sz: 0.014 + r() * 0.026, ph: r() * 9 }), (gg, p, age) => {
+          const x = p.x + p.vx * age, y = 0.25 - p.vy * age + 1.5 * age * age, al = (1 - E.in2(age)) * fade;
+          glow(gg, x, y, p.sz * 4, AU.glow, 0.4 * al);
+          speck(gg, x, y, p.sz * (1 - 0.3 * age), age < 0.4 ? AU.core : AU.light, al, 0.5 + 0.5 * Math.sin(p.ph + age * 20));
+        });
+        goldBurst(g, u, 9, 40, { y: 0.28, sp: 1.25, sq: 0.5, a: fade, grav: 0.25 });
+        // 빛 분수 (가운데에서 솟았다 흩날림)
+        particles(g, u, 10, 26, r => ({ t0: 0.02 + r() * 0.15, life: 0.45 + r() * 0.25, x: (r() - 0.5) * 0.3, vx: (r() - 0.5) * 0.7, vy: 1.4 + r() * 0.8, sz: 0.012 + r() * 0.018, ph: r() * 9 }), (gg, p, age) =>
+          speck(gg, p.x + p.vx * age, 0.2 - p.vy * age + 1.6 * age * age, p.sz, AU.core, (1 - E.in2(age)) * fade, 0.5 + 0.5 * Math.sin(p.ph + age * 22)));
+        glints(g, u, 12, 8, { t0: 0.02, step: 0.05, w: 1.4, y0: -0.1, h: 1.0, a: fade });
+        goldSwirl(g, u, 13, 34, { y0: 0.55, rise: 1.0, rr: 0.8, span: 0.35, a: fade });
       }
     },
   },
 
-  /** 정화의 손: Codex 해돋이 빛살 손바닥 (paladin-palm, 둥근 빛 + 다섯 빛살)이 가운데에서 펼쳐지며 검붉은 · 보라 얼룩을 밖으로 튕겨 내고,
-   *  얼룩이 금빛 불똥으로 타 사라짐. 빛살 끝에서 반짝임, 손바닥에서 금빛 가루가 사방으로 퍼짐 */
+  /** 정화의 손 (Lim 2026-10-18 「정화도 이펙트 퀄리티를 높여」): 가운데에서 흰 금빛이 번쩍 터지며 가는 빛살 열둘이 사방으로 뻗고, Codex 해돋이 빛살 손바닥 (paladin-palm)이 펼쳐짐.
+   *  몸에서 Codex 어둠 얼룩 연기 (paladin-taint) 다섯이 소용돌이치며 뽑혀 나가 금빛 불꽃으로 확 타 불똥이 되고, 빛 고리가 퍼지며 반짝이 가루가 잔뜩 흩날림 */
   'paladin-cleanse': {
-    frames: 18, logical: 92, scope: 'target',
+    frames: 20, logical: 92, scope: 'target',
     draw(g, { t }) {
-      const open = E.back(seg(t, 0, 0.26), 1.5), fade = 1 - E.in2(seg(t, 0.5, 1)), cy = 0.32;
-      glow(g, 0, cy, 1.05, AU.glow, 0.75 * (1 - E.out2(seg(t, 0, 0.6))));
-      glow(g, 0, cy, 0.45, '#ffffff', 0.9 * (1 - E.out3(seg(t, 0, 0.3))));
-      // 손바닥 그림: 둥근 빛 (그림 높이 70% 자리)을 칸 cy에 두고 아래에서 위로 펼침
-      const W = 1.75, img = asset('paladin-palm'), oy = img ? 0.7 : 0.5;
-      if (!pic(g, 'paladin-palm', 0, cy, W, fade, { anchorY: oy, sx: Math.min(1.08, 0.4 + 0.6 * open), sy: Math.min(1.08, open), add: 0.4 * (1 - seg(t, 0, 0.35)) })) {
+      const open = E.back(seg(t, 0.02, 0.28), 1.5), fade = 1 - E.in2(seg(t, 0.55, 1)), cy = 0.32;
+      glow(g, 0, cy, 1.1, AU.glow, 0.75 * (1 - E.out2(seg(t, 0, 0.6))));
+      glow(g, 0, cy, 0.5, '#ffffff', 0.95 * (1 - E.out3(seg(t, 0, 0.28))));
+      // 가는 빛살 열둘 (가운데에서 뻗었다 사라짐, 천천히 돎)
+      const ray = seg(t, 0, 0.4);
+      if (ray < 1) for (let i = 0; i < 12; i++) {
+        const ang = (i * TAU) / 12 + t * 0.8, L = (i % 2 ? 0.75 : 1.05) * E.out3(ray), a0 = (1 - ray) * 0.85;
+        lightStroke(g, s2 => ({ x: Math.cos(ang) * lerp(0.12, L, s2), y: cy + Math.sin(ang) * lerp(0.12, L, s2) * 0.85 }), 0, 1, uu => 0.035 * (1 - uu * 0.8), { rim: AU.deep, body: AU.light, core: AU.core, a: a0, rimW: 0, glowCol: AU.glow, glowA: 0.4 });
+      }
+      // 빛 고리 (퍼짐)
+      ringGlow(g, 0, cy, lerp(0.2, 1.15, E.out3(seg(t, 0.05, 0.5))), 0.08, AU.light, 0.85 * (1 - seg(t, 0.15, 0.55)), 0.85);
+      // 손바닥 그림 (둥근 빛 = 그림 높이 70%)
+      const W = 1.7, img = asset('paladin-palm'), oy = img ? 0.7 : 0.5;
+      if (!pic(g, 'paladin-palm', 0, cy, W, 0.95 * fade, { anchorY: oy, sx: Math.min(1.08, 0.4 + 0.6 * open), sy: Math.min(1.08, open), add: 0.5 * (1 - seg(t, 0, 0.35)) })) {
         for (let i = 0; i < 5; i++) { const a = rad(-90 + (i - 2) * 30); lightStroke(g, s => ({ x: Math.cos(a) * s, y: cy + Math.sin(a) * s }), 0, 1, () => 0.1, { rim: AU.rim, body: AU.body, core: '#fff', a: fade }); }
       }
-      // 빛살 끝 반짝임
+      // 어둠 얼룩 연기: 몸에서 커지며 소용돌이쳐 뽑혀 나가다 금빛 불꽃으로 타 사라짐
       for (let i = 0; i < 5; i++) {
-        const a = rad(-90 + (i - 2) * 33), L = (i === 2 ? 1.08 : i % 4 === 0 ? 0.72 : 0.95) * Math.min(1, open), b = bell(t, 0.16 + i * 0.03, 0.24 + i * 0.03, 0.5);
-        glint(g, Math.cos(a) * L * 0.95, cy + Math.sin(a) * L * 0.95, 0.2 * b, AU.glow, b * fade, a, 0.13, AU.core);
-      }
-      // 튕겨 나가는 검붉은 · 보라 얼룩 → 끝에서 금빛 불똥으로 타 사라짐
-      particles(g, t, 3, 6, (r, i) => ({ t0: 0.06, life: 0.62, a: rad(-180 + i * 36 + r() * 15), sz: 0.08 + r() * 0.04, rot: r() * 6, c: i % 2 }), (gg, p, age) => {
-        const d = 0.35 + 0.85 * E.out3(age), x = Math.cos(p.a) * d, y = cy + Math.sin(p.a) * d * 0.85, k = 1 - E.in2(seg(age, 0.35, 1));
-        if (k > 0) {
-          gg.save(); gg.translate(x, y); gg.rotate(p.rot + age * 4); gg.scale(p.sz * k, p.sz * k);
-          solid(gg, h => { h.beginPath(); for (let j = 0; j < 7; j++) { const aa = (j * TAU) / 7, rr = 0.75 + 0.3 * Math.sin(j * 2.3 + p.rot); h.lineTo(Math.cos(aa) * rr, Math.sin(aa) * rr); } h.closePath(); }, { hi: p.c ? '#a46ad0' : '#c84a5a', lo: p.c ? '#3d1b5a' : '#4a0a14', rim: '#14081e', rimW: 0.16, a: k, shine: 0.25 }); gg.restore();
+        const t0 = 0.04 + i * 0.03, u = seg(t, t0, t0 + 0.55);
+        if (u <= 0 || u >= 1) continue;
+        const ang = rad(-150 + i * 30 + 15 * Math.sin(i * 2.1)) + u * 1.2, d = 0.12 + 0.9 * E.out2(u), x = Math.cos(ang) * d, y = cy + Math.sin(ang) * d * 0.8;
+        const burn = seg(u, 0.5, 0.85), k = 1 - burn, sz = (0.18 + 0.12 * Math.sin(Math.PI * Math.min(1, u * 1.6))) * (1 - 0.6 * burn);
+        if (k > 0 && !pic(g, 'paladin-taint', x, y, sz * 1.6, k * 0.95, { rot: u * 3 + i })) {
+          g.save(); g.translate(x, y); g.scale(sz, sz); solid(g, h => path.poly(h, 7), { hi: '#a46ad0', lo: '#3d1b5a', rim: '#14081e', rimW: 0.16, a: k, shine: 0.25 }); g.restore();
         }
-        if (age > 0.35) for (let j = 0; j < 4; j++) { const q = seg(age, 0.35, 1), b2 = p.rot + j * 1.6; speck(gg, x + Math.cos(b2) * 0.12 * q, y + Math.sin(b2) * 0.12 * q - 0.1 * q, 0.016, FIRE.light, (1 - q) * fade); }
-      });
-      goldBurst(g, t, 7, 30, { y: cy, sp: 1.05, sq: 0.8, t0: 0.05, a: fade, grav: 0.3 });
-      goldSwirl(g, t, 8, 14, { y0: 0.6, rise: 0.9, rr: 0.6, t0: 0.2, span: 0.3, a: fade });
+        if (burn > 0) {
+          glow(g, x, y, 0.28 * (1 - burn * 0.5), FIRE.glow, 0.8 * (1 - burn));
+          flame(g, x, y + 0.08, 0.22 * Math.sin(Math.PI * burn), 0.9, u * 30 + i);
+          for (let j = 0; j < 6; j++) { const b2 = i * 1.3 + j * 1.05; speck(g, x + Math.cos(b2) * 0.18 * burn, y + Math.sin(b2) * 0.18 * burn - 0.12 * burn, 0.015, j % 2 ? FIRE.light : AU.core, (1 - burn) * fade); }
+        }
+      }
+      goldBurst(g, t, 7, 46, { y: cy, sp: 1.15, sq: 0.8, t0: 0.03, a: fade, grav: 0.3 });
+      glints(g, t, 9, 8, { t0: 0.12, step: 0.04, w: 1.4, y0: 0.0, h: 1.0, a: fade });
+      goldSwirl(g, t, 8, 26, { y0: 0.6, rise: 1.0, rr: 0.7, t0: 0.2, span: 0.35, a: fade });
     },
   },
 
