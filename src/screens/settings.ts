@@ -38,6 +38,7 @@ function render(): void {
         ${tog('auto', '자동 치유 (일시정지에서도 켜고 끔)')}
         ${tog('devUnlock', '레벨 잠금 무시 (던전·레이드)')}
         ${tog('allSkills', '스킬 전부 열기 (레벨 무관)')}
+        ${tog('devJobs', '전 직업 선택')}<p>구매 · 레벨 조건 없이 모든 직업으로 바꿀 수 있습니다. 끄면 원래 잠금으로 돌아갑니다.</p>
         ${tog('devGold', '골드 무제한')}<p>골드가 보유량과 관계없이 쓰이며 차감되지 않습니다. 끄면 실제 보유량으로 돌아옵니다.</p>
         ${tog('devStamina', '휴식 무제한')}<p>클리어해도 휴식이 줄지 않고 휴식 보너스가 늘 붙습니다.</p>
         <button class="btn" type="button" id="devMaxLevel"${Flow.running || G.save.player.level >= MAX_LEVEL ? ' disabled' : ''}>${G.save.player.level >= MAX_LEVEL ? `${MAX_LEVEL}레벨 적용됨` : `${MAX_LEVEL}레벨로 변경`}</button>
