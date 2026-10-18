@@ -365,8 +365,11 @@ document.addEventListener('pointerdown', e => {
 // ---------- 판 입력: 탭 = 기본 힐, 칸에서 8방향 쓸기 = 그 방향 스킬, 길게 누르기 = 정보 ----------
 const cv = $('board') as HTMLCanvasElement;
 function pt(e: PointerEvent) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
-/** 스킬을 걸 수 있는 칸: 파티원 또는 헤매는 영혼 (P-SOUL). 칸에 세우는 스킬 (주술사 샘 · 대지 토템)은 빈 칸도 (2026-10-16 Lim) */
-const aimable = (F: Fight, idx: number, key?: SkillKey | null): boolean => (!!key && SKILLS[key].target === 'cell' && !!F.cells[idx]) || !!F.cells[idx]?.unit || F.cells[idx]?.block === 'soul';
+/**
+ * 스킬을 걸 수 있는 칸: 파티원 또는 헤매는 영혼 (P-SOUL). 칸에 세우는 스킬 (주술사 샘 · 대지 토템)은 빈 칸도 (2026-10-16 Lim).
+ * 대상 없는 스킬 (비구름 토템 · 공대 쿨기 · 차 한 잔 · 심판 등)도 빈 칸에서 쓸어 쓸 수 있음 (2026-10-18 Lim 「비구름도 빈칸에서 스와이프되게」, 효과는 칸과 상관없음)
+ */
+const aimable = (F: Fight, idx: number, key?: SkillKey | null): boolean => (!!key && (SKILLS[key].target === 'cell' || SKILLS[key].target === 'none') && !!F.cells[idx]) || !!F.cells[idx]?.unit || F.cells[idx]?.block === 'soul';
 /** 쓸기 방향의 휠 스킬 */
 const dirKey = (F: Fight, d: ReturnType<typeof swipeDir>): SkillKey | null => { const it = d ? dirSlot(d) : null; return it && it.key ? slotKey(F, it.key) : null; };
 function doUse(key: SkillKey, idx: number): boolean {
