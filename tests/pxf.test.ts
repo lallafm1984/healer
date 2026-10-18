@@ -88,7 +88,7 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
     expect([...ALWAYS_FX].sort()).toEqual([...Object.values(COMMON_PXF), ...Object.values(ALLY_PXF)].sort());
     for (const h of HERO_KEYS) expect(heroSkillFx(h).filter(k => ALWAYS_FX.has(k))).toEqual([]);
     // art:optimize가 줄이지 않음 (fx- 규칙 256보다 먼저)
-    expect(readFileSync(new URL('../scripts/art-optimize.mjs', import.meta.url), 'utf8')).toMatch(/re: \/\^fx-skill-\/, w: 1120, h: 1120/);
+    expect(readFileSync(new URL('../scripts/art-optimize.mjs', import.meta.url), 'utf8')).toMatch(/re: \/\^fx-skill-\/, w: 2048, h: 2048/);
   });
 });
 

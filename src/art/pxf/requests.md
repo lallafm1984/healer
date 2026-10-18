@@ -63,7 +63,7 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 |  |  | paladin-holy-light | 위에서 쏟아져 내리는 노란 빛 알갱이 (광선 없음, 2026-10-18 Lim) |
 | priest-relay | 포물선으로 날아와 튀는 꼬리 별 | paladin-beacon | 머리 위 봉화 그릇에 타오르는 불꽃 (Codex 그릇 + 불티) |
 | paladin-oath | 도는 마름모 룬 + 오각 문양 (Codex 오각 서약 문장) | paladin-light-wave | 쏟아져 양옆으로 부서지는 파도 (Codex 파도 마루) |
-| paladin-cleanse | 해돋이 빛살 손바닥 (Codex 빛살 손바닥 · 뽑혀 타는 어둠 연기) | paladin-sacrifice | 내려오는 사슬 + 붉은 맥동 (Codex 진홍 방패) |
+| paladin-cleanse | 해돋이 빛살 손바닥 (Codex 빛의 손 · 뽑혀 타는 어둠 연기) | paladin-sacrifice | 내려오는 사슬 + 붉은 맥동 (Codex 진홍 방패) |
 | paladin-sanctuary | 바닥에서 솟는 반구 막 (Codex 빛 돔) | paladin-hand-guard | 도는 팔각 봉인 문양 (Codex 판금 팔각 테) |
 | common-hit | 붉은 할퀸 자국 | common-crit | 오른쪽 위 작은 네 갈래 별 |
 | common-heal | 작은 십자 + 빛 점 | common-dispel | 청록 고리 + 튀는 얼룩 |

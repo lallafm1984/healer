@@ -47,7 +47,7 @@ const small = (frames: number, logical: number, gray = false): PxfClip => skill(
  * 판 위 선 물건이 서 있는 동안 계속 도는 손그림풍 루프 (scripts/vfx loop: true): 마지막 장 다음이 첫 장, fps 초당 장 수.
  * board.ts가 선 물건 그림 위 (이름 · 체력 아래)에 그 물건 크기에 맞춰 그림 (2026-10-18 Lim 「판 위 토템 … 이펙트가 루프로 돌게」)
  */
-const loop = (frames: number, logical: number, fps: number): PxfClip => ({ ...skill(frames, logical), fps });
+const loop = (frames: number, logical: number, fps: number, size?: number): PxfClip => ({ ...skill(frames, logical, { size }), fps });
 /** 주술사 샘 · 대지 토템 그림 (board-totem-*, 자원 그림의 토템을 잘라 낸 네모) 한 변 = 칸 반지름 × 이 값. 루프 그리기 코드 (scripts/vfx/shaman.mjs TOTEM)도 같은 값 */
 export const TOTEM_STAND = 1.1;
 /** 봉화 루프 그림 안 고리 반지름 (프레임 반 = 1). 루프 그리기 코드 (scripts/vfx/paladin.mjs RING)도 같은 값 */
@@ -82,15 +82,15 @@ export const PXF = {
   'druid-quietwood': skill(24, 72),
   'druid-rebirth': skill(24, 98),
   'paladin-holy-light': skill(16, 80), // 기본 힐이라 가볍게 (Lim 2026-10-16 「너무 과하다」)
-  'paladin-beacon': skill(20, 88),
+  'paladin-beacon': skill(20, 88, { size: 384 }), // 봉화 그릇 · 불꽃 그림이 뭉개지지 않게 384px 프레임 (10-19 Lim)
   'paladin-oath': skill(24, 90),
   'paladin-light-wave': skill(20, 88),
-  'paladin-cleanse': skill(20, 92),
+  'paladin-cleanse': skill(20, 92, { size: 384 }), // 손 그림이 뭉개지지 않게 384px 프레임 (10-19 Lim 「이미지에 신경써보자」)
   'paladin-sacrifice': skill(22, 92),
   'paladin-sanctuary': skill(24, 76),
   'paladin-hand-guard': skill(24, 94),
   // 봉화 대상 칸 둘레에서 도는 루프 (스킬 기록이 아니라 board.ts, 2026-10-18 Lim 「봉화대상의 동그란 이미지도 파티클로 루프」)
-  'paladin-beacon-loop': loop(36, 62, 12),
+  'paladin-beacon-loop': loop(36, 62, 12, 320),
   'shaman-ripple': skill(24, 88),
   'shaman-droplet': skill(22, 88),
   'shaman-washing': skill(22, 96),
