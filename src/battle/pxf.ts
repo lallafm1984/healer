@@ -50,6 +50,8 @@ const small = (frames: number, logical: number, gray = false): PxfClip => skill(
 const loop = (frames: number, logical: number, fps: number): PxfClip => ({ ...skill(frames, logical), fps });
 /** 주술사 샘 · 대지 토템 그림 (board-totem-*, 자원 그림의 토템을 잘라 낸 네모) 한 변 = 칸 반지름 × 이 값. 루프 그리기 코드 (scripts/vfx/shaman.mjs TOTEM)도 같은 값 */
 export const TOTEM_STAND = 1.1;
+/** 봉화 루프 그림 안 고리 반지름 (프레임 반 = 1). 루프 그리기 코드 (scripts/vfx/paladin.mjs RING)도 같은 값 */
+export const BEACON_RING = 0.72;
 /** 보스 판 전체 공격의 설계 캔버스 (판 너비 기준, game.logicalSize) */
 export const WIDE_DESIGN = 128;
 /**
@@ -87,6 +89,8 @@ export const PXF = {
   'paladin-sacrifice': skill(22, 92),
   'paladin-sanctuary': skill(24, 76),
   'paladin-hand-guard': skill(24, 94),
+  // 봉화 대상 칸 둘레에서 도는 루프 (스킬 기록이 아니라 board.ts, 2026-10-18 Lim 「봉화대상의 동그란 이미지도 파티클로 루프」)
+  'paladin-beacon-loop': loop(36, 62, 12),
   'shaman-ripple': skill(24, 88),
   'shaman-droplet': skill(22, 88),
   'shaman-washing': skill(22, 96),
@@ -226,7 +230,7 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
 export const heroSkillFx = (hero: HeroKey): PxfKey[] =>
   [...new Set([...heroSkills(hero).map(k => SKILL_PXF[k]?.fx).filter((k): k is PxfKey => !!k), ...(HERO_LOOP_FX[hero] ?? [])])];
 /** 직업별 판 위 선 물건 루프 (스킬 기록이 아님): 그 직업 전투에서만 같이 읽어 둠 */
-export const HERO_LOOP_FX: Partial<Record<HeroKey, PxfKey[]>> = { shaman: ['shaman-spring-loop', 'shaman-earth-loop', 'shaman-rain-loop'] };
+export const HERO_LOOP_FX: Partial<Record<HeroKey, PxfKey[]>> = { shaman: ['shaman-spring-loop', 'shaman-earth-loop', 'shaman-rain-loop'], paladin: ['paladin-beacon-loop'] };
 /** 루프 클립이면 지금 시각 (초)의 프레임 */
 export const loopFrame = (c: PxfClip, sec: number): number => ((Math.floor(sec * c.fps) % c.frames) + c.frames) % c.frames;
 

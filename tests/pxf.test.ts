@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { HERO_KEYS, HEROES } from '../src/data/heroes';
 import type { SkillKey } from '../src/data/skills';
-import { ALLY_PXF, ALWAYS_FX, BOSS_PXF, bossPxfOf, COMMON_PXF, HERO_LOOP_FX, heroSkillFx, isBossPxf, loopFrame, PXF, pxfArtName, SKILL_FX_SIZE, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, TOTEM_STAND, WIDE_DESIGN, wideArtName, type CommonFx, type PxfKey } from '../src/battle/pxf';
+import { ALLY_PXF, ALWAYS_FX, BEACON_RING, BOSS_PXF, bossPxfOf, COMMON_PXF, HERO_LOOP_FX, heroSkillFx, isBossPxf, loopFrame, PXF, pxfArtName, SKILL_FX_SIZE, pxfCell, pxfCrop, pxfDrawSize, pxfFrame, pxfMs, pxfTargets, SKILL_PXF, TOTEM_STAND, WIDE_DESIGN, wideArtName, type CommonFx, type PxfKey } from '../src/battle/pxf';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { AB_KIND, type AbKind } from '../src/data/abilities';
 import * as E from '../src/engine';
@@ -12,6 +12,8 @@ import { damage } from '../src/engine/core';
 import { FX, FX_SIZE } from '../scripts/vfx/index.mjs';
 // @ts-expect-error 빌드 도구 스크립트 (.mjs, 타입 없음)
 import { TOTEM as SHAMAN_TOTEM } from '../scripts/vfx/shaman.mjs';
+// @ts-expect-error 빌드 도구 스크립트 (.mjs, 타입 없음)
+import { RING as PALADIN_RING } from '../scripts/vfx/paladin.mjs';
 
 /** src/art 그림 파일의 가로 · 세로 (PNG · WebP 머리), 없으면 null */
 const artSize = (name: string): { w: number; h: number } | null => {
@@ -67,13 +69,14 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
     expect(pxfDrawSize(c, 62)).toBe(80);
     for (const k of SMOOTH_KEYS) expect(PXF[k].logicalSize, k).toBeLessThanOrEqual(fx[k].scope === 'target' ? 100 : 84);
   });
-  it('판 위 토템 루프 (Lim 2026-10-18 「이펙트가 루프로 돌게」): 주술사 전투에서만 읽고, 토템 그림 크기가 그리기 코드와 같고, 프레임이 이어 돎', () => {
+  it('판 위 루프 (주술사 토템 · 성기사 봉화 대상, Lim 2026-10-18): 그 직업 전투에서만 읽고, 토템 그림 크기가 그리기 코드와 같고, 프레임이 이어 돎', () => {
     const loops = Object.keys(fx).filter(k => fx[k].loop);
-    expect(loops.sort()).toEqual(['shaman-earth-loop', 'shaman-rain-loop', 'shaman-spring-loop']);
-    expect([...HERO_LOOP_FX.shaman!].sort()).toEqual(loops.sort());
-    for (const k of loops) expect(heroSkillFx('shaman')).toContain(k);
-    for (const h of HERO_KEYS) if (h !== 'shaman') expect(heroSkillFx(h).filter(k => loops.includes(k))).toEqual([]);
+    expect(loops.sort()).toEqual(['paladin-beacon-loop', 'shaman-earth-loop', 'shaman-rain-loop', 'shaman-spring-loop']);
+    expect([...HERO_LOOP_FX.shaman!, ...HERO_LOOP_FX.paladin!].sort()).toEqual(loops.sort());
+    for (const h of HERO_KEYS) for (const k of HERO_LOOP_FX[h] ?? []) expect(heroSkillFx(h)).toContain(k);
+    for (const h of HERO_KEYS) expect(heroSkillFx(h).filter(k => loops.includes(k) && !(HERO_LOOP_FX[h] ?? []).includes(k))).toEqual([]);
     expect(SHAMAN_TOTEM).toBe(TOTEM_STAND);
+    expect(PALADIN_RING).toBe(BEACON_RING); // 봉화 대상 고리 루프 (2026-10-18 Lim): 고리 반지름이 board.ts와 같음
     const c = PXF['shaman-spring-loop'];
     expect([loopFrame(c, 0), loopFrame(c, (c.frames - 0.5) / c.fps), loopFrame(c, c.frames / c.fps), loopFrame(c, -0.01)]).toEqual([0, c.frames - 1, 0, c.frames - 1]);
   });

@@ -60,11 +60,11 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | priest-guardian | 펼쳤다 감싸듯 접히는 깃털 날개 두 장 (Codex 날개 그림) | druid-bark | 맞물리는 나무판 육각 |
 | priest-hymn | 떠오르는 음표 | druid-quietwood | 떨어지는 잎 + 바닥 안개 |
 | priest-serenity | 터져 소용돌이치며 솟는 금빛 반짝이 가루 폭풍 (치유 강화판) | druid-rebirth | 초록 빛 기둥 + 금빛 씨앗 (기둥은 이것만) |
-|  |  | paladin-holy-light | 위에서 비추는 원뿔 빛 |
-| priest-relay | 포물선으로 날아와 튀는 꼬리 별 | paladin-beacon | 머리 위 봉화 그릇에 타오르는 불꽃 |
-| paladin-oath | 도는 마름모 룬 + 오각 문양 | paladin-light-wave | 쏟아져 양옆으로 부서지는 파도 |
-| paladin-cleanse | 해돋이 빛살 손바닥 | paladin-sacrifice | 내려오는 사슬 + 붉은 맥동 |
-| paladin-sanctuary | 바닥에서 솟는 반구 막 | paladin-hand-guard | 도는 팔각 봉인 문양 |
+|  |  | paladin-holy-light | 위에서 비추는 원뿔 빛 (Codex 원뿔 + 금빛 가루) |
+| priest-relay | 포물선으로 날아와 튀는 꼬리 별 | paladin-beacon | 머리 위 봉화 그릇에 타오르는 불꽃 (Codex 그릇 + 불티) |
+| paladin-oath | 도는 마름모 룬 + 오각 문양 (Codex 오각 서약 문장) | paladin-light-wave | 쏟아져 양옆으로 부서지는 파도 (Codex 파도 마루) |
+| paladin-cleanse | 해돋이 빛살 손바닥 (Codex 빛살 손바닥) | paladin-sacrifice | 내려오는 사슬 + 붉은 맥동 (Codex 진홍 방패) |
+| paladin-sanctuary | 바닥에서 솟는 반구 막 (Codex 빛 돔) | paladin-hand-guard | 도는 팔각 봉인 문양 (Codex 판금 팔각 테) |
 | common-hit | 붉은 할퀸 자국 | common-crit | 오른쪽 위 작은 네 갈래 별 |
 | common-heal | 작은 십자 + 빛 점 | common-dispel | 청록 고리 + 튀는 얼룩 |
 | common-revive | 피어오르는 영혼 불꽃 | common-death | 털썩 꺼지는 연기 + 파편 |
@@ -83,7 +83,7 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | shaman-rain | 머리 위 작은 비구름과 가는 비 (Codex 비구름 그림) | shaman-link | 가로로 출렁이는 영혼 끈 두 줄과 매듭 |
 | shaman-spring | 솟아 흩뿌리는 분수와 바닥 샘 (Codex 꼬인 물기둥 그림) | monk-palm | 톡 부풀었다 꺼지는 기 구슬과 위아래 박자 선 |
 | shaman-spring-loop | 판 위 샘 토템 루프: 숨 쉬는 물방울 보석과 보석 끝 작은 분수 | shaman-earth-loop | 판 위 대지 토템 루프: 왕관 둘레를 도는 돌 조각 셋과 호박빛 흙먼지 |
-| shaman-rain-loop | 판 위 비구름 토템 루프: 구름 배의 숨 쉬는 물빛과 그 밑으로 내리는 빗줄기 | | |
+| shaman-rain-loop | 판 위 비구름 토템 루프: 구름 배의 숨 쉬는 물빛과 그 밑으로 내리는 빗줄기 | paladin-beacon-loop | 봉화 대상 칸 둘레 루프: 숨 쉬는 금빛 고리 위 작은 불꽃 여섯 · 도는 혜성 · 날아오르는 불티 |
 | monk-wrap | 몸을 비스듬히 감아 도는 안개 리본 | monk-mist | 옆으로 흘러가는 안개 뭉치 셋 |
 | monk-breath | 가운데에서 양옆으로 훅 퍼지는 안개 숨 | monk-clear | 위에서 아래로 쓸어내리는 세로 기 줄 셋 |
 | monk-soothe | 점점 납작해지는 가로 물결선 | monk-wind | 비스듬히 쓸어 올리며 끝이 말리는 바람 선과 꽃잎 |
