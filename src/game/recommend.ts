@@ -6,11 +6,11 @@ import { ABILITIES, type AbilityDef } from '../data/abilities';
 import { CLASSES } from '../data/classes';
 import { ENCOUNTERS, type Encounter, type EncounterKey } from '../data/encounters';
 import { abilityStars } from '../data/fm';
-import { habitOf, knowStage, starOfBond, type GuildMember } from '../data/guild';
+import { habitOf, starOfBond, type GuildMember } from '../data/guild';
 import { PERS } from '../data/personalities';
 import { create } from '../engine';
 import { topLevel, type SaveData } from '../platform/storage';
-import { bondOf, slotsOf } from './guild';
+import { bondOf, knowStages, slotsOf } from './guild';
 
 export type Feature = 'buster' | 'adds' | 'cut' | 'zone' | 'aoe' | 'poison';
 /** 칩 글 (「독 · 질병 → 독소 정화」) */
@@ -60,8 +60,8 @@ export function recScore(save: SaveData, m: GuildMember, encs: readonly Encounte
   const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged';
   const feats = new Set(encs.flatMap(k => [...encFeatures(k)]));
   const a = ABILITIES[m.ab], fits = a ? abilityFeatures(a).filter(x => feats.has(x)) : [];
-  const boss = encs[encs.length - 1], kb = boss ? knowStage(m.know[boss] ?? 0) : 0;
-  const ks = encs.slice(0, -1).reduce((t, k) => t + knowStage(m.know[k] ?? 0), 0) / Math.max(1, encs.length - 1);
+  const kn = knowStages(m, save), boss = encs[encs.length - 1], kb = boss ? kn[boss] ?? 0 : 0;
+  const ks = encs.slice(0, -1).reduce((t, k) => t + (kn[k] ?? 0), 0) / Math.max(1, encs.length - 1);
   const star = starOfBond(bondOf(save, m.nick)), p = PERS[m.pers];
   // 버릇 (침착 · 판단)을 고친 만큼 성격 감점이 줄어듦: 버릇 1.2 → 다 · 1/3 → 0
   const hard = Math.max(0, Math.min(1, (habitOf(m.stats) - 1 / 3) / (1.2 - 1 / 3)));

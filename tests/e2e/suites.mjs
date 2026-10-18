@@ -15,6 +15,7 @@ import devauto from './devauto.mjs';
 import dungeon from './dungeon.mjs';
 import gear from './gear.mjs';
 import guild from './guild.mjs';
+import guildExt from './guild-ext.mjs';
 import shop from './shop.mjs';
 import challenge from './challenge.mjs';
 import heroes from './heroes.mjs';
@@ -85,6 +86,7 @@ export const SUITES = [
   ['떠오르는 숫자 자리 지킴', floatSteady, 110], // 어림 (판 열 × 6초)
   ['스킬 · 특성 설명 팝업 누르는 동안 유지', skillTipHold, 40], // 어림 (폰 넷 × 버튼 둘)
   ['길드', guild, 8], // 2026-10-18 길드를 다시 켬 (꺼 두면 guild-off.mjs)
+  ['길드 업데이트 (시설 · 부탁 · 원정 · 스토리 동료)', guildExt, 8], // 어림 (93 업데이트 묶음)
   ['재화·임무·상점', shop, 14],
   ['성장·주간 도전·실패 정산', challenge, 29],
   ['자동 치유 (개발)', devauto, 13],

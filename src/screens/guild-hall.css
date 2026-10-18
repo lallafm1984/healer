@@ -224,3 +224,25 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 /* 그림 (93 11장): 길드 Lv 깃발 · 결성 이야기 배경 · 숙지 두루마리 */
 #s-guild .gh-stats .gh-lv .g-ic { width: 16px; height: 16px; }
 #s-guild.ns .panel.g-story { background: linear-gradient(180deg, #15120eb8, #15120ef2 75%), var(--art-scene-guild-found, linear-gradient(180deg, #2a2116, #1c1712)) center 35% / cover no-repeat; }
+
+/* ---------- 업데이트 묶음 (93 4-4 · 6-3 · 8장): 부탁 쪽지 · 주간 원정 · 시설 · 길드 홀 소품 ---------- */
+#s-guild .g-job.done { opacity: 0.6; }
+#s-guild .g-job .g-go { font-weight: 600; color: var(--gk-ink2); }
+#s-guild .g-exped h4 .g-ic { width: 22px; height: 22px; margin-right: 4px; vertical-align: -5px; object-fit: contain; }
+#s-guild .g-exlist { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--gk-ink2); }
+#s-guild .g-exrow.done { color: #8fd18a; }
+#s-guild .g-exped > .btn { min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#s-guild .g-exped > .btn small { font-size: 11px; opacity: 0.9; }
+#s-guild .g-fac b small { margin-left: 4px; font-weight: 600; color: var(--gk-num); }
+#s-guild .g-fac .note { word-break: keep-all; }
+#s-guild .g-fac .g-lockt { font-size: 11px; color: var(--gk-mute); white-space: nowrap; }
+#s-guild .g-fac .g-side .btn { min-width: 74px; }
+#s-guild .g-fac .g-side .currency-amount { justify-content: center; }
+#s-guild .guild-hero .gh-prop { position: absolute; width: 34px; height: 34px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 2px 2px #0008); }
+/* 글 (왼쪽 아래 제목 · 오른쪽 Lv · 정원 · 명성)을 피해 위쪽 띠와 가운데 틈에만 */
+#s-guild .guild-hero .gh-prop.p1 { left: 38%; top: 2px; }
+#s-guild .guild-hero .gh-prop.p2 { left: 50%; bottom: 8px; }
+#s-guild .guild-hero .gh-prop.p3 { left: 6%; top: 2px; }
+#s-guild .guild-hero .gh-prop.p4 { left: 22%; top: 2px; }
+#s-guild .guild-hero .gh-prop.p5 { left: 52%; top: 2px; }
+#s-guild .guild-hero > .ah-copy, #s-guild .guild-hero > .gh-stats { position: relative; z-index: 1; }

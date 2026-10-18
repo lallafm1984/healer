@@ -3,8 +3,9 @@
  * 이기면 첫 화면에 등급·별·받은 것, 지면 어디서 졌는지·힌트. 지표·딜미터기는 「전투 기록」에 접어 둠 (지면 펼침)
  */
 import { STAT_NAMES } from '../data/fm';
+import { ABILITIES } from '../data/abilities';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
-import { FRIEND_LV } from '../data/guild';
+import { EXPED, FRIEND_LV, REQ, STORY } from '../data/guild';
 import { FEATURES } from '../data/features';
 import { contentOf, type ContentKey } from '../data/content';
 import { avgScore, GRADE_STYLE, kindOf, qualityOf, recommendedFor, slotName, type ItemGrade } from '../data/equipment';
@@ -247,6 +248,10 @@ function notesHtml(x: Settlement): string {
   const out: string[] = [];
   const gd = x.guild;
   // 길드 v2 (93 9-1): 결성 · 길드원 경험치 · 레벨 업 · 명성 · 첫 처치, 오른 능력치 (왜), 인연 (새 친구)
+  // 업데이트 묶음 (93 4-4 · 8장): 스토리 동료 합류 · 부탁 쪽지 · 주간 원정
+  if (x.story) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${uiIcon('guild')}<span><b>${esc(STORY[x.story.key].nick)} ${x.story.how === 'joined' ? '합류' : '찾아옴'}</b>${x.story.how === 'wait' ? ' · 정원이 차서 친구 초대에서 기다림' : ` · 고유 스킬 ${esc(ABILITIES[STORY[x.story.key].ab]?.name ?? '')}`}</span></button>`);
+  if (x.jobs?.reqs.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('request', uiIcon('quest'))}<span>부탁 완료 · ${x.jobs.reqs.map(esc).join(' · ')} 인연 +${REQ.bond}</span></button>`);
+  if (x.jobs?.exped.length) out.push(`<button class="r-note${x.jobs.expedAll ? ' hi' : ''}" type="button" data-go="s-guild">${gameIcon('expedition-chest', uiIcon('star'))}<span>주간 원정 ${x.jobs.exped.length}곳 · 명성 +${EXPED.fame * x.jobs.exped.length}${x.jobs.expedAll ? ' · <b>원정 상자 열림</b>' : ''}</span></button>`);
   if (x.founded?.length) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${uiIcon('guild')}<span><b>${esc(G.save.guild.name)} 결성</b> · ${x.founded.map(esc).join(' · ')}</span></button>`);
   if (gd?.members.length) {
     const sum = gd.members.reduce((s, m) => s + m.xp, 0);
