@@ -75,6 +75,26 @@ function flame(g, x, y, h, a, ph = 0) {
 }
 const frac = v => v - Math.floor(v);
 const wave = (t, k = 1, ph = 0) => 0.5 + 0.5 * Math.sin(TAU * (t * k + ph));
+/** Codex 불꽃 두 장 (paladin-flame-a 왼쪽으로 · b 오른쪽으로 기운 혀)의 그려진 부분 (그림 비율): 크기 · 밑동을 맞춰 겹쳐 그림 */
+const FLAME_BOX = { 'paladin-flame-a': [0.1, 0.906, 0.016, 0.958], 'paladin-flame-b': [0.209, 0.791, 0.041, 0.972] };
+/**
+ * 손그림 불꽃 (2026-10-18 Lim 「봉화 스킬에서 불 이펙트가 퀄리티가 낮다」): 밑동 (x, y), 그려진 높이 h. 두 장을 ph에 따라 번갈아 섞고 (일렁임),
+ * 위아래로 늘었다 줄며 좌우로 살짝 흔들림 + 밝은 심이 깜빡임. 그림이 없으면 도형 불꽃
+ */
+function paintedFlame(g, x, y, h, a, ph = 0) {
+  if (h <= 0 || a <= 0) return;
+  const A = asset('paladin-flame-a'), B = asset('paladin-flame-b');
+  if (!A || !B) { flame(g, x, y, h, a, ph); return; }
+  const mix = 0.5 + 0.5 * Math.sin(ph), stretch = 1 + 0.07 * Math.sin(ph * 1.7 + 1), lean = 0.06 * Math.sin(ph * 0.9);
+  glow(g, x, y - h * 0.35, h * 0.75, FIRE.glow, 0.35 * a);
+  for (const [img, name, w] of [[A, 'paladin-flame-a', 1 - mix], [B, 'paladin-flame-b', mix]]) {
+    if (w <= 0.01) continue;
+    const [x0, x1, y0, y1] = FLAME_BOX[name], dh = h * stretch / (y1 - y0), dw = dh * img.width / img.height;
+    g.save(); g.translate(x, y); g.transform(1, 0, -lean, 1, 0, 0); g.scale(1 / Math.sqrt(stretch), 1); g.globalAlpha = a * Math.min(1, w * 1.6);
+    g.drawImage(img, -dw * (x0 + x1) / 2, -dh * y1, dw, dh); g.restore();
+  }
+  glow(g, x, y - h * 0.25, h * 0.32, FIRE.core, (0.35 + 0.25 * Math.sin(ph * 2.3)) * a);
+}
 
 export default {
   /** 빛의 손길 (기본 힐, 자주 씀 → 짧게, Lim 2026-10-16 「너무 과하다」): 광선 없이 (2026-10-18 Lim 「광선은 제거하고 노란 파티클이 내려오도록」)
@@ -279,29 +299,32 @@ export default {
     },
   },
 
-  /** 봉화 (대상 지정 + 회복 + 피해 감소): 머리 위에 Codex 금빛 봉화 그릇 (paladin-brazier)이 톡 놓이며 불꽃이 확 타오르고, 불티가 많이 날아오르며
-   *  따뜻한 금빛이 몸으로 내려와 감싸고 반짝이 가루가 돎. 봉화가 이어지는 동안은 칸 둘레에 paladin-beacon-loop가 돎 */
+  /** 봉화 (대상 지정 + 회복 + 피해 감소): 머리 위에 Codex 금빛 봉화 그릇 (paladin-brazier-bowl)이 톡 놓이고, 손그림 불꽃 (paladin-flame-a · b)이 확 솟았다가
+   *  일렁이며 타고 (2026-10-18 Lim 「불 이펙트가 퀄리티가 낮다」), 불티 · 불똥이 많이 날아오르며 따뜻한 금빛 가루가 몸으로 내려와 감쌈 */
   'paladin-beacon': {
     frames: 20, logical: 88, scope: 'target',
     draw(g, { t }) {
-      const pop = E.back(seg(t, 0, 0.2), 1.8), fire = E.out3(seg(t, 0.06, 0.28)), fade = 1 - E.in2(seg(t, 0.62, 1)), by = -0.72;
-      glow(g, 0, 0.1, 1.0, AU.glow, 0.4 * fade);
-      glowOval(g, 0, 0.15, 0.85, 1.1, AU.amber, 0.3 * bell(t, 0.15, 0.35, 1));
-      glow(g, 0, by - 0.1, 0.6, FIRE.glow, 0.7 * fire * fade);
-      // 그릇 (그림): 불꽃이 확 커지는 순간 더 밝게, 위아래로 살짝 일렁임
-      const flick = 1 + 0.04 * Math.sin(t * 40);
-      if (!pic(g, 'paladin-brazier', 0, by, 0.78 * pop, fade, { sy: flick, add: 0.6 * bell(t, 0.06, 0.16, 0.4) })) {
-        flame(g, 0, by + 0.1, 0.5 * fire, fade, t * 24);
+      const pop = E.back(seg(t, 0, 0.18), 1.8), fade = 1 - E.in2(seg(t, 0.64, 1)), by = -0.62, bw = 0.72 * pop;
+      const rimY = by - bw * 0.1, burst = E.out3(seg(t, 0.06, 0.24)), settle = 1 - 0.25 * E.inOut(seg(t, 0.24, 0.5)), fh = 0.74 * burst * settle;
+      glow(g, 0, 0.1, 1.0, AU.glow, 0.38 * fade);
+      glowOval(g, 0, 0.15, 0.85, 1.1, AU.amber, 0.28 * bell(t, 0.15, 0.35, 1));
+      glow(g, 0, rimY - fh * 0.4, 0.75, FIRE.glow, 0.6 * burst * fade);
+      glow(g, 0, rimY, 0.35, '#ffffff', 0.7 * bell(t, 0.05, 0.12, 0.3));
+      // 불꽃 (그릇 안쪽 테 뒤에서 솟음) → 그릇 (앞)
+      paintedFlame(g, 0, rimY + 0.04, fh, fade, t * 26);
+      if (!pic(g, 'paladin-brazier-bowl', 0, by, bw, fade, { add: 0.4 * bell(t, 0.06, 0.16, 0.4) })) {
+        g.save(); g.translate(0, by + 0.05); g.scale(bw / 2, bw / 2); solid(g, gg => path.rect(gg, 1.6, 0.6, 0.3), { hi: AU.light, lo: AU.deep, rim: AU.rim, a: fade }); g.restore();
       }
-      flame(g, 0, by - 0.05, 0.28 * fire * (1 + 0.15 * Math.sin(t * 33)), 0.45 * fade, t * 30); // 그림 불꽃 위에 일렁이는 빛
-      // 불티 (많이, 흔들리며 위로)
-      particles(g, t, 5, 30, r => ({ t0: 0.08 + r() * 0.55, life: 0.35 + r() * 0.25, x: (r() - 0.5) * 0.3, sz: 0.012 + r() * 0.018, sw: (r() - 0.5) * 0.25, ph: r() * 9 }), (gg, p, age) => {
-        const x = p.x + p.sw * age + Math.sin(age * 9 + p.ph) * 0.05, y = by - 0.3 - 0.8 * E.out2(age);
+      // 확 솟을 때 사방으로 튀는 불똥
+      goldBurst(g, t, 4, 18, { y: rimY - 0.1, sp: 0.75, sq: 0.6, t0: 0.08, a: fade, col: FIRE.light, grav: -0.2 });
+      // 불티 (많이, 흔들리며 위로, 빛 번짐)
+      particles(g, t, 5, 34, r => ({ t0: 0.08 + r() * 0.6, life: 0.35 + r() * 0.3, x: (r() - 0.5) * 0.35, sz: 0.012 + r() * 0.018, sw: (r() - 0.5) * 0.3, ph: r() * 9 }), (gg, p, age) => {
+        const x = p.x + p.sw * age + Math.sin(age * 9 + p.ph) * 0.05, y = rimY - fh * 0.6 - 0.75 * E.out2(age);
         glow(gg, x, y, p.sz * 4, FIRE.glow, 0.5 * (1 - age) * fade);
         speck(gg, x, y, p.sz, age < 0.4 ? FIRE.core : FIRE.light, (1 - age) * fade, 0.5 + 0.5 * Math.sin(p.ph + age * 20));
       });
       // 그릇에서 몸으로 내려오는 따뜻한 빛 가루 → 몸 둘레 반짝이 가루
-      particles(g, t, 9, 20, r => ({ t0: 0.2 + r() * 0.3, life: 0.4, x: (r() - 0.5) * 0.3, tx: (r() - 0.5) * 1.0, ty: 0.1 + r() * 0.5, sz: 0.012 + r() * 0.016 }), (gg, p, age) =>
+      particles(g, t, 9, 22, r => ({ t0: 0.2 + r() * 0.3, life: 0.4, x: (r() - 0.5) * 0.35, tx: (r() - 0.5) * 1.0, ty: 0.1 + r() * 0.5, sz: 0.012 + r() * 0.016 }), (gg, p, age) =>
         speck(gg, lerp(p.x, p.tx, E.out2(age)), lerp(by + 0.25, p.ty, E.inOut(age)), p.sz, AU.light, (1 - E.in2(age)) * fade));
       goldSwirl(g, t, 13, 26, { y0: 0.6, rise: 1.0, rr: 0.75, t0: 0.25, span: 0.4, a: fade });
       for (let i = 0; i < 4; i++) { const a = t * 6 + (i * TAU) / 4, b = bell(t, 0.25 + i * 0.04, 0.4 + i * 0.04, 0.95); glint(g, Math.cos(a) * 0.6, 0.25 + Math.sin(a) * 0.27, 0.15 * b, AU.glow, b, a, 0.15, AU.core); }
@@ -324,9 +347,9 @@ export default {
       g.restore();
       // 고리 위 작은 불꽃 여섯 (번갈아 커졌다 작아짐, 위쪽을 향해 타오름)
       for (let i = 0; i < 6; i++) {
-        const a = -Math.PI / 2 + (i * TAU) / 6, x = Math.cos(a) * R, y = Math.sin(a) * R, h = 0.14 + 0.07 * wave(t, 2, i / 6);
+        const a = -Math.PI / 2 + (i * TAU) / 6, x = Math.cos(a) * R, y = Math.sin(a) * R, h = 0.21 + 0.06 * wave(t, 2, i / 6);
         glow(g, x, y, 0.13, FIRE.glow, 0.45);
-        flame(g, x, y + 0.02, h, 0.95, TAU * (t * 3 + i * 0.37));
+        paintedFlame(g, x, y + 0.03, h, 0.95, TAU * (t * 3 + i * 0.37)); // 손그림 불꽃 (한 바퀴에 정수 번 일렁임)
       }
       // 고리를 따라 도는 금빛 혜성 셋
       for (let k = 0; k < 3; k++) {
