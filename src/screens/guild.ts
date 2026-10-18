@@ -10,12 +10,12 @@ import { resourceBalance } from '../game/resources';
 import { ABILITIES, STAR5, starFx } from '../data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
-import { BOND_STEPS, bondName, FRIEND_LV, POSTS, postGold, rerollGold, starOfBond, statCap, statPerLevel, statPot, type GuildMember, type PostKind, type PostRole } from '../data/guild';
+import { BOND_STEPS, bondName, FRIEND_LV, POSTS, postGold, rerollGold, sponsorGold, starOfBond, statCap, statPerLevel, statPot, type GuildMember, type PostKind, type PostRole } from '../data/guild';
 import { GUILD_GOAL } from '../data/missions';
 import { GUILD_LEVEL, xpToNext } from '../data/progression';
 import { dayKey, daysBetween } from '../game/clock';
 import { Flow } from '../game/flow';
-import { bondOf, bondPt, capOf, foundGuild, knowStages, friendsOf, full, guildOpen, hire, hireApp, inviteFriend, postRecruit, refreshApps, release, rerollAbility, worldLevel } from '../game/guild';
+import { bondOf, bondPt, capOf, foundGuild, knowStages, restSponsor, sponsor, sponsorRest, sponsorWhy, friendsOf, full, guildOpen, hire, hireApp, inviteFriend, postRecruit, refreshApps, release, rerollAbility, worldLevel } from '../game/guild';
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { memDetailHtml, memRowHtml, type CardData } from './members';
@@ -125,7 +125,7 @@ function foundHtml(): string {
 /** 길드원 줄: 하트 · 인연 Lv · 능력 ★ (편성 줄과 같은 memRowHtml) */
 function memberRow(m: GuildMember): string {
   const on = st.sheet?.k === 'mem' && st.sheet.id === m.id, b = bondOf(G.save, m.nick);
-  return memRowHtml(card(m, b, starOfBond(b), true), { attrs: `data-mem="${m.id}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on });
+  return memRowHtml(card(m, b, starOfBond(b), true), { attrs: `data-mem="${m.id}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on, gold: m.boost ? `후원 ${m.boost}` : '' });
 }
 const byLevel = () => G.save.guild.members.slice().sort((a, b) => b.lv - a.lv || bondPt(G.save, b.nick) - bondPt(G.save, a.nick));
 
@@ -170,9 +170,11 @@ function ctaHtml(): string {
 // ---------- 길드원 ----------
 function membersHtml(): string {
   const g = G.save.guild, cap = capOf(G.save);
+  const rs = restSponsor(G.save), gold = resourceBalance(G.save, 'gold');
   return `<h3 class="sec">길드원 <small>${g.members.length}/${cap.cap} · 레벨 순 · ♥ 숫자 = 인연 Lv</small></h3>
+    ${rs.ids.length ? `<button class="btn g-rest" type="button" id="sponsorRest"${gold < rs.gold ? ' disabled' : ''}>쉬는 길드원 모두 후원 ${rs.ids.length}명<small>${goldCost(rs.gold)} · 한 사람 5판</small></button>` : ''}
     <section class="pn g-list"><ul class="pcards">${byLevel().map(memberRow).join('')}</ul></section>
-    <p class="note g-rule">누르면 능력치 · 스킬 다시 뽑기 · 보내기. 직업 스킬 ★는 인연 Lv 4 · 6 · 8 · 10에서 오릅니다.</p>`;
+    <p class="note g-rule">누르면 능력치 · 후원 · 스킬 다시 뽑기 · 보내기. 후원하면 쉬는 판에도 출전만큼 경험치를 받습니다. 직업 스킬 ★는 인연 Lv 4 · 6 · 8 · 10에서 오릅니다.</p>`;
 }
 
 // ---------- 영입 ----------
@@ -250,7 +252,7 @@ function detailHtml(m: GuildMember): string {
   const next = b >= 12 ? null : BOND_STEPS[b + 1], pt = bondPt(G.save, m.nick);
   const fx = a ? starFx(a, star) : null;
   const gold = resourceBalance(G.save, 'gold'), rg = rerollGold(topLevel(G.save));
-  const per = statPerLevel(m.learn), cap = statCap(m.lv), pot = statPot(m.learn);
+  const per = statPerLevel(m.learn), cap = statCap(m.lv), pot = statPot(m.learn), sw = sponsorWhy(G.save, m), sg = sponsorGold(m.lv);
   const btn = (attr: string, label: string, sub: string, dis: boolean, cls = '') => `<button class="btn${cls ? ` ${cls}` : ''}" type="button" ${attr}${dis ? ' disabled' : ''}>${label}<small>${sub}</small></button>`;
   const d = card(m, b, star, true);
   return `${sheetHead(d)}
@@ -262,9 +264,11 @@ function detailHtml(m: GuildMember): string {
     ${a ? `<p class="note">직업 스킬 ★${star}/5${fx && star ? ` · 효과 ×${fx.eff.toFixed(2)}${fx.cd < 1 ? ` · 쿨 ×${fx.cd.toFixed(1)}` : ''}` : ''}${star >= 5 ? ` · ★5: ${STAR5[a.kind]}` : ' · 인연이 깊어지면 오름'} · 쓰는 때: ${esc(a.when)}</p>` : ''}
     <h4 class="g-sh">관리 <small>보유 ${goldCost(gold)}</small></h4>
     <div class="gbtns">
+      ${btn('data-sponsor', '후원', sw ? sw : `${goldCost(sg)} · 5판`, !!sw || gold < sg, 'primary g-wide')}
       ${btn('data-reroll', '스킬 다시 뽑기', m.story ? '고유 스킬' : goldCost(rg), !!m.story || gold < rg)}
-      ${btn('data-release', st.ask === m.id ? '한 번 더 누르면 보냄' : '보내기', st.ask === m.id ? '인연은 그대로' : '친구 목록으로', !!m.story, st.ask === m.id ? 'danger' : 'ghost')}
-    </div>`;
+      ${btn('data-release', st.ask === m.id ? '한 번 더 누르면 보냄' : '보내기', st.ask === m.id ? (m.boost ? `후원 ${m.boost}판 남음 · 돌려주지 않음` : '인연은 그대로') : '친구 목록으로', !!m.story, st.ask === m.id ? 'danger' : 'ghost')}
+    </div>
+    <p class="note g-boost">${m.boost ? `후원 ${m.boost}판 남음 · 쉬는 판에도 출전만큼 경험치 (이긴 판마다 1판)` : '후원: 쉬는 판에도 출전만큼 경험치 (5판, 20판까지 쌓임)'}</p>`;
 }
 
 /** 공략 숙지 (93 5-4): 단계가 높은 전투 3개 + 그 밖 수 */
@@ -286,6 +290,7 @@ s.el.addEventListener('click', e => {
   const save = G.save;
   if (t.closest('[data-shut]')) { closeSheet(); return; }
   if (t.closest('#found')) { foundGuild(save); commit(); render(); return; }
+  if (t.closest('#sponsorRest')) { const n = restSponsor(save).ids.length; st.msg = sponsorRest(save) || `쉬는 길드원 ${n}명 후원 · 한 사람 5판`; commit(); render(); return; }
   if (t.closest('#storyOk')) { save.guild.storySeen = true; commit(); render(); return; }
   // 「길드파티로 출전」: 전투 탭(모험 고르기) → 편성이 길드파티로 시작 (game/flow.ts)
   if (t.closest('#guildGo') && save.guild.members.length) { Flow.preferGuild = true; go('s-content'); return; }
@@ -304,7 +309,8 @@ s.el.addEventListener('click', e => {
   const x = st.sheet;
   if (x?.k === 'mem' && t.closest('.g-msheet')) {
     const id = x.id;
-    if (t.closest('[data-reroll]')) { const before = memberById(id)?.ab; st.msg = rerollAbility(save, id, Math.random); const m = memberById(id); if (!st.msg && m) st.msg = `새 스킬: ${ABILITIES[m.ab].name}${m.ab === before ? ' (같은 스킬)' : ''}`; }
+    if (t.closest('[data-sponsor]')) { const m = memberById(id); st.msg = sponsor(save, id) || `후원 · ${m?.boost ?? 0}판 남음`; }
+    else if (t.closest('[data-reroll]')) { const before = memberById(id)?.ab; st.msg = rerollAbility(save, id, Math.random); const m = memberById(id); if (!st.msg && m) st.msg = `새 스킬: ${ABILITIES[m.ab].name}${m.ab === before ? ' (같은 스킬)' : ''}`; }
     else if (t.closest('[data-release]')) {
       if (st.ask !== id) { st.ask = id; render(); return; }
       const m = memberById(id);

@@ -9,7 +9,7 @@ import { CLASSES, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
 import {
-  BOND_JOIN, bondLv, deedOf, FAME, guildLvOf, habitOf, KNOW, knowGain, knowStage, POSTS, postGold, REST_SHARE, rerollGold, starOfBond, statCap, statPerLevel, statPot, statTop, statWeights, STORY, type GuildMember,
+  BOND_JOIN, bondLv, deedOf, FAME, guildLvOf, habitOf, KNOW, knowGain, knowStage, POSTS, postGold, REST_SHARE, rerollGold, SPONSOR, sponsorGold, starOfBond, statCap, statPerLevel, statPot, statTop, statWeights, STORY, type GuildMember,
 } from '../src/data/guild';
 import { DAILY, GUILD_GOAL } from '../src/data/missions';
 import { PARTY_POOL, STORY_NICKS } from '../src/data/nicknames';
@@ -436,7 +436,7 @@ describe('판 뒤 길드 정산 (93 6-1)', () => {
 
 describe('저장 v19 (길드 v2)', () => {
   it('v18 길드 (자질 · 육성 포인트): 같은 닉네임 사람의 능력치로, 레벨 · 스킬 그대로, 인연 = max(레벨 × 5, 길드원 문턱), 인연 스카우트는 친구로', () => {
-    expect(SAVE_VERSION).toBe(19);
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(19);
     const nick = nickOf('mage', 4), scout = nickOf('archer', 4);
     const old = {
       ...JSON.parse(JSON.stringify(newSave(1))), v: 18,
@@ -447,7 +447,7 @@ describe('저장 v19 (길드 v2)', () => {
       },
     };
     const d = migrate(old);
-    expect(d.v).toBe(19);
+    expect(d.v).toBe(SAVE_VERSION);
     const m = d.guild.members[0];
     expect(d.guild.members.length).toBe(1);
     expect(m).toMatchObject({ id: 3, nick, cls: 'mage', lv: 25, xp: 10, ab: 'mage.blink', runs: 4, stats: PARTY_POOL.mage[4].fm.stats, sxp: 0, votes: [] });
@@ -534,5 +534,53 @@ describe('추천 편성 (93 7-1)', () => {
     expect(recScore(s, calm, ['plague'], 30).score).toBeGreaterThan(recScore(s, c, ['plague'], 30).score + REC.hard3 * 0.7);
     const low = add(s, 'mage', 3, { pers: '신중파', stats: flat(10), lv: 26 }), ok = add(s, 'mage', 4, { pers: '신중파', stats: flat(10), lv: 30, ab: low.ab });
     expect(recScore(s, ok, ['plague'], 30).score - recScore(s, low, ['plague'], 30).score).toBeCloseTo(4 * REC.lvGap);
+  });
+});
+
+describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
+  it('그 길드원 Lv × 20 골드 = 5판, 20판까지, 내 레벨과 같으면 안 됨', () => {
+    const s = save(30, 2000), m = add(s, 'mage', 0, { lv: 20 }), top = add(s, 'mage', 1, { lv: 30 });
+    expect(sponsorGold(20)).toBe(400);
+    expect(Gd.sponsor(s, m.id)).toBe('');
+    expect([m.boost, s.player.gold]).toEqual([SPONSOR.runs, 1600]);
+    expect(Gd.sponsorWhy(s, top)).toBe('내 레벨과 같음');
+    expect(Gd.sponsor(s, top.id)).toBe('내 레벨과 같음');
+    for (let i = 0; i < 3; i++) Gd.sponsor(s, m.id);
+    expect(m.boost).toBe(SPONSOR.max);
+    expect(Gd.sponsor(s, m.id)).toMatch(/20판까지/);
+    s.player.gold = 0;
+    const n = add(s, 'archer', 0, { lv: 10 });
+    expect(Gd.sponsor(s, n.id)).toMatch(/골드 부족/);
+  });
+  it('쉬는 판에 출전만큼 경험치 · 1판 씀, 출전한 판 · 진 판 · 내 레벨에 닿으면 안 씀, 레벨이 오르면 능력치도', () => {
+    seed = 21;
+    const s = save(30), a = add(s, 'warrior', 0, { lv: 30 }), b = add(s, 'mage', 0, { lv: 30 }), r = add(s, 'archer', 0, { lv: 20, learn: 20 }), top = add(s, 'archer', 1, { lv: 30 });
+    r.boost = 5; top.boost = 5;
+    const roster = Gd.guildRoster(s, [a.id, b.id], E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }), ENCOUNTERS.warden);
+    const o = { win: true, quit: false, grade: 'A' as const, diff: '보통' as const, stage: 30, raid: 0 as const, content: 'rustfort', kind: 'dungeon', party: [], roster };
+    const full = Gd.memberXp(r, o);
+    const x = Gd.guildAfter(s, rng, o);
+    expect(x.boosted).toEqual([{ nick: r.nick, xp: full, left: 4 }]);
+    expect(top.boost).toBe(5); // 내 레벨과 같음: 안 씀
+    Gd.guildAfter(s, rng, { ...o, win: false });
+    expect(r.boost).toBe(4);
+    const withR = Gd.guildRoster(s, [a.id, r.id], E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }), ENCOUNTERS.warden);
+    Gd.guildAfter(s, rng, { ...o, roster: withR });
+    expect(r.boost).toBe(4); // 출전한 판
+    const lv0 = r.lv, st0 = Object.values(r.stats).reduce((t, v) => t + v, 0);
+    for (let i = 0; i < 4; i++) Gd.guildAfter(s, rng, o);
+    expect(r.boost).toBe(0);
+    expect(r.lv).toBeGreaterThan(lv0);
+    expect(Object.values(r.stats).reduce((t, v) => t + v, 0) - st0).toBe(Math.floor((r.lv - lv0) * statPerLevel(r.learn) + 1e-9));
+  });
+  it('쉬는 길드원 (어느 편성에도 없는 사람) 모두 후원, 저장 v20', () => {
+    const s = save(30, 100000), a = add(s, 'warrior', 0, { lv: 25 }), b = add(s, 'mage', 0, { lv: 22 }), c = add(s, 'archer', 0, { lv: 28 });
+    s.guild.picks = { '5': [a.id] };
+    expect(Gd.restSponsor(s)).toEqual({ ids: [b.id, c.id], gold: sponsorGold(22) + sponsorGold(28) });
+    expect(Gd.sponsorRest(s)).toBe('');
+    expect([a.boost, b.boost, c.boost]).toEqual([0, 5, 5]);
+    expect(SAVE_VERSION).toBe(20);
+    expect(migrate(JSON.parse(JSON.stringify(s))).guild.members.map(m => m.boost)).toEqual([0, 5, 5]);
+    expect(migrate({ v: 20, guild: { founded: true, members: [{ ...b, boost: 99 }], nextId: 9 } }).guild.members[0].boost).toBe(SPONSOR.max);
   });
 });

@@ -9,7 +9,7 @@ import { namedOf, SPECS } from '../data/specials';
 import { rngFrom } from '../engine/rng';
 import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
-import { BOND_JOIN, FRIEND_LV, BOND_STEPS, GUILD_NAME, type GuildMember, type PostKind } from '../data/guild';
+import { BOND_JOIN, FRIEND_LV, BOND_STEPS, GUILD_NAME, SPONSOR, type GuildMember, type PostKind } from '../data/guild';
 import { PARTY_POOL } from '../data/nicknames';
 import { profileOf, STAT_KEYS, type Stats } from '../data/fm';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
@@ -24,7 +24,7 @@ export const SAVE_KEY = 'healer.save';
  * v15 (2026-10-16 Lim): 소비 아이템 단축칸 · 가방을 없앰. v16 (2026-10-16 Lim): 골드를 없앰 (옛 저장의 골드는 버림).
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
-export const SAVE_VERSION = 19;
+export const SAVE_VERSION = 20;
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
 export const MAT_GOLD = { stone: 100, refined: 500 };
 
@@ -686,6 +686,7 @@ function memberOf(raw: unknown): GuildMember | null {
     lv: Math.max(1, Math.round(n(m.lv, 1))), xp: Math.max(0, n(m.xp, 0)), stats, learn: n(m.learn, prof.learn), steady: n(m.steady, prof.steady),
     sxp: Math.max(0, n(m.sxp, 0)), votes: Array.isArray(m.votes) ? m.votes.filter(Array.isArray).slice(-5) as GuildMember['votes'] : [],
     know: m.know && typeof m.know === 'object' ? Object.fromEntries(Object.entries(m.know).filter(([, x]) => typeof x === 'number' && Number.isFinite(x) && x > 0)) : {},
+    boost: Math.max(0, Math.min(SPONSOR.max, Math.round(n(m.boost, 0)))),
     runs: Math.max(0, n(m.runs, 0)), joined: n(m.joined, 0), ...(m.story ? { story: m.story } : {}),
   };
 }
@@ -701,7 +702,7 @@ function oldMember(raw: unknown, nextId: number): GuildMember | null {
   return {
     id: typeof o.id === 'number' ? o.id : nextId, nick: o.nick, cls: o.cls, pers: o.pers, ab: typeof o.ab === 'string' ? o.ab : p?.ab ?? '',
     lv: Math.max(1, Math.round(o.lv ?? 1)), xp: Math.max(0, o.xp ?? 0), stats: { ...prof.stats }, learn: prof.learn, steady: prof.steady,
-    sxp: 0, votes: [], know: {}, runs: Math.max(0, o.runs ?? 0), joined: 0,
+    sxp: 0, votes: [], know: {}, boost: 0, runs: Math.max(0, o.runs ?? 0), joined: 0,
   };
 }
 
