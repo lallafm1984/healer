@@ -1,8 +1,11 @@
 /**
- * 성격 20종 추가 (75 문서, 2026-10-14): 전투 행동. 예전 10종은 movement · units · abilities에 그대로 있고,
- * 여기는 새 20종만 (u.ps가 있는 사람만). 새 성격이 없는 전투에서는 아무 일도 안 하고 난수도 안 씀 (프로토타입 일치).
+ * 성격 20종 추가 (75 문서, 2026-10-14) · 15종 추가 (95 문서 1차, 2026-10-18): 전투 행동. 예전 10종은 movement · units · abilities에 그대로 있고,
+ * 여기는 새 성격만 (u.ps가 있는 사람만). 새 성격이 없는 전투에서는 아무 일도 안 하고 난수도 안 씀 (프로토타입 일치).
+ * 95 손버릇 (직업 스킬 쓰는 버릇)은 abilities.ts, 쫄 · 보스 딜 나누기는 fight.ts partyHits, 받는 치유는 core.ts heal에서 이 파일 값을 읽음
  */
 import { hexDist } from './board';
+import { aggroTarget } from './bossParts';
+import { allyHeal } from './abilities';
 import { bark, cellOf, living } from './core';
 import { dangerAt, moveTo } from './movement';
 import type { Cell, Fight, Telegraph, Unit } from './types';
@@ -38,10 +41,30 @@ export interface PersState {
   lv?: number;
   /** 낙천가 · 비관론자: 다음 말 시각 */
   talkAt?: number;
+  // ---------- 95 1차 ----------
+  /** 끊기 욕심: 시전을 노려보는 동안 (이 시각까지 장판 반응이 늦음) */
+  cutUntil?: number;
+  /** 아슬아슬: 강타 직전에 켤 생존기 (예고 id · 켤 시각 · 늦었는지) */
+  clutch?: { tel: number; impact: number; at: number; late: boolean };
+  /** 쫄 모으기: 처음 본 쫄 시각 (쫄 id → 시각) · 끌어온 말을 한 쫄 무리 */
+  seenAdds?: Map<number, number>;
+  gathered?: boolean;
+  /** 어그로 흘림: 다음에 볼 시각 · 놓친 동안 맞는 사람 · 그 끝 */
+  slipAt?: number;
+  slipTo?: number;
+  slipUntil?: number;
+  /** 자급자족 · 자립형: 다시 회복할 수 있는 시각 */
+  careAt?: number;
+  regAt?: number;
+  /** 보호막 애호가: 딜이 늘어난 동안 */
+  shieldUntil?: number;
+  /** 쫄 사냥꾼 · 외골수: 지난번에 판 위 쫄이 있었는지 (새 무리에 한 번 말함) */
+  addWave?: boolean;
 }
 
-const NEW_KEYS = ['slow', 'follow', 'wander', 'lucky', 'cover', 'selfish', 'cheer', 'rival', 'rage', 'calm', 'lateGuard', 'earlyGuard', 'panic', 'allIn', 'dash', 'warm', 'focus', 'perfect', 'learn'] as const;
-/** 새 20종 성격인지 (눈치백단은 숫자만이라 상태 없음) */
+const NEW_KEYS = ['slow', 'follow', 'wander', 'lucky', 'cover', 'selfish', 'cheer', 'rival', 'rage', 'calm', 'lateGuard', 'earlyGuard', 'panic', 'allIn', 'dash', 'warm', 'focus', 'perfect', 'learn',
+  'hoard', 'spam', 'cutter', 'addHunter', 'oneTrack', 'preGuard', 'clutch', 'gather', 'slip', 'sturdy', 'selfCare', 'shieldLove', 'healTaste', 'selfReg'] as const;
+/** 새 성격인지 (75 · 95. 눈치백단은 숫자만이라 상태 없음) */
 export const isNewPers = (u: Unit): boolean => NEW_KEYS.some(k => k in u.p);
 
 /** 전투 시작 (배치가 끝난 뒤): 상태를 만들고 명당을 정함 */
@@ -53,9 +76,13 @@ export function initPers(f: Fight): void {
     if (u.p.wander) ps.wanderAt = u.p.wander.every;
     if (u.p.focus) ps.focusFrom = 0;
     if (u.p.learn) { ps.seen = {}; ps.lv = 0; }
+    if (u.p.gather) ps.seenAdds = new Map();
+    if (u.p.slip) ps.slipAt = u.p.slip.first;
     u.ps = ps;
   }
   f.persOn = f.party.some(u => !!u.ps);
+  const sturdy = f.party.filter(u => u.ps && u.p.sturdy);
+  f.sturdy = sturdy.length ? sturdy : undefined;
 }
 
 /** 따라쟁이 배치 점수: 가장 가까운 탱커 옆 칸 */
@@ -81,6 +108,8 @@ export function persDps(f: Fight, u: Unit): number {
   if (p.warm) m *= Math.min(p.warm.max, p.warm.start + p.warm.step * Math.floor(f.t / p.warm.every));
   if (p.focus) m *= 1 + Math.min(p.focus.max, p.focus.step * Math.floor((f.t - (ps.focusFrom ?? 0)) / p.focus.every));
   if (p.perfect) m *= ps.shakenUntil != null && f.t < ps.shakenUntil ? 1 - p.perfect.down : 1 + p.perfect.up;
+  if (p.shieldLove && ps.shieldUntil != null && f.t < ps.shieldUntil) m *= 1 + p.shieldLove.up; // 보호막 애호가 (95)
+  if (p.slip) m *= p.slip.dps; // 어그로 흘림: 딜에 정신 팔림 (95)
   return m;
 }
 
@@ -267,6 +296,123 @@ export function coverPart(f: Fight, u: Unit, amt: number): { by: Unit; part: num
   const by = f.party.find(x => x.id === c.id);
   if (!by || !by.alive || by === u) return null;
   return { by, part: amt * c.share };
+}
+
+// ---------- 95 1차: 손버릇 · 탱커 · 힐 ----------
+/** 끊기 욕심: 시전을 노려보는 동안 장판 반응이 늦음 (더할 초) */
+export function persLate(f: Fight, u: Unit): number {
+  const c = u.p.cutter, ps = u.ps;
+  return c && ps?.cutUntil != null && f.t < ps.cutUntil ? c.late : 0;
+}
+
+/** 끊을 수 있는 시전이 시작됨 (bosses.ts): 끊기 욕심은 끊기 능력이 없어도 그 시전을 노려봄 */
+export function persCast(f: Fight): void {
+  for (const u of f.party) {
+    if (!u.alive || !u.ps || !u.p.cutter) continue;
+    u.ps.cutUntil = f.t + u.p.cutter.sec;
+    bark(f, u, null, false, 'cutTry');
+  }
+}
+
+/** 받는 치유 배율 (heal): 지속힐 체질 · 큰 힐 체질 (direct = 직접 힐) · 자립형 */
+export function persHealTaken(u: Unit, direct: boolean): number {
+  const p = u.p;
+  let m = 1;
+  if (p.healTaste) m *= direct ? p.healTaste.direct : p.healTaste.hot;
+  if (p.selfReg) m *= p.selfReg.taken;
+  return m;
+}
+
+/** 보호막을 받음 (abilities shieldShown): 보호막 애호가는 sec초 딜 + (최대 체력 3% 넘는 막만) */
+export function persShield(f: Fight, u: Unit, amt: number): void {
+  if (u.ps && u.p.shieldLove && amt >= u.max * 0.03) u.ps.shieldUntil = f.t + u.p.shieldLove.sec;
+}
+
+/** 든든이: 체력 hp 넘는 든든이 옆 칸이면 받는 피해 배율 (본인 빼고, 여럿이어도 한 번). takenAmt라 강타 예고 숫자도 같이 */
+export function sturdyTaken(f: Fight, u: Unit): number {
+  if (u.cell < 0) return 1;
+  for (const s of f.sturdy!) {
+    if (s === u || !s.alive || s.cell < 0 || s.hp <= s.max * s.p.sturdy!.hp) continue;
+    if (hexDist(cellOf(f, s), cellOf(f, u)) === 1) return 1 - s.p.sturdy!.cut;
+  }
+  return 1;
+}
+
+/** 쫄 모으기: 이 탱커에게 쫄 둘 이상이 모여 있으면 파티의 쫄 딜 배율 (fight.ts hitAdds) */
+export function gatherMult(f: Fight): number {
+  for (const u of f.party) {
+    if (!u.alive || !u.ps || !u.p.gather) continue;
+    let n = 0;
+    for (const m of f.mobs) if (m.alive && m.add && m.add.on === u.id) n++;
+    if (n >= 2) return u.p.gather.aoe;
+  }
+  return 1;
+}
+
+/** 어그로 흘림: 보스 평타를 맞을 사람. 탱커가 어그로를 놓친 동안은 그 딜러 (bossParts auto) */
+export function slipHit(f: Fight, tk: Unit | null): Unit | null {
+  const ps = tk?.ps;
+  if (!ps || ps.slipTo == null || ps.slipUntil == null || f.t >= ps.slipUntil) return tk;
+  const v = f.party.find(x => x.id === ps.slipTo);
+  return v && v.alive && !v.lift ? v : tk;
+}
+
+/** 0.2초마다 (이동 · 반응 중에도, fight.ts step): 95 성격의 시간 일 */
+export function persTick(f: Fight): void {
+  if (f.k % 4 !== 0) return;
+  for (const u of f.party) {
+    const ps = u.ps, p = u.p;
+    if (!ps || !u.alive) continue;
+    if (p.addHunter || p.oneTrack) { // 쫄이 새로 나오면 한마디 (외골수는 신호: 쫄이 남아 다른 사람을 때림)
+      const any = f.mobs.some(m => m.alive && m.add && m.add.job?.p !== 'jail');
+      if (any && !ps.addWave) bark(f, u, null, !!p.oneTrack, p.addHunter ? 'addHunt' : 'oneTrack');
+      ps.addWave = any;
+    }
+    if (p.gather) gatherTick(f, u, p.gather, ps);
+    if (p.slip) slipTick(f, u, p.slip, ps);
+    const still = !u.lift && !(u.sleep != null && u.sleep > f.t);
+    if (p.selfCare && still && u.hp < u.max * p.selfCare.hp && f.t + 1e-9 >= (ps.careAt ?? 0)) {
+      ps.careAt = f.t + p.selfCare.cd;
+      allyHeal(f, u, u.max * p.selfCare.heal);
+      bark(f, u, null, false, 'selfCare');
+    }
+    if (p.selfReg && f.t + 1e-9 >= (ps.regAt ?? 0)) {
+      ps.regAt = f.t + p.selfReg.every;
+      if (still && u.hp > u.max * p.selfReg.hp && u.hp < u.max) allyHeal(f, u, u.max * p.selfReg.regen);
+    }
+  }
+}
+
+/** 쫄 모으기: 딜러를 때리는 쫄 (부탱커가 맡은 쫄 · 자폭 쫄 · 감옥 빼고)을 처음 본 지 after초 뒤 끌어옴 */
+function gatherTick(f: Fight, u: Unit, g: NonNullable<Unit['p']['gather']>, ps: PersState): void {
+  let pulled = false;
+  for (const m of f.mobs) {
+    const a = m.add;
+    if (!m.alive || !a || a.on === u.id || !(a.dmg > 0 || a.job?.p === 'smash') || a.job?.p === 'fixate' || a.job?.p === 'jail') continue;
+    if (f.party.find(x => x.id === a.on)?.role === 'tank') continue;
+    const seen = ps.seenAdds!.get(m.id);
+    if (seen == null) { ps.seenAdds!.set(m.id, f.t); continue; }
+    if (f.t - seen + 1e-9 < g.after) continue;
+    a.on = u.id; pulled = true;
+  }
+  if (pulled && !ps.gathered) { ps.gathered = true; bark(f, u, null, false, 'gather'); }
+  if (!f.mobs.some(m => m.alive && m.add)) ps.gathered = false;
+}
+
+/** 어그로 흘림: every초마다, 보스를 잡고 있고 나를 노리는 강타 예고가 없을 때 chance로 sec초 동안 딜러 (근접 먼저)에게 평타가 감 */
+function slipTick(f: Fight, u: Unit, s: NonNullable<Unit['p']['slip']>, ps: PersState): void {
+  if (ps.slipUntil != null && f.t >= ps.slipUntil) { ps.slipUntil = undefined; ps.slipTo = undefined; }
+  if (f.t + 1e-9 < (ps.slipAt ?? 0)) return;
+  ps.slipAt = f.t + s.every;
+  if (f.bodyHp || aggroTarget(f) !== u || f.tels.some(t => t.kind === 'buster' && t.units.includes(u.id))) return;
+  if (f.rng() >= s.chance) return;
+  const pool = living(f).filter(v => !v.me && v.role !== 'tank');
+  const melee = pool.filter(v => v.role === 'melee');
+  const list = melee.length ? melee : pool;
+  if (!list.length) return;
+  ps.slipTo = list[Math.floor(f.rng() * list.length)].id;
+  ps.slipUntil = f.t + s.sec;
+  bark(f, u, null, true, 'aggroSlip');
 }
 
 // ---------- 칸 고르기 ----------

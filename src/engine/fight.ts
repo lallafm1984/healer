@@ -25,7 +25,7 @@ import { APT, aptIdx } from '../data/guild';
 import { rollAbility } from '../data/abilities';
 import { newTalents } from './talents';
 import { abTick, giveAb } from './abilities';
-import { followPref, initPers } from './persona';
+import { followPref, gatherMult, initPers, persTick } from './persona';
 import { newSpecs, sv } from './specials';
 import type { Cell, Fight, FightConfig, FightResult, Mob, Role, RosterEntry, TalentState, Unit } from './types';
 
@@ -217,6 +217,7 @@ export function step(f: Fight): void {
   healerTick(f);
   for (const u of f.party) unitTick(f, u);
   if (f.abOn) abTick(f);
+  if (f.persOn) persTick(f); // 95 성격: 쫄 모으기 · 어그로 흘림 · 자급자족 · 자립형
   if (f.aff) affixTick(f);
   tankWatch(f);
   looseTick(f); // 탱커 앞줄 이탈 (위치 규칙)
@@ -263,28 +264,32 @@ function partyHits(f: Fight): void {
     u.dealt += Math.min(amt, f.bossHp);
     u.acc = 0;
     if (f.bodyHp) hitMobs(f, amt, u);
-    else if (u.role !== 'tank' && f.mobs.length) hitAdds(f, amt);
-    else f.bossHp -= amt * (f.daze || f.expose || f.mobs.length ? bossTaken(f) : 1); // 멍함 · 영혼 축복 · 보호막 수정 (35 3-I)
+    else if (u.role !== 'tank' && f.mobs.length && !(u.p.oneTrack && !f.invuln)) hitAdds(f, amt, u); // 외골수 (95): 보스만 (무적일 때는 쫄)
+    else f.bossHp -= amt * (f.daze || f.expose || f.mobs.length ? bossTaken(f) : 1) * (u.p.addHunter?.boss ?? u.p.oneTrack?.boss ?? 1); // 멍함 · 영혼 축복 · 보호막 수정 (35 3-I) · 쫄 사냥꾼 · 외골수 (95)
     emit(f, { type: 'hit', uid: u.id, amt });
   }
 }
 
-/** 보스 전투의 쫄 (P-ADD): 딜러는 먼저 나온 쫄부터, 쫄이 다 쓰러지면 남는 딜은 보스에게. 쫄 떼는 범위 딜로 같이 맞음 */
-function hitAdds(f: Fight, d: number): void {
+/**
+ * 보스 전투의 쫄 (P-ADD): 딜러는 먼저 나온 쫄부터, 쫄이 다 쓰러지면 남는 딜은 보스에게. 쫄 떼는 범위 딜로 같이 맞음.
+ * 95: 쫄 사냥꾼은 쫄에게 ×add · 보스에게 ×boss, 쫄 모으기 탱커에게 쫄이 모여 있으면 쫄에게 ×aoe
+ */
+function hitAdds(f: Fight, d: number, u: Unit): void {
+  const hunt = u.p.addHunter, am = (hunt?.add ?? 1) * (f.persOn ? gatherMult(f) : 1);
   let left = d, cleaved = false;
   for (const m of focusOrder(f)) { // 일점사 (P-FOCUS): 먼저 잡을 것부터
     if (left <= 1e-9) break;
     if (m.add!.cleave) { // 쫄 떼 (P-SWARM): 떼 전체에 한 번, 남는 딜은 일점사 대상 몫만 넘김
       if (cleaved) continue;
       cleaved = true;
-      for (const o of f.mobs) if (o !== m && o.alive && o.add?.cleave) damageMob(f, o, Math.min(o.hp, left));
+      for (const o of f.mobs) if (o !== m && o.alive && o.add?.cleave) damageMob(f, o, Math.min(o.hp, left * am));
     }
-    const boost = f.sp && (m.add!.job?.p === 'pylon' || m.add!.job?.p === 'mend') ? 1 + sv(f, 'crystalBreak') : 1; // 수정 깨기 (42 기믹 05)
+    const boost = (f.sp && (m.add!.job?.p === 'pylon' || m.add!.job?.p === 'mend') ? 1 + sv(f, 'crystalBreak') : 1) * am; // 수정 깨기 (42 기믹 05)
     const x = Math.min(m.hp, left * boost);
     left -= x / boost;
     damageMob(f, m, x);
   }
-  if (left > 1e-9 && !f.invuln) f.bossHp -= left * bossTaken(f);
+  if (left > 1e-9 && !f.invuln) f.bossHp -= left * bossTaken(f) * (hunt?.boss ?? 1);
 }
 
 /**
@@ -293,7 +298,9 @@ function hitAdds(f: Fight, d: number): void {
  */
 function hitMobs(f: Fight, d: number, u?: Unit): void {
   let left = d;
-  const order = f.split ? f.mobs.filter(m => m.alive && !m.add).sort((a, b) => (u?.p.greedy ? a.hp - b.hp : b.hp - a.hp)) : f.mobs;
+  const order = f.split ? f.mobs.filter(m => m.alive && !m.add).sort((a, b) => (u?.p.greedy ? a.hp - b.hp : b.hp - a.hp))
+    : u?.p.oneTrack ? f.mobs.filter(m => m.alive && !m.add).sort((a, b) => Number(!!(b.boss || b.elite)) - Number(!!(a.boss || a.elite))) // 외골수 (95): 정예부터
+    : f.mobs;
   for (const m of order) {
     if (!m.alive || m.add) continue;
     const x = Math.min(m.hp, left);

@@ -5,9 +5,9 @@
  */
 import { ABILITIES, starFx, type AbilityDef, type Fx, type Trig } from '../data/abilities';
 import { hexDist } from './board';
-import { addDebuff, cellOf, damage, damageMob, DT, emit, living, onDebuffEnd } from './core';
+import { addDebuff, bark, cellOf, damage, damageMob, DT, emit, living, onDebuffEnd } from './core';
 import { moveTo, pickCell } from './movement';
-import { persGuard } from './persona';
+import { persGuard, persShield } from './persona';
 import { shieldBroken } from './heroes';
 import type { AbState, BossSkill, Fight, Mod, ModKind, Telegraph, Unit } from './types';
 
@@ -59,6 +59,7 @@ export function giveAbsorb(f: Fight, u: Unit, amt: number, sec: number, cap: num
 /** 흡수 보호막이 더해진 양을 화면에 (파란 숫자, 회복 숫자와 같은 자리). 모든 보호막 (힐러 · 장비 특수능력 · 파티원 능력)이 여기를 지남 */
 export function shieldShown(f: Fight, u: Unit, amt: number): void {
   if (amt >= 0.5) emit(f, { type: 'shield', id: u.id, amt: Math.round(amt) });
+  if (u.ps) persShield(f, u, amt); // 보호막 애호가 (95)
 }
 /** 힐러 흡수 보호막 남은 양 */
 export const absorbLeft = (f: Fight, u: Unit): number => u.mods.reduce((a, m) => a + (m.k === 'absorb' && m.src === HEALER_SHIELD && m.until > f.t ? m.v : 0), 0);
@@ -179,6 +180,7 @@ export function abTick(f: Fight): void {
       for (const m of f.mobs) if (m.alive && !m.boss) { const x = Math.min(m.hp, m.max * dot.rate * DT); if (by) by.dealt += x; damageMob(f, m, x); }
     }
   }
+  if (f.persOn) for (const u of f.party) if (u.ps?.clutch) clutchTick(f, u); // 아슬아슬 (95): 강타 직전 생존기
   if (f.k % 4 !== 0) return;
   const sec = f.k % 20 === 0;
   for (const u of f.party) {
@@ -193,6 +195,8 @@ function poll(f: Fight, u: Unit): void {
   const a = DEF(u), s = u.ab!;
   if (a.cd === 0 && !a.each) { passive(f, u, a); return; }
   if (hasMod(u, 'stop')) return;
+  if (u.p.spam && spamUse(f, u, a)) return; // 스킬 난사 (95)
+  if (held(f, u)) return; // 쿨 아끼미 (95): 위기까지 아낌
   // 덜렁이: 가끔 엉뚱한 때 씀 (17 6-3)
   if (u.pers === '덜렁이' && a.cd > 0 && f.t >= s.ready && f.t > 3 && f.rng() < 0.004) { use(f, u, a, {}); return; }
   a.trig.forEach((tr, i) => {
@@ -293,6 +297,8 @@ export function abOnTel(f: Fight, tel: Telegraph): void {
     if (!u.ab || !u.alive || hasMod(u, 'stop')) continue;
     const a = DEF(u);
     if (a.cd === 0 && !a.each) continue;
+    if (held(f, u)) continue; // 쿨 아끼미 (95)
+    if ((u.p.preGuard || u.p.clutch) && guardTel(f, u, a, tel)) continue; // 미리미리 · 아슬아슬 (95)
     a.trig.forEach((tr, i) => {
       if (!ready(f, u, a, i) || !f.tels.includes(tel)) return;
       const hit = telMatch(f, u, a, tr, tel);
@@ -339,8 +345,10 @@ function telMatch(f: Fight, u: Unit, a: AbilityDef, tr: Trig, tel: Telegraph): U
 export function abCut(f: Fight, s: BossSkill): boolean {
   const snipeable = (s.kind === 'aoe' || s.kind === 'zone') && s.key !== 'enrage';
   if (!s.cut && !snipeable) return false;
-  for (const u of f.party) {
-    if (!u.ab || !u.alive || hasMod(u, 'stop')) continue;
+  // 끊기 욕심 (95)이 먼저 시도
+  const order = f.persOn && f.party.some(u => u.p.cutter) ? [...f.party].sort((a, b) => Number(!!b.p.cutter) - Number(!!a.p.cutter)) : f.party;
+  for (const u of order) {
+    if (!u.ab || !u.alive || hasMod(u, 'stop') || held(f, u)) continue;
     if (u.debuffs.length && u.debuffs.some(d => d.noDps)) continue; // 침묵·기절·얼림이면 못 끊음 (35 4-5 반격 틈)
     const a = DEF(u);
     if (a.fx.e !== 'interrupt' || !ready(f, u, a, 0)) continue;
@@ -354,7 +362,7 @@ export function abCut(f: Fight, s: BossSkill): boolean {
 /** 끊기 능력을 쓰고 성공 확률 (능력 · ★)로 굴림 */
 function tryCut(f: Fight, u: Unit, a: AbilityDef, s: BossSkill): boolean {
   const st = starFx(a, u.ab!.star);
-  const p = Math.min(1, (a.fx as { v: number }).v * st.eff + (u.ab!.star >= 5 ? 0.15 : 0));
+  const p = Math.min(1, (a.fx as { v: number }).v * st.eff * (u.p.hoard ? u.p.hoard.boost : 1) + (u.ab!.star >= 5 ? 0.15 : 0) + (u.p.cutter?.up ?? 0)); // 쿨 아끼미 (위기에만 씀) · 끊기 욕심 (95)
   const ok = p >= 1 || f.rng() < p;
   use(f, u, a, {});
   emit(f, { type: 'msg', text: `${u.nick} ${a.name}: ${s.name || '기술'} ${ok ? '끊음' : '끊기 실패'}` });
@@ -368,7 +376,7 @@ function tryCut(f: Fight, u: Unit, a: AbilityDef, s: BossSkill): boolean {
  */
 export function abDecoy(f: Fight, s: BossSkill, fake: boolean, reveal: boolean): boolean {
   for (const u of f.party) {
-    if (!u.ab || !u.alive || hasMod(u, 'stop') || (u.pers === '신중파') !== reveal) continue;
+    if (!u.ab || !u.alive || hasMod(u, 'stop') || (u.pers === '신중파') !== reveal || held(f, u)) continue;
     if (u.debuffs.length && u.debuffs.some(d => d.noDps)) continue;
     const a = DEF(u);
     if (a.fx.e !== 'interrupt' || !ready(f, u, a, 0)) continue;
@@ -405,7 +413,7 @@ export function abFear(f: Fight, u: Unit): boolean {
 export function abMoved(f: Fight, u: Unit): void {
   if (!u.ab || !u.alive) return;
   const a = DEF(u);
-  if (a.trig.some(t => t.t === 'moved') && ready(f, u, a, 0) && f.bossHp > 0) use(f, u, a, {});
+  if (a.trig.some(t => t.t === 'moved') && ready(f, u, a, 0) && f.bossHp > 0 && !held(f, u)) use(f, u, a, {});
 }
 
 /** 피해를 받음 (거합 반격: 1초에 한 번까지) */
@@ -419,13 +427,69 @@ export function abHurt(f: Fight, u: Unit): void {
 // ---------- 사용 ----------
 interface Ctx { tel?: Telegraph; target?: Unit }
 
-function use(f: Fight, u: Unit, a: AbilityDef, ctx: Ctx): void {
+/** boost = 성격이 키운 효과 (아슬아슬 딱 맞춤). 쿨 아끼미는 위기에만 쓰므로 늘 ×hoard.boost */
+function use(f: Fight, u: Unit, a: AbilityDef, ctx: Ctx, boost = 1): void {
   const s = u.ab!, st = starFx(a, s.star);
   s.uses++;
   if (a.cd > 0) s.ready = f.t + a.cd * st.cd;
   f.stats.abUses = (f.stats.abUses || 0) + 1;
   emit(f, { type: 'ability', id: u.id, name: a.name });
-  apply(f, u, a, a.fx, st.eff, ctx);
+  if (u.p.hoard) { boost *= u.p.hoard.boost; bark(f, u, null, false, 'hoardUse'); }
+  apply(f, u, a, a.fx, st.eff * boost, ctx);
+}
+
+// ---------- 95 1차: 손버릇 (쿨 아끼미 · 스킬 난사) · 탱커 (미리미리 · 아슬아슬) ----------
+/** 쿨 아끼미: 위기 (나 아닌 살아 있는 파티원 체력 hp 아래 · 보스 체력 boss 아래)가 아니면 직업 스킬을 아낌 (죽을 피해 · 겁먹음은 그 자체가 위기라 안 막음) */
+function held(f: Fight, u: Unit): boolean {
+  const h = u.p.hoard;
+  if (!h) return false;
+  if (!f.invuln && f.bossHp > 0 && f.bossHp <= f.bossMax * h.boss) return false;
+  return !f.party.some(v => v.alive && !v.me && v.hp < v.max * h.hp);
+}
+
+/** 스킬 난사: 쿨 능력 · 전투당 1회 능력을 준비되자마자 씀 (쓰는 때와 상관없이, 죽을 피해에 쓰는 능력 빼고). 썼으면 true */
+function spamUse(f: Fight, u: Unit, a: AbilityDef): boolean {
+  if (a.each || f.t < u.p.spam!.after || f.bossHp <= 0 || !ready(f, u, a, 0) || a.trig.some(t => t.t === 'lethal')) return false;
+  use(f, u, a, { target: spamTarget(f, u, a) ?? undefined });
+  bark(f, u, null, false, 'spamUse');
+  return true;
+}
+/** 스킬 난사가 남에게 쓰는 능력의 대상: 반경 2 안 가장 다친 아군 (해제는 지울 독 · 질병이 있는 아군, 보호의 축복은 탱커 빼고) */
+function spamTarget(f: Fight, u: Unit, a: AbilityDef): Unit | null {
+  const e = a.fx.e;
+  if (e !== 'share' && e !== 'protect' && e !== 'guardAlly' && e !== 'cleanse') return null;
+  const c = cellOf(f, u);
+  return pickAlly(u, living(f).filter(v => v !== u && !v.me && hexDist(cellOf(f, v), c) <= 2 && (e !== 'cleanse' || v.debuffs.some(cleanable)) && (e !== 'protect' || v.role !== 'tank')));
+}
+
+/** 강타를 받는 생존기: 방어 능력 중 받는 피해를 줄이거나 막는 것 (마법만 줄이는 것 · 주문 반사 빼고) */
+const guardAb = (a: AbilityDef): boolean => a.kind === 'def' && (a.fx.e === 'immune' || a.fx.e === 'absorb' || (a.fx.e === 'cut' && !a.fx.magic));
+
+/** 미리미리 · 아슬아슬: 나를 노리는 강타 예고에 생존기 (체력 조건 생존기도). 미리미리는 바로, 아슬아슬은 맞기 lead초 전 (clutchTick). 다뤘으면 true */
+function guardTel(f: Fight, u: Unit, a: AbilityDef, tel: Telegraph): boolean {
+  if (tel.kind !== 'buster' || !tel.units.includes(u.id) || !guardAb(a) || !ready(f, u, a, 0)) return false;
+  if (u.p.preGuard) { use(f, u, a, { tel }); bark(f, u, null, false, 'preGuard'); return true; }
+  const c = u.p.clutch!;
+  if (u.ps) u.ps.clutch = { tel: tel.id, impact: tel.impact, at: Math.max(f.t, tel.impact - c.lead), late: f.rng() >= c.ok };
+  return !!u.ps;
+}
+
+/** 아슬아슬: 켤 때가 됨. 딱 맞추면 효과 ×boost, 늦으면 맞은 뒤 late초에 켬 (그 강타는 그대로 맞음). 강타가 끊기거나 사라지면 안 켬 */
+function clutchTick(f: Fight, u: Unit): void {
+  const c = u.ps!.clutch!, p = u.p.clutch!;
+  if (f.t + 1e-9 < c.at) return;
+  const tel = f.tels.find(t => t.id === c.tel);
+  if (!u.alive || !u.ab) { u.ps!.clutch = undefined; return; }
+  const a = DEF(u);
+  if (!c.late) {
+    u.ps!.clutch = undefined;
+    if (tel && ready(f, u, a, 0) && !hasMod(u, 'stop')) { use(f, u, a, { tel }, p.boost); bark(f, u, null, false, 'clutchOk'); }
+    return;
+  }
+  if (tel) { c.at = Math.max(c.at, tel.impact + p.late); return; } // 아직 안 맞음: 맞은 뒤까지 기다림
+  u.ps!.clutch = undefined;
+  if (f.t + 1e-9 < c.impact) return; // 맞기 전에 사라짐 (끊김 · 무력화)
+  if (ready(f, u, a, 0) && !hasMod(u, 'stop')) { use(f, u, a, {}); bark(f, u, null, true, 'clutchLate'); }
 }
 
 function apply(f: Fight, u: Unit, a: AbilityDef, fx: Fx, e: number, ctx: Ctx): void {

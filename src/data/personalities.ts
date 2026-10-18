@@ -1,10 +1,16 @@
 /**
- * 파티원 성격 30종 (04 6장 · 75 문서). 앞 10종은 프로토타입과 같은 순서 (rollParty가 PROTO_PERS로 뽑으므로 바꾸지 말 것),
- * 뒤 20종은 2026-10-14 Lim 「성격을 20종 더 추가해서 다양한 변수」로 더함 (04에 설계만 있던 18종 + 완벽주의자 · 뉴비)
+ * 파티원 성격 (04 6장 · 75 · 95 문서). 앞 10종은 프로토타입과 같은 순서 (rollParty가 PROTO_PERS로 뽑으므로 바꾸지 말 것),
+ * 다음 20종은 2026-10-14 Lim 「성격을 20종 더 추가해서 다양한 변수」로 더함 (04에 설계만 있던 18종 + 완벽주의자 · 뉴비).
+ * 그 뒤 15종은 2026-10-18 Lim 「추천대로 하자」 (95 1차): 새 묶음 손버릇 (직업 스킬 쓰는 버릇) · 탱커 (탱커만) · 힐 (받는 치유).
+ * 새 성격은 늘 뒤에 붙인다
  */
-export type PersCat = '회피' | '위치' | '관계' | '감정' | '리듬';
+export type PersCat = '회피' | '위치' | '관계' | '감정' | '리듬' | '손버릇' | '탱커' | '힐';
 
-export const CATS: Record<PersCat, string> = { '회피': '#7FA3BD', '위치': '#A3B46A', '관계': '#D68FA6', '감정': '#DB9B57', '리듬': '#A08FD0' };
+/** 분류 색 (편성 칩 바탕, 글자는 짙은 갈색). 95 새 묶음 셋은 길드 홀 돌 · 황동 톤에 맞춘 놋쇠 · 돌 · 이끼 민트 */
+export const CATS: Record<PersCat, string> = {
+  '회피': '#7FA3BD', '위치': '#A3B46A', '관계': '#D68FA6', '감정': '#DB9B57', '리듬': '#A08FD0',
+  '손버릇': '#CDB46A', '탱커': '#B8AC98', '힐': '#82C29F',
+};
 
 export interface Personality {
   /** 난이도 ★1~3 */
@@ -78,6 +84,37 @@ export interface Personality {
   perfect?: { up: number; hit: number; down: number; sec: number; react: number };
   /** 뉴비: 처음엔 반응 ×react · 회피 dodge, 같은 보스 기술을 볼 때마다 반응 ×stepReact · 회피 +stepDodge (기술마다 max번) */
   learn?: { react: number; dodge: number; stepReact: number; stepDodge: number; max: number };
+  // ---------- 95 문서 1차 (손버릇 · 탱커 · 힐 15종) ----------
+  /** 탱커 묶음: 탱커로만 뽑힘 (탱커 직업 파티원만 가짐) */
+  tankOnly?: boolean;
+  /** 쿨 아끼미: 직업 스킬을 위기 (나 아닌 파티원 체력 hp 아래 · 보스 체력 boss 아래)까지 아낌. 위기에 쓰면 효과 ×boost */
+  hoard?: { hp: number; boss: number; boost: number };
+  /** 스킬 난사: 직업 스킬을 쿨이 돌자마자 씀 (전투 after초부터, 죽을 피해에 쓰는 능력은 빼고) */
+  spam?: { after: number };
+  /** 끊기 욕심: 끊기를 먼저 시도 (성공률 +up), 끊을 시전을 본 뒤 sec초 동안 장판 반응 +late초 */
+  cutter?: { up: number; late: number; sec: number };
+  /** 쫄 사냥꾼: 판 위 적 (쫄)에게 딜 ×add, 보스에게 ×boss */
+  addHunter?: { add: number; boss: number };
+  /** 외골수: 판 위 적을 무시하고 보스만 (보스 딜 ×boss), 일반 · 정예 구간은 정예부터 */
+  oneTrack?: { boss: number };
+  /** 미리미리: 나를 노리는 강타 예고가 뜨면 생존기 (방어 능력)를 바로 씀 (체력 조건 생존기도) */
+  preGuard?: boolean;
+  /** 아슬아슬: 생존기를 강타 lead초 전에. ok 확률로 딱 맞춤 (효과 ×boost), 아니면 늦어 맞은 뒤 late초에 씀 */
+  clutch?: { lead: number; ok: number; boost: number; late: number };
+  /** 쫄 모으기: 딜러를 때리는 쫄을 after초 뒤 끌어옴. 쫄 둘 이상이 이 탱커에게 모이면 파티의 쫄 딜 ×aoe */
+  gather?: { after: number; aoe: number };
+  /** 어그로 흘림: first초부터 every초마다 chance로 sec초 동안 보스 평타가 딜러에게. 탱커 딜 ×dps */
+  slip?: { first: number; every: number; chance: number; sec: number; dps: number };
+  /** 든든이: 체력 hp 넘으면 옆 아군이 받는 피해 −cut */
+  sturdy?: { hp: number; cut: number };
+  /** 자급자족: 체력 hp 아래면 최대 체력 heal만큼 스스로 회복 (쿨 cd) */
+  selfCare?: { hp: number; heal: number; cd: number };
+  /** 보호막 애호가: 보호막을 받으면 sec초 딜 +up */
+  shieldLove?: { up: number; sec: number };
+  /** 지속힐 체질 · 큰 힐 체질: 받는 직접 힐 ×direct, 지속 · 간접 회복 ×hot */
+  healTaste?: { direct: number; hot: number };
+  /** 자립형: 체력 hp 넘으면 every초마다 최대 체력 regen씩 스스로 회복, 받는 치유 ×taken */
+  selfReg?: { hp: number; regen: number; every: number; taken: number };
 }
 
 /**
@@ -118,6 +155,22 @@ export const PERS = {
   '몰입형': { star: 2, cat: '리듬', ch: '몰', rare: true, focus: { every: 5, step: 0.05, max: 0.4, hit: 0.05 }, desc: '크게 안 맞은 5초마다 딜이 5%씩 늘어 최대 40%. 한 번에 최대 체력 5% 넘게 맞으면 처음부터입니다.', barks: ['집중…', '아 흐름 끊겼다'] },
   '완벽주의자': { star: 2, cat: '감정', ch: '완', perfect: { up: 0.1, hit: 0.15, down: 0.2, sec: 8, react: 1.3 }, desc: '평소 딜이 10% 늘지만, 한 번에 최대 체력 15% 넘게 맞으면 8초 동안 딜이 20% 줄고 반응이 느려집니다.', barks: ['완벽하게 간다', '아 이건 아닌데'] },
   '뉴비': { star: 2, cat: '회피', ch: '뉴', learn: { react: 1.6, dodge: -0.1, stepReact: 0.85, stepDodge: 0.05, max: 3 }, desc: '처음엔 반응이 느리고 잘 못 피하지만, 같은 보스 기술을 볼 때마다 빨라집니다. 기술마다 3번까지입니다.', barks: ['이거 뭐임?', '이제 알겠다'] },
+  // ---------- 95 문서 1차: 손버릇 5 · 탱커 6 · 힐 4 (2026-10-18) ----------
+  '쿨 아끼미': { star: 2, cat: '손버릇', ch: '쿨', hoard: { hp: 0.35, boss: 0.3, boost: 1.25 }, desc: '직업 스킬을 위기 (누가 체력 35% 아래 · 보스 30% 아래)까지 아낍니다. 위기에 쓰면 효과가 25% 큽니다.', barks: ['아직 아껴 둠', '지금이다'] },
+  '스킬 난사': { star: 2, cat: '손버릇', ch: '난', spam: { after: 2 }, desc: '직업 스킬을 쿨이 돌자마자 씁니다. 자주 쓰지만 정작 필요할 때 없을 수 있습니다.', barks: ['쿨 돌았다!', '일단 씀'] },
+  '끊기 욕심': { star: 2, cat: '손버릇', ch: '끊', cutter: { up: 0.15, late: 0.6, sec: 2 }, desc: '끊기를 먼저 시도하고 성공률이 15%p 높습니다. 시전을 노리는 2초 동안은 장판을 늦게 봅니다.', barks: ['내가 끊는다', '시전 봤다'] },
+  '쫄 사냥꾼': { star: 2, cat: '손버릇', ch: '쫄', addHunter: { add: 1.3, boss: 0.9 }, desc: '판 위 적 (쫄)에게 주는 딜이 30% 늘고, 보스에게 주는 딜은 10% 줄어듭니다.', barks: ['쫄 내놔', '한 마리 추가'] },
+  '외골수': { star: 3, cat: '손버릇', ch: '골', oneTrack: { boss: 1.1 }, noTank: true, desc: '판 위 적을 무시하고 보스만 칩니다. 보스 딜이 10% 늘지만 쫄이 남아 다른 파티원이 맞습니다.', barks: ['보스만 팸', '쫄은 몰라'] },
+  '미리미리': { star: 1, cat: '탱커', ch: '리', tankOnly: true, preGuard: true, desc: '강타 예고가 뜨면 생존기를 바로 켭니다. 체력 조건 생존기도 켜서, 다음 강타나 위기 때 없을 수 있습니다.', barks: ['미리 켜 둠', '대비 완료'] },
+  '아슬아슬': { star: 2, cat: '탱커', ch: '슬', tankOnly: true, clutch: { lead: 0.3, ok: 0.8, boost: 1.2, late: 0.2 }, desc: '생존기를 강타 직전에 켭니다. 열에 여덟은 딱 맞아 효과가 20% 크고, 둘은 늦어 강타를 그대로 맞습니다.', barks: ['지금!', '아 늦었다'] },
+  '쫄 모으기': { star: 2, cat: '탱커', ch: '모', tankOnly: true, gather: { after: 1, aoe: 1.25 }, desc: '딜러를 때리는 쫄을 모두 끌어와 한곳에 모읍니다. 모인 쫄은 딜이 25% 더 들지만 탱커가 받는 피해가 큽니다.', barks: ['다 이리 와', '한곳에 모았다'] },
+  '어그로 흘림': { star: 3, cat: '탱커', ch: '흘', tankOnly: true, rare: true, slip: { first: 15, every: 20, chance: 0.5, sec: 1.5, dps: 1.2 }, desc: '딜이 20% 세지만 가끔 어그로를 놓쳐 보스가 1.5초 동안 딜러를 때립니다.', barks: ['어 어그로 튐', '다시 잡았다'] },
+  '든든이': { star: 1, cat: '탱커', ch: '든', tankOnly: true, sturdy: { hp: 0.5, cut: 0.05 }, desc: '체력이 50% 넘으면 옆 아군이 받는 피해가 5% 줄어듭니다.', barks: ['내 옆에 서', '걱정 마'] },
+  '자급자족': { star: 1, cat: '탱커', ch: '자', tankOnly: true, selfCare: { hp: 0.4, heal: 0.15, cd: 30 }, desc: '체력이 40% 아래면 스스로 최대 체력 15%를 회복합니다. 30초에 한 번입니다.', barks: ['내 피는 내가', '셀프 힐 간다'] },
+  '보호막 애호가': { star: 1, cat: '힐', ch: '막', shieldLove: { up: 0.15, sec: 5 }, desc: '보호막을 받으면 5초 동안 딜이 15% 늘어납니다.', barks: ['막 최고!', '막 좀 줘'] },
+  '지속힐 체질': { star: 2, cat: '힐', ch: '지', healTaste: { direct: 0.9, hot: 1.2 }, desc: '지속 힐 · 간접 회복을 20% 더 받고, 직접 힐은 10% 덜 받습니다.', barks: ['천천히 차는 게 좋아', '도트 힐 최고'] },
+  '큰 힐 체질': { star: 2, cat: '힐', ch: '큰', healTaste: { direct: 1.2, hot: 0.9 }, desc: '직접 힐을 20% 더 받고, 지속 힐 · 간접 회복은 10% 덜 받습니다.', barks: ['큰 거 한 방!', '찔끔 힐은 별로'] },
+  '자립형': { star: 1, cat: '힐', ch: '립', selfReg: { hp: 0.6, regen: 0.02, every: 3, taken: 0.9 }, desc: '체력이 60% 넘으면 3초마다 최대 체력 2%씩 스스로 회복하고, 받는 치유는 10% 줄어듭니다.', barks: ['알아서 할게', '딴 사람 먼저'] },
 } as const satisfies Record<string, Personality>;
 
 export type PersName = keyof typeof PERS;

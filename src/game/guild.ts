@@ -40,7 +40,7 @@ function freshNick(save: SaveData, cls: ClassKey, r: () => number, taken: Set<st
 export function makeCandidate(save: SaveData, r: () => number, tier: PostTier, taken = new Set<string>()): GuildMember {
   const cls = RECRUIT_CLASSES[Math.floor(r() * RECRUIT_CLASSES.length)];
   const role = CLASSES[cls].role;
-  const pool = PERS_NAMES.filter(p => !(role === 'tank' && 'noTank' in PERS[p]));
+  const pool = PERS_NAMES.filter(p => (role === 'tank' ? !('noTank' in PERS[p]) : !('tankOnly' in PERS[p]))); // 탱커 묶음 (95)은 탱커만
   const pers: PersName = pool[Math.floor(r() * pool.length)];
   const [lo, hi] = POSTS[tier].lv;
   const P = topLevel(save);

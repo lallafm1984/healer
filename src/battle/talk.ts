@@ -13,17 +13,17 @@ export interface TalkBubble { id: number; text: string; life: number; sit: TalkS
 
 /** 감정 아이콘 (43 4장 B): 아이콘 → 붙는 상황. 표에 없는 상황은 아이콘 없이 뜸 */
 const EMOTES: Record<string, TalkSit[]> = {
-  alert: ['buster', 'aoeWarn', 'safeCall', 'bomb', 'mistake'],
-  sweat: ['hurtBig', 'low50', 'low25', 'zoneHit', 'dodge'],
-  heart: ['healed', 'saved', 'clutch', 'thanks', 'jailFree', 'allyRevived'],
+  alert: ['buster', 'aoeWarn', 'safeCall', 'bomb', 'mistake', 'cutTry'],
+  sweat: ['hurtBig', 'low50', 'low25', 'zoneHit', 'dodge', 'clutchLate', 'aggroSlip'],
+  heart: ['healed', 'saved', 'clutch', 'thanks', 'jailFree', 'allyRevived', 'selfCare'],
   sparkle: ['healCrit', 'bigHeal', 'meterTop', 'win', 'winClean'],
   note: ['idle', 'allFull', 'hello'],
   question: ['wrongStep', 'orderWrong', 'castMove'],
   anger: ['sulk', 'stubborn', 'jealous', 'noHeal'],
   tear: ['selfDown', 'lose', 'loseClose', 'allyDown'],
   dizzy: ['swallowed', 'jailed', 'noDps', 'pulled'],
-  shield: ['busterOk', 'guardOn', 'shieldOn', 'offTank', 'eliteAdd'],
-  sword: ['abAtk', 'adds', 'swarm', 'marchAdd', 'boss5'],
+  shield: ['busterOk', 'guardOn', 'shieldOn', 'offTank', 'eliteAdd', 'preGuard', 'clutchOk', 'gather'],
+  sword: ['abAtk', 'adds', 'swarm', 'marchAdd', 'boss5', 'addHunt', 'oneTrack', 'hoardUse', 'spamUse'],
   flame: ['enraged', 'enrageSoon', 'noTank', 'partyLow'],
   run: ['flee', 'shelter', 'fixate', 'dodgeOk'],
   mana: ['manaLow', 'manaEmpty'],
@@ -97,8 +97,10 @@ const PER_MIN = { small: 5, raid: 6, big: 7 };
 /** 같은 전투에서 같은 상황이 또 오면 확률이 이만큼씩 줄고, 처음 확률의 이 비율 밑으로는 안 내려감 */
 const REPEAT_DECAY = 0.6, REPEAT_FLOOR = 0.2;
 /** 엔진 말풍선 중 신호가 아닌 것 (빈도 제한을 받음) */
-// 성격 20종 (75)의 잦은 말 (따라감 · 딴 데로 · 명당 복귀 · 걱정 · 괜찮다 · 익숙해짐)도 빈도 제한
-export const SOFT_BARKS: TalkSit[] = ['thanks', 'dodge', 'follow', 'wander', 'luckBack', 'pessimist', 'optimist', 'learned'];
+// 성격 20종 (75)의 잦은 말 (따라감 · 딴 데로 · 명당 복귀 · 걱정 · 괜찮다 · 익숙해짐)도 빈도 제한.
+// 95 1차의 버릇 말 (아껴 둔 스킬 · 난사 · 끊기 노림 · 쫄 사냥 · 미리 생존기 · 딱 맞춤 · 쫄 모으기 · 셀프 회복)도. 신호 (쫄 무시 · 생존기 늦음 · 어그로 놓침)는 꼭 보여 줌
+export const SOFT_BARKS: TalkSit[] = ['thanks', 'dodge', 'follow', 'wander', 'luckBack', 'pessimist', 'optimist', 'learned',
+  'hoardUse', 'spamUse', 'cutTry', 'addHunt', 'preGuard', 'clutchOk', 'gather', 'selfCare'];
 /** 한 사람이 말을 몰아서 하지 않게: 가장 적게 말한 사람보다 이만큼 더 말했으면 위기 말고는 쉼 */
 const SHARE = 2;
 

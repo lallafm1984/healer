@@ -39,14 +39,19 @@ describe('대사 데이터 규칙', () => {
     expect(bad).toEqual([]);
   });
 
-  it('성격 30종이 모든 상황을 채움 (그 성격 전용 상황은 그 성격만)', () => {
-    for (const p of PERS_NAMES) {
-      const lines = PERS_LINES[p];
+  it('75의 성격 30종은 모든 상황을 채움, 95 새 성격은 대표 상황만 (나머지는 직업 · 역할 · 공통으로 넘김). 그 성격 전용 상황은 그 성격만', () => {
+    for (const [i, p] of PERS_NAMES.entries()) {
+      const lines = PERS_LINES[p], fresh = i >= 30;
       for (const sit of SIT_KEYS) {
         const only = (SITS[sit] as { pers?: readonly string[] }).pers;
         if (only && !only.includes(p)) expect(lines[sit], `${p}.${sit}`).toBeUndefined();
-        else expect(lines[sit]?.length ?? 0, `${p}.${sit}`).toBeGreaterThanOrEqual(2);
+        else if (only || !fresh) expect(lines[sit]?.length ?? 0, `${p}.${sit}`).toBeGreaterThanOrEqual(fresh ? 8 : 2);
+        else if (lines[sit]) expect(lines[sit]!.length, `${p}.${sit}`).toBeGreaterThanOrEqual(2);
       }
+      if (!fresh) continue;
+      // 95: 대사 약 200개, 시작 · 잡담 · 위기 · 끝은 꼭 그 성격 말투로
+      expect(Object.values(lines).reduce((a, x) => a + (x?.length ?? 0), 0), p).toBeGreaterThanOrEqual(170);
+      for (const sit of ['hello', 'go', 'pullBoss', 'idle', 'low25', 'saved', 'allyDown', 'selfDown', 'win', 'lose'] as TalkSit[]) expect(lines[sit]?.length ?? 0, `${p}.${sit}`).toBeGreaterThanOrEqual(2);
     }
   });
 
