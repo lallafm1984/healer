@@ -84,8 +84,8 @@ export const PXF = {
   'paladin-holy-light': skill(16, 80), // 기본 힐이라 가볍게 (Lim 2026-10-16 「너무 과하다」)
   'paladin-beacon': skill(20, 88),
   'paladin-oath': skill(24, 90),
-  'paladin-light-wave': skill(18, 88),
-  'paladin-cleanse': skill(18, 92),
+  'paladin-light-wave': skill(20, 88),
+  'paladin-cleanse': skill(20, 92),
   'paladin-sacrifice': skill(22, 92),
   'paladin-sanctuary': skill(24, 76),
   'paladin-hand-guard': skill(24, 94),
