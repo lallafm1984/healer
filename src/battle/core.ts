@@ -114,6 +114,8 @@ export interface Run {
   meter: MeterRow[];
   /** 광고 이어하기 횟수 (등급 최대 B) */
   cont: number;
+  /** 인연 (93 3-2): 파티원마다 구간 합 받은 내 치유 · 가장 낮았던 체력 · 생명의 은인 (위험선 아래에서 내 힐을 받고 그 구간 끝까지 삶) */
+  bond?: Record<string, { got: number; low: number; rescued: boolean }>;
 }
 
 export const S = {

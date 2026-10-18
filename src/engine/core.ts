@@ -352,6 +352,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     abHurt(f, u); // 거합 반격
   }
   u.hp -= amt;
+  if (u.low == null || u.hp / u.max < u.low) { u.low = Math.max(0, u.hp / u.max); u.gotLow = u.got; } // 인연 (93): 가장 낮았던 때
   if (f.thr) takenThreat(f, amt); // 어그로 (96): 내 위협 = 치유 ÷ 받은 피해
   if (dripping) { const w = (u.drip ??= { amt: 0, t0: f.t }); w.amt += amt; } // 피해 숫자 (화면 빨간 숫자): 틱 피해는 모아서
   else if (amt >= 0.5) emit(f, { type: 'dmg', id: u.id, amt: Math.round(amt) });

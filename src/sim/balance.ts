@@ -24,7 +24,7 @@ import type { Tune, TuneTable } from '../data/tune';
 import { autoHealer } from '../engine/auto';
 import { restCarry } from '../engine/dungeon';
 import { create, recruitParty, step } from '../engine/fight';
-import type { Carry, RosterEntry } from '../engine/types';
+import type { Carry, Fight, RosterEntry } from '../engine/types';
 import { SKILLS } from '../data/skills';
 import { rampFour } from '../data/progression';
 import { rampLevel, rampPlayer, usesRamp } from './ramp';
@@ -81,7 +81,7 @@ export interface Run {
 /** 특수능력 프리셋: common = 대표 공통 특수능력 (GEAR_SPECS), class = 그 직업 전용 특수능력 (classSpecs, 79 전용장비 밸런스) */
 export type SpecMode = 'common' | 'class';
 /** sim 손잡이 (기준 판에서 바꿔 보기, 96 어그로 레벨 차이 판): party = 뽑은 파티를 고침, heroUp = 내 레벨 + */
-export interface RunTweak { party?: (p: RosterEntry[], stageLv: number) => void; heroUp?: number }
+export interface RunTweak { party?: (p: RosterEntry[], stageLv: number) => void; heroUp?: number; /** 구간이 끝날 때마다 (인연 보정 sim) */ onFight?: (f: Fight) => void }
 /** 한 판: 장소의 구간을 차례로 (구간 사이 휴식, 파티는 첫 구간에서 뽑은 그대로). tune을 주면 모든 구간에 그 값 (data/tune 대신) */
 export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number, tune?: Tune, specs: SpecMode = 'common', tweak?: RunTweak): Run {
   const segs = c.fights(d), s = standard(c, d);
@@ -99,6 +99,7 @@ export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number,
     });
     const hp0 = f.party.reduce((a, u) => a + u.hp, 0);
     while (!f.over && f.t < MAX_T) { autoHealer(f); step(f); f.events.length = 0; }
+    tweak?.onFight?.(f);
     time += f.t; steals += f.stats.steals ?? 0; healerSteals += f.stats.healerSteals ?? 0;
     if (f.thr && !thrRatio && f.thr.acc.dn) thrRatio = { d: f.thr.acc.d / f.thr.acc.dn, me: f.thr.acc.mn ? f.thr.acc.me / f.thr.acc.mn : 0 };
     // 받은 피해 = 그동안 들어간 치유 + 줄어든 체력 (넘친 피해 · 보호막은 빼고)
