@@ -3,6 +3,7 @@
  * 메뉴·정산은 새 화면(src/screens)이 맡고, 여기는 전투·휴식·일시정지만. 새 화면은 window.__battle로 부름.
  */
 import { isRescue } from '../data/bond';
+import { deedOf } from '../data/guild';
 import type { DiffName } from '../data/difficulty';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
@@ -661,7 +662,7 @@ function finish(how: 'end' | 'quit' | 'giveUp'): void {
     segIdx: R.idx, segN: R.segs.length, time: R.time, restSec: R.restSec, deaths: R.deaths,
     healed: R.healed, overheal: R.overheal, dispels: R.dispels, dispellable: R.dispellable,
     endMana: Math.floor(f.mana), minMana: Math.floor(st.minMana), auto: !!(S.auto || R.auto),
-    party: f.party.filter(u => !u.me).map(u => { const b = R.bond?.[u.nick]; return { nick: u.nick, pers: u.pers, role: u.role, alive: u.alive, got: Math.round(b?.got ?? u.got), gid: u.gid, low: Math.round((b?.low ?? 1) * 1000) / 1000, rescued: !!b?.rescued && u.alive }; }),
+    party: partyResult(R, f),
     detail, dev, left, segNames: R.segs.map(k => ENCOUNTERS[k as EncounterKey].name), meter: R.meter.map(r => ({ ...r })),
     stage: S.stageLv, affixes: S.affixes?.slice(), chal: S.chal || undefined, limit: S.limit, cont: R.cont || undefined, giveUp: how === 'giveUp' || undefined,
   } as BattleResult;
@@ -676,13 +677,24 @@ function addStats(R: Run, f: Fight, st: FightStats): void {
   addMeter(R.meter, f.party);
   addBond(R, f);
 }
+/** 결과의 파티원: 인연 (구간 합 받은 치유 · 가장 낮은 체력 · 은인) · 길드원 「한 일」 (딜 1등 · 강타 · 장판 · 쫄 · 끊기 · 자리 · 위기) */
+function partyResult(R: Run, f: Fight): BattleResult['party'] {
+  const people = f.party.filter(u => !u.me);
+  const topNick = people.filter(u => u.role !== 'tank').reduce<{ nick: string; d: number } | null>((a, u) => { const d = R.bond?.[u.nick]?.dealt ?? u.dealt; return !a || d > a.d ? { nick: u.nick, d } : a; }, null)?.nick;
+  return people.map(u => {
+    const b = R.bond?.[u.nick], low = b?.low ?? u.low ?? 1;
+    const deed = b?.did ? deedOf({ did: b.did, dealt: b.dealt, top: u.nick === topNick, low, alive: u.alive, role: u.role }) : undefined;
+    return { nick: u.nick, pers: u.pers, role: u.role, alive: u.alive, got: Math.round(b?.got ?? u.got), gid: u.gid, low: Math.round(low * 1000) / 1000, rescued: !!b?.rescued && u.alive, ...(deed ? { deed } : {}) };
+  });
+}
 /** 인연 (93 3-2): 구간마다 파티원이 받은 내 치유 · 가장 낮았던 체력 · 생명의 은인을 던전 전체로 */
 function addBond(R: Run, f: Fight): void {
   const b = (R.bond ??= {});
   for (const u of f.party) {
     if (u.me || u.role === 'healer') continue;
-    const low = u.low ?? 1, x = (b[u.nick] ??= { got: 0, low: 1, rescued: false });
-    x.got += u.got;
+    const low = u.low ?? 1, x = (b[u.nick] ??= { got: 0, low: 1, rescued: false, dealt: 0 });
+    x.got += u.got; x.dealt += u.dealt;
+    if (u.did) { const d = (x.did ??= { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0 }); for (const k of Object.keys(d) as (keyof typeof d)[]) d[k] += u.did[k]; } // 길드원 「한 일」 (97)
     x.low = Math.min(x.low, low);
     if (isRescue({ role: u.role, low, alive: u.alive, rescued: u.got - (u.gotLow ?? 0) > 0 })) x.rescued = true;
   }

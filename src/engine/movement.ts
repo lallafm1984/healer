@@ -84,6 +84,7 @@ export function moveTo(f: Fight, u: Unit, c: Cell | null): boolean {
   if (f.sp && !u.me) time *= 1 - sv(f, 'march'); // 신나는 행진 (42 지원 07)
   if (u.ps) time *= persMove(u); // 느림보 (75)
   if (u.fm) time *= u.fm.move; // 발놀림 (97 FM)
+  if (u.did) u.did.move++;
   c.unit = u;
   u.moving = { from: from.i, to: c.i, left: time, total: time };
   return true;
@@ -198,6 +199,7 @@ export function doReact(f: Fight, u: Unit): void {
     const c = pickCell(f, u, { safe: true, extra });
     if (c) {
       moveTo(f, u, c);
+      if (u.did) u.did.dodge++; // 길드원 「한 일」 (97)
       if (u.pers === '신중파' || u.pers === '눈치백단') bark(f, u, null, false, 'dodge'); else if (u.p.slow) bark(f, u, null, false, 'slowMove');
       else if (u.p.edge) bark(f, u, null, false, 'edgeStep'); else if (u.p.yieldTo) bark(f, u, null, false, 'yieldStep'); // 모서리파 · 양보왕 (95)
     }

@@ -2,6 +2,7 @@
  * 재화·임무·상점·시즌 패스·앱 결제 상품 규칙 (12, 13, 15, 81). 화면과 분리된 순수 계산 (시각·난수는 받아서 씀).
  * 휴식 (90, 코드 이름 stamina)은 game/stamina.ts
  */
+import { goalBond } from './guild';
 import { RAID10_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
@@ -15,7 +16,7 @@ import { HERO_FROM, makeItem, rollItem, SLOTS, type GearItem, type ItemGrade, ty
 import {
   CHEST_BANK, CHEST_REWARD, DAILY, DAILY_BASIC, DAILY_N, GUILD_GOAL, MISSION_REWARD, WEEKLY, WEEKLY_LV, WEEKLY_N, WEEKLY_REWARD, type MissionDef, type RunEvent,
 } from '../data/missions';
-import { addXp, clearGold, MAX_LEVEL, xpToNext } from '../data/progression';
+import { clearGold, MAX_LEVEL } from '../data/progression';
 import { newDaily, newWeekly, noteSpecs, topLevel, type MissionSave, type SaveData } from '../platform/storage';
 import { dayKey, daysBetween, seasonOf, weekKey } from './clock';
 import { TUT } from './tutorial';
@@ -166,17 +167,13 @@ export function swapMission(save: SaveData, i: number, r: () => number): string 
   return '';
 }
 
-/** 길드 주간 목표 (13 3장): 명성 + 길드원 전원 경험치 (다음 레벨까지의 절반) */
+/** 길드 주간 목표 (93 6-1): 명성 + 그 주에 길드파티로 출전한 길드원 인연 +2 (예전 길드원 경험치 몫 대신) */
 export function claimGuildGoal(save: SaveData): string {
   const g = save.weekly.guild;
   if (g.got || g.n < GUILD_GOAL.need) return '아직 못 채움';
   g.got = true;
   save.guild.fame += GUILD_GOAL.fame;
-  for (const m of save.guild.members) {
-    const p = { level: m.lv, xp: m.xp };
-    addXp(p, Math.round(xpToNext(m.lv) * GUILD_GOAL.xpShare));
-    m.lv = Math.min(p.level, topLevel(save)); m.xp = m.lv < p.level ? 0 : p.xp;
-  }
+  goalBond(save);
   return '';
 }
 

@@ -2,10 +2,11 @@
  * 결과 화면 (09 S08 정산 + S09 보상을 한 화면으로, 2026-10-08) · P04 레벨업 팝업.
  * 이기면 첫 화면에 등급·별·받은 것, 지면 어디서 졌는지·힌트. 지표·딜미터기는 「전투 기록」에 접어 둠 (지면 펼침)
  */
+import { STAT_NAMES } from '../data/fm';
+import { FRIEND_LV } from '../data/guild';
 import { FEATURES } from '../data/features';
 import { contentOf, type ContentKey } from '../data/content';
 import { avgScore, GRADE_STYLE, kindOf, qualityOf, recommendedFor, slotName, type ItemGrade } from '../data/equipment';
-import { CLASSES } from '../data/classes';
 import { HEROES, type HeroKey } from '../data/heroes';
 import { STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { levelUpMilestones } from '../data/milestones';
@@ -243,17 +244,22 @@ function loseHtml(r: BattleResult, x: Settlement): string {
 function notesHtml(x: Settlement): string {
   const out: string[] = [];
   const gd = x.guild;
+  // 길드 v2 (93 9-1): 결성 · 길드원 경험치 · 레벨 업 · 명성 · 첫 처치, 오른 능력치 (왜), 인연 (새 친구)
+  if (x.founded?.length) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${uiIcon('guild')}<span><b>${esc(G.save.guild.name)} 결성</b> · ${x.founded.map(esc).join(' · ')}</span></button>`);
   if (gd?.members.length) {
     const sum = gd.members.reduce((s, m) => s + m.xp, 0);
     const ups = gd.members.filter(m => m.ups.length).map(m => `${esc(m.nick)} Lv ${m.ups[m.ups.length - 1]}`);
-    out.push(`<button class="r-note" type="button" data-go="s-guild">${uiIcon('guild')}<span>길드원 경험치 +${fmt(sum)}${ups.length ? ` · <b>${ups.join(' · ')}</b>` : ''}${gd.fame ? ` · 명성 +${gd.fame}` : ''}</span></button>`);
+    out.push(`<button class="r-note" type="button" data-go="s-guild">${uiIcon('guild')}<span>길드원 경험치 +${fmt(sum)}${ups.length ? ` · <b>${ups.join(' · ')}</b>` : ''}${gd.fame ? ` · 명성 +${gd.fame}` : ''}${gd.first ? ' · <b>길드 첫 처치</b>' : ''}</span></button>`);
+    const st = gd.members.flatMap(m => m.stats.map(s => ({ nick: m.nick, ...s }))).sort((a, b) => Number(!!b.why) - Number(!!a.why)).slice(0, 2);
+    if (st.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${uiIcon('star')}<span>${st.map(s => `${esc(s.nick)} ${STAT_NAMES[s.k]} <b>${s.to}</b>${s.why ? ` (${s.why})` : ''}`).join(' · ')}</span></button>`);
   }
+  const bsum = x.bond.reduce((a, b) => a + b.pt, 0), friends = x.bond.filter(b => b.before < FRIEND_LV && b.after >= FRIEND_LV);
+  if (FEATURES.guild && bsum) out.push(`<button class="r-note${friends.length ? ' hi' : ''}" type="button" data-go="s-guild">${uiIcon('hands')}<span>인연 +${bsum}${friends.length ? ` · <b>새 친구 ${friends.map(f => esc(f.nick)).join(' · ')}</b>` : ''}</span></button>`);
   const q = x.heroQuest;
   if (q) {
     const h = HEROES[q.hero];
     out.push(`<button class="r-note${q.unlocked ? ' hi' : ''}" type="button" data-go="s-char" data-arg="hero">${uiIcon('star')}<span>${q.unlocked ? `<b>${h.name} 해금!</b> 직업에서 바꾸기` : `직업 퀘스트 「${esc(h.unlock.quest!.name)}」 <b>${q.n} / ${q.need}</b>`}</span></button>`);
   }
-  if (gd?.scout) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${uiIcon('guild')}<span>인연: <b>${esc(gd.scout.nick)}</b>(${CLASSES[gd.scout.cls].name}) 호감도 최대 · 길드 영입에서 스카우트</span></button>`);
   if (x.missions.length) out.push(`<button class="r-note" type="button" data-go="s-missions" aria-label="임무 완료: ${x.missions.map(esc).join(', ')}">${gameIcon('mission', uiIcon('quest'))}<span>임무 완료 <b>${x.missions.length}</b> · 보상 받기</span></button>`);
   return out.length ? `<div class="r-notes">${out.join('')}</div>` : '';
 }

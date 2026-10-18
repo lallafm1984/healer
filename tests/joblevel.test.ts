@@ -4,7 +4,8 @@ import { contentOf } from '../src/data/content';
 import { clearXp, gradeOf, restRun, rampXp } from '../src/data/progression';
 import * as E from '../src/engine';
 import { raidLootOpen } from '../src/game/economy';
-import { capOf } from '../src/game/guild';
+import { PARTY_POOL } from '../src/data/nicknames';
+import { capOf, newMember, personOf } from '../src/game/guild';
 import { settle, type BattleResult } from '../src/game/settle';
 import { G, heroStatus, lockOf, makeChar, otherHeroFor, pickChar, switchOpen } from '../src/game/state';
 import { TUT } from '../src/game/tutorial';
@@ -94,13 +95,14 @@ describe('캐릭터마다 레벨 (34 3장 → 68)', () => {
     pickChar(1);
     expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(false);
   });
-  it('길드원 레벨 상한 = 그 캐릭터 레벨 (34 4장 8번)', () => {
+  it('길드원 레벨 상한 = 그 캐릭터 레벨 (34 4장 8번), 정원은 명성 (93 6-2)이라 캐릭터와 상관없음', () => {
     G.save.player.level = 80;
-    const top = capOf(G.save);
+    const p = personOf(PARTY_POOL.warrior[0].nick)!, cap = capOf(G.save);
+    expect(newMember(G.save, p, 90).lv).toBe(80);
     makeChar('druid');
-    expect(capOf(G.save)).not.toEqual(top);
-    G.save.player.level = 80;
-    expect(capOf(G.save)).toEqual(top);
+    expect(G.save.player.level).toBeLessThan(80);
+    expect(newMember(G.save, p, 90).lv).toBe(G.save.player.level);
+    expect(capOf(G.save)).toEqual(cap);
   });
 });
 

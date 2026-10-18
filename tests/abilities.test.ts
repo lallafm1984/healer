@@ -202,21 +202,15 @@ describe('쓰는 때와 효과', () => {
   });
 });
 
-describe('자질·길드원 레벨 (17 9-1)', () => {
-  it('길드원은 자기 레벨 배율 + 공격·맷집 자질, 눈치는 반응·회피', () => {
+describe('길드원 레벨 (97): 자기 레벨 배율, 자질 없음', () => {
+  it('길드원은 자기 레벨 배율 (장소 레벨까지), 능력치가 없으면 반응 · 회피 보정도 없음', () => {
     const roster = party5();
-    roster[1] = { ...roster[1], lv: 10, apt: [5, 1, 5] };
+    roster[1] = { ...roster[1], lv: 10 };
     const f = E.create({ encounter: 'scrap', diff: '보통', seed: 1, party: roster, stageLv: 20 });
     const g = f.party[1], pub = E.create({ encounter: 'scrap', diff: '보통', seed: 1, party: party5(), stageLv: 20 }).party[1];
-    expect(g.max / pub.max).toBeCloseTo((lvPower(10) / lvPower(20)) * 0.9, 6);
-    expect(g.dps / pub.dps).toBeCloseTo((lvPower(10) / lvPower(20)) * 1.12, 6);
-    expect([g.senseReact, g.senseDodge]).toEqual([0.85, 0.04]);
-    expect([pub.senseReact, pub.senseDodge]).toEqual([1, 0]);
-  });
-  it('보통 자동 힐러: 공개모집 능력 파티로도 깰 수 있음 (역병 군주 희귀 +5)', () => {
-    let win = 0;
-    for (let s = 1; s <= 6; s++) if (E.simulate({ encounter: 'plague', diff: '보통', gear: 'rare5', seed: s, party: E.recruitParty('plague', s, { abilities: true }) }).over === 'win') win++;
-    expect(win).toBeGreaterThanOrEqual(5);
+    expect(g.max / pub.max).toBeCloseTo(lvPower(10) / lvPower(20), 6);
+    expect(g.dps / pub.dps).toBeCloseTo(lvPower(10) / lvPower(20), 6);
+    expect([g.senseReact, g.senseDodge]).toEqual([1, 0]);
   });
 });
 

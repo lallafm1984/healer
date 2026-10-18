@@ -6,7 +6,7 @@ import { ENCOUNTERS, type EncounterKey } from '../src/data/encounters';
 import { CLASS_NICKS, PARTY_POOL, pickNick, STORY_NICKS } from '../src/data/nicknames';
 import { PERS, PERS_NAMES } from '../src/data/personalities';
 import * as E from '../src/engine';
-import { makeCandidate } from '../src/game/guild';
+import { makeCandidates } from '../src/game/guild';
 import { newSave } from '../src/platform/storage';
 
 const ALL = Object.values(CLASS_NICKS).flat();
@@ -128,7 +128,7 @@ describe('공개모집 · 길드 지원자', () => {
     const s = newSave(1);
     s.player.level = 30;
     for (let i = 0; i < 300; i++) {
-      const c = makeCandidate(s, rng, 'normal');
+      const c = makeCandidates(s, 'normal', 'any', rng)[0];
       expect(classOf(c.nick.replace(/\d+$/, '')), c.nick).toBe(c.cls); // 목록 이름은 숫자로 끝나지 않음
       expect(s.guild.members.some(m => m.nick === c.nick)).toBe(false);
       if (s.guild.members.length < 60) s.guild.members.push({ ...c, id: s.guild.nextId++ });

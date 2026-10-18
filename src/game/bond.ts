@@ -4,11 +4,13 @@
  * 점수 규칙 · 역할 차이 보정은 data/bond.ts
  */
 import { bondPoints, type BondUnit } from '../data/bond';
+import { bondLv } from '../data/guild';
 import type { BattleResult } from './settle';
 import type { BondRec, SaveData } from '../platform/storage';
+import type { RosterEntry } from '../engine/types';
 
 /** 이 판에서 사람마다 오른 점수 (결과 화면 · 길드 v2가 씀) */
-export interface BondGain { nick: string; pt: number; helped: boolean; saved: boolean }
+export interface BondGain { nick: string; pt: number; helped: boolean; saved: boolean; /** 인연 Lv 전 · 뒤 (93 3-3) */ before: number; after: number }
 
 export const newBondRec = (): BondRec => ({ pt: 0, met: 0, wins: 0, saved: 0, mvp: 0 });
 
@@ -23,11 +25,14 @@ export function recordBond(save: SaveData, r: BattleResult, s: boolean): BondGai
   const top = r.meter?.filter(m => m.role !== 'healer').reduce<{ nick: string; dmg: number } | null>((a, m) => (!a || m.dmg > a.dmg ? m : a), null);
   const out: BondGain[] = [];
   for (const p of party) {
-    const rec = save.users[p.nick]!, pt = pts.get(p.nick) ?? 0;
+    const rec = save.users[p.nick]!, pt = pts.get(p.nick) ?? 0, before = bondLv(rec.pt);
     rec.pt += pt; rec.wins++;
     if (saved.includes(p.nick)) rec.saved++;
     if (top && top.nick === p.nick) rec.mvp++;
-    out.push({ nick: p.nick, pt, helped: helped.includes(p.nick), saved: saved.includes(p.nick) });
+    out.push({ nick: p.nick, pt, helped: helped.includes(p.nick), saved: saved.includes(p.nick), before, after: bondLv(rec.pt) });
   }
   return out;
 }
+
+/** 전투에 넘길 파티원마다 인연 점수 (은혜 갚기 호감도, 06 6장 · 93) */
+export const withBond = (save: SaveData, roster: readonly RosterEntry[]): RosterEntry[] => roster.map(e => ({ ...e, bond: save.users[e.nick]?.pt ?? 0 }));

@@ -9,7 +9,11 @@ import { namedOf, SPECS } from '../data/specials';
 import { rngFrom } from '../engine/rng';
 import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
-import type { GuildMember, PostTier } from '../data/guild';
+import { BOND_JOIN, FRIEND_LV, BOND_STEPS, GUILD_NAME, type GuildMember, type PostKind } from '../data/guild';
+import { PARTY_POOL } from '../data/nicknames';
+import { profileOf, STAT_KEYS, type Stats } from '../data/fm';
+import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
+import { PERS, type PersName } from '../data/personalities';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
 import { CONTENT } from '../data/content';
 import { STAMINA } from '../data/economy';
@@ -20,7 +24,7 @@ export const SAVE_KEY = 'healer.save';
  * v15 (2026-10-16 Lim): 소비 아이템 단축칸 · 가방을 없앰. v16 (2026-10-16 Lim): 골드를 없앰 (옛 저장의 골드는 버림).
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
-export const SAVE_VERSION = 18;
+export const SAVE_VERSION = 19;
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
 export const MAT_GOLD = { stone: 100, refined: 500 };
 
@@ -101,23 +105,30 @@ export interface ClearRecord {
 }
 
 /** 인연 스카우트 후보 (02 9-3 ②): 공개모집에서 잘 살려 줘서 호감도가 가득 찬 파티원 */
-export type Scout = Omit<GuildMember, 'id' | 'xp' | 'aptUp' | 'star' | 'runs'> & { from: string };
-
-/** 길드 (02 9장): Lv 15에 열림 */
+/** 길드 v2 (93 · 97, v19): Lv 15에 결성 이야기로 열림 */
 export interface GuildSave {
   name: string;
+  /** 결성 이야기를 지남 (창단 멤버가 들어옴) · 결성 카드를 봄 */
+  founded: boolean;
+  storySeen: boolean;
   members: GuildMember[];
-  scouts: Scout[];
-  /** 낸 공고와 지원자 3명 (고를 때까지 남음) */
-  post: { tier: PostTier; cands: GuildMember[] } | null;
-  /** 길드 명성: 길드파티로 이긴 판 (명성 지원자는 나중에) */
+  /** 보낸 사람 (93 4-3): 인연 · 키운 것이 그대로 남아 친구 초대로 다시 옴 */
+  away: GuildMember[];
+  /** 낸 공고와 지원자 (고를 때까지 남음). pick = 역할 (모집 공고) · 직업 (명문 공고) */
+  post: { kind: PostKind; pick: string; cands: GuildMember[] } | null;
+  /** 명성 지원자 (until = 떠나는 날 YYYY-MM-DD) · 마지막으로 채운 날 */
+  apps: { m: GuildMember; until: string }[];
+  appsDay: string;
+  /** 명성 (쌓이기만) · 길드파티로 이긴 판 · 길드 첫 처치 (장소|난이도) */
   fame: number;
+  wins: number;
+  firsts: string[];
   nextId: number;
-  /** 마지막 길드파티 편성 (길드원 id) */
-  pick: number[];
+  /** 규모마다 지난 편성 (탐험 3 · 5인 · 10 · 20인, 길드원 id) */
+  picks: Partial<Record<'3' | '5' | '10' | '20', number[]>>;
 }
 
-export const newGuild = (): GuildSave => ({ name: '새벽의 손', members: [], scouts: [], post: null, fame: 0, nextId: 1, pick: [] });
+export const newGuild = (): GuildSave => ({ name: GUILD_NAME, founded: false, storySeen: false, members: [], away: [], post: null, apps: [], appsDay: '', fame: 0, wins: 0, firsts: [], nextId: 1, picks: {} });
 
 /** 임무 하나: 진행 · 보상 받음 */
 export interface MissionSave { key: string; n: number; got: boolean }
@@ -153,8 +164,8 @@ export interface WeeklySave {
   chalBest: number;
   /** chalBest를 세운 직업: 월요일 상자 장비의 전용 효과 기준. 현재 직업과 무관하게 수령 가능 */
   chalHero?: HeroKey;
-  /** 길드 주간 목표 진행 · 받음 */
-  guild: { n: number; got: boolean };
+  /** 길드 주간 목표 진행 · 받음 · 이번 주 길드파티로 출전한 길드원 (받으면 인연 +2, 93 6-1) */
+  guild: { n: number; got: boolean; ran?: string[] };
 }
 
 /** 시즌 패스 (15 4장). 81에서 프리미엄 라인을 없애 보상 한 줄 (free = 받은 단계) */
@@ -293,6 +304,7 @@ export function migrate(raw: unknown): SaveData {
   const o = raw as Partial<SaveData>;
   const base = newSave(typeof o.createdAt === 'number' ? o.createdAt : Date.now());
   const obj = <T extends object>(v: unknown, d: T): T => (v && typeof v === 'object' && !Array.isArray(v) ? { ...d, ...(v as T) } : d);
+  const users = usersOf(o.users);
   const out: SaveData = {
     ...base, ...o, v: SAVE_VERSION,
     settings: { ...obj(o.settings, base.settings), compactSkills: true },
@@ -308,14 +320,14 @@ export function migrate(raw: unknown): SaveData {
     hero: HERO_KEYS.includes(o.hero as HeroKey) ? (o.hero as HeroKey) : 'priest',
     heroes: heroesOf(o),
     // v4: 길드 (옛 저장은 빈 길드)
-    guild: guildOf(o.guild),
+    guild: guildOf(o.guild, users, typeof o.v === 'number' ? o.v : 0),
     // v5: 재화·임무·패스. v14 (81): 공훈만 남기고 크리스탈 · 악몽 열쇠 · 모집권은 버림
     wallet: { merit: typeof o.wallet?.merit === 'number' ? o.wallet.merit : 0 },
     daily: o.daily && typeof o.daily === 'object' ? { ...base.daily, ...o.daily, ads: obj(o.daily.ads, base.daily.ads) } : base.daily,
     weekly: o.weekly && typeof o.weekly === 'object' ? { ...base.weekly, ...o.weekly, merit: obj(o.weekly.merit, base.weekly.merit), guild: obj(o.weekly.guild, base.weekly.guild) } : base.weekly,
     pass: passOf(o.pass, base.pass),
-    // v18: 인연 (옛 저장은 빈 명부. 옛 길드원 · 스카우트 옮기기는 길드 v2 핵심 PR에서)
-    users: usersOf(o.users),
+    // v18: 인연 (옛 저장은 빈 명부). v19: 옛 길드원 · 스카우트 인연은 guildOf가 채움
+    users,
     stamina: staminaOf(o.stamina, base.stamina),
     bought: Array.isArray(o.bought) ? o.bought.filter((k): k is string => typeof k === 'string') : [],
     chalOpen: typeof o.chalOpen === 'number' ? o.chalOpen : 1,
@@ -621,18 +633,75 @@ function heroesOf(o: Partial<SaveData>): SaveData['heroes'] {
   return hs;
 }
 
-function guildOf(v: unknown): GuildSave {
+function guildOf(v: unknown, users: Record<string, BondRec>, ver: number): GuildSave {
   const d = newGuild();
   if (!v || typeof v !== 'object') return d;
-  const g = v as Partial<GuildSave>;
+  const g = v as Partial<GuildSave> & { scouts?: unknown; pick?: unknown };
+  const num = (x: unknown, z = 0) => (typeof x === 'number' && Number.isFinite(x) ? x : z);
+  if (ver < 19) {
+    // v18 이전 길드 (개발 빌드뿐, 자질 · 육성 포인트): 같은 닉네임 1000명 줄의 능력치로, 인연 = max(레벨 × 5, 길드원 문턱), 인연 스카우트는 친구로
+    const out: GuildSave = { ...d, fame: num(g.fame), nextId: num(g.nextId, 1) };
+    for (const raw of Array.isArray(g.members) ? g.members : []) {
+      const m = oldMember(raw, out.nextId);
+      if (!m) continue;
+      out.nextId = Math.max(out.nextId, m.id + 1);
+      out.members.push(m);
+      const u = (users[m.nick] ??= { pt: 0, met: 0, wins: 0, saved: 0, mvp: 0 });
+      u.pt = Math.max(u.pt, BOND_JOIN, m.lv * 5);
+    }
+    for (const s of Array.isArray(g.scouts) ? g.scouts : []) {
+      const nick = (s as { nick?: unknown })?.nick;
+      if (typeof nick !== 'string') continue;
+      const u = (users[nick] ??= { pt: 0, met: 0, wins: 0, saved: 0, mvp: 0 });
+      u.pt = Math.max(u.pt, BOND_STEPS[FRIEND_LV]);
+    }
+    out.founded = out.members.length > 0; out.storySeen = out.founded;
+    if (Array.isArray(g.pick)) out.picks['5'] = (g.pick as unknown[]).filter((x): x is number => typeof x === 'number' && out.members.some(m => m.id === x));
+    return out;
+  }
+  const mem = (x: unknown) => (Array.isArray(x) ? (x as unknown[]).map(r => memberOf(r)).filter((m): m is GuildMember => !!m) : []);
   return {
     name: typeof g.name === 'string' ? g.name : d.name,
-    members: Array.isArray(g.members) ? g.members : [],
-    scouts: Array.isArray(g.scouts) ? g.scouts : [],
-    post: g.post && typeof g.post === 'object' && Array.isArray(g.post.cands) ? g.post : null,
-    fame: typeof g.fame === 'number' ? g.fame : 0,
-    nextId: typeof g.nextId === 'number' ? g.nextId : 1,
-    pick: Array.isArray(g.pick) ? g.pick : [],
+    founded: !!g.founded, storySeen: !!g.storySeen,
+    members: mem(g.members), away: mem(g.away),
+    post: g.post && typeof g.post === 'object' && Array.isArray(g.post.cands) ? { kind: g.post.kind === 'elite' ? 'elite' : 'normal', pick: String(g.post.pick ?? 'any'), cands: mem(g.post.cands) } : null,
+    apps: Array.isArray(g.apps) ? g.apps.flatMap(a => { const m = a && typeof a === 'object' ? memberOf((a as { m?: unknown }).m) : null; return m ? [{ m, until: String((a as { until?: unknown }).until ?? '') }] : []; }) : [],
+    appsDay: typeof g.appsDay === 'string' ? g.appsDay : '',
+    fame: num(g.fame), wins: num(g.wins), firsts: Array.isArray(g.firsts) ? g.firsts.filter((x): x is string => typeof x === 'string') : [],
+    nextId: num(g.nextId, 1),
+    picks: g.picks && typeof g.picks === 'object' ? Object.fromEntries(Object.entries(g.picks).filter(([k, v]) => ['3', '5', '10', '20'].includes(k) && Array.isArray(v)).map(([k, v]) => [k, (v as unknown[]).filter((x): x is number => typeof x === 'number')])) : {},
+  };
+}
+
+/** v19 길드원 꼴 확인 (모자란 칸은 그 사람 능력치 · 0으로) */
+function memberOf(raw: unknown): GuildMember | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const m = raw as Partial<GuildMember>;
+  if (typeof m.nick !== 'string' || !m.cls || !CLASSES[m.cls as ClassKey] || !m.pers || !PERS[m.pers as PersName]) return null;
+  const prof = profileOf(m.nick, m.pers as PersName);
+  const stats = {} as Stats;
+  for (const k of STAT_KEYS) { const x = m.stats?.[k]; stats[k] = typeof x === 'number' && x >= 1 && x <= 20 ? Math.round(x) : prof.stats[k]; }
+  const n = (x: unknown, z: number) => (typeof x === 'number' && Number.isFinite(x) ? x : z);
+  return {
+    id: n(m.id, 0), nick: m.nick, cls: m.cls as ClassKey, pers: m.pers as PersName, ab: typeof m.ab === 'string' ? m.ab : '',
+    lv: Math.max(1, Math.round(n(m.lv, 1))), xp: Math.max(0, n(m.xp, 0)), stats, learn: n(m.learn, prof.learn), steady: n(m.steady, prof.steady),
+    sxp: Math.max(0, n(m.sxp, 0)), votes: Array.isArray(m.votes) ? m.votes.filter(Array.isArray).slice(-5) as GuildMember['votes'] : [],
+    runs: Math.max(0, n(m.runs, 0)), joined: n(m.joined, 0), ...(m.story ? { story: m.story } : {}),
+  };
+}
+
+/** v18 이전 길드원 (자질 · 육성 포인트) → v19: 같은 닉네임 1000명 줄의 사람 (없으면 그 닉네임 · 성격으로 굴림), 레벨 · 경험치 · 스킬 그대로 */
+function oldMember(raw: unknown, nextId: number): GuildMember | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as { id?: number; nick?: string; cls?: ClassKey; pers?: PersName; lv?: number; xp?: number; ab?: string; runs?: number };
+  if (typeof o.nick !== 'string' || !o.cls || !RECRUIT_CLASSES.includes(o.cls) || !o.pers || !PERS[o.pers]) return null;
+  const base = o.nick.replace(/\d+$/, '');
+  const p = PARTY_POOL[o.cls].find(x => x.nick === o.nick || x.nick === base);
+  const prof = p?.fm ?? profileOf(o.nick, o.pers);
+  return {
+    id: typeof o.id === 'number' ? o.id : nextId, nick: o.nick, cls: o.cls, pers: o.pers, ab: typeof o.ab === 'string' ? o.ab : p?.ab ?? '',
+    lv: Math.max(1, Math.round(o.lv ?? 1)), xp: Math.max(0, o.xp ?? 0), stats: { ...prof.stats }, learn: prof.learn, steady: prof.steady,
+    sxp: 0, votes: [], runs: Math.max(0, o.runs ?? 0), joined: 0,
   };
 }
 
