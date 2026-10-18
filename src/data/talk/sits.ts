@@ -237,7 +237,7 @@ export const SITS = {
   clutchOk: S('보스', '딱 맞춘 생존기', 'self', 1, 0.7, '탱커가 강타 직전에 생존기를 딱 맞춰 켬 (효과 ×1.2)', { pers: ['아슬아슬'] }),
   clutchLate: S('보스', '생존기 늦음', 'self', 2, 1, '탱커가 강타 직전에 생존기를 켜려다 늦어 강타를 그대로 맞음 (힐러가 탱커를 채워야 함)', { pers: ['아슬아슬'] }),
   gather: S('기믹', '쫄 모으기', 'self', 1, 0.7, '딜러를 때리는 쫄을 탱커가 다 끌어와 한곳에 모음 (모인 쫄은 딜이 더 듦, 탱커가 많이 맞음)', { pers: ['쫄 모으기'] }),
-  aggroSlip: S('보스', '어그로 놓침', 'self', 2, 1, '탱커가 어그로를 놓쳐 1.5초 동안 보스가 딜러를 때림. 머쓱해하며 다시 잡음', { pers: ['어그로 흘림'] }),
+  aggroSlip: S('보스', '어그로 놓침', 'self', 2, 1, '어그로 흘림 탱커가 딴생각하는 3초 동안 위협을 못 쌓아 딜러에게 보스를 뺏김. 머쓱해하며 다시 잡으러 감', { pers: ['어그로 흘림'] }),
   selfCare: S('위기', '셀프 회복', 'self', 1, 0.7, '탱커가 체력 40% 아래라 스스로 최대 체력 15%를 회복함 (30초에 한 번)', { pers: ['자급자족'] }),
 
   // ---------- 95 문서 2차 (기존 묶음 25종). 엔진이 그 성격에서만 냄 ----------
@@ -266,6 +266,14 @@ export const SITS = {
   timing: S('보스', '틈 노림', 'self', 1, 0.8, '보스가 멍하거나 무방비 · 기절해서 그 틈에 딜 두 배', { pers: ['타이밍 장인'] }),
   gritMax: S('파티', '끝까지 집중', 'self', 1, 0.8, '전투가 길어져 반응이 최고 (20% 빨라짐)까지 올라옴', { pers: ['끈기형'] }),
 
+  // ---------- 96 어그로 (2026-10-18). 엔진이 냄 (engine/threat) ----------
+  aggroSteal: S('보스', '어그로 뺏음', 'self', 3, 1, '딜러 위협이 탱커를 넘어 보스가 이 딜러를 봄 (자기 방어력으로 맞음, 힐러가 미리 채워야 함). 보스 이름은 {boss}'),
+  aggroEase: S('보스', '딜 줄임', 'self', 1, 0.4, '위협이 뺏는 선 가까이 와서 딜을 25% 줄여 어그로를 안 뺏으려 함'),
+  aggroWarn: S('보스', '딜 줄이라고', 'self', 2, 1, '탱커가 위협이 선 가까운 딜러 {ally}에게 딜을 줄이라고 함'),
+  aggroRegain: S('보스', '어그로 되찾음', 'self', 1, 0.8, '탱커가 뺏긴 보스를 다시 잡음'),
+  aggroHealer: S('보스', '힐 어그로', 'self', 3, 1, '힐러 (나)의 치유 위협이 탱커를 넘어 보스가 힐러를 봄. 탱커가 말함'),
+  aggroLevel: S('보스', '너무 세서 못 잡음', 'self', 2, 1, '딜러가 레벨이 훨씬 높아 다섯 번째 되찾는 중. 탱커가 버거워함'),
+
   // ---------- 끝 (보스가 쓰러지거나 전멸한 뒤 화면이 넘어가기 전 1초쯤) ----------
   win: S('끝', '승리', 'any', 2, 1, '마지막 구간 승리'),
   winClean: S('끝', '완벽한 승리', 'any', 2, 1, '아무도 안 쓰러지고 승리'),
@@ -287,5 +295,6 @@ export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave
   | 'slowMove' | 'follow' | 'wander' | 'luckLost' | 'luckBack' | 'cover' | 'selfish' | 'cheer' | 'rival' | 'rage' | 'calmStep' | 'optimist' | 'pessimist'
   | 'panic' | 'panicEnd' | 'allIn' | 'tired' | 'warmUp' | 'focusBroken' | 'shaken' | 'learned'
   | 'hoardUse' | 'spamUse' | 'cutTry' | 'addHunt' | 'oneTrack' | 'preGuard' | 'clutchOk' | 'clutchLate' | 'gather' | 'aggroSlip' | 'selfCare'
+  | 'aggroSteal' | 'aggroEase' | 'aggroWarn' | 'aggroRegain' | 'aggroHealer' | 'aggroLevel'
   | 'foresee' | 'foreseeWrong' | 'hop' | 'endure' | 'edgeStep' | 'freeze' | 'buddyUp' | 'yieldStep' | 'homeBack' | 'standIn' | 'mentor' | 'moodUp'
   | 'praise' | 'repay' | 'envy' | 'cry' | 'bounce' | 'relief' | 'windUp' | 'vent' | 'burst' | 'breather' | 'timing' | 'gritMax'>;

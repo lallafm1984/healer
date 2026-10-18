@@ -69,6 +69,47 @@ export interface HazardRules {
   buster: number;
 }
 export const HAZARD: HazardRules = { zone: 2, zoneHitCap: 480, buster: 0.7 };
+
+/**
+ * 어그로 (96 문서, engine/threat.ts). K · 여유 · 되찾기는 sim으로 맞춤 (672칸 클리어율 ±1%p, 판당 뺏기 5인 0~1 · 10인 1 · 20인 1~2번).
+ * 1 → 10 → 20 칸은 능력치 (97 FM) 값
+ */
+export const THREAT = {
+  /** 반감기 (초): 최근 10초만 남음 */
+  half: 5,
+  /** 탱커 위협 K: 딜러 한 사람 몫 딜의 K배 (보통 딜러 = 탱커의 1/K = 75%) */
+  tank: 1 / 0.65,
+  /** 내 위협 H: H × √(넣은 치유 전부 (넘친 치유 포함) ÷ 파티가 받은 피해) = 탱커 위협 대비 (치유가 받은 피해의 2배면 약 0.5) */
+  heal: 0.354,
+  /** 받은 피해 바닥 = 파티 최대 체력 합 × 이만큼 (반감기 합) */
+  healFloor: 0.1,
+  /** 뺏는 선 = 탱커 위협 × 여유 (쉬움 · 3인 탐험 1.4) */
+  leeway: { '쉬움': 1.4, '보통': 1.3, '어려움': 1.2, '악몽': 1.15 } as Record<'쉬움' | '보통' | '어려움' | '악몽', number>,
+  /** 선의 이만큼이면 판 위 주황 테두리 · 탱커 경고 (경고 대사는 같은 딜러에게 warnGap초에 한 번) */
+  warn: 0.9, warnGap: 12,
+  /** 내 위협 게이지가 보이는 때 */
+  gauge: 0.6,
+  /** 딜 줄이기 (판단 1 → 10 → 20: 선의 몇 %에서 시작), 줄이는 몫, 다시 올리는 때 (시작 − easeBack) */
+  easeNever: 1.05, easeAt: 0.85, easeBest: 0.7, ease: 0.25, easeBack: 0.1,
+  /** 탱커 기술 숙련: 쌓는 양 (1 · 20, 10 = 1) */
+  skill: [0.8, 1.2] as [number, number],
+  /** 탱커 집중: 이동 · 생존기 · 강타 1초 동안 쌓는 양 (1 · 10, 20 = 1) */
+  focus: [0.5, 0.75] as [number, number],
+  /** 탱커 반응: 놓친 뒤 되찾기까지 (초, 1 · 10 · 20) */
+  retake: [3, 1.7, 0.5] as [number, number, number],
+  /** 되찾기 재사용 (초) · 되찾으면 탱커 위협 = 뺏은 사람 × retakeMult · 이 횟수부터 「너무 세서 못 잡겠다」 */
+  retakeCd: 8, retakeMult: 1.1, levelBarkAt: 5,
+  /** 딜러 침착: 뺏은 뒤 딜을 멈추기까지 (초, 1 · 10, 20 = 바로) */
+  calm: [2, 1] as [number, number],
+  /** 위협이 탱커의 이만큼 아래로 식으면 되찾기 없이 보스가 돌아감 · 보스를 돌려준 딜러는 cool초 동안 딜을 줄이고 다시 안 뺏음 */
+  back: 0.85, cool: 8,
+  /** 레벨 차이: 1레벨에 +4%, ×0.6 ~ ×2 */
+  lvStep: 0.04, lvMin: 0.6, lvMax: 2,
+  /** 시작 뒤 이 초까지는 뺏지 않음 (모두 0에서 출발) · 선을 이 초 동안 넘어 있어야 뺏음 */
+  start: 2, dwell: 0.6,
+  /** 보스가 나를 칠 때 한 대 = 내 최대 체력 × 이만큼 (주시와 같은 방식) */
+  healerHit: 0.15,
+};
 /** 장판 초당 피해 (요정 고리 · 오라 포함) */
 export const zoneDps = (R: Rules, dps: number): number => dps * (R.hazard?.zone ?? 1);
 /** 장판 맞는 순간 피해 */

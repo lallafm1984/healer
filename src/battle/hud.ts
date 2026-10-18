@@ -1,4 +1,5 @@
 import { buildClassGauge, updateClassGauge } from './class-gauge';
+import { THREAT } from '../data/rules';
 import { classGaugeState } from './class-gauge-state';
 import { waveNeed } from '../engine/talents';
 /**
@@ -122,16 +123,24 @@ function watchText(F: Fight): string {
   const v = F.vessel;
   if (v) return ` · ${v.name} ${Math.min(99, Math.floor((v.fill / v.need) * 100))}% ${Math.ceil(v.until - F.t)}`;
   const w = F.watch;
-  if (!w) return '';
+  if (!w) { const th = threatGauge(F); return th < 0 ? '' : th >= 1 ? ' · 위협 중' : ` · 위협 ${Math.min(99, Math.floor(th * 100))}%`; }
   return F.t < w.until ? ` · 주시 중 ${Math.ceil(w.until - F.t)}` : ` · 주시 ${Math.min(99, Math.floor((w.fill / w.max) * 100))}%`;
 }
 
-/** 보스 체력바 아래 게이지: 무력화 = 파랑 · 빛 그릇 = 연두 (채울수록 좋음), 주시 = 호박색 (차면 나를 노림) */
+/** 내 위협 게이지 (96 어그로 5번 A): 뺏는 선의 60%부터, 보스가 나를 보면 1 (위협 중). 안 보이면 −1 */
+function threatGauge(F: Fight): number {
+  const t = F.thr;
+  if (!t) return -1;
+  if (t.steal && t.steal.id === F.me.id) return 1;
+  return t.me >= THREAT.gauge ? Math.min(0.99, t.me) : -1;
+}
+
+/** 보스 체력바 아래 게이지: 무력화 = 파랑 · 빛 그릇 = 연두 (채울수록 좋음), 주시 · 내 위협 (96) = 호박색 (차면 나를 노림) */
 function bossGauge(F: Fight): void {
   const bar = $('bossFill').parentElement!;
   let g = bar.querySelector<HTMLElement>('#bossGauge');
   const st = F.stagger, ve = F.vessel, w = F.watch;
-  const v = st ? st.fill / st.need : ve ? ve.fill / ve.need : w ? (F.t < w.until ? 1 : w.fill / w.max) : -1;
+  const v = st ? st.fill / st.need : ve ? ve.fill / ve.need : w ? (F.t < w.until ? 1 : w.fill / w.max) : threatGauge(F);
   if (v < 0) { if (g) g.hidden = true; return; }
   if (!g) { g = document.createElement('div'); g.id = 'bossGauge'; g.setAttribute('aria-hidden', 'true'); bar.appendChild(g); }
   g.hidden = false;

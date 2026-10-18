@@ -9,7 +9,8 @@ import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
 import { openTiers } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { pickMember, pickNick } from '../data/nicknames';
-import { dayOffset, fmFx, memberLevel } from '../data/fm';
+import { dayOffset, fmFx, memberLevel, STAT_KEYS, type Stats } from '../data/fm';
+import { dealerOutput, dealerThreat, threatInit, threatTick } from './threat';
 import { NICKS, PERS, PROTO_PERS, type PersName } from '../data/personalities';
 import { POS_RULES, PROTO_RULES, RULES } from '../data/rules';
 import { makeCells } from './board';
@@ -83,6 +84,7 @@ export function create(cfg: FightConfig): Fight {
   // 성기사 봉화는 첫 탱커에게 걸고 시작 (휠 가운데로 바꿈, 25 3장)
   if (f.hero === 'paladin' && f.level >= HEROES.paladin.system.lv) { const t = f.party.find(u => u.role === 'tank'); if (t) f.beacon = t.id; }
   initBoss(f);
+  threatInit(f); // 어그로 (96): 보스 · 주시를 안 뒤
   if (cfg.affixes?.length) initAffixes(f, cfg.affixes);
   return f;
 }
@@ -193,7 +195,9 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
       barkAt: -10, ignoreZone: 0, homeAt: null, diedAt: 0, me: role === 'healer',
       ab: null, mods: [], got: 0, senseReact: apt ? APT.react[aptIdx(apt[2])] : fx ? fx.react : 1, senseDodge: apt ? APT.dodge[aptIdx(apt[2])] : fx ? fx.dodge : 0, gid: r?.gid, runs: r?.runs ?? 0,
     };
-    if (fx) u.fm = fx;
+    if (fx) { u.fm = fx; u.fmStats = Object.fromEntries(STAT_KEYS.map(k => [k, r!.fm!.stats[k] + r!.fm!.off])) as Stats; }
+    if (role !== 'healer') u.lv = r?.lv ? (r.pub ? r.lv : Math.min(r.lv, f.cfg.stageLv ?? r.lv)) : (f.cfg.stageLv ?? 1); // 어그로 레벨 차이 (96)
+    else u.lv = Math.max(f.cfg.heroLv ?? f.cfg.stageLv ?? 1, f.cfg.stageLv ?? 1);
     units.push(u);
     return u;
   };
@@ -237,6 +241,7 @@ export function step(f: Fight): void {
   looseTick(f); // 탱커 앞줄 이탈 (위치 규칙)
   bossTick(f);
   partyHits(f);
+  if (f.thr) threatTick(f); // 어그로 (96)
   if (f.bossHp <= 0) { f.bossHp = 0; end(f, 'win', f.mobs.some(m => !m.add) && !f.mobs.some(m => m.boss) ? '모두 쓰러뜨림' : '보스를 쓰러뜨림'); }
   else if (!f.me.alive) end(f, 'lose', '힐러가 쓰러짐');
   // 탱커가 쓰러져도 계속, 파티원이 모두 쓰러지면 전멸 (2026-10-07 Lim)
@@ -280,8 +285,11 @@ function partyHits(f: Fight): void {
     u.dealt += Math.min(amt, f.bossHp);
     u.acc = 0;
     if (f.bodyHp) hitMobs(f, amt, u);
-    else if (u.role !== 'tank' && f.mobs.length && !(u.p.oneTrack && !f.invuln)) hitAdds(f, amt, u); // 외골수 (95): 보스만 (무적일 때는 쫄)
-    else f.bossHp -= amt * (f.daze || f.expose || f.mobs.length ? bossTaken(f) : 1) * (u.p.addHunter?.boss ?? u.p.oneTrack?.boss ?? 1); // 멍함 · 영혼 축복 · 보호막 수정 (35 3-I) · 쫄 사냥꾼 · 외골수 (95)
+    else if (u.role !== 'tank' && f.mobs.length && !(u.p.oneTrack && !f.invuln)) { hitAdds(f, amt, u); if (f.thr) dealerOutput(f, amt); } // 외골수 (95): 보스만 (무적일 때는 쫄). 어그로: 쫄 딜은 탱커 위협 바탕에만
+    else {
+      f.bossHp -= amt * (f.daze || f.expose || f.mobs.length ? bossTaken(f) : 1) * (u.p.addHunter?.boss ?? u.p.oneTrack?.boss ?? 1); // 멍함 · 영혼 축복 · 보호막 수정 (35 3-I) · 쫄 사냥꾼 · 외골수 (95)
+      if (f.thr && u.role !== 'tank') dealerThreat(f, u, amt); // 어그로 (96): 보스에게 준 딜. 탱커는 threatTick이 쌓음
+    }
     emit(f, { type: 'hit', uid: u.id, amt });
   }
 }

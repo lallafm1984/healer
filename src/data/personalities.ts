@@ -104,7 +104,9 @@ export interface Personality {
   /** 쫄 모으기: 딜러를 때리는 쫄을 after초 뒤 끌어옴. 쫄 둘 이상이 이 탱커에게 모이면 파티의 쫄 딜 ×aoe */
   gather?: { after: number; aoe: number };
   /** 어그로 흘림: first초부터 every초마다 chance로 sec초 동안 보스 평타가 딜러에게. 탱커 딜 ×dps */
-  slip?: { first: number; every: number; chance: number; sec: number; dps: number };
+  slip?: { first: number; every: number; sec: number; dps: number };
+  /** 어그로 (96): judge = 판단을 이 값처럼 (눈치백단 20) · judgeUp = 판단 ±, noEase = 성격이 켜진 동안 (경쟁심 쫓기 · 분노 · 폭주) 딜을 안 줄임 */
+  aggro?: { judge?: number; judgeUp?: number; noEase?: boolean };
   /** 든든이: 체력 hp 넘으면 옆 아군이 받는 피해 −cut */
   sturdy?: { hp: number; cut: number };
   /** 자급자족: 체력 hp 아래면 최대 체력 heal만큼 스스로 회복 (쿨 cd) */
@@ -175,8 +177,8 @@ export interface Personality {
 export const SULK = { again: 60, max: 2, long: 25 };
 
 export const PERS = {
-  '신중파': { star: 1, cat: '회피', ch: '신', react: 0.5, dodge: 0.10, dps: 0.9, desc: '가장 먼저 피합니다. 딜은 조금 약합니다.', barks: ['조심!', '다음 패턴 피해'] },
-  '딜 욕심쟁이': { star: 2, cat: '회피', ch: '딜', react: 1.8, dodge: -0.15, dps: 1.2, greedy: true, desc: '예고가 끝나기 직전까지 딜하다가 늦게 피합니다.', barks: ['한 대만 더!', '딜 1등 찍었다 ㅋ'] },
+  '신중파': { star: 1, cat: '회피', ch: '신', aggro: { judgeUp: 5 }, react: 0.5, dodge: 0.10, dps: 0.9, desc: '가장 먼저 피합니다. 딜은 조금 약합니다.', barks: ['조심!', '다음 패턴 피해'] },
+  '딜 욕심쟁이': { star: 2, cat: '회피', ch: '딜', aggro: { judgeUp: -5 }, react: 1.8, dodge: -0.15, dps: 1.2, greedy: true, desc: '예고가 끝나기 직전까지 딜하다가 늦게 피합니다.', barks: ['한 대만 더!', '딜 1등 찍었다 ㅋ'] },
   '고집불통': { star: 2, cat: '회피', ch: '고', stubborn: 0.4, desc: '최대 체력 40% 이상의 피해가 아니면 장판을 피하지 않습니다.', barks: ['안 움직여', '원래 이렇게 하는 거임'] },
   '덜렁이': { star: 3, cat: '회피', ch: '덜', dodge: -0.10, wrongWay: 0.10, noTank: true, desc: '가끔 장판 안으로 들어갑니다.', barks: ['어? 여기 아니야?', '어 이거 밟으면 안 되는 거였음?'] },
   '허세꾼': { star: 3, cat: '회피', ch: '허', brave: 0.7, desc: '체력이 70% 이상이면 장판을 피하지 않습니다.', barks: ['안 아파!', '이 정도쯤이야'] },
@@ -186,7 +188,7 @@ export const PERS = {
   '감사형': { star: 1, cat: '관계', ch: '감', thanks: true, desc: '힐을 받으면 3초 동안 딜이 10% 늘어납니다.', barks: ['ㄱㅅㄱㅅ', '덕분에 살았다!'] },
   '겁쟁이': { star: 3, cat: '감정', ch: '겁', flee: 0.5, noTank: true, desc: '체력이 50% 아래면 뒷줄로 도망가 딜을 멈추고, 80%가 되면 돌아옵니다.', barks: ['으악 도망!', '나 빠질게 무서워'] },
   // ---------- 75 문서: 20종 추가 (2026-10-14) ----------
-  '눈치백단': { star: 1, cat: '회피', ch: '눈', rare: true, react: 0.3, dodge: 0.2, dps: 0.95, desc: '예고를 거의 미리 읽고 피합니다. 딜은 조금 약합니다.', barks: ['올 것 같아', '곧 장판 옴'] },
+  '눈치백단': { star: 1, cat: '회피', ch: '눈', rare: true, aggro: { judge: 20 }, react: 0.3, dodge: 0.2, dps: 0.95, desc: '예고를 거의 미리 읽고 피합니다. 딜은 조금 약합니다.', barks: ['올 것 같아', '곧 장판 옴'] },
   '느림보': { star: 2, cat: '회피', ch: '느', slow: 2, desc: '반응은 보통인데 이동이 두 배 느려 장판 끝자락에 자주 걸립니다.', barks: ['잠깐만…', '천천히 가는 중'] },
   '따라쟁이': { star: 2, cat: '위치', ch: '따', follow: true, noTank: true, desc: '가장 가까운 탱커 옆에 붙어 다닙니다. 탱커를 노리는 광역에 같이 맞기 쉽습니다.', barks: ['탱님 따라감', '나도 거기 갈래'] },
   '방랑자': { star: 2, cat: '위치', ch: '방', wander: { every: 15, chance: 0.3 }, noTank: true, desc: '15초마다 가끔 근처 빈 칸으로 자리를 옮깁니다. 옮기는 동안 딜이 멈춥니다.', barks: ['저쪽이 좋아 보여', '여기 말고 저기'] },
@@ -194,8 +196,8 @@ export const PERS = {
   '영웅': { star: 2, cat: '관계', ch: '영', cover: { hp: 0.25, r: 2, share: 0.3, sec: 5, cd: 15 }, desc: '반경 2 아군의 체력이 25% 아래면 5초 동안 그 아군이 받는 피해의 30%를 대신 받습니다.', barks: ['내가 막을게!', '뒤로 빠져 있어'] },
   '이기주의자': { star: 2, cat: '관계', ch: '이', selfish: { hp: 0.25, cd: 10 }, desc: '옆 아군이 위험하면 같이 맞지 않으려고 혼자 떨어진 칸으로 갑니다.', barks: ['난 살아야지', '각자도생'] },
   '응원단장': { star: 1, cat: '관계', ch: '응', dps: 0.9, cheer: { hp: 0.25, up: 0.1, sec: 5, cd: 10 }, desc: '옆 아군이 위험하면 응원해 옆 아군의 딜이 5초 동안 10% 늘어납니다. 본인 딜은 조금 약합니다.', barks: ['힘내!!', '할 수 있다!'] },
-  '경쟁심': { star: 2, cat: '관계', ch: '경', rare: true, rival: { up: 0.15, dodge: -0.1 }, desc: '같은 역할에서 딜 1위가 아니면 딜이 15% 늘지만 무리해서 회피가 10%p 줄어듭니다.', barks: ['내가 더 세!', '1등 내놔'] },
-  '다혈질': { star: 2, cat: '감정', ch: '다', rage: { up: 0.3, sec: 10 }, desc: '아군이 쓰러지면 10초 동안 분노해 딜이 30% 늘고 장판을 피하지 않습니다.', barks: ['용서 못 해!', '가만 안 둬'] },
+  '경쟁심': { star: 2, cat: '관계', ch: '경', rare: true, aggro: { noEase: true }, rival: { up: 0.15, dodge: -0.1 }, desc: '같은 역할에서 딜 1위가 아니면 딜이 15% 늘지만 무리해서 회피가 10%p 줄어듭니다.', barks: ['내가 더 세!', '1등 내놔'] },
+  '다혈질': { star: 2, cat: '감정', ch: '다', aggro: { noEase: true }, rage: { up: 0.3, sec: 10 }, desc: '아군이 쓰러지면 10초 동안 분노해 딜이 30% 늘고 장판을 피하지 않습니다.', barks: ['용서 못 해!', '가만 안 둬'] },
   '침착함': { star: 1, cat: '감정', ch: '침', calm: true, dodge: 0.05, desc: '옮겨붙는 디버프가 걸리면 꼭 혼자 떨어진 칸으로 비켜 섭니다. 회피가 조금 좋습니다.', barks: ['떨어질게', '침착하게'] },
   '낙천가': { star: 2, cat: '감정', ch: '낙', lateGuard: 0.5, desc: '생존 능력을 끝까지 아끼다 늦게 씁니다. 체력 조건이 절반입니다.', barks: ['괜찮아 괜찮아', '아직 멀쩡함'] },
   '비관론자': { star: 2, cat: '감정', ch: '비', earlyGuard: 0.6, desc: '체력이 60% 아래면 생존 능력을 바로 써 버려 정작 위기에 없습니다.', barks: ['망했어…', '이거 안 될 듯'] },
@@ -215,7 +217,7 @@ export const PERS = {
   '미리미리': { star: 1, cat: '탱커', ch: '리', tankOnly: true, preGuard: true, desc: '강타 예고가 뜨면 생존기를 바로 켭니다. 체력 조건 생존기도 켜서, 다음 강타나 위기 때 없을 수 있습니다.', barks: ['미리 켜 둠', '대비 완료'] },
   '아슬아슬': { star: 2, cat: '탱커', ch: '슬', tankOnly: true, clutch: { lead: 0.3, ok: 0.8, boost: 1.2, late: 0.2 }, desc: '생존기를 강타 직전에 켭니다. 열에 여덟은 딱 맞아 효과가 20% 크고, 둘은 늦어 강타를 그대로 맞습니다.', barks: ['지금!', '아 늦었다'] },
   '쫄 모으기': { star: 2, cat: '탱커', ch: '모', tankOnly: true, gather: { after: 1, aoe: 1.25 }, desc: '딜러를 때리는 쫄을 모두 끌어와 한곳에 모읍니다. 모인 쫄은 딜이 25% 더 들지만 탱커가 받는 피해가 큽니다.', barks: ['다 이리 와', '한곳에 모았다'] },
-  '어그로 흘림': { star: 3, cat: '탱커', ch: '흘', tankOnly: true, rare: true, slip: { first: 15, every: 20, chance: 0.5, sec: 1.5, dps: 1.2 }, desc: '딜이 20% 세지만 가끔 어그로를 놓쳐 보스가 1.5초 동안 딜러를 때립니다.', barks: ['어 어그로 튐', '다시 잡았다'] },
+  '어그로 흘림': { star: 3, cat: '탱커', ch: '흘', tankOnly: true, rare: true, slip: { first: 15, every: 20, sec: 3, dps: 1.2 }, desc: '딜이 20% 세지만 20초마다 3초 동안 딴생각을 해 어그로를 쌓지 못합니다. 딜러가 세면 보스를 뺏깁니다.', barks: ['어 어그로 튐', '다시 잡았다'] },
   '든든이': { star: 1, cat: '탱커', ch: '든', tankOnly: true, sturdy: { hp: 0.5, cut: 0.05 }, desc: '체력이 50% 넘으면 옆 아군이 받는 피해가 5% 줄어듭니다.', barks: ['내 옆에 서', '걱정 마'] },
   '자급자족': { star: 1, cat: '탱커', ch: '자', tankOnly: true, selfCare: { hp: 0.4, heal: 0.15, cd: 30 }, desc: '체력이 40% 아래면 스스로 최대 체력 15%를 회복합니다. 30초에 한 번입니다.', barks: ['내 피는 내가', '셀프 힐 간다'] },
   '보호막 애호가': { star: 1, cat: '힐', ch: '막', shieldLove: { up: 0.15, sec: 5 }, desc: '보호막을 받으면 5초 동안 딜이 15% 늘어납니다.', barks: ['막 최고!', '막 좀 줘'] },
@@ -244,7 +246,7 @@ export const PERS = {
   '예민형': { star: 2, cat: '감정', ch: '민', touchy: { down: 0.2, up: 0.15, sec: 5 }, desc: '디버프가 걸려 있으면 딜이 20% 약하고, 해제받으면 5초 동안 딜이 15% 늘어납니다.', barks: ['이거 신경 쓰여', '이제 살 것 같다'] },
   '신바람': { star: 1, cat: '감정', ch: '바', wind: { n: 3, up: 0.2, sec: 5 }, desc: '내 칸 장판을 세 번 연달아 피하면 5초 동안 딜이 20% 늘어납니다.', barks: ['신난다!', '흐름 탔다'] },
   '화풀이': { star: 1, cat: '감정', ch: '화', vent: { hit: 0.15, up: 0.15, sec: 3 }, desc: '한 번에 최대 체력 15% 넘게 맞으면 3초 동안 딜이 15% 늘어납니다.', barks: ['아프잖아!', '갚아 준다'] },
-  '폭주기관차': { star: 2, cat: '리듬', ch: '폭', burst: { every: 30, sec: 5, up: 1.5 }, desc: '30초마다 5초 동안 딜이 50% 늘지만 그동안 장판을 피하지 않습니다.', barks: ['폭주 간다!', '브레이크 없음'] },
+  '폭주기관차': { star: 2, cat: '리듬', ch: '폭', aggro: { noEase: true }, burst: { every: 30, sec: 5, up: 1.5 }, desc: '30초마다 5초 동안 딜이 50% 늘지만 그동안 장판을 피하지 않습니다.', barks: ['폭주 간다!', '브레이크 없음'] },
   '쉬엄쉬엄': { star: 2, cat: '리듬', ch: '쉬', breather: { every: 25, sec: 2, dodge: 0.2 }, desc: '25초마다 2초씩 쉽니다. 쉬는 동안 딜이 없지만 회피가 20%p 늘어납니다.', barks: ['잠깐 쉼', '숨 좀 고르고'] },
   '타이밍 장인': { star: 1, cat: '리듬', ch: '틈', rare: true, timing: { up: 2 }, desc: '보스가 멍하거나 무방비 · 기절인 동안 딜이 두 배가 됩니다.', barks: ['지금 틈이다', '타이밍 왔다'] },
   '끈기형': { star: 1, cat: '리듬', ch: '끈', grit: { every: 30, step: 0.95, min: 0.8 }, desc: '30초마다 반응이 5%씩 빨라져 최대 20%까지 빨라집니다.', barks: ['끝까지 간다', '갈수록 잘 보임'] },

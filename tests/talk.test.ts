@@ -14,7 +14,9 @@ import { damageMob, heal } from '../src/engine/core';
 import type { AddDef, DebuffDef, SkillDef, SkillEffect } from '../src/data/bosses';
 import type { BossSkill, Fight } from '../src/engine';
 
-const ALLY_SITS: TalkSit[] = ['allyDown', 'tankDown', 'allyRevived', 'swallowedOther', 'jailOther', 'charmOther'];
+/** 96 어그로 상황: 어그로와 이어진 성격 29종만 자기 대사 (나머지는 역할 · 공통) */
+const AGGRO96: TalkSit[] = ['aggroSteal', 'aggroEase', 'aggroWarn', 'aggroRegain', 'aggroHealer', 'aggroLevel'];
+const ALLY_SITS: TalkSit[] = ['allyDown', 'tankDown', 'allyRevived', 'swallowedOther', 'jailOther', 'charmOther', 'aggroWarn'];
 const sources: [string, TalkLines][] = [
   ...Object.entries(PERS_LINES).map(([k, v]) => [`성격 ${k}`, v] as [string, TalkLines]),
   ...Object.entries(CLASS_LINES).map(([k, v]) => [`직업 ${k}`, v] as [string, TalkLines]),
@@ -39,12 +41,13 @@ describe('대사 데이터 규칙', () => {
     expect(bad).toEqual([]);
   });
 
-  it('75의 성격 30종은 모든 상황을 채움, 95 새 성격은 대표 상황만 (나머지는 직업 · 역할 · 공통으로 넘김). 그 성격 전용 상황은 그 성격만', () => {
+  it('75의 성격 30종은 모든 상황을 채움, 95 새 성격은 대표 상황만 (나머지는 직업 · 역할 · 공통으로 넘김). 그 성격 전용 상황은 그 성격만. 96 어그로 상황은 어그로와 이어진 성격만', () => {
     for (const [i, p] of PERS_NAMES.entries()) {
       const lines = PERS_LINES[p], fresh = i >= 30;
       for (const sit of SIT_KEYS) {
         const only = (SITS[sit] as { pers?: readonly string[] }).pers;
         if (only && !only.includes(p)) expect(lines[sit], `${p}.${sit}`).toBeUndefined();
+        else if (AGGRO96.includes(sit)) { if (lines[sit]) expect(lines[sit]!.length, `${p}.${sit}`).toBeGreaterThanOrEqual(5); }
         else if (only || !fresh) expect(lines[sit]?.length ?? 0, `${p}.${sit}`).toBeGreaterThanOrEqual(fresh ? 8 : 2);
         else if (lines[sit]) expect(lines[sit]!.length, `${p}.${sit}`).toBeGreaterThanOrEqual(2);
       }

@@ -7,7 +7,8 @@ import * as E from '../src/engine';
 import { abCut, abOnTel, shieldShown } from '../src/engine/abilities';
 import { runEffect } from '../src/engine/bossParts';
 import { damage, heal, takenAmt } from '../src/engine/core';
-import { gatherMult, persCast, persDps, persHealTaken, persLate, slipHit } from '../src/engine/persona';
+import { gatherMult, persCast, persDps, persHealTaken, persLate } from '../src/engine/persona';
+import { slipping } from '../src/engine/threat';
 import type { BossSkill, RosterEntry, Telegraph } from '../src/engine/types';
 import { CLASSES } from '../src/data/classes';
 import { makeCandidate } from '../src/game/guild';
@@ -172,21 +173,11 @@ describe('탱커', () => {
     expect(adds.every(m => m.add!.on === tk.id)).toBe(true);
     expect(gatherMult(f)).toBeCloseTo(1.25);
   });
-  it('어그로 흘림: 놓친 1.5초 동안 보스 평타가 딜러에게 (탱커가 받았을 만큼), 탱커 딜 ×1.2', () => {
+  it('어그로 흘림 (96 A안): 15초부터 20초마다 3초 동안 위협 쌓기가 멈춤, 탱커 딜 ×1.2', () => {
     const f = fight({ tank: ['어그로 흘림'] }), tk = who(f, '탱');
     expect(persDps(f, tk)).toBeCloseTo(1.2);
-    f.rng = () => 0;
-    steps(f, 14.9);
-    expect(slipHit(f, tk)).toBe(tk);
-    steps(f, 0.3);
-    const v = slipHit(f, tk)!;
-    expect(v.role).not.toBe('tank');
-    const h0 = v.hp;
-    runEffect(f, {} as BossSkill, { p: 'auto', dmg: 50 });
-    expect(v.hp).toBeLessThan(h0);
-    expect(h0 - v.hp).toBeLessThanOrEqual(50 * 1.3 * f.dmgMult + 1e-6); // 탱커가 받았을 만큼 (딜러 방어력 배율 없이)
-    steps(f, 1.6);
-    expect(slipHit(f, tk)).toBe(tk);
+    const at = (t: number) => { f.t = t; return slipping(f, tk); };
+    expect([at(14.9), at(15.1), at(17.9), at(18.1), at(35.5), at(38.5)]).toEqual([false, true, true, false, true, false]);
   });
   it('든든이: 체력 50% 넘으면 옆 아군이 받는 피해 −5% (강타 예고 숫자도 같은 계산)', () => {
     const f = fight({ tank: ['든든이'] }), tk = who(f, '탱');

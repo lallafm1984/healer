@@ -1,4 +1,5 @@
 import { hexDist } from './board';
+import { threatDps } from './threat';
 import { BARK, DRUID_BIG } from '../data/heroConst';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { bark, cellOf, DT, dripDamage, dripTick, emit, flowTick, hasAbsorb, heal, healFlow, hpLineTick, linger, onDebuffEnd, submerged } from './core';
@@ -309,5 +310,6 @@ export function unitDps(u: Unit, f?: Fight): number {
   if (f?.sp) d *= dpsSpec(f, u);
   if (f?.cheer && f.t < f.cheer.until) d *= f.cheer.mult; // 전투의 함성 (05 6-D)
   if (f?.persOn) d *= persDps(f, u); // 새 성격 20종 · 응원 (75)
+  if (f?.thr) d *= threatDps(f, u); // 어그로 (96): 선 가까이 와서 줄임 · 뺏은 뒤 멈춤
   return d;
 }

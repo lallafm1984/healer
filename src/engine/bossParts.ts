@@ -15,7 +15,8 @@ import { addDebuff, bark, cellOf, damage, dripDamage, DT, emit, empowerBoss, has
 import { dangerAt, finishMove, moveTo, scheduleReaction, scheduleReactions, zoneOf } from './movement';
 import { hotTick, stepAway } from './units';
 import { frontCell, frontTank } from './position';
-import { slipHit } from './persona';
+import { bossTarget } from './threat';
+import { THREAT } from '../data/rules';
 import { during, immune, specBeat, specBroken, specLand, specPhase, specRod, specVessel, specQuake, specReveal, specRewind, specTideEbb, sv } from './specials';
 import type { BossSkill, Cell, Debuff, Fight, Mob, Telegraph, Unit } from './types';
 
@@ -80,7 +81,7 @@ export function whenFn(w: SkillWhen | undefined): BossSkill['active'] {
 export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegraph): void {
   switch (e.p) {
     case 'auto': {
-      const tk0 = aggroTarget(f), tk = f.persOn ? slipHit(f, tk0) : tk0; // 어그로 흘림 (95): 놓친 동안 딜러가 맞음
+      const tk = bossTarget(f); // 어그로 (96): 보스를 뺏은 사람이 있으면 그 사람
       // 끌려온 사람이 있으면 탱커와 번갈아 맞음 (P-PULL)
       const pulled = f.party.filter(u => u.alive && u.pulled && u !== tk);
       if (pulled.length) {
@@ -89,8 +90,8 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         const u = tk ? (i === 0 ? null : pulled[i - 1]) : pulled[i];
         if (u) { damage(f, u, u.pulled!.dmg, false, 'party'); return; }
       }
-      if (tk && tk !== tk0) { damage(f, tk, e.dmg * (0.7 + 0.6 * f.rng()), false, 'fixed'); return; } // 흘린 평타: 탱커가 받았을 만큼 (딜러 방어력 배율 없이)
-      if (tk) autoHit(f, tk, e.dmg);
+      if (tk?.me && f.thr?.steal) { damage(f, tk, (tk.max * THREAT.healerHit * (0.7 + 0.6 * f.rng())) / f.dmgMult, false, 'fixed'); return; } // 나를 봄: 내 최대 체력 15% 안팎 (보스 배율을 빼고, 보호막 · 피해 감소는 그대로)
+      if (tk) autoHit(f, tk, e.dmg); // 뺏은 딜러는 자기 방어력으로 맞음 (Lim 2번 C: 근접 5/3 · 원거리 7/3)
       return;
     }
     case 'tank':
@@ -98,6 +99,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
         const u = unitById(f, id);
         if (!u) continue;
         damage(f, u, s.dmg!, false, 'tank');
+        u.busterAt = f.t; // 어그로 (96): 강타를 맞은 1초는 탱커 집중
         if (e.debuff && u.alive) applyDebuff(f, u, e.debuff); // 물어뜯기 독 · 공허 중첩
       }
       return;

@@ -24,7 +24,7 @@ import type { Tune, TuneTable } from '../data/tune';
 import { autoHealer } from '../engine/auto';
 import { restCarry } from '../engine/dungeon';
 import { create, recruitParty, step } from '../engine/fight';
-import type { Carry } from '../engine/types';
+import type { Carry, RosterEntry } from '../engine/types';
 import { SKILLS } from '../data/skills';
 import { rampFour } from '../data/progression';
 import { rampLevel, rampPlayer, usesRamp } from './ramp';
@@ -72,18 +72,26 @@ export interface Run {
   reason: string;
   /** 파티가 받은 피해를 치유 한 번 크기로 나눈 값 (구간 합) */
   heals: number;
+  /** 어그로 (96): 딜러가 · 내가 뺏은 횟수 (구간 합) */
+  steals?: number;
+  healerSteals?: number;
+  /** 어그로 보정용: 딜러 · 나의 위협 ÷ 탱커 위협 평균 (첫 구간) */
+  thrRatio?: { d: number; me: number };
 }
 /** 특수능력 프리셋: common = 대표 공통 특수능력 (GEAR_SPECS), class = 그 직업 전용 특수능력 (classSpecs, 79 전용장비 밸런스) */
 export type SpecMode = 'common' | 'class';
+/** sim 손잡이 (기준 판에서 바꿔 보기, 96 어그로 레벨 차이 판): party = 뽑은 파티를 고침, heroUp = 내 레벨 + */
+export interface RunTweak { party?: (p: RosterEntry[], stageLv: number) => void; heroUp?: number }
 /** 한 판: 장소의 구간을 차례로 (구간 사이 휴식, 파티는 첫 구간에서 뽑은 그대로). tune을 주면 모든 구간에 그 값 (data/tune 대신) */
-export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number, tune?: Tune, specs: SpecMode = 'common'): Run {
+export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number, tune?: Tune, specs: SpecMode = 'common', tweak?: RunTweak): Run {
   const segs = c.fights(d), s = standard(c, d);
   const party = recruitParty(segs[0], seed, { abilities: true, myLv: s.heroLv ?? s.lv, stageLv: s.lv }); // 97 FM: 저마다 레벨 (칸 ±1)
+  tweak?.party?.(party, s.lv);
   // 순차 레벨링 기준이면 시드마다 그 플레이어의 드롭 장비 (레벨은 시드와 상관없음)
-  const rp = s.gear === 'ramp' ? rampPlayer(c, d, hero, seed) : null, lv = s.heroLv ?? s.lv;
+  const rp = s.gear === 'ramp' ? rampPlayer(c, d, hero, seed) : null, lv = (s.heroLv ?? s.lv) + (tweak?.heroUp ?? 0);
   const gear = rp ? { gearStats: gearStatsOf(rp.eq, rp.lv), specs: specsOf(rp.eq, hero) }
     : { gear: s.gear as GearId, specs: specs === 'class' ? classSpecs(s.gear as GearId, hero, seed) : presetSpecs(s.gear as GearId, hero) };
-  let carry: Carry | undefined, time = 0, heals = 0;
+  let carry: Carry | undefined, time = 0, heals = 0, steals = 0, healerSteals = 0, thrRatio: Run['thrRatio'];
   for (let i = 0; i < segs.length; i++) {
     const f = create({
       encounter: segs[i], diff: d, seed: seed + i * 7919, hero, level: lv, heroLv: lv, stageLv: s.lv,
@@ -91,13 +99,14 @@ export function runOnce(c: ContentDef, d: DiffName, hero: HeroKey, seed: number,
     });
     const hp0 = f.party.reduce((a, u) => a + u.hp, 0);
     while (!f.over && f.t < MAX_T) { autoHealer(f); step(f); f.events.length = 0; }
-    time += f.t;
+    time += f.t; steals += f.stats.steals ?? 0; healerSteals += f.stats.healerSteals ?? 0;
+    if (f.thr && !thrRatio && f.thr.acc.dn) thrRatio = { d: f.thr.acc.d / f.thr.acc.dn, me: f.thr.acc.mn ? f.thr.acc.me / f.thr.acc.mn : 0 };
     // 받은 피해 = 그동안 들어간 치유 + 줄어든 체력 (넘친 피해 · 보호막은 빼고)
     heals += (f.stats.healed + hp0 - f.party.reduce((a, u) => a + Math.max(0, u.hp), 0)) / (SKILLS.heal.amt! * f.gear.heal * f.power);
-    if (f.over !== 'win') return { win: false, time, reason: f.over ? f.reason : '시간 초과', heals };
+    if (f.over !== 'win') return { win: false, time, reason: f.over ? f.reason : '시간 초과', heals, steals, healerSteals, thrRatio };
     carry = restCarry(f, REST);
   }
-  return { win: true, time, reason: '', heals };
+  return { win: true, time, reason: '', heals, steals, healerSteals, thrRatio };
 }
 
 /**
