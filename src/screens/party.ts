@@ -15,7 +15,7 @@ import { create, recruitParty } from '../engine';
 import { withBond } from '../game/bond';
 import { recommendPick } from '../game/recommend';
 import { Flow, newSeed } from '../game/flow';
-import { autoPick, bondOf, guildNicks, guildOpen, guildRoster, memberEntry, savePick, sizeKey, slotsOf, togglePick } from '../game/guild';
+import { autoPick, bondOf, guildNicks, guildOpen, guildRoster, isGuildParty, memberEntry, savePick, sizeKey, slotsOf, togglePick } from '../game/guild';
 import { recLevel } from '../game/guide';
 import { runMode } from '../game/runmode';
 import { settle } from '../game/settle';
@@ -23,7 +23,7 @@ import { commit, firstDungeonNow, G, healerLevel, heroNow, talentsNow } from '..
 import { TUT } from '../game/tutorial';
 import { classIcon, memDetailHtml, memRowHtml, ROLE_ICON } from './members';
 import { battle, esc, go, ROLE, screen } from './kit';
-import { classEmblem, floorArtOf, LOCK, uiIcon } from './art';
+import { classEmblem, floorArtOf, gameIcon, LOCK, uiIcon } from './art';
 import { afxRows, afxTags, ARROW, BOOK, flowHead, guides, recommendedLevel, segTabs } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
@@ -124,7 +124,7 @@ function guildPickHtml(stage: number): string {
       const on = Flow.gpick.includes(m.id);
       const e = memberEntry(G.save, m, Flow.seed);
       const ks = e.know?.[boss] ?? 0; // 이 보스 공략 숙지 (93 7-1)
-      return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, bond: bondOf(G.save, m.nick), member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, tag: ks ? `숙지 ${ks}` : '', gold: m.boost ? `후원 ${m.boost}` : '', extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
+      return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, bond: bondOf(G.save, m.nick), member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, tag: ks ? `${gameIcon('know', '')}숙지 ${ks}` : '', gold: m.boost ? `후원 ${m.boost}` : '', extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
     }).join('')}
     ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: m.lv ?? stage, bond: bondOf(G.save, m.nick) }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
 }
@@ -256,6 +256,7 @@ export function depart(): string {
   battle().start({
     content: c.key, name: Flow.chal ? `도전 ${Flow.chal}단계` : c.name, segs: c.fights(Flow.diff), diff: Flow.diff, level: healerLevel(), heroLv: G.save.player.level, stageLv: m.stage, gearStats: gearStatsOf(G.save.gear.equipped, G.save.player.level),
     affixes: m.affixes, bossMult: m.bossMult, limit: m.limit, chal: m.chal || undefined,
+    guildFirst: FEATURES.guild && isGuildParty(Flow.party!) && (c.kind === 'dungeon' || c.kind === 'raid') && !G.save.guild.firsts.includes(`${c.key}|${Flow.diff}`),
     party: Flow.party!, seed: Flow.seed, coach, hero: heroNow(), talents: talentsNow(), specs: specsOf(G.save.gear.equipped, heroNow()),
     onEnd(r) {
       Flow.result = r;

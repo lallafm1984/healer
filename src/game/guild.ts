@@ -365,7 +365,7 @@ export function growStats(m: GuildMember, levels: number, deed: Deed | undefined
  */
 export function guildAfter(
   save: SaveData, r: () => number,
-  o: { win: boolean; quit: boolean; grade: Grade | null; diff: DiffName; stage: number; raid: 0 | 10 | 20; content: string; kind: string; party: { nick: string; deed?: Deed }[]; roster: RosterEntry[]; encs?: readonly string[] },
+  o: { win: boolean; quit: boolean; grade: Grade | null; diff: DiffName; stage: number; raid: 0 | 10 | 20; content: string; kind: string; party: { nick: string; deed?: Deed }[]; roster: RosterEntry[]; encs?: readonly string[]; time?: number },
 ): GuildAfter {
   const g = save.guild, out: GuildAfter = { members: [], rest: 0, boosted: [], fame: 0, first: false };
   if (o.quit || !o.win) return out;
@@ -398,7 +398,10 @@ export function guildAfter(
   if (guildParty) {
     g.wins++;
     out.fame = o.raid === 20 ? FAME.raid20 : o.raid === 10 ? FAME.raid10 : FAME.win;
-    if (first) { g.firsts.push(firstKey); out.fame += FAME.first; out.first = true; }
+    if (first) {
+      g.firsts.push(firstKey); out.fame += FAME.first; out.first = true;
+      g.firstLog = [...g.firstLog, { key: firstKey, day: dayKey(), sec: Math.round(o.time ?? 0), nicks: out.members.map(x => x.nick) }].slice(-200);
+    }
     g.fame += out.fame;
     const w = save.weekly.guild;
     w.ran = [...new Set([...(w.ran ?? []), ...out.members.map(x => x.nick)])];

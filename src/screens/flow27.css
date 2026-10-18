@@ -177,6 +177,7 @@
 .bond.red { color: #ff6f61; }
 .bond.gold { color: #ffd34d; text-shadow: 0 0 4px #ffd34d88; }
 .bond small { font: 800 10px/1 var(--font-body); color: inherit; }
+.bond > .g-ic { width: 15px; height: 15px; object-fit: contain; align-self: center; }
 /* 능력치 세 묶음 × 네 줄 (97): 1~5 회색 · 6~10 흰색 · 11~15 초록 · 16~20 금빛, 역할 핵심 굵게 */
 .fm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0 0 4px; }
 .fm-grid section { min-width: 0; }
@@ -213,6 +214,7 @@
 #s-party .f-why .chip { min-height: 24px; padding: 2px 8px; border-radius: 12px; font: 700 11px/1.4 var(--font-body); white-space: nowrap; }
 /* 길드원 줄 둘째 줄의 작은 표 (숙지 n · 예전 길드원) */
 .pcard.f-mem .f-l2 > .f-tag { flex: none; padding: 0 5px; border: 1px solid #ffffff2e; border-radius: 6px; font-size: 10.5px; line-height: 16px; white-space: nowrap; }
+.pcard.f-mem .f-l2 > .f-tag > .g-ic { width: 12px; height: 12px; margin-right: 2px; vertical-align: -2px; object-fit: contain; }
 /* 후원 남은 판 (98): 금빛 */
 .pcard.f-mem .f-l2 > .f-tag.gold { border-color: #c99b3f; color: #ffd34d; background: #3a2a0f; }
 #s-party .f-adrr { align-self: flex-start; }

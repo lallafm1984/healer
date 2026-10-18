@@ -131,7 +131,7 @@ export interface BattleApi {
     /** 착용 장비 특수능력 값 (42, data/equipment specsOf) */
     specs?: Record<string, number>;
     /** 어픽스·보스 배율·제한시간 (32 난이도 어픽스, 13 3-2 주간 도전) */
-    affixes?: string[]; bossMult?: { hp: number; dmg: number }; limit?: number; chal?: number;
+    affixes?: string[]; bossMult?: { hp: number; dmg: number }; limit?: number; chal?: number; guildFirst?: boolean;
   }): void;
   settings(s: object): void;
   /** 전투 화면에서 바꾼 설정 (일시정지의 자동 치유) → 저장 */

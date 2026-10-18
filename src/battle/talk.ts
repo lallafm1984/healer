@@ -5,6 +5,7 @@
  */
 import { ABILITIES } from '../data/abilities';
 import { hasOwnLines, pickLine, SITS, type Speaker, type TalkSit } from '../data/talk';
+import { bondLv, FRIEND_LV } from '../data/guild';
 import { hotCount, type Fight, type FightEvent, type Unit } from '../engine';
 import type { BubbleKind } from './board';
 
@@ -30,7 +31,11 @@ const EMOTES: Record<string, TalkSit[]> = {
 };
 const EMOTE_OF = new Map<TalkSit, string>(Object.entries(EMOTES).flatMap(([e, sits]) => sits.map(s => [s, e] as const)));
 /** 승리 한마디 (43 4장 C fx-talk-cheer) */
-const CHEER = new Set<TalkSit>(['win', 'winClean', 'winClose', 'segWin']);
+const CHEER = new Set<TalkSit>(['win', 'winClean', 'winClose', 'segWin', 'guildFirst']);
+/** 버릇 참음 (93): 단점이 있는 성격 (대사 데이터의 그 상황 성격) · 침착 · 판단 평균이 이만큼 이상 */
+const TAME = new Set<string>((SITS.guildTame as { pers?: readonly string[] }).pers ?? []);
+const TAME_AT = 14;
+const tameLv = (u: Unit) => ((u.fmStats?.composure ?? 10) + (u.fmStats?.judgment ?? 10)) / 2;
 
 /** 전투를 시작할 때 화면이 알려 주는 것 */
 export interface TalkStart {
@@ -41,6 +46,8 @@ export interface TalkStart {
   cont: number;
   affix: boolean;
   chal: boolean;
+  /** 길드파티가 이 장소 · 난이도를 처음 깨는 판 (93 길드 첫 처치) */
+  guildFirst?: boolean;
 }
 
 interface Cand {
@@ -133,6 +140,7 @@ export function createTalk(rand: () => number = Math.random) {
       order: false, orderWrong: 0, daze: false, mana: { low: false, empty: false }, healerLow: false,
       boss: new Set<number>(), long: false, enrageSoon: false, partyLowAt: -1e9, fullSince: null as number | null, allFullAt: -1e9,
       threatAt: 0, idleAt: 0, leader: 0, leaderAt: 0, lastStand: false, raidCasts: 0, over: false, pulling: true, startAt: 0,
+      knowSaid: false, tameSaid: false, dodges: new Map<number, number>(),
     };
   }
 
@@ -159,9 +167,17 @@ export function createTalk(rand: () => number = Math.random) {
     const party = f.party.filter(u => !u.me).map(u => u.nick).join(',');
     const retry = i.cont > 0 || (party === lastParty && lastLost && i.seg === 0);
     lastParty = party; lastLost = false;
-    // 첫 마디: 인사 · 다시 도전 · 다음 구간
-    const first: TalkSit | null = retry ? 'retry' : i.seg > 0 ? 'nextSeg' : 'hello';
-    queue.push({ at: now + 250, c: { sit: first } });
+    // 첫 마디: 인사 · 다시 도전 · 다음 구간. 첫 구간 인사는 길드 (93): 단짝 · 원정대 출발 · 아는 얼굴 (친구)
+    let first: TalkSit = retry ? 'retry' : i.seg > 0 ? 'nextSeg' : 'hello', firstU: Unit | undefined;
+    if (first === 'hello') {
+      const others = f.party.filter(u => !u.me), guild = others.filter(u => u.gid != null);
+      const buddy = guild.filter(u => bondLv(u.bond) >= 12), friends = others.filter(u => u.gid == null && bondLv(u.bond) >= FRIEND_LV);
+      const one = (xs: Unit[]) => xs[Math.floor(rand() * xs.length)];
+      if (buddy.length && rand() < 0.6) { first = 'guildBuddy'; firstU = one(buddy); }
+      else if (guild.length && guild.length * 2 >= others.length && rand() < 0.7) { first = 'guildGo'; firstU = one(guild); }
+      else if (friends.length && rand() < 0.7) { first = 'guildMeet'; firstU = one(friends); }
+    }
+    queue.push({ at: now + 250, c: { sit: first, u: firstU } });
     // 둘째 마디: 콘텐츠·난이도·어픽스 중 하나
     const content: TalkSit = f.enc.comp.tank >= 2 || f.party.length >= 10 ? 'pullRaid' : f.bodyHp ? (f.mobs.some(m => m.elite) ? 'pullElite' : 'pullTrash') : 'pullBoss';
     const extra: TalkSit[] = [];
@@ -297,7 +313,10 @@ export function createTalk(rand: () => number = Math.random) {
       st.over = true; queue = [];
       lastLost = over.result === 'lose';
       const sit = endSit(f, over.result);
-      tryCand(out, { sit }, now, true);
+      // 길드 첫 킬 (93): 마지막 구간을 이긴 길드파티 첫 처치면 길드원이 먼저
+      const gl = sit !== 'segWin' && over.result === 'win' && info.guildFirst ? f.party.filter(u => !u.me && u.alive && u.gid != null) : [];
+      if (gl.length) tryCand(out, { sit: 'guildFirst', u: gl[Math.floor(rand() * gl.length)] }, now, true);
+      else tryCand(out, { sit }, now, true);
       if (rand() < 0.5) queue.push({ at: now + 400, c: { sit } });
       return out;
     }
@@ -407,6 +426,15 @@ export function createTalk(rand: () => number = Math.random) {
       else if (tel.kind === 'buster') add('buster');
       else if (tel.kind === 'aoe') add('aoeWarn');
       if (tel.safe && !pads) add('safeCall');
+      // 외운 패턴 (93): 공략 숙지 3단계 길드원, 전투당 한 번
+      if (!st.knowSaid) { const k = f.party.filter(u => u.alive && !u.me && u.know === 3); if (k.length) { st.knowSaid = true; add('guildKnow', k[Math.floor(rand() * k.length)]); } }
+    }
+    // 버릇 참음 (93 · 97): 단점이 있는 성격인데 침착 · 판단이 높은 길드원이 장판을 피함, 전투당 한 번
+    if (!st.tameSaid) for (const u of f.party) {
+      if (!u.alive || u.me || !u.did || !u.pers || !TAME.has(u.pers) || tameLv(u) < TAME_AT) continue;
+      const d0 = st.dodges.get(u.id) ?? 0;
+      st.dodges.set(u.id, u.did.dodge);
+      if (u.did.dodge > d0 && d0 > 0) { st.tameSaid = true; add('guildTame', u); break; }
     }
     for (const [id, seen] of tels) {
       if (nowTels.has(id)) continue;
@@ -442,7 +470,7 @@ export function createTalk(rand: () => number = Math.random) {
       if (r > 0.65) s.marks[50] = false;
       if (r > 0.45) { s.marks[25] = false; s.marks[10] = false; }
       s.low = Math.min(s.low, r);
-      if (r >= 0.6 && s.low < 0.25) { add(s.low < 0.1 && r >= 0.5 ? 'clutch' : 'saved', u); s.low = r; }
+      if (r >= 0.6 && s.low < 0.25) { add(s.low < 0.1 && r >= 0.5 ? 'clutch' : u.gid != null && rand() < 0.5 ? 'guildSaved' : 'saved', u); s.low = r; }
       else if (r >= 0.999 && s.low < 0.5) { add('fullHp', u); s.low = r; }
       else if (r >= 0.999) s.low = r;
       // 힐 못 받음
