@@ -1,4 +1,5 @@
 import { armorFactor, type DamageAim } from '../data/armor';
+import { healThreat, takenThreat } from './threat';
 import { SPREAD } from '../data/bosses';
 import { HEROES } from '../data/heroes';
 import { SANCTUARY } from '../data/heroConst';
@@ -86,6 +87,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   }
   if (f.zones.length && submerged(f, u)) amt *= 1 - TIDE_CUT; // 어둠물 밀물 (P-TIDE, 59 5장): 잠긴 사람은 받는 치유 절반 (지속 힐 · 광역 힐도)
   if (f.watch && f.t >= f.watch.until) f.watch.fill += amt * f.watch.rate; // 주시 (P-AGGRO): 넘친 치유까지 게이지에
+  if (f.thr) healThreat(f, amt); // 어그로 (96): 넘친 치유까지 위협 (주시가 있는 보스는 주시만)
   const hp0 = u.hp, eff = Math.max(0, Math.min(amt, healTop(u) - u.hp)); // 치유 상한 (P-CAP): 상한 위는 넘친 치유
   u.hp += eff;
   u.got += eff;
@@ -350,6 +352,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     abHurt(f, u); // 거합 반격
   }
   u.hp -= amt;
+  if (f.thr) takenThreat(f, amt); // 어그로 (96): 내 위협 = 치유 ÷ 받은 피해
   if (dripping) { const w = (u.drip ??= { amt: 0, t0: f.t }); w.amt += amt; } // 피해 숫자 (화면 빨간 숫자): 틱 피해는 모아서
   else if (amt >= 0.5) emit(f, { type: 'dmg', id: u.id, amt: Math.round(amt) });
   if (f.hero === 'astrologer') logDmg(f, u, amt); // 별의 기억 (79 4-2): 보호막 · 피해 감소 뒤 실제로 받은 피해

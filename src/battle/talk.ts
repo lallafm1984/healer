@@ -276,7 +276,7 @@ export function createTalk(rand: () => number = Math.random) {
       const u = byId(ev.id);
       if (!u || out.some(b => b.id === u.id)) continue;
       if (ev.sit && SOFT_BARKS.includes(ev.sit)) { soft.push({ sit: ev.sit, u }); continue; }
-      const text = ev.sit ? lineFor({ sit: ev.sit }, u) : null;
+      const text = ev.sit ? lineFor({ sit: ev.sit, ally: ev.ally != null ? byId(ev.ally) : undefined }, u) : null;
       say(out, u, text || ev.text, ev.sit ?? null, now);
     }
 

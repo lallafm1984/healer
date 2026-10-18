@@ -13,7 +13,7 @@ import { CLASSES, type ClassKey } from '../data/classes';
 import { SKILLS } from '../data/skills';
 import { TALENT_DEF } from '../data/talents';
 import { NAMED, SPECS, type SpecGroup } from '../data/specials';
-import { aggroTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, busterOn, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
+import { bossTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, busterOn, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
 import type { TotemKind } from '../engine/types';
 import type { HeroKey } from '../data/heroes';
 import { absorbLeft, HEALER_SHIELD } from '../engine/abilities';
@@ -50,7 +50,7 @@ const TIDE = 0x241a4d, TIDE_HI = 0x8a7cff, DEBT = 0xb456d6, DEBT_HI = 0xf0cdfa;
 const TIDE_TINT: Record<string, [number, number]> = { sea: [0x1f8f8b, 0x9ff3ec], poison: [0x2f5a24, 0x3cc24a] };
 const C = {
   cell: 0x15120e, cellLine: 0x2c241b, line: 0x080605, ink: 0xf1e4c8, dead: 0x8a7f6a, gold: 0xf0c46a, white: 0xffffff,
-  zone: 0xe2402e, zoneHi: 0xff6a4a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0x4dff7c, over: 0xa99a7e,
+  zone: 0xe2402e, zoneHi: 0xff6a4a, tel: 0xff4a3d, danger: 0xff3b30, tankMark: 0xff6a60, threat: 0xf08a24, teal: 0x51c6c0, heal: 0x8cf29c, crit: 0x4dff7c, over: 0xa99a7e,
   /**
    * 보호막 (2026-10-16 Lim 「실드는 파란색」): 떠오르는 숫자 · 시간 원. 치유 민트 · 초록과 다른 파랑.
    * 원은 짙은 코발트 + 흰 숫자: 물방울 지속 힐 원 (밝은 하늘색 + 검은 숫자) · 마법 디버프 배지 (#3D8BFF 캡슐 + 검은 글자)와 밝기 · 글자색으로 구분
@@ -1586,7 +1586,7 @@ export function render(now: number): void {
   // 파티원
   const busterIds = new Set<number>(); for (const tl of F.tels) if (tl.kind === 'buster') tl.units.forEach(id => busterIds.add(id));
   const castTarget = F.cast ? F.cast.uid : -1;
-  const tank = aggroTarget(F); // 보스가 때리는 사람 (탱커가 모두 쓰러지면 대신 막는 사람)
+  const tank = bossTarget(F); // 보스가 때리는 사람 (탱커가 모두 쓰러지면 대신 막는 사람 · 어그로를 뺏은 사람, 96)
   const over: { u: Unit; x: number; y: number; deb: Unit['debuffs'][number] | undefined }[] = []; // 배지·글자는 칸을 다 그린 뒤 위에
   for (const u of F.party) {
     if (!u.alive) {
@@ -1937,6 +1937,8 @@ export function render(now: number): void {
     else if (u.redu > 0) { const R = ringRadius(`reduction${u.id}`, 'hex', x, y, r * 1.1, 2.5), a = u.redu < 2 ? 0.35 + 0.6 * pulse : 0.9; if (!edgeRing('fx-edge-bark', x, y, R, Math.max(5, s * 0.13), a)) hexPoly(overG, x, y, R).stroke({ width: 2.5, color: melting && u.redu > 0.5 ? MELT : HOT_COLOR.sprout, alpha: a }); }
     if (u.sacr > 0) { const R = ringRadius(`sacrifice${u.id}`, 'hex', x, y, r * 1.16, 2); if (!edgeRing('fx-link-chain', x, y, R, Math.max(4, s * 0.1))) dashPoly(overG, hexPts(x, y, R), 5, 4, 2, melting ? MELT : C.gold); }
     if (F.beacon === u.id) { const R = ringRadius(`beacon${u.id}`, 'circle', x, y, r * 1.22, 2.5); if (!roundRing('fx-ring-beacon', x, y, R + 3, 0.95)) dashCircle(overG, x, y, R, 3, 5, 2.5, C.gold, 0.95); }
+    // 어그로 (96 5번 A): 위협이 뺏는 선의 90%인 딜러 = 주황 경고 띠 (fx-edge-threat)가 천천히 깜빡임 (뺏기 약 0.5초 전, 미리 보호막 · 지속 힐). 뺏으면 조준 표식이 옮겨감
+    if (F.thr?.warn.includes(u.id) && F.thr.steal?.id !== u.id) { const R = ringRadius(`threat${u.id}`, 'hex', x, y, r * 1.1, 3), a = S.reducedEffects ? 0.85 : 0.5 + 0.5 * zpulse; if (!edgeRing('fx-edge-threat', x, y, R, Math.max(6, s * 0.16), a)) hexPoly(overG, x, y, R).stroke({ width: 3, color: C.threat, alpha: a }); }
     if (castTarget === u.id) hexPoly(overG, x, y, ringRadius(`cast${u.id}`, 'hex', x, y, r * 1.12, 3)).stroke({ width: 3, color: hex(SEL) });
     if (ui.selectedUnitId === u.id) {
       hexPoly(overG, x, y, ringRadius(`selected${u.id}`, 'hex', x, y, r * 1.04, 2.5)).stroke({ width: 2.5, color: C.white });

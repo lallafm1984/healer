@@ -242,6 +242,15 @@ export interface Unit {
   ps?: PersState;
   /** 능력치가 정한 전투 값 (97 FM, 공개모집 1000명). 없으면 예전 값 */
   fm?: import('../data/fm').FmFx;
+  /** 그날 능력치 (꾸준함 흔들림을 더한 값, 어그로 96이 기술 숙련 · 집중 · 반응 · 판단 · 침착을 읽음) */
+  fmStats?: import('../data/fm').Stats;
+  /** 그 사람 레벨 (공개모집 자기 레벨 · 길드원 · 없으면 칸 레벨). 어그로 레벨 차이 */
+  lv?: number;
+  /** 어그로 (96): 뺏는 선 가까이 와서 딜을 줄인 동안 · 보스를 뺏었다 돌려준 뒤 조심하는 때까지 (딜 줄임, 다시 안 뺏음) */
+  thrEase?: boolean;
+  thrCool?: number;
+  /** 강타 예고를 맞은 시각 (어그로: 탱커 집중) */
+  busterAt?: number;
   /** 짝꿍 (95): 짝 (아군 id). 붙어 있으면 둘 다 회피 + */
   pairWith?: number;
   /** 칭찬왕 · 보은형 (95): 체력 25% 아래로 내려간 적 있음 (60% 위로 오면 살아남) */
@@ -431,7 +440,9 @@ export interface Zone {
 
 export type FightEvent =
   /** 파티원 말풍선. sit = 상황 (41 문서, 프로토타입 규칙이면 없음) */
-  | { type: 'bark'; id: number; text: string; sit?: BarkSit }
+  | { type: 'bark'; id: number; text: string; sit?: BarkSit; ally?: number }
+  /** 어그로 (96): 보스가 id를 봄 (from = 놓친 사람) */
+  | { type: 'aggro'; id: number; from: number }
   | { type: 'heal'; id: number; amt: number; eff: number; crit: boolean }
   /**
    * 지속 · 간접 회복 (지속 힐 틱 · 토템 · 비구름 · 봉화 나눔 …, 직접 힐 아닌 heal): 화면은 직접 힐과 같은 숫자 · 같은 자리 (빛 · 소리는 없음).
@@ -636,6 +647,10 @@ export interface Cast {
 }
 
 export interface FightStats {
+  /** 어그로 (96): 딜러가 뺏은 횟수 · 내가 (힐러) 뺏은 횟수 · 뺏긴 동안 보스에게 맞은 피해 */
+  steals?: number;
+  healerSteals?: number;
+  stealDmg?: number;
   healed: number;
   overheal: number;
   deaths: number;
@@ -813,6 +828,8 @@ export interface Fight {
   /** 진동 (P-QUAKE)으로 잠긴 스킬: 남은 초 / 처음 초 */
   lock: Partial<Record<SkillKey, { left: number; total: number }>>;
   /** 주시 (P-AGGRO): 눈 게이지 (넣은 치유량) / 가득 / 보스가 나를 노리는 끝 시각 / 다음 한 대 */
+  /** 어그로 (96, engine/threat). null = 끈 판 */
+  thr?: import('./threat').ThreatState | null;
   watch: { fill: number; max: number; rate: number; until: number; next: number; sec: number; every: number; dmg: number } | null;
   /** 걸어오는 쫄이 흡수되어 보스가 주는 피해가 커진 몫 (P-MARCH, 0.1 = +10%). 화면 표시용, 실제 배율은 dmgMult에 곱함 */
   empower: number;

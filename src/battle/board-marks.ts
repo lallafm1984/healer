@@ -11,5 +11,5 @@ export const GIM_ICON: [(d: Unit['debuffs'][number]) => boolean, string][] = [
   [d => !!d.swell, 'icon-gim-swell'], [d => d.end?.p === 'flip', 'icon-gim-flip'],
   [d => !!d.trap, 'icon-gim-burst'], [d => d.cureAt != null && d.cureAt < 1, 'icon-gim-full'],
 ];
-export const MARK_ART = [...Object.values(DEBUFF_EDGE), 'fx-edge-buster', 'fx-edge-flame', 'fx-edge-glass', 'fx-edge-plate', 'fx-edge-bark', 'fx-edge-mist', 'fx-edge-spark', 'fx-edge-ember',
+export const MARK_ART = [...Object.values(DEBUFF_EDGE), 'fx-edge-buster', 'fx-edge-flame', 'fx-edge-glass', 'fx-edge-plate', 'fx-edge-bark', 'fx-edge-mist', 'fx-edge-spark', 'fx-edge-ember', 'fx-edge-threat',
   'fx-link-chain', 'fx-ring-guardian', 'fx-ring-beacon', 'icon-gim-focus', 'icon-gim-invert', 'icon-gim-link'];

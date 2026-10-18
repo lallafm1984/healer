@@ -4,7 +4,6 @@
  * 95 손버릇 (직업 스킬 쓰는 버릇)은 abilities.ts, 쫄 · 보스 딜 나누기는 fight.ts partyHits, 받는 치유는 core.ts heal에서 이 파일 값을 읽음
  */
 import { hexDist } from './board';
-import { aggroTarget } from './bossParts';
 import { addMod, allyHeal } from './abilities';
 import { bark, cellOf, living } from './core';
 import { adjAllies, centerX, dangerAt, moveTo } from './movement';
@@ -51,9 +50,6 @@ export interface PersState {
   seenAdds?: Map<number, number>;
   gathered?: boolean;
   /** 어그로 흘림: 다음에 볼 시각 · 놓친 동안 맞는 사람 · 그 끝 */
-  slipAt?: number;
-  slipTo?: number;
-  slipUntil?: number;
   /** 자급자족 · 자립형: 다시 회복할 수 있는 시각 */
   careAt?: number;
   regAt?: number;
@@ -106,7 +102,6 @@ export function initPers(f: Fight): void {
     if (u.p.focus) ps.focusFrom = 0;
     if (u.p.learn) { ps.seen = {}; ps.lv = 0; }
     if (u.p.gather) ps.seenAdds = new Map();
-    if (u.p.slip) ps.slipAt = u.p.slip.first;
     if (u.p.wind) { ps.dodgeTels = new Set(); ps.streak = 0; }
     u.ps = ps;
   }
@@ -537,14 +532,6 @@ export function gatherMult(f: Fight): number {
   return 1;
 }
 
-/** 어그로 흘림: 보스 평타를 맞을 사람. 탱커가 어그로를 놓친 동안은 그 딜러 (bossParts auto) */
-export function slipHit(f: Fight, tk: Unit | null): Unit | null {
-  const ps = tk?.ps;
-  if (!ps || ps.slipTo == null || ps.slipUntil == null || f.t >= ps.slipUntil) return tk;
-  const v = f.party.find(x => x.id === ps.slipTo);
-  return v && v.alive && !v.lift ? v : tk;
-}
-
 /** 0.2초마다 (이동 · 반응 중에도, fight.ts step): 95 성격의 시간 일 */
 export function persTick(f: Fight): void {
   if (f.k % 4 !== 0) return;
@@ -557,7 +544,6 @@ export function persTick(f: Fight): void {
       ps.addWave = any;
     }
     if (p.gather) gatherTick(f, u, p.gather, ps);
-    if (p.slip) slipTick(f, u, p.slip, ps);
     const still = !u.lift && !(u.sleep != null && u.sleep > f.t);
     if (p.selfCare && still && u.hp < u.max * p.selfCare.hp && f.t + 1e-9 >= (ps.careAt ?? 0)) {
       ps.careAt = f.t + p.selfCare.cd;
@@ -610,22 +596,6 @@ function gatherTick(f: Fight, u: Unit, g: NonNullable<Unit['p']['gather']>, ps: 
   }
   if (pulled && !ps.gathered) { ps.gathered = true; bark(f, u, null, false, 'gather'); }
   if (!f.mobs.some(m => m.alive && m.add)) ps.gathered = false;
-}
-
-/** 어그로 흘림: every초마다, 보스를 잡고 있고 나를 노리는 강타 예고가 없을 때 chance로 sec초 동안 딜러 (근접 먼저)에게 평타가 감 */
-function slipTick(f: Fight, u: Unit, s: NonNullable<Unit['p']['slip']>, ps: PersState): void {
-  if (ps.slipUntil != null && f.t >= ps.slipUntil) { ps.slipUntil = undefined; ps.slipTo = undefined; }
-  if (f.t + 1e-9 < (ps.slipAt ?? 0)) return;
-  ps.slipAt = f.t + s.every;
-  if (f.bodyHp || aggroTarget(f) !== u || f.tels.some(t => t.kind === 'buster' && t.units.includes(u.id))) return;
-  if (f.rng() >= s.chance) return;
-  const pool = living(f).filter(v => !v.me && v.role !== 'tank');
-  const melee = pool.filter(v => v.role === 'melee');
-  const list = melee.length ? melee : pool;
-  if (!list.length) return;
-  ps.slipTo = list[Math.floor(f.rng() * list.length)].id;
-  ps.slipUntil = f.t + s.sec;
-  bark(f, u, null, true, 'aggroSlip');
 }
 
 // ---------- 칸 고르기 ----------

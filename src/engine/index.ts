@@ -9,6 +9,7 @@ export { create, recruitParty, rollParty, step } from './fight';
 export { canTarget, knows, knowsPassive, skillUsesSpent, SLOT_OF, slotKey, use } from './healer';
 export { beaconShare, heroPassive, heroRing, hotCount, setBeacon } from './heroes';
 export { reviveTarget } from './revive';
+export { bossTarget } from './threat';
 export { rngFrom } from './rng';
 export { activeOn, areaRadius, cdMax, costOf, talentReady, talentSlots, talentUsesSpent, useTalent, type TalentSlot } from './talents';
 export { partyDps, unitDps } from './units';
