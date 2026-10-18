@@ -11,7 +11,9 @@ import type { MeterRow } from './meter';
 import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, inRamp, rampXp, restRun, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
-import { foundGuild, guildAfter, isGuildParty, type GuildAfter } from './guild';
+import { feastBonus, foundGuild, guildAfter, isGuildParty, storyArrive, type GuildAfter } from './guild';
+import { jobsAfter, type JobsDone } from './guildjobs';
+import type { StoryKey } from '../data/guild';
 import { lootKey, meritFor, onRun, raidLootOpen, rollover } from './economy';
 import { FEATURES } from '../data/features';
 import { PUB_BONUS } from '../data/missions';
@@ -95,6 +97,10 @@ export interface Settlement {
   bond: import('./bond').BondGain[];
   /** 길드 결성 (93 4-1): 이 판 뒤 원정대가 생김 (창단 멤버 닉네임) */
   founded: string[] | null;
+  /** 스토리 동료 합류 (93 4-4): 들어옴 · 정원이 차서 기다림 */
+  story: { key: StoryKey; how: 'joined' | 'wait' } | null;
+  /** 부탁 쪽지 · 주간 원정 (93 8장) */
+  jobs: JobsDone | null;
   /** 레이드 공훈 (12 3-5) */
   merit: number;
   /** 이번 주 이 레이드 보스·난이도 장비를 이미 받아서 장비 없음 (13 3-4) */
@@ -208,6 +214,11 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const bond = play ? recordBond(save, r, grade === 'S') : [];
   // 길드 v2 (93 · 97): 결성 (Lv 15 · 튜토리얼 뒤 첫 판), 판 뒤 길드원 경험치 · 능력치 · 명성 · 첫 처치
   const founded = FEATURES.guild && play ? foundGuild(save) : null;
+  // 업데이트 묶음 (93 4-4 · 6-3 · 8장): 연회장 인연 +, 첫 10 · 20인 레이드 = 이슬 · 칼날, 부탁 쪽지 · 주간 원정
+  if (FEATURES.guild && play && r.win && isGuildParty(roster)) feastBonus(save, bond);
+  const sz = raidSize(c), story = FEATURES.guild && play && r.win && !r.quit && c.kind === 'raid' ? (sz === 10 ? storyArrive(save, 'isle') : sz === 20 ? storyArrive(save, 'blade') : null) : null;
+  const storyKey: StoryKey | null = story ? (sz === 10 ? 'isle' : 'blade') : null;
+  const jobs = FEATURES.guild && play ? jobsAfter(save, { win: r.win, quit: r.quit, content: c.key, diff: r.diff, roster }) : null;
   const guild = FEATURES.guild && play && roster.some(e => e.gid != null) ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.key, kind: c.kind, party: r.party, roster, encs: c.fights(r.diff), time: r.time }) : null;
 
   // 주간 도전: 제한시간 안에 깨면 기록·다음 단계 (실패해도 단계 유지)
@@ -242,6 +253,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, merit, lootLocked, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, bond, founded,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, merit, lootLocked, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, bond, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
   };
 }

@@ -159,19 +159,41 @@ export function deedOf(x: { did: { dodge: number; move: number; cut: number; bus
  * 그 전투를 함께 이긴 만큼 점수 (학습력 1 → 0.7 · 10 → 1 · 20 → 1.4), 0.5 · 3 · 6점에서 1 · 2 · 3단계 (보통 학습력이면 1 · 3 · 6번).
  * 그 전투에서만: 반응 시간 × · 회피 + · 받는 피해 × (언제 맞고 언제 비킬지 앎). 공개모집은 없음. 크기는 길드 밸런스 (93 7-3)로 맞춤
  */
-export const KNOW = { at: [0.5, 3, 6], react: [1, 0.95, 0.9, 0.8], dodge: [0, 0.01, 0.03, 0.05], taken: [1, 0.99, 0.987, 0.985] };
+export const KNOW: { at: number[]; react: number[]; dodge: number[]; taken: number[] } = { at: [0.5, 3, 6], react: [1, 0.95, 0.9, 0.8], dodge: [0, 0.01, 0.03, 0.05], taken: [1, 0.99, 0.987, 0.985] };
 export const knowGain = (learn: number) => lerp3(learn, 0.7, 1, 1.4);
-export const knowStage = (pt: number) => KNOW.at.filter(x => pt + 1e-9 >= x).length;
+/** 단계 (작전실 단계 war: 문턱을 줄임, 93 6-3) */
+export const knowStage = (pt: number, war = 0) => (WAR_AT[Math.min(4, war)] ?? KNOW.at).filter(x => pt + 1e-9 >= x).length;
+
+// ---------- 시설 (93 6-3, 업데이트 묶음 7번 PR): 골드로 1~5단계 ----------
+export type FacKey = 'feast' | 'war' | 'post';
+export const FAC_KEYS: FacKey[] = ['feast', 'war', 'post'];
+/** 단계마다 골드 (시설 하나 15.5만, 셋 46.5만) */
+export const FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
+export const FAC: Record<FacKey, { name: string; guildLv: number; steps: string[] }> = {
+  feast: { name: '연회장', guildLv: 4, steps: ['길드파티 승리 인연 +10%', '인연 +20%', '인연 +30%', '인연 +40%', '인연 +50%'] },
+  war: { name: '작전실', guildLv: 6, steps: ['숙지 3단계 6번 → 5번', '숙지 2단계 3번 → 2번', '숙지 3단계 5번 → 4번', '숙지 3단계 4번 → 3번', '공략 공유: 3단계 길드원이 있는 보스는 모두 1단계부터'] },
+  post: { name: '모집소', guildLv: 7, steps: ['공고 지원자 +1', '명성 지원자 머무는 날 +2', '공고 골드 −20%', '명성 지원자 하루 +1', '명문 공고 지원자 +2'] },
+};
+/** 연회장: 단계마다 길드파티 승리 인연 점수 +10% (소수는 모아 둠) */
+export const FEAST_BOND = 0.1;
+/** 작전실: 숙지 문턱 (단계 0~4). 5단계 = 공략 공유 */
+export const WAR_AT: number[][] = [[0.5, 3, 6], [0.5, 3, 5], [0.5, 2, 5], [0.5, 2, 4], [0.5, 2, 3]];
+
+// ---------- 부탁 쪽지 · 주간 원정 (93 8장, 업데이트 묶음) ----------
+/** 매일 2장: 길드원이 「○○ 어려움 같이 가자」, 그 사람을 넣고 깨면 끝. 그 사람 인연 +3 · 명성 +2. 날이 바뀌면 새로 (쌓이지 않음) */
+export const REQ = { perDay: 2, bond: 3, fame: 2 };
+/** 주간 원정: 내 레벨에 맞는 3곳 (5인 · 10인 · 20인, 안 열렸으면 던전), 길드파티로 보통 이상. 칸마다 명성 +5, 셋 다 = 원정 상자 (클리어 골드 5판 + 장비 1) */
+export const EXPED = { n: 3, fame: 5, chestGold: 5 };
 
 /** 버릇 = 침착 · 판단 (97 · 93 13-1): 두 칸 평균 1 → 단점 ×1.2 · 10 → ×1 · 20 → ×1/3 (길드원만, 공개모집은 그대로) */
 export const habitOf = (st: Stats) => lerp3((st.composure + st.judgment) / 2, 1.2, 1, 1 / 3);
 
 // ---------- 스토리 동료 (93 4-4, 이번엔 말없는탱만 · 이슬 · 칼날은 업데이트 묶음) ----------
 export const STORY: Record<StoryKey, { nick: string; cls: ClassKey; pers: PersName; ab: string; boost: Partial<Stats> }> = {
-  // 「끝까지 지킴」 고유 스킬은 업데이트 묶음에서. 지금은 「대신 맞기」 (전사), 맷집 ●5 → 맷집 · 방어 높게
-  tank: { nick: '말없는탱', cls: 'warrior', pers: '고집불통', ab: 'warrior.intervene', boost: { tough: 16, armor: 15, position: 13, judgment: 12 } },
-  isle: { nick: '이슬', cls: 'archer', pers: '신중파', ab: 'archer.survivor', boost: { react: 16, evade: 14 } },
-  blade: { nick: '칼날', cls: 'swordsman', pers: '딜 욕심쟁이', ab: 'swordsman.draw', boost: { atk: 16, agility: 13 } },
+  // 고유 스킬 (93 4-4, data/abilities STORY_ROWS): 끝까지 곁에 · 응급 처치 · 일섬 연격. 자질 ●5 → 그 칸 높게
+  tank: { nick: '말없는탱', cls: 'warrior', pers: '고집불통', ab: 'warrior.holdFast', boost: { tough: 16, armor: 15, position: 13, judgment: 12 } },
+  isle: { nick: '이슬', cls: 'archer', pers: '신중파', ab: 'archer.mend', boost: { react: 16, evade: 14 } },
+  blade: { nick: '칼날', cls: 'swordsman', pers: '딜 욕심쟁이', ab: 'swordsman.flurry', boost: { atk: 16, agility: 13 } },
 };
 
 /** 길드 이름 (93 결성 이야기) */

@@ -3,6 +3,7 @@
  * 휴식 (90, 코드 이름 stamina)은 game/stamina.ts
  */
 import { goalBond } from './guild';
+import { EXPED } from '../data/guild';
 import { RAID10_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
@@ -152,6 +153,17 @@ export function claimChest(save: SaveData, r: () => number, now: number, double 
   const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero, classLoot: true, lv: my, tierLv: my }); // 지금 직업 전용 70% (72)
   if (!double) onAct(save, 'chest');
   return give(save, { gold: runGold(my) * CHEST_REWARD.runs, pass: double ? 0 : PASS_GAIN.chest, items: [it] }, now);
+}
+
+/** 주간 원정 상자 (93 8장): 원정 셋을 다 끝내면 클리어 골드 5판 + 장비 1 (지금 직업 레벨 · 전용 70%) */
+export function claimExped(save: SaveData, r: () => number, now: number): Gain | string {
+  const x = save.guild.exped;
+  if (!x.list.length || !x.list.every(c => c.done)) return '원정 셋을 다 끝내면 열림';
+  if (x.got) return '이번 주는 받음';
+  x.got = true;
+  const my = save.player.level;
+  const it = rollItem(r, chestDiff(my), 'A', my, save.nextId++, { hero: save.hero, classLoot: true, lv: my, tierLv: my });
+  return give(save, { gold: runGold(my) * EXPED.chestGold, items: [it] }, now);
 }
 
 /** 하루 1회 무료 교체 (13 2-1) */

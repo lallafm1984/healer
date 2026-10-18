@@ -3,13 +3,14 @@
  * 지금은 localStorage. 앱에서 OS가 웹 저장소를 지울 위험이 보이면 Capacitor Preferences로 바꾼다.
  */
 import type { DiffName } from '../data/difficulty';
+const DIFF_NAMES: DiffName[] = ['쉬움', '보통', '어려움', '악몽'];
 import { itemName, kindOf, LEGEND, lookOf, RANDOM_BASE, randomLines, rollLines, takenStats, rollSpecs, specCount, specKeysOf, SLOTS, SPEC_LINES, type Equipped, type GearItem } from '../data/equipment';
 import { uniqueOf } from '../data/uniques';
 import { namedOf, SPECS } from '../data/specials';
 import { rngFrom } from '../engine/rng';
 import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
-import { BOND_JOIN, FRIEND_LV, BOND_STEPS, GUILD_NAME, SPONSOR, type GuildMember, type PostKind } from '../data/guild';
+import { BOND_JOIN, FRIEND_LV, BOND_STEPS, FAC_KEYS, GUILD_NAME, SPONSOR, STORY, type FacKey, type GuildMember, type PostKind, type StoryKey } from '../data/guild';
 import { PARTY_POOL } from '../data/nicknames';
 import { profileOf, STAT_KEYS, type Stats } from '../data/fm';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
@@ -127,9 +128,19 @@ export interface GuildSave {
   nextId: number;
   /** 규모마다 지난 편성 (탐험 3 · 5인 · 10 · 20인, 길드원 id) */
   picks: Partial<Record<'3' | '5' | '10' | '20', number[]>>;
+  /** 시설 단계 0~5 (93 6-3) */
+  fac: Record<FacKey, number>;
+  /** 스토리 동료 (93 4-4): 정원이 차서 친구 목록에서 기다림 · 한 번 보여 줄 합류 카드 */
+  storyWait: StoryKey[];
+  storyCard: StoryKey | null;
+  /** 부탁 쪽지 (93 8장): 그날 2장 */
+  reqs: { day: string; list: { nick: string; content: string; diff: DiffName; done: boolean }[] };
+  /** 주간 원정 (93 8장): 그 주 3곳 · 상자 받음 */
+  exped: { week: string; list: { content: string; done: boolean }[]; got: boolean };
 }
 
-export const newGuild = (): GuildSave => ({ name: GUILD_NAME, founded: false, storySeen: false, members: [], away: [], post: null, apps: [], appsDay: '', fame: 0, wins: 0, firsts: [], firstLog: [], nextId: 1, picks: {} });
+export const newGuild = (): GuildSave => ({ name: GUILD_NAME, founded: false, storySeen: false, members: [], away: [], post: null, apps: [], appsDay: '', fame: 0, wins: 0, firsts: [], firstLog: [], nextId: 1, picks: {},
+  fac: { feast: 0, war: 0, post: 0 }, storyWait: [], storyCard: null, reqs: { day: '', list: [] }, exped: { week: '', list: [], got: false } });
 
 /** 임무 하나: 진행 · 보상 받음 */
 export interface MissionSave { key: string; n: number; got: boolean }
@@ -294,7 +305,7 @@ function usersOf(v: unknown): Record<string, BondRec> {
   for (const [k, r] of Object.entries(v as Record<string, unknown>)) {
     if (!k || !r || typeof r !== 'object') continue;
     const o = r as Partial<BondRec>;
-    out[k] = { pt: n(o.pt), met: n(o.met), wins: n(o.wins), saved: n(o.saved), mvp: n(o.mvp), ...(o.first && typeof o.first.day === 'string' && typeof o.first.at === 'string' ? { first: { day: o.first.day, at: o.first.at } } : {}) };
+    out[k] = { pt: Math.round((typeof o.pt === 'number' && Number.isFinite(o.pt) && o.pt >= 0 ? o.pt : 0) * 100) / 100, met: n(o.met), wins: n(o.wins), saved: n(o.saved), mvp: n(o.mvp), ...(o.first && typeof o.first.day === 'string' && typeof o.first.at === 'string' ? { first: { day: o.first.day, at: o.first.at } } : {}) };
   }
   return out;
 }
@@ -672,6 +683,11 @@ function guildOf(v: unknown, users: Record<string, BondRec>, ver: number): Guild
     firstLog: Array.isArray(g.firstLog) ? g.firstLog.flatMap(x => (x && typeof x === 'object' && typeof x.key === 'string' ? [{ key: x.key, day: String(x.day ?? ''), sec: num(x.sec), nicks: Array.isArray(x.nicks) ? x.nicks.filter((y): y is string => typeof y === 'string').slice(0, 25) : [] }] : [])).slice(-200) : [],
     nextId: num(g.nextId, 1),
     picks: g.picks && typeof g.picks === 'object' ? Object.fromEntries(Object.entries(g.picks).filter(([k, v]) => ['3', '5', '10', '20'].includes(k) && Array.isArray(v)).map(([k, v]) => [k, (v as unknown[]).filter((x): x is number => typeof x === 'number')])) : {},
+    fac: Object.fromEntries(FAC_KEYS.map(k => [k, Math.max(0, Math.min(5, Math.round(num((g.fac as Record<string, unknown> | undefined)?.[k]))))])) as Record<FacKey, number>,
+    storyWait: Array.isArray(g.storyWait) ? g.storyWait.filter((x): x is StoryKey => typeof x === 'string' && x in STORY) : [],
+    storyCard: typeof g.storyCard === 'string' && g.storyCard in STORY ? g.storyCard : null,
+    reqs: g.reqs && typeof g.reqs === 'object' && Array.isArray(g.reqs.list) ? { day: String(g.reqs.day ?? ''), list: g.reqs.list.flatMap(x => (x && typeof x.nick === 'string' && typeof x.content === 'string' && DIFF_NAMES.includes(x.diff) ? [{ nick: x.nick, content: x.content, diff: x.diff, done: !!x.done }] : [])).slice(0, 4) } : d.reqs,
+    exped: g.exped && typeof g.exped === 'object' && Array.isArray(g.exped.list) ? { week: String(g.exped.week ?? ''), list: g.exped.list.flatMap(x => (x && typeof x.content === 'string' ? [{ content: x.content, done: !!x.done }] : [])).slice(0, 3), got: !!g.exped.got } : d.exped,
   };
 }
 
@@ -685,7 +701,7 @@ function memberOf(raw: unknown): GuildMember | null {
   for (const k of STAT_KEYS) { const x = m.stats?.[k]; stats[k] = typeof x === 'number' && x >= 1 && x <= 20 ? Math.round(x) : prof.stats[k]; }
   const n = (x: unknown, z: number) => (typeof x === 'number' && Number.isFinite(x) ? x : z);
   return {
-    id: n(m.id, 0), nick: m.nick, cls: m.cls as ClassKey, pers: m.pers as PersName, ab: typeof m.ab === 'string' ? m.ab : '',
+    id: n(m.id, 0), nick: m.nick, cls: m.cls as ClassKey, pers: m.pers as PersName, ab: m.story && STORY[m.story] ? STORY[m.story].ab : typeof m.ab === 'string' ? m.ab : '', // 스토리 동료는 고유 스킬 (93 4-4)
     lv: Math.max(1, Math.round(n(m.lv, 1))), xp: Math.max(0, n(m.xp, 0)), stats, learn: n(m.learn, prof.learn), steady: n(m.steady, prof.steady),
     sxp: Math.max(0, n(m.sxp, 0)), votes: Array.isArray(m.votes) ? m.votes.filter(Array.isArray).slice(-5) as GuildMember['votes'] : [],
     know: m.know && typeof m.know === 'object' ? Object.fromEntries(Object.entries(m.know).filter(([, x]) => typeof x === 'number' && Number.isFinite(x) && x > 0)) : {},

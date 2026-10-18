@@ -12,6 +12,7 @@ import { GUILD_LEVEL } from '../data/progression';
 import { talentsLeft } from '../game/charinfo';
 import { chestState, missionReady, passLevel } from '../game/economy';
 import { guildOpen } from '../game/guild';
+import { jobsDot } from '../game/guildjobs';
 import { Flow } from '../game/flow';
 import { G, heroNow, newGearCount } from '../game/state';
 import { topLevel } from '../platform/storage';
@@ -58,7 +59,7 @@ export function passReady(): number {
   return n;
 }
 /** 길드에서 골라야 할 것: 모집 공고 지원자 (3명 중 1명 영입) */
-const guildReady = (): boolean => guildOpen(G.save).ok && !!G.save.guild.post?.cands.length;
+const guildReady = (): boolean => guildOpen(G.save).ok && (!!G.save.guild.post?.cands.length || jobsDot(G.save) || !!G.save.guild.storyCard); // 지원자 · 부탁 쪽지 · 원정 상자 · 합류 카드 (93 8장, 빨간 점은 길드 탭 하나만)
 function dotOf(k: TabKey): boolean {
   if (G.save.tut < TUT.done) return false;
   // 상점은 로비에서 들어가므로 (2026-10-18) 패스 보상도 로비 점

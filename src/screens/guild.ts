@@ -12,12 +12,16 @@ import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import { CONTENT, type ContentDef } from '../data/content';
 import { PARTY_POOL, STORY_NICKS } from '../data/nicknames';
 import { ENCOUNTERS, type EncounterKey } from '../data/encounters';
-import { BOND_STEPS, bondLv, bondName, FRIEND_LV, POSTS, postGold, rerollGold, sponsorGold, starOfBond, statCap, statPerLevel, statPot, type GuildMember, type PostKind, type PostRole } from '../data/guild';
+import { BOND_STEPS, bondLv, bondName, EXPED, FAC, FAC_GOLD, FAC_KEYS, FRIEND_LV, REQ, STORY, type FacKey, type StoryKey, POSTS, postGold, rerollGold, sponsorGold, starOfBond, statCap, statPerLevel, statPot, type GuildMember, type PostKind, type PostRole } from '../data/guild';
 import { GUILD_GOAL } from '../data/missions';
 import { GUILD_LEVEL, xpToNext } from '../data/progression';
 import { dayKey, daysBetween } from '../game/clock';
 import { Flow } from '../game/flow';
-import { bondOf, bondPt, capOf, foundGuild, knowStages, personOf, restSponsor, sponsor, sponsorRest, sponsorWhy, friendsOf, full, guildOpen, hire, hireApp, inviteFriend, postRecruit, refreshApps, release, rerollAbility, worldLevel } from '../game/guild';
+import { claimExped } from '../game/economy';
+import { guideCtx, rankStages, realOpen } from '../game/guide';
+import { expedReady, refreshExped, refreshReqs } from '../game/guildjobs';
+import { profileOf } from '../data/fm';
+import { bondOf, bondPt, buildFac, capOf, facLv, facWhy, foundGuild, inviteStory, knowStages, personOf, restSponsor, sponsor, sponsorRest, sponsorWhy, friendsOf, full, guildOpen, hire, hireApp, inviteFriend, postRecruit, refreshApps, release, rerollAbility, worldLevel } from '../game/guild';
 import { commit, G, refreshDay } from '../game/state';
 import { topLevel } from '../platform/storage';
 import { memDetailHtml, memRowHtml, type CardData } from './members';
@@ -31,7 +35,7 @@ const SUBS: [Sub, string][] = [['home', '현황'], ['members', '길드원'], ['r
 type Sheet = { k: 'mem'; id: number } | { k: 'friend'; nick: string } | { k: 'cand'; i: number } | { k: 'app'; i: number } | null;
 const st: { sub: Sub; sheet: Sheet; msg: string; ask: number | null; role: PostRole; cls: ClassKey; roster: boolean; rrole: PostRole; rfriend: boolean } = { sub: 'home', sheet: null, msg: '', ask: null, role: 'any', cls: 'warrior', roster: false, rrole: 'any', rfriend: false };
 
-const s = screen('s-guild', '길드', { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshApps(G.save, Math.random); commit(); } st.sub = 'home'; st.sheet = null; st.msg = ''; st.ask = null; render(); } });
+const s = screen('s-guild', '길드', { tab: 'guild', enter() { refreshDay(); if (G.save.guild.founded) { refreshApps(G.save, Math.random); refreshReqs(G.save, rankStages(guideCtx()), Math.random); refreshExped(G.save, realOpen); commit(); } st.sub = 'home'; st.sheet = null; st.msg = ''; st.ask = null; render(); } });
 s.el.classList.add('g-hall');
 const modal = sheetDialog(s.el, closeSheet);
 
@@ -44,6 +48,9 @@ const goldCost = (value: number) => currencyAmount('gold', value);
 const mmss = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
 const IC = {
   first: () => gameIcon('first-kill', uiIcon('star')),
+  req: () => gameIcon('request', uiIcon('quest')),
+  chest: () => gameIcon('expedition-chest', ''),
+  fac: (k: FacKey) => gameIcon(`hall-${k}`, uiIcon('guild')),
   post: () => gameIcon('guild-post', uiIcon('quest')),
   scout: () => gameIcon('guild-scout', uiIcon('hands')),
   fame: () => gameIcon('guild-fame', uiIcon('star')),
@@ -66,12 +73,17 @@ function tabs(): string {
   return `<nav class="subtabs" role="tablist" aria-label="길드 메뉴">${SUBS.map(([k, n]) => `<button type="button" role="tab" data-sub="${k}" aria-selected="${st.sub === k}">${n}${extra[k]}</button>`).join('')}</nav>`;
 }
 
+/** 시설 단계 합이 오를수록 길드 홀 머리에 소품이 하나씩 (93 6-3 · 11장, 합 1 · 4 · 7 · 10 · 13) */
+function propsHtml(): string {
+  const t = FAC_KEYS.reduce((a, k) => a + facLv(G.save, k), 0);
+  return [1, 4, 7, 10, 13].map((at, i) => (t >= at ? gameIcon(`guild-prop-${i + 1}`, '', 'obj').replace('class="g-ic"', `class="g-ic gh-prop p${i + 1}"`) : '')).join('');
+}
 /** 길드 홀 그림 머리 (상점 선반 그림과 같은 .art-hero): 길드 이름 · 지금 하위 탭 · Lv · 정원 · 명성 (다음 Lv까지 막대) */
 function hero(title: string, stats = true): string {
   const g = G.save.guild, cap = capOf(G.save);
   const prev = cap.lv > 1 ? [0, 20, 60, 120, 200, 320, 480, 700, 1200, 2000][cap.lv - 1] : 0;
   const pct = cap.next ? Math.min(100, ((g.fame - prev) / (cap.next - prev)) * 100) : 100;
-  return `<header class="art-hero guild-hero"><div class="ah-copy"><p class="eyebrow">${stats ? `길드 「${esc(g.name)}」` : '길드 홀'}</p><h2>${title}</h2></div>
+  return `<header class="art-hero guild-hero">${propsHtml()}<div class="ah-copy"><p class="eyebrow">${stats ? `길드 「${esc(g.name)}」` : '길드 홀'}</p><h2>${title}</h2></div>
     ${stats ? `<p class="gh-stats"><span class="gh-lv">${gameIcon('guild-flag', '')}길드 Lv ${cap.lv}</span><span>정원 ${g.members.length}/${cap.cap}</span><span class="gh-fame">${IC.fame()}명성 ${fmt(g.fame)}${cap.next ? `<small>/${fmt(cap.next)}</small>` : ''}</span></p>
       <span class="gh-bar" role="img" aria-label="다음 길드 Lv까지 ${Math.round(pct)}%"><i style="width:${pct.toFixed(0)}%"></i></span>` : ''}</header>`;
 }
@@ -162,7 +174,7 @@ function homeHtml(): string {
       ${g.post ? recRow(IC.post(), POSTS[g.post.kind].name, `지원자 ${g.post.cands.length}명 중 1명 영입`, '고르기') : recRow(IC.post(), '모집 공고', isFull ? '정원이 다 참' : `${goldCost(postGold('normal', topLevel(G.save)))} · 역할 고름`, isFull ? '보기' : '공고 내기')}
       ${cap.lv >= 2 ? recRow(IC.fame(), '명성 지원자', g.apps.length ? `${g.apps.length}명 대기` : '날마다 새로 · 사흘 머묾', '보기') : ''}
     </ul>`;
-  return `${story}<h3 class="sec">길드원 <small>${n}/${cap.cap} · 레벨 순 · 누르면 능력치</small></h3>${mem}${goal}${rec}${recs}
+  return `${story}${arriveHtml()}<h3 class="sec">길드원 <small>${n}/${cap.cap} · 레벨 순 · 누르면 능력치</small></h3>${mem}${jobsHtml()}${goal}${rec}${facHtml()}${recs}
     <p class="note g-rule">길드원은 함께 이긴 판마다 레벨 경험치와 능력치 경험을 얻습니다. 레벨은 내 레벨까지, 쉬는 길드원도 경험치 30%.</p>`;
 }
 
@@ -170,6 +182,37 @@ function homeHtml(): string {
 function ctaHtml(): string {
   const w = G.save.weekly.guild, need = GUILD_GOAL.need;
   return `<button type="button" class="g-cta" id="guildGo"><span class="g-mk"><span>${IC.flag()}</span></span><span class="g-ct"><b>길드파티로 출전</b><small>주간 목표 ${Math.min(w.n, need)}/${need} · 모험 고르기</small></span>${ARROW}</button>`;
+}
+
+/** 스토리 동료 합류 카드 (93 4-4, 결성 이야기와 같은 틀) */
+function arriveHtml(): string {
+  const k = G.save.guild.storyCard;
+  if (!k) return '';
+  const st = STORY[k], a = ABILITIES[st.ab], wait = G.save.guild.storyWait.includes(k);
+  return `<section class="panel g-story g-arrive"><p class="g-story-line">${esc(st.nick)} (${CLASSES[st.cls].name} · ${esc(st.pers)})${wait ? '이 원정대를 찾아왔다.' : '이 원정대에 들어왔다.'}</p>
+    <p class="g-story-line">「${k === 'isle' ? '나도 원래 힐러였어. 이번엔 같이 버티자.' : '앞은 맡겨. 끝까지 베어 낸다.'}」</p>
+    <p class="g-story-name">고유 스킬 <b>${esc(a?.name ?? '')}</b> · ${esc(a?.desc ?? '')}</p>
+    ${wait ? '<p class="note">정원이 차서 영입 › 친구 초대에서 기다림</p>' : ''}<button class="btn2" type="button" id="arriveOk">확인</button></section>`;
+}
+/** 부탁 쪽지 · 주간 원정 (93 8장): 놓쳐도 손해 없음 */
+function jobsHtml(): string {
+  const g = G.save.guild, name = (k: string) => esc(CONTENT.find(c => c.key === k)?.name ?? k);
+  const reqs = g.reqs.list.map(q => `<li class="srow g-job${q.done ? ' done' : ''}"><span class="sic">${IC.req()}</span><div><b>${esc(q.nick)}</b><p class="note">「${name(q.content)} ${esc(q.diff)} 같이 가자」</p></div><span class="g-go">${q.done ? '완료' : `인연 +${REQ.bond} · 명성 +${REQ.fame}`}</span></li>`).join('');
+  const ex = g.exped.list, done = ex.filter(x => x.done).length;
+  const exRows = ex.map(x => `<li class="g-exrow${x.done ? ' done' : ''}">${x.done ? '✓' : '·'} ${name(x.content)}</li>`).join('');
+  return `${reqs ? `<h3 class="sec">부탁 쪽지 <small>오늘 · 그 사람을 넣고 깨면 끝</small></h3><ul class="slist">${reqs}</ul>` : ''}
+    ${ex.length ? `<section class="panel g-exped"><h4>${IC.chest()}주간 원정 <small>길드파티로 보통 이상 · 칸마다 명성 +${EXPED.fame} · ${done}/${ex.length}</small></h4><ul class="g-exlist">${exRows}</ul>
+      ${expedReady(G.save) ? `<button class="btn primary" type="button" id="expedChest">원정 상자<small>클리어 골드 ${EXPED.chestGold}판 + 장비 1</small></button>` : g.exped.got ? '<p class="note">이번 주 상자 받음</p>' : ''}</section>` : ''}`;
+}
+/** 시설 (93 6-3): 골드로 1~5단계 */
+function facHtml(): string {
+  const gold = resourceBalance(G.save, 'gold');
+  const row = (k: FacKey) => {
+    const lv = facLv(G.save, k), why = facWhy(G.save, k), f = FAC[k], c = FAC_GOLD[lv];
+    return `<li class="srow g-fac"><span class="sic">${IC.fac(k)}</span><div><b>${f.name} <small>${lv}/5</small></b><p class="note">${lv ? esc(f.steps[lv - 1]) : '아직 없음'}${lv < 5 ? ` · 다음: ${esc(f.steps[lv])}` : ''}</p></div>
+      <span class="g-side">${why ? `<small class="g-lockt">${esc(why)}</small>` : `<button class="btn mini primary" type="button" data-fac="${k}"${gold < c ? ' disabled' : ''}>${goldCost(c)}</button>`}</span></li>`;
+  };
+  return `<h3 class="sec">길드 홀 시설 <small>골드로 1~5단계</small></h3><ul class="slist">${FAC_KEYS.map(row).join('')}</ul>`;
 }
 
 /** 서버 유저 명부 (93 3-4): 만난 모험가 n/1000 · 친구 · 길드원 · 단짝, 펼치면 인연 순 (역할 · 친구만 거르기, 40명까지) */
@@ -245,8 +288,10 @@ function recruitHtml(): string {
     extra: `<span class="g-side"><button class="btn mini primary" type="button" data-${k === 'cand' ? 'hire' : 'hireapp'}="${i}"${isFull ? ' disabled' : ''}>영입</button></span>`,
   });
   const days = (until: string) => { const d = daysBetween(dayKey(), until) + 1; return d <= 1 ? '오늘까지' : `${d}일 남음`; };
+  const waitRows = g.storyWait.map(k => { const st = STORY[k], p = profileOf(st.nick, st.pers); return memRowHtml(card({ nick: st.nick, cls: st.cls, pers: st.pers, ab: st.ab, lv: topLevel(G.save), stats: { ...p.stats, ...st.boost } as GuildMember['stats'] }, 2), {
+    tag: '초대 대기', extra: `<span class="g-side"><button class="btn mini primary" type="button" data-istory="${k}"${isFull ? ' disabled' : ''}>초대</button></span>` }); }).join('');
   return `<h3 class="sec">친구 초대 <small>무료 · 인연 ${bondName(FRIEND_LV)} 이상 · 정원 ${g.members.length}/${cap.cap}</small></h3>
-    ${fr.length ? `<section class="pn g-list"><ul class="pcards">${fr.map(friendRow).join('')}</ul></section>` : '<p class="note">공개모집에서 함께 이기고 살려 줄수록 인연이 쌓여 친구가 됩니다.</p>'}
+    ${fr.length || waitRows ? `<section class="pn g-list"><ul class="pcards">${waitRows}${fr.map(friendRow).join('')}</ul></section>` : '<p class="note">공개모집에서 함께 이기고 살려 줄수록 인연이 쌓여 친구가 됩니다.</p>'}
     ${rosterHtml()}
     <h3 class="sec">모집 공고 <small>지원자 ${POSTS.normal.cands}명 · Lv ${Math.max(1, my - 5)} 이상</small></h3>
     <div class="g-post"><div class="g-chips" role="group" aria-label="역할">${chips}</div>
@@ -332,7 +377,7 @@ function recordHtml(m: GuildMember): string {
 
 /** 공략 숙지 (93 5-4): 단계가 높은 전투 3개 + 그 밖 수 */
 function knowHtml(m: GuildMember): string {
-  const ks = Object.entries(knowStages(m)).sort((a, b) => b[1] - a[1] || (m.know[b[0]] ?? 0) - (m.know[a[0]] ?? 0));
+  const ks = Object.entries(knowStages(m, G.save)).sort((a, b) => b[1] - a[1] || (m.know[b[0]] ?? 0) - (m.know[a[0]] ?? 0));
   if (!ks.length) return '<p class="note g-know">공략 숙지 없음 · 함께 이긴 전투마다 그 전투에서 반응 · 회피가 좋아짐</p>';
   const top = ks.slice(0, 3).map(([k, s]) => `${esc(ENCOUNTERS[k as EncounterKey]?.name ?? k)} ${s}단계`).join(' · ');
   return `<p class="note g-know">공략 숙지 ${top}${ks.length > 3 ? ` 외 ${ks.length - 3}곳` : ''}</p>`;
@@ -353,6 +398,12 @@ s.el.addEventListener('click', e => {
   if (t.closest('#storyOk')) { save.guild.storySeen = true; commit(); render(); return; }
   // 「길드파티로 출전」: 전투 탭(모험 고르기) → 편성이 길드파티로 시작 (game/flow.ts)
   if (t.closest('#guildGo') && save.guild.members.length) { Flow.preferGuild = true; go('s-content'); return; }
+  if (t.closest('#arriveOk')) { save.guild.storyCard = null; commit(); render(); return; }
+  if (t.closest('#expedChest')) { const r = claimExped(save, Math.random, Date.now()); st.msg = typeof r === 'string' ? r : `원정 상자: 골드 ${fmt(r.gold ?? 0)} · 장비 ${r.items?.length ?? 0}`; commit(); render(); return; }
+  const fc = t.closest<HTMLButtonElement>('[data-fac]');
+  if (fc) { if (!fc.disabled) { const k = fc.dataset.fac as FacKey; st.msg = buildFac(save, k) || `${FAC[k].name} ${facLv(save, k)}단계`; commit(); render(); } return; }
+  const is = t.closest<HTMLButtonElement>('[data-istory]');
+  if (is) { if (!is.disabled) { st.msg = inviteStory(save, is.dataset.istory as StoryKey) || '초대 완료 · 「길드원」에서 확인'; commit(); render(); } return; }
   if (t.closest('#roster')) { st.roster = !st.roster; render(); return; }
   if (t.closest('#rfriend')) { st.rfriend = !st.rfriend; render(); return; }
   const rr = t.closest<HTMLElement>('[data-rrole]');
