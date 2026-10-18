@@ -1,4 +1,5 @@
 import { armorFactor, type DamageAim } from '../data/armor';
+import { BOND, bondSize } from '../data/bond';
 import { healThreat, takenThreat } from './threat';
 import { SPREAD } from '../data/bosses';
 import { HEROES } from '../data/heroes';
@@ -282,8 +283,14 @@ export function recentDmg(f: Fight, u: Unit, sec: number): number {
 /** 흡수 보호막이 남아 있는지 */
 export const hasAbsorb = (f: Fight, u: Unit): boolean => u.mods.some(m => m.k === 'absorb' && m.until > f.t && m.v > 1e-9);
 
-/** 호감도 (06 6장 은혜 갚기): 길드원은 함께 출전한 수, 공개모집은 이번 판에 내 힐을 받은 양 (인연 스카우트와 같은 기준). 길드원이 먼저 */
-const affinity = (u: Unit): number => (u.gid != null ? 1e9 + u.runs : u.got);
+/**
+ * 호감도 (06 6장 은혜 갚기 · 93): 인연 점수가 먼저, 같으면 이번 판에 받은 내 치유 몫 ÷ 그 역할 · 판 크기 평소의 상위 10% 선 (인연 「유난히 크게 도움」과 같은 보정).
+ * 탱커는 힐을 늘 많이 받아 그냥 양으로 고르면 거의 언제나 탱커가 됨 (Lim 10-18)
+ */
+function affinity(f: Fight, u: Unit, total: number): number {
+  const top = u.role === 'healer' ? 1 : BOND.helpTop[bondSize(f.party.length)][u.role];
+  return u.bond * 1e6 + (total > 0 ? u.got / total / top : 0);
+}
 
 /**
  * 이 사람이 받을 양 (보스 배율 · 받는 피해 증가 · 직업군 방어력 · 위치 · 장비 · 특성 · 직업 · 보호 · 피해 감소). damage()와 강타 예고 숫자 (bossParts telDmg)가 같이 씀.
@@ -339,7 +346,8 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
   }
   // 은혜 갚기 (06 6장): 내가 죽을 피해를 호감도가 가장 높은 파티원 (체력 50% 이상)이 한 번 대신 맞아 줌
   if (u.me && f.tx.on.repay && !f.tx.repayUsed && u.guardian <= 0 && u.hp - amt <= 0) {
-    const v = living(f).filter(x => !x.me && x.hp >= x.max * 0.5).sort((a, b) => affinity(b) - affinity(a) || b.hp / b.max - a.hp / a.max)[0];
+    const total = f.party.reduce((t, x) => t + (x.me ? 0 : x.got), 0);
+    const v = living(f).filter(x => !x.me && x.hp >= x.max * 0.5).sort((a, b) => affinity(f, b, total) - affinity(f, a, total) || b.hp / b.max - a.hp / a.max)[0];
     if (v) {
       f.tx.repayUsed = true;
       emit(f, { type: 'msg', text: `은혜 갚기: ${v.nick}이(가) 대신 맞음` });

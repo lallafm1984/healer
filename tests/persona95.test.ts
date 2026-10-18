@@ -11,7 +11,7 @@ import { gatherMult, persCast, persDps, persHealTaken, persLate } from '../src/e
 import { slipping } from '../src/engine/threat';
 import type { BossSkill, RosterEntry, Telegraph } from '../src/engine/types';
 import { CLASSES } from '../src/data/classes';
-import { makeCandidate } from '../src/game/guild';
+import { makeCandidates } from '../src/game/guild';
 import { newSave } from '../src/platform/storage';
 
 type F = ReturnType<typeof E.create>;
@@ -239,7 +239,7 @@ describe('공개모집 · 길드 (2026-10-18 길드 다시 켬)', () => {
     s.player.level = 40;
     const got = new Set<PersName>();
     for (let i = 0; i < 1500; i++) {
-      const c = makeCandidate(s, rng, 'normal'), tank = CLASSES[c.cls].role === 'tank';
+      const c = makeCandidates(s, 'normal', 'any', rng)[0], tank = CLASSES[c.cls].role === 'tank';
       expect('noTank' in PERS[c.pers] && tank, `${c.cls} ${c.pers}`).toBe(false);
       expect('tankOnly' in PERS[c.pers] && !tank, `${c.cls} ${c.pers}`).toBe(false);
       got.add(c.pers);

@@ -1,57 +1,62 @@
 /**
- * 길드 (02 9장, 12 3-3, 17 8~9장): 열림, 영입, 육성, 편성, 판 뒤 경험치·인연 스카우트, 저장.
- * 출시판은 길드를 빼 두므로 (features.ts) 맨 위 「빼 둠」 말고는 길드를 켜고 검사한다.
+ * 길드 v2 (93 · FM 97, 사슬 4번): 열림 · 인연 Lv와 스킬 ★ · 길드 Lv · 정원 · 결성 · 영입 셋 (친구 초대 · 공고 · 명성 지원자) · 관리 · 규모별 편성 ·
+ * 출전 경험 (레벨 · 능력치) · 명성 · 첫 처치 · 정산 · 저장 v19.
+ * 출시판은 길드를 빼 둘 수 있으므로 (features.ts) 맨 위 「빼 둠」 말고는 길드를 켜고 검사한다.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/data/abilities';
-import { CLASSES } from '../src/data/classes';
+import { CLASSES, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
-import { guildCap, memberPower, pointsAt, type GuildMember } from '../src/data/guild';
-import { DAILY } from '../src/data/missions';
+import {
+  BOND_JOIN, bondLv, deedOf, FAME, guildLvOf, habitOf, POSTS, postGold, REST_SHARE, rerollGold, starOfBond, statCap, statNeed, statWeights, STORY, SXP, type GuildMember,
+} from '../src/data/guild';
+import { DAILY, GUILD_GOAL } from '../src/data/missions';
+import { PARTY_POOL, STORY_NICKS } from '../src/data/nicknames';
+import { PERS } from '../src/data/personalities';
 import { clearXp, xpToNext } from '../src/data/progression';
 import * as E from '../src/engine';
-import { rollover } from '../src/game/economy';
-import {
-  addMemberXp, autoPick, guildAfter, guildOpen, guildRoster, hire, makeCandidate, postRecruit, release, rerollAbility, resetPoints, scoutHire, spendPoint, togglePick, train,
-} from '../src/game/guild';
+import { claimGuildGoal, rollover } from '../src/game/economy';
+import * as Gd from '../src/game/guild';
 import { settle, type BattleResult } from '../src/game/settle';
+import { TUT } from '../src/game/tutorial';
 import { migrate, newSave, SAVE_VERSION, type SaveData } from '../src/platform/storage';
 
 let seed = 1;
 const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 function save(level = 15, gold = 100000): SaveData {
   const s = newSave(1);
-  s.tut = 3; s.player.level = level; s.player.gold = gold; s.settings.devUnlock = false;
+  s.tut = TUT.done; s.player.level = level; s.player.gold = gold; s.settings.devUnlock = false;
   return s;
 }
-const mem = (o: Partial<GuildMember> = {}): GuildMember => ({
-  id: 0, nick: '바위', cls: 'warrior', pers: '신중파', lv: 15, xp: 0, apt0: [3, 3, 3], aptUp: [0, 0, 0], ab: 'warrior.shieldBlock', star: 0, runs: 0, ...o,
-});
-function add(s: SaveData, o: Partial<GuildMember> = {}): GuildMember {
-  const m = mem({ ...o, id: s.guild.nextId++ });
-  if (!o.nick) m.nick = `길드원${m.id}`;
+const nickOf = (cls: ClassKey, i = 0) => PARTY_POOL[cls][i].nick;
+/** 1000명 줄의 사람을 길드원으로 (결성은 지난 것으로) */
+function add(s: SaveData, cls: ClassKey = 'warrior', i = 0, o: Partial<GuildMember> = {}): GuildMember {
+  const m: GuildMember = { ...Gd.newMember(s, Gd.personOf(nickOf(cls, i))!, s.player.level), ...o, id: s.guild.nextId++ };
   s.guild.members.push(m);
+  s.guild.founded = s.guild.storySeen = true;
   return m;
 }
+const bond = (s: SaveData, nick: string, pt: number, saved = 0) => { s.users[nick] = { pt, met: 1, wins: 1, saved, mvp: 0 }; };
+const result = (o: Partial<BattleResult> = {}): BattleResult => ({
+  content: 'rustfort', diff: '보통', win: true, quit: false, reason: '', segIdx: 3, segN: 3, time: 200, restSec: 0, deaths: 0, healed: 1000, overheal: 100,
+  dispels: 0, dispellable: 0, endMana: 50, minMana: 20, auto: false, party: [], detail: [], ...o,
+});
+const entry = (s: SaveData, m: GuildMember) => Gd.memberEntry(s, m);
 
 beforeAll(() => { FEATURES.guild = true; });
 
-describe('출시판: 길드 빼 둠 (Lim 2026-10-09)', () => {
+describe('길드를 빼 두면', () => {
   beforeAll(() => { FEATURES.guild = false; });
   afterAll(() => { FEATURES.guild = true; });
-  it('Lv 30이어도 안 열리고, 판 뒤 길드 정산 없음', () => {
+  it('Lv 30이어도 안 열리고, 판 뒤 결성 · 길드 정산 없음', () => {
     const s = save(30);
     s.settings.devUnlock = true;
-    expect(guildOpen(s).ok).toBe(false);
-    const m = add(s, { lv: 25 });
-    const r: BattleResult = {
-      content: 'rustfort', diff: '보통', win: true, quit: false, reason: '', segIdx: 3, segN: 3, time: 200, restSec: 0, deaths: 0, healed: 1000, overheal: 100,
-      dispels: 0, dispellable: 0, endMana: 50, minMana: 20, auto: false, party: [{ nick: '가', pers: '신중파', role: 'tank', alive: true, got: 10 }], detail: [],
-    };
-    const x = settle(s, r, rng, [{ role: 'tank', cls: 'warrior', pers: '신중파', nick: '가' }]);
-    expect(x.guild).toBeNull();
-    expect([m.xp, m.runs, s.guild.scouts.length, s.guild.fame]).toEqual([0, 0, 0, 0]);
+    expect(Gd.guildOpen(s).ok).toBe(false);
+    const m = add(s, 'warrior', 0, { lv: 25 });
+    const x = settle(s, result({ party: [{ nick: m.nick, pers: m.pers, role: 'tank', alive: true, got: 10, gid: m.id }] }), rng, [entry(s, m)]);
+    expect([x.guild, x.founded]).toEqual([null, null]);
+    expect([m.xp, m.runs, s.guild.fame]).toEqual([0, 0, 0]);
   });
   it('일일 임무에 「길드파티로 클리어」가 안 뽑히고, 이미 뽑힌 것은 교체 횟수 없이 다른 임무로', () => {
     const T = new Date(2026, 9, 7, 12).getTime();
@@ -72,177 +77,383 @@ describe('출시판: 길드 빼 둠 (Lim 2026-10-09)', () => {
   });
 });
 
-describe('열림 · 정원 (02 9-2, 18)', () => {
+describe('열림 · 길드 Lv · 정원 (93 6-2)', () => {
   it('Lv 15에 열림, 튜토리얼 전엔 닫힘, 개발 빌드 잠금 무시면 미리 열림', () => {
-    expect(guildOpen(save(14)).ok).toBe(false);
-    expect(guildOpen(save(15)).ok).toBe(true);
+    expect(Gd.guildOpen(save(14)).ok).toBe(false);
+    expect(Gd.guildOpen(save(15)).ok).toBe(true);
     const s = save(3); s.settings.devUnlock = true;
-    expect(guildOpen(s)).toMatchObject({ ok: true, dev: true });
+    expect(Gd.guildOpen(s)).toMatchObject({ ok: true, dev: true });
     const t = save(20); t.tut = 1;
-    expect(guildOpen(t).ok).toBe(false);
+    expect(Gd.guildOpen(t).ok).toBe(false);
   });
-  it('정원 6 → 10인 레이드 열림 (Lv 45) 12 → Lv 70 25', () => {
-    expect([15, 44, 45, 69, 70].map(l => guildCap(l).cap)).toEqual([6, 6, 12, 12, 25]);
+  it('명성 → 길드 Lv 1~10 · 정원 6 → 25', () => {
+    expect([0, 19, 20, 120, 1999, 2000, 99999].map(f => guildLvOf(f))).toEqual([
+      { lv: 1, cap: 6, next: 20 }, { lv: 1, cap: 6, next: 20 }, { lv: 2, cap: 7, next: 60 }, { lv: 4, cap: 10, next: 200 },
+      { lv: 9, cap: 22, next: 2000 }, { lv: 10, cap: 25, next: null }, { lv: 10, cap: 25, next: null },
+    ]);
+    const s = save(30);
+    for (let i = 0; i < 6; i++) add(s, 'mage', i);
+    expect(Gd.full(s)).toBe(true);
+    s.guild.fame = 20;
+    expect(Gd.full(s)).toBe(false);
   });
 });
 
-describe('영입 (02 9-3, 12 3-3)', () => {
-  beforeEach(() => { seed = 7; });
-  it('골드 모집: 공고 비용, 지원자 3명, 레벨은 공고 등급 범위 (내 레벨 위로 안 감)', () => {
-    const s = save(30, 10000);
-    expect(postRecruit(s, 'best', rng)).toBe('');
-    expect(s.player.gold).toBe(2000);
-    expect(s.guild.post!.cands.length).toBe(3);
-    for (const c of s.guild.post!.cands) {
-      expect(c.lv).toBeGreaterThanOrEqual(29); expect(c.lv).toBeLessThanOrEqual(30);
-      expect(ABILITIES[c.ab].cls).toBe(c.cls);
-      expect(new Set(s.guild.post!.cands.map(x => x.nick)).size).toBe(3);
-    }
-    expect(postRecruit(s, 'best', rng)).toMatch(/골드 부족/);
-    expect(hire(s, 1)).toBe('');
-    expect(s.guild.members.length).toBe(1);
-    expect(s.guild.post).toBeNull();
+describe('인연 Lv · 직업 스킬 ★ (93 3-3 · 13-1)', () => {
+  it('점수 → 인연 Lv 0 처음 · 1 아는 사이 · 2 친구 · 3~11 길드원 · 12 단짝', () => {
+    expect([0, 1, 3, 4, 7, 8, 329, 330, 9999].map(bondLv)).toEqual([0, 1, 1, 2, 2, 3, 11, 12, 12]);
   });
-  it('일반 공고 지원자는 내 레벨보다 3~6 낮음, 탱커는 덜렁이·겁쟁이 아님', () => {
-    const s = save(40);
-    for (let i = 0; i < 200; i++) {
-      const c = makeCandidate(s, rng, 'normal');
-      expect(c.lv).toBeGreaterThanOrEqual(34); expect(c.lv).toBeLessThanOrEqual(37);
-      if (CLASSES[c.cls].role === 'tank') expect(['덜렁이', '겁쟁이']).not.toContain(c.pers);
-    }
+  it('★: 길드원 ★1, 인연 Lv 4 · 6 · 8 · 10에서 ★2 ~ ★5. 공개모집 · 친구는 ★ 없음', () => {
+    expect([0, 2, 3, 4, 5, 6, 8, 10, 12].map(starOfBond)).toEqual([0, 0, 1, 2, 2, 3, 4, 5, 5]);
+    const s = save(30), m = add(s);
+    bond(s, m.nick, 20);
+    expect(entry(s, m).star).toBe(2);
+    bond(s, m.nick, 110);
+    expect(entry(s, m).star).toBe(4);
   });
-  it('정원이 다 차면 공고·영입 안 됨', () => {
+});
+
+describe('결성 (93 4-1)', () => {
+  it('Lv 15: 말없는탱 (고정 능력치) + 인연 점수가 가장 높은 딜러 3명 (같으면 살려 준 횟수), 탱커는 딜러 자리에 안 옴', () => {
     const s = save(15);
-    for (let i = 0; i < 6; i++) add(s);
-    expect(postRecruit(s, 'normal', rng)).toMatch(/정원/);
+    bond(s, nickOf('warrior', 3), 50); // 탱커: 안 옴
+    bond(s, nickOf('mage', 1), 9);
+    bond(s, nickOf('archer', 2), 7, 1);
+    bond(s, nickOf('rogue', 4), 7, 3);
+    bond(s, nickOf('swordsman', 5), 2);
+    const got = Gd.foundGuild(s)!;
+    expect(got).toEqual([STORY.tank.nick, nickOf('mage', 1), nickOf('rogue', 4), nickOf('archer', 2)]);
+    const tank = s.guild.members[0];
+    expect(tank).toMatchObject({ nick: '말없는탱', cls: 'warrior', story: 'tank', ab: STORY.tank.ab, lv: 15 });
+    expect([tank.stats.tough, tank.stats.armor]).toEqual([16, 15]);
+    expect(s.guild.members.every(m => Gd.bondPt(s, m.nick) >= BOND_JOIN)).toBe(true);
+    expect(s.guild.founded).toBe(true);
+    expect(Gd.foundGuild(s)).toBeNull();
+    expect(Gd.foundGuild(save(14))).toBeNull();
   });
-  it('인연 스카우트 300 골드', () => {
-    const s = save(15, 299);
-    s.guild.scouts.push({ nick: '칼날', cls: 'rogue', pers: '감사형', lv: 12, apt0: [3, 4, 3], ab: 'rogue.kick', from: '녹슨 요새' });
-    expect(scoutHire(s, 0)).toMatch(/골드 부족/);
-    s.player.gold = 300;
-    expect(scoutHire(s, 0)).toBe('');
-    expect([s.player.gold, s.guild.scouts.length, s.guild.members[0].nick, s.guild.members[0].ab]).toEqual([0, 0, '칼날', 'rogue.kick']);
+  it('만난 사람이 없으면 말없는탱만, 스토리 동료는 공고 · 친구에 안 나옴', () => {
+    const s = save(20);
+    expect(Gd.foundGuild(s)).toEqual(['말없는탱']);
+    bond(s, '이슬', 50);
+    expect(Gd.friendsOf(s).map(f => f.nick)).not.toContain('이슬');
+    for (let i = 0; i < 30; i++) expect(STORY_NICKS).not.toContain(Gd.makeCandidates(s, 'normal', 'any', rng)[0].nick);
   });
 });
 
-describe('육성 (17 8장, 12 3-3)', () => {
-  it('훈련: 레벨 × 30 골드, 내 레벨까지만', () => {
-    const s = save(15, 1000), m = add(s, { lv: 14 });
-    expect(train(s, m.id)).toBe('');
-    expect([m.lv, s.player.gold]).toEqual([15, 1000 - 420]);
-    expect(train(s, m.id)).toMatch(/내 레벨/);
+describe('영입 (93 4-2)', () => {
+  beforeEach(() => { seed = 7; });
+  it('친구 초대: 인연 Lv 2 이상 · 무료 · 그 사람 지금 레벨, 보냈다 다시 부르면 키운 그대로', () => {
+    const s = save(30, 500);
+    add(s, 'warrior', 0);
+    const a = nickOf('mage', 3), b = nickOf('archer', 3);
+    bond(s, a, 4); bond(s, b, 3);
+    expect(Gd.friendsOf(s).map(f => f.nick)).toEqual([a]);
+    expect(Gd.inviteFriend(s, b)).toBe('친구가 아님');
+    expect(Gd.inviteFriend(s, a)).toBe('');
+    const m = s.guild.members.find(x => x.nick === a)!;
+    expect([s.player.gold, m.lv, Gd.bondPt(s, a)]).toEqual([500, Math.min(30, Gd.worldLevel(s, Gd.personOf(a)!)), BOND_JOIN]); // 길드원 레벨은 내 레벨까지
+    m.stats.atk = 19; m.lv = 22;
+    expect(Gd.release(s, m.id)).toBe(true);
+    expect(Gd.friendsOf(s)[0]).toMatchObject({ nick: a, away: { stats: { atk: 19 }, lv: 22 } });
+    expect(Gd.inviteFriend(s, a)).toBe('');
+    expect(s.guild.members.find(x => x.nick === a)).toMatchObject({ lv: 22, stats: { atk: 19 } });
+    expect(s.guild.away).toEqual([]);
   });
-  it('육성 포인트: Lv 20부터 10레벨마다 1점 (최대 9), 1점 = 레벨 × 100 골드, 자질·★ 최대 5', () => {
-    expect([19, 20, 29, 30, 100].map(pointsAt)).toEqual([0, 1, 1, 2, 9]);
-    const s = save(50, 100000), m = add(s, { lv: 40, apt0: [4, 3, 3] });
-    expect(spendPoint(s, m.id, 0)).toBe('');
-    expect(spendPoint(s, m.id, 0)).toMatch(/최대/);
-    expect(spendPoint(s, m.id, 'star')).toBe('');
-    expect(spendPoint(s, m.id, 'star')).toBe('');
-    expect(spendPoint(s, m.id, 1)).toMatch(/포인트 없음/);
-    expect([m.aptUp, m.star, s.player.gold]).toEqual([[1, 0, 0], 2, 100000 - 3 * 4000]);
-    expect(resetPoints(s, m.id)).toBe('');
-    expect([m.aptUp, m.star, s.player.gold]).toEqual([[0, 0, 0], 0, 100000 - 12000 - 5000]);
+  it('모집 공고: 내 Lv × 30 골드, 고른 역할 3명 (처음 보는 사람 · 내 Lv − 5 이상), 1명 영입하면 나머지는 돌아감', () => {
+    const s = save(30, 1000);
+    expect(postGold('normal', 30)).toBe(900);
+    expect(Gd.postRecruit(s, 'normal', 'tank', rng)).toBe('');
+    expect(s.player.gold).toBe(100);
+    const cands = s.guild.post!.cands;
+    expect(cands.length).toBe(POSTS.normal.cands);
+    for (const c of cands) {
+      expect(CLASSES[c.cls].role).toBe('tank');
+      expect(c.lv).toBeGreaterThanOrEqual(25); expect(c.lv).toBeLessThanOrEqual(30);
+      expect(ABILITIES[c.ab].cls).toBe(c.cls);
+      expect(s.users[c.nick]).toBeUndefined();
+    }
+    expect(new Set(cands.map(x => x.nick)).size).toBe(3);
+    expect(Gd.postRecruit(s, 'normal', 'any', rng)).toMatch(/골드 부족/);
+    const pick = cands[1];
+    expect(Gd.hire(s, 1)).toBe('');
+    expect([s.guild.members.length, s.guild.members[0].nick, s.guild.post]).toEqual([1, pick.nick, null]);
+    expect(Gd.bondOf(s, pick.nick)).toBe(3);
   });
-  it('능력 다시 뽑기 3,000: 같은 직업 안에서, ★ 유지', () => {
+  it('명문 공고: 길드 Lv 4부터, 고른 직업 5명, 희귀 성격 · 희귀 스킬이 더 자주', () => {
+    const s = save(40);
+    expect(Gd.postRecruit(s, 'elite', 'mage', rng)).toMatch(/길드 Lv 4/);
+    s.guild.fame = 120;
+    const gold = s.player.gold;
+    expect(Gd.postRecruit(s, 'elite', 'mage', rng)).toBe('');
+    expect(s.player.gold).toBe(gold - 150 * 40);
+    expect(s.guild.post!.cands.map(c => c.cls)).toEqual(Array(5).fill('mage'));
+    expect(Gd.postRecruit(s, 'elite', 'tank', rng)).toBe('고를 수 없음');
+    const rare = (kind: 'normal' | 'elite') => {
+      let n = 0, all = 0;
+      for (let i = 0; i < 200; i++) for (const c of Gd.makeCandidates(s, kind, kind === 'elite' ? 'mage' : 'any', rng)) { all++; if ('rare' in PERS[c.pers] || ABILITIES[c.ab].grade !== 'common') n++; }
+      return n / all;
+    };
+    expect(rare('elite')).toBeGreaterThan(rare('normal') * 1.2);
+  });
+  it('정원이 다 차면 공고 · 영입 · 초대 안 됨', () => {
+    const s = save(15);
+    for (let i = 0; i < 6; i++) add(s, 'mage', i);
+    expect(Gd.postRecruit(s, 'normal', 'any', rng)).toMatch(/정원/);
+    bond(s, nickOf('archer', 9), 10);
+    expect(Gd.inviteFriend(s, nickOf('archer', 9))).toMatch(/정원/);
+  });
+  it('명성 지원자: 길드 Lv 2부터 하루 1명 (Lv 6 2명 · Lv 9 3명), 사흘 머묾, 적은 역할부터', () => {
+    const T = new Date(2026, 9, 7, 12).getTime();
+    const s = save(30);
+    add(s, 'warrior', 0); add(s, 'warrior', 1);
+    Gd.refreshApps(s, rng, T);
+    expect(s.guild.apps).toEqual([]);
+    s.guild.fame = 20;
+    s.guild.appsDay = '';
+    Gd.refreshApps(s, rng, T);
+    Gd.refreshApps(s, rng, T + 3600e3);
+    expect(s.guild.apps.length).toBe(1);
+    expect(CLASSES[s.guild.apps[0].m.cls].role).not.toBe('tank');
+    expect(s.guild.apps[0].until).toBe('2026-10-09');
+    Gd.refreshApps(s, rng, T + 864e5);
+    expect(s.guild.apps.length).toBe(2);
+    Gd.refreshApps(s, rng, T + 3 * 864e5);
+    expect(s.guild.apps.length).toBe(2); // 첫 사람은 떠나고 새 사람
+    s.guild.fame = 480; // 길드 Lv 7: 하루 2명
+    Gd.refreshApps(s, rng, T + 4 * 864e5);
+    expect(s.guild.apps.length).toBe(3);
+    const nick = s.guild.apps[0].m.nick;
+    expect(Gd.hireApp(s, 0)).toBe('');
+    expect(s.guild.members.some(m => m.nick === nick)).toBe(true);
+    expect(s.guild.apps.length).toBe(2);
+  });
+});
+
+describe('관리 (93 4-3 · 5-5)', () => {
+  it('스킬 다시 뽑기: 내 Lv × 60 골드, 같은 직업 안에서. 스토리 동료는 안 됨', () => {
     seed = 3;
-    const s = save(30, 3000), m = add(s, { star: 2 });
-    expect(rerollAbility(s, m.id, rng)).toBe('');
-    expect([ABILITIES[m.ab].cls, m.star, s.player.gold]).toEqual(['warrior', 2, 0]);
+    const s = save(30, rerollGold(30)), m = add(s);
+    expect(Gd.rerollAbility(s, m.id, rng)).toBe('');
+    expect([ABILITIES[m.ab].cls, s.player.gold]).toEqual(['warrior', 0]);
+    expect(Gd.rerollAbility(s, m.id, rng)).toMatch(/골드 부족/);
+    const t = save(15);
+    Gd.foundGuild(t);
+    expect(Gd.rerollAbility(t, t.guild.members[0].id, rng)).toMatch(/고유/);
   });
-  it('전투력 (17 9-3): Lv 30 · 자질 9 · 일반 능력 = 3,000', () => {
-    expect(memberPower({ lv: 30, apt: [3, 3, 3], ab: 'warrior.shieldBlock', star: 0 })).toBe(3000);
-    expect(memberPower({ lv: 30, apt: [5, 4, 4], ab: 'warrior.shieldWall', star: 2 })).toBe(Math.round(3000 * 1.12 * 1.04 * 1.03));
-  });
-  it('방출', () => {
-    const s = save(), m = add(s);
-    s.guild.pick = [m.id];
-    expect(release(s, m.id)).toBe(true);
-    expect([s.guild.members.length, s.guild.pick]).toEqual([0, []]);
+  it('보내기: 편성 (모든 규모)에서 빠지고 친구 목록으로, 인연 그대로. 스토리 동료는 친구 목록에 안 감', () => {
+    const s = save(30), m = add(s, 'mage', 2);
+    bond(s, m.nick, 60);
+    s.guild.picks = { '5': [m.id], '10': [m.id, 99] };
+    expect(Gd.release(s, m.id)).toBe(true);
+    expect([s.guild.members.length, s.guild.picks]).toEqual([0, { '5': [], '10': [99] }]);
+    expect([Gd.bondPt(s, m.nick), s.guild.away.map(x => x.nick)]).toEqual([60, [m.nick]]);
+    const t = save(15);
+    Gd.foundGuild(t);
+    Gd.release(t, t.guild.members[0].id);
+    expect(t.guild.away).toEqual([]);
   });
 });
 
-describe('길드파티 편성 (02 9-2)', () => {
-  const plague = ENCOUNTERS.plague;
-  it('자동 편성 = 전투력 순, 탱커 2 · 딜러 7 자리를 넘지 않음', () => {
+describe('길드파티 편성 (93 7-2)', () => {
+  const plague = ENCOUNTERS.plague, warden = ENCOUNTERS.warden;
+  it('처음 편성 = 레벨 순 (탱커 · 딜러 자리를 넘지 않음), 규모마다 지난 편성을 따로 기억', () => {
     const s = save(40);
-    const t = [add(s, { lv: 30 }), add(s, { lv: 40 }), add(s, { lv: 35 })];
-    const d = [add(s, { cls: 'mage', ab: 'mage.blink', lv: 38 })];
-    const pick = autoPick(s, plague);
-    expect(pick).toEqual([t[1].id, d[0].id, t[2].id]);
-    expect(togglePick(s, plague, pick, t[0].id).msg).toMatch(/탱커 자리/);
+    const t = [add(s, 'warrior', 0, { lv: 30 }), add(s, 'warrior', 1, { lv: 40 }), add(s, 'warrior', 2, { lv: 35 })];
+    const d = add(s, 'mage', 0, { lv: 38 });
+    const pick = Gd.autoPick(s, plague);
+    expect(pick).toEqual([t[1].id, d.id, t[2].id]);
+    expect(Gd.togglePick(s, plague, pick, t[0].id).msg).toMatch(/탱커 자리/);
+    Gd.savePick(s, warden, [t[0].id]);
+    expect(Gd.autoPick(s, warden)).toEqual([t[0].id, d.id]);
+    expect(Gd.autoPick(s, plague)).toEqual([t[1].id, d.id, t[2].id]);
+    expect(Gd.autoPick(s, warden, true)).toEqual([t[1].id, d.id]);
+    expect(['3', '5', '10', '20'].map(k => k)).toEqual([Gd.sizeKey(ENCOUNTERS.field), Gd.sizeKey(warden), Gd.sizeKey(plague), Gd.sizeKey(ENCOUNTERS.choir)]);
   });
-  it('빈자리는 공개모집 파티에서 같은 역할로 채움, 길드원 정보는 전투로', () => {
+  it('빈자리는 공개모집에서 같은 역할로, 전투에 자기 레벨 · 능력치 · 인연 ★ · 버릇이 넘어감. 공개모집에는 길드원이 안 나옴', () => {
     const s = save(40);
-    const t = add(s, { lv: 33, apt0: [2, 5, 4], star: 3 }), d = add(s, { cls: 'archer', ab: 'archer.snipe', lv: 31 });
-    const pub = E.recruitParty('plague', 5, { abilities: true });
-    const roster = guildRoster(s, [t.id, d.id], pub, plague);
+    const t = add(s, 'warrior', 0, { lv: 33 }), d = add(s, 'archer', 0, { lv: 31, ab: 'archer.snipe' });
+    bond(s, t.nick, 55);
+    const pub = E.recruitParty('plague', 5, { abilities: true, exclude: Gd.guildNicks(s) });
+    expect(pub.some(p => p.nick === t.nick || p.nick === d.nick)).toBe(false);
+    const roster = Gd.guildRoster(s, [t.id, d.id], pub, plague);
     expect(roster.length).toBe(9);
     expect(roster.filter(r => r.role === 'tank').length).toBe(2);
-    expect(roster[0]).toMatchObject({ gid: t.id, lv: 33, apt: [2, 5, 4], ab: 'warrior.shieldBlock', star: 3 });
+    expect(roster[0]).toMatchObject({ gid: t.id, lv: 33, pub: true, star: 3, ab: t.ab, habit: habitOf(t.stats), fm: { stats: t.stats } });
     const f = E.create({ encounter: 'plague', diff: '보통', seed: 1, party: roster, stageLv: 35 });
-    expect(f.party.find(u => u.gid === d.id)!.ab!.key).toBe('archer.snipe');
+    const u = f.party.find(x => x.gid === d.id)!;
+    expect(u.ab!.key).toBe('archer.snipe');
+    expect(u.did).toEqual({ dodge: 0, move: 0, cut: 0, buster: 0, adds: 0 });
+    expect(f.party.find(x => x.gid == null && x.role !== 'healer')!.did).toBeUndefined();
+    // 내 길드원 3명 이상이 다른 시드 공개모집에도 안 나옴
+    for (let sd = 1; sd <= 30; sd++) for (const p of E.recruitParty('choir', sd, { exclude: Gd.guildNicks(s) })) expect([t.nick, d.nick]).not.toContain(p.nick);
+  });
+  it('버릇 = 침착 · 판단 평균: 1 → 단점 ×1.2 · 10 → ×1 · 20 → ×1/3', () => {
+    const st = (v: number) => ({ ...add(save(), 'mage').stats, composure: v, judgment: v });
+    expect([habitOf(st(1)), habitOf(st(10)), habitOf(st(20))].map(x => +x.toFixed(3))).toEqual([1.2, 1, 0.333]);
   });
 });
 
-describe('판 뒤 (02 9장)', () => {
-  it('길드원 경험치: 레벨 상한 = 내 레벨, 상한에서도 다음 레벨 바로 앞까지 모아 둠 (32)', () => {
-    const m = mem({ lv: 14 });
-    expect(addMemberXp(m, 1e9, 15)).toEqual([15]);
+describe('출전 경험 (97): 레벨', () => {
+  const mem = (lv: number, xp = 0): GuildMember => ({ ...Gd.newMember(save(100), Gd.personOf(nickOf('warrior'))!, lv), xp });
+  it('레벨 상한 = 내 레벨, 상한에서도 다음 레벨 바로 앞까지 모아 둠', () => {
+    const m = mem(14);
+    expect(Gd.addMemberXp(m, 1e9, 15)).toEqual([15]);
     expect([m.lv, m.xp]).toEqual([15, xpToNext(15) - 1]);
-    expect(addMemberXp(m, 100, 15)).toEqual([]);
-    expect(m.xp).toBe(xpToNext(15) - 1);
-    // 내가 Lv 16이 되면 다음 판에 바로 따라옴
-    expect(addMemberXp(m, 1, 16)).toEqual([16]);
-    const n = mem({ lv: 20, xp: 0 });
-    expect(addMemberXp(n, 50, 20)).toEqual([]);
+    expect(Gd.addMemberXp(m, 100, 15)).toEqual([]);
+    expect(Gd.addMemberXp(m, 1, 16)).toEqual([16]);
+    const n = mem(20);
+    expect(Gd.addMemberXp(n, 50, 20)).toEqual([]);
     expect([n.lv, n.xp]).toEqual([20, 50]);
   });
-  it('길드 평균보다 낮으면 2배, 인연 = 이긴 판(S·A)에서 살아남은 공개모집 중 내 힐을 가장 많이 받은 1명', () => {
-    seed = 5;
-    const s = save(30);
-    const lo = add(s, { lv: 10 }), hi = add(s, { lv: 29 });
-    const pub = E.recruitParty('warden', 2, { abilities: true });
-    const roster = [{ ...pub[0] }, { ...pub[1] }, ...[lo, hi].map(m => ({ role: 'melee' as const, cls: m.cls, pers: m.pers, nick: m.nick, gid: m.id }))];
-    const party = [
-      { nick: pub[0].nick, alive: true, got: 500 }, { nick: pub[1].nick, alive: true, got: 900 },
-      { nick: lo.nick, alive: true, got: 2000, gid: lo.id }, { nick: hi.nick, alive: true, got: 0, gid: hi.id },
-    ];
-    const r = guildAfter(s, rng, { win: true, quit: false, grade: 'A', diff: '보통', stage: 25, raid: 0, content: '녹슨 요새', party, roster });
-    const [a, b] = r.members;
-    expect(a.nick).toBe(lo.nick);
-    expect(a.xp).toBe(Math.round(clearXp(10, '보통', 'A', { raid: 0, win: true }) * 2)); // 평균(19.5)보다 낮음 → 2배
-    expect(b.xp).toBe(clearXp(29, '보통', 'A', { raid: 0, win: true }));
-    expect(r.scout!.nick).toBe(pub[1].nick);
-    expect(r.scout!.lv).toBe(25);
-    expect(s.guild.scouts.length).toBe(1);
-    expect([lo.runs, hi.runs, s.guild.fame]).toEqual([1, 1, 1]);
-    // 같은 사람은 두 번 안 들어감, B 등급이면 인연 없음
-    expect(guildAfter(s, rng, { win: true, quit: false, grade: 'A', diff: '보통', stage: 25, raid: 0, content: 'x', party, roster }).scout).toBeNull();
-    expect(guildAfter(s, rng, { win: true, quit: false, grade: 'B', diff: '보통', stage: 25, raid: 0, content: 'x', party: party.map(p => ({ ...p, nick: `${p.nick}2` })), roster }).scout).toBeNull();
-  });
-  it('settle에 편성을 넘기면 길드 정산 (포기한 판은 없음)', () => {
-    const s = save(20);
-    const m = add(s, { lv: 18 });
-    const base: BattleResult = {
-      content: 'rustfort', diff: '보통', win: true, quit: false, reason: '', segIdx: 3, segN: 3, time: 200, restSec: 0, deaths: 0, healed: 1000, overheal: 100,
-      dispels: 0, dispellable: 0, endMana: 50, minMana: 20, auto: false, party: [{ nick: m.nick, pers: '신중파', role: 'tank', alive: true, got: 10, gid: m.id }], detail: [],
-    };
-    const x = settle(s, base, rng, [{ role: 'tank', cls: 'warrior', pers: '신중파', nick: m.nick, gid: m.id }]);
-    expect(x.guild!.members[0].xp).toBeGreaterThan(0);
-    expect(settle(s, { ...base, quit: true, win: false }, rng, [{ role: 'tank', cls: 'warrior', pers: '신중파', nick: m.nick, gid: m.id }]).guild!.members).toEqual([]);
-    expect(settle(s, base, rng).guild).toBeNull();
+  it('그 칸 경험치를 자기 레벨 기준으로: ±5 칸 가득, 더 높은 칸도 자기 몫, 더 낮은 칸은 한 레벨에 10%씩 덜 (30%까지)', () => {
+    const o = (stage: number) => ({ stage, diff: '보통' as const, grade: 'A' as const, raid: 0 as const, win: true });
+    const full = clearXp(30, '보통', 'A', { raid: 0, win: true });
+    expect(Gd.memberXp({ lv: 30 }, o(25))).toBe(full);
+    expect(Gd.memberXp({ lv: 30 }, o(60))).toBe(full);
+    expect(Gd.memberXp({ lv: 30 }, o(20))).toBe(Math.round(full * 0.5));
+    expect(Gd.memberXp({ lv: 30 }, o(1))).toBe(Math.round(full * 0.3));
   });
 });
 
-describe('저장 v4', () => {
-  it('옛 저장은 빈 길드, 깨진 값은 기본값', () => {
-    const d = migrate({ v: 3, createdAt: 1 });
-    expect(d.v).toBe(SAVE_VERSION);
-    expect(d.guild).toMatchObject({ name: '새벽의 손', members: [], scouts: [], post: null, fame: 0, nextId: 1, pick: [] });
-    expect(migrate({ v: 4, guild: { members: 'x', fame: 'y', post: { cands: 1 } } }).guild).toMatchObject({ members: [], fame: 0, post: null });
-    const g = migrate({ v: 4, guild: { members: [mem({ id: 3 })], nextId: 4 } }).guild;
-    expect([g.members.length, g.nextId]).toEqual([1, 4]);
+describe('출전 경험 (97): 능력치', () => {
+  const mem = (o: Partial<GuildMember> = {}): GuildMember => ({ ...Gd.newMember(save(100), Gd.personOf(nickOf('warrior'))!, 40), ...o });
+  it('한 칸 +1에 드는 경험: 높을수록 많이, 학습력 1 ×1.6 · 10 ×1 · 20 ×0.6. 상한 = 12 + Lv ÷ 12', () => {
+    expect([statNeed(8, 10), statNeed(12, 10), statNeed(18, 10), statNeed(8, 1), statNeed(8, 20)]).toEqual([2, 4, 7, 3.2, 1.2]);
+    expect([1, 23, 24, 60, 96, 100].map(statCap)).toEqual([12, 13, 14, 17, 20, 20]);
+  });
+  it('오를 칸 무게: 역할 핵심 2 · 나머지 1, 「한 일」 표 +1.5, 상한이면 0', () => {
+    const flat = Object.fromEntries(Object.keys(mem().stats).map(k => [k, 10])) as GuildMember['stats'];
+    const w = statWeights({ stats: flat, votes: [], lv: 40 }, 'tank');
+    expect([w.tough, w.atk]).toEqual([2, 1]);
+    const v = statWeights({ stats: flat, votes: [['evade', 'react']], lv: 40 }, 'tank');
+    expect(v.evade).toBe(2.5);
+    expect(statWeights({ stats: { ...flat, atk: 15 }, votes: [], lv: 40 }, 'tank').atk).toBe(0); // Lv 40 상한 15
+  });
+  it('경험이 차는 만큼 한 칸씩 +1, 표는 최근 5장, 모두 상한이면 경험은 조금만 모아 둠', () => {
+    seed = 9;
+    const m = mem({ sxp: 0 }), sum = () => Object.values(m.stats).reduce((a, b) => a + b, 0), before = sum();
+    let ups = 0;
+    for (let i = 0; i < 6; i++) ups += Gd.growStats(m, 3, 'dodge', rng).length;
+    expect(ups).toBeGreaterThan(0);
+    expect(sum() - before).toBe(ups);
+    expect(m.votes.length).toBe(5);
+    const capped = mem({ lv: 1, stats: Object.fromEntries(Object.keys(m.stats).map(k => [k, 12])) as GuildMember['stats'] });
+    expect(Gd.growStats(capped, 50, undefined, rng)).toEqual([]);
+    expect(capped.sxp).toBe(10);
+  });
+  it('「한 일」 표: 판 크기와 상관없이 가장 두드러진 일 하나, 모자라면 없음', () => {
+    const did = { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0 };
+    const x = (o: Partial<Parameters<typeof deedOf>[0]>) => deedOf({ did, dealt: 0, top: false, low: 0.9, alive: true, role: 'melee', ...o });
+    expect(x({ top: true })).toBe('top');
+    expect(x({ role: 'tank', did: { ...did, buster: 4 } })).toBe('buster');
+    expect(x({ role: 'melee', did: { ...did, buster: 4 } })).toBeUndefined();
+    expect(x({ did: { ...did, dodge: 3 } })).toBe('dodge');
+    expect(x({ low: 0.1 })).toBe('calm');
+    expect(x({ low: 0.1, alive: false })).toBeUndefined();
+    expect(x({})).toBeUndefined();
+  });
+});
+
+describe('판 뒤 길드 정산 (93 6-1)', () => {
+  const warden = (s: SaveData, ms: GuildMember[]) => {
+    const pub = E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) });
+    return Gd.guildRoster(s, ms.map(m => m.id), pub, ENCOUNTERS.warden);
+  };
+  const after = (s: SaveData, roster: ReturnType<typeof warden>, o: Partial<Parameters<typeof Gd.guildAfter>[2]> = {}) =>
+    Gd.guildAfter(s, rng, { win: true, quit: false, grade: 'A', diff: '보통', stage: 30, raid: 0, content: 'rustfort', kind: 'dungeon', party: [], roster, ...o });
+  it('길드파티 (자리 절반 이상): 명성 +1 · 첫 처치 +3 (장소 · 난이도마다 한 번), 출전 길드원 레벨 · 능력치 경험, 쉬는 명단 30%', () => {
+    seed = 11;
+    const s = save(30);
+    const a = add(s, 'warrior', 0, { lv: 30 }), b = add(s, 'mage', 0, { lv: 30 }), rest = add(s, 'archer', 0, { lv: 30 });
+    const roster = warden(s, [a, b]);
+    expect(Gd.isGuildParty(roster)).toBe(true);
+    const r = after(s, roster, { party: [{ nick: b.nick, deed: 'top' }] });
+    expect([r.fame, r.first, s.guild.fame, s.guild.wins, s.guild.firsts]).toEqual([FAME.win + FAME.first, true, 4, 1, ['rustfort|보통']]);
+    expect(r.members.map(x => x.nick)).toEqual([a.nick, b.nick]);
+    expect([a.runs, b.runs, rest.runs]).toEqual([1, 1, 0]);
+    const full = clearXp(30, '보통', 'A', { raid: 0, win: true });
+    expect(r.members[0].xp).toBe(full);
+    expect(rest.xp).toBe(Math.round(full * REST_SHARE));
+    expect(r.rest).toBe(rest.xp);
+    expect(b.votes).toEqual([['atk']]);
+    expect(a.sxp + r.members[0].stats.length).toBeGreaterThan(0);
+    expect(s.weekly.guild.ran).toEqual([a.nick, b.nick]);
+    // 두 번째: 첫 처치 없음, 어려움은 능력치 경험 2
+    const r2 = after(s, roster);
+    expect([r2.fame, r2.first]).toEqual([FAME.win, false]);
+    expect(SXP['어려움']).toBe(2);
+    expect(after(s, roster, { raid: 10 }).fame).toBe(FAME.raid10);
+    expect(after(s, roster, { raid: 20 }).fame).toBe(FAME.raid20);
+  });
+  it('길드원이 자리 절반 아래면 명성 · 첫 처치 없음 (경험은 받음), 진 판 · 포기는 아무것도 없음', () => {
+    const s = save(30);
+    const a = add(s, 'warrior', 0, { lv: 30 });
+    const roster = warden(s, [a]);
+    expect(Gd.isGuildParty(roster)).toBe(false);
+    const r = after(s, roster);
+    expect([r.fame, r.first, s.guild.fame, r.members.length]).toEqual([0, false, 0, 1]);
+    expect(after(s, roster, { win: false }).members).toEqual([]);
+    expect(after(s, roster, { quit: true, win: false }).members).toEqual([]);
+    expect(a.runs).toBe(1);
+  });
+  it('주간 목표: 명성 +5 · 그 주 출전한 길드원 인연 +2 (보낸 사람은 빼고)', () => {
+    const s = save(30);
+    const a = add(s, 'warrior', 0), b = add(s, 'mage', 0);
+    bond(s, a.nick, 20); bond(s, b.nick, 20);
+    s.weekly.guild = { n: GUILD_GOAL.need, got: false, ran: [a.nick, b.nick] };
+    Gd.release(s, b.id);
+    expect(claimGuildGoal(s)).toBe('');
+    expect([s.guild.fame, Gd.bondPt(s, a.nick), Gd.bondPt(s, b.nick)]).toEqual([GUILD_GOAL.fame, 22, 20]);
+    expect(claimGuildGoal(s)).toBe('아직 못 채움');
+  });
+  it('settle: Lv 15 이상 판 뒤 결성 (말없는탱 + 인연 높은 딜러), 길드파티면 정산 · 주간 목표 1, 포기는 정산 없음', () => {
+    const s = save(20);
+    bond(s, nickOf('mage', 6), 9);
+    const x = settle(s, result(), rng, []);
+    expect(x.founded).toEqual(['말없는탱', nickOf('mage', 6)]);
+    expect(x.guild).toBeNull();
+    const ms = s.guild.members;
+    const roster = warden(s, ms);
+    const party = roster.map(e => ({ nick: e.nick, pers: e.pers, role: e.role, alive: true, got: 10, gid: e.gid }));
+    const y = settle(s, result({ party }), rng, roster);
+    expect(y.founded).toBeNull();
+    expect(y.guild!.members.length).toBe(2);
+    expect(y.guild!.members[0].xp).toBeGreaterThan(0);
+    expect(s.weekly.guild.n).toBe(1);
+    expect(settle(s, result({ party, quit: true, win: false }), rng, roster).guild!.members).toEqual([]);
+    expect(settle(s, result(), rng, []).guild).toBeNull();
+  });
+});
+
+describe('저장 v19 (길드 v2)', () => {
+  it('v18 길드 (자질 · 육성 포인트): 같은 닉네임 사람의 능력치로, 레벨 · 스킬 그대로, 인연 = max(레벨 × 5, 길드원 문턱), 인연 스카우트는 친구로', () => {
+    expect(SAVE_VERSION).toBe(19);
+    const nick = nickOf('mage', 4), scout = nickOf('archer', 4);
+    const old = {
+      ...JSON.parse(JSON.stringify(newSave(1))), v: 18,
+      users: { [scout]: { pt: 1, met: 1, wins: 0, saved: 0, mvp: 0 } },
+      guild: {
+        name: '새벽의 손', members: [{ id: 3, nick, cls: 'mage', pers: PARTY_POOL.mage[4].pers, lv: 25, xp: 10, apt0: [3, 3, 3], aptUp: [1, 0, 0], ab: 'mage.blink', star: 2, runs: 4 }, { nick: 7 }],
+        scouts: [{ nick: scout, cls: 'archer', pers: '신중파', lv: 12, apt0: [3, 3, 3], ab: 'archer.snipe', from: 'x' }], pick: [3, 8], fame: 30, nextId: 4, post: null,
+      },
+    };
+    const d = migrate(old);
+    expect(d.v).toBe(19);
+    const m = d.guild.members[0];
+    expect(d.guild.members.length).toBe(1);
+    expect(m).toMatchObject({ id: 3, nick, cls: 'mage', lv: 25, xp: 10, ab: 'mage.blink', runs: 4, stats: PARTY_POOL.mage[4].fm.stats, sxp: 0, votes: [] });
+    expect(m).not.toHaveProperty('apt0');
+    expect([d.users[nick].pt, d.users[scout].pt]).toEqual([125, 4]);
+    expect(d.guild).toMatchObject({ founded: true, storySeen: true, fame: 30, nextId: 4, picks: { '5': [3] }, away: [], apps: [] });
+    expect(d.guild).not.toHaveProperty('scouts');
+    // 다시 불러도 그대로
+    expect(migrate(JSON.parse(JSON.stringify(d))).guild).toEqual(d.guild);
+  });
+  it('깨진 값은 기본값, 모자란 능력치 칸은 그 사람 능력치로', () => {
+    expect(migrate({ v: 19, guild: { members: 'x', fame: 'y', post: { cands: 1 } } }).guild).toMatchObject({ members: [], fame: 0, post: null, founded: false, name: '해바라기 원정대' });
+    const nick = nickOf('rogue', 2);
+    const g = migrate({ v: 19, guild: { founded: true, members: [{ id: 2, nick, cls: 'rogue', pers: PARTY_POOL.rogue[2].pers, ab: 'rogue.kick', lv: 9, stats: { atk: 30 } }], nextId: 3 } }).guild;
+    expect(g.members[0].stats.atk).toBe(PARTY_POOL.rogue[2].fm.stats.atk);
+    expect([g.members.length, g.nextId, g.founded]).toEqual([1, 3, true]);
   });
 });

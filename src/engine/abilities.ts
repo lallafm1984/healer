@@ -366,6 +366,7 @@ function tryCut(f: Fight, u: Unit, a: AbilityDef, s: BossSkill): boolean {
   const ok = p >= 1 || f.rng() < p;
   use(f, u, a, {});
   emit(f, { type: 'msg', text: `${u.nick} ${a.name}: ${s.name || '기술'} ${ok ? '끊음' : '끊기 실패'}` });
+  if (ok && u.did) u.did.cut++;
   return ok;
 }
 

@@ -11,10 +11,10 @@ import { gearStatsOf, specsOf } from '../data/equipment';
 import { FEATURES } from '../data/features';
 import { ENCOUNTERS } from '../data/encounters';
 import { CATS, PERS } from '../data/personalities';
-import { aptOf } from '../data/guild';
 import { create, recruitParty } from '../engine';
+import { withBond } from '../game/bond';
 import { Flow, newSeed } from '../game/flow';
-import { autoPick, guildOpen, guildRoster, powerOf, slotsOf, togglePick } from '../game/guild';
+import { autoPick, bondOf, guildNicks, guildOpen, guildRoster, memberEntry, savePick, sizeKey, slotsOf, togglePick } from '../game/guild';
 import { recLevel } from '../game/guide';
 import { runMode } from '../game/runmode';
 import { settle } from '../game/settle';
@@ -32,7 +32,7 @@ const s = screen('s-party', '파티 편성', {
     if (!Flow.party) {
       roll();
       // 길드원이 있으면 지난번 길드파티 편성으로 시작 (09 S05). 길드 탭 「길드파티로 출전」이면 길드파티로 (30)
-      Flow.mode = guildReady() && (G.save.guild.pick.length || Flow.preferGuild) ? 'guild' : 'public';
+      Flow.mode = guildReady() && ((G.save.guild.picks[sizeKey(firstEnc())]?.length ?? 0) || Flow.preferGuild) ? 'guild' : 'public';
       Flow.preferGuild = false;
       Flow.gpick = guildReady() ? autoPick(G.save, firstEnc()) : [];
       compose();
@@ -60,12 +60,14 @@ function roll(): void {
   Flow.seed = newSeed();
   openRow = -1;
   // 공개모집 파티원도 능력 1개 (17 3장). 튜토리얼 파티는 능력 없음
-  Flow.pub = recruitParty(segs[0], Flow.seed, { abilities: G.save.tut >= TUT.done, myLv: G.save.player.level, stageLv: modeNow().stage }); // 97 FM: 칸 레벨 ±1인 모험가
+  // 97 FM: 칸 레벨 ±1인 모험가. 길드원은 공개모집에 안 나옴 (93 7-2)
+  Flow.pub = recruitParty(segs[0], Flow.seed, { abilities: G.save.tut >= TUT.done, myLv: G.save.player.level, stageLv: modeNow().stage, exclude: guildNicks(G.save) });
 }
 
 /** 전투에 넘길 파티: 공개모집 그대로, 또는 고른 길드원 + 빈자리는 공개모집 */
 function compose(): void {
-  Flow.party = Flow.mode === 'guild' && guildReady() ? guildRoster(G.save, Flow.gpick, Flow.pub!, firstEnc()) : Flow.pub!.slice();
+  const list = Flow.mode === 'guild' && guildReady() ? guildRoster(G.save, Flow.gpick, Flow.pub!, firstEnc(), Flow.seed) : Flow.pub!.slice();
+  Flow.party = withBond(G.save, list); // 은혜 갚기 호감도 = 인연 점수 (공개모집도)
 }
 
 /**
@@ -108,16 +110,17 @@ function guildPickHtml(stage: number): string {
   const picked = Flow.gpick.map(id => ms.find(m => m.id === id)).filter(Boolean);
   const tanks = picked.filter(m => CLASSES[m!.cls].role === 'tank').length;
   const fill = Flow.party!.filter(e => e.gid == null);
-  const list = ms.slice().sort((a, b) => (Flow.gpick.includes(b.id) ? 1 : 0) - (Flow.gpick.includes(a.id) ? 1 : 0) || powerOf(b) - powerOf(a));
+  const list = ms.slice().sort((a, b) => (Flow.gpick.includes(b.id) ? 1 : 0) - (Flow.gpick.includes(a.id) ? 1 : 0) || b.lv - a.lv);
   const under = picked.filter(m => m!.lv < stage).length;
   return `<p class="pickhead"><b>길드원 ${picked.length}/${sl.tank + sl.dps}</b><small>탱커 ${tanks}/${sl.tank} · 딜러 ${picked.length - tanks}/${sl.dps}${fill.length ? ` · 빈자리 ${fill.length} = 공개모집` : ''}</small><button class="btn2" type="button" id="autoPick">자동 편성</button></p>
     ${gmsg ? `<p class="warnbox">${esc(gmsg)}</p>` : ''}
     ${under ? `<p class="warnbox">권장 레벨(Lv ${stage})보다 낮은 길드원 ${under}명: 체력·딜이 낮음</p>` : ''}
     <section class="pn f-mems"><ul class="pcards">${list.map(m => {
       const on = Flow.gpick.includes(m.id);
-      return memRowHtml({ ...m, apt: aptOf(m) }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
+      const e = memberEntry(G.save, m, Flow.seed);
+      return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, bond: bondOf(G.save, m.nick), member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
     }).join('')}
-    ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: m.lv ?? stage }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
+    ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: m.lv ?? stage, bond: bondOf(G.save, m.nick) }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
 }
 
 /** 아래에서 올라오는 시트 (열 때만 그림) */
@@ -156,7 +159,7 @@ function pickSeg(i: number, focus = false): void {
 function memSheetHtml(stage: number): string {
   const m = Flow.party![openRow];
   if (!m?.cls) return '';
-  return sheetBox('f-msheet', `${m.nick} 상세`, `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${CLASSES[m.cls].name} · Lv ${m.lv ?? stage}</span></h2>${memDetailHtml({ ...m, cls: m.cls })}`);
+  return sheetBox('f-msheet', `${m.nick} 상세`, `<h2 class="h-rule">${esc(m.nick)}<span class="rule"></span><span class="cap">${CLASSES[m.cls].name} · Lv ${m.lv ?? stage}</span></h2>${memDetailHtml({ ...m, cls: m.cls, bond: bondOf(G.save, m.nick), member: m.gid != null })}`);
 }
 
 function render(keepScroll = true): void {
@@ -172,7 +175,7 @@ function render(keepScroll = true): void {
   const mark = Flow.chal ? `<span class="f-hg sm">${uiIcon('hourglass')}</span>` : markHtml(c, 'sm');
   const guideBtn = `<button class="f-gbtn" type="button" id="guideOpen" aria-haspopup="dialog">${BOOK}<span>공략</span></button>`;
   const rows = Flow.party!.map((p, i) => (p.cls
-    ? memRowHtml({ ...p, cls: p.cls }, { attrs: `data-cls="${p.cls}" data-prow="${i}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on: sheet === 'mem' && openRow === i })
+    ? memRowHtml({ ...p, cls: p.cls, bond: tutDone ? bondOf(G.save, p.nick) : undefined }, { attrs: `data-cls="${p.cls}" data-prow="${i}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on: sheet === 'mem' && openRow === i })
     : plainRow(p))).join('');
   s.el.innerHTML = `${flowHead(Flow.chal ? 's-entry' : 's-content', Flow.chal ? CHAL.name : c.name, sub, mark, guideBtn)}
     ${FEATURES.guild ? `<nav class="subtabs" role="tablist" aria-label="파티 모집"><button type="button" role="tab" data-mode="public" aria-selected="${!isGuild}">공개모집</button><button type="button" role="tab" data-mode="guild" aria-selected="${isGuild}"${guildReady() ? '' : ' disabled'}>길드파티${guildTab}</button></nav>` : ''}
@@ -215,7 +218,7 @@ s.el.addEventListener('click', e => {
   if (md && !md.hasAttribute('disabled')) { Flow.mode = md.dataset.mode as 'public' | 'guild'; compose(); render(); return; }
   const gp = t.closest<HTMLElement>('[data-gpick]');
   if (gp) { const r = togglePick(G.save, firstEnc(), Flow.gpick, Number(gp.dataset.gpick)); Flow.gpick = r.pick; gmsg = r.msg; compose(); render(); gmsg = ''; return; }
-  if (t.closest('#autoPick')) { G.save.guild.pick = []; Flow.gpick = autoPick(G.save, firstEnc()); compose(); render(); return; }
+  if (t.closest('#autoPick')) { Flow.gpick = autoPick(G.save, firstEnc(), true); compose(); render(); return; }
   const pr = t.closest<HTMLElement>('[data-prow]');
   if (pr) { openRow = Number(pr.dataset.prow); openSheet('mem', `[data-prow="${openRow}"]`); return; }
   // 출발 = 바로 전투 (90 · 2026-10-17 Lim: 출전 전 휴식 팝업 없앰, 전투 전에는 휴식 표시 없음)
@@ -239,7 +242,7 @@ s.el.addEventListener('keydown', e => {
 /** 출발: 편성 「출발」 · 결과 화면 「다시 도전」 · 주간 도전 다음 단계 (같은 파티로 바로). 튜토리얼 탐험도 이걸 부름. 휴식은 클리어할 때 씀 (90) */
 export function depart(): string {
   const c = contentOf(Flow.content);
-  if (Flow.mode === 'guild' && guildReady()) { G.save.guild.pick = Flow.gpick.slice(); commit(); }
+  if (Flow.mode === 'guild' && guildReady()) { savePick(G.save, firstEnc(), Flow.gpick); commit(); } // 규모마다 지난 편성 (93 7-1)
   const coach = Flow.coach;
   Flow.coach = null;
   const m = modeNow();

@@ -102,11 +102,11 @@ describe('판 기록', () => {
 
 describe('저장 v18', () => {
   it('옛 저장은 빈 명부, 이상한 칸은 0 · 꼴이 아닌 사람은 버림', () => {
-    expect(SAVE_VERSION).toBe(18);
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(18);
     const old = { ...newSave(1), v: 17 } as Record<string, unknown>;
     delete old.users;
     const m = migrate(old);
-    expect(m.v).toBe(18);
+    expect(m.v).toBe(SAVE_VERSION);
     expect(m.users).toEqual({});
     const odd = migrate({ ...newSave(1), users: { 칼날: { pt: 5, met: '3', wins: -1, saved: 2.7 }, 이상: 7 } });
     expect(odd.users).toEqual({ 칼날: { pt: 5, met: 0, wins: 0, saved: 2, mvp: 0 } });

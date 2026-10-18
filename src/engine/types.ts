@@ -254,6 +254,8 @@ export interface Unit {
   /** 인연 (93 3-2): 이 전투에서 가장 낮았던 체력 비율 · 그때까지 받은 내 치유 (생명의 은인 = 그 뒤로 내 힐을 받고 끝까지 삶) */
   low?: number;
   gotLow?: number;
+  /** 길드원 「한 일」 (97): 장판을 피한 수 · 옮긴 수 · 끊은 수 · 맞은 강타 수 · 쫄에게 준 딜 */
+  did?: { dodge: number; move: number; cut: number; buster: number; adds: number };
   /** 짝꿍 (95): 짝 (아군 id). 붙어 있으면 둘 다 회피 + */
   pairWith?: number;
   /** 칭찬왕 · 보은형 (95): 체력 25% 아래로 내려간 적 있음 (60% 위로 오면 살아남) */
@@ -270,8 +272,8 @@ export interface Unit {
   senseDodge: number;
   /** 길드원이면 길드원 id */
   gid?: number;
-  /** 길드원: 함께 출전한 수 (은혜 갚기 호감도) */
-  runs: number;
+  /** 인연 점수 (93 3-2, save.users): 은혜 갚기 호감도. 없으면 0 */
+  bond: number;
   /** 결계사 인장 (79 5장): 이 시각까지 붙어 있음 */
   seal?: number;
   /** 점성술사 별의 잠 (79 4장): 이 시각까지 피해 · 회복 · 딜 없음 */
@@ -318,12 +320,12 @@ export interface RosterEntry {
   star?: number;
   /** 길드원: 자기 레벨 (체력·딜 배율은 이 레벨로). 없으면 콘텐츠 단계 */
   lv?: number;
-  /** 자질 공격·맷집·눈치 ●1~5 (17 9-1). 없으면 ●3 */
-  apt?: [number, number, number];
+  /** 길드원 버릇 (93 13-1 · 97): 침착 · 판단이 정한 단점 배율 (반응이 느린 몫 · 회피 −). 없으면 1 */
+  habit?: number;
   /** 길드원 id */
   gid?: number;
-  /** 길드원: 함께 출전한 수 (은혜 갚기 호감도, 06 6장) */
-  runs?: number;
+  /** 인연 점수 (93 3-2): 은혜 갚기 호감도 (06 6장). 공개모집 · 길드원 모두 */
+  bond?: number;
   /** 공개모집 (97 FM): lv가 그 사람 자기 레벨 (칸 레벨 상한 없음) */
   pub?: boolean;
   /** 능력치 12 (97 FM) · 이번 판 꾸준함 흔들림 (모든 칸에 더함) */

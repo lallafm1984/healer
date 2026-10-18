@@ -189,9 +189,9 @@ describe('생존·위기 (Lv 60~70)', () => {
     damage(f, me, me.hp + 50);
     expect(me.alive).toBe(false);
   });
-  it('은혜 갚기 호감도: 공개모집은 내 힐을 가장 많이 받은 파티원, 길드원은 출전 수가 많은 사람이 먼저', () => {
+  it('은혜 갚기 호감도: 인연 점수가 먼저 (공개모집 · 길드원 모두), 같으면 이번 판 받은 내 치유 몫 ÷ 그 역할 평소 (탱커가 늘 뽑히지 않게)', () => {
     const f = fight(['repay']);
-    const [a, b] = others(f);
+    const [a, b] = others(f).filter(u => u.role !== 'tank');
     a.got = 500; b.got = 900;
     const ahp = a.hp, bhp = b.hp;
     damage(f, f.me, f.me.hp + 50);
@@ -199,10 +199,18 @@ describe('생존·위기 (Lv 60~70)', () => {
     expect(a.hp).toBe(ahp);
     const g = fight(['repay']);
     const [c, d, e] = others(g);
-    d.got = 99999; c.gid = 1; c.runs = 3; e.gid = 2; e.runs = 8;
+    d.got = 99999; c.bond = 3; e.bond = 8;
     const ehp = e.hp;
     damage(g, g.me, g.me.hp + 50);
     expect(e.hp).toBeLessThan(ehp);
+    // 탱커가 몫 60%, 딜러가 20%: 5인 탱커 평소 상위 10% 선 79% · 원거리 15%라 딜러가 더 도움 받은 셈
+    const h = fight(['repay']);
+    const t = others(h).find(u => u.role === 'tank')!, r = others(h).find(u => u.role === 'ranged')!;
+    for (const u of others(h)) u.got = 0;
+    t.got = 600; r.got = 200;
+    const rhp = r.hp, thp = t.hp;
+    damage(h, h.me, h.me.hp + 50);
+    expect([r.hp < rhp, t.hp]).toEqual([true, thp]);
   });
   it('두 겹 수호: 2번 연달아, 충전 120초', () => {
     const f = fight(['twoGuard']);

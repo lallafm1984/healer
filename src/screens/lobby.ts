@@ -15,7 +15,7 @@ import { jobProductId, REST_BONUS, STAMINA, STAMINA_COST } from '../data/economy
 import { HERO_KEYS, HEROES } from '../data/heroes';
 import { adventureTabOf } from '../data/adventure-regions';
 import { FEATURES } from '../data/features';
-import { guildCap } from '../data/guild';
+import { capOf } from '../game/guild';
 import { nextMilestone } from '../data/milestones';
 import { weekRemaining } from '../game/clock';
 import { chestState, claimChalChest, claimChest, claimMission, missionReady } from '../game/economy';
@@ -89,7 +89,7 @@ function gateTracker(): string {
   const lv = G.save.player.level;
   const g = GATES.find(x => lv >= x.from && lv < x.lv);
   if (!g || G.save.tut < TUT.done) return '';
-  const need = guildCap(g.lv - 1).cap, have = G.save.guild.members.length;
+  const need = Math.min(capOf(G.save).cap, g.lv >= 70 ? 19 : 9), have = G.save.guild.members.length; // 레이드를 길드원만으로 (93 6-2), 정원까지
   const gi = ITEM_GRADES.indexOf(g.grade);
   const gear = SLOTS.filter(sl => { const it = G.save.gear.equipped[sl.key]; return it && ITEM_GRADES.indexOf(it.grade) >= gi; }).length;
   const rows: [boolean, string, string, string][] = [
