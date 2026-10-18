@@ -149,10 +149,13 @@ export default async function portrait(url, shots) {
     ok(await page.locator('#s-char [data-hcard] .emblem').count() === 7 && await noHeroArt(), `${width}: 일곱 직업 = 직업 문장 (79 직업 4종이 들어와 7)`);
     await page.click('#s-char nav [data-csub="skill"]'); await page.clock.runFor(80);
     ok(await noOverflow('#s-char .ns-body'), `${width}: 스킬 휠 편집 가로 넘침 없음`);
-    await page.click('#tabs [data-tab="shop"]'); await page.clock.runFor(80);
+    // 상점은 하단 탭이 아니라 로비 잡화점에서 (2026-10-18), 뒤로 = 로비
+    await page.click('#tabs [data-tab="lobby"]'); await page.clock.runFor(80);
+    await page.click('#s-lobby .lb-shop'); await page.clock.runFor(80);
     ok(await noOverflow('#s-shop .ns-body'), `${width}: 상점 가로 넘침 없음`);
     ok(await bgLoaded('#s-shop .shop-hero', '::before'), `${width}: 상점 선반 그림`);
     if (width === 390) await page.screenshot({ path: `${shots}/portrait_shop_${width}.png` });
+    await page.click('#s-shop .tb-back'); await page.clock.runFor(80);
     await page.click('#tabs [data-tab="battle"]'); await page.clock.runFor(80);
     ok(await loaded('#s-content .b-gate img') && await page.locator('#s-content .b-region').count() >= 2 && await noOverflow('#s-content .b-body'), `${width}: 전투 탭 풍경 미리보기 + 장소 카드, 가로 넘침 없음`);
     // 2026-10-16: 분류 탭은 나무결 그림 대신 길드 홀 돌색 + 황동 테 (::before border-image)

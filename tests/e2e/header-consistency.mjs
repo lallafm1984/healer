@@ -47,7 +47,7 @@ export default async function headerConsistency(url,shots) {
         await page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('healer.save'));s.tut=99;s.player.level=100;s.stamina={n:140,at:Date.now(),day:'',ads:0};s.bought=['noads'];s.settings.devUnlock=false;localStorage.setItem('healer.save',JSON.stringify(s));});
         await page.reload();await page.clock.runFor(300);await pastTitle(page);await page.evaluate(()=>document.fonts.ready);
         const headers=[];
-        for(const[tab,screen,label]of[['lobby','#s-lobby','로비'],['battle','#s-content','전투'],['char','#s-char','캐릭터'],['shop','#s-shop','상점']]) {
+        for(const[tab,screen,label]of[['lobby','#s-lobby','로비'],['battle','#s-content','전투'],['char','#s-char','캐릭터'],['guild','#s-guild','길드']]) {
           await page.click(`#tabs [data-tab="${tab}"]`);await page.clock.runFor(80);
           const g=await headerGeometry(page,screen);headers.push(g);
           const valid=short?g.hidden:!g.hidden && Math.abs(g.rect.height-expectedHeight)<=1 && Math.abs(g.portrait.height-expectedPortrait)<=1
@@ -58,11 +58,11 @@ export default async function headerConsistency(url,shots) {
         }
         ok(short?headers.every(h=>h.hidden):headers.every(h=>h.rect.height===headers[1].rect.height && h.portrait.height===headers[1].portrait.height
           && Math.abs(h.portrait.top-h.rect.top-(headers[1].portrait.top-headers[1].rect.top))<=1 && h.background===headers[1].background),
-          `${tag}: 로비·전투·캐릭터·상점 헤더와 초상 위치 일치`,headers);
+          `${tag}: 로비·전투·캐릭터·길드 헤더와 초상 위치 일치`,headers);
 
         // 커버에서는 펼친 상태로 연 설정을 접어도 뒤로 가기가 남아야 한다.
         if(short){await page.setViewportSize({width,height:780});await page.clock.runFor(80);}
-        await page.click('#s-shop .tb-set');await page.clock.runFor(80);
+        await page.click('#s-guild .tb-set');await page.clock.runFor(80);
         if(short){await page.setViewportSize({width,height});await page.clock.runFor(80);}
         let detail=await headerGeometry(page,'#s-settings');
         ok(!detail.hidden && Math.abs(detail.rect.height-expectedHeight)<=1 && detail.inside && !detail.outside.length && !detail.overlaps.length

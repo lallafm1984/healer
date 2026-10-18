@@ -20,7 +20,6 @@ import { nextMilestone } from '../data/milestones';
 import { weekRemaining } from '../game/clock';
 import { chestState, claimChalChest, claimChest, claimMission, missionReady } from '../game/economy';
 import { guide } from '../game/guide';
-import { capOf, guildOpen } from '../game/guild';
 import { chalGate } from '../game/runmode';
 import { commit, firstDungeonNow, G, lockOf, newGearCount, refreshDay } from '../game/state';
 import { adsFree, staminaView } from '../game/stamina';
@@ -29,6 +28,7 @@ import { esc, go, screen, topBar } from './kit';
 import { art } from '../art';
 import { currencyIcon, gameIcon, uiIcon } from './art';
 import { gainText } from './shop';
+import { passReady } from './tabs';
 import { mountVillage } from './village';
 
 /** A2에서 생성한 작은 황동 화살표. 문자를 도형 대신 사용하지 않는다. */
@@ -199,19 +199,16 @@ function forgePlate(): string {
   return plate('lb-forge', ' data-go="s-char" data-arg="gear"', gameIcon('forge', uiIcon('char')), '대장간', ['장비 정리', '옵션 재설정'], n ? `<i class="g-badge" aria-label="새 장비 ${n}">${n}</i>` : '');
 }
 
-/** 길드 회관 (길드를 빼 두면 없음) */
-function guildPlate(): string {
-  if (!FEATURES.guild) return '';
-  const s = G.save, gOpen = guildOpen(s), apps = (s.guild.post?.cands.length || 0) + s.guild.scouts.length;
-  const line = !gOpen.ok ? gOpen.why : apps ? `지원자 ${apps}명` : `길드원 ${s.guild.members.length}/${capOf(s).cap}`;
-  return plate(`lb-guild${gOpen.ok ? '' : ' lock'}`, ' data-go="s-guild"', gameIcon('guild', uiIcon('guild'), 'tab'), '길드 회관', [esc(line)], gOpen.ok && apps ? `<i class="g-badge">${apps}</i>` : '');
-}
-
-/** 잡화점 = 상점 상품 탭: 광고 제거 · 새 직업 (공훈은 나중 콘텐츠, 시즌 패스는 상점 안에만) */
+/**
+ * 잡화점 = 상점 상품 탭: 광고 제거 · 새 직업 (공훈은 나중 콘텐츠, 시즌 패스는 상점 안에만).
+ * 2026-10-18부터 상점은 하단 탭이 아니라 여기서 들어감 (Lim 「상점의 진입 루트는 로비」) → 받을 시즌 패스 단계는 빨간 숫자 (상점 안 패스 탭에도 점)
+ */
 function shopPlate(): string {
   const s = G.save, noads = adsFree(s), jobs = HERO_KEYS.filter(h => HEROES[h].unlock.buy && !s.bought.includes(jobProductId(h))).length;
   const lines = [noads ? '' : '광고 제거', jobs ? `새 직업 ${jobs}` : '', !noads || jobs ? '' : '시즌 패스'].filter(Boolean);
-  return plate('lb-shop', ' data-go="s-shop" data-arg="cash"', gameIcon('shop', uiIcon('shop'), 'tab'), '잡화점', lines);
+  const pass = passReady();
+  return plate('lb-shop', ' data-go="s-shop" data-arg="cash"', gameIcon('shop', uiIcon('shop'), 'tab'), '잡화점', lines,
+    pass ? `<i class="g-badge" aria-label="받을 시즌 패스 보상 ${pass}">${pass}</i>` : '');
 }
 
 /**
@@ -225,9 +222,9 @@ function restSock(): string {
     `${adsFree(G.save) ? '바로' : '광고'} +${STAMINA.ad}`, v.n < 1 ? '<i class="g-badge" aria-hidden="true">!</i>' : '');
 }
 
-/** 왼쪽 = 오늘 할 일 소켓 (임무 · 주간 도전 · 휴식이 모자랄 때 휴식 충전), 오른쪽 = 마을 건물 팻말 (레이드 · 길드 회관 · 대장간 · 잡화점) */
+/** 왼쪽 = 오늘 할 일 소켓 (임무 · 주간 도전 · 휴식이 모자랄 때 휴식 충전), 오른쪽 = 마을 건물 팻말 (레이드 · 대장간 · 잡화점). 길드는 하단 탭 (2026-10-18) */
 const menus = () => `<nav class="lb-side lb-left" aria-label="오늘 할 일">${missionSock()}${chalSock()}${restSock()}</nav>
-  <nav class="lb-side lb-right" aria-label="마을 건물">${raidPlate()}${guildPlate()}${forgePlate()}${shopPlate()}</nav>`;
+  <nav class="lb-side lb-right" aria-label="마을 건물">${raidPlate()}${forgePlate()}${shopPlate()}</nav>`;
 
 /** 아래 독립된 목표표 + 「출전」 (지난 판 → 안 깬 장소). 시즌 패스는 상점에만 둔다. */
 function journey(): string {

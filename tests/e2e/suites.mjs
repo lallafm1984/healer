@@ -14,7 +14,7 @@ import character from './character.mjs';
 import devauto from './devauto.mjs';
 import dungeon from './dungeon.mjs';
 import gear from './gear.mjs';
-import guildOff from './guild-off.mjs';
+import guild from './guild.mjs';
 import shop from './shop.mjs';
 import challenge from './challenge.mjs';
 import heroes from './heroes.mjs';
@@ -84,7 +84,7 @@ export const SUITES = [
   ['모든 판 5인 던전 모양', raidFiveLook, 60], // 어림 (폰 넷 × 판 셋)
   ['떠오르는 숫자 자리 지킴', floatSteady, 110], // 어림 (판 열 × 6초)
   ['스킬 · 특성 설명 팝업 누르는 동안 유지', skillTipHold, 40], // 어림 (폰 넷 × 버튼 둘)
-  ['길드 빼 둠', guildOff, 6],
+  ['길드', guild, 8], // 2026-10-18 길드를 다시 켬 (꺼 두면 guild-off.mjs)
   ['재화·임무·상점', shop, 14],
   ['성장·주간 도전·실패 정산', challenge, 29],
   ['자동 치유 (개발)', devauto, 13],

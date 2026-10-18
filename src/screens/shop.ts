@@ -2,6 +2,8 @@
  * S18 상점 · S19 시즌 패스 (09, 15 6장, 12, 81). 하위 탭: 상품 · 공훈 · 패스. 골드 탭 (소비 아이템)은 2026-10-16 소비 아이템과 함께 없앰.
  * 81 (2026-10-15 Lim): 크리스탈 · 악몽 열쇠 · 월정액 · 프리미엄 패스를 없앰. 상품 탭 = 휴식 광고 충전 (90) · 광고 제거 패키지 5,500원 · 직업 4종 하나에 2,200원.
  * 결제는 자리만 (platform/billing.ts). 개발 빌드는 누르면 결제 없이 바로 받음.
+ * 2026-10-18 Lim 「메뉴의 상점을 빼고 길드를 넣자. 상점의 진입 루트는 로비이다」: 하단 탭이 아니라 로비 「잡화점」 · 휴식 창 · 직업 구매에서 들어오는 화면.
+ * 탭 막대 없이 「← 상점」, 뒤로 = 들어온 화면 (없으면 로비).
  */
 import { resourceBalance } from '../game/resources';
 import { MERIT_GEAR_COST, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_LEVELS, PASS_XP, REST_BONUS, SEASON, STAMINA, jobProductId } from '../data/economy';
@@ -11,19 +13,21 @@ import { seasonOf } from '../game/clock';
 import { claimPass, exchangeMerit, grantProduct, passGain, passLevel, products, type Gain } from '../game/economy';
 import { commit, G, refreshDay, syncAds } from '../game/state';
 import { purchase, STORE_WHY } from '../platform/billing';
-import { esc, fmt, screen, topBar } from './kit';
+import { esc, fmt, previous, screen, topBar } from './kit';
 import { classEmblem, currencyAmount, currencyIcon, gameIcon, uiIcon, type CurrencyIconKey } from './art';
 import { refreshCells } from './stamina';
+import { passReady } from './tabs';
 import { staminaView } from '../game/stamina';
 
 type Sub = 'merit' | 'pass' | 'cash';
 const SUBS: [Sub, string][] = [['cash', '상품'], ['merit', '공훈'], ['pass', '시즌 패스']];
-/** focus = 들어올 때 강조할 상품 (캐릭터 → 직업에서 잠긴 직업을 누르면 「cash:job_shaman」) */
-const st: { sub: Sub; msg: string; focus: string } = { sub: 'cash', msg: '', focus: '' };
+/** focus = 들어올 때 강조할 상품 (캐릭터 → 직업에서 잠긴 직업을 누르면 「cash:job_shaman」), from = 뒤로 갈 화면 */
+const st: { sub: Sub; msg: string; focus: string; from: string } = { sub: 'cash', msg: '', focus: '', from: 's-lobby' };
 
 const s = screen('s-shop', '상점', {
-  tab: 'shop',
   enter(arg) {
+    // 설정에서 돌아올 때는 처음 들어온 화면을 그대로 둠
+    if (previous !== 's-settings' && previous !== 's-shop') st.from = previous || 's-lobby';
     st.focus = '';
     if (typeof arg === 'string') {
       const [sub, focus] = arg.split(':');
@@ -58,8 +62,8 @@ const wallet = () => {
 
 function render(): void {
   const passOpen = s.el.querySelector<HTMLDetailsElement>('.pass-archive')?.open || false;
-  s.el.innerHTML = `${topBar({ settings: true })}
-    <nav class="subtabs" role="tablist">${SUBS.map(([k, n]) => `<button type="button" role="tab" data-sub="${k}" aria-selected="${st.sub === k}">${n}</button>`).join('')}</nav>
+  s.el.innerHTML = `${topBar({ back: st.from, title: '상점' })}
+    <nav class="subtabs" role="tablist">${SUBS.map(([k, n]) => `<button type="button" role="tab" data-sub="${k}" aria-selected="${st.sub === k}">${n}${k === 'pass' && passReady() ? '<i class="rdot" aria-label="받을 보상"></i>' : ''}</button>`).join('')}</nav>
     <div class="ns-body shop">
       <header class="art-hero shop-hero"><div class="ah-copy"><p class="eyebrow">모험가 상점</p><h2>${SUBS.find(([k]) => k === st.sub)![1]}</h2></div></header>
       ${st.sub === 'cash' ? '' : wallet()}

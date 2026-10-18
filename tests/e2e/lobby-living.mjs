@@ -111,7 +111,7 @@ export default async function lobbyLiving(url, shots) {
         await page.locator('#tabs [data-tab="lobby"]').tap(); await page.clock.runFor(100);
         await page.locator('#s-lobby .lb-shop').tap(); await page.clock.runFor(100);
         ok(await page.isVisible('#s-shop') && await page.isVisible('#s-shop .srow'), `${width}: 잡화점 실제 터치 → 상점 상품`);
-        await page.locator('#tabs [data-tab="lobby"]').tap(); await page.clock.runFor(300);
+        await page.locator('#s-shop .tb-back').tap(); await page.clock.runFor(300);
         evidence.widths.push({ width, height, initial, at3, at9, t0, t9, gpu, hit });
 
         if (width === 390) {
@@ -119,7 +119,7 @@ export default async function lobbyLiving(url, shots) {
           const baseline = await sample(page); await page.clock.runFor(2000); const baselineEnd = await sample(page);
           const baselineRenders = baselineEnd.renders - baseline.renders;
           for (let cycle = 1; cycle <= 3; cycle++) {
-            for (const tab of ['char', 'shop', 'party']) {
+            for (const tab of ['char', 'guild', 'party']) {
               if (tab === 'party') { await page.locator('#lobbyStart').tap(); await page.clock.runFor(100); await page.locator('#contentGo').tap(); await entryGo(page); }
               else await page.locator(`#tabs [data-tab="${tab}"]`).tap();
               await page.clock.runFor(100);
