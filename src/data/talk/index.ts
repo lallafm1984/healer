@@ -52,6 +52,31 @@ import { LINES as shieldfan } from './pers/shieldfan';
 import { LINES as hotlover } from './pers/hotlover';
 import { LINES as bigheal } from './pers/bigheal';
 import { LINES as selfreliant } from './pers/selfreliant';
+import { LINES as prophet } from './pers/prophet';
+import { LINES as jumper } from './pers/jumper';
+import { LINES as endurer } from './pers/endurer';
+import { LINES as cornerer } from './pers/cornerer';
+import { LINES as frozen } from './pers/frozen';
+import { LINES as vanguard } from './pers/vanguard';
+import { LINES as backliner } from './pers/backliner';
+import { LINES as buddy } from './pers/buddy';
+import { LINES as yielder } from './pers/yielder';
+import { LINES as homebody } from './pers/homebody';
+import { LINES as standin } from './pers/standin';
+import { LINES as bigbro } from './pers/bigbro';
+import { LINES as moodmaker } from './pers/moodmaker';
+import { LINES as praiser } from './pers/praiser';
+import { LINES as repayer } from './pers/repayer';
+import { LINES as envious } from './pers/envious';
+import { LINES as crybaby } from './pers/crybaby';
+import { LINES as tumbler } from './pers/tumbler';
+import { LINES as touchy } from './pers/touchy';
+import { LINES as gleeful } from './pers/gleeful';
+import { LINES as venter } from './pers/venter';
+import { LINES as express } from './pers/express';
+import { LINES as leisurely } from './pers/leisurely';
+import { LINES as timer } from './pers/timer';
+import { LINES as gritty } from './pers/gritty';
 import { ROLE_LINES } from './roles';
 import type { TalkLines, TalkSit } from './sits';
 
@@ -70,6 +95,12 @@ export const PERS_LINES: Record<PersName, TalkLines> = {
   '쿨 아끼미': hoarder, '스킬 난사': spammer, '끊기 욕심': kicker, '쫄 사냥꾼': addhunter, '외골수': onetrack,
   '미리미리': early, '아슬아슬': clutch, '쫄 모으기': gatherer, '어그로 흘림': slippery, '든든이': sturdy, '자급자족': selfcare,
   '보호막 애호가': shieldfan, '지속힐 체질': hotlover, '큰 힐 체질': bigheal, '자립형': selfreliant,
+  // 95 문서 2차: 기존 묶음 25종 (대표 상황만)
+  '예언가': prophet, '점프광': jumper, '참을성': endurer, '모서리파': cornerer, '얼음땡': frozen,
+  '앞장이': vanguard, '뒷줄파': backliner, '짝꿍': buddy, '양보왕': yielder, '집돌이': homebody,
+  '대타': standin, '큰형': bigbro, '분위기메이커': moodmaker, '칭찬왕': praiser, '보은형': repayer,
+  '샘쟁이': envious, '울보': crybaby, '오뚝이': tumbler, '예민형': touchy, '신바람': gleeful, '화풀이': venter,
+  '폭주기관차': express, '쉬엄쉬엄': leisurely, '타이밍 장인': timer, '끈기형': gritty,
 };
 
 export interface Speaker { pers: PersName | null; cls: ClassKey | null; role: Role }

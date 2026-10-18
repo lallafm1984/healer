@@ -5,9 +5,10 @@
  */
 import { hexDist } from './board';
 import { aggroTarget } from './bossParts';
-import { allyHeal } from './abilities';
+import { addMod, allyHeal } from './abilities';
 import { bark, cellOf, living } from './core';
-import { dangerAt, moveTo } from './movement';
+import { adjAllies, centerX, dangerAt, moveTo } from './movement';
+import { posPref } from './position';
 import type { Cell, Fight, Telegraph, Unit } from './types';
 
 /** 성격 상태 (새 20종) */
@@ -60,10 +61,38 @@ export interface PersState {
   shieldUntil?: number;
   /** 쫄 사냥꾼 · 외골수: 지난번에 판 위 쫄이 있었는지 (새 무리에 한 번 말함) */
   addWave?: boolean;
+  // ---------- 95 2차 ----------
+  /** 짝꿍: 다음에 짝 옆인지 보는 시각 */
+  buddyAt?: number;
+  /** 대타: 다시 붙잡을 수 있는 시각 */
+  standAt?: number;
+  /** 큰형: 다음에 챙기는 말을 할 수 있는 시각 */
+  mentorAt?: number;
+  /** 보은형 · 샘쟁이 · 울보 · 예민형 · 신바람 · 화풀이: 효과가 끝나는 시각 */
+  repayUntil?: number;
+  envyUp?: number;
+  envyDown?: number;
+  cryUntil?: number;
+  reliefUntil?: number;
+  windUntil?: number;
+  ventUntil?: number;
+  /** 오뚝이: 이번 전투에 버텼는지 */
+  bounced?: boolean;
+  /** 신바람: 내 칸이라 피하려던 장판 예고 · 연달아 피한 수 */
+  dodgeTels?: Set<number>;
+  streak?: number;
+  /** 시작 말 · 폭주 · 쉼 · 틈 · 끈기: 이미 말했는지 (구간 번호 · 켜짐) */
+  hi?: boolean;
+  burstN?: number;
+  restN?: number;
+  dazeOn?: boolean;
+  gritSaid?: boolean;
 }
 
 const NEW_KEYS = ['slow', 'follow', 'wander', 'lucky', 'cover', 'selfish', 'cheer', 'rival', 'rage', 'calm', 'lateGuard', 'earlyGuard', 'panic', 'allIn', 'dash', 'warm', 'focus', 'perfect', 'learn',
-  'hoard', 'spam', 'cutter', 'addHunter', 'oneTrack', 'preGuard', 'clutch', 'gather', 'slip', 'sturdy', 'selfCare', 'shieldLove', 'healTaste', 'selfReg'] as const;
+  'hoard', 'spam', 'cutter', 'addHunter', 'oneTrack', 'preGuard', 'clutch', 'gather', 'slip', 'sturdy', 'selfCare', 'shieldLove', 'healTaste', 'selfReg',
+  'foresee', 'jumpy', 'endure', 'edge', 'freeze', 'front', 'backline', 'buddy', 'yieldTo', 'homebody', 'standIn', 'mentor', 'mood', 'praise', 'repay', 'envy',
+  'cry', 'bounce', 'touchy', 'wind', 'vent', 'burst', 'breather', 'timing', 'grit'] as const;
 /** 새 성격인지 (75 · 95. 눈치백단은 숫자만이라 상태 없음) */
 export const isNewPers = (u: Unit): boolean => NEW_KEYS.some(k => k in u.p);
 
@@ -78,11 +107,25 @@ export function initPers(f: Fight): void {
     if (u.p.learn) { ps.seen = {}; ps.lv = 0; }
     if (u.p.gather) ps.seenAdds = new Map();
     if (u.p.slip) ps.slipAt = u.p.slip.first;
+    if (u.p.wind) { ps.dodgeTels = new Set(); ps.streak = 0; }
     u.ps = ps;
   }
   f.persOn = f.party.some(u => !!u.ps);
-  const sturdy = f.party.filter(u => u.ps && u.p.sturdy);
-  f.sturdy = sturdy.length ? sturdy : undefined;
+  const some = (k: keyof Unit['p']) => { const l = f.party.filter(u => u.ps && k in u.p); return l.length ? l : undefined; };
+  f.sturdy = some('sturdy');
+  // 95 2차: 큰형 · 샘쟁이 · 칭찬왕 목록, 분위기메이커 (시작 sec초 반응), 위기에서 살아남 보기 (칭찬왕 · 보은형)
+  f.mentors = some('mentor');
+  f.envy = some('envy');
+  f.praisers = some('praise');
+  f.saveWatch = !!f.praisers || !!some('repay');
+  const mood = f.party.find(u => u.ps && u.p.mood)?.p.mood;
+  if (mood) { f.mood = mood.sec; f.moodReact = mood.react; }
+  // 짝꿍: 가장 가까운 아군 (나 · 이미 짝이 있는 사람 빼고)과 짝
+  for (const u of f.party) {
+    if (!u.ps || !u.p.buddy || u.pairWith != null) continue;
+    const v = nearest(f, u, x => !x.me && x.pairWith == null);
+    if (v) { u.pairWith = v.id; v.pairWith = u.id; }
+  }
 }
 
 /** 따라쟁이 배치 점수: 가장 가까운 탱커 옆 칸 */
@@ -97,9 +140,12 @@ export function persDps(f: Fight, u: Unit): number {
   const ps = u.ps;
   let m = 1;
   if (u.cheerUntil != null && f.t < u.cheerUntil) m *= 1 + (u.cheerUp ?? 0); // 응원단장이 응원해 줌 (누구든)
+  if (f.praise && f.t < f.praise.until) m *= 1 + f.praise.up; // 칭찬왕이 칭찬함 (누구든, 95)
   if (!ps) return m;
   const p = u.p;
   if (ps.panicUntil != null && f.t < ps.panicUntil) return 0;
+  if (p.cry && ps.cryUntil != null && f.t < ps.cryUntil) return 0; // 울보 (95)
+  if (p.breather && restOn(f, p.breather)) return 0; // 쉬엄쉬엄 (95)
   if (p.lucky) { if (ps.onLucky) m *= 1 + p.lucky.up; else if (ps.luckLostUntil != null && f.t < ps.luckLostUntil) m *= 1 - p.lucky.down; }
   if (p.rival && ps.rivalOn) m *= 1 + p.rival.up;
   if (p.rage && ps.rageUntil != null && f.t < ps.rageUntil) m *= 1 + p.rage.up;
@@ -110,7 +156,34 @@ export function persDps(f: Fight, u: Unit): number {
   if (p.perfect) m *= ps.shakenUntil != null && f.t < ps.shakenUntil ? 1 - p.perfect.down : 1 + p.perfect.up;
   if (p.shieldLove && ps.shieldUntil != null && f.t < ps.shieldUntil) m *= 1 + p.shieldLove.up; // 보호막 애호가 (95)
   if (p.slip) m *= p.slip.dps; // 어그로 흘림: 딜에 정신 팔림 (95)
+  // 95 2차
+  if (p.backline && u.role === 'melee') m *= p.backline.melee;
+  if (p.homebody && u.cell === u.home && !u.moving) m *= p.homebody.dps;
+  if (p.envy) { if (ps.envyUp != null && f.t < ps.envyUp) m *= 1 + p.envy.up; else if (ps.envyDown != null && f.t < ps.envyDown) m *= 1 - p.envy.down; }
+  if (p.touchy) { if (ps.reliefUntil != null && f.t < ps.reliefUntil) m *= 1 + p.touchy.up; else if (u.debuffs.length) m *= 1 - p.touchy.down; }
+  if (p.wind && ps.windUntil != null && f.t < ps.windUntil) m *= 1 + p.wind.up;
+  if (p.vent && ps.ventUntil != null && f.t < ps.ventUntil) m *= 1 + p.vent.up;
+  if (p.burst && burstOn(f, p.burst)) m *= p.burst.up;
+  if (p.timing && f.daze && f.daze.until > f.t) m *= p.timing.up;
   return m;
+}
+
+/** 폭주기관차: every초마다 끝 sec초 (첫 번째는 every − sec초부터) */
+const burstOn = (f: Fight, b: { every: number; sec: number }): boolean => (f.t % b.every) >= b.every - b.sec - 1e-9;
+/** 쉬엄쉬엄: every초마다 끝 sec초 */
+const restOn = (f: Fight, b: { every: number; sec: number }): boolean => (f.t % b.every) >= b.every - b.sec - 1e-9;
+
+/** 큰형 옆인지 (뉴비 · 겁쟁이 · 소심이 단점 반으로) */
+export function mentored(f: Fight, u: Unit): boolean {
+  if (!f.mentors || u.cell < 0) return false;
+  return f.mentors.some(m => m !== u && m.alive && m.cell >= 0 && hexDist(cellOf(f, m), cellOf(f, u)) === 1);
+}
+
+/** 짝꿍: 짝과 붙어 있으면 둘 다 회피 + (짝꿍이 아닌 짝도) */
+export function pairDodge(f: Fight, u: Unit): number {
+  const v = f.party.find(x => x.id === u.pairWith);
+  if (!v || !v.alive || u.cell < 0 || v.cell < 0 || hexDist(cellOf(f, u), cellOf(f, v)) !== 1) return 0;
+  return (u.p.buddy ?? v.p.buddy)?.dodge ?? 0;
 }
 
 /** 회피 보정 (더함) */
@@ -120,7 +193,9 @@ export function persDodge(f: Fight, u: Unit): number {
   let d = 0;
   if (p.rival && ps.rivalOn) d += p.rival.dodge;
   if (p.allIn && !f.invuln && f.bossHp > 0 && f.bossHp <= f.bossMax * p.allIn.at) d += p.allIn.dodge;
-  if (p.learn) d += p.learn.dodge + p.learn.stepDodge * (ps.lv ?? 0);
+  if (p.learn) { const ld = p.learn.dodge + p.learn.stepDodge * (ps.lv ?? 0); d += ld < 0 && mentored(f, u) ? ld / 2 : ld; } // 큰형 옆이면 반 (95)
+  if (p.repay && ps.repayUntil != null && f.t < ps.repayUntil) d += p.repay.dodge; // 보은형 (95)
+  if (p.breather && restOn(f, p.breather)) d += p.breather.dodge; // 쉬엄쉬엄 (95)
   return d;
 }
 
@@ -134,14 +209,19 @@ export function persReact(f: Fight, u: Unit, tel: Telegraph): number {
     const key = tel.skill.key || tel.skill.name || '?';
     const n = ps.seen![key] ?? 0;
     ps.lv = Math.min(p.learn.max, n);
-    m *= p.learn.react * Math.pow(p.learn.stepReact, ps.lv);
+    const x = p.learn.react * Math.pow(p.learn.stepReact, ps.lv);
+    m *= x > 1 && mentored(f, u) ? 1 + (x - 1) / 2 : x; // 큰형 옆이면 느린 만큼 반 (95)
     if (n < p.learn.max) {
       ps.seen![key] = n + 1;
       if (n + 1 === p.learn.max) bark(f, u, null, false, 'learned');
     }
   }
+  if (p.grit) m *= gritOf(f, p.grit); // 끈기형 (95)
   return m;
 }
+
+/** 끈기형: every초마다 ×step, 최저 min */
+const gritOf = (f: Fight, g: { every: number; step: number; min: number }): number => Math.max(g.min, Math.pow(g.step, Math.floor(f.t / g.every)));
 
 /** 이동 시간 배율 (느림보) */
 export const persMove = (u: Unit): number => u.p.slow ?? 1;
@@ -149,7 +229,7 @@ export const persMove = (u: Unit): number => u.p.slow ?? 1;
 /** 분노 · 당황 중이면 장판을 안 피함 (분노) · 허둥지둥 (당황은 따로 움직임) */
 export function persIgnoresZone(f: Fight, u: Unit): boolean {
   const ps = u.ps;
-  return !!ps && ((ps.rageUntil != null && f.t < ps.rageUntil) || (ps.panicUntil != null && f.t < ps.panicUntil));
+  return !!ps && ((ps.rageUntil != null && f.t < ps.rageUntil) || (ps.panicUntil != null && f.t < ps.panicUntil) || (!!u.p.burst && burstOn(f, u.p.burst))); // 폭주기관차 (95)
 }
 
 // ---------- 일이 생겼을 때 ----------
@@ -166,16 +246,77 @@ export function persHurt(f: Fight, u: Unit, amt: number): void {
     ps.shakenUntil = f.t + p.perfect.sec;
     bark(f, u, null, false, 'shaken');
   }
+  // 95 2차: 오뚝이 (처음 10% 아래 → 3초 받는 피해 −50%) · 화풀이
+  if (p.bounce && !ps.bounced && u.hp > 0 && u.hp < u.max * p.bounce.hp) {
+    ps.bounced = true;
+    addMod(u, { k: 'cut', v: p.bounce.cut, until: f.t + p.bounce.sec, src: '오뚝이' });
+    bark(f, u, null, true, 'bounce');
+  }
+  if (p.vent && amt > u.max * p.vent.hit) {
+    if (!(ps.ventUntil != null && f.t < ps.ventUntil)) bark(f, u, null, false, 'vent');
+    ps.ventUntil = f.t + p.vent.sec;
+  }
 }
 
 /** 누가 쓰러짐: 다혈질 분노 */
 export function persDeath(f: Fight, dead: Unit): void {
   if (dead.me) return;
   for (const u of f.party) {
-    if (!u.alive || u === dead || !u.ps || !u.p.rage) continue;
-    const fresh = !(u.ps.rageUntil != null && f.t < u.ps.rageUntil);
-    u.ps.rageUntil = f.t + u.p.rage.sec;
-    if (fresh) bark(f, u, null, true, 'rage');
+    if (!u.alive || u === dead || !u.ps) continue;
+    if (u.p.rage) {
+      const fresh = !(u.ps.rageUntil != null && f.t < u.ps.rageUntil);
+      u.ps.rageUntil = f.t + u.p.rage.sec;
+      if (fresh) bark(f, u, null, true, 'rage');
+    }
+    if (u.p.cry) { // 울보 (95)
+      const fresh = !(u.ps.cryUntil != null && f.t < u.ps.cryUntil);
+      u.ps.cryUntil = f.t + u.p.cry.sec;
+      if (fresh) bark(f, u, null, true, 'cry');
+    }
+  }
+  // 대타 (95): 탱커가 모두 쓰러지면 보스를 대신 붙잡음 (bossParts aggroTarget · fight tankWatch)
+  if (dead.role === 'tank' && !f.party.some(u => u.alive && u.role === 'tank')) {
+    const u = f.party.find(x => x.alive && x.ps && x.p.standIn && f.t >= (x.ps.standAt ?? 0));
+    if (u) {
+      const st = u.p.standIn!;
+      f.standIn = { id: u.id, until: f.t + st.sec };
+      u.ps!.standAt = f.t + st.cd;
+      addMod(u, { k: 'cut', v: st.cut, until: f.t + st.sec, src: '대타' });
+      bark(f, u, null, true, 'standIn');
+    }
+  }
+}
+
+/** 해제받음 (core onDebuffEnd): 예민형 */
+export function persDispel(f: Fight, u: Unit): void {
+  if (!u.ps || !u.p.touchy) return;
+  if (!(u.ps.reliefUntil != null && f.t < u.ps.reliefUntil)) bark(f, u, null, false, 'relief');
+  u.ps.reliefUntil = f.t + u.p.touchy.sec;
+}
+
+/** 힐러 직접 힐 (core heal): 샘쟁이 */
+export function persHealed(f: Fight, u: Unit): void {
+  for (const e of f.envy!) {
+    if (!e.alive || !e.ps || e.cell < 0 || u.cell < 0) continue;
+    const p = e.p.envy!;
+    if (e === u) e.ps.envyUp = f.t + p.upSec;
+    else if (!(e.ps.envyUp != null && f.t < e.ps.envyUp) && hexDist(cellOf(f, e), cellOf(f, u)) === 1) {
+      if (!(e.ps.envyDown != null && f.t < e.ps.envyDown)) bark(f, e, null, false, 'envy');
+      e.ps.envyDown = f.t + p.downSec;
+    }
+  }
+}
+
+/** 장판이 터짐 (bosses.ts): 신바람 연달아 피함 · 맞으면 처음부터 */
+export function persZoneImpact(f: Fight, tel: Telegraph): void {
+  for (const u of f.party) {
+    const ps = u.ps;
+    if (!ps?.dodgeTels?.has(tel.id)) continue;
+    ps.dodgeTels.delete(tel.id);
+    if (!u.alive) continue;
+    if (tel.cells.has(u.moving ? u.moving.to : u.cell)) { ps.streak = 0; continue; }
+    ps.streak = (ps.streak ?? 0) + 1;
+    if (ps.streak >= u.p.wind!.n) { ps.streak = 0; ps.windUntil = f.t + u.p.wind!.sec; bark(f, u, null, false, 'windUp'); }
   }
 }
 
@@ -183,7 +324,7 @@ export function persDeath(f: Fight, dead: Unit): void {
 export function persDebuff(f: Fight, u: Unit): void {
   if (!u.ps || !u.p.panic || u.me) return;
   if (!(u.ps.panicUntil != null && f.t < u.ps.panicUntil)) bark(f, u, null, true, 'panic');
-  u.ps.panicUntil = f.t + u.p.panic;
+  u.ps.panicUntil = f.t + u.p.panic * (mentored(f, u) ? 0.5 : 1); // 큰형 옆이면 반 (95)
   u.ps.panicMoveAt = f.t;
 }
 
@@ -286,7 +427,54 @@ export function persThink(f: Fight, u: Unit): boolean {
       if (to && moveTo(f, u, to)) { u.home = to.i; u.homeAt = null; bark(f, u, null, false, 'follow'); return true; }
     }
   }
+  // 짝꿍 (95): 2초마다 짝 옆이 아니면 그 옆 빈 칸으로 (거기가 새 자리)
+  if (p.buddy && u.pairWith != null && f.t >= (ps.buddyAt ?? 0)) {
+    ps.buddyAt = f.t + 2;
+    const v = f.party.find(x => x.id === u.pairWith);
+    const c = cellOf(f, u);
+    if (v && v.alive && v.cell >= 0 && hexDist(cellOf(f, v), c) > 1) {
+      const vc = f.cells[v.moving ? v.moving.to : v.cell];
+      const to = f.cells.filter(x => !x.unit && !x.block && !dangerAt(f, x.i) && hexDist(x, vc) === 1).sort((a, b) => posPersPref(f, u, b) - posPersPref(f, u, a) || hexDist(a, c) - hexDist(b, c))[0];
+      if (to && moveTo(f, u, to)) { u.home = to.i; u.homeAt = null; return true; }
+    }
+  }
   return false;
+}
+
+/**
+ * 칸 고르기 가산점 (movement pickCell, 95): 앞장이 · 뒷줄파 · 짝꿍 (posPersPref), 피할 때 (dodging)는 모서리파 가장자리 · 양보왕 (옆에 아군이 있는 칸 −) · 집돌이 (제자리 가까이)
+ */
+export function persPosPref(f: Fight, u: Unit, c: Cell, dodging: boolean): number {
+  let s = posPersPref(f, u, c);
+  if (!dodging) return s;
+  const p = u.p;
+  if (p.edge) {
+    const cx = centerX(f);
+    let far = 1;
+    for (const x of f.cells) far = Math.max(far, Math.abs(x.px - cx));
+    s += p.edge.pref * Math.abs(c.px - cx) / far;
+  }
+  if (p.yieldTo) s -= adjAllies(f, c, u) * p.yieldTo.near;
+  if (p.homebody && u.home >= 0) s -= hexDist(c, f.cells[u.home]) * 8;
+  return s;
+}
+
+/**
+ * 앞장이 · 뒷줄파 (95) 칸 가산점: 자기 역할이 설 수 있는 칸 (위치 규칙) 중에서만 앞줄 · 뒷줄. 짝꿍은 짝 옆 (배치 · 피하기 · 짝 따라가기)
+ */
+export function posPersPref(f: Fight, u: Unit, c: Cell): number {
+  const p = u.p;
+  let s = 0;
+  if (p.front || p.backline) {
+    const ok = !f.R.pos || posPref(f, u.role, c, 1) >= 0, x = c.row / Math.max(1, f.rows - 1);
+    if (ok && p.front) s += p.front.pref * (1 - x);
+    if (ok && p.backline) s += p.backline.pref * x;
+  }
+  if (u.pairWith != null && p.buddy) {
+    const v = f.party.find(x => x.id === u.pairWith);
+    if (v && v.cell >= 0 && hexDist(f.cells[v.moving ? v.moving.to : v.cell], c) === 1) s += 30;
+  }
+  return s;
 }
 
 /** 영웅이 대신 맞아 주는 몫 (맞을 피해에서 뺄 양). 영웅이 쓰러졌거나 시간이 지나면 0 */
@@ -380,6 +568,31 @@ export function persTick(f: Fight): void {
       ps.regAt = f.t + p.selfReg.every;
       if (still && u.hp > u.max * p.selfReg.hp && u.hp < u.max) allyHeal(f, u, u.max * p.selfReg.regen);
     }
+    // 95 2차: 시작 말 (짝꿍 · 분위기메이커) · 폭주 · 쉼 · 틈 · 끈기 · 큰형
+    if (!ps.hi) { ps.hi = true; if (p.mood) bark(f, u, null, false, 'moodUp'); else if (p.buddy && u.pairWith != null) bark(f, u, null, false, 'buddyUp'); }
+    if (p.burst && burstOn(f, p.burst)) { const n = Math.floor(f.t / p.burst.every); if (ps.burstN !== n) { ps.burstN = n; bark(f, u, null, true, 'burst'); } }
+    if (p.breather && restOn(f, p.breather)) { const n = Math.floor(f.t / p.breather.every); if (ps.restN !== n) { ps.restN = n; bark(f, u, null, false, 'breather'); } }
+    if (p.timing) { const on = !!f.daze && f.daze.until > f.t; if (on && !ps.dazeOn) bark(f, u, null, false, 'timing'); ps.dazeOn = on; }
+    if (p.grit && !ps.gritSaid && gritOf(f, p.grit) <= p.grit.min + 1e-9) { ps.gritSaid = true; bark(f, u, null, false, 'gritMax'); }
+    if (p.mentor && f.t >= (ps.mentorAt ?? 5) && f.k % 20 === 0) {
+      const c = cellOf(f, u);
+      if (living(f).some(v => v !== u && (v.p.learn || v.p.flee || v.p.panic) && hexDist(cellOf(f, v), c) === 1)) { ps.mentorAt = f.t + 30; bark(f, u, null, false, 'mentor'); }
+    }
+  }
+  if (f.saveWatch) saveTick(f);
+}
+
+/** 칭찬왕 · 보은형 (95): 체력 25% 아래였던 파티원이 60% 위로 살아남 */
+function saveTick(f: Fight): void {
+  for (const v of f.party) {
+    if (!v.alive || v.me) { v.lowMark = false; continue; }
+    const r = v.hp / v.max;
+    if (r < 0.25) { v.lowMark = true; continue; }
+    if (!v.lowMark || r < 0.6) continue;
+    v.lowMark = false;
+    const by = f.praisers?.find(x => x.alive);
+    if (by) { const pr = by.p.praise!; f.praise = { until: f.t + pr.sec, up: pr.up }; bark(f, by, null, false, 'praise'); }
+    if (v.ps && v.p.repay) { v.ps.repayUntil = f.t + v.p.repay.sec; bark(f, v, null, false, 'repay'); }
   }
 }
 

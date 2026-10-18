@@ -34,7 +34,7 @@ const NEW15: PersName[] = ['쿨 아끼미', '스킬 난사', '끊기 욕심', '�
 
 describe('데이터', () => {
   it('30종 뒤에 15종: 손버릇 5 · 탱커 6 · 힐 4, 탱커 묶음은 탱커만 · 외골수는 탱커 불가', () => {
-    expect(PERS_NAMES.slice(30)).toEqual(NEW15);
+    expect(PERS_NAMES.slice(30, 45)).toEqual(NEW15);
     const by = (c: PersCat) => NEW15.filter(p => PERS[p].cat === c);
     expect([by('손버릇').length, by('탱커').length, by('힐').length]).toEqual([5, 6, 4]);
     expect(PERS_NAMES.filter(p => 'tankOnly' in PERS[p])).toEqual(by('탱커'));

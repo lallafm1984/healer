@@ -39,7 +39,7 @@ describe('닉네임 데이터', () => {
     expect(ALL.filter(n => taken.has(n))).toEqual([]);
   });
 
-  it('성격을 직업마다 고르게 (75 · 95): 한 직업 안에서 안 겹침, 탱커 직업엔 탱커 불가 없음 · 딜러 직업엔 탱커 묶음 없음, 탱커 묶음은 두 탱커 직업에 1명씩, 다른 성격은 3명 넘게', () => {
+  it('성격을 직업마다 고르게 (75 · 95): 한 직업 안에서 안 겹침, 탱커 직업엔 탱커 불가 없음 · 딜러 직업엔 탱커 묶음 없음, 탱커 묶음은 두 탱커 직업에 1명씩, 다른 성격은 2~3명 넘게', () => {
     for (const k of RECRUIT_CLASSES) {
       const ps = PARTY_POOL[k].map(m => m.pers), tank = CLASSES[k].role === 'tank';
       expect(new Set(ps).size, k).toBe(ps.length);
@@ -47,7 +47,8 @@ describe('닉네임 데이터', () => {
       if (tank) expect(PERS_NAMES.filter(p => 'tankOnly' in PERS[p] && !ps.includes(p)), k).toEqual([]);
     }
     const all = Object.values(PARTY_POOL).flat();
-    for (const p of PERS_NAMES) expect(all.filter(m => m.pers === p).length, p).toBeGreaterThanOrEqual('tankOnly' in PERS[p] ? 2 : 3);
+    // 70종 (95 2차): 탱커 묶음 · 75의 희귀 4종은 2명, 나머지는 3명
+    for (const p of PERS_NAMES) expect(all.filter(m => m.pers === p).length, p).toBeGreaterThanOrEqual('tankOnly' in PERS[p] || ('rare' in PERS[p] && PERS_NAMES.indexOf(p) < 30) ? 2 : 3);
     // 생존기 성격 (미리미리 · 아슬아슬)은 방어 능력, 끊기 욕심은 끊기 능력을 가진 파티원 (95)
     for (const m of all) {
       if (m.pers === '미리미리' || m.pers === '아슬아슬') expect(ABILITIES[m.ab].kind, m.nick).toBe('def');

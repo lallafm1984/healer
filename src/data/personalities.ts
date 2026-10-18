@@ -1,8 +1,8 @@
 /**
  * 파티원 성격 (04 6장 · 75 · 95 문서). 앞 10종은 프로토타입과 같은 순서 (rollParty가 PROTO_PERS로 뽑으므로 바꾸지 말 것),
  * 다음 20종은 2026-10-14 Lim 「성격을 20종 더 추가해서 다양한 변수」로 더함 (04에 설계만 있던 18종 + 완벽주의자 · 뉴비).
- * 그 뒤 15종은 2026-10-18 Lim 「추천대로 하자」 (95 1차): 새 묶음 손버릇 (직업 스킬 쓰는 버릇) · 탱커 (탱커만) · 힐 (받는 치유).
- * 새 성격은 늘 뒤에 붙인다
+ * 그 뒤 15종은 2026-10-18 Lim 「추천대로 하자」 (95 1차): 새 묶음 손버릇 (직업 스킬 쓰는 버릇) · 탱커 (탱커만) · 힐 (받는 치유),
+ * 마지막 25종은 95 2차 (기존 묶음 회피 · 위치 · 관계 · 감정 · 리듬). 새 성격은 늘 뒤에 붙인다
  */
 export type PersCat = '회피' | '위치' | '관계' | '감정' | '리듬' | '손버릇' | '탱커' | '힐';
 
@@ -115,6 +115,57 @@ export interface Personality {
   healTaste?: { direct: number; hot: number };
   /** 자립형: 체력 hp 넘으면 every초마다 최대 체력 regen씩 스스로 회복, 받는 치유 ×taken */
   selfReg?: { hp: number; regen: number; every: number; taken: number };
+  // ---------- 95 문서 2차 (기존 묶음 25종) ----------
+  /** 예언가: 장판 반응을 lead초 당김 (예고가 뜨자마자), wrong 확률로 틀린 칸 (장판 안)에 갔다가 again초 뒤 다시 피함 */
+  foresee?: { lead: number; wrong: number; again: number };
+  /** 점프광: 나를 안 노리는 장판 예고에도 chance 확률로 옆 안전한 칸으로 뜀 (회피 · 딜은 dodge · dps 값) */
+  jumpy?: { chance: number };
+  /** 참을성: 최대 체력 small 아래 피해 장판은 안 피하고 생존기 (방어 능력)를 켜고 버팀 */
+  endure?: { small: number };
+  /** 모서리파: 피할 때 판 가장자리 칸 가산점 pref, 제자리 복귀 back초 늦게 */
+  edge?: { pref: number; back: number };
+  /** 얼음땡: 다른 장판 예고가 있는데 장판이 또 오면 sec초 굳음 (반응이 그만큼 늦음) */
+  freeze?: { sec: number };
+  /** 앞장이: 자기 역할이 설 수 있는 칸 중 보스 쪽 (앞줄) 가산점 pref */
+  front?: { pref: number };
+  /** 뒷줄파: 자기 역할이 설 수 있는 칸 중 뒷줄 가산점 pref, 근접이면 딜 ×melee */
+  backline?: { pref: number; melee: number };
+  /** 짝꿍: 시작 때 가장 가까운 아군 하나를 짝으로 옆에 붙어 다님. 붙어 있으면 둘 다 회피 +dodge */
+  buddy?: { dodge: number };
+  /** 양보왕: 피할 때 옆에 아군이 있는 칸을 피함 (아군 하나마다 −near) */
+  yieldTo?: { near: number };
+  /** 집돌이: 피한 뒤 바로 제자리로 (기다림 없음), 피할 때도 제자리 가까운 칸, 제자리에 있으면 딜 ×dps */
+  homebody?: { dps: number };
+  /** 대타: 탱커가 모두 쓰러지면 sec초 동안 보스를 대신 붙잡음 (받는 피해 −cut, 그동안 탱커 없음 광폭화가 안 셈, 쿨 cd) */
+  standIn?: { sec: number; cut: number; cd: number };
+  /** 큰형: 옆에 있는 뉴비 · 겁쟁이 · 소심이의 단점을 반으로 */
+  mentor?: boolean;
+  /** 분위기메이커: 전투 시작 sec초 동안 파티 전원 반응 시간 ×react */
+  mood?: { sec: number; react: number };
+  /** 칭찬왕: 위기 (체력 25% 아래)였던 아군이 60% 위로 살아나면 sec초 파티 딜 +up */
+  praise?: { up: number; sec: number };
+  /** 보은형: 자기가 위기에서 살아나면 sec초 회피 +dodge */
+  repay?: { dodge: number; sec: number };
+  /** 샘쟁이: 내가 직접 힐을 받으면 upSec초 딜 +up, 옆 사람만 받으면 downSec초 딜 −down */
+  envy?: { up: number; upSec: number; down: number; downSec: number };
+  /** 울보: 아군이 쓰러지면 sec초 딜 0 (피하기는 함) */
+  cry?: { sec: number };
+  /** 오뚝이: 체력이 처음 hp 아래로 가면 sec초 받는 피해 −cut (전투에 한 번) */
+  bounce?: { hp: number; cut: number; sec: number };
+  /** 예민형: 디버프가 있으면 딜 −down, 해제받으면 sec초 딜 +up */
+  touchy?: { down: number; up: number; sec: number };
+  /** 신바람: 내 칸 장판을 n번 연달아 피하면 sec초 딜 +up */
+  wind?: { n: number; up: number; sec: number };
+  /** 화풀이: 한 번에 최대 체력 hit 넘게 맞으면 sec초 딜 +up */
+  vent?: { hit: number; up: number; sec: number };
+  /** 폭주기관차: every초마다 끝 sec초 동안 딜 ×up, 그동안 장판 안 피함 */
+  burst?: { every: number; sec: number; up: number };
+  /** 쉬엄쉬엄: every초마다 끝 sec초 동안 쉼 (딜 0, 회피 +dodge) */
+  breather?: { every: number; sec: number; dodge: number };
+  /** 타이밍 장인: 보스가 멍함 · 무방비 · 기절인 동안 딜 ×up */
+  timing?: { up: number };
+  /** 끈기형: every초마다 반응 시간 ×step, 최저 ×min */
+  grit?: { every: number; step: number; min: number };
 }
 
 /**
@@ -171,6 +222,32 @@ export const PERS = {
   '지속힐 체질': { star: 2, cat: '힐', ch: '지', healTaste: { direct: 0.9, hot: 1.2 }, desc: '지속 힐 · 간접 회복을 20% 더 받고, 직접 힐은 10% 덜 받습니다.', barks: ['천천히 차는 게 좋아', '도트 힐 최고'] },
   '큰 힐 체질': { star: 2, cat: '힐', ch: '큰', healTaste: { direct: 1.2, hot: 0.9 }, desc: '직접 힐을 20% 더 받고, 지속 힐 · 간접 회복은 10% 덜 받습니다.', barks: ['큰 거 한 방!', '찔끔 힐은 별로'] },
   '자립형': { star: 1, cat: '힐', ch: '립', selfReg: { hp: 0.6, regen: 0.02, every: 3, taken: 0.9 }, desc: '체력이 60% 넘으면 3초마다 최대 체력 2%씩 스스로 회복하고, 받는 치유는 10% 줄어듭니다.', barks: ['알아서 할게', '딴 사람 먼저'] },
+  // ---------- 95 문서 2차: 회피 5 · 위치 5 · 관계 6 · 감정 5 · 리듬 4 (2026-10-18) ----------
+  '예언가': { star: 2, cat: '회피', ch: '예', rare: true, foresee: { lead: 1, wrong: 0.2, again: 0.6 }, desc: '장판 예고가 뜨자마자 1초 먼저 움직입니다. 다섯 번에 한 번은 틀린 칸으로 갔다가 다시 피합니다.', barks: ['거기 올 거야', '어 반대였나'] },
+  '점프광': { star: 2, cat: '회피', ch: '점', jumpy: { chance: 0.5 }, dodge: 0.25, dps: 0.95, desc: '자기를 안 노리는 장판 예고에도 옆 칸으로 자주 뛰어 피하는 척합니다. 장판엔 거의 안 맞지만 뛰는 동안 딜을 못 하고 딜이 5% 약합니다.', barks: ['점프!', '일단 뛰고 봄'] },
+  '참을성': { star: 2, cat: '회피', ch: '참', endure: { small: 0.3 }, desc: '최대 체력 30%가 안 되는 장판은 피하지 않고 생존기를 켜고 버팁니다. 정작 강타 때 생존기가 없을 수 있습니다.', barks: ['이 정도는 참음', '버틴다'] },
+  '모서리파': { star: 2, cat: '회피', ch: '귀', edge: { pref: 30, back: 2 }, desc: '피할 때 늘 판 가장자리로 가고 제자리에 늦게 돌아옵니다. 광역 힐 범위 밖에 있기 쉽습니다.', barks: ['구석이 편해', '모서리 사수'] },
+  '얼음땡': { star: 3, cat: '회피', ch: '얼', freeze: { sec: 1 }, noTank: true, desc: '장판이 둘 겹쳐 오면 1초 동안 굳어 늦게 피합니다.', barks: ['어어 얼음!', '땡 해 줘'] },
+  '앞장이': { star: 2, cat: '위치', ch: '앞', front: { pref: 30 }, dps: 1.1, desc: '자기가 설 수 있는 칸 중 보스에 가장 가까운 칸을 고집합니다. 딜이 10% 늘지만 앞쪽 광역에 자주 맞습니다.', barks: ['앞으로!', '맨 앞이 내 자리'] },
+  '뒷줄파': { star: 2, cat: '위치', ch: '뒷', backline: { pref: 30, melee: 0.9 }, noTank: true, desc: '자기가 설 수 있는 칸 중 늘 뒷줄에 섭니다. 앞쪽 공격에 덜 맞지만 근접이면 딜이 10% 약합니다.', barks: ['뒤에 있을게', '뒷줄이 안전'] },
+  '짝꿍': { star: 1, cat: '위치', ch: '짝', buddy: { dodge: 0.05 }, desc: '시작할 때 가장 가까운 아군 하나를 짝으로 정해 옆에 붙어 다닙니다. 붙어 있으면 둘 다 회피가 5%p 늘어납니다.', barks: ['짝꿍 하자', '같이 가'] },
+  '양보왕': { star: 2, cat: '위치', ch: '양', yieldTo: { near: 25 }, desc: '피할 때 아군이 있는 칸 옆을 피해 더 먼 칸으로 갑니다. 늦지만 아군과 겹쳐 맞지 않습니다.', barks: ['먼저 가', '난 저쪽'] },
+  '집돌이': { star: 1, cat: '위치', ch: '집', homebody: { dps: 1.05 }, desc: '피하고 나면 바로 처음 칸으로 돌아오고, 제자리에 있으면 딜이 5% 늘어납니다. 같은 칸에 연달아 오는 장판에 걸리기 쉽습니다.', barks: ['집이 최고', '제자리 복귀'] },
+  '대타': { star: 2, cat: '관계', ch: '타', rare: true, standIn: { sec: 10, cut: 0.4, cd: 30 }, noTank: true, desc: '탱커가 모두 쓰러지면 10초 동안 보스를 대신 붙잡습니다. 그동안 받는 피해가 40% 줄고 탱커 없음 광폭화가 늦춰집니다.', barks: ['내가 잡는다!', '탱 올 때까지만'] },
+  '큰형': { star: 1, cat: '관계', ch: '형', rare: true, mentor: true, desc: '옆에 있는 뉴비 · 겁쟁이 · 소심이의 단점을 반으로 줄여 줍니다.', barks: ['형 옆에 있어', '천천히 해'] },
+  '분위기메이커': { star: 1, cat: '관계', ch: '분', mood: { sec: 10, react: 0.9 }, desc: '전투 시작 10초 동안 파티 전원의 반응이 10% 빨라집니다.', barks: ['가보자고!', '오늘 분위기 좋다'] },
+  '칭찬왕': { star: 1, cat: '관계', ch: '칭', praise: { up: 0.05, sec: 5 }, desc: '힐러가 위기의 아군을 살려 내면 칭찬해 5초 동안 파티 딜이 5% 늘어납니다.', barks: ['힐러 최고!', '방금 미쳤다'] },
+  '보은형': { star: 1, cat: '관계', ch: '보', repay: { dodge: 0.1, sec: 10 }, desc: '자기가 위기에서 살아나면 10초 동안 회피가 10%p 늘어납니다.', barks: ['은혜 갚을게', '이번엔 안 맞음'] },
+  '샘쟁이': { star: 2, cat: '관계', ch: '샘', envy: { up: 0.1, upSec: 5, down: 0.05, downSec: 3 }, desc: '내가 힐을 받으면 5초 동안 딜이 10% 늘고, 옆 사람만 받으면 3초 동안 딜이 5% 줄어듭니다.', barks: ['나도 줘', '흥 쟤만'] },
+  '울보': { star: 3, cat: '감정', ch: '울', cry: { sec: 5 }, noTank: true, desc: '아군이 쓰러지면 5초 동안 울어서 딜을 멈춥니다. 장판은 피합니다.', barks: ['으앙…', '흑 안 돼'] },
+  '오뚝이': { star: 1, cat: '감정', ch: '뚝', bounce: { hp: 0.1, cut: 0.5, sec: 3 }, desc: '체력이 처음 10% 아래로 떨어지면 3초 동안 받는 피해가 50% 줄어듭니다. 전투에 한 번입니다.', barks: ['안 넘어져!', '다시 일어남'] },
+  '예민형': { star: 2, cat: '감정', ch: '민', touchy: { down: 0.2, up: 0.15, sec: 5 }, desc: '디버프가 걸려 있으면 딜이 20% 약하고, 해제받으면 5초 동안 딜이 15% 늘어납니다.', barks: ['이거 신경 쓰여', '이제 살 것 같다'] },
+  '신바람': { star: 1, cat: '감정', ch: '바', wind: { n: 3, up: 0.2, sec: 5 }, desc: '내 칸 장판을 세 번 연달아 피하면 5초 동안 딜이 20% 늘어납니다.', barks: ['신난다!', '흐름 탔다'] },
+  '화풀이': { star: 1, cat: '감정', ch: '화', vent: { hit: 0.15, up: 0.15, sec: 3 }, desc: '한 번에 최대 체력 15% 넘게 맞으면 3초 동안 딜이 15% 늘어납니다.', barks: ['아프잖아!', '갚아 준다'] },
+  '폭주기관차': { star: 2, cat: '리듬', ch: '폭', burst: { every: 30, sec: 5, up: 1.5 }, desc: '30초마다 5초 동안 딜이 50% 늘지만 그동안 장판을 피하지 않습니다.', barks: ['폭주 간다!', '브레이크 없음'] },
+  '쉬엄쉬엄': { star: 2, cat: '리듬', ch: '쉬', breather: { every: 25, sec: 2, dodge: 0.2 }, desc: '25초마다 2초씩 쉽니다. 쉬는 동안 딜이 없지만 회피가 20%p 늘어납니다.', barks: ['잠깐 쉼', '숨 좀 고르고'] },
+  '타이밍 장인': { star: 1, cat: '리듬', ch: '틈', rare: true, timing: { up: 2 }, desc: '보스가 멍하거나 무방비 · 기절인 동안 딜이 두 배가 됩니다.', barks: ['지금 틈이다', '타이밍 왔다'] },
+  '끈기형': { star: 1, cat: '리듬', ch: '끈', grit: { every: 30, step: 0.95, min: 0.8 }, desc: '30초마다 반응이 5%씩 빨라져 최대 20%까지 빨라집니다.', barks: ['끝까지 간다', '갈수록 잘 보임'] },
 } as const satisfies Record<string, Personality>;
 
 export type PersName = keyof typeof PERS;

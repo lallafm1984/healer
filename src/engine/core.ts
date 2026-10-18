@@ -9,7 +9,7 @@ import { relayHurt } from './relay';
 import { heroLethal, heroTaken, NEW_HERO } from './heroes';
 import { posTaken } from './position';
 import { talentDeath, talentTaken } from './talents';
-import { coverPart, persDebuff, persDeath, persHealTaken, persHurt, sturdyTaken } from './persona';
+import { coverPart, persDebuff, persDeath, persDispel, persHealed, persHealTaken, persHurt, sturdyTaken } from './persona';
 import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, shieldGone, specDeath, specDebtPaid, specDebuffEnd, specFlip, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
@@ -104,6 +104,7 @@ export function heal(f: Fight, u: Unit, amt: number, direct: boolean, raw = fals
   if (direct) {
     emit(f, { type: 'heal', id: u.id, amt: Math.round(amt), eff: Math.round(eff), crit });
     u.lastHeal = f.t;
+    if (f.envy) persHealed(f, u); // 샘쟁이 (95)
     if (u.sulking) u.sulking = false;
     if (u.p.thanks) { u.thanks = 3; if (f.rng() < 0.35) bark(f, u, null, false, 'thanks'); }
   } else if (flowing) { const w = (u.flow ??= { amt: 0, eff: 0, t0: f.t }); w.amt += amt; w.eff += eff; }
@@ -419,6 +420,7 @@ export function spread(f: Fight, u: Unit): void {
 
 export function onDebuffEnd(f: Fight, u: Unit, d: Debuff, dispelled: boolean): void {
   if (u.soul) { u.soul.cleansed = dispelled; return; } // 헤매는 영혼: 해제로 바로 성공 (P-SOUL)
+  if (dispelled && u.ps) persDispel(f, u); // 예민형 (95)
   if (f.sp) specDebuffEnd(f, u, d); // 금빛수염 단추
   if (f.sp && dispelled && d.trap) { during(f, 'trap', () => { if (f.aff) affDebuffEnd(f, u, d, dispelled); if (d.end) debuffEnd(f, u, d, dispelled); }); return; } // 함정 감지 (42 해제 06)
   if (f.aff) affDebuffEnd(f, u, d, dispelled); // 어픽스 불안정·메아리
