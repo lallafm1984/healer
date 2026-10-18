@@ -79,10 +79,11 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | boss-island-tilt | 기울어지는 수평선 | boss-wedge | 가운데에 꽂히는 큰 번개 쐐기 |
 | shaman-ripple | 발밑에서 퍼지는 납작한 물결 두 겹 (위로 떠오르는 파란 알갱이) | warder-hold | 조여 덮이는 둥근 빛 막과 네 곳의 빛 매듭 · 빛실 |
 | shaman-droplet | 떨어져 납작하게 퍼지는 물방울 하나 (흩날리고 사방으로 퍼지는 빛 알갱이) | shaman-washing | 아래에서 휘감아 오르는 물줄기 두 가닥 |
-| shaman-chain | 옆에서 휘어 들어와 튀는 물줄기 | shaman-earth | 땅에서 솟는 돌 가시 셋 |
-| shaman-rain | 머리 위 작은 비구름과 가는 비 | shaman-link | 가로로 출렁이는 영혼 끈 두 줄과 매듭 |
-| shaman-spring | 솟아 흩뿌리는 분수와 바닥 샘 | monk-palm | 톡 부풀었다 꺼지는 기 구슬과 위아래 박자 선 |
+| shaman-chain | 옆에서 휘어 들어와 튀는 물줄기 | shaman-earth | 땅에서 솟는 돌 가시 셋 (갈라진 땅 · 흙먼지, Codex 돌 가시 그림) |
+| shaman-rain | 머리 위 작은 비구름과 가는 비 (Codex 비구름 그림) | shaman-link | 가로로 출렁이는 영혼 끈 두 줄과 매듭 |
+| shaman-spring | 솟아 흩뿌리는 분수와 바닥 샘 (Codex 꼬인 물기둥 그림) | monk-palm | 톡 부풀었다 꺼지는 기 구슬과 위아래 박자 선 |
 | shaman-spring-loop | 판 위 샘 토템 루프: 숨 쉬는 물방울 보석과 보석 끝 작은 분수 | shaman-earth-loop | 판 위 대지 토템 루프: 왕관 둘레를 도는 돌 조각 셋과 호박빛 흙먼지 |
+| shaman-rain-loop | 판 위 비구름 토템 루프: 구름 배의 숨 쉬는 물빛과 그 밑으로 내리는 빗줄기 | | |
 | monk-wrap | 몸을 비스듬히 감아 도는 안개 리본 | monk-mist | 옆으로 흘러가는 안개 뭉치 셋 |
 | monk-breath | 가운데에서 양옆으로 훅 퍼지는 안개 숨 | monk-clear | 위에서 아래로 쓸어내리는 세로 기 줄 셋 |
 | monk-soothe | 점점 납작해지는 가로 물결선 | monk-wind | 비스듬히 쓸어 올리며 끝이 말리는 바람 선과 꽃잎 |

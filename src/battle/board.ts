@@ -1265,6 +1265,10 @@ function putStand(key: string, artName: string, x: number, y: number, r: number,
   recordBound(`stand-${key}`, 'stand', 'rect', q.x, q.y, w, size * bh, { diameter: size });
   return true;
 }
+/** 비구름이 판에 나타난 시각 (ms, 비가 그치면 null): 나타날 때 톡 부푸는 연출 */
+let rainShownAt: number | null = null;
+/** 0–1 → 살짝 넘쳤다 돌아오는 진행 (톡 부풂) */
+const backOut = (x: number, s = 1.7): number => 1 + (s + 1) * (x - 1) ** 3 + s * (x - 1) ** 2;
 /** 직업별 판 위 그림 (80 5장 · 사제 쉼터 · 드루이드 이끼 · 성기사 성역): 전투 시작 때 그 직업 것만 미리 읽음 (첫 토템 · 인장 · 쉼터부터 보이게) */
 const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
   priest: ['board-shelter'],
@@ -1279,7 +1283,7 @@ const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
  * 칸 위에 얹는 그림의 그려진 부분 (192px 그림 중 폭 · 높이 비율, 80 5장 납품본을 잼). 판 가장자리에서 크기를 줄일 때 씀 (비율은 그대로)
  */
 const HERO_ART_BOX: Record<string, [number, number]> = {
-  'board-totem-rain': [0.75, 0.92], 'board-mist': [0.98, 0.49], 'board-seal': [0.85, 0.96], 'board-barrier': [0.79, 1],
+  'board-totem-rain': [0.86, 0.94], // 2026-10-18 Codex로 다시 그림 (샘 · 대지 토템과 같은 돌 · 구리 부적) 'board-mist': [0.98, 0.49], 'board-seal': [0.85, 0.96], 'board-barrier': [0.79, 1],
   'board-star-mark': [0.99, 0.79], 'board-star': [0.8, 0.96], 'board-star-sleep': [0.79, 1], // 결계 · 별의 잠 · 별자리 표식은 2026-10-16 굵게 다시 그림 (89)
 };
 /** 점성술사 모으는 별 (80 5장 board-star): 별 n개 자리 (칸 반지름 배, 대상 칸 가운데 기준). 차례로 선을 이음 */
@@ -1292,19 +1296,19 @@ const CHARGE_STARS: [number, number][][] = [
   [[-0.6, 0.16], [-0.3, -0.32], [0, 0.12], [0.3, -0.32], [0.6, 0.16]],
 ];
 /**
- * 힐러 직업 4종 그림 하나 (80 5장): 가운데 (x, y) · 한 변 size. 판 밖으로 나갈 것 같으면 비율 그대로 줄임. 그렸으면 true
+ * 힐러 직업 4종 그림 하나 (80 5장): 가운데 (x, y) · 한 변 size. 판 밖으로 나갈 것 같으면 비율 그대로 줄임. 그린 한 변 (안 그렸으면 0)
  * 그림이 아직 안 읽혔으면 안 그림 (다음 프레임에 그림)
  */
-function heroArt(pool: SpritePool, name: string, key: string, x: number, y: number, size: number, alpha = 1, shadow = false): boolean {
+function heroArt(pool: SpritePool, name: string, key: string, x: number, y: number, size: number, alpha = 1, shadow = false): number {
   const tex = artTexture(name);
-  if (!tex) return false;
+  if (!tex) return 0;
   const [bw, bh] = HERO_ART_BOX[name] ?? [1, 1];
   const fit = Math.min(size, (2 * (x - L.left)) / bw, (2 * (L.right - x)) / bw, (2 * (y - L.top)) / bh, (2 * (L.bottom - y)) / bh);
-  if (fit <= 0) return false;
+  if (fit <= 0) return 0;
   if (shadow) pool.put(tex, x, y + Math.max(1, fit * 0.04), fit * 1.12, fit * 1.12, alpha * 0.6, 0x000000); // 작은 금빛 표시: 밝은 칸 (딜러 칸)에서도 읽히게 검은 그림자
   pool.put(tex, x, y, fit, fit, alpha);
   recordBound(key, 'hero-art', 'rect', x, y, fit * bw, fit * bh, { requestedDiameter: size, diameter: fit });
-  return true;
+  return fit;
 }
 
 function predictedHeal(u: Unit): number {
@@ -1734,11 +1738,19 @@ export function render(now: number): void {
     }
     at.forEach((p, i) => heroArt(fxArt, 'board-star', `hero-star${i}`, p.x, p.y, r * (i === at.length - 1 && !perfect ? 0.54 + 0.08 * pulse : 0.54), perfect ? 0.8 + 0.2 * pulse : 1, true));
   }
-  // 주술사 비구름 토템 (80 5장 board-totem-rain): 비가 오는 동안 판 오른쪽 위 하늘에 떠서 천천히 흔들림
+  // 주술사 비구름 토템 (board-totem-rain, 2026-10-18 Codex로 다시 그림): 비가 오는 동안 판 오른쪽 위 하늘에 떠서 천천히 흔들림.
+  // 나타날 때 0.35초 톡 부풀고, 그림 위에서 빗줄기 · 빛 루프 (shaman-rain-loop, 그림 크기 × 1.5 · 가운데가 그림보다 한 변의 1/4 아래)가 돎 (Lim 「비구름도 다른 토템처럼 효과 이펙트를」). 시각 효과 줄이기면 그림만
   if (raining(F)) {
-    const size = Math.max(30, r * 1.5), bob = S.reducedEffects ? 0 : Math.sin(t * 1.6) * r * 0.05;
-    heroArt(fxArt, 'board-totem-rain', 'hero-rain', L.right - size * 0.4, L.top + size * 0.48 + bob, size, F.sham!.rainUntil - F.t < 2 ? 0.45 + 0.4 * pulse : 0.9);
-  }
+    if (rainShownAt == null) rainShownAt = now;
+    const pop = S.reducedEffects ? 1 : backOut(Math.min(1, (now - rainShownAt) / 350)), size = Math.max(30, r * 1.5) * (0.55 + 0.45 * pop), bob = S.reducedEffects ? 0 : Math.sin(t * 1.6) * r * 0.05;
+    const x = L.right - size * 0.4, y = L.top + size * 0.48 + bob, alpha = F.sham!.rainUntil - F.t < 2 ? 0.45 + 0.4 * pulse : 0.95;
+    const fit = heroArt(fxArt, 'board-totem-rain', 'hero-rain', x, y, size, alpha);
+    const lp = PXF['shaman-rain-loop'], lt = fit && !S.reducedEffects ? smoothFrame('shaman-rain-loop', loopFrame(lp, t)) : null;
+    if (lt) {
+      if (lt.source.scaleMode !== 'linear') lt.source.scaleMode = 'linear';
+      fxArt.put(lt, x, y + fit * 0.25, fit * 1.5, fit * 1.5, alpha);
+    }
+  } else rainShownAt = null;
 
   // 밀가루 구름 (63 E 11): 체력 숫자가 숨은 동안 판 전체 (가장자리가 짙은 그림). 처음 1.2초는 짙게 덮었다가 옅어짐
   const darkTex = F.dark ? artTexture(darkArt(F.enc.script)) : null;
