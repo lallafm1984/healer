@@ -51,6 +51,12 @@ export const appsPerDay = (guildLv: number) => (guildLv >= 9 ? 3 : guildLv >= 6 
 export const APP_DAYS = 3;
 /** 스킬 다시 뽑기: 내 Lv × 60 골드 (93 5-5) */
 export const rerollGold = (myLv: number) => 60 * myLv;
+/**
+ * 후원 (98, Lim 10-18 「훈련 대신 지원」): 그 길드원 Lv × 20 골드 = 「후원 5판」. 내가 이긴 판에 그 길드원이 쉬면 레벨 경험치를 출전만큼 (쉬는 몫 30% 대신 100%) 받고 1판씩 씀.
+ * 출전한 판 · 진 판 · 내 레벨과 같아 더 못 오르는 동안은 안 씀. 한 사람에 4번 (20판)까지. 레벨이 오르면 능력치도 (레벨업 능력치)
+ */
+export const SPONSOR = { per: 20, runs: 5, max: 20 };
+export const sponsorGold = (lv: number) => SPONSOR.per * lv;
 
 // ---------- 길드원 (97 크는 길) ----------
 export type StoryKey = 'tank' | 'isle' | 'blade';
@@ -73,6 +79,8 @@ export interface GuildMember {
   votes: StatKey[][];
   /** 공략 숙지 점수 (93 5-4): 전투 (구간) 키 → 함께 이긴 만큼 (학습력이 빠르기) */
   know: Record<string, number>;
+  /** 남은 후원 판 (98): 쉬는 판에 레벨 경험치를 출전만큼 */
+  boost: number;
   /** 출전 수 · 들어온 때 (ms) */
   runs: number;
   joined: number;

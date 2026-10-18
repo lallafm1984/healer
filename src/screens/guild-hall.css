@@ -63,6 +63,7 @@ body.tabs-on #s-guild .ns-body.g-home { padding-bottom: 10px; }
 #s-guild.ns .pcard.f-mem .f-l2 { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; }
 #s-guild.ns .pcard.f-mem .f-l2 > .f-ab { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 #s-guild.ns .pcard.f-mem .f-l2 > .f-tag { flex: none; padding: 0 5px; border: 1px solid var(--gk-card-bd); border-radius: 6px; font-size: 10.5px; line-height: 16px; color: var(--gk-ink2); white-space: nowrap; }
+#s-guild.ns .pcard.f-mem .f-l2 > .f-tag.gold { border-color: #c99b3f; color: #ffd34d; background: #3a2a0f; }
 #s-guild.ns .pcard.f-mem .f-l1 > .cap { color: var(--gk-mute); }
 #s-guild.ns .pcard.f-mem .f-l2 { color: var(--gk-ink2); }
 #s-guild.ns .pcard.f-mem .f-ab b { font-weight: 700; }
@@ -168,6 +169,11 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-sh small { font: 500 11px var(--font-body); color: var(--gk-mute); }
 #s-guild .sheet .gbtns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 #s-guild .sheet .gbtns .btn { min-height: 52px; flex: none; }
+/* 후원 (98): 시트 첫 줄 가득 · 길드원 탭 「쉬는 길드원 모두 후원」 */
+#s-guild .sheet .gbtns .btn.g-wide { grid-column: 1 / -1; }
+#s-guild .g-rest { align-self: stretch; min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+#s-guild .g-rest small { font-size: 11px; opacity: 0.9; }
+#s-guild .g-rest .currency-amount { justify-content: center; }
 #s-guild .sheet .g-sact { min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 #s-guild .sheet .g-sact small { font-size: 11px; opacity: 0.85; }
 #s-guild .sheet .g-smsg { margin: 0; }

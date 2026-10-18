@@ -101,6 +101,20 @@ export default async function guild(url, shots) {
   await page.click('#s-guild [data-reroll]'); await page.clock.runFor(50);
   ok((await save()).player.gold === g0 - 1800 && /새 스킬/.test(await text('#s-guild .g-msheet')), '스킬 다시 뽑기 = 내 Lv × 60 (1,800)');
   await page.locator('#s-guild .g-msheet').screenshot({ path: `${shots}/guild_member.png` });
+  // 후원 (98): 그 길드원 Lv × 20 골드 = 5판, 내 레벨과 같으면 버튼 대신 「내 레벨과 같음」
+  await shut();
+  const low = (await save()).guild.members.find(m => m.nick === '불꽃남자');
+  await page.click(`#s-guild [data-mem="${low.id}"] .f-mt`); await page.clock.runFor(50);
+  const g1 = (await save()).player.gold;
+  await page.click('#s-guild [data-sponsor]'); await page.clock.runFor(50);
+  sv = await save();
+  ok(sv.player.gold === g1 - low.lv * 20 && sv.guild.members.find(m => m.id === low.id).boost === 5 && /후원 5판 남음/.test(await text('#s-guild .g-msheet')), `후원: 골드 ${low.lv * 20} → 5판`);
+  await shut();
+  ok(/후원 5/.test(await text(`#s-guild [data-mem="${low.id}"]`)), '길드원 줄에 금빛 「후원 5」');
+  await page.click(`#s-guild [data-mem="${tank.id}"] .f-mt`); await page.clock.runFor(50);
+  ok(await page.isDisabled('#s-guild [data-sponsor]') && /내 레벨과 같음/.test(await text('#s-guild [data-sponsor]')), '내 레벨과 같은 길드원 = 「내 레벨과 같음」');
+  await shut();
+  await page.click(`#s-guild [data-mem="${hired.id}"] .f-mt`); await page.clock.runFor(50);
   await page.click('#s-guild [data-release]'); await page.clock.runFor(50);
   ok(/한 번 더 누르면 보냄/.test(await text('#s-guild [data-release]')) && (await save()).guild.members.length === 6, '보내기 첫 누름 = 확인만');
   await page.click('#s-guild [data-release]'); await page.clock.runFor(50);
@@ -141,6 +155,7 @@ export default async function guild(url, shots) {
   ok(/인연 \+\d/.test(rw), '결과: 인연 +N');
   ok(/공략 숙지 1단계: /.test(rw), '결과: 공략 숙지 1단계 (보스 이름 · 길드원)');
   sv = await save();
+  ok(sv.guild.members.find(m => m.nick === '불꽃남자').boost === 5, '출전한 판은 후원 판을 안 씀');
   ok(sv.guild.fame === 4 && sv.guild.firsts.length === 1 && sv.guild.members.filter(m => m.runs === 1).length === 4 && sv.weekly.guild.n === 1, `저장: 명성 4 · 첫 처치 1 · 출전 1번 ×4 · 주간 목표 1 (${sv.guild.fame})`);
   await page.screenshot({ path: `${shots}/guild_reward.png` });
 

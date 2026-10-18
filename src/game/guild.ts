@@ -9,7 +9,7 @@ import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
 import { dayOffset, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
-  APP_DAYS, appsPerDay, BOND_JOIN, bondLv, DEED_STATS, DEED_WHY, FAME, FRIEND_LV, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POSTS, REST_SHARE, rerollGold,
+  APP_DAYS, appsPerDay, BOND_JOIN, SPONSOR, sponsorGold, bondLv, DEED_STATS, DEED_WHY, FAME, FRIEND_LV, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POSTS, REST_SHARE, rerollGold,
   knowGain, knowStage, starOfBond, STORY, statPerLevel, statWeights, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type PostKind, type StoryKey,
 } from '../data/guild';
 import { PARTY_POOL, STORY_NICKS, type PoolMember } from '../data/nicknames';
@@ -53,7 +53,7 @@ const isAway = (save: SaveData, nick: string) => save.guild.away.some(m => m.nic
 export function newMember(save: SaveData, p: Pick<Person, 'nick' | 'cls' | 'pers' | 'ab'>, lv: number, story?: StoryKey): GuildMember {
   const prof = profileOf(p.nick, p.pers);
   const stats = { ...prof.stats, ...(story ? STORY[story].boost : {}) };
-  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: Math.max(1, Math.min(topLevel(save), lv)), xp: 0, stats, learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], know: {}, runs: 0, joined: Date.now(), ...(story ? { story } : {}) };
+  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: Math.max(1, Math.min(topLevel(save), lv)), xp: 0, stats, learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], know: {}, boost: 0, runs: 0, joined: Date.now(), ...(story ? { story } : {}) };
 }
 /** 그 사람의 지금 레벨 (공개모집과 같은 세상 레벨: 내 Lv × 빠르기) */
 export const worldLevel = (save: SaveData, p: Pick<Person, 'fm'>) => memberLevel(p.fm.speed, topLevel(save));
@@ -188,6 +188,38 @@ export function hireApp(save: SaveData, i: number): string {
 // ---------- 관리 ----------
 const memberOf = (save: SaveData, id: number) => save.guild.members.find(m => m.id === id) || null;
 
+/** 후원 (98): 그 길드원 Lv × 20 골드 = 후원 5판 (20판까지). 내 레벨과 같으면 더 못 오르니 안 됨 */
+export function sponsorWhy(save: SaveData, m: GuildMember): string {
+  if (m.lv >= topLevel(save)) return '내 레벨과 같음';
+  if (m.boost + SPONSOR.runs > SPONSOR.max) return `후원 ${SPONSOR.max}판까지`;
+  return '';
+}
+export function sponsor(save: SaveData, id: number): string {
+  const m = memberOf(save, id);
+  if (!m) return '길드원 없음';
+  const why = sponsorWhy(save, m);
+  if (why) return why;
+  const c = sponsorGold(m.lv);
+  if (resourceBalance(save, 'gold') < c) return `골드 부족 (${c.toLocaleString()} 필요)`;
+  spendResource(save, 'gold', c);
+  m.boost += SPONSOR.runs;
+  return '';
+}
+/** 쉬는 길드원 (어느 규모 편성에도 없는 사람) 가운데 후원할 수 있는 사람과 합계 골드 */
+export function restSponsor(save: SaveData): { ids: number[]; gold: number } {
+  const picked = new Set(Object.values(save.guild.picks).flat());
+  const ids = save.guild.members.filter(m => !picked.has(m.id) && !sponsorWhy(save, m)).map(m => m.id);
+  return { ids, gold: ids.reduce((t, id) => t + sponsorGold(memberOf(save, id)!.lv), 0) };
+}
+/** 쉬는 길드원 모두 후원 (골드가 모자라면 아무도 안 함) */
+export function sponsorRest(save: SaveData): string {
+  const { ids, gold } = restSponsor(save);
+  if (!ids.length) return '후원할 쉬는 길드원 없음';
+  if (resourceBalance(save, 'gold') < gold) return `골드 부족 (${gold.toLocaleString()} 필요)`;
+  for (const id of ids) sponsor(save, id);
+  return '';
+}
+
 /** 스킬 다시 뽑기 (내 Lv × 60 골드): 같은 직업 안에서. 스토리 동료는 안 됨 (고유) */
 export function rerollAbility(save: SaveData, id: number, r: () => number): string {
   const m = memberOf(save, id);
@@ -279,8 +311,9 @@ export const isGuildParty = (roster: readonly RosterEntry[]) => roster.some(e =>
 export interface GuildAfter {
   /** 출전한 길드원: 레벨 경험치 · 레벨 업 · 오른 능력치 (왜) · 오른 보스 공략 숙지 단계 */
   members: { nick: string; xp: number; ups: number[]; stats: { k: StatKey; to: number; why: string }[]; know?: { enc: string; stage: number } }[];
-  /** 쉬는 명단이 받은 경험치 합 */
+  /** 쉬는 명단이 받은 경험치 합 · 그 가운데 후원으로 받은 사람 (경험치 · 남은 판) */
   rest: number;
+  boosted: { nick: string; xp: number; left: number }[];
   fame: number;
   /** 길드 첫 처치 (장소 · 난이도) */
   first: boolean;
@@ -334,7 +367,7 @@ export function guildAfter(
   save: SaveData, r: () => number,
   o: { win: boolean; quit: boolean; grade: Grade | null; diff: DiffName; stage: number; raid: 0 | 10 | 20; content: string; kind: string; party: { nick: string; deed?: Deed }[]; roster: RosterEntry[]; encs?: readonly string[] },
 ): GuildAfter {
-  const g = save.guild, out: GuildAfter = { members: [], rest: 0, fame: 0, first: false };
+  const g = save.guild, out: GuildAfter = { members: [], rest: 0, boosted: [], fame: 0, first: false };
   if (o.quit || !o.win) return out;
   const cap = topLevel(save), went = new Set<number>();
   const firstKey = `${o.content}|${o.diff}`;
@@ -355,7 +388,10 @@ export function guildAfter(
     out.members.push({ nick: m.nick, xp, ups, stats, ...(boss && ka > kb ? { know: { enc: boss, stage: ka } } : {}) });
   }
   for (const m of g.members) if (!went.has(m.id)) {
-    const xp = Math.round(memberXp(m, o) * REST_SHARE), ups = addMemberXp(m, xp, cap);
+    // 후원 (98): 남은 판이 있고 더 오를 수 있으면 출전만큼, 1판 씀
+    const boost = m.boost > 0 && m.lv < cap;
+    const xp = Math.round(memberXp(m, o) * (boost ? 1 : REST_SHARE)), ups = addMemberXp(m, xp, cap);
+    if (boost) { m.boost--; out.boosted.push({ nick: m.nick, xp, left: m.boost }); }
     out.rest += xp;
     if (ups.length) growStats(m, ups.length, undefined, r); // 쉬는 판에 오른 레벨도 능력치
   }

@@ -76,7 +76,7 @@ export function classIcon(cls: ClassKey): string {
  * 파티원 줄 (27 3-3 편성, 2026-10-08 줄임): 역할 칸 · 닉네임 · 직업 · Lv · 성격 칩 / 직업 스킬 「이름」 · 오른쪽 끝 능력 ★ (97, 공개모집). 설명은 누르면 시트 (memDetailHtml).
  * 성격은 분류색 바탕에 전체 이름만 표시한다. 다루기 ★ 개수는 상세 시트에 둔다.
  */
-export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; note?: string; tag?: string; on?: boolean } = {}): string {
+export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra?: string; note?: string; tag?: string; gold?: string; on?: boolean } = {}): string {
   const c = CLASSES[m.cls], p = PERS[m.pers], a = m.ab ? ABILITIES[m.ab] : null;
   const ab = a
     ? `「<b style="color:${AB_GRADE[a.grade].color}">${esc(a.name)}</b>」${m.star ? `<span class="f-star"> ${'★'.repeat(m.star)}</span>` : ''}`
@@ -84,7 +84,7 @@ export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra
   const hard = p.star >= 3;
   return `<li class="pcard f-mem${o.cls ? ` ${o.cls}` : ''}${o.on ? ' on' : ''}" ${o.attrs || ''}><span class="f-ri" style="background:${ROLE[c.role].color}">${classIcon(m.cls)}</span>
     <div class="f-mt"><span class="f-l1"><b class="pnick">${esc(m.nick)}</b>${m.bond ? bondHtml(m.bond, m.member) : ''}<span class="cap">${c.name}${m.lv ? ` · Lv ${m.lv}` : ''}${o.note ? ` · ${o.note}` : ''}</span><span class="f-sp"></span><span class="f-ps${hard ? ' hard' : ''}" style="--pers-color:${CATS[p.cat]}">${hard ? '<span class="sr">다루기 어려움 </span>' : ''}${esc(m.pers)}</span></span>
-    <span class="f-l2"><span class="f-ab">${ab}</span>${o.tag ? `<small class="f-tag">${o.tag}</small>` : ''}${m.fm ? `<span class="f-fm">능력 <b>${fmStars(m)}</b></span>` : ''}</span></div>${o.extra || ''}</li>`;
+    <span class="f-l2"><span class="f-ab">${ab}</span>${o.tag ? `<small class="f-tag">${o.tag}</small>` : ''}${o.gold ? `<small class="f-tag gold">${o.gold}</small>` : ''}${m.fm ? `<span class="f-fm">능력 <b>${fmStars(m)}</b></span>` : ''}</span></div>${o.extra || ''}</li>`;
 }
 
 /** 파티원 상세 (편성 · 길드 줄을 누르면 시트): 능력 ★ · (인연에 따라) 능력치 · 직업 스킬 · 성격 (다루기 ★) */
