@@ -1,5 +1,5 @@
 // 드루이드: 풀빛 초록 · 나무 갈색 · 들꽃 분홍 · 노랑. 잎 · 꽃 · 씨앗 · 나무껍질 (단단한 것은 굵은 어두운 테)
-import { bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, leafAt, lerp, lightStroke, particles, path, rad, ringGlow, rng, seg, solid, speck, TAU } from './lib.mjs';
+import { bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, leafAt, lerp, lightStroke, loopGlints, loopRise, particles, path, rad, ringGlow, rng, seg, solid, speck, TAU, wave } from './lib.mjs';
 
 const G = { rim: '#123d14', deep: '#2f8a3a', mid: '#6cc04a', light: '#b6e86a', pale: '#e6ffb8', glow: '#8fe05a' };
 const WOOD = { rim: '#1e1006', dark: '#5a3418', mid: '#8a5a2b', light: '#c08a4a' };
@@ -202,6 +202,18 @@ export default {
       }
       particles(g, t, 8, 22, r => ({ t0: 0.08 + r() * 0.5, life: 0.4, x: (r() - 0.5) * 0.9, sz: 0.018 + r() * 0.015 }), (gg, p, age) => speck(gg, p.x * (1 - age * 0.3), by - 1.4 * E.out2(age), p.sz, age < 0.5 ? '#ffe08a' : G.light, (1 - age) * fade));
       glint(g, 0, by - H, 0.35 * bell(t, 0.25, 0.35, 0.7), '#ffd56b', 1, 0, 0.12);
+    },
+  },
+  // 판 위 지속 그림 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」): 그림 위에 겹쳐 그림이 서 있는 동안 계속 돎.
+  // 좌표: 프레임 가운데 = 그림 가운데, 1 = 그림 한 변의 반 (board.ts putArtLoop가 그림 한 변 × logical / 62로 그림). 3초 한 바퀴
+  /** 드루이드 이끼 자리 (board-moss, 그림 아래쪽에 낮게 깔림): 이끼가 초록빛으로 숨 쉬고, 반딧불 같은 연두 포자가 이끼에서 흔들리며 떠오르고 꽃 · 새싹이 차례로 반짝임 */
+  'druid-moss-loop': {
+    frames: 36, fps: 12, loop: true, logical: 87, size: 256, scope: 'target',
+    draw(g, { t }) {
+      glowOval(g, 0, 0.22, 0.95, 0.34, G.glow, 0.1 + 0.12 * wave(t, 1));
+      loopRise(g, t, 16, { x0: -0.78, x1: 0.78, y0: 0.2, y1: -0.95, per: 1, sz: 0.038, col: G.pale, glowCol: G.glow, sway: 0.13, seed: 5 });
+      loopRise(g, t, 6, { x0: -0.6, x1: 0.6, y0: 0.25, y1: -0.4, per: 2, sz: 0.029, col: YEL, glowCol: YEL, sway: 0.08, seed: 9 });
+      loopGlints(g, t, [[-0.34, 0.2], [0.16, -0.14], [0.2, 0.32], [0.56, 0.36], [-0.1, -0.02]], { size: 0.225, col: '#ffffff', glowCol: G.glow, per: 1 });
     },
   },
 };

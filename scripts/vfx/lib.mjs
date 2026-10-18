@@ -210,6 +210,35 @@ export function leafAt(g, x, y, size, rot, { hi = '#c8f07a', lo = '#2f8a3a', rim
   g.restore();
 }
 
+// ── 판 위 지속 그림 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」) ─────
+// 루프 t = 장 / 장 수 (0 ~ 1 앞)라 frac(t × 정수 + 어긋남)으로 만든 움직임은 마지막 장 다음이 첫 장으로 이어짐
+/** 소수 부분 */
+export const frac = v => v - Math.floor(v);
+/** 0 ~ 1 물결 (한 바퀴에 k번) */
+export const wave = (t, k = 1, ph = 0) => 0.5 + 0.5 * Math.sin(TAU * (t * k + ph));
+/** 떠오르는 반짝이 가루: n개가 엇갈려 x0 ~ x1, y0에서 y1로 오르며 흔들리고 깜빡임 (한 바퀴에 per번) */
+export function loopRise(g, t, n, { x0 = -0.6, x1 = 0.6, y0 = 0.5, y1 = -0.8, per = 1, sz = 0.022, col = '#ffffff', glowCol = col, a = 1, sway = 0.05, seed = 1 } = {}) {
+  const R = rng(seed);
+  for (let i = 0; i < n; i++) {
+    const u = R(), ph = R(), s0 = R(), k = frac(t * per + i / n + ph * 0.13);
+    const x = lerp(x0, x1, u) + sway * Math.sin(TAU * (k * 2 + ph)), y = lerp(y0, y1, k), al = bell(k, 0, 0.2, 1) * a, s = sz * (0.6 + 0.8 * s0);
+    glow(g, x, y, s * 4.5, glowCol, 0.4 * al);
+    speck(g, x, y, s, col, al, 0.5 + 0.5 * Math.sin(TAU * (k * 3 + ph)));
+  }
+}
+/** 정한 자리마다 톡 켜졌다 꺼지는 반짝임 (자리마다 엇갈림, 한 바퀴에 per번) */
+export function loopGlints(g, t, pts, { size = 0.16, col = '#ffffff', glowCol = col, per = 1, a = 1 } = {}) {
+  pts.forEach(([x, y], i) => { const k = frac(t * per + i / pts.length + 0.05); glint(g, x, y, size * Math.sin(Math.PI * seg(k, 0, 0.3)), glowCol, a, 0.3 + i * 0.7, 0.13, col); });
+}
+/** 타원 (가운데 x, y · 반지름 rx, ry) 둘레를 도는 빛 점 m개 + 꼬리 (한 바퀴에 per바퀴, 뒤쪽 반은 옅게) */
+export function loopOrbit(g, t, { x = 0, y = 0, rx = 0.6, ry = 0.9, m = 2, per = 1, col = '#ffffff', glowCol = col, sz = 0.05, tail = 0.6, a = 1, back = 1, ph = 0 } = {}) {
+  for (let j = 0; j < m; j++) for (let q = 7; q >= 0; q--) {
+    const ang = TAU * (t * per + j / m + ph) - (q / 7) * tail, px = x + Math.cos(ang) * rx, py = y + Math.sin(ang) * ry, k = 1 - q / 8, depth = lerp(back, 1, 0.5 + 0.5 * Math.sin(ang));
+    glow(g, px, py, sz * (q ? 2.6 : 5) * k, glowCol, (q ? 0.35 : 0.8) * k * a * depth);
+    if (!q) speck(g, px, py, sz, col, a * depth, 1);
+  }
+}
+
 // ── 손그림 그림 (scripts/vfx/assets, 굽기가 읽어 둠) ─────────────
 /** 그림 이름 → Image (굽기 페이지에서만 있음, 없으면 null: 그리기 함수가 도형으로 대신) */
 export const asset = name => globalThis.VFX_ASSETS?.[name] ?? null;

@@ -1223,13 +1223,13 @@ const GUARD_COLOR: Record<GuardTimerKey, [number, number]> = {
  * 샘 · 대지 토템 = 주술사 자원 그림 (조작판 왼쪽)의 토템을 잘라 낸 그림 + 뒤 빛 (aura, 자원 그림의 뒤 빛과 같은 숨쉬기) + 그림 위 루프 (loop)
  * (2026-10-18 Lim 「판 위 토템이 퀄리티가 떨어지고 이질감, 스킬 자원의 토템과 같은 디자인으로, 이펙트가 루프로 돌게, 크기는 지금보다 작게」. 예전 16일 그림은 스킬 아이콘 모양)
  */
-const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string; stand?: boolean; aura?: string; loop?: PxfKey; phase?: number }> = {
+const TOTEM_LOOK: Record<TotemKind, { color: number; art: string; label: string; stand?: boolean; aura?: string; loop?: PxfKey; phase?: number; artLoop?: PxfKey }> = {
   spring: { color: 0x7ec8f0, art: 'board-totem-spring', label: '샘', stand: true, aura: 'board-totem-spring-aura', loop: 'shaman-spring-loop' },
   earth: { color: 0xc49a62, art: 'board-totem-earth', label: '대지', stand: true, aura: 'board-totem-earth-aura', loop: 'shaman-earth-loop', phase: 0.5 },
-  sea: { color: 0x4fa8e0, art: 'board-sea-spring', label: '바다' },
-  mist: { color: 0x6fd0b0, art: 'board-mist-pool', label: '안개' },
-  citadel: { color: 0xe6d3a0, art: 'board-citadel', label: '성채' },
-  nova: { color: 0xd19a5e, art: 'board-supernova', label: '별' },
+  sea: { color: 0x4fa8e0, art: 'board-sea-spring', label: '바다', artLoop: 'shaman-sea-loop' },
+  mist: { color: 0x6fd0b0, art: 'board-mist-pool', label: '안개', artLoop: 'monk-pool-loop' },
+  citadel: { color: 0xe6d3a0, art: 'board-citadel', label: '성채', artLoop: 'warder-citadel-loop' },
+  nova: { color: 0xd19a5e, art: 'board-supernova', label: '별', artLoop: 'astro-nova-loop' },
 };
 /** 선 물건 그림 한 변 (칸 반지름 배) · 그림마다 그려진 부분 (폭 · 높이 비율, 2026-10-16 납품본을 잼): 그려진 부분이 칸 안에 꽉 차게 */
 const STAND_SIZE = 1.5;
@@ -1249,7 +1249,7 @@ const STAND_ALPHA: Record<string, number> = { 'board-sanctuary': 0.82 };
  * 선 물건 하나 (토템 · 쉼터 · 빛의 성역 · 이끼 자리, 2026-10-16 Lim 「토템 위치는 고정, 이름 · 체력 뒤 직업 칸 색 위에 가운데 크게, 캐릭터가 이동해도 그 자리」):
  * 칸 가운데 (standL: 직업 칸 색 위, 아이콘 · 이름 · 체력 · 배지 아래), 세울 때 0.25초 솟아오름 (바닥 기준, at = 세운 시각), 끝나기 2초 전 깜빡임. 그림이 아직 안 읽혔으면 false
  */
-function putStand(key: string, artName: string, x: number, y: number, r: number, at: number, end: boolean, pulse: number, extra: { aura?: string; loop?: PxfKey; phase?: number } = {}): boolean {
+function putStand(key: string, artName: string, x: number, y: number, r: number, at: number, end: boolean, pulse: number, extra: { aura?: string; loop?: PxfKey; phase?: number; artLoop?: PxfKey } = {}): boolean {
   const tex = artTexture(artName);
   if (!tex) return false;
   const rise = S.reducedEffects ? 1 : Math.min(1, Math.max(0, ((B.F?.t ?? 0) - at) / 0.25)), k = 0.6 + 0.4 * (1 - (1 - rise) ** 2);
@@ -1270,8 +1270,21 @@ function putStand(key: string, artName: string, x: number, y: number, r: number,
     const d = (pxfDrawSize(lp, r * 2) * k * (STAND_SCALE[artName] ?? STAND_SIZE)) / TOTEM_STAND;
     stands.put(lt, q.x, cy, d, d, alpha);
   }
+  if (extra.artLoop) putArtLoop(stands, extra.artLoop, q.x, cy, size * k, alpha, extra.phase ?? 0);
   recordBound(`stand-${key}`, 'stand', 'rect', q.x, q.y, w, size * bh, { diameter: size });
   return true;
+}
+/**
+ * 판 위 지속 그림 위에서 계속 도는 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」: 쉼터 · 이끼 · 성역 · 바다 샘 · 안개 장판 · 성채 · 초신성 · 떠도는 안개 · 결계 · 별의 잠).
+ * 그림과 같은 가운데 · 같은 층에 그림 한 변 × logical / 62 크기 (루프 좌표 1 = 그림 한 변의 반, scripts/vfx 각 직업 파일). phase = 초 어긋남 (칸마다 박자가 겹치지 않게). 시각 효과 줄이기면 안 그림
+ */
+function putArtLoop(pool: SpritePool, key: PxfKey, x: number, y: number, side: number, alpha: number, phase = 0): void {
+  if (S.reducedEffects || side <= 0 || alpha <= 0) return;
+  const lp = PXF[key], lt = smoothFrame(key, loopFrame(lp, performance.now() / 1000 + phase));
+  if (!lt) return;
+  if (lt.source.scaleMode !== 'linear') lt.source.scaleMode = 'linear';
+  const d = (side * lp.logicalSize) / 62;
+  pool.put(lt, x, y, d, d, alpha);
 }
 /** 봉화 대상 고리 반지름 (칸 반지름 배): 육각 꼭짓점 바로 바깥 (고리 위 불꽃 여섯이 꼭짓점 자리) */
 const BEACON_R = 1.08; // 고리 위 불꽃 다섯이 위 · 옆 꼭짓점, 맨 아래 꼭짓점은 봉화를 걸 때 그릇 · 불꽃 이펙트 자리
@@ -1293,7 +1306,8 @@ const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
  * 칸 위에 얹는 그림의 그려진 부분 (192px 그림 중 폭 · 높이 비율, 80 5장 납품본을 잼). 판 가장자리에서 크기를 줄일 때 씀 (비율은 그대로)
  */
 const HERO_ART_BOX: Record<string, [number, number]> = {
-  'board-totem-rain': [1, 0.65], // 2026-10-18 Codex로 다시 그림: 구름만 (Lim 「물방울은 이미지에서 제거하고 구름만, 이펙트로 비를 표현」) 'board-mist': [0.98, 0.49], 'board-seal': [0.85, 0.96], 'board-barrier': [0.79, 1],
+  'board-totem-rain': [1, 0.65], // 2026-10-18 Codex로 다시 그림: 구름만 (Lim 「물방울은 이미지에서 제거하고 구름만, 이펙트로 비를 표현」)
+  'board-mist': [0.98, 0.49], 'board-seal': [0.85, 0.96], 'board-barrier': [0.79, 1],
   'board-star-mark': [0.99, 0.79], 'board-star': [0.8, 0.96], 'board-star-sleep': [0.79, 1], // 결계 · 별의 잠 · 별자리 표식은 2026-10-16 굵게 다시 그림 (89)
 };
 /** 점성술사 모으는 별 (80 5장 board-star): 별 n개 자리 (칸 반지름 배, 대상 칸 가운데 기준). 차례로 선을 이음 */
@@ -1542,12 +1556,12 @@ export function render(now: number): void {
     const sanc = F.sanctuary;
     if (sanc && sanc.cells.has(i)) {
       hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: sanc.end - F.t < 2 ? 0.08 + 0.14 * pulse : 0.2 });
-      if (sanc.cell === i) putStand(`sanctuary${i}`, 'board-sanctuary', p.x, p.y, r, sanc.at ?? -Infinity, sanc.end - F.t < 2, pulse);
+      if (sanc.cell === i) putStand(`sanctuary${i}`, 'board-sanctuary', p.x, p.y, r, sanc.at ?? -Infinity, sanc.end - F.t < 2, pulse, { artLoop: 'paladin-sanctuary-loop' });
     }
     // 드루이드 이끼 자리 (특성 77): 이끼 초록 바닥 + 발밑 이끼 (board-moss, 선 물건이라 사람이 서 있어도 보임), 끝나기 2초 전 깜빡임
     { const mu = F.tx.moss?.get(i); if (mu != null && mu > F.t) {
       hexPoly(cellsG, p.x, p.y, r).fill({ color: HOT_COLOR.sprout, alpha: mu - F.t < 2 ? 0.06 + 0.12 * pulse : 0.16 });
-      putStand(`moss${i}`, 'board-moss', p.x, p.y, r, -Infinity, mu - F.t < 2, pulse); // 새싹을 다시 걸 때마다 시간이 늘어나 솟아오름 없음
+      putStand(`moss${i}`, 'board-moss', p.x, p.y, r, -Infinity, mu - F.t < 2, pulse, { artLoop: 'druid-moss-loop', phase: i * 0.37 }); // 새싹을 다시 걸 때마다 시간이 늘어나 솟아오름 없음
     } }
     // 판 위 물건 (79 6-1: 토템 · 샘 · 성채 · 초신성): 그림 (80 5장)이 있으면 그 그림, 없으면 바닥 색 + 안쪽 테두리. 끝나기 2초 전 깜빡임
     for (const tm of F.totems) if (tm.cell === i) {
@@ -1555,14 +1569,17 @@ export function render(now: number): void {
       hexPoly(cellsG, p.x, p.y, r).fill({ color: look.color, alpha: end ? 0.08 + 0.14 * pulse : 0.22 });
       // 선 물건: 한 칸에 토템 하나 (engine/totems ONE_PER_CELL): 새로 세우면 앞 토템은 엔진에서 사라짐
       if (tex && look.stand) putStand(`${tm.kind}${i}`, look.art, p.x, p.y, r, tm.at, end, pulse, look);
-      else if (tex) decals.put(tex, p.x, p.y, cellArt, cellArt, end ? 0.5 + 0.5 * pulse : 1);
+      else if (tex) {
+        decals.put(tex, p.x, p.y, cellArt, cellArt, end ? 0.5 + 0.5 * pulse : 1);
+        if (look.artLoop) putArtLoop(decals, look.artLoop, p.x, p.y, cellArt, end ? 0.5 + 0.5 * pulse : 1, i * 0.37);
+      }
       else hexPoly(cellsG, p.x, p.y, r * 0.62).stroke({ width: 2.5, color: look.color, alpha: 0.9 });
     }
     // 사제 쉼터 (특성): 금빛 바닥 + 쉼터 천막 (board-shelter, 선 물건: 도망 온 사람이 들어가도 이름 · 체력 뒤에 보임), 끝나기 2초 전 깜빡임. 그림이 오기 전엔 안쪽 테두리
     if (F.tx.shelter === i) {
       const left = F.tx.act.shelter?.left ?? 0, dur = TALENT_DEF.shelter.active!.dur;
       hexPoly(cellsG, p.x, p.y, r).fill({ color: C.gold, alpha: left < 2 ? 0.1 + 0.16 * pulse : 0.26 });
-      if (!putStand(`shelter${i}`, 'board-shelter', p.x, p.y, r, F.t - (dur - left), left < 2, pulse)) hexPoly(cellsG, p.x, p.y, r * 0.72).stroke({ width: 2.5, color: C.gold, alpha: 0.8 });
+      if (!putStand(`shelter${i}`, 'board-shelter', p.x, p.y, r, F.t - (dur - left), left < 2, pulse, { artLoop: 'priest-shelter-loop' })) hexPoly(cellsG, p.x, p.y, r * 0.72).stroke({ width: 2.5, color: C.gold, alpha: 0.8 });
     }
   });
   // 장전된 범위 미리보기
@@ -1686,12 +1703,13 @@ export function render(now: number): void {
     }
     // 힐러 직업 4종 (80 5장): 떠도는 안개 = 발밑 옅은 안개 고리 · 결계사 보호막 = 칸을 감싼 금빛 막 (끝나기 2초 전 깜빡임) · 별의 잠 = 칸을 덮는 별빛 고치
     const mist = u.hots.find(h => h.key === 'wanderMist' && h.left > 0);
-    if (mist) heroArt(statusArt, 'board-mist', `hero-mist${u.id}`, x, y + r * 0.55, r * 1.5, mist.left < 2 ? 0.35 + 0.35 * pulse : 0.7);
+    if (mist) { const side = heroArt(statusArt, 'board-mist', `hero-mist${u.id}`, x, y + r * 0.55, r * 1.5, mist.left < 2 ? 0.35 + 0.35 * pulse : 0.7); putArtLoop(statusArt, 'monk-mist-loop', x, y + r * 0.55, side, mist.left < 2 ? 0.5 + 0.5 * pulse : 1, u.id * 0.37); }
     if (F.hero === 'warder' && absorbLeft(F, u) > 0) {
       const left = Math.max(0, ...u.mods.filter(m => m.k === 'absorb' && m.src === HEALER_SHIELD).map(m => m.until - F.t));
-      heroArt(statusArt, 'board-barrier', `hero-barrier${u.id}`, x, y, r * 2.06, left < 2 ? 0.4 + 0.45 * pulse : 0.85);
+      const side = heroArt(statusArt, 'board-barrier', `hero-barrier${u.id}`, x, y, r * 2.06, left < 2 ? 0.4 + 0.45 * pulse : 0.85);
+      putArtLoop(statusArt, 'warder-barrier-loop', x, y, side, left < 2 ? 0.5 + 0.5 * pulse : 1, u.id * 0.37);
     }
-    if (asleep(F, u)) heroArt(statusArt, 'board-star-sleep', `hero-sleep${u.id}`, x, y, r * 2.06, u.sleep! - F.t < 1 ? 0.5 + 0.4 * pulse : 0.9);
+    if (asleep(F, u)) { const side = heroArt(statusArt, 'board-star-sleep', `hero-sleep${u.id}`, x, y, r * 2.06, u.sleep! - F.t < 1 ? 0.5 + 0.4 * pulse : 0.9); putArtLoop(statusArt, 'astro-sleep-loop', x, y, side, u.sleep! - F.t < 1 ? 0.5 + 0.5 * pulse : 1, u.id * 0.37); }
     // 어둠물에 잠긴 사람: 칸 아래 40%가 물에 잠김 (물 높이가 출렁) · 받는 치유 −50%
     if (tideSet.has(u.cell)) {
       const wy = bot - 2 * r * 0.4 + (S.reducedEffects ? 0 : Math.sin(t * 3 + u.id) * s * 0.03), th = Math.max(1.5, s * 0.035);

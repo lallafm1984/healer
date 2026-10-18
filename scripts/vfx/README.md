@@ -25,6 +25,7 @@ npx vite build && npm run fx:shot -- warder --sheet .sim/vfx-shots/warder.png --
 
 - `size` (선택): 프레임 크기, 기본 224. 작고 자주 뜨는 공통 효과는 192 (`battle/pxf.ts` `small()`). Codex 그림이 주인공이라 224에서 뭉개지면 320 · 384 (성기사 봉화 · 정화 · 봉화 고리, 2026-10-18 Lim 「불모양 이미지 퀄리티가 너무 낮다」), 띠 한 줄은 2048px 안 (`pxf.ts` `skill(…, { size })` · `loop(…, size)`).
 - `loop` · `fps` (선택): 판 위 물건이 서 있는 동안 계속 도는 루프 (마지막 장 다음이 첫 장, 굽기가 마지막 장을 비우지 않음). `t` = 장 번호 ÷ 장 수라 사인 · 입자 시간은 한 바퀴에 정수 번 돌게 (`frac` · `wave`). 게임은 `pxf.ts` `loop(frames, logical, fps)` + `HERO_LOOP_FX` (그 직업 전투에서만 읽음), `board.ts` 선 물건 (`TOTEM_LOOK.loop`)이 그림 위 · 이름 아래에 그림. 예: 주술사 샘 · 대지 토템 `shaman-spring-loop` · `shaman-earth-loop` (토템 그림 크기 `TOTEM_STAND` = `shaman.mjs` `TOTEM`).
+- 판 위 지속 그림 (쉼터 · 이끼 · 성역 · 바다 샘 · 안개 장판 · 성채 · 초신성 · 떠도는 안개 · 결계 · 별의 잠)도 그림만 두지 않고 루프를 겹친다 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」). `board.ts` `putArtLoop`: 그림 가운데 · 그림 한 변 × logical ÷ 62, 루프 좌표 1 = 그림 한 변의 반. 공통 도우미 `lib.mjs` `loopRise` (떠오르는 가루) · `loopGlints` (자리마다 반짝임) · `loopOrbit` (타원을 도는 빛 점). 새 지속 그림도 루프와 함께 (`HERO_LOOP_FX`에 등록).
 - `gray` · `sample` (선택): 회색 단계로만 그림 → 게임이 종류 색을 곱함 (치유 빛 · 쓰러짐 · 디버프 · 장비 발동). 굽기가 색이 섞이면 멈추고, 검수 시트는 `sample` 색을 곱해 보여 줌.
 - `frames`: 24fps 한 번 재생 장 수 (11–24). **첫 프레임 = 스킬이 들어간 순간**이라 0장째부터 크게 보여야 함 (서서히 나타나는 앞부분 없음). 마지막 장은 굽기가 비움.
 - `logical`: 기준 칸 62일 때 그림 지름. 한 명 대상 80–100 (칸 밖까지 빛이 번짐), 범위 · 파티 · 칸마다 기록되는 것 70–84.
