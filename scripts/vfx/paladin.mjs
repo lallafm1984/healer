@@ -205,72 +205,73 @@ export default {
     },
   },
 
-  /** 정화의 손 (Lim 2026-10-18 「정화도 이펙트 퀄리티를 높여」): 가운데에서 흰 금빛이 번쩍 터지며 가는 빛살 열둘이 사방으로 뻗고, Codex 빛의 손 (paladin-hand, 손바닥 + 뒤 햇살)이 펼쳐짐.
-   *  몸에서 Codex 어둠 얼룩 연기 (paladin-taint) 다섯이 소용돌이치며 뽑혀 나가 금빛 불꽃으로 확 타 불똥이 되고, 빛 고리가 퍼지며 반짝이 가루가 잔뜩 흩날림 */
+  /** 정화의 손 (2026-10-19 Lim 「정화는 다시만들자. 손 모양 제거하고 다른 느낌으로」): 머리 위로 Codex 금빛 태양 문장 (paladin-sun)이 솟아 천천히 돌며 빛나고,
+   *  몸에서 Codex 어둠 얼룩 연기 (paladin-taint)가 소용돌이치며 뽑혀 올라가 태양에 빨려 들어 금빛 불똥으로 타 사라짐 (밀어내던 예전과 반대로 빨아들여 태움).
+   *  다 태우면 태양이 크게 번쩍이며 맑은 금빛 가루가 몸 위로 쏟아져 내리고, 반짝이가 소용돌이치며 떠오름. 태양은 이름 · 체력 위 (머리 위)에 떠 있음 */
   'paladin-cleanse': {
-    frames: 20, logical: 92, size: 384, scope: 'target',
+    frames: 22, logical: 100, size: 384, scope: 'target',
     draw(g, { t }) {
-      const open = E.back(seg(t, 0.02, 0.28), 1.5), fade = 1 - E.in2(seg(t, 0.55, 1)), cy = 0.32;
-      glow(g, 0, cy, 1.1, AU.glow, 0.55 * (1 - E.out2(seg(t, 0, 0.6))));
-      glow(g, 0, cy, 0.5, '#ffffff', 0.6 * (1 - E.out3(seg(t, 0, 0.24)))); // 손 그림이 하얗게 뭉개지지 않게 (10-19)
-      // 가는 빛살 열둘 (가운데에서 뻗었다 사라짐, 천천히 돎)
-      const ray = seg(t, 0, 0.4);
-      if (ray < 1) for (let i = 0; i < 12; i++) {
-        const ang = (i * TAU) / 12 + t * 0.8, L = (i % 2 ? 0.75 : 1.05) * E.out3(ray), a0 = (1 - ray) * 0.85;
-        lightStroke(g, s2 => ({ x: Math.cos(ang) * lerp(0.12, L, s2), y: cy + Math.sin(ang) * lerp(0.12, L, s2) * 0.85 }), 0, 1, uu => 0.035 * (1 - uu * 0.8), { rim: AU.deep, body: AU.light, core: AU.core, a: a0, rimW: 0, glowCol: AU.glow, glowA: 0.4 });
+      const fade = 1 - E.in2(seg(t, 0.62, 1)), rise = E.back(seg(t, 0, 0.22), 1.6), sy = lerp(-0.3, -0.72, E.out3(seg(t, 0, 0.25)));
+      const flash = bell(t, 0.5, 0.56, 0.8), W = 0.95 * rise * (1 + 0.18 * flash);
+      // 태양 뒤 빛 번짐 + 빛살 (천천히 돎)
+      glow(g, 0, sy, 0.9 * rise, AU.glow, (0.45 + 0.4 * flash) * fade);
+      glow(g, 0, sy, 0.35 * rise, '#ffffff', (0.35 + 0.6 * flash) * fade);
+      for (let i = 0; i < 10; i++) {
+        const ang = (i * TAU) / 10 + t * 1.2, L = (0.75 + 0.25 * (i % 2)) * rise * (1 + 0.3 * flash), a0 = (0.35 + 0.5 * flash) * fade;
+        lightStroke(g, s2 => ({ x: Math.cos(ang) * lerp(0.25, L, s2), y: sy + Math.sin(ang) * lerp(0.25, L, s2) }), 0, 1, uu => 0.03 * (1 - uu), { rim: AU.deep, body: AU.light, core: AU.core, a: a0, rimW: 0 });
       }
-      // 빛 고리 (퍼짐)
-      ringGlow(g, 0, cy, lerp(0.2, 1.15, E.out3(seg(t, 0.05, 0.5))), 0.08, AU.light, 0.85 * (1 - seg(t, 0.15, 0.55)), 0.85);
-      // 손바닥 그림 (둥근 빛 = 그림 높이 70%)
-      // 빛의 손 (Codex paladin-hand, 손바닥을 보이며 손가락이 위로 · 뒤에 햇살, 10-19 Lim 「정화도 이미지에 신경써보자」): 손바닥 가운데 (그림 높이 55%)를 cy 위쪽에 두고 아래에서 위로 펼침
-      const W = 1.8, cyH = cy - 0.12;
-      if (!pic(g, 'paladin-hand', 0, cyH, W, 0.95 * fade, { anchorY: 0.55, sx: Math.min(1.06, 0.55 + 0.45 * open), sy: Math.min(1.06, 0.3 + 0.7 * open), add: 0.18 * (1 - seg(t, 0, 0.3)) })) {
-        for (let i = 0; i < 5; i++) { const a = rad(-90 + (i - 2) * 30); lightStroke(g, s => ({ x: Math.cos(a) * s, y: cy + Math.sin(a) * s }), 0, 1, () => 0.1, { rim: AU.rim, body: AU.body, core: '#fff', a: fade }); }
+      if (!pic(g, 'paladin-sun', 0, sy, W, fade, { rot: t * 1.4, add: 0.15 + 0.5 * flash })) {
+        g.save(); g.translate(0, sy); g.scale(W / 2.4, W / 2.4); solid(g, h => path.star(h, 12, 0.6), { hi: AU.light, lo: AU.deep, rim: AU.rim, a: fade }); g.restore();
       }
-      // 어둠 얼룩 연기: 몸에서 커지며 소용돌이쳐 뽑혀 나가다 금빛 불꽃으로 타 사라짐
+      // 어둠 연기: 몸에서 커지며 나와 소용돌이치며 태양으로 빨려 들어가 타 사라짐
       for (let i = 0; i < 5; i++) {
-        const t0 = 0.04 + i * 0.03, u = seg(t, t0, t0 + 0.55);
+        const t0 = 0.08 + i * 0.05, u = seg(t, t0, t0 + 0.38);
         if (u <= 0 || u >= 1) continue;
-        const ang = rad(-150 + i * 30 + 15 * Math.sin(i * 2.1)) + u * 1.2, d = 0.12 + 0.9 * E.out2(u), x = Math.cos(ang) * d, y = cy + Math.sin(ang) * d * 0.8;
-        const burn = seg(u, 0.5, 0.85), k = 1 - burn, sz = (0.18 + 0.12 * Math.sin(Math.PI * Math.min(1, u * 1.6))) * (1 - 0.6 * burn);
-        if (k > 0 && !pic(g, 'paladin-taint', x, y, sz * 1.6, k * 0.95, { rot: u * 3 + i })) {
-          g.save(); g.translate(x, y); g.scale(sz, sz); solid(g, h => path.poly(h, 7), { hi: '#a46ad0', lo: '#3d1b5a', rim: '#14081e', rimW: 0.16, a: k, shine: 0.25 }); g.restore();
+        const a0 = rad(-120 + i * 48), r0 = 0.45 + 0.1 * (i % 2), spin = u * 2.6, rr = r0 * (1 - E.in2(u));
+        const x = Math.cos(a0 + spin) * rr, y = lerp(0.25 + Math.sin(a0) * 0.2, sy, E.in2(u)) + Math.sin(a0 + spin) * rr * 0.35;
+        const burn = seg(u, 0.72, 1), sz = (0.13 + 0.05 * Math.sin(Math.PI * Math.min(1, u * 1.8))) * (1 - 0.7 * burn);
+        if (!pic(g, 'paladin-taint', x, y, sz * 1.6, (1 - burn) * 0.95, { rot: spin + i })) {
+          g.save(); g.translate(x, y); g.scale(sz, sz); solid(g, h => path.poly(h, 7), { hi: '#a46ad0', lo: '#3d1b5a', rim: '#14081e', rimW: 0.16, a: 1 - burn, shine: 0.25 }); g.restore();
         }
-        if (burn > 0) {
-          glow(g, x, y, 0.28 * (1 - burn * 0.5), FIRE.glow, 0.8 * (1 - burn));
-          flame(g, x, y + 0.08, 0.22 * Math.sin(Math.PI * burn), 0.9, u * 30 + i);
-          for (let j = 0; j < 6; j++) { const b2 = i * 1.3 + j * 1.05; speck(g, x + Math.cos(b2) * 0.18 * burn, y + Math.sin(b2) * 0.18 * burn - 0.12 * burn, 0.015, j % 2 ? FIRE.light : AU.core, (1 - burn) * fade); }
-        }
+        // 연기 꼬리 (보라 → 금빛 불똥)
+        for (let k = 1; k <= 3; k++) { const uk = Math.max(0, u - k * 0.06), xk = Math.cos(a0 + uk * 2.6) * r0 * (1 - E.in2(uk)), yk = lerp(0.25 + Math.sin(a0) * 0.2, sy, E.in2(uk)) + Math.sin(a0 + uk * 2.6) * r0 * (1 - E.in2(uk)) * 0.35; speck(g, xk, yk, 0.014, u > 0.5 ? FIRE.light : '#c890e8', (1 - k * 0.25) * fade); }
+        if (burn > 0) { glow(g, x, y, 0.22, FIRE.glow, 0.8 * (1 - burn)); for (let j = 0; j < 6; j++) { const b2 = i * 1.3 + j * 1.05; speck(g, x + Math.cos(b2) * 0.16 * burn, y + Math.sin(b2) * 0.16 * burn, 0.016, j % 2 ? FIRE.light : AU.core, (1 - burn) * fade); } }
       }
-      goldBurst(g, t, 7, 46, { y: cy, sp: 1.15, sq: 0.8, t0: 0.03, a: fade, grav: 0.3 });
-      glints(g, t, 9, 8, { t0: 0.12, step: 0.04, w: 1.4, y0: 0.0, h: 1.0, a: fade });
-      goldSwirl(g, t, 8, 26, { y0: 0.6, rise: 1.0, rr: 0.7, t0: 0.2, span: 0.35, a: fade });
+      // 번쩍임 뒤 몸 위로 쏟아지는 맑은 금빛 가루
+      particles(g, t, 19, 60, r => ({ t0: 0.52 + r() * 0.2, life: 0.3 + r() * 0.15, x0: (r() - 0.5) * 0.5, x1: (r() - 0.5) * 1.1, y1: -0.05 + r() * 0.7, sz: 0.012 + r() * 0.022, ph: r() * 9 }), (gg, p, age) => {
+        const x = lerp(p.x0, p.x1, age), y = lerp(sy + 0.15, p.y1, E.in2(age) * 0.5 + age * 0.5), al = bell(age, 0, 0.12, 1) * fade;
+        glow(gg, x, y, p.sz * 4.5, AU.glow, 0.45 * al);
+        speck(gg, x, y, p.sz, age < 0.5 ? AU.core : AU.light, al, 0.5 + 0.5 * Math.sin(p.ph + age * 20));
+      });
+      goldBurst(g, t, 7, 36, { y: sy, sp: 1.0, sq: 0.9, t0: 0.52, a: fade, grav: 0.4 });
+      glints(g, t, 9, 8, { t0: 0.52, step: 0.035, w: 1.3, y0: -0.1, h: 1.0, a: fade });
+      goldSwirl(g, t, 8, 30, { y0: 0.6, rise: 1.0, rr: 0.7, t0: 0.55, span: 0.3, a: fade });
     },
   },
 
   /** 희생: 칸 위에서 진홍 · 금빛 사슬이 내려와 Codex 진홍 방패 (paladin-shield, 금 십자 · 짧은 사슬)에 이어지고, 방패가 붉게 한 번 맥동하며
    *  진홍 · 금빛 불씨가 방패 둘레를 돌다 사슬을 타고 위로 빨려 올라감 (피해를 대신 받음) */
   'paladin-sacrifice': {
-    frames: 22, logical: 92, scope: 'target',
+    frames: 22, logical: 96, size: 320, scope: 'target', // 큰 방패 그림이 또렷하게 320px
     draw(g, { t }) {
       const drop = E.out3(seg(t, 0, 0.28)), fade = 1 - E.in2(seg(t, 0.65, 1)), pulse = bell(t, 0.25, 0.38, 0.65), shY = 0.02;
       glow(g, 0, shY, 1.0, RED.glow, 0.3 * fade + 0.45 * pulse);
       // 사슬 (위에서 방패 위 사슬 고리까지)
-      const yEnd = lerp(-1.45, shY - 0.42, drop), n = 6;
+      const S0 = 1.3, yEnd = lerp(-1.5, shY - S0 * 0.5, drop), n = 4; // 방패를 크게 (2026-10-19 Lim 「희생에서 방패모양을 더 크게」, 예전 0.72 → 1.3): 사슬은 방패 그림 위 사슬 끝까지
       for (let i = 0; i < n; i++) {
-        const y = -1.45 + ((yEnd + 1.45) * (i + 0.5)) / n, sw = Math.sin(i * 0.8 + t * 6) * 0.02;
+        const y = -1.5 + ((yEnd + 1.5) * (i + 0.5)) / n, sw = Math.sin(i * 0.8 + t * 6) * 0.02;
         link(g, sw, y, 0.16, i % 2 ? 0.15 : 1, fade * (0.55 + 0.45 * (i / n)), i % 2 ? RED : AU);
       }
       // 방패 (그림, 붉게 맥동)
-      const s = 0.72 * (1 + 0.14 * pulse) * E.back(seg(t, 0.12, 0.32));
-      glow(g, 0, shY + 0.05, 0.8, RED.glow, 0.85 * pulse);
+      const s = S0 * (1 + 0.1 * pulse) * E.back(seg(t, 0.12, 0.32));
+      glow(g, 0, shY + 0.05, 1.0, RED.glow, 0.85 * pulse);
       if (!pic(g, 'paladin-shield', 0, shY, s, fade, { add: 0.6 * pulse })) {
         g.save(); g.translate(0, shY); g.scale(s / 2, s / 2); solid(g, gg => path.rect(gg, 1.2, 1.6, 0.3), { hi: RED.light, lo: RED.deep, rim: RED.rim, a: fade }); g.restore();
       }
-      ringGlow(g, 0, shY + 0.05, lerp(0.3, 1.0, seg(t, 0.28, 0.62)), 0.1, RED.glow, 0.7 * pulse);
+      ringGlow(g, 0, shY + 0.05, lerp(0.45, 1.2, seg(t, 0.28, 0.62)), 0.1, RED.glow, 0.7 * pulse);
       // 진홍 · 금빛 불씨: 방패 둘레를 돌다 사슬을 타고 위로
       particles(g, t, 13, 24, r => ({ t0: 0.25 + r() * 0.3, life: 0.45 + r() * 0.2, a0: r() * TAU, sz: 0.014 + r() * 0.02, c: r() < 0.55, ph: r() * 9 }), (gg, p, age) => {
-        const orbit = seg(age, 0, 0.5), up = seg(age, 0.5, 1), ang = p.a0 + orbit * 5, rr = 0.55 * (1 - 0.6 * up);
+        const orbit = seg(age, 0, 0.5), up = seg(age, 0.5, 1), ang = p.a0 + orbit * 5, rr = 0.72 * (1 - 0.6 * up);
         const x = Math.cos(ang) * rr * (1 - up), y = lerp(shY + Math.sin(ang) * rr * 0.5, -1.2, E.in2(up));
         speck(gg, x, y, p.sz, p.c ? RED.light : AU.light, bell(age, 0, 0.1, 1) * fade, 0.5 + 0.5 * Math.sin(p.ph + age * 18));
       });

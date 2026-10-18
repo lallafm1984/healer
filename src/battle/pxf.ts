@@ -85,8 +85,8 @@ export const PXF = {
   'paladin-beacon': skill(20, 100, { size: 384 }), // 봉화 그릇 · 불꽃 그림이 뭉개지지 않게 384px 프레임 (10-19 Lim)
   'paladin-oath': skill(24, 90),
   'paladin-light-wave': skill(20, 88),
-  'paladin-cleanse': skill(20, 92, { size: 384 }), // 손 그림이 뭉개지지 않게 384px 프레임 (10-19 Lim 「이미지에 신경써보자」)
-  'paladin-sacrifice': skill(22, 92),
+  'paladin-cleanse': skill(22, 100, { size: 384 }), // 태양 문장 그림이 뭉개지지 않게 384px 프레임 (10-19 Lim 「손 모양 제거하고 다른 느낌으로」)
+  'paladin-sacrifice': skill(22, 96, { size: 320 }), // 방패를 크게 (10-19 Lim)
   'paladin-sanctuary': skill(24, 76),
   'paladin-hand-guard': skill(24, 94),
   // 봉화 대상 칸 둘레에서 도는 루프 (스킬 기록이 아니라 board.ts, 2026-10-18 Lim 「봉화대상의 동그란 이미지도 파티클로 루프」)
