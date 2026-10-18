@@ -537,7 +537,7 @@ function handleEvents(now: number): void {
       case 'msg': toast(ev.text); break;
       case 'phase': banner(ev.text, { tone: ev.text === '광폭화' ? 'danger' : undefined }); if (ev.text === '광폭화') { vibe([60, 80, 60, 80, 60], true); bossFx('rage'); } else vibe(200, true); break;
       case 'gauge': Snd.play('gauge'); toast(`성언: ${ev.which} 준비됨 · 휠에서 장전해 사용`, 'good'); break;
-      case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now, '봉화 지정'); break; }
+      case 'beacon': { const b = F.party.find(x => x.id === ev.id); if (b) fxRevive(b, now, '봉화 지정', true); break; } // 글자만: 영혼 불꽃 (부활 이펙트)은 빼고 봉화 그릇 · 고리 이펙트만 (2026-10-19 Lim 「봉화스킬에서 파란색 연출을 제거」)
       case 'mobDown': {
         toast(`${ev.name} 쓰러짐`, 'good'); updateBossTitle();
         // 판 위 적 처치 (37 4장 F-1): 감옥은 깨지고, 칸에 선 적은 연기로
