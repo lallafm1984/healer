@@ -114,6 +114,8 @@ export const PXF = {
   // 판 위 토템이 서 있는 동안 도는 루프 (스킬 기록이 아니라 board.ts 선 물건): 3초 한 바퀴
   'shaman-spring-loop': loop(36, 64, 12),
   'shaman-earth-loop': loop(36, 64, 12),
+  // 판 오른쪽 위 비구름 토템 위에서 도는 루프 (그림 크기 × 1.5, 가운데가 그림보다 반 칸 아래)
+  'shaman-rain-loop': loop(36, 93, 12),
   // 결계사 (79 5-5 네모 결계, 2026-10-16 Lim 「흰색이라서 퀄리티가 더 떨어져보인다. 노란 발광의 빛이나게」→ 손그림풍 노란 빛): 인장 X · 도장 · 유리판 · 깨지는 유리 · 네 말뚝 · 도는 방패 · 가로 띠 · 창 · 망치
   'warder-seal': skill(20, 92),
   'warder-barrier': skill(22, 96),
@@ -224,7 +226,7 @@ export const SKILL_PXF: Partial<Record<SkillKey, { fx: PxfKey; scope: PxfScope }
 export const heroSkillFx = (hero: HeroKey): PxfKey[] =>
   [...new Set([...heroSkills(hero).map(k => SKILL_PXF[k]?.fx).filter((k): k is PxfKey => !!k), ...(HERO_LOOP_FX[hero] ?? [])])];
 /** 직업별 판 위 선 물건 루프 (스킬 기록이 아님): 그 직업 전투에서만 같이 읽어 둠 */
-export const HERO_LOOP_FX: Partial<Record<HeroKey, PxfKey[]>> = { shaman: ['shaman-spring-loop', 'shaman-earth-loop'] };
+export const HERO_LOOP_FX: Partial<Record<HeroKey, PxfKey[]>> = { shaman: ['shaman-spring-loop', 'shaman-earth-loop', 'shaman-rain-loop'] };
 /** 루프 클립이면 지금 시각 (초)의 프레임 */
 export const loopFrame = (c: PxfClip, sec: number): number => ((Math.floor(sec * c.fps) % c.frames) + c.frames) % c.frames;
 

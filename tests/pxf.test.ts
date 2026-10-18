@@ -69,7 +69,7 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
   });
   it('판 위 토템 루프 (Lim 2026-10-18 「이펙트가 루프로 돌게」): 주술사 전투에서만 읽고, 토템 그림 크기가 그리기 코드와 같고, 프레임이 이어 돎', () => {
     const loops = Object.keys(fx).filter(k => fx[k].loop);
-    expect(loops.sort()).toEqual(['shaman-earth-loop', 'shaman-spring-loop']);
+    expect(loops.sort()).toEqual(['shaman-earth-loop', 'shaman-rain-loop', 'shaman-spring-loop']);
     expect([...HERO_LOOP_FX.shaman!].sort()).toEqual(loops.sort());
     for (const k of loops) expect(heroSkillFx('shaman')).toContain(k);
     for (const h of HERO_KEYS) if (h !== 'shaman') expect(heroSkillFx(h).filter(k => loops.includes(k))).toEqual([]);
