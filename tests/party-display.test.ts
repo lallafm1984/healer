@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cellTypography, debuffDisplay, fitPartyName, hotTimersOf, hpLabelText, primaryDebuff, shieldTimerOf } from '../src/battle/party-display';
+import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, shieldTimerOf } from '../src/battle/party-display';
 import type { Debuff, Hot, Mod } from '../src/engine/types';
 
 const debuff = (extra: Partial<Debuff> = {}): Debuff => ({ id: 1, name: '부패', type: '질병', left: 4.1, ...extra });
@@ -34,6 +34,24 @@ describe('모든 직업의 보호막 시간', () => {
   it('힐러 보호막이 없으면 가장 오래 남은 것, 끝났거나 다 깎인 막 · 다른 효과는 빼고 없으면 null', () => {
     expect(shieldTimerOf({ mods: [ab('iceBarrier', 40, 14), ab('bubble', 30, 16)] }, 10)).toEqual({ left: 6, amt: 70 });
     expect(shieldTimerOf({ mods: [ab('healer', 0, 20), ab('healer', 50, 9), { k: 'cut', v: 0.3, until: 20, src: 'x' }] }, 10)).toBeNull();
+  });
+});
+
+describe('모든 직업의 방어 생존기 시간 (2026-10-18 Lim)', () => {
+  const none = { guardian: 0, redu: 0, immune: 0, sacr: 0 };
+  it('수호 영혼 · 나무껍질 · 누그러뜨림 · 보호의 손 · 희생 · 별의 잠을 각각 남은 초로', () => {
+    expect(guardTimersOf({ ...none, guardian: 7.2 }, 0, 'priest')).toEqual([{ key: 'guardian', left: 7.2 }]);
+    expect(guardTimersOf({ ...none, redu: 11 }, 0, 'druid')).toEqual([{ key: 'bark', left: 11 }]);
+    expect(guardTimersOf({ ...none, redu: 5 }, 0, 'monk')).toEqual([{ key: 'soothe', left: 5 }]);
+    expect(guardTimersOf({ ...none, sleep: 14 }, 10, 'astrologer')).toEqual([{ key: 'sleep', left: 4 }]);
+  });
+  it('여러 개면 고정 순서 (남은 시간으로 바꾸지 않음), 끝난 것은 뺌', () => {
+    expect(guardTimersOf({ ...none, sacr: 3, immune: 9 }, 0, 'paladin').map(g => g.key)).toEqual(['immune', 'sacrifice']);
+    expect(guardTimersOf({ ...none, sacr: 9, immune: 3 }, 0, 'paladin').map(g => g.key)).toEqual(['immune', 'sacrifice']);
+    expect(guardTimersOf({ ...none, sacr: -0.01, immune: 0, sleep: 9 }, 10, 'astrologer')).toEqual([]);
+  });
+  it('성기사 성역 (서 있는 동안 틱마다 다시 참)은 시간 원 없음: 바닥 그림이 보여 줌', () => {
+    expect(guardTimersOf({ ...none, redu: 0.1 }, 0, 'paladin')).toEqual([]);
   });
 });
 

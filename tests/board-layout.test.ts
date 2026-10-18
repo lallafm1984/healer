@@ -18,6 +18,21 @@ describe('보호막 시간 원 (2026-10-16 Lim)', () => {
   });
 });
 
+describe('칸 왼쪽 시간 원 열 (보호막 + 방어 생존기, 2026-10-18 Lim)', () => {
+  it.each([36, 43, 51.77, 60, 80])('칸 크기 %d: 오른쪽 지속 힐 원 열을 뒤집은 자리 · 크기, 2~3개가 안 겹치고 칸 안', scale => {
+    for (const count of [2, 3]) {
+      const hot = hotTimerLayout(scale, count), left = shieldTimerLayout(scale, count), r = scale * CELL_RADIUS;
+      expect(left.radius).toBe(hot.radius);
+      expect(left.step).toBe(hot.step);
+      expect(left.x).toBe(-hot.x);
+      expect(left.y).toBe(hot.y);
+      expect(left.x - left.radius).toBeGreaterThan(-r * Math.cos(Math.PI / 6) - 1);
+      expect(left.step).toBeGreaterThan(left.radius * 2 + 1.5); // 테두리 (1.5)까지 안 겹침
+      expect(left.y + (count - 1) * left.step + left.radius + 0.75).toBeLessThan(r);
+    }
+  });
+});
+
 describe('지속 치유 시간의 세로 배치', () => {
   it.each([36, 43, 60, 80])('칸 크기 %i에서 효과 2~5개의 테두리가 겹치지 않고 칸 높이 안에 남는다', scale => {
     for (const count of [2, 3, 4, 5]) {

@@ -25,7 +25,7 @@ import { CLASS_GLYPH, CUT, EDGE, LINE } from '../screens/class-icons';
 import { FACTIONS, type FactionKey } from '../data/places';
 import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
-import { cellTypography, debuffDisplay, fitPartyName, hotTimersOf, hpLabelText, primaryDebuff, shieldTimerOf } from './party-display';
+import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, shieldTimerOf, type GuardTimerKey } from './party-display';
 import { CELL_RADIUS, clearOf, fitBoard, floatBlocks, hotTimerLayout, shieldTimerLayout } from './board-layout';
 import { DEBUFF_EDGE, GIM_ICON, MARK_ART } from './board-marks';
 import { BOARDS } from '../data/boards';
@@ -1210,6 +1210,14 @@ export function lensAt(idx: number, now: number): void { B2.lens = { idx, t0: no
 /** 지속 힐 색: 새싹 초록 · 생장 연두 · 들꽃 분홍 · 빛의 서약 금색 · 남은 꽃 (드루이드 특성) 연분홍 · 파도의 여운 (성기사 특성) 연금색 (77) */
 const HOT_COLOR: Record<string, number> = { sprout: 0x7bc67e, growth: 0xb7e07a, wildflower: 0xe59ac0, oath: 0xf0c46a, bloom: 0xf3c7d6, lightWave: 0xffe7a3, droplet: 0x7ec8f0, wanderMist: 0x6fd0b0, starMark: 0xe8b04a };
 /**
+ * 방어 생존기 시간 원 (2026-10-18 Lim): 칸 둘레 그림 띠와 같은 결의 색 (수호 깃털 상아 · 나무껍질 갈색 · 누그러뜨림 옥빛 · 보호의 손 판금 은빛 · 희생 금 사슬 · 별의 잠 보라).
+ * 보호막 원 (짙은 코발트 + 흰 숫자) · 오른쪽 지속 힐 원과 섞이지 않게 [채움, 숫자 색]
+ */
+const GUARD_COLOR: Record<GuardTimerKey, [number, number]> = {
+  guardian: [0xeadfbe, 0x080605], bark: [0x8a5a2e, 0xffffff], soothe: [0x4fae8c, 0x080605],
+  immune: [0xc3cad4, 0x080605], sacrifice: [0xc99320, 0x080605], sleep: [0x7a62d0, 0xffffff],
+};
+/**
  * 판 위 물건 (79 6-1, engine/totems): 칸 바닥 색 · 그림 이름 (80 5장 board-*, 오기 전엔 바닥 색 + 안쪽 테두리). 범위 = 테두리를 그릴 거리
  * stand = 바닥 무늬가 아니라 칸 위에 선 물건 (standL): 사람이 서 있어도 그 칸 가운데에 크게, 이름 · 체력 뒤.
  * 샘 · 대지 토템 = 주술사 자원 그림 (조작판 왼쪽)의 토템을 잘라 낸 그림 + 뒤 빛 (aura, 자원 그림의 뒤 빛과 같은 숨쉬기) + 그림 위 루프 (loop)
@@ -1951,12 +1959,14 @@ export function render(now: number): void {
   // 배지 글자: 가장 긴 「×저주 12」와 지속 힐 원이 칸 폭 한 줄에 안 들어가는 판은 전부 짧은 글자 「×저12」
   const shortBadge = measure('×저주 12', typography.debuff) + typography.debuff * 0.7 + 1.5 > r * COS30 * 2 - 2 * (hotR + 0.75) - 1;
   const hpBounds: { id: number; cell: number; text: string; x: number; y: number; w: number; h: number; sx: number }[] = [];
-  const shieldLayout = shieldTimerLayout(s);
   for (const { u, x, y, deb } of over) {
     let debBadge: ReturnType<typeof pill> | undefined;
     const hots = hotTimersOf(u), hasHot = hots.length > 0;
     const hotLayout = hotTimerLayout(s, hots.length);
     const shieldT = shieldTimerOf(u, F.t);
+    // 칸 왼쪽 열 = 보호막 원 + 방어 생존기 원 (오른쪽 지속 힐 원 열을 뒤집은 자리 · 크기)
+    const guards = guardTimersOf(u, F.t, F.hero), leftN = (shieldT ? 1 : 0) + guards.length;
+    const shieldLayout = shieldTimerLayout(s, Math.max(1, leftN));
     // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만). 「나」 = 직업 문장 (27 3-4)
     const em = u.me ? emblemTexture(F.hero) : null;
     // 위쪽 한 줄은 직업 아이콘 또는 디버프 배지 (디버프가 있으면 배지가 그 자리를 씀, 칸 색이 직업을 보여 줌)
@@ -2001,14 +2011,14 @@ export function render(now: number): void {
       // 배지는 직업 아이콘 자리 (윗줄)에 (2026-10-10). 꼭짓점에 두면 위 칸 체력 숫자와 겹친다.
       // 윗변은 위 칸 체력 숫자 아래 (글자 상자의 위아래 여백 2px는 겹쳐도 안 보임)
       const h = fsD * 1.32 + 1.5, below = hpBox.y + hpBox.h / 2 - 1.5 * s - 1 + h / 2;
-      const hr = hasHot ? hotLayout.radius + 0.75 : 0, sr = shieldT ? shieldLayout.radius + 0.75 : 0, half = r * COS30;
+      const hr = hasHot ? hotLayout.radius + 0.75 : 0, sr = leftN ? shieldLayout.radius + 0.75 : 0, half = r * COS30;
       let text = badgeText(shortBadge), w = measure(text, fsD) + fsD * 0.7 + 1.5;
       if (w > half * 2 - (hr ? hr * 2 + 1 : 0) - (sr ? sr * 2 + 1 : 0)) { text = badgeText(true); w = measure(text, fsD) + fsD * 0.7 + 1.5; }
       const hx = Math.min(x + hotLayout.x, x + half - hr), sx = Math.max(x + shieldLayout.x, x - half + sr);
       let bx = hr ? Math.min(x, hx - hr - 1 - w / 2) : x;
       if (sr) bx = Math.max(bx, sx + sr + 1 + w / 2);
       debBadge = pill(badgeG, badgeLabels, `deb${u.id}`, bx, Math.max(y - r * 0.4, below), text, color, C.dark, fsD);
-      // 지속 힐 원은 배지 오른쪽, 보호막 원은 배지 왼쪽 같은 줄
+      // 지속 힐 원은 배지 오른쪽, 보호막 · 방어 생존기 원은 배지 왼쪽 같은 줄 (둘째부터 그 아래)
       if (hr) hotSpot = fitCenter(Math.max(hx, debBadge.x + debBadge.w / 2 + 1 + hr), debBadge.y, hr);
       if (sr) shieldSpot = fitCenter(Math.min(sx, debBadge.x - debBadge.w / 2 - 1 - sr), debBadge.y, sr);
       // 기믹 디버프는 배지 왼쪽 끝에 그 기믹 그림 (매혹 · 치유 상한 · 빚 · 부풀기 · 뒤집힘 · 포자 · 함정 · 쇠약, 2026-10-16 QA)
@@ -2029,17 +2039,26 @@ export function render(now: number): void {
       });
     }
     // 보호막 시간 (2026-10-16 Lim): 지속 힐 원을 칸 왼쪽으로 뒤집은 자리 · 같은 크기, 짙은 파란 원 + 흰 숫자. 배지가 있으면 배지 왼쪽 같은 줄.
-    // 왼쪽 위 열은 보호막 원이 맨 위, 그 아래로 차례 번호표 · 빛의 전이 · 인장 · 별자리 표식 (leftY = 다음 것의 윗변)
+    // 방어 생존기 시간 (2026-10-18 Lim 「드루이드의 껍질처럼 … 왼쪽에 (도트힐이 오른쪽에 표시되는것처럼)」): 보호막 원 아래로 효과마다 색 원 + 남은 초, 지속 힐 원처럼 세로로.
+    // 왼쪽 위 열은 보호막 · 방어 생존기 원이 맨 위, 그 아래로 차례 번호표 · 빛의 전이 · 인장 · 별자리 표식 (leftY = 다음 것의 윗변)
     let leftY: number | null = null;
-    if (shieldT) {
-      const sr = shieldLayout.radius, p = shieldSpot ?? hotCenter(x + shieldLayout.x, y + shieldLayout.y, sr + 0.75, sr + 0.75), key = `shield${u.id}`;
-      badgeG.circle(p.x, p.y, sr).fill({ color: C.shieldFill }).stroke({ width: 1.5, color: C.line });
-      const label = badgeLabels.put(key, String(Math.ceil(shieldT.left)), { size: Math.max(8, sr * 1.05), fill: C.white }, p.x, p.y + 0.5);
-      label.scale.set(1);
-      if (label.width > sr * 1.65) label.scale.x = sr * 1.65 / label.width;
-      fitLabel(label, `${key}-text`, 'shield');
-      recordBound(key, 'shield', 'circle', p.x, p.y, sr * 2 + 1.5, sr * 2 + 1.5);
-      leftY = p.y + sr + 0.75;
+    if (leftN) {
+      const sr = shieldLayout.radius, lower = sr + 0.75 + (leftN - 1) * shieldLayout.step;
+      const start = hotCenter(shieldSpot?.x ?? x + shieldLayout.x, shieldSpot?.y ?? y + shieldLayout.y, sr + 0.75, lower);
+      const col = [
+        ...(shieldT ? [{ key: `shield${u.id}`, kind: 'shield', left: shieldT.left, fill: C.shieldFill, fg: C.white }] : []),
+        ...guards.map(g => ({ key: `guard${u.id}-${g.key}`, kind: 'guard', left: g.left, fill: GUARD_COLOR[g.key][0], fg: GUARD_COLOR[g.key][1] })),
+      ];
+      col.forEach((c, i) => {
+        const px = start.x, py = start.y + i * shieldLayout.step;
+        badgeG.circle(px, py, sr).fill({ color: c.fill }).stroke({ width: 1.5, color: C.line });
+        const label = badgeLabels.put(c.key, String(Math.ceil(c.left)), { size: Math.max(8, sr * 1.05), fill: c.fg }, px, py + 0.5);
+        label.scale.set(1);
+        if (label.width > sr * 1.65) label.scale.x = sr * 1.65 / label.width;
+        fitLabel(label, `${c.key}-text`, c.kind);
+        recordBound(c.key, c.kind, 'circle', px, py, sr * 2 + 1.5, sr * 2 + 1.5);
+      });
+      leftY = start.y + (leftN - 1) * shieldLayout.step + sr + 0.75;
     }
     // 보스가 때리는 사람: 테두리 대신 칸 위 조준 표식 (테두리는 디버프 몫). 배지가 있으면 윗줄 배지 위 꼭짓점
     const aimR = Math.max(7, s * 0.2), aimW = Math.max(1.5, aimR * 0.22);
