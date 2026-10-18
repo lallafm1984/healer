@@ -25,7 +25,7 @@ import { APT, aptIdx } from '../data/guild';
 import { rollAbility } from '../data/abilities';
 import { newTalents } from './talents';
 import { abTick, giveAb } from './abilities';
-import { followPref, gatherMult, initPers, persTick } from './persona';
+import { followPref, gatherMult, initPers, posPersPref, persTick } from './persona';
 import { newSpecs, sv } from './specials';
 import type { Cell, Fight, FightConfig, FightResult, Mob, Role, RosterEntry, TalentState, Unit } from './types';
 
@@ -202,6 +202,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
       s += (u.p.dist || 0) * adjAllies(f, c, u) * 8;
       if (u.p.dist === -1) s += Math.abs(c.px - cx) * 4;
       if (u.p.follow) s += followPref(f, u, c); // 따라쟁이: 탱커 옆 (75)
+      if (u.p.front || u.p.backline) s += posPersPref(f, u, c) * 2; // 앞장이 · 뒷줄파 (95)
       s += f.rng() * 3;
       if (s > bs) { bs = s; best = c; }
     }
@@ -234,6 +235,8 @@ export function step(f: Fight): void {
  * 5인 이상 보스전은 「탱커 없음」 카운트다운이 끝나면 보스가 바로 광폭화 (35 6-4, bosses.ts enrageAt). 탱커를 일으키면 사라짐
  */
 function tankWatch(f: Fight): void {
+  // 대타 (95): 딜러가 보스를 붙잡은 동안은 탱커 없음 광폭화를 세지 않음 (끝나면 그때부터)
+  if (f.standIn && f.t < f.standIn.until && f.party.some(u => u.id === f.standIn!.id && u.alive)) { f.noTankAt = null; return; }
   if (f.party.some(u => u.role === 'tank' && u.alive)) {
     if (f.noTankAt != null) { f.noTankAt = null; if (!f.enraged) emit(f, { type: 'msg', text: '탱커가 일어남: 광폭화 카운트다운 멈춤' }); }
     return;

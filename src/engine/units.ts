@@ -2,17 +2,17 @@ import { hexDist } from './board';
 import { BARK, DRUID_BIG } from '../data/heroConst';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { bark, cellOf, DT, dripDamage, dripTick, emit, flowTick, hasAbsorb, heal, healFlow, hpLineTick, linger, onDebuffEnd, submerged } from './core';
-import { dangerAt, dodgeRate, doReact, finishMove, moveTo, pickCell } from './movement';
+import { dangerAt, dodgeRate, doReact, endurable, finishMove, moveTo, pickCell } from './movement';
 import { adjLow, calmFor, renewEnd, talentHot } from './talents';
 import { TX } from '../data/talents';
 import { charmTick, land, pullTick } from './bossParts';
-import { abFear, dpsMods, hasMod } from './abilities';
+import { abFear, dpsMods, guardNow, hasMod } from './abilities';
 import { dotSpec, dpsSpec, hotDone, renewDone, shieldGone, sv, under } from './specials';
 import { barkCut, putSprout, sproutSpec } from './heroes';
 import { dropDone } from './shaman';
 import { mistHop } from './monk';
 import { frontCell, posDps } from './position';
-import { persDps, persIgnoresZone, persThink } from './persona';
+import { mentored, persDps, persIgnoresZone, persThink } from './persona';
 import { SULK, type PersName } from '../data/personalities';
 import type { Cell, Debuff, Fight, Hot, Unit } from './types';
 
@@ -138,6 +138,7 @@ function think(f: Fight, u: Unit): void {
   if (inZone && u.ignoreZone !== inZone.id && f.t >= u.retryAt) {
     if (u.ps && persIgnoresZone(f, u)) { u.retryAt = f.t + 1; } // 다혈질 분노 · 소심이 당황 (75)
     else if (u.p.stubborn && inZone.dps * 2 * f.dmgMult < u.p.stubborn * u.max) { u.ignoreZone = inZone.id; }
+    else if (endurable(f, u, inZone)) { u.ignoreZone = inZone.id; guardNow(f, u); } // 참을성 (95)
     else if (u.p.brave && u.hp / u.max >= u.p.brave) { u.retryAt = f.t + 1; }
     else {
       const rate = dodgeRate(f, u);
@@ -149,7 +150,7 @@ function think(f: Fight, u: Unit): void {
   if (u.ps && persThink(f, u)) return; // 새 성격 20종 (75)
   // 도망: 겁쟁이 (50%). 쉼터가 있으면 신중파도 40% 아래에서 쉼터로 (사제 특성, 06 6장)
   const shelter = shelterFor(f);
-  const fleeAt = u.p.flee || (shelter && u.pers && SHELTER_GO.includes(u.pers) ? SHELTER_GO_HP : 0);
+  const fleeAt = (u.p.flee && f.mentors && mentored(f, u) ? u.p.flee / 2 : u.p.flee) || (shelter && u.pers && SHELTER_GO.includes(u.pers) ? SHELTER_GO_HP : 0); // 큰형 옆이면 반 (95)
   if (fleeAt || u.fleeing) {
     if (!u.fleeing && fleeAt && u.hp / u.max < fleeAt && !calmFor(f, u) && !((u.ab || u.mods.length) && abFear(f, u))) {
       const c = shelter || pickCell(f, u, { safe: true, back: true });
@@ -171,8 +172,8 @@ function think(f: Fight, u: Unit): void {
   if (!u.fleeing && !u.pulled && !(u.padUntil != null && u.padUntil > f.t) && !(u.awayUntil != null && u.awayUntil > f.t) && u.home >= 0 && u.cell !== u.home) {
     const h = f.cells[u.home];
     if (!h.unit && !h.block && !dangerAt(f, u.home)) {
-      if (u.homeAt == null) u.homeAt = f.t + 1 + (u.p.react && u.p.react < 1 ? 1 : 0);
-      else if (f.t >= u.homeAt) { u.homeAt = null; moveTo(f, u, h); return; }
+      if (u.homeAt == null) u.homeAt = u.p.homebody ? f.t : f.t + 1 + (u.p.react && u.p.react < 1 ? 1 : 0) + (u.p.edge?.back ?? 0); // 집돌이 바로 · 모서리파 늦게 (95)
+      else if (f.t >= u.homeAt) { u.homeAt = null; moveTo(f, u, h); if (u.p.homebody) bark(f, u, null, false, 'homeBack'); return; }
     } else u.homeAt = null;
   }
   if (u.p.attention) sulkThink(f, u, u.p.attention);

@@ -21,8 +21,8 @@ const hero = (f: F) => f.party.find(u => u.nick === '주인공')!;
 const bark = (f: F, sit: string) => f.events.some(e => e.type === 'bark' && e.sit === sit);
 
 describe('데이터', () => {
-  it('75의 30종: 앞 10종은 프로토타입 순서, 분류 5개, ★ 9 · 16 · 5, 탱커 불가 5, 희귀 4 (뒤에 95 1차 15종, persona95.test)', () => {
-    expect(PERS_NAMES.length).toBe(45);
+  it('75의 30종: 앞 10종은 프로토타입 순서, 분류 5개, ★ 9 · 16 · 5, 탱커 불가 5, 희귀 4 (뒤에 95 1차 15종 · 2차 25종, persona95 · persona95b.test)', () => {
+    expect(PERS_NAMES.length).toBe(70);
     expect(PROTO_PERS).toEqual(['신중파', '딜 욕심쟁이', '고집불통', '덜렁이', '허세꾼', '외톨이', '사교형', '관심종자', '감사형', '겁쟁이']);
     const old = PERS_NAMES.slice(0, 30);
     const all = old.map(p => PERS[p]) as { star: number; cat: string; ch: string; noTank?: boolean; rare?: boolean; desc: string }[];

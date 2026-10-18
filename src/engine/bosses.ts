@@ -7,7 +7,7 @@ import { BOSSES, type SkillDef } from '../data/bosses';
 import { busterDmg, zoneDps, zoneHit } from '../data/rules';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abDecoy, abOnTel } from './abilities';
-import { persCast } from './persona';
+import { persCast, persZoneImpact } from './persona';
 import { affChaos } from './affixes';
 import { addsTick, aggroTarget, applyDebuff, backTargets, chainWarn, frontTargets, decoyOpen, flowNext, MIRAGE_REVEAL, glassTick, greedTargets, linkedOnes, liftWarn, mirageTick, preferTargets, mirageUp, orderNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, tideEbb, tideRise, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
@@ -200,6 +200,7 @@ export function bossTick(f: Fight): void {
   for (const tel of f.tels.filter(t => t.impact <= f.t + 1e-9)) {
     if (tel.kind === 'zone') {
       if (tel.skill.hitDmg) cellHit(f, tel, tel.skill.hitDmg);
+      if (f.persOn) persZoneImpact(f, tel); // 신바람 (95)
       if (tel.dur) f.zones.push({ id: tel.id, cells: tel.cells, end: f.t + tel.dur, dps: tel.dps!, tide: tel.skill.tide });
       if (tel.skill.tide) tideRise(f, tel);
       if (tel.flow) flowNext(f, tel); // 흐르는 장판: 다음 열 예고

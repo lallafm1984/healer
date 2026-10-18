@@ -30,7 +30,8 @@ export function aggroTarget(f: Fight): Unit | null {
   const sub = f.sub && f.t < f.sub.until ? alive.find(u => u.id === f.sub!.id) : undefined;
   const held = f.hold != null ? alive.find(u => u.id === f.hold && frontTank(f, u)) : undefined;
   const loose = f.loose ? alive.find(u => u.id === f.loose!.id) : undefined;
-  return sub || held || alive.find(u => frontTank(f, u)) || loose || alive.find(u => u.role === 'tank') || alive.find(u => u.role === 'melee') || alive.find(u => u.role === 'ranged') || alive.find(u => u.me) || null;
+  const stand = f.standIn && f.t < f.standIn.until ? alive.find(u => u.id === f.standIn!.id) : undefined; // 대타 (95): 탱커가 모두 쓰러진 동안
+  return sub || held || alive.find(u => frontTank(f, u)) || stand || loose || alive.find(u => u.role === 'tank') || alive.find(u => u.role === 'melee') || alive.find(u => u.role === 'ranged') || alive.find(u => u.me) || null;
 }
 
 /** 보스 평타 ±30% */

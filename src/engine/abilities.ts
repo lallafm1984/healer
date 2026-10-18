@@ -465,6 +465,15 @@ function spamTarget(f: Fight, u: Unit, a: AbilityDef): Unit | null {
 /** 강타를 받는 생존기: 방어 능력 중 받는 피해를 줄이거나 막는 것 (마법만 줄이는 것 · 주문 반사 빼고) */
 const guardAb = (a: AbilityDef): boolean => a.kind === 'def' && (a.fx.e === 'immune' || a.fx.e === 'absorb' || (a.fx.e === 'cut' && !a.fx.magic));
 
+/** 참을성 (95): 장판을 참고 버틸 때 생존기 (준비돼 있으면). 썼으면 true */
+export function guardNow(f: Fight, u: Unit): boolean {
+  if (!u.ab || !u.alive || hasMod(u, 'stop')) return false;
+  const a = DEF(u);
+  if (!guardAb(a) || !ready(f, u, a, 0)) return false;
+  use(f, u, a, {});
+  return true;
+}
+
 /** 미리미리 · 아슬아슬: 나를 노리는 강타 예고에 생존기 (체력 조건 생존기도). 미리미리는 바로, 아슬아슬은 맞기 lead초 전 (clutchTick). 다뤘으면 true */
 function guardTel(f: Fight, u: Unit, a: AbilityDef, tel: Telegraph): boolean {
   if (tel.kind !== 'buster' || !tel.units.includes(u.id) || !guardAb(a) || !ready(f, u, a, 0)) return false;

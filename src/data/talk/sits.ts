@@ -240,6 +240,32 @@ export const SITS = {
   aggroSlip: S('보스', '어그로 놓침', 'self', 2, 1, '탱커가 어그로를 놓쳐 1.5초 동안 보스가 딜러를 때림. 머쓱해하며 다시 잡음', { pers: ['어그로 흘림'] }),
   selfCare: S('위기', '셀프 회복', 'self', 1, 0.7, '탱커가 체력 40% 아래라 스스로 최대 체력 15%를 회복함 (30초에 한 번)', { pers: ['자급자족'] }),
 
+  // ---------- 95 문서 2차 (기존 묶음 25종). 엔진이 그 성격에서만 냄 ----------
+  foresee: S('장판', '먼저 움직임', 'self', 1, 0.6, '장판 예고가 뜨자마자 1초 먼저 움직임 (올 줄 알았다는 듯)', { pers: ['예언가'] }),
+  foreseeWrong: S('장판', '예측 빗나감', 'self', 2, 1, '미리 움직였는데 장판 안 칸으로 잘못 감. 곧 다시 피함 (힐러가 미리 힐하게 하는 신호)', { pers: ['예언가'] }),
+  hop: S('장판', '괜히 뜀', 'self', 1, 0.4, '자기를 안 노리는 장판 예고인데도 옆 칸으로 뛰어 피하는 척함 (옮기는 동안 딜 0)', { pers: ['점프광'] }),
+  endure: S('장판', '참고 버팀', 'self', 2, 1, '작은 장판이라 안 피하고 생존기를 켜고 그냥 맞으며 버팀', { pers: ['참을성'] }),
+  edgeStep: S('장판', '구석으로', 'self', 1, 0.5, '장판을 피해 판 가장자리 칸으로 감 (광역 힐 범위 밖이 되기 쉬움)', { pers: ['모서리파'] }),
+  freeze: S('장판', '얼음', 'self', 2, 1, '장판이 둘 겹쳐 오자 1초 동안 얼어붙음 (늦게 피함)', { pers: ['얼음땡'] }),
+  buddyUp: S('파티', '짝 정함', 'self', 1, 0.8, '전투 시작 때 옆 아군 하나를 짝꿍으로 정하고 붙어 다님 (붙어 있으면 둘 다 회피 +5%p)', { pers: ['짝꿍'] }),
+  yieldStep: S('장판', '자리 양보', 'self', 1, 0.5, '피할 칸 옆에 아군이 있어서 일부러 더 먼 빈 칸으로 감', { pers: ['양보왕'] }),
+  homeBack: S('파티', '제자리 복귀', 'self', 1, 0.3, '장판을 피하자마자 바로 처음 칸으로 돌아옴 (제자리면 딜 +5%)', { pers: ['집돌이'] }),
+  standIn: S('위기', '대신 붙잡음', 'self', 3, 1, '탱커가 모두 쓰러져서 딜러가 10초 동안 보스를 대신 붙잡음 (받는 피해 −40%). 탱커를 일으켜 달라고', { pers: ['대타'] }),
+  mentor: S('파티', '챙겨 줌', 'self', 1, 0.5, '옆에 있는 뉴비 · 겁쟁이 · 소심이를 챙김 (그 사람 단점이 반으로)', { pers: ['큰형'] }),
+  moodUp: S('시작', '분위기 띄움', 'self', 1, 0.9, '전투가 시작되자 파티 분위기를 띄움 (10초 동안 모두 반응 +10%)', { pers: ['분위기메이커'] }),
+  praise: S('힐', '힐러 칭찬', 'self', 1, 0.8, '힐러가 위기의 아군을 살려 내서 칭찬함 (5초 동안 파티 딜 +5%)', { pers: ['칭찬왕'] }),
+  repay: S('힐', '은혜 갚기', 'self', 1, 0.8, '위기에서 살아나 고마워하며 10초 동안 정신 바짝 차림 (회피 +10%p)', { pers: ['보은형'] }),
+  envy: S('힐', '샘남', 'self', 1, 0.3, '옆 사람만 힐을 받아서 샘이 남 (3초 딜 −5%. 자기가 받으면 5초 딜 +10%)', { pers: ['샘쟁이'] }),
+  cry: S('위기', '울음', 'self', 2, 1, '아군이 쓰러져 5초 동안 울며 딜을 멈춤 (장판은 피함)', { pers: ['울보'] }),
+  bounce: S('위기', '버팀', 'self', 2, 1, '체력이 처음 10% 아래로 떨어져 3초 동안 받는 피해 −50%로 버팀 (그 사이 힐 좀)', { pers: ['오뚝이'] }),
+  relief: S('힐', '해제 반김', 'self', 1, 0.8, '디버프 때문에 딜이 약하다가 해제받고 신남 (5초 딜 +15%)', { pers: ['예민형'] }),
+  windUp: S('장판', '신바람', 'self', 1, 0.8, '내 칸 장판을 세 번 연달아 피해서 신바람이 남 (5초 딜 +20%)', { pers: ['신바람'] }),
+  vent: S('위기', '화풀이', 'self', 1, 0.6, '한 번에 크게 맞아서 3초 동안 화풀이로 딜 +15%', { pers: ['화풀이'] }),
+  burst: S('파티', '폭주', 'self', 2, 1, '5초 동안 폭주 (딜 +50%, 장판 안 피함). 힐러가 미리 채워 두라는 신호', { pers: ['폭주기관차'] }),
+  breather: S('파티', '숨 고르기', 'self', 1, 0.4, '2초 동안 쉼 (딜 0, 회피 +20%p)', { pers: ['쉬엄쉬엄'] }),
+  timing: S('보스', '틈 노림', 'self', 1, 0.8, '보스가 멍하거나 무방비 · 기절해서 그 틈에 딜 두 배', { pers: ['타이밍 장인'] }),
+  gritMax: S('파티', '끝까지 집중', 'self', 1, 0.8, '전투가 길어져 반응이 최고 (20% 빨라짐)까지 올라옴', { pers: ['끈기형'] }),
+
   // ---------- 끝 (보스가 쓰러지거나 전멸한 뒤 화면이 넘어가기 전 1초쯤) ----------
   win: S('끝', '승리', 'any', 2, 1, '마지막 구간 승리'),
   winClean: S('끝', '완벽한 승리', 'any', 2, 1, '아무도 안 쓰러지고 승리'),
@@ -260,4 +286,6 @@ export type TalkLines = Partial<Record<TalkSit, readonly string[]>>;
 export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived'
   | 'slowMove' | 'follow' | 'wander' | 'luckLost' | 'luckBack' | 'cover' | 'selfish' | 'cheer' | 'rival' | 'rage' | 'calmStep' | 'optimist' | 'pessimist'
   | 'panic' | 'panicEnd' | 'allIn' | 'tired' | 'warmUp' | 'focusBroken' | 'shaken' | 'learned'
-  | 'hoardUse' | 'spamUse' | 'cutTry' | 'addHunt' | 'oneTrack' | 'preGuard' | 'clutchOk' | 'clutchLate' | 'gather' | 'aggroSlip' | 'selfCare'>;
+  | 'hoardUse' | 'spamUse' | 'cutTry' | 'addHunt' | 'oneTrack' | 'preGuard' | 'clutchOk' | 'clutchLate' | 'gather' | 'aggroSlip' | 'selfCare'
+  | 'foresee' | 'foreseeWrong' | 'hop' | 'endure' | 'edgeStep' | 'freeze' | 'buddyUp' | 'yieldStep' | 'homeBack' | 'standIn' | 'mentor' | 'moodUp'
+  | 'praise' | 'repay' | 'envy' | 'cry' | 'bounce' | 'relief' | 'windUp' | 'vent' | 'burst' | 'breather' | 'timing' | 'gritMax'>;

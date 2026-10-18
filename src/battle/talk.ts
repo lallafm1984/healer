@@ -13,19 +13,19 @@ export interface TalkBubble { id: number; text: string; life: number; sit: TalkS
 
 /** 감정 아이콘 (43 4장 B): 아이콘 → 붙는 상황. 표에 없는 상황은 아이콘 없이 뜸 */
 const EMOTES: Record<string, TalkSit[]> = {
-  alert: ['buster', 'aoeWarn', 'safeCall', 'bomb', 'mistake', 'cutTry'],
-  sweat: ['hurtBig', 'low50', 'low25', 'zoneHit', 'dodge', 'clutchLate', 'aggroSlip'],
-  heart: ['healed', 'saved', 'clutch', 'thanks', 'jailFree', 'allyRevived', 'selfCare'],
-  sparkle: ['healCrit', 'bigHeal', 'meterTop', 'win', 'winClean'],
-  note: ['idle', 'allFull', 'hello'],
+  alert: ['buster', 'aoeWarn', 'safeCall', 'bomb', 'mistake', 'cutTry', 'foreseeWrong', 'burst'],
+  sweat: ['hurtBig', 'low50', 'low25', 'zoneHit', 'dodge', 'clutchLate', 'aggroSlip', 'endure', 'bounce'],
+  heart: ['healed', 'saved', 'clutch', 'thanks', 'jailFree', 'allyRevived', 'selfCare', 'buddyUp', 'repay', 'relief'],
+  sparkle: ['healCrit', 'bigHeal', 'meterTop', 'win', 'winClean', 'praise', 'windUp', 'timing'],
+  note: ['idle', 'allFull', 'hello', 'moodUp', 'breather'],
   question: ['wrongStep', 'orderWrong', 'castMove'],
-  anger: ['sulk', 'stubborn', 'jealous', 'noHeal'],
-  tear: ['selfDown', 'lose', 'loseClose', 'allyDown'],
-  dizzy: ['swallowed', 'jailed', 'noDps', 'pulled'],
+  anger: ['sulk', 'stubborn', 'jealous', 'noHeal', 'envy', 'vent'],
+  tear: ['selfDown', 'lose', 'loseClose', 'allyDown', 'cry'],
+  dizzy: ['swallowed', 'jailed', 'noDps', 'pulled', 'freeze'],
   shield: ['busterOk', 'guardOn', 'shieldOn', 'offTank', 'eliteAdd', 'preGuard', 'clutchOk', 'gather'],
   sword: ['abAtk', 'adds', 'swarm', 'marchAdd', 'boss5', 'addHunt', 'oneTrack', 'hoardUse', 'spamUse'],
-  flame: ['enraged', 'enrageSoon', 'noTank', 'partyLow'],
-  run: ['flee', 'shelter', 'fixate', 'dodgeOk'],
+  flame: ['enraged', 'enrageSoon', 'noTank', 'partyLow', 'standIn'],
+  run: ['flee', 'shelter', 'fixate', 'dodgeOk', 'hop', 'edgeStep', 'yieldStep', 'homeBack', 'foresee'],
   mana: ['manaLow', 'manaEmpty'],
 };
 const EMOTE_OF = new Map<TalkSit, string>(Object.entries(EMOTES).flatMap(([e, sits]) => sits.map(s => [s, e] as const)));
@@ -100,7 +100,9 @@ const REPEAT_DECAY = 0.6, REPEAT_FLOOR = 0.2;
 // 성격 20종 (75)의 잦은 말 (따라감 · 딴 데로 · 명당 복귀 · 걱정 · 괜찮다 · 익숙해짐)도 빈도 제한.
 // 95 1차의 버릇 말 (아껴 둔 스킬 · 난사 · 끊기 노림 · 쫄 사냥 · 미리 생존기 · 딱 맞춤 · 쫄 모으기 · 셀프 회복)도. 신호 (쫄 무시 · 생존기 늦음 · 어그로 놓침)는 꼭 보여 줌
 export const SOFT_BARKS: TalkSit[] = ['thanks', 'dodge', 'follow', 'wander', 'luckBack', 'pessimist', 'optimist', 'learned',
-  'hoardUse', 'spamUse', 'cutTry', 'addHunt', 'preGuard', 'clutchOk', 'gather', 'selfCare'];
+  'hoardUse', 'spamUse', 'cutTry', 'addHunt', 'preGuard', 'clutchOk', 'gather', 'selfCare',
+  // 95 2차의 잦은 말. 신호 (예측 빗나감 · 참고 버팀 · 얼음 · 대신 붙잡음 · 울음 · 오뚝이 버팀 · 폭주)는 꼭 보여 줌
+  'foresee', 'hop', 'edgeStep', 'buddyUp', 'yieldStep', 'homeBack', 'mentor', 'moodUp', 'praise', 'repay', 'envy', 'relief', 'windUp', 'vent', 'breather', 'timing', 'gritMax'];
 /** 한 사람이 말을 몰아서 하지 않게: 가장 적게 말한 사람보다 이만큼 더 말했으면 위기 말고는 쉼 */
 const SHARE = 2;
 

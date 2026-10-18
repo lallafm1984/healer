@@ -155,6 +155,9 @@ export interface Reaction {
   at: number;
   tel: number;
   wrong?: boolean;
+  /** 예언가 (95): 이번엔 틀린 칸으로 감 · 점프광: 나를 안 노리는 예고에 뜀 */
+  fore?: boolean;
+  hop?: boolean;
 }
 
 export interface Unit {
@@ -237,6 +240,10 @@ export interface Unit {
   mods: Mod[];
   /** 성격 상태 (75 문서, 새 20종만) */
   ps?: PersState;
+  /** 짝꿍 (95): 짝 (아군 id). 붙어 있으면 둘 다 회피 + */
+  pairWith?: number;
+  /** 칭찬왕 · 보은형 (95): 체력 25% 아래로 내려간 적 있음 (60% 위로 오면 살아남) */
+  lowMark?: boolean;
   /** 응원단장이 응원해 줌: 이 시각까지 딜 +cheerUp */
   cheerUntil?: number;
   cheerUp?: number;
@@ -747,6 +754,15 @@ export interface Fight {
   persOn?: boolean;
   /** 든든이 (95): 옆 아군 받는 피해를 줄이는 탱커들 (없으면 undefined) */
   sturdy?: Unit[];
+  /** 95 2차: 큰형 · 샘쟁이 · 칭찬왕 목록, 살아남 보기, 분위기메이커 (이 시각까지 반응 ×moodReact), 칭찬 (파티 딜), 대타 (보스를 붙잡은 딜러) */
+  mentors?: Unit[];
+  envy?: Unit[];
+  praisers?: Unit[];
+  saveWatch?: boolean;
+  mood?: number;
+  moodReact?: number;
+  praise?: { until: number; up: number };
+  standIn?: { id: number; until: number };
   ab: PartyAb;
   /** 어픽스 (없으면 null = 프로토타입과 같음) */
   aff: AffixState | null;
