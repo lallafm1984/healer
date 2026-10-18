@@ -1,5 +1,5 @@
 // 사제: 흰빛 · 크림 · 연금색 + 하늘빛 강조 (치유 · 소생만 초록, 치유는 Lim이 만든 「초록 반짝이 가루 구름」을 그대로 다시 그림)
-import { asset, bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, lerp, lightStroke, particles, path, rad, ribbonPath, ringGlow, seg, solid, speck, taper, TAU } from './lib.mjs';
+import { asset, bell, bez, bloom, C, comet, E, energy, frac, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopRise, particles, path, rad, ribbonPath, ringGlow, seg, solid, speck, taper, TAU, wave } from './lib.mjs';
 
 const GOLD = { rim: '#5a3c0c', body: '#ffd56b', core: '#fffbe8', glow: '#ffcf6a' };
 const SKY = '#8fd6ff', SKY_DEEP = '#2e6fb8', NAVY = '#1d2a4a';
@@ -301,6 +301,20 @@ export default {
       glow(g, x, y, rr * 4, SKY, 0.65 * fade * blink);
       glow(g, x, y, rr * 2.2, '#ffffff', 0.7 * fade * blink);
       g.save(); g.translate(x, y); g.scale(rr, rr); energy(g, gg => path.star(gg, 4, 0.45, rad(-90 + t * 220)), { rim: NAVY, body: GOLD.body, core: '#ffffff', a: fade * blink, rimW: 0.12 }); g.restore();
+    },
+  },
+  // 판 위 지속 그림 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」): 그림 위에 겹쳐 그림이 서 있는 동안 계속 돎.
+  // 좌표: 프레임 가운데 = 그림 가운데, 1 = 그림 한 변의 반 (board.ts putArtLoop가 그림 한 변 × logical / 62로 그림). 3초 한 바퀴
+  /** 사제 쉼터 천막 (board-shelter): 입구 별빛이 숨 쉬듯 빛나고, 천막 바닥에서 금빛 가루가 피어올라 천막 위로 흩어지며 꼭대기 · 기둥 끝이 차례로 반짝임 */
+  'priest-shelter-loop': {
+    frames: 36, fps: 12, loop: true, logical: 87, size: 256, scope: 'target',
+    draw(g, { t }) {
+      glowOval(g, 0, 0.12, 0.8, 0.85, GOLD.glow, 0.07 + 0.08 * wave(t, 1));
+      glow(g, 0, 0.36, 0.5, YEL.amber, 0.3 + 0.35 * wave(t, 2));
+      glow(g, 0, 0.36, 0.16, '#ffffff', 0.2 + 0.35 * wave(t, 2));
+      for (const k of [0, 0.5]) { const a = frac(t * 2 + k); ringGlow(g, 0, 0.62, lerp(0.25, 0.8, E.out2(a)), 0.05, GOLD.glow, 0.3 * (1 - a) * seg(a, 0, 0.1), 0.3); }
+      loopRise(g, t, 24, { x0: -0.6, x1: 0.6, y0: 0.6, y1: -1.15, per: 1, sz: 0.035, col: '#ffffff', glowCol: YEL.amber, sway: 0.07, seed: 3 });
+      loopGlints(g, t, [[0, -0.86], [-0.62, -0.22], [0.62, -0.22], [0, 0.36]], { size: 0.3, col: GOLD.core, glowCol: GOLD.glow });
     },
   },
 };

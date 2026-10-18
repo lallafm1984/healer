@@ -461,4 +461,21 @@ export default {
       }
     },
   },
+  // 판 위 지속 그림 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」): 그림 위에 겹쳐 그림이 서 있는 동안 계속 돎.
+  // 좌표: 프레임 가운데 = 그림 가운데, 1 = 그림 한 변의 반 (board.ts putArtLoop가 그림 한 변 × logical / 62로 그림). 3초 한 바퀴
+  /** 주술사 바다 샘 (board-sea-spring, 바닥 그림): 물기둥 끝에서 물방울이 양옆으로 솟았다 떨어지고, 샘 둘레에 잔물결이 퍼지며 물빛 알갱이가 떠오르고 물보라가 반짝임 */
+  'shaman-sea-loop': {
+    frames: 36, fps: 12, loop: true, logical: 84, size: 256, scope: 'target',
+    draw(g, { t }) {
+      glow(g, 0, -0.3, 0.55, W.glow, 0.12 + 0.14 * wave(t, 2));
+      for (const k of [0, 0.33, 0.67]) { const a = frac(t * 3 + k); ripple(g, 0, 0.5, lerp(0.3, 0.85, E.out2(a)), 0.4 * (1 - a) * seg(a, 0, 0.1), 0.045); }
+      for (let i = 0; i < 10; i++) {
+        const side = i % 2 ? 1 : -1, spread = 0.7 + 0.4 * ((i * 7) % 5) / 4, a = frac(t * 2 + i / 10);
+        drop(g, side * lerp(0.05, 0.62, a) * spread, -0.75 - 0.7 * a + 1.75 * a * a, 0.065 + 0.015 * (i % 3), seg(a, 0, 0.06) * (1 - seg(a, 0.75, 1)) * 0.95);
+      }
+      for (let i = 0; i < 12; i++) { const a = frac(t + i / 12), x0 = ((i * 37) % 13) / 12 - 0.5; rise(g, x0 * 1.4, lerp(0.55, -0.95, a), 0.022 + 0.01 * (i % 3), bell(a, 0, 0.2, 1) * 0.85, wave(a, 3, i * 0.17)); }
+      glint(g, -0.12, -0.62, 0.17 * bell(frac(t * 2 + 0.3), 0, 0.12, 0.3), W.glow, 1, 0.3, 0.13, W.foam);
+      glint(g, 0.2, -0.2, 0.14 * bell(frac(t * 2 + 0.8), 0, 0.12, 0.3), W.glow, 1, 0.6, 0.13, W.foam);
+    },
+  },
 };

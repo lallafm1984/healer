@@ -1,7 +1,7 @@
 // 성기사: 따뜻한 금빛 · 흰빛 + 호박 · 주황 강조 (사제의 하늘빛 대신), 희생은 진홍. 원뿔 빛 · 룬 · 문장처럼 굵고 단단한 모양.
 // 2026-10-18 Lim 「성기사 스킬 이펙트를 전체 재생성, 퀄리티를 올려주고 힐 계열은 모두 파티클, 이펙트는 전체적으로 파티클 활용을 많이」:
 // 모양은 Codex로 그린 그림 (scripts/vfx/assets/paladin-*), 움직임 · 빛 · 금빛 반짝이 가루는 코드. 봉화 대상 칸 둘레는 루프 (paladin-beacon-loop)
-import { asset, bell, C, comet, E, glint, glow, glowOval, lerp, lightStroke, particles, path, rad, ringGlow, seg, solid, speck, TAU } from './lib.mjs';
+import { asset, bell, C, comet, E, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopRise, particles, path, rad, ringGlow, seg, solid, speck, TAU } from './lib.mjs';
 
 const AU = { rim: '#4a2a06', deep: '#c47a12', body: '#ffc94a', light: '#ffe9a0', core: '#fffaf0', glow: '#ffb84a', amber: '#ff9a2a' };
 const RED = { rim: '#2a0606', deep: '#8a1020', body: '#d8283a', light: '#ff7a6a', glow: '#ff4a3a' };
@@ -409,6 +409,23 @@ export default {
       for (let i = 0; i < 14; i++) { const a = -TAU * t + (i * TAU) / 14, rr = R + 0.05 * Math.sin(TAU * (t * 2 + i * 0.3)); speck(g, Math.cos(a) * rr, Math.sin(a) * rr, 0.01, AU.core, 0.55 + 0.45 * wave(t, 3, i / 14), wave(t, 2, i * 0.27)); }
       // 반짝이
       for (let i = 0; i < 6; i++) { const ph = frac(t * 2 + i / 6), a = i * 1.9 + 0.4; glint(g, Math.cos(a) * R * 1.08, Math.sin(a) * R * 1.08, 0.08 * bell(ph, 0, 0.12, 0.3), AU.glow, 1, a, 0.14, AU.core); }
+    },
+  },
+  // 판 위 지속 그림 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」): 그림 위에 겹쳐 그림이 서 있는 동안 계속 돎.
+  // 좌표: 프레임 가운데 = 그림 가운데, 1 = 그림 한 변의 반 (board.ts putArtLoop가 그림 한 변 × logical / 62로 그림). 3초 한 바퀴
+  /** 성기사 빛의 성역 돔 (board-sanctuary): 돔 위로 빛 띠가 천천히 훑고 지나가고, 바닥 고리가 퍼지며, 금빛 가루가 돔 안에서 피어올라 꼭대기 · 선돌 끝이 차례로 반짝임 */
+  'paladin-sanctuary-loop': {
+    frames: 36, fps: 12, loop: true, logical: 84, size: 256, scope: 'target',
+    draw(g, { t }) {
+      glowOval(g, 0, 0.05, 0.85, 0.85, AU.glow, 0.06 + 0.08 * wave(t, 1));
+      // 돔을 훑는 빛 띠 (돔 모양 안에서만)
+      g.save(); g.beginPath(); g.ellipse(0, 0.04, 0.88, 0.86, 0, 0, TAU); g.clip();
+      const bx = lerp(-1.4, 1.4, frac(t)), gr = g.createLinearGradient(bx - 0.3, 0, bx + 0.3, 0);
+      gr.addColorStop(0, C(AU.light, 0)); gr.addColorStop(0.5, C(AU.core, 0.32)); gr.addColorStop(1, C(AU.light, 0));
+      g.globalCompositeOperation = 'lighter'; g.fillStyle = gr; g.fillRect(bx - 0.3, -1, 0.6, 2.1); g.restore();
+      for (const k of [0, 0.5]) { const a = frac(t * 2 + k); ringGlow(g, 0, 0.62, lerp(0.25, 0.74, E.out2(a)), 0.05, AU.glow, 0.35 * (1 - a) * seg(a, 0, 0.1), 0.3); }
+      loopRise(g, t, 24, { x0: -0.7, x1: 0.7, y0: 0.6, y1: -0.85, per: 1, sz: 0.035, col: '#ffffff', glowCol: AU.amber, sway: 0.06, seed: 7 });
+      loopGlints(g, t, [[0, -0.86], [-0.26, -0.2], [0.32, -0.16], [0, -0.34], [-0.4, 0.1], [0.36, 0.12]], { size: 0.255, col: AU.core, glowCol: AU.glow });
     },
   },
 };

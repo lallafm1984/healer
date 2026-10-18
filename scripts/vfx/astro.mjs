@@ -1,6 +1,6 @@
 // 점성술사: 호박 별빛 + 밤하늘 남보라 (성기사 금빛과 다르게 별 둘레에 보랏빛 밤 기운). 별 · 별자리 · 초승달 · 시계 바늘.
 // 2026-10-19 Lim 「점성술사도 퀄리티 및 파티클 보강, 전면 개편」: 모양은 Codex 그림 (scripts/vfx/assets/astro-*), 움직임 · 빛 · 별가루는 코드
-import { asset, bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, lerp, lightStroke, particles, path, rad, ringGlow, seg, solid, speck, TAU } from './lib.mjs';
+import { asset, bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopOrbit, loopRise, particles, path, rad, ringGlow, seg, solid, speck, TAU, wave } from './lib.mjs';
 
 const AM = { rim: '#3a2108', deep: '#b8741e', body: '#e8b04a', light: '#ffe08a', core: '#fff8e0', glow: '#ffc85a' };
 const NIGHT = { rim: '#120e30', deep: '#2a2470', mid: '#5a4fc0', glow: '#7a6af0', star: '#e8f0ff' };
@@ -227,6 +227,33 @@ export default {
       starBurst(g, t, 3, 40, { y, sp: 1.1, sq: 0.85, t0: 0.55, a: fade, grav: 0.3 });
       starRain(g, t, 5, 26, { w: 1.0, y0: y, y1: 0.6, t0: 0.4, span: 0.35, a: fade });
       starSwirl(g, t, 7, 28, { y0: 0.55, rise: 1.0, rr: 0.75, t0: 0.5, span: 0.35, a: fade });
+    },
+  },
+  // 판 위 지속 그림 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」): 그림 위에 겹쳐 그림이 서 있는 동안 계속 돎.
+  // 좌표: 프레임 가운데 = 그림 가운데, 1 = 그림 한 변의 반 (board.ts putArtLoop가 그림 한 변 × logical / 62로 그림). 3초 한 바퀴
+  /** 점성술사 초신성 (board-supernova, 바닥 그림): 가운데 별 보석이 크게 숨 쉬고, 빛살 넷이 천천히 돌며, 작은 별빛이 둘레를 돌고 호박 · 보랏빛 가루가 떠오름 */
+  'astro-nova-loop': {
+    frames: 36, fps: 12, loop: true, logical: 84, size: 256, scope: 'target',
+    draw(g, { t }) {
+      const cy = -0.1;
+      glow(g, 0, cy, 0.7, NIGHT.glow, 0.12 + 0.12 * wave(t, 1));
+      glow(g, 0, cy, 0.45, AM.glow, 0.2 + 0.25 * wave(t, 2));
+      glow(g, 0, cy, 0.16, '#ffffff', 0.25 + 0.35 * wave(t, 2));
+      for (let i = 0; i < 4; i++) glint(g, 0, cy, 0.62 + 0.08 * wave(t, 2, i * 0.25), AM.glow, 0.35 + 0.2 * wave(t, 2, i * 0.25), TAU * (t / 4 + i / 8), 0.06, AM.core);
+      loopOrbit(g, t, { y: cy, rx: 0.62, ry: 0.5, m: 3, per: 1, col: NIGHT.star, glowCol: NIGHT.glow, sz: 0.048, tail: 0.8, back: 0.5 });
+      loopRise(g, t, 14, { x0: -0.6, x1: 0.6, y0: 0.5, y1: -0.9, per: 1, sz: 0.032, col: AM.core, glowCol: AM.glow, sway: 0.06, seed: 41 });
+      loopGlints(g, t, [[-0.55, -0.35], [0.5, -0.4], [0, -0.75], [0.45, 0.25]], { size: 0.21, col: AM.core, glowCol: AM.glow });
+    },
+  },
+  /** 별의 잠에 든 사람 (board-star-sleep, 칸을 덮는 별빛 고치): 고치 둘레를 별빛이 천천히 돌고, 초승달 · 별이 차례로 반짝이며, 보랏빛 별가루가 느리게 떠오름 */
+  'astro-sleep-loop': {
+    frames: 36, fps: 12, loop: true, logical: 74, size: 256, scope: 'target',
+    draw(g, { t }) {
+      g.save(); g.beginPath(); g.ellipse(0.02, 0, 0.6, 0.9, 0, 0, TAU); g.clip();
+      glowOval(g, 0.02, 0, 0.62, 0.92, NIGHT.glow, 0.06 + 0.08 * wave(t, 1)); g.restore();
+      loopOrbit(g, t, { x: 0.02, rx: 0.58, ry: 0.86, m: 3, per: 1, col: '#ffffff', glowCol: '#c8c0ff', sz: 0.07, tail: 0.9, back: 0.7 });
+      loopRise(g, t, 12, { x0: -0.5, x1: 0.5, y0: 0.8, y1: -0.85, per: 1, sz: 0.029, col: NIGHT.star, glowCol: NIGHT.glow, sway: 0.08, seed: 43 });
+      loopGlints(g, t, [[-0.34, -0.76], [0.64, -0.56], [-0.6, 0.46], [0.3, 0.2], [-0.2, -0.2]], { size: 0.225, col: AM.core, glowCol: AM.glow });
     },
   },
 };

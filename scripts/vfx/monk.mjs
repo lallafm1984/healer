@@ -1,7 +1,7 @@
 // 수도사: 비취 · 흰 안개. 흐르는 안개 리본 · 붓 획 같은 기 줄 · 기 구슬 (드루이드 풀빛 · 사제 소생 초록과 다른 푸른 비취 + 흰빛).
 // 2026-10-19 Lim 「수도사 · 점성술사 · 결계사도 퀄리티 및 파티클 보강, 전면 개편」 → 「수도사 스킬이펙트가 형편없다. 성기사 방식을 참고해서 전면 수정」:
 // 성기사처럼 굵고 또렷한 Codex 그림이 주인공 (크게 · 맞는 순간 더해 번쩍), 흰 섬광 + 충격파 고리, 진한 비취 반짝이 가루를 많이, 384px 프레임
-import { asset, bell, bloom, C, E, energy, glint, glow, glowOval, lerp, lightStroke, particles, path, rad, ringGlow, rng, seg, solid, speck, TAU } from './lib.mjs';
+import { asset, bell, bloom, C, E, energy, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopOrbit, loopRise, particles, path, rad, ringGlow, rng, seg, solid, speck, TAU, wave } from './lib.mjs';
 
 const J = { rim: '#0d3329', deep: '#1d6b55', mid: '#3fae8c', light: '#6fd0b0', pale: '#bff0dc', white: '#f2fff9', glow: '#5fd8b0' };
 /** 진한 비취 (성기사 금빛처럼 또렷하게, 2026-10-19) */
@@ -298,6 +298,31 @@ export default {
         speck(gg, x, y, p.sz, p.mana ? '#d8ecff' : EM.light, al, 0.5 + 0.5 * Math.sin(p.ph + age * 16));
       });
       glints(g, t, 11, 5, { t0: 0.18, step: 0.08, w: 1.0, y0: -0.2, h: 1.0, a: fade });
+    },
+  },
+  // 판 위 지속 그림 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」): 그림 위에 겹쳐 그림이 서 있는 동안 계속 돎.
+  // 좌표: 프레임 가운데 = 그림 가운데, 1 = 그림 한 변의 반 (board.ts putArtLoop가 그림 한 변 × logical / 62로 그림). 3초 한 바퀴
+  /** 수도사 안개 장판 (board-mist-pool, 바닥 그림): 고인 안개 둘레를 비취빛 덩이가 천천히 돌고, 오른쪽 · 왼쪽 안개 끝에서 안개 알갱이가 피어오르며 반짝이 가루가 떠오름 */
+  'monk-pool-loop': {
+    frames: 36, fps: 12, loop: true, logical: 84, size: 256, scope: 'target',
+    draw(g, { t }) {
+      glowOval(g, 0, 0.24, 0.85, 0.3, EM.glow, 0.1 + 0.1 * wave(t, 1));
+      loopOrbit(g, t, { y: 0.24, rx: 0.72, ry: 0.22, m: 3, per: 1, col: EM.core, glowCol: EM.glow, sz: 0.056, tail: 1.2, back: 0.35 });
+      loopRise(g, t, 8, { x0: -0.62, x1: -0.38, y0: -0.1, y1: -0.85, per: 1, sz: 0.038, col: EM.light, glowCol: EM.glow, sway: 0.1, seed: 11 });
+      loopRise(g, t, 8, { x0: 0.32, x1: 0.56, y0: -0.25, y1: -0.95, per: 1, sz: 0.038, col: EM.light, glowCol: EM.glow, sway: 0.1, seed: 12 });
+      loopRise(g, t, 10, { x0: -0.7, x1: 0.7, y0: 0.35, y1: -0.5, per: 1, sz: 0.032, col: EM.core, glowCol: EM.glow, sway: 0.06, seed: 13 });
+      loopGlints(g, t, [[-0.5, -0.25], [0.44, -0.42], [0.1, 0.2]], { size: 0.225, col: EM.core, glowCol: EM.glow });
+    },
+  },
+  /** 떠도는 안개가 걸린 사람 발밑 안개 고리 (board-mist, 칸 아래쪽): 고리를 따라 비취빛 덩이 둘이 돌고 (뒤쪽은 옅게), 안개 끝에서 알갱이가 흘러 오르며 고리가 숨 쉬듯 빛남 */
+  'monk-mist-loop': {
+    frames: 36, fps: 12, loop: true, logical: 80, size: 256, scope: 'target',
+    draw(g, { t }) {
+      glowOval(g, 0, 0.1, 0.9, 0.32, EM.glow, 0.08 + 0.1 * wave(t, 1));
+      loopOrbit(g, t, { y: 0.1, rx: 0.78, ry: 0.26, m: 2, per: 1, col: EM.core, glowCol: EM.glow, sz: 0.064, tail: 1.3, back: 0.3 });
+      loopRise(g, t, 6, { x0: -0.85, x1: -0.6, y0: 0, y1: -0.6, per: 1, sz: 0.035, col: EM.light, glowCol: EM.glow, sway: 0.08, seed: 21 });
+      loopRise(g, t, 6, { x0: 0.6, x1: 0.85, y0: 0, y1: -0.6, per: 1, sz: 0.035, col: EM.light, glowCol: EM.glow, sway: 0.08, seed: 22 });
+      loopGlints(g, t, [[-0.72, -0.1], [0.7, -0.16]], { size: 0.195, col: EM.core, glowCol: EM.glow });
     },
   },
 };

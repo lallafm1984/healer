@@ -69,10 +69,13 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
     expect(pxfDrawSize(c, 62)).toBe(80);
     for (const k of SMOOTH_KEYS) expect(PXF[k].logicalSize, k).toBeLessThanOrEqual(fx[k].scope === 'target' ? 100 : 84);
   });
-  it('판 위 루프 (주술사 토템 · 성기사 봉화 대상, Lim 2026-10-18): 그 직업 전투에서만 읽고, 토템 그림 크기가 그리기 코드와 같고, 프레임이 이어 돎', () => {
+  it('판 위 루프 (주술사 토템 · 성기사 봉화 대상 Lim 2026-10-18 · 직업마다 지속 그림 2026-10-19): 그 직업 전투에서만 읽고, 토템 그림 크기가 그리기 코드와 같고, 프레임이 이어 돎', () => {
     const loops = Object.keys(fx).filter(k => fx[k].loop);
-    expect(loops.sort()).toEqual(['paladin-beacon-loop', 'shaman-earth-loop', 'shaman-rain-loop', 'shaman-spring-loop']);
-    expect([...HERO_LOOP_FX.shaman!, ...HERO_LOOP_FX.paladin!].sort()).toEqual(loops.sort());
+    expect(loops.sort()).toEqual([
+      'astro-nova-loop', 'astro-sleep-loop', 'druid-moss-loop', 'monk-mist-loop', 'monk-pool-loop', 'paladin-beacon-loop', 'paladin-sanctuary-loop',
+      'priest-shelter-loop', 'shaman-earth-loop', 'shaman-rain-loop', 'shaman-sea-loop', 'shaman-spring-loop', 'warder-barrier-loop', 'warder-citadel-loop',
+    ]); // 판 위 지속 그림 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」)
+    expect(Object.values(HERO_LOOP_FX).flat().sort()).toEqual(loops.sort());
     for (const h of HERO_KEYS) for (const k of HERO_LOOP_FX[h] ?? []) expect(heroSkillFx(h)).toContain(k);
     for (const h of HERO_KEYS) expect(heroSkillFx(h).filter(k => loops.includes(k) && !(HERO_LOOP_FX[h] ?? []).includes(k))).toEqual([]);
     expect(SHAMAN_TOTEM).toBe(TOTEM_STAND);
@@ -81,8 +84,8 @@ describe('손그림풍 스킬 이펙트 (Lim 2026-10-16 「스킬이펙트가 �
     expect([loopFrame(c, 0), loopFrame(c, (c.frames - 0.5) / c.fps), loopFrame(c, c.frames / c.fps), loopFrame(c, -0.01)]).toEqual([0, c.frames - 1, 0, c.frames - 1]);
   });
   it('전투마다 지금 직업 것만 읽음 (하나에 2–5MB)', () => {
-    expect(heroSkillFx('priest').sort()).toEqual(['priest-flash', 'priest-guardian', 'priest-heal', 'priest-hymn', 'priest-poh', 'priest-purify', 'priest-relay', 'priest-renew', 'priest-serenity']);
-    expect(heroSkillFx('druid')).toHaveLength(8);
+    expect(heroSkillFx('priest').sort()).toEqual(['priest-flash', 'priest-guardian', 'priest-heal', 'priest-hymn', 'priest-poh', 'priest-purify', 'priest-relay', 'priest-renew', 'priest-serenity', 'priest-shelter-loop']);
+    expect(heroSkillFx('druid')).toHaveLength(9); // 스킬 8 + 이끼 자리 루프
     for (const k of heroSkillFx('monk')) expect(k.startsWith('monk-')).toBe(true);
     // 전투 공통 효과 · 파티원 능력은 직업과 상관없이 늘 읽어 둠
     expect([...ALWAYS_FX].sort()).toEqual([...Object.values(COMMON_PXF), ...Object.values(ALLY_PXF)].sort());

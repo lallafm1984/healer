@@ -2,7 +2,7 @@
 // 막 · 장막 · 결계는 둥글게, 스킬 이름에서 모양을 따옴 (Lim 2026-10-16 「결계사의 막, 빛의장막, 결계 이펙트를 각지게 하지말고 이름을 따와서」). 인장 (X · 마름모) · 결계 정화 (깨지는 유리)는 그대로.
 // 성기사 금빛 (주황 기운) · 점성술사 호박과 다르게 맑은 레몬 노랑 + 강한 빛 번짐, 어두운 호박 갈색 테.
 // 2026-10-19 Lim 「결계사도 퀄리티 및 파티클 보강, 전면 개편」: 모양은 Codex 그림 (scripts/vfx/assets/warder-*), 움직임 · 빛 · 노란 빛가루는 코드
-import { asset, bell, bloom, C, comet, E, energy, glint, glow, glowOval, lerp, lightStroke, particles, path, rad, ringGlow, seg, solid, speck, TAU } from './lib.mjs';
+import { asset, bell, bloom, C, comet, E, energy, frac, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopOrbit, loopRise, particles, path, rad, ringGlow, seg, solid, speck, TAU, wave } from './lib.mjs';
 
 const Y = { rim: '#3d2a00', deep: '#c99600', body: '#ffd51f', light: '#fff06a', core: '#fffde8', glow: '#ffe23a' };
 
@@ -237,6 +237,29 @@ export default {
       }
       lightBurst(g, t, 3, 24, { y: 0.05, sp: 0.95, sq: 0.9, t0: 0.34, a: fade, grav: 0.1 });
       lightSwirl(g, t, 5, 20, { y0: 0.6, rise: 1.0, rr: 0.75, t0: 0.4, span: 0.35, a: fade });
+    },
+  },
+  // 판 위 지속 그림 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」): 그림 위에 겹쳐 그림이 서 있는 동안 계속 돎.
+  // 좌표: 프레임 가운데 = 그림 가운데, 1 = 그림 한 변의 반 (board.ts putArtLoop가 그림 한 변 × logical / 62로 그림). 3초 한 바퀴
+  /** 결계사 성채 (board-citadel, 바닥 그림): 창 · 성문이 노랗게 숨 쉬듯 빛나고, 성 아래에 노란 결계 고리가 퍼지며, 노란 빛 가루가 떠오르고 첨탑 끝이 차례로 반짝임 */
+  'warder-citadel-loop': {
+    frames: 36, fps: 12, loop: true, logical: 84, size: 256, scope: 'target',
+    draw(g, { t }) {
+      [[0, 0.44, 0.3], [0, -0.3, 0.2], [-0.5, -0.1, 0.16], [0.56, -0.1, 0.16]].forEach(([x, y, r], i) => { glow(g, x, y, r, Y.glow, 0.2 + 0.3 * wave(t, 2, i * 0.25)); glow(g, x, y, r * 0.4, Y.core, 0.15 + 0.3 * wave(t, 2, i * 0.25)); });
+      for (const k of [0, 0.5]) { const a = frac(t * 2 + k); ringGlow(g, 0, 0.72, lerp(0.35, 0.95, E.out2(a)), 0.05, Y.glow, 0.4 * (1 - a) * seg(a, 0, 0.1), 0.3); }
+      loopRise(g, t, 16, { x0: -0.8, x1: 0.8, y0: 0.7, y1: -0.9, per: 1, sz: 0.035, col: Y.core, glowCol: Y.glow, sway: 0.05, seed: 31 });
+      loopGlints(g, t, [[0, -0.96], [-0.6, -0.6], [0.64, -0.6], [-0.3, -0.75], [0.32, -0.72]], { size: 0.255, col: Y.core, glowCol: Y.glow });
+    },
+  },
+  /** 결계사 보호막이 걸린 사람 (board-barrier, 칸을 감싼 금빛 고리): 고리를 따라 노란 빛 점 둘이 꼬리를 끌며 돌고, 막 안쪽이 숨 쉬듯 빛나며 빛 가루가 떠오름 */
+  'warder-barrier-loop': {
+    frames: 36, fps: 12, loop: true, logical: 74, size: 256, scope: 'target',
+    draw(g, { t }) {
+      g.save(); g.beginPath(); g.ellipse(0, 0, 0.6, 0.88, 0, 0, TAU); g.clip();
+      glowOval(g, 0, 0, 0.62, 0.92, Y.glow, 0.05 + 0.07 * wave(t, 1)); g.restore();
+      loopOrbit(g, t, { rx: 0.6, ry: 0.88, m: 2, per: 1, col: '#ffffff', glowCol: '#fff7c0', sz: 0.08, tail: 1.1, back: 0.85 });
+      loopRise(g, t, 10, { x0: -0.45, x1: 0.45, y0: 0.75, y1: -0.8, per: 1, sz: 0.032, col: Y.core, glowCol: Y.glow, sway: 0.05, seed: 33 });
+      loopGlints(g, t, [[0, -0.9], [0.6, 0.1], [0, 0.9], [-0.6, -0.1]], { size: 0.225, col: Y.core, glowCol: Y.glow, per: 1 });
     },
   },
 };
