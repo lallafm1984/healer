@@ -406,32 +406,32 @@ export default {
       }
     },
   },
-  /** 비구름 토템이 떠 있는 동안 도는 루프 (Lim 2026-10-18 「비구름도 다른 토템처럼 효과 이펙트를」): 판 오른쪽 위 비구름 그림 (board-totem-rain) 위에 겹침.
-   *  좌표: 1 = 비구름 그림 한 변의 반, 프레임 가운데 = 그림 가운데보다 0.5 아래 (비가 그림 밑으로 내리게, board.ts가 그림 크기 × 1.5로 그림).
-   *  구름 속 소용돌이 · 배가 숨 쉬듯 물빛으로 빛나고, 배에서 빗줄기가 내리며 (돌 부적 앞은 비움) 물빛 알갱이가 천천히 떨어짐, 부적 보석이 반짝임. 3초 한 바퀴 */
+  /** 비구름 토템이 떠 있는 동안 도는 루프 (Lim 2026-10-18 「비구름도 다른 토템처럼 효과 이펙트를」 → 「물방울은 이미지에서 제거하고 구름만, 이펙트로 비를 표현」):
+   *  판 오른쪽 위 비구름 그림 (board-totem-rain, 구름만) 위에 겹침. 좌표: 1 = 비구름 그림 한 변의 반, 프레임 가운데 = 그림 가운데보다 1 아래
+   *  (비가 구름 밑으로 내리게, board.ts가 그림 한 변 × 75/62로 그림). 구름 속 소용돌이 · 배가 숨 쉬듯 물빛으로 빛나고, 구름 배 전체에서 빗줄기가 비스듬히 내리며
+   *  물빛 알갱이가 천천히 떨어짐. 3초 한 바퀴 */
   'shaman-rain-loop': {
-    frames: 36, fps: 12, loop: true, logical: 93, scope: 'target',
+    frames: 36, fps: 12, loop: true, logical: 75, scope: 'target',
     draw(g, { t }) {
-      const at = (fx, fy) => ({ x: (fx - 0.5) * 2, y: (fy - 0.5) * 2 - 0.5 }); // 그림 비율 좌표 → 프레임
-      const belly = at(0.5, 0.45), gem = at(0.5, 0.72), sw = [at(0.35, 0.33), at(0.62, 0.33)], bottom = at(0.5, 0.55).y;
-      glowOval(g, belly.x, belly.y, 0.85, 0.42, W.glow, 0.1 + 0.14 * wave(t, 1));
+      const at = (fx, fy) => ({ x: (fx - 0.5) * 2, y: (fy - 0.5) * 2 - 1 }); // 그림 비율 좌표 → 프레임
+      const belly = at(0.55, 0.66), sw = [at(0.33, 0.57), at(0.63, 0.56)], under = x => at(0.5, 0.8).y - 0.18 * x * x; // 구름 배 아랫선 (가운데가 가장 낮음)
+      glowOval(g, belly.x, belly.y, 0.85, 0.36, W.glow, 0.1 + 0.14 * wave(t, 1));
       sw.forEach((p, i) => glow(g, p.x, p.y, 0.3, W.glow, 0.12 + 0.2 * wave(t, 2, i * 0.5)));
-      glint(g, sw[1].x, sw[1].y, 0.16 * bell(frac(t * 2 + 0.2), 0, 0.12, 0.3), W.glow, 1, 0.3, 0.13, W.foam);
-      glow(g, gem.x, gem.y, 0.22, W.glow, 0.18 + 0.24 * wave(t, 2, 0.25));
-      glint(g, gem.x + 0.04, gem.y - 0.05, 0.13 * bell(frac(t * 2 + 0.7), 0, 0.12, 0.3), W.glow, 1, 0.5, 0.13, W.foam);
-      // 빗줄기 (한 바퀴에 세 번씩, 부적 앞 가운데는 비움)
-      for (let i = 0; i < 16; i++) {
-        const k = ((i * 7) % 16) / 15, side = i % 2 ? 1 : -1, x0 = side * lerp(0.26, 0.8, k), a = frac(t * 3 + i / 16 + ((i * 3) % 5) * 0.03);
-        const y = lerp(bottom - 0.02, 1.3, a), x = x0 - 0.12 * a, al = seg(a, 0, 0.08) * (1 - seg(a, 0.75, 1)) * 0.9, sz = 0.03 + 0.008 * (i % 3);
+      glint(g, sw[1].x + 0.05, sw[1].y + 0.08, 0.16 * bell(frac(t * 2 + 0.2), 0, 0.12, 0.3), W.glow, 1, 0.3, 0.13, W.foam);
+      glint(g, sw[0].x + 0.1, sw[0].y + 0.1, 0.13 * bell(frac(t * 2 + 0.7), 0, 0.12, 0.3), W.glow, 1, 0.5, 0.13, W.foam);
+      // 빗줄기 (구름 배 전체에서, 한 바퀴에 세 번씩)
+      for (let i = 0; i < 20; i++) {
+        const x0 = (((i * 7) % 20) / 19 - 0.5) * 1.7, a = frac(t * 3 + i / 20 + ((i * 3) % 5) * 0.03), top = under(x0);
+        const y = lerp(top, 1.15, a), x = x0 - 0.12 * a, al = seg(a, 0, 0.08) * (1 - seg(a, 0.72, 1)) * 0.9, sz = 0.03 + 0.008 * (i % 3);
         g.save(); g.globalAlpha = al; g.lineCap = 'round';
-        g.strokeStyle = C(W.rim, 0.55); g.lineWidth = sz * 1.4; g.beginPath(); g.moveTo(x + 0.05, y - 0.22); g.lineTo(x, y); g.stroke();
+        g.strokeStyle = C(W.rim, 0.55); g.lineWidth = sz * 1.4; g.beginPath(); g.moveTo(x + 0.05, Math.max(top, y - 0.22)); g.lineTo(x, y); g.stroke();
         g.strokeStyle = C(W.light, 0.95); g.lineWidth = sz * 0.7; g.stroke(); g.restore();
         drop(g, x, y, sz * 1.3, al, 1.1);
       }
       // 천천히 떨어지는 물빛 알갱이
       for (let i = 0; i < 10; i++) {
         const a = frac(t + i / 10), x = (((i * 37) % 11) / 10 - 0.5) * 1.6 + 0.05 * Math.sin(TAU * (a * 2 + i * 0.3));
-        rise(g, x, lerp(bottom, 1.1, a), 0.012 + 0.006 * (i % 3), bell(a, 0, 0.2, 1) * 0.8, wave(a, 3, i * 0.17));
+        rise(g, x, lerp(under(x), 1.05, a), 0.012 + 0.006 * (i % 3), bell(a, 0, 0.2, 1) * 0.8, wave(a, 3, i * 0.17));
       }
     },
   },

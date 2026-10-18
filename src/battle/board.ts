@@ -1283,7 +1283,7 @@ const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
  * 칸 위에 얹는 그림의 그려진 부분 (192px 그림 중 폭 · 높이 비율, 80 5장 납품본을 잼). 판 가장자리에서 크기를 줄일 때 씀 (비율은 그대로)
  */
 const HERO_ART_BOX: Record<string, [number, number]> = {
-  'board-totem-rain': [0.86, 0.94], // 2026-10-18 Codex로 다시 그림 (샘 · 대지 토템과 같은 돌 · 구리 부적) 'board-mist': [0.98, 0.49], 'board-seal': [0.85, 0.96], 'board-barrier': [0.79, 1],
+  'board-totem-rain': [1, 0.65], // 2026-10-18 Codex로 다시 그림: 구름만 (Lim 「물방울은 이미지에서 제거하고 구름만, 이펙트로 비를 표현」) 'board-mist': [0.98, 0.49], 'board-seal': [0.85, 0.96], 'board-barrier': [0.79, 1],
   'board-star-mark': [0.99, 0.79], 'board-star': [0.8, 0.96], 'board-star-sleep': [0.79, 1], // 결계 · 별의 잠 · 별자리 표식은 2026-10-16 굵게 다시 그림 (89)
 };
 /** 점성술사 모으는 별 (80 5장 board-star): 별 n개 자리 (칸 반지름 배, 대상 칸 가운데 기준). 차례로 선을 이음 */
@@ -1738,17 +1738,19 @@ export function render(now: number): void {
     }
     at.forEach((p, i) => heroArt(fxArt, 'board-star', `hero-star${i}`, p.x, p.y, r * (i === at.length - 1 && !perfect ? 0.54 + 0.08 * pulse : 0.54), perfect ? 0.8 + 0.2 * pulse : 1, true));
   }
-  // 주술사 비구름 토템 (board-totem-rain, 2026-10-18 Codex로 다시 그림): 비가 오는 동안 판 오른쪽 위 하늘에 떠서 천천히 흔들림.
-  // 나타날 때 0.35초 톡 부풀고, 그림 위에서 빗줄기 · 빛 루프 (shaman-rain-loop, 그림 크기 × 1.5 · 가운데가 그림보다 한 변의 1/4 아래)가 돎 (Lim 「비구름도 다른 토템처럼 효과 이펙트를」). 시각 효과 줄이기면 그림만
+  // 주술사 비구름 토템 (board-totem-rain = 구름만, 2026-10-18 Codex): 비가 오는 동안 판 오른쪽 위 하늘에 떠서 천천히 흔들림.
+  // 나타날 때 0.35초 톡 부풀고, 비는 그림 위 루프 (shaman-rain-loop, 그림 한 변 × 75/62 · 가운데가 그림보다 한 변의 반 아래)로 (Lim 「물방울은 이미지에서 제거하고 구름만, 이펙트로 비를 표현」).
+  // 시각 효과 줄이기면 구름만
   if (raining(F)) {
     if (rainShownAt == null) rainShownAt = now;
-    const pop = S.reducedEffects ? 1 : backOut(Math.min(1, (now - rainShownAt) / 350)), size = Math.max(30, r * 1.5) * (0.55 + 0.45 * pop), bob = S.reducedEffects ? 0 : Math.sin(t * 1.6) * r * 0.05;
-    const x = L.right - size * 0.4, y = L.top + size * 0.48 + bob, alpha = F.sham!.rainUntil - F.t < 2 ? 0.45 + 0.4 * pulse : 0.95;
+    const pop = S.reducedEffects ? 1 : backOut(Math.min(1, (now - rainShownAt) / 350)), size = Math.max(30, r * 1.35) * (0.55 + 0.45 * pop), bob = S.reducedEffects ? 0 : Math.sin(t * 1.6) * r * 0.05;
+    const x = L.right - size * 0.52, y = L.top + size * 0.36 + bob, alpha = F.sham!.rainUntil - F.t < 2 ? 0.45 + 0.4 * pulse : 0.95;
     const fit = heroArt(fxArt, 'board-totem-rain', 'hero-rain', x, y, size, alpha);
     const lp = PXF['shaman-rain-loop'], lt = fit && !S.reducedEffects ? smoothFrame('shaman-rain-loop', loopFrame(lp, t)) : null;
     if (lt) {
       if (lt.source.scaleMode !== 'linear') lt.source.scaleMode = 'linear';
-      fxArt.put(lt, x, y + fit * 0.25, fit * 1.5, fit * 1.5, alpha);
+      const d = (fit * lp.logicalSize) / lp.referenceCell;
+      fxArt.put(lt, x, y + fit * 0.5, d, d, alpha);
     }
   } else rainShownAt = null;
 
