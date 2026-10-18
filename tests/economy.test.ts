@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { MERIT, PASS_XP } from '../src/data/economy';
 import { FEATURES } from '../src/data/features';
+import type { HeroKey } from '../src/data/heroes';
 import { DAILY, DAILY_BASIC, WEEKLY, WEEKLY_REWARD } from '../src/data/missions';
 import { clearGold } from '../src/data/progression';
 import { dayKey, daysBetween, seasonOf, weekKey } from '../src/game/clock';
@@ -110,6 +111,26 @@ describe('일일 임무 (13 2-1)', () => {
     expect(s.daily.banked).toBe(2);
     expect(claimChest(s, rng, T0 + 5 * D)).toMatchObject({ gold: runGold(20) });
     expect(s.daily.banked).toBe(1);
+  });
+  it('「해제 성공」은 지울 디버프가 나오는 레벨부터 (2026-10-18 해금 레벨 검토, 예전엔 모든 직업 Lv 5)', () => {
+    const can = (h: HeroKey, lv: number) => Array.from({ length: 40 }, (_, i) => {
+      seed = i + 1;
+      const s = newSave(1);
+      s.tut = 3; s.hero = h; s.player.level = lv;
+      rollover(s, T0, rng);
+      return s.daily.missions.some(m => m.key === 'dispel10');
+    }).some(Boolean);
+    expect([can('priest', 6), can('priest', 7), can('astrologer', 12), can('astrologer', 13), can('shaman', 21), can('shaman', 22)]).toEqual([false, true, false, true, false, true]);
+  });
+  it('직업을 바꿔 못 채우게 된 「해제 성공」은 다음 화면 진입 때 다른 임무로 (교체 횟수는 안 씀)', () => {
+    const s = save(15);
+    s.daily.missions = [{ key: 'clear3', n: 0, got: false }, { key: 'nodeath', n: 0, got: false }, { key: 'sell2', n: 0, got: false }, { key: 'dispel10', n: 3, got: false }, { key: 'mana20', n: 0, got: false }];
+    expect(rollover(s, T0, rng).fixed).toBe(0);
+    s.hero = 'shaman';
+    expect(rollover(s, T0, rng).fixed).toBe(1);
+    expect(s.daily.missions.length).toBe(5);
+    expect(s.daily.missions.map(m => m.key)).not.toContain('dispel10');
+    expect(s.daily.swapped).toBe(false);
   });
   it('하루 1번 무료 교체, 받은 임무는 못 바꿈', () => {
     const s = save(20);

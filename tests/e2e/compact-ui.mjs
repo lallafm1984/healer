@@ -1099,7 +1099,7 @@ async function persistenceAndLocks(page, ok) {
   await tapSlot(page, '#wheel [data-lock="purify"]');
   const locked = await page.evaluate(() => ({ text: document.querySelector('#toast').textContent,
     cast: window.__proto.F.cast, casts: JSON.stringify(window.__proto.F.stats.casts) }));
-  ok(/Lv 3/.test(locked.text) && !locked.cast && locked.casts === before.casts,
+  ok(/Lv 7/.test(locked.text) && !locked.cast && locked.casts === before.casts,
     '360: 축소 모드의 잠긴 스킬 탭은 해금 레벨 안내만 표시하고 시전하지 않음', locked);
 
   await page.click('#pauseBtn'); await page.click('#restartBtn');

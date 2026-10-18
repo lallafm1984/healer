@@ -343,7 +343,7 @@ async function inputs(page, check, label) {
   const before = await state(page);
   await touch(page, '#wheel [data-lock="purify"]'); s = await state(page);
   ok(!Object.keys(s.casts).length && !s.cast && !s.queued && s.talentUses === before.talentUses
-    && /Lv 3/.test(await page.textContent('#toast')), '잠긴 버튼 실제 touch는 해금 안내만 표시', s);
+    && /Lv 7/.test(await page.textContent('#toast')), '잠긴 버튼 실제 touch는 해금 안내만 표시', s);
   await reset(page);
 }
 

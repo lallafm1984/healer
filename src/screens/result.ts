@@ -149,7 +149,8 @@ function tipHtml(r: BattleResult, x: Settlement): string {
   const it = x.items[0], worn = !!it && G.save.gear.equipped[it.slot]?.id === it.id;
   // 튜토리얼 끝: 다음에 할 일 (로비 「출전」 = 길잡이가 고른 다음 장소)까지 (QA 2026-10-16, 처음 하는 사람이 다음을 몰랐음)
   if (x.tutEnd && worn) return '<p class="coachtip"><b>첫 장비</b>를 바로 장착했습니다. 튜토리얼은 여기까지. 로비의 <b>「출전」</b>을 누르면 다음 장소로 갑니다.</p>';
-  if (x.tutEnd) return '<p class="coachtip">튜토리얼은 여기까지! Lv 3에 탐험 <b>잿빛 공동묘지</b>, Lv 5에 첫 던전 <b>녹슨 요새</b></p>';
+  // 다음 장소 이름 · 레벨은 CONTENT를 따라감 (2026-10-18 해금 레벨 검토: Lv 3 탐험이 잿빛 공동묘지 → 고철 더미 언덕으로 바뀐 뒤에도 옛 이름이 남아 있었음)
+  if (x.tutEnd) { const ex = contentOf('scrapheap'), dg = contentOf('rustfort'); return `<p class="coachtip">튜토리얼은 여기까지! Lv ${ex.unlockLv}에 탐험 <b>${ex.name}</b>, Lv ${dg.unlockLv}에 첫 던전 <b>${dg.name}</b></p>`; }
   if (r.content === 'rustfort' && x.first && r.diff === '쉬움' && !G.save.clears.rustfort?.['보통']) return '<p class="coachtip">첫 던전 클리어! 다음은 녹슨 요새 <b>보통</b></p>';
   return '';
 }

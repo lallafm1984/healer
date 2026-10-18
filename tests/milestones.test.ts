@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { levelUpMilestones, nextMilestone } from '../src/data/milestones';
+import { REROLL_LEVEL, REROLL_PICK_LEVEL } from '../src/data/equipment';
 import type { HeroKey } from '../src/data/heroes';
 
 describe('현재 직업의 레벨업 안내', () => {
@@ -37,6 +38,15 @@ describe('현재 직업의 레벨업 안내', () => {
     expect(items.every(m => m.live && !otherJobs.test(m.text))).toBe(true);
     expect(items.map(m => m.text)).toContain('주간 도전 「모래시계 시련」');
     expect(items.map(m => m.text)).not.toContain('공개모집 직업 +6종');
+  });
+
+  it('장비 재설정은 실제로 열리는 레벨 (REROLL_LEVEL · REROLL_PICK_LEVEL), 해제는 Lv 7 (2026-10-18 해금 레벨 검토)', () => {
+    const at = (lv: number) => levelUpMilestones([lv], 'priest').map(m => m.text);
+    expect(at(REROLL_LEVEL)).toContain('장비 재설정 (옵션 · 특수능력 한 줄)');
+    expect(at(REROLL_PICK_LEVEL)).toContain('장비 재설정 후보 2개 중 고르기');
+    expect(at(50).some(t => t.startsWith('장비 재설정'))).toBe(false);
+    expect(at(7)).toContain('스킬 「정화」');
+    expect(at(3)).not.toContain('스킬 「정화」');
   });
 
   it('로비 다음 목표도 현재 직업 기준이며 최대 레벨 뒤에는 없음', () => {

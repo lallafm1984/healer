@@ -4,6 +4,8 @@
  */
 import { RAID10_LV } from './content';
 import { FEATURES } from './features';
+import { HEROES, type HeroKey } from './heroes';
+import { SKILL_LEVEL } from './skills';
 
 /** 판 하나가 끝났을 때 임무가 보는 값 */
 export interface RunEvent {
@@ -31,6 +33,8 @@ export interface MissionDef {
   need: number;
   /** 이 레벨부터 */
   lv: number;
+  /** 직업마다 다른 시작 레벨 (있으면 lv 대신) */
+  heroLv?: (h: HeroKey) => number;
   /** 판 하나가 몇 칸 채우는지 */
   run?: (e: RunEvent) => number;
   /** 다른 행동 (장비 판매 · 완료 상자) */
@@ -41,11 +45,21 @@ export interface MissionDef {
 
 const won = (e: RunEvent) => e.win && e.dungeon;
 
+/**
+ * 디버프 종류마다 지울 수 있는 디버프가 처음 나오는 장소 레벨 (2026-10-18 해금 레벨 검토, 자동 힐러 sim).
+ * 그 아래 장소의 같은 종류는 잠김 (lock) · 덫 (trap)뿐 (교단 약품 제조실 · 왕도 지붕길의 「역병 사슬」은 잠긴 마법)
+ */
+export const DEBUFF_FROM: Record<string, number> = { 질병: 7, 독: 13, 마법: 22, 저주: 22 };
+/** 「해제 성공」 시작 레벨: 해제 스킬을 배우고 그 직업이 지울 디버프가 나오는 레벨 (사제 · 수도사 · 성기사 7, 드루이드 · 점성술사 13, 주술사 · 결계사 22) */
+export const dispelFrom = (h: HeroKey) => Math.max(SKILL_LEVEL[HEROES[h].slots.dispel!], Math.min(...HEROES[h].dispel.map(t => DEBUFF_FROM[t] ?? 1)));
+/** 이 직업이 이 레벨에 받을 수 있는 임무인가 (길드를 빼 두면 길드 임무는 안 됨) */
+export const missionOpen = (m: MissionDef, lv: number, h: HeroKey) => (m.heroLv?.(h) ?? m.lv) <= lv && (!m.guild || FEATURES.guild);
+
 export const DAILY: MissionDef[] = [
   { key: 'clear3', text: '던전 클리어', need: 3, lv: 1, run: e => (won(e) ? 1 : 0) },
   // 길드를 빼 두면 모든 판이 공개모집이라 「던전 클리어」와 겹침 → 그동안은 「탐험 클리어」 (2026-10-17 Lim 「추천대로」, 보상 그대로). 길드를 켜면 예전 임무
   { key: 'pub2', get text() { return FEATURES.guild ? '공개모집으로 클리어' : '탐험 클리어'; }, need: 2, lv: 1, run: e => (FEATURES.guild ? (won(e) && e.pub ? 1 : 0) : (e.win && e.explore ? 1 : 0)) },
-  { key: 'dispel10', text: '해제 성공', need: 10, lv: 5, run: e => e.dispels },
+  { key: 'dispel10', text: '해제 성공', need: 10, lv: 7, heroLv: dispelFrom, run: e => e.dispels },
   { key: 'overheal', text: '오버힐 30% 이하로 클리어', need: 1, lv: 10, run: e => (won(e) && e.overhealPct <= 30 ? 1 : 0) },
   { key: 'nodeath', text: '사망자 0명으로 클리어', need: 1, lv: 1, run: e => (won(e) && e.deaths === 0 ? 1 : 0) },
   { key: 'mana20', text: '남은 마나 20% 이상으로 클리어', need: 1, lv: 1, run: e => (won(e) && e.endManaPct >= 20 ? 1 : 0) },
