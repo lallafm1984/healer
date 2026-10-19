@@ -128,7 +128,7 @@ describe('공개모집 · 길드 지원자', () => {
     const s = newSave(1);
     s.player.level = 30;
     for (let i = 0; i < 300; i++) {
-      const c = makeCandidates(s, 'normal', 'any', rng)[0];
+      const c = makeCandidates(s, rng)[0];
       expect(classOf(c.nick.replace(/\d+$/, '')), c.nick).toBe(c.cls); // 목록 이름은 숫자로 끝나지 않음
       expect(s.guild.members.some(m => m.nick === c.nick)).toBe(false);
       if (s.guild.members.length < 60) s.guild.members.push({ ...c, id: s.guild.nextId++ });

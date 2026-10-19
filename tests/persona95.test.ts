@@ -239,7 +239,9 @@ describe('공개모집 · 길드 (2026-10-18 길드 다시 켬)', () => {
     s.player.level = 40;
     const got = new Set<PersName>();
     for (let i = 0; i < 1500; i++) {
-      const c = makeCandidates(s, 'normal', 'any', rng)[0], tank = CLASSES[c.cls].role === 'tank';
+      // 희귀율 3%와 별개로 두 후보 풀의 성격/직업 계약을 모두 검사한다.
+      let roll = 0;
+      const c = makeCandidates(s, () => roll++ % 2 === 0 ? (i % 2 ? 0 : 0.99) : rng())[0], tank = CLASSES[c.cls].role === 'tank';
       expect('noTank' in PERS[c.pers] && tank, `${c.cls} ${c.pers}`).toBe(false);
       expect('tankOnly' in PERS[c.pers] && !tank, `${c.cls} ${c.pers}`).toBe(false);
       got.add(c.pers);

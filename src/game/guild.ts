@@ -9,8 +9,8 @@ import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
 import { dayOffset, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
-  APP_DAYS, appsPerDay, FAC, FAC_GOLD, SPONSOR, sponsorGold, type FacKey, DEED_STATS, DEED_WHY, FAME, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POSTS, REQ, REST_SHARE, rerollGold,
-  knowGain, knowStage, memberSkillLevel, STORY, statPerLevel, statWeights, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type PostKind, type StoryKey,
+  APP_DAYS, appsPerDay, SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POST, REQ, REST_SHARE, rerollGold,
+  knowGain, knowStage, memberSkillLevel, STORY, statPerLevel, statWeights, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type StoryKey,
 } from '../data/guild';
 import { PARTY_POOL, type PoolMember } from '../data/nicknames';
 import { PERS } from '../data/personalities';
@@ -59,23 +59,6 @@ function join(save: SaveData, m: GuildMember): GuildMember {
   return nm;
 }
 
-// ---------- 시설 (93 6-3) ----------
-export const facLv = (save: SaveData, k: FacKey) => save.guild.fac?.[k] ?? 0;
-/** 시설을 올릴 수 없는 까닭 (없으면 '') */
-export function facWhy(save: SaveData, k: FacKey): string {
-  if (capOf(save).lv < FAC[k].guildLv) return `길드 Lv ${FAC[k].guildLv}에 열림`;
-  if (facLv(save, k) >= FAC_GOLD.length) return '최고 단계';
-  return '';
-}
-export function buildFac(save: SaveData, k: FacKey): string {
-  const why = facWhy(save, k);
-  if (why) return why;
-  const c = FAC_GOLD[facLv(save, k)];
-  if (resourceBalance(save, 'gold') < c) return `골드 부족 (${c.toLocaleString()} 필요)`;
-  spendResource(save, 'gold', c);
-  save.guild.fac[k] = facLv(save, k) + 1;
-  return '';
-}
 // ---------- 스토리 동료 이슬 · 칼날 (93 4-4) ----------
 const hasStory = (save: SaveData, k: StoryKey) => save.guild.members.some(m => m.story === k) || save.guild.storyWait.includes(k);
 /** 첫 10인 레이드 클리어 = 이슬, 첫 20인 = 칼날. 정원이 차 있으면 영입 화면에서 「합류 대기」. 들어오면 합류 카드 한 번 */
@@ -114,45 +97,38 @@ export function foundGuild(save: SaveData): string[] | null {
   return out;
 }
 
-// ---------- 모집 공고 · 명문 공고 (93 4-2 ②) ----------
+// ---------- 모집 공고: 전 직업 무작위 ----------
 /** 아직 길드원이 아닌 사람 가운데 */
 function strangers(save: SaveData, ok: (p: Person) => boolean, taken: Set<string>): Person[] {
   return PEOPLE.filter(p => !isIn(save, p.nick) && !taken.has(p.nick) && ok(p));
 }
-function drawOne(list: Person[], r: () => number, rare2: boolean): Person | null {
-  if (!list.length) return null;
-  const w = (p: Person) => (rare2 && ('rare' in PERS[p.pers] || ABILITIES[p.ab]?.grade !== 'common') ? 2 : 1);
-  const tot = list.reduce((a, p) => a + w(p), 0);
-  let x = r() * tot;
-  for (const p of list) { x -= w(p); if (x <= 0) return p; }
-  return list[list.length - 1];
+function drawOne(list: Person[], r: () => number): Person | null {
+  return list.length ? list[Math.min(list.length - 1, Math.floor(r() * list.length))] : null;
 }
-/** 모집소 (93 6-3): 1 공고 지원자 +1 · 3 공고 골드 −20% · 5 명문 공고 지원자 +2 */
-export const postCands = (save: SaveData, kind: PostKind) => POSTS[kind].cands + (kind === 'normal' && facLv(save, 'post') >= 1 ? 1 : 0) + (kind === 'elite' && facLv(save, 'post') >= 5 ? 2 : 0);
-export const postCost = (save: SaveData, kind: PostKind) => Math.round(postGold(kind, topLevel(save)) * (facLv(save, 'post') >= 3 ? 0.8 : 1));
-/** 공고 지원자 n명: 모집 공고 = 역할 (tank · melee · ranged · any), 명문 공고 = 직업. 내 Lv − 5 이상인 사람 */
-export function makeCandidates(save: SaveData, kind: PostKind, pick: string, r: () => number): GuildMember[] {
+/** 고급 스킬은 희귀가 아니다. 희귀 성격 또는 희귀 등급 스킬을 가진 사람을 하나의 희귀 풀로 센다. */
+export const rareCandidate = (p: Pick<Person, 'pers' | 'ab'>) => 'rare' in PERS[p.pers] || ABILITIES[p.ab]?.grade === 'epic';
+export const postCost = (save: SaveData) => postGold(topLevel(save));
+/** 내 Lv − 5 이상, 중복 없이 3명. 희귀 여부를 먼저 굴린 뒤 해당 풀에서 직업 구분 없이 뽑는다. */
+export function makeCandidates(save: SaveData, r: () => number): GuildMember[] {
   const my = topLevel(save), taken = new Set<string>(), out: GuildMember[] = [];
-  const okRole = (p: Person) => (kind === 'elite' ? p.cls === pick : pick === 'any' || CLASSES[p.cls].role === pick);
-  const okLv = (p: Person) => worldLevel(save, p) >= my - POST_LV_GAP;
-  for (let i = 0; i < postCands(save, kind); i++) {
-    let list = strangers(save, p => okRole(p) && okLv(p), taken);
-    if (!list.length) list = strangers(save, okRole, taken);
-    const p = drawOne(list, r, kind === 'elite');
+  for (let i = 0; i < POST.cands; i++) {
+    let list = strangers(save, p => worldLevel(save, p) >= my - POST_LV_GAP, taken);
+    if (!list.length) list = strangers(save, () => true, taken);
+    const rare = r() < POST.rareChance;
+    const pool = list.filter(p => rareCandidate(p) === rare);
+    const p = drawOne(pool.length ? pool : list, r);
     if (!p) break;
     taken.add(p.nick);
     out.push(newMember(save, p, worldLevel(save, p)));
   }
   return out;
 }
-export function postRecruit(save: SaveData, kind: PostKind, pick: string, r: () => number): string {
-  const g = save.guild, p = POSTS[kind], gold = postCost(save, kind);
-  if (capOf(save).lv < p.guildLv) return `길드 Lv ${p.guildLv}에 열림`;
+export function postRecruit(save: SaveData, r: () => number): string {
+  const g = save.guild, gold = postCost(save);
   if (full(save)) return `정원 ${capOf(save).cap}명이 다 참`;
-  if (kind === 'elite' ? !RECRUIT_CLASSES.includes(pick as ClassKey) : !['tank', 'melee', 'ranged', 'any'].includes(pick)) return '고를 수 없음';
   if (resourceBalance(save, 'gold') < gold) return `골드 부족 (${gold.toLocaleString()} 필요)`;
   spendResource(save, 'gold', gold);
-  g.post = { kind, pick, cands: makeCandidates(save, kind, pick, r) };
+  g.post = { cands: makeCandidates(save, r) };
   return '';
 }
 /** 공고 지원자 중 1명 영입. 나머지는 돌아감 */
@@ -174,14 +150,14 @@ export function refreshApps(save: SaveData, r: () => number, now = Date.now()): 
   g.apps = g.apps.filter(a => a.until >= day && !isIn(save, a.m.nick));
   if (g.appsDay === day) return;
   g.appsDay = day;
-  const n = appsPerDay(capOf(save).lv) + (facLv(save, 'post') >= 4 && capOf(save).lv >= 2 ? 1 : 0), taken = new Set(g.apps.map(a => a.m.nick));
+  const n = appsPerDay(capOf(save).lv), taken = new Set(g.apps.map(a => a.m.nick));
   for (let i = 0; i < n; i++) {
     const count = (role: string) => g.members.filter(m => CLASSES[m.cls].role === role).length + g.apps.filter(a => CLASSES[a.m.cls].role === role).length;
     const role = (['tank', 'melee', 'ranged'] as const).slice().sort((a, b) => count(a) / want(a) - count(b) / want(b))[0];
-    const p = drawOne(strangers(save, x => CLASSES[x.cls].role === role, taken), r, false);
+    const p = drawOne(strangers(save, x => CLASSES[x.cls].role === role, taken), r);
     if (!p) break;
     taken.add(p.nick);
-    g.apps.push({ m: newMember(save, p, worldLevel(save, p)), until: addDays(day, APP_DAYS + (facLv(save, 'post') >= 2 ? 2 : 0) - 1) });
+    g.apps.push({ m: newMember(save, p, worldLevel(save, p)), until: addDays(day, APP_DAYS - 1) });
   }
 }
 /** 역할 비율 (파티 구성 탱커 25 · 근접 30 · 원거리 45%) */
@@ -253,18 +229,14 @@ export function release(save: SaveData, id: number): boolean {
 
 // ---------- 길드파티 편성 ----------
 /** 공략 숙지 단계 (전투 키 → 1~3, 0은 뺌) */
-export function knowStages(m: Pick<GuildMember, 'know'>, save?: SaveData): Record<string, number> {
-  const war = save ? facLv(save, 'war') : 0;
-  const out: Record<string, number> = Object.fromEntries(Object.entries(m.know).map(([k, p]) => [k, knowStage(p, war)] as const).filter(([, s]) => s > 0));
-  // 작전실 5단계 공략 공유 (93 6-3): 길드에 3단계인 사람이 있는 전투는 모두 1단계부터
-  if (save && war >= 5) for (const o of save.guild.members) for (const [k, p] of Object.entries(o.know)) if (knowStage(p, war) >= 3 && !out[k]) out[k] = 1;
-  return out;
+export function knowStages(m: Pick<GuildMember, 'know'>): Record<string, number> {
+  return Object.fromEntries(Object.entries(m.know).map(([k, p]) => [k, knowStage(p)] as const).filter(([, s]) => s > 0));
 }
 /** 전투에 넘기는 길드원: 자기 레벨 · 능력치 (그날 꾸준함 흔들림) · 스킬 레벨 · 버릇 (침착 · 판단) */
 export function memberEntry(save: SaveData, m: GuildMember, seed = 1): RosterEntry {
   return {
     role: CLASSES[m.cls].role, pers: m.pers, nick: m.nick, cls: m.cls, ab: m.ab, star: memberSkillLevel(m), lv: m.lv, pub: true,
-    fm: { stats: { ...m.stats }, off: dayOffset(m.steady, seed, m.nick) }, habit: habitOf(m.stats), gid: m.id, know: knowStages(m, save),
+    fm: { stats: { ...m.stats }, off: dayOffset(m.steady, seed, m.nick) }, habit: habitOf(m.stats), gid: m.id, know: knowStages(m),
   };
 }
 
@@ -398,9 +370,9 @@ export function guildAfter(
     const ups = addMemberXp(m, xp, cap);
     const stats = growStats(m, ups.length, o.party.find(p => p.nick === m.nick)?.deed, r);
     // 공략 숙지 (93 5-4): 이긴 판의 전투마다 학습력만큼, 보스 (마지막 전투) 단계가 오르면 결과 줄
-    const war = facLv(save, 'war'), boss = o.encs?.[o.encs.length - 1], kb = boss ? knowStage(m.know[boss] ?? 0, war) : 0;
+    const boss = o.encs?.[o.encs.length - 1], kb = boss ? knowStage(m.know[boss] ?? 0) : 0;
     for (const k of new Set(o.encs ?? [])) m.know[k] = Math.round(((m.know[k] ?? 0) + knowGain(m.learn)) * 100) / 100;
-    const ka = boss ? knowStage(m.know[boss], war) : 0;
+    const ka = boss ? knowStage(m.know[boss]) : 0;
     out.members.push({ nick: m.nick, xp, ups, stats, ...(boss && ka > kb ? { know: { enc: boss, stage: ka } } : {}) });
   }
   for (const m of g.members) if (!went.has(m.id)) {

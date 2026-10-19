@@ -21,7 +21,7 @@ export function refreshReqs(save: SaveData, stagesAll: readonly { content: strin
   const stages = stagesAll.slice(0, 8);
   const pool = g.members.slice();
   for (let i = 0; i < REQ.perDay && pool.length && stages.length; i++) {
-    const m = pool.splice(Math.floor(r() * pool.length), 1)[0], kn = knowStages(m, save);
+    const m = pool.splice(Math.floor(r() * pool.length), 1)[0], kn = knowStages(m);
     const fresh = stages.filter(s => { const c = contentOf(s.content); return c && !kn[boss(c, s.diff)]; });
     const list = fresh.length ? fresh : stages, s = list[Math.floor(r() * Math.min(3, list.length))];
     g.reqs.list.push({ nick: m.nick, content: s.content, diff: s.diff, done: false });

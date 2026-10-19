@@ -1,12 +1,8 @@
-// 길드 v2 (93 · FM 97, 2026-10-18 사슬 4번, 상점 · 편성과 같은 길드 홀 돌색 #233): 잠금 → 결성 (말없는탱 + 인연 높은 딜러) → 결성 이야기 →
-// 영입 탭 친구 초대 (범위 능력치) · 모집 공고 (역할) · 지원자 시트 (능력 ★만) → 영입 → 길드원 시트 (능력치 숫자 · 후원 · 보내기)
-// → 「길드파티로 출전」 = 전투 탭 → 편성이 길드파티 → 출발 → 보상에 길드원 경험치 · 명성 · 첫 처치 → S25 · 울트라 · 플립 넘침 · 성격 칩이 직업 · Lv를 안 덮음
-// 꺼 두면 guild-off.mjs.
+// 길드: 잠금 → 결성 → 현황 할 일 → 전 직업 공고 → 영입 → 길드원 관리 → 편성 → 부탁 경험치 보상.
+// S25 · 울트라 · 플립에서 배치와 버튼 흐름을 확인한다.
 import { chromium } from 'playwright';
 import { departGo, killEnemies, pastTitle, toParty } from './nav.mjs';
 
-const RANGED = ['mage', 'archer', 'hunter'];
-/** 1000명 줄 (src/data/nicknames.ts)의 사람: 딜러 넷 · 탱커 하나 (결성 · 친구 초대) */
 
 export default async function guild(url, shots) {
   const browser = await chromium.launch();
@@ -51,9 +47,8 @@ export default async function guild(url, shots) {
   await page.screenshot({ path: `${shots}/guild_founded.png` });
   await page.click('#storyOk'); await page.clock.runFor(50);
   ok((await page.locator('#s-guild .g-story').count()) === 0 && (await save()).guild.storySeen, '「확인」 = 이야기 카드 닫힘 (한 번만)');
-  // 현황 = 그림 칸 둘 (할 일 · 시설, 기록 제거), 처음엔 할 일. 길드원 줄은 길드원 탭에만
-  const hubs = await page.locator('#s-guild .g-hub [data-csel]').evaluateAll(els => els.map(e => [e.dataset.csel, e.getAttribute('aria-selected')]));
-  ok(JSON.stringify(hubs) === JSON.stringify([['todo', 'true'], ['fac', 'false']]) && (await page.locator('#s-guild [data-mem]').count()) === 0 && /0 \/ 10/.test(await text('#s-guild .g-goal')), `현황: 칸 둘 (할 일 고름) · 길드원 줄 없음 · 주간 목표 0 / 10 ${JSON.stringify(hubs)}`);
+  // 현황은 메뉴 칸 없이 오늘의 부탁과 주간 할 일을 바로 표시.
+  ok((await page.locator('#s-guild .g-hub, #s-guild [data-fac]').count()) === 0 && /오늘의 부탁/.test(await text('#s-guild .g-home')) && /이번 주/.test(await text('#s-guild .g-home')) && /0 \/ 10/.test(await text('#s-guild .g-goal')), '현황: 시설 · 중복 메뉴 없이 할 일만 바로 표시');
   ok((await page.locator('#s-guild [data-csel="rec"], .g-firsts').count()) === 0, '현황 기록 메뉴 제거');
   await page.click('#s-guild .g-card[data-sec="todo"] .g-info'); await page.clock.runFor(50);
   ok(/주간 목표/.test(await text('#s-guild .g-tip')) && await page.getAttribute('#s-guild .g-card[data-sec="todo"] .g-info', 'aria-expanded') === 'true', 'ⓘ = 설명 펼침');
@@ -64,21 +59,13 @@ export default async function guild(url, shots) {
   // 영입은 공고와 명성 지원자만. 친구·명부·인연 안내가 없다.
   await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-guild [data-csel="friend"], #s-guild [data-csel="roster"], #s-guild [data-friend]').count()) === 0 && !/친구|인연|명부/.test(await text('#s-guild .g-recruit')), '친구 초대 · 명부 · 인연 안내 제거');
-  const compactPost = await page.locator('#s-guild .g-hub.n1').evaluate(el => {
-    const box = el.getBoundingClientRect(), tile = el.querySelector('button').getBoundingClientRect();
-    return Math.abs(box.width - tile.width) < 2 && tile.height >= 44 && tile.height <= 64;
-  });
-  ok(compactPost, '길드 Lv 1 공고 메뉴: 빈 칸 없이 한 줄 · 터치 영역 확보');
-
-  // ---- 모집 공고 (93 4-2 ②): 역할 고름 · 내 Lv × 30 ----
-  await page.click('#s-guild [data-csel="post"]'); await page.clock.runFor(50);
-  await page.click('#s-guild [data-role="ranged"]'); await page.clock.runFor(50);
-  ok(await page.getAttribute('#s-guild [data-role="ranged"]', 'aria-pressed') === 'true', '역할 칩 원거리 고름');
-  ok(/명문 공고/.test(await text('#s-guild .g-recruit')) && await page.isDisabled('#s-guild [data-pkind="elite"]') && (await page.locator('#s-guild [data-post="elite"]').count()) === 0, '명문 공고는 길드 Lv 4에 열림 (고르는 칸 잠김 · 버튼 없음)');
+  ok((await page.locator('#s-guild .g-hub').count()) === 0 && await page.isVisible('#s-guild [data-sec="post"]'), '길드 Lv 1: 모집 공고를 바로 표시');
+  ok((await page.locator('#s-guild [data-pkind], #s-guild [data-role], #s-guild [data-pickcls]').count()) === 0 && !/명문 공고/.test(await text('#s-guild .g-recruit')), '명문 · 역할 · 직업 선택 제거');
+  ok(/모든 직업 무작위/.test(await text('#s-guild .g-post-summary')) && /희귀 등장 3%/.test(await text('#s-guild .g-post-summary')), '통합 공고: 전 직업 무작위 · 희귀 3% 안내');
   await page.click('#s-guild [data-post="normal"]'); await page.clock.runFor(50);
   sv = await save();
   const cands = sv.guild.post?.cands ?? [];
-  ok(sv.player.gold === 20000 - 900 && cands.length === 3 && cands.every(c => RANGED.includes(c.cls) && c.lv >= 25), `공고 = 골드 900, 원거리 3명 (Lv 25 이상) ${cands.map(c => `${c.cls} ${c.lv}`)}`);
+  ok(sv.player.gold === 20000 - 900 && cands.length === 3 && cands.every(c => c.lv >= 25), `공고 = 골드 900, 무작위 3명 (Lv 25 이상) ${cands.map(c => `${c.cls} ${c.lv}`)}`);
   ok(await page.isVisible('#s-guild .subtabs [data-sub="recruit"] .rdot') && (await page.locator('#s-guild [data-hire]').count()) === 3, '지원자 있으면 영입 탭 빨간 점 · 줄마다 영입');
   await page.click('#s-guild [data-cand="0"] .f-mt'); await page.clock.runFor(50);
   ok(await sheetOpen() && (await page.locator('#s-guild .g-msheet .fm-grid li').count()) === 12 && !/친구|인연/.test(await text('#s-guild .g-msheet')), '지원자의 정확한 능력치 12칸을 영입 전에 확인');
@@ -88,7 +75,6 @@ export default async function guild(url, shots) {
   sv = await save();
   const hired = sv.guild.members.find(m => m.nick === cands[0].nick);
   ok(sv.guild.members.length === 5 && sv.guild.post === null && hired && !sv.users, `영입: ${cands[0].nick} (추가 비용 없음), 5/6`);
-  await page.click('#s-guild [data-role="tank"]'); await page.clock.runFor(50);
   await page.click('#s-guild [data-post="normal"]'); await page.clock.runFor(50);
   await page.click('#s-guild [data-hire="0"]'); await page.clock.runFor(50);
   sv = await save();

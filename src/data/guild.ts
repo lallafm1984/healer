@@ -26,14 +26,9 @@ export function guildLvOf(fame: number): { lv: number; cap: number; next: number
 export const FAME = { win: 1, raid10: 2, raid20: 3, first: 3 };
 
 // ---------- 영입 (93 4-2) ----------
-export type PostKind = 'normal' | 'elite';
-export type PostRole = 'tank' | 'melee' | 'ranged' | 'any';
-/** 모집 공고: 역할 고름 · 지원자 3명 · 내 Lv × 30 골드, 명문 공고 (길드 Lv 4): 직업 고름 · 지원자 5명 · 희귀 성격 · 희귀 스킬 2배 · 내 Lv × 150 골드 */
-export const POSTS: Record<PostKind, { name: string; per: number; cands: number; guildLv: number }> = {
-  normal: { name: '모집 공고', per: 30, cands: 3, guildLv: 1 },
-  elite: { name: '명문 공고', per: 150, cands: 5, guildLv: 4 },
-};
-export const postGold = (kind: PostKind, myLv: number) => POSTS[kind].per * myLv;
+/** 모집 공고 하나: 전 직업 무작위 3명 · 내 Lv × 30 골드. 희귀 성격 또는 희귀 스킬 보유자는 지원자당 3%. */
+export const POST = { name: '모집 공고', per: 30, cands: 3, rareChance: 0.03 };
+export const postGold = (myLv: number) => POST.per * myLv;
 /** 공고 지원자는 내 Lv − 5 이상인 사람 (바로 쓸 사람, 13-1). 명성 지원자는 레벨 상관없이 (원석이 섞임) */
 export const POST_LV_GAP = 5;
 /** 명성 지원자: 길드 Lv 2 하루 1명 · Lv 6 2명 · Lv 9 3명, 사흘 동안 머묾 */
@@ -156,20 +151,8 @@ export function deedOf(x: { did: { dodge: number; move: number; cut: number; bus
  */
 export const KNOW: { at: number[]; react: number[]; dodge: number[]; taken: number[] } = { at: [0.5, 3, 6], react: [1, 0.95, 0.9, 0.8], dodge: [0, 0.01, 0.03, 0.05], taken: [1, 0.99, 0.987, 0.985] };
 export const knowGain = (learn: number) => lerp3(learn, 0.7, 1, 1.4);
-/** 단계 (작전실 단계 war: 문턱을 줄임, 93 6-3) */
-export const knowStage = (pt: number, war = 0) => (WAR_AT[Math.min(4, war)] ?? KNOW.at).filter(x => pt + 1e-9 >= x).length;
-
-// ---------- 시설 (93 6-3, 업데이트 묶음 7번 PR): 골드로 1~5단계 ----------
-export type FacKey = 'war' | 'post';
-export const FAC_KEYS: FacKey[] = ['war', 'post'];
-/** 단계마다 골드 (시설 하나 15.5만, 둘 31만) */
-export const FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
-export const FAC: Record<FacKey, { name: string; guildLv: number; steps: string[] }> = {
-  war: { name: '작전실', guildLv: 6, steps: ['숙지 3단계 6번 → 5번', '숙지 2단계 3번 → 2번', '숙지 3단계 5번 → 4번', '숙지 3단계 4번 → 3번', '공략 공유: 3단계 길드원이 있는 보스는 모두 1단계부터'] },
-  post: { name: '모집소', guildLv: 7, steps: ['공고 지원자 +1', '명성 지원자 머무는 날 +2', '공고 골드 −20%', '명성 지원자 하루 +1', '명문 공고 지원자 +2'] },
-};
-/** 작전실: 숙지 문턱 (단계 0~4). 5단계 = 공략 공유 */
-export const WAR_AT: number[][] = [[0.5, 3, 6], [0.5, 3, 5], [0.5, 2, 5], [0.5, 2, 4], [0.5, 2, 3]];
+/** 공략 숙지 단계: 시설 보정 없이 개인의 숙지 점수만 사용한다. */
+export const knowStage = (pt: number) => KNOW.at.filter(x => pt + 1e-9 >= x).length;
 
 // ---------- 부탁 쪽지 · 주간 원정 (93 8장, 업데이트 묶음) ----------
 /** 매일 2장: 길드원이 「○○ 어려움 같이 가자」, 그 사람을 넣고 깨면 끝. 완료한 전투에서 그 길드원의 경험치 ×2 (부탁마다 한 번). 날이 바뀌면 새로 (쌓이지 않음) */

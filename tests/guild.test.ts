@@ -5,11 +5,11 @@
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/data/abilities';
-import { CLASSES, type ClassKey } from '../src/data/classes';
+import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
 import {
-  deedOf, FAME, guildLvOf, habitOf, KNOW, knowGain, knowStage, POSTS, postGold, REST_SHARE, rerollGold, SPONSOR, sponsorGold, memberSkillLevel, statCap, statPerLevel, statPot, statTop, statWeights, STORY, type GuildMember,
+  deedOf, FAME, guildLvOf, habitOf, KNOW, knowGain, knowStage, POST, postGold, REST_SHARE, rerollGold, SPONSOR, sponsorGold, memberSkillLevel, statCap, statPerLevel, statPot, statTop, statWeights, STORY, type GuildMember,
 } from '../src/data/guild';
 import { DAILY, GUILD_GOAL } from '../src/data/missions';
 import { PARTY_POOL, STORY_NICKS } from '../src/data/nicknames';
@@ -127,51 +127,56 @@ describe('결성 (93 4-1)', () => {
   it('만남 기록 없이 네 명 결성, 스토리 동료는 공고에 안 나옴', () => {
     const s = save(20);
     expect(Gd.foundGuild(s)).toHaveLength(4);
-    for (let i = 0; i < 30; i++) expect(STORY_NICKS).not.toContain(Gd.makeCandidates(s, 'normal', 'any', rng)[0].nick);
+    for (let i = 0; i < 30; i++) expect(STORY_NICKS).not.toContain(Gd.makeCandidates(s, rng)[0].nick);
   });
 });
 
 describe('영입 (93 4-2)', () => {
   beforeEach(() => { seed = 7; });
-  it('모집 공고: 내 Lv × 30 골드, 고른 역할 3명 (내 Lv − 5 이상), 1명 영입하면 나머지는 돌아감', () => {
+  it('모집 공고: 내 Lv × 30 골드, 전 직업 무작위 3명 (내 Lv − 5 이상), 1명 영입하면 나머지는 돌아감', () => {
     const s = save(30, 1000);
-    expect(postGold('normal', 30)).toBe(900);
-    expect(Gd.postRecruit(s, 'normal', 'tank', rng)).toBe('');
+    expect(postGold(30)).toBe(900);
+    expect(Gd.postRecruit(s, rng)).toBe('');
     expect(s.player.gold).toBe(100);
     const cands = s.guild.post!.cands;
-    expect(cands.length).toBe(POSTS.normal.cands);
+    expect(cands.length).toBe(POST.cands);
     for (const c of cands) {
-      expect(CLASSES[c.cls].role).toBe('tank');
       expect(c.lv).toBeGreaterThanOrEqual(25); expect(c.lv).toBeLessThanOrEqual(30);
       expect(ABILITIES[c.ab].cls).toBe(c.cls);
     }
     expect(new Set(cands.map(x => x.nick)).size).toBe(3);
-    expect(Gd.postRecruit(s, 'normal', 'any', rng)).toMatch(/골드 부족/);
+    expect(Gd.postRecruit(s, rng)).toMatch(/골드 부족/);
     const pick = cands[1];
     expect(Gd.hire(s, 1)).toBe('');
     expect([s.guild.members.length, s.guild.members[0].nick, s.guild.post]).toEqual([1, pick.nick, null]);
   });
-  it('명문 공고: 길드 Lv 4부터, 고른 직업 5명, 희귀 성격 · 희귀 스킬이 더 자주', () => {
+  it('하나의 모집 공고에서 모든 직업이 나오고 희귀는 지원자당 약 3%', () => {
+    const s = save(40), classes = new Set<string>();
+    let rare = 0, all = 0;
+    for (let i = 0; i < 1000; i++) {
+      const cands = Gd.makeCandidates(s, rng);
+      expect(new Set(cands.map(c => c.nick)).size).toBe(3);
+      for (const c of cands) { classes.add(c.cls); all++; if (Gd.rareCandidate(c)) rare++; }
+    }
+    expect([...classes].sort()).toEqual([...RECRUIT_CLASSES].sort());
+    expect(rare / all).toBeGreaterThan(0.02);
+    expect(rare / all).toBeLessThan(0.04);
+    const existing = add(s, 'mage', 0);
+    for (let i = 0; i < 50; i++) expect(Gd.makeCandidates(s, rng).map(c => c.nick)).not.toContain(existing.nick);
+  });
+  it('희귀 확률 경계와 고급 스킬 구분', () => {
     const s = save(40);
-    expect(Gd.postRecruit(s, 'elite', 'mage', rng)).toMatch(/길드 Lv 4/);
-    s.guild.fame = 120;
-    const gold = s.player.gold;
-    expect(Gd.postRecruit(s, 'elite', 'mage', rng)).toBe('');
-    expect(s.player.gold).toBe(gold - 150 * 40);
-    expect(s.guild.post!.cands.map(c => c.cls)).toEqual(Array(5).fill('mage'));
-    expect(Gd.postRecruit(s, 'elite', 'tank', rng)).toBe('고를 수 없음');
-    const rare = (kind: 'normal' | 'elite') => {
-      let n = 0, all = 0;
-      for (let i = 0; i < 200; i++) for (const c of Gd.makeCandidates(s, kind, kind === 'elite' ? 'mage' : 'any', rng)) { all++; if ('rare' in PERS[c.pers] || ABILITIES[c.ab].grade !== 'common') n++; }
-      return n / all;
-    };
-    expect(rare('elite')).toBeGreaterThan(rare('normal') * 1.2);
+    const roll = (chance: number) => { let n = 0; return () => n++ % 2 === 0 ? chance : 0.5; };
+    expect(Gd.makeCandidates(s, roll(POST.rareChance - 0.00001)).every(Gd.rareCandidate)).toBe(true);
+    expect(Gd.makeCandidates(s, roll(POST.rareChance)).some(Gd.rareCandidate)).toBe(false);
+    const advanced = Object.values(ABILITIES).find(a => a.grade === 'rare')!;
+    expect(Gd.rareCandidate({ pers: '고집불통', ab: advanced.key })).toBe(false);
   });
   it('정원이 다 차면 공고 · 영입 안 됨', () => {
     const s = save(15);
     for (let i = 0; i < 6; i++) add(s, 'mage', i);
-    expect(Gd.postRecruit(s, 'normal', 'any', rng)).toMatch(/정원/);
-    s.guild.post = { kind: 'normal', pick: 'any', cands: Gd.makeCandidates(s, 'normal', 'any', rng) };
+    expect(Gd.postRecruit(s, rng)).toMatch(/정원/);
+    s.guild.post = { cands: Gd.makeCandidates(s, rng) };
     expect(Gd.hire(s, 0)).toMatch(/정원/);
   });
   it('명성 지원자: 길드 Lv 2부터 하루 1명 (Lv 6 2명 · Lv 9 3명), 사흘 머묾, 적은 역할부터', () => {
@@ -577,7 +582,7 @@ describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
     expect(Gd.restSponsor(s)).toEqual({ ids: [b.id, c.id], gold: sponsorGold(22) + sponsorGold(28) });
     expect(Gd.sponsorRest(s)).toBe('');
     expect([a.boost, b.boost, c.boost]).toEqual([0, 5, 5]);
-    expect(SAVE_VERSION).toBe(21);
+    expect(SAVE_VERSION).toBe(22);
     expect(migrate(JSON.parse(JSON.stringify(s))).guild.members.map(m => m.boost)).toEqual([0, 5, 5]);
     expect(migrate({ v: 20, guild: { founded: true, members: [{ ...b, boost: 99 }], nextId: 9 } }).guild.members[0].boost).toBe(SPONSOR.max);
     const gold = s.player.gold;
@@ -597,8 +602,8 @@ describe('v21 친구·인연 제거 저장 이전', () => {
     const d = migrate(old), kept = d.guild.members[0];
     expect(memberSkillLevel(kept)).toBe(4);
     expect(kept).toMatchObject({ id: m.id, lv: 19, xp: 11, boost: 10, stats: m.stats, lastStatGains: ['atk'], know: { warden: 6 } });
-    expect(d.player.gold).toBe(s.player.gold + 35000);
-    expect(d.guild.fac).toEqual({ war: 2, post: 3 });
+    expect(d.player.gold).toBe(s.player.gold + 35000 + 15000 + 35000);
+    expect(d.guild).not.toHaveProperty('fac');
     expect(d).not.toHaveProperty('users');
     expect(d.guild).not.toHaveProperty('away');
     const again = migrate(JSON.parse(JSON.stringify(d)));

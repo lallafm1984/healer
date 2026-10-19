@@ -1,10 +1,10 @@
-/** 길드 업데이트 묶음 (93 4-4 · 6-3 · 8장, 사슬 7번): 시설 둘 · 부탁 쪽지 · 주간 원정 · 스토리 동료 이슬 · 칼날 · 고유 스킬 */
+/** 길드 업데이트 묶음 (93 4-4 · 6-3 · 8장, 사슬 7번): 부탁 쪽지 · 주간 원정 · 스토리 동료 이슬 · 칼날 · 고유 스킬 */
 import { beforeAll, describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/data/abilities';
 import { CONTENT } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
-import { EXPED, FAC_GOLD, knowStage, POSTS, REQ, STORY, type GuildMember } from '../src/data/guild';
+import { EXPED, knowStage, REQ, STORY, type GuildMember } from '../src/data/guild';
 import { PARTY_POOL } from '../src/data/nicknames';
 import * as E from '../src/engine';
 import { claimExped } from '../src/game/economy';
@@ -28,38 +28,36 @@ function add(s: SaveData, cls: 'warrior' | 'mage' | 'archer' = 'mage', i = 0, o:
 }
 beforeAll(() => { FEATURES.guild = true; });
 
-describe('시설 (93 6-3)', () => {
-  it('골드 5,000 · 10,000 · 20,000 · 40,000 · 80,000, 길드 Lv 6 · 7에 열림, 5단계까지', () => {
-    const s = save();
-    expect(Gd.buildFac(s, 'war')).toMatch(/길드 Lv 6/);
-    s.guild.fame = 320;
-    let gold = s.player.gold;
-    for (let i = 0; i < 5; i++) { expect(Gd.buildFac(s, 'war')).toBe(''); gold -= FAC_GOLD[i]; }
-    expect([Gd.facLv(s, 'war'), s.player.gold]).toEqual([5, gold]);
-    expect(Gd.buildFac(s, 'war')).toBe('최고 단계');
-    expect(Gd.buildFac(s, 'post')).toMatch(/길드 Lv 7/);
-    expect(migrate(JSON.parse(JSON.stringify(s))).guild.fac).toEqual({ war: 5, post: 0 });
+describe('시설 제거와 저장 보존 (v22)', () => {
+  it('v21 시설 투자액은 한 번 환급, 옛 명문 공고 지원자는 모두 보존', () => {
+    const s = save(), a = add(s, 'mage', 0), b = add(s, 'mage', 1);
+    const cands = Gd.makeCandidates(s, rng);
+    const old = { ...s, v: 21, guild: { ...s.guild, fac: { war: 5, post: 3, feast: 5 }, post: { kind: 'elite', pick: 'mage', cands } } };
+    const d = migrate(old);
+    expect(d.player.gold).toBe(s.player.gold + 155000 + 35000);
+    expect(d.guild).not.toHaveProperty('fac');
+    expect(d.guild.post).toEqual({ cands: cands.map(c => ({ ...c, skillFloor: 1 })) });
+    expect(d.guild.members).toEqual([a, b].map(m => ({ ...m, skillFloor: 1 })));
+    expect(migrate(JSON.parse(JSON.stringify(d)))).toEqual(d);
   });
-  it('작전실: 숙지 문턱이 줄고, 5단계는 3단계 길드원이 있는 전투를 모두 1단계부터 (공략 공유)', () => {
-    expect([0, 1, 2, 3, 4].map(w => knowStage(3, w))).toEqual([2, 2, 2, 2, 3]);
-    expect([0, 1, 2, 3, 4].map(w => knowStage(2, w))).toEqual([1, 1, 2, 2, 2]);
-    expect(knowStage(5, 1)).toBe(3);
+  it('시설 환급은 잘못된 값을 제외하고 단계 상한까지', () => {
+    const s = save();
+    expect(migrate({ ...s, v: 21, guild: { ...s.guild, fac: { war: NaN, post: -3 } } }).player.gold).toBe(s.player.gold);
+    expect(migrate({ ...s, v: 21, guild: { ...s.guild, fac: { war: 99, post: '5' } } }).player.gold).toBe(s.player.gold + 155000);
+  });
+  it('숙지는 개인 점수만 적용하고 공략 공유는 없음', () => {
+    expect([0, 0.5, 2, 3, 5, 6].map(p => knowStage(p))).toEqual([0, 1, 1, 2, 2, 3]);
     const s = save(), a = add(s, 'mage', 0), b = add(s, 'mage', 1);
     a.know = { warden: 6 };
-    expect(Gd.knowStages(b, s)).toEqual({});
-    s.guild.fac.war = 5;
-    expect(Gd.knowStages(b, s)).toEqual({ warden: 1 });
-    expect(Gd.memberEntry(s, b).know).toEqual({ warden: 1 });
+    expect(Gd.knowStages(a)).toEqual({ warden: 3 });
+    expect(Gd.memberEntry(s, b).know).toEqual({});
   });
-  it('모집소: 공고 지원자 +1 · 머무는 날 +2 · 공고 골드 −20% · 명성 지원자 +1 · 명문 지원자 +2', () => {
-    const s = save(30);
-    expect(Gd.postCands(s, 'normal')).toBe(POSTS.normal.cands);
-    s.guild.fac.post = 5;
-    expect([Gd.postCands(s, 'normal'), Gd.postCands(s, 'elite'), Gd.postCost(s, 'normal')]).toEqual([POSTS.normal.cands + 1, POSTS.elite.cands + 2, Math.round(30 * 30 * 0.8)]);
-    s.guild.fame = 480; // 길드 Lv 7: 하루 2 + 1명
+  it('명성 지원자는 기본 인원과 사흘 체류를 사용', () => {
+    const s = save(30); s.guild.fame = 480;
+    expect(Gd.postCost(s)).toBe(900);
     Gd.refreshApps(s, rng, new Date(2026, 9, 7, 12).getTime());
-    expect(s.guild.apps.length).toBe(3);
-    expect(s.guild.apps[0].until).toBe('2026-10-11'); // 사흘 + 이틀
+    expect(s.guild.apps.length).toBe(2);
+    expect(s.guild.apps[0].until).toBe('2026-10-09');
   });
 });
 
@@ -81,7 +79,7 @@ describe('스토리 동료 이슬 · 칼날 (93 4-4)', () => {
     expect(Gd.rerollAbility(s, isle.id, rng)).toMatch(/고유/);
   });
   it('고유 스킬은 뽑기 목록에 없음, 옛 말없는탱은 「끝까지 곁에」로', () => {
-    for (let i = 0; i < 300; i++) expect(['warrior.holdFast', 'archer.mend', 'swordsman.flurry']).not.toContain(Gd.makeCandidates(save(), 'normal', 'any', rng)[0].ab);
+    for (let i = 0; i < 300; i++) expect(['warrior.holdFast', 'archer.mend', 'swordsman.flurry']).not.toContain(Gd.makeCandidates(save(), rng)[0].ab);
     const s = save(20);
     Gd.foundGuild({ ...s, guild: { ...s.guild, founded: false } } as SaveData);
     const old = { ...newSave(1), v: 20, guild: { ...newSave(1).guild, founded: true, members: [{ id: 1, nick: '말없는탱', cls: 'warrior', pers: '고집불통', ab: 'warrior.intervene', lv: 20, story: 'tank' }], nextId: 2 } };

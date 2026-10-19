@@ -10,7 +10,7 @@ import { namedOf, SPECS } from '../data/specials';
 import { rngFrom } from '../engine/rng';
 import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
-import { FAC_GOLD, FAC_KEYS, GUILD_NAME, SPONSOR, STORY, type FacKey, type GuildMember, type PostKind, type StoryKey } from '../data/guild';
+import { GUILD_NAME, SPONSOR, STORY, type GuildMember, type StoryKey } from '../data/guild';
 import { PARTY_POOL } from '../data/nicknames';
 import { profileOf, STAT_KEYS, type Stats } from '../data/fm';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
@@ -25,8 +25,10 @@ export const SAVE_KEY = 'healer.save';
  * v15 (2026-10-16 Lim): 소비 아이템 단축칸 · 가방을 없앰. v16 (2026-10-16 Lim): 골드를 없앰 (옛 저장의 골드는 버림).
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
-/** v21: 친구·인연 제거, 기존 스킬 단계 보존, 연회장 투자액 환급. */
-export const SAVE_VERSION = 21;
+/** v22: 시설 제거·투자액 환급, 공고 통합. 기존 지원자는 그대로 보존한다. */
+export const SAVE_VERSION = 22;
+/** 없어진 시설의 단계별 투자액. 저장 이전에만 사용한다. */
+const LEGACY_FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
 export const MAT_GOLD = { stone: 100, refined: 500 };
 
@@ -113,8 +115,8 @@ export interface GuildSave {
   founded: boolean;
   storySeen: boolean;
   members: GuildMember[];
-  /** 낸 공고와 지원자 (고를 때까지 남음). pick = 역할 (모집 공고) · 직업 (명문 공고) */
-  post: { kind: PostKind; pick: string; cands: GuildMember[] } | null;
+  /** 낸 공고의 지원자 (고를 때까지 남음). 옛 명문·직업 공고 지원자도 보존한다. */
+  post: { cands: GuildMember[] } | null;
   /** 명성 지원자 (until = 떠나는 날 YYYY-MM-DD) · 마지막으로 채운 날 */
   apps: { m: GuildMember; until: string }[];
   appsDay: string;
@@ -127,8 +129,6 @@ export interface GuildSave {
   nextId: number;
   /** 규모마다 지난 편성 (탐험 3 · 5인 · 10 · 20인, 길드원 id) */
   picks: Partial<Record<'3' | '5' | '10' | '20', number[]>>;
-  /** 시설 단계 0~5 (93 6-3) */
-  fac: Record<FacKey, number>;
   /** 스토리 동료 (93 4-4): 정원이 차서 영입 화면에서 기다림 · 한 번 보여 줄 합류 카드 */
   storyWait: StoryKey[];
   storyCard: StoryKey | null;
@@ -139,7 +139,7 @@ export interface GuildSave {
 }
 
 export const newGuild = (): GuildSave => ({ name: GUILD_NAME, founded: false, storySeen: false, members: [], post: null, apps: [], appsDay: '', fame: 0, wins: 0, firsts: [], firstLog: [], nextId: 1, picks: {},
-  fac: { war: 0, post: 0 }, storyWait: [], storyCard: null, reqs: { day: '', list: [] }, exped: { week: '', list: [], got: false } });
+  storyWait: [], storyCard: null, reqs: { day: '', list: [] }, exped: { week: '', list: [], got: false } });
 
 /** 임무 하나: 진행 · 보상 받음 */
 export interface MissionSave { key: string; n: number; got: boolean }
@@ -341,10 +341,11 @@ export function migrate(raw: unknown): SaveData {
     // 일일 임무 「장비 강화」 → 「장비 판매」 (진행 그대로)
     for (const m of out.daily.missions) if (m.key === 'enhance2') m.key = 'sell2';
   } else if (typeof out.player.gold !== 'number' || !isFinite(out.player.gold)) out.player.gold = 0;
-  // v21: 없어진 연회장 투자액을 한 번 돌려주고, 친구·인연 기록은 저장하지 않는다.
-  if ((o.v ?? 0) < 21) {
-    const feast = (o.guild?.fac as Record<string, unknown> | undefined)?.feast;
-    if (typeof feast === 'number' && Number.isFinite(feast)) out.player.gold += FAC_GOLD.slice(0, Math.max(0, Math.min(5, Math.round(feast)))).reduce((a, n) => a + n, 0);
+  // 제거된 시설에 쓴 골드를 한 번 환급한다. v21에서 이미 환급한 연회장은 다시 더하지 않는다.
+  const oldFac = (o.guild as unknown as { fac?: Record<string, unknown> } | undefined)?.fac;
+  for (const key of (o.v ?? 0) < 21 ? ['feast', 'war', 'post'] : (o.v ?? 0) < 22 ? ['war', 'post'] : []) {
+    const lv = oldFac?.[key];
+    if (typeof lv === 'number' && Number.isFinite(lv)) out.player.gold += LEGACY_FAC_GOLD.slice(0, Math.max(0, Math.min(5, Math.round(lv)))).reduce((a, n) => a + n, 0);
   }
   delete (out.weekly.guild as unknown as Record<string, unknown>).ran;
   for (const k of ['mats'] as const) delete (out as unknown as Record<string, unknown>)[k];
@@ -665,14 +666,13 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
     name: typeof g.name === 'string' ? g.name : d.name,
     founded: !!g.founded, storySeen: !!g.storySeen,
     members: mem(g.members),
-    post: g.post && typeof g.post === 'object' && Array.isArray(g.post.cands) ? { kind: g.post.kind === 'elite' ? 'elite' : 'normal', pick: String(g.post.pick ?? 'any'), cands: mem(g.post.cands) } : null,
+    post: g.post && typeof g.post === 'object' && Array.isArray(g.post.cands) ? { cands: mem(g.post.cands) } : null,
     apps: Array.isArray(g.apps) ? g.apps.flatMap(a => { const m = a && typeof a === 'object' ? member((a as { m?: unknown }).m) : null; return m ? [{ m, until: String((a as { until?: unknown }).until ?? '') }] : []; }) : [],
     appsDay: typeof g.appsDay === 'string' ? g.appsDay : '',
     fame: num(g.fame), wins: num(g.wins), firsts: Array.isArray(g.firsts) ? g.firsts.filter((x): x is string => typeof x === 'string') : [],
     firstLog: Array.isArray(g.firstLog) ? g.firstLog.flatMap(x => (x && typeof x === 'object' && typeof x.key === 'string' ? [{ key: x.key, day: String(x.day ?? ''), sec: num(x.sec), nicks: Array.isArray(x.nicks) ? x.nicks.filter((y): y is string => typeof y === 'string').slice(0, 25) : [] }] : [])).slice(-200) : [],
     nextId: num(g.nextId, 1),
     picks: g.picks && typeof g.picks === 'object' ? Object.fromEntries(Object.entries(g.picks).filter(([k, v]) => ['3', '5', '10', '20'].includes(k) && Array.isArray(v)).map(([k, v]) => [k, (v as unknown[]).filter((x): x is number => typeof x === 'number')])) : {},
-    fac: Object.fromEntries(FAC_KEYS.map(k => [k, Math.max(0, Math.min(5, Math.round(num((g.fac as Record<string, unknown> | undefined)?.[k]))))])) as Record<FacKey, number>,
     storyWait: Array.isArray(g.storyWait) ? g.storyWait.filter((x): x is StoryKey => typeof x === 'string' && x in STORY) : [],
     storyCard: typeof g.storyCard === 'string' && g.storyCard in STORY ? g.storyCard : null,
     reqs: g.reqs && typeof g.reqs === 'object' && Array.isArray(g.reqs.list) ? { day: String(g.reqs.day ?? ''), list: g.reqs.list.flatMap(x => (x && typeof x.nick === 'string' && typeof x.content === 'string' && DIFF_NAMES.includes(x.diff) ? [{ nick: x.nick, content: x.content, diff: x.diff, done: !!x.done }] : [])).slice(0, 4) } : d.reqs,

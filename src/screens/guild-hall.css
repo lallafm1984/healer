@@ -70,7 +70,7 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .g-more svg { width: 16px; height: 16px; }
 
 /* ---------- 공통 부품 (2026-10-19 Lim 「길드컨텐츠 ui 디자인이 형편없다 … 일관을 유지하면서 필요한 정보만」) ----------
- * 판 = .g-card 하나: 머리 .g-hd (그림 · 제목 · 숫자 · ⓘ) + 몸 (.g-rows 줄 · .pcards 파티원 줄 · .g-tiles 숫자 칸 · .g-facs 시설 칸).
+ * 판 = .g-card 하나: 머리 .g-hd (그림 · 제목 · 숫자 · ⓘ) + 몸 (.g-rows 줄 · .pcards 파티원 줄 · .g-tiles 숫자 칸).
  * 줄 = 그림 · 이름 (+ 한 줄) · 오른쪽 숫자 · 알약. 보상 · 상태 = .g-pill (그림 + 짧은 글). 규칙 · 긴 설명 = ⓘ → .g-tip.
  * 버튼: 할 일 · 주 동작 = 붉은 .btn.primary (줄 안은 mini), 그 밖 = 돌 .btn. 같은 일을 다른 모양으로 만들지 않는다. */
 #s-guild .panel { margin: 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
@@ -141,18 +141,6 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .g-tiles b { font: 800 17px/1.1 var(--font-body); color: var(--gk-num); font-variant-numeric: tabular-nums; }
 #s-guild .g-tiles small { font-size: 11px; line-height: 1.2; color: var(--gk-ink2); word-break: keep-all; }
 /* 시설 칸 셋 */
-#s-guild .g-facs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 10px; list-style: none; }
-#s-guild .g-fac { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; padding: 8px 4px; border-radius: 10px; background: #15120e99; border: 1px solid var(--gk-line); }
-#s-guild .g-fi { width: 44px; height: 44px; display: grid; place-items: center; }
-#s-guild .g-fi > .g-ic { width: 44px; height: 44px; object-fit: contain; }
-#s-guild .g-fac > b { font: 700 13px var(--font-body); color: var(--gk-ink); }
-#s-guild .g-pips { display: flex; gap: 3px; }
-#s-guild .g-pips > i { width: 8px; height: 8px; border-radius: 2px; transform: rotate(45deg); background: #0d0b08; border: 1px solid var(--gk-card-bd); }
-#s-guild .g-pips > i.on { background: linear-gradient(135deg, #ffe48a, #c99b3f); border-color: #ffd34d; }
-#s-guild .g-fac > .btn { width: 100%; min-height: 40px; margin: 0; padding: 4px 2px; }
-#s-guild .g-fac .currency-amount { justify-content: center; }
-#s-guild .g-fac .g-lockt { display: inline-flex; align-items: center; gap: 2px; min-height: 40px; font-size: 11px; color: var(--gk-mute); white-space: nowrap; }
-#s-guild .g-fac .g-lockt svg { width: 11px; height: 11px; }
 /* 줄 위 한 줄 동작 (쉬는 길드원 모두 후원) */
 #s-guild .g-act { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 12px; background: #15120e66; border-bottom: 1px solid var(--gk-line); }
 #s-guild .g-actt { flex: 1; min-width: 0; font-size: 13px; color: var(--gk-ink2); }
@@ -164,19 +152,8 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .g-more svg { width: 16px; height: 16px; }
 #s-guild .g-more[aria-expanded="true"] svg { transform: rotate(-90deg); }
 #s-guild .g-tiles + .g-more { border-top: 1px solid var(--gk-line); }
-/* 공고: 종류 (모집 · 명문) 둘 중 하나 → 역할 · 직업 칩 → 버튼 하나 */
+/* 모집 공고: 무작위 지원자 안내 · 비용 · 버튼 하나 */
 #s-guild .g-body { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 12px; }
-#s-guild .g-seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--gk-card-bd); border-radius: 10px; overflow: hidden; }
-#s-guild .g-seg > button {
-  min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 0 6px; border: 0; border-left: 1px solid var(--gk-card-bd);
-  background: var(--gk-btn); font: 700 14px var(--font-body); color: var(--gk-ink2); cursor: pointer;
-}
-#s-guild .g-seg > button:first-child { border-left: 0; }
-#s-guild .g-seg > button[aria-pressed="true"] { background: var(--gk-btn-on); color: var(--gk-head); box-shadow: inset 0 -2px 0 var(--gk-head); }
-#s-guild .g-seg > button:disabled { color: var(--gk-mute); cursor: default; }
-#s-guild .g-seg > button small { display: inline-flex; align-items: center; gap: 2px; font: 600 11px var(--font-body); }
-#s-guild .g-seg > button small svg { width: 11px; height: 11px; }
-#s-guild .g-seg > button:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: -2px; }
 #s-guild .g-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
 #s-guild .g-body > .g-chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 #s-guild .g-pad { padding: 10px 12px 0; }
@@ -318,13 +295,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .gh-stats .gh-lv .g-ic { width: 16px; height: 16px; }
 #s-guild.ns .panel.g-story { background: linear-gradient(180deg, #15120eb8, #15120ef2 75%), var(--art-scene-guild-found, linear-gradient(180deg, #2a2116, #1c1712)) center 35% / cover no-repeat; }
 
-#s-guild .guild-hero .gh-prop { position: absolute; width: 34px; height: 34px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 2px 2px #0008); }
-/* 글 (왼쪽 아래 제목 · 오른쪽 Lv · 정원 · 명성)을 피해 위쪽 띠와 가운데 틈에만 */
-#s-guild .guild-hero .gh-prop.p1 { left: 38%; top: 2px; }
-#s-guild .guild-hero .gh-prop.p2 { left: 50%; bottom: 8px; }
-#s-guild .guild-hero .gh-prop.p3 { left: 6%; top: 2px; }
-#s-guild .guild-hero .gh-prop.p4 { left: 22%; top: 2px; }
-#s-guild .guild-hero .gh-prop.p5 { left: 52%; top: 2px; }
 #s-guild .guild-hero > .ah-copy, #s-guild .guild-hero > .gh-stats { position: relative; z-index: 1; }
 
 /* 2026-10-19 읽기·선택 흐름: C안의 그림 메뉴를 유지하고 본문 공간 확보. */
@@ -347,18 +317,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-job .g-rs > .btn2 { min-height: 44px; width: auto; margin: 0; padding: 0 10px; font-size: 12px; }
 #s-guild .g-job .g-ri { width: 30px; }
 #s-guild .g-job .g-ri > .g-ic { width: 30px; height: 30px; }
-#s-guild .g-facs { display: flex; flex-direction: column; gap: 0; padding: 0; }
-#s-guild .g-fac { display: grid; grid-template-columns: 40px minmax(0, 1fr) 86px; align-items: center; gap: 10px; padding: 12px 10px; border: 0; border-top: 1px solid var(--gk-line); border-radius: 0; background: transparent; }
-#s-guild .g-fac:first-child { border-top: 0; }
-#s-guild .g-fi, #s-guild .g-fi > .g-ic { width: 40px; height: 40px; }
-#s-guild .g-fac-copy { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-#s-guild .g-fac-copy > b { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-size: 14px; }
-#s-guild .g-fac-copy > b small { font-size: 11px; color: var(--gk-ink2); font-weight: 500; }
-#s-guild .g-fac-effect { font-size: 12px; line-height: 1.5; color: var(--gk-ink2); word-break: keep-all; overflow-wrap: anywhere; }
-#s-guild .g-fac-effect em { font-size: 10px; font-style: normal; color: var(--gk-head); }
-#s-guild .g-fac > .btn { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 52px; font-size: 13px; padding: 6px 2px; }
-#s-guild .g-fac > .btn small { font-size: 12px; }
-#s-guild .g-fac .g-lockt { white-space: normal; justify-content: center; text-align: center; }
 #s-guild .g-short { font-size: 11px; color: var(--gk-enr-ink); }
 #s-guild .g-member-tools { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--gk-line); }
 #s-guild .g-member-tools .g-chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
@@ -383,3 +341,13 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-hub.n1 .g-hubt { min-height: 56px; flex-direction: row; justify-content: flex-start; gap: 10px; padding: 8px 14px; }
 #s-guild .g-hub.n1 .g-hubi { width: 32px; height: 32px; }
 #s-guild .g-hub.n1 .g-hubt small { margin-left: auto; margin-right: 12px; }
+
+/* 현황은 할 일만: 오늘/이번 주로 나누고 바로 내용을 읽는다. */
+#s-guild .g-job-group { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; padding: 10px 12px 8px; border-top: 1px solid var(--gk-line); background: #15120e66; color: var(--gk-head); font: 700 12px var(--font-body); }
+#s-guild .g-job-group small { color: var(--gk-mute); font: 500 12px var(--font-body); }
+#s-guild .g-job-group + .g-rows > .g-row:first-child { border-top: 0; }
+#s-guild .g-job.done .g-rm > b, #s-guild .g-job.done .g-sub { color: var(--gk-mute); }
+#s-guild .g-post-summary { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px; }
+#s-guild .g-post-summary b { font-size: 14px; color: var(--gk-ink); }
+#s-guild .g-post-summary span { font-size: 12px; color: var(--gk-head); }
+#s-guild .g-post-body { gap: 12px; padding: 14px 12px; }
