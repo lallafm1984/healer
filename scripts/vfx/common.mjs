@@ -1,7 +1,7 @@
 // 전투 공통 효과 · 파티원 능력 (Lim 2026-10-16 「몬스터 공격 및 다른 기타 이펙트도 손그림 이펙트로 (도트를 모두 제거)」).
 // 여러 칸에 자주 · 한꺼번에 뜨므로 작고 짧게 (192px). gray = 회색 단계로 그려 게임이 종류 색을 곱함 (치유 = 힐러 문장 색 · 쓰러짐 = 역할 색 · 디버프 = 종류 색 · 장비 발동 = 묶음 색).
 // 모양은 src/art/pxf/requests.md 모양 표 그대로.
-import { bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, lerp, lightStroke, particles, path, rad, ringGlow, rng, seg, solid, speck, taper, TAU } from './lib.mjs';
+import { asset, bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, lerp, lightStroke, particles, path, rad, ringGlow, rng, seg, solid, speck, taper, TAU } from './lib.mjs';
 
 const GR = { rim: '#262626', dark: '#5c5c5c', mid: '#9c9c9c', light: '#d4d4d4', white: '#ffffff' };
 const SMALL = 192;
@@ -24,6 +24,25 @@ function flamePath(g, w = 0.42, lean = 0) {
 function plusPath(g, w = 0.32) { g.beginPath(); for (const [x, y] of [[-w, -1], [w, -1], [w, -w], [1, -w], [1, w], [w, w], [w, 1], [-w, 1], [-w, w], [-1, w], [-1, -w], [-w, -w]]) g.lineTo(x, y); g.closePath(); }
 /** 얼룩 덩이 (7각 울퉁불퉁) */
 function blotPath(g, seed) { const r = rng(seed); g.beginPath(); for (let j = 0; j < 8; j++) { const a = (j * TAU) / 8, rr = 0.75 + 0.3 * r(); g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } g.closePath(); }
+
+/** 예전 방어 이펙트 (황동 둥근 방패, Codex 방패 그림이 없을 때) */
+function oldShield(g, t) {
+      const pop = E.back(seg(t, 0, 0.2), 2.2), fade = 1 - E.in2(seg(t, 0.42, 0.92)), ring = seg(t, 0.1, 0.62), cy = -0.02;
+      glow(g, 0, cy, 0.8, '#ffc864', 0.5 * fade);
+      ringGlow(g, 0, cy, lerp(0.38, 0.98, E.out3(ring)), 0.11, '#ffd98a', 0.85 * (1 - ring), 1);
+      g.save(); g.translate(0, cy); g.scale(0.38 * pop, 0.38 * pop);
+      // 황동 테 → 청동 판 → 무쇠 꼭지 (굵은 어두운 외곽선, 왼쪽 위 빛)
+      solid(g, h => { h.beginPath(); h.arc(0, 0, 1, 0, TAU); }, { hi: '#ffe7a0', lo: '#8a5a1c', rim: '#1a0f06', rimW: 0.09, a: fade, shine: 0.55 });
+      solid(g, h => { h.beginPath(); h.arc(0, 0, 0.76, 0, TAU); }, { hi: '#e8a868', lo: '#6e3a1a', rim: '#2a1608', rimW: 0.05, a: fade, shine: 0.35 });
+      g.globalAlpha = fade;
+      for (let i = 0; i < 4; i++) { const a = rad(45 + i * 90); g.beginPath(); g.arc(Math.cos(a) * 0.88, Math.sin(a) * 0.88, 0.07, 0, TAU); g.fillStyle = '#fff0c0'; g.fill(); g.lineWidth = 0.035; g.strokeStyle = '#2a1608'; g.stroke(); }
+      solid(g, h => { h.beginPath(); h.arc(0, 0, 0.28, 0, TAU); }, { hi: '#dfe6ee', lo: '#4a5868', rim: '#10141c', rimW: 0.05, a: fade, shine: 0.8 });
+      g.restore();
+      glint(g, -0.2, cy - 0.2, 0.34 * bell(t, 0.08, 0.2, 0.5), '#ffe7a0', 1, rad(20), 0.12);
+      if (t > 0.12) particles(g, seg(t, 0.12, 1), 21, 8, r => ({ t0: 0, life: 0.5 + r() * 0.35, a: r() * TAU, sp: 0.35 + r() * 0.3, sz: 0.02 + r() * 0.018 }), (gg, p, age) => {
+        const d = 0.4 + p.sp * E.out2(age); speck(gg, Math.cos(p.a) * d, cy + Math.sin(p.a) * d, p.sz, '#ffcf6a', (1 - age) * fade);
+      });
+}
 
 export default {
   /** 피격 (큰 피해를 받은 순간): 비스듬한 붉은 할퀸 자국 셋이 번쩍 그어지고 작은 파편이 튀며 바로 사라짐 */
@@ -167,25 +186,29 @@ export default {
 
   // ── 파티원 능력 (능력 종류마다, 내 힐 스킬과 헷갈리지 않게 종류 색을 분명히) ──
 
-  /** 방어 🛡 (2026-10-16 검수 다시: 파란 원판 → 황동 둥근 방패): 칸 앞에 황동 테 · 청동 판 · 무쇠 방패 꼭지 방패가 튀어나와 「쾅」 금빛 고리가 퍼지고 테에서 불티가 튐 */
+  /** 방어 🛡 (2026-10-19 Lim 「방어스킬은 방패가 나오는것 처럼」): 칸 앞에 Codex 금테 강철 방패 (ally-shield)가 「쾅」 튀어나오며 흰 섬광 · 금빛 충격파 고리가 퍼지고,
+   *  윤이 한 번 미끄러지며 테에서 불티 · 금빛 가루가 튀고 방패는 조금 커지며 사라짐 (그림이 없으면 예전 황동 둥근 방패) */
   'ally-def': {
-    frames: 16, logical: 80, scope: 'target', size: SMALL,
+    frames: 16, logical: 92, scope: 'target', size: 256,
     draw(g, { t }) {
-      const pop = E.back(seg(t, 0, 0.2), 2.2), fade = 1 - E.in2(seg(t, 0.42, 0.92)), ring = seg(t, 0.1, 0.62), cy = -0.02;
-      glow(g, 0, cy, 0.8, '#ffc864', 0.5 * fade);
-      ringGlow(g, 0, cy, lerp(0.38, 0.98, E.out3(ring)), 0.11, '#ffd98a', 0.85 * (1 - ring), 1);
-      g.save(); g.translate(0, cy); g.scale(0.38 * pop, 0.38 * pop);
-      // 황동 테 → 청동 판 → 무쇠 꼭지 (굵은 어두운 외곽선, 왼쪽 위 빛)
-      solid(g, h => { h.beginPath(); h.arc(0, 0, 1, 0, TAU); }, { hi: '#ffe7a0', lo: '#8a5a1c', rim: '#1a0f06', rimW: 0.09, a: fade, shine: 0.55 });
-      solid(g, h => { h.beginPath(); h.arc(0, 0, 0.76, 0, TAU); }, { hi: '#e8a868', lo: '#6e3a1a', rim: '#2a1608', rimW: 0.05, a: fade, shine: 0.35 });
-      g.globalAlpha = fade;
-      for (let i = 0; i < 4; i++) { const a = rad(45 + i * 90); g.beginPath(); g.arc(Math.cos(a) * 0.88, Math.sin(a) * 0.88, 0.07, 0, TAU); g.fillStyle = '#fff0c0'; g.fill(); g.lineWidth = 0.035; g.strokeStyle = '#2a1608'; g.stroke(); }
-      solid(g, h => { h.beginPath(); h.arc(0, 0, 0.28, 0, TAU); }, { hi: '#dfe6ee', lo: '#4a5868', rim: '#10141c', rimW: 0.05, a: fade, shine: 0.8 });
+      const img = asset('ally-shield');
+      if (!img) return oldShield(g, t);
+      const pop = E.back(seg(t, 0, 0.18), 2.2), fade = 1 - E.in2(seg(t, 0.5, 0.95)), cy = -0.02, hit = 0.12;
+      glow(g, 0, cy, 0.95, '#ffc864', 0.5 * fade);
+      glow(g, 0, cy, 0.5, '#ffffff', 0.85 * bell(t, hit - 0.04, hit + 0.02, hit + 0.3));
+      for (const [d, w, col] of [[0, 0.1, '#ffe7a0'], [0.08, 0.06, '#cfe6ff']]) { const u = seg(t, hit + d, hit + d + 0.45); if (u > 0 && u < 1) ringGlow(g, 0, cy, lerp(0.4, 1.25, E.out3(u)), w, col, 0.85 * (1 - u)); }
+      const W = 1.25 * pop * (1 + 0.08 * seg(t, 0.5, 1)), H = (W * img.height) / img.width;
+      g.save(); g.globalAlpha = fade; g.drawImage(img, -W / 2, cy - H / 2, W, H);
+      const add = 0.45 * bell(t, hit - 0.02, hit + 0.04, hit + 0.35); if (add > 0) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = fade * add; g.drawImage(img, -W / 2, cy - H / 2, W, H); }
       g.restore();
-      glint(g, -0.2, cy - 0.2, 0.34 * bell(t, 0.08, 0.2, 0.5), '#ffe7a0', 1, rad(20), 0.12);
-      if (t > 0.12) particles(g, seg(t, 0.12, 1), 21, 8, r => ({ t0: 0, life: 0.5 + r() * 0.35, a: r() * TAU, sp: 0.35 + r() * 0.3, sz: 0.02 + r() * 0.018 }), (gg, p, age) => {
-        const d = 0.4 + p.sp * E.out2(age); speck(gg, Math.cos(p.a) * d, cy + Math.sin(p.a) * d, p.sz, '#ffcf6a', (1 - age) * fade);
+      // 윤 (방패 모양 안에서 비스듬히 미끄러짐)
+      const sw = seg(t, 0.2, 0.5);
+      if (sw > 0 && sw < 1) { g.save(); g.beginPath(); g.rect(-W / 2, cy - H / 2, W, H); g.clip(); g.globalCompositeOperation = 'lighter'; const x = lerp(-W, W, sw); const gr = g.createLinearGradient(x - 0.2, 0, x + 0.2, 0); gr.addColorStop(0, C('#fff4c0', 0)); gr.addColorStop(0.5, C('#ffffff', 0.45 * fade)); gr.addColorStop(1, C('#fff4c0', 0)); g.fillStyle = gr; g.translate(x, cy); g.rotate(0.4); g.fillRect(-0.2, -1.4, 0.4, 2.8); g.restore(); }
+      particles(g, t, 21, 22, r => ({ t0: hit + r() * 0.06, life: 0.4 + r() * 0.3, a: r() * TAU, sp: 0.5 + r() * 0.5, sz: 0.022 + r() * 0.02, st: r() < 0.3 }), (gg, p, age) => {
+        const d = 0.45 + p.sp * E.out3(age), x = Math.cos(p.a) * d, y = cy + Math.sin(p.a) * d * 0.9 + 0.2 * age * age, al = (1 - E.in2(age)) * fade;
+        glow(gg, x, y, p.sz * 4, p.st ? '#9fd4ff' : '#ffc864', 0.45 * al); speck(gg, x, y, p.sz, p.st ? '#e8f4ff' : '#ffe08a', al, age * 4);
       });
+      glint(g, -0.28, cy - 0.3, 0.3 * bell(t, 0.1, 0.22, 0.5), '#ffe7a0', 1, rad(20), 0.12);
     },
   },
 
@@ -260,23 +283,34 @@ export default {
     },
   },
 
-  /** 공격 ⚔: 칸 바깥 세 방향 (왼쪽 위 · 오른쪽 위 · 아래)에서 주황 · 흰빛 창끝이 가운데로 빠르게 꽂히고, 만나는 순간 주황 불꽃 조각이 튐 */
+  /** 공격 ⚔ (2026-10-19 Lim 「파티원이 쓰는 공격적인 스킬은 칼날같은 이펙트」, 수도사처럼 코드): 칸을 가로질러 칼날 빛 두 줄이 X자로 번쩍 베고 지나가며 (밝은 날 끝이 앞장서고 꼬리가 따라감),
+   *  엇갈리는 순간 흰 섬광 · 주황 충격이 터지고 벤 방향으로 불똥 · 쇳조각 빛이 튀며 베인 자국이 잠깐 남았다 사라짐 */
   'ally-atk': {
-    frames: 14, logical: 82, scope: 'target', size: SMALL,
+    frames: 14, logical: 92, scope: 'target', size: 256,
     draw(g, { t }) {
-      const hit = 0.18, fade = 1 - E.in2(seg(t, 0.4, 1));
-      for (const ang of [rad(-135), rad(-45), rad(90)]) {
-        const d = t < hit ? lerp(1.05, 0.2, E.in2(t / hit)) : 0.2 + 0.1 * E.out2(seg(t, hit, 0.5)), x = Math.cos(ang) * d, y = Math.sin(ang) * d, a = t < hit ? 1 : fade;
-        comet(g, s => ({ x: Math.cos(ang) * lerp(d + 0.6, d + 0.15, s), y: Math.sin(ang) * lerp(d + 0.6, d + 0.15, s) }), 0, 1, { w: 0.08, rim: '#3a1006', body: '#ff9a3a', core: '#fff0d0', glowCol: '#ff7a2a', a: a * (t < hit ? 1 : 1 - seg(t, hit, 0.4)), head: 0 });
-        g.save(); g.translate(x, y); g.rotate(ang + Math.PI / 2); g.scale(0.1, 0.2);
-        solid(g, h => { h.beginPath(); h.moveTo(0, 1); h.lineTo(0.7, -0.6); h.lineTo(0, -0.25); h.lineTo(-0.7, -0.6); h.closePath(); }, { hi: '#fff0d0', lo: '#e86a1a', rim: '#3a1006', rimW: 0.1, a, shine: 0.6 }); g.restore();
-      }
-      const b = bell(t, hit - 0.04, hit + 0.02, hit + 0.4);
-      glow(g, 0, 0, 0.6, '#ff7a2a', 0.85 * b);
-      glow(g, 0, 0, 0.3, '#ffffff', b);
-      if (t > hit) particles(g, seg(t, hit, 1), 3, 9, r => ({ t0: 0, life: 0.6 + r() * 0.3, a: r() * TAU, sp: 0.4 + r() * 0.5, sz: 0.022 + r() * 0.02 }), (gg, p, age) => {
-        const dd = p.sp * E.out2(age); speck(gg, Math.cos(p.a) * dd, Math.sin(p.a) * dd + 0.15 * age * age, p.sz, '#ffb04a', 1 - age);
+      const fade = 1 - E.in2(seg(t, 0.45, 1));
+      const blade = { rim: '#3a1006', body: '#ffd0a0', core: '#ffffff', rimW: 0.014, coreW: 0.5, glowCol: '#ff7a2a', glowA: 0.8 };
+      // 두 칼날: 왼쪽 위 → 오른쪽 아래, 오른쪽 위 → 왼쪽 아래 (살짝 휜 호), 두 번째는 조금 늦게
+      [[-1, 0], [1, 0.1]].forEach(([dir, d], i) => {
+        const x0 = dir < 0 ? -1.15 : 1.15, y0 = -0.95, x1 = -x0, y1 = 0.95, nx = -(y1 - y0), ny = x1 - x0, nl = Math.hypot(nx, ny), P = s2 => ({ x: lerp(x0, x1, s2) + (nx / nl) * 0.28 * Math.sin(Math.PI * s2) * -dir, y: lerp(y0, y1, s2) + (ny / nl) * 0.28 * Math.sin(Math.PI * s2) * -dir }); // 대각선으로 살짝 휜 베기
+        const hd = E.out3(seg(t, d, d + 0.2)), tl = Math.min(hd, Math.max(0, hd - 0.9) + E.in2(seg(t, d + 0.28, d + 0.62)));
+        if (hd > tl + 0.01) lightStroke(g, P, tl, hd, u => 0.17 * Math.sin(Math.PI * u) ** 0.5 * (0.35 + 0.65 * u), { ...blade, a: fade * (i ? 0.95 : 1) });
+        if (hd < 1 && hd > 0) { const q = P(hd); glow(g, q.x, q.y, 0.3, '#ff9a3a', 0.85); glow(g, q.x, q.y, 0.12, '#ffffff', 1); }
+        // 남는 베인 자국 (가는 흰 선, 금방 사라짐)
+        const sc = bell(t, d + 0.2, d + 0.3, d + 0.75);
+        if (sc > 0) lightStroke(g, P, 0.1, 0.9, u => 0.025 * Math.sin(Math.PI * u), { rim: '#3a1006', body: '#ffe0c0', core: '#ffffff', rimW: 0.006, a: 0.8 * sc * fade, glowCol: '#ff7a2a', glowA: 0.5 });
+        // 벤 방향으로 튀는 불똥
+        particles(g, t, 40 + i, 14, r => ({ t0: d + 0.08 + r() * 0.08, life: 0.3 + r() * 0.25, s0: 0.3 + r() * 0.5, sp: 0.4 + r() * 0.6, off: (r() - 0.5) * 0.6, sz: 0.018 + r() * 0.02, steel: r() < 0.3 }), (gg, p, age) => {
+          const q = P(p.s0), q2 = P(Math.min(1, p.s0 + 0.05)), ang = Math.atan2(q2.y - q.y, q2.x - q.x) + p.off, dd = p.sp * E.out3(age), x = q.x + Math.cos(ang) * dd, y = q.y + Math.sin(ang) * dd + 0.3 * age * age, al = (1 - age) * fade;
+          glow(gg, x, y, p.sz * 4, p.steel ? '#9fd4ff' : '#ff7a2a', 0.45 * al); speck(gg, x, y, p.sz, p.steel ? '#e8f4ff' : '#ffb04a', al, age * 5);
+        });
       });
+      // 엇갈리는 순간
+      const hit = 0.13, b = bell(t, hit - 0.03, hit + 0.02, hit + 0.35);
+      glow(g, 0, 0, 0.75, '#ff7a2a', 0.8 * b);
+      glow(g, 0, 0, 0.32, '#ffffff', b);
+      { const u = seg(t, hit, hit + 0.4); if (u > 0 && u < 1) ringGlow(g, 0, 0, lerp(0.2, 1.0, E.out3(u)), 0.07, '#ffb04a', 0.8 * (1 - u), 0.85); }
+      glint(g, 0, 0, 0.45 * b, '#ff9a3a', b, rad(45), 0.12, '#ffffff');
     },
   },
 };

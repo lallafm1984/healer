@@ -157,11 +157,11 @@ export const PXF = {
   'common-debuff': small(16, 76, true),
   'common-proc': small(12, 70, true),
   // 모든 효과 PXF 1단계 (requests.md): 파티원 능력 종류마다
-  'ally-def': small(16, 80),
+  'ally-def': skill(16, 92, { size: 256 }), // 2026-10-19 Lim 「방어스킬은 방패가 나오는것 처럼」: Codex 방패 그림
   'ally-ctl': small(16, 80),
   'ally-sup': small(16, 78),
   'ally-heal': small(16, 76),
-  'ally-atk': small(14, 82),
+  'ally-atk': skill(14, 92, { size: 256 }), // 2026-10-19 Lim 「공격적인 스킬은 칼날같은 이펙트」: 코드 칼날 X자
   // 보스 판 전체 공격 (requests.md, Lim 「픽셀 크기를 늘려서」 → 「픽셀이 좀더 디테일」 → 256px): 캔버스 = 판 너비, 판 밖은 잘라 냄. 외침은 세력 색을 곱함
   'boss-shout': wide(16, 0, true),
   'boss-lantern': wide(16, 0),
