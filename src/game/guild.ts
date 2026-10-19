@@ -296,7 +296,7 @@ export const guildNicks = (save: SaveData): Set<string> => new Set(save.guild.me
 export const isGuildParty = (roster: readonly RosterEntry[]) => roster.some(e => e.gid != null) && roster.filter(e => e.gid != null).length * 2 >= roster.length;
 export interface GuildAfter {
   /** 출전한 길드원: 레벨 경험치 · 레벨 업 · 오른 능력치 (왜) */
-  members: { nick: string; xp: number; ups: number[]; stats: { k: StatKey; to: number; why: string }[] }[];
+  members: { nick: string; xp: number; ups: number[]; stats: { k: StatKey; to: number; why: string }[]; lv?: number }[];
   /** 쉬는 명단이 받은 경험치 합 · 그 가운데 후원으로 받은 사람 (경험치 · 남은 판) */
   rest: number;
   boosted: { nick: string; xp: number; left: number }[];
@@ -369,7 +369,7 @@ export function guildAfter(
     const xp = memberXp(m, o) * (requests.has(m.nick) ? REQ.xpMult : 1);
     const ups = addMemberXp(m, xp, cap);
     const stats = growStats(m, ups.length, o.party.find(p => p.nick === m.nick)?.deed, r);
-    out.members.push({ nick: m.nick, xp, ups, stats });
+    out.members.push({ nick: m.nick, xp, ups, stats, lv: m.lv });
   }
   for (const m of g.members) if (!went.has(m.id)) {
     // 후원 (98): 남은 판이 있고 더 오를 수 있으면 출전만큼, 1판 씀

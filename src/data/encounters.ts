@@ -1514,5 +1514,12 @@ export const ENCOUNTERS: Record<EncounterKey, Encounter> = {
   banjjak99: { key: 'banjjak99', lowLevel: true, name: '수정 거인 반짝돌', tier: '탐험 · 3인', board: 'b7', comp: TRIO, hp: 2600, enrage: 230, manaCoef: 1.0, diffs: ALL, script: 'banjjak99', stage: 0.3, debuffs: HEAL4 },
 };
 
+/**
+ * 광폭화 시간 배율 (2026-10-19 Lim 「광폭화 시간을 전체적으로 늘려주고」, 기획 102): 위 표의 광폭화 (초)에 한꺼번에 곱하고 5초 단위로 반올림.
+ * 엔진 (bosses.ts enrageAt) · 전투 화면 · 공략 시트 · 자동 밸런스 목표 시간 (광폭화 ÷ 1.35)이 모두 이 값을 읽는다. 위 표의 숫자는 곱하기 전 값이다
+ */
+export const ENRAGE_MULT = 1.25;
+for (const e of Object.values(ENCOUNTERS)) if (Number.isFinite(e.enrage)) e.enrage = Math.round((e.enrage * ENRAGE_MULT) / 5) * 5;
+
 /** 프로토타입 엔진에도 있는 보스 (일치 테스트 대상) */
 export const PROTO_ENCOUNTERS: EncounterKey[] = ['warden', 'plague'];

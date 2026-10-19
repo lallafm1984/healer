@@ -65,9 +65,10 @@ const Engine = (() => {
   };
 
   const ENCOUNTERS = {
-    warden: { key: 'warden', lowLevel: true, name: '녹슨 문지기', tier: '던전 · 5인', board: 'b10', comp: { tank: 1, melee: 1, ranged: 2 }, hp: 7000, enrage: 270, manaCoef: 1.0, diffs: ['쉬움', '보통', '어려움', '악몽'], script: 'warden', stage: 0.25 },
-    plague: { key: 'plague', name: '역병 군주', tier: '레이드 · 10인', board: 'b19', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 22000, enrage: 390, manaCoef: 1.3, diffs: ['쉬움', '보통', '어려움'], script: 'plague', stage: 0.18 },
-    plague20: { key: 'plague20', name: '역병 군주', tier: '레이드 악몽 · 20인', board: 'b30', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 48000, enrage: 450, manaCoef: 1.6, diffs: ['악몽'], script: 'plague', big: true, stage: 0.13 },
+    // 광폭화는 엔진 ENRAGE_MULT 1.25 (102)를 곱해 5초 반올림한 값 (270 → 340 · 390 → 490 · 450 → 565)
+    warden: { key: 'warden', lowLevel: true, name: '녹슨 문지기', tier: '던전 · 5인', board: 'b10', comp: { tank: 1, melee: 1, ranged: 2 }, hp: 7000, enrage: 340, manaCoef: 1.0, diffs: ['쉬움', '보통', '어려움', '악몽'], script: 'warden', stage: 0.25 },
+    plague: { key: 'plague', name: '역병 군주', tier: '레이드 · 10인', board: 'b19', comp: { tank: 2, melee: 3, ranged: 4 }, hp: 22000, enrage: 490, manaCoef: 1.3, diffs: ['쉬움', '보통', '어려움'], script: 'plague', stage: 0.18 },
+    plague20: { key: 'plague20', name: '역병 군주', tier: '레이드 악몽 · 20인', board: 'b30', comp: { tank: 2, melee: 7, ranged: 10 }, hp: 48000, enrage: 565, manaCoef: 1.6, diffs: ['악몽'], script: 'plague', big: true, stage: 0.13 },
   };
 
   // 사제 스킬 (06 3장)

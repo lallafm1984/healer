@@ -47,7 +47,7 @@ export const BUSY: Partial<Record<DiffName, number>> = { '쉬움': 19, '보통':
 export const STD_GEAR: Record<DiffName, GearId> = { '쉬움': 'none', '보통': 'none', '어려움': 'adv0', '악몽': 'rare5' };
 /** 던전 구간 사이 휴식 (초, scripts/sim-dungeon과 같음) */
 const REST = 10;
-const MAX_T = 700;
+const MAX_T = 700 * 1.25; // 한 판 끝 (초): 광폭화 배율 (ENRAGE_MULT, 102)만큼 함께 늘림
 /** 찾는 배율 범위 */
 const LO = 0.4, HI = 3;
 

@@ -116,6 +116,19 @@ export function abilityStars(stats: Stats, role: Exclude<Role, 'healer'>): numbe
 /** ★ 글자 (★★★½) */
 export const starText = (n: number): string => '★'.repeat(Math.floor(n)) + (n % 1 ? '½' : '');
 
+/**
+ * 레벨 몫 (2026-10-19 Lim 「능력치가 레벨증가에 따라서 올라가는데 고렙의 파티원이 불리하다. 전체적으로 레벨에 따른 능력치 벨런스」, 기획 102):
+ * 모든 파티원 (공개모집 · 길드원) 능력치 12칸에 + LV_STAT × (Lv − 1) ÷ 99 (Lv 1 +0 · 50 +2.5 · 100 +5). Lv 100 공개모집 평균이 15 (능력치 행동 기준점)가 됨.
+ * 저장된 값 (타고난 값 · 길드원이 키운 값)에는 안 넣고 전투 (fight.ts makeParty)와 화면 숫자 (statsAt)에서 더함. 능력 ★은 레벨 몫을 빼고 (같은 레벨 사이 재능)
+ */
+export const LV_STAT = 5;
+export const lvStat = (lv?: number): number => (lv ? (LV_STAT * (Math.max(1, Math.min(100, lv)) - 1)) / 99 : 0);
+/** 화면에 보이는 능력치 = 저장 값 + 레벨 몫 (반올림, 1~20) */
+export const statsAt = (st: Stats, lv?: number): Stats => {
+  const add = lvStat(lv);
+  return Object.fromEntries(STAT_KEYS.map(k => [k, Math.max(1, Math.min(20, Math.round(st[k] + add)))])) as Stats;
+};
+
 /** 꾸준함 (97 숨은 능력치): 판마다 능력치 전체가 ±amp 안에서 함께 오르내림. 꾸준함 1 = ±2.5, 20 = 0. 판 시드 · 닉네임으로 한 번 굴림 */
 export function dayOffset(steady: number, fightSeed: number, nick: string): number {
   const amp = 2.5 * (20 - Math.max(1, Math.min(20, steady))) / 19;
