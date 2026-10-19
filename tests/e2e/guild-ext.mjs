@@ -83,8 +83,57 @@ export default async function guildExt(url, shots) {
   ok(over.n === 5 && over.hits === 0, `시설 15단계 = 소품 5개, 머리 글과 안 겹침 ${JSON.stringify(over)}`);
   await page.locator('#s-guild .guild-hero').screenshot({ path: `${shots}/guild_ext_props.png` });
 
+  // ---- UI가 실제 모집소 할인/인원과 같은 견적을 보여 주고, 후보 교체는 확인 뒤 소비 ----
+  await patch(() => {
+    const s = JSON.parse(localStorage.getItem('healer.save'));
+    s.guild.fac.post = 3; s.guild.post = null; s.player.gold = 1200;
+    localStorage.setItem('healer.save', JSON.stringify(s));
+  });
+  await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(50);
+  await page.click('#s-guild [data-sub="recruit"]'); await page.clock.runFor(50);
+  await page.click('#s-guild [data-csel="post"]'); await page.clock.runFor(50);
+  ok(/1,200/.test(await text('#s-guild [data-post="normal"]')) && !await page.isDisabled('#s-guild [data-post="normal"]') && /4명/.test(await text('#s-guild .g-facts')), '모집소 3: 실제 할인 비용 1,200만 있어도 모집 가능 · 지원자 4명 표시');
+  await page.click('#s-guild [data-post="normal"]'); await page.clock.runFor(50);
+  sv = await save();
+  ok(sv.player.gold === 0 && sv.guild.post.cands.length === 4, '표시 견적과 실제 결제/지원자 수 일치');
+  await patch(() => { const s = JSON.parse(localStorage.getItem('healer.save')); s.player.gold = 10000; localStorage.setItem('healer.save', JSON.stringify(s)); });
+  await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(50);
+  await page.click('#s-guild [data-sub="recruit"]'); await page.clock.runFor(50);
+  await page.click('#s-guild [data-csel="post"]'); await page.clock.runFor(50);
+  const beforePost = JSON.stringify((await save()).guild.post);
+  await page.click('#s-guild [data-post="normal"]'); await page.clock.runFor(50);
+  ok((await save()).player.gold === 10000 && JSON.stringify((await save()).guild.post) === beforePost && await page.isVisible('#cancelPost'), '새 공고 첫 누름: 지원자와 골드 유지 · 교체 확인');
+  await page.click('#cancelPost'); await page.clock.runFor(50);
+  ok(JSON.stringify((await save()).guild.post) === beforePost && !(await page.locator('[data-confirm-post]').count()), '교체 취소: 기존 지원자 유지');
+  await page.click('#s-guild [data-post="normal"]'); await page.clock.runFor(50);
+  await page.click('#s-guild [data-confirm-post="normal"]'); await page.clock.runFor(50);
+  ok((await save()).player.gold === 8800 && (await save()).guild.post.cands.length === 4, '교체 확인 후 1회만 1,200 소비');
+
+  // 길드원 역할 선택과 정렬은 편성을 건드리지 않고 포커스를 유지.
+  const picksBefore = JSON.stringify((await save()).guild.picks);
+  await page.click('#s-guild [data-sub="members"]'); await page.clock.runFor(50);
+  await page.click('#s-guild [data-mrole="tank"]'); await page.clock.runFor(50);
+  const shown = await page.locator('#s-guild [data-mem]').evaluateAll(els => els.map(e => Number(e.dataset.mem)));
+  sv = await save();
+  ok(shown.length > 0 && shown.every(id => ['warrior', 'paladin'].includes(sv.guild.members.find(m => m.id === id).cls)), '탱커 필터는 탱커만 표시');
+  ok(await page.evaluate(() => document.activeElement?.getAttribute('data-mrole')) === 'tank', '역할 필터를 누른 뒤 포커스 유지');
+  await page.click('#s-guild [data-mrole="any"]'); await page.clock.runFor(50);
+  await page.selectOption('#guildSort', 'bond'); await page.clock.runFor(50);
+  ok(JSON.stringify((await save()).guild.picks) === picksBefore, '길드원 보기/정렬은 저장된 편성 유지');
+
+  // 부탁에서 정확한 장소/난이도를 골라 두고, 전투는 출전 버튼을 누를 때 진행.
+  await page.click('#s-guild [data-sub="home"]'); await page.clock.runFor(50);
+  const req = (await save()).guild.reqs.list.find(q => !q.done);
+  if (req) {
+    await page.locator('#s-guild .g-job [data-goto]').first().click(); await page.clock.runFor(50);
+    ok(await page.isVisible('#s-content') && !await page.isVisible('#battle') && (await text('#contentGo')).includes(req.diff), '부탁 장소 보기 = 해당 모험 선택, 전투 자동 시작 없음');
+    await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(50);
+  }
+  await page.click('#s-guild [data-csel="fac"]'); await page.clock.runFor(50);
+  ok(/다음/.test(await text('#s-guild .g-facs')) && !await page.isVisible('#guildGo'), '시설: 효과를 바로 읽고 관리할 수 있는 본문 공간');
+
   // ---- S25 · 울트라 · 플립: 가로 넘침 없음 ----
-  for (const [w, h, name] of [[360, 780, 's25'], [384, 824, 'ultra'], [412, 915, 'ultra-wide'], [360, 880, 'flip']]) {
+  for (const [w, h, name] of [[360, 780, 's25'], [384, 824, 'ultra'], [412, 915, 'ultra-wide'], [360, 880, 'flip'], [768, 920, 'fold']]) {
     await page.setViewportSize({ width: w, height: h });
     await page.click('#s-guild .subtabs [data-sub="home"]'); await page.clock.runFor(50);
     const fit = () => page.locator('#s-guild .ns-body').evaluate(el => el.scrollWidth <= el.clientWidth + 1);
@@ -97,6 +146,14 @@ export default async function guildExt(url, shots) {
     await page.screenshot({ path: `${shots}/guild_ext_${name}.png`, fullPage: true });
     await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
     ok(await fit(), `${name}: 영입 가로 넘침 없음`);
+    await page.click('#s-guild [data-csel="post"]'); await page.clock.runFor(50);
+    const noOverlap = await page.locator('#s-guild .g-recruit').evaluate(el => {
+      const hub = el.querySelector('.g-hub').getBoundingClientRect(), panel = el.querySelector('.g-card').getBoundingClientRect();
+      const tabs = [...el.querySelectorAll('.g-hubt')].map(e => e.getBoundingClientRect());
+      return panel.top >= Math.max(hub.bottom, ...tabs.map(t => t.bottom)) && el.scrollWidth <= el.clientWidth + 1;
+    });
+    ok(noOverlap, `${name}: 긴 공고 지원자 목록에서도 메뉴와 본문 겹침 없음`);
+
   }
 
   await ctx.close();

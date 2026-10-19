@@ -129,7 +129,7 @@ export default async function guild(url, shots) {
   await shut();
   await page.click(`#s-guild [data-mem="${hired.id}"] .f-mt`); await page.clock.runFor(50);
   await page.click('#s-guild [data-release]'); await page.clock.runFor(50);
-  ok(/한 번 더/.test(await text('#s-guild [data-release]')) && (await save()).guild.members.length === 6, '보내기 첫 누름 = 확인만');
+  ok(/보내기 확인/.test(await text('#s-guild [data-release]')) && (await save()).guild.members.length === 6, '보내기 첫 누름 = 확인만');
   await page.click('#s-guild [data-release]'); await page.clock.runFor(50);
   sv = await save();
   ok(sv.guild.members.length === 5 && sv.guild.away.some(m => m.nick === hired.nick) && /인연은 그대로/.test(await text('#s-guild .warnbox')), '보내기 = 친구 목록으로 (인연 그대로)');
@@ -200,7 +200,7 @@ export default async function guild(url, shots) {
 
   // ---- S25 · 울트라 · 플립: 가로 넘침 없음, 출전 버튼 탭 위, 이름 안 잘림, 성격 칩이 직업 · Lv를 안 덮음 (보상 화면엔 탭 막대가 없어 다시 읽음) ----
   await patch(() => {});
-  for (const [w, h, name] of [[360, 780, 's25'], [384, 824, 'ultra'], [412, 915, 'ultra-wide'], [360, 880, 'flip']]) {
+  for (const [w, h, name] of [[360, 780, 's25'], [384, 824, 'ultra'], [412, 915, 'ultra-wide'], [360, 880, 'flip'], [768, 920, 'fold']]) {
     await page.setViewportSize({ width: w, height: h });
     await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(100);
     const fit = () => page.locator('#s-guild .ns-body').evaluate(el => el.scrollWidth <= el.clientWidth + 1);

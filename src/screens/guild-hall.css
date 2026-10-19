@@ -8,8 +8,8 @@
 
 /* ---------- 본문 ---------- */
 #s-guild .ns-body.guild { display: flex; flex-direction: column; gap: 10px; padding: 0 12px 16px; }
-body.tabs-on #s-guild .ns-body.guild:not(.g-home) { padding-bottom: calc(var(--tabs-h) + 20px); }
-body.tabs-on #s-guild .ns-body.g-home { padding-bottom: 10px; }
+body.tabs-on #s-guild .ns-body.guild:not(.g-with-cta) { padding-bottom: calc(var(--tabs-h) + 20px); }
+body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .note { margin: 0; font-size: 12px; line-height: 1.5; }
 #s-guild .g-dev { text-align: center; }
 #s-guild .warnbox { margin: 0; }
@@ -316,3 +316,54 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .guild-hero .gh-prop.p4 { left: 22%; top: 2px; }
 #s-guild .guild-hero .gh-prop.p5 { left: 52%; top: 2px; }
 #s-guild .guild-hero > .ah-copy, #s-guild .guild-hero > .gh-stats { position: relative; z-index: 1; }
+
+/* 2026-10-19 읽기·선택 흐름: C안의 그림 메뉴를 유지하고 본문 공간 확보. */
+/* 스크롤 본문 안의 카드/메뉴가 축소되면 다음 카드와 겹친다. */
+#s-guild .ns-body.guild > * { flex-shrink: 0; }
+#s-guild .g-hub { gap: 6px; }
+#s-guild .g-hub.n4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+#s-guild .g-hubt, #s-guild .g-hub.n4 .g-hubt { min-height: 84px; padding: 7px 3px; gap: 3px; }
+#s-guild .g-hubi, #s-guild .g-hub.n4 .g-hubi { width: 36px; height: 36px; }
+#s-guild .g-hub.n4 .g-hubt b { font-size: 12px; }
+#s-guild .g-hub.n4 .g-hubt small { font-size: 11px; }
+#s-guild .g-hubt > .rdot { top: 5px; right: 5px; }
+#s-guild .g-card { flex: none; }
+#s-guild .g-rewards { display: flex; align-items: center; gap: 5px; }
+#s-guild .g-goal, #s-guild .g-exped { align-items: flex-start; }
+#s-guild .g-goal > .g-rs, #s-guild .g-exped > .g-rs { flex-direction: column; align-items: flex-end; gap: 8px; padding-top: 3px; }
+#s-guild .g-place { min-height: 44px; padding: 6px 8px; font: 600 12px/1.35 var(--font-body); cursor: pointer; text-align: left; white-space: normal; }
+#s-guild .g-place:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 1px; }
+#s-guild .g-job .g-rm > b { white-space: normal; }
+#s-guild .g-job .g-rs > .btn2 { min-height: 44px; width: auto; margin: 0; padding: 0 10px; font-size: 12px; }
+#s-guild .g-job .g-ri { width: 30px; }
+#s-guild .g-job .g-ri > .g-ic { width: 30px; height: 30px; }
+#s-guild .g-facs { display: flex; flex-direction: column; gap: 0; padding: 0; }
+#s-guild .g-fac { display: grid; grid-template-columns: 40px minmax(0, 1fr) 86px; align-items: center; gap: 10px; padding: 12px 10px; border: 0; border-top: 1px solid var(--gk-line); border-radius: 0; background: transparent; }
+#s-guild .g-fac:first-child { border-top: 0; }
+#s-guild .g-fi, #s-guild .g-fi > .g-ic { width: 40px; height: 40px; }
+#s-guild .g-fac-copy { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+#s-guild .g-fac-copy > b { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-size: 14px; }
+#s-guild .g-fac-copy > b small { font-size: 11px; color: var(--gk-ink2); font-weight: 500; }
+#s-guild .g-fac-effect { font-size: 12px; line-height: 1.5; color: var(--gk-ink2); word-break: keep-all; overflow-wrap: anywhere; }
+#s-guild .g-fac-effect em { font-size: 10px; font-style: normal; color: var(--gk-head); }
+#s-guild .g-fac > .btn { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 52px; font-size: 13px; padding: 6px 2px; }
+#s-guild .g-fac > .btn small { font-size: 12px; }
+#s-guild .g-fac .g-lockt { white-space: normal; justify-content: center; text-align: center; }
+#s-guild .g-short { font-size: 11px; color: var(--gk-enr-ink); }
+#s-guild .g-member-tools { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--gk-line); }
+#s-guild .g-member-tools .g-chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+#s-guild .g-member-tools .g-chip { min-width: 0; padding: 0 4px; }
+#s-guild .g-member-tools small { opacity: .85; font-size: 11px; }
+#s-guild .g-sort { align-self: flex-end; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gk-ink2); }
+#s-guild .g-sort select { min-height: 44px; padding: 0 10px; color: var(--gk-ink); background: var(--gk-btn); border: 1px solid var(--gk-card-bd); border-radius: 8px; font: 600 12px var(--font-body); }
+#s-guild .g-chip { min-height: 44px; }
+#s-guild .g-full small { display: block; font-size: 12px; margin-top: 4px; }
+#s-guild .g-empty0 small { display: inline-block; margin-top: 6px; font-size: 12px; line-height: 1.6; color: var(--gk-ink2); }
+#s-guild .g-confirm { display: flex; flex-wrap: wrap; gap: 8px; border: 1px solid var(--gk-edge); border-radius: 10px; padding: 10px; }
+#s-guild .g-confirm p { flex-basis: 100%; margin: 0; font-size: 13px; }
+#s-guild .g-confirm .btn, #s-guild .g-confirm .btn2 { width: auto; margin: 0; min-height: 44px; font-size: 12px; }
+#s-guild .g-confirm .btn { flex: 1; }
+#s-guild .g-acts > .btn { min-height: 82px; }
+#s-guild .g-acts b { font-size: 13px; }
+#s-guild .g-acts small { line-height: 1.4; }
+#s-guild .g-smsg { position: sticky; bottom: 48px; z-index: 2; }
