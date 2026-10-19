@@ -44,6 +44,100 @@ function oldShield(g, t) {
       });
 }
 
+/** 예전 방해 ✋ (다시: 흩어진 보라 고리 → 조여드는 보라 사슬 띠): 칸 위쪽을 보라 사슬 띠가 감아 조이고 앞쪽에 매듭이 맺힌 뒤 빛가루로 풀려 사라짐 */
+function oldCtl(g, t) {
+  const grab = E.out3(seg(t, 0, 0.38)), fade = 1 - E.in2(seg(t, 0.6, 1)), cy = -0.32, spin = t * 1.6;
+  const rx = lerp(0.82, 0.5, grab), ry = rx * 0.36;
+  glowOval(g, 0, cy, 0.85, 0.45, '#a070f0', 0.5 * fade);
+  const E1 = (a0, a1) => s => { const a = lerp(a0, a1, s) + spin; return { x: Math.cos(a) * rx, y: cy + Math.sin(a) * ry }; };
+  const band = { rim: '#1e0e3a', body: '#a070f0', core: '#ecdcff', rimW: 0.022, coreW: 0.4, glowCol: '#b58aff', glowA: 0.5 };
+  // 뒤쪽 반 (옅게) → 앞쪽 반 (진하게): 칸 위를 둘러 감은 띠
+  lightStroke(g, E1(Math.PI, TAU), 0, grab, () => 0.075, { ...band, a: 0.55 * fade });
+  lightStroke(g, E1(0, Math.PI), 0, grab, () => 0.085, { ...band, a: fade });
+  // 사슬 마디 (앞쪽 반에 짧은 고리)
+  for (let i = 0; i < 5; i++) {
+    const s = (i + 0.5) / 5; if (s > grab) continue; const q = E1(0, Math.PI)(s);
+    g.save(); g.translate(q.x, q.y); g.rotate(rad(90) + (i % 2) * rad(90)); g.globalAlpha = fade;
+    g.beginPath(); g.ellipse(0, 0, 0.07, 0.045, 0, 0, TAU); g.lineWidth = 0.045; g.strokeStyle = '#1e0e3a'; g.stroke(); g.lineWidth = 0.022; g.strokeStyle = '#d6bcff'; g.stroke(); g.restore();
+  }
+  // 앞쪽 매듭
+  const k = bell(t, 0.3, 0.42, 0.85);
+  if (k > 0) { const q = E1(0, Math.PI)(0.5); g.save(); g.translate(q.x, q.y); g.scale(0.11 * k + 0.001, 0.11 * k + 0.001); solid(g, h => path.diamond(h, 0.7), { hi: '#f0e0ff', lo: '#6a3ab8', rim: '#1e0e3a', rimW: 0.18, a: fade, shine: 0.6 }); g.restore(); }
+  if (t > 0.55) particles(g, seg(t, 0.55, 1), 33, 9, r => ({ t0: r() * 0.2, life: 0.6, a: r() * TAU, sz: 0.018 + r() * 0.016 }), (gg, p, age) => {
+    const d = 0.2 + 0.5 * E.out2(age); speck(gg, Math.cos(p.a) * rx * (1 + d), cy + Math.sin(p.a) * ry * (1 + d) - 0.2 * age, p.sz, '#c8a8ff', 1 - age);
+  });
+}
+/** 예전 지원 ⚑ (다시: 갈매기 화살표 → 금빛 기운 기둥): 칸 아래에서 금빛 빛기둥이 솟아오르며 불티가 올라가고, 위에서 네 갈래 반짝임이 터지며 사라짐 */
+function oldSup(g, t) {
+  const rise = E.out3(seg(t, -0.2, 0.35)), fade = 1 - E.in2(seg(t, 0.55, 1)), top = lerp(0.6, -0.85, rise); // 첫 장부터 반쯤 솟은 기둥 (밑변 가로줄이 체력 숫자를 긋지 않게)
+  glowOval(g, 0, 0.55, 0.7, 0.32, '#ffc84a', 0.6 * fade);
+  // 기둥: 가장자리 어두운 테 · 금빛 몸 · 흰 심 (세로 빛 획 둘)
+  // 칸 양옆 (글자 밖)에서 솟아 칸 위에서 모이는 두 줄기: 이름 · 체력 줄을 가로지르지 않게
+  for (const x of [-0.62, 0.62]) lightStroke(g, s => ({ x: x * (1 - 0.7 * s * s), y: lerp(0.6, top, s) }), 0, 1, u => 0.065 * (1 - 0.55 * u), { rim: '#3a2408', body: '#ffd56b', core: '#fffbe0', a: 0.9 * fade, rimW: 0.018, coreW: 0.45, glowCol: '#ffc84a', glowA: 0.55 });
+  g.save(); g.globalCompositeOperation = 'lighter';
+  const gr = g.createLinearGradient(0, 0.62, 0, top);
+  gr.addColorStop(0, C('#ffd56b', 0.22 * fade)); gr.addColorStop(1, C('#fff4c0', 0));
+  g.fillStyle = gr; g.beginPath(); g.moveTo(-0.62, 0.62); g.lineTo(0.62, 0.62); g.lineTo(0.18, top); g.lineTo(-0.18, top); g.closePath(); g.fill(); g.restore();
+  // 올라가는 불티
+  particles(g, t, 44, 10, r => ({ t0: r() * 0.4, life: 0.45 + r() * 0.3, x: (r() < 0.5 ? -1 : 1) * (0.4 + r() * 0.3), sz: 0.02 + r() * 0.02 }), (gg, p, age) => speck(gg, p.x, lerp(0.55, -0.75, E.out2(age)), p.sz, '#ffe08a', (1 - age) * fade));
+  const b = bell(t, 0.25, 0.38, 0.75);
+  glint(g, 0, -0.82, 0.32 * b, '#ffd56b', b, 0, 0.14);
+}
+/** 예전 회복 ✚: 칸 아래에서 민트빛 둥근 물거품이 흔들리며 떠올라 하나씩 톡 터져 사라짐 */
+function oldHeal(g, t) {
+  particles(g, t, 8, 6, (r, i) => ({ t0: i * 0.06, life: 0.55 + r() * 0.25, x: (r() - 0.5) * 0.9, sz: 0.08 + r() * 0.07, ph: r() * 6 }), (gg, p, age) => {
+    const x = p.x + Math.sin(age * 9 + p.ph) * 0.06, y = 0.55 - 1.0 * E.out2(age);
+    if (age < 0.82) {
+      const s = p.sz * (0.6 + 0.4 * E.out2(Math.min(1, age * 4)));
+      glow(gg, x, y, s * 2.2, '#7ae8c8', 0.4);
+      gg.save(); gg.globalAlpha = 1;
+      gg.beginPath(); gg.arc(x, y, s, 0, TAU); gg.fillStyle = C('#a8f5dc', 0.4); gg.fill();
+      gg.lineWidth = s * 0.28; gg.strokeStyle = C('#0f4a3c', 0.85); gg.stroke(); gg.lineWidth = s * 0.14; gg.strokeStyle = '#7ae8c8'; gg.stroke();
+      gg.beginPath(); gg.arc(x - s * 0.35, y - s * 0.35, s * 0.25, 0, TAU); gg.fillStyle = '#ffffff'; gg.fill();
+      gg.restore();
+    } else {
+      const k = seg(age, 0.82, 1);
+      ringGlow(gg, x, y, p.sz * (1 + k), p.sz * 0.3, '#a8f5dc', 1 - k, 1);
+      for (let j = 0; j < 4; j++) { const a = (j * TAU) / 4 + p.ph; speck(gg, x + Math.cos(a) * p.sz * (1 + 1.5 * k), y + Math.sin(a) * p.sz * (1 + 1.5 * k), 0.015, '#a8f5dc', 1 - k); }
+    }
+  });
+  glowOval(g, 0, 0.5, 0.6, 0.35, '#7ae8c8', 0.4 * (1 - E.out2(seg(t, 0, 0.6))));
+}
+
+/** 「쾅」 튀어나오는 그림 하나 (방해 손 · 지원 깃발 · 회복 십자 공통, 방어 방패와 같은 크기 · 같은 순간 연출, 2026-10-19 Lim 「방해 지원 회복능력도 일관성있게 맞춰서」).
+ *  size = 그림 긴 변 (방패 1.25와 눈에 보이는 크기를 맞춤, 그림 여백이 달라서). move: slam = 크게 앞에서 내리찍어 멈춤 · rise = 아래에서 솟아 흔들림 · pop = 그 자리에서 튀어나옴. 맞는 순간 흰 섬광 · 충격파 고리 둘 · 윤 · 종류 색 불티 */
+function popArt(g, t, img, o) {
+  const hit = 0.12, fade = 1 - E.in2(seg(t, 0.5, 0.95)), cy = -0.02;
+  let sc = 1, x = 0, dy = 0, rot = 0, al = fade;
+  if (o.move === 'slam') {
+    const u = E.in3(seg(t, 0, hit)), rc = Math.exp(-seg(t, hit, 1) * 9);
+    sc = lerp(1.65, 1, u) * (1 + 0.07 * bell(t, hit, hit + 0.04, hit + 0.22)); al = fade * lerp(0.25, 1, E.out2(seg(t, 0, hit * 0.8)));
+    x = t > hit ? 0.035 * Math.sin((t - hit) * 70) * rc : 0;
+  } else if (o.move === 'rise') {
+    const u = seg(t, 0, 0.2); dy = lerp(0.6, 0, E.back(u, 1.8)); al = fade * E.out2(Math.min(1, u * 2.5));
+    rot = 0.07 * Math.sin(t * 15) * (1 - seg(t, 0.15, 0.85));
+  } else sc = E.back(seg(t, 0, 0.18), 2.2);
+  glow(g, 0, cy, 0.95, o.glow, 0.5 * fade);
+  glow(g, 0, cy, 0.5, '#ffffff', 0.85 * bell(t, hit - 0.04, hit + 0.02, hit + 0.3));
+  for (const [d, w, col] of [[0, 0.1, o.ring[0]], [0.08, 0.06, o.ring[1]]]) { const u = seg(t, hit + d, hit + d + 0.45); if (u > 0 && u < 1) ringGlow(g, 0, cy, lerp(0.4, 1.25, E.out3(u)), w, col, 0.85 * (1 - u)); }
+  const big = (o.size ?? 1.25) * sc * (1 + 0.08 * seg(t, 0.5, 1)), k = big / Math.max(img.width, img.height), W = img.width * k, H = img.height * k;
+  g.save(); g.translate(x, cy + dy); g.rotate(rot); g.globalAlpha = al; g.drawImage(img, -W / 2, -H / 2, W, H);
+  const add = 0.45 * bell(t, hit - 0.02, hit + 0.04, hit + 0.35); if (add > 0) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = al * add; g.drawImage(img, -W / 2, -H / 2, W, H); }
+  g.restore();
+  // 윤 (그림 안에서 비스듬히 미끄러짐)
+  const sw = seg(t, 0.2, 0.5);
+  if (sw > 0 && sw < 1) { g.save(); g.translate(x, cy + dy); g.rotate(rot); g.beginPath(); g.rect(-W / 2, -H / 2, W, H); g.clip(); g.globalCompositeOperation = 'lighter'; const sx = lerp(-W, W, sw); const gr = g.createLinearGradient(sx - 0.2, 0, sx + 0.2, 0); gr.addColorStop(0, C(o.shine, 0)); gr.addColorStop(0.5, C('#ffffff', 0.45 * fade)); gr.addColorStop(1, C(o.shine, 0)); g.fillStyle = gr; g.translate(sx, 0); g.rotate(0.4); g.fillRect(-0.2, -1.4, 0.4, 2.8); g.restore(); }
+  // 불티: slam = 사방으로 세게 · rise = 위로 솟음 · pop = 퍼지며 조금 떠오름
+  particles(g, t, o.seed, 22, r => ({ t0: hit + r() * (o.move === 'rise' ? 0.3 : 0.06), life: 0.4 + r() * 0.3, a: r() * TAU, sp: (o.move === 'slam' ? 0.7 : 0.5) + r() * 0.5, sz: 0.022 + r() * 0.02, alt: r() < 0.3, xo: (r() - 0.5) * 1.1 }), (gg, p, age) => {
+    let px, py;
+    if (o.move === 'rise') { px = p.xo + Math.sin(age * 8 + p.a) * 0.05; py = 0.55 - (0.6 + p.sp) * E.out2(age); }
+    else { const d = 0.45 + p.sp * E.out3(age); px = Math.cos(p.a) * d; py = cy + Math.sin(p.a) * d * 0.9 + (o.move === 'pop' ? -0.25 * age : 0.2 * age * age); }
+    const a2 = (1 - E.in2(age)) * fade;
+    glow(gg, px, py, p.sz * 4, p.alt ? o.spark[1] : o.spark[0], 0.45 * a2); speck(gg, px, py, p.sz, p.alt ? '#ffffff' : o.spark[0], a2, age * 4);
+  });
+  glint(g, -0.28 + x, cy + dy - 0.3, 0.3 * bell(t, 0.1, 0.22, 0.5), o.shine, 1, rad(20), 0.12);
+}
+
 export default {
   /** 피격 (큰 피해를 받은 순간): 비스듬한 붉은 할퀸 자국 셋이 번쩍 그어지고 작은 파편이 튀며 바로 사라짐 */
   'common-hit': {
@@ -212,74 +306,34 @@ export default {
     },
   },
 
-  /** 방해 ✋ (다시: 흩어진 보라 고리 → 조여드는 보라 사슬 띠): 칸 위쪽을 보라 사슬 띠가 감아 조이고 앞쪽에 매듭이 맺힌 뒤 빛가루로 풀려 사라짐 */
+  /** 방해 ✋ (2026-10-19 Lim 「방해 지원 회복능력도 일관성있게 맞춰서」): 보라빛 강철 건틀릿 손바닥 (Codex ally-hand)이 크게 앞에서 내리찍듯 「멈춰」 하고 서며
+   *  흰 섬광 · 보라 충격파가 퍼지고 손이 부르르 떨리며 보라 불티가 사방으로 튐 (그림이 없으면 예전 보라 사슬 띠) */
   'ally-ctl': {
-    frames: 16, logical: 80, scope: 'target', size: SMALL,
+    frames: 16, logical: 92, scope: 'target', size: 256,
     draw(g, { t }) {
-      const grab = E.out3(seg(t, 0, 0.38)), fade = 1 - E.in2(seg(t, 0.6, 1)), cy = -0.32, spin = t * 1.6;
-      const rx = lerp(0.82, 0.5, grab), ry = rx * 0.36;
-      glowOval(g, 0, cy, 0.85, 0.45, '#a070f0', 0.5 * fade);
-      const E1 = (a0, a1) => s => { const a = lerp(a0, a1, s) + spin; return { x: Math.cos(a) * rx, y: cy + Math.sin(a) * ry }; };
-      const band = { rim: '#1e0e3a', body: '#a070f0', core: '#ecdcff', rimW: 0.022, coreW: 0.4, glowCol: '#b58aff', glowA: 0.5 };
-      // 뒤쪽 반 (옅게) → 앞쪽 반 (진하게): 칸 위를 둘러 감은 띠
-      lightStroke(g, E1(Math.PI, TAU), 0, grab, () => 0.075, { ...band, a: 0.55 * fade });
-      lightStroke(g, E1(0, Math.PI), 0, grab, () => 0.085, { ...band, a: fade });
-      // 사슬 마디 (앞쪽 반에 짧은 고리)
-      for (let i = 0; i < 5; i++) {
-        const s = (i + 0.5) / 5; if (s > grab) continue; const q = E1(0, Math.PI)(s);
-        g.save(); g.translate(q.x, q.y); g.rotate(rad(90) + (i % 2) * rad(90)); g.globalAlpha = fade;
-        g.beginPath(); g.ellipse(0, 0, 0.07, 0.045, 0, 0, TAU); g.lineWidth = 0.045; g.strokeStyle = '#1e0e3a'; g.stroke(); g.lineWidth = 0.022; g.strokeStyle = '#d6bcff'; g.stroke(); g.restore();
-      }
-      // 앞쪽 매듭
-      const k = bell(t, 0.3, 0.42, 0.85);
-      if (k > 0) { const q = E1(0, Math.PI)(0.5); g.save(); g.translate(q.x, q.y); g.scale(0.11 * k + 0.001, 0.11 * k + 0.001); solid(g, h => path.diamond(h, 0.7), { hi: '#f0e0ff', lo: '#6a3ab8', rim: '#1e0e3a', rimW: 0.18, a: fade, shine: 0.6 }); g.restore(); }
-      if (t > 0.55) particles(g, seg(t, 0.55, 1), 33, 9, r => ({ t0: r() * 0.2, life: 0.6, a: r() * TAU, sz: 0.018 + r() * 0.016 }), (gg, p, age) => {
-        const d = 0.2 + 0.5 * E.out2(age); speck(gg, Math.cos(p.a) * rx * (1 + d), cy + Math.sin(p.a) * ry * (1 + d) - 0.2 * age, p.sz, '#c8a8ff', 1 - age);
-      });
+      const img = asset('ally-hand');
+      if (!img) return oldCtl(g, t);
+      popArt(g, t, img, { move: 'slam', glow: '#a070f0', ring: ['#d6bcff', '#8a5cff'], spark: ['#c8a8ff', '#8a5cff'], shine: '#e8dcff', seed: 31, size: 1.4 });
     },
   },
 
-  /** 지원 ⚑ (다시: 갈매기 화살표 → 금빛 기운 기둥): 칸 아래에서 금빛 빛기둥이 솟아오르며 불티가 올라가고, 위에서 네 갈래 반짝임이 터지며 사라짐 */
+  /** 지원 ⚑ (같은 날): 하늘색 · 금테 깃발 (Codex ally-banner)이 아래에서 솟아 바람에 펄럭이며 서고 흰 섬광 · 금빛 · 하늘빛 고리가 퍼지며 불티가 위로 솟음 (그림이 없으면 예전 금빛 기둥) */
   'ally-sup': {
-    frames: 16, logical: 78, scope: 'target', size: SMALL,
+    frames: 16, logical: 92, scope: 'target', size: 256,
     draw(g, { t }) {
-      const rise = E.out3(seg(t, -0.2, 0.35)), fade = 1 - E.in2(seg(t, 0.55, 1)), top = lerp(0.6, -0.85, rise); // 첫 장부터 반쯤 솟은 기둥 (밑변 가로줄이 체력 숫자를 긋지 않게)
-      glowOval(g, 0, 0.55, 0.7, 0.32, '#ffc84a', 0.6 * fade);
-      // 기둥: 가장자리 어두운 테 · 금빛 몸 · 흰 심 (세로 빛 획 둘)
-      // 칸 양옆 (글자 밖)에서 솟아 칸 위에서 모이는 두 줄기: 이름 · 체력 줄을 가로지르지 않게
-      for (const x of [-0.62, 0.62]) lightStroke(g, s => ({ x: x * (1 - 0.7 * s * s), y: lerp(0.6, top, s) }), 0, 1, u => 0.065 * (1 - 0.55 * u), { rim: '#3a2408', body: '#ffd56b', core: '#fffbe0', a: 0.9 * fade, rimW: 0.018, coreW: 0.45, glowCol: '#ffc84a', glowA: 0.55 });
-      g.save(); g.globalCompositeOperation = 'lighter';
-      const gr = g.createLinearGradient(0, 0.62, 0, top);
-      gr.addColorStop(0, C('#ffd56b', 0.22 * fade)); gr.addColorStop(1, C('#fff4c0', 0));
-      g.fillStyle = gr; g.beginPath(); g.moveTo(-0.62, 0.62); g.lineTo(0.62, 0.62); g.lineTo(0.18, top); g.lineTo(-0.18, top); g.closePath(); g.fill(); g.restore();
-      // 올라가는 불티
-      particles(g, t, 44, 10, r => ({ t0: r() * 0.4, life: 0.45 + r() * 0.3, x: (r() < 0.5 ? -1 : 1) * (0.4 + r() * 0.3), sz: 0.02 + r() * 0.02 }), (gg, p, age) => speck(gg, p.x, lerp(0.55, -0.75, E.out2(age)), p.sz, '#ffe08a', (1 - age) * fade));
-      const b = bell(t, 0.25, 0.38, 0.75);
-      glint(g, 0, -0.82, 0.32 * b, '#ffd56b', b, 0, 0.14);
+      const img = asset('ally-banner');
+      if (!img) return oldSup(g, t);
+      popArt(g, t, img, { move: 'rise', glow: '#ffc84a', ring: ['#ffe7a0', '#8fd0ff'], spark: ['#ffe08a', '#8fd0ff'], shine: '#fff4c0', seed: 44, size: 1.45 });
     },
   },
 
-  /** 회복 ✚: 칸 아래에서 민트빛 둥근 물거품이 흔들리며 떠올라 하나씩 톡 터져 사라짐 */
+  /** 회복 ✚ (같은 날): 연두 옥 십자 (Codex ally-cross, 파티원 능력 회복 숫자 ✚ 연두와 같은 결)가 튀어나오며 흰 섬광 · 연두 · 민트 고리가 퍼지고 불티가 퍼지며 떠오름 (그림이 없으면 예전 거품 방울) */
   'ally-heal': {
-    frames: 16, logical: 76, scope: 'target', size: SMALL,
+    frames: 16, logical: 92, scope: 'target', size: 256,
     draw(g, { t }) {
-      particles(g, t, 8, 6, (r, i) => ({ t0: i * 0.06, life: 0.55 + r() * 0.25, x: (r() - 0.5) * 0.9, sz: 0.08 + r() * 0.07, ph: r() * 6 }), (gg, p, age) => {
-        const x = p.x + Math.sin(age * 9 + p.ph) * 0.06, y = 0.55 - 1.0 * E.out2(age);
-        if (age < 0.82) {
-          const s = p.sz * (0.6 + 0.4 * E.out2(Math.min(1, age * 4)));
-          glow(gg, x, y, s * 2.2, '#7ae8c8', 0.4);
-          gg.save(); gg.globalAlpha = 1;
-          gg.beginPath(); gg.arc(x, y, s, 0, TAU); gg.fillStyle = C('#a8f5dc', 0.4); gg.fill();
-          gg.lineWidth = s * 0.28; gg.strokeStyle = C('#0f4a3c', 0.85); gg.stroke(); gg.lineWidth = s * 0.14; gg.strokeStyle = '#7ae8c8'; gg.stroke();
-          gg.beginPath(); gg.arc(x - s * 0.35, y - s * 0.35, s * 0.25, 0, TAU); gg.fillStyle = '#ffffff'; gg.fill();
-          gg.restore();
-        } else {
-          const k = seg(age, 0.82, 1);
-          ringGlow(gg, x, y, p.sz * (1 + k), p.sz * 0.3, '#a8f5dc', 1 - k, 1);
-          for (let j = 0; j < 4; j++) { const a = (j * TAU) / 4 + p.ph; speck(gg, x + Math.cos(a) * p.sz * (1 + 1.5 * k), y + Math.sin(a) * p.sz * (1 + 1.5 * k), 0.015, '#a8f5dc', 1 - k); }
-        }
-      });
-      glowOval(g, 0, 0.5, 0.6, 0.35, '#7ae8c8', 0.4 * (1 - E.out2(seg(t, 0, 0.6))));
+      const img = asset('ally-cross');
+      if (!img) return oldHeal(g, t);
+      popArt(g, t, img, { move: 'pop', glow: '#8ef07a', ring: ['#d4ffb8', '#7ae8c8'], spark: ['#b8f59a', '#7ae8c8'], shine: '#e8ffd8', seed: 8 });
     },
   },
 
