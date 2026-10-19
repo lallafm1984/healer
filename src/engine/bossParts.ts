@@ -7,7 +7,7 @@ import type { DamageAim } from '../data/armor';
 import type { AddDef, AddDown, AddJob, BossDef, DebuffDef, DebuffEnd, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
 import { HEROES } from '../data/heroes';
 import { STAT_ACT, zoneDps } from '../data/rules';
-import { sharp } from '../data/fm';
+import { clumsy, sharp } from '../data/fm';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { modsTaken } from './abilities';
@@ -40,8 +40,8 @@ export function aggroTarget(f: Fight): Unit | null {
 export function autoHit(f: Fight, tk: Unit, base: number): void {
   const r = f.rng();
   let amt = base * (0.7 + 0.6 * r);
-  // 99 라: 방어 · 발놀림이 15 넘으면 가끔 막아 반만 맞음 (15 이하는 예전 그대로)
-  if (tk.wob != null && tk.fmStats) { const p = STAT_ACT.parry * sharp((tk.fmStats.armor + tk.fmStats.agility) / 2); if (p > 0 && f.rng() < p) { amt *= 0.5; emit(f, { type: 'parry', id: tk.id }); } }
+  // 99 라: 방어가 15 넘으면 가끔 막아 반만 맞음 (15 이하는 예전 그대로)
+  if (tk.wob != null && tk.fmStats) { const p = STAT_ACT.parry * sharp(tk.fmStats.armor); if (p > 0 && f.rng() < p) { amt *= 0.5; emit(f, { type: 'parry', id: tk.id }); } }
   damage(f, tk, amt, false, 'tank');
 }
 
@@ -50,8 +50,20 @@ export function autoHit(f: Fight, tk: Unit, base: number): void {
  * 탱커 강타 (P-TANK)는 탱커 기준 수치라 탱커가 아닌 사람이 맞으면 직업군 방어력만큼 큼 (근접 5/3배 · 원거리 · 힐러 7/3배), 보물 욕심 (P-GREED)은 원거리 기준.
  * 흡수 보호막 · 희생 · 대신 맞기 · 나눔 사슬은 빼고 (맞는 순간에 나뉨). 숫자가 없는 기술은 0
  */
+/** 99 방어: 강타 예고가 뜰 때 노려진 탱커마다 자세를 잡나 (방어 15 밑 = offGuard × 서툼으로 못 잡음, 칸 위 「자세 놓침」) */
+export function offGuardRoll(f: Fight, tel: Telegraph): void {
+  for (const id of tel.units) {
+    const u = unitById(f, id);
+    if (!u || u.wob == null || u.role !== 'tank' || !u.fmStats) continue; // 강타를 받아 내는 자세는 탱커 몫 (탱커가 아닌 사람은 이미 직업군 방어력만큼 더 맞음)
+    const p = STAT_ACT.offGuard * clumsy(u.fmStats.armor);
+    if (p > 0 && f.rng() < p) { (tel.offGuard ??= []).push(u.id); emit(f, { type: 'offGuard', id: u.id }); }
+  }
+}
+/** 99 방어: 자세를 못 잡은 사람이 그 강타를 더 맞는 배율 (예고 숫자 telDmg · 실제 피해 runEffect 'tank' 둘 다) */
+const guardMult = (tel: Telegraph | undefined, u: Unit): number => (tel?.offGuard?.includes(u.id) ? 1 + STAT_ACT.offGuardMult : 1);
+
 export function telDmg(f: Fight, tel: Telegraph, u: Unit): number {
-  const s = tel.skill, base = s.dmg ?? s.greed ?? 0;
+  const s = tel.skill, base = (s.dmg ?? s.greed ?? 0) * (s.dmg != null ? guardMult(tel, u) : 1);
   if (!base) return 0;
   const ahead = Math.max(0, tel.impact - f.t), aim: DamageAim = s.dmg != null ? 'tank' : 'party';
   const amt = takenAmt(f, u, base, false, aim, ahead);
@@ -102,7 +114,7 @@ export function runEffect(f: Fight, s: BossSkill, e: SkillEffect, tel?: Telegrap
       for (const id of tel?.units ?? []) {
         const u = unitById(f, id);
         if (!u) continue;
-        damage(f, u, s.dmg!, false, 'tank');
+        damage(f, u, s.dmg! * guardMult(tel, u), false, 'tank'); // 99 방어: 자세를 못 잡았으면 더
         u.busterAt = f.t; // 어그로 (96): 강타를 맞은 1초는 탱커 집중
         if (u.did) u.did.buster++;
         if (e.debuff && u.alive) applyDebuff(f, u, e.debuff); // 물어뜯기 독 · 공허 중첩
