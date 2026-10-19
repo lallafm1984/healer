@@ -577,7 +577,7 @@ export const WARDER_TALENTS: TalentTier[] = [
   { lv: 40, theme: '범위 운영', picks: [
     t('doubleCircle', '두 겹 원', '결계 원의 가운데 대상은 두 배 두께의 막을 받습니다.'),
     t('thriftCircle', '아끼는 원', `결계 원 마나 소모가 10%에서 ${TX.thriftCircle.cost}%로 줄어듭니다.`),
-    t('wideWard', '넓은 결계', `결계 원이 ${TX.wideWard.range}칸 거리 (20인 레이드 ${TX.wideWard.range + WARDER.big.circle}칸)까지 닿고, 막 두께는 ${pc(-TX.wideWard.amt)} 줄어듭니다.`)] },
+    t('wideWard', '넓은 결계', `결계 원이 ${TX.wideWard.range}칸 거리${WARDER.big.circle ? ` (20인 레이드 ${TX.wideWard.range + WARDER.big.circle}칸)` : ''}까지 닿고, 막 두께는 ${pc(-TX.wideWard.amt)} 줄어듭니다.`)] },
   { lv: 45, theme: '대규모 운영', picks: [
     t('veilTank', '장막의 탱커', `빛의 장막 보호막이 탱커에게는 ${TX.veilTank}배로 씌워집니다.`),
     t('veilBreath', '장막의 숨', `빛의 장막을 쓰고 ${WARDER.veil.after}초 동안 내 마나 재생이 두 배가 됩니다.`),
