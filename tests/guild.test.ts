@@ -123,7 +123,9 @@ describe('결성 (93 4-1)', () => {
   it('Lv 15: 말없는탱 (고정 능력치) + 근접 1명 (정원 2, 103)', () => {
     const s = save(15);
     const got = Gd.foundGuild(s)!;
-    expect(got).toEqual([STORY.tank.nick, nickOf('rogue')]);
+    const fast = PARTY_POOL.rogue.find(p => p.fm.speed >= 0.95)!; // 딜러는 나와 함께 크는 사람 (103 다른 문제점 4)
+    expect(got).toEqual([STORY.tank.nick, fast.nick]);
+    expect(s.guild.members[1].lv).toBeGreaterThanOrEqual(14);
     const tank = s.guild.members[0];
     expect(tank).toMatchObject({ nick: '말없는탱', cls: 'warrior', story: 'tank', ab: STORY.tank.ab, lv: 15 });
     expect([tank.stats.tough, tank.stats.armor]).toEqual([16, 15]);
@@ -688,5 +690,21 @@ describe('결과창 길드 막대 (103 「명성 = 길드 경험치」)', () => 
     expect(y.guildFame).toEqual({ before: GUILD_STEPS[1] - 3, gain: FAME.dungeon + FAME.first });
     expect(guildLvOf(y.guildFame!.before + y.guildFame!.gain).lv).toBe(2); // 이 판에 길드 Lv 2
     expect(settle(s, result(), rng, []).guildFame).toBeNull();
+  });
+});
+
+describe('103 다른 문제점 3 · 5', () => {
+  it('v24 전 저장: 명성 × 2와 옛 길드원이 다 들어가는 길드 Lv의 누적 명성 가운데 큰 쪽 (넘치지 않게)', () => {
+    const s = save(30);
+    for (let i = 0; i < 4; i++) add(s, 'mage', i);
+    s.guild.fame = 10;
+    const d = migrate({ ...JSON.parse(JSON.stringify(s)), v: 23 });
+    expect(d.guild.fame).toBe(Math.max(20, GUILD_STEPS[2])); // 4명 → 길드 Lv 3 (정원 4)
+    expect(Gd.capOf(d).cap).toBeGreaterThanOrEqual(4);
+    s.guild.fame = 5000;
+    expect(migrate({ ...JSON.parse(JSON.stringify(s)), v: 23 }).guild.fame).toBe(10000);
+  });
+  it('길드파티 인원: 탐험 1 · 5인 2 · 10인 5 · 20인 10명 (자리 절반 이상)', () => {
+    expect([3, 5, 10, 20].map(Gd.guildPartyNeed)).toEqual([1, 2, 5, 10]);
   });
 });

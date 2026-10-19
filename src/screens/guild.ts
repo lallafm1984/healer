@@ -344,7 +344,7 @@ function memberConfirmHtml(): string {
     <section class="sheet g-action-confirm" role="dialog" aria-modal="true" aria-labelledby="guildConfirmTitle" aria-describedby="guildConfirmDesc">
       <h3 id="guildConfirmTitle">${support ? '골드 지원' : '내보내기'}</h3>
       <div class="g-action-member"><b>${esc(m.nick)}</b><span>${CLASSES[m.cls].name} · Lv ${m.lv}</span></div>
-      <p id="guildConfirmDesc">${support ? '전투에 참여하지 않아도 경험치를 소량 획득합니다. 후원하시겠습니까?' : '길드에서 내보냅니다.'}</p>
+      <p id="guildConfirmDesc">${support ? '전투에 참여하지 않아도 출전과 같은 경험치를 받습니다. 후원하시겠습니까?' : '길드에서 내보냅니다.'}</p>
       ${support ? `<div class="g-action-cost"><span>${SPONSOR.runs}판 지원</span>${goldCost(sponsorGold(m.lv))}</div>` : ''}
       <div class="g-action-buttons"><button type="button" data-shut>취소</button><button type="button" class="${support ? 'primary' : 'danger'}" data-gconfirm${disabled ? ' disabled' : ''}>확인</button></div>
     </section>`;

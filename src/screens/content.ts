@@ -26,7 +26,7 @@ import { Flow } from '../game/flow';
 import { fitNow, fitShown, FIT_TEXT, guide, guideCtx, rankStages, recLevel, type Stage } from '../game/guide';
 import { chalGate, runMode, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
-import { TUT } from '../game/tutorial';
+import { TUT, tutLockedContent } from '../game/tutorial';
 import { esc, fmt, go, previous, screen, topBar } from './kit';
 import { classEmblem, currencyIcon, departureArrow, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
 import { sortie } from './stamina';
@@ -309,9 +309,9 @@ function diffs(c: ContentDef, d: DiffName): string {
 
 /** 출전: 내 직업 문장 + 「출전」 한 줄. 장소 · 난이도는 접근성 이름으로 제공한다. */
 function cta(c: ContentDef | null, d: DiffName): string {
-  const lk = c ? lockOf(c, d) : null;
-  const ok = !!c && c.ready && !lk!.locked;
-  const sub = !c ? '준비 중' : !c.ready ? `${c.name} · 준비 중` : lk!.locked ? (lk!.need && !lockOf(c).locked ? `${c.name} · ${lk!.need}부터 깨기` : `${c.name} · Lv ${lk!.lv}에 열림`) : `${c.name} · ${d}`;
+  const lk = c ? lockOf(c, d) : null, tutOff = !!c && tutLockedContent(G.save, c.key); // 튜토리얼 중엔 튜토리얼 판만 (103)
+  const ok = !!c && c.ready && !lk!.locked && !tutOff;
+  const sub = !c ? '준비 중' : !c.ready ? `${c.name} · 준비 중` : tutOff ? `${c.name} · 튜토리얼을 마치면 출전` : lk!.locked ? (lk!.need && !lockOf(c).locked ? `${c.name} · ${lk!.need}부터 깨기` : `${c.name} · Lv ${lk!.lv}에 열림`) : `${c.name} · ${d}`;
   const mk = classEmblem(heroNow(), 'md');
   // 휴식 (클리어 때 쓰는 몫)은 전투 전에 안 보여 줌 (90 · 2026-10-17 Lim: 출전 전 휴식 팝업 · 출발 버튼 휴식과 함께 없앰)
   return `<button type="button" class="g-cta" id="contentGo" aria-label="출전 · ${esc(sub)}"${ok ? '' : ' disabled'}><span class="g-mk" aria-hidden="true">${mk}</span><span class="g-ct"><b>출전</b></span>${departureArrow()}</button>`;
@@ -519,7 +519,7 @@ s.el.addEventListener('click', e => {
   const g = el.closest<HTMLButtonElement>('#contentGo');
   if (g && !g.disabled) {
     const c = current();
-    if (!c) return;
+    if (!c || tutLockedContent(G.save, c.key)) return;
     const d = diffOf(c);
     Flow.content = c.key; Flow.diff = d; Flow.chal = 0;
     if (G.save.tut >= TUT.done) diffPick[c.key] = d;

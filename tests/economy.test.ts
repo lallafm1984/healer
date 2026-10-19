@@ -61,16 +61,18 @@ describe('일일 임무 (13 2-1)', () => {
       FEATURES.guild = true;
       expect(pub2.text).toBe('공개모집으로 클리어');
       expect(pub2.run!(ev())).toBe(1);
-      expect(pub2.run!(ev({ dungeon: false, explore: true }))).toBe(0);
+      expect(pub2.run!(ev({ dungeon: false, explore: true }))).toBe(1); // 탐험도 셈 (103: Lv 1~4는 던전이 없음)
     } finally { FEATURES.guild = was; }
   });
-  it('날이 바뀌면 5개, 단순 판 수 임무는 2개까지, 레벨에 맞는 것만', () => {
+  it('날이 바뀌면 5개 (Lv 1~4는 던전이 없어 「던전 클리어」 빼고 4개, 103), 단순 판 수 임무는 2개까지, 레벨에 맞는 것만', () => {
     for (let i = 0; i < 30; i++) {
       seed = i + 1;
-      const s = save(3);
+      const s = save(5), low = save(3);
       expect(s.daily.missions.length).toBe(5);
+      expect(low.daily.missions.length).toBe(4);
+      expect(low.daily.missions.some(m => m.key === 'clear3')).toBe(false);
       expect(s.daily.missions.filter(m => DAILY_BASIC.includes(m.key)).length).toBeLessThanOrEqual(2);
-      expect(s.daily.missions.every(m => DAILY.find(d => d.key === m.key)!.lv <= 3)).toBe(true);
+      expect(low.daily.missions.every(m => DAILY.find(d => d.key === m.key)!.lv <= 3)).toBe(true);
     }
   });
   it('판·판매로 채우고 받기: 클리어 골드의 20%, 패스 경험치 60 (91: #172 전 골드 값, 「장비 강화」 → 「장비 판매」)', () => {
@@ -260,5 +262,20 @@ describe('시즌 패스 (15 4장, 81 한 줄)', () => {
   it('따라잡기 3주는 패스 경험치 +50%', () => {
     const s = save(20);
     expect(addPassXp(s, 100, T0 + 11 * 7 * D)).toBe(150);
+  });
+});
+
+describe('시계를 뒤로 (103 다른 문제점 1)', () => {
+  it('일일 · 주간 · 시즌은 지금까지 본 것보다 늦을 때만 리셋: 7일 뒤로 갔다 와도 주 첫 보상 기록 · 공훈 · 패스 그대로', () => {
+    const s = save(40), now = T0 + 7 * 864e5;
+    rollover(s, now, rng);
+    s.weekly.loot = ['abyss1|보통']; s.weekly.merit[10] = 150; s.pass.xp = 77;
+    const day = s.daily.day, week = s.weekly.week, season = s.pass.season;
+    rollover(s, now - 7 * 864e5, rng); // 시계를 7일 뒤로
+    expect([s.daily.day, s.weekly.week, s.pass.season, s.weekly.loot, s.weekly.merit[10], s.pass.xp]).toEqual([day, week, season, ['abyss1|보통'], 150, 77]);
+    rollover(s, now, rng); // 돌아옴: 같은 날 · 같은 주
+    expect([s.weekly.loot, s.weekly.merit[10], s.pass.xp]).toEqual([['abyss1|보통'], 150, 77]);
+    rollover(s, now + 7 * 864e5, rng); // 진짜 다음 주
+    expect([s.weekly.loot, s.weekly.merit[10]]).toEqual([[], 0]);
   });
 });

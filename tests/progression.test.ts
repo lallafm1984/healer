@@ -197,13 +197,13 @@ describe('정산 (09 S08·S09)', () => {
     expect(x.stars).toEqual([true, false, true]);
     expect(x.overhealPct).toBe(30);
     expect(x.dispelPct).toBeNull();
-    expect(x.gold).toBe(clearGold(stageOf(contentOf('rustfort'), '보통'), '보통', 'A'));
+    expect(x.gold).toBe(restRun(clearGold(stageOf(contentOf('rustfort'), '보통'), '보통', 'A'))); // 튜토리얼 보상은 튜토리얼 판만 (103)
     expect(s.player.gold).toBe(x.gold);
     // Lv 20까지는 장소가 정한 경험치 (70): 녹슨 요새 보통 첫 클리어 = 장소 몫 60%
-    expect(x.xp).toBe(rampXp(contentOf('rustfort'), '보통', { first: true, grade: 'A', win: true }));
+    expect(x.xp).toBe(restRun(rampXp(contentOf('rustfort'), '보통', { first: true, grade: 'A', win: true }))); // 휴식 판 (튜토리얼 보상은 튜토리얼 판만, 103)
     expect(x.levelUps).toEqual([2, 3]);
     expect(s.player.xp).toBe(x.xp - 100 - 303);
-    expect(x.items.length).toBe(1); // 튜토리얼 중엔 1개
+    expect(x.items.length).toBe(1);
     expect(s.gear.bag).toEqual(x.items);
     expect(s.nextId).toBe(2);
     expect(s.clears.rustfort!['보통']).toEqual({ stars: 2, grade: 'A', best: 360, n: 1 });

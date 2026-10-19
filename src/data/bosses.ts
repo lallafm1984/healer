@@ -2326,7 +2326,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
     ],
     enrage: { name: '기상 시간 초과', period: 2, dmg: 270 },
   },
-  // 붕대 집사 둘둘이 (최종): 모래시계 × 치유 흡수 (칭칭 붕대는 되돌림 뒤에도 남음) · 창 안 조용히 하세요 · 천 년 졸음 (저주). 40% 아래 붕대 3명 · 모래시계 24초마다.
+  // 붕대 집사 둘둘이 (최종): 모래시계 × 치유 흡수 (칭칭 붕대는 되돌림 뒤에도 남음) · 창 안 조용히! · 천 년 졸음 (저주). 40% 아래 붕대 3명 · 모래시계 24초마다.
   // 악몽은 되돌릴 때 붕대가 남은 사람 딜체 20%. 목표 3:30 · 광폭화 5:00
   dooldool: {
     phase: [1, ''],
@@ -2342,7 +2342,7 @@ export const BOSSES: Record<Exclude<ScriptKey, 'trash'>, BossDef> = {
         key: `glass${mythic ? 'm' : ''}`, name: '집사의 모래시계', icon: '모래', kind: 'aoe', first: 18, period: 32, cast: 3, warn: 'aoe', when: { mythic }, how: GLASS_HOW,
         effect: { p: 'glass', sec: 8, then: [{ skill: 'hush', in: 1.5 }], ...(mythic ? { absorbHit: U.dps(0.2) } : {}) },
       })),
-      { key: 'hush', name: '조용히 하세요', icon: '조용', kind: 'aoe', first: null, period: 9999, cast: 1.5, warn: 'aoe',
+      { key: 'hush', name: '조용히!', icon: '조용', kind: 'aoe', first: null, period: 9999, cast: 1.5, warn: 'aoe',
         how: '모래시계 창 안 3초에 맞음. 맞은 피해는 되돌아가니 쓰러질 사람만 힐', effect: { p: 'all', dmg: U.dps(0.35) } },
       { key: 'sleepy', name: '천 년 졸음', icon: '졸음', kind: 'instant', first: 12, period: 18, cast: 0, effect: { p: 'debuff', n: 2, debuff: SLEEPY } },
     ],

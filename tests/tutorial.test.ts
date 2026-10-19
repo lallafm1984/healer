@@ -4,7 +4,8 @@ import { CLASSES } from '../src/data/classes';
 import { contentOf } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import * as E from '../src/engine';
-import { advanceTutorial, DUO_PARTY, firstDungeonDue, TUT } from '../src/game/tutorial';
+import { advanceTutorial, DUO_PARTY, firstDungeonDue, TUT, tutLockedContent } from '../src/game/tutorial';
+import { settle } from '../src/game/settle';
 import { migrate, newSave } from '../src/platform/storage';
 
 describe('2인 첫 전투', () => {
@@ -88,5 +89,21 @@ describe('튜토리얼 단계', () => {
     expect(migrate({ ...newSave(1), tut: TUT.explore }).tut).toBe(TUT.explore);
     // 예전 「녹슨 요새 첫 클리어」 단계(2)는 끝으로
     expect(migrate({ ...newSave(1), tut: 2 }).tut).toBe(TUT.done);
+  });
+});
+
+describe('튜토리얼 판만 튜토리얼 보상 (103 다른 문제점 2)', () => {
+  it('튜토리얼 중 (다시 보기 포함)에는 첫 전투 · 녹슨 고원만 출전, 다른 판은 보통 판으로 정산 (휴식을 씀)', () => {
+    const s = newSave(1); s.player.level = 60; s.tut = TUT.intro;
+    expect(tutLockedContent(s, 'rustfort')).toBe(true);
+    expect(tutLockedContent(s, 'abyss1')).toBe(true);
+    expect([tutLockedContent(s, 'tutorial'), tutLockedContent(s, 'plateau')]).toEqual([false, false]);
+    s.tut = TUT.done;
+    expect(tutLockedContent(s, 'rustfort')).toBe(false);
+    s.tut = TUT.intro;
+    const n0 = s.stamina.n;
+    const x = settle(s, { content: 'rustfort', diff: '보통', win: true, quit: false, reason: '', segIdx: 3, segN: 4, time: 300, restSec: 0, deaths: 0, healed: 5000, overheal: 500, dispels: 0, dispellable: 0, endMana: 30, minMana: 10, auto: false, party: [], detail: [] }, () => 0.5);
+    expect(x.rest).not.toBeNull();
+    expect(s.stamina.n).toBeLessThan(n0);
   });
 });

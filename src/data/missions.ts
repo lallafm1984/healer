@@ -44,6 +44,8 @@ export interface MissionDef {
 }
 
 const won = (e: RunEvent) => e.win && e.dungeon;
+/** 탐험 · 던전 · 레이드 아무 판 클리어 (문구에 「던전」이 없는 클리어 임무, 103 다른 문제점 6: Lv 1~4는 던전이 없어 못 하던 것) */
+const cleared = (e: RunEvent) => e.win && (e.dungeon || e.explore);
 
 /**
  * 디버프 종류마다 지울 수 있는 디버프가 처음 나오는 장소 레벨 (2026-10-18 해금 레벨 검토, 자동 힐러 sim).
@@ -56,13 +58,13 @@ export const dispelFrom = (h: HeroKey) => Math.max(SKILL_LEVEL[HEROES[h].slots.d
 export const missionOpen = (m: MissionDef, lv: number, h: HeroKey) => (m.heroLv?.(h) ?? m.lv) <= lv && (!m.guild || FEATURES.guild);
 
 export const DAILY: MissionDef[] = [
-  { key: 'clear3', text: '던전 클리어', need: 3, lv: 1, run: e => (won(e) ? 1 : 0) },
+  { key: 'clear3', text: '던전 클리어', need: 3, lv: 5, run: e => (won(e) ? 1 : 0) }, // 첫 던전 (녹슨 요새) Lv 5부터 (103)
   // 길드를 빼 두면 모든 판이 공개모집이라 「던전 클리어」와 겹침 → 그동안은 「탐험 클리어」 (2026-10-17 Lim 「추천대로」, 보상 그대로). 길드를 켜면 예전 임무
-  { key: 'pub2', get text() { return FEATURES.guild ? '공개모집으로 클리어' : '탐험 클리어'; }, need: 2, lv: 1, run: e => (FEATURES.guild ? (won(e) && e.pub ? 1 : 0) : (e.win && e.explore ? 1 : 0)) },
+  { key: 'pub2', get text() { return FEATURES.guild ? '공개모집으로 클리어' : '탐험 클리어'; }, need: 2, lv: 1, run: e => (FEATURES.guild ? (cleared(e) && e.pub ? 1 : 0) : (e.win && e.explore ? 1 : 0)) },
   { key: 'dispel10', text: '해제 성공', need: 10, lv: 7, heroLv: dispelFrom, run: e => e.dispels },
   { key: 'overheal', text: '오버힐 30% 이하로 클리어', need: 1, lv: 10, run: e => (won(e) && e.overhealPct <= 30 ? 1 : 0) },
-  { key: 'nodeath', text: '사망자 0명으로 클리어', need: 1, lv: 1, run: e => (won(e) && e.deaths === 0 ? 1 : 0) },
-  { key: 'mana20', text: '남은 마나 20% 이상으로 클리어', need: 1, lv: 1, run: e => (won(e) && e.endManaPct >= 20 ? 1 : 0) },
+  { key: 'nodeath', text: '사망자 0명으로 클리어', need: 1, lv: 1, run: e => (cleared(e) && e.deaths === 0 ? 1 : 0) },
+  { key: 'mana20', text: '남은 마나 20% 이상으로 클리어', need: 1, lv: 1, run: e => (cleared(e) && e.endManaPct >= 20 ? 1 : 0) },
   { key: 'clumsy', text: '「덜렁이」·「허세꾼」이 있는 파티로 클리어', need: 1, lv: 15, run: e => (won(e) && e.pers.some(p => p === '덜렁이' || p === '허세꾼') ? 1 : 0) },
   // 91: 강화를 없애 「장비 강화」 → 「장비 판매」 (옛 저장의 enhance2는 migrate가 sell2로)
   { key: 'sell2', text: '장비 판매', need: 2, lv: 1, act: 'sell' },
@@ -83,7 +85,7 @@ export const WEEKLY: MissionDef[] = [
 export const WEEKLY_N = 3;
 export const WEEKLY_LV = 10;
 
-/** 길드 주간 목표 (13 3장): 길드파티로 클리어 → 명성 + 길드원 전원 훈련 경험치 */
+/** 길드 주간 목표 (13 3장): 길드파티로 need번 클리어 → 명성 +fame (임무 화면에서 받음) */
 export const GUILD_GOAL = { need: 10, fame: 10 };
 
 /**

@@ -121,7 +121,7 @@ describe('레이드 · 주간 보상도 캐릭터 것', () => {
     G.save.player.level = 60;
     rollover(G.save, MON, rng);
   });
-  it('레이드 주 1회 장비는 캐릭터마다', () => {
+  it('레이드 주 첫 보상은 캐릭터마다', () => {
     settle(G.save, result(), () => 0.5);
     expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(false);
     makeChar('druid', '', MON);

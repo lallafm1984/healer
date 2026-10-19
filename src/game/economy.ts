@@ -35,12 +35,15 @@ function pick(pool: MissionDef[], n: number, lv: number, hero: HeroKey, r: () =>
 /** fixed = 지금 못 채워서 바꾼 일일 임무 수 (길드를 빼 둠 · 직업을 바꿈) */
 export interface Rollover { day: boolean; week: boolean; banked: number; season: boolean; fixed: number }
 
-/** 접속·화면 진입 때 부름. 날이 바뀌었으면 일일 임무 새로, 주가 바뀌었으면 주간 새로 (13 1장) */
+/**
+ * 접속·화면 진입 때 부름. 날이 바뀌었으면 일일 임무 새로, 주가 바뀌었으면 주간 새로 (13 1장).
+ * 키 (YYYY-MM-DD · 시즌 번호)가 지금까지 본 것보다 늦을 때만 리셋 (2026-10-19 103 다른 문제점 1: 시계를 뒤로 갔다 오면 주 첫 표 · 공훈 상한 · 상자 · 패스가 다시 나오던 것)
+ */
 export function rollover(save: SaveData, now: number, r: () => number): Rollover {
   const out: Rollover = { day: false, week: false, banked: 0, season: false, fixed: 0 };
   const day = dayKey(now), week = weekKey(now), lv = topLevel(save);
   const d = save.daily;
-  if (d.day !== day) {
+  if (d.day < day) {
     // 접속 안 한 날의 완료 상자는 2일까지 쌓임 (13 7장). 접속했는데 못 깬 날은 없음
     const missed = d.day ? Math.max(0, daysBetween(d.day, day) - 1) : 0;
     const banked = Math.min(CHEST_BANK, d.banked + missed);
@@ -58,7 +61,7 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
     const nw = pick(DAILY, 1, lv, save.hero, r, 2 - basic, ms.map(x => x.key))[0];
     if (nw) { ms[i] = nw; out.fixed++; }
   });
-  if (save.weekly.week !== week) {
+  if (save.weekly.week < week) {
     // 지난주 주간 도전 기록 → 월요일 상자 (13 3-2)
     // 상자는 그 기록을 세운 직업이 받음 (장비가 직업마다, 2026-10-12)
     if (save.weekly.week && save.weekly.chalBest > 0) {
@@ -71,7 +74,7 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
   // 레벨이 올라 주간 임무가 열렸으면 (Lv 10) 이번 주 것을 바로 줌
   if (!save.weekly.missions.length && lv >= WEEKLY_LV) save.weekly.missions = pick(WEEKLY.filter(m => m.key !== 'w_raid3' || lv >= RAID10_LV), WEEKLY_N, lv, save.hero, r);
   const sn = seasonOf(now).n;
-  if (save.pass.season !== sn) { save.pass = { season: sn, xp: 0, free: [] }; out.season = true; }
+  if (save.pass.season < sn) { save.pass = { season: sn, xp: 0, free: [] }; out.season = true; }
   return out;
 }
 

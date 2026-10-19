@@ -86,7 +86,7 @@ describe('캐릭터마다 레벨 (34 3장 → 68)', () => {
     expect(settle(G.save, result({ stage: 30 }), () => 0.5).xp).toBe(restRun(clearXp(30, '보통', gradeOf(0), { win: true })));
     expect('catchUp' in x).toBe(false);
   });
-  it('레이드 주 1회 장비는 캐릭터마다', () => {
+  it('레이드 주 첫 보상은 캐릭터마다', () => {
     G.save.player.level = 40;
     settle(G.save, result({ content: 'abyss1', diff: '보통', segN: 1, segIdx: 0 }), () => 0.5);
     expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(false);
