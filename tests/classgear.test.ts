@@ -128,7 +128,7 @@ describe('레이드 · 주간 보상도 캐릭터 것', () => {
     expect(raidLootOpen(G.save, 'abyss1', '보통')).toBe(true);
   });
   it('공훈과 주 상한은 캐릭터마다 (새 캐릭터는 0부터, 돌아오면 그대로)', () => {
-    settle(G.save, result(), () => 0.5);
+    settle(G.save, result(), () => 0.5, [], MON); // 정산 시각을 MON으로 (오늘 날짜로 정산하면 MON과 다른 주가 되어 돌아올 때 주 상한이 새로 시작함)
     const got = G.save.weekly.merit[10], n = G.save.wallet.merit;
     expect(n).toBeGreaterThan(0);
     makeChar('druid', '', MON);
@@ -138,7 +138,7 @@ describe('레이드 · 주간 보상도 캐릭터 것', () => {
     expect([G.save.wallet.merit, G.save.weekly.merit[10]]).toEqual([n, got]);
   });
   it('다음 주에 돌아오면 공훈은 남고 주 상한만 새로', () => {
-    settle(G.save, result(), () => 0.5);
+    settle(G.save, result(), () => 0.5, [], MON);
     const n = G.save.wallet.merit;
     makeChar('druid', '', MON);
     pickChar(1, NEXT);

@@ -16,7 +16,6 @@ import { NAMED, SPECS, type SpecGroup } from '../data/specials';
 import { bossTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, busterOn, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
 import type { TotemKind } from '../engine/types';
 import type { HeroKey } from '../data/heroes';
-import { absorbLeft, HEALER_SHIELD } from '../engine/abilities';
 import { asleep, CONSTELLATION, starMax, starsNow } from '../engine/astro';
 import { raining } from '../engine/shaman';
 import { sealed } from '../engine/warder';
@@ -1289,7 +1288,7 @@ function putStand(key: string, artName: string, x: number, y: number, r: number,
   return true;
 }
 /**
- * 판 위 지속 그림 위에서 계속 도는 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」: 쉼터 · 이끼 · 성역 · 바다 샘 · 안개 장판 · 성채 · 초신성 · 떠도는 안개 · 결계 · 별의 잠).
+ * 판 위 지속 그림 위에서 계속 도는 루프 (2026-10-19 Lim 「지속 이펙트는 루프로 유지되게, 이미지만 유지되는 게 아닌」: 쉼터 · 이끼 · 성역 · 바다 샘 · 안개 장판 · 성채 · 초신성 · 떠도는 안개 · 별의 잠. 결계사 보호막은 걸 때 이펙트만).
  * 그림과 같은 가운데 · 같은 층에 그림 한 변 × logical / 62 크기 (루프 좌표 1 = 그림 한 변의 반, scripts/vfx 각 직업 파일). phase = 초 어긋남 (칸마다 박자가 겹치지 않게). 시각 효과 줄이기면 안 그림
  */
 function putArtLoop(pool: SpritePool, key: PxfKey, x: number, y: number, side: number, alpha: number, phase = 0): void {
@@ -1314,14 +1313,14 @@ const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
   shaman: ['board-totem-spring', 'board-totem-earth', 'board-totem-spring-aura', 'board-totem-earth-aura', 'board-totem-rain', 'board-sea-spring'],
   monk: ['board-mist', 'board-mist-pool'],
   astrologer: ['board-star', 'board-star-mark', 'board-star-sleep', 'board-supernova'],
-  warder: ['board-seal', 'board-barrier', 'board-citadel'],
+  warder: ['board-seal', 'board-citadel'],
 };
 /**
  * 칸 위에 얹는 그림의 그려진 부분 (192px 그림 중 폭 · 높이 비율, 80 5장 납품본을 잼). 판 가장자리에서 크기를 줄일 때 씀 (비율은 그대로)
  */
 const HERO_ART_BOX: Record<string, [number, number]> = {
   'board-totem-rain': [1, 0.65], // 2026-10-18 Codex로 다시 그림: 구름만 (Lim 「물방울은 이미지에서 제거하고 구름만, 이펙트로 비를 표현」)
-  'board-mist': [0.98, 0.49], 'board-seal': [0.85, 0.96], 'board-barrier': [0.79, 1],
+  'board-mist': [0.98, 0.49], 'board-seal': [0.85, 0.96],
   'board-star-mark': [0.99, 0.79], 'board-star': [0.8, 0.96], 'board-star-sleep': [0.79, 1], // 결계 · 별의 잠 · 별자리 표식은 2026-10-16 굵게 다시 그림 (89)
 };
 /** 점성술사 모으는 별 (80 5장 board-star): 별 n개 자리 (칸 반지름 배, 대상 칸 가운데 기준). 차례로 선을 이음 */
@@ -1715,14 +1714,10 @@ export function render(now: number): void {
       const d = hold.d, melt = d.absorb ? Math.max(0, Math.min(1, (d.absorbLeft ?? 0) / Math.max(1, d.absorb * F.dmgMult))) : 1, k = d.swell ? Math.min(1.95, 1.35 + 0.15 * (d.stack ?? 1)) : 1.9;
       statusArt.put(hold.tex, x, y, r * k, r * k, (0.45 + 0.55 * melt) * (d.left < 2 ? 0.6 + 0.4 * pulse : 1));
     }
-    // 힐러 직업 4종 (80 5장): 떠도는 안개 = 발밑 옅은 안개 고리 · 결계사 보호막 = 칸을 감싼 금빛 막 (끝나기 2초 전 깜빡임) · 별의 잠 = 칸을 덮는 별빛 고치
+    // 힐러 직업 4종 (80 5장): 떠도는 안개 = 발밑 옅은 안개 고리 · 별의 잠 = 칸을 덮는 별빛 고치.
+    // 결계사 보호막 (막 · 장막 · 결계)은 걸 때 이펙트만, 걸린 동안 칸을 감싸는 금빛 막 · 루프는 없음 (2026-10-19 Lim 「발동 이팩트만 나오고 유지되는 이펙트는 제거」, 보호막 원 · 파란 체력은 그대로)
     const mist = u.hots.find(h => h.key === 'wanderMist' && h.left > 0);
     if (mist) { const side = heroArt(statusArt, 'board-mist', `hero-mist${u.id}`, x, y + r * 0.55, r * 1.5, mist.left < 2 ? 0.35 + 0.35 * pulse : 0.7); putArtLoop(statusArt, 'monk-mist-loop', x, y + r * 0.55, side, mist.left < 2 ? 0.5 + 0.5 * pulse : 1, u.id * 0.37); }
-    if (F.hero === 'warder' && absorbLeft(F, u) > 0) {
-      const left = Math.max(0, ...u.mods.filter(m => m.k === 'absorb' && m.src === HEALER_SHIELD).map(m => m.until - F.t));
-      const side = heroArt(statusArt, 'board-barrier', `hero-barrier${u.id}`, x, y, r * 2.06, left < 2 ? 0.4 + 0.45 * pulse : 0.85);
-      putArtLoop(statusArt, 'warder-barrier-loop', x, y, side, left < 2 ? 0.5 + 0.5 * pulse : 1, u.id * 0.37);
-    }
     if (asleep(F, u)) { const side = heroArt(statusArt, 'board-star-sleep', `hero-sleep${u.id}`, x, y, r * 2.06, u.sleep! - F.t < 1 ? 0.5 + 0.4 * pulse : 0.9); putArtLoop(statusArt, 'astro-sleep-loop', x, y, side, u.sleep! - F.t < 1 ? 0.5 + 0.5 * pulse : 1, u.id * 0.37); }
     // 어둠물에 잠긴 사람: 칸 아래 40%가 물에 잠김 (물 높이가 출렁) · 받는 치유 −50%
     if (tideSet.has(u.cell)) {

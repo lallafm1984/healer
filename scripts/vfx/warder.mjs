@@ -2,7 +2,7 @@
 // 막 · 장막 · 결계는 둥글게, 스킬 이름에서 모양을 따옴 (Lim 2026-10-16 「결계사의 막, 빛의장막, 결계 이펙트를 각지게 하지말고 이름을 따와서」). 인장 (X · 마름모) · 결계 정화 (깨지는 유리)는 그대로.
 // 성기사 금빛 (주황 기운) · 점성술사 호박과 다르게 맑은 레몬 노랑 + 강한 빛 번짐, 어두운 호박 갈색 테.
 // 2026-10-19 Lim 「결계사도 퀄리티 및 파티클 보강, 전면 개편」: 모양은 Codex 그림 (scripts/vfx/assets/warder-*), 움직임 · 빛 · 노란 빛가루는 코드
-import { asset, bell, bloom, C, comet, E, energy, frac, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopOrbit, loopRise, particles, path, rad, ringGlow, seg, solid, speck, TAU, wave } from './lib.mjs';
+import { asset, bell, bloom, C, comet, E, energy, frac, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopRise, particles, path, rad, ringGlow, seg, solid, speck, TAU, wave } from './lib.mjs';
 
 const Y = { rim: '#3d2a00', deep: '#c99600', body: '#ffd51f', light: '#fff06a', core: '#fffde8', glow: '#ffe23a' };
 
@@ -20,17 +20,6 @@ function frame(g, x, y, w, h, lw, a = 1, rot = 0, glowA = 0.6) {
   g.lineWidth = lw + 0.05; g.strokeStyle = C(Y.rim, 0.92); g.stroke();
   g.lineWidth = lw; g.strokeStyle = Y.body; g.stroke();
   g.lineWidth = lw * 0.38; g.strokeStyle = Y.core; g.stroke();
-  g.restore();
-}
-/** 노란 유리판 (반투명 몸 + 가는 격자) */
-function pane(g, x, y, w, h, a, rot = 0) {
-  if (a <= 0) return;
-  g.save(); g.translate(x, y); g.rotate(rot); g.globalAlpha = a;
-  const gr = g.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2); gr.addColorStop(0, C(Y.light, 0.42)); gr.addColorStop(0.5, C(Y.glow, 0.2)); gr.addColorStop(1, C(Y.body, 0.38));
-  g.fillStyle = gr; g.fillRect(-w / 2, -h / 2, w, h);
-  g.strokeStyle = C(Y.light, 0.35); g.lineWidth = 0.018;
-  for (let i = 1; i < 3; i++) { const xx = -w / 2 + (w * i) / 3; g.beginPath(); g.moveTo(xx, -h / 2); g.lineTo(xx, h / 2); g.stroke(); }
-  for (let i = 1; i < 4; i++) { const yy = -h / 2 + (h * i) / 4; g.beginPath(); g.moveTo(-w / 2, yy); g.lineTo(w / 2, yy); g.stroke(); }
   g.restore();
 }
 /** 네모 반짝임 (모서리 십자) */
@@ -92,27 +81,33 @@ export default {
     },
   },
 
-  /** 결계 정화 (해제): 몸 앞에 어두운 얼룩이 갇힌 Codex 노란 유리판 (warder-pane)이 나타나 금이 번지다 쨍 깨지고, Codex 유리 조각 (warder-shard)이
-   *  돌며 사방으로 흩어지며 어두운 티끌이 노란 빛가루로 타 사라짐 */
+  /** 결계 정화 (해제, 2026-10-19 Lim 「사각형 각진것을 둥글게 다시 표현」): 몸을 Codex 노란 빛 방울 (warder-bubble, 안에 어두운 기운이 갇힘)이 톡 감싸 숨 쉬듯 흔들리며
+   *  금이 번지다 퐁 터지고, 둥근 충격파 고리 둘 · Codex 둥근 빛 구슬 터짐 (warder-burst)이 퍼지며 어두운 티끌이 노란 빛가루로 타 사라지고 둥근 빛 구슬이 사방으로 튐 (모서리 · 직선 없음) */
   'warder-cleanse': {
     frames: 18, logical: 94, size: 320, scope: 'target',
     draw(g, { t }) {
-      const brk = 0.3, fade = 1 - E.in2(seg(t, 0.6, 1)), appear = E.back(seg(t, 0, 0.15), 1.6), shake = t < brk ? Math.sin(t * 120) * 0.02 * seg(t, 0.15, brk) : 0;
-      glow(g, 0, 0.05, 0.9, Y.glow, 0.45 * fade);
-      if (t < brk + 0.02 && !pic(g, 'warder-pane', shake, 0.05, 1.05 * appear, 0.95, { add: 0.4 * seg(t, 0.18, brk) })) pane(g, 0, 0.05, 0.9, 0.9, 0.9);
+      const brk = 0.32, fade = 1 - E.in2(seg(t, 0.6, 1)), appear = E.back(seg(t, 0, 0.16), 1.6), tense = seg(t, 0.16, brk), wob = Math.sin(t * 70) * 0.035 * tense;
+      glow(g, 0, 0.05, 0.95, Y.glow, 0.45 * fade);
+      // 빛 방울: 터지기 직전 조금 부풀고 (가로 · 세로 엇갈려 흔들림), 터지는 순간 커지며 사라짐
+      const pop = seg(t, brk, brk + 0.12), bw = 1.15 * appear * (1 + 0.06 * tense + 0.35 * E.out2(pop));
+      if (pop < 1 && !pic(g, 'warder-bubble', 0, 0.05, bw, 0.95 * (1 - pop), { sx: 1 + wob, sy: 1 - wob, add: 0.25 + 0.45 * tense })) {
+        glow(g, 0, 0.05, bw * 0.5, Y.glow, 0.6 * (1 - pop)); ringGlow(g, 0, 0.05, bw * 0.45, 0.06, Y.light, 0.9 * (1 - pop));
+      }
       const b = bell(t, brk - 0.03, brk + 0.02, brk + 0.3);
-      glow(g, 0, 0.05, 0.6, '#ffffff', 0.9 * b);
+      glow(g, 0, 0.05, 0.65, '#ffffff', 0.9 * b);
       if (t >= brk) {
         const u = seg(t, brk, 1);
-        pic(g, 'warder-shard', 0, 0.05, lerp(0.7, 1.9, E.out3(u)), (1 - E.in2(u)) * fade, { rot: u * 0.8, add: 0.3 * (1 - u) });
+        for (const [d, w, al] of [[0, 0.08, 0.9], [0.08, 0.05, 0.6]]) { const q = seg(u, d, d + 0.5); if (q > 0 && q < 1) ringGlow(g, 0, 0.05, lerp(0.35, 1.25, E.out3(q)), w, Y.light, al * (1 - q) * fade); }
+        pic(g, 'warder-burst', 0, 0.05, lerp(0.8, 1.9, E.out3(u)), (1 - seg(u, 0.15, 0.75)) * fade, { rot: u * 0.6, add: 0.35 * (1 - u) });
         // 어두운 티끌 → 노란 빛가루
         particles(g, u, 7, 14, r => ({ t0: 0, life: 0.5 + r() * 0.3, a: r() * TAU, v: 0.5 + r() * 0.7, sz: 0.03 + r() * 0.03 }), (gg, p, age) => {
           const d = p.v * E.out3(age), x = Math.cos(p.a) * d, y = 0.05 + Math.sin(p.a) * d * 0.85, burn = seg(age, 0.3, 1);
           bloom(gg, h => { h.beginPath(); h.arc(x, y, p.sz * (1 - burn), 0, TAU); }, '#3a1a50', 0.6 * (1 - burn) * fade, 3);
           if (burn > 0) speck(gg, x, y - 0.1 * burn, 0.015, Y.light, (1 - burn) * fade);
         });
-        lightBurst(g, u, 9, 34, { y: 0.05, sp: 1.15, sq: 0.85, a: fade, grav: 0.3 });
+        lightBurst(g, u, 9, 40, { y: 0.05, sp: 1.15, sq: 0.9, a: fade, grav: 0.25 });
         glints(g, u, 11, 6, { t0: 0.02, step: 0.05, w: 1.4, y0: 0, h: 1.0, a: fade });
+        lightSwirl(g, u, 13, 18, { y0: 0.6, rise: 1.0, rr: 0.7, t0: 0.15, span: 0.3, a: fade });
       }
     },
   },
@@ -249,17 +244,6 @@ export default {
       for (const k of [0, 0.5]) { const a = frac(t * 2 + k); ringGlow(g, 0, 0.72, lerp(0.35, 0.95, E.out2(a)), 0.05, Y.glow, 0.4 * (1 - a) * seg(a, 0, 0.1), 0.3); }
       loopRise(g, t, 16, { x0: -0.8, x1: 0.8, y0: 0.7, y1: -0.9, per: 1, sz: 0.035, col: Y.core, glowCol: Y.glow, sway: 0.05, seed: 31 });
       loopGlints(g, t, [[0, -0.96], [-0.6, -0.6], [0.64, -0.6], [-0.3, -0.75], [0.32, -0.72]], { size: 0.255, col: Y.core, glowCol: Y.glow });
-    },
-  },
-  /** 결계사 보호막이 걸린 사람 (board-barrier, 칸을 감싼 금빛 고리): 고리를 따라 노란 빛 점 둘이 꼬리를 끌며 돌고, 막 안쪽이 숨 쉬듯 빛나며 빛 가루가 떠오름 */
-  'warder-barrier-loop': {
-    frames: 36, fps: 12, loop: true, logical: 74, size: 256, scope: 'target',
-    draw(g, { t }) {
-      g.save(); g.beginPath(); g.ellipse(0, 0, 0.6, 0.88, 0, 0, TAU); g.clip();
-      glowOval(g, 0, 0, 0.62, 0.92, Y.glow, 0.05 + 0.07 * wave(t, 1)); g.restore();
-      loopOrbit(g, t, { rx: 0.6, ry: 0.88, m: 2, per: 1, col: '#ffffff', glowCol: '#fff7c0', sz: 0.08, tail: 1.1, back: 0.85 });
-      loopRise(g, t, 10, { x0: -0.45, x1: 0.45, y0: 0.75, y1: -0.8, per: 1, sz: 0.032, col: Y.core, glowCol: Y.glow, sway: 0.05, seed: 33 });
-      loopGlints(g, t, [[0, -0.9], [0.6, 0.1], [0, 0.9], [-0.6, -0.1]], { size: 0.225, col: Y.core, glowCol: Y.glow, per: 1 });
     },
   },
 };
