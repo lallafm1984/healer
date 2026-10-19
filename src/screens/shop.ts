@@ -6,7 +6,7 @@
  * 탭 막대 없이 「← 상점」, 뒤로 = 들어온 화면 (없으면 로비).
  */
 import { resourceBalance } from '../game/resources';
-import { MERIT_GEAR_COST, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_LEVELS, PASS_XP, REST_BONUS, SEASON, STAMINA, jobProductId } from '../data/economy';
+import { MERIT_GEAR_COST, MERIT_HOLD_CAP, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_LEVELS, PASS_XP, REST_BONUS, SEASON, STAMINA, jobProductId } from '../data/economy';
 import { SLOTS, type SlotKey } from '../data/equipment';
 import { HEROES } from '../data/heroes';
 import { seasonOf } from '../game/clock';
@@ -77,7 +77,7 @@ function render(): void {
 
 function meritHtml(): string {
   const w = G.save.wallet, wk = G.save.weekly.merit;
-  return `<p class="note">레이드 보스를 잡으면 공훈. 레이드마다 주 ${MERIT_WEEK_CAP}까지 (10인 ${wk[10]}/${MERIT_WEEK_CAP} · 20인 ${wk[20]}/${MERIT_WEEK_CAP})</p>
+  return `<p class="note">레이드 보스를 잡으면 공훈. 레이드마다 주 ${MERIT_WEEK_CAP}까지 (10인 ${wk[10]}/${MERIT_WEEK_CAP} · 20인 ${wk[20]}/${MERIT_WEEK_CAP}) · 보유 <b>${w.merit}/${MERIT_HOLD_CAP}</b>${w.merit >= MERIT_HOLD_CAP ? ' (가득: 더 안 쌓임)' : ''}</p>
     <section class="panel mgear"><h4>영웅 장비 <small>원하는 부위 1개</small></h4>
       <div class="gbtns">${SLOTS.map(sl => `<button class="btn" type="button" data-ex="${sl.key}"${w.merit < MERIT_GEAR_COST ? ' disabled' : ''}>${sl.name}<small>${currencyAmount('merit', MERIT_GEAR_COST)}</small></button>`).join('')}</div></section>`;
 }

@@ -682,7 +682,7 @@ describe('저장 v24 (103 「명성 탐험 1 · 던전 2 · 10인 4 · 20인 6�
 
 describe('결과창 길드 막대 (103 「명성 = 길드 경험치」)', () => {
   it('settle.guildFame: 길드파티로 얻은 명성 (승리 · 첫 처치) = 판 전 쌓인 명성 + 얻은 양, 공개모집 판은 null', () => {
-    const s = save(20);
+    const s = save(15); // 녹슨 요새 보통 적 Lv 7 ≥ 내 Lv 15 − 10
     settle(s, result(), rng, []);
     const roster = Gd.guildRoster(s, s.guild.members.map(m => m.id), E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }), ENCOUNTERS.warden);
     s.guild.fame = GUILD_STEPS[1] - 3;
@@ -706,5 +706,20 @@ describe('103 다른 문제점 3 · 5', () => {
   });
   it('길드파티 인원: 탐험 1 · 5인 2 · 10인 5 · 20인 10명 (자리 절반 이상)', () => {
     expect([3, 5, 10, 20].map(Gd.guildPartyNeed)).toEqual([1, 2, 5, 10]);
+  });
+});
+
+describe('낮은 장소 명성 (103 「넷 다」 1)', () => {
+  it('그 판 적 레벨이 내 Lv − 10보다 낮으면 길드파티로 이겨도 명성 · 첫 처치 없음 (기록도 안 남김), 레이드는 늘 받음', () => {
+    const s = save(30);
+    const a = add(s, 'warrior', 0, { lv: 30 }), b = add(s, 'mage', 0, { lv: 30 });
+    const roster = Gd.guildRoster(s, [a.id, b.id], E.recruitParty('warden', 3, { abilities: true, exclude: Gd.guildNicks(s) }), ENCOUNTERS.warden);
+    const go = (stage: number, raid: 0 | 10 | 20 = 0) => Gd.guildAfter(s, rng, { win: true, quit: false, grade: 'A', diff: '보통', stage, raid, content: 'rustfort', kind: raid ? 'raid' : 'dungeon', party: [], roster });
+    const low = go(19);
+    expect([low.low, low.fame, low.first, s.guild.fame, s.guild.firsts]).toEqual([true, 0, false, 0, []]);
+    expect(low.members.length).toBe(2); // 길드원 경험치는 그대로
+    const ok = go(20);
+    expect([ok.low, ok.fame, ok.first]).toEqual([false, FAME.dungeon + FAME.first, true]);
+    expect(go(30, 20).fame).toBe(FAME.raid20); // 레이드 적 = max(내 Lv, 레이드 Lv)
   });
 });

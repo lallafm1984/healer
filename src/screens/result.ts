@@ -30,6 +30,7 @@ import { adsFree } from '../game/stamina';
 import { adClockMs, interstitialDue, interstitialOff, showInterstitial } from '../platform/ads';
 import { sheetDialog } from './dialog';
 import { openItemDetail } from './character';
+import { MERIT_HOLD_CAP } from '../data/economy';
 
 let itemDetailOpen = false;
 let deferredPopups: (() => void)[] = [];
@@ -169,6 +170,7 @@ function lootHtml(r: BattleResult, x: Settlement, anim = false, fameAnim = false
   const tile = (k: CurrencyIconKey, label: string, v: number, add = 0) => `<span class="r-cur"><span class="r-ci">${currencyIcon(k)}</span><span class="r-cv"><b>+${countUp(v, add, anim)}</b><small>${label}${add ? ` <i class="r-rest-tag${anim ? ' r-rest-pend' : ''}">휴식 보너스 +${fmt(add)}</i>` : ''}</small></span></span>`;
   if (x.gold) tiles.push(tile('gold', '골드', x.gold, gb));
   if (x.merit) tiles.push(tile('merit', '공훈', x.merit));
+  else if (x.meritFull) tiles.push(`<span class="r-cur full"><span class="r-ci">${currencyIcon('merit')}</span><span class="r-cv"><b>공훈 가득</b><small>보유 ${MERIT_HOLD_CAP}까지</small></span></span>`); // 보유 상한 (103)
   const fx = anim ? `<div class="r-restfx" aria-hidden="true"><span>${currencyIcon('rest')}<b>휴식 보너스!</b></span></div>` : '';
   return `<section class="r-loot${x.items.length > 1 ? ' many' : ''}" aria-label="받은 것">
       <h2 class="r-lh" tabindex="-1">획득 보상${x.pubBonus ? ` <small>${pubBonusText(x.pubBonus)}</small>` : ''}</h2>
@@ -236,7 +238,7 @@ function xpRow(x: Settlement, fest = false, anim = false): string {
  */
 function guildRow(x: Settlement, anim = false): string {
   const gf = x.guildFame;
-  if (!gf) return '';
+  if (!gf) return x.guild?.low ? '<p class="r-item none r-glow">낮은 장소 · 명성 없음</p>' : ''; // 적 레벨이 내 Lv − 10보다 낮은 길드파티 판 (103)
   const a = guildLvOf(gf.before), b = guildLvOf(gf.before + gf.gain), up = b.lv > a.lv;
   const pct = (l: ReturnType<typeof guildLvOf>) => (l.need ? Math.min(100, (l.have / l.need) * 100) : 100);
   const txt = (l: ReturnType<typeof guildLvOf>) => (l.need ? `${fmt(l.have)} / ${fmt(l.need)}` : 'MAX');

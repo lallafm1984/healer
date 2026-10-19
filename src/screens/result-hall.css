@@ -124,6 +124,8 @@
 #s-settle .r-cv { min-width: 0; display: flex; flex-direction: column; line-height: 1.1; }
 #s-settle .r-cur b { font: 900 16px/1.1 var(--font-body); color: var(--gk-ink); white-space: nowrap; }
 #s-settle .r-cur small { font-size: 11px; color: var(--gk-mute); }
+#s-settle .r-cur.full b { color: var(--gk-mute); font-size: 14px; } /* 공훈 가득 (보유 상한, 103) */
+#s-settle .r-item.none.r-glow { margin-top: 6px; } /* 낮은 장소 · 명성 없음 (103): 길드 막대 자리 */
 
 /* 경험치: 레벨 배지 + 굵은 바 */
 #s-settle .r-xpw { display: flex; align-items: center; gap: 8px; }

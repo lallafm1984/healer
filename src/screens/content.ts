@@ -20,7 +20,8 @@ import { FACTIONS, PLACES, type FactionKey } from '../data/places';
 import { clearGold, EXPLORE_DROP, EXPLORE_REWARD, restRun } from '../data/progression';
 import { art, cssUrl } from '../art';
 import { weekRemaining } from '../game/clock';
-import { meritFor, raidLootOpen } from '../game/economy';
+import { meritFor, meritFull, raidLootOpen } from '../game/economy';
+import { MERIT_HOLD_CAP } from '../data/economy';
 import { restBase } from '../game/stamina';
 import { Flow } from '../game/flow';
 import { fitNow, fitShown, FIT_TEXT, guide, guideCtx, rankStages, recLevel, type Stage } from '../game/guide';
@@ -244,7 +245,7 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   currency('gold', '골드', play ? restBase(restRun(raw)) : Math.round(raw), '#DDB563', '클리어 시 · A 평가');
   if (play && raid) {
     const merit = meritFor(G.save, raid, d);
-    currency('merit', '공훈', merit, '#E6BA6F', merit ? '클리어 시' : '이번 주 공훈 한도 도달', merit ? 1 : 0);
+    currency('merit', '공훈', merit, '#E6BA6F', merit ? '클리어 시' : meritFull(G.save, raid) ? `공훈 가득 (보유 ${MERIT_HOLD_CAP}까지)` : '이번 주 공훈 한도 도달', merit ? 1 : 0);
   }
   return items;
 }

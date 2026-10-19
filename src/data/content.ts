@@ -656,6 +656,8 @@ export const contentOf = (k: ContentKey) => CONTENT.find(c => c.key === k)!;
 
 /** 10인 레이드가 열리는 레벨 (심연의 탑 1층, 69 지역 순서 레벨). 주간 레이드 임무 · 완료 상자 난이도 · 길드 정원 · 레벨업 알림이 따라감 */
 export const RAID10_LV = contentOf('abyss1').unlockLv;
+/** 20인 레이드가 열리는 레벨 (가라앉은 대성당) */
+export const RAID20_LV = contentOf('cathedral1').unlockLv;
 
 /** 레벨링 콘텐츠 (61 1장): 탐험 · 던전. 적 레벨이 장소 · 난이도에 고정되고, 난이도는 아래부터 하나씩 열림 */
 export const isLeveling = (c: ContentDef) => c.kind !== 'raid';

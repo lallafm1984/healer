@@ -54,6 +54,8 @@ export const MERIT: Record<10 | 20, Record<DiffName, number>> = {
   20: { '쉬움': 10, '보통': 15, '어려움': 20, '악몽': 30 },
 };
 export const MERIT_WEEK_CAP = 150;
+/** 공훈 보유 상한 (2026-10-20 Lim 카드 「넷 다」, 103): 영웅 3개 몫. 가득이면 더 안 쌓임 (주 상한도 안 씀), 이미 더 가진 저장은 깎지 않고 이 아래로 내려갈 때까지 안 쌓음. 교환 장비 레벨이 바꾸는 순간 내 레벨이라 Lv 100까지 모으던 것을 막음 */
+export const MERIT_HOLD_CAP = 300;
 /** 원하는 부위 영웅 장비 1개 */
 export const MERIT_GEAR_COST = 100;
 

@@ -3,11 +3,11 @@
  * 휴식 (90, 코드 이름 stamina)은 game/stamina.ts
  */
 import { EXPED } from '../data/guild';
-import { RAID10_LV } from '../data/content';
+import { RAID10_LV, RAID20_LV } from '../data/content';
 import type { DiffName } from '../data/difficulty';
 import type { HeroKey } from '../data/heroes';
 import {
-  CHAR_SLOT, JOB_PRICE, jobProductId, MERIT, MERIT_GEAR_COST, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_GAIN, PASS_LEVELS, PASS_XP, passFree, slotGold, type PassReward,
+  CHAR_SLOT, JOB_PRICE, jobProductId, MERIT, MERIT_GEAR_COST, MERIT_HOLD_CAP, MERIT_WEEK_CAP, NOADS, PAID_HEROES, PASS_GAIN, PASS_LEVELS, PASS_XP, passFree, slotGold, type PassReward,
 } from '../data/economy';
 import { resourceBalance, spendResource } from './resources';
 import { HEROES } from '../data/heroes';
@@ -109,8 +109,11 @@ export const missionDef = defOf;
 export const missionReady = (s: MissionSave) => !s.got && s.n >= defOf(s.key).need;
 
 // ---------- 보상 ----------
-/** 이 레벨 「클리어 골드 1판」 (보통 A, 12 3-1). 임무 · 상자 · 패스 골드의 기준 */
-export const runGold = (lv: number) => clearGold(lv, '보통', 'A');
+/**
+ * 이 레벨 「클리어 골드 1판」 = 그 레벨에 열린 가장 큰 콘텐츠 한 판 (보통 A, 12 3-1 · 2026-10-20 Lim 카드 「넷 다」, 103): Lv 45 전 던전 · 45~69 10인 · 70부터 20인.
+ * 임무 · 상자 · 패스 · 도감 골드의 기준 (예전 던전 한 판: Lv 100 일일 임무 하나가 판 49초어치였음)
+ */
+export const runGold = (lv: number) => clearGold(lv, '보통', 'A', lv >= RAID20_LV ? 20 : lv >= RAID10_LV ? 10 : 0);
 
 export interface Gain { gold?: number; pass?: number; items?: GearItem[]; deco?: string; /** 처음 얻은 특수능력 (42 1-6) */ newSpecs?: string[] }
 
@@ -247,11 +250,13 @@ export function exchangeMerit(save: SaveData, slot: SlotKey, r: () => number = M
 }
 
 // ---------- 레이드 주간 규칙 ----------
-/** 레이드 보스 처치 공훈 (주 150 상한, 레이드마다 따로) */
+/** 레이드 보스 처치 공훈 (주 150 상한, 레이드마다 따로 · 보유 상한 MERIT_HOLD_CAP까지) */
 export function meritFor(save: SaveData, raid: 10 | 20, diff: DiffName): number {
-  const left = Math.max(0, MERIT_WEEK_CAP - save.weekly.merit[raid]);
-  return Math.min(left, MERIT[raid][diff]);
+  const left = Math.max(0, MERIT_WEEK_CAP - save.weekly.merit[raid]), room = Math.max(0, MERIT_HOLD_CAP - save.wallet.merit);
+  return Math.min(left, room, MERIT[raid][diff]);
 }
+/** 공훈이 가득 (보유 상한)이라 이번 판 공훈이 안 쌓임 (주 상한은 남았는데) */
+export const meritFull = (save: SaveData, raid: 10 | 20) => save.wallet.merit >= MERIT_HOLD_CAP && save.weekly.merit[raid] < MERIT_WEEK_CAP;
 /** v12: 같은 캐릭터의 모든 직업이 레이드 주 1회 제한을 공유 */
 export const lootKey = (_hero: HeroKey, content: string, diff: DiffName) => `${content}|${diff}`;
 /** v11 직업 접두사가 남아 있어도 보스·난이도별 수령 이력으로 처리 */

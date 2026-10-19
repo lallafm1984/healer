@@ -809,7 +809,9 @@ export function presetStats(grade: ItemGrade, mult: number, ilv?: number): StatS
 /** 판매 골드의 등급 값 (#172 전 분해 골드) */
 export const SELL_GOLD: Record<ItemGrade, number> = { '일반': 5, '고급': 15, '희귀': 40, '영웅': 100, '전설': 250 };
 /** 판매 골드 = 등급 값 × (1 + 아이템 레벨 ÷ 10) */
-export const sellGold = (it: GearItem) => Math.round(SELL_GOLD[it.grade] * (1 + (it.lv ?? 1) / 10));
+/** 판매가 배율 (2026-10-20 Lim 카드 「넷 다」, 103): Lv 100 악몽 판마다 판매 기대값이 약 585골드로 엔드게임 골드의 31~73%라 절반 (등급 값은 그대로) */
+export const SELL_MULT = 0.5;
+export const sellGold = (it: GearItem) => Math.round(SELL_GOLD[it.grade] * (1 + (it.lv ?? 1) / 10) * SELL_MULT);
 
 // ---------- 품질 (91) ----------
 export type Quality = '정교한' | '완벽한';
