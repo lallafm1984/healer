@@ -217,6 +217,8 @@ export interface Unit {
   /** 능력치 (99 집중): 다음 「멍」 때 · 멍한 끝 (집중 15 밑, 긴 전투일수록 잦음) */
   dazeNext?: number;
   dazeUntil?: number;
+  /** 99 빗나감 대사를 한 때 (같은 사람 whiffGap초에 한 번) */
+  whiffAt?: number;
   /** 능력치 (99, Codex 검토 반영 4): 최근 실수 시각 · 수습 틈 끝 (그동안 새 실수 굴림 없음) */
   slips?: number[];
   regroupUntil?: number;

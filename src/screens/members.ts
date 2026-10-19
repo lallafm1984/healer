@@ -2,7 +2,7 @@
 import { ABILITIES, AB_GRADE } from '../data/abilities';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { CATS, PERS, type PersName } from '../data/personalities';
-import { abilityStars, ROLE_CORE, STAT_GROUPS, STAT_NAMES, type StatKey, type Stats } from '../data/fm';
+import { abilityStars, ROLE_CORE, STAT_GROUPS, STAT_NAMES, statsAt, type StatKey, type Stats } from '../data/fm';
 import { classGlyphSvg } from './class-icons';
 import { ratingStarsHtml } from './member-icons';
 import { esc, ROLE } from './kit';
@@ -56,7 +56,7 @@ export interface CardData {
   member?: boolean;
 }
 
-/** 능력 ★ 글 (97 FM): 역할 핵심에 무게를 둔 능력치 합. 능력치가 없는 사람 (길드원 · 옛 파티)은 빈 글 */
+/** 능력 ★ 글 (97 FM): 역할 핵심에 무게를 둔 능력치 합 (레벨 몫은 빼고 = 같은 레벨 사이 재능, 102). 능력치가 없는 사람 (길드원 · 옛 파티)은 빈 글 */
 const fmStars = (m: CardData): string => (m.fm ? ratingStarsHtml(abilityStars(m.fm.stats, CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged')) : '');
 
 /** 역할 아이콘 (27 시안 Party27): 탱커 방패 · 근접 칼 · 원거리 화살 */
@@ -92,7 +92,7 @@ export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra
 /** 파티원 상세: 능력 별 · 능력치 · 스킬 · 성격 */
 export function memDetailHtml(m: CardData): string {
   const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged';
-  return `<div class="f-det">${m.fm ? `<p class="pfm">능력 <b>${fmStars(m)}</b></p>${statsHtml(m.fm.stats, role, m.lastStatGains)}` : ''}${abHtml(m.ab, m.star || 0)}
+  return `<div class="f-det">${m.fm ? `<p class="pfm">능력 <b>${fmStars(m)}</b></p>${statsHtml(statsAt(m.fm.stats, m.lv), role, m.lastStatGains)}` : ''}${abHtml(m.ab, m.star || 0)}
     ${personalityHtml(m.pers)}</div>`;
 }
 
