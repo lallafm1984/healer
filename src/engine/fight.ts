@@ -9,7 +9,7 @@ import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
 import { openTiers } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { pickMember, pickNick } from '../data/nicknames';
-import { clumsy, dayOffset, fmFx, lvStat, memberLevel, sharp, STAT_KEYS, wobOf, type Stats } from '../data/fm';
+import { clumsy, dayOffset, fmFx, lvAdds, memberLevel, sharp, STAT_KEYS, wobOf, type Stats } from '../data/fm';
 import { dealerOutput, dealerThreat, threatInit, threatTick } from './threat';
 import { NICKS, PERS, PROTO_PERS, type PersName, type Personality } from '../data/personalities';
 import { POS_RULES, PROTO_RULES, RULES, STAT_ACT } from '../data/rules';
@@ -181,9 +181,12 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     const lv = role === 'healer' ? f.power : own;
     let base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;
     let dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult * own;
-    const off = r?.fm ? r.fm.off + lvStat(r.lv) : 0; // 그날 흔들림 (꾸준함) + 레벨 몫 (102)
-    const fx = r?.fm ? fmFx(r.fm.stats, off) : undefined; // 능력치 (97 FM): 공개모집 · 길드원
-    if (fx) { base *= fx.hp; dps *= fx.dps; if (role === 'tank') dps *= 1 + STAT_ACT.tankDps * sharp(r!.fm!.stats.atk + off); } // 99 다: 공격 높은 탱커
+    // 능력치 = 저장 값 + 레벨 몫 (102 · 103 성장 결: 사람마다 칸마다 다르게) + 그날 흔들림 (꾸준함)
+    const off = r?.fm ? r.fm.off : 0;
+    const add = r?.fm && role !== 'healer' ? lvAdds(r.nick, r.pers, role, r.lv, r.fm.stats) : null;
+    const st = r?.fm ? (add ? Object.fromEntries(STAT_KEYS.map(k => [k, r.fm!.stats[k] + add[k]])) as Stats : r.fm.stats) : null;
+    const fx = st ? fmFx(st, off) : undefined; // 능력치 (97 FM): 공개모집 · 길드원
+    if (fx) { base *= fx.hp; dps *= fx.dps; if (role === 'tank') dps *= 1 + STAT_ACT.tankDps * sharp(st!.atk + off); } // 99 다: 공격 높은 탱커
     if (role === 'healer' && f.gear.hp) base *= 1 + f.gear.hp; // 장비 체력 (34 6-5)
     const u: Unit = {
       id: f.nextId++, role, cls: c ? c.key : null, acc: 0, dealt: 0, pers, p: pers ? habitPers(PERS[pers], r?.habit) : {}, nick, base, max: base, hp: base, dps, alive: true,
@@ -193,7 +196,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
       ab: null, mods: [], got: 0, senseReact: fx ? fx.react : 1, senseDodge: fx ? fx.dodge : 0, gid: r?.gid,
     };
     if (r?.gid != null) u.did = { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0, help: 0 }; // 길드원 「한 일」 (97)
-    if (fx) { u.fm = fx; u.fmStats = Object.fromEntries(STAT_KEYS.map(k => [k, r!.fm!.stats[k] + off])) as Stats; u.wob = wobOf(r!.fm!.steady ?? 10); }
+    if (fx) { u.fm = fx; u.fmStats = Object.fromEntries(STAT_KEYS.map(k => [k, st![k] + off])) as Stats; u.wob = wobOf(r!.fm!.steady ?? 10); }
     if (role !== 'healer') u.lv = r?.lv ? (r.pub ? r.lv : Math.min(r.lv, f.cfg.stageLv ?? r.lv)) : (f.cfg.stageLv ?? 1); // 어그로 레벨 차이 (96)
     else u.lv = Math.max(f.cfg.heroLv ?? f.cfg.stageLv ?? 1, f.cfg.stageLv ?? 1);
     units.push(u);
