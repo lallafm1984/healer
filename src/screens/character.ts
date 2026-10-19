@@ -14,7 +14,8 @@ import { TALENT_LEVEL } from '../data/progression';
 import { JOB_PRICE, jobProductId } from '../data/economy';
 import { healText, PASSIVE_DESC, PASSIVE_LEVEL, PASSIVE_NAME, SKILL_INFO, SKILL_LEVEL, SKILLS, type PassiveKey, type SkillKey, type SlotName } from '../data/skills';
 import { TALENT_TREES, type TalentKey } from '../data/talents';
-import { type TapKey } from '../platform/storage';
+import { topLevel, type TapKey } from '../platform/storage';
+import { runGold } from '../game/economy';
 import { FACTIONS } from '../data/places';
 import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, type DexTab } from '../data/dex';
 import { codexRows, dexRows, specRows, statParts, talentsLeft } from '../game/charinfo';
@@ -312,7 +313,7 @@ function inventoryHtml(): string {
   const used = list.length;
   const emptySlots = EMPTY_CELL.repeat(Math.max(15, Math.ceil(used / 5) * 5) - used);
   // 장비 도감 · 특수능력 도감으로 가는 길 (34 6-10 ④ 「가방 → 도감」, 받을 보상이 있으면 「!」). 2026-10-13 장비 화면 정리에서 빠져 도감 보상 (골드)을 받을 길이 없었음 (QA 2026-10-17)
-  const due = dexDue(G.save.gear.dex.length, G.save.gear.dexPaid).steps;
+  const due = dexDue(G.save.gear.dex.length, G.save.gear.dexPaid, runGold(topLevel(G.save))).steps;
   return `<section class="c7-inventory" aria-label="인벤토리">
       <header class="c7-inventory-head"><h3 id="gearInventoryTitle" tabindex="-1">인벤토리</h3><span class="c7-inventory-count">${all.length}개</span><span class="cap gmats">${goldHave()}</span><button type="button" class="btn2 c7-dexb" data-dex aria-label="도감${due ? ' · 받을 보상 있음' : ''}">${gameIcon('dex', '')}도감${due ? '<span class="g-badge" aria-hidden="true">!</span>' : ''}</button></header>
       <div class="c7-inventory-tools"><div class="c7-fcs" role="group" aria-label="인벤토리 분류">${FILTERS.map(x => `<button type="button" class="c7-fc" data-bfilter="${x.key}" aria-pressed="${bagFilter === x.key}">${x.name}</button>`).join('')}</div><button type="button" class="btn2 c7-sort" data-bsort aria-label="정렬: ${SORTS[bagSort].name}"${all.length ? '' : ' disabled'}>${SORTS[bagSort].name} ▾</button></div>
@@ -373,7 +374,7 @@ function codexSheet(): string {
 
 /** 장비 도감 시트 (34 6-10 ④): 묶음 칩 (얻은 수/전체) · 보상 (10칸마다) · 칸 목록 (얻은 것 = 이름 · 설명, 아닌 것 = 「?」 + 나오는 곳) · 칭호 */
 function dexSheet(): string {
-  const have = G.save.gear.dex, all = DEX_ALL().length, due = dexDue(have.length, G.save.gear.dexPaid);
+  const have = G.save.gear.dex, all = DEX_ALL().length, due = dexDue(have.length, G.save.gear.dexPaid, runGold(topLevel(G.save)));
   const tab = DEX_TABS.find(t => t.key === dexT)!, rows = dexRows(dexT), got = rows.filter(r => r.got).length, done = G.save.decos.includes(tab.title);
   const next = (Math.floor(have.length / DEX_STEP) + 1) * DEX_STEP;
   const reward = due.steps

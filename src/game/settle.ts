@@ -13,7 +13,7 @@ import { advanceTutorial, TUT, TUT_CONTENT } from './tutorial';
 import { foundGuild, guildAfter, isGuildParty, storyArrive, type GuildAfter } from './guild';
 import { jobsAfter, type JobsDone } from './guildjobs';
 import type { StoryKey } from '../data/guild';
-import { lootKey, meritFor, onRun, raidLootOpen, rollover } from './economy';
+import { lootKey, meritFor, meritFull, onRun, raidLootOpen, rollover } from './economy';
 import { FEATURES } from '../data/features';
 import { PUB_BONUS } from '../data/missions';
 import { CHAL, chalDropDiff } from '../data/challenge';
@@ -102,6 +102,8 @@ export interface Settlement {
   jobs: JobsDone | null;
   /** 레이드 공훈 (12 3-5) */
   merit: number;
+  /** 공훈 보유 상한 (MERIT_HOLD_CAP)이라 이번 판 공훈이 안 쌓임 (결과창 「공훈 가득」, 103) */
+  meritFull: boolean;
   /** 레이드 칸 (보스 × 난이도) 주 첫 보상 (2026-10-19 Lim 「주 첫 판만 크게」): first = 이번 주 첫 클리어 (레이드 표), again = 다시 깬 판 (던전 표), 레이드가 아니면 null */
   raidLoot: 'first' | 'again' | null;
   /** 탐험을 이겼는데 이번 판은 장비가 안 나옴 (판마다 EXPLORE_DROP, 103) */
@@ -179,7 +181,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   let newSpecs: string[] = [], newDex: string[] = [];
   // 레이드 장비 (2026-10-19 Lim 「주 첫 판만 크게」, 13 3-4를 바꿈): 매 판 1개, 칸 (보스 × 난이도)마다 주 첫 클리어는 레이드 표, 그 주에 다시 깨면 같은 레벨 던전 표 (REPEAT_LEGEND)
   const raidLoot = play && r.win && raid ? (raidLootOpen(save, c.key, r.diff) ? 'first' : 'again') : null;
-  let merit = 0;
+  let merit = 0, meritAll = false;
   // 탐험은 판마다 EXPLORE_DROP (103 「탐험만 줄임」, 튜토리얼 · 주간 도전은 언제나)
   const noDrop = r.win && play && c.kind === 'explore' && !r.chal && rng() >= EXPLORE_DROP;
   if (r.win) {
@@ -194,7 +196,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
     newDex = noteDex(save, items);
     newSpecs = noteSpecs(save, items);
     if (raidLoot === 'first') save.weekly.loot.push(lootKey(save.hero, c.key, r.diff));
-    if (play && raid) { merit = meritFor(save, raid, r.diff); save.weekly.merit[raid] += merit; save.wallet.merit += merit; }
+    if (play && raid) { merit = meritFor(save, raid, r.diff); meritAll = !merit && meritFull(save, raid); save.weekly.merit[raid] += merit; save.wallet.merit += merit; }
   }
 
   let first = false, best = false;
@@ -255,6 +257,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, guildFame, merit, raidLoot, noDrop, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, guildFame, merit, meritFull: meritAll, raidLoot, noDrop, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
   };
 }

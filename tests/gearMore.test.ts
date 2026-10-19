@@ -12,6 +12,7 @@ import { rngFrom } from '../src/engine/rng';
 import { migrate, newSave, noteDex } from '../src/platform/storage';
 import { DEX_ALL, DEX_STEP, DEX_TABS, dexDue, dexKeys, dexKeysOf, dexReward, dexTabOf } from '../src/data/dex';
 import { gearIcon, KIND_ART } from '../src/screens/art';
+import { runGold } from '../src/game/economy';
 
 describe('종류 30 · 겹 고정 옵션 (34 6-10 ①)', () => {
   it('부위마다 5종, 키 · 이름이 겹치지 않고, 겹 옵션은 서로 다른 두 능력치', () => {
@@ -179,14 +180,17 @@ describe('장비 도감 (34 6-10 ④)', () => {
     expect(noteDex(s, [a, b, c])).toEqual(['k:jade', 'l:fairy:jade', 'k:mace', 'k:helm', 'u:guardianHelm']);
     expect(noteDex(s, [a])).toEqual([]);
   });
-  it('묶음을 다 채우면 칭호, 10칸마다 골드 600 (다섯 번째는 1,000 더, 91)', () => {
+  it('묶음을 다 채우면 칭호, 10칸마다 클리어 골드 1.5판 (다섯 번째는 2.5판 더, 103): Lv 30쯤 예전 600 · 1,000과 비슷', () => {
     const s = newSave();
     noteDex(s, KINDS.map((k, i) => ({ id: i, slot: k.slot, kind: k.key, grade: '일반', name: '', lines: [] })));
     expect(s.decos).toContain('장비 감정사');
-    expect(dexDue(9, 0).steps).toBe(0);
-    expect(dexDue(30, 0)).toEqual({ gold: 1800, steps: 3 });
-    expect(dexDue(52, 3)).toEqual({ gold: 600 + 1600, steps: 2 });
-    expect(dexReward(DEX_STEP / DEX_STEP)).toEqual({ gold: 600 });
+    const run = 400;
+    expect(dexDue(9, 0, run).steps).toBe(0);
+    expect(dexDue(30, 0, run)).toEqual({ gold: 1800, steps: 3 });
+    expect(dexDue(52, 3, run)).toEqual({ gold: 600 + 1600, steps: 2 });
+    expect(dexReward(DEX_STEP / DEX_STEP, run)).toEqual({ gold: 600 });
+    expect(Math.abs(dexReward(1, runGold(30)).gold - 600)).toBeLessThan(60);
+    expect(Math.abs(dexReward(5, runGold(30)).gold - 1600)).toBeLessThan(160);
   });
 });
 

@@ -40,21 +40,21 @@ describe('강화 없음 → 아이템 레벨 배율 (91, 예전 강화 몫)', ()
 
 describe('판매 (91, 예전 분해 자리)', () => {
   beforeEach(() => { G.save = newSave(1); G.save.tut = TUT.done; });
-  it('골드 = 등급 값 (#172 전 분해 골드 5 · 15 · 40 · 100 · 250) × (1 + 아이템 레벨 ÷ 10)', () => {
+  it('골드 = 등급 값 (#172 전 분해 골드 5 · 15 · 40 · 100 · 250) × (1 + 아이템 레벨 ÷ 10) × 0.5 (103 판매가 절반)', () => {
     expect(SELL_GOLD).toEqual({ '일반': 5, '고급': 15, '희귀': 40, '영웅': 100, '전설': 250 });
-    expect(sellGold(item({ grade: '일반', lv: 1 }))).toBe(6);
-    expect(sellGold(item({ grade: '희귀', lv: 40 }))).toBe(200);
-    expect(sellGold(item({ grade: '전설', lv: 100 }))).toBe(2750);
+    expect(sellGold(item({ grade: '일반', lv: 1 }))).toBe(3);
+    expect(sellGold(item({ grade: '희귀', lv: 40 }))).toBe(100);
+    expect(sellGold(item({ grade: '전설', lv: 100 }))).toBe(1375);
   });
   it('가방 장비만 (착용 · 잠금 빼고), 여러 개 한 번에, 일일 임무 「장비 판매」 한 개마다', () => {
     G.save.gear.bag = [item({ id: 1, grade: '일반', lv: 10 }), item({ id: 2, grade: '고급', lv: 10 }), item({ id: 3, lock: true })];
     G.save.gear.equipped.head = item({ id: 9 });
     G.save.daily.missions = [{ key: 'sell2', n: 0, got: false }];
     const r = sell([1, 2, 3, 9]);
-    expect(r).toEqual({ n: 2, gold: 10 + 30 });
+    expect(r).toEqual({ n: 2, gold: 5 + 15 });
     expect(G.save.gear.bag.map(x => x.id)).toEqual([3]);
     expect(G.save.gear.equipped.head?.id).toBe(9);
-    expect(G.save.player.gold).toBe(40);
+    expect(G.save.player.gold).toBe(20);
     expect(G.save.daily.missions[0].n).toBe(2);
   });
 });

@@ -1,6 +1,6 @@
 /** 재화 (12, 81)·일일 주간 (13)·상점·패스 (15). 소비 아이템 가방 (19 11장)은 2026-10-16 없앰 */
 import { describe, expect, it } from 'vitest';
-import { MERIT, PASS_XP } from '../src/data/economy';
+import { MERIT, MERIT_HOLD_CAP, PASS_XP } from '../src/data/economy';
 import { FEATURES } from '../src/data/features';
 import type { HeroKey } from '../src/data/heroes';
 import { DAILY, DAILY_BASIC, WEEKLY, WEEKLY_REWARD } from '../src/data/missions';
@@ -277,5 +277,26 @@ describe('시계를 뒤로 (103 다른 문제점 1)', () => {
     expect([s.weekly.loot, s.weekly.merit[10], s.pass.xp]).toEqual([['abyss1|보통'], 150, 77]);
     rollover(s, now + 7 * 864e5, rng); // 진짜 다음 주
     expect([s.weekly.loot, s.weekly.merit[10]]).toEqual([[], 0]);
+  });
+});
+
+describe('보상 넷 (103 「넷 다」 2 · 4)', () => {
+  it('공훈 보유 상한 300: 넘는 몫은 안 쌓이고, 가득이면 0 (주 상한도 안 씀), 이미 더 가진 저장은 깎지 않음', () => {
+    const s = save(40);
+    const raid = () => settle(s, { content: 'abyss1', diff: '어려움', win: true, quit: false, reason: '', segIdx: 0, segN: 1, time: 200, restSec: 0, deaths: 0, healed: 1000, overheal: 100, dispels: 0, dispellable: 0, endMana: 50, minMana: 20, auto: false, party: [], detail: [] }, rng, [], T0);
+    s.wallet.merit = MERIT_HOLD_CAP - 5;
+    const a = raid();
+    expect([a.merit, a.meritFull, s.wallet.merit, s.weekly.merit[10]]).toEqual([5, false, MERIT_HOLD_CAP, 5]);
+    const b = raid();
+    expect([b.merit, b.meritFull, s.wallet.merit, s.weekly.merit[10]]).toEqual([0, true, MERIT_HOLD_CAP, 5]);
+    s.wallet.merit = 450;
+    expect([raid().merit, s.wallet.merit]).toEqual([0, 450]);
+    expect(MERIT_HOLD_CAP).toBe(300);
+  });
+  it('클리어 골드 1판 (임무 · 상자 · 패스 · 도감 기준) = 그 레벨에 열린 가장 큰 콘텐츠 보통 A 한 판: Lv 45 전 던전 · 45~69 10인 · 70부터 20인', () => {
+    expect(runGold(44)).toBe(clearGold(44, '보통', 'A'));
+    expect(runGold(45)).toBe(clearGold(45, '보통', 'A', 10));
+    expect(runGold(69)).toBe(clearGold(69, '보통', 'A', 10));
+    expect(runGold(70)).toBe(clearGold(70, '보통', 'A', 20));
   });
 });

@@ -9,7 +9,7 @@ import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
 import { dayOffset, lvAdds, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
-  APP_DAYS, appsPerDay, SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POST, REQ, REST_SHARE, rerollGold,
+  APP_DAYS, appsPerDay, SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, FAME_LOW_GAP, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POST, REQ, REST_SHARE, rerollGold,
   memberSkillLevel, STORY, statPerLevel, statWeights, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type StoryKey,
 } from '../data/guild';
 import { PARTY_POOL, type PoolMember } from '../data/nicknames';
@@ -307,6 +307,8 @@ export interface GuildAfter {
   fame: number;
   /** 길드 첫 처치 (장소 · 난이도) */
   first: boolean;
+  /** 길드파티로 이겼지만 낮은 장소 (적 레벨 < 내 Lv − FAME_LOW_GAP)라 명성 · 첫 처치 없음 */
+  low: boolean;
 }
 
 /** 레벨 경험치를 더함 (상한 = 내 레벨, 상한에서도 다음 레벨 바로 앞까지 모아 둠: 내가 레벨업하면 다음 판에 바로 따라옴) */
@@ -358,12 +360,12 @@ export function guildAfter(
   save: SaveData, r: () => number,
   o: { win: boolean; quit: boolean; grade: Grade | null; diff: DiffName; stage: number; raid: 0 | 10 | 20; content: string; kind: string; party: { nick: string; deed?: Deed }[]; roster: RosterEntry[]; encs?: readonly string[]; time?: number; requestNicks?: readonly string[] },
 ): GuildAfter {
-  const g = save.guild, out: GuildAfter = { members: [], rest: 0, boosted: [], fame: 0, first: false };
+  const g = save.guild, out: GuildAfter = { members: [], rest: 0, boosted: [], fame: 0, first: false, low: false };
   if (o.quit || !o.win) return out;
   const cap = topLevel(save), went = new Set<number>(), requests = new Set(o.requestNicks);
   const firstKey = `${o.content}|${o.diff}`;
-  const guildParty = isGuildParty(o.roster);
-  const first = guildParty && (o.kind === 'dungeon' || o.kind === 'raid') && !g.firsts.includes(firstKey);
+  const guildParty = isGuildParty(o.roster), low = guildParty && o.stage < cap - FAME_LOW_GAP; // 낮은 장소: 명성 · 첫 처치 없음 (103)
+  const first = guildParty && !low && (o.kind === 'dungeon' || o.kind === 'raid') && !g.firsts.includes(firstKey);
   for (const e of o.roster) {
     const m = e.gid != null ? g.members.find(x => x.id === e.gid) : null;
     if (!m) continue;
@@ -384,9 +386,10 @@ export function guildAfter(
     out.rest += xp;
     if (ups.length) growStats(m, ups.length, undefined, r); // 쉬는 판에 오른 레벨도 능력치
   }
+  out.low = low;
   if (guildParty) {
     g.wins++;
-    out.fame = o.raid === 20 ? FAME.raid20 : o.raid === 10 ? FAME.raid10 : o.kind === 'explore' ? FAME.explore : FAME.dungeon;
+    out.fame = low ? 0 : o.raid === 20 ? FAME.raid20 : o.raid === 10 ? FAME.raid10 : o.kind === 'explore' ? FAME.explore : FAME.dungeon;
     if (first) {
       g.firsts.push(firstKey); out.fame += FAME.first; out.first = true;
       g.firstLog = [...g.firstLog, { key: firstKey, day: dayKey(), sec: Math.round(o.time ?? 0), nicks: out.members.map(x => x.nick) }].slice(-200);

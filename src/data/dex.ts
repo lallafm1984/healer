@@ -40,14 +40,17 @@ export const dexTabOf = (key: string): DexTab | undefined => ({ k: 'kind', l: 'l
 /** 보상 단계: DEX_STEP칸마다 한 번 */
 export const DEX_STEP = 10;
 export interface DexReward { gold: number }
-/** n번째 보상 (1부터): 골드 600 (#172 전 값), 다섯 번째마다 1,000 더 (예전 정제 강화석 2 × 500, 91) */
-export const DEX_GOLD = { step: 600, fifth: 1000 };
-export const dexReward = (n: number): DexReward => ({ gold: DEX_GOLD.step + (n % 5 === 0 ? DEX_GOLD.fifth : 0) });
-/** 받을 수 있는 보상 (채운 칸 수 · 이미 받은 단계 수) */
-export function dexDue(have: number, paid: number): DexReward & { steps: number } {
+/**
+ * n번째 보상 (1부터) = 클리어 골드 판 수 (2026-10-20 Lim 카드 「넷 다」, 103): 1.5판, 다섯 번째마다 2.5판 더. run = 받는 때 내 레벨 「클리어 골드 1판」 (game/economy runGold).
+ * Lv 30쯤 예전 값 (600 · 다섯 번째 1,000 더, #172 전 · 91)과 비슷
+ */
+export const DEX_RUNS = { step: 1.5, fifth: 2.5 };
+export const dexReward = (n: number, run: number): DexReward => ({ gold: Math.round(run * (DEX_RUNS.step + (n % 5 === 0 ? DEX_RUNS.fifth : 0))) });
+/** 받을 수 있는 보상 (채운 칸 수 · 이미 받은 단계 수 · 지금 「클리어 골드 1판」) */
+export function dexDue(have: number, paid: number, run: number): DexReward & { steps: number } {
   const out = { gold: 0, steps: 0 };
   for (let n = paid + 1; n <= Math.floor(have / DEX_STEP); n++) {
-    out.gold += dexReward(n).gold; out.steps++;
+    out.gold += dexReward(n, run).gold; out.steps++;
   }
   return out;
 }
