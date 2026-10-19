@@ -7,7 +7,7 @@ import { posPref } from './position';
 import { followPref, pairDodge, persDodge, persIgnoresZone, persLate, persMove, persPosPref, persReact } from './persona';
 import type { Cell, Fight, Role, Telegraph, Unit, Zone } from './types';
 import { STAT_ACT } from '../data/rules';
-import { clumsy } from '../data/fm';
+import { clumsy, sharp } from '../data/fm';
 
 export type Zone3 = 'front' | 'mid' | 'back';
 
@@ -86,6 +86,7 @@ export function moveTo(f: Fight, u: Unit, c: Cell | null): boolean {
   if (f.sp && !u.me) time *= 1 - sv(f, 'march'); // 신나는 행진 (42 지원 07)
   if (u.ps) time *= persMove(u); // 느림보 (75)
   if (u.fm) time *= u.fm.move; // 발놀림 (97 FM)
+  if (u.wob != null) time *= 1 + STAT_ACT.slowMove * clumsy(u.fmStats?.agility ?? 10); // 99 라: 15보다 낮으면 더 느림
   if (u.did) u.did.move++;
   c.unit = u;
   u.moving = { from: from.i, to: c.i, left: time, total: time };
@@ -162,7 +163,8 @@ export function dodgeRate(f: Fight, u: Unit): number {
 
 function dodgeBase(f: Fight, u: Unit): number {
   return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0) + calmDodge(f, u) + (u.ps ? persDodge(f, u) : 0) + (u.pairWith != null ? pairDodge(f, u) : 0)
-    + (u.fm && u.fm.focus > 0 && bigStage(f) ? u.fm.focus / 2 : 0))); // 집중 (97 FM)
+    + (u.fm && u.fm.focus > 0 && bigStage(f) ? u.fm.focus / 2 : 0) // 집중 (97 FM)
+    + (u.wob != null ? STAT_ACT.evadeHigh * sharp(u.fmStats?.evade ?? 10) - STAT_ACT.evadeLow * clumsy(u.fmStats?.evade ?? 10) : 0))); // 99 라: 회피 15 = 예전
 }
 
 /** 집중 (97 FM)이 힘을 내는 판: 악몽 · 레이드 (10인 넘게) · 보스 체력 30% 아래 */

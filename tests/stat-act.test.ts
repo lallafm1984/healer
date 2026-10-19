@@ -288,3 +288,42 @@ describe('(마) 어그로 상황', () => {
     expect(lo.out.every(x => x === 1)).toBe(true);
   });
 });
+
+describe('(라) 방어 · 회피 · 나머지', () => {
+  /** 전사 방어 태세 (체력 40% 아래): 체력을 h로 두고 1초 안에 쓰나 */
+  function usesAt(st: Partial<Stats>, h: number, seed = 5) {
+    const f = E.create({
+      encounter: 'warden', diff: '보통', seed, stageLv: 30, heroLv: 30,
+      party: [{ ...R('tank', 'warrior', '사교형', '탱', st, 15), ab: 'warrior.defStance' }, R('melee', 'rogue', '사교형', '근'), R('ranged', 'mage', '사교형', '마'), R('ranged', 'archer', '사교형', '궁')],
+    });
+    f.skills.forEach(s => { s.next = Infinity; });
+    const tk = who(f, '탱');
+    for (let i = 0; i < 40; i++) { E.step(f); f.events.length = 0; }
+    tk.hp = tk.max * h;
+    for (let i = 0; i < 20; i++) { E.step(f); for (const ev of f.events) if (ev.type === 'ability' && ev.id === tk.id) return true; f.events.length = 0; tk.hp = tk.max * h; }
+    return false;
+  }
+  it('생존기: 판단이 15보다 낮으면 체력 기준이 낮아져 늦게 씀 (판단 1 = −6%p), 15 이상은 예전 기준', () => {
+    expect(usesAt({ judgment: 15, skill: 15 }, 0.37)).toBe(true);
+    expect(usesAt({ judgment: 1, skill: 15 }, 0.37)).toBe(false); // 40% − 6%p · 판단 −4.5%p (예전) 아래라 아직 안 씀
+  });
+  it('평타 막기: 방어 · 발놀림 20이면 가끔 반만 맞음 (「막음」), 15 이하는 없음', () => {
+    const count = (st: Partial<Stats>) => {
+      const f = E.create({ encounter: 'warden', diff: '보통', seed: 9, stageLv: 30, heroLv: 30, party: [R('tank', 'warrior', '사교형', '탱', st, 15), R('melee', 'rogue', '사교형', '근'), R('ranged', 'mage', '사교형', '마'), R('ranged', 'archer', '사교형', '궁')] });
+      let n = 0;
+      while (f.t < 120 && !f.over) { E.step(f); n += f.events.filter(e => e.type === 'parry').length; f.events.length = 0; who(f, '탱').hp = who(f, '탱').max; }
+      return n;
+    };
+    expect(count({ armor: 20, agility: 20 })).toBeGreaterThan(0);
+    expect(count({ armor: 15, agility: 15 })).toBe(0);
+  });
+  it('피하기 확률 · 이동: 회피 · 발놀림이 15보다 낮으면 덜 피하고 느림, 15는 예전 값', async () => {
+    const { dodgeRate, moveTo } = await import('../src/engine/movement');
+    const f1 = fight({ st: { evade: 1, agility: 1 } }), f15 = fight({ st: { evade: 15, agility: 15 } }), f20 = fight({ st: { evade: 20 } });
+    const a = dodgeRate(f1, who(f1, '근')), b = dodgeRate(f15, who(f15, '근')), c = dodgeRate(f20, who(f20, '근'));
+    expect(b - a).toBeGreaterThan(STAT_ACT.evadeLow + 0.04); // 새 층 −8%p + 예전 회피 차이
+    expect(c).toBeGreaterThan(b);
+    const go = (f: F) => { const u = who(f, '근'), c2 = f.cells.find(x => !x.unit && !x.block && hexDist(x, f.cells[u.cell]) === 1)!; moveTo(f, u, c2); return u.moving!.total; };
+    expect(go(f1) / go(f15)).toBeGreaterThan(1 + STAT_ACT.slowMove);
+  });
+});

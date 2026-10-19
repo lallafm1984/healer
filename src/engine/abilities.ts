@@ -23,6 +23,7 @@ export function giveAb(f: Fight, u: Unit, key: string, star = 0): void {
   if (!a || a.cls !== u.cls) return;
   const s: AbState = { key, star: Math.max(0, Math.min(5, star | 0)), ready: 0, uses: 0, fired: [], hist: [], lastCounter: -9 };
   if (u.pers === '덜렁이' && a.kind === 'heal') s.odd = 0.15 + f.rng() * 0.55;
+  if (u.wob) s.gj = STAT_ACT.guardWob * u.wob * (2 * f.rng() - 1); // 99 라: 판마다 생존기 기준 흔들림
   u.ab = s;
   f.abOn = true;
 }
@@ -241,6 +242,7 @@ function check(f: Fight, u: Unit, a: AbilityDef, tr: Trig): Unit | true | null {
     case 'low': {
       if (tr.noZone && (u.moving || f.zones.some(z => z.cells.has(u.cell)) || f.tels.some(t => t.kind === 'zone' && t.cells.has(u.cell)))) return null;
       let thr = tr.hp + starFx(a, u.ab!.star).early + (u.fm?.guard ?? 0); // 판단 (97 FM)
+      if (u.wob != null) thr += (u.ab!.gj ?? 0) - STAT_ACT.guardLate * clumsy(u.fmStats?.judgment ?? 10); // 99 라: 판단이 15보다 낮으면 늦게 · 판마다 흔들림
       if (u.p.lateGuard || u.p.earlyGuard) thr += (persGuard(u, thr) - thr) * (u.fm?.bias ?? 1); // 낙천가 · 비관론자 (75), 판단이 높으면 치우침이 줄어듦 (97 FM)
       if (a.kind === 'heal') {
         if (u.ab!.odd != null) thr = u.ab!.odd;
