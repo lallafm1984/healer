@@ -103,13 +103,13 @@ export const PXF = {
   'shaman-link': skill(22, 84),
   // 수도사 (2026-10-19 Lim 「형편없다. 성기사 방식을 참고해서 전면 수정」): 굵은 Codex 그림 · 384px
   'monk-palm': skill(14, 90, { size: 384 }),
-  'monk-wrap': skill(22, 96, { size: 384 }),
-  'monk-mist': skill(24, 94, { size: 384 }),
+  'monk-wrap': skill(22, 100, { size: 384 }), // 2026-10-19 Lim 「이미지를 사용하지 말고 이펙트로」: 손바닥 말고 그림 없이 코드로, 칸 가득
+  'monk-mist': skill(24, 100, { size: 384 }),
   'monk-breath': skill(20, 84, { size: 384 }),
-  'monk-clear': skill(18, 94, { size: 384 }),
-  'monk-soothe': skill(24, 96, { size: 384 }),
+  'monk-clear': skill(18, 100, { size: 384 }),
+  'monk-soothe': skill(24, 100, { size: 384 }),
   'monk-wind': skill(20, 84, { size: 384 }),
-  'monk-tea': skill(24, 92, { size: 384 }),
+  'monk-tea': skill(24, 100, { size: 384 }),
   'monk-pool-loop': loop(36, 84, 12, 256),
   'monk-mist-loop': loop(36, 80, 12, 256),
   // 점성술사 (2026-10-19 Lim 「퀄리티 및 파티클 보강, 전면 개편」): Codex 그림이 또렷하게 프레임 256 ~ 384px
