@@ -9,7 +9,7 @@
  * 스킬 등급은 공개모집 확률 (일반 66 · 고급 27 · 희귀 7%)에 맞춤: 탱커 16 · 7 · 2, 근접 13 · 6 · 1, 원거리 20 · 8 · 2
  * 스토리 동료 이름(10 문서 2장)은 STORY_NICKS로 따로 두고 무작위로 뽑지 않는다.
  */
-import type { ClassKey } from './classes';
+import { CLASSES, type ClassKey } from './classes';
 import { LV_BAND, memberLevel, profileOf, type FmProfile } from './fm';
 import { PERS, type PersName } from './personalities';
 import { MORE_ROWS } from './pool-more';
@@ -86,7 +86,7 @@ const ROWS: Record<ClassKey, Row[]> = {
 
 /** 직업별 파티원 1000명 (이름 · 성격 · 직업 스킬 · 능력치): 예전 200명 (ROWS) + 새 800명 (pool-more, 97 FM). 직업마다 ×5 */
 export const PARTY_POOL = Object.fromEntries(
-  Object.entries(ROWS).map(([cls, rows]) => [cls, [...rows, ...MORE_ROWS[cls as ClassKey]].map(([nick, pers, ab]): PoolMember => ({ nick, pers, ab: `${cls}.${ab}`, fm: profileOf(nick, pers) }))]),
+  Object.entries(ROWS).map(([cls, rows]) => [cls, [...rows, ...MORE_ROWS[cls as ClassKey]].map(([nick, pers, ab]): PoolMember => ({ nick, pers, ab: `${cls}.${ab}`, fm: profileOf(nick, pers, CLASSES[cls as ClassKey].role as 'tank' | 'melee' | 'ranged') }))]),
 ) as unknown as Record<ClassKey, readonly PoolMember[]>;
 
 /** 직업별 닉네임만 */

@@ -43,11 +43,15 @@ export const personOf = (nick: string): Person | null => BY_NICK.get(nick) ?? nu
 
 const isIn = (save: SaveData, nick: string) => save.guild.members.some(m => m.nick === nick);
 
-/** 길드원 하나 (1000명 가운데 사람, 그 사람 지금 레벨 = 세상 레벨). 스토리 동료는 고정 능력치를 덧씀 */
+/**
+ * 길드원 하나 (1000명 가운데 사람, 그 사람 지금 레벨 = 세상 레벨). 스토리 동료는 고정 능력치를 덧씀.
+ * 능력치 = 타고난 값 + 그 레벨까지 레벨업 점수 (공개모집과 같은 굴림, 104)를 저장, 그 뒤로는 레벨업할 때 (growStats)
+ */
 export function newMember(save: SaveData, p: Pick<Person, 'nick' | 'cls' | 'pers' | 'ab'>, lv: number, story?: StoryKey): GuildMember {
-  const prof = profileOf(p.nick, p.pers);
-  const stats = { ...prof.stats, ...(story ? STORY[story].boost : {}) };
-  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: Math.max(1, Math.min(topLevel(save), lv)), xp: 0, stats, lastStatGains: [], learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], boost: 0, runs: 0, joined: Date.now(), ...(story ? { story } : {}) };
+  const role = CLASSES[p.cls].role as 'tank' | 'melee' | 'ranged', prof = profileOf(p.nick, p.pers, role), at = Math.max(1, Math.min(topLevel(save), lv));
+  const birth = { ...prof.stats, ...(story ? STORY[story].boost : {}) }, add = lvAdds(p.nick, p.pers, role, at, birth);
+  const stats = Object.fromEntries(STAT_KEYS.map(k => [k, birth[k] + add[k]])) as Stats;
+  return { id: 0, nick: p.nick, cls: p.cls, pers: p.pers, ab: p.ab, lv: at, xp: 0, stats, lastStatGains: [], learn: prof.learn, steady: prof.steady, sxp: 0, votes: [], boost: 0, runs: 0, joined: Date.now(), ...(story ? { story } : {}) };
 }
 /** 그 사람의 지금 레벨 (공개모집과 같은 세상 레벨: 내 Lv × 빠르기) */
 export const worldLevel = (save: SaveData, p: Pick<Person, 'fm'>) => memberLevel(p.fm.speed, topLevel(save));
@@ -344,21 +348,21 @@ export function memberXp(m: Pick<GuildMember, 'lv'>, o: { stage: number; diff: D
   return Math.round(base * (gap > 0 ? lowStageXp(gap) : 1));
 }
 
-/** 타고난 능력치 (1000명 줄의 그 사람, 스토리 동료는 고정 능력치를 덧씀): 잠재력의 바탕 */
-export const birthStats = (m: Pick<GuildMember, 'nick' | 'pers' | 'story'>): Stats => ({ ...profileOf(m.nick, m.pers).stats, ...(m.story ? STORY[m.story].boost : {}) });
+/** 타고난 능력치 = Lv 1 바탕 (1000명 줄의 그 사람, 스토리 동료는 고정 능력치를 덧씀) */
+export const birthStats = (m: Pick<GuildMember, 'nick' | 'pers' | 'story' | 'cls'>): Stats => ({ ...profileOf(m.nick, m.pers, CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged').stats, ...(m.story ? STORY[m.story].boost : {}) });
 /** 모아 두는 점수 (오를 칸이 없을 때, 레벨 상한이 오르면 씀) */
 const SXP_BANK = 3;
 
 /**
- * 능력치는 레벨업할 때 (Lim 10-18): 오른 레벨마다 학습력만큼 점수, 1점마다 오를 칸 하나 +1 (역할 핵심 · 최근 「한 일」 표 무게, 97).
- * deed = 출전한 판에서 한 일 (쉬는 판은 표 없음). 끝 (상한 · 잠재력)에 닿은 칸은 안 오르고, 오를 칸이 없으면 점수를 3점까지 모아 둠
+ * 능력치는 레벨업할 때 (Lim 10-18 · 104): 오른 레벨마다 학습력만큼 점수 (0.9~1.1), 1점마다 오를 칸 하나 +1 (성장 결 무게 × 최근 「한 일」 표, 97 · 103).
+ * deed = 출전한 판에서 한 일 (쉬는 판은 표 없음). 20인 칸은 안 오르고, 오를 칸이 없으면 점수를 3점까지 모아 둠
  */
 export function growStats(m: GuildMember, levels: number, deed: Deed | undefined, r: () => number): { k: StatKey; to: number; why: string }[] {
   if (deed) m.votes = [...m.votes, DEED_STATS[deed]].slice(-VOTE_KEEP);
   m.sxp = Math.round((m.sxp + levels * statPerLevel(m.learn)) * 1000) / 1000;
-  const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', birth = birthStats(m), out: { k: StatKey; to: number; why: string }[] = [];
+  const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', out: { k: StatKey; to: number; why: string }[] = [];
   while (m.sxp + 1e-9 >= 1) {
-    const w = statWeights(m, role, birth), tot = STAT_KEYS.reduce((a, k) => a + w[k], 0);
+    const w = statWeights(m, role), tot = STAT_KEYS.reduce((a, k) => a + w[k], 0);
     if (tot <= 0) { m.sxp = Math.min(m.sxp, SXP_BANK); break; }
     let x = r() * tot, k: StatKey = STAT_KEYS[0];
     for (const s of STAT_KEYS) { x -= w[s]; if (x <= 0) { k = s; break; } }
@@ -392,8 +396,7 @@ export function guildAfter(
     const lv0 = m.lv, x0 = m.xp, ups = addMemberXp(m, memberXp(m, o) * (requests.has(m.nick) ? REQ.xpMult : 1), cap);
     const xp = gainedXp(lv0, x0, m.lv, m.xp); // 실제로 오른 값 (내 레벨 상한이면 0)
     const stats = growStats(m, ups.length, o.party.find(p => p.nick === m.nick)?.deed, r);
-    const add = lvAdds(m.nick, m.pers, CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', m.lv, m.stats); // 화면 숫자 = 키운 값 + 레벨 몫 (성장 결, 103)
-    out.members.push({ nick: m.nick, xp, ups, stats: stats.map(x => ({ ...x, shown: Math.min(20, Math.round(x.to + add[x.k])) })), lv: m.lv });
+    out.members.push({ nick: m.nick, xp, ups, stats: stats.map(x => ({ ...x, shown: x.to })), lv: m.lv }); // 저장 값 = 화면 숫자 (레벨업 점수까지 듦, 104)
   }
   for (const m of g.members) if (!went.has(m.id)) {
     // 후원 (98): 남은 판이 있고 더 오를 수 있으면 출전만큼, 1판 씀

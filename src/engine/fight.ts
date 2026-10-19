@@ -181,9 +181,9 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     const lv = role === 'healer' ? f.power : own;
     let base = (c ? c.hp : role === 'tank' ? 1000 : role === 'healer' ? 550 : 600) * mult * lv;
     let dps = (c ? c.dps * 10 : role === 'tank' ? 4 : role === 'healer' ? 0 : 10) * mult * own;
-    // 능력치 = 저장 값 + 레벨 몫 (102 · 103 성장 결: 사람마다 칸마다 다르게) + 그날 흔들림 (꾸준함)
+    // 능력치 = 타고난 값 + 레벨업 점수 (104, 공개모집: 그 레벨까지 굴림 · 길드원: 저장 값에 듦) + 그날 흔들림 (꾸준함)
     const off = r?.fm ? r.fm.off : 0;
-    const add = r?.fm && role !== 'healer' ? lvAdds(r.nick, r.pers, role, r.lv, r.fm.stats) : null;
+    const add = r?.fm && role !== 'healer' && r.gid == null ? lvAdds(r.nick, r.pers, role, r.lv, r.fm.stats) : null;
     const st = r?.fm ? (add ? Object.fromEntries(STAT_KEYS.map(k => [k, r.fm!.stats[k] + add[k]])) as Stats : r.fm.stats) : null;
     const fx = st ? fmFx(st, off) : undefined; // 능력치 (97 FM): 공개모집 · 길드원
     if (fx) { base *= fx.hp; dps *= fx.dps; if (role === 'tank') dps *= 1 + STAT_ACT.tankDps * sharp(st!.atk + off); } // 99 다: 공격 높은 탱커

@@ -251,7 +251,7 @@ describe('고렙 어그로 대사 · 간격 (2026-10-19 Lim 「계속 어그로 
     const mk = (heroLv: number) => {
       const f = E.create({
         encounter: 'warden', diff: '보통', seed: 1, stageLv: 20, heroLv,
-        party: [{ ...R('tank', 'warrior', '사교형', '탱', { lv: 20 }), ab: 'warrior.taunt' }, R('melee', 'rogue', '사교형', '근', { lv: 20 }), R('ranged', 'mage', '사교형', '마', { lv: 20 }), R('ranged', 'archer', '사교형', '궁', { lv: 20 })],
+        party: [{ ...R('tank', 'warrior', '사교형', '탱', { lv: 20 }), ab: 'warrior.taunt' }, R('melee', 'rogue', '사교형', '근'), R('ranged', 'mage', '사교형', '마'), R('ranged', 'archer', '사교형', '궁')], // 딜러는 레벨업 점수 없이 (능력치 10, 먼저 뺏지 않게 · 104)
       });
       f.skills.forEach(s => { s.next = Infinity; });
       steps(f, 6);

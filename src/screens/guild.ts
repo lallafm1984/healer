@@ -12,7 +12,7 @@ import { resourceBalance } from '../game/resources';
 import { ABILITIES, STAR5, starFx } from '../data/abilities';
 import { CLASSES } from '../data/classes';
 import { CONTENT } from '../data/content';
-import { EXPED, REQ, STORY, type StoryKey, POST, SPONSOR, sponsorGold, memberSkillLevel, statCap, statPerLevel, statPot, type GuildMember } from '../data/guild';
+import { EXPED, REQ, STORY, type StoryKey, POST, SPONSOR, sponsorGold, memberSkillLevel, statPerLevel, type GuildMember } from '../data/guild';
 import { GUILD_GOAL } from '../data/missions';
 import { GUILD_LEVEL, xpToNext } from '../data/progression';
 import { dayKey, daysBetween } from '../game/clock';
@@ -69,7 +69,7 @@ const ROLE_PICK: [MemberRole, string][] = [['tank', '탱커'], ['melee', '근접
 
 const memberById = (id: number) => G.save.guild.members.find(m => m.id === id);
 /** 줄 · 시트에 넘길 사람 */
-const card = (m: Pick<GuildMember, 'nick' | 'cls' | 'pers' | 'ab' | 'lv' | 'stats' | 'lastStatGains' | 'skillFloor'>, member = false): CardData => ({ nick: m.nick, cls: m.cls, pers: m.pers, ab: m.ab, lv: m.lv, star: memberSkillLevel(m), fm: { stats: m.stats }, lastStatGains: member ? m.lastStatGains : undefined, member });
+const card = (m: Pick<GuildMember, 'nick' | 'cls' | 'pers' | 'ab' | 'lv' | 'stats' | 'lastStatGains' | 'skillFloor'>, member = false): CardData => ({ nick: m.nick, cls: m.cls, pers: m.pers, ab: m.ab, lv: m.lv, star: memberSkillLevel(m), fm: { stats: m.stats }, grown: true, lastStatGains: member ? m.lastStatGains : undefined, member });
 
 /** 위: 하위 탭 (상점과 같은 .subtabs). 영입 = 지원자 빨간 점 */
 function tabs(): string {
@@ -152,7 +152,7 @@ function memberRow(m: GuildMember): string {
   const on = st.sheet?.k === 'mem' && st.sheet.id === m.id;
   return memRowHtml(card(m, true), { attrs: `data-mem="${m.id}" role="button" tabindex="0" aria-haspopup="dialog"`, cls: 'tap', on, gold: m.boost ? `${IC.sponsor()}${m.boost}<span class="sr">판 후원</span>` : '' });
 }
-const memberAbility = (m: GuildMember) => abilityStars(m.stats, CLASSES[m.cls].role as Exclude<MemberRole, 'any'>);
+const memberAbility = (m: GuildMember) => abilityStars(m.stats, CLASSES[m.cls].role as Exclude<MemberRole, 'any'>, m.lv);
 const sortedMembers = () => G.save.guild.members
   .filter(m => memberView.role === 'any' || CLASSES[m.cls].role === memberView.role)
   .sort((a, b) => {
@@ -266,7 +266,7 @@ function recruitHtml(): string {
     extra: k === 'app' ? side(`data-hireapp="${i}"`, '영입') : '',
   });
   const days = (until: string) => { const d = daysBetween(dayKey(), until) + 1; return d <= 1 ? '오늘까지' : `${d}일`; };
-  const waitRows = g.storyWait.map(k => { const s = STORY[k], p = profileOf(s.nick, s.pers); return memRowHtml(card({ nick: s.nick, cls: s.cls, pers: s.pers, ab: s.ab, lv: topLevel(G.save), stats: { ...p.stats, ...s.boost } as GuildMember['stats'] }), {
+  const waitRows = g.storyWait.map(k => { const s = STORY[k], p = profileOf(s.nick, s.pers, CLASSES[s.cls].role as Exclude<MemberRole, 'any'>); return memRowHtml({ ...card({ nick: s.nick, cls: s.cls, pers: s.pers, ab: s.ab, lv: topLevel(G.save), stats: { ...p.stats, ...s.boost } as GuildMember['stats'] }), grown: false }, { // 합류 전: 바탕 + 레벨업 점수는 화면에서
     tag: '합류 대기', extra: side(`data-istory="${k}"`, '영입') }); }).join('');
   const cost = postCost(G.save), count = POST.cands;
   const post = g.post, room = Math.max(0, cap.cap - g.members.length), roomTxt = room ? `남은 자리 ${room}명` : '정원 가득'; // 105 QA: 「모두 영입 가능」이 정원과 안 맞았음
@@ -317,14 +317,14 @@ function detailHtml(m: GuildMember): string {
   const need = xpToNext(m.lv), xpPct = isFinite(need) ? Math.min(100, (m.xp / need) * 100) : 100;
   const fx = a ? starFx(a, star) : null;
   const gold = resourceBalance(G.save, 'gold');
-  const per = statPerLevel(m.learn), cap = statCap(m.lv), pot = statPot(m.learn), sw = sponsorWhy(G.save, m), sg = sponsorGold(m.lv);
+  const per = statPerLevel(m.learn), sw = sponsorWhy(G.save, m), sg = sponsorGold(m.lv);
   const d = card(m, true);
   const meters = `<div class="g-meters">
       <p class="g-meter"><span class="k">Lv ${m.lv}</span>${bar(xpPct, `경험치 ${Math.floor(xpPct)}%`)}<small>${isFinite(need) ? `${Math.floor(xpPct)}%` : '최대'}</small></p></div>`;
   const act = (attr: string, ic: string, label: string, sub: string, dis: boolean) => `<button class="btn" type="button" ${attr}${dis ? ' disabled' : ''}><span class="g-ai">${ic}</span><b>${label}</b><small>${sub}</small></button>`;
   return `${sheetHead(d, 'msheet')}
     ${tipBox('msheet', `<p><b>레벨</b> 함께 이긴 판마다 경험치 (내 레벨까지). 쉬는 판은 30%, 골드 지원 중에는 출전만큼 받습니다. 지원은 한 번에 ${SPONSOR.runs}판이며, 남은 횟수를 모두 쓰면 다시 지원할 수 있습니다.</p>
-      <p><b>능력치</b> 레벨이 오를 때 오릅니다. 다음 한 칸까지 레벨 ${Math.max(1, Math.ceil((1 - m.sxp) / per - 1e-9))} · 상한 ${cap} · 칸마다 타고난 값에서 +${pot}까지.</p>
+      <p><b>능력치</b> 레벨이 오를 때마다 오릅니다. 레벨 하나에 ${per.toFixed(2)}점, 1점마다 한 칸 +1 (20까지). 최근 판에서 한 일과 가까운 칸이 더 잘 오릅니다.</p>
       ${a ? `<p><b>직업 스킬 LV ${star} / 5</b>${fx && star ? ` 효과 ×${fx.eff.toFixed(2)}${fx.cd < 1 ? ` · 쿨 ×${fx.cd.toFixed(1)}` : ''}.` : ''} 길드원 Lv 20 · 40 · 60 · 80에서 오릅니다.${star >= 5 ? ` LV 5: ${STAR5[a.kind]}` : ''}</p>` : ''}`)}
     ${meters}
     ${memDetailHtml(d)}

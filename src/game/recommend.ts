@@ -75,7 +75,7 @@ export function recScore(save: SaveData, m: GuildMember, encs: readonly Encounte
   const star = memberSkillLevel(m), p = PERS[m.pers];
   // 버릇 (침착 · 판단)을 고친 만큼 성격 감점이 줄어듦: 버릇 1.2 → 다 · 1/3 → 0
   const hard = Math.max(0, Math.min(1, (habitOf(m.stats) - 1 / 3) / (1.2 - 1 / 3)));
-  const score = abilityStars(m.stats, role) + (fits.length ? REC.fit : 0) + REC.star * star
+  const score = abilityStars(m.stats, role, m.lv) + (fits.length ? REC.fit : 0) + REC.star * star
     - REC.lvGap * Math.min(REC.lvGapMax / REC.lvGap, Math.max(0, Math.min(stage, topLevel(save)) - m.lv))
     - (p.star >= 3 ? REC.hard3 : p.star === 2 ? REC.hard2 : 0) * hard;
   return { id: m.id, score, fits };

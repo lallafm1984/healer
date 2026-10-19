@@ -12,7 +12,7 @@ import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
 import { GUILD_MAX, GUILD_NAME, GUILD_STEPS, SPONSOR, STORY, type GuildMember, type StoryKey } from '../data/guild';
 import { PARTY_POOL } from '../data/nicknames';
-import { profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
+import { birthV25, lvAdds, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import { PERS, type PersName } from '../data/personalities';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
@@ -26,7 +26,7 @@ export const SAVE_KEY = 'healer.save';
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
 /** v22: 시설 제거·투자액 환급, 공고 통합. 기존 지원자는 그대로 보존한다. */
-export const SAVE_VERSION = 25; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA)
+export const SAVE_VERSION = 26; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA). v26: 길드원 능력치 = Lv 1 바탕 + 레벨업 점수 (104, statsV26)
 /** 없어진 시설의 단계별 투자액. 저장 이전에만 사용한다. */
 const LEGACY_FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
@@ -650,6 +650,7 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
     for (const raw of Array.isArray(g.members) ? g.members : []) {
       const m = oldMember(raw, out.nextId);
       if (!m) continue;
+      m.stats = statsV26(m);
       out.nextId = Math.max(out.nextId, m.id + 1);
       out.members.push(m);
       m.skillFloor = Math.max(m.skillFloor ?? 1, legacySkill(m.nick), legacySkillAt(m.lv * 5));
@@ -660,8 +661,9 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
     return out;
   }
   const member = (x: unknown) => {
-    const m = memberOf(x);
+    const m = memberOf(x, ver);
     if (m && ver < 21) m.skillFloor = Math.max(m.skillFloor ?? 1, legacySkill(m.nick));
+    if (m && ver < 26) m.stats = statsV26(m);
     return m;
   };
   const mem = (x: unknown) => (Array.isArray(x) ? (x as unknown[]).map(r => member(r)).filter((m): m is GuildMember => !!m) : []);
@@ -684,15 +686,29 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
   };
 }
 
-/** v19 길드원 꼴 확인 (모자란 칸은 그 사람 능력치 · 0으로) */
-function memberOf(raw: unknown): GuildMember | null {
+/** v25까지 스토리 동료 고정 능력치 (예전 평균 10 칸): v26으로 옮길 때 예전 타고난 값을 다시 만듦 */
+const STORY_BOOST_V25: Record<StoryKey, Partial<Stats>> = { tank: { tough: 16, armor: 15, position: 13, judgment: 12 }, isle: { react: 16, evade: 14 }, blade: { atk: 16, agility: 13 } };
+/**
+ * v26 (104 「Lv 1 바탕 1~10 · 레벨업마다 1점」): 길드원 능력치 = 새 타고난 값 + 그 레벨까지 레벨업 점수 (공개모집과 같은 굴림)
+ * + 예전에 키운 몫 (v25 저장 값 − v25까지의 타고난 값, 0 밑은 버림), 1~20. 레벨 · 학습력 · 꾸준함 · 표 · 남은 점수는 그대로
+ */
+export function statsV26(m: GuildMember): Stats {
+  const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged';
+  const old = { ...birthV25(m.nick, m.pers), ...(m.story ? STORY_BOOST_V25[m.story] : {}) };
+  const birth = { ...profileOf(m.nick, m.pers, role).stats, ...(m.story ? STORY[m.story].boost : {}) }, add = lvAdds(m.nick, m.pers, role, m.lv, birth);
+  return Object.fromEntries(STAT_KEYS.map(k => [k, Math.max(1, Math.min(20, birth[k] + add[k] + Math.max(0, m.stats[k] - old[k])))])) as Stats;
+}
+
+/** v19 길드원 꼴 확인 (모자란 칸은 그 사람 능력치 · 0으로, v26 전 저장은 v25까지의 타고난 값으로) */
+function memberOf(raw: unknown, ver: number): GuildMember | null {
   if (!raw || typeof raw !== 'object') return null;
   const m = raw as Partial<GuildMember>;
   if (typeof m.nick !== 'string' || !m.cls || !CLASSES[m.cls as ClassKey] || !m.pers || !PERS[m.pers as PersName]) return null;
-  const prof = profileOf(m.nick, m.pers as PersName);
+  const prof = profileOf(m.nick, m.pers as PersName, CLASSES[m.cls as ClassKey].role as 'tank' | 'melee' | 'ranged');
+  const born = ver < 26 ? birthV25(m.nick, m.pers as PersName) : prof.stats;
   const stats = {} as Stats;
   const old = m.stats as (Partial<Stats> & { adds?: number }) | undefined; // v22까지: 쫄 처리 (adds) = 지금 협동 (coop)
-  for (const k of STAT_KEYS) { const x = old?.[k] ?? (k === 'coop' ? old?.adds : undefined); stats[k] = typeof x === 'number' && x >= 1 && x <= 20 ? Math.round(x) : prof.stats[k]; }
+  for (const k of STAT_KEYS) { const x = old?.[k] ?? (k === 'coop' ? old?.adds : undefined); stats[k] = typeof x === 'number' && x >= 1 && x <= 20 ? Math.round(x) : born[k]; }
   const n = (x: unknown, z: number) => (typeof x === 'number' && Number.isFinite(x) ? x : z);
   return {
     id: n(m.id, 0), nick: m.nick, cls: m.cls as ClassKey, pers: m.pers as PersName, ab: m.story && STORY[m.story] ? STORY[m.story].ab : typeof m.ab === 'string' ? m.ab : '', // 스토리 동료는 고유 스킬 (93 4-4)
@@ -712,10 +728,10 @@ function oldMember(raw: unknown, nextId: number): GuildMember | null {
   if (typeof o.nick !== 'string' || !o.cls || !RECRUIT_CLASSES.includes(o.cls) || !o.pers || !PERS[o.pers]) return null;
   const base = o.nick.replace(/\d+$/, '');
   const p = PARTY_POOL[o.cls].find(x => x.nick === o.nick || x.nick === base);
-  const prof = p?.fm ?? profileOf(o.nick, o.pers);
+  const prof = p?.fm ?? profileOf(o.nick, o.pers, CLASSES[o.cls].role as 'tank' | 'melee' | 'ranged');
   return {
     id: typeof o.id === 'number' ? o.id : nextId, nick: o.nick, cls: o.cls, pers: o.pers, ab: typeof o.ab === 'string' ? o.ab : p?.ab ?? '',
-    lv: Math.max(1, Math.round(o.lv ?? 1)), xp: Math.max(0, o.xp ?? 0), stats: { ...prof.stats }, learn: prof.learn, steady: prof.steady,
+    lv: Math.max(1, Math.round(o.lv ?? 1)), xp: Math.max(0, o.xp ?? 0), stats: birthV25(o.nick, o.pers), learn: prof.learn, steady: prof.steady, // v26 (statsV26)가 새 바탕으로
     skillFloor: typeof o.star === 'number' && Number.isFinite(o.star) ? Math.max(1, Math.min(5, Math.floor(o.star))) : 1,
     lastStatGains: [], sxp: 0, votes: [], boost: 0, runs: Math.max(0, o.runs ?? 0), joined: 0,
   };

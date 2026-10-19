@@ -124,7 +124,7 @@ function guildPickHtml(stage: number): string {
     <section class="pn f-mems"><ul class="pcards">${list.map(m => {
       const on = Flow.gpick.includes(m.id);
       const e = memberEntry(G.save, m, Flow.seed);
-      return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, gold: m.boost ? `${gameIcon('guild-sponsor', '후원 ')}${m.boost}<span class="sr">판 후원</span>` : '', extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
+      return memRowHtml({ ...m, star: e.star, fm: { stats: m.stats }, grown: true, member: true }, { attrs: `data-gpick="${m.id}" role="button" tabindex="0" aria-pressed="${on}"`, cls: `tap${on ? ' picked' : ''}`, gold: m.boost ? `${gameIcon('guild-sponsor', '후원 ')}${m.boost}<span class="sr">판 후원</span>` : '', extra: `<span class="pick${on ? ' on' : ''}" aria-hidden="true">${on ? '✓' : ''}</span>` });
     }).join('')}
     ${fill.map(m => (m.cls ? memRowHtml({ ...m, cls: m.cls, lv: m.lv ?? stage }, { cls: 'fill', note: '공개모집 보충' }) : plainRow(m))).join('')}</ul></section>`;
 }
