@@ -2172,7 +2172,7 @@ export function render(now: number): void {
     }
     // 결계사 인장 · 점성술사 별자리 표식 (80 5장): 칸 왼쪽 위에 작게 (지속 치유 시간 원의 반대편, 보호막 원이 있으면 그 아래). 이름 · 체력 · 직업 아이콘은 그 자리 그대로, 글자 · 배지가 위에 그려짐
     // 결계사 인장 · 점성술사 별자리 표식은 그림 대신 왼쪽 열 원 + 남은 초 (sealTimerOf · starMarkTimerOf, 2026-10-19 Lim)
-    if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overTopG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
+    if ((F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) || (u.lostUntil != null && F.t < u.lostUntil)) pill(overTopG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11)); // 99 나: 탱커가 자리를 못 찾는 동안
     else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overTopG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
     const st = u.lift ? ([`하늘 ${Math.max(0, Math.ceil(u.lift.until - F.t))}`, '#9FD8F5'] as const) : u.pulled ? ([`끌림 ${Math.ceil(u.pulled.until - F.t)}`, '#C98B5A'] as const) : u.fleeing ? (['도망', '#DB9B57'] as const) : u.sulking ? (['삐짐', '#D68FA6'] as const)
       : u.ps?.panicUntil != null && F.t < u.ps.panicUntil ? (['당황', '#D68FA6'] as const) : u.ps?.rageUntil != null && F.t < u.ps.rageUntil ? (['분노', '#E0705A'] as const) : null; // 소심이 · 다혈질 (75)

@@ -9,12 +9,12 @@ import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
 import { openTiers } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { pickMember, pickNick } from '../data/nicknames';
-import { dayOffset, fmFx, memberLevel, STAT_KEYS, wobOf, type Stats } from '../data/fm';
+import { clumsy, dayOffset, fmFx, memberLevel, STAT_KEYS, wobOf, type Stats } from '../data/fm';
 import { KNOW } from '../data/guild';
 import { dealerOutput, dealerThreat, threatInit, threatTick } from './threat';
 import { NICKS, PERS, PROTO_PERS, type PersName, type Personality } from '../data/personalities';
-import { POS_RULES, PROTO_RULES, RULES } from '../data/rules';
-import { makeCells } from './board';
+import { POS_RULES, PROTO_RULES, RULES, STAT_ACT } from '../data/rules';
+import { hexDist, makeCells } from './board';
 import { initBoss, bossTick } from './bosses';
 import { bossTaken, focusOrder } from './bossParts';
 import { affixTick, initAffixes } from './affixes';
@@ -225,7 +225,24 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     }
     best!.unit = u; u.cell = best!.i; u.home = best!.i;
   }
+  for (const u of order) if (u.role === 'tank' && u.wob != null) startLost(f, u); // 능력치 (99 나): 초보 탱커는 시작 자리를 못 찾음
   initPers(f); // 새 성격 상태 · 미신쟁이 명당 (75)
+}
+
+/**
+ * 능력치 (99 나): 위치 잡기가 15보다 낮은 탱커는 tankStart × 서툼 확률로 1열 바로 뒤 칸에서 시작해 tankStartSec × 서툼 (흔들림) 뒤에 1열 (원래 자리)로 나감.
+ * 그동안 1열에 탱커가 없으면 적이 다른 파티원을 침 (looseTick). 레이드에서 다른 탱커가 1열이면 그 탱커가 잡음
+ */
+function startLost(f: Fight, u: Unit): void {
+  const c = clumsy(u.fmStats?.position ?? 10), p = f.R.pos;
+  if (!p || c <= 0 || f.rng() >= STAT_ACT.tankStart * c) return;
+  const at = f.cells[u.cell];
+  let back: Cell | null = null;
+  for (const x of f.cells) if (!x.unit && !x.block && x.row === p.tankRows && (!back || hexDist(x, at) < hexDist(back, at))) back = x;
+  if (!back || hexDist(back, at) > 2) return;
+  at.unit = null; back.unit = u; u.cell = back.i; // 원래 자리 (home)는 1열 그대로
+  const sec = STAT_ACT.tankStartSec * c * (1 + STAT_ACT.react * (u.wob ?? 0) * (2 * f.rng() - 1));
+  u.lostUntil = Math.max(0.3, sec); u.homeAt = u.lostUntil;
 }
 
 /** 한 틱 (0.05초) */

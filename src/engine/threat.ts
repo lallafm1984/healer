@@ -7,8 +7,8 @@
  * - 레벨 차이: 탱커보다 1레벨 높을 때마다 위협 +4% (×0.6 ~ ×2).
  * 튜토리얼 · 프로토타입 · 파티원 능력이 없는 판 (옛 시드 파티) · 일반 · 정예 구간 · 탱커 없는 파티는 끔.
  */
-import { THREAT } from '../data/rules';
-import { lerp3 } from '../data/fm';
+import { STAT_ACT, THREAT } from '../data/rules';
+import { clumsy, lerp3 } from '../data/fm';
 import { aggroTarget } from './bossParts';
 import { bark, DT, emit, living } from './core';
 import type { Fight, Unit } from './types';
@@ -30,6 +30,8 @@ export interface ThreatState {
   me: number;
   /** 경고 대사를 한 딜러 · 그 시각 */
   warned: Map<number, number>;
+  /** 「딜 줄임」 대사를 한 딜러 · 그 시각 (선 근처에서 줄였다 풀었다 할 때마다 말하지 않게) */
+  eased: Map<number, number>;
   /** sim 보정용: 딜러 · 나의 위협 ÷ 탱커 위협 합 · 틱 수 (시작 5초 뒤부터) */
   acc: { d: number; dn: number; me: number; mn: number };
   /** 이번 틱 딜러들이 보스에게 준 딜 (탱커 위협 바탕) · 보통 탱커 위협 (능력치 · 성격 없이) */
@@ -51,7 +53,7 @@ export function threatOn(f: Fight): boolean {
 
 export function threatInit(f: Fight): void {
   f.thr = threatOn(f) ? {
-    v: new Map(), holder: null, steal: null, retakeAt: null, readyAt: 0, retakes: 0, warn: [], me: 0, warned: new Map(), acc: { d: 0, dn: 0, me: 0, mn: 0 },
+    v: new Map(), holder: null, steal: null, retakeAt: null, readyAt: 0, retakes: 0, warn: [], me: 0, warned: new Map(), eased: new Map(), acc: { d: 0, dn: 0, me: 0, mn: 0 },
     inc: 0, vN: 0, heal: 0, taken: 0, over: new Map(), floor: f.party.reduce((a, u) => a + u.max, 0) * THREAT.healFloor,
   } : null;
 }
@@ -124,7 +126,7 @@ export function slipping(f: Fight, u: Unit): boolean {
 /** 탱커 한 틱 위협 배율 (보통 탱커 = 1): 기술 숙련 × 집중 (이동 · 생존기 · 강타 1초 동안) × 어그로 흘림 (딴생각 동안 0) */
 function tankMult(f: Fight, u: Unit): number {
   if (!u.alive || u.lift || (u.sleep != null && u.sleep > f.t) || slipping(f, u)) return 0;
-  const skill = lerp3(stat(u, 'skill'), THREAT.skill[0], 1, THREAT.skill[1]);
+  const skill = lerp3(stat(u, 'skill'), THREAT.skill[0], 1, THREAT.skill[1]) * (u.wob != null ? 1 - STAT_ACT.tankThreat * clumsy(stat(u, 'skill')) : 1); // 99 나: 15보다 낮으면 초보만큼 덜 쌓음
   const focus = busy(f, u) ? lerp3(stat(u, 'focus'), THREAT.focus[0], THREAT.focus[1], 1) : 1;
   return skill * focus * (u.p.slip?.dps ?? 1);
 }
@@ -145,6 +147,11 @@ export function retakeDelay(f: Fight, u: Unit): number {
   if (u.p.learn) d *= u.p.learn.react;
   if (u.p.grit) d *= Math.max(u.p.grit.min, 1 - u.p.grit.step * Math.floor(f.t / u.p.grit.every));
   return Math.max(THREAT.retakeMin, Math.min(THREAT.retakeMax, d));
+}
+/** 되찾기까지 (실제로 쓰는 값): 99 나 꾸준함 흔들림 (평균 1)을 더함 */
+function retakeAfter(f: Fight, u: Unit): number {
+  const d = retakeDelay(f, u);
+  return u.wob ? Math.max(THREAT.retakeMin * 0.75, d * (1 + STAT_ACT.react * u.wob * (2 * f.rng() - 1))) : d;
 }
 
 /** 딜러가 뺏은 뒤 딜을 멈추기까지 (초): 침착 1 → 2 · 10 → 1 · 20 → 바로 */
@@ -208,7 +215,10 @@ export function threatTick(f: Fight): void {
       }
       // 딜 줄이기 (판단): 선 가까이 오면 25% 줄이고, 조금 내려가면 다시
       const at = easeAt(u);
-      if (!u.thrEase && r >= at && !noEase(f, u)) { u.thrEase = true; bark(f, u, null, false, 'aggroEase'); }
+      if (!u.thrEase && r >= at && !noEase(f, u)) {
+        u.thrEase = true;
+        if (f.t - (t.eased.get(u.id) ?? -99) > THREAT.easeGap) { t.eased.set(u.id, f.t); bark(f, u, null, false, 'aggroEase'); }
+      }
       else if (u.thrEase && (r < at - THREAT.easeBack || noEase(f, u))) u.thrEase = false;
     }
     if (r > 1) { if (!t.over.has(u.id)) t.over.set(u.id, f.t); } else t.over.delete(u.id);
@@ -231,7 +241,7 @@ export function threatTick(f: Fight): void {
   if (f.t < THREAT.start || !top) return;
   // 뺏음: 보스가 그 사람을 봄
   t.steal = { id: top.id, at: f.t, stopAt: top.me ? Infinity : f.t + calmDelay(top) };
-  t.retakeAt = Math.max(f.t + retakeDelay(f, base), t.readyAt);
+  t.retakeAt = Math.max(f.t + retakeAfter(f, base), t.readyAt);
   top.thrEase = false;
   if (top.me) f.stats.healerSteals = (f.stats.healerSteals ?? 0) + 1; else f.stats.steals = (f.stats.steals ?? 0) + 1;
   if (top.me) bark(f, base, null, true, 'aggroHealer');
