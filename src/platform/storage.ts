@@ -10,9 +10,9 @@ import { namedOf, SPECS } from '../data/specials';
 import { rngFrom } from '../engine/rng';
 import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
-import { GUILD_MAX, GUILD_NAME, GUILD_STEPS, SPONSOR, STORY, type GuildMember, type StoryKey } from '../data/guild';
+import { GUILD_MAX, GUILD_NAME, GUILD_STEPS, LV_DOUBLE, SPONSOR, statPerLevel, statWeights, STORY, type GuildMember, type StoryKey } from '../data/guild';
 import { PARTY_POOL } from '../data/nicknames';
-import { birthV25, lvAdds, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
+import { birthV25, lvAdds, pickStat, profileOf, seedOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import { PERS, type PersName } from '../data/personalities';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
@@ -26,7 +26,7 @@ export const SAVE_KEY = 'healer.save';
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
 /** v22: 시설 제거·투자액 환급, 공고 통합. 기존 지원자는 그대로 보존한다. */
-export const SAVE_VERSION = 26; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA). v26: 길드원 능력치 = Lv 1 바탕 + 레벨업 점수 (104, statsV26)
+export const SAVE_VERSION = 27; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99). v24: 명성 × 2 (탐험 1 · 던전 2 · 10인 4 · 20인 6 · 길드 Lv 30, 103). v25: 정원 바닥 보정 (v24 저장도, 105 QA). v26: 길드원 능력치 = Lv 1 바탕 + 레벨업 점수 (104, statsV26). v27: 길드원 레벨업 20% 두 배를 지난 레벨 (Lv 15 뒤)에 다시 굴려 더함 (103, doubleV27)
 /** 없어진 시설의 단계별 투자액. 저장 이전에만 사용한다. */
 const LEGACY_FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
@@ -651,6 +651,7 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
       const m = oldMember(raw, out.nextId);
       if (!m) continue;
       m.stats = statsV26(m);
+      doubleV27(m);
       out.nextId = Math.max(out.nextId, m.id + 1);
       out.members.push(m);
       m.skillFloor = Math.max(m.skillFloor ?? 1, legacySkill(m.nick), legacySkillAt(m.lv * 5));
@@ -668,6 +669,7 @@ function guildOf(v: unknown, legacySkill: (nick: string) => number, ver: number)
   };
   const mem = (x: unknown) => (Array.isArray(x) ? (x as unknown[]).map(r => member(r)).filter((m): m is GuildMember => !!m) : []);
   const members = mem(g.members);
+  if (ver < 27) for (const m of members) doubleV27(m);
   return {
     name: typeof g.name === 'string' ? g.name : d.name,
     founded: !!g.founded, storySeen: !!g.storySeen,
@@ -697,6 +699,22 @@ export function statsV26(m: GuildMember): Stats {
   const old = { ...birthV25(m.nick, m.pers), ...(m.story ? STORY_BOOST_V25[m.story] : {}) };
   const birth = { ...profileOf(m.nick, m.pers, role).stats, ...(m.story ? STORY[m.story].boost : {}) }, add = lvAdds(m.nick, m.pers, role, m.lv, birth);
   return Object.fromEntries(STAT_KEYS.map(k => [k, Math.max(1, Math.min(20, birth[k] + add[k] + Math.max(0, m.stats[k] - old[k])))])) as Stats;
+}
+
+/**
+ * v27 (103 Lim 「레벨업시 20프로 확률로 2업」): 이미 있는 길드원은 지난 레벨마다 20% (LV_DOUBLE)를 다시 굴려 두 배 몫 (학습력만큼)을 더함, 깎지 않음.
+ * 합류한 레벨은 저장에 없어 길드가 열리는 Lv 15 뒤 레벨만 (그 전은 공개모집 그대로). 씨앗 = 닉네임, 오를 칸은 레벨업과 같은 무게 · 20까지, 남는 점수는 3점까지 모아 둠
+ */
+export function doubleV27(m: GuildMember): void {
+  const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', r = rngFrom(seedOf(`v27:${m.nick}`));
+  let add = 0;
+  for (let lv = 16; lv <= m.lv; lv++) if (r() < LV_DOUBLE) add += statPerLevel(m.learn);
+  m.sxp = Math.round((m.sxp + add) * 1000) / 1000;
+  while (m.sxp + 1e-9 >= 1) {
+    const k = pickStat(statWeights(m, role), s => m.stats[s], r);
+    if (!k) { m.sxp = Math.min(m.sxp, 3); break; }
+    m.stats[k]++; m.sxp = Math.round((m.sxp - 1) * 1000) / 1000;
+  }
 }
 
 /** v19 길드원 꼴 확인 (모자란 칸은 그 사람 능력치 · 0으로, v26 전 저장은 v25까지의 타고난 값으로) */

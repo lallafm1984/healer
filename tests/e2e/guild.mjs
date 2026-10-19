@@ -234,7 +234,7 @@ export default async function guild(url, shots) {
     const s = JSON.parse(localStorage.getItem('healer.save'));
     s.player.gold = 100000;
     s.guild.members.forEach((m, i) => {
-      for (const k of Object.keys(m.stats)) m.stats[k] = i === 0 ? 13 : 20;
+      for (const k of Object.keys(m.stats)) m.stats[k] = i === 0 ? 11 : 20; // Lv 15 · 칸 모두 11 = ★3.5 (같은 레벨 대비, 104)
       m.lastStatGains = i === 0 ? ['atk', 'skill', 'judgment'] : [];
       m.lv = i === 0 ? 15 : 80;
     });

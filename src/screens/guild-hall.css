@@ -231,6 +231,8 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-meter .k { display: inline-flex; align-items: center; gap: 4px; min-width: 0; font: 700 13px var(--font-body); color: var(--gk-ink); white-space: nowrap; }
 #s-guild .g-meter .k .g-ic { width: 16px; height: 16px; object-fit: contain; }
 #s-guild .g-meter small { font-size: 12px; color: var(--gk-mute); font-variant-numeric: tabular-nums; }
+/* 직전 레벨업 두 배 (103 「레벨업시 20% 확률로 2업」) */
+#s-guild .g-dbl { margin: 0; font: 700 12px var(--font-body); color: #8ed99a; }
 #s-guild .sheet .g-tiles { padding: 8px 4px; background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 10px; }
 #s-guild .g-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 #s-guild .g-acts > .btn { position: relative; min-height: 78px; margin: 0; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
