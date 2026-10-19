@@ -16,14 +16,14 @@ import { NAMED, SPECS, type SpecGroup } from '../data/specials';
 import { bossTarget, areaRadius, focusOrder, hexDist, ORDER_NUM, busterOn, slotKey, type Telegraph, type TelKind, type Unit } from '../engine';
 import type { TotemKind } from '../engine/types';
 import type { HeroKey } from '../data/heroes';
-import { asleep, CONSTELLATION, starMax, starsNow } from '../engine/astro';
+import { asleep } from '../engine/astro';
 import { raining } from '../engine/shaman';
 import { emblemColor } from '../screens/art';
 import { CLASS_GLYPH, CUT, EDGE, LINE } from '../screens/class-icons';
 import { FACTIONS, type FactionKey } from '../data/places';
 import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
-import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, sealTimerOf, shieldTimerOf, type GuardTimerKey } from './party-display';
+import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, sealTimerOf, shieldTimerOf, starMarkTimerOf, type GuardTimerKey } from './party-display';
 import { CELL_RADIUS, clearOf, fitBoard, floatBlocks, hotTimerLayout, shieldTimerLayout } from './board-layout';
 import { DEBUFF_EDGE, GIM_ICON, MARK_ART } from './board-marks';
 import { BOARDS } from '../data/boards';
@@ -1217,6 +1217,8 @@ const GUARD_COLOR: Record<GuardTimerKey, [number, number]> = {
 };
 /** 결계사 인장 남은 시간 원 [채움, 숫자 색]: 결계사 레몬 노랑 + 짙은 호박 숫자 (2026-10-19 Lim, 예전 인장 그림 대신) */
 const SEAL_COLOR: [number, number] = [0xffd51f, 0x3d2a00];
+/** 점성술사 별자리 표식 남은 시간 원 [채움, 숫자 색]: 점성술사 호박 + 짙은 갈색 숫자 (2026-10-19 Lim, 예전 표식 그림 대신) */
+const STAR_MARK_COLOR: [number, number] = [0xe8b04a, 0x3a2108];
 /**
  * 판 위 물건 (79 6-1, engine/totems): 칸 바닥 색 · 그림 이름 (80 5장 board-*, 오기 전엔 바닥 색 + 안쪽 테두리). 범위 = 테두리를 그릴 거리
  * stand = 바닥 무늬가 아니라 칸 위에 선 물건 (standL): 사람이 서 있어도 그 칸 가운데에 크게, 이름 · 체력 뒤.
@@ -1299,7 +1301,7 @@ const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
   paladin: ['board-sanctuary'],
   shaman: ['board-totem-spring', 'board-totem-earth', 'board-totem-spring-aura', 'board-totem-earth-aura', 'board-totem-rain', 'board-sea-spring'],
   monk: ['board-mist-pool'],
-  astrologer: ['board-star', 'board-star-mark', 'board-supernova'],
+  astrologer: ['board-supernova'],
   warder: ['board-citadel'],
 };
 /**
@@ -1307,17 +1309,7 @@ const HERO_BOARD_ART: Partial<Record<HeroKey, string[]>> = {
  */
 const HERO_ART_BOX: Record<string, [number, number]> = {
   'board-totem-rain': [1, 0.65], // 2026-10-18 Codex로 다시 그림: 구름만 (Lim 「물방울은 이미지에서 제거하고 구름만, 이펙트로 비를 표현」)
-  'board-star-mark': [0.99, 0.79], 'board-star': [0.8, 0.96], // 별자리 표식은 2026-10-16 굵게 다시 그림 (89)
 };
-/** 점성술사 모으는 별 (80 5장 board-star): 별 n개 자리 (칸 반지름 배, 대상 칸 가운데 기준). 차례로 선을 이음 */
-const CHARGE_STARS: [number, number][][] = [
-  [],
-  [[0, -0.1]],
-  [[-0.36, 0.12], [0.36, -0.22]],
-  [[-0.5, 0.15], [0, -0.32], [0.5, 0.12]],
-  [[-0.56, 0.2], [-0.2, -0.3], [0.2, 0.08], [0.56, -0.3]],
-  [[-0.6, 0.16], [-0.3, -0.32], [0, 0.12], [0.3, -0.32], [0.6, 0.16]],
-];
 /**
  * 힐러 직업 4종 그림 하나 (80 5장): 가운데 (x, y) · 한 변 size. 판 밖으로 나갈 것 같으면 비율 그대로 줄임. 그린 한 변 (안 그렸으면 0)
  * 그림이 아직 안 읽혔으면 안 그림 (다음 프레임에 그림)
@@ -1747,22 +1739,7 @@ export function render(now: number): void {
     over.push({ u, x, y, deb: undefined });
   }
 
-  // 점성술사 별자리 시전 (80 5장 board-star, 83): 별비 · 북극성 · 별의 기억을 시전하는 동안 대상 칸 위에 별 (1 + 조각)개를 금빛 선으로 이음. 가득 찬 별자리면 모두 밝게
-  const ch = F.hero === 'astrologer' && F.cast && CONSTELLATION.has(F.cast.key) ? F.cast : null;
-  if (ch) {
-    const stars = starsNow(F), cu = F.party.find(v => v.id === ch.uid && v.alive);
-    const c0 = cu ? unitPos(cu) : center(ch.cell), pts = CHARGE_STARS[Math.min(stars, CHARGE_STARS.length - 1)];
-    const perfect = stars >= starMax(F), w = Math.max(1.5, s * 0.045);
-    const at = pts.map(([dx, dy]) => fitCenter(c0.x + dx * r, c0.y + (dy - 0.12) * r, r * 0.2)); // 이름 줄보다 조금 위
-    if (at.length > 1) {
-      for (const [width, color, alpha] of [[w + 2, C.line, 0.55], [w, C.gold, perfect ? 1 : 0.85]] as const) {
-        fxG.moveTo(at[0].x, at[0].y);
-        for (const p of at.slice(1)) fxG.lineTo(p.x, p.y);
-        fxG.stroke({ width, color, alpha, cap: 'round', join: 'round' });
-      }
-    }
-    at.forEach((p, i) => heroArt(fxArt, 'board-star', `hero-star${i}`, p.x, p.y, r * (i === at.length - 1 && !perfect ? 0.54 + 0.08 * pulse : 0.54), perfect ? 0.8 + 0.2 * pulse : 1, true));
-  }
+  // 점성술사 별자리 시전 그림 (별비 · 북극성 · 별의 기억을 시전하는 동안 대상 칸 위 별 + 금빛 선)은 없앰 (2026-10-19 Lim 「별비 시전중에 별자리 이미지를 표시하지 말고」). 별 수는 자원 그림에
   // 주술사 비구름 토템 (board-totem-rain = 구름만, 2026-10-18 Codex): 비가 오는 동안 판 오른쪽 위 하늘에 떠서 천천히 흔들림.
   // 나타날 때 0.35초 톡 부풀고, 비는 그림 위 루프 (shaman-rain-loop, 그림 한 변 × 75/62 · 가운데가 그림보다 한 변의 반 아래)로 (Lim 「물방울은 이미지에서 제거하고 구름만, 이펙트로 비를 표현」).
   // 시각 효과 줄이기면 구름만
@@ -1991,7 +1968,7 @@ export function render(now: number): void {
     const hotLayout = hotTimerLayout(s, hots.length);
     const shieldT = shieldTimerOf(u, F.t);
     // 칸 왼쪽 열 = 보호막 원 + 방어 생존기 원 (오른쪽 지속 힐 원 열을 뒤집은 자리 · 크기)
-    const guards = guardTimersOf(u, F.t, F.hero), sealLeft = sealTimerOf(u, F.t, F.hero), leftN = (shieldT ? 1 : 0) + guards.length + (sealLeft != null ? 1 : 0);
+    const guards = guardTimersOf(u, F.t, F.hero), sealLeft = sealTimerOf(u, F.t, F.hero), markLeft = starMarkTimerOf(u, F.hero), leftN = (shieldT ? 1 : 0) + guards.length + (sealLeft != null ? 1 : 0) + (markLeft != null ? 1 : 0);
     const shieldLayout = shieldTimerLayout(s, Math.max(1, leftN));
     // 칸 = 직업 아이콘 · 닉네임 · 체력 (2026-10-07 Lim: 성격 배지는 칸에서 빼고 길게 누르기 정보에만). 「나」 = 직업 문장 (27 3-4)
     const em = u.me ? emblemTexture(F.hero) : null;
@@ -2076,6 +2053,7 @@ export function render(now: number): void {
         ...(shieldT ? [{ key: `shield${u.id}`, kind: 'shield', left: shieldT.left, fill: C.shieldFill, fg: C.white }] : []),
         ...guards.map(g => ({ key: `guard${u.id}-${g.key}`, kind: 'guard', left: g.left, fill: GUARD_COLOR[g.key][0], fg: GUARD_COLOR[g.key][1] })),
         ...(sealLeft != null ? [{ key: `seal${u.id}`, kind: 'seal', left: sealLeft, fill: SEAL_COLOR[0], fg: SEAL_COLOR[1] }] : []),
+        ...(markLeft != null ? [{ key: `starmark${u.id}`, kind: 'starmark', left: markLeft, fill: STAR_MARK_COLOR[0], fg: STAR_MARK_COLOR[1] }] : []),
       ];
       col.forEach((c, i) => {
         const px = start.x, py = start.y + i * shieldLayout.step;
@@ -2193,11 +2171,7 @@ export function render(now: number): void {
       recordBound(`relay${u.id}`, 'relay', 'circle', p.x, p.y, dr * 2, dr * 2);
     }
     // 결계사 인장 · 점성술사 별자리 표식 (80 5장): 칸 왼쪽 위에 작게 (지속 치유 시간 원의 반대편, 보호막 원이 있으면 그 아래). 이름 · 체력 · 직업 아이콘은 그 자리 그대로, 글자 · 배지가 위에 그려짐
-    const sign = F.hero === 'astrologer' && u.hots.some(h => h.key === 'starMark' && h.left > 0) ? 'board-star-mark' : ''; // 결계사 인장은 왼쪽 열 원 (sealTimerOf)
-    if (sign) {
-      const size = r * 0.57 * (leftY != null ? 0.85 : 1), half = (size * HERO_ART_BOX[sign][1]) / 2; // 보호막 원 아래로 내려가면 이름에 덜 걸리게 조금 작게
-      heroArt(marks, sign, `hero-sign${u.id}`, x - r * 0.56, leftY != null ? leftY + 1 + half : y - r * 0.44, size, 1, true);
-    }
+    // 결계사 인장 · 점성술사 별자리 표식은 그림 대신 왼쪽 열 원 + 남은 초 (sealTimerOf · starMarkTimerOf, 2026-10-19 Lim)
     if (F.t < u.wrongUntil && F.t > u.wrongUntil - 0.6) pill(overTopG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '?', C.gold, C.dark, fs(0.28, 11));
     else if (F.t < u.mistakeUntil && F.t > u.mistakeUntil - 0.6) pill(overTopG, labels, `q${u.id}`, x + r * 0.62, y - r * 0.05, '!', 0xff5a3d, C.dark, fs(0.28, 11));
     const st = u.lift ? ([`하늘 ${Math.max(0, Math.ceil(u.lift.until - F.t))}`, '#9FD8F5'] as const) : u.pulled ? ([`끌림 ${Math.ceil(u.pulled.until - F.t)}`, '#C98B5A'] as const) : u.fleeing ? (['도망', '#DB9B57'] as const) : u.sulking ? (['삐짐', '#D68FA6'] as const)
