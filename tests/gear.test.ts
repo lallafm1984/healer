@@ -28,12 +28,12 @@ describe('강화 없음 → 아이템 레벨 배율 (91, 예전 강화 몫)', ()
     expect(ilvBonus(undefined)).toBe(1);
     for (let l = 2; l <= 100; l++) expect(ilvP(l)).toBeGreaterThanOrEqual(ilvP(l - 1));
   });
-  it('주 · 종류 · 무작위 옵션 모두 같은 배율, 특수능력은 그대로. 장비에 강화 단계 없음', () => {
+  it('주 · 종류 · 무작위 옵션 모두 같은 배율 (체력만 빼고, 103), 특수능력은 그대로. 장비에 강화 단계 없음', () => {
     const it = makeItem(rngFrom(4), 'weapon', '영웅', 1, 'staff', { lv: 40 });
     expect(it).not.toHaveProperty('plus');
     const a = optionsOf(it, 40), b = optionsOf({ ...it, lv: undefined }, 40);
     // 아이템 레벨이 없으면 배율 1 (% 옵션 레벨 배율 · 지능 수치 배율도 1) → 같은 굴림의 Lv 40 장비는 % 옵션만 pctLvMult가 더 붙음
-    for (let i = 0; i < a.length; i++) expect(a[i].v).toBeCloseTo(b[i].v * 1.4 * (isPointStat(a[i].stat) ? 1 : pctLvMult(40)));
+    for (let i = 0; i < a.length; i++) expect(a[i].v).toBeCloseTo(b[i].v * (a[i].stat === 'hp' ? 1 : 1.4) * (isPointStat(a[i].stat) ? 1 : pctLvMult(40))); // 103 ③: 체력 줄은 예전 강화 몫 (ilvBonus)을 안 곱함
   });
 });
 
@@ -215,7 +215,7 @@ describe('장비 종류 · 옵션 (34 6-2 ~ 6-5)', () => {
     expect(RANDOM_BASE).toBe(0.8);
     // 굴림이 없는 (옛) 장비는 1 = 예전 고정값
     const robe = itemStats(item({ slot: 'chest', kind: 'robe', grade: '희귀' }), 30);
-    expect(robe.hp).toBeCloseTo(0.18 * R);
+    expect(robe.hp).toBeCloseTo(0.12 * R); // 103 ③: 몸통 주 옵션 0.18 → 0.12
     expect(robe.spirit).toBeCloseTo(0.08 * 1.3 * R);
     expect(robe.int).toBe(0);
     const o = optionsOf({ ...staff, lines: [{ stat: 'crit', roll: 1.25 }] }, 30);
