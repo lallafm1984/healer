@@ -42,6 +42,7 @@ export default async function guildExt(url, shots) {
   ok(await page.isVisible('#tabs [data-tab="guild"] .rdot'), '안 끝낸 부탁 = 길드 탭 빨간 점');
 
   // ---- 시설 (93 6-3): 길드 Lv 7 = 셋 다 열림, 골드로 단계 ----
+  await page.click('#s-guild [data-csel="fac"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-guild .g-fac').count()) === 3 && (await page.locator('#s-guild [data-fac]').count()) === 3, '시설 셋 (연회장 · 작전실 · 모집소), 모두 올리기 버튼');
   const g0 = sv.player.gold;
   await page.click('#s-guild [data-fac="feast"]'); await page.clock.runFor(50);
@@ -87,8 +88,12 @@ export default async function guildExt(url, shots) {
     await page.setViewportSize({ width: w, height: h });
     await page.click('#s-guild .subtabs [data-sub="home"]'); await page.clock.runFor(50);
     const fit = () => page.locator('#s-guild .ns-body').evaluate(el => el.scrollWidth <= el.clientWidth + 1);
-    const cut = await page.locator('#s-guild .g-fac .g-side, #s-guild .g-job .g-go').evaluateAll(els => els.filter(e => e.getBoundingClientRect().right > document.documentElement.clientWidth + 1).length);
-    ok(await fit() && !cut, `${name} ${w}×${h}: 현황 (부탁 · 원정 · 시설) 가로 넘침 없음`);
+    const out = sel => page.locator(sel).evaluateAll(els => els.filter(e => { const r = e.getBoundingClientRect(), p = e.closest('.g-card')?.getBoundingClientRect(); return r.right > document.documentElement.clientWidth + 1 || (p && (r.right > p.right + 1 || r.left < p.left - 1)); }).length);
+    const cut1 = await out('#s-guild .g-job .g-rs, #s-guild .g-exped .g-rs, #s-guild .g-goal .g-rs, #s-guild .g-place');
+    await page.click('#s-guild [data-csel="fac"]'); await page.clock.runFor(50);
+    const cut2 = await out('#s-guild .g-fac, #s-guild .g-fac > .btn, #s-guild .g-fac .g-lockt');
+    const hub = await page.locator('#s-guild .g-hubt').evaluateAll(els => els.filter(e => e.scrollWidth > e.clientWidth + 1).length);
+    ok(await fit() && !cut1 && !cut2 && !hub, `${name} ${w}×${h}: 현황 (칸 셋 · 부탁 · 원정 · 시설) 가로 넘침 없음 ${JSON.stringify({ cut1, cut2, hub })}`);
     await page.screenshot({ path: `${shots}/guild_ext_${name}.png`, fullPage: true });
     await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
     ok(await fit(), `${name}: 영입 가로 넘침 없음`);

@@ -25,6 +25,7 @@ const paths = {
   neck: '<path d="M5 3c0 7 3 11 7 11s7-4 7-11"/><path d="m12 14-2.5 3 2.5 3.5 2.5-3.5z"/>',
   lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   hourglass: '<path d="M7 3h10M7 21h10M8 3v2c0 3 4 5 4 7s-4 4-4 7v2M16 3v2c0 3-4 5-4 7s4 4 4 7v2"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.6v.1" stroke-width="2.4"/>', // 설명 열기 (ⓘ)
 } as const;
 /** extra = 'in': 글자 안에 끼우는 크기 (글자 높이에 맞춤) */
 export function uiIcon(key: keyof typeof paths, extra = ''): string {

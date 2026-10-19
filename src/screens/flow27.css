@@ -213,8 +213,9 @@
 #s-party .f-why { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; }
 #s-party .f-why .chip { min-height: 24px; padding: 2px 8px; border-radius: 12px; font: 700 11px/1.4 var(--font-body); white-space: nowrap; }
 /* 길드원 줄 둘째 줄의 작은 표 (숙지 n · 예전 길드원) */
-.pcard.f-mem .f-l2 > .f-tag { flex: none; padding: 0 5px; border: 1px solid #ffffff2e; border-radius: 6px; font-size: 10.5px; line-height: 16px; white-space: nowrap; }
-.pcard.f-mem .f-l2 > .f-tag > .g-ic { width: 12px; height: 12px; margin-right: 2px; vertical-align: -2px; object-fit: contain; }
+/* 그림 + 숫자 한 덩이 (2026-10-19 길드 화면 정리): 그림이 위, 글이 아래로 갈라지던 것 (inline 그림 + 줄바꿈) */
+.pcard.f-mem .f-l2 > .f-tag { flex: none; display: inline-flex; align-items: center; gap: 2px; padding: 0 5px; border: 1px solid #ffffff2e; border-radius: 6px; font-size: 10.5px; font-weight: 700; line-height: 18px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pcard.f-mem .f-l2 > .f-tag > .g-ic { width: 15px; height: 15px; object-fit: contain; }
 /* 후원 남은 판 (98): 금빛 */
 .pcard.f-mem .f-l2 > .f-tag.gold { border-color: #c99b3f; color: #ffd34d; background: #3a2a0f; }
 #s-party .f-adrr { align-self: flex-start; }

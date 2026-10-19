@@ -249,24 +249,24 @@ function notesHtml(x: Settlement): string {
   const gd = x.guild;
   // 길드 v2 (93 9-1): 결성 · 길드원 경험치 · 레벨 업 · 명성 · 첫 처치, 오른 능력치 (왜), 인연 (새 친구)
   // 업데이트 묶음 (93 4-4 · 8장): 스토리 동료 합류 · 부탁 쪽지 · 주간 원정
-  if (x.story) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${uiIcon('guild')}<span><b>${esc(STORY[x.story.key].nick)} ${x.story.how === 'joined' ? '합류' : '찾아옴'}</b>${x.story.how === 'wait' ? ' · 정원이 차서 친구 초대에서 기다림' : ` · 고유 스킬 ${esc(ABILITIES[STORY[x.story.key].ab]?.name ?? '')}`}</span></button>`);
+  if (x.story) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${gameIcon('guild-members', uiIcon('guild'))}<span><b>${esc(STORY[x.story.key].nick)} ${x.story.how === 'joined' ? '합류' : '찾아옴'}</b>${x.story.how === 'wait' ? ' · 정원이 차서 친구 초대에서 기다림' : ` · 고유 스킬 ${esc(ABILITIES[STORY[x.story.key].ab]?.name ?? '')}`}</span></button>`);
   if (x.jobs?.reqs.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('request', uiIcon('quest'))}<span>부탁 완료 · ${x.jobs.reqs.map(esc).join(' · ')} 인연 +${REQ.bond}</span></button>`);
   if (x.jobs?.exped.length) out.push(`<button class="r-note${x.jobs.expedAll ? ' hi' : ''}" type="button" data-go="s-guild">${gameIcon('expedition-chest', uiIcon('star'))}<span>주간 원정 ${x.jobs.exped.length}곳 · 명성 +${EXPED.fame * x.jobs.exped.length}${x.jobs.expedAll ? ' · <b>원정 상자 열림</b>' : ''}</span></button>`);
-  if (x.founded?.length) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${uiIcon('guild')}<span><b>${esc(G.save.guild.name)} 결성</b> · ${x.founded.map(esc).join(' · ')}</span></button>`);
+  if (x.founded?.length) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${gameIcon('guild-flag', uiIcon('guild'))}<span><b>${esc(G.save.guild.name)} 결성</b> · ${x.founded.map(esc).join(' · ')}</span></button>`);
   if (gd?.members.length) {
     const sum = gd.members.reduce((s, m) => s + m.xp, 0);
     const ups = gd.members.filter(m => m.ups.length).map(m => `${esc(m.nick)} Lv ${m.ups[m.ups.length - 1]}`);
-    out.push(`<button class="r-note" type="button" data-go="s-guild">${uiIcon('guild')}<span>길드원 경험치 +${fmt(sum)}${ups.length ? ` · <b>${ups.join(' · ')}</b>` : ''}${gd.fame ? ` · 명성 +${gd.fame}` : ''}${gd.first ? ' · <b>길드 첫 처치</b>' : ''}</span></button>`);
+    out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-members', uiIcon('guild'))}<span>길드원 경험치 +${fmt(sum)}${ups.length ? ` · <b>${ups.join(' · ')}</b>` : ''}${gd.fame ? ` · 명성 +${gd.fame}` : ''}${gd.first ? ' · <b>길드 첫 처치</b>' : ''}</span></button>`);
     const st = gd.members.flatMap(m => m.stats.map(s => ({ nick: m.nick, ...s }))).sort((a, b) => Number(!!b.why) - Number(!!a.why)).slice(0, 2);
-    if (st.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${uiIcon('star')}<span>${st.map(s => `${esc(s.nick)} ${STAT_NAMES[s.k]} <b>${s.to}</b>${s.why ? ` (${s.why})` : ''}`).join(' · ')}</span></button>`);
+    if (st.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-record', uiIcon('star'))}<span>${st.map(s => `${esc(s.nick)} ${STAT_NAMES[s.k]} <b>${s.to}</b>${s.why ? ` (${s.why})` : ''}`).join(' · ')}</span></button>`);
     // 후원 (98): 쉬는 판에 출전만큼 받은 사람
-    if (gd.boosted.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${uiIcon('hands')}<span>후원 +${fmt(gd.boosted.reduce((t, b) => t + b.xp, 0))} 경험치 · ${gd.boosted.slice(0, 2).map(b => `${esc(b.nick)} ${b.left}판 남음`).join(' · ')}${gd.boosted.length > 2 ? ` 외 ${gd.boosted.length - 2}명` : ''}</span></button>`);
+    if (gd.boosted.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-sponsor', uiIcon('hands'))}<span>후원 +${fmt(gd.boosted.reduce((t, b) => t + b.xp, 0))} 경험치 · ${gd.boosted.slice(0, 2).map(b => `${esc(b.nick)} ${b.left}판 남음`).join(' · ')}${gd.boosted.length > 2 ? ` 외 ${gd.boosted.length - 2}명` : ''}</span></button>`);
     // 공략 숙지 (93 5-4): 「공략 숙지 2단계: 역병 군주 · 방패든양 · 불꽃남자」 (가장 높이 오른 단계)
     const kn = gd.members.filter(m => m.know), top = Math.max(0, ...kn.map(m => m.know!.stage));
     if (top) { const who = kn.filter(m => m.know!.stage === top); out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('know', uiIcon('quest'))}<span><b>공략 숙지 ${top}단계: ${esc(ENCOUNTERS[who[0].know!.enc as EncounterKey]?.name ?? '')}</b> · ${who.map(m => esc(m.nick)).join(' · ')}</span></button>`); }
   }
   const bsum = x.bond.reduce((a, b) => a + b.pt, 0), friends = x.bond.filter(b => b.before < FRIEND_LV && b.after >= FRIEND_LV);
-  if (FEATURES.guild && bsum) out.push(`<button class="r-note${friends.length ? ' hi' : ''}" type="button" data-go="s-guild">${uiIcon('hands')}<span>인연 +${bsum}${friends.length ? ` · <b>새 친구 ${friends.map(f => esc(f.nick)).join(' · ')}</b>` : ''}</span></button>`);
+  if (FEATURES.guild && bsum) out.push(`<button class="r-note${friends.length ? ' hi' : ''}" type="button" data-go="s-guild">${gameIcon('bond-2', uiIcon('hands'))}<span>인연 +${Math.max(1, Math.round(bsum))}${friends.length ? ` · <b>새 친구 ${friends.map(f => esc(f.nick)).join(' · ')}</b>` : ''}</span></button>`);
   const q = x.heroQuest;
   if (q) {
     const h = HEROES[q.hero];

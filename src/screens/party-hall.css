@@ -36,6 +36,8 @@
 #s-party.ns .pcard.f-mem:first-child { border-top: 0; }
 #s-party.ns .pcard.f-mem.tap:active { background: #ffffff08; }
 #s-party.ns .pcard.f-mem:is(.on, .picked) { background: linear-gradient(90deg, #ffd34d1c, #ffd34d00 75%); box-shadow: inset 3px 0 0 var(--gk-head); }
+/* 고른 길드원 줄: 옛 나무 목록의 바깥으로 뻗는 margin (flow27 −12px)이 남아 돌 카드 (padding 0 · overflow hidden)에서 왼쪽 금빛 띠 · 오른쪽 ✓ 칸이 12px 잘렸음 (2026-10-19 길드 화면 정리) */
+#s-party.ns .pcard.f-mem.picked { margin: 0; }
 #s-party.ns .pcard.f-mem :is(.pnick, .f-l1) { color: var(--gk-ink); }
 #s-party.ns .pcard.f-mem .f-l1 > .cap { color: var(--gk-mute); }
 #s-party.ns .pcard.f-mem .f-l2 { color: var(--gk-ink2); }
