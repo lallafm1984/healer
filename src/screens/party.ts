@@ -22,8 +22,8 @@ import { commit, firstDungeonNow, G, healerLevel, heroNow, talentsNow } from '..
 import { TUT } from '../game/tutorial';
 import { classIcon, memDetailHtml, memRowHtml, ROLE_ICON } from './members';
 import { battle, esc, go, ROLE, screen } from './kit';
-import { classEmblem, floorArtOf, gameIcon, LOCK, uiIcon } from './art';
-import { afxRows, afxTags, ARROW, BOOK, flowHead, guides, recommendedLevel, segTabs } from './brief';
+import { classEmblem, departureArrow, floorArtOf, gameIcon, LOCK, uiIcon } from './art';
+import { afxRows, afxTags, BOOK, flowHead, guides, recommendedLevel, segTabs } from './brief';
 import { markHtml } from './content';
 import { sheetDialog } from './dialog';
 
@@ -194,7 +194,7 @@ function render(keepScroll = true): void {
     </div>
     <footer class="ns-foot f-foot2">
       <div class="f-btns">
-        <button class="f-go" type="button" id="depart"><span class="cta2"><span class="f-gt">출발</span></span>${ARROW}</button>
+        <button class="g-cta" type="button" id="depart"><span class="g-mk" aria-hidden="true">${classEmblem(heroNow(), 'sm')}</span><span class="g-ct"><b>출발</b></span>${departureArrow()}</button>
       </div>
     </footer>
     ${sheet === 'guide' ? guideSheetHtml() : sheet === 'mem' ? memSheetHtml(stage) : ''}`;

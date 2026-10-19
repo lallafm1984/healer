@@ -133,6 +133,7 @@ describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
   });
   it('원정: 주마다 3곳 (5인 · 10인 · 20인, 안 열렸으면 던전), 길드파티로 보통 이상 = 칸마다 명성 +5, 셋 다 = 상자 (골드 5판 + 장비 1)', () => {
     const s = save(80), ms = [add(s, 'warrior', 0), add(s, 'mage', 0), add(s, 'mage', 1)];
+    s.guild.fame = 2000;
     refreshExped(s, () => true, T);
     expect(s.guild.exped.list.length).toBe(EXPED.n);
     const sizes = s.guild.exped.list.map(x => CONTENT.find(c => c.key === x.content)!.size('보통'));
@@ -142,6 +143,7 @@ describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
     let fame = 0;
     for (const x of s.guild.exped.list) fame += jobsAfter(s, { win: true, quit: false, content: x.content, diff: '보통', roster }).fame;
     expect(fame).toBe(EXPED.fame * 3);
+    expect(s.guild.fame).toBe(2000 + EXPED.fame * 3);
     expect(expedReady(s)).toBe(true);
     const gold = s.player.gold, bag = s.gear.bag.length;
     const g = claimExped(s, rng, T);

@@ -58,7 +58,7 @@ export function passReady(): number {
   for (let l = 1; l <= lv; l++) if (!p.free.includes(l)) n++;
   return n;
 }
-/** 길드에서 골라야 할 것: 모집 공고 지원자 (3명 중 1명 영입) */
+/** 길드에서 확인할 것: 아직 영입하지 않은 모집 공고 지원자 */
 const guildReady = (): boolean => guildOpen(G.save).ok && (!!G.save.guild.post?.cands.length || jobsDot(G.save) || !!G.save.guild.storyCard); // 지원자 · 부탁 쪽지 · 원정 상자 · 합류 카드 (93 8장, 빨간 점은 길드 탭 하나만)
 function dotOf(k: TabKey): boolean {
   if (G.save.tut < TUT.done) return false;

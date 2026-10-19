@@ -34,7 +34,7 @@ export function uiIcon(key: keyof typeof paths, extra = ''): string {
 /** 잠금 표시 (🔒 대신, 테마 색을 따름) */
 export const LOCK = uiIcon('lock', 'in');
 
-/** 전투 · 길드 출전 버튼의 공통 금빛 화살표. */
+/** 전투 · 길드 출전 및 편성 출발 버튼의 공통 금빛 화살표. */
 export function departureArrow(): string {
   return `<img class="g-arrow" src="${art('icon-depart-arrow-v1')}" alt="" aria-hidden="true" decoding="async" draggable="false">`;
 }

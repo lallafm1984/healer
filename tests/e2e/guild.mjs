@@ -17,7 +17,7 @@ export default async function guild(url, shots) {
   const text = sel => page.textContent(sel);
   const patch = async (fn, arg) => { await page.evaluate(fn, arg); await page.reload(); await page.clock.runFor(300); await pastTitle(page); };
   const sheetOpen = () => page.isVisible('#s-guild .g-msheet');
-  const shut = async () => { await page.click('#s-guild .g-msheet .f-shut'); await page.clock.runFor(50); };
+  const shut = async () => { await page.click('#s-guild .g-msheet button[data-shut]'); await page.clock.runFor(50); };
   await page.clock.install({ time: new Date(2026, 9, 7, 12) });
   await page.goto(url);
   await page.clock.runFor(300);
@@ -66,19 +66,25 @@ export default async function guild(url, shots) {
   sv = await save();
   const cands = sv.guild.post?.cands ?? [];
   ok(sv.player.gold === 20000 - 900 && cands.length === 3 && cands.every(c => c.lv >= 25), `공고 = 골드 900, 무작위 3명 (Lv 25 이상) ${cands.map(c => `${c.cls} ${c.lv}`)}`);
-  ok(await page.isVisible('#s-guild .subtabs [data-sub="recruit"] .rdot') && (await page.locator('#s-guild [data-hire]').count()) === 3, '지원자 있으면 영입 탭 빨간 점 · 줄마다 영입');
+  ok(await page.isVisible('#s-guild .subtabs [data-sub="recruit"] .rdot') && (await page.locator('#s-guild [data-cand]').count()) === 3 && (await page.locator('#s-guild [data-hire]').count()) === 0, '지원자 목록은 상세 진입만, 줄마다 영입 버튼 없음');
   await page.click('#s-guild [data-cand="0"] .f-mt'); await page.clock.runFor(50);
   ok(await sheetOpen() && (await page.locator('#s-guild .g-msheet .fm-grid li').count()) === 12 && !/친구|인연/.test(await text('#s-guild .g-msheet')), '지원자의 정확한 능력치 12칸을 영입 전에 확인');
+  ok((await text('#s-guild .g-hire-actions [data-hire]')).trim() === '영입' && !/추가 비용/.test(await text('#s-guild .g-msheet')), '상세 하단: 한 줄 영입 버튼, 추가 비용 없음 문구 제거');
+  await page.screenshot({ path: `${shots}/guild_candidate_detail.png` });
   await shut();
   await page.screenshot({ path: `${shots}/guild_recruit.png` });
+  await page.click('#s-guild [data-cand="0"] .f-mt'); await page.clock.runFor(50);
   await page.click('#s-guild [data-hire="0"]'); await page.clock.runFor(50);
   sv = await save();
   const hired = sv.guild.members.find(m => m.nick === cands[0].nick);
-  ok(sv.guild.members.length === 5 && sv.guild.post === null && hired && !sv.users, `영입: ${cands[0].nick} (추가 비용 없음), 5/6`);
-  await page.click('#s-guild [data-post="normal"]'); await page.clock.runFor(50);
+  ok(sv.guild.members.length === 5 && sv.guild.post.cands.length === 2 && hired && !sv.users && sv.player.gold === 19100, `영입: ${cands[0].nick}, 남은 지원자 2명 유지, 5/6`);
+  await page.click('#s-guild [data-cand="0"] .f-mt'); await page.clock.runFor(50);
   await page.click('#s-guild [data-hire="0"]'); await page.clock.runFor(50);
   sv = await save();
-  ok(sv.guild.members.length === 6 && await page.isDisabled('#s-guild [data-post="normal"]'), '정원 가득 = 공고 잠금');
+  ok(sv.guild.members.length === 6 && sv.guild.post.cands.length === 1 && await page.isDisabled('#s-guild [data-post="normal"]'), '정원 가득 = 공고 잠금 · 마지막 지원자 유지');
+  await page.click('#s-guild [data-cand="0"] .f-mt'); await page.clock.runFor(50);
+  ok(await page.isDisabled('#s-guild .g-hire-actions [data-hire]') && /정원 가득/.test(await text('#s-guild .g-hire-footer')), '정원 가득이어도 지원자 상세 확인 가능 · 영입만 잠금');
+  await shut();
   // ---- 길드원 시트: 능력치 숫자 · 후원 · 보내기 ----
   await page.click('#s-guild .subtabs [data-sub="members"]'); await page.clock.runFor(50);
   ok(/정원 6\/6/.test(await text('#s-guild .guild-hero')) && (await page.locator('#s-guild [data-mem]').count()) === 6, '길드원 탭 줄 6 · 머리 정원 6/6');
@@ -265,6 +271,11 @@ export default async function guild(url, shots) {
       return cap.scrollWidth > cap.clientWidth + 1 || a.right > b.left + 0.5 || b.right > t.right + 1 || el.querySelector('.f-l2').scrollWidth > el.querySelector('.f-l2').clientWidth + 1;
     }).map(el => el.querySelector('.pnick').textContent));
     ok(await fit() && !rrows.length, `${name}: 영입 화면 가로 넘침 없음 · 줄 직업 · Lv 안 가림 ${JSON.stringify(rrows)}`);
+    const candidatesFit = await page.locator('#s-guild .g-candidates').evaluate(el => {
+      const body = el.closest('.ns-body').getBoundingClientRect(), nav = document.querySelector('#tabs').getBoundingClientRect();
+      return [...el.children].every(row => { const r = row.getBoundingClientRect(); return r.top >= body.top && r.bottom <= nav.top; });
+    });
+    ok(candidatesFit, `${name}: 대기 지원자 목록이 하단 메뉴 위에 표시`);
     await page.screenshot({ path: `${shots}/guild_recruit_${name}.png` });
     await page.click('#s-guild .subtabs [data-sub="home"]'); await page.clock.runFor(50);
   }

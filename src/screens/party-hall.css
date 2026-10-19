@@ -1,7 +1,7 @@
 /*
  * 편성 (출전) 화면 길드 홀 색 (2026-10-13 Lim 「장비 권장은 제거, 레벨 권장 수치만, 내 정보는 빼고 · 나무결 배경과 함께 UI 스타일·색 변경」).
  * 결과 · 주간 도전 입장 · 공략 창과 같은 한 벌: 나무결 없이 평평한 어두운 돌색 · 금테 카드 · 노란 제목 (--gk-*, guide-sheet.css).
- * 위 정보창 (a2-topbar.css) · 역할 색 칸 · 성격 칩 색은 그대로. 「출발」은 2026-10-16부터 금빛 주 버튼 (아래). main.ts 맨 뒤에서 읽음 (a2-adventure-theme · party-refinement 위)
+ * 위 정보창 (a2-topbar.css) · 역할 색 칸 · 성격 칩 색은 그대로. 「출발」은 departure-hall.css의 공통 붉은 출전 그림 (2026-10-19). main.ts 맨 뒤에서 읽음 (a2-adventure-theme · party-refinement 위)
  */
 #s-party {
   background-color: #15120e; background-image: linear-gradient(#1d1812, #15120e 240px); background-blend-mode: normal;
@@ -90,17 +90,17 @@
   #s-party.ns .f-item-tx b { font-size: 13px; }
 }
 
-/* 출발 (Lim 「출발 버튼이 이질감」): 빨간 출전 그림 대신 결과 「다음」 · 입장 팝업과 같은 금빛 주 버튼. 주간 도전 「편성으로」도 같은 버튼 */
-:is(#s-entry, #s-party).ns .f-go {
+/* 주간 도전 「편성으로」: 금빛 주 버튼. 최신 공통 표면은 menu-buttons.css. */
+#s-entry.ns .f-go {
   border: 1px solid #b8862e; border-radius: 12px;
   background: linear-gradient(#ffe07a, #f0b93a 55%, #d99a24);
   box-shadow: inset 0 1px 0 #fff8d8, inset 0 -3px 0 #b07a1a, 0 3px 0 #000a; color: #2a1806;
 }
-:is(#s-entry, #s-party).ns .f-go .f-gt { color: #2a1806; text-shadow: 0 1px 0 #fff2c080; }
-:is(#s-entry, #s-party).ns .f-go .cta2 small { color: #5a3a0e; }
-:is(#s-entry, #s-party).ns .f-go > svg { stroke: #2a1806; }
-:is(#s-entry, #s-party).ns .f-go:active:not(:disabled) { transform: translateY(2px); background: linear-gradient(#f0c853, #d99a24); box-shadow: inset 0 1px 0 #fff8d8, inset 0 -1px 0 #b07a1a, 0 1px 0 #000a; }
-:is(#s-entry, #s-party).ns .f-go:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+#s-entry.ns .f-go .f-gt { color: #2a1806; text-shadow: 0 1px 0 #fff2c080; }
+#s-entry.ns .f-go .cta2 small { color: #5a3a0e; }
+#s-entry.ns .f-go > svg { stroke: #2a1806; }
+#s-entry.ns .f-go:active:not(:disabled) { transform: translateY(2px); background: linear-gradient(#f0c853, #d99a24); box-shadow: inset 0 1px 0 #fff8d8, inset 0 -1px 0 #b07a1a, 0 1px 0 #000a; }
+#s-entry.ns .f-go:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
 
 /* ---------- 파티원 상세 · 단축칸 고르기 시트: 공략 창과 같은 바탕 ---------- */
 #app .ns .sheet:is(.f-msheet, .f-isheet) { background: var(--gk-bg); background-blend-mode: normal; border-color: var(--gk-edge); color: var(--gk-ink); }
