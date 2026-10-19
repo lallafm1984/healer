@@ -446,6 +446,8 @@ export interface Telegraph {
   fake?: boolean;
   /** 가짜 반격 틈: 걷힐 때 신중파가 끊을지 이미 봄 */
   seen?: boolean;
+  /** 99 방어: 이 강타에 자세를 못 잡은 사람 (그만큼 더 맞음, 예고 숫자도) */
+  offGuard?: number[];
 }
 
 export interface Zone {
@@ -490,6 +492,7 @@ export type FightEvent =
   /** 능력치 (99 다): 파티원 한 방이 빗나감 (보스 초상에 회색 「빗나감」) */
   | { type: 'miss'; uid: number }
   | { type: 'daze'; id: number }
+  | { type: 'offGuard'; id: number }
   | { type: 'stagger'; id: number; steady?: boolean }
   /** 능력치 (99 라): 보스 평타를 막아 반만 맞음 (칸 위 「막음」) */
   | { type: 'parry'; id: number }

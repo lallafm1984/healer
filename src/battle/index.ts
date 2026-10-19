@@ -536,6 +536,7 @@ function handleEvents(now: number): void {
       case 'miss': missNum(F.party.find(x => x.id === ev.uid)); break;
       case 'parry': if (u) fxNote(u, '막음', 0xcfd8e3, now); break; // 99 라
       case 'daze': if (u) fxNote(u, '멍', 0xb7b1c9, now); break; // 99 집중
+      case 'offGuard': if (u) fxNote(u, '자세 놓침', 0xd9a0a0, now); break; // 99 방어
       case 'stagger': if (u) fxNote(u, ev.steady ? '버팀' : '휘청', ev.steady ? 0xe8d29a : 0xd9a0a0, now); break; // 99 맷집
       case 'death':
         if (u) fxDeath(u, now);

@@ -9,7 +9,7 @@ import type { MobAttack } from '../data/encounters';
 import { abCut, abDecoy, abOnTel } from './abilities';
 import { persCast, persZoneImpact } from './persona';
 import { affChaos } from './affixes';
-import { addsTick, aggroTarget, applyDebuff, backTargets, chainWarn, frontTargets, decoyOpen, flowNext, MIRAGE_REVEAL, glassTick, greedTargets, linkedOnes, liftWarn, mirageTick, preferTargets, mirageUp, orderNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, tideEbb, tideRise, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
+import { addsTick, aggroTarget, applyDebuff, backTargets, chainWarn, frontTargets, decoyOpen, flowNext, MIRAGE_REVEAL, glassTick, greedTargets, linkedOnes, liftWarn, mirageTick, preferTargets, mirageUp, offGuardRoll, orderNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, tideEbb, tideRise, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
 import { damage, emit, living, randomTargets, unitById } from './core';
 import { scheduleReactions } from './movement';
 import { specBuster, specCut, specTel } from './specials';
@@ -185,6 +185,7 @@ export function bossTick(f: Fight): void {
     if (s.soak) soakGo(f, tel); // 집결 분담: 가까운 파티원이 대상 옆으로
     if (s.lift) liftWarn(f, tel); // 띄워 올리기: 돌풍에 먼저 붙는 디버프
     if (s.chain) chainWarn(f, tel); // 연쇄 번개: 번개 구름 아래 신중파가 비킴
+    if (tel.kind === 'buster' && tel.units.length && f.party.some(u => u.wob != null)) offGuardRoll(f, tel); // 99 방어: 자세
     if (f.abOn) abOnTel(f, tel);
     if (f.sp) specTel(f, tel); // 북소리 (42 발동 13)
     if (f.aff) affChaos(f, tel);

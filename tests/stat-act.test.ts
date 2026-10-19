@@ -366,6 +366,8 @@ describe('(라) 방어 · 회피 · 나머지', () => {
     };
     expect(count({ armor: 20, agility: 20 })).toBeGreaterThan(0);
     expect(count({ armor: 15, agility: 15 })).toBe(0);
+    expect(count({ armor: 20, agility: 1 })).toBeGreaterThan(0); // 막기는 방어만 (맷집 = 버티는 몸 · 발놀림 = 몸놀림과 나눔)
+    expect(count({ armor: 1, agility: 20 })).toBe(0);
   });
   it('피하기 확률 · 이동: 회피 · 발놀림이 15보다 낮으면 덜 피하고 느림, 15는 예전 값', async () => {
     const { dodgeRate, moveTo } = await import('../src/engine/movement');
@@ -531,5 +533,37 @@ describe('맷집 「휘청」 · 「버팀」 (Lim 06:47 「능력치 하나하�
       return (f.thr!.v.get(u.id) ?? 0) - v0 * Math.pow(0.5, 10 * E.DT / THREAT.half);
     };
     expect(await run(20)).toBeGreaterThan(await run(15) * 1.3);
+  });
+});
+
+describe('방어 = 막는 솜씨 「자세 놓침」 (Lim 06:47 「능력치 하나하나 모두 의미있게」)', () => {
+  /** 탱커에게 강타 예고 하나 (탱커 강타 기술, 터지기 2초 전) */
+  async function busterTel(armor: number, seed: number) {
+    const { offGuardRoll } = await import('../src/engine/bossParts');
+    const f = fight({ tank: { armor }, seed }), tk = who(f, '탱');
+    const s = f.skills.find(x => x.kind === 'buster' && x.dmg)!;
+    const tel = { id: f.nextId++, skill: s, kind: 'buster', start: f.t, impact: f.t + 2, units: [tk.id], cells: new Set() } as unknown as Telegraph;
+    offGuardRoll(f, tel);
+    return { f, tk, tel, note: f.events.some(e => e.type === 'offGuard' && e.id === tk.id) };
+  }
+  it('방어가 15보다 낮으면 강타 예고 때 자세를 못 잡음 (1 = 60%), 15 이상은 늘 잡음', async () => {
+    let lo = 0, par = 0;
+    for (let i = 0; i < 300; i++) { if ((await busterTel(1, 100 + i)).note) lo++; if ((await busterTel(15, 100 + i)).note) par++; }
+    expect(lo / 300).toBeGreaterThan(STAT_ACT.offGuard - 0.08); expect(lo / 300).toBeLessThan(STAT_ACT.offGuard + 0.08);
+    expect(par).toBe(0);
+  });
+  it('자세를 못 잡은 강타: 예고 숫자와 실제 피해가 함께 × 1.15', async () => {
+    const { telDmg } = await import('../src/engine/bossParts');
+    for (let i = 0; i < 30; i++) {
+      const { f, tk, tel, note } = await busterTel(1, 300 + i);
+      if (!note) continue;
+      const k = 1e4 / tk.max; tk.max *= k; tk.base *= k; tk.hp = tk.max;
+      const shown = telDmg(f, tel, tk), plain = telDmg(f, { ...tel, offGuard: undefined }, tk);
+      expect(shown / plain).toBeCloseTo(1 + STAT_ACT.offGuardMult, 6);
+      const hp = tk.hp; tel.impact = f.t; tel.skill.hit!(f, tel);
+      expect(hp - tk.hp).toBeCloseTo(shown, 6);
+      return;
+    }
+    throw new Error('자세 놓침이 한 번도 안 나옴');
   });
 });
