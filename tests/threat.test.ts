@@ -231,3 +231,65 @@ describe('능력치 효과는 유닛에 그대로', () => {
     expect(who(f, '탱').fm).toEqual(fmFx(flat(10, { skill: 14 }), 0));
   });
 });
+
+describe('고렙 어그로 대사 · 간격 (2026-10-19 Lim 「계속 어그로 뺏겨서 대사를 난발」)', () => {
+  /** 보스를 뺏게 만든 순간의 대사 (사람 → 상황) */
+  const stealBarks = (f: F, nick: string | 'me') => {
+    const t = f.thr!, tk = who(f, '탱'), u = nick === 'me' ? f.me : who(f, nick);
+    const out: { id: number; sit?: string; ally?: number }[] = [];
+    for (const v of f.party) { v.aggroTalk = 0; v.aggroTalkAt = undefined; } // 앞선 경고 대사 간격 (10초) 없이 뺏는 순간만 봄
+    for (let i = 0; i < 40 && !t.steal; i++) {
+      if (nick === 'me') { t.heal = 1e9; t.taken = 1; } else t.v.set(u.id, (t.v.get(tk.id) ?? 1) * 3);
+      E.step(f);
+      for (const ev of f.events) if (ev.type === 'bark') out.push({ id: ev.id, sit: ev.sit, ally: (ev as { ally?: number }).ally });
+      f.events.length = 0;
+    }
+    expect(t.steal?.id).toBe(u.id);
+    return out;
+  };
+  it('힐러가 탱커보다 10레벨 넘게 높으면 탱커는 「고렙 힐러」 대사, 아니면 예전 「힐 어그로」', () => {
+    const mk = (heroLv: number) => {
+      const f = E.create({
+        encounter: 'warden', diff: '보통', seed: 1, stageLv: 20, heroLv,
+        party: [{ ...R('tank', 'warrior', '사교형', '탱', { lv: 20 }), ab: 'warrior.taunt' }, R('melee', 'rogue', '사교형', '근', { lv: 20 }), R('ranged', 'mage', '사교형', '마', { lv: 20 }), R('ranged', 'archer', '사교형', '궁', { lv: 20 })],
+      });
+      f.skills.forEach(s => { s.next = Infinity; });
+      steps(f, 6);
+      return stealBarks(f, 'me').filter(b => b.id === who(f, '탱').id).map(b => b.sit);
+    };
+    expect(mk(60)).toContain('aggroHealerHigh');
+    expect(mk(22)).toContain('aggroHealer');
+  });
+  it('딜러가 탱커보다 10레벨 넘게 높으면 탱커 「고렙 딜러」 ({ally}) · 딜러 「고렙이라 뺏음」', () => {
+    const f = fight({ tank: { lv: 30 }, rogue: { lv: 55, st: { judgment: 10, composure: 15 } } }), tk = who(f, '탱'), rg = who(f, '근');
+    const b: { id: number; sit?: string; ally?: number }[] = [];
+    while (!f.thr!.steal && f.t < 30) { // 레벨 차이 25라 저절로 뺏음 (처음부터 봄). 앞선 경고 대사 간격 (10초) 없이 뺏는 순간만 봄
+      for (const v of f.party) { v.aggroTalk = 0; v.aggroTalkAt = undefined; }
+      E.step(f);
+      for (const ev of f.events) if (ev.type === 'bark') b.push({ id: ev.id, sit: ev.sit, ally: (ev as { ally?: number }).ally });
+      f.events.length = 0;
+    }
+    expect(f.thr!.steal?.id).toBe(rg.id);
+    expect(b.some(x => x.id === tk.id && x.sit === 'aggroDealerHigh' && x.ally === rg.id)).toBe(true);
+    expect(b.filter(x => x.id === rg.id).map(x => x.sit)).toContain('aggroStealHigh');
+  });
+  it('한 탱커의 어그로 대사는 한 판에 첫 3번 뒤로는 드묾 (60초에 한 번 · 30%), 힐러가 뺏어도 「딜러 레벨 차이」 대사는 안 함', () => {
+    const f = E.create({
+      encounter: 'warden', diff: '보통', seed: 2, stageLv: 20, heroLv: 100,
+      party: [{ ...R('tank', 'warrior', '사교형', '탱', { lv: 20 }), ab: 'warrior.taunt' }, R('melee', 'rogue', '사교형', '근', { lv: 20 }), R('ranged', 'mage', '사교형', '마', { lv: 20 }), R('ranged', 'archer', '사교형', '궁', { lv: 20 })],
+    });
+    f.skills.forEach(s => { s.next = Infinity; });
+    f.bossHp = f.bossMax = 1e9;
+    const tk = who(f, '탱'), said: { t: number; sit?: string }[] = [];
+    while (f.t < 300) {
+      f.thr!.heal = 1e9; f.thr!.taken = 1; // 힐러가 계속 뺏음
+      E.step(f);
+      for (const ev of f.events) if (ev.type === 'bark' && ev.id === tk.id && ev.sit?.startsWith('aggro')) said.push({ t: f.t, sit: ev.sit });
+      f.events.length = 0;
+    }
+    expect(f.stats.healerSteals ?? 0).toBeGreaterThan(10);
+    expect(said.length).toBeLessThanOrEqual(THREAT.talkFirst + Math.ceil(300 / THREAT.talkLate));
+    for (let i = 1; i < said.length; i++) expect(said[i].t - said[i - 1].t).toBeGreaterThanOrEqual(THREAT.talkGap - 1e-6);
+    expect(said.some(x => x.sit === 'aggroLevel')).toBe(false);
+  });
+});

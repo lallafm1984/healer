@@ -15,12 +15,12 @@ import type { AddDef, DebuffDef, SkillDef, SkillEffect } from '../src/data/bosse
 import type { BossSkill, Fight } from '../src/engine';
 
 /** 96 어그로 상황: 어그로와 이어진 성격 29종만 자기 대사 (나머지는 역할 · 공통) */
-const AGGRO96: TalkSit[] = ['aggroSteal', 'aggroEase', 'aggroWarn', 'aggroRegain', 'aggroHealer', 'aggroLevel'];
+const AGGRO96: TalkSit[] = ['aggroSteal', 'aggroEase', 'aggroWarn', 'aggroRegain', 'aggroHealer', 'aggroLevel', 'aggroHealerHigh', 'aggroDealerHigh', 'aggroStealHigh'];
 /** 93 길드 상황: 성격마다 3줄 (버릇 참음은 단점이 있는 성격만), 「길드」 글자는 이 상황에서만 */
 const GUILD93: TalkSit[] = ['guildGo', 'guildSaved', 'guildTame', 'guildFirst'];
 /** 99 능력치 기반 행동: 성격 대사는 없어도 됨 (공통 · 역할로 넘김) */
 const STAT99: TalkSit[] = ['lateDodge', 'wrongDodge', 'tankLost', 'whiff', 'skillFumble', 'aggroHold', 'aggroIgnore', 'aggroAdds', 'aggroPanic', 'aggroLost', 'spaceOut', 'reel', 'clump', 'coverCut', 'alone', 'regroup'];
-const ALLY_SITS: TalkSit[] = ['allyDown', 'tankDown', 'allyRevived', 'swallowedOther', 'jailOther', 'charmOther', 'aggroWarn'];
+const ALLY_SITS: TalkSit[] = ['allyDown', 'tankDown', 'allyRevived', 'swallowedOther', 'jailOther', 'charmOther', 'aggroWarn', 'aggroDealerHigh'];
 const sources: [string, TalkLines][] = [
   ...Object.entries(PERS_LINES).map(([k, v]) => [`성격 ${k}`, v] as [string, TalkLines]),
   ...Object.entries(CLASS_LINES).map(([k, v]) => [`직업 ${k}`, v] as [string, TalkLines]),
