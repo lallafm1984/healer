@@ -36,6 +36,15 @@ function pick(pool: MissionDef[], n: number, lv: number, hero: HeroKey, r: () =>
 export interface Rollover { day: boolean; week: boolean; banked: number; season: boolean; fixed: number }
 
 /**
+ * 주간 임무 후보: 10인이 열리기 전 (RAID10_LV)엔 레이드 임무 빼고, 「일일 상자 5번」은 이번 주 남은 날 (오늘 포함) · 오늘 안 연 상자 · 쌓인 상자로
+ * 5번을 채울 수 있을 때만 (105 QA 2 · 3: 주 중간에 Lv 10이 되거나 주 첫 접속이 토 · 일이면 못 깨는데도 뽑혔음). 일일 리셋 뒤에 부름
+ */
+function weeklyPool(save: SaveData, lv: number, day: string, week: string): MissionDef[] {
+  const left = 7 - daysBetween(week, day), chests = (left - 1) + (save.daily.chest ? 0 : 1) + save.daily.banked;
+  return WEEKLY.filter(m => (m.key !== 'w_raid3' || lv >= RAID10_LV) && (m.key !== 'w_chest5' || chests >= 5));
+}
+
+/**
  * 접속·화면 진입 때 부름. 날이 바뀌었으면 일일 임무 새로, 주가 바뀌었으면 주간 새로 (13 1장).
  * 키 (YYYY-MM-DD · 시즌 번호)가 지금까지 본 것보다 늦을 때만 리셋 (2026-10-19 103 다른 문제점 1: 시계를 뒤로 갔다 오면 주 첫 표 · 공훈 상한 · 상자 · 패스가 다시 나오던 것)
  */
@@ -68,15 +77,11 @@ export function rollover(save: SaveData, now: number, r: () => number): Rollover
       if (save.weekly.chalBest >= save.chalChest) save.chalChestHero = save.weekly.chalHero;
       save.chalChest = Math.max(save.chalChest, save.weekly.chalBest);
     }
-    save.weekly = { ...newWeekly(week), missions: lv >= WEEKLY_LV ? pick(lv >= RAID10_LV ? WEEKLY : WEEKLY.filter(m => m.key !== 'w_raid3'), WEEKLY_N, lv, save.hero, r) : [] };
+    save.weekly = { ...newWeekly(week), missions: lv >= WEEKLY_LV ? pick(weeklyPool(save, lv, day, week), WEEKLY_N, lv, save.hero, r) : [] };
     out.week = true;
   }
   // 레벨이 올라 주간 임무가 열렸으면 (Lv 10) 이번 주 것을 바로 줌
-  if (!save.weekly.missions.length && lv >= WEEKLY_LV) {
-    // 주 중간에 처음 채울 때 「일일 상자 5번」은 남은 날 · 안 연 상자로 채울 수 있을 때만 (105 QA 2: 목요일 뒤 Lv 10이 되면 못 깸)
-    const left = 7 - daysBetween(save.weekly.week || day, day), chests = (left - 1) + (save.daily.chest ? 0 : 1) + save.daily.banked;
-    save.weekly.missions = pick(WEEKLY.filter(m => (m.key !== 'w_raid3' || lv >= RAID10_LV) && (m.key !== 'w_chest5' || chests >= 5)), WEEKLY_N, lv, save.hero, r);
-  }
+  if (!save.weekly.missions.length && lv >= WEEKLY_LV) save.weekly.missions = pick(weeklyPool(save, lv, day, save.weekly.week || week), WEEKLY_N, lv, save.hero, r);
   const sn = seasonOf(now).n;
   if (save.pass.season < sn) { save.pass = { season: sn, xp: 0, free: [] }; out.season = true; }
   return out;
