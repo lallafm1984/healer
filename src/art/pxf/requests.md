@@ -61,7 +61,7 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | priest-hymn | 떠오르는 음표 | druid-quietwood | 떨어지는 잎 + 바닥 안개 |
 | priest-serenity | 터져 소용돌이치며 솟는 금빛 반짝이 가루 폭풍 (치유 강화판) | druid-rebirth | 초록 빛 기둥 + 금빛 씨앗 (기둥은 이것만) |
 |  |  | paladin-holy-light | 위에서 쏟아져 내리는 노란 빛 알갱이 (광선 없음, 2026-10-18 Lim) |
-| priest-relay | 포물선으로 날아와 튀는 꼬리 별 | paladin-beacon | 칸 둘레로 조여드는 금빛 고리와 꼭짓점 다섯에 차례로 붙는 불꽃 (2026-10-19 봉화 그릇 뺌) |
+| priest-relay | 포물선으로 날아와 튀는 꼬리 별 | paladin-beacon | 칸 둘레로 조여드는 금빛 고리와 도는 혜성 · 날아오르는 불티 (2026-10-19 그릇 · 꼭짓점 불꽃 뺌) |
 | paladin-oath | 도는 마름모 룬 + 오각 문양 (Codex 오각 서약 문장) | paladin-light-wave | 쏟아져 양옆으로 부서지는 파도 (Codex 파도 마루) |
 | paladin-cleanse | 머리 위로 솟아 어둠을 빨아들여 태우는 태양 문장 (Codex 태양 문장 · 어둠 연기, 2026-10-19 Lim 손 모양 뺌) | paladin-sacrifice | 내려오는 사슬 + 붉은 맥동 (Codex 진홍 방패) |
 | paladin-sanctuary | 바닥에서 솟는 반구 막 (Codex 빛 돔) | paladin-hand-guard | 도는 팔각 봉인 문양 (Codex 판금 팔각 테) |

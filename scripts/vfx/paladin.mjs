@@ -333,9 +333,9 @@ export default {
     },
   },
 
-  /** 봉화 (대상 지정 + 회복 + 피해 감소, 2026-10-19 Lim 「봉화에서 파티원 주변 테두리에 원형만 유지하고 (이펙트포함), 화로 같은 이미지는 제거」: 봉화 그릇 그림을 뺌):
-   *  흰 섬광과 함께 금빛 고리가 크게 퍼졌다가 칸 둘레 (board.ts 봉화 고리 자리, 칸 반지름 × 1.08)로 조여들어 자리 잡고, 고리 위 꼭짓점 다섯 (맨 아래는 비움)에
-   *  손그림 불꽃이 차례로 확 붙어 일렁이며, 금빛 혜성 둘이 고리를 돌고 불티 · 불똥이 고리에서 날아오르고 따뜻한 금빛 가루가 몸으로 내려와 감쌈 */
+  /** 봉화 (대상 지정 + 회복 + 피해 감소, 2026-10-19 Lim 「봉화에서 파티원 주변 테두리에 원형만 유지하고 (이펙트포함), 화로 같은 이미지는 제거」 · 「불이 차례로 붙는것도 없애자」):
+   *  흰 섬광과 함께 금빛 고리가 크게 퍼졌다가 칸 둘레 (board.ts 봉화 고리 자리, 칸 반지름 × 1.08)로 조여들어 자리 잡고 충격 고리가 퍼지며,
+   *  금빛 혜성 둘이 고리를 돌고 불티가 고리에서 날아오르고 따뜻한 금빛 가루가 몸으로 내려와 감쌈 (꼭짓점 불꽃 · 그릇 없음) */
   'paladin-beacon': {
     frames: 20, logical: 100, size: 384, scope: 'target',
     draw(g, { t }) {
@@ -352,16 +352,6 @@ export default {
       g.restore();
       // 고리가 자리 잡는 순간 바깥으로 퍼지는 충격 고리
       { const u = seg(t, 0.28, 0.7); if (u > 0 && u < 1) ringGlow(g, 0, 0, lerp(R, R + 0.45, E.out3(u)), 0.06, AU.light, 0.8 * (1 - u) * fade); }
-      // 꼭짓점 다섯에 차례로 붙는 불꽃 (맨 아래 꼭짓점은 비움)
-      [0, 1, 2, 4, 5].forEach((i, n) => {
-        const a = -Math.PI / 2 + (i * TAU) / 6, x = Math.cos(a) * R, y = Math.sin(a) * R, ig = seg(t, 0.28 + n * 0.05, 0.4 + n * 0.05);
-        if (ig <= 0) return;
-        const h = (0.3 + 0.12 * bell(ig, 0, 0.3, 1)) * E.back(Math.min(1, ig * 1.4), 2);
-        glow(g, x, y, 0.22, FIRE.glow, (0.55 + 0.3 * bell(ig, 0, 0.2, 0.8)) * fade);
-        glow(g, x, y - 0.05, 0.1, '#ffffff', 0.8 * bell(ig, 0, 0.1, 0.5) * fade);
-        paintedFlame(g, x, y + 0.03, h, 0.95 * fade, t * 26 + i);
-        goldBurst(g, t, 20 + i, 8, { x, y: y - 0.05, sp: 0.35, sq: 0.8, t0: 0.28 + n * 0.05, a: fade, col: FIRE.light, grav: -0.2 });
-      });
       // 고리를 도는 금빛 혜성 둘
       if (t > 0.3) for (let k = 0; k < 2; k++) {
         const P = s2 => { const a = TAU * (t * 1.5 + k / 2) + (s2 - 1) * 1.0; return { x: Math.cos(a) * R, y: Math.sin(a) * R }; };
