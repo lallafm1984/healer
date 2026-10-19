@@ -652,10 +652,13 @@ export function soakGo(f: Fight, tel: Telegraph): void {
     const at = f.cells[t.moving ? t.moving.to : t.cell];
     const ok = living(f).filter(u => u.role !== 'tank' && !u.me && !used.has(u) && !(u.pers && SOAK_SKIP.includes(u.pers)) && !u.moving && !u.pulled && !u.fleeing
       && !u.debuffs.some(d => d.noMove) && hexDist(cellOf(f, u), at) <= 3);
-    const eager = (u: Unit) => (u.pers && SOAK_EAGER.includes(u.pers) ? 0 : 1);
+    const eager = (u: Unit) => (u.pers && SOAK_EAGER.includes(u.pers)) || (u.wob != null && sharp(u.fmStats?.coop ?? 10) >= 0.5) ? 0 : 1; // 99 협동 높으면 먼저 나섬
     ok.sort((a, b) => eager(a) - eager(b) || hexDist(cellOf(f, a), at) - hexDist(cellOf(f, b), at));
     for (const u of ok.slice(0, 3)) {
       used.add(u);
+      const coop = u.wob != null ? u.fmStats?.coop ?? 10 : 15;
+      if (coop < 15 && f.rng() < STAT_ACT.soakSkip * clumsy(coop)) { emit(f, { type: 'alone', id: u.id }); if (f.rng() < 0.4) bark(f, u, null, false, 'alone'); continue; } // 99 협동: 혼자 놂 (그 자리는 빔)
+      if (coop > 15 && u.did) u.did.help++;
       if (hexDist(cellOf(f, u), at) === 1) { u.padUntil = tel.impact + 0.2; continue; } // 이미 옆
       const c = f.cells.filter(x => !x.unit && !x.block && hexDist(x, at) === 1).sort((a, b) => hexDist(a, cellOf(f, u)) - hexDist(b, cellOf(f, u)))[0];
       if (!c) break;

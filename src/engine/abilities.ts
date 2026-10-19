@@ -10,7 +10,7 @@ import { moveTo, pickCell } from './movement';
 import { persGuard, persShield } from './persona';
 import { shieldBroken } from './heroes';
 import type { AbState, BossSkill, Fight, Mod, ModKind, Telegraph, Unit } from './types';
-import { clumsy } from '../data/fm';
+import { clumsy, sharp } from '../data/fm';
 import { STAT_ACT } from '../data/rules';
 
 const DEF = (u: Unit): AbilityDef => ABILITIES[u.ab!.key];
@@ -416,9 +416,47 @@ export function abCut(f: Fight, s: BossSkill): boolean {
     if (a.fx.e !== 'interrupt' || !ready(f, u, a, 0)) continue;
     const any = a.trig.some(t => t.t === 'castAny');
     if (any ? !snipeable : !s.cut) continue;
-    return tryCut(f, u, a, s); // 한 기술에 한 사람만 시도 (실패하면 그대로 맞음)
+    const ok = tryCut(f, u, a, s); // 한 기술에 한 사람만 시도 (실패하면 그대로 맞음, 99 협동이 높은 사람이 대신 끊을 수 있음)
+    if (!ok) cutBackup(f, s, u, snipeable);
+    return ok;
   }
   return false;
+}
+
+/**
+ * 99 협동 (Codex 검토 반영 3): 끊기 실패 뒤 협동이 15 넘는 다른 끊기 담당 (준비된 끊기 능력) 가운데 가장 높은 사람이 잘함 확률로 알아채
+ * 반응 · 판단만큼 뒤에 한 번 더 끊음 (cutRetryTick). 진짜 재사용 대기를 씀 · 한 기술에 한 번만
+ */
+function cutBackup(f: Fight, s: BossSkill, by: Unit, snipeable: boolean): void {
+  if (f.cutRetry) return;
+  let best: Unit | null = null, bc = 15;
+  for (const v of f.party) {
+    if (v === by || !v.ab || !v.alive || v.wob == null || hasMod(v, 'stop') || held(f, v)) continue;
+    if (v.debuffs.length && v.debuffs.some(d => d.noDps)) continue;
+    const a = DEF(v);
+    if (a.fx.e !== 'interrupt' || !ready(f, v, a, 0)) continue;
+    if (a.trig.some(t => t.t === 'castAny') ? !snipeable : !s.cut) continue;
+    const c = v.fmStats?.coop ?? 10;
+    if (c > bc) { bc = c; best = v; }
+  }
+  if (!best || f.rng() >= sharp(bc)) return;
+  const late = (clumsy(best.fmStats?.react ?? 10) + clumsy(best.fmStats?.judgment ?? 10)) / 2;
+  f.cutRetry = { id: best.id, skill: s, at: f.t + STAT_ACT.coverNotice[0] + STAT_ACT.coverNotice[1] * late };
+}
+/** 대신 끊기 때가 됨: 그 기술 예고가 아직 있고 끊기 능력이 준비돼 있으면 끊어 봄. 끊었으면 그 기술 (bosses.ts가 기절 · 장비 효과) */
+export function cutRetryTick(f: Fight): BossSkill | null {
+  const r = f.cutRetry!;
+  if (f.t < r.at) return null;
+  f.cutRetry = undefined;
+  const tel = f.tels.find(t => t.skill === r.skill && t.impact > f.t + 0.05), v = f.party.find(u => u.id === r.id);
+  if (!tel || !v || !v.alive || !v.ab || hasMod(v, 'stop') || (v.debuffs.length && v.debuffs.some(d => d.noDps))) return null;
+  const a = DEF(v);
+  if (a.fx.e !== 'interrupt' || !ready(f, v, a, 0) || !tryCut(f, v, a, r.skill)) return null;
+  f.tels = f.tels.filter(t => t !== tel);
+  emit(f, { type: 'msg', text: `끊기 실패 뒤 ${v.nick}이(가) 차단` });
+  bark(f, v, null, true, 'coverCut');
+  if (v.did) v.did.help++;
+  return r.skill;
 }
 
 /** 끊기 능력을 쓰고 성공 확률 (능력 · ★)로 굴림 */

@@ -257,7 +257,7 @@ describe('길드파티 편성 (93 7-2)', () => {
     const f = E.create({ encounter: 'plague', diff: '보통', seed: 1, party: roster, stageLv: 35 });
     const u = f.party.find(x => x.gid === d.id)!;
     expect(u.ab!.key).toBe('archer.snipe');
-    expect(u.did).toEqual({ dodge: 0, move: 0, cut: 0, buster: 0, adds: 0 });
+    expect(u.did).toEqual({ dodge: 0, move: 0, cut: 0, buster: 0, adds: 0, help: 0 });
     expect(f.party.find(x => x.gid == null && x.role !== 'healer')!.did).toBeUndefined();
     // 내 길드원 3명 이상이 다른 시드 공개모집에도 안 나옴
     for (let sd = 1; sd <= 30; sd++) for (const p of E.recruitParty('choir', sd, { exclude: Gd.guildNicks(s) })) expect([t.nick, d.nick]).not.toContain(p.nick);
@@ -351,13 +351,14 @@ describe('능력치는 레벨업할 때 (Lim 10-18)', () => {
     expect(m.lastStatGains).toEqual([...new Set(ups.map(x => x.k))]);
   });
   it('「한 일」 표: 판 크기와 상관없이 가장 두드러진 일 하나, 모자라면 없음', () => {
-    const did = { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0 };
+    const did = { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0, help: 0 };
     const x = (o: Partial<Parameters<typeof deedOf>[0]>) => deedOf({ did, dealt: 0, top: false, low: 0.9, alive: true, role: 'melee', ...o });
     expect(x({ top: true })).toBe('top');
     expect(x({ role: 'tank', did: { ...did, buster: 4 } })).toBe('buster');
     expect(x({ role: 'melee', did: { ...did, buster: 4 } })).toBeUndefined();
     expect(x({ did: { ...did, dodge: 3 } })).toBe('dodge');
     expect(x({ low: 0.1 })).toBe('calm');
+    expect(x({ did: { ...did, help: 1 } })).toBe('help'); // 99 협동: 대신 끊기 · 나눠 맞기 · 붙잡기 한 번
     expect(x({ low: 0.1, alive: false })).toBeUndefined();
     expect(x({})).toBeUndefined();
   });
@@ -539,7 +540,7 @@ describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
     expect(Gd.restSponsor(s)).toEqual({ ids: [b.id, c.id], gold: sponsorGold(22) + sponsorGold(28) });
     expect(Gd.sponsorRest(s)).toBe('');
     expect([a.boost, b.boost, c.boost]).toEqual([0, 5, 5]);
-    expect(SAVE_VERSION).toBe(22);
+    expect(SAVE_VERSION).toBe(23);
     expect(migrate(JSON.parse(JSON.stringify(s))).guild.members.map(m => m.boost)).toEqual([0, 5, 5]);
     expect(migrate({ v: 20, guild: { founded: true, members: [{ ...b, boost: 99 }], nextId: 9 } }).guild.members[0].boost).toBe(SPONSOR.max);
     const gold = s.player.gold;
@@ -594,4 +595,21 @@ it('v18의 직접 저장된 스킬 LV도 낮추지 않는다', () => {
   const nick = nickOf('mage');
   const d = migrate({ v: 18, guild: { members: [{ id: 1, nick, cls: 'mage', pers: PARTY_POOL.mage[0].pers, lv: 1, ab: PARTY_POOL.mage[0].ab, star: 5 }] } });
   expect(memberSkillLevel(d.guild.members[0])).toBe(5);
+});
+
+describe('99 협동 (예전 쫄 처리, Lim 10-19 07:04)', () => {
+  it('저장 v22 길드원의 쫄 처리 값 · 오른 칸 · 표가 협동으로 그대로 옮겨짐', () => {
+    const s = save(30, 100000), a = add(s, 'warrior', 0, { lv: 25 });
+    const old = JSON.parse(JSON.stringify(s));
+    const m0 = old.guild.members[0];
+    const { coop, ...rest } = m0.stats;
+    m0.stats = { ...rest, adds: 17 }; m0.lastStatGains = ['adds', 'atk']; m0.votes = [['adds'], ['atk', 'adds']];
+    void coop; void a;
+    old.v = 22;
+    const m = migrate(old).guild.members[0];
+    expect(m.stats.coop).toBe(17);
+    expect((m.stats as Record<string, number>).adds).toBeUndefined();
+    expect(m.lastStatGains).toEqual(['atk', 'coop']);
+    expect(m.votes).toEqual([['coop'], ['atk', 'coop']]);
+  });
 });

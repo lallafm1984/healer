@@ -6,7 +6,7 @@ import { NO_TANK_RAMP, NO_TANK_SEC } from '../data/armor';
 import { BOSSES, type SkillDef } from '../data/bosses';
 import { busterDmg, zoneDps, zoneHit } from '../data/rules';
 import type { MobAttack } from '../data/encounters';
-import { abCut, abDecoy, abOnTel } from './abilities';
+import { abCut, abDecoy, abOnTel, cutRetryTick } from './abilities';
 import { persCast, persZoneImpact } from './persona';
 import { affChaos } from './affixes';
 import { addsTick, aggroTarget, applyDebuff, backTargets, chainWarn, frontTargets, decoyOpen, flowNext, MIRAGE_REVEAL, glassTick, greedTargets, linkedOnes, liftWarn, mirageTick, preferTargets, mirageUp, offGuardRoll, orderNext, orderTick, padCells, padsGo, runEffect, runFlow, boonTick, linksTick, soakGo, soulsTick, staggerTick, stunBoss, tideEbb, tideRise, trashDown, vesselTick, watchInit, watchTick, whenFn, zoneCells } from './bossParts';
@@ -162,6 +162,7 @@ function bossUpdate(f: Fight): void {
 /** 보스 진행: 기술 예고 → 적중 */
 export function bossTick(f: Fight): void {
   bossUpdate(f);
+  if (f.cutRetry) { const s = cutRetryTick(f); if (s) { if (s.stunOnCut) stunBoss(f, s.stunOnCut); if (f.sp) specCut(f); } } // 99 협동: 끊기 실패 뒤 대신 끊기
   for (const s of f.skills) {
     if (f.t + 1e-9 < s.next) continue;
     s.next += s.period;

@@ -5,7 +5,7 @@ import { SPREAD } from '../data/bosses';
 import { HEROES } from '../data/heroes';
 import { SANCTUARY } from '../data/heroConst';
 import { hexDist } from './board';
-import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
+import { abHurt, abLethal, addMod, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
 import { relayHurt } from './relay';
 import { heroLethal, heroTaken, NEW_HERO } from './heroes';
@@ -386,9 +386,26 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     if (!u.me && f.tx.death) talentDeath(f, u); // 남은 꽃 · 순교의 빛 (77)
     if (!u.me && f.sp) specDeath(f); // 굳센 결의 · 되감기 (42)
     if (f.persOn) persDeath(f, u); // 다혈질 (75)
+    if (u.role === 'tank') coopStandIn(f); // 99 협동: 탱커가 모두 쓰러지면 잠깐 붙잡기 (대타 성격이 먼저)
     emit(f, { type: 'death', id: u.id });
     emit(f, { type: 'sound', name: 'death' });
   }
+}
+
+/** 99 협동: 탱커가 모두 쓰러지면 협동이 15 넘는 사람 가운데 가장 높은 사람 (근접 먼저)이 잘함 확률로 standSec초 붙잡음 (받는 피해 − standCut) */
+function coopStandIn(f: Fight): void {
+  if (f.party.some(v => v.alive && v.role === 'tank') || (f.standIn && f.t < f.standIn.until)) return;
+  let best: Unit | null = null, bc = 15;
+  for (const v of living(f)) {
+    if (v.me || v.role === 'tank' || v.wob == null) continue;
+    const c = (v.fmStats?.coop ?? 10) + (v.role === 'melee' ? 0.01 : 0);
+    if (c > bc) { bc = c; best = v; }
+  }
+  if (!best || f.rng() >= sharp(bc)) return;
+  f.standIn = { id: best.id, until: f.t + STAT_ACT.standSec };
+  addMod(best, { k: 'cut', v: STAT_ACT.standCut, until: f.t + STAT_ACT.standSec, src: '협동' });
+  bark(f, best, null, true, 'standIn');
+  if (best.did) best.did.help++;
 }
 
 /** 99 맷집: 큰 한 방 뒤. 15 밑은 서툼만큼 「휘청」 (공격 · 새 이동 · 판단 멈춤), 15 넘으면 잘함만큼 「버팀」 (칸 위 글) */
