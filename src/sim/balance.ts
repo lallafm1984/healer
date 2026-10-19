@@ -26,7 +26,6 @@ import { restCarry } from '../engine/dungeon';
 import { create, recruitParty, step } from '../engine/fight';
 import type { Carry, Fight, RosterEntry } from '../engine/types';
 import { SKILLS } from '../data/skills';
-import { rampFour } from '../data/progression';
 import { rampLevel, rampPlayer, usesRamp } from './ramp';
 
 /** 목표 클리어율 (%). 쉬움·보통은 아래 선만 (넘으면 그대로), 어려움·악몽은 min~max 안. aim = 배율을 찾을 때 겨누는 값 */
@@ -36,8 +35,27 @@ export const TARGET: Record<DiffName, { min: number; max: number; aim: number }>
   '어려움': { min: 78, max: 92, aim: 85 },
   '악몽': { min: 68, max: 82, aim: 75 },
 };
-/** 칸의 목표 (92): 순차 구간 Lv 10~20 장소 악몽은 레벨 길 (90)이라 어려움과 같은 목표 (2026-10-17 Lim 「적정의 난이도가 너무 힘겹게 클리어된다」) */
-export const targetOf = (c: ContentDef | undefined, d: DiffName) => TARGET[c && d === '악몽' && rampFour(c) ? '어려움' : d];
+/**
+ * 장소 레벨 곡선 (2026-10-19 Lim 「난이도 벨런스는 초반 쉽게 후반 어렵게」, 기획 103): 장소 레벨 (stageOf) 구간 Lv 1~20 · 21~45 · 46~70 · 71~100의 목표값을
+ * 구간 가운데 (CURVE_LV)에 두고 사이는 직선, 끝 밖은 그대로. 보통은 아래 선만 (목표 − 2), 어려움 · 악몽은 목표 ± 7. 쉬움은 TARGET 그대로.
+ * 예전 「순차 구간 Lv 10~20 장소 악몽 = 어려움 목표」 (92)는 이 곡선이 대신함 (Lv 20 악몽 목표 85 안팎 = 예전 어려움 목표)
+ */
+export const CURVE_LV = [10.5, 33, 58, 85.5];
+export const CURVE: Partial<Record<DiffName, number[]>> = { '보통': [99, 97, 96, 94], '어려움': [92, 87, 82, 77], '악몽': [85, 78, 72, 65] };
+export const CURVE_BAND = { low: 2, band: 7 };
+export function aimAt(d: DiffName, lv: number): number {
+  const ys = CURVE[d];
+  if (!ys) return TARGET[d].aim;
+  if (lv <= CURVE_LV[0]) return ys[0];
+  for (let i = 1; i < CURVE_LV.length; i++) if (lv <= CURVE_LV[i]) { const t = (lv - CURVE_LV[i - 1]) / (CURVE_LV[i] - CURVE_LV[i - 1]); return Math.round((ys[i - 1] + (ys[i] - ys[i - 1]) * t) * 10) / 10; }
+  return ys[ys.length - 1];
+}
+/** 칸의 목표 = 그 장소 · 난이도의 장소 레벨 곡선 (장소를 모르면 TARGET) */
+export const targetOf = (c: ContentDef | undefined, d: DiffName): { min: number; max: number; aim: number } => {
+  if (!c || !CURVE[d]) return TARGET[d];
+  const aim = aimAt(d, stageOf(c, d));
+  return lowerOnly(d) ? { min: aim - CURVE_BAND.low, max: 100, aim } : { min: aim - CURVE_BAND.band, max: aim + CURVE_BAND.band, aim };
+};
 /**
  * 바쁨 하한 (쉬움 · 보통): 파티가 받는 피해 ÷ 치유 한 번 (사제 치유, 지능의 100%)을 분당. GCD 1.5초면 분당 40번이 끝이라
  * 보통 24 = 피해만 따라가도 GCD의 60%, 넘친 치유 · 해제까지 치면 거의 쉬지 않고 누름. 쉬움은 그 0.8 (난이도 피해 배율과 같은 비)
@@ -225,18 +243,18 @@ export function balanceOne(t: TuneTable, c: ContentDef, d: DiffName, n: number, 
   const curDmg = base.dmg ?? 1;
   const hi = lowerOnly(d) ? curDmg : HI;
   const r = findDmg(at, targetOf(c, d).aim, LO, hi);
-  const dmg = lowerOnly(d) && r.rate >= TARGET[d].aim - 1 ? closeIn(at, d, r.dmg, curDmg) : r.dmg;
+  const dmg = lowerOnly(d) && r.rate >= targetOf(c, d).aim - 1 ? closeIn(at, d, r.dmg, curDmg, 4, targetOf(c, d).aim) : r.dmg;
   row.next = { dmg, m: seen.get(dmg)! };
   return row;
 }
 
-const lowerOnly = (d: DiffName) => TARGET[d].max >= 100;
+function lowerOnly(d: DiffName): boolean { return TARGET[d].max >= 100; }
 /**
  * 쉬움 · 보통 (아래 선만): 찾기는 첫 값 (LO와 지금 배율 사이 가운데)이 목표값 1 안이면 멈춰서 너무 쉬워지고 바쁨이 크게 줆 (2026-10-12 tune).
  * 찾은 배율 (good)과 지금 배율 (bad) 사이를 좁혀 목표값 − 1을 지키는 가장 큰 배율로
  */
-export function closeIn(rate: (dmg: number) => number, d: DiffName, good: number, bad: number, iters = 4): number {
-  const floor = TARGET[d].aim - 1;
+export function closeIn(rate: (dmg: number) => number, d: DiffName, good: number, bad: number, iters = 4, aim = TARGET[d].aim): number {
+  const floor = aim - 1;
   for (let i = 0; i < iters && bad - good > 0.015; i++) {
     const mid = Math.round(((good + bad) / 2) * 100) / 100;
     if (mid <= good || mid >= bad) break;
