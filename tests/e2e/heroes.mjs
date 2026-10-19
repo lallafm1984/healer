@@ -53,7 +53,8 @@ export default async function heroes(url, shots) {
   await page.screenshot({ path: `${shots}/heroes_list.png` });
   await page.click('#s-char [data-hcard="warder"]'); await page.clock.runFor(100);
   ok(await page.isVisible('#s-shop') && (await page.locator('#s-char .c7-job-sheet').count()) === 0 && (await save()).hero === 'priest', '판매 직업 행 → 상점 (상세 · 전환 없음)');
-  await page.click('#tabs [data-tab="char"]'); await page.clock.runFor(100);
+  await page.click('#s-shop .tb-back'); await page.clock.runFor(100);
+  ok(await page.isVisible('#s-char'), '상점 뒤로 = 들어온 캐릭터 화면으로 복귀');
   await page.click('#s-char nav [data-csub="hero"]'); await page.clock.runFor(50);
 
   // ---- 같은 캐릭터에서 드루이드로 무료 전환 ----

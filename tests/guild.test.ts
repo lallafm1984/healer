@@ -133,7 +133,7 @@ describe('결성 (93 4-1)', () => {
 
 describe('영입 (93 4-2)', () => {
   beforeEach(() => { seed = 7; });
-  it('모집 공고: 내 Lv × 30 골드, 전 직업 무작위 3명 (내 Lv − 5 이상), 1명 영입하면 나머지는 돌아감', () => {
+  it('모집 공고: 내 Lv × 30 골드로 3명을 모집하고, 저장을 다시 읽어도 남은 지원자를 모두 영입한다', () => {
     const s = save(30, 1000);
     expect(postGold(30)).toBe(900);
     expect(Gd.postRecruit(s, rng)).toBe('');
@@ -148,7 +148,16 @@ describe('영입 (93 4-2)', () => {
     expect(Gd.postRecruit(s, rng)).toMatch(/골드 부족/);
     const pick = cands[1];
     expect(Gd.hire(s, 1)).toBe('');
-    expect([s.guild.members.length, s.guild.members[0].nick, s.guild.post]).toEqual([1, pick.nick, null]);
+    expect([s.guild.members.length, s.guild.members[0].nick, s.guild.post?.cands.map(c => c.nick)]).toEqual([1, pick.nick, [cands[0].nick, cands[2].nick]]);
+    const restored = migrate(JSON.parse(JSON.stringify(s)));
+    expect(restored.guild.post?.cands.map(c => c.nick)).toEqual([cands[0].nick, cands[2].nick]);
+    expect(Gd.hire(restored, 1)).toBe('');
+    expect(Gd.hire(restored, 0)).toBe('');
+    expect(restored.guild.members.map(m => m.nick)).toEqual([pick.nick, cands[2].nick, cands[0].nick]);
+    expect(new Set(restored.guild.members.map(m => m.id)).size).toBe(3);
+    expect(restored.player.gold).toBe(100);
+    expect(restored.guild.post).toBeNull();
+    expect(Gd.hire(restored, 0)).toBe('지원자 없음');
   });
   it('하나의 모집 공고에서 모든 직업이 나오고 희귀는 지원자당 약 3%', () => {
     const s = save(40), classes = new Set<string>();
@@ -178,6 +187,28 @@ describe('영입 (93 4-2)', () => {
     expect(Gd.postRecruit(s, rng)).toMatch(/정원/);
     s.guild.post = { cands: Gd.makeCandidates(s, rng) };
     expect(Gd.hire(s, 0)).toMatch(/정원/);
+  });
+  it('영입 도중 정원이 차면 남은 지원자는 유지하고, 자리가 나면 이어서 영입한다', () => {
+    const s = save(30);
+    for (let i = 0; i < 5; i++) add(s, 'mage', i);
+    expect(Gd.postRecruit(s, rng)).toBe('');
+    const cands = [...s.guild.post!.cands];
+    expect(Gd.hire(s, 0)).toBe('');
+    expect(Gd.hire(s, 0)).toMatch(/정원/);
+    expect(s.guild.post?.cands.map(c => c.nick)).toEqual(cands.slice(1).map(c => c.nick));
+    Gd.release(s, s.guild.members[0].id);
+    expect(Gd.hire(s, 0)).toBe('');
+    expect(s.guild.post?.cands.map(c => c.nick)).toEqual([cands[2].nick]);
+  });
+  it.each(['post', 'app'] as const)('%s 영입 시 다른 경로의 같은 지원자도 제거하고 나머지는 보존한다', channel => {
+    const s = save(30);
+    Gd.postRecruit(s, rng);
+    const cands = [...s.guild.post!.cands];
+    s.guild.apps = cands.slice(0, 2).map(m => ({ m, until: '2026-10-21' }));
+    expect(channel === 'post' ? Gd.hire(s, 0) : Gd.hireApp(s, 0)).toBe('');
+    expect(s.guild.members.map(m => m.nick)).toEqual([cands[0].nick]);
+    expect(s.guild.post?.cands.map(m => m.nick)).toEqual(cands.slice(1).map(m => m.nick));
+    expect(s.guild.apps.map(a => a.m.nick)).toEqual([cands[1].nick]);
   });
   it('명성 지원자: 길드 Lv 2부터 하루 1명 (Lv 6 2명 · Lv 9 3명), 사흘 머묾, 적은 역할부터', () => {
     const T = new Date(2026, 9, 7, 12).getTime();
@@ -403,6 +434,20 @@ describe('판 뒤 길드 정산 (93 6-1)', () => {
     expect(after(s, roster, { win: false }).members).toEqual([]);
     expect(after(s, roster, { quit: true, win: false }).members).toEqual([]);
     expect(a.runs).toBe(1);
+  });
+  it.each([1999, 2000, 1000000])('명성 %i에서도 전투·주간 보상은 계속 누적되고 저장 후 유지된다', fame => {
+    const s = save(30), ms = [add(s, 'warrior'), add(s, 'mage')];
+    s.guild.fame = fame;
+    const roster = warden(s, ms);
+    after(s, roster);
+    after(s, roster, { raid: 20 });
+    s.weekly.guild = { n: GUILD_GOAL.need, got: false };
+    expect(claimGuildGoal(s)).toBe('');
+    const total = fame + FAME.win + FAME.first + FAME.raid20 + GUILD_GOAL.fame;
+    expect(s.guild.fame).toBe(total);
+    const restored = migrate(JSON.parse(JSON.stringify(s)));
+    expect(restored.guild.fame).toBe(total);
+    expect(Gd.capOf(restored)).toEqual({ lv: 10, cap: 25, next: null });
   });
   it('주간 목표: 명성 지급은 한 번만, 스킬 레벨은 그대로', () => {
     const s = save(30);

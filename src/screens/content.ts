@@ -28,7 +28,7 @@ import { chalGate, runMode, weekAffixes } from '../game/runmode';
 import { firstDungeonNow, G, heroNow, lockOf, otherHeroFor, refreshDay } from '../game/state';
 import { TUT } from '../game/tutorial';
 import { esc, fmt, go, previous, screen, topBar } from './kit';
-import { classEmblem, currencyIcon, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
+import { classEmblem, currencyIcon, departureArrow, factionMark, gameIcon, LOCK, placeArt, type CurrencyIconKey } from './art';
 import { sortie } from './stamina';
 
 /** 선 아이콘 (시안 Battle30 임시 선그림, 정식 그림이 오면 gameIcon이 바꿈) */
@@ -42,7 +42,6 @@ const ICON = {
 };
 const PREV = line('<path d="M15 6l-6 6 6 6"/>', 2.6);
 const NEXT = line('<path d="M9 6l6 6-6 6"/>', 2.6);
-const ARROW = '<svg class="g-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 
 /** 분류 탭. 레이드는 인원(10·20인)으로 나눔 (콘텐츠 종류는 그대로 raid) */
 type Tab = AdventureTab;
@@ -306,14 +305,14 @@ function diffs(c: ContentDef, d: DiffName): string {
   }).join('')}</div>`;
 }
 
-/** 출전 (30 공통 .g-cta): 내 직업 문장 + 「출전」 + 장소 · 난이도. 못 들어가는 곳은 막힘 (2026-10-12 Lim: 세력 문양 톱니 대신 직업 문장) */
+/** 출전: 내 직업 문장 + 「출전」 한 줄. 장소 · 난이도는 접근성 이름으로 제공한다. */
 function cta(c: ContentDef | null, d: DiffName): string {
   const lk = c ? lockOf(c, d) : null;
   const ok = !!c && c.ready && !lk!.locked;
   const sub = !c ? '준비 중' : !c.ready ? `${c.name} · 준비 중` : lk!.locked ? (lk!.need && !lockOf(c).locked ? `${c.name} · ${lk!.need}부터 깨기` : `${c.name} · Lv ${lk!.lv}에 열림`) : `${c.name} · ${d}`;
   const mk = classEmblem(heroNow(), 'md');
   // 휴식 (클리어 때 쓰는 몫)은 전투 전에 안 보여 줌 (90 · 2026-10-17 Lim: 출전 전 휴식 팝업 · 출발 버튼 휴식과 함께 없앰)
-  return `<button type="button" class="g-cta" id="contentGo"${ok ? '' : ' disabled'}><span class="g-mk">${mk}</span><span class="g-ct"><b>출전</b><small>${esc(sub)}</small></span>${ARROW}</button>`;
+  return `<button type="button" class="g-cta" id="contentGo" aria-label="출전 · ${esc(sub)}"${ok ? '' : ' disabled'}><span class="g-mk" aria-hidden="true">${mk}</span><span class="g-ct"><b>출전</b></span>${departureArrow()}</button>`;
 }
 
 const s = screen('s-content', '모험 선택', {

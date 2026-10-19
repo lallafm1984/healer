@@ -56,6 +56,12 @@ function join(save: SaveData, m: GuildMember): GuildMember {
   const g = save.guild;
   const nm: GuildMember = { ...m, id: g.nextId++, joined: Date.now() };
   g.members.push(nm);
+  // 다른 경로에도 같은 사람이 기다릴 수 있다. 합류한 사람만 빼고 나머지 지원자는 유지한다.
+  if (g.post) {
+    g.post.cands = g.post.cands.filter(c => c.nick !== m.nick);
+    if (!g.post.cands.length) g.post = null;
+  }
+  g.apps = g.apps.filter(a => a.m.nick !== m.nick);
   return nm;
 }
 
@@ -131,13 +137,12 @@ export function postRecruit(save: SaveData, r: () => number): string {
   g.post = { cands: makeCandidates(save, r) };
   return '';
 }
-/** 공고 지원자 중 1명 영입. 나머지는 돌아감 */
+/** 고른 공고 지원자를 영입한다. 남은 지원자도 정원 안에서 모두 영입할 수 있다. */
 export function hire(save: SaveData, i: number): string {
   const g = save.guild, c = g.post?.cands[i];
   if (!c) return '지원자 없음';
   if (full(save)) return `정원 ${capOf(save).cap}명이 다 참`;
   join(save, c);
-  g.post = null;
   return '';
 }
 
@@ -167,7 +172,6 @@ export function hireApp(save: SaveData, i: number): string {
   if (!a) return '지원자 없음';
   if (full(save)) return `정원 ${capOf(save).cap}명이 다 참`;
   join(save, a.m);
-  save.guild.apps.splice(i, 1);
   return '';
 }
 

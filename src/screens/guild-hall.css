@@ -7,7 +7,9 @@
  */
 
 /* ---------- 본문 ---------- */
-#s-guild .ns-body.guild { display: flex; flex-direction: column; gap: 10px; padding: 0 12px 16px; }
+#s-guild .ns-body.guild { display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: 100%; min-width: 0; box-sizing: border-box; padding: 0 12px 16px; scrollbar-width: none; }
+/* 역할별 목록 길이가 달라도 스크롤바 자리 때문에 본문 폭이 변하지 않는다. 스크롤은 유지한다. */
+#s-guild .ns-body.guild::-webkit-scrollbar { display: none; width: 0; height: 0; }
 body.tabs-on #s-guild .ns-body.guild:not(.g-with-cta) { padding-bottom: calc(var(--tabs-h) + 20px); }
 body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .note { margin: 0; font-size: 12px; line-height: 1.5; }
@@ -27,7 +29,6 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 }
 #s-guild .gh-stats .g-ic, #s-guild .gh-stats svg { width: 16px; height: 16px; object-fit: contain; }
 /* 명성: 다음 길드 Lv까지 막대 */
-#s-guild .gh-fame small { font-weight: 500; color: var(--gk-mute); }
 #s-guild .guild-hero .gh-bar { position: absolute; left: 12px; right: 12px; bottom: 6px; height: 4px; border-radius: 2px; background: #00000080; overflow: hidden; }
 #s-guild .guild-hero .gh-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #c99b3f, #ffd34d); }
 #s-guild.g-hall .subtabs button { position: relative; }
@@ -74,7 +75,7 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
  * 줄 = 그림 · 이름 (+ 한 줄) · 오른쪽 숫자 · 알약. 보상 · 상태 = .g-pill (그림 + 짧은 글). 규칙 · 긴 설명 = ⓘ → .g-tip.
  * 버튼: 할 일 · 주 동작 = 붉은 .btn.primary (줄 안은 mini), 그 밖 = 돌 .btn. 같은 일을 다른 모양으로 만들지 않는다. */
 #s-guild .panel { margin: 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
-#s-guild .g-card { margin: 0; padding: 0; overflow: hidden; background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 12px; box-shadow: 0 2px 6px #0007; color: var(--gk-ink); }
+#s-guild .g-card { width: 100%; min-width: 0; box-sizing: border-box; margin: 0; padding: 0; overflow: hidden; background: var(--gk-card); border: 1px solid var(--gk-card-bd); border-radius: 12px; box-shadow: 0 2px 6px #0007; color: var(--gk-ink); }
 #s-guild .g-hd {
   display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 4px 4px 4px 10px; box-sizing: border-box;
   background: linear-gradient(#2f271d, #251f18); border-bottom: 1px solid var(--gk-line);
@@ -129,9 +130,6 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 #s-guild .g-pill.fame { color: var(--gk-num); }
 #s-guild .g-pill.ok, #s-guild .g-pill.free { color: #9ad48f; border-color: #4c6b3a; }
 #s-guild .g-pill.warn { color: var(--gk-enr-ink); border-color: var(--gk-enr-bd); }
-#s-guild .g-places { display: flex; flex-wrap: wrap; gap: 4px; }
-#s-guild .g-place { padding: 1px 6px; border-radius: 6px; background: #15120e; border: 1px solid var(--gk-line); font-size: 11px; line-height: 16px; color: var(--gk-ink2); white-space: nowrap; }
-#s-guild .g-place.done { color: #9ad48f; border-color: #4c6b3a; }
 /* 숫자 칸 */
 #s-guild .g-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(54px, 1fr)); gap: 4px; margin: 0; padding: 10px 8px; list-style: none; }
 #s-guild .g-tiles li { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; text-align: center; }
@@ -209,15 +207,10 @@ body.tabs-on #s-guild .ns-body.g-with-cta { padding-bottom: 10px; }
 body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-cta {
   width: 100%; height: 56px; min-height: 56px; border-color: transparent; box-shadow: none; color: var(--a2-ink, #fff4d5);
-  background: transparent url('../art/a2-depart-v3.webp') 8.695652% 17.1875% / 101.295775% 107.891492% no-repeat; background-origin: border-box;
 }
-#s-guild .g-cta::before, #s-guild .g-cta::after { content: none; }
-#s-guild .g-cta .g-mk { width: 44px; height: 44px; }
 #s-guild .g-cta .g-mk .g-ic { width: 80%; height: 80%; object-fit: contain; }
 #s-guild .g-ct { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
-#s-guild .g-ct b { font: 800 22px/1.1 var(--font-display); color: #fff4d5; text-shadow: 0 2px 2px #35100b; }
-#s-guild .g-ct small { font-size: 11px; color: #f3ddb8; }
-#s-guild .g-cta .g-arrow { flex: none; width: 22px; height: 22px; color: #fff4d5; }
+#s-guild .g-ct b { font: 800 clamp(18px, 5vw, 22px)/1.1 var(--font-display); color: #fff4d5; text-shadow: 0 2px 2px #35100b; }
 
 /* ---------- 길드원 시트 (편성 화면 파티원 시트와 같은 바탕) ---------- */
 #app .ns .sheet.g-msheet { background: var(--gk-bg); background-blend-mode: normal; border-color: var(--gk-edge); color: var(--gk-ink); gap: 10px; word-break: keep-all; overflow-wrap: anywhere; }
@@ -250,8 +243,11 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-acts .currency-amount { justify-content: center; }
 #s-guild .g-acts > .btn:disabled .g-ai { opacity: 0.55; }
 #s-guild.ns .g-acts > .btn.danger { background: #5a1d17; border-color: #c4553f; color: #ffd9cf; }
-#s-guild .sheet .g-sact { min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-#s-guild .sheet .g-sact small { font-size: 11px; opacity: 0.85; }
+#s-guild .sheet .g-hire-footer { position: sticky; bottom: 0; z-index: 1; flex: none; padding-top: 8px; background: var(--gk-bg); border-top: 1px solid var(--gk-line); }
+#s-guild .sheet .g-hire-actions { display: flex; justify-content: center; gap: 10px; }
+#s-guild .sheet .g-hire-actions > .btn2 { flex: 0 1 88px; min-height: 48px; }
+#s-guild .sheet .g-hire-actions > .btn { flex: 0 1 144px; width: 144px; min-height: 48px; margin: 0; padding: 0 12px; font-size: 16px; }
+#s-guild .sheet .g-hire-limit { margin: 0 0 6px; color: var(--gk-mute); text-align: center; font-size: 12px; }
 #s-guild .sheet .g-smsg { margin: 0; }
 #s-guild .sheet > .f-shut {
   position: sticky; bottom: 0; z-index: 1; flex: none; align-self: stretch; min-height: 44px;
@@ -260,7 +256,7 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 }
 #s-guild .sheet > .f-shut:active { background: var(--gk-btn-on); }
 
-/* 길드원 작업 확인: 상세를 유지한 채 중앙 팝업에서 취소/확인한다. */
+/* 길드원 작업 · 새 공고 확인: 중앙 팝업에서 취소/확인한다. */
 #app #s-guild .sheet-dim.g-action-dim { z-index: 74; background: #0009; border: 0; padding: 0; }
 #app #s-guild .sheet.g-action-confirm {
   z-index: 75; top: 50%; bottom: auto; left: 50%; transform: translate(-50%, -50%);
@@ -287,7 +283,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 @media (max-height: 700px) {
   #s-guild .guild-hero { min-height: 84px; padding-top: 10px; padding-bottom: 8px; }
   #s-guild .g-cta, #s-guild .g-cta { height: 48px; min-height: 48px; }
-  #s-guild .g-cta .g-mk { width: 38px; height: 38px; }
   #s-guild .g-ct b { font-size: 19px; }
 }
 
@@ -311,8 +306,6 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-rewards { display: flex; align-items: center; gap: 5px; }
 #s-guild .g-goal, #s-guild .g-exped { align-items: flex-start; }
 #s-guild .g-goal > .g-rs, #s-guild .g-exped > .g-rs { flex-direction: column; align-items: flex-end; gap: 8px; padding-top: 3px; }
-#s-guild .g-place { min-height: 44px; padding: 6px 8px; font: 600 12px/1.35 var(--font-body); cursor: pointer; text-align: left; white-space: normal; }
-#s-guild .g-place:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 1px; }
 #s-guild .g-job .g-rm > b { white-space: normal; }
 #s-guild .g-job .g-rs > .btn2 { min-height: 44px; width: auto; margin: 0; padding: 0 10px; font-size: 12px; }
 #s-guild .g-job .g-ri { width: 30px; }
@@ -322,15 +315,11 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-member-tools .g-chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
 #s-guild .g-member-tools .g-chip { min-width: 0; padding: 0 4px; }
 #s-guild .g-member-tools small { opacity: .85; font-size: 11px; }
-#s-guild .g-sort { align-self: flex-end; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gk-ink2); }
-#s-guild .g-sort select { min-height: 44px; padding: 0 10px; color: var(--gk-ink); background: var(--gk-btn); border: 1px solid var(--gk-card-bd); border-radius: 8px; font: 600 12px var(--font-body); }
+#s-guild .g-sort { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 96px; min-height: 44px; margin: 0; padding: 0 8px; font-size: 12px; white-space: nowrap; }
+#s-guild .g-sort svg { flex: none; width: 15px; height: 15px; }
 #s-guild .g-chip { min-height: 44px; }
 #s-guild .g-full small { display: block; font-size: 12px; margin-top: 4px; }
 #s-guild .g-empty0 small { display: inline-block; margin-top: 6px; font-size: 12px; line-height: 1.6; color: var(--gk-ink2); }
-#s-guild .g-confirm { display: flex; flex-wrap: wrap; gap: 8px; border: 1px solid var(--gk-edge); border-radius: 10px; padding: 10px; }
-#s-guild .g-confirm p { flex-basis: 100%; margin: 0; font-size: 13px; }
-#s-guild .g-confirm .btn, #s-guild .g-confirm .btn2 { width: auto; margin: 0; min-height: 44px; font-size: 12px; }
-#s-guild .g-confirm .btn { flex: 1; }
 #s-guild .g-acts > .btn { min-height: 82px; }
 #s-guild .g-acts b { font-size: 13px; }
 #s-guild .g-acts small { line-height: 1.4; }
@@ -351,3 +340,105 @@ body.tabs-on #s-guild .g-foot { padding-bottom: calc(var(--tabs-h) + 6px); }
 #s-guild .g-post-summary b { font-size: 14px; color: var(--gk-ink); }
 #s-guild .g-post-summary span { font-size: 12px; color: var(--gk-head); }
 #s-guild .g-post-body { gap: 12px; padding: 14px 12px; }
+
+/* 선택 시안 1의 짧은 제목·구분선 목록에 길드원과 같은 갈색 카드 바탕을 적용한다. */
+#s-guild .g-flat { padding-inline: 8px; }
+#s-guild .g-flat .g-job-group { min-height: 36px; padding: 0 4px; background: none; border: 0; font: 800 16px/1.3 var(--font-display); }
+#s-guild .g-flat .g-job-group:not(:first-child) { margin-top: 10px; }
+#s-guild .g-group-meta { display: flex; align-items: center; gap: 2px; }
+#s-guild .g-group-meta .g-info { margin: 0 -4px 0 0; }
+#s-guild .g-flat .g-rows { border-top: 1px solid var(--gk-line); }
+#s-guild .g-flat .g-row { padding: 10px 4px; gap: 8px; min-height: 70px; }
+#s-guild .g-flat .g-row.done { opacity: 1; }
+#s-guild .g-job-title { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
+#s-guild .g-job-title > b { font: 700 14px/1.3 var(--font-body); color: var(--gk-ink); }
+#s-guild .g-job.done .g-job-title > b { color: var(--gk-mute); }
+#s-guild .g-job.done .g-ri { opacity: .55; }
+#s-guild .g-job .g-pill.xp { height: 21px; padding-inline: 6px; color: var(--gk-head); border-color: var(--gk-edge); font-size: 11px; }
+#s-guild .g-job .g-rs { min-width: 68px; }
+#s-guild .g-job .g-rs > .btn { min-width: 68px; min-height: 44px; padding-inline: 8px; font-size: 12px; }
+#s-guild .g-job .g-pill.ok { min-width: 62px; height: 28px; justify-content: center; }
+#s-guild .g-flat .g-goal, #s-guild .g-flat .g-exped { align-items: center; }
+#s-guild .g-flat .g-goal > .g-rs, #s-guild .g-flat .g-exped > .g-rs { padding: 0; gap: 6px; }
+#s-guild .g-flat .g-bar { height: 7px; }
+#s-guild .g-exped-places { padding: 0 4px 10px; list-style: none; }
+#s-guild .g-places { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+#s-guild .g-exrow { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 0; box-sizing: border-box; border-top: 1px solid var(--gk-line); }
+#s-guild .g-place-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+#s-guild .g-place-copy > b { color: var(--gk-ink); font: 700 14px/1.35 var(--font-body); word-break: keep-all; overflow-wrap: anywhere; }
+#s-guild .g-place-copy > span { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--gk-mute); font: 500 11px/1.4 var(--font-body); }
+#s-guild .g-exrow > .g-place { flex: 0 0 96px; width: 96px; min-width: 96px; min-height: 44px; margin: 0; padding: 0 10px; font-size: 14px; }
+#s-guild .g-place-complete { display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+#s-guild .g-place-complete .g-pill.ok { min-width: 62px; height: 28px; justify-content: center; }
+#s-guild .g-place:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+
+/* 영입 경로는 짧은 탭. 공고 설명과 비용은 한 줄 묶음에 둔다. */
+#s-guild .g-recruit { --g-recruit-action-width: 96px; gap: 0; }
+#s-guild .g-recruit > .g-card { margin-top: 8px; }
+#s-guild .g-recruit > .warnbox, #s-guild .g-recruit > .g-story-wait { margin-block: 10px; }
+#s-guild .g-hub { display: flex; gap: 4px; padding-top: 8px; border-bottom: 1px solid var(--gk-edge); }
+#s-guild .g-hubt { flex: 1 1 0; width: auto; min-height: 44px; flex-direction: row; gap: 5px; padding: 8px 12px; border-radius: 8px 8px 0 0; border-bottom: 0; box-shadow: none; }
+#s-guild .g-hubt[aria-selected="true"] { background: var(--gk-btn-on); border-color: var(--gk-edge); box-shadow: none; }
+#s-guild .g-hubt b { font-size: 14px; }
+#s-guild .g-hubt small { color: inherit; }
+#s-guild .g-hubt > .rdot { top: 5px; right: 5px; }
+#s-guild .g-post-offer { display: flex; align-items: center; gap: 8px; min-height: 80px; padding: 8px 4px; box-sizing: border-box; }
+#s-guild .g-post-copy { flex: 1; min-width: 0; }
+#s-guild .g-offer-title { display: flex; align-items: center; gap: 2px; min-height: 36px; }
+#s-guild .g-offer-title h3 { margin: 0; font: 700 14px/1.4 var(--font-body); color: var(--gk-ink); }
+#s-guild .g-offer-title h3 small { font-size: 12px; font-weight: 500; color: var(--gk-mute); white-space: nowrap; }
+#s-guild .g-offer-title .g-info { margin: -4px 0; }
+#s-guild .g-offer-title .g-info .ui-icon { width: 18px; height: 18px; }
+#s-guild .g-post-summary { display: block; margin: 0; font: 500 12px/1.5 var(--font-body); color: var(--gk-ink2); word-break: keep-all; }
+#s-guild .g-post-action { flex: 0 0 var(--g-recruit-action-width); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+#s-guild .g-post-action > .btn, #s-guild .g-candidates .g-side > .btn { width: var(--g-recruit-action-width); min-width: var(--g-recruit-action-width); min-height: 44px; margin: 0; padding: 0 10px; font-size: 14px; }
+#s-guild .g-post-action > small { font: 600 12px/1.3 var(--font-body); color: var(--gk-ink2); }
+#s-guild .g-app-title { justify-content: space-between; min-height: 48px; padding-inline: 4px; }
+#s-guild .g-flat .g-empty0 { padding: 18px 8px; border-top: 1px solid var(--gk-line); line-height: 1.6; }
+#s-guild .g-flat .g-empty0 small { display: block; }
+
+/* 지원자: 이름·직업·스킬 / 성격·능력 / 영입 버튼. 공통 파티원 자료와 상세는 유지한다. */
+#s-guild.ns .g-candidates .pcard.f-mem { min-height: 84px; padding: 10px 4px; gap: 8px; }
+#s-guild.ns .g-candidates .pcard.f-mem:first-child { border-top: 1px solid var(--gk-line); }
+#s-guild.ns .g-candidates .f-mem .f-ri { width: 30px; height: 36px; flex: none; }
+#s-guild.ns .g-candidates .f-mem .f-mt { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 6px; flex: 1; min-width: 0; }
+#s-guild.ns .g-candidates .pcard.f-mem .f-l1, #s-guild.ns .g-candidates .pcard.f-mem .f-l2 { display: contents; }
+#s-guild.ns .g-candidates .pcard.f-mem .f-l1 > .pnick { grid-area: 1 / 1; font-size: 15px; color: var(--gk-head); }
+#s-guild.ns .g-candidates .pcard.f-mem .f-l1 > .cap { grid-area: 2 / 1; font-size: 12px; }
+#s-guild.ns .g-candidates .pcard.f-mem .f-l1 > .f-ps { grid-area: 1 / 2 / 3 / 3; justify-self: end; max-width: 88px; font-size: 11px; white-space: normal; text-align: center; }
+#s-guild.ns .g-candidates .pcard.f-mem .f-l2 > .f-ab { grid-area: 3 / 1; display: flex; flex-wrap: wrap; align-items: center; gap: 3px; overflow: visible; white-space: normal; font-size: 11px; }
+#s-guild.ns .g-candidates .f-ab .skill-name { min-width: 0; }
+#s-guild.ns .g-candidates .f-ab .skill-name b { white-space: normal; overflow-wrap: anywhere; }
+#s-guild.ns .g-candidates .f-ab .skill-level { flex: none; }
+#s-guild.ns .g-candidates .f-l2 > .f-fm { grid-area: 3 / 2; align-self: center; margin: 0; font-size: 11px; white-space: nowrap; }
+#s-guild.ns .g-candidates .f-l2 > .f-tag { grid-area: 4 / 1 / 5 / 3; justify-self: start; }
+#s-guild .g-candidates .g-side { min-width: var(--g-recruit-action-width); }
+
+@media (max-width: 374px) {
+  #s-guild.ns .g-candidates .pcard.f-mem { gap: 6px; }
+  #s-guild.ns .g-candidates .f-mem .f-ri { width: 28px; height: 32px; }
+}
+
+/* 짧은 세로 화면에서도 주간 원정 진행 막대까지 출전 버튼 위에 둔다. */
+@media (max-height: 850px) {
+  #s-guild .g-flat .g-row { min-height: 58px; padding-block: 6px; }
+  #s-guild .g-flat .g-job-group:not(:first-child) { min-height: 32px; margin-top: 2px; }
+}
+
+/* 길드 이름판: 현황 · 길드원 · 영입에서 같은 높이와 배열을 사용한다. */
+#s-guild .guild-hero.guild-identity { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 30px 26px; align-items: center; gap: 4px 12px; height: 88px; min-height: 88px; padding: 9px 16px 15px; }
+#s-guild .guild-identity .ah-copy { grid-area: 1 / 1; }
+#s-guild .guild-identity h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 20px; line-height: 1.3; }
+#s-guild .guild-identity .gh-stats { display: contents; }
+#s-guild .guild-identity .gh-stats > span { height: auto; padding: 0; border: 0; border-radius: 0; background: none; position: relative; z-index: 1; }
+#s-guild .guild-identity .gh-stats .gh-lv { grid-area: 1 / 2; justify-self: end; display: inline-flex; gap: 5px; padding: 4px 7px; border: 1px solid #b28d4e99; border-radius: 5px; background: #1d1812d9; color: #edcf93; font-size: 11px; }
+#s-guild .guild-identity .gh-lv b { font-size: 14px; }
+#s-guild .guild-identity .gh-cap { grid-area: 2 / 1; display: inline-flex; gap: 7px; color: var(--gk-ink2); font-size: 12px; }
+#s-guild .guild-identity .gh-cap b { color: var(--gk-ink); font-size: 14px; font-variant-numeric: tabular-nums; }
+#s-guild .guild-identity .gh-fame { grid-area: 2 / 2; display: inline-flex; gap: 5px; justify-self: end; color: var(--gk-ink2); font-size: 12px; }
+#s-guild .guild-identity .gh-fame b { display: inline-flex; align-items: baseline; gap: 3px; color: #f4d99b; font-size: 14px; font-variant-numeric: tabular-nums; }
+#s-guild .guild-identity .gh-bar { left: 16px; right: 16px; bottom: 7px; height: 3px; }
+@media (max-width: 374px) {
+  #s-guild .guild-hero.guild-identity { padding-inline: 12px; column-gap: 6px; }
+  #s-guild .guild-identity h2 { font-size: 18px; }
+}

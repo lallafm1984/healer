@@ -1,0 +1,75 @@
+/* 2026-10-19 Lim: 메뉴 행동 버튼 = 노랑 / 검정 한 벌. 출전·출발만 붉은 그림.
+ * 배치·크기는 각 화면에 두고 표면·글자·선택·비활성 상태는 이 파일에서 관리한다.
+ * 장비/직업 상세의 기존 강한 선택자도 같은 범위에 포함해 !important 없이 통일한다.
+ */
+:root {
+  --menu-btn-dark: linear-gradient(#292720, #171612);
+  --menu-btn-dark-pressed: #343025;
+  --menu-btn-dark-edge: #8f7848;
+  --menu-btn-dark-ink: #f3df9d;
+  --menu-btn-gold: linear-gradient(#ffe58c, #f4c44e 58%, #dda72e);
+  --menu-btn-gold-pressed: linear-gradient(#e8ba48, #d59b25);
+  --menu-btn-gold-edge: #c39335;
+  --menu-btn-gold-ink: #2a1d08;
+  --menu-btn-focus: #ffe69b;
+}
+
+#app :is(.ns, .admodal, #rest, #pauseGuide),
+#app #s-char[data-sub] :is(.c7-gsheet, .c7-job-sheet, .c7-confirm, .c7-tsheet) {
+  :is(
+    .btn, .btn2, .g-seal, .g-sign, .c7-cta, .c7-hcta, .c7-sb, .c7-rr,
+    .c7-dialog-close, .c7-tp-btn, .c7-recb, .f-shut, .f-gbtn, .f-go,
+    .r-level-confirm, .g-action-buttons > button, .c7-confirm-actions > button,
+    .f-item-actions > button, .chip, .g-chip, .c7-fc, .c7-pre,
+    .c7-mode > button, .c7-taps > button
+  ):not(.g-cta) {
+    --action-bg: var(--menu-btn-dark);
+    --action-pressed: var(--menu-btn-dark-pressed);
+    --action-edge: var(--menu-btn-dark-edge);
+    --action-ink: var(--menu-btn-dark-ink);
+    --action-shadow: inset 0 1px 0 #fff2bc16, 0 2px 0 #0008;
+    background: var(--action-bg); background-blend-mode: normal;
+    border: 1px solid var(--action-edge); border-image: none; border-radius: 9px;
+    color: var(--action-ink); box-shadow: var(--action-shadow); text-shadow: none;
+    font-family: var(--font-body); font-weight: 800; filter: none;
+
+    &:is(.primary, .hot, .c7-hcta, .f-go, .r-level-confirm, .c7-cta:not([data-sheetx]), [aria-pressed="true"]) {
+      --action-bg: var(--menu-btn-gold);
+      --action-pressed: var(--menu-btn-gold-pressed);
+      --action-edge: var(--menu-btn-gold-edge);
+      --action-ink: var(--menu-btn-gold-ink);
+      --action-shadow: inset 0 1px 0 #fff6c5, inset 0 -2px 0 #b8822070, 0 2px 0 #0008;
+    }
+    :is(b, strong, small, .f-gt) { color: inherit; text-shadow: none; }
+    &:active:not(:disabled):not([aria-disabled="true"]) {
+      background: var(--action-pressed); transform: translateY(1px); filter: none;
+      box-shadow: inset 0 1px 0 #fff2bc20, 0 1px 0 #0008;
+    }
+    &:focus-visible { outline: 2px solid var(--menu-btn-focus); outline-offset: 2px; }
+    &:is(:disabled, [aria-disabled="true"]) {
+      background: #22211c; border-color: #615a46; color: #a59c83;
+      box-shadow: inset 0 1px 0 #ffffff08; opacity: 1; filter: none; transform: none; cursor: default;
+    }
+  }
+}
+
+/* 메뉴 안의 탭도 검정 바탕과 노란 선택 상태를 사용한다. */
+#app .ns :is(.subtabs > button, .g-hubt, .c7-tab) {
+  background: var(--menu-btn-dark); background-blend-mode: normal;
+  border-color: var(--menu-btn-dark-edge); color: var(--menu-btn-dark-ink);
+  box-shadow: none; text-shadow: none;
+}
+#app .ns :is(.subtabs > button, .g-hubt, .c7-tab)[aria-selected="true"] {
+  background: var(--menu-btn-gold); color: var(--menu-btn-gold-ink); border-color: var(--menu-btn-gold-edge);
+}
+#app .ns :is(.subtabs > button, .g-hubt, .c7-tab) :is(b, small) { color: inherit; text-shadow: none; }
+#app #s-char .c7-tab::before { background: none; box-shadow: none; }
+#app #s-char .c7-tab { border: 1px solid var(--menu-btn-dark-edge); border-radius: 8px 8px 0 0; }
+#app #s-char .c7-tab[aria-selected="true"] { border-color: var(--menu-btn-gold-edge); }
+
+/* 공략도 다른 보조 버튼과 같은 표면. 책 아이콘은 글자 옆에 둔다. */
+#app #s-party .topbar #guideOpen { padding: 0 10px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+#app #s-party .topbar #guideOpen > svg { display: block; width: 19px; height: 19px; flex: none; }
+
+/* 이전 인장/팻말 장식이 공통 버튼 바깥으로 남지 않게 한다. */
+#app #s-char :is(.g-seal, .g-sign, .c7-recb)::before { content: none; }

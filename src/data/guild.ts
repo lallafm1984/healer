@@ -15,6 +15,7 @@ export const memberSkillLevel = (m: Pick<GuildMember, 'lv' | 'skillFloor'>): num
 );
 
 // ---------- 길드 Lv · 정원 · 명성 (93 6-1 · 6-2) ----------
+// 레벨/정원 해금 기준이며 명성의 상한이 아니다. 최고 길드 Lv 뒤에도 명성은 계속 누적한다.
 export const GUILD_STEPS = [0, 20, 60, 120, 200, 320, 480, 700, 1200, 2000] as const;
 export const GUILD_CAPS = [6, 7, 8, 10, 12, 14, 16, 19, 22, 25] as const;
 export function guildLvOf(fame: number): { lv: number; cap: number; next: number | null } {

@@ -58,6 +58,7 @@ import './battle/class-gauge.css';
 import './battle/class-controls.css';
 import './screens/talent-sheet.css';
 import './screens/touch-floor.css';
+import './screens/menu-buttons.css';
 import './battle';
 import './screens/title';
 import './screens/lobby';

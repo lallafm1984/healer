@@ -57,17 +57,17 @@ export default async function adventureWeekly(url, shots) {
           ? Math.abs(weekly.chal.width-104)<=1 && weekly.regions.left>=weekly.chal.right-1 && Math.abs(weekly.chal.top-weekly.regions.top)<=1
           : weekly.cats.bottom<=weekly.chal.top+1 && weekly.chal.bottom<=weekly.gate.top+1,
         `${tag}: 주간 도전은 ${height<=520?'장소 줄 왼쪽 고정':'분류 탭 바로 아래'}에 배치`,weekly);
-        const selection=await page.locator('#contentGo').innerText();
+        const selection=await page.locator('#contentGo').getAttribute('aria-label');
         const scroll=await page.locator('.b-regions').evaluate(el=>{el.scrollLeft=el.scrollWidth;return {left:el.scrollLeft,max:el.scrollWidth-el.clientWidth};});
         await page.clock.runFor(80);
         const afterScroll=await page.locator('.b-chal').boundingBox();
         ok(scroll.max>0 && scroll.left>0 && Math.abs(afterScroll.x-weekly.chal.left)<=1 && Math.abs(afterScroll.y-weekly.chal.top)<=1
-          && await page.locator('#contentGo').innerText()===selection,`${tag}: 장소 줄을 가로로 넘겨도 주간 도전 위치·출전 선택 유지`,{scroll,afterScroll});
+          && await page.locator('#contentGo').getAttribute('aria-label')===selection,`${tag}: 장소 줄을 가로로 넘겨도 주간 도전 위치·출전 선택 유지`,{scroll,afterScroll});
         await page.click('[data-chal]');await page.clock.runFor(100);
         ok(await page.locator('#s-entry').isVisible(),`${tag}: 주간 도전 진입`);
         await page.click('#s-entry .tb-back');await page.clock.runFor(100);
         issues=layoutIssues(await departureLayout(page));
-        ok(await page.locator('#s-content').isVisible() && await page.locator('#contentGo').innerText()===selection
+        ok(await page.locator('#s-content').isVisible() && await page.locator('#contentGo').getAttribute('aria-label')===selection
           && await page.locator('#s-content').getAttribute('data-selected-content')==='rustfort'
           && await page.locator('#s-content').getAttribute('data-selected-diff')==='보통' && !issues.length,
         `${tag}: 도전 닫기 후 던전·난이도·화면 경계 유지`,issues);
@@ -78,7 +78,7 @@ export default async function adventureWeekly(url, shots) {
           await page.setViewportSize(alternate);await page.clock.runFor(150);
           const g=await departureLayout(page);
           issues=layoutIssues(g);
-          ok(!issues.length && g.selected==='rustfort' && await page.locator('#contentGo').innerText()===selection,
+          ok(!issues.length && g.selected==='rustfort' && await page.locator('#contentGo').getAttribute('aria-label')===selection,
             `${tag}: ${alternate.width}×${alternate.height}로 바꿔도 경계·고른 장소 카드·출전 선택 유지`,issues);
           await shownImagesReady(page);
           await page.screenshot({path:`${shots}/departure-weekly-resized-${id}-${alternate.width}x${alternate.height}.png`});

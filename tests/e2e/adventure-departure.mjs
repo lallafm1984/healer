@@ -75,7 +75,7 @@ export default async function adventureDeparture(url, shots) {
     ok(row.length===6 && row[0].key==='plateau' && row.every((p,i)=>p.lv<=14 && (!i || row[i-1].lv<=p.lv)), `${width}: Lv 14 탐험 장소 줄 = Lv 14까지 6곳만 레벨 순`, row);
     await page.click('.b-regions [data-content="alley"]'); await page.clock.runFor(50);
     ok(await page.locator('.b-place-modal').count()===0 && await page.locator('#s-content').getAttribute('data-selected-content')==='alley'
-      && await page.locator('[data-content="alley"]').getAttribute('aria-pressed')==='true' && /잿빛 뒷골목/.test(await page.locator('#contentGo').innerText())
+      && await page.locator('[data-content="alley"]').getAttribute('aria-pressed')==='true' && /잿빛 뒷골목/.test(await page.locator('#contentGo').getAttribute('aria-label'))
       && await page.evaluate(()=>document.activeElement?.dataset.content==='alley'), `${width}: 장소 카드를 누르면 팝업 없이 바로 출전 장소로·포커스 유지`);
     await page.click('[data-ctab="dungeon"]'); await page.click('[data-ctab="explore"]');
     ok(await page.locator('[data-content="alley"]').getAttribute('aria-pressed')==='true', `${width}: 분류를 바꿨다 와도 고른 장소 기억`);
@@ -94,7 +94,7 @@ export default async function adventureDeparture(url, shots) {
       && /32%/.test(await page.locator('.b-reward-chance [data-grade="고급"]').innerText())
       && await page.locator('.b-reward-chance').getAttribute('aria-modal')==='false', `${width}: 장비 아이콘은 나오는 등급 일반 68%·고급 32%만 확률 표 (88) 「${(await page.locator('.b-reward-chance').innerText()).replace(/\s+/g, ' ')}」`);
     if(width===390) {
-      const ctaBeforeResize=await page.locator('#contentGo').innerText();
+      const ctaBeforeResize=await page.locator('#contentGo').getAttribute('aria-label');
       for(const [rw,rh] of [[360,330],[360,360],[690,829]]) {
         await page.setViewportSize({width:rw,height:rh}); await page.clock.runFor(150);
         const rewardAfterResize=await page.evaluate(()=>{
@@ -106,7 +106,7 @@ export default async function adventureDeparture(url, shots) {
             closeInside:x.left>=r.left-1 && x.top>=r.top-1 && x.right<=r.right+1 && x.bottom<=r.bottom+1};
         });
         ok(rewardAfterResize.open && rewardAfterResize.inside && rewardAfterResize.closeInside
-          && await page.locator('#contentGo').innerText()===ctaBeforeResize,`390→${rw}×${rh}: 확률 팝오버·닫기 버튼을 화면 안에 유지`);
+          && await page.locator('#contentGo').getAttribute('aria-label')===ctaBeforeResize,`390→${rw}×${rh}: 확률 팝오버·닫기 버튼을 화면 안에 유지`);
       }
       await page.click('[data-reward-close]');
       ok(await page.locator('.b-reward-chance').count()===0 && await page.evaluate(()=>document.activeElement.matches('[data-reward="gear"]')),
@@ -115,7 +115,7 @@ export default async function adventureDeparture(url, shots) {
       await page.keyboard.press('Escape');
       ok(await page.locator('.b-reward-chance').count()===0 && await page.evaluate(()=>document.activeElement.matches('[data-reward="gear"]')
         && !document.querySelector('#tabs').closest('[inert]') && !document.querySelector('#contentGo').closest('[inert]'))
-        && await page.locator('#contentGo').innerText()===ctaBeforeResize,'확률 팝오버 resize 후 닫기·배경 활성·출전 선택 유지');
+        && await page.locator('#contentGo').getAttribute('aria-label')===ctaBeforeResize,'확률 팝오버 resize 후 닫기·배경 활성·출전 선택 유지');
       await page.setViewportSize({width,height}); await page.clock.runFor(150);
       await page.click(rewardSelector);
     }

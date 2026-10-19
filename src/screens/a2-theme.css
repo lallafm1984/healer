@@ -61,8 +61,8 @@
   box-shadow: inset 0 1px 0 #f4d58d40, 0 1px 2px #1a1009a0;
 }
 .ns:not(#s-lobby) :is(.btn.primary, .btn2.hot), .admodal .btn.primary {
-  background: url('../art/a2-depart-v3.webp') 8.695652% 17.1875% / 101.295775% 107.891492% no-repeat;
-  border-color: transparent; color: #fff4d5; box-shadow: none; text-shadow: 0 1px 2px #2b1008;
+  background: var(--menu-btn-gold);
+  border-color: var(--menu-btn-gold-edge); color: var(--menu-btn-gold-ink); box-shadow: none; text-shadow: none;
 }
 .ns:not(#s-lobby) :is(.btn.ghost, .btn2.ghost) { background: #2e2118; border-color: #997342; color: #e4cda4; }
 .ns:not(#s-lobby) .btn.danger { background: #531f17; color: #ffe3d2; border-color: #c17251; }

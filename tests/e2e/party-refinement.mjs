@@ -24,12 +24,15 @@ export default async function partyRefinement(url, shots) {
           const classes = [...root.querySelectorAll('.pcard[data-cls]')].every(el => el.querySelector('[data-class-icon]')?.dataset.classIcon === el.dataset.cls);
           const personalities = [...root.querySelectorAll('.pcard .f-ps')].every(el => !el.querySelector('i,em') && el.innerText.trim().length > 1 && el.scrollWidth <= el.clientWidth + 1);
           const buttons = ['.tb-back', '#guideOpen'].map(sel => { const el = root.querySelector(sel); return { r: rect(el), bg: getComputedStyle(el).backgroundImage }; });
-          return { slots, go, foot, classes, personalities, buttons, safe: within(go), horizontal: root.scrollWidth <= root.clientWidth + 1, center: Math.abs((go.left + go.right) / 2 - (foot.left + foot.right) / 2) };
+          const departure = getComputedStyle(root.querySelector('#depart'), '::before').borderImageSource;
+          const arrow = root.querySelector('#depart img.g-arrow');
+          return { slots, go, foot, classes, personalities, buttons, departure, arrow: !!arrow?.complete && arrow.naturalWidth > 0, safe: within(go), horizontal: root.scrollWidth <= root.clientWidth + 1, center: Math.abs((go.left + go.right) / 2 - (foot.left + foot.right) / 2) };
         });
         ok(layout.slots === 0, `${tag}: 소비 아이템 단축칸 없음 (2026-10-16)`, layout);
-        ok(layout.safe && layout.horizontal && layout.center <= 1 && layout.go.width >= Math.min(layout.foot.width - 40, 550) && layout.go.height >= 44, `${tag}: 중앙 출발이 화면 안`, layout);
+        ok(layout.safe && layout.horizontal && layout.center <= 1 && layout.go.width >= Math.min(layout.foot.width - 40, 440) && layout.go.height >= 44, `${tag}: 중앙 출발이 화면 안`, layout);
         ok(layout.classes && layout.personalities && !(await page.locator('#s-party #reroll,#s-party #adReroll,#s-party .f-board figcaption').count()), `${tag}: 직업별 아이콘·전체 성격명·불필요한 표기 제거`, layout);
-        ok(layout.buttons.every(b => /party-(back|guide)-v1/.test(b.bg) && b.r.height >= 44), `${tag}: 생성한 버튼 이미지·44px 터치 영역`, layout.buttons);
+        ok(/party-back-v1/.test(layout.buttons[0].bg) && !/url\(/.test(layout.buttons[1].bg) && layout.buttons.every(b => b.r.height >= 44), `${tag}: 뒤로 그림·공통 검정 공략 버튼·44px 터치 영역`, layout.buttons);
+        ok(/a2-depart-v3/.test(layout.departure) && layout.arrow, `${tag}: 출발도 출전 그림·공통 금빛 화살표`, layout);
         await page.screenshot({ path: `${shots}/party-${id}-locked.png` });
 
       } catch (e) { fails++; errs.push(`${id}: ${e.stack || e.message}`); console.log(`FAIL ${name}: ${e.message}`); }

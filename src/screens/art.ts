@@ -34,6 +34,11 @@ export function uiIcon(key: keyof typeof paths, extra = ''): string {
 /** 잠금 표시 (🔒 대신, 테마 색을 따름) */
 export const LOCK = uiIcon('lock', 'in');
 
+/** 전투 · 길드 출전 및 편성 출발 버튼의 공통 금빛 화살표. */
+export function departureArrow(): string {
+  return `<img class="g-arrow" src="${art('icon-depart-arrow-v1')}" alt="" aria-hidden="true" decoding="async" draggable="false">`;
+}
+
 /**
  * 게임 그림 아이콘 (30·31 문서): src/art의 `<prefix>-<name>`이 있으면 그 그림, 없으면 넘겨준 선 아이콘·임시 그림.
  * 테두리(금테 원·네모 칸)는 CSS가 그림. 예: gameIcon('mission', uiIcon('quest')) → icon-mission, gameIcon('heal', 선, 'skill') → skill-heal

@@ -1,7 +1,7 @@
 /*
  * 임무 · 설정 · 상점 · 길드 (길드는 2026-10-18 Lim 「다른 컨텐츠와 일관성」) (2026-10-17 Lim 「추천으로」 = 시안 B): 나무결 → 길드 홀 돌색 (--gk-* 한 벌, 전투 탭 · 편성 · 결과 · 휴식 · 공략과 같음).
  * 바탕 = 평평한 어두운 돌, 판 · 줄 = 돌 카드 + 진한 금테, 제목 · 줄 이름 = 노란 글자, 보통 버튼 · 칩 = 돌 버튼 + 금테, 고른 칩 · 탭 = 밝은 돌 + 노란 글자.
- * 위 정보창 (나무 판) · 하단 탭 · 붉은 주 버튼 그림 · 상점 그림 · 진행 막대 채움 · 효능 초록 · 받음 흐림은 그대로.
+ * 위 정보창 (나무 판) · 하단 탭 · 출전 그림 · 상점 그림 · 진행 막대 채움 · 효능 초록 · 받음 흐림은 그대로.
  * 설정은 묶음마다 카드. main.ts에서 departure-hall.css 다음에 읽음 (a2-theme의 .ns:not(#s-lobby) 나무결보다 뒤)
  */
 :is(#s-shop, #s-missions, #s-settings, #s-guild).ns {
@@ -17,7 +17,7 @@
 :is(#s-shop, #s-missions, #s-settings, #s-guild).ns :is(.note:not(.use), .sec small, .panel h4 small, .mrow small, .srow small:not(.full), .shop-wallet small, .group > p, .prow.head, .done) { color: var(--gk-mute); }
 :is(#s-missions, #s-shop, #s-guild) :is(.mrow, .passhead, .g-goalrow, .g-xp) .bar { background: #0d0b08; border-color: var(--gk-card-bd); }
 
-/* ---------- 버튼 · 칩 (주 버튼 = 붉은 그림 그대로) ---------- */
+/* ---------- 버튼 · 칩 (최신 공통 표면은 menu-buttons.css) ---------- */
 :is(#s-shop, #s-missions, #s-settings, #s-guild).ns :is(.btn, .btn2):not(.primary):not(.hot),
 :is(#s-shop, #s-missions, #s-settings, #s-guild).ns .chip {
   background: var(--gk-btn); background-blend-mode: normal; border: 1px solid var(--gk-edge); border-radius: 8px; box-shadow: none; color: var(--gk-ink); text-shadow: none;

@@ -1,4 +1,5 @@
 import adventureDeparture from './adventure-departure.mjs';
+import menuButtons from './menu-buttons.mjs';
 import classControls from './class-controls.mjs';
 import priestAura from './priest-aura.mjs';
 import paladinWave from './paladin-wave.mjs';
@@ -48,6 +49,7 @@ import skillTipHold from './skill-tip-hold.mjs';
  * 조각 수가 있으면 나눠 돌릴 때 그 묶음을 그만큼 쪼갬 (묶음이 run(url, shots, { k, n })에서 k번째 조각만 돌림)
  */
 export const SUITES = [
+  ['메뉴 버튼 공통 색상·대비', menuButtons, 30],
   ['직업별 조작판·아이템 안전 여백', classControls, 45],
   ['사제 평온 만충 후광', priestAura, 40],
   ['성기사 파도 준비 후광', paladinWave, 50],
