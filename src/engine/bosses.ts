@@ -4,7 +4,7 @@
  */
 import { NO_TANK_RAMP, NO_TANK_SEC } from '../data/armor';
 import { BOSSES, type SkillDef } from '../data/bosses';
-import { busterDmg, zoneDps, zoneHit } from '../data/rules';
+import { busterDmg, zoneDps, zoneHit, ENRAGE } from '../data/rules';
 import type { MobAttack } from '../data/encounters';
 import { abCut, abDecoy, abOnTel } from './abilities';
 import { persCast, persZoneImpact } from './persona';
@@ -76,9 +76,13 @@ function enrageAt(f: Fight, name: string, period: number, dmg: number): void {
   f.enraged = true; emit(f, { type: 'phase', text: '광폭화' });
   const tankless = f.t < f.enc.enrage;
   if (tankless) emit(f, { type: 'msg', text: '탱커가 없어 보스가 광폭화' });
-  // 탱커 없음 광폭화는 맞을 때마다 세짐: 탱커 대신 막는 사람이 버텨도 오래 못 감 (35 6-4)
-  let n = 0;
-  skill(f, { key: 'enrage', name, icon: '광폭', kind: 'aoe', next: f.t, period, cast: 1, hit(f) { const m = tankless ? 1 + NO_TANK_RAMP * n++ : 1; for (const u of living(f)) damage(f, u, dmg * m, true); } });
+  // 탱커 없음 광폭화는 맞을 때마다 세짐: 탱커 대신 막는 사람이 버텨도 오래 못 감 (35 6-4). 시각 광폭화도 ENRAGE.after초 뒤부터 세짐 (끝없이 버티지 않게)
+  let n = 0, k = 0;
+  const at = f.t;
+  skill(f, { key: 'enrage', name, icon: '광폭', kind: 'aoe', next: f.t, period, cast: 1, hit(f) {
+    const m = tankless ? 1 + NO_TANK_RAMP * n++ : !f.cfg.proto && f.t - at >= ENRAGE.after ? 1 + ENRAGE.step * ++k : 1;
+    for (const u of living(f)) damage(f, u, dmg * m, true);
+  } });
 }
 
 /** 적 공격 대상 */

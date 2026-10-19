@@ -1963,8 +1963,9 @@ export function render(now: number): void {
       if (lt) { if (lt.source.scaleMode !== 'linear') lt.source.scaleMode = 'linear'; const d = (2 * R) / BEACON_RING; ringArt.put(lt, x, y, d, d, 1); }
       else dashCircle(overG, x, y, R, 3, 5, 2.5, C.gold, 0.95);
     }
-    // 어그로 (96 5번 A): 위협이 뺏는 선의 90%인 딜러 = 주황 경고 띠 (fx-edge-threat)가 천천히 깜빡임 (뺏기 약 0.5초 전, 미리 보호막 · 지속 힐). 뺏으면 조준 표식이 옮겨감
-    if (F.thr?.warn.includes(u.id) && F.thr.steal?.id !== u.id) { const R = ringRadius(`threat${u.id}`, 'hex', x, y, r * 1.1, 3), a = S.reducedEffects ? 0.85 : 0.5 + 0.5 * zpulse; if (!edgeRing('fx-edge-threat', x, y, R, Math.max(6, s * 0.16), a)) hexPoly(overG, x, y, R).stroke({ width: 3, color: C.threat, alpha: a }); }
+    // 어그로 (96 5번 A): 위협이 뺏는 선의 90%인 딜러 = 주황 경고 띠 (fx-edge-threat)가 천천히 깜빡임 (뺏기 약 0.5초 전, 미리 보호막 · 지속 힐).
+    // 뺏으면 조준 표식이 옮겨가고, 탱커가 되찾을 때까지 (4~8초) 띠도 그 딜러에게 머묾 (2026-10-19 Lim 「바로 되찾아 온다」)
+    if (F.thr?.warn.includes(u.id)) { const R = ringRadius(`threat${u.id}`, 'hex', x, y, r * 1.1, 3), a = S.reducedEffects ? 0.85 : 0.5 + 0.5 * zpulse; if (!edgeRing('fx-edge-threat', x, y, R, Math.max(6, s * 0.16), a)) hexPoly(overG, x, y, R).stroke({ width: 3, color: C.threat, alpha: a }); }
     if (castTarget === u.id) hexPoly(overG, x, y, ringRadius(`cast${u.id}`, 'hex', x, y, r * 1.12, 3)).stroke({ width: 3, color: hex(SEL) });
     if (ui.selectedUnitId === u.id) {
       hexPoly(overG, x, y, ringRadius(`selected${u.id}`, 'hex', x, y, r * 1.04, 2.5)).stroke({ width: 2.5, color: C.white });

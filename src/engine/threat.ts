@@ -3,7 +3,7 @@
  * - 딜러 위협 = 보스에게 준 딜 (반감기 5초라 최근 10초만). 탱커 위협 = 그동안 딜러들이 준 딜의 평균 × K (판 · 보스마다 딜 크기가 달라도
  *   보통 딜러 = 탱커의 1/K로 같게) × 기술 숙련 · 집중 · 어그로 흘림. 나 (힐러) = 넣은 치유 전부 (넘친 치유 포함) ÷ 파티가 받은 피해 × H.
  * - 딜러 · 나 (힐러)의 위협이 보스를 잡은 탱커의 위협 × 여유를 넘으면 보스가 그 사람을 친다 (평타 · 예고 없는 탱커 기술만, 강타 예고는 그대로 탱커).
- * - 능력치 (97 FM): 탱커 기술 숙련 = 쌓는 양 · 집중 = 이동 · 생존기 · 강타 1초 동안 쌓기 · 반응 = 되찾기까지, 딜러 판단 = 딜 줄이기 시작 · 침착 = 뺏은 뒤 딜 멈추기까지.
+ * - 능력치 (97 FM): 탱커 기술 숙련 = 쌓는 양 · 되찾기까지 조금, 집중 = 이동 · 생존기 · 강타 1초 동안 쌓기, 반응 = 되찾기까지 (4~8초, 그동안 보스는 뺏은 사람을 침), 딜러 판단 = 딜 줄이기 시작 · 침착 = 뺏은 뒤 딜 멈추기까지.
  * - 레벨 차이: 탱커보다 1레벨 높을 때마다 위협 +4% (×0.6 ~ ×2).
  * 튜토리얼 · 프로토타입 · 파티원 능력이 없는 판 (옛 시드 파티) · 일반 · 정예 구간 · 탱커 없는 파티는 끔.
  */
@@ -26,7 +26,7 @@ export interface ThreatState {
   retakes: number;
   /** 뺏기 직전 (선의 90%)인 딜러 (판 위 주황 테두리) */
   warn: number[];
-  /** 내 위협 ÷ 뺏는 선 (게이지, 60%부터) */
+  /** 내 위협 ÷ 뺏는 선 (화면에는 안 보임, 2026-10-19 Lim 「어그로 게이지는 보이지 않게」) */
   me: number;
   /** 경고 대사를 한 딜러 · 그 시각 */
   warned: Map<number, number>;
@@ -139,12 +139,12 @@ function healerRaw(f: Fight, tank: Unit): number {
   return THREAT.heal * Math.sqrt(t.heal / Math.max(t.taken, t.floor)) * levelMult(f, f.me, tank) * (t.vN / vT);
 }
 
-/** 되찾기까지 (초): 반응 1 → 3 · 10 → 1.7 · 20 → 0.5. 뉴비는 처음 보는 보스에서 느림, 끈기형은 길어질수록 빠름 */
+/** 되찾기까지 (초): 반응 1 → 8 · 10 → 6 · 20 → 4, 기술 숙련 1 → × 1.1 · 20 → × 0.9, 4~8초. 뉴비는 처음 보는 보스에서 느림, 끈기형은 길어질수록 빠름 */
 export function retakeDelay(f: Fight, u: Unit): number {
-  let d = lerp3(stat(u, 'react'), THREAT.retake[0], THREAT.retake[1], THREAT.retake[2]);
+  let d = lerp3(stat(u, 'react'), THREAT.retake[0], THREAT.retake[1], THREAT.retake[2]) * lerp3(stat(u, 'skill'), THREAT.retakeSkill[0], 1, THREAT.retakeSkill[1]);
   if (u.p.learn) d *= u.p.learn.react;
   if (u.p.grit) d *= Math.max(u.p.grit.min, 1 - u.p.grit.step * Math.floor(f.t / u.p.grit.every));
-  return d;
+  return Math.max(THREAT.retakeMin, Math.min(THREAT.retakeMax, d));
 }
 
 /** 딜러가 뺏은 뒤 딜을 멈추기까지 (초): 침착 1 → 2 · 10 → 1 · 20 → 바로 */
@@ -160,11 +160,14 @@ export function bossTarget(f: Fight): Unit | null {
   return aggroTarget(f);
 }
 
-/** 딜러가 딜을 멈춘 동안 (뺏은 뒤 침착) · 줄인 동안의 딜 배율 (units unitDps) */
+/**
+ * 딜 배율 (units unitDps): 뺏은 딜러는 침착만큼 지나면 딜을 멈추고 (stopSec초), 되찾을 때까지 줄여서 침 · 선 가까이에서 줄인 동안 1 − ease.
+ * 되찾기가 4~8초라 그동안 내내 멈추면 판 딜이 너무 빠져서 멈춤은 처음 몇 초만 (2026-10-19)
+ */
 export function threatDps(f: Fight, u: Unit): number {
   const t = f.thr;
   if (!t) return 1;
-  if (t.steal && t.steal.id === u.id && f.t >= t.steal.stopAt) return 0;
+  if (t.steal && t.steal.id === u.id && f.t >= t.steal.stopAt) return f.t < t.steal.stopAt + THREAT.stopSec ? 0 : 1 - THREAT.ease;
   return u.thrEase ? 1 - THREAT.ease : 1;
 }
 
@@ -213,7 +216,9 @@ export function threatTick(f: Fight): void {
   }
   if (t.steal) {
     const s = t.steal, who = f.party.find(x => x.id === s.id);
-    if (!who || !who.alive || raw(who) < THREAT.back) { endSteal(f); return; } // 쓰러짐 · 위협이 식어 보스가 돌아감
+    if (!who || !who.alive) { f.stats.stealDeaths = (f.stats.stealDeaths ?? 0) + 1; endSteal(f); return; } // 쓰러짐
+    // 되찾을 때까지 보스는 그 사람을 봄 (위협이 식어도 저절로 안 돌아감): 판 위 주황 띠도 그 사람에게 (내가 뺏으면 띠 없음)
+    if (!who.me && !t.warn.includes(who.id)) t.warn.push(who.id);
     if (t.retakeAt != null && f.t + 1e-9 >= t.retakeAt) { // 되찾기 (모든 탱커의 기본 행동, 재사용 8초): 탱커 위협 = 뺏은 사람의 1.1배
       t.v.set(base.id, raw(who) * vT * THREAT.retakeMult);
       t.readyAt = f.t + THREAT.retakeCd; t.retakes++;

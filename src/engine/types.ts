@@ -661,6 +661,8 @@ export interface FightStats {
   /** 어그로 (96): 딜러가 뺏은 횟수 · 내가 (힐러) 뺏은 횟수 · 뺏긴 동안 보스에게 맞은 피해 */
   steals?: number;
   healerSteals?: number;
+  /** 뺏은 사람이 되찾기 전에 쓰러진 횟수 (sim 보정용) */
+  stealDeaths?: number;
   stealDmg?: number;
   healed: number;
   overheal: number;
