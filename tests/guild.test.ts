@@ -9,7 +9,7 @@ import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
 import {
-  appsPerDay, deedOf, FAME, GUILD_MAX, GUILD_NEED, GUILD_STEPS, guildLvOf, habitOf, POST, postGold, REST_SHARE, rerollGold, SPONSOR, sponsorGold, memberSkillLevel, statPerLevel, statWeights, STORY, type GuildMember,
+  appsPerDay, deedOf, FAME, GUILD_MAX, GUILD_NEED, GUILD_STEPS, guildLvOf, habitOf, POST, postGold, REST_SHARE, rerollGold, SPONSOR, sponsorGold, memberSkillLevel, spendPoints, statPerLevel, statWeights, STORY, type GuildMember,
 } from '../src/data/guild';
 import { birthV25, growthOf, growWeights, lvAdds, lvPoints, STAT_KEYS, type Stats } from '../src/data/fm';
 import { DAILY, GUILD_GOAL } from '../src/data/missions';
@@ -366,10 +366,20 @@ describe('능력치는 레벨업할 때 (Lim 10-18)', () => {
     expect(m.votes.length).toBe(5);
     expect(Gd.growStats(m, 0, undefined, rng)).toEqual([]);
     const slow = mem({ sxp: 0, learn: 1 }), no = () => 0.5; // 0.5 ≥ LV_DOUBLE: 두 배 안 나옴
-    expect([Gd.growStats(slow, 1, undefined, no).length, slow.sxp, slow.lastDouble]).toEqual([0, 0.9, 0]);
+    expect([Gd.growStats(slow, 1, undefined, no).length, slow.sxp, slow.lastDouble]).toEqual([0, 0.9, undefined]);
     expect(Gd.growStats(slow, 1, undefined, no).length).toBe(1);
     const lucky = mem({ sxp: 0, learn: 1 });
     expect([Gd.growStats(lucky, 1, undefined, () => 0.1).length, lucky.sxp, lucky.lastDouble]).toEqual([1, 0.8, 1]); // 두 배: 1.8점
+    // 두 배 = 서로 다른 두 칸에 1점씩 (Lim 10-20 「한 능력에 2업이 아니고 각각 다른 능력치」): 늘 같은 난수여도 같은 칸을 두 번 안 뽑음
+    const two = mem({ sxp: 0, learn: 10 }), b2 = { ...two.stats }, got = Gd.growStats(two, 1, undefined, () => 0.1);
+    expect(got).toHaveLength(2);
+    expect(got[0].k).not.toBe(got[1].k);
+    expect(got.map(x => two.stats[x.k] - b2[x.k])).toEqual([1, 1]);
+    expect([two.lastDouble, two.lastDoubleStats]).toEqual([1, got.map(x => x.k)]);
+    const back = migrate(JSON.parse(JSON.stringify({ ...save(30), guild: { ...newSave().guild, founded: true, members: [two], nextId: two.id + 1 } }))).guild.members[0];
+    expect([back.lastDouble, back.lastDoubleStats]).toEqual([1, got.map(x => x.k)]); // 다시 불러도 남음
+    Gd.growStats(two, 1, undefined, no);
+    expect(two).not.toHaveProperty('lastDouble'); // 다음 레벨업에 두 배가 없으면 지움
     const top = mem({ lv: 1, learn: 10 });
     top.stats = Object.fromEntries(Object.keys(top.stats).map(k => [k, 20])) as GuildMember['stats'];
     expect(Gd.growStats(top, 500, undefined, rng)).toEqual([]);
@@ -705,6 +715,9 @@ describe('저장 v27 (103 Lim 「레벨업시 20프로 확률로 2업」)', () =
     expect(got).toBeLessThan(22);
     expect([l.stats, l.sxp]).toEqual([low.stats, 0.3]);
     expect(migrate(JSON.parse(JSON.stringify(d))).guild.members).toEqual(d.guild.members);
+    // 더하는 1점은 그 레벨에 이미 오른 칸 (공개모집 굴림)을 빼고 = 다른 두 칸
+    const sp = { ...a, stats: { ...a.stats }, sxp: 1 };
+    expect(spendPoints(sp, 'tank', () => 0, [STAT_KEYS[0], STAT_KEYS[1]])).toEqual([STAT_KEYS.find((k, i) => i > 1 && statWeights(a, 'tank')[k] > 0)]);
     let n = 0, tot = 0;
     for (const c of RECRUIT_CLASSES) for (const p of PARTY_POOL[c].slice(0, 20)) { const x = Gd.newMember(s, { ...p, cls: c }, 100); const y = dbl(x); tot += sum(y.stats) + y.sxp - sum(x.stats) - x.sxp; n++; }
     expect(tot / n).toBeGreaterThan(0.2 * 85 * 0.9 - 2); // 사람마다 평균 17점 안팎 (학습력 0.9~1.1)

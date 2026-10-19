@@ -78,8 +78,9 @@ export interface GuildMember {
   stats: Stats;
   /** 직전 레벨업 때 실제 오른 능력치. 과거 저장은 기록이 없으므로 표시하지 않는다. */
   lastStatGains?: StatKey[];
-  /** 직전 레벨업 판에서 두 배 (LV_DOUBLE)가 나온 레벨 수 (0이면 없음) */
+  /** 직전 레벨업 판에서 두 배 (LV_DOUBLE)가 나온 레벨 수 (0이면 없음) · 마지막 두 배 레벨에 오른 칸 (서로 다른 칸) */
   lastDouble?: number;
+  lastDoubleStats?: StatKey[];
   learn: number;
   steady: number;
   /** 쌓인 능력치 점수 (레벨업마다 학습력만큼, 20% 두 배, 1점 = 한 칸 +1) · 최근 5판의 「한 일」 표 */
@@ -106,7 +107,10 @@ export const REST_SHARE = 0.3;
  * 레벨 하나가 LV_DOUBLE 확률로 두 배 (평균 1.2배)
  */
 export const statPerLevel = (learn: number) => lerp3(learn, 0.9, 1, 1.1) * LV_PTS;
-/** 길드원 레벨업 한 번이 두 배 (2점 × 학습력)일 확률 (2026-10-20 Lim 「레벨업시 20프로 확률로 2업」, 103): 다 키운 길드가 공개모집 (레벨마다 1점)보다 앞서게 */
+/**
+ * 길드원 레벨업 한 번이 두 배 (2점 × 학습력)일 확률 (2026-10-20 Lim 「레벨업시 20프로 확률로 2업」, 103): 다 키운 길드가 공개모집 (레벨마다 1점)보다 앞서게.
+ * 두 점은 서로 다른 칸에 1점씩 (Lim 「한 능력에 2업이 아니고 각각 다른 능력치 랜덤 업」, 한 레벨 안에서는 같은 칸을 두 번 안 뽑음)
+ */
 export const LV_DOUBLE = 0.2;
 
 /** 최근 「한 일」 표 1장이 그 칸 무게에 더하는 몫 (×(1 + 이것 × 표 수)) */
@@ -118,6 +122,24 @@ export function statWeights(m: Pick<GuildMember, 'nick' | 'pers' | 'stats' | 'vo
   const w = growWeights(m.nick, m.pers, role), out = {} as Record<StatKey, number>;
   for (const k of STAT_KEYS) out[k] = m.stats[k] >= 20 ? 0 : w[k] * (1 + VOTE_W * m.votes.filter(v => v.includes(k)).length);
   return out;
+}
+
+/** 모아 두는 점수 (오를 칸이 없을 때, 레벨 상한이 오르면 씀) */
+export const SXP_BANK = 3;
+/** 쌓인 점수 (m.sxp)를 1점씩 오를 칸에 (성장 결 무게), skip · 이번에 오른 칸은 다시 안 뽑음 (다른 칸이 없으면 같은 칸도). 오를 칸이 없으면 3점까지 모아 둠 */
+export function spendPoints(m: Pick<GuildMember, 'nick' | 'pers' | 'stats' | 'votes' | 'sxp'>, role: 'tank' | 'melee' | 'ranged', r: () => number, skip: readonly StatKey[]): StatKey[] {
+  const got: StatKey[] = [];
+  while (m.sxp + 1e-9 >= 1) {
+    const w = statWeights(m, role), used = new Set([...skip, ...got]);
+    const fresh = Object.fromEntries(STAT_KEYS.map(k => [k, used.has(k) ? 0 : w[k]])) as Record<StatKey, number>;
+    const pool = STAT_KEYS.some(k => fresh[k] > 0) ? fresh : w, tot = STAT_KEYS.reduce((a, k) => a + pool[k], 0);
+    if (tot <= 0) { m.sxp = Math.min(m.sxp, SXP_BANK); break; }
+    let x = r() * tot, k = STAT_KEYS.filter(s => pool[s] > 0).at(-1)!;
+    for (const s of STAT_KEYS) { if (pool[s] <= 0) continue; x -= pool[s]; if (x <= 0) { k = s; break; } }
+    m.sxp = Math.round((m.sxp - 1) * 1000) / 1000; m.stats[k]++;
+    got.push(k);
+  }
+  return got;
 }
 
 /** 「한 일」 표 (97): 그 판에서 가장 두드러진 일 하나 → 오를 칸 */

@@ -308,9 +308,14 @@ function notesHtml(x: Settlement): string {
     const sum = gd.members.reduce((s, m) => s + m.xp, 0);
     const ups = gd.members.filter(m => m.ups.length).map(m => `${esc(m.nick)} Lv ${m.ups[m.ups.length - 1]}`);
     out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-members', uiIcon('guild'))}<span>${sum ? `길드원 경험치 +${fmt(sum)}` : '길드원 레벨 상한 (내 레벨까지)'}${ups.length ? ` · <b>${ups.join(' · ')}</b>` : ''}${gd.first ? ' · <b>길드 첫 처치</b>' : ''}</span></button>`);
-    // 레벨업 두 배 (LV_DOUBLE, 103 Lim 「레벨업시 20프로 확률로 2업」): 한 줄로 따로 (길드원 줄은 길어 잘림), 한 판에 두 번이면 ×2
+    // 레벨업 두 배 (LV_DOUBLE, 103 Lim 「레벨업시 20프로 확률로 2업」 · 「각각 다른 능력치」): 한 줄로 따로 (길드원 줄은 길어 잘림).
+    // 한 사람이면 오른 두 칸 (「이름 공격 +1 · 회피 +1」), 여럿이거나 길면 이름만 (한 판에 두 번이면 ×2)
     const dbl = gd.members.filter(m => m.dbl);
-    if (dbl.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-record', uiIcon('star'))}<span><i class="r-dbl">능력치 +2</i> · ${dbl.map(m => `${esc(m.nick)}${(m.dbl ?? 0) > 1 ? ` ×${m.dbl}` : ''}`).join(' · ')}</span></button>`);
+    if (dbl.length) {
+      const one = dbl.length === 1 && (dbl[0].dblStats?.length ?? 0) >= 2 ? `${dbl[0].nick} ${dbl[0].dblStats!.map(k => `${STAT_NAMES[k]} +1`).join(' · ')}` : '';
+      const body = one && one.length <= 24 ? esc(one) : dbl.map(m => `${esc(m.nick)}${(m.dbl ?? 0) > 1 ? ` ×${m.dbl}` : ''}`).join(' · ');
+      out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-record', uiIcon('star'))}<span><i class="r-dbl">레벨업 두 배</i> · ${body}</span></button>`);
+    }
     const st = gd.members.flatMap(m => m.stats.map(s => ({ nick: m.nick, ...s, to: s.shown ?? s.to }))).sort((a, b) => Number(!!b.why) - Number(!!a.why)).slice(0, 2);
     if (st.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('guild-record', uiIcon('star'))}<span>${st.map(s => `${esc(s.nick)} ${STAT_NAMES[s.k]} <b>${s.to}</b>${s.why ? ` (${s.why})` : ''}`).join(' · ')}</span></button>`);
     // 후원 (98): 쉬는 판에 출전만큼 받은 사람
