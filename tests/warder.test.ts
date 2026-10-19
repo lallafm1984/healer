@@ -83,7 +83,7 @@ describe('스킬', () => {
     step(f, WARDER.seal.sec + 0.1);
     expect(sealed(f, u)).toBe(false);
   });
-  it('빛의 막: 300 보호막 + 인장, 같은 대상은 더해지되 최대 체력 60%까지', () => {
+  it('빛의 막: 150 보호막 (10-19 300 → 150) + 인장, 같은 대상은 더해지되 최대 체력 60%까지', () => {
     const f = fight(), u = dps(f)[0];
     now(f, 'lightBarrier', u.cell);
     expect(absorbLeft(f, u)).toBe(SKILLS.lightBarrier.amt);
@@ -92,12 +92,12 @@ describe('스킬', () => {
     damage(f, u, 100, false, 'fixed');
     expect(u.hp).toBe(h);
     expect(absorbLeft(f, u)).toBeCloseTo(SKILLS.lightBarrier.amt! - 100, 6);
-    u.max = 500;
+    u.max = 300;
     f.cd.lightBarrier = 0; f.gcd = 0;
     now(f, 'lightBarrier', u.cell);
-    expect(absorbLeft(f, u)).toBeCloseTo(500 * WARDER.shieldCap, 6);
+    expect(absorbLeft(f, u)).toBeCloseTo(300 * WARDER.shieldCap, 6);
   });
-  it('결계 원: 붙어 있는 6칸 (20인 2칸)에 100 보호막 + 인장', () => {
+  it('결계 원: 붙어 있는 6칸 (10-19부터 20인도 1칸)에 60 보호막 + 인장', () => {
     const f = fight(), u = withAdj(f, 1);
     now(f, 'wardCircle', u.cell);
     for (const v of [u, ...adj(f, u)]) { expect(absorbLeft(f, v)).toBe(SKILLS.wardCircle.amt); expect(sealed(f, v)).toBe(true); }
@@ -143,7 +143,7 @@ describe('스킬', () => {
     expect(sealed(f, c)).toBe(false);
     expect(SKILL_INFO.wardHold.desc).not.toMatch(/보스|피해를 줍니다/);
   });
-  it('심판: 인장이 없으면 안 나감, 회복 인원은 3인 6 · 5인 3 · 10인 4 · 20인 6', () => {
+  it('심판: 인장이 없으면 안 나감, 회복 인원은 3인 6 · 5인 4 · 10인 2 · 20인 3 (10-19)', () => {
     const f = fight();
     expect(judgeReady(f)).toBe(false);
     expect(E.use(f, 'judgment', 0).ok).toBe(false);
@@ -153,7 +153,7 @@ describe('스킬', () => {
     const g = fight(); g.party = g.party.slice(0, 3);
     expect(judgeCount(g)).toBe(WARDER.judge.n);
   });
-  it('심판: 2초 시전 뒤 인장이 붙은 가장 다친 아군을 90씩 (2026-10-16 보스 공격 없음)', () => {
+  it('심판: 2초 시전 뒤 인장이 붙은 가장 다친 아군을 80씩 (2026-10-16 보스 공격 없음 · 10-19 90 → 80)', () => {
     const f = fight(); hurt(f, 0.5);
     const os = others(f);
     seal(f, ...os);
@@ -176,7 +176,7 @@ describe('패시브', () => {
     expect(absorbLeft(f, u)).toBe(0);
     expect(healOn(healsOf(f), u)).toBe(WARDER.broken);
   });
-  it('인장의 대가 (Lv 10): 심판이 4명 이상 회복하면 마나 2%', () => {
+  it('인장의 대가 (Lv 10): 심판이 2명 이상 회복하면 마나 2% (10-19 4 → 2)', () => {
     const f = fight([], {}, 100, 'plague'); hurt(f, 0.5);
     seal(f, ...others(f));
     f.mana = 50;
@@ -215,7 +215,7 @@ describe('특성 (79 5-7)', () => {
     now(h, 'wardCleanse', x.cell);
     expect(adj(h, x).every(v => absorbLeft(h, v) === TX.cleanWard.amt)).toBe(true);
   });
-  it('굳은 결계 보호막 50% (82) · 빠른 막 4초 · 번지는 인장 (붙은 1명)', () => {
+  it('굳은 결계 보호막 60% (82 · 10-19) · 빠른 막 4초 · 번지는 인장 (붙은 1명)', () => {
     const f = fight(['firmWard']), t = tank(f);
     now(f, 'guardWard', t.cell);
     expect(absorbLeft(f, t)).toBeCloseTo(t.max * TX.firmWard, 6);
