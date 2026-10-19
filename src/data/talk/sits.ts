@@ -107,6 +107,7 @@ export const SITS = {
   skillFumble: S('보스', '스킬 헛씀', 'self', 2, 0.8, '직업 스킬을 썼는데 헛나감 (재사용만 돎, 기술 숙련이 낮음)'),
   aggroHold: S('보스', '어그로 뺏고 멈춤', 'self', 2, 0.8, '보스를 뺏은 딜러가 판단이 좋아 딜을 멈추고 탱커가 되찾기를 기다림 (침착도 좋으면 생존기를 켜고 버팀)'),
   aggroIgnore: S('보스', '어그로 뺏고 계속 때림', 'self', 2, 0.8, '보스를 뺏은 딜러가 판단이 낮아 딜을 안 멈춤 (어그로가 오래 머묾)'),
+  aggroAdds: S('보스', '어그로 뺏고 쫄로', 'self', 2, 0.8, '보스를 뺏은 딜러가 딜을 멈추는 대신 쫄 · 감옥을 침 (쫄 딜은 보스 위협이 안 됨). 탱커가 되찾으면 다시 보스'),
   aggroPanic: S('보스', '어그로 뺏고 당황', 'self', 2, 0.8, '보스를 뺏은 딜러가 멈출 줄은 알지만 침착이 낮아 한 대 더 치고 이동을 머뭇거림'),
   aggroLost: S('보스', '어그로 뺏고 자리 잃음', 'self', 3, 1, '보스를 뺏은 딜러가 판단 · 침착이 다 낮아 딜이 끊기고 옆 칸으로 밀려남 (힐러가 먼저 챙길 사람)'),
   tankLost: S('보스', '탱커 자리 못 찾음', 'self', 2, 0.5, '탱커가 앞줄 자리를 못 찾고 머뭇거림 (그동안 보스가 다른 사람을 침)'),
@@ -313,7 +314,7 @@ export const SIT_KEYS = Object.keys(SITS) as TalkSit[];
 export type TalkLines = Partial<Record<TalkSit, readonly string[]>>;
 
 /** 엔진 말풍선(bark)이 알려 주는 상황 */
-export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'lateDodge' | 'wrongDodge' | 'tankLost' | 'whiff' | 'skillFumble' | 'spaceOut' | 'reel' | 'clump' | 'coverCut' | 'alone' | 'standIn' | 'regroup' | 'aggroHold' | 'aggroIgnore' | 'aggroPanic' | 'aggroLost' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived'
+export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'lateDodge' | 'wrongDodge' | 'tankLost' | 'whiff' | 'skillFumble' | 'spaceOut' | 'reel' | 'clump' | 'coverCut' | 'alone' | 'standIn' | 'regroup' | 'aggroHold' | 'aggroIgnore' | 'aggroAdds' | 'aggroPanic' | 'aggroLost' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived'
   | 'slowMove' | 'follow' | 'wander' | 'luckLost' | 'luckBack' | 'cover' | 'selfish' | 'cheer' | 'rival' | 'rage' | 'calmStep' | 'optimist' | 'pessimist'
   | 'panic' | 'panicEnd' | 'allIn' | 'tired' | 'warmUp' | 'focusBroken' | 'shaken' | 'learned'
   | 'hoardUse' | 'spamUse' | 'cutTry' | 'addHunt' | 'oneTrack' | 'preGuard' | 'clutchOk' | 'clutchLate' | 'gather' | 'aggroSlip' | 'selfCare'

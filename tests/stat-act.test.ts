@@ -765,3 +765,23 @@ describe('Codex 검토 반영 4: 헛씀 종류 · 수습 틈', () => {
     expect(regrouping(f, u)).toBe(false);
   });
 });
+
+describe('Codex 검토 반영 2: 뺏고 멈춘 딜러는 쫄 · 감옥으로', () => {
+  it('쫄이 있으면 멈추는 대신 쫄을 계속 침 (딜 배율 1, 「쫄 치면서 기다림」 류), 쫄이 사라지면 다시 멈춤 · 쫄 딜은 보스 위협이 안 됨', async () => {
+    const { runEffect } = await import('../src/engine/bossParts');
+    const f = fight({ st: { judgment: 20, composure: 20 }, steady: 15 }), tk = who(f, '탱'), u = who(f, '근'), t = f.thr!;
+    for (let i = 0; i < 200; i++) { E.step(f); f.events.length = 0; }
+    runEffect(f, {} as never, { p: 'adds', n: 1, add: { name: '꼬마 악마', short: '악마', hp: 0.5, dmg: 1, every: 9 } } as never);
+    const sits: string[] = [];
+    for (let i = 0; i < 40 && !t.steal; i++) { t.v.set(u.id, (t.v.get(tk.id) ?? 1) * 3); E.step(f); for (const ev of f.events) if (ev.type === 'bark' && ev.id === u.id && ev.sit) sits.push(ev.sit); f.events.length = 0; }
+    expect(t.steal?.id).toBe(u.id);
+    expect(sits).toContain('aggroAdds');
+    t.retakeAt = f.t + 20;
+    const v0 = t.v.get(u.id) ?? 0;
+    for (let i = 0; i < 40; i++) { E.step(f); f.events.length = 0; }
+    expect(threatDps(f, u)).toBe(1);
+    expect(t.v.get(u.id) ?? 0).toBeLessThan(v0); // 쫄만 쳐서 보스 위협은 식기만 함
+    for (const m of f.mobs) m.alive = false;
+    expect(threatDps(f, u)).toBe(0); // 쫄이 없으면 예전처럼 멈춤 (판단 · 침착 20 = 되찾을 때까지)
+  });
+});
