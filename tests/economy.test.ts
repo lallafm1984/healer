@@ -323,3 +323,18 @@ describe('105 QA 2바퀴: 주 중간 첫 주간 임무', () => {
     }
   });
 });
+
+describe('105 QA 3바퀴: 주 첫 접속이 토 · 일', () => {
+  it('새 주를 토 · 일에 처음 열면 「일일 상자 5번」은 못 채워서 안 뽑음, 월요일엔 뽑힐 수 있음', () => {
+    for (let i = 0; i < 20; i++) {
+      seed = i + 7;
+      const s = save(15);
+      const sat = new Date(2026, 9, 17, 12).getTime(); // 10-12 주의 토요일
+      rollover(s, sat, rng);
+      expect(s.weekly.missions.some(m => m.key === 'w_chest5'), `seed ${seed}`).toBe(false);
+    }
+    let any = false;
+    for (let i = 0; i < 20 && !any; i++) { seed = i + 7; const s = save(15); rollover(s, new Date(2026, 9, 12, 12).getTime(), rng); any = s.weekly.missions.some(m => m.key === 'w_chest5'); }
+    expect(any).toBe(true);
+  });
+});
