@@ -71,13 +71,6 @@ export interface HazardRules {
 export const HAZARD: HazardRules = { zone: 2, zoneHitCap: 480, buster: 0.7 };
 
 /**
- * 레이드 (party명 이상) 시각 광폭화 (전원 광역): 딜러가 다 쓰러진 뒤부터 맞을 때마다 step씩 세짐 (탱커 없음 광폭화는 처음부터 NO_TANK_RAMP).
- * 2026-10-19: 딜러가 다 쓰러지고 탱커 둘 + 힐러만 남으면 같은 세기 광역을 끝없이 버텨 20인 판이 700초를 넘기도 했음 (물밑 수도원 제단 악몽).
- * 처음엔 「광폭화 60초 뒤부터 모두」였는데 광폭화 뒤에 이기는 악몽 판이 많아 (악몽 −1.5%p) 딜러가 다 쓰러진 판만으로 좁힘
- */
-export const ENRAGE = { party: 10, step: 0.25 };
-
-/**
  * 어그로 (96 문서, engine/threat.ts). K · 여유 · 되찾기는 sim으로 맞춤 (672칸 클리어율 ±1%p, 판당 뺏기 5인 0~1 · 10인 1 · 20인 1~2번).
  * 1 → 10 → 20 칸은 능력치 (97 FM) 값
  */
