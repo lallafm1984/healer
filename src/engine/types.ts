@@ -308,6 +308,8 @@ export interface AbState {
   hist: number[];
   /** 덜렁이: 회복 능력을 쓰는 체력 (무작위) */
   odd?: number;
+  /** 능력치 (99 라): 이번 판 생존기 체력 기준 흔들림 (꾸준함) */
+  gj?: number;
   /** 거합 반격 간격 */
   lastCounter: number;
   /** 이 능력으로 회복한 양 */
@@ -481,6 +483,8 @@ export type FightEvent =
   | { type: 'hit'; uid: number; amt: number; crit?: boolean }
   /** 능력치 (99 다): 파티원 한 방이 빗나감 (보스 초상에 회색 「빗나감」) */
   | { type: 'miss'; uid: number }
+  /** 능력치 (99 라): 보스 평타를 막아 반만 맞음 (칸 위 「막음」) */
+  | { type: 'parry'; id: number }
   /** 뒤집힌 축복: 치유가 피해로 (말풍선 반응. 숫자는 dmg 사건) */
   | { type: 'hurt'; id: number; amt: number }
   /**

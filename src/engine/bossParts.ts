@@ -6,7 +6,8 @@ import { ABILITIES } from '../data/abilities';
 import type { DamageAim } from '../data/armor';
 import type { AddDef, AddDown, AddJob, BossDef, DebuffDef, DebuffEnd, FlowDo, FlowIf, FlowStep, SkillEffect, SkillWhen, ZoneCells } from '../data/bosses';
 import { HEROES } from '../data/heroes';
-import { zoneDps } from '../data/rules';
+import { STAT_ACT, zoneDps } from '../data/rules';
+import { sharp } from '../data/fm';
 import type { PersName } from '../data/personalities';
 import { SKILLS, type SkillKey } from '../data/skills';
 import { modsTaken } from './abilities';
@@ -38,7 +39,10 @@ export function aggroTarget(f: Fight): Unit | null {
 /** 보스 평타 ±30% */
 export function autoHit(f: Fight, tk: Unit, base: number): void {
   const r = f.rng();
-  damage(f, tk, base * (0.7 + 0.6 * r), false, 'tank');
+  let amt = base * (0.7 + 0.6 * r);
+  // 99 라: 방어 · 발놀림이 15 넘으면 가끔 막아 반만 맞음 (15 이하는 예전 그대로)
+  if (tk.wob != null && tk.fmStats) { const p = STAT_ACT.parry * sharp((tk.fmStats.armor + tk.fmStats.agility) / 2); if (p > 0 && f.rng() < p) { amt *= 0.5; emit(f, { type: 'parry', id: tk.id }); } }
+  damage(f, tk, amt, false, 'tank');
 }
 
 /**

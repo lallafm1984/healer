@@ -16,7 +16,7 @@ import { autoHealer, create, DT, hexDist, knowsPassive, restCarry, setBeacon, sk
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ratsArt } from './art';
-import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxAllyHeal, fxCure, fxDamage, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxPxf, fxPxfCell, fxImpact, fxRevive, fxShake, fxShield, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, type BubbleKind } from './board';
+import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxNote, fxAllyHeal, fxCure, fxDamage, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxPxf, fxPxfCell, fxImpact, fxRevive, fxShake, fxShield, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, type BubbleKind } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, clearToasts, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
@@ -534,6 +534,7 @@ function handleEvents(now: number): void {
       case 'impact': fxImpact(ev.kind, now); break; // 외침·등불 흔들기 … 떨어짐 (44 E-2 · 3)
       case 'hit': dmgNum(F.party.find(x => x.id === ev.uid), ev.amt, now, !!ev.crit); break;
       case 'miss': missNum(F.party.find(x => x.id === ev.uid)); break;
+      case 'parry': if (u) fxNote(u, '막음', 0xcfd8e3, now); break; // 99 라
       case 'death':
         if (u) fxDeath(u, now);
         if (u && !u.me) toast(`${u.nick} 쓰러짐`, 'bad');
@@ -551,6 +552,7 @@ function handleEvents(now: number): void {
       }
       case 'ability': { // 파티원 능력: 이름 글자 + 능력 종류 PXF 이펙트 (모든 효과 PXF 1단계)
         if (!u) break;
+        if (ev.fumble) { fxNote(u, `${ev.name} 헛씀`, 0xb9b1a2, now); break; } // 99 다: 헛씀 (이펙트 없음)
         fxAbility(u, ev.name, now);
         const fx = u.ab && ALLY_PXF[ABILITIES[u.ab.key]?.kind];
         if (fx) fxPxf(u, fx, now);
