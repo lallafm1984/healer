@@ -200,7 +200,7 @@ describe('(다) 딜 · 직업 스킬', () => {
     return { hit, miss, crit };
   }
   it('기술 숙련이 15보다 낮으면 한 방이 빗나감 (1 = 15%), 15 이상은 늘 들어감', () => {
-    const lo = swings({ skill: 1 }, 400), par = swings({ skill: 15 }, 200);
+    const lo = swings({ skill: 1, focus: 15 }, 400), par = swings({ skill: 15, focus: 15 }, 200); // 집중 15: 「멍」 빗나감 빼고
     expect(lo.miss / (lo.hit + lo.miss)).toBeGreaterThan(STAT_ACT.miss - 0.05);
     expect(lo.miss / (lo.hit + lo.miss)).toBeLessThan(STAT_ACT.miss + 0.05);
     expect(par.miss).toBe(0);
@@ -426,5 +426,57 @@ describe('Codex 검토 반영: 버그', () => {
     const p = { fumble: 0 };
     for (let i = 0; i < 80; i++) shield(15, 50 + i, 15, p);
     expect(p.fumble).toBe(0);
+  });
+});
+
+describe('집중 「멍」 (Lim 06:47 「능력치 하나하나 모두 의미있게」)', () => {
+  /** 보스를 안 죽게 두고 sec초 돌리며 근접 딜러의 멍 · 빗나감 시각 */
+  function long(st: Partial<Stats>, sec: number, seed = 1, setup?: (f: F, u: Unit) => void) {
+    const f = fight({ st, seed }), u = who(f, '근');
+    f.bossHp = f.bossMax = 1e9;
+    setup?.(f, u);
+    const daze: number[] = [], miss: number[] = [];
+    while (f.t < sec && !f.over) {
+      E.step(f);
+      for (const ev of f.events) { if (ev.type === 'daze' && ev.id === u.id) daze.push(f.t); if (ev.type === 'miss' && ev.uid === u.id) miss.push(f.t); }
+      f.events.length = 0;
+    }
+    return { f, u, daze, miss };
+  }
+  it('집중이 15보다 낮으면 긴 전투일수록 잠깐 멍함 (처음 20초는 없음), 15 이상은 없음', () => {
+    let early = 0, late = 0, n = 0;
+    for (let s = 1; s <= 8; s++) {
+      const { daze } = long({ focus: 1 }, 260, s);
+      expect(daze.every(t => t >= STAT_ACT.dazeFirst)).toBe(true);
+      early += daze.filter(t => t < 80).length; late += daze.filter(t => t >= 200).length; n += daze.length;
+    }
+    expect(n).toBeGreaterThan(20);
+    expect(late).toBeGreaterThan(early); // 같은 60초라도 뒤쪽이 더 잦음
+    for (const focus of [15, 20]) expect(long({ focus }, 260, 3).daze.length).toBe(0);
+  });
+  it('멍한 동안: 새 장판 반응을 멍이 끝날 때까지 미루고, 한 방이 더 빗나감 (기술 숙련 15라도)', () => {
+    const f = fight({ st: { focus: 1 } }), u = who(f, '근');
+    for (let i = 0; i < 40; i++) { E.step(f); f.events.length = 0; }
+    u.dazeNext = Infinity; u.dazeUntil = f.t + 1.5;
+    const tel = zoneTel(f, u);
+    const r0 = { at: f.t, tel: tel.id };
+    u.react = r0;
+    const end = u.dazeUntil;
+    while (f.t < end - 1e-9) { E.step(f); f.events.length = 0; expect(u.moving).toBeNull(); expect(u.react).toBe(r0); }
+    for (let i = 0; i < 3; i++) { E.step(f); f.events.length = 0; }
+    expect(u.react).not.toBe(r0); // 멍이 끝나자 반응함
+    const on = long({ focus: 15, skill: 15 }, 60, 2, (_f, v) => { v.dazeNext = Infinity; v.dazeUntil = Infinity; }).miss.length;
+    const off = long({ focus: 15, skill: 15 }, 60, 2).miss.length;
+    expect(off).toBe(0);
+    expect(on).toBeGreaterThan(5);
+  });
+  it('탱커가 멍한 동안은 위협 쌓기가 집중 배율 (이동 · 강타 때처럼)', () => {
+    const run = (dz: boolean) => {
+      const f = fight({ tank: { focus: 1 }, seed: 4 }), tk = who(f, '탱');
+      f.bossHp = f.bossMax = 1e9;
+      for (let i = 0; i < 200; i++) { if (dz) { tk.dazeNext = Infinity; tk.dazeUntil = Infinity; } E.step(f); f.events.length = 0; }
+      return f.thr!.v.get(tk.id) ?? 0;
+    };
+    expect(run(true)).toBeLessThan(run(false) * 0.8);
   });
 });

@@ -132,9 +132,9 @@ export function takenThreat(f: Fight, amt: number): void {
   f.thr!.taken += amt;
 }
 
-/** 탱커가 보스를 노리지 못하는 동안 (이동 · 생존기 · 강타를 맞은 1초): 집중이 낮을수록 위협을 덜 쌓음 */
+/** 탱커가 보스를 노리지 못하는 동안 (이동 · 생존기 · 강타를 맞은 1초 · 멍한 동안 (99 집중)): 집중이 낮을수록 위협을 덜 쌓음 */
 function busy(f: Fight, u: Unit): boolean {
-  return !!u.moving || (u.busterAt != null && f.t - u.busterAt < 1) || u.mods.some(m => m.by === u.id && m.until > f.t && (m.k === 'cut' || m.k === 'mcut' || m.k === 'imm' || m.k === 'spell'));
+  return !!u.moving || (u.dazeUntil != null && f.t < u.dazeUntil) || (u.busterAt != null && f.t - u.busterAt < 1) || u.mods.some(m => m.by === u.id && m.until > f.t && (m.k === 'cut' || m.k === 'mcut' || m.k === 'imm' || m.k === 'spell'));
 }
 
 /** 어그로 흘림 (A안): first초부터 every초마다 sec초 동안 위협 쌓기가 멈춤 (딴생각) */

@@ -21,7 +21,7 @@ const EMOTES: Record<string, TalkSit[]> = {
   question: ['wrongStep', 'orderWrong', 'castMove', 'wrongDodge', 'tankLost', 'skillFumble', 'whiff', 'aggroLost'],
   anger: ['aggroIgnore', 'sulk', 'stubborn', 'jealous', 'noHeal', 'envy', 'vent'],
   tear: ['selfDown', 'lose', 'loseClose', 'allyDown', 'cry'],
-  dizzy: ['swallowed', 'jailed', 'noDps', 'pulled', 'freeze'],
+  dizzy: ['swallowed', 'jailed', 'noDps', 'pulled', 'freeze', 'spaceOut'],
   shield: ['aggroHold', 'busterOk', 'guardOn', 'shieldOn', 'offTank', 'eliteAdd', 'preGuard', 'clutchOk', 'gather'],
   sword: ['abAtk', 'adds', 'swarm', 'marchAdd', 'boss5', 'addHunt', 'oneTrack', 'hoardUse', 'spamUse'],
   flame: ['enraged', 'enrageSoon', 'noTank', 'partyLow', 'standIn'],
