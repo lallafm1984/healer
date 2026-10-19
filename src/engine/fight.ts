@@ -67,7 +67,7 @@ export function create(cfg: FightConfig): Fight {
     totems: [], beat: 0, beatUntil: 0, shards: 0,
     tx: null as unknown as TalentState, // 아래 newTalents
     manaCut: 1,
-    abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0, addDots: [] }, aff: null,
+    abOn: false, ab: { weak: 0, weakUntil: 0, taunt: 0, tauntUntil: 0 }, aff: null,
     skills: [], tels: [], zones: [], events: [], phase: 1, phaseName: '', invuln: false,
     enraged: false, armor: cfg.armor !== false, R, noTankAt: null, bodyHp: false, rats: [], bs: {}, order: null, daze: null, invertTap: null, empower: 0, lock: {}, watch: null, stagger: null, souls: [], links: [], vessel: null, melt: null, glass: [], bless: null, weak: null, expose: null, sp: cfg.proto ? null : newSpecs(cfg.specs), hold: null, sub: null, loose: null, slow: null, cheer: null, dark: false, split: false,
     stats: { healed: 0, overheal: 0, deaths: 0, minMana: 100, dispels: 0, dispellable: 0, trapPops: 0, queueLost: 0, casts: {}, taps: 0, missTaps: 0, emptyTaps: 0, cancels: 0, manaFails: 0, hymnBroken: 0 },
@@ -290,7 +290,23 @@ function partyHits(f: Fight): void {
       f.bossHp -= amt * (f.daze || f.expose || f.mobs.length ? bossTaken(f) : 1) * (u.p.addHunter?.boss ?? u.p.oneTrack?.boss ?? 1); // 멍함 · 영혼 축복 · 보호막 수정 (35 3-I) · 쫄 사냥꾼 · 외골수 (95)
       if (f.thr && u.role !== 'tank') dealerThreat(f, u, amt); // 어그로 (96): 보스에게 준 딜. 탱커는 threatTick이 쌓음
     }
+    const storm = u.mods.length ? u.mods.find(m => m.k === 'storm' && m.until > f.t) : undefined;
+    if (storm) stormHit(f, u, amt * storm.v);
     emit(f, { type: 'hit', uid: u.id, amt });
+  }
+}
+
+/**
+ * 칼날폭풍 (17, 2026-10-19 Lim 「스킬을 재구성하자」): 걸린 동안 공격할 때마다 보스가 아닌 적 모두에게 x씩 더 (쫄 · 일반 · 정예 구간 적 · 성가대).
+ * 자기 딜에 비례 (예전 최대 체력 25%는 일반 · 정예 구간에서 판 체력 25%를 순식간에 깎음)
+ */
+function stormHit(f: Fight, u: Unit, x: number): void {
+  for (const m of f.mobs) {
+    if (!m.alive || m.boss) continue;
+    const d = Math.min(m.hp, x);
+    u.dealt += d;
+    if (m.add && u.did) u.did.adds += d; // 길드원 「한 일」: 쫄을 많이 잡음
+    damageMob(f, m, d);
   }
 }
 

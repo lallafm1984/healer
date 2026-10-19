@@ -288,7 +288,7 @@ export interface Unit {
 /** 능력 효과 종류: cut 받는 피해 감소 · mcut 마법 피해 감소 · vuln 받는 피해 증가 · imm 피해 무시 · dps 딜 · nodps 딜 0 · heal 받는 치유
  * react 반응 시간 감소 · move 이동 시간 감소 · dodge 장판 회피 · nofear 겁 없음 · stop 멈춤 · hp 최대 체력 · absorb 흡수막 · spell 마법 기술 막기
  * noheal 치유 안 받음 · ahot 초당 자기 회복 · share 받는 피해 일부를 by가 대신 */
-export type ModKind = 'cut' | 'mcut' | 'vuln' | 'imm' | 'dps' | 'nodps' | 'heal' | 'react' | 'move' | 'dodge' | 'nofear' | 'stop' | 'hp' | 'absorb' | 'spell' | 'noheal' | 'ahot' | 'share';
+export type ModKind = 'cut' | 'mcut' | 'vuln' | 'imm' | 'dps' | 'nodps' | 'heal' | 'react' | 'move' | 'dodge' | 'nofear' | 'stop' | 'hp' | 'absorb' | 'spell' | 'noheal' | 'ahot' | 'share' | 'storm';
 export interface Mod { k: ModKind; v: number; until: number; src: string; by?: number }
 
 /** 능력 상태 */
@@ -703,8 +703,6 @@ export interface PartyAb {
   /** 도발·눈속임: 보스 아닌 적이 이 사람을 때림 */
   taunt: number;
   tauntUntil: number;
-  /** 칼날폭풍: 쫄 (보스 전투에 나온 적) 초당 최대 체력 비율 피해. 쓴 사람마다 하나, 쓴 사람이 쓰러지면 멈춤 */
-  addDots: { rate: number; until: number; by: number }[];
 }
 
 export interface Fight {
