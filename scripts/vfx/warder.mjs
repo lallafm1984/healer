@@ -126,24 +126,34 @@ export default {
     },
   },
 
-  /** 심판 (인장 터뜨리기, 회복한 인장 칸마다 · 공격 아님): 몸 위에 Codex 마름모 인장 (warder-diamond)이 떠올라 빛나다가 네 갈래 빛줄기로 풀려 위로 퍼지고,
-   *  풀려난 빛가루가 몸으로 스며듦 */
+  /** 심판 (인장 터뜨리기, 회복한 인장 칸마다 · 공격 아님, 2026-10-19 Lim 「심판 이펙트도 다시 한번」): 하늘에서 굵은 노란 빛기둥이 칸으로 쾅 내리꽂히고,
+   *  닿는 순간 흰 섬광 · 노란 · 하늘빛 충격파와 함께 Codex 여덟 갈래 빛살 (warder-radiant)이 칸보다 크게 터져 천천히 돌며 퍼지고, 빛살 여덟이 뻗어 나가며
+   *  빛가루가 사방으로 튀고 몸으로 빛 방울이 쏟아짐 (빛살 그림은 커지며 사라짐, 한자리에 머물지 않음) */
   'warder-judgment': {
     frames: 18, logical: 100, size: 320, scope: 'target',
     draw(g, { t }) {
-      const fade = 1 - E.in2(seg(t, 0.6, 1)), pop = E.back(seg(t, 0, 0.2), 1.7), open = seg(t, 0.35, 0.7), cy = -0.12;
-      glow(g, 0, cy, 1.1, Y.glow, 0.45 * fade);
-      impact(g, t, { y: cy, t0: 0.35, r: 1.15, sy: 0.9 });
-      if (open < 1 && !pic(g, 'warder-diamond', 0, cy, 1.5 * pop * (1 + 0.2 * open), (1 - E.in2(open)) * fade, { add: 0.4 * bell(t, 0.2, 0.35, 0.5) })) frame(g, 0, cy, 0.85, 0.85, 0.09, 1 - open, Math.PI / 4);
-      // 네 갈래 빛줄기 (위 · 좌우 위로 풀림)
-      if (open > 0) for (let i = 0; i < 4; i++) {
-        const a = rad(-90 + (i - 1.5) * 30), L = 1.45 * E.out3(open), w = 0.11 * (1 - seg(t, 0.6, 1));
-        lightStroke(g, s2 => ({ x: Math.cos(a) * lerp(0.25, L, s2), y: cy + Math.sin(a) * lerp(0.25, L, s2) }), Math.max(0, E.out2(open) - 0.6), 1, uu => w * (1 - uu * 0.6), { rim: Y.rim, body: Y.body, core: Y.core, a: fade, rimW: 0.018, glowCol: Y.glow, glowA: 0.6 });
+      const fade = 1 - E.in2(seg(t, 0.62, 1)), hit = 0.22, cy = -0.05, top = -1.65, pd = E.in2(seg(t, 0, hit)), py = lerp(top + 0.4, cy, pd);
+      // 내리꽂히는 빛기둥 (닿은 뒤 0.25 동안 옅어짐)
+      const pa = 1 - seg(t, hit, hit + 0.28);
+      if (pa > 0) {
+        glowOval(g, 0, lerp(top, py, 0.5), 0.45, Math.max(0.2, (py - top) / 2), Y.glow, 0.5 * pa);
+        lightStroke(g, s2 => ({ x: 0, y: lerp(top, py, s2) }), 0, 1, u => 0.3 * (0.35 + 0.65 * u) * (t < hit ? 1 : 1 + 0.6 * seg(t, hit, hit + 0.28)), { rim: Y.rim, body: Y.body, core: Y.core, a: pa, rimW: 0.025, coreW: 0.45, glowCol: Y.glow, glowA: 0.8 });
+        if (t < hit) { glow(g, 0, py, 0.45, Y.glow, 0.9); glow(g, 0, py, 0.18, '#ffffff', 1); }
       }
-      lightBurst(g, t, 3, 36, { y: cy, sp: 1.15, sq: 0.8, t0: 0.38, a: fade, grav: 0.4 });
-      lightRain(g, t, 4, 34, { w: 1.4, y0: cy, y1: 0.8, t0: 0.4, span: 0.35, a: fade });
-      glints(g, t, 6, 7, { t0: 0.38, step: 0.05, w: 2.0, y0: 0, h: 1.6, a: fade });
-      lightSwirl(g, t, 5, 30, { y0: 0.7, rise: 1.2, rr: 0.9, t0: 0.4, span: 0.3, a: fade });
+      impact(g, t, { y: cy, t0: hit, r: 1.3, sy: 0.9, a: 0.7 });
+      const pop = E.back(seg(t, hit - 0.02, hit + 0.18), 1.6), ra = (1 - E.in2(seg(t, 0.48, 0.85))) * fade;
+      if (pop > 0.01 && ra > 0 && !pic(g, 'warder-radiant', 0, cy, 2.1 * pop * (1 + 0.18 * seg(t, hit, 1)), ra * 0.92, { rot: t * 1.2, add: 0.2 * bell(t, hit, hit + 0.08, hit + 0.3) })) frame(g, 0, cy, 0.85, 0.85, 0.09, ra, Math.PI / 4);
+      // 뻗어 나가는 빛살 여덟 (노랑 · 하늘빛 번갈아)
+      const ru = seg(t, hit, hit + 0.38);
+      if (ru > 0 && ru < 1) for (let i = 0; i < 8; i++) {
+        const an = (i * TAU) / 8 + 0.2, r0 = lerp(0.35, 1.1, E.out3(ru)), r1 = lerp(0.6, 1.55, E.out3(ru)), aq = i % 2 === 1;
+        lightStroke(g, s2 => ({ x: Math.cos(an) * lerp(r0, r1, s2), y: cy + Math.sin(an) * lerp(r0, r1, s2) * 0.9 }), 0, 1, w0 => 0.07 * Math.sin(Math.PI * w0) * (1 - 0.5 * ru), { rim: Y.rim, body: aq ? AQ.light : Y.light, core: aq ? AQ.core : Y.core, a: (1 - E.in2(ru)) * fade, rimW: 0.012, glowCol: aq ? AQ.glow : Y.glow, glowA: 0.7 });
+      }
+      lightRain(g, t, 4, 30, { w: 0.6, y0: -1.4, y1: cy, t0: 0, span: 0.18, a: fade });
+      lightBurst(g, t, 3, 60, { y: cy, sp: 1.45, sq: 0.9, t0: hit, a: fade, grav: 0.3 });
+      lightRain(g, t, 5, 36, { w: 1.6, y0: -0.6, y1: 0.85, t0: hit + 0.1, span: 0.35, a: fade });
+      glints(g, t, 6, 9, { t0: hit, step: 0.05, w: 2.1, y0: 0, h: 1.9, a: fade });
+      lightSwirl(g, t, 7, 32, { y0: 0.75, rise: 1.35, rr: 1.0, t0: hit + 0.15, span: 0.35, a: fade });
     },
   },
 
@@ -207,34 +217,45 @@ export default {
     },
   },
 
-  /** 빛의 장막 (장막 칸마다): 발밑에서 Codex 주름진 빛 장막 (warder-veil)이 물결치며 위로 솟아올랐다가 위부터 빛가루로 풀려 흩날림. 여러 칸이라 적당히 */
+  /** 빛의 장막 (장막 칸마다, 2026-10-19 Lim 「장막 이미지가 어색하다, 다시 만들어보자」): Codex 노란 빛 오로라 장막 (warder-aurora)이 머리 위에서 칸 폭으로 아래로 펼쳐져 내려오며
+   *  세로 주름마다 따로 물결치고 (그림을 세로 띠로 잘라 띠마다 흔듦), 빛나는 밑단이 내려와 발밑에 닿을 때 노란 · 하늘빛 충격파가 퍼지고,
+   *  주름에서 빛가루가 흘러내리다 장막이 위로 걷히며 반짝이로 흩어짐 (한자리에 머물지 않음) */
   'warder-veil': {
     frames: 24, logical: 100, size: 320, scope: 'target',
     draw(g, { t }) {
-      const rise = E.out3(seg(t, 0, 0.35)), melt = E.in2(seg(t, 0.5, 0.95)), fade = 1 - E.in2(seg(t, 0.7, 1)), foot = 1.02, H = 2.15, W = 2.3;
-      glowOval(g, 0, foot - 0.05, 1.25, 0.38, Y.glow, 0.5 * fade);
-      impact(g, t, { y: foot - 0.05, t0: 0.05, r: 1.1, sy: 0.32 });
-      const top = foot - H * rise, cut = lerp(top, foot, melt);
-      if (cut < foot - 0.02) {
-        // 위부터 풀릴 때 잘린 윗선이 곧게 보이지 않게 윗부분 0.3은 다섯 띠로 점점 진하게
-        const band = (y0, y1, al) => {
-          if (y1 <= y0 || al <= 0) return;
-          g.save(); g.beginPath(); g.rect(-2, y0, 4, y1 - y0); g.clip();
-          if (!pic(g, 'warder-veil', Math.sin(t * 9) * 0.02, foot, W, 0.6 * al, { anchorY: 0.96, sy: (H / (W * 468 / 512)) * rise, add: 0.2 * (0.5 + 0.5 * Math.sin(t * 12)) })) { g.globalAlpha = 0.4 * al; g.fillStyle = C(Y.glow, 0.4); g.fillRect(-0.8, top, 1.6, foot - top); }
-          g.restore();
-        };
-        const F = melt > 0 ? 0.3 : 0;
-        for (let k = 0; k < 5 && F > 0; k++) band(cut + (F * k) / 5, Math.min(foot + 0.1, cut + (F * (k + 1)) / 5), (k + 1) / 5);
-        band(cut + F, foot + 0.1, 1);
+      const fade = 1 - E.in2(seg(t, 0.7, 1)), drop = E.out3(seg(t, 0, 0.35)), lift = E.in2(seg(t, 0.55, 1)), Wd = 2.55, top = -1.2 - 0.45 * lift, H = 2.2, hem = top + H * drop;
+      const img = asset('warder-aurora');
+      glowOval(g, 0, lerp(top, hem, 0.5), 1.25, Math.max(0.3, (hem - top) / 2), Y.glow, 0.35 * fade);
+      impact(g, t, { y: 0.95, t0: 0.32, r: 1.15, sy: 0.32 });
+      if (drop > 0.01) {
+        g.save(); g.beginPath(); g.rect(-2, top - 0.2, 4, hem - top + 0.2); g.clip();
+        const al = 0.72 * fade * (1 - 0.65 * lift), N = 22;
+        if (img) {
+          const sw = img.width / N;
+          for (const [pass, k] of [['source-over', 0.55], ['lighter', 0.3 * (0.6 + 0.4 * Math.sin(t * 13))]]) {
+            g.save(); g.globalCompositeOperation = pass; g.globalAlpha = al * k;
+            for (let i = 0; i < N; i++) {
+              const dx = -Wd / 2 + (i / N) * Wd + Math.sin(i * 0.55 + t * 11) * 0.04, dy = top + Math.sin(i * 0.4 + t * 7) * 0.035, dh = H * (1 + 0.035 * Math.sin(i * 0.7 + t * 9));
+              const ov = 0.45; g.drawImage(img, Math.max(0, (i - ov) * sw), 0, sw * (1 + 2 * ov), img.height, dx - (Wd / N) * ov, dy, (Wd / N) * (1 + 2 * ov), dh); // 띠끼리 겹쳐 이음매가 안 보이게
+            }
+            g.restore();
+          }
+        } else { g.globalAlpha = 0.4 * al; g.fillStyle = C(Y.glow, 0.4); g.fillRect(-Wd / 2, top, Wd, H); }
+        g.restore();
+        // 내려오는 밑단의 빛나는 물결 선
+        if (drop < 1) lightStroke(g, s2 => ({ x: lerp(-Wd / 2, Wd / 2, s2), y: hem + Math.sin(s2 * TAU * 2 + t * 12) * 0.05 }), 0, 1, w0 => 0.07 * Math.sin(Math.PI * w0) ** 0.5, { rim: Y.rim, body: Y.light, core: '#ffffff', a: fade, rimW: 0.012, glowCol: Y.glow, glowA: 0.8 });
       }
-      // 풀려 흩날리는 빛가루 (장막 윗선에서)
-      particles(g, t, 3, 54, r => ({ t0: 0.45 + r() * 0.45, life: 0.35 + r() * 0.2, x: (r() - 0.5) * 2.1, sz: 0.016 + r() * 0.024, ph: r() * 9, aq: r() < 0.3 }), (gg, p, age) => {
-        const y0 = lerp(foot - H, foot, E.in2(seg(p.t0, 0.5, 0.95))), x = p.x + Math.sin(age * 6 + p.ph) * 0.06, y = y0 - 0.5 * E.out2(age), al = (1 - age) * fade;
-        glow(gg, x, y, p.sz * 4, p.aq ? AQ.glow : Y.glow, 0.4 * al);
-        speck(gg, x, y, p.sz, p.aq ? AQ.light : age < 0.4 ? Y.core : Y.light, al, 0.5 + 0.5 * Math.sin(p.ph + age * 18));
+      // 주름에서 흘러내리는 빛가루 · 걷힐 때 위로 흩어지는 반짝이
+      particles(g, t, 3, 50, r => ({ t0: 0.1 + r() * 0.5, life: 0.4, x: (r() - 0.5) * 2.3, y0: -0.9 + r() * 1.2, sz: 0.016 + r() * 0.022, ph: r() * 9, aq: r() < 0.3 }), (gg, p, age) => {
+        const y = p.y0 + 0.6 * age, al2 = bell(age, 0, 0.2, 1) * fade; if (y > hem) return;
+        glow(gg, p.x, y, p.sz * 4, p.aq ? AQ.glow : Y.glow, 0.4 * al2); speck(gg, p.x, y, p.sz, p.aq ? AQ.light : Y.light, al2, 0.5 + 0.5 * Math.sin(p.ph + age * 16));
       });
-      lightSwirl(g, t, 6, 20, { y0: 0.9, rise: 1.4, rr: 0.95, t0: 0.1, span: 0.35, a: fade });
-      glints(g, t, 5, 7, { t0: 0.25, step: 0.06, w: 2.0, y0: 0, h: 1.8, a: fade });
+      particles(g, t, 4, 56, r => ({ t0: 0.55 + r() * 0.35, life: 0.4, x: (r() - 0.5) * 2.3, y0: -1.0 + r() * 1.9, sz: 0.018 + r() * 0.024, ph: r() * 9, aq: r() < 0.3 }), (gg, p, age) => {
+        const y = p.y0 - 0.7 * E.out2(age), x = p.x + Math.sin(age * 6 + p.ph) * 0.06, al2 = (1 - age) * fade;
+        glow(gg, x, y, p.sz * 4, p.aq ? AQ.glow : Y.glow, 0.45 * al2); speck(gg, x, y, p.sz, p.aq ? AQ.light : age < 0.4 ? Y.core : Y.light, al2, 0.5 + 0.5 * Math.sin(p.ph + age * 18));
+      });
+      lightSwirl(g, t, 6, 24, { y0: 0.9, rise: 1.4, rr: 1.0, t0: 0.3, span: 0.35, a: fade });
+      glints(g, t, 5, 8, { t0: 0.25, step: 0.06, w: 2.2, y0: -0.1, h: 1.9, a: fade });
     },
   },
 
