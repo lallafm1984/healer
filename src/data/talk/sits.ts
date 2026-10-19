@@ -99,6 +99,8 @@ export const SITS = {
   wrongDodge: S('장판', '엉뚱한 쪽', 'self', 2, 0.8, '피한다는 게 장판 안 다른 칸으로 들어감 (판단이 낮음)'),
   whiff: S('보스', '빗나감', 'self', 1, 0.5, '한 방이 빗나감 (기술 숙련이 낮음). 가볍게'),
   skillFumble: S('보스', '스킬 헛씀', 'self', 2, 0.8, '직업 스킬을 썼는데 헛나감 (재사용만 돎, 기술 숙련이 낮음)'),
+  aggroHold: S('보스', '어그로 뺏고 멈춤', 'self', 2, 0.8, '보스를 뺏은 딜러가 판단 · 침착이 좋아 딜을 멈추고 탱커가 되찾기를 기다림'),
+  aggroIgnore: S('보스', '어그로 뺏고 계속 때림', 'self', 2, 0.8, '보스를 뺏은 딜러가 판단 · 침착이 낮아 딜을 안 멈춤 (어그로가 오래 머묾)'),
   tankLost: S('보스', '탱커 자리 못 찾음', 'self', 2, 0.5, '탱커가 앞줄 자리를 못 찾고 머뭇거림 (그동안 보스가 다른 사람을 침)'),
   noEscape: S('장판', '피할 곳 없음', 'self', 3, 1, '피할 빈 칸이 없음'),
   holeOpen: S('장판', '바닥 무너짐', 'any', 2, 0.4, '장판이 끝난 칸이 구멍이 되어 판이 좁아짐 (무너지는 바닥)'),
@@ -304,7 +306,7 @@ export const SIT_KEYS = Object.keys(SITS) as TalkSit[];
 export type TalkLines = Partial<Record<TalkSit, readonly string[]>>;
 
 /** 엔진 말풍선(bark)이 알려 주는 상황 */
-export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'lateDodge' | 'wrongDodge' | 'tankLost' | 'whiff' | 'skillFumble' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived'
+export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'lateDodge' | 'wrongDodge' | 'tankLost' | 'whiff' | 'skillFumble' | 'aggroHold' | 'aggroIgnore' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived'
   | 'slowMove' | 'follow' | 'wander' | 'luckLost' | 'luckBack' | 'cover' | 'selfish' | 'cheer' | 'rival' | 'rage' | 'calmStep' | 'optimist' | 'pessimist'
   | 'panic' | 'panicEnd' | 'allIn' | 'tired' | 'warmUp' | 'focusBroken' | 'shaken' | 'learned'
   | 'hoardUse' | 'spamUse' | 'cutTry' | 'addHunt' | 'oneTrack' | 'preGuard' | 'clutchOk' | 'clutchLate' | 'gather' | 'aggroSlip' | 'selfCare'

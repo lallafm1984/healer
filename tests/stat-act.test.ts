@@ -3,10 +3,11 @@ import { describe, expect, it } from 'vitest';
 import type { ClassKey } from '../src/data/classes';
 import { clumsy, STAT_KEYS, wobOf, type Stats } from '../src/data/fm';
 import type { PersName } from '../src/data/personalities';
-import { STAT_ACT } from '../src/data/rules';
+import { STAT_ACT, THREAT } from '../src/data/rules';
 import * as E from '../src/engine';
 import { hexDist } from '../src/engine/board';
 import { doReact, scheduleReaction } from '../src/engine/movement';
+import { threatDps } from '../src/engine/threat';
 import type { RosterEntry, Telegraph, Unit } from '../src/engine/types';
 
 type F = ReturnType<typeof E.create>;
@@ -243,5 +244,47 @@ describe('(다) 탱커 딜', () => {
     expect(who(f, '탱').dealt).toBeGreaterThan(who(f, '사').dealt);
     const g = fight({ tank: { atk: 15 } }), h = fight({ tank: { atk: 10 } });
     expect(who(g, '탱').dps).toBeCloseTo(who(h, '탱').dps * (1.075 / 1), 1); // 공격 15 = 예전 배율 (fmFx 1 → 1.15 사이) 그대로, 새 보너스 없음
+  });
+});
+
+describe('(마) 어그로 상황', () => {
+  const run = (o: { rogue: Partial<Stats>; tank?: Partial<Stats>; seed: number; sec?: number }) => {
+    const f = E.create({
+      encounter: 'warden', diff: '악몽', seed: o.seed, stageLv: 30, heroLv: 30,
+      party: [R('tank', 'warrior', '사교형', '탱', o.tank ?? { skill: 15, react: 15, position: 15, focus: 15 }, 15), R('melee', 'rogue', '사교형', '근', o.rogue, 15), R('ranged', 'mage', '사교형', '마', {}, 15), R('ranged', 'archer', '사교형', '궁', {}, 15)],
+    });
+    f.skills.forEach(s => { s.next = Infinity; });
+    f.bossHp = f.bossMax = 1e9;
+    const end = f.t + (o.sec ?? 90);
+    while (f.t < end && !f.over) { E.step(f); f.events.length = 0; }
+    return f;
+  };
+  it('압도적으로 센 딜러 (공격 20, 판단 1 = 딜을 안 줄임)는 괜찮은 탱커 (15)에게서도 어그로를 뺏고, 공격 15 딜러는 덜 뺏음', () => {
+    let strong = 0, plain = 0;
+    for (let s = 1; s <= 6; s++) {
+      strong += run({ rogue: { atk: 20, judgment: 1 }, seed: s }).stats.steals ?? 0;
+      plain += run({ rogue: { atk: 15, judgment: 1 }, seed: s }).stats.steals ?? 0;
+    }
+    expect(strong).toBeGreaterThan(0);
+    expect(strong).toBeGreaterThan(plain);
+  });
+  /** 근접 딜러가 보스를 뺏은 상태로 두고, 뺏은 뒤 딜 배율을 시간마다 */
+  function afterSteal(st: Partial<Stats>) {
+    const f = fight({ st, steady: 15 }), tk = who(f, '탱'), u = who(f, '근');
+    for (let i = 0; i < 200; i++) { E.step(f); f.events.length = 0; }
+    const t = f.thr!;
+    for (let i = 0; i < 40 && !t.steal; i++) { t.v.set(u.id, (t.v.get(tk.id) ?? 1) * 3); E.step(f); f.events.length = 0; }
+    expect(t.steal?.id).toBe(u.id);
+    t.retakeAt = f.t + 20; // 되찾기는 멀리 (배율만 봄)
+    const out: number[] = [];
+    for (const dt of [0.5, 1.5, 2.5, 4, 8]) { const at = t.steal!.at + 1 + dt; while (f.t < at) { E.step(f); f.events.length = 0; } out.push(threatDps(f, u)); }
+    return { out, steal: t.steal! };
+  }
+  it('뺏은 뒤: 판단 · 침착 20 = 되찾을 때까지 멈춤, 15 = 예전 (2초 멈춤 → 25% 줄임), 1 = 계속 그대로 때림 (되찾기도 늦음)', () => {
+    const hi = afterSteal({ judgment: 20, composure: 20 }), par = afterSteal({ judgment: 15, composure: 15 }), lo = afterSteal({ judgment: 1, composure: 1 });
+    expect(hi.out.every(x => x === 0)).toBe(true);
+    expect(par.out[0]).toBe(0);
+    expect(par.out[4]).toBeCloseTo(1 - THREAT.ease);
+    expect(lo.out.every(x => x === 1)).toBe(true);
   });
 });
