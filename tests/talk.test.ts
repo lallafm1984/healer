@@ -19,7 +19,7 @@ const AGGRO96: TalkSit[] = ['aggroSteal', 'aggroEase', 'aggroWarn', 'aggroRegain
 /** 93 길드 상황: 성격마다 3줄 (버릇 참음은 단점이 있는 성격만), 「길드」 글자는 이 상황에서만 */
 const GUILD93: TalkSit[] = ['guildGo', 'guildSaved', 'guildTame', 'guildFirst'];
 /** 99 능력치 기반 행동: 성격 대사는 없어도 됨 (공통 · 역할로 넘김) */
-const STAT99: TalkSit[] = ['lateDodge', 'wrongDodge', 'tankLost', 'whiff', 'skillFumble', 'aggroHold', 'aggroIgnore', 'aggroPanic', 'aggroLost', 'spaceOut', 'reel', 'clump', 'coverCut', 'alone', 'regroup'];
+const STAT99: TalkSit[] = ['lateDodge', 'wrongDodge', 'tankLost', 'whiff', 'skillFumble', 'aggroHold', 'aggroIgnore', 'aggroAdds', 'aggroPanic', 'aggroLost', 'spaceOut', 'reel', 'clump', 'coverCut', 'alone', 'regroup'];
 const ALLY_SITS: TalkSit[] = ['allyDown', 'tankDown', 'allyRevived', 'swallowedOther', 'jailOther', 'charmOther', 'aggroWarn'];
 const sources: [string, TalkLines][] = [
   ...Object.entries(PERS_LINES).map(([k, v]) => [`성격 ${k}`, v] as [string, TalkLines]),

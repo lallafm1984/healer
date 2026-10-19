@@ -195,10 +195,14 @@ export function bossTarget(f: Fight): Unit | null {
 export function threatDps(f: Fight, u: Unit): number {
   const t = f.thr;
   if (!t) return 1;
+  if (t.steal && t.steal.id === u.id && addsUp(f, u)) return 1; // Codex 검토 반영 2: 뺏은 딜러는 쫄 · 감옥이 있으면 그쪽을 계속 침 (쫄 딜은 보스 위협이 안 됨, dealerOutput)
   if (t.steal && t.steal.id === u.id && t.steal.breakUntil != null && f.t < t.steal.breakUntil) return 0; // 99 마: 당황해 딜이 끊김
   if (t.steal && t.steal.id === u.id && f.t >= t.steal.stopAt) return f.t < t.steal.stopAt + (t.steal.stopFor ?? THREAT.stopSec) ? 0 : 1 - (t.steal.cut ?? THREAT.ease);
   return u.thrEase ? 1 - THREAT.ease : 1;
 }
+
+/** 이 딜러의 한 방이 쫄 · 감옥으로 가나 (fight.ts land와 같은 길: 몸통 판이 아니고, 살아 있는 쫄이 있고, 외골수가 아님) */
+export const addsUp = (f: Fight, u: Unit): boolean => u.role !== 'tank' && !f.bodyHp && !(u.p.oneTrack && !f.invuln) && f.mobs.some(m => m.alive && m.add);
 
 /** 한 틱 (fight.ts step, partyHits 뒤) */
 export function threatTick(f: Fight): void {
@@ -279,6 +283,7 @@ export function threatTick(f: Fight): void {
   else if (slipping(f, base)) bark(f, base, null, true, 'aggroSlip'); // 어그로 흘림이 딴생각하다 놓침
   else if (shape === 'lost') bark(f, top, null, true, 'aggroLost'); // 99 마: 판단 · 침착 ↓ 딜 끊기고 자리 잃음
   else if (shape === 'panic') bark(f, top, null, true, 'aggroPanic'); // 99 마: 판단 ↑ · 침착 ↓ 한 대 더 · 머뭇거림
+  else if (stops && addsUp(f, top)) bark(f, top, null, true, 'aggroAdds'); // Codex 검토 반영 2: 멈추는 대신 쫄 · 감옥으로
   else if (hb && hb.stopFor === Infinity || shape === 'guard') bark(f, top, null, true, 'aggroHold'); // 99 마: 멈추고 기다림 (생존기를 켜고 버팀)
   else if (hb && hb.stopFor <= 0 && hb.cut < THREAT.ease * 0.5) bark(f, top, null, true, 'aggroIgnore'); // 99 마: 계속 때림
   else bark(f, top, null, true, 'aggroSteal');
