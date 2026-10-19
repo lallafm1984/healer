@@ -250,7 +250,7 @@ function notesHtml(x: Settlement): string {
   // 길드 v2 (93 9-1): 결성 · 길드원 경험치 · 레벨 업 · 명성 · 첫 처치, 오른 능력치 (왜)
   // 업데이트 묶음 (93 4-4 · 8장): 스토리 동료 합류 · 부탁 쪽지 · 주간 원정
   if (x.story) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${gameIcon('guild-members', uiIcon('guild'))}<span><b>${esc(STORY[x.story.key].nick)} ${x.story.how === 'joined' ? '합류' : '찾아옴'}</b>${x.story.how === 'wait' ? ' · 정원이 차서 영입에서 합류 대기' : ` · 고유 스킬 ${esc(ABILITIES[STORY[x.story.key].ab]?.name ?? '')}`}</span></button>`);
-  if (x.jobs?.reqs.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('request', uiIcon('quest'))}<span>부탁 완료 · ${x.jobs.reqs.map(esc).join(' · ')} 명성 +${REQ.fame * x.jobs.reqs.length}</span></button>`);
+  if (x.jobs?.reqs.length) out.push(`<button class="r-note" type="button" data-go="s-guild">${gameIcon('request', uiIcon('quest'))}<span>부탁 완료 · ${x.jobs.reqs.map(esc).join(' · ')} 경험치 ×${REQ.xpMult}</span></button>`);
   if (x.jobs?.exped.length) out.push(`<button class="r-note${x.jobs.expedAll ? ' hi' : ''}" type="button" data-go="s-guild">${gameIcon('expedition-chest', uiIcon('star'))}<span>주간 원정 ${x.jobs.exped.length}곳 · 명성 +${EXPED.fame * x.jobs.exped.length}${x.jobs.expedAll ? ' · <b>원정 상자 열림</b>' : ''}</span></button>`);
   if (x.founded?.length) out.push(`<button class="r-note hi" type="button" data-go="s-guild">${gameIcon('guild-flag', uiIcon('guild'))}<span><b>${esc(G.save.guild.name)} 결성</b> · ${x.founded.map(esc).join(' · ')}</span></button>`);
   if (gd?.members.length) {

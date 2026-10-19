@@ -38,6 +38,12 @@ export default async function guildExt(url, shots) {
   ok(sv.guild.reqs.list.length === 2 && (await page.locator('#s-guild .g-job').count()) === 2, `부탁 쪽지 2장 (${sv.guild.reqs.list.map(q => `${q.nick} ${q.content} ${q.diff}`)})`);
   ok(sv.guild.exped.list.length >= 1 && (await page.locator('#s-guild .g-exrow').count()) === sv.guild.exped.list.length && /주간 원정/.test(await text('#s-guild .g-exped')), `주간 원정 ${sv.guild.exped.list.length}곳`);
   ok(await page.isVisible('#tabs [data-tab="guild"] .rdot'), '안 끝낸 부탁 = 길드 탭 빨간 점');
+  const requestRewards = await page.locator('#s-guild .g-job .g-rewards').allTextContents();
+  ok(requestRewards.length === 2 && requestRewards.every(t => /경험치 ×2/.test(t) && !/명성/.test(t)), '부탁 보상: 요청한 길드원 경험치 ×2');
+  await page.click('#s-guild [data-tip="todo"]'); await page.clock.runFor(50);
+  ok(/완료한 전투에서 부탁한 길드원의 경험치가 2배/.test(await text('#s-guild .g-tip')) && /부탁마다 한 번/.test(await text('#s-guild .g-tip')), '부탁 설명: 대상 · 완료 전투 · 한 번 지급 안내');
+  await page.screenshot({ path: `${shots}/guild_request_xp.png` });
+  await page.click('#s-guild [data-tip="todo"]'); await page.clock.runFor(50);
 
   // ---- 시설 (93 6-3): 길드 Lv 7 = 둘 다 열림, 골드로 단계 ----
   await page.click('#s-guild [data-csel="fac"]'); await page.clock.runFor(50);

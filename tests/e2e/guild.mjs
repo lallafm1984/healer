@@ -162,6 +162,14 @@ export default async function guild(url, shots) {
   await page.click('#s-guild .subtabs [data-sub="recruit"]'); await page.clock.runFor(50);
   ok((await page.locator('#s-guild [data-friend]').count()) === 0, '내보낸 사람의 친구 초대 목록 없음');
 
+  // 완료한 부탁의 경험치 보상을 실제 결과 화면까지 확인한다.
+  await patch(() => {
+    const s = JSON.parse(localStorage.getItem('healer.save'));
+    s.guild.reqs.list = [{ nick: '말없는탱', content: 'rustfort', diff: '쉬움', done: false }];
+    localStorage.setItem('healer.save', JSON.stringify(s));
+  });
+  await page.click('#tabs [data-tab="guild"]'); await page.clock.runFor(50);
+
   // ---- 「길드파티로 출전」 → 전투 탭 → 편성이 길드파티 → 출발 ----
   await page.click('#s-guild .subtabs [data-sub="home"]'); await page.clock.runFor(50);
   await page.click('#guildGo'); await page.clock.runFor(100);
@@ -176,6 +184,13 @@ export default async function guild(url, shots) {
   const why = await page.locator('#s-party .f-why .chip').allTextContents();
   ok((await page.locator('#s-party [data-gpick].picked').count()) === 4 && why.length >= 1 && why.every(w => /→|숙지/.test(w)), `추천 편성 = 4명 + 이유 칩 ${JSON.stringify(why)}`);
   await page.screenshot({ path: `${shots}/guild_party.png` });
+  // 추천은 별도로 검증한 뒤 부탁한 탱커를 직접 편성한다 (무작위 영입 탱커가 추천될 수도 있음).
+  if (await page.getAttribute(`#s-party [data-gpick="${tank.id}"]`, 'aria-pressed') !== 'true') {
+    const selected = await page.locator('#s-party [data-gpick].picked').evaluateAll(els => els.map(el => Number(el.dataset.gpick)));
+    const otherTank = (await save()).guild.members.find(m => selected.includes(m.id) && ['warrior', 'paladin'].includes(m.cls));
+    if (otherTank) await page.click(`#s-party [data-gpick="${otherTank.id}"]`);
+    await page.click(`#s-party [data-gpick="${tank.id}"]`); await page.clock.runFor(50);
+  }
   await departGo(page); await page.clock.runFor(3100 + 500);
   const inFight = await page.evaluate(() => window.__proto.F.party.filter(u => u.gid != null).map(u => ({ nick: u.nick, ab: u.ab?.key, bond: u.bond, did: !!u.did })));
   ok(inFight.length === 4 && inFight.every(u => u.ab && u.bond == null && u.did), `전투에 길드원 4 + 직업 스킬 · 한 일 기록 (인연 없음) ${JSON.stringify(inFight.map(u => u.nick))}`);
@@ -192,6 +207,7 @@ export default async function guild(url, shots) {
   const rw = await text('#s-settle .r-notes');
   ok(/길드원 경험치 \+\d/.test(rw) && /명성 \+4/.test(rw) && /길드 첫 처치/.test(rw), '결과: 길드원 경험치 · 명성 +4 · 길드 첫 처치');
   ok(!/인연|새 친구/.test(rw) && !(await save()).users, '결과와 저장에 인연 보상 없음');
+  ok(/부탁 완료 · 말없는탱 경험치 ×2/.test(rw) && (await save()).guild.reqs.list[0].done, '완료한 부탁: 요청자 이름 · 경험치 ×2 결과 안내 및 완료 저장');
   ok(/공략 숙지 1단계: /.test(rw), '결과: 공략 숙지 1단계 (보스 이름 · 길드원)');
   sv = await save();
   ok(sv.guild.members.find(m => m.nick === '불꽃남자').boost === (inFight.some(m => m.nick === '불꽃남자') ? 5 : 4), '출전 여부에 따른 후원 횟수 차감');

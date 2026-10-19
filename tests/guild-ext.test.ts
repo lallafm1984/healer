@@ -111,7 +111,7 @@ describe('스토리 동료 이슬 · 칼날 (93 4-4)', () => {
 describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
   const T = new Date(2026, 9, 7, 12).getTime();
   const stages = [{ content: 'rustfort', diff: '어려움' as const }, { content: 'plateau', diff: '보통' as const }];
-  it('부탁: 매일 길드원 2명, 그 사람을 넣고 그 장소를 그 난이도 이상으로 깨면 명성 +2, 날이 바뀌면 새로', () => {
+  it('부탁: 매일 길드원 2명, 그 사람을 넣고 그 장소를 그 난이도 이상으로 깨면 경험치 2배 대상에 한 번 포함, 날이 바뀌면 새로', () => {
     seed = 5;
     const s = save(30); add(s, 'mage', 0); add(s, 'mage', 1);
     refreshReqs(s, stages, rng, T);
@@ -122,7 +122,9 @@ describe('부탁 쪽지 · 주간 원정 (93 8장)', () => {
     expect(jobsAfter(s, { win: true, quit: false, content: q.content, diff: '쉬움', roster }).reqs).toEqual(q.diff === '쉬움' ? [q.nick] : []);
     const done = jobsAfter(s, { win: true, quit: false, content: q.content, diff: '악몽', roster });
     expect(done.reqs).toEqual([q.nick]);
-    expect(s.guild.fame).toBe(REQ.fame);
+    expect(done.fame).toBe(0);
+    expect(s.guild.fame).toBe(0);
+    expect(jobsAfter(s, { win: true, quit: false, content: q.content, diff: '악몽', roster }).reqs).toEqual([]);
     expect(s).not.toHaveProperty('users');
     refreshReqs(s, stages, rng, T + 3600e3);
     expect(s.guild.reqs.list[0].done).toBe(true); // 같은 날은 그대로

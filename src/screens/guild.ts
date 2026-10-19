@@ -193,14 +193,14 @@ function todoSec(): Sec {
   const ex = g.exped.list, xd = ex.filter(x => x.done).length;
   const exped = ex.length ? `<li class="g-row g-exped"><span class="g-ri">${IC.chest()}</span><div class="g-rm"><b>주간 원정</b><span class="g-sub">길드파티 · 보통 이상</span><span class="g-places">${ex.map(x => `<button type="button" class="g-place g-exrow${x.done ? ' done' : ''}" data-goto="${esc(x.content)}" data-gdiff="보통" aria-label="${placeName(x.content)} 보통 장소 보기${x.done ? ' · 완료' : ''}">${x.done ? '✓ ' : ''}${placeName(x.content)}${x.done ? '' : ' ›'}</button>`).join('')}</span></div>
     <span class="g-rs"><b class="g-num">${xd}<small> / ${ex.length}</small></b>${expedReady(G.save) ? '<button class="btn mini primary" type="button" id="expedChest">상자 받기</button>' : g.exped.got ? okPill('받음') : famePill(EXPED.fame)}</span></li>` : '';
-  const reqs = g.reqs.list.map(q => `<li class="g-row g-job${q.done ? ' done' : ''}"><span class="g-ri">${IC.req()}</span><div class="g-rm"><b>${esc(q.nick)}<small>부탁</small></b><span class="g-sub wrap">${placeName(q.content)} · ${esc(q.diff)} 이상</span><span class="g-rewards">${q.done ? okPill('완료') : `${famePill(REQ.fame)}`}</span></div>
+  const reqs = g.reqs.list.map(q => `<li class="g-row g-job${q.done ? ' done' : ''}"><span class="g-ri">${IC.req()}</span><div class="g-rm"><b>${esc(q.nick)}<small>부탁</small></b><span class="g-sub wrap">${placeName(q.content)} · ${esc(q.diff)} 이상</span><span class="g-rewards">${q.done ? okPill('완료') : pill('', `경험치 ×${REQ.xpMult}`, '', esc(q.nick))}</span></div>
     <span class="g-rs">${q.done ? '' : `<button class="btn2 mini" type="button" data-goto="${esc(q.content)}" data-gdiff="${esc(q.diff)}" aria-label="${esc(q.nick)} 부탁 · ${placeName(q.content)} 장소 보기">장소 보기</button>`}</span></li>`).join('');
   const left = (w.got ? 0 : 1) + (ex.length && !g.exped.got ? 1 : 0) + g.reqs.list.filter(q => !q.done).length;
   return {
     key: 'todo', icon: IC.goal(), title: '할 일', sum: w.n >= need && !w.got || expedReady(G.save) ? '보상 받기' : left ? `${left}개 남음` : '완료', dot: jobsDot(G.save) || (w.n >= need && !w.got), body: `<ul class="g-rows">${reqs}${goal}${exped}</ul>`,
     tip: `<p><b>주간 목표</b> 길드파티로 ${need}번 클리어하면 명성 +${GUILD_GOAL.fame}. 보상은 임무 화면에서 받고, 월요일 오전 6시에 새로 시작합니다.</p>
       <p><b>주간 원정</b> 길드파티로 보통 이상을 깨면 칸마다 명성 +${EXPED.fame}. 셋 다 깨면 원정 상자 (클리어 골드 ${EXPED.chestGold}판 + 장비 1).</p>
-      <p><b>부탁</b> 장소를 고른 뒤 편성에 부탁한 길드원을 넣고 그 장소를 그 난이도 이상으로 깨면 명성 +${REQ.fame}. 날마다 새로 오고, 놓쳐도 손해는 없습니다.</p>
+      <p><b>부탁</b> 장소를 고른 뒤 편성에 부탁한 길드원을 넣고 그 장소를 그 난이도 이상으로 깨면, 완료한 전투에서 부탁한 길드원의 경험치가 ${REQ.xpMult}배가 됩니다. 부탁마다 한 번 적용되며 날마다 새로 옵니다.</p>
       <p>길드파티 = 자리 절반 이상이 길드원.</p>`,
   };
 }

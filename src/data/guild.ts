@@ -172,8 +172,8 @@ export const FAC: Record<FacKey, { name: string; guildLv: number; steps: string[
 export const WAR_AT: number[][] = [[0.5, 3, 6], [0.5, 3, 5], [0.5, 2, 5], [0.5, 2, 4], [0.5, 2, 3]];
 
 // ---------- 부탁 쪽지 · 주간 원정 (93 8장, 업데이트 묶음) ----------
-/** 매일 2장: 길드원이 「○○ 어려움 같이 가자」, 그 사람을 넣고 깨면 끝. 명성 +2. 날이 바뀌면 새로 (쌓이지 않음) */
-export const REQ = { perDay: 2, fame: 2 };
+/** 매일 2장: 길드원이 「○○ 어려움 같이 가자」, 그 사람을 넣고 깨면 끝. 완료한 전투에서 그 길드원의 경험치 ×2 (부탁마다 한 번). 날이 바뀌면 새로 (쌓이지 않음) */
+export const REQ = { perDay: 2, xpMult: 2 };
 /** 주간 원정: 내 레벨에 맞는 3곳 (5인 · 10인 · 20인, 안 열렸으면 던전), 길드파티로 보통 이상. 칸마다 명성 +5, 셋 다 = 원정 상자 (클리어 골드 5판 + 장비 1) */
 export const EXPED = { n: 3, fame: 5, chestGold: 5 };
 

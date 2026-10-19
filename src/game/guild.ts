@@ -9,7 +9,7 @@ import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
 import { dayOffset, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
-  APP_DAYS, appsPerDay, FAC, FAC_GOLD, SPONSOR, sponsorGold, type FacKey, DEED_STATS, DEED_WHY, FAME, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POSTS, REST_SHARE, rerollGold,
+  APP_DAYS, appsPerDay, FAC, FAC_GOLD, SPONSOR, sponsorGold, type FacKey, DEED_STATS, DEED_WHY, FAME, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POSTS, REQ, REST_SHARE, rerollGold,
   knowGain, knowStage, memberSkillLevel, STORY, statPerLevel, statWeights, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type PostKind, type StoryKey,
 } from '../data/guild';
 import { PARTY_POOL, type PoolMember } from '../data/nicknames';
@@ -380,11 +380,11 @@ export function growStats(m: GuildMember, levels: number, deed: Deed | undefined
  */
 export function guildAfter(
   save: SaveData, r: () => number,
-  o: { win: boolean; quit: boolean; grade: Grade | null; diff: DiffName; stage: number; raid: 0 | 10 | 20; content: string; kind: string; party: { nick: string; deed?: Deed }[]; roster: RosterEntry[]; encs?: readonly string[]; time?: number },
+  o: { win: boolean; quit: boolean; grade: Grade | null; diff: DiffName; stage: number; raid: 0 | 10 | 20; content: string; kind: string; party: { nick: string; deed?: Deed }[]; roster: RosterEntry[]; encs?: readonly string[]; time?: number; requestNicks?: readonly string[] },
 ): GuildAfter {
   const g = save.guild, out: GuildAfter = { members: [], rest: 0, boosted: [], fame: 0, first: false };
   if (o.quit || !o.win) return out;
-  const cap = topLevel(save), went = new Set<number>();
+  const cap = topLevel(save), went = new Set<number>(), requests = new Set(o.requestNicks);
   const firstKey = `${o.content}|${o.diff}`;
   const guildParty = isGuildParty(o.roster);
   const first = guildParty && (o.kind === 'dungeon' || o.kind === 'raid') && !g.firsts.includes(firstKey);
@@ -393,7 +393,8 @@ export function guildAfter(
     if (!m) continue;
     went.add(m.id);
     m.runs++;
-    const xp = memberXp(m, o);
+    // 부탁은 완료한 이번 판의 출전 경험치에만 적용한다. 합산 후 한 번에 레벨업·능력치를 처리한다.
+    const xp = memberXp(m, o) * (requests.has(m.nick) ? REQ.xpMult : 1);
     const ups = addMemberXp(m, xp, cap);
     const stats = growStats(m, ups.length, o.party.find(p => p.nick === m.nick)?.deed, r);
     // 공략 숙지 (93 5-4): 이긴 판의 전투마다 학습력만큼, 보스 (마지막 전투) 단계가 오르면 결과 줄

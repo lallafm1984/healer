@@ -213,7 +213,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   const sz = raidSize(c), story = FEATURES.guild && play && r.win && !r.quit && c.kind === 'raid' ? (sz === 10 ? storyArrive(save, 'isle') : sz === 20 ? storyArrive(save, 'blade') : null) : null;
   const storyKey: StoryKey | null = story ? (sz === 10 ? 'isle' : 'blade') : null;
   const jobs = FEATURES.guild && play ? jobsAfter(save, { win: r.win, quit: r.quit, content: c.key, diff: r.diff, roster }) : null;
-  const guild = FEATURES.guild && play && roster.some(e => e.gid != null) ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.key, kind: c.kind, party: r.party, roster, encs: c.fights(r.diff), time: r.time }) : null;
+  const guild = FEATURES.guild && play && roster.some(e => e.gid != null) ? guildAfter(save, rng, { win: r.win, quit: r.quit, grade, diff: r.diff, stage, raid, content: c.key, kind: c.kind, party: r.party, roster, encs: c.fights(r.diff), time: r.time, requestNicks: jobs?.reqs }) : null;
 
   // 주간 도전: 제한시간 안에 깨면 기록·다음 단계 (실패해도 단계 유지)
   let chal: Settlement['chal'] = null;
