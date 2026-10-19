@@ -36,7 +36,7 @@ describe('무너진 순례길', () => {
 
   it('제단 발판 1곳: 원거리가 들어가 맞음', () => {
     expect(BOSSES.keeper28.skills.find(s => s.key === 'pads')!.effect).toMatchObject({ p: 'tower', n: 1 });
-    const f = E.create({ encounter: 'keeper28', diff: '보통', seed: 3, level: 28 });
+    const f = E.create({ encounter: 'keeper28', diff: '보통', seed: 3, level: 28, tune: {} }); // 힐 없이 보는 기믹 시험: 장소 보정 (tune)은 빼고 (보정이 오르면 발판 전에 쓰러짐)
     until(f, 30, () => f.tels.some(t => t.skill.key === 'pads'));
     const tel = f.tels.find(t => t.skill.key === 'pads')!;
     expect(tel.cells.size).toBe(1);

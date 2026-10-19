@@ -113,3 +113,22 @@ describe('tune 표', () => {
     expect(renderTune({ warden: { '악몽': { dmg: 1.1, hp: 0.9 } } })).toContain("warden: { '악몽': { dmg: 1.1, hp: 0.9 } },");
   });
 });
+
+describe('장소 레벨 목표 곡선 (2026-10-19 Lim 「초반 쉽게 후반 어렵게」, 103)', () => {
+  it('구간 가운데 목표 · 사이는 직선 · 끝 밖은 그대로, 보통은 아래 선만 · 어려움 · 악몽은 ± 7', async () => {
+    const { aimAt, targetOf } = await import('../src/sim/balance');
+    const { CONTENT, stageOf } = await import('../src/data/content');
+    expect(aimAt('어려움', 1)).toBe(92); expect(aimAt('어려움', 10.5)).toBe(92); expect(aimAt('어려움', 33)).toBe(87); expect(aimAt('어려움', 58)).toBe(82); expect(aimAt('어려움', 100)).toBe(77);
+    expect(aimAt('악몽', 5)).toBe(85); expect(aimAt('악몽', 85.5)).toBe(65);
+    expect(aimAt('악몽', 45.5)).toBeCloseTo(75, 1); // 33 → 58 사이 가운데: 78 · 72 사이
+    expect(aimAt('보통', 1)).toBe(99); expect(aimAt('보통', 100)).toBe(94);
+    expect(aimAt('쉬움', 50)).toBe(99);
+    for (const c of CONTENT.filter(x => x.ready)) for (const d of ['어려움', '악몽'] as const) {
+      const t = targetOf(c, d), lv = stageOf(c, d);
+      expect(t.max - t.aim).toBe(7); expect(t.aim - t.min).toBe(7);
+      if (lv >= 85.5) expect(t.aim).toBe(d === '어려움' ? 77 : 65);
+    }
+    const early = CONTENT.find(x => x.ready && stageOf(x, '보통') <= 10)!;
+    expect(targetOf(early, '보통')).toEqual({ min: 97, max: 100, aim: 99 });
+  });
+});
