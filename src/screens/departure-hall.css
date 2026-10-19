@@ -61,8 +61,9 @@
   :is(#s-content, #s-guild, #s-party) { --departure-height: 60px; }
 }
 @media (min-height: 521px) and (max-height: 700px) {
-  #s-content .b-gate { min-height: 146px; }
-  #s-content .b-scene-rewards { left: 52px; right: 52px; }
+  /* 획득 아이템은 기존 왼쪽 여백을 유지하고, 장면 아래에 들어갈 높이를 확보한다. */
+  #s-content .b-body { gap: 1px; }
+  #s-content .b-gate { min-height: 158px; }
   /* 잠금 안내는 장면 위쪽으로 올려 중앙 장소 이름과 분리한다. */
   #s-content .b-st { top: 6px; }
 }
@@ -70,7 +71,7 @@
   :is(#s-content, #s-guild, #s-party) { --departure-height: 52px; }
   #s-content .b-body { grid-template-rows: 44px minmax(60px, 1fr) 44px 44px; }
   #s-content .b-gate { min-height: 60px; }
-  #s-content .b-scene-rewards { right: 92px; }
+  #s-content .b-scene-reward-list { width: fit-content; max-width: 100%; }
   /* 커버 화면의 보상 버튼은 44px 유지, 잠금 안내는 권장 레벨 아래 빈칸에 둔다. */
   #s-content .b-st { top: 23px; left: auto; right: 8px; max-width: 84px; transform: none; }
 }
