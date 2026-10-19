@@ -17,7 +17,7 @@ import { GRADE_STYLE, ITEM_GRADES, type ItemGrade } from '../data/equipment';
 import { gearGradeOdds } from '../data/reward-preview';
 import { HEROES } from '../data/heroes';
 import { FACTIONS, PLACES, type FactionKey } from '../data/places';
-import { clearGold, EXPLORE_REWARD, restRun } from '../data/progression';
+import { clearGold, EXPLORE_DROP, EXPLORE_REWARD, restRun } from '../data/progression';
 import { art, cssUrl } from '../art';
 import { weekRemaining } from '../game/clock';
 import { meritFor, raidLootOpen } from '../game/economy';
@@ -225,12 +225,14 @@ function rewardItems(c: ContentDef, d: DiffName): SceneReward[] {
   const maxGrade = [...ITEM_GRADES].reverse().find(g => odds[g] > 0) ?? ITEM_GRADES[0];
   // 칸마다 최소 등급 (88 v0.2, Lim 「칸마다 난이도 및 레벨에 따라서 최소 등급」): 확률 창 아래 한 줄
   const minG = ITEM_GRADES.find(g => odds[g] > 0) ?? ITEM_GRADES[0];
+  // 탐험은 판마다 장비 EXPLORE_DROP (103 「탐험만 줄임」, 튜토리얼 판은 언제나): 등급별 확률은 장비가 나왔을 때
+  const dropP = play && c.kind === 'explore' ? EXPLORE_DROP : 1;
   const items: SceneReward[] = [{
     key: 'gear', name: '장비 등급별 확률', label: maxGrade, icon: gameIcon('gear', ICON.gear),
-    color: GRADE_STYLE[maxGrade].color, probability: 1, maxGrade,
+    color: GRADE_STYLE[maxGrade].color, probability: dropP, maxGrade,
     gradeOdds: odds,
     // 등급표 + 최소 등급 (2026-10-13 Lim: 「장비 1개 · 보너스 제외」 빼기). 레이드는 주 첫 클리어 · 다시 깬 판
-    basis: `최소 ${minG}${raid && play ? (lootOpen ? ' · 이번 주 첫 클리어' : ' · 다시 깬 판 (첫 보상은 받음)') : ''}`,
+    basis: `최소 ${minG}${dropP < 1 ? ` · 장비는 판마다 ${Math.round(dropP * 100)}%` : ''}${raid && play ? (lootOpen ? ' · 이번 주 첫 클리어' : ' · 다시 깬 판 (첫 보상은 받음)') : ''}`,
   }];
   const currency = (key: CurrencyIconKey, name: string, amount: number, color: string, basis = '클리어 시', probability = 1) => {
     items.push({ key, name, label: fmt(amount), icon: currencyIcon(key), color, probability, basis });

@@ -7,7 +7,7 @@ import type { HeroKey } from '../data/heroes';
 import { rollItem, type GearItem } from '../data/equipment';
 import type { PersName } from '../data/personalities';
 import type { MeterRow } from './meter';
-import { addXp, clearGold, clearXp, EXPLORE_REWARD, gradeOf, inRamp, rampXp, restRun, starsOf, type Grade } from '../data/progression';
+import { addXp, clearGold, clearXp, EXPLORE_DROP, EXPLORE_REWARD, gradeOf, inRamp, rampXp, restRun, starsOf, type Grade } from '../data/progression';
 import { heroSaveOf, noteDex, noteSpecs, type SaveData } from '../platform/storage';
 import { advanceTutorial, TUT } from './tutorial';
 import { foundGuild, guildAfter, isGuildParty, storyArrive, type GuildAfter } from './guild';
@@ -104,6 +104,8 @@ export interface Settlement {
   merit: number;
   /** 레이드 칸 (보스 × 난이도) 주 첫 보상 (2026-10-19 Lim 「주 첫 판만 크게」): first = 이번 주 첫 클리어 (레이드 표), again = 다시 깬 판 (던전 표), 레이드가 아니면 null */
   raidLoot: 'first' | 'again' | null;
+  /** 탐험을 이겼는데 이번 판은 장비가 안 나옴 (판마다 EXPLORE_DROP, 103) */
+  noDrop: boolean;
   /** 공개모집 일일 보너스 판 (13 2-2): 좋은 장비 등급 확률 ↑ (그 난이도 상한 안에서, 61 3-3). n = 오늘 몇 번째 */
   pubBonus: number;
   /** 이 판으로 다 채운 임무 */
@@ -178,6 +180,8 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
   // 레이드 장비 (2026-10-19 Lim 「주 첫 판만 크게」, 13 3-4를 바꿈): 매 판 1개, 칸 (보스 × 난이도)마다 주 첫 클리어는 레이드 표, 그 주에 다시 깨면 같은 레벨 던전 표 (REPEAT_LEGEND)
   const raidLoot = play && r.win && raid ? (raidLootOpen(save, c.key, r.diff) ? 'first' : 'again') : null;
   let merit = 0;
+  // 탐험은 판마다 EXPLORE_DROP (103 「탐험만 줄임」, 튜토리얼 · 주간 도전은 언제나)
+  const noDrop = r.win && play && c.kind === 'explore' && !r.chal && rng() >= EXPLORE_DROP;
   if (r.win) {
     // 클리어마다 1개 (탐험 · 던전 · 레이드 모두, 2026-10-13 Lim 「클리어시 장비는 무조건 한개」. 예전 던전은 보스마다 1개).
     // 등급은 콘텐츠 · 난이도 바탕 표 (일반 ~ 희귀) + 영웅 · 전설 확률 (88, equipment dropOdds). 주간 도전은 단계 표 (chalDropDiff: 1~9 보통 · 10~14 어려움 · 15~ 악몽).
@@ -185,7 +189,7 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
     // 직업 전용 특수능력은 지금 직업 것만, 장소마다 자주 나오는 특수능력 · 이름 있는 장신구 (42 1-4 · 3장). 아이템 레벨 = 이 판 적 레벨 (2026-10-13)
     // 2026-10-19 Lim 「70레벨의 20인 레이드 클리어시 100레벨 영웅장비가 나왔다. 던전 레벨에 맞는 장비」: 레이드 적은 내 레벨까지 오르지만 (runmode) 장비 레벨 · 등급대는 그 레이드 레벨 (stageOf). 주간 도전은 내 레벨 그대로
     const dropLv = r.chal ? stage : stageOf(c, r.diff);
-    items.push(rollItem(rng, r.chal ? chalDropDiff(r.chal) : r.diff, grade!, levelBefore, save.nextId++, { hero, classLoot: true, place: c.key, raid, bonus: !!pubBonus, lv: dropLv, tierLv: r.chal ? levelBefore : raid ? dropLv : c.stageLv, repeat: raidLoot === 'again' }));
+    if (!noDrop) items.push(rollItem(rng, r.chal ? chalDropDiff(r.chal) : r.diff, grade!, levelBefore, save.nextId++, { hero, classLoot: true, place: c.key, raid, bonus: !!pubBonus, lv: dropLv, tierLv: r.chal ? levelBefore : raid ? dropLv : c.stageLv, repeat: raidLoot === 'again' }));
     save.gear.bag.push(...items);
     newDex = noteDex(save, items);
     newSpecs = noteSpecs(save, items);
@@ -251,6 +255,6 @@ export function settle(save: SaveData, r: BattleResult, rng: () => number, roste
 
   return {
     grade, stars, overhealPct: Math.round(overheal * 100), dispelPct: r.dispellable ? Math.round((r.dispels / r.dispellable) * 100) : null,
-    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, guildFame, merit, raidLoot, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
+    xp, levelBefore, levelUps, items, newSpecs, newDex, gold, first, best, heroQuest, guild, guildFame, merit, raidLoot, noDrop, pubBonus, missions, chal, cont, tutEnd, rest, restBonus, founded, story: storyKey && story ? { key: storyKey, how: story } : null, jobs,
   };
 }

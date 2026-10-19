@@ -210,18 +210,23 @@ describe('정산 (09 S08·S09)', () => {
     expect(x.first).toBe(true);
     expect(s.last).toEqual({ content: 'rustfort', diff: '보통', win: true, grade: 'A' });
   });
-  it('클리어마다 장비 1개 (탐험 · 던전 · 레이드 모두, 2026-10-13 Lim: 보스 둘인 녹슨 요새도 1개) · 악몽은 고급 ~ 영웅 (34 6-7 · 61 3장)', () => {
+  it('클리어마다 장비 1개 (던전 · 레이드, 2026-10-13 Lim: 보스 둘인 녹슨 요새도 1개, 탐험은 판마다 50% · 103) · 악몽은 고급 ~ 영웅 (34 6-7 · 61 3장)', () => {
     const s = newSave(1);
     s.tut = TUT.done;
     const x = settle(s, result(), rngFrom(1));
     expect(contentOf('rustfort').bosses.length).toBe(2);
     expect(x.items.length).toBe(1);
     expect(s.gear.bag).toEqual(x.items);
+    let drops = 0;
     for (let i = 0; i < 40; i++) {
       const e = settle(s, result({ content: 'plateau', diff: '악몽', deaths: 0 }), rngFrom(i));
-      expect(e.items.length).toBe(1);
+      expect(e.items.length).toBe(e.noDrop ? 0 : 1);
+      if (!e.items.length) continue;
+      drops++;
       expect(['일반', '고급', '희귀']).toContain(e.items[0].grade); // 88: 첫 등급대 악몽 일반 · 고급 · 희귀 (초반은 희귀까지)
     }
+    expect(drops).toBeGreaterThan(10); // 탐험은 판마다 EXPLORE_DROP (50%)
+    expect(drops).toBeLessThan(30);
   });
   it('주간 도전 클리어 장비 = 단계 표 (2026-10-13 Lim: 1~9 보통 · 10~14 어려움 · 15~ 악몽), 1개', () => {
     expect([1, 9, 10, 14, 15, 20].map(chalDropDiff)).toEqual(['보통', '보통', '어려움', '어려움', '악몽', '악몽']);

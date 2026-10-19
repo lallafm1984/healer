@@ -4,6 +4,7 @@ import {
   avgScore, equippedStats, gearStatsOf, ilvBonus, ilvMult, ilvP, ILV_P, pctLvMult, itemName, itemScore, itemStats, kindsOf, makeItem, OPT_ROLL, OPTION_LINES, optionsOf, RANDOM_BASE, randomLines, rollItem, rollOpt, SELL_GOLD, sellGold, SLOTS, STAT_KEYS, statsToGear, takenStats, STAT_POINT, isPointStat, toPoints, LINE_MULT, type GearItem,
 } from '../src/data/equipment';
 import { HEALER_HP } from '../src/game/charinfo';
+import { contentOf, stageOf } from '../src/data/content';
 import { INT_BASE, RULES } from '../src/data/rules';
 import { apexOf, clearGold, EXPLORE_REWARD, lvPower, RAID_GOLD, restRun } from '../src/data/progression';
 /** 레벨 세기 = 레벨 배율 × 정점 수련 (힐러 지능 · 체력과 같은 눈금) */
@@ -133,7 +134,8 @@ describe('아이템 레벨 (2026-10-13 Lim 「장소 레벨 기준으로 장비�
     expect(rollItem(rngFrom(3), '악몽', 'A', 3, 1, { place: 'plateau', lv: 7 }).lv).toBe(7);
     expect(makeItem(rngFrom(3), 'head', '희귀', 1, undefined, { lv: 42 }).lv).toBe(42);
     const s = newSave(1); s.tut = 3; s.player.level = 3;
-    const x = settle(s, { content: 'plateau', diff: '어려움', win: true, quit: false, reason: '', segIdx: 1, segN: 2, time: 120, restSec: 10, deaths: 0, healed: 5000, overheal: 1000, dispels: 0, dispellable: 0, endMana: 20, minMana: 5, auto: false, party: [], detail: [] }, rngFrom(5));
+    // 탐험은 판마다 장비 50% (103): 나온 판을 봄
+    const x = [5, 6, 7, 8, 9, 10, 11].map(seed => settle(s, { content: 'plateau', diff: '어려움', win: true, quit: false, reason: '', segIdx: 1, segN: 2, time: 120, restSec: 10, deaths: 0, healed: 5000, overheal: 1000, dispels: 0, dispellable: 0, endMana: 20, minMana: 5, auto: false, party: [], detail: [] }, rngFrom(seed))).find(x => x.items.length)!;
     expect(x.items.length).toBe(1);
     expect(x.items[0].lv).toBe(5);
   });
@@ -169,7 +171,8 @@ describe('클리어 골드 (12 3-1, 91에서 되살림)', () => {
     expect(y.gold).toBe(0);
     s.tut = TUT.done; s.player.level = 30;
     const z = settle(s, res({ content: 'cemetery' as BattleResult['content'], diff: '악몽' }), () => 0.5);
-    expect(z.gold).toBe(restRun(clearGold(z.items[0].lv!, '악몽', z.grade!) * EXPLORE_REWARD)); // 튜토리얼 뒤 휴식 판 = 예전의 2/3 (90, 2026-10-17), 튜토리얼 판은 그대로
+    expect(z.items).toEqual([]); // 탐험 장비는 판마다 50% (103): rng 0.5면 안 나옴
+    expect(z.gold).toBe(restRun(clearGold(stageOf(contentOf('cemetery'), '악몽'), '악몽', z.grade!) * EXPLORE_REWARD)); // 튜토리얼 뒤 휴식 판 = 예전의 2/3 (90, 2026-10-17), 튜토리얼 판은 그대로
   });
 });
 

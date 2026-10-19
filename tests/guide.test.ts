@@ -112,8 +112,8 @@ describe('장소 레벨대 장비 등급 (86)', () => {
     const grades = (content: BattleResult['content']) => {
       const s = newSave(1); s.tut = TUT.done; s.player.level = 50; s.daily.pub = 3;
       const seen = new Set<ItemGrade>();
-      for (let i = 0; i < 80; i++) seen.add(settle(s, { content, diff: '악몽', win: true, quit: false, reason: '', segIdx: 0, segN: 1, time: 60, restSec: 0, deaths: 2,
-        healed: 1, overheal: 0, dispels: 0, dispellable: 0, endMana: 1, minMana: 1, auto: false, party: [], detail: [] }, rngFrom(i + 1)).items[0].grade);
+      for (let i = 0; i < 80; i++) { const it = settle(s, { content, diff: '악몽', win: true, quit: false, reason: '', segIdx: 0, segN: 1, time: 60, restSec: 0, deaths: 2,
+        healed: 1, overheal: 0, dispels: 0, dispellable: 0, endMana: 1, minMana: 1, auto: false, party: [], detail: [] }, rngFrom(i + 1)).items[0]; if (it) seen.add(it.grade); } // 탐험은 판마다 50% (103)
       return seen;
     };
     expect([...grades('abyssedge')]).toEqual(['희귀']); // 둘째 레벨대 악몽 최소 희귀 (88 v0.2)

@@ -9,7 +9,7 @@ import { FEATURES } from '../data/features';
 import { contentOf, type ContentKey } from '../data/content';
 import { avgScore, GRADE_STYLE, kindOf, qualityOf, recommendedFor, slotName, type ItemGrade } from '../data/equipment';
 import { HEROES, type HeroKey } from '../data/heroes';
-import { STAR_OVERHEAL, xpToNext } from '../data/progression';
+import { EXPLORE_DROP, STAR_OVERHEAL, xpToNext } from '../data/progression';
 import { levelUpMilestones } from '../data/milestones';
 import { Flow, newSeed } from '../game/flow';
 import { nextRun } from '../game/next-run';
@@ -190,7 +190,9 @@ function itemsHtml(x: Settlement): string {
   // 레이드 칸 주 첫 보상 (2026-10-19 Lim 「주 첫 판만 크게」): 첫 클리어 = 레이드 보상, 다시 깬 판 = 던전과 같은 표 (월요일 오전 6시에 다시)
   const week = x.raidLoot === 'first' ? '<p class="r-item none week first">이번 주 첫 클리어 보상</p>'
     : x.raidLoot === 'again' ? '<p class="r-item none week">이번 주 첫 보상은 받음 · 월요일 오전 6시에 다시</p>' : '';
-  return week + x.items.map(it => itemRow(it.id)).join('');
+  // 탐험은 판마다 장비 EXPLORE_DROP (103): 안 나온 판은 한 줄
+  const none = x.noDrop ? `<p class="r-item none">이번 판 장비 없음 · 탐험은 판마다 ${Math.round(EXPLORE_DROP * 100)}%</p>` : '';
+  return week + none + x.items.map(it => itemRow(it.id)).join('');
 }
 
 /** 장비 카드: 부위 그림(등급 색 테두리) · 이름 / 등급 칩 · 점수 · 부위·종류 / 특수능력 · 입고 있으면 「장착함」. 지금 장비와의 ▲▼ · 「빈칸」 비교는 없음 (2026-10-17 Lim 「전투 결과도 마찬가지」) */
