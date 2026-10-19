@@ -281,32 +281,23 @@ function partyHits(f: Fight): void {
     u.acc += unitDps(u, f) * DT;
     if ((f.k + u.id * 7) % SWING[u.role as Exclude<Role, 'healer'>] !== 0 || u.acc <= 0 || f.bossHp <= 0) continue;
     const amt = u.acc;
-    if (f.stagger && u.hp >= u.max * f.stagger.hp - 1e-9) f.stagger.fill += amt * (u.role === 'tank' ? f.stagger.tank : 1); // 무력화 게이지 (P-STAGGER)
-    u.dealt += Math.min(amt, f.bossHp);
     u.acc = 0;
-    if (f.bodyHp) hitMobs(f, amt, u);
-    else if (u.role !== 'tank' && f.mobs.length && !(u.p.oneTrack && !f.invuln)) { hitAdds(f, amt, u); if (f.thr) dealerOutput(f, amt); } // 외골수 (95): 보스만 (무적일 때는 쫄). 어그로: 쫄 딜은 탱커 위협 바탕에만
-    else {
-      f.bossHp -= amt * (f.daze || f.expose || f.mobs.length ? bossTaken(f) : 1) * (u.p.addHunter?.boss ?? u.p.oneTrack?.boss ?? 1); // 멍함 · 영혼 축복 · 보호막 수정 (35 3-I) · 쫄 사냥꾼 · 외골수 (95)
-      if (f.thr && u.role !== 'tank') dealerThreat(f, u, amt); // 어그로 (96): 보스에게 준 딜. 탱커는 threatTick이 쌓음
-    }
-    const storm = u.mods.length ? u.mods.find(m => m.k === 'storm' && m.until > f.t) : undefined;
-    if (storm) stormHit(f, u, amt * storm.v);
+    land(f, u, amt);
     emit(f, { type: 'hit', uid: u.id, amt });
+    const storm = u.mods.length ? u.mods.find(m => m.k === 'storm' && m.until > f.t) : undefined;
+    if (storm && f.bossHp > 0) { land(f, u, amt * storm.v); emit(f, { type: 'hit', uid: u.id, amt: amt * storm.v }); } // 칼날폭풍: 추가타
   }
 }
 
-/**
- * 칼날폭풍 (17, 2026-10-19 Lim 「스킬을 재구성하자」): 걸린 동안 공격할 때마다 보스가 아닌 적 모두에게 x씩 더 (쫄 · 일반 · 정예 구간 적 · 성가대).
- * 자기 딜에 비례 (예전 최대 체력 25%는 일반 · 정예 구간에서 판 체력 25%를 순식간에 깎음)
- */
-function stormHit(f: Fight, u: Unit, x: number): void {
-  for (const m of f.mobs) {
-    if (!m.alive || m.boss) continue;
-    const d = Math.min(m.hp, x);
-    u.dealt += d;
-    if (m.add && u.did) u.did.adds += d; // 길드원 「한 일」: 쫄을 많이 잡음
-    damageMob(f, m, d);
+/** 한 방이 들어감: 무력화 게이지 · 딜 기록 · 몸통 / 쫄 / 보스 (칼날폭풍 추가타도 같은 길) */
+function land(f: Fight, u: Unit, amt: number): void {
+  if (f.stagger && u.hp >= u.max * f.stagger.hp - 1e-9) f.stagger.fill += amt * (u.role === 'tank' ? f.stagger.tank : 1); // 무력화 게이지 (P-STAGGER)
+  u.dealt += Math.min(amt, f.bossHp);
+  if (f.bodyHp) hitMobs(f, amt, u);
+  else if (u.role !== 'tank' && f.mobs.length && !(u.p.oneTrack && !f.invuln)) { hitAdds(f, amt, u); if (f.thr) dealerOutput(f, amt); } // 외골수 (95): 보스만 (무적일 때는 쫄). 어그로: 쫄 딜은 탱커 위협 바탕에만
+  else {
+    f.bossHp -= amt * (f.daze || f.expose || f.mobs.length ? bossTaken(f) : 1) * (u.p.addHunter?.boss ?? u.p.oneTrack?.boss ?? 1); // 멍함 · 영혼 축복 · 보호막 수정 (35 3-I) · 쫄 사냥꾼 · 외골수 (95)
+    if (f.thr && u.role !== 'tank') dealerThreat(f, u, amt); // 어그로 (96): 보스에게 준 딜. 탱커는 threatTick이 쌓음
   }
 }
 

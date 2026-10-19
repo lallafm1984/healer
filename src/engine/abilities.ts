@@ -618,7 +618,7 @@ function apply(f: Fight, u: Unit, a: AbilityDef, fx: Fx, e: number, ctx: Ctx): v
     case 'hitAdds':
       hitAddsBy(f, u, fx.v * e);
       break;
-    case 'storm': addMod(u, { k: 'storm', v: fx.v * e, until: sec(fx.sec), src }); break; // 칼날폭풍: 공격이 퍼짐 (fight.ts stormHit), ⚔ ★5 지속 +50%
+    case 'storm': addMod(u, { k: 'storm', v: fx.v * e, until: sec(fx.sec), src }); break; // 칼날폭풍: 공격할 때마다 추가타 (fight.ts partyHits, 2026-10-19 Lim 「그냥 추가타를 넣는 방식으로」), ⚔ ★5 지속 +50%
     case 'delay': if (ctx.tel) ctx.tel.impact += fx.sec * e; break;
     case 'dodgeNow': {
       const tel = ctx.tel;
