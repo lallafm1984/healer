@@ -6,6 +6,8 @@ import { calmDodge } from './talents';
 import { posPref } from './position';
 import { followPref, pairDodge, persDodge, persIgnoresZone, persLate, persMove, persPosPref, persReact } from './persona';
 import type { Cell, Fight, Role, Telegraph, Unit, Zone } from './types';
+import { STAT_ACT } from '../data/rules';
+import { clumsy } from '../data/fm';
 
 export type Zone3 = 'front' | 'mid' | 'back';
 
@@ -114,6 +116,12 @@ export function scheduleReaction(f: Fight, tel: Telegraph, u: Unit): void {
   if (f.sp && !u.me) rt = Math.max(0.1, rt - sv(f, 'quickPeer')); // 눈치 빠른 동료 (42 지원 09)
   if (f.mood != null && f.t < f.mood && !u.me) rt *= f.moodReact!; // 분위기메이커 (95): 시작 10초 모두
   if (u.fm && u.fm.focus > 0 && bigStage(f)) rt *= 1 - u.fm.focus; // 집중 (97 FM): 악몽 · 레이드 · 보스 30% 아래
+  // 능력치 (99 가): 꾸준함이 15보다 낮으면 예고마다 들쭉날쭉 (평균 1, 폭 = wob). 15 이상은 예전처럼 늘 같은 값 (다 같이 정확히)
+  // 늦어진 쪽은 터지기 직전 (lastCall초 전)까지만: 예전 시간에 피하던 사람이 흔들림 때문에 맞지는 않게 (늦게 피함은 못 피한 모양에서)
+  if (u.wob && inZ) {
+    const j = rt * (1 + STAT_ACT.react * u.wob * (2 * f.rng() - 1));
+    rt = Math.max(STAT_ACT.minReact, j > rt ? Math.min(j, Math.max(rt, tel.impact - f.t - STAT_ACT.lastCall)) : j);
+  }
   if (u.ps && inZ) {
     rt = rt * persReact(f, u, tel) + persLate(f, u); // 뉴비 · 완벽주의자 · 끈기형 (75 · 95) · 끊기 욕심 (95)
     if (u.p.foresee) rt = Math.max(0.05, rt - u.p.foresee.lead); // 예언가 (95)
@@ -162,6 +170,7 @@ export const bigStage = (f: Fight): boolean => f.mythic || f.party.length >= 10 
 
 export function doReact(f: Fight, u: Unit): void {
   const r = u.react!; u.react = null;
+  if (r.late) { lateStep(f, u, r.late); return; }
   const tel: Telegraph | Zone | undefined = f.tels.find(t => t.id === r.tel) || f.zones.find(z => z.id === r.tel);
   if (!tel) return;
   if (r.wrong) {
@@ -206,7 +215,43 @@ export function doReact(f: Fight, u: Unit): void {
     else { bark(f, u, '피할 곳이 없어!', true, 'noEscape'); u.retryAt = f.t + 1.5; }
   } else {
     u.mistakeUntil = Math.max(f.t, (impact || f.t) - 0.5) + 0.5;
+    if (u.wob != null && impact && missShape(f, u, tel, impact)) return; // 능력치 (99 가): 늦게 피함 · 엉뚱한 쪽
     u.retryAt = (impact || f.t) + (1.5 + f.rng() * 2.5) * (u.fm?.retry ?? 1); // 침착 (97 FM)
     bark(f, u, null, true, 'mistake'); // 실수 신호 (04 6-1)
   }
+}
+
+const st = (u: Unit, k: 'react' | 'judgment') => u.fmStats?.[k] ?? 10;
+/**
+ * 못 피한 모양 (99 가, 못 피할 확률은 그대로): 늦게 피함 (반응이 낮을수록) = 터진 뒤 뛰어나옴, 엉뚱한 쪽 (판단이 낮을수록) = 장판 안 다른 칸으로 갔다가 터진 뒤 다시,
+ * 나머지는 멈칫 (예전 모양: 제자리, 침착만큼 기다렸다 다시). 반응 · 판단 15 이상이면 예전처럼 멈칫만. 모양을 정했으면 true
+ */
+function missShape(f: Fight, u: Unit, tel: Telegraph | Zone, impact: number): boolean {
+  const cr = clumsy(st(u, 'react')), late = STAT_ACT.late * cr, wrong = STAT_ACT.wrong * clumsy(st(u, 'judgment'));
+  if (late + wrong <= 0) return false;
+  const x = f.rng();
+  if (x < late) {
+    const [[a1, b1], [a2, b2]] = STAT_ACT.lateSec, lo = a2 + (a1 - a2) * cr, hi = b2 + (b1 - b2) * cr;
+    const at = impact + lo + (hi - lo) * f.rng();
+    u.react = { at, tel: tel.id, late: new Set(tel.cells) };
+    u.retryAt = at + 0.4;
+    return true;
+  }
+  if (x < late + wrong) {
+    const here = cellOf(f, u), free = f.cells.filter(c => !c.unit && !c.block && tel.cells.has(c.i) && c.i !== u.cell && hexDist(c, here) <= 2);
+    if (!free.length) return false;
+    moveTo(f, u, free[Math.floor(f.rng() * free.length)]);
+    const [a, b] = STAT_ACT.wrongBack;
+    u.retryAt = impact + a + (b - a) * f.rng();
+    bark(f, u, null, true, 'wrongDodge');
+    return true;
+  }
+  return false;
+}
+
+/** 늦게 피함 (99 가): 터진 뒤에 예고 칸 · 남는 장판에서 안전한 칸으로 뛰어나옴 */
+function lateStep(f: Fight, u: Unit, cells: Set<number>): void {
+  if (!cells.has(u.cell) && !dangerAt(f, u.cell)) return;
+  const c = pickCell(f, u, { safe: true, extra: cells });
+  if (c) { moveTo(f, u, c); bark(f, u, null, true, 'lateDodge'); }
 }

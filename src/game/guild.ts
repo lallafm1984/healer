@@ -236,7 +236,7 @@ export function knowStages(m: Pick<GuildMember, 'know'>): Record<string, number>
 export function memberEntry(save: SaveData, m: GuildMember, seed = 1): RosterEntry {
   return {
     role: CLASSES[m.cls].role, pers: m.pers, nick: m.nick, cls: m.cls, ab: m.ab, star: memberSkillLevel(m), lv: m.lv, pub: true,
-    fm: { stats: { ...m.stats }, off: dayOffset(m.steady, seed, m.nick) }, habit: habitOf(m.stats), gid: m.id, know: knowStages(m),
+    fm: { stats: { ...m.stats }, off: dayOffset(m.steady, seed, m.nick), steady: m.steady }, habit: habitOf(m.stats), gid: m.id, know: knowStages(m),
   };
 }
 

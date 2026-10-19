@@ -9,7 +9,7 @@ import { TIER_MANA, TIER_MANA_BY } from '../data/heroConst';
 import { openTiers } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { pickMember, pickNick } from '../data/nicknames';
-import { dayOffset, fmFx, memberLevel, STAT_KEYS, type Stats } from '../data/fm';
+import { dayOffset, fmFx, memberLevel, STAT_KEYS, wobOf, type Stats } from '../data/fm';
 import { KNOW } from '../data/guild';
 import { dealerOutput, dealerThreat, threatInit, threatTick } from './threat';
 import { NICKS, PERS, PROTO_PERS, type PersName, type Personality } from '../data/personalities';
@@ -162,7 +162,7 @@ export function recruitParty(encKey: EncounterKey, seed: number, opts: { abiliti
     const p = pickMember(m.cls!, nr, used, { low, tank: m.role === 'tank', hard, lv });
     if (p) {
       m.nick = p.nick; m.pers = p.pers; if (opts.abilities) m.ab = p.ab;
-      if (fm) m.fm = { stats: p.fm.stats, off: dayOffset(p.fm.steady, seed, p.nick) };
+      if (fm) m.fm = { stats: p.fm.stats, off: dayOffset(p.fm.steady, seed, p.nick), steady: p.fm.steady };
       if (lv) { m.lv = memberLevel(p.fm.speed, lv.my); m.pub = true; }
     }
     else { m.nick = pickNick(m.cls!, nr, used); if (opts.abilities) m.ab = rollAbility(m.cls!, nr); } // 목록을 다 씀 (거의 없음): 이름 뒤 숫자
@@ -195,7 +195,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
     if (r?.gid != null) u.did = { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0 }; // 길드원 「한 일」 (97)
     const ks = Math.min(3, r?.know?.[f.enc.key] ?? 0); // 공략 숙지 (93 5-4): 이 전투를 외운 만큼
     if (ks > 0) { u.know = ks; u.senseReact *= KNOW.react[ks]; u.senseDodge += KNOW.dodge[ks]; }
-    if (fx) { u.fm = fx; u.fmStats = Object.fromEntries(STAT_KEYS.map(k => [k, r!.fm!.stats[k] + r!.fm!.off])) as Stats; }
+    if (fx) { u.fm = fx; u.fmStats = Object.fromEntries(STAT_KEYS.map(k => [k, r!.fm!.stats[k] + r!.fm!.off])) as Stats; u.wob = wobOf(r!.fm!.steady ?? 10); }
     if (role !== 'healer') u.lv = r?.lv ? (r.pub ? r.lv : Math.min(r.lv, f.cfg.stageLv ?? r.lv)) : (f.cfg.stageLv ?? 1); // 어그로 레벨 차이 (96)
     else u.lv = Math.max(f.cfg.heroLv ?? f.cfg.stageLv ?? 1, f.cfg.stageLv ?? 1);
     units.push(u);
