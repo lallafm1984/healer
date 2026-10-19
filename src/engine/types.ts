@@ -495,6 +495,8 @@ export type FightEvent =
   /** 체력 선 디버프가 채워져서 사라짐 (쇠약·완치 표식, 35 3-A) */
   | { type: 'cure'; id: number; name: string }
   | { type: 'gauge'; which: string }
+  /** 특성 버튼 발동 (2026-10-19, 화면 이펙트만): cell = 고른 칸 (칸 특성), uid = 받는 사람 (한 그루의 고목, 'id'로 두면 사람 사건으로 읽힘) */
+  | { type: 'talent'; key: TalentKey; cell?: number; uid?: number }
   | { type: 'beacon'; id: number }
   | { type: 'revive'; id: number }
   /** 파티원 공격 한 방 (uid = 때린 파티원) */

@@ -1,5 +1,5 @@
 // 드루이드: 풀빛 초록 · 나무 갈색 · 들꽃 분홍 · 노랑. 잎 · 꽃 · 씨앗 · 나무껍질 (단단한 것은 굵은 어두운 테)
-import { bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, leafAt, lerp, lightStroke, loopGlints, loopRise, particles, path, rad, ringGlow, rng, seg, solid, speck, TAU, wave } from './lib.mjs';
+import { bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, leafAt, lerp, lightStroke, loopGlints, loopRise, particles, path, rad, ringGlow, rng, seg, solid, speck, talentFx, TAU, wave } from './lib.mjs';
 
 const G = { rim: '#123d14', deep: '#2f8a3a', mid: '#6cc04a', light: '#b6e86a', pale: '#e6ffb8', glow: '#8fe05a' };
 const WOOD = { rim: '#1e1006', dark: '#5a3418', mid: '#8a5a2b', light: '#c08a4a' };
@@ -216,4 +216,6 @@ export default {
       loopGlints(g, t, [[-0.34, 0.2], [0.16, -0.14], [0.2, 0.32], [0.56, 0.36], [-0.1, -0.02]], { size: 0.225, col: '#ffffff', glowCol: G.glow, per: 1 });
     },
   },
+  /** 특성 버튼 발동 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트 … 필요」): lib talentFx 'vine' (코드 빛 띠 · 충격파 · 파티클, 칸 가득) */
+  'druid-talent': talentFx({ rim: '#123d14', body: '#6cc04a', light: '#b6e86a', core: '#f4ffe0', glow: '#8fe05a', acc: '#ffd0e4', accGlow: '#ff9ac8' }, 'vine'),
 };

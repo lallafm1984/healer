@@ -1,6 +1,7 @@
 /** 전투 판의 파티원 칸 표시 계산. 전투 상태는 변경하지 않는다. */
 import { canDispel, type HeroKey } from '../data/heroes';
-import type { Debuff, Mod, Unit } from '../engine/types';
+import { TALENT_DEF, type TalentKey } from '../data/talents';
+import type { Debuff, Mod, Totem, Unit } from '../engine/types';
 
 /** 소생 → 새싹 → 생장 → 들꽃 → 서약, 그 뒤 특성 지속 힐 (남은 꽃 · 파도의 여운, 77), 79 직업 지속 힐 (물방울) */
 const HOT_TIMER_ORDER = ['renew', 'sprout', 'growth', 'wildflower', 'oath', 'bloom', 'lightWave', 'droplet', 'wanderMist', 'starMark'];
@@ -63,6 +64,24 @@ export const starMarkTimerOf = (u: Pick<Unit, 'hots'>, hero: HeroKey): number | 
   const m = u.hots.find(h => h.key === 'starMark' && h.left > 0);
   return m ? m.left : null;
 };
+
+/**
+ * 특성 버튼 지속 효과 남은 시간 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트와 지속시간 표시도 필요하다」): 켜져 있는 자기 강화 특성 (기도의 정점 · 숲의 기억 · 은하수 등)마다
+ * 내 칸 왼쪽 열 원 + 남은 초. 칸을 고르는 특성 (쉼터 · 바다의 자리 · 모이는 안개 · 성채)은 그 칸에 (talentObjectTimers). 버튼의 금빛 테 · 남은 초는 그대로
+ */
+export function talentBuffTimers(act: Partial<Record<TalentKey, { left: number }>>): { key: TalentKey; left: number }[] {
+  return (Object.keys(act) as TalentKey[])
+    .filter(k => (act[k]?.left ?? 0) > 1e-9 && !!TALENT_DEF[k]?.active?.dur && !TALENT_DEF[k].active!.cell)
+    .map(k => ({ key: k, left: act[k]!.left }));
+}
+/** 칸을 고르는 특성의 판 위 물건 남은 시간: 쉼터 (사제) · 바다 샘 (주술사) · 안개 샘 (수도사) · 성채 (결계사). 그 칸에 사람이 서 있으면 그 사람 왼쪽 열, 비었으면 칸 왼쪽 위 */
+export type TalentObjectKey = 'shelter' | 'sea' | 'mist' | 'citadel';
+export function talentObjectTimers(shelter: number, shelterLeft: number, totems: readonly Pick<Totem, 'kind' | 'cell' | 'until'>[], t: number): { cell: number; key: TalentObjectKey; left: number }[] {
+  const out: { cell: number; key: TalentObjectKey; left: number }[] = [];
+  if (shelter >= 0 && shelterLeft > 1e-9) out.push({ cell: shelter, key: 'shelter', left: shelterLeft });
+  for (const tm of totems) if ((tm.kind === 'sea' || tm.kind === 'mist' || tm.kind === 'citadel') && tm.until > t) out.push({ cell: tm.cell, key: tm.kind, left: tm.until - t });
+  return out;
+}
 
 /**
  * 칸 글자 크기 (판 그림 좌표). 모든 판이 5인 던전 칸 모양이라 (2026-10-16 Lim, 레이드 전용 작은 칸 없앰) 대상 폰에서 scale은 50 이상,

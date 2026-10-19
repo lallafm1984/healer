@@ -1,5 +1,5 @@
 // 사제: 흰빛 · 크림 · 연금색 + 하늘빛 강조 (치유 · 소생만 초록, 치유는 Lim이 만든 「초록 반짝이 가루 구름」을 그대로 다시 그림)
-import { asset, bell, bez, bloom, C, comet, E, energy, frac, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopRise, particles, path, rad, ribbonPath, ringGlow, seg, solid, speck, taper, TAU, wave } from './lib.mjs';
+import { asset, bell, bez, bloom, C, comet, E, energy, frac, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopRise, particles, path, rad, ribbonPath, ringGlow, seg, solid, speck, talentFx, taper, TAU, wave } from './lib.mjs';
 
 const GOLD = { rim: '#5a3c0c', body: '#ffd56b', core: '#fffbe8', glow: '#ffcf6a' };
 const SKY = '#8fd6ff', SKY_DEEP = '#2e6fb8', NAVY = '#1d2a4a';
@@ -317,4 +317,6 @@ export default {
       loopGlints(g, t, [[0, -0.86], [-0.62, -0.22], [0.62, -0.22], [0, 0.36]], { size: 0.3, col: GOLD.core, glowCol: GOLD.glow });
     },
   },
+  /** 특성 버튼 발동 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트 … 필요」): lib talentFx 'halo' (코드 빛 띠 · 충격파 · 파티클, 칸 가득) */
+  'priest-talent': talentFx({ rim: '#5a3c0c', body: '#ffd56b', light: '#fff1b0', core: '#fffbe8', glow: '#ffcf6a', acc: '#d8f0ff', accGlow: '#9fd4ff' }, 'halo'),
 };

@@ -235,8 +235,10 @@ export function useTalent(f: Fight, key: TalentKey, cellIdx?: number): ActionRes
   }
   if (key === 'shelter') f.tx.shelter = cellIdx!;
   if (key === 'springRain') for (const v of living(f)) if (!sprouted(v)) putSprout(f, v); // 봄비 (77)
+  let fxId: number | undefined;
   if (key === 'oldTree') { // 한 그루의 고목 (77): 다른 아군 새싹을 모두 거둬 가장 낮은 사람에게
     const u = oldTreeTarget(f)!, sum = treeSum(f, u);
+    fxId = u.id;
     for (const v of living(f)) if (v !== u) v.hots = v.hots.filter(h => h.key !== 'sprout');
     heal(f, u, sum * TX.oldTree.mult, true);
   }
@@ -248,6 +250,7 @@ export function useTalent(f: Fight, key: TalentKey, cellIdx?: number): ActionRes
   if (key === 'supernova') supernova(f, cellIdx!); // 초신성 (79 4-7)
   if (key === 'citadel') citadel(f, cellIdx!); // 성채 (79 5-7)
   emit(f, { type: 'sound', name: 'chime' });
+  emit(f, { type: 'talent', key, ...(def.active!.cell ? { cell: cellIdx! } : {}), ...(fxId != null ? { uid: fxId } : {}) }); // 발동 이펙트 (battle/index.ts)
   emit(f, { type: 'msg', text: def.active!.dur ? `${def.name}: ${def.active!.dur}초` : def.name });
   return { ok: true };
 }

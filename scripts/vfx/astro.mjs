@@ -2,7 +2,7 @@
 // 2026-10-19 Lim 「점성술사도 퀄리티 및 파티클 보강, 전면 개편」: 모양은 Codex 그림 (scripts/vfx/assets/astro-*), 움직임 · 빛 · 별가루는 코드
 // 2026-10-19 Lim 「기억 스킬을 제외하고 나머지 스킬을 점성술사 색상에 맞춰서 크고 화려하게, 잠처럼 이미지 한 장이 유지되는 경우는 피하자」:
 // 주인공이 칸 지름만큼, 맞는 순간 흰 섬광 + 호박 · 밤빛 보라 고리, 별가루마다 빛 번짐 · 1.5배, 그림은 늘 움직이고 (돌기 · 날기 · 터지기) 한자리에 머물지 않음
-import { asset, bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopOrbit, loopRise, particles, path, rad, ringGlow, seg, solid, speck, TAU, wave } from './lib.mjs';
+import { asset, bell, bez, bloom, C, comet, E, energy, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopOrbit, loopRise, particles, path, rad, ringGlow, seg, solid, speck, talentFx, TAU, wave } from './lib.mjs';
 
 const AM = { rim: '#3a2108', deep: '#b8741e', body: '#e8b04a', light: '#ffe08a', core: '#fff8e0', glow: '#ffc85a' };
 const NIGHT = { rim: '#120e30', deep: '#2a2470', mid: '#5a4fc0', glow: '#7a6af0', star: '#e8f0ff' };
@@ -302,4 +302,6 @@ export default {
       loopGlints(g, t, [[0.34, -0.7], [-0.5, -0.35], [0.5, 0.35], [-0.3, 0.6], [0.05, -0.2]], { size: 0.22, col: AM.core, glowCol: AM.glow });
     },
   },
+  /** 특성 버튼 발동 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트 … 필요」): lib talentFx 'comets' (코드 빛 띠 · 충격파 · 파티클, 칸 가득) */
+  'astro-talent': talentFx({ rim: '#3a2108', body: '#e8b04a', light: '#ffe08a', core: '#fff8e0', glow: '#ffc85a', acc: '#c8b8ff', accGlow: '#7a6af0' }, 'comets'),
 };

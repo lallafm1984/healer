@@ -260,3 +260,112 @@ export function drawFrame(g, fx, i, S) {
   g.fillStyle = m; g.fillRect(-half, -half, half * 2, half * 2);
   g.restore();
 }
+
+// ── 특성 버튼 발동 이펙트 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트와 지속시간 표시도 필요하다」) ─────
+// 수도사 방식 (그림 없이 코드 빛 띠 · 빛나는 머리 · 충격파 · 파티클, 칸 가득). 직업마다 색 P와 모양 form 하나: 직업 파일이 talentFx(P, form)로 등록
+// P = { rim, body, light, core, glow, acc, accGlow } (acc = 포인트 색)
+const tRibbon = (g, P, path, s0, s1, w, a, body = P.body, glowCol = P.glow) => { if (s1 > s0 + 1e-3 && a > 0) lightStroke(g, path, s0, s1, u => w * Math.sin(Math.PI * u) ** 0.7, { rim: P.rim, body, core: P.core, a, rimW: 0.016, coreW: 0.42, glowCol, glowA: 0.75 }); };
+const tHead = (g, P, x, y, a, r = 0.3, col = P.glow) => { glow(g, x, y, r, col, 0.85 * a); glow(g, x, y, r * 0.5, P.light, 0.7 * a); glow(g, x, y, r * 0.28, '#ffffff', 0.95 * a); };
+function tImpact(g, P, t, { x = 0, y = 0, t0 = 0, r = 1.15, sy = 0.9, a = 1 } = {}) {
+  const u = seg(t, t0, t0 + 0.45);
+  glow(g, x, y, r * 1.05, P.glow, 0.6 * (1 - E.out2(seg(t, t0, t0 + 0.55))) * a);
+  glow(g, x, y, r * 0.45, '#ffffff', 0.85 * bell(t, t0 - 0.02, t0 + 0.03, t0 + 0.28) * a);
+  if (u > 0 && u < 1) { ringGlow(g, x, y, lerp(0.25, r * 1.2, E.out3(u)), 0.08, P.light, 0.8 * (1 - u) * a, sy); ringGlow(g, x, y, lerp(0.15, r * 0.9, E.out3(seg(t, t0 + 0.06, t0 + 0.5))), 0.06, P.acc, 0.7 * (1 - u) * a, sy); }
+}
+function tBurst(g, P, t, seed, n, { x = 0, y = 0, sp = 1.3, sq = 0.85, t0 = 0, a = 1, grav = 0.25 } = {}) {
+  particles(g, t, seed, n, r => ({ t0: t0 + r() * 0.06, life: 0.35 + r() * 0.3, ang: r() * TAU, v: sp * (0.5 + r() * 0.7), sz: 0.018 + r() * 0.026, ph: r() * 9, ac: r() < 0.3 }), (gg, p, age) => {
+    const d = p.v * E.out3(age), px = x + Math.cos(p.ang) * d, py = y + Math.sin(p.ang) * d * sq + grav * age * age, al = (1 - E.in2(age)) * a;
+    glow(gg, px, py, p.sz * 4, p.ac ? P.accGlow : P.glow, 0.45 * al);
+    speck(gg, px, py, p.sz * (1 - 0.4 * age), p.ac ? P.acc : age < 0.4 ? P.core : P.light, al, 0.5 + 0.5 * Math.sin(p.ph + age * 20));
+  });
+}
+function tSwirl(g, P, t, seed, n, { y0 = 0.75, up = 1.35, rr = 1.0, t0 = 0.3, span = 0.4, a = 1 } = {}) {
+  particles(g, t, seed, n, r => ({ t0: t0 + r() * span, life: 0.45 + r() * 0.35, a0: r() * TAU, rr: 0.15 + r() * rr, y0: y0 + r() * 0.2, up: up * (0.7 + r() * 0.6), sz: 0.016 + r() * 0.026, spin: (r() < 0.5 ? -1 : 1) * (1.2 + r()), ph: r() * 9, ac: r() < 0.3 }), (gg, p, age) => {
+    const an = p.a0 + p.spin * age * 2.4, rad2 = p.rr * (1 - 0.3 * age), x = Math.cos(an) * rad2, y = p.y0 - p.up * E.out2(age) + Math.sin(an) * rad2 * 0.22, al = bell(age, 0, 0.12, 1) * a;
+    glow(gg, x, y, p.sz * 4.5, p.ac ? P.accGlow : P.glow, 0.4 * al);
+    speck(gg, x, y, p.sz, p.ac ? P.acc : P.light, al, 0.5 + 0.5 * Math.sin(p.ph + age * 18));
+  });
+}
+function tGlints(g, P, t, seed, n, { t0 = 0.2, step = 0.05, w = 2.0, y0 = 0, h = 1.8, a = 1 } = {}) {
+  particles(g, t, seed, n, (r, i) => ({ t0: t0 + i * step + r() * 0.03, life: 0.28, x: (r() - 0.5) * w, y: y0 + (r() - 0.5) * h, rot: r(), ac: i % 3 === 1 }), (gg, p, age) => glint(gg, p.x, p.y - age * 0.08, 0.24 * Math.sin(Math.PI * age), p.ac ? P.accGlow : P.glow, a, p.rot, 0.13, P.core));
+}
+/** 특성 발동 이펙트 하나: form = halo (사제) · vine (드루이드) · pillar (성기사) · geyser (주술사) · gather (수도사) · comets (점성술사) · rings (결계사) */
+export function talentFx(P, form) {
+  return {
+    frames: 20, logical: 100, size: 320, scope: 'target',
+    draw(g, { t }) {
+      const fade = 1 - E.in2(seg(t, 0.62, 1));
+      glowOval(g, 0, 0.05, 1.05, 1.1, P.glow, 0.32 * bell(t, 0, 0.25, 0.95));
+      if (form === 'halo') { // 머리 위로 내려앉는 빛 고리 + 발밑에서 감아 오르는 띠 넷
+        const d = E.out3(seg(t, 0, 0.32)), hy = lerp(-1.45, -0.82, d);
+        for (let k = 0; k < 4; k++) {
+          const ph = (k * TAU) / 4, path = s2 => { const an = ph + s2 * TAU * 0.9 + t * 3; return { x: Math.cos(an) * 0.85 * (1 - 0.3 * s2), y: lerp(0.95, hy + 0.05, s2) }; };
+          const hd = E.inOut(seg(t, 0.05 + k * 0.03, 0.45 + k * 0.03)), tl = Math.max(0, hd - 0.55) + 0.45 * E.in2(seg(t, 0.5, 0.9));
+          tRibbon(g, P, path, tl, hd, 0.11, fade, k % 2 ? P.light : P.body);
+          if (hd < 1) { const q = path(hd); tHead(g, P, q.x, q.y, fade, 0.22); }
+        }
+        ringGlow(g, 0, hy, 0.62, 0.1, P.glow, (0.5 + 0.4 * bell(t, 0.3, 0.38, 0.6)) * fade, 0.3);
+        ringGlow(g, 0, hy, 0.62, 0.035, P.core, 0.95 * fade * Math.min(1, t * 6), 0.3);
+        tImpact(g, P, t, { y: hy, t0: 0.32, r: 0.9, sy: 0.4 });
+        tBurst(g, P, t, 3, 40, { y: hy, sp: 1.2, sq: 0.5, t0: 0.32, a: fade, grav: 0.8 });
+      } else if (form === 'vine') { // 땅에서 물결치며 감아 오르는 덩굴 띠 셋 + 끝에서 터지는 잎
+        tImpact(g, P, t, { y: 0.9, r: 1.0, sy: 0.32 });
+        for (let k = 0; k < 3; k++) {
+          const x0 = (k - 1) * 0.6, path = s2 => ({ x: x0 * (1 - 0.6 * s2) + Math.sin(s2 * 7 + k * 2 + t * 6) * 0.22 * (1 - s2 * 0.4), y: lerp(1.0, -1.05 + 0.15 * Math.abs(k - 1), s2) });
+          const hd = E.out2(seg(t, k * 0.05, 0.42 + k * 0.05)), tl = 0.55 * E.in2(seg(t, 0.5, 0.95));
+          tRibbon(g, P, path, tl, hd, 0.13, fade, k === 1 ? P.light : P.body);
+          if (hd < 1) { const q = path(hd); tHead(g, P, q.x, q.y, fade, 0.24); }
+          const leafT = seg(t, 0.42 + k * 0.05, 0.9), q = path(1);
+          if (leafT > 0 && leafT < 1) for (let j = 0; j < 5; j++) { const an = (j * TAU) / 5 + k, dd = 0.1 + 0.45 * E.out3(leafT); leafAt(g, q.x + Math.cos(an) * dd, q.y + Math.sin(an) * dd + 0.2 * leafT * leafT, 0.14 * (1 - 0.4 * leafT), an + leafT * 4, { a: (1 - leafT) * fade }); }
+        }
+      } else if (form === 'pillar') { // 하늘에서 내리꽂혀 넓어지는 빛기둥 + 발밑 충격파
+        const hit = 0.2, pd = E.in2(seg(t, 0, hit)), bot = lerp(-1.2, 0.95, pd), wide = 1 + 1.4 * E.out3(seg(t, hit, hit + 0.3)), pa = 1 - seg(t, hit + 0.15, 0.7);
+        glowOval(g, 0, lerp(-1.6, bot, 0.5), 0.5 * wide, Math.max(0.3, (bot + 1.6) / 2), P.glow, 0.45 * pa);
+        tRibbon(g, P, s2 => ({ x: 0, y: lerp(-1.65, bot, s2) }), 0, 1, 0.22 * wide, pa);
+        if (t < hit) tHead(g, P, 0, bot, 1, 0.4);
+        tImpact(g, P, t, { y: 0.9, t0: hit, r: 1.15, sy: 0.32 });
+        tBurst(g, P, t, 3, 44, { y: 0.85, sp: 1.3, sq: 0.4, t0: hit, a: fade, grav: -0.6 });
+      } else if (form === 'geyser') { // 발밑에서 소용돌이치며 솟는 물빛 띠 둘 + 위에서 흩어지는 빛 방울 + 잔물결
+        for (const side of [0, Math.PI]) {
+          const path = s2 => { const an = side + s2 * TAU * 1.6; return { x: Math.cos(an) * 0.55 * (1 - 0.5 * s2), y: lerp(0.95, -1.15, s2) }; };
+          const hd = E.out2(seg(t, 0, 0.38)), tl = 0.6 * E.in2(seg(t, 0.4, 0.85));
+          tRibbon(g, P, path, tl, hd, 0.15, fade, side ? P.light : P.body);
+          if (hd < 1) { const q = path(hd); tHead(g, P, q.x, q.y, fade, 0.28); }
+        }
+        for (const k of [0, 0.15]) { const u = seg(t, k, k + 0.55); if (u > 0 && u < 1) ringGlow(g, 0, 0.92, lerp(0.3, 1.2, E.out3(u)), 0.06, k ? P.acc : P.light, 0.75 * (1 - u) * fade, 0.3); }
+        tImpact(g, P, t, { y: -1.1, t0: 0.38, r: 0.85, sy: 0.6 });
+        tBurst(g, P, t, 3, 50, { y: -1.1, sp: 1.25, sq: 0.7, t0: 0.38, a: fade, grav: 1.6 });
+      } else if (form === 'gather') { // 네 모서리에서 가슴으로 모여드는 기 띠 넷 + 터지는 고리 · 빛살
+        const hit = 0.32;
+        for (let k = 0; k < 4; k++) {
+          const an = (k * TAU) / 4 + Math.PI / 4, path = s2 => { const rr = lerp(1.5, 0.05, s2), aa = an + s2 * 1.4; return { x: Math.cos(aa) * rr, y: Math.sin(aa) * rr * 0.85 }; };
+          const hd = E.in2(seg(t, 0, hit)), tl = Math.max(0, hd - 0.6) + 0.4 * seg(t, hit, hit + 0.1);
+          if (t < hit + 0.1) tRibbon(g, P, path, tl, hd, 0.13, 1 - seg(t, hit, hit + 0.1), k % 2 ? P.light : P.body);
+          if (t < hit) { const q = path(hd); tHead(g, P, q.x, q.y, 1, 0.24); }
+        }
+        tImpact(g, P, t, { t0: hit, r: 1.3 });
+        const ru = seg(t, hit, hit + 0.38);
+        if (ru > 0 && ru < 1) for (let i = 0; i < 8; i++) { const an = (i * TAU) / 8 + 0.2, r0 = lerp(0.3, 1.1, E.out3(ru)), r1 = lerp(0.55, 1.5, E.out3(ru)); tRibbon(g, P, s2 => ({ x: Math.cos(an) * lerp(r0, r1, s2), y: Math.sin(an) * lerp(r0, r1, s2) * 0.9 }), 0, 1, 0.08 * (1 - 0.5 * ru), (1 - E.in2(ru)) * fade, i % 2 ? P.acc : P.light, i % 2 ? P.accGlow : P.glow); }
+        tBurst(g, P, t, 3, 50, { t0: hit, a: fade, sp: 1.45 });
+      } else if (form === 'comets') { // 칸 둘레를 나선으로 돌며 모여드는 별빛 혜성 셋 + 가운데에서 터지는 별가루
+        const hit = 0.42;
+        for (let k = 0; k < 3; k++) {
+          const path = s2 => { const aa = (k * TAU) / 3 + s2 * TAU * 1.1, rr = lerp(1.35, 0.05, E.in2(s2)); return { x: Math.cos(aa) * rr, y: Math.sin(aa) * rr * 0.85 }; };
+          const hd = seg(t, 0, hit), tl = Math.max(0, hd - 0.35);
+          if (t < hit + 0.05) tRibbon(g, P, path, tl, hd, 0.1, 1 - seg(t, hit, hit + 0.05), k === 1 ? P.acc : P.light, k === 1 ? P.accGlow : P.glow);
+          if (t < hit) { const q = path(hd); tHead(g, P, q.x, q.y, 1, 0.26); glint(g, q.x, q.y, 0.18, P.glow, 1, t * 8 + k, 0.13, P.core); }
+        }
+        tImpact(g, P, t, { t0: hit, r: 1.3 });
+        tBurst(g, P, t, 3, 56, { t0: hit, a: fade, sp: 1.45, grav: 0.2 });
+      } else { // rings: 가운데에서 차례로 둥글게 퍼지는 겹 빛 고리 셋 + 도는 둥근 문양
+        for (let k = 0; k < 3; k++) { const u = seg(t, k * 0.1, k * 0.1 + 0.55); if (u > 0 && u < 1) { ringGlow(g, 0, 0.05, lerp(0.2, 1.3, E.out3(u)), 0.1, P.glow, 0.6 * (1 - u) * fade); ringGlow(g, 0, 0.05, lerp(0.2, 1.3, E.out3(u)), 0.035, k === 1 ? P.acc : P.core, 0.95 * (1 - u) * fade); } }
+        const sg = E.back(seg(t, 0.1, 0.35), 1.6) * (1 - E.in2(seg(t, 0.6, 0.95)));
+        if (sg > 0.01) { ringGlow(g, 0, 0.05, 0.75 * sg, 0.05, P.light, 0.9 * fade); for (let i = 0; i < 6; i++) { const an = (i * TAU) / 6 + t * 3; tHead(g, P, Math.cos(an) * 0.75 * sg, 0.05 + Math.sin(an) * 0.75 * sg, fade, 0.14, i % 2 ? P.accGlow : P.glow); } }
+        tImpact(g, P, t, { y: 0.05, t0: 0.05, r: 1.2 });
+        tBurst(g, P, t, 3, 44, { y: 0.05, t0: 0.1, a: fade, sp: 1.35, grav: 0.1 });
+      }
+      tSwirl(g, P, t, 5, 34, { a: fade });
+      tGlints(g, P, t, 6, 8, { a: fade });
+    },
+  };
+}

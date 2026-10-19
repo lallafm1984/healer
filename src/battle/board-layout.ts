@@ -19,7 +19,7 @@ export function clearOf(occupied: readonly BoardBox[], x: number, y: number, w: 
   return occupied.every(b => Math.abs(x - b.x) >= (w + b.w) / 2 + 1 - 1e-6 || Math.abs(y - b.y) >= (h + b.h) / 2 + 1 - 1e-6);
 }
 /** 떠오르는 숫자 (회복 · 보호막 · 피해 · 능력 이름)가 비키는 판 기록 종류: 이름 · 체력 · 지속 힐 원 · 보호막 원 · 방어 생존기 원 · 디버프 배지 · 직업 아이콘 · 알약 */
-const FLOAT_AVOID = new Set(['hp', 'nick', 'hot', 'shield', 'guard', 'debuff', 'role', 'pill']);
+const FLOAT_AVOID = new Set(['hp', 'nick', 'hot', 'shield', 'guard', 'seal', 'starmark', 'talent', 'debuff', 'role', 'pill']); // 왼쪽 열 원 (보호막 · 방어 생존기 · 인장 · 별자리 표식 · 특성 지속 효과)도 떠오르는 숫자가 비킴
 /**
  * 떠오르는 숫자가 비킬 판 기록. 칸만 한 육각 테두리 (디버프 테 debuff-ring)는 빼고: 피하면 칸 전체가 막혀 디버프가 걸린 사람 숫자가
  * 판 맨 위 (윗줄)로만 밀려나고 다른 줄은 아예 못 떴다 (2026-10-17 Lim 「포자 솜뭉치의 피해 표시가 최상단만 뜨고 다른 데는 안 됨」)

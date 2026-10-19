@@ -2,7 +2,7 @@
 // 2026-10-19 Lim 「수도사 · 점성술사 · 결계사도 퀄리티 및 파티클 보강, 전면 개편」 → 「수도사 스킬이펙트가 형편없다. 성기사 방식을 참고해서 전면 수정」:
 // 성기사처럼 굵고 또렷한 Codex 그림이 주인공 (크게 · 맞는 순간 더해 번쩍), 흰 섬광 + 충격파 고리, 진한 비취 반짝이 가루를 많이, 384px 프레임
 // → 2026-10-19 Lim 「수도사도 이미지를 사용하지 말고 이펙트로 손바닥을 제외한 모든 스킬을 재생성」: 손바닥 (기 구슬 그림)만 그림, 나머지는 코드로 그린 빛 띠 · 안개 · 충격파 · 파티클만, 칸 가득
-import { asset, bell, bez, bloom, C, E, energy, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopOrbit, loopRise, particles, path, rad, ringGlow, rng, seg, solid, speck, TAU, wave } from './lib.mjs';
+import { asset, bell, bez, bloom, C, E, energy, glint, glow, glowOval, lerp, lightStroke, loopGlints, loopOrbit, loopRise, particles, path, rad, ringGlow, rng, seg, solid, speck, talentFx, TAU, wave } from './lib.mjs';
 
 const J = { rim: '#0d3329', deep: '#1d6b55', mid: '#3fae8c', light: '#6fd0b0', pale: '#bff0dc', white: '#f2fff9', glow: '#5fd8b0' };
 /** 진한 비취 (성기사 금빛처럼 또렷하게, 2026-10-19) */
@@ -289,4 +289,6 @@ export default {
       loopGlints(g, t, [[-0.72, -0.1], [0.7, -0.16]], { size: 0.195, col: EM.core, glowCol: EM.glow });
     },
   },
+  /** 특성 버튼 발동 (2026-10-19 Lim 「특성에 달린 버튼들을 눌렀을때 이펙트 … 필요」): lib talentFx 'gather' (코드 빛 띠 · 충격파 · 파티클, 칸 가득) */
+  'monk-talent': talentFx({ rim: '#0d3329', body: '#22d39a', light: '#7cf2c4', core: '#f4fff9', glow: '#2ee0a2', acc: '#ffe08a', accGlow: '#ffc84a' }, 'gather'),
 };
