@@ -1184,6 +1184,12 @@ export function fxAbility(u: Unit, name: string, now: number): void {
   if (!L.ok || B2.floats.length >= 40) return;
   B2.floats.push({ dx: 0, dy: -0.55, text: name, crit: false, over: false, t0: now, n: B2.n++, fill: C.gold, label: true, id: u.id });
 }
+/** 능력치 (99): 칸 위 짧은 글 (「막음」 · 「헛씀」) — 능력 이름과 같은 자리 · 크기, 색만 다름 */
+export function fxNote(u: Unit, text: string, fill: number, now: number): void {
+  if (S.reducedEffects) return;
+  if (!L.ok || B2.floats.length >= 40) return;
+  B2.floats.push({ dx: 0, dy: -0.55, text, crit: false, over: false, t0: now, n: B2.n++, fill, label: true, id: u.id });
+}
 /** plain = 이 칸에 해제 스킬 PXF 이펙트가 나와서 공통 해제 빛은 안 그림 */
 export function fxDispel(u: Unit, now: number, trap = false, label?: string, plain = false): void {
   if (S.reducedEffects) { addBubble(u.id, label ?? (trap ? '전염 폭발' : '해제'), now); return; }

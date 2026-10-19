@@ -323,8 +323,7 @@ function detailHtml(m: GuildMember): string {
   return `${sheetHead(d, 'msheet')}
     ${tipBox('msheet', `<p><b>레벨</b> 함께 이긴 판마다 경험치 (내 레벨까지). 쉬는 판은 30%, 골드 지원 중에는 출전만큼 받습니다. 지원은 한 번에 ${SPONSOR.runs}판이며, 남은 횟수를 모두 쓰면 다시 지원할 수 있습니다.</p>
       <p><b>능력치</b> 레벨이 오를 때 오릅니다. 다음 한 칸까지 레벨 ${Math.max(1, Math.ceil((1 - m.sxp) / per - 1e-9))} · 상한 ${cap} · 칸마다 타고난 값에서 +${pot}까지.</p>
-      ${a ? `<p><b>직업 스킬 LV ${star} / 5</b>${fx && star ? ` 효과 ×${fx.eff.toFixed(2)}${fx.cd < 1 ? ` · 쿨 ×${fx.cd.toFixed(1)}` : ''}.` : ''} 길드원 Lv 20 · 40 · 60 · 80에서 오릅니다.${star >= 5 ? ` LV 5: ${STAR5[a.kind]}` : ''}</p>` : ''}
-      <p><b>공략 숙지</b> 함께 이긴 전투마다 그 전투에서 반응 · 회피가 좋아집니다.</p>`)}
+      ${a ? `<p><b>직업 스킬 LV ${star} / 5</b>${fx && star ? ` 효과 ×${fx.eff.toFixed(2)}${fx.cd < 1 ? ` · 쿨 ×${fx.cd.toFixed(1)}` : ''}.` : ''} 길드원 Lv 20 · 40 · 60 · 80에서 오릅니다.${star >= 5 ? ` LV 5: ${STAR5[a.kind]}` : ''}</p>` : ''}`)}
     ${meters}
     ${memDetailHtml(d)}
     <div class="g-acts">

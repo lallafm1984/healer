@@ -98,9 +98,18 @@ export const SITS = {
   lateDodge: S('장판', '늦게 피함', 'self', 2, 0.8, '반응이 늦어 장판에 맞고 나서야 뛰어나옴'),
   wrongDodge: S('장판', '엉뚱한 쪽', 'self', 2, 0.8, '피한다는 게 장판 안 다른 칸으로 들어감 (판단이 낮음)'),
   whiff: S('보스', '빗나감', 'self', 1, 0.5, '한 방이 빗나감 (기술 숙련이 낮음). 가볍게'),
+  regroup: S('보스', '정신 차림', 'self', 1, 0.5, '한 위기에 실수가 겹친 뒤 잠깐 수습 (그동안 새 실수 없음). 가볍게'),
+  coverCut: S('보스', '대신 끊음', 'self', 2, 1, '동료가 끊기에 실패한 기술을 협동이 높은 사람이 알아채고 대신 끊음'),
+  alone: S('장판', '혼자 놂', 'self', 1, 0.5, '나눠 맞는 장판에 뽑혔는데 협동이 낮아 안 옴 (그 자리는 빔). 가볍게'),
+  clump: S('장판', '붙어 섬', 'self', 1, 0.5, '옮겨붙음 · 부풀기를 든 채 옆 사람에게서 안 떨어짐 (위치 잡기가 낮음, 옆 사람이 같이 맞음). 가볍게'),
+  reel: S('보스', '휘청', 'self', 1, 0.5, '큰 한 방을 맞고 휘청 (맷집이 낮음, 잠깐 공격 · 이동 멈춤). 가볍게'),
+  spaceOut: S('보스', '멍', 'self', 1, 0.5, '긴 전투에서 잠깐 딴생각 (집중이 낮음, 그 순간 반응 · 한 방이 나빠짐). 가볍게'),
   skillFumble: S('보스', '스킬 헛씀', 'self', 2, 0.8, '직업 스킬을 썼는데 헛나감 (재사용만 돎, 기술 숙련이 낮음)'),
-  aggroHold: S('보스', '어그로 뺏고 멈춤', 'self', 2, 0.8, '보스를 뺏은 딜러가 판단 · 침착이 좋아 딜을 멈추고 탱커가 되찾기를 기다림'),
-  aggroIgnore: S('보스', '어그로 뺏고 계속 때림', 'self', 2, 0.8, '보스를 뺏은 딜러가 판단 · 침착이 낮아 딜을 안 멈춤 (어그로가 오래 머묾)'),
+  aggroHold: S('보스', '어그로 뺏고 멈춤', 'self', 2, 0.8, '보스를 뺏은 딜러가 판단이 좋아 딜을 멈추고 탱커가 되찾기를 기다림 (침착도 좋으면 생존기를 켜고 버팀)'),
+  aggroIgnore: S('보스', '어그로 뺏고 계속 때림', 'self', 2, 0.8, '보스를 뺏은 딜러가 판단이 낮아 딜을 안 멈춤 (어그로가 오래 머묾)'),
+  aggroAdds: S('보스', '어그로 뺏고 쫄로', 'self', 2, 0.8, '보스를 뺏은 딜러가 딜을 멈추는 대신 쫄 · 감옥을 침 (쫄 딜은 보스 위협이 안 됨). 탱커가 되찾으면 다시 보스'),
+  aggroPanic: S('보스', '어그로 뺏고 당황', 'self', 2, 0.8, '보스를 뺏은 딜러가 멈출 줄은 알지만 침착이 낮아 한 대 더 치고 이동을 머뭇거림'),
+  aggroLost: S('보스', '어그로 뺏고 자리 잃음', 'self', 3, 1, '보스를 뺏은 딜러가 판단 · 침착이 다 낮아 딜이 끊기고 옆 칸으로 밀려남 (힐러가 먼저 챙길 사람)'),
   tankLost: S('보스', '탱커 자리 못 찾음', 'self', 2, 0.5, '탱커가 앞줄 자리를 못 찾고 머뭇거림 (그동안 보스가 다른 사람을 침)'),
   noEscape: S('장판', '피할 곳 없음', 'self', 3, 1, '피할 빈 칸이 없음'),
   holeOpen: S('장판', '바닥 무너짐', 'any', 2, 0.4, '장판이 끝난 칸이 구멍이 되어 판이 좁아짐 (무너지는 바닥)'),
@@ -285,7 +294,6 @@ export const SITS = {
   // ---------- 93 길드 v2 (2026-10-18). 말풍선 감독 (battle/talk)이 판 시작 · 위기 · 예고 · 끝에서 고름 ----------
   guildGo: S('시작', '원정대 출발', 'self', 1, 0.8, '길드파티 판 시작, 길드원 한 명'),
   guildSaved: S('힐', '은인', 'self', 1, 0.8, '길드원이 위기 (체력 25% 아래)를 넘기고 회복함'),
-  guildKnow: S('보스', '외운 패턴', 'self', 1, 0.8, '공략 숙지 3단계 길드원이 이 보스의 예고를 봄. 전투당 한 번. 보스 이름은 {boss}'),
   guildTame: S('장판', '버릇 참음', 'self', 1, 0.8, '침착 · 판단이 높아 (버릇이 많이 줄어) 성격 단점을 참고 장판을 피함. 전투당 한 번', { pers: ['딜 욕심쟁이', '고집불통', '덜렁이', '허세꾼', '관심종자', '겁쟁이', '느림보', '따라쟁이', '방랑자', '미신쟁이', '영웅', '이기주의자', '경쟁심', '다혈질', '낙천가', '비관론자', '소심이', '승부사', '몰입형', '완벽주의자', '뉴비', '쿨 아끼미', '스킬 난사', '끊기 욕심', '쫄 사냥꾼', '외골수', '아슬아슬', '쫄 모으기', '어그로 흘림', '지속힐 체질', '큰 힐 체질', '예언가', '점프광', '참을성', '모서리파', '얼음땡', '앞장이', '뒷줄파', '양보왕', '대타', '샘쟁이', '울보', '예민형', '폭주기관차', '쉬엄쉬엄'] }),
   guildFirst: S('끝', '길드 첫 킬', 'self', 2, 1, '길드파티가 이 장소 · 난이도를 처음 깸 (길드 첫 처치). 보스 이름은 {boss}'),
 
@@ -306,7 +314,7 @@ export const SIT_KEYS = Object.keys(SITS) as TalkSit[];
 export type TalkLines = Partial<Record<TalkSit, readonly string[]>>;
 
 /** 엔진 말풍선(bark)이 알려 주는 상황 */
-export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'lateDodge' | 'wrongDodge' | 'tankLost' | 'whiff' | 'skillFumble' | 'aggroHold' | 'aggroIgnore' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived'
+export type BarkSit = Extract<TalkSit, 'mistake' | 'dodge' | 'stubborn' | 'brave' | 'wrongStep' | 'noEscape' | 'lateDodge' | 'wrongDodge' | 'tankLost' | 'whiff' | 'skillFumble' | 'spaceOut' | 'reel' | 'clump' | 'coverCut' | 'alone' | 'standIn' | 'regroup' | 'aggroHold' | 'aggroIgnore' | 'aggroAdds' | 'aggroPanic' | 'aggroLost' | 'flee' | 'shelter' | 'sulk' | 'thanks' | 'revived'
   | 'slowMove' | 'follow' | 'wander' | 'luckLost' | 'luckBack' | 'cover' | 'selfish' | 'cheer' | 'rival' | 'rage' | 'calmStep' | 'optimist' | 'pessimist'
   | 'panic' | 'panicEnd' | 'allIn' | 'tired' | 'warmUp' | 'focusBroken' | 'shaken' | 'learned'
   | 'hoardUse' | 'spamUse' | 'cutTry' | 'addHunt' | 'oneTrack' | 'preGuard' | 'clutchOk' | 'clutchLate' | 'gather' | 'aggroSlip' | 'selfCare'

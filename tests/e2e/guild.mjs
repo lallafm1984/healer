@@ -170,11 +170,11 @@ export default async function guild(url, shots) {
   const picked = await page.locator('#s-party [data-gpick].picked').count();
   ok(await page.getAttribute('#s-party [data-mode="guild"]', 'aria-selected') === 'true' && picked === 4, `편성이 길드파티로 시작 (5인 = 길드원 4) ${picked}`);
   ok((await page.locator('#s-party .bond').count()) === 0, '편성 길드원 줄에도 인연 표시 없음');
-  // 추천 편성 (93 7-1): 보스 특징에 맞는 스킬 · 숙지로 고르고 이유 칩
+  // 추천 편성 (93 7-1): 보스 특징에 맞는 스킬로 고르고 이유 칩 (공략 숙지는 없앰, 99)
   ok(/추천 편성/.test(await text('#autoPick')), '버튼 「추천 편성」');
   await page.click('#autoPick'); await page.clock.runFor(50);
   const why = await page.locator('#s-party .f-why .chip').allTextContents();
-  ok((await page.locator('#s-party [data-gpick].picked').count()) === 4 && why.length >= 1 && why.every(w => /→|숙지/.test(w)), `추천 편성 = 4명 + 이유 칩 ${JSON.stringify(why)}`);
+  ok((await page.locator('#s-party [data-gpick].picked').count()) === 4 && why.length >= 1 && why.every(w => /→/.test(w)), `추천 편성 = 4명 + 이유 칩 ${JSON.stringify(why)}`);
   await page.screenshot({ path: `${shots}/guild_party.png` });
   // 추천은 별도로 검증한 뒤 부탁한 탱커를 직접 편성한다 (무작위 영입 탱커가 추천될 수도 있음).
   if (await page.getAttribute(`#s-party [data-gpick="${tank.id}"]`, 'aria-pressed') !== 'true') {
@@ -200,7 +200,6 @@ export default async function guild(url, shots) {
   ok(/길드원 경험치 \+\d/.test(rw) && /명성 \+4/.test(rw) && /길드 첫 처치/.test(rw), '결과: 길드원 경험치 · 명성 +4 · 길드 첫 처치');
   ok(!/인연|새 친구/.test(rw) && !(await save()).users, '결과와 저장에 인연 보상 없음');
   ok(/부탁 완료 · 말없는탱 경험치 ×2/.test(rw) && (await save()).guild.reqs.list[0].done, '완료한 부탁: 요청자 이름 · 경험치 ×2 결과 안내 및 완료 저장');
-  ok(/공략 숙지 1단계: /.test(rw), '결과: 공략 숙지 1단계 (보스 이름 · 길드원)');
   sv = await save();
   ok(sv.guild.members.find(m => m.nick === '불꽃남자').boost === (inFight.some(m => m.nick === '불꽃남자') ? 5 : 4), '출전 여부에 따른 후원 횟수 차감');
   ok(sv.guild.fame === 4 && sv.guild.firsts.length === 1 && sv.guild.members.filter(m => m.runs === 1).length === 4 && sv.weekly.guild.n === 1, `저장: 명성 4 · 첫 처치 1 · 출전 1번 ×4 · 주간 목표 1 (${sv.guild.fame})`);

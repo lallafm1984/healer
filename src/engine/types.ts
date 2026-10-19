@@ -212,6 +212,19 @@ export interface Unit {
   /** 능력치 (99 나): 탱커가 1열을 못 찾고 머뭇거리는 끝 (칸 위 「?」) · 엉뚱한 칸에 한 번 갔음 */
   lostUntil?: number;
   lostWrong?: boolean;
+  /** 능력치 (99 마, Codex 검토 반영 1): 보스를 뺏고 당황해 장판 반응을 머뭇거리는 때까지 (침착 15 밑) */
+  hesitUntil?: number;
+  /** 능력치 (99 집중): 다음 「멍」 때 · 멍한 끝 (집중 15 밑, 긴 전투일수록 잦음) */
+  dazeNext?: number;
+  dazeUntil?: number;
+  /** 능력치 (99, Codex 검토 반영 4): 최근 실수 시각 · 수습 틈 끝 (그동안 새 실수 굴림 없음) */
+  slips?: number[];
+  regroupUntil?: number;
+  /** 능력치 (99 맷집): 큰 한 방 뒤 휘청한 끝 (맷집 15 밑) · 버틴 때 (15 넘음, 탱커 강타 1초 위협) */
+  staggerUntil?: number;
+  steadyAt?: number;
+  /** 능력치 (99 위치 잡기): 옆 사람의 옮겨붙음 · 부풀기를 이미 본 디버프 id (15 넘으면 먼저 떨어져 섬, 한 번만 굴림) */
+  spreadSeen?: number;
   fleeing: boolean;
   sulking: boolean;
   /** 관심종자 삐짐: 이번 전투에 삐진 횟수 · 삐진 때 · 혼자 풀린 때 (SULK) */
@@ -259,9 +272,7 @@ export interface Unit {
   /** 성장 행동을 판단할 때 쓸 이 전투의 최저 체력 비율 */
   low?: number;
   /** 길드원 「한 일」 (97): 장판을 피한 수 · 옮긴 수 · 끊은 수 · 맞은 강타 수 · 쫄에게 준 딜 */
-  did?: { dodge: number; move: number; cut: number; buster: number; adds: number };
-  /** 길드원 공략 숙지 단계 (93 5-4): 이 전투에서 0~3 */
-  know?: number;
+  did?: { dodge: number; move: number; cut: number; buster: number; adds: number; help: number };
   /** 짝꿍 (95): 짝 (아군 id). 붙어 있으면 둘 다 회피 + */
   pairWith?: number;
   /** 칭찬왕 · 보은형 (95): 체력 25% 아래로 내려간 적 있음 (60% 위로 오면 살아남) */
@@ -308,6 +319,10 @@ export interface AbState {
   hist: number[];
   /** 덜렁이: 회복 능력을 쓰는 체력 (무작위) */
   odd?: number;
+  /** 능력치 (99 라): 이번 판 생존기 체력 기준 흔들림 (꾸준함) */
+  gj?: number;
+  /** 능력치 (99, Codex 검토 B): 예고 반응을 판단만큼 늦게 쓰려고 기다리는 중 (예고 id · 쓸 때 · 쓰는 때 번호 · 대상) */
+  pend?: { tel: number; at: number; i: number; target?: number };
   /** 거합 반격 간격 */
   lastCounter: number;
   /** 이 능력으로 회복한 양 */
@@ -330,8 +345,6 @@ export interface RosterEntry {
   lv?: number;
   /** 길드원 버릇 (93 13-1 · 97): 침착 · 판단이 정한 단점 배율 (반응이 느린 몫 · 회피 −). 없으면 1 */
   habit?: number;
-  /** 길드원 공략 숙지 (93 5-4): 전투 (구간) 키 → 단계 1~3. 그 전투에서만 반응 · 회피 */
-  know?: Partial<Record<string, number>>;
   /** 길드원 id */
   gid?: number;
   /** 공개모집 (97 FM): lv가 그 사람 자기 레벨 (칸 레벨 상한 없음) */
@@ -438,6 +451,8 @@ export interface Telegraph {
   fake?: boolean;
   /** 가짜 반격 틈: 걷힐 때 신중파가 끊을지 이미 봄 */
   seen?: boolean;
+  /** 99 방어: 이 강타에 자세를 못 잡은 사람 (그만큼 더 맞음, 예고 숫자도) */
+  offGuard?: number[];
 }
 
 export interface Zone {
@@ -481,6 +496,13 @@ export type FightEvent =
   | { type: 'hit'; uid: number; amt: number; crit?: boolean }
   /** 능력치 (99 다): 파티원 한 방이 빗나감 (보스 초상에 회색 「빗나감」) */
   | { type: 'miss'; uid: number }
+  | { type: 'daze'; id: number }
+  | { type: 'offGuard'; id: number }
+  | { type: 'clump'; id: number }
+  | { type: 'alone'; id: number }
+  | { type: 'stagger'; id: number; steady?: boolean }
+  /** 능력치 (99 라): 보스 평타를 막아 반만 맞음 (칸 위 「막음」) */
+  | { type: 'parry'; id: number }
   /** 뒤집힌 축복: 치유가 피해로 (말풍선 반응. 숫자는 dmg 사건) */
   | { type: 'hurt'; id: number; amt: number }
   /**
@@ -493,7 +515,8 @@ export type FightEvent =
   | { type: 'bossHeal'; amt: number; name: string }
   | { type: 'mobDown'; id: number; name: string }
   /** 파티원 능력 사용 (17 7장: 칸 위에 이름) */
-  | { type: 'ability'; id: number; name: string; fumble?: boolean }
+  | { type: 'ability'; id: number; name: string; fumble?: boolean; weak?: '짧게' | '반만' | '약하게' }
+  | { type: 'regroup'; id: number }
   /** 파티원 능력 회복 (연두색 숫자, 내 힐과 구분) */
   | { type: 'aheal'; id: number; amt: number }
   /** 기믹 순간 연출 (37 4장 F, 그림 fx-<name>). cell = 그 칸, on = 그 사람·영혼 (to = 날아가는 곳. id라 하지 않음: 'id' in ev 로 사람을 찾는 곳이 많음), all = 살아 있는 모두, 아무것도 없으면 보스 */
@@ -799,6 +822,8 @@ export interface Fight {
   moodReact?: number;
   praise?: { until: number; up: number };
   standIn?: { id: number; until: number };
+  /** 99 협동 (Codex 검토 반영 3): 끊기 실패 뒤 대신 끊을 사람 · 그 기술 · 끊는 때 */
+  cutRetry?: { id: number; skill: BossSkill; at: number };
   ab: PartyAb;
   /** 어픽스 (없으면 null = 프로토타입과 같음) */
   aff: AffixState | null;

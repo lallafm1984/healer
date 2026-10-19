@@ -10,7 +10,6 @@ import { openTiers } from '../data/talents';
 import { TUNE } from '../data/tune';
 import { pickMember, pickNick } from '../data/nicknames';
 import { clumsy, dayOffset, fmFx, memberLevel, sharp, STAT_KEYS, wobOf, type Stats } from '../data/fm';
-import { KNOW } from '../data/guild';
 import { dealerOutput, dealerThreat, threatInit, threatTick } from './threat';
 import { NICKS, PERS, PROTO_PERS, type PersName, type Personality } from '../data/personalities';
 import { POS_RULES, PROTO_RULES, RULES, STAT_ACT } from '../data/rules';
@@ -18,12 +17,12 @@ import { hexDist, makeCells } from './board';
 import { initBoss, bossTick } from './bosses';
 import { bossTaken, focusOrder } from './bossParts';
 import { affixTick, initAffixes } from './affixes';
-import { bark, damageMob, DT, emit } from './core';
+import { bark, damageMob, DT, emit, regrouping } from './core';
 import { healerTick, knowsPassive } from './healer';
 import { adjAllies, centerX, ZONE_PREF, zoneOf } from './movement';
 import { looseTick, posPref } from './position';
 import { rngFrom } from './rng';
-import { unitDps, unitTick } from './units';
+import { dazed, unitDps, unitTick } from './units';
 import { rollAbility } from '../data/abilities';
 import { newTalents } from './talents';
 import { abTick, giveAb } from './abilities';
@@ -192,9 +191,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
       barkAt: -10, ignoreZone: 0, homeAt: null, diedAt: 0, me: role === 'healer',
       ab: null, mods: [], got: 0, senseReact: fx ? fx.react : 1, senseDodge: fx ? fx.dodge : 0, gid: r?.gid,
     };
-    if (r?.gid != null) u.did = { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0 }; // 길드원 「한 일」 (97)
-    const ks = Math.min(3, r?.know?.[f.enc.key] ?? 0); // 공략 숙지 (93 5-4): 이 전투를 외운 만큼
-    if (ks > 0) { u.know = ks; u.senseReact *= KNOW.react[ks]; u.senseDodge += KNOW.dodge[ks]; }
+    if (r?.gid != null) u.did = { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0, help: 0 }; // 길드원 「한 일」 (97)
     if (fx) { u.fm = fx; u.fmStats = Object.fromEntries(STAT_KEYS.map(k => [k, r!.fm!.stats[k] + r!.fm!.off])) as Stats; u.wob = wobOf(r!.fm!.steady ?? 10); }
     if (role !== 'healer') u.lv = r?.lv ? (r.pub ? r.lv : Math.min(r.lv, f.cfg.stageLv ?? r.lv)) : (f.cfg.stageLv ?? 1); // 어그로 레벨 차이 (96)
     else u.lv = Math.max(f.cfg.heroLv ?? f.cfg.stageLv ?? 1, f.cfg.stageLv ?? 1);
@@ -299,8 +296,8 @@ function partyHits(f: Fight): void {
     if ((f.k + u.id * 7) % SWING[u.role as Exclude<Role, 'healer'>] !== 0 || u.acc <= 0 || f.bossHp <= 0) continue;
     let amt = u.acc, crit = false;
     u.acc = 0;
-    if (u.wob != null) { // 능력치 (99 다): 기술 숙련이 15보다 낮으면 빗나감, 공격이 15 넘으면 가끔 세게
-      if (f.rng() < STAT_ACT.miss * clumsy(u.fmStats?.skill ?? 10)) { emit(f, { type: 'miss', uid: u.id }); if (f.rng() < 0.25) bark(f, u, null, false, 'whiff'); continue; }
+    if (u.wob != null) { // 능력치 (99 다): 기술 숙련이 15보다 낮으면 빗나감 (멍한 동안 더, 99 집중), 공격이 15 넘으면 가끔 세게
+      if (!regrouping(f, u) && f.rng() < STAT_ACT.miss * clumsy(u.fmStats?.skill ?? 10) + (dazed(f, u) ? STAT_ACT.dazeMiss : 0)) { emit(f, { type: 'miss', uid: u.id }); if (f.rng() < 0.25) bark(f, u, null, false, 'whiff'); continue; }
       if (f.rng() < STAT_ACT.crit * sharp(u.fmStats?.atk ?? 10)) { amt *= STAT_ACT.critMult; crit = true; }
     }
     land(f, u, amt);
@@ -336,7 +333,7 @@ function habitPers(p: Partial<Personality>, h = 1): Partial<Personality> {
 }
 
 function hitAdds(f: Fight, d: number, u: Unit): void {
-  const hunt = u.p.addHunter, am = (hunt?.add ?? 1) * (f.persOn ? gatherMult(f) : 1) * (u.fm?.adds ?? 1); // 쫄 처리 (97 FM)
+  const hunt = u.p.addHunter, am = (hunt?.add ?? 1) * (f.persOn ? gatherMult(f) : 1); // 예전 쫄 처리 (97 FM)는 협동으로 바뀌며 뺌 (99)
   if (u.did) u.did.adds += d;
   let left = d, cleaved = false;
   for (const m of focusOrder(f)) { // 일점사 (P-FOCUS): 먼저 잡을 것부터

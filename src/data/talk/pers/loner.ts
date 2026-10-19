@@ -192,6 +192,5 @@ export const LINES: TalkLines = {
   // 93 길드 v2 (2026-10-18)
   guildGo: ['…원정대 ㄱ', '우리끼리. 좋음', '…같이 감'],
   guildSaved: ['…또 고마움', '역시.', '…믿었음'],
-  guildKnow: ['…이거 앎', '{boss}… 외웠음', '…익숙함'],
   guildFirst: ['…첫 킬', '{boss}… 잡았다', '…이 멤버라 좋음'],
 };

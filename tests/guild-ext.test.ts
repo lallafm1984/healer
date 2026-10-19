@@ -4,7 +4,7 @@ import { ABILITIES } from '../src/data/abilities';
 import { CONTENT } from '../src/data/content';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
-import { EXPED, knowStage, REQ, STORY, type GuildMember } from '../src/data/guild';
+import { EXPED, REQ, STORY, type GuildMember } from '../src/data/guild';
 import { PARTY_POOL } from '../src/data/nicknames';
 import * as E from '../src/engine';
 import { claimExped } from '../src/game/economy';
@@ -44,13 +44,6 @@ describe('시설 제거와 저장 보존 (v22)', () => {
     const s = save();
     expect(migrate({ ...s, v: 21, guild: { ...s.guild, fac: { war: NaN, post: -3 } } }).player.gold).toBe(s.player.gold);
     expect(migrate({ ...s, v: 21, guild: { ...s.guild, fac: { war: 99, post: '5' } } }).player.gold).toBe(s.player.gold + 155000);
-  });
-  it('숙지는 개인 점수만 적용하고 공략 공유는 없음', () => {
-    expect([0, 0.5, 2, 3, 5, 6].map(p => knowStage(p))).toEqual([0, 1, 1, 2, 2, 3]);
-    const s = save(), a = add(s, 'mage', 0), b = add(s, 'mage', 1);
-    a.know = { warden: 6 };
-    expect(Gd.knowStages(a)).toEqual({ warden: 3 });
-    expect(Gd.memberEntry(s, b).know).toEqual({});
   });
   it('명성 지원자는 기본 인원과 사흘 체류를 사용', () => {
     const s = save(30); s.guild.fame = 480;

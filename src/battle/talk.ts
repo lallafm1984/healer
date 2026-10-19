@@ -14,16 +14,16 @@ export interface TalkBubble { id: number; text: string; life: number; sit: TalkS
 /** 감정 아이콘 (43 4장 B): 아이콘 → 붙는 상황. 표에 없는 상황은 아이콘 없이 뜸 */
 const EMOTES: Record<string, TalkSit[]> = {
   alert: ['buster', 'aoeWarn', 'safeCall', 'bomb', 'mistake', 'cutTry', 'foreseeWrong', 'burst'],
-  sweat: ['hurtBig', 'low50', 'low25', 'zoneHit', 'dodge', 'clutchLate', 'aggroSlip', 'endure', 'bounce', 'lateDodge'],
+  sweat: ['hurtBig', 'low50', 'low25', 'zoneHit', 'dodge', 'clutchLate', 'aggroSlip', 'endure', 'bounce', 'lateDodge', 'aggroPanic'],
   heart: ['healed', 'saved', 'clutch', 'thanks', 'jailFree', 'allyRevived', 'selfCare', 'buddyUp', 'repay', 'relief'],
   sparkle: ['healCrit', 'bigHeal', 'meterTop', 'win', 'winClean', 'praise', 'windUp', 'timing'],
-  note: ['idle', 'allFull', 'hello', 'moodUp', 'breather'],
-  question: ['wrongStep', 'orderWrong', 'castMove', 'wrongDodge', 'tankLost', 'skillFumble', 'whiff'],
+  note: ['idle', 'allFull', 'hello', 'moodUp', 'breather', 'regroup'],
+  question: ['clump', 'alone', 'wrongStep', 'orderWrong', 'castMove', 'wrongDodge', 'tankLost', 'skillFumble', 'whiff', 'aggroLost'],
   anger: ['aggroIgnore', 'sulk', 'stubborn', 'jealous', 'noHeal', 'envy', 'vent'],
   tear: ['selfDown', 'lose', 'loseClose', 'allyDown', 'cry'],
-  dizzy: ['swallowed', 'jailed', 'noDps', 'pulled', 'freeze'],
-  shield: ['aggroHold', 'busterOk', 'guardOn', 'shieldOn', 'offTank', 'eliteAdd', 'preGuard', 'clutchOk', 'gather'],
-  sword: ['abAtk', 'adds', 'swarm', 'marchAdd', 'boss5', 'addHunt', 'oneTrack', 'hoardUse', 'spamUse'],
+  dizzy: ['swallowed', 'jailed', 'noDps', 'pulled', 'freeze', 'spaceOut', 'reel'],
+  shield: ['coverCut', 'aggroHold', 'busterOk', 'guardOn', 'shieldOn', 'offTank', 'eliteAdd', 'preGuard', 'clutchOk', 'gather'],
+  sword: ['aggroAdds', 'abAtk', 'adds', 'swarm', 'marchAdd', 'boss5', 'addHunt', 'oneTrack', 'hoardUse', 'spamUse'],
   flame: ['enraged', 'enrageSoon', 'noTank', 'partyLow', 'standIn'],
   run: ['flee', 'shelter', 'fixate', 'dodgeOk', 'hop', 'edgeStep', 'yieldStep', 'homeBack', 'foresee'],
   mana: ['manaLow', 'manaEmpty'],
@@ -139,7 +139,7 @@ export function createTalk(rand: () => number = Math.random) {
       order: false, orderWrong: 0, daze: false, mana: { low: false, empty: false }, healerLow: false,
       boss: new Set<number>(), long: false, enrageSoon: false, partyLowAt: -1e9, fullSince: null as number | null, allFullAt: -1e9,
       threatAt: 0, idleAt: 0, leader: 0, leaderAt: 0, lastStand: false, raidCasts: 0, over: false, pulling: true, startAt: 0,
-      knowSaid: false, tameSaid: false, dodges: new Map<number, number>(),
+      tameSaid: false, dodges: new Map<number, number>(),
     };
   }
 
@@ -422,8 +422,6 @@ export function createTalk(rand: () => number = Math.random) {
       else if (tel.kind === 'buster') add('buster');
       else if (tel.kind === 'aoe') add('aoeWarn');
       if (tel.safe && !pads) add('safeCall');
-      // 외운 패턴 (93): 공략 숙지 3단계 길드원, 전투당 한 번
-      if (!st.knowSaid) { const k = f.party.filter(u => u.alive && !u.me && u.know === 3); if (k.length) { st.knowSaid = true; add('guildKnow', k[Math.floor(rand() * k.length)]); } }
     }
     // 버릇 참음 (93 · 97): 단점이 있는 성격인데 침착 · 판단이 높은 길드원이 장판을 피함, 전투당 한 번
     if (!st.tameSaid) for (const u of f.party) {

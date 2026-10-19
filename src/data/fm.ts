@@ -6,53 +6,54 @@
 import type { PersName } from './personalities';
 import type { Role } from '../engine/types';
 
-export const STAT_KEYS = ['atk', 'tough', 'armor', 'agility', 'evade', 'position', 'adds', 'skill', 'react', 'composure', 'judgment', 'focus'] as const;
+/** 능력치 12칸. 예전 쫄 처리 (`adds`)는 2026-10-19 Lim 「협동」으로 바꿈 (`coop`, 저장된 길드원 값은 그대로 옮김, storage memberOf) */
+export const STAT_KEYS = ['atk', 'tough', 'armor', 'agility', 'evade', 'position', 'coop', 'skill', 'react', 'composure', 'judgment', 'focus'] as const;
 export type StatKey = (typeof STAT_KEYS)[number];
 export const STAT_NAMES: Record<StatKey, string> = {
   atk: '공격', tough: '맷집', armor: '방어', agility: '발놀림', evade: '회피', position: '위치 잡기',
-  adds: '쫄 처리', skill: '기술 숙련', react: '반응', composure: '침착', judgment: '판단', focus: '집중',
+  coop: '협동', skill: '기술 숙련', react: '반응', composure: '침착', judgment: '판단', focus: '집중',
 };
 /** 묶음 (상세 세 칸 × 네 줄) */
 export const STAT_GROUPS: { name: string; keys: StatKey[] }[] = [
   { name: '신체', keys: ['atk', 'tough', 'armor', 'agility'] },
-  { name: '기술', keys: ['evade', 'position', 'adds', 'skill'] },
+  { name: '기술', keys: ['evade', 'position', 'coop', 'skill'] },
   { name: '정신', keys: ['react', 'composure', 'judgment', 'focus'] },
 ];
 /** 역할 핵심 넷 (굵게 · 능력 ★ 무게) */
 export const ROLE_CORE: Record<Exclude<Role, 'healer'>, StatKey[]> = {
   tank: ['tough', 'armor', 'position', 'judgment'],
   melee: ['atk', 'evade', 'agility', 'react'],
-  ranged: ['atk', 'react', 'adds', 'skill'],
+  ranged: ['atk', 'react', 'coop', 'skill'],
 };
 
 export type Stats = Record<StatKey, number>;
 /** 한 사람: 능력치 12 · 학습력 · 꾸준함 (1~20) · 빠르기 (레벨 = 내 Lv × 빠르기) */
 export interface FmProfile { stats: Stats; learn: number; steady: number; speed: number }
 
-/** 성격 결 (97 「1000명 표의 능력치 결」): 높게 · 낮게 나오기 쉬운 칸 (평균 ±GRAIN) */
+/** 성격 결 (97 「1000명 표의 능력치 결」): 높게 · 낮게 나오기 쉬운 칸 (평균 ±GRAIN). 협동 (예전 쫄 처리): 함께하는 성격 (사교형 · 감사형 · 짝꿍 · 양보왕 · 대타 · 칭찬왕 · 보은형)은 높게, 혼자 노는 성격 (딜 욕심쟁이 · 외톨이 · 이기주의자 · 몰입형 · 외골수)은 낮게 */
 export const GRAIN = 2;
 const G = (hi: StatKey[], lo: StatKey[]) => ({ hi, lo });
 export const PERS_GRAIN: Record<PersName, { hi: StatKey[]; lo: StatKey[] }> = {
-  '신중파': G(['judgment', 'react'], ['adds']), '딜 욕심쟁이': G(['atk', 'adds'], ['react', 'composure']), '고집불통': G(['tough', 'armor'], ['react']),
-  '덜렁이': G(['agility'], ['evade', 'judgment']), '허세꾼': G(['tough', 'focus'], ['judgment']), '외톨이': G(['focus', 'position'], ['adds']),
-  '사교형': G(['position', 'composure'], ['focus']), '관심종자': G(['atk'], ['composure', 'judgment']), '감사형': G(['composure', 'position'], ['adds']),
+  '신중파': G(['judgment', 'react'], []), '딜 욕심쟁이': G(['atk'], ['react', 'composure', 'coop']), '고집불통': G(['tough', 'armor'], ['react']),
+  '덜렁이': G(['agility'], ['evade', 'judgment']), '허세꾼': G(['tough', 'focus'], ['judgment']), '외톨이': G(['focus', 'position'], ['coop']),
+  '사교형': G(['position', 'composure', 'coop'], ['focus']), '관심종자': G(['atk'], ['composure', 'judgment']), '감사형': G(['composure', 'position', 'coop'], []),
   '겁쟁이': G(['evade', 'agility'], ['composure', 'focus']), '눈치백단': G(['react', 'evade'], ['atk']), '느림보': G(['tough', 'composure'], ['agility', 'react']),
   '따라쟁이': G(['position'], ['judgment']), '방랑자': G(['agility'], ['position']), '미신쟁이': G(['focus'], ['judgment']),
-  '영웅': G(['tough', 'armor'], ['evade']), '이기주의자': G(['evade'], ['position']), '응원단장': G(['composure'], ['atk']),
+  '영웅': G(['tough', 'armor'], ['evade']), '이기주의자': G(['evade'], ['position', 'coop']), '응원단장': G(['composure'], ['atk']),
   '경쟁심': G(['atk', 'focus'], ['composure']), '다혈질': G(['atk'], ['composure', 'judgment']), '침착함': G(['composure', 'judgment'], ['agility']),
   '낙천가': G(['composure'], ['judgment']), '비관론자': G(['judgment'], ['focus']), '소심이': G(['evade'], ['composure', 'focus']),
   '승부사': G(['focus', 'atk'], ['composure']), '용두사미': G(['atk'], ['focus']), '대기만성': G(['focus', 'tough'], ['react']),
-  '몰입형': G(['focus', 'adds'], ['position']), '완벽주의자': G(['skill', 'judgment'], ['composure']), '뉴비': G(['agility'], ['judgment', 'react']),
+  '몰입형': G(['focus'], ['position', 'coop']), '완벽주의자': G(['skill', 'judgment'], ['composure']), '뉴비': G(['agility'], ['judgment', 'react']),
   '쿨 아끼미': G(['judgment', 'skill'], ['atk']), '스킬 난사': G(['skill', 'atk'], ['judgment']), '끊기 욕심': G(['skill', 'react'], ['evade']),
-  '쫄 사냥꾼': G(['adds', 'atk'], ['focus']), '외골수': G(['atk', 'focus'], ['adds']), '미리미리': G(['judgment', 'armor'], ['focus']),
+  '쫄 사냥꾼': G(['atk'], ['focus']), '외골수': G(['atk', 'focus'], ['coop']), '미리미리': G(['judgment', 'armor'], ['focus']),
   '아슬아슬': G(['react', 'focus'], ['composure']), '쫄 모으기': G(['tough', 'position'], ['armor']), '어그로 흘림': G(['atk'], ['position', 'judgment']),
   '든든이': G(['tough', 'armor'], ['agility']), '자급자족': G(['tough', 'composure'], ['position']), '보호막 애호가': G(['atk'], ['tough']),
   '지속힐 체질': G(['tough'], ['react']), '큰 힐 체질': G(['atk'], ['tough']), '자립형': G(['composure', 'tough'], ['position']),
   '예언가': G(['react', 'judgment'], ['composure']), '점프광': G(['agility', 'evade'], ['atk']), '참을성': G(['tough', 'composure'], ['evade']),
   '모서리파': G(['evade'], ['position']), '얼음땡': G(['agility'], ['composure', 'react']), '앞장이': G(['atk', 'tough'], ['evade']),
-  '뒷줄파': G(['evade'], ['atk']), '짝꿍': G(['position', 'composure'], ['focus']), '양보왕': G(['judgment'], ['atk']),
-  '집돌이': G(['position'], ['agility']), '대타': G(['tough', 'armor'], ['atk']), '큰형': G(['composure', 'judgment'], ['agility']),
-  '분위기메이커': G(['composure'], ['focus']), '칭찬왕': G(['judgment'], ['adds']), '보은형': G(['evade'], ['adds']),
+  '뒷줄파': G(['evade'], ['atk']), '짝꿍': G(['position', 'composure', 'coop'], ['focus']), '양보왕': G(['judgment', 'coop'], ['atk']),
+  '집돌이': G(['position'], ['agility']), '대타': G(['tough', 'armor', 'coop'], ['atk']), '큰형': G(['composure', 'judgment'], ['agility']),
+  '분위기메이커': G(['composure'], ['focus']), '칭찬왕': G(['judgment', 'coop'], []), '보은형': G(['evade', 'coop'], []),
   '샘쟁이': G(['atk'], ['composure']), '울보': G(['evade'], ['composure']), '오뚝이': G(['tough', 'composure'], ['react']),
   '예민형': G(['react'], ['composure']), '신바람': G(['evade', 'agility'], ['judgment']), '화풀이': G(['atk', 'tough'], ['composure']),
   '폭주기관차': G(['atk'], ['judgment', 'evade']), '쉬엄쉬엄': G(['composure'], ['focus']), '타이밍 장인': G(['focus', 'judgment'], ['agility']),
@@ -148,7 +149,6 @@ export interface FmFx {
   /** 발놀림: 한 칸 옮기는 시간 배율 */ move: number;
   /** 회피: 장판 피하기 확률 (더함) */ dodge: number;
   /** 위치 잡기: 피한 뒤 제자리로 돌아오기까지 기다림 (초) */ homeWait: number;
-  /** 쫄 처리: 판 위 적 (쫄 · 일점사)에 주는 딜 배율 */ adds: number;
   /** 기술 숙련: 직업 스킬 재사용 배율 · 끊기 성공률 (더함) */ cd: number; cut: number;
   /** 반응: 예고를 보고 움직이기까지 시간 배율 */ react: number;
   /** 침착: 못 피한 뒤 다시 움직이기까지 배율 · 겁쟁이 도망 체력 · 소심이 당황 시간 배율 */ retry: number; flee: number; panic: number;
@@ -170,7 +170,6 @@ export function fmFx(st: Stats, off = 0): FmFx {
     move: f('agility', 1.15, 1, 0.8),
     dodge: f('evade', -0.05, 0, 0.05),
     homeWait: f('position', 1.5, 1, 0.4),
-    adds: f('adds', 1, 1, 1.15),
     cd: f('skill', 1.05, 1, 0.85), cut: f('skill', -0.05, 0, 0.1),
     react: f('react', 1.2, 1, 0.8),
     retry: f('composure', 1.3, 1, 0.6), flee: f('composure', 1.1, 1, 0.8), panic: f('composure', 1.15, 1, 0.7),

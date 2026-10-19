@@ -90,7 +90,7 @@ export interface Settlement {
   best: boolean;
   /** 직업 퀘스트 진행 (25 5-4): 그 판으로 퀘스트가 오른 직업, 다 채우면 unlocked */
   heroQuest: { hero: HeroKey; n: number; need: number; unlocked: boolean } | null;
-  /** 길드원 경험치 · 능력치 · 공략 숙지 · 명성 (93 · 97) */
+  /** 길드원 경험치 · 능력치 · 명성 (93 · 97) */
   guild: GuildAfter | null;
   /** 길드 결성 (93 4-1): 이 판 뒤 원정대가 생김 (창단 멤버 닉네임) */
   founded: string[] | null;
@@ -128,7 +128,7 @@ export function heroWin(save: SaveData, _kind: string, _content: string, _diff: 
   return null;
 }
 
-/** roster = 전투에 넘긴 편성 (길드원 경험치 · 능력치 · 공략 숙지). 길드원이 없으면 길드 정산 안 함 */
+/** roster = 전투에 넘긴 편성 (길드원 경험치 · 능력치). 길드원이 없으면 길드 정산 안 함 */
 export function settle(save: SaveData, r: BattleResult, rng: () => number, roster: RosterEntry[] = [], now = Date.now()): Settlement {
   const c = contentOf(r.content);
   const hero = r.hero ?? save.hero;

@@ -5,12 +5,12 @@
  */
 import { ABILITIES, starFx, type AbilityDef, type Fx, type Trig } from '../data/abilities';
 import { hexDist } from './board';
-import { addDebuff, bark, cellOf, damage, damageMob, DT, emit, living, onDebuffEnd } from './core';
+import { addDebuff, bark, cellOf, damage, damageMob, DT, emit, living, onDebuffEnd, regrouping, slip } from './core';
 import { moveTo, pickCell } from './movement';
 import { persGuard, persShield } from './persona';
 import { shieldBroken } from './heroes';
 import type { AbState, BossSkill, Fight, Mod, ModKind, Telegraph, Unit } from './types';
-import { clumsy } from '../data/fm';
+import { clumsy, sharp } from '../data/fm';
 import { STAT_ACT } from '../data/rules';
 
 const DEF = (u: Unit): AbilityDef => ABILITIES[u.ab!.key];
@@ -23,6 +23,7 @@ export function giveAb(f: Fight, u: Unit, key: string, star = 0): void {
   if (!a || a.cls !== u.cls) return;
   const s: AbState = { key, star: Math.max(0, Math.min(5, star | 0)), ready: 0, uses: 0, fired: [], hist: [], lastCounter: -9 };
   if (u.pers === '덜렁이' && a.kind === 'heal') s.odd = 0.15 + f.rng() * 0.55;
+  if (u.wob) s.gj = STAT_ACT.guardWob * u.wob * (2 * f.rng() - 1); // 99 라: 판마다 생존기 기준 흔들림
   u.ab = s;
   f.abOn = true;
 }
@@ -175,6 +176,7 @@ export function abTick(f: Fight): void {
     u.mods = u.mods.filter(m => m.until > f.t);
   }
   if (f.persOn) for (const u of f.party) if (u.ps?.clutch) clutchTick(f, u); // 아슬아슬 (95): 강타 직전 생존기
+  for (const u of f.party) if (u.ab?.pend) pendTick(f, u); // 늦게 쓰는 예고 반응 (99, Codex 검토 B)
   for (const u of f.party) { // 일섬 연격이 끝남: 옆 아군 딜 (93 4-4)
     const af = u.ab?.after;
     if (!af || f.t < af.at) continue;
@@ -207,20 +209,48 @@ function poll(f: Fight, u: Unit): void {
     if (!hit) return;
     if (u.wob != null && !actNow(f, u)) return; // 능력치 (99 다): 판단이 낮으면 쓸 때가 돼도 늦게 (다음 판단에 다시)
     if (a.each) s.fired.push(i);
-    if (u.wob != null && a.cd > 0 && f.rng() < STAT_ACT.fumble * clumsy(u.fmStats?.skill ?? 10)) { // 헛씀: 재사용만 돌고 효과 없음
+    tryUse(f, u, a, { target: hit === true ? undefined : hit });
+  });
+}
+
+/**
+ * 능력치 판정을 거쳐 씀 (99): 기술 숙련이 15보다 낮으면 헛씀 (재사용 능력만, 재사용만 돌고 효과 없음). 상태 판단 (poll) · 예고 반응 (abOnTel) 두 길이 씀.
+ * 판정 예외 (Codex 검토 B): 성격 전용 길 (덜렁이 엉뚱한 때 · 스킬 난사 · 미리미리 · 아슬아슬)은 성격 자체가 버릇이라 그대로, 죽을 피해 (abLethal) · 겁먹음 (abFear) ·
+ * 이동 뒤 (abMoved)는 순간 반사라 그대로, 끊기 (tryCut)는 성공 확률에 기술 숙련이 이미 들어가 있어 그대로
+ */
+function tryUse(f: Fight, u: Unit, a: AbilityDef, ctx: Ctx): boolean {
+  const s = u.ab!;
+  if (u.wob != null && a.cd > 0 && !regrouping(f, u) && f.rng() < STAT_ACT.fumble * clumsy(u.fmStats?.skill ?? 10)) {
+    slip(f, u);
+    if (f.rng() < STAT_ACT.fumbleFull) { // 다 헛씀 (예전): 재사용만 돎
       s.ready = f.t + a.cd * starFx(a, s.star).cd * (u.fm?.cd ?? 1);
       emit(f, { type: 'ability', id: u.id, name: a.name, fumble: true });
       bark(f, u, null, true, 'skillFumble');
-      return;
+      return false;
     }
-    use(f, u, a, { target: hit === true ? undefined : hit });
-  });
+    use(f, u, a, ctx, 1, a.kind === 'def' ? '짧게' : a.kind === 'atk' ? '반만' : '약하게'); // Codex 검토 반영 4: 종류대로 어설프게
+    if (f.rng() < 0.5) bark(f, u, null, true, 'skillFumble');
+    return true;
+  }
+  use(f, u, a, ctx);
+  return true;
+}
+
+/** 예고 반응을 판단만큼 늦게 (Codex 검토 B): 기다린 때가 되면 그 예고가 아직 있을 때만 씀 (터지고 나면 놓침) */
+function pendTick(f: Fight, u: Unit): void {
+  const p = u.ab!.pend!;
+  if (f.t < p.at) return;
+  u.ab!.pend = undefined;
+  const tel = f.tels.find(t => t.id === p.tel), a = DEF(u);
+  if (!tel || !u.alive || hasMod(u, 'stop') || !ready(f, u, a, p.i)) return;
+  if (a.each) u.ab!.fired.push(p.i);
+  tryUse(f, u, a, { tel, target: p.target != null ? f.party.find(v => v.id === p.target) : undefined });
 }
 
 /** 능력치 (99 다): 이번 판단 (0.2초마다)에 쓰나. 늦게 쓰는 평균 abLate × 판단 서툼 (15 이상 바로) */
 function actNow(f: Fight, u: Unit): boolean {
   const tau = STAT_ACT.abLate * clumsy(u.fmStats?.judgment ?? 10);
-  return tau < 0.05 || f.rng() < 1 - Math.exp(-0.2 / tau);
+  return tau < 0.05 || regrouping(f, u) || f.rng() < 1 - Math.exp(-0.2 / tau);
 }
 
 function ready(f: Fight, u: Unit, a: AbilityDef, i: number): boolean {
@@ -241,6 +271,7 @@ function check(f: Fight, u: Unit, a: AbilityDef, tr: Trig): Unit | true | null {
     case 'low': {
       if (tr.noZone && (u.moving || f.zones.some(z => z.cells.has(u.cell)) || f.tels.some(t => t.kind === 'zone' && t.cells.has(u.cell)))) return null;
       let thr = tr.hp + starFx(a, u.ab!.star).early + (u.fm?.guard ?? 0); // 판단 (97 FM)
+      if (u.wob != null) thr += (u.ab!.gj ?? 0) - STAT_ACT.guardLate * clumsy(u.fmStats?.judgment ?? 10); // 99 라: 판단이 15보다 낮으면 늦게 · 판마다 흔들림
       if (u.p.lateGuard || u.p.earlyGuard) thr += (persGuard(u, thr) - thr) * (u.fm?.bias ?? 1); // 낙천가 · 비관론자 (75), 판단이 높으면 치우침이 줄어듦 (97 FM)
       if (a.kind === 'heal') {
         if (u.ab!.odd != null) thr = u.ab!.odd;
@@ -331,9 +362,17 @@ export function abOnTel(f: Fight, tel: Telegraph): void {
     a.trig.forEach((tr, i) => {
       if (!ready(f, u, a, i) || !f.tels.includes(tel)) return;
       const hit = telMatch(f, u, a, tr, tel);
-      if (!hit) return;
+      if (!hit || u.ab!.pend) return;
+      if (u.wob != null && !regrouping(f, u)) { // 능력치 (99, Codex 검토 B): 판단이 15보다 낮으면 예고를 보고도 늦게 (평균 abLate × 서툼초, 터지기 전에 못 쓰면 놓침)
+        const tau = STAT_ACT.abLate * clumsy(u.fmStats?.judgment ?? 10);
+        if (tau >= 0.05) {
+          const d = -tau * Math.log(1 - f.rng());
+          if (f.t + d < tel.impact) u.ab!.pend = { tel: tel.id, at: f.t + d, i, target: hit === true ? undefined : hit.id };
+          return;
+        }
+      }
       if (a.each) u.ab!.fired.push(i);
-      use(f, u, a, { tel, target: hit === true ? undefined : hit });
+      tryUse(f, u, a, { tel, target: hit === true ? undefined : hit });
     });
   }
 }
@@ -383,9 +422,47 @@ export function abCut(f: Fight, s: BossSkill): boolean {
     if (a.fx.e !== 'interrupt' || !ready(f, u, a, 0)) continue;
     const any = a.trig.some(t => t.t === 'castAny');
     if (any ? !snipeable : !s.cut) continue;
-    return tryCut(f, u, a, s); // 한 기술에 한 사람만 시도 (실패하면 그대로 맞음)
+    const ok = tryCut(f, u, a, s); // 한 기술에 한 사람만 시도 (실패하면 그대로 맞음, 99 협동이 높은 사람이 대신 끊을 수 있음)
+    if (!ok) cutBackup(f, s, u, snipeable);
+    return ok;
   }
   return false;
+}
+
+/**
+ * 99 협동 (Codex 검토 반영 3): 끊기 실패 뒤 협동이 15 넘는 다른 끊기 담당 (준비된 끊기 능력) 가운데 가장 높은 사람이 잘함 확률로 알아채
+ * 반응 · 판단만큼 뒤에 한 번 더 끊음 (cutRetryTick). 진짜 재사용 대기를 씀 · 한 기술에 한 번만
+ */
+function cutBackup(f: Fight, s: BossSkill, by: Unit, snipeable: boolean): void {
+  if (f.cutRetry) return;
+  let best: Unit | null = null, bc = 15;
+  for (const v of f.party) {
+    if (v === by || !v.ab || !v.alive || v.wob == null || hasMod(v, 'stop') || held(f, v)) continue;
+    if (v.debuffs.length && v.debuffs.some(d => d.noDps)) continue;
+    const a = DEF(v);
+    if (a.fx.e !== 'interrupt' || !ready(f, v, a, 0)) continue;
+    if (a.trig.some(t => t.t === 'castAny') ? !snipeable : !s.cut) continue;
+    const c = v.fmStats?.coop ?? 10;
+    if (c > bc) { bc = c; best = v; }
+  }
+  if (!best || f.rng() >= sharp(bc)) return;
+  const late = (clumsy(best.fmStats?.react ?? 10) + clumsy(best.fmStats?.judgment ?? 10)) / 2;
+  f.cutRetry = { id: best.id, skill: s, at: f.t + STAT_ACT.coverNotice[0] + STAT_ACT.coverNotice[1] * late };
+}
+/** 대신 끊기 때가 됨: 그 기술 예고가 아직 있고 끊기 능력이 준비돼 있으면 끊어 봄. 끊었으면 그 기술 (bosses.ts가 기절 · 장비 효과) */
+export function cutRetryTick(f: Fight): BossSkill | null {
+  const r = f.cutRetry!;
+  if (f.t < r.at) return null;
+  f.cutRetry = undefined;
+  const tel = f.tels.find(t => t.skill === r.skill && t.impact > f.t + 0.05), v = f.party.find(u => u.id === r.id);
+  if (!tel || !v || !v.alive || !v.ab || hasMod(v, 'stop') || (v.debuffs.length && v.debuffs.some(d => d.noDps))) return null;
+  const a = DEF(v);
+  if (a.fx.e !== 'interrupt' || !ready(f, v, a, 0) || !tryCut(f, v, a, r.skill)) return null;
+  f.tels = f.tels.filter(t => t !== tel);
+  emit(f, { type: 'msg', text: `끊기 실패 뒤 ${v.nick}이(가) 차단` });
+  bark(f, v, null, true, 'coverCut');
+  if (v.did) v.did.help++;
+  return r.skill;
 }
 
 /** 끊기 능력을 쓰고 성공 확률 (능력 · ★)로 굴림 */
@@ -455,17 +532,21 @@ export function abHurt(f: Fight, u: Unit): void {
 }
 
 // ---------- 사용 ----------
-interface Ctx { tel?: Telegraph; target?: Unit }
+interface Ctx { tel?: Telegraph; target?: Unit; /** 어설프게 (방어): 예고 하나만 막는 것도 터지기 직전에 꺼짐 */ short?: boolean }
 
 /** boost = 성격이 키운 효과 (아슬아슬 딱 맞춤). 쿨 아끼미는 위기에만 쓰므로 늘 ×hoard.boost */
-function use(f: Fight, u: Unit, a: AbilityDef, ctx: Ctx, boost = 1): void {
+function use(f: Fight, u: Unit, a: AbilityDef, ctx: Ctx, boost = 1, weak?: '짧게' | '반만' | '약하게'): void {
   const s = u.ab!, st = starFx(a, s.star);
   s.uses++;
   if (a.cd > 0) s.ready = f.t + a.cd * st.cd * (u.fm?.cd ?? 1); // 기술 숙련 (97 FM)
   f.stats.abUses = (f.stats.abUses || 0) + 1;
-  emit(f, { type: 'ability', id: u.id, name: a.name });
+  emit(f, { type: 'ability', id: u.id, name: a.name, ...(weak ? { weak } : {}) });
   if (u.p.hoard) { boost *= u.p.hoard.boost; bark(f, u, null, false, 'hoardUse'); }
-  apply(f, u, a, a.fx, st.eff * boost, ctx);
+  // 어설프게 (Codex 검토 반영 4): 방어 = 지속 짧게 (지속이 없으면 효과를 약하게, 예고 하나만 막는 것은 터지기 직전에 꺼짐) · 공격 = 반만 · 그 밖 = 약하게
+  const sec = (a.fx as { sec?: number }).sec;
+  const fx = weak === '짧게' && typeof sec === 'number' ? ({ ...a.fx, sec: sec * STAT_ACT.fumbleShort } as Fx) : a.fx;
+  const k = weak === '반만' ? STAT_ACT.fumbleHalf : weak === '약하게' || (weak === '짧게' && typeof sec !== 'number') ? STAT_ACT.fumbleWeak : 1;
+  apply(f, u, a, fx, st.eff * boost * k, weak === '짧게' ? { ...ctx, short: true } : ctx);
 }
 
 // ---------- 95 1차: 손버릇 (쿨 아끼미 · 스킬 난사) · 탱커 (미리미리 · 아슬아슬) ----------
@@ -502,6 +583,16 @@ export function guardNow(f: Fight, u: Unit): boolean {
   if (!guardAb(a) || !ready(f, u, a, 0)) return false;
   use(f, u, a, {});
   return true;
+}
+
+/**
+ * 99 마 · Codex 검토 반영 1 (판단 · 침착 둘 다 15 넘는 딜러가 보스를 뺏었을 때): 방어 생존기를 켜고 버팀. 강타 한 번만 줄이는 것 · 전투당 1회는 빼고, 헛씀 판정은 거침. 썼으면 true
+ */
+export function holdGuard(f: Fight, u: Unit): boolean {
+  if (!u.ab || !u.alive || hasMod(u, 'stop')) return false;
+  const a = DEF(u);
+  if (!guardAb(a) || a.cd <= 0 || (a.fx.e === 'cut' && a.fx.hit) || !ready(f, u, a, 0)) return false;
+  return tryUse(f, u, a, {});
 }
 
 /** 미리미리 · 아슬아슬: 나를 노리는 강타 예고에 생존기 (체력 조건 생존기도). 미리미리는 바로, 아슬아슬은 맞기 lead초 전 (clutchTick). 다뤘으면 true */
@@ -545,7 +636,7 @@ function apply(f: Fight, u: Unit, a: AbilityDef, fx: Fx, e: number, ctx: Ctx): v
   };
   switch (fx.e) {
     case 'cut': {
-      const until = fx.hit && ctx.tel ? ctx.tel.impact + 0.1 : f.t + (fx.sec ?? 2);
+      const until = fx.hit && ctx.tel ? ctx.tel.impact + (ctx.short ? -0.3 : 0.1) : f.t + (fx.sec ?? 2); // 어설프게: 일찍 켜서 강타 직전에 꺼짐
       const v = Math.min(0.9, fx.v * e);
       addMod(u, { k: fx.magic ? 'mcut' : 'cut', v, until, src });
       if (fx.nodps) addMod(u, { k: 'nodps', v: 1, until, src });

@@ -68,8 +68,6 @@ export interface GuildMember {
   /** 쌓인 능력치 점수 (레벨업마다 학습력만큼, 1점 = 한 칸 +1) · 최근 5판의 「한 일」 표 */
   sxp: number;
   votes: StatKey[][];
-  /** 공략 숙지 점수 (93 5-4): 전투 (구간) 키 → 함께 이긴 만큼 (학습력이 빠르기) */
-  know: Record<string, number>;
   /** 남은 후원 판 (98): 쉬는 판에 레벨 경험치를 출전만큼 */
   boost: number;
   /** 출전 수 · 들어온 때 (ms) */
@@ -121,17 +119,17 @@ export function statWeights(m: Pick<GuildMember, 'stats' | 'votes' | 'lv' | 'lea
 }
 
 /** 「한 일」 표 (97): 그 판에서 가장 두드러진 일 하나 → 오를 칸 */
-export type Deed = 'dodge' | 'adds' | 'buster' | 'top' | 'cut' | 'move' | 'calm';
+export type Deed = 'dodge' | 'adds' | 'buster' | 'top' | 'cut' | 'move' | 'calm' | 'help';
 export const DEED_STATS: Record<Deed, StatKey[]> = {
-  dodge: ['evade', 'react'], adds: ['adds'], buster: ['tough', 'armor'], top: ['atk'], cut: ['skill'], move: ['agility', 'position'], calm: ['composure', 'judgment'],
+  dodge: ['evade', 'react'], adds: ['judgment'], buster: ['tough', 'armor'], top: ['atk'], cut: ['skill'], move: ['agility', 'position'], calm: ['composure', 'judgment'], help: ['coop'], // 쫄을 고르는 건 판단 · 동료를 메우는 건 협동 (99)
 };
 export const DEED_WHY: Record<Deed, string> = {
-  dodge: '장판을 잘 피함', adds: '쫄을 많이 잡음', buster: '강타를 버팀', top: '딜 1등', cut: '기술을 끊음', move: '자리를 잘 옮김', calm: '위기를 버팀',
+  dodge: '장판을 잘 피함', adds: '쫄을 많이 잡음', buster: '강타를 버팀', top: '딜 1등', cut: '기술을 끊음', move: '자리를 잘 옮김', calm: '위기를 버팀', help: '동료를 도움',
 };
 export const VOTE_KEEP = 5;
 
 /** 그 판에서 가장 두드러진 일 하나 (97 「한 판에 한 표」): 판 크기와 상관없이 비슷하게 나오게 각 일을 「눈에 띄는 정도」로 바꿔 가장 큰 것, 0.5 아래면 표 없음 */
-export function deedOf(x: { did: { dodge: number; move: number; cut: number; buster: number; adds: number }; dealt: number; top: boolean; low: number; alive: boolean; role: string }): Deed | undefined {
+export function deedOf(x: { did: { dodge: number; move: number; cut: number; buster: number; adds: number; help?: number }; dealt: number; top: boolean; low: number; alive: boolean; role: string }): Deed | undefined {
   const d = x.did, sc: [Deed, number][] = [
     ['top', x.top ? 1 : 0],
     ['buster', x.role === 'tank' ? d.buster / 3 : 0],
@@ -140,20 +138,13 @@ export function deedOf(x: { did: { dodge: number; move: number; cut: number; bus
     ['cut', d.cut / 1.5],
     ['move', Math.max(0, d.move - d.dodge) / 12],
     ['calm', x.alive && x.low < 0.25 ? (0.25 - x.low) / 0.15 : 0],
+    ['help', d.help ?? 0], // 99 협동: 대신 끊기 · 나눠 맞기 · 붙잡기 한 번
   ];
   const best = sc.reduce((a, b) => (b[1] > a[1] ? b : a));
   return best[1] >= 0.5 ? best[0] : undefined;
 }
 
-// ---------- 공략 숙지 (93 5-4 · 97 「학습력 = 숙지 속도」) ----------
-/**
- * 그 전투를 함께 이긴 만큼 점수 (학습력 1 → 0.7 · 10 → 1 · 20 → 1.4), 0.5 · 3 · 6점에서 1 · 2 · 3단계 (보통 학습력이면 1 · 3 · 6번).
- * 그 전투에서만: 반응 시간 × · 회피 + · 받는 피해 × (언제 맞고 언제 비킬지 앎). 공개모집은 없음. 크기는 길드 밸런스 (93 7-3)로 맞춤
- */
-export const KNOW: { at: number[]; react: number[]; dodge: number[]; taken: number[] } = { at: [0.5, 3, 6], react: [1, 0.95, 0.9, 0.8], dodge: [0, 0.01, 0.03, 0.05], taken: [1, 0.99, 0.987, 0.985] };
-export const knowGain = (learn: number) => lerp3(learn, 0.7, 1, 1.4);
-/** 공략 숙지 단계: 시설 보정 없이 개인의 숙지 점수만 사용한다. */
-export const knowStage = (pt: number) => KNOW.at.filter(x => pt + 1e-9 >= x).length;
+// 공략 숙지 (93 5-4)는 없앰 (2026-10-19 Lim 「없앰」, 99: 전투 행동은 능력치만 따름)
 
 // ---------- 부탁 쪽지 · 주간 원정 (93 8장, 업데이트 묶음) ----------
 /** 매일 2장: 길드원이 「○○ 어려움 같이 가자」, 그 사람을 넣고 깨면 끝. 완료한 전투에서 그 길드원의 경험치 ×2 (부탁마다 한 번). 날이 바뀌면 새로 (쌓이지 않음) */

@@ -51,7 +51,7 @@ describe('1000명 능력치', () => {
 describe('능력치 → 엔진 값', () => {
   it('모두 10이면 예전 값 그대로 (배율 1 · 더함 0)', () => {
     const fx = fmFx(flat(10));
-    for (const k of ['dps', 'hp', 'taken', 'move', 'homeWait', 'adds', 'cd', 'react', 'retry', 'flee', 'panic', 'bias'] as const) expect(fx[k], k).toBeCloseTo(1, 9);
+    for (const k of ['dps', 'hp', 'taken', 'move', 'homeWait', 'cd', 'react', 'retry', 'flee', 'panic', 'bias'] as const) expect(fx[k], k).toBeCloseTo(1, 9);
     for (const k of ['dodge', 'cut', 'guard', 'focus'] as const) expect(fx[k], k).toBeCloseTo(0, 9);
   });
 
@@ -62,8 +62,7 @@ describe('능력치 → 엔진 값', () => {
     expect([lo.taken, hi.taken]).toEqual([1.05, 0.92]);
     expect([lo.move, hi.move]).toEqual([1.15, 0.8]);
     expect([lo.react, hi.react]).toEqual([1.2, 0.8]);
-    expect([lo.adds, hi.adds]).toEqual([1, 1.15]); // 쫄 처리 · 집중은 낮아도 빼지 않음
-    expect([lo.focus, hi.focus]).toEqual([0, 0.1]);
+    expect([lo.focus, hi.focus]).toEqual([0, 0.1]); // 집중은 낮아도 빼지 않음 (낮은 쪽은 99 「멍」). 예전 쫄 처리 딜 배율은 협동으로 바꾸며 뺌
   });
 
   it('꾸준함: 20이면 흔들림 없음, 1이면 ±2.5 안, 같은 판 · 같은 사람이면 같은 값', () => {

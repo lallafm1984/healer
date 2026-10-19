@@ -61,7 +61,7 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | priest-hymn | 떠오르는 음표 | druid-quietwood | 떨어지는 잎 + 바닥 안개 |
 | priest-serenity | 터져 소용돌이치며 솟는 금빛 반짝이 가루 폭풍 (치유 강화판) | druid-rebirth | 초록 빛 기둥 + 금빛 씨앗 (기둥은 이것만) |
 |  |  | paladin-holy-light | 위에서 쏟아져 내리는 노란 빛 알갱이 (광선 없음, 2026-10-18 Lim) |
-| priest-relay | 포물선으로 날아와 튀는 꼬리 별 | paladin-beacon | 칸 아래 봉화 그릇에 타오르는 불꽃 (Codex 그릇 + 불티) |
+| priest-relay | 포물선으로 날아와 튀는 꼬리 별 | paladin-beacon | 칸 둘레로 조여드는 금빛 고리와 도는 혜성 · 날아오르는 불티 (2026-10-19 그릇 · 꼭짓점 불꽃 뺌) |
 | paladin-oath | 도는 마름모 룬 + 오각 문양 (Codex 오각 서약 문장) | paladin-light-wave | 쏟아져 양옆으로 부서지는 파도 (Codex 파도 마루) |
 | paladin-cleanse | 머리 위로 솟아 어둠을 빨아들여 태우는 태양 문장 (Codex 태양 문장 · 어둠 연기, 2026-10-19 Lim 손 모양 뺌) | paladin-sacrifice | 내려오는 사슬 + 붉은 맥동 (Codex 진홍 방패) |
 | paladin-sanctuary | 바닥에서 솟는 반구 막 (Codex 빛 돔) | paladin-hand-guard | 도는 팔각 봉인 문양 (Codex 판금 팔각 테) |
@@ -83,7 +83,7 @@ Lim 「직업별 스킬별로 이펙트가 달라야 하는데 중복되는 게 
 | shaman-rain | 머리 위 작은 비구름과 가는 비 (Codex 비구름 그림) | shaman-link | 가운데에서 양옆으로 엇갈려 뻗는 영혼 빛 띠 두 줄과 고리 두른 빛 구슬 (코드 빛 띠) |
 | shaman-spring | 솟아 흩뿌리는 분수와 바닥 샘 (Codex 꼬인 물기둥 그림) | monk-palm | 톡 부풀었다 꺼지는 기 구슬과 사방으로 뻗는 기 줄기 여덟 (Codex 기 구슬) |
 | shaman-spring-loop | 판 위 샘 토템 루프: 숨 쉬는 물방울 보석과 보석 끝 작은 분수 | shaman-earth-loop | 판 위 대지 토템 루프: 왕관 둘레를 도는 돌 조각 셋과 호박빛 흙먼지 |
-| shaman-rain-loop | 판 위 비구름 토템 루프: 구름 배의 숨 쉬는 물빛과 그 밑으로 내리는 빗줄기 | paladin-beacon-loop | 봉화 대상 칸 둘레 루프: 숨 쉬는 금빛 고리 위 작은 불꽃 다섯 · 맨 아래 작은 봉화 그릇 · 도는 혜성 · 날아오르는 불티 |
+| shaman-rain-loop | 판 위 비구름 토템 루프: 구름 배의 숨 쉬는 물빛과 그 밑으로 내리는 빗줄기 | paladin-beacon-loop | 봉화 대상 칸 둘레 루프: 숨 쉬는 금빛 고리 위 작은 불꽃 다섯 (맨 아래 비움, 그릇 없음) · 도는 혜성 · 날아오르는 불티 |
 | priest-shelter-loop | 판 위 쉼터 천막 루프: 숨 쉬는 입구 별빛 · 바닥 고리 · 천막 위로 피어오르는 금빛 가루 · 꼭대기 반짝임 | druid-moss-loop | 판 위 이끼 자리 루프: 숨 쉬는 이끼 빛 · 이끼에서 흔들리며 떠오르는 반딧불 포자 · 꽃 반짝임 |
 | paladin-sanctuary-loop | 판 위 성역 돔 루프: 돔을 훑는 빛 띠 · 바닥 고리 · 돔 안에서 피어오르는 금빛 가루 · 선돌 반짝임 | shaman-sea-loop | 판 위 바다 샘 루프: 물기둥 끝에서 솟았다 떨어지는 물방울 · 샘 둘레 잔물결 · 물빛 알갱이 |
 | monk-pool-loop | 판 위 안개 장판 루프: 고인 안개 둘레를 도는 비취빛 덩이 · 안개 끝에서 피어오르는 알갱이 | monk-mist-loop | 떠도는 안개가 걸린 칸 발밑 고리 루프: 고리를 따라 도는 비취빛 둘 · 안개 끝 알갱이 |

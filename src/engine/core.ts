@@ -1,12 +1,11 @@
 import { armorFactor, type DamageAim } from '../data/armor';
 import { healingShareScore } from '../data/healing-share';
-import { KNOW } from '../data/guild';
 import { healThreat, takenThreat } from './threat';
 import { SPREAD } from '../data/bosses';
 import { HEROES } from '../data/heroes';
 import { SANCTUARY } from '../data/heroConst';
 import { hexDist } from './board';
-import { abHurt, abLethal, blocksDebuff, dmgMods, healMods } from './abilities';
+import { abHurt, abLethal, addMod, blocksDebuff, dmgMods, healMods } from './abilities';
 import { affDebuffEnd, affHeal } from './affixes';
 import { relayHurt } from './relay';
 import { heroLethal, heroTaken, NEW_HERO } from './heroes';
@@ -15,6 +14,8 @@ import { talentDeath, talentTaken } from './talents';
 import { coverPart, persDebuff, persDeath, persDispel, persHealed, persHealTaken, persHurt, sturdyTaken } from './persona';
 import { afterHeal, afterHurt, critBonus, critMult, debuffSec, dmgSpec, during, healSpec, immune, intAmt, lastBreath, shieldGone, specDeath, specDebtPaid, specDebuffEnd, specFlip, specJump, sv } from './specials';
 import type { BarkSit } from '../data/talk/sits';
+import { clumsy, sharp } from '../data/fm';
+import { STAT_ACT } from '../data/rules';
 import type { Cell, Debuff, Fight, FightEvent, Mob, Unit } from './types';
 
 /** 한 틱 = 0.05초 */
@@ -295,7 +296,6 @@ export function takenAmt(f: Fight, u: Unit, amt: number, magic: boolean, aim: Da
   if (f.R.pos && u.role === 'ranged') amt *= posTaken(f, u); // 위치 규칙: 레이드 판 1 · 2열 원거리는 +50%
   if (f.sp) amt *= dmgSpec(f, u); // 장비 특수능력 (42 보호 · 지원 · 기믹)
   if (u.me && f.tx.on.firmWill) amt *= 0.8; // 굳은 의지 (06 6장)
-  if (u.know) amt *= KNOW.taken[u.know]; // 길드원 공략 숙지 (93 5-4)
   if (f.tx.cut) amt *= talentTaken(f, u, magic); // 드루이드 · 성기사 특성 (77)
   if (NEW_HERO(f)) amt *= heroTaken(f, u, magic); // 79 직업 (토템 · 생존기 · 특성)
   if (u.me && f.gear.endure) amt *= 1 - f.gear.endure; // 장비 인내 (34 6-4)
@@ -362,6 +362,7 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
   if (f.sp) afterHurt(f, u, u.hp + amt);
   if (amt > 0 && f.relay && f.relay.id === u.id) relayHurt(f, u); // 사제 빛의 전이: 회복하고 옮겨 감 (보호막이 다 막으면 그대로)
   if (amt > u.max * 0.15) u.flash = 0.35;
+  if (u.hp > 0 && u.wob != null && !u.me && !dripping && amt >= STAT_ACT.bigHit * u.max) bigHit(f, u); // 99 맷집: 휘청 · 버팀
   if (u.hp <= 0) {
     if (u.guardian > 0) {
       u.guardian = 0;
@@ -385,10 +386,58 @@ export function damage(f: Fight, u: Unit, amt: number, magic = false, aim: Damag
     if (!u.me && f.tx.death) talentDeath(f, u); // 남은 꽃 · 순교의 빛 (77)
     if (!u.me && f.sp) specDeath(f); // 굳센 결의 · 되감기 (42)
     if (f.persOn) persDeath(f, u); // 다혈질 (75)
+    if (u.role === 'tank') coopStandIn(f); // 99 협동: 탱커가 모두 쓰러지면 잠깐 붙잡기 (대타 성격이 먼저)
     emit(f, { type: 'death', id: u.id });
     emit(f, { type: 'sound', name: 'death' });
   }
 }
+
+/** 99 협동: 탱커가 모두 쓰러지면 협동이 15 넘는 사람 가운데 가장 높은 사람 (근접 먼저)이 잘함 확률로 standSec초 붙잡음 (받는 피해 − standCut) */
+function coopStandIn(f: Fight): void {
+  if (f.party.some(v => v.alive && v.role === 'tank') || (f.standIn && f.t < f.standIn.until)) return;
+  let best: Unit | null = null, bc = 15;
+  for (const v of living(f)) {
+    if (v.me || v.role === 'tank' || v.wob == null) continue;
+    const c = (v.fmStats?.coop ?? 10) + (v.role === 'melee' ? 0.01 : 0);
+    if (c > bc) { bc = c; best = v; }
+  }
+  if (!best || f.rng() >= sharp(bc)) return;
+  f.standIn = { id: best.id, until: f.t + STAT_ACT.standSec };
+  addMod(best, { k: 'cut', v: STAT_ACT.standCut, until: f.t + STAT_ACT.standSec, src: '협동' });
+  bark(f, best, null, true, 'standIn');
+  if (best.did) best.did.help++;
+}
+
+/** 99 맷집: 큰 한 방 뒤. 15 밑은 서툼만큼 「휘청」 (공격 · 새 이동 · 판단 멈춤), 15 넘으면 잘함만큼 「버팀」 (칸 위 글) */
+function bigHit(f: Fight, u: Unit): void {
+  const tough = u.fmStats?.tough ?? 10;
+  if (u.staggerUntil != null && f.t < u.staggerUntil) return;
+  if (!regrouping(f, u) && f.rng() < STAT_ACT.stagger * clumsy(tough)) {
+    u.staggerUntil = f.t + STAT_ACT.staggerSec;
+    slip(f, u);
+    emit(f, { type: 'stagger', id: u.id });
+    if (f.rng() < 0.4) bark(f, u, null, false, 'reel');
+  } else if (sharp(tough) > 0 && f.rng() < sharp(tough)) {
+    u.steadyAt = f.t;
+    emit(f, { type: 'stagger', id: u.id, steady: true });
+  }
+}
+/** 99 · Codex 검토 반영 4: 수습 틈 (새 실수 굴림 없음) */
+export const regrouping = (f: Fight, u: Unit): boolean => u.regroupUntil != null && f.t < u.regroupUntil;
+/** 실수 하나 (능력치 행동 층). 한 위기에 slipSec초 안 slipN번 겹치면 regroupSec초 수습 틈 (칸 위 「정신 차림」) */
+export function slip(f: Fight, u: Unit): void {
+  if (u.wob == null || u.me || regrouping(f, u)) return;
+  const xs = (u.slips ?? []).filter(t => f.t - t < STAT_ACT.slipSec);
+  xs.push(f.t);
+  u.slips = xs;
+  if (xs.length < STAT_ACT.slipN) return;
+  u.slips = []; u.regroupUntil = f.t + STAT_ACT.regroupSec;
+  emit(f, { type: 'regroup', id: u.id });
+  if (f.rng() < 0.5) bark(f, u, null, false, 'regroup');
+}
+
+/** 99 맷집: 지금 휘청하는 중 */
+export const staggered = (f: Fight, u: Unit): boolean => u.staggerUntil != null && f.t < u.staggerUntil;
 
 export function addDebuff(f: Fight, u: Unit, d: Omit<Debuff, 'id'>): Debuff {
   const o: Debuff = { id: f.nextId++, ...d };

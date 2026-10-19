@@ -16,7 +16,7 @@ import { autoHealer, create, DT, hexDist, knowsPassive, restCarry, setBeacon, sk
 import { addMeter, meterHtml } from '../game/meter';
 import type { BattleResult } from '../game/settle';
 import { bossSvg, ratsArt } from './art';
-import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxAllyHeal, fxCure, fxDamage, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxPxf, fxPxfCell, fxImpact, fxRevive, fxShake, fxShield, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, type BubbleKind } from './board';
+import { addBubble, boardRenderer, bossPxfLoaded, fxAbility, fxNote, fxAllyHeal, fxCure, fxDamage, fxDeath, fxDebuff, fxDispel, fxGim, fxHeal, fxPxf, fxPxfCell, fxImpact, fxRevive, fxShake, fxShield, fxSpec, hit, initBoard, L, lensAt, pxfReady, render, resetBoardFx, resizeBoard, screenCenter, setBoardFaction, type BubbleKind } from './board';
 import {
   $, applyLayout, ARROW, B, banner, DEFAULT_LAYOUT, dirSlot, GRID, LAYOUT_SKILLS, layoutCode, layoutLabel, layoutText, mmss, READ_ORDER, S, show, Snd,
   swipeDir, TAP_KEYS, tapKey, tapKeysOf, toast, clearToasts, ui, validLayout, vibe, type Pointer, type Run, type StartOptions,
@@ -534,6 +534,13 @@ function handleEvents(now: number): void {
       case 'impact': fxImpact(ev.kind, now); break; // 외침·등불 흔들기 … 떨어짐 (44 E-2 · 3)
       case 'hit': dmgNum(F.party.find(x => x.id === ev.uid), ev.amt, now, !!ev.crit); break;
       case 'miss': missNum(F.party.find(x => x.id === ev.uid)); break;
+      case 'parry': if (u) fxNote(u, '막음', 0xcfd8e3, now); break; // 99 라
+      case 'daze': if (u) fxNote(u, '멍', 0xb7b1c9, now); break; // 99 집중
+      case 'offGuard': if (u) fxNote(u, '자세 놓침', 0xd9a0a0, now); break; // 99 방어
+      case 'clump': if (u) fxNote(u, '붙어 섬', 0xd9b38c, now); break; // 99 위치 잡기
+      case 'alone': if (u) fxNote(u, '혼자 놂', 0xb7b1c9, now); break; // 99 협동
+      case 'regroup': if (u) fxNote(u, '정신 차림', 0x9ad1b0, now); break; // Codex 검토 반영 4: 수습 틈
+      case 'stagger': if (u) fxNote(u, ev.steady ? '버팀' : '휘청', ev.steady ? 0xe8d29a : 0xd9a0a0, now); break; // 99 맷집
       case 'death':
         if (u) fxDeath(u, now);
         if (u && !u.me) toast(`${u.nick} 쓰러짐`, 'bad');
@@ -551,6 +558,8 @@ function handleEvents(now: number): void {
       }
       case 'ability': { // 파티원 능력: 이름 글자 + 능력 종류 PXF 이펙트 (모든 효과 PXF 1단계)
         if (!u) break;
+        if (ev.fumble) { fxNote(u, `${ev.name} 헛씀`, 0xb9b1a2, now); break; } // 99 다: 헛씀 (이펙트 없음)
+        if (ev.weak) fxNote(u, `${ev.name} ${ev.weak}`, 0xb9b1a2, now); // Codex 검토 반영 4: 어설프게 (이펙트는 그대로)
         fxAbility(u, ev.name, now);
         const fx = u.ab && ALLY_PXF[ABILITIES[u.ab.key]?.kind];
         if (fx) fxPxf(u, fx, now);
@@ -698,7 +707,7 @@ function collectPartyStats(R: Run, f: Fight): void {
     if (u.me || u.role === 'healer') continue;
     const low = u.low ?? 1, x = (b[u.nick] ??= { got: 0, low: 1, dealt: 0 });
     x.got += u.got; x.dealt += u.dealt;
-    if (u.did) { const d = (x.did ??= { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0 }); for (const k of Object.keys(d) as (keyof typeof d)[]) d[k] += u.did[k]; } // 길드원 「한 일」 (97)
+    if (u.did) { const d = (x.did ??= { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0, help: 0 }); for (const k of Object.keys(u.did) as (keyof typeof u.did)[]) d[k] = (d[k] ?? 0) + u.did[k]; } // 길드원 「한 일」 (97)
     x.low = Math.min(x.low, low);
   }
 }

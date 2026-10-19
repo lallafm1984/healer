@@ -12,7 +12,7 @@ import { codexGroupOf, codexKeys, SPEC_TITLES } from '../data/specials';
 import { DEX_TABS, dexKeys, dexKeysOf, dexTabOf } from '../data/dex';
 import { GUILD_NAME, SPONSOR, STORY, type GuildMember, type StoryKey } from '../data/guild';
 import { PARTY_POOL } from '../data/nicknames';
-import { profileOf, STAT_KEYS, type Stats } from '../data/fm';
+import { profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import { PERS, type PersName } from '../data/personalities';
 import { HERO_KEYS, HEROES, type HeroKey } from '../data/heroes';
@@ -26,7 +26,7 @@ export const SAVE_KEY = 'healer.save';
  * v17 (2026-10-16 Lim, 91 디아2식): 강화 없앰 (plus 지움, 무작위 옵션 굴림 r → r ÷ 0.8로 값 그대로), 강화석 · 정제 강화석 → 골드 (1개 100 · 500), 골드 다시
  */
 /** v22: 시설 제거·투자액 환급, 공고 통합. 기존 지원자는 그대로 보존한다. */
-export const SAVE_VERSION = 22;
+export const SAVE_VERSION = 23; // v23: 능력치 쫄 처리 → 협동 (길드원 stats.adds → coop, 오른 칸 · 표도, 99)
 /** 없어진 시설의 단계별 투자액. 저장 이전에만 사용한다. */
 const LEGACY_FAC_GOLD = [5000, 10000, 20000, 40000, 80000];
 /** v17: 남은 강화석 · 정제 강화석 1개를 골드로 (91) */
@@ -687,15 +687,15 @@ function memberOf(raw: unknown): GuildMember | null {
   if (typeof m.nick !== 'string' || !m.cls || !CLASSES[m.cls as ClassKey] || !m.pers || !PERS[m.pers as PersName]) return null;
   const prof = profileOf(m.nick, m.pers as PersName);
   const stats = {} as Stats;
-  for (const k of STAT_KEYS) { const x = m.stats?.[k]; stats[k] = typeof x === 'number' && x >= 1 && x <= 20 ? Math.round(x) : prof.stats[k]; }
+  const old = m.stats as (Partial<Stats> & { adds?: number }) | undefined; // v22까지: 쫄 처리 (adds) = 지금 협동 (coop)
+  for (const k of STAT_KEYS) { const x = old?.[k] ?? (k === 'coop' ? old?.adds : undefined); stats[k] = typeof x === 'number' && x >= 1 && x <= 20 ? Math.round(x) : prof.stats[k]; }
   const n = (x: unknown, z: number) => (typeof x === 'number' && Number.isFinite(x) ? x : z);
   return {
     id: n(m.id, 0), nick: m.nick, cls: m.cls as ClassKey, pers: m.pers as PersName, ab: m.story && STORY[m.story] ? STORY[m.story].ab : typeof m.ab === 'string' ? m.ab : '', // 스토리 동료는 고유 스킬 (93 4-4)
     lv: Math.max(1, Math.round(n(m.lv, 1))), xp: Math.max(0, n(m.xp, 0)), stats, learn: n(m.learn, prof.learn), steady: n(m.steady, prof.steady),
     skillFloor: Math.max(1, Math.min(5, Math.floor(n(m.skillFloor, 1)))),
-    lastStatGains: Array.isArray(m.lastStatGains) ? STAT_KEYS.filter(k => m.lastStatGains!.includes(k)) : [],
-    sxp: Math.max(0, n(m.sxp, 0)), votes: Array.isArray(m.votes) ? m.votes.filter(Array.isArray).slice(-5) as GuildMember['votes'] : [],
-    know: m.know && typeof m.know === 'object' ? Object.fromEntries(Object.entries(m.know).filter(([, x]) => typeof x === 'number' && Number.isFinite(x) && x > 0)) : {},
+    lastStatGains: Array.isArray(m.lastStatGains) ? STAT_KEYS.filter(k => m.lastStatGains!.includes(k) || (k === 'coop' && (m.lastStatGains as string[]).includes('adds'))) : [],
+    sxp: Math.max(0, n(m.sxp, 0)), votes: Array.isArray(m.votes) ? (m.votes.filter(Array.isArray).slice(-5) as string[][]).map(v => v.map(k => (k === 'adds' ? 'coop' : k)).filter((k): k is StatKey => (STAT_KEYS as readonly string[]).includes(k))) : [],
     boost: Math.max(0, Math.min(SPONSOR.max, Math.round(n(m.boost, 0)))),
     runs: Math.max(0, n(m.runs, 0)), joined: n(m.joined, 0), ...(m.story ? { story: m.story } : {}),
   };
@@ -713,7 +713,7 @@ function oldMember(raw: unknown, nextId: number): GuildMember | null {
     id: typeof o.id === 'number' ? o.id : nextId, nick: o.nick, cls: o.cls, pers: o.pers, ab: typeof o.ab === 'string' ? o.ab : p?.ab ?? '',
     lv: Math.max(1, Math.round(o.lv ?? 1)), xp: Math.max(0, o.xp ?? 0), stats: { ...prof.stats }, learn: prof.learn, steady: prof.steady,
     skillFloor: typeof o.star === 'number' && Number.isFinite(o.star) ? Math.max(1, Math.min(5, Math.floor(o.star))) : 1,
-    lastStatGains: [], sxp: 0, votes: [], know: {}, boost: 0, runs: Math.max(0, o.runs ?? 0), joined: 0,
+    lastStatGains: [], sxp: 0, votes: [], boost: 0, runs: Math.max(0, o.runs ?? 0), joined: 0,
   };
 }
 

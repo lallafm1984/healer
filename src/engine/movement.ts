@@ -1,5 +1,5 @@
 import { hexDist } from './board';
-import { bark, cellOf, living } from './core';
+import { bark, cellOf, living, regrouping, slip } from './core';
 import { abMoved, dodgeMods, guardNow, moveMods, reactMods } from './abilities';
 import { sv } from './specials';
 import { calmDodge } from './talents';
@@ -7,7 +7,7 @@ import { posPref } from './position';
 import { followPref, pairDodge, persDodge, persIgnoresZone, persLate, persMove, persPosPref, persReact } from './persona';
 import type { Cell, Fight, Role, Telegraph, Unit, Zone } from './types';
 import { STAT_ACT } from '../data/rules';
-import { clumsy } from '../data/fm';
+import { clumsy, sharp } from '../data/fm';
 
 export type Zone3 = 'front' | 'mid' | 'back';
 
@@ -72,7 +72,7 @@ export function pickCell(f: Fight, u: Unit, opts: PickOpts): Cell | null {
     if (opts.home && c.i === u.home) s += 60;
     if (u.p.follow) s += followPref(f, u, c) / 2; // 따라쟁이: 피할 때도 탱커 옆 (75)
     if (u.ps) s += persPosPref(f, u, c, opts.safe === true); // 앞장이 · 뒷줄파 · 짝꿍 · 모서리파 · 양보왕 · 집돌이 (95)
-    s += f.rng() * 2;
+    s += f.rng() * (2 + (u.wob != null && u.role !== 'tank' && !u.me ? STAT_ACT.posNoise * clumsy(u.fmStats?.position ?? 10) : 0)); // 99 위치 잡기: 15 밑은 나쁜 자리도 고름
     if (s > bs) { bs = s; best = c; }
   }
   return best;
@@ -86,6 +86,7 @@ export function moveTo(f: Fight, u: Unit, c: Cell | null): boolean {
   if (f.sp && !u.me) time *= 1 - sv(f, 'march'); // 신나는 행진 (42 지원 07)
   if (u.ps) time *= persMove(u); // 느림보 (75)
   if (u.fm) time *= u.fm.move; // 발놀림 (97 FM)
+  if (u.wob != null) time *= 1 + STAT_ACT.slowMove * clumsy(u.fmStats?.agility ?? 10); // 99 라: 15보다 낮으면 더 느림
   if (u.did) u.did.move++;
   c.unit = u;
   u.moving = { from: from.i, to: c.i, left: time, total: time };
@@ -118,10 +119,11 @@ export function scheduleReaction(f: Fight, tel: Telegraph, u: Unit): void {
   if (u.fm && u.fm.focus > 0 && bigStage(f)) rt *= 1 - u.fm.focus; // 집중 (97 FM): 악몽 · 레이드 · 보스 30% 아래
   // 능력치 (99 가): 꾸준함이 15보다 낮으면 예고마다 들쭉날쭉 (평균 1, 폭 = wob). 15 이상은 예전처럼 늘 같은 값 (다 같이 정확히)
   // 늦어진 쪽은 터지기 직전 (lastCall초 전)까지만: 예전 시간에 피하던 사람이 흔들림 때문에 맞지는 않게 (늦게 피함은 못 피한 모양에서)
-  if (u.wob && inZ) {
+  if (u.wob && inZ && !regrouping(f, u)) {
     const j = rt * (1 + STAT_ACT.react * u.wob * (2 * f.rng() - 1));
     rt = Math.max(STAT_ACT.minReact, j > rt ? Math.min(j, Math.max(rt, tel.impact - f.t - STAT_ACT.lastCall)) : j);
   }
+  if (inZ && u.hesitUntil != null && f.t < u.hesitUntil) rt += u.hesitUntil - f.t; // 99 마: 보스를 뺏고 당황해 머뭇거림 (침착 15 밑)
   if (u.ps && inZ) {
     rt = rt * persReact(f, u, tel) + persLate(f, u); // 뉴비 · 완벽주의자 · 끈기형 (75 · 95) · 끊기 욕심 (95)
     if (u.p.foresee) rt = Math.max(0.05, rt - u.p.foresee.lead); // 예언가 (95)
@@ -162,7 +164,8 @@ export function dodgeRate(f: Fight, u: Unit): number {
 
 function dodgeBase(f: Fight, u: Unit): number {
   return Math.max(0.05, Math.min(0.98, u.me ? f.diff.dodge + 0.1 : f.diff.dodge + (u.p.dodge || 0) + calmDodge(f, u) + (u.ps ? persDodge(f, u) : 0) + (u.pairWith != null ? pairDodge(f, u) : 0)
-    + (u.fm && u.fm.focus > 0 && bigStage(f) ? u.fm.focus / 2 : 0))); // 집중 (97 FM)
+    + (u.fm && u.fm.focus > 0 && bigStage(f) ? u.fm.focus / 2 : 0) // 집중 (97 FM)
+    + (u.wob != null ? STAT_ACT.evadeHigh * sharp(u.fmStats?.evade ?? 10) - STAT_ACT.evadeLow * clumsy(u.fmStats?.evade ?? 10) : 0))); // 99 라: 회피 15 = 예전
 }
 
 /** 집중 (97 FM)이 힘을 내는 판: 악몽 · 레이드 (10인 넘게) · 보스 체력 30% 아래 */
@@ -215,24 +218,31 @@ export function doReact(f: Fight, u: Unit): void {
     else { bark(f, u, '피할 곳이 없어!', true, 'noEscape'); u.retryAt = f.t + 1.5; }
   } else {
     u.mistakeUntil = Math.max(f.t, (impact || f.t) - 0.5) + 0.5;
-    if (u.wob != null && impact && missShape(f, u, tel, impact)) return; // 능력치 (99 가): 늦게 피함 · 엉뚱한 쪽
-    u.retryAt = (impact || f.t) + (1.5 + f.rng() * 2.5) * (u.fm?.retry ?? 1); // 침착 (97 FM)
+    if (u.wob != null) slip(f, u); // Codex 검토 반영 4: 실수가 겹치면 수습 틈
+    if (u.wob != null && impact && !regrouping(f, u) && missShape(f, u, tel, impact)) return; // 능력치 (99 가): 늦게 피함 · 엉뚱한 쪽
+    u.retryAt = recoverAt(f, u, impact || f.t); // 침착 (97 FM)
     bark(f, u, null, true, 'mistake'); // 실수 신호 (04 6-1)
   }
 }
 
 const st = (u: Unit, k: 'react' | 'judgment') => u.fmStats?.[k] ?? 10;
 /**
- * 못 피한 모양 (99 가, 못 피할 확률은 그대로): 늦게 피함 (반응이 낮을수록) = 터진 뒤 뛰어나옴, 엉뚱한 쪽 (판단이 낮을수록) = 장판 안 다른 칸으로 갔다가 터진 뒤 다시,
- * 나머지는 멈칫 (예전 모양: 제자리, 침착만큼 기다렸다 다시). 반응 · 판단 15 이상이면 예전처럼 멈칫만. 모양을 정했으면 true
+ * 못 피한 뒤 다시 움직이는 때 (99, Codex 검토 A): 멈칫 · 늦게 피함 · 엉뚱한 쪽 모두 같은 침착 중심 식 (예전 멈칫 식 그대로).
+ * 반응은 예고를 보고 언제 움직이기 시작하는지 (scheduleReaction), 침착은 실수 뒤 수습 속도. 예전엔 늦게 피함이 터진 뒤 0.3~0.9초에 나와 멈칫 (1.5~4초)보다 빨라 반응 낮은 쪽이 유리했음
+ */
+export function recoverAt(f: Fight, u: Unit, impact: number): number {
+  return impact + (1.5 + f.rng() * 2.5) * (u.fm?.retry ?? 1);
+}
+/**
+ * 못 피한 모양 (99 가, 못 피할 확률은 그대로): 늦게 피함 (반응 느림 · 판단 좋음) = 늦어도 맞는 칸으로 터진 뒤 뛰어나옴, 엉뚱한 쪽 (반응 빠름 · 판단 나쁨) = 먼저 장판 안 다른 칸으로 뛰었다가 터진 뒤 다시,
+ * 나머지는 멈칫 (예전 모양: 제자리, 침착만큼 기다렸다 다시, 둘 다 낮으면 대개 이것). 반응 · 판단 15 이상이면 예전처럼 멈칫만. 모양을 정했으면 true (Codex 검토 반영 1)
  */
 function missShape(f: Fight, u: Unit, tel: Telegraph | Zone, impact: number): boolean {
-  const cr = clumsy(st(u, 'react')), late = STAT_ACT.late * cr, wrong = STAT_ACT.wrong * clumsy(st(u, 'judgment'));
+  const cr = clumsy(st(u, 'react')), cj = clumsy(st(u, 'judgment')), late = STAT_ACT.late * cr * (1 - cj), wrong = STAT_ACT.wrong * cj * (1 - cr);
   if (late + wrong <= 0) return false;
   const x = f.rng();
   if (x < late) {
-    const [[a1, b1], [a2, b2]] = STAT_ACT.lateSec, lo = a2 + (a1 - a2) * cr, hi = b2 + (b1 - b2) * cr;
-    const at = impact + lo + (hi - lo) * f.rng();
+    const at = recoverAt(f, u, impact); // 늦게 피함도 멈칫과 같은 때에 벗어남 (먼저 벗어나지 않게), 대신 맞는 칸 (안전한 칸)으로
     u.react = { at, tel: tel.id, late: new Set(tel.cells) };
     u.retryAt = at + 0.4;
     return true;
@@ -242,8 +252,7 @@ function missShape(f: Fight, u: Unit, tel: Telegraph | Zone, impact: number): bo
     if (!free.length) return false;
     moveTo(f, u, free[Math.floor(f.rng() * free.length)]);
     u.wrongUntil = f.t + 0.6; // 칸 위 「?」
-    const [a, b] = STAT_ACT.wrongBack;
-    u.retryAt = impact + a + (b - a) * f.rng();
+    u.retryAt = recoverAt(f, u, impact);
     bark(f, u, null, true, 'wrongDodge');
     return true;
   }
