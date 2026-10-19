@@ -24,7 +24,7 @@ import { CLASS_GLYPH, CUT, EDGE, LINE } from '../screens/class-icons';
 import { FACTIONS, type FactionKey } from '../data/places';
 import { addArtName, RELAY_D, emblemSrc, holeArtName, ringArtName, soulArtName, zoneArtName, bossFxArt, bossFxArts, darkArt, debuffFxArt, tideArtName, tideTail } from './art';
 import { $, B, DEB, dirSlot, DIR_DEG, ROLE, S, SEL, ui } from './core';
-import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, shieldLabelText, shieldTimerOf, type GuardTimerKey } from './party-display';
+import { cellTypography, debuffDisplay, fitPartyName, guardTimersOf, hotTimersOf, hpLabelText, primaryDebuff, shieldTimerOf, type GuardTimerKey } from './party-display';
 import { CELL_RADIUS, clearOf, fitBoard, floatBlocks, hotTimerLayout, shieldTimerLayout } from './board-layout';
 import { DEBUFF_EDGE, GIM_ICON, MARK_ART } from './board-marks';
 import { BOARDS } from '../data/boards';
@@ -669,20 +669,6 @@ function fitLabel(label: Label, key: string, kind: string): { x: number; y: numb
   const p = fitCenter(mid.x, mid.y, w / 2, h / 2);
   label.position.set(label.x + p.x - mid.x, label.y + p.y - mid.y);
   recordBound(key, kind, 'text', p.x, p.y, w, h);
-  return { ...p, w, h };
-}
-/** 칸 체력 「+보호막」 글자 크기 (체력 글자 대비) */
-const SHIELD_HP_K = 0.82;
-/** 한 줄로 붙은 두 글자 (체력 · 보호막)를 함께 판 안으로 옮기고 각각 기록한다. 돌려주는 상자는 둘을 합친 것 */
-function fitLabelPair(a: Label, b: Label, keyA: string, keyB: string): { x: number; y: number; w: number; h: number } {
-  const ba = boundsOf(a), bb = boundsOf(b);
-  const minX = Math.min(ba.minX, bb.minX), maxX = Math.max(ba.maxX, bb.maxX), minY = Math.min(ba.minY, bb.minY), maxY = Math.max(ba.maxY, bb.maxY);
-  const w = maxX - minX, h = maxY - minY, mid = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
-  const p = fitCenter(mid.x, mid.y, w / 2, h / 2), dx = p.x - mid.x, dy = p.y - mid.y;
-  for (const [t, bx, key] of [[a, ba, keyA], [b, bb, keyB]] as const) {
-    t.position.set(t.x + dx, t.y + dy);
-    recordBound(key, 'hp', 'text', (bx.minX + bx.maxX) / 2 + dx, (bx.minY + bx.maxY) / 2 + dy, bx.maxX - bx.minX, bx.maxY - bx.minY);
-  }
   return { ...p, w, h };
 }
 interface PillBox { x: number; y: number; w: number; h: number }
@@ -1996,7 +1982,7 @@ export function render(now: number): void {
   const hotR = Math.max(7, s * 0.19);
   // 배지 글자: 가장 긴 「×저주 12」와 지속 힐 원이 칸 폭 한 줄에 안 들어가는 판은 전부 짧은 글자 「×저12」
   const shortBadge = measure('×저주 12', typography.debuff) + typography.debuff * 0.7 + 1.5 > r * COS30 * 2 - 2 * (hotR + 0.75) - 1;
-  const hpBounds: { id: number; cell: number; text: string; shield?: string; x: number; y: number; w: number; h: number; sx: number }[] = [];
+  const hpBounds: { id: number; cell: number; text: string; shield?: boolean; x: number; y: number; w: number; h: number; sx: number }[] = [];
   for (const { u, x, y, deb } of over) {
     let debBadge: ReturnType<typeof pill> | undefined;
     const hots = hotTimersOf(u), hasHot = hots.length > 0;
@@ -2025,32 +2011,19 @@ export function render(now: number): void {
     }
     nick(u, x, y + r * 0.13, r);
     // 영원한 저녁 (05 6-G): 숫자 없이 채움 색만
-    const hpText = hpLabelText(u.hp, !!F.dark), shText = shieldLabelText(shieldT?.amt, !!F.dark);
+    // 보호막이 있으면 체력 + 보호막 합계 숫자 하나를 보호막 파랑으로 (2026-10-19 Lim 「+5000 으로 보호막 표시가 아닌 합산해서 파란색으로 표시」, #260의 「체력 +보호막」을 바꿈).
+    // 영원한 저녁 (체력 ?)은 ?만 보호막 파랑 (2026-10-16 Lim 「보호막이 있는 동안 체력 숫자는 파랑」)
+    const hpText = hpLabelText(u.hp, !!F.dark, shieldT?.amt);
     const hpY = y + r * 0.6;
-    // 보호막이 있으면 체력 뒤에 「+보호막」 (2026-10-19 Lim 「hp + 보호막으로 숫자로」): 체력은 흰색, 보호막만 보호막 파랑 · 조금 작게.
-    // 영원한 저녁 (체력 ?)은 보호막 숫자 없이 ?만 보호막 파랑 (2026-10-16 Lim 「보호막이 있는 동안 체력 숫자는 파랑」)
     const hpLabel = labels.put(`hp${u.id}`, hpText, {
-      size: typography.hp, fill: shieldT && !shText ? C.shield : C.white, weight: W_NUM, strokeW: 2.5, num: true,
+      size: typography.hp, fill: shieldT ? C.shield : C.white, weight: W_NUM, strokeW: 2.5, num: true,
     }, x, hpY);
     // Bitmap atlas의 획/패딩 때문에 100%가 옆 칸까지 번지지 않게 실제 렌더 폭을 제한한다.
-    // 세로 글자 크기·문자 내용은 유지하고, 필요한 경우 가로만 압축한다. 보호막 글자가 붙으면 둘을 합친 폭으로 같이 압축
+    // 세로 글자 크기·문자 내용은 유지하고, 필요한 경우 가로만 압축한다.
     hpLabel.scale.set(1);
-    let hpBox: { x: number; y: number; w: number; h: number };
-    if (shText) {
-      const shSize = typography.hp * SHIELD_HP_K;
-      const shLabel = labels.put(`hps${u.id}`, shText, { size: shSize, fill: C.shield, weight: W_NUM, strokeW: 2.5 * SHIELD_HP_K, num: true }, x, hpY);
-      const gap = typography.hp * 0.12, total = hpLabel.width + gap + shLabel.width, k = Math.min(1, r * 1.56 / total);
-      hpLabel.scale.x = shLabel.scale.x = k;
-      // 가운데 맞춤 한 줄, 작은 보호막 글자는 아랫선을 체력 글자에 맞춤
-      const left = x - (total * k) / 2;
-      hpLabel.position.set(left + (hpLabel.width) / 2, hpY);
-      shLabel.position.set(left + hpLabel.width + gap * k + shLabel.width / 2, hpY + (hpLabel.height - shLabel.height) / 2);
-      hpBox = fitLabelPair(hpLabel, shLabel, `hp${u.id}`, `hps${u.id}`);
-    } else {
-      if (hpLabel.width > r * 1.56) hpLabel.scale.x = r * 1.56 / hpLabel.width;
-      hpBox = fitLabel(hpLabel, `hp${u.id}`, 'hp');
-    }
-    hpBounds.push({ id: u.id, cell: u.cell, text: hpText, ...(shText ? { shield: shText } : {}), ...hpBox, sx: hpLabel.scale.x });
+    if (hpLabel.width > r * 1.56) hpLabel.scale.x = r * 1.56 / hpLabel.width;
+    const hpBox = fitLabel(hpLabel, `hp${u.id}`, 'hp');
+    hpBounds.push({ id: u.id, cell: u.cell, text: hpText, ...(shieldT ? { shield: true } : {}), ...hpBox, sx: hpLabel.scale.x });
     // 숫자 HP와 육각형 내부 채움만 사용하고 중복 HP 눈금은 그리지 않는다.
     const relay = F.relay && F.relay.id === u.id && F.t >= F.relay.flyUntil; // 날아가는 중에는 연출 (relay-fly)만
     let hotSpot: { x: number; y: number } | null = null, shieldSpot: { x: number; y: number } | null = null;

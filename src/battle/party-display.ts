@@ -62,14 +62,11 @@ export function cellTypography(scale: number): { hp: number; nick: number; debuf
   };
 }
 
-/** 칸 체력 글자: 모든 판 (3 · 5인 · 레이드 작은 칸)이 같은 체력 숫자 (2026-10-16 Lim 「레이드도 3 · 5인과 같은 표시, % 제거」). 살아 있는 극소 체력도 0이 아니게 올림, 영원한 저녁은 ? */
-export const hpLabelText = (hp: number, dark = false): string => (dark ? '?' : String(Math.ceil(Math.max(0, hp))));
-
 /**
- * 칸 체력 뒤 보호막 글자 (2026-10-19 Lim 「보호막이 걸렸을 경우 hp 표시를 hp + 보호막으로 숫자로」): 남은 흡수량 합 (shieldTimerOf amt)을 「+N」, 체력처럼 올림.
- * 보호막이 없거나 영원한 저녁 (체력 ?)이면 빈 글자
+ * 칸 체력 글자: 모든 판 (3 · 5인 · 레이드 작은 칸)이 같은 체력 숫자 (2026-10-16 Lim 「레이드도 3 · 5인과 같은 표시, % 제거」). 살아 있는 극소 체력도 0이 아니게 올림, 영원한 저녁은 ?
+ * 보호막이 있으면 체력 + 남은 흡수량 합 (shieldTimerOf amt)을 합친 숫자 하나 (2026-10-19 Lim 「+5000 으로 보호막 표시가 아닌 합산해서 파란색으로 표시」, 색은 board.ts가 보호막 파랑)
  */
-export const shieldLabelText = (amt: number | null | undefined, dark = false): string => (dark || !amt || amt <= 1e-9 ? '' : `+${Math.ceil(amt)}`);
+export const hpLabelText = (hp: number, dark = false, shield?: number | null): string => (dark ? '?' : String(Math.ceil(Math.max(0, hp) + Math.max(0, shield ?? 0))));
 
 /** 글꼴 크기를 줄이지 않고 이름을 말줄임한다. 전체 이름은 길게 누르기 정보에서 제공한다. */
 export function fitPartyName(name: string, maxWidth: number, measure: (text: string) => number): string {
