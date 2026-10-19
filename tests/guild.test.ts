@@ -9,8 +9,9 @@ import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../src/data/classes';
 import { ENCOUNTERS } from '../src/data/encounters';
 import { FEATURES } from '../src/data/features';
 import {
-  appsPerDay, deedOf, FAME, GUILD_MAX, GUILD_NEED, GUILD_STEPS, guildLvOf, habitOf, POST, postGold, REST_SHARE, rerollGold, SPONSOR, sponsorGold, memberSkillLevel, statCap, statPerLevel, statPot, statTop, statWeights, STORY, type GuildMember,
+  appsPerDay, deedOf, FAME, GUILD_MAX, GUILD_NEED, GUILD_STEPS, guildLvOf, habitOf, POST, postGold, REST_SHARE, rerollGold, SPONSOR, sponsorGold, memberSkillLevel, statPerLevel, statWeights, STORY, type GuildMember,
 } from '../src/data/guild';
+import { birthV25, growthOf, growWeights, lvAdds, lvPoints, STAT_KEYS, type Stats } from '../src/data/fm';
 import { DAILY, GUILD_GOAL } from '../src/data/missions';
 import { PARTY_POOL, STORY_NICKS } from '../src/data/nicknames';
 import { PERS } from '../src/data/personalities';
@@ -22,7 +23,7 @@ import * as Gd from '../src/game/guild';
 import { abilityFeatures, encFeatures, REC, recommendPick, recScore } from '../src/game/recommend';
 import { settle, type BattleResult } from '../src/game/settle';
 import { TUT } from '../src/game/tutorial';
-import { migrate, newSave, SAVE_VERSION, type SaveData } from '../src/platform/storage';
+import { migrate, newSave, SAVE_VERSION, statsV26, type SaveData } from '../src/platform/storage';
 import { contentOf } from '../src/data/content';
 
 let seed = 1;
@@ -129,7 +130,10 @@ describe('결성 (93 4-1)', () => {
     expect(s.guild.members[1].lv).toBeGreaterThanOrEqual(14);
     const tank = s.guild.members[0];
     expect(tank).toMatchObject({ nick: '말없는탱', cls: 'warrior', story: 'tank', ab: STORY.tank.ab, lv: 15 });
-    expect([tank.stats.tough, tank.stats.armor]).toEqual([16, 15]);
+    const sum = (st: Stats) => STAT_KEYS.reduce((a, k) => a + st[k], 0);
+    expect([Gd.birthStats(tank).tough, Gd.birthStats(tank).armor]).toEqual([10, 10]); // 고정 능력치 = Lv 1 바탕 (104)
+    expect(tank.stats.tough).toBeGreaterThanOrEqual(10);
+    expect(sum(tank.stats)).toBe(sum(Gd.birthStats(tank)) + lvPoints(growthOf(tank.nick, 'tank').type, 15)); // + Lv 15까지 레벨업 점수
     expect(s.guild.founded).toBe(true);
     expect(Gd.foundGuild(s)).toBeNull();
     expect(Gd.foundGuild(save(14))).toBeNull();
@@ -333,35 +337,35 @@ describe('출전 경험 (97): 레벨', () => {
 
 describe('능력치는 레벨업할 때 (Lim 10-18)', () => {
   const mem = (o: Partial<GuildMember> = {}): GuildMember => ({ ...Gd.newMember(save(100), Gd.personOf(nickOf('warrior'))!, 40), ...o });
-  it('레벨 하나에 학습력 1 → 0.07 · 10 → 0.1 · 20 → 0.13점. 끝 = min(상한 12 + Lv ÷ 12, 타고난 값 + 잠재력), 처음부터 높으면 그대로', () => {
-    expect([1, 10, 20].map(l => +statPerLevel(l).toFixed(2))).toEqual([0.07, 0.1, 0.13]);
-    expect([1, 23, 24, 60, 96, 100].map(statCap)).toEqual([12, 13, 14, 17, 20, 20]);
-    expect([1, 10, 20].map(statPot)).toEqual([2, 4, 6]);
-    expect([statTop(8, 40, 10), statTop(13, 40, 10), statTop(18, 40, 10), statTop(5, 1, 20)]).toEqual([12, 15, 18, 11]);
+  it('레벨 하나에 학습력 1 → 0.9 · 10 → 1 · 20 → 1.1점 (공개모집은 1점, 104)', () => {
+    expect([1, 10, 20].map(l => +statPerLevel(l).toFixed(2))).toEqual([0.9, 1, 1.1]);
   });
-  it('오를 칸 무게: 역할 핵심 2 · 나머지 1, 「한 일」 표 +1.5, 끝이면 0', () => {
-    const flat = Object.fromEntries(Object.keys(mem().stats).map(k => [k, 10])) as GuildMember['stats'];
-    const w = statWeights({ stats: flat, votes: [], lv: 40, learn: 10 }, 'tank', flat);
-    expect([w.tough, w.atk]).toEqual([2, 1]);
-    const v = statWeights({ stats: flat, votes: [['evade', 'react']], lv: 40, learn: 10 }, 'tank', flat);
-    expect(v.evade).toBe(2.5);
-    expect(statWeights({ stats: { ...flat, atk: 14 }, votes: [], lv: 40, learn: 10 }, 'tank', flat).atk).toBe(0); // 타고난 10 + 잠재력 4
-    expect(statWeights({ stats: { ...flat, atk: 15 }, votes: [], lv: 40, learn: 10 }, 'tank', { ...flat, atk: 13 }).atk).toBe(0); // Lv 40 상한 15
+  it('오를 칸 무게: 성장 결 무게 (공개모집과 같음) × 「한 일」 표 1장마다 1.5배, 20이면 0', () => {
+    const m = mem(), flat = Object.fromEntries(Object.keys(m.stats).map(k => [k, 10])) as GuildMember['stats'], g = growWeights(m.nick, m.pers, 'tank');
+    expect(statWeights({ ...m, stats: flat, votes: [] }, 'tank')).toEqual(g);
+    const v = statWeights({ ...m, stats: flat, votes: [['evade', 'react']] }, 'tank');
+    expect(v.evade).toBeCloseTo(g.evade * 1.5, 9);
+    expect(v.atk).toBeCloseTo(g.atk, 9);
+    expect(statWeights({ ...m, stats: { ...flat, atk: 20 }, votes: [] }, 'tank').atk).toBe(0);
+  });
+  it('합류할 때 = 공개모집 그 사람 그대로 (타고난 값 + 그 레벨까지 레벨업 점수)', () => {
+    const p = Gd.personOf(nickOf('warrior'))!, m = mem(), add = lvAdds(p.nick, p.pers, 'tank', 40, p.fm.stats);
+    expect(m.stats).toEqual(Object.fromEntries(STAT_KEYS.map(k => [k, p.fm.stats[k] + add[k]])));
   });
   it('오른 레벨만큼 점수, 1점마다 한 칸 +1, 표는 최근 5장, 오를 칸이 없으면 3점까지 모아 둠', () => {
     seed = 9;
     const m = mem({ sxp: 0, learn: 10 }), sum = () => Object.values(m.stats).reduce((a, b) => a + b, 0), before = sum();
     let ups = 0;
-    for (let i = 0; i < 60; i++) ups += Gd.growStats(m, 1, 'dodge', rng).length; // 레벨 60개 × 0.1 = 6점
-    expect(ups).toBe(6);
-    expect(sum() - before).toBe(6);
+    for (let i = 0; i < 30; i++) ups += Gd.growStats(m, 1, 'dodge', rng).length; // 레벨 30개 × 1 = 30점
+    expect(ups).toBe(30);
+    expect(sum() - before).toBe(30);
     expect(m.votes.length).toBe(5);
     expect(Gd.growStats(m, 0, undefined, rng)).toEqual([]);
     const slow = mem({ sxp: 0, learn: 1 });
-    expect([Gd.growStats(slow, 14, undefined, rng).length, slow.sxp]).toEqual([0, 0.98]);
+    expect([Gd.growStats(slow, 1, undefined, rng).length, slow.sxp]).toEqual([0, 0.9]);
     expect(Gd.growStats(slow, 1, undefined, rng).length).toBe(1);
     const top = mem({ lv: 1, learn: 10 });
-    top.stats = Object.fromEntries(Object.entries(Gd.birthStats(top)).map(([k, v]) => [k, statTop(v, 1, 10)])) as GuildMember['stats'];
+    top.stats = Object.fromEntries(Object.keys(top.stats).map(k => [k, 20])) as GuildMember['stats'];
     expect(Gd.growStats(top, 500, undefined, rng)).toEqual([]);
     expect(top.sxp).toBe(3);
   });
@@ -375,7 +379,8 @@ describe('능력치는 레벨업할 때 (Lim 10-18)', () => {
     Gd.growStats(m, 0, 'dodge', rng);
     expect(m.lastStatGains).toEqual(ups.map(x => x.k));
     expect(migrate(JSON.parse(JSON.stringify(s))).guild.members[0].lastStatGains).toEqual(m.lastStatGains);
-    // 다음 레벨업에서 능력치가 안 오르면 이전 화살표를 지운다.
+    // 다음 레벨업에서 능력치가 안 오르면 이전 화살표를 지운다 (학습력 1 = 레벨 하나에 0.9점).
+    m.sxp = 0; m.learn = 1;
     Gd.growStats(m, 1, undefined, rng);
     expect(m.lastStatGains).toEqual([]);
   });
@@ -504,7 +509,8 @@ describe('저장 v19 (길드 v2)', () => {
     expect(d.v).toBe(SAVE_VERSION);
     const m = d.guild.members[0];
     expect(d.guild.members.length).toBe(1);
-    expect(m).toMatchObject({ id: 3, nick, cls: 'mage', lv: 25, xp: 10, ab: 'mage.blink', runs: 4, stats: PARTY_POOL.mage[4].fm.stats, sxp: 0, votes: [] });
+    const born = PARTY_POOL.mage[4].fm.stats, add = lvAdds(nick, PARTY_POOL.mage[4].pers, 'ranged', 25, born);
+    expect(m).toMatchObject({ id: 3, nick, cls: 'mage', lv: 25, xp: 10, ab: 'mage.blink', runs: 4, stats: Object.fromEntries(STAT_KEYS.map(k => [k, born[k] + add[k]])), sxp: 0, votes: [] }); // v26: 새 바탕 + Lv 25까지 점수
     expect(m).not.toHaveProperty('apt0');
     expect(memberSkillLevel(m)).toBe(4);
     expect(d).not.toHaveProperty('users');
@@ -517,7 +523,7 @@ describe('저장 v19 (길드 v2)', () => {
     expect(migrate({ v: 19, guild: { members: 'x', fame: 'y', post: { cands: 1 } } }).guild).toMatchObject({ members: [], fame: 0, post: null, founded: false, name: '해바라기 원정대' });
     const nick = nickOf('rogue', 2);
     const g = migrate({ v: 19, guild: { founded: true, members: [{ id: 2, nick, cls: 'rogue', pers: PARTY_POOL.rogue[2].pers, ab: 'rogue.kick', lv: 9, stats: { atk: 30 } }], nextId: 3 } }).guild;
-    expect(g.members[0].stats.atk).toBe(PARTY_POOL.rogue[2].fm.stats.atk);
+    expect(g.members[0].stats.atk).toBe(PARTY_POOL.rogue[2].fm.stats.atk + lvAdds(nick, PARTY_POOL.rogue[2].pers, 'melee', 9, PARTY_POOL.rogue[2].fm.stats).atk); // v26: 새 바탕 + Lv 9까지 점수
     expect([g.members.length, g.nextId, g.founded]).toEqual([1, 3, true]);
   });
 });
@@ -597,7 +603,7 @@ describe('후원 (98, Lim 10-18 「훈련 대신 지원」)', () => {
     expect(Gd.restSponsor(s)).toEqual({ ids: [b.id, c.id], gold: sponsorGold(22) + sponsorGold(28) });
     expect(Gd.sponsorRest(s)).toBe('');
     expect([a.boost, b.boost, c.boost]).toEqual([0, 5, 5]);
-    expect(SAVE_VERSION).toBe(25);
+    expect(SAVE_VERSION).toBe(26);
     expect(migrate(JSON.parse(JSON.stringify(s))).guild.members.map(m => m.boost)).toEqual([0, 5, 5]);
     expect(migrate({ v: 20, guild: { founded: true, members: [{ ...b, boost: 99 }], nextId: 9 } }).guild.members[0].boost).toBe(SPONSOR.max);
     const gold = s.player.gold;
@@ -617,7 +623,7 @@ describe('v21 친구·인연 제거 저장 이전', () => {
     const old = { ...s, v: 20, users: { [m.nick]: { pt: 110 } }, guild: { ...s.guild, fac: { war: 2, post: 3, feast: 3 }, away: [m] } };
     const d = migrate(old), kept = d.guild.members[0];
     expect(memberSkillLevel(kept)).toBe(4);
-    expect(kept).toMatchObject({ id: m.id, lv: 19, xp: 11, boost: 10, stats: m.stats, lastStatGains: ['atk'] });
+    expect(kept).toMatchObject({ id: m.id, lv: 19, xp: 11, boost: 10, stats: statsV26(m), lastStatGains: ['atk'] }); // v26이 능력치를 새 바탕으로
     expect(kept).not.toHaveProperty('know'); // 공략 숙지 저장 필드는 버림
     expect(Gd.memberEntry(d, kept)).not.toHaveProperty('know');
     expect(d.player.gold).toBe(s.player.gold + 35000 + 15000 + 35000);
@@ -654,6 +660,30 @@ it('v18의 직접 저장된 스킬 LV도 낮추지 않는다', () => {
   expect(memberSkillLevel(d.guild.members[0])).toBe(5);
 });
 
+describe('저장 v26 (104 「Lv 1 바탕 1~10 · 레벨업마다 1점」)', () => {
+  it('v25 길드원: 새 타고난 값 + 그 레벨까지 레벨업 점수 + 예전에 키운 몫 (저장 값 − v23 타고난 값), 레벨 · 학습력 · 표 · 남은 점수 그대로', () => {
+    const s = save(60), a = add(s, 'warrior', 0, { lv: 40 }), p = Gd.personOf(a.nick)!;
+    const old = JSON.parse(JSON.stringify(s)), o = old.guild.members[0];
+    const v23 = birthV25(a.nick, a.pers);
+    o.stats = { ...v23, atk: Math.min(20, v23.atk + 3), tough: Math.max(1, v23.tough - 2) }; // 공격 3칸 키움 · 맷집은 v23 바탕보다 낮게 (0 밑은 버림)
+    o.sxp = 0.4; o.votes = [['atk']]; o.learn = 13; old.v = 25;
+    const m = migrate(old).guild.members[0], add24 = lvAdds(a.nick, a.pers, 'tank', 40, p.fm.stats);
+    expect(m.stats.atk).toBe(Math.min(20, p.fm.stats.atk + add24.atk + (Math.min(20, v23.atk + 3) - v23.atk)));
+    expect(m.stats.tough).toBe(p.fm.stats.tough + add24.tough);
+    for (const k of STAT_KEYS.filter(k => k !== 'atk' && k !== 'tough')) expect(m.stats[k], k).toBe(p.fm.stats[k] + add24[k]);
+    expect(m).toMatchObject({ lv: 40, sxp: 0.4, votes: [['atk']], learn: 13 });
+    expect(migrate(JSON.parse(JSON.stringify(migrate(old)))).guild.members[0].stats).toEqual(m.stats); // 다시 불러도 그대로
+  });
+  it('스토리 동료: 예전 고정 능력치 (16 · 15 …)를 빼고 새 고정 바탕 (10 · 10 …)으로', () => {
+    const s = save(30);
+    Gd.foundGuild(s);
+    const old = JSON.parse(JSON.stringify(s)), o = old.guild.members.find((x: GuildMember) => x.story === 'tank');
+    o.stats = { ...birthV25(o.nick, o.pers), tough: 16, armor: 15, position: 13, judgment: 12 }; old.v = 25;
+    const m = migrate(old).guild.members.find(x => x.story === 'tank')!, born = Gd.birthStats(m), add = lvAdds(m.nick, m.pers, 'tank', m.lv, born);
+    expect(m.stats).toEqual(Object.fromEntries(STAT_KEYS.map(k => [k, born[k] + add[k]])));
+  });
+});
+
 describe('99 협동 (예전 쫄 처리, Lim 10-19 07:04)', () => {
   it('저장 v22 길드원의 쫄 처리 값 · 오른 칸 · 표가 협동으로 그대로 옮겨짐', () => {
     const s = save(30, 100000), a = add(s, 'warrior', 0, { lv: 25 });
@@ -664,7 +694,7 @@ describe('99 협동 (예전 쫄 처리, Lim 10-19 07:04)', () => {
     void coop; void a;
     old.v = 22;
     const m = migrate(old).guild.members[0];
-    expect(m.stats.coop).toBe(17);
+    expect(m.stats.coop).toBe(statsV26({ ...a, stats: { ...a.stats, coop: 17 } }).coop); // v26이 새 바탕으로 (예전에 키운 몫 = 17 − v23 타고난 값)
     expect((m.stats as Record<string, number>).adds).toBeUndefined();
     expect(m.lastStatGains).toEqual(['atk', 'coop']);
     expect(m.votes).toEqual([['coop'], ['atk', 'coop']]);

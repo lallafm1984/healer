@@ -5,7 +5,7 @@
  * - 길드원 레벨이 스킬 레벨을 올림, 명성이 길드 Lv · 정원을 올림
  */
 import type { ClassKey } from './classes';
-import { lerp3, ROLE_CORE, STAT_KEYS, type StatKey, type Stats } from './fm';
+import { growWeights, lerp3, LV_PTS, STAT_KEYS, type StatKey, type Stats } from './fm';
 import type { PersName } from './personalities';
 
 /** 길드원 Lv 1 · 20 · 40 · 60 · 80에서 스킬 LV 1~5. 과거에 얻은 스킬 레벨은 유지한다. */
@@ -99,37 +99,19 @@ export const lowStageXp = (gap: number) => Math.max(0.3, 1 - 0.1 * gap);
 export const REST_SHARE = 0.3;
 
 /**
- * 능력치는 레벨업할 때 오름 (Lim 10-18 「능력치는 레벨업시 오르게 하자」): 레벨 하나에 학습력만큼 점수 (1 → 0.07 · 10 → 0.1 · 20 → 0.13, 소수는 쌓아 둠),
- * 1점 = 오를 칸 (`statWeights`) 하나 +1. 출전 · 후원 · 쉬는 판 어디서 오른 레벨이든 같음.
- * 결성 (Lv 15)부터 Lv 100까지 보통 학습력이면 약 8칸 (학습력 20이면 11칸): 능력치 한 칸이 판 전체에 크게 들어서 (모두 +1이면 악몽 +11%p) 다 키운 길드가 93 7-3 목표 (어려움 90 · 악몽 85 안팎)에 맞게
+ * 능력치는 레벨업할 때 오름 (Lim 10-18 「능력치는 레벨업시 오르게 하자」 → 104 「레벨업마다 1점」): 레벨 하나에 학습력만큼 점수 (1 → 0.9 · 10 → 1 · 20 → 1.1, 소수는 쌓아 둠),
+ * 1점 = 오를 칸 (`statWeights`) 하나 +1. 출전 · 후원 · 쉬는 판 어디서 오른 레벨이든 같음. 공개모집 (레벨마다 1점, fm LV_PTS)과 같은 크기, 학습력만큼 빠르거나 느림
  */
-export const statPerLevel = (learn: number) => lerp3(learn, 0.07, 0.1, 0.13);
-/** 능력치 상한 = 12 + 그 사람 레벨 ÷ 12 (Lv 24 = 14 · Lv 96 = 20). 처음부터 높게 태어난 칸은 그대로 */
-export const statCap = (lv: number) => Math.min(20, 12 + Math.floor(lv / 12));
-/**
- * 잠재력: 칸마다 타고난 값에서 최대 +N (학습력 1 · 10 · 20 → POT). 다 키운 길드가 약한 칸을 모두 메우면 악몽이 96%라 (93 7-3 목표 85%) 이 한도로 맞춤.
- * 타고난 값 = 1000명 줄의 그 사람 능력치 (스토리 동료는 고정 능력치를 덧씀)
- */
-export const POT: number[] = [2, 4, 6];
-export const statPot = (learn: number) => Math.round(lerp3(learn, POT[0], POT[1], POT[2]));
-/** 이 칸이 더 오를 수 있는 끝 = min(상한, 타고난 값 + 잠재력), 처음부터 그보다 높으면 그대로 */
-export const statTop = (birth: number, lv: number, learn: number) => Math.max(birth, Math.min(statCap(lv), birth + statPot(learn)));
+export const statPerLevel = (learn: number) => lerp3(learn, 0.9, 1, 1.1) * LV_PTS;
 
+/** 최근 「한 일」 표 1장이 그 칸 무게에 더하는 몫 (×(1 + 이것 × 표 수)) */
+export const VOTE_W = 0.5;
 /**
- * 오를 칸 고르기 무게 (97 「그 판에서 한 일」): 역할 핵심 넷 2 · 나머지 1, 최근 표 1장에 +1.5, 그 사람 평균보다 이미 높은 칸은 반, 20에 가까울수록 덜, 끝 (상한 · 잠재력)이면 0
+ * 오를 칸 고르기 무게 (97 「그 판에서 한 일」 · 103 성장 결): 공개모집과 같은 성장 결 무게 (역할 핵심 · 성격 결 · 재능 · 약점 · 크는 모양) × 최근 표, 20인 칸은 0
  */
-export function statWeights(m: Pick<GuildMember, 'stats' | 'votes' | 'lv' | 'learn'>, role: 'tank' | 'melee' | 'ranged', birth: Stats): Record<StatKey, number> {
-  const avg = STAT_KEYS.reduce((a, k) => a + m.stats[k], 0) / STAT_KEYS.length;
-  const out = {} as Record<StatKey, number>;
-  for (const k of STAT_KEYS) {
-    const v = m.stats[k];
-    if (v >= statTop(birth[k], m.lv, m.learn) || v >= 20) { out[k] = 0; continue; }
-    let w = ROLE_CORE[role].includes(k) ? 2 : 1;
-    for (const vote of m.votes) if (vote.includes(k)) w += 1.5;
-    if (v > avg) w *= 0.5;
-    w *= Math.max(0.2, (20 - v) / 10);
-    out[k] = w;
-  }
+export function statWeights(m: Pick<GuildMember, 'nick' | 'pers' | 'stats' | 'votes'>, role: 'tank' | 'melee' | 'ranged'): Record<StatKey, number> {
+  const w = growWeights(m.nick, m.pers, role), out = {} as Record<StatKey, number>;
+  for (const k of STAT_KEYS) out[k] = m.stats[k] >= 20 ? 0 : w[k] * (1 + VOTE_W * m.votes.filter(v => v.includes(k)).length);
   return out;
 }
 
@@ -173,9 +155,10 @@ export const habitOf = (st: Stats) => lerp3((st.composure + st.judgment) / 2, 1.
 // ---------- 스토리 동료 (93 4-4, 이번엔 말없는탱만 · 이슬 · 칼날은 업데이트 묶음) ----------
 export const STORY: Record<StoryKey, { nick: string; cls: ClassKey; pers: PersName; ab: string; boost: Partial<Stats> }> = {
   // 고유 스킬 (93 4-4, data/abilities STORY_ROWS): 끝까지 곁에 · 응급 처치 · 일섬 연격. 자질 ●5 → 그 칸 높게
-  tank: { nick: '말없는탱', cls: 'warrior', pers: '고집불통', ab: 'warrior.holdFast', boost: { tough: 16, armor: 15, position: 13, judgment: 12 } },
-  isle: { nick: '이슬', cls: 'archer', pers: '신중파', ab: 'archer.mend', boost: { react: 16, evade: 14 } },
-  blade: { nick: '칼날', cls: 'swordsman', pers: '딜 욕심쟁이', ab: 'swordsman.flurry', boost: { atk: 16, agility: 13 } },
+  // boost = Lv 1 바탕 (1~10 칸, 104 · 예전 평균 10 칸 16 · 15 · 13 · 12 → 10 · 10 · 9 · 8)
+  tank: { nick: '말없는탱', cls: 'warrior', pers: '고집불통', ab: 'warrior.holdFast', boost: { tough: 10, armor: 10, position: 9, judgment: 8 } },
+  isle: { nick: '이슬', cls: 'archer', pers: '신중파', ab: 'archer.mend', boost: { react: 10, evade: 9 } },
+  blade: { nick: '칼날', cls: 'swordsman', pers: '딜 욕심쟁이', ab: 'swordsman.flurry', boost: { atk: 10, agility: 9 } },
 };
 
 /** 길드 이름 (93 결성 이야기) */

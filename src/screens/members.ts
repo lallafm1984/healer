@@ -54,10 +54,15 @@ export interface CardData {
   lastStatGains?: StatKey[];
   /** 내 길드원 (능력치 숫자) */
   member?: boolean;
+  /** 능력치에 레벨업 점수가 이미 든 저장 값 (길드원 · 지원자 · 공고 후보, 104). 아니면 타고난 값 + 그 레벨까지 점수를 화면에서 더함 (공개모집) */
+  grown?: boolean;
 }
 
-/** 능력 ★ 글 (97 FM): 역할 핵심에 무게를 둔 능력치 합 (레벨 몫은 빼고 = 같은 레벨 사이 재능, 102). 능력치가 없는 사람 (길드원 · 옛 파티)은 빈 글 */
-const fmStars = (m: CardData): string => (m.fm ? ratingStarsHtml(abilityStars(m.fm.stats, CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged')) : '');
+/** 화면 숫자: 저장 값 (grown) 또는 타고난 값 + 레벨업 점수 */
+const shownStats = (m: CardData): Stats => (m.grown ? m.fm!.stats : statsAt(m.fm!.stats, { nick: m.nick, pers: m.pers, role: CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', lv: m.lv }));
+
+/** 능력 ★ 글 (97 FM): 역할 핵심에 무게를 둔 화면 능력치 합, 같은 레벨 대비 (104). 능력치가 없는 사람 (옛 파티)은 빈 글 */
+const fmStars = (m: CardData): string => (m.fm ? ratingStarsHtml(abilityStars(shownStats(m), CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', m.lv)) : '');
 
 /** 역할 아이콘 (27 시안 Party27): 탱커 방패 · 근접 칼 · 원거리 화살 */
 const roleSvg = (d: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -93,7 +98,7 @@ export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra
 export function memDetailHtml(m: CardData): string {
   const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged';
   const g = m.fm ? growthOf(m.nick, role) : null, gt = g ? GROW_TYPES.find(x => x.type === g.type)! : null; // 성장 결 (103): 크는 모양 한 마디
-  return `<div class="f-det">${m.fm ? `<p class="pfm">능력 <b>${fmStars(m)}</b>${gt ? `<small class="pfm-grow" title="${gt.desc}">${gt.type}</small>` : ''}</p>${statsHtml(statsAt(m.fm.stats, { nick: m.nick, pers: m.pers, role, lv: m.lv }), role, m.lastStatGains)}` : ''}${abHtml(m.ab, m.star || 0)}
+  return `<div class="f-det">${m.fm ? `<p class="pfm">능력 <b>${fmStars(m)}</b>${gt ? `<small class="pfm-grow" title="${gt.desc}">${gt.type}</small>` : ''}</p>${statsHtml(shownStats(m), role, m.lastStatGains)}` : ''}${abHtml(m.ab, m.star || 0)}
     ${personalityHtml(m.pers)}</div>`;
 }
 

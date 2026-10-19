@@ -79,24 +79,40 @@ function rngOf(seed: number): () => number {
 const normal = (r: () => number) => (r() + r() + r() - 1.5) * 2;
 const clampStat = (x: number) => Math.max(1, Math.min(20, Math.round(x)));
 
-/** 능력치 표준편차 (평균 10, 대부분 8~13 · 97) */
+/** 능력치 표준편차 (v23까지의 타고난 값: 평균 10, 대부분 8~13 · 97) */
 export const STAT_SD = 1.8;
 /** 빠르기 (97 「A를 고르면 붙는 규칙」 2번): 40%는 함께 크는 사람 0.95~1.1배, 60%는 천천히 크는 사람 0.02~0.95배 */
 export const SPEED = { fastShare: 0.4, fast: [0.95, 1.1], slow: [0.02, 0.95] } as const;
 
-/** 1000명 한 사람의 고정 능력치 (닉네임 씨앗 + 성격 결) */
-export function profileOf(nick: string, pers: PersName): FmProfile {
-  const r = rngOf(seedOf(`fm:${nick}`));
+/**
+ * 타고난 값 = Lv 1 능력치 (2026-10-19 Lim 「파티원 능력치는 1렙 기준으로 모든능력치 1~10으로 랜덤」, 기획 104): 칸마다 1~10 고르게,
+ * 역할 핵심 넷은 4~10 (탱커 맷집 · 방어 1 같은 「고장」을 막음). 성격 결은 바탕에서 빼고 레벨업 때 오를 칸 무게로만 (lvAdds). 레벨이 오르면 레벨업 점수 (LV_PTS)
+ */
+export const BIRTH = { lo: 1, hi: 10, coreLo: 4 } as const;
+/** v25까지의 타고난 값 (평균 10 · 성격 결 ±GRAIN): 씨앗 줄을 같은 만큼 써서 학습력 · 꾸준함 · 빠르기를 예전 그대로 둠 */
+function birthOld(r: () => number, pers: PersName): Stats {
   const grain = PERS_GRAIN[pers];
   const stats = {} as Stats;
   for (const k of STAT_KEYS) {
     const lean = grain?.hi.includes(k) ? GRAIN : grain?.lo.includes(k) ? -GRAIN : 0;
     stats[k] = clampStat(10 + lean + normal(r) * STAT_SD);
   }
+  return stats;
+}
+/** v25까지의 타고난 값: 저장 v26이 길드원이 키운 몫 (저장 값 − 이것)을 옮길 때만 씀 */
+export const birthV25 = (nick: string, pers: PersName): Stats => birthOld(rngOf(seedOf(`fm:${nick}`)), pers);
+
+/** 1000명 한 사람의 고정 능력치 (닉네임 씨앗). role = 그 사람 직업의 역할 (역할 핵심 넷은 4부터) */
+export function profileOf(nick: string, pers: PersName, role: Exclude<Role, 'healer'> | null): FmProfile {
+  const r = rngOf(seedOf(`fm:${nick}`));
+  birthOld(r, pers);
   const learn = clampStat(1 + r() * 19.999 - 0.5);
   const steady = clampStat(10 + normal(r) * 4);
   const fast = r() < SPEED.fastShare, u = r();
   const speed = fast ? SPEED.fast[0] + u * (SPEED.fast[1] - SPEED.fast[0]) : SPEED.slow[0] + u * (SPEED.slow[1] - SPEED.slow[0]);
+  const b = rngOf(seedOf(`born:${nick}`)), core = role ? ROLE_CORE[role] : [];
+  const stats = {} as Stats;
+  for (const k of STAT_KEYS) { const lo = core.includes(k) ? BIRTH.coreLo : BIRTH.lo; stats[k] = lo + Math.floor(b() * (BIRTH.hi - lo + 1)); }
   return { stats, learn, steady, speed };
 }
 
@@ -105,31 +121,32 @@ export const memberLevel = (speed: number, myLv: number): number => Math.max(1, 
 /** 칸 레벨 ±이만큼인 사람만 모집에 나옴, 모자라면 넓힘 */
 export const LV_BAND = [1, 3] as const;
 
-/** 능력 ★ (½ 단위, ★½ ~ ★★★★★): 역할 핵심 넷 60% + 나머지 여덟 40% */
-export function abilityStars(stats: Stats, role: Exclude<Role, 'healer'>): number {
+/**
+ * 능력 ★ (½ 단위, ★½ ~ ★★★★★): 역할 핵심 넷 60% + 나머지 여덟 40%, 같은 레벨 대비 (104): lv를 주면 그 레벨까지 레벨업 점수가 ★ 점수를 평균만큼 올린 몫 (STAR.lv × 점수)을 뺌.
+ * 화면 숫자 (레벨업 점수까지 든 값)와 그 사람 레벨로 부름. 1000명 평균 ★★ 근처 (Lv 1 · 40 · 100 모두)
+ */
+export const STAR = { base: 2.4, lv: 0.094 };
+export function abilityStars(stats: Stats, role: Exclude<Role, 'healer'>, lv?: number): number {
   const core = ROLE_CORE[role];
   const c = core.reduce((a, k) => a + stats[k], 0) / core.length;
   const o = STAT_KEYS.filter(k => !core.includes(k)).reduce((a, k) => a + stats[k], 0) / (STAT_KEYS.length - core.length);
-  const score = c * 0.6 + o * 0.4;
-  return Math.max(0.5, Math.min(5, Math.round(score - 5.8) / 2)); // 평균 10 → ★★, 방패든양 예 (핵심 14 · 나머지 10.6) → ★★★½
+  const score = c * 0.6 + o * 0.4 - (lv ? STAR.lv * LV_PTS * (Math.max(1, Math.min(100, lv)) - 1) : 0);
+  return Math.max(0.5, Math.min(5, Math.round(score - STAR.base) / 2));
 }
 /** ★ 글자 (★★★½) */
 export const starText = (n: number): string => '★'.repeat(Math.floor(n)) + (n % 1 ? '½' : '');
 
 /**
- * 레벨 몫 (2026-10-19 Lim 「능력치가 레벨증가에 따라서 올라가는데 고렙의 파티원이 불리하다. 전체적으로 레벨에 따른 능력치 벨런스」, 기획 102):
- * 모든 파티원 (공개모집 · 길드원) 능력치 12칸에 + LV_STAT × (Lv − 1) ÷ 99 (Lv 1 +0 · 50 +2.5 · 100 +5). Lv 100 공개모집 평균이 15 (능력치 행동 기준점)가 됨.
- * 저장된 값 (타고난 값 · 길드원이 키운 값)에는 안 넣고 전투 (fight.ts makeParty)와 화면 숫자 (statsAt)에서 더함. 능력 ★은 레벨 몫을 빼고 (같은 레벨 사이 재능)
+ * 레벨업 점수 (2026-10-19 Lim 「40레벨기준 16개 능력치를 39번 랜덤 상승」, 기획 104): 레벨이 하나 오를 때마다 1점 = 오를 칸 하나 +1 (Lv 40 = 39점 · Lv 100 = 99점).
+ * 공개모집 (1000명)은 닉네임 씨앗으로 그 레벨까지 굴린 값 (저장 안 함, 레벨이 하나 높으면 같은 줄에서 한 번 더): 전투 (fight.ts makeParty)와 화면 숫자 (statsAt)에서 타고난 값에 더함.
+ * 길드원은 합류할 때 이 값을 저장하고, 그 뒤로는 레벨업할 때 실제로 굴려 저장 (학습력 0.9~1.1배, data/guild statPerLevel). 예전 레벨 몫 (102 LV_STAT, 칸 평균 +5)을 바꿈
  */
-export const LV_STAT = 5;
-/** 레벨 몫의 칸 평균 (Lv 1 0 · 50 2.5 · 100 5, 성장 결로 칸마다 다르게 나뉨) */
-export const lvStat = (lv?: number): number => (lv ? (LV_STAT * (Math.max(1, Math.min(100, lv)) - 1)) / 99 : 0);
+export const LV_PTS = 1;
 
 /**
- * 성장 결 (2026-10-19 Lim 「파티원들이 고렙일경우 평균적으로 모두 높은 능력치를 갖기보다 좀더 개성있게」 → 「결 + 크는 모양」, 기획 103):
- * 레벨 몫 총량은 그대로 (Lv 100 = 12칸 × LV_STAT = 60점)이고, 사람마다 (닉네임 씨앗, 저장 안 함) 나눠 받는 칸 · 크는 때가 다르다.
- * - 칸 무게: 역할 핵심 넷 ×2 · 성격 결 높은 칸 ×1.5 · 낮은 칸 ×0.3 · 재능 2칸 ×3 · 약점 1칸 ×0 (안 오름), 20 넘는 몫은 다른 칸으로
- * - 크는 모양 (GROW_TYPES): 특화형 (재능 ×4 · 약점 2칸) · 균형형 (무게를 고르게, 약점 없음) · 대기만성 (Lv 50까지 느리고 그 뒤 빠름) · 조숙형 (그 반대)
+ * 성장 결 (2026-10-19 Lim 「파티원들이 고렙일경우 평균적으로 모두 높은 능력치를 갖기보다 좀더 개성있게」 → 「결 + 크는 모양」, 기획 103): 레벨업 점수가 오를 칸 · 크는 때가 사람마다 (닉네임 씨앗, 저장 안 함) 다르다.
+ * - 칸 무게: 역할 핵심 넷 ×2 · 성격 결 높은 칸 ×1.5 · 낮은 칸 ×0.3 · 재능 2칸 ×3 · 약점 1칸 ×0 (안 오름), 20이면 다른 칸으로
+ * - 크는 모양 (GROW_TYPES): 특화형 (재능 ×4 · 약점 2칸) · 균형형 (무게를 고르게, 약점 없음) · 대기만성 (Lv 50까지 느리고 그 뒤 빠름) · 조숙형 (그 반대). 넷 모두 Lv 100에 같은 점수
  */
 export type GrowType = '특화형' | '균형형' | '대기만성' | '조숙형';
 export const GROW_TYPES: { type: GrowType; share: number; desc: string }[] = [
@@ -150,19 +167,13 @@ export function growthOf(nick: string, role: Exclude<Role, 'healer'>): Growth {
   const weak = type === '균형형' ? [] : pick(STAT_KEYS.filter(k => !talents.includes(k) && !ROLE_CORE[role].includes(k)), type === '특화형' ? 2 : 1);
   return { type, talents, weak };
 }
-/** 크는 모양: 레벨 몫 총량 가운데 지금 레벨까지 받은 몫 (0~1) */
+/** 크는 모양: Lv 100 점수 가운데 지금 레벨까지 받은 몫 (0~1) */
 const growCurve = (type: GrowType, t: number) => (type === '대기만성' ? t ** GROW.curve : type === '조숙형' ? 1 - (1 - t) ** GROW.curve : t);
-/**
- * 레벨 몫 (칸마다, 소수): 총량 12 × LV_STAT × 크는 모양에 따라 받은 몫을 칸 무게대로 나누되, 타고난 값 + 몫이 20을 넘는 칸은 넘는 만큼 다른 칸으로.
- * base = 타고난 값 (길드원은 키운 값)
- */
-export function lvAdds(nick: string, pers: PersName, role: Exclude<Role, 'healer'>, lv: number | undefined, base: Stats): Stats {
-  const out = Object.fromEntries(STAT_KEYS.map(k => [k, 0])) as Stats;
-  if (!lv) return out;
-  const g = growthOf(nick, role), grain = PERS_GRAIN[pers];
-  const t = (Math.max(1, Math.min(100, lv)) - 1) / 99;
-  let left = STAT_KEYS.length * LV_STAT * growCurve(g.type, t);
-  const w = {} as Record<StatKey, number>;
+/** 그 레벨까지 받은 레벨업 점수 (특화 · 균형 = Lv − 1, 대기만성 · 조숙형은 크는 때만 다름) */
+export const lvPoints = (type: GrowType, lv?: number): number => (lv ? Math.round(LV_PTS * 99 * growCurve(type, (Math.max(1, Math.min(100, lv)) - 1) / 99)) : 0);
+/** 오를 칸 무게 (성장 결, 칸마다) */
+export function growWeights(nick: string, pers: PersName, role: Exclude<Role, 'healer'>): Record<StatKey, number> {
+  const g = growthOf(nick, role), grain = PERS_GRAIN[pers], w = {} as Record<StatKey, number>;
   for (const k of STAT_KEYS) {
     let x = 1;
     if (ROLE_CORE[role].includes(k)) x *= GROW.core;
@@ -172,19 +183,32 @@ export function lvAdds(nick: string, pers: PersName, role: Exclude<Role, 'healer
     if (g.weak.includes(k)) x = 0;
     w[k] = g.type === '균형형' ? 1 + (x - 1) * GROW.flat : x; // 균형형: 무게 차이를 줄임
   }
-  for (let pass = 0; pass < 6 && left > 1e-9; pass++) {
-    const open = STAT_KEYS.filter(k => w[k] > 0 && base[k] + out[k] < 20 - 1e-9), sum = open.reduce((a, k) => a + w[k], 0);
-    if (!sum) break;
-    let spill = 0;
-    for (const k of open) {
-      const want = (left * w[k]) / sum, room = 20 - base[k] - out[k], got = Math.min(want, room);
-      out[k] += got; spill += want - got;
-    }
-    left = spill;
+  return w;
+}
+/** 무게대로 한 칸 (20인 칸 · 무게 0은 빼고), 없으면 null */
+export function pickStat(w: Record<StatKey, number>, at: (k: StatKey) => number, r: () => number): StatKey | null {
+  const open = STAT_KEYS.filter(k => w[k] > 0 && at(k) < 20), tot = open.reduce((a, k) => a + w[k], 0);
+  if (!tot) return null;
+  let x = r() * tot;
+  for (const k of open) { x -= w[k]; if (x <= 0) return k; }
+  return open[open.length - 1];
+}
+/**
+ * 공개모집 레벨업 점수 (칸마다, 정수): 그 레벨까지의 점수를 1점씩 무게대로 (닉네임 씨앗 줄, 앞 레벨과 같은 순서). base = 타고난 값.
+ * 길드원 (저장 값에 이미 듦)에게는 부르지 않음
+ */
+export function lvAdds(nick: string, pers: PersName, role: Exclude<Role, 'healer'>, lv: number | undefined, base: Stats): Stats {
+  const out = Object.fromEntries(STAT_KEYS.map(k => [k, 0])) as Stats;
+  if (!lv) return out;
+  const w = growWeights(nick, pers, role), r = rngOf(seedOf(`lvup:${nick}`));
+  for (let n = lvPoints(growthOf(nick, role).type, lv); n > 0; n--) {
+    const k = pickStat(w, s => base[s] + out[s], r);
+    if (!k) break;
+    out[k]++;
   }
   return out;
 }
-/** 화면에 보이는 능력치 = 저장 값 + 레벨 몫 (반올림, 1~20). who 없으면 저장 값 그대로 */
+/** 화면에 보이는 능력치 = 타고난 값 + 레벨업 점수 (공개모집, 1~20). who 없으면 저장 값 그대로 (길드원) */
 export const statsAt = (st: Stats, who?: { nick: string; pers: PersName; role: Exclude<Role, 'healer'>; lv?: number }): Stats => {
   const add = who ? lvAdds(who.nick, who.pers, who.role, who.lv, st) : null;
   return Object.fromEntries(STAT_KEYS.map(k => [k, Math.max(1, Math.min(20, Math.round(st[k] + (add ? add[k] : 0))))])) as Stats;

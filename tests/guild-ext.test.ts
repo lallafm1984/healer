@@ -11,7 +11,7 @@ import { claimExped } from '../src/game/economy';
 import * as Gd from '../src/game/guild';
 import { expedReady, jobsAfter, jobsDot, refreshExped, refreshReqs } from '../src/game/guildjobs';
 import { TUT } from '../src/game/tutorial';
-import { migrate, newSave, type SaveData } from '../src/platform/storage';
+import { migrate, newSave, statsV26, type SaveData } from '../src/platform/storage';
 
 let seed = 1;
 const rng = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -36,8 +36,8 @@ describe('시설 제거와 저장 보존 (v22)', () => {
     const d = migrate(old);
     expect(d.player.gold).toBe(s.player.gold + 155000 + 35000);
     expect(d.guild).not.toHaveProperty('fac');
-    expect(d.guild.post).toEqual({ cands: cands.map(c => ({ ...c, skillFloor: 1 })) });
-    expect(d.guild.members).toEqual([a, b].map(m => ({ ...m, skillFloor: 1 })));
+    expect(d.guild.post).toEqual({ cands: cands.map(c => ({ ...c, skillFloor: 1, stats: statsV26(c) })) }); // v26이 능력치를 새 바탕으로
+    expect(d.guild.members).toEqual([a, b].map(m => ({ ...m, skillFloor: 1, stats: statsV26(m) })));
     expect(migrate(JSON.parse(JSON.stringify(d)))).toEqual(d);
   });
   it('시설 환급은 잘못된 값을 제외하고 단계 상한까지', () => {

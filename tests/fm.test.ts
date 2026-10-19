@@ -1,17 +1,19 @@
 /** 파티원 능력치 FM식 (97 문서): 1000명 고정 능력치 · 학습력 · 꾸준함 · 빠르기, 공개모집 저마다 레벨, 능력치 → 엔진 값, 능력 ★ */
 import { describe, expect, it } from 'vitest';
 import { CLASSES } from '../src/data/classes';
-import { abilityStars, dayOffset, fmFx, LV_BAND, memberLevel, profileOf, STAT_KEYS, starText, type Stats } from '../src/data/fm';
+import { abilityStars, BIRTH, dayOffset, fmFx, LV_BAND, lvAdds, memberLevel, profileOf, ROLE_CORE, STAT_KEYS, STAR, starText, type Stats } from '../src/data/fm';
 import { PARTY_POOL, pickMember } from '../src/data/nicknames';
 import * as E from '../src/engine';
 
 const ALL = Object.values(PARTY_POOL).flat();
+/** 그 사람 역할 (직업 목록에서) */
+const roleOf = (m: (typeof ALL)[number]) => CLASSES[(Object.keys(PARTY_POOL) as (keyof typeof PARTY_POOL)[]).find(k => PARTY_POOL[k].includes(m))!].role as 'tank' | 'melee' | 'ranged';
 const flat = (v: number): Stats => Object.fromEntries(STAT_KEYS.map(k => [k, v])) as Stats;
 
 describe('1000명 능력치', () => {
   it('닉네임마다 고정 (다시 계산해도 같음), 능력치 · 학습력 · 꾸준함은 1~20 정수', () => {
     for (const m of ALL) {
-      expect(profileOf(m.nick, m.pers)).toEqual(m.fm);
+      expect(profileOf(m.nick, m.pers, roleOf(m))).toEqual(m.fm);
       for (const v of [...Object.values(m.fm.stats), m.fm.learn, m.fm.steady]) {
         expect(Number.isInteger(v), m.nick).toBe(true);
         expect(v, m.nick).toBeGreaterThanOrEqual(1);
@@ -20,12 +22,14 @@ describe('1000명 능력치', () => {
     }
   });
 
-  it('평균은 10 근처 (= 예전 파티원), 대부분 8~13', () => {
+  it('타고난 값 = Lv 1 바탕 (104): 칸마다 1~10 고르게, 역할 핵심 넷은 4~10, 평균 6 근처', () => {
     const vs = ALL.flatMap(m => Object.values(m.fm.stats));
     const avg = vs.reduce((a, b) => a + b, 0) / vs.length;
-    expect(avg).toBeGreaterThan(9.6);
-    expect(avg).toBeLessThan(10.4);
-    expect(vs.filter(v => v >= 8 && v <= 13).length / vs.length).toBeGreaterThan(0.7);
+    expect(avg).toBeGreaterThan(5.8);
+    expect(avg).toBeLessThan(6.2);
+    expect(Math.max(...vs)).toBe(BIRTH.hi);
+    for (const m of ALL) for (const k of ROLE_CORE[roleOf(m)]) expect(m.fm.stats[k], `${m.nick} ${k}`).toBeGreaterThanOrEqual(BIRTH.coreLo);
+    for (let v = 1; v <= 10; v++) expect(vs.filter(x => x === v).length / vs.length, `${v}`).toBeGreaterThan(0.05); // 고르게
   });
 
   it('빠르기: 40%는 함께 크는 사람 (0.95~1.1배), 나머지는 0.02~0.95배', () => {
@@ -41,10 +45,10 @@ describe('1000명 능력치', () => {
     expect(memberLevel(1.1, 100)).toBe(100);
   });
 
-  it('성격 결: 높게 나오는 칸이 낮게 나오는 칸보다 평균이 높음 (딜 욕심쟁이 공격 · 침착)', () => {
+  it('성격 결은 레벨업 때 오를 칸 무게 (104): 딜 욕심쟁이는 Lv 100까지 공격이 침착보다 많이 오름', () => {
     const g = ALL.filter(m => m.pers === '딜 욕심쟁이');
-    const avg = (k: keyof Stats) => g.reduce((a, m) => a + m.fm.stats[k], 0) / g.length;
-    expect(avg('atk')).toBeGreaterThan(avg('composure') + 2);
+    const up = (k: keyof Stats) => g.reduce((a, m) => a + lvAdds(m.nick, m.pers, roleOf(m), 100, m.fm.stats)[k], 0) / g.length;
+    expect(up('atk')).toBeGreaterThan(up('composure') + 4);
   });
 });
 
@@ -135,8 +139,10 @@ describe('공개모집 저마다 레벨 (세상 모험가)', () => {
 });
 
 describe('능력 ★', () => {
-  it('½ 단위 ★½ ~ ★★★★★, 평균 10이면 ★★, 역할 핵심이 높으면 더 많음', () => {
-    expect(abilityStars(flat(10), 'tank')).toBe(2);
+  it('½ 단위 ★½ ~ ★★★★★, Lv 1 평균 (6 안팎)이면 ★★, 같은 레벨 대비 (레벨업 점수 몫을 뺌), 역할 핵심이 높으면 더 많음', () => {
+    expect(abilityStars(flat(6.4), 'tank')).toBe(2);
+    expect(abilityStars(flat(6.4 + STAR.lv * 99), 'tank', 100)).toBe(2);
+    expect(abilityStars(flat(10), 'tank', 40)).toBe(abilityStars(flat(10 - STAR.lv * 39), 'tank'));
     expect(abilityStars(flat(1), 'tank')).toBe(0.5);
     expect(abilityStars(flat(20), 'tank')).toBe(5);
     const core = { ...flat(10), tough: 14, armor: 14, position: 14, judgment: 14 };
@@ -145,13 +151,14 @@ describe('능력 ★', () => {
     expect(starText(2)).toBe('★★');
   });
 
-  it('1000명 분포: ★★ 언저리가 가장 많고 ★★★★ 이상은 드묾', () => {
-    const st = ALL.map(m => {
-      const cls = (Object.keys(PARTY_POOL) as (keyof typeof PARTY_POOL)[]).find(k => PARTY_POOL[k].includes(m))!;
-      return abilityStars(m.fm.stats, CLASSES[cls].role as 'tank' | 'melee' | 'ranged');
-    });
-    const mid = st.filter(v => v >= 1.5 && v <= 2.5).length / st.length;
-    expect(mid).toBeGreaterThan(0.5);
-    expect(st.filter(v => v >= 4).length / st.length).toBeLessThan(0.05);
+  it('1000명 분포 (Lv 1 · 40 · 100 화면 숫자): 평균 ★★ 근처, ★★ 언저리가 가장 많고 ★★★★ 이상은 드묾', () => {
+    for (const lv of [1, 40, 100]) {
+      const st = ALL.map(m => { const add = lvAdds(m.nick, m.pers, roleOf(m), lv, m.fm.stats); return abilityStars(Object.fromEntries(STAT_KEYS.map(k => [k, m.fm.stats[k] + add[k]])) as Stats, roleOf(m), lv); });
+      const mean = st.reduce((a, b) => a + b, 0) / st.length;
+      expect(mean, `Lv ${lv}`).toBeGreaterThan(1.8);
+      expect(mean, `Lv ${lv}`).toBeLessThan(2.2);
+      expect(st.filter(v => v >= 1.5 && v <= 2.5).length / st.length, `Lv ${lv}`).toBeGreaterThan(0.5);
+      expect(st.filter(v => v >= 4).length / st.length, `Lv ${lv}`).toBeLessThan(0.05);
+    }
   });
 });
