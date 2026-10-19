@@ -1,0 +1,91 @@
+/*
+ * 떠돌이 상인 (106, merchant.ts): 상점 · 길드와 같은 길드 홀 돌색 (--gk-*, service-hall.css · guide-sheet.css 목록에 #s-merchant).
+ * 머리 그림 ui-merchant (Codex), 부위 탭 → 종류 카드 3열 → 사기 판 (값 · 등급 확률 칩) → 감정 결과 시트 (봉인 꾸러미 icon-merchant가 흔들리다 풀림).
+ */
+#s-merchant { display: flex; flex-direction: column; }
+#s-merchant .mc { display: flex; flex-direction: column; gap: 10px; padding-bottom: 16px; }
+#s-merchant .mc-hero { --hero-art: var(--art-ui-merchant, none); min-height: 96px; align-items: flex-end; justify-content: space-between; border-bottom-color: var(--gk-edge); }
+#s-merchant .mc-hero::before { background-position: center 62%; }
+#s-merchant .mc-have { margin: 0; padding: 4px 10px; border-radius: 999px; background: #0d0b08cc; border: 1px solid var(--gk-card-bd); font-size: 15px; }
+#s-merchant .mc-have .currency-icon { width: 18px; height: 18px; }
+#s-merchant .mc-lead, #s-merchant .mc-foot { margin: 0; font-size: 12px; color: var(--gk-mute); }
+#s-merchant .mc-foot { text-align: center; }
+
+/* 종류 카드: 그림 (등급을 모르니 무채 테) · 이름 · 늘 붙는 능력치 */
+#s-merchant .mc-kinds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+#s-merchant .mc-kind {
+  display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; min-height: 104px; padding: 8px 4px 7px;
+  border: 1px solid var(--gk-card-bd); border-radius: 10px; background: var(--gk-card); color: var(--gk-ink); font: inherit; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+#s-merchant .mc-kind .mc-art {
+  display: grid; place-items: center; width: 54px; height: 54px; border-radius: 10px;
+  background: radial-gradient(circle at 50% 40%, #3a332a, #1a1612 72%); box-shadow: inset 0 0 0 1px #6d6252, inset 0 0 12px #0008;
+}
+#s-merchant .mc-kind .mc-art .g-ic { width: 46px; height: 46px; object-fit: contain; filter: saturate(0.85); }
+#s-merchant .mc-kind b { font-size: 14px; line-height: 1.2; color: var(--gk-head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+#s-merchant .mc-kind small { font-size: 11px; line-height: 1.25; color: var(--gk-ink2); text-align: center; }
+#s-merchant .mc-kind[aria-checked="true"] { border: 2px solid var(--gk-accent); padding: 7px 3px 6px; background: linear-gradient(#3a2e1f, #2a2118); box-shadow: 0 0 0 1px #0008, 0 0 14px #ffd34d33; }
+#s-merchant .mc-kind[aria-checked="true"] .mc-art { box-shadow: inset 0 0 0 1px var(--gk-edge), inset 0 0 12px #0008, 0 0 10px #ffd34d33; }
+#s-merchant .mc-kind:active { filter: brightness(1.12); }
+#s-merchant .mc-kind:focus-visible { outline: 2px solid var(--gk-accent); outline-offset: 2px; }
+
+/* 사기 판 */
+#s-merchant .mc-buy { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; }
+#s-merchant .mc-pick { margin: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+#s-merchant .mc-pick b { font-size: 16px; color: var(--gk-head); }
+#s-merchant .mc-pick small { font-size: 12px; color: var(--gk-mute); white-space: nowrap; }
+#s-merchant .mc-odds { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+#s-merchant .mc-odds li { padding: 2px 9px; border-radius: 999px; border: 1px solid var(--g); background: #0d0b08; color: var(--gi); font-size: 12px; font-weight: 700; }
+#s-merchant .mc-odds li b { font-weight: 800; color: var(--g); }
+#s-merchant .mc-go { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; font-size: 17px; }
+#s-merchant .mc-go .currency-amount b { font-size: 16px; }
+#s-merchant .mc-go .currency-icon { width: 20px; height: 20px; }
+#s-merchant .mc-why { margin: 0; font-size: 12px; font-weight: 700; color: var(--gk-enr-ink); text-align: center; }
+
+/* 감정 결과 시트 */
+#app #s-merchant .sheet.mc-reveal { align-items: stretch; gap: 10px; background: var(--gk-bg); background-color: #15120e; border-top-color: var(--gk-edge); color: var(--gk-ink); }
+#app #s-merchant .sheet.mc-reveal > .grip { background: var(--gk-edge); }
+#s-merchant .mc-rt { margin: 0; text-align: center; font: 800 15px var(--font-display); color: var(--gk-mute); letter-spacing: 0.04em; }
+#s-merchant .mc-stage { position: relative; display: grid; place-items: center; height: 150px; isolation: isolate; }
+#s-merchant .mc-stage > * { grid-area: 1 / 1; }
+#s-merchant .mc-item {
+  display: grid; place-items: center; width: 104px; height: 104px; border-radius: 16px; z-index: 1;
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--g) 30%, #241d16), #15110d 74%);
+  box-shadow: inset 0 0 0 2px var(--g), 0 0 22px color-mix(in srgb, var(--g) 45%, transparent);
+}
+#s-merchant .mc-item .g-ic { width: 88px; height: 88px; object-fit: contain; }
+#s-merchant .mc-beam { z-index: 0; left: calc(50% - 80px); bottom: 4px; width: 160px; height: 200px; }
+#s-merchant .mc-bundle { z-index: 2; width: 112px; height: 112px; display: grid; place-items: center; }
+#s-merchant .mc-bundle .g-ic { width: 112px; height: 112px; object-fit: contain; }
+#s-merchant .mc-card { display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; }
+#s-merchant .mc-grade { margin: 0; display: flex; align-items: center; gap: 6px; }
+#s-merchant .mc-grade i { padding: 1px 10px; border-radius: 999px; background: var(--g); color: #15110d; font-style: normal; font-weight: 800; font-size: 13px; }
+#s-merchant .mc-name { margin: 0; font: 800 19px var(--font-display); color: var(--gi); }
+#s-merchant .mc-sub { margin: 0; font-size: 12px; color: var(--gk-ink2); }
+#s-merchant .mc-sp { margin: 0; font-size: 12px; font-weight: 700; color: var(--gk-head); }
+#s-merchant .mc-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#s-merchant .mc-acts > .primary { grid-column: 1 / -1; min-height: 48px; font-size: 16px; }
+#s-merchant .mc-acts > button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; }
+#s-merchant .mc-acts .currency-icon { width: 18px; height: 18px; }
+#s-merchant .mc-close { min-height: 44px; }
+
+/* 봉인 풀기: 꾸러미가 흔들리다 터지고 (0.75초) 장비 · 빛기둥 · 카드가 차례로 */
+#s-merchant .mc-reveal.anim .mc-bundle { animation: mcShake 0.6s ease-in-out, mcPoof 0.2s ease-out 0.6s forwards; }
+#s-merchant .mc-reveal.anim .mc-item { animation: mcPop 0.38s cubic-bezier(0.2, 1.5, 0.4, 1) 0.66s both; }
+#s-merchant .mc-reveal.anim .mc-beam { animation-delay: 0.7s, 1.4s; }
+#s-merchant .mc-reveal.anim :is(.mc-card, .mc-acts) { animation: mcFade 0.3s ease-out 0.85s both; }
+@keyframes mcShake {
+  0%, 100% { transform: rotate(0) scale(1); }
+  20% { transform: rotate(-8deg) scale(1.04); }
+  40% { transform: rotate(7deg) scale(1.06); }
+  60% { transform: rotate(-6deg) scale(1.09); }
+  80% { transform: rotate(5deg) scale(1.12); }
+}
+@keyframes mcPoof { to { transform: scale(1.35); opacity: 0; visibility: hidden; } }
+@keyframes mcPop { from { transform: scale(0.4); opacity: 0; } }
+@keyframes mcFade { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) {
+  #s-merchant .mc-reveal.anim :is(.mc-bundle, .mc-item, .mc-card, .mc-acts) { animation: none; }
+  #s-merchant .mc-reveal.anim .mc-bundle { display: none; }
+}

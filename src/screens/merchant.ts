@@ -1,0 +1,128 @@
+/**
+ * 행상인 (떠돌이 상인, 106, 2026-10-20 Lim 「로비에 디아블로2 갬블 요소 처럼 랜덤으로 아이템이 뜨는 컨텐츠 … 골드소비처 용도」): 로비 오른쪽 팻말에서 들어오는 화면.
+ * 위 = 부위 탭 (상점 · 길드와 같은 하위 탭), 가운데 = 그 부위 다섯 종류 (종류 그림 · 고정 능력치), 아래 = 사기 (값 · 등급 확률).
+ * 사면 봉인 꾸러미 (icon-merchant)가 흔들리다 풀리고 장비 카드 (영웅 · 품질은 결과창과 같은 빛기둥) → 상세 · 판매 · 한 번 더.
+ * 탭 막대 없이 「← 로비」 (상점과 같은 하위 화면). 규칙 · 수치는 game/merchant.ts · data/economy MERCHANT
+ */
+import { art } from '../art';
+import { GRADE_STYLE, HERO_FROM, ITEM_GRADES, kindOf, kindsOf, qualityOf, sellGold, slotName, SLOTS, STATS, takenStats, type ItemGrade, type SlotKey } from '../data/equipment';
+import { scoreOf, specName } from '../game/charinfo';
+import { buyUnknown, merchantOdds, merchantOffer } from '../game/merchant';
+import { resourceBalance } from '../game/resources';
+import { commit, findItem, G, refreshDay, sell } from '../game/state';
+import { specKeysOf } from '../data/equipment';
+import { currencyAmount, gameIcon, gearIcon, uiIcon } from './art';
+import { openItemDetail } from './character';
+import { sheetDialog } from './dialog';
+import { esc, fmt, screen, topBar } from './kit';
+
+/** 등급 글자 색 (결과 · 장비 상세와 같은 값) */
+const GRADE_INK: Record<ItemGrade, string> = { '일반': '#E4E0D8', '고급': '#8BEA9C', '희귀': '#8DBEFF', '영웅': '#D7A6FF', '전설': '#FFE680' };
+
+/** slot = 고른 부위, pick = 부위마다 고른 종류, got = 방금 산 장비 (감정 결과 창), fresh = 그 창의 봉인 풀기 연출을 아직 안 보여 줌, msg = 한 줄 알림 */
+const st: { slot: SlotKey; pick: Partial<Record<SlotKey, string>>; got: number | null; fresh: boolean; msg: string } = { slot: 'weapon', pick: {}, got: null, fresh: false, msg: '' };
+
+const s = screen('s-merchant', '행상인', {
+  enter() { refreshDay(); st.got = null; st.msg = ''; render(); },
+});
+const modal = sheetDialog(s.el, () => { st.got = null; render(); });
+
+const kindNow = (slot: SlotKey) => st.pick[slot] ?? kindsOf(slot)[0].key;
+/** 종류가 늘 주는 능력치 (주 옵션 + 종류 옵션) */
+const kindStatsText = (slot: SlotKey, kind: string) => [...new Set(takenStats(kindOf({ slot, kind })))].map(k => STATS[k].name).join(' · ');
+/** 확률 글자: 1% 넘으면 소수 한 자리, 그 밑은 두 자리 (끝 0 없앰) */
+const pct = (p: number) => `${(p * 100).toFixed(p >= 0.01 ? 1 : 2).replace(/\.?0+$/, '')}%`;
+
+function render(): void {
+  modal.beforeRender();
+  const save = G.save, o = merchantOffer(save), slot = st.slot, kind = kindNow(slot);
+  const have = resourceBalance(save, 'gold');
+  const odds = merchantOdds(o.lv);
+  const chips = ITEM_GRADES.map((g, i) => (odds[i] > 0 ? `<li style="--g:${GRADE_STYLE[g].color};--gi:${GRADE_INK[g]}"><b>${g}</b> ${pct(odds[i])}</li>` : '')).join('');
+  s.el.innerHTML = `${topBar({ back: 's-lobby', title: '행상인' })}
+    <nav class="subtabs" role="tablist" aria-label="부위">${SLOTS.map(x => `<button type="button" role="tab" data-mslot="${x.key}" aria-selected="${x.key === slot}">${x.name}</button>`).join('')}</nav>
+    <div class="ns-body mc">
+      <header class="art-hero mc-hero"><div class="ah-copy"><p class="eyebrow">떠돌이 행상인</p><h2>미확인 장비</h2></div>
+        <p class="mc-have">${currencyAmount('gold', isFinite(have) ? have : '∞')}</p></header>
+      <p class="note mc-lead">종류를 고르면 등급 · 옵션은 산 뒤에 정해집니다.</p>
+      <div class="mc-kinds" role="radiogroup" aria-label="${esc(slotName(slot))} 종류">${kindsOf(slot).map(k => `<button type="button" class="mc-kind" role="radio" data-mkind="${k.key}" aria-checked="${k.key === kind}">
+          <span class="mc-art">${gearIcon({ slot, kind: k.key })}</span><b>${esc(k.name)}</b><small>${kindStatsText(slot, k.key)}</small></button>`).join('')}</div>
+      <section class="panel mc-buy" aria-label="사기">
+        <p class="mc-pick"><b>미확인 ${esc(kindOf({ slot, kind }).name)}</b><small>Lv ${o.lv} · ${esc(slotName(slot))}</small></p>
+        <ul class="mc-odds" aria-label="등급 확률">${chips}</ul>
+        <button type="button" class="btn primary mc-go" id="mcBuy"${o.ok ? '' : ' disabled'} aria-label="미확인 ${esc(kindOf({ slot, kind }).name)} 사기 · 골드 ${fmt(o.gold)}"><span>사기</span>${currencyAmount('gold', o.gold)}</button>
+        ${o.why || st.msg ? `<p class="mc-why" role="status">${esc(st.msg || (o.lock || `${o.why} · 보유 ${fmt(have)}`))}</p>` : ''}
+      </section>
+      <p class="note mc-foot">영웅은 Lv ${HERO_FROM}부터 · 장비 레벨 = 지금 직업 레벨 · 전용 효과 70%</p>
+    </div>
+    ${st.got != null ? revealHtml(st.got) : ''}`;
+  st.msg = '';
+  const sheet = s.el.querySelector<HTMLElement>('.mc-reveal');
+  modal.sync(sheet, sheet ? ['reveal'] : []);
+  st.fresh = false;
+}
+
+/** 감정 결과: 봉인 꾸러미가 흔들리다 풀리고 (fresh, 효과 줄이기면 없음) 장비 카드 → 상세 · 판매 · 한 번 더 · 닫기 */
+function revealHtml(id: number): string {
+  const it = findItem(id);
+  if (!it) return '';
+  const o = merchantOffer(G.save), q = qualityOf(it), calm = G.save.settings.reducedEffects;
+  const anim = st.fresh && !calm;
+  const bu = it.grade === '영웅' || it.grade === '전설' || q ? art('fx-loot-beam') : '';
+  const beam = bu ? `<span class="r-beam mc-beam${calm ? ' calm' : ''}" style="--beam:url('${bu}')" aria-hidden="true"></span>` : '';
+  const sp = specKeysOf(it);
+  const worn = G.save.gear.equipped[it.slot]?.id === it.id;
+  return `<div class="sheet-dim" data-mc-close></div>
+    <section class="sheet mc-reveal${anim ? ' anim' : ''}" aria-labelledby="mcRevealTitle" style="--g:${GRADE_STYLE[it.grade].color};--gi:${GRADE_INK[it.grade]}">
+      <div class="grip"></div>
+      <h3 id="mcRevealTitle" class="mc-rt">감정 결과</h3>
+      <div class="mc-stage" aria-hidden="true">${beam}${anim ? `<span class="mc-bundle">${gameIcon('merchant', uiIcon('shop'))}</span>` : ''}<span class="mc-item">${gearIcon(it)}</span></div>
+      <div class="mc-card">
+        <p class="mc-grade"><i>${it.grade}</i>${q ? ` <span class="r-q" data-q="${q}">${q}</span>` : ''}</p>
+        <h4 class="mc-name">${esc(it.name)}</h4>
+        <p class="mc-sub">점수 ${scoreOf(it)} · ${esc(slotName(it.slot))} · ${esc(kindOf(it).name)} · Lv ${it.lv ?? o.lv}</p>
+        ${sp.length ? `<p class="mc-sp">${sp.map(k => esc(specName(k))).join(' · ')}</p>` : ''}
+      </div>
+      <div class="mc-acts">
+        <button type="button" class="btn" data-mc-detail="${it.id}">상세</button>
+        <button type="button" class="btn" data-mc-sell="${it.id}"${worn || it.lock ? ' disabled' : ''}>판매 ${currencyAmount('gold', sellGold(it), { prefix: '+' })}</button>
+        <button type="button" class="btn primary" data-mc-again${o.ok ? '' : ' disabled'} aria-label="한 번 더 · 골드 ${fmt(o.gold)}">한 번 더 ${currencyAmount('gold', o.gold)}</button>
+      </div>
+      <button type="button" class="btn2 mc-close" data-mc-close>닫기</button>
+    </section>`;
+}
+
+/** 지금 고른 부위 · 종류로 사기 → 감정 결과 창 */
+function buy(): void {
+  const r = buyUnknown(G.save, st.slot, kindNow(st.slot));
+  if (typeof r === 'string') { st.msg = r; render(); return; }
+  commit();
+  st.got = r.id; st.fresh = true;
+  render();
+}
+
+s.el.addEventListener('click', e => {
+  const t = e.target as HTMLElement;
+  const tab = t.closest<HTMLElement>('[data-mslot]');
+  if (tab) { st.slot = tab.dataset.mslot as SlotKey; render(); return; }
+  const k = t.closest<HTMLElement>('[data-mkind]');
+  if (k) { st.pick[st.slot] = k.dataset.mkind; render(); return; }
+  if (t.closest('#mcBuy') || t.closest('[data-mc-again]')) { buy(); return; }
+  if (t.closest('[data-mc-close]')) { st.got = null; render(); return; }
+  const det = t.closest<HTMLElement>('[data-mc-detail]');
+  if (det) {
+    const id = Number(det.dataset.mcDetail);
+    // 장비 상세 (캐릭터 메뉴와 같은 창): 감정 결과 시트는 다른 화면을 막으니 (inert) 먼저 닫고, 상세를 닫으면 다시 (판매했으면 안 엶)
+    st.got = null; render();
+    if (!openItemDetail(id, () => { st.got = findItem(id) ? id : null; render(); })) { st.got = id; render(); }
+    return;
+  }
+  const sl = t.closest<HTMLElement>('[data-mc-sell]');
+  if (sl) {
+    const got = sell([Number(sl.dataset.mcSell)]);
+    st.got = null;
+    st.msg = got.n ? `판매: 골드 +${fmt(got.gold)}` : '';
+    render();
+  }
+});
+
