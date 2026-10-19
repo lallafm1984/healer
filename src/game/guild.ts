@@ -7,7 +7,7 @@ import { ABILITIES, AB_ODDS, rollAbility } from '../data/abilities';
 import { CLASSES, RECRUIT_CLASSES, type ClassKey } from '../data/classes';
 import type { DiffName } from '../data/difficulty';
 import type { Encounter } from '../data/encounters';
-import { dayOffset, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
+import { dayOffset, lvAdds, memberLevel, profileOf, STAT_KEYS, type StatKey, type Stats } from '../data/fm';
 import {
   APP_DAYS, appsPerDay, SPONSOR, sponsorGold, DEED_STATS, DEED_WHY, FAME, guildLvOf, habitOf, lowStageXp, POST_LV_GAP, postGold, POST, REQ, REST_SHARE, rerollGold,
   memberSkillLevel, STORY, statPerLevel, statWeights, VOTE_KEEP, XP_BAND, type Deed, type GuildMember, type StoryKey,
@@ -296,7 +296,7 @@ export const guildNicks = (save: SaveData): Set<string> => new Set(save.guild.me
 export const isGuildParty = (roster: readonly RosterEntry[]) => roster.some(e => e.gid != null) && roster.filter(e => e.gid != null).length * 2 >= roster.length;
 export interface GuildAfter {
   /** 출전한 길드원: 레벨 경험치 · 레벨 업 · 오른 능력치 (왜) */
-  members: { nick: string; xp: number; ups: number[]; stats: { k: StatKey; to: number; why: string }[]; lv?: number }[];
+  members: { nick: string; xp: number; ups: number[]; stats: { k: StatKey; to: number; why: string; shown?: number }[]; lv?: number }[];
   /** 쉬는 명단이 받은 경험치 합 · 그 가운데 후원으로 받은 사람 (경험치 · 남은 판) */
   rest: number;
   boosted: { nick: string; xp: number; left: number }[];
@@ -369,7 +369,8 @@ export function guildAfter(
     const xp = memberXp(m, o) * (requests.has(m.nick) ? REQ.xpMult : 1);
     const ups = addMemberXp(m, xp, cap);
     const stats = growStats(m, ups.length, o.party.find(p => p.nick === m.nick)?.deed, r);
-    out.members.push({ nick: m.nick, xp, ups, stats, lv: m.lv });
+    const add = lvAdds(m.nick, m.pers, CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged', m.lv, m.stats); // 화면 숫자 = 키운 값 + 레벨 몫 (성장 결, 103)
+    out.members.push({ nick: m.nick, xp, ups, stats: stats.map(x => ({ ...x, shown: Math.min(20, Math.round(x.to + add[x.k])) })), lv: m.lv });
   }
   for (const m of g.members) if (!went.has(m.id)) {
     // 후원 (98): 남은 판이 있고 더 오를 수 있으면 출전만큼, 1판 씀

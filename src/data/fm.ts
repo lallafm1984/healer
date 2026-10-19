@@ -122,11 +122,72 @@ export const starText = (n: number): string => '★'.repeat(Math.floor(n)) + (n 
  * 저장된 값 (타고난 값 · 길드원이 키운 값)에는 안 넣고 전투 (fight.ts makeParty)와 화면 숫자 (statsAt)에서 더함. 능력 ★은 레벨 몫을 빼고 (같은 레벨 사이 재능)
  */
 export const LV_STAT = 5;
+/** 레벨 몫의 칸 평균 (Lv 1 0 · 50 2.5 · 100 5, 성장 결로 칸마다 다르게 나뉨) */
 export const lvStat = (lv?: number): number => (lv ? (LV_STAT * (Math.max(1, Math.min(100, lv)) - 1)) / 99 : 0);
-/** 화면에 보이는 능력치 = 저장 값 + 레벨 몫 (반올림, 1~20) */
-export const statsAt = (st: Stats, lv?: number): Stats => {
-  const add = lvStat(lv);
-  return Object.fromEntries(STAT_KEYS.map(k => [k, Math.max(1, Math.min(20, Math.round(st[k] + add)))])) as Stats;
+
+/**
+ * 성장 결 (2026-10-19 Lim 「파티원들이 고렙일경우 평균적으로 모두 높은 능력치를 갖기보다 좀더 개성있게」 → 「결 + 크는 모양」, 기획 103):
+ * 레벨 몫 총량은 그대로 (Lv 100 = 12칸 × LV_STAT = 60점)이고, 사람마다 (닉네임 씨앗, 저장 안 함) 나눠 받는 칸 · 크는 때가 다르다.
+ * - 칸 무게: 역할 핵심 넷 ×2 · 성격 결 높은 칸 ×1.5 · 낮은 칸 ×0.3 · 재능 2칸 ×3 · 약점 1칸 ×0 (안 오름), 20 넘는 몫은 다른 칸으로
+ * - 크는 모양 (GROW_TYPES): 특화형 (재능 ×4 · 약점 2칸) · 균형형 (무게를 고르게, 약점 없음) · 대기만성 (Lv 50까지 느리고 그 뒤 빠름) · 조숙형 (그 반대)
+ */
+export type GrowType = '특화형' | '균형형' | '대기만성' | '조숙형';
+export const GROW_TYPES: { type: GrowType; share: number; desc: string }[] = [
+  { type: '특화형', share: 0.3, desc: '레벨이 오를수록 재능 칸이 크게 오르고 약점 두 칸은 그대로입니다.' },
+  { type: '균형형', share: 0.3, desc: '레벨이 오를수록 모든 칸이 고르게 오릅니다.' },
+  { type: '대기만성', share: 0.2, desc: 'Lv 50까지는 천천히, 그 뒤로 빠르게 오릅니다.' },
+  { type: '조숙형', share: 0.2, desc: 'Lv 50까지 빠르게, 그 뒤로는 천천히 오릅니다.' },
+];
+export const GROW = { core: 2, hi: 1.5, lo: 0.3, talent: 3, talentSpec: 4, curve: 1.7, flat: 0.35 };
+export interface Growth { type: GrowType; talents: StatKey[]; weak: StatKey[] }
+/** 그 사람의 성장 결 (닉네임 씨앗으로 고정) */
+export function growthOf(nick: string, role: Exclude<Role, 'healer'>): Growth {
+  const r = rngOf(seedOf(`grow:${nick}`));
+  let x = r(), type: GrowType = '균형형';
+  for (const g of GROW_TYPES) { if (x < g.share) { type = g.type; break; } x -= g.share; }
+  const pick = (from: StatKey[], n: number) => { const a = [...from], out: StatKey[] = []; while (out.length < n && a.length) out.push(a.splice(Math.floor(r() * a.length), 1)[0]); return out; };
+  const talents = pick([...STAT_KEYS], 2);
+  const weak = type === '균형형' ? [] : pick(STAT_KEYS.filter(k => !talents.includes(k) && !ROLE_CORE[role].includes(k)), type === '특화형' ? 2 : 1);
+  return { type, talents, weak };
+}
+/** 크는 모양: 레벨 몫 총량 가운데 지금 레벨까지 받은 몫 (0~1) */
+const growCurve = (type: GrowType, t: number) => (type === '대기만성' ? t ** GROW.curve : type === '조숙형' ? 1 - (1 - t) ** GROW.curve : t);
+/**
+ * 레벨 몫 (칸마다, 소수): 총량 12 × LV_STAT × 크는 모양에 따라 받은 몫을 칸 무게대로 나누되, 타고난 값 + 몫이 20을 넘는 칸은 넘는 만큼 다른 칸으로.
+ * base = 타고난 값 (길드원은 키운 값)
+ */
+export function lvAdds(nick: string, pers: PersName, role: Exclude<Role, 'healer'>, lv: number | undefined, base: Stats): Stats {
+  const out = Object.fromEntries(STAT_KEYS.map(k => [k, 0])) as Stats;
+  if (!lv) return out;
+  const g = growthOf(nick, role), grain = PERS_GRAIN[pers];
+  const t = (Math.max(1, Math.min(100, lv)) - 1) / 99;
+  let left = STAT_KEYS.length * LV_STAT * growCurve(g.type, t);
+  const w = {} as Record<StatKey, number>;
+  for (const k of STAT_KEYS) {
+    let x = 1;
+    if (ROLE_CORE[role].includes(k)) x *= GROW.core;
+    if (grain?.hi.includes(k)) x *= GROW.hi;
+    if (grain?.lo.includes(k)) x *= GROW.lo;
+    if (g.talents.includes(k)) x *= g.type === '특화형' ? GROW.talentSpec : GROW.talent;
+    if (g.weak.includes(k)) x = 0;
+    w[k] = g.type === '균형형' ? 1 + (x - 1) * GROW.flat : x; // 균형형: 무게 차이를 줄임
+  }
+  for (let pass = 0; pass < 6 && left > 1e-9; pass++) {
+    const open = STAT_KEYS.filter(k => w[k] > 0 && base[k] + out[k] < 20 - 1e-9), sum = open.reduce((a, k) => a + w[k], 0);
+    if (!sum) break;
+    let spill = 0;
+    for (const k of open) {
+      const want = (left * w[k]) / sum, room = 20 - base[k] - out[k], got = Math.min(want, room);
+      out[k] += got; spill += want - got;
+    }
+    left = spill;
+  }
+  return out;
+}
+/** 화면에 보이는 능력치 = 저장 값 + 레벨 몫 (반올림, 1~20). who 없으면 저장 값 그대로 */
+export const statsAt = (st: Stats, who?: { nick: string; pers: PersName; role: Exclude<Role, 'healer'>; lv?: number }): Stats => {
+  const add = who ? lvAdds(who.nick, who.pers, who.role, who.lv, st) : null;
+  return Object.fromEntries(STAT_KEYS.map(k => [k, Math.max(1, Math.min(20, Math.round(st[k] + (add ? add[k] : 0))))])) as Stats;
 };
 
 /** 꾸준함 (97 숨은 능력치): 판마다 능력치 전체가 ±amp 안에서 함께 오르내림. 꾸준함 1 = ±2.5, 20 = 0. 판 시드 · 닉네임으로 한 번 굴림 */

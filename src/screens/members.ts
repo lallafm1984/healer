@@ -2,7 +2,7 @@
 import { ABILITIES, AB_GRADE } from '../data/abilities';
 import { CLASSES, type ClassKey } from '../data/classes';
 import { CATS, PERS, type PersName } from '../data/personalities';
-import { abilityStars, ROLE_CORE, STAT_GROUPS, STAT_NAMES, statsAt, type StatKey, type Stats } from '../data/fm';
+import { abilityStars, GROW_TYPES, growthOf, ROLE_CORE, STAT_GROUPS, STAT_NAMES, statsAt, type StatKey, type Stats } from '../data/fm';
 import { classGlyphSvg } from './class-icons';
 import { ratingStarsHtml } from './member-icons';
 import { esc, ROLE } from './kit';
@@ -92,7 +92,8 @@ export function memRowHtml(m: CardData, o: { attrs?: string; cls?: string; extra
 /** 파티원 상세: 능력 별 · 능력치 · 스킬 · 성격 */
 export function memDetailHtml(m: CardData): string {
   const role = CLASSES[m.cls].role as 'tank' | 'melee' | 'ranged';
-  return `<div class="f-det">${m.fm ? `<p class="pfm">능력 <b>${fmStars(m)}</b></p>${statsHtml(statsAt(m.fm.stats, m.lv), role, m.lastStatGains)}` : ''}${abHtml(m.ab, m.star || 0)}
+  const g = m.fm ? growthOf(m.nick, role) : null, gt = g ? GROW_TYPES.find(x => x.type === g.type)! : null; // 성장 결 (103): 크는 모양 한 마디
+  return `<div class="f-det">${m.fm ? `<p class="pfm">능력 <b>${fmStars(m)}</b>${gt ? `<small class="pfm-grow" title="${gt.desc}">${gt.type}</small>` : ''}</p>${statsHtml(statsAt(m.fm.stats, { nick: m.nick, pers: m.pers, role, lv: m.lv }), role, m.lastStatGains)}` : ''}${abHtml(m.ab, m.star || 0)}
     ${personalityHtml(m.pers)}</div>`;
 }
 
