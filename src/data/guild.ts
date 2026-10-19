@@ -118,17 +118,17 @@ export function statWeights(m: Pick<GuildMember, 'stats' | 'votes' | 'lv' | 'lea
 }
 
 /** 「한 일」 표 (97): 그 판에서 가장 두드러진 일 하나 → 오를 칸 */
-export type Deed = 'dodge' | 'adds' | 'buster' | 'top' | 'cut' | 'move' | 'calm';
+export type Deed = 'dodge' | 'adds' | 'buster' | 'top' | 'cut' | 'move' | 'calm' | 'help';
 export const DEED_STATS: Record<Deed, StatKey[]> = {
-  dodge: ['evade', 'react'], adds: ['adds'], buster: ['tough', 'armor'], top: ['atk'], cut: ['skill'], move: ['agility', 'position'], calm: ['composure', 'judgment'],
+  dodge: ['evade', 'react'], adds: ['judgment'], buster: ['tough', 'armor'], top: ['atk'], cut: ['skill'], move: ['agility', 'position'], calm: ['composure', 'judgment'], help: ['coop'], // 쫄을 고르는 건 판단 · 동료를 메우는 건 협동 (99)
 };
 export const DEED_WHY: Record<Deed, string> = {
-  dodge: '장판을 잘 피함', adds: '쫄을 많이 잡음', buster: '강타를 버팀', top: '딜 1등', cut: '기술을 끊음', move: '자리를 잘 옮김', calm: '위기를 버팀',
+  dodge: '장판을 잘 피함', adds: '쫄을 많이 잡음', buster: '강타를 버팀', top: '딜 1등', cut: '기술을 끊음', move: '자리를 잘 옮김', calm: '위기를 버팀', help: '동료를 도움',
 };
 export const VOTE_KEEP = 5;
 
 /** 그 판에서 가장 두드러진 일 하나 (97 「한 판에 한 표」): 판 크기와 상관없이 비슷하게 나오게 각 일을 「눈에 띄는 정도」로 바꿔 가장 큰 것, 0.5 아래면 표 없음 */
-export function deedOf(x: { did: { dodge: number; move: number; cut: number; buster: number; adds: number }; dealt: number; top: boolean; low: number; alive: boolean; role: string }): Deed | undefined {
+export function deedOf(x: { did: { dodge: number; move: number; cut: number; buster: number; adds: number; help?: number }; dealt: number; top: boolean; low: number; alive: boolean; role: string }): Deed | undefined {
   const d = x.did, sc: [Deed, number][] = [
     ['top', x.top ? 1 : 0],
     ['buster', x.role === 'tank' ? d.buster / 3 : 0],
@@ -137,6 +137,7 @@ export function deedOf(x: { did: { dodge: number; move: number; cut: number; bus
     ['cut', d.cut / 1.5],
     ['move', Math.max(0, d.move - d.dodge) / 12],
     ['calm', x.alive && x.low < 0.25 ? (0.25 - x.low) / 0.15 : 0],
+    ['help', d.help ?? 0], // 99 협동: 대신 끊기 · 나눠 맞기 · 붙잡기 한 번
   ];
   const best = sc.reduce((a, b) => (b[1] > a[1] ? b : a));
   return best[1] >= 0.5 ? best[0] : undefined;

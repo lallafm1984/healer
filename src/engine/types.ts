@@ -269,7 +269,7 @@ export interface Unit {
   /** 성장 행동을 판단할 때 쓸 이 전투의 최저 체력 비율 */
   low?: number;
   /** 길드원 「한 일」 (97): 장판을 피한 수 · 옮긴 수 · 끊은 수 · 맞은 강타 수 · 쫄에게 준 딜 */
-  did?: { dodge: number; move: number; cut: number; buster: number; adds: number };
+  did?: { dodge: number; move: number; cut: number; buster: number; adds: number; help: number };
   /** 짝꿍 (95): 짝 (아군 id). 붙어 있으면 둘 다 회피 + */
   pairWith?: number;
   /** 칭찬왕 · 보은형 (95): 체력 25% 아래로 내려간 적 있음 (60% 위로 오면 살아남) */
@@ -496,6 +496,7 @@ export type FightEvent =
   | { type: 'daze'; id: number }
   | { type: 'offGuard'; id: number }
   | { type: 'clump'; id: number }
+  | { type: 'alone'; id: number }
   | { type: 'stagger'; id: number; steady?: boolean }
   /** 능력치 (99 라): 보스 평타를 막아 반만 맞음 (칸 위 「막음」) */
   | { type: 'parry'; id: number }
@@ -817,6 +818,8 @@ export interface Fight {
   moodReact?: number;
   praise?: { until: number; up: number };
   standIn?: { id: number; until: number };
+  /** 99 협동 (Codex 검토 반영 3): 끊기 실패 뒤 대신 끊을 사람 · 그 기술 · 끊는 때 */
+  cutRetry?: { id: number; skill: BossSkill; at: number };
   ab: PartyAb;
   /** 어픽스 (없으면 null = 프로토타입과 같음) */
   aff: AffixState | null;

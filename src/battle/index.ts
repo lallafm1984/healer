@@ -538,6 +538,7 @@ function handleEvents(now: number): void {
       case 'daze': if (u) fxNote(u, '멍', 0xb7b1c9, now); break; // 99 집중
       case 'offGuard': if (u) fxNote(u, '자세 놓침', 0xd9a0a0, now); break; // 99 방어
       case 'clump': if (u) fxNote(u, '붙어 섬', 0xd9b38c, now); break; // 99 위치 잡기
+      case 'alone': if (u) fxNote(u, '혼자 놂', 0xb7b1c9, now); break; // 99 협동
       case 'stagger': if (u) fxNote(u, ev.steady ? '버팀' : '휘청', ev.steady ? 0xe8d29a : 0xd9a0a0, now); break; // 99 맷집
       case 'death':
         if (u) fxDeath(u, now);
@@ -704,7 +705,7 @@ function collectPartyStats(R: Run, f: Fight): void {
     if (u.me || u.role === 'healer') continue;
     const low = u.low ?? 1, x = (b[u.nick] ??= { got: 0, low: 1, dealt: 0 });
     x.got += u.got; x.dealt += u.dealt;
-    if (u.did) { const d = (x.did ??= { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0 }); for (const k of Object.keys(d) as (keyof typeof d)[]) d[k] += u.did[k]; } // 길드원 「한 일」 (97)
+    if (u.did) { const d = (x.did ??= { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0, help: 0 }); for (const k of Object.keys(u.did) as (keyof typeof u.did)[]) d[k] = (d[k] ?? 0) + u.did[k]; } // 길드원 「한 일」 (97)
     x.low = Math.min(x.low, low);
   }
 }

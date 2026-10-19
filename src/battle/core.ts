@@ -117,7 +117,7 @@ export interface Run {
   /** 광고 이어하기 횟수 (등급 최대 B) */
   cont: number;
   /** 길드원 성장 행동을 판단할 구간 합 전투 기록 */
-  partyStats?: Record<string, { got: number; low: number; did?: { dodge: number; move: number; cut: number; buster: number; adds: number }; dealt: number }>;
+  partyStats?: Record<string, { got: number; low: number; did?: { dodge: number; move: number; cut: number; buster: number; adds: number; help?: number }; dealt: number }>;
 }
 
 export const S = {

@@ -641,3 +641,70 @@ describe('위치 잡기 (탱커가 아닌 사람, Lim 06:47 「능력치 하나�
     expect(picks(1)).toBeGreaterThan(picks(15));
   });
 });
+
+describe('협동 (예전 쫄 처리, Lim 10-19 07:04 「협동」)', () => {
+  /** 탱커 · 근접 (발차기) · 마법사 (주문 차단) · 궁수, 근접 · 마법사 능력치를 따로 */
+  function coopFight(rogue: Partial<Stats>, mage: Partial<Stats>, seed = 1) {
+    const f = E.create({
+      encounter: 'warden', diff: '보통', seed, stageLv: 30, heroLv: 30,
+      party: [R('tank', 'warrior', '사교형', '탱', {}, 15), { ...R('melee', 'rogue', '사교형', '근', rogue, 15), ab: 'rogue.kick' }, { ...R('ranged', 'mage', '사교형', '마', mage, 15), ab: 'mage.counterspell' }, R('ranged', 'archer', '사교형', '궁', {}, 15)],
+    });
+    f.skills.forEach(s => { s.next = Infinity; });
+    for (let i = 0; i < 20; i++) { E.step(f); f.events.length = 0; }
+    return f;
+  }
+  const castSkill = (f: F) => ({ key: 'test', name: '시험 시전', kind: 'aoe', cut: true, cast: 3, period: 99, next: Infinity, st: {}, active: () => true, hit: () => {} }) as unknown as import('../src/engine/types').BossSkill;
+  async function failFirstCut(coop: number) {
+    const { abCut } = await import('../src/engine/abilities');
+    const f = coopFight({ skill: 15 }, { coop, react: 15, judgment: 15, skill: 15 }), s = castSkill(f), mg = who(f, '마');
+    const order = f.party; f.party = [...order].sort((a, b) => Number(b.nick === '근') - Number(a.nick === '근')); // 근접이 먼저 시도
+    const r0 = f.rng; f.rng = () => 0.99; // 첫 끊기는 실패
+    const ok = abCut(f, s);
+    f.rng = r0; f.party = order;
+    expect(ok).toBe(false);
+    const tel = { id: f.nextId++, skill: s, kind: 'aoe', start: f.t, impact: f.t + 3, units: [], cells: new Set() } as unknown as Telegraph;
+    f.tels.push(tel);
+    mg.fm = { ...mg.fm!, cut: 1 }; // 대신 끊기는 늘 성공 (판정만 봄)
+    const msgs: string[] = [];
+    for (let i = 0; i < 40; i++) { E.step(f); for (const ev of f.events) if (ev.type === 'msg') msgs.push(ev.text); f.events.length = 0; }
+    return { f, tel, msgs };
+  }
+  it('Codex 검토 반영 3: 끊기 실패 뒤 협동이 15 넘는 다른 끊기 담당이 알아채 대신 끊음 (「끊기 실패 뒤 ○○이(가) 차단」), 15는 예전처럼 그대로 맞음', async () => {
+    const hi = await failFirstCut(20);
+    expect(hi.f.tels.includes(hi.tel)).toBe(false);
+    expect(hi.msgs).toContain('끊기 실패 뒤 마이(가) 차단');
+    const par = await failFirstCut(15);
+    expect(par.f.tels.includes(par.tel)).toBe(true);
+    expect(par.msgs.some(m => m.includes('끊기 실패 뒤'))).toBe(false);
+  });
+  it('나눠 맞는 장판: 협동이 15보다 낮으면 뽑혀도 안 옴 (1 = 50%, 「혼자 놂」), 15는 예전 그대로', async () => {
+    const { soakGo } = await import('../src/engine/bossParts');
+    const alone = (coop: number) => {
+      let n = 0, picked = 0;
+      for (let s = 0; s < 100; s++) {
+        const f = coopFight({ coop }, {}, 500 + s), mg = who(f, '마');
+        who(f, '궁').fmStats!.coop = coop;
+        soakGo(f, { id: f.nextId++, units: [mg.id], impact: f.t + 3 } as unknown as Telegraph);
+        for (const ev of f.events) if (ev.type === 'alone') n++;
+        picked += 2;
+        f.events.length = 0;
+      }
+      return n / picked;
+    };
+    const lo = alone(1);
+    expect(lo).toBeGreaterThan(STAT_ACT.soakSkip - 0.12); expect(lo).toBeLessThan(STAT_ACT.soakSkip + 0.12);
+    expect(alone(15)).toBe(0);
+  });
+  it('탱커가 모두 쓰러지면 협동이 15 넘는 근접이 잠깐 붙잡음 (보스가 그 사람을 침), 15는 없음', async () => {
+    const { damage } = await import('../src/engine/core');
+    const { aggroTarget } = await import('../src/engine/bossParts');
+    const stand = (coop: number) => {
+      const f = coopFight({ coop }, { coop: 10 }), tk = who(f, '탱');
+      damage(f, tk, tk.max * 10, false, 'fixed');
+      return { f, id: f.standIn && f.t < f.standIn.until ? f.standIn.id : null, target: aggroTarget(f)?.nick };
+    };
+    const hi = stand(20);
+    expect(hi.id).toBe(who(hi.f, '근').id); expect(hi.target).toBe('근');
+    expect(stand(15).id).toBeNull();
+  });
+});

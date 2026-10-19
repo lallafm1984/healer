@@ -191,7 +191,7 @@ function makeParty(f: Fight, roster?: RosterEntry[]): void {
       barkAt: -10, ignoreZone: 0, homeAt: null, diedAt: 0, me: role === 'healer',
       ab: null, mods: [], got: 0, senseReact: fx ? fx.react : 1, senseDodge: fx ? fx.dodge : 0, gid: r?.gid,
     };
-    if (r?.gid != null) u.did = { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0 }; // 길드원 「한 일」 (97)
+    if (r?.gid != null) u.did = { dodge: 0, move: 0, cut: 0, buster: 0, adds: 0, help: 0 }; // 길드원 「한 일」 (97)
     if (fx) { u.fm = fx; u.fmStats = Object.fromEntries(STAT_KEYS.map(k => [k, r!.fm!.stats[k] + r!.fm!.off])) as Stats; u.wob = wobOf(r!.fm!.steady ?? 10); }
     if (role !== 'healer') u.lv = r?.lv ? (r.pub ? r.lv : Math.min(r.lv, f.cfg.stageLv ?? r.lv)) : (f.cfg.stageLv ?? 1); // 어그로 레벨 차이 (96)
     else u.lv = Math.max(f.cfg.heroLv ?? f.cfg.stageLv ?? 1, f.cfg.stageLv ?? 1);
@@ -333,7 +333,7 @@ function habitPers(p: Partial<Personality>, h = 1): Partial<Personality> {
 }
 
 function hitAdds(f: Fight, d: number, u: Unit): void {
-  const hunt = u.p.addHunter, am = (hunt?.add ?? 1) * (f.persOn ? gatherMult(f) : 1) * (u.fm?.adds ?? 1); // 쫄 처리 (97 FM)
+  const hunt = u.p.addHunter, am = (hunt?.add ?? 1) * (f.persOn ? gatherMult(f) : 1); // 예전 쫄 처리 (97 FM)는 협동으로 바뀌며 뺌 (99)
   if (u.did) u.did.adds += d;
   let left = d, cleaved = false;
   for (const m of focusOrder(f)) { // 일점사 (P-FOCUS): 먼저 잡을 것부터
